@@ -1,0 +1,342 @@
+/* Garante que nenhuma imagem fique gigante ou estoure o layout em nenhuma camada do app */
+img, .SmartImage img {
+  max-width: 100% !important;
+  max-height: 100% !important;
+  height: auto;
+  width: auto;
+  display: block;
+  object-fit: cover;
+}
+
+/* Leaflet map layers must keep native sizing; do not affect popup/content images. */
+.leaflet-container img.leaflet-image-layer,
+.leaflet-container img.leaflet-tile {
+  max-width: none !important;
+  max-height: none !important;
+  width: auto !important;
+  height: auto !important;
+  object-fit: unset !important;
+}
+
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&family=Outfit:wght@300;400;600;700;800;900&display=swap');
+
+:root {
+  /* Base - Light Mode Only */
+  --bg: #EDEDED;
+  --card: #ffffff;
+  --border: #c9ced6;
+
+  /* Accent - Turquoise */
+  --accent-hex: #35cac9;
+  --accent-l: #5dd6d5;
+  --accent-d: #1fa8a7;
+
+  /* Gold - Nuggets */
+  --gold-hex: #F5A623;
+  --gold-l: #FFD166;
+  --gold-d: #C47D0E;
+
+  /* Status */
+  --success-hex: #75ba75;
+  --danger-hex: #dc2626;
+
+  /* Text hierarchy */
+  --t1: #0f172a;
+  --t2: #475569;
+  --t3: #94a3b8;
+
+  /* Shadow */
+  --shadow: 0 4px 6px -1px rgb(0 0 0 / 0.08), 0 2px 4px -2px rgb(0 0 0 / 0.05);
+
+  /* Neutral UI tokens */
+  --ui-surface: #ffffff;
+  --ui-border: #b8bec8;
+  --ui-border-soft: #c2c8d1;
+  --ui-btn-text: #1f7d89;
+  --ui-btn-text-strong: #136a74;
+  --ui-hover: #f0f2f6;
+  --ui-active: #20cfc8;
+  --ui-active-text: #ffffff;
+}
+
+[data-theme="dark"] {
+  --bg: #101614;
+  --card: #171e1b;
+  --border: #2a3833;
+
+  --accent-hex: #35cac9;
+  --accent-l: #5dd6d5;
+  --accent-d: #1fa8a7;
+
+  --gold-hex: #f5a623;
+  --gold-l: #ffd166;
+  --gold-d: #c47d0e;
+
+  --success-hex: #75ba75;
+  --danger-hex: #ef4444;
+
+  --t1: #e4ece7;
+  --t2: #a3b2ab;
+  --t3: #73847d;
+
+  --shadow: 0 10px 24px -10px rgb(0 0 0 / 0.5), 0 4px 12px -6px rgb(0 0 0 / 0.35);
+
+  --ui-surface: #171e1b;
+  --ui-border: #37463f;
+  --ui-border-soft: #293530;
+  --ui-btn-text: #7fe8e3;
+  --ui-btn-text-strong: #a0fffa;
+  --ui-hover: #1a2a24;
+  --ui-active: #20cfc8;
+  --ui-active-text: #101614;
+}
+
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+input, textarea, select, button {
+  font-family: inherit;
+  font-size: inherit;
+}
+
+body {
+  font-family: 'Inter', 'Outfit', sans-serif;
+  background-color: var(--bg);
+  color: var(--t1);
+  overflow-x: hidden;
+  line-height: 1.6;
+  -webkit-font-smoothing: antialiased;
+  transition: background-color .2s ease, color .2s ease;
+}
+
+#root {
+  width: 100%;
+  min-height: 100vh;
+}
+
+/* ── Responsive utilities ── */
+.desktop-only {
+  display: block;
+}
+
+.mobile-only {
+  display: none;
+}
+
+.desktop-nav {
+  display: flex;
+}
+
+/* Dashboard: 4-col layout — left sidebar | card stack | matches | interested */
+.dashboard-grid {
+  grid-template-columns: 200px 1fr 280px 280px;
+  gap: 14px;
+}
+
+.dashboard-grid > .merge-next-col {
+  margin-right: -14px;
+}
+
+@media (max-width: 1280px) {
+  .dashboard-grid {
+    grid-template-columns: 185px 1fr 280px 280px;
+    gap: 12px;
+  }
+
+  .dashboard-grid > .merge-next-col {
+    margin-right: -12px;
+  }
+}
+
+@media (max-width: 1080px) {
+  .dashboard-grid {
+    grid-template-columns: 185px 1fr;
+    gap: 12px;
+  }
+
+  .dashboard-grid > .merge-next-col {
+    margin-right: 0;
+  }
+}
+
+@media (max-width: 767px) {
+  .desktop-only {
+    display: none !important;
+  }
+
+  .mobile-only {
+    display: block;
+  }
+
+  .desktop-nav {
+    display: none;
+  }
+
+  .dashboard-grid {
+    grid-template-columns: 1fr;
+    gap: 12px;
+  }
+}
+
+/* ── Scrollbar ── */
+::-webkit-scrollbar {
+  width: 4px;
+  height: 4px;
+}
+
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+  background: var(--border);
+  border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: var(--t3);
+}
+
+/* ── Suppress browser autofill background override ── */
+input:-webkit-autofill,
+input:-webkit-autofill:hover,
+input:-webkit-autofill:focus,
+input:-webkit-autofill:active {
+  -webkit-box-shadow: 0 0 0 1000px var(--card) inset !important;
+  -webkit-text-fill-color: var(--t1) !important;
+  caret-color: var(--t1);
+  transition: background-color 5000s ease-in-out 0s;
+}
+
+/* Map list item outlines (person/property/unlocked) */
+.map-list-item {
+  border-radius: 8px;
+  transition: border-color .12s ease, box-shadow .12s ease;
+  /* layered backgrounds: first layer fills the interior, second layer provides the gradient border */
+  border: 2px solid transparent;
+  background-image: linear-gradient(var(--ui-surface), var(--ui-surface)), linear-gradient(to bottom, var(--map-top, #4280ba), var(--map-bottom, #27342f));
+  background-origin: border-box;
+  background-clip: padding-box, border-box;
+}
+
+/* Person cards: turquoise top -> light-bottom (#f4f4f4) in light theme; dark bottom in dark theme */
+.map-list-item.person {
+  --map-top: var(--accent-hex);
+  --map-bottom: #f4f4f4;
+}
+
+/* keep original darker bottom for dark theme */
+[data-theme="dark"] .map-list-item.person {
+  --map-bottom: #27342f;
+}
+
+/* Property cards: #4280ba top -> light-bottom (#f4f4f4) in light theme; dark bottom in dark theme */
+.map-list-item.property {
+  --map-top: #4280ba;
+  --map-bottom: #f4f4f4;
+}
+
+[data-theme="dark"] .map-list-item.property {
+  --map-bottom: #27342f;
+}
+
+.map-list-item.unlocked {
+  /* unlocked: green top; light-bottom in light theme, dark-bottom in dark theme */
+  --map-top: var(--success-hex);
+  --map-bottom: #f4f4f4;
+}
+
+[data-theme="dark"] .map-list-item.unlocked {
+  --map-bottom: #27342f;
+}
+
+.map-list-item:hover {
+  box-shadow: var(--shadow);
+}
+
+/* Gradient border utility used by feed cards and map list items */
+.card-gradient {
+  border-radius: 16px;
+  padding: 1.5px; /* thickness of border */
+  background-image: linear-gradient(var(--ui-surface), var(--ui-surface)), linear-gradient(to bottom, var(--map-top, var(--accent-hex)), var(--map-bottom, #27342f));
+  background-origin: border-box;
+  background-clip: padding-box, border-box;
+  box-shadow: var(--shadow);
+}
+
+.card-gradient.person { --map-top: var(--accent-hex); --map-bottom: #27342f; }
+.card-gradient.property { --map-top: #4280ba; --map-bottom: #f4f4f4; }
+.card-gradient.unlocked { --map-top: var(--success-hex); --map-bottom: #f4f4f4; }
+
+[data-theme="dark"] .card-gradient.property { --map-bottom: #27342f; }
+[data-theme="dark"] .card-gradient.unlocked { --map-bottom: #27342f; }
+
+/* Logo grouping and movement variables */
+.logo-general {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px; /* kept in sync with inline fallback */
+  position: relative; /* reference for absolute children */
+  --lg-translate-x: 0px;
+  --lg-translate-y: 0px;
+  --lg-scale: 1;
+  transform: translate(var(--lg-translate-x), var(--lg-translate-y)) scale(var(--lg-scale));
+  transform-origin: left center;
+  transition: transform .12s ease;
+}
+
+.logo-image {
+  display: inline-block;
+}
+
+.logo-text {
+  position: relative; /* keeps .logo-match absolute to this block */
+}
+
+.logo-text-main {
+  color: var(--t1);
+}
+
+.logo-general {
+  --logo-deal-color: #000000;
+}
+
+[data-theme="dark"] .logo-general {
+  --logo-deal-color: #ffffff;
+}
+
+.logo-general .logo-text-main .logo-text-deal {
+  color: var(--logo-deal-color) !important;
+}
+
+.logo-text-sifter {
+  color: var(--accent-hex);
+}
+
+.logo-match {
+  /* default superscript position; positioned relative to .logo-text */
+  position: absolute;
+  top: -10px;
+  right: -20px;
+  font-size: 9.6px;
+  font-style: italic;
+  color: var(--gold-hex);
+  text-transform: uppercase;
+  font-weight: 700;
+  text-shadow: 0.5px 0.5px 1px rgba(0,0,0,0.9);
+}
+
+/* Utility helpers: movement & scale while preserving proportionality */
+.logo-general.move-right { --lg-translate-x: 10px; }
+.logo-general.move-left  { --lg-translate-x: -10px; }
+.logo-general.move-down  { --lg-translate-y: 8px; }
+.logo-general.move-up    { --lg-translate-y: -8px; }
+.logo-general.scale-110  { --lg-scale: 1.1; }
+.logo-general.scale-105  { --lg-scale: 1.05; }
+.logo-general.scale-095  { --lg-scale: 0.95; }
+.logo-general.scale-090  { --lg-scale: 0.9; }
+
+/* Temporary visual aid removed */

@@ -1,0 +1,3075 @@
+import React, { useMemo, useState, useEffect, useRef } from 'react';
+import loaderMark from '../assets/logo.png';
+import { C } from '../theme/colors';
+import { useT } from '../i18n/translations';
+import { CATEGORIES, CARDS, PROPERTIES } from '../data/mockData';
+import { Icon } from '../components/ui/Icon';
+import { SmartImage } from '../components/ui/SmartImage';
+import { CategoryBar } from '../components/layout/CategoryBar';
+import { Modal } from '../components/ui/Modal';
+import { catIcon } from '../lib/catIcon';
+import { SwipeCard } from '../components/cards/SwipeCard';
+import { PropertyCard } from '../components/cards/PropertyCard';
+import { getHiddenSet, subscribe as subscribeHidden } from '../lib/hiddenCards';
+import { resolveScopedProfile, normalizeProfileScope } from '../lib/profileScopeResolver';
+import { getMatchPressure } from '../lib/matchPressure';
+
+// Utilitário para checagem de flag booleana (string, bool, number)
+function isTruthyFlag(value, defaultValue = false) {
+  if (value === undefined || value === null) return defaultValue;
+  if (typeof value === 'boolean') return value;
+  if (typeof value === 'number') return value !== 0;
+  if (typeof value === 'string') {
+    const v = value.trim().toLowerCase();
+    if (['true', '1', 'on', 'yes'].includes(v)) return true;
+    if (['false', '0', 'off', 'no'].includes(v)) return false;
+  }
+  return Boolean(value);
+}
+
+function readPendingFocusCard() {
+  try {
+    const raw = localStorage.getItem('focusCard');
+    if (!raw) return null;
+    const parsed = JSON.parse(raw);
+    if (!parsed || !parsed.id) return null;
+    return {
+      ...parsed,
+      type: parsed.type === 'property' ? 'property' : 'person',
+    };
+  } catch {
+    return null;
+  }
+}
+
+export function Dashboard({ page, nuggets, setModal, setPage, onOpenOnboardingTab, openUnlock, unlocked, matched, setMatched, interested, setInterested, purchases, setPurchases, userProfile, personalProfile, professionalProfile, propertyPortfolio, servicePortfolio, accountType, showcaseProperties, categoryOrder, setCategoryOrder, editMode, setEditMode, mobileBottomNavCollapsed = false }) {
+  // Estado de loading global do feed
+  const [isLoading, setIsLoading] = useState(true);
+  const [showLoadingOverlay, setShowLoadingOverlay] = useState(false);
+  const [isMobileViewport, setIsMobileViewport] = useState(() => {
+    if (typeof window === 'undefined' || typeof window.matchMedia !== 'function') return false;
+    return window.matchMedia('(max-width: 767px)').matches;
+  });
+        // Aguarda dados essenciais carregarem antes de liberar o feed.
+    useEffect(() => {
+      const hasProfiles = userProfile !== undefined && personalProfile !== undefined && professionalProfile !== undefined;
+      const hasPortfolios = Array.isArray(propertyPortfolio) && Array.isArray(servicePortfolio);
+      // Considera carregado quando perfis e portfólios estão prontos
+      if (hasProfiles && hasPortfolios) {
+        setIsLoading(false);
+      } else {
+        setIsLoading(true);
+      }
+    }, [userProfile, personalProfile, professionalProfile, propertyPortfolio, servicePortfolio]);
+
+  useEffect(() => {
+    if (typeof window === 'undefined' || typeof window.matchMedia !== 'function') return undefined;
+    const mediaQuery = window.matchMedia('(max-width: 767px)');
+    const handleViewportChange = (event) => setIsMobileViewport(event.matches);
+    setIsMobileViewport(mediaQuery.matches);
+
+    if (typeof mediaQuery.addEventListener === 'function') {
+      mediaQuery.addEventListener('change', handleViewportChange);
+      return () => mediaQuery.removeEventListener('change', handleViewportChange);
+    }
+
+    mediaQuery.addListener(handleViewportChange);
+    return () => mediaQuery.removeListener(handleViewportChange);
+  }, []);
+
+  // Mostra o loader apenas quando a carga realmente demora (evita flicker).
+  useEffect(() => {
+    if (!isLoading) {
+      setShowLoadingOverlay(false);
+      return;
+    }
+    const timer = window.setTimeout(() => {
+      setShowLoadingOverlay(true);
+    }, 450);
+    return () => window.clearTimeout(timer);
+  }, [isLoading]);
+
+  // Failsafe: evita loader infinito em ambientes de preview quando alguma fonte de dados demora indefinidamente.
+  useEffect(() => {
+    if (!isLoading) return undefined;
+    const fallbackTimer = window.setTimeout(() => {
+      setIsLoading(false);
+      setShowLoadingOverlay(false);
+    }, 3200);
+    return () => window.clearTimeout(fallbackTimer);
+  }, [isLoading]);
+
+  const MAX_SIDE_LIST_VISIBLE = 9; // Max visible items before scroll
+  const SIDE_PANEL_HEIGHT = MAX_SIDE_LIST_VISIBLE * 54 + 44;
+  const FEED_CARD_SCALE = 1;
+  const FEED_CARD_BASE_WIDTH = isMobileViewport ? 360 : 654;
+  const FEED_CARD_BASE_HEIGHT = isMobileViewport ? 540 : 400;
+  const FEED_CARD_WIDTH = Math.round(FEED_CARD_BASE_WIDTH * FEED_CARD_SCALE);
+  const FEED_CARD_HEIGHT = Math.round(FEED_CARD_BASE_HEIGHT * FEED_CARD_SCALE);
+  const FEED_STACK_SHIFT_X = Math.round(20 * FEED_CARD_SCALE);
+  const FEED_STACK_SHIFT_Y = Math.round(24 * FEED_CARD_SCALE);
+  const FEED_STACK_CONTAINER_HEIGHT = FEED_CARD_HEIGHT + (isMobileViewport ? 128 : 160);
+  const SWIPE_ANIM_MS = 560;
+  const pendingFocusOnInit = readPendingFocusCard();
+  const mobileBottomNavOffset = isMobileViewport ? (mobileBottomNavCollapsed ? 4 : 88) : 0;
+  const mobileDashboardBottomPadding = isMobileViewport ? (mobileBottomNavCollapsed ? 104 : 156) : 62;
+  const mobileActionDockBottom = isMobileViewport ? (mobileBottomNavCollapsed ? 88 : 126) : 20;
+
+  const [activeCat, setActiveCat] = useState(() => {
+    try { return localStorage.getItem('ds_activeCat') || 'all'; } catch (e) { void e; return 'all'; }
+  });
+  const [view, setView] = useState(() => pendingFocusOnInit?.type === 'property' ? 'properties' : 'connections');
+  const [selectedStates, setSelectedStates] = useState(() => {
+    try {
+      const raw = localStorage.getItem('ds_selectedStates');
+      if (!raw) return [];
+      const parsed = JSON.parse(raw);
+      return Array.isArray(parsed) ? parsed : [];
+    } catch (e) { void e; return []; }
+  }); // empty => all
+  const [dropdownOpen, setDropdownOpen] = useState(false);
+  const [mobileFeedSidebarOpen, setMobileFeedSidebarOpen] = useState(false);
+  const [mobileFeedHandleOffsetY, setMobileFeedHandleOffsetY] = useState(() => {
+    try {
+      const raw = Number(localStorage.getItem('ds_mobile_feed_handle_offset_y'));
+      if (!Number.isFinite(raw)) return 0;
+      return Math.max(-120, Math.min(260, raw));
+    } catch (e) { void e; return 0; }
+  });
+  const [isDraggingFeedHandle, setIsDraggingFeedHandle] = useState(false);
+  const mobileFeedHandleDragRef = useRef({ active: false, pointerId: null, startY: 0, startOffsetY: 0 });
+  const mobileFeedHandleSuppressClickRef = useRef(false);
+  const [matchCategoryDropdownOpen, setMatchCategoryDropdownOpen] = useState(false);
+  const [interestStateDropdownOpen, setInterestStateDropdownOpen] = useState(false);
+  const [selectedMatchCategories, setSelectedMatchCategories] = useState([]);
+  const [selectedInterestStates, setSelectedInterestStates] = useState([]);
+  const [action, setAction] = useState(null);
+  const [propAction, setPropAction] = useState(null);
+  const [propStatusById, setPropStatusById] = useState({});
+  const [skippedQueue, setSkippedQueue] = useState([]); // FIFO/LIFO queue for skipped cards (LIFO by default)
+  const [skippedSet, setSkippedSet] = useState(new Set());
+  const [skippedQueueProp, setSkippedQueueProp] = useState([]);
+  const [skippedSetProp, setSkippedSetProp] = useState(new Set());
+  const [hiddenSet, setHiddenSet] = useState(() => getHiddenSet());
+
+  useEffect(() => {
+    if (!isMobileViewport) {
+      setMobileFeedSidebarOpen(false);
+      setDropdownOpen(false);
+    }
+  }, [isMobileViewport]);
+
+  useEffect(() => {
+    try { localStorage.setItem('ds_mobile_feed_handle_offset_y', String(mobileFeedHandleOffsetY)); } catch (e) { void e; }
+  }, [mobileFeedHandleOffsetY]);
+
+  const clampFeedHandleOffset = (value) => Math.max(-120, Math.min(260, value));
+
+  const handleFeedTabPointerDown = (event) => {
+    if (!isMobileViewport || mobileFeedSidebarOpen) return;
+    mobileFeedHandleSuppressClickRef.current = false;
+    mobileFeedHandleDragRef.current = {
+      active: true,
+      pointerId: event.pointerId,
+      startY: event.clientY,
+      startOffsetY: mobileFeedHandleOffsetY,
+    };
+    setIsDraggingFeedHandle(true);
+    event.currentTarget.setPointerCapture?.(event.pointerId);
+  };
+
+  const handleFeedTabPointerMove = (event) => {
+    const dragState = mobileFeedHandleDragRef.current;
+    if (!dragState.active) return;
+    if (dragState.pointerId !== null && event.pointerId !== dragState.pointerId) return;
+    const deltaY = event.clientY - dragState.startY;
+    if (Math.abs(deltaY) > 4) mobileFeedHandleSuppressClickRef.current = true;
+    setMobileFeedHandleOffsetY(clampFeedHandleOffset(dragState.startOffsetY + deltaY));
+  };
+
+  const handleFeedTabPointerEnd = (event) => {
+    const dragState = mobileFeedHandleDragRef.current;
+    if (!dragState.active) return;
+    if (dragState.pointerId !== null && event.pointerId !== dragState.pointerId) return;
+    mobileFeedHandleDragRef.current = { active: false, pointerId: null, startY: 0, startOffsetY: 0 };
+    setIsDraggingFeedHandle(false);
+  };
+
+  const handleFeedTabClick = () => {
+    if (mobileFeedHandleSuppressClickRef.current) {
+      mobileFeedHandleSuppressClickRef.current = false;
+      return;
+    }
+    setMobileFeedSidebarOpen(true);
+  };
+
+  // publishingProfileKey selects which local profile's ownerId is considered "me" for publishing
+  const [publishingProfileKey, setPublishingProfileKey] = useState(() => {
+    try { return localStorage.getItem('publishingProfileKey') || 'personal'; } catch (e) { void e; return 'personal'; }
+  });
+
+  // Auto-sync publishingProfileKey with accountType so feed filters match
+  useEffect(() => {
+    const expected = accountType === 'fsbo_owner'
+      ? 'fsbo'
+      : (accountType === 'professional' ? 'personal' : 'personal');
+    if (publishingProfileKey !== expected) {
+      setPublishingProfileKey(expected);
+      try { localStorage.setItem('publishingProfileKey', expected); } catch (e) { void e; }
+    }
+  }, [accountType]);
+
+  const getOwnerIdForKey = (key) => {
+    try {
+      const map = JSON.parse(localStorage.getItem('profileOwnerMap') || 'null');
+      if (map && typeof map[key] !== 'undefined') return map[key];
+    } catch (e) { void e; }
+    // Fallback to profiles passed into this component when the map is missing
+    // Prefer explicit ownerId fields, then id, then userProfile id, finally a sentinel
+    if (key === 'personal') return personalProfile?.ownerId || personalProfile?.id || userProfile?.id || 999999;
+    if (key === 'secondary') return professionalProfile?.ownerId || professionalProfile?.id || userProfile?.id || 999999;
+    if (key === 'fsbo') return professionalProfile?.ownerIdC || professionalProfile?.ownerId || professionalProfile?.id || userProfile?.id || 999999;
+    return userProfile?.id || 999999;
+  };
+
+  const parseStateCode = (value) => {
+    const raw = String(value || '').trim();
+    if (!raw) return null;
+    if (/^[A-Za-z]{2}$/.test(raw)) return raw.toUpperCase();
+    const m = raw.match(/(?:,\s*|\b)([A-Za-z]{2})(?:\s+\d{5}(?:-\d{4})?)?\s*$/);
+    return m ? m[1].toUpperCase() : null;
+  };
+
+  const collectRecordStates = (record) => {
+    const direct = Array.isArray(record?.markets) ? record.markets : [];
+    const fromDirect = direct.map((m) => parseStateCode(m)).filter(Boolean);
+    if (fromDirect.length) return Array.from(new Set(fromDirect));
+
+    const fallbacks = [record?.loc, record?.location, record?.city, record?.state]
+      .map((v) => parseStateCode(v))
+      .filter(Boolean);
+    return Array.from(new Set(fallbacks));
+  };
+
+  const buildLocalProfileCard = (scopeKey = 'personal') => {
+    const isSecondary = scopeKey === 'secondary';
+    const isFsbo = scopeKey === 'fsbo';
+    const profileScope = isSecondary ? 'professional' : (isFsbo ? 'fsbo' : 'personal');
+    const scopedIdentity = resolveScopedProfile(profileScope, {
+      accountType,
+      userProfile,
+      personalProfile,
+      professionalProfile,
+    });
+    const scopedLoc = scopedIdentity?.loc || '';
+    const ownerId = getOwnerIdForKey(scopeKey);
+    const isOwnerRecord = (record) => {
+      if (!record) return false;
+      const recordOwnerId = String(record.ownerId || '').trim();
+      // Accept the Supabase UUID match OR the local sentinel (999999).
+      // Records without a valid ownerId are excluded — no source-based fallback
+      // because that would allow records from other users to leak through.
+      return recordOwnerId !== '' && (recordOwnerId === String(ownerId) || recordOwnerId === '999999');
+    };
+    const scopedProperties = (showcaseProperties || []).filter((p) => (
+      isOwnerRecord(p)
+      && normalizeProfileScope(p.primaryProfile || 'personal') === profileScope
+      && isTruthyFlag(p.publishToShowcase, true)
+    ));
+    const scopedServices = (servicePortfolio || []).filter((s) => (
+      isOwnerRecord(s)
+      && normalizeProfileScope(s.primaryProfile || 'personal') === profileScope
+      && isTruthyFlag(s.publishToConnections, true)
+    ));
+    const scopedMarkets = Array.from(new Set([
+      ...scopedProperties.flatMap((p) => collectRecordStates(p)),
+      ...scopedServices.flatMap((s) => collectRecordStates(s)),
+      parseStateCode(scopedLoc),
+    ].filter(Boolean)));
+    const fsboStateCode = scopedMarkets[0] || parseStateCode(scopedLoc || userProfile?.location);
+    const categoryId = scopedIdentity?.categoryId || '';
+    const categoryLabel = CATEGORIES
+      .filter((c) => c.id !== 'all')
+      .flatMap((c) => (c.sub ? [{ ...c, sub: null }, ...c.sub] : [c]))
+      .find((p) => p.id === categoryId)?.label;
+    const typeLabel = isSecondary
+      ? (categoryLabel || scopedIdentity?.categoryLabelFallback || '')
+      : (isFsbo ? 'FSBO' : (categoryLabel || scopedIdentity?.categoryLabelFallback || ''));
+    const profileDescription = String(scopedIdentity?.pitch || '').trim();
+    const normalizedProfileDescription = profileDescription.toLowerCase();
+    const normalizedTypeLabel = String(typeLabel || '').trim().toLowerCase();
+    const rawRating = Number(scopedIdentity?.rating);
+    const rawReviews = Number(scopedIdentity?.reviews);
+    const rawDeals = Number(scopedIdentity?.deals);
+
+    return {
+      id: `local:${scopeKey}:${ownerId}`,
+      ownerId,
+      scopeKey,
+      name: scopedIdentity?.name || '',
+      type: typeLabel,
+      badge: scopedIdentity?.badge || '',
+      loc: isFsbo ? (fsboStateCode || '') : (scopedIdentity?.loc || ''),
+      photo: scopedIdentity?.photo || '',
+      // Profile cards must use profile-origin fields only (no portfolio synthesis).
+      rating: Number.isFinite(rawRating) && rawRating > 0 ? rawRating : 0,
+      reviews: Number.isFinite(rawReviews) && rawReviews > 0 ? Math.round(rawReviews) : 0,
+      deals: Number.isFinite(rawDeals) && rawDeals > 0 ? Math.round(rawDeals) : 0,
+      cat: userProfile?.category || '',
+      desc: (profileDescription && normalizedProfileDescription !== normalizedTypeLabel)
+        ? profileDescription
+        : '',
+      portfolioCount: scopedProperties.length,
+      primaryProfile: profileScope,
+      markets: scopedMarkets,
+      contactMethods: scopedIdentity?.contactMethods || [],
+      primaryPhone: scopedIdentity?.primaryPhone || '',
+      secondaryPhone: scopedIdentity?.secondaryPhone || '',
+      tertiaryPhone: scopedIdentity?.tertiaryPhone || '',
+      email: scopedIdentity?.email || '',
+      verified: scopedIdentity?.verified === true,
+    };
+  };
+  // Derive feed-card scope from accountType so the feed card always matches
+  // the primary visible profile (sidebar/MyCard), not the publishing key alone.
+  const feedProfileScopeKey = accountType === 'fsbo_owner'
+    ? 'fsbo'
+    : (accountType === 'professional' ? 'personal' : 'personal');
+
+  const normalizeCardPriority = (value) => {
+    const normalized = String(value || '').trim().toLowerCase();
+    if (!normalized || normalized === 'select') return '';
+    if (normalized === 'primary' || normalized === 'secondary' || normalized === 'tertiary') return normalized;
+    return '';
+  };
+  const priorityByScopeForFeed = {
+    personal: normalizeCardPriority(professionalProfile?.cardPriorityA || personalProfile?.cardPriorityA || ''),
+    professional: normalizeCardPriority(professionalProfile?.cardPriorityB || ''),
+    fsbo: normalizeCardPriority(professionalProfile?.cardPriorityC || personalProfile?.cardPriorityC || ''),
+  };
+  const activeFeedScopeSet = new Set(
+    Object.entries(priorityByScopeForFeed)
+      .filter(([, priority]) => priority !== '')
+      .map(([scope]) => scope)
+  );
+
+  const connectionCards = useMemo(() => {
+    // Inclui sempre o card pessoal (A) e, se existir, o secundário (B), desde que não estejam em 'select'.
+    const cards = [];
+    // Card pessoal (A)
+    const personalPriority = priorityByScopeForFeed.personal;
+    if (personalPriority !== '') {
+      const cardA = buildLocalProfileCard('personal');
+      cards.push({
+        ...cardA,
+        markets: cardA.markets || [],
+        _priority: personalPriority,
+        _isDimmed: personalPriority === '',
+      });
+    }
+    // Card secundário (B)
+    const secondaryPriority = priorityByScopeForFeed.professional;
+    if (secondaryPriority !== '') {
+      const cardB = buildLocalProfileCard('secondary');
+      cards.push({
+        ...cardB,
+        markets: cardB.markets || [],
+        _priority: secondaryPriority,
+        _isDimmed: secondaryPriority === '',
+      });
+    }
+    // Card FSBO (C)
+    const fsboPriority = priorityByScopeForFeed.fsbo;
+    if (fsboPriority !== '') {
+      const cardC = buildLocalProfileCard('fsbo');
+      cards.push({
+        ...cardC,
+        markets: cardC.markets || [],
+        _priority: fsboPriority,
+        _isDimmed: fsboPriority === '',
+      });
+    }
+    // Mock cards
+    const staticCards = CARDS.filter((c) => !cards.some(card => String(card.id) === String(c.id)));
+    const enriched = staticCards.map((c) => {
+      try {
+        const props = (showcaseProperties || []).filter((p) => String(p.ownerId) === String(c.id));
+        const first = props && props.length ? props[0] : null;
+        const services = (servicePortfolio || []).filter(s => String(s.ownerId) === String(c.id) && isTruthyFlag(s.publishToConnections, true));
+        const serviceDescriptions = services.filter(s => s.description && String(s.description).trim().length).map(s => String(s.description).trim());
+        const serviceImages = services.flatMap(s => (s.media && s.media.images) ? s.media.images : []);
+        const descFromServices = serviceDescriptions.length ? serviceDescriptions.join(' • ') : null;
+        return {
+          ...c,
+          ownerId: c.id,
+          portfolioCount: props.length,
+          images: (c.images && c.images.length) ? c.images : (serviceImages && serviceImages.length) ? serviceImages : (first ? first.images || [] : []),
+          desc: (c.desc && String(c.desc).trim().length) ? c.desc : (descFromServices ? descFromServices : (first && first.description ? first.description : c.desc)),
+          markets: Array.from(new Set([
+            ...props.flatMap((p) => collectRecordStates(p)),
+            ...services.flatMap((s) => collectRecordStates(s)),
+            ...collectRecordStates(c),
+          ])),
+        };
+      } catch (e) {
+        return c;
+      }
+    });
+    // Garante pelo menos 1 card pessoal visível
+    if (!cards.length) {
+      const cardA = buildLocalProfileCard('personal');
+      cards.push({
+        ...cardA,
+        markets: cardA.markets || [],
+        _priority: '',
+        _isDimmed: true,
+      });
+    }
+    return [...cards, ...enriched];
+  }, [showcaseProperties, userProfile, accountType, servicePortfolio, personalProfile, professionalProfile, feedProfileScopeKey, CARDS]);
+
+  // Showcase items: only properties published to the showcase should appear here.
+  // Usar propertyPortfolio como fonte para garantir sincronização visual/lógica
+  const showcaseItems = useMemo(() => {
+    try {
+      // IDs dos perfis reais do usuário
+      const personalOwnerId = getOwnerIdForKey('personal');
+      const secondaryOwnerId = getOwnerIdForKey('secondary');
+      const fsboOwnerId = getOwnerIdForKey('fsbo');
+      // IDs dos cards mockados
+      const mockOwnerIds = (CARDS || []).map(c => String(c.id));
+      // Imóveis reais do usuário
+      const userOwnerIds = [String(personalOwnerId), String(secondaryOwnerId), String(fsboOwnerId)];
+      const userProperties = (propertyPortfolio || [])
+        .filter((p) => {
+          if (!userOwnerIds.includes(String(p.ownerId))) return false;
+          if (!isTruthyFlag(p.publishToShowcase, true)) return false;
+          // Do NOT filter by activeFeedScopeSet: user properties with publishToShowcase=true
+          // must always appear in the showcase deck regardless of whether their scope's card
+          // priority has been configured in onboarding. The scope filter was blocking valid
+          // published properties when only one profile scope had a priority assigned.
+          return true;
+        });
+      // Imóveis mockados (vinculados aos cards fakes)
+      const mockProperties = (PROPERTIES || [])
+        .filter((p) => mockOwnerIds.includes(String(p.ownerId)) && isTruthyFlag(p.publishToShowcase, true));
+      // Retornar imóveis do usuário e mockados, cada um com seu ownerId original
+      return [
+        ...userProperties.map((p) => {
+          const normalizedScope = normalizeProfileScope(p.primaryProfile || 'personal');
+          const isFsboProperty = p.ownerAccountType === 'fsbo_owner'
+            || p.dealTag === 'FSBO'
+            || p.source === 'fsbo';
+          const scopeKey = normalizedScope === 'professional'
+            ? 'secondary'
+            : (normalizedScope === 'fsbo' || isFsboProperty ? 'fsbo' : 'personal');
+          return {
+            ...p,
+            _source: 'property',
+            markets: collectRecordStates(p),
+            ownerPreview: buildLocalProfileCard(scopeKey),
+          };
+        }),
+        ...mockProperties.map((p) => {
+          // ownerId permanece do card fake
+          const ownerCard = CARDS.find(c => String(c.id) === String(p.ownerId));
+          return {
+            ...p,
+            _source: 'property',
+            markets: collectRecordStates(p),
+            ownerPreview: ownerCard || null,
+          };
+        })
+      ];
+    } catch (e) {
+      return [];
+    }
+  }, [propertyPortfolio, personalProfile, professionalProfile, servicePortfolio, userProfile]);
+
+  const findConnectionById = (id) => {
+    const needle = String(id);
+    return connectionCards.find((c) => String(c.id) === needle || String(c.ownerId) === needle);
+  };
+
+  // Circular deck: skip → rotate to back; match → remove permanently
+  const [connDeck, setConnDeck] = useState(() => connectionCards.map(c => c.id).filter(id => !getHiddenSet().has(String(id))));
+  const [propDeck, setPropDeck] = useState(() => (showcaseItems || []).map(p => p.id).filter(id => !getHiddenSet().has(String(id))));
+  const [lastConnOp, setLastConnOp] = useState(null); // {type, card, snap}
+  const [lastPropOp, setLastPropOp] = useState(null);
+  const [injectedProps, setInjectedProps] = useState({});
+  const [focusCard, setFocusCard] = useState(() => pendingFocusOnInit && pendingFocusOnInit.id ? pendingFocusOnInit : null);
+  const [myCardModal, setMyCardModal] = useState({ open: false, scope: 'personal' });
+  const [myCardShowcaseIdx, setMyCardShowcaseIdx] = useState(0);
+  const [ratingTooltipScope, setRatingTooltipScope] = useState(null);
+  const [isSwipingConn, setIsSwipingConn] = useState(false);
+  const [isSwipingProp, setIsSwipingProp] = useState(false);
+
+  // Keep feeds buyer-specific: a contact should leave the general feed only
+  // for the user who already unlocked it. A purchase must not hide the card
+  // globally while the owner still has the record published.
+  useEffect(() => {
+    if (isSwipingConn || isSwipingProp) return;
+    const blockedContactIds = new Set([...(unlocked || [])].map((id) => String(id)));
+    if (blockedContactIds.size === 0) return;
+
+    // Always remove blocked contacts from the connections deck.
+    setConnDeck(prevDeck => prevDeck.filter(id => !blockedContactIds.has(String(id))));
+
+    // Only remove properties owned by blocked contacts from the properties *discover* when
+    // the view is showing connections. When the user switches to the Showcase view,
+    // keep showcase properties visible so owners' portfolios remain accessible.
+    if (view === 'connections') {
+      // Never block the current user's own properties from the discover feed.
+      // The local "profile card" ownerId is hard-coded as 999999.
+      const selfOwnerId = getOwnerIdForKey(publishingProfileKey);
+      setPropDeck(prevDeck =>
+        prevDeck.filter(id => {
+          const prop = (showcaseItems || []).find(p => p.id === id);
+          if (!prop) return true;
+          if (prop.ownerId === selfOwnerId) return true;
+          return !blockedContactIds.has(String(prop.ownerId));
+        })
+      );
+    }
+  }, [unlocked, showcaseProperties, view, publishingProfileKey, isSwipingConn, isSwipingProp]);
+
+  useEffect(() => {
+    if (isSwipingConn || isSwipingProp) return;
+    // Update connections and properties decks based on matches, interests, blocked contacts and hidden set
+    const updateDecks = () => {
+      const matchedIds = new Set((matched || []).map(m => m.id));
+      const interestedIds = new Set((interested || []).map(p => p.id));
+      const blockedContactIds = new Set([...(unlocked || [])].map((id) => String(id)));
+      const selectedStateSet = new Set((selectedStates || []).filter((s) => s && s !== 'all'));
+      const stateFilterActive = selectedStateSet.size > 0;
+      const isAllowedByState = (record) => {
+        if (!stateFilterActive) return true;
+        const recordStates = collectRecordStates(record);
+        return recordStates.some((code) => selectedStateSet.has(code));
+      };
+
+      // Build new connection deck respecting filters
+      // Start from the current connDeck (preserve rotations) and fall back to canonical order
+      const canonicalConn = (connectionCards || []).map(c => c.id);
+      const baseConn = (connDeck && connDeck.length) ? connDeck : canonicalConn;
+      let newConn = baseConn.filter(id => {
+        if (focusCard && focusCard.type === 'person' && String(focusCard.id) === String(id)) return true;
+        const card = connectionCards.find((c) => String(c.id) === String(id));
+        if (!card || !isAllowedByState(card)) return false;
+        if (matchedIds.has(id)) return false;
+        if (interestedIds.has(id)) return false;
+        if (blockedContactIds.has(String(id))) return false;
+        if (hiddenSet && hiddenSet.has && hiddenSet.has(String(id))) return false;
+        return true;
+      });
+      // Append any canonical items that pass filters but aren't in baseConn (new items)
+      for (const id of canonicalConn) {
+        if (!newConn.find(x => String(x) === String(id))) {
+          if (focusCard && focusCard.type === 'person' && String(focusCard.id) === String(id)) {
+            newConn.push(id);
+            continue;
+          }
+          const card = connectionCards.find((c) => String(c.id) === String(id));
+          if (!card || !isAllowedByState(card)) continue;
+          if (matchedIds.has(id)) continue;
+          if (interestedIds.has(id)) continue;
+          if (blockedContactIds.has(id)) continue;
+          if (hiddenSet && hiddenSet.has && hiddenSet.has(String(id))) continue;
+          newConn.push(id);
+        }
+      }
+
+      // If there's a focusCard for a person, move it to the front
+      if (focusCard && focusCard.type === 'person' && focusCard.id) {
+        const fidRaw = focusCard.id;
+        // Try to find the existing id in the newConn (preserve original type)
+        const match = newConn.find(x => String(x) === String(fidRaw));
+        if (typeof match !== 'undefined') {
+          newConn = [match, ...newConn.filter(x => String(x) !== String(match))];
+        } else {
+          // If not found, try to resolve from connectionCards (preserve type), otherwise insert raw
+          const fromCards = connectionCards.find(c => String(c.id) === String(fidRaw));
+          const idToInsert = fromCards ? fromCards.id : fidRaw;
+          // remove existing occurrence then insert at front
+          newConn = [idToInsert, ...newConn.filter(x => String(x) !== String(idToInsert))];
+        }
+      }
+
+      // Only update state if the deck actually changed (avoid triggering re-renders)
+      const arraysEqual = (a, b) => {
+        if (!Array.isArray(a) || !Array.isArray(b)) return false;
+        if (a.length !== b.length) return false;
+        for (let i = 0; i < a.length; i++) if (String(a[i]) !== String(b[i])) return false;
+        return true;
+      };
+
+      if (!arraysEqual(newConn, connDeck)) setConnDeck(newConn);
+
+      const selfOwnerId = getOwnerIdForKey(publishingProfileKey);
+      // Preserve propDeck rotations similarly
+      const canonicalProp = (showcaseItems || []).map(p => p.id);
+      const baseProp = (propDeck && propDeck.length) ? propDeck : canonicalProp;
+      const shouldKeepPropertyVisible = (prop) => {
+        if (!prop) return true;
+        if (!isAllowedByState(prop)) return false;
+        if (prop.ownerId === selfOwnerId) return true;
+        if (view !== 'connections') return true;
+        return !blockedContactIds.has(prop.ownerId);
+      };
+
+      let newProp = baseProp.filter(id => {
+        if (focusCard && focusCard.type === 'property' && String(focusCard.id) === String(id)) return true;
+        const prop = (showcaseItems || []).find(p => p.id === id);
+        return shouldKeepPropertyVisible(prop);
+      });
+
+      for (const id of canonicalProp) {
+        if (!newProp.find(x => String(x) === String(id))) {
+          const prop = (showcaseItems || []).find(p => p.id === id);
+          if (!prop) {
+            newProp.push(id);
+            continue;
+          }
+          if (focusCard && focusCard.type === 'property' && String(focusCard.id) === String(id)) {
+            newProp.push(id);
+            continue;
+          }
+          if (shouldKeepPropertyVisible(prop)) newProp.push(id);
+        }
+      }
+
+      // If focusCard targets a property, move it to front (inject if needed)
+      if (focusCard && focusCard.type === 'property' && focusCard.id) {
+        const fidRaw = focusCard.id;
+        // preserve original id types when moving
+        const match = newProp.find(x => String(x) === String(fidRaw));
+        if (typeof match !== 'undefined') {
+          newProp = [match, ...newProp.filter(x => String(x) !== String(match))];
+        } else {
+          // try to inject from PROPERTIES
+          const found = PROPERTIES.find(p => String(p.id) === String(fidRaw) || p.id === fidRaw);
+          if (found) {
+            setInjectedProps(prev => (prev && prev[found.id] ? prev : ({ ...prev, [found.id]: found })));
+            newProp = [found.id, ...newProp];
+          } else {
+            newProp = [fidRaw, ...newProp];
+          }
+        }
+      }
+
+      if (!arraysEqual(newProp, propDeck)) setPropDeck(newProp);
+
+      // Keep focus request active until the user performs an action in the feed.
+    };
+
+    updateDecks();
+
+    // Subscribe to hidden set updates so decks respond to hide/unhide actions
+    const unsub = subscribeHidden((next) => {
+      setHiddenSet(next);
+    });
+
+    return () => { if (typeof unsub === 'function') unsub(); };
+  }, [connectionCards, showcaseItems, matched, interested, unlocked, view, publishingProfileKey, hiddenSet, focusCard, selectedStates, isSwipingConn, isSwipingProp]);
+
+  const t = useT('dashboard').dashboard;
+  const cardsT = useT('dashboard').cards;
+  const matchesT = useT('dashboard').matches;
+
+  const categoryLabelById = useMemo(() => {
+    const labels = new Map();
+    CATEGORIES.forEach((c) => {
+      labels.set(c.id, c.label);
+      (c.sub || []).forEach((s) => labels.set(s.id, s.label));
+    });
+    return labels;
+  }, []);
+
+  const dedupedMatched = useMemo(
+    () => matched.filter((m, i, arr) => arr.findIndex((x) => x.id === m.id) === i),
+    [matched],
+  );
+
+  const matchCategoryOptions = useMemo(() => {
+    const seen = new Set();
+    const out = [];
+    dedupedMatched.forEach((m) => {
+      const id = String(m?.cat || '').trim().toLowerCase();
+      if (!id || seen.has(id)) return;
+      seen.add(id);
+      out.push({ id, label: categoryLabelById.get(id) || m?.type || id });
+    });
+    out.sort((a, b) => a.label.localeCompare(b.label));
+    return out;
+  }, [dedupedMatched, categoryLabelById]);
+
+  const filteredMatched = useMemo(() => {
+    if (!selectedMatchCategories.length) return dedupedMatched;
+    const chosen = new Set(selectedMatchCategories);
+    return dedupedMatched.filter((m) => chosen.has(String(m?.cat || '').trim().toLowerCase()));
+  }, [dedupedMatched, selectedMatchCategories]);
+
+  const interestStateOptions = useMemo(() => {
+    const states = Array.from(new Set(
+      interested.flatMap((item) => collectRecordStates(item)).filter(Boolean)
+    ));
+    states.sort();
+    return states;
+  }, [interested]);
+
+  const filteredInterested = useMemo(() => {
+    if (!selectedInterestStates.length) return interested;
+    const chosen = new Set(selectedInterestStates);
+    return interested.filter((item) =>
+      collectRecordStates(item).some((code) => chosen.has(code))
+    );
+  }, [interested, selectedInterestStates]);
+  const hasValue = (v) => String(v || '').trim().length > 0;
+  const getExplicitRecordProfileScope = (record) => {
+    const rawScope = String(record?.primaryProfile || '').trim();
+    if (!rawScope) return accountType === 'fsbo_owner' ? 'fsbo' : 'personal';
+    const normalized = normalizeProfileScope(rawScope);
+    if (normalized !== 'personal' && normalized !== 'professional' && normalized !== 'fsbo') {
+      return accountType === 'fsbo_owner' ? 'fsbo' : 'personal';
+    }
+    return normalized;
+  };
+  const activeUnlockedMatchesCount = useMemo(() => {
+    const matchedIds = new Set((matched || []).map((m) => String(m?.id || '').trim()).filter(Boolean));
+    const unlockedIds = new Set((unlocked || []).map((id) => String(id || '').trim()).filter(Boolean));
+    let total = 0;
+    unlockedIds.forEach((id) => {
+      if (matchedIds.has(id)) total += 1;
+    });
+    return total;
+  }, [matched, unlocked]);
+  const priorityRank = (value) => {
+    const normalized = String(value || '').trim().toLowerCase();
+    if (normalized === 'primary') return 1;
+    if (normalized === 'secondary') return 2;
+    if (normalized === 'tertiary') return 3;
+    return 99;
+  };
+  const normalizePriorityValue = (value) => {
+    const normalized = String(value || '').trim().toLowerCase();
+    if (normalized === 'select') return '';
+    if (normalized === 'primary' || normalized === 'secondary' || normalized === 'tertiary') return normalized;
+    return '';
+  };
+  const profilePriorityA = professionalProfile?.cardPriorityA || personalProfile?.cardPriorityA || '';
+  const profilePriorityB = professionalProfile?.cardPriorityB || '';
+  const profilePriorityC = professionalProfile?.cardPriorityC || personalProfile?.cardPriorityC || '';
+
+  const profileKeyToScope = (profileKey) => {
+    if (profileKey === 'secondary') return 'professional';
+    if (profileKey === 'fsbo') return 'fsbo';
+    return 'personal';
+  };
+
+  const scopeToProfileKey = (scope) => (scope === 'professional' ? 'secondary' : (scope === 'fsbo' ? 'fsbo' : 'personal'));
+  const scopeToModalKey = (scope) => (scope === 'professional' ? 'secondary' : (scope === 'fsbo' ? 'fsbo' : 'personal'));
+
+  const priorityByProfileKey = {
+    personal: normalizePriorityValue(profilePriorityA),
+    secondary: normalizePriorityValue(profilePriorityB),
+    fsbo: normalizePriorityValue(profilePriorityC),
+  };
+  const profileKeyByPriority = Object.entries(priorityByProfileKey).reduce((acc, [profileKey, priority]) => {
+    if (priority && !acc[priority]) acc[priority] = profileKey;
+    return acc;
+  }, {});
+
+  const fallbackPrimaryProfileKey = accountType === 'fsbo_owner' ? 'fsbo' : 'personal';
+  const primaryProfileKey = profileKeyByPriority.primary || fallbackPrimaryProfileKey;
+  const secondaryProfileKey = profileKeyByPriority.secondary && profileKeyByPriority.secondary !== primaryProfileKey
+    ? profileKeyByPriority.secondary
+    : null;
+  const primaryVisibleScope = profileKeyToScope(primaryProfileKey);
+  const secondaryVisibleScope = secondaryProfileKey ? profileKeyToScope(secondaryProfileKey) : null;
+
+  const primaryModalKey = scopeToModalKey(primaryVisibleScope);
+  const secondaryModalKey = secondaryVisibleScope ? scopeToModalKey(secondaryVisibleScope) : null;
+  const primaryCardData = buildLocalProfileCard(primaryProfileKey);
+  const secondaryCardData = secondaryProfileKey ? buildLocalProfileCard(secondaryProfileKey) : null;
+  const countByScope = (scope) => {
+    const key = scopeToProfileKey(scope);
+    const ownerId = getOwnerIdForKey(key);
+    const profileScope = scope === 'professional' ? 'professional' : (scope === 'fsbo' ? 'fsbo' : 'personal');
+    const isOwnerRecord = (record) => {
+      if (!record) return false;
+      const recordOwnerId = String(record.ownerId || '').trim();
+      return recordOwnerId !== '' && (recordOwnerId === String(ownerId) || recordOwnerId === '999999');
+    };
+    const propertiesCount = (propertyPortfolio || []).filter((p) => (
+      isOwnerRecord(p)
+      && normalizeProfileScope(p.primaryProfile || 'personal') === profileScope
+      && isTruthyFlag(p.publishToShowcase, true)
+      && p.isActive !== false
+      && p.dealClosed !== true
+    )).length;
+    const servicesCount = (servicePortfolio || []).filter((s) => (
+      isOwnerRecord(s)
+      && normalizeProfileScope(s.primaryProfile || 'personal') === profileScope
+      && isTruthyFlag(s.publishToConnections, true)
+      && s.dealClosed !== true
+    )).length;
+    return { propertiesCount, servicesCount };
+  };
+  const primaryScopeCounts = countByScope(primaryVisibleScope);
+  const secondaryScopeCounts = secondaryVisibleScope ? countByScope(secondaryVisibleScope) : { propertiesCount: 0, servicesCount: 0 };
+  const getScopedPublishedRecords = (scopeKey) => {
+    const profileScope = scopeKey === 'secondary' ? 'professional' : (scopeKey === 'fsbo' ? 'fsbo' : 'personal');
+    const localOwnerIds = new Set([
+      String(getOwnerIdForKey('personal')),
+      String(getOwnerIdForKey('secondary')),
+      String(getOwnerIdForKey('fsbo')),
+      '999999',
+    ]);
+
+    const isOwnerRecord = (record) => {
+      if (!record) return false;
+      const recordOwnerId = String(record.ownerId || '').trim();
+      return recordOwnerId !== '' && localOwnerIds.has(recordOwnerId);
+    };
+
+    const properties = (showcaseProperties || []).filter((p) => {
+      if (!isOwnerRecord(p)) return false;
+      if (!isTruthyFlag(p.publishToShowcase, true)) return false;
+      if (p.isActive === false) return false;
+      if (p.dealClosed === true) return false;
+      return normalizeProfileScope(p.primaryProfile || 'personal') === profileScope;
+    });
+
+    const services = (servicePortfolio || []).filter((s) => {
+      if (!isOwnerRecord(s)) return false;
+      if (!isTruthyFlag(s.publishToConnections, true)) return false;
+      if (s.dealClosed === true) return false;
+      return normalizeProfileScope(s.primaryProfile || 'personal') === profileScope;
+    });
+
+    return { profileScope, properties, services };
+  };
+
+  const countLinkedCardsForModalScope = (scopeKey) => {
+    const scoped = getScopedPublishedRecords(scopeKey);
+    return Math.max(0, scoped.properties.length + scoped.services.length);
+  };
+
+  // My Card should mirror the "show in" toggles directly for the current scope.
+  const getMyCardScopedRecords = (scopeKey) => {
+    const profileScope = scopeKey === 'secondary' ? 'professional' : (scopeKey === 'fsbo' ? 'fsbo' : 'personal');
+    // Use propertyPortfolio for real-time state (not showcaseProperties)
+    // Filter by show in = ON and matching profile scope.
+    const properties = (propertyPortfolio || []).filter((p) => {
+      return isTruthyFlag(p.publishToShowcase, true) && normalizeProfileScope(p.primaryProfile || 'personal') === profileScope;
+    });
+    const services = (servicePortfolio || []).filter((s) => {
+      return isTruthyFlag(s.publishToConnections, true) && normalizeProfileScope(s.primaryProfile || 'personal') === profileScope;
+    });
+    return { properties, services };
+  };
+
+  const countMyCardLinkedCardsForScope = (scopeKey) => {
+    const scoped = getMyCardScopedRecords(scopeKey);
+    return Math.max(0, scoped.properties.length + scoped.services.length);
+  };
+
+  const primaryLinkedCardsCount = countMyCardLinkedCardsForScope(primaryModalKey);
+  const secondaryScopedRecords = secondaryModalKey
+    ? getScopedPublishedRecords(secondaryModalKey)
+    : { properties: [], services: [] };
+  const secondaryPublishedProperties = secondaryScopedRecords.properties;
+  const secondaryPublishedServices = secondaryScopedRecords.services;
+  const hasSecondaryProfile = Boolean(secondaryVisibleScope);
+  const secondaryLinkedCardsCount = hasSecondaryProfile
+    ? countMyCardLinkedCardsForScope(secondaryModalKey)
+    : 0;
+
+  const profileName = primaryCardData?.name || userProfile?.name || 'User';
+  const profileLocation = primaryCardData?.loc || userProfile?.location || 'Location not set';
+  const primaryProfileBadgeLabel = primaryVisibleScope === 'professional'
+    ? 'Business'
+    : (primaryVisibleScope === 'fsbo' ? 'FSBO' : 'Personal');
+  const secondaryProfileBadgeLabel = secondaryVisibleScope === 'professional'
+    ? 'Business'
+    : (secondaryVisibleScope === 'fsbo' ? 'FSBO' : 'Personal');
+  const activePrimaryCategoryId = primaryVisibleScope === 'professional'
+    ? (professionalProfile?.primaryCategoryB || professionalProfile?.categoryB || '')
+    : (professionalProfile?.primaryCategory || professionalProfile?.category || '');
+  const activePrimaryCategoryLabel = String(primaryCardData?.type || '').trim() || 'Not set';
+  const countClosedDealsForScope = (scope) => {
+    const normalizedScope = normalizeProfileScope(scope);
+    return (propertyPortfolio || []).filter((p) => (
+      Boolean(p?.dealClosed)
+      && getExplicitRecordProfileScope(p) === normalizedScope
+    )).length;
+  };
+
+  const computeProfileReliabilityScore = (scope) => {
+    const identity = resolveScopedProfile(scope, {
+      accountType,
+      userProfile,
+      personalProfile,
+      professionalProfile,
+    });
+    const checks = [
+      String(identity?.name || '').trim().length > 0,
+      String(identity?.loc || '').trim().length > 0,
+      String(identity?.email || '').trim().length > 0 || String(identity?.primaryPhone || '').trim().length > 0,
+      Array.isArray(identity?.contactMethods) && identity.contactMethods.length > 0,
+    ];
+    const passed = checks.filter(Boolean).length;
+    return (passed / checks.length) * 15;
+  };
+
+  const computePublishedReliabilityScore = (scopeKey) => {
+    const scoped = getScopedPublishedRecords(scopeKey);
+    const total = scoped.properties.length + scoped.services.length;
+    if (!total) return 0;
+
+    let qualitySum = 0;
+    scoped.properties.forEach((p) => {
+      const checks = [
+        String(p?.address || '').trim().length > 0,
+        String(p?.city || '').trim().length > 0,
+        Number(p?.price) > 0,
+        (Array.isArray(p?.images) && p.images.length > 0) || Boolean(p?.image),
+      ];
+      qualitySum += checks.filter(Boolean).length / checks.length;
+    });
+    scoped.services.forEach((s) => {
+      const checks = [
+        String(s?.title || '').trim().length > 0,
+        String(s?.category || '').trim().length > 0,
+        Array.isArray(s?.media?.images) && s.media.images.length > 0,
+      ];
+      qualitySum += checks.filter(Boolean).length / checks.length;
+    });
+
+    return (qualitySum / total) * 15;
+  };
+
+  const computeScopeRatingDetails = (scopeKey) => {
+    const scope = scopeKey === 'secondary' ? 'professional' : (scopeKey === 'fsbo' ? 'fsbo' : 'personal');
+    const publishedCardsCount = countLinkedCardsForModalScope(scopeKey);
+    const closedDealsCount = countClosedDealsForScope(scope);
+
+    const interactionScore = Math.min(
+      40,
+      Math.min(activeUnlockedMatchesCount, 12) * 2.2
+      + Math.min((interested || []).length, 20) * 0.8
+      + Math.min((purchases || []).length, 10) * 0.8
+    );
+    const publishedScore = Math.min(30, publishedCardsCount * 3);
+    const reliabilityScore = Math.min(30, computeProfileReliabilityScore(scope) + computePublishedReliabilityScore(scopeKey));
+    const closedDealsBonus = Math.min(10, closedDealsCount * 2);
+    const total = Math.min(100, interactionScore + publishedScore + reliabilityScore + closedDealsBonus);
+
+    const label = (publishedCardsCount === 0 && activeUnlockedMatchesCount === 0 && closedDealsCount === 0)
+      ? '-'
+      : Math.max(1, total / 20).toFixed(1);
+
+    return {
+      label,
+      interactionScore,
+      publishedScore,
+      reliabilityScore,
+      closedDealsBonus,
+      total,
+    };
+  };
+
+  const primaryRatingDetails = computeScopeRatingDetails(primaryModalKey);
+  const secondaryRatingDetails = computeScopeRatingDetails(secondaryModalKey);
+
+  const matchedCount = activeUnlockedMatchesCount;
+  const dealsCount = countClosedDealsForScope(primaryVisibleScope);
+  const ratingLabel = primaryRatingDetails.label;
+
+  // Secondary (profile B) derived display values — keep in parity with primary profile
+  const secondaryAnchor = secondaryPublishedProperties[0] || secondaryPublishedServices[0] || null;
+  const profileNameB = secondaryCardData?.name || 'Not set';
+  const profileLocationB = secondaryCardData?.loc || (([secondaryAnchor?.city, secondaryAnchor?.state].filter(Boolean).join(', ')) || 'Not set');
+  const profileThumbB = secondaryCardData?.photo || '';
+  const operationsPrimaryCategoryId = hasSecondaryProfile
+    ? (secondaryVisibleScope === 'professional' ? (professionalProfile?.primaryCategoryB || professionalProfile?.categoryB || '') : '')
+    : '';
+  const profileRoleLineB = (() => {
+    if (secondaryVisibleScope === 'fsbo') return 'FSBO';
+    if (secondaryVisibleScope === 'personal') return 'Personal';
+    const flatCategories = CATEGORIES
+      .filter((c) => c.id !== 'all')
+      .flatMap((c) => (c.sub ? [{ ...c, sub: null }, ...c.sub] : [c]));
+    const found = flatCategories.find((c) => c.id === operationsPrimaryCategoryId);
+    if (found?.label) return found.label;
+    return String(operationsPrimaryCategoryId || '').trim() || 'Not set';
+  })();
+  const matchedCountB = activeUnlockedMatchesCount;
+  const dealsCountB = countClosedDealsForScope(secondaryVisibleScope);
+  const ratingLabelB = secondaryRatingDetails.label;
+
+  const renderRatingTooltip = (details) => (
+    <div style={{
+      position: 'absolute',
+      bottom: 'calc(100% + 6px)',
+      right: 0,
+      minWidth: 196,
+      borderRadius: 8,
+      border: `1px solid ${C.border}`,
+      background: C.card,
+      boxShadow: `0 8px 20px ${C.alpha('#000', 0.22)}`,
+      padding: '8px 9px',
+      zIndex: 35,
+      textAlign: 'left',
+    }}>
+      <div style={{ fontSize: 9, color: C.t3, textTransform: 'uppercase', marginBottom: 5 }}>Rating score</div>
+      <div style={{ display: 'grid', gap: 2, fontSize: 10, color: C.t2, lineHeight: 1.3 }}>
+        <div>Interação: {details.interactionScore.toFixed(1)} / 40</div>
+        <div>Publicações: {details.publishedScore.toFixed(1)} / 30</div>
+        <div>Confiabilidade: {details.reliabilityScore.toFixed(1)} / 30</div>
+        <div>Deals fechados: +{details.closedDealsBonus.toFixed(1)} / 10</div>
+      </div>
+      <div style={{ marginTop: 6, paddingTop: 5, borderTop: `1px solid ${C.border}`, fontSize: 10, fontWeight: 700, color: C.t1 }}>
+        Total: {details.total.toFixed(1)} / 100
+      </div>
+    </div>
+  );
+
+  const myCardPreviewData = useMemo(() => {
+    const scopeKey = myCardModal.scope === 'secondary' ? 'secondary' : (myCardModal.scope === 'fsbo' ? 'fsbo' : 'personal');
+    const ownerId = getOwnerIdForKey(scopeKey);
+    const profileCard = buildLocalProfileCard(scopeKey);
+    const scopedPublished = getMyCardScopedRecords(scopeKey);
+    const publishedPropertiesScoped = scopedPublished.properties;
+    const publishedServicesScoped = scopedPublished.services;
+
+    const showcaseItems = [
+      ...publishedPropertiesScoped.map((p) => ({ ...p, _itemType: 'property' })),
+      ...publishedServicesScoped.map((s) => ({ ...s, _itemType: 'service' })),
+    ];
+
+    return {
+      profileCard,
+      properties: publishedPropertiesScoped,
+      services: publishedServicesScoped,
+      showcaseItems,
+      ownerId,
+      scopeKey,
+      scopeLabel: scopeKey === 'secondary' ? 'Operations' : (scopeKey === 'fsbo' ? 'FSBO' : 'Personal'),
+    };
+  }, [myCardModal.scope, showcaseProperties, servicePortfolio, personalProfile, professionalProfile, userProfile]);
+
+  const toggleMyCardModal = (scope) => {
+    setMyCardModal((prev) => {
+      if (prev.open && prev.scope === scope) return { open: false, scope };
+      return { open: true, scope };
+    });
+    setMyCardShowcaseIdx(0);
+  };
+
+  const openOnboardingForScope = (scope) => {
+    if (isMobileViewport) return;
+    const normalizedScope = String(scope || '').trim().toLowerCase();
+    const onboardingTab = (
+      normalizedScope === 'professional'
+      || normalizedScope === 'secondary'
+      || normalizedScope === 'business'
+      || normalizedScope === 'operation'
+      || normalizedScope === 'operations'
+    )
+      ? 'professional'
+      : (normalizedScope === 'fsbo' || normalizedScope === 'fsbo_owner' ? 'fsbo' : 'personal');
+
+    if (typeof onOpenOnboardingTab === 'function') {
+      onOpenOnboardingTab(onboardingTab);
+      return;
+    }
+    setPage('onboarding');
+  };
+
+  // Quick registration is based on onboarding data only (not system settings/login profile).
+  const quickRegistered = (() => {
+    const hasProfileA = hasValue(personalProfile?.fullName)
+      || hasValue(personalProfile?.primaryPhone)
+      || hasValue(personalProfile?.email)
+      || hasValue(professionalProfile?.fullNameA)
+      || hasValue(professionalProfile?.primaryPhoneA)
+      || hasValue(professionalProfile?.emailA);
+    const hasProfileB = hasValue(professionalProfile?.fullName)
+      || hasValue(professionalProfile?.categoryB)
+      || hasValue(professionalProfile?.primaryCategoryB)
+      || hasValue(professionalProfile?.primaryPhoneB)
+      || hasValue(professionalProfile?.emailB)
+      || hasValue(professionalProfile?.photoB)
+      || hasValue(professionalProfile?.photoBUrl);
+    const hasPortfolio = (showcaseProperties || []).some((p) => (
+      String(p.ownerId) === String(getOwnerIdForKey('personal'))
+      || String(p.ownerId) === String(getOwnerIdForKey('secondary'))
+      || String(p.ownerId) === String(getOwnerIdForKey('fsbo'))
+    ))
+      || (servicePortfolio || []).some((s) => (
+        String(s.ownerId) === String(getOwnerIdForKey('personal'))
+        || String(s.ownerId) === String(getOwnerIdForKey('secondary'))
+        || String(s.ownerId) === String(getOwnerIdForKey('fsbo'))
+      ));
+    return hasProfileA || hasProfileB || hasPortfolio;
+  })();
+
+  // Persist active category and selected states across navigation/login
+  useEffect(() => {
+    try { localStorage.setItem('ds_activeCat', activeCat); } catch (e) { void e; }
+  }, [activeCat]);
+
+  useEffect(() => {
+    try { localStorage.setItem('ds_selectedStates', JSON.stringify(selectedStates || [])); } catch (e) { void e; }
+  }, [selectedStates]);
+
+  // Persist matched & interested and restore them on mount
+  useEffect(() => {
+    try {
+      const rawM = localStorage.getItem('ds_matched');
+      if (rawM) {
+        const parsed = JSON.parse(rawM);
+        if (Array.isArray(parsed) && setMatched) setMatched(parsed);
+      }
+      const rawI = localStorage.getItem('ds_interested');
+      if (rawI) {
+        const parsedI = JSON.parse(rawI);
+        if (Array.isArray(parsedI) && setInterested) setInterested(parsedI);
+      }
+    } catch (e) { void e; }
+  }, []);
+
+  // When the app navigates to the dashboard (page prop), check for a pending
+  // focusCard set by other views (e.g., MapView) and apply it. This covers the
+  // case where Dashboard is already mounted but was hidden when the focus was
+  // requested.
+  React.useEffect(() => {
+    if (page !== 'dashboard') return;
+    try {
+      const raw = localStorage.getItem('focusCard');
+      if (!raw) return;
+      const parsed = JSON.parse(raw);
+      if (!parsed || !parsed.id) return;
+      setFocusCard(parsed);
+      if (parsed.type === 'person') setView('connections');
+      else setView('properties');
+      localStorage.removeItem('focusCard');
+    } catch (e) { void e; }
+  }, [page]);
+
+  useEffect(() => {
+    try { localStorage.setItem('ds_matched', JSON.stringify(matched || [])); } catch (e) { void e; }
+  }, [matched]);
+
+  useEffect(() => {
+    try { localStorage.setItem('ds_interested', JSON.stringify(interested || [])); } catch (e) { void e; }
+  }, [interested]);
+
+  const addMatchedCapped = (card) => {
+    setMatched(prev => {
+      if (!card || prev.find(x => x.id === card.id)) return prev;
+      return [...prev, card];
+    });
+  };
+
+  // Helper: filter a category
+  function matchesCat(catVal, cat) {
+    if (cat === "all") return true;
+    const parent = CATEGORIES.find(x => x.sub && x.sub.some(s => s.id === cat));
+    return parent ? catVal === parent.id : catVal === cat;
+  }
+
+  const stateOptions = useMemo(() => {
+    try {
+      const fromCards = connectionCards.flatMap((c) => collectRecordStates(c)).filter(Boolean);
+      const fromItems = (showcaseItems || []).flatMap((p) => collectRecordStates(p)).filter(Boolean);
+      const opts = Array.from(new Set([...fromCards, ...fromItems]));
+      opts.sort();
+      return ['all', ...opts];
+    } catch { return ['all']; }
+  }, [connectionCards, showcaseItems]);
+
+  const activeStates = useMemo(
+    () => (selectedStates || []).filter((s) => s && s !== 'all'),
+    [selectedStates]
+  );
+  const hasActiveStates = activeStates.length > 0;
+  const stateSummaryLabel = hasActiveStates ? `${activeStates.length} states` : 'All States';
+
+  // Visible stack: apply focus prioritization synchronously to avoid first-frame flicker.
+  const connDisplay = useMemo(() => {
+    const base = connDeck
+      .map((id) => findConnectionById(id))
+      .filter(Boolean);
+
+    if (!focusCard || focusCard.type !== 'person' || !focusCard.id) return base;
+
+    const fid = String(focusCard.id);
+    const index = base.findIndex((card) => String(card.id) === fid);
+    if (index === 0) return base;
+    if (index > 0) return [base[index], ...base.slice(0, index), ...base.slice(index + 1)];
+
+    const injected = connectionCards.find((card) => String(card.id) === fid);
+    return injected ? [injected, ...base] : base;
+  }, [connDeck, connectionCards, focusCard]);
+
+  const propDisplay = useMemo(() => {
+    const base = propDeck
+      .map((id) => {
+        const fromShowcase = (showcaseItems || []).find((p) => p.id === id);
+        if (fromShowcase) return fromShowcase;
+        return injectedProps[id] || null;
+      })
+      .filter(Boolean);
+
+    if (!focusCard || focusCard.type !== 'property' || !focusCard.id) return base;
+
+    const fid = String(focusCard.id);
+    const index = base.findIndex((prop) => String(prop.id) === fid);
+    if (index === 0) return base;
+    if (index > 0) return [base[index], ...base.slice(0, index), ...base.slice(index + 1)];
+
+    const fromShowcase = (showcaseItems || []).find((p) => String(p.id) === fid);
+    if (fromShowcase) return [fromShowcase, ...base];
+
+    const fromMock = PROPERTIES.find((p) => String(p.id) === fid);
+    if (fromMock) return [fromMock, ...base];
+
+    // Fallback: look in the full property portfolio (real user property not in showcaseItems)
+    const fromPortfolio = (propertyPortfolio || []).find((p) => String(p.id) === fid);
+    if (fromPortfolio) return [fromPortfolio, ...base];
+
+    const fromShowcaseProps = (showcaseProperties || []).find((p) => String(p.id) === fid);
+    return fromShowcaseProps ? [fromShowcaseProps, ...base] : base;
+  }, [propDeck, showcaseItems, injectedProps, focusCard, propertyPortfolio, showcaseProperties]);
+
+  // Listen for external focus requests (from MapView popups). When received,
+  // bring the requested card to the front of the appropriate deck and switch
+  // the view so the user sees the focused card in the feed.
+  useEffect(() => {
+    // focus requests are queued via `setFocusCard` and applied when decks are rebuilt.
+
+    const handler = (ev) => {
+      try {
+        const d = ev?.detail;
+        if (d && d.id) {
+          setFocusCard(d);
+          if (d.type === 'property') setView('properties');
+          else setView('connections');
+          localStorage.removeItem('focusCard');
+        }
+      } catch (e) { void e; }
+    };
+
+    window.addEventListener('dealsifter.focusCard', handler);
+
+    // If MapView wrote a focusCard to localStorage before navigation, handle it now.
+    try {
+      const raw = localStorage.getItem('focusCard');
+      if (raw) {
+        const parsed = JSON.parse(raw);
+        if (parsed && parsed.id) {
+          setFocusCard(parsed);
+          if (parsed.type === 'person') setView('connections');
+          else setView('properties');
+        }
+        localStorage.removeItem('focusCard');
+      }
+    } catch (e) { void e; }
+
+    return () => window.removeEventListener('dealsifter.focusCard', handler);
+  }, []);
+
+  // ── Connections actions ──────────────────────────────────────────────────
+  const act = type => {
+    if (connDisplay.length === 0) return;
+    if (focusCard) setFocusCard(null);
+    const topCard = connDisplay[0];
+    if (type === 'unlock') {
+      if (!topCard || unlocked.includes(topCard.id)) return;
+      if (typeof openUnlock === 'function') openUnlock(topCard);
+      return;
+    }
+    const snap = [...connDeck];
+    const propSnap = [...propDeck];
+    setIsSwipingConn(true);
+    setAction(type);
+    setTimeout(() => {
+      requestAnimationFrame(() => {
+        if (type === "match") {
+            const topOwnerId = String(topCard?.ownerId ?? topCard?.id ?? '');
+          // Permanently remove from deck
+          addMatchedCapped(topCard);
+          setConnDeck(d => d.filter(id => id !== topCard.id));
+          // Record purchase: remove properties of bought contact from propDeck
+          setPurchases(prev => 
+              prev.some(p => String(p.sellerId) === topOwnerId) 
+              ? prev 
+                : [...prev, { sellerId: topOwnerId }]
+          );
+          // Remove properties of this bought contact from showcase
+          setPropDeck(d => d.filter(id => {
+            const prop = (showcaseItems || []).find(p => p.id === id);
+              return String(prop?.ownerId) !== topOwnerId;
+          }));
+        } else if (type === "next") {
+          // Next: rotate top card to the end of the deck (ship).
+        // Do not bring skipped cards to the front automatically.
+        setConnDeck(d => {
+          const next = d.length > 1 ? [...d.slice(1), d[0]] : d;
+          return next;
+        });
+      } else {
+        // Pass: rotate top card to the end of the deck and mark it as skipped
+        setConnDeck(d => {
+          const next = d.length > 1 ? [...d.slice(1), d[0]] : d;
+          return next;
+        });
+        // mark as skipped (for red border / seen indicator)
+        setSkippedSet(s => { const n = new Set(s); n.add(topCard.id); return n; });
+        setSkippedQueue(q => {
+          if (!q) return [topCard.id];
+          if (q.includes(topCard.id)) return q;
+          return [...q, topCard.id];
+        });
+      }
+        setLastConnOp({ type, card: topCard, snap, propSnap });
+        setAction(null);
+        setIsSwipingConn(false);
+      });
+    }, SWIPE_ANIM_MS);
+  };
+
+  // If deck empties and there are skipped items, reintroduce them for a second pass
+  useEffect(() => {
+    if ((connDeck || []).length === 0 && (skippedQueue || []).length > 0) {
+      setConnDeck(skippedQueue);
+      setSkippedQueue([]);
+      // keep skippedSet so visual 'skipped' markers persist across the reintroduction
+    }
+    if ((propDeck || []).length === 0 && (skippedQueueProp || []).length > 0) {
+      setPropDeck(skippedQueueProp);
+      setSkippedQueueProp([]);
+      // keep skippedSetProp so visual 'skipped' markers persist across the reintroduction
+    }
+  }, [connDeck, skippedQueue, propDeck, skippedQueueProp]);
+
+  const undo = () => {
+    if (!lastConnOp) {
+      // No last op: if there are skipped items, bring back the most recently skipped
+      if (skippedQueue && skippedQueue.length > 0) {
+        const nextQueue = [...skippedQueue];
+        const returnId = nextQueue.pop();
+        setSkippedQueue(nextQueue);
+        setSkippedSet(s => { const n = new Set(s); n.delete(returnId); return n; });
+        setConnDeck(d => [returnId, ...d]);
+      }
+      return;
+    }
+    if (lastConnOp.type === "match") {
+      setMatched(m => m.filter(x => x.id !== lastConnOp.card.id));
+      // Undo purchase record
+      setPurchases(prev => prev.filter(p => String(p.sellerId) !== String(lastConnOp.card.ownerId ?? lastConnOp.card.id)));
+      // Restore propDeck
+      if (lastConnOp.propSnap) {
+        setPropDeck(lastConnOp.propSnap);
+      }
+    } else {
+      // Remove from skipped if undoing a pass and restore deck
+      setSkippedQueue(prev => prev.filter(id => id !== lastConnOp.card.id));
+      setSkippedSet(prev => { const n = new Set(prev); n.delete(lastConnOp.card.id); return n; });
+    }
+    setConnDeck(lastConnOp.snap);
+    setLastConnOp(null);
+  };
+
+  // ── Properties actions ───────────────────────────────────────────────────
+  const actProperty = type => {
+    if (propDisplay.length === 0) return;
+    if (focusCard) setFocusCard(null);
+    setIsSwipingProp(true);
+    setPropAction(type);
+    const topProp = propDisplay[0];
+    setPropStatusById(prev => ({ ...prev, [topProp.id]: type }));
+    const topScope = normalizeProfileScope(topProp?.primaryProfile || 'personal');
+    const topScopeKey = scopeToProfileKey(topScope);
+    const topOwner = connectionCards.find((c) => c.scopeKey === topScopeKey) || findConnectionById(topProp.ownerId);
+    const snap = [...propDeck];
+    const connSnap = [...connDeck];
+    setTimeout(() => {
+      requestAnimationFrame(() => {
+        if (type === "interest") {
+          setInterested(p => p.find(x => x.id === topProp.id) ? p : [...p, topProp]);
+          if (topOwner) {
+            addMatchedCapped(topOwner);
+            setConnDeck(d => d.filter(id => id !== topOwner.id));
+          }
+          setPropDeck(d => d.filter(id => id !== topProp.id));
+        } else if (type === "next") {
+          setPropDeck(d => d.length > 1 ? [...d.slice(1), d[0]] : d);
+        } else {
+          setPropDeck(d => d.length > 1 ? [...d.slice(1), d[0]] : d);
+          setPropStatusById(s => ({ ...s, [topProp.id]: { ...(s[topProp.id]||{}), seen: true, skipped: true } }));
+          setSkippedSetProp(s => { const n = new Set(s); n.add(topProp.id); return n; });
+          setSkippedQueueProp(q => {
+            if (!q) return [topProp.id];
+            if (q.includes(topProp.id)) return q;
+            return [...q, topProp.id];
+          });
+        }
+        setLastPropOp({ type, prop: topProp, snap, connSnap });
+        setPropAction(null);
+        setIsSwipingProp(false);
+      });
+    }, SWIPE_ANIM_MS);
+  };
+
+  const undoProperty = () => {
+    if (!lastPropOp) return;
+    if (lastPropOp.type === "interest") {
+      setInterested(p => p.filter(x => x.id !== lastPropOp.prop.id));
+    }
+    setPropStatusById(prev => {
+      const next = { ...prev };
+      delete next[lastPropOp.prop.id];
+      return next;
+    });
+    setPropDeck(lastPropOp.snap);
+    if (lastPropOp.connSnap) {
+      setConnDeck(lastPropOp.connSnap);
+    }
+    if (lastPropOp.type === 'skip') {
+      setSkippedQueueProp(prev => (prev || []).filter(id => id !== lastPropOp.prop.id));
+      setSkippedSetProp(s => { const n = new Set(s); n.delete(lastPropOp.prop.id); return n; });
+    }
+    setLastPropOp(null);
+  };
+
+  // Category change → rebuild decks excluding already-acted items
+  const handleCatChange = cat => {
+    setActiveCat(cat);
+    const matchedIds = new Set(matched.map(m => m.id));
+    const interestedIds = new Set(interested.map(p => p.id));
+    const blockedContactIds = new Set([...(unlocked || [])].map((id) => String(id)));
+    const selectedStateSet = new Set((selectedStates || []).filter((s) => s && s !== 'all'));
+    const stateFilterActive = selectedStateSet.size > 0;
+    const byState = (record) => {
+      if (!stateFilterActive) return true;
+      const recordStates = collectRecordStates(record);
+      return recordStates.some((code) => selectedStateSet.has(code));
+    };
+    setConnDeck(
+      connectionCards.filter(c => matchesCat(c.cat, cat) && byState(c) && !matchedIds.has(c.id) && !blockedContactIds.has(String(c.id))).map(c => c.id)
+    );
+    setPropDeck(
+      (showcaseItems || []).filter(p => {
+        const owner = findConnectionById(p.ownerId);
+        if (!byState(p)) return false;
+        // Exclude: items of blocked contacts OR items already interested
+        const isFromBlockedContact = blockedContactIds.has(String(p.ownerId));
+        if (interestedIds.has(p.id) || isFromBlockedContact) return false;
+        if (!owner) return cat === 'all';
+        return matchesCat(owner.cat, cat);
+      }).map(p => p.id)
+    );
+    setLastConnOp(null);
+    setLastPropOp(null);
+  };
+
+
+  // Compute active category label for section heading
+  const discoverLabel = (() => {
+    if (activeCat==="all") return t.discover;
+    const cat = CATEGORIES.find(c=>c.id===activeCat);
+    if (cat) return cat.label;
+    const sub = CATEGORIES.flatMap(c=>c.sub||[]).find(s=>s.id===activeCat);
+    return sub ? sub.label : t.discover;
+  })();
+
+  const mobileCategoryRows = useMemo(() => (
+    CATEGORIES.flatMap((cat) => {
+      const parent = {
+        id: cat.id,
+        label: cat.label,
+        icon: catIcon(cat.id),
+        isSub: false,
+      };
+      const sub = (cat.sub || []).map((item) => ({
+        id: item.id,
+        label: `${cat.label}: ${item.label}`,
+        icon: catIcon(item.id),
+        isSub: true,
+      }));
+      return [parent, ...sub];
+    })
+  ), []);
+
+  const fmtPrice = (p) => `$${Number(p || 0).toLocaleString('en-US')}`;
+  const isTruthyVerified = (value) => {
+    if (value === true || value === 1) return true;
+    const normalized = String(value || '').trim().toLowerCase();
+    return normalized === 'true' || normalized === '1' || normalized === 'yes' || normalized === 'verified';
+  };
+
+  const getUnlockCost = (personId) => {
+    const portfolioCount = (showcaseItems || []).filter((property) => property.ownerId === personId).length;
+    return Math.max(1, portfolioCount);
+  };
+
+  const getPortfolioCount = (personId) => {
+    return (showcaseItems || []).filter((property) => property.ownerId === personId).length;
+  };
+
+  const connDeckSet = useMemo(() => new Set(connDeck), [connDeck]);
+  const propDeckSet = useMemo(() => new Set(propDeck), [propDeck]);
+  const verifiedOwnerIds = useMemo(
+    () => {
+      const ids = new Set();
+      (CARDS || []).forEach((c) => {
+        if (isTruthyVerified(c?.verified)) ids.add(String(c.id));
+      });
+      (connectionCards || []).forEach((c) => {
+        if (isTruthyVerified(c?.verified)) ids.add(String(c.id));
+      });
+      return ids;
+    },
+    [connectionCards]
+  );
+
+  // Banner: incluir todos os cards/p imóveis ativos (não só o deck corrente).
+  const bannerConnItems = useMemo(() => (
+    connectionCards
+      .filter(c => !hiddenSet.has(String(c.id)))
+      .map(c => {
+        const ownerKey = String(c.ownerId ?? c.id);
+        const ownerProps = (showcaseProperties || []).filter(
+          (p) => String(p.ownerId) === ownerKey && !p?.dealClosed
+        );
+        const ownerServices = (servicePortfolio || []).filter(
+          (s) => String(s.ownerId) === ownerKey && isTruthyFlag(s.publishToConnections, true) && !s?.dealClosed
+        );
+        const pendingPressure = ownerProps.reduce(
+          (max, p) => Math.max(max, getMatchPressure(p.id)),
+          0
+        );
+        const pendingPressureWithServices = ownerServices.reduce(
+          (max, s) => Math.max(max, getMatchPressure(s.id)),
+          pendingPressure
+        );
+        // Fallback seguro para thumbs/avatars
+        let safeThumb = c.photo;
+        if (!safeThumb || typeof safeThumb !== 'string' || safeThumb.length < 8 || safeThumb.startsWith('data:') && safeThumb.length < 32) {
+          safeThumb = undefined;
+        }
+        // Logging para depuração
+        if (!safeThumb) {
+          // eslint-disable-next-line no-console
+          console.warn('[Dashboard] Thumb/avatar inválido para conexão:', c.id, c.name, c.photo);
+        }
+        return {
+          key: `c-${c.id}`,
+          source: 'connections',
+          id: c.id,
+          title: c.name,
+          subtitle: `${c.type} · ${c.loc}`,
+          meta: `${c.deals} deals · ${c.rating}★`,
+          tone: C.accent,
+          icon: catIcon(c.cat),
+          thumb: safeThumb,
+          thumbRound: true,
+          isPending: pendingPressureWithServices > 0,
+          pendingPressure: pendingPressureWithServices,
+          isVerified: isTruthyVerified(c?.verified) || verifiedOwnerIds.has(String(c.ownerId ?? c.id)),
+        };
+      })
+  ), [connectionCards, showcaseProperties, servicePortfolio, verifiedOwnerIds, hiddenSet]);
+
+  const bannerPropItems = useMemo(() => (
+  (showcaseProperties || [])
+    .filter((p) => isTruthyFlag(p.publishToShowcase, true) && !p?.dealClosed)
+    .map(p => {
+      const pendingPressure = p?.dealClosed ? 0 : getMatchPressure(p.id);
+      const ownerVerified = isTruthyVerified(p?.verified) || verifiedOwnerIds.has(String(p.ownerId));
+      let safeThumb = p.images?.[0] || p.image;
+      if (!safeThumb || typeof safeThumb !== 'string' || (safeThumb.length < 8) || (safeThumb.startsWith('data:') && safeThumb.length < 32)) {
+        safeThumb = undefined;
+      }
+      if (!safeThumb) {
+        // eslint-disable-next-line no-console
+        console.warn('[Dashboard] Thumb invalido para propriedade:', p.id, p.address, p.images, p.image);
+      }
+      return {
+        key: `p-${p.id}`,
+        source: 'properties',
+        id: p.id,
+        title: p.address,
+        subtitle: `${p.type} · ${p.city}`,
+        meta: `${fmtPrice(p.price)} · ${p.capRate ? `${p.capRate}% Cap` : 'Cap N/A'}`,
+        tone: C.gold,
+        icon: 'home',
+        thumb: safeThumb,
+        thumbRound: false,
+        isPending: pendingPressure > 0,
+        pendingPressure,
+        isVerified: ownerVerified,
+      };
+    })
+), [showcaseProperties, verifiedOwnerIds]);
+
+  const hashStringToSeed = (value) => {
+    const input = String(value || '');
+    let hash = 2166136261;
+    for (let i = 0; i < input.length; i += 1) {
+      hash ^= input.charCodeAt(i);
+      hash = Math.imul(hash, 16777619);
+    }
+    return hash >>> 0;
+  };
+
+  const createSeededRandom = (seed) => {
+    let t = seed >>> 0;
+    return () => {
+      t += 0x6D2B79F5;
+      let r = Math.imul(t ^ (t >>> 15), t | 1);
+      r ^= r + Math.imul(r ^ (r >>> 7), r | 61);
+      return ((r ^ (r >>> 14)) >>> 0) / 4294967296;
+    };
+  };
+
+  const prioritizedBannerItems = useMemo(() => {
+    const merged = [...bannerConnItems, ...bannerPropItems];
+    if (!merged.length) return [];
+
+    // Randomização estável: muda apenas quando o conjunto de itens muda.
+    const signature = merged.map((item) => item.key).sort().join('|');
+    const seededRand = createSeededRandom(hashStringToSeed(signature));
+    return [...merged]
+      .map((item) => ({ item, rank: seededRand() }))
+      .sort((a, b) => (a.rank - b.rank) || String(a.item.key).localeCompare(String(b.item.key)))
+      .map(({ item }) => item);
+  }, [bannerConnItems, bannerPropItems]);
+
+  const marqueeBannerItems = useMemo(() => {
+    if (!prioritizedBannerItems.length) return [];
+    const minCards = 16;
+    const out = [...prioritizedBannerItems];
+    while (out.length < minCards) out.push(...prioritizedBannerItems);
+    return out.slice(0, Math.max(minCards, prioritizedBannerItems.length));
+  }, [prioritizedBannerItems]);
+
+  const bannerDurationSec = useMemo(
+    () => Math.max(64, marqueeBannerItems.length * 5),
+    [marqueeBannerItems.length]
+  );
+
+// ---
+  const openBannerItem = (item) => {
+    if (!item) return;
+    if (item.source === 'properties') {
+      setView('properties');
+      setPropDeck(d => d.includes(item.id) ? [item.id, ...d.filter(id => id !== item.id)] : d);
+      return;
+    }
+    setView('connections');
+    setConnDeck(d => d.includes(item.id) ? [item.id, ...d.filter(id => id !== item.id)] : d);
+  };
+
+  const topConnectionCard = connDisplay[0] || null;
+  const topPropertyCard = propDisplay[0] || null;
+  const mobileCanAct = view === 'connections' ? Boolean(topConnectionCard) : Boolean(topPropertyCard);
+  const mobileCanUndo = view === 'connections'
+    ? Boolean(lastConnOp || (skippedQueue && skippedQueue.length > 0))
+    : Boolean(lastPropOp);
+  const myCardShowcaseCount = myCardPreviewData.showcaseItems.length;
+  const myCardPreviewDeckHeight = isMobileViewport ? 560 : 380;
+
+  return (
+    <div style={{ paddingTop:58, paddingBottom:mobileDashboardBottomPadding, height:'100dvh', overflow:'hidden', boxSizing:'border-box' }}>
+      {/* Loader global do feed */}
+      {showLoadingOverlay && (
+        <div style={{
+          position: 'fixed', left: 0, top: 0, width: '100vw', height: '100vh',
+          background: 'transparent', zIndex: 9999, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center'
+        }}>
+          <img src={loaderMark} alt="Carregando" style={{ width: 64, height: 64, marginBottom: 10, opacity: 0.92, animation: 'loaderSpin 1.15s linear infinite' }} />
+          <div style={{ color: '#4381bc', fontWeight: 700, fontSize: 18, letterSpacing: 0.4 }}>Carregando</div>
+        </div>
+      )}
+      {/* Remover qualquer outro loading local redundante abaixo deste ponto */}
+      <style>{`
+        @keyframes loaderSpin {
+          0% { transform: rotate(0deg); }
+          100% { transform: rotate(360deg); }
+        }
+        @keyframes carouselRotateMatch {
+          0%   { transform: translate3d(0, 0, 0) scale(1) rotate(0deg); opacity: 1; }
+          35%  { transform: translate3d(28%, -2%, 0) scale(1.02) rotate(4deg); opacity: 0.98; }
+          70%  { transform: translate3d(120%, -6%, 0) scale(0.97) rotate(11deg); opacity: 0.58; }
+          100% { transform: translate3d(220%, -10%, 0) scale(0.93) rotate(16deg); opacity: 0; }
+        }
+        @keyframes carouselRotatePass {
+          0%   { transform: translate3d(0, 0, 0) scale(1) rotate(0deg); opacity: 1; }
+          35%  { transform: translate3d(-28%, -2%, 0) scale(1.02) rotate(-4deg); opacity: 0.98; }
+          70%  { transform: translate3d(-120%, -6%, 0) scale(0.97) rotate(-11deg); opacity: 0.58; }
+          100% { transform: translate3d(-220%, -10%, 0) scale(0.93) rotate(-16deg); opacity: 0; }
+        }
+        @keyframes bannerScroll {
+          0%   { transform: translateX(0); }
+          100% { transform: translateX(-50%); }
+        }
+        .opportunity-banner:hover .opportunity-track {
+          animation-play-state: paused;
+        }
+        .ds-dashboard-opportunity-banner {
+          position: fixed;
+          bottom: 0;
+          left: 0;
+          right: 0;
+        }
+        @media (max-width: 767px) {
+          .ds-dashboard-opportunity-banner {
+            bottom: calc(${mobileBottomNavOffset}px + env(safe-area-inset-bottom, 0px));
+          }
+        }
+        @keyframes blink {
+          0% { opacity: 1; }
+          50% { opacity: 0.08; }
+          100% { opacity: 1; }
+        }
+        .blink {
+          animation: blink 1s linear infinite;
+        }
+        .ds-mobile-feed-overlay {
+          position: fixed;
+          inset: 58px 0 0 0;
+          border: none;
+          background: rgba(15, 23, 42, 0.34);
+          z-index: 10011;
+        }
+        .ds-mobile-feed-sidebar {
+          position: fixed;
+          top: 58px;
+          left: 0;
+          bottom: 0;
+          width: min(94vw, 356px);
+          background: ${C.card};
+          border-right: 1px solid ${C.border};
+          box-shadow: 12px 0 28px rgba(15, 23, 42, 0.16);
+          z-index: 10012;
+          display: grid;
+          grid-template-rows: auto 1fr;
+          overflow: hidden;
+        }
+        .ds-mobile-feed-handle {
+          position: relative;
+          z-index: auto;
+          height: 32px;
+          min-width: 74px;
+          padding: 0 12px;
+          border: 1px solid ${C.border};
+          border-bottom-color: ${C.alpha(C.border, 0.5)};
+          border-radius: 10px 10px 0 0;
+          background: ${C.alpha(C.card, 0.98)};
+          color: ${C.t1};
+          display: inline-flex;
+          align-items: center;
+          gap: 6px;
+          font-size: 11px;
+          font-weight: 700;
+          box-shadow: 0 8px 18px rgba(15, 23, 42, 0.08);
+          cursor: grab;
+          white-space: nowrap;
+          user-select: none;
+          touch-action: none;
+        }
+        .ds-mobile-feed-handle.is-dragging {
+          transition: none;
+          cursor: grabbing;
+        }
+        .ds-mobile-feed-side-scroll {
+          overflow-y: auto;
+          padding: 12px;
+          display: grid;
+          gap: 12px;
+          align-content: start;
+          min-width: 0;
+          overflow-x: hidden;
+        }
+        .ds-mobile-feed-section {
+          display: grid;
+          gap: 8px;
+          min-width: 0;
+        }
+        .ds-mobile-feed-section-title {
+          font-size: 11px;
+          font-weight: 700;
+          color: ${C.t3};
+          letter-spacing: 0.3px;
+          text-transform: uppercase;
+        }
+        .ds-mobile-category-list {
+          display: grid;
+          gap: 6px;
+          max-height: 220px;
+          overflow-y: auto;
+          padding-right: 2px;
+        }
+        .ds-mobile-category-btn {
+          width: 100%;
+          min-width: 0;
+          display: flex;
+          align-items: center;
+          gap: 7px;
+          padding: 8px 10px;
+          border-radius: 10px;
+          border: 1px solid ${C.border};
+          background: transparent;
+          color: ${C.t2};
+          cursor: pointer;
+          font-size: 11px;
+          font-weight: 600;
+          text-align: left;
+          overflow: hidden;
+        }
+        .ds-mobile-category-btn.is-active {
+          border-color: ${C.accent};
+          background: ${C.alpha(C.accent, 0.12)};
+          color: ${C.accent};
+          box-shadow: 0 0 0 1px ${C.alpha(C.accent, 0.24)};
+        }
+        .ds-mobile-category-btn.is-sub {
+          margin-left: 12px;
+          width: calc(100% - 12px);
+        }
+        .ds-mobile-category-label {
+          min-width: 0;
+          overflow: hidden;
+          text-overflow: ellipsis;
+          white-space: nowrap;
+        }
+        .ds-mobile-action-dock {
+          position: absolute;
+          left: 50%;
+          transform: translateX(-50%);
+          bottom: ${mobileActionDockBottom}px;
+          z-index: 35;
+          display: inline-flex;
+          align-items: center;
+          gap: 8px;
+          padding: 8px 10px;
+          border-radius: 999px;
+          border: 1px solid ${C.border};
+          background: ${C.alpha(C.card, 0.98)};
+          box-shadow: 0 12px 30px rgba(15, 23, 42, 0.2);
+          backdrop-filter: blur(4px);
+          -webkit-backdrop-filter: blur(4px);
+          pointer-events: auto;
+        }
+        .ds-mobile-action-btn {
+          width: 38px;
+          height: 38px;
+          border-radius: 999px;
+          display: inline-flex;
+          align-items: center;
+          justify-content: center;
+          cursor: pointer;
+        }
+        .ds-mobile-action-btn:disabled {
+          opacity: 0.42;
+          cursor: not-allowed;
+        }
+      `}</style>
+      {!isMobileViewport && (
+        <CategoryBar activeCat={activeCat} setActiveCat={handleCatChange} categoryOrder={categoryOrder} setCategoryOrder={setCategoryOrder} editMode={editMode} setEditMode={setEditMode} stickyTop={0} />
+      )}
+      {isMobileViewport && mobileFeedSidebarOpen && (
+        <>
+          <button
+            type="button"
+            className="ds-mobile-feed-overlay"
+            onClick={() => { setMobileFeedSidebarOpen(false); setDropdownOpen(false); }}
+            aria-label="Close feed filters"
+          />
+          <aside className="ds-mobile-feed-sidebar" role="dialog" aria-label="Feed filters">
+            <div style={{ padding: '12px 12px 10px', borderBottom: `1px solid ${C.border}`, display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 10 }}>
+              <div style={{ fontSize: 13, fontWeight: 800, color: C.t1 }}>Feed filters</div>
+              <button
+                type="button"
+                onClick={() => { setMobileFeedSidebarOpen(false); setDropdownOpen(false); }}
+                style={{ border: `1px solid ${C.border}`, background: 'transparent', color: C.t2, width: 28, height: 28, borderRadius: 8, cursor: 'pointer', display: 'inline-flex', alignItems: 'center', justifyContent: 'center' }}
+                aria-label="Close"
+              >
+                <Icon name="close" size={13} color={C.t2} />
+              </button>
+            </div>
+            <div className="ds-mobile-feed-side-scroll">
+              <div className="ds-mobile-feed-section">
+                <div className="ds-mobile-feed-section-title">Feed filters</div>
+                <div className="ds-mobile-category-list">
+                  {mobileCategoryRows.map((row) => {
+                    const active = activeCat === row.id;
+                    return (
+                      <button
+                        key={row.id}
+                        type="button"
+                        onClick={() => {
+                          handleCatChange(row.id);
+                          setMobileFeedSidebarOpen(false);
+                        }}
+                        className={`ds-mobile-category-btn ${active ? 'is-active' : ''} ${row.isSub ? 'is-sub' : ''}`}
+                        title={row.label}
+                      >
+                        <Icon name={row.icon} size={12} color={active ? C.accent : C.t2} strokeWidth={active ? 2 : 1.6} />
+                        <span className="ds-mobile-category-label">{row.label}</span>
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+
+              <div className="ds-mobile-feed-section">
+                <div className="ds-mobile-feed-section-title">My cards</div>
+                <div style={{ display: 'grid', gridTemplateColumns: hasSecondaryProfile ? '1fr 1fr' : '1fr', gap: 8 }}>
+                  <button
+                    type="button"
+                    onClick={() => toggleMyCardModal(primaryModalKey)}
+                    aria-pressed={myCardModal.open && myCardModal.scope === primaryModalKey}
+                    style={{
+                      display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: 5,
+                      minHeight: 36,
+                      padding: '7px 9px', borderRadius: 999,
+                      border: `1px solid ${(myCardModal.open && myCardModal.scope === primaryModalKey) ? C.accent : C.border}`,
+                      background: (myCardModal.open && myCardModal.scope === primaryModalKey) ? C.alpha(C.accent, 0.12) : 'transparent',
+                      color: (myCardModal.open && myCardModal.scope === primaryModalKey) ? C.accent : C.t2,
+                      fontSize: 11, fontWeight: 700, cursor: 'pointer',
+                    }}
+                  >
+                    <span style={{ width: 8, height: 8, borderRadius: 999, background: (myCardModal.open && myCardModal.scope === primaryModalKey) ? C.accent : C.t3 }} />
+                    My Card
+                    {primaryLinkedCardsCount > 0 ? (
+                      <span style={{ background: C.danger, color: '#fff', fontSize: 9, fontWeight: 900, borderRadius: 99, padding: '1px 5px', lineHeight: 1.4 }}>
+                        {primaryLinkedCardsCount}
+                      </span>
+                    ) : null}
+                  </button>
+                  {hasSecondaryProfile ? (
+                    <button
+                      type="button"
+                      onClick={() => toggleMyCardModal(secondaryModalKey)}
+                      aria-pressed={myCardModal.open && myCardModal.scope === secondaryModalKey}
+                      style={{
+                        display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: 5,
+                        minHeight: 36,
+                        padding: '7px 9px', borderRadius: 999,
+                        border: `1px solid ${(myCardModal.open && myCardModal.scope === secondaryModalKey) ? C.accent : C.border}`,
+                        background: (myCardModal.open && myCardModal.scope === secondaryModalKey) ? C.alpha(C.accent, 0.12) : 'transparent',
+                        color: (myCardModal.open && myCardModal.scope === secondaryModalKey) ? C.accent : C.t2,
+                        fontSize: 11, fontWeight: 700, cursor: 'pointer',
+                      }}
+                    >
+                      <span style={{ width: 8, height: 8, borderRadius: 999, background: (myCardModal.open && myCardModal.scope === secondaryModalKey) ? C.accent : C.t3 }} />
+                      My Card B
+                      {secondaryLinkedCardsCount > 0 ? (
+                        <span style={{ background: C.danger, color: '#fff', fontSize: 9, fontWeight: 900, borderRadius: 99, padding: '1px 5px', lineHeight: 1.4 }}>
+                          {secondaryLinkedCardsCount}
+                        </span>
+                      ) : null}
+                    </button>
+                  ) : null}
+                </div>
+              </div>
+
+              <div className="ds-mobile-feed-section">
+                <div className="ds-mobile-feed-section-title">Feed</div>
+                <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
+                  <span style={{ display: 'inline-flex', alignItems: 'center', gap: 5, padding: '3px 8px', borderRadius: 999, border: `1px solid ${view === 'connections' ? C.accent : C.border}`, color: view === 'connections' ? C.accent : C.t2, fontSize: 10, fontWeight: 700 }}>
+                    {view === 'connections' ? 'Connections' : 'Showcase'}
+                  </span>
+                  <span style={{ display: 'inline-flex', alignItems: 'center', gap: 5, padding: '3px 8px', borderRadius: 999, border: `1px solid ${hasActiveStates ? C.accent : C.border}`, color: hasActiveStates ? C.accent : C.t2, fontSize: 10, fontWeight: 700 }}>
+                    {stateSummaryLabel}
+                  </span>
+                </div>
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8 }}>
+                  <button onClick={() => { setView('connections'); setMobileFeedSidebarOpen(false); }} style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6, minHeight: 38, padding: '8px 10px', borderRadius: 10, background: 'transparent', border: `1px solid ${view==='connections' ? C.accent : C.border}`, color: view==='connections' ? C.accent : C.t2, fontWeight: 700, fontSize: 12, cursor: 'pointer' }}>
+                    <Icon name="search" size={12} color={view==='connections' ? C.accent : C.t2} strokeWidth={view==='connections' ? 2 : 1.5} />
+                    Connections
+                  </button>
+                  <button onClick={() => { setView('properties'); setMobileFeedSidebarOpen(false); }} style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6, minHeight: 38, padding: '8px 10px', borderRadius: 10, background: 'transparent', border: `1px solid ${view==='properties' ? '#4381bc' : C.border}`, color: view==='properties' ? '#4381bc' : C.t2, fontWeight: 700, fontSize: 12, cursor: 'pointer' }}>
+                    <Icon name="briefcase" size={12} color={view==='properties' ? '#4381bc' : C.t2} strokeWidth={view==='properties' ? 2 : 1.5} />
+                    Showcase
+                  </button>
+                </div>
+              </div>
+
+              <div className="ds-mobile-feed-section">
+                <div className="ds-mobile-feed-section-title">State</div>
+                <details className="onb-multiselect" open={dropdownOpen} onToggle={(e) => setDropdownOpen(Boolean(e.target.open))} style={{ position: 'relative' }}>
+                  <summary style={{ listStyle: 'none', display: 'inline-flex', alignItems: 'center', justifyContent: 'space-between', gap: 10, width: '100%', padding: '9px 12px', borderRadius: 10, border: `1px solid ${hasActiveStates ? C.accent : C.border}`, background: 'transparent', color: hasActiveStates ? C.accent : C.t1, cursor: 'pointer', fontSize: 12, lineHeight: '16px', minHeight: 38, fontWeight: hasActiveStates ? 700 : 500 }}>
+                    <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}>
+                      <Icon name="mapPin" size={12} color={hasActiveStates ? C.accent : C.t1} strokeWidth={hasActiveStates ? 2 : 1.6} />
+                      <span>{stateSummaryLabel}</span>
+                    </span>
+                    <Icon name={dropdownOpen ? 'chevUp' : 'chevDown'} size={11} color={hasActiveStates ? C.accent : C.t1} />
+                  </summary>
+                  <div style={{ marginTop: 8, width: '100%', maxHeight: 270, overflowY: 'auto', background: C.card, border: `1px solid ${C.border}`, borderRadius: 12, padding: 8, boxShadow: `0 12px 30px ${C.alpha(C.shadow, 0.08)}` }}>
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+                      {stateOptions.filter(s => s !== 'all').map(s => (
+                        <label key={s} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 6, padding: '8px 9px', borderRadius: 999, cursor: 'pointer', border: `1px solid ${selectedStates.includes(s) ? C.accent : C.border}`, background: selectedStates.includes(s) ? C.alpha(C.accent, 0.1) : 'transparent', color: selectedStates.includes(s) ? C.accent : C.t1, fontSize: 11, fontWeight: selectedStates.includes(s) ? 700 : 500, lineHeight: 1 }}>
+                          <input type="checkbox" style={{ display: 'none' }} checked={selectedStates.includes(s)} onChange={() => {
+                            setSelectedStates(prev => {
+                              if (!prev) prev = [];
+                              if (prev.includes(s)) return prev.filter(x => x !== s);
+                              return [...prev.filter(x => x !== 'all'), s];
+                            });
+                          }} />
+                          <span style={{ fontSize: 10 }}>🇺🇸</span>
+                          <span style={{ flex: 1 }}>{s}</span>
+                          {selectedStates.includes(s) ? <Icon name="check" size={11} color={C.accent} strokeWidth={2.2} /> : null}
+                        </label>
+                      ))}
+                    </div>
+                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 6, marginTop: 8, paddingTop: 8, borderTop: `1px solid ${C.border}` }}>
+                      <button type="button" onClick={() => setSelectedStates([])} style={{ padding: '8px 8px', borderRadius: 999, background: 'transparent', border: `1px solid ${C.border}`, color: C.t2, cursor: 'pointer', fontSize: 11, fontWeight: 700 }}>Clear</button>
+                      <button type="button" onClick={() => setSelectedStates(['all'])} style={{ padding: '8px 8px', borderRadius: 999, background: 'transparent', border: `1px solid ${C.border}`, color: C.t2, cursor: 'pointer', fontSize: 11, fontWeight: 700 }}>All</button>
+                    </div>
+                  </div>
+                </details>
+              </div>
+            </div>
+          </aside>
+        </>
+      )}
+      {/* Quick registration detection: consider completed when personalProfile.fullName exists in localStorage */}
+      {/* Note: accessing localStorage synchronously here is acceptable in this SPA context */}
+      {null}
+      <div style={{ maxWidth:"100%", margin:"0 auto", padding:"12px 12px 0 12px", display:"grid", alignItems:"stretch", height:"100%", boxSizing:'border-box' }} className="dashboard-grid">
+
+        {/* Left sidebar */}
+        <div className="desktop-only">
+          <div
+            style={{
+              background: C.card,
+              border: `${quickRegistered ? '1px' : '2px'} solid ${quickRegistered ? C.border : C.danger}`,
+              borderRadius: 14,
+              padding: 10,
+              marginBottom: 6,
+              boxShadow: quickRegistered ? 'none' : `0 0 0 4px ${C.alpha(C.danger, 0.06)}`,
+              cursor: 'default'
+            }}
+          >
+            <div style={{ display:"flex", alignItems:"flex-start", gap:10, marginBottom:8 }}>
+              <div style={{ width:36, height:36, borderRadius:"50%", position:'relative', flexShrink:0 }}>
+                {/* Avatar com click para onboarding */}
+                <SmartImage
+                  src={quickRegistered && typeof primaryCardData?.photo === 'string' && primaryCardData.photo.length > 8 ? primaryCardData.photo : undefined}
+                  alt={userProfile?.name ? `${userProfile.name} profile` : 'profile'}
+                  fallback={(
+                    <div
+                      aria-label={userProfile?.name ? `${userProfile.name} profile` : 'profile'}
+                      style={{
+                        position: 'absolute', inset: 0, width: '100%', height: '100%',
+                        display: 'flex', alignItems: 'center', justifyContent: 'center',
+                        borderRadius: '50%', background: C.alpha(C.accent, 0.08), zIndex: 0,
+                        cursor: quickRegistered ? 'pointer' : undefined
+                      }}
+                      role={quickRegistered ? 'button' : undefined}
+                      tabIndex={quickRegistered ? 0 : undefined}
+                      onClick={quickRegistered ? (e) => { e.stopPropagation(); openOnboardingForScope(primaryVisibleScope); } : undefined}
+                      onKeyDown={quickRegistered ? (e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); e.stopPropagation(); openOnboardingForScope(primaryVisibleScope); } } : undefined}
+                    >
+                      <Icon name="user" size={17} color={C.accent} strokeWidth={1.4} />
+                    </div>
+                  )}
+                  style={{ position:'absolute', inset:0, width:'100%', height:'100%', objectFit:'cover', borderRadius:'50%', zIndex: 1, cursor: quickRegistered ? 'pointer' : undefined }}
+                  role={quickRegistered ? 'button' : undefined}
+                  tabIndex={quickRegistered ? 0 : undefined}
+                  onClick={quickRegistered ? (e) => { e.stopPropagation(); openOnboardingForScope(primaryVisibleScope); } : undefined}
+                  onKeyDown={quickRegistered ? (e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); e.stopPropagation(); openOnboardingForScope(primaryVisibleScope); } } : undefined}
+                />
+              </div>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+                <div style={{ fontWeight:700, color:C.t1, fontSize:13, lineHeight:1.2 }}>{profileName}</div>
+                <div style={{ display:'inline-flex', alignItems:'center', gap:4, minWidth:0, color:C.t2, fontSize:11, fontWeight:400 }}>
+                  <Icon name="mapPin" size={11} color={C.t3} />
+                  <span style={{ whiteSpace:'nowrap', overflow:'hidden', textOverflow:'ellipsis', maxWidth:130 }}>{profileLocation}</span>
+                </div>
+                <div style={{ display:'grid', gap:2, color:C.accent, fontSize:11, fontWeight:400, lineHeight:1.2, maxWidth:130 }}>
+                  <div style={{ whiteSpace:'nowrap', overflow:'hidden', textOverflow:'ellipsis' }}>{activePrimaryCategoryLabel}</div>
+                </div>
+                {/* Registro button removed from here; will be shown below the stats block as full-width */}
+              </div>
+            </div>
+            {/* Registro CTA will appear below the stats block */}
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8, fontSize: 11, color: C.t2, marginBottom: 10 }}>
+              <div style={{ display:'inline-flex', alignItems:'center', gap:6, padding:'2px 8px', border:`1px solid ${C.border}`, borderRadius:999, width:'fit-content', background:C.card, color:C.t2, fontSize:10, lineHeight:'12px', fontWeight:700 }}>
+                {primaryProfileBadgeLabel}
+              </div>
+              <button
+                type="button"
+                onClick={(e) => { e.stopPropagation(); toggleMyCardModal(primaryModalKey); }}
+                aria-pressed={myCardModal.open && myCardModal.scope === primaryModalKey}
+                style={{
+                  display: 'inline-flex', alignItems: 'center', gap: 5,
+                  padding: '2px 8px', borderRadius: 999,
+                  border: `1px solid ${(myCardModal.open && myCardModal.scope === primaryModalKey) ? C.accent : C.border}`,
+                  background: (myCardModal.open && myCardModal.scope === primaryModalKey) ? C.alpha(C.accent, 0.12) : 'transparent',
+                  color: (myCardModal.open && myCardModal.scope === primaryModalKey) ? C.accent : C.t2,
+                  fontSize: 10, fontWeight: 700, cursor: 'pointer', flexShrink: 0
+                }}
+              >
+                <span style={{ width: 8, height: 8, borderRadius: 999, background: (myCardModal.open && myCardModal.scope === primaryModalKey) ? C.accent : C.t3, boxShadow: (myCardModal.open && myCardModal.scope === primaryModalKey) ? `0 0 8px ${C.alpha(C.accent, 0.75)}` : 'none' }} />
+                My Card
+                {/* Mostra a contagem sempre que houver cards publicados */}
+                {primaryLinkedCardsCount > 0 && (
+                  <span style={{
+                    background: C.danger, color: '#fff',
+                    fontSize: 8, fontWeight: 900, borderRadius: 99,
+                    padding: '1px 4px', lineHeight: 1.4, minWidth: 13, textAlign: 'center',
+                  }}>{primaryLinkedCardsCount}</span>
+                )}
+              </button>
+            </div>
+            <div style={{ paddingTop:8, borderTop:`1px solid ${C.border}`, display:"grid", gridTemplateColumns:"1fr 1fr 1fr", gap:4, textAlign:"center" }}>
+              <div>
+                <div style={{ fontWeight:700, color:C.t1, fontSize:12 }}>{String(matchedCount ?? '-')}</div>
+                <div style={{ fontSize:9, color:C.t3 }}>{t.allMatches}</div>
+              </div>
+              <div>
+                <div style={{ fontWeight:700, color:C.t1, fontSize:12 }}>{String(dealsCount ?? '-')}</div>
+                <div style={{ fontSize:9, color:C.t3 }}>{t.deals}</div>
+              </div>
+              <div
+                onMouseEnter={() => setRatingTooltipScope('primary')}
+                onMouseLeave={() => setRatingTooltipScope((prev) => (prev === 'primary' ? null : prev))}
+                style={{ position: 'relative' }}
+              >
+                <div style={{ fontWeight:700, color:C.t1, fontSize:12 }}>{ratingLabel ?? '-'}</div>
+                <div style={{ fontSize:9, color:C.t3 }}>{t.rating}</div>
+                {ratingTooltipScope === 'primary' && renderRatingTooltip(primaryRatingDetails)}
+              </div>
+            </div>
+            {/* Full-width Registro button below stats */}
+            {!quickRegistered && (
+              <div style={{ marginTop: 10 }}>
+                <button
+                  onClick={(e) => { e.stopPropagation(); setPage('onboarding'); }}
+                  className="blink"
+                  style={{
+                    width: '100%',
+                    padding: '8px 12px',
+                    height: 36,
+                    borderRadius: 8,
+                    background: C.danger,
+                    border: `1px solid ${C.danger}`,
+                    color: '#ffffff',
+                    fontSize: 13,
+                    fontWeight: 800,
+                    cursor: 'pointer',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    boxShadow: `0 4px 10px ${C.alpha(C.danger, 0.12)}`
+                  }}
+                  title="Registro rápido"
+                >
+                  Registro
+                </button>
+              </div>
+            )}
+            {/* Registration actions removed from sidebar — moved to property/service records */}
+          </div>
+          {/* Secondary profile card (compact) - only when profile B was registered */}
+          {hasSecondaryProfile && (
+          <div
+            style={{ background: C.card, border: `1px solid ${C.border}`, borderRadius: 12, padding: 10, marginBottom: 6, cursor: 'default' }}
+          >
+            <div style={{ display: 'flex', alignItems: 'flex-start', gap: 8, marginBottom: 8 }}>
+              <div style={{ width:36, height:36, borderRadius:'50%', overflow:'hidden', background:C.alpha(C.accent,0.08), display:'flex', alignItems:'center', justifyContent:'center', flexShrink:0 }}>
+                {typeof profileThumbB === 'string' && profileThumbB.length > 8 ? (
+                  <SmartImage
+                    src={profileThumbB}
+                    alt={profileNameB}
+                    style={{ width:'100%', height:'100%', objectFit:'cover', cursor:'pointer' }}
+                    role="button"
+                    tabIndex={0}
+                    onClick={(e) => { e.stopPropagation(); openOnboardingForScope(secondaryVisibleScope); }}
+                    onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); e.stopPropagation(); openOnboardingForScope(secondaryVisibleScope); } }}
+                  />
+                ) : (
+                  <div
+                    role="button"
+                    tabIndex={0}
+                    style={{ width:'100%', height:'100%', display:'flex', alignItems:'center', justifyContent:'center', cursor:'pointer' }}
+                    onClick={(e) => { e.stopPropagation(); openOnboardingForScope(secondaryVisibleScope); }}
+                    onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); e.stopPropagation(); openOnboardingForScope(secondaryVisibleScope); } }}
+                  >
+                    <Icon name="user" size={17} color={C.accent} strokeWidth={1.4} />
+                  </div>
+                )}
+              </div>
+              <div style={{ display:'flex', flexDirection:'column', gap: 4 }}>
+                <div style={{ fontWeight:700, color:C.t1, fontSize:13, lineHeight:1.2 }}>{profileNameB}</div>
+                <div style={{ display:'inline-flex', alignItems:'center', gap:4, minWidth:0, color:C.t2, fontSize:11, fontWeight:400 }}>
+                  <Icon name="mapPin" size={11} color={C.t3} />
+                  <span style={{ whiteSpace:'nowrap', overflow:'hidden', textOverflow:'ellipsis', maxWidth:130 }}>{profileLocationB}</span>
+                </div>
+                <div style={{ color:C.accent, fontSize:11, whiteSpace:'nowrap', overflow:'hidden', textOverflow:'ellipsis', maxWidth:130 }}>{profileRoleLineB}</div>
+              </div>
+            </div>
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8, color: C.t2, fontSize: 11, marginBottom: 8 }}>
+              <div style={{ display:'inline-flex', alignItems:'center', gap:6, padding:'2px 8px', border:`1px solid ${C.border}`, borderRadius:999, width:'fit-content', background:C.card, color:C.t2, fontSize:10, lineHeight:'12px', fontWeight:700 }}>
+                {secondaryProfileBadgeLabel}
+              </div>
+                <button
+                  type="button"
+                  onClick={(e) => { e.stopPropagation(); toggleMyCardModal(secondaryModalKey); }}
+                  aria-pressed={myCardModal.open && myCardModal.scope === secondaryModalKey}
+                style={{
+                    display: 'inline-flex', alignItems: 'center', gap: 5,
+                    padding: '2px 8px', borderRadius: 999,
+                    border: `1px solid ${(myCardModal.open && myCardModal.scope === secondaryModalKey) ? C.accent : C.border}`,
+                    background: (myCardModal.open && myCardModal.scope === secondaryModalKey) ? C.alpha(C.accent, 0.12) : 'transparent',
+                    color: (myCardModal.open && myCardModal.scope === secondaryModalKey) ? C.accent : C.t2,
+                    fontSize: 10, fontWeight: 700, cursor: 'pointer', flexShrink: 0
+                  }}
+                >
+                  <span style={{ width: 8, height: 8, borderRadius: 999, background: (myCardModal.open && myCardModal.scope === secondaryModalKey) ? C.accent : C.t3, boxShadow: (myCardModal.open && myCardModal.scope === secondaryModalKey) ? `0 0 8px ${C.alpha(C.accent, 0.75)}` : 'none' }} />
+                  My Card
+                  {secondaryLinkedCardsCount > 0 && (
+                    <span style={{
+                      background: C.danger, color: '#fff',
+                      fontSize: 8, fontWeight: 900, borderRadius: 99,
+                      padding: '1px 5px', lineHeight: 1.4, minWidth: 13, textAlign: 'center',
+                    }}>{secondaryLinkedCardsCount}</span>
+                  )}
+                </button>
+            </div>
+            <div style={{ paddingTop:8, borderTop:`1px solid ${C.border}`, display:"grid", gridTemplateColumns:"1fr 1fr 1fr", gap:4, textAlign:"center" }}>
+              <div>
+
+                <div style={{ fontWeight:700, color:C.t1, fontSize:12 }}>{String(matchedCountB ?? '-')}</div>
+                <div style={{ fontSize:9, color:C.t3 }}>Matches</div>
+              </div>
+              <div>
+                <div style={{ fontWeight:700, color:C.t1, fontSize:12 }}>{String(dealsCountB ?? '-')}</div>
+                <div style={{ fontSize:9, color:C.t3 }}>Deals</div>
+              </div>
+              <div
+                onMouseEnter={() => setRatingTooltipScope('secondary')}
+                onMouseLeave={() => setRatingTooltipScope((prev) => (prev === 'secondary' ? null : prev))}
+                style={{ position: 'relative' }}
+              >
+                <div style={{ fontWeight:700, color:C.t1, fontSize:12 }}>{ratingLabelB ?? '-'}</div>
+                <div style={{ fontSize:9, color:C.t3 }}>Rating</div>
+                {ratingTooltipScope === 'secondary' && renderRatingTooltip(secondaryRatingDetails)}
+              </div>
+            </div>
+          </div>
+          )}
+          <div style={{ background:C.alpha(C.gold, 0.05), border:`1px solid ${C.alpha(C.gold, 0.2)}`, borderRadius:12, padding:'8px 8px', marginBottom:6, height:88, boxSizing:'border-box', display:'grid', gridTemplateRows:'auto auto auto', alignContent:'start', gap:6 }}>
+            <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center" }}>
+              <div style={{ display:"flex", alignItems:"center", gap:4 }}><Icon name="nugget" size={11} color={C.gold} /><span style={{ fontWeight:700, color:C.gold, fontSize:10, lineHeight:1 }}>{t.nuggetsLabel}</span></div>
+              <span style={{ fontWeight:800, color:C.gold, fontSize:14, lineHeight:1 }}>{nuggets}</span>
+            </div>
+            <div style={{ fontSize:10, color:C.t3, lineHeight:1.2, display:'-webkit-box', WebkitLineClamp:2, WebkitBoxOrient:'vertical', overflow:'hidden' }}>{t.nuggets1}</div>
+            <button onClick={() => setModal("store")} style={{ width:"100%", height:24, padding:'0 6px', borderRadius:7, background:"transparent", border:`1px solid ${C.gold}`, color:C.gold, fontWeight:700, fontSize:10, cursor:"pointer", display:"flex", alignItems:"center", justifyContent:"center", gap:4 }}>
+              <Icon name="plus" size={10} color={C.gold} /> {t.buyMore}
+            </button>
+          </div>
+          <div style={{ background:C.alpha(C.accent, 0.07), border:`1px solid ${C.alpha(C.accent, 0.15)}`, borderRadius:12, padding:'8px 8px', height:98, boxSizing:'border-box', display:'grid', gridTemplateRows:'auto auto auto', alignContent:'start', gap:6 }}>
+            <div style={{ display:"flex", alignItems:"center", gap:4 }}><Icon name="zap" size={10} color={C.accentL} /><span style={{ fontSize:10, fontWeight:700, color:C.accentL, lineHeight:1 }}>{t.upgradeTitle}</span></div>
+            <div style={{ fontSize:10, color:C.t2, lineHeight:1.2, display:'-webkit-box', WebkitLineClamp:2, WebkitBoxOrient:'vertical', overflow:'hidden' }}>{t.upgradeDesc}</div>
+            <button style={{ width:"100%", height:24, padding:'0 6px', borderRadius:7, background:"transparent", border:`1px solid ${C.accent}`, color:C.accent, fontWeight:700, fontSize:10, cursor:"pointer" }}>{t.startTrial}</button>
+          </div>
+        </div>
+
+        {/* My Card preview modal — top-level so it works regardless of which profile triggered it */}
+        {myCardModal.open && (
+          <Modal onClose={() => setMyCardModal((prev) => ({ ...prev, open: false }))} maxWidth={isMobileViewport ? 760 : 1320}>
+            <div style={{ display: 'grid', gap: 10, maxHeight: isMobileViewport ? 'calc(90vh - 110px)' : 'none', overflowY: isMobileViewport ? 'auto' : 'visible', paddingRight: isMobileViewport ? 2 : 0 }}>
+              <div style={{ display: 'flex', flexWrap: isMobileViewport ? 'wrap' : 'nowrap', alignItems: 'center', justifyContent: 'space-between', gap: 8, paddingRight: 30 }}>
+                <div>
+                  <h3 style={{ margin: 0, fontSize: 18, color: C.t1, fontWeight: 800 }}>My Card · {myCardPreviewData.scopeLabel}</h3>
+                  <p style={{ margin: '4px 0 0', fontSize: 12, color: C.t3 }}>
+                    Active/published cards currently visible in feed and showcase.
+                  </p>
+                </div>
+                <div style={{ display: 'inline-flex', alignItems: 'center', gap: 8, fontSize: 11, color: C.t2 }}>
+                  <span>{myCardPreviewData.services.length} services</span>
+                  <span>•</span>
+                  <span>{myCardPreviewData.properties.length} properties</span>
+                </div>
+              </div>
+
+              <div style={{ display: 'grid', gridTemplateColumns: isMobileViewport ? '1fr' : 'minmax(0, 1fr) minmax(0, 1fr)', gap: 14 }}>
+                <section style={{ border: `1px solid ${C.border}`, borderRadius: 14, background: C.card, overflow: 'hidden', display: 'grid', gridTemplateRows: 'auto 1fr' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '8px 10px', borderBottom: `1px solid ${C.border}`, fontSize: 11, color: C.t3, textTransform: 'uppercase', fontWeight: 700 }}>Feed Card (Connections)</div>
+                  <div style={{
+                    padding: 12,
+                    minHeight: myCardPreviewDeckHeight,
+                    height: myCardPreviewDeckHeight,
+                    display: 'flex',
+                    justifyContent: 'center',
+                    alignItems: 'center',
+                    boxSizing: 'border-box',
+                  }}>
+                    <div style={{
+                      width: '100%',
+                      height: '100%',
+                      maxWidth: 603,
+                      margin: '0 auto',
+                      boxSizing: 'border-box',
+                    }}>
+                      <SwipeCard
+                        card={myCardPreviewData.profileCard}
+                        previewOnly
+                        isUnlocked
+                      />
+                    </div>
+                  </div>
+                </section>
+
+                <section style={{ border: `1px solid ${C.border}`, borderRadius: 14, background: C.card, overflow: 'hidden', display: 'grid', gridTemplateRows: 'auto 1fr' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '8px 10px', borderBottom: `1px solid ${C.border}`, fontSize: 11, color: C.t3, textTransform: 'uppercase', fontWeight: 700 }}>
+                    <span>Enabled Showcase Cards</span>
+                    {myCardShowcaseCount > 1 && (
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                        <button
+                          style={{ border: 'none', background: 'transparent', cursor: myCardShowcaseIdx === 0 ? 'not-allowed' : 'pointer', padding: 4, borderRadius: 999, display: 'flex', alignItems: 'center', justifyContent: 'center' }}
+                          disabled={myCardShowcaseIdx === 0}
+                          onClick={() => setMyCardShowcaseIdx(i => Math.max(0, i - 1))}
+                          aria-label="Anterior"
+                        >
+                          <Icon name="chevronLeft" size={22} color={myCardShowcaseIdx === 0 ? C.t3 : C.t1} />
+                        </button>
+                        <span style={{ fontSize: 11, color: C.t2, minWidth: 48, textAlign: 'center', display: 'inline-block' }}>{myCardShowcaseIdx + 1} / {myCardShowcaseCount}</span>
+                        <button
+                          style={{ border: 'none', background: 'transparent', cursor: myCardShowcaseIdx === myCardShowcaseCount - 1 ? 'not-allowed' : 'pointer', padding: 4, borderRadius: 999, display: 'flex', alignItems: 'center', justifyContent: 'center' }}
+                          disabled={myCardShowcaseIdx === myCardShowcaseCount - 1}
+                          onClick={() => setMyCardShowcaseIdx(i => Math.min(myCardShowcaseCount - 1, i + 1))}
+                          aria-label="Próximo"
+                        >
+                          <Icon name="chevronRight" size={22} color={myCardShowcaseIdx === myCardShowcaseCount - 1 ? C.t3 : C.t1} />
+                        </button>
+                      </div>
+                    )}
+                  </div>
+                  {myCardShowcaseCount > 0 ? (() => {
+                    const item = myCardPreviewData.showcaseItems[myCardShowcaseIdx] || myCardPreviewData.showcaseItems[0];
+                    if (item._itemType === 'property') {
+                      return (
+                        <div style={{ padding: 12, minHeight: myCardPreviewDeckHeight, overflowY: 'auto' }}>
+                          <div style={{ width: '100%', height: myCardPreviewDeckHeight, maxWidth: 603, margin: '0 auto', boxSizing: 'border-box' }}>
+                            <PropertyCard
+                              property={item}
+                              owner={myCardPreviewData.profileCard}
+                              previewOnly
+                            />
+                          </div>
+                        </div>
+                      );
+                    }
+                    // Service item
+                    const svcImages = (item.media?.images || []).filter(Boolean);
+                    return (
+                      <div style={{ padding: 12, minHeight: isMobileViewport ? 260 : 380, overflowY: 'auto' }}>
+                        <div style={{ marginBottom: 8 }}>
+                          <div style={{ fontSize: 14, fontWeight: 700, color: C.t1 }}>{item.title || 'Service'}</div>
+                          {item.description && <div style={{ fontSize: 12, color: C.t2, marginTop: 2 }}>{item.description}</div>}
+                          {item.category && <div style={{ display: 'inline-block', marginTop: 4, padding: '2px 8px', borderRadius: 12, background: C.alpha(C.accent, 0.08), border: `1px solid ${C.alpha(C.accent, 0.15)}`, fontSize: 10, color: C.accent, fontWeight: 700 }}>{item.category}</div>}
+                        </div>
+                        {svcImages.length > 0 ? (
+                          <div style={{ display: 'grid', gridTemplateColumns: svcImages.length === 1 ? '1fr' : 'repeat(auto-fill, minmax(120px, 1fr))', gap: 8 }}>
+                            {svcImages.map((src, idx) => (
+                              <div key={`svc-img-${idx}`} style={{ position: 'relative', aspectRatio: svcImages.length === 1 ? '16/9' : '1', borderRadius: 8, overflow: 'hidden', background: C.alpha(C.t1, 0.06), border: `1px solid ${C.border}` }}>
+                                <SmartImage src={src} alt={item.title || ''} style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }} />
+                              </div>
+                            ))}
+                          </div>
+                        ) : (
+                          <div style={{ height: 200, border: `1px dashed ${C.border}`, borderRadius: 12, display: 'flex', alignItems: 'center', justifyContent: 'center', color: C.t3, fontSize: 12 }}>No images</div>
+                        )}
+                      </div>
+                    );
+                  })() : (
+                    <div style={{ margin: 12, height: isMobileViewport ? 260 : 380, border: `1px dashed ${C.border}`, borderRadius: 12, display: 'flex', alignItems: 'center', justifyContent: 'center', color: C.t3, fontSize: 12 }}>
+                      No published property or service in this profile yet.
+                    </div>
+                  )}
+                  {myCardShowcaseCount > 1 ? (
+                    <div style={{ padding: '0 12px 12px', display: 'flex', justifyContent: 'center', alignItems: 'center', gap: 6 }}>
+                      {myCardPreviewData.showcaseItems.map((entry, idx) => {
+                        const isActive = idx === myCardShowcaseIdx;
+                        return (
+                          <button
+                            key={`${entry.id || entry.title || 'showcase'}-${idx}`}
+                            type="button"
+                            onClick={() => setMyCardShowcaseIdx(idx)}
+                            aria-label={`Ir para card ${idx + 1}`}
+                            style={{
+                              width: isActive ? 16 : 8,
+                              height: 8,
+                              borderRadius: 999,
+                              border: 'none',
+                              background: isActive ? C.accent : C.alpha(C.t1, 0.2),
+                              cursor: 'pointer',
+                              transition: 'all .15s ease',
+                            }}
+                          />
+                        );
+                      })}
+                    </div>
+                  ) : null}
+                </section>
+              </div>
+            </div>
+          </Modal>
+        )}
+
+        {/* Card stack */}
+        <div style={{ display:"flex", flexDirection:"column", alignItems:"center", overflow:"visible", width:"100%" }}>
+
+
+          {/* View Tabs + State Filter (inline) */}
+          {!isMobileViewport && (
+            <div style={{ display:"flex", gap:6, marginBottom:8, justifyContent:"space-between", alignItems: 'center', width: '100%', maxWidth: 700 }}>
+              <div style={{ display: 'flex', gap: 6, justifyContent: 'center', flex: 1, marginLeft: 150 }}>
+                <button onClick={() => { setView("connections"); }} style={{ display:"flex", alignItems:"center", gap:5, padding:"6px 12px", borderRadius:8, background:"transparent", border:`1px solid ${view==="connections"?C.accent:C.border}`, color:view==="connections"?C.accent:C.t2, fontWeight:600, fontSize:12, cursor:"pointer", transition:"all .2s" }}>
+                  <Icon name="search" size={12} color={view==="connections"?C.accent:C.t2} strokeWidth={view==="connections"?2:1.5} /> Connections
+                </button>
+                <button onClick={() => { setView("properties"); }} style={{ display:"flex", alignItems:"center", gap:5, padding:"6px 12px", borderRadius:8, background:"transparent", border:`1px solid ${view==="properties"?"#4381bc":C.border}`, color:view==="properties"?"#4381bc":C.t2, fontWeight:600, fontSize:12, cursor:"pointer", transition:"all .2s" }}>
+                  <Icon name="briefcase" size={12} color={view==="properties"?"#4381bc":C.t2} strokeWidth={view==="properties"?2:1.5} /> Showcase
+                </button>
+              </div>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 8, position: 'relative' }}>
+                <label style={{ marginRight: 4, fontSize: 13, color: C.t3 }}>State</label>
+                <details className="onb-multiselect" open={dropdownOpen} onToggle={(e) => setDropdownOpen(Boolean(e.target.open))} style={{ position: 'relative' }}>
+                  <summary style={{ listStyle: 'none', display: 'inline-flex', alignItems: 'center', gap: 6, padding: '6px 12px', borderRadius: 999, border: `1px solid ${hasActiveStates ? C.accent : C.border}`, background: 'transparent', color: hasActiveStates ? C.accent : C.t1, cursor: 'pointer', fontSize: 12, lineHeight: '16px', minHeight: 30, fontWeight: hasActiveStates ? 600 : 400, whiteSpace: 'nowrap' }}>
+                    <Icon name="mapPin" size={12} color={hasActiveStates ? C.accent : C.t1} strokeWidth={hasActiveStates ? 2 : 1.6} />
+                    <span>{stateSummaryLabel}</span>
+                    <Icon name={dropdownOpen ? 'chevUp' : 'chevDown'} size={11} color={hasActiveStates ? C.accent : C.t1} />
+                  </summary>
+                  <div style={{ position: 'absolute', top: 'calc(100% + 8px)', right: 0, width: 118, maxHeight: 280, overflowY: 'auto', background: C.card, border: `1px solid ${C.border}`, borderRadius: 16, padding: 8, boxShadow: `0 12px 30px ${C.alpha(C.shadow, 0.08)}`, zIndex: 1200 }}>
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+                      {stateOptions.filter(s => s !== 'all').map(s => (
+                        <label key={s} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 6, padding: '7px 9px', borderRadius: 999, cursor: 'pointer', border: `1px solid ${selectedStates.includes(s) ? C.accent : C.border}`, background: selectedStates.includes(s) ? C.alpha(C.accent, 0.1) : 'transparent', color: selectedStates.includes(s) ? C.accent : C.t1, fontSize: 11, fontWeight: selectedStates.includes(s) ? 600 : 400, lineHeight: 1 }}>
+                          <input type="checkbox" style={{ display: 'none' }} checked={selectedStates.includes(s)} onChange={() => {
+                            setSelectedStates(prev => {
+                              if (!prev) prev = [];
+                              if (prev.includes(s)) return prev.filter(x => x !== s);
+                              return [...prev.filter(x => x !== 'all'), s];
+                            });
+                          }} />
+                          <span style={{ fontSize: 10 }}>🇺🇸</span>
+                          <span style={{ flex: 1 }}>{s}</span>
+                          {selectedStates.includes(s) ? <Icon name="check" size={11} color={C.accent} strokeWidth={2.2} /> : null}
+                        </label>
+                      ))}
+                    </div>
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: 6, marginTop: 8, paddingTop: 8, borderTop: `1px solid ${C.border}` }}>
+                      <button type="button" onClick={() => setSelectedStates([])} style={{ padding: '7px 8px', borderRadius: 999, background: 'transparent', border: `1px solid ${C.border}`, color: C.t2, cursor: 'pointer', fontSize: 11, fontWeight: 600 }}>Clear</button>
+                      <button type="button" onClick={() => setSelectedStates(['all'])} style={{ padding: '7px 8px', borderRadius: 999, background: 'transparent', border: `1px solid ${C.border}`, color: C.t2, cursor: 'pointer', fontSize: 11, fontWeight: 600 }}>All</button>
+                    </div>
+                  </div>
+                </details>
+              </div>
+            </div>
+          )}
+
+          <div style={{ marginBottom:8, width: '100%', maxWidth: `min(${FEED_CARD_WIDTH}px, 100%)`, display: 'flex', alignItems: 'center', justifyContent: isMobileViewport ? 'space-between' : 'center', gap: 8 }}>
+            <h2 style={{ margin: 0, fontSize:"clamp(13px,2.5vw,16px)", fontWeight:800, color:C.t1, textAlign: isMobileViewport ? 'left' : 'center' }}>
+              {view==="connections" ? discoverLabel : (activeCat==="all" ? t.showcase : discoverLabel)}
+            </h2>
+            {isMobileViewport && !mobileFeedSidebarOpen && (
+              <button
+                type="button"
+                className={`ds-mobile-feed-handle ${isDraggingFeedHandle ? 'is-dragging' : ''}`}
+                onClick={handleFeedTabClick}
+                onPointerDown={handleFeedTabPointerDown}
+                onPointerMove={handleFeedTabPointerMove}
+                onPointerUp={handleFeedTabPointerEnd}
+                onPointerCancel={handleFeedTabPointerEnd}
+                aria-label="Open feed filters"
+                style={{ transform: `translateY(${mobileFeedHandleOffsetY}px)` }}
+              >
+                <Icon name="menu" size={12} color={C.t2} />
+                Aba filtros
+                <Icon name="chevUp" size={12} color={C.t3} />
+              </button>
+            )}
+          </div>
+
+          <div style={{ position:"relative", width:"100%", minHeight:FEED_STACK_CONTAINER_HEIGHT, overflow:"visible", display:"flex", justifyContent:"center", alignItems:"flex-start", boxSizing:"border-box" }}>
+            <div style={{ position:"relative", width:`min(${FEED_CARD_WIDTH}px, 100%)`, height:FEED_STACK_CONTAINER_HEIGHT, boxShadow: 'none', borderRadius: 0, overflow: 'visible' }}>
+              {view==="connections" && (
+                connDisplay.length > 0
+                  ? connDisplay.slice(0, 5).reverse().map((c, i) => {
+                      const reverseI = Math.min(connDisplay.length, 5) - 1 - i;
+                      const isTop    = reverseI === 0;
+                      const shiftLeft    = reverseI * FEED_STACK_SHIFT_X;
+                      const shiftDown    = reverseI * FEED_STACK_SHIFT_Y;
+                      const stackScale   = 1 - reverseI * 0.035;
+                      const stackOpacity = isTop ? 1 : 0.9 - reverseI * 0.1;
+                      return (
+                        <div key={c.id} style={{
+                          position: "absolute",
+                          top: 0,
+                          left: 0,
+                          width: "100%",
+                          height: `${FEED_CARD_HEIGHT}px`,
+                          transformOrigin: "top left",
+                          transform: isTop && action
+                            ? "translateZ(0)"
+                            : `translate3d(${shiftLeft}px, ${shiftDown}px, 0) scale(${stackScale})`,
+                          zIndex: 10 - reverseI,
+                          opacity: stackOpacity,
+                          animation: isTop && action ? (action === "match" ? `carouselRotateMatch ${SWIPE_ANIM_MS}ms cubic-bezier(0.23, 1, 0.32, 1) forwards` : `carouselRotatePass ${SWIPE_ANIM_MS}ms cubic-bezier(0.23, 1, 0.32, 1) forwards`) : "none"
+                        }}>
+                          <div style={{ position: 'relative', width: '100%', height: '100%' }}>
+                            <SwipeCard card={{ ...c, portfolioCount: getPortfolioCount(c.ownerId ?? c.id) }} action={isTop ? action : null} isUnlocked={unlocked.includes(c.id)} isSkipped={skippedSet.has(c.id)} onSwipe={act} onUndo={lastConnOp && isTop ? undo : null} onUnlock={act} showActions={!isMobileViewport} />
+                          </div>
+                        </div>
+                      );
+                    })
+                  : (
+                    <div style={{
+                      width: '100%',
+                      height: `${FEED_CARD_HEIGHT}px`,
+                      display: 'flex',
+                      flexDirection: 'column',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      background: 'transparent',
+                      textAlign: 'center',
+                      position: 'relative',
+                    }}>
+                      <div style={{ display:"flex", justifyContent:"center", marginBottom:14 }}><Icon name="check" size={44} color={C.accent} strokeWidth={1.2} /></div>
+                      <div style={{ fontSize:16, fontWeight:700, color:C.t1 }}>{t.seen}</div>
+                      <div style={{ color:C.t2, marginTop:6, fontSize:13 }}>{t.seenSub}</div>
+                    </div>
+                  )
+              )}
+              {view==="properties" && (
+                propDisplay.length > 0
+                  ? propDisplay.slice(0, 5).reverse().map((p, i) => {
+                      const reverseI = Math.min(propDisplay.length, 5) - 1 - i;
+                      const isTop    = reverseI === 0;
+                      const canonical = PROPERTIES.find(pp => String(pp.id) === String(p.id));
+                      const ownerIdToUse = canonical ? canonical.ownerId : p.ownerId;
+                      const pOwner   = p.ownerPreview || findConnectionById(ownerIdToUse);
+                      const shiftLeft    = reverseI * FEED_STACK_SHIFT_X;
+                      const shiftDown    = reverseI * FEED_STACK_SHIFT_Y;
+                      const stackScale   = 1 - reverseI * 0.035;
+                      const stackOpacity = isTop ? 1 : 0.9 - reverseI * 0.1;
+                      return (
+                        <div
+                          key={p.id}
+                          style={{
+                            position: "absolute",
+                            top: 0,
+                            left: 0,
+                            width: "100%",
+                            height: `${FEED_CARD_HEIGHT}px`,
+                            transformOrigin: "top left",
+                            zIndex: 10 - reverseI,
+                            opacity: stackOpacity,
+                            animation: (
+                              isTop && propAction
+                                ? propAction === "interest"
+                                  ? `carouselRotateMatch ${SWIPE_ANIM_MS}ms cubic-bezier(0.23, 1, 0.32, 1) forwards`
+                                  : `carouselRotatePass ${SWIPE_ANIM_MS}ms cubic-bezier(0.23, 1, 0.32, 1) forwards`
+                                : "none"
+                            ),
+                            transform: (
+                              isTop && propAction
+                                ? "translateZ(0)"
+                                : `translate3d(${shiftLeft}px, ${shiftDown}px, 0) scale(${stackScale})`
+                            )
+                          }}
+                        >
+                          <div style={{ position: 'relative', width: '100%', height: '100%' }}>
+                            <PropertyCard
+                              property={p}
+                              action={isTop ? propAction : null}
+                              statusAction={propStatusById[p.id] || null}
+                              onInterest={actProperty}
+                              owner={pOwner}
+                              isSkipped={skippedSetProp.has(p.id)}
+                              onUndo={lastPropOp && isTop ? undoProperty : null}
+                              matchPressure={getMatchPressure(p.id)}
+                              showActions={!isMobileViewport}
+                            />
+                          </div>
+                        </div>
+                      );
+                    })
+                  : (
+                    <div
+                      style={{
+                        width: '100%',
+                        height: `${FEED_CARD_HEIGHT}px`,
+                        display: 'flex',
+                        flexDirection: 'column',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        boxShadow: '0 0 0 1px ' + C.border,
+                        borderRadius: 18,
+                        background: 'transparent',
+                        textAlign: 'center',
+                        position: 'relative',
+                      }}
+                    >
+                      <div style={{ display:"flex", justifyContent:"center", marginBottom:14 }}><Icon name="home" size={44} color={C.gold} strokeWidth={1.2} /></div>
+                      <div style={{ fontSize:16, fontWeight:700, color:C.t1 }}>{t.noOpp}</div>
+                      <div style={{ color:C.t2, marginTop:6, fontSize:13 }}>{t.noOppSub}</div>
+                    </div>
+                  )
+              )}
+            </div>
+            {isMobileViewport && !mobileFeedSidebarOpen ? (
+              <div className="ds-mobile-action-dock" role="group" aria-label="Swipe actions">
+                <button
+                  type="button"
+                  className="ds-mobile-action-btn"
+                  onClick={() => {
+                    if (view === 'connections') undo();
+                    else undoProperty();
+                  }}
+                  disabled={!mobileCanUndo}
+                  title="Undo"
+                  style={{ border: `1px solid ${C.border}`, background: 'transparent' }}
+                >
+                  <Icon name="rotateCcw" size={16} color={C.t2} strokeWidth={2} />
+                </button>
+
+                <button
+                  type="button"
+                  className="ds-mobile-action-btn"
+                  onClick={() => {
+                    if (view === 'connections') act('pass');
+                    else actProperty('pass');
+                  }}
+                  disabled={!mobileCanAct}
+                  title="Pass"
+                  style={{ border: `1.5px solid ${C.danger}`, background: C.alpha(C.danger, 0.08) }}
+                >
+                  <Icon name="close" size={16} color={C.danger} strokeWidth={2.2} />
+                </button>
+
+                <button
+                  type="button"
+                  className="ds-mobile-action-btn"
+                  onClick={() => {
+                    if (view === 'connections') act('unlock');
+                    else actProperty('interest');
+                  }}
+                  disabled={!mobileCanAct}
+                  title={view === 'connections' ? 'Unlock' : 'Interest'}
+                  style={{ border: `1.5px solid ${C.gold}`, background: C.alpha(C.gold, 0.08) }}
+                >
+                  <Icon name="star" size={16} color={C.gold} strokeWidth={2} />
+                </button>
+
+                <button
+                  type="button"
+                  className="ds-mobile-action-btn"
+                  onClick={() => {
+                    if (view === 'connections') act('match');
+                    else actProperty('interest');
+                  }}
+                  disabled={!mobileCanAct}
+                  title={view === 'connections' ? 'Match' : 'Match'}
+                  style={{ border: `1.5px solid ${C.success}`, background: C.alpha(C.success, 0.08) }}
+                >
+                  <Icon name="check" size={16} color={C.success} strokeWidth={2.2} />
+                </button>
+
+                <button
+                  type="button"
+                  className="ds-mobile-action-btn"
+                  onClick={() => {
+                    if (view === 'connections') act('next');
+                    else actProperty('next');
+                  }}
+                  disabled={!mobileCanAct}
+                  title="Next"
+                  style={{ border: `1px solid ${C.border}`, background: 'transparent' }}
+                >
+                  <Icon name="rotateCw" size={16} color={C.t2} strokeWidth={2} />
+                </button>
+              </div>
+            ) : null}
+          </div>
+        </div>
+        {/* Matches List — col 3 of grid (desktop-only) */}
+        <div className="desktop-only merge-next-col" style={{ background:C.card, border:`1px solid ${C.border}`, borderRadius:0, padding:10, height:550, display:"flex", flexDirection:"column", boxSizing:"border-box", marginLeft: 12, marginTop: -12 }}>
+          <div style={{ fontWeight:700, color:C.t1, marginBottom:8, display:"flex", justifyContent:"space-between", fontSize:10, textTransform:"uppercase", letterSpacing:"0.5px" }}>
+            <span>{t.matches}</span>
+            <span style={{ color:C.accent }}>{filteredMatched.length}</span>
+          </div>
+          <div style={{ position:'relative', marginBottom:8 }}>
+            <button
+              onClick={() => setMatchCategoryDropdownOpen((v) => !v)}
+              style={{
+                width:'100%',
+                display:'flex',
+                alignItems:'center',
+                justifyContent:'space-between',
+                padding:'6px 8px',
+                borderRadius:8,
+                border:`1px solid ${C.border}`,
+                background:C.alpha(C.bg, 0.45),
+                color:C.t2,
+                fontSize:10,
+                fontWeight:700,
+                cursor:'pointer'
+              }}
+            >
+              <span>{selectedMatchCategories.length ? `${selectedMatchCategories.length} ${t.selected || 'selected'}` : (matchesT.categoryFilter || 'All categories')}</span>
+              <Icon name={matchCategoryDropdownOpen ? 'chevUp' : 'chevDown'} size={12} color={C.t3} />
+            </button>
+            {matchCategoryDropdownOpen ? (
+              <div style={{ position:'absolute', top:'calc(100% + 6px)', left:0, right:0, maxHeight:170, overflowY:'auto', zIndex:20, background:C.card, border:`1px solid ${C.border}`, borderRadius:10, padding:6, boxShadow:'0 12px 24px rgba(0,0,0,0.16)' }}>
+                <button
+                  onClick={() => setSelectedMatchCategories([])}
+                  style={{ width:'100%', textAlign:'left', padding:'6px 8px', border:'none', background:'transparent', color:C.t2, fontSize:10, cursor:'pointer' }}
+                >
+                  {matchesT.categoryFilterAll || 'All categories'}
+                </button>
+                {matchCategoryOptions.map((opt) => {
+                  const checked = selectedMatchCategories.includes(opt.id);
+                  return (
+                    <label key={opt.id} style={{ display:'flex', alignItems:'center', gap:8, padding:'6px 8px', borderRadius:6, cursor:'pointer', color:C.t2, fontSize:10 }}>
+                      <input
+                        type="checkbox"
+                        checked={checked}
+                        onChange={() => setSelectedMatchCategories((prev) => checked ? prev.filter((v) => v !== opt.id) : [...prev, opt.id])}
+                      />
+                      <span>{opt.label}</span>
+                    </label>
+                  );
+                })}
+              </div>
+            ) : null}
+          </div>
+          {filteredMatched.length === 0 && <div style={{ textAlign:"center", padding:16, color:C.t3, fontSize:10 }}>{t.swipeToMatch}</div>}
+          <div style={{ flex:1, minHeight:0, overflowY:"auto", paddingRight:2, paddingBottom:8 }} className="custom-scroll">
+            {filteredMatched.map((m, i, filteredArr) => (
+              (() => {
+                const isUnlockedMatch = unlocked.includes(m.id);
+                const unlockCost = getUnlockCost(m.id);
+                const portfolioCount = getPortfolioCount(m.id);
+                return (
+              <div key={i} style={{ display:"flex", alignItems:"center", gap:8, padding:"8px 0", borderBottom:i < filteredArr.length-1 ? `1px solid ${C.border}` : "none" }}>
+                  <SmartImage
+                    src={typeof m.photo === 'string' && m.photo.length > 8 ? m.photo : undefined}
+                    alt={m.name}
+                    style={{ width:34, height:34, borderRadius:"50%", border:`1px solid ${C.alpha(C.accent,0.15)}`, objectFit:"cover", flexShrink:0, zIndex: 1 }}
+                    fallback={<Icon name="user" size={17} color={C.accent} strokeWidth={1.4} />}
+                  />
+                <div style={{ flex:1, minWidth:0 }}>
+                  <div style={{ 
+                    fontWeight:700, 
+                    color:C.t1, 
+                    fontSize:12, 
+                    whiteSpace:"nowrap",
+                    overflow:"hidden",
+                    textOverflow:"ellipsis"
+                  }}>
+                    <span style={{ color:isUnlockedMatch?C.success:C.gold, fontWeight:600, fontSize:10, marginRight:4 }}>
+                      {isUnlockedMatch ? cardsT.unlocked : `${cardsT.locked} · ${unlockCost}★`}
+                    </span>
+                    {m.name}
+                  </div>
+                  {portfolioCount > 0 && (
+                    <div style={{ fontSize:9, color:C.t3, marginTop:1 }}>
+                      {matchesT.portfolioCountLabel
+                        .replace('{count}', String(portfolioCount))
+                        .replace('{item}', portfolioCount === 1 ? matchesT.portfolioItemOne : matchesT.portfolioItemOther)}
+                    </div>
+                  )}
+                </div>
+                <button onClick={(e) => { 
+                  e.stopPropagation(); 
+                  setMatched(prev => prev.filter(x => x.id !== m.id));
+                  setConnDeck(d => [m.id, ...d]); // Return to deck
+                }}
+                  style={{
+                    width: 16,
+                    height: 16,
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    background: 'transparent',
+                    border: 'none',
+                    borderRadius: 0,
+                    padding: 0,
+                    cursor: "pointer",
+                    opacity: 0.8,
+                    flexShrink: 0,
+                    transition: 'all .15s ease'
+                  }}
+                  onMouseEnter={e => {
+                    e.currentTarget.style.opacity = '1';
+                  }}
+                  onMouseLeave={e => {
+                    e.currentTarget.style.opacity = '0.8';
+                  }}>
+                  <Icon name="close" size={10} color={C.t1} />
+                </button>
+              </div>
+                );
+              })()
+            ))}
+          </div>
+        </div>
+        {/* Interested Properties — col 4 of grid (desktop-only) */}
+        <div className="desktop-only" style={{ background:C.card, border:`1px solid ${C.border}`, borderRadius:0, padding:10, height:550, display:"flex", flexDirection:"column", boxSizing:"border-box", marginTop: -12 }}>
+          <div style={{ fontWeight:700, color:C.t1, marginBottom:8, display:"flex", justifyContent:"space-between", fontSize:10, textTransform:"uppercase", letterSpacing:"0.5px" }}>
+            <span>{t.interested}</span>
+            <span style={{ color:C.gold }}>{filteredInterested.length}</span>
+          </div>
+          <div style={{ position:'relative', marginBottom:8 }}>
+            <button
+              onClick={() => setInterestStateDropdownOpen((v) => !v)}
+              style={{
+                width:'100%',
+                display:'flex',
+                alignItems:'center',
+                justifyContent:'space-between',
+                padding:'6px 8px',
+                borderRadius:8,
+                border:`1px solid ${C.border}`,
+                background:C.alpha(C.bg, 0.45),
+                color:C.t2,
+                fontSize:10,
+                fontWeight:700,
+                cursor:'pointer'
+              }}
+            >
+              <span>{selectedInterestStates.length ? `${selectedInterestStates.length} ${t.selected || 'selected'}` : (matchesT.stateFilterAll || 'All states')}</span>
+              <Icon name={interestStateDropdownOpen ? 'chevUp' : 'chevDown'} size={12} color={C.t3} />
+            </button>
+            {interestStateDropdownOpen ? (
+              <div style={{ position:'absolute', top:'calc(100% + 6px)', left:0, right:0, maxHeight:170, overflowY:'auto', zIndex:20, background:C.card, border:`1px solid ${C.border}`, borderRadius:10, padding:6, boxShadow:'0 12px 24px rgba(0,0,0,0.16)' }}>
+                <button
+                  onClick={() => setSelectedInterestStates([])}
+                  style={{ width:'100%', textAlign:'left', padding:'6px 8px', border:'none', background:'transparent', color:C.t2, fontSize:10, cursor:'pointer' }}
+                >
+                  {matchesT.stateFilterAll || 'All states'}
+                </button>
+                {interestStateOptions.map((state) => {
+                  const checked = selectedInterestStates.includes(state);
+                  return (
+                    <label key={state} style={{ display:'flex', alignItems:'center', gap:8, padding:'6px 8px', borderRadius:6, cursor:'pointer', color:C.t2, fontSize:10 }}>
+                      <input
+                        type="checkbox"
+                        checked={checked}
+                        onChange={() => setSelectedInterestStates((prev) => checked ? prev.filter((v) => v !== state) : [...prev, state])}
+                      />
+                      <span>{state}</span>
+                    </label>
+                  );
+                })}
+              </div>
+            ) : null}
+          </div>
+          {filteredInterested.length === 0 && <div style={{ textAlign:"center", padding:16, color:C.t3, fontSize:10 }}>{t.markToTrack}</div>}
+          <div style={{ flex:1, minHeight:0, overflowY:"auto", paddingRight:2, paddingBottom:8 }} className="custom-scroll">
+            {filteredInterested.map((m, i) => {
+              const propOwner = findConnectionById(m.ownerId);
+              const isOwnerUnlocked = propOwner && unlocked.includes(propOwner.id);
+              const ownerUnlockCost = propOwner ? getUnlockCost(propOwner.id) : 1;
+              return (
+                <div key={i} style={{ display:"flex", alignItems:"center", gap:8, padding:"8px 0", borderBottom:i < interested.length-1 ? `1px solid ${C.border}` : "none" }}>
+                  <SmartImage
+                    src={typeof (m.images?.[0] || m.image) === 'string' && (m.images?.[0] || m.image)?.length > 8 ? (m.images?.[0] || m.image) : undefined}
+                    alt={m.address}
+                    style={{ width:38, height:38, borderRadius:7, objectFit:"cover", flexShrink:0 }}
+                    fallback={<Icon name="home" size={16} color={C.t3} />}
+                  />
+                  <div style={{ flex:1, minWidth:0 }}>
+                    <div style={{ fontWeight:700, color:C.t1, fontSize:11, whiteSpace:"nowrap", overflow:"hidden", textOverflow:"ellipsis" }}>{m.address}</div>
+                    <div style={{ fontWeight:600, color:C.gold, fontSize:11 }}>${Number(m.price || 0).toLocaleString('en-US')}</div>
+                    <div style={{ 
+                      fontSize:10, 
+                      color:C.t3, 
+                      whiteSpace:"nowrap",
+                      overflow:"hidden",
+                      textOverflow:"ellipsis"
+                    }}>
+                      {propOwner && (
+                        <span style={{ color:isOwnerUnlocked ? C.success : C.gold, fontWeight:700, marginRight:4 }}>
+                          {isOwnerUnlocked ? cardsT.unlocked : `${cardsT.locked} · ${ownerUnlockCost}★`}
+                        </span>
+                      )}
+                      {matchesT.by} {propOwner?.name || "..."}
+                    </div>
+                  </div>
+                  <button onClick={(e) => { 
+                    e.stopPropagation(); 
+                    setInterested(prev => prev.filter(x => x.id !== m.id));
+                    setPropDeck(d => [m.id, ...d]); // Return to deck
+                  }}
+                    style={{
+                      width: 16,
+                      height: 16,
+                      display: 'inline-flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      background: 'transparent',
+                      border: 'none',
+                      borderRadius: 0,
+                      padding: 0,
+                      cursor: "pointer",
+                      opacity: 0.8,
+                      flexShrink: 0,
+                      transition: 'all .15s ease'
+                    }}
+                    onMouseEnter={e => {
+                      e.currentTarget.style.opacity = '1';
+                    }}
+                    onMouseLeave={e => {
+                      e.currentTarget.style.opacity = '0.8';
+                    }}>
+                    <Icon name="close" size={10} color={C.t1} />
+                  </button>
+                </div>
+              );
+            })}
+            </div>
+          </div>
+
+      </div>
+
+      {page !== 'onboarding' ? (
+        <div className="ds-dashboard-opportunity-banner" style={{ background:C.card, zIndex:10, boxSizing:"border-box" }}>
+        {marqueeBannerItems.length > 0 ? (
+          <div className="opportunity-banner" style={{ overflow:"hidden", padding:"10px 0" }}>
+            <div
+              className="opportunity-track"
+              style={{
+                display:"flex",
+                width:"max-content",
+                gap:10,
+                padding:"0 10px",
+                animation:`bannerScroll ${bannerDurationSec}s linear infinite`,
+                transform:"translateZ(0)",
+                willChange:"transform",
+              }}
+            >
+              {[0, 1].map(loop => (
+                marqueeBannerItems.map((item) => (
+                  (() => {
+                    const isNeonVerified = item.isPending && item.isVerified;
+                    return (
+                  <button
+                    key={`${item.key}-${loop}`}
+                    onClick={() => openBannerItem(item)}
+                    style={{
+                      position: 'relative',
+                      minWidth:260,
+                      maxWidth:260,
+                      padding:"8px 10px",
+                      paddingRight: item.isPending ? (item.isVerified ? 78 : 60) : 10,
+                      borderRadius:10,
+                      border: isNeonVerified
+                        ? `1px solid ${C.alpha(C.accent, 0.88)}`
+                        : `1px solid ${C.border}`,
+                      background:C.bg,
+                      boxShadow: isNeonVerified
+                        ? `0 0 0 1px ${C.alpha(C.accent, 0.48)}, 0 0 14px ${C.alpha(C.accent, 0.62)}`
+                        : 'none',
+                      cursor:"pointer",
+                      textAlign:"left",
+                      display:"flex",
+                      alignItems:"center",
+                      gap:8,
+                    }}
+                  >
+                    {item.isPending && (
+                      <div style={{
+                        position: 'absolute',
+                        top: 6,
+                        right: 6,
+                        display: 'inline-flex',
+                        alignItems: 'center',
+                        gap: 4,
+                        pointerEvents: 'none',
+                      }}>
+                        <span style={{
+                          display: 'inline-flex',
+                          alignItems: 'center',
+                          gap: 3,
+                          background: C.alpha(C.t1, 0.18),
+                          border: `1px solid ${C.alpha(C.t1, 0.32)}`,
+                          color: '#fff',
+                          borderRadius: 999,
+                          padding: '1px 5px',
+                          lineHeight: 1,
+                          fontSize: 10,
+                          fontWeight: 900,
+                        }}>
+                          <span style={{ fontSize: 10, lineHeight: 1 }}>🔥</span>
+                          {item.isVerified && (
+                            <span style={{ display: 'inline-flex', alignItems: 'center', lineHeight: 1 }}>
+                              <Icon name="shieldCheck" size={11} color={C.accent} strokeWidth={2.45} />
+                            </span>
+                          )}
+                        </span>
+                      </div>
+                    )}
+                    {item.isPending && (
+                      <span style={{
+                        position: 'absolute',
+                        right: 6,
+                        bottom: 8,
+                        background: 'linear-gradient(90deg, rgba(213,38,20,0.93) 0%, rgba(230,110,0,0.92) 100%)',
+                        border: '1px solid rgba(255, 198, 138, 0.82)',
+                        color: '#fff',
+                        borderRadius: 999,
+                        padding: '1px 6px',
+                        fontSize: 8,
+                        fontWeight: 900,
+                        letterSpacing: '0.4px',
+                        lineHeight: 1.2,
+                        pointerEvents: 'none',
+                      }}>
+                        PENDING
+                      </span>
+                    )}
+                    {/* Thumb/avatar seguro, sempre contido. Nunca renderiza imagem se inválida. */}
+                    <div style={{ display:'flex', alignItems:'center', gap:8 }}>
+                      <div style={{ width:item.thumbRound ? 34 : 38, height:item.thumbRound ? 34 : 38, borderRadius:item.thumbRound ? '50%' : 7, background:C.alpha(item.tone, 0.14), border:`1px solid ${C.alpha(item.tone, 0.3)}`, display:"flex", alignItems:"center", justifyContent:"center", flexShrink:0, overflow:'hidden' }}>
+                        {item.thumb && typeof item.thumb === 'string' && item.thumb.length > 8 && !item.thumb.startsWith('data:image/svg') ? (
+                          <SmartImage src={item.thumb} alt={item.title} style={{ width:'100%', height:'100%', objectFit:'cover', display:'block' }} />
+                        ) : (
+                          <Icon name={item.thumbRound ? 'user' : 'home'} size={item.thumbRound ? 17 : 16} color={C.t3} />
+                        )}
+                      </div>
+                      <div style={{ minWidth:0 }}>
+                        <div style={{ fontSize:11, fontWeight:800, color:C.t1, whiteSpace:"nowrap", overflow:"hidden", textOverflow:"ellipsis" }}>{item.title}</div>
+                        <div style={{ fontSize:10, color:C.t2, whiteSpace:"nowrap", overflow:"hidden", textOverflow:"ellipsis" }}>{item.subtitle}</div>
+                        <div style={{ fontSize:10, color:item.tone, fontWeight:700, whiteSpace:"nowrap", overflow:"hidden", textOverflow:"ellipsis" }}>{item.meta}</div>
+                      </div>
+                    </div>
+                  </button>
+                    );
+                  })()
+                ))
+              ))}
+            </div>
+          </div>
+        ) : (
+          <div style={{ padding:"10px 14px", color:C.t3, fontSize:11, textAlign:"center" }}>{t.noOpportunitiesNow}</div>
+        )}
+      </div>
+    ) : null}
+    </div>
+  );
+}
+
+
+
+

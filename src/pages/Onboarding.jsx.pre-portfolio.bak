@@ -1,0 +1,64 @@
+﻿import React, { useState } from 'react';
+import { C } from '../theme/colors';
+import { useT } from '../i18n/translations';
+
+export function Onboarding() {
+  const t = useT('onboarding') || {};
+  const [accountType, setAccountType] = useState('professional');
+  const [profileTab, setProfileTab] = useState('basic');
+  const [name, setName] = useState('');
+  const [loc, setLoc] = useState('');
+  const [personalPrimaryPhone, setPersonalPrimaryPhone] = useState('');
+
+  return (
+    <div style={{ padding: 24 }}>
+      <h2 style={{ marginBottom: 12 }}>Onboarding</h2>
+
+      <div style={{ display: 'flex', gap: 16 }}>
+        <div style={{ flex: 1, background: C.card, padding: 12, borderRadius: 10, border: `1px solid ${C.border}` }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>
+            <div style={{ fontSize: 14, fontWeight: 700, color: C.t1 }}>Perfil</div>
+            <div>
+              <button onClick={() => setAccountType('basic')} style={{ marginRight: 6, padding: '6px 10px' }}>Basic</button>
+              <button onClick={() => setAccountType('professional')} style={{ padding: '6px 10px' }}>Pro</button>
+            </div>
+          </div>
+
+          <div style={{ display: 'grid', gap: 8 }}>
+            <label style={{ display: 'grid', gap: 4 }}>
+              <span style={{ fontSize: 11, color: C.t3 }}>Nome completo</span>
+              <input value={name} onChange={(e) => setName(e.target.value)} placeholder="Seu nome" style={{ padding: '8px', borderRadius: 8, border: `1px solid ${C.border}`, background: C.card, color: C.t1 }} />
+            </label>
+
+            <label style={{ display: 'grid', gap: 4 }}>
+              <span style={{ fontSize: 11, color: C.t3 }}>Estado / Cidade</span>
+              <input value={loc} onChange={(e) => setLoc(e.target.value)} placeholder="Cidade, UF" style={{ padding: '8px', borderRadius: 8, border: `1px solid ${C.border}`, background: C.card, color: C.t1 }} />
+            </label>
+
+            <label style={{ display: 'grid', gap: 4 }}>
+              <span style={{ fontSize: 11, color: C.t3 }}>Telefone</span>
+              <input value={personalPrimaryPhone} onChange={(e) => setPersonalPrimaryPhone(e.target.value)} placeholder="(555) 555-5555" style={{ padding: '8px', borderRadius: 8, border: `1px solid ${C.border}`, background: C.card, color: C.t1 }} />
+            </label>
+
+            <div style={{ display: 'flex', gap: 8, marginTop: 8 }}>
+              <button style={{ flex: 1, padding: '8px', borderRadius: 8, border: `1px solid ${C.accent}`, background: 'transparent', color: C.accent, fontWeight: 700 }}>Salvar</button>
+              <button style={{ flex: 1, padding: '8px', borderRadius: 8, border: 'none', background: C.accent, color: '#111', fontWeight: 700 }}>Visualizar</button>
+            </div>
+          </div>
+        </div>
+
+        <div style={{ width: 360, background: C.card, padding: 12, borderRadius: 10, border: `1px solid ${C.border}` }}>
+          <div style={{ fontSize: 14, fontWeight: 700, color: C.t1, marginBottom: 8 }}>Portfólio</div>
+          <div style={{ fontSize: 12, color: C.t3, marginBottom: 8 }}>Adicione propriedades ou serviços ao seu portfólio.</div>
+          <div style={{ display: 'grid', gap: 8 }}>
+            <input placeholder="Endereço / título" style={{ padding: '8px', borderRadius: 8, border: `1px solid ${C.border}`, background: C.card, color: C.t1 }} />
+            <input placeholder="Preço (USD)" style={{ padding: '8px', borderRadius: 8, border: `1px solid ${C.border}`, background: C.card, color: C.t1 }} />
+            <button style={{ padding: '8px', borderRadius: 8, border: `1px solid ${C.accent}`, background: 'transparent', color: C.accent, fontWeight: 700 }}>+ Add</button>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+export default Onboarding;

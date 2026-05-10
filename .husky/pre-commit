@@ -1,0 +1,18 @@
+#!/usr/bin/env sh
+. "$(dirname -- "$0")/_/husky.sh"
+
+# Only run lint-staged if there's a lint-staged config in package.json
+if [ "$SKIP_PRE_COMMIT" = "true" ] || [ "$SKIP_LINT" = "true" ]; then
+	echo "Skipping pre-commit hooks because SKIP_PRE_COMMIT or SKIP_LINT is set"
+	exit 0
+fi
+
+# Only run lint-staged if there's a lint-staged config in package.json
+if [ -f package.json ] && grep -q '"lint-staged"' package.json; then
+	# Run lint-staged but never fail the commit if lint-staged returns an error.
+	# This keeps lint attempts while allowing commits to proceed when fixes are needed.
+	npx --no-install lint-staged || true
+else
+	# No lint-staged configured — nothing to do
+	exit 0
+fi

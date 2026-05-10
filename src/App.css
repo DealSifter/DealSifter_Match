@@ -1,0 +1,85 @@
+/* App-level resets — keeps root full-width for the multi-page layout */
+#root {
+  max-width: 100%;
+  margin: 0;
+  padding: 0;
+  text-align: left;
+}
+
+@keyframes ds-loader-spin {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+}
+
+.ds-processing-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 1200;
+  background: rgba(9, 15, 26, 0.42);
+  -webkit-backdrop-filter: blur(2px);
+  backdrop-filter: blur(2px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.ds-processing-card {
+  min-width: 220px;
+  max-width: min(90vw, 360px);
+  border-radius: 14px;
+  border: 1px solid rgba(53, 202, 201, 0.28);
+  background: rgba(14, 22, 36, 0.92);
+  box-shadow: 0 12px 32px rgba(0, 0, 0, 0.35);
+  padding: 16px 18px;
+  display: grid;
+  justify-items: center;
+  gap: 10px;
+}
+
+.ds-processing-logo {
+  width: 64px;
+  height: 64px;
+  object-fit: contain;
+  animation: ds-loader-spin 1.2s linear infinite;
+}
+
+.ds-processing-logo-small {
+  width: 20px;
+  height: 20px;
+}
+
+.ds-processing-spinner {
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  border: 3px solid rgba(53, 202, 201, 0.20);
+  border-top-color: #35CAC9;
+  animation: ds-loader-spin 0.85s linear infinite;
+}
+
+.ds-processing-text {
+  color: #e7edf7;
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.2px;
+  text-align: center;
+}
+
+.ds-processing-sync-pill {
+  position: fixed;
+  right: 14px;
+  bottom: 14px;
+  z-index: 1190;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  border-radius: 999px;
+  padding: 7px 11px;
+  border: 1px solid rgba(53, 202, 201, 0.36);
+  background: rgba(14, 22, 36, 0.88);
+  color: #e7edf7;
+  font-size: 11px;
+  font-weight: 700;
+  pointer-events: none;
+  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.25);
+}
