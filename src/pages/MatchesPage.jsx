@@ -96,7 +96,7 @@ const PortfolioItem = ({ p, onOpen }) => {
     >
       <div style={{ height:80, position:"relative", overflow:"hidden" }}>
         {imgs.map((im, i) => (
-          <SmartImage key={i} src={im} alt={p.address} style={{ position:"absolute", inset:0, width:"100%", height:"100%", objectFit:"cover", opacity: idx===i?1:0, transition:"opacity 0.2s" }} />
+          <SmartImage key={i} src={im} alt={p.address} style={{ position:"absolute", inset:0, width:"100%", height:"100%", objectFit:"cover", opacity: i === 0 || idx===i ? 1 : 0, transition:"opacity 0.2s" }} />
         ))}
         <div style={{ position:"absolute", top:4, left:4, right:4, display:"flex", gap:2 }}>
            {imgs.map((_, i) => (
@@ -989,15 +989,14 @@ function PortfolioDetail({ item, owner, ownerDesc, onBack }) {
             </div>
           </div>
 
-          <div style={{ display:"grid", gridTemplateColumns:"repeat(3, minmax(0, 1fr))", gap:8 }}>
-            {detailGroups.map((group, idx) => (
-              <div key={`group-${idx}`} style={{ border:`1px solid ${C.border}`, borderRadius:10, padding:"8px 10px", background:C.alpha(C.bg, 0.38), display:"grid", gap:7 }}>
-                {group.map(([k, v]) => (
-                  <div key={k} style={{ display:"flex", alignItems:"baseline", justifyContent:"space-between", gap:10 }}>
-                    <div style={{ fontSize:9, color:C.t3, textTransform:"uppercase", letterSpacing:"0.35px", whiteSpace:"nowrap" }}>{k}</div>
-                    <div style={{ fontSize:12, color:C.t1, fontWeight:800, textAlign:"right", overflow:"hidden", textOverflow:"ellipsis", whiteSpace:"nowrap" }}>{v}</div>
-                  </div>
-                ))}
+          <div style={{ border:`1px solid ${C.border}`, borderRadius:10, padding:"10px 12px", background:C.alpha(C.bg, 0.38), display:"grid", gap:6 }}>
+            {detailGroups.flat().map(([k, v]) => (
+              <div key={k} style={{ display:"flex", alignItems:"center", justifyContent:"space-between", gap:12, paddingBottom:5, borderBottom:`1px solid ${C.alpha(C.border, 0.5)}` }}
+                onMouseEnter={e => e.currentTarget.style.background = C.alpha(C.t1, 0.03)}
+                onMouseLeave={e => e.currentTarget.style.background = 'transparent'}
+              >
+                <div style={{ fontSize:10, color:C.t3, textTransform:"uppercase", letterSpacing:"0.4px", whiteSpace:"nowrap", flexShrink:0 }}>{k}</div>
+                <div style={{ fontSize:12, color:C.t1, fontWeight:800, textAlign:"right" }}>{v}</div>
               </div>
             ))}
           </div>
@@ -1133,6 +1132,7 @@ export function MatchesPage({ nuggets, setModal, openUnlock, unlocked, initialCh
   const [portfolioWidth, setPortfolioWidth] = useState(DESKTOP_PORTFOLIO_WIDTH);
   const [selectedPortfolioItem, setSelectedPortfolioItem] = useState(null);
   const [previewCardOpen, setPreviewCardOpen] = useState(false);
+  const [previewShowcaseIdx, setPreviewShowcaseIdx] = useState(0);
   const [myInputLang, setMyInputLang] = useState(() => localStorage.getItem('chatMyInputLang') || 'pt');
   const [myOutputLang, setMyOutputLang] = useState(() => localStorage.getItem('chatMyOutputLang') || 'pt');
   const [chatMainTextSize, setChatMainTextSize] = useState(() => {
@@ -1404,6 +1404,7 @@ export function MatchesPage({ nuggets, setModal, openUnlock, unlocked, initialCh
 
   const handleOpenActiveCardPreview = useCallback(() => {
     if (!activeOwner && !active) return;
+    setPreviewShowcaseIdx(0);
     setPreviewCardOpen(true);
   }, [active, activeOwner]);
 
@@ -1467,6 +1468,11 @@ export function MatchesPage({ nuggets, setModal, openUnlock, unlocked, initialCh
   }, [activeOwner, allPropertiesSource]);
 
   const [portfolioTab, setPortfolioTab] = useState('properties');
+  const [portfolioShowAll, setPortfolioShowAll] = useState(false);
+  const [isMobile, setIsMobile] = useState(() => typeof window !== 'undefined' && window.innerWidth <= 767);
+  const [mobileTab, setMobileTab] = useState('connections');
+  const [mobileChatTab, setMobileChatTab] = useState('chat');
+  const [mobileCardSheet, setMobileCardSheet] = useState(null);
 
   useEffect(() => {
     if (!initialChat) return;
@@ -1477,6 +1483,11 @@ export function MatchesPage({ nuggets, setModal, openUnlock, unlocked, initialCh
     if (!activeOwner) return [];
     return allServicesSource.filter((s) => String(s.ownerId) === String(activeOwner.id));
   }, [activeOwner, allServicesSource]);
+
+  const previewShowcaseItems = useMemo(() => [
+    ...portfolioItems.map(p => ({ ...p, _itemType: 'property' })),
+    ...serviceItems.map(s => ({ ...s, _itemType: 'service' })),
+  ], [portfolioItems, serviceItems]);
 
   const propertiesCount = portfolioItems.length;
   const servicesCount = serviceItems.length;
@@ -1544,6 +1555,17 @@ export function MatchesPage({ nuggets, setModal, openUnlock, unlocked, initialCh
       };
     });
   }, [activeContactId, convos]);
+
+  // Reset portfolio show-all when active contact changes
+  useEffect(() => {
+    setPortfolioShowAll(false);
+  }, [activeOwner?.id]);
+
+  useEffect(() => {
+    const onResize = () => setIsMobile(window.innerWidth <= 767);
+    window.addEventListener('resize', onResize);
+    return () => window.removeEventListener('resize', onResize);
+  }, []);
 
   useEffect(() => {
     if (scrollRef.current) {
@@ -1645,11 +1667,23 @@ export function MatchesPage({ nuggets, setModal, openUnlock, unlocked, initialCh
         .map-panel-tab { flex: none; white-space: nowrap; padding: 8px 14px 7px; border-top-left-radius: 10px; border-top-right-radius: 10px; border-bottom-left-radius: 0; border-bottom-right-radius: 0; border: 1px solid transparent; border-bottom: 1px solid transparent; background: color-mix(in srgb, var(--ui-surface) 86%, var(--ui-border) 14%); color: ${C.t2}; font-size: 12px; font-weight: 600; cursor: pointer; margin-bottom: -3px; transition: all .15s ease; }
         .map-panel-tab.active { border-color: var(--ui-border); border-bottom-color: var(--ui-surface); background: var(--ui-surface); color: ${C.t1}; box-shadow: inset 0 2px 0 var(--ui-active); }
         .map-panel-tab:hover { color: ${C.t1}; background: color-mix(in srgb, var(--ui-surface) 80%, var(--ui-border) 20%); }
+        .matches-mobile-tabbar { display: none; }
+        .matches-chat-mobile-tabs { display: none; }
+        @media (max-width: 767px) {
+          .matches-sidebar { width: ${active ? '0px' : '100%'} !important; flex-shrink: 0 !important; }
+          .matches-mobile-tabbar { display: flex !important; }
+          .matches-col-people { display: ${mobileTab === 'connections' ? 'flex' : 'none'} !important; }
+          .matches-col-interests { display: ${mobileTab === 'interests' ? 'flex' : 'none'} !important; }
+          .matches-chat-mobile-tabs { display: flex !important; }
+          .matches-chat-col { display: ${mobileChatTab === 'chat' ? 'flex' : 'none'} !important; }
+          .matches-portfolio-col { display: ${mobileChatTab === 'portfolio' ? 'block' : 'none'} !important; width: 100% !important; max-width: 100% !important; overflow-y: auto !important; }
+          .matches-resize-handle { display: none !important; }
+          .matches-lang-row { display: none !important; }
+        }
       `}</style>
       <div style={{ flex:1, display:"flex", overflow:"hidden" }}>
         
         <div style={{ width:520, flexShrink:0, borderRight:`1px solid ${C.border}`, background:C.card, display:"flex", flexDirection:"column" }} className="matches-sidebar">
-          <style>{`@media(max-width:767px){.matches-sidebar{width:${active?"0px":"100%"};overflow:hidden;}}`}</style>
           
           <div style={{ padding:16, borderBottom:`1px solid ${C.border}` }}>
             <h2 style={{ fontWeight:800, fontSize:16, display:"flex", alignItems:"center", gap:8 }}>
@@ -1657,8 +1691,26 @@ export function MatchesPage({ nuggets, setModal, openUnlock, unlocked, initialCh
             </h2>
           </div>
 
+          {isMobile && (
+            <div className="matches-mobile-tabbar" style={{ borderBottom:`1px solid ${C.border}`, background:C.card, flexShrink:0 }}>
+              <button
+                type="button"
+                onClick={() => setMobileTab('connections')}
+                style={{ flex:1, padding:'10px 4px', border:'none', borderBottom:`2px solid ${mobileTab==='connections' ? C.accent : 'transparent'}`, background:'transparent', color:mobileTab==='connections' ? C.accent : C.t2, fontWeight:700, fontSize:12, cursor:'pointer', transition:'all .15s' }}
+              >
+                {t.people} ({filteredMatched.length})
+              </button>
+              <button
+                type="button"
+                onClick={() => setMobileTab('interests')}
+                style={{ flex:1, padding:'10px 4px', border:'none', borderBottom:`2px solid ${mobileTab==='interests' ? PROPERTY_SIGNAL : 'transparent'}`, background:'transparent', color:mobileTab==='interests' ? PROPERTY_SIGNAL : C.t2, fontWeight:700, fontSize:12, cursor:'pointer', transition:'all .15s' }}
+              >
+                {t.interests} ({filteredInterested.length})
+              </button>
+            </div>
+          )}
           <div style={{ flex:1, display:"flex", overflow:"hidden" }}>
-            <div style={{ flex:1, borderRight:`1px solid ${C.border}`, display:"flex", flexDirection:"column" }}>
+            <div style={{ flex:1, borderRight:`1px solid ${C.border}`, display:"flex", flexDirection:"column" }} className="matches-col-people">
               <div style={{ padding:"8px 10px", fontSize:10, fontWeight:700, color:C.t3, background:C.alpha(C.bg, 0.4), textTransform:"uppercase", display:"flex", alignItems:"center", justifyContent:"space-between", gap:6 }}>
                 <span style={{ color:C.t1 }}>{t.people} ({filteredMatched.length})</span>
                 <div style={{ display:"flex", gap:4 }}>
@@ -1763,7 +1815,7 @@ export function MatchesPage({ nuggets, setModal, openUnlock, unlocked, initialCh
                 })}
               </div>
             </div>
-            <div style={{ flex:1, display:"flex", flexDirection:"column" }}>
+            <div style={{ flex:1, display:"flex", flexDirection:"column" }} className="matches-col-interests">
               <div style={{ padding:"8px 10px", fontSize:10, fontWeight:700, color:C.gold, background:C.alpha(C.bg, 0.4), textTransform:"uppercase", display:"flex", alignItems:"center", justifyContent:"space-between", gap:6 }}>
                 <span style={{ color:C.t1 }}>{t.interests} ({filteredInterested.length})</span>
                 <div style={{ display:"flex", gap:4 }}>
@@ -1895,24 +1947,28 @@ export function MatchesPage({ nuggets, setModal, openUnlock, unlocked, initialCh
             </div>
           ) : (
             <>
-              <div style={{ padding:"12px 20px", borderBottom:`1px solid ${C.border}`, display:"flex", alignItems:"center", gap:12, background:C.card }}>
-                <button onClick={()=>setActive(null)} className="mobile-only" style={{ marginRight:10, background:"none", border:"none" }}><Icon name="back" size={20} color={C.t1} /></button>
-                <button
-                  type="button"
-                  onClick={handleOpenActiveCardPreview}
-                  title={isActiveProperty ? t.viewInFeed : (t.openCardPreview || 'Open card preview')}
-                  style={{ width:40, height:40, borderRadius:"50%", overflow:"hidden", border:`2px solid ${isActiveProperty?C.gold:C.accent}`, padding:0, background:"transparent", cursor:"pointer", flexShrink:0 }}
-                >
-                  {isActiveProperty ? <div style={{ background:C.alpha(C.gold, 0.1), width:"100%", height:"100%", display:"flex", alignItems:"center", justifyContent:"center" }}><Icon name="home" size={20} color={C.gold} /></div> : <SmartImage src={activeOwner.photo} alt={activeOwner.name} style={{ width:"100%", height:"100%", objectFit:"cover" }} fallback={<div style={{ width:"100%", height:"100%", display:"flex", alignItems:"center", justifyContent:"center", background:C.alpha(C.accent,0.1) }}><Icon name={catIcon(activeOwner.cat)} size={16} color={C.accent} /></div>} />}
-                </button>
-                <div style={{ flex:1 }}>
-                  <div style={{ fontWeight:800 }}>{isActiveProperty ? active.address : active.name}</div>
-                  <div style={{ fontSize:11, color:C.success }}>{t.onlineBy} · {activeOwner.name}</div>
+              <div style={{ padding:"12px 20px", borderBottom:`1px solid ${C.border}`, background:C.card }}>
+                <div style={{ display:"flex", alignItems:"center", gap:12 }}>
+                  <button onClick={()=>setActive(null)} className="mobile-only" style={{ marginRight:10, background:"none", border:"none" }}><Icon name="back" size={20} color={C.t1} /></button>
+                  <button
+                    type="button"
+                    onClick={handleOpenActiveCardPreview}
+                    title={isActiveProperty ? t.viewInFeed : (t.openCardPreview || 'Open card preview')}
+                    style={{ width:40, height:40, borderRadius:"50%", overflow:"hidden", border:`2px solid ${isActiveProperty?C.gold:C.accent}`, padding:0, background:"transparent", cursor:"pointer", flexShrink:0 }}
+                  >
+                    {isActiveProperty ? <div style={{ background:C.alpha(C.gold, 0.1), width:"100%", height:"100%", display:"flex", alignItems:"center", justifyContent:"center" }}><Icon name="home" size={20} color={C.gold} /></div> : <SmartImage src={activeOwner.photo} alt={activeOwner.name} style={{ width:"100%", height:"100%", objectFit:"cover" }} fallback={<div style={{ width:"100%", height:"100%", display:"flex", alignItems:"center", justifyContent:"center", background:C.alpha(C.accent,0.1) }}><Icon name={catIcon(activeOwner.cat)} size={16} color={C.accent} /></div>} />}
+                  </button>
+                  <div style={{ flex:1, minWidth:0 }}>
+                    <div style={{ fontWeight:800, whiteSpace:"nowrap", overflow:"hidden", textOverflow:"ellipsis" }}>{isActiveProperty ? active.address : active.name}</div>
+                    <div style={{ fontSize:11, color:C.success }}>{t.onlineBy} · {activeOwner.name}</div>
+                  </div>
                 </div>
-                <ContactButtons item={activeOwner} />
+                <div style={{ marginTop:10 }}>
+                  <ContactButtons item={activeOwner} />
+                </div>
               </div>
 
-              <div style={{ padding:"8px 20px", borderBottom:`1px solid ${C.border}`, display:"flex", flexWrap:"wrap", gap:8, background:C.alpha(C.bg, 0.45) }}>
+              <div style={{ padding:"8px 20px", borderBottom:`1px solid ${C.border}`, display:"flex", flexWrap:"wrap", gap:8, background:C.alpha(C.bg, 0.45) }} className="matches-lang-row">
                 <label style={{ display:"flex", alignItems:"center", gap:6, fontSize:10, color:C.t2 }}>
                   {t.languageMyInput}
                   <select
@@ -1958,8 +2014,26 @@ export function MatchesPage({ nuggets, setModal, openUnlock, unlocked, initialCh
                 </label>
               </div>
 
+              {isMobile && (
+                <div className="matches-chat-mobile-tabs" style={{ borderBottom:`1px solid ${C.border}`, background:C.card, flexShrink:0 }}>
+                  <button
+                    type="button"
+                    onClick={() => setMobileChatTab('chat')}
+                    style={{ flex:1, padding:'10px 4px', border:'none', borderBottom:`2px solid ${mobileChatTab==='chat' ? C.accent : 'transparent'}`, background:'transparent', color:mobileChatTab==='chat' ? C.accent : C.t2, fontWeight:700, fontSize:12, cursor:'pointer', transition:'all .15s' }}
+                  >
+                    Chat
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setMobileChatTab('portfolio')}
+                    style={{ flex:1, padding:'10px 4px', border:'none', borderBottom:`2px solid ${mobileChatTab==='portfolio' ? C.accent : 'transparent'}`, background:'transparent', color:mobileChatTab==='portfolio' ? C.accent : C.t2, fontWeight:700, fontSize:12, cursor:'pointer', transition:'all .15s' }}
+                  >
+                    {t.portfolio}
+                  </button>
+                </div>
+              )}
               <div ref={splitPaneRef} style={{ flex:1, display:"flex", overflow:"hidden", minWidth:0 }}>
-                <div style={{ flex:1, minWidth:0, display:"flex", flexDirection:"column", borderRight:`1px solid ${C.border}`, position:'relative' }}>
+                <div style={{ flex:1, minWidth:0, display:"flex", flexDirection:"column", borderRight:`1px solid ${C.border}`, position:'relative' }} className="matches-chat-col">
                   <div style={{ position:'absolute', top:10, left:10, zIndex:3, display:'inline-flex', alignItems:'center', gap:6, background:C.alpha(C.bg, 0.92), border:`1px solid ${C.border}`, borderRadius:10, padding:'4px 6px' }}>
                     <button
                       onClick={() => setChatMainTextSize((v) => Math.max(10, v - 1))}
@@ -2017,14 +2091,17 @@ export function MatchesPage({ nuggets, setModal, openUnlock, unlocked, initialCh
                   </div>
                 </div>
 
-                <div 
-                  onMouseDown={startResizing}
-                  style={{ width:4, cursor:"col-resize", background:C.border, transition:"background .2s", zIndex:10 }}
-                  onMouseEnter={e => e.currentTarget.style.background = C.accent}
-                  onMouseLeave={e => e.currentTarget.style.background = C.border}
-                />
+                {!isMobile && (
+                  <div 
+                    className="matches-resize-handle"
+                    onMouseDown={startResizing}
+                    style={{ width:4, cursor:"col-resize", background:C.border, transition:"background .2s", zIndex:10 }}
+                    onMouseEnter={e => e.currentTarget.style.background = C.accent}
+                    onMouseLeave={e => e.currentTarget.style.background = C.border}
+                  />
+                )}
                 
-                <div style={{ width:portfolioWidth, minWidth:0, maxWidth:DESKTOP_PORTFOLIO_MAX_WIDTH, overflowY:"auto", padding:20, flexShrink:0, boxSizing:"border-box" }} className="desktop-only">
+                <div style={{ width:portfolioWidth, minWidth:0, maxWidth:DESKTOP_PORTFOLIO_MAX_WIDTH, overflowY:"auto", padding:20, flexShrink:0, boxSizing:"border-box" }} className="desktop-only matches-portfolio-col">
                   <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', marginBottom:12 }}>
                     <div style={{ fontSize:12, fontWeight:800, color:C.t3, letterSpacing:"0.5px" }}>{t.portfolio.toUpperCase()}</div>
                     <div style={{ display:'flex', gap:8 }}>
@@ -2106,19 +2183,33 @@ export function MatchesPage({ nuggets, setModal, openUnlock, unlocked, initialCh
                   ) : (
                     portfolioTab === 'properties' ? (
                       (portfolioItems.length > 0) ? (
-                        <div style={{ display:"grid", gridTemplateColumns:`repeat(${portfolioColumns}, minmax(0, 1fr))`, gap:PORTFOLIO_GRID_GAP }}>
-                          {portfolioItems.map(p => (
-                            <PortfolioItem key={p.id} p={p} onOpen={setSelectedPortfolioItem} />
-                          ))}
-                        </div>
+                        <>
+                          <div style={{ display:"grid", gridTemplateColumns:"repeat(2, minmax(0, 1fr))", gap:PORTFOLIO_GRID_GAP }}>
+                            {(portfolioShowAll ? portfolioItems : portfolioItems.slice(0, 4)).map(p => (
+                              <PortfolioItem key={p.id} p={p} onOpen={isMobile ? setMobileCardSheet : setSelectedPortfolioItem} />
+                            ))}
+                          </div>
+                          {portfolioItems.length > 4 && (
+                            <button
+                              type="button"
+                              onClick={() => setPortfolioShowAll(v => !v)}
+                              style={{ width:'100%', marginTop:10, padding:'9px 0', borderRadius:10, border:`1px solid ${C.border}`, background:C.alpha(C.t1, 0.04), color:C.t2, fontSize:11, fontWeight:700, cursor:'pointer', transition:'background .15s' }}
+                              onMouseEnter={e => e.currentTarget.style.background = C.alpha(C.accent, 0.08)}
+                              onMouseLeave={e => e.currentTarget.style.background = C.alpha(C.t1, 0.04)}
+                            >
+                              {portfolioShowAll ? `▲ Ver menos` : `▼ Ver mais (${portfolioItems.length - 4})`}
+                            </button>
+                          )}
+                        </>
                       ) : (
                         <div style={{ textAlign:"center", padding:40, color:C.t3, fontSize:12, border:`1px dashed ${C.border}`, borderRadius:12 }}>{onboardingT.recordsNoProperty || t.portfolioEmpty}</div>
                       )
                     ) : (
                       (serviceItems.length > 0) ? (
-                        <div style={{ display:"grid", gridTemplateColumns:`repeat(${portfolioColumns}, minmax(0, 1fr))`, gap:PORTFOLIO_GRID_GAP }}>
-                          {serviceItems.map(s => (
-                            <div key={s.id || s.serviceId} onClick={() => setSelectedPortfolioItem(s)} style={{ background:C.card, border:`1px solid ${C.border}`, borderRadius:10, overflow:"hidden", cursor:"pointer", padding:8 }}>
+                        <>
+                        <div style={{ display:"grid", gridTemplateColumns:"repeat(2, minmax(0, 1fr))", gap:PORTFOLIO_GRID_GAP }}>
+                          {(portfolioShowAll ? serviceItems : serviceItems.slice(0, 4)).map(s => (
+                            <div key={s.id || s.serviceId} onClick={() => isMobile ? setMobileCardSheet(s) : setSelectedPortfolioItem(s)} style={{ background:C.card, border:`1px solid ${C.border}`, borderRadius:10, overflow:"hidden", cursor:"pointer", padding:8 }}>
                               <div style={{ height:80, position:"relative", overflow:"hidden" }}>
                                 <SmartImage src={s.media?.images?.[0]} alt={s.name || s.title} style={{ position:"absolute", inset:0, width:"100%", height:"100%", objectFit:"cover" }} />
                               </div>
@@ -2128,6 +2219,18 @@ export function MatchesPage({ nuggets, setModal, openUnlock, unlocked, initialCh
                             </div>
                           ))}
                         </div>
+                          {serviceItems.length > 4 && (
+                            <button
+                              type="button"
+                              onClick={() => setPortfolioShowAll(v => !v)}
+                              style={{ width:'100%', marginTop:10, padding:'9px 0', borderRadius:10, border:`1px solid ${C.border}`, background:C.alpha(C.t1, 0.04), color:C.t2, fontSize:11, fontWeight:700, cursor:'pointer', transition:'background .15s' }}
+                              onMouseEnter={e => e.currentTarget.style.background = C.alpha(C.accent, 0.08)}
+                              onMouseLeave={e => e.currentTarget.style.background = C.alpha(C.t1, 0.04)}
+                            >
+                              {portfolioShowAll ? `▲ Ver menos` : `▼ Ver mais (${serviceItems.length - 4})`}
+                            </button>
+                          )}
+                        </>
                       ) : (
                         <div style={{ textAlign:"center", padding:40, color:C.t3, fontSize:12, border:`1px dashed ${C.border}`, borderRadius:12 }}>{onboardingT.recordsNoService || t.portfolioEmpty}</div>
                       )
@@ -2139,40 +2242,67 @@ export function MatchesPage({ nuggets, setModal, openUnlock, unlocked, initialCh
           )}
         </div>
       </div>
-      {previewCardOpen && active ? (
-        <Modal onClose={() => setPreviewCardOpen(false)} maxWidth={637}>
+      {mobileCardSheet && isMobile && (
+        <div style={{ position:'fixed', inset:0, zIndex:300, display:'flex', flexDirection:'column', justifyContent:'flex-end' }} onClick={() => setMobileCardSheet(null)}>
+          <div style={{ position:'absolute', inset:0, background:'rgba(0,0,0,0.45)' }} />
+          <div
+            style={{ position:'relative', background:C.card, borderRadius:'20px 20px 0 0', maxHeight:'82vh', overflowY:'auto', padding:20, paddingBottom:36 }}
+            onClick={e => e.stopPropagation()}
+          >
+            <div style={{ width:36, height:4, background:C.border, borderRadius:999, margin:'0 auto 16px' }} />
+            {mobileCardSheet.address ? (
+              <>
+                <PortfolioDetail
+                  item={mobileCardSheet}
+                  owner={activeOwner}
+                  ownerDesc={ownerDesc}
+                  onBack={() => setMobileCardSheet(null)}
+                />
+                <button
+                  type="button"
+                  onClick={() => {
+                    handleSend('', 'reference', mobileCardSheet);
+                    setMobileCardSheet(null);
+                    setMobileChatTab('chat');
+                  }}
+                  style={{ width:'100%', marginTop:16, padding:'14px', borderRadius:12, background:C.accent, color:'#fff', border:'none', fontWeight:800, fontSize:14, cursor:'pointer' }}
+                >
+                  💬 {CHAT_INTEREST_PREFIX[myInputLang] || CHAT_INTEREST_PREFIX.pt}
+                </button>
+              </>
+            ) : (
+              <div>
+                <div style={{ fontSize:15, fontWeight:800, color:C.t1, marginBottom:8 }}>{mobileCardSheet.name || mobileCardSheet.title || onboardingT.serviceFallbackName}</div>
+                {(mobileCardSheet.media?.images || []).length > 0 && (
+                  <SmartImage src={mobileCardSheet.media.images[0]} alt={mobileCardSheet.name} style={{ width:'100%', borderRadius:12, marginBottom:12, objectFit:'cover', maxHeight:200 }} />
+                )}
+                {mobileCardSheet.description && <div style={{ color:C.t2, fontSize:13, marginBottom:12 }}>{mobileCardSheet.description}</div>}
+                <ContactButtons item={mobileCardSheet} />
+              </div>
+            )}
+          </div>
+        </div>
+      )}
+
+      {previewCardOpen && activeOwner ? (
+        <Modal onClose={() => setPreviewCardOpen(false)} maxWidth={572}>
           <div style={{ marginBottom:8, paddingRight:18 }}>
-            <div style={{ fontSize:12, fontWeight:800, color:C.t1 }}>
-              {isActiveProperty ? active.address : activeOwner?.name}
-            </div>
+            <div style={{ fontSize:12, fontWeight:800, color:C.t1 }}>{activeOwner.name}</div>
             <div style={{ marginTop:4, display:'inline-flex', alignItems:'center', gap:6, padding:'4.2px 9.8px', borderRadius:999, background:C.alpha(C.success, 0.12), border:`1px solid ${C.alpha(C.success, 0.28)}`, color:C.success, fontSize:10, fontWeight:800 }}>
               <Icon name="unlock" size={11} color={C.success} />
               {cardsT.unlocked}
             </div>
-            <div style={{ fontSize:8, color:C.t3, marginTop:3 }}>
-              {isActiveProperty ? (t.openPropertyPreviewHint || 'Property summary preview') : (t.openCardPreviewHint || 'Original summary card preview')}
-            </div>
           </div>
-          <div style={{ width:'100%', maxWidth:572, margin:'0 auto', height:280 }}>
+          <div style={{ width:'100%', height:320 }}>
             <div style={{ pointerEvents:'none', width:'100%', height:'100%' }}>
-              {isActiveProperty ? (
-                <PropertyCard
-                  property={active}
-                  owner={activeOwner}
-                  onInterest={() => {}}
-                  statusAction="interest"
-                  previewOnly
-                />
-              ) : (
-                <SwipeCard
-                  card={activeOwner}
-                  action="match"
-                  isUnlocked
-                  isSkipped={false}
-                  onSwipe={() => {}}
-                  previewOnly
-                />
-              )}
+              <SwipeCard
+                card={activeOwner}
+                action="match"
+                isUnlocked
+                isSkipped={false}
+                onSwipe={() => {}}
+                previewOnly
+              />
             </div>
           </div>
         </Modal>

@@ -4,15 +4,15 @@ import { ThemeProvider } from './theme/theme';
 import { Navbar } from './components/layout/Navbar';
 import { AppMobileBottomNav } from './components/layout/AppMobileBottomNav';
 import { Landing } from './pages/Landing';
-import { Dashboard } from './pages/Dashboard';
-import { MatchesPage } from './pages/MatchesPage';
-import { Onboarding } from './pages/Onboarding';
-import { Pricing } from './pages/Pricing';
-import { MapView } from './pages/MapView';
-import { Settings } from './pages/Settings';
-import { AdminDashboard } from './pages/AdminDashboard';
-import { TermsPage } from './pages/TermsPage';
-import { PrivacyPolicyPage } from './pages/PrivacyPolicyPage';
+const Dashboard = lazy(() => import('./pages/Dashboard').then((m) => ({ default: m.Dashboard })));
+const MatchesPage = lazy(() => import('./pages/MatchesPage').then((m) => ({ default: m.MatchesPage })));
+const Onboarding = lazy(() => import('./pages/Onboarding').then((m) => ({ default: m.Onboarding })));
+const Pricing = lazy(() => import('./pages/Pricing').then((m) => ({ default: m.Pricing })));
+const MapView = lazy(() => import('./pages/MapView').then((m) => ({ default: m.MapView })));
+const Settings = lazy(() => import('./pages/Settings').then((m) => ({ default: m.Settings })));
+const AdminDashboard = lazy(() => import('./pages/AdminDashboard').then((m) => ({ default: m.AdminDashboard })));
+const TermsPage = lazy(() => import('./pages/TermsPage').then((m) => ({ default: m.TermsPage })));
+const PrivacyPolicyPage = lazy(() => import('./pages/PrivacyPolicyPage').then((m) => ({ default: m.PrivacyPolicyPage })));
 import { NuggetStore } from './components/modals/NuggetStore';
 import { UnlockModal } from './components/modals/UnlockModal';
 import { AuthAccessModal } from './components/modals/AuthAccessModal';
@@ -2581,7 +2581,9 @@ export default function App() {
           editMode={editMode}
           setEditMode={setEditMode}
         />
-        {renderPage()}
+        <Suspense fallback={<div style={{ minHeight: '60vh' }} />}>
+          {renderPage()}
+        </Suspense>
         <AppMobileBottomNav
           page={page}
           setPage={setPage}

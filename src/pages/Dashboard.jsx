@@ -103,12 +103,12 @@ export function Dashboard({ page, nuggets, setModal, setPage, onOpenOnboardingTa
   const SIDE_PANEL_HEIGHT = MAX_SIDE_LIST_VISIBLE * 54 + 44;
   const FEED_CARD_SCALE = 1;
   const FEED_CARD_BASE_WIDTH = isMobileViewport ? 360 : 654;
-  const FEED_CARD_BASE_HEIGHT = isMobileViewport ? 500 : 400;
+  const FEED_CARD_BASE_HEIGHT = isMobileViewport ? 576 : 400;
   const FEED_CARD_WIDTH = Math.round(FEED_CARD_BASE_WIDTH * FEED_CARD_SCALE);
   const FEED_CARD_HEIGHT = Math.round(FEED_CARD_BASE_HEIGHT * FEED_CARD_SCALE);
   const FEED_STACK_SHIFT_X = Math.round(20 * FEED_CARD_SCALE);
   const FEED_STACK_SHIFT_Y = Math.round(24 * FEED_CARD_SCALE);
-  const FEED_STACK_CONTAINER_HEIGHT = FEED_CARD_HEIGHT + (isMobileViewport ? 108 : 160);
+  const FEED_STACK_CONTAINER_HEIGHT = FEED_CARD_HEIGHT + (isMobileViewport ? 72 : 160);
   const SWIPE_ANIM_MS = 380;
   const pendingFocusOnInit = readPendingFocusCard();
   const mobileBottomNavOffset = isMobileViewport ? (mobileBottomNavCollapsed ? 4 : 88) : 0;
@@ -2625,8 +2625,8 @@ export function Dashboard({ page, nuggets, setModal, setPage, onOpenOnboardingTa
                 style={{
                   border: 'none',
                   borderRadius: 999,
-                  background: view === 'connections' ? C.alpha(C.accent, 0.14) : 'transparent',
-                  color: view === 'connections' ? C.accent : C.t2,
+                  background: view === 'connections' ? C.accent : 'transparent',
+                  color: view === 'connections' ? '#fff' : C.t2,
                   fontWeight: 700,
                   fontSize: 12,
                   padding: '7px 14px',
@@ -2642,8 +2642,8 @@ export function Dashboard({ page, nuggets, setModal, setPage, onOpenOnboardingTa
                 style={{
                   border: 'none',
                   borderRadius: 999,
-                  background: view === 'properties' ? C.alpha(C.accent, 0.14) : 'transparent',
-                  color: view === 'properties' ? C.accent : C.t2,
+                  background: view === 'properties' ? C.accent : 'transparent',
+                  color: view === 'properties' ? '#fff' : C.t2,
                   fontWeight: 700,
                   fontSize: 12,
                   padding: '7px 14px',
