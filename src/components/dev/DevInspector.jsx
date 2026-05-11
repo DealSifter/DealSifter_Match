@@ -501,7 +501,7 @@ function ScreenshotEditor({ imageUrl, onClose, onCopyDone }) {
 }
 
 export function DevInspector() {
-  if (!import.meta.env.DEV) return null;
+  const isDevEnv = import.meta.env.DEV;
 
   const [active, setActive] = useState(false);
   // Start minimized to avoid showing large floating panel by default
@@ -510,11 +510,12 @@ export function DevInspector() {
   // Ensure z-index updates so the minimized button is clickable and
   // the expanded panel renders above the app when opened.
   useEffect(() => {
+    if (!isDevEnv) return undefined;
     try {
       Z = (!minimized || active) ? HIGH_Z : 10005;
-    } catch (e) { /* noop */ }
+    } catch { /* noop */ }
     return () => { Z = 10005; };
-  }, [minimized, active]);
+  }, [isDevEnv, minimized, active]);
   const [mode, setMode] = useState('inspect');
   const [hovRect, setHovRect] = useState(null);
   const [tooltip, setTooltip] = useState({ text: '', x: 0, y: 0 });
@@ -600,10 +601,13 @@ export function DevInspector() {
   }, [active, mode, captureSelecting, editorImage]);
 
   useEffect(() => {
+    if (!isDevEnv) return undefined;
     if (!active) {
-      setHovRect(null);
-      setTooltip({ text: '', x: 0, y: 0 });
-      return;
+      const timer = window.setTimeout(() => {
+        setHovRect(null);
+        setTooltip({ text: '', x: 0, y: 0 });
+      }, 0);
+      return () => window.clearTimeout(timer);
     }
     window.addEventListener('mousemove', onMouseMove, true);
     window.addEventListener('click', onClick, true);
@@ -611,9 +615,10 @@ export function DevInspector() {
       window.removeEventListener('mousemove', onMouseMove, true);
       window.removeEventListener('click', onClick, true);
     };
-  }, [active, onMouseMove, onClick]);
+  }, [isDevEnv, active, onMouseMove, onClick]);
 
   useEffect(() => {
+    if (!isDevEnv) return undefined;
     const handler = (e) => {
       if (e.altKey && e.key.toLowerCase() === 'i') {
         setActive(v => !v);
@@ -621,7 +626,7 @@ export function DevInspector() {
     };
     window.addEventListener('keydown', handler);
     return () => window.removeEventListener('keydown', handler);
-  }, []);
+  }, [isDevEnv]);
 
   const captureDisplayFrame = async () => {
     const stream = await requestDisplayStream();
@@ -738,6 +743,8 @@ export function DevInspector() {
     color: isOn ? '#fff' : '#94a3b8',
     transition: 'all 0.15s',
   });
+
+  if (!isDevEnv) return null;
 
   return (
     <>

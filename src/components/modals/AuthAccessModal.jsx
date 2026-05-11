@@ -5,6 +5,8 @@ import { DealSifterLogo } from '../ui/DealSifterLogo';
 import { Icon } from '../ui/Icon';
 import { Modal } from '../ui/Modal';
 
+const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/;
+
 export function AuthAccessModal({ initialTab = 'signup', onClose, onSubmit, onForgotPassword, onOpenAdminAuth = () => {} }) {
   const allT = useT('global');
   const t = allT.auth || {};
@@ -15,9 +17,8 @@ export function AuthAccessModal({ initialTab = 'signup', onClose, onSubmit, onFo
   const [error, setError] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
 
-  const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/;
   const canSubmit = useMemo(() => {
-    const validEmail = emailRegex.test(String(email).trim());
+    const validEmail = EMAIL_REGEX.test(String(email).trim());
     if (tab === 'signup') return fullName.trim().length >= 2 && validEmail && String(password).length >= 8;
     return validEmail && String(password).length >= 4;
   }, [tab, fullName, email, password]);

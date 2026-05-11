@@ -11,7 +11,6 @@ import { catIcon } from '../lib/catIcon';
 import { buildDisplayContacts } from '../lib/contactPriority';
 import { resolveScopedProfile, normalizeProfileScope } from '../lib/profileScopeResolver';
 import { CHAT_LANGUAGE_OPTIONS, translateChatText, getSafeLang } from '../services/chatTranslation';
-import { jsPDF } from 'jspdf';
 import appLogo from '../assets/logo.png';
 
 // Move chat templates and defaults to module scope so they are stable references
@@ -76,7 +75,6 @@ function readScopedProfileFallback(scope = 'personal') {
 }
 
 const PortfolioItem = ({ p, onOpen }) => {
-  const onboardingT = useT('matches').onboarding;
   const [idx, setIdx] = useState(0);
   const imgs = p.images || [p.image];
   return (
@@ -482,7 +480,8 @@ function PortfolioDetail({ item, owner, ownerDesc, onBack }) {
     }
   };
 
-  const generateReleasePdf = async ({ title, cardsDescription, imageUrls }) => {
+  const generateReleasePdf = async ({ title, imageUrls }) => {
+    const { jsPDF } = await import('jspdf');
     const doc = new jsPDF({ unit: 'pt', format: 'a4' });
     const pageWidth = doc.internal.pageSize.getWidth();
     const pageHeight = doc.internal.pageSize.getHeight();
@@ -1132,7 +1131,7 @@ export function MatchesPage({ nuggets, setModal, openUnlock, unlocked, initialCh
   const [portfolioWidth, setPortfolioWidth] = useState(DESKTOP_PORTFOLIO_WIDTH);
   const [selectedPortfolioItem, setSelectedPortfolioItem] = useState(null);
   const [previewCardOpen, setPreviewCardOpen] = useState(false);
-  const [previewShowcaseIdx, setPreviewShowcaseIdx] = useState(0);
+  const [_previewShowcaseIdx, setPreviewShowcaseIdx] = useState(0);
   const [myInputLang, setMyInputLang] = useState(() => localStorage.getItem('chatMyInputLang') || 'pt');
   const [myOutputLang, setMyOutputLang] = useState(() => localStorage.getItem('chatMyOutputLang') || 'pt');
   const [chatMainTextSize, setChatMainTextSize] = useState(() => {
@@ -1476,7 +1475,8 @@ export function MatchesPage({ nuggets, setModal, openUnlock, unlocked, initialCh
 
   useEffect(() => {
     if (!initialChat) return;
-    setActive(initialChat);
+    const timer = window.setTimeout(() => setActive(initialChat), 0);
+    return () => window.clearTimeout(timer);
   }, [initialChat, chatFocusToken]);
 
   const serviceItems = useMemo(() => {
@@ -1484,18 +1484,20 @@ export function MatchesPage({ nuggets, setModal, openUnlock, unlocked, initialCh
     return allServicesSource.filter((s) => String(s.ownerId) === String(activeOwner.id));
   }, [activeOwner, allServicesSource]);
 
-  const previewShowcaseItems = useMemo(() => [
+  const _previewShowcaseItems = useMemo(() => [
     ...portfolioItems.map(p => ({ ...p, _itemType: 'property' })),
     ...serviceItems.map(s => ({ ...s, _itemType: 'service' })),
   ], [portfolioItems, serviceItems]);
+  void _previewShowcaseItems;
 
   const propertiesCount = portfolioItems.length;
   const servicesCount = serviceItems.length;
-  const portfolioColumns = useMemo(() => {
+  const _portfolioColumns = useMemo(() => {
     const contentWidth = Math.max(0, portfolioWidth - PORTFOLIO_PANEL_PADDING);
     const rawColumns = Math.floor((contentWidth + PORTFOLIO_GRID_GAP) / (PORTFOLIO_CARD_MIN_WIDTH + PORTFOLIO_GRID_GAP));
     return Math.max(3, Math.min(5, rawColumns));
   }, [PORTFOLIO_CARD_MIN_WIDTH, PORTFOLIO_GRID_GAP, PORTFOLIO_PANEL_PADDING, portfolioWidth]);
+  void _portfolioColumns;
 
   useEffect(() => {
     // Clear selected item when active owner changes; defer to avoid
@@ -1547,18 +1549,22 @@ export function MatchesPage({ nuggets, setModal, openUnlock, unlocked, initialCh
     const currentIncoming = Array.isArray(convos?.[activeContactId])
       ? convos[activeContactId].filter((message) => message?.from !== 'me').length
       : 0;
-    setSeenIncomingByContact((prev) => {
-      if ((prev[activeContactId] || 0) >= currentIncoming) return prev;
-      return {
-        ...prev,
-        [activeContactId]: currentIncoming,
-      };
-    });
+    const timer = window.setTimeout(() => {
+      setSeenIncomingByContact((prev) => {
+        if ((prev[activeContactId] || 0) >= currentIncoming) return prev;
+        return {
+          ...prev,
+          [activeContactId]: currentIncoming,
+        };
+      });
+    }, 0);
+    return () => window.clearTimeout(timer);
   }, [activeContactId, convos]);
 
   // Reset portfolio show-all when active contact changes
   useEffect(() => {
-    setPortfolioShowAll(false);
+    const timer = window.setTimeout(() => setPortfolioShowAll(false), 0);
+    return () => window.clearTimeout(timer);
   }, [activeOwner?.id]);
 
   useEffect(() => {

@@ -3,7 +3,7 @@ import './App.css';
 import { ThemeProvider } from './theme/theme';
 import { Navbar } from './components/layout/Navbar';
 import { AppMobileBottomNav } from './components/layout/AppMobileBottomNav';
-import { Landing } from './pages/Landing';
+const Landing = lazy(() => import('./pages/Landing').then((m) => ({ default: m.Landing })));
 const Dashboard = lazy(() => import('./pages/Dashboard').then((m) => ({ default: m.Dashboard })));
 const MatchesPage = lazy(() => import('./pages/MatchesPage').then((m) => ({ default: m.MatchesPage })));
 const Onboarding = lazy(() => import('./pages/Onboarding').then((m) => ({ default: m.Onboarding })));
@@ -13,21 +13,20 @@ const Settings = lazy(() => import('./pages/Settings').then((m) => ({ default: m
 const AdminDashboard = lazy(() => import('./pages/AdminDashboard').then((m) => ({ default: m.AdminDashboard })));
 const TermsPage = lazy(() => import('./pages/TermsPage').then((m) => ({ default: m.TermsPage })));
 const PrivacyPolicyPage = lazy(() => import('./pages/PrivacyPolicyPage').then((m) => ({ default: m.PrivacyPolicyPage })));
-import { NuggetStore } from './components/modals/NuggetStore';
-import { UnlockModal } from './components/modals/UnlockModal';
-import { AuthAccessModal } from './components/modals/AuthAccessModal';
-import { AdminLoginModal } from './components/modals/AdminLoginModal';
+const NuggetStore = lazy(() => import('./components/modals/NuggetStore').then((m) => ({ default: m.NuggetStore })));
+const UnlockModal = lazy(() => import('./components/modals/UnlockModal').then((m) => ({ default: m.UnlockModal })));
+const AuthAccessModal = lazy(() => import('./components/modals/AuthAccessModal').then((m) => ({ default: m.AuthAccessModal })));
+const AdminLoginModal = lazy(() => import('./components/modals/AdminLoginModal').then((m) => ({ default: m.AdminLoginModal })));
 import { ToastContainer } from './components/ui/Toast';
-import { ConsentBanner } from './components/ui/ConsentBanner';
-import { CookieBanner } from './components/ui/CookieBanner';
+const ConsentBanner = lazy(() => import('./components/ui/ConsentBanner').then((m) => ({ default: m.ConsentBanner })));
+const CookieBanner = lazy(() => import('./components/ui/CookieBanner').then((m) => ({ default: m.CookieBanner })));
 import { getT } from './i18n/translations';
 import { CATEGORIES, CARDS as _MOCK_CARDS, SERVICE_PORTFOLIO as _MOCK_SERVICE_PORTFOLIO } from './data/mockData';
 import { supabase, isSupabaseConfigured } from './lib/supabaseClient';
 import { buildScopedProfilePayload, extractScopedProfileLegacy } from './lib/profileScopeResolver';
 import { getPortfolioFull, setPortfolioFull, clearAllUserData, uploadDataUrlToStorage } from './lib/localforageHelper';
-import { redirectToCheckout, redirectToPortal } from './lib/stripeClient';
+import { redirectToCheckout } from './lib/stripeClient';
 import { getMatchPressure, setDealAlert, shouldSendDealAlert } from './lib/matchPressure';
-import loaderMark from './assets/logo.png';
 
 // Safe error logger — strips Supabase error details that may contain personal data
 const safeLogError = (label, error) => {
@@ -57,6 +56,13 @@ const isPropertiesOptionalColumnMissingError = (error) => {
     'properties.geocoded_at',
   ];
   return optionalColumns.some((column) => isMissingColumnError(error, column));
+};
+
+const isMissingFunctionError = (error, functionName) => {
+  const msg = String(error?.message || error?.details || '').toLowerCase();
+  const fn = String(functionName || '').toLowerCase();
+  if (!fn) return false;
+  return msg.includes('function') && msg.includes('does not exist') && msg.includes(fn);
 };
 
 // Global unhandled error capture — hooks into window.__DS_REPORT_ERROR for Sentry/external service
@@ -210,6 +216,20 @@ const pruneEmptyProfileFields = (value) => {
   return next;
 };
 
+const mergeProfilePayloadNonEmpty = (...sources) => {
+  const next = {};
+  sources.forEach((source) => {
+    const input = source && typeof source === 'object' ? source : {};
+    Object.entries(input).forEach(([key, raw]) => {
+      if (raw == null) return;
+      if (typeof raw === 'string' && !raw.trim()) return;
+      if (Array.isArray(raw) && raw.length === 0) return;
+      next[key] = raw;
+    });
+  });
+  return next;
+};
+
 const LOCAL_OWNER_ID = 999999;
 
 // All localStorage keys that are scoped to a specific authenticated user.
@@ -250,12 +270,6 @@ const toNumberOrNull = (value) => {
 const toIntegerOrZero = (value) => {
   const n = Number.parseInt(value, 10);
   return Number.isFinite(n) ? n : 0;
-};
-
-const toIntegerOrNull = (value) => {
-  if (value === '' || value == null) return null;
-  const n = Number.parseInt(value, 10);
-  return Number.isFinite(n) ? n : null;
 };
 
 const toIsoDateOrNull = (value) => {
@@ -518,10 +532,10 @@ export default function App() {
   // Toast notification system
   const [toasts, setToasts] = useState([]);
   const toastIdRef = useRef(0);
-  const addToast = ({ type = 'info', title, message, duration = 4500 }) => {
+  const addToast = useCallback(({ type = 'info', title, message, duration = 4500 }) => {
     const id = ++toastIdRef.current;
     setToasts((prev) => [...prev.slice(-4), { id, type, title, message, duration }]);
-  };
+  }, []);
   const dismissToast = (id) => setToasts((prev) => prev.filter((t) => t.id !== id));
 
   // LGPD consent state
@@ -786,13 +800,13 @@ export default function App() {
     } catch (e) { void e; }
   }, [supabaseUserId]);
 
-  const beginProfileSync = () => {
+  const beginProfileSync = useCallback(() => {
     profileSyncPendingRef.current += 1;
     setProfileSyncStatus('syncing');
-  };
+  }, []);
 
   const syncErrorThrottleRef = useRef(0);
-  const endProfileSync = (withError = false) => {
+  const endProfileSync = useCallback((withError = false) => {
     profileSyncPendingRef.current = Math.max(0, profileSyncPendingRef.current - 1);
     if (withError) {
       setProfileSyncStatus('error');
@@ -806,7 +820,7 @@ export default function App() {
     if (profileSyncPendingRef.current === 0) {
       setProfileSyncStatus('synced');
     }
-  };
+  }, [addToast]);
 
   const [servicePortfolio, setServicePortfolio] = useState(() => {
     // On initial synchronous render, load from localStorage (lightweight, no images).
@@ -1035,7 +1049,6 @@ export default function App() {
       setPropertyPortfolio([]);
       clearAllUserData(); // clears IndexedDB portfolioStore + tempUploads
     }
-  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [supabaseUserId]);
 
   // Persist category order to localStorage
@@ -1090,7 +1103,6 @@ export default function App() {
         });
       });
     });
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   useEffect(() => {
@@ -1109,7 +1121,6 @@ export default function App() {
         });
       });
     });
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   // ── Flush pending Supabase debounces on tab close / background ──
@@ -1179,7 +1190,7 @@ export default function App() {
     } catch (error) {
       console.error('Failed to persist auth session.', error);
     }
-  }, [authSession]);
+  }, [authSession, addToast]);
 
   useEffect(() => {
     if (!isSupabaseConfigured || !supabase) return;
@@ -1212,7 +1223,7 @@ export default function App() {
         setIsAdmin(false);
       }
       setModal(null);
-      setPage((prev) => prev === 'landing' || !prev ? 'dashboard' : prev);
+      _setPage((prev) => prev === 'landing' || !prev ? 'dashboard' : prev);
     };
 
     supabase.auth.getSession().then(({ data }) => {
@@ -1244,7 +1255,7 @@ export default function App() {
       });
     }
     if (!authSession) emailVerifyWarnedRef.current = false;
-  }, [authSession]);
+  }, [authSession, addToast]);
 
   // ── Stripe checkout return handler ───────────────────────────────────────
   useEffect(() => {
@@ -1268,8 +1279,7 @@ export default function App() {
         message: 'O pagamento foi cancelado. Seus nuggets não foram alterados.',
       });
     }
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  }, [addToast]);
 
   // ── Periodic deal-alert notifications (every 3 days per property) ──
   // Fires for each owner property that has active market pressure and is not yet deal-closed.
@@ -1300,8 +1310,7 @@ export default function App() {
         });
       }
     });
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [propertyPortfolio]);
+  }, [propertyPortfolio, addToast]);
 
   useEffect(() => {
     if (!isSupabaseConfigured || !supabase || !supabaseUserId) {
@@ -1420,21 +1429,32 @@ export default function App() {
             fsboProfileFromPayload,
           } = extractScopedProfileLegacy(professionalResult.data.profile_payload);
 
-          const effectivePersonalPayload = accountType === 'fsbo_owner'
+          const scopedPersonalPayload = accountType === 'fsbo_owner'
             ? (fsboProfileFromPayload || personalProfileFromPayload || personalFromPayload)
             : (personalProfileFromPayload || personalFromPayload);
 
-          if (effectivePersonalPayload) {
+          // Prefer legacy payload values when present to avoid sparse/derived
+          // profile_payload snapshots wiping persisted primary-profile fields.
+          const effectivePersonalPayload = mergeProfilePayloadNonEmpty(
+            scopedPersonalPayload,
+            personalFromPayload
+          );
+
+          if (Object.keys(effectivePersonalPayload).length > 0) {
             setPersonalProfile((prev) => normalizePersonalProfile({
               ...(prev || {}),
               ...effectivePersonalPayload,
             }));
           }
 
+          const mergedProfessionalPayload = mergeProfilePayloadNonEmpty(
+            professionalProfileFromPayload,
+            professionalFromPayload
+          );
+
           const hydratedProfessional = normalizeProfessionalProfile({
             ...professionalProfile,
-            ...(professionalFromPayload || {}),
-            ...(professionalProfileFromPayload || {}),
+            ...mergedProfessionalPayload,
             category: professionalResult.data.category,
             subcategory: professionalResult.data.subcategory,
             markets: professionalResult.data.markets,
@@ -1493,7 +1513,7 @@ export default function App() {
       cancelled = true;
       setIsHydratingProfiles(false);
     };
-  }, [supabaseUserId, accountType, userProfile.category, profileHydrationCycle]);
+  }, [supabaseUserId, accountType, userProfile.category, professionalProfile, profileHydrationCycle]);
 
   useEffect(() => {
     if (!isSupabaseConfigured || !supabase || !supabaseUserId) return;
@@ -1543,11 +1563,12 @@ export default function App() {
     };
     pendingFlushRef.current.personal = syncPersonal;
     profileSaveDebounceRef.current.personal = setTimeout(syncPersonal, 700);
+    const personalDebounceTimer = profileSaveDebounceRef.current.personal;
 
     return () => {
-      if (profileSaveDebounceRef.current.personal) clearTimeout(profileSaveDebounceRef.current.personal);
+      if (personalDebounceTimer) clearTimeout(personalDebounceTimer);
     };
-  }, [supabaseUserId, personalProfile]);
+  }, [supabaseUserId, personalProfile, beginProfileSync, endProfileSync]);
 
   useEffect(() => {
     if (!isSupabaseConfigured || !supabase || !supabaseUserId) return;
@@ -1620,11 +1641,12 @@ export default function App() {
     };
     pendingFlushRef.current.professional = syncProfessional;
     profileSaveDebounceRef.current.professional = setTimeout(syncProfessional, 700);
+    const professionalDebounceTimer = profileSaveDebounceRef.current.professional;
 
     return () => {
-      if (profileSaveDebounceRef.current.professional) clearTimeout(profileSaveDebounceRef.current.professional);
+      if (professionalDebounceTimer) clearTimeout(professionalDebounceTimer);
     };
-  }, [supabaseUserId, accountType, professionalProfile, personalProfile, userProfile]);
+  }, [supabaseUserId, accountType, professionalProfile, personalProfile, userProfile, beginProfileSync, endProfileSync]);
 
   useEffect(() => {
     if (!isSupabaseConfigured || !supabase || !supabaseUserId) {
@@ -1723,11 +1745,16 @@ export default function App() {
           const prevById = prior.reduce((m, it) => { m[String(it.id)] = it; return m; }, {});
           const merged = hydratedProperties.map((hp) => {
             const local = prevById[String(hp.id)];
-            // Sempre prioriza imagens do servidor se carregadas, nunca concatena
+            const localImages = normalizePortfolioImages(local?.images);
+            const serverImages = normalizePortfolioImages(hp.images);
+            // Nunca permitir que uma leitura remota vazia apague imagens locais em memória.
+            const resolvedImages = propertyImagesLoadedFromRemote
+              ? (serverImages.length > 0 ? serverImages : localImages)
+              : localImages;
             return {
               ...local,
               ...hp,
-              images: propertyImagesLoadedFromRemote ? hp.images : (local?.images || []),
+              images: resolvedImages,
               ownerId: LOCAL_OWNER_ID,
             };
           });
@@ -1844,9 +1871,10 @@ export default function App() {
     };
     pendingFlushRef.current.services = syncServices;
     profileSaveDebounceRef.current.services = setTimeout(syncServices, 900);
+    const servicesDebounceTimer = profileSaveDebounceRef.current.services;
 
     return () => {
-      if (profileSaveDebounceRef.current.services) clearTimeout(profileSaveDebounceRef.current.services);
+      if (servicesDebounceTimer) clearTimeout(servicesDebounceTimer);
     };
   }, [supabaseUserId, servicePortfolio]);
 
@@ -1885,17 +1913,18 @@ export default function App() {
           .upsert(payload, { onConflict: 'id' });
 
         if (upsertError && isPropertiesOptionalColumnMissingError(upsertError)) {
-          const payloadWithoutOptionalColumns = payload.map(({
-            video,
-            lat,
-            lng,
-            geocode_status,
-            geocode_source,
-            geocode_confidence,
-            geocode_input,
-            geocoded_at,
-            ...rest
-          }) => rest);
+          const payloadWithoutOptionalColumns = payload.map((row) => {
+            const rest = { ...row };
+            delete rest.video;
+            delete rest.lat;
+            delete rest.lng;
+            delete rest.geocode_status;
+            delete rest.geocode_source;
+            delete rest.geocode_confidence;
+            delete rest.geocode_input;
+            delete rest.geocoded_at;
+            return rest;
+          });
           const retry = await supabase
             .from('properties')
             .upsert(payloadWithoutOptionalColumns, { onConflict: 'id' });
@@ -1907,51 +1936,72 @@ export default function App() {
           return;
         }
 
-        if (portfolioSyncStateRef.current.propertyImagesLoadedFromRemote) {
-          const payload2 = userOwnedProperties.map((property) => mapLocalPropertyToDb(property, supabaseUserId));
-          const localIds2 = payload2.map((item) => item.id);
+        const payload2 = userOwnedProperties.map((property) => mapLocalPropertyToDb(property, supabaseUserId));
 
-          // Upload any local data URLs to Supabase Storage before persisting
-          const rawImageEntries = payload2.flatMap((row) => {
-            const localProperty = userOwnedProperties.find((item) => String(item.id) === String(row.id));
-            const images = normalizePortfolioImages(localProperty?.images);
-            return images.map((imageUrl, index) => ({ property_id: row.id, imageUrl, index }));
-          });
+        for (const row of payload2) {
+          const localProperty = userOwnedProperties.find((item) => String(item.id) === String(row.id));
+          const images = normalizePortfolioImages(localProperty?.images);
 
-          const imageRows = await Promise.all(
-            rawImageEntries.map(async ({ property_id, imageUrl, index }) => {
+          // Protecao anti-perda: nunca apagar imagens remotas quando estado local vier vazio.
+          if (!images.length) continue;
+
+          const uploadedImages = await Promise.all(
+            images.map(async (imageUrl, index) => {
               let finalUrl = imageUrl;
               if (finalUrl && finalUrl.startsWith('data:image')) {
                 try {
                   finalUrl = await uploadDataUrlToStorage(
                     finalUrl,
                     'property-images',
-                    `${supabaseUserId}/${property_id}/${index}.jpg`,
+                    `${supabaseUserId}/${row.id}/${index}.jpg`,
                     supabase
                   );
                 } catch (uploadErr) {
                   safeLogError('Property image upload to Storage failed, using data URL fallback.', uploadErr);
                 }
               }
-              return { property_id, image_url: finalUrl, sort_order: index };
+              return String(finalUrl || '').trim();
             })
           );
 
-          const { error: deleteImagesError } = await supabase
-            .from('property_images')
-            .delete()
-            .in('property_id', localIds2);
-          if (deleteImagesError) {
-            safeLogError('Supabase property images cleanup failed, will attempt insert anyway.', deleteImagesError);
-          }
+          const sanitizedImages = uploadedImages.filter(Boolean);
 
-          if (imageRows.length > 0) {
+          // Preferred path: atomic DB replace (delete + insert in one transaction).
+          let { error: replaceImagesError } = await supabase.rpc('replace_property_images', {
+            p_property_id: row.id,
+            p_image_urls: sanitizedImages,
+          });
+
+          // Backward-compatible fallback for environments that have not applied the migration yet.
+          if (replaceImagesError && isMissingFunctionError(replaceImagesError, 'replace_property_images')) {
+            const fallbackRows = sanitizedImages.map((imageUrl, index) => ({
+              property_id: row.id,
+              image_url: imageUrl,
+              sort_order: index,
+            }));
+
+            const { error: deleteImagesError } = await supabase
+              .from('property_images')
+              .delete()
+              .eq('property_id', row.id);
+
+            if (deleteImagesError) {
+              safeLogError('Supabase property images cleanup failed for property.', deleteImagesError);
+              continue;
+            }
+
             const { error: insertImagesError } = await supabase
               .from('property_images')
-              .insert(imageRows);
+              .insert(fallbackRows);
+
             if (insertImagesError) {
               safeLogError('Supabase property images persistence failed.', insertImagesError);
             }
+            continue;
+          }
+
+          if (replaceImagesError) {
+            safeLogError('Supabase property images replace RPC failed.', replaceImagesError);
           }
         }
       } catch (error) {
@@ -1961,9 +2011,10 @@ export default function App() {
 
     pendingFlushRef.current.properties = syncProperties;
     profileSaveDebounceRef.current.properties = setTimeout(syncProperties, 900);
+    const propertiesDebounceTimer = profileSaveDebounceRef.current.properties;
 
     return () => {
-      if (profileSaveDebounceRef.current.properties) clearTimeout(profileSaveDebounceRef.current.properties);
+      if (propertiesDebounceTimer) clearTimeout(propertiesDebounceTimer);
     };
   }, [supabaseUserId, propertyPortfolio]);
 
@@ -2431,7 +2482,7 @@ export default function App() {
       return 'synced';
     }
     return 'degraded';
-  }, [isHydratingPortfolio, supabaseUserId, isSupabaseConfigured, portfolioHydrationCycle]);
+  }, [isHydratingPortfolio, supabaseUserId]);
 
   const renderPage = () => {
     switch (page) {
@@ -2608,48 +2659,64 @@ export default function App() {
         )}
 
         {/* Cookie banner — landing page only, before login */}
-        {!cookieConsent && !authSession && <CookieBanner onAccept={handleCookieAccept} onLearnMore={() => setPage('privacy')} />}
+        {!cookieConsent && !authSession && (
+          <Suspense fallback={null}>
+            <CookieBanner onAccept={handleCookieAccept} onLearnMore={() => setPage('privacy')} />
+          </Suspense>
+        )}
 
         {/* LGPD consent — after login only */}
-        {!lgpdConsent && authSession && <ConsentBanner onAccept={handleLgpdAccept} onReject={() => { const t = getT(); setPage('landing'); addToast({ type: 'info', title: t.consent.requiredTitle, message: t.consent.requiredMessage }); }} onOpenTerms={() => setPage('terms')} onOpenPrivacy={() => setPage('privacy')} />}
+        {!lgpdConsent && authSession && (
+          <Suspense fallback={null}>
+            <ConsentBanner onAccept={handleLgpdAccept} onReject={() => { const t = getT(); setPage('landing'); addToast({ type: 'info', title: t.consent.requiredTitle, message: t.consent.requiredMessage }); }} onOpenTerms={() => setPage('terms')} onOpenPrivacy={() => setPage('privacy')} />
+          </Suspense>
+        )}
 
         {modal === 'store' && (
-          <NuggetStore
-            onClose={() => setModal(null)}
-            onBuy={async (pkg) => {
-              await redirectToCheckout(pkg);
-              // Page will redirect to Stripe. If it returns here, checkout was cancelled.
-            }}
-            nuggets={nuggets}
-          />
+          <Suspense fallback={null}>
+            <NuggetStore
+              onClose={() => setModal(null)}
+              onBuy={async (pkg) => {
+                await redirectToCheckout(pkg);
+                // Page will redirect to Stripe. If it returns here, checkout was cancelled.
+              }}
+              nuggets={nuggets}
+            />
+          </Suspense>
         )}
 
         {modal === 'unlock' && unlockTarget && (
-          <UnlockModal
-            match={unlockTarget}
-            nuggets={nuggets}
-            unlockCost={getUnlockCost(unlockTarget)}
-            onUnlock={handleUnlock}
-            onBuyMore={() => openSettingsTab('payments')}
-            onClose={() => setModal(null)}
-          />
+          <Suspense fallback={null}>
+            <UnlockModal
+              match={unlockTarget}
+              nuggets={nuggets}
+              unlockCost={getUnlockCost(unlockTarget)}
+              onUnlock={handleUnlock}
+              onBuyMore={() => openSettingsTab('payments')}
+              onClose={() => setModal(null)}
+            />
+          </Suspense>
         )}
 
         {modal === 'auth' && (
-          <AuthAccessModal
-            initialTab={authModalTab}
-            onClose={() => setModal(null)}
-            onSubmit={handleAuthSubmit}
-            onForgotPassword={handleForgotPassword}
-            onOpenAdminAuth={openAdminAuthModal}
-          />
+          <Suspense fallback={null}>
+            <AuthAccessModal
+              initialTab={authModalTab}
+              onClose={() => setModal(null)}
+              onSubmit={handleAuthSubmit}
+              onForgotPassword={handleForgotPassword}
+              onOpenAdminAuth={openAdminAuthModal}
+            />
+          </Suspense>
         )}
 
         {modal === 'adminAuth' && (
-          <AdminLoginModal
-            onClose={() => setModal(null)}
-            onSubmit={handleAdminAuthSubmit}
-          />
+          <Suspense fallback={null}>
+            <AdminLoginModal
+              onClose={() => setModal(null)}
+              onSubmit={handleAdminAuthSubmit}
+            />
+          </Suspense>
         )}
 
         {/* ── Dev-only element inspector (Alt+I to toggle) ── */}

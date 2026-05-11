@@ -416,7 +416,6 @@ export function Landing({ setPage, onOpenAuthModal = () => {} }) {
     if (typeof window === 'undefined' || typeof window.matchMedia !== 'function') return undefined;
     const mediaQuery = window.matchMedia('(max-width: 767px)');
     const handleViewportChange = (event) => setIsMobile(event.matches);
-    setIsMobile(mediaQuery.matches);
 
     if (typeof mediaQuery.addEventListener === 'function') {
       mediaQuery.addEventListener('change', handleViewportChange);
@@ -438,7 +437,6 @@ export function Landing({ setPage, onOpenAuthModal = () => {} }) {
     } catch (e) { void e; }
   }, []);
   const t = useT('landing').landing;
-  const tc = useT('landing').consent;
   const steps = [
     { icon:"grid",   t:t.steps.discover.t, d:t.steps.discover.d },
     { icon:"heart",  t:t.steps.match.t,    d:t.steps.match.d },

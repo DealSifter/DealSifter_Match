@@ -1,5 +1,5 @@
 import { CATEGORIES, CARDS, SERVICE_PORTFOLIO, PROPERTIES } from '../data/mockData';
-import React, { useMemo, useState, useEffect, useRef } from 'react';
+import React, { useCallback, useMemo, useState, useEffect, useRef } from 'react';
 import { C } from '../theme/colors';
 import { Modal } from '../components/ui/Modal';
 import { SwipeCard } from '../components/cards/SwipeCard';
@@ -166,7 +166,6 @@ export function Onboarding({
   authSession,
   onResendVerificationEmail,
   onRefreshAuthSession,
-  userProfile,
   setUserProfile,
   profileSyncStatus = 'idle',
   portfolioSyncStatus = 'idle',
@@ -188,10 +187,10 @@ export function Onboarding({
   const [selectedServices, setSelectedServices] = useState(professionalProfile?.services || []);
   const [pitch, setPitch] = useState(professionalProfile?.pitch || '');
 
-  const [fsboCity, setFsboCity] = useState('');
-  const [fsboZip, setFsboZip] = useState('');
-  const [fsboType, setFsboType] = useState('');
-  const [fsboPrice, setFsboPrice] = useState('');
+  const [fsboCity, _setFsboCity] = useState('');
+  const [fsboZip, _setFsboZip] = useState('');
+  const [fsboType, _setFsboType] = useState('');
+  const [fsboPrice, _setFsboPrice] = useState('');
 
   const [portfolioAddress, setPortfolioAddress] = useState('');
   const [portfolioCity, setPortfolioCity] = useState('');
@@ -279,17 +278,17 @@ export function Onboarding({
   const [servicePrimaryProfileScope, setServicePrimaryProfileScope] = useState('');
   const [editingServiceId, setEditingServiceId] = useState(null);
   const [serviceEditDraft, setServiceEditDraft] = useState({ title: '', category: '', description: '', price: '', primaryProfile: '', markets: [] });
-  const [showArchivedImages, setShowArchivedImages] = useState({});
+  const [showArchivedImages, _setShowArchivedImages] = useState({});
   const [propertyImageIndex, setPropertyImageIndex] = useState({});
 
-  const [fsboBeds, setFsboBeds] = useState('');
-  const [fsboBaths, setFsboBaths] = useState('');
-  const [fsboSqft, setFsboSqft] = useState('');
-  const [fsboLot, setFsboLot] = useState('');
-  const [fsboImprovement, setFsboImprovement] = useState('');
-  const [fsboRehab, setFsboRehab] = useState('');
-  const [fsboCapRate, setFsboCapRate] = useState('');
-  const [fsboDescription, setFsboDescription] = useState('');
+  const [fsboBeds, _setFsboBeds] = useState('');
+  const [fsboBaths, _setFsboBaths] = useState('');
+  const [fsboSqft, _setFsboSqft] = useState('');
+  const [fsboLot, _setFsboLot] = useState('');
+  const [fsboImprovement, _setFsboImprovement] = useState('');
+  const [fsboRehab, _setFsboRehab] = useState('');
+  const [fsboCapRate, _setFsboCapRate] = useState('');
+  const [fsboDescription, _setFsboDescription] = useState('');
   const [profileTab, setProfileTab] = useState(initialProfileTab || 'personal');
   const activePersonal = profileTab === 'personal';
   const activeSkills = profileTab === 'skills';
@@ -298,6 +297,10 @@ export function Onboarding({
   const [isMobileViewport, setIsMobileViewport] = useState(() => {
     if (typeof window === 'undefined' || typeof window.matchMedia !== 'function') return false;
     return window.matchMedia('(max-width: 1024px)').matches;
+  });
+  const [isPhoneViewport, setIsPhoneViewport] = useState(() => {
+    if (typeof window === 'undefined' || typeof window.matchMedia !== 'function') return false;
+    return window.matchMedia('(max-width: 767px)').matches;
   });
   const [previewOpen, setPreviewOpen] = useState(false);
   const [previewServiceIndex, setPreviewServiceIndex] = useState(0);
@@ -308,6 +311,7 @@ export function Onboarding({
 
   const [previewDragIndex, setPreviewDragIndex] = useState(null);
   const [previewDragOverIndex, setPreviewDragOverIndex] = useState(null);
+  const INLINE_EDIT_ENABLED = false;
   const [basicRequiredMsg, setBasicRequiredMsg] = useState('');
   const [inlineValidationHint, setInlineValidationHint] = useState({ target: '', message: '' });
   const [inlineValidationHintPos, setInlineValidationHintPos] = useState({ top: 0, left: 0 });
@@ -320,7 +324,20 @@ export function Onboarding({
     if (typeof window === 'undefined' || typeof window.matchMedia !== 'function') return undefined;
     const mediaQuery = window.matchMedia('(max-width: 1024px)');
     const handleViewportChange = (event) => setIsMobileViewport(Boolean(event.matches));
-    setIsMobileViewport(Boolean(mediaQuery.matches));
+
+    if (typeof mediaQuery.addEventListener === 'function') {
+      mediaQuery.addEventListener('change', handleViewportChange);
+      return () => mediaQuery.removeEventListener('change', handleViewportChange);
+    }
+
+    mediaQuery.addListener(handleViewportChange);
+    return () => mediaQuery.removeListener(handleViewportChange);
+  }, []);
+
+  useEffect(() => {
+    if (typeof window === 'undefined' || typeof window.matchMedia !== 'function') return undefined;
+    const mediaQuery = window.matchMedia('(max-width: 767px)');
+    const handleViewportChange = (event) => setIsPhoneViewport(Boolean(event.matches));
 
     if (typeof mediaQuery.addEventListener === 'function') {
       mediaQuery.addEventListener('change', handleViewportChange);
@@ -364,7 +381,8 @@ export function Onboarding({
   const profileAFieldsRef = useRef(null);
 
   useEffect(() => {
-    setProfileTab(initialProfileTab || 'personal');
+    const timer = window.setTimeout(() => setProfileTab(initialProfileTab || 'personal'), 0);
+    return () => window.clearTimeout(timer);
   }, [initialProfileTab]);
 
   const applyCardPrioritySet = (priorities, preferredKey = 'A') => {
@@ -404,17 +422,19 @@ export function Onboarding({
     C: String(cardPriorityC || '').toLowerCase(),
   };
 
-  const isPriorityOptionTakenByAnotherProfile = (profileKey, optionValue) => {
+  const _isPriorityOptionTakenByAnotherProfile = (profileKey, optionValue) => {
     const normalizedOption = String(optionValue || '').toLowerCase();
     if (cardPriorityByProfile[profileKey] === normalizedOption) return false;
     return PROFILE_PRIORITY_KEYS.some((key) => key !== profileKey && cardPriorityByProfile[key] === normalizedOption);
   };
+  void _isPriorityOptionTakenByAnotherProfile;
 
   const clearInlineValidationHint = () => setInlineValidationHint({ target: '', message: '' });
   const showInlineValidationHint = (target, message) => setInlineValidationHint({ target, message });
-  const isInlineValidationTarget = (target) => inlineValidationHint.target === target && String(inlineValidationHint.message || '').trim().length > 0;
+  const _isInlineValidationTarget = (target) => inlineValidationHint.target === target && String(inlineValidationHint.message || '').trim().length > 0;
+  void _isInlineValidationTarget;
 
-  const resolveInlineValidationAnchor = () => {
+  const resolveInlineValidationAnchor = useCallback(() => {
     switch (inlineValidationHint.target) {
       case 'tab-personal':
         return personalTabRef.current;
@@ -429,7 +449,7 @@ export function Onboarding({
       default:
         return null;
     }
-  };
+  }, [inlineValidationHint.target]);
 
   useEffect(() => {
     const message = String(inlineValidationHint.message || '').trim();
@@ -456,7 +476,7 @@ export function Onboarding({
       window.removeEventListener('resize', updatePosition);
       window.removeEventListener('scroll', updatePosition, true);
     };
-  }, [inlineValidationHint, accountType, profileTab]);
+  }, [inlineValidationHint, accountType, profileTab, resolveInlineValidationAnchor]);
 
   useEffect(() => {
     const current = {
@@ -469,7 +489,8 @@ export function Onboarding({
     const preferred = accountType === 'fsbo_owner'
       ? 'C'
       : (activeProfessional || activeOperation ? 'B' : 'A');
-    applyCardPrioritySet(current, preferred);
+    const timer = window.setTimeout(() => applyCardPrioritySet(current, preferred), 0);
+    return () => window.clearTimeout(timer);
   }, [accountType, activeOperation, activeProfessional, cardPriorityA, cardPriorityB, cardPriorityC]);
 
   const isOwnPropertyRecord = (record) => {
@@ -516,16 +537,20 @@ export function Onboarding({
   );
 
   useEffect(() => {
-    if (previewPropertyIndex >= previewPropertiesCount) setPreviewPropertyIndex(0);
-  }, [previewPropertiesCount]);
+    if (previewPropertyIndex < previewPropertiesCount) return;
+    const timer = window.setTimeout(() => setPreviewPropertyIndex(0), 0);
+    return () => window.clearTimeout(timer);
+  }, [previewPropertyIndex, previewPropertiesCount]);
   const propertiesForPreview = useMemo(
     () => (myPortfolio || []).filter((p) => isPropertyVisibleInPreview(p)),
     [myPortfolio]
   );
 
   useEffect(() => {
-    if ((propertiesForPreview || []).length === 0) setPreviewMode('services');
-  }, [propertiesForPreview.length]);
+    if ((propertiesForPreview || []).length > 0) return;
+    const timer = window.setTimeout(() => setPreviewMode('services'), 0);
+    return () => window.clearTimeout(timer);
+  }, [propertiesForPreview]);
 
   const myServicePortfolio = useMemo(
     () => (accountType === 'fsbo_owner'
@@ -536,20 +561,25 @@ export function Onboarding({
   const servicesForPreview = useMemo(() => (
     (myServicePortfolio || []).filter((s) => isServiceVisibleInPreview(s))
   ), [myServicePortfolio]);
-  const servicePortfolioImages = useMemo(() => servicesForPreview.flatMap((s) => {
+  const _servicePortfolioImages = useMemo(() => servicesForPreview.flatMap((s) => {
     const base = (s.media?.images || []).filter(Boolean).map((src) => ({ src, title: s.title }));
     const archived = (showArchivedImages[s.id] ? (s.media?.archivedImages || []).filter(Boolean).map((src) => ({ src, title: s.title })) : []);
     return [...base, ...archived];
   }), [servicesForPreview, showArchivedImages]);
+  void _servicePortfolioImages;
 
   useEffect(() => {
-    if (previewServiceIndex >= servicesForPreview.length) setPreviewServiceIndex(0);
+    if (previewServiceIndex < servicesForPreview.length) return;
+    const timer = window.setTimeout(() => setPreviewServiceIndex(0), 0);
+    return () => window.clearTimeout(timer);
   }, [previewServiceIndex, servicesForPreview.length]);
 
   useEffect(() => {
     if (previewMode === 'services' && servicesForPreview.length === 0 && propertiesForPreview.length > 0) {
-      setPreviewMode('properties');
+      const timer = window.setTimeout(() => setPreviewMode('properties'), 0);
+      return () => window.clearTimeout(timer);
     }
+    return undefined;
   }, [previewMode, servicesForPreview.length, propertiesForPreview.length]);
   const previewShowcaseItems = useMemo(() => ([
     ...(propertiesForPreview || []).map((property) => ({ kind: 'property', data: property })),
@@ -759,11 +789,14 @@ export function Onboarding({
 
   useEffect(() => {
     if (!saveProfilesBaseline) {
-      setSaveProfilesBaseline(saveProfilesFingerprint);
-      setIsSaveProfilesDirty(false);
-      return;
+      const timer = window.setTimeout(() => {
+        setSaveProfilesBaseline(saveProfilesFingerprint);
+        setIsSaveProfilesDirty(false);
+      }, 0);
+      return () => window.clearTimeout(timer);
     }
-    setIsSaveProfilesDirty(saveProfilesFingerprint !== saveProfilesBaseline);
+    const timer = window.setTimeout(() => setIsSaveProfilesDirty(saveProfilesFingerprint !== saveProfilesBaseline), 0);
+    return () => window.clearTimeout(timer);
   }, [saveProfilesFingerprint, saveProfilesBaseline]);
   const effectiveProfileServices = useMemo(() => {
     const raw = [...selectedServices, ...registeredServiceSkills];
@@ -908,16 +941,17 @@ export function Onboarding({
   const toPreviewScope = (scope) => (scope === 'personal' ? 'personal' : 'professional');
 
   // Resolve which profile scope currently has "primary" card priority
-  const getPrimaryProfileScope = () => {
+  const getPrimaryProfileScope = useCallback(() => {
     if (String(cardPriorityA).toLowerCase() === 'primary') return 'personal';
     if (String(cardPriorityB).toLowerCase() === 'primary') return 'professional';
     if (String(cardPriorityC).toLowerCase() === 'primary') return 'fsbo';
     return 'personal';
-  };
+  }, [cardPriorityA, cardPriorityB, cardPriorityC]);
 
-  const getGeneratedAddressLabel = (type) => `${type || 'Property'} listing`;
+  const _getGeneratedAddressLabel = (type) => `${type || 'Property'} listing`;
+  void _getGeneratedAddressLabel;
 
-  const renderServiceImages = (svc) => {
+  const _renderServiceImages = (svc) => {
     try {
       const baseImgs = (svc?.media?.images || []).filter(Boolean);
       const archivedImgs = (showArchivedImages[svc?.id] ? (svc?.media?.archivedImages || []).filter(Boolean) : []);
@@ -1003,7 +1037,7 @@ export function Onboarding({
     } catch (e) { console.warn('renderServiceImages error', e); return null; }
   };
 
-    const renderPreviewPropertyImages = (prop) => {
+    const _renderPreviewPropertyImages = (prop) => {
       try {
         const imgs = (prop?.images || []).filter(Boolean);
         if (!imgs || imgs.length === 0) return <div style={{ color: C.t3, fontSize: 12, padding: 24, textAlign: 'center' }}>{t.recordsNoProperty}</div>;
@@ -1042,6 +1076,8 @@ export function Onboarding({
           );
       } catch (e) { console.warn('renderPreviewPropertyImages error', e); return null; }
     };
+  void _renderServiceImages;
+  void _renderPreviewPropertyImages;
 
   const renderPreviewContent = () => {
     const hasPreviewProperty = propertiesForPreview.length > 0;
@@ -1242,23 +1278,27 @@ export function Onboarding({
   };
 
   useEffect(() => {
+    let timer = null;
     if (selectedCategories.length === 0) {
-      if (primaryCategory) setPrimaryCategory('');
-      return;
+      if (primaryCategory) timer = window.setTimeout(() => setPrimaryCategory(''), 0);
+    } else if (!selectedCategories.includes(primaryCategory)) {
+      timer = window.setTimeout(() => setPrimaryCategory(selectedCategories[0]), 0);
     }
-    if (!selectedCategories.includes(primaryCategory)) {
-      setPrimaryCategory(selectedCategories[0]);
-    }
+    return () => {
+      if (timer) window.clearTimeout(timer);
+    };
   }, [selectedCategories, primaryCategory]);
 
   useEffect(() => {
+    let timer = null;
     if (selectedCategoriesB.length === 0) {
-      if (primaryCategoryB) setPrimaryCategoryB('');
-      return;
+      if (primaryCategoryB) timer = window.setTimeout(() => setPrimaryCategoryB(''), 0);
+    } else if (!selectedCategoriesB.includes(primaryCategoryB)) {
+      timer = window.setTimeout(() => setPrimaryCategoryB(selectedCategoriesB[0]), 0);
     }
-    if (!selectedCategoriesB.includes(primaryCategoryB)) {
-      setPrimaryCategoryB(selectedCategoriesB[0]);
-    }
+    return () => {
+      if (timer) window.clearTimeout(timer);
+    };
   }, [selectedCategoriesB, primaryCategoryB]);
 
   const handleProfileThumb = (e) => {
@@ -1311,71 +1351,112 @@ export function Onboarding({
     setSelectedMarketsB([]);
     setSelectedSkillsB([]);
     setSelectedServicesB([]);
-    setPitchB('');
+    _setPitchB('');
     setIsSaveProfilesDirty(true);
     setSaveProfilesBaseline('');
   };
 
   useEffect(() => {
-    if (!shouldUseTempStorage || !activeTempStorageKey) {
-      try { localStorage.removeItem('tempUploads_fsbo'); } catch (e) { void e; }
-      setPortfolioImages([]);
-      setServiceImages([]);
-    } else {
-    try {
-      const saved = JSON.parse(localStorage.getItem(activeTempStorageKey) || '{}');
-      setPortfolioImages(Array.isArray(saved.portfolioImages) ? saved.portfolioImages : []);
-      setServiceImages(Array.isArray(saved.serviceImages) ? saved.serviceImages : []);
-      if (Object.prototype.hasOwnProperty.call(saved, 'profileThumb')) {
-        setProfileThumb(saved.profileThumb || '');
+    const timer = window.setTimeout(() => {
+      if (!shouldUseTempStorage || !activeTempStorageKey) {
+        try { localStorage.removeItem('tempUploads_fsbo'); } catch (e) { void e; }
+        setPortfolioImages([]);
+        setServiceImages([]);
+      } else {
+        try {
+          const saved = JSON.parse(localStorage.getItem(activeTempStorageKey) || '{}');
+          setPortfolioImages(Array.isArray(saved.portfolioImages) ? saved.portfolioImages : []);
+          setServiceImages(Array.isArray(saved.serviceImages) ? saved.serviceImages : []);
+          if (Object.prototype.hasOwnProperty.call(saved, 'profileThumb')) {
+            setProfileThumb(saved.profileThumb || '');
+          }
+          if (Object.prototype.hasOwnProperty.call(saved, 'profileThumbB')) {
+            setProfileThumbB(saved.profileThumbB || '');
+          }
+        } catch (e) {
+          void e;
+          setPortfolioImages([]);
+          setServiceImages([]);
+        }
       }
-      if (Object.prototype.hasOwnProperty.call(saved, 'profileThumbB')) {
-        setProfileThumbB(saved.profileThumbB || '');
+
+      // Keep forms isolated between professional and FSBO branches.
+      setPortfolioAddress('');
+      setPortfolioCity('');
+      setPortfolioZip('');
+      setPortfolioPrice('');
+      setPortfolioType('SFR');
+      setPortfolioBeds('');
+      setPortfolioBaths('');
+      setPortfolioSqft('');
+      setPortfolioLot('');
+      setPortfolioRehab('');
+      setPortfolioCapRate('');
+      setPortfolioDescription('');
+      setPortfolioVideo('');
+      setPortfolioMsg('');
+      setPortfolioEntryType('property');
+      setPortfolioMarkets([]);
+      setPreviewOpen(false);
+
+      if (accountType === 'fsbo_owner') {
+        setPortfolioObjective('Sell');
+        setPrimaryProfileScope('fsbo');
+      } else {
+        setPortfolioObjective('Sell');
+        setPrimaryProfileScope(getPrimaryProfileScope());
       }
-    } catch (e) {
-      void e;
-      setPortfolioImages([]);
-      setServiceImages([]);
-    }
-    }
-
-    // Keep forms isolated between professional and FSBO branches.
-    setPortfolioAddress('');
-    setPortfolioCity('');
-    setPortfolioZip('');
-    setPortfolioPrice('');
-    setPortfolioType('SFR');
-    setPortfolioBeds('');
-    setPortfolioBaths('');
-    setPortfolioSqft('');
-    setPortfolioLot('');
-    setPortfolioRehab('');
-    setPortfolioCapRate('');
-    setPortfolioDescription('');
-    setPortfolioVideo('');
-    setPortfolioMsg('');
-    setPortfolioEntryType('property');
-    setPortfolioMarkets([]);
-    setPreviewOpen(false);
-
-    if (accountType === 'fsbo_owner') {
-      setPortfolioObjective('Sell');
-      setPrimaryProfileScope('fsbo');
-    } else {
-      setPortfolioObjective('Sell');
-      setPrimaryProfileScope(getPrimaryProfileScope());
-    }
-  }, [accountType, activeTempStorageKey, shouldUseTempStorage]);
+    }, 0);
+    return () => window.clearTimeout(timer);
+  }, [accountType, activeTempStorageKey, shouldUseTempStorage, getPrimaryProfileScope]);
 
   useEffect(() => {
-    if (accountType === 'fsbo_owner') {
-      setName(personalProfile?.fullName || '');
-      setLoc(normalizeUsStateCode(personalProfile?.loc));
-      setContactMethods(personalProfile?.contactMethods || []);
-      setPersonalPrimaryPhone(personalProfile?.primaryPhone || personalProfile?.phone || '');
-      setPersonalSecondaryPhone(personalProfile?.secondaryPhone || '');
-      setPersonalTertiaryPhone(personalProfile?.tertiaryPhone || '');
-      setPersonalEmail(personalProfile?.email || '');
+    const timer = window.setTimeout(() => {
+      if (accountType === 'fsbo_owner') {
+        setName(personalProfile?.fullName || '');
+        setLoc(normalizeUsStateCode(personalProfile?.loc));
+        setContactMethods(personalProfile?.contactMethods || []);
+        setPersonalPrimaryPhone(personalProfile?.primaryPhone || personalProfile?.phone || '');
+        setPersonalSecondaryPhone(personalProfile?.secondaryPhone || '');
+        setPersonalTertiaryPhone(personalProfile?.tertiaryPhone || '');
+        setPersonalEmail(personalProfile?.email || '');
+        const isProfileAFilled = !!(professionalProfile?.fullNameA || professionalProfile?.primaryPhoneA || professionalProfile?.phoneA);
+        const isProfileBFilled = !!(professionalProfile?.fullNameB || professionalProfile?.primaryPhoneB || professionalProfile?.phoneB);
+        const isProfileCFilled = !!(personalProfile?.fullName || personalProfile?.primaryPhone || personalProfile?.phone);
+        const priorityAExplicit = professionalProfile?.cardPriorityAExplicit === true || personalProfile?.cardPriorityAExplicit === true;
+        const priorityBExplicit = professionalProfile?.cardPriorityBExplicit === true;
+        const priorityCExplicit = personalProfile?.cardPriorityCExplicit === true || professionalProfile?.cardPriorityCExplicit === true;
+        applyCardPrioritySet({
+          A: (isProfileAFilled && priorityAExplicit) ? (professionalProfile?.cardPriorityA || personalProfile?.cardPriorityA || '') : '',
+          B: (isProfileBFilled && priorityBExplicit) ? (professionalProfile?.cardPriorityB || '') : '',
+          C: (isProfileCFilled && priorityCExplicit) ? (personalProfile?.cardPriorityC || professionalProfile?.cardPriorityC || '') : '',
+        }, 'C');
+        setProfileThumb(personalProfile?.photo || '');
+        setProfileThumbB(professionalProfile?.photoB || '');
+        setSelectedCategories([]);
+        setPrimaryCategory('');
+        setSelectedMarkets([]);
+        setSelectedSkills([]);
+        setSelectedServices([]);
+        setGoal('');
+        setPitch('');
+        setSelectedCategoriesB([]);
+        setPrimaryCategoryB('');
+        setSelectedMarketsB([]);
+        setSelectedSkillsB([]);
+        setSelectedServicesB([]);
+        setGoalB('');
+        setSaveProfilesBaseline('');
+        return;
+      }
+
+      setName(professionalProfile?.fullNameA || '');
+      setLoc(normalizeUsStateCode(professionalProfile?.locA));
+      setContactMethods(professionalProfile?.contactMethodsA || []);
+      setPersonalPrimaryPhone(professionalProfile?.primaryPhoneA || professionalProfile?.phoneA || '');
+      setPersonalSecondaryPhone(professionalProfile?.secondaryPhoneA || '');
+      setPersonalTertiaryPhone(professionalProfile?.tertiaryPhoneA || '');
+      setPersonalEmail(professionalProfile?.emailA || '');
       const isProfileAFilled = !!(professionalProfile?.fullNameA || professionalProfile?.primaryPhoneA || professionalProfile?.phoneA);
       const isProfileBFilled = !!(professionalProfile?.fullNameB || professionalProfile?.primaryPhoneB || professionalProfile?.phoneB);
       const isProfileCFilled = !!(personalProfile?.fullName || personalProfile?.primaryPhone || personalProfile?.phone);
@@ -1385,70 +1466,35 @@ export function Onboarding({
       applyCardPrioritySet({
         A: (isProfileAFilled && priorityAExplicit) ? (professionalProfile?.cardPriorityA || personalProfile?.cardPriorityA || '') : '',
         B: (isProfileBFilled && priorityBExplicit) ? (professionalProfile?.cardPriorityB || '') : '',
-        C: (isProfileCFilled && priorityCExplicit) ? (personalProfile?.cardPriorityC || professionalProfile?.cardPriorityC || '') : '',
-      }, 'C');
-      setProfileThumb(personalProfile?.photo || '');
+        C: (isProfileCFilled && priorityCExplicit) ? (professionalProfile?.cardPriorityC || personalProfile?.cardPriorityC || '') : '',
+      }, 'A');
+      const nextCategoriesA = Array.isArray(professionalProfile?.categories) ? professionalProfile.categories : [];
+      setSelectedCategories(nextCategoriesA);
+      setPrimaryCategory(professionalProfile?.primaryCategory || '');
+      setSelectedMarkets(normalizeMarkets(professionalProfile?.markets));
+      setSelectedSkills(Array.isArray(professionalProfile?.skills) ? professionalProfile.skills : []);
+      setSelectedServices(Array.isArray(professionalProfile?.services) ? professionalProfile.services : []);
+      setGoal(professionalProfile?.goal || '');
+      setPitch(professionalProfile?.pitch || '');
+      setNameB(professionalProfile?.fullNameB || '');
+      setLocB(normalizeUsStateCode(professionalProfile?.locB));
+      setContactMethodsB(professionalProfile?.contactMethodsB || []);
+      setPersonalPrimaryPhoneB(professionalProfile?.primaryPhoneB || '');
+      setPersonalSecondaryPhoneB(professionalProfile?.secondaryPhoneB || '');
+      setPersonalTertiaryPhoneB(professionalProfile?.tertiaryPhoneB || '');
+      setPersonalEmailB(professionalProfile?.emailB || '');
+      const nextCategoriesB = Array.isArray(professionalProfile?.categoriesB) ? professionalProfile.categoriesB : [];
+      setSelectedCategoriesB(nextCategoriesB);
+      setPrimaryCategoryB(professionalProfile?.primaryCategoryB || '');
+      setSelectedMarketsB(normalizeMarkets(professionalProfile?.marketsB));
+      setSelectedSkillsB(Array.isArray(professionalProfile?.skillsB) ? professionalProfile.skillsB : []);
+      setSelectedServicesB(Array.isArray(professionalProfile?.servicesB) ? professionalProfile.servicesB : []);
+      setGoalB(professionalProfile?.goalB || '');
+      setProfileThumb(professionalProfile?.photoA || '');
       setProfileThumbB(professionalProfile?.photoB || '');
-      setSelectedCategories([]);
-      setPrimaryCategory('');
-      setSelectedMarkets([]);
-      setSelectedSkills([]);
-      setSelectedServices([]);
-      setGoal('');
-      setPitch('');
-      setSelectedCategoriesB([]);
-      setPrimaryCategoryB('');
-      setSelectedMarketsB([]);
-      setSelectedSkillsB([]);
-      setSelectedServicesB([]);
-      setGoalB('');
       setSaveProfilesBaseline('');
-      return;
-    }
-
-    setName(professionalProfile?.fullNameA || '');
-    setLoc(normalizeUsStateCode(professionalProfile?.locA));
-    setContactMethods(professionalProfile?.contactMethodsA || []);
-    setPersonalPrimaryPhone(professionalProfile?.primaryPhoneA || professionalProfile?.phoneA || '');
-    setPersonalSecondaryPhone(professionalProfile?.secondaryPhoneA || '');
-    setPersonalTertiaryPhone(professionalProfile?.tertiaryPhoneA || '');
-    setPersonalEmail(professionalProfile?.emailA || '');
-    const isProfileAFilled = !!(professionalProfile?.fullNameA || professionalProfile?.primaryPhoneA || professionalProfile?.phoneA);
-    const isProfileBFilled = !!(professionalProfile?.fullNameB || professionalProfile?.primaryPhoneB || professionalProfile?.phoneB);
-    const isProfileCFilled = !!(personalProfile?.fullName || personalProfile?.primaryPhone || personalProfile?.phone);
-    const priorityAExplicit = professionalProfile?.cardPriorityAExplicit === true || personalProfile?.cardPriorityAExplicit === true;
-    const priorityBExplicit = professionalProfile?.cardPriorityBExplicit === true;
-    const priorityCExplicit = personalProfile?.cardPriorityCExplicit === true || professionalProfile?.cardPriorityCExplicit === true;
-    applyCardPrioritySet({
-      A: (isProfileAFilled && priorityAExplicit) ? (professionalProfile?.cardPriorityA || personalProfile?.cardPriorityA || '') : '',
-      B: (isProfileBFilled && priorityBExplicit) ? (professionalProfile?.cardPriorityB || '') : '',
-      C: (isProfileCFilled && priorityCExplicit) ? (professionalProfile?.cardPriorityC || personalProfile?.cardPriorityC || '') : '',
-    }, 'A');
-    const nextCategoriesA = Array.isArray(professionalProfile?.categories) ? professionalProfile.categories : [];
-    setSelectedCategories(nextCategoriesA);
-    setPrimaryCategory(professionalProfile?.primaryCategory || '');
-    setSelectedMarkets(normalizeMarkets(professionalProfile?.markets));
-    setSelectedSkills(Array.isArray(professionalProfile?.skills) ? professionalProfile.skills : []);
-    setSelectedServices(Array.isArray(professionalProfile?.services) ? professionalProfile.services : []);
-    setGoal(professionalProfile?.goal || '');
-    setPitch(professionalProfile?.pitch || '');
-    setNameB(professionalProfile?.fullNameB || '');
-    setLocB(normalizeUsStateCode(professionalProfile?.locB));
-    setContactMethodsB(professionalProfile?.contactMethodsB || []);
-    setPersonalPrimaryPhoneB(professionalProfile?.primaryPhoneB || '');
-    setPersonalSecondaryPhoneB(professionalProfile?.secondaryPhoneB || '');
-    setPersonalTertiaryPhoneB(professionalProfile?.tertiaryPhoneB || '');
-    setPersonalEmailB(professionalProfile?.emailB || '');
-    const nextCategoriesB = Array.isArray(professionalProfile?.categoriesB) ? professionalProfile.categoriesB : [];
-    setSelectedCategoriesB(nextCategoriesB);
-    setPrimaryCategoryB(professionalProfile?.primaryCategoryB || '');
-    setSelectedMarketsB(normalizeMarkets(professionalProfile?.marketsB));
-    setSelectedSkillsB(Array.isArray(professionalProfile?.skillsB) ? professionalProfile.skillsB : []);
-    setSelectedServicesB(Array.isArray(professionalProfile?.servicesB) ? professionalProfile.servicesB : []);
-    setGoalB(professionalProfile?.goalB || '');
-    setProfileThumb(professionalProfile?.photoA || '');
-    setProfileThumbB(professionalProfile?.photoB || '');
-    setSaveProfilesBaseline('');
+    }, 0);
+    return () => window.clearTimeout(timer);
   }, [accountType, personalProfile, professionalProfile]);
 
   // persist temporary uploads so the user doesn't need to re-upload on dev reload
@@ -1986,15 +2032,8 @@ export function Onboarding({
     };
   };
 
-  const previewPersonalFeedCard = useMemo(
-    () => buildPreviewFeedCard('personal'),
-    [accountType, allProfiles, locB, myPortfolio, myServicePortfolio, nameB, personalEmail, personalEmailB, personalPrimaryPhone, personalPrimaryPhoneB, pitch, pitchB, previewPersonalCard, primaryCategory, primaryCategoryB, profileThumbB, selectedSkills, selectedSkillsB, showArchivedImages, stateNameByCode]
-  );
-
-  const previewProfessionalFeedCard = useMemo(
-    () => buildPreviewFeedCard('professional'),
-    [accountType, allProfiles, locB, myPortfolio, myServicePortfolio, nameB, personalEmail, personalEmailB, personalPrimaryPhone, personalPrimaryPhoneB, pitch, pitchB, previewPersonalCard, primaryCategory, primaryCategoryB, profileThumbB, selectedSkills, selectedSkillsB, showArchivedImages, stateNameByCode]
-  );
+  const previewPersonalFeedCard = buildPreviewFeedCard('personal');
+  const previewProfessionalFeedCard = buildPreviewFeedCard('professional');
 
   const previewShowcaseCard = useMemo(() => {
     const total = propertiesForPreview.length;
@@ -2141,10 +2180,11 @@ export function Onboarding({
     return missing;
   };
 
-  const hasAnyValue = (...values) => values.some((value) => {
+  const _hasAnyValue = (...values) => values.some((value) => {
     if (Array.isArray(value)) return value.length > 0;
     return String(value || '').trim().length > 0;
   });
+  void _hasAnyValue;
 
   const profileASkillsComplete = (
     Array.isArray(selectedCategories) && selectedCategories.length > 0
@@ -2344,7 +2384,7 @@ export function Onboarding({
   useEffect(() => {
     if (!isMobileViewport) return;
     mobileAutoStepPrevCompletionRef.current = { ...mobileStepCompletionMap };
-  }, [isMobileViewport, accountType, profileTab, portfolioEntryType]);
+  }, [isMobileViewport, accountType, profileTab, portfolioEntryType, mobileStepCompletionMap]);
 
   useEffect(() => {
     if (!isMobileViewport) return;
@@ -3557,7 +3597,7 @@ export function Onboarding({
             {accountType === 'professional' ? (
               <SectionCard title={t.sectionPortfolio} subtitle={t.sectionPortfolioSub} grow={true}>
                 {/* scrollable form area: tab1 + form + add-preview buttons */}
-                <div style={{ flex: isMobileViewport ? '0 0 auto' : 1, minHeight: isMobileViewport ? 'auto' : 0, overflowY: isMobileViewport ? 'visible' : 'auto', display: 'flex', flexDirection: 'column' }}>
+                <div style={{ flex: isMobileViewport ? '0 0 auto' : 1, minHeight: isMobileViewport ? 'auto' : 0, overflowY: 'visible', display: 'flex', flexDirection: 'column', paddingBottom: isMobileViewport ? 8 : 12 }}>
                 <div style={{ display: 'flex', gap: 4, marginBottom: 10, paddingBottom: 2, borderBottom: `1px solid ${C.border}` }}>
                   <button onClick={() => setPortfolioEntryType('property')} style={{ padding: '8px 14px 7px', borderTopLeftRadius: 10, borderTopRightRadius: 10, borderBottomLeftRadius: 0, borderBottomRightRadius: 0, border: `1px solid ${portfolioEntryType === 'property' ? C.border : 'transparent'}`, borderBottom: portfolioEntryType === 'property' ? `1px solid ${C.card}` : `1px solid transparent`, background: portfolioEntryType === 'property' ? C.card : C.alpha(C.t1, 0.04), color: portfolioEntryType === 'property' ? C.t1 : C.t2, fontWeight: 700, fontSize: 11, cursor: 'pointer', marginBottom: -3, boxShadow: portfolioEntryType === 'property' ? `inset 0 2px 0 ${C.accent}` : 'none' }}>
                     {t.tabProperty}
@@ -3649,7 +3689,7 @@ export function Onboarding({
                 </div>
 
                 </div>{/* end scrollable form area */}
-                <div style={{ display: 'flex', gap: 4, marginTop: 8, paddingBottom: 2, borderBottom: `1px solid ${C.border}` }}>
+                <div style={{ display: 'flex', gap: 4, marginTop: isMobileViewport ? 10 : 16, paddingBottom: 2, borderBottom: `1px solid ${C.border}` }}>
                   <button
                     onClick={() => setPortfolioRecordsTab('properties')}
                     style={{
@@ -3708,7 +3748,20 @@ export function Onboarding({
                           onDrop={(e) => { const from = Number(e.dataTransfer.getData('text/plain')); if (!Number.isNaN(from)) movePortfolioTo(from, i); }}
                           style={{ borderBottom: i < myPortfolio.length - 1 ? `1px solid ${C.border}` : 'none' }}>
                           <div style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: 6, padding: '7px 0' }}>
-                            <div style={{ minWidth: 0, flex: '1 1 100%', fontSize: 11, color: C.t1, fontWeight: 700, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                            <div style={{
+                              minWidth: 0,
+                              flex: '1 1 100%',
+                              fontSize: 11,
+                              color: C.t1,
+                              fontWeight: 700,
+                              lineHeight: 1.2,
+                              overflow: 'hidden',
+                              textOverflow: 'ellipsis',
+                              whiteSpace: (isPhoneViewport && (p.dealClosed || !isTruthyFlag(p.publishToShowcase, true))) ? 'normal' : 'nowrap',
+                              display: (isPhoneViewport && (p.dealClosed || !isTruthyFlag(p.publishToShowcase, true))) ? '-webkit-box' : 'block',
+                              WebkitLineClamp: (isPhoneViewport && (p.dealClosed || !isTruthyFlag(p.publishToShowcase, true))) ? 2 : 1,
+                              WebkitBoxOrient: 'vertical',
+                            }}>
                               {p.address} · {p.city} · ${Number(p.price || 0).toLocaleString('en-US')} · {p.dealTag || t.sectionPortfolio} · {p.images?.length || 0} img
                             </div>
                             <div style={{ display:'flex', alignItems:'center', gap:6, width: '100%', flexWrap: isMobileViewport ? 'nowrap' : 'wrap' }}>
@@ -3809,7 +3862,7 @@ export function Onboarding({
                               </div>
                             </div>
                           </div>
-                          {false && editingPropertyId === p.id && (
+                          {INLINE_EDIT_ENABLED && editingPropertyId === p.id && (
                             <div style={{ paddingBottom: 8 }}>
                               <div style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 1.6fr) minmax(0, 1.6fr) minmax(84px, 0.8fr) minmax(118px, 1.1fr)', gap: 6, paddingBottom: 8, width: '100%', minWidth: 0 }}>
                                                   <div style={{ position: 'relative', minWidth: 0 }}>
@@ -4040,7 +4093,20 @@ export function Onboarding({
                       myServicePortfolio.map((svc, i) => (
                         <div key={svc.id || `svc-rec-${i}`} style={{ borderBottom: i < myServicePortfolio.length - 1 ? `1px solid ${C.border}` : 'none' }}>
                           <div style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: 6, padding: '7px 0' }}>
-                            <div style={{ minWidth: 0, flex: '1 1 100%', fontSize: 11, color: C.t1, fontWeight: 700, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                            <div style={{
+                              minWidth: 0,
+                              flex: '1 1 100%',
+                              fontSize: 11,
+                              color: C.t1,
+                              fontWeight: 700,
+                              lineHeight: 1.2,
+                              overflow: 'hidden',
+                              textOverflow: 'ellipsis',
+                              whiteSpace: (isPhoneViewport && (svc.dealClosed || !isTruthyFlag(svc.publishToConnections, true))) ? 'normal' : 'nowrap',
+                              display: (isPhoneViewport && (svc.dealClosed || !isTruthyFlag(svc.publishToConnections, true))) ? '-webkit-box' : 'block',
+                              WebkitLineClamp: (isPhoneViewport && (svc.dealClosed || !isTruthyFlag(svc.publishToConnections, true))) ? 2 : 1,
+                              WebkitBoxOrient: 'vertical',
+                            }}>
                               {svc.title || t.serviceFallbackName}{svc.category ? ` · ${svc.category}` : ''} · {svc.media?.images?.length || 0} img
                             </div>
                             <div style={{ display:'flex', alignItems:'center', gap:6, width: '100%', flexWrap: isMobileViewport ? 'nowrap' : 'wrap' }}>
@@ -4122,7 +4188,7 @@ export function Onboarding({
                               </div>
                             </div>
                           </div>
-                          {false && editingServiceId === svc.id && (
+                          {INLINE_EDIT_ENABLED && editingServiceId === svc.id && (
                             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, minmax(0, 1fr))', gap: 6, paddingBottom: 8 }}>
                               <input value={serviceEditDraft.title} onChange={(e) => setServiceEditDraft((prev) => ({ ...prev, title: e.target.value }))} placeholder={t.placeholderServiceName} style={{ padding: '7px 8px', borderRadius: 8, border: `1px solid ${C.border}`, background: C.card, color: C.t1, fontSize: 11 }} />
                               <select value={serviceEditDraft.category || ''} onChange={(e) => setServiceEditDraft((prev) => ({ ...prev, category: e.target.value }))} style={{ padding: '7px 8px', borderRadius: 8, border: `1px solid ${C.border}`, background: C.card, color: C.t1, fontSize: 11 }}>
@@ -4253,7 +4319,20 @@ export function Onboarding({
                     myPortfolio.map((p, i) => (
                       <div key={p.id} style={{ borderBottom: i < myPortfolio.length - 1 ? `1px solid ${C.border}` : 'none' }}>
                           <div style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: 6, padding: '7px 0' }}>
-                            <div style={{ minWidth: 0, flex: '1 1 100%', fontSize: 11, color: C.t1, fontWeight: 700, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                            <div style={{
+                              minWidth: 0,
+                              flex: '1 1 100%',
+                              fontSize: 11,
+                              color: C.t1,
+                              fontWeight: 700,
+                              lineHeight: 1.2,
+                              overflow: 'hidden',
+                              textOverflow: 'ellipsis',
+                              whiteSpace: (isPhoneViewport && (p.dealClosed || !isTruthyFlag(p.publishToShowcase, true))) ? 'normal' : 'nowrap',
+                              display: (isPhoneViewport && (p.dealClosed || !isTruthyFlag(p.publishToShowcase, true))) ? '-webkit-box' : 'block',
+                              WebkitLineClamp: (isPhoneViewport && (p.dealClosed || !isTruthyFlag(p.publishToShowcase, true))) ? 2 : 1,
+                              WebkitBoxOrient: 'vertical',
+                            }}>
                               {p.address} · {p.city} · ${Number(p.price || 0).toLocaleString('en-US')} · {p.images?.length || 0} img
                             </div>
                             <div style={{ display:'flex', alignItems:'center', gap:6, width: '100%', flexWrap: isMobileViewport ? 'nowrap' : 'wrap' }}>

@@ -95,8 +95,16 @@ export function Navbar({ page, prevPage, setPage, nuggets = 0, setModal = () => 
   useEffect(() => {
     if (typeof window === 'undefined' || typeof window.matchMedia !== 'function') return undefined;
     const mediaQuery = window.matchMedia('(max-width: 767px)');
-    const handleViewportChange = (event) => setIsMobile(event.matches);
-    setIsMobile(mediaQuery.matches);
+    const handleViewportChange = (event) => {
+      const nextIsMobile = Boolean(event.matches);
+      setIsMobile(nextIsMobile);
+      if (!nextIsMobile) {
+        setLandingMenuOpen(false);
+        setAppMenuOpen(false);
+        setAppNotifOpen(false);
+        setNotifOpen(false);
+      }
+    };
 
     if (typeof mediaQuery.addEventListener === 'function') {
       mediaQuery.addEventListener('change', handleViewportChange);
@@ -106,25 +114,6 @@ export function Navbar({ page, prevPage, setPage, nuggets = 0, setModal = () => 
     mediaQuery.addListener(handleViewportChange);
     return () => mediaQuery.removeListener(handleViewportChange);
   }, []);
-
-  useEffect(() => {
-    if (!isLandingMobile && landingMenuOpen) {
-      setLandingMenuOpen(false);
-    }
-  }, [isLandingMobile, landingMenuOpen]);
-
-  useEffect(() => {
-    if (!isAppMobile && appMenuOpen) {
-      setAppMenuOpen(false);
-      setAppNotifOpen(false);
-    }
-  }, [isAppMobile, appMenuOpen]);
-
-  useEffect(() => {
-    if (!isAppMobile && notifOpen) {
-      setNotifOpen(false);
-    }
-  }, [isAppMobile, notifOpen]);
 
   useEffect(() => {
     if (!landingMenuOpen && !appMenuOpen) return undefined;
@@ -141,7 +130,8 @@ export function Navbar({ page, prevPage, setPage, nuggets = 0, setModal = () => 
 
   useEffect(() => {
     if (!appMenuOpen) return;
-    setAppNotifOpen(false);
+    const timer = window.setTimeout(() => setAppNotifOpen(false), 0);
+    return () => window.clearTimeout(timer);
   }, [page, appMenuOpen]);
 
   const markSystemAsRead = () => {

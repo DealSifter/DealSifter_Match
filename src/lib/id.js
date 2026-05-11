@@ -3,8 +3,9 @@
  * The optional prefix is intentionally ignored — all IDs must be valid UUIDs
  * to satisfy the `uuid` primary-key constraint in Supabase tables.
  */
-export function genId(_prefix) {
+export function genId() {
   return crypto.randomUUID();
 }
 
 export default genId;
+

@@ -37,7 +37,7 @@ function Panel({ title, subtitle, children }) {
   );
 }
 
-export function Settings({ setPage, initialTab = 'profile', systemAccount, setSystemAccount, authSession, setAuthSession, subscription, onSubscriptionChanged, addToast, supabaseUserId, onDeleteAccount, onRevokeConsent }) {
+export function Settings({ setPage, initialTab = 'profile', systemAccount, setSystemAccount, authSession, setAuthSession, subscription, addToast, supabaseUserId, onDeleteAccount, onRevokeConsent }) {
   const allT = useT('settings');
   const t = allT.settings || {};
   const [tab, setTab] = useState(initialTab);
@@ -355,3 +355,4 @@ export function Settings({ setPage, initialTab = 'profile', systemAccount, setSy
     </div>
   );
 }
+

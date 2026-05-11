@@ -1,3 +1,5 @@
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&family=Outfit:wght@300;400;600;700;800;900&display=swap');
+
 /* Garante que nenhuma imagem fique gigante ou estoure o layout em nenhuma camada do app */
 img, .SmartImage img {
   max-width: 100% !important;
@@ -17,8 +19,6 @@ img, .SmartImage img {
   height: auto !important;
   object-fit: unset !important;
 }
-
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&family=Outfit:wght@300;400;600;700;800;900&display=swap');
 
 :root {
   /* Base - Light Mode Only */

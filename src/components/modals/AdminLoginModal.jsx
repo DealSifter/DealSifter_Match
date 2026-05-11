@@ -5,6 +5,8 @@ import { DealSifterLogo } from '../ui/DealSifterLogo';
 import { Icon } from '../ui/Icon';
 import { Modal } from '../ui/Modal';
 
+const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/;
+
 export function AdminLoginModal({ onClose, onSubmit }) {
   const allT = useT('global');
   const t = allT.admin || {};
@@ -13,9 +15,8 @@ export function AdminLoginModal({ onClose, onSubmit }) {
   const [error, setError] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
 
-  const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/;
   const canSubmit = useMemo(() => {
-    const hasEmail = emailRegex.test(String(email).trim());
+    const hasEmail = EMAIL_REGEX.test(String(email).trim());
     return hasEmail && String(password).length >= 8;
   }, [email, password]);
 

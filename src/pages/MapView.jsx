@@ -1,4 +1,4 @@
-import React, { useMemo, useState } from 'react';
+import React, { useCallback, useMemo, useState } from 'react';
 import { genId } from '../lib/id';
 import { GeoJSON, MapContainer, Marker, Popup, Rectangle, TileLayer, WMSTileLayer, ZoomControl, useMap, useMapEvents } from 'react-leaflet';
 import L from 'leaflet';
@@ -1174,8 +1174,8 @@ export function MapView({
   const tMap = allT.mapViewPage;
   const initialMapUiState = useMemo(() => _loadMapUiState(), []);
   const mapUiStateRef = React.useRef(initialMapUiState || {});
-  const unlockedIds = Array.isArray(unlocked) ? unlocked : [];
-  const isUnlockedId = (id) => unlockedIds.includes(id);
+  const unlockedIds = useMemo(() => (Array.isArray(unlocked) ? unlocked : []), [unlocked]);
+  const isUnlockedId = useCallback((id) => unlockedIds.includes(id), [unlockedIds]);
   const [showPeople, setShowPeople] = useState(() => initialMapUiState.showPeople ?? true);
   const [showProperties, setShowProperties] = useState(() => initialMapUiState.showProperties ?? true);
   const [showOnlyUnlocked, setShowOnlyUnlocked] = useState(() => initialMapUiState.showOnlyUnlocked ?? false);
@@ -1249,7 +1249,7 @@ export function MapView({
     };
   });
   const [selectedClusterLeaves, setSelectedClusterLeaves] = useState([]);
-  const [flyTo, setFlyTo] = useState(null); // kept for legacy compatibility (unused)
+  const [_flyTo, _setFlyTo] = useState(null); // kept for legacy compatibility (unused)
   const mapRef = React.useRef(null);
   const [fitToBounds, setFitToBounds] = useState(() => {
     try {
@@ -1317,7 +1317,7 @@ export function MapView({
   const hasAutoFitRealPinsRef = React.useRef(_navReturnViewportConsumed);
   _navReturnViewportConsumed = false; // reset after the ref has captured the value
 
-  const persistMapUiState = (overrides = {}) => {
+  const persistMapUiState = React.useCallback((overrides = {}) => {
     const snapshot = {
       showPeople,
       showProperties,
@@ -1337,7 +1337,22 @@ export function MapView({
     };
     mapUiStateRef.current = snapshot;
     _saveMapUiState(snapshot);
-  };
+  }, [
+    showPeople,
+    showProperties,
+    showOnlyUnlocked,
+    showOnlyMyPins,
+    locationMode,
+    mapStyle,
+    locationQuery,
+    appliedLocationQuery,
+    panelTab,
+    floodOverlayOpacity,
+    filterBounds,
+    panelCollapsed,
+    panelWidth,
+    viewport,
+  ]);
 
   // Active restore pass on mount to avoid losing context after redirection/unmount cycles.
   React.useEffect(() => {
@@ -1481,7 +1496,7 @@ export function MapView({
       localStorage.setItem('mapViewport', JSON.stringify(viewport));
     } catch (e) { void e; }
     persistMapUiState({ viewport });
-  }, [viewport]);
+  }, [viewport, persistMapUiState]);
 
   // Persist panel collapsed/open state.
   React.useEffect(() => {
@@ -1489,12 +1504,13 @@ export function MapView({
       localStorage.setItem('mapViewPanelCollapsed', panelCollapsed ? '1' : '0');
     } catch (e) { void e; }
     persistMapUiState({ panelCollapsed });
-  }, [panelCollapsed]);
+  }, [panelCollapsed, persistMapUiState]);
 
   React.useEffect(() => {
     if (!mapUiHydrated) return;
     persistMapUiState();
   }, [
+    persistMapUiState,
     mapUiHydrated,
     showPeople,
     showProperties,
@@ -1521,7 +1537,7 @@ export function MapView({
   // Keep pin overrides scoped by the active login/user profile.
   React.useEffect(() => {
     setPinOverrides(_loadPinOverrides(userProfile));
-  }, [userProfile?.id, userProfile?.userId, userProfile?.email, userProfile?.phone]);
+  }, [userProfile, userProfile?.id, userProfile?.userId, userProfile?.email, userProfile?.phone]);
 
   // Handle panel resize
   React.useEffect(() => {
@@ -1714,7 +1730,7 @@ export function MapView({
     }
 
     return Array.from(mapById.values());
-  }, [showPeople, showProperties, showOnlyUnlocked, showOnlyMyPins, unlockedIds, showcaseProperties, geocodeCache, pinOverrides]);
+  }, [showPeople, showProperties, showOnlyMyPins, showcaseProperties, geocodeCache, pinOverrides, isUnlockedId]);
 
   const realUserPoints = useMemo(() => {
     return (showcaseProperties || [])
@@ -1985,7 +2001,7 @@ export function MapView({
   };
 
   const navigateToFeed = (card, explicitType) => {
-    const cardType = explicitType || (Boolean(card?.loc) ? 'person' : 'property');
+    const cardType = explicitType || (card?.loc ? 'person' : 'property');
     persistMapUiState();
     // Save a dedicated return-viewport key so the map restores the exact position on back-navigation,
     // independent of any geographic filters that may trigger fitToBounds on remount.
@@ -1994,13 +2010,13 @@ export function MapView({
     } catch (e) { void e; }
     try {
       localStorage.setItem('focusCard', JSON.stringify({ id: card.id, type: cardType, fromMapPin: true }));
-    } catch (e) {
+    } catch {
       // ignore
     }
     try {
       const ev = new CustomEvent('dealsifter.focusCard', { detail: { id: card.id, type: cardType, fromMapPin: true } });
       window.dispatchEvent(ev);
-    } catch (e) {
+    } catch {
       // ignore
     }
     setSelectedCardId(card.id);

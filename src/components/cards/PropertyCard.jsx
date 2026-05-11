@@ -4,7 +4,7 @@ import { useT } from '../../i18n/translations';
 import { Icon } from '../ui/Icon';
 import { SmartImage } from '../ui/SmartImage';
 
-export function PropertyCard({ property, action, statusAction, onInterest, owner, isSkipped = false, onUndo, previewOnly = false, matchPressure = 0, onAvatarClick, showActions = true }) {
+export function PropertyCard({ property, action, statusAction, onInterest, owner, isSkipped = false, previewOnly = false, matchPressure = 0, onAvatarClick, showActions = true }) {
   const t = useT('dashboard').cards;
   const isMobileLayout = typeof window !== 'undefined'
     && typeof window.matchMedia === 'function'
@@ -24,7 +24,6 @@ export function PropertyCard({ property, action, statusAction, onInterest, owner
   const displayDealTagLabel = displayDealTag === 'FSBO' ? (t.fsbo || 'FSBO') : displayDealTag;
 
   const effectiveAction = action || statusAction;
-  const borderColor = effectiveAction === 'interest' ? C.gold : effectiveAction === 'pass' ? C.danger : C.border;
   // In pop-up previews, add a stronger theme-aware glow to emphasize card boundaries.
   const glowShadow = previewOnly
     ? `
@@ -493,3 +492,4 @@ export function PropertyCard({ property, action, statusAction, onInterest, owner
 }
 
 export default React.memo(PropertyCard);
+

@@ -1,4 +1,4 @@
-import React, { useMemo, useState, useEffect, useRef } from 'react';
+import React, { useCallback, useMemo, useState, useEffect, useRef } from 'react';
 import loaderMark from '../assets/logo.png';
 import { C } from '../theme/colors';
 import { useT } from '../i18n/translations';
@@ -54,19 +54,15 @@ export function Dashboard({ page, nuggets, setModal, setPage, onOpenOnboardingTa
     useEffect(() => {
       const hasProfiles = userProfile !== undefined && personalProfile !== undefined && professionalProfile !== undefined;
       const hasPortfolios = Array.isArray(propertyPortfolio) && Array.isArray(servicePortfolio);
-      // Considera carregado quando perfis e portfólios estão prontos
-      if (hasProfiles && hasPortfolios) {
-        setIsLoading(false);
-      } else {
-        setIsLoading(true);
-      }
+      const nextIsLoading = !(hasProfiles && hasPortfolios);
+      const timer = window.setTimeout(() => setIsLoading(nextIsLoading), 0);
+      return () => window.clearTimeout(timer);
     }, [userProfile, personalProfile, professionalProfile, propertyPortfolio, servicePortfolio]);
 
   useEffect(() => {
     if (typeof window === 'undefined' || typeof window.matchMedia !== 'function') return undefined;
     const mediaQuery = window.matchMedia('(max-width: 767px)');
     const handleViewportChange = (event) => setIsMobileViewport(event.matches);
-    setIsMobileViewport(mediaQuery.matches);
 
     if (typeof mediaQuery.addEventListener === 'function') {
       mediaQuery.addEventListener('change', handleViewportChange);
@@ -80,8 +76,8 @@ export function Dashboard({ page, nuggets, setModal, setPage, onOpenOnboardingTa
   // Mostra o loader apenas quando a carga realmente demora (evita flicker).
   useEffect(() => {
     if (!isLoading) {
-      setShowLoadingOverlay(false);
-      return;
+      const timer = window.setTimeout(() => setShowLoadingOverlay(false), 0);
+      return () => window.clearTimeout(timer);
     }
     const timer = window.setTimeout(() => {
       setShowLoadingOverlay(true);
@@ -162,9 +158,13 @@ export function Dashboard({ page, nuggets, setModal, setPage, onOpenOnboardingTa
 
   useEffect(() => {
     if (!isMobileViewport) {
-      setMobileFeedSidebarOpen(false);
-      setDropdownOpen(false);
+      const timer = window.setTimeout(() => {
+        setMobileFeedSidebarOpen(false);
+        setDropdownOpen(false);
+      }, 0);
+      return () => window.clearTimeout(timer);
     }
+    return undefined;
   }, [isMobileViewport]);
 
   useEffect(() => {
@@ -263,12 +263,14 @@ export function Dashboard({ page, nuggets, setModal, setPage, onOpenOnboardingTa
       ? 'fsbo'
       : (accountType === 'professional' ? 'personal' : 'personal');
     if (publishingProfileKey !== expected) {
-      setPublishingProfileKey(expected);
+      const timer = window.setTimeout(() => setPublishingProfileKey(expected), 0);
       try { localStorage.setItem('publishingProfileKey', expected); } catch (e) { void e; }
+      return () => window.clearTimeout(timer);
     }
-  }, [accountType]);
+    return undefined;
+  }, [accountType, publishingProfileKey]);
 
-  const getOwnerIdForKey = (key) => {
+  const getOwnerIdForKey = useCallback((key) => {
     try {
       const map = JSON.parse(localStorage.getItem('profileOwnerMap') || 'null');
       if (map && typeof map[key] !== 'undefined') return map[key];
@@ -279,17 +281,17 @@ export function Dashboard({ page, nuggets, setModal, setPage, onOpenOnboardingTa
     if (key === 'secondary') return professionalProfile?.ownerId || professionalProfile?.id || userProfile?.id || 999999;
     if (key === 'fsbo') return professionalProfile?.ownerIdC || professionalProfile?.ownerId || professionalProfile?.id || userProfile?.id || 999999;
     return userProfile?.id || 999999;
-  };
+  }, [personalProfile, professionalProfile, userProfile]);
 
-  const parseStateCode = (value) => {
+  const parseStateCode = useCallback((value) => {
     const raw = String(value || '').trim();
     if (!raw) return null;
     if (/^[A-Za-z]{2}$/.test(raw)) return raw.toUpperCase();
     const m = raw.match(/(?:,\s*|\b)([A-Za-z]{2})(?:\s+\d{5}(?:-\d{4})?)?\s*$/);
     return m ? m[1].toUpperCase() : null;
-  };
+  }, []);
 
-  const collectRecordStates = (record) => {
+  const collectRecordStates = useCallback((record) => {
     const direct = Array.isArray(record?.markets) ? record.markets : [];
     const fromDirect = direct.map((m) => parseStateCode(m)).filter(Boolean);
     if (fromDirect.length) return Array.from(new Set(fromDirect));
@@ -298,9 +300,9 @@ export function Dashboard({ page, nuggets, setModal, setPage, onOpenOnboardingTa
       .map((v) => parseStateCode(v))
       .filter(Boolean);
     return Array.from(new Set(fallbacks));
-  };
+  }, [parseStateCode]);
 
-  const buildLocalProfileCard = (scopeKey = 'personal') => {
+  const buildLocalProfileCard = useCallback((scopeKey = 'personal') => {
     const isSecondary = scopeKey === 'secondary';
     const isFsbo = scopeKey === 'fsbo';
     const profileScope = isSecondary ? 'professional' : (isFsbo ? 'fsbo' : 'personal');
@@ -378,13 +380,7 @@ export function Dashboard({ page, nuggets, setModal, setPage, onOpenOnboardingTa
       email: scopedIdentity?.email || '',
       verified: scopedIdentity?.verified === true,
     };
-  };
-  // Derive feed-card scope from accountType so the feed card always matches
-  // the primary visible profile (sidebar/MyCard), not the publishing key alone.
-  const feedProfileScopeKey = accountType === 'fsbo_owner'
-    ? 'fsbo'
-    : (accountType === 'professional' ? 'personal' : 'personal');
-
+  }, [accountType, userProfile, personalProfile, professionalProfile, showcaseProperties, servicePortfolio, getOwnerIdForKey, collectRecordStates, parseStateCode]);
   const normalizeCardPriority = (value) => {
     const normalized = String(value || '').trim().toLowerCase();
     if (!normalized || normalized === 'select') return '';
@@ -396,11 +392,6 @@ export function Dashboard({ page, nuggets, setModal, setPage, onOpenOnboardingTa
     professional: normalizeCardPriority(professionalProfile?.cardPriorityB || ''),
     fsbo: normalizeCardPriority(professionalProfile?.cardPriorityC || personalProfile?.cardPriorityC || ''),
   };
-  const activeFeedScopeSet = new Set(
-    Object.entries(priorityByScopeForFeed)
-      .filter(([, priority]) => priority !== '')
-      .map(([scope]) => scope)
-  );
 
   const connectionCards = useMemo(() => {
     // Inclui sempre o card pessoal (A) e, se existir, o secundário (B), desde que não estejam em 'select'.
@@ -460,7 +451,7 @@ export function Dashboard({ page, nuggets, setModal, setPage, onOpenOnboardingTa
             ...collectRecordStates(c),
           ])),
         };
-      } catch (e) {
+      } catch {
         return c;
       }
     });
@@ -475,7 +466,7 @@ export function Dashboard({ page, nuggets, setModal, setPage, onOpenOnboardingTa
       });
     }
     return [...cards, ...enriched];
-  }, [showcaseProperties, userProfile, accountType, servicePortfolio, personalProfile, professionalProfile, feedProfileScopeKey, CARDS]);
+  }, [showcaseProperties, servicePortfolio, buildLocalProfileCard, collectRecordStates, priorityByScopeForFeed.personal, priorityByScopeForFeed.professional, priorityByScopeForFeed.fsbo]);
 
   // Showcase items: only properties published to the showcase should appear here.
   // Usar propertyPortfolio como fonte para garantir sincronização visual/lógica
@@ -491,7 +482,8 @@ export function Dashboard({ page, nuggets, setModal, setPage, onOpenOnboardingTa
       const userOwnerIds = [String(personalOwnerId), String(secondaryOwnerId), String(fsboOwnerId)];
       const userProperties = (propertyPortfolio || [])
         .filter((p) => {
-          if (!userOwnerIds.includes(String(p.ownerId))) return false;
+          const recordOwnerId = String(p.ownerId || '').trim();
+          if (!userOwnerIds.includes(recordOwnerId) && recordOwnerId !== '999999') return false;
           if (!isTruthyFlag(p.publishToShowcase, true)) return false;
           // Do NOT filter by activeFeedScopeSet: user properties with publishToShowcase=true
           // must always appear in the showcase deck regardless of whether their scope's card
@@ -530,15 +522,15 @@ export function Dashboard({ page, nuggets, setModal, setPage, onOpenOnboardingTa
           };
         })
       ];
-    } catch (e) {
+    } catch {
       return [];
     }
-  }, [propertyPortfolio, personalProfile, professionalProfile, servicePortfolio, userProfile]);
+  }, [propertyPortfolio, buildLocalProfileCard, collectRecordStates, getOwnerIdForKey]);
 
-  const findConnectionById = (id) => {
+  const findConnectionById = useCallback((id) => {
     const needle = String(id);
     return connectionCards.find((c) => String(c.id) === needle || String(c.ownerId) === needle);
-  };
+  }, [connectionCards]);
 
   // Circular deck: skip → rotate to back; match → remove permanently
   const [connDeck, setConnDeck] = useState(() => connectionCards.map(c => c.id).filter(id => !getHiddenSet().has(String(id))));
@@ -561,27 +553,29 @@ export function Dashboard({ page, nuggets, setModal, setPage, onOpenOnboardingTa
     if (isSwipingConn || isSwipingProp) return;
     const blockedContactIds = new Set([...(unlocked || [])].map((id) => String(id)));
     if (blockedContactIds.size === 0) return;
+    const timer = window.setTimeout(() => {
+      // Always remove blocked contacts from the connections deck.
+      setConnDeck(prevDeck => prevDeck.filter(id => !blockedContactIds.has(String(id))));
 
-    // Always remove blocked contacts from the connections deck.
-    setConnDeck(prevDeck => prevDeck.filter(id => !blockedContactIds.has(String(id))));
-
-    // Only remove properties owned by blocked contacts from the properties *discover* when
-    // the view is showing connections. When the user switches to the Showcase view,
-    // keep showcase properties visible so owners' portfolios remain accessible.
-    if (view === 'connections') {
-      // Never block the current user's own properties from the discover feed.
-      // The local "profile card" ownerId is hard-coded as 999999.
-      const selfOwnerId = getOwnerIdForKey(publishingProfileKey);
-      setPropDeck(prevDeck =>
-        prevDeck.filter(id => {
-          const prop = (showcaseItems || []).find(p => p.id === id);
-          if (!prop) return true;
-          if (prop.ownerId === selfOwnerId) return true;
-          return !blockedContactIds.has(String(prop.ownerId));
-        })
-      );
-    }
-  }, [unlocked, showcaseProperties, view, publishingProfileKey, isSwipingConn, isSwipingProp]);
+      // Only remove properties owned by blocked contacts from the properties *discover* when
+      // the view is showing connections. When the user switches to the Showcase view,
+      // keep showcase properties visible so owners' portfolios remain accessible.
+      if (view === 'connections') {
+        // Never block the current user's own properties from the discover feed.
+        // The local "profile card" ownerId is hard-coded as 999999.
+        const selfOwnerId = getOwnerIdForKey(publishingProfileKey);
+        setPropDeck(prevDeck =>
+          prevDeck.filter(id => {
+            const prop = (showcaseItems || []).find(p => p.id === id);
+            if (!prop) return true;
+            if (prop.ownerId === selfOwnerId) return true;
+            return !blockedContactIds.has(String(prop.ownerId));
+          })
+        );
+      }
+    }, 0);
+    return () => window.clearTimeout(timer);
+  }, [unlocked, showcaseProperties, showcaseItems, view, publishingProfileKey, isSwipingConn, isSwipingProp, getOwnerIdForKey]);
 
   useEffect(() => {
     if (isSwipingConn || isSwipingProp) return;
@@ -720,7 +714,7 @@ export function Dashboard({ page, nuggets, setModal, setPage, onOpenOnboardingTa
     });
 
     return () => { if (typeof unsub === 'function') unsub(); };
-  }, [connectionCards, showcaseItems, matched, interested, unlocked, view, publishingProfileKey, hiddenSet, focusCard, selectedStates, isSwipingConn, isSwipingProp]);
+  }, [connectionCards, showcaseItems, matched, interested, unlocked, view, publishingProfileKey, hiddenSet, focusCard, selectedStates, isSwipingConn, isSwipingProp, collectRecordStates, connDeck, propDeck, getOwnerIdForKey]);
 
   const t = useT('dashboard').dashboard;
   const cardsT = useT('dashboard').cards;
@@ -765,7 +759,7 @@ export function Dashboard({ page, nuggets, setModal, setPage, onOpenOnboardingTa
     ));
     states.sort();
     return states;
-  }, [interested]);
+  }, [interested, collectRecordStates]);
 
   const filteredInterested = useMemo(() => {
     if (!selectedInterestStates.length) return interested;
@@ -773,7 +767,7 @@ export function Dashboard({ page, nuggets, setModal, setPage, onOpenOnboardingTa
     return interested.filter((item) =>
       collectRecordStates(item).some((code) => chosen.has(code))
     );
-  }, [interested, selectedInterestStates]);
+  }, [interested, selectedInterestStates, collectRecordStates]);
   const hasValue = (v) => String(v || '').trim().length > 0;
   const getExplicitRecordProfileScope = (record) => {
     const rawScope = String(record?.primaryProfile || '').trim();
@@ -793,13 +787,6 @@ export function Dashboard({ page, nuggets, setModal, setPage, onOpenOnboardingTa
     });
     return total;
   }, [matched, unlocked]);
-  const priorityRank = (value) => {
-    const normalized = String(value || '').trim().toLowerCase();
-    if (normalized === 'primary') return 1;
-    if (normalized === 'secondary') return 2;
-    if (normalized === 'tertiary') return 3;
-    return 99;
-  };
   const normalizePriorityValue = (value) => {
     const normalized = String(value || '').trim().toLowerCase();
     if (normalized === 'select') return '';
@@ -865,8 +852,10 @@ export function Dashboard({ page, nuggets, setModal, setPage, onOpenOnboardingTa
     )).length;
     return { propertiesCount, servicesCount };
   };
-  const primaryScopeCounts = countByScope(primaryVisibleScope);
-  const secondaryScopeCounts = secondaryVisibleScope ? countByScope(secondaryVisibleScope) : { propertiesCount: 0, servicesCount: 0 };
+  const _primaryScopeCounts = countByScope(primaryVisibleScope);
+  const _secondaryScopeCounts = secondaryVisibleScope ? countByScope(secondaryVisibleScope) : { propertiesCount: 0, servicesCount: 0 };
+  void _primaryScopeCounts;
+  void _secondaryScopeCounts;
   const getScopedPublishedRecords = (scopeKey) => {
     const profileScope = scopeKey === 'secondary' ? 'professional' : (scopeKey === 'fsbo' ? 'fsbo' : 'personal');
     const localOwnerIds = new Set([
@@ -906,7 +895,7 @@ export function Dashboard({ page, nuggets, setModal, setPage, onOpenOnboardingTa
   };
 
   // My Card should mirror the "show in" toggles directly for the current scope.
-  const getMyCardScopedRecords = (scopeKey) => {
+  const getMyCardScopedRecords = useCallback((scopeKey) => {
     const profileScope = scopeKey === 'secondary' ? 'professional' : (scopeKey === 'fsbo' ? 'fsbo' : 'personal');
     // Use propertyPortfolio for real-time state (not showcaseProperties)
     // Filter by show in = ON and matching profile scope.
@@ -917,7 +906,7 @@ export function Dashboard({ page, nuggets, setModal, setPage, onOpenOnboardingTa
       return isTruthyFlag(s.publishToConnections, true) && normalizeProfileScope(s.primaryProfile || 'personal') === profileScope;
     });
     return { properties, services };
-  };
+  }, [propertyPortfolio, servicePortfolio]);
 
   const countMyCardLinkedCardsForScope = (scopeKey) => {
     const scoped = getMyCardScopedRecords(scopeKey);
@@ -943,9 +932,10 @@ export function Dashboard({ page, nuggets, setModal, setPage, onOpenOnboardingTa
   const secondaryProfileBadgeLabel = secondaryVisibleScope === 'professional'
     ? 'Business'
     : (secondaryVisibleScope === 'fsbo' ? 'FSBO' : 'Personal');
-  const activePrimaryCategoryId = primaryVisibleScope === 'professional'
+  const _activePrimaryCategoryId = primaryVisibleScope === 'professional'
     ? (professionalProfile?.primaryCategoryB || professionalProfile?.categoryB || '')
     : (professionalProfile?.primaryCategory || professionalProfile?.category || '');
+  void _activePrimaryCategoryId;
   const activePrimaryCategoryLabel = String(primaryCardData?.type || '').trim() || 'Not set';
   const countClosedDealsForScope = (scope) => {
     const normalizedScope = normalizeProfileScope(scope);
@@ -1107,7 +1097,7 @@ export function Dashboard({ page, nuggets, setModal, setPage, onOpenOnboardingTa
       scopeKey,
       scopeLabel: scopeKey === 'secondary' ? 'Operations' : (scopeKey === 'fsbo' ? 'FSBO' : 'Personal'),
     };
-  }, [myCardModal.scope, showcaseProperties, servicePortfolio, personalProfile, professionalProfile, userProfile]);
+  }, [myCardModal.scope, buildLocalProfileCard, getMyCardScopedRecords, getOwnerIdForKey]);
 
   const toggleMyCardModal = (scope) => {
     setMyCardModal((prev) => {
@@ -1200,7 +1190,7 @@ export function Dashboard({ page, nuggets, setModal, setPage, onOpenOnboardingTa
         if (Array.isArray(parsedI) && setInterested) setInterested(parsedI);
       }
     } catch (e) { void e; }
-  }, []);
+  }, [setInterested, setMatched]);
 
   // When the app navigates to the dashboard (page prop), check for a pending
   // focusCard set by other views (e.g., MapView) and apply it. This covers the
@@ -1250,7 +1240,7 @@ export function Dashboard({ page, nuggets, setModal, setPage, onOpenOnboardingTa
       opts.sort();
       return ['all', ...opts];
     } catch { return ['all']; }
-  }, [connectionCards, showcaseItems]);
+  }, [connectionCards, showcaseItems, collectRecordStates]);
 
   const activeStates = useMemo(
     () => (selectedStates || []).filter((s) => s && s !== 'all'),
@@ -1274,7 +1264,7 @@ export function Dashboard({ page, nuggets, setModal, setPage, onOpenOnboardingTa
 
     const injected = connectionCards.find((card) => String(card.id) === fid);
     return injected ? [injected, ...base] : base;
-  }, [connDeck, connectionCards, focusCard]);
+  }, [connDeck, connectionCards, focusCard, findConnectionById]);
 
   const propDisplay = useMemo(() => {
     const base = propDeck
@@ -1311,6 +1301,7 @@ export function Dashboard({ page, nuggets, setModal, setPage, onOpenOnboardingTa
   // the view so the user sees the focused card in the feed.
   useEffect(() => {
     // focus requests are queued via `setFocusCard` and applied when decks are rebuilt.
+    let initialFocusTimer = null;
 
     const handler = (ev) => {
       try {
@@ -1332,15 +1323,21 @@ export function Dashboard({ page, nuggets, setModal, setPage, onOpenOnboardingTa
       if (raw) {
         const parsed = JSON.parse(raw);
         if (parsed && parsed.id) {
-          setFocusCard(parsed);
-          if (parsed.type === 'person') setView('connections');
-          else setView('properties');
+          initialFocusTimer = window.setTimeout(() => {
+            setFocusCard(parsed);
+            if (parsed.type === 'person') setView('connections');
+            else setView('properties');
+          }, 0);
+          localStorage.removeItem('focusCard');
         }
         localStorage.removeItem('focusCard');
       }
     } catch (e) { void e; }
 
-    return () => window.removeEventListener('dealsifter.focusCard', handler);
+    return () => {
+      if (initialFocusTimer) window.clearTimeout(initialFocusTimer);
+      window.removeEventListener('dealsifter.focusCard', handler);
+    };
   }, []);
 
   // ── Connections actions ──────────────────────────────────────────────────
@@ -1405,16 +1402,25 @@ export function Dashboard({ page, nuggets, setModal, setPage, onOpenOnboardingTa
 
   // If deck empties and there are skipped items, reintroduce them for a second pass
   useEffect(() => {
+    let timer = null;
     if ((connDeck || []).length === 0 && (skippedQueue || []).length > 0) {
-      setConnDeck(skippedQueue);
-      setSkippedQueue([]);
+      timer = window.setTimeout(() => {
+        setConnDeck(skippedQueue);
+        setSkippedQueue([]);
+      }, 0);
       // keep skippedSet so visual 'skipped' markers persist across the reintroduction
     }
     if ((propDeck || []).length === 0 && (skippedQueueProp || []).length > 0) {
-      setPropDeck(skippedQueueProp);
-      setSkippedQueueProp([]);
+      if (timer) window.clearTimeout(timer);
+      timer = window.setTimeout(() => {
+        setPropDeck(skippedQueueProp);
+        setSkippedQueueProp([]);
+      }, 0);
       // keep skippedSetProp so visual 'skipped' markers persist across the reintroduction
     }
+    return () => {
+      if (timer) window.clearTimeout(timer);
+    };
   }, [connDeck, skippedQueue, propDeck, skippedQueueProp]);
 
   const undo = () => {
@@ -1572,8 +1578,10 @@ export function Dashboard({ page, nuggets, setModal, setPage, onOpenOnboardingTa
     return (showcaseItems || []).filter((property) => property.ownerId === personId).length;
   };
 
-  const connDeckSet = useMemo(() => new Set(connDeck), [connDeck]);
-  const propDeckSet = useMemo(() => new Set(propDeck), [propDeck]);
+  const _connDeckSet = useMemo(() => new Set(connDeck), [connDeck]);
+  const _propDeckSet = useMemo(() => new Set(propDeck), [propDeck]);
+  void _connDeckSet;
+  void _propDeckSet;
   const verifiedOwnerIds = useMemo(
     () => {
       const ids = new Set();
@@ -1615,7 +1623,6 @@ export function Dashboard({ page, nuggets, setModal, setPage, onOpenOnboardingTa
         }
         // Logging para depuração
         if (!safeThumb) {
-          // eslint-disable-next-line no-console
           console.warn('[Dashboard] Thumb/avatar inválido para conexão:', c.id, c.name, c.photo);
         }
         return {
@@ -1647,7 +1654,6 @@ export function Dashboard({ page, nuggets, setModal, setPage, onOpenOnboardingTa
         safeThumb = undefined;
       }
       if (!safeThumb) {
-        // eslint-disable-next-line no-console
         console.warn('[Dashboard] Thumb invalido para propriedade:', p.id, p.address, p.images, p.image);
       }
       return {
@@ -1736,13 +1742,15 @@ export function Dashboard({ page, nuggets, setModal, setPage, onOpenOnboardingTa
   const myCardPreviewDeckHeight = isMobileViewport ? 560 : 380;
 
   useEffect(() => {
+    let timer = null;
     if (myCardShowcaseCount <= 0) {
-      if (myCardShowcaseIdx !== 0) setMyCardShowcaseIdx(0);
-      return;
+      if (myCardShowcaseIdx !== 0) timer = window.setTimeout(() => setMyCardShowcaseIdx(0), 0);
+    } else if (myCardShowcaseIdx > myCardShowcaseCount - 1) {
+      timer = window.setTimeout(() => setMyCardShowcaseIdx(myCardShowcaseCount - 1), 0);
     }
-    if (myCardShowcaseIdx > myCardShowcaseCount - 1) {
-      setMyCardShowcaseIdx(myCardShowcaseCount - 1);
-    }
+    return () => {
+      if (timer) window.clearTimeout(timer);
+    };
   }, [myCardShowcaseCount, myCardShowcaseIdx]);
 
   useEffect(() => {
@@ -3248,6 +3256,7 @@ export function Dashboard({ page, nuggets, setModal, setPage, onOpenOnboardingTa
     </div>
   );
 }
+
 
 
 

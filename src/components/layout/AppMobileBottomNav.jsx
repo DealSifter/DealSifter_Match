@@ -25,7 +25,6 @@ export function AppMobileBottomNav({ page, setPage, collapsed = false, onCollaps
     if (typeof window === 'undefined' || typeof window.matchMedia !== 'function') return undefined;
     const mediaQuery = window.matchMedia('(max-width: 767px)');
     const handleViewportChange = (event) => setIsMobile(event.matches);
-    setIsMobile(mediaQuery.matches);
 
     if (typeof mediaQuery.addEventListener === 'function') {
       mediaQuery.addEventListener('change', handleViewportChange);

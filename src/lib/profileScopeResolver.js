@@ -32,11 +32,15 @@ const toPersonalProfileShape = (resolved = {}, fallback = {}) => ({
   secondaryPhone: pickString(resolved?.secondaryPhone, fallback.secondaryPhone),
   tertiaryPhone: pickString(resolved?.tertiaryPhone, fallback.tertiaryPhone),
   email: pickString(resolved?.email, fallback.email),
-  cardPriorityA: pickString(resolved?.cardPriority, fallback.cardPriorityA),
-  cardPriorityC: pickString(resolved?.cardPriority, fallback.cardPriorityC),
+  cardPriorityA: resolved?.scope === 'personal'
+    ? pickString(resolved?.cardPriority, fallback.cardPriorityA)
+    : pickString(fallback.cardPriorityA),
+  cardPriorityC: resolved?.scope === 'fsbo'
+    ? pickString(resolved?.cardPriority, fallback.cardPriorityC)
+    : pickString(fallback.cardPriorityC),
 });
 
-const toProfessionalProfileShape = (resolved = {}, fallback = {}, scope = 'professional') => ({
+const toProfessionalProfileShape = (resolved = {}, fallback = {}) => ({
   ...fallback,
   fullName: pickString(resolved?.name, fallback.fullName),
   locB: pickString(resolved?.loc, fallback.locB),
@@ -215,7 +219,7 @@ export function buildScopedProfilePayload({
     },
     profiles: {
       personal: toPersonalProfileShape(resolveScopedProfile('personal', { accountType, userProfile, personalProfile, professionalProfile }), personalProfile || {}),
-      professional: toProfessionalProfileShape(resolveScopedProfile('professional', { accountType, userProfile, personalProfile, professionalProfile }), professionalProfile || {}, 'professional'),
+      professional: toProfessionalProfileShape(resolveScopedProfile('professional', { accountType, userProfile, personalProfile, professionalProfile }), professionalProfile || {}),
       fsbo: toPersonalProfileShape(resolveScopedProfile('fsbo', { accountType, userProfile, personalProfile, professionalProfile }), personalProfile || {}),
     },
     legacy: {
@@ -244,7 +248,7 @@ export function extractScopedProfileLegacy(profilePayload) {
   const professionalProfileFromPayload = profiles.professional && typeof profiles.professional === 'object'
     ? profiles.professional
     : (resolved.professional && typeof resolved.professional === 'object'
-      ? toProfessionalProfileShape(resolved.professional, professionalFromPayload || {}, 'professional')
+      ? toProfessionalProfileShape(resolved.professional, professionalFromPayload || {})
       : null);
   const fsboProfileFromPayload = profiles.fsbo && typeof profiles.fsbo === 'object'
     ? profiles.fsbo
@@ -259,3 +263,4 @@ export function extractScopedProfileLegacy(profilePayload) {
     fsboProfileFromPayload,
   };
 }
+
