@@ -44,6 +44,7 @@ export function PropertyCard({ property, action, statusAction, onInterest, owner
   const showMatchPressure = matchPressure > 0 && !previewOnly;
   const ownerBadgeBottom = images.length > 1 ? 24 : 8;
   const ownerBadgeHeight = 38;
+  const swipeBadgeKind = action === 'pass' ? 'pass' : (action === 'interest' ? 'match' : null);
 
   const outerStyle = React.useMemo(() => ({
     position: 'relative',
@@ -94,6 +95,53 @@ export function PropertyCard({ property, action, statusAction, onInterest, owner
           alt={property.address}
           style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }}
         />
+
+        {swipeBadgeKind === 'pass' ? (
+          <span
+            style={{
+              position: 'absolute',
+              top: 10,
+              left: 10,
+              zIndex: 13,
+              pointerEvents: 'none',
+              padding: '4px 9px',
+              borderRadius: 8,
+              border: `1px solid ${C.alpha(C.danger, 0.85)}`,
+              background: C.alpha(C.danger, 0.18),
+              color: C.danger,
+              fontSize: 11,
+              fontWeight: 900,
+              letterSpacing: '0.8px',
+              textTransform: 'uppercase',
+              transform: 'rotate(-10deg)',
+            }}
+          >
+            PASS
+          </span>
+        ) : null}
+        {swipeBadgeKind === 'match' ? (
+          <span
+            style={{
+              position: 'absolute',
+              top: 10,
+              right: 10,
+              zIndex: 13,
+              pointerEvents: 'none',
+              padding: '4px 9px',
+              borderRadius: 8,
+              border: `1px solid ${C.alpha(C.success, 0.85)}`,
+              background: C.alpha(C.success, 0.18),
+              color: C.success,
+              fontSize: 11,
+              fontWeight: 900,
+              letterSpacing: '0.8px',
+              textTransform: 'uppercase',
+              transform: 'rotate(10deg)',
+            }}
+          >
+            MATCH
+          </span>
+        ) : null}
 
         {showMatchPressure && (
           <span style={{

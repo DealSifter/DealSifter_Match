@@ -2089,6 +2089,33 @@ export default function App() {
     if (page === 'admin') setPage('dashboard');
   };
 
+  const handleUserLogout = async () => {
+    if (isSupabaseConfigured && supabase) {
+      try {
+        await supabase.auth.signOut();
+      } catch (e) {
+        void e;
+      }
+    }
+
+    setAuthSession(null);
+
+    const keysToKeep = ['theme', 'ds_lgpd_consent'];
+    const allKeys = [];
+    for (let i = 0; i < localStorage.length; i++) {
+      allKeys.push(localStorage.key(i));
+    }
+    allKeys.forEach((key) => {
+      if (key && !keysToKeep.includes(key)) {
+        try { localStorage.removeItem(key); } catch (e) { void e; }
+      }
+    });
+
+    clearAllUserData();
+    setModal(null);
+    setPage('landing');
+  };
+
   const handleOpenModal = (nextModal) => {
     if (nextModal === 'store') {
       openSettingsTab('payments');
@@ -2548,6 +2575,7 @@ export default function App() {
           onOpenAuthModal={openAuthModal}
           onOpenSettings={() => openSettingsTab('profile')}
           onOpenAdmin={() => setPage('admin')}
+          onLogoutUser={handleUserLogout}
           isAdmin={isAdmin}
           userProfile={userProfile}
           editMode={editMode}

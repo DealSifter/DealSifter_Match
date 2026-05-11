@@ -7,6 +7,7 @@ export const Icon = ({ name, size=18, color="currentColor", strokeWidth=1.5 }) =
   const icons = {
     // Nav & UI
     menu:       <svg style={s} viewBox="0 0 24 24"><line {...p} x1="3" y1="6"  x2="21" y2="6"/><line {...p} x1="3" y1="12" x2="21" y2="12"/><line {...p} x1="3" y1="18" x2="21" y2="18"/></svg>,
+    filter:     <svg style={s} viewBox="0 0 24 24"><polygon {...p} points="3 5 21 5 14 13 14 19 10 21 10 13 3 5"/></svg>,
     close:      <svg style={s} viewBox="0 0 24 24"><line {...p} x1="18" y1="6" x2="6" y2="18"/><line {...p} x1="6" y1="6" x2="18" y2="18"/></svg>,
     back:       <svg style={s} viewBox="0 0 24 24"><polyline {...p} points="15 18 9 12 15 6"/></svg>,
     chevDown:   <svg style={s} viewBox="0 0 24 24"><polyline {...p} points="6 9 12 15 18 9"/></svg>,
@@ -17,6 +18,7 @@ export const Icon = ({ name, size=18, color="currentColor", strokeWidth=1.5 }) =
     // Locks
     lock:       <svg style={s} viewBox="0 0 24 24"><rect {...p} x="3" y="11" width="18" height="11" rx="2"/><path {...p} d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>,
     unlock:     <svg style={s} viewBox="0 0 24 24"><rect {...p} x="3" y="11" width="18" height="11" rx="2"/><path {...p} d="M7 11V7a5 5 0 0 1 9.9-1"/></svg>,
+    logOut:     <svg style={s} viewBox="0 0 24 24"><path {...p} d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline {...p} points="16 17 21 12 16 7"/><line {...p} x1="21" y1="12" x2="9" y2="12"/></svg>,
     // Contact
     phone:      <svg style={s} viewBox="0 0 24 24"><path {...p} d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07A19.5 19.5 0 0 1 4.69 11.5 19.79 19.79 0 0 1 1.58 2.92 2 2 0 0 1 3.55 1h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L7.91 8.73a16 16 0 0 0 6 6l.91-.91a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 21.5 16a2 2 0 0 1 .5.92z"/></svg>,
     sms:        <svg style={s} viewBox="0 0 24 24"><path {...p} d="M21 15a2 2 0 0 1-2 2H8l-5 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/><line {...p} x1="8" y1="9" x2="16" y2="9"/><line {...p} x1="8" y1="13" x2="13" y2="13"/></svg>,

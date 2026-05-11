@@ -57,7 +57,7 @@ function NavBtn({ label, onClick, active, icon, filled, minimal }) {
   );
 }
 
-export function Navbar({ page, prevPage, setPage, nuggets = 0, setModal = () => {}, chatNotifications = [], systemNotifications = [], setSystemNotifications = () => {}, onOpenChatNotification = () => {}, onOpenAuthModal = () => {}, onOpenSettings = () => {}, onOpenAdmin = () => {}, isAdmin = false }) {
+export function Navbar({ page, prevPage, setPage, nuggets = 0, setModal = () => {}, chatNotifications = [], systemNotifications = [], setSystemNotifications = () => {}, onOpenChatNotification = () => {}, onOpenAuthModal = () => {}, onOpenSettings = () => {}, onOpenAdmin = () => {}, onLogoutUser = () => {}, isAdmin = false }) {
   const isApp = page !== 'landing';
   const isLanding = page === 'landing';
   const allT = useT('global');
@@ -174,6 +174,12 @@ export function Navbar({ page, prevPage, setPage, nuggets = 0, setModal = () => 
     setAppMenuOpen(false);
     setAppNotifOpen(false);
     onOpenAdmin();
+  };
+
+  const logoutUserFromMenu = async () => {
+    setAppMenuOpen(false);
+    setAppNotifOpen(false);
+    await onLogoutUser();
   };
 
   const openChatNotificationFromMenu = (item) => {
@@ -379,6 +385,11 @@ export function Navbar({ page, prevPage, setPage, nuggets = 0, setModal = () => 
                       <button onClick={openAppPricing} style={{ width: '100%', display: 'flex', alignItems: 'center', gap: 10, borderRadius: 10, border: `1px solid ${C.border}`, background: 'transparent', color: C.t2, fontWeight: 700, fontSize: 14, padding: '10px 12px', cursor: 'pointer' }}>
                         <Icon name="creditCard" size={15} color={C.t2} />
                         <span>{t.pricing}</span>
+                      </button>
+
+                      <button onClick={logoutUserFromMenu} style={{ width: '100%', display: 'flex', alignItems: 'center', gap: 10, borderRadius: 10, border: `1px solid ${C.border}`, background: 'transparent', color: C.t2, fontWeight: 700, fontSize: 14, padding: '10px 12px', cursor: 'pointer' }}>
+                        <Icon name="logOut" size={15} color={C.t2} />
+                        <span>{t.logout || 'Sign out'}</span>
                       </button>
 
                       {isAdmin ? (

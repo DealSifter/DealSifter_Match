@@ -144,8 +144,8 @@ function Chip({ active, onClick, children, style, ...buttonProps }) {
 
 function SectionCard({ title, subtitle, headerRight, scrollBody, children, grow = false, style = {} }) {
   return (
-    <section style={{ border: `1px solid ${C.border}`, borderRadius: 14, background: C.card, overflow: 'hidden', display: 'grid', gridTemplateRows: 'auto 1fr', ...(grow ? { flex: '1 1 auto' } : {}), ...style }}>
-      <div style={{ display: 'flex', gap: 8, alignItems: 'center', justifyContent: 'space-between', padding: '8px 10px', borderBottom: `1px solid ${C.border}` }}>
+    <section style={{ border: `1px solid ${C.border}`, borderRadius: 14, background: C.card, overflow: 'hidden', display: 'flex', flexDirection: 'column', ...(grow ? { flex: '1 1 auto' } : {}), ...style }}>
+      <div style={{ display: 'flex', gap: 8, alignItems: 'center', justifyContent: 'space-between', padding: '8px 10px', borderBottom: `1px solid ${C.border}`, flexShrink: 0 }}>
         <div style={{ minWidth: 0, marginRight: 12 }}>
           <h3 style={{ margin: 0, fontSize: 12, color: C.t1, fontWeight: 800, flexShrink: 0 }}>{title}</h3>
           {subtitle ? <p style={{ margin: '1px 0 4px', fontSize: 10, color: C.t3, flexShrink: 0 }}>{subtitle}</p> : null}
@@ -295,10 +295,16 @@ export function Onboarding({
   const activeSkills = profileTab === 'skills';
   const activeProfessional = profileTab === 'professional';
   const activeOperation = profileTab === 'operation';
+  const [isMobileViewport, setIsMobileViewport] = useState(() => {
+    if (typeof window === 'undefined' || typeof window.matchMedia !== 'function') return false;
+    return window.matchMedia('(max-width: 1024px)').matches;
+  });
   const [previewOpen, setPreviewOpen] = useState(false);
   const [previewServiceIndex, setPreviewServiceIndex] = useState(0);
   const [previewPropertyIndex, setPreviewPropertyIndex] = useState(0);
   const [previewMode, setPreviewMode] = useState('properties');
+  const previewShowcaseScrollRef = useRef(null);
+  const onboardingGridRef = useRef(null);
 
   const [previewDragIndex, setPreviewDragIndex] = useState(null);
   const [previewDragOverIndex, setPreviewDragOverIndex] = useState(null);
@@ -309,6 +315,21 @@ export function Onboarding({
   const [verificationModal, setVerificationModal] = useState({ open: false, scope: 'personal', error: '', info: '' });
   const [saveProfilesBaseline, setSaveProfilesBaseline] = useState('');
   const [isSaveProfilesDirty, setIsSaveProfilesDirty] = useState(false);
+
+  useEffect(() => {
+    if (typeof window === 'undefined' || typeof window.matchMedia !== 'function') return undefined;
+    const mediaQuery = window.matchMedia('(max-width: 1024px)');
+    const handleViewportChange = (event) => setIsMobileViewport(Boolean(event.matches));
+    setIsMobileViewport(Boolean(mediaQuery.matches));
+
+    if (typeof mediaQuery.addEventListener === 'function') {
+      mediaQuery.addEventListener('change', handleViewportChange);
+      return () => mediaQuery.removeEventListener('change', handleViewportChange);
+    }
+
+    mediaQuery.addListener(handleViewportChange);
+    return () => mediaQuery.removeListener(handleViewportChange);
+  }, []);
 
   const profileSyncVisual = useMemo(() => {
     const isSyncing = profileSyncStatus === 'syncing' || portfolioSyncStatus === 'syncing';
@@ -530,67 +551,61 @@ export function Onboarding({
       setPreviewMode('properties');
     }
   }, [previewMode, servicesForPreview.length, propertiesForPreview.length]);
-  const handlePreviewPrev = () => {
+  const previewShowcaseItems = useMemo(() => ([
+    ...(propertiesForPreview || []).map((property) => ({ kind: 'property', data: property })),
+    ...(servicesForPreview || []).map((service) => ({ kind: 'service', data: service })),
+  ]), [propertiesForPreview, servicesForPreview]);
+
+  const previewShowcaseCount = previewShowcaseItems.length;
+  const previewUnifiedIndex = useMemo(() => {
     const propLen = propertiesForPreview.length;
-    const svcLen = servicesForPreview.length;
-    if (!propLen && !svcLen) return;
-    if (previewMode === 'properties' && propLen) {
-      if (propLen > 1) {
-        setPreviewPropertyIndex((s) => (s - 1 + propLen) % propLen);
-      } else if (svcLen) {
-        setPreviewMode('services');
-        setPreviewServiceIndex((s) => (s - 1 + svcLen) % svcLen);
-      }
-      return;
+    if (previewMode === 'properties') {
+      return Math.max(0, Math.min(propLen - 1, previewPropertyIndex || 0));
     }
-    if (previewMode === 'services' && svcLen) {
-      if (svcLen > 1) {
-        setPreviewServiceIndex((s) => (s - 1 + svcLen) % svcLen);
-      } else if (propLen) {
-        setPreviewMode('properties');
-        setPreviewPropertyIndex((s) => (s - 1 + propLen) % propLen);
-      }
-      return;
-    }
-    if (propLen) {
+    return Math.max(0, propLen + Math.min(Math.max(previewServiceIndex || 0, 0), Math.max(servicesForPreview.length - 1, 0)));
+  }, [previewMode, previewPropertyIndex, previewServiceIndex, propertiesForPreview.length, servicesForPreview.length]);
+
+  const setPreviewByUnifiedIndex = (nextUnifiedIndex) => {
+    const total = previewShowcaseCount;
+    if (!total) return;
+    const normalized = ((nextUnifiedIndex % total) + total) % total;
+    const propLen = propertiesForPreview.length;
+    if (normalized < propLen) {
       setPreviewMode('properties');
-      setPreviewPropertyIndex((s) => (s - 1 + propLen) % propLen);
-    } else if (svcLen) {
-      setPreviewMode('services');
-      setPreviewServiceIndex((s) => (s - 1 + svcLen) % svcLen);
+      setPreviewPropertyIndex(normalized);
+      return;
     }
+    setPreviewMode('services');
+    setPreviewServiceIndex(normalized - propLen);
+  };
+
+  const handlePreviewPrev = () => {
+    if (!previewShowcaseCount) return;
+    setPreviewByUnifiedIndex(previewUnifiedIndex - 1);
   };
 
   const handlePreviewNext = () => {
-    const propLen = propertiesForPreview.length;
-    const svcLen = servicesForPreview.length;
-    if (!propLen && !svcLen) return;
-    if (previewMode === 'properties' && propLen) {
-      if (propLen > 1) {
-        setPreviewPropertyIndex((s) => (s + 1) % propLen);
-      } else if (svcLen) {
-        setPreviewMode('services');
-        setPreviewServiceIndex((s) => (s + 1) % svcLen);
-      }
-      return;
-    }
-    if (previewMode === 'services' && svcLen) {
-      if (svcLen > 1) {
-        setPreviewServiceIndex((s) => (s + 1) % svcLen);
-      } else if (propLen) {
-        setPreviewMode('properties');
-        setPreviewPropertyIndex((s) => (s + 1) % propLen);
-      }
-      return;
-    }
-    if (propLen) {
-      setPreviewMode('properties');
-      setPreviewPropertyIndex((s) => (s + 1) % propLen);
-    } else if (svcLen) {
-      setPreviewMode('services');
-      setPreviewServiceIndex((s) => (s + 1) % svcLen);
-    }
+    if (!previewShowcaseCount) return;
+    setPreviewByUnifiedIndex(previewUnifiedIndex + 1);
   };
+
+  const handlePreviewShowcaseScroll = (event) => {
+    const container = event.currentTarget;
+    const width = container?.clientWidth || 0;
+    if (!width || previewShowcaseCount <= 1) return;
+    const nextUnifiedIdx = Math.round(container.scrollLeft / width);
+    setPreviewByUnifiedIndex(nextUnifiedIdx);
+  };
+
+  useEffect(() => {
+    if (!previewOpen) return;
+    if (previewShowcaseCount <= 1) return;
+    const container = previewShowcaseScrollRef.current;
+    if (!container) return;
+    const width = container.clientWidth || 0;
+    if (!width) return;
+    container.scrollTo({ left: width * previewUnifiedIndex, behavior: 'smooth' });
+  }, [previewOpen, previewUnifiedIndex, previewShowcaseCount, isMobileViewport]);
   const registeredServiceSkills = useMemo(() => {
     const raw = myServicePortfolio.flatMap((svc) => [svc?.category, svc?.title]);
     return Array.from(new Set(raw.map((x) => String(x || '').trim()).filter(Boolean)));
@@ -944,7 +959,7 @@ export function Onboarding({
 
       if (imgs.length === 1) {
         return (
-          <div style={{ position: 'relative', aspectRatio: '16/9', borderRadius: 8, overflow: 'hidden', background: C.alpha(C.t1, 0.06), cursor: 'grab' }}>
+          <div style={{ position: 'relative', aspectRatio: isMobileViewport ? '4/3' : '16/10', borderRadius: 8, overflow: 'hidden', background: C.alpha(C.t1, 0.06), minHeight: isMobileViewport ? 220 : 250, cursor: 'grab' }}>
             <SmartImage src={imgs[0]} alt={svc?.title || ''} style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }} />
             <button
               type="button"
@@ -960,7 +975,7 @@ export function Onboarding({
       }
 
       return (
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(120px, 1fr))', gap: 8 }}>
+        <div style={{ display: 'grid', gridTemplateColumns: imgs.length === 2 ? 'repeat(2, minmax(0, 1fr))' : 'repeat(auto-fill, minmax(170px, 1fr))', gap: 8 }}>
           {imgs.map((src, idx) => (
             <div
               key={`${svc.id}-img-${idx}`}
@@ -969,7 +984,7 @@ export function Onboarding({
               onDragEnd={onDragEnd}
               onDragOver={(e) => onDragOver(e, idx)}
               onDrop={(e) => onDrop(e, idx)}
-              style={{ position: 'relative', aspectRatio: '1', borderRadius: 8, overflow: 'hidden', background: (previewDragOverIndex === idx ? C.alpha(C.accent, 0.06) : C.alpha(C.t1, 0.06)), border: previewDragIndex === idx ? `2px dashed ${C.accent}` : `1px solid ${C.border}`, cursor: previewDragIndex === idx ? 'grabbing' : 'grab' }}
+              style={{ position: 'relative', aspectRatio: '16/10', minHeight: 140, borderRadius: 8, overflow: 'hidden', background: (previewDragOverIndex === idx ? C.alpha(C.accent, 0.06) : C.alpha(C.t1, 0.06)), border: previewDragIndex === idx ? `2px dashed ${C.accent}` : `1px solid ${C.border}`, cursor: previewDragIndex === idx ? 'grabbing' : 'grab' }}
             >
               <SmartImage src={src} alt={svc?.title || ''} style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }} />
               <button
@@ -1044,126 +1059,164 @@ export function Onboarding({
     const personalPreviewTitle = accountType === 'fsbo_owner'
       ? (t.previewBasicCardTitle || t.previewPersonalCardTitle)
       : t.previewPersonalCardTitle;
-    // Services in preview are only those explicitly selected with the "eye"
-    // toggle, mirroring the property preview behavior.
-    const servicePortfolioImages = servicesForPreview.flatMap((s) => {
-      const base = (s.media?.images || []).filter(Boolean).map((src) => ({ src, title: s.title }));
-      const archived = (showArchivedImages[s.id] ? (s.media?.archivedImages || []).filter(Boolean).map((src) => ({ src, title: s.title })) : []);
-      return [...base, ...archived];
-    });
+    const previewDeckHeight = isMobileViewport ? 560 : 380;
 
     return (
-      <div style={{ display: 'grid', gridTemplateColumns: hasPreviewProperty ? '1fr 1fr' : '1fr 1fr', gap: 14 }}>
+      <div style={{ display: 'grid', gridTemplateColumns: isMobileViewport ? '1fr' : '1fr 1fr', gap: 14 }}>
+        {/* ── Left: Feed / Connection Card ── */}
         <section style={{ border: `1px solid ${C.border}`, borderRadius: 14, background: C.card, overflow: 'hidden', display: 'grid', gridTemplateRows: 'auto 1fr' }}>
-          <div style={{ width: 627, height: 43, display: 'flex', alignItems: 'center', padding: '0 10px', borderBottom: `1px solid ${C.border}`, fontSize: 11, color: C.t3, textTransform: 'uppercase', fontWeight: 700 }}>
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '8px 10px', borderBottom: `1px solid ${C.border}`, fontSize: 11, color: C.t3, textTransform: 'uppercase', fontWeight: 700 }}>
             {personalPreviewTitle}
           </div>
           <div style={{
             padding: 12,
-            minHeight: 380,
+            minHeight: previewDeckHeight,
+            height: previewDeckHeight,
             display: 'flex',
             justifyContent: 'center',
             alignItems: 'center',
-            height: 380,
             boxSizing: 'border-box',
           }}>
-            <div style={{
-              width: '100%',
-              height: 'calc(100% - 8px)',
-              flexShrink: 0,
-              maxWidth: 603,
-              margin: '0 auto',
-              paddingTop: 8,
-              boxSizing: 'border-box',
-            }}>
+            <div style={{ width: '100%', height: '100%', maxWidth: 603, margin: '0 auto', boxSizing: 'border-box' }}>
               <SwipeCard
                 card={activePreviewFeedCard}
                 action={null}
-                isUnlocked={false}
+                isUnlocked
                 isSkipped={false}
+                previewOnly
+                showActions={false}
                 onSwipe={() => {}}
                 onUndo={() => {}}
               />
-                          </div>
-                      </div>
+            </div>
+          </div>
         </section>
 
-        {hasPreviewItems ? (
-          <section style={{ border: `1px solid ${C.border}`, borderRadius: 14, background: C.card, overflow: 'hidden', display: 'grid', gridTemplateRows: 'auto 1fr' }}>
-            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '8px 10px', borderBottom: `1px solid ${C.border}`, fontSize: 11, color: C.t3, textTransform: 'uppercase', fontWeight: 700 }}>
+        {/* ── Right: Showcase / Portfolio Cards ── */}
+
+        <section style={{ border: `1px solid ${C.border}`, borderRadius: 14, background: C.card, overflow: 'hidden', display: 'grid', gridTemplateRows: 'auto 1fr auto' }}>
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '8px 10px', borderBottom: `1px solid ${C.border}`, fontSize: 11, color: C.t3, textTransform: 'uppercase', fontWeight: 700 }}>
+            <span>{t.previewShowcaseCardTitle}</span>
+            {previewShowcaseCount > 1 ? (
               <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                <span>{t.previewShowcaseCardTitle}</span>
+                <button
+                  type="button"
+                  aria-label="Anterior"
+                  disabled={previewUnifiedIndex <= 0}
+                  onClick={handlePreviewPrev}
+                  style={{ border: 'none', background: 'transparent', cursor: previewUnifiedIndex <= 0 ? 'not-allowed' : 'pointer', padding: 4, borderRadius: 999, display: 'flex', alignItems: 'center', justifyContent: 'center' }}
+                >
+                  <Icon name="chevronLeft" size={22} color={previewUnifiedIndex <= 0 ? C.t3 : C.t1} />
+                </button>
+                <span style={{ fontSize: 11, color: C.t2, minWidth: 48, textAlign: 'center', display: 'inline-block' }}>
+                  {previewUnifiedIndex + 1} / {previewShowcaseCount}
+                </span>
+                <button
+                  type="button"
+                  aria-label="Próximo"
+                  disabled={previewUnifiedIndex >= previewShowcaseCount - 1}
+                  onClick={handlePreviewNext}
+                  style={{ border: 'none', background: 'transparent', cursor: previewUnifiedIndex >= previewShowcaseCount - 1 ? 'not-allowed' : 'pointer', padding: 4, borderRadius: 999, display: 'flex', alignItems: 'center', justifyContent: 'center' }}
+                >
+                  <Icon name="chevronRight" size={22} color={previewUnifiedIndex >= previewShowcaseCount - 1 ? C.t3 : C.t1} />
+                </button>
               </div>
-              {(() => {
-                const propLen = propertiesForPreview?.length || 0;
-                const svcLen = servicesForPreview?.length || 0;
-                const total = propLen + svcLen;
-                if (total <= 1) return null;
-                const currentIdx = previewMode === 'properties'
-                  ? previewPropertyIndex
-                  : propLen + previewServiceIndex;
-                const isFirst = currentIdx === 0;
-                const isLast = currentIdx === total - 1;
-                return (
-                  <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
-                    <button
-                      type="button"
-                      aria-label="Anterior"
-                      disabled={isFirst}
-                      onClick={handlePreviewPrev}
-                      style={{ border: 'none', background: 'transparent', cursor: isFirst ? 'not-allowed' : 'pointer', padding: 4, borderRadius: 999, display: 'flex', alignItems: 'center', justifyContent: 'center' }}
-                    >
-                      <Icon name="chevronLeft" size={22} color={isFirst ? C.t3 : C.t1} />
-                    </button>
-                    <span style={{ fontSize: 11, color: C.t2, minWidth: 36, textAlign: 'center', display: 'inline-block' }}>
-                      {currentIdx + 1} / {total}
-                    </span>
-                    <button
-                      type="button"
-                      aria-label="Próximo"
-                      disabled={isLast}
-                      onClick={handlePreviewNext}
-                      style={{ border: 'none', background: 'transparent', cursor: isLast ? 'not-allowed' : 'pointer', padding: 4, borderRadius: 999, display: 'flex', alignItems: 'center', justifyContent: 'center' }}
-                    >
-                      <Icon name="chevronRight" size={22} color={isLast ? C.t3 : C.t1} />
-                    </button>
-                  </div>
-                );
-              })()}
-            </div>
-            <div style={{ padding: 12, minHeight: 380, overflowY: 'auto' }}>
-              {previewMode === 'properties' && (propertiesForPreview?.length > 0) && previewShowcaseCard ? (
-                <div style={{ width: '100%', height: 'calc(100% - 8px)', maxWidth: 603, margin: '0 auto', paddingTop: 8, boxSizing: 'border-box' }}>
-                  <PropertyCard
-                    property={previewShowcaseCard}
-                    action={null}
-                    statusAction={null}
-                    onInterest={(act) => {
-                      try {
-                        if (act === 'next' || act === 'pass') handlePreviewNext();
-                      } catch (e) { void e; }
-                    }}
-                    owner={
-                      previewShowcaseCard?.ownerId === 999999
-                        ? ((previewShowcaseCard?.primaryProfile || 'personal') === 'professional'
-                            ? previewProfessionalFeedCard
-                            : previewPersonalFeedCard)
-                        : CARDS.find(c => c.id === previewShowcaseCard.ownerId)
-                    }
-                  />
-                </div>
-              ) : (hasPreviewService ? (
-                <>
-                  {renderServiceImages(servicesForPreview[previewServiceIndex] || servicesForPreview[0])}
-                </>
-              ) : (
-                <div style={{ color: C.t3, fontSize: 12, padding: 24, textAlign: 'center' }}>
-                  {t.recordsNoService}
+            ) : null}
+          </div>
+          {hasPreviewItems ? (
+            <div
+              ref={previewShowcaseScrollRef}
+              className="onb-preview-showcase-scroll"
+              onScroll={handlePreviewShowcaseScroll}
+              style={{
+                display: 'flex',
+                overflowX: 'auto',
+                overflowY: 'hidden',
+                scrollSnapType: 'x mandatory',
+                WebkitOverflowScrolling: 'touch',
+                minHeight: previewDeckHeight,
+              }}
+            >
+              {previewShowcaseItems.map((item, idx) => (
+                <div key={`preview-showcase-item-${item.kind}-${item.data?.id || idx}`} style={{ flex: '0 0 100%', width: '100%', scrollSnapAlign: 'start' }}>
+                  {item.kind === 'property' ? (
+                    <div style={{ padding: 12, minHeight: previewDeckHeight, boxSizing: 'border-box' }}>
+                      <div style={{ width: '100%', height: previewDeckHeight, maxWidth: 603, margin: '0 auto', boxSizing: 'border-box' }}>
+                        <PropertyCard
+                          property={item.data}
+                          action={null}
+                          statusAction={null}
+                          previewOnly
+                          onInterest={(act) => {
+                            try { if (act === 'next' || act === 'pass') handlePreviewNext(); } catch (e) { void e; }
+                          }}
+                          owner={
+                            item.data?.ownerId === 999999
+                              ? ((item.data?.primaryProfile || 'personal') === 'professional'
+                                  ? previewProfessionalFeedCard
+                                  : previewPersonalFeedCard)
+                              : CARDS.find(c => c.id === item.data?.ownerId)
+                          }
+                        />
+                      </div>
+                    </div>
+                  ) : (() => {
+                    const svc = item.data;
+                    const svcImages = (svc?.media?.images || []).filter(Boolean);
+                    return (
+                      <div style={{ padding: 12, minHeight: previewDeckHeight, boxSizing: 'border-box' }}>
+                        <div style={{ height: previewDeckHeight - 24, overflowY: 'auto', paddingRight: 2, boxSizing: 'border-box', WebkitOverflowScrolling: 'touch' }}>
+                          <div style={{ marginBottom: 8 }}>
+                            <div style={{ fontSize: 14, fontWeight: 700, color: C.t1 }}>{svc?.title || t.serviceFallbackName}</div>
+                            {svc?.description && <div style={{ fontSize: 12, color: C.t2, marginTop: 2 }}>{svc.description}</div>}
+                            {svc?.category && <div style={{ display: 'inline-block', marginTop: 4, padding: '2px 8px', borderRadius: 12, background: C.alpha(C.accent, 0.08), border: `1px solid ${C.alpha(C.accent, 0.15)}`, fontSize: 10, color: C.accent, fontWeight: 700 }}>{svc.category}</div>}
+                          </div>
+                          {svcImages.length > 0 ? (
+                            <div style={{ display: 'grid', gridTemplateColumns: svcImages.length === 1 ? '1fr' : 'repeat(auto-fill, minmax(120px, 1fr))', gap: 8 }}>
+                              {svcImages.map((src, imageIdx) => (
+                                <div key={`svc-prev-img-${idx}-${imageIdx}`} style={{ position: 'relative', aspectRatio: svcImages.length === 1 ? '16/9' : '1', borderRadius: 8, overflow: 'hidden', background: C.alpha(C.t1, 0.06), border: `1px solid ${C.border}` }}>
+                                  <SmartImage src={src} alt={svc?.title || ''} style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }} />
+                                </div>
+                              ))}
+                            </div>
+                          ) : (
+                            <div style={{ height: 200, border: `1px dashed ${C.border}`, borderRadius: 12, display: 'flex', alignItems: 'center', justifyContent: 'center', color: C.t3, fontSize: 12 }}>
+                              {t.uploadedImagesEmpty}
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                    );
+                  })()}
                 </div>
               ))}
             </div>
-          </section>
-        ) : null}
+          ) : (
+            <div style={{ margin: 12, height: isMobileViewport ? 260 : previewDeckHeight, border: `1px dashed ${C.border}`, borderRadius: 12, display: 'flex', alignItems: 'center', justifyContent: 'center', color: C.t3, fontSize: 12 }}>
+              {t.recordsNoProperty}
+            </div>
+          )}
+          {previewShowcaseCount > 1 ? (
+            <div style={{ padding: '0 12px 12px', display: 'flex', justifyContent: 'center', alignItems: 'center', gap: 6 }}>
+              {previewShowcaseItems.map((entry, dotIdx) => {
+                const isActive = dotIdx === previewUnifiedIndex;
+                return (
+                  <button
+                    key={`preview-dot-${entry.kind}-${entry.data?.id || dotIdx}`}
+                    type="button"
+                    onClick={() => {
+                      const container = previewShowcaseScrollRef.current;
+                      if (!container) return;
+                      container.scrollTo({ left: container.offsetWidth * dotIdx, behavior: 'smooth' });
+                    }}
+                    aria-label={`Ir para card ${dotIdx + 1}`}
+                    style={{ width: isActive ? 16 : 8, height: 8, borderRadius: 999, border: 'none', background: isActive ? C.accent : C.alpha(C.t1, 0.2), cursor: 'pointer', transition: 'all .15s ease' }}
+                  />
+                );
+              })}
+            </div>
+          ) : null}
+        </section>
       </div>
     );
   };
@@ -2130,6 +2183,18 @@ export function Onboarding({
   const missingOpsMarkets = !(Array.isArray(selectedMarketsB) && selectedMarketsB.length > 0);
   const missingOpsPrimaryCategory = !String(primaryCategoryB || '').trim();
 
+  const missingPortfolioAddress = !String(portfolioAddress || '').trim();
+  const missingPortfolioCity = !String(portfolioCity || '').trim();
+  const missingPortfolioZip = !String(portfolioZip || '').trim();
+  const missingPortfolioPrice = !String(portfolioPrice || '').trim();
+  const missingPortfolioType = !String(portfolioType || '').trim();
+  const missingPortfolioPrimaryProfile = !String(primaryProfileScope || '').trim();
+
+  const missingServiceTitle = !String(serviceTitle || '').trim();
+  const missingServiceCategory = !String(serviceCategory || '').trim();
+  const missingServicePrice = !String(servicePrice || '').trim();
+  const missingServicePrimaryProfile = !String(servicePrimaryProfileScope || '').trim();
+
   const requiresSkillsTab = accountType === 'professional' && !profileAReady && !profileBReady && profileAComplete && !profileASkillsComplete && !preferProfessionalPath;
   const requiresProfessionalTab = accountType === 'professional' && !profileAReady && !profileBReady && preferProfessionalPath && !profileBComplete;
   const requiresOperationsTab = accountType === 'professional' && !profileAReady && !profileBReady && profileBComplete && !profileBOpsComplete;
@@ -2200,6 +2265,112 @@ export function Onboarding({
     showInlineValidationHint('tab-skills', hintMessage);
     return { valid: false, primaryProfile: null, profileAComplete, profileBComplete };
   };
+
+  const mobileStepCompletionMap = useMemo(() => ({
+    profileAName: !missingProfileAFullName,
+    profileAPhone: !missingProfileAPhone,
+    profileAEmail: !missingProfileAEmail,
+    profileAEmailOrPhone: !missingProfileAPhone || !missingProfileAEmail,
+    profileAContact: !missingProfileAContactMethods,
+    skillsCategories: !missingSkillsCategories,
+    skillsMarkets: !missingSkillsMarkets,
+    skillsPrimaryCategory: !missingSkillsPrimaryCategory,
+    profileBName: !missingProfileBFullName,
+    profileBPhone: !missingProfileBPhone,
+    profileBEmail: !missingProfileBEmail,
+    profileBContact: !missingProfileBContactMethods,
+    opsCategories: !missingOpsCategories,
+    opsMarkets: !missingOpsMarkets,
+    opsPrimaryCategory: !missingOpsPrimaryCategory,
+    portfolioAddress: !missingPortfolioAddress,
+    portfolioCity: !missingPortfolioCity,
+    portfolioZip: !missingPortfolioZip,
+    portfolioPrice: !missingPortfolioPrice,
+    portfolioType: !missingPortfolioType,
+    portfolioPrimaryProfile: !missingPortfolioPrimaryProfile,
+    serviceTitle: !missingServiceTitle,
+    serviceCategory: !missingServiceCategory,
+    servicePrice: !missingServicePrice,
+    servicePrimaryProfile: !missingServicePrimaryProfile,
+  }), [
+    missingProfileAFullName,
+    missingProfileAPhone,
+    missingProfileAEmail,
+    missingProfileAContactMethods,
+    missingSkillsCategories,
+    missingSkillsMarkets,
+    missingSkillsPrimaryCategory,
+    missingProfileBFullName,
+    missingProfileBPhone,
+    missingProfileBEmail,
+    missingProfileBContactMethods,
+    missingOpsCategories,
+    missingOpsMarkets,
+    missingOpsPrimaryCategory,
+    missingPortfolioAddress,
+    missingPortfolioCity,
+    missingPortfolioZip,
+    missingPortfolioPrice,
+    missingPortfolioType,
+    missingPortfolioPrimaryProfile,
+    missingServiceTitle,
+    missingServiceCategory,
+    missingServicePrice,
+    missingServicePrimaryProfile,
+  ]);
+
+  const mobileStepOrder = useMemo(() => {
+    if (accountType === 'professional') {
+      const profileSteps = activePersonal
+        ? ['profileAName', 'profileAPhone', 'profileAEmail', 'profileAContact']
+        : activeSkills
+          ? ['skillsCategories', 'skillsMarkets', 'skillsPrimaryCategory']
+          : activeProfessional
+            ? ['profileBName', 'profileBPhone', 'profileBEmail', 'profileBContact']
+            : ['opsCategories', 'opsMarkets', 'opsPrimaryCategory'];
+
+      const portfolioSteps = portfolioEntryType === 'property'
+        ? ['portfolioAddress', 'portfolioCity', 'portfolioZip', 'portfolioPrice', 'portfolioType', 'portfolioPrimaryProfile']
+        : ['serviceTitle', 'serviceCategory', 'servicePrice', 'servicePrimaryProfile'];
+
+      return [...profileSteps, ...portfolioSteps];
+    }
+
+    return ['profileAName', 'profileAEmailOrPhone', 'profileAContact', 'portfolioAddress', 'portfolioCity', 'portfolioZip', 'portfolioPrice', 'portfolioType', 'portfolioPrimaryProfile'];
+  }, [accountType, activePersonal, activeSkills, activeProfessional, portfolioEntryType]);
+
+  const mobileAutoStepPrevCompletionRef = useRef({});
+
+  useEffect(() => {
+    if (!isMobileViewport) return;
+    mobileAutoStepPrevCompletionRef.current = { ...mobileStepCompletionMap };
+  }, [isMobileViewport, accountType, profileTab, portfolioEntryType]);
+
+  useEffect(() => {
+    if (!isMobileViewport) return;
+    const prev = mobileAutoStepPrevCompletionRef.current;
+    const hasPrevSnapshot = Object.keys(prev || {}).length > 0;
+
+    if (!hasPrevSnapshot) {
+      mobileAutoStepPrevCompletionRef.current = { ...mobileStepCompletionMap };
+      return;
+    }
+
+    const completedNowKey = mobileStepOrder.find((stepKey) => mobileStepCompletionMap[stepKey] && !prev[stepKey]);
+    if (!completedNowKey) {
+      mobileAutoStepPrevCompletionRef.current = { ...mobileStepCompletionMap };
+      return;
+    }
+
+    const completedIdx = mobileStepOrder.indexOf(completedNowKey);
+    const nextStepKey = mobileStepOrder.slice(completedIdx + 1).find((stepKey) => !mobileStepCompletionMap[stepKey]);
+    if (nextStepKey) {
+      const target = onboardingGridRef.current?.querySelector(`[data-mobile-step="${nextStepKey}"]`);
+      target?.scrollIntoView({ behavior: 'smooth', block: 'center', inline: 'nearest' });
+    }
+
+    mobileAutoStepPrevCompletionRef.current = { ...mobileStepCompletionMap };
+  }, [isMobileViewport, mobileStepOrder, mobileStepCompletionMap]);
 
   const handleSaveProfiles = () => {
     const validation = validateMinimumProfileCompletion();
@@ -2769,7 +2940,7 @@ export function Onboarding({
     : removeProfileThumb;
 
   return (
-    <div style={{ height: '100dvh', padding: '66px 12px 4px', boxSizing: 'border-box', overflow: 'hidden', position: 'relative', zIndex: 10 }}>
+    <div style={{ height: isMobileViewport ? 'auto' : '100dvh', minHeight: isMobileViewport ? '100dvh' : 0, padding: '66px 12px 4px', boxSizing: 'border-box', overflowX: 'hidden', overflowY: isMobileViewport ? 'auto' : 'hidden', WebkitOverflowScrolling: 'touch', position: 'relative', zIndex: 10 }}>
       <style>{`
         @keyframes blink-deal {
           0%, 100% { opacity: 1; transform: scale(1); }
@@ -2824,6 +2995,7 @@ export function Onboarding({
         /* .onb-multiselect: make the closed summary look like a native select with fixed height */
         .onb-multiselect { position: relative; overflow: visible; }
         .onb-multiselect summary { height: 33px; min-height: 33px; align-items: center; padding: 0 9px; font-size: 12px; font-weight: 400; background: var(--card); border-radius: 8px; display:flex; justify-content: space-between; }
+        .onb-multiselect summary > span { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
         .onb-multiselect summary svg { width: 14px; height: 14px; color: var(--t3); transition: transform .18s ease, color .18s ease; display:inline-block; margin-left:8px; flex-shrink:0; }
         .onb-multiselect[open] summary svg { transform: rotate(180deg); color: var(--t2); }
         .onb-multiselect .onb-scroll-list {
@@ -2895,8 +3067,69 @@ export function Onboarding({
         .onb-save-profiles.is-dirty {
           animation: onbSaveProfilesBlink 0.95s linear infinite;
         }
+        .onb-preview-showcase-scroll {
+          scrollbar-width: none;
+          -ms-overflow-style: none;
+          -webkit-overflow-scrolling: touch;
+          overscroll-behavior: contain;
+        }
+        .onb-preview-showcase-scroll::-webkit-scrollbar {
+          display: none;
+        }
         @media (hover: none), (pointer: coarse) {
           .onb-thumb-inline-remove { opacity: 1; transform: scale(1); pointer-events: auto; }
+        }
+
+        @media (max-width: 1024px) {
+          .onb-shell {
+            height: auto;
+            min-height: 0;
+            max-height: none;
+          }
+          .onb-head {
+            margin-bottom: 8px;
+          }
+          .onb-grid {
+            grid-template-columns: 1fr;
+            gap: 10px;
+            overflow: visible;
+            -webkit-overflow-scrolling: touch;
+            overscroll-behavior: contain;
+            padding: 0 2px 8px;
+          }
+          .onb-col,
+          .onb-col-left,
+          .onb-col-mid,
+          .onb-col-right,
+          .onb-col-mid > section,
+          .onb-col-left > section,
+          .onb-col-right > section {
+            height: auto !important;
+            min-height: 0 !important;
+            max-height: none !important;
+            overflow: visible !important;
+            grid-template-rows: auto !important;
+            padding-top: 0 !important;
+            padding-bottom: 0 !important;
+          }
+          .onb-mobile-single-grid {
+            grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)) !important;
+          }
+          .onb-account-grid {
+            grid-template-columns: 1fr 1fr !important;
+          }
+          .onb-mobile-single-grid > * {
+            min-width: 0;
+          }
+          .onb-col > section {
+            margin-bottom: 10px;
+          }
+          .onb-col > section:last-child {
+            margin-bottom: 0;
+          }
+          .onb-scroll-list {
+            max-height: 220px;
+          }
         }
 
         @media (min-width: 1200px) {
@@ -2934,10 +3167,10 @@ export function Onboarding({
           </div>
         ) : null}
 
-        <div className="onb-grid">
+        <div className="onb-grid" ref={onboardingGridRef}>
           <div className="onb-col onb-col-left">
             <SectionCard title={t.sectionAccount} subtitle={t.sectionAccountSub}>
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 6 }}>
+              <div className="onb-mobile-single-grid onb-account-grid" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 6 }}>
                 <button className={`onb-account-btn ${accountType === 'professional' ? 'is-active' : ''}`} onClick={() => setAccountType('professional')} style={{ padding: 9, borderRadius: 9, border: `1px solid ${accountType === 'professional' ? C.accent : C.border}`, background: 'transparent', color: accountType === 'professional' ? C.accent : C.t2, fontWeight: 700, fontSize: 11, cursor: 'pointer' }}>{t.accountProfessional}</button>
                 <button className={`onb-account-btn ${accountType === 'fsbo_owner' ? 'is-active' : ''}`} onClick={() => setAccountType('fsbo_owner')} style={{ padding: 9, borderRadius: 9, border: `1px solid ${accountType === 'fsbo_owner' ? C.accent : C.border}`, background: 'transparent', color: accountType === 'fsbo_owner' ? C.accent : C.t2, fontWeight: 700, fontSize: 11, cursor: 'pointer' }}>{t.accountFsboOwner}</button>
               </div>
@@ -3016,10 +3249,10 @@ export function Onboarding({
 
               {(accountType !== 'professional' || activePersonal) ? (
               <>
-              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, minmax(0, 1fr))', gap: 6, marginBottom: 8 }}>
+              <div className="onb-mobile-single-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(2, minmax(0, 1fr))', gap: 6, marginBottom: 8 }}>
                 <label ref={profileAFieldsRef} style={{ display: 'grid', gap: 4, minWidth: 0 }}>
                   <span style={{ fontSize: 10, color: C.t3, textTransform: 'uppercase' }}>{t.labelFullName} <span style={{ color: C.danger }}>*</span></span>
-                  <input value={name} onChange={(e) => setName(e.target.value)} required placeholder={t.placeholderFullName} style={{ width: '100%', padding: '9px 10px', borderRadius: 9, border: `1px solid ${showValidationBorders && missingProfileAFullName ? C.danger : C.border}`, background: C.card, color: C.t1, boxSizing: 'border-box', fontSize: 12 }} />
+                  <input data-mobile-step="profileAName" value={name} onChange={(e) => setName(e.target.value)} required placeholder={t.placeholderFullName} style={{ width: '100%', padding: '9px 10px', borderRadius: 9, border: `1px solid ${showValidationBorders && missingProfileAFullName ? C.danger : C.border}`, background: C.card, color: C.t1, boxSizing: 'border-box', fontSize: 12 }} />
                 </label>
                 <label style={{ display: 'grid', gap: 4, minWidth: 0 }}>
                   <span style={{ fontSize: 10, color: C.t3, textTransform: 'uppercase' }}>{t.labelLocationState}</span>
@@ -3030,18 +3263,18 @@ export function Onboarding({
                 </label>
               </div>
 
-              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, minmax(0, 1fr))', gap: 6, marginBottom: 8 }}>
+              <div data-mobile-step="profileAEmailOrPhone" className="onb-mobile-single-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(2, minmax(0, 1fr))', gap: 6, marginBottom: 8 }}>
                 <label style={{ display: 'grid', gap: 4, minWidth: 0 }}>
                   <span style={{ fontSize: 10, color: C.t3, textTransform: 'uppercase' }}>{t.labelPriorityPhone} <span style={{ color: C.danger }}>*</span></span>
-                  <input value={personalPrimaryPhone} onChange={(e) => setPersonalPrimaryPhone(e.target.value)} required placeholder={t.placeholderPhoneExample} style={{ width: '100%', padding: '9px 10px', borderRadius: 9, border: `1px solid ${showValidationBorders && missingProfileAPhone ? C.danger : C.border}`, background: C.card, color: C.t1, boxSizing: 'border-box', fontSize: 12 }} />
+                  <input data-mobile-step="profileAPhone" value={personalPrimaryPhone} onChange={(e) => setPersonalPrimaryPhone(e.target.value)} required placeholder={t.placeholderPhoneExample} style={{ width: '100%', padding: '9px 10px', borderRadius: 9, border: `1px solid ${showValidationBorders && missingProfileAPhone ? C.danger : C.border}`, background: C.card, color: C.t1, boxSizing: 'border-box', fontSize: 12 }} />
                 </label>
                 <label style={{ display: 'grid', gap: 4, minWidth: 0 }}>
                   <span style={{ fontSize: 10, color: C.t3, textTransform: 'uppercase' }}>{t.labelEmail} <span style={{ color: C.danger }}>*</span></span>
-                  <input value={personalEmail} onChange={(e) => setPersonalEmail(e.target.value)} required placeholder={t.placeholderEmailExample} style={{ width: '100%', padding: '9px 10px', borderRadius: 9, border: `1px solid ${showValidationBorders && missingProfileAEmail ? C.danger : C.border}`, background: C.card, color: C.t1, boxSizing: 'border-box', fontSize: 12 }} />
+                  <input data-mobile-step="profileAEmail" value={personalEmail} onChange={(e) => setPersonalEmail(e.target.value)} required placeholder={t.placeholderEmailExample} style={{ width: '100%', padding: '9px 10px', borderRadius: 9, border: `1px solid ${showValidationBorders && missingProfileAEmail ? C.danger : C.border}`, background: C.card, color: C.t1, boxSizing: 'border-box', fontSize: 12 }} />
                 </label>
               </div>
 
-              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, minmax(0, 1fr))', gap: 6, marginBottom: 8 }}>
+              <div className="onb-mobile-single-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(2, minmax(0, 1fr))', gap: 6, marginBottom: 8 }}>
                 <label style={{ display: 'grid', gap: 4, minWidth: 0 }}>
                   <span style={{ fontSize: 10, color: C.t3, textTransform: 'uppercase' }}>{t.labelSecondaryPhone}</span>
                   <input value={personalSecondaryPhone} onChange={(e) => setPersonalSecondaryPhone(e.target.value)} placeholder={t.placeholderPhoneExample} style={{ width: '100%', padding: '9px 10px', borderRadius: 9, border: `1px solid ${C.border}`, background: C.card, color: C.t1, boxSizing: 'border-box', fontSize: 12 }} />
@@ -3064,7 +3297,7 @@ export function Onboarding({
 
               <div style={{ marginBottom: 8 }}>
                 <div style={{ fontSize: 10, color: C.t3, marginBottom: 4, textTransform: 'uppercase' }}>{t.labelBusinessContactOptions} <span style={{ color: C.danger }}>*</span></div>
-                <div className="onb-scroll-chips" style={{ display: 'flex', flexWrap: 'wrap', gap: 6, border: showValidationBorders && missingProfileAContactMethods ? `1px solid ${C.danger}` : 'none', borderRadius: 9, padding: showValidationBorders && missingProfileAContactMethods ? 6 : 0 }}>
+                <div data-mobile-step="profileAContact" className="onb-scroll-chips" style={{ display: 'flex', flexWrap: 'wrap', gap: 6, border: showValidationBorders && missingProfileAContactMethods ? `1px solid ${C.danger}` : 'none', borderRadius: 9, padding: showValidationBorders && missingProfileAContactMethods ? 6 : 0 }}>
                   {CONTACT_METHOD_PRESETS.map((method) => (
                     <Chip key={method} active={contactMethods.includes(method)} onClick={() => toggleMulti(setContactMethods, method)}>{method}</Chip>
                   ))}
@@ -3087,10 +3320,10 @@ export function Onboarding({
 
               {accountType === 'professional' && activeSkills ? (
               <>
-                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, minmax(0, 1fr))', gap: 6, marginBottom: 8 }}>
+                <div className="onb-mobile-single-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(2, minmax(0, 1fr))', gap: 6, marginBottom: 8 }}>
                   <div>
                     <div style={{ fontSize: 10, color: C.t3, marginBottom: 4, textTransform: 'uppercase' }}>{t.labelCategoriesMultiple}</div>
-                    <details className="onb-multiselect" style={{ border: `1px solid ${showValidationBorders && missingSkillsCategories ? C.danger : C.border}`, borderRadius: 9, padding: '4px 6px', background: C.card }}>
+                    <details data-mobile-step="skillsCategories" className="onb-multiselect" style={{ border: `1px solid ${showValidationBorders && missingSkillsCategories ? C.danger : C.border}`, borderRadius: 9, padding: '4px 6px', background: C.card }}>
                       <summary style={{ cursor: 'pointer', color: C.t2, fontSize: 12, height: 33, alignItems: 'center', padding: '0 9px', background: C.card, borderRadius: 8 }}>
                         <span style={{ display:'inline-block', flex:1, paddingLeft:2, fontWeight: selectedCategories.length ? 700 : 400 }}>{selectedCategories.length ? `${selectedCategories.length} ${t.suffixSelected}` : t.placeholderSelectCategories}</span>
                         <Icon name="chevDown" size={14} color={selectedCategories.length ? C.t1 : C.t3} strokeWidth={selectedCategories.length ? 2 : 1.5} />
@@ -3108,7 +3341,7 @@ export function Onboarding({
 
                   <div>
                     <div style={{ fontSize: 10, color: C.t3, marginBottom: 4, textTransform: 'uppercase' }}>{t.labelMarketsStates}</div>
-                    <details className="onb-multiselect" style={{ border: `1px solid ${showValidationBorders && missingSkillsMarkets ? C.danger : C.border}`, borderRadius: 9, padding: '4px 6px', background: C.card }}>
+                    <details data-mobile-step="skillsMarkets" className="onb-multiselect" style={{ border: `1px solid ${showValidationBorders && missingSkillsMarkets ? C.danger : C.border}`, borderRadius: 9, padding: '4px 6px', background: C.card }}>
                       <summary style={{ cursor: 'pointer', color: C.t2, fontSize: 12, height: 33, alignItems: 'center', padding: '0 9px', background: C.card, borderRadius: 8 }}>
                         <span style={{ display:'inline-block', flex:1, paddingLeft:2, fontWeight: selectedMarkets.length ? 700 : 400 }}>{selectedMarkets.length ? `${selectedMarkets.length} ${t.suffixStatesSelected}` : t.placeholderSelectStates}</span>
                         <Icon name="chevDown" size={14} color={selectedMarkets.length ? C.t1 : C.t3} strokeWidth={selectedMarkets.length ? 2 : 1.5} />
@@ -3127,8 +3360,9 @@ export function Onboarding({
 
                 <div style={{ marginBottom: 8 }}>
                   <div style={{ fontSize: 10, color: C.t3, marginBottom: 4, textTransform: 'uppercase' }}>{t.labelPrimaryCategory}</div>
-                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, minmax(0, 1fr))', gap: 6 }}>
+                  <div className="onb-mobile-single-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(2, minmax(0, 1fr))', gap: 6 }}>
                     <select
+                      data-mobile-step="skillsPrimaryCategory"
                       value={primaryCategory}
                       onChange={(e) => setPrimaryCategory(e.target.value)}
                       style={{ width: '100%', padding: '8px 10px', borderRadius: 9, border: `1px solid ${showValidationBorders && missingSkillsPrimaryCategory ? C.danger : C.border}`, background: C.card, color: C.t1, fontSize: 11 }}
@@ -3165,10 +3399,10 @@ export function Onboarding({
 
               {accountType === 'professional' && activeOperation ? (
               <>
-                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, minmax(0, 1fr))', gap: 6, marginBottom: 8 }}>
+                <div className="onb-mobile-single-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(2, minmax(0, 1fr))', gap: 6, marginBottom: 8 }}>
                   <div>
                     <div style={{ fontSize: 10, color: C.t3, marginBottom: 4, textTransform: 'uppercase' }}>{t.labelCategoriesMultiple}</div>
-                    <details className="onb-multiselect" style={{ border: `1px solid ${showValidationBorders && missingOpsCategories ? C.danger : C.border}`, borderRadius: 9, padding: '4px 6px', background: C.card }}>
+                    <details data-mobile-step="opsCategories" className="onb-multiselect" style={{ border: `1px solid ${showValidationBorders && missingOpsCategories ? C.danger : C.border}`, borderRadius: 9, padding: '4px 6px', background: C.card }}>
                       <summary style={{ cursor: 'pointer', color: C.t2, fontSize: 12, height: 33, alignItems: 'center', padding: '0 9px', background: C.card, borderRadius: 8 }}>
                         <span style={{ display:'inline-block', flex:1, paddingLeft:2, fontWeight: selectedCategoriesB.length ? 700 : 400 }}>{selectedCategoriesB.length ? `${selectedCategoriesB.length} ${t.suffixSelected}` : t.placeholderSelectCategories}</span>
                         <Icon name="chevDown" size={14} color={selectedCategoriesB.length ? C.t1 : C.t3} strokeWidth={selectedCategoriesB.length ? 2 : 1.5} />
@@ -3186,7 +3420,7 @@ export function Onboarding({
 
                   <div>
                     <div style={{ fontSize: 10, color: C.t3, marginBottom: 4, textTransform: 'uppercase' }}>{t.labelMarketsStates}</div>
-                    <details className="onb-multiselect" style={{ border: `1px solid ${showValidationBorders && missingOpsMarkets ? C.danger : C.border}`, borderRadius: 9, padding: '4px 6px', background: C.card }}>
+                    <details data-mobile-step="opsMarkets" className="onb-multiselect" style={{ border: `1px solid ${showValidationBorders && missingOpsMarkets ? C.danger : C.border}`, borderRadius: 9, padding: '4px 6px', background: C.card }}>
                       <summary style={{ cursor: 'pointer', color: C.t2, fontSize: 12, height: 33, alignItems: 'center', padding: '0 9px', background: C.card, borderRadius: 8 }}>
                         <span style={{ display:'inline-block', flex:1, paddingLeft:2, fontWeight: selectedMarketsB.length ? 700 : 400 }}>{selectedMarketsB.length ? `${selectedMarketsB.length} ${t.suffixStatesSelected}` : t.placeholderSelectStates}</span>
                         <Icon name="chevDown" size={14} color={selectedMarketsB.length ? C.t1 : C.t3} strokeWidth={selectedMarketsB.length ? 2 : 1.5} />
@@ -3205,8 +3439,9 @@ export function Onboarding({
 
                 <div style={{ marginBottom: 8 }}>
                   <div style={{ fontSize: 10, color: C.t3, marginBottom: 4, textTransform: 'uppercase' }}>{t.labelPrimaryCategory}</div>
-                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, minmax(0, 1fr))', gap: 6 }}>
+                  <div className="onb-mobile-single-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(2, minmax(0, 1fr))', gap: 6 }}>
                     <select
+                      data-mobile-step="opsPrimaryCategory"
                       value={primaryCategoryB}
                       onChange={(e) => setPrimaryCategoryB(e.target.value)}
                       style={{ width: '100%', padding: '8px 10px', borderRadius: 9, border: `1px solid ${showValidationBorders && missingOpsPrimaryCategory ? C.danger : C.border}`, background: C.card, color: C.t1, fontSize: 11 }}
@@ -3243,10 +3478,10 @@ export function Onboarding({
 
               {accountType === 'professional' && activeProfessional ? (
               <>
-              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, minmax(0, 1fr))', gap: 6, marginBottom: 8 }}>
+              <div className="onb-mobile-single-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(2, minmax(0, 1fr))', gap: 6, marginBottom: 8 }}>
                 <label style={{ display: 'grid', gap: 4, minWidth: 0 }}>
                   <span style={{ fontSize: 10, color: C.t3, textTransform: 'uppercase' }}>{t.labelFullName} <span style={{ color: C.danger }}>*</span></span>
-                  <input value={nameB} onChange={(e) => setNameB(e.target.value)} required placeholder={t.placeholderFullName} style={{ width: '100%', padding: '9px 10px', borderRadius: 9, border: `1px solid ${showValidationBorders && missingProfileBFullName ? C.danger : C.border}`, background: C.card, color: C.t1, boxSizing: 'border-box', fontSize: 12 }} />
+                  <input data-mobile-step="profileBName" value={nameB} onChange={(e) => setNameB(e.target.value)} required placeholder={t.placeholderFullName} style={{ width: '100%', padding: '9px 10px', borderRadius: 9, border: `1px solid ${showValidationBorders && missingProfileBFullName ? C.danger : C.border}`, background: C.card, color: C.t1, boxSizing: 'border-box', fontSize: 12 }} />
                 </label>
                 <label style={{ display: 'grid', gap: 4, minWidth: 0 }}>
                   <span style={{ fontSize: 10, color: C.t3, textTransform: 'uppercase' }}>{t.labelLocationState}</span>
@@ -3257,18 +3492,18 @@ export function Onboarding({
                 </label>
               </div>
 
-              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, minmax(0, 1fr))', gap: 6, marginBottom: 8 }}>
+              <div className="onb-mobile-single-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(2, minmax(0, 1fr))', gap: 6, marginBottom: 8 }}>
                 <label style={{ display: 'grid', gap: 4, minWidth: 0 }}>
                   <span style={{ fontSize: 10, color: C.t3, textTransform: 'uppercase' }}>{t.labelPriorityPhone} <span style={{ color: C.danger }}>*</span></span>
-                  <input value={personalPrimaryPhoneB} onChange={(e) => setPersonalPrimaryPhoneB(e.target.value)} required placeholder={t.placeholderPhoneExample} style={{ width: '100%', padding: '9px 10px', borderRadius: 9, border: `1px solid ${showValidationBorders && missingProfileBPhone ? C.danger : C.border}`, background: C.card, color: C.t1, boxSizing: 'border-box', fontSize: 12 }} />
+                  <input data-mobile-step="profileBPhone" value={personalPrimaryPhoneB} onChange={(e) => setPersonalPrimaryPhoneB(e.target.value)} required placeholder={t.placeholderPhoneExample} style={{ width: '100%', padding: '9px 10px', borderRadius: 9, border: `1px solid ${showValidationBorders && missingProfileBPhone ? C.danger : C.border}`, background: C.card, color: C.t1, boxSizing: 'border-box', fontSize: 12 }} />
                 </label>
                 <label style={{ display: 'grid', gap: 4, minWidth: 0 }}>
                   <span style={{ fontSize: 10, color: C.t3, textTransform: 'uppercase' }}>{t.labelEmail} <span style={{ color: C.danger }}>*</span></span>
-                  <input value={personalEmailB} onChange={(e) => setPersonalEmailB(e.target.value)} required placeholder={t.placeholderEmailExample} style={{ width: '100%', padding: '9px 10px', borderRadius: 9, border: `1px solid ${showValidationBorders && missingProfileBEmail ? C.danger : C.border}`, background: C.card, color: C.t1, boxSizing: 'border-box', fontSize: 12 }} />
+                  <input data-mobile-step="profileBEmail" value={personalEmailB} onChange={(e) => setPersonalEmailB(e.target.value)} required placeholder={t.placeholderEmailExample} style={{ width: '100%', padding: '9px 10px', borderRadius: 9, border: `1px solid ${showValidationBorders && missingProfileBEmail ? C.danger : C.border}`, background: C.card, color: C.t1, boxSizing: 'border-box', fontSize: 12 }} />
                 </label>
               </div>
 
-              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, minmax(0, 1fr))', gap: 6, marginBottom: 8 }}>
+              <div className="onb-mobile-single-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(2, minmax(0, 1fr))', gap: 6, marginBottom: 8 }}>
                 <label style={{ display: 'grid', gap: 4, minWidth: 0 }}>
                   <span style={{ fontSize: 10, color: C.t3, textTransform: 'uppercase' }}>{t.labelSecondaryPhone}</span>
                   <input value={personalSecondaryPhoneB} onChange={(e) => setPersonalSecondaryPhoneB(e.target.value)} placeholder={t.placeholderPhoneExample} style={{ width: '100%', padding: '9px 10px', borderRadius: 9, border: `1px solid ${C.border}`, background: C.card, color: C.t1, boxSizing: 'border-box', fontSize: 12 }} />
@@ -3289,7 +3524,7 @@ export function Onboarding({
 
               <div style={{ marginBottom: 8 }}>
                 <div style={{ fontSize: 10, color: C.t3, marginBottom: 4, textTransform: 'uppercase' }}>{t.labelBusinessContactOptions} <span style={{ color: C.danger }}>*</span></div>
-                <div className="onb-scroll-chips" style={{ display: 'flex', flexWrap: 'wrap', gap: 6, border: showValidationBorders && missingProfileBContactMethods ? `1px solid ${C.danger}` : 'none', borderRadius: 9, padding: showValidationBorders && missingProfileBContactMethods ? 6 : 0 }}>
+                <div data-mobile-step="profileBContact" className="onb-scroll-chips" style={{ display: 'flex', flexWrap: 'wrap', gap: 6, border: showValidationBorders && missingProfileBContactMethods ? `1px solid ${C.danger}` : 'none', borderRadius: 9, padding: showValidationBorders && missingProfileBContactMethods ? 6 : 0 }}>
                   {CONTACT_METHOD_PRESETS.map((method) => (
                     <Chip key={method} active={contactMethodsB.includes(method)} onClick={() => toggleMulti(setContactMethodsB, method)}>{method}</Chip>
                   ))}
@@ -3321,6 +3556,8 @@ export function Onboarding({
           <div className="onb-col onb-col-mid">
             {accountType === 'professional' ? (
               <SectionCard title={t.sectionPortfolio} subtitle={t.sectionPortfolioSub} grow={true}>
+                {/* scrollable form area: tab1 + form + add-preview buttons */}
+                <div style={{ flex: isMobileViewport ? '0 0 auto' : 1, minHeight: isMobileViewport ? 'auto' : 0, overflowY: isMobileViewport ? 'visible' : 'auto', display: 'flex', flexDirection: 'column' }}>
                 <div style={{ display: 'flex', gap: 4, marginBottom: 10, paddingBottom: 2, borderBottom: `1px solid ${C.border}` }}>
                   <button onClick={() => setPortfolioEntryType('property')} style={{ padding: '8px 14px 7px', borderTopLeftRadius: 10, borderTopRightRadius: 10, borderBottomLeftRadius: 0, borderBottomRightRadius: 0, border: `1px solid ${portfolioEntryType === 'property' ? C.border : 'transparent'}`, borderBottom: portfolioEntryType === 'property' ? `1px solid ${C.card}` : `1px solid transparent`, background: portfolioEntryType === 'property' ? C.card : C.alpha(C.t1, 0.04), color: portfolioEntryType === 'property' ? C.t1 : C.t2, fontWeight: 700, fontSize: 11, cursor: 'pointer', marginBottom: -3, boxShadow: portfolioEntryType === 'property' ? `inset 0 2px 0 ${C.accent}` : 'none' }}>
                     {t.tabProperty}
@@ -3334,6 +3571,7 @@ export function Onboarding({
                   <ProfessionalPropertyForm
                     t={t}
                     C={C}
+                    isMobileViewport={isMobileViewport}
                     values={portfolioFormValues}
                     onChange={handlePortfolioFieldChange}
                     formatCurrencyInput={formatCurrencyInput}
@@ -3350,28 +3588,29 @@ export function Onboarding({
                   />
                 ) : (
                   <>
-                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, minmax(0, 1fr))', gap: 6, marginBottom: 8 }}>
+                    <div style={{ display: 'grid', gridTemplateColumns: isMobileViewport ? 'repeat(2, minmax(0, 1fr))' : 'repeat(2, minmax(0, 1fr))', gap: 6, marginBottom: 8 }}>
                       <div style={{ position: 'relative', minWidth: 0 }}>
                         <span style={portfolioFieldLabelStyle}>{t.placeholderServiceName.toUpperCase()}</span>
-                        <input value={serviceTitle} onChange={(e) => setServiceTitle(e.target.value)} placeholder="" style={portfolioFieldInputStyle({ padding: '8px 10px 8px 118px' })} />
+                        <input data-mobile-step="serviceTitle" value={serviceTitle} onChange={(e) => setServiceTitle(e.target.value)} placeholder="" style={portfolioFieldInputStyle({ padding: isMobileViewport ? '8px 10px 8px 92px' : '8px 10px 8px 118px' })} />
                       </div>
-                      <select value={serviceCategory} onChange={(e) => setServiceCategory(e.target.value)} style={{ padding: '8px 10px', borderRadius: 9, border: `1px solid ${C.border}`, background: C.card, color: C.t1, fontSize: 11 }}>
+                      <select data-mobile-step="serviceCategory" value={serviceCategory} onChange={(e) => setServiceCategory(e.target.value)} style={portfolioFieldSelectStyle({ paddingLeft: 10, paddingRight: 28 })}>
                         <option value="">{t.placeholderServiceCategory}</option>
                         {FEED_TASKBAR_CATEGORY_OPTIONS.map((svc) => <option key={`service-cat-${svc}`} value={svc}>{svc}</option>)}
                       </select>
                     </div>
-                    <div style={{ display: 'grid', gridTemplateColumns: 'minmax(110px, 1fr) minmax(130px, 1fr) minmax(180px, 1.2fr)', gap: 6, marginBottom: 8 }}>
+                    <div style={{ display: 'grid', gridTemplateColumns: isMobileViewport ? 'repeat(2, minmax(0, 1fr))' : 'minmax(110px, 1fr) minmax(130px, 1fr) minmax(180px, 1.2fr)', gap: 6, marginBottom: 8 }}>
                       <div style={{ position: 'relative', minWidth: 0 }}>
                         <span style={portfolioFieldLabelStyle}>{t.labelUsdPriceShort}</span>
-                        <input value={servicePrice} onChange={(e) => setServicePrice(formatCurrencyInput(e.target.value))} inputMode="decimal" placeholder="" style={portfolioFieldInputStyle()} />
+                        <input data-mobile-step="servicePrice" value={servicePrice} onChange={(e) => setServicePrice(formatCurrencyInput(e.target.value))} inputMode="decimal" placeholder="" style={portfolioFieldInputStyle()} />
                       </div>
                       <div style={{ position: 'relative', minWidth: 0 }}>
                         <span style={portfolioFieldLabelStyle}>{'Link to Profile'}</span>
                         <select
+                          data-mobile-step="servicePrimaryProfile"
                           value={servicePrimaryProfileScope}
                           onChange={(e) => setServicePrimaryProfileScope(e.target.value)}
                           style={{
-                            ...portfolioFieldSelectStyle({ paddingLeft: 124 }),
+                            ...portfolioFieldSelectStyle({ paddingLeft: isMobileViewport ? 102 : 124 }),
                             borderColor: !servicePrimaryProfileScope ? C.danger : C.border,
                           }}
                         >
@@ -3381,7 +3620,7 @@ export function Onboarding({
                           <option value="fsbo">FSBO</option>
                         </select>
                       </div>
-                      <div style={{ position: 'relative', minWidth: 0 }}>
+                      <div style={{ position: 'relative', minWidth: 0, gridColumn: isMobileViewport ? '1 / -1' : 'auto' }}>
                         {renderMarketsSelector(serviceMarkets, (code) => toggleMulti(setServiceMarkets, code), { showSummary: false, inlineLabel: 'States' })}
                       </div>
                     </div>
@@ -3399,7 +3638,7 @@ export function Onboarding({
                   </>
                 )}
 
-                <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
+                <div style={{ display: 'flex', flexDirection: isMobileViewport ? 'column' : 'row', gap: 8, alignItems: isMobileViewport ? 'stretch' : 'center' }}>
                   <button onClick={portfolioEntryType === 'property' ? addProfessionalPortfolioProperty : addProfessionalPortfolioService} style={{ flex: 1, padding: '8px 10px', borderRadius: 9, border: `1px solid ${C.accent}`, background: 'transparent', color: C.accent, fontWeight: 700, cursor: 'pointer', fontSize: 11 }}>
                     + Add to Portfolio
                   </button>
@@ -3409,6 +3648,7 @@ export function Onboarding({
                   </button>
                 </div>
 
+                </div>{/* end scrollable form area */}
                 <div style={{ display: 'flex', gap: 4, marginTop: 8, paddingBottom: 2, borderBottom: `1px solid ${C.border}` }}>
                   <button
                     onClick={() => setPortfolioRecordsTab('properties')}
@@ -3454,7 +3694,7 @@ export function Onboarding({
                   </button>
                 </div>
 
-                <div className="onb-scroll-list" style={{ border: `1px solid ${C.border}`, borderRadius: 10, padding: 8, background: C.card, marginTop: 8, flex: '0 0 130px', height: '130px', minHeight: '130px', maxHeight: '130px', overflowY: 'auto', overflowX: 'hidden' }}>
+                <div className="onb-scroll-list" style={{ border: `1px solid ${C.border}`, borderRadius: 10, padding: 8, background: C.card, marginTop: 8, flex: isMobileViewport ? '1 1 auto' : '0 0 130px', height: isMobileViewport ? 'auto' : '130px', minHeight: isMobileViewport ? 0 : '130px', maxHeight: isMobileViewport ? 'none' : '130px', overflowY: 'auto', overflowX: 'hidden' }}>
                   {portfolioRecordsTab === 'properties' ? (
                     myPortfolio.length === 0 ? (
                       <div style={{ fontSize: 11, color: C.t3 }}>{t.recordsNoProperty}</div>
@@ -3467,12 +3707,11 @@ export function Onboarding({
                           onDragOver={(e) => e.preventDefault()}
                           onDrop={(e) => { const from = Number(e.dataTransfer.getData('text/plain')); if (!Number.isNaN(from)) movePortfolioTo(from, i); }}
                           style={{ borderBottom: i < myPortfolio.length - 1 ? `1px solid ${C.border}` : 'none' }}>
-                          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 6, padding: '7px 0' }}>
-                            <div style={{ minWidth: 0, flex: 1, fontSize: 11, color: C.t1, fontWeight: 700, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
-                              {p.address} · {p.city} · ${Number(p.price || 0).toLocaleString('en-US')} · {p.dealTag || t.sectionPortfolio}
+                          <div style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: 6, padding: '7px 0' }}>
+                            <div style={{ minWidth: 0, flex: '1 1 100%', fontSize: 11, color: C.t1, fontWeight: 700, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                              {p.address} · {p.city} · ${Number(p.price || 0).toLocaleString('en-US')} · {p.dealTag || t.sectionPortfolio} · {p.images?.length || 0} img
                             </div>
-                            <span style={{ fontSize: 10, color: C.t3, flexShrink: 0 }}>{p.images?.length || 0} img</span>
-                            <div style={{ display:'flex', alignItems:'center', gap:6 }}>
+                            <div style={{ display:'flex', alignItems:'center', gap:6, width: '100%', flexWrap: isMobileViewport ? 'nowrap' : 'wrap' }}>
                               {!p.dealClosed ? (
                                 <Chip active={isTruthyFlag(p.publishToShowcase, true)} onClick={() => {
                                   togglePropertyShowInShowcase(p.id);
@@ -3482,6 +3721,9 @@ export function Onboarding({
                                 title={isTruthyFlag(p.publishToShowcase, true) ? t.publishInShowcaseInactive : t.publishInShowcaseActive}
                                 style={{
                                   marginRight: 'auto',
+                                  overflow: 'hidden',
+                                  textOverflow: 'ellipsis',
+                                  whiteSpace: 'nowrap',
                                   background: isTruthyFlag(p.publishToShowcase, true) ? C.alpha(C.danger, 0.08) : C.alpha(C.accent, 0.1),
                                   border: `1px solid ${isTruthyFlag(p.publishToShowcase, true) ? C.danger : C.accent}`,
                                   color: isTruthyFlag(p.publishToShowcase, true) ? C.danger : C.accent,
@@ -3797,12 +4039,11 @@ export function Onboarding({
                     ) : (
                       myServicePortfolio.map((svc, i) => (
                         <div key={svc.id || `svc-rec-${i}`} style={{ borderBottom: i < myServicePortfolio.length - 1 ? `1px solid ${C.border}` : 'none' }}>
-                          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 6, padding: '7px 0' }}>
-                            <div style={{ minWidth: 0, flex: 1, fontSize: 11, color: C.t1, fontWeight: 700, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
-                              {svc.title || t.serviceFallbackName}{svc.category ? ` · ${svc.category}` : ''}
+                          <div style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: 6, padding: '7px 0' }}>
+                            <div style={{ minWidth: 0, flex: '1 1 100%', fontSize: 11, color: C.t1, fontWeight: 700, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                              {svc.title || t.serviceFallbackName}{svc.category ? ` · ${svc.category}` : ''} · {svc.media?.images?.length || 0} img
                             </div>
-                            <span style={{ fontSize: 10, color: C.t3, flexShrink: 0 }}>{svc.media?.images?.length || 0} img</span>
-                            <div style={{ display:'flex', alignItems:'center', gap:6 }}>
+                            <div style={{ display:'flex', alignItems:'center', gap:6, width: '100%', flexWrap: isMobileViewport ? 'nowrap' : 'wrap' }}>
                               {!svc.dealClosed ? (
                                 <Chip active={isTruthyFlag(svc.publishToConnections, true)} onClick={() => {
                                   toggleServiceShowInConnections(svc.id);
@@ -3812,6 +4053,9 @@ export function Onboarding({
                                 title={isTruthyFlag(svc.publishToConnections, true) ? t.labelConnectionsInactive : t.labelConnectionsActive}
                                 style={{
                                   marginRight: 'auto',
+                                  overflow: 'hidden',
+                                  textOverflow: 'ellipsis',
+                                  whiteSpace: 'nowrap',
                                   background: isTruthyFlag(svc.publishToConnections, true) ? C.alpha(C.danger, 0.08) : C.alpha(C.accent, 0.1),
                                   border: `1px solid ${isTruthyFlag(svc.publishToConnections, true) ? C.danger : C.accent}`,
                                   color: isTruthyFlag(svc.publishToConnections, true) ? C.danger : C.accent,
@@ -3856,26 +4100,26 @@ export function Onboarding({
                                   <Icon name="edit" size={14} color={editingServiceId === svc.id ? C.accent : C.t3} />
                                 </button>
                               ) : null}
-                            </div>
-                            {/* Move / Remove controls for service records */}
-                            <div style={{ display: 'flex', gap: 6, alignItems: 'center' }}>
-                              <button type="button" onClick={() => setServicePortfolio(prev => {
-                                const idx = prev.findIndex(x => x.id === svc.id);
-                                if (idx <= 0) return prev;
-                                const next = [...prev]; const tmp = next[idx-1]; next[idx-1] = next[idx]; next[idx] = tmp; return next;
-                              })} title={t.moveUp} aria-label={t.moveUp} style={{ background: 'none', border: 'none', cursor: 'pointer', padding: '0 6px', flexShrink: 0 }}>
-                                <Icon name="chevUp" size={14} color={C.t3} />
-                              </button>
-                              <button type="button" onClick={() => setServicePortfolio(prev => {
-                                const idx = prev.findIndex(x => x.id === svc.id);
-                                if (idx === -1 || idx >= prev.length-1) return prev;
-                                const next = [...prev]; const tmp = next[idx+1]; next[idx+1] = next[idx]; next[idx] = tmp; return next;
-                              })} title={t.moveDown} aria-label={t.moveDown} style={{ background: 'none', border: 'none', cursor: 'pointer', padding: '0 6px', flexShrink: 0 }}>
-                                <Icon name="chevDown" size={14} color={C.t3} />
-                              </button>
-                              <button type="button" onClick={() => setServicePortfolio(prev => prev.filter(x => x.id !== svc.id))} title={t.actionRemove} aria-label={t.actionRemove} style={{ background: 'none', border: 'none', cursor: 'pointer', padding: '0 6px', flexShrink: 0 }}>
-                                <Icon name="trash" size={14} color={C.danger} />
-                              </button>
+                              {/* Move / Remove controls (same row as chips) */}
+                              <div style={{ display: 'flex', gap: 6, alignItems: 'center', flexShrink: 0, marginLeft: 'auto' }}>
+                                <button type="button" onClick={() => setServicePortfolio(prev => {
+                                  const idx = prev.findIndex(x => x.id === svc.id);
+                                  if (idx <= 0) return prev;
+                                  const next = [...prev]; const tmp = next[idx-1]; next[idx-1] = next[idx]; next[idx] = tmp; return next;
+                                })} title={t.moveUp} aria-label={t.moveUp} style={{ background: 'none', border: 'none', cursor: 'pointer', padding: '0 6px', flexShrink: 0 }}>
+                                  <Icon name="chevUp" size={14} color={C.t3} />
+                                </button>
+                                <button type="button" onClick={() => setServicePortfolio(prev => {
+                                  const idx = prev.findIndex(x => x.id === svc.id);
+                                  if (idx === -1 || idx >= prev.length-1) return prev;
+                                  const next = [...prev]; const tmp = next[idx+1]; next[idx+1] = next[idx]; next[idx] = tmp; return next;
+                                })} title={t.moveDown} aria-label={t.moveDown} style={{ background: 'none', border: 'none', cursor: 'pointer', padding: '0 6px', flexShrink: 0 }}>
+                                  <Icon name="chevDown" size={14} color={C.t3} />
+                                </button>
+                                <button type="button" onClick={() => setServicePortfolio(prev => prev.filter(x => x.id !== svc.id))} title={t.actionRemove} aria-label={t.actionRemove} style={{ background: 'none', border: 'none', cursor: 'pointer', padding: '0 6px', flexShrink: 0 }}>
+                                  <Icon name="trash" size={14} color={C.danger} />
+                                </button>
+                              </div>
                             </div>
                           </div>
                           {false && editingServiceId === svc.id && (
@@ -3976,6 +4220,7 @@ export function Onboarding({
                 <FsboPropertyForm
                   t={t}
                   C={C}
+                  isMobileViewport={isMobileViewport}
                   values={portfolioFormValues}
                   onChange={handlePortfolioFieldChange}
                   formatCurrencyInput={formatCurrencyInput}
@@ -3991,7 +4236,7 @@ export function Onboarding({
                   portfolioFieldTextareaStyle={portfolioFieldTextareaStyle}
                 />
 
-                <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
+                <div style={{ display: 'flex', flexDirection: isMobileViewport ? 'column' : 'row', gap: 8, alignItems: isMobileViewport ? 'stretch' : 'center' }}>
                   <button onClick={addFsboProperty} style={{ flex: 1, padding: '8px 10px', borderRadius: 9, border: `1px solid ${C.accent}`, background: 'transparent', color: C.accent, fontWeight: 700, cursor: 'pointer', fontSize: 11 }}>
                     {t.addToPortfolio}
                   </button>
@@ -4007,12 +4252,11 @@ export function Onboarding({
                   ) : (
                     myPortfolio.map((p, i) => (
                       <div key={p.id} style={{ borderBottom: i < myPortfolio.length - 1 ? `1px solid ${C.border}` : 'none' }}>
-                          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 6, padding: '7px 0' }}>
-                            <div style={{ minWidth: 0, flex: 1, fontSize: 11, color: C.t1, fontWeight: 700, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
-                              {p.address} · {p.city} · ${Number(p.price || 0).toLocaleString('en-US')}
+                          <div style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: 6, padding: '7px 0' }}>
+                            <div style={{ minWidth: 0, flex: '1 1 100%', fontSize: 11, color: C.t1, fontWeight: 700, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                              {p.address} · {p.city} · ${Number(p.price || 0).toLocaleString('en-US')} · {p.images?.length || 0} img
                             </div>
-                          <span style={{ fontSize: 10, color: C.t3, flexShrink: 0 }}>{p.images?.length || 0} img</span>
-                            <div style={{ display:'flex', alignItems:'center', gap:6 }}>
+                            <div style={{ display:'flex', alignItems:'center', gap:6, width: '100%', flexWrap: isMobileViewport ? 'nowrap' : 'wrap' }}>
                               {!p.dealClosed ? (
                                 <Chip active={isTruthyFlag(p.publishToShowcase, true)} onClick={() => {
                                   togglePropertyShowInShowcase(p.id);
@@ -4022,6 +4266,9 @@ export function Onboarding({
                                 title={isTruthyFlag(p.publishToShowcase, true) ? t.publishInShowcaseInactive : t.publishInShowcaseActive}
                                 style={{
                                   marginRight: 'auto',
+                                  overflow: 'hidden',
+                                  textOverflow: 'ellipsis',
+                                  whiteSpace: 'nowrap',
                                   background: isTruthyFlag(p.publishToShowcase, true) ? C.alpha(C.danger, 0.08) : C.alpha(C.accent, 0.1),
                                   border: `1px solid ${isTruthyFlag(p.publishToShowcase, true) ? C.danger : C.accent}`,
                                   color: isTruthyFlag(p.publishToShowcase, true) ? C.danger : C.accent,
@@ -4347,7 +4594,7 @@ export function Onboarding({
         <Modal onClose={() => setEditingPropertyId(null)} maxWidth={1080}>
           <h3 style={{ margin: '0 0 6px', color: C.t1, fontSize: 20, fontWeight: 800 }}>Editar Imóvel</h3>
           <p style={{ margin: '0 0 14px', color: C.t3, fontSize: 12 }}>{editingPropertyRecord.address} · {editingPropertyRecord.city}</p>
-          <div style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 1.5fr) minmax(0, 1.15fr) minmax(96px, 0.7fr) minmax(112px, 0.8fr)', gap: 10, marginBottom: 10 }}>
+          <div style={{ display: 'grid', gridTemplateColumns: isMobileViewport ? 'repeat(2, minmax(0, 1fr))' : 'minmax(0, 1.5fr) minmax(0, 1.15fr) minmax(96px, 0.7fr) minmax(112px, 0.8fr)', gap: 10, marginBottom: 10 }}>
             <div style={{ position: 'relative', minWidth: 0 }}>
               <span style={portfolioFieldLabelStyle}>{t.labelAddrShort}</span>
               <input value={propertyEditDraft.address} onChange={(e) => setPropertyEditDraft(prev => ({ ...prev, address: e.target.value }))} style={portfolioFieldInputStyle()} />
@@ -4365,7 +4612,7 @@ export function Onboarding({
               <input value={propertyEditDraft.capRate || ''} onChange={(e) => setPropertyEditDraft(prev => ({ ...prev, capRate: formatRateInput(e.target.value) }))} inputMode="decimal" maxLength={5} style={portfolioFieldInputStyle({ textAlign: 'right' })} />
             </div>
           </div>
-          <div style={{ display: 'grid', gridTemplateColumns: 'minmax(132px, 1.1fr) minmax(132px, 1.1fr) minmax(76px, 0.65fr) minmax(76px, 0.65fr) minmax(88px, 0.8fr) minmax(110px, 0.9fr)', gap: 10, marginBottom: 10 }}>
+          <div style={{ display: 'grid', gridTemplateColumns: isMobileViewport ? 'repeat(2, minmax(0, 1fr))' : 'minmax(132px, 1.1fr) minmax(132px, 1.1fr) minmax(76px, 0.65fr) minmax(76px, 0.65fr) minmax(88px, 0.8fr) minmax(110px, 0.9fr)', gap: 10, marginBottom: 10 }}>
             <div style={{ position: 'relative', minWidth: 0 }}>
               <span style={portfolioFieldLabelStyle}>{t.labelUsdPriceShort}</span>
               <input value={propertyEditDraft.price} onChange={(e) => setPropertyEditDraft(prev => ({ ...prev, price: formatCurrencyInput(e.target.value) }))} inputMode="decimal" style={portfolioFieldInputStyle({ textAlign: 'right' })} />
@@ -4391,7 +4638,7 @@ export function Onboarding({
               <input value={propertyEditDraft.lot} onChange={(e) => setPropertyEditDraft(prev => ({ ...prev, lot: e.target.value }))} style={portfolioFieldInputStyle()} />
             </div>
           </div>
-          <div style={{ display: 'grid', gridTemplateColumns: 'minmax(140px, 1fr) minmax(140px, 1fr) minmax(160px, 1fr) minmax(220px, 1.25fr)', gap: 10, marginBottom: 10 }}>
+          <div style={{ display: 'grid', gridTemplateColumns: isMobileViewport ? '1fr' : 'minmax(140px, 1fr) minmax(140px, 1fr) minmax(160px, 1fr) minmax(220px, 1.25fr)', gap: 10, marginBottom: 10 }}>
             <div style={{ position: 'relative' }}>
               <span style={portfolioFieldLabelStyle}>{t.labelTypeShort}</span>
               <select value={propertyEditDraft.type} onChange={(e) => setPropertyEditDraft(prev => ({ ...prev, type: e.target.value }))} style={portfolioFieldSelectStyle()}>
@@ -4438,7 +4685,7 @@ export function Onboarding({
             <div style={{ fontSize: 10, color: C.t3, textTransform: 'uppercase', marginBottom: 6 }}>{t.actionReplaceImagesUpTo10}</div>
             <input type="file" accept="image/*" multiple onChange={(e) => handleEditImages(e, editingPropertyRecord.id)} style={{ display: 'block', fontSize: 11, marginBottom: 10 }} />
             {(editingPropertyRecord.images?.length || 0) > 0 ? (
-              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(5, minmax(0, 1fr))', gap: 6 }}>
+              <div style={{ display: 'grid', gridTemplateColumns: isMobileViewport ? 'repeat(3, minmax(0, 1fr))' : 'repeat(5, minmax(0, 1fr))', gap: 6 }}>
                 {editingPropertyRecord.images.slice(0, 10).map((imgSrc, imgIdx) => (
                   <div
                     key={`${editingPropertyRecord.id}-modal-img-${imgIdx}`}
@@ -4482,7 +4729,7 @@ export function Onboarding({
         <Modal onClose={() => setEditingServiceId(null)} maxWidth={920}>
           <h3 style={{ margin: '0 0 6px', color: C.t1, fontSize: 20, fontWeight: 800 }}>{t.actionEditService}</h3>
           <p style={{ margin: '0 0 14px', color: C.t3, fontSize: 12 }}>{editingServiceRecord.title || t.serviceFallbackName}</p>
-          <div style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 1.5fr) minmax(0, 1.1fr)', gap: 10, marginBottom: 10 }}>
+          <div style={{ display: 'grid', gridTemplateColumns: isMobileViewport ? '1fr' : 'minmax(0, 1.5fr) minmax(0, 1.1fr)', gap: 10, marginBottom: 10 }}>
             <div style={{ position: 'relative' }}>
               <span style={portfolioFieldLabelStyle}>{t.placeholderServiceName.toUpperCase()}</span>
               <input value={serviceEditDraft.title} onChange={(e) => setServiceEditDraft((prev) => ({ ...prev, title: e.target.value }))} style={portfolioFieldInputStyle({ paddingLeft: 128, textAlign: 'right' })} />
@@ -4500,7 +4747,7 @@ export function Onboarding({
               </select>
             </div>
           </div>
-          <div style={{ display: 'grid', gridTemplateColumns: 'minmax(132px, 0.8fr) minmax(180px, 0.95fr) minmax(220px, 1.15fr)', gap: 10, marginBottom: 10 }}>
+          <div style={{ display: 'grid', gridTemplateColumns: isMobileViewport ? '1fr' : 'minmax(132px, 0.8fr) minmax(180px, 0.95fr) minmax(220px, 1.15fr)', gap: 10, marginBottom: 10 }}>
             <div style={{ position: 'relative' }}>
               <span style={portfolioFieldLabelStyle}>{t.labelUsdPriceShort}</span>
               <input value={serviceEditDraft.price} onChange={(e) => setServiceEditDraft((prev) => ({ ...prev, price: formatCurrencyInput(e.target.value) }))} inputMode="decimal" style={portfolioFieldInputStyle({ textAlign: 'right' })} />
@@ -4526,7 +4773,7 @@ export function Onboarding({
             <div style={{ fontSize: 10, color: C.t3, textTransform: 'uppercase', marginBottom: 6 }}>{t.actionReplaceImages}</div>
             <input type="file" accept="image/*" multiple onChange={(e) => handleEditServiceImages(e, editingServiceRecord.id)} style={{ display: 'block', fontSize: 11, marginBottom: 10 }} />
             {(editingServiceRecord.media?.images?.length || 0) > 0 ? (
-              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(5, minmax(0, 1fr))', gap: 6 }}>
+              <div style={{ display: 'grid', gridTemplateColumns: isMobileViewport ? 'repeat(3, minmax(0, 1fr))' : 'repeat(5, minmax(0, 1fr))', gap: 6 }}>
                 {editingServiceRecord.media.images.slice(0, 10).map((imgSrc, imgIdx) => (
                   <div
                     key={`${editingServiceRecord.id}-modal-img-${imgIdx}`}
@@ -4575,7 +4822,7 @@ export function Onboarding({
 
             {renderPreviewContent()}
 
-          <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 8, marginTop: 14 }}>
+          <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 8, marginTop: 14, position: 'sticky', bottom: 0, zIndex: 3, background: C.card, paddingTop: 10, paddingBottom: 4, borderTop: `1px solid ${C.border}` }}>
             <button onClick={() => setPreviewOpen(false)} style={{ padding: '8px 12px', borderRadius: 9, border: `1px solid ${C.border}`, background: 'transparent', color: C.t2, fontWeight: 700, cursor: 'pointer', fontSize: 12 }}>
               {t.previewBackToEdit}
             </button>

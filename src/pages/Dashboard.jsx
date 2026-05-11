@@ -103,17 +103,20 @@ export function Dashboard({ page, nuggets, setModal, setPage, onOpenOnboardingTa
   const SIDE_PANEL_HEIGHT = MAX_SIDE_LIST_VISIBLE * 54 + 44;
   const FEED_CARD_SCALE = 1;
   const FEED_CARD_BASE_WIDTH = isMobileViewport ? 360 : 654;
-  const FEED_CARD_BASE_HEIGHT = isMobileViewport ? 540 : 400;
+  const FEED_CARD_BASE_HEIGHT = isMobileViewport ? 500 : 400;
   const FEED_CARD_WIDTH = Math.round(FEED_CARD_BASE_WIDTH * FEED_CARD_SCALE);
   const FEED_CARD_HEIGHT = Math.round(FEED_CARD_BASE_HEIGHT * FEED_CARD_SCALE);
   const FEED_STACK_SHIFT_X = Math.round(20 * FEED_CARD_SCALE);
   const FEED_STACK_SHIFT_Y = Math.round(24 * FEED_CARD_SCALE);
-  const FEED_STACK_CONTAINER_HEIGHT = FEED_CARD_HEIGHT + (isMobileViewport ? 128 : 160);
-  const SWIPE_ANIM_MS = 560;
+  const FEED_STACK_CONTAINER_HEIGHT = FEED_CARD_HEIGHT + (isMobileViewport ? 108 : 160);
+  const SWIPE_ANIM_MS = 380;
   const pendingFocusOnInit = readPendingFocusCard();
   const mobileBottomNavOffset = isMobileViewport ? (mobileBottomNavCollapsed ? 4 : 88) : 0;
   const mobileDashboardBottomPadding = isMobileViewport ? (mobileBottomNavCollapsed ? 104 : 156) : 62;
-  const mobileActionDockBottom = isMobileViewport ? (mobileBottomNavCollapsed ? 88 : 126) : 20;
+  const mobileMiniCardsBandHeight = isMobileViewport ? 78 : 0;
+  const mobileActionDockBottom = isMobileViewport
+    ? (mobileBottomNavOffset + mobileMiniCardsBandHeight + 12)
+    : 20;
 
   const [activeCat, setActiveCat] = useState(() => {
     try { return localStorage.getItem('ds_activeCat') || 'all'; } catch (e) { void e; return 'all'; }
@@ -139,6 +142,11 @@ export function Dashboard({ page, nuggets, setModal, setPage, onOpenOnboardingTa
   const [isDraggingFeedHandle, setIsDraggingFeedHandle] = useState(false);
   const mobileFeedHandleDragRef = useRef({ active: false, pointerId: null, startY: 0, startOffsetY: 0 });
   const mobileFeedHandleSuppressClickRef = useRef(false);
+  const mobileFeedTitleRef = useRef(null);
+  const [mobileFeedHandleBaseTop, setMobileFeedHandleBaseTop] = useState(146);
+  const [isMobileDockSuppressed, setIsMobileDockSuppressed] = useState(false);
+  const isMobileDockSuppressedRef = useRef(false);
+  const mobileDockSuppressTimerRef = useRef(null);
   const [matchCategoryDropdownOpen, setMatchCategoryDropdownOpen] = useState(false);
   const [interestStateDropdownOpen, setInterestStateDropdownOpen] = useState(false);
   const [selectedMatchCategories, setSelectedMatchCategories] = useState([]);
@@ -163,7 +171,48 @@ export function Dashboard({ page, nuggets, setModal, setPage, onOpenOnboardingTa
     try { localStorage.setItem('ds_mobile_feed_handle_offset_y', String(mobileFeedHandleOffsetY)); } catch (e) { void e; }
   }, [mobileFeedHandleOffsetY]);
 
-  const clampFeedHandleOffset = (value) => Math.max(-120, Math.min(260, value));
+  const suppressMobileDockTemporarily = (durationMs = 1200) => {
+    if (!isMobileDockSuppressedRef.current) {
+      isMobileDockSuppressedRef.current = true;
+      setIsMobileDockSuppressed(true);
+    }
+    if (mobileDockSuppressTimerRef.current) {
+      window.clearTimeout(mobileDockSuppressTimerRef.current);
+    }
+    mobileDockSuppressTimerRef.current = window.setTimeout(() => {
+      isMobileDockSuppressedRef.current = false;
+      setIsMobileDockSuppressed(false);
+      mobileDockSuppressTimerRef.current = null;
+    }, durationMs);
+  };
+
+  useEffect(() => () => {
+    if (mobileDockSuppressTimerRef.current) {
+      window.clearTimeout(mobileDockSuppressTimerRef.current);
+    }
+    isMobileDockSuppressedRef.current = false;
+  }, []);
+
+  useEffect(() => {
+    if (!isMobileViewport) return undefined;
+
+    const updateFeedHandleBaseTop = () => {
+      const rect = mobileFeedTitleRef.current?.getBoundingClientRect?.();
+      if (!rect) return;
+      setMobileFeedHandleBaseTop(Math.round(rect.top + (rect.height / 2)));
+    };
+
+    updateFeedHandleBaseTop();
+    window.addEventListener('resize', updateFeedHandleBaseTop);
+    window.addEventListener('scroll', updateFeedHandleBaseTop, true);
+
+    return () => {
+      window.removeEventListener('resize', updateFeedHandleBaseTop);
+      window.removeEventListener('scroll', updateFeedHandleBaseTop, true);
+    };
+  }, [isMobileViewport, view, activeCat]);
+
+  const clampFeedHandleOffset = (value) => Math.max(-220, Math.min(320, value));
 
   const handleFeedTabPointerDown = (event) => {
     if (!isMobileViewport || mobileFeedSidebarOpen) return;
@@ -500,6 +549,7 @@ export function Dashboard({ page, nuggets, setModal, setPage, onOpenOnboardingTa
   const [focusCard, setFocusCard] = useState(() => pendingFocusOnInit && pendingFocusOnInit.id ? pendingFocusOnInit : null);
   const [myCardModal, setMyCardModal] = useState({ open: false, scope: 'personal' });
   const [myCardShowcaseIdx, setMyCardShowcaseIdx] = useState(0);
+  const myCardShowcaseScrollRef = useRef(null);
   const [ratingTooltipScope, setRatingTooltipScope] = useState(null);
   const [isSwipingConn, setIsSwipingConn] = useState(false);
   const [isSwipingProp, setIsSwipingProp] = useState(false);
@@ -1067,6 +1117,18 @@ export function Dashboard({ page, nuggets, setModal, setPage, onOpenOnboardingTa
     setMyCardShowcaseIdx(0);
   };
 
+  const handleMyCardShowcaseScroll = (event) => {
+    const container = event.currentTarget;
+    const width = container?.clientWidth || 0;
+    const totalItems = myCardPreviewData.showcaseItems.length;
+    if (!width || totalItems <= 1) return;
+    const nextIdx = Math.round(container.scrollLeft / width);
+    const clampedIdx = Math.max(0, Math.min(totalItems - 1, nextIdx));
+    if (clampedIdx !== myCardShowcaseIdx) {
+      setMyCardShowcaseIdx(clampedIdx);
+    }
+  };
+
   const openOnboardingForScope = (scope) => {
     if (isMobileViewport) return;
     const normalizedScope = String(scope || '').trim().toLowerCase();
@@ -1476,17 +1538,6 @@ export function Dashboard({ page, nuggets, setModal, setPage, onOpenOnboardingTa
     setLastConnOp(null);
     setLastPropOp(null);
   };
-
-
-  // Compute active category label for section heading
-  const discoverLabel = (() => {
-    if (activeCat==="all") return t.discover;
-    const cat = CATEGORIES.find(c=>c.id===activeCat);
-    if (cat) return cat.label;
-    const sub = CATEGORIES.flatMap(c=>c.sub||[]).find(s=>s.id===activeCat);
-    return sub ? sub.label : t.discover;
-  })();
-
   const mobileCategoryRows = useMemo(() => (
     CATEGORIES.flatMap((cat) => {
       const parent = {
@@ -1684,6 +1735,25 @@ export function Dashboard({ page, nuggets, setModal, setPage, onOpenOnboardingTa
   const myCardShowcaseCount = myCardPreviewData.showcaseItems.length;
   const myCardPreviewDeckHeight = isMobileViewport ? 560 : 380;
 
+  useEffect(() => {
+    if (myCardShowcaseCount <= 0) {
+      if (myCardShowcaseIdx !== 0) setMyCardShowcaseIdx(0);
+      return;
+    }
+    if (myCardShowcaseIdx > myCardShowcaseCount - 1) {
+      setMyCardShowcaseIdx(myCardShowcaseCount - 1);
+    }
+  }, [myCardShowcaseCount, myCardShowcaseIdx]);
+
+  useEffect(() => {
+    if (!myCardModal.open) return;
+    const container = myCardShowcaseScrollRef.current;
+    if (!container) return;
+    const width = container.clientWidth || 0;
+    if (!width) return;
+    container.scrollTo({ left: width * myCardShowcaseIdx, behavior: 'smooth' });
+  }, [myCardShowcaseIdx, myCardModal.open, myCardShowcaseCount, isMobileViewport]);
+
   return (
     <div style={{ paddingTop:58, paddingBottom:mobileDashboardBottomPadding, height:'100dvh', overflow:'hidden', boxSizing:'border-box' }}>
       {/* Loader global do feed */}
@@ -1720,6 +1790,15 @@ export function Dashboard({ page, nuggets, setModal, setPage, onOpenOnboardingTa
         }
         .opportunity-banner:hover .opportunity-track {
           animation-play-state: paused;
+        }
+        .ds-mycard-showcase-scroll {
+          scrollbar-width: none;
+          -ms-overflow-style: none;
+          -webkit-overflow-scrolling: touch;
+          overscroll-behavior: contain;
+        }
+        .ds-mycard-showcase-scroll::-webkit-scrollbar {
+          display: none;
         }
         .ds-dashboard-opportunity-banner {
           position: fixed;
@@ -1762,24 +1841,24 @@ export function Dashboard({ page, nuggets, setModal, setPage, onOpenOnboardingTa
           overflow: hidden;
         }
         .ds-mobile-feed-handle {
-          position: relative;
-          z-index: auto;
-          height: 32px;
-          min-width: 74px;
-          padding: 0 12px;
+          position: fixed;
+          left: 0;
+          top: 0;
+          z-index: 12060;
+          width: 24px;
+          height: 62px;
+          min-width: 24px;
+          padding: 0;
           border: 1px solid ${C.border};
-          border-bottom-color: ${C.alpha(C.border, 0.5)};
-          border-radius: 10px 10px 0 0;
+          border-left: none;
+          border-radius: 0 10px 10px 0;
           background: ${C.alpha(C.card, 0.98)};
           color: ${C.t1};
           display: inline-flex;
           align-items: center;
-          gap: 6px;
-          font-size: 11px;
-          font-weight: 700;
-          box-shadow: 0 8px 18px rgba(15, 23, 42, 0.08);
+          justify-content: center;
+          box-shadow: 0 10px 24px rgba(15, 23, 42, 0.24);
           cursor: grab;
-          white-space: nowrap;
           user-select: none;
           touch-action: none;
         }
@@ -1789,6 +1868,9 @@ export function Dashboard({ page, nuggets, setModal, setPage, onOpenOnboardingTa
         }
         .ds-mobile-feed-side-scroll {
           overflow-y: auto;
+          -webkit-overflow-scrolling: touch;
+          overscroll-behavior: contain;
+          will-change: scroll-position;
           padding: 12px;
           display: grid;
           gap: 12px;
@@ -1813,6 +1895,9 @@ export function Dashboard({ page, nuggets, setModal, setPage, onOpenOnboardingTa
           gap: 6px;
           max-height: 220px;
           overflow-y: auto;
+          -webkit-overflow-scrolling: touch;
+          overscroll-behavior: contain;
+          will-change: scroll-position;
           padding-right: 2px;
         }
         .ds-mobile-category-btn {
@@ -1849,11 +1934,11 @@ export function Dashboard({ page, nuggets, setModal, setPage, onOpenOnboardingTa
           white-space: nowrap;
         }
         .ds-mobile-action-dock {
-          position: absolute;
+          position: fixed;
           left: 50%;
           transform: translateX(-50%);
           bottom: ${mobileActionDockBottom}px;
-          z-index: 35;
+          z-index: 42;
           display: inline-flex;
           align-items: center;
           gap: 8px;
@@ -1865,6 +1950,12 @@ export function Dashboard({ page, nuggets, setModal, setPage, onOpenOnboardingTa
           backdrop-filter: blur(4px);
           -webkit-backdrop-filter: blur(4px);
           pointer-events: auto;
+          transition: opacity .18s ease, transform .18s ease;
+        }
+        .ds-mobile-action-dock.is-suppressed {
+          opacity: 0;
+          pointer-events: none;
+          transform: translate(-50%, 10px);
         }
         .ds-mobile-action-btn {
           width: 38px;
@@ -1878,6 +1969,34 @@ export function Dashboard({ page, nuggets, setModal, setPage, onOpenOnboardingTa
         .ds-mobile-action-btn:disabled {
           opacity: 0.42;
           cursor: not-allowed;
+        }
+        .ds-feed-stack-card {
+          border-radius: 18px;
+          transition: box-shadow .24s ease, filter .24s ease;
+        }
+        .ds-feed-stack-card.is-top-connection {
+          box-shadow:
+            0 0 0 1px ${C.alpha(C.accent, 0.2)},
+            0 14px 28px ${C.alpha(C.t1, 0.22)},
+            0 0 22px ${C.alpha(C.accent, 0.26)};
+          filter: saturate(1.05);
+        }
+        .ds-feed-stack-card.is-top-showcase {
+          box-shadow:
+            0 0 0 1px ${C.alpha('#4381bc', 0.28)},
+            0 14px 28px ${C.alpha(C.t1, 0.22)},
+            0 0 22px ${C.alpha('#4381bc', 0.26)};
+          filter: saturate(1.05);
+        }
+        .ds-feed-stack-card.is-swipe-animating {
+          box-shadow: none !important;
+          filter: none !important;
+        }
+        @media (max-width: 767px) {
+          .ds-mobile-action-dock {
+            backdrop-filter: none;
+            -webkit-backdrop-filter: none;
+          }
         }
       `}</style>
       {!isMobileViewport && (
@@ -2355,44 +2474,65 @@ export function Dashboard({ page, nuggets, setModal, setPage, onOpenOnboardingTa
                       </div>
                     )}
                   </div>
-                  {myCardShowcaseCount > 0 ? (() => {
-                    const item = myCardPreviewData.showcaseItems[myCardShowcaseIdx] || myCardPreviewData.showcaseItems[0];
-                    if (item._itemType === 'property') {
-                      return (
-                        <div style={{ padding: 12, minHeight: myCardPreviewDeckHeight, overflowY: 'auto' }}>
-                          <div style={{ width: '100%', height: myCardPreviewDeckHeight, maxWidth: 603, margin: '0 auto', boxSizing: 'border-box' }}>
-                            <PropertyCard
-                              property={item}
-                              owner={myCardPreviewData.profileCard}
-                              previewOnly
-                            />
-                          </div>
-                        </div>
-                      );
-                    }
-                    // Service item
-                    const svcImages = (item.media?.images || []).filter(Boolean);
-                    return (
-                      <div style={{ padding: 12, minHeight: isMobileViewport ? 260 : 380, overflowY: 'auto' }}>
-                        <div style={{ marginBottom: 8 }}>
-                          <div style={{ fontSize: 14, fontWeight: 700, color: C.t1 }}>{item.title || 'Service'}</div>
-                          {item.description && <div style={{ fontSize: 12, color: C.t2, marginTop: 2 }}>{item.description}</div>}
-                          {item.category && <div style={{ display: 'inline-block', marginTop: 4, padding: '2px 8px', borderRadius: 12, background: C.alpha(C.accent, 0.08), border: `1px solid ${C.alpha(C.accent, 0.15)}`, fontSize: 10, color: C.accent, fontWeight: 700 }}>{item.category}</div>}
-                        </div>
-                        {svcImages.length > 0 ? (
-                          <div style={{ display: 'grid', gridTemplateColumns: svcImages.length === 1 ? '1fr' : 'repeat(auto-fill, minmax(120px, 1fr))', gap: 8 }}>
-                            {svcImages.map((src, idx) => (
-                              <div key={`svc-img-${idx}`} style={{ position: 'relative', aspectRatio: svcImages.length === 1 ? '16/9' : '1', borderRadius: 8, overflow: 'hidden', background: C.alpha(C.t1, 0.06), border: `1px solid ${C.border}` }}>
-                                <SmartImage src={src} alt={item.title || ''} style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }} />
+                  {myCardShowcaseCount > 0 ? (
+                    <div
+                      ref={myCardShowcaseScrollRef}
+                      className="ds-mycard-showcase-scroll"
+                      onScroll={handleMyCardShowcaseScroll}
+                      style={{
+                        display: 'flex',
+                        overflowX: 'auto',
+                        overflowY: 'hidden',
+                        scrollSnapType: 'x mandatory',
+                        WebkitOverflowScrolling: 'touch',
+                        minHeight: myCardPreviewDeckHeight,
+                      }}
+                    >
+                      {myCardPreviewData.showcaseItems.map((item, idx) => {
+                        if (item._itemType === 'property') {
+                          return (
+                            <div key={`${item.id || 'property'}-${idx}`} style={{ flex: '0 0 100%', width: '100%', scrollSnapAlign: 'start' }}>
+                              <div style={{ padding: 12, minHeight: myCardPreviewDeckHeight, boxSizing: 'border-box' }}>
+                                <div style={{ width: '100%', height: myCardPreviewDeckHeight, maxWidth: 603, margin: '0 auto', boxSizing: 'border-box' }}>
+                                  <PropertyCard
+                                    property={item}
+                                    owner={myCardPreviewData.profileCard}
+                                    previewOnly
+                                  />
+                                </div>
                               </div>
-                            ))}
+                            </div>
+                          );
+                        }
+
+                        const svcImages = (item.media?.images || []).filter(Boolean);
+                        return (
+                          <div key={`${item.id || item.title || 'service'}-${idx}`} style={{ flex: '0 0 100%', width: '100%', scrollSnapAlign: 'start' }}>
+                            <div style={{ padding: 12, minHeight: myCardPreviewDeckHeight, boxSizing: 'border-box' }}>
+                              <div style={{ height: myCardPreviewDeckHeight - 24, overflowY: 'auto', paddingRight: 2, boxSizing: 'border-box' }}>
+                                <div style={{ marginBottom: 8 }}>
+                                  <div style={{ fontSize: 14, fontWeight: 700, color: C.t1 }}>{item.title || 'Service'}</div>
+                                  {item.description && <div style={{ fontSize: 12, color: C.t2, marginTop: 2 }}>{item.description}</div>}
+                                  {item.category && <div style={{ display: 'inline-block', marginTop: 4, padding: '2px 8px', borderRadius: 12, background: C.alpha(C.accent, 0.08), border: `1px solid ${C.alpha(C.accent, 0.15)}`, fontSize: 10, color: C.accent, fontWeight: 700 }}>{item.category}</div>}
+                                </div>
+                                {svcImages.length > 0 ? (
+                                  <div style={{ display: 'grid', gridTemplateColumns: svcImages.length === 1 ? '1fr' : 'repeat(auto-fill, minmax(120px, 1fr))', gap: 8 }}>
+                                    {svcImages.map((src, imageIdx) => (
+                                      <div key={`svc-img-${idx}-${imageIdx}`} style={{ position: 'relative', aspectRatio: svcImages.length === 1 ? '16/9' : '1', borderRadius: 8, overflow: 'hidden', background: C.alpha(C.t1, 0.06), border: `1px solid ${C.border}` }}>
+                                        <SmartImage src={src} alt={item.title || ''} style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }} />
+                                      </div>
+                                    ))}
+                                  </div>
+                                ) : (
+                                  <div style={{ height: 200, border: `1px dashed ${C.border}`, borderRadius: 12, display: 'flex', alignItems: 'center', justifyContent: 'center', color: C.t3, fontSize: 12 }}>No images</div>
+                                )}
+                              </div>
+                            </div>
                           </div>
-                        ) : (
-                          <div style={{ height: 200, border: `1px dashed ${C.border}`, borderRadius: 12, display: 'flex', alignItems: 'center', justifyContent: 'center', color: C.t3, fontSize: 12 }}>No images</div>
-                        )}
-                      </div>
-                    );
-                  })() : (
+                        );
+                      })}
+                    </div>
+                  ) : (
                     <div style={{ margin: 12, height: isMobileViewport ? 260 : 380, border: `1px dashed ${C.border}`, borderRadius: 12, display: 'flex', alignItems: 'center', justifyContent: 'center', color: C.t3, fontSize: 12 }}>
                       No published property or service in this profile yet.
                     </div>
@@ -2433,15 +2573,7 @@ export function Dashboard({ page, nuggets, setModal, setPage, onOpenOnboardingTa
 
           {/* View Tabs + State Filter (inline) */}
           {!isMobileViewport && (
-            <div style={{ display:"flex", gap:6, marginBottom:8, justifyContent:"space-between", alignItems: 'center', width: '100%', maxWidth: 700 }}>
-              <div style={{ display: 'flex', gap: 6, justifyContent: 'center', flex: 1, marginLeft: 150 }}>
-                <button onClick={() => { setView("connections"); }} style={{ display:"flex", alignItems:"center", gap:5, padding:"6px 12px", borderRadius:8, background:"transparent", border:`1px solid ${view==="connections"?C.accent:C.border}`, color:view==="connections"?C.accent:C.t2, fontWeight:600, fontSize:12, cursor:"pointer", transition:"all .2s" }}>
-                  <Icon name="search" size={12} color={view==="connections"?C.accent:C.t2} strokeWidth={view==="connections"?2:1.5} /> Connections
-                </button>
-                <button onClick={() => { setView("properties"); }} style={{ display:"flex", alignItems:"center", gap:5, padding:"6px 12px", borderRadius:8, background:"transparent", border:`1px solid ${view==="properties"?"#4381bc":C.border}`, color:view==="properties"?"#4381bc":C.t2, fontWeight:600, fontSize:12, cursor:"pointer", transition:"all .2s" }}>
-                  <Icon name="briefcase" size={12} color={view==="properties"?"#4381bc":C.t2} strokeWidth={view==="properties"?2:1.5} /> Showcase
-                </button>
-              </div>
+            <div style={{ display:"flex", marginBottom:8, justifyContent:"flex-end", alignItems: 'center', width: '100%', maxWidth: 700 }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: 8, position: 'relative' }}>
                 <label style={{ marginRight: 4, fontSize: 13, color: C.t3 }}>State</label>
                 <details className="onb-multiselect" open={dropdownOpen} onToggle={(e) => setDropdownOpen(Boolean(e.target.open))} style={{ position: 'relative' }}>
@@ -2477,10 +2609,51 @@ export function Dashboard({ page, nuggets, setModal, setPage, onOpenOnboardingTa
             </div>
           )}
 
-          <div style={{ marginBottom:8, width: '100%', maxWidth: `min(${FEED_CARD_WIDTH}px, 100%)`, display: 'flex', alignItems: 'center', justifyContent: isMobileViewport ? 'space-between' : 'center', gap: 8 }}>
-            <h2 style={{ margin: 0, fontSize:"clamp(13px,2.5vw,16px)", fontWeight:800, color:C.t1, textAlign: isMobileViewport ? 'left' : 'center' }}>
-              {view==="connections" ? discoverLabel : (activeCat==="all" ? t.showcase : discoverLabel)}
-            </h2>
+          <div ref={mobileFeedTitleRef} style={{ marginBottom:8, width: '100%', maxWidth: `min(${FEED_CARD_WIDTH}px, 100%)`, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8, position: 'relative', minHeight: 38 }}>
+            <div style={{
+              display: 'inline-flex',
+              alignItems: 'center',
+              gap: 4,
+              padding: 4,
+              borderRadius: 999,
+              border: `1px solid ${C.border}`,
+              background: C.alpha(C.t1, 0.03),
+            }}>
+              <button
+                type="button"
+                onClick={() => setView('connections')}
+                style={{
+                  border: 'none',
+                  borderRadius: 999,
+                  background: view === 'connections' ? C.alpha(C.accent, 0.14) : 'transparent',
+                  color: view === 'connections' ? C.accent : C.t2,
+                  fontWeight: 700,
+                  fontSize: 12,
+                  padding: '7px 14px',
+                  cursor: 'pointer',
+                  transition: 'all .2s ease',
+                }}
+              >
+                Connections
+              </button>
+              <button
+                type="button"
+                onClick={() => setView('properties')}
+                style={{
+                  border: 'none',
+                  borderRadius: 999,
+                  background: view === 'properties' ? C.alpha(C.accent, 0.14) : 'transparent',
+                  color: view === 'properties' ? C.accent : C.t2,
+                  fontWeight: 700,
+                  fontSize: 12,
+                  padding: '7px 14px',
+                  cursor: 'pointer',
+                  transition: 'all .2s ease',
+                }}
+              >
+                Showcase
+              </button>
+            </div>
             {isMobileViewport && !mobileFeedSidebarOpen && (
               <button
                 type="button"
@@ -2491,11 +2664,9 @@ export function Dashboard({ page, nuggets, setModal, setPage, onOpenOnboardingTa
                 onPointerUp={handleFeedTabPointerEnd}
                 onPointerCancel={handleFeedTabPointerEnd}
                 aria-label="Open feed filters"
-                style={{ transform: `translateY(${mobileFeedHandleOffsetY}px)` }}
+                style={{ top: `${mobileFeedHandleBaseTop}px`, transform: `translateY(calc(-50% + ${mobileFeedHandleOffsetY}px))` }}
               >
-                <Icon name="menu" size={12} color={C.t2} />
-                Aba filtros
-                <Icon name="chevUp" size={12} color={C.t3} />
+                <Icon name="filter" size={14} color={C.t2} strokeWidth={1.9} />
               </button>
             )}
           </div>
@@ -2512,7 +2683,7 @@ export function Dashboard({ page, nuggets, setModal, setPage, onOpenOnboardingTa
                       const stackScale   = 1 - reverseI * 0.035;
                       const stackOpacity = isTop ? 1 : 0.9 - reverseI * 0.1;
                       return (
-                        <div key={c.id} style={{
+                        <div key={c.id} className={`ds-feed-stack-card ${isTop ? 'is-top is-top-connection' : ''} ${isTop && action ? 'is-swipe-animating' : ''}`} style={{
                           position: "absolute",
                           top: 0,
                           left: 0,
@@ -2565,6 +2736,7 @@ export function Dashboard({ page, nuggets, setModal, setPage, onOpenOnboardingTa
                       return (
                         <div
                           key={p.id}
+                          className={`ds-feed-stack-card ${isTop ? 'is-top is-top-showcase' : ''} ${isTop && propAction ? 'is-swipe-animating' : ''}`}
                           style={{
                             position: "absolute",
                             top: 0,
@@ -2628,7 +2800,7 @@ export function Dashboard({ page, nuggets, setModal, setPage, onOpenOnboardingTa
               )}
             </div>
             {isMobileViewport && !mobileFeedSidebarOpen ? (
-              <div className="ds-mobile-action-dock" role="group" aria-label="Swipe actions">
+              <div className={`ds-mobile-action-dock ${isMobileDockSuppressed ? 'is-suppressed' : ''}`} role="group" aria-label="Swipe actions">
                 <button
                   type="button"
                   className="ds-mobile-action-btn"
@@ -2946,7 +3118,14 @@ export function Dashboard({ page, nuggets, setModal, setPage, onOpenOnboardingTa
       {page !== 'onboarding' ? (
         <div className="ds-dashboard-opportunity-banner" style={{ background:C.card, zIndex:10, boxSizing:"border-box" }}>
         {marqueeBannerItems.length > 0 ? (
-          <div className="opportunity-banner" style={{ overflow:"hidden", padding:"10px 0" }}>
+          <div
+            className="opportunity-banner"
+            style={{ overflow:"hidden", padding:"10px 0" }}
+            onWheel={() => suppressMobileDockTemporarily(1200)}
+            onPointerDown={() => suppressMobileDockTemporarily(1200)}
+            onTouchStart={() => suppressMobileDockTemporarily(1200)}
+            onTouchMove={() => suppressMobileDockTemporarily(1200)}
+          >
             <div
               className="opportunity-track"
               style={{

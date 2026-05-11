@@ -11,6 +11,8 @@ function SwipeCard({ card, action, isUnlocked, isSkipped, onSwipe, onUndo, onUnl
     && typeof window.matchMedia === 'function'
     && window.matchMedia('(max-width: 767px)').matches;
   const dragRef = React.useRef({ active: false, pointerId: null, startX: 0, startY: 0 });
+  const dragFrameRef = React.useRef(null);
+  const queuedDragRef = React.useRef({ x: 0, y: 0 });
   const [dragX, setDragX] = React.useState(0);
   const [dragY, setDragY] = React.useState(0);
   const [isDragging, setIsDragging] = React.useState(false);
@@ -21,6 +23,11 @@ function SwipeCard({ card, action, isUnlocked, isSkipped, onSwipe, onUndo, onUnl
   const dragDirection = dragX > 0 ? 'match' : (dragX < 0 ? 'pass' : null);
   const matchOverlayOpacity = (dragDirection === 'match' ? dragProgress : 0) * 0.34;
   const passOverlayOpacity = (dragDirection === 'pass' ? dragProgress : 0) * 0.34;
+  const actionDirection = action === 'match' ? 'match' : (action === 'pass' ? 'pass' : null);
+  const showMatchBadge = !previewOnly && ((isDragging && dragDirection === 'match' && dragProgress > 0.08) || actionDirection === 'match');
+  const showPassBadge = !previewOnly && ((isDragging && dragDirection === 'pass' && dragProgress > 0.08) || actionDirection === 'pass');
+  const matchBadgeOpacity = actionDirection === 'match' ? 1 : Math.min(1, dragProgress * 1.2);
+  const passBadgeOpacity = actionDirection === 'pass' ? 1 : Math.min(1, dragProgress * 1.2);
 
   const borderWidth = 1.5;
   const topGradient = C.accent; // turquoise / accent for person cards
@@ -42,13 +49,13 @@ function SwipeCard({ card, action, isUnlocked, isSkipped, onSwipe, onUndo, onUnl
     backgroundOrigin: 'border-box',
     backgroundClip: 'padding-box, border-box',
     boxShadow: glowShadow,
-    transition: isDragging ? 'none' : 'border-color .22s, transform .26s cubic-bezier(0.22, 0.61, 0.36, 1)',
+    transition: isDragging ? 'none' : 'border-color .18s, transform .18s cubic-bezier(0.22, 0.61, 0.36, 1)',
     display: 'flex',
     flexDirection: isMobileLayout ? 'column' : 'row',
     width: '100%',
     height: '100%',
     willChange: 'transform, opacity',
-    touchAction: 'none',
+    touchAction: previewOnly ? 'auto' : 'none',
     userSelect: 'none',
     WebkitUserSelect: 'none',
     cursor: previewOnly ? 'default' : (isDragging ? 'grabbing' : 'grab'),
@@ -56,12 +63,37 @@ function SwipeCard({ card, action, isUnlocked, isSkipped, onSwipe, onUndo, onUnl
     opacity: isDragging ? (1 - dragProgress * 0.06) : 1,
   }), [glowShadow, topGradient, bottomGradient, borderWidth, dragX, dragY, dragTilt, dragProgress, isDragging, previewOnly, isMobileLayout]);
 
+  const flushQueuedDrag = React.useCallback(() => {
+    dragFrameRef.current = null;
+    const { x, y } = queuedDragRef.current;
+    setDragX((prev) => (prev === x ? prev : x));
+    setDragY((prev) => (prev === y ? prev : y));
+  }, []);
+
+  const scheduleDragFrame = React.useCallback((x, y) => {
+    queuedDragRef.current = { x, y };
+    if (dragFrameRef.current !== null) return;
+    dragFrameRef.current = window.requestAnimationFrame(flushQueuedDrag);
+  }, [flushQueuedDrag]);
+
   const resetDrag = React.useCallback(() => {
     dragRef.current.active = false;
     dragRef.current.pointerId = null;
+    if (dragFrameRef.current !== null) {
+      window.cancelAnimationFrame(dragFrameRef.current);
+      dragFrameRef.current = null;
+    }
+    queuedDragRef.current = { x: 0, y: 0 };
     setIsDragging(false);
     setDragX(0);
     setDragY(0);
+  }, []);
+
+  React.useEffect(() => () => {
+    if (dragFrameRef.current !== null) {
+      window.cancelAnimationFrame(dragFrameRef.current);
+      dragFrameRef.current = null;
+    }
   }, []);
 
   const handlePointerDown = React.useCallback((e) => {
@@ -81,9 +113,10 @@ function SwipeCard({ card, action, isUnlocked, isSkipped, onSwipe, onUndo, onUnl
     if (dragRef.current.pointerId !== null && e.pointerId !== dragRef.current.pointerId) return;
     const dx = e.clientX - dragRef.current.startX;
     const dy = e.clientY - dragRef.current.startY;
-    setDragX(Math.max(-180, Math.min(180, dx)));
-    setDragY(Math.max(-40, Math.min(40, dy * 0.25)));
-  }, []);
+    const nextX = Math.max(-180, Math.min(180, dx));
+    const nextY = Math.max(-40, Math.min(40, dy * 0.25));
+    scheduleDragFrame(nextX, nextY);
+  }, [scheduleDragFrame]);
 
   const handlePointerEnd = React.useCallback((e) => {
     if (!dragRef.current.active) return;
@@ -159,6 +192,57 @@ function SwipeCard({ card, action, isUnlocked, isSkipped, onSwipe, onUndo, onUnl
           alt={card.name}
           style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }}
         />
+
+        {showPassBadge ? (
+          <span
+            style={{
+              position: 'absolute',
+              top: 10,
+              left: 10,
+              zIndex: 12,
+              pointerEvents: 'none',
+              padding: '4px 9px',
+              borderRadius: 8,
+              border: `1px solid ${C.alpha(C.danger, 0.85)}`,
+              background: C.alpha(C.danger, 0.18),
+              color: C.danger,
+              fontSize: 11,
+              fontWeight: 900,
+              letterSpacing: '0.8px',
+              textTransform: 'uppercase',
+              transform: 'rotate(-10deg)',
+              opacity: passBadgeOpacity,
+              transition: isDragging ? 'none' : 'opacity .16s ease-out',
+            }}
+          >
+            PASS
+          </span>
+        ) : null}
+        {showMatchBadge ? (
+          <span
+            style={{
+              position: 'absolute',
+              top: 10,
+              right: 10,
+              zIndex: 12,
+              pointerEvents: 'none',
+              padding: '4px 9px',
+              borderRadius: 8,
+              border: `1px solid ${C.alpha(C.success, 0.85)}`,
+              background: C.alpha(C.success, 0.18),
+              color: C.success,
+              fontSize: 11,
+              fontWeight: 900,
+              letterSpacing: '0.8px',
+              textTransform: 'uppercase',
+              transform: 'rotate(10deg)',
+              opacity: matchBadgeOpacity,
+              transition: isDragging ? 'none' : 'opacity .16s ease-out',
+            }}
+          >
+            MATCH
+          </span>
+        ) : null}
       </div>
       {/* ── RIGHT: info column ── */}
       <div style={{ position: 'relative', padding: isMobileLayout ? '11px 11px 12px' : '13px', flex: 1, display: 'flex', flexDirection: 'column', boxSizing: 'border-box' }}>

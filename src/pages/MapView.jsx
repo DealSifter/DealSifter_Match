@@ -1200,6 +1200,20 @@ export function MapView({
     if (typeof initialMapUiState.panelCollapsed === 'boolean') return initialMapUiState.panelCollapsed;
     return localStorage.getItem('mapViewPanelCollapsed') === '1';
   });
+  const [isMobileViewport, setIsMobileViewport] = useState(() => {
+    if (typeof window === 'undefined' || typeof window.matchMedia !== 'function') return false;
+    return window.matchMedia('(max-width: 900px)').matches;
+  });
+  const [panelToggleOffsetY, setPanelToggleOffsetY] = useState(() => {
+    try {
+      const raw = Number(localStorage.getItem('ds_map_panel_toggle_offset_y'));
+      if (!Number.isFinite(raw)) return 0;
+      return Math.max(-260, Math.min(260, raw));
+    } catch (e) { void e; return 0; }
+  });
+  const [isDraggingPanelToggle, setIsDraggingPanelToggle] = useState(false);
+  const panelToggleDragRef = React.useRef({ active: false, pointerId: null, startY: 0, startOffsetY: 0 });
+  const panelToggleSuppressClickRef = React.useRef(false);
   const [viewport, setViewport] = useState(() => {
     // Check for a back-navigation return viewport FIRST. This is written by navigateToFeed()
     // and takes priority over all other sources so the exact PIN-zoom position is preserved.
@@ -1364,6 +1378,65 @@ export function MapView({
       setShowProperties(true);
     }
   }, [mapUiHydrated, showPeople, showProperties]);
+
+  React.useEffect(() => {
+    if (typeof window === 'undefined' || typeof window.matchMedia !== 'function') return undefined;
+    const mediaQuery = window.matchMedia('(max-width: 900px)');
+    const handleViewportChange = (event) => setIsMobileViewport(Boolean(event.matches));
+    setIsMobileViewport(Boolean(mediaQuery.matches));
+
+    if (typeof mediaQuery.addEventListener === 'function') {
+      mediaQuery.addEventListener('change', handleViewportChange);
+      return () => mediaQuery.removeEventListener('change', handleViewportChange);
+    }
+
+    mediaQuery.addListener(handleViewportChange);
+    return () => mediaQuery.removeListener(handleViewportChange);
+  }, []);
+
+  React.useEffect(() => {
+    try { localStorage.setItem('ds_map_panel_toggle_offset_y', String(panelToggleOffsetY)); } catch (e) { void e; }
+  }, [panelToggleOffsetY]);
+
+  const clampPanelToggleOffset = (value) => Math.max(-260, Math.min(260, value));
+
+  const handlePanelTogglePointerDown = (event) => {
+    if (!isMobileViewport) return;
+    panelToggleSuppressClickRef.current = false;
+    panelToggleDragRef.current = {
+      active: true,
+      pointerId: event.pointerId,
+      startY: event.clientY,
+      startOffsetY: panelToggleOffsetY,
+    };
+    setIsDraggingPanelToggle(true);
+    event.currentTarget.setPointerCapture?.(event.pointerId);
+  };
+
+  const handlePanelTogglePointerMove = (event) => {
+    const dragState = panelToggleDragRef.current;
+    if (!dragState.active) return;
+    if (dragState.pointerId !== null && event.pointerId !== dragState.pointerId) return;
+    const deltaY = event.clientY - dragState.startY;
+    if (Math.abs(deltaY) > 4) panelToggleSuppressClickRef.current = true;
+    setPanelToggleOffsetY(clampPanelToggleOffset(dragState.startOffsetY + deltaY));
+  };
+
+  const handlePanelTogglePointerEnd = (event) => {
+    const dragState = panelToggleDragRef.current;
+    if (!dragState.active) return;
+    if (dragState.pointerId !== null && event.pointerId !== dragState.pointerId) return;
+    panelToggleDragRef.current = { active: false, pointerId: null, startY: 0, startOffsetY: 0 };
+    setIsDraggingPanelToggle(false);
+  };
+
+  const handlePanelToggleClick = () => {
+    if (panelToggleSuppressClickRef.current) {
+      panelToggleSuppressClickRef.current = false;
+      return;
+    }
+    setPanelCollapsed((prev) => !prev);
+  };
 
   React.useEffect(() => {
     lastBaseFallbackSwitchAtRef.current = 0;
@@ -1976,6 +2049,11 @@ export function MapView({
     flood: tMap.styleFlood,
   }), [tMap]);
 
+  const panelOpenWidth = isMobileViewport ? 'min(84vw, 340px)' : `${panelWidth}px`;
+  const panelToggleLeft = panelCollapsed
+    ? '0px'
+    : (isMobileViewport ? '0px' : `${panelWidth}px`);
+
   return (
     <div style={{ paddingTop: 58, height: '100dvh', boxSizing: 'border-box', display: 'flex', flexDirection: 'column' }}>
       <style>{`
@@ -1991,8 +2069,8 @@ export function MapView({
           left: 0;
           top: 0;
           bottom: 0;
-          z-index: 11;
-          width: ${panelCollapsed ? 0 : panelWidth}px;
+          z-index: 12050;
+          width: ${panelCollapsed ? '0px' : panelOpenWidth};
           padding: ${panelCollapsed ? 0 : 12}px;
           border-width: ${panelCollapsed ? 0 : 1}px;
           margin-right: 0;
@@ -2017,9 +2095,9 @@ export function MapView({
         }
         .map-panel-toggle-tab {
           position: absolute;
-          left: ${panelCollapsed ? 0 : panelWidth}px;
+          left: ${panelToggleLeft};
           top: 10px;
-          z-index: 12;
+          z-index: 12060;
           width: 22px;
           height: 56px;
           border: 1px solid var(--ui-border);
@@ -2031,7 +2109,8 @@ export function MapView({
           display: flex;
           align-items: center;
           justify-content: center;
-          cursor: pointer;
+          cursor: grab;
+          touch-action: none;
           box-shadow: ${panelCollapsed ? `0 10px 22px ${C.alpha(C.bg, 0.22)}` : `0 4px 12px ${C.alpha(C.bg, 0.08)}`};
           transition:
             left .28s cubic-bezier(.22, .8, .22, 1),
@@ -2039,6 +2118,19 @@ export function MapView({
             color .15s ease,
             box-shadow .25s ease,
             transform .2s ease;
+        }
+        .map-panel-toggle-tab.is-dragging {
+          cursor: grabbing;
+          transition: none;
+        }
+        .map-panel-mobile-overlay {
+          position: absolute;
+          inset: 0;
+          z-index: 12040;
+          border: none;
+          background: rgba(8, 15, 28, 0.28);
+          padding: 0;
+          cursor: pointer;
         }
         .map-panel-toggle-tab:hover {
           background: var(--ui-hover);
@@ -2087,7 +2179,7 @@ export function MapView({
           bottom: 0; 
           width: 4px; 
           cursor: col-resize; 
-          z-index: 10;
+          z-index: 12045;
           transition: background 0.15s;
         }
         .map-resize-handle:hover, .map-resize-handle.active { 
@@ -2274,21 +2366,55 @@ export function MapView({
         }
         @media (max-width: 900px) {
           .map-layout { height: calc(100dvh - 58px); }
-          .map-panel { max-height: 42vh; margin-right: 0; }
+          .map-panel {
+            max-height: none;
+            height: 100%;
+            margin-right: 0;
+            box-shadow: 10px 0 28px ${C.alpha(C.bg, 0.24)};
+          }
           .map-resize-handle { display: none; }
-          .map-panel-toggle-tab { display: none; }
+          .map-panel-toggle-tab {
+            display: flex;
+            left: 0;
+            top: 50%;
+            width: 24px;
+            height: 62px;
+            transform: translateY(-50%);
+            border-left: none;
+            border-top-left-radius: 0;
+            border-bottom-left-radius: 0;
+            border-top-right-radius: 10px;
+            border-bottom-right-radius: 10px;
+            box-shadow: 0 10px 24px ${C.alpha(C.bg, 0.24)};
+          }
+          .map-panel-toggle-tab:hover {
+            transform: translateY(-50%);
+          }
         }
       `}</style>
 
       <div className="map-layout">
+        {isMobileViewport && !panelCollapsed && (
+          <button
+            className="map-panel-mobile-overlay"
+            type="button"
+            onClick={() => setPanelCollapsed(true)}
+            aria-label={tMap.closePanel}
+          />
+        )}
         <button
-          className="map-panel-toggle-tab"
-          onClick={() => setPanelCollapsed((prev) => !prev)}
+          className={`map-panel-toggle-tab ${isDraggingPanelToggle ? 'is-dragging' : ''}`}
+          onClick={handlePanelToggleClick}
+          onPointerDown={handlePanelTogglePointerDown}
+          onPointerMove={handlePanelTogglePointerMove}
+          onPointerUp={handlePanelTogglePointerEnd}
+          onPointerCancel={handlePanelTogglePointerEnd}
           aria-label={panelCollapsed ? tMap.openPanel : tMap.closePanel}
           title={panelCollapsed ? tMap.openPanel : tMap.closePanel}
           aria-expanded={!panelCollapsed}
+          style={isMobileViewport ? { top: `calc(50% + ${panelToggleOffsetY}px)` } : undefined}
         >
-          {panelCollapsed ? '›' : '‹'}
+          <Icon name="filter" size={14} color={C.t2} strokeWidth={1.9} />
         </button>
         <div 
           className={`map-resize-handle ${isResizing ? 'active' : ''}`}

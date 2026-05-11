@@ -16,11 +16,10 @@ export function Modal({ children, onClose, maxWidth = 420 }) {
         background: "rgba(0,0,0,.85)", 
         backdropFilter: "blur(4px)",
         zIndex: 1000, 
-        padding: 20,
+        padding: 12,
         display: "flex", 
         justifyContent: "center",
-        alignItems: "flex-start", // Mudado de center para flex-start
-        paddingTop: "10vh" // Adicionado padding para subir o modal
+        alignItems: "center",
       }} 
       onClick={onClose}
     >
@@ -33,8 +32,10 @@ export function Modal({ children, onClose, maxWidth = 420 }) {
           padding: "32px 24px", 
           width: "100%", 
           maxWidth: maxWidth, 
-          maxHeight: "90vh", 
+          maxHeight: "min(92dvh, 920px)", 
           overflowY: "auto",
+          overscrollBehavior: "contain",
+          WebkitOverflowScrolling: 'touch',
           position: "relative",
           boxShadow: "0 20px 50px rgba(0,0,0,0.5)",
           animation: "modalAppear 0.3s ease-out"

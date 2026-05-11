@@ -3,6 +3,7 @@ import { SmartImage } from '../ui/SmartImage';
 export function FsboPropertyForm({
   t,
   C,
+  isMobileViewport,
   values,
   onChange,
   formatCurrencyInput,
@@ -19,14 +20,14 @@ export function FsboPropertyForm({
 }) {
   return (
     <>
-      <div style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 1.5fr) minmax(0, 1.2fr) minmax(170px, 1.35fr) minmax(84px, 0.75fr)', gap: 6, marginBottom: 8, width: '100%', minWidth: 0 }}>
+      <div style={{ display: 'grid', gridTemplateColumns: isMobileViewport ? 'repeat(2, minmax(0, 1fr))' : 'minmax(0, 1.5fr) minmax(0, 1.2fr) minmax(170px, 1.35fr) minmax(84px, 0.75fr)', gap: 8, marginBottom: 8, width: '100%', minWidth: 0 }}>
         <div style={{ position: 'relative', minWidth: 0 }}>
           <span style={portfolioFieldLabelStyle}>{t.labelAddrShort}</span>
-          <input value={values.portfolioAddress} onChange={(e) => onChange('portfolioAddress', e.target.value)} placeholder="" style={portfolioFieldInputStyle({ paddingLeft: 44 })} />
+          <input data-mobile-step="portfolioAddress" value={values.portfolioAddress} onChange={(e) => onChange('portfolioAddress', e.target.value)} placeholder="" style={portfolioFieldInputStyle({ paddingLeft: 44, paddingRight: 12 })} />
         </div>
         <div style={{ position: 'relative', minWidth: 0 }}>
           <span style={portfolioFieldLabelStyle}>{t.labelCityShort}</span>
-          <input value={values.portfolioCity} onChange={(e) => onChange('portfolioCity', e.target.value)} placeholder="" style={portfolioFieldInputStyle({ paddingLeft: 54 })} />
+          <input data-mobile-step="portfolioCity" value={values.portfolioCity} onChange={(e) => onChange('portfolioCity', e.target.value)} placeholder="" style={portfolioFieldInputStyle({ paddingLeft: 54, paddingRight: 12 })} />
         </div>
         <div style={{ position: 'relative', minWidth: 0 }}>
           <span style={portfolioFieldLabelStyle}>States</span>
@@ -34,56 +35,56 @@ export function FsboPropertyForm({
         </div>
         <div style={{ position: 'relative', minWidth: 0 }}>
           <span style={portfolioFieldLabelStyle}>{t.labelZipShort}</span>
-          <input value={values.portfolioZip} onChange={(e) => onChange('portfolioZip', e.target.value)} inputMode="numeric" maxLength={5} placeholder="" style={portfolioFieldInputStyle({ paddingLeft: 36 })} />
+          <input data-mobile-step="portfolioZip" value={values.portfolioZip} onChange={(e) => onChange('portfolioZip', e.target.value)} inputMode="numeric" maxLength={5} placeholder="" style={portfolioFieldInputStyle({ paddingLeft: 36, paddingRight: 12 })} />
         </div>
       </div>
 
-      <div style={{ display: 'grid', gridTemplateColumns: 'minmax(110px, 1.2fr) minmax(110px, 1.2fr) minmax(68px, 0.7fr) minmax(68px, 0.7fr)', gap: 6, marginBottom: 8, width: '100%', minWidth: 0 }}>
+      <div style={{ display: 'grid', gridTemplateColumns: isMobileViewport ? 'repeat(2, minmax(0, 1fr))' : 'minmax(110px, 1.2fr) minmax(110px, 1.2fr) minmax(68px, 0.7fr) minmax(68px, 0.7fr)', gap: 8, marginBottom: 8, width: '100%', minWidth: 0 }}>
         <div style={{ position: 'relative', minWidth: 0 }}>
           <span style={portfolioFieldLabelStyle}>{t.labelUsdPriceShort}</span>
-          <input value={values.portfolioPrice} onChange={(e) => onChange('portfolioPrice', formatCurrencyInput(e.target.value))} inputMode="decimal" placeholder="" style={portfolioFieldInputStyle({ paddingLeft: 72 })} />
+          <input data-mobile-step="portfolioPrice" value={values.portfolioPrice} onChange={(e) => onChange('portfolioPrice', formatCurrencyInput(e.target.value))} inputMode="decimal" placeholder="" style={portfolioFieldInputStyle({ paddingLeft: 72, paddingRight: 12 })} />
         </div>
         <div style={{ position: 'relative', minWidth: 0 }}>
           <span style={portfolioFieldLabelStyle}>{t.labelUsdRehabShort}</span>
-          <input value={values.portfolioRehab} onChange={(e) => onChange('portfolioRehab', formatCurrencyInput(e.target.value))} inputMode="decimal" placeholder="" style={portfolioFieldInputStyle({ paddingLeft: 80 })} />
+          <input value={values.portfolioRehab} onChange={(e) => onChange('portfolioRehab', formatCurrencyInput(e.target.value))} inputMode="decimal" placeholder="" style={portfolioFieldInputStyle({ paddingLeft: 80, paddingRight: 12 })} />
         </div>
         <div style={{ position: 'relative', minWidth: 0 }}>
           <span style={portfolioFieldLabelStyle}>{t.labelBedsShort}</span>
-          <input value={values.portfolioBeds} onChange={(e) => onChange('portfolioBeds', e.target.value)} inputMode="numeric" maxLength={2} placeholder="" style={portfolioFieldInputStyle({ paddingLeft: 28 })} />
+          <input value={values.portfolioBeds} onChange={(e) => onChange('portfolioBeds', e.target.value)} inputMode="numeric" maxLength={2} placeholder="" style={portfolioFieldInputStyle({ paddingLeft: 28, paddingRight: 12 })} />
         </div>
         <div style={{ position: 'relative', minWidth: 0 }}>
           <span style={portfolioFieldLabelStyle}>{t.labelBathsShort}</span>
-          <input value={values.portfolioBaths} onChange={(e) => onChange('portfolioBaths', e.target.value)} inputMode="numeric" maxLength={2} placeholder="" style={portfolioFieldInputStyle({ paddingLeft: 28 })} />
+          <input value={values.portfolioBaths} onChange={(e) => onChange('portfolioBaths', e.target.value)} inputMode="numeric" maxLength={2} placeholder="" style={portfolioFieldInputStyle({ paddingLeft: 28, paddingRight: 12 })} />
         </div>
       </div>
 
-      <div style={{ display: 'grid', gridTemplateColumns: 'minmax(80px, 0.9fr) minmax(110px, 1.1fr) minmax(90px, 1fr)', gap: 6, marginBottom: 8, width: '100%', minWidth: 0 }}>
+      <div style={{ display: 'grid', gridTemplateColumns: isMobileViewport ? 'repeat(3, minmax(0, 1fr))' : 'minmax(80px, 0.9fr) minmax(110px, 1.1fr) minmax(90px, 1fr)', gap: 8, marginBottom: 8, width: '100%', minWidth: 0 }}>
         <div style={{ position: 'relative', minWidth: 0 }}>
           <span style={portfolioFieldLabelStyle}>{t.labelSqftShort}</span>
-          <input value={values.portfolioSqft} onChange={(e) => onChange('portfolioSqft', e.target.value)} inputMode="numeric" maxLength={7} placeholder="" style={portfolioFieldInputStyle({ paddingLeft: 36 })} />
+          <input value={values.portfolioSqft} onChange={(e) => onChange('portfolioSqft', e.target.value)} inputMode="numeric" maxLength={7} placeholder="" style={portfolioFieldInputStyle({ paddingLeft: 36, paddingRight: 12 })} />
         </div>
         <div style={{ position: 'relative', minWidth: 0 }}>
           <span style={portfolioFieldLabelStyle}>{t.labelLotShort}</span>
-          <input value={values.portfolioLot} onChange={(e) => onChange('portfolioLot', e.target.value)} placeholder="" style={portfolioFieldInputStyle({ paddingLeft: 34 })} />
+          <input value={values.portfolioLot} onChange={(e) => onChange('portfolioLot', e.target.value)} placeholder="" style={portfolioFieldInputStyle({ paddingLeft: 34, paddingRight: 12 })} />
         </div>
         <div style={{ position: 'relative', minWidth: 0 }}>
           <span style={portfolioFieldLabelStyle}>{t.labelCapShort}</span>
-          <input value={values.portfolioCapRate} onChange={(e) => onChange('portfolioCapRate', formatRateInput(e.target.value))} inputMode="decimal" maxLength={5} placeholder="" style={portfolioFieldInputStyle({ paddingLeft: 46 })} />
+          <input value={values.portfolioCapRate} onChange={(e) => onChange('portfolioCapRate', formatRateInput(e.target.value))} inputMode="decimal" maxLength={5} placeholder="" style={portfolioFieldInputStyle({ paddingLeft: 46, paddingRight: 12 })} />
         </div>
       </div>
 
-      <div style={{ display: 'grid', gridTemplateColumns: 'minmax(118px, 1.1fr) minmax(0, 3fr)', gap: 6, marginBottom: 8, width: '100%', minWidth: 0 }}>
+      <div style={{ display: 'grid', gridTemplateColumns: isMobileViewport ? '1fr' : 'minmax(118px, 1.1fr) minmax(0, 3fr)', gap: 8, marginBottom: 8, width: '100%', minWidth: 0 }}>
         <div style={{ position: 'relative', minWidth: 0 }}>
           <div style={{ display: 'grid', gap: 6 }}>
             <div style={{ position: 'relative', minWidth: 0 }}>
               <span style={portfolioFieldLabelStyle}>{t.labelTypeShort}</span>
-              <select value={values.portfolioType} onChange={(e) => onChange('portfolioType', e.target.value)} style={portfolioFieldSelectStyle()}>
+              <select data-mobile-step="portfolioType" value={values.portfolioType} onChange={(e) => onChange('portfolioType', e.target.value)} style={portfolioFieldSelectStyle({ paddingRight: 32 })}>
                 <option value="" >Select</option><option value="SFR">SFR</option><option value="Commercial">{t.optionTypeCommercial}</option><option value="Multifamily">{t.optionTypeMultifamily}</option><option value="Land">{t.optionTypeLand}</option>
               </select>
             </div>
             <div style={{ position: 'relative', minWidth: 0 }}>
               <span style={portfolioFieldLabelStyle}>{t.labelGoalShort}</span>
-              <select value={values.portfolioObjective} onChange={(e) => onChange('portfolioObjective', e.target.value)} style={portfolioFieldSelectStyle()}>
+              <select value={values.portfolioObjective} onChange={(e) => onChange('portfolioObjective', e.target.value)} style={portfolioFieldSelectStyle({ paddingRight: 32 })}>
                 <option value="" >Select</option>
                 <option value="Sell">{t.optionGoalSell}</option>
                 <option value="Rent">{t.optionGoalRent}</option>
@@ -98,7 +99,7 @@ export function FsboPropertyForm({
             </div>
             <div style={{ position: 'relative', minWidth: 0 }}>
               <span style={portfolioFieldLabelStyle}>{t.prefixPrimary || 'Primary'}</span>
-              <select name="primaryProfileScope" aria-label="Perfil principal" value={values.primaryProfileScope} onChange={(e) => onChange('primaryProfileScope', e.target.value)} style={portfolioFieldSelectStyle()}>
+              <select data-mobile-step="portfolioPrimaryProfile" name="primaryProfileScope" aria-label="Perfil principal" value={values.primaryProfileScope} onChange={(e) => onChange('primaryProfileScope', e.target.value)} style={portfolioFieldSelectStyle({ paddingRight: 32 })}>
                 <option value="">{t.optionSelectPlaceholder || 'Select'}</option>
                 <option value="personal">Personal</option>
                 <option value="professional">Business</option>
@@ -113,7 +114,7 @@ export function FsboPropertyForm({
         </div>
       </div>
 
-      <div style={{ display: 'grid', gridTemplateColumns: 'auto 1fr', gap: 6, marginBottom: 8, alignItems: 'start' }}>
+      <div style={{ display: 'grid', gridTemplateColumns: isMobileViewport ? '1fr' : 'auto 1fr', gap: 6, marginBottom: 8, alignItems: 'start' }}>
         <label style={{ fontSize: 10, color: C.t3, textTransform: 'uppercase', display: 'flex', flexDirection: 'column', alignItems: 'flex-start', width: 'auto', gap: 6 }}>
           <span style={{ fontSize: 10, color: C.t3, fontWeight: 700 }}>{t.labelImagesUpTo10}</span>
           <input type="file" accept="image/*" multiple onChange={handlePortfolioImages} style={{ display: 'block', marginTop: 4, fontSize: 11 }} />
