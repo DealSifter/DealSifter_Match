@@ -41,7 +41,7 @@ serve(async (req) => {
       });
     }
 
-    const { pack_id, price_id, success_url, cancel_url } = await req.json();
+    const { pack_id, plan_id, price_id, mode, success_url, cancel_url } = await req.json();
 
     if (!price_id) {
       return new Response(JSON.stringify({ error: 'price_id is required' }), {
@@ -50,20 +50,25 @@ serve(async (req) => {
       });
     }
 
+    const checkoutMode = mode === 'subscription' ? 'subscription' : 'payment';
+    const refId = plan_id || pack_id || '';
     const appUrl = Deno.env.get('APP_URL') ?? 'https://dealsifter.com';
 
-    const session = await stripe.checkout.sessions.create({
-      mode: 'payment',
+    const sessionParams: Parameters<typeof stripe.checkout.sessions.create>[0] = {
+      mode: checkoutMode,
       line_items: [{ price: price_id, quantity: 1 }],
-      success_url: success_url ?? `${appUrl}/?checkout=success&pack=${pack_id}`,
+      success_url: success_url ?? `${appUrl}/?checkout=success&ref=${refId}`,
       cancel_url: cancel_url ?? `${appUrl}/?checkout=cancelled`,
       client_reference_id: user.id,
       customer_email: user.email,
       metadata: {
         user_id: user.id,
+        plan_id: plan_id ?? '',
         pack_id: pack_id ?? '',
       },
-    });
+    };
+
+    const session = await stripe.checkout.sessions.create(sessionParams);
 
     return new Response(JSON.stringify({ url: session.url }), {
       status: 200,

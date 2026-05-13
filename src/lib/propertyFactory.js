@@ -20,7 +20,7 @@ export function createFsboProperty(input) {
     : (input.primaryProfileScope === 'personal' ? 'personal' : 'fsbo');
 
   return {
-    id: genId('fsbo'),
+    id: genId(),
     ownerId: input.ownerId,
     type: input.type || 'SFR',
     address: input.address || '',
@@ -61,7 +61,7 @@ export function createProfessionalProperty(input) {
     : (input.primaryProfileScope === 'fsbo' ? 'fsbo' : 'personal');
 
   return {
-    id: genId('portfolio'),
+    id: genId(),
     ownerId: input.ownerId,
     type: input.type || 'SFR',
     address: input.address || '',

@@ -21,7 +21,7 @@ function StatRow({ label, value }) {
   );
 }
 
-export function AdminDashboard({ setPage, logoutAdmin }) {
+export function AdminDashboard({ setPage, prevPage, logoutAdmin }) {
   const allT = useT('global');
   const t = allT.admin || {};
   const [metrics, setMetrics] = useState(null);
@@ -63,7 +63,7 @@ export function AdminDashboard({ setPage, logoutAdmin }) {
             <p style={{ margin: '5px 0 0', fontSize: 12, color: C.t3 }}>{t.subtitle || 'Control center for system management.'}</p>
           </div>
           <div style={{ display: 'flex', gap: 8 }}>
-            <button onClick={() => setPage?.('dashboard')} style={{ border: `1px solid ${C.border}`, background: 'transparent', color: C.t2, borderRadius: 8, padding: '8px 10px', cursor: 'pointer', fontSize: 12, fontWeight: 700 }}>
+            <button onClick={() => setPage?.(prevPage || 'dashboard')} style={{ border: `1px solid ${C.border}`, background: 'transparent', color: C.t2, borderRadius: 8, padding: '8px 10px', cursor: 'pointer', fontSize: 12, fontWeight: 700 }}>
               {t.backToApp || 'Back to app'}
             </button>
             <button onClick={logoutAdmin} style={{ border: `1px solid ${C.border}`, background: 'transparent', color: C.t2, borderRadius: 8, padding: '8px 10px', cursor: 'pointer', fontSize: 12, fontWeight: 700 }}>

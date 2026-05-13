@@ -1,12 +1,20 @@
 import React, { useEffect } from 'react';
 import { C } from '../../theme/colors';
 
-export function Modal({ children, onClose, maxWidth = 420 }) {
-  // Prevent scrolling on body when modal is open
+export function Modal({ children, onClose, maxWidth = 420, ariaLabel = 'Modal dialog' }) {
+  // Prevent scrolling on body when modal is open; restore previous overflow on unmount
   useEffect(() => {
+    const prev = document.body.style.overflow;
     document.body.style.overflow = 'hidden';
-    return () => { document.body.style.overflow = 'auto'; };
+    return () => { document.body.style.overflow = prev || ''; };
   }, []);
+
+  // Close on Escape key
+  useEffect(() => {
+    const handleKey = (e) => { if (e.key === 'Escape') onClose?.(); };
+    document.addEventListener('keydown', handleKey);
+    return () => document.removeEventListener('keydown', handleKey);
+  }, [onClose]);
 
   return (
     <div 
@@ -15,7 +23,7 @@ export function Modal({ children, onClose, maxWidth = 420 }) {
         inset: 0, 
         background: "rgba(0,0,0,.85)", 
         backdropFilter: "blur(4px)",
-        zIndex: 1000, 
+        zIndex: 10010, 
         padding: 12,
         display: "flex", 
         justifyContent: "center",
@@ -23,7 +31,22 @@ export function Modal({ children, onClose, maxWidth = 420 }) {
       }} 
       onClick={onClose}
     >
+      <style>{`
+        @keyframes modalAppear {
+          from { opacity: 0; transform: scale(0.95) translateY(10px); }
+          to { opacity: 1; transform: scale(1) translateY(0); }
+        }
+        @media (max-width: 767px) {
+          .modal-close-btn {
+            top: 26px !important;
+            right: 11px !important;
+          }
+        }
+      `}</style>
       <div 
+        role="dialog"
+        aria-modal="true"
+        aria-label={ariaLabel}
         onClick={e => e.stopPropagation()} 
         style={{ 
           background: C.card, 
@@ -41,16 +64,10 @@ export function Modal({ children, onClose, maxWidth = 420 }) {
           animation: "modalAppear 0.3s ease-out"
         }}
       >
-        <style>{`
-          @keyframes modalAppear {
-            from { opacity: 0; transform: scale(0.95) translateY(10px); }
-            to { opacity: 1; transform: scale(1) translateY(0); }
-          }
-        `}</style>
-        
         {/* Close button top right */}
         <button 
           onClick={onClose}
+          className="modal-close-btn"
           style={{
             position: "absolute",
             top: 16,
@@ -74,3 +91,4 @@ export function Modal({ children, onClose, maxWidth = 420 }) {
     </div>
   );
 }
+

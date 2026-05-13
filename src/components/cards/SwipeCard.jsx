@@ -7,9 +7,18 @@ import { SmartImage } from '../ui/SmartImage';
 function SwipeCard({ card, action, isUnlocked, isSkipped, onSwipe, onUndo, onUnlock, previewOnly = false, showActions = true }) {
   const t = useT('dashboard').cards;
   const mt = useT('dashboard').matches;
-  const isMobileLayout = typeof window !== 'undefined'
-    && typeof window.matchMedia === 'function'
-    && window.matchMedia('(max-width: 767px)').matches;
+  const [isMobileLayout, setIsMobileLayout] = React.useState(
+    typeof window !== 'undefined' && typeof window.matchMedia === 'function'
+      ? window.matchMedia('(max-width: 767px)').matches
+      : false
+  );
+  React.useEffect(() => {
+    if (typeof window === 'undefined' || typeof window.matchMedia !== 'function') return;
+    const mq = window.matchMedia('(max-width: 767px)');
+    const onChange = (e) => setIsMobileLayout(e.matches);
+    mq.addEventListener('change', onChange);
+    return () => mq.removeEventListener('change', onChange);
+  }, []);
   const dragRef = React.useRef({ active: false, pointerId: null, startX: 0, startY: 0 });
   const dragFrameRef = React.useRef(null);
   const queuedDragRef = React.useRef({ x: 0, y: 0 });

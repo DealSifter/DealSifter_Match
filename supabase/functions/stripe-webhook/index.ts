@@ -9,10 +9,10 @@ const stripe = new Stripe(Deno.env.get('STRIPE_SECRET_KEY') ?? '', {
 
 // NUGGET_PACKS must mirror src/data/mockData.js — qty + bonus credited per pack_id
 const PACK_CREDITS: Record<string, { qty: number; bonus: number; price_cents: number }> = {
-  starter: { qty: 5,   bonus: 0,  price_cents: 990  },
-  popular: { qty: 15,  bonus: 3,  price_cents: 2490 },
-  pro:     { qty: 35,  bonus: 10, price_cents: 4990 },
-  max:     { qty: 80,  bonus: 25, price_cents: 9990 },
+  p5:   { qty: 5,   bonus: 0,  price_cents: 900  },
+  p15:  { qty: 15,  bonus: 2,  price_cents: 1900 },
+  p40:  { qty: 40,  bonus: 8,  price_cents: 3900 },
+  p100: { qty: 100, bonus: 25, price_cents: 7900 },
 };
 
 serve(async (req) => {

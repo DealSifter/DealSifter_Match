@@ -1,12 +1,15 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { C } from '../theme/colors';
 import { useT } from '../i18n/translations';
 import { PLANS, NUGGET_PACKS } from '../data/mockData';
 import { Icon } from '../components/ui/Icon';
+import { redirectToSubscription } from '../lib/stripeClient';
 
-export function Pricing({ setPage, setModal, prevPage }) {
+export function Pricing({ setPage, setModal, prevPage, addToast }) {
   const allT = useT('pricing');
   const t = allT.pricing;
+  const [planLoading, setPlanLoading] = useState(null);
+
   const planName = (id, fallback) => t.planNames?.[id] || fallback;
   const featureMap = {
     free: ['f1', 'f2', 'f3', 'f4'],
@@ -20,7 +23,22 @@ export function Pricing({ setPage, setModal, prevPage }) {
   };
   const showBackButton = prevPage === "landing";
   const topPadding = showBackButton ? "40px" : "58px";
-  
+
+  const handlePlanCta = async (p) => {
+    if (p.price === 0) {
+      setPage('dashboard');
+      return;
+    }
+    setPlanLoading(p.id);
+    try {
+      await redirectToSubscription(p.id);
+    } catch (err) {
+      addToast?.({ type: 'error', message: String(err?.message || 'Falha ao iniciar assinatura.') });
+    } finally {
+      setPlanLoading(null);
+    }
+  };
+
   return (
     <div style={{ maxWidth:1000, margin:"0 auto", padding:`${topPadding} 20px 60px`, textAlign:"center" }}>
       {showBackButton && (
@@ -78,8 +96,12 @@ export function Pricing({ setPage, setModal, prevPage }) {
                 </div>
               ))}
             </div>
-            <button onClick={() => setPage("settings")} style={{ width:"100%", padding:11, borderRadius:10, background:p.popular?C.accent:"transparent", border:p.popular?"none":`1px solid ${C.border}`, color:p.popular?"#fff":C.t2, fontWeight:700, fontSize:13, cursor:"pointer" }}>
-              {p.price===0?t.getStartedFree:t.startTrial}
+            <button
+              onClick={() => handlePlanCta(p)}
+              disabled={planLoading === p.id}
+              style={{ width:"100%", padding:11, borderRadius:10, background:p.popular?C.accent:"transparent", border:p.popular?"none":`1px solid ${C.border}`, color:p.popular?"#fff":C.t2, fontWeight:700, fontSize:13, cursor: planLoading === p.id ? "wait" : "pointer", opacity: planLoading === p.id ? 0.7 : 1 }}
+            >
+              {planLoading === p.id ? '...' : (p.price===0 ? t.getStartedFree : t.startTrial)}
             </button>
           </div>
         ))}
@@ -104,3 +126,4 @@ export function Pricing({ setPage, setModal, prevPage }) {
     </div>
   );
 }
+

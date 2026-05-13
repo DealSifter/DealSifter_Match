@@ -13,7 +13,7 @@ import { useT } from '../i18n/translations';
 import { genId } from '../lib/id';
 import { createFsboProperty, createProfessionalProperty, isFsboPropertyRecord } from '../lib/propertyFactory';
 import { validateFsboPropertyDraft, validateProfessionalPropertyDraft } from '../lib/propertyValidation';
-import { compressImageDataUrl } from '../lib/localforageHelper';
+import { compressImageDataUrl, getPortfolioVideoBlob, setPortfolioVideoBlob, clearPortfolioVideoBlob } from '../lib/localforageHelper';
 import { getMatchPressure } from '../lib/matchPressure';
 
 // Helper: compress all images in a file input event, return array of compressed data URLs
@@ -182,15 +182,15 @@ export function Onboarding({
   initialProfileTab = 'personal',
 }) {
   const t = useT('onboarding').onboarding;
+  const readStoredPriority = (profile, key) => {
+    if (!profile || typeof profile !== 'object') return '';
+    if (!Object.prototype.hasOwnProperty.call(profile, key)) return '';
+    return String(profile[key] || '').trim().toLowerCase();
+  };
   const [selectedMarkets, setSelectedMarkets] = useState(professionalProfile?.markets || []);
   const [selectedSkills, setSelectedSkills] = useState(professionalProfile?.skills || []);
   const [selectedServices, setSelectedServices] = useState(professionalProfile?.services || []);
   const [pitch, setPitch] = useState(professionalProfile?.pitch || '');
-
-  const [fsboCity, _setFsboCity] = useState('');
-  const [fsboZip, _setFsboZip] = useState('');
-  const [fsboType, _setFsboType] = useState('');
-  const [fsboPrice, _setFsboPrice] = useState('');
 
   const [portfolioAddress, setPortfolioAddress] = useState('');
   const [portfolioCity, setPortfolioCity] = useState('');
@@ -234,8 +234,16 @@ export function Onboarding({
   const [personalSecondaryPhone, setPersonalSecondaryPhone] = useState(accountType === 'professional' ? (professionalProfile?.secondaryPhoneA || '') : (personalProfile?.secondaryPhone || ''));
   const [personalTertiaryPhone, setPersonalTertiaryPhone] = useState(accountType === 'professional' ? (professionalProfile?.tertiaryPhoneA || '') : (personalProfile?.tertiaryPhone || ''));
   const [personalEmail, setPersonalEmail] = useState(accountType === 'professional' ? (professionalProfile?.emailA || '') : (personalProfile?.email || ''));
-  const hasExplicitPriorityA = professionalProfile?.cardPriorityAExplicit === true || personalProfile?.cardPriorityAExplicit === true;
-  const [cardPriorityA, setCardPriorityA] = useState(hasExplicitPriorityA ? (professionalProfile?.cardPriorityA || personalProfile?.cardPriorityA || '') : '');
+  const hasExplicitPriorityA = accountType === 'professional'
+    ? professionalProfile?.cardPriorityAExplicit === true
+    : (professionalProfile?.cardPriorityAExplicit === true || personalProfile?.cardPriorityAExplicit === true);
+  const [cardPriorityA, setCardPriorityA] = useState(
+    hasExplicitPriorityA
+      ? (accountType === 'professional'
+        ? readStoredPriority(professionalProfile, 'cardPriorityA')
+        : (readStoredPriority(personalProfile, 'cardPriorityA') || readStoredPriority(professionalProfile, 'cardPriorityA')))
+      : ''
+  );
 
   const [nameB, setNameB] = useState(professionalProfile?.fullNameB || '');
   const [locB, setLocB] = useState(normalizeUsStateCode(professionalProfile?.locB));
@@ -256,9 +264,17 @@ export function Onboarding({
   const [personalTertiaryPhoneB, setPersonalTertiaryPhoneB] = useState(professionalProfile?.tertiaryPhoneB || '');
   const [personalEmailB, setPersonalEmailB] = useState(professionalProfile?.emailB || '');
   const hasExplicitPriorityB = professionalProfile?.cardPriorityBExplicit === true;
-  const hasExplicitPriorityC = professionalProfile?.cardPriorityCExplicit === true || personalProfile?.cardPriorityCExplicit === true;
+  const hasExplicitPriorityC = accountType === 'professional'
+    ? professionalProfile?.cardPriorityCExplicit === true
+    : (professionalProfile?.cardPriorityCExplicit === true || personalProfile?.cardPriorityCExplicit === true);
   const [cardPriorityB, setCardPriorityB] = useState(hasExplicitPriorityB ? (professionalProfile?.cardPriorityB || '') : '');
-  const [cardPriorityC, setCardPriorityC] = useState(hasExplicitPriorityC ? (professionalProfile?.cardPriorityC || personalProfile?.cardPriorityC || '') : '');
+  const [cardPriorityC, setCardPriorityC] = useState(
+    hasExplicitPriorityC
+      ? (accountType === 'professional'
+        ? readStoredPriority(professionalProfile, 'cardPriorityC')
+        : (readStoredPriority(personalProfile, 'cardPriorityC') || readStoredPriority(professionalProfile, 'cardPriorityC')))
+      : ''
+  );
 
   const [portfolioImages, setPortfolioImages] = useState(_savedTemp.portfolioImages || []);
   const [portfolioVideo, setPortfolioVideo] = useState('');
@@ -281,14 +297,6 @@ export function Onboarding({
   const [showArchivedImages, _setShowArchivedImages] = useState({});
   const [propertyImageIndex, setPropertyImageIndex] = useState({});
 
-  const [fsboBeds, _setFsboBeds] = useState('');
-  const [fsboBaths, _setFsboBaths] = useState('');
-  const [fsboSqft, _setFsboSqft] = useState('');
-  const [fsboLot, _setFsboLot] = useState('');
-  const [fsboImprovement, _setFsboImprovement] = useState('');
-  const [fsboRehab, _setFsboRehab] = useState('');
-  const [fsboCapRate, _setFsboCapRate] = useState('');
-  const [fsboDescription, _setFsboDescription] = useState('');
   const [profileTab, setProfileTab] = useState(initialProfileTab || 'personal');
   const activePersonal = profileTab === 'personal';
   const activeSkills = profileTab === 'skills';
@@ -703,18 +711,6 @@ export function Onboarding({
     serviceMarkets,
     serviceImages,
     servicePrimaryProfileScope,
-    fsboCity,
-    fsboZip,
-    fsboType,
-    fsboPrice,
-    fsboBeds,
-    fsboBaths,
-    fsboSqft,
-    fsboLot,
-    fsboImprovement,
-    fsboRehab,
-    fsboCapRate,
-    fsboDescription,
   }), [
     accountType,
     name,
@@ -773,18 +769,6 @@ export function Onboarding({
     serviceMarkets,
     serviceImages,
     servicePrimaryProfileScope,
-    fsboCity,
-    fsboZip,
-    fsboType,
-    fsboPrice,
-    fsboBeds,
-    fsboBaths,
-    fsboSqft,
-    fsboLot,
-    fsboImprovement,
-    fsboRehab,
-    fsboCapRate,
-    fsboDescription,
   ]);
 
   useEffect(() => {
@@ -1034,7 +1018,7 @@ export function Onboarding({
           ))}
         </div>
       );
-    } catch (e) { console.warn('renderServiceImages error', e); return null; }
+    } catch (e) { if (import.meta.env.DEV) console.warn('renderServiceImages error', e); return null; }
   };
 
     const _renderPreviewPropertyImages = (prop) => {
@@ -1074,7 +1058,7 @@ export function Onboarding({
               </div>
             </div>
           );
-      } catch (e) { console.warn('renderPreviewPropertyImages error', e); return null; }
+      } catch (e) { if (import.meta.env.DEV) console.warn('renderPreviewPropertyImages error', e); return null; }
     };
   void _renderServiceImages;
   void _renderPreviewPropertyImages;
@@ -1394,8 +1378,8 @@ export function Onboarding({
       setPortfolioCapRate('');
       setPortfolioDescription('');
       setPortfolioVideo('');
+      clearPortfolioVideoBlob(`portfolioVideo_${accountType}`).catch(() => {});
       setPortfolioMsg('');
-      setPortfolioEntryType('property');
       setPortfolioMarkets([]);
       setPreviewOpen(false);
 
@@ -1420,16 +1404,17 @@ export function Onboarding({
         setPersonalSecondaryPhone(personalProfile?.secondaryPhone || '');
         setPersonalTertiaryPhone(personalProfile?.tertiaryPhone || '');
         setPersonalEmail(personalProfile?.email || '');
-        const isProfileAFilled = !!(professionalProfile?.fullNameA || professionalProfile?.primaryPhoneA || professionalProfile?.phoneA);
-        const isProfileBFilled = !!(professionalProfile?.fullNameB || professionalProfile?.primaryPhoneB || professionalProfile?.phoneB);
-        const isProfileCFilled = !!(personalProfile?.fullName || personalProfile?.primaryPhone || personalProfile?.phone);
         const priorityAExplicit = professionalProfile?.cardPriorityAExplicit === true || personalProfile?.cardPriorityAExplicit === true;
         const priorityBExplicit = professionalProfile?.cardPriorityBExplicit === true;
         const priorityCExplicit = personalProfile?.cardPriorityCExplicit === true || professionalProfile?.cardPriorityCExplicit === true;
         applyCardPrioritySet({
-          A: (isProfileAFilled && priorityAExplicit) ? (professionalProfile?.cardPriorityA || personalProfile?.cardPriorityA || '') : '',
-          B: (isProfileBFilled && priorityBExplicit) ? (professionalProfile?.cardPriorityB || '') : '',
-          C: (isProfileCFilled && priorityCExplicit) ? (personalProfile?.cardPriorityC || professionalProfile?.cardPriorityC || '') : '',
+          A: priorityAExplicit
+            ? (readStoredPriority(personalProfile, 'cardPriorityA') || readStoredPriority(professionalProfile, 'cardPriorityA'))
+            : '',
+          B: priorityBExplicit ? readStoredPriority(professionalProfile, 'cardPriorityB') : '',
+          C: priorityCExplicit
+            ? (readStoredPriority(personalProfile, 'cardPriorityC') || readStoredPriority(professionalProfile, 'cardPriorityC'))
+            : '',
         }, 'C');
         setProfileThumb(personalProfile?.photo || '');
         setProfileThumbB(professionalProfile?.photoB || '');
@@ -1457,16 +1442,13 @@ export function Onboarding({
       setPersonalSecondaryPhone(professionalProfile?.secondaryPhoneA || '');
       setPersonalTertiaryPhone(professionalProfile?.tertiaryPhoneA || '');
       setPersonalEmail(professionalProfile?.emailA || '');
-      const isProfileAFilled = !!(professionalProfile?.fullNameA || professionalProfile?.primaryPhoneA || professionalProfile?.phoneA);
-      const isProfileBFilled = !!(professionalProfile?.fullNameB || professionalProfile?.primaryPhoneB || professionalProfile?.phoneB);
-      const isProfileCFilled = !!(personalProfile?.fullName || personalProfile?.primaryPhone || personalProfile?.phone);
-      const priorityAExplicit = professionalProfile?.cardPriorityAExplicit === true || personalProfile?.cardPriorityAExplicit === true;
+      const priorityAExplicit = professionalProfile?.cardPriorityAExplicit === true;
       const priorityBExplicit = professionalProfile?.cardPriorityBExplicit === true;
-      const priorityCExplicit = personalProfile?.cardPriorityCExplicit === true || professionalProfile?.cardPriorityCExplicit === true;
+      const priorityCExplicit = professionalProfile?.cardPriorityCExplicit === true;
       applyCardPrioritySet({
-        A: (isProfileAFilled && priorityAExplicit) ? (professionalProfile?.cardPriorityA || personalProfile?.cardPriorityA || '') : '',
-        B: (isProfileBFilled && priorityBExplicit) ? (professionalProfile?.cardPriorityB || '') : '',
-        C: (isProfileCFilled && priorityCExplicit) ? (professionalProfile?.cardPriorityC || personalProfile?.cardPriorityC || '') : '',
+        A: priorityAExplicit ? readStoredPriority(professionalProfile, 'cardPriorityA') : '',
+        B: priorityBExplicit ? readStoredPriority(professionalProfile, 'cardPriorityB') : '',
+        C: priorityCExplicit ? readStoredPriority(professionalProfile, 'cardPriorityC') : '',
       }, 'A');
       const nextCategoriesA = Array.isArray(professionalProfile?.categories) ? professionalProfile.categories : [];
       setSelectedCategories(nextCategoriesA);
@@ -1526,8 +1508,25 @@ export function Onboarding({
     } catch (e) { void e; }
   }, [profileThumb, profileThumbB, activeTempStorageKey, shouldUseTempStorage]);
 
+  // Restore video blob from IndexedDB on mount/accountType change
+  useEffect(() => {
+    let cancelled = false;
+    let blobUrl = '';
+    getPortfolioVideoBlob(`portfolioVideo_${accountType}`).then((blob) => {
+      if (cancelled || !blob) return;
+      blobUrl = URL.createObjectURL(blob);
+      setPortfolioVideo(blobUrl);
+    }).catch(() => {});
+    return () => {
+      cancelled = true;
+      if (blobUrl) URL.revokeObjectURL(blobUrl);
+    };
+  }, [accountType]);
+
+  const MAX_FILE_SIZE_BYTES = 15 * 1024 * 1024; // 15 MB
+
   const handlePortfolioImages = (e) => {
-    const files = Array.from(e.target.files || []);
+    const files = Array.from(e.target.files || []).filter((f) => f.size <= MAX_FILE_SIZE_BYTES);
     if (!files.length) { if (e?.target) e.target.value = ''; return; }
     readAndCompressFiles(files).then((urls) => {
       if (urls.length) setPortfolioImages((prev) => [...prev, ...urls].slice(0, 10));
@@ -1604,6 +1603,7 @@ export function Onboarding({
       }
       setPortfolioVideo(videoUrl);
       setPortfolioMsg('');
+      setPortfolioVideoBlob(`portfolioVideo_${accountType}`, file).catch(() => {});
       if (e?.target) e.target.value = '';
     };
     v.onerror = () => {
@@ -1742,6 +1742,7 @@ export function Onboarding({
       address: portfolioAddress,
       city: portfolioCity,
       price: portfolioPrice,
+      primaryProfileScope,
     });
     if (!validation.valid) {
       setPortfolioMsg(validation.reason === 'invalid_price' ? t.errorPropertyPriceInvalid : t.errorPropertyRequiresCityPrice);
@@ -1794,6 +1795,7 @@ export function Onboarding({
     setPortfolioDescription('');
     setPortfolioImages([]);
     setPortfolioVideo('');
+    clearPortfolioVideoBlob(`portfolioVideo_${accountType}`).catch(() => {});
     setPortfolioMsg('');
 
     return newItem.id;
@@ -1857,6 +1859,7 @@ export function Onboarding({
     setPortfolioDescription('');
     setPortfolioImages([]);
     setPortfolioVideo('');
+    clearPortfolioVideoBlob(`portfolioVideo_${accountType}`).catch(() => {});
     setPortfolioMsg('');
 
     return newItem.id;
@@ -1870,7 +1873,7 @@ export function Onboarding({
     setServicePortfolio((prev) => [
       ...prev,
       {
-        id: genId('svc'),
+        id: genId(),
         ownerId: publishOwnerId,
         title: serviceTitle,
         category: serviceCategory,
@@ -2570,7 +2573,7 @@ export function Onboarding({
       setBasicRequiredMsg('');
       clearInlineValidationHint();
     } catch (e) {
-      console.warn('Failed saving profiles', e);
+      if (import.meta.env.DEV) console.warn('Failed saving profiles', e);
     }
   };
 
@@ -2759,7 +2762,7 @@ export function Onboarding({
       setSaveProfilesBaseline(saveProfilesFingerprint);
       setIsSaveProfilesDirty(false);
     } catch (e) {
-      console.warn('Publish step failed during registration publish.', e);
+      if (import.meta.env.DEV) console.warn('Publish step failed during registration publish.', e);
     }
 
     setPage('dashboard');

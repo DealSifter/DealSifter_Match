@@ -15,6 +15,10 @@ export const C = {
   t3:      "var(--t3)",
   shadow:  "var(--shadow)",
 
+  // Alias para manter consistência semântica com sistemas de design
+  error:   "var(--danger-hex)",
+  warning: "var(--warning-hex)",
+
   alpha: (colorVar, opacity) => {
     if (colorVar && colorVar.startsWith('var(')) {
        return `color-mix(in srgb, ${colorVar}, transparent ${Math.round((1 - opacity) * 100)}%)`;

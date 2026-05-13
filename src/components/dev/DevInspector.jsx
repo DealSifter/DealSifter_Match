@@ -350,7 +350,7 @@ function ScreenshotEditor({ imageUrl, onClose, onCopyDone }) {
     }
 
     const shape = {
-      id: genId('shape'),
+      id: genId(),
       type: tool,
       x: p.x,
       y: p.y,

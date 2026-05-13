@@ -62,6 +62,7 @@ export function compressImageDataUrl(dataUrl, maxDim = 1024, quality = 0.75) {
       canvas.width = width;
       canvas.height = height;
       const ctx = canvas.getContext('2d');
+      if (!ctx) { resolve(dataUrl); return; } // 2d context unavailable (e.g. GPU blocked)
       ctx.drawImage(img, 0, 0, width, height);
       resolve(canvas.toDataURL('image/jpeg', quality));
     };
@@ -95,9 +96,28 @@ export async function uploadDataUrlToStorage(dataUrl, bucket, path, supabaseClie
   return data.publicUrl;
 }
 
+// ── Video blob persistence (IndexedDB via localforage) ────────────────────
+const videoStore = localforage.createInstance({
+  name: 'dealsifter',
+  storeName: 'portfolio_video',
+});
+
+export async function getPortfolioVideoBlob(key) {
+  try { return await videoStore.getItem(key) ?? null; } catch { return null; }
+}
+
+export async function setPortfolioVideoBlob(key, blob) {
+  try { await videoStore.setItem(key, blob); return true; } catch { return false; }
+}
+
+export async function clearPortfolioVideoBlob(key) {
+  try { await videoStore.removeItem(key); } catch { /* no-op */ }
+}
+
 // ── Clear all user-specific IndexedDB data (call on logout) ─────────────
 export async function clearAllUserData() {
   try { await portfolioStore.clear(); } catch { /* no-op */ }
+  try { await videoStore.clear(); } catch { /* no-op */ }
   try { await localforage.removeItem('tempUploads'); } catch { /* no-op */ }
 }
 

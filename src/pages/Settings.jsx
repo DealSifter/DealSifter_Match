@@ -37,11 +37,18 @@ function Panel({ title, subtitle, children }) {
   );
 }
 
-export function Settings({ setPage, initialTab = 'profile', systemAccount, setSystemAccount, authSession, setAuthSession, subscription, addToast, supabaseUserId, onDeleteAccount, onRevokeConsent }) {
+export function Settings({ setPage, prevPage, initialTab = 'profile', systemAccount, setSystemAccount, authSession, setAuthSession, subscription, addToast, supabaseUserId, onDeleteAccount, onRevokeConsent }) {
   const allT = useT('settings');
   const t = allT.settings || {};
   const [tab, setTab] = useState(initialTab);
-  const [commPrefs, setCommPrefs] = useState({ email: true, chat: true, marketing: false });
+  const [confirmPayload, setConfirmPayload] = useState(null); // { message, onConfirm, variant }
+  const [commPrefs, setCommPrefs] = useState(() => {
+    try {
+      const saved = JSON.parse(localStorage.getItem('ds_comm_prefs') || 'null');
+      if (saved && typeof saved === 'object') return { email: true, chat: true, marketing: false, ...saved };
+    } catch { /* no-op */ }
+    return { email: true, chat: true, marketing: false };
+  });
   const activeSubscription = subscription || {
     planId: 'free',
     planName: 'Free',
@@ -84,18 +91,40 @@ export function Settings({ setPage, initialTab = 'profile', systemAccount, setSy
   };
 
   const toggleComm = (key) => {
-    setCommPrefs((prev) => ({ ...prev, [key]: !prev?.[key] }));
+    setCommPrefs((prev) => {
+      const next = { ...prev, [key]: !prev?.[key] };
+      try { localStorage.setItem('ds_comm_prefs', JSON.stringify(next)); } catch { /* no-op */ }
+      return next;
+    });
   };
 
   return (
     <div style={{ paddingTop: 58, minHeight: '100dvh', background: C.bg, boxSizing: 'border-box' }}>
+      {confirmPayload && (
+        <div style={{ position: 'fixed', inset: 0, zIndex: 10020, display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'rgba(0,0,0,0.65)' }}
+          onClick={() => setConfirmPayload(null)}>
+          <div style={{ background: C.card, border: `1px solid ${confirmPayload.variant === 'danger' ? C.danger : (C.warning || '#f59e0b')}`, borderRadius: 14, padding: '28px 28px 22px', maxWidth: 420, width: '90%', boxShadow: '0 12px 48px rgba(0,0,0,0.4)' }}
+            onClick={(e) => e.stopPropagation()}>
+            <p style={{ margin: '0 0 20px', fontSize: 14, color: C.t1, lineHeight: '1.5' }}>{confirmPayload.message}</p>
+            <div style={{ display: 'flex', gap: 10, justifyContent: 'flex-end' }}>
+              <button onClick={() => setConfirmPayload(null)} style={{ border: `1px solid ${C.border}`, background: 'transparent', color: C.t2, borderRadius: 8, padding: '9px 18px', fontSize: 13, fontWeight: 700, cursor: 'pointer' }}>
+                Cancelar
+              </button>
+              <button onClick={() => { confirmPayload.onConfirm?.(); setConfirmPayload(null); }}
+                style={{ border: 'none', borderRadius: 8, padding: '9px 18px', fontSize: 13, fontWeight: 800, cursor: 'pointer', background: confirmPayload.variant === 'danger' ? C.danger : (C.warning || '#f59e0b'), color: '#fff' }}>
+                Confirmar
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
       <div style={{ maxWidth: 1180, margin: '0 auto', padding: '16px 18px 24px' }}>
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12, marginBottom: 14 }}>
           <div>
             <h2 style={{ margin: 0, fontSize: 22, fontWeight: 900, color: C.t1 }}>{t.title || 'System Settings'}</h2>
             <p style={{ margin: '5px 0 0', fontSize: 12, color: C.t3 }}>{t.subtitle || 'Manage account, payments and support.'}</p>
           </div>
-          <button onClick={() => setPage?.('dashboard')} style={{ border: `1px solid ${C.border}`, background: 'transparent', color: C.t2, borderRadius: 8, padding: '8px 10px', cursor: 'pointer', fontSize: 12, fontWeight: 700 }}>
+          <button onClick={() => setPage?.(prevPage || 'dashboard')} style={{ border: `1px solid ${C.border}`, background: 'transparent', color: C.t2, borderRadius: 8, padding: '8px 10px', cursor: 'pointer', fontSize: 12, fontWeight: 700 }}>
             {t.backToApp || 'Back to app'}
           </button>
         </div>
@@ -193,10 +222,14 @@ export function Settings({ setPage, initialTab = 'profile', systemAccount, setSy
             <>
               <Panel title={t.commTitle || 'Communication'} subtitle={t.commSub || 'Support and contact channels'}>
                 <div style={{ display: 'grid', gap: 8 }}>
-                  <button style={{ border: `1px solid ${C.border}`, background: 'transparent', color: C.t2, borderRadius: 8, padding: '9px 10px', fontSize: 12, fontWeight: 700, cursor: 'pointer', display: 'inline-flex', gap: 7, alignItems: 'center', justifyContent: 'center' }}>
+                  <button
+                    onClick={() => { window.location.href = 'mailto:suporte@dealsifter.com'; }}
+                    style={{ border: `1px solid ${C.border}`, background: 'transparent', color: C.t2, borderRadius: 8, padding: '9px 10px', fontSize: 12, fontWeight: 700, cursor: 'pointer', display: 'inline-flex', gap: 7, alignItems: 'center', justifyContent: 'center' }}>
                     <Icon name="email" size={13} color={C.t2} /> {t.contactEmail || 'Contact by email'}
                   </button>
-                  <button style={{ border: `1px solid ${C.border}`, background: 'transparent', color: C.t2, borderRadius: 8, padding: '9px 10px', fontSize: 12, fontWeight: 700, cursor: 'pointer', display: 'inline-flex', gap: 7, alignItems: 'center', justifyContent: 'center' }}>
+                  <button
+                    onClick={() => { window.open('mailto:suporte@dealsifter.com?subject=Suporte%20DealSifter', '_blank'); }}
+                    style={{ border: `1px solid ${C.border}`, background: 'transparent', color: C.t2, borderRadius: 8, padding: '9px 10px', fontSize: 12, fontWeight: 700, cursor: 'pointer', display: 'inline-flex', gap: 7, alignItems: 'center', justifyContent: 'center' }}>
                     <Icon name="chat" size={13} color={C.t2} /> {t.contactChat || 'Open support chat'}
                   </button>
                   <div style={{ border: `1px solid ${C.border}`, borderRadius: 10, padding: 10, display: 'grid', gap: 8 }}>
@@ -285,9 +318,11 @@ export function Settings({ setPage, initialTab = 'profile', systemAccount, setSy
                   {onRevokeConsent && (
                     <button
                       onClick={() => {
-                        if (window.confirm('Deseja revogar seu consentimento de processamento de dados? Você será redirecionado à tela inicial e precisará consentir novamente para usar a plataforma.')) {
-                          onRevokeConsent();
-                        }
+                        setConfirmPayload({
+                          message: 'Deseja revogar seu consentimento de processamento de dados? Você será redirecionado à tela inicial e precisará consentir novamente para usar a plataforma.',
+                          variant: 'warning',
+                          onConfirm: onRevokeConsent,
+                        });
                       }}
                       style={{
                         border: `1px solid ${C.alpha?.(C.warning || '#f59e0b', 0.5) || '#f59e0b'}`,
@@ -324,9 +359,11 @@ export function Settings({ setPage, initialTab = 'profile', systemAccount, setSy
                   </div>
                   <button
                     onClick={() => {
-                      if (window.confirm('Tem certeza que deseja excluir sua conta e todos os seus dados? Esta ação é IRREVERSÍVEL.')) {
-                        onDeleteAccount?.();
-                      }
+                      setConfirmPayload({
+                        message: 'Tem certeza que deseja excluir sua conta e todos os seus dados? Esta ação é IRREVERSÍVEL.',
+                        variant: 'danger',
+                        onConfirm: onDeleteAccount,
+                      });
                     }}
                     style={{
                       border: `1px solid ${C.danger || '#ef4444'}`,

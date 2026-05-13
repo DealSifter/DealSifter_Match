@@ -6,9 +6,18 @@ import { SmartImage } from '../ui/SmartImage';
 
 export function PropertyCard({ property, action, statusAction, onInterest, owner, isSkipped = false, previewOnly = false, matchPressure = 0, onAvatarClick, showActions = true }) {
   const t = useT('dashboard').cards;
-  const isMobileLayout = typeof window !== 'undefined'
-    && typeof window.matchMedia === 'function'
-    && window.matchMedia('(max-width: 767px)').matches;
+  const [isMobileLayout, setIsMobileLayout] = React.useState(
+    typeof window !== 'undefined' && typeof window.matchMedia === 'function'
+      ? window.matchMedia('(max-width: 767px)').matches
+      : false
+  );
+  React.useEffect(() => {
+    if (typeof window === 'undefined' || typeof window.matchMedia !== 'function') return;
+    const mq = window.matchMedia('(max-width: 767px)');
+    const onChange = (e) => setIsMobileLayout(e.matches);
+    mq.addEventListener('change', onChange);
+    return () => mq.removeEventListener('change', onChange);
+  }, []);
   // Card do perfil está em stand by (esmaecido)?
   const isDimmed = owner?._isDimmed;
   const [currentIdx, setCurrentIdx] = React.useState(0);

@@ -15,6 +15,7 @@ export default defineConfig({
           if (id.includes('leaflet') || id.includes('react-leaflet') || id.includes('supercluster')) return 'map-vendor';
           if (id.includes('jspdf')) return 'pdf-vendor';
           if (id.includes('localforage')) return 'storage-vendor';
+          if (id.includes('framer-motion')) return 'motion-vendor';
         },
       },
     },
@@ -23,8 +24,8 @@ export default defineConfig({
     port: 5174,
     strictPort: true,
     watch: {
-      // For Windows and network drives, force polling so file changes are reliably detected.
-      usePolling: true,
+      // Set VITE_USE_POLLING=false in .env to disable on Linux/Mac CI.
+      usePolling: process.env.VITE_USE_POLLING !== 'false',
       interval: 100
     }
     // Optional: tune HMR if you use a non-default port or proxy

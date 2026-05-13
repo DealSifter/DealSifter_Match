@@ -14,6 +14,10 @@ export function validateFsboPropertyDraft(draft) {
     return { valid: false, reason: 'invalid_price' };
   }
 
+  if (!String(draft.primaryProfileScope || '').trim()) {
+    return { valid: false, reason: 'missing_primary_profile' };
+  }
+
   return { valid: true, reason: null, parsedPrice: price };
 }
 

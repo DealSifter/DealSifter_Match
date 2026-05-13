@@ -13,7 +13,6 @@ const Settings = lazy(() => import('./pages/Settings').then((m) => ({ default: m
 const AdminDashboard = lazy(() => import('./pages/AdminDashboard').then((m) => ({ default: m.AdminDashboard })));
 const TermsPage = lazy(() => import('./pages/TermsPage').then((m) => ({ default: m.TermsPage })));
 const PrivacyPolicyPage = lazy(() => import('./pages/PrivacyPolicyPage').then((m) => ({ default: m.PrivacyPolicyPage })));
-const NuggetStore = lazy(() => import('./components/modals/NuggetStore').then((m) => ({ default: m.NuggetStore })));
 const UnlockModal = lazy(() => import('./components/modals/UnlockModal').then((m) => ({ default: m.UnlockModal })));
 const AuthAccessModal = lazy(() => import('./components/modals/AuthAccessModal').then((m) => ({ default: m.AuthAccessModal })));
 const AdminLoginModal = lazy(() => import('./components/modals/AdminLoginModal').then((m) => ({ default: m.AdminLoginModal })));
@@ -21,11 +20,10 @@ import { ToastContainer } from './components/ui/Toast';
 const ConsentBanner = lazy(() => import('./components/ui/ConsentBanner').then((m) => ({ default: m.ConsentBanner })));
 const CookieBanner = lazy(() => import('./components/ui/CookieBanner').then((m) => ({ default: m.CookieBanner })));
 import { getT } from './i18n/translations';
-import { CATEGORIES, CARDS as _MOCK_CARDS, SERVICE_PORTFOLIO as _MOCK_SERVICE_PORTFOLIO } from './data/mockData';
+import { CATEGORIES, CARDS as _MOCK_CARDS } from './data/mockData';
 import { supabase, isSupabaseConfigured } from './lib/supabaseClient';
 import { buildScopedProfilePayload, extractScopedProfileLegacy } from './lib/profileScopeResolver';
 import { getPortfolioFull, setPortfolioFull, clearAllUserData, uploadDataUrlToStorage } from './lib/localforageHelper';
-import { redirectToCheckout } from './lib/stripeClient';
 import { getMatchPressure, setDealAlert, shouldSendDealAlert } from './lib/matchPressure';
 
 // Safe error logger — strips Supabase error details that may contain personal data
@@ -457,6 +455,7 @@ export default function App() {
   const [profileSyncStatus, setProfileSyncStatus] = useState('idle');
   const [isHydratingProfiles, setIsHydratingProfiles] = useState(false);
   const [isHydratingPortfolio, setIsHydratingPortfolio] = useState(false);
+  const [showHydrationBlocking, setShowHydrationBlocking] = useState(false);
   const [profileHydrationCycle, setProfileHydrationCycle] = useState(0);
   const [portfolioHydrationCycle, setPortfolioHydrationCycle] = useState(0);
 
@@ -470,6 +469,18 @@ export default function App() {
       portfolioHydrationRetryRef.current.timer = null;
     }
   }, []);
+
+  // Keep first-load hydration blocking short; continue syncing in background afterwards.
+  useEffect(() => {
+    const hydrating = isHydratingProfiles || isHydratingPortfolio;
+    if (!hydrating) {
+      setShowHydrationBlocking(false);
+      return;
+    }
+    setShowHydrationBlocking(true);
+    const timer = setTimeout(() => setShowHydrationBlocking(false), 4500);
+    return () => clearTimeout(timer);
+  }, [isHydratingProfiles, isHydratingPortfolio]);
 
   const [isAuthProcessing, setIsAuthProcessing] = useState(false);
   const [isAdminAuthProcessing, setIsAdminAuthProcessing] = useState(false);
@@ -562,21 +573,27 @@ export default function App() {
 
   const handleLgpdAccept = async () => {
     setIsConsentProcessing(true);
-    setLgpdConsent(true);
-    try { localStorage.setItem('ds_lgpd_consent', '1'); } catch { /* no-op */ }
-    // Record consent server-side as proof (Art. 8)
+    // Record consent server-side FIRST as proof (Art. 8) before updating local state
+    const anonId = `anon-${Date.now()}`;
     if (isSupabaseConfigured && supabase) {
       try {
         const userId = authSession?.userId || null;
         await supabase.from('consent_records').insert({
           user_id: userId,
-          anonymous_id: userId ? null : `anon-${Date.now()}`,
+          anonymous_id: userId ? null : anonId,
           consent_type: 'data_processing',
           version: '1.0',
           user_agent: navigator.userAgent?.slice(0, 200) || null,
         });
+        // Persist anonymous_id so we can link it after login
+        if (!userId) {
+          try { localStorage.setItem('ds_lgpd_consent_anon_id', anonId); } catch { /* no-op */ }
+        }
       } catch { /* best-effort */ }
     }
+    // Update local state only after server-side record attempt
+    setLgpdConsent(true);
+    try { localStorage.setItem('ds_lgpd_consent', '1'); } catch { /* no-op */ }
     setIsConsentProcessing(false);
   };
 
@@ -596,19 +613,22 @@ export default function App() {
           .eq('consent_type', 'data_processing')
           .limit(1);
         if (existing?.length) return; // already linked
-        // Try to find and claim an anonymous record from this browser
+        // Try to find and claim the anonymous record using the stored anon_id
+        const storedAnonId = (() => { try { return localStorage.getItem('ds_lgpd_consent_anon_id'); } catch { return null; } })();
+        if (!storedAnonId) return;
         const { data: anon } = await supabase
           .from('consent_records')
           .select('id')
           .is('user_id', null)
+          .eq('anonymous_id', storedAnonId)
           .eq('consent_type', 'data_processing')
-          .order('accepted_at', { ascending: false })
           .limit(1);
         if (anon?.[0]) {
           await supabase
             .from('consent_records')
             .update({ user_id: authSession.userId, anonymous_id: null })
             .eq('id', anon[0].id);
+          try { localStorage.removeItem('ds_lgpd_consent_anon_id'); } catch { /* no-op */ }
         }
       } catch { /* best-effort */ }
     })();
@@ -1292,16 +1312,20 @@ export default function App() {
       if (pressure > 0 && shouldSendDealAlert(p.id)) {
         setDealAlert(p.id);
         const shortAddr = String(p.address || 'Imóvel').split(',')[0].trim();
-        setSystemNotifications((prev) => [
-          ...prev,
-          {
-            id: `deal-alert-${p.id}-${Date.now()}`,
-            title: '📢 Seu imóvel está atraindo interesse!',
-            message: `"${shortAddr}": ${pressure}% dos usuários ativos já acessaram este imóvel. Não perca o timing — entre em contato com os interessados!`,
-            createdAt: Date.now(),
-            read: false,
-          },
-        ]);
+        setSystemNotifications((prev) => {
+          const alertId = `deal-alert-${p.id}`;
+          if (prev.some((n) => n.id === alertId)) return prev; // dedup by stable id
+          return [
+            ...prev,
+            {
+              id: alertId,
+              title: '📢 Seu imóvel está atraindo interesse!',
+              message: `"${shortAddr}": ${pressure}% dos usuários ativos já acessaram este imóvel. Não perca o timing — entre em contato com os interessados!`,
+              createdAt: Date.now(),
+              read: false,
+            },
+          ];
+        });
         addToast({
           type: 'warning',
           title: '🔥 Imóvel com demanda!',
@@ -1341,6 +1365,11 @@ export default function App() {
       && profileSyncStateRef.current.loaded
       && profileSyncStateRef.current.personalLoadedFromRemote
       && profileSyncStateRef.current.professionalLoadedFromRemote
+    ) return;
+
+    if (
+      profileSyncStateRef.current.userId === supabaseUserId
+      && profileSyncStateRef.current.hydrating
     ) return;
 
     let cancelled = false;
@@ -1453,7 +1482,6 @@ export default function App() {
           );
 
           const hydratedProfessional = normalizeProfessionalProfile({
-            ...professionalProfile,
             ...mergedProfessionalPayload,
             category: professionalResult.data.category,
             subcategory: professionalResult.data.subcategory,
@@ -1513,7 +1541,7 @@ export default function App() {
       cancelled = true;
       setIsHydratingProfiles(false);
     };
-  }, [supabaseUserId, accountType, userProfile.category, professionalProfile, profileHydrationCycle]);
+  }, [supabaseUserId, accountType, userProfile.category, profileHydrationCycle]);
 
   useEffect(() => {
     if (!isSupabaseConfigured || !supabase || !supabaseUserId) return;
@@ -1936,9 +1964,7 @@ export default function App() {
           return;
         }
 
-        const payload2 = userOwnedProperties.map((property) => mapLocalPropertyToDb(property, supabaseUserId));
-
-        for (const row of payload2) {
+        for (const row of payload) {
           const localProperty = userOwnedProperties.find((item) => String(item.id) === String(row.id));
           const images = normalizePortfolioImages(localProperty?.images);
 
@@ -2342,12 +2368,16 @@ export default function App() {
     if (isForgotPasswordProcessing) return 'Enviando recuperação de senha...';
     if (isConsentProcessing) return 'Processando consentimento...';
     if (isAccountProcessing) return 'Processando sua conta...';
-    if (isHydratingProfiles || isHydratingPortfolio) return 'Carregando dados do app...';
+    if ((isHydratingProfiles || isHydratingPortfolio) && showHydrationBlocking) return 'Carregando dados do app...';
     return '';
-  }, [isAuthProcessing, isAdminAuthProcessing, isForgotPasswordProcessing, isConsentProcessing, isAccountProcessing, isHydratingProfiles, isHydratingPortfolio]);
+  }, [isAuthProcessing, isAdminAuthProcessing, isForgotPasswordProcessing, isConsentProcessing, isAccountProcessing, isHydratingProfiles, isHydratingPortfolio, showHydrationBlocking]);
 
   const showBlockingProcessing = Boolean(blockingProcessingMessage);
-  const showSyncProcessing = profileSyncStatus === 'syncing' && !showBlockingProcessing;
+  const showHydrationBackgroundSync = (isHydratingProfiles || isHydratingPortfolio) && !showBlockingProcessing;
+  const showSyncProcessing = (profileSyncStatus === 'syncing' || showHydrationBackgroundSync) && !showBlockingProcessing;
+  const syncProcessingLabel = showHydrationBackgroundSync
+    ? 'Sincronizando dados em segundo plano...'
+    : 'Salvando dados...';
 
   const handleSubscriptionChanged = (nextSubscription) => {
     if (!nextSubscription?.planId) return;
@@ -2469,7 +2499,9 @@ export default function App() {
       // Navegar para Matches para visualizar o contato
       setPage('matches');
     } else {
+      addToast({ type: 'warning', title: 'Nuggets insuficientes', message: `Você precisa de ${unlockCost} nugget(s) para desbloquear este contato. Adquira mais na aba de pagamentos.` });
       setModal(null);
+      openSettingsTab('payments');
     }
   };
 
@@ -2516,6 +2548,7 @@ export default function App() {
             editMode={editMode}
             setEditMode={setEditMode}
             mobileBottomNavCollapsed={mobileBottomNavCollapsed}
+            addToast={addToast}
           />
         );
       case 'matches':
@@ -2541,6 +2574,7 @@ export default function App() {
             userProfile={userProfile}
             personalProfile={personalProfile}
             professionalProfile={professionalProfile}
+            mobileBottomNavCollapsed={mobileBottomNavCollapsed}
           />
         );
       case 'mapview':
@@ -2581,11 +2615,12 @@ export default function App() {
           />
         );
       case 'pricing':
-        return <Pricing setPage={setPage} setModal={handleOpenModal} prevPage={prevPage} />;
+        return <Pricing setPage={setPage} setModal={handleOpenModal} prevPage={prevPage} addToast={addToast} />;
       case 'settings':
         return (
           <Settings
             setPage={setPage}
+            prevPage={prevPage}
             initialTab={settingsInitialTab}
             systemAccount={systemAccount}
             setSystemAccount={setSystemAccount}
@@ -2600,7 +2635,7 @@ export default function App() {
           />
         );
       case 'admin':
-        return isAdmin ? <AdminDashboard setPage={setPage} logoutAdmin={logoutAdmin} /> : <Landing setPage={setPage} onOpenAuthModal={openAuthModal} />;
+        return isAdmin ? <AdminDashboard setPage={setPage} prevPage={prevPage} logoutAdmin={logoutAdmin} /> : <Landing setPage={setPage} onOpenAuthModal={openAuthModal} />;
       case 'terms':
         return <TermsPage setPage={setPage} />;
       case 'privacy':
@@ -2645,7 +2680,7 @@ export default function App() {
         {/* REMOVIDO: imagens de processamento para evitar bug visual de imagem gigante no feed */}
         {showSyncProcessing && (
           <div className="ds-processing-sync-pill" role="status" aria-live="polite">
-            <span>Salvando dados...</span>
+            <span>{syncProcessingLabel}</span>
           </div>
         )}
 
@@ -2669,19 +2704,6 @@ export default function App() {
         {!lgpdConsent && authSession && (
           <Suspense fallback={null}>
             <ConsentBanner onAccept={handleLgpdAccept} onReject={() => { const t = getT(); setPage('landing'); addToast({ type: 'info', title: t.consent.requiredTitle, message: t.consent.requiredMessage }); }} onOpenTerms={() => setPage('terms')} onOpenPrivacy={() => setPage('privacy')} />
-          </Suspense>
-        )}
-
-        {modal === 'store' && (
-          <Suspense fallback={null}>
-            <NuggetStore
-              onClose={() => setModal(null)}
-              onBuy={async (pkg) => {
-                await redirectToCheckout(pkg);
-                // Page will redirect to Stripe. If it returns here, checkout was cancelled.
-              }}
-              nuggets={nuggets}
-            />
           </Suspense>
         )}
 

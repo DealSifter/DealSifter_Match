@@ -63,10 +63,9 @@ export const normalizeProfileScope = (scope) => {
     || normalized === 'business'
     || normalized === 'operation'
     || normalized === 'operations'
-    || normalized === 'b'
   ) return 'professional';
-  if (normalized === 'fsbo' || normalized === 'c') return 'fsbo';
-  if (normalized === 'personal' || normalized === 'a') return 'personal';
+  if (normalized === 'fsbo') return 'fsbo';
+  if (normalized === 'personal') return 'personal';
   return 'personal';
 };
 

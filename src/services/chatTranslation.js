@@ -113,11 +113,17 @@ function normalizeLang(lang) {
 }
 
 function detectLanguage(text) {
-  const input = String(text || '').toLowerCase();
-  if (!input.trim()) return 'pt';
+  const raw = String(text || '').toLowerCase();
+  if (!raw.trim()) return 'pt';
+  // Strip diacritics: "você" → "voce", "imóvel" → "imovel", "não" → "nao"
+  const input = raw.normalize('NFD').replace(/[\u0300-\u036f]/g, '');
 
-  const ptSignal = /(voce|voces|obrigad|nao|imovel|negocio|contato|preco|ola|oi)\b/;
-  const esSignal = /(usted|ustedes|gracias|propiedad|precio|contacto|hola|si)\b/;
+  // \b does not work reliably with non-ASCII characters in JS.
+  // Use a lookahead/lookbehind for non-word chars (spaces, punctuation, string boundaries).
+  const wordBoundary = '(?<![\\w\u00C0-\u024F])';
+  const wordBoundaryEnd = '(?![\\w\u00C0-\u024F])';
+  const ptSignal = new RegExp(wordBoundary + '(voce|voces|obrigad|nao|imovel|negocio|contato|preco|ola|oi)' + wordBoundaryEnd, 'u');
+  const esSignal = new RegExp(wordBoundary + '(usted|ustedes|gracias|propiedad|precio|contacto|hola|si)' + wordBoundaryEnd, 'u');
 
   if (ptSignal.test(input)) return 'pt';
   if (esSignal.test(input)) return 'es';

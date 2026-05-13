@@ -46,10 +46,10 @@ export function ContactSheet({ match, onClose, onOpenChat }) {
     return aPriority - bPriority;
   });
   const getPriorityLabel = (priority) => {
-    if (priority === 1) return '1st';
-    if (priority === 2) return '2nd';
-    if (priority === 3) return '3rd';
-    return `${priority}th`;
+    if (priority === 1) return t.contactOrdinal1 || '1st';
+    if (priority === 2) return t.contactOrdinal2 || '2nd';
+    if (priority === 3) return t.contactOrdinal3 || '3rd';
+    return `${priority}`;
   };
   return (
     <Modal onClose={onClose} maxWidth={400}>

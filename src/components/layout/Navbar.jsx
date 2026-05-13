@@ -273,6 +273,7 @@ export function Navbar({ page, prevPage, setPage, nuggets = 0, setModal = () => 
                       id="app-mobile-menu"
                       role="dialog"
                       aria-modal="true"
+                      aria-label={t.menu || 'Menu'}
                       style={{ position: 'fixed', top: 58, right: 0, bottom: 0, width: 'min(86vw, 340px)', background: C.card, borderLeft: `1px solid ${C.border}`, boxShadow: '-10px 0 24px rgba(15,23,42,0.12)', zIndex: 10006, padding: '16px 14px 22px', display: 'grid', alignContent: 'start', gap: 10, overflowY: 'auto' }}
                     >
                       <div style={{ fontSize: 11, fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.08em', color: C.t3, marginBottom: 4 }}>
@@ -508,6 +509,7 @@ export function Navbar({ page, prevPage, setPage, nuggets = 0, setModal = () => 
                       id="landing-mobile-menu"
                       role="dialog"
                       aria-modal="true"
+                      aria-label={t.menu || 'Menu'}
                       style={{ position: 'fixed', top: 58, right: 0, bottom: 0, width: 'min(84vw, 320px)', background: C.card, borderLeft: `1px solid ${C.border}`, boxShadow: '-10px 0 24px rgba(15,23,42,0.12)', zIndex: 10006, padding: '16px 14px 22px', display: 'grid', alignContent: 'start', gap: 10 }}
                     >
                       <div style={{ fontSize: 11, fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.08em', color: C.t3, marginBottom: 6 }}>

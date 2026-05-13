@@ -44,6 +44,12 @@ const CHAT_INTEREST_PREFIX = {
   es: 'Tengo interés en esta propiedad',
 };
 
+const CHAT_INTEREST_SERVICE_PREFIX = {
+  pt: 'Tenho interesse neste Serviço',
+  en: 'I am interested in this Service',
+  es: 'Tengo interés en este Servicio',
+};
+
 const DEFAULT_PEER_LANGS = { input: 'en', output: 'en' };
 
 function readScopedProfileFallback(scope = 'personal') {
@@ -240,6 +246,21 @@ function PortfolioDetail({ item, owner, ownerDesc, onBack }) {
     // triggering a cascading render within the effect body.
     const t = setTimeout(() => setImgIdx(0), 0);
     return () => clearTimeout(t);
+  }, [item?.id]);
+
+  useEffect(() => {
+    // Reset email fields when the selected item changes, restoring saved defaults.
+    try {
+      const saved = JSON.parse(localStorage.getItem('ds_export_mail_defaults') || 'null');
+      setEmailTo(saved?.to?.trim() || getProfileEmailFallback());
+      setEmailCc(saved?.cc || '');
+      setEmailBcc(saved?.bcc || '');
+    } catch (e) {
+      void e;
+      setEmailTo(getProfileEmailFallback());
+      setEmailCc('');
+      setEmailBcc('');
+    }
   }, [item?.id]);
 
   const fmtMoney = (v) => {
@@ -1109,7 +1130,7 @@ function PortfolioDetail({ item, owner, ownerDesc, onBack }) {
   );
 }
 
-export function MatchesPage({ nuggets, setModal, openUnlock, unlocked, initialChat, chatFocusToken = 0, interested, matched, setInterested, setMatched, convos, setConvos, categoryOrder, setCategoryOrder, showcaseProperties, propertyPortfolio, servicePortfolio, userProfile, personalProfile, professionalProfile }) {
+export function MatchesPage({ nuggets, setModal, openUnlock, unlocked, initialChat, chatFocusToken = 0, interested, matched, setInterested, setMatched, convos, setConvos, categoryOrder, setCategoryOrder, showcaseProperties, propertyPortfolio, servicePortfolio, userProfile, personalProfile, professionalProfile, mobileBottomNavCollapsed = false }) {
   const PORTFOLIO_PANEL_PADDING = 40;
   const PORTFOLIO_GRID_GAP = 12;
   const PORTFOLIO_CARD_MIN_WIDTH = 132;
@@ -1630,7 +1651,7 @@ export function MatchesPage({ nuggets, setModal, openUnlock, unlocked, initialCh
         const replies = CHAT_REPLY_TEMPLATES[peerInputLang] || CHAT_REPLY_TEMPLATES.en;
         const randomReply = replies[Math.floor(Math.random() * replies.length)];
         const peerRawText = type === 'reference'
-          ? `${CHAT_INTEREST_PREFIX[peerInputLang] || CHAT_INTEREST_PREFIX.en}: ${refData.address}.`
+          ? `${CHAT_INTEREST_PREFIX[peerInputLang] || CHAT_INTEREST_PREFIX.en}: ${refData.address || refData.name || refData.title || ''}.`
           : randomReply;
 
         const translatedIncoming = await translateChatText({
@@ -1666,8 +1687,10 @@ export function MatchesPage({ nuggets, setModal, openUnlock, unlocked, initialCh
     activePeerLangs,
   ]);
 
+  const mobileBottomNavOffset = isMobile ? (mobileBottomNavCollapsed ? 4 : 88) : 0;
+
   return (
-    <div style={{ paddingTop:58, height:"100dvh", boxSizing:"border-box", display:"flex", flexDirection:"column", background:C.bg }}>
+    <div style={{ paddingTop:58, paddingBottom:mobileBottomNavOffset, height:"100dvh", boxSizing:"border-box", display:"flex", flexDirection:"column", background:C.bg }}>
       <style>{`
         .map-panel-tabs { display: flex; gap: 4px; margin-bottom: 12px; padding-bottom: 2px; border-bottom: 1px solid var(--ui-border); }
         .map-panel-tab { flex: none; white-space: nowrap; padding: 8px 14px 7px; border-top-left-radius: 10px; border-top-right-radius: 10px; border-bottom-left-radius: 0; border-bottom-right-radius: 0; border: 1px solid transparent; border-bottom: 1px solid transparent; background: color-mix(in srgb, var(--ui-surface) 86%, var(--ui-border) 14%); color: ${C.t2}; font-size: 12px; font-weight: 600; cursor: pointer; margin-bottom: -3px; transition: all .15s ease; }
@@ -2072,8 +2095,8 @@ export function MatchesPage({ nuggets, setModal, openUnlock, unlocked, initialCh
                         <div style={{ maxWidth:"80%", padding:m.type==="reference"?8:12, borderRadius:12, background:m.from==="me"?C.alpha(C.accent, 0.5):C.bg, border:`1px solid ${m.from==="me"?C.alpha(C.accent, 0.7):C.border}`, color:m.from==="me"?C.t1:C.t1 }}>
                           {m.type === "reference" ? (
                              <div style={{ width:200 }}>
-                               <SmartImage src={m.refData.images?.[0] || m.refData.image} alt={m.refData.address} style={{ width:"100%", height:100, borderRadius:8, objectFit:"cover" }} fallback={<div style={{ width:"100%", height:100, borderRadius:8, display:"flex", alignItems:"center", justifyContent:"center", background:C.alpha(C.t1,0.05) }}><Icon name="home" size={18} color={C.t3} /></div>} />
-                               <div style={{ padding:8, fontSize:12 }}>{m.refData.address}</div>
+                               <SmartImage src={m.refData.images?.[0] || m.refData.image || m.refData.media?.images?.[0]} alt={m.refData.address || m.refData.name || m.refData.title} style={{ width:"100%", height:100, borderRadius:8, objectFit:"cover" }} fallback={<div style={{ width:"100%", height:100, borderRadius:8, display:"flex", alignItems:"center", justifyContent:"center", background:C.alpha(C.t1,0.05) }}><Icon name="home" size={18} color={C.t3} /></div>} />
+                               <div style={{ padding:8, fontSize:12 }}>{m.refData.address || m.refData.name || m.refData.title}</div>
                              </div>
                           ) : (
                             <>
@@ -2278,12 +2301,33 @@ export function MatchesPage({ nuggets, setModal, openUnlock, unlocked, initialCh
               </>
             ) : (
               <div>
-                <div style={{ fontSize:15, fontWeight:800, color:C.t1, marginBottom:8 }}>{mobileCardSheet.name || mobileCardSheet.title || onboardingT.serviceFallbackName}</div>
+                <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', marginBottom:8 }}>
+                  <div style={{ fontSize:15, fontWeight:800, color:C.t1 }}>{mobileCardSheet.name || mobileCardSheet.title || onboardingT.serviceFallbackName}</div>
+                  <button
+                    type="button"
+                    onClick={() => setMobileCardSheet(null)}
+                    aria-label={t.backToList}
+                    style={{ border:'none', background:'transparent', color:C.t2, fontSize:11, fontWeight:400, borderRadius:6, cursor:'pointer', display:'inline-flex', alignItems:'center', justifyContent:'center', padding:'4px 8px', flexShrink:0 }}
+                  >
+                    {t.backToList}
+                  </button>
+                </div>
                 {(mobileCardSheet.media?.images || []).length > 0 && (
                   <SmartImage src={mobileCardSheet.media.images[0]} alt={mobileCardSheet.name} style={{ width:'100%', borderRadius:12, marginBottom:12, objectFit:'cover', maxHeight:200 }} />
                 )}
                 {mobileCardSheet.description && <div style={{ color:C.t2, fontSize:13, marginBottom:12 }}>{mobileCardSheet.description}</div>}
                 <ContactButtons item={mobileCardSheet} />
+                <button
+                  type="button"
+                  onClick={() => {
+                    handleSend('', 'reference', mobileCardSheet);
+                    setMobileCardSheet(null);
+                    setMobileChatTab('chat');
+                  }}
+                  style={{ width:'100%', marginTop:16, padding:'14px', borderRadius:12, background:C.accent, color:'#fff', border:'none', fontWeight:800, fontSize:14, cursor:'pointer' }}
+                >
+                  💬 {CHAT_INTEREST_SERVICE_PREFIX[myInputLang] || CHAT_INTEREST_SERVICE_PREFIX.pt}
+                </button>
               </div>
             )}
           </div>

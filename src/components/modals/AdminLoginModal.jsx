@@ -59,6 +59,7 @@ export function AdminLoginModal({ onClose, onSubmit }) {
           <input
             value={email}
             onChange={(e) => setEmail(e.target.value)}
+            onKeyDown={(e) => { if (e.key === 'Enter') submit(); }}
             placeholder="admin@dealsifter.com"
             style={{ border: `1px solid ${C.border}`, borderRadius: 10, padding: '10px 12px', background: C.bg, color: C.t1 }}
           />
@@ -69,6 +70,7 @@ export function AdminLoginModal({ onClose, onSubmit }) {
           <input
             value={password}
             onChange={(e) => setPassword(e.target.value)}
+            onKeyDown={(e) => { if (e.key === 'Enter') submit(); }}
             placeholder="******"
             type="password"
             style={{ border: `1px solid ${C.border}`, borderRadius: 10, padding: '10px 12px', background: C.bg, color: C.t1 }}

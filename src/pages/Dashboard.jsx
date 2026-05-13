@@ -42,7 +42,7 @@ function readPendingFocusCard() {
   }
 }
 
-export function Dashboard({ page, nuggets, setModal, setPage, onOpenOnboardingTab, openUnlock, unlocked, matched, setMatched, interested, setInterested, purchases, setPurchases, userProfile, personalProfile, professionalProfile, propertyPortfolio, servicePortfolio, accountType, showcaseProperties, categoryOrder, setCategoryOrder, editMode, setEditMode, mobileBottomNavCollapsed = false }) {
+export function Dashboard({ page, nuggets, setModal, setPage, onOpenOnboardingTab, openUnlock, unlocked, matched, setMatched, interested, setInterested, purchases, setPurchases, userProfile, personalProfile, professionalProfile, propertyPortfolio, servicePortfolio, accountType, showcaseProperties, categoryOrder, setCategoryOrder, editMode, setEditMode, mobileBottomNavCollapsed = false, addToast }) {
   // Estado de loading global do feed
   const [isLoading, setIsLoading] = useState(true);
   const [showLoadingOverlay, setShowLoadingOverlay] = useState(false);
@@ -1105,6 +1105,8 @@ export function Dashboard({ page, nuggets, setModal, setPage, onOpenOnboardingTa
       return { open: true, scope };
     });
     setMyCardShowcaseIdx(0);
+    // Em mobile, fecha a sidebar para não sobrepor o modal MyCard
+    if (isMobileViewport) setMobileFeedSidebarOpen(false);
   };
 
   const handleMyCardShowcaseScroll = (event) => {
@@ -1120,7 +1122,10 @@ export function Dashboard({ page, nuggets, setModal, setPage, onOpenOnboardingTa
   };
 
   const openOnboardingForScope = (scope) => {
-    if (isMobileViewport) return;
+    if (isMobileViewport) {
+      addToast?.({ type: 'info', title: 'Use o desktop', message: 'A edição de perfil e portfólio está disponível na versão desktop do app.' });
+      return;
+    }
     const normalizedScope = String(scope || '').trim().toLowerCase();
     const onboardingTab = (
       normalizedScope === 'professional'
@@ -1621,9 +1626,8 @@ export function Dashboard({ page, nuggets, setModal, setPage, onOpenOnboardingTa
         if (!safeThumb || typeof safeThumb !== 'string' || safeThumb.length < 8 || safeThumb.startsWith('data:') && safeThumb.length < 32) {
           safeThumb = undefined;
         }
-        // Logging para depuração
-        if (!safeThumb) {
-          console.warn('[Dashboard] Thumb/avatar inválido para conexão:', c.id, c.name, c.photo);
+        if (!safeThumb && import.meta.env.DEV) {
+          console.warn('[Dashboard] Thumb/avatar inválido para conexão:', c.id);
         }
         return {
           key: `c-${c.id}`,
@@ -1653,8 +1657,8 @@ export function Dashboard({ page, nuggets, setModal, setPage, onOpenOnboardingTa
       if (!safeThumb || typeof safeThumb !== 'string' || (safeThumb.length < 8) || (safeThumb.startsWith('data:') && safeThumb.length < 32)) {
         safeThumb = undefined;
       }
-      if (!safeThumb) {
-        console.warn('[Dashboard] Thumb invalido para propriedade:', p.id, p.address, p.images, p.image);
+      if (!safeThumb && import.meta.env.DEV) {
+        console.warn('[Dashboard] Thumb invalido para propriedade:', p.id);
       }
       return {
         key: `p-${p.id}`,
@@ -2414,7 +2418,7 @@ export function Dashboard({ page, nuggets, setModal, setPage, onOpenOnboardingTa
         {/* My Card preview modal — top-level so it works regardless of which profile triggered it */}
         {myCardModal.open && (
           <Modal onClose={() => setMyCardModal((prev) => ({ ...prev, open: false }))} maxWidth={isMobileViewport ? 760 : 1320}>
-            <div style={{ display: 'grid', gap: 10, maxHeight: isMobileViewport ? 'calc(90vh - 110px)' : 'none', overflowY: isMobileViewport ? 'auto' : 'visible', paddingRight: isMobileViewport ? 2 : 0 }}>
+            <div style={{ display: 'grid', gap: 10, paddingRight: isMobileViewport ? 2 : 0 }}>
               <div style={{ display: 'flex', flexWrap: isMobileViewport ? 'wrap' : 'nowrap', alignItems: 'center', justifyContent: 'space-between', gap: 8, paddingRight: 30 }}>
                 <div>
                   <h3 style={{ margin: 0, fontSize: 18, color: C.t1, fontWeight: 800 }}>My Card · {myCardPreviewData.scopeLabel}</h3>
@@ -2490,9 +2494,10 @@ export function Dashboard({ page, nuggets, setModal, setPage, onOpenOnboardingTa
                       style={{
                         display: 'flex',
                         overflowX: 'auto',
-                        overflowY: 'hidden',
+                        overflowY: 'visible',
                         scrollSnapType: 'x mandatory',
                         WebkitOverflowScrolling: 'touch',
+                        touchAction: 'pan-x',
                         minHeight: myCardPreviewDeckHeight,
                       }}
                     >
@@ -2501,7 +2506,7 @@ export function Dashboard({ page, nuggets, setModal, setPage, onOpenOnboardingTa
                           return (
                             <div key={`${item.id || 'property'}-${idx}`} style={{ flex: '0 0 100%', width: '100%', scrollSnapAlign: 'start' }}>
                               <div style={{ padding: 12, minHeight: myCardPreviewDeckHeight, boxSizing: 'border-box' }}>
-                                <div style={{ width: '100%', height: myCardPreviewDeckHeight, maxWidth: 603, margin: '0 auto', boxSizing: 'border-box' }}>
+                                <div style={{ width: '100%', height: isMobileViewport ? 'auto' : myCardPreviewDeckHeight, minHeight: isMobileViewport ? myCardPreviewDeckHeight : undefined, maxWidth: 603, margin: '0 auto', boxSizing: 'border-box' }}>
                                   <PropertyCard
                                     property={item}
                                     owner={myCardPreviewData.profileCard}
@@ -2517,7 +2522,7 @@ export function Dashboard({ page, nuggets, setModal, setPage, onOpenOnboardingTa
                         return (
                           <div key={`${item.id || item.title || 'service'}-${idx}`} style={{ flex: '0 0 100%', width: '100%', scrollSnapAlign: 'start' }}>
                             <div style={{ padding: 12, minHeight: myCardPreviewDeckHeight, boxSizing: 'border-box' }}>
-                              <div style={{ height: myCardPreviewDeckHeight - 24, overflowY: 'auto', paddingRight: 2, boxSizing: 'border-box' }}>
+                              <div style={{ height: isMobileViewport ? 'auto' : myCardPreviewDeckHeight - 24, overflowY: isMobileViewport ? 'visible' : 'auto', paddingRight: 2, boxSizing: 'border-box' }}>
                                 <div style={{ marginBottom: 8 }}>
                                   <div style={{ fontSize: 14, fontWeight: 700, color: C.t1 }}>{item.title || 'Service'}</div>
                                   {item.description && <div style={{ fontSize: 12, color: C.t2, marginTop: 2 }}>{item.description}</div>}

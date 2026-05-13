@@ -827,7 +827,7 @@ async function _arcGisGeocode(property) {
   try {
     const response = await fetch(`${ARCGIS_GEOCODE_URL}?${params.toString()}`);
     if (!response.ok) {
-      console.warn('[MapView] ArcGIS HTTP', response.status, query);
+      if (import.meta.env.DEV) console.warn('[MapView] ArcGIS HTTP', response.status, query);
       return null;
     }
     const data = await response.json();
@@ -838,7 +838,7 @@ async function _arcGisGeocode(property) {
       zip: parts.zip,
     });
   } catch (err) {
-    console.warn('[MapView] ArcGIS error:', err.message);
+    if (import.meta.env.DEV) console.warn('[MapView] ArcGIS error:', err.message);
     return null;
   }
 }
@@ -927,7 +927,7 @@ async function _nominatimDirectGeocode(property) {
       });
       const response = await fetch(`${NOMINATIM_SEARCH_URL}?${params.toString()}`);
       if (!response.ok) {
-        console.warn('[MapView] Nominatim HTTP', response.status, query);
+        if (import.meta.env.DEV) console.warn('[MapView] Nominatim HTTP', response.status, query);
         continue;
       }
       const data = await response.json();
@@ -937,11 +937,11 @@ async function _nominatimDirectGeocode(property) {
         zip,
       });
       if (best) {
-        console.info('[MapView] Geocoded (Nominatim):', query, '→', best.lat, best.lng);
+        if (import.meta.env.DEV) console.info('[MapView] Geocoded (Nominatim):', query, '→', best.lat, best.lng);
         return best;
       }
     } catch (err) {
-      console.warn('[MapView] Nominatim error:', err.message);
+      if (import.meta.env.DEV) console.warn('[MapView] Nominatim error:', err.message);
     }
   }
 
@@ -1064,7 +1064,7 @@ async function _censusGeocode(property) {
       houseNumberMatched,
     };
   } catch (err) {
-    console.warn('[MapView] Census geocode error:', err.message);
+    if (import.meta.env.DEV) console.warn('[MapView] Census geocode error:', err.message);
     return null;
   }
 }
@@ -1092,7 +1092,7 @@ async function _nominatimGeocode(property) {
   // 0) US Census Bureau – authoritative rooftop geocoding for US addresses, free, no key required.
   const census = await _censusGeocode(property);
   if (census) {
-    console.info('[MapView] Geocoded (Census Bureau):', fullAddress, '→', census.lat, census.lng, census.geocodeConfidence);
+    if (import.meta.env.DEV) console.info('[MapView] Geocoded (Census Bureau):', fullAddress, '→', census.lat, census.lng, census.geocodeConfidence);
     return census; // Census is authoritative — accept immediately without strict gate
   }
 
@@ -1103,14 +1103,14 @@ async function _nominatimGeocode(property) {
     && Number(nominatimStructured.geocodeConfidence || 0) >= 0.78
     && (Number(nominatimStructured.streetOverlap || 0) >= 1 || nominatimStructured.houseNumberMatched)
   ) {
-    console.info('[MapView] Geocoded (Nominatim structured):', fullAddress, '→', nominatimStructured.lat, nominatimStructured.lng);
+    if (import.meta.env.DEV) console.info('[MapView] Geocoded (Nominatim structured):', fullAddress, '→', nominatimStructured.lat, nominatimStructured.lng);
     return nominatimStructured;
   }
 
   const arcgis = await _arcGisGeocode(property);
   chooseBetter(arcgis);
   if (arcgis && Number(arcgis.geocodeConfidence || 0) >= 0.8 && Number(arcgis.streetOverlap || 0) >= 1) {
-    console.info('[MapView] Geocoded (ArcGIS high confidence):', fullAddress, '→', arcgis.lat, arcgis.lng);
+    if (import.meta.env.DEV) console.info('[MapView] Geocoded (ArcGIS high confidence):', fullAddress, '→', arcgis.lat, arcgis.lng);
     return arcgis;
   }
 
@@ -1127,7 +1127,7 @@ async function _nominatimGeocode(property) {
       const params = new URLSearchParams({ q: query, limit: '8' });
       const res = await fetch(`${PHOTON_SEARCH_URL}?${params.toString()}`);
       if (!res.ok) {
-        console.warn('[MapView] Photon HTTP', res.status, query);
+        if (import.meta.env.DEV) console.warn('[MapView] Photon HTTP', res.status, query);
         continue;
       }
       const data = await res.json();
@@ -1141,7 +1141,7 @@ async function _nominatimGeocode(property) {
         chooseBetter(best);
       }
     } catch (err) {
-      console.warn('[MapView] Photon error:', err.message);
+      if (import.meta.env.DEV) console.warn('[MapView] Photon error:', err.message);
     }
   }
 
@@ -1150,11 +1150,11 @@ async function _nominatimGeocode(property) {
   chooseBetter(nominatim);
 
   if (bestResult && Number(bestResult.geocodeConfidence || 0) >= 0.55) {
-    console.info('[MapView] Geocoded (best provider):', fullAddress, '→', bestResult.lat, bestResult.lng, bestResult.geocodeSource, bestResult.geocodeConfidence);
+    if (import.meta.env.DEV) console.info('[MapView] Geocoded (best provider):', fullAddress, '→', bestResult.lat, bestResult.lng, bestResult.geocodeSource, bestResult.geocodeConfidence);
     return bestResult;
   }
 
-  console.warn('[MapView] Geocode failed for:', fullAddress);
+  if (import.meta.env.DEV) console.warn('[MapView] Geocode failed for:', fullAddress);
   return null;
 }
 
@@ -1964,7 +1964,7 @@ export function MapView({
     setFitToBounds({
       bounds: DEFAULT_USA_BOUNDS,
       maxZoom: DEFAULT_ZOOM,
-      key: genId('reset-usa'),
+      key: genId(),
     });
   };
 
@@ -1994,10 +1994,22 @@ export function MapView({
     clearClusterSelection();
     setSelectedCardId(card.id);
     setPanelTab('cards');
+    // Em mobile, esconde o panel para o usuário ver o mapa ao clicar num card
+    if (isMobileViewport) setPanelCollapsed(true);
     // Stop any in-progress animation first so rapid card clicks don't pile up
     mapRef.current?.stop();
     // Use snappy options for card-to-card hops (shorter, more linear)
     mapRef.current?.flyTo([coords.lat, coords.lng], 17, FLY_OPTIONS_SNAP);
+  };
+
+  // Em mobile, fecha o painel antes de abrir qualquer modal/popup de compra ou desbloqueio
+  const handleOpenUnlock = (item) => {
+    if (isMobileViewport) setPanelCollapsed(true);
+    openUnlock(item);
+  };
+  const handleSetModal = (val) => {
+    if (isMobileViewport) setPanelCollapsed(true);
+    setModal(val);
   };
 
   const navigateToFeed = (card, explicitType) => {
@@ -2418,20 +2430,22 @@ export function MapView({
             aria-label={tMap.closePanel}
           />
         )}
-        <button
-          className={`map-panel-toggle-tab ${isDraggingPanelToggle ? 'is-dragging' : ''}`}
-          onClick={handlePanelToggleClick}
-          onPointerDown={handlePanelTogglePointerDown}
-          onPointerMove={handlePanelTogglePointerMove}
-          onPointerUp={handlePanelTogglePointerEnd}
-          onPointerCancel={handlePanelTogglePointerEnd}
-          aria-label={panelCollapsed ? tMap.openPanel : tMap.closePanel}
-          title={panelCollapsed ? tMap.openPanel : tMap.closePanel}
-          aria-expanded={!panelCollapsed}
-          style={isMobileViewport ? { top: `calc(50% + ${panelToggleOffsetY}px)` } : undefined}
-        >
-          <Icon name="filter" size={14} color={C.t2} strokeWidth={1.9} />
-        </button>
+        {!(isMobileViewport && !panelCollapsed) && (
+          <button
+            className={`map-panel-toggle-tab ${isDraggingPanelToggle ? 'is-dragging' : ''}`}
+            onClick={handlePanelToggleClick}
+            onPointerDown={handlePanelTogglePointerDown}
+            onPointerMove={handlePanelTogglePointerMove}
+            onPointerUp={handlePanelTogglePointerEnd}
+            onPointerCancel={handlePanelTogglePointerEnd}
+            aria-label={panelCollapsed ? tMap.openPanel : tMap.closePanel}
+            title={panelCollapsed ? tMap.openPanel : tMap.closePanel}
+            aria-expanded={!panelCollapsed}
+            style={isMobileViewport ? { top: `calc(50% + ${panelToggleOffsetY}px)` } : undefined}
+          >
+            <Icon name="filter" size={14} color={C.t2} strokeWidth={1.9} />
+          </button>
+        )}
         <div 
           className={`map-resize-handle ${isResizing ? 'active' : ''}`}
           onMouseDown={() => {
@@ -2442,7 +2456,19 @@ export function MapView({
         <aside className="map-panel">
           <div className="map-panel-header">
             <h2 style={{ fontSize: 18, color: C.t2, fontWeight: 400 }}>{tMap.title}</h2>
-            <button className="map-chip" onClick={resetToDefaultUsaView}>{tMap.clear}</button>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+              <button className="map-chip" onClick={resetToDefaultUsaView}>{tMap.clear}</button>
+              {isMobileViewport && (
+                <button
+                  type="button"
+                  onClick={() => setPanelCollapsed(true)}
+                  style={{ border: `1px solid ${C.border}`, background: 'transparent', color: C.t2, width: 28, height: 28, borderRadius: 8, cursor: 'pointer', display: 'inline-flex', alignItems: 'center', justifyContent: 'center' }}
+                  aria-label={tMap.closePanel}
+                >
+                  <Icon name="close" size={13} color={C.t2} />
+                </button>
+              )}
+            </div>
           </div>
 
           <div className="map-panel-tabs" role="tablist" aria-label="Map panel sections">
@@ -2759,7 +2785,7 @@ export function MapView({
                       </div>
                       {isLocked ? (
                         <button
-                          onClick={(e) => { e.stopPropagation(); nuggets >= unlockCost ? openUnlock(item) : setModal('store'); }}
+                          onClick={(e) => { e.stopPropagation(); nuggets >= unlockCost ? handleOpenUnlock(item) : handleSetModal('store'); }}
                           style={{
                             border: `1px solid ${C.gold}`,
                             background: 'var(--ui-surface)',
