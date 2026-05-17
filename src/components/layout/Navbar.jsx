@@ -58,6 +58,7 @@ function NavBtn({ label, onClick, active, icon, filled, minimal }) {
 }
 
 export function Navbar({ page, prevPage, setPage, nuggets = 0, setModal = () => {}, chatNotifications = [], systemNotifications = [], setSystemNotifications = () => {}, onOpenChatNotification = () => {}, onOpenAuthModal = () => {}, onOpenSettings = () => {}, onOpenAdmin = () => {}, onLogoutUser = () => {}, isAdmin = false }) {
+  const TABLET_PORTRAIT_QUERY = '(min-width: 768px) and (max-width: 1080px) and (orientation: portrait)';
   const isApp = page !== 'landing';
   const isLanding = page === 'landing';
   const allT = useT('global');
@@ -69,13 +70,18 @@ export function Navbar({ page, prevPage, setPage, nuggets = 0, setModal = () => 
     if (typeof window === 'undefined' || typeof window.matchMedia !== 'function') return false;
     return window.matchMedia('(max-width: 767px)').matches;
   });
+  const [isTabletPortrait, setIsTabletPortrait] = useState(() => {
+    if (typeof window === 'undefined' || typeof window.matchMedia !== 'function') return false;
+    return window.matchMedia(TABLET_PORTRAIT_QUERY).matches;
+  });
   const [landingMenuOpen, setLandingMenuOpen] = useState(false);
   const [appMenuOpen, setAppMenuOpen] = useState(false);
   const [appNotifOpen, setAppNotifOpen] = useState(false);
   const notifRef = useRef(null);
-  const isLandingMobile = isLanding && isMobile;
-  const isAppMobile = isApp && isMobile;
-  const isCompactTopbar = isLandingMobile || isAppMobile;
+  const isCompactViewport = isMobile || isTabletPortrait;
+  const isLandingCompact = isLanding && isCompactViewport;
+  const isAppCompact = isApp && isCompactViewport;
+  const isCompactTopbar = isLandingCompact || isAppCompact;
 
   const systemUnreadCount = useMemo(
     () => (systemNotifications || []).filter((n) => !n.read).length,
@@ -95,16 +101,7 @@ export function Navbar({ page, prevPage, setPage, nuggets = 0, setModal = () => 
   useEffect(() => {
     if (typeof window === 'undefined' || typeof window.matchMedia !== 'function') return undefined;
     const mediaQuery = window.matchMedia('(max-width: 767px)');
-    const handleViewportChange = (event) => {
-      const nextIsMobile = Boolean(event.matches);
-      setIsMobile(nextIsMobile);
-      if (!nextIsMobile) {
-        setLandingMenuOpen(false);
-        setAppMenuOpen(false);
-        setAppNotifOpen(false);
-        setNotifOpen(false);
-      }
-    };
+    const handleViewportChange = (event) => setIsMobile(Boolean(event.matches));
 
     if (typeof mediaQuery.addEventListener === 'function') {
       mediaQuery.addEventListener('change', handleViewportChange);
@@ -114,6 +111,28 @@ export function Navbar({ page, prevPage, setPage, nuggets = 0, setModal = () => 
     mediaQuery.addListener(handleViewportChange);
     return () => mediaQuery.removeListener(handleViewportChange);
   }, []);
+
+  useEffect(() => {
+    if (typeof window === 'undefined' || typeof window.matchMedia !== 'function') return undefined;
+    const mediaQuery = window.matchMedia(TABLET_PORTRAIT_QUERY);
+    const handleViewportChange = (event) => setIsTabletPortrait(Boolean(event.matches));
+
+    if (typeof mediaQuery.addEventListener === 'function') {
+      mediaQuery.addEventListener('change', handleViewportChange);
+      return () => mediaQuery.removeEventListener('change', handleViewportChange);
+    }
+
+    mediaQuery.addListener(handleViewportChange);
+    return () => mediaQuery.removeListener(handleViewportChange);
+  }, [TABLET_PORTRAIT_QUERY]);
+
+  useEffect(() => {
+    if (isCompactViewport) return;
+    setLandingMenuOpen(false);
+    setAppMenuOpen(false);
+    setAppNotifOpen(false);
+    setNotifOpen(false);
+  }, [isCompactViewport]);
 
   useEffect(() => {
     if (!landingMenuOpen && !appMenuOpen) return undefined;
@@ -203,7 +222,7 @@ export function Navbar({ page, prevPage, setPage, nuggets = 0, setModal = () => 
                 }}>
                   <span className="logo-text-deal">Deal</span><span className="logo-text-sifter" style={{ color: C.accent }}>Sifter</span>
                 </span>
-                {!isLandingMobile ? (
+                {!isLandingCompact ? (
                   <span className="logo-match" aria-hidden="true" style={{
                     position: 'absolute',
                     top: -5,
@@ -239,7 +258,7 @@ export function Navbar({ page, prevPage, setPage, nuggets = 0, setModal = () => 
         {/* Right: actions */}
         <div style={{ display: 'flex', gap: 8, alignItems: 'center', justifySelf: 'end' }}>
           {isApp ? (
-            isAppMobile ? (
+            isAppCompact ? (
               <>
                 <NuggetBadge count={nuggets} onClick={() => setModal && setModal('store')} />
                 <button
@@ -483,7 +502,7 @@ export function Navbar({ page, prevPage, setPage, nuggets = 0, setModal = () => 
               </>
             )
           ) : (
-            isLandingMobile ? (
+            isLandingCompact ? (
               <>
                 <LangPicker compact />
                 <button

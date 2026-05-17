@@ -37,7 +37,7 @@ function Panel({ title, subtitle, children }) {
   );
 }
 
-export function Settings({ setPage, prevPage, initialTab = 'profile', systemAccount, setSystemAccount, authSession, setAuthSession, subscription, addToast, supabaseUserId, onDeleteAccount, onRevokeConsent }) {
+export function Settings({ setPage, prevPage, initialTab = 'profile', systemAccount, setSystemAccount, authSession, setAuthSession, subscription, addToast, supabaseUserId, onDeleteAccount, onRevokeConsent, pendingCheckoutIntent = null, paymentSetupComplete = false, onContinuePendingCheckout = null }) {
   const allT = useT('settings');
   const t = allT.settings || {};
   const [tab, setTab] = useState(initialTab);
@@ -66,6 +66,18 @@ export function Settings({ setPage, prevPage, initialTab = 'profile', systemAcco
   const updateField = (field, value) => {
     setSystemAccount?.((prev) => ({ ...(prev || {}), [field]: value }));
   };
+
+  const pendingCheckoutLabel = (() => {
+    if (!pendingCheckoutIntent) return '';
+    if (pendingCheckoutIntent.kind === 'subscription') {
+      const planName = String(pendingCheckoutIntent.planId || '').toUpperCase();
+      return `Upgrade de plano${planName ? ` (${planName})` : ''}`;
+    }
+    if (pendingCheckoutIntent.kind === 'nuggets') {
+      return 'Compra de pacote extra de nuggets';
+    }
+    return 'Checkout pendente';
+  })();
 
   const logout = async () => {
     if (isSupabaseConfigured && supabase) {
@@ -195,8 +207,23 @@ export function Settings({ setPage, prevPage, initialTab = 'profile', systemAcco
                   <div style={{ border: `1px solid ${C.border}`, borderRadius: 10, padding: 10, fontSize: 12, color: C.t3 }}>
                     {t.stripeManaged || 'Plan changes and billing are managed via Stripe. Use the button below to access the Stripe Customer Portal.'}
                   </div>
+                  {pendingCheckoutIntent ? (
+                    <div style={{ border: `1px solid ${paymentSetupComplete ? C.accent : C.warning || '#f59e0b'}`, borderRadius: 10, padding: 10, fontSize: 12, color: C.t2, background: paymentSetupComplete ? C.alpha(C.accent, 0.06) : C.alpha(C.warning || '#f59e0b', 0.08) }}>
+                      <strong style={{ color: C.t1 }}>{pendingCheckoutLabel}</strong>
+                      <div style={{ marginTop: 6 }}>
+                        {paymentSetupComplete
+                          ? 'Setup de pagamentos detectado. Você já pode continuar para o checkout no Stripe.'
+                          : 'Você escolheu uma compra no Pricing. Configure seus dados/cartão para liberar o checkout no Stripe.'}
+                      </div>
+                    </div>
+                  ) : null}
                   <button
                     onClick={async () => {
+                      setSystemAccount?.((prev) => ({
+                        ...(prev || {}),
+                        paymentSetupComplete: true,
+                        paymentSetupCompletedAt: prev?.paymentSetupCompletedAt || Date.now(),
+                      }));
                       try {
                         await redirectToPortal();
                       } catch (err) {
@@ -205,8 +232,27 @@ export function Settings({ setPage, prevPage, initialTab = 'profile', systemAcco
                     }}
                     style={{ border: 'none', background: C.accent, color: '#fff', borderRadius: 8, padding: '9px 10px', fontSize: 12, fontWeight: 800, cursor: 'pointer' }}
                   >
-                    {t.manageStripe || 'Manage via Stripe Portal'}
+                    {paymentSetupComplete
+                      ? (t.manageStripe || 'Manage via Stripe Portal')
+                      : 'Configurar dados/cartão no Stripe'}
                   </button>
+                  {pendingCheckoutIntent ? (
+                    <button
+                      onClick={() => {
+                        if (!paymentSetupComplete) {
+                          addToast?.({ type: 'info', message: 'Configure seus dados/cartão no Stripe para continuar o checkout.' });
+                          return;
+                        }
+                        if (typeof onContinuePendingCheckout === 'function') {
+                          onContinuePendingCheckout();
+                        }
+                      }}
+                      disabled={!paymentSetupComplete}
+                      style={{ border: `1px solid ${paymentSetupComplete ? C.accent : C.border}`, background: paymentSetupComplete ? C.alpha(C.accent, 0.1) : 'transparent', color: paymentSetupComplete ? C.accent : C.t3, borderRadius: 8, padding: '9px 10px', fontSize: 12, fontWeight: 800, cursor: paymentSetupComplete ? 'pointer' : 'not-allowed' }}
+                    >
+                      {paymentSetupComplete ? 'Continuar checkout no Stripe' : 'Configure pagamentos para continuar'}
+                    </button>
+                  ) : null}
                 </div>
               </Panel>
 

@@ -15,8 +15,14 @@ export function PropertyCard({ property, action, statusAction, onInterest, owner
     if (typeof window === 'undefined' || typeof window.matchMedia !== 'function') return;
     const mq = window.matchMedia('(max-width: 767px)');
     const onChange = (e) => setIsMobileLayout(e.matches);
-    mq.addEventListener('change', onChange);
-    return () => mq.removeEventListener('change', onChange);
+
+    if (typeof mq.addEventListener === 'function') {
+      mq.addEventListener('change', onChange);
+      return () => mq.removeEventListener('change', onChange);
+    }
+
+    mq.addListener(onChange);
+    return () => mq.removeListener(onChange);
   }, []);
   // Card do perfil está em stand by (esmaecido)?
   const isDimmed = owner?._isDimmed;

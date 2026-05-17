@@ -16,8 +16,14 @@ function SwipeCard({ card, action, isUnlocked, isSkipped, onSwipe, onUndo, onUnl
     if (typeof window === 'undefined' || typeof window.matchMedia !== 'function') return;
     const mq = window.matchMedia('(max-width: 767px)');
     const onChange = (e) => setIsMobileLayout(e.matches);
-    mq.addEventListener('change', onChange);
-    return () => mq.removeEventListener('change', onChange);
+
+    if (typeof mq.addEventListener === 'function') {
+      mq.addEventListener('change', onChange);
+      return () => mq.removeEventListener('change', onChange);
+    }
+
+    mq.addListener(onChange);
+    return () => mq.removeListener(onChange);
   }, []);
   const dragRef = React.useRef({ active: false, pointerId: null, startX: 0, startY: 0 });
   const dragFrameRef = React.useRef(null);

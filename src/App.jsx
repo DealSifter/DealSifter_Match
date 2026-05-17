@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useMemo, useRef, useCallback, lazy, Suspense } from 'react';
 import './App.css';
+import loaderMark from './assets/logo.png';
 import { ThemeProvider } from './theme/theme';
 import { Navbar } from './components/layout/Navbar';
 import { AppMobileBottomNav } from './components/layout/AppMobileBottomNav';
@@ -20,8 +21,9 @@ import { ToastContainer } from './components/ui/Toast';
 const ConsentBanner = lazy(() => import('./components/ui/ConsentBanner').then((m) => ({ default: m.ConsentBanner })));
 const CookieBanner = lazy(() => import('./components/ui/CookieBanner').then((m) => ({ default: m.CookieBanner })));
 import { getT } from './i18n/translations';
-import { CATEGORIES, CARDS as _MOCK_CARDS } from './data/mockData';
+import { CATEGORIES, CARDS as _MOCK_CARDS, NUGGET_PACKS } from './data/mockData';
 import { supabase, isSupabaseConfigured } from './lib/supabaseClient';
+import { redirectToCheckout, redirectToSubscription } from './lib/stripeClient';
 import { buildScopedProfilePayload, extractScopedProfileLegacy } from './lib/profileScopeResolver';
 import { getPortfolioFull, setPortfolioFull, clearAllUserData, uploadDataUrlToStorage } from './lib/localforageHelper';
 import { getMatchPressure, setDealAlert, shouldSendDealAlert } from './lib/matchPressure';
@@ -90,6 +92,33 @@ const PLAN_BONUS_BY_TIER = {
   free: 0,
   pro: 10,
   enterprise: 25,
+};
+
+const normalizeCheckoutIntent = (intent) => {
+  if (!intent || typeof intent !== 'object') return null;
+  const kind = String(intent.kind || '').trim().toLowerCase();
+
+  if (kind === 'subscription') {
+    const planId = String(intent.planId || '').trim().toLowerCase();
+    if (!planId) return null;
+    return {
+      kind: 'subscription',
+      planId,
+      source: String(intent.source || 'pricing').trim().toLowerCase() || 'pricing',
+    };
+  }
+
+  if (kind === 'nuggets') {
+    const packId = String(intent.packId || '').trim().toLowerCase();
+    if (!packId) return null;
+    return {
+      kind: 'nuggets',
+      packId,
+      source: String(intent.source || 'pricing').trim().toLowerCase() || 'pricing',
+    };
+  }
+
+  return null;
 };
 
 // Keys whose full (media-inclusive) version is stored in localforage (IndexedDB)
@@ -450,6 +479,8 @@ export default function App() {
   const portfolioSyncStateRef = useRef({ userId: null, loaded: false, hydrating: false, servicesLoadedFromRemote: false, propertiesLoadedFromRemote: false, propertyImagesLoadedFromRemote: false });
   const profileHydrationRetryRef = useRef({ timer: null, attempts: 0 });
   const portfolioHydrationRetryRef = useRef({ timer: null, attempts: 0 });
+  const profileHydrationInputRef = useRef({ accountType: 'professional', userCategory: 'wholesaler' });
+  const realtimeRefreshDebounceRef = useRef({ profiles: null, portfolio: null });
   const profileSyncPendingRef = useRef(0);
   const prevUserIdRef = useRef(null); // tracks userId across renders to detect user change
   const [profileSyncStatus, setProfileSyncStatus] = useState('idle');
@@ -467,6 +498,14 @@ export default function App() {
     if (portfolioHydrationRetryRef.current.timer) {
       clearTimeout(portfolioHydrationRetryRef.current.timer);
       portfolioHydrationRetryRef.current.timer = null;
+    }
+    if (realtimeRefreshDebounceRef.current.profiles) {
+      clearTimeout(realtimeRefreshDebounceRef.current.profiles);
+      realtimeRefreshDebounceRef.current.profiles = null;
+    }
+    if (realtimeRefreshDebounceRef.current.portfolio) {
+      clearTimeout(realtimeRefreshDebounceRef.current.portfolio);
+      realtimeRefreshDebounceRef.current.portfolio = null;
     }
   }, []);
 
@@ -520,6 +559,15 @@ export default function App() {
   const [unlockTarget, setUnlockTarget] = useState(null);
   const [settingsInitialTab, setSettingsInitialTab] = useState('profile');
   const [onboardingInitialTab, setOnboardingInitialTab] = useState('personal');
+  const [pendingCheckoutIntent, setPendingCheckoutIntent] = useState(() => {
+    try {
+      const raw = localStorage.getItem('ds_pending_checkout_intent');
+      const parsed = raw ? JSON.parse(raw) : null;
+      return normalizeCheckoutIntent(parsed);
+    } catch {
+      return null;
+    }
+  });
   const [authSession, setAuthSession] = useState(() => {
     try {
       const raw = localStorage.getItem('authSession');
@@ -533,9 +581,9 @@ export default function App() {
       const raw = localStorage.getItem('systemAccount');
       return raw
         ? JSON.parse(raw)
-        : { fullName: '', email: '', phone: '' };
+        : { fullName: '', email: '', phone: '', paymentSetupComplete: false };
     } catch {
-      return { fullName: '', email: '', phone: '' };
+      return { fullName: '', email: '', phone: '', paymentSetupComplete: false };
     }
   });
   const [isAdmin, setIsAdmin] = useState(false);
@@ -672,6 +720,10 @@ export default function App() {
       nextBillingAt: null,
     };
   });
+  const isPaymentSetupComplete = Boolean(
+    systemAccount?.paymentSetupComplete === true
+    || (subscription?.planId && String(subscription.planId).toLowerCase() !== 'free')
+  );
   const [matched, setMatched] = useState(() => {
     try {
       const saved = localStorage.getItem('ds_matched');
@@ -724,6 +776,10 @@ export default function App() {
   const [editMode, setEditMode] = useState(false);
   const [accountType, setAccountType] = useState(() => localStorage.getItem('accountType') || 'professional');
 
+  useEffect(() => {
+    profileHydrationInputRef.current.accountType = accountType || 'professional';
+  }, [accountType]);
+
   const mapSupabaseUserToSession = (user, mode = 'login', provider = 'supabase') => ({
     mode,
     provider,
@@ -753,6 +809,19 @@ export default function App() {
       }
     }
   };
+
+  useEffect(() => {
+    try {
+      if (pendingCheckoutIntent) {
+        localStorage.setItem('ds_pending_checkout_intent', JSON.stringify(pendingCheckoutIntent));
+      } else {
+        localStorage.removeItem('ds_pending_checkout_intent');
+      }
+    } catch {
+      // ignore persistence failures
+    }
+  }, [pendingCheckoutIntent]);
+
   const [userProfile, setUserProfile] = useState(() => {
     const saved = localStorage.getItem('userProfile');
     if (saved) {
@@ -802,6 +871,10 @@ export default function App() {
       return DEFAULT_PROFESSIONAL_PROFILE(userProfile.category || 'wholesaler');
     }
   });
+
+  useEffect(() => {
+    profileHydrationInputRef.current.userCategory = String(userProfile?.category || 'wholesaler').trim() || 'wholesaler';
+  }, [userProfile]);
 
   const supabaseUserId = authSession?.userId || null;
 
@@ -1277,15 +1350,29 @@ export default function App() {
     if (!authSession) emailVerifyWarnedRef.current = false;
   }, [authSession, addToast]);
 
-  // ── Stripe checkout return handler ───────────────────────────────────────
+  // ── Stripe checkout / portal return handler ──────────────────────────────
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
     const checkout = params.get('checkout');
-    if (!checkout) return;
+    const settingsTab = String(params.get('settings') || '').trim().toLowerCase();
+    if (!checkout && !settingsTab) return;
+
     // Clean URL immediately to prevent re-trigger on refresh
     const cleanUrl = window.location.pathname;
     window.history.replaceState({}, '', cleanUrl);
+
+    if (settingsTab === 'payments') {
+      setSystemAccount((prev) => ({
+        ...(prev || {}),
+        paymentSetupComplete: true,
+        paymentSetupCompletedAt: prev?.paymentSetupCompletedAt || Date.now(),
+      }));
+      setSettingsInitialTab('payments');
+      setPage('settings');
+    }
+
     if (checkout === 'success') {
+      setPendingCheckoutIntent(null);
       addToast({
         type: 'success',
         title: 'Pagamento confirmado!',
@@ -1293,6 +1380,7 @@ export default function App() {
         duration: 7000,
       });
     } else if (checkout === 'cancelled') {
+      setPendingCheckoutIntent(null);
       addToast({
         type: 'info',
         title: 'Compra cancelada',
@@ -1365,11 +1453,6 @@ export default function App() {
       && profileSyncStateRef.current.loaded
       && profileSyncStateRef.current.personalLoadedFromRemote
       && profileSyncStateRef.current.professionalLoadedFromRemote
-    ) return;
-
-    if (
-      profileSyncStateRef.current.userId === supabaseUserId
-      && profileSyncStateRef.current.hydrating
     ) return;
 
     let cancelled = false;
@@ -1458,7 +1541,10 @@ export default function App() {
             fsboProfileFromPayload,
           } = extractScopedProfileLegacy(professionalResult.data.profile_payload);
 
-          const scopedPersonalPayload = accountType === 'fsbo_owner'
+          const activeAccountType = profileHydrationInputRef.current.accountType;
+          const activeUserCategory = profileHydrationInputRef.current.userCategory;
+
+          const scopedPersonalPayload = activeAccountType === 'fsbo_owner'
             ? (fsboProfileFromPayload || personalProfileFromPayload || personalFromPayload)
             : (personalProfileFromPayload || personalFromPayload);
 
@@ -1494,11 +1580,11 @@ export default function App() {
             primaryCategoryB: professionalResult.data.primary_category_b,
             photoBUrl: professionalResult.data.photo_b_url,
             photoB: professionalResult.data.photo_b_url,
-          }, userProfile.category || 'wholesaler');
+          }, activeUserCategory);
           setProfessionalProfile((prev) => normalizeProfessionalProfile({
             ...(prev || {}),
             ...pruneEmptyProfileFields(hydratedProfessional),
-          }, userProfile.category || 'wholesaler'));
+          }, activeUserCategory));
 
           if (hydratedProfessional.category) {
             setUserProfile((prev) => ({
@@ -1539,9 +1625,103 @@ export default function App() {
 
     return () => {
       cancelled = true;
+      if (
+        profileSyncStateRef.current.userId === supabaseUserId
+        && profileSyncStateRef.current.hydrating
+      ) {
+        profileSyncStateRef.current = {
+          ...profileSyncStateRef.current,
+          loaded: false,
+          hydrating: false,
+        };
+      }
       setIsHydratingProfiles(false);
     };
-  }, [supabaseUserId, accountType, userProfile.category, profileHydrationCycle]);
+  }, [supabaseUserId, profileHydrationCycle]);
+
+  const scheduleProfileRealtimeRefresh = useCallback((delayMs = 350) => {
+    if (!isSupabaseConfigured || !supabase || !supabaseUserId) return;
+    if (realtimeRefreshDebounceRef.current.profiles) {
+      clearTimeout(realtimeRefreshDebounceRef.current.profiles);
+      realtimeRefreshDebounceRef.current.profiles = null;
+    }
+    realtimeRefreshDebounceRef.current.profiles = setTimeout(() => {
+      realtimeRefreshDebounceRef.current.profiles = null;
+      setProfileHydrationCycle((prev) => prev + 1);
+    }, delayMs);
+  }, [supabaseUserId]);
+
+  const schedulePortfolioRealtimeRefresh = useCallback((delayMs = 350) => {
+    if (!isSupabaseConfigured || !supabase || !supabaseUserId) return;
+    if (realtimeRefreshDebounceRef.current.portfolio) {
+      clearTimeout(realtimeRefreshDebounceRef.current.portfolio);
+      realtimeRefreshDebounceRef.current.portfolio = null;
+    }
+    realtimeRefreshDebounceRef.current.portfolio = setTimeout(() => {
+      realtimeRefreshDebounceRef.current.portfolio = null;
+      setPortfolioHydrationCycle((prev) => prev + 1);
+    }, delayMs);
+  }, [supabaseUserId]);
+
+  useEffect(() => {
+    if (!isSupabaseConfigured || !supabase || !supabaseUserId) return undefined;
+
+    const channel = supabase
+      .channel(`ds-live-sync:${supabaseUserId}`)
+      .on('postgres_changes', {
+        event: '*',
+        schema: 'public',
+        table: 'user_profiles',
+        filter: `user_id=eq.${supabaseUserId}`,
+      }, () => {
+        scheduleProfileRealtimeRefresh();
+      })
+      .on('postgres_changes', {
+        event: '*',
+        schema: 'public',
+        table: 'professional_profiles',
+        filter: `user_id=eq.${supabaseUserId}`,
+      }, () => {
+        scheduleProfileRealtimeRefresh();
+      })
+      .on('postgres_changes', {
+        event: '*',
+        schema: 'public',
+        table: 'users',
+        filter: `id=eq.${supabaseUserId}`,
+      }, () => {
+        scheduleProfileRealtimeRefresh();
+      })
+      .on('postgres_changes', {
+        event: '*',
+        schema: 'public',
+        table: 'properties',
+        filter: `owner_id=eq.${supabaseUserId}`,
+      }, () => {
+        schedulePortfolioRealtimeRefresh();
+      })
+      .on('postgres_changes', {
+        event: '*',
+        schema: 'public',
+        table: 'services',
+        filter: `owner_id=eq.${supabaseUserId}`,
+      }, () => {
+        schedulePortfolioRealtimeRefresh();
+      })
+      .on('postgres_changes', {
+        event: '*',
+        schema: 'public',
+        table: 'property_images',
+      }, () => {
+        schedulePortfolioRealtimeRefresh(700);
+      });
+
+    channel.subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [supabaseUserId, scheduleProfileRealtimeRefresh, schedulePortfolioRealtimeRefresh]);
 
   useEffect(() => {
     if (!isSupabaseConfigured || !supabase || !supabaseUserId) return;
@@ -2133,6 +2313,70 @@ export default function App() {
     setPage('settings');
   };
 
+  const openPricingHub = () => {
+    setPage('pricing');
+  };
+
+  const executeCheckoutIntent = async (intentInput) => {
+    const intent = normalizeCheckoutIntent(intentInput);
+    if (!intent) return false;
+
+    try {
+      if (intent.kind === 'subscription') {
+        await redirectToSubscription(intent.planId);
+      } else if (intent.kind === 'nuggets') {
+        const pack = NUGGET_PACKS.find((item) => String(item.id) === String(intent.packId));
+        if (!pack) {
+          throw new Error('Pacote de nuggets inválido para checkout.');
+        }
+        await redirectToCheckout(pack);
+      }
+      setPendingCheckoutIntent(null);
+      return true;
+    } catch (error) {
+      addToast({ type: 'error', title: 'Falha no checkout', message: String(error?.message || 'Não foi possível iniciar o checkout no Stripe.') });
+      return false;
+    }
+  };
+
+  const handlePricingCheckoutSelection = async (intentInput) => {
+    const intent = normalizeCheckoutIntent(intentInput);
+    if (!intent) {
+      addToast({ type: 'warning', title: 'Seleção inválida', message: 'Escolha um plano ou pacote válido para continuar.' });
+      return;
+    }
+
+    setPendingCheckoutIntent(intent);
+
+    if (!isPaymentSetupComplete) {
+      openSettingsTab('payments');
+      addToast({
+        type: 'info',
+        title: 'Configure pagamentos primeiro',
+        message: 'Antes do Stripe checkout, configure seus dados/cartão na aba Payments.',
+      });
+      return;
+    }
+
+    await executeCheckoutIntent(intent);
+  };
+
+  const handleContinuePendingCheckout = async () => {
+    if (!pendingCheckoutIntent) return;
+
+    if (!isPaymentSetupComplete) {
+      openSettingsTab('payments');
+      addToast({
+        type: 'info',
+        title: 'Pagamento pendente de configuração',
+        message: 'Finalize a configuração de pagamentos para continuar o checkout.',
+      });
+      return;
+    }
+
+    await executeCheckoutIntent(pendingCheckoutIntent);
+  };
+
   const openOnboardingTab = (tab = 'personal') => {
     const normalized = String(tab || '').trim().toLowerCase();
     const professionalTabs = new Set(['professional', 'business', 'secondary', 'operation', 'operations']);
@@ -2195,7 +2439,7 @@ export default function App() {
 
   const handleOpenModal = (nextModal) => {
     if (nextModal === 'store') {
-      openSettingsTab('payments');
+      openPricingHub();
       return;
     }
     setModal(nextModal);
@@ -2499,9 +2743,9 @@ export default function App() {
       // Navegar para Matches para visualizar o contato
       setPage('matches');
     } else {
-      addToast({ type: 'warning', title: 'Nuggets insuficientes', message: `Você precisa de ${unlockCost} nugget(s) para desbloquear este contato. Adquira mais na aba de pagamentos.` });
+      addToast({ type: 'warning', title: 'Nuggets insuficientes', message: `Você precisa de ${unlockCost} nugget(s) para desbloquear este contato. Vá para Pricing para escolher um upgrade de plano ou pacote extra de nuggets.` });
       setModal(null);
-      openSettingsTab('payments');
+      openPricingHub();
     }
   };
 
@@ -2515,6 +2759,27 @@ export default function App() {
     }
     return 'degraded';
   }, [isHydratingPortfolio, supabaseUserId]);
+
+  const profileHydrationReady = useMemo(() => {
+    if (!isSupabaseConfigured || !supabaseUserId) return true;
+    const state = profileSyncStateRef.current || {};
+    const loaded = Boolean(state.loaded && state.personalLoadedFromRemote && state.professionalLoadedFromRemote);
+    if (loaded) return true;
+    if (!isHydratingProfiles && profileHydrationRetryRef.current.attempts >= 6) return true;
+    return false;
+  }, [isHydratingProfiles, supabaseUserId, profileHydrationCycle]);
+
+  const portfolioHydrationReady = useMemo(() => {
+    if (!isSupabaseConfigured || !supabaseUserId) return true;
+    const state = portfolioSyncStateRef.current || {};
+    const loaded = Boolean(state.loaded && state.servicesLoadedFromRemote && state.propertiesLoadedFromRemote && state.propertyImagesLoadedFromRemote);
+    if (loaded) return true;
+    if (!isHydratingPortfolio && portfolioHydrationRetryRef.current.attempts >= 6) return true;
+    return false;
+  }, [isHydratingPortfolio, supabaseUserId, portfolioHydrationCycle]);
+
+  const dashboardHydrationReady = profileHydrationReady && portfolioHydrationReady;
+  const dashboardHydrationSyncing = isHydratingProfiles || isHydratingPortfolio;
 
   const renderPage = () => {
     switch (page) {
@@ -2549,6 +2814,8 @@ export default function App() {
             setEditMode={setEditMode}
             mobileBottomNavCollapsed={mobileBottomNavCollapsed}
             addToast={addToast}
+            isHydrationReady={dashboardHydrationReady}
+            isHydrationSyncing={dashboardHydrationSyncing}
           />
         );
       case 'matches':
@@ -2615,7 +2882,15 @@ export default function App() {
           />
         );
       case 'pricing':
-        return <Pricing setPage={setPage} setModal={handleOpenModal} prevPage={prevPage} addToast={addToast} />;
+        return (
+          <Pricing
+            setPage={setPage}
+            setModal={handleOpenModal}
+            prevPage={prevPage}
+            addToast={addToast}
+            onRequestCheckoutIntent={handlePricingCheckoutSelection}
+          />
+        );
       case 'settings':
         return (
           <Settings
@@ -2632,6 +2907,9 @@ export default function App() {
             supabaseUserId={supabaseUserId}
             onDeleteAccount={handleDeleteAccount}
             onRevokeConsent={handleRevokeConsent}
+            pendingCheckoutIntent={pendingCheckoutIntent}
+            paymentSetupComplete={isPaymentSetupComplete}
+            onContinuePendingCheckout={handleContinuePendingCheckout}
           />
         );
       case 'admin':
@@ -2687,7 +2965,7 @@ export default function App() {
         {showBlockingProcessing && (
           <div className="ds-processing-overlay" role="status" aria-live="polite" aria-label={blockingProcessingMessage}>
             <div className="ds-processing-card">
-              <div className="ds-processing-spinner" />
+              <img src={loaderMark} alt="DealSifter" className="ds-processing-logo" />
               <div className="ds-processing-text">{blockingProcessingMessage}</div>
             </div>
           </div>
@@ -2714,7 +2992,7 @@ export default function App() {
               nuggets={nuggets}
               unlockCost={getUnlockCost(unlockTarget)}
               onUnlock={handleUnlock}
-              onBuyMore={() => openSettingsTab('payments')}
+              onBuyMore={openPricingHub}
               onClose={() => setModal(null)}
             />
           </Suspense>

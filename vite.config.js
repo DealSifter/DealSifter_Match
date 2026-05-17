@@ -21,14 +21,20 @@ export default defineConfig({
     },
   },
   server: {
+    host: '0.0.0.0',
     port: 5174,
     strictPort: true,
     watch: {
       // Set VITE_USE_POLLING=false in .env to disable on Linux/Mac CI.
       usePolling: process.env.VITE_USE_POLLING !== 'false',
       interval: 100
-    }
+    },
     // Optional: tune HMR if you use a non-default port or proxy
     // hmr: { port: 5173 }
+  },
+  preview: {
+    host: '0.0.0.0',
+    port: 4173,
+    strictPort: true,
   }
 })

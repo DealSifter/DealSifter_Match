@@ -1,5 +1,4 @@
 import React, { useCallback, useMemo, useState, useEffect, useRef } from 'react';
-import loaderMark from '../assets/logo.png';
 import { C } from '../theme/colors';
 import { useT } from '../i18n/translations';
 import { CATEGORIES, CARDS, PROPERTIES } from '../data/mockData';
@@ -43,21 +42,14 @@ function readPendingFocusCard() {
 }
 
 export function Dashboard({ page, nuggets, setModal, setPage, onOpenOnboardingTab, openUnlock, unlocked, matched, setMatched, interested, setInterested, purchases, setPurchases, userProfile, personalProfile, professionalProfile, propertyPortfolio, servicePortfolio, accountType, showcaseProperties, categoryOrder, setCategoryOrder, editMode, setEditMode, mobileBottomNavCollapsed = false, addToast }) {
-  // Estado de loading global do feed
-  const [isLoading, setIsLoading] = useState(true);
-  const [showLoadingOverlay, setShowLoadingOverlay] = useState(false);
   const [isMobileViewport, setIsMobileViewport] = useState(() => {
     if (typeof window === 'undefined' || typeof window.matchMedia !== 'function') return false;
     return window.matchMedia('(max-width: 767px)').matches;
   });
-        // Aguarda dados essenciais carregarem antes de liberar o feed.
-    useEffect(() => {
-      const hasProfiles = userProfile !== undefined && personalProfile !== undefined && professionalProfile !== undefined;
-      const hasPortfolios = Array.isArray(propertyPortfolio) && Array.isArray(servicePortfolio);
-      const nextIsLoading = !(hasProfiles && hasPortfolios);
-      const timer = window.setTimeout(() => setIsLoading(nextIsLoading), 0);
-      return () => window.clearTimeout(timer);
-    }, [userProfile, personalProfile, professionalProfile, propertyPortfolio, servicePortfolio]);
+  const [isTabletPortraitViewport, setIsTabletPortraitViewport] = useState(() => {
+    if (typeof window === 'undefined' || typeof window.matchMedia !== 'function') return false;
+    return window.matchMedia('(min-width: 768px) and (max-width: 1080px) and (orientation: portrait)').matches;
+  });
 
   useEffect(() => {
     if (typeof window === 'undefined' || typeof window.matchMedia !== 'function') return undefined;
@@ -73,27 +65,19 @@ export function Dashboard({ page, nuggets, setModal, setPage, onOpenOnboardingTa
     return () => mediaQuery.removeListener(handleViewportChange);
   }, []);
 
-  // Mostra o loader apenas quando a carga realmente demora (evita flicker).
   useEffect(() => {
-    if (!isLoading) {
-      const timer = window.setTimeout(() => setShowLoadingOverlay(false), 0);
-      return () => window.clearTimeout(timer);
-    }
-    const timer = window.setTimeout(() => {
-      setShowLoadingOverlay(true);
-    }, 450);
-    return () => window.clearTimeout(timer);
-  }, [isLoading]);
+    if (typeof window === 'undefined' || typeof window.matchMedia !== 'function') return undefined;
+    const mediaQuery = window.matchMedia('(min-width: 768px) and (max-width: 1080px) and (orientation: portrait)');
+    const handleViewportChange = (event) => setIsTabletPortraitViewport(event.matches);
 
-  // Failsafe: evita loader infinito em ambientes de preview quando alguma fonte de dados demora indefinidamente.
-  useEffect(() => {
-    if (!isLoading) return undefined;
-    const fallbackTimer = window.setTimeout(() => {
-      setIsLoading(false);
-      setShowLoadingOverlay(false);
-    }, 3200);
-    return () => window.clearTimeout(fallbackTimer);
-  }, [isLoading]);
+    if (typeof mediaQuery.addEventListener === 'function') {
+      mediaQuery.addEventListener('change', handleViewportChange);
+      return () => mediaQuery.removeEventListener('change', handleViewportChange);
+    }
+
+    mediaQuery.addListener(handleViewportChange);
+    return () => mediaQuery.removeListener(handleViewportChange);
+  }, []);
 
   const MAX_SIDE_LIST_VISIBLE = 9; // Max visible items before scroll
   const SIDE_PANEL_HEIGHT = MAX_SIDE_LIST_VISIBLE * 54 + 44;
@@ -104,11 +88,16 @@ export function Dashboard({ page, nuggets, setModal, setPage, onOpenOnboardingTa
   const FEED_CARD_HEIGHT = Math.round(FEED_CARD_BASE_HEIGHT * FEED_CARD_SCALE);
   const FEED_STACK_SHIFT_X = Math.round(20 * FEED_CARD_SCALE);
   const FEED_STACK_SHIFT_Y = Math.round(24 * FEED_CARD_SCALE);
-  const FEED_STACK_CONTAINER_HEIGHT = FEED_CARD_HEIGHT + (isMobileViewport ? 72 : 160);
+  const feedStackBottomGap = isMobileViewport ? 72 : (isTabletPortraitViewport ? 72 : 160);
+  const FEED_STACK_CONTAINER_HEIGHT = FEED_CARD_HEIGHT + feedStackBottomGap;
+  const sidePanelHeight = isTabletPortraitViewport ? 510 : 550;
   const SWIPE_ANIM_MS = 380;
   const pendingFocusOnInit = readPendingFocusCard();
   const mobileBottomNavOffset = isMobileViewport ? (mobileBottomNavCollapsed ? 4 : 88) : 0;
-  const mobileDashboardBottomPadding = isMobileViewport ? (mobileBottomNavCollapsed ? 104 : 156) : 62;
+  const tabletBottomNavOffset = isTabletPortraitViewport ? (mobileBottomNavCollapsed ? 6 : 88) : 0;
+  const mobileDashboardBottomPadding = isMobileViewport
+    ? (mobileBottomNavCollapsed ? 104 : 156)
+    : (isTabletPortraitViewport ? (mobileBottomNavCollapsed ? 94 : 148) : 62);
   const mobileMiniCardsBandHeight = isMobileViewport ? 78 : 0;
   const mobileActionDockBottom = isMobileViewport
     ? (mobileBottomNavOffset + mobileMiniCardsBandHeight + 12)
@@ -387,10 +376,16 @@ export function Dashboard({ page, nuggets, setModal, setPage, onOpenOnboardingTa
     if (normalized === 'primary' || normalized === 'secondary' || normalized === 'tertiary') return normalized;
     return '';
   };
+  const cardPriorityAResolved = accountType === 'fsbo_owner'
+    ? ''
+    : (professionalProfile?.cardPriorityA || personalProfile?.cardPriorityA || '');
+  const cardPriorityCResolved = accountType === 'fsbo_owner'
+    ? (personalProfile?.cardPriorityC || professionalProfile?.cardPriorityC || '')
+    : (professionalProfile?.cardPriorityC || personalProfile?.cardPriorityC || '');
   const priorityByScopeForFeed = {
-    personal: normalizeCardPriority(professionalProfile?.cardPriorityA || personalProfile?.cardPriorityA || ''),
+    personal: normalizeCardPriority(cardPriorityAResolved),
     professional: normalizeCardPriority(professionalProfile?.cardPriorityB || ''),
-    fsbo: normalizeCardPriority(professionalProfile?.cardPriorityC || personalProfile?.cardPriorityC || ''),
+    fsbo: normalizeCardPriority(cardPriorityCResolved),
   };
 
   const connectionCards = useMemo(() => {
@@ -542,6 +537,9 @@ export function Dashboard({ page, nuggets, setModal, setPage, onOpenOnboardingTa
   const [myCardModal, setMyCardModal] = useState({ open: false, scope: 'personal' });
   const [myCardShowcaseIdx, setMyCardShowcaseIdx] = useState(0);
   const myCardShowcaseScrollRef = useRef(null);
+  const myCardShowcaseScrollEndTimerRef = useRef(null);
+  const myCardShowcaseTouchStartIdxRef = useRef(null);
+  const myCardShowcaseTouchActiveRef = useRef(false);
   const [ratingTooltipScope, setRatingTooltipScope] = useState(null);
   const [isSwipingConn, setIsSwipingConn] = useState(false);
   const [isSwipingProp, setIsSwipingProp] = useState(false);
@@ -586,10 +584,32 @@ export function Dashboard({ page, nuggets, setModal, setPage, onOpenOnboardingTa
       const blockedContactIds = new Set([...(unlocked || [])].map((id) => String(id)));
       const selectedStateSet = new Set((selectedStates || []).filter((s) => s && s !== 'all'));
       const stateFilterActive = selectedStateSet.size > 0;
+      const categoryFilterActive = activeCat !== 'all';
+
+      const ownerCategoryByOwnerId = new Map();
+      (connectionCards || []).forEach((card) => {
+        const category = String(card?.cat || '').trim();
+        if (!category) return;
+        ownerCategoryByOwnerId.set(String(card.id), category);
+        ownerCategoryByOwnerId.set(String(card.ownerId), category);
+      });
+
       const isAllowedByState = (record) => {
         if (!stateFilterActive) return true;
         const recordStates = collectRecordStates(record);
         return recordStates.some((code) => selectedStateSet.has(code));
+      };
+
+      const isAllowedByCategory = (card) => {
+        if (!categoryFilterActive) return true;
+        return matchesCat(card?.cat, activeCat);
+      };
+
+      const isPropertyAllowedByCategory = (prop) => {
+        if (!categoryFilterActive) return true;
+        const ownerCategory = ownerCategoryByOwnerId.get(String(prop?.ownerId ?? ''));
+        if (!ownerCategory) return false;
+        return matchesCat(ownerCategory, activeCat);
       };
 
       // Build new connection deck respecting filters
@@ -599,7 +619,7 @@ export function Dashboard({ page, nuggets, setModal, setPage, onOpenOnboardingTa
       let newConn = baseConn.filter(id => {
         if (focusCard && focusCard.type === 'person' && String(focusCard.id) === String(id)) return true;
         const card = connectionCards.find((c) => String(c.id) === String(id));
-        if (!card || !isAllowedByState(card)) return false;
+        if (!card || !isAllowedByState(card) || !isAllowedByCategory(card)) return false;
         if (matchedIds.has(id)) return false;
         if (interestedIds.has(id)) return false;
         if (blockedContactIds.has(String(id))) return false;
@@ -614,10 +634,10 @@ export function Dashboard({ page, nuggets, setModal, setPage, onOpenOnboardingTa
             continue;
           }
           const card = connectionCards.find((c) => String(c.id) === String(id));
-          if (!card || !isAllowedByState(card)) continue;
+          if (!card || !isAllowedByState(card) || !isAllowedByCategory(card)) continue;
           if (matchedIds.has(id)) continue;
           if (interestedIds.has(id)) continue;
-          if (blockedContactIds.has(id)) continue;
+          if (blockedContactIds.has(String(id))) continue;
           if (hiddenSet && hiddenSet.has && hiddenSet.has(String(id))) continue;
           newConn.push(id);
         }
@@ -654,11 +674,13 @@ export function Dashboard({ page, nuggets, setModal, setPage, onOpenOnboardingTa
       const canonicalProp = (showcaseItems || []).map(p => p.id);
       const baseProp = (propDeck && propDeck.length) ? propDeck : canonicalProp;
       const shouldKeepPropertyVisible = (prop) => {
-        if (!prop) return true;
+        if (!prop) return false;
+        if (!isPropertyAllowedByCategory(prop)) return false;
         if (!isAllowedByState(prop)) return false;
-        if (prop.ownerId === selfOwnerId) return true;
+        if (interestedIds.has(prop.id)) return false;
+        if (String(prop.ownerId) === String(selfOwnerId)) return true;
         if (view !== 'connections') return true;
-        return !blockedContactIds.has(prop.ownerId);
+        return !blockedContactIds.has(String(prop.ownerId));
       };
 
       let newProp = baseProp.filter(id => {
@@ -714,7 +736,7 @@ export function Dashboard({ page, nuggets, setModal, setPage, onOpenOnboardingTa
     });
 
     return () => { if (typeof unsub === 'function') unsub(); };
-  }, [connectionCards, showcaseItems, matched, interested, unlocked, view, publishingProfileKey, hiddenSet, focusCard, selectedStates, isSwipingConn, isSwipingProp, collectRecordStates, connDeck, propDeck, getOwnerIdForKey]);
+  }, [connectionCards, showcaseItems, matched, interested, unlocked, view, publishingProfileKey, hiddenSet, focusCard, selectedStates, activeCat, isSwipingConn, isSwipingProp, collectRecordStates, connDeck, propDeck, getOwnerIdForKey]);
 
   const t = useT('dashboard').dashboard;
   const cardsT = useT('dashboard').cards;
@@ -793,9 +815,9 @@ export function Dashboard({ page, nuggets, setModal, setPage, onOpenOnboardingTa
     if (normalized === 'primary' || normalized === 'secondary' || normalized === 'tertiary') return normalized;
     return '';
   };
-  const profilePriorityA = professionalProfile?.cardPriorityA || personalProfile?.cardPriorityA || '';
+  const profilePriorityA = cardPriorityAResolved;
   const profilePriorityB = professionalProfile?.cardPriorityB || '';
-  const profilePriorityC = professionalProfile?.cardPriorityC || personalProfile?.cardPriorityC || '';
+  const profilePriorityC = cardPriorityCResolved;
 
   const profileKeyToScope = (profileKey) => {
     if (profileKey === 'secondary') return 'professional';
@@ -1109,16 +1131,55 @@ export function Dashboard({ page, nuggets, setModal, setPage, onOpenOnboardingTa
     if (isMobileViewport) setMobileFeedSidebarOpen(false);
   };
 
+  const settleMyCardShowcaseIndex = useCallback((container) => {
+    if (!container) return;
+    const width = container.clientWidth || 0;
+    const totalItems = myCardPreviewData.showcaseItems.length;
+    if (!width || totalItems <= 0) return;
+
+    let nextIdx = Math.round(container.scrollLeft / width);
+    nextIdx = Math.max(0, Math.min(totalItems - 1, nextIdx));
+
+    if (myCardShowcaseTouchActiveRef.current && Number.isFinite(myCardShowcaseTouchStartIdxRef.current)) {
+      const startIdx = Number(myCardShowcaseTouchStartIdxRef.current);
+      const minIdx = Math.max(0, startIdx - 1);
+      const maxIdx = Math.min(totalItems - 1, startIdx + 1);
+      nextIdx = Math.max(minIdx, Math.min(maxIdx, nextIdx));
+
+      const targetLeft = width * nextIdx;
+      if (Math.abs(container.scrollLeft - targetLeft) > 1) {
+        container.scrollTo({ left: targetLeft, behavior: 'smooth' });
+      }
+    }
+
+    setMyCardShowcaseIdx((prev) => (prev === nextIdx ? prev : nextIdx));
+    myCardShowcaseTouchActiveRef.current = false;
+    myCardShowcaseTouchStartIdxRef.current = null;
+  }, [myCardPreviewData.showcaseItems.length]);
+
+  const queueMyCardShowcaseSettle = useCallback((container, delay = 90) => {
+    if (myCardShowcaseScrollEndTimerRef.current) {
+      window.clearTimeout(myCardShowcaseScrollEndTimerRef.current);
+    }
+    myCardShowcaseScrollEndTimerRef.current = window.setTimeout(() => {
+      settleMyCardShowcaseIndex(container);
+      myCardShowcaseScrollEndTimerRef.current = null;
+    }, delay);
+  }, [settleMyCardShowcaseIndex]);
+
   const handleMyCardShowcaseScroll = (event) => {
     const container = event.currentTarget;
-    const width = container?.clientWidth || 0;
-    const totalItems = myCardPreviewData.showcaseItems.length;
-    if (!width || totalItems <= 1) return;
-    const nextIdx = Math.round(container.scrollLeft / width);
-    const clampedIdx = Math.max(0, Math.min(totalItems - 1, nextIdx));
-    if (clampedIdx !== myCardShowcaseIdx) {
-      setMyCardShowcaseIdx(clampedIdx);
-    }
+    queueMyCardShowcaseSettle(container, 90);
+  };
+
+  const handleMyCardShowcaseTouchStart = () => {
+    myCardShowcaseTouchActiveRef.current = true;
+    myCardShowcaseTouchStartIdxRef.current = myCardShowcaseIdx;
+  };
+
+  const handleMyCardShowcaseTouchEnd = (event) => {
+    const container = event.currentTarget;
+    queueMyCardShowcaseSettle(container, 24);
   };
 
   const openOnboardingForScope = (scope) => {
@@ -1522,30 +1583,7 @@ export function Dashboard({ page, nuggets, setModal, setPage, onOpenOnboardingTa
   // Category change → rebuild decks excluding already-acted items
   const handleCatChange = cat => {
     setActiveCat(cat);
-    const matchedIds = new Set(matched.map(m => m.id));
-    const interestedIds = new Set(interested.map(p => p.id));
-    const blockedContactIds = new Set([...(unlocked || [])].map((id) => String(id)));
-    const selectedStateSet = new Set((selectedStates || []).filter((s) => s && s !== 'all'));
-    const stateFilterActive = selectedStateSet.size > 0;
-    const byState = (record) => {
-      if (!stateFilterActive) return true;
-      const recordStates = collectRecordStates(record);
-      return recordStates.some((code) => selectedStateSet.has(code));
-    };
-    setConnDeck(
-      connectionCards.filter(c => matchesCat(c.cat, cat) && byState(c) && !matchedIds.has(c.id) && !blockedContactIds.has(String(c.id))).map(c => c.id)
-    );
-    setPropDeck(
-      (showcaseItems || []).filter(p => {
-        const owner = findConnectionById(p.ownerId);
-        if (!byState(p)) return false;
-        // Exclude: items of blocked contacts OR items already interested
-        const isFromBlockedContact = blockedContactIds.has(String(p.ownerId));
-        if (interestedIds.has(p.id) || isFromBlockedContact) return false;
-        if (!owner) return cat === 'all';
-        return matchesCat(owner.cat, cat);
-      }).map(p => p.id)
-    );
+    // Decks are recomputed by the unified filtering effect.
     setLastConnOp(null);
     setLastPropOp(null);
   };
@@ -1746,6 +1784,15 @@ export function Dashboard({ page, nuggets, setModal, setPage, onOpenOnboardingTa
   const myCardPreviewDeckHeight = isMobileViewport ? 560 : 380;
 
   useEffect(() => {
+    return () => {
+      if (myCardShowcaseScrollEndTimerRef.current) {
+        window.clearTimeout(myCardShowcaseScrollEndTimerRef.current);
+        myCardShowcaseScrollEndTimerRef.current = null;
+      }
+    };
+  }, []);
+
+  useEffect(() => {
     let timer = null;
     if (myCardShowcaseCount <= 0) {
       if (myCardShowcaseIdx !== 0) timer = window.setTimeout(() => setMyCardShowcaseIdx(0), 0);
@@ -1768,22 +1815,7 @@ export function Dashboard({ page, nuggets, setModal, setPage, onOpenOnboardingTa
 
   return (
     <div style={{ paddingTop:58, paddingBottom:mobileDashboardBottomPadding, height:'100dvh', overflow:'hidden', boxSizing:'border-box' }}>
-      {/* Loader global do feed */}
-      {showLoadingOverlay && (
-        <div style={{
-          position: 'fixed', left: 0, top: 0, width: '100vw', height: '100vh',
-          background: 'transparent', zIndex: 9999, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center'
-        }}>
-          <img src={loaderMark} alt="Carregando" style={{ width: 64, height: 64, marginBottom: 10, opacity: 0.92, animation: 'loaderSpin 1.15s linear infinite' }} />
-          <div style={{ color: '#4381bc', fontWeight: 700, fontSize: 18, letterSpacing: 0.4 }}>Carregando</div>
-        </div>
-      )}
-      {/* Remover qualquer outro loading local redundante abaixo deste ponto */}
       <style>{`
-        @keyframes loaderSpin {
-          0% { transform: rotate(0deg); }
-          100% { transform: rotate(360deg); }
-        }
         @keyframes carouselRotateMatch {
           0%   { transform: translate3d(0, 0, 0) scale(1) rotate(0deg); opacity: 1; }
           35%  { transform: translate3d(28%, -2%, 0) scale(1.02) rotate(4deg); opacity: 0.98; }
@@ -1821,6 +1853,11 @@ export function Dashboard({ page, nuggets, setModal, setPage, onOpenOnboardingTa
         @media (max-width: 767px) {
           .ds-dashboard-opportunity-banner {
             bottom: calc(${mobileBottomNavOffset}px + env(safe-area-inset-bottom, 0px));
+          }
+        }
+        @media (min-width: 768px) and (max-width: 1080px) and (orientation: portrait) {
+          .ds-dashboard-opportunity-banner {
+            bottom: calc(${tabletBottomNavOffset}px + env(safe-area-inset-bottom, 0px));
           }
         }
         @keyframes blink {
@@ -2177,7 +2214,7 @@ export function Dashboard({ page, nuggets, setModal, setPage, onOpenOnboardingTa
       <div style={{ maxWidth:"100%", margin:"0 auto", padding:"12px 12px 0 12px", display:"grid", alignItems:"stretch", height:"100%", boxSizing:'border-box' }} className="dashboard-grid">
 
         {/* Left sidebar */}
-        <div className="desktop-only">
+        <div className="desktop-only dashboard-sidebar">
           <div
             style={{
               background: C.card,
@@ -2491,6 +2528,9 @@ export function Dashboard({ page, nuggets, setModal, setPage, onOpenOnboardingTa
                       ref={myCardShowcaseScrollRef}
                       className="ds-mycard-showcase-scroll"
                       onScroll={handleMyCardShowcaseScroll}
+                      onTouchStart={handleMyCardShowcaseTouchStart}
+                      onTouchEnd={handleMyCardShowcaseTouchEnd}
+                      onTouchCancel={handleMyCardShowcaseTouchEnd}
                       style={{
                         display: 'flex',
                         overflowX: 'auto',
@@ -2504,7 +2544,7 @@ export function Dashboard({ page, nuggets, setModal, setPage, onOpenOnboardingTa
                       {myCardPreviewData.showcaseItems.map((item, idx) => {
                         if (item._itemType === 'property') {
                           return (
-                            <div key={`${item.id || 'property'}-${idx}`} style={{ flex: '0 0 100%', width: '100%', scrollSnapAlign: 'start' }}>
+                            <div key={`${item.id || 'property'}-${idx}`} style={{ flex: '0 0 100%', width: '100%', scrollSnapAlign: 'start', scrollSnapStop: 'always' }}>
                               <div style={{ padding: 12, minHeight: myCardPreviewDeckHeight, boxSizing: 'border-box' }}>
                                 <div style={{ width: '100%', height: isMobileViewport ? 'auto' : myCardPreviewDeckHeight, minHeight: isMobileViewport ? myCardPreviewDeckHeight : undefined, maxWidth: 603, margin: '0 auto', boxSizing: 'border-box' }}>
                                   <PropertyCard
@@ -2520,7 +2560,7 @@ export function Dashboard({ page, nuggets, setModal, setPage, onOpenOnboardingTa
 
                         const svcImages = (item.media?.images || []).filter(Boolean);
                         return (
-                          <div key={`${item.id || item.title || 'service'}-${idx}`} style={{ flex: '0 0 100%', width: '100%', scrollSnapAlign: 'start' }}>
+                          <div key={`${item.id || item.title || 'service'}-${idx}`} style={{ flex: '0 0 100%', width: '100%', scrollSnapAlign: 'start', scrollSnapStop: 'always' }}>
                             <div style={{ padding: 12, minHeight: myCardPreviewDeckHeight, boxSizing: 'border-box' }}>
                               <div style={{ height: isMobileViewport ? 'auto' : myCardPreviewDeckHeight - 24, overflowY: isMobileViewport ? 'visible' : 'auto', paddingRight: 2, boxSizing: 'border-box' }}>
                                 <div style={{ marginBottom: 8 }}>
@@ -2581,7 +2621,7 @@ export function Dashboard({ page, nuggets, setModal, setPage, onOpenOnboardingTa
         )}
 
         {/* Card stack */}
-        <div style={{ display:"flex", flexDirection:"column", alignItems:"center", overflow:"visible", width:"100%" }}>
+        <div className="dashboard-stack" style={{ display:"flex", flexDirection:"column", alignItems:"center", overflow:"visible", width:"100%" }}>
 
 
           {/* View Tabs + State Filter (inline) */}
@@ -2888,7 +2928,7 @@ export function Dashboard({ page, nuggets, setModal, setPage, onOpenOnboardingTa
           </div>
         </div>
         {/* Matches List — col 3 of grid (desktop-only) */}
-        <div className="desktop-only merge-next-col" style={{ background:C.card, border:`1px solid ${C.border}`, borderRadius:0, padding:10, height:550, display:"flex", flexDirection:"column", boxSizing:"border-box", marginLeft: 12, marginTop: -12 }}>
+        <div className="desktop-only merge-next-col dashboard-matches" style={{ background:C.card, border:`1px solid ${C.border}`, borderRadius:0, padding:10, height:sidePanelHeight, display:"flex", flexDirection:"column", boxSizing:"border-box", marginLeft: isTabletPortraitViewport ? 0 : 12, marginTop: isTabletPortraitViewport ? 0 : -12 }}>
           <div style={{ fontWeight:700, color:C.t1, marginBottom:8, display:"flex", justifyContent:"space-between", fontSize:10, textTransform:"uppercase", letterSpacing:"0.5px" }}>
             <span>{t.matches}</span>
             <span style={{ color:C.accent }}>{filteredMatched.length}</span>
@@ -3010,7 +3050,7 @@ export function Dashboard({ page, nuggets, setModal, setPage, onOpenOnboardingTa
           </div>
         </div>
         {/* Interested Properties — col 4 of grid (desktop-only) */}
-        <div className="desktop-only" style={{ background:C.card, border:`1px solid ${C.border}`, borderRadius:0, padding:10, height:550, display:"flex", flexDirection:"column", boxSizing:"border-box", marginTop: -12 }}>
+        <div className="desktop-only dashboard-interested" style={{ background:C.card, border:`1px solid ${C.border}`, borderRadius:0, padding:10, height:sidePanelHeight, display:"flex", flexDirection:"column", boxSizing:"border-box", marginTop: isTabletPortraitViewport ? 0 : -12 }}>
           <div style={{ fontWeight:700, color:C.t1, marginBottom:8, display:"flex", justifyContent:"space-between", fontSize:10, textTransform:"uppercase", letterSpacing:"0.5px" }}>
             <span>{t.interested}</span>
             <span style={{ color:C.gold }}>{filteredInterested.length}</span>

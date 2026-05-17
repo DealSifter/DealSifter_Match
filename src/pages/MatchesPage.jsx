@@ -8,7 +8,7 @@ import { PropertyCard } from '../components/cards/PropertyCard';
 import { SwipeCard } from '../components/cards/SwipeCard';
 import { SmartImage } from '../components/ui/SmartImage';
 import { catIcon } from '../lib/catIcon';
-import { buildDisplayContacts } from '../lib/contactPriority';
+import { buildDisplayContacts, normalizeContactMethod } from '../lib/contactPriority';
 import { resolveScopedProfile, normalizeProfileScope } from '../lib/profileScopeResolver';
 import { CHAT_LANGUAGE_OPTIONS, translateChatText, getSafeLang } from '../services/chatTranslation';
 import appLogo from '../assets/logo.png';
@@ -122,14 +122,57 @@ const PortfolioItem = ({ p, onOpen }) => {
 };
 
 // ── Always-visible contact chips ───────────────────────────────────────────
-function ContactButtons({ item }) {
+function ContactButtons({ item, variant = 'default', isMobile = false, desktopRightToLeft = false }) {
   const modalsT = useT('matches').modals;
   const [copied, setCopied] = useState(null);
-  const copy = (key, val) => {
-    if (!val) return;
-    navigator.clipboard?.writeText(val);
+  const [copyNotice, setCopyNotice] = useState('');
+  const copyResetRef = useRef(null);
+  const copyNoticeResetRef = useRef(null);
+
+  useEffect(() => () => {
+    if (copyResetRef.current) window.clearTimeout(copyResetRef.current);
+    if (copyNoticeResetRef.current) window.clearTimeout(copyNoticeResetRef.current);
+  }, []);
+
+  const copy = async (key, val) => {
+    const text = String(val || '').trim();
+    if (!text) return;
+
+    let copiedOk = false;
+    try {
+      if (navigator.clipboard?.writeText) {
+        await navigator.clipboard.writeText(text);
+        copiedOk = true;
+      }
+    } catch (e) {
+      void e;
+    }
+
+    if (!copiedOk) {
+      try {
+        const ta = document.createElement('textarea');
+        ta.value = text;
+        ta.setAttribute('readonly', 'true');
+        ta.style.position = 'fixed';
+        ta.style.top = '-9999px';
+        ta.style.opacity = '0';
+        document.body.appendChild(ta);
+        ta.focus();
+        ta.select();
+        copiedOk = document.execCommand('copy');
+        ta.remove();
+      } catch (e) {
+        void e;
+      }
+    }
+
+    if (!copiedOk) return;
     setCopied(key);
-    setTimeout(() => setCopied(null), 1500);
+    if (copyResetRef.current) window.clearTimeout(copyResetRef.current);
+    copyResetRef.current = window.setTimeout(() => setCopied(null), 1500);
+    setCopyNotice(`${modalsT.copy} ✓`);
+    if (copyNoticeResetRef.current) window.clearTimeout(copyNoticeResetRef.current);
+    copyNoticeResetRef.current = window.setTimeout(() => setCopyNotice(''), 1200);
   };
 
   // If the contact fields are not present on the `item`, fall back to the
@@ -149,21 +192,103 @@ function ContactButtons({ item }) {
     const bPriority = b.priority || 99;
     return aPriority - bPriority;
   });
+
+  const selectedMethods = (
+    (Array.isArray(item?.contactMethods) && item.contactMethods.length
+      ? item.contactMethods
+      : (Array.isArray(savedProfile?.contactMethods) ? savedProfile.contactMethods : []))
+  )
+    .map((method) => normalizeContactMethod(method))
+    .filter(Boolean);
+
+  const priority2Method = selectedMethods[1] || null;
+  const priority2Channel = ['sms', 'whatsapp', 'telegram'].includes(priority2Method)
+    ? priority2Method
+    : (selectedMethods.find((method) => ['sms', 'whatsapp', 'telegram'].includes(method)) || null);
+
+  const priority2Contact = contacts.find((contact) => contact.priority === 2) || contacts[1] || null;
+  const emailContact = contacts.find((contact) => String(contact?.icon || '').toLowerCase() === 'email') || null;
+  const p2Value = String(item?.secondaryPhone || savedProfile?.secondaryPhone || priority2Contact?.val || '').trim();
+  const emailValue = String(item?.email || savedProfile?.email || emailContact?.val || '').trim();
+
+  const unlockedHeaderContacts = [
+    {
+      key: 'contact-priority-2',
+      icon: priority2Channel || priority2Contact?.icon || 'sms',
+      val: p2Value,
+      priority: 2,
+    },
+    {
+      key: 'contact-email-inline',
+      icon: 'email',
+      val: emailValue,
+      priority: null,
+    },
+  ].filter((contact) => contact.val);
+
+  const primaryContact = contacts.find((contact) => contact.priority === 1)
+    || (String(item?.primaryPhone || item?.phone || savedProfile?.primaryPhone || savedProfile?.phone || '').trim()
+      ? {
+          key: 'contact-priority-1',
+          icon: 'phone',
+          val: String(item?.primaryPhone || item?.phone || savedProfile?.primaryPhone || savedProfile?.phone || '').trim(),
+          priority: 1,
+        }
+      : null);
+
+  const headerContacts = [primaryContact, ...unlockedHeaderContacts].filter((contact) => contact?.val);
+
+  const isUnlockedHeader = variant === 'unlocked-header';
+  const isUnlockedHeaderMobile = isUnlockedHeader && isMobile;
+  const isUnlockedHeaderDesktop = isUnlockedHeader && !isMobile;
+  const useDesktopRightAlignedFlow = isUnlockedHeaderDesktop && desktopRightToLeft;
+  const contactsToRender = isUnlockedHeader
+    ? (headerContacts.length ? headerContacts : contacts)
+    : contacts;
+
   return (
-    <div style={{ display:"flex", flexDirection:"row", flexWrap:"wrap", gap:6, marginTop:6 }}>
-      {contacts.map(({ key, icon, val, priority }) => (
-        <button key={key} onClick={() => copy(key, val)}
-          title={modalsT.copy}
-          style={{ display:"flex", alignItems:"center", gap:6, padding:"5px 10px", borderRadius:8, background:copied===key?C.alpha(C.success, 0.15):(priority===1 ? C.alpha(C.accent, 0.12) : C.alpha(C.t1, 0.05)), border:`1px solid ${copied===key?C.success:(priority===1 ? C.accent : C.border)}`, boxShadow: priority===1 ? `0 0 0 1px ${C.alpha(C.accent, 0.12)}` : 'none', color:copied===key?C.success:C.t1, cursor:"pointer", fontSize:11, fontWeight:600, transition:"all .2s", whiteSpace:"nowrap" }}>
-          <Icon name={copied===key?"check":icon} size={13} color={copied===key?C.success:C.t1} />
-          <span>{val || "---"}</span>
-          {priority ? (
-            <span style={{ padding:"2px 6px", borderRadius:999, background:priority===1 ? C.accent : C.alpha(C.t1, 0.07), color:priority===1 ? '#fff' : C.t2, fontSize:9, fontWeight:800, letterSpacing:"0.2px" }}>
-              {priority===1 ? modalsT.contactPriorityFirst : `P${priority}`}
-            </span>
-          ) : null}
-        </button>
-      ))}
+    <div style={{ display:"flex", flexDirection:"column", gap:4 }}>
+      <div style={{ display:"flex", flexDirection:isUnlockedHeaderMobile ? "column" : "row", flexWrap:isUnlockedHeaderDesktop ? "nowrap" : (isUnlockedHeader ? "nowrap" : "wrap"), gap:6, marginTop:6, justifyContent:isUnlockedHeaderMobile ? "center" : (useDesktopRightAlignedFlow ? "flex-end" : "flex-start"), alignItems:isUnlockedHeaderMobile ? "center" : "stretch", overflowX:isUnlockedHeaderDesktop ? "auto" : "visible" }}>
+        {contactsToRender.map(({ key, icon, val, priority }) => (
+          <button key={key} onClick={() => copy(key, val)}
+            title={modalsT.copy}
+            style={{
+              display:"flex",
+              alignItems:"center",
+              justifyContent:isUnlockedHeaderMobile ? "center" : "flex-start",
+              gap:6,
+              width:isUnlockedHeaderMobile ? "100%" : "auto",
+              flexShrink:isUnlockedHeaderDesktop ? 0 : 1,
+              padding:isUnlockedHeader ? "7px 10px" : "5px 10px",
+              borderRadius:8,
+              background:copied===key?C.alpha(C.success, 0.15):(priority===1 ? C.alpha(C.accent, 0.12) : C.alpha(C.t1, 0.05)),
+              border:`1px solid ${copied===key?C.success:(priority===1 ? C.accent : C.border)}`,
+              boxShadow: priority===1 ? `0 0 0 1px ${C.alpha(C.accent, 0.12)}` : 'none',
+              color:copied===key?C.success:C.t1,
+              cursor:"pointer",
+              fontSize:isUnlockedHeader ? 12 : 11,
+              fontWeight:600,
+              transition:"all .2s",
+              whiteSpace:isUnlockedHeaderDesktop ? "nowrap" : "normal",
+              textAlign:isUnlockedHeaderMobile ? "center" : "left",
+              overflow:"hidden",
+              textOverflow:"ellipsis",
+            }}>
+            <Icon name={copied===key?"check":icon} size={13} color={copied===key?C.success:C.t1} />
+            <span>{val || "---"}</span>
+            {priority ? (
+              <span style={{ padding:"2px 6px", borderRadius:999, background:priority===1 ? C.accent : C.alpha(C.t1, 0.07), color:priority===1 ? '#fff' : C.t2, fontSize:9, fontWeight:800, letterSpacing:"0.2px" }}>
+                {priority===1 ? modalsT.contactPriorityFirst : `P${priority}`}
+              </span>
+            ) : null}
+          </button>
+        ))}
+      </div>
+      {copyNotice ? (
+        <div style={{ fontSize:10, color:C.success, textAlign:isUnlockedHeaderMobile ? "center" : (useDesktopRightAlignedFlow ? "right" : "left"), fontWeight:700 }}>
+          {copyNotice}
+        </div>
+      ) : null}
     </div>
   );
 }
@@ -1145,6 +1270,7 @@ export function MatchesPage({ nuggets, setModal, openUnlock, unlocked, initialCh
   const [msg, setMsg] = useState("");
   const [isTyping, setIsTyping] = useState(false);
   const scrollRef = useRef(null);
+  const msgInputRef = useRef(null);
   const splitPaneRef = useRef(null);
   const [isDragging, setIsDragging] = useState(false);
   
@@ -1600,6 +1726,21 @@ export function MatchesPage({ nuggets, setModal, openUnlock, unlocked, initialCh
     }
   }, [currentMsgs.length, isTyping]);
 
+  const resizeComposerInput = useCallback(() => {
+    const el = msgInputRef.current;
+    if (!el) return;
+    const minHeight = isMobile ? 42 : 34;
+    const maxHeight = isMobile ? 136 : 112;
+    el.style.height = 'auto';
+    const nextHeight = Math.min(maxHeight, Math.max(minHeight, el.scrollHeight));
+    el.style.height = `${nextHeight}px`;
+    el.style.overflowY = el.scrollHeight > maxHeight ? 'auto' : 'hidden';
+  }, [isMobile]);
+
+  useEffect(() => {
+    resizeComposerInput();
+  }, [msg, isMobile, resizeComposerInput]);
+
   const handleSend = useCallback(async (customMsg, type = "text", refData = null) => {
     if (!activeOwner) return;
     const content = (typeof customMsg === 'string' ? customMsg : "") || msg;
@@ -1688,6 +1829,9 @@ export function MatchesPage({ nuggets, setModal, openUnlock, unlocked, initialCh
   ]);
 
   const mobileBottomNavOffset = isMobile ? (mobileBottomNavCollapsed ? 4 : 88) : 0;
+  const previewFeedCardWidth = isMobile ? 360 : 654;
+  const previewFeedCardHeight = isMobile ? 576 : 400;
+  const previewModalMaxWidth = isMobile ? 420 : 730;
 
   return (
     <div style={{ paddingTop:58, paddingBottom:mobileBottomNavOffset, height:"100dvh", boxSizing:"border-box", display:"flex", flexDirection:"column", background:C.bg }}>
@@ -1987,14 +2131,23 @@ export function MatchesPage({ nuggets, setModal, openUnlock, unlocked, initialCh
                   >
                     {isActiveProperty ? <div style={{ background:C.alpha(C.gold, 0.1), width:"100%", height:"100%", display:"flex", alignItems:"center", justifyContent:"center" }}><Icon name="home" size={20} color={C.gold} /></div> : <SmartImage src={activeOwner.photo} alt={activeOwner.name} style={{ width:"100%", height:"100%", objectFit:"cover" }} fallback={<div style={{ width:"100%", height:"100%", display:"flex", alignItems:"center", justifyContent:"center", background:C.alpha(C.accent,0.1) }}><Icon name={catIcon(activeOwner.cat)} size={16} color={C.accent} /></div>} />}
                   </button>
-                  <div style={{ flex:1, minWidth:0 }}>
-                    <div style={{ fontWeight:800, whiteSpace:"nowrap", overflow:"hidden", textOverflow:"ellipsis" }}>{isActiveProperty ? active.address : active.name}</div>
-                    <div style={{ fontSize:11, color:C.success }}>{t.onlineBy} · {activeOwner.name}</div>
+                  <div style={{ flex:1, minWidth:0, display:"flex", alignItems:"flex-start", gap:12 }}>
+                    <div style={{ flex:1, minWidth:0 }}>
+                      <div style={{ fontWeight:800, whiteSpace:"nowrap", overflow:"hidden", textOverflow:"ellipsis" }}>{isActiveProperty ? active.address : active.name}</div>
+                      <div style={{ fontSize:11, color:C.success }}>{t.onlineBy} · {activeOwner.name}</div>
+                    </div>
+                    {!isMobile ? (
+                      <div style={{ minWidth:0, maxWidth:'64%', display:'flex', justifyContent:'flex-end', alignSelf:'flex-start' }}>
+                        <ContactButtons item={activeOwner} variant="unlocked-header" isMobile={false} desktopRightToLeft />
+                      </div>
+                    ) : null}
                   </div>
                 </div>
-                <div style={{ marginTop:10 }}>
-                  <ContactButtons item={activeOwner} />
-                </div>
+                {isMobile ? (
+                  <div style={{ marginTop:10 }}>
+                        <ContactButtons item={activeOwner} variant="unlocked-header" isMobile />
+                  </div>
+                ) : null}
               </div>
 
               <div style={{ padding:"8px 20px", borderBottom:`1px solid ${C.border}`, display:"flex", flexWrap:"wrap", gap:8, background:C.alpha(C.bg, 0.45) }} className="matches-lang-row">
@@ -2114,9 +2267,60 @@ export function MatchesPage({ nuggets, setModal, openUnlock, unlocked, initialCh
                     {isTyping && <div style={{ fontSize:12, color:C.t3 }}>{t.typing}</div>}
                     {isDragging && <div style={{ padding:20, border:`2px dashed ${C.accent}`, borderRadius:12, textAlign:"center", color:C.accent }}>{t.dropPropertyHere}</div>}
                   </div>
-                  <div style={{ padding:16, borderTop:`1px solid ${C.border}`, display:"flex", gap:10 }}>
-                    <input value={msg} onChange={e => setMsg(e.target.value)} onKeyDown={e => e.key==="Enter"&&handleSend()} placeholder={t.typeMsg} style={{ flex:1, padding:12, borderRadius:10, border:`1px solid ${C.border}`, background:C.bg, color:C.t1, outline:"none" }} />
-                    <button onClick={handleSend} style={{ width:45, background:C.accent, border:"none", borderRadius:10, cursor:"pointer", display:"flex", alignItems:"center", justifyContent:"center" }}><Icon name="send" size={18} color="#fff" /></button>
+                  <div style={{
+                    padding: isMobile ? 12 : '8px 12px',
+                    minHeight: isMobile ? 82 : 70,
+                    borderTop:`1px solid ${C.border}`,
+                    display:"flex",
+                    alignItems:'flex-end',
+                    gap: isMobile ? 10 : 8,
+                    boxSizing:'border-box',
+                  }}>
+                    <textarea
+                      ref={msgInputRef}
+                      value={msg}
+                      onChange={(e) => setMsg(e.target.value)}
+                      onKeyDown={(e) => {
+                        if (e.key === 'Enter' && !e.shiftKey && !e.nativeEvent?.isComposing) {
+                          e.preventDefault();
+                          handleSend();
+                        }
+                      }}
+                      rows={1}
+                      placeholder={t.typeMsg}
+                      style={{
+                        flex:1,
+                        minHeight: isMobile ? 42 : 34,
+                        maxHeight: isMobile ? 136 : 112,
+                        padding: isMobile ? '10px 12px' : '8px 10px',
+                        borderRadius:10,
+                        border:`1px solid ${C.border}`,
+                        background:C.bg,
+                        color:C.t1,
+                        outline:"none",
+                        resize:'none',
+                        lineHeight: isMobile ? 1.35 : 1.3,
+                        fontSize: isMobile ? 14 : 12,
+                        boxSizing:'border-box',
+                      }}
+                    />
+                    <button
+                      onClick={handleSend}
+                      style={{
+                        width: isMobile ? 45 : 40,
+                        height: isMobile ? 45 : 40,
+                        background:C.accent,
+                        border:"none",
+                        borderRadius:10,
+                        cursor:"pointer",
+                        display:"flex",
+                        alignItems:"center",
+                        justifyContent:"center",
+                        flexShrink:0,
+                      }}
+                    >
+                      <Icon name="send" size={isMobile ? 18 : 16} color="#fff" />
+                    </button>
                   </div>
                 </div>
 
@@ -2335,7 +2539,7 @@ export function MatchesPage({ nuggets, setModal, openUnlock, unlocked, initialCh
       )}
 
       {previewCardOpen && activeOwner ? (
-        <Modal onClose={() => setPreviewCardOpen(false)} maxWidth={572}>
+        <Modal onClose={() => setPreviewCardOpen(false)} maxWidth={previewModalMaxWidth}>
           <div style={{ marginBottom:8, paddingRight:18 }}>
             <div style={{ fontSize:12, fontWeight:800, color:C.t1 }}>{activeOwner.name}</div>
             <div style={{ marginTop:4, display:'inline-flex', alignItems:'center', gap:6, padding:'4.2px 9.8px', borderRadius:999, background:C.alpha(C.success, 0.12), border:`1px solid ${C.alpha(C.success, 0.28)}`, color:C.success, fontSize:10, fontWeight:800 }}>
@@ -2343,8 +2547,8 @@ export function MatchesPage({ nuggets, setModal, openUnlock, unlocked, initialCh
               {cardsT.unlocked}
             </div>
           </div>
-          <div style={{ width:'100%', height:320 }}>
-            <div style={{ pointerEvents:'none', width:'100%', height:'100%' }}>
+          <div style={{ width:'100%', display:'flex', justifyContent:'center' }}>
+            <div style={{ pointerEvents:'none', width:`min(100%, ${previewFeedCardWidth}px)`, height:previewFeedCardHeight }}>
               <SwipeCard
                 card={activeOwner}
                 action="match"

@@ -315,6 +315,9 @@ export function Onboarding({
   const [previewPropertyIndex, setPreviewPropertyIndex] = useState(0);
   const [previewMode, setPreviewMode] = useState('properties');
   const previewShowcaseScrollRef = useRef(null);
+  const previewShowcaseScrollEndTimerRef = useRef(null);
+  const previewShowcaseTouchStartIdxRef = useRef(null);
+  const previewShowcaseTouchActiveRef = useRef(false);
   const onboardingGridRef = useRef(null);
 
   const [previewDragIndex, setPreviewDragIndex] = useState(null);
@@ -327,6 +330,7 @@ export function Onboarding({
   const [verificationModal, setVerificationModal] = useState({ open: false, scope: 'personal', error: '', info: '' });
   const [saveProfilesBaseline, setSaveProfilesBaseline] = useState('');
   const [isSaveProfilesDirty, setIsSaveProfilesDirty] = useState(false);
+  const [isPreviewToFeedDirty, setIsPreviewToFeedDirty] = useState(false);
 
   useEffect(() => {
     if (typeof window === 'undefined' || typeof window.matchMedia !== 'function') return undefined;
@@ -603,10 +607,10 @@ export function Onboarding({
     return Math.max(0, propLen + Math.min(Math.max(previewServiceIndex || 0, 0), Math.max(servicesForPreview.length - 1, 0)));
   }, [previewMode, previewPropertyIndex, previewServiceIndex, propertiesForPreview.length, servicesForPreview.length]);
 
-  const setPreviewByUnifiedIndex = (nextUnifiedIndex) => {
+  const setPreviewByUnifiedIndex = useCallback((nextUnifiedIndex) => {
     const total = previewShowcaseCount;
     if (!total) return;
-    const normalized = ((nextUnifiedIndex % total) + total) % total;
+    const normalized = Math.max(0, Math.min(total - 1, Number(nextUnifiedIndex) || 0));
     const propLen = propertiesForPreview.length;
     if (normalized < propLen) {
       setPreviewMode('properties');
@@ -615,7 +619,7 @@ export function Onboarding({
     }
     setPreviewMode('services');
     setPreviewServiceIndex(normalized - propLen);
-  };
+  }, [previewShowcaseCount, propertiesForPreview.length]);
 
   const handlePreviewPrev = () => {
     if (!previewShowcaseCount) return;
@@ -627,13 +631,64 @@ export function Onboarding({
     setPreviewByUnifiedIndex(previewUnifiedIndex + 1);
   };
 
+  const settlePreviewShowcaseIndex = useCallback((container) => {
+    if (!container) return;
+    const width = container.clientWidth || 0;
+    if (!width || previewShowcaseCount <= 1) return;
+
+    let nextUnifiedIdx = Math.round(container.scrollLeft / width);
+    nextUnifiedIdx = Math.max(0, Math.min(previewShowcaseCount - 1, nextUnifiedIdx));
+
+    if (previewShowcaseTouchActiveRef.current && Number.isFinite(previewShowcaseTouchStartIdxRef.current)) {
+      const startIdx = Number(previewShowcaseTouchStartIdxRef.current);
+      const minIdx = Math.max(0, startIdx - 1);
+      const maxIdx = Math.min(previewShowcaseCount - 1, startIdx + 1);
+      nextUnifiedIdx = Math.max(minIdx, Math.min(maxIdx, nextUnifiedIdx));
+
+      const targetLeft = width * nextUnifiedIdx;
+      if (Math.abs(container.scrollLeft - targetLeft) > 1) {
+        container.scrollTo({ left: targetLeft, behavior: 'smooth' });
+      }
+    }
+
+    setPreviewByUnifiedIndex(nextUnifiedIdx);
+    previewShowcaseTouchActiveRef.current = false;
+    previewShowcaseTouchStartIdxRef.current = null;
+  }, [previewShowcaseCount, setPreviewByUnifiedIndex]);
+
+  const queuePreviewShowcaseSettle = useCallback((container, delay = 90) => {
+    if (previewShowcaseScrollEndTimerRef.current) {
+      window.clearTimeout(previewShowcaseScrollEndTimerRef.current);
+    }
+    previewShowcaseScrollEndTimerRef.current = window.setTimeout(() => {
+      settlePreviewShowcaseIndex(container);
+      previewShowcaseScrollEndTimerRef.current = null;
+    }, delay);
+  }, [settlePreviewShowcaseIndex]);
+
   const handlePreviewShowcaseScroll = (event) => {
     const container = event.currentTarget;
-    const width = container?.clientWidth || 0;
-    if (!width || previewShowcaseCount <= 1) return;
-    const nextUnifiedIdx = Math.round(container.scrollLeft / width);
-    setPreviewByUnifiedIndex(nextUnifiedIdx);
+    queuePreviewShowcaseSettle(container, 90);
   };
+
+  const handlePreviewShowcaseTouchStart = () => {
+    previewShowcaseTouchActiveRef.current = true;
+    previewShowcaseTouchStartIdxRef.current = previewUnifiedIndex;
+  };
+
+  const handlePreviewShowcaseTouchEnd = (event) => {
+    const container = event.currentTarget;
+    queuePreviewShowcaseSettle(container, 24);
+  };
+
+  useEffect(() => {
+    return () => {
+      if (previewShowcaseScrollEndTimerRef.current) {
+        window.clearTimeout(previewShowcaseScrollEndTimerRef.current);
+        previewShowcaseScrollEndTimerRef.current = null;
+      }
+    };
+  }, []);
 
   useEffect(() => {
     if (!previewOpen) return;
@@ -1148,17 +1203,21 @@ export function Onboarding({
               ref={previewShowcaseScrollRef}
               className="onb-preview-showcase-scroll"
               onScroll={handlePreviewShowcaseScroll}
+              onTouchStart={handlePreviewShowcaseTouchStart}
+              onTouchEnd={handlePreviewShowcaseTouchEnd}
+              onTouchCancel={handlePreviewShowcaseTouchEnd}
               style={{
                 display: 'flex',
                 overflowX: 'auto',
                 overflowY: 'hidden',
                 scrollSnapType: 'x mandatory',
                 WebkitOverflowScrolling: 'touch',
+                touchAction: 'pan-x',
                 minHeight: previewDeckHeight,
               }}
             >
               {previewShowcaseItems.map((item, idx) => (
-                <div key={`preview-showcase-item-${item.kind}-${item.data?.id || idx}`} style={{ flex: '0 0 100%', width: '100%', scrollSnapAlign: 'start' }}>
+                <div key={`preview-showcase-item-${item.kind}-${item.data?.id || idx}`} style={{ flex: '0 0 100%', width: '100%', scrollSnapAlign: 'start', scrollSnapStop: 'always' }}>
                   {item.kind === 'property' ? (
                     <div style={{ padding: 12, minHeight: previewDeckHeight, boxSizing: 'border-box' }}>
                       <div style={{ width: '100%', height: previewDeckHeight, maxWidth: 603, margin: '0 auto', boxSizing: 'border-box' }}>
@@ -1224,11 +1283,7 @@ export function Onboarding({
                   <button
                     key={`preview-dot-${entry.kind}-${entry.data?.id || dotIdx}`}
                     type="button"
-                    onClick={() => {
-                      const container = previewShowcaseScrollRef.current;
-                      if (!container) return;
-                      container.scrollTo({ left: container.offsetWidth * dotIdx, behavior: 'smooth' });
-                    }}
+                    onClick={() => setPreviewByUnifiedIndex(dotIdx)}
                     aria-label={`Ir para card ${dotIdx + 1}`}
                     style={{ width: isActive ? 16 : 8, height: 8, borderRadius: 999, border: 'none', background: isActive ? C.accent : C.alpha(C.t1, 0.2), cursor: 'pointer', transition: 'all .15s ease' }}
                   />
@@ -1657,6 +1712,12 @@ export function Onboarding({
   };
 
   const saveEditProperty = (id) => {
+    const currentRecord = propertyPortfolio.find((prop) => prop.id === id);
+    const shouldEmphasizePreview = Boolean(
+      currentRecord
+      && currentRecord.dealClosed !== true
+      && !isTruthyFlag(currentRecord.publishToShowcase, true)
+    );
     const numericPrice = parseCurrencyInput(propertyEditDraft.price);
     const rehab = parseCurrencyInput(propertyEditDraft.rehab);
     const capRate = Number(propertyEditDraft.capRate) || 0;
@@ -1688,9 +1749,16 @@ export function Onboarding({
         : prop
     )));
     setEditingPropertyId(null);
+    if (shouldEmphasizePreview) setIsPreviewToFeedDirty(true);
   };
 
   const saveEditService = (id) => {
+    const currentRecord = servicePortfolio.find((svc) => svc.id === id);
+    const shouldEmphasizePreview = Boolean(
+      currentRecord
+      && currentRecord.dealClosed !== true
+      && !isTruthyFlag(currentRecord.publishToConnections, true)
+    );
     if (!serviceEditDraft.primaryProfile) return;
     const numericPrice = parseCurrencyInput(serviceEditDraft.price);
     setServicePortfolio((prev) => prev.map((svc) => (
@@ -1708,6 +1776,7 @@ export function Onboarding({
         : svc
     )));
     setEditingServiceId(null);
+    if (shouldEmphasizePreview) setIsPreviewToFeedDirty(true);
   };
 
   const editingPropertyRecord = editingPropertyId ? propertyPortfolio.find((p) => p.id === editingPropertyId) || null : null;
@@ -1797,6 +1866,7 @@ export function Onboarding({
     setPortfolioVideo('');
     clearPortfolioVideoBlob(`portfolioVideo_${accountType}`).catch(() => {});
     setPortfolioMsg('');
+    setIsPreviewToFeedDirty(true);
 
     return newItem.id;
   };
@@ -1861,6 +1931,7 @@ export function Onboarding({
     setPortfolioVideo('');
     clearPortfolioVideoBlob(`portfolioVideo_${accountType}`).catch(() => {});
     setPortfolioMsg('');
+    setIsPreviewToFeedDirty(true);
 
     return newItem.id;
   };
@@ -1898,6 +1969,7 @@ export function Onboarding({
     setServiceMarkets([]);
     setServiceImages([]);
     setServicePrimaryProfileScope('');
+    setIsPreviewToFeedDirty(true);
   };
 
   const toggleServiceShowInConnections = (serviceId) => {
@@ -2309,6 +2381,12 @@ export function Onboarding({
     return { valid: false, primaryProfile: null, profileAComplete, profileBComplete };
   };
 
+  const openPreviewToFeed = () => {
+    if (!validateMinimumProfileCompletion().valid) return;
+    setIsPreviewToFeedDirty(false);
+    setPreviewOpen(true);
+  };
+
   const mobileStepCompletionMap = useMemo(() => ({
     profileAName: !missingProfileAFullName,
     profileAPhone: !missingProfileAPhone,
@@ -2455,9 +2533,22 @@ export function Onboarding({
           contactMethods,
           visibility: 'profile_only',
         };
+        const nextProfessionalProfile = {
+          ...(professionalProfile || {}),
+          // FSBO mode can still expose Business profile (B), so priorities must remain
+          // synchronized across both profile stores to avoid stale payload hydration.
+          cardPriorityA: '',
+          cardPriorityAExplicit: false,
+          cardPriorityB: safeCardPriorities.B,
+          cardPriorityBExplicit: Boolean(safeCardPriorities.B),
+          cardPriorityC: safeCardPriorities.C,
+          cardPriorityCExplicit: Boolean(safeCardPriorities.C),
+        };
         setPersonalProfile(nextPersonalProfile);
+        setProfessionalProfile(nextProfessionalProfile);
         try {
           localStorage.setItem('personalProfile', JSON.stringify(nextPersonalProfile));
+          localStorage.setItem('professionalProfile', JSON.stringify(nextProfessionalProfile));
         } catch {
           // ignore localStorage quota/transient failures
         }
@@ -2653,6 +2744,15 @@ export function Onboarding({
         cardPriorityCExplicit: Boolean(safeCardPriorities.C),
         contactMethods: effectiveContactMethods,
         visibility: 'profile_only',
+      }));
+      setProfessionalProfile((prev) => ({
+        ...(prev || {}),
+        cardPriorityA: '',
+        cardPriorityAExplicit: false,
+        cardPriorityB: safeCardPriorities.B,
+        cardPriorityBExplicit: Boolean(safeCardPriorities.B),
+        cardPriorityC: safeCardPriorities.C,
+        cardPriorityCExplicit: Boolean(safeCardPriorities.C),
       }));
     } else {
       setProfessionalProfile((prev) => ({
@@ -3104,11 +3204,54 @@ export function Onboarding({
           transform: translateY(-1px);
         }
         @keyframes onbSaveProfilesBlink {
-          0%, 100% { filter: brightness(1); box-shadow: 0 0 0 rgba(53, 202, 201, 0); }
-          50% { filter: brightness(1.18); box-shadow: 0 0 0 2px rgba(53, 202, 201, 0.45), 0 0 16px rgba(53, 202, 201, 0.55); }
+          0% {
+            filter: brightness(1) saturate(1);
+            transform: scale(1);
+            box-shadow: 0 0 0 0 rgba(53, 202, 201, 0);
+          }
+          28% {
+            filter: brightness(1.38) saturate(1.35);
+            transform: scale(1.015);
+            box-shadow:
+              0 0 0 2px rgba(53, 202, 201, 0.62),
+              0 0 20px rgba(53, 202, 201, 0.72),
+              0 0 34px rgba(53, 202, 201, 0.36);
+          }
+          52% {
+            filter: brightness(0.82) saturate(0.94);
+            transform: scale(0.995);
+            box-shadow:
+              0 0 0 1px rgba(8, 18, 24, 0.35),
+              0 0 10px rgba(8, 18, 24, 0.28);
+          }
+          76% {
+            filter: brightness(1.42) saturate(1.42);
+            transform: scale(1.02);
+            box-shadow:
+              0 0 0 3px rgba(53, 202, 201, 0.68),
+              0 0 28px rgba(53, 202, 201, 0.78),
+              0 0 44px rgba(53, 202, 201, 0.42);
+          }
+          100% {
+            filter: brightness(1) saturate(1);
+            transform: scale(1);
+            box-shadow: 0 0 0 0 rgba(53, 202, 201, 0);
+          }
         }
-        .onb-save-profiles.is-dirty {
-          animation: onbSaveProfilesBlink 0.95s linear infinite;
+        .onb-save-profiles,
+        .onb-preview-feed {
+          transition: box-shadow .2s ease, transform .2s ease, filter .2s ease;
+        }
+        .onb-save-profiles.is-dirty,
+        .onb-preview-feed.is-dirty {
+          animation: onbSaveProfilesBlink 0.72s cubic-bezier(0.22, 0.61, 0.36, 1) infinite;
+          will-change: filter, box-shadow, transform;
+        }
+        @media (prefers-reduced-motion: reduce) {
+          .onb-save-profiles.is-dirty,
+          .onb-preview-feed.is-dirty {
+            animation-duration: 1.2s;
+          }
         }
         .onb-preview-showcase-scroll {
           scrollbar-width: none;
@@ -3685,7 +3828,7 @@ export function Onboarding({
                   <button onClick={portfolioEntryType === 'property' ? addProfessionalPortfolioProperty : addProfessionalPortfolioService} style={{ flex: 1, padding: '8px 10px', borderRadius: 9, border: `1px solid ${C.accent}`, background: 'transparent', color: C.accent, fontWeight: 700, cursor: 'pointer', fontSize: 11 }}>
                     + Add to Portfolio
                   </button>
-                  <button onClick={() => { if (validateMinimumProfileCompletion().valid) setPreviewOpen(true); }} style={{ flex: 1, padding: '8px 10px', borderRadius: 9, border: 'none', background: C.accent, color: '#1a1a1a', fontWeight: 700, cursor: 'pointer', fontSize: 11, display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: 6 }}>
+                  <button className={`onb-preview-feed ${isPreviewToFeedDirty ? 'is-dirty' : ''}`} onClick={openPreviewToFeed} style={{ flex: 1, padding: '8px 10px', borderRadius: 9, border: 'none', background: C.accent, color: '#1a1a1a', fontWeight: 700, cursor: 'pointer', fontSize: 11, display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: 6 }}>
                     <Icon name="eye" size={13} color="#1a1a1a" />
                     <span>{t.saveAndPreview}</span>
                   </button>
@@ -3750,10 +3893,10 @@ export function Onboarding({
                           onDragOver={(e) => e.preventDefault()}
                           onDrop={(e) => { const from = Number(e.dataTransfer.getData('text/plain')); if (!Number.isNaN(from)) movePortfolioTo(from, i); }}
                           style={{ borderBottom: i < myPortfolio.length - 1 ? `1px solid ${C.border}` : 'none' }}>
-                          <div style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: 6, padding: '7px 0' }}>
+                          <div style={{ display: 'flex', flexWrap: isPhoneViewport ? 'wrap' : 'nowrap', alignItems: 'center', gap: 6, padding: '7px 0', minWidth: 0 }}>
                             <div style={{
                               minWidth: 0,
-                              flex: '1 1 100%',
+                              flex: isPhoneViewport ? '1 1 100%' : '1 1 auto',
                               fontSize: 11,
                               color: C.t1,
                               fontWeight: 700,
@@ -3767,7 +3910,7 @@ export function Onboarding({
                             }}>
                               {p.address} · {p.city} · ${Number(p.price || 0).toLocaleString('en-US')} · {p.dealTag || t.sectionPortfolio} · {p.images?.length || 0} img
                             </div>
-                            <div style={{ display:'flex', alignItems:'center', gap:6, width: '100%', flexWrap: isMobileViewport ? 'nowrap' : 'wrap' }}>
+                            <div style={{ display:'flex', alignItems:'center', gap:6, width: isPhoneViewport ? '100%' : 'auto', flexWrap: 'nowrap', marginLeft: isPhoneViewport ? 0 : 'auto', minWidth: 0 }}>
                               {!p.dealClosed ? (
                                 <Chip active={isTruthyFlag(p.publishToShowcase, true)} onClick={() => {
                                   togglePropertyShowInShowcase(p.id);
@@ -4095,10 +4238,10 @@ export function Onboarding({
                     ) : (
                       myServicePortfolio.map((svc, i) => (
                         <div key={svc.id || `svc-rec-${i}`} style={{ borderBottom: i < myServicePortfolio.length - 1 ? `1px solid ${C.border}` : 'none' }}>
-                          <div style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: 6, padding: '7px 0' }}>
+                          <div style={{ display: 'flex', flexWrap: isPhoneViewport ? 'wrap' : 'nowrap', alignItems: 'center', gap: 6, padding: '7px 0', minWidth: 0 }}>
                             <div style={{
                               minWidth: 0,
-                              flex: '1 1 100%',
+                              flex: isPhoneViewport ? '1 1 100%' : '1 1 auto',
                               fontSize: 11,
                               color: C.t1,
                               fontWeight: 700,
@@ -4112,7 +4255,7 @@ export function Onboarding({
                             }}>
                               {svc.title || t.serviceFallbackName}{svc.category ? ` · ${svc.category}` : ''} · {svc.media?.images?.length || 0} img
                             </div>
-                            <div style={{ display:'flex', alignItems:'center', gap:6, width: '100%', flexWrap: isMobileViewport ? 'nowrap' : 'wrap' }}>
+                            <div style={{ display:'flex', alignItems:'center', gap:6, width: isPhoneViewport ? '100%' : 'auto', flexWrap: 'nowrap', marginLeft: isPhoneViewport ? 0 : 'auto', minWidth: 0 }}>
                               {!svc.dealClosed ? (
                                 <Chip active={isTruthyFlag(svc.publishToConnections, true)} onClick={() => {
                                   toggleServiceShowInConnections(svc.id);
@@ -4309,7 +4452,7 @@ export function Onboarding({
                   <button onClick={addFsboProperty} style={{ flex: 1, padding: '8px 10px', borderRadius: 9, border: `1px solid ${C.accent}`, background: 'transparent', color: C.accent, fontWeight: 700, cursor: 'pointer', fontSize: 11 }}>
                     {t.addToPortfolio}
                   </button>
-                  <button onClick={() => { if (validateMinimumProfileCompletion().valid) setPreviewOpen(true); }} style={{ flex: 1, padding: '8px 10px', borderRadius: 9, border: 'none', background: C.accent, color: '#1a1a1a', fontWeight: 700, cursor: 'pointer', fontSize: 11, display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: 6 }}>
+                  <button className={`onb-preview-feed ${isPreviewToFeedDirty ? 'is-dirty' : ''}`} onClick={openPreviewToFeed} style={{ flex: 1, padding: '8px 10px', borderRadius: 9, border: 'none', background: C.accent, color: '#1a1a1a', fontWeight: 700, cursor: 'pointer', fontSize: 11, display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: 6 }}>
                     <Icon name="eye" size={13} color="#1a1a1a" />
                     <span>{t.saveAndPreview}</span>
                   </button>
@@ -4321,10 +4464,10 @@ export function Onboarding({
                   ) : (
                     myPortfolio.map((p, i) => (
                       <div key={p.id} style={{ borderBottom: i < myPortfolio.length - 1 ? `1px solid ${C.border}` : 'none' }}>
-                          <div style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: 6, padding: '7px 0' }}>
+                          <div style={{ display: 'flex', flexWrap: isPhoneViewport ? 'wrap' : 'nowrap', alignItems: 'center', gap: 6, padding: '7px 0', minWidth: 0 }}>
                             <div style={{
                               minWidth: 0,
-                              flex: '1 1 100%',
+                              flex: isPhoneViewport ? '1 1 100%' : '1 1 auto',
                               fontSize: 11,
                               color: C.t1,
                               fontWeight: 700,
@@ -4338,7 +4481,7 @@ export function Onboarding({
                             }}>
                               {p.address} · {p.city} · ${Number(p.price || 0).toLocaleString('en-US')} · {p.images?.length || 0} img
                             </div>
-                            <div style={{ display:'flex', alignItems:'center', gap:6, width: '100%', flexWrap: isMobileViewport ? 'nowrap' : 'wrap' }}>
+                            <div style={{ display:'flex', alignItems:'center', gap:6, width: isPhoneViewport ? '100%' : 'auto', flexWrap: 'nowrap', marginLeft: isPhoneViewport ? 0 : 'auto', minWidth: 0 }}>
                               {!p.dealClosed ? (
                                 <Chip active={isTruthyFlag(p.publishToShowcase, true)} onClick={() => {
                                   togglePropertyShowInShowcase(p.id);

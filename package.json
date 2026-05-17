@@ -1,15 +1,15 @@
 {
-  "name": "vs-code---exe-runtimeedge",
+  "name": "DealSifter_Match",
   "private": true,
   "version": "0.0.0",
   "type": "module",
   "scripts": {
-    "dev": "vite",
-    "dev:poll": "cross-env CHOKIDAR_USEPOLLING=true vite",
+    "dev": "vite --host 0.0.0.0 --port 5174 --strictPort",
+    "dev:poll": "cross-env CHOKIDAR_USEPOLLING=true vite --host 0.0.0.0 --port 5174 --strictPort",
     "build": "vite build",
     "prepare": "husky",
     "lint": "eslint src/",
-    "preview": "vite preview"
+    "preview": "vite preview --host 0.0.0.0 --port 4173 --strictPort"
   },
   "dependencies": {
     "@supabase/supabase-js": "^2.103.0",

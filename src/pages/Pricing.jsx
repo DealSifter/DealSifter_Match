@@ -3,12 +3,11 @@ import { C } from '../theme/colors';
 import { useT } from '../i18n/translations';
 import { PLANS, NUGGET_PACKS } from '../data/mockData';
 import { Icon } from '../components/ui/Icon';
-import { redirectToSubscription } from '../lib/stripeClient';
 
-export function Pricing({ setPage, setModal, prevPage, addToast }) {
+export function Pricing({ setPage, setModal, prevPage, addToast, onRequestCheckoutIntent }) {
   const allT = useT('pricing');
   const t = allT.pricing;
-  const [planLoading, setPlanLoading] = useState(null);
+  const [checkoutLoading, setCheckoutLoading] = useState(null);
 
   const planName = (id, fallback) => t.planNames?.[id] || fallback;
   const featureMap = {
@@ -29,13 +28,36 @@ export function Pricing({ setPage, setModal, prevPage, addToast }) {
       setPage('dashboard');
       return;
     }
-    setPlanLoading(p.id);
+    setCheckoutLoading(`plan-${p.id}`);
     try {
-      await redirectToSubscription(p.id);
+      if (typeof onRequestCheckoutIntent === 'function') {
+        await onRequestCheckoutIntent({ kind: 'subscription', planId: p.id, source: 'pricing' });
+        return;
+      }
+      addToast?.({ type: 'warning', message: 'Fluxo de checkout indisponível no momento.' });
     } catch (err) {
       addToast?.({ type: 'error', message: String(err?.message || 'Falha ao iniciar assinatura.') });
     } finally {
-      setPlanLoading(null);
+      setCheckoutLoading(null);
+    }
+  };
+
+  const handleNuggetPackCta = async (pack) => {
+    setCheckoutLoading(`pack-${pack.id}`);
+    try {
+      if (typeof onRequestCheckoutIntent === 'function') {
+        await onRequestCheckoutIntent({ kind: 'nuggets', packId: pack.id, source: 'pricing' });
+        return;
+      }
+      if (typeof setModal === 'function') {
+        setModal('store');
+        return;
+      }
+      addToast?.({ type: 'warning', message: 'Fluxo de checkout indisponível no momento.' });
+    } catch (err) {
+      addToast?.({ type: 'error', message: String(err?.message || 'Falha ao iniciar compra de nuggets.') });
+    } finally {
+      setCheckoutLoading(null);
     }
   };
 
@@ -98,10 +120,10 @@ export function Pricing({ setPage, setModal, prevPage, addToast }) {
             </div>
             <button
               onClick={() => handlePlanCta(p)}
-              disabled={planLoading === p.id}
-              style={{ width:"100%", padding:11, borderRadius:10, background:p.popular?C.accent:"transparent", border:p.popular?"none":`1px solid ${C.border}`, color:p.popular?"#fff":C.t2, fontWeight:700, fontSize:13, cursor: planLoading === p.id ? "wait" : "pointer", opacity: planLoading === p.id ? 0.7 : 1 }}
+              disabled={checkoutLoading === `plan-${p.id}`}
+              style={{ width:"100%", padding:11, borderRadius:10, background:p.popular?C.accent:"transparent", border:p.popular?"none":`1px solid ${C.border}`, color:p.popular?"#fff":C.t2, fontWeight:700, fontSize:13, cursor: checkoutLoading === `plan-${p.id}` ? "wait" : "pointer", opacity: checkoutLoading === `plan-${p.id}` ? 0.7 : 1 }}
             >
-              {planLoading === p.id ? '...' : (p.price===0 ? t.getStartedFree : t.startTrial)}
+              {checkoutLoading === `plan-${p.id}` ? '...' : (p.price===0 ? t.getStartedFree : t.startTrial)}
             </button>
           </div>
         ))}
@@ -111,8 +133,10 @@ export function Pricing({ setPage, setModal, prevPage, addToast }) {
         <h3 style={{ fontSize:"clamp(18px,4vw,24px)", fontWeight:800, color:C.t1, marginBottom:6 }}>{t.needMore}</h3>
         <p style={{ color:C.t2, marginBottom:28, fontSize:13 }}>{t.needMoreSub}</p>
         <div style={{ display:"grid", gridTemplateColumns:"repeat(auto-fit,minmax(160px,1fr))", gap:12 }}>
-          {NUGGET_PACKS.map(p=>(
-            <div key={p.id} onClick={() => setModal("store")} style={{ background:p.popular?C.alpha(C.gold, 0.06):C.card, border:`1px solid ${p.popular?C.gold:C.border}`, borderRadius:16, padding:18, cursor:"pointer", position:"relative", textAlign:"center" }}>
+          {NUGGET_PACKS.map(p=>{
+            const isPackLoading = checkoutLoading === `pack-${p.id}`;
+            return (
+            <div key={p.id} onClick={() => handleNuggetPackCta(p)} style={{ background:p.popular?C.alpha(C.gold, 0.06):C.card, border:`1px solid ${p.popular?C.gold:C.border}`, borderRadius:16, padding:18, cursor:isPackLoading?"wait":"pointer", position:"relative", textAlign:"center", opacity:isPackLoading?0.72:1 }}>
               {p.popular&&<div style={{ position:"absolute", top:-10, left:"50%", transform:"translateX(-50%)", background:C.gold, color:C.bg, fontSize:9, fontWeight:800, padding:"3px 10px", borderRadius:100, whiteSpace:"nowrap" }}>{allT.modals.bestValue}</div>}
               <div style={{ display:"flex", justifyContent:"center", marginBottom:6 }}><Icon name="nugget" size={26} color={C.gold} strokeWidth={1.3} /></div>
               <div style={{ fontWeight:800, color:C.gold, fontSize:20 }}>{p.qty}{p.bonus>0&&<span style={{ fontSize:11, color:C.goldL }}> +{p.bonus}</span>}</div>
@@ -120,7 +144,7 @@ export function Pricing({ setPage, setModal, prevPage, addToast }) {
               <div style={{ fontWeight:800, color:C.t1, fontSize:18 }}>${Number(p.price || 0).toLocaleString('en-US')}</div>
               <div style={{ color:C.t3, fontSize:10 }}>${Math.round((p.price || 0)/(p.qty+p.bonus)).toLocaleString('en-US')}{t.perEach}</div>
             </div>
-          ))}
+          );})}
         </div>
       </div>
     </div>

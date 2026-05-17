@@ -40,7 +40,7 @@ export const NUGGET_PACKS = [
 export const PLANS = [
   { id:"free",       name:"Free",       price:0,   nuggets:3,  color:C.t2,    features:["3 Gold Nuggets/month","5 swipes/day","3 active matches","Basic profile"] },
   { id:"pro",        name:"Pro",        price:49,  nuggets:20, color:C.accent, features:["20 Gold Nuggets/month","Unlimited swipes","Unlimited matches","Verified badge","Priority listing","Deal Board access"], popular:true },
-  { id:"enterprise", name:"Enterprise", price:199, nuggets:60, color:C.gold,   features:["60 Gold Nuggets/month","Everything in Pro","Featured profile","API access","Analytics dashboard","Dedicated account manager"] },
+  { id:"enterprise", name:"Enterprise", price:129, nuggets:60, color:C.gold,   features:["60 Gold Nuggets/month","Everything in Pro","Featured profile","API access","Analytics dashboard","Dedicated account manager"] },
 ];
 
 export const CITY_COORDS = {

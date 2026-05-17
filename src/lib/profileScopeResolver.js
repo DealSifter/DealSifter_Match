@@ -189,10 +189,15 @@ export function resolveScopedProfile(scope, {
       personal.email
     ),
     cardPriority: isFsboScope
-      ? pickString(
+      ? (String(accountType || '').trim() === 'fsbo_owner'
+        ? pickString(
+          personal.cardPriorityC,
+          professional.cardPriorityC
+        )
+        : pickString(
           professional.cardPriorityC,
           personal.cardPriorityC
-        )
+        ))
       : pickString(
           professional.cardPriorityA,
           personal.cardPriorityA

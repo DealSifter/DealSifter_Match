@@ -313,14 +313,14 @@ export const translations = {
     },
     // Pricing
     pricing: {
-      trialBadge: "14-day free trial on all paid plans",
+      trialBadge: "7-day free trial on all paid plans",
       title: "Simple, Transparent Pricing",
       subtitle: "Each plan includes Gold Nuggets. Unlock cost depends on each contact's portfolio size.",
       month: "/month",
       nuggetsPerMonth: "Gold Nuggets/mo",
       connections: "full connections/month",
       getStartedFree: "Get Started Free",
-      startTrial: "Start 14-Day Trial",
+      startTrial: "Start 7-Day Trial",
       needMore: "Need More Nuggets?",
       needMoreSub: "Top up anytime. Nuggets never expire.",
       perEach: "/ea",
@@ -940,14 +940,14 @@ export const translations = {
       stateFilterAll: "Todos os estados",
     },
     pricing: {
-      trialBadge: "14 dias de teste grátis em todos os planos pagos",
+      trialBadge: "7 dias de teste grátis em todos os planos pagos",
       title: "Planos Simples e Transparentes",
       subtitle: "Todos os planos incluem Gold Nuggets. O custo de desbloqueio depende do portfolio de cada contato.",
       month: "/mês",
       nuggetsPerMonth: "Gold Nuggets/mês",
       connections: "conexões completas/mês",
       getStartedFree: "Começar de Graça",
-      startTrial: "Iniciar Teste de 14 Dias",
+      startTrial: "Iniciar Teste de 7 Dias",
       needMore: "Precisa de Mais Nuggets?",
       needMoreSub: "Recarregue quando precisar. Seus nuggets não expiram.",
       perEach: "/un",
@@ -1565,14 +1565,14 @@ export const translations = {
       stateFilterAll: "Todos los estados",
     },
     pricing: {
-      trialBadge: "14 días de prueba gratis en todos los planes de pago",
+      trialBadge: "7 días de prueba gratis en todos los planes de pago",
       title: "Planes Simples y Transparentes",
       subtitle: "Todos los planes incluyen Gold Nuggets. El costo de desbloqueo depende del portafolio de cada contacto.",
       month: "/mes",
       nuggetsPerMonth: "Gold Nuggets/mes",
       connections: "conexiones completas/mes",
       getStartedFree: "Comenzar Gratis",
-      startTrial: "Iniciar Prueba de 14 Días",
+      startTrial: "Iniciar Prueba de 7 Días",
       needMore: "¿Necesitas Más Nuggets?",
       needMoreSub: "Recarga cuando lo necesites. Tus nuggets no vencen.",
       perEach: "/c/u",
@@ -1901,6 +1901,8 @@ const DISPLAY_LANG = {
   es: 'es-ES',
 };
 
+const DEFAULT_LANG = { base: 'en', display: 'en-US' };
+
 const normalizeLang = (lang) => {
   if (!lang || typeof lang !== 'string') return null;
   const key = lang.toLowerCase();
@@ -1913,8 +1915,7 @@ const initialLang = (() => {
   const saved = typeof localStorage !== 'undefined' ? localStorage.getItem('lang') : null;
   const fromSaved = normalizeLang(saved);
   if (fromSaved) return fromSaved;
-  const browser = typeof navigator !== 'undefined' ? navigator.language : null;
-  return normalizeLang(browser) || { base: 'en', display: 'en-US' };
+  return DEFAULT_LANG;
 })();
 
 let currentLang = initialLang.display;

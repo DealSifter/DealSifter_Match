@@ -6,9 +6,14 @@ import { Icon } from '../ui/Icon';
 const HIDDEN_PAGES = new Set(['landing', 'terms', 'privacy', 'admin']);
 
 export function AppMobileBottomNav({ page, setPage, collapsed = false, onCollapsedChange }) {
+  const TABLET_PORTRAIT_QUERY = '(min-width: 768px) and (max-width: 1080px) and (orientation: portrait)';
   const [isMobile, setIsMobile] = useState(() => {
     if (typeof window === 'undefined' || typeof window.matchMedia !== 'function') return false;
     return window.matchMedia('(max-width: 767px)').matches;
+  });
+  const [isTabletPortrait, setIsTabletPortrait] = useState(() => {
+    if (typeof window === 'undefined' || typeof window.matchMedia !== 'function') return false;
+    return window.matchMedia(TABLET_PORTRAIT_QUERY).matches;
   });
   const [isDraggingHandle, setIsDraggingHandle] = useState(false);
   const [dragOffsetY, setDragOffsetY] = useState(0);
@@ -16,8 +21,15 @@ export function AppMobileBottomNav({ page, setPage, collapsed = false, onCollaps
   const navRef = useRef(null);
   const dragRef = useRef({ active: false, pointerId: null, startY: 0 });
   const suppressNextClickRef = useRef(false);
-  const COLLAPSED_VISIBLE_HEIGHT = 6;
-  const collapsedTranslateY = Math.max(0, navMeasuredHeight - COLLAPSED_VISIBLE_HEIGHT);
+  const isCompactViewport = isMobile || isTabletPortrait;
+  const isTabletCompactOnly = isTabletPortrait && !isMobile;
+  const collapsedVisibleHeight = isTabletCompactOnly ? 8 : 6;
+  const collapsedTranslateY = Math.max(0, navMeasuredHeight - collapsedVisibleHeight);
+  const navGridHeight = isTabletCompactOnly ? 66 : 62;
+  const navIconBoxSize = isTabletCompactOnly ? 34 : 30;
+  const navIconSize = isTabletCompactOnly ? 17 : 16;
+  const navLabelSize = isTabletCompactOnly ? 12 : 11;
+  const handleWidth = isTabletCompactOnly ? 52 : 44;
 
   const t = useT('global').nav;
 
@@ -36,7 +48,21 @@ export function AppMobileBottomNav({ page, setPage, collapsed = false, onCollaps
   }, []);
 
   useEffect(() => {
-    if (!isMobile) return undefined;
+    if (typeof window === 'undefined' || typeof window.matchMedia !== 'function') return undefined;
+    const mediaQuery = window.matchMedia(TABLET_PORTRAIT_QUERY);
+    const handleViewportChange = (event) => setIsTabletPortrait(Boolean(event.matches));
+
+    if (typeof mediaQuery.addEventListener === 'function') {
+      mediaQuery.addEventListener('change', handleViewportChange);
+      return () => mediaQuery.removeEventListener('change', handleViewportChange);
+    }
+
+    mediaQuery.addListener(handleViewportChange);
+    return () => mediaQuery.removeListener(handleViewportChange);
+  }, [TABLET_PORTRAIT_QUERY]);
+
+  useEffect(() => {
+    if (!isCompactViewport) return undefined;
     const navEl = navRef.current;
     if (!navEl) return undefined;
 
@@ -58,7 +84,7 @@ export function AppMobileBottomNav({ page, setPage, collapsed = false, onCollaps
       window.removeEventListener('resize', updateNavHeight);
       if (resizeObserver) resizeObserver.disconnect();
     };
-  }, [isMobile, collapsed]);
+  }, [isCompactViewport, collapsed]);
 
   const navItems = useMemo(() => ([
     { id: 'dashboard', label: t.feed, icon: 'grid' },
@@ -128,7 +154,7 @@ export function AppMobileBottomNav({ page, setPage, collapsed = false, onCollaps
     ),
   );
 
-  if (!isMobile || HIDDEN_PAGES.has(page)) return null;
+  if (!isCompactViewport || HIDDEN_PAGES.has(page)) return null;
 
   return (
     <nav
@@ -168,14 +194,14 @@ export function AppMobileBottomNav({ page, setPage, collapsed = false, onCollaps
           gap: 2,
         }}
       >
-        <span style={{ width: 44, height: 4, borderRadius: 999, background: C.alpha(C.t3, 0.65) }} />
+        <span style={{ width: handleWidth, height: 4, borderRadius: 999, background: C.alpha(C.t3, 0.65) }} />
         {!collapsed ? (
-          <span style={{ fontSize: 9, fontWeight: 700, color: C.t3, lineHeight: 1 }}>
+          <span style={{ fontSize: isTabletCompactOnly ? 10 : 9, fontWeight: 700, color: C.t3, lineHeight: 1 }}>
             arraste para baixo
           </span>
         ) : null}
       </button>
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', height: 62 }}>
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', height: navGridHeight }}>
         {navItems.map((item) => {
           const isActive = page === item.id;
           return (
@@ -195,15 +221,15 @@ export function AppMobileBottomNav({ page, setPage, collapsed = false, onCollaps
                 alignItems: 'center',
                 justifyContent: 'center',
                 gap: 4,
-                fontSize: 11,
+                fontSize: navLabelSize,
                 fontWeight: isActive ? 700 : 500,
                 transition: 'all .15s ease',
               }}
             >
               <span
                 style={{
-                  width: 30,
-                  height: 30,
+                  width: navIconBoxSize,
+                  height: navIconBoxSize,
                   borderRadius: 10,
                   display: 'inline-flex',
                   alignItems: 'center',
@@ -212,7 +238,7 @@ export function AppMobileBottomNav({ page, setPage, collapsed = false, onCollaps
                   transition: 'all .15s ease',
                 }}
               >
-                <Icon name={item.icon} size={16} color={isActive ? C.accent : C.t3} strokeWidth={isActive ? 2 : 1.8} />
+                <Icon name={item.icon} size={navIconSize} color={isActive ? C.accent : C.t3} strokeWidth={isActive ? 2 : 1.8} />
               </span>
               <span style={{ lineHeight: 1.1 }}>{item.label}</span>
             </button>
