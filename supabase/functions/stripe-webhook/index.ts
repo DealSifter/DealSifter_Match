@@ -2,92 +2,267 @@ import { serve } from 'https://deno.land/std@0.168.0/http/server.ts';
 import Stripe from 'https://esm.sh/stripe@14?target=deno';
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2?target=deno';
 
-const stripe = new Stripe(Deno.env.get('STRIPE_SECRET_KEY') ?? '', {
+const stripeSecretKey = Deno.env.get('STRIPE_SECRET_KEY') ?? '';
+const webhookSecret =
+  Deno.env.get('STRIPE_WEBHOOK_SECRET')
+  ?? Deno.env.get('STRIPE_WEBHOOK_SIGNING_SECRET')
+  ?? '';
+
+if (!stripeSecretKey) throw new Error('Missing STRIPE_SECRET_KEY');
+if (!webhookSecret) throw new Error('Missing STRIPE_WEBHOOK_SECRET');
+
+const stripe = new Stripe(stripeSecretKey, {
   apiVersion: '2024-04-10',
   httpClient: Stripe.createFetchHttpClient(),
 });
 
-// NUGGET_PACKS must mirror src/data/mockData.js — qty + bonus credited per pack_id
+const supabaseAdmin = createClient(
+  Deno.env.get('SUPABASE_URL') ?? '',
+  Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? '',
+);
+
 const PACK_CREDITS: Record<string, { qty: number; bonus: number; price_cents: number }> = {
-  p5:   { qty: 5,   bonus: 0,  price_cents: 900  },
-  p15:  { qty: 15,  bonus: 2,  price_cents: 1900 },
-  p40:  { qty: 40,  bonus: 8,  price_cents: 3900 },
+  p5: { qty: 5, bonus: 0, price_cents: 900 },
+  p15: { qty: 15, bonus: 2, price_cents: 1900 },
+  p40: { qty: 40, bonus: 8, price_cents: 3900 },
   p100: { qty: 100, bonus: 25, price_cents: 7900 },
 };
 
+const PLAN_NAMES: Record<string, string> = {
+  pro: 'Pro',
+  enterprise: 'Enterprise',
+};
+
+const PLAN_NUGGETS: Record<string, number> = {
+  pro: 20,
+  enterprise: 60,
+};
+
+function toIso(tsSeconds?: number | null) {
+  return tsSeconds ? new Date(tsSeconds * 1000).toISOString() : null;
+}
+
+function normalizeSubscriptionStatus(status?: string | null) {
+  if (!status) return 'active';
+  if (status === 'incomplete_expired') return 'canceled';
+  return status;
+}
+
 serve(async (req) => {
+  if (req.method !== 'POST') {
+    return new Response('Method not allowed', { status: 405 });
+  }
+
   const signature = req.headers.get('stripe-signature');
-  const webhookSecret = Deno.env.get('STRIPE_WEBHOOK_SECRET') ?? '';
   const body = await req.text();
 
   let event: Stripe.Event;
   try {
     event = await stripe.webhooks.constructEventAsync(body, signature ?? '', webhookSecret);
   } catch (err) {
-    console.error('Webhook signature verification failed:', err);
+    console.error('Stripe signature verification failed:', err);
     return new Response('Webhook signature invalid', { status: 400 });
   }
 
-  if (event.type === 'checkout.session.completed') {
-    const session = event.data.object;
-    
-    // Pegar informações do pagamento
-    const customerEmail = session.customer_details.email;
-    const amount = session.amount_total;
-    const planId = session.metadata?.plan_id;
-    
-    // Ativar a assinatura no seu sistema
-    // Exemplo: atualizar banco de dados, enviar email, etc.
-    
-    console.log(`Usuário ${customerEmail} ativou plano ${planId}`);
+  try {
+    switch (event.type) {
+      case 'checkout.session.completed':
+        await handleCheckoutCompleted(event.data.object as Stripe.Checkout.Session);
+        break;
 
-    const userId  = session.metadata?.user_id;
-    const packId  = session.metadata?.pack_id;
+      case 'customer.subscription.created':
+      case 'customer.subscription.updated':
+        await syncSubscription(event.data.object as Stripe.Subscription);
+        break;
 
-    if (!userId || !packId) {
-      console.warn('Missing metadata in session:', session.id);
-      return new Response('ok', { status: 200 });
+      case 'customer.subscription.deleted':
+        await markSubscriptionCanceled(event.data.object as Stripe.Subscription);
+        break;
+
+      default:
+        break;
     }
 
-    const pack = PACK_CREDITS[packId];
-    if (!pack) {
-      console.warn('Unknown pack_id:', packId);
-      return new Response('ok', { status: 200 });
-    }
+    return new Response('ok', { status: 200 });
+  } catch (err) {
+    console.error('stripe-webhook processing failed:', err);
+    return new Response('Webhook processing failed', { status: 500 });
+  }
+});
 
-    const supabaseAdmin = createClient(
-      Deno.env.get('SUPABASE_URL') ?? '',
-      Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? '',
-    );
+async function handleCheckoutCompleted(session: Stripe.Checkout.Session) {
+  const userId = session.metadata?.user_id;
+  const packId = session.metadata?.pack_id;
+  const planId = session.metadata?.plan_id;
 
-    // Record the purchase
-    const { error: insertErr } = await supabaseAdmin
-      .from('nugget_purchases')
-      .insert({
-        user_id:          userId,
-        stripe_payment_id: session.payment_intent as string ?? session.id,
-        pack_id:          packId,
-        qty:              pack.qty,
-        bonus:            pack.bonus,
-        price_cents:      pack.price_cents,
-        status:           'completed',
-      });
-
-    if (insertErr) console.error('nugget_purchases insert error:', insertErr);
-
-    // Credit nuggets to user profile (stored in profile_payload.nuggets or a dedicated column)
-    // Using users table — assumes a `nuggets` integer column exists.
-    // If column doesn't exist yet, this upserts profile_payload instead.
-    const { error: creditErr } = await supabaseAdmin.rpc('credit_nuggets', {
-      p_user_id: userId,
-      p_amount:  pack.qty + pack.bonus,
-    });
-
-    if (creditErr) {
-      console.error('credit_nuggets rpc error:', creditErr);
-      // Non-fatal: purchase is already recorded, can be reconciled manually.
-    }
+  if (!userId) {
+    console.warn('Missing user_id metadata in checkout session:', session.id);
+    return;
   }
 
-  return new Response('ok', { status: 200 });
-});
+  if (planId) {
+    const subscription =
+      typeof session.subscription === 'string'
+        ? await stripe.subscriptions.retrieve(session.subscription)
+        : null;
+
+    await upsertSubscription({
+      userId,
+      stripeCustomerId: typeof session.customer === 'string' ? session.customer : null,
+      stripeSubId: typeof session.subscription === 'string' ? session.subscription : null,
+      planId,
+      planName: PLAN_NAMES[planId] ?? planId,
+      priceCents: session.amount_total ?? 0,
+      status: normalizeSubscriptionStatus(subscription?.status ?? 'active'),
+      currentPeriodEnd: toIso(subscription?.current_period_end),
+    });
+
+    await updateUserPlan(userId, planId);
+    await creditPlanNuggetsOnce(userId, planId, session.id);
+    return;
+  }
+
+  if (packId) {
+    await recordNuggetPurchase(session, userId, packId);
+  }
+}
+
+async function recordNuggetPurchase(session: Stripe.Checkout.Session, userId: string, packId: string) {
+  const pack = PACK_CREDITS[packId];
+  if (!pack) {
+    console.warn('Unknown pack_id:', packId);
+    return;
+  }
+
+  const paymentIntentId = typeof session.payment_intent === 'string' ? session.payment_intent : null;
+
+  const { error: insertErr } = await supabaseAdmin
+    .from('nugget_purchases')
+    .insert({
+      user_id: userId,
+      stripe_payment_id: paymentIntentId ?? session.id,
+      stripe_checkout_session_id: session.id,
+      pack_id: packId,
+      qty: pack.qty,
+      bonus: pack.bonus,
+      price_cents: pack.price_cents,
+      status: 'completed',
+    });
+
+  if (insertErr) {
+    if (insertErr.code === '23505') return;
+    throw insertErr;
+  }
+
+  const { error: creditErr } = await supabaseAdmin.rpc('credit_nuggets', {
+    p_user_id: userId,
+    p_amount: pack.qty + pack.bonus,
+  });
+
+  if (creditErr) throw creditErr;
+}
+
+async function syncSubscription(subscription: Stripe.Subscription) {
+  const userId = subscription.metadata?.user_id;
+  const planId = subscription.metadata?.plan_id;
+
+  if (!userId || !planId) {
+    console.warn('Subscription missing app metadata:', subscription.id);
+    return;
+  }
+
+  await upsertSubscription({
+    userId,
+    stripeCustomerId: typeof subscription.customer === 'string' ? subscription.customer : null,
+    stripeSubId: subscription.id,
+    planId,
+    planName: PLAN_NAMES[planId] ?? planId,
+    priceCents: subscription.items.data[0]?.price?.unit_amount ?? 0,
+    status: normalizeSubscriptionStatus(subscription.status),
+    currentPeriodEnd: toIso(subscription.current_period_end),
+  });
+
+  await updateUserPlan(userId, subscription.status === 'canceled' ? 'free' : planId);
+}
+
+async function markSubscriptionCanceled(subscription: Stripe.Subscription) {
+  const userId = subscription.metadata?.user_id;
+  const { error } = await supabaseAdmin
+    .from('subscriptions')
+    .update({
+      status: 'canceled',
+      plan_id: 'free',
+      plan_name: 'Free',
+      updated_at: new Date().toISOString(),
+    })
+    .eq('stripe_sub_id', subscription.id);
+
+  if (error) throw error;
+  if (userId) await updateUserPlan(userId, 'free');
+}
+
+async function upsertSubscription(input: {
+  userId: string;
+  stripeCustomerId: string | null;
+  stripeSubId: string | null;
+  planId: string;
+  planName: string;
+  priceCents: number;
+  status: string;
+  currentPeriodEnd: string | null;
+}) {
+  const { error } = await supabaseAdmin
+    .from('subscriptions')
+    .upsert({
+      user_id: input.userId,
+      stripe_customer_id: input.stripeCustomerId,
+      stripe_sub_id: input.stripeSubId,
+      plan_id: input.planId,
+      plan_name: input.planName,
+      price_cents: input.priceCents,
+      status: input.status,
+      current_period_end: input.currentPeriodEnd,
+      updated_at: new Date().toISOString(),
+    }, { onConflict: 'user_id' });
+
+  if (error) throw error;
+}
+
+async function updateUserPlan(userId: string, planId: string) {
+  const { error } = await supabaseAdmin
+    .from('users')
+    .update({ plan_id: planId })
+    .eq('id', userId);
+
+  if (error) throw error;
+}
+
+async function creditPlanNuggetsOnce(userId: string, planId: string, checkoutSessionId: string) {
+  const amount = PLAN_NUGGETS[planId] ?? 0;
+  if (!amount) return;
+
+  const { error: insertErr } = await supabaseAdmin
+    .from('nugget_purchases')
+    .insert({
+      user_id: userId,
+      stripe_payment_id: checkoutSessionId,
+      stripe_checkout_session_id: `plan:${checkoutSessionId}`,
+      pack_id: `plan:${planId}`,
+      qty: amount,
+      bonus: 0,
+      price_cents: 0,
+      status: 'completed',
+    });
+
+  if (insertErr) {
+    if (insertErr.code === '23505') return;
+    throw insertErr;
+  }
+
+  const { error: creditErr } = await supabaseAdmin.rpc('credit_nuggets', {
+    p_user_id: userId,
+    p_amount: amount,
+  });
+
+  if (creditErr) throw creditErr;
+}

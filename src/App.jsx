@@ -21,7 +21,7 @@ import { ToastContainer } from './components/ui/Toast';
 const ConsentBanner = lazy(() => import('./components/ui/ConsentBanner').then((m) => ({ default: m.ConsentBanner })));
 const CookieBanner = lazy(() => import('./components/ui/CookieBanner').then((m) => ({ default: m.CookieBanner })));
 import { getT } from './i18n/translations';
-import { CATEGORIES, CARDS as _MOCK_CARDS, NUGGET_PACKS } from './data/mockData';
+import { CATEGORIES, CARDS as _MOCK_CARDS, NUGGET_PACKS, PLANS } from './data/mockData';
 import { supabase, isSupabaseConfigured } from './lib/supabaseClient';
 import { redirectToCheckout, redirectToSubscription } from './lib/stripeClient';
 import { buildScopedProfilePayload, extractScopedProfileLegacy } from './lib/profileScopeResolver';
@@ -1373,6 +1373,9 @@ export default function App() {
 
     if (checkout === 'success') {
       setPendingCheckoutIntent(null);
+      if (isSupabaseConfigured && supabaseUserId) {
+        setProfileHydrationCycle((prev) => prev + 1);
+      }
       addToast({
         type: 'success',
         title: 'Pagamento confirmado!',
@@ -1387,7 +1390,7 @@ export default function App() {
         message: 'O pagamento foi cancelado. Seus nuggets não foram alterados.',
       });
     }
-  }, [addToast]);
+  }, [addToast, supabaseUserId]);
 
   // ── Periodic deal-alert notifications (every 3 days per property) ──
   // Fires for each owner property that has active market pressure and is not yet deal-closed.
@@ -1467,7 +1470,7 @@ export default function App() {
       let personalLoadedFromRemote = false;
       let professionalLoadedFromRemote = false;
       try {
-        const [personalResult, professionalResultInitial, userRow] = await Promise.all([
+        const [personalResult, professionalResultInitial, userRow, subscriptionRow] = await Promise.all([
           supabase
             .from('user_profiles')
             .select('full_name, photo_url, bio, visibility')
@@ -1483,11 +1486,27 @@ export default function App() {
             .select('nuggets, plan_id')
             .eq('id', supabaseUserId)
             .maybeSingle(),
+          supabase
+            .from('subscriptions')
+            .select('plan_id, plan_name, price_cents, status, current_period_end')
+            .eq('user_id', supabaseUserId)
+            .maybeSingle(),
         ]);
 
         // Sync nuggets from Supabase (source of truth after webhook credits)
         if (!cancelled && userRow?.data?.nuggets != null) {
           setNuggets(userRow.data.nuggets);
+        }
+        if (!cancelled) {
+          const planId = String(subscriptionRow?.data?.plan_id || userRow?.data?.plan_id || 'free').toLowerCase();
+          const planDef = PLANS.find((plan) => String(plan.id).toLowerCase() === planId);
+          setSubscription({
+            planId,
+            planName: subscriptionRow?.data?.plan_name || planDef?.name || (planId === 'free' ? 'Free' : planId),
+            price: Number(subscriptionRow?.data?.price_cents || 0) / 100,
+            status: subscriptionRow?.data?.status || (planId === 'free' ? 'active' : 'active'),
+            nextBillingAt: subscriptionRow?.data?.current_period_end || null,
+          });
         }
 
         let professionalResult = professionalResultInitial;
