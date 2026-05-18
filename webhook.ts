@@ -1,15 +1,18 @@
 import { serve } from 'https://deno.land/std@0.168.0/http/server.ts';
 import Stripe from 'https://esm.sh/stripe@14?target=deno';
 
-const stripe = new Stripe('sk_test_123', {
+// COLE AQUI ⬇️ (substitui as linhas que eu mostrei antes)
+const stripe = new Stripe(Deno.env.get('STRIPE_SECRET_KEY'), {
   apiVersion: '2024-04-10',
   httpClient: Stripe.createFetchHttpClient(),
 });
 
+const endpointSecret = Deno.env.get('STRIPE_WEBHOOK_SECRET');
+// ATÉ AQUI ⬆️
+
 serve(async (req) => {
   const body = await req.text();
   const signature = req.headers.get('stripe-signature');
-  const endpointSecret = 'whsec_...'; // Você vai pegar isso do Dashboard
 
   let event;
   try {
@@ -24,7 +27,6 @@ serve(async (req) => {
     console.log('Pagamento aprovado:', session.id);
     
     // Aqui você ativa a assinatura do usuário
-    // Por exemplo: ativar premium no seu banco de dados
   }
 
   return new Response('OK', { status: 200 });

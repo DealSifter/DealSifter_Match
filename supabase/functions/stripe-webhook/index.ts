@@ -29,7 +29,18 @@ serve(async (req) => {
   }
 
   if (event.type === 'checkout.session.completed') {
-    const session = event.data.object as Stripe.Checkout.Session;
+    const session = event.data.object;
+    
+    // Pegar informações do pagamento
+    const customerEmail = session.customer_details.email;
+    const amount = session.amount_total;
+    const planId = session.metadata?.plan_id;
+    
+    // Ativar a assinatura no seu sistema
+    // Exemplo: atualizar banco de dados, enviar email, etc.
+    
+    console.log(`Usuário ${customerEmail} ativou plano ${planId}`);
+
     const userId  = session.metadata?.user_id;
     const packId  = session.metadata?.pack_id;
 
