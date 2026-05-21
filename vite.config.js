@@ -1,9 +1,36 @@
-import { defineConfig } from 'vite'
+import { defineConfig, loadEnv } from 'vite'
 import react from '@vitejs/plugin-react'
 
+/** Vercel often sets SUPABASE_* without VITE_ — merge both for the client bundle. */
+function resolvePublicEnv(mode) {
+  const fileEnv = loadEnv(mode, process.cwd(), '')
+  const pick = (viteKey, legacyKey) =>
+    String(
+      process.env[viteKey] ||
+      process.env[legacyKey] ||
+      fileEnv[viteKey] ||
+      fileEnv[legacyKey] ||
+      '',
+    ).trim()
+
+  return {
+    VITE_SUPABASE_URL: pick('VITE_SUPABASE_URL', 'SUPABASE_URL'),
+    VITE_SUPABASE_ANON_KEY: pick('VITE_SUPABASE_ANON_KEY', 'SUPABASE_ANON_KEY'),
+    VITE_APP_URL: pick('VITE_APP_URL', 'APP_URL'),
+  }
+}
+
 // https://vite.dev/config/
-export default defineConfig({
+export default defineConfig(({ mode }) => {
+  const publicEnv = resolvePublicEnv(mode)
+
+  return {
   plugins: [react()],
+  define: {
+    'import.meta.env.VITE_SUPABASE_URL': JSON.stringify(publicEnv.VITE_SUPABASE_URL),
+    'import.meta.env.VITE_SUPABASE_ANON_KEY': JSON.stringify(publicEnv.VITE_SUPABASE_ANON_KEY),
+    'import.meta.env.VITE_APP_URL': JSON.stringify(publicEnv.VITE_APP_URL),
+  },
   build: {
     rollupOptions: {
       output: {
@@ -36,5 +63,6 @@ export default defineConfig({
     host: '0.0.0.0',
     port: 4173,
     strictPort: true,
+  },
   }
 })

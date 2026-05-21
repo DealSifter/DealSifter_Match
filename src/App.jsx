@@ -2532,7 +2532,11 @@ export default function App() {
       }
     }
 
-    addToast({ type: 'error', title: 'Supabase não configurado', message: 'Configure as variáveis de ambiente do Supabase para continuar.' });
+    addToast({
+      type: 'error',
+      title: 'Supabase não configurado',
+      message: 'Na Vercel, adicione VITE_SUPABASE_URL e VITE_SUPABASE_ANON_KEY (Settings → Environment Variables) e faça Redeploy.',
+    });
   };
 
   const handleAdminAuthSubmit = async ({ email, password }) => {
