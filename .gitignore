@@ -15,6 +15,12 @@ supabase/.temp
 .env
 .env.*
 !.env.example
+.env.local
+.env.*.local
+.vercel-env-check.local
+# Nunca commitar backups de env
+.env.backup
+.env.*.backup
 
 # Editor directories and files
 .vscode/*
