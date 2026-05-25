@@ -1411,6 +1411,10 @@ export function Dashboard({ page, nuggets, setModal, setPage, onOpenOnboardingTa
     if (connDisplay.length === 0) return;
     if (focusCard) setFocusCard(null);
     const topCard = connDisplay[0];
+    if (isOwnConnectionCard(topCard) && (type === 'match' || type === 'unlock')) {
+      addToast?.({ type: 'info', message: 'Own card, not selectionable' });
+      return;
+    }
     if (type === 'unlock') {
       if (!topCard || unlocked.includes(topCard.id)) return;
       if (typeof openUnlock === 'function') openUnlock(topCard);
@@ -1522,9 +1526,13 @@ export function Dashboard({ page, nuggets, setModal, setPage, onOpenOnboardingTa
   const actProperty = type => {
     if (propDisplay.length === 0) return;
     if (focusCard) setFocusCard(null);
+    const topProp = propDisplay[0];
+    if (isOwnPropertyCard(topProp) && type === "interest") {
+      addToast?.({ type: 'info', message: 'Own card, not selectionable' });
+      return;
+    }
     setIsSwipingProp(true);
     setPropAction(type);
-    const topProp = propDisplay[0];
     setPropStatusById(prev => ({ ...prev, [topProp.id]: type }));
     const topScope = normalizeProfileScope(topProp?.primaryProfile || 'personal');
     const topScopeKey = scopeToProfileKey(topScope);
@@ -1621,9 +1629,36 @@ export function Dashboard({ page, nuggets, setModal, setPage, onOpenOnboardingTa
     return (showcaseItems || []).filter((property) => property.ownerId === personId).length;
   };
 
+  const ownOwnerIds = useMemo(() => {
+    const ids = new Set();
+    ['personal', 'secondary', 'fsbo'].forEach((key) => {
+      const id = getOwnerIdForKey(key);
+      if (id !== undefined && id !== null && String(id).trim() !== '') ids.add(String(id));
+    });
+    ids.add('999999');
+    return ids;
+  }, [getOwnerIdForKey]);
+
+  const isOwnConnectionCard = useCallback((card) => {
+    if (!card) return false;
+    if (String(card?.id || '').startsWith('local:')) return true;
+    const ownerId = String(card?.ownerId ?? card?.id ?? '').trim();
+    return ownerId !== '' && ownOwnerIds.has(ownerId);
+  }, [ownOwnerIds]);
+
+  const isOwnPropertyCard = useCallback((property) => {
+    if (!property) return false;
+    const ownerId = String(property?.ownerId || '').trim();
+    return ownerId !== '' && ownOwnerIds.has(ownerId);
+  }, [ownOwnerIds]);
+
   const openUnlockFromTopProperty = () => {
     if (propDisplay.length === 0) return;
     const topProp = propDisplay[0];
+    if (isOwnPropertyCard(topProp)) {
+      addToast?.({ type: 'info', message: 'Own card, not selectionable' });
+      return;
+    }
     const ownerScope = normalizeProfileScope(topProp?.primaryProfile || 'personal');
     const ownerScopeKey = scopeToProfileKey(ownerScope);
     const ownerCard = connectionCards.find((c) => c.scopeKey === ownerScopeKey) || findConnectionById(topProp.ownerId);
