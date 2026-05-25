@@ -2333,6 +2333,7 @@ export default function App() {
   };
 
   const openPricingHub = () => {
+    setModal(null);
     setPage('pricing');
   };
 
