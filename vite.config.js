@@ -32,6 +32,10 @@ export default defineConfig(({ mode }) => {
     'import.meta.env.VITE_APP_URL': JSON.stringify(publicEnv.VITE_APP_URL),
   },
   build: {
+    // Improves compatibility with older Safari/iPad WebKit builds that can render a blank page
+    // when served modern syntax from default targets.
+    target: 'es2019',
+    cssTarget: 'safari13',
     rollupOptions: {
       output: {
         manualChunks(id) {
