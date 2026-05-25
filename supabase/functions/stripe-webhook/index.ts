@@ -1,6 +1,5 @@
-import { serve } from 'https://deno.land/std@0.168.0/http/server.ts';
-import Stripe from 'https://esm.sh/stripe@14?target=deno';
-import { createClient } from 'https://esm.sh/@supabase/supabase-js@2?target=deno';
+import Stripe from "npm:stripe@17";
+import { createClient } from "npm:@supabase/supabase-js@2";
 
 const stripeSecretKey = Deno.env.get('STRIPE_SECRET_KEY') ?? '';
 const webhookSecret =
@@ -13,12 +12,11 @@ if (!webhookSecret) throw new Error('Missing STRIPE_WEBHOOK_SECRET');
 
 const stripe = new Stripe(stripeSecretKey, {
   apiVersion: '2024-04-10',
-  httpClient: Stripe.createFetchHttpClient(),
 });
 
 const supabaseAdmin = createClient(
   Deno.env.get('SUPABASE_URL') ?? '',
-  Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? '',
+  Deno.env.get('SERVICE_ROLE_KEY') ?? Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? '',
 );
 
 const PACK_CREDITS: Record<string, { qty: number; bonus: number; price_cents: number }> = {
@@ -48,7 +46,7 @@ function normalizeSubscriptionStatus(status?: string | null) {
   return status;
 }
 
-serve(async (req) => {
+Deno.serve(async (req) => {
   if (req.method !== 'POST') {
     return new Response('Method not allowed', { status: 405 });
   }
@@ -211,9 +209,36 @@ async function upsertSubscription(input: {
   status: string;
   currentPeriodEnd: string | null;
 }) {
+  const { data: existingSub, error: readError } = await supabaseAdmin
+    .from('subscriptions')
+    .select('id')
+    .eq('user_id', input.userId)
+    .maybeSingle();
+
+  if (readError) throw readError;
+
+  if (existingSub?.id) {
+    const { error } = await supabaseAdmin
+      .from('subscriptions')
+      .update({
+        stripe_customer_id: input.stripeCustomerId,
+        stripe_sub_id: input.stripeSubId,
+        plan_id: input.planId,
+        plan_name: input.planName,
+        price_cents: input.priceCents,
+        status: input.status,
+        current_period_end: input.currentPeriodEnd,
+        updated_at: new Date().toISOString(),
+      })
+      .eq('id', existingSub.id);
+
+    if (error) throw error;
+    return;
+  }
+
   const { error } = await supabaseAdmin
     .from('subscriptions')
-    .upsert({
+    .insert({
       user_id: input.userId,
       stripe_customer_id: input.stripeCustomerId,
       stripe_sub_id: input.stripeSubId,
@@ -223,7 +248,7 @@ async function upsertSubscription(input: {
       status: input.status,
       current_period_end: input.currentPeriodEnd,
       updated_at: new Date().toISOString(),
-    }, { onConflict: 'user_id' });
+    });
 
   if (error) throw error;
 }

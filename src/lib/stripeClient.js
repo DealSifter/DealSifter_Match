@@ -21,6 +21,48 @@ export const STRIPE_SUBSCRIPTION_PRICE_IDS = {
   enterprise: import.meta.env.VITE_STRIPE_PRICE_PLAN_ENTERPRISE || null,
 };
 
+async function invokeEdge(functionName, body) {
+  if (!isSupabaseConfigured || !supabase) {
+    throw new Error('Supabase não configurado. Verifique as variáveis de ambiente VITE_SUPABASE_*.');
+  }
+
+  const { data: sessionData, error: sessionError } = await supabase.auth.getSession();
+  if (sessionError) throw new Error(sessionError.message || 'Falha ao obter sessão de autenticação.');
+  const accessToken = sessionData?.session?.access_token;
+  if (!accessToken) {
+    throw new Error('Sessão expirada ou ausente. Faça login novamente para continuar.');
+  }
+
+  const baseUrl = String(import.meta.env.VITE_SUPABASE_URL || '').trim();
+  const anonKey = String(import.meta.env.VITE_SUPABASE_ANON_KEY || '').trim();
+  const endpoint = `${baseUrl}/functions/v1/${functionName}`;
+
+  const response = await fetch(endpoint, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      apikey: anonKey,
+      Authorization: `Bearer ${accessToken}`,
+    },
+    body: JSON.stringify(body || {}),
+  });
+
+  const rawText = await response.text();
+  let parsed = null;
+  try { parsed = rawText ? JSON.parse(rawText) : null; } catch { parsed = null; }
+
+  if (!response.ok) {
+    const message =
+      parsed?.error
+      || parsed?.message
+      || rawText
+      || `Edge Function HTTP ${response.status}`;
+    throw new Error(String(message));
+  }
+
+  return parsed || {};
+}
+
 /**
  * Redirects the user to Stripe Checkout to buy a nugget pack.
  * Calls the `create-checkout-session` Supabase Edge Function.
@@ -42,16 +84,12 @@ export async function redirectToCheckout(pack) {
     );
   }
 
-  const { data, error } = await supabase.functions.invoke('create-checkout-session', {
-    body: {
-      pack_id:   pack.id,
-      price_id:  priceId,
-      success_url: `${window.location.origin}/?checkout=success&pack=${pack.id}`,
-      cancel_url:  `${window.location.origin}/?checkout=cancelled`,
-    },
+  const data = await invokeEdge('create-checkout-session', {
+    pack_id:   pack.id,
+    price_id:  priceId,
+    success_url: `${window.location.origin}/?checkout=success&pack=${pack.id}`,
+    cancel_url:  `${window.location.origin}/?checkout=cancelled`,
   });
-
-  if (error) throw new Error(error.message || 'Falha ao criar sessão de checkout.');
   if (!data?.url) throw new Error('URL de checkout não retornada.');
 
   window.location.href = data.url;
@@ -78,17 +116,13 @@ export async function redirectToSubscription(planId) {
     );
   }
 
-  const { data, error } = await supabase.functions.invoke('create-checkout-session', {
-    body: {
-      plan_id:     planId,
-      price_id:    priceId,
-      mode:        'subscription',
-      success_url: `${window.location.origin}/?checkout=success&plan=${planId}`,
-      cancel_url:  `${window.location.origin}/?checkout=cancelled`,
-    },
+  const data = await invokeEdge('create-checkout-session', {
+    plan_id:     planId,
+    price_id:    priceId,
+    mode:        'subscription',
+    success_url: `${window.location.origin}/?checkout=success&plan=${planId}`,
+    cancel_url:  `${window.location.origin}/?checkout=cancelled`,
   });
-
-  if (error) throw new Error(error.message || 'Falha ao criar sessão de assinatura.');
   if (!data?.url) throw new Error('URL de assinatura não retornada.');
 
   window.location.href = data.url;
@@ -104,13 +138,9 @@ export async function redirectToPortal() {
     throw new Error('Supabase não configurado. Verifique as variáveis de ambiente VITE_SUPABASE_*.');
   }
 
-  const { data, error } = await supabase.functions.invoke('create-portal-session', {
-    body: {
-      return_url: `${window.location.origin}/?settings=payments`,
-    },
+  const data = await invokeEdge('create-portal-session', {
+    return_url: `${window.location.origin}/?settings=payments`,
   });
-
-  if (error) throw new Error(error.message || 'Falha ao abrir portal Stripe.');
   if (!data?.url) throw new Error('URL do portal não retornada.');
 
   window.location.href = data.url;
