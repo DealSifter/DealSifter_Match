@@ -14,7 +14,7 @@ const Settings = lazy(() => import('./pages/Settings').then((m) => ({ default: m
 const AdminDashboard = lazy(() => import('./pages/AdminDashboard').then((m) => ({ default: m.AdminDashboard })));
 const TermsPage = lazy(() => import('./pages/TermsPage').then((m) => ({ default: m.TermsPage })));
 const PrivacyPolicyPage = lazy(() => import('./pages/PrivacyPolicyPage').then((m) => ({ default: m.PrivacyPolicyPage })));
-const UnlockModal = lazy(() => import('./components/modals/UnlockModal').then((m) => ({ default: m.UnlockModal })));
+import { UnlockModal } from './components/modals/UnlockModal';
 const AuthAccessModal = lazy(() => import('./components/modals/AuthAccessModal').then((m) => ({ default: m.AuthAccessModal })));
 const AdminLoginModal = lazy(() => import('./components/modals/AdminLoginModal').then((m) => ({ default: m.AdminLoginModal })));
 import { ToastContainer } from './components/ui/Toast';

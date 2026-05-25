@@ -27,6 +27,12 @@ export function PropertyCard({ property, action, statusAction, onInterest, owner
   // Card do perfil está em stand by (esmaecido)?
   const isDimmed = owner?._isDimmed;
   const [currentIdx, setCurrentIdx] = React.useState(0);
+  const dragRef = React.useRef({ active: false, pointerId: null, startX: 0, startY: 0 });
+  const dragFrameRef = React.useRef(null);
+  const queuedDragRef = React.useRef({ x: 0, y: 0 });
+  const [dragX, setDragX] = React.useState(0);
+  const [dragY, setDragY] = React.useState(0);
+  const [isDragging, setIsDragging] = React.useState(false);
   const images = property.images || [property.image];
   const rawCapRate = Number(property.capRate);
   const displayCapRate = Number.isFinite(rawCapRate) && rawCapRate > 0 && rawCapRate < 100
@@ -59,6 +65,12 @@ export function PropertyCard({ property, action, statusAction, onInterest, owner
   const ownerBadgeBottom = images.length > 1 ? 24 : 8;
   const ownerBadgeHeight = 38;
   const swipeBadgeKind = action === 'pass' ? 'pass' : (action === 'interest' ? 'match' : null);
+  const dragAbs = Math.abs(dragX);
+  const dragProgress = Math.min(1, dragAbs / 130);
+  const dragTilt = Math.max(-10, Math.min(10, dragX * 0.04));
+  const dragDirection = dragX > 0 ? 'interest' : (dragX < 0 ? 'pass' : null);
+  const matchOverlayOpacity = (dragDirection === 'interest' ? dragProgress : 0) * 0.34;
+  const passOverlayOpacity = (dragDirection === 'pass' ? dragProgress : 0) * 0.34;
 
   const outerStyle = React.useMemo(() => ({
     position: 'relative',
@@ -77,9 +89,81 @@ export function PropertyCard({ property, action, statusAction, onInterest, owner
     userSelect: 'none',
     WebkitUserSelect: 'none',
     filter: isDimmed ? 'grayscale(0.7) brightness(0.82)' : undefined,
-    opacity: isDimmed ? 0.62 : 1,
     pointerEvents: isDimmed ? 'none' : undefined,
-  }), [glowShadow, topGradient, bottomGradient, borderWidth, isDimmed, isMobileLayout]);
+    touchAction: previewOnly ? 'auto' : 'none',
+    cursor: previewOnly ? 'default' : (isDragging ? 'grabbing' : 'grab'),
+    transform: `translate3d(${dragX}px, ${dragY}px, 0) rotate(${dragTilt}deg)`,
+    opacity: isDragging ? (1 - dragProgress * 0.06) : (isDimmed ? 0.62 : 1),
+  }), [glowShadow, topGradient, bottomGradient, borderWidth, isDimmed, isMobileLayout, previewOnly, isDragging, dragX, dragY, dragTilt, dragProgress]);
+
+  const flushQueuedDrag = React.useCallback(() => {
+    dragFrameRef.current = null;
+    const { x, y } = queuedDragRef.current;
+    setDragX((prev) => (prev === x ? prev : x));
+    setDragY((prev) => (prev === y ? prev : y));
+  }, []);
+
+  const scheduleDragFrame = React.useCallback((x, y) => {
+    queuedDragRef.current = { x, y };
+    if (dragFrameRef.current !== null) return;
+    dragFrameRef.current = window.requestAnimationFrame(flushQueuedDrag);
+  }, [flushQueuedDrag]);
+
+  const resetDrag = React.useCallback(() => {
+    dragRef.current.active = false;
+    dragRef.current.pointerId = null;
+    if (dragFrameRef.current !== null) {
+      window.cancelAnimationFrame(dragFrameRef.current);
+      dragFrameRef.current = null;
+    }
+    queuedDragRef.current = { x: 0, y: 0 };
+    setIsDragging(false);
+    setDragX(0);
+    setDragY(0);
+  }, []);
+
+  React.useEffect(() => () => {
+    if (dragFrameRef.current !== null) {
+      window.cancelAnimationFrame(dragFrameRef.current);
+      dragFrameRef.current = null;
+    }
+  }, []);
+
+  const handlePointerDown = React.useCallback((e) => {
+    if (previewOnly) return;
+    if (e.button !== 0) return;
+    if (e.target.closest('button, a, input, select, textarea, [role="button"]')) return;
+    dragRef.current.active = true;
+    dragRef.current.pointerId = e.pointerId;
+    dragRef.current.startX = e.clientX;
+    dragRef.current.startY = e.clientY;
+    setIsDragging(true);
+    e.currentTarget.setPointerCapture?.(e.pointerId);
+  }, [previewOnly]);
+
+  const handlePointerMove = React.useCallback((e) => {
+    if (!dragRef.current.active) return;
+    if (dragRef.current.pointerId !== null && e.pointerId !== dragRef.current.pointerId) return;
+    const dx = e.clientX - dragRef.current.startX;
+    const dy = e.clientY - dragRef.current.startY;
+    const nextX = Math.max(-180, Math.min(180, dx));
+    const nextY = Math.max(-40, Math.min(40, dy * 0.25));
+    scheduleDragFrame(nextX, nextY);
+  }, [scheduleDragFrame]);
+
+  const handlePointerEnd = React.useCallback((e) => {
+    if (!dragRef.current.active) return;
+    if (dragRef.current.pointerId !== null && e.pointerId !== dragRef.current.pointerId) return;
+    const dx = e.clientX - dragRef.current.startX;
+    const threshold = 90;
+    if (Math.abs(dx) >= threshold) {
+      const dir = dx > 0 ? 'interest' : 'pass';
+      resetDrag();
+      onInterest(dir);
+      return;
+    }
+    resetDrag();
+  }, [onInterest, resetDrag]);
 
   const innerStyle = React.useMemo(() => ({
     position: 'relative',
@@ -98,9 +182,40 @@ export function PropertyCard({ property, action, statusAction, onInterest, owner
       onDragStart={(e) => e.preventDefault()}
       onCopy={(e) => e.preventDefault()}
       onCut={(e) => e.preventDefault()}
+      onPointerDown={handlePointerDown}
+      onPointerMove={handlePointerMove}
+      onPointerUp={handlePointerEnd}
+      onPointerCancel={resetDrag}
+      onPointerLeave={(e) => {
+        if (dragRef.current.active && (e.buttons & 1) === 0) resetDrag();
+      }}
     >
       {/* Ícone de visualização removido */}
       <div style={innerStyle}>
+      {!previewOnly ? (
+        <>
+          <div style={{
+            pointerEvents: 'none',
+            position: 'absolute',
+            inset: 0,
+            zIndex: 6,
+            borderRadius: 14,
+            opacity: matchOverlayOpacity,
+            background: `linear-gradient(90deg, ${C.alpha(C.success, 0)} 0%, ${C.alpha(C.success, 0.1)} 35%, ${C.alpha(C.success, 0.28)} 100%)`,
+            transition: isDragging ? 'none' : 'opacity .18s ease-out',
+          }} />
+          <div style={{
+            pointerEvents: 'none',
+            position: 'absolute',
+            inset: 0,
+            zIndex: 6,
+            borderRadius: 14,
+            opacity: passOverlayOpacity,
+            background: `linear-gradient(270deg, ${C.alpha(C.danger, 0)} 0%, ${C.alpha(C.danger, 0.1)} 35%, ${C.alpha(C.danger, 0.28)} 100%)`,
+            transition: isDragging ? 'none' : 'opacity .18s ease-out',
+          }} />
+        </>
+      ) : null}
 
       {/* ── LEFT: photo carousel ── */}
       <div style={{ position: 'relative', width: isMobileLayout ? '100%' : '42%', flexShrink: 0, height: isMobileLayout ? '38%' : '100%' }}>
