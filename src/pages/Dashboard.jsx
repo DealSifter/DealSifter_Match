@@ -1621,6 +1621,26 @@ export function Dashboard({ page, nuggets, setModal, setPage, onOpenOnboardingTa
     return (showcaseItems || []).filter((property) => property.ownerId === personId).length;
   };
 
+  const openUnlockFromTopProperty = () => {
+    if (propDisplay.length === 0) return;
+    const topProp = propDisplay[0];
+    const ownerScope = normalizeProfileScope(topProp?.primaryProfile || 'personal');
+    const ownerScopeKey = scopeToProfileKey(ownerScope);
+    const ownerCard = connectionCards.find((c) => c.scopeKey === ownerScopeKey) || findConnectionById(topProp.ownerId);
+
+    if (!ownerCard) {
+      addToast?.({ type: 'warning', message: 'Contato responsável por este card não encontrado.' });
+      return;
+    }
+
+    if (unlocked.includes(ownerCard.id)) {
+      actProperty('interest');
+      return;
+    }
+
+    if (typeof openUnlock === 'function') openUnlock(ownerCard);
+  };
+
   const _connDeckSet = useMemo(() => new Set(connDeck), [connDeck]);
   const _propDeckSet = useMemo(() => new Set(propDeck), [propDeck]);
   void _connDeckSet;
@@ -2887,7 +2907,7 @@ export function Dashboard({ page, nuggets, setModal, setPage, onOpenOnboardingTa
                   className="ds-mobile-action-btn"
                   onClick={() => {
                     if (view === 'connections') act('unlock');
-                    else actProperty('interest');
+                    else openUnlockFromTopProperty();
                   }}
                   disabled={!mobileCanAct}
                   title={view === 'connections' ? 'Unlock' : 'Interest'}
