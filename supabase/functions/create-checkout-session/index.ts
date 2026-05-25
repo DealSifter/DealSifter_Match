@@ -41,12 +41,16 @@ function getAllowedPriceId(kind: 'pack' | 'plan', id: string) {
 }
 
 async function getAuthenticatedUser(authHeader: string) {
+  const accessToken = String(authHeader || '').replace(/^Bearer\s+/i, '').trim();
+  if (!accessToken) {
+    return { user: null, error: 'Missing bearer token' };
+  }
   const supabase = createClient(supabaseUrl, supabaseAnonKey, {
     global: { headers: { Authorization: authHeader } },
   });
-  const { data: { user }, error } = await supabase.auth.getUser();
-  if (error || !user) return null;
-  return user;
+  const { data: { user }, error } = await supabase.auth.getUser(accessToken);
+  if (error || !user) return { user: null, error: String(error?.message || 'Invalid user session') };
+  return { user, error: null };
 }
 
 async function ensureStripeCustomer(user: { id: string; email?: string | null }) {
@@ -100,9 +104,9 @@ Deno.serve(async (req) => {
       });
     }
 
-    const user = await getAuthenticatedUser(authHeader);
+    const { user, error: authReason } = await getAuthenticatedUser(authHeader);
     if (!user) {
-      return new Response(JSON.stringify({ error: 'Unauthorized' }), {
+      return new Response(JSON.stringify({ error: `Unauthorized: ${authReason || 'invalid session'}` }), {
         status: 401,
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       });
@@ -112,7 +116,6 @@ Deno.serve(async (req) => {
     const mode = body?.mode === 'subscription' ? 'subscription' : 'payment';
     const packId = String(body?.pack_id ?? '').trim();
     const planId = String(body?.plan_id ?? '').trim();
-    const requestedPriceId = String(body?.price_id ?? '').trim();
     const appUrl = Deno.env.get('APP_URL') ?? 'https://dealsifter.com';
     const successUrl = String(body?.success_url ?? `${appUrl}/?checkout=success`).trim();
     const cancelUrl = String(body?.cancel_url ?? `${appUrl}/?checkout=cancelled`).trim();
@@ -127,12 +130,7 @@ Deno.serve(async (req) => {
       });
     }
 
-    if (requestedPriceId && requestedPriceId !== expectedPriceId) {
-      return new Response(JSON.stringify({ error: 'Invalid Stripe price id.' }), {
-        status: 400,
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-      });
-    }
+    // Ignore any client-supplied price id and trust server-side mapping only.
 
     const metadata: Record<string, string> = {
       user_id: user.id,

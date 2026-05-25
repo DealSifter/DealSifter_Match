@@ -24,12 +24,16 @@ const corsHeaders = {
 };
 
 async function getAuthenticatedUser(authHeader: string) {
+  const accessToken = String(authHeader || '').replace(/^Bearer\s+/i, '').trim();
+  if (!accessToken) {
+    return { user: null, error: 'Missing bearer token' };
+  }
   const supabase = createClient(supabaseUrl, supabaseAnonKey, {
     global: { headers: { Authorization: authHeader } },
   });
-  const { data: { user }, error } = await supabase.auth.getUser();
-  if (error || !user) return null;
-  return user;
+  const { data: { user }, error } = await supabase.auth.getUser(accessToken);
+  if (error || !user) return { user: null, error: String(error?.message || 'Invalid user session') };
+  return { user, error: null };
 }
 
 async function ensureStripeCustomer(user: { id: string; email?: string | null }) {
@@ -83,9 +87,9 @@ Deno.serve(async (req) => {
       });
     }
 
-    const user = await getAuthenticatedUser(authHeader);
+    const { user, error: authReason } = await getAuthenticatedUser(authHeader);
     if (!user) {
-      return new Response(JSON.stringify({ error: 'Unauthorized' }), {
+      return new Response(JSON.stringify({ error: `Unauthorized: ${authReason || 'invalid session'}` }), {
         status: 401,
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       });

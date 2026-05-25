@@ -28,7 +28,12 @@ async function invokeEdge(functionName, body) {
 
   const { data: sessionData, error: sessionError } = await supabase.auth.getSession();
   if (sessionError) throw new Error(sessionError.message || 'Falha ao obter sessão de autenticação.');
-  const accessToken = sessionData?.session?.access_token;
+  let accessToken = sessionData?.session?.access_token;
+  if (!accessToken) {
+    const { data: refreshed, error: refreshError } = await supabase.auth.refreshSession();
+    if (refreshError) throw new Error(refreshError.message || 'Falha ao atualizar sessão de autenticação.');
+    accessToken = refreshed?.session?.access_token || null;
+  }
   if (!accessToken) {
     throw new Error('Sessão expirada ou ausente. Faça login novamente para continuar.');
   }
