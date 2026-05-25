@@ -1,5 +1,6 @@
 import { defineConfig, loadEnv } from 'vite'
 import react from '@vitejs/plugin-react'
+import legacy from '@vitejs/plugin-legacy'
 
 /** Vercel often sets SUPABASE_* without VITE_ — merge both for the client bundle. */
 function resolvePublicEnv(mode) {
@@ -25,7 +26,14 @@ export default defineConfig(({ mode }) => {
   const publicEnv = resolvePublicEnv(mode)
 
   return {
-  plugins: [react()],
+  plugins: [
+    react(),
+    legacy({
+      // iOS/iPadOS Safari legacy fallback
+      targets: ['defaults', 'safari >= 12', 'ios >= 12'],
+      modernPolyfills: true,
+    }),
+  ],
   define: {
     'import.meta.env.VITE_SUPABASE_URL': JSON.stringify(publicEnv.VITE_SUPABASE_URL),
     'import.meta.env.VITE_SUPABASE_ANON_KEY': JSON.stringify(publicEnv.VITE_SUPABASE_ANON_KEY),
