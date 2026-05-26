@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo, useRef, useCallback, lazy, Suspense } from 'react';
+import React, { Activity, useState, useEffect, useMemo, useRef, useCallback, lazy, Suspense } from 'react';
 import './App.css';
 import loaderMark from './assets/logo.png';
 import { ThemeProvider } from './theme/theme';
@@ -480,6 +480,12 @@ export default function App() {
   const profileHydrationRetryRef = useRef({ timer: null, attempts: 0 });
   const portfolioHydrationRetryRef = useRef({ timer: null, attempts: 0 });
   const profileHydrationInputRef = useRef({ accountType: 'professional', userCategory: 'wholesaler' });
+  const authRedirectUrl = useMemo(() => {
+    const envUrl = String(import.meta.env.VITE_APP_URL || '').trim();
+    if (envUrl) return envUrl;
+    if (typeof window !== 'undefined' && window.location?.origin) return window.location.origin;
+    return 'https://dealsiftermatch.vercel.app';
+  }, []);
   const realtimeRefreshDebounceRef = useRef({ profiles: null, portfolio: null });
   const profileSyncPendingRef = useRef(0);
   const prevUserIdRef = useRef(null); // tracks userId across renders to detect user change
@@ -2540,7 +2546,7 @@ export default function App() {
         if (provider === 'google') {
           const { error } = await supabase.auth.signInWithOAuth({
             provider: 'google',
-            options: { redirectTo: window.location.origin },
+            options: { redirectTo: authRedirectUrl },
           });
           if (error) throw error;
           return;
@@ -2551,6 +2557,7 @@ export default function App() {
             email,
             password,
             options: {
+              emailRedirectTo: authRedirectUrl,
               data: { full_name: fullName || undefined },
             },
           });
@@ -2652,7 +2659,7 @@ export default function App() {
     setIsForgotPasswordProcessing(true);
     try {
       const { error } = await supabase.auth.resetPasswordForEmail(trimmed, {
-        redirectTo: `${window.location.origin}`,
+        redirectTo: authRedirectUrl,
       });
       if (error) throw error;
       addToast({ type: 'success', title: 'Email enviado', message: 'Confira sua caixa de entrada para redefinir a senha.' });
@@ -2748,7 +2755,7 @@ export default function App() {
       const { error } = await supabase.auth.resend({
         type: 'signup',
         email: target,
-        options: { emailRedirectTo: window.location.origin },
+        options: { emailRedirectTo: authRedirectUrl },
       });
       if (error) throw error;
 
@@ -2867,8 +2874,8 @@ export default function App() {
   const dashboardHydrationReady = profileHydrationReady && portfolioHydrationReady;
   const dashboardHydrationSyncing = isHydratingProfiles || isHydratingPortfolio;
 
-  const renderPage = () => {
-    switch (page) {
+  const renderPageContent = (pageKey = page) => {
+    switch (pageKey) {
       case 'landing':
         return <Landing setPage={setPage} onOpenAuthModal={openAuthModal} />;
       case 'dashboard':
@@ -3034,7 +3041,27 @@ export default function App() {
           onInstallApp={handleInstallApp}
         />
         <Suspense fallback={<div style={{ minHeight: '60vh' }} />}>
-          {renderPage()}
+          {(() => {
+            const keepAlivePages = new Set(['dashboard', 'mapview', 'matches', 'onboarding']);
+            if (!keepAlivePages.has(page)) return renderPageContent(page);
+
+            return (
+              <>
+                <Activity mode={page === 'dashboard' ? 'visible' : 'hidden'}>
+                  {renderPageContent('dashboard')}
+                </Activity>
+                <Activity mode={page === 'mapview' ? 'visible' : 'hidden'}>
+                  {renderPageContent('mapview')}
+                </Activity>
+                <Activity mode={page === 'matches' ? 'visible' : 'hidden'}>
+                  {renderPageContent('matches')}
+                </Activity>
+                <Activity mode={page === 'onboarding' ? 'visible' : 'hidden'}>
+                  {renderPageContent('onboarding')}
+                </Activity>
+              </>
+            );
+          })()}
         </Suspense>
         <AppMobileBottomNav
           page={page}
