@@ -2592,7 +2592,7 @@ export function Dashboard({ page, nuggets, setModal, setPage, onOpenOnboardingTa
                         overflowY: 'visible',
                         scrollSnapType: 'x mandatory',
                         WebkitOverflowScrolling: 'touch',
-                        touchAction: 'pan-x',
+                        touchAction: 'auto',
                         minHeight: myCardPreviewDeckHeight,
                       }}
                     >

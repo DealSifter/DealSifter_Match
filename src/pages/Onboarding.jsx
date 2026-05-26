@@ -1212,7 +1212,7 @@ export function Onboarding({
                 overflowY: 'hidden',
                 scrollSnapType: 'x mandatory',
                 WebkitOverflowScrolling: 'touch',
-                touchAction: 'pan-x',
+                touchAction: 'auto',
                 minHeight: previewDeckHeight,
               }}
             >
