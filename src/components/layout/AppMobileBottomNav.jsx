@@ -240,9 +240,9 @@ export function AppMobileBottomNav({ page, setPage, collapsed = false, onCollaps
               >
                 <Icon
                   name={item.icon}
-                  size={item.id === 'dashboard' ? (navIconSize + 2) : navIconSize}
+                  size={item.id === 'dashboard' ? (navIconSize + 4) : navIconSize}
                   color={isActive ? C.accent : C.t3}
-                  strokeWidth={isActive ? 2 : 1.8}
+                  strokeWidth={item.id === 'dashboard' ? (isActive ? 2.35 : 2.15) : (isActive ? 2 : 1.8)}
                 />
               </span>
               <span style={{ lineHeight: 1.1 }}>{item.label}</span>
