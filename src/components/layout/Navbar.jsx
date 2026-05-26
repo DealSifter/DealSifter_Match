@@ -6,6 +6,8 @@ import { DealSifterLogo } from '../ui/DealSifterLogo';
 import { NuggetBadge } from '../ui/NuggetBadge';
 import { Icon } from '../ui/Icon';
 import appLogo from '../../assets/logo.png';
+import logoLightTheme from '../../assets/logo-light-theme.jpg';
+import logoDarkTheme from '../../assets/logo-dark-theme.jpg';
 
 const LANGS = [
   { code: 'en-US', label: 'EN' },
@@ -84,8 +86,8 @@ export function Navbar({ page, prevPage, setPage, nuggets = 0, setModal = () => 
   const isAppCompact = isApp && isCompactViewport;
   const isCompactTopbar = isLandingCompact || isAppCompact;
   const useImageLogoInHeader = isMobile;
-  const compactDarkLogoSrc = '/logo-dark-theme.jpg';
-  const compactLightLogoSrc = '/logo-light-theme.jpg';
+  const compactDarkLogoSrc = logoDarkTheme;
+  const compactLightLogoSrc = logoLightTheme;
 
   const systemUnreadCount = useMemo(
     () => (systemNotifications || []).filter((n) => !n.read).length,
