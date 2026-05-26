@@ -2083,10 +2083,10 @@ export function MapView({
     : (isMobileViewport ? '0px' : `${panelWidth}px`);
 
   return (
-    <div style={{ paddingTop: 58, height: '100dvh', boxSizing: 'border-box', display: 'flex', flexDirection: 'column' }}>
+    <div style={{ paddingTop: 58, height: 'calc(var(--app-vh, 1vh) * 100)', boxSizing: 'border-box', display: 'flex', flexDirection: 'column' }}>
       <style>{`
         .map-layout {
-          height: calc(100dvh - 58px);
+          height: calc((var(--app-vh, 1vh) * 100) - 58px);
           padding: 0;
           position: relative;
           overflow: hidden;
@@ -2183,7 +2183,7 @@ export function MapView({
           border-bottom-right-radius: 0;
           border: 1px solid transparent;
           border-bottom: 1px solid transparent;
-          background: color-mix(in srgb, var(--ui-surface) 86%, var(--ui-border) 14%);
+          background: var(--ui-hover);
           color: ${C.t2};
           font-size: 12px;
           font-weight: 600;
@@ -2242,7 +2242,7 @@ export function MapView({
         .map-cluster-breakdown { font-size: var(--cluster-breakdown-size, 8px); opacity: .95; margin-top: 2px; line-height: 1; max-width: calc(100% - 8px); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
         .map-chip, .map-filter-mode { border: 1px solid var(--ui-border); border-radius: 999px; padding: 6px 10px; background: var(--ui-surface); color: ${C.t2}; cursor: pointer; font-size: 12px; font-weight: 400; transition: all .15s ease; }
         .map-chip:hover, .map-filter-mode:hover { border-color: var(--ui-border); color: ${C.t1}; background: var(--ui-hover); }
-        .map-panel-tab:hover { color: ${C.t1}; background: color-mix(in srgb, var(--ui-surface) 80%, var(--ui-border) 20%); }
+        .map-panel-tab:hover { color: ${C.t1}; background: var(--ui-hover); }
         .map-chip-active, .map-filter-mode-active { background: var(--ui-surface); border-color: var(--ui-active); color: var(--ui-active); font-weight: 600; }
         .map-chip-active:hover, .map-filter-mode-active:hover { background: var(--ui-hover); }
         .map-panel-tab.active:hover { background: var(--ui-surface); }
@@ -2393,7 +2393,7 @@ export function MapView({
           z-index: 2;
         }
         @media (max-width: 900px) {
-          .map-layout { height: calc(100dvh - 58px); }
+          .map-layout { height: calc((var(--app-vh, 1vh) * 100) - 58px); }
           .map-panel {
             max-height: none;
             height: 100%;

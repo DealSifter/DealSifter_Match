@@ -605,6 +605,22 @@ export default function App() {
   }, []);
 
   useEffect(() => {
+    const setViewportHeightVar = () => {
+      const vh = (window.visualViewport?.height || window.innerHeight) * 0.01;
+      document.documentElement.style.setProperty('--app-vh', `${vh}px`);
+    };
+
+    setViewportHeightVar();
+    window.addEventListener('resize', setViewportHeightVar);
+    window.visualViewport?.addEventListener?.('resize', setViewportHeightVar);
+
+    return () => {
+      window.removeEventListener('resize', setViewportHeightVar);
+      window.visualViewport?.removeEventListener?.('resize', setViewportHeightVar);
+    };
+  }, []);
+
+  useEffect(() => {
     const isStandalone = () => {
       try {
         return window.matchMedia?.('(display-mode: standalone)')?.matches || window.navigator?.standalone === true;

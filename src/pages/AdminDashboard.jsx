@@ -55,7 +55,7 @@ export function AdminDashboard({ setPage, prevPage, logoutAdmin }) {
   }, []);
 
   return (
-    <div style={{ paddingTop: 58, minHeight: '100dvh', background: C.bg }}>
+    <div style={{ paddingTop: 58, minHeight: 'calc(var(--app-vh, 1vh) * 100)', background: C.bg }}>
       <div style={{ maxWidth: 1240, margin: '0 auto', padding: '16px 18px 24px' }}>
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12, marginBottom: 14 }}>
           <div>

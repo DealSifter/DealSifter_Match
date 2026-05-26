@@ -111,7 +111,7 @@ export function Settings({ setPage, prevPage, initialTab = 'profile', systemAcco
   };
 
   return (
-    <div style={{ paddingTop: 58, minHeight: '100dvh', background: C.bg, boxSizing: 'border-box' }}>
+    <div style={{ paddingTop: 58, minHeight: 'calc(var(--app-vh, 1vh) * 100)', background: C.bg, boxSizing: 'border-box' }}>
       {confirmPayload && (
         <div style={{ position: 'fixed', inset: 0, zIndex: 10020, display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'rgba(0,0,0,0.65)' }}
           onClick={() => setConfirmPayload(null)}>

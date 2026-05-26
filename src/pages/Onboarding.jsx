@@ -3083,7 +3083,7 @@ export function Onboarding({
     : removeProfileThumb;
 
   return (
-    <div style={{ height: isMobileViewport ? 'auto' : '100dvh', minHeight: isMobileViewport ? '100dvh' : 0, padding: '66px 12px 4px', boxSizing: 'border-box', overflowX: 'hidden', overflowY: isMobileViewport ? 'auto' : 'hidden', WebkitOverflowScrolling: 'touch', position: 'relative', zIndex: 10 }}>
+    <div style={{ height: isMobileViewport ? 'auto' : 'calc(var(--app-vh, 1vh) * 100)', minHeight: isMobileViewport ? 'calc(var(--app-vh, 1vh) * 100)' : 0, padding: '66px 12px 4px', boxSizing: 'border-box', overflowX: 'hidden', overflowY: isMobileViewport ? 'auto' : 'hidden', WebkitOverflowScrolling: 'touch', position: 'relative', zIndex: 10 }}>
       <style>{`
         @keyframes blink-deal {
           0%, 100% { opacity: 1; transform: scale(1); }

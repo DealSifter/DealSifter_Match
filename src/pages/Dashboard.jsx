@@ -1869,7 +1869,7 @@ export function Dashboard({ page, nuggets, setModal, setPage, onOpenOnboardingTa
   }, [myCardShowcaseIdx, myCardModal.open, myCardShowcaseCount, isMobileViewport]);
 
   return (
-    <div style={{ paddingTop:58, paddingBottom:mobileDashboardBottomPadding, height:'100dvh', overflow:'hidden', boxSizing:'border-box' }}>
+    <div style={{ paddingTop:58, paddingBottom:mobileDashboardBottomPadding, height:'calc(var(--app-vh, 1vh) * 100)', overflow:'hidden', boxSizing:'border-box' }}>
       <style>{`
         @keyframes carouselRotateMatch {
           0%   { transform: translate3d(0, 0, 0) scale(1) rotate(0deg); opacity: 1; }

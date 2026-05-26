@@ -1834,12 +1834,12 @@ export function MatchesPage({ nuggets, setModal, openUnlock, unlocked, initialCh
   const previewModalMaxWidth = isMobile ? 420 : 730;
 
   return (
-    <div style={{ paddingTop:58, paddingBottom:mobileBottomNavOffset, height:"100dvh", boxSizing:"border-box", display:"flex", flexDirection:"column", background:C.bg }}>
+    <div style={{ paddingTop:58, paddingBottom:mobileBottomNavOffset, height:"calc(var(--app-vh, 1vh) * 100)", boxSizing:"border-box", display:"flex", flexDirection:"column", background:C.bg }}>
       <style>{`
         .map-panel-tabs { display: flex; gap: 4px; margin-bottom: 12px; padding-bottom: 2px; border-bottom: 1px solid var(--ui-border); }
-        .map-panel-tab { flex: none; white-space: nowrap; padding: 8px 14px 7px; border-top-left-radius: 10px; border-top-right-radius: 10px; border-bottom-left-radius: 0; border-bottom-right-radius: 0; border: 1px solid transparent; border-bottom: 1px solid transparent; background: color-mix(in srgb, var(--ui-surface) 86%, var(--ui-border) 14%); color: ${C.t2}; font-size: 12px; font-weight: 600; cursor: pointer; margin-bottom: -3px; transition: all .15s ease; }
+        .map-panel-tab { flex: none; white-space: nowrap; padding: 8px 14px 7px; border-top-left-radius: 10px; border-top-right-radius: 10px; border-bottom-left-radius: 0; border-bottom-right-radius: 0; border: 1px solid transparent; border-bottom: 1px solid transparent; background: var(--ui-hover); color: ${C.t2}; font-size: 12px; font-weight: 600; cursor: pointer; margin-bottom: -3px; transition: all .15s ease; }
         .map-panel-tab.active { border-color: var(--ui-border); border-bottom-color: var(--ui-surface); background: var(--ui-surface); color: ${C.t1}; box-shadow: inset 0 2px 0 var(--ui-active); }
-        .map-panel-tab:hover { color: ${C.t1}; background: color-mix(in srgb, var(--ui-surface) 80%, var(--ui-border) 20%); }
+        .map-panel-tab:hover { color: ${C.t1}; background: var(--ui-hover); }
         .matches-mobile-tabbar { display: none; }
         .matches-chat-mobile-tabs { display: none; }
         @media (max-width: 767px) {
