@@ -55,7 +55,7 @@ export const Icon = ({ name, size=18, color="currentColor", strokeWidth=1.5 }) =
     award:      <svg style={s} viewBox="0 0 24 24"><circle {...p} cx="12" cy="8" r="6"/><path {...p} d="M15.477 12.89L17 22l-5-3-5 3 1.523-9.11"/></svg>,
     // Scale/balance icon that works
     balance:    <svg style={s} viewBox="0 0 24 24"><line {...p} x1="12" y1="2" x2="12" y2="22"/><path {...p} d="M5 12l-3 6h6L5 12z"/><path {...p} d="M19 12l-3 6h6L19 12z"/><line {...p} x1="5" y1="12" x2="12" y2="5"/><line {...p} x1="19" y1="12" x2="12" y2="5"/></svg>,
-    grid:       <svg style={s} viewBox="0 0 24 24"><rect {...p} x="3" y="3" width="7" height="7"/><rect {...p} x="14" y="3" width="7" height="7"/><rect {...p} x="14" y="14" width="7" height="7"/><rect {...p} x="3" y="14" width="7" height="7"/></svg>,
+    grid:       <svg style={s} viewBox="0 0 24 24"><path {...p} d="M7 5H3v4"/><path {...p} d="M17 5h4v4"/><line {...p} x1="3" y1="5" x2="9" y2="5"/><line {...p} x1="15" y1="5" x2="21" y2="5"/><path {...p} d="M12 9v5"/><path {...p} d="M9.5 12.5l2.5 2.5 2.5-2.5"/><path {...p} d="M12.3 21c-1.5 0-2.7-1.2-2.7-2.7v-3.4c0-.9.7-1.6 1.6-1.6.3 0 .6.1.8.2V10c0-.8.6-1.4 1.4-1.4s1.4.6 1.4 1.4v3h.3c.8 0 1.4.6 1.4 1.4v2.1c0 2.5-1.9 4.5-4.2 4.5z"/></svg>,
     zap:        <svg style={s} viewBox="0 0 24 24"><polygon {...p} points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg>,
     chat:       <svg style={s} viewBox="0 0 24 24"><path {...p} d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>,
     creditCard: <svg style={s} viewBox="0 0 24 24"><rect {...p} x="1" y="4" width="22" height="16" rx="2"/><line {...p} x1="1" y1="10" x2="23" y2="10"/></svg>,
