@@ -59,6 +59,11 @@ img, .SmartImage img {
   --ui-active-text: #ffffff;
 }
 
+html {
+  -webkit-text-size-adjust: 100%;
+  text-size-adjust: 100%;
+}
+
 [data-theme="dark"] {
   --bg: #101614;
   --card: #171e1b;
