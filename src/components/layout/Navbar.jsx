@@ -208,7 +208,7 @@ export function Navbar({ page, prevPage, setPage, nuggets = 0, setModal = () => 
 
         {/* Left: Logo */}
         <div style={{ display: 'flex', alignItems: 'center', justifySelf: 'start' }}>
-          <div className="logo-general" data-logo="general" style={{ display: 'flex', alignItems: 'center', gap: 5, cursor: 'pointer' }} onClick={() => setPage && setPage('landing')}>
+          <div className="logo-general" data-logo="general" style={{ display: 'flex', alignItems: 'center', cursor: 'pointer' }} onClick={() => setPage && setPage('landing')}>
             {isCompactTopbar ? (
               <img
                 src={appLogo}
