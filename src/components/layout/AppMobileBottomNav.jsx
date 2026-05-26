@@ -2,6 +2,7 @@ import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { C } from '../../theme/colors';
 import { useT } from '../../i18n/translations';
 import { Icon } from '../ui/Icon';
+import feedMatchIcon from '../../assets/feed-match-icon.jpeg';
 
 const HIDDEN_PAGES = new Set(['landing', 'terms', 'privacy', 'admin']);
 
@@ -238,12 +239,26 @@ export function AppMobileBottomNav({ page, setPage, collapsed = false, onCollaps
                   transition: 'all .15s ease',
                 }}
               >
-                <Icon
-                  name={item.icon}
-                  size={item.id === 'dashboard' ? (navIconSize + 4) : navIconSize}
-                  color={isActive ? C.accent : C.t3}
-                  strokeWidth={item.id === 'dashboard' ? (isActive ? 2.35 : 2.15) : (isActive ? 2 : 1.8)}
-                />
+                {item.id === 'dashboard' ? (
+                  <img
+                    src={feedMatchIcon}
+                    alt=""
+                    aria-hidden="true"
+                    style={{
+                      width: navIconSize + 8,
+                      height: navIconSize + 8,
+                      objectFit: 'contain',
+                      borderRadius: 4,
+                    }}
+                  />
+                ) : (
+                  <Icon
+                    name={item.icon}
+                    size={navIconSize}
+                    color={isActive ? C.accent : C.t3}
+                    strokeWidth={isActive ? 2 : 1.8}
+                  />
+                )}
               </span>
               <span style={{ lineHeight: 1.1 }}>{item.label}</span>
             </button>
