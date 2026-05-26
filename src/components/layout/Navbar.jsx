@@ -57,7 +57,7 @@ function NavBtn({ label, onClick, active, icon, filled, minimal }) {
   );
 }
 
-export function Navbar({ page, prevPage, setPage, nuggets = 0, setModal = () => {}, chatNotifications = [], systemNotifications = [], setSystemNotifications = () => {}, onOpenChatNotification = () => {}, onOpenAuthModal = () => {}, onOpenSettings = () => {}, onOpenAdmin = () => {}, onLogoutUser = () => {}, isAdmin = false }) {
+export function Navbar({ page, prevPage, setPage, nuggets = 0, setModal = () => {}, chatNotifications = [], systemNotifications = [], setSystemNotifications = () => {}, onOpenChatNotification = () => {}, onOpenAuthModal = () => {}, onOpenSettings = () => {}, onOpenAdmin = () => {}, onLogoutUser = () => {}, isAdmin = false, showInstallAppButton = false, onInstallApp = () => {} }) {
   const TABLET_PORTRAIT_QUERY = '(min-width: 768px) and (max-width: 1080px) and (orientation: portrait)';
   const isApp = page !== 'landing';
   const isLanding = page === 'landing';
@@ -260,6 +260,16 @@ export function Navbar({ page, prevPage, setPage, nuggets = 0, setModal = () => 
           {isApp ? (
             isAppCompact ? (
               <>
+                {showInstallAppButton ? (
+                  <button
+                    onClick={onInstallApp}
+                    title="Adicionar à Tela"
+                    aria-label="Adicionar à Tela"
+                    style={{ width: 34, height: 34, borderRadius: 8, border: `1px solid ${C.border}`, background: C.card, display: 'inline-flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer' }}
+                  >
+                    <Icon name="download" size={15} color={C.t2} />
+                  </button>
+                ) : null}
                 <NuggetBadge count={nuggets} onClick={() => setModal && setModal('store')} />
                 <button
                   onClick={() => setAppMenuOpen((value) => !value)}
@@ -504,6 +514,16 @@ export function Navbar({ page, prevPage, setPage, nuggets = 0, setModal = () => 
           ) : (
             isLandingCompact ? (
               <>
+                {showInstallAppButton ? (
+                  <button
+                    onClick={onInstallApp}
+                    title="Adicionar à Tela"
+                    aria-label="Adicionar à Tela"
+                    style={{ width: 34, height: 34, borderRadius: 8, border: `1px solid ${C.border}`, background: C.card, display: 'inline-flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer' }}
+                  >
+                    <Icon name="download" size={15} color={C.t2} />
+                  </button>
+                ) : null}
                 <LangPicker compact />
                 <button
                   onClick={() => setLandingMenuOpen((value) => !value)}

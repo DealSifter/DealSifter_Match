@@ -591,10 +591,72 @@ export default function App() {
   // Toast notification system
   const [toasts, setToasts] = useState([]);
   const toastIdRef = useRef(0);
+  const [deferredInstallPrompt, setDeferredInstallPrompt] = useState(null);
+  const [showInstallAppButton, setShowInstallAppButton] = useState(false);
   const addToast = useCallback(({ type = 'info', title, message, duration = 4500 }) => {
     const id = ++toastIdRef.current;
     setToasts((prev) => [...prev.slice(-4), { id, type, title, message, duration }]);
   }, []);
+
+  useEffect(() => {
+    const isStandalone = () => {
+      try {
+        return window.matchMedia?.('(display-mode: standalone)')?.matches || window.navigator?.standalone === true;
+      } catch {
+        return false;
+      }
+    };
+
+    const isIOS = () => {
+      const ua = String(window.navigator?.userAgent || '').toLowerCase();
+      const iOSDevice = /iphone|ipad|ipod/.test(ua);
+      const iPadOS13Plus = /macintosh/.test(ua) && 'ontouchend' in document;
+      return iOSDevice || iPadOS13Plus;
+    };
+
+    const updateVisibility = (hasDeferredPrompt = Boolean(deferredInstallPrompt)) => {
+      setShowInstallAppButton(!isStandalone() && (hasDeferredPrompt || isIOS()));
+    };
+
+    const onBeforeInstallPrompt = (event) => {
+      event.preventDefault();
+      setDeferredInstallPrompt(event);
+      updateVisibility(true);
+    };
+
+    const onAppInstalled = () => {
+      setDeferredInstallPrompt(null);
+      setShowInstallAppButton(false);
+    };
+
+    window.addEventListener('beforeinstallprompt', onBeforeInstallPrompt);
+    window.addEventListener('appinstalled', onAppInstalled);
+    updateVisibility();
+
+    return () => {
+      window.removeEventListener('beforeinstallprompt', onBeforeInstallPrompt);
+      window.removeEventListener('appinstalled', onAppInstalled);
+    };
+  }, [deferredInstallPrompt]);
+
+  const handleInstallApp = useCallback(async () => {
+    if (deferredInstallPrompt) {
+      deferredInstallPrompt.prompt();
+      const choice = await deferredInstallPrompt.userChoice.catch(() => null);
+      setDeferredInstallPrompt(null);
+      if (choice?.outcome === 'accepted') {
+        setShowInstallAppButton(false);
+      }
+      return;
+    }
+
+    addToast({
+      type: 'info',
+      title: 'Adicionar à Tela',
+      message: 'No Safari: Compartilhar > Adicionar à Tela de Início.',
+      duration: 6500,
+    });
+  }, [deferredInstallPrompt, addToast]);
   const dismissToast = (id) => setToasts((prev) => prev.filter((t) => t.id !== id));
 
   // LGPD consent state
@@ -2968,6 +3030,8 @@ export default function App() {
           userProfile={userProfile}
           editMode={editMode}
           setEditMode={setEditMode}
+          showInstallAppButton={showInstallAppButton}
+          onInstallApp={handleInstallApp}
         />
         <Suspense fallback={<div style={{ minHeight: '60vh' }} />}>
           {renderPage()}
