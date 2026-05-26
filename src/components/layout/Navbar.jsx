@@ -83,6 +83,9 @@ export function Navbar({ page, prevPage, setPage, nuggets = 0, setModal = () => 
   const isLandingCompact = isLanding && isCompactViewport;
   const isAppCompact = isApp && isCompactViewport;
   const isCompactTopbar = isLandingCompact || isAppCompact;
+  const useImageLogoInHeader = isMobile;
+  const compactDarkLogoSrc = '/logo-dark-theme.jpg';
+  const compactLightLogoSrc = '/logo-light-theme.jpg';
 
   const systemUnreadCount = useMemo(
     () => (systemNotifications || []).filter((n) => !n.read).length,
@@ -209,11 +212,15 @@ export function Navbar({ page, prevPage, setPage, nuggets = 0, setModal = () => 
         {/* Left: Logo */}
         <div style={{ display: 'flex', alignItems: 'center', justifySelf: 'start' }}>
           <div className="logo-general" data-logo="general" style={{ display: 'flex', alignItems: 'center', cursor: 'pointer' }} onClick={() => setPage && setPage('landing')}>
-            {isCompactTopbar ? (
+            {useImageLogoInHeader ? (
               <img
-                src={appLogo}
+                src={theme === 'dark' ? compactDarkLogoSrc : compactLightLogoSrc}
                 alt="DealSifter Match"
                 style={{ height: 34, width: 'auto', display: 'block' }}
+                onError={(e) => {
+                  // Fallback while custom theme logo files are not present in /public.
+                  e.currentTarget.src = appLogo;
+                }}
               />
             ) : (
               <>
