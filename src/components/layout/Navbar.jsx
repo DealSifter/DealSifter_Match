@@ -216,7 +216,7 @@ export function Navbar({ page, prevPage, setPage, nuggets = 0, setModal = () => 
           <div className="logo-general" data-logo="general" style={{ display: 'flex', alignItems: 'center', cursor: 'pointer' }} onClick={() => setPage && setPage('landing')}>
             {useImageLogoInHeader ? (
               <img
-                src={theme === 'dark' ? compactDarkLogoSrc : compactLightLogoSrc}
+                src={isLanding ? compactLightLogoSrc : (theme === 'dark' ? compactDarkLogoSrc : compactLightLogoSrc)}
                 alt="DealSifter Match"
                 style={{ height: 34, width: 'auto', display: 'block' }}
                 onError={(e) => {
@@ -408,7 +408,7 @@ export function Navbar({ page, prevPage, setPage, nuggets = 0, setModal = () => 
                       {showInstallAppButton ? (
                         <button onClick={onInstallApp} style={{ width: '100%', display: 'flex', alignItems: 'center', gap: 10, borderRadius: 10, border: `1px solid ${C.border}`, background: 'transparent', color: C.t2, fontWeight: 700, fontSize: 14, padding: '10px 12px', cursor: 'pointer' }}>
                           <Icon name="download" size={15} color={C.t2} />
-                          <span>Adicionar à Tela</span>
+                          <span>{t.installToHome || 'Add to Home Screen'}</span>
                         </button>
                       ) : null}
 
@@ -566,7 +566,7 @@ export function Navbar({ page, prevPage, setPage, nuggets = 0, setModal = () => 
                       {showInstallAppButton ? (
                         <button onClick={onInstallApp} style={{ width: '100%', display: 'flex', alignItems: 'center', gap: 10, borderRadius: 10, border: `1px solid ${C.border}`, background: 'transparent', color: C.t2, fontWeight: 700, fontSize: 14, padding: '10px 12px', cursor: 'pointer' }}>
                           <Icon name="download" size={15} color={C.t2} />
-                          <span>Adicionar à Tela</span>
+                          <span>{t.installToHome || 'Add to Home Screen'}</span>
                         </button>
                       ) : null}
                       <button onClick={() => openLandingAuth('login')} style={{ width: '100%', display: 'flex', alignItems: 'center', gap: 10, borderRadius: 10, border: `1px solid ${C.border}`, background: 'transparent', color: C.t2, fontWeight: 700, fontSize: 14, padding: '10px 12px', cursor: 'pointer' }}>
