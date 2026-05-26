@@ -278,16 +278,6 @@ export function Navbar({ page, prevPage, setPage, nuggets = 0, setModal = () => 
           {isApp ? (
             isAppCompact ? (
               <>
-                {showInstallAppButton ? (
-                  <button
-                    onClick={onInstallApp}
-                    title="Adicionar à Tela"
-                    aria-label="Adicionar à Tela"
-                    style={{ width: 34, height: 34, borderRadius: 8, border: `1px solid ${C.border}`, background: C.card, display: 'inline-flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer' }}
-                  >
-                    <Icon name="download" size={15} color={C.t2} />
-                  </button>
-                ) : null}
                 <NuggetBadge count={nuggets} onClick={() => setModal && setModal('store')} />
                 <button
                   onClick={() => setAppMenuOpen((value) => !value)}
@@ -415,6 +405,13 @@ export function Navbar({ page, prevPage, setPage, nuggets = 0, setModal = () => 
                         <span>{theme === 'dark' ? (t.themeToLight || 'Enable light mode') : (t.themeToDark || 'Enable dark mode')}</span>
                       </button>
 
+                      {showInstallAppButton ? (
+                        <button onClick={onInstallApp} style={{ width: '100%', display: 'flex', alignItems: 'center', gap: 10, borderRadius: 10, border: `1px solid ${C.border}`, background: 'transparent', color: C.t2, fontWeight: 700, fontSize: 14, padding: '10px 12px', cursor: 'pointer' }}>
+                          <Icon name="download" size={15} color={C.t2} />
+                          <span>Adicionar à Tela</span>
+                        </button>
+                      ) : null}
+
                       <button onClick={openAppSettings} style={{ width: '100%', display: 'flex', alignItems: 'center', gap: 10, borderRadius: 10, border: `1px solid ${C.border}`, background: 'transparent', color: C.t2, fontWeight: 700, fontSize: 14, padding: '10px 12px', cursor: 'pointer' }}>
                         <Icon name="user" size={15} color={C.t2} />
                         <span>{t.editProfile || 'Edit profile'}</span>
@@ -532,16 +529,6 @@ export function Navbar({ page, prevPage, setPage, nuggets = 0, setModal = () => 
           ) : (
             isLandingCompact ? (
               <>
-                {showInstallAppButton ? (
-                  <button
-                    onClick={onInstallApp}
-                    title="Adicionar à Tela"
-                    aria-label="Adicionar à Tela"
-                    style={{ width: 34, height: 34, borderRadius: 8, border: `1px solid ${C.border}`, background: C.card, display: 'inline-flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer' }}
-                  >
-                    <Icon name="download" size={15} color={C.t2} />
-                  </button>
-                ) : null}
                 <LangPicker compact />
                 <button
                   onClick={() => setLandingMenuOpen((value) => !value)}
@@ -576,6 +563,12 @@ export function Navbar({ page, prevPage, setPage, nuggets = 0, setModal = () => 
                         <Icon name="creditCard" size={15} color={C.t2} />
                         <span>{t.pricing}</span>
                       </button>
+                      {showInstallAppButton ? (
+                        <button onClick={onInstallApp} style={{ width: '100%', display: 'flex', alignItems: 'center', gap: 10, borderRadius: 10, border: `1px solid ${C.border}`, background: 'transparent', color: C.t2, fontWeight: 700, fontSize: 14, padding: '10px 12px', cursor: 'pointer' }}>
+                          <Icon name="download" size={15} color={C.t2} />
+                          <span>Adicionar à Tela</span>
+                        </button>
+                      ) : null}
                       <button onClick={() => openLandingAuth('login')} style={{ width: '100%', display: 'flex', alignItems: 'center', gap: 10, borderRadius: 10, border: `1px solid ${C.border}`, background: 'transparent', color: C.t2, fontWeight: 700, fontSize: 14, padding: '10px 12px', cursor: 'pointer' }}>
                         <Icon name="user" size={15} color={C.t2} />
                         <span>{t.signIn}</span>
