@@ -5,6 +5,7 @@ import { useLang, useT, setLang } from '../../i18n/translations';
 import { DealSifterLogo } from '../ui/DealSifterLogo';
 import { NuggetBadge } from '../ui/NuggetBadge';
 import { Icon } from '../ui/Icon';
+import appLogo from '../../assets/logo.png';
 
 const LANGS = [
   { code: 'en-US', label: 'EN' },
@@ -207,36 +208,44 @@ export function Navbar({ page, prevPage, setPage, nuggets = 0, setModal = () => 
 
         {/* Left: Logo */}
         <div style={{ display: 'flex', alignItems: 'center', justifySelf: 'start' }}>
-            <div className="logo-general" data-logo="general" style={{ display: 'flex', alignItems: 'center', gap: 5, cursor: 'pointer' }} onClick={() => setPage && setPage('landing')}>
-            <div className="logo-image" style={{ display: 'inline-block' }}>
-              <DealSifterLogo size={isCompactTopbar ? 34 : 42} />
-            </div>
-            <div style={{ display: 'flex', flexDirection: 'column', lineHeight: 1 }}>
-              <div className="logo-text" style={{ position: 'relative', display: 'inline-block' }}>
-                <span className="logo-text-main" style={{
-                  fontFamily: "'Eras Bold ITC', 'Eras ITC', sans-serif",
-                  fontWeight: 800,
-                  fontSize: isCompactTopbar ? 22 : 28.71,
-                  color: C.t1,
-                  letterSpacing: '-0.5px'
-                }}>
-                  <span className="logo-text-deal">Deal</span><span className="logo-text-sifter" style={{ color: C.accent }}>Sifter</span>
-                </span>
-                {!isLandingCompact ? (
-                  <span className="logo-match" aria-hidden="true" style={{
-                    position: 'absolute',
-                    top: -5,
-                    right: -25,
-                    fontSize: 9.6,
-                    fontStyle: 'italic',
-                    color: C.gold,
-                    textTransform: 'uppercase',
-                    fontWeight: 700,
-                    textShadow: '0.5px 0.5px 1px rgba(0,0,0,0.9)'
-                  }}>Match</span>
-                ) : null}
-              </div>
-            </div>
+          <div className="logo-general" data-logo="general" style={{ display: 'flex', alignItems: 'center', gap: 5, cursor: 'pointer' }} onClick={() => setPage && setPage('landing')}>
+            {isCompactTopbar ? (
+              <img
+                src={appLogo}
+                alt="DealSifter Match"
+                style={{ height: 34, width: 'auto', display: 'block' }}
+              />
+            ) : (
+              <>
+                <div className="logo-image" style={{ display: 'inline-block' }}>
+                  <DealSifterLogo size={42} />
+                </div>
+                <div style={{ display: 'flex', flexDirection: 'column', lineHeight: 1 }}>
+                  <div className="logo-text" style={{ position: 'relative', display: 'inline-block' }}>
+                    <span className="logo-text-main" style={{
+                      fontFamily: "'Eras Bold ITC', 'Eras ITC', sans-serif",
+                      fontWeight: 800,
+                      fontSize: 28.71,
+                      color: C.t1,
+                      letterSpacing: '-0.5px'
+                    }}>
+                      <span className="logo-text-deal">Deal</span><span className="logo-text-sifter" style={{ color: C.accent }}>Sifter</span>
+                    </span>
+                    <span className="logo-match" aria-hidden="true" style={{
+                      position: 'absolute',
+                      top: -5,
+                      right: -25,
+                      fontSize: 9.6,
+                      fontStyle: 'italic',
+                      color: C.gold,
+                      textTransform: 'uppercase',
+                      fontWeight: 700,
+                      textShadow: '0.5px 0.5px 1px rgba(0,0,0,0.9)'
+                    }}>Match</span>
+                  </div>
+                </div>
+              </>
+            )}
           </div>
         </div>
 
