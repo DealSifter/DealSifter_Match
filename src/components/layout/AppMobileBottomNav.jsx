@@ -249,21 +249,48 @@ export function AppMobileBottomNav({ page, setPage, collapsed = false, onCollaps
                     style={{
                       width: navIconSize + 8,
                       height: navIconSize + 8,
-                      display: 'inline-block',
-                      backgroundColor: feedIconColor,
-                      WebkitMaskImage: `url(${feedMatchIcon})`,
-                      WebkitMaskRepeat: 'no-repeat',
-                      WebkitMaskSize: 'contain',
-                      WebkitMaskPosition: 'center',
-                      maskImage: `url(${feedMatchIcon})`,
-                      maskRepeat: 'no-repeat',
-                      maskSize: 'contain',
-                      maskPosition: 'center',
+                      display: 'inline-flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      position: 'relative',
                       filter: feedIconGlow,
                       opacity: isActive ? 1 : 0.95,
                       transition: 'filter .18s ease, opacity .18s ease, background-color .18s ease',
                     }}
-                  />
+                  >
+                    <span
+                      style={{
+                        position: 'absolute',
+                        inset: 0,
+                        backgroundColor: feedIconColor,
+                        WebkitMaskImage: `url(${feedMatchIcon})`,
+                        WebkitMaskRepeat: 'no-repeat',
+                        WebkitMaskSize: 'contain',
+                        WebkitMaskPosition: 'center',
+                        maskImage: `url(${feedMatchIcon})`,
+                        maskRepeat: 'no-repeat',
+                        maskSize: 'contain',
+                        maskPosition: 'center',
+                      }}
+                    />
+                    <span
+                      style={{
+                        position: 'absolute',
+                        inset: 0,
+                        transform: 'translate(0.45px, 0)',
+                        backgroundColor: feedIconColor,
+                        opacity: 0.9,
+                        WebkitMaskImage: `url(${feedMatchIcon})`,
+                        WebkitMaskRepeat: 'no-repeat',
+                        WebkitMaskSize: 'contain',
+                        WebkitMaskPosition: 'center',
+                        maskImage: `url(${feedMatchIcon})`,
+                        maskRepeat: 'no-repeat',
+                        maskSize: 'contain',
+                        maskPosition: 'center',
+                      }}
+                    />
+                  </span>
                 ) : (
                   <Icon
                     name={item.icon}
