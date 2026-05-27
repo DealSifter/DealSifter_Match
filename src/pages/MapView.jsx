@@ -2422,6 +2422,9 @@ export function MapView({
           display: grid;
           gap: 8px;
           color: ${C.t1};
+          font-family: inherit;
+          -webkit-font-smoothing: antialiased;
+          text-rendering: optimizeLegibility;
         }
         .ds-map-popup-head {
           display: flex;
@@ -2444,10 +2447,12 @@ export function MapView({
           object-fit: cover;
         }
         .ds-map-popup-title {
-          font-size: 14px;
+          font-size: 12px;
           font-weight: 800;
+          font-family: "Arial Narrow", "Helvetica Neue", Arial, sans-serif;
+          letter-spacing: 0.1px;
           line-height: 1.2;
-          color: ${C.t1};
+          color: #1f2937;
           display: -webkit-box;
           -webkit-line-clamp: 2;
           -webkit-box-orient: vertical;
@@ -2467,8 +2472,9 @@ export function MapView({
         .ds-map-popup-meta {
           margin-top: 2px;
           font-size: 12px;
-          color: ${C.t1};
+          color: #111827;
           font-weight: 700;
+          letter-spacing: 0.1px;
         }
         .ds-map-popup-cta {
           margin-top: 2px;
@@ -2589,7 +2595,7 @@ export function MapView({
             </div>
           </div>
 
-          <div className="map-panel-tabs" role="tablist" aria-label="Map panel sections">
+          <div className="map-panel-tabs" role="tablist" aria-label={tMap.panelSectionsLabel || 'Map panel sections'}>
             <button
               className={`map-panel-tab ${panelTab === 'filters' ? 'active' : ''}`}
               role="tab"
@@ -2669,7 +2675,8 @@ export function MapView({
                       fontSize: 11,
                       lineHeight: 1.35,
                     }}>
-                      Provedor indisponível. Exibindo contingência: {BASE_TILE_FALLBACK_CHAIN[baseTileFallbackIndex]?.label || 'OSM'}.
+                      {(tMap.providerFallbackNotice || 'Provider unavailable. Showing fallback: {provider}.')
+                        .replace('{provider}', BASE_TILE_FALLBACK_CHAIN[baseTileFallbackIndex]?.label || 'OSM')}
                     </div>
                   )}
                 <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
@@ -2712,7 +2719,7 @@ export function MapView({
                         background: C.alpha(C.red, 0.10), border: `1px solid ${C.alpha(C.red, 0.35)}`,
                         color: C.red, fontSize: 11, lineHeight: 1.45,
                       }}>
-                        Camada FEMA indisponivel nesta rede/regiao. Mantendo apenas imagem + ruas (sem zonas regulatórias).
+                        {tMap.femaUnavailableNotice || 'FEMA layer unavailable on this network/region. Keeping imagery + streets only.'}
                         <div style={{ marginTop: 6, display: 'flex', gap: 6, flexWrap: 'wrap' }}>
                           <button className="map-chip" onClick={retryFemaOverlay}>Tentar novamente</button>
                         </div>
@@ -2947,7 +2954,7 @@ export function MapView({
                       <path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10" />
                       <path d="M20.49 15a9 9 0 0 1-14.85 3.36L1 14" />
                     </svg>
-                    Plotando localização...
+                    {tMap.plottingLocation || 'Plotting location...'}
                   </div>
                   {noPinProperties.map((prop) => (
                     <div
@@ -2964,7 +2971,7 @@ export function MapView({
                         strokeWidth="3"
                         strokeLinecap="round"
                         strokeLinejoin="round"
-                        aria-label="Localizando"
+                        aria-label={tMap.locating || 'Locating'}
                       >
                         <path d="M23 4v6h-6" />
                         <path d="M1 20v-6h6" />
@@ -2980,10 +2987,10 @@ export function MapView({
                           />
                           <div style={{ minWidth: 0 }}>
                             <div style={{ color: C.t1, fontWeight: 700, fontSize: 13, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                              {prop.address || 'Endereço não informado'}
+                              {prop.address || (tMap.addressNotInformed || 'Address not provided')}
                             </div>
                             <div style={{ color: C.t2, fontSize: 12, marginTop: 4, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                              {`${prop.type || 'Imóvel'} · ${prop.city || ''}`}
+                              {`${prop.type || tMap.itemTypeDeal || 'Deal'} · ${prop.city || ''}`}
                             </div>
                           </div>
                         </div>
@@ -2992,13 +2999,13 @@ export function MapView({
                       </div>
                       <div style={{ marginTop: 8, display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 8 }}>
                         <span style={{ color: C.t2, fontSize: 11 }}>
-                          Buscando endereço exato...
+                          {tMap.searchingExactAddress || 'Searching exact address...'}
                         </span>
                         <button
                           className="map-chip"
                           onClick={() => startManualPinPlacement(prop)}
                         >
-                          Definir pin no mapa
+                          {tMap.setPinOnMap || 'Set pin on map'}
                         </button>
                       </div>
                     </div>
@@ -3183,9 +3190,9 @@ export function MapView({
                             .replace('{item}', getPortfolioCount(payload.id) === 1 ? tMatches.portfolioItemOne : tMatches.portfolioItemOther)}
                         </div>
                         <div style={{ marginTop: 1, fontSize: 12, display: 'flex', alignItems: 'center', gap: 6, color: C.t2 }}>
-                          <span>{payload.deals} deals</span>
+                          <span>{payload.deals} {tMap.deals || 'deals'}</span>
                           {isUnlockedId(payload.id) && (
-                            <span style={{ color: '#75ba75', fontWeight: 600, fontSize: 11 }}>Unlocked</span>
+                            <span style={{ color: '#75ba75', fontWeight: 600, fontSize: 11 }}>{tMatches.unlockedLabel || 'Unlocked'}</span>
                           )}
                         </div>
                         <div className="ds-map-popup-cta">{`${tMatches.viewInFeed} ->`}</div>
@@ -3216,7 +3223,7 @@ export function MapView({
                         </div>
                         {isOwnProperty && (
                           <div style={{ marginTop: 6, fontSize: 11, color: C.t3, textAlign: 'center', borderTop: '1px solid var(--ui-border)', paddingTop: 5 }}>
-                            ✥ Arraste para reposicionar
+                            ✥ {tMap.dragToReposition || 'Drag to reposition'}
                           </div>
                         )}
                       </div>

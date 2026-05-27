@@ -9,7 +9,7 @@ import matchesTaskbarIcon from '../../assets/taskbar-matches-icon.png';
 
 const HIDDEN_PAGES = new Set(['landing', 'terms', 'privacy', 'admin']);
 
-export function AppMobileBottomNav({ page, setPage, collapsed = false, onCollapsedChange }) {
+export function AppMobileBottomNav({ page, setPage, collapsed = false, onCollapsedChange, needsPrimaryProfileAttention = false }) {
   const TABLET_PORTRAIT_QUERY = '(min-width: 768px) and (max-width: 1080px) and (orientation: portrait)';
   const [isMobile, setIsMobile] = useState(() => {
     if (typeof window === 'undefined' || typeof window.matchMedia !== 'function') return false;
@@ -165,7 +165,7 @@ export function AppMobileBottomNav({ page, setPage, collapsed = false, onCollaps
   return (
     <nav
       ref={navRef}
-      aria-label="App mobile navigation"
+      aria-label={t.mobileNavLabel || 'App mobile navigation'}
       style={{
         position: 'fixed',
         left: 0,
@@ -179,9 +179,16 @@ export function AppMobileBottomNav({ page, setPage, collapsed = false, onCollaps
         transition: isDraggingHandle ? 'none' : 'transform .22s ease',
       }}
     >
+      <style>{`
+        @keyframes dsNavPulseRed {
+          0% { box-shadow: 0 0 0 0 rgba(220, 38, 38, 0.40); }
+          70% { box-shadow: 0 0 0 9px rgba(220, 38, 38, 0.0); }
+          100% { box-shadow: 0 0 0 0 rgba(220, 38, 38, 0.0); }
+        }
+      `}</style>
       <button
         type="button"
-        aria-label={collapsed ? 'Expandir módulos do rodapé' : 'Ocultar módulos do rodapé'}
+        aria-label={collapsed ? (t.expandFooterModules || 'Expand footer modules') : (t.collapseFooterModules || 'Collapse footer modules')}
         onClick={handleGripClick}
         onPointerDown={handlePointerDown}
         onPointerMove={handlePointerMove}
@@ -203,7 +210,7 @@ export function AppMobileBottomNav({ page, setPage, collapsed = false, onCollaps
         <span style={{ width: handleWidth, height: 4, borderRadius: 999, background: C.alpha(C.t3, 0.65) }} />
         {!collapsed ? (
           <span style={{ fontSize: isTabletCompactOnly ? 10 : 9, fontWeight: 700, color: C.t3, lineHeight: 1 }}>
-            arraste para baixo
+            {t.dragDownHint || 'drag down'}
           </span>
         ) : null}
       </button>
@@ -211,8 +218,11 @@ export function AppMobileBottomNav({ page, setPage, collapsed = false, onCollaps
         {navItems.map((item) => {
           const isActive = page === item.id;
           const isPressed = pressedItemId === item.id;
-          const iconColor = isActive ? C.accent : C.t2;
-          const iconGlow = isActive ? neonGlow : 'none';
+          const isOnboardingAttention = item.id === 'onboarding' && needsPrimaryProfileAttention;
+          const iconColor = isOnboardingAttention ? C.danger : (isActive ? C.accent : C.t2);
+          const iconGlow = isOnboardingAttention
+            ? 'drop-shadow(0 0 6px rgba(220,38,38,0.95)) drop-shadow(0 0 12px rgba(220,38,38,0.72))'
+            : (isActive ? neonGlow : 'none');
           const iconImage = item.id === 'dashboard'
             ? feedMatchIcon
             : item.id === 'onboarding'
@@ -244,8 +254,14 @@ export function AppMobileBottomNav({ page, setPage, collapsed = false, onCollaps
               aria-current={isActive ? 'page' : undefined}
               style={{
                 border: 'none',
-                borderTop: isActive ? `2px solid ${C.accent}` : '2px solid transparent',
-                background: isActive
+                borderTop: isOnboardingAttention
+                  ? `2px solid ${C.danger}`
+                  : isActive
+                    ? `2px solid ${C.accent}`
+                    : '2px solid transparent',
+                background: isOnboardingAttention
+                  ? C.alpha(C.danger, isPressed ? 0.18 : 0.12)
+                  : isActive
                   ? C.alpha(C.accent, isPressed ? 0.14 : 0.08)
                   : isPressed
                     ? C.alpha(C.t3, 0.1)
@@ -258,9 +274,10 @@ export function AppMobileBottomNav({ page, setPage, collapsed = false, onCollaps
                 justifyContent: 'center',
                 gap: 4,
                 fontSize: navLabelSize,
-                fontWeight: isActive ? 700 : 600,
+                fontWeight: isOnboardingAttention ? 800 : (isActive ? 700 : 600),
                 transform: isPressed ? 'translateY(1px)' : 'translateY(0)',
                 transition: 'all .12s ease',
+                animation: isOnboardingAttention ? 'dsNavPulseRed 1.15s infinite' : 'none',
               }}
             >
               <span

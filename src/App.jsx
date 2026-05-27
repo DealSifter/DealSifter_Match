@@ -2889,6 +2889,17 @@ export default function App() {
 
   const dashboardHydrationReady = profileHydrationReady && portfolioHydrationReady;
   const dashboardHydrationSyncing = isHydratingProfiles || isHydratingPortfolio;
+  const hasPrimaryProfileRegistered = useMemo(() => {
+    const hasValue = (value) => String(value ?? '').trim().length > 0;
+    return (
+      hasValue(personalProfile?.fullName)
+      || hasValue(personalProfile?.primaryPhone)
+      || hasValue(personalProfile?.email)
+      || hasValue(professionalProfile?.fullNameA)
+      || hasValue(professionalProfile?.primaryPhoneA)
+      || hasValue(professionalProfile?.emailA)
+    );
+  }, [personalProfile, professionalProfile]);
 
   const renderPageContent = (pageKey = page) => {
     switch (pageKey) {
@@ -3084,6 +3095,7 @@ export default function App() {
           setPage={setPage}
           collapsed={mobileBottomNavCollapsed}
           onCollapsedChange={setMobileBottomNavCollapsed}
+          needsPrimaryProfileAttention={!hasPrimaryProfileRegistered}
         />
 
         {/* REMOVIDO: imagens de processamento para evitar bug visual de imagem gigante no feed */}
