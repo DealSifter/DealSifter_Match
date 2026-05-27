@@ -2,13 +2,11 @@ import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { C } from '../../theme/colors';
 import { useT } from '../../i18n/translations';
 import { Icon } from '../ui/Icon';
-import { useTheme } from '../../theme/hooks';
 import feedMatchIcon from '../../assets/feed-match-icon.png';
 
 const HIDDEN_PAGES = new Set(['landing', 'terms', 'privacy', 'admin']);
 
 export function AppMobileBottomNav({ page, setPage, collapsed = false, onCollapsedChange }) {
-  const { theme } = useTheme();
   const TABLET_PORTRAIT_QUERY = '(min-width: 768px) and (max-width: 1080px) and (orientation: portrait)';
   const [isMobile, setIsMobile] = useState(() => {
     if (typeof window === 'undefined' || typeof window.matchMedia !== 'function') return false;
@@ -207,11 +205,10 @@ export function AppMobileBottomNav({ page, setPage, collapsed = false, onCollaps
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', height: navGridHeight }}>
         {navItems.map((item) => {
           const isActive = page === item.id;
-          const feedIconFilter = isActive
-            ? 'brightness(0) saturate(100%) invert(72%) sepia(31%) saturate(1115%) hue-rotate(122deg) brightness(95%) contrast(92%) drop-shadow(0 0 5px rgba(53,202,201,0.95)) drop-shadow(0 0 10px rgba(53,202,201,0.55))'
-            : (theme === 'dark'
-              ? 'brightness(0) saturate(100%) invert(78%) sepia(8%) saturate(242%) hue-rotate(94deg) brightness(94%) contrast(90%)'
-              : 'brightness(0) saturate(100%) invert(28%) sepia(10%) saturate(623%) hue-rotate(173deg) brightness(95%) contrast(90%)');
+          const feedIconColor = isActive ? C.accent : C.t3;
+          const feedIconGlow = isActive
+            ? 'drop-shadow(0 0 6px rgba(53,202,201,0.95)) drop-shadow(0 0 12px rgba(53,202,201,0.8)) drop-shadow(0 0 18px rgba(53,202,201,0.55))'
+            : 'none';
           return (
             <button
               key={item.id}
@@ -247,18 +244,24 @@ export function AppMobileBottomNav({ page, setPage, collapsed = false, onCollaps
                 }}
               >
                 {item.id === 'dashboard' ? (
-                  <img
-                    src={feedMatchIcon}
-                    alt=""
+                  <span
                     aria-hidden="true"
                     style={{
                       width: navIconSize + 8,
                       height: navIconSize + 8,
-                      objectFit: 'contain',
-                      borderRadius: 4,
-                      filter: feedIconFilter,
-                      opacity: isActive ? 1 : 0.9,
-                      transition: 'filter .18s ease, opacity .18s ease',
+                      display: 'inline-block',
+                      backgroundColor: feedIconColor,
+                      WebkitMaskImage: `url(${feedMatchIcon})`,
+                      WebkitMaskRepeat: 'no-repeat',
+                      WebkitMaskSize: 'contain',
+                      WebkitMaskPosition: 'center',
+                      maskImage: `url(${feedMatchIcon})`,
+                      maskRepeat: 'no-repeat',
+                      maskSize: 'contain',
+                      maskPosition: 'center',
+                      filter: feedIconGlow,
+                      opacity: isActive ? 1 : 0.95,
+                      transition: 'filter .18s ease, opacity .18s ease, background-color .18s ease',
                     }}
                   />
                 ) : (
