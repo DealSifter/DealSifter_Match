@@ -146,6 +146,51 @@ function clamp(value, min, max) {
   return Math.min(max, Math.max(min, value));
 }
 
+function spreadCoincidentFeatures(features, offsetDegrees = 0.00045) {
+  const list = Array.isArray(features) ? features : [];
+  if (!list.length) return [];
+
+  const byCoord = new Map();
+  list.forEach((feature) => {
+    const [lng, lat] = feature?.geometry?.coordinates || [];
+    if (!Number.isFinite(lng) || !Number.isFinite(lat)) return;
+    const key = `${lng.toFixed(6)}|${lat.toFixed(6)}`;
+    const bucket = byCoord.get(key) || [];
+    bucket.push(feature);
+    byCoord.set(key, bucket);
+  });
+
+  const expanded = [];
+  byCoord.forEach((bucket) => {
+    if (bucket.length <= 1) {
+      expanded.push(bucket[0]);
+      return;
+    }
+
+    const total = bucket.length;
+    bucket.forEach((feature, index) => {
+      const ring = Math.floor(index / 8);
+      const posInRing = index % 8;
+      const perRing = Math.min(8, total);
+      const angle = (Math.PI * 2 * posInRing) / perRing;
+      const radius = offsetDegrees * (1 + ring * 0.9);
+      const [lng, lat] = feature.geometry.coordinates;
+      expanded.push({
+        ...feature,
+        geometry: {
+          ...feature.geometry,
+          coordinates: [
+            lng + (Math.cos(angle) * radius),
+            lat + (Math.sin(angle) * radius),
+          ],
+        },
+      });
+    });
+  });
+
+  return expanded;
+}
+
 function normalizeStreetText(value) {
   return String(value || '')
     .toLowerCase()
@@ -1898,10 +1943,19 @@ export function MapView({
     return clusterIndex.getClusters(viewport.bounds, roundedZoom);
   }, [clusterIndex, filteredPoints, viewport]);
 
+  const unclusteredSpreadPoints = useMemo(() => {
+    const roundedZoom = Math.round(viewport?.zoom || DEFAULT_ZOOM);
+    const zoomOffset = roundedZoom >= 14 ? 0.00028 : 0.00045;
+    return spreadCoincidentFeatures(filteredPoints, zoomOffset);
+  }, [filteredPoints, viewport?.zoom]);
+
   // While a card is selected, render unclustered points so the dedicated pin is always visible.
   const renderedFeatures = useMemo(() => {
-    return selectedCardId != null ? filteredPoints : clusters;
-  }, [selectedCardId, filteredPoints, clusters]);
+    if (selectedCardId != null) return unclusteredSpreadPoints;
+    const roundedZoom = Math.round(viewport?.zoom || DEFAULT_ZOOM);
+    if (roundedZoom >= CLUSTER_BREAKOUT_ZOOM) return unclusteredSpreadPoints;
+    return clusters;
+  }, [selectedCardId, unclusteredSpreadPoints, clusters, viewport?.zoom]);
 
   const visibleItems = useMemo(() => {
     // Se há uma seleção de cluster, mostra apenas os leaves desse cluster
@@ -1925,9 +1979,15 @@ export function MapView({
 
     // On closer zoom (second click feel), break out to individual pins immediately.
     if (shouldBreakoutToPins) {
-      const [lng, lat] = clusterFeature.geometry.coordinates;
+      const spreadLeaves = spreadCoincidentFeatures(rawLeaves, 0.00045);
+      const spreadBounds = buildBoundsFromPoints(spreadLeaves, 'city');
       mapRef.current?.stop();
-      mapRef.current?.flyTo([lat, lng], CLUSTER_BREAKOUT_ZOOM + 1, FLY_OPTIONS);
+      if (spreadBounds) {
+        mapRef.current?.flyToBounds(spreadBounds, { padding: [36, 36], maxZoom: CLUSTER_BREAKOUT_ZOOM + 1, ...FLY_OPTIONS });
+      } else {
+        const [lng, lat] = clusterFeature.geometry.coordinates;
+        mapRef.current?.flyTo([lat, lng], CLUSTER_BREAKOUT_ZOOM + 1, FLY_OPTIONS);
+      }
       return;
     }
 
