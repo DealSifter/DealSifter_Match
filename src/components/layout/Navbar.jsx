@@ -60,7 +60,72 @@ function NavBtn({ label, onClick, active, icon, filled, minimal }) {
   );
 }
 
-export function Navbar({ page, prevPage, setPage, nuggets = 0, setModal = () => {}, chatNotifications = [], systemNotifications = [], setSystemNotifications = () => {}, onOpenChatNotification = () => {}, onOpenAuthModal = () => {}, onOpenSettings = () => {}, onOpenAdmin = () => {}, onLogoutUser = () => {}, isAdmin = false, showInstallAppButton = false, onInstallApp = () => {} }) {
+function SwipeableNotificationItem({
+  item,
+  children,
+  onClick,
+  onSwipeRight,
+  onSwipeLeft,
+  disabled = false,
+}) {
+  const [dragX, setDragX] = useState(0);
+  const dragRef = useRef({ active: false, startX: 0, pointerId: null, moved: false });
+
+  const reset = () => {
+    dragRef.current.active = false;
+    dragRef.current.pointerId = null;
+    dragRef.current.moved = false;
+    setDragX(0);
+  };
+
+  const onPointerDown = (e) => {
+    if (disabled) return;
+    dragRef.current.active = true;
+    dragRef.current.startX = e.clientX;
+    dragRef.current.pointerId = e.pointerId;
+    dragRef.current.moved = false;
+    e.currentTarget.setPointerCapture?.(e.pointerId);
+  };
+
+  const onPointerMove = (e) => {
+    if (disabled || !dragRef.current.active) return;
+    if (dragRef.current.pointerId !== null && e.pointerId !== dragRef.current.pointerId) return;
+    const dx = e.clientX - dragRef.current.startX;
+    if (Math.abs(dx) > 6) dragRef.current.moved = true;
+    setDragX(Math.max(-120, Math.min(120, dx)));
+  };
+
+  const onPointerEnd = (e) => {
+    if (disabled || !dragRef.current.active) return;
+    if (dragRef.current.pointerId !== null && e.pointerId !== dragRef.current.pointerId) return;
+    const dx = e.clientX - dragRef.current.startX;
+    if (dx >= 72) onSwipeRight?.(item);
+    else if (dx <= -72) onSwipeLeft?.(item);
+    reset();
+  };
+
+  return (
+    <div
+      onPointerDown={onPointerDown}
+      onPointerMove={onPointerMove}
+      onPointerUp={onPointerEnd}
+      onPointerCancel={reset}
+      onClick={() => {
+        if (disabled) return;
+        if (dragRef.current.moved) return;
+        onClick?.(item);
+      }}
+      style={{
+        transform: `translateX(${dragX}px)`,
+        transition: dragRef.current.active ? 'none' : 'transform .14s ease',
+      }}
+    >
+      {children}
+    </div>
+  );
+}
+
+export function Navbar({ page, prevPage, setPage, nuggets = 0, setModal = () => {}, chatNotifications = [], systemNotifications = [], setSystemNotifications = () => {}, onOpenChatNotification = () => {}, onMarkChatNotificationRead = () => {}, onOpenAuthModal = () => {}, onOpenSettings = () => {}, onOpenAdmin = () => {}, onLogoutUser = () => {}, isAdmin = false, showInstallAppButton = false, onInstallApp = () => {} }) {
   const TABLET_PORTRAIT_QUERY = '(min-width: 768px) and (max-width: 1080px) and (orientation: portrait)';
   const isApp = page !== 'landing';
   const isLanding = page === 'landing';
@@ -80,6 +145,18 @@ export function Navbar({ page, prevPage, setPage, nuggets = 0, setModal = () => 
   const [landingMenuOpen, setLandingMenuOpen] = useState(false);
   const [appMenuOpen, setAppMenuOpen] = useState(false);
   const [appNotifOpen, setAppNotifOpen] = useState(false);
+  const [deferredChatIds, setDeferredChatIds] = useState(() => {
+    try {
+      const saved = JSON.parse(localStorage.getItem('ds_notif_deferred_chat') || '[]');
+      return Array.isArray(saved) ? saved : [];
+    } catch { return []; }
+  });
+  const [deferredSystemIds, setDeferredSystemIds] = useState(() => {
+    try {
+      const saved = JSON.parse(localStorage.getItem('ds_notif_deferred_system') || '[]');
+      return Array.isArray(saved) ? saved : [];
+    } catch { return []; }
+  });
   const notifRef = useRef(null);
   const isCompactViewport = isMobile || isTabletPortrait;
   const isLandingCompact = isLanding && isCompactViewport;
@@ -94,6 +171,32 @@ export function Navbar({ page, prevPage, setPage, nuggets = 0, setModal = () => 
     [systemNotifications],
   );
   const consolidatedCount = (chatNotifications?.length || 0) + systemUnreadCount;
+  const visibleChatNotifications = useMemo(
+    () => (chatNotifications || []).filter((n) => !deferredChatIds.includes(String(n.id))),
+    [chatNotifications, deferredChatIds],
+  );
+  const visibleSystemNotifications = useMemo(
+    () => (systemNotifications || []).filter((n) => !n.read && !deferredSystemIds.includes(String(n.id))),
+    [systemNotifications, deferredSystemIds],
+  );
+
+  useEffect(() => {
+    try { localStorage.setItem('ds_notif_deferred_chat', JSON.stringify(deferredChatIds)); } catch { /* noop */ }
+  }, [deferredChatIds]);
+
+  useEffect(() => {
+    try { localStorage.setItem('ds_notif_deferred_system', JSON.stringify(deferredSystemIds)); } catch { /* noop */ }
+  }, [deferredSystemIds]);
+
+  useEffect(() => {
+    const valid = new Set((chatNotifications || []).map((n) => String(n.id)));
+    setDeferredChatIds((prev) => prev.filter((id) => valid.has(id)));
+  }, [chatNotifications]);
+
+  useEffect(() => {
+    const valid = new Set((systemNotifications || []).filter((n) => !n.read).map((n) => String(n.id)));
+    setDeferredSystemIds((prev) => prev.filter((id) => valid.has(id)));
+  }, [systemNotifications]);
 
   useEffect(() => {
     const onClickOutside = (e) => {
@@ -161,6 +264,35 @@ export function Navbar({ page, prevPage, setPage, nuggets = 0, setModal = () => 
 
   const markSystemAsRead = () => {
     setSystemNotifications((prev) => (prev || []).map((n) => ({ ...n, read: true })));
+    setDeferredSystemIds([]);
+  };
+
+  const deferChatNotification = (item) => {
+    const id = String(item?.id || '');
+    if (!id) return;
+    setDeferredChatIds((prev) => (prev.includes(id) ? prev : [...prev, id]));
+  };
+
+  const deferSystemNotification = (item) => {
+    const id = String(item?.id || '');
+    if (!id) return;
+    setDeferredSystemIds((prev) => (prev.includes(id) ? prev : [...prev, id]));
+  };
+
+  const markChatNotificationRead = (item) => {
+    if (!item?.ownerId) return;
+    onMarkChatNotificationRead(item);
+    const id = String(item?.id || '');
+    if (id) setDeferredChatIds((prev) => prev.filter((x) => x !== id));
+  };
+
+  const markSystemNotificationRead = (item) => {
+    const id = String(item?.id || '');
+    if (!id) return;
+    setSystemNotifications((prev) => (prev || []).map((n) => (
+      String(n.id) === id ? { ...n, read: true } : n
+    )));
+    setDeferredSystemIds((prev) => prev.filter((x) => x !== id));
   };
 
   const openLandingAuth = (tab) => {
@@ -198,6 +330,8 @@ export function Navbar({ page, prevPage, setPage, nuggets = 0, setModal = () => 
   };
 
   const openChatNotificationFromMenu = (item) => {
+    const id = String(item?.id || '');
+    if (id) setDeferredChatIds((prev) => prev.filter((x) => x !== id));
     onOpenChatNotification(item);
     setAppMenuOpen(false);
     setAppNotifOpen(false);
@@ -313,126 +447,150 @@ export function Navbar({ page, prevPage, setPage, nuggets = 0, setModal = () => 
                       aria-label={t.menu || 'Menu'}
                       style={{ position: 'fixed', top: 58, right: 0, bottom: 0, width: 'min(86vw, 340px)', background: C.card, borderLeft: `1px solid ${C.border}`, boxShadow: '-10px 0 24px rgba(15,23,42,0.12)', zIndex: 10006, padding: '16px 14px 22px', display: 'grid', alignContent: 'start', gap: 10, overflowY: 'auto' }}
                     >
-                      <div style={{ fontSize: 11, fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.08em', color: C.t3, marginBottom: 4 }}>
-                        {t.profile || 'Profile'}
-                      </div>
-
-                      <button
-                        onClick={() => setAppNotifOpen((value) => !value)}
-                        style={{ width: '100%', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 10, borderRadius: 10, border: `1px solid ${appNotifOpen ? C.accent : C.border}`, background: appNotifOpen ? C.alpha(C.accent, 0.08) : 'transparent', color: appNotifOpen ? C.accent : C.t2, fontWeight: 700, fontSize: 14, padding: '10px 12px', cursor: 'pointer' }}
-                      >
-                        <span style={{ display: 'inline-flex', alignItems: 'center', gap: 8 }}>
-                          <Icon name="bell" size={15} color={appNotifOpen ? C.accent : C.t2} />
-                          <span>{t.notificationsTitle || 'Notifications'}</span>
-                        </span>
-                        <span style={{ display: 'inline-flex', alignItems: 'center', gap: 8 }}>
-                          {consolidatedCount > 0 ? (
-                            <span style={{ minWidth: 18, height: 18, padding: '0 4px', borderRadius: 999, background: C.danger, color: '#fff', fontSize: 10, fontWeight: 800, display: 'inline-flex', alignItems: 'center', justifyContent: 'center', lineHeight: 1 }}>
-                              {consolidatedCount > 99 ? '99+' : consolidatedCount}
-                            </span>
-                          ) : null}
-                          <Icon name={appNotifOpen ? 'chevUp' : 'chevDown'} size={14} color={appNotifOpen ? C.accent : C.t2} />
-                        </span>
-                      </button>
-
                       {appNotifOpen ? (
-                        <div style={{ border: `1px solid ${C.border}`, borderRadius: 10, background: C.alpha(C.bg, 0.3), overflow: 'hidden' }}>
-                          <div style={{ display: 'flex', gap: 6, padding: 8, borderBottom: `1px solid ${C.border}` }}>
-                            <button onClick={() => setNotifTab('matches')} style={{ flex: 1, border: `1px solid ${notifTab === 'matches' ? C.accent : C.border}`, background: notifTab === 'matches' ? C.alpha(C.accent, 0.1) : 'transparent', color: notifTab === 'matches' ? C.accent : C.t2, borderRadius: 8, padding: '6px 8px', fontSize: 11, fontWeight: 700, cursor: 'pointer' }}>
+                        <>
+                          <button
+                            onClick={() => setAppNotifOpen(false)}
+                            style={{ width: '100%', display: 'flex', alignItems: 'center', gap: 8, borderRadius: 10, border: `1px solid ${C.border}`, background: 'transparent', color: C.t2, fontWeight: 700, fontSize: 14, padding: '10px 12px', cursor: 'pointer' }}
+                          >
+                            <Icon name="back" size={14} color={C.t2} />
+                            <span>{t.back || 'Back'}</span>
+                          </button>
+
+                          <div style={{ fontSize: 11, fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.08em', color: C.t3 }}>
+                            {t.notificationsTitle || 'Notifications'}
+                          </div>
+
+                          <div style={{ display: 'flex', gap: 6, padding: 8, border: `1px solid ${C.border}`, borderRadius: 10 }}>
+                            <button onClick={() => setNotifTab('matches')} style={{ flex: 1, border: `1px solid ${notifTab === 'matches' ? C.accent : C.border}`, background: notifTab === 'matches' ? C.alpha(C.accent, 0.1) : 'transparent', color: notifTab === 'matches' ? C.accent : C.t2, borderRadius: 8, padding: '8px 8px', fontSize: 11, fontWeight: 700, cursor: 'pointer' }}>
                               {(t.matchesMessagesTab || 'Matches Msgs')} ({chatNotifications?.length || 0})
                             </button>
-                            <button onClick={() => setNotifTab('system')} style={{ flex: 1, border: `1px solid ${notifTab === 'system' ? C.accent : C.border}`, background: notifTab === 'system' ? C.alpha(C.accent, 0.1) : 'transparent', color: notifTab === 'system' ? C.accent : C.t2, borderRadius: 8, padding: '6px 8px', fontSize: 11, fontWeight: 700, cursor: 'pointer' }}>
+                            <button onClick={() => setNotifTab('system')} style={{ flex: 1, border: `1px solid ${notifTab === 'system' ? C.accent : C.border}`, background: notifTab === 'system' ? C.alpha(C.accent, 0.1) : 'transparent', color: notifTab === 'system' ? C.accent : C.t2, borderRadius: 8, padding: '8px 8px', fontSize: 11, fontWeight: 700, cursor: 'pointer' }}>
                               {(t.systemMessagesTab || 'System Msgs')} ({systemUnreadCount})
                             </button>
                           </div>
 
-                          <div style={{ padding: 8, display: 'grid', gap: 6, maxHeight: 260, overflowY: 'auto' }}>
+                          <div style={{ border: `1px solid ${C.border}`, borderRadius: 10, background: C.alpha(C.bg, 0.3), padding: 8, display: 'grid', gap: 6, maxHeight: 'calc(100vh - 220px)', overflowY: 'auto' }}>
                             {notifTab === 'matches' ? (
-                              (chatNotifications?.length ? chatNotifications : [{ id: 'empty-matches', title: t.emptyMessagesTitle || 'No messages', message: t.emptyMessagesBody || 'No chat activity right now.' }]).map((item) => {
+                              (visibleChatNotifications?.length ? visibleChatNotifications : [{ id: 'empty-matches', title: t.emptyMessagesTitle || 'No messages', message: t.emptyMessagesBody || 'No chat activity right now.' }]).map((item) => {
                                 const clickable = Boolean(item?.ownerId);
                                 return (
-                                  <div
+                                  <SwipeableNotificationItem
                                     key={item.id}
-                                    onClick={() => {
-                                      if (!clickable) return;
-                                      openChatNotificationFromMenu(item);
-                                    }}
-                                    role={clickable ? 'button' : undefined}
-                                    tabIndex={clickable ? 0 : undefined}
-                                    onKeyDown={(e) => {
-                                      if (!clickable) return;
-                                      if (e.key === 'Enter' || e.key === ' ') {
-                                        e.preventDefault();
-                                        openChatNotificationFromMenu(item);
-                                      }
-                                    }}
-                                    style={{ border: `1px solid ${C.border}`, borderRadius: 8, padding: 8, cursor: clickable ? 'pointer' : 'default', background: clickable ? C.alpha(C.accent, 0.03) : 'transparent' }}
+                                    item={item}
+                                    disabled={!clickable}
+                                    onClick={() => clickable && openChatNotificationFromMenu(item)}
+                                    onSwipeRight={() => clickable && markChatNotificationRead(item)}
+                                    onSwipeLeft={() => clickable && deferChatNotification(item)}
                                   >
-                                    <div style={{ fontSize: 11, fontWeight: 700, color: C.t1 }}>{item.title}</div>
-                                    <div style={{ fontSize: 10, color: C.t3, marginTop: 2 }}>{item.message}</div>
-                                  </div>
+                                    <div
+                                      role={clickable ? 'button' : undefined}
+                                      tabIndex={clickable ? 0 : undefined}
+                                      onKeyDown={(e) => {
+                                        if (!clickable) return;
+                                        if (e.key === 'Enter' || e.key === ' ') {
+                                          e.preventDefault();
+                                          openChatNotificationFromMenu(item);
+                                        }
+                                      }}
+                                      style={{ border: `1px solid ${C.border}`, borderRadius: 8, padding: 10, cursor: clickable ? 'pointer' : 'default', background: clickable ? C.alpha(C.accent, 0.03) : 'transparent' }}
+                                    >
+                                      <div style={{ fontSize: 12, fontWeight: 700, color: C.t1 }}>{item.title}</div>
+                                      <div style={{ fontSize: 11, color: C.t3, marginTop: 2 }}>{item.message}</div>
+                                    </div>
+                                  </SwipeableNotificationItem>
                                 );
                               })
                             ) : (
-                              <>
-                                {(systemNotifications?.length ? systemNotifications : [{ id: 'empty-system', title: t.emptySystemTitle || 'No alerts', message: t.emptySystemBody || 'No system messages right now.', read: true }]).map((item) => (
-                                  <div key={item.id} style={{ border: `1px solid ${item.read ? C.border : C.accent}`, borderRadius: 8, padding: 8, background: item.read ? 'transparent' : C.alpha(C.accent, 0.06) }}>
-                                    <div style={{ fontSize: 11, fontWeight: 700, color: C.t1 }}>{item.title}</div>
-                                    <div style={{ fontSize: 10, color: C.t3, marginTop: 2 }}>{item.message}</div>
+                              (visibleSystemNotifications?.length ? visibleSystemNotifications : [{ id: 'empty-system', title: t.emptySystemTitle || 'No alerts', message: t.emptySystemBody || 'No system messages right now.', read: true }]).map((item) => (
+                                <SwipeableNotificationItem
+                                  key={item.id}
+                                  item={item}
+                                  disabled={item.id === 'empty-system'}
+                                  onSwipeRight={() => item.id !== 'empty-system' && markSystemNotificationRead(item)}
+                                  onSwipeLeft={() => item.id !== 'empty-system' && deferSystemNotification(item)}
+                                >
+                                  <div style={{ border: `1px solid ${item.read ? C.border : C.accent}`, borderRadius: 8, padding: 10, background: item.read ? 'transparent' : C.alpha(C.accent, 0.06) }}>
+                                    <div style={{ fontSize: 12, fontWeight: 700, color: C.t1 }}>{item.title}</div>
+                                    <div style={{ fontSize: 11, color: C.t3, marginTop: 2 }}>{item.message}</div>
                                   </div>
-                                ))}
-                                {systemUnreadCount > 0 ? (
-                                  <button onClick={markSystemAsRead} style={{ border: `1px solid ${C.border}`, background: 'transparent', color: C.t2, borderRadius: 8, padding: '6px 8px', fontSize: 11, fontWeight: 700, cursor: 'pointer' }}>
-                                    {t.markSystemRead || 'Mark system as read'}
-                                  </button>
-                                ) : null}
-                              </>
+                                </SwipeableNotificationItem>
+                              ))
                             )}
+                            {notifTab === 'system' && systemUnreadCount > 0 ? (
+                              <button onClick={markSystemAsRead} style={{ border: `1px solid ${C.border}`, background: 'transparent', color: C.t2, borderRadius: 8, padding: '8px 10px', fontSize: 12, fontWeight: 700, cursor: 'pointer', marginTop: 4 }}>
+                                {t.markAllRead || t.markSystemRead || 'Mark all as read'}
+                              </button>
+                            ) : null}
                           </div>
-                        </div>
-                      ) : null}
+                        </>
+                      ) : (
+                        <>
+                          <div style={{ fontSize: 11, fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.08em', color: C.t3, marginBottom: 4 }}>
+                            {t.profile || 'Profile'}
+                          </div>
 
-                      <div style={{ width: '100%', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 10, borderRadius: 10, border: `1px solid ${C.border}`, color: C.t2, fontWeight: 700, fontSize: 14, padding: '10px 12px' }}>
-                        <span style={{ display: 'inline-flex', alignItems: 'center', gap: 8 }}>
-                          <Icon name="globe" size={15} color={C.t2} />
-                          <span>{t.language || 'Language'}</span>
-                        </span>
-                        <LangPicker compact />
-                      </div>
+                          <button
+                            onClick={() => setAppNotifOpen(true)}
+                            style={{ width: '100%', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 10, borderRadius: 10, border: `1px solid ${C.border}`, background: 'transparent', color: C.t2, fontWeight: 700, fontSize: 14, padding: '10px 12px', cursor: 'pointer' }}
+                          >
+                            <span style={{ display: 'inline-flex', alignItems: 'center', gap: 8 }}>
+                              <Icon name="bell" size={15} color={C.t2} />
+                              <span>{t.notificationsTitle || 'Notifications'}</span>
+                            </span>
+                            <span style={{ display: 'inline-flex', alignItems: 'center', gap: 8 }}>
+                              {consolidatedCount > 0 ? (
+                                <span style={{ minWidth: 18, height: 18, padding: '0 4px', borderRadius: 999, background: C.danger, color: '#fff', fontSize: 10, fontWeight: 800, display: 'inline-flex', alignItems: 'center', justifyContent: 'center', lineHeight: 1 }}>
+                                  {consolidatedCount > 99 ? '99+' : consolidatedCount}
+                                </span>
+                              ) : null}
+                              <Icon name="arrowRight" size={14} color={C.t2} />
+                            </span>
+                          </button>
 
-                      <button onClick={toggleTheme} style={{ width: '100%', display: 'flex', alignItems: 'center', gap: 10, borderRadius: 10, border: `1px solid ${C.border}`, background: 'transparent', color: C.t2, fontWeight: 700, fontSize: 14, padding: '10px 12px', cursor: 'pointer' }}>
-                        <Icon name={theme === 'dark' ? 'sun' : 'moon'} size={15} color={C.t2} />
-                        <span>{theme === 'dark' ? (t.themeToLight || 'Enable light mode') : (t.themeToDark || 'Enable dark mode')}</span>
-                      </button>
+                          <div style={{ width: '100%', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 10, borderRadius: 10, border: `1px solid ${C.border}`, color: C.t2, fontWeight: 700, fontSize: 14, padding: '10px 12px' }}>
+                            <span style={{ display: 'inline-flex', alignItems: 'center', gap: 8 }}>
+                              <Icon name="globe" size={15} color={C.t2} />
+                              <span>{t.language || 'Language'}</span>
+                            </span>
+                            <LangPicker compact />
+                          </div>
 
-                      {showInstallAppButton ? (
-                        <button onClick={onInstallApp} style={{ width: '100%', display: 'flex', alignItems: 'center', gap: 10, borderRadius: 10, border: `1px solid ${C.border}`, background: 'transparent', color: C.t2, fontWeight: 700, fontSize: 14, padding: '10px 12px', cursor: 'pointer' }}>
-                          <Icon name="download" size={15} color={C.t2} />
-                          <span>{t.installToHome || 'Add to Home Screen'}</span>
-                        </button>
-                      ) : null}
+                          <button onClick={toggleTheme} style={{ width: '100%', display: 'flex', alignItems: 'center', gap: 10, borderRadius: 10, border: `1px solid ${C.border}`, background: 'transparent', color: C.t2, fontWeight: 700, fontSize: 14, padding: '10px 12px', cursor: 'pointer' }}>
+                            <Icon name={theme === 'dark' ? 'sun' : 'moon'} size={15} color={C.t2} />
+                            <span>{theme === 'dark' ? (t.themeToLight || 'Enable light mode') : (t.themeToDark || 'Enable dark mode')}</span>
+                          </button>
 
-                      <button onClick={openAppSettings} style={{ width: '100%', display: 'flex', alignItems: 'center', gap: 10, borderRadius: 10, border: `1px solid ${C.border}`, background: 'transparent', color: C.t2, fontWeight: 700, fontSize: 14, padding: '10px 12px', cursor: 'pointer' }}>
-                        <Icon name="user" size={15} color={C.t2} />
-                        <span>{t.editProfile || 'Edit profile'}</span>
-                      </button>
+                          {showInstallAppButton ? (
+                            <button onClick={onInstallApp} style={{ width: '100%', display: 'flex', alignItems: 'center', gap: 10, borderRadius: 10, border: `1px solid ${C.border}`, background: 'transparent', color: C.t2, fontWeight: 700, fontSize: 14, padding: '10px 12px', cursor: 'pointer' }}>
+                              <Icon name="download" size={15} color={C.t2} />
+                              <span>{t.installToHome || 'Add to Home Screen'}</span>
+                            </button>
+                          ) : null}
 
-                      <button onClick={openAppPricing} style={{ width: '100%', display: 'flex', alignItems: 'center', gap: 10, borderRadius: 10, border: `1px solid ${C.border}`, background: 'transparent', color: C.t2, fontWeight: 700, fontSize: 14, padding: '10px 12px', cursor: 'pointer' }}>
-                        <Icon name="creditCard" size={15} color={C.t2} />
-                        <span>{t.pricing}</span>
-                      </button>
+                          <button onClick={openAppSettings} style={{ width: '100%', display: 'flex', alignItems: 'center', gap: 10, borderRadius: 10, border: `1px solid ${C.border}`, background: 'transparent', color: C.t2, fontWeight: 700, fontSize: 14, padding: '10px 12px', cursor: 'pointer' }}>
+                            <Icon name="user" size={15} color={C.t2} />
+                            <span>{t.editProfile || 'Edit profile'}</span>
+                          </button>
 
-                      <button onClick={logoutUserFromMenu} style={{ width: '100%', display: 'flex', alignItems: 'center', gap: 10, borderRadius: 10, border: `1px solid ${C.border}`, background: 'transparent', color: C.t2, fontWeight: 700, fontSize: 14, padding: '10px 12px', cursor: 'pointer' }}>
-                        <Icon name="logOut" size={15} color={C.t2} />
-                        <span>{t.logout || 'Sign out'}</span>
-                      </button>
+                          <button onClick={openAppPricing} style={{ width: '100%', display: 'flex', alignItems: 'center', gap: 10, borderRadius: 10, border: `1px solid ${C.border}`, background: 'transparent', color: C.t2, fontWeight: 700, fontSize: 14, padding: '10px 12px', cursor: 'pointer' }}>
+                            <Icon name="creditCard" size={15} color={C.t2} />
+                            <span>{t.pricing}</span>
+                          </button>
 
-                      {isAdmin ? (
-                        <button onClick={openAppAdmin} style={{ width: '100%', display: 'flex', alignItems: 'center', gap: 10, borderRadius: 10, border: `1px solid ${C.border}`, background: 'transparent', color: C.t2, fontWeight: 700, fontSize: 14, padding: '10px 12px', cursor: 'pointer' }}>
-                          <Icon name="shield" size={15} color={C.t2} />
-                          <span>{t.adminSystem || 'Adm.System'}</span>
-                        </button>
-                      ) : null}
+                          <button onClick={logoutUserFromMenu} style={{ width: '100%', display: 'flex', alignItems: 'center', gap: 10, borderRadius: 10, border: `1px solid ${C.border}`, background: 'transparent', color: C.t2, fontWeight: 700, fontSize: 14, padding: '10px 12px', cursor: 'pointer' }}>
+                            <Icon name="logOut" size={15} color={C.t2} />
+                            <span>{t.logout || 'Sign out'}</span>
+                          </button>
+
+                          {isAdmin ? (
+                            <button onClick={openAppAdmin} style={{ width: '100%', display: 'flex', alignItems: 'center', gap: 10, borderRadius: 10, border: `1px solid ${C.border}`, background: 'transparent', color: C.t2, fontWeight: 700, fontSize: 14, padding: '10px 12px', cursor: 'pointer' }}>
+                              <Icon name="shield" size={15} color={C.t2} />
+                              <span>{t.adminSystem || 'Adm.System'}</span>
+                            </button>
+                          ) : null}
+                        </>
+                      )}
                     </div>
                   </>
                 ) : null}
@@ -465,42 +623,61 @@ export function Navbar({ page, prevPage, setPage, nuggets = 0, setModal = () => 
                         </button>
                       </div>
 
-                      <div style={{ padding: 8, display: 'grid', gap: 6 }}>
+                      <div style={{ padding: 8, display: 'grid', gap: 6, maxHeight: 260, overflowY: 'auto' }}>
                         {notifTab === 'matches' ? (
-                          (chatNotifications?.length ? chatNotifications : [{ id: 'empty-matches', title: t.emptyMessagesTitle || 'No messages', message: t.emptyMessagesBody || 'No chat activity right now.' }]).map((item) => {
+                          (visibleChatNotifications?.length ? visibleChatNotifications : [{ id: 'empty-matches', title: t.emptyMessagesTitle || 'No messages', message: t.emptyMessagesBody || 'No chat activity right now.' }]).map((item) => {
                             const clickable = Boolean(item?.ownerId);
                             return (
-                              <div
+                              <SwipeableNotificationItem
                                 key={item.id}
+                                item={item}
+                                disabled={!clickable}
                                 onClick={() => {
                                   if (!clickable) return;
+                                  const id = String(item?.id || '');
+                                  if (id) setDeferredChatIds((prev) => prev.filter((x) => x !== id));
                                   onOpenChatNotification(item);
                                   setNotifOpen(false);
                                 }}
-                                role={clickable ? 'button' : undefined}
-                                tabIndex={clickable ? 0 : undefined}
-                                onKeyDown={(e) => {
-                                  if (!clickable) return;
-                                  if (e.key === 'Enter' || e.key === ' ') {
-                                    e.preventDefault();
-                                    onOpenChatNotification(item);
-                                    setNotifOpen(false);
-                                  }
-                                }}
-                                style={{ border: `1px solid ${C.border}`, borderRadius: 8, padding: 8, cursor: clickable ? 'pointer' : 'default', background: clickable ? C.alpha(C.accent, 0.03) : 'transparent' }}
+                                onSwipeRight={() => clickable && markChatNotificationRead(item)}
+                                onSwipeLeft={() => clickable && deferChatNotification(item)}
                               >
-                                <div style={{ fontSize: 11, fontWeight: 700, color: C.t1 }}>{item.title}</div>
-                                <div style={{ fontSize: 10, color: C.t3, marginTop: 2 }}>{item.message}</div>
-                              </div>
+                                <div
+                                  role={clickable ? 'button' : undefined}
+                                  tabIndex={clickable ? 0 : undefined}
+                                  onKeyDown={(e) => {
+                                    if (!clickable) return;
+                                    if (e.key === 'Enter' || e.key === ' ') {
+                                      e.preventDefault();
+                                      const id = String(item?.id || '');
+                                      if (id) setDeferredChatIds((prev) => prev.filter((x) => x !== id));
+                                      onOpenChatNotification(item);
+                                      setNotifOpen(false);
+                                    }
+                                  }}
+                                  style={{ border: `1px solid ${C.border}`, borderRadius: 8, padding: 8, cursor: clickable ? 'pointer' : 'default', background: clickable ? C.alpha(C.accent, 0.03) : 'transparent' }}
+                                >
+                                  <div style={{ fontSize: 11, fontWeight: 700, color: C.t1 }}>{item.title}</div>
+                                  <div style={{ fontSize: 10, color: C.t3, marginTop: 2 }}>{item.message}</div>
+                                </div>
+                              </SwipeableNotificationItem>
                             );
                           })
                         ) : (
                           <>
-                            {(systemNotifications?.length ? systemNotifications : [{ id: 'empty-system', title: t.emptySystemTitle || 'No alerts', message: t.emptySystemBody || 'No system messages right now.', read: true }]).map((item) => (
-                              <div key={item.id} style={{ border: `1px solid ${item.read ? C.border : C.accent}`, borderRadius: 8, padding: 8, background: item.read ? 'transparent' : C.alpha(C.accent, 0.06) }}>
-                                <div style={{ fontSize: 11, fontWeight: 700, color: C.t1 }}>{item.title}</div>
-                                <div style={{ fontSize: 10, color: C.t3, marginTop: 2 }}>{item.message}</div>
-                              </div>
+                            {(visibleSystemNotifications?.length ? visibleSystemNotifications : [{ id: 'empty-system', title: t.emptySystemTitle || 'No alerts', message: t.emptySystemBody || 'No system messages right now.', read: true }]).map((item) => (
+                              <SwipeableNotificationItem
+                                key={item.id}
+                                item={item}
+                                disabled={item.id === 'empty-system'}
+                                onSwipeRight={() => item.id !== 'empty-system' && markSystemNotificationRead(item)}
+                                onSwipeLeft={() => item.id !== 'empty-system' && deferSystemNotification(item)}
+                              >
+                                <div style={{ border: `1px solid ${item.read ? C.border : C.accent}`, borderRadius: 8, padding: 8, background: item.read ? 'transparent' : C.alpha(C.accent, 0.06) }}>
+                                  <div style={{ fontSize: 11, fontWeight: 700, color: C.t1 }}>{item.title}</div>
+                                  <div style={{ fontSize: 10, color: C.t3, marginTop: 2 }}>{item.message}</div>
+                                </div>
+                              </SwipeableNotificationItem>
                             ))}
                             {systemUnreadCount > 0 ? (
                               <button onClick={markSystemAsRead} style={{ border: `1px solid ${C.border}`, background: 'transparent', color: C.t2, borderRadius: 8, padding: '6px 8px', fontSize: 11, fontWeight: 700, cursor: 'pointer' }}>

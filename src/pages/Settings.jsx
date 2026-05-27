@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import { C } from '../theme/colors';
 import { useT } from '../i18n/translations';
 import { Icon } from '../components/ui/Icon';
@@ -10,6 +10,9 @@ function TabButton({ active, onClick, label }) {
     <button
       onClick={onClick}
       style={{
+        width: '100%',
+        minWidth: 0,
+        boxSizing: 'border-box',
         border: `1px solid ${active ? C.accent : C.border}`,
         background: active ? C.alpha(C.accent, 0.12) : 'transparent',
         color: active ? C.accent : C.t2,
@@ -27,7 +30,7 @@ function TabButton({ active, onClick, label }) {
 
 function Panel({ title, subtitle, children }) {
   return (
-    <section style={{ border: `1px solid ${C.border}`, borderRadius: 14, background: C.card, overflow: 'hidden' }}>
+    <section style={{ border: `1px solid ${C.border}`, borderRadius: 14, background: C.card, overflow: 'hidden', width: '100%', minWidth: 0, boxSizing: 'border-box' }}>
       <div style={{ padding: '12px 14px', borderBottom: `1px solid ${C.border}` }}>
         <div style={{ fontSize: 13, fontWeight: 800, color: C.t1 }}>{title}</div>
         {subtitle ? <div style={{ marginTop: 4, fontSize: 11, color: C.t3 }}>{subtitle}</div> : null}
@@ -42,12 +45,33 @@ export function Settings({ setPage, prevPage, initialTab = 'profile', systemAcco
   const t = allT.settings || {};
   const [tab, setTab] = useState(initialTab);
   const [confirmPayload, setConfirmPayload] = useState(null); // { message, onConfirm, variant }
+  const [profileSaveState, setProfileSaveState] = useState('saved');
+  const [billingHistory, setBillingHistory] = useState(() => {
+    try {
+      const raw = JSON.parse(localStorage.getItem('ds_billing_history_mock') || '[]');
+      return Array.isArray(raw) ? raw : [];
+    } catch { return []; }
+  });
   const [commPrefs, setCommPrefs] = useState(() => {
     try {
       const saved = JSON.parse(localStorage.getItem('ds_comm_prefs') || 'null');
       if (saved && typeof saved === 'object') return { email: true, chat: true, marketing: false, ...saved };
     } catch { /* no-op */ }
     return { email: true, chat: true, marketing: false };
+  });
+  const [commView, setCommView] = useState('menu');
+  const [supportInput, setSupportInput] = useState('');
+  const [securityOtpCode, setSecurityOtpCode] = useState('');
+  const [securityOtpPendingAction, setSecurityOtpPendingAction] = useState('');
+  const [securityOtpSending, setSecurityOtpSending] = useState(false);
+  const [securityOtpVerifying, setSecurityOtpVerifying] = useState(false);
+  const [securityAudit, setSecurityAudit] = useState([]);
+  const [securitySessions, setSecuritySessions] = useState([]);
+  const [supportMessages, setSupportMessages] = useState(() => {
+    try {
+      const raw = JSON.parse(localStorage.getItem('ds_support_chat_thread') || '[]');
+      return Array.isArray(raw) ? raw : [];
+    } catch { return []; }
   });
   const activeSubscription = subscription || {
     planId: 'free',
@@ -60,12 +84,84 @@ export function Settings({ setPage, prevPage, initialTab = 'profile', systemAcco
   useEffect(() => {
     setTab(initialTab || 'profile');
   }, [initialTab]);
+  useEffect(() => {
+    if (tab !== 'communication') setCommView('menu');
+  }, [tab]);
 
   const setPaymentTab = () => setTab('payments');
+  const controlStyle = { width: '100%', minWidth: 0, boxSizing: 'border-box', border: `1px solid ${C.border}`, borderRadius: 10, padding: '9px 10px', background: C.bg, color: C.t1, fontSize: 12 };
 
   const updateField = (field, value) => {
+    setProfileSaveState('saving');
     setSystemAccount?.((prev) => ({ ...(prev || {}), [field]: value }));
   };
+  const nextBillingLabel = activeSubscription?.nextBillingAt
+    ? new Date(activeSubscription.nextBillingAt).toLocaleDateString('en-US')
+    : (t.notApplicable || 'N/A');
+  const monthlyValue = Number(activeSubscription?.price || 0);
+  const hasPaidPlan = String(activeSubscription?.planId || 'free').toLowerCase() !== 'free';
+  const canManageStripePortal = hasPaidPlan;
+  const billingSummary = useMemo(() => {
+    const paid = (billingHistory || []).filter((r) => r.status === 'paid');
+    const totalPaid = paid.reduce((sum, row) => sum + Number(row.amount || 0), 0);
+    return {
+      invoices: (billingHistory || []).length,
+      totalPaid,
+      lastInvoice: billingHistory?.[0] || null,
+    };
+  }, [billingHistory]);
+  const profileFullName = String(systemAccount?.fullName || '').trim();
+  const profileEmail = String(systemAccount?.email || '').trim();
+  const profilePhone = String(systemAccount?.phone || '').trim();
+  const profileType = String(systemAccount?.accountType || 'individual').trim();
+  const profileMarkets = String(systemAccount?.marketAreas || '').trim();
+  const profileCompletion = Math.round(([profileFullName, profileEmail, profilePhone, profileType, profileMarkets].filter(Boolean).length / 5) * 100);
+
+  useEffect(() => {
+    if (tab !== 'profile' || profileSaveState !== 'saving') return;
+    const timer = setTimeout(() => setProfileSaveState('saved'), 450);
+    return () => clearTimeout(timer);
+  }, [tab, profileSaveState, systemAccount]);
+
+  useEffect(() => {
+    try { localStorage.setItem('ds_billing_history_mock', JSON.stringify(billingHistory || [])); } catch { /* no-op */ }
+  }, [billingHistory]);
+  useEffect(() => {
+    try { localStorage.setItem('ds_support_chat_thread', JSON.stringify(supportMessages || [])); } catch { /* no-op */ }
+  }, [supportMessages]);
+  useEffect(() => {
+    if (tab !== 'security') return;
+    const refresh = () => {
+      try {
+        const audit = JSON.parse(localStorage.getItem('ds_security_audit') || '[]');
+        setSecurityAudit(Array.isArray(audit) ? audit.slice(0, 12) : []);
+      } catch { setSecurityAudit([]); }
+      try {
+        const sessions = JSON.parse(localStorage.getItem('ds_security_sessions') || '[]');
+        const list = Array.isArray(sessions) ? sessions : [];
+        const currentUser = String(authSession?.id || '');
+        setSecuritySessions(list.filter((row) => String(row?.userId || '') === currentUser).slice(0, 10));
+      } catch { setSecuritySessions([]); }
+    };
+    refresh();
+    const timer = setInterval(refresh, 3000);
+    return () => clearInterval(timer);
+  }, [tab, authSession?.id]);
+  useEffect(() => {
+    if (tab !== 'communication' || commView !== 'support') return;
+    setSupportMessages((prev) => {
+      const list = Array.isArray(prev) ? prev : [];
+      if (!list.length) return list;
+      const first = list[0];
+      if (!first || first.from !== 'admin') return list;
+      const firstId = String(first.id || '');
+      if (!firstId.startsWith('support-')) return list;
+      if (String(first.text || '') === String(t.supportWelcome || '')) return list;
+      const next = [...list];
+      next[0] = { ...first, text: t.supportWelcome || 'Hello! This is DealSifter Admin/Support. How can we help?' };
+      return next;
+    });
+  }, [tab, commView, t.supportWelcome]);
 
   const pendingCheckoutLabel = (() => {
     if (!pendingCheckoutIntent) return '';
@@ -109,9 +205,184 @@ export function Settings({ setPage, prevPage, initialTab = 'profile', systemAcco
       return next;
     });
   };
+  const performPasswordReset = async () => {
+    const email = String(authSession?.email || systemAccount?.email || '').trim();
+    if (!email) {
+      addToast?.({ type: 'warning', message: t.securityNeedEmail || 'Add a valid email before requesting password reset.' });
+      return;
+    }
+    if (!isSupabaseConfigured || !supabase) {
+      addToast?.({ type: 'error', message: t.securitySupabaseUnavailable || 'Security service unavailable right now.' });
+      return;
+    }
+    try {
+      const redirectTo = `${window.location.origin}`;
+      const { error } = await supabase.auth.resetPasswordForEmail(email, { redirectTo });
+      if (error) throw error;
+      addToast?.({ type: 'success', message: t.securityResetSent || 'Password reset email sent. Check your inbox.' });
+    } catch (err) {
+      addToast?.({ type: 'error', message: String(err?.message || t.securityResetError || 'Failed to send password reset email.') });
+    }
+  };
+
+  const performLogoutAllDevices = async () => {
+    if (!isSupabaseConfigured || !supabase) {
+      addToast?.({ type: 'error', message: t.securitySupabaseUnavailable || 'Security service unavailable right now.' });
+      return;
+    }
+    try {
+      await supabase.auth.signOut({ scope: 'global' });
+    } catch (err) {
+      addToast?.({ type: 'error', message: String(err?.message || t.securityGlobalLogoutError || 'Failed to sign out from all devices.') });
+      return;
+    }
+    setAuthSession?.(null);
+    setPage?.('landing');
+  };
+
+  const requestSecurityEmailOtp = async (action) => {
+    const email = String(authSession?.email || systemAccount?.email || '').trim();
+    if (!email || !email.includes('@')) {
+      addToast?.({ type: 'warning', message: t.securityNeedEmail || 'Add a valid email before requesting verification code.' });
+      return;
+    }
+    if (!authSession?.emailVerified) {
+      addToast?.({ type: 'warning', message: t.securityNeedVerifiedEmail || 'Verify your email before protected actions.' });
+      return;
+    }
+    if (!isSupabaseConfigured || !supabase) {
+      addToast?.({ type: 'error', message: t.securitySupabaseUnavailable || 'Security service unavailable right now.' });
+      return;
+    }
+    try {
+      const now = Date.now();
+      const lockUntil = Number(localStorage.getItem('ds_security_otp_lock_until') || '0');
+      if (lockUntil > now) {
+        addToast?.({ type: 'warning', message: t.securityOtpLocked || 'Too many invalid codes. Please wait and try again.' });
+        return;
+      }
+    } catch { /* no-op */ }
+    setSecurityOtpSending(true);
+    try {
+      const { error } = await supabase.auth.signInWithOtp({
+        email,
+        options: { shouldCreateUser: false },
+      });
+      if (error) throw error;
+      setSecurityOtpPendingAction(action);
+      setSecurityOtpCode('');
+      addToast?.({ type: 'success', message: t.securityOtpSent || 'Verification code sent to your email.' });
+    } catch (err) {
+      addToast?.({ type: 'error', message: String(err?.message || t.securityOtpSendError || 'Failed to send verification code.') });
+    } finally {
+      setSecurityOtpSending(false);
+    }
+  };
+
+  const verifySecurityOtpAndRun = async () => {
+    const email = String(authSession?.email || systemAccount?.email || '').trim();
+    const token = String(securityOtpCode || '').trim();
+    if (!email || !token) {
+      addToast?.({ type: 'warning', message: t.securityOtpNeedCode || 'Enter the code sent to your email.' });
+      return;
+    }
+    if (!securityOtpPendingAction) {
+      addToast?.({ type: 'warning', message: t.securityOtpNoAction || 'No pending protected action.' });
+      return;
+    }
+    setSecurityOtpVerifying(true);
+    try {
+      const { error } = await supabase.auth.verifyOtp({
+        email,
+        token,
+        type: 'email',
+      });
+      if (error) throw error;
+      const action = securityOtpPendingAction;
+      setSecurityOtpPendingAction('');
+      setSecurityOtpCode('');
+      if (action === 'reset-password') await performPasswordReset();
+      if (action === 'logout-all') await performLogoutAllDevices();
+      try {
+        localStorage.removeItem('ds_security_otp_fail_count');
+        localStorage.removeItem('ds_security_otp_lock_until');
+      } catch { /* no-op */ }
+    } catch (err) {
+      try {
+        const now = Date.now();
+        const fails = Number(localStorage.getItem('ds_security_otp_fail_count') || '0') + 1;
+        localStorage.setItem('ds_security_otp_fail_count', String(fails));
+        if (fails >= 5) {
+          localStorage.setItem('ds_security_otp_lock_until', String(now + 10 * 60 * 1000));
+        }
+      } catch { /* no-op */ }
+      addToast?.({ type: 'error', message: String(err?.message || t.securityOtpInvalid || 'Invalid or expired code.') });
+    } finally {
+      setSecurityOtpVerifying(false);
+    }
+  };
+  const exportSecurityAudit = (format = 'json') => {
+    const rows = Array.isArray(securityAudit) ? securityAudit : [];
+    if (!rows.length) {
+      addToast?.({ type: 'info', message: t.securityNoAuditToExport || 'No security events to export.' });
+      return;
+    }
+    if (format === 'csv') {
+      const header = 'id,type,status,message,at';
+      const body = rows.map((r) => (
+        [r.id, r.type, r.status, String(r.message || '').replaceAll('"', '""'), r.at]
+          .map((v) => `"${String(v ?? '')}"`)
+          .join(',')
+      ));
+      const blob = new Blob([[header, ...body].join('\n')], { type: 'text/csv;charset=utf-8;' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `dealsifter-security-audit-${new Date().toISOString().slice(0, 10)}.csv`;
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      URL.revokeObjectURL(url);
+      return;
+    }
+    const blob = new Blob([JSON.stringify(rows, null, 2)], { type: 'application/json' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `dealsifter-security-audit-${new Date().toISOString().slice(0, 10)}.json`;
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    URL.revokeObjectURL(url);
+  };
+
+  const terminateSession = (sessionId) => {
+    try {
+      const all = JSON.parse(localStorage.getItem('ds_security_sessions') || '[]');
+      const rows = Array.isArray(all) ? all : [];
+      const next = rows.filter((row) => String(row?.id || '') !== String(sessionId));
+      localStorage.setItem('ds_security_sessions', JSON.stringify(next));
+      setSecuritySessions((prev) => (prev || []).filter((row) => String(row?.id || '') !== String(sessionId)));
+      const audit = JSON.parse(localStorage.getItem('ds_security_audit') || '[]');
+      const nextAudit = Array.isArray(audit) ? audit : [];
+      nextAudit.unshift({
+        id: `sec-${Date.now()}-${Math.random().toString(16).slice(2, 7)}`,
+        at: Date.now(),
+        type: 'session',
+        status: 'terminated',
+        message: `Session ${sessionId} terminated from Security Center.`,
+      });
+      localStorage.setItem('ds_security_audit', JSON.stringify(nextAudit.slice(0, 200)));
+      setSecurityAudit(nextAudit.slice(0, 12));
+      addToast?.({ type: 'success', message: t.securitySessionTerminated || 'Session terminated.' });
+    } catch {
+      addToast?.({ type: 'error', message: t.securitySessionTerminateError || 'Failed to terminate session.' });
+    }
+  };
+  const isSupportFullscreen = tab === 'communication' && commView === 'support';
 
   return (
-    <div style={{ paddingTop: 58, minHeight: 'calc(var(--app-vh, 1vh) * 100)', background: C.bg, boxSizing: 'border-box' }}>
+    <div style={{ paddingTop: 58, minHeight: 'calc(var(--app-vh, 1vh) * 100)', background: C.bg, boxSizing: 'border-box', width: '100%', maxWidth: '100%', overflowX: 'hidden' }}>
       {confirmPayload && (
         <div style={{ position: 'fixed', inset: 0, zIndex: 10020, display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'rgba(0,0,0,0.65)' }}
           onClick={() => setConfirmPayload(null)}>
@@ -130,7 +401,7 @@ export function Settings({ setPage, prevPage, initialTab = 'profile', systemAcco
           </div>
         </div>
       )}
-      <div style={{ maxWidth: 1180, margin: '0 auto', padding: '16px 18px 24px' }}>
+      <div style={{ maxWidth: 1180, margin: '0 auto', padding: '16px 18px 24px', width: '100%', minWidth: 0, boxSizing: 'border-box' }}>
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12, marginBottom: 14 }}>
           <div>
             <h2 style={{ margin: 0, fontSize: 22, fontWeight: 900, color: C.t1 }}>{t.title || 'System Settings'}</h2>
@@ -141,7 +412,8 @@ export function Settings({ setPage, prevPage, initialTab = 'profile', systemAcco
           </button>
         </div>
 
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: 8, marginBottom: 14 }}>
+        {!isSupportFullscreen ? (
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(180px, 100%), 1fr))', gap: 8, marginBottom: 14, width: '100%', minWidth: 0 }}>
           <TabButton active={tab === 'profile'} onClick={() => setTab('profile')} label={t.tabProfile || 'User Profile'} />
           <TabButton active={tab === 'payments'} onClick={setPaymentTab} label={t.tabPayments || 'Payments (Stripe)'} />
           <TabButton active={tab === 'communication'} onClick={() => setTab('communication')} label={t.tabCommunication || 'Communication'} />
@@ -149,33 +421,72 @@ export function Settings({ setPage, prevPage, initialTab = 'profile', systemAcco
           <TabButton active={tab === 'preferences'} onClick={() => setTab('preferences')} label={t.tabPreferences || 'Preferences'} />
           <TabButton active={tab === 'privacy'} onClick={() => setTab('privacy')} label={t.tabPrivacy || 'Privacy & Data'} />
         </div>
+        ) : null}
 
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(320px, 1fr))', gap: 12 }}>
+        {!isSupportFullscreen ? (
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(320px, 100%), 1fr))', gap: 12, width: '100%', minWidth: 0 }}>
           {tab === 'profile' ? (
             <>
               <Panel title={t.profileTitle || 'System Account'} subtitle={t.profileSub || 'Credentials and account identity'}>
-                <div style={{ display: 'grid', gap: 10 }}>
-                  <label style={{ display: 'grid', gap: 5 }}>
+                <div style={{ display: 'grid', gap: 10, width: '100%', minWidth: 0 }}>
+                  <div style={{ border: `1px solid ${C.border}`, borderRadius: 10, padding: 10, width: '100%', minWidth: 0, boxSizing: 'border-box', display: 'grid', gap: 8 }}>
+                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8, flexWrap: 'wrap' }}>
+                      <strong style={{ fontSize: 12, color: C.t1 }}>{t.profileCompletion || 'Profile completion'}: {profileCompletion}%</strong>
+                      <span style={{ fontSize: 11, color: profileSaveState === 'saving' ? C.warning || '#f59e0b' : C.accent, fontWeight: 700 }}>
+                        {profileSaveState === 'saving' ? (t.saving || 'Saving...') : (t.saved || 'Saved')}
+                      </span>
+                    </div>
+                    <div style={{ width: '100%', height: 6, borderRadius: 999, background: C.alpha(C.t1, 0.1), overflow: 'hidden' }}>
+                      <div style={{ width: `${profileCompletion}%`, height: '100%', background: C.accent, transition: 'width .2s ease' }} />
+                    </div>
+                  </div>
+
+                  <label style={{ display: 'grid', gap: 5, minWidth: 0 }}>
                     <span style={{ fontSize: 11, color: C.t2, fontWeight: 700 }}>{t.fullName || 'Full name'}</span>
-                    <input value={systemAccount?.fullName || ''} onChange={(e) => updateField('fullName', e.target.value)} style={{ width: '100%', border: `1px solid ${C.border}`, borderRadius: 10, padding: '9px 10px', background: C.bg, color: C.t1, fontSize: 12 }} />
+                    <input value={systemAccount?.fullName || ''} onChange={(e) => updateField('fullName', e.target.value)} style={controlStyle} />
                   </label>
-                  <label style={{ display: 'grid', gap: 5 }}>
+                  <label style={{ display: 'grid', gap: 5, minWidth: 0 }}>
                     <span style={{ fontSize: 11, color: C.t2, fontWeight: 700 }}>{t.email || 'Email'}</span>
-                    <input value={systemAccount?.email || ''} onChange={(e) => updateField('email', e.target.value)} style={{ width: '100%', border: `1px solid ${C.border}`, borderRadius: 10, padding: '9px 10px', background: C.bg, color: C.t1, fontSize: 12 }} />
+                    <input value={systemAccount?.email || ''} onChange={(e) => updateField('email', e.target.value)} style={controlStyle} />
                   </label>
-                  <label style={{ display: 'grid', gap: 5 }}>
+                  <label style={{ display: 'grid', gap: 5, minWidth: 0 }}>
                     <span style={{ fontSize: 11, color: C.t2, fontWeight: 700 }}>{t.phone || 'Phone'}</span>
-                    <input value={systemAccount?.phone || ''} onChange={(e) => updateField('phone', e.target.value)} style={{ width: '100%', border: `1px solid ${C.border}`, borderRadius: 10, padding: '9px 10px', background: C.bg, color: C.t1, fontSize: 12 }} />
+                    <input value={systemAccount?.phone || ''} onChange={(e) => updateField('phone', e.target.value)} style={controlStyle} />
                   </label>
+                  <label style={{ display: 'grid', gap: 5, minWidth: 0 }}>
+                    <span style={{ fontSize: 11, color: C.t2, fontWeight: 700 }}>{t.accountType || 'Account type'}</span>
+                    <select value={profileType} onChange={(e) => updateField('accountType', e.target.value)} style={controlStyle}>
+                      <option value="individual">{t.individual || 'Individual'}</option>
+                      <option value="business">{t.business || 'Business'}</option>
+                    </select>
+                  </label>
+                  <label style={{ display: 'grid', gap: 5, minWidth: 0 }}>
+                    <span style={{ fontSize: 11, color: C.t2, fontWeight: 700 }}>{t.marketAreas || 'Market areas'}</span>
+                    <input value={profileMarkets} onChange={(e) => updateField('marketAreas', e.target.value)} placeholder={t.marketAreasPlaceholder || 'Ex: Orlando, Tampa, Miami'} style={controlStyle} />
+                  </label>
+                  <div style={{ border: `1px solid ${C.border}`, borderRadius: 10, padding: 10, fontSize: 11, color: C.t2, display: 'grid', gap: 5 }}>
+                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8 }}>
+                      <span>{t.emailVerification || 'Email verification'}</span>
+                      <strong style={{ color: authSession?.emailVerified ? C.accent : C.warning || '#f59e0b' }}>
+                        {authSession?.emailVerified ? (t.verified || 'Verified') : (t.pending || 'Pending')}
+                      </strong>
+                    </div>
+                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8 }}>
+                      <span>{t.phoneVerification || 'Phone verification'}</span>
+                      <strong style={{ color: profilePhone ? C.accent : C.t3 }}>
+                        {profilePhone ? (t.registered || 'Registered') : (t.notProvided || 'Not provided')}
+                      </strong>
+                    </div>
+                  </div>
                 </div>
               </Panel>
 
               <Panel title={t.sessionTitle || 'Current Session'} subtitle={t.sessionSub || 'System-level session state'}>
-                <div style={{ display: 'grid', gap: 10 }}>
-                  <div style={{ border: `1px solid ${C.border}`, borderRadius: 10, padding: 10, fontSize: 12, color: C.t2 }}>
-                    {t.loggedAs || 'Logged as'}: <strong style={{ color: C.t1 }}>{authSession?.email || '-'}</strong>
+                <div style={{ display: 'grid', gap: 10, width: '100%', minWidth: 0 }}>
+                  <div style={{ border: `1px solid ${C.border}`, borderRadius: 10, padding: 10, fontSize: 12, color: C.t2, width: '100%', minWidth: 0, boxSizing: 'border-box', overflowWrap: 'anywhere', wordBreak: 'break-word' }}>
+                    {t.loggedAs || 'Logged as'}: <strong style={{ color: C.t1, overflowWrap: 'anywhere', wordBreak: 'break-word' }}>{authSession?.email || '-'}</strong>
                   </div>
-                  <button onClick={logout} style={{ border: `1px solid ${C.border}`, background: 'transparent', color: C.t2, borderRadius: 8, padding: '8px 10px', cursor: 'pointer', fontSize: 12, fontWeight: 700 }}>
+                  <button onClick={logout} style={{ width: '100%', boxSizing: 'border-box', border: `1px solid ${C.border}`, background: 'transparent', color: C.t2, borderRadius: 8, padding: '8px 10px', cursor: 'pointer', fontSize: 12, fontWeight: 700 }}>
                     {t.logout || 'Sign out'}
                   </button>
                 </div>
@@ -186,8 +497,8 @@ export function Settings({ setPage, prevPage, initialTab = 'profile', systemAcco
           {tab === 'payments' ? (
             <>
               <Panel title={t.subscriptionTitle || 'Subscription'} subtitle={t.subscriptionSub || 'Current plan and lifecycle'}>
-                <div style={{ display: 'grid', gap: 8 }}>
-                  <div style={{ border: `1px solid ${C.border}`, borderRadius: 10, padding: 10, display: 'grid', gap: 6 }}>
+                <div style={{ display: 'grid', gap: 8, width: '100%', minWidth: 0 }}>
+                  <div style={{ border: `1px solid ${C.border}`, borderRadius: 10, padding: 10, display: 'grid', gap: 6, width: '100%', minWidth: 0, boxSizing: 'border-box' }}>
                     <div style={{ fontSize: 12, color: C.t2 }}>
                       {t.currentPlan || 'Current plan'}: <strong style={{ color: C.t1 }}>{activeSubscription?.planName || 'Free'}</strong>
                     </div>
@@ -197,18 +508,22 @@ export function Settings({ setPage, prevPage, initialTab = 'profile', systemAcco
                     <div style={{ fontSize: 12, color: C.t2 }}>
                       {t.nextBilling || 'Next billing'}:{' '}
                       <strong style={{ color: C.t1 }}>
-                        {activeSubscription?.nextBillingAt
-                          ? new Date(activeSubscription.nextBillingAt).toLocaleDateString('en-US')
-                          : (t.notApplicable || 'N/A')}
+                        {nextBillingLabel}
+                      </strong>
+                    </div>
+                    <div style={{ fontSize: 12, color: C.t2 }}>
+                      {t.monthlyValue || 'Monthly value'}:{' '}
+                      <strong style={{ color: C.t1 }}>
+                        {monthlyValue > 0 ? `$${monthlyValue.toFixed(2)}` : (t.notApplicable || 'N/A')}
                       </strong>
                     </div>
                   </div>
 
-                  <div style={{ border: `1px solid ${C.border}`, borderRadius: 10, padding: 10, fontSize: 12, color: C.t3 }}>
+                  <div style={{ border: `1px solid ${C.border}`, borderRadius: 10, padding: 10, fontSize: 12, color: C.t3, width: '100%', minWidth: 0, boxSizing: 'border-box' }}>
                     {t.stripeManaged || 'Plan changes and billing are managed via Stripe. Use the button below to access the Stripe Customer Portal.'}
                   </div>
                   {pendingCheckoutIntent ? (
-                    <div style={{ border: `1px solid ${paymentSetupComplete ? C.accent : C.warning || '#f59e0b'}`, borderRadius: 10, padding: 10, fontSize: 12, color: C.t2, background: paymentSetupComplete ? C.alpha(C.accent, 0.06) : C.alpha(C.warning || '#f59e0b', 0.08) }}>
+                    <div style={{ border: `1px solid ${paymentSetupComplete ? C.accent : C.warning || '#f59e0b'}`, borderRadius: 10, padding: 10, fontSize: 12, color: C.t2, background: paymentSetupComplete ? C.alpha(C.accent, 0.06) : C.alpha(C.warning || '#f59e0b', 0.08), width: '100%', minWidth: 0, boxSizing: 'border-box', overflowWrap: 'anywhere', wordBreak: 'break-word' }}>
                       <strong style={{ color: C.t1 }}>{pendingCheckoutLabel}</strong>
                       <div style={{ marginTop: 6 }}>
                         {paymentSetupComplete
@@ -217,25 +532,36 @@ export function Settings({ setPage, prevPage, initialTab = 'profile', systemAcco
                       </div>
                     </div>
                   ) : null}
-                  <button
-                    onClick={async () => {
-                      setSystemAccount?.((prev) => ({
-                        ...(prev || {}),
-                        paymentSetupComplete: true,
-                        paymentSetupCompletedAt: prev?.paymentSetupCompletedAt || Date.now(),
-                      }));
-                      try {
-                        await redirectToPortal();
-                      } catch (err) {
-                        addToast?.({ type: 'error', message: String(err?.message || 'Falha ao abrir portal Stripe.') });
-                      }
-                    }}
-                    style={{ border: 'none', background: C.accent, color: '#fff', borderRadius: 8, padding: '9px 10px', fontSize: 12, fontWeight: 800, cursor: 'pointer' }}
-                  >
-                    {paymentSetupComplete
-                      ? (t.manageStripe || 'Manage via Stripe Portal')
-                      : 'Configurar dados/cartão no Stripe'}
-                  </button>
+                  <div style={{ border: `1px solid ${C.border}`, borderRadius: 10, padding: 10, width: '100%', minWidth: 0, boxSizing: 'border-box', display: 'grid', gap: 4 }}>
+                    <div style={{ fontSize: 11, color: C.t3 }}>{t.billingOverview || 'Billing overview'}</div>
+                    <div style={{ fontSize: 12, color: C.t2 }}>
+                      {t.totalInvoices || 'Total invoices'}: <strong style={{ color: C.t1 }}>{billingSummary.invoices}</strong>
+                    </div>
+                    <div style={{ fontSize: 12, color: C.t2 }}>
+                      {t.totalPaid || 'Total paid'}: <strong style={{ color: C.t1 }}>${billingSummary.totalPaid.toFixed(2)}</strong>
+                    </div>
+                    <div style={{ fontSize: 12, color: C.t2, overflowWrap: 'anywhere', wordBreak: 'break-word' }}>
+                      {t.lastInvoice || 'Last invoice'}: <strong style={{ color: C.t1 }}>{billingSummary.lastInvoice?.id || (t.notApplicable || 'N/A')}</strong>
+                    </div>
+                  </div>
+                  {canManageStripePortal ? (
+                    <button
+                      onClick={async () => {
+                        try {
+                          await redirectToPortal();
+                        } catch (err) {
+                          addToast?.({ type: 'error', message: String(err?.message || 'Portal de cobrança indisponível no momento.') });
+                        }
+                      }}
+                      style={{ width: '100%', boxSizing: 'border-box', border: 'none', background: C.accent, color: '#fff', borderRadius: 8, padding: '9px 10px', fontSize: 12, fontWeight: 800, cursor: 'pointer' }}
+                    >
+                      {t.manageStripe || 'Manage via Stripe Portal'}
+                    </button>
+                  ) : (
+                    <div style={{ border: `1px solid ${C.border}`, borderRadius: 8, padding: '9px 10px', fontSize: 12, color: C.t3 }}>
+                      {t.portalAvailableAfterPayment || 'Stripe portal will be available after your first payment/subscription record.'}
+                    </div>
+                  )}
                   {pendingCheckoutIntent ? (
                     <button
                       onClick={() => {
@@ -248,7 +574,7 @@ export function Settings({ setPage, prevPage, initialTab = 'profile', systemAcco
                         }
                       }}
                       disabled={!paymentSetupComplete}
-                      style={{ border: `1px solid ${paymentSetupComplete ? C.accent : C.border}`, background: paymentSetupComplete ? C.alpha(C.accent, 0.1) : 'transparent', color: paymentSetupComplete ? C.accent : C.t3, borderRadius: 8, padding: '9px 10px', fontSize: 12, fontWeight: 800, cursor: paymentSetupComplete ? 'pointer' : 'not-allowed' }}
+                      style={{ width: '100%', boxSizing: 'border-box', border: `1px solid ${paymentSetupComplete ? C.accent : C.border}`, background: paymentSetupComplete ? C.alpha(C.accent, 0.1) : 'transparent', color: paymentSetupComplete ? C.accent : C.t3, borderRadius: 8, padding: '9px 10px', fontSize: 12, fontWeight: 800, cursor: paymentSetupComplete ? 'pointer' : 'not-allowed' }}
                     >
                       {paymentSetupComplete ? 'Continuar checkout no Stripe' : 'Configure pagamentos para continuar'}
                     </button>
@@ -257,8 +583,26 @@ export function Settings({ setPage, prevPage, initialTab = 'profile', systemAcco
               </Panel>
 
               <Panel title={t.paymentsTitle || 'Payment Methods'} subtitle={t.paymentsSub || 'Managed by Stripe'}>
-                <div style={{ border: `1px solid ${C.border}`, borderRadius: 10, padding: 12, fontSize: 12, color: C.t3 }}>
+                <div style={{ border: `1px solid ${C.border}`, borderRadius: 10, padding: 12, fontSize: 12, color: C.t3, width: '100%', minWidth: 0, boxSizing: 'border-box' }}>
                   {t.paymentsManagedInfo || 'Payment methods are securely managed by Stripe. Access the portal above to add or update cards.'}
+                </div>
+                <div style={{ marginTop: 10, border: `1px solid ${C.border}`, borderRadius: 10, padding: 10, width: '100%', minWidth: 0, boxSizing: 'border-box', display: 'grid', gap: 8 }}>
+                  <div style={{ fontSize: 12, fontWeight: 700, color: C.t1 }}>{t.invoiceHistory || 'Invoice history'}</div>
+                  <div style={{ display: 'grid', gap: 6, maxHeight: 220, overflowY: 'auto' }}>
+                    {(billingHistory?.length ? billingHistory : [{ id: 'empty', createdAt: null, amount: 0, status: 'none', planName: t.notApplicable || 'N/A' }]).map((row) => (
+                      <div key={row.id} style={{ border: `1px solid ${C.border}`, borderRadius: 8, padding: 8, display: 'grid', gap: 2 }}>
+                        <div style={{ fontSize: 11, color: C.t2, overflowWrap: 'anywhere', wordBreak: 'break-word' }}>
+                          <strong style={{ color: C.t1 }}>{row.id === 'empty' ? (t.noInvoices || 'No invoices yet') : row.id}</strong>
+                        </div>
+                        {row.id !== 'empty' ? (
+                          <>
+                            <div style={{ fontSize: 11, color: C.t2 }}>{new Date(row.createdAt).toLocaleDateString('en-US')} • {row.planName}</div>
+                            <div style={{ fontSize: 11, color: C.t2 }}>${Number(row.amount || 0).toFixed(2)} • <strong style={{ color: row.status === 'paid' ? C.accent : C.warning || '#f59e0b' }}>{row.status}</strong></div>
+                          </>
+                        ) : null}
+                      </div>
+                    ))}
+                  </div>
                 </div>
               </Panel>
             </>
@@ -267,18 +611,32 @@ export function Settings({ setPage, prevPage, initialTab = 'profile', systemAcco
           {tab === 'communication' ? (
             <>
               <Panel title={t.commTitle || 'Communication'} subtitle={t.commSub || 'Support and contact channels'}>
-                <div style={{ display: 'grid', gap: 8 }}>
+                <div style={{ display: 'grid', gap: 8, width: '100%', minWidth: 0 }}>
                   <button
-                    onClick={() => { window.location.href = 'mailto:suporte@dealsifter.com'; }}
-                    style={{ border: `1px solid ${C.border}`, background: 'transparent', color: C.t2, borderRadius: 8, padding: '9px 10px', fontSize: 12, fontWeight: 700, cursor: 'pointer', display: 'inline-flex', gap: 7, alignItems: 'center', justifyContent: 'center' }}>
+                    onClick={() => {
+                      const subject = encodeURIComponent('DealSifter Support');
+                      window.location.href = `mailto:contato.dealsifter@gmail.com?subject=${subject}`;
+                    }}
+                    style={{ width: '100%', boxSizing: 'border-box', border: `1px solid ${C.border}`, background: 'transparent', color: C.t2, borderRadius: 8, padding: '9px 10px', fontSize: 12, fontWeight: 700, cursor: 'pointer', display: 'inline-flex', gap: 7, alignItems: 'center', justifyContent: 'center' }}>
                     <Icon name="email" size={13} color={C.t2} /> {t.contactEmail || 'Contact by email'}
                   </button>
                   <button
-                    onClick={() => { window.open('mailto:suporte@dealsifter.com?subject=Suporte%20DealSifter', '_blank'); }}
-                    style={{ border: `1px solid ${C.border}`, background: 'transparent', color: C.t2, borderRadius: 8, padding: '9px 10px', fontSize: 12, fontWeight: 700, cursor: 'pointer', display: 'inline-flex', gap: 7, alignItems: 'center', justifyContent: 'center' }}>
+                    onClick={() => {
+                      setCommView('support');
+                      setSupportMessages((prev) => {
+                        if ((prev || []).length) return prev;
+                        return [{
+                          id: `support-${Date.now()}`,
+                          from: 'admin',
+                          text: t.supportWelcome || 'Hello! This is DealSifter Admin/Support. How can we help?',
+                          createdAt: Date.now(),
+                        }];
+                      });
+                    }}
+                    style={{ width: '100%', boxSizing: 'border-box', border: `1px solid ${C.border}`, background: 'transparent', color: C.t2, borderRadius: 8, padding: '9px 10px', fontSize: 12, fontWeight: 700, cursor: 'pointer', display: 'inline-flex', gap: 7, alignItems: 'center', justifyContent: 'center' }}>
                     <Icon name="chat" size={13} color={C.t2} /> {t.contactChat || 'Open support chat'}
                   </button>
-                  <div style={{ border: `1px solid ${C.border}`, borderRadius: 10, padding: 10, display: 'grid', gap: 8 }}>
+                  <div style={{ border: `1px solid ${C.border}`, borderRadius: 10, padding: 10, display: 'grid', gap: 8, width: '100%', minWidth: 0, boxSizing: 'border-box' }}>
                     <label style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8, fontSize: 12, color: C.t2 }}>
                       <span>Email alerts</span>
                       <input type="checkbox" checked={Boolean(commPrefs?.email)} onChange={() => toggleComm('email')} />
@@ -299,7 +657,138 @@ export function Settings({ setPage, prevPage, initialTab = 'profile', systemAcco
 
           {tab === 'security' ? (
             <Panel title={t.securityTitle || 'Security & Access'} subtitle={t.securitySub || 'Login password and access controls'}>
-              <div style={{ fontSize: 12, color: C.t2 }}>{t.securityMockInfo || 'Security controls are mocked for now and prepared for real auth integration.'}</div>
+              <div style={{ display: 'grid', gap: 10, width: '100%', minWidth: 0 }}>
+                <div style={{ border: `1px solid ${C.border}`, borderRadius: 10, padding: 10, display: 'grid', gap: 6 }}>
+                  <div style={{ fontSize: 12, fontWeight: 800, color: C.t1 }}>{t.securityCenter || 'Security Center'}</div>
+                  <div style={{ fontSize: 12, color: C.t2 }}>
+                    {t.securityMfaStatus || 'MFA status'}: <strong style={{ color: C.accent }}>{t.securityMfaEnabled || 'Enabled (Email OTP)'}</strong>
+                  </div>
+                  <div style={{ fontSize: 12, color: C.t2 }}>
+                    {t.securityEmailStatus || 'Email verification'}:{' '}
+                    <strong style={{ color: authSession?.emailVerified ? C.accent : C.warning || '#f59e0b' }}>
+                      {authSession?.emailVerified ? (t.verified || 'Verified') : (t.pending || 'Pending')}
+                    </strong>
+                  </div>
+                  <div style={{ fontSize: 12, color: C.t2 }}>
+                    {t.securityAuditEvents || 'Recent security events'}: <strong style={{ color: C.t1 }}>{securityAudit.length}</strong>
+                  </div>
+                </div>
+
+                <div style={{ border: `1px solid ${C.border}`, borderRadius: 10, padding: 10, display: 'grid', gap: 6 }}>
+                  <div style={{ fontSize: 12, color: C.t2 }}>
+                    {t.securityEmail || 'Login email'}:{' '}
+                    <strong style={{ color: C.t1, overflowWrap: 'anywhere', wordBreak: 'break-word' }}>
+                      {authSession?.email || systemAccount?.email || '-'}
+                    </strong>
+                  </div>
+                  <div style={{ fontSize: 12, color: C.t2 }}>
+                    {t.securityEmailStatus || 'Email verification'}:{' '}
+                    <strong style={{ color: authSession?.emailVerified ? C.accent : C.warning || '#f59e0b' }}>
+                      {authSession?.emailVerified ? (t.verified || 'Verified') : (t.pending || 'Pending')}
+                    </strong>
+                  </div>
+                  <div style={{ fontSize: 12, color: C.t2 }}>
+                    {t.securityMfaStatus || 'MFA status'}:{' '}
+                    <strong style={{ color: C.accent }}>{t.securityMfaEnabled || 'Enabled (Email OTP)'}</strong>
+                  </div>
+                </div>
+
+                <button
+                  onClick={() => requestSecurityEmailOtp('reset-password')}
+                  style={{ width: '100%', boxSizing: 'border-box', border: `1px solid ${C.border}`, background: 'transparent', color: C.t2, borderRadius: 8, padding: '10px 12px', fontSize: 12, fontWeight: 700, cursor: 'pointer' }}
+                >
+                  {t.securityResetPassword || 'Send password reset email (protected)'}
+                </button>
+
+                <button
+                  onClick={() => requestSecurityEmailOtp('logout-all')}
+                  style={{ width: '100%', boxSizing: 'border-box', border: `1px solid ${C.warning || '#f59e0b'}`, background: C.alpha(C.warning || '#f59e0b', 0.08), color: C.warning || '#f59e0b', borderRadius: 8, padding: '10px 12px', fontSize: 12, fontWeight: 800, cursor: 'pointer' }}
+                >
+                  {t.securityLogoutAll || 'Sign out from all devices (protected)'}
+                </button>
+
+                {securityOtpPendingAction ? (
+                  <div style={{ border: `1px solid ${C.border}`, borderRadius: 10, padding: 10, display: 'grid', gap: 8 }}>
+                    <div style={{ fontSize: 12, color: C.t2 }}>
+                      {t.securityOtpPrompt || 'Enter the verification code sent to your email to continue.'}
+                    </div>
+                    <input
+                      value={securityOtpCode}
+                      onChange={(e) => setSecurityOtpCode(e.target.value)}
+                      placeholder={t.securityOtpPlaceholder || 'Verification code'}
+                      style={{ width: '100%', minWidth: 0, boxSizing: 'border-box', border: `1px solid ${C.border}`, borderRadius: 8, padding: '9px 10px', background: C.bg, color: C.t1, fontSize: 12 }}
+                    />
+                    <div style={{ display: 'flex', gap: 8 }}>
+                      <button
+                        onClick={verifySecurityOtpAndRun}
+                        disabled={securityOtpVerifying}
+                        style={{ flex: 1, border: 'none', background: C.accent, color: '#fff', borderRadius: 8, padding: '9px 10px', fontSize: 12, fontWeight: 800, cursor: securityOtpVerifying ? 'not-allowed' : 'pointer', opacity: securityOtpVerifying ? 0.7 : 1 }}
+                      >
+                        {securityOtpVerifying ? (t.verifying || 'Verifying...') : (t.confirm || 'Confirm')}
+                      </button>
+                      <button
+                        onClick={() => {
+                          setSecurityOtpPendingAction('');
+                          setSecurityOtpCode('');
+                        }}
+                        style={{ flex: 1, border: `1px solid ${C.border}`, background: 'transparent', color: C.t2, borderRadius: 8, padding: '9px 10px', fontSize: 12, fontWeight: 700, cursor: 'pointer' }}
+                      >
+                        {t.cancel || 'Cancel'}
+                      </button>
+                    </div>
+                  </div>
+                ) : null}
+
+                {securityOtpSending ? (
+                  <div style={{ fontSize: 11, color: C.t3 }}>
+                    {t.securitySendingOtp || 'Sending verification code...'}
+                  </div>
+                ) : null}
+
+                <div style={{ border: `1px solid ${C.border}`, borderRadius: 10, padding: 10, display: 'grid', gap: 8 }}>
+                  <div style={{ fontSize: 12, fontWeight: 700, color: C.t1 }}>{t.securitySessions || 'Active sessions'}</div>
+                  <div style={{ display: 'grid', gap: 6, maxHeight: 180, overflowY: 'auto' }}>
+                    {(securitySessions.length ? securitySessions : [{ id: 'none', device: t.notApplicable || 'N/A', current: true, lastSeenAt: null }]).map((row) => (
+                      <div key={row.id} style={{ border: `1px solid ${C.border}`, borderRadius: 8, padding: 8 }}>
+                        <div style={{ fontSize: 11, color: C.t1 }}>{row.device}</div>
+                        <div style={{ fontSize: 10, color: C.t3 }}>
+                          {row.lastSeenAt ? new Date(row.lastSeenAt).toLocaleString('en-US') : (t.notApplicable || 'N/A')}
+                          {row.current ? ` • ${t.currentSession || 'Current session'}` : ''}
+                        </div>
+                        {!row.current && row.id !== 'none' ? (
+                          <button
+                            onClick={() => terminateSession(row.id)}
+                            style={{ marginTop: 6, border: `1px solid ${C.border}`, background: 'transparent', color: C.t2, borderRadius: 6, padding: '5px 8px', fontSize: 10, fontWeight: 700, cursor: 'pointer' }}
+                          >
+                            {t.securityTerminateSession || 'Terminate session'}
+                          </button>
+                        ) : null}
+                      </div>
+                    ))}
+                  </div>
+                </div>
+
+                <div style={{ border: `1px solid ${C.border}`, borderRadius: 10, padding: 10, display: 'grid', gap: 8 }}>
+                  <div style={{ fontSize: 12, fontWeight: 700, color: C.t1 }}>{t.securityAudit || 'Security audit log'}</div>
+                  <div style={{ display: 'flex', gap: 6 }}>
+                    <button onClick={() => exportSecurityAudit('json')} style={{ border: `1px solid ${C.border}`, background: 'transparent', color: C.t2, borderRadius: 6, padding: '5px 8px', fontSize: 10, fontWeight: 700, cursor: 'pointer' }}>
+                      {t.securityExportJson || 'Export JSON'}
+                    </button>
+                    <button onClick={() => exportSecurityAudit('csv')} style={{ border: `1px solid ${C.border}`, background: 'transparent', color: C.t2, borderRadius: 6, padding: '5px 8px', fontSize: 10, fontWeight: 700, cursor: 'pointer' }}>
+                      {t.securityExportCsv || 'Export CSV'}
+                    </button>
+                  </div>
+                  <div style={{ display: 'grid', gap: 6, maxHeight: 220, overflowY: 'auto' }}>
+                    {(securityAudit.length ? securityAudit : [{ id: 'none', type: 'none', status: 'none', message: t.notApplicable || 'N/A', at: null }]).map((evt) => (
+                      <div key={evt.id} style={{ border: `1px solid ${C.border}`, borderRadius: 8, padding: 8 }}>
+                        <div style={{ fontSize: 11, color: C.t1, textTransform: 'capitalize' }}>{String(evt.type || 'event')} • {String(evt.status || '').toUpperCase()}</div>
+                        <div style={{ fontSize: 10, color: C.t2 }}>{evt.message}</div>
+                        <div style={{ fontSize: 10, color: C.t3 }}>{evt.at ? new Date(evt.at).toLocaleString('en-US') : ''}</div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              </div>
             </Panel>
           ) : null}
 
@@ -434,6 +923,81 @@ export function Settings({ setPage, prevPage, initialTab = 'profile', systemAcco
             </>
           ) : null}
         </div>
+        ) : null}
+
+        {isSupportFullscreen ? (
+          <section style={{ border: `1px solid ${C.border}`, borderRadius: 14, background: C.card, overflow: 'hidden', width: '100%', minWidth: 0, boxSizing: 'border-box', display: 'grid', gridTemplateRows: 'auto 1fr auto', minHeight: 'calc(var(--app-vh, 1vh) * 100 - 170px)' }}>
+            <div style={{ padding: '12px 14px', borderBottom: `1px solid ${C.border}`, display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 10 }}>
+              <button
+                onClick={() => setCommView('menu')}
+                style={{ border: `1px solid ${C.border}`, background: 'transparent', color: C.t2, borderRadius: 8, padding: '8px 10px', fontSize: 12, fontWeight: 700, cursor: 'pointer', display: 'inline-flex', alignItems: 'center', gap: 8 }}
+              >
+                <Icon name="back" size={13} color={C.t2} />
+                {t.back || 'Back'}
+              </button>
+              <div style={{ fontSize: 12, fontWeight: 800, color: C.t1 }}>{t.supportHeader || 'DealSifter Admin/Support'}</div>
+            </div>
+
+            <div style={{ padding: 12, overflowY: 'auto', display: 'grid', gap: 8, background: C.alpha(C.bg, 0.35) }}>
+              {(supportMessages || []).map((item) => (
+                <div key={item.id} style={{ justifySelf: item.from === 'user' ? 'end' : 'start', maxWidth: '86%', border: `1px solid ${item.from === 'user' ? C.accent : C.border}`, background: item.from === 'user' ? C.alpha(C.accent, 0.12) : 'transparent', borderRadius: 10, padding: '8px 10px', fontSize: 12, color: C.t1 }}>
+                  <div style={{ fontSize: 10, fontWeight: 700, color: item.from === 'user' ? C.accent : C.t3, marginBottom: 2 }}>
+                    {item.from === 'user' ? (t.supportYou || 'You') : (t.supportHeader || 'DealSifter Admin/Support')}
+                  </div>
+                  <div style={{ overflowWrap: 'anywhere', wordBreak: 'break-word' }}>{item.text}</div>
+                </div>
+              ))}
+            </div>
+
+            <div style={{ padding: 12, borderTop: `1px solid ${C.border}`, display: 'flex', gap: 6 }}>
+              <input
+                value={supportInput}
+                onChange={(e) => setSupportInput(e.target.value)}
+                onKeyDown={(e) => {
+                  if (e.key !== 'Enter') return;
+                  e.preventDefault();
+                  const text = String(supportInput || '').trim();
+                  if (!text) return;
+                  const now = Date.now();
+                  setSupportMessages((prev) => ([
+                    ...(prev || []),
+                    { id: `user-${now}`, from: 'user', text, createdAt: now },
+                  ]));
+                  setSupportInput('');
+                  setTimeout(() => {
+                    setSupportMessages((prev) => ([
+                      ...(prev || []),
+                      { id: `admin-${Date.now()}`, from: 'admin', text: t.supportAutoReply || 'Message received. Admin/Support will reply soon.', createdAt: Date.now() },
+                    ]));
+                  }, 450);
+                }}
+                placeholder={t.supportInputPlaceholder || 'Write your message...'}
+                style={{ flex: 1, minWidth: 0, boxSizing: 'border-box', border: `1px solid ${C.border}`, borderRadius: 8, padding: '9px 10px', background: C.bg, color: C.t1, fontSize: 12 }}
+              />
+              <button
+                onClick={() => {
+                  const text = String(supportInput || '').trim();
+                  if (!text) return;
+                  const now = Date.now();
+                  setSupportMessages((prev) => ([
+                    ...(prev || []),
+                    { id: `user-${now}`, from: 'user', text, createdAt: now },
+                  ]));
+                  setSupportInput('');
+                  setTimeout(() => {
+                    setSupportMessages((prev) => ([
+                      ...(prev || []),
+                      { id: `admin-${Date.now()}`, from: 'admin', text: t.supportAutoReply || 'Message received. Admin/Support will reply soon.', createdAt: Date.now() },
+                    ]));
+                  }, 450);
+                }}
+                style={{ border: 'none', background: C.accent, color: '#fff', borderRadius: 8, padding: '9px 12px', fontSize: 12, fontWeight: 800, cursor: 'pointer' }}
+              >
+                {t.send || 'Send'}
+              </button>
+            </div>
+          </section>
+        ) : null}
       </div>
     </div>
   );

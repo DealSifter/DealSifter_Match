@@ -94,6 +94,47 @@ const PLAN_BONUS_BY_TIER = {
   enterprise: 25,
 };
 
+const SECURITY_AUDIT_KEY = 'ds_security_audit';
+const SECURITY_SESSIONS_KEY = 'ds_security_sessions';
+const SECURITY_ACTIVE_SESSION_KEY = 'ds_security_active_session_id';
+
+const appendSecurityAuditEvent = (event) => {
+  try {
+    const current = JSON.parse(localStorage.getItem(SECURITY_AUDIT_KEY) || '[]');
+    const next = Array.isArray(current) ? current : [];
+    next.unshift({
+      id: `sec-${Date.now()}-${Math.random().toString(16).slice(2, 7)}`,
+      at: Date.now(),
+      ...event,
+    });
+    localStorage.setItem(SECURITY_AUDIT_KEY, JSON.stringify(next.slice(0, 200)));
+  } catch { /* no-op */ }
+};
+
+const consumeRateLimit = (key, maxAttempts, windowMs, lockMs = windowMs) => {
+  try {
+    const now = Date.now();
+    const store = JSON.parse(localStorage.getItem('ds_security_rate_limits') || '{}');
+    const entry = store?.[key] || { attempts: [], lockedUntil: 0 };
+    if (Number(entry.lockedUntil || 0) > now) {
+      return { allowed: false, retryAfterMs: Number(entry.lockedUntil) - now };
+    }
+    const attempts = (Array.isArray(entry.attempts) ? entry.attempts : []).filter((ts) => now - Number(ts) <= windowMs);
+    attempts.push(now);
+    if (attempts.length > maxAttempts) {
+      const lockedUntil = now + lockMs;
+      store[key] = { attempts, lockedUntil };
+      localStorage.setItem('ds_security_rate_limits', JSON.stringify(store));
+      return { allowed: false, retryAfterMs: lockMs };
+    }
+    store[key] = { attempts, lockedUntil: 0 };
+    localStorage.setItem('ds_security_rate_limits', JSON.stringify(store));
+    return { allowed: true, retryAfterMs: 0 };
+  } catch {
+    return { allowed: true, retryAfterMs: 0 };
+  }
+};
+
 const normalizeCheckoutIntent = (intent) => {
   if (!intent || typeof intent !== 'object') return null;
   const kind = String(intent.kind || '').trim().toLowerCase();
@@ -582,6 +623,7 @@ export default function App() {
       return null;
     }
   });
+  const [sessionVersion, setSessionVersion] = useState(0);
   const [systemAccount, setSystemAccount] = useState(() => {
     try {
       const raw = localStorage.getItem('systemAccount');
@@ -593,6 +635,68 @@ export default function App() {
     }
   });
   const [isAdmin, setIsAdmin] = useState(false);
+
+  useEffect(() => {
+    if (!authSession?.id) return;
+    try {
+      const now = Date.now();
+      const currentId = localStorage.getItem(SECURITY_ACTIVE_SESSION_KEY) || `sess-${now}-${Math.random().toString(16).slice(2, 7)}`;
+      localStorage.setItem(SECURITY_ACTIVE_SESSION_KEY, currentId);
+      const all = JSON.parse(localStorage.getItem(SECURITY_SESSIONS_KEY) || '[]');
+      const rows = Array.isArray(all) ? all : [];
+      const nextRows = rows
+        .filter((row) => row && String(row.userId || '') === String(authSession.id))
+        .map((row) => ({ ...row, current: String(row.id) === String(currentId) }));
+      const hasCurrent = nextRows.some((row) => String(row.id) === String(currentId));
+      if (!hasCurrent) {
+        nextRows.unshift({
+          id: currentId,
+          userId: authSession.id,
+          email: authSession.email || '',
+          createdAt: now,
+          lastSeenAt: now,
+          current: true,
+          device: String(navigator.userAgent || 'Unknown device').slice(0, 120),
+        });
+        appendSecurityAuditEvent({ type: 'session', status: 'created', message: 'New active session started.' });
+      }
+      localStorage.setItem(SECURITY_SESSIONS_KEY, JSON.stringify(nextRows.slice(0, 20)));
+      setSessionVersion((v) => v + 1);
+    } catch { /* no-op */ }
+  }, [authSession?.id, authSession?.email]);
+
+  useEffect(() => {
+    if (!authSession?.id) return undefined;
+    const updateActivity = () => {
+      lastActivityRef.current = Date.now();
+      try {
+        const currentId = localStorage.getItem(SECURITY_ACTIVE_SESSION_KEY);
+        if (!currentId) return;
+        const all = JSON.parse(localStorage.getItem(SECURITY_SESSIONS_KEY) || '[]');
+        const rows = Array.isArray(all) ? all : [];
+        let changed = false;
+        const next = rows.map((row) => {
+          if (String(row?.id || '') !== String(currentId)) return row;
+          changed = true;
+          return { ...row, lastSeenAt: Date.now() };
+        });
+        if (changed) localStorage.setItem(SECURITY_SESSIONS_KEY, JSON.stringify(next));
+      } catch { /* no-op */ }
+    };
+    const events = ['pointerdown', 'keydown', 'mousemove', 'touchstart'];
+    events.forEach((evt) => window.addEventListener(evt, updateActivity, { passive: true }));
+    const timer = window.setInterval(() => {
+      const inactiveMs = Date.now() - Number(lastActivityRef.current || 0);
+      if (inactiveMs > 45 * 60 * 1000) {
+        appendSecurityAuditEvent({ type: 'session', status: 'timeout', message: 'Session ended due to inactivity.' });
+        handleUserLogout();
+      }
+    }, 60 * 1000);
+    return () => {
+      events.forEach((evt) => window.removeEventListener(evt, updateActivity));
+      window.clearInterval(timer);
+    };
+  }, [authSession?.id]);
 
   // Toast notification system
   const [toasts, setToasts] = useState([]);
@@ -843,8 +947,10 @@ export default function App() {
     }
   }); // Track {buyerId, sellerId} for bought contacts
   const [convos, setConvos] = useState({});
+  const [chatSeenVersion, setChatSeenVersion] = useState(0);
   const [chatFocusTarget, setChatFocusTarget] = useState(null);
   const [chatFocusToken, setChatFocusToken] = useState(0);
+  const lastActivityRef = useRef(Date.now());
   const [systemNotifications, setSystemNotifications] = useState(() => {
     try {
       const saved = localStorage.getItem('ds_system_notifications');
@@ -2393,7 +2499,25 @@ export default function App() {
         };
       })
       .sort((a, b) => (b.count || 0) - (a.count || 0));
-  }, [convos, unlocked, matched]);
+  }, [convos, unlocked, matched, chatSeenVersion]);
+
+  const markChatNotificationAsRead = (notification) => {
+    const ownerIdRaw = notification?.ownerId;
+    if (ownerIdRaw == null) return;
+    const ownerId = String(ownerIdRaw);
+    const msgs = Array.isArray(convos?.[ownerId]) ? convos[ownerId] : [];
+    const incomingCount = msgs.filter((m) => m?.from !== 'me').length;
+    try {
+      const saved = localStorage.getItem('chatSeenIncomingByContact');
+      const parsed = saved ? JSON.parse(saved) : {};
+      const next = parsed && typeof parsed === 'object' ? { ...parsed } : {};
+      next[ownerId] = incomingCount;
+      localStorage.setItem('chatSeenIncomingByContact', JSON.stringify(next));
+      setChatSeenVersion((v) => v + 1);
+    } catch (error) {
+      console.error('Failed to mark chat notification as read.', error);
+    }
+  };
 
   const openChatFromNotification = (notification) => {
     const ownerIdRaw = notification?.ownerId;
@@ -2537,6 +2661,7 @@ export default function App() {
     });
 
     clearAllUserData();
+    appendSecurityAuditEvent({ type: 'logout', status: 'success', message: 'User signed out from current device.' });
     setModal(null);
     setPage('landing');
   };
@@ -2559,6 +2684,14 @@ export default function App() {
       const provider = payload?.provider === 'google' ? 'google' : 'credentials';
 
       try {
+        if (provider === 'credentials' && mode === 'login') {
+          const guard = consumeRateLimit(`login:${email.toLowerCase()}`, 7, 10 * 60 * 1000, 15 * 60 * 1000);
+          if (!guard.allowed) {
+            addToast({ type: 'warning', message: 'Too many attempts. Try again in a few minutes.' });
+            appendSecurityAuditEvent({ type: 'login', status: 'blocked', message: 'Login temporarily rate-limited.', email });
+            return;
+          }
+        }
         if (provider === 'google') {
           const { error } = await supabase.auth.signInWithOAuth({
             provider: 'google',
@@ -2588,9 +2721,11 @@ export default function App() {
             }));
             setModal(null);
             setPage('dashboard');
+            appendSecurityAuditEvent({ type: 'signup', status: 'success', message: 'New account created and signed in.', email });
             return;
           }
           addToast({ type: 'success', title: 'Conta criada', message: 'Confira seu email para confirmar o acesso.' });
+          appendSecurityAuditEvent({ type: 'signup', status: 'pending_verification', message: 'Account created awaiting email verification.', email });
           setModal(null);
           return;
         }
@@ -2607,10 +2742,12 @@ export default function App() {
           }));
           setModal(null);
           setPage('dashboard');
+          appendSecurityAuditEvent({ type: 'login', status: 'success', message: 'User signed in with credentials.', email });
         }
         return;
       } catch (error) {
         safeLogError('Supabase auth submit failed.', error);
+        appendSecurityAuditEvent({ type: 'login', status: 'failed', message: String(error?.message || 'Authentication failed.'), email });
         addToast({ type: 'error', title: 'Erro de autenticação', message: String(error?.message || 'Falha na autenticação com Supabase.') });
         return;
       } finally {
@@ -2674,11 +2811,18 @@ export default function App() {
     }
     setIsForgotPasswordProcessing(true);
     try {
+      const guard = consumeRateLimit(`forgot:${trimmed.toLowerCase()}`, 5, 30 * 60 * 1000, 30 * 60 * 1000);
+      if (!guard.allowed) {
+        addToast({ type: 'warning', message: 'Too many reset attempts. Please wait before trying again.' });
+        appendSecurityAuditEvent({ type: 'password_reset', status: 'blocked', message: 'Password reset temporarily rate-limited.', email: trimmed });
+        return;
+      }
       const { error } = await supabase.auth.resetPasswordForEmail(trimmed, {
         redirectTo: authRedirectUrl,
       });
       if (error) throw error;
       addToast({ type: 'success', title: 'Email enviado', message: 'Confira sua caixa de entrada para redefinir a senha.' });
+      appendSecurityAuditEvent({ type: 'password_reset', status: 'success', message: 'Password reset email sent.', email: trimmed });
     } catch (err) {
       addToast({ type: 'error', message: String(err?.message || 'Falha ao enviar email de redefinição.') });
     } finally {
@@ -3056,6 +3200,7 @@ export default function App() {
           systemNotifications={systemNotifications}
           setSystemNotifications={setSystemNotifications}
           onOpenChatNotification={openChatFromNotification}
+          onMarkChatNotificationRead={markChatNotificationAsRead}
           onOpenAuthModal={openAuthModal}
           onOpenSettings={() => openSettingsTab('profile')}
           onOpenAdmin={() => setPage('admin')}
