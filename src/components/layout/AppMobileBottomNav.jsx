@@ -3,6 +3,9 @@ import { C } from '../../theme/colors';
 import { useT } from '../../i18n/translations';
 import { Icon } from '../ui/Icon';
 import feedMatchIcon from '../../assets/feed-match-icon.png';
+import newCardTaskbarIcon from '../../assets/taskbar-newcard-icon.png';
+import mapViewTaskbarIcon from '../../assets/taskbar-mapview-icon.png';
+import matchesTaskbarIcon from '../../assets/taskbar-matches-icon.png';
 
 const HIDDEN_PAGES = new Set(['landing', 'terms', 'privacy', 'admin']);
 
@@ -17,6 +20,7 @@ export function AppMobileBottomNav({ page, setPage, collapsed = false, onCollaps
     return window.matchMedia(TABLET_PORTRAIT_QUERY).matches;
   });
   const [isDraggingHandle, setIsDraggingHandle] = useState(false);
+  const [pressedItemId, setPressedItemId] = useState(null);
   const [dragOffsetY, setDragOffsetY] = useState(0);
   const [navMeasuredHeight, setNavMeasuredHeight] = useState(84);
   const navRef = useRef(null);
@@ -89,10 +93,11 @@ export function AppMobileBottomNav({ page, setPage, collapsed = false, onCollaps
 
   const navItems = useMemo(() => ([
     { id: 'dashboard', label: t.feed, icon: 'grid' },
-    { id: 'mapview', label: t.mapView, icon: 'mapPin' },
-    { id: 'matches', label: t.matches, icon: 'chat' },
-    { id: 'onboarding', label: t.newCard || 'New Card', icon: 'plus' },
+    { id: 'mapview', label: t.mapView, icon: 'mapView' },
+    { id: 'matches', label: t.matches, icon: 'matches' },
+    { id: 'onboarding', label: t.newCard || 'New Card', icon: 'newCard' },
   ]), [t.feed, t.mapView, t.matches, t.newCard]);
+  const neonGlow = 'drop-shadow(0 0 6px rgba(53,202,201,0.95)) drop-shadow(0 0 12px rgba(53,202,201,0.8)) drop-shadow(0 0 18px rgba(53,202,201,0.55))';
 
   const emitCollapsedChange = (nextValue) => {
     if (typeof onCollapsedChange === 'function') onCollapsedChange(Boolean(nextValue));
@@ -205,21 +210,47 @@ export function AppMobileBottomNav({ page, setPage, collapsed = false, onCollaps
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', height: navGridHeight }}>
         {navItems.map((item) => {
           const isActive = page === item.id;
-          const feedIconColor = isActive ? C.accent : C.t3;
-          const feedIconGlow = isActive
-            ? 'drop-shadow(0 0 6px rgba(53,202,201,0.95)) drop-shadow(0 0 12px rgba(53,202,201,0.8)) drop-shadow(0 0 18px rgba(53,202,201,0.55))'
-            : 'none';
+          const isPressed = pressedItemId === item.id;
+          const iconColor = isActive ? C.accent : C.t2;
+          const iconGlow = isActive ? neonGlow : 'none';
+          const iconImage = item.id === 'dashboard'
+            ? feedMatchIcon
+            : item.id === 'onboarding'
+              ? newCardTaskbarIcon
+              : item.id === 'mapview'
+                ? mapViewTaskbarIcon
+                : item.id === 'matches'
+                  ? matchesTaskbarIcon
+                  : null;
+          const iconInnerScale = item.id === 'dashboard'
+            ? 0.95
+            : item.id === 'mapview'
+              ? 0.8
+              : item.id === 'matches'
+                ? 0.95
+                : item.id === 'onboarding'
+                  ? 0.92
+                  : 1;
+          const iconInset = `${((1 - iconInnerScale) * 100) / 2}%`;
           return (
             <button
               key={item.id}
               type="button"
               onClick={() => setPage && setPage(item.id)}
+              onPointerDown={() => setPressedItemId(item.id)}
+              onPointerUp={() => setPressedItemId(null)}
+              onPointerCancel={() => setPressedItemId(null)}
+              onPointerLeave={() => setPressedItemId((current) => (current === item.id ? null : current))}
               aria-current={isActive ? 'page' : undefined}
               style={{
                 border: 'none',
                 borderTop: isActive ? `2px solid ${C.accent}` : '2px solid transparent',
-                background: isActive ? C.alpha(C.accent, 0.06) : 'transparent',
-                color: isActive ? C.accent : C.t3,
+                background: isActive
+                  ? C.alpha(C.accent, isPressed ? 0.14 : 0.08)
+                  : isPressed
+                    ? C.alpha(C.t3, 0.1)
+                    : 'transparent',
+                color: iconColor,
                 cursor: 'pointer',
                 display: 'flex',
                 flexDirection: 'column',
@@ -227,8 +258,9 @@ export function AppMobileBottomNav({ page, setPage, collapsed = false, onCollaps
                 justifyContent: 'center',
                 gap: 4,
                 fontSize: navLabelSize,
-                fontWeight: isActive ? 700 : 500,
-                transition: 'all .15s ease',
+                fontWeight: isActive ? 700 : 600,
+                transform: isPressed ? 'translateY(1px)' : 'translateY(0)',
+                transition: 'all .12s ease',
               }}
             >
               <span
@@ -239,11 +271,15 @@ export function AppMobileBottomNav({ page, setPage, collapsed = false, onCollaps
                   display: 'inline-flex',
                   alignItems: 'center',
                   justifyContent: 'center',
-                  background: isActive ? C.alpha(C.accent, 0.18) : 'transparent',
-                  transition: 'all .15s ease',
+                  background: isActive
+                    ? C.alpha(C.accent, isPressed ? 0.24 : 0.18)
+                    : isPressed
+                      ? C.alpha(C.t3, 0.14)
+                      : 'transparent',
+                  transition: 'all .12s ease',
                 }}
               >
-                {item.id === 'dashboard' ? (
+                {iconImage ? (
                   <span
                     aria-hidden="true"
                     style={{
@@ -253,21 +289,22 @@ export function AppMobileBottomNav({ page, setPage, collapsed = false, onCollaps
                       alignItems: 'center',
                       justifyContent: 'center',
                       position: 'relative',
-                      filter: feedIconGlow,
-                      opacity: isActive ? 1 : 0.95,
-                      transition: 'filter .18s ease, opacity .18s ease, background-color .18s ease',
+                      filter: iconGlow,
+                      opacity: 1,
+                      transition: 'filter .12s ease, opacity .12s ease, background-color .12s ease, transform .12s ease',
+                      transform: isPressed ? 'scale(0.97)' : 'scale(1)',
                     }}
                   >
                     <span
                       style={{
                         position: 'absolute',
-                        inset: 0,
-                        backgroundColor: feedIconColor,
-                        WebkitMaskImage: `url(${feedMatchIcon})`,
+                        inset: iconInset,
+                        backgroundColor: iconColor,
+                        WebkitMaskImage: `url(${iconImage})`,
                         WebkitMaskRepeat: 'no-repeat',
                         WebkitMaskSize: 'contain',
                         WebkitMaskPosition: 'center',
-                        maskImage: `url(${feedMatchIcon})`,
+                        maskImage: `url(${iconImage})`,
                         maskRepeat: 'no-repeat',
                         maskSize: 'contain',
                         maskPosition: 'center',
@@ -276,15 +313,15 @@ export function AppMobileBottomNav({ page, setPage, collapsed = false, onCollaps
                     <span
                       style={{
                         position: 'absolute',
-                        inset: 0,
+                        inset: iconInset,
                         transform: 'translate(0.45px, 0)',
-                        backgroundColor: feedIconColor,
+                        backgroundColor: iconColor,
                         opacity: 0.9,
-                        WebkitMaskImage: `url(${feedMatchIcon})`,
+                        WebkitMaskImage: `url(${iconImage})`,
                         WebkitMaskRepeat: 'no-repeat',
                         WebkitMaskSize: 'contain',
                         WebkitMaskPosition: 'center',
-                        maskImage: `url(${feedMatchIcon})`,
+                        maskImage: `url(${iconImage})`,
                         maskRepeat: 'no-repeat',
                         maskSize: 'contain',
                         maskPosition: 'center',
@@ -295,7 +332,7 @@ export function AppMobileBottomNav({ page, setPage, collapsed = false, onCollaps
                   <Icon
                     name={item.icon}
                     size={navIconSize}
-                    color={isActive ? C.accent : C.t3}
+                    color={iconColor}
                     strokeWidth={isActive ? 2 : 1.8}
                   />
                 )}

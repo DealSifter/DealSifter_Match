@@ -12,7 +12,8 @@ import { Icon } from '../components/ui/Icon';
 const DEFAULT_CENTER = [39.5, -98.35];
 const DEFAULT_ZOOM = 4;
 const CLUSTER_CITY_LEVEL_MAX_ZOOM = 11;
-const CLUSTER_BREAKOUT_ZOOM = 13;
+// From city-level zoom onward, render only individual pins (no clusters).
+const CLUSTER_BREAKOUT_ZOOM = CLUSTER_CITY_LEVEL_MAX_ZOOM;
 const DEFAULT_USA_BOUNDS = [
   [24.396308, -124.848974],
   [49.384358, -66.885444],
@@ -1952,14 +1953,25 @@ export function MapView({
 
   // While a card is selected, render unclustered points so the dedicated pin is always visible.
   const renderedFeatures = useMemo(() => {
+    const roundedZoom = Math.round(viewport?.zoom || DEFAULT_ZOOM);
     if (selectedClusterFeatures.length > 0) {
+      // Keep opened cluster in pin mode (no sub-clusters) after the second click.
       return spreadCoincidentFeatures(selectedClusterFeatures, 0.00045);
     }
     if (selectedCardId != null) return unclusteredSpreadPoints;
-    const roundedZoom = Math.round(viewport?.zoom || DEFAULT_ZOOM);
     if (roundedZoom >= CLUSTER_BREAKOUT_ZOOM) return unclusteredSpreadPoints;
     return clusters;
   }, [selectedClusterFeatures, selectedCardId, unclusteredSpreadPoints, clusters, viewport?.zoom]);
+
+  React.useEffect(() => {
+    if (!selectedClusterFeatures.length) return;
+    const roundedZoom = Math.round(viewport?.zoom || DEFAULT_ZOOM);
+    // Exit explicit opened-cluster pin mode only after zooming OUT below city level.
+    if (roundedZoom < CLUSTER_BREAKOUT_ZOOM) {
+      setSelectedClusterFeatures([]);
+      setSelectedClusterLeaves([]);
+    }
+  }, [selectedClusterFeatures.length, viewport?.zoom]);
 
   const visibleItems = useMemo(() => {
     // Se há uma seleção de cluster, mostra apenas os leaves desse cluster
@@ -2013,6 +2025,19 @@ export function MapView({
     setSelectedClusterLeaves([]);
     setSelectedClusterFeatures([]);
   };
+
+  React.useEffect(() => {
+    if (!selectedClusterFeatures.length && !selectedClusterLeaves.length) return;
+    clearClusterSelection();
+    setSelectedCardId(null);
+  }, [
+    showPeople,
+    showProperties,
+    showOnlyUnlocked,
+    showOnlyMyPins,
+    locationMode,
+    appliedLocationQuery,
+  ]);
 
   const startManualPinPlacement = (property) => {
     if (!property?.id) return;
@@ -2365,7 +2390,19 @@ export function MapView({
         .property-pill { border-color: #4381bc; color: #4381bc; }
         .map-filter-input { width: 100%; border: 1px solid var(--ui-border); border-radius: 9px; padding: 8px 10px; background: var(--ui-surface); color: ${C.t1}; font-size: 12px; outline: none; }
         .map-filter-input:focus { border-color: var(--ui-active); box-shadow: 0 0 0 1px var(--ui-active); }
-        .leaflet-control-zoom a { color: ${C.t1}; }
+        .map-canvas .leaflet-control-zoom a {
+          color: ${C.t1} !important;
+          background: var(--ui-surface) !important;
+          border-color: var(--ui-border) !important;
+        }
+        .map-canvas .leaflet-control-zoom a:hover {
+          background: var(--ui-hover) !important;
+          color: ${C.t1} !important;
+        }
+        .map-canvas .leaflet-bar {
+          border-color: var(--ui-border) !important;
+          box-shadow: 0 8px 20px rgba(0, 0, 0, 0.24);
+        }
         .leaflet-popup-content-wrapper {
           border-radius: 12px;
           max-width: min(332px, calc(100vw - 40px));
