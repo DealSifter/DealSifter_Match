@@ -11,6 +11,8 @@ import { Icon } from '../components/ui/Icon';
 
 const DEFAULT_CENTER = [39.5, -98.35];
 const DEFAULT_ZOOM = 4;
+const CLUSTER_CITY_LEVEL_MAX_ZOOM = 11;
+const CLUSTER_BREAKOUT_ZOOM = 13;
 const DEFAULT_USA_BOUNDS = [
   [24.396308, -124.848974],
   [49.384358, -66.885444],
@@ -1891,8 +1893,10 @@ export function MapView({
 
   const clusters = useMemo(() => {
     if (!viewport?.bounds) return [];
-    return clusterIndex.getClusters(viewport.bounds, Math.round(viewport.zoom));
-  }, [clusterIndex, viewport]);
+    const roundedZoom = Math.round(viewport.zoom || DEFAULT_ZOOM);
+    if (roundedZoom >= CLUSTER_BREAKOUT_ZOOM) return filteredPoints;
+    return clusterIndex.getClusters(viewport.bounds, roundedZoom);
+  }, [clusterIndex, filteredPoints, viewport]);
 
   // While a card is selected, render unclustered points so the dedicated pin is always visible.
   const renderedFeatures = useMemo(() => {
@@ -1916,14 +1920,25 @@ export function MapView({
     setSelectedClusterLeaves(leavePayloads);
     setSelectedCardId(null);
     setPanelTab('cards');
-    // Fit map to encompass all pins in this cluster (county-level view)
+    const currentZoom = Number(mapRef.current?.getZoom?.() ?? viewport?.zoom ?? DEFAULT_ZOOM);
+    const shouldBreakoutToPins = currentZoom >= CLUSTER_CITY_LEVEL_MAX_ZOOM;
+
+    // On closer zoom (second click feel), break out to individual pins immediately.
+    if (shouldBreakoutToPins) {
+      const [lng, lat] = clusterFeature.geometry.coordinates;
+      mapRef.current?.stop();
+      mapRef.current?.flyTo([lat, lng], CLUSTER_BREAKOUT_ZOOM + 1, FLY_OPTIONS);
+      return;
+    }
+
+    // First click behavior: keep city-level consolidation, only spread clusters.
     const clusterBounds = buildBoundsFromPoints(rawLeaves, 'city');
     if (clusterBounds) {
       mapRef.current?.stop();
-      mapRef.current?.flyToBounds(clusterBounds, { padding: [36, 36], maxZoom: 14, ...FLY_OPTIONS });
+      mapRef.current?.flyToBounds(clusterBounds, { padding: [36, 36], maxZoom: CLUSTER_CITY_LEVEL_MAX_ZOOM, ...FLY_OPTIONS });
     } else {
       const [lng, lat] = clusterFeature.geometry.coordinates;
-      const expansionZoom = Math.min(clusterIndex.getClusterExpansionZoom(clusterId), 14);
+      const expansionZoom = Math.min(clusterIndex.getClusterExpansionZoom(clusterId), CLUSTER_CITY_LEVEL_MAX_ZOOM);
       mapRef.current?.stop();
       mapRef.current?.flyTo([lat, lng], expansionZoom, FLY_OPTIONS);
     }
