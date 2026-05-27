@@ -2,7 +2,7 @@ import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { C } from '../../theme/colors';
 import { useT } from '../../i18n/translations';
 import { Icon } from '../ui/Icon';
-import feedMatchIcon from '../../assets/feed-match-icon.jpeg';
+import feedMatchIcon from '../../assets/feed-match-icon.png';
 
 const HIDDEN_PAGES = new Set(['landing', 'terms', 'privacy', 'admin']);
 
