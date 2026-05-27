@@ -1296,6 +1296,7 @@ export function MapView({
     };
   });
   const [selectedClusterLeaves, setSelectedClusterLeaves] = useState([]);
+  const [selectedClusterFeatures, setSelectedClusterFeatures] = useState([]);
   const [_flyTo, _setFlyTo] = useState(null); // kept for legacy compatibility (unused)
   const mapRef = React.useRef(null);
   const [fitToBounds, setFitToBounds] = useState(() => {
@@ -1951,11 +1952,14 @@ export function MapView({
 
   // While a card is selected, render unclustered points so the dedicated pin is always visible.
   const renderedFeatures = useMemo(() => {
+    if (selectedClusterFeatures.length > 0) {
+      return spreadCoincidentFeatures(selectedClusterFeatures, 0.00045);
+    }
     if (selectedCardId != null) return unclusteredSpreadPoints;
     const roundedZoom = Math.round(viewport?.zoom || DEFAULT_ZOOM);
     if (roundedZoom >= CLUSTER_BREAKOUT_ZOOM) return unclusteredSpreadPoints;
     return clusters;
-  }, [selectedCardId, unclusteredSpreadPoints, clusters, viewport?.zoom]);
+  }, [selectedClusterFeatures, selectedCardId, unclusteredSpreadPoints, clusters, viewport?.zoom]);
 
   const visibleItems = useMemo(() => {
     // Se há uma seleção de cluster, mostra apenas os leaves desse cluster
@@ -1972,6 +1976,7 @@ export function MapView({
     const rawLeaves = clusterIndex.getLeaves(clusterId, Infinity, 0);
     const leavePayloads = rawLeaves.map((leaf) => leaf.payload).filter(Boolean);
     setSelectedClusterLeaves(leavePayloads);
+    setSelectedClusterFeatures(rawLeaves);
     setSelectedCardId(null);
     setPanelTab('cards');
     const currentZoom = Number(mapRef.current?.getZoom?.() ?? viewport?.zoom ?? DEFAULT_ZOOM);
@@ -2006,6 +2011,7 @@ export function MapView({
 
   const clearClusterSelection = () => {
     setSelectedClusterLeaves([]);
+    setSelectedClusterFeatures([]);
   };
 
   const startManualPinPlacement = (property) => {
