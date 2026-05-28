@@ -97,6 +97,7 @@ const PLAN_BONUS_BY_TIER = {
 const SECURITY_AUDIT_KEY = 'ds_security_audit';
 const SECURITY_SESSIONS_KEY = 'ds_security_sessions';
 const SECURITY_ACTIVE_SESSION_KEY = 'ds_security_active_session_id';
+const USER_PREFERENCES_KEY = 'ds_user_preferences';
 
 const appendSecurityAuditEvent = (event) => {
   try {
@@ -133,6 +134,83 @@ const consumeRateLimit = (key, maxAttempts, windowMs, lockMs = windowMs) => {
   } catch {
     return { allowed: true, retryAfterMs: 0 };
   }
+};
+
+const DEFAULT_USER_PREFERENCES = {
+  map: {
+    initialZoom: 4,
+    defaultStyle: 'simple',
+    clusterBehavior: 'pins_city',
+    defaultFilters: {
+      showPeople: true,
+      showProperties: true,
+      showOnlyUnlocked: false,
+      showOnlyMyPins: false,
+    },
+  },
+  feedMatches: {
+    sortOrder: 'recent',
+    autoplayMedia: false,
+  },
+  chatLanguage: {
+    input: 'pt',
+    output: 'en',
+  },
+  privacy: {
+    presenceStatus: 'online',
+    readReceipts: true,
+    messagePreview: true,
+  },
+};
+
+const normalizeUserPreferences = (value) => {
+  const input = value && typeof value === 'object' ? value : {};
+  const map = input.map && typeof input.map === 'object' ? input.map : {};
+  const defaultFilters = map.defaultFilters && typeof map.defaultFilters === 'object' ? map.defaultFilters : {};
+  const feedMatches = input.feedMatches && typeof input.feedMatches === 'object' ? input.feedMatches : {};
+  const chatLanguage = input.chatLanguage && typeof input.chatLanguage === 'object' ? input.chatLanguage : {};
+  const privacy = input.privacy && typeof input.privacy === 'object' ? input.privacy : {};
+  const initialZoomRaw = Number(map.initialZoom);
+  const initialZoom = Number.isFinite(initialZoomRaw) ? Math.max(3, Math.min(13, initialZoomRaw)) : DEFAULT_USER_PREFERENCES.map.initialZoom;
+  const defaultStyle = ['simple', 'satellite_streets', 'topo', 'flood'].includes(String(map.defaultStyle || '').trim())
+    ? String(map.defaultStyle).trim()
+    : DEFAULT_USER_PREFERENCES.map.defaultStyle;
+  const clusterBehavior = ['pins_city', 'mixed'].includes(String(map.clusterBehavior || '').trim())
+    ? String(map.clusterBehavior).trim()
+    : DEFAULT_USER_PREFERENCES.map.clusterBehavior;
+  const sortOrder = ['recent', 'name_asc', 'price_desc'].includes(String(feedMatches.sortOrder || '').trim())
+    ? String(feedMatches.sortOrder).trim()
+    : DEFAULT_USER_PREFERENCES.feedMatches.sortOrder;
+  const presenceStatus = ['online', 'standby', 'offline'].includes(String(privacy.presenceStatus || '').trim())
+    ? String(privacy.presenceStatus).trim()
+    : DEFAULT_USER_PREFERENCES.privacy.presenceStatus;
+
+  return {
+    map: {
+      initialZoom,
+      defaultStyle,
+      clusterBehavior,
+      defaultFilters: {
+        showPeople: Boolean(defaultFilters.showPeople ?? DEFAULT_USER_PREFERENCES.map.defaultFilters.showPeople),
+        showProperties: Boolean(defaultFilters.showProperties ?? DEFAULT_USER_PREFERENCES.map.defaultFilters.showProperties),
+        showOnlyUnlocked: Boolean(defaultFilters.showOnlyUnlocked ?? DEFAULT_USER_PREFERENCES.map.defaultFilters.showOnlyUnlocked),
+        showOnlyMyPins: Boolean(defaultFilters.showOnlyMyPins ?? DEFAULT_USER_PREFERENCES.map.defaultFilters.showOnlyMyPins),
+      },
+    },
+    feedMatches: {
+      sortOrder,
+      autoplayMedia: Boolean(feedMatches.autoplayMedia ?? DEFAULT_USER_PREFERENCES.feedMatches.autoplayMedia),
+    },
+    chatLanguage: {
+      input: ['pt', 'en', 'es'].includes(String(chatLanguage.input || '').trim()) ? String(chatLanguage.input).trim() : DEFAULT_USER_PREFERENCES.chatLanguage.input,
+      output: ['pt', 'en', 'es'].includes(String(chatLanguage.output || '').trim()) ? String(chatLanguage.output).trim() : DEFAULT_USER_PREFERENCES.chatLanguage.output,
+    },
+    privacy: {
+      presenceStatus,
+      readReceipts: Boolean(privacy.readReceipts ?? DEFAULT_USER_PREFERENCES.privacy.readReceipts),
+      messagePreview: Boolean(privacy.messagePreview ?? DEFAULT_USER_PREFERENCES.privacy.messagePreview),
+    },
+  };
 };
 
 const normalizeCheckoutIntent = (intent) => {
@@ -634,7 +712,21 @@ export default function App() {
       return { fullName: '', email: '', phone: '', paymentSetupComplete: false };
     }
   });
+  const [userPreferences, setUserPreferences] = useState(() => {
+    try {
+      const raw = localStorage.getItem(USER_PREFERENCES_KEY);
+      return normalizeUserPreferences(raw ? JSON.parse(raw) : null);
+    } catch {
+      return normalizeUserPreferences(null);
+    }
+  });
   const [isAdmin, setIsAdmin] = useState(false);
+
+  useEffect(() => {
+    try {
+      localStorage.setItem(USER_PREFERENCES_KEY, JSON.stringify(normalizeUserPreferences(userPreferences)));
+    } catch { /* no-op */ }
+  }, [userPreferences]);
 
   useEffect(() => {
     if (!authSession?.id) return;
@@ -3080,6 +3172,7 @@ export default function App() {
             addToast={addToast}
             isHydrationReady={dashboardHydrationReady}
             isHydrationSyncing={dashboardHydrationSyncing}
+            userPreferences={userPreferences}
           />
         );
       case 'matches':
@@ -3106,6 +3199,8 @@ export default function App() {
             personalProfile={personalProfile}
             professionalProfile={professionalProfile}
             mobileBottomNavCollapsed={mobileBottomNavCollapsed}
+            userPreferences={userPreferences}
+            onOpenChatLanguageConfig={() => openSettingsTab('preferences')}
           />
         );
       case 'mapview':
@@ -3119,6 +3214,7 @@ export default function App() {
             showcaseProperties={showcaseProperties}
             userProfile={userProfile}
             onUpdatePropertyCoords={handleMapPropertyCoordsUpdate}
+            userPreferences={userPreferences}
           />
         );
       case 'onboarding':
@@ -3174,6 +3270,8 @@ export default function App() {
             pendingCheckoutIntent={pendingCheckoutIntent}
             paymentSetupComplete={isPaymentSetupComplete}
             onContinuePendingCheckout={handleContinuePendingCheckout}
+            userPreferences={userPreferences}
+            onChangeUserPreferences={setUserPreferences}
           />
         );
       case 'admin':
@@ -3211,6 +3309,7 @@ export default function App() {
           setEditMode={setEditMode}
           showInstallAppButton={showInstallAppButton}
           onInstallApp={handleInstallApp}
+          userPreferences={userPreferences}
         />
         <Suspense fallback={<div style={{ minHeight: '60vh' }} />}>
           {(() => {

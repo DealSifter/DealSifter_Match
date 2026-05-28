@@ -10,7 +10,7 @@ import { SmartImage } from '../components/ui/SmartImage';
 import { catIcon } from '../lib/catIcon';
 import { buildDisplayContacts, normalizeContactMethod } from '../lib/contactPriority';
 import { resolveScopedProfile, normalizeProfileScope } from '../lib/profileScopeResolver';
-import { CHAT_LANGUAGE_OPTIONS, translateChatText, getSafeLang } from '../services/chatTranslation';
+import { translateChatText, getSafeLang } from '../services/chatTranslation';
 import appLogo from '../assets/logo.png';
 
 // Move chat templates and defaults to module scope so they are stable references
@@ -1160,7 +1160,7 @@ function PortfolioDetail({ item, owner, ownerDesc, onBack }) {
       {item.video ? (
         <div style={{ padding: '0 10px 10px' }}>
           <div style={{ fontSize:9, color:C.t3, textTransform:'uppercase', marginBottom:6 }}>{matchesT.video || 'Video'}</div>
-          <video src={item.video} controls style={{ width: '100%', borderRadius: 8 }} />
+          <video src={item.video} controls autoPlay={autoplayMedia} muted={autoplayMedia} playsInline style={{ width: '100%', borderRadius: 8 }} />
         </div>
       ) : null}
 
@@ -1255,7 +1255,7 @@ function PortfolioDetail({ item, owner, ownerDesc, onBack }) {
   );
 }
 
-export function MatchesPage({ nuggets, setModal, openUnlock, unlocked, initialChat, chatFocusToken = 0, interested, matched, setInterested, setMatched, convos, setConvos, categoryOrder, setCategoryOrder, showcaseProperties, propertyPortfolio, servicePortfolio, userProfile, personalProfile, professionalProfile, mobileBottomNavCollapsed = false }) {
+export function MatchesPage({ nuggets, setModal, openUnlock, unlocked, initialChat, chatFocusToken = 0, interested, matched, setInterested, setMatched, convos, setConvos, categoryOrder, setCategoryOrder, showcaseProperties, propertyPortfolio, servicePortfolio, userProfile, personalProfile, professionalProfile, mobileBottomNavCollapsed = false, userPreferences = null, onOpenChatLanguageConfig = null }) {
   const PORTFOLIO_PANEL_PADDING = 40;
   const PORTFOLIO_GRID_GAP = 12;
   const PORTFOLIO_CARD_MIN_WIDTH = 132;
@@ -1279,8 +1279,8 @@ export function MatchesPage({ nuggets, setModal, openUnlock, unlocked, initialCh
   const [selectedPortfolioItem, setSelectedPortfolioItem] = useState(null);
   const [previewCardOpen, setPreviewCardOpen] = useState(false);
   const [_previewShowcaseIdx, setPreviewShowcaseIdx] = useState(0);
-  const [myInputLang, setMyInputLang] = useState(() => localStorage.getItem('chatMyInputLang') || 'pt');
-  const [myOutputLang, setMyOutputLang] = useState(() => localStorage.getItem('chatMyOutputLang') || 'pt');
+  const myInputLang = getSafeLang(userPreferences?.chatLanguage?.input || 'pt');
+  const myOutputLang = getSafeLang(userPreferences?.chatLanguage?.output || 'en');
   const [chatMainTextSize, setChatMainTextSize] = useState(() => {
     const raw = Number(localStorage.getItem('chatMainTextSize') || 12);
     if (!Number.isFinite(raw)) return 12;
@@ -1334,6 +1334,11 @@ export function MatchesPage({ nuggets, setModal, openUnlock, unlocked, initialCh
   
   const allT = useT('matches');
   const t = allT.matches;
+  const matchesPrefs = userPreferences?.feedMatches || {};
+  const privacyPrefs = userPreferences?.privacy || {};
+  const sortOrder = String(matchesPrefs.sortOrder || 'recent');
+  const autoplayMedia = Boolean(matchesPrefs.autoplayMedia);
+  const readReceiptsEnabled = Boolean(privacyPrefs.readReceipts ?? true);
   const dt = allT.dashboard;
   const onboardingT = allT.onboarding;
   // prevent eslint unused-var warnings for props forwarded from App
@@ -1349,7 +1354,6 @@ export function MatchesPage({ nuggets, setModal, openUnlock, unlocked, initialCh
   const fsboOwnerId = useMemo(() => getLocalOwnerId('fsbo'), []);
   // Use module-scope CHAT_REPLY_TEMPLATES, CHAT_INTEREST_PREFIX and DEFAULT_PEER_LANGS
   // (defined at top of file) to keep references stable for hook dependencies.
-  const languageOptions = CHAT_LANGUAGE_OPTIONS;
   const [peopleFilter, setPeopleFilter] = useState("all");
   const [interestsFilter, setInterestsFilter] = useState("all");
   const [peopleCategoryDropdownOpen, setPeopleCategoryDropdownOpen] = useState(false);
@@ -1497,8 +1501,8 @@ export function MatchesPage({ nuggets, setModal, openUnlock, unlocked, initialCh
     return states;
   }, [interested, parseStateCode]);
 
-  const filteredMatched = useMemo(() => (
-    allMatched.filter(m => {
+  const filteredMatched = useMemo(() => {
+    const list = allMatched.filter(m => {
       const paid = unlocked.includes(m.id);
       if (peopleFilter === "paid") return paid;
       if (peopleFilter === "locked") return !paid;
@@ -1507,11 +1511,13 @@ export function MatchesPage({ nuggets, setModal, openUnlock, unlocked, initialCh
         if (!selectedPeopleCategories.includes(cat)) return false;
       }
       return true;
-    })
-  ), [allMatched, peopleFilter, unlocked, selectedPeopleCategories]);
+    });
+    if (sortOrder === 'name_asc') return [...list].sort((a, b) => String(a?.name || '').localeCompare(String(b?.name || '')));
+    return list;
+  }, [allMatched, peopleFilter, unlocked, selectedPeopleCategories, sortOrder]);
 
-  const filteredInterested = useMemo(() => (
-    interested.filter(p => {
+  const filteredInterested = useMemo(() => {
+    const list = interested.filter(p => {
       const paid = unlocked.includes(p.ownerId);
       if (interestsFilter === "paid") return paid;
       if (interestsFilter === "locked") return !paid;
@@ -1520,8 +1526,10 @@ export function MatchesPage({ nuggets, setModal, openUnlock, unlocked, initialCh
         if (!state || !selectedInterestStates.includes(state)) return false;
       }
       return true;
-    })
-  ), [interested, interestsFilter, unlocked, selectedInterestStates, parseStateCode]);
+    });
+    if (sortOrder === 'price_desc') return [...list].sort((a, b) => Number(b?.price || 0) - Number(a?.price || 0));
+    return list;
+  }, [interested, interestsFilter, unlocked, selectedInterestStates, parseStateCode, sortOrder]);
 
   const isActiveProperty = active?.address !== undefined;
   const activeContactId = useMemo(() => {
@@ -1573,20 +1581,6 @@ export function MatchesPage({ nuggets, setModal, openUnlock, unlocked, initialCh
       output: getSafeLang(saved.output || DEFAULT_PEER_LANGS.output),
     };
   }, [activeOwner, peerLangPrefs]);
-
-  const updateActivePeerLang = useCallback((field, value) => {
-    if (!activeOwner?.id) return;
-    setPeerLangPrefs((prev) => {
-      const current = prev[activeOwner.id] || DEFAULT_PEER_LANGS;
-      return {
-        ...prev,
-        [activeOwner.id]: {
-          ...current,
-          [field]: getSafeLang(value),
-        },
-      };
-    });
-  }, [activeOwner]);
 
   const isUnlocked = useMemo(() => 
     activeOwner && unlocked.includes(activeOwner.id),
@@ -1672,14 +1666,6 @@ export function MatchesPage({ nuggets, setModal, openUnlock, unlocked, initialCh
   }, [DESKTOP_CHAT_MIN_WIDTH, DESKTOP_PORTFOLIO_MAX_WIDTH, DESKTOP_PORTFOLIO_MIN_WIDTH, DESKTOP_PORTFOLIO_WIDTH]);
 
   useEffect(() => {
-    localStorage.setItem('chatMyInputLang', getSafeLang(myInputLang));
-  }, [myInputLang]);
-
-  useEffect(() => {
-    localStorage.setItem('chatMyOutputLang', getSafeLang(myOutputLang));
-  }, [myOutputLang]);
-
-  useEffect(() => {
     localStorage.setItem('chatMainTextSize', String(chatMainTextSize));
   }, [chatMainTextSize]);
 
@@ -1692,6 +1678,7 @@ export function MatchesPage({ nuggets, setModal, openUnlock, unlocked, initialCh
   }, [seenIncomingByContact]);
 
   useEffect(() => {
+    if (!readReceiptsEnabled) return;
     if (!activeContactId) return;
     const currentIncoming = Array.isArray(convos?.[activeContactId])
       ? convos[activeContactId].filter((message) => message?.from !== 'me').length
@@ -1706,7 +1693,7 @@ export function MatchesPage({ nuggets, setModal, openUnlock, unlocked, initialCh
       });
     }, 0);
     return () => window.clearTimeout(timer);
-  }, [activeContactId, convos]);
+  }, [activeContactId, convos, readReceiptsEnabled]);
 
   // Reset portfolio show-all when active contact changes
   useEffect(() => {
@@ -2150,51 +2137,6 @@ export function MatchesPage({ nuggets, setModal, openUnlock, unlocked, initialCh
                 ) : null}
               </div>
 
-              <div style={{ padding:"8px 20px", borderBottom:`1px solid ${C.border}`, display:"flex", flexWrap:"wrap", gap:8, background:C.alpha(C.bg, 0.45) }} className="matches-lang-row">
-                <label style={{ display:"flex", alignItems:"center", gap:6, fontSize:10, color:C.t2 }}>
-                  {t.languageMyInput}
-                  <select
-                    value={myInputLang}
-                    onChange={(e) => setMyInputLang(getSafeLang(e.target.value))}
-                    style={{ border:`1px solid ${C.border}`, borderRadius:8, padding:"4px 6px", background:C.card, color:C.t1, fontSize:11 }}
-                  >
-                    {languageOptions.map((opt) => <option key={`my-input-${opt.code}`} value={opt.code}>{opt.label}</option>)}
-                  </select>
-                </label>
-
-                <label style={{ display:"flex", alignItems:"center", gap:6, fontSize:10, color:C.t2 }}>
-                  {t.languageMyOutput}
-                  <select
-                    value={myOutputLang}
-                    onChange={(e) => setMyOutputLang(getSafeLang(e.target.value))}
-                    style={{ border:`1px solid ${C.border}`, borderRadius:8, padding:"4px 6px", background:C.card, color:C.t1, fontSize:11 }}
-                  >
-                    {languageOptions.map((opt) => <option key={`my-output-${opt.code}`} value={opt.code}>{opt.label}</option>)}
-                  </select>
-                </label>
-
-                <label style={{ display:"flex", alignItems:"center", gap:6, fontSize:10, color:C.t2 }}>
-                  {t.languagePeerInput}
-                  <select
-                    value={activePeerLangs.input}
-                    onChange={(e) => updateActivePeerLang('input', e.target.value)}
-                    style={{ border:`1px solid ${C.border}`, borderRadius:8, padding:"4px 6px", background:C.card, color:C.t1, fontSize:11 }}
-                  >
-                    {languageOptions.map((opt) => <option key={`peer-input-${opt.code}`} value={opt.code}>{opt.label}</option>)}
-                  </select>
-                </label>
-
-                <label style={{ display:"flex", alignItems:"center", gap:6, fontSize:10, color:C.t2 }}>
-                  {t.languagePeerOutput}
-                  <select
-                    value={activePeerLangs.output}
-                    onChange={(e) => updateActivePeerLang('output', e.target.value)}
-                    style={{ border:`1px solid ${C.border}`, borderRadius:8, padding:"4px 6px", background:C.card, color:C.t1, fontSize:11 }}
-                  >
-                    {languageOptions.map((opt) => <option key={`peer-output-${opt.code}`} value={opt.code}>{opt.label}</option>)}
-                  </select>
-                </label>
-              </div>
 
               {isMobile && (
                 <div className="matches-chat-mobile-tabs" style={{ borderBottom:`1px solid ${C.border}`, background:C.card, flexShrink:0 }}>
@@ -2216,7 +2158,8 @@ export function MatchesPage({ nuggets, setModal, openUnlock, unlocked, initialCh
               )}
               <div ref={splitPaneRef} style={{ flex:1, display:"flex", overflow:"hidden", minWidth:0 }}>
                 <div style={{ flex:1, minWidth:0, display:"flex", flexDirection:"column", borderRight:`1px solid ${C.border}`, position:'relative' }} className="matches-chat-col">
-                  <div style={{ position:'absolute', top:10, left:10, zIndex:3, display:'inline-flex', alignItems:'center', gap:6, background:C.alpha(C.bg, 0.92), border:`1px solid ${C.border}`, borderRadius:10, padding:'4px 6px' }}>
+                  <div style={{ position:'absolute', top:10, left:10, zIndex:3, display:'inline-flex', flexDirection:'column', alignItems:'stretch', gap:6, background:C.alpha(C.bg, 0.92), border:`1px solid ${C.border}`, borderRadius:10, padding:'4px 6px' }}>
+                    <div style={{ display:'inline-flex', alignItems:'center', gap:6 }}>
                     <button
                       onClick={() => setChatMainTextSize((v) => Math.max(10, v - 1))}
                       aria-label={t.decreaseText || 'Decrease text'}
@@ -2232,6 +2175,16 @@ export function MatchesPage({ nuggets, setModal, openUnlock, unlocked, initialCh
                       style={{ width:24, height:24, borderRadius:6, border:`1px solid ${C.border}`, background:C.card, display:'inline-flex', alignItems:'center', justifyContent:'center', cursor:'pointer' }}
                     >
                       <Icon name="plus" size={12} color={C.t2} />
+                    </button>
+                    </div>
+                    <button
+                      onClick={() => onOpenChatLanguageConfig?.()}
+                      title="Configuration"
+                      aria-label="Configuration"
+                      style={{ height:24, borderRadius:6, border:`1px solid ${C.border}`, background:C.card, display:'inline-flex', alignItems:'center', justifyContent:'center', gap:6, cursor:'pointer', padding:'0 8px', color:C.t2, fontSize:10, fontWeight:700 }}
+                    >
+                      <Icon name="globe" size={12} color={C.t2} />
+                      <span>Configuration</span>
                     </button>
                   </div>
                   <div ref={scrollRef} style={{ flex:1, overflowY:"auto", padding:"46px 20px 20px", display:"flex", flexDirection:"column", gap:12 }}

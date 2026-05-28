@@ -4,6 +4,7 @@ import { useT } from '../i18n/translations';
 import { Icon } from '../components/ui/Icon';
 import { supabase, isSupabaseConfigured } from '../lib/supabaseClient';
 import { redirectToPortal } from '../lib/stripeClient';
+import { CHAT_LANGUAGE_OPTIONS, translateChatText, getSafeLang } from '../services/chatTranslation';
 
 function TabButton({ active, onClick, label }) {
   return (
@@ -40,7 +41,20 @@ function Panel({ title, subtitle, children }) {
   );
 }
 
-export function Settings({ setPage, prevPage, initialTab = 'profile', systemAccount, setSystemAccount, authSession, setAuthSession, subscription, addToast, supabaseUserId, onDeleteAccount, onRevokeConsent, pendingCheckoutIntent = null, paymentSetupComplete = false, onContinuePendingCheckout = null }) {
+const PHONE_COUNTRY_OPTIONS = [
+  { code: '+1', label: 'US/CA (+1)' },
+  { code: '+55', label: 'BR (+55)' },
+  { code: '+52', label: 'MX (+52)' },
+  { code: '+44', label: 'UK (+44)' },
+  { code: '+34', label: 'ES (+34)' },
+  { code: '+351', label: 'PT (+351)' },
+  { code: '+49', label: 'DE (+49)' },
+  { code: '+33', label: 'FR (+33)' },
+  { code: '+39', label: 'IT (+39)' },
+  { code: '+61', label: 'AU (+61)' },
+];
+
+export function Settings({ setPage, prevPage, initialTab = 'profile', systemAccount, setSystemAccount, authSession, setAuthSession, subscription, addToast, supabaseUserId, onDeleteAccount, onRevokeConsent, pendingCheckoutIntent = null, paymentSetupComplete = false, onContinuePendingCheckout = null, userPreferences = null, onChangeUserPreferences = null }) {
   const allT = useT('settings');
   const t = allT.settings || {};
   const [tab, setTab] = useState(initialTab);
@@ -73,6 +87,30 @@ export function Settings({ setPage, prevPage, initialTab = 'profile', systemAcco
       return Array.isArray(raw) ? raw : [];
     } catch { return []; }
   });
+  const [privacyControls, setPrivacyControls] = useState(() => {
+    try {
+      const raw = JSON.parse(localStorage.getItem('ds_privacy_controls') || 'null');
+      if (raw && typeof raw === 'object') {
+        return {
+          doNotSellShare: Boolean(raw.doNotSellShare),
+          targetedAdsOptOut: Boolean(raw.targetedAdsOptOut),
+          marketingEmails: Boolean(raw.marketingEmails ?? true),
+          cookieScope: String(raw.cookieScope || 'all'),
+          dataProcessingConsent: Boolean(raw.dataProcessingConsent ?? true),
+        };
+      }
+    } catch { /* no-op */ }
+    return {
+      doNotSellShare: false,
+      targetedAdsOptOut: false,
+      marketingEmails: true,
+      cookieScope: 'all',
+      dataProcessingConsent: true,
+    };
+  });
+  const [prefs, setPrefs] = useState(() => (userPreferences && typeof userPreferences === 'object' ? userPreferences : null));
+  const chatInputLang = getSafeLang(prefs?.chatLanguage?.input || 'pt');
+  const chatOutputLang = getSafeLang(prefs?.chatLanguage?.output || 'en');
   const activeSubscription = subscription || {
     planId: 'free',
     planName: 'Free',
@@ -85,11 +123,21 @@ export function Settings({ setPage, prevPage, initialTab = 'profile', systemAcco
     setTab(initialTab || 'profile');
   }, [initialTab]);
   useEffect(() => {
+    if (!userPreferences || typeof userPreferences !== 'object') return;
+    setPrefs(userPreferences);
+  }, [userPreferences]);
+  useEffect(() => {
     if (tab !== 'communication') setCommView('menu');
   }, [tab]);
 
   const setPaymentTab = () => setTab('payments');
   const controlStyle = { width: '100%', minWidth: 0, boxSizing: 'border-box', border: `1px solid ${C.border}`, borderRadius: 10, padding: '9px 10px', background: C.bg, color: C.t1, fontSize: 12 };
+  const updatePreferences = (updater) => {
+    const base = (prefs && typeof prefs === 'object') ? prefs : {};
+    const next = typeof updater === 'function' ? updater(base) : updater;
+    setPrefs(next);
+    onChangeUserPreferences?.(next);
+  };
 
   const updateField = (field, value) => {
     setProfileSaveState('saving');
@@ -113,9 +161,29 @@ export function Settings({ setPage, prevPage, initialTab = 'profile', systemAcco
   const profileFullName = String(systemAccount?.fullName || '').trim();
   const profileEmail = String(systemAccount?.email || '').trim();
   const profilePhone = String(systemAccount?.phone || '').trim();
+  const profilePhoneCountryCode = String(systemAccount?.phoneCountryCode || '+1').trim();
   const profileType = String(systemAccount?.accountType || 'individual').trim();
   const profileMarkets = String(systemAccount?.marketAreas || '').trim();
   const profileCompletion = Math.round(([profileFullName, profileEmail, profilePhone, profileType, profileMarkets].filter(Boolean).length / 5) * 100);
+  const sectionProgress = useMemo(() => {
+    const profileDone = profileCompletion >= 60;
+    const paymentsDone = Boolean(activeSubscription?.planId || billingSummary.invoices > 0);
+    const communicationDone = Boolean(
+      (Array.isArray(supportMessages) && supportMessages.length > 0)
+      || String(systemAccount?.email || '').includes('@')
+    );
+    const securityDone = Boolean(authSession?.emailVerified);
+    const preferencesDone = Boolean(
+      prefs?.map
+      && prefs?.feedMatches
+      && prefs?.privacy
+    );
+    const privacyDone = true;
+    const completed = [profileDone, paymentsDone, communicationDone, securityDone, preferencesDone, privacyDone].filter(Boolean).length;
+    const total = 6;
+    const percent = Math.round((completed / total) * 100);
+    return { completed, total, percent };
+  }, [profileCompletion, activeSubscription?.planId, billingSummary.invoices, supportMessages, systemAccount?.email, authSession?.emailVerified, prefs]);
 
   useEffect(() => {
     if (tab !== 'profile' || profileSaveState !== 'saving') return;
@@ -129,6 +197,9 @@ export function Settings({ setPage, prevPage, initialTab = 'profile', systemAcco
   useEffect(() => {
     try { localStorage.setItem('ds_support_chat_thread', JSON.stringify(supportMessages || [])); } catch { /* no-op */ }
   }, [supportMessages]);
+  useEffect(() => {
+    try { localStorage.setItem('ds_privacy_controls', JSON.stringify(privacyControls || {})); } catch { /* no-op */ }
+  }, [privacyControls]);
   useEffect(() => {
     if (tab !== 'security') return;
     const refresh = () => {
@@ -383,6 +454,12 @@ export function Settings({ setPage, prevPage, initialTab = 'profile', systemAcco
 
   return (
     <div style={{ paddingTop: 58, minHeight: 'calc(var(--app-vh, 1vh) * 100)', background: C.bg, boxSizing: 'border-box', width: '100%', maxWidth: '100%', overflowX: 'hidden' }}>
+      <style>{`
+        @keyframes ds-warning-blink {
+          0%, 100% { opacity: 1; transform: scale(1); }
+          50% { opacity: .35; transform: scale(1.06); }
+        }
+      `}</style>
       {confirmPayload && (
         <div style={{ position: 'fixed', inset: 0, zIndex: 10020, display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'rgba(0,0,0,0.65)' }}
           onClick={() => setConfirmPayload(null)}>
@@ -411,6 +488,22 @@ export function Settings({ setPage, prevPage, initialTab = 'profile', systemAcco
             {t.backToApp || 'Back to app'}
           </button>
         </div>
+
+        {!isSupportFullscreen ? (
+        <div style={{ border: `1px solid ${C.border}`, borderRadius: 12, padding: 10, marginBottom: 12, background: C.alpha(C.accent, 0.04) }}>
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8, flexWrap: 'wrap' }}>
+            <strong style={{ fontSize: 12, color: C.t1 }}>
+              Settings completion: {sectionProgress.percent}%
+            </strong>
+            <span style={{ fontSize: 11, color: C.t2, fontWeight: 700 }}>
+              {sectionProgress.completed}/{sectionProgress.total} sections
+            </span>
+          </div>
+          <div style={{ width: '100%', height: 7, borderRadius: 999, background: C.alpha(C.t1, 0.1), overflow: 'hidden', marginTop: 8 }}>
+            <div style={{ width: `${sectionProgress.percent}%`, height: '100%', background: C.accent, transition: 'width .2s ease' }} />
+          </div>
+        </div>
+        ) : null}
 
         {!isSupportFullscreen ? (
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(180px, 100%), 1fr))', gap: 8, marginBottom: 14, width: '100%', minWidth: 0 }}>
@@ -451,7 +544,23 @@ export function Settings({ setPage, prevPage, initialTab = 'profile', systemAcco
                   </label>
                   <label style={{ display: 'grid', gap: 5, minWidth: 0 }}>
                     <span style={{ fontSize: 11, color: C.t2, fontWeight: 700 }}>{t.phone || 'Phone'}</span>
-                    <input value={systemAccount?.phone || ''} onChange={(e) => updateField('phone', e.target.value)} style={controlStyle} />
+                    <div style={{ display: 'grid', gridTemplateColumns: 'minmax(112px, 38%) minmax(0, 1fr)', gap: 8, width: '100%', minWidth: 0 }}>
+                      <select
+                        value={profilePhoneCountryCode}
+                        onChange={(e) => updateField('phoneCountryCode', e.target.value)}
+                        style={controlStyle}
+                      >
+                        {PHONE_COUNTRY_OPTIONS.map((opt) => (
+                          <option key={opt.code} value={opt.code}>{opt.label}</option>
+                        ))}
+                      </select>
+                      <input
+                        value={systemAccount?.phone || ''}
+                        onChange={(e) => updateField('phone', e.target.value)}
+                        placeholder="(000) 000-0000"
+                        style={controlStyle}
+                      />
+                    </div>
                   </label>
                   <label style={{ display: 'grid', gap: 5, minWidth: 0 }}>
                     <span style={{ fontSize: 11, color: C.t2, fontWeight: 700 }}>{t.accountType || 'Account type'}</span>
@@ -614,8 +723,14 @@ export function Settings({ setPage, prevPage, initialTab = 'profile', systemAcco
                 <div style={{ display: 'grid', gap: 8, width: '100%', minWidth: 0 }}>
                   <button
                     onClick={() => {
-                      const subject = encodeURIComponent('DealSifter Support');
-                      window.location.href = `mailto:contato.dealsifter@gmail.com?subject=${subject}`;
+                      const subject = encodeURIComponent('Suport solicitation');
+                      const mailtoUrl = `mailto:contato.dealsifter@gmail.com?subject=${subject}`;
+                      try {
+                        const opened = window.open(mailtoUrl, '_self');
+                        if (!opened) window.location.href = mailtoUrl;
+                      } catch {
+                        window.location.href = mailtoUrl;
+                      }
                     }}
                     style={{ width: '100%', boxSizing: 'border-box', border: `1px solid ${C.border}`, background: 'transparent', color: C.t2, borderRadius: 8, padding: '9px 10px', fontSize: 12, fontWeight: 700, cursor: 'pointer', display: 'inline-flex', gap: 7, alignItems: 'center', justifyContent: 'center' }}>
                     <Icon name="email" size={13} color={C.t2} /> {t.contactEmail || 'Contact by email'}
@@ -794,24 +909,138 @@ export function Settings({ setPage, prevPage, initialTab = 'profile', systemAcco
 
           {tab === 'preferences' ? (
             <Panel title={t.preferencesTitle || 'Preferences'} subtitle={t.preferencesSub || 'Interface and notification preferences'}>
-              <div style={{ fontSize: 12, color: C.t2 }}>{t.preferencesMockInfo || 'Preferences panel prepared for future persistence expansion.'}</div>
+              <div style={{ display: 'grid', gap: 12 }}>
+                <div style={{ border: `1px solid ${C.border}`, borderRadius: 10, padding: 10, display: 'grid', gap: 8 }}>
+                  <div style={{ fontSize: 12, fontWeight: 800, color: C.t1 }}>1) Map View</div>
+                  <label style={{ display: 'grid', gap: 5 }}>
+                    <span style={{ fontSize: 11, color: C.t2, fontWeight: 700 }}>Initial zoom</span>
+                    <input type="range" min={3} max={13} step={1} value={Number(prefs?.map?.initialZoom || 4)} onChange={(e) => updatePreferences((prev) => ({ ...prev, map: { ...(prev?.map || {}), initialZoom: Number(e.target.value) } }))} />
+                  </label>
+                  <label style={{ display: 'grid', gap: 5 }}>
+                    <span style={{ fontSize: 11, color: C.t2, fontWeight: 700 }}>Default style</span>
+                    <select value={String(prefs?.map?.defaultStyle || 'simple')} onChange={(e) => updatePreferences((prev) => ({ ...prev, map: { ...(prev?.map || {}), defaultStyle: e.target.value } }))} style={controlStyle}>
+                      <option value="simple">Simple</option>
+                      <option value="satellite_streets">Satellite + Streets</option>
+                      <option value="topo">Terrain</option>
+                      <option value="flood">Flood + Streets</option>
+                    </select>
+                  </label>
+                  <label style={{ display: 'grid', gap: 5 }}>
+                    <span style={{ fontSize: 11, color: C.t2, fontWeight: 700 }}>Cluster behavior</span>
+                    <select value={String(prefs?.map?.clusterBehavior || 'pins_city')} onChange={(e) => updatePreferences((prev) => ({ ...prev, map: { ...(prev?.map || {}), clusterBehavior: e.target.value } }))} style={controlStyle}>
+                      <option value="pins_city">City level = only pins</option>
+                      <option value="mixed">Keep mixed clusters/pins</option>
+                    </select>
+                  </label>
+                </div>
+
+                <div style={{ border: `1px solid ${C.border}`, borderRadius: 10, padding: 10, display: 'grid', gap: 8 }}>
+                  <div style={{ fontSize: 12, fontWeight: 800, color: C.t1 }}>2) Feed & Matches</div>
+                  <label style={{ display: 'grid', gap: 5 }}>
+                    <span style={{ fontSize: 11, color: C.t2, fontWeight: 700 }}>Default ordering</span>
+                    <select value={String(prefs?.feedMatches?.sortOrder || 'recent')} onChange={(e) => updatePreferences((prev) => ({ ...prev, feedMatches: { ...(prev?.feedMatches || {}), sortOrder: e.target.value } }))} style={controlStyle}>
+                      <option value="recent">Most recent</option>
+                      <option value="name_asc">Name (A-Z)</option>
+                      <option value="price_desc">Price (high to low)</option>
+                    </select>
+                  </label>
+                  <label style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8, fontSize: 12, color: C.t2 }}>
+                    <span>Autoplay media</span>
+                    <input type="checkbox" checked={Boolean(prefs?.feedMatches?.autoplayMedia)} onChange={() => updatePreferences((prev) => ({ ...prev, feedMatches: { ...(prev?.feedMatches || {}), autoplayMedia: !prev?.feedMatches?.autoplayMedia } }))} />
+                  </label>
+                </div>
+
+                <div style={{ border: `1px solid ${C.border}`, borderRadius: 10, padding: 10, display: 'grid', gap: 8 }}>
+                  <div style={{ fontSize: 12, fontWeight: 800, color: C.t1 }}>3) Chat language config</div>
+                  <label style={{ display: 'grid', gap: 5 }}>
+                    <span style={{ fontSize: 11, color: C.t2, fontWeight: 700 }}>I type in</span>
+                    <select value={chatInputLang} onChange={(e) => updatePreferences((prev) => ({ ...prev, chatLanguage: { ...(prev?.chatLanguage || {}), input: e.target.value } }))} style={controlStyle}>
+                      {CHAT_LANGUAGE_OPTIONS.map((opt) => <option key={`pref-chat-in-${opt.code}`} value={opt.code}>{opt.label}</option>)}
+                    </select>
+                  </label>
+                  <label style={{ display: 'grid', gap: 5 }}>
+                    <span style={{ fontSize: 11, color: C.t2, fontWeight: 700 }}>I receive in</span>
+                    <select value={chatOutputLang} onChange={(e) => updatePreferences((prev) => ({ ...prev, chatLanguage: { ...(prev?.chatLanguage || {}), output: e.target.value } }))} style={controlStyle}>
+                      {CHAT_LANGUAGE_OPTIONS.map((opt) => <option key={`pref-chat-out-${opt.code}`} value={opt.code}>{opt.label}</option>)}
+                    </select>
+                  </label>
+                </div>
+
+                <div style={{ border: `1px solid ${C.border}`, borderRadius: 10, padding: 10, display: 'grid', gap: 8 }}>
+                  <div style={{ fontSize: 12, fontWeight: 800, color: C.t1 }}>4) Privacy</div>
+                  <label style={{ display: 'grid', gap: 5 }}>
+                    <span style={{ fontSize: 11, color: C.t2, fontWeight: 700 }}>Presence status</span>
+                    <select value={String(prefs?.privacy?.presenceStatus || 'online')} onChange={(e) => updatePreferences((prev) => ({ ...prev, privacy: { ...(prev?.privacy || {}), presenceStatus: e.target.value } }))} style={controlStyle}>
+                      <option value="online">Online (green)</option>
+                      <option value="standby">Stand by (yellow)</option>
+                      <option value="offline">Offline (red)</option>
+                    </select>
+                  </label>
+                  <label style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8, fontSize: 12, color: C.t2 }}>
+                    <span>Read receipts</span>
+                    <input type="checkbox" checked={Boolean(prefs?.privacy?.readReceipts)} onChange={() => updatePreferences((prev) => ({ ...prev, privacy: { ...(prev?.privacy || {}), readReceipts: !prev?.privacy?.readReceipts } }))} />
+                  </label>
+                  <label style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8, fontSize: 12, color: C.t2 }}>
+                    <span>Message preview</span>
+                    <input type="checkbox" checked={Boolean(prefs?.privacy?.messagePreview)} onChange={() => updatePreferences((prev) => ({ ...prev, privacy: { ...(prev?.privacy || {}), messagePreview: !prev?.privacy?.messagePreview } }))} />
+                  </label>
+                </div>
+
+                <div style={{ border: `1px solid ${C.border}`, borderRadius: 10, padding: 10, display: 'grid', gap: 8 }}>
+                  <div style={{ fontSize: 12, fontWeight: 800, color: C.t1 }}>5) Local Storage</div>
+                  <button
+                    onClick={() => {
+                      try {
+                        localStorage.removeItem('mapViewport');
+                        localStorage.removeItem('mapViewPanelCollapsed');
+                        localStorage.removeItem('mapViewPanelWidth');
+                        localStorage.removeItem('ds_map_ui_state');
+                        localStorage.removeItem('ds_geocode_cache');
+                        localStorage.removeItem('ds_notif_deferred_chat');
+                        localStorage.removeItem('ds_notif_deferred_system');
+                        localStorage.removeItem('chatSeenIncomingByContact');
+                        addToast?.({ type: 'success', message: 'Local cache cleared.' });
+                      } catch {
+                        addToast?.({ type: 'error', message: 'Failed to clear local cache.' });
+                      }
+                    }}
+                    style={{ border: `1px solid ${C.border}`, background: 'transparent', color: C.t2, borderRadius: 8, padding: '9px 10px', fontSize: 12, fontWeight: 700, cursor: 'pointer' }}
+                  >
+                    Clear local cache
+                  </button>
+                  <button
+                    onClick={() => {
+                      const resetPrefs = {
+                        map: { initialZoom: 4, defaultStyle: 'simple', clusterBehavior: 'pins_city', defaultFilters: { showPeople: true, showProperties: true, showOnlyUnlocked: false, showOnlyMyPins: false } },
+                        feedMatches: { sortOrder: 'recent', autoplayMedia: false },
+                        chatLanguage: { input: 'pt', output: 'en' },
+                        privacy: { presenceStatus: 'online', readReceipts: true, messagePreview: true },
+                      };
+                      updatePreferences(resetPrefs);
+                      addToast?.({ type: 'success', message: 'Preferences reset to default.' });
+                    }}
+                    style={{ border: `1px solid ${C.warning || '#f59e0b'}`, background: C.alpha(C.warning || '#f59e0b', 0.08), color: C.warning || '#f59e0b', borderRadius: 8, padding: '9px 10px', fontSize: 12, fontWeight: 800, cursor: 'pointer' }}
+                  >
+                    Reset preferences
+                  </button>
+                </div>
+              </div>
             </Panel>
           ) : null}
 
           {tab === 'privacy' ? (
             <>
-              <Panel title={t.privacyTitle || 'Privacy & Data'} subtitle={t.privacySub || 'Manage your data in compliance with LGPD'}>
+              <Panel title={t.privacyTitle || 'Privacy & Data'} subtitle={t.privacySub || 'Manage your privacy choices and data rights'}>
                 <div style={{ display: 'grid', gap: 10 }}>
                   <div style={{ border: `1px solid ${C.border}`, borderRadius: 10, padding: 10, fontSize: 12, lineHeight: '1.5', color: C.t2 }}>
-                    <div style={{ fontWeight: 700, color: C.t1, marginBottom: 4 }}>Seus direitos (LGPD Art. 18)</div>
-                    Você pode a qualquer momento: acessar, corrigir, excluir ou exportar seus dados pessoais.
-                    Para revogar o consentimento, exclua sua conta abaixo.
+                    <div style={{ fontWeight: 700, color: C.t1, marginBottom: 4 }}>{t.privacyRightsTitle || 'Your privacy rights'}</div>
+                    {t.privacyRightsText || 'You can access, correct, export, or delete your personal data, and manage consent settings at any time.'}
                   </div>
 
                   <button
                     onClick={async () => {
                       if (!isSupabaseConfigured || !supabase || !supabaseUserId) {
-                        addToast?.({ type: 'error', message: 'Faça login para exportar seus dados.' });
+                        addToast?.({ type: 'error', message: t.privacyNeedLogin || 'Sign in to export your data.' });
                         return;
                       }
                       try {
@@ -826,9 +1055,9 @@ export function Settings({ setPage, prevPage, initialTab = 'profile', systemAcco
                         a.click();
                         a.remove();
                         URL.revokeObjectURL(url);
-                        addToast?.({ type: 'success', title: 'Dados exportados', message: 'Download iniciado com sucesso.' });
+                        addToast?.({ type: 'success', title: t.privacyExportSuccessTitle || 'Data exported', message: t.privacyExportSuccessMessage || 'Download started successfully.' });
                       } catch (err) {
-                        addToast?.({ type: 'error', message: String(err?.message || 'Falha ao exportar dados.') });
+                        addToast?.({ type: 'error', message: String(err?.message || t.privacyExportError || 'Failed to export data.') });
                       }
                     }}
                     style={{
@@ -847,14 +1076,77 @@ export function Settings({ setPage, prevPage, initialTab = 'profile', systemAcco
                     }}
                   >
                     <Icon name="download" size={13} color={C.t1} />
-                    {t.exportData || 'Exportar meus dados (JSON)'}
+                    {t.exportData || 'Export my data (JSON)'}
+                  </button>
+
+                  <button
+                    onClick={() => {
+                      const subject = encodeURIComponent(t.privacyCorrectionSubject || 'Data correction request');
+                      const body = encodeURIComponent(t.privacyCorrectionBody || 'Hello DealSifter Team,\n\nI would like to request a correction of my account data.\n\nThank you.');
+                      window.location.href = `mailto:contato.dealsifter@gmail.com?subject=${subject}&body=${body}`;
+                    }}
+                    style={{
+                      border: `1px solid ${C.border}`,
+                      background: 'transparent',
+                      color: C.t1,
+                      borderRadius: 8,
+                      padding: '10px 12px',
+                      fontSize: 12,
+                      fontWeight: 700,
+                      cursor: 'pointer',
+                      display: 'inline-flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      gap: 8,
+                    }}
+                  >
+                    <Icon name="edit" size={13} color={C.t1} />
+                    {t.privacyCorrectionCta || 'Request data correction'}
+                  </button>
+
+                  <button
+                    onClick={() => {
+                      const payload = {
+                        generatedAt: new Date().toISOString(),
+                        accountEmail: authSession?.email || systemAccount?.email || '',
+                        controls: privacyControls,
+                        cookieConsent: (() => { try { return localStorage.getItem('ds_cookie_consent') === '1'; } catch { return false; } })(),
+                        lgpdConsent: (() => { try { return localStorage.getItem('ds_lgpd_consent') === '1'; } catch { return false; } })(),
+                      };
+                      const blob = new Blob([JSON.stringify(payload, null, 2)], { type: 'application/json' });
+                      const url = URL.createObjectURL(blob);
+                      const a = document.createElement('a');
+                      a.href = url;
+                      a.download = `dealsifter-consent-receipt-${new Date().toISOString().slice(0, 10)}.json`;
+                      document.body.appendChild(a);
+                      a.click();
+                      a.remove();
+                      URL.revokeObjectURL(url);
+                    }}
+                    style={{
+                      border: `1px solid ${C.border}`,
+                      background: 'transparent',
+                      color: C.t1,
+                      borderRadius: 8,
+                      padding: '10px 12px',
+                      fontSize: 12,
+                      fontWeight: 700,
+                      cursor: 'pointer',
+                      display: 'inline-flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      gap: 8,
+                    }}
+                  >
+                    <Icon name="fileText" size={13} color={C.t1} />
+                    {t.privacyConsentReceipt || 'Download consent receipt'}
                   </button>
 
                   {onRevokeConsent && (
                     <button
                       onClick={() => {
                         setConfirmPayload({
-                          message: 'Deseja revogar seu consentimento de processamento de dados? Você será redirecionado à tela inicial e precisará consentir novamente para usar a plataforma.',
+                          message: t.privacyRevokeConfirm || 'Do you want to revoke data-processing consent? You will be redirected to home and must consent again to use the platform.',
                           variant: 'warning',
                           onConfirm: onRevokeConsent,
                         });
@@ -875,27 +1167,49 @@ export function Settings({ setPage, prevPage, initialTab = 'profile', systemAcco
                       }}
                     >
                       <Icon name="alertTriangle" size={13} color={C.warning || '#f59e0b'} />
-                      Revogar consentimento (LGPD Art. 8 §5)
+                      {t.privacyRevokeCta || 'Revoke data-processing consent'}
                     </button>
                   )}
 
                   <div style={{ fontSize: 11, color: C.t3 }}>
-                    Contato DPO: <strong>privacidade@dealsifter.com</strong>
+                    {t.privacyContact || 'Privacy contact'}: <strong>contato.dealsifter@gmail.com</strong>
+                  </div>
+
+                  <div style={{ border: `1px solid ${C.border}`, borderRadius: 10, padding: 10, display: 'grid', gap: 8 }}>
+                    <div style={{ fontSize: 12, fontWeight: 700, color: C.t1 }}>{t.privacyControlsTitle || 'US privacy controls (CCPA/CPRA style)'}</div>
+                    <label style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8, fontSize: 12, color: C.t2 }}>
+                      <span>{t.privacyDoNotSell || 'Do not sell/share my personal information'}</span>
+                      <input type="checkbox" checked={Boolean(privacyControls.doNotSellShare)} onChange={() => setPrivacyControls((prev) => ({ ...prev, doNotSellShare: !prev.doNotSellShare }))} />
+                    </label>
+                    <label style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8, fontSize: 12, color: C.t2 }}>
+                      <span>{t.privacyTargetAdsOptOut || 'Opt out of targeted advertising'}</span>
+                      <input type="checkbox" checked={Boolean(privacyControls.targetedAdsOptOut)} onChange={() => setPrivacyControls((prev) => ({ ...prev, targetedAdsOptOut: !prev.targetedAdsOptOut }))} />
+                    </label>
+                    <label style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8, fontSize: 12, color: C.t2 }}>
+                      <span>{t.privacyMarketingEmails || 'Allow marketing emails'}</span>
+                      <input type="checkbox" checked={Boolean(privacyControls.marketingEmails)} onChange={() => setPrivacyControls((prev) => ({ ...prev, marketingEmails: !prev.marketingEmails }))} />
+                    </label>
+                    <label style={{ display: 'grid', gap: 5 }}>
+                      <span style={{ fontSize: 11, color: C.t2, fontWeight: 700 }}>{t.privacyCookieScope || 'Cookie scope'}</span>
+                      <select value={String(privacyControls.cookieScope || 'all')} onChange={(e) => setPrivacyControls((prev) => ({ ...prev, cookieScope: e.target.value }))} style={controlStyle}>
+                        <option value="all">{t.privacyCookieAll || 'All cookies'}</option>
+                        <option value="essential">{t.privacyCookieEssential || 'Essential only'}</option>
+                      </select>
+                    </label>
                   </div>
                 </div>
               </Panel>
 
-              <Panel title={t.dangerZone || 'Zona de Risco'} subtitle={t.dangerSub || 'Ações irreversíveis'}>
+              <Panel title={<span style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}><span style={{ display: 'inline-flex', animation: 'ds-warning-blink 1s ease-in-out infinite' }}><Icon name="alertTriangle" size={13} color={C.warning || '#f59e0b'} /></span>{t.dangerZone || 'Danger Zone'}</span>} subtitle={t.dangerSub || 'Irreversible actions'}>
                 <div style={{ display: 'grid', gap: 10 }}>
                   <div style={{ border: `1px solid ${C.alpha?.(C.danger || '#ef4444', 0.3) || '#ef4444'}`, borderRadius: 10, padding: 10, fontSize: 12, lineHeight: '1.5', color: C.t2 }}>
-                    <div style={{ fontWeight: 700, color: C.danger || '#ef4444', marginBottom: 4 }}>Excluir minha conta</div>
-                    Isso removerá permanentemente todos os seus dados: perfil, imóveis, serviços, matches,
-                    desbloqueios e registros de consentimento. Esta ação <strong>não pode ser desfeita</strong>.
+                    <div style={{ fontWeight: 700, color: C.danger || '#ef4444', marginBottom: 4 }}>{t.privacyDeleteTitle || 'Delete my account'}</div>
+                    {t.privacyDeleteDesc || 'This will permanently remove profile, portfolio, matches, and related records. This action cannot be undone.'}
                   </div>
                   <button
                     onClick={() => {
                       setConfirmPayload({
-                        message: 'Tem certeza que deseja excluir sua conta e todos os seus dados? Esta ação é IRREVERSÍVEL.',
+                        message: t.privacyDeleteConfirm || 'Are you sure you want to delete your account and all your data? This action is irreversible.',
                         variant: 'danger',
                         onConfirm: onDeleteAccount,
                       });
@@ -916,7 +1230,7 @@ export function Settings({ setPage, prevPage, initialTab = 'profile', systemAcco
                     }}
                   >
                     <Icon name="alertTriangle" size={13} color={C.danger || '#ef4444'} />
-                    {t.deleteAccount || 'Excluir minha conta permanentemente'}
+                    {t.deleteAccount || 'Delete my account permanently'}
                   </button>
                 </div>
               </Panel>
@@ -959,17 +1273,16 @@ export function Settings({ setPage, prevPage, initialTab = 'profile', systemAcco
                   const text = String(supportInput || '').trim();
                   if (!text) return;
                   const now = Date.now();
-                  setSupportMessages((prev) => ([
-                    ...(prev || []),
-                    { id: `user-${now}`, from: 'user', text, createdAt: now },
-                  ]));
-                  setSupportInput('');
-                  setTimeout(() => {
-                    setSupportMessages((prev) => ([
-                      ...(prev || []),
-                      { id: `admin-${Date.now()}`, from: 'admin', text: t.supportAutoReply || 'Message received. Admin/Support will reply soon.', createdAt: Date.now() },
-                    ]));
-                  }, 450);
+                  (async () => {
+                    const outToSupport = await translateChatText({ text, fromLang: chatInputLang, toLang: 'en' });
+                    setSupportMessages((prev) => ([...(prev || []), { id: `user-${now}`, from: 'user', text: outToSupport.text, createdAt: now }]));
+                    setSupportInput('');
+                    setTimeout(async () => {
+                      const adminReplyBase = t.supportAutoReply || 'Message received. Admin/Support will reply soon.';
+                      const backToUser = await translateChatText({ text: adminReplyBase, fromLang: 'en', toLang: chatOutputLang });
+                      setSupportMessages((prev) => ([...(prev || []), { id: `admin-${Date.now()}`, from: 'admin', text: backToUser.text, createdAt: Date.now() }]));
+                    }, 450);
+                  })();
                 }}
                 placeholder={t.supportInputPlaceholder || 'Write your message...'}
                 style={{ flex: 1, minWidth: 0, boxSizing: 'border-box', border: `1px solid ${C.border}`, borderRadius: 8, padding: '9px 10px', background: C.bg, color: C.t1, fontSize: 12 }}
@@ -979,17 +1292,16 @@ export function Settings({ setPage, prevPage, initialTab = 'profile', systemAcco
                   const text = String(supportInput || '').trim();
                   if (!text) return;
                   const now = Date.now();
-                  setSupportMessages((prev) => ([
-                    ...(prev || []),
-                    { id: `user-${now}`, from: 'user', text, createdAt: now },
-                  ]));
-                  setSupportInput('');
-                  setTimeout(() => {
-                    setSupportMessages((prev) => ([
-                      ...(prev || []),
-                      { id: `admin-${Date.now()}`, from: 'admin', text: t.supportAutoReply || 'Message received. Admin/Support will reply soon.', createdAt: Date.now() },
-                    ]));
-                  }, 450);
+                  (async () => {
+                    const outToSupport = await translateChatText({ text, fromLang: chatInputLang, toLang: 'en' });
+                    setSupportMessages((prev) => ([...(prev || []), { id: `user-${now}`, from: 'user', text: outToSupport.text, createdAt: now }]));
+                    setSupportInput('');
+                    setTimeout(async () => {
+                      const adminReplyBase = t.supportAutoReply || 'Message received. Admin/Support will reply soon.';
+                      const backToUser = await translateChatText({ text: adminReplyBase, fromLang: 'en', toLang: chatOutputLang });
+                      setSupportMessages((prev) => ([...(prev || []), { id: `admin-${Date.now()}`, from: 'admin', text: backToUser.text, createdAt: Date.now() }]));
+                    }, 450);
+                  })();
                 }}
                 style={{ border: 'none', background: C.accent, color: '#fff', borderRadius: 8, padding: '9px 12px', fontSize: 12, fontWeight: 800, cursor: 'pointer' }}
               >
@@ -1002,4 +1314,6 @@ export function Settings({ setPage, prevPage, initialTab = 'profile', systemAcco
     </div>
   );
 }
+
+
 

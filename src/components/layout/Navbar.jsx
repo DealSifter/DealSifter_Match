@@ -125,7 +125,7 @@ function SwipeableNotificationItem({
   );
 }
 
-export function Navbar({ page, prevPage, setPage, nuggets = 0, setModal = () => {}, chatNotifications = [], systemNotifications = [], setSystemNotifications = () => {}, onOpenChatNotification = () => {}, onMarkChatNotificationRead = () => {}, onOpenAuthModal = () => {}, onOpenSettings = () => {}, onOpenAdmin = () => {}, onLogoutUser = () => {}, isAdmin = false, showInstallAppButton = false, onInstallApp = () => {} }) {
+export function Navbar({ page, prevPage, setPage, nuggets = 0, setModal = () => {}, chatNotifications = [], systemNotifications = [], setSystemNotifications = () => {}, onOpenChatNotification = () => {}, onMarkChatNotificationRead = () => {}, onOpenAuthModal = () => {}, onOpenSettings = () => {}, onOpenAdmin = () => {}, onLogoutUser = () => {}, isAdmin = false, showInstallAppButton = false, onInstallApp = () => {}, userPreferences = null }) {
   const TABLET_PORTRAIT_QUERY = '(min-width: 768px) and (max-width: 1080px) and (orientation: portrait)';
   const isApp = page !== 'landing';
   const isLanding = page === 'landing';
@@ -162,6 +162,9 @@ export function Navbar({ page, prevPage, setPage, nuggets = 0, setModal = () => 
   const isLandingCompact = isLanding && isCompactViewport;
   const isAppCompact = isApp && isCompactViewport;
   const isCompactTopbar = isLandingCompact || isAppCompact;
+  const presenceStatus = String(userPreferences?.privacy?.presenceStatus || 'online');
+  const presenceColor = presenceStatus === 'standby' ? '#facc15' : (presenceStatus === 'offline' ? '#ef4444' : '#22c55e');
+  const allowMessagePreview = Boolean(userPreferences?.privacy?.messagePreview ?? true);
   const useImageLogoInHeader = isMobile;
   const compactDarkLogoSrc = logoDarkTheme;
   const compactLightLogoSrc = logoLightTheme;
@@ -422,6 +425,7 @@ export function Navbar({ page, prevPage, setPage, nuggets = 0, setModal = () => 
                   style={{ width: 34, height: 34, borderRadius: 8, border: `1px solid ${C.border}`, background: C.card, display: 'inline-flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', position: 'relative' }}
                 >
                   <Icon name={appMenuOpen ? 'close' : 'menu'} size={16} color={C.t2} />
+                  <span style={{ position: 'absolute', top: -3, left: -3, width: 9, height: 9, borderRadius: 999, background: presenceColor, border: `1px solid ${C.card}` }} />
                   {!appMenuOpen && consolidatedCount > 0 ? (
                     <span style={{ position: 'absolute', top: -5, right: -5, minWidth: 16, height: 16, padding: '0 4px', borderRadius: 999, background: C.danger, color: '#fff', fontSize: 9, fontWeight: 800, display: 'inline-flex', alignItems: 'center', justifyContent: 'center', lineHeight: 1 }}>
                       {consolidatedCount > 99 ? '99+' : consolidatedCount}
@@ -658,7 +662,7 @@ export function Navbar({ page, prevPage, setPage, nuggets = 0, setModal = () => 
                                   style={{ border: `1px solid ${C.border}`, borderRadius: 8, padding: 8, cursor: clickable ? 'pointer' : 'default', background: clickable ? C.alpha(C.accent, 0.03) : 'transparent' }}
                                 >
                                   <div style={{ fontSize: 11, fontWeight: 700, color: C.t1 }}>{item.title}</div>
-                                  <div style={{ fontSize: 10, color: C.t3, marginTop: 2 }}>{item.message}</div>
+                                  <div style={{ fontSize: 10, color: C.t3, marginTop: 2 }}>{allowMessagePreview ? item.message : '•••'}</div>
                                 </div>
                               </SwipeableNotificationItem>
                             );
@@ -675,7 +679,7 @@ export function Navbar({ page, prevPage, setPage, nuggets = 0, setModal = () => 
                               >
                                 <div style={{ border: `1px solid ${item.read ? C.border : C.accent}`, borderRadius: 8, padding: 8, background: item.read ? 'transparent' : C.alpha(C.accent, 0.06) }}>
                                   <div style={{ fontSize: 11, fontWeight: 700, color: C.t1 }}>{item.title}</div>
-                                  <div style={{ fontSize: 10, color: C.t3, marginTop: 2 }}>{item.message}</div>
+                                  <div style={{ fontSize: 10, color: C.t3, marginTop: 2 }}>{allowMessagePreview ? item.message : '•••'}</div>
                                 </div>
                               </SwipeableNotificationItem>
                             ))}

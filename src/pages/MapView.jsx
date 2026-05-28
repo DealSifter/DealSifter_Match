@@ -1215,21 +1215,31 @@ export function MapView({
   showcaseProperties = [],
   userProfile,
   onUpdatePropertyCoords,
+  userPreferences = null,
 }) {
   const allT = useT('mapview');
   const tMatches = allT.matches;
   const tCards = allT.cards;
   const tMap = allT.mapViewPage;
+  const prefMap = userPreferences?.map || {};
+  const preferredInitialZoom = Number.isFinite(Number(prefMap.initialZoom)) ? Number(prefMap.initialZoom) : DEFAULT_ZOOM;
+  const preferredMapStyle = ['simple', 'satellite_streets', 'topo', 'flood'].includes(String(prefMap.defaultStyle || ''))
+    ? String(prefMap.defaultStyle)
+    : 'simple';
+  const preferredClusterBehavior = String(prefMap.clusterBehavior || 'pins_city');
+  const preferredDefaultFilters = prefMap.defaultFilters && typeof prefMap.defaultFilters === 'object'
+    ? prefMap.defaultFilters
+    : {};
   const initialMapUiState = useMemo(() => _loadMapUiState(), []);
   const mapUiStateRef = React.useRef(initialMapUiState || {});
   const unlockedIds = useMemo(() => (Array.isArray(unlocked) ? unlocked : []), [unlocked]);
   const isUnlockedId = useCallback((id) => unlockedIds.includes(id), [unlockedIds]);
-  const [showPeople, setShowPeople] = useState(() => initialMapUiState.showPeople ?? true);
-  const [showProperties, setShowProperties] = useState(() => initialMapUiState.showProperties ?? true);
-  const [showOnlyUnlocked, setShowOnlyUnlocked] = useState(() => initialMapUiState.showOnlyUnlocked ?? false);
-  const [showOnlyMyPins, setShowOnlyMyPins] = useState(() => initialMapUiState.showOnlyMyPins ?? false);
+  const [showPeople, setShowPeople] = useState(() => initialMapUiState.showPeople ?? Boolean(preferredDefaultFilters.showPeople ?? true));
+  const [showProperties, setShowProperties] = useState(() => initialMapUiState.showProperties ?? Boolean(preferredDefaultFilters.showProperties ?? true));
+  const [showOnlyUnlocked, setShowOnlyUnlocked] = useState(() => initialMapUiState.showOnlyUnlocked ?? Boolean(preferredDefaultFilters.showOnlyUnlocked ?? false));
+  const [showOnlyMyPins, setShowOnlyMyPins] = useState(() => initialMapUiState.showOnlyMyPins ?? Boolean(preferredDefaultFilters.showOnlyMyPins ?? false));
   const [locationMode, setLocationMode] = useState(() => initialMapUiState.locationMode || 'state');
-  const [mapStyle, setMapStyle] = useState(() => initialMapUiState.mapStyle || 'simple');
+  const [mapStyle, setMapStyle] = useState(() => initialMapUiState.mapStyle || preferredMapStyle);
   const [locationQuery, setLocationQuery] = useState(() => initialMapUiState.locationQuery || '');
   const [appliedLocationQuery, setAppliedLocationQuery] = useState(() => initialMapUiState.appliedLocationQuery || '');
   // Geocode cache: persisted { cacheKey → { lat, lng, geocodeSource, geocodeConfidence } }
@@ -1292,7 +1302,7 @@ export function MapView({
     }
     return {
       center: DEFAULT_CENTER,
-      zoom: DEFAULT_ZOOM,
+      zoom: preferredInitialZoom,
       bounds: [-127, 24, -66, 50],
     };
   });
@@ -1310,7 +1320,7 @@ export function MapView({
     } catch (e) { void e; }
     return {
       bounds: DEFAULT_USA_BOUNDS,
-      maxZoom: DEFAULT_ZOOM,
+      maxZoom: preferredInitialZoom,
       key: 'initial-usa',
     };
   });
@@ -1959,9 +1969,9 @@ export function MapView({
       return spreadCoincidentFeatures(selectedClusterFeatures, 0.00045);
     }
     if (selectedCardId != null) return unclusteredSpreadPoints;
-    if (roundedZoom >= CLUSTER_BREAKOUT_ZOOM) return unclusteredSpreadPoints;
+    if (preferredClusterBehavior === 'pins_city' && roundedZoom >= CLUSTER_BREAKOUT_ZOOM) return unclusteredSpreadPoints;
     return clusters;
-  }, [selectedClusterFeatures, selectedCardId, unclusteredSpreadPoints, clusters, viewport?.zoom]);
+  }, [selectedClusterFeatures, selectedCardId, unclusteredSpreadPoints, clusters, viewport?.zoom, preferredClusterBehavior]);
 
   React.useEffect(() => {
     if (!selectedClusterFeatures.length) return;
