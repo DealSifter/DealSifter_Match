@@ -47,8 +47,8 @@ function LangPicker({ compact = false }) {
   );
 }
 
-function NavBtn({ label, onClick, active, icon, iconImage, filled, minimal }) {
-  const iconColor = filled ? C.bg : (active ? C.accent : C.t2);
+function NavBtn({ label, onClick, active, icon, iconImage, filled, minimal, iconColorOverride, iconImageSize = 14, iconImageBold = false }) {
+  const iconColor = iconColorOverride || (filled ? C.bg : (active ? C.accent : C.t2));
   const base = {
     display: 'inline-flex', alignItems: 'center', gap: 8,
     padding: minimal ? '6px 8px' : '8px 12px', borderRadius: 8,
@@ -62,8 +62,6 @@ function NavBtn({ label, onClick, active, icon, iconImage, filled, minimal }) {
         <span
           aria-hidden
           style={{
-            width: 14,
-            height: 14,
             display: 'inline-block',
             backgroundColor: iconColor,
             WebkitMaskImage: `url(${iconImage})`,
@@ -74,6 +72,11 @@ function NavBtn({ label, onClick, active, icon, iconImage, filled, minimal }) {
             maskRepeat: 'no-repeat',
             maskPosition: 'center',
             maskSize: 'contain',
+            width: iconImageSize,
+            height: iconImageSize,
+            filter: iconImageBold
+              ? `drop-shadow(0 0 0 ${iconColor}) drop-shadow(0 0 0 ${iconColor})`
+              : 'none',
           }}
         />
       ) : null}
@@ -421,9 +424,9 @@ export function Navbar({ page, prevPage, setPage, nuggets = 0, setModal = () => 
         {/* Center: Main nav (desktop) */}
         {isCompactTopbar ? null : isApp ? (
           <div style={{ display: 'flex', gap: 8, alignItems: 'center', justifySelf: 'center' }}>
-            <NavBtn iconImage={mapViewTaskbarIcon} label={t.mapView} onClick={() => setPage && setPage('mapview')} active={page === 'mapview'} />
-            <NavBtn iconImage={feedMatchIcon} label={t.feed} onClick={() => setPage && setPage('dashboard')} active={page === 'dashboard'} />
-            <NavBtn iconImage={matchesTaskbarIcon} label={t.matches} onClick={() => setPage && setPage('matches')} active={page === 'matches'} />
+            <NavBtn iconImage={mapViewTaskbarIcon} iconImageSize={18} iconImageBold iconColorOverride="#929692" label={t.mapView} onClick={() => setPage && setPage('mapview')} active={page === 'mapview'} />
+            <NavBtn iconImage={feedMatchIcon} iconImageSize={18} iconImageBold iconColorOverride="#929692" label={t.feed} onClick={() => setPage && setPage('dashboard')} active={page === 'dashboard'} />
+            <NavBtn iconImage={matchesTaskbarIcon} iconImageSize={18} iconImageBold iconColorOverride="#929692" label={t.matches} onClick={() => setPage && setPage('matches')} active={page === 'matches'} />
             <NavBtn icon="creditCard" label={t.pricing} onClick={() => setPage && setPage('pricing')} active={page === 'pricing'} />
             {isAdmin ? (
               <NavBtn icon="shield" label={t.adminSystem || 'Adm.System'} onClick={onOpenAdmin} active={page === 'admin'} />
