@@ -2908,7 +2908,7 @@ export default function App() {
     addToast({
       type: 'error',
       title: 'Supabase não configurado',
-      message: 'Na Vercel, adicione VITE_SUPABASE_URL e VITE_SUPABASE_ANON_KEY (Settings → Environment Variables) e faça Redeploy.',
+      message: 'Na Vercel, adicione VITE_SUPABASE_URL e VITE_SUPABASE_ANON_KEY (ou SUPABASE_URL/SUPABASE_ANON_KEY) e faça Redeploy.',
     });
   };
 
