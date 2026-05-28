@@ -304,8 +304,7 @@ export function Navbar({ page, prevPage, setPage, nuggets = 0, setModal = () => 
 
   useEffect(() => {
     if (!appMenuOpen) return;
-    const timer = window.setTimeout(() => setAppNotifOpen(false), 0);
-    return () => window.clearTimeout(timer);
+    setAppNotifOpen(false);
   }, [page, appMenuOpen]);
 
   const markSystemAsRead = () => {
@@ -396,7 +395,7 @@ export function Navbar({ page, prevPage, setPage, nuggets = 0, setModal = () => 
           <div className="logo-general" data-logo="general" style={{ display: 'flex', alignItems: 'center', cursor: 'pointer' }} onClick={() => setPage && setPage('landing')}>
             {useImageLogoInHeader ? (
               <img
-                src={isLanding ? compactLightLogoSrc : (theme === 'dark' ? compactLightLogoSrc : compactDarkLogoSrc)}
+                src={isLanding ? compactLightLogoSrc : (theme === 'dark' ? compactDarkLogoSrc : compactLightLogoSrc)}
                 alt="DealSifter Match"
                 style={{ height: 34, width: 'auto', display: 'block' }}
                 onError={(e) => {
