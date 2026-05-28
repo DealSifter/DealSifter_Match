@@ -4,22 +4,43 @@ import loaderMark from './assets/logo.png';
 import { ThemeProvider } from './theme/theme';
 import { Navbar } from './components/layout/Navbar';
 import { AppMobileBottomNav } from './components/layout/AppMobileBottomNav';
-const Landing = lazy(() => import('./pages/Landing').then((m) => ({ default: m.Landing })));
-const Dashboard = lazy(() => import('./pages/Dashboard').then((m) => ({ default: m.Dashboard })));
-const MatchesPage = lazy(() => import('./pages/MatchesPage').then((m) => ({ default: m.MatchesPage })));
-const Onboarding = lazy(() => import('./pages/Onboarding').then((m) => ({ default: m.Onboarding })));
-const Pricing = lazy(() => import('./pages/Pricing').then((m) => ({ default: m.Pricing })));
-const MapView = lazy(() => import('./pages/MapView').then((m) => ({ default: m.MapView })));
-const Settings = lazy(() => import('./pages/Settings').then((m) => ({ default: m.Settings })));
-const AdminDashboard = lazy(() => import('./pages/AdminDashboard').then((m) => ({ default: m.AdminDashboard })));
-const TermsPage = lazy(() => import('./pages/TermsPage').then((m) => ({ default: m.TermsPage })));
-const PrivacyPolicyPage = lazy(() => import('./pages/PrivacyPolicyPage').then((m) => ({ default: m.PrivacyPolicyPage })));
+const lazyWithRetry = (importer, key) => lazy(async () => {
+  try {
+    if (typeof window !== 'undefined') sessionStorage.removeItem(`ds_lazy_retry_${key}`);
+    return await importer();
+  } catch (error) {
+    const msg = String(error?.message || '').toLowerCase();
+    const recoverable = msg.includes('failed to fetch dynamically imported module')
+      || msg.includes('importing a module script failed')
+      || msg.includes('chunkloaderror');
+    if (recoverable && typeof window !== 'undefined') {
+      const retryKey = `ds_lazy_retry_${key}`;
+      if (!sessionStorage.getItem(retryKey)) {
+        sessionStorage.setItem(retryKey, '1');
+        window.location.reload();
+        return new Promise(() => {});
+      }
+    }
+    throw error;
+  }
+});
+
+const Landing = lazyWithRetry(() => import('./pages/Landing').then((m) => ({ default: m.Landing })), 'landing');
+const Dashboard = lazyWithRetry(() => import('./pages/Dashboard').then((m) => ({ default: m.Dashboard })), 'dashboard');
+const MatchesPage = lazyWithRetry(() => import('./pages/MatchesPage').then((m) => ({ default: m.MatchesPage })), 'matches');
+const Onboarding = lazyWithRetry(() => import('./pages/Onboarding').then((m) => ({ default: m.Onboarding })), 'onboarding');
+const Pricing = lazyWithRetry(() => import('./pages/Pricing').then((m) => ({ default: m.Pricing })), 'pricing');
+const MapView = lazyWithRetry(() => import('./pages/MapView').then((m) => ({ default: m.MapView })), 'mapview');
+const Settings = lazyWithRetry(() => import('./pages/Settings').then((m) => ({ default: m.Settings })), 'settings');
+const AdminDashboard = lazyWithRetry(() => import('./pages/AdminDashboard').then((m) => ({ default: m.AdminDashboard })), 'admin');
+const TermsPage = lazyWithRetry(() => import('./pages/TermsPage').then((m) => ({ default: m.TermsPage })), 'terms');
+const PrivacyPolicyPage = lazyWithRetry(() => import('./pages/PrivacyPolicyPage').then((m) => ({ default: m.PrivacyPolicyPage })), 'privacy');
 import { UnlockModal } from './components/modals/UnlockModal';
-const AuthAccessModal = lazy(() => import('./components/modals/AuthAccessModal').then((m) => ({ default: m.AuthAccessModal })));
-const AdminLoginModal = lazy(() => import('./components/modals/AdminLoginModal').then((m) => ({ default: m.AdminLoginModal })));
+const AuthAccessModal = lazyWithRetry(() => import('./components/modals/AuthAccessModal').then((m) => ({ default: m.AuthAccessModal })), 'auth-access');
+const AdminLoginModal = lazyWithRetry(() => import('./components/modals/AdminLoginModal').then((m) => ({ default: m.AdminLoginModal })), 'admin-login');
 import { ToastContainer } from './components/ui/Toast';
-const ConsentBanner = lazy(() => import('./components/ui/ConsentBanner').then((m) => ({ default: m.ConsentBanner })));
-const CookieBanner = lazy(() => import('./components/ui/CookieBanner').then((m) => ({ default: m.CookieBanner })));
+const ConsentBanner = lazyWithRetry(() => import('./components/ui/ConsentBanner').then((m) => ({ default: m.ConsentBanner })), 'consent');
+const CookieBanner = lazyWithRetry(() => import('./components/ui/CookieBanner').then((m) => ({ default: m.CookieBanner })), 'cookie');
 import { getT } from './i18n/translations';
 import { CATEGORIES, CARDS as _MOCK_CARDS, NUGGET_PACKS, PLANS } from './data/mockData';
 import { supabase, isSupabaseConfigured } from './lib/supabaseClient';
