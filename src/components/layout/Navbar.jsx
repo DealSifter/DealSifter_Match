@@ -8,6 +8,9 @@ import { Icon } from '../ui/Icon';
 import appLogo from '../../assets/logo.png';
 import logoLightTheme from '../../assets/logo-light-theme.jpg';
 import logoDarkTheme from '../../assets/logo-dark-theme.jpg';
+import feedMatchIcon from '../../assets/feed-match-icon.png';
+import mapViewTaskbarIcon from '../../assets/taskbar-mapview-icon.png';
+import matchesTaskbarIcon from '../../assets/taskbar-matches-icon.png';
 
 const LANGS = [
   { code: 'en-US', label: 'EN' },
@@ -44,17 +47,37 @@ function LangPicker({ compact = false }) {
   );
 }
 
-function NavBtn({ label, onClick, active, icon, filled, minimal }) {
+function NavBtn({ label, onClick, active, icon, iconImage, filled, minimal }) {
+  const iconColor = filled ? C.bg : (active ? C.accent : C.t2);
   const base = {
     display: 'inline-flex', alignItems: 'center', gap: 8,
     padding: minimal ? '6px 8px' : '8px 12px', borderRadius: 8,
     border: filled ? `1px solid ${C.border}` : 'none', cursor: 'pointer', fontWeight: 700,
-    background: filled ? C.gold : 'transparent', color: filled ? C.bg : (active ? C.accent : C.t2)
+    background: filled ? C.gold : 'transparent', color: iconColor
   };
 
   return (
     <button onClick={onClick} style={base}>
-      {icon && <Icon name={icon} size={14} color={filled ? C.bg : (active ? C.accent : C.t2)} />}
+      {iconImage ? (
+        <span
+          aria-hidden
+          style={{
+            width: 14,
+            height: 14,
+            display: 'inline-block',
+            backgroundColor: iconColor,
+            WebkitMaskImage: `url(${iconImage})`,
+            WebkitMaskRepeat: 'no-repeat',
+            WebkitMaskPosition: 'center',
+            WebkitMaskSize: 'contain',
+            maskImage: `url(${iconImage})`,
+            maskRepeat: 'no-repeat',
+            maskPosition: 'center',
+            maskSize: 'contain',
+          }}
+        />
+      ) : null}
+      {!iconImage && icon && <Icon name={icon} size={14} color={iconColor} />}
       <span style={{ fontSize: 13 }}>{label}</span>
     </button>
   );
@@ -398,9 +421,9 @@ export function Navbar({ page, prevPage, setPage, nuggets = 0, setModal = () => 
         {/* Center: Main nav (desktop) */}
         {isCompactTopbar ? null : isApp ? (
           <div style={{ display: 'flex', gap: 8, alignItems: 'center', justifySelf: 'center' }}>
-            <NavBtn icon="mapPin" label={t.mapView} onClick={() => setPage && setPage('mapview')} active={page === 'mapview'} />
-            <NavBtn icon="grid" label={t.feed} onClick={() => setPage && setPage('dashboard')} active={page === 'dashboard'} />
-            <NavBtn icon="chat" label={t.matches} onClick={() => setPage && setPage('matches')} active={page === 'matches'} />
+            <NavBtn iconImage={mapViewTaskbarIcon} label={t.mapView} onClick={() => setPage && setPage('mapview')} active={page === 'mapview'} />
+            <NavBtn iconImage={feedMatchIcon} label={t.feed} onClick={() => setPage && setPage('dashboard')} active={page === 'dashboard'} />
+            <NavBtn iconImage={matchesTaskbarIcon} label={t.matches} onClick={() => setPage && setPage('matches')} active={page === 'matches'} />
             <NavBtn icon="creditCard" label={t.pricing} onClick={() => setPage && setPage('pricing')} active={page === 'pricing'} />
             {isAdmin ? (
               <NavBtn icon="shield" label={t.adminSystem || 'Adm.System'} onClick={onOpenAdmin} active={page === 'admin'} />

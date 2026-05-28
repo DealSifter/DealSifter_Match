@@ -3335,7 +3335,6 @@ export function Onboarding({
         <div className="onb-head">
           <div>
             <h2 style={{ margin: 0, fontSize: 'clamp(17px,2.5vw,22px)', color: C.t1, fontWeight: 800 }}>{t.quickRegistrationTitle}</h2>
-            <p style={{ margin: '1px 0 0', color: C.t3, fontSize: 10 }}>{t.quickRegistrationSub}</p>
           </div>
         </div>
 
