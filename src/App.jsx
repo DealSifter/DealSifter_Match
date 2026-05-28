@@ -4,9 +4,19 @@ import loaderMark from './assets/logo.png';
 import { ThemeProvider } from './theme/theme';
 import { Navbar } from './components/layout/Navbar';
 import { AppMobileBottomNav } from './components/layout/AppMobileBottomNav';
+const safeSessionGet = (key) => {
+  try { return typeof window !== 'undefined' ? window.sessionStorage.getItem(key) : null; } catch { return null; }
+};
+const safeSessionSet = (key, value) => {
+  try { if (typeof window !== 'undefined') window.sessionStorage.setItem(key, value); } catch { /* noop */ }
+};
+const safeSessionRemove = (key) => {
+  try { if (typeof window !== 'undefined') window.sessionStorage.removeItem(key); } catch { /* noop */ }
+};
+
 const lazyWithRetry = (importer, key) => lazy(async () => {
   try {
-    if (typeof window !== 'undefined') sessionStorage.removeItem(`ds_lazy_retry_${key}`);
+    safeSessionRemove(`ds_lazy_retry_${key}`);
     return await importer();
   } catch (error) {
     const msg = String(error?.message || '').toLowerCase();
@@ -15,8 +25,8 @@ const lazyWithRetry = (importer, key) => lazy(async () => {
       || msg.includes('chunkloaderror');
     if (recoverable && typeof window !== 'undefined') {
       const retryKey = `ds_lazy_retry_${key}`;
-      if (!sessionStorage.getItem(retryKey)) {
-        sessionStorage.setItem(retryKey, '1');
+      if (!safeSessionGet(retryKey)) {
+        safeSessionSet(retryKey, '1');
         window.location.reload();
         return new Promise(() => {});
       }
