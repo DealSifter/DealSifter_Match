@@ -47,13 +47,30 @@ function LangPicker({ compact = false }) {
   );
 }
 
-function NavBtn({ label, onClick, active, icon, iconImage, filled, minimal, iconColorOverride, iconImageSize = 14, iconImageBold = false }) {
-  const iconColor = iconColorOverride || (filled ? C.bg : (active ? C.accent : C.t2));
+function NavBtn({
+  label,
+  onClick,
+  active,
+  icon,
+  iconImage,
+  filled,
+  minimal,
+  iconColorOverride,
+  iconColorActive,
+  iconImageSize = 14,
+  iconImageBold = false,
+  labelWeight = 700,
+  activeGlow = false,
+}) {
+  const iconColor = active
+    ? (iconColorActive || iconColorOverride || C.accent)
+    : (iconColorOverride || (filled ? C.bg : C.t2));
   const base = {
     display: 'inline-flex', alignItems: 'center', gap: 8,
     padding: minimal ? '6px 8px' : '8px 12px', borderRadius: 8,
-    border: filled ? `1px solid ${C.border}` : 'none', cursor: 'pointer', fontWeight: 700,
-    background: filled ? C.gold : 'transparent', color: iconColor
+    border: filled ? `1px solid ${C.border}` : 'none', cursor: 'pointer', fontWeight: labelWeight,
+    background: filled ? C.gold : 'transparent', color: iconColor,
+    textShadow: active && activeGlow ? `0 0 8px ${C.alpha(iconColor, 0.55)}` : 'none',
   };
 
   return (
@@ -75,8 +92,8 @@ function NavBtn({ label, onClick, active, icon, iconImage, filled, minimal, icon
             width: iconImageSize,
             height: iconImageSize,
             filter: iconImageBold
-              ? `drop-shadow(0 0 0 ${iconColor}) drop-shadow(0 0 0 ${iconColor})`
-              : 'none',
+              ? `${active && activeGlow ? `drop-shadow(0 0 8px ${C.alpha(iconColor, 0.6)}) ` : ''}drop-shadow(0 0 0 ${iconColor}) drop-shadow(0 0 0 ${iconColor})`
+              : (active && activeGlow ? `drop-shadow(0 0 8px ${C.alpha(iconColor, 0.6)})` : 'none'),
           }}
         />
       ) : null}
@@ -424,9 +441,9 @@ export function Navbar({ page, prevPage, setPage, nuggets = 0, setModal = () => 
         {/* Center: Main nav (desktop) */}
         {isCompactTopbar ? null : isApp ? (
           <div style={{ display: 'flex', gap: 8, alignItems: 'center', justifySelf: 'center' }}>
-            <NavBtn iconImage={mapViewTaskbarIcon} iconImageSize={18} iconImageBold iconColorOverride="#929692" label={t.mapView} onClick={() => setPage && setPage('mapview')} active={page === 'mapview'} />
-            <NavBtn iconImage={feedMatchIcon} iconImageSize={18} iconImageBold iconColorOverride="#929692" label={t.feed} onClick={() => setPage && setPage('dashboard')} active={page === 'dashboard'} />
-            <NavBtn iconImage={matchesTaskbarIcon} iconImageSize={18} iconImageBold iconColorOverride="#929692" label={t.matches} onClick={() => setPage && setPage('matches')} active={page === 'matches'} />
+            <NavBtn iconImage={mapViewTaskbarIcon} iconImageSize={18} iconImageBold iconColorOverride="#67606b" iconColorActive={C.accent} activeGlow labelWeight={800} label={t.mapView} onClick={() => setPage && setPage('mapview')} active={page === 'mapview'} />
+            <NavBtn iconImage={feedMatchIcon} iconImageSize={18} iconImageBold iconColorOverride="#67606b" iconColorActive={C.accent} activeGlow labelWeight={800} label={t.feed} onClick={() => setPage && setPage('dashboard')} active={page === 'dashboard'} />
+            <NavBtn iconImage={matchesTaskbarIcon} iconImageSize={18} iconImageBold iconColorOverride="#67606b" iconColorActive={C.accent} activeGlow labelWeight={800} label={t.matches} onClick={() => setPage && setPage('matches')} active={page === 'matches'} />
             <NavBtn icon="creditCard" label={t.pricing} onClick={() => setPage && setPage('pricing')} active={page === 'pricing'} />
             {isAdmin ? (
               <NavBtn icon="shield" label={t.adminSystem || 'Adm.System'} onClick={onOpenAdmin} active={page === 'admin'} />
