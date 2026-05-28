@@ -2871,9 +2871,11 @@ export function Onboarding({
   const normalizeEmail = (value) => String(value || '').trim().toLowerCase();
 
   const getVerificationScopeLabel = (scope) => {
-    if (scope === 'professional') return 'perfil Business';
-    if (scope === 'fsbo') return 'perfil FSBO';
-    return accountType === 'professional' ? 'perfil Personal' : 'perfil';
+    if (scope === 'professional') return t.verificationScopeBusiness || 'Business profile';
+    if (scope === 'fsbo') return t.verificationScopeFsbo || 'FSBO profile';
+    return accountType === 'professional'
+      ? (t.verificationScopePersonal || 'Personal profile')
+      : (t.verificationScopeGeneric || 'profile');
   };
 
   const getVerificationRecord = (scope) => {
@@ -2966,20 +2968,20 @@ export function Onboarding({
     const scope = verificationModal.scope;
     const profileEmail = resolveVerificationEmail(scope);
     if (!profileEmail) {
-      setVerificationModal((prev) => ({ ...prev, error: 'Preencha o email do perfil no onboarding para iniciar a verificacao.', info: '' }));
+      setVerificationModal((prev) => ({ ...prev, error: t.verificationNeedProfileEmailStart || 'Fill in the profile email in onboarding to start verification.', info: '' }));
       return false;
     }
 
     const authEmail = getAuthEmailSnapshot();
     if (!authEmail) {
-      setVerificationModal((prev) => ({ ...prev, error: 'Faca login para validar este perfil pelo email da conta.', info: '' }));
+      setVerificationModal((prev) => ({ ...prev, error: t.verificationNeedLogin || 'Sign in to verify this profile using your account email.', info: '' }));
       return false;
     }
 
     if (profileEmail !== authEmail) {
       setVerificationModal((prev) => ({
         ...prev,
-        error: 'No modo simples, o email do perfil deve ser igual ao email da conta logada.',
+        error: t.verificationEmailMustMatch || 'In simple mode, the profile email must match the signed-in account email.',
         info: '',
       }));
       return false;
@@ -2987,8 +2989,8 @@ export function Onboarding({
 
     if (canAutoConfirmProfileEmail(profileEmail, authSession)) {
       setEmailChannelRecord({ scope, email: profileEmail, status: 'confirmed' });
-      setVerificationModal((prev) => ({ ...prev, error: '', info: 'Email da conta ja confirmado. Verificacao do perfil concluida e escudo liberado.' }));
-      setPublishToast('Perfil validado com sucesso. Selo de verificado aplicado.');
+      setVerificationModal((prev) => ({ ...prev, error: '', info: t.verificationAlreadyConfirmedInfo || 'Account email already confirmed. Profile verification completed and badge unlocked.' }));
+      setPublishToast(t.verificationToastSuccess || 'Profile verified successfully. Verified badge applied.');
       setTimeout(() => setPublishToast(''), 2600);
       return true;
     }
@@ -2996,7 +2998,7 @@ export function Onboarding({
     if (typeof onResendVerificationEmail === 'function') {
       const result = await onResendVerificationEmail({ email: authEmail, scopeLabel: getVerificationScopeLabel(scope) });
       if (!result?.ok) {
-        setVerificationModal((prev) => ({ ...prev, error: String(result?.message || 'Nao foi possivel enviar email de confirmacao agora.'), info: '' }));
+        setVerificationModal((prev) => ({ ...prev, error: String(result?.message || t.verificationSendError || 'Unable to send confirmation email right now.'), info: '' }));
         return false;
       }
     }
@@ -3005,7 +3007,7 @@ export function Onboarding({
     setVerificationModal((prev) => ({
       ...prev,
       error: '',
-      info: 'Enviamos confirmacao para o email da sua conta. Confirme no inbox e depois clique em Atualizar status do perfil.',
+      info: t.verificationSentInfo || 'We sent a confirmation to your account email. Confirm in your inbox and then click Update profile status.',
     }));
     return true;
   };
@@ -3017,24 +3019,24 @@ export function Onboarding({
     closeVerificationFlow();
 
     if (isVerified) {
-      setPublishToast('Cadastro mantido. Este perfil ja esta verificado.');
+      setPublishToast(t.verificationParallelAlreadyVerified || 'Registration kept. This profile is already verified.');
       setTimeout(() => setPublishToast(''), 2600);
       return;
     }
 
     if (!canUseEmailFlow) {
-      setPublishToast('Cadastro continua normalmente com email divergente. A verificacao fica pendente ate alinhar o email do perfil com o email da conta.');
+      setPublishToast(t.verificationParallelMismatchedEmail || 'Registration continues normally with different emails. Verification remains pending until profile and account emails match.');
       setTimeout(() => setPublishToast(''), 3200);
       return;
     }
 
     if (verificationEmailStatus === 'sent') {
-      setPublishToast('Cadastro continua normalmente. A verificacao segue em paralelo e sera concluida apos a confirmacao do email da conta.');
+      setPublishToast(t.verificationParallelSent || 'Registration continues normally. Verification proceeds in parallel and will be completed after account email confirmation.');
       setTimeout(() => setPublishToast(''), 3000);
       return;
     }
 
-    setPublishToast('Cadastro continua normalmente. Quando quiser, inicie a verificacao do perfil pelo email da conta logada.');
+    setPublishToast(t.verificationParallelNotStarted || 'Registration continues normally. Start profile verification anytime using your signed-in account email.');
     setTimeout(() => setPublishToast(''), 2600);
   };
 
@@ -3042,7 +3044,7 @@ export function Onboarding({
     const scope = verificationModal.scope;
     const profileEmail = resolveVerificationEmail(scope);
     if (!profileEmail) {
-      setVerificationModal((prev) => ({ ...prev, error: 'Preencha o email do perfil no onboarding para validar.', info: '' }));
+      setVerificationModal((prev) => ({ ...prev, error: t.verificationNeedProfileEmailValidate || 'Fill in the profile email in onboarding to validate.', info: '' }));
       return;
     }
 
@@ -3054,15 +3056,15 @@ export function Onboarding({
 
     if (canAutoConfirmProfileEmail(profileEmail, sessionSnapshot)) {
       setEmailChannelRecord({ scope, email: profileEmail, status: 'confirmed' });
-      setVerificationModal((prev) => ({ ...prev, error: '', info: 'Email confirmado. Verificacao do perfil concluida e escudo liberado.' }));
-      setPublishToast('Perfil validado com sucesso. Selo de verificado aplicado.');
+      setVerificationModal((prev) => ({ ...prev, error: '', info: t.verificationConfirmedInfo || 'Email confirmed. Profile verification completed and badge unlocked.' }));
+      setPublishToast(t.verificationToastSuccess || 'Profile verified successfully. Verified badge applied.');
       setTimeout(() => setPublishToast(''), 2600);
       return;
     }
 
     setVerificationModal((prev) => ({
       ...prev,
-      error: 'Ainda nao detectamos confirmacao do email da conta. Abra o inbox e confirme para concluir a verificacao do perfil.',
+      error: t.verificationNotDetectedYet || 'We still have not detected account email confirmation. Open your inbox and confirm to finish profile verification.',
       info: '',
     }));
   };
@@ -3399,10 +3401,10 @@ export function Onboarding({
                       gap: 4,
                       whiteSpace: 'nowrap',
                     }}
-                    title={isActiveScopeVerified ? 'Perfil verificado' : 'Seja um usuario verificado'}
+                    title={isActiveScopeVerified ? (t.verificationStatusVerified || 'Verified profile') : (t.verificationCtaBecome || 'Become a verified user')}
                   >
                     {isActiveScopeVerified ? <Icon name="shieldCheck" size={12} color={C.accent} strokeWidth={2.35} /> : null}
-                    {isActiveScopeVerified ? 'Usuario verificado' : 'Seja um usuario verificado'}
+                    {isActiveScopeVerified ? (t.verificationStatusUserVerified || 'Verified user') : (t.verificationCtaBecome || 'Become a verified user')}
                   </button>
                 </div>
               )}
@@ -4701,46 +4703,49 @@ export function Onboarding({
 
       {verificationModal.open ? (
         <Modal onClose={closeVerificationFlow} maxWidth={620}>
-          <h3 style={{ margin: '0 0 6px', color: C.t1, fontSize: 20, fontWeight: 800 }}>Verificacao de perfil por email</h3>
+          <h3 style={{ margin: '0 0 6px', color: C.t1, fontSize: 20, fontWeight: 800 }}>{t.verificationModalTitle || 'Profile verification by email'}</h3>
           <p style={{ margin: '0 0 12px', color: C.t3, fontSize: 12 }}>
-            Esta etapa valida o {getVerificationScopeLabel(verificationModal.scope)} do onboarding usando o email da conta logada.
+            {(t.verificationModalIntro || 'This step validates the {scope} from onboarding using the signed-in account email.')
+              .replace('{scope}', getVerificationScopeLabel(verificationModal.scope))}
           </p>
 
           {verificationModalRecord?.verified ? (
             <div style={{ border: `1px solid ${C.alpha(C.accent, 0.5)}`, borderRadius: 10, background: C.alpha(C.accent, 0.08), padding: '10px 12px', fontSize: 12, color: C.t1, marginBottom: 10, display: 'inline-flex', alignItems: 'center', gap: 7 }}>
               <Icon name="shieldCheck" size={14} color={C.accent} strokeWidth={2.35} />
-              Selo de verificado ativo neste perfil.
+              {t.verificationBadgeActive || 'Verified badge active for this profile.'}
             </div>
           ) : null}
 
           <div style={{ border: `1px solid ${C.border}`, borderRadius: 10, padding: 10, background: C.card, marginBottom: 10, display: 'grid', gap: 6 }}>
-            <div style={{ fontSize: 11, color: C.t2 }}>Email do perfil (onboarding): <strong style={{ color: C.t1 }}>{verificationModalEmail || '-'}</strong></div>
-            <div style={{ fontSize: 11, color: C.t2 }}>Email da conta logada: <strong style={{ color: C.t1 }}>{verificationAuthEmail || '-'}</strong></div>
+            <div style={{ fontSize: 11, color: C.t2 }}>{t.verificationProfileEmailLabel || 'Profile email (onboarding)'}: <strong style={{ color: C.t1 }}>{verificationModalEmail || '-'}</strong></div>
+            <div style={{ fontSize: 11, color: C.t2 }}>{t.verificationAccountEmailLabel || 'Signed-in account email'}: <strong style={{ color: C.t1 }}>{verificationAuthEmail || '-'}</strong></div>
             <div style={{ fontSize: 11, color: C.t2 }}>
-              Status:{' '}
+              {(t.verificationStatusLabel || 'Status')}:{' '}
               <strong style={{ color: verificationModalRecord?.verified ? C.accent : C.t1 }}>
                 {verificationModalRecord?.verified
-                  ? 'Perfil verificado'
-                  : (verificationEmailStatus === 'sent' ? 'Aguardando confirmacao de email da conta' : 'Nao iniciado')}
+                  ? (t.verificationStatusVerified || 'Verified profile')
+                  : (verificationEmailStatus === 'sent'
+                    ? (t.verificationStatusWaitingEmail || 'Waiting for account email confirmation')
+                    : (t.verificationStatusNotStarted || 'Not started'))}
               </strong>
             </div>
           </div>
 
           {!verificationModalEmail ? (
             <div style={{ marginBottom: 10, fontSize: 11, color: C.danger, border: `1px solid ${C.alpha(C.danger, 0.45)}`, borderRadius: 8, padding: '7px 9px', background: C.alpha(C.danger, 0.06) }}>
-              Preencha o email do perfil no onboarding para iniciar a verificacao.
+              {t.verificationNeedProfileEmailStart || 'Fill in the profile email in onboarding to start verification.'}
             </div>
           ) : null}
 
           {verificationModalEmail && !verificationEmailMatchesAccount ? (
             <div style={{ marginBottom: 10, fontSize: 11, color: C.t2, border: `1px solid ${C.border}`, borderRadius: 8, padding: '7px 9px', background: C.alpha(C.t1, 0.03) }}>
-              Email do perfil diferente do email da conta. Voce pode seguir com verificacao paralela e continuar o cadastro; para concluir o selo depois, alinhe os emails.
+              {t.verificationMismatchHint || 'Profile email is different from account email. You can continue with parallel verification and keep onboarding; to finish the badge later, align both emails.'}
             </div>
           ) : null}
 
           {verificationEmailMatchesAccount && !verificationAccountEmailConfirmed && verificationEmailStatus === 'sent' ? (
             <div style={{ marginBottom: 10, fontSize: 11, color: C.t2, border: `1px solid ${C.border}`, borderRadius: 8, padding: '7px 9px', background: C.alpha(C.t1, 0.03) }}>
-              Ainda aguardando confirmacao do email da conta. Abra seu inbox, confirme o email e depois clique em Atualizar status do perfil.
+              {t.verificationWaitingHint || 'Still waiting for account email confirmation. Open your inbox, confirm the email, then click Update profile status.'}
             </div>
           ) : null}
 
@@ -4756,7 +4761,7 @@ export function Onboarding({
             </div>
           ) : null}
 
-          <div role="group" aria-label="Acoes da verificacao de perfil" style={{ display: 'flex', justifyContent: 'flex-end', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
+          <div role="group" aria-label={t.verificationActionsAria || 'Profile verification actions'} style={{ display: 'flex', justifyContent: 'flex-end', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
             {!verificationModalRecord?.verified ? (
               <button
                 type="button"
@@ -4774,7 +4779,9 @@ export function Onboarding({
                   opacity: (!verificationModalEmail || !verificationEmailMatchesAccount) ? 0.55 : 1,
                 }}
               >
-                {verificationAccountEmailConfirmed ? 'Validar perfil com email ja confirmado' : 'Enviar confirmacao para validar perfil'}
+                {verificationAccountEmailConfirmed
+                  ? (t.verificationActionValidateNow || 'Validate profile with already confirmed email')
+                  : (t.verificationActionSendConfirmation || 'Send confirmation to validate profile')}
               </button>
             ) : null}
 
@@ -4793,7 +4800,7 @@ export function Onboarding({
                   fontSize: 12,
                 }}
               >
-                Seguir com verificacao paralela
+                {t.verificationActionParallel || 'Continue with parallel verification'}
               </button>
             ) : null}
 
@@ -4803,12 +4810,12 @@ export function Onboarding({
                 onClick={syncVerificationStatus}
                 style={{ padding: '8px 12px', borderRadius: 9, border: `1px solid ${C.accent}`, background: 'transparent', color: C.accent, fontWeight: 700, cursor: 'pointer', fontSize: 12 }}
               >
-                Atualizar status do perfil
+                {t.verificationActionRefresh || 'Update profile status'}
               </button>
             ) : null}
 
             <button onClick={closeVerificationFlow} style={{ padding: '8px 12px', borderRadius: 9, border: `1px solid ${C.border}`, background: 'transparent', color: C.t2, fontWeight: 700, cursor: 'pointer', fontSize: 12 }}>
-              Fechar
+              {t.close || 'Close'}
             </button>
           </div>
         </Modal>
