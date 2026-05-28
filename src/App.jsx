@@ -80,7 +80,7 @@ const ConsentBanner = lazyWithRetry(() => import('./components/ui/ConsentBanner'
 const CookieBanner = lazyWithRetry(() => import('./components/ui/CookieBanner').then((m) => ({ default: m.CookieBanner })), 'cookie');
 import { getT } from './i18n/translations';
 import { CATEGORIES, CARDS as _MOCK_CARDS, NUGGET_PACKS, PLANS } from './data/mockData';
-import { supabase, isSupabaseConfigured } from './lib/supabaseClient';
+import { supabase, isSupabaseConfigured, supabaseConfigHint } from './lib/supabaseClient';
 import { redirectToCheckout, redirectToSubscription } from './lib/stripeClient';
 import { buildScopedProfilePayload, extractScopedProfileLegacy } from './lib/profileScopeResolver';
 import { getPortfolioFull, setPortfolioFull, clearAllUserData, uploadDataUrlToStorage } from './lib/localforageHelper';
@@ -2908,13 +2908,13 @@ export default function App() {
     addToast({
       type: 'error',
       title: 'Supabase não configurado',
-      message: 'Na Vercel, adicione VITE_SUPABASE_URL e VITE_SUPABASE_ANON_KEY (ou SUPABASE_URL/SUPABASE_ANON_KEY) e faça Redeploy.',
+      message: supabaseConfigHint || 'Na Vercel, adicione VITE_SUPABASE_URL e VITE_SUPABASE_ANON_KEY e faca Redeploy.',
     });
   };
 
   const handleAdminAuthSubmit = async ({ email, password }) => {
     if (!isSupabaseConfigured || !supabase) {
-      addToast({ type: 'error', message: 'Supabase não configurado.' });
+      addToast({ type: 'error', message: supabaseConfigHint || 'Supabase nao configurado.' });
       return false;
     }
     setIsAdminAuthProcessing(true);
@@ -2951,7 +2951,7 @@ export default function App() {
 
   const handleForgotPassword = async (email) => {
     if (!isSupabaseConfigured || !supabase) {
-      addToast({ type: 'error', message: 'Supabase não configurado.' });
+      addToast({ type: 'error', message: supabaseConfigHint || 'Supabase nao configurado.' });
       return;
     }
     const trimmed = String(email || '').trim();
