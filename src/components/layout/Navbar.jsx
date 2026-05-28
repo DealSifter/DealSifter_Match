@@ -396,7 +396,7 @@ export function Navbar({ page, prevPage, setPage, nuggets = 0, setModal = () => 
           <div className="logo-general" data-logo="general" style={{ display: 'flex', alignItems: 'center', cursor: 'pointer' }} onClick={() => setPage && setPage('landing')}>
             {useImageLogoInHeader ? (
               <img
-                src={isLanding ? compactLightLogoSrc : (theme === 'dark' ? compactDarkLogoSrc : compactLightLogoSrc)}
+                src={isLanding ? compactLightLogoSrc : (theme === 'dark' ? compactLightLogoSrc : compactDarkLogoSrc)}
                 alt="DealSifter Match"
                 style={{ height: 34, width: 'auto', display: 'block' }}
                 onError={(e) => {
@@ -577,6 +577,11 @@ export function Navbar({ page, prevPage, setPage, nuggets = 0, setModal = () => 
                             {t.profile || 'Profile'}
                           </div>
 
+                          <button onClick={openAppSettings} style={{ width: '100%', display: 'flex', alignItems: 'center', gap: 10, borderRadius: 10, border: `1px solid ${C.border}`, background: 'transparent', color: C.t2, fontWeight: 700, fontSize: 14, padding: '10px 12px', cursor: 'pointer' }}>
+                            <Icon name="user" size={15} color={C.t2} />
+                            <span>{t.editProfile || 'Edit profile'}</span>
+                          </button>
+
                           <button
                             onClick={() => setAppNotifOpen(true)}
                             style={{ width: '100%', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 10, borderRadius: 10, border: `1px solid ${C.border}`, background: 'transparent', color: C.t2, fontWeight: 700, fontSize: 14, padding: '10px 12px', cursor: 'pointer' }}
@@ -605,7 +610,7 @@ export function Navbar({ page, prevPage, setPage, nuggets = 0, setModal = () => 
 
                           <button onClick={toggleTheme} style={{ width: '100%', display: 'flex', alignItems: 'center', gap: 10, borderRadius: 10, border: `1px solid ${C.border}`, background: 'transparent', color: C.t2, fontWeight: 700, fontSize: 14, padding: '10px 12px', cursor: 'pointer' }}>
                             <Icon name={theme === 'dark' ? 'sun' : 'moon'} size={15} color={C.t2} />
-                            <span>{theme === 'dark' ? (t.themeToLight || 'Enable light mode') : (t.themeToDark || 'Enable dark mode')}</span>
+                            <span>{theme === 'dark' ? (t.themeToDark || 'Enable dark mode') : (t.themeToLight || 'Enable light mode')}</span>
                           </button>
 
                           {showInstallAppButton ? (
@@ -614,11 +619,6 @@ export function Navbar({ page, prevPage, setPage, nuggets = 0, setModal = () => 
                               <span>{t.installToHome || 'Add to Home Screen'}</span>
                             </button>
                           ) : null}
-
-                          <button onClick={openAppSettings} style={{ width: '100%', display: 'flex', alignItems: 'center', gap: 10, borderRadius: 10, border: `1px solid ${C.border}`, background: 'transparent', color: C.t2, fontWeight: 700, fontSize: 14, padding: '10px 12px', cursor: 'pointer' }}>
-                            <Icon name="user" size={15} color={C.t2} />
-                            <span>{t.editProfile || 'Edit profile'}</span>
-                          </button>
 
                           <button onClick={openAppPricing} style={{ width: '100%', display: 'flex', alignItems: 'center', gap: 10, borderRadius: 10, border: `1px solid ${C.border}`, background: 'transparent', color: C.t2, fontWeight: 700, fontSize: 14, padding: '10px 12px', cursor: 'pointer' }}>
                             <Icon name="creditCard" size={15} color={C.t2} />
@@ -738,7 +738,7 @@ export function Navbar({ page, prevPage, setPage, nuggets = 0, setModal = () => 
                   ) : null}
                 </div>
                 <LangPicker />
-                <button onClick={toggleTheme} title={theme === 'dark' ? (t.themeToLight || 'Enable light mode') : (t.themeToDark || 'Enable dark mode')} style={{ width: 36, height: 36, borderRadius: 8, border: `1px solid ${C.border}`, background: C.card, display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer' }}>
+                <button onClick={toggleTheme} title={theme === 'dark' ? (t.themeToDark || 'Enable dark mode') : (t.themeToLight || 'Enable light mode')} style={{ width: 36, height: 36, borderRadius: 8, border: `1px solid ${C.border}`, background: C.card, display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer' }}>
                   <Icon name={theme === 'dark' ? 'sun' : 'moon'} size={16} color={C.t2} />
                 </button>
                 <button
