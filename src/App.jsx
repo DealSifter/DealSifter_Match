@@ -14,6 +14,32 @@ const safeSessionRemove = (key) => {
   try { if (typeof window !== 'undefined') window.sessionStorage.removeItem(key); } catch { /* noop */ }
 };
 
+const ChunkRecoveryScreen = () => (
+  <div style={{ minHeight: '100vh', display: 'grid', placeItems: 'center', background: '#0b0f0e', color: '#e6f0ed', padding: 24 }}>
+    <div style={{ width: 'min(92vw, 520px)', border: '1px solid rgba(120,140,135,.35)', borderRadius: 14, padding: 20, background: 'rgba(10,16,14,.88)' }}>
+      <div style={{ fontSize: 18, fontWeight: 800, marginBottom: 8 }}>Atualização em andamento</div>
+      <div style={{ fontSize: 13, lineHeight: 1.5, opacity: 0.9, marginBottom: 14 }}>
+        O app detectou arquivos antigos em cache. Recarregue para sincronizar a versão mais recente.
+      </div>
+      <button
+        type="button"
+        onClick={() => {
+          try {
+            const url = new URL(window.location.href);
+            url.searchParams.set('refresh', String(Date.now()));
+            window.location.replace(url.toString());
+          } catch {
+            window.location.reload();
+          }
+        }}
+        style={{ border: '1px solid rgba(56,189,175,.55)', background: 'rgba(56,189,175,.14)', color: '#69ece0', borderRadius: 10, padding: '10px 14px', fontWeight: 800, cursor: 'pointer' }}
+      >
+        Recarregar app
+      </button>
+    </div>
+  </div>
+);
+
 const lazyWithRetry = (importer, key) => lazy(async () => {
   try {
     safeSessionRemove(`ds_lazy_retry_${key}`);
@@ -30,8 +56,9 @@ const lazyWithRetry = (importer, key) => lazy(async () => {
         window.location.reload();
         return new Promise(() => {});
       }
+      return { default: ChunkRecoveryScreen };
     }
-    throw error;
+    return { default: ChunkRecoveryScreen };
   }
 });
 
