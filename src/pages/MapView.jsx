@@ -21,7 +21,7 @@ const DEFAULT_USA_BOUNDS = [
 const GRAPHITE_DARK = '#2f3438';
 const UNLOCKED_PERSON_PIN = '#75ba75';
 const MY_PINS_COLOR = C.gold;
-const FEMA_WMS_URL = 'https://hazards.fema.gov/gis/nfhl/services/public/NFHL/MapServer/WMSServer';
+const FEMA_WMS_URL = 'https://hazards.fema.gov/arcgis/rest/services/public/NFHLWMS/MapServer/WMSServer';
 const FEMA_TILE_ERROR_STREAK_LIMIT = 3;
 
 const BASE_TILE_FALLBACK_CHAIN = [
@@ -89,7 +89,7 @@ const MAP_STYLE_OPTIONS = {
         layers: '28',
         format: 'image/png',
         transparent: true,
-        version: '1.1.1',
+        version: '1.3.0',
         styles: '',
         attribution: 'Flood Zones &copy; <a href="https://msc.fema.gov">FEMA NFHL</a>',
         opacity: 0.65,
@@ -105,6 +105,15 @@ const MAP_STYLE_OPTIONS = {
     ],
   },
 };
+
+const PUBLIC_MAP_STYLE_KEYS = ['simple', 'satellite_streets', 'topo'];
+
+function normalizeVisibleMapStyle(value) {
+  const raw = String(value || '').trim();
+  if (PUBLIC_MAP_STYLE_KEYS.includes(raw)) return raw;
+  if (raw === 'flood') return 'satellite_streets';
+  return 'simple';
+}
 
 const STATE_NAME_BY_CODE = {
   AL: 'Alabama', AK: 'Alaska', AZ: 'Arizona', AR: 'Arkansas', CA: 'California',
@@ -1223,9 +1232,7 @@ export function MapView({
   const tMap = allT.mapViewPage;
   const prefMap = userPreferences?.map || {};
   const preferredInitialZoom = Number.isFinite(Number(prefMap.initialZoom)) ? Number(prefMap.initialZoom) : DEFAULT_ZOOM;
-  const preferredMapStyle = ['simple', 'satellite_streets', 'topo', 'flood'].includes(String(prefMap.defaultStyle || ''))
-    ? String(prefMap.defaultStyle)
-    : 'simple';
+  const preferredMapStyle = normalizeVisibleMapStyle(prefMap.defaultStyle);
   const preferredClusterBehavior = String(prefMap.clusterBehavior || 'pins_city');
   const preferredDefaultFilters = prefMap.defaultFilters && typeof prefMap.defaultFilters === 'object'
     ? prefMap.defaultFilters
@@ -1239,7 +1246,7 @@ export function MapView({
   const [showOnlyUnlocked, setShowOnlyUnlocked] = useState(() => initialMapUiState.showOnlyUnlocked ?? Boolean(preferredDefaultFilters.showOnlyUnlocked ?? false));
   const [showOnlyMyPins, setShowOnlyMyPins] = useState(() => initialMapUiState.showOnlyMyPins ?? Boolean(preferredDefaultFilters.showOnlyMyPins ?? false));
   const [locationMode, setLocationMode] = useState(() => initialMapUiState.locationMode || 'state');
-  const [mapStyle, setMapStyle] = useState(() => initialMapUiState.mapStyle || preferredMapStyle);
+  const [mapStyle, setMapStyle] = useState(() => normalizeVisibleMapStyle(initialMapUiState.mapStyle || preferredMapStyle));
   const [locationQuery, setLocationQuery] = useState(() => initialMapUiState.locationQuery || '');
   const [appliedLocationQuery, setAppliedLocationQuery] = useState(() => initialMapUiState.appliedLocationQuery || '');
   // Geocode cache: persisted { cacheKey → { lat, lng, geocodeSource, geocodeConfidence } }
@@ -1424,7 +1431,10 @@ export function MapView({
     if (saved.locationMode === 'state' || saved.locationMode === 'city' || saved.locationMode === 'zip') {
       setLocationMode(saved.locationMode);
     }
-    if (saved.mapStyle && MAP_STYLE_OPTIONS[saved.mapStyle]) setMapStyle(saved.mapStyle);
+    if (typeof saved.mapStyle === 'string') {
+      const sanitizedMapStyle = normalizeVisibleMapStyle(saved.mapStyle);
+      if (MAP_STYLE_OPTIONS[sanitizedMapStyle]) setMapStyle(sanitizedMapStyle);
+    }
     if (typeof saved.locationQuery === 'string') setLocationQuery(saved.locationQuery);
     if (typeof saved.appliedLocationQuery === 'string') setAppliedLocationQuery(saved.appliedLocationQuery);
     if (saved.panelTab === 'filters' || saved.panelTab === 'cards') setPanelTab(saved.panelTab);
@@ -2192,6 +2202,9 @@ export function MapView({
     topo: tMap.styleTopo,
     flood: tMap.styleFlood,
   }), [tMap]);
+  const visibleMapStyleEntries = useMemo(() => (
+    PUBLIC_MAP_STYLE_KEYS.map((styleKey) => [styleKey, MAP_STYLE_OPTIONS[styleKey]]).filter(([, cfg]) => Boolean(cfg))
+  ), []);
 
   const panelOpenWidth = isMobileViewport ? 'min(84vw, 340px)' : `${panelWidth}px`;
   const panelToggleLeft = panelCollapsed
@@ -2690,7 +2703,7 @@ export function MapView({
                     </div>
                   )}
                 <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
-                  {Object.entries(MAP_STYLE_OPTIONS).map(([styleKey, styleConfig]) => (
+                  {visibleMapStyleEntries.map(([styleKey, styleConfig]) => (
                     <button
                       key={styleKey}
                       className={`map-filter-mode ${mapStyle === styleKey ? 'map-filter-mode-active' : ''}`}

@@ -109,6 +109,20 @@ export function Settings({ setPage, prevPage, initialTab = 'profile', systemAcco
     };
   });
   const [prefs, setPrefs] = useState(() => (userPreferences && typeof userPreferences === 'object' ? userPreferences : null));
+  const initialZoomValue = Number(prefs?.map?.initialZoom || 4);
+  const selectedDefaultMapStyle = (() => {
+    const raw = String(prefs?.map?.defaultStyle || '').trim();
+    if (['simple', 'satellite_streets', 'topo'].includes(raw)) return raw;
+    if (raw === 'flood') return 'satellite_streets';
+    return 'simple';
+  })();
+  const initialZoomLevelLabel = initialZoomValue <= 4
+    ? (t.prefZoomLevelCountry || 'Country')
+    : initialZoomValue <= 7
+      ? (t.prefZoomLevelState || 'State')
+      : initialZoomValue <= 10
+        ? (t.prefZoomLevelCity || 'City')
+        : (t.prefZoomLevelPin || 'PIN');
   const chatInputLang = getSafeLang(prefs?.chatLanguage?.input || 'pt');
   const chatOutputLang = getSafeLang(prefs?.chatLanguage?.output || 'en');
   const activeSubscription = subscription || {
@@ -162,7 +176,8 @@ export function Settings({ setPage, prevPage, initialTab = 'profile', systemAcco
   const profileEmail = String(systemAccount?.email || '').trim();
   const profilePhone = String(systemAccount?.phone || '').trim();
   const profilePhoneCountryCode = String(systemAccount?.phoneCountryCode || '+1').trim();
-  const profileType = String(systemAccount?.accountType || 'individual').trim();
+  const rawProfileType = String(systemAccount?.accountType || 'individual').trim().toLowerCase();
+  const profileType = ['individual', 'business', 'hybrid'].includes(rawProfileType) ? rawProfileType : 'individual';
   const profileMarkets = String(systemAccount?.marketAreas || '').trim();
   const profileCompletion = Math.round(([profileFullName, profileEmail, profilePhone, profileType, profileMarkets].filter(Boolean).length / 5) * 100);
   const sectionProgress = useMemo(() => {
@@ -567,6 +582,7 @@ export function Settings({ setPage, prevPage, initialTab = 'profile', systemAcco
                     <select value={profileType} onChange={(e) => updateField('accountType', e.target.value)} style={controlStyle}>
                       <option value="individual">{t.individual || 'Individual'}</option>
                       <option value="business">{t.business || 'Business'}</option>
+                      <option value="hybrid">{t.hybrid || 'Hybrid'}</option>
                     </select>
                   </label>
                   <label style={{ display: 'grid', gap: 5, minWidth: 0 }}>
@@ -913,16 +929,18 @@ export function Settings({ setPage, prevPage, initialTab = 'profile', systemAcco
                 <div style={{ border: `1px solid ${C.border}`, borderRadius: 10, padding: 10, display: 'grid', gap: 8 }}>
                   <div style={{ fontSize: 12, fontWeight: 800, color: C.t1 }}>1) Map View</div>
                   <label style={{ display: 'grid', gap: 5 }}>
-                    <span style={{ fontSize: 11, color: C.t2, fontWeight: 700 }}>Initial zoom</span>
-                    <input type="range" min={3} max={13} step={1} value={Number(prefs?.map?.initialZoom || 4)} onChange={(e) => updatePreferences((prev) => ({ ...prev, map: { ...(prev?.map || {}), initialZoom: Number(e.target.value) } }))} />
+                    <span style={{ fontSize: 11, color: C.t2, fontWeight: 700 }}>{t.prefInitialZoom || 'Initial zoom'}</span>
+                    <input type="range" min={3} max={13} step={1} value={initialZoomValue} onChange={(e) => updatePreferences((prev) => ({ ...prev, map: { ...(prev?.map || {}), initialZoom: Number(e.target.value) } }))} />
+                    <div style={{ fontSize: 10, color: C.t3, fontWeight: 700 }}>
+                      {(t.prefTargetLevel || 'Target level')}: <span style={{ color: C.t1 }}>{initialZoomLevelLabel}</span> ({t.prefZoomLabel || 'zoom'} {initialZoomValue})
+                    </div>
                   </label>
                   <label style={{ display: 'grid', gap: 5 }}>
                     <span style={{ fontSize: 11, color: C.t2, fontWeight: 700 }}>Default style</span>
-                    <select value={String(prefs?.map?.defaultStyle || 'simple')} onChange={(e) => updatePreferences((prev) => ({ ...prev, map: { ...(prev?.map || {}), defaultStyle: e.target.value } }))} style={controlStyle}>
+                    <select value={selectedDefaultMapStyle} onChange={(e) => updatePreferences((prev) => ({ ...prev, map: { ...(prev?.map || {}), defaultStyle: e.target.value } }))} style={controlStyle}>
                       <option value="simple">Simple</option>
                       <option value="satellite_streets">Satellite + Streets</option>
                       <option value="topo">Terrain</option>
-                      <option value="flood">Flood + Streets</option>
                     </select>
                   </label>
                   <label style={{ display: 'grid', gap: 5 }}>

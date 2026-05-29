@@ -12,6 +12,7 @@ import { PropertyCard } from '../components/cards/PropertyCard';
 import { getHiddenSet, subscribe as subscribeHidden } from '../lib/hiddenCards';
 import { resolveScopedProfile, normalizeProfileScope } from '../lib/profileScopeResolver';
 import { getMatchPressure } from '../lib/matchPressure';
+import feedMatchIcon from '../assets/feed-match-icon.png';
 
 // Utilitário para checagem de flag booleana (string, bool, number)
 function isTruthyFlag(value, defaultValue = false) {
@@ -2132,6 +2133,7 @@ export function Dashboard({ page, nuggets, setModal, setPage, onOpenOnboardingTa
                 <div className="ds-mobile-category-list">
                   {mobileCategoryRows.map((row) => {
                     const active = activeCat === row.id;
+                    const isFeedAllRow = row.id === 'all';
                     return (
                       <button
                         key={row.id}
@@ -2143,7 +2145,57 @@ export function Dashboard({ page, nuggets, setModal, setPage, onOpenOnboardingTa
                         className={`ds-mobile-category-btn ${active ? 'is-active' : ''} ${row.isSub ? 'is-sub' : ''}`}
                         title={row.label}
                       >
-                        <Icon name={row.icon} size={12} color={active ? C.accent : C.t2} strokeWidth={active ? 2 : 1.6} />
+                        {isFeedAllRow ? (
+                          <span
+                            aria-hidden="true"
+                            style={{
+                              width: 12,
+                              height: 12,
+                              display: 'inline-flex',
+                              alignItems: 'center',
+                              justifyContent: 'center',
+                              position: 'relative',
+                              filter: active
+                                ? 'drop-shadow(0 0 5px rgba(53,202,201,0.92)) drop-shadow(0 0 9px rgba(53,202,201,0.7))'
+                                : 'none',
+                            }}
+                          >
+                            <span
+                              style={{
+                                position: 'absolute',
+                                inset: 0,
+                                backgroundColor: active ? C.accent : C.t2,
+                                WebkitMaskImage: `url(${feedMatchIcon})`,
+                                WebkitMaskRepeat: 'no-repeat',
+                                WebkitMaskSize: 'contain',
+                                WebkitMaskPosition: 'center',
+                                maskImage: `url(${feedMatchIcon})`,
+                                maskRepeat: 'no-repeat',
+                                maskSize: 'contain',
+                                maskPosition: 'center',
+                              }}
+                            />
+                            <span
+                              style={{
+                                position: 'absolute',
+                                inset: 0,
+                                transform: 'translate(0.35px, 0)',
+                                backgroundColor: active ? C.accent : C.t2,
+                                opacity: 0.9,
+                                WebkitMaskImage: `url(${feedMatchIcon})`,
+                                WebkitMaskRepeat: 'no-repeat',
+                                WebkitMaskSize: 'contain',
+                                WebkitMaskPosition: 'center',
+                                maskImage: `url(${feedMatchIcon})`,
+                                maskRepeat: 'no-repeat',
+                                maskSize: 'contain',
+                                maskPosition: 'center',
+                              }}
+                            />
+                          </span>
+                        ) : (
+                          <Icon name={row.icon} size={12} color={active ? C.accent : C.t2} strokeWidth={active ? 2 : 1.6} />
+                        )}
                         <span className="ds-mobile-category-label">{row.label}</span>
                       </button>
                     );

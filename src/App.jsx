@@ -230,9 +230,10 @@ const normalizeUserPreferences = (value) => {
   const privacy = input.privacy && typeof input.privacy === 'object' ? input.privacy : {};
   const initialZoomRaw = Number(map.initialZoom);
   const initialZoom = Number.isFinite(initialZoomRaw) ? Math.max(3, Math.min(13, initialZoomRaw)) : DEFAULT_USER_PREFERENCES.map.initialZoom;
-  const defaultStyle = ['simple', 'satellite_streets', 'topo', 'flood'].includes(String(map.defaultStyle || '').trim())
-    ? String(map.defaultStyle).trim()
-    : DEFAULT_USER_PREFERENCES.map.defaultStyle;
+  const rawDefaultStyle = String(map.defaultStyle || '').trim();
+  const defaultStyle = ['simple', 'satellite_streets', 'topo'].includes(rawDefaultStyle)
+    ? rawDefaultStyle
+    : (rawDefaultStyle === 'flood' ? 'satellite_streets' : DEFAULT_USER_PREFERENCES.map.defaultStyle);
   const clusterBehavior = ['pins_city', 'mixed'].includes(String(map.clusterBehavior || '').trim())
     ? String(map.clusterBehavior).trim()
     : DEFAULT_USER_PREFERENCES.map.clusterBehavior;
