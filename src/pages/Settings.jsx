@@ -66,6 +66,7 @@ export function Settings({ setPage, prevPage, initialTab = 'profile', systemAcco
       return Array.isArray(raw) ? raw : [];
     } catch { return []; }
   });
+  void setBillingHistory;
   const [commPrefs, setCommPrefs] = useState(() => {
     try {
       const saved = JSON.parse(localStorage.getItem('ds_comm_prefs') || 'null');
@@ -109,7 +110,8 @@ export function Settings({ setPage, prevPage, initialTab = 'profile', systemAcco
     };
   });
   const [prefs, setPrefs] = useState(() => (userPreferences && typeof userPreferences === 'object' ? userPreferences : null));
-  const initialZoomValue = Number(prefs?.map?.initialZoom || 4);
+  const initialZoomRaw = Number(prefs?.map?.initialZoom);
+  const initialZoomValue = Number.isFinite(initialZoomRaw) ? Math.max(3, Math.min(13, initialZoomRaw)) : 4;
   const selectedDefaultMapStyle = (() => {
     const raw = String(prefs?.map?.defaultStyle || '').trim();
     if (['simple', 'satellite_streets', 'topo'].includes(raw)) return raw;
@@ -148,7 +150,8 @@ export function Settings({ setPage, prevPage, initialTab = 'profile', systemAcco
   const controlStyle = { width: '100%', minWidth: 0, boxSizing: 'border-box', border: `1px solid ${C.border}`, borderRadius: 10, padding: '9px 10px', background: C.bg, color: C.t1, fontSize: 12 };
   const updatePreferences = (updater) => {
     const base = (prefs && typeof prefs === 'object') ? prefs : {};
-    const next = typeof updater === 'function' ? updater(base) : updater;
+    const nextRaw = typeof updater === 'function' ? updater(base) : updater;
+    const next = (nextRaw && typeof nextRaw === 'object') ? nextRaw : base;
     setPrefs(next);
     onChangeUserPreferences?.(next);
   };
@@ -1013,6 +1016,7 @@ export function Settings({ setPage, prevPage, initialTab = 'profile', systemAcco
                         localStorage.removeItem('mapViewPanelCollapsed');
                         localStorage.removeItem('mapViewPanelWidth');
                         localStorage.removeItem('ds_map_ui_state');
+                        localStorage.removeItem('ds_mapview_ui_state_v1');
                         localStorage.removeItem('ds_geocode_cache');
                         localStorage.removeItem('ds_notif_deferred_chat');
                         localStorage.removeItem('ds_notif_deferred_system');

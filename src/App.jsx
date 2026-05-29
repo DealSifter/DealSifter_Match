@@ -779,7 +779,15 @@ export default function App() {
       return normalizeUserPreferences(null);
     }
   });
+  const handleChangeUserPreferences = useCallback((updater) => {
+    setUserPreferences((prev) => {
+      const base = normalizeUserPreferences(prev);
+      const nextRaw = typeof updater === 'function' ? updater(base) : updater;
+      return normalizeUserPreferences(nextRaw);
+    });
+  }, []);
   const [isAdmin, setIsAdmin] = useState(false);
+  void sessionVersion;
 
   useEffect(() => {
     try {
@@ -3330,7 +3338,7 @@ export default function App() {
             paymentSetupComplete={isPaymentSetupComplete}
             onContinuePendingCheckout={handleContinuePendingCheckout}
             userPreferences={userPreferences}
-            onChangeUserPreferences={setUserPreferences}
+            onChangeUserPreferences={handleChangeUserPreferences}
           />
         );
       case 'admin':

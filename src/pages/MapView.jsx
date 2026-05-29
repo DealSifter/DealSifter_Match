@@ -115,6 +115,72 @@ function normalizeVisibleMapStyle(value) {
   return 'simple';
 }
 
+function normalizePreferredInitialZoom(value, fallback = DEFAULT_ZOOM) {
+  const numeric = Number(value);
+  if (!Number.isFinite(numeric)) return fallback;
+  return clamp(numeric, 3, 13);
+}
+
+function sanitizeLatLngPair(value) {
+  if (!Array.isArray(value) || value.length < 2) return null;
+  const lat = Number(value[0]);
+  const lng = Number(value[1]);
+  if (!Number.isFinite(lat) || !Number.isFinite(lng)) return null;
+  return [clamp(lat, -85, 85), clamp(lng, -180, 180)];
+}
+
+function sanitizeLeafletBounds(value) {
+  if (!value) return null;
+
+  if (Array.isArray(value) && value.length === 2 && Array.isArray(value[0]) && Array.isArray(value[1])) {
+    const p1 = sanitizeLatLngPair(value[0]);
+    const p2 = sanitizeLatLngPair(value[1]);
+    if (!p1 || !p2) return null;
+    const south = Math.min(p1[0], p2[0]);
+    const north = Math.max(p1[0], p2[0]);
+    const west = Math.min(p1[1], p2[1]);
+    const east = Math.max(p1[1], p2[1]);
+    return [[south, west], [north, east]];
+  }
+
+  if (Array.isArray(value) && value.length === 4) {
+    const west = Number(value[0]);
+    const south = Number(value[1]);
+    const east = Number(value[2]);
+    const north = Number(value[3]);
+    if (![west, south, east, north].every(Number.isFinite)) return null;
+    return [
+      [clamp(Math.min(south, north), -85, 85), clamp(Math.min(west, east), -180, 180)],
+      [clamp(Math.max(south, north), -85, 85), clamp(Math.max(west, east), -180, 180)],
+    ];
+  }
+
+  return null;
+}
+
+function sanitizeViewport(value, fallbackZoom = DEFAULT_ZOOM) {
+  if (!value || typeof value !== 'object') return null;
+
+  const center = sanitizeLatLngPair(value.center);
+  if (!center) return null;
+
+  const zoomRaw = Number(value.zoom);
+  const zoom = Number.isFinite(zoomRaw) ? clamp(zoomRaw, 2, 19) : fallbackZoom;
+
+  const bounds = sanitizeLeafletBounds(value.bounds)
+    || [
+      [center[0] - 1.2, center[1] - 1.2],
+      [center[0] + 1.2, center[1] + 1.2],
+    ];
+  const [[south, west], [north, east]] = bounds;
+
+  return {
+    center,
+    zoom,
+    bounds: [west, south, east, north],
+  };
+}
+
 const STATE_NAME_BY_CODE = {
   AL: 'Alabama', AK: 'Alaska', AZ: 'Arizona', AR: 'Arkansas', CA: 'California',
   CO: 'Colorado', CT: 'Connecticut', DE: 'Delaware', FL: 'Florida', GA: 'Georgia',
@@ -1231,9 +1297,9 @@ export function MapView({
   const tCards = allT.cards;
   const tMap = allT.mapViewPage;
   const prefMap = userPreferences?.map || {};
-  const preferredInitialZoom = Number.isFinite(Number(prefMap.initialZoom)) ? Number(prefMap.initialZoom) : DEFAULT_ZOOM;
+  const preferredInitialZoom = normalizePreferredInitialZoom(prefMap.initialZoom, DEFAULT_ZOOM);
   const preferredMapStyle = normalizeVisibleMapStyle(prefMap.defaultStyle);
-  const preferredClusterBehavior = String(prefMap.clusterBehavior || 'pins_city');
+  const preferredClusterBehavior = String(prefMap.clusterBehavior || '').trim() === 'mixed' ? 'mixed' : 'pins_city';
   const preferredDefaultFilters = prefMap.defaultFilters && typeof prefMap.defaultFilters === 'object'
     ? prefMap.defaultFilters
     : {};
@@ -1245,7 +1311,7 @@ export function MapView({
   const [showProperties, setShowProperties] = useState(() => initialMapUiState.showProperties ?? Boolean(preferredDefaultFilters.showProperties ?? true));
   const [showOnlyUnlocked, setShowOnlyUnlocked] = useState(() => initialMapUiState.showOnlyUnlocked ?? Boolean(preferredDefaultFilters.showOnlyUnlocked ?? false));
   const [showOnlyMyPins, setShowOnlyMyPins] = useState(() => initialMapUiState.showOnlyMyPins ?? Boolean(preferredDefaultFilters.showOnlyMyPins ?? false));
-  const [locationMode, setLocationMode] = useState(() => initialMapUiState.locationMode || 'state');
+  const [locationMode, setLocationMode] = useState(() => (['state', 'city', 'zip'].includes(initialMapUiState.locationMode) ? initialMapUiState.locationMode : 'state'));
   const [mapStyle, setMapStyle] = useState(() => normalizeVisibleMapStyle(initialMapUiState.mapStyle || preferredMapStyle));
   const [locationQuery, setLocationQuery] = useState(() => initialMapUiState.locationQuery || '');
   const [appliedLocationQuery, setAppliedLocationQuery] = useState(() => initialMapUiState.appliedLocationQuery || '');
@@ -1284,26 +1350,18 @@ export function MapView({
     // and takes priority over all other sources so the exact PIN-zoom position is preserved.
     try {
       const returnVp = JSON.parse(localStorage.getItem('ds_map_return_viewport') || 'null');
-      if (returnVp?.fromNav && Array.isArray(returnVp.center) && typeof returnVp.zoom === 'number') {
+      const sanitizedReturnVp = sanitizeViewport(returnVp, preferredInitialZoom);
+      if (returnVp?.fromNav && sanitizedReturnVp) {
         localStorage.removeItem('ds_map_return_viewport');
         _navReturnViewportConsumed = true; // signal hasAutoFitRealPinsRef to skip auto-fit
-        return returnVp;
+        return sanitizedReturnVp;
       }
     } catch (e) { void e; }
-    const savedUiViewport = initialMapUiState.viewport;
-    if (
-      savedUiViewport
-      && Array.isArray(savedUiViewport.center)
-      && typeof savedUiViewport.zoom === 'number'
-      && Array.isArray(savedUiViewport.bounds)
-    ) {
-      return savedUiViewport;
-    }
+    const savedUiViewport = sanitizeViewport(initialMapUiState.viewport, preferredInitialZoom);
+    if (savedUiViewport) return savedUiViewport;
     try {
-      const saved = JSON.parse(localStorage.getItem('mapViewport') || 'null');
-      if (saved && Array.isArray(saved.center) && typeof saved.zoom === 'number' && Array.isArray(saved.bounds)) {
-        return saved;
-      }
+      const saved = sanitizeViewport(JSON.parse(localStorage.getItem('mapViewport') || 'null'), preferredInitialZoom);
+      if (saved) return saved;
     } catch (e) {
       void e;
     }
@@ -1319,8 +1377,8 @@ export function MapView({
   const mapRef = React.useRef(null);
   const [fitToBounds, setFitToBounds] = useState(() => {
     try {
-      const saved = JSON.parse(localStorage.getItem('mapViewport') || 'null');
-      if (saved && Array.isArray(saved.center) && typeof saved.zoom === 'number') {
+      const saved = sanitizeViewport(JSON.parse(localStorage.getItem('mapViewport') || 'null'), preferredInitialZoom);
+      if (saved) {
         // If a saved viewport exists, don't force-fit to the USA bounds on mount
         return null;
       }
@@ -1332,8 +1390,7 @@ export function MapView({
     };
   });
   const [filterBounds, setFilterBounds] = useState(() => {
-    const b = initialMapUiState.filterBounds;
-    return Array.isArray(b) ? b : null;
+    return sanitizeLeafletBounds(initialMapUiState.filterBounds);
   });
   const [boundaryGeoJson, setBoundaryGeoJson] = useState(null);
   const [isBoundaryLoading, setIsBoundaryLoading] = useState(false);
@@ -1374,8 +1431,9 @@ export function MapView({
   const [panelWidth, setPanelWidth] = useState(() => {
     const savedUiWidth = Number(initialMapUiState.panelWidth);
     if (Number.isFinite(savedUiWidth)) return Math.max(250, Math.min(600, savedUiWidth));
-    const saved = localStorage.getItem('mapViewPanelWidth');
-    return saved ? parseInt(saved, 10) : 320;
+    const saved = Number(localStorage.getItem('mapViewPanelWidth'));
+    if (Number.isFinite(saved)) return Math.max(250, Math.min(600, saved));
+    return 320;
   });
   const [isResizing, setIsResizing] = useState(false);
   const [mapUiHydrated, setMapUiHydrated] = useState(false);
@@ -1439,22 +1497,17 @@ export function MapView({
     if (typeof saved.appliedLocationQuery === 'string') setAppliedLocationQuery(saved.appliedLocationQuery);
     if (saved.panelTab === 'filters' || saved.panelTab === 'cards') setPanelTab(saved.panelTab);
     const floodOpacity = Number(saved.floodOverlayOpacity);
-    if (Number.isFinite(floodOpacity)) setFloodOverlayOpacity(floodOpacity);
-    if (Array.isArray(saved.filterBounds)) setFilterBounds(saved.filterBounds);
+    if (Number.isFinite(floodOpacity)) setFloodOverlayOpacity(clamp(floodOpacity, 0, 1));
+    const sanitizedFilterBounds = sanitizeLeafletBounds(saved.filterBounds);
+    if (sanitizedFilterBounds) setFilterBounds(sanitizedFilterBounds);
     if (typeof saved.panelCollapsed === 'boolean') setPanelCollapsed(saved.panelCollapsed);
     const savedWidth = Number(saved.panelWidth);
     if (Number.isFinite(savedWidth)) setPanelWidth(Math.max(250, Math.min(600, savedWidth)));
-    if (
-      saved.viewport
-      && Array.isArray(saved.viewport.center)
-      && typeof saved.viewport.zoom === 'number'
-      && Array.isArray(saved.viewport.bounds)
-    ) {
-      setViewport(saved.viewport);
-    }
+    const sanitizedViewport = sanitizeViewport(saved.viewport, preferredInitialZoom);
+    if (sanitizedViewport) setViewport(sanitizedViewport);
     mapUiStateRef.current = saved;
     setMapUiHydrated(true);
-  }, []);
+  }, [preferredInitialZoom]);
 
   React.useEffect(() => {
     if (!mapUiHydrated) return;
@@ -1982,6 +2035,10 @@ export function MapView({
     if (preferredClusterBehavior === 'pins_city' && roundedZoom >= CLUSTER_BREAKOUT_ZOOM) return unclusteredSpreadPoints;
     return clusters;
   }, [selectedClusterFeatures, selectedCardId, unclusteredSpreadPoints, clusters, viewport?.zoom, preferredClusterBehavior]);
+
+  const safeViewportCenter = sanitizeLatLngPair(viewport?.center) || DEFAULT_CENTER;
+  const safeViewportZoomRaw = Number(viewport?.zoom);
+  const safeViewportZoom = Number.isFinite(safeViewportZoomRaw) ? clamp(safeViewportZoomRaw, 2, 19) : preferredInitialZoom;
 
   React.useEffect(() => {
     if (!selectedClusterFeatures.length) return;
@@ -3040,7 +3097,7 @@ export function MapView({
         </aside>
 
         <section className="map-canvas-card">
-          <MapContainer center={viewport.center || DEFAULT_CENTER} zoom={viewport.zoom || DEFAULT_ZOOM} className="map-canvas" zoomControl={false}>
+          <MapContainer center={safeViewportCenter} zoom={safeViewportZoom} className="map-canvas" zoomControl={false}>
             <MapEvents onViewportChange={setViewport} />
             <ManualPinPlacementController
               active={Boolean(manualPinTarget)}
