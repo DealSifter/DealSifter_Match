@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { C } from '../theme/colors';
 import { useT } from '../i18n/translations';
 import { Icon } from '../components/ui/Icon';
@@ -53,6 +53,14 @@ const PHONE_COUNTRY_OPTIONS = [
   { code: '+39', label: 'IT (+39)' },
   { code: '+61', label: 'AU (+61)' },
 ];
+
+const isMissingColumnError = (error, columnName) => {
+  const message = String(error?.message || error?.details || '').toLowerCase();
+  const hint = String(error?.hint || '').toLowerCase();
+  const target = String(columnName || '').toLowerCase();
+  if (!target) return false;
+  return message.includes(target) || hint.includes(target);
+};
 
 export function Settings({ setPage, prevPage, initialTab = 'profile', systemAccount, setSystemAccount, authSession, setAuthSession, subscription, addToast, supabaseUserId, onDeleteAccount, onRevokeConsent, pendingCheckoutIntent = null, paymentSetupComplete = false, onContinuePendingCheckout = null, userPreferences = null, onChangeUserPreferences = null }) {
   const allT = useT('settings');
@@ -110,6 +118,9 @@ export function Settings({ setPage, prevPage, initialTab = 'profile', systemAcco
     };
   });
   const [prefs, setPrefs] = useState(() => (userPreferences && typeof userPreferences === 'object' ? userPreferences : null));
+  const settingsHydratedFromRemoteRef = useRef(false);
+  const settingsSaveDebounceRef = useRef(null);
+  const settingsSaveLastSerializedRef = useRef('');
   const initialZoomRaw = Number(prefs?.map?.initialZoom);
   const initialZoomValue = Number.isFinite(initialZoomRaw) ? Math.max(3, Math.min(13, initialZoomRaw)) : 4;
   const selectedDefaultMapStyle = (() => {
@@ -142,6 +153,110 @@ export function Settings({ setPage, prevPage, initialTab = 'profile', systemAcco
     if (!userPreferences || typeof userPreferences !== 'object') return;
     setPrefs(userPreferences);
   }, [userPreferences]);
+  useEffect(() => {
+    if (!isSupabaseConfigured || !supabase || !supabaseUserId) {
+      settingsHydratedFromRemoteRef.current = true;
+      return;
+    }
+
+    let cancelled = false;
+    settingsHydratedFromRemoteRef.current = false;
+
+    const hydrateFromSupabase = async () => {
+      try {
+        let usersResult = await supabase
+          .from('users')
+          .select('full_name, phone, settings_payload')
+          .eq('id', supabaseUserId)
+          .maybeSingle();
+
+        if (usersResult?.error && isMissingColumnError(usersResult.error, 'users.settings_payload')) {
+          usersResult = await supabase
+            .from('users')
+            .select('full_name, phone')
+            .eq('id', supabaseUserId)
+            .maybeSingle();
+        }
+
+        if (cancelled) return;
+        if (usersResult?.error) return;
+
+        const userRow = usersResult?.data || null;
+        if (userRow?.full_name || userRow?.phone) {
+          setSystemAccount?.((prev) => ({
+            ...(prev || {}),
+            fullName: String(userRow?.full_name || prev?.fullName || ''),
+            phone: String(userRow?.phone || prev?.phone || ''),
+          }));
+        }
+
+        const payload = userRow?.settings_payload && typeof userRow.settings_payload === 'object'
+          ? userRow.settings_payload
+          : null;
+        if (!payload) return;
+
+        const payloadSystemAccount = payload.systemAccount && typeof payload.systemAccount === 'object'
+          ? payload.systemAccount
+          : {};
+        const payloadPrefs = payload.userPreferences && typeof payload.userPreferences === 'object'
+          ? payload.userPreferences
+          : null;
+        const payloadCommPrefs = payload.commPrefs && typeof payload.commPrefs === 'object'
+          ? payload.commPrefs
+          : null;
+        const payloadSupportMessages = Array.isArray(payload.supportMessages)
+          ? payload.supportMessages
+          : null;
+        const payloadPrivacyControls = payload.privacyControls && typeof payload.privacyControls === 'object'
+          ? payload.privacyControls
+          : null;
+        const payloadBillingHistory = Array.isArray(payload.billingHistory)
+          ? payload.billingHistory
+          : null;
+
+        setSystemAccount?.((prev) => ({
+          ...(prev || {}),
+          fullName: String(payloadSystemAccount.fullName || prev?.fullName || ''),
+          email: String(payloadSystemAccount.email || prev?.email || ''),
+          phoneCountryCode: String(payloadSystemAccount.phoneCountryCode || prev?.phoneCountryCode || '+1'),
+          marketAreas: String(payloadSystemAccount.marketAreas || prev?.marketAreas || ''),
+          accountType: String(payloadSystemAccount.accountType || prev?.accountType || 'individual'),
+          phone: String(payloadSystemAccount.phone || prev?.phone || ''),
+        }));
+
+        if (payloadPrefs) {
+          setPrefs(payloadPrefs);
+          onChangeUserPreferences?.(payloadPrefs);
+        }
+        if (payloadCommPrefs) {
+          setCommPrefs((prev) => ({ email: true, chat: true, marketing: false, ...(prev || {}), ...payloadCommPrefs }));
+        }
+        if (payloadSupportMessages) {
+          setSupportMessages(payloadSupportMessages);
+        }
+        if (payloadPrivacyControls) {
+          setPrivacyControls((prev) => ({
+            ...(prev || {}),
+            doNotSellShare: Boolean(payloadPrivacyControls.doNotSellShare),
+            targetedAdsOptOut: Boolean(payloadPrivacyControls.targetedAdsOptOut),
+            marketingEmails: Boolean(payloadPrivacyControls.marketingEmails ?? true),
+            cookieScope: String(payloadPrivacyControls.cookieScope || 'all'),
+            dataProcessingConsent: Boolean(payloadPrivacyControls.dataProcessingConsent ?? true),
+          }));
+        }
+        if (payloadBillingHistory) {
+          setBillingHistory(payloadBillingHistory);
+        }
+      } catch {
+        // Best effort hydration only.
+      } finally {
+        if (!cancelled) settingsHydratedFromRemoteRef.current = true;
+      }
+    };
+
+    hydrateFromSupabase();
+    return () => { cancelled = true; };
+  }, [supabaseUserId, onChangeUserPreferences, setSystemAccount, setBillingHistory]);
   useEffect(() => {
     if (tab !== 'communication') setCommView('menu');
   }, [tab]);
@@ -202,6 +317,79 @@ export function Settings({ setPage, prevPage, initialTab = 'profile', systemAcco
     const percent = Math.round((completed / total) * 100);
     return { completed, total, percent };
   }, [profileCompletion, activeSubscription?.planId, billingSummary.invoices, supportMessages, systemAccount?.email, authSession?.emailVerified, prefs]);
+
+  useEffect(() => {
+    if (!settingsHydratedFromRemoteRef.current) return;
+    if (!isSupabaseConfigured || !supabase || !supabaseUserId) return;
+
+    if (settingsSaveDebounceRef.current) clearTimeout(settingsSaveDebounceRef.current);
+
+    const payload = {
+      version: 1,
+      savedAt: new Date().toISOString(),
+      systemAccount: {
+        fullName: String(systemAccount?.fullName || ''),
+        email: String(systemAccount?.email || ''),
+        phone: String(systemAccount?.phone || ''),
+        phoneCountryCode: String(systemAccount?.phoneCountryCode || '+1'),
+        accountType: String(systemAccount?.accountType || 'individual'),
+        marketAreas: String(systemAccount?.marketAreas || ''),
+      },
+      userPreferences: prefs && typeof prefs === 'object' ? prefs : {},
+      commPrefs: commPrefs && typeof commPrefs === 'object' ? commPrefs : { email: true, chat: true, marketing: false },
+      supportMessages: Array.isArray(supportMessages) ? supportMessages : [],
+      privacyControls: privacyControls && typeof privacyControls === 'object' ? privacyControls : {},
+      billingHistory: Array.isArray(billingHistory) ? billingHistory : [],
+    };
+    const serializedPayload = JSON.stringify(payload);
+    if (serializedPayload === settingsSaveLastSerializedRef.current) return;
+
+    settingsSaveDebounceRef.current = setTimeout(async () => {
+      try {
+        const rowUpdate = {
+          full_name: String(systemAccount?.fullName || '') || null,
+          phone: String(systemAccount?.phone || '') || null,
+          settings_payload: payload,
+        };
+
+        let updateResult = await supabase
+          .from('users')
+          .update(rowUpdate)
+          .eq('id', supabaseUserId);
+
+        if (updateResult?.error && isMissingColumnError(updateResult.error, 'users.settings_payload')) {
+          updateResult = await supabase
+            .from('users')
+            .update({
+              full_name: String(systemAccount?.fullName || '') || null,
+              phone: String(systemAccount?.phone || '') || null,
+            })
+            .eq('id', supabaseUserId);
+        }
+
+        if (!updateResult?.error) {
+          settingsSaveLastSerializedRef.current = serializedPayload;
+        }
+      } catch {
+        // Keep local state as fallback.
+      }
+    }, 550);
+
+    return () => {
+      if (settingsSaveDebounceRef.current) {
+        clearTimeout(settingsSaveDebounceRef.current);
+        settingsSaveDebounceRef.current = null;
+      }
+    };
+  }, [
+    supabaseUserId,
+    systemAccount,
+    prefs,
+    commPrefs,
+    supportMessages,
+    privacyControls,
+    billingHistory,
+  ]);
 
   useEffect(() => {
     if (tab !== 'profile' || profileSaveState !== 'saving') return;

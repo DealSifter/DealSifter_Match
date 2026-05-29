@@ -1819,7 +1819,7 @@ export default function App() {
       let personalLoadedFromRemote = false;
       let professionalLoadedFromRemote = false;
       try {
-        const [personalResult, professionalResultInitial, userRow, subscriptionRow] = await Promise.all([
+        const [personalResult, professionalResultInitial, userRowInitial, subscriptionRow] = await Promise.all([
           supabase
             .from('user_profiles')
             .select('full_name, photo_url, bio, visibility')
@@ -1832,7 +1832,7 @@ export default function App() {
             .maybeSingle(),
           supabase
             .from('users')
-            .select('nuggets, plan_id')
+            .select('nuggets, plan_id, full_name, phone, settings_payload')
             .eq('id', supabaseUserId)
             .maybeSingle(),
           supabase
@@ -1842,9 +1842,54 @@ export default function App() {
             .maybeSingle(),
         ]);
 
+        let userRow = userRowInitial;
+        if (userRow?.error && isMissingColumnError(userRow.error, 'users.settings_payload')) {
+          userRow = await supabase
+            .from('users')
+            .select('nuggets, plan_id, full_name, phone')
+            .eq('id', supabaseUserId)
+            .maybeSingle();
+        }
+
         // Sync nuggets from Supabase (source of truth after webhook credits)
         if (!cancelled && userRow?.data?.nuggets != null) {
           setNuggets(userRow.data.nuggets);
+        }
+        if (!cancelled && userRow?.data) {
+          const settingsPayload = userRow.data.settings_payload && typeof userRow.data.settings_payload === 'object'
+            ? userRow.data.settings_payload
+            : null;
+
+          setSystemAccount((prev) => {
+            const payloadSystem = settingsPayload?.systemAccount && typeof settingsPayload.systemAccount === 'object'
+              ? settingsPayload.systemAccount
+              : {};
+            return {
+              ...(prev || {}),
+              fullName: String(payloadSystem.fullName || userRow.data.full_name || prev?.fullName || ''),
+              email: String(payloadSystem.email || prev?.email || ''),
+              phone: String(payloadSystem.phone || userRow.data.phone || prev?.phone || ''),
+              phoneCountryCode: String(payloadSystem.phoneCountryCode || prev?.phoneCountryCode || '+1'),
+              marketAreas: String(payloadSystem.marketAreas || prev?.marketAreas || ''),
+              accountType: String(payloadSystem.accountType || prev?.accountType || 'individual'),
+            };
+          });
+
+          if (settingsPayload?.userPreferences && typeof settingsPayload.userPreferences === 'object') {
+            setUserPreferences(normalizeUserPreferences(settingsPayload.userPreferences));
+          }
+          if (settingsPayload?.commPrefs && typeof settingsPayload.commPrefs === 'object') {
+            try { localStorage.setItem('ds_comm_prefs', JSON.stringify(settingsPayload.commPrefs)); } catch { /* no-op */ }
+          }
+          if (Array.isArray(settingsPayload?.supportMessages)) {
+            try { localStorage.setItem('ds_support_chat_thread', JSON.stringify(settingsPayload.supportMessages)); } catch { /* no-op */ }
+          }
+          if (settingsPayload?.privacyControls && typeof settingsPayload.privacyControls === 'object') {
+            try { localStorage.setItem('ds_privacy_controls', JSON.stringify(settingsPayload.privacyControls)); } catch { /* no-op */ }
+          }
+          if (Array.isArray(settingsPayload?.billingHistory)) {
+            try { localStorage.setItem('ds_billing_history_mock', JSON.stringify(settingsPayload.billingHistory)); } catch { /* no-op */ }
+          }
         }
         if (!cancelled) {
           const planId = String(subscriptionRow?.data?.plan_id || userRow?.data?.plan_id || 'free').toLowerCase();
