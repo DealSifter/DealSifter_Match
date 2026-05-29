@@ -507,7 +507,6 @@ export function Onboarding({
   const [investmentModalOpen, setInvestmentModalOpen] = useState(false);
   const [investmentModalStep, setInvestmentModalStep] = useState(1);
   const [investmentMarketInput, setInvestmentMarketInput] = useState('');
-  const [investmentModalAutoShown, setInvestmentModalAutoShown] = useState(false);
 
   const investmentTriggerCategories = useMemo(() => {
     const fromA = Array.isArray(selectedCategories) ? selectedCategories : [];
@@ -538,26 +537,10 @@ export function Onboarding({
     });
   }, [investmentProfileDraft, investmentTriggerCategories, investmentProfileRequiredComplete]);
 
-  useEffect(() => {
-    if (!requiresInvestmentProfile) {
-      setInvestmentModalOpen(false);
-      setInvestmentModalStep(1);
-      setInvestmentModalAutoShown(false);
-      return;
-    }
-    if (investmentModalAutoShown) return;
-    if (investmentProfileRequiredComplete) return;
+  const openInvestmentProfileModal = useCallback((step = 1) => {
+    setInvestmentProfileDraft(normalizeInvestmentDraft(professionalProfile?.investmentProfile));
+    setInvestmentModalStep(step);
     setInvestmentModalOpen(true);
-    setInvestmentModalAutoShown(true);
-  }, [requiresInvestmentProfile, investmentProfileRequiredComplete, investmentModalAutoShown]);
-
-  useEffect(() => {
-    const nextDraft = normalizeInvestmentDraft(professionalProfile?.investmentProfile);
-    setInvestmentProfileDraft((prev) => {
-      const prevSerialized = JSON.stringify(normalizeInvestmentDraft(prev));
-      const nextSerialized = JSON.stringify(nextDraft);
-      return prevSerialized === nextSerialized ? prev : nextDraft;
-    });
   }, [professionalProfile?.investmentProfile]);
 
   useEffect(() => {
@@ -2601,14 +2584,6 @@ export function Onboarding({
       return { valid: true, primaryProfile: 'A', profileAComplete, profileBComplete };
     }
 
-    if (requiresInvestmentProfile && !investmentProfileRequiredComplete) {
-      const hintMessage = t.investmentProfileValidationHint || 'Complete Investor Profile to continue with selected categories.';
-      setBasicRequiredMsg(hintMessage);
-      setInvestmentModalOpen(true);
-      setInvestmentModalStep(1);
-      return { valid: false, primaryProfile: null, profileAComplete, profileBComplete };
-    }
-
     // Professional path: AT LEAST ONE complete path suffices:
     //   Path 1: Personal (A) + Skills  OR  Path 2: Business (B) + Operations
     if (profileAReady || profileBReady) {
@@ -2938,6 +2913,10 @@ export function Onboarding({
       setIsSaveProfilesDirty(false);
       setBasicRequiredMsg('');
       clearInlineValidationHint();
+
+      if (requiresInvestmentProfile && !investmentProfileRequiredComplete) {
+        openInvestmentProfileModal(1);
+      }
     } catch (e) {
       if (import.meta.env.DEV) console.warn('Failed saving profiles', e);
     }
@@ -2946,6 +2925,14 @@ export function Onboarding({
   const publishRegistration = () => {
     const validation = validateMinimumProfileCompletion();
     if (!validation.valid) {
+      setPreviewOpen(false);
+      return;
+    }
+
+    if (requiresInvestmentProfile && !investmentProfileRequiredComplete) {
+      const hintMessage = t.investmentProfileValidationHint || 'Complete Investor Profile to continue with selected categories.';
+      setBasicRequiredMsg(hintMessage);
+      openInvestmentProfileModal(1);
       setPreviewOpen(false);
       return;
     }
@@ -3725,7 +3712,7 @@ export function Onboarding({
                   </div>
                   <button
                     type="button"
-                    onClick={() => setInvestmentModalOpen(true)}
+                    onClick={() => openInvestmentProfileModal(1)}
                     style={{ border: `1px solid ${C.border}`, background: 'transparent', color: C.t2, borderRadius: 8, padding: '6px 10px', fontSize: 11, fontWeight: 700, cursor: 'pointer', whiteSpace: 'nowrap' }}
                   >
                     {investmentProfileStrength > 0 ? (t.investmentProfileEdit || 'Edit') : (t.investmentProfileStart || 'Start')}
@@ -5199,8 +5186,7 @@ export function Onboarding({
                   <button
                     type="button"
                     onClick={() => {
-                      const nextProfile = saveInvestmentProfileDraft({ forceComplete: investmentProfileRequiredComplete });
-                      if (nextProfile.status === 'complete') setInvestmentModalAutoShown(true);
+                      saveInvestmentProfileDraft({ forceComplete: investmentProfileRequiredComplete });
                       setInvestmentModalOpen(false);
                     }}
                     style={{ padding: '8px 12px', borderRadius: 9, border: 'none', background: C.accent, color: '#0d1210', fontWeight: 800, cursor: 'pointer', fontSize: 12 }}
