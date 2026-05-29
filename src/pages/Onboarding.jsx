@@ -67,6 +67,178 @@ const CARD_PRIORITY_OPTIONS = [
 ];
 const CARD_PRIORITY_VALUES = CARD_PRIORITY_OPTIONS.map((opt) => opt.value);
 const PROFILE_PRIORITY_KEYS = ['A', 'B', 'C'];
+const INVESTMENT_TRIGGER_CATEGORY_IDS = ['lender', 'buyer', 'investor', 'ff', 'tax'];
+const INVESTMENT_ROLE_OPTIONS = [
+  'Lender / Capital Partner',
+  'Cash Buyer',
+  'RE Investor',
+  'Wholesaler',
+  'Flipper',
+  'Buy & Hold Landlord',
+  'Tax Deed Buyer',
+];
+const INVESTMENT_LOOKING_FOR_OPTIONS = [
+  'Off-market deals',
+  'On-market deals',
+  'JV partners',
+  'Borrowers',
+  'Private lenders',
+  'Cash buyers',
+  'Wholesalers',
+  'Contractors',
+];
+const INVESTMENT_PROPERTY_TYPE_OPTIONS = [
+  'Single Family',
+  'Multi-Family 2-4',
+  'Multi-Family 5+',
+  'Condo / Townhouse',
+  'Land',
+  'Commercial',
+  'Mixed-Use',
+  'Mobile / Manufactured',
+];
+const INVESTMENT_STRATEGY_OPTIONS = [
+  'Buy & Hold',
+  'Fix & Flip',
+  'BRRRR',
+  'Wholesale',
+  'Wholetail',
+  'Short-Term Rental',
+  'Mid-Term Rental',
+  'Development',
+  'Value-Add',
+  'Creative Finance',
+  'Distressed Assets',
+  'Tax Strategies',
+  'Notes / Paper',
+];
+const INVESTMENT_DEAL_SOURCE_OPTIONS = [
+  'MLS',
+  'Off-Market',
+  'Distressed',
+  'Foreclosure',
+  'Tax Sale',
+  'Probate',
+  'FSBO',
+  'Via Wholesaler',
+];
+const INVESTMENT_TAX_OBJECTIVE_OPTIONS = [
+  'Buy & Hold',
+  'New Construction',
+  'Fix & Flip',
+  'Only Flip',
+  'Rent',
+  'Wholesale',
+  'Other',
+];
+const INVESTMENT_CONDITION_OPTIONS = [
+  'Turnkey',
+  'Light Cosmetic',
+  'Medium Rehab',
+  'Heavy Rehab',
+  'Tear-down / Land Value',
+];
+const INVESTMENT_PRICE_RANGE_OPTIONS = [
+  { value: '', label: 'Select' },
+  { value: 'lt_100k', label: 'Below $100K' },
+  { value: '100_200k', label: '$100K - $200K' },
+  { value: '200_400k', label: '$200K - $400K' },
+  { value: '400_800k', label: '$400K - $800K' },
+  { value: '800k_plus', label: '$800K+' },
+];
+const INVESTMENT_DEALS_COUNT_OPTIONS = [
+  { value: '0', label: '0' },
+  { value: '1_5', label: '1-5' },
+  { value: '6_15', label: '6-15' },
+  { value: '16_30', label: '16-30' },
+  { value: '31_plus', label: '31+' },
+];
+const INVESTMENT_AVG_DEAL_SIZE_OPTIONS = [
+  { value: 'lt_250k', label: 'Less than $250K' },
+  { value: '250_500k', label: '$250K - $500K' },
+  { value: '500k_1m', label: '$500K - $1M' },
+  { value: '1m_plus', label: '$1M+' },
+];
+const INVESTMENT_YEARS_OPTIONS = [
+  { value: '0_1', label: '0-1' },
+  { value: '1_3', label: '1-3' },
+  { value: '4_7', label: '4-7' },
+  { value: '8_plus', label: '8+' },
+];
+const INVESTMENT_EMPTY_DRAFT = {
+  version: 1,
+  status: 'draft',
+  triggerCategories: [],
+  profileStrength: 0,
+  completedAt: null,
+  currentFocus: '',
+  investorRoles: [],
+  lookingFor: [],
+  targetMarkets: [],
+  propertyTypes: [],
+  strategies: [],
+  accreditedInvestor: '',
+  dealSources: [],
+  taxDealObjectives: [],
+  taxDealObjectiveOtherText: '',
+  priceRange: '',
+  acceptableConditions: [],
+  capitalReady: '',
+  dealsClosedLifetime: '0',
+  dealsClosedLast12mo: '0',
+  avgDealSize: 'lt_250k',
+  yearsInvesting: '1_3',
+  currentlyActiveDeals: 0,
+};
+
+function normalizeInvestmentDraft(value) {
+  const source = value && typeof value === 'object' ? value : {};
+  const list = (raw) => Array.from(new Set((Array.isArray(raw) ? raw : []).map((item) => String(item || '').trim()).filter(Boolean)));
+  const activeDealsRaw = Number(source.currentlyActiveDeals);
+  return {
+    ...INVESTMENT_EMPTY_DRAFT,
+    ...source,
+    triggerCategories: list(source.triggerCategories),
+    investorRoles: list(source.investorRoles),
+    lookingFor: list(source.lookingFor),
+    targetMarkets: list(source.targetMarkets),
+    propertyTypes: list(source.propertyTypes),
+    strategies: list(source.strategies),
+    dealSources: list(source.dealSources),
+    taxDealObjectives: list(source.taxDealObjectives),
+    taxDealObjectiveOtherText: String(source.taxDealObjectiveOtherText || '').trim(),
+    currentFocus: String(source.currentFocus || '').trim(),
+    accreditedInvestor: source.accreditedInvestor === 'yes' || source.accreditedInvestor === 'no' ? source.accreditedInvestor : '',
+    priceRange: String(source.priceRange || '').trim(),
+    acceptableConditions: list(source.acceptableConditions),
+    capitalReady: source.capitalReady === 'yes' || source.capitalReady === 'no' ? source.capitalReady : '',
+    dealsClosedLifetime: String(source.dealsClosedLifetime || '0').trim(),
+    dealsClosedLast12mo: String(source.dealsClosedLast12mo || '0').trim(),
+    avgDealSize: String(source.avgDealSize || 'lt_250k').trim(),
+    yearsInvesting: String(source.yearsInvesting || '1_3').trim(),
+    currentlyActiveDeals: Number.isFinite(activeDealsRaw) ? Math.max(0, Math.min(99, Math.round(activeDealsRaw))) : 0,
+    status: source.status === 'complete' ? 'complete' : 'draft',
+    profileStrength: Number.isFinite(Number(source.profileStrength)) ? Number(source.profileStrength) : 0,
+    completedAt: source.completedAt || null,
+  };
+}
+
+function computeInvestmentProfileStrength(draft) {
+  const scoreItems = [
+    Boolean(String(draft.currentFocus || '').trim()),
+    (draft.investorRoles || []).length > 0,
+    (draft.lookingFor || []).length > 0,
+    (draft.targetMarkets || []).length > 0,
+    (draft.propertyTypes || []).length > 0,
+    (draft.strategies || []).length > 0,
+    (draft.dealSources || []).length > 0,
+    Boolean(String(draft.priceRange || '').trim()),
+    (draft.acceptableConditions || []).length > 0,
+    draft.capitalReady === 'yes' || draft.capitalReady === 'no',
+    draft.accreditedInvestor === 'yes' || draft.accreditedInvestor === 'no',
+  ];
+  return Math.round((scoreItems.filter(Boolean).length / scoreItems.length) * 100);
+}
 
 function normalizeUniqueCardPriorities(priorities, preferredKey = 'A') {
   const next = { ...priorities };
@@ -331,6 +503,62 @@ export function Onboarding({
   const [saveProfilesBaseline, setSaveProfilesBaseline] = useState('');
   const [isSaveProfilesDirty, setIsSaveProfilesDirty] = useState(false);
   const [isPreviewToFeedDirty, setIsPreviewToFeedDirty] = useState(false);
+  const [investmentProfileDraft, setInvestmentProfileDraft] = useState(() => normalizeInvestmentDraft(professionalProfile?.investmentProfile));
+  const [investmentModalOpen, setInvestmentModalOpen] = useState(false);
+  const [investmentModalStep, setInvestmentModalStep] = useState(1);
+  const [investmentMarketInput, setInvestmentMarketInput] = useState('');
+  const [investmentModalAutoShown, setInvestmentModalAutoShown] = useState(false);
+
+  const investmentTriggerCategories = useMemo(() => {
+    const fromA = Array.isArray(selectedCategories) ? selectedCategories : [];
+    const fromB = Array.isArray(selectedCategoriesB) ? selectedCategoriesB : [];
+    return Array.from(new Set([...fromA, ...fromB].filter((id) => INVESTMENT_TRIGGER_CATEGORY_IDS.includes(String(id || '').trim()))));
+  }, [selectedCategories, selectedCategoriesB]);
+
+  const requiresInvestmentProfile = accountType === 'professional' && investmentTriggerCategories.length > 0;
+  const investmentProfileStrength = useMemo(() => computeInvestmentProfileStrength(investmentProfileDraft), [investmentProfileDraft]);
+  const showInvestmentProfileAction = accountType === 'professional' && (requiresInvestmentProfile || investmentProfileStrength > 0);
+  const investmentProfileRequiredComplete = useMemo(() => (
+    (investmentProfileDraft.targetMarkets || []).length > 0
+    && (investmentProfileDraft.propertyTypes || []).length > 0
+    && (investmentProfileDraft.strategies || []).length > 0
+    && Boolean(String(investmentProfileDraft.priceRange || '').trim())
+    && (investmentProfileDraft.capitalReady === 'yes' || investmentProfileDraft.capitalReady === 'no')
+  ), [investmentProfileDraft]);
+
+  const getPersistedInvestmentProfile = useCallback((opts = {}) => {
+    const strength = computeInvestmentProfileStrength(investmentProfileDraft);
+    const isComplete = Boolean(opts.forceComplete ?? investmentProfileRequiredComplete);
+    return normalizeInvestmentDraft({
+      ...investmentProfileDraft,
+      triggerCategories: investmentTriggerCategories,
+      profileStrength: strength,
+      status: isComplete ? 'complete' : 'draft',
+      completedAt: isComplete ? (investmentProfileDraft.completedAt || Date.now()) : null,
+    });
+  }, [investmentProfileDraft, investmentTriggerCategories, investmentProfileRequiredComplete]);
+
+  useEffect(() => {
+    if (!requiresInvestmentProfile) {
+      setInvestmentModalOpen(false);
+      setInvestmentModalStep(1);
+      setInvestmentModalAutoShown(false);
+      return;
+    }
+    if (investmentModalAutoShown) return;
+    if (investmentProfileRequiredComplete) return;
+    setInvestmentModalOpen(true);
+    setInvestmentModalAutoShown(true);
+  }, [requiresInvestmentProfile, investmentProfileRequiredComplete, investmentModalAutoShown]);
+
+  useEffect(() => {
+    const nextDraft = normalizeInvestmentDraft(professionalProfile?.investmentProfile);
+    setInvestmentProfileDraft((prev) => {
+      const prevSerialized = JSON.stringify(normalizeInvestmentDraft(prev));
+      const nextSerialized = JSON.stringify(nextDraft);
+      return prevSerialized === nextSerialized ? prev : nextDraft;
+    });
+  }, [professionalProfile?.investmentProfile]);
 
   useEffect(() => {
     if (typeof window === 'undefined' || typeof window.matchMedia !== 'function') return undefined;
@@ -766,6 +994,8 @@ export function Onboarding({
     serviceMarkets,
     serviceImages,
     servicePrimaryProfileScope,
+    investmentProfileDraft,
+    investmentTriggerCategories,
   }), [
     accountType,
     name,
@@ -824,6 +1054,8 @@ export function Onboarding({
     serviceMarkets,
     serviceImages,
     servicePrimaryProfileScope,
+    investmentProfileDraft,
+    investmentTriggerCategories,
   ]);
 
   useEffect(() => {
@@ -848,6 +1080,36 @@ export function Onboarding({
   };
 
   const toggleArrayValue = (arr, value) => (arr.includes(value) ? arr.filter((x) => x !== value) : [...arr, value]);
+  const toggleInvestmentField = (field, value) => {
+    setInvestmentProfileDraft((prev) => ({
+      ...prev,
+      [field]: toggleArrayValue(prev?.[field] || [], value),
+    }));
+  };
+  const setInvestmentField = (field, value) => {
+    setInvestmentProfileDraft((prev) => ({ ...prev, [field]: value }));
+  };
+  const addInvestmentMarket = () => {
+    const nextValue = String(investmentMarketInput || '').trim();
+    if (!nextValue) return;
+    setInvestmentProfileDraft((prev) => ({
+      ...prev,
+      targetMarkets: Array.from(new Set([...(prev?.targetMarkets || []), nextValue])),
+    }));
+    setInvestmentMarketInput('');
+  };
+  const removeInvestmentMarket = (market) => {
+    setInvestmentProfileDraft((prev) => ({
+      ...prev,
+      targetMarkets: (prev?.targetMarkets || []).filter((item) => item !== market),
+    }));
+  };
+  const saveInvestmentProfileDraft = (opts = {}) => {
+    const nextProfile = getPersistedInvestmentProfile(opts);
+    setInvestmentProfileDraft(nextProfile);
+    setProfessionalProfile((prev) => ({ ...(prev || {}), investmentProfile: nextProfile }));
+    return nextProfile;
+  };
 
   const normalizeMarkets = (markets) => Array.from(new Set((Array.isArray(markets) ? markets : [])
     .map((code) => String(code || '').trim().toUpperCase())
@@ -2339,6 +2601,14 @@ export function Onboarding({
       return { valid: true, primaryProfile: 'A', profileAComplete, profileBComplete };
     }
 
+    if (requiresInvestmentProfile && !investmentProfileRequiredComplete) {
+      const hintMessage = t.investmentProfileValidationHint || 'Complete Investor Profile to continue with selected categories.';
+      setBasicRequiredMsg(hintMessage);
+      setInvestmentModalOpen(true);
+      setInvestmentModalStep(1);
+      return { valid: false, primaryProfile: null, profileAComplete, profileBComplete };
+    }
+
     // Professional path: AT LEAST ONE complete path suffices:
     //   Path 1: Personal (A) + Skills  OR  Path 2: Business (B) + Operations
     if (profileAReady || profileBReady) {
@@ -2512,6 +2782,9 @@ export function Onboarding({
       return;
     }
     applyCardPrioritySet(safeCardPriorities);
+    const persistedInvestmentProfile = requiresInvestmentProfile
+      ? getPersistedInvestmentProfile()
+      : normalizeInvestmentDraft(professionalProfile?.investmentProfile);
 
     // Save profile data per account branch to avoid cross-populating forms.
     try {
@@ -2543,6 +2816,7 @@ export function Onboarding({
           cardPriorityBExplicit: Boolean(safeCardPriorities.B),
           cardPriorityC: safeCardPriorities.C,
           cardPriorityCExplicit: Boolean(safeCardPriorities.C),
+          investmentProfile: persistedInvestmentProfile,
         };
         setPersonalProfile(nextPersonalProfile);
         setProfessionalProfile(nextProfessionalProfile);
@@ -2555,6 +2829,7 @@ export function Onboarding({
       } else {
         const nextProfessionalProfile = {
           ...(professionalProfile || {}),
+          investmentProfile: persistedInvestmentProfile,
           // Profile A (Personal tab within Professional category)
           fullNameA: name || '',
           locA: normalizeUsStateCode(loc),
@@ -2689,6 +2964,9 @@ export function Onboarding({
       preferredPriorityKey
     );
     applyCardPrioritySet(safeCardPriorities, preferredPriorityKey);
+    const persistedInvestmentProfile = requiresInvestmentProfile
+      ? getPersistedInvestmentProfile()
+      : normalizeInvestmentDraft(professionalProfile?.investmentProfile);
     const effectiveName = accountType === 'fsbo_owner'
       ? (name || '')
       : (useProfileB ? (nameB || name || '') : (name || nameB || ''));
@@ -2753,10 +3031,12 @@ export function Onboarding({
         cardPriorityBExplicit: Boolean(safeCardPriorities.B),
         cardPriorityC: safeCardPriorities.C,
         cardPriorityCExplicit: Boolean(safeCardPriorities.C),
+        investmentProfile: persistedInvestmentProfile,
       }));
     } else {
       setProfessionalProfile((prev) => ({
         ...prev,
+        investmentProfile: persistedInvestmentProfile,
         // A
         fullNameA: name || '',
         locA: normalizeUsStateCode(loc),
@@ -3431,6 +3711,25 @@ export function Onboarding({
                       Operations{requiresOperationsTab ? ' *' : ''}
                     </button>
                   </div>
+                </div>
+              ) : null}
+
+              {showInvestmentProfileAction ? (
+                <div style={{ marginBottom: 10, padding: '8px 10px', borderRadius: 10, border: `1px solid ${requiresInvestmentProfile && !investmentProfileRequiredComplete ? C.warning : C.border}`, background: requiresInvestmentProfile && !investmentProfileRequiredComplete ? C.alpha(C.warning, 0.1) : C.alpha(C.accent, 0.08), display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8 }}>
+                  <div style={{ minWidth: 0 }}>
+                    <div style={{ fontSize: 11, fontWeight: 800, color: C.t1 }}>{t.investmentProfileTitle || 'Investor Profile'}</div>
+                    <div style={{ fontSize: 10, color: C.t3 }}>
+                      {(t.investmentProfileStrength || 'Profile strength')}: <strong style={{ color: investmentProfileStrength >= 70 ? C.accent : C.warning }}>{investmentProfileStrength}%</strong>
+                      {requiresInvestmentProfile && !investmentProfileRequiredComplete ? ` · ${t.investmentProfileRequiredHint || 'Required for selected categories'}` : ''}
+                    </div>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => setInvestmentModalOpen(true)}
+                    style={{ border: `1px solid ${C.border}`, background: 'transparent', color: C.t2, borderRadius: 8, padding: '6px 10px', fontSize: 11, fontWeight: 700, cursor: 'pointer', whiteSpace: 'nowrap' }}
+                  >
+                    {investmentProfileStrength > 0 ? (t.investmentProfileEdit || 'Edit') : (t.investmentProfileStart || 'Start')}
+                  </button>
                 </div>
               ) : null}
 
@@ -4700,6 +4999,220 @@ export function Onboarding({
           </div>
         </div>
       </div>
+
+      {investmentModalOpen ? (
+        <Modal onClose={() => { saveInvestmentProfileDraft({ forceComplete: false }); setInvestmentModalOpen(false); }} maxWidth={840}>
+          <div style={{ display: 'grid', gap: 10 }}>
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 10 }}>
+              <h3 style={{ margin: 0, color: C.t1, fontSize: 22, fontWeight: 800 }}>{t.investmentProfileTitle || 'Investor Profile'}</h3>
+              <div style={{ fontSize: 13, fontWeight: 800, color: C.accent }}>{(t.investmentProfileStrength || 'Profile strength')}: {investmentProfileStrength}%</div>
+            </div>
+            <p style={{ margin: 0, color: C.t3, fontSize: 12 }}>
+              {t.investmentProfileIntro || 'Complete this profile to improve capital/deal matching and card relevance.'}
+            </p>
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12 }}>
+              <strong style={{ color: C.t1, fontSize: 14 }}>{`${t.step || 'Step'} ${investmentModalStep} / 2`}</strong>
+              <span style={{ color: C.t3, fontSize: 11 }}>{requiresInvestmentProfile ? (t.investmentProfileRequiredHint || 'Required for selected categories') : ''}</span>
+            </div>
+            <div style={{ width: '100%', height: 8, borderRadius: 999, background: C.alpha(C.t1, 0.14), overflow: 'hidden' }}>
+              <div style={{ width: `${Math.max(investmentProfileStrength, investmentModalStep === 2 ? 52 : 24)}%`, height: '100%', background: C.accent, transition: 'width .2s ease' }} />
+            </div>
+
+            {investmentModalStep === 1 ? (
+              <div style={{ display: 'grid', gap: 10 }}>
+                <label style={{ display: 'grid', gap: 5 }}>
+                  <span style={{ fontSize: 11, color: C.t2, fontWeight: 700 }}>{t.investmentCurrentFocus || 'Current focus / goals'}</span>
+                  <input
+                    value={investmentProfileDraft.currentFocus}
+                    onChange={(e) => setInvestmentField('currentFocus', e.target.value)}
+                    placeholder={t.investmentCurrentFocusPlaceholder || 'Example: Fix & Flip in Florida with private lenders'}
+                    style={{ width: '100%', padding: '9px 10px', borderRadius: 9, border: `1px solid ${C.border}`, background: C.card, color: C.t1, boxSizing: 'border-box', fontSize: 12 }}
+                  />
+                </label>
+                <div style={{ fontSize: 11, color: C.t2, fontWeight: 700 }}>{t.investmentIam || 'I am a... (select all that apply)'}</div>
+                <div className="onb-scroll-chips" style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
+                  {INVESTMENT_ROLE_OPTIONS.map((item) => (
+                    <Chip key={`inv-role-${item}`} active={(investmentProfileDraft.investorRoles || []).includes(item)} onClick={() => toggleInvestmentField('investorRoles', item)}>{item}</Chip>
+                  ))}
+                </div>
+
+                <div style={{ fontSize: 11, color: C.t2, fontWeight: 700 }}>{t.investmentLookingFor || "I'm looking for..."}</div>
+                <div className="onb-scroll-chips" style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
+                  {INVESTMENT_LOOKING_FOR_OPTIONS.map((item) => (
+                    <Chip key={`inv-seek-${item}`} active={(investmentProfileDraft.lookingFor || []).includes(item)} onClick={() => toggleInvestmentField('lookingFor', item)}>{item}</Chip>
+                  ))}
+                </div>
+
+                <label style={{ display: 'grid', gap: 5 }}>
+                  <span style={{ fontSize: 11, color: C.t2, fontWeight: 700 }}>{t.investmentTargetMarkets || 'Target markets (searchable)'}</span>
+                  <div style={{ display: 'flex', gap: 6 }}>
+                    <input
+                      value={investmentMarketInput}
+                      onChange={(e) => setInvestmentMarketInput(e.target.value)}
+                      onKeyDown={(e) => { if (e.key === 'Enter') { e.preventDefault(); addInvestmentMarket(); } }}
+                      placeholder={t.investmentTargetMarketsPlaceholder || 'Search a city or state and press Enter'}
+                      style={{ flex: 1, minWidth: 0, padding: '9px 10px', borderRadius: 9, border: `1px solid ${C.border}`, background: C.card, color: C.t1, boxSizing: 'border-box', fontSize: 12 }}
+                    />
+                    <button type="button" onClick={addInvestmentMarket} style={{ padding: '9px 12px', borderRadius: 9, border: `1px solid ${C.border}`, background: 'transparent', color: C.t2, fontSize: 12, fontWeight: 700, cursor: 'pointer' }}>
+                      {t.add || 'Add'}
+                    </button>
+                  </div>
+                </label>
+                <div className="onb-scroll-chips" style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
+                  {(investmentProfileDraft.targetMarkets || []).map((market) => (
+                    <Chip key={`inv-market-${market}`} active onClick={() => removeInvestmentMarket(market)}>{market}</Chip>
+                  ))}
+                </div>
+
+                <div style={{ fontSize: 11, color: C.t2, fontWeight: 700 }}>{t.investmentPropertyTypes || 'Property types'}</div>
+                <div className="onb-scroll-chips" style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
+                  {INVESTMENT_PROPERTY_TYPE_OPTIONS.map((item) => (
+                    <Chip key={`inv-ptype-${item}`} active={(investmentProfileDraft.propertyTypes || []).includes(item)} onClick={() => toggleInvestmentField('propertyTypes', item)}>{item}</Chip>
+                  ))}
+                </div>
+
+                <div style={{ fontSize: 11, color: C.t2, fontWeight: 700 }}>{t.investmentStrategies || 'Investment strategies'}</div>
+                <div className="onb-scroll-chips" style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
+                  {INVESTMENT_STRATEGY_OPTIONS.map((item) => (
+                    <Chip key={`inv-strategy-${item}`} active={(investmentProfileDraft.strategies || []).includes(item)} onClick={() => toggleInvestmentField('strategies', item)}>{item}</Chip>
+                  ))}
+                </div>
+
+                <div style={{ display: 'flex', gap: 8, alignItems: 'center', flexWrap: 'wrap' }}>
+                  <span style={{ fontSize: 11, color: C.t2, fontWeight: 700 }}>{t.investmentAccredited || 'Accredited investor'}</span>
+                  <Chip active={investmentProfileDraft.accreditedInvestor === 'yes'} onClick={() => setInvestmentField('accreditedInvestor', 'yes')}>{t.yes || 'Yes'}</Chip>
+                  <Chip active={investmentProfileDraft.accreditedInvestor === 'no'} onClick={() => setInvestmentField('accreditedInvestor', 'no')}>{t.no || 'No'}</Chip>
+                </div>
+              </div>
+            ) : (
+              <div style={{ display: 'grid', gap: 10 }}>
+                <div style={{ fontSize: 11, color: C.t2, fontWeight: 700 }}>{t.investmentDealSources || 'Deal sources'}</div>
+                <div className="onb-scroll-chips" style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
+                  {INVESTMENT_DEAL_SOURCE_OPTIONS.map((item) => (
+                    <Chip key={`inv-source-${item}`} active={(investmentProfileDraft.dealSources || []).includes(item)} onClick={() => toggleInvestmentField('dealSources', item)}>{item}</Chip>
+                  ))}
+                </div>
+
+                {investmentTriggerCategories.includes('tax') ? (
+                  <>
+                    <div style={{ fontSize: 11, color: C.t2, fontWeight: 700 }}>{t.investmentTaxObjectives || 'Tax deed objectives'}</div>
+                    <div className="onb-scroll-chips" style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
+                      {INVESTMENT_TAX_OBJECTIVE_OPTIONS.map((item) => (
+                        <Chip key={`inv-tax-${item}`} active={(investmentProfileDraft.taxDealObjectives || []).includes(item)} onClick={() => toggleInvestmentField('taxDealObjectives', item)}>{item}</Chip>
+                      ))}
+                    </div>
+                    {(investmentProfileDraft.taxDealObjectives || []).includes('Other') ? (
+                      <input
+                        value={investmentProfileDraft.taxDealObjectiveOtherText}
+                        onChange={(e) => setInvestmentField('taxDealObjectiveOtherText', e.target.value)}
+                        placeholder={t.investmentTaxObjectivesOtherPlaceholder || 'Describe other tax deed objective'}
+                        style={{ width: '100%', padding: '9px 10px', borderRadius: 9, border: `1px solid ${C.border}`, background: C.card, color: C.t1, boxSizing: 'border-box', fontSize: 12 }}
+                      />
+                    ) : null}
+                  </>
+                ) : null}
+
+                <div style={{ display: 'grid', gridTemplateColumns: isMobileViewport ? '1fr' : '1fr 1fr', gap: 10 }}>
+                  <label style={{ display: 'grid', gap: 5 }}>
+                    <span style={{ fontSize: 11, color: C.t2, fontWeight: 700 }}>{t.investmentPriceRange || 'Price range'}</span>
+                    <select value={investmentProfileDraft.priceRange} onChange={(e) => setInvestmentField('priceRange', e.target.value)} style={{ width: '100%', padding: '9px 10px', borderRadius: 9, border: `1px solid ${C.border}`, background: C.card, color: C.t1, boxSizing: 'border-box', fontSize: 12 }}>
+                      {INVESTMENT_PRICE_RANGE_OPTIONS.map((opt) => <option key={`inv-price-${opt.value || 'none'}`} value={opt.value}>{opt.label}</option>)}
+                    </select>
+                  </label>
+                  <div style={{ display: 'grid', gap: 5 }}>
+                    <span style={{ fontSize: 11, color: C.t2, fontWeight: 700 }}>{t.investmentCapitalReady || 'Have available cash to invest?'}</span>
+                    <div style={{ display: 'flex', gap: 6 }}>
+                      <Chip active={investmentProfileDraft.capitalReady === 'yes'} onClick={() => setInvestmentField('capitalReady', 'yes')}>{t.yes || 'Yes'}</Chip>
+                      <Chip active={investmentProfileDraft.capitalReady === 'no'} onClick={() => setInvestmentField('capitalReady', 'no')}>{t.no || 'No'}</Chip>
+                    </div>
+                  </div>
+                </div>
+
+                <div style={{ fontSize: 11, color: C.t2, fontWeight: 700 }}>{t.investmentAcceptableCondition || 'Acceptable condition'}</div>
+                <div className="onb-scroll-chips" style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
+                  {INVESTMENT_CONDITION_OPTIONS.map((item) => (
+                    <Chip key={`inv-condition-${item}`} active={(investmentProfileDraft.acceptableConditions || []).includes(item)} onClick={() => toggleInvestmentField('acceptableConditions', item)}>{item}</Chip>
+                  ))}
+                </div>
+
+                <div style={{ display: 'grid', gridTemplateColumns: isMobileViewport ? '1fr' : 'repeat(4, minmax(0, 1fr))', gap: 10 }}>
+                  <label style={{ display: 'grid', gap: 5 }}>
+                    <span style={{ fontSize: 11, color: C.t2, fontWeight: 700 }}>{t.investmentDealsLifetime || 'Deals closed (lifetime)'}</span>
+                    <select value={investmentProfileDraft.dealsClosedLifetime} onChange={(e) => setInvestmentField('dealsClosedLifetime', e.target.value)} style={{ width: '100%', padding: '9px 10px', borderRadius: 9, border: `1px solid ${C.border}`, background: C.card, color: C.t1, boxSizing: 'border-box', fontSize: 12 }}>
+                      {INVESTMENT_DEALS_COUNT_OPTIONS.map((opt) => <option key={`inv-life-${opt.value}`} value={opt.value}>{opt.label}</option>)}
+                    </select>
+                  </label>
+                  <label style={{ display: 'grid', gap: 5 }}>
+                    <span style={{ fontSize: 11, color: C.t2, fontWeight: 700 }}>{t.investmentDealsLast12 || 'Deals closed (last 12mo)'}</span>
+                    <select value={investmentProfileDraft.dealsClosedLast12mo} onChange={(e) => setInvestmentField('dealsClosedLast12mo', e.target.value)} style={{ width: '100%', padding: '9px 10px', borderRadius: 9, border: `1px solid ${C.border}`, background: C.card, color: C.t1, boxSizing: 'border-box', fontSize: 12 }}>
+                      {INVESTMENT_DEALS_COUNT_OPTIONS.map((opt) => <option key={`inv-y12-${opt.value}`} value={opt.value}>{opt.label}</option>)}
+                    </select>
+                  </label>
+                  <label style={{ display: 'grid', gap: 5 }}>
+                    <span style={{ fontSize: 11, color: C.t2, fontWeight: 700 }}>{t.investmentAvgDealSize || 'Avg deal size'}</span>
+                    <select value={investmentProfileDraft.avgDealSize} onChange={(e) => setInvestmentField('avgDealSize', e.target.value)} style={{ width: '100%', padding: '9px 10px', borderRadius: 9, border: `1px solid ${C.border}`, background: C.card, color: C.t1, boxSizing: 'border-box', fontSize: 12 }}>
+                      {INVESTMENT_AVG_DEAL_SIZE_OPTIONS.map((opt) => <option key={`inv-avg-${opt.value}`} value={opt.value}>{opt.label}</option>)}
+                    </select>
+                  </label>
+                  <label style={{ display: 'grid', gap: 5 }}>
+                    <span style={{ fontSize: 11, color: C.t2, fontWeight: 700 }}>{t.investmentYearsInvesting || 'Years investing'}</span>
+                    <select value={investmentProfileDraft.yearsInvesting} onChange={(e) => setInvestmentField('yearsInvesting', e.target.value)} style={{ width: '100%', padding: '9px 10px', borderRadius: 9, border: `1px solid ${C.border}`, background: C.card, color: C.t1, boxSizing: 'border-box', fontSize: 12 }}>
+                      {INVESTMENT_YEARS_OPTIONS.map((opt) => <option key={`inv-years-${opt.value}`} value={opt.value}>{opt.label}</option>)}
+                    </select>
+                  </label>
+                </div>
+
+                <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                  <span style={{ fontSize: 11, color: C.t2, fontWeight: 700 }}>{t.investmentActiveDeals || 'Currently active deals'}</span>
+                  <button type="button" onClick={() => setInvestmentField('currentlyActiveDeals', Math.max(0, Number(investmentProfileDraft.currentlyActiveDeals || 0) - 1))} style={{ width: 28, height: 28, borderRadius: 99, border: `1px solid ${C.border}`, background: 'transparent', color: C.t2, fontWeight: 700, cursor: 'pointer' }}>-</button>
+                  <strong style={{ minWidth: 20, textAlign: 'center', color: C.t1 }}>{Number(investmentProfileDraft.currentlyActiveDeals || 0)}</strong>
+                  <button type="button" onClick={() => setInvestmentField('currentlyActiveDeals', Math.min(99, Number(investmentProfileDraft.currentlyActiveDeals || 0) + 1))} style={{ width: 28, height: 28, borderRadius: 99, border: `1px solid ${C.border}`, background: 'transparent', color: C.t2, fontWeight: 700, cursor: 'pointer' }}>+</button>
+                </div>
+              </div>
+            )}
+
+            <div style={{ marginTop: 6, display: 'flex', justifyContent: 'space-between', gap: 8, flexWrap: 'wrap' }}>
+              <button
+                type="button"
+                onClick={() => {
+                  if (investmentModalStep === 1) {
+                    setInvestmentModalOpen(false);
+                    saveInvestmentProfileDraft({ forceComplete: false });
+                    return;
+                  }
+                  setInvestmentModalStep(1);
+                }}
+                style={{ padding: '8px 12px', borderRadius: 9, border: `1px solid ${C.border}`, background: 'transparent', color: C.t2, fontWeight: 700, cursor: 'pointer', fontSize: 12 }}
+              >
+                {investmentModalStep === 1 ? (t.close || 'Close') : (t.back || 'Back')}
+              </button>
+              <div style={{ display: 'flex', gap: 8 }}>
+                {investmentModalStep === 1 ? (
+                  <button
+                    type="button"
+                    onClick={() => setInvestmentModalStep(2)}
+                    style={{ padding: '8px 12px', borderRadius: 9, border: 'none', background: C.accent, color: '#0d1210', fontWeight: 800, cursor: 'pointer', fontSize: 12 }}
+                  >
+                    {t.next || 'Next'}
+                  </button>
+                ) : (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      const nextProfile = saveInvestmentProfileDraft({ forceComplete: investmentProfileRequiredComplete });
+                      if (nextProfile.status === 'complete') setInvestmentModalAutoShown(true);
+                      setInvestmentModalOpen(false);
+                    }}
+                    style={{ padding: '8px 12px', borderRadius: 9, border: 'none', background: C.accent, color: '#0d1210', fontWeight: 800, cursor: 'pointer', fontSize: 12 }}
+                  >
+                    {t.saveProfile || 'Save profile'}
+                  </button>
+                )}
+              </div>
+            </div>
+          </div>
+        </Modal>
+      ) : null}
 
       {verificationModal.open ? (
         <Modal onClose={closeVerificationFlow} maxWidth={620}>
