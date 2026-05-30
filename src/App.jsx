@@ -787,6 +787,7 @@ export default function App() {
     });
   }, []);
   const [isAdmin, setIsAdmin] = useState(false);
+  const handleUserLogoutRef = useRef(null);
   void sessionVersion;
 
   useEffect(() => {
@@ -848,7 +849,7 @@ export default function App() {
       const inactiveMs = Date.now() - Number(lastActivityRef.current || 0);
       if (inactiveMs > 45 * 60 * 1000) {
         appendSecurityAuditEvent({ type: 'session', status: 'timeout', message: 'Session ended due to inactivity.' });
-        handleUserLogout();
+        handleUserLogoutRef.current?.();
       }
     }, 60 * 1000);
     return () => {
@@ -1107,6 +1108,7 @@ export default function App() {
   }); // Track {buyerId, sellerId} for bought contacts
   const [convos, setConvos] = useState({});
   const [chatSeenVersion, setChatSeenVersion] = useState(0);
+  void chatSeenVersion;
   const [chatFocusTarget, setChatFocusTarget] = useState(null);
   const [chatFocusToken, setChatFocusToken] = useState(0);
   const lastActivityRef = useRef(Date.now());
@@ -1139,8 +1141,13 @@ export default function App() {
     emailVerified: !!user?.email_confirmed_at,
   });
   
+  const openAuthModal = useCallback((tab = 'signup') => {
+    setAuthModalTab(tab === 'login' ? 'login' : 'signup');
+    setModal('auth');
+  }, []);
+
   // Wrapper for setPage that tracks previous page
-  const setPage = (newPage) => {
+  const setPage = useCallback((newPage) => {
     const protectedPages = new Set(['dashboard', 'matches', 'mapview', 'onboarding', 'settings']);
     if (!authSession && protectedPages.has(newPage)) {
       setPrevPage(page);
@@ -1157,7 +1164,7 @@ export default function App() {
         try { localStorage.removeItem('ds_last_page'); } catch { /* no-op */ }
       }
     }
-  };
+  }, [authSession, openAuthModal, page]);
 
   useEffect(() => {
     try {
@@ -1739,7 +1746,7 @@ export default function App() {
         message: 'O pagamento foi cancelado. Seus nuggets não foram alterados.',
       });
     }
-  }, [addToast, supabaseUserId]);
+  }, [addToast, supabaseUserId, setPage]);
 
   // ── Periodic deal-alert notifications (every 3 days per property) ──
   // Fires for each owner property that has active market pressure and is not yet deal-closed.
@@ -2703,7 +2710,7 @@ export default function App() {
         };
       })
       .sort((a, b) => (b.count || 0) - (a.count || 0));
-  }, [convos, unlocked, matched, chatSeenVersion]);
+  }, [convos, unlocked, matched]);
 
   const markChatNotificationAsRead = (notification) => {
     const ownerIdRaw = notification?.ownerId;
@@ -2828,11 +2835,6 @@ export default function App() {
     setPage('onboarding');
   };
 
-  const openAuthModal = (tab = 'signup') => {
-    setAuthModalTab(tab === 'login' ? 'login' : 'signup');
-    setModal('auth');
-  };
-
   const openAdminAuthModal = () => {
     setModal('adminAuth');
   };
@@ -2842,7 +2844,7 @@ export default function App() {
     if (page === 'admin') setPage('dashboard');
   };
 
-  const handleUserLogout = async () => {
+  const handleUserLogout = useCallback(async () => {
     if (isSupabaseConfigured && supabase) {
       try {
         await supabase.auth.signOut();
@@ -2868,7 +2870,11 @@ export default function App() {
     appendSecurityAuditEvent({ type: 'logout', status: 'success', message: 'User signed out from current device.' });
     setModal(null);
     setPage('landing');
-  };
+  }, [setPage]);
+
+  useEffect(() => {
+    handleUserLogoutRef.current = handleUserLogout;
+  }, [handleUserLogout]);
 
   const handleOpenModal = (nextModal) => {
     if (nextModal === 'store') {
@@ -3224,7 +3230,7 @@ export default function App() {
     if (loaded) return true;
     if (!isHydratingProfiles && profileHydrationRetryRef.current.attempts >= 6) return true;
     return false;
-  }, [isHydratingProfiles, supabaseUserId, profileHydrationCycle]);
+  }, [isHydratingProfiles, supabaseUserId]);
 
   const portfolioHydrationReady = useMemo(() => {
     if (!isSupabaseConfigured || !supabaseUserId) return true;
@@ -3233,7 +3239,7 @@ export default function App() {
     if (loaded) return true;
     if (!isHydratingPortfolio && portfolioHydrationRetryRef.current.attempts >= 6) return true;
     return false;
-  }, [isHydratingPortfolio, supabaseUserId, portfolioHydrationCycle]);
+  }, [isHydratingPortfolio, supabaseUserId]);
 
   const dashboardHydrationReady = profileHydrationReady && portfolioHydrationReady;
   const dashboardHydrationSyncing = isHydratingProfiles || isHydratingPortfolio;

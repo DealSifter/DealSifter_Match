@@ -576,6 +576,12 @@ export function Dashboard({ page, nuggets, setModal, setPage, onOpenOnboardingTa
     return () => window.clearTimeout(timer);
   }, [unlocked, showcaseProperties, showcaseItems, view, publishingProfileKey, isSwipingConn, isSwipingProp, getOwnerIdForKey]);
 
+  const matchesCat = useCallback((catVal, cat) => {
+    if (cat === "all") return true;
+    const parent = CATEGORIES.find(x => x.sub && x.sub.some(s => s.id === cat));
+    return parent ? catVal === parent.id : catVal === cat;
+  }, []);
+
   useEffect(() => {
     if (isSwipingConn || isSwipingProp) return;
     // Update connections and properties decks based on matches, interests, blocked contacts and hidden set
@@ -737,7 +743,7 @@ export function Dashboard({ page, nuggets, setModal, setPage, onOpenOnboardingTa
     });
 
     return () => { if (typeof unsub === 'function') unsub(); };
-  }, [connectionCards, showcaseItems, matched, interested, unlocked, view, publishingProfileKey, hiddenSet, focusCard, selectedStates, activeCat, isSwipingConn, isSwipingProp, collectRecordStates, connDeck, propDeck, getOwnerIdForKey]);
+  }, [connectionCards, showcaseItems, matched, interested, unlocked, view, publishingProfileKey, hiddenSet, focusCard, selectedStates, activeCat, isSwipingConn, isSwipingProp, collectRecordStates, connDeck, propDeck, getOwnerIdForKey, matchesCat]);
 
   const t = useT('dashboard').dashboard;
   const cardsT = useT('dashboard').cards;
@@ -1291,13 +1297,6 @@ export function Dashboard({ page, nuggets, setModal, setPage, onOpenOnboardingTa
       return [...prev, card];
     });
   };
-
-  // Helper: filter a category
-  function matchesCat(catVal, cat) {
-    if (cat === "all") return true;
-    const parent = CATEGORIES.find(x => x.sub && x.sub.some(s => s.id === cat));
-    return parent ? catVal === parent.id : catVal === cat;
-  }
 
   const stateOptions = useMemo(() => {
     try {

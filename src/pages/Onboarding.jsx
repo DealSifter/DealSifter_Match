@@ -482,6 +482,14 @@ export function Onboarding({
     if (typeof window === 'undefined' || typeof window.matchMedia !== 'function') return false;
     return window.matchMedia('(max-width: 767px)').matches;
   });
+  const [isTabletPortraitViewport, setIsTabletPortraitViewport] = useState(() => {
+    if (typeof window === 'undefined' || typeof window.matchMedia !== 'function') return false;
+    return window.matchMedia('(min-width: 480px) and (max-width: 1024px) and (orientation: portrait)').matches;
+  });
+  const [isTabletViewport, setIsTabletViewport] = useState(() => {
+    if (typeof window === 'undefined' || typeof window.matchMedia !== 'function') return false;
+    return window.matchMedia('(min-width: 480px) and (max-width: 1199px)').matches;
+  });
   const [previewOpen, setPreviewOpen] = useState(false);
   const [previewServiceIndex, setPreviewServiceIndex] = useState(0);
   const [previewPropertyIndex, setPreviewPropertyIndex] = useState(0);
@@ -505,7 +513,6 @@ export function Onboarding({
   const [isPreviewToFeedDirty, setIsPreviewToFeedDirty] = useState(false);
   const [investmentProfileDraft, setInvestmentProfileDraft] = useState(() => normalizeInvestmentDraft(professionalProfile?.investmentProfile));
   const [investmentModalOpen, setInvestmentModalOpen] = useState(false);
-  const [investmentModalStep, setInvestmentModalStep] = useState(1);
   const [investmentMarketInput, setInvestmentMarketInput] = useState('');
 
   const investmentTriggerCategories = useMemo(() => {
@@ -517,13 +524,40 @@ export function Onboarding({
   const requiresInvestmentProfile = accountType === 'professional' && investmentTriggerCategories.length > 0;
   const investmentProfileStrength = useMemo(() => computeInvestmentProfileStrength(investmentProfileDraft), [investmentProfileDraft]);
   const showInvestmentProfileAction = accountType === 'professional' && (requiresInvestmentProfile || investmentProfileStrength > 0);
-  const investmentProfileRequiredComplete = useMemo(() => (
-    (investmentProfileDraft.targetMarkets || []).length > 0
-    && (investmentProfileDraft.propertyTypes || []).length > 0
-    && (investmentProfileDraft.strategies || []).length > 0
-    && Boolean(String(investmentProfileDraft.priceRange || '').trim())
-    && (investmentProfileDraft.capitalReady === 'yes' || investmentProfileDraft.capitalReady === 'no')
-  ), [investmentProfileDraft]);
+  const investmentScoreMeta = useMemo(() => {
+    const score = Math.max(0, Math.min(100, Number(investmentProfileStrength || 0)));
+    if (score === 100) {
+      return {
+        label: t.investmentScoreRangeExcellent || 'Excellent',
+        alert: t.investmentScoreAlertExcellent || 'Excellent profile. Keep this level to maximize quality matches.',
+        icon: 'shieldCheck',
+        color: C.success,
+      };
+    }
+    if (score >= 90) {
+      return {
+        label: t.investmentScoreRangeGood || 'Good',
+        alert: t.investmentScoreAlertGood || 'Good profile. Add a few more details to reach excellent quality.',
+        icon: 'shieldCheck',
+        color: C.accent,
+      };
+    }
+    if (score >= 60) {
+      return {
+        label: t.investmentScoreRangeNotBad || 'Not bad (can be increased)',
+        alert: t.investmentScoreAlertNotBad || 'Not bad. Completing missing fields will improve match relevance.',
+        icon: 'activity',
+        color: C.warning,
+      };
+    }
+    return {
+      label: t.investmentScoreRangeNeedsTlc || 'Needs TLC for better matches',
+      alert: t.investmentScoreAlertNeedsTlc || 'Needs attention. Add key details to avoid weak matches.',
+      icon: 'info',
+      color: C.danger,
+    };
+  }, [investmentProfileStrength, t]);
+  const investmentProfileRequiredComplete = investmentProfileStrength >= 50;
 
   const getPersistedInvestmentProfile = useCallback((opts = {}) => {
     const strength = computeInvestmentProfileStrength(investmentProfileDraft);
@@ -537,9 +571,8 @@ export function Onboarding({
     });
   }, [investmentProfileDraft, investmentTriggerCategories, investmentProfileRequiredComplete]);
 
-  const openInvestmentProfileModal = useCallback((step = 1) => {
+  const openInvestmentProfileModal = useCallback(() => {
     setInvestmentProfileDraft(normalizeInvestmentDraft(professionalProfile?.investmentProfile));
-    setInvestmentModalStep(step);
     setInvestmentModalOpen(true);
   }, [professionalProfile?.investmentProfile]);
 
@@ -561,6 +594,34 @@ export function Onboarding({
     if (typeof window === 'undefined' || typeof window.matchMedia !== 'function') return undefined;
     const mediaQuery = window.matchMedia('(max-width: 767px)');
     const handleViewportChange = (event) => setIsPhoneViewport(Boolean(event.matches));
+
+    if (typeof mediaQuery.addEventListener === 'function') {
+      mediaQuery.addEventListener('change', handleViewportChange);
+      return () => mediaQuery.removeEventListener('change', handleViewportChange);
+    }
+
+    mediaQuery.addListener(handleViewportChange);
+    return () => mediaQuery.removeListener(handleViewportChange);
+  }, []);
+
+  useEffect(() => {
+    if (typeof window === 'undefined' || typeof window.matchMedia !== 'function') return undefined;
+    const mediaQuery = window.matchMedia('(min-width: 480px) and (max-width: 1024px) and (orientation: portrait)');
+    const handleViewportChange = (event) => setIsTabletPortraitViewport(Boolean(event.matches));
+
+    if (typeof mediaQuery.addEventListener === 'function') {
+      mediaQuery.addEventListener('change', handleViewportChange);
+      return () => mediaQuery.removeEventListener('change', handleViewportChange);
+    }
+
+    mediaQuery.addListener(handleViewportChange);
+    return () => mediaQuery.removeListener(handleViewportChange);
+  }, []);
+
+  useEffect(() => {
+    if (typeof window === 'undefined' || typeof window.matchMedia !== 'function') return undefined;
+    const mediaQuery = window.matchMedia('(min-width: 480px) and (max-width: 1199px)');
+    const handleViewportChange = (event) => setIsTabletViewport(Boolean(event.matches));
 
     if (typeof mediaQuery.addEventListener === 'function') {
       mediaQuery.addEventListener('change', handleViewportChange);
@@ -2930,7 +2991,7 @@ export function Onboarding({
     }
 
     if (requiresInvestmentProfile && !investmentProfileRequiredComplete) {
-      const hintMessage = t.investmentProfileValidationHint || 'Complete Investor Profile to continue with selected categories.';
+      const hintMessage = t.investmentProfileValidationHint || 'Complete at least 50% of Investor Profile to continue with selected categories.';
       setBasicRequiredMsg(hintMessage);
       openInvestmentProfileModal(1);
       setPreviewOpen(false);
@@ -4045,6 +4106,7 @@ export function Onboarding({
                     t={t}
                     C={C}
                     isMobileViewport={isMobileViewport}
+                    isTabletPortraitViewport={isTabletPortraitViewport}
                     values={portfolioFormValues}
                     onChange={handlePortfolioFieldChange}
                     formatCurrencyInput={formatCurrencyInput}
@@ -4111,7 +4173,7 @@ export function Onboarding({
                   </>
                 )}
 
-                <div style={{ display: 'flex', flexDirection: isMobileViewport ? 'column' : 'row', gap: 8, alignItems: isMobileViewport ? 'stretch' : 'center' }}>
+                <div style={{ display: 'flex', flexDirection: (isTabletViewport || !isMobileViewport) ? 'row' : 'column', gap: 8, alignItems: (isTabletViewport || !isMobileViewport) ? 'center' : 'stretch' }}>
                   <button onClick={portfolioEntryType === 'property' ? addProfessionalPortfolioProperty : addProfessionalPortfolioService} style={{ flex: 1, padding: '8px 10px', borderRadius: 9, border: `1px solid ${C.accent}`, background: 'transparent', color: C.accent, fontWeight: 700, cursor: 'pointer', fontSize: 11 }}>
                     + Add to Portfolio
                   </button>
@@ -4720,6 +4782,7 @@ export function Onboarding({
                   t={t}
                   C={C}
                   isMobileViewport={isMobileViewport}
+                  isTabletPortraitViewport={isTabletPortraitViewport}
                   values={portfolioFormValues}
                   onChange={handlePortfolioFieldChange}
                   formatCurrencyInput={formatCurrencyInput}
@@ -4735,7 +4798,7 @@ export function Onboarding({
                   portfolioFieldTextareaStyle={portfolioFieldTextareaStyle}
                 />
 
-                <div style={{ display: 'flex', flexDirection: isMobileViewport ? 'column' : 'row', gap: 8, alignItems: isMobileViewport ? 'stretch' : 'center' }}>
+                <div style={{ display: 'flex', flexDirection: (isTabletViewport || !isMobileViewport) ? 'row' : 'column', gap: 8, alignItems: (isTabletViewport || !isMobileViewport) ? 'center' : 'stretch' }}>
                   <button onClick={addFsboProperty} style={{ flex: 1, padding: '8px 10px', borderRadius: 9, border: `1px solid ${C.accent}`, background: 'transparent', color: C.accent, fontWeight: 700, cursor: 'pointer', fontSize: 11 }}>
                     {t.addToPortfolio}
                   </button>
@@ -4988,102 +5051,107 @@ export function Onboarding({
       </div>
 
       {investmentModalOpen ? (
-        <Modal onClose={() => { saveInvestmentProfileDraft({ forceComplete: false }); setInvestmentModalOpen(false); }} maxWidth={840}>
-          <div style={{ display: 'grid', gap: 10 }}>
-            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 10 }}>
+        <Modal
+          onClose={() => { saveInvestmentProfileDraft({ forceComplete: false }); setInvestmentModalOpen(false); }}
+          maxWidth={1450}
+          overlayStyle={isMobileViewport ? {} : { padding: '92px 24px 24px', alignItems: 'flex-start' }}
+          contentStyle={isMobileViewport ? {} : { width: 'min(1450px, calc(100vw - 48px))', height: 580, maxHeight: 580, overflow: 'hidden', padding: '20px 22px 18px' }}
+        >
+          <div style={{ display: 'grid', gridTemplateRows: 'auto auto minmax(0, 1fr)', gap: 8, height: isMobileViewport ? 'auto' : '100%', overflow: 'hidden' }}>
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 10, paddingRight: 28 }}>
               <h3 style={{ margin: 0, color: C.t1, fontSize: 22, fontWeight: 800 }}>{t.investmentProfileTitle || 'Investor Profile'}</h3>
-              <div style={{ fontSize: 13, fontWeight: 800, color: C.accent }}>{(t.investmentProfileStrength || 'Profile strength')}: {investmentProfileStrength}%</div>
             </div>
-            <p style={{ margin: 0, color: C.t3, fontSize: 12 }}>
-              {t.investmentProfileIntro || 'Complete this profile to improve capital/deal matching and card relevance.'}
-            </p>
-            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12 }}>
-              <strong style={{ color: C.t1, fontSize: 14 }}>{`${t.step || 'Step'} ${investmentModalStep} / 2`}</strong>
-              <span style={{ color: C.t3, fontSize: 11 }}>{requiresInvestmentProfile ? (t.investmentProfileRequiredHint || 'Required for selected categories') : ''}</span>
-            </div>
-            <div style={{ width: '100%', height: 8, borderRadius: 999, background: C.alpha(C.t1, 0.14), overflow: 'hidden' }}>
-              <div style={{ width: `${Math.max(investmentProfileStrength, investmentModalStep === 2 ? 52 : 24)}%`, height: '100%', background: C.accent, transition: 'width .2s ease' }} />
+            <div style={{ display: 'flex', alignItems: 'center', gap: 6, flexWrap: 'wrap' }}>
+              <p style={{ margin: 0, color: C.t3, fontSize: 12 }}>
+                {t.investmentProfileIntro || 'Complete this profile to improve capital/deal matching and card relevance.'}
+              </p>
+              {requiresInvestmentProfile ? (
+                <span style={{ color: C.danger, fontSize: 11, fontWeight: 800 }}>
+                  {`* ${t.investmentProfileRequiredHint || 'Required for selected categories'}`}
+                </span>
+              ) : null}
             </div>
 
-            {investmentModalStep === 1 ? (
-              <div style={{ display: 'grid', gap: 10 }}>
-                <label style={{ display: 'grid', gap: 5 }}>
-                  <span style={{ fontSize: 11, color: C.t2, fontWeight: 700 }}>{t.investmentCurrentFocus || 'Current focus / goals'}</span>
+            <div style={{ display: 'grid', gridTemplateColumns: isMobileViewport ? '1fr' : '0.95fr 1fr 1.15fr', gap: 14, minHeight: 0, overflow: 'hidden' }}>
+              <div style={{ display: 'grid', gap: 9, alignContent: 'start', minHeight: 0, overflow: 'hidden' }}>
+                <div style={{ display: 'grid', gap: 5, paddingTop: 8, borderTop: `1px solid ${C.alpha(C.border, 0.75)}` }}>
+                  <div style={{ fontSize: 12, color: C.t1, fontWeight: 900 }}>{t.investmentIam || 'I am a... (select all that apply)'}</div>
+                  <div style={{ display: 'flex', flexWrap: 'wrap', gap: 5 }}>
+                    {INVESTMENT_ROLE_OPTIONS.map((item) => (
+                      <Chip key={`inv-role-${item}`} active={(investmentProfileDraft.investorRoles || []).includes(item)} onClick={() => toggleInvestmentField('investorRoles', item)}>{item}</Chip>
+                    ))}
+                  </div>
+                </div>
+                <div style={{ display: 'grid', gap: 5, paddingTop: 8, borderTop: `1px solid ${C.alpha(C.border, 0.75)}` }}>
+                  <label style={{ display: 'grid', gap: 5 }}>
+                    <span style={{ fontSize: 12, color: C.t1, fontWeight: 900 }}>{t.investmentTargetMarkets || 'Target markets (searchable)'}</span>
+                    <div style={{ display: 'flex', gap: 6 }}>
+                      <input
+                        value={investmentMarketInput}
+                        onChange={(e) => setInvestmentMarketInput(e.target.value)}
+                        onKeyDown={(e) => { if (e.key === 'Enter') { e.preventDefault(); addInvestmentMarket(); } }}
+                        placeholder={t.investmentTargetMarketsPlaceholder || 'Search a city or state and press Enter'}
+                        style={{ flex: 1, minWidth: 0, padding: '8px 10px', borderRadius: 8, border: `1px solid ${C.border}`, background: C.card, color: C.t1, boxSizing: 'border-box', fontSize: 11 }}
+                      />
+                      <button type="button" onClick={addInvestmentMarket} style={{ padding: '8px 11px', borderRadius: 8, border: `1px solid ${C.border}`, background: 'transparent', color: C.t2, fontSize: 11, fontWeight: 700, cursor: 'pointer' }}>
+                        {t.add || 'Add'}
+                      </button>
+                    </div>
+                  </label>
+                  <div style={{ display: 'flex', flexWrap: 'wrap', gap: 5, height: 58, maxHeight: 58, overflowY: 'auto', paddingRight: 4, alignContent: 'flex-start' }}>
+                    {(investmentProfileDraft.targetMarkets || []).map((market) => (
+                      <Chip key={`inv-market-${market}`} active onClick={() => removeInvestmentMarket(market)}>{market}</Chip>
+                    ))}
+                  </div>
+                </div>
+                <div style={{ display: 'grid', gap: 5, paddingTop: 8, borderTop: `1px solid ${C.alpha(C.border, 0.75)}` }}>
+                  <div style={{ fontSize: 12, color: C.t1, fontWeight: 900 }}>{t.investmentLookingFor || "I'm looking for..."}</div>
+                  <div style={{ display: 'flex', flexWrap: 'wrap', gap: 5 }}>
+                    {INVESTMENT_LOOKING_FOR_OPTIONS.map((item) => (
+                      <Chip key={`inv-seek-${item}`} active={(investmentProfileDraft.lookingFor || []).includes(item)} onClick={() => toggleInvestmentField('lookingFor', item)}>{item}</Chip>
+                    ))}
+                  </div>
+                </div>
+                <div style={{ display: 'grid', gap: 5, paddingTop: 8, borderTop: `1px solid ${C.alpha(C.border, 0.75)}` }}>
+                  <div style={{ fontSize: 12, color: C.t1, fontWeight: 900 }}>{t.investmentPropertyTypes || 'Property types'}</div>
+                  <div style={{ display: 'flex', flexWrap: 'wrap', gap: 5 }}>
+                    {INVESTMENT_PROPERTY_TYPE_OPTIONS.map((item) => (
+                      <Chip key={`inv-ptype-${item}`} active={(investmentProfileDraft.propertyTypes || []).includes(item)} onClick={() => toggleInvestmentField('propertyTypes', item)}>{item}</Chip>
+                    ))}
+                  </div>
+                </div>
+              </div>
+
+              <div style={{ display: 'grid', gap: 9, alignContent: 'start', minHeight: 0, overflow: 'hidden' }}>
+                <div style={{ display: 'grid', gap: 5, paddingTop: 8, borderTop: `1px solid ${C.alpha(C.border, 0.75)}` }}>
+                  <div style={{ fontSize: 12, color: C.t1, fontWeight: 900 }}>{t.investmentStrategies || 'Investment strategies'}</div>
+                  <div style={{ display: 'flex', flexWrap: 'wrap', gap: 5 }}>
+                    {INVESTMENT_STRATEGY_OPTIONS.map((item) => (
+                      <Chip key={`inv-strategy-${item}`} active={(investmentProfileDraft.strategies || []).includes(item)} onClick={() => toggleInvestmentField('strategies', item)}>{item}</Chip>
+                    ))}
+                  </div>
+                </div>
+                <label style={{ display: 'grid', gap: 5, paddingTop: 8, borderTop: `1px solid ${C.alpha(C.border, 0.75)}` }}>
+                  <span style={{ fontSize: 12, color: C.t1, fontWeight: 900 }}>{t.investmentCurrentFocus || 'Current focus / goals'}</span>
                   <input
                     value={investmentProfileDraft.currentFocus}
                     onChange={(e) => setInvestmentField('currentFocus', e.target.value)}
                     placeholder={t.investmentCurrentFocusPlaceholder || 'Example: Fix & Flip in Florida with private lenders'}
-                    style={{ width: '100%', padding: '9px 10px', borderRadius: 9, border: `1px solid ${C.border}`, background: C.card, color: C.t1, boxSizing: 'border-box', fontSize: 12 }}
+                    style={{ width: '100%', padding: '8px 10px', borderRadius: 8, border: `1px solid ${C.border}`, background: C.card, color: C.t1, boxSizing: 'border-box', fontSize: 11 }}
                   />
                 </label>
-                <div style={{ fontSize: 11, color: C.t2, fontWeight: 700 }}>{t.investmentIam || 'I am a... (select all that apply)'}</div>
-                <div className="onb-scroll-chips" style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
-                  {INVESTMENT_ROLE_OPTIONS.map((item) => (
-                    <Chip key={`inv-role-${item}`} active={(investmentProfileDraft.investorRoles || []).includes(item)} onClick={() => toggleInvestmentField('investorRoles', item)}>{item}</Chip>
-                  ))}
-                </div>
-
-                <div style={{ fontSize: 11, color: C.t2, fontWeight: 700 }}>{t.investmentLookingFor || "I'm looking for..."}</div>
-                <div className="onb-scroll-chips" style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
-                  {INVESTMENT_LOOKING_FOR_OPTIONS.map((item) => (
-                    <Chip key={`inv-seek-${item}`} active={(investmentProfileDraft.lookingFor || []).includes(item)} onClick={() => toggleInvestmentField('lookingFor', item)}>{item}</Chip>
-                  ))}
-                </div>
-
-                <label style={{ display: 'grid', gap: 5 }}>
-                  <span style={{ fontSize: 11, color: C.t2, fontWeight: 700 }}>{t.investmentTargetMarkets || 'Target markets (searchable)'}</span>
-                  <div style={{ display: 'flex', gap: 6 }}>
-                    <input
-                      value={investmentMarketInput}
-                      onChange={(e) => setInvestmentMarketInput(e.target.value)}
-                      onKeyDown={(e) => { if (e.key === 'Enter') { e.preventDefault(); addInvestmentMarket(); } }}
-                      placeholder={t.investmentTargetMarketsPlaceholder || 'Search a city or state and press Enter'}
-                      style={{ flex: 1, minWidth: 0, padding: '9px 10px', borderRadius: 9, border: `1px solid ${C.border}`, background: C.card, color: C.t1, boxSizing: 'border-box', fontSize: 12 }}
-                    />
-                    <button type="button" onClick={addInvestmentMarket} style={{ padding: '9px 12px', borderRadius: 9, border: `1px solid ${C.border}`, background: 'transparent', color: C.t2, fontSize: 12, fontWeight: 700, cursor: 'pointer' }}>
-                      {t.add || 'Add'}
-                    </button>
+                <div style={{ display: 'grid', gap: 5, paddingTop: 8, borderTop: `1px solid ${C.alpha(C.border, 0.75)}` }}>
+                  <div style={{ fontSize: 12, color: C.t1, fontWeight: 900 }}>{t.investmentDealSources || 'Deal sources'}</div>
+                  <div style={{ display: 'flex', flexWrap: 'wrap', gap: 5 }}>
+                    {INVESTMENT_DEAL_SOURCE_OPTIONS.map((item) => (
+                      <Chip key={`inv-source-${item}`} active={(investmentProfileDraft.dealSources || []).includes(item)} onClick={() => toggleInvestmentField('dealSources', item)}>{item}</Chip>
+                    ))}
                   </div>
-                </label>
-                <div className="onb-scroll-chips" style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
-                  {(investmentProfileDraft.targetMarkets || []).map((market) => (
-                    <Chip key={`inv-market-${market}`} active onClick={() => removeInvestmentMarket(market)}>{market}</Chip>
-                  ))}
                 </div>
-
-                <div style={{ fontSize: 11, color: C.t2, fontWeight: 700 }}>{t.investmentPropertyTypes || 'Property types'}</div>
-                <div className="onb-scroll-chips" style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
-                  {INVESTMENT_PROPERTY_TYPE_OPTIONS.map((item) => (
-                    <Chip key={`inv-ptype-${item}`} active={(investmentProfileDraft.propertyTypes || []).includes(item)} onClick={() => toggleInvestmentField('propertyTypes', item)}>{item}</Chip>
-                  ))}
-                </div>
-
-                <div style={{ fontSize: 11, color: C.t2, fontWeight: 700 }}>{t.investmentStrategies || 'Investment strategies'}</div>
-                <div className="onb-scroll-chips" style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
-                  {INVESTMENT_STRATEGY_OPTIONS.map((item) => (
-                    <Chip key={`inv-strategy-${item}`} active={(investmentProfileDraft.strategies || []).includes(item)} onClick={() => toggleInvestmentField('strategies', item)}>{item}</Chip>
-                  ))}
-                </div>
-
-                <div style={{ display: 'flex', gap: 8, alignItems: 'center', flexWrap: 'wrap' }}>
-                  <span style={{ fontSize: 11, color: C.t2, fontWeight: 700 }}>{t.investmentAccredited || 'Accredited investor'}</span>
-                  <Chip active={investmentProfileDraft.accreditedInvestor === 'yes'} onClick={() => setInvestmentField('accreditedInvestor', 'yes')}>{t.yes || 'Yes'}</Chip>
-                  <Chip active={investmentProfileDraft.accreditedInvestor === 'no'} onClick={() => setInvestmentField('accreditedInvestor', 'no')}>{t.no || 'No'}</Chip>
-                </div>
-              </div>
-            ) : (
-              <div style={{ display: 'grid', gap: 10 }}>
-                <div style={{ fontSize: 11, color: C.t2, fontWeight: 700 }}>{t.investmentDealSources || 'Deal sources'}</div>
-                <div className="onb-scroll-chips" style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
-                  {INVESTMENT_DEAL_SOURCE_OPTIONS.map((item) => (
-                    <Chip key={`inv-source-${item}`} active={(investmentProfileDraft.dealSources || []).includes(item)} onClick={() => toggleInvestmentField('dealSources', item)}>{item}</Chip>
-                  ))}
-                </div>
-
                 {investmentTriggerCategories.includes('tax') ? (
-                  <>
-                    <div style={{ fontSize: 11, color: C.t2, fontWeight: 700 }}>{t.investmentTaxObjectives || 'Tax deed objectives'}</div>
-                    <div className="onb-scroll-chips" style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
+                  <div style={{ display: 'grid', gap: 5, paddingTop: 8, borderTop: `1px solid ${C.alpha(C.border, 0.75)}` }}>
+                    <div style={{ fontSize: 12, color: C.t1, fontWeight: 900 }}>{t.investmentTaxObjectives || 'Tax deed objectives'}</div>
+                    <div style={{ display: 'flex', flexWrap: 'wrap', gap: 5 }}>
                       {INVESTMENT_TAX_OBJECTIVE_OPTIONS.map((item) => (
                         <Chip key={`inv-tax-${item}`} active={(investmentProfileDraft.taxDealObjectives || []).includes(item)} onClick={() => toggleInvestmentField('taxDealObjectives', item)}>{item}</Chip>
                       ))}
@@ -5093,107 +5161,114 @@ export function Onboarding({
                         value={investmentProfileDraft.taxDealObjectiveOtherText}
                         onChange={(e) => setInvestmentField('taxDealObjectiveOtherText', e.target.value)}
                         placeholder={t.investmentTaxObjectivesOtherPlaceholder || 'Describe other tax deed objective'}
-                        style={{ width: '100%', padding: '9px 10px', borderRadius: 9, border: `1px solid ${C.border}`, background: C.card, color: C.t1, boxSizing: 'border-box', fontSize: 12 }}
+                        style={{ width: '100%', padding: '8px 10px', borderRadius: 8, border: `1px solid ${C.border}`, background: C.card, color: C.t1, boxSizing: 'border-box', fontSize: 11 }}
                       />
                     ) : null}
-                  </>
+                  </div>
                 ) : null}
-
-                <div style={{ display: 'grid', gridTemplateColumns: isMobileViewport ? '1fr' : '1fr 1fr', gap: 10 }}>
+                <div style={{ display: 'grid', gap: 5, paddingTop: 8, borderTop: `1px solid ${C.alpha(C.border, 0.75)}` }}>
+                  <div style={{ fontSize: 12, color: C.t1, fontWeight: 900 }}>{t.investmentAcceptableCondition || 'Acceptable condition'}</div>
+                  <div style={{ display: 'flex', flexWrap: 'wrap', gap: 5 }}>
+                    {INVESTMENT_CONDITION_OPTIONS.map((item) => (
+                      <Chip key={`inv-condition-${item}`} active={(investmentProfileDraft.acceptableConditions || []).includes(item)} onClick={() => toggleInvestmentField('acceptableConditions', item)}>{item}</Chip>
+                    ))}
+                  </div>
+                </div>
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8, paddingTop: 8, borderTop: `1px solid ${C.alpha(C.border, 0.75)}` }}>
                   <label style={{ display: 'grid', gap: 5 }}>
-                    <span style={{ fontSize: 11, color: C.t2, fontWeight: 700 }}>{t.investmentPriceRange || 'Price range'}</span>
-                    <select value={investmentProfileDraft.priceRange} onChange={(e) => setInvestmentField('priceRange', e.target.value)} style={{ width: '100%', padding: '9px 10px', borderRadius: 9, border: `1px solid ${C.border}`, background: C.card, color: C.t1, boxSizing: 'border-box', fontSize: 12 }}>
+                    <span style={{ fontSize: 12, color: C.t1, fontWeight: 900 }}>{t.investmentPriceRange || 'Price range'}</span>
+                    <select value={investmentProfileDraft.priceRange} onChange={(e) => setInvestmentField('priceRange', e.target.value)} style={{ width: '100%', padding: '8px 10px', borderRadius: 8, border: `1px solid ${C.border}`, background: C.card, color: C.t1, boxSizing: 'border-box', fontSize: 11 }}>
                       {INVESTMENT_PRICE_RANGE_OPTIONS.map((opt) => <option key={`inv-price-${opt.value || 'none'}`} value={opt.value}>{opt.label}</option>)}
                     </select>
                   </label>
-                  <div style={{ display: 'grid', gap: 5 }}>
-                    <span style={{ fontSize: 11, color: C.t2, fontWeight: 700 }}>{t.investmentCapitalReady || 'Have available cash to invest?'}</span>
-                    <div style={{ display: 'flex', gap: 6 }}>
-                      <Chip active={investmentProfileDraft.capitalReady === 'yes'} onClick={() => setInvestmentField('capitalReady', 'yes')}>{t.yes || 'Yes'}</Chip>
-                      <Chip active={investmentProfileDraft.capitalReady === 'no'} onClick={() => setInvestmentField('capitalReady', 'no')}>{t.no || 'No'}</Chip>
-                    </div>
-                  </div>
-                </div>
-
-                <div style={{ fontSize: 11, color: C.t2, fontWeight: 700 }}>{t.investmentAcceptableCondition || 'Acceptable condition'}</div>
-                <div className="onb-scroll-chips" style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
-                  {INVESTMENT_CONDITION_OPTIONS.map((item) => (
-                    <Chip key={`inv-condition-${item}`} active={(investmentProfileDraft.acceptableConditions || []).includes(item)} onClick={() => toggleInvestmentField('acceptableConditions', item)}>{item}</Chip>
-                  ))}
-                </div>
-
-                <div style={{ display: 'grid', gridTemplateColumns: isMobileViewport ? '1fr' : 'repeat(4, minmax(0, 1fr))', gap: 10 }}>
                   <label style={{ display: 'grid', gap: 5 }}>
-                    <span style={{ fontSize: 11, color: C.t2, fontWeight: 700 }}>{t.investmentDealsLifetime || 'Deals closed (lifetime)'}</span>
-                    <select value={investmentProfileDraft.dealsClosedLifetime} onChange={(e) => setInvestmentField('dealsClosedLifetime', e.target.value)} style={{ width: '100%', padding: '9px 10px', borderRadius: 9, border: `1px solid ${C.border}`, background: C.card, color: C.t1, boxSizing: 'border-box', fontSize: 12 }}>
+                    <span style={{ fontSize: 12, color: C.t1, fontWeight: 900 }}>{t.investmentAvgDealSize || 'Avg deal size'}</span>
+                    <select value={investmentProfileDraft.avgDealSize} onChange={(e) => setInvestmentField('avgDealSize', e.target.value)} style={{ width: '100%', padding: '8px 10px', borderRadius: 8, border: `1px solid ${C.border}`, background: C.card, color: C.t1, boxSizing: 'border-box', fontSize: 11 }}>
+                      {INVESTMENT_AVG_DEAL_SIZE_OPTIONS.map((opt) => <option key={`inv-avg-${opt.value}`} value={opt.value}>{opt.label}</option>)}
+                    </select>
+                  </label>
+                </div>
+              </div>
+
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 8, minHeight: 0, overflow: 'hidden' }}>
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, minmax(0, 1fr))', gap: 8 }}>
+                  <label style={{ display: 'grid', gap: 5 }}>
+                    <span style={{ fontSize: 12, color: C.t1, fontWeight: 900 }}>{t.investmentDealsLifetime || 'Deals closed (lifetime)'}</span>
+                    <select value={investmentProfileDraft.dealsClosedLifetime} onChange={(e) => setInvestmentField('dealsClosedLifetime', e.target.value)} style={{ width: '100%', padding: '8px 10px', borderRadius: 8, border: `1px solid ${C.border}`, background: C.card, color: C.t1, boxSizing: 'border-box', fontSize: 11 }}>
                       {INVESTMENT_DEALS_COUNT_OPTIONS.map((opt) => <option key={`inv-life-${opt.value}`} value={opt.value}>{opt.label}</option>)}
                     </select>
                   </label>
                   <label style={{ display: 'grid', gap: 5 }}>
-                    <span style={{ fontSize: 11, color: C.t2, fontWeight: 700 }}>{t.investmentDealsLast12 || 'Deals closed (last 12mo)'}</span>
-                    <select value={investmentProfileDraft.dealsClosedLast12mo} onChange={(e) => setInvestmentField('dealsClosedLast12mo', e.target.value)} style={{ width: '100%', padding: '9px 10px', borderRadius: 9, border: `1px solid ${C.border}`, background: C.card, color: C.t1, boxSizing: 'border-box', fontSize: 12 }}>
+                    <span style={{ fontSize: 12, color: C.t1, fontWeight: 900 }}>{t.investmentDealsLast12 || 'Deals closed (last 12mo)'}</span>
+                    <select value={investmentProfileDraft.dealsClosedLast12mo} onChange={(e) => setInvestmentField('dealsClosedLast12mo', e.target.value)} style={{ width: '100%', padding: '8px 10px', borderRadius: 8, border: `1px solid ${C.border}`, background: C.card, color: C.t1, boxSizing: 'border-box', fontSize: 11 }}>
                       {INVESTMENT_DEALS_COUNT_OPTIONS.map((opt) => <option key={`inv-y12-${opt.value}`} value={opt.value}>{opt.label}</option>)}
                     </select>
                   </label>
                   <label style={{ display: 'grid', gap: 5 }}>
-                    <span style={{ fontSize: 11, color: C.t2, fontWeight: 700 }}>{t.investmentAvgDealSize || 'Avg deal size'}</span>
-                    <select value={investmentProfileDraft.avgDealSize} onChange={(e) => setInvestmentField('avgDealSize', e.target.value)} style={{ width: '100%', padding: '9px 10px', borderRadius: 9, border: `1px solid ${C.border}`, background: C.card, color: C.t1, boxSizing: 'border-box', fontSize: 12 }}>
-                      {INVESTMENT_AVG_DEAL_SIZE_OPTIONS.map((opt) => <option key={`inv-avg-${opt.value}`} value={opt.value}>{opt.label}</option>)}
-                    </select>
-                  </label>
-                  <label style={{ display: 'grid', gap: 5 }}>
-                    <span style={{ fontSize: 11, color: C.t2, fontWeight: 700 }}>{t.investmentYearsInvesting || 'Years investing'}</span>
-                    <select value={investmentProfileDraft.yearsInvesting} onChange={(e) => setInvestmentField('yearsInvesting', e.target.value)} style={{ width: '100%', padding: '9px 10px', borderRadius: 9, border: `1px solid ${C.border}`, background: C.card, color: C.t1, boxSizing: 'border-box', fontSize: 12 }}>
+                    <span style={{ fontSize: 12, color: C.t1, fontWeight: 900 }}>{t.investmentYearsInvesting || 'Years investing'}</span>
+                    <select value={investmentProfileDraft.yearsInvesting} onChange={(e) => setInvestmentField('yearsInvesting', e.target.value)} style={{ width: '100%', padding: '8px 10px', borderRadius: 8, border: `1px solid ${C.border}`, background: C.card, color: C.t1, boxSizing: 'border-box', fontSize: 11 }}>
                       {INVESTMENT_YEARS_OPTIONS.map((opt) => <option key={`inv-years-${opt.value}`} value={opt.value}>{opt.label}</option>)}
                     </select>
                   </label>
                 </div>
-
-                <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                  <span style={{ fontSize: 11, color: C.t2, fontWeight: 700 }}>{t.investmentActiveDeals || 'Currently active deals'}</span>
-                  <button type="button" onClick={() => setInvestmentField('currentlyActiveDeals', Math.max(0, Number(investmentProfileDraft.currentlyActiveDeals || 0) - 1))} style={{ width: 28, height: 28, borderRadius: 99, border: `1px solid ${C.border}`, background: 'transparent', color: C.t2, fontWeight: 700, cursor: 'pointer' }}>-</button>
-                  <strong style={{ minWidth: 20, textAlign: 'center', color: C.t1 }}>{Number(investmentProfileDraft.currentlyActiveDeals || 0)}</strong>
-                  <button type="button" onClick={() => setInvestmentField('currentlyActiveDeals', Math.min(99, Number(investmentProfileDraft.currentlyActiveDeals || 0) + 1))} style={{ width: 28, height: 28, borderRadius: 99, border: `1px solid ${C.border}`, background: 'transparent', color: C.t2, fontWeight: 700, cursor: 'pointer' }}>+</button>
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8, paddingTop: 8, borderTop: `1px solid ${C.alpha(C.border, 0.75)}` }}>
+                  <div style={{ display: 'grid', gap: 5 }}>
+                    <span style={{ fontSize: 12, color: C.t1, fontWeight: 900 }}>{t.investmentCapitalReady || 'Have available cash to invest?'}</span>
+                    <div style={{ display: 'flex', gap: 5, flexWrap: 'wrap' }}>
+                      <Chip active={investmentProfileDraft.capitalReady === 'yes'} onClick={() => setInvestmentField('capitalReady', 'yes')}>{t.yes || 'Yes'}</Chip>
+                      <Chip active={investmentProfileDraft.capitalReady === 'no'} onClick={() => setInvestmentField('capitalReady', 'no')}>{t.no || 'No'}</Chip>
+                    </div>
+                  </div>
+                  <div style={{ display: 'grid', gap: 5 }}>
+                    <span style={{ fontSize: 12, color: C.t1, fontWeight: 900 }}>{t.investmentAccredited || 'Accredited investor'}</span>
+                    <div style={{ display: 'flex', gap: 5, flexWrap: 'wrap' }}>
+                      <Chip active={investmentProfileDraft.accreditedInvestor === 'yes'} onClick={() => setInvestmentField('accreditedInvestor', 'yes')}>{t.yes || 'Yes'}</Chip>
+                      <Chip active={investmentProfileDraft.accreditedInvestor === 'no'} onClick={() => setInvestmentField('accreditedInvestor', 'no')}>{t.no || 'No'}</Chip>
+                    </div>
+                  </div>
                 </div>
-              </div>
-            )}
+                <div style={{ display: 'flex', alignItems: 'center', gap: 7, flexWrap: 'wrap', paddingTop: 8, borderTop: `1px solid ${C.alpha(C.border, 0.75)}` }}>
+                  <span style={{ fontSize: 12, color: C.t1, fontWeight: 900 }}>{t.investmentActiveDeals || 'Currently active deals'}</span>
+                  <button type="button" onClick={() => setInvestmentField('currentlyActiveDeals', Math.max(0, Number(investmentProfileDraft.currentlyActiveDeals || 0) - 1))} style={{ width: 26, height: 26, borderRadius: 99, border: `1px solid ${C.border}`, background: 'transparent', color: C.t2, fontWeight: 700, cursor: 'pointer' }}>-</button>
+                  <strong style={{ minWidth: 18, textAlign: 'center', color: C.t1 }}>{Number(investmentProfileDraft.currentlyActiveDeals || 0)}</strong>
+                  <button type="button" onClick={() => setInvestmentField('currentlyActiveDeals', Math.min(99, Number(investmentProfileDraft.currentlyActiveDeals || 0) + 1))} style={{ width: 26, height: 26, borderRadius: 99, border: `1px solid ${C.border}`, background: 'transparent', color: C.t2, fontWeight: 700, cursor: 'pointer' }}>+</button>
+                </div>
 
-            <div style={{ marginTop: 6, display: 'flex', justifyContent: 'space-between', gap: 8, flexWrap: 'wrap' }}>
-              <button
-                type="button"
-                onClick={() => {
-                  if (investmentModalStep === 1) {
-                    setInvestmentModalOpen(false);
-                    saveInvestmentProfileDraft({ forceComplete: false });
-                    return;
-                  }
-                  setInvestmentModalStep(1);
-                }}
-                style={{ padding: '8px 12px', borderRadius: 9, border: `1px solid ${C.border}`, background: 'transparent', color: C.t2, fontWeight: 700, cursor: 'pointer', fontSize: 12 }}
-              >
-                {investmentModalStep === 1 ? (t.close || 'Close') : (t.back || 'Back')}
-              </button>
-              <div style={{ display: 'flex', gap: 8 }}>
-                {investmentModalStep === 1 ? (
+                <div style={{ marginTop: 2, border: `1px solid ${C.alpha(investmentScoreMeta.color, 0.45)}`, background: C.alpha(investmentScoreMeta.color, 0.08), borderRadius: 12, padding: '10px 12px', display: 'grid', gap: 6 }}>
+                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 10 }}>
+                    <div style={{ display: 'inline-flex', alignItems: 'center', gap: 8 }}>
+                      <span style={{ width: 28, height: 28, borderRadius: 999, border: `1px solid ${C.alpha(investmentScoreMeta.color, 0.55)}`, background: C.alpha(investmentScoreMeta.color, 0.12), display: 'inline-flex', alignItems: 'center', justifyContent: 'center' }}>
+                        <Icon name={investmentScoreMeta.icon} size={14} color={investmentScoreMeta.color} strokeWidth={2.1} />
+                      </span>
+                      <strong style={{ color: C.t1, fontSize: 13 }}>{t.investmentScoreCardTitle || 'Match readiness score'}</strong>
+                    </div>
+                    <div style={{ fontSize: 15, fontWeight: 900, color: investmentScoreMeta.color }}>{investmentProfileStrength}%</div>
+                  </div>
+                  <div style={{ fontSize: 12, fontWeight: 800, color: investmentScoreMeta.color }}>
+                    {`${t.investmentScoreRangeLabel || 'Range'}: ${investmentScoreMeta.label}`}
+                  </div>
+                  <div style={{ fontSize: 11, color: C.t2, fontWeight: 700 }}>{investmentScoreMeta.alert}</div>
+                  <div style={{ display: 'grid', gap: 3, paddingTop: 6, borderTop: `1px dashed ${C.alpha(C.border, 0.9)}` }}>
+                    <div style={{ fontSize: 10, color: C.t3 }}><strong style={{ color: C.success }}>100%</strong> - {t.investmentScoreRangeExcellent || 'Excellent'}</div>
+                    <div style={{ fontSize: 10, color: C.t3 }}><strong style={{ color: C.accent }}>99-90%</strong> - {t.investmentScoreRangeGood || 'Good'}</div>
+                    <div style={{ fontSize: 10, color: C.t3 }}><strong style={{ color: C.warning }}>89-60%</strong> - {t.investmentScoreRangeNotBad || 'Not bad (can be increased)'}</div>
+                    <div style={{ fontSize: 10, color: C.t3 }}><strong style={{ color: C.danger }}>{'<60%'}</strong> - {t.investmentScoreRangeNeedsTlc || 'Needs TLC for better matches'}</div>
+                  </div>
+                </div>
+
+                <div style={{ display: 'flex', gap: 8, marginTop: 'auto', padding: '0 10px 8px' }}>
                   <button
-                    type="button"
-                    onClick={() => setInvestmentModalStep(2)}
-                    style={{ padding: '8px 12px', borderRadius: 9, border: 'none', background: C.accent, color: '#0d1210', fontWeight: 800, cursor: 'pointer', fontSize: 12 }}
-                  >
-                    {t.next || 'Next'}
-                  </button>
-                ) : (
-                  <button
+                    className="onb-save-profiles is-dirty"
                     type="button"
                     onClick={() => {
                       saveInvestmentProfileDraft({ forceComplete: investmentProfileRequiredComplete });
                       setInvestmentModalOpen(false);
                     }}
-                    style={{ padding: '8px 12px', borderRadius: 9, border: 'none', background: C.accent, color: '#0d1210', fontWeight: 800, cursor: 'pointer', fontSize: 12 }}
+                    style={{ width: '100%', padding: '8px 12px', borderRadius: 8, border: 'none', background: C.accent, color: '#0d1210', fontWeight: 900, cursor: 'pointer', fontSize: 12 }}
                   >
                     {t.saveProfile || 'Save profile'}
                   </button>
-                )}
+                </div>
               </div>
             </div>
           </div>

@@ -1,7 +1,14 @@
 import React, { useEffect } from 'react';
 import { C } from '../../theme/colors';
 
-export function Modal({ children, onClose, maxWidth = 420, ariaLabel = 'Modal dialog' }) {
+export function Modal({
+  children,
+  onClose,
+  maxWidth = 420,
+  ariaLabel = 'Modal dialog',
+  overlayStyle = {},
+  contentStyle = {},
+}) {
   // Prevent scrolling on body when modal is open; restore previous overflow on unmount
   useEffect(() => {
     const prev = document.body.style.overflow;
@@ -17,8 +24,8 @@ export function Modal({ children, onClose, maxWidth = 420, ariaLabel = 'Modal di
   }, [onClose]);
 
   return (
-    <div 
-      style={{ 
+    <div
+      style={{
         position: "fixed", 
         inset: 0, 
         background: "rgba(0,0,0,.85)", 
@@ -28,6 +35,7 @@ export function Modal({ children, onClose, maxWidth = 420, ariaLabel = 'Modal di
         display: "flex", 
         justifyContent: "center",
         alignItems: "center",
+        ...overlayStyle,
       }} 
       onClick={onClose}
     >
@@ -43,12 +51,12 @@ export function Modal({ children, onClose, maxWidth = 420, ariaLabel = 'Modal di
           }
         }
       `}</style>
-      <div 
+      <div
         role="dialog"
         aria-modal="true"
         aria-label={ariaLabel}
         onClick={e => e.stopPropagation()} 
-        style={{ 
+        style={{
           background: C.card, 
           border: `1px solid ${C.border}`, 
           borderRadius: 24, 
@@ -61,7 +69,8 @@ export function Modal({ children, onClose, maxWidth = 420, ariaLabel = 'Modal di
           WebkitOverflowScrolling: 'touch',
           position: "relative",
           boxShadow: "0 20px 50px rgba(0,0,0,0.5)",
-          animation: "modalAppear 0.3s ease-out"
+          animation: "modalAppear 0.3s ease-out",
+          ...contentStyle,
         }}
       >
         {/* Close button top right */}

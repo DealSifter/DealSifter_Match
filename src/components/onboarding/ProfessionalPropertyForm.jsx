@@ -4,6 +4,7 @@ export function ProfessionalPropertyForm({
   t,
   C,
   isMobileViewport,
+  isTabletPortraitViewport,
   values,
   onChange,
   formatCurrencyInput,
@@ -58,7 +59,7 @@ export function ProfessionalPropertyForm({
         </div>
       </div>
 
-      <div style={{ display: 'grid', gridTemplateColumns: isMobileViewport ? '1fr' : 'minmax(170px, 0.95fr) minmax(0, 2.75fr)', gap: 8, marginBottom: 8, width: '100%', minWidth: 0 }}>
+      <div style={{ display: isTabletPortraitViewport ? 'none' : 'grid', gridTemplateColumns: isMobileViewport ? '1fr' : 'minmax(170px, 0.95fr) minmax(0, 2.75fr)', gap: 8, marginBottom: 8, width: '100%', minWidth: 0 }}>
         <div style={{ position: 'relative', minWidth: 0 }}>
           <span style={portfolioFieldLabelStyle}>{t.labelTypeShort}</span>
           <select data-mobile-step="portfolioType" value={values.portfolioType} onChange={(e) => onChange('portfolioType', e.target.value)} style={portfolioFieldSelectStyle({ paddingRight: 32 })}>
@@ -81,8 +82,16 @@ export function ProfessionalPropertyForm({
         </div>
       </div>
 
-      <div style={{ display: 'grid', gridTemplateColumns: isMobileViewport ? '1fr' : 'minmax(170px, 0.95fr) minmax(0, 2.75fr)', gap: 8, marginBottom: 8, width: '100%', minWidth: 0, alignItems: 'start' }}>
-        <div style={{ position: 'relative', minWidth: 0, display: 'grid', gap: 6 }}>
+      <div style={{ display: 'grid', gridTemplateColumns: isTabletPortraitViewport ? '1fr' : (isMobileViewport ? '1fr' : 'minmax(170px, 0.95fr) minmax(0, 2.75fr)'), gap: 8, marginBottom: 8, width: '100%', minWidth: 0, alignItems: 'start' }}>
+        <div style={{ position: 'relative', minWidth: 0, display: 'grid', gridTemplateColumns: isTabletPortraitViewport ? 'repeat(3, minmax(0, 1fr))' : '1fr', gap: 6 }}>
+          {isTabletPortraitViewport ? (
+            <div style={{ position: 'relative', minWidth: 0 }}>
+              <span style={portfolioFieldLabelStyle}>{t.labelTypeShort}</span>
+              <select data-mobile-step="portfolioType" value={values.portfolioType} onChange={(e) => onChange('portfolioType', e.target.value)} style={portfolioFieldSelectStyle({ paddingRight: 32 })}>
+                <option value="" >Select</option><option value="SFR">SFR</option><option value="Commercial">{t.optionTypeCommercial}</option><option value="Multifamily">{t.optionTypeMultifamily}</option><option value="Land">{t.optionTypeLand}</option>
+              </select>
+            </div>
+          ) : null}
           <div style={{ position: 'relative', minWidth: 0 }}>
             <span style={portfolioFieldLabelStyle}>{t.labelGoalShort}</span>
             <select value={values.portfolioObjective} onChange={(e) => onChange('portfolioObjective', e.target.value)} style={portfolioFieldSelectStyle({ paddingRight: 32 })}>
@@ -114,7 +123,7 @@ export function ProfessionalPropertyForm({
         </div>
       </div>
 
-      <div style={{ display: 'grid', gridTemplateColumns: isMobileViewport ? '1fr' : 'auto 1fr', gap: 6, marginBottom: 8, alignItems: 'start' }}>
+      <div style={{ display: 'grid', gridTemplateColumns: isTabletPortraitViewport ? 'auto 1fr' : (isMobileViewport ? '1fr' : 'auto 1fr'), gap: 6, marginBottom: 8, alignItems: 'start' }}>
         <label style={{ fontSize: 10, color: C.t3, textTransform: 'uppercase', display: 'flex', flexDirection: 'column', alignItems: 'flex-start', width: 'auto', gap: 6 }}>
           <span style={{ fontSize: 10, color: C.t3, fontWeight: 700 }}>{t.labelImagesUpTo10}</span>
           <input type="file" accept="image/*" multiple onChange={handlePortfolioImages} style={{ display: 'block', marginTop: 4, fontSize: 11 }} />

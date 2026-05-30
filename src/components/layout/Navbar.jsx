@@ -92,7 +92,7 @@ function NavBtn({
             width: iconImageSize,
             height: iconImageSize,
             filter: iconImageBold
-              ? `${active && activeGlow ? `drop-shadow(0 0 8px ${C.alpha(iconColor, 0.6)}) ` : ''}drop-shadow(0 0 0 ${iconColor}) drop-shadow(0 0 0 ${iconColor})`
+              ? `${active && activeGlow ? `drop-shadow(0 0 8px ${C.alpha(iconColor, 0.6)}) ` : ''}drop-shadow(0 0 0 ${iconColor}) drop-shadow(0 0 0 ${iconColor}) drop-shadow(0 0 0 ${iconColor}) drop-shadow(0 0 0 ${iconColor})`
               : (active && activeGlow ? `drop-shadow(0 0 8px ${C.alpha(iconColor, 0.6)})` : 'none'),
           }}
         />
@@ -112,6 +112,7 @@ function SwipeableNotificationItem({
   disabled = false,
 }) {
   const [dragX, setDragX] = useState(0);
+  const [isDragging, setIsDragging] = useState(false);
   const dragRef = useRef({ active: false, startX: 0, pointerId: null, moved: false });
 
   const reset = () => {
@@ -119,6 +120,7 @@ function SwipeableNotificationItem({
     dragRef.current.pointerId = null;
     dragRef.current.moved = false;
     setDragX(0);
+    setIsDragging(false);
   };
 
   const onPointerDown = (e) => {
@@ -127,6 +129,7 @@ function SwipeableNotificationItem({
     dragRef.current.startX = e.clientX;
     dragRef.current.pointerId = e.pointerId;
     dragRef.current.moved = false;
+    setIsDragging(true);
     e.currentTarget.setPointerCapture?.(e.pointerId);
   };
 
@@ -160,7 +163,7 @@ function SwipeableNotificationItem({
       }}
       style={{
         transform: `translateX(${dragX}px)`,
-        transition: dragRef.current.active ? 'none' : 'transform .14s ease',
+        transition: isDragging ? 'none' : 'transform .14s ease',
       }}
     >
       {children}
@@ -235,16 +238,6 @@ export function Navbar({ page, prevPage, setPage, nuggets = 0, setModal = () => 
   }, [deferredSystemIds]);
 
   useEffect(() => {
-    const valid = new Set((chatNotifications || []).map((n) => String(n.id)));
-    setDeferredChatIds((prev) => prev.filter((id) => valid.has(id)));
-  }, [chatNotifications]);
-
-  useEffect(() => {
-    const valid = new Set((systemNotifications || []).filter((n) => !n.read).map((n) => String(n.id)));
-    setDeferredSystemIds((prev) => prev.filter((id) => valid.has(id)));
-  }, [systemNotifications]);
-
-  useEffect(() => {
     const onClickOutside = (e) => {
       if (!notifRef.current) return;
       if (!notifRef.current.contains(e.target)) setNotifOpen(false);
@@ -282,14 +275,6 @@ export function Navbar({ page, prevPage, setPage, nuggets = 0, setModal = () => 
   }, [TABLET_PORTRAIT_QUERY]);
 
   useEffect(() => {
-    if (isCompactViewport) return;
-    setLandingMenuOpen(false);
-    setAppMenuOpen(false);
-    setAppNotifOpen(false);
-    setNotifOpen(false);
-  }, [isCompactViewport]);
-
-  useEffect(() => {
     if (!landingMenuOpen && !appMenuOpen) return undefined;
     const onKeyDown = (event) => {
       if (event.key === 'Escape') setLandingMenuOpen(false);
@@ -301,11 +286,6 @@ export function Navbar({ page, prevPage, setPage, nuggets = 0, setModal = () => 
     document.addEventListener('keydown', onKeyDown);
     return () => document.removeEventListener('keydown', onKeyDown);
   }, [landingMenuOpen, appMenuOpen]);
-
-  useEffect(() => {
-    if (!appMenuOpen) return;
-    setAppNotifOpen(false);
-  }, [page, appMenuOpen]);
 
   const markSystemAsRead = () => {
     setSystemNotifications((prev) => (prev || []).map((n) => ({ ...n, read: true })));
@@ -440,9 +420,9 @@ export function Navbar({ page, prevPage, setPage, nuggets = 0, setModal = () => 
         {/* Center: Main nav (desktop) */}
         {isCompactTopbar ? null : isApp ? (
           <div style={{ display: 'flex', gap: 8, alignItems: 'center', justifySelf: 'center' }}>
-            <NavBtn iconImage={mapViewTaskbarIcon} iconImageSize={18} iconImageBold iconColorOverride="#67606b" iconColorActive={C.accent} activeGlow labelWeight={800} label={t.mapView} onClick={() => setPage && setPage('mapview')} active={page === 'mapview'} />
-            <NavBtn iconImage={feedMatchIcon} iconImageSize={18} iconImageBold iconColorOverride="#67606b" iconColorActive={C.accent} activeGlow labelWeight={800} label={t.feed} onClick={() => setPage && setPage('dashboard')} active={page === 'dashboard'} />
-            <NavBtn iconImage={matchesTaskbarIcon} iconImageSize={18} iconImageBold iconColorOverride="#67606b" iconColorActive={C.accent} activeGlow labelWeight={800} label={t.matches} onClick={() => setPage && setPage('matches')} active={page === 'matches'} />
+            <NavBtn iconImage={mapViewTaskbarIcon} iconImageSize={18} iconImageBold iconColorOverride={C.t2} iconColorActive={C.accent} labelWeight={700} label={t.mapView} onClick={() => setPage && setPage('mapview')} active={page === 'mapview'} />
+            <NavBtn iconImage={feedMatchIcon} iconImageSize={18} iconImageBold iconColorOverride={C.t2} iconColorActive={C.accent} labelWeight={700} label={t.feed} onClick={() => setPage && setPage('dashboard')} active={page === 'dashboard'} />
+            <NavBtn iconImage={matchesTaskbarIcon} iconImageSize={18} iconImageBold iconColorOverride={C.t2} iconColorActive={C.accent} labelWeight={700} label={t.matches} onClick={() => setPage && setPage('matches')} active={page === 'matches'} />
             <NavBtn icon="creditCard" label={t.pricing} onClick={() => setPage && setPage('pricing')} active={page === 'pricing'} />
             {isAdmin ? (
               <NavBtn icon="shield" label={t.adminSystem || 'Adm.System'} onClick={onOpenAdmin} active={page === 'admin'} />
@@ -609,7 +589,7 @@ export function Navbar({ page, prevPage, setPage, nuggets = 0, setModal = () => 
 
                           <button onClick={toggleTheme} style={{ width: '100%', display: 'flex', alignItems: 'center', gap: 10, borderRadius: 10, border: `1px solid ${C.border}`, background: 'transparent', color: C.t2, fontWeight: 700, fontSize: 14, padding: '10px 12px', cursor: 'pointer' }}>
                             <Icon name={theme === 'dark' ? 'sun' : 'moon'} size={15} color={C.t2} />
-                            <span>{theme === 'dark' ? (t.themeToDark || 'Enable dark mode') : (t.themeToLight || 'Enable light mode')}</span>
+                            <span>{theme === 'dark' ? (t.themeToLight || 'Enable light mode') : (t.themeToDark || 'Enable dark mode')}</span>
                           </button>
 
                           {showInstallAppButton ? (
@@ -737,7 +717,7 @@ export function Navbar({ page, prevPage, setPage, nuggets = 0, setModal = () => 
                   ) : null}
                 </div>
                 <LangPicker />
-                <button onClick={toggleTheme} title={theme === 'dark' ? (t.themeToDark || 'Enable dark mode') : (t.themeToLight || 'Enable light mode')} style={{ width: 36, height: 36, borderRadius: 8, border: `1px solid ${C.border}`, background: C.card, display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer' }}>
+                <button onClick={toggleTheme} title={theme === 'dark' ? (t.themeToLight || 'Enable light mode') : (t.themeToDark || 'Enable dark mode')} style={{ width: 36, height: 36, borderRadius: 8, border: `1px solid ${C.border}`, background: C.card, display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer' }}>
                   <Icon name={theme === 'dark' ? 'sun' : 'moon'} size={16} color={C.t2} />
                 </button>
                 <button

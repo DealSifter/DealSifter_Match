@@ -2114,6 +2114,8 @@ export function MapView({
     showOnlyMyPins,
     locationMode,
     appliedLocationQuery,
+    selectedClusterFeatures.length,
+    selectedClusterLeaves.length,
   ]);
 
   const startManualPinPlacement = (property) => {

@@ -301,7 +301,7 @@ function getLocalOwnerId(scopeKey) {
   return 999999;
 }
 
-function PortfolioDetail({ item, owner, ownerDesc, onBack }) {
+function PortfolioDetail({ item, owner, ownerDesc, onBack, autoplayMedia = false }) {
   const allT = useT('matches');
   const matchesT = allT.matches;
   const modalsT = allT.modals;
@@ -1294,13 +1294,13 @@ export function MatchesPage({ nuggets, setModal, openUnlock, unlocked, initialCh
       return parsed && typeof parsed === 'object' ? parsed : {};
     } catch (e) { void e; return {}; }
   });
-  const [peerLangPrefs, setPeerLangPrefs] = useState(() => {
+  const peerLangPrefs = useMemo(() => {
     const saved = localStorage.getItem('chatPeerLangPrefs');
     if (!saved) return {};
     try {
       return JSON.parse(saved);
     } catch (e) { void e; return {}; }
-  });
+  }, []);
   const isResizing = useRef(false);
 
   const stopResizing = useCallback(() => {
@@ -1668,10 +1668,6 @@ export function MatchesPage({ nuggets, setModal, openUnlock, unlocked, initialCh
   useEffect(() => {
     localStorage.setItem('chatMainTextSize', String(chatMainTextSize));
   }, [chatMainTextSize]);
-
-  useEffect(() => {
-    localStorage.setItem('chatPeerLangPrefs', JSON.stringify(peerLangPrefs));
-  }, [peerLangPrefs]);
 
   useEffect(() => {
     localStorage.setItem('chatSeenIncomingByContact', JSON.stringify(seenIncomingByContact));
@@ -2322,6 +2318,7 @@ export function MatchesPage({ nuggets, setModal, openUnlock, unlocked, initialCh
                         owner={activeOwner}
                         ownerDesc={ownerDesc}
                         onBack={() => setSelectedPortfolioItem(null)}
+                        autoplayMedia={autoplayMedia}
                       />
                     ) : (
                       <div style={{ background:C.card, border:`1px solid ${C.border}`, borderRadius:12, padding:12 }}>
@@ -2443,6 +2440,7 @@ export function MatchesPage({ nuggets, setModal, openUnlock, unlocked, initialCh
                   owner={activeOwner}
                   ownerDesc={ownerDesc}
                   onBack={() => setMobileCardSheet(null)}
+                  autoplayMedia={autoplayMedia}
                 />
                 <button
                   type="button"
