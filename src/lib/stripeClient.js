@@ -19,8 +19,6 @@ export const STRIPE_SUBSCRIPTION_PRICE_IDS = {
   enterprise: import.meta.env.VITE_STRIPE_PRICE_PLAN_ENTERPRISE || null,
 };
 
-export const STRIPE_PUBLISHABLE_KEY = import.meta.env.VITE_STRIPE_PUBLISHABLE_KEY || null;
-
 async function invokeEdge(functionName, body) {
   if (!isSupabaseConfigured || !supabase) {
     throw new Error('Supabase nao configurado. Verifique as variaveis de ambiente VITE_SUPABASE_*.');
@@ -109,38 +107,6 @@ function getTermsMetadata(options = {}) {
     terms_accepted: true,
     terms_accepted_at: options.termsAcceptedAt || new Date().toISOString(),
   };
-}
-
-export async function createEmbeddedCheckoutSessionForPack(pack) {
-  if (!STRIPE_PUBLISHABLE_KEY) {
-    throw new Error('Stripe publishable key nao configurada. Adicione VITE_STRIPE_PUBLISHABLE_KEY.');
-  }
-
-  const data = await invokeEdge('create-checkout-session', {
-    ...getNuggetCheckoutBody(pack),
-    ui_mode: 'embedded',
-    ...getTermsMetadata({ termsAccepted: true }),
-    return_url: `${window.location.origin}/?checkout=success&pack=${pack.id}`,
-  });
-
-  if (!data?.client_secret) throw new Error('Client secret do checkout nao retornado.');
-  return data.client_secret;
-}
-
-export async function createEmbeddedCheckoutSessionForPlan(planId) {
-  if (!STRIPE_PUBLISHABLE_KEY) {
-    throw new Error('Stripe publishable key nao configurada. Adicione VITE_STRIPE_PUBLISHABLE_KEY.');
-  }
-
-  const data = await invokeEdge('create-checkout-session', {
-    ...getSubscriptionCheckoutBody(planId),
-    ui_mode: 'embedded',
-    ...getTermsMetadata({ termsAccepted: true }),
-    return_url: `${window.location.origin}/?checkout=success&plan=${planId}`,
-  });
-
-  if (!data?.client_secret) throw new Error('Client secret da assinatura nao retornado.');
-  return data.client_secret;
 }
 
 /**

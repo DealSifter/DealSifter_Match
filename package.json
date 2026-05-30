@@ -12,8 +12,6 @@
     "preview": "vite preview --host 0.0.0.0 --port 4173 --strictPort"
   },
   "dependencies": {
-    "@stripe/react-stripe-js": "^6.5.0",
-    "@stripe/stripe-js": "^9.7.0",
     "@supabase/supabase-js": "^2.103.0",
     "@vercel/speed-insights": "^2.0.0",
     "framer-motion": "^12.35.1",

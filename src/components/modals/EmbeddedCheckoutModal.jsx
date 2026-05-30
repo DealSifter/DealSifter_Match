@@ -1,18 +1,9 @@
-import React, { useCallback, useState } from 'react';
-import { EmbeddedCheckout, EmbeddedCheckoutProvider } from '@stripe/react-stripe-js';
-import { loadStripe } from '@stripe/stripe-js';
+import React, { useState } from 'react';
 import { C } from '../../theme/colors';
 import { useT } from '../../i18n/translations';
 import { NUGGET_PACKS, PLANS } from '../../data/mockData';
-import {
-  STRIPE_PUBLISHABLE_KEY,
-  createEmbeddedCheckoutSessionForPack,
-  createEmbeddedCheckoutSessionForPlan,
-} from '../../lib/stripeClient';
 import { Modal } from '../ui/Modal';
 import { Icon } from '../ui/Icon';
-
-const stripePromise = STRIPE_PUBLISHABLE_KEY ? loadStripe(STRIPE_PUBLISHABLE_KEY) : null;
 
 function resolveCheckoutSummary(intent, t) {
   if (intent?.kind === 'subscription') {
@@ -40,7 +31,6 @@ export function EmbeddedCheckoutModal({
   intent,
   onClose,
   onHostedFallback,
-  onComplete,
   onOpenTerms,
   onOpenPrivacy,
 }) {
@@ -48,30 +38,7 @@ export function EmbeddedCheckoutModal({
   const t = allT.modals || {};
   const pricingT = allT.pricing || {};
   const [accepted, setAccepted] = useState(false);
-  const [sessionError, setSessionError] = useState('');
-  const [isPreparingCheckout, setIsPreparingCheckout] = useState(false);
   const summary = resolveCheckoutSummary(intent, pricingT);
-
-  const fetchClientSecret = useCallback(async () => {
-    try {
-      setSessionError('');
-      setIsPreparingCheckout(true);
-      if (intent?.kind === 'subscription') {
-        return await createEmbeddedCheckoutSessionForPlan(intent.planId);
-      }
-      const pack = NUGGET_PACKS.find((item) => String(item.id) === String(intent?.packId));
-      return await createEmbeddedCheckoutSessionForPack(pack);
-    } catch (error) {
-      const message = String(error?.message || 'Unable to start embedded checkout.');
-      setSessionError(message);
-      throw error;
-    } finally {
-      setIsPreparingCheckout(false);
-    }
-  }, [intent, setIsPreparingCheckout, setSessionError]);
-
-  const canRenderEmbedded = Boolean(stripePromise && accepted && !sessionError);
-  const checkoutKey = `${intent?.kind || 'unknown'}-${intent?.planId || intent?.packId || 'item'}-${accepted ? 'accepted' : 'pending'}`;
 
   return (
     <Modal
@@ -100,18 +67,20 @@ export function EmbeddedCheckoutModal({
           gap: 16px;
           min-width: 0;
         }
-        .ds-checkout-embedded-frame {
-          min-height: 480px;
+        .ds-checkout-hosted-panel {
           border: 1px solid ${C.border};
           border-radius: 16px;
-          overflow: hidden;
-          background: #fff;
+          padding: 20px;
+          background:
+            radial-gradient(circle at 12% 18%, ${C.alpha(C.accent, 0.13)}, transparent 34%),
+            ${C.alpha(C.card, 0.96)};
+          display: grid;
+          gap: 12px;
         }
         @media (max-width: 760px) {
           .ds-checkout-modal-shell { grid-template-columns: 1fr; max-height: 86dvh; overflow-y: auto; }
           .ds-checkout-modal-side { border-right: 0; border-bottom: 1px solid ${C.border}; padding: 22px; }
           .ds-checkout-modal-main { padding: 22px; }
-          .ds-checkout-embedded-frame { min-height: 560px; }
         }
       `}</style>
 
@@ -150,10 +119,7 @@ export function EmbeddedCheckoutModal({
               <input
                 type="checkbox"
                 checked={accepted}
-                onChange={(event) => {
-                  setSessionError('');
-                  setAccepted(event.target.checked);
-                }}
+                onChange={(event) => setAccepted(event.target.checked)}
                 style={{ width: 18, height: 18, marginTop: 1, accentColor: C.accent }}
               />
               <span style={{ color: C.t2, fontSize: 12, lineHeight: 1.5 }}>
@@ -172,45 +138,23 @@ export function EmbeddedCheckoutModal({
 
           {!accepted ? (
             <div style={{ border: `1px dashed ${C.border}`, borderRadius: 16, padding: 18, color: C.t3, fontSize: 13, lineHeight: 1.5 }}>
-              {t.checkoutAcceptHint || 'Accept the terms above to load the secure Stripe payment form.'}
+              {t.checkoutAcceptHint || 'Accept the terms above to continue to secure Stripe Checkout.'}
             </div>
           ) : null}
 
-          {accepted && !stripePromise ? (
-            <div style={{ border: `1px solid ${C.warning || C.gold}`, borderRadius: 16, padding: 16, display: 'grid', gap: 10 }}>
-              <strong style={{ color: C.t1 }}>{t.checkoutEmbeddedUnavailable || 'Embedded checkout unavailable'}</strong>
-              <span style={{ color: C.t2, fontSize: 12 }}>{t.checkoutFallbackHint || 'We can still open the secure Stripe hosted checkout.'}</span>
+          <div className="ds-checkout-hosted-panel">
+            <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+              <Icon name="shield" size={20} color={accepted ? C.accent : C.t3} />
+              <strong style={{ color: C.t1, fontSize: 15 }}>
+                {accepted ? (t.checkoutReadyTitle || 'Ready for secure payment') : (t.checkoutAcceptRequiredTitle || 'Terms acceptance required')}
+              </strong>
             </div>
-          ) : null}
-
-          {sessionError ? (
-            <div style={{ border: `1px solid ${C.warning || C.gold}`, borderRadius: 16, padding: 16, display: 'grid', gap: 10 }}>
-              <strong style={{ color: C.t1 }}>{t.checkoutEmbeddedUnavailable || 'Embedded checkout unavailable'}</strong>
-              <span style={{ color: C.t2, fontSize: 12 }}>{sessionError}</span>
-              <span style={{ color: C.t3, fontSize: 12 }}>{t.checkoutFallbackHint || 'We can still open the secure Stripe hosted checkout.'}</span>
-            </div>
-          ) : null}
-
-          {canRenderEmbedded ? (
-            <div className="ds-checkout-embedded-frame" key={checkoutKey}>
-              {isPreparingCheckout ? (
-                <div style={{ minHeight: 120, display: 'grid', placeItems: 'center', color: C.t3, fontSize: 12, fontWeight: 800 }}>
-                  {t.checkoutLoading || 'Loading secure Stripe checkout...'}
-                </div>
-              ) : null}
-              <EmbeddedCheckoutProvider
-                stripe={stripePromise}
-                options={{
-                  fetchClientSecret,
-                  onComplete: () => {
-                    onComplete?.();
-                  },
-                }}
-              >
-                <EmbeddedCheckout />
-              </EmbeddedCheckoutProvider>
-            </div>
-          ) : null}
+            <p style={{ margin: 0, color: C.t2, fontSize: 12, lineHeight: 1.55 }}>
+              {accepted
+                ? (t.checkoutHostedRedirectInfo || 'Click below to open secure Stripe Checkout. Stripe will return you to DealSifter after payment.')
+                : (t.checkoutAcceptHint || 'Accept the terms above to continue to secure Stripe Checkout.')}
+            </p>
+          </div>
 
           <div style={{ display: 'flex', gap: 10, justifyContent: 'space-between', flexWrap: 'wrap' }}>
             <button
