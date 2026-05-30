@@ -75,6 +75,7 @@ const PrivacyPolicyPage = lazyWithRetry(() => import('./pages/PrivacyPolicyPage'
 import { UnlockModal } from './components/modals/UnlockModal';
 const AuthAccessModal = lazyWithRetry(() => import('./components/modals/AuthAccessModal').then((m) => ({ default: m.AuthAccessModal })), 'auth-access');
 const AdminLoginModal = lazyWithRetry(() => import('./components/modals/AdminLoginModal').then((m) => ({ default: m.AdminLoginModal })), 'admin-login');
+const EmbeddedCheckoutModal = lazyWithRetry(() => import('./components/modals/EmbeddedCheckoutModal').then((m) => ({ default: m.EmbeddedCheckoutModal })), 'embedded-checkout');
 import { ToastContainer } from './components/ui/Toast';
 const ConsentBanner = lazyWithRetry(() => import('./components/ui/ConsentBanner').then((m) => ({ default: m.ConsentBanner })), 'consent');
 const CookieBanner = lazyWithRetry(() => import('./components/ui/CookieBanner').then((m) => ({ default: m.CookieBanner })), 'cookie');
@@ -743,6 +744,7 @@ export default function App() {
   const [unlockTarget, setUnlockTarget] = useState(null);
   const [settingsInitialTab, setSettingsInitialTab] = useState('profile');
   const [onboardingInitialTab, setOnboardingInitialTab] = useState('personal');
+  const [checkoutModalIntent, setCheckoutModalIntent] = useState(null);
   const [pendingCheckoutIntent, setPendingCheckoutIntent] = useState(() => {
     try {
       const raw = localStorage.getItem('ds_pending_checkout_intent');
@@ -1068,10 +1070,6 @@ export default function App() {
       nextBillingAt: null,
     };
   });
-  const isPaymentSetupComplete = Boolean(
-    systemAccount?.paymentSetupComplete === true
-    || (subscription?.planId && String(subscription.planId).toLowerCase() !== 'free')
-  );
   const [matched, setMatched] = useState(() => {
     try {
       const saved = localStorage.getItem('ds_matched');
@@ -2756,19 +2754,19 @@ export default function App() {
     setPage('pricing');
   };
 
-  const executeCheckoutIntent = async (intentInput) => {
+  const executeCheckoutIntent = async (intentInput, checkoutOptions = {}) => {
     const intent = normalizeCheckoutIntent(intentInput);
     if (!intent) return false;
 
     try {
       if (intent.kind === 'subscription') {
-        await redirectToSubscription(intent.planId);
+        await redirectToSubscription(intent.planId, checkoutOptions);
       } else if (intent.kind === 'nuggets') {
         const pack = NUGGET_PACKS.find((item) => String(item.id) === String(intent.packId));
         if (!pack) {
           throw new Error('Pacote de nuggets inválido para checkout.');
         }
-        await redirectToCheckout(pack);
+        await redirectToCheckout(pack, checkoutOptions);
       }
       setPendingCheckoutIntent(null);
       return true;
@@ -2786,34 +2784,34 @@ export default function App() {
     }
 
     setPendingCheckoutIntent(intent);
-
-    if (!isPaymentSetupComplete) {
-      openSettingsTab('payments');
-      addToast({
-        type: 'info',
-        title: 'Configure pagamentos primeiro',
-        message: 'Antes do Stripe checkout, configure seus dados/cartão na aba Payments.',
-      });
-      return;
-    }
-
-    await executeCheckoutIntent(intent);
+    setCheckoutModalIntent(intent);
   };
 
   const handleContinuePendingCheckout = async () => {
     if (!pendingCheckoutIntent) return;
 
-    if (!isPaymentSetupComplete) {
-      openSettingsTab('payments');
-      addToast({
-        type: 'info',
-        title: 'Pagamento pendente de configuração',
-        message: 'Finalize a configuração de pagamentos para continuar o checkout.',
-      });
-      return;
-    }
+    setCheckoutModalIntent(pendingCheckoutIntent);
+  };
 
-    await executeCheckoutIntent(pendingCheckoutIntent);
+  const handleHostedCheckoutFallback = async () => {
+    const intent = normalizeCheckoutIntent(checkoutModalIntent || pendingCheckoutIntent);
+    if (!intent) return;
+    setCheckoutModalIntent(null);
+    await executeCheckoutIntent(intent, { termsAccepted: true });
+  };
+
+  const handleEmbeddedCheckoutComplete = () => {
+    setPendingCheckoutIntent(null);
+    setCheckoutModalIntent(null);
+    if (isSupabaseConfigured && supabaseUserId) {
+      setProfileHydrationCycle((prev) => prev + 1);
+    }
+    addToast({
+      type: 'success',
+      title: 'Pagamento confirmado!',
+      message: 'Seu pagamento foi confirmado pelo Stripe. Atualizaremos seu saldo/plano em instantes.',
+      duration: 7000,
+    });
   };
 
   const openOnboardingTab = (tab = 'personal') => {
@@ -3386,7 +3384,6 @@ export default function App() {
             onDeleteAccount={handleDeleteAccount}
             onRevokeConsent={handleRevokeConsent}
             pendingCheckoutIntent={pendingCheckoutIntent}
-            paymentSetupComplete={isPaymentSetupComplete}
             onContinuePendingCheckout={handleContinuePendingCheckout}
             userPreferences={userPreferences}
             onChangeUserPreferences={handleChangeUserPreferences}
@@ -3520,6 +3517,25 @@ export default function App() {
             <AdminLoginModal
               onClose={() => setModal(null)}
               onSubmit={handleAdminAuthSubmit}
+            />
+          </Suspense>
+        )}
+
+        {checkoutModalIntent && (
+          <Suspense fallback={null}>
+            <EmbeddedCheckoutModal
+              intent={checkoutModalIntent}
+              onClose={() => setCheckoutModalIntent(null)}
+              onHostedFallback={handleHostedCheckoutFallback}
+              onComplete={handleEmbeddedCheckoutComplete}
+              onOpenTerms={() => {
+                setCheckoutModalIntent(null);
+                setPage('terms');
+              }}
+              onOpenPrivacy={() => {
+                setCheckoutModalIntent(null);
+                setPage('privacy');
+              }}
             />
           </Suspense>
         )}

@@ -117,8 +117,10 @@ Deno.serve(async (req) => {
     const packId = String(body?.pack_id ?? '').trim();
     const planId = String(body?.plan_id ?? '').trim();
     const appUrl = Deno.env.get('APP_URL') ?? 'https://dealsifter.com';
+    const isEmbedded = body?.ui_mode === 'embedded' || body?.embedded === true;
     const successUrl = String(body?.success_url ?? `${appUrl}/?checkout=success`).trim();
     const cancelUrl = String(body?.cancel_url ?? `${appUrl}/?checkout=cancelled`).trim();
+    const returnUrl = String(body?.return_url ?? successUrl).trim();
 
     const itemId = mode === 'subscription' ? planId : packId;
     const expectedPriceId = getAllowedPriceId(mode === 'subscription' ? 'plan' : 'pack', itemId);
@@ -138,6 +140,11 @@ Deno.serve(async (req) => {
     };
     if (mode === 'subscription') metadata.plan_id = planId;
     else metadata.pack_id = packId;
+    if (body?.terms_accepted === true) {
+      metadata.terms_accepted = 'true';
+      metadata.terms_accepted_at = String(body?.terms_accepted_at ?? new Date().toISOString());
+      metadata.terms_version = String(body?.terms_version ?? 'checkout-v1');
+    }
 
     const customerId = await ensureStripeCustomer(user);
 
@@ -145,14 +152,18 @@ Deno.serve(async (req) => {
       mode,
       customer: customerId,
       line_items: [{ price: expectedPriceId, quantity: 1 }],
-      success_url: successUrl,
-      cancel_url: cancelUrl,
+      ui_mode: isEmbedded ? 'embedded' : 'hosted',
+      success_url: isEmbedded ? undefined : successUrl,
+      cancel_url: isEmbedded ? undefined : cancelUrl,
+      return_url: isEmbedded ? returnUrl : undefined,
       metadata,
       subscription_data: mode === 'subscription' ? { metadata } : undefined,
-      payment_intent_data: mode === 'payment' ? { metadata } : undefined,
+      payment_intent_data: mode === 'payment' ? { metadata, setup_future_usage: 'off_session' } : undefined,
     });
 
-    return new Response(JSON.stringify({ url: session.url }), {
+    return new Response(JSON.stringify(isEmbedded
+      ? { id: session.id, client_secret: session.client_secret }
+      : { id: session.id, url: session.url }), {
       status: 200,
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
     });

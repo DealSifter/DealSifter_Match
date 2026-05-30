@@ -62,7 +62,7 @@ const isMissingColumnError = (error, columnName) => {
   return message.includes(target) || hint.includes(target);
 };
 
-export function Settings({ setPage, prevPage, initialTab = 'profile', systemAccount, setSystemAccount, authSession, setAuthSession, subscription, addToast, supabaseUserId, onDeleteAccount, onRevokeConsent, pendingCheckoutIntent = null, paymentSetupComplete = false, onContinuePendingCheckout = null, userPreferences = null, onChangeUserPreferences = null }) {
+export function Settings({ setPage, prevPage, initialTab = 'profile', systemAccount, setSystemAccount, authSession, setAuthSession, subscription, addToast, supabaseUserId, onDeleteAccount, onRevokeConsent, pendingCheckoutIntent = null, onContinuePendingCheckout = null, userPreferences = null, onChangeUserPreferences = null }) {
   const allT = useT('settings');
   const t = allT.settings || {};
   const [tab, setTab] = useState(initialTab);
@@ -839,12 +839,10 @@ export function Settings({ setPage, prevPage, initialTab = 'profile', systemAcco
                     {t.stripeManaged || 'Plan changes and billing are managed via Stripe. Use the button below to access the Stripe Customer Portal.'}
                   </div>
                   {pendingCheckoutIntent ? (
-                    <div style={{ border: `1px solid ${paymentSetupComplete ? C.accent : C.warning || '#f59e0b'}`, borderRadius: 10, padding: 10, fontSize: 12, color: C.t2, background: paymentSetupComplete ? C.alpha(C.accent, 0.06) : C.alpha(C.warning || '#f59e0b', 0.08), width: '100%', minWidth: 0, boxSizing: 'border-box', overflowWrap: 'anywhere', wordBreak: 'break-word' }}>
+                    <div style={{ border: `1px solid ${C.accent}`, borderRadius: 10, padding: 10, fontSize: 12, color: C.t2, background: C.alpha(C.accent, 0.06), width: '100%', minWidth: 0, boxSizing: 'border-box', overflowWrap: 'anywhere', wordBreak: 'break-word' }}>
                       <strong style={{ color: C.t1 }}>{pendingCheckoutLabel}</strong>
                       <div style={{ marginTop: 6 }}>
-                        {paymentSetupComplete
-                          ? 'Setup de pagamentos detectado. Você já pode continuar para o checkout no Stripe.'
-                          : 'Você escolheu uma compra no Pricing. Configure seus dados/cartão para liberar o checkout no Stripe.'}
+                        {t.pendingCheckoutInfo || 'Continue to Stripe Checkout to securely enter or save your payment method.'}
                       </div>
                     </div>
                   ) : null}
@@ -881,18 +879,13 @@ export function Settings({ setPage, prevPage, initialTab = 'profile', systemAcco
                   {pendingCheckoutIntent ? (
                     <button
                       onClick={() => {
-                        if (!paymentSetupComplete) {
-                          addToast?.({ type: 'info', message: 'Configure seus dados/cartão no Stripe para continuar o checkout.' });
-                          return;
-                        }
                         if (typeof onContinuePendingCheckout === 'function') {
                           onContinuePendingCheckout();
                         }
                       }}
-                      disabled={!paymentSetupComplete}
-                      style={{ width: '100%', boxSizing: 'border-box', border: `1px solid ${paymentSetupComplete ? C.accent : C.border}`, background: paymentSetupComplete ? C.alpha(C.accent, 0.1) : 'transparent', color: paymentSetupComplete ? C.accent : C.t3, borderRadius: 8, padding: '9px 10px', fontSize: 12, fontWeight: 800, cursor: paymentSetupComplete ? 'pointer' : 'not-allowed' }}
+                      style={{ width: '100%', boxSizing: 'border-box', border: `1px solid ${C.accent}`, background: C.accent, color: '#fff', borderRadius: 8, padding: '9px 10px', fontSize: 12, fontWeight: 800, cursor: 'pointer' }}
                     >
-                      {paymentSetupComplete ? 'Continuar checkout no Stripe' : 'Configure pagamentos para continuar'}
+                      {t.continueStripeCheckout || 'Continue to Stripe Checkout'}
                     </button>
                   ) : null}
                 </div>
