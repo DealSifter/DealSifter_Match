@@ -49,11 +49,13 @@ export function EmbeddedCheckoutModal({
   const pricingT = allT.pricing || {};
   const [accepted, setAccepted] = useState(false);
   const [sessionError, setSessionError] = useState('');
+  const [isPreparingCheckout, setIsPreparingCheckout] = useState(false);
   const summary = resolveCheckoutSummary(intent, pricingT);
 
   const fetchClientSecret = useCallback(async () => {
     try {
       setSessionError('');
+      setIsPreparingCheckout(true);
       if (intent?.kind === 'subscription') {
         return await createEmbeddedCheckoutSessionForPlan(intent.planId);
       }
@@ -63,8 +65,10 @@ export function EmbeddedCheckoutModal({
       const message = String(error?.message || 'Unable to start embedded checkout.');
       setSessionError(message);
       throw error;
+    } finally {
+      setIsPreparingCheckout(false);
     }
-  }, [intent, setSessionError]);
+  }, [intent, setIsPreparingCheckout, setSessionError]);
 
   const canRenderEmbedded = Boolean(stripePromise && accepted && !sessionError);
   const checkoutKey = `${intent?.kind || 'unknown'}-${intent?.planId || intent?.packId || 'item'}-${accepted ? 'accepted' : 'pending'}`;
@@ -189,6 +193,11 @@ export function EmbeddedCheckoutModal({
 
           {canRenderEmbedded ? (
             <div className="ds-checkout-embedded-frame" key={checkoutKey}>
+              {isPreparingCheckout ? (
+                <div style={{ minHeight: 120, display: 'grid', placeItems: 'center', color: C.t3, fontSize: 12, fontWeight: 800 }}>
+                  {t.checkoutLoading || 'Loading secure Stripe checkout...'}
+                </div>
+              ) : null}
               <EmbeddedCheckoutProvider
                 stripe={stripePromise}
                 options={{

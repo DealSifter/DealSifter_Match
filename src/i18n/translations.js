@@ -480,6 +480,7 @@ export const translations = {
       checkoutOpenHosted: "Open hosted checkout",
       checkoutSubscription: "Subscription plan",
       checkoutNuggets: "Nugget pack",
+      checkoutLoading: "Loading secure Stripe checkout...",
     },
     // Cards
     cards: {
@@ -1282,6 +1283,7 @@ export const translations = {
       checkoutOpenHosted: "Abrir checkout hospedado",
       checkoutSubscription: "Plano de assinatura",
       checkoutNuggets: "Pacote de nuggets",
+      checkoutLoading: "Carregando checkout seguro do Stripe...",
     },
     cards: {
       deals: "negócios",
@@ -2083,6 +2085,7 @@ export const translations = {
       checkoutOpenHosted: "Abrir checkout alojado",
       checkoutSubscription: "Plan de suscripcion",
       checkoutNuggets: "Paquete de nuggets",
+      checkoutLoading: "Cargando checkout seguro de Stripe...",
     },
     cards: {
       deals: "negocios",
