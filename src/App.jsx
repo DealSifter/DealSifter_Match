@@ -124,6 +124,8 @@ const isMissingFunctionError = (error, functionName) => {
   return msg.includes('function') && msg.includes('does not exist') && msg.includes(fn);
 };
 
+const LOCAL_REALTIME_IGNORE_MS = 2200;
+
 // Global unhandled error capture — hooks into window.__DS_REPORT_ERROR for Sentry/external service
 if (typeof window !== 'undefined') {
   const report = (error, context) => {
@@ -666,6 +668,7 @@ export default function App() {
     return 'https://dealsiftermatch.vercel.app';
   }, []);
   const realtimeRefreshDebounceRef = useRef({ profiles: null, portfolio: null });
+  const lastLocalSupabaseWriteAtRef = useRef(0);
   const profileSyncPendingRef = useRef(0);
   const prevUserIdRef = useRef(null); // tracks userId across renders to detect user change
   const [profileSyncStatus, setProfileSyncStatus] = useState('idle');
@@ -1248,6 +1251,7 @@ export default function App() {
   }, [supabaseUserId]);
 
   const beginProfileSync = useCallback(() => {
+    lastLocalSupabaseWriteAtRef.current = Date.now();
     profileSyncPendingRef.current += 1;
     setProfileSyncStatus('syncing');
   }, []);
@@ -2059,6 +2063,7 @@ export default function App() {
 
   const scheduleProfileRealtimeRefresh = useCallback((delayMs = 350) => {
     if (!isSupabaseConfigured || !supabase || !supabaseUserId) return;
+    if (Date.now() - lastLocalSupabaseWriteAtRef.current < LOCAL_REALTIME_IGNORE_MS) return;
     if (realtimeRefreshDebounceRef.current.profiles) {
       clearTimeout(realtimeRefreshDebounceRef.current.profiles);
       realtimeRefreshDebounceRef.current.profiles = null;
@@ -2071,6 +2076,7 @@ export default function App() {
 
   const schedulePortfolioRealtimeRefresh = useCallback((delayMs = 350) => {
     if (!isSupabaseConfigured || !supabase || !supabaseUserId) return;
+    if (Date.now() - lastLocalSupabaseWriteAtRef.current < LOCAL_REALTIME_IGNORE_MS) return;
     if (realtimeRefreshDebounceRef.current.portfolio) {
       clearTimeout(realtimeRefreshDebounceRef.current.portfolio);
       realtimeRefreshDebounceRef.current.portfolio = null;
@@ -2125,14 +2131,9 @@ export default function App() {
         filter: `owner_id=eq.${supabaseUserId}`,
       }, () => {
         schedulePortfolioRealtimeRefresh();
-      })
-      .on('postgres_changes', {
-        event: '*',
-        schema: 'public',
-        table: 'property_images',
-      }, () => {
-        schedulePortfolioRealtimeRefresh(700);
       });
+    // property_images cannot be filtered by owner_id, so listening to it here
+    // causes unrelated image edits to rehydrate every user's portfolio.
 
     channel.subscribe();
 
@@ -2484,6 +2485,7 @@ export default function App() {
         if (userOwnedServices.length === 0) return;
 
         const payload = userOwnedServices.map((service) => mapLocalServiceToDb(service, supabaseUserId));
+        lastLocalSupabaseWriteAtRef.current = Date.now();
         const { error: upsertError } = await supabase
           .from('services')
           .upsert(payload, { onConflict: 'id' });
@@ -2534,6 +2536,7 @@ export default function App() {
         if (userOwnedProperties.length === 0) return;
 
         const payload = userOwnedProperties.map((property) => mapLocalPropertyToDb(property, supabaseUserId));
+        lastLocalSupabaseWriteAtRef.current = Date.now();
         let { error: upsertError } = await supabase
           .from('properties')
           .upsert(payload, { onConflict: 'id' });
@@ -2591,6 +2594,7 @@ export default function App() {
           const sanitizedImages = uploadedImages.filter(Boolean);
 
           // Preferred path: atomic DB replace (delete + insert in one transaction).
+          lastLocalSupabaseWriteAtRef.current = Date.now();
           let { error: replaceImagesError } = await supabase.rpc('replace_property_images', {
             p_property_id: row.id,
             p_image_urls: sanitizedImages,
@@ -2614,6 +2618,7 @@ export default function App() {
               continue;
             }
 
+            lastLocalSupabaseWriteAtRef.current = Date.now();
             const { error: insertImagesError } = await supabase
               .from('property_images')
               .insert(fallbackRows);

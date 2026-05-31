@@ -25,6 +25,7 @@ export function Modal({
 
   return (
     <div
+      className="ds-modal-overlay"
       style={{
         position: "fixed", 
         inset: 0, 
@@ -45,6 +46,16 @@ export function Modal({
           to { opacity: 1; transform: scale(1) translateY(0); }
         }
         @media (max-width: 767px) {
+          .ds-modal-overlay {
+            align-items: flex-start !important;
+            overflow-y: auto;
+            padding-top: max(18px, env(safe-area-inset-top)) !important;
+            padding-bottom: max(18px, env(safe-area-inset-bottom)) !important;
+          }
+          .ds-modal-content {
+            max-height: none !important;
+            margin-top: 0 !important;
+          }
           .modal-close-btn {
             top: 26px !important;
             right: 11px !important;
@@ -52,6 +63,7 @@ export function Modal({
         }
       `}</style>
       <div
+        className="ds-modal-content"
         role="dialog"
         aria-modal="true"
         aria-label={ariaLabel}
@@ -70,6 +82,8 @@ export function Modal({
           position: "relative",
           boxShadow: "0 20px 50px rgba(0,0,0,0.5)",
           animation: "modalAppear 0.3s ease-out",
+          animationFillMode: "both",
+          transform: "translateZ(0)",
           ...contentStyle,
         }}
       >
