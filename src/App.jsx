@@ -86,6 +86,7 @@ import { redirectToCheckout, redirectToSubscription } from './lib/stripeClient';
 import { buildScopedProfilePayload, extractScopedProfileLegacy } from './lib/profileScopeResolver';
 import { getPortfolioFull, setPortfolioFull, clearAllUserData, uploadDataUrlToStorage } from './lib/localforageHelper';
 import { getMatchPressure, setDealAlert, shouldSendDealAlert } from './lib/matchPressure';
+import { useAuthSession, mapSupabaseUserToSession } from './hooks/useAuthSession';
 
 // Safe error logger — strips Supabase error details that may contain personal data
 const safeLogError = (label, error) => {
@@ -709,9 +710,7 @@ export default function App() {
     return () => clearTimeout(timer);
   }, [isHydratingProfiles, isHydratingPortfolio]);
 
-  const [isAuthProcessing, setIsAuthProcessing] = useState(false);
   const [isAdminAuthProcessing, setIsAdminAuthProcessing] = useState(false);
-  const [isForgotPasswordProcessing, setIsForgotPasswordProcessing] = useState(false);
   const [isConsentProcessing, setIsConsentProcessing] = useState(false);
   const [isAccountProcessing, setIsAccountProcessing] = useState(false);
   const [page, _setPage] = useState(() => {
@@ -872,6 +871,38 @@ export default function App() {
     const id = ++toastIdRef.current;
     setToasts((prev) => [...prev.slice(-4), { id, type, title, message, duration }]);
   }, []);
+
+  const handleAuthenticatedNavigation = useCallback((_session, options = {}) => {
+    setModal(null);
+    if (options?.closeOnly) return;
+    _setPage('dashboard');
+    try { localStorage.setItem('ds_last_page', 'dashboard'); } catch { /* no-op */ }
+  }, []);
+
+  const handleSessionRestored = useCallback(() => {
+    setModal(null);
+    _setPage((prev) => prev === 'landing' || !prev ? 'dashboard' : prev);
+  }, []);
+
+  const {
+    isAuthProcessing,
+    isForgotPasswordProcessing,
+    handleAuthSubmit,
+    handleForgotPassword,
+    refreshAuthSessionSnapshot,
+  } = useAuthSession({
+    authSession,
+    setAuthSession,
+    setSystemAccount,
+    setIsAdmin,
+    authRedirectUrl,
+    addToast,
+    appendSecurityAuditEvent,
+    consumeRateLimit,
+    safeLogError,
+    onAuthenticated: handleAuthenticatedNavigation,
+    onSessionRestored: handleSessionRestored,
+  });
 
   useEffect(() => {
     const setViewportHeightVar = () => {
@@ -1132,16 +1163,6 @@ export default function App() {
     profileHydrationInputRef.current.accountType = accountType || 'professional';
   }, [accountType]);
 
-  const mapSupabaseUserToSession = (user, mode = 'login', provider = 'supabase') => ({
-    mode,
-    provider,
-    email: String(user?.email || '').trim(),
-    fullName: String(user?.user_metadata?.full_name || user?.user_metadata?.name || user?.email || '').trim(),
-    loginAt: Date.now(),
-    userId: user?.id || null,
-    emailVerified: !!user?.email_confirmed_at,
-  });
-  
   const openAuthModal = useCallback((tab = 'signup') => {
     setAuthModalTab(tab === 'login' ? 'login' : 'signup');
     setModal('auth');
@@ -1633,65 +1654,6 @@ export default function App() {
       // ignore storage write failures
     }
   }, [mobileBottomNavCollapsed]);
-
-  useEffect(() => {
-    try {
-      if (authSession) localStorage.setItem('authSession', JSON.stringify(authSession));
-      else localStorage.removeItem('authSession');
-    } catch (error) {
-      console.error('Failed to persist auth session.', error);
-    }
-  }, [authSession, addToast]);
-
-  useEffect(() => {
-    if (!isSupabaseConfigured || !supabase) return;
-
-    let active = true;
-    const applySession = async (session) => {
-      if (!active) return;
-      const user = session?.user;
-      if (!user) {
-        setAuthSession(null);
-        setIsAdmin(false);
-        return;
-      }
-      const next = mapSupabaseUserToSession(user, 'login', 'supabase');
-      setAuthSession(next);
-      setSystemAccount((prev) => ({
-        ...(prev || {}),
-        fullName: next.fullName || prev?.fullName || '',
-        email: next.email || prev?.email || '',
-      }));
-      // Re-validate admin status from Supabase on every session restore
-      try {
-        const { data: userRow } = await supabase
-          .from('users')
-          .select('is_admin')
-          .eq('id', user.id)
-          .single();
-        setIsAdmin(!!userRow?.is_admin);
-      } catch {
-        setIsAdmin(false);
-      }
-      setModal(null);
-      _setPage((prev) => prev === 'landing' || !prev ? 'dashboard' : prev);
-    };
-
-    supabase.auth.getSession().then(({ data }) => {
-      if (data?.session) applySession(data.session);
-    }).catch((error) => {
-      safeLogError('Supabase session bootstrap failed.', error);
-    });
-
-    const { data } = supabase.auth.onAuthStateChange((_event, session) => {
-      applySession(session);
-    });
-
-    return () => {
-      active = false;
-      data.subscription.unsubscribe();
-    };
-  }, []);
 
   // Email verification warning — shown once per session when user hasn't confirmed email
   const emailVerifyWarnedRef = useRef(false);
@@ -2887,94 +2849,6 @@ export default function App() {
     setModal(nextModal);
   };
 
-  const handleAuthSubmit = async (payload) => {
-    if (isSupabaseConfigured && supabase) {
-      setIsAuthProcessing(true);
-      const mode = payload?.mode === 'signup' ? 'signup' : 'login';
-      const email = String(payload?.email || '').trim();
-      const password = String(payload?.password || '');
-      const fullName = String(payload?.fullName || '').trim();
-      const provider = payload?.provider === 'google' ? 'google' : 'credentials';
-
-      try {
-        if (provider === 'credentials' && mode === 'login') {
-          const guard = consumeRateLimit(`login:${email.toLowerCase()}`, 7, 10 * 60 * 1000, 15 * 60 * 1000);
-          if (!guard.allowed) {
-            addToast({ type: 'warning', message: 'Too many attempts. Try again in a few minutes.' });
-            appendSecurityAuditEvent({ type: 'login', status: 'blocked', message: 'Login temporarily rate-limited.', email });
-            return;
-          }
-        }
-        if (provider === 'google') {
-          const { error } = await supabase.auth.signInWithOAuth({
-            provider: 'google',
-            options: { redirectTo: authRedirectUrl },
-          });
-          if (error) throw error;
-          return;
-        }
-
-        if (mode === 'signup') {
-          const { data, error } = await supabase.auth.signUp({
-            email,
-            password,
-            options: {
-              emailRedirectTo: authRedirectUrl,
-              data: { full_name: fullName || undefined },
-            },
-          });
-          if (error) throw error;
-          if (data?.session?.user) {
-            const next = mapSupabaseUserToSession(data.session.user, 'signup', 'credentials');
-            setAuthSession(next);
-            setSystemAccount((prev) => ({
-              ...(prev || {}),
-              fullName: next.fullName || prev?.fullName || '',
-              email: next.email || prev?.email || '',
-            }));
-            setModal(null);
-            setPage('dashboard');
-            appendSecurityAuditEvent({ type: 'signup', status: 'success', message: 'New account created and signed in.', email });
-            return;
-          }
-          addToast({ type: 'success', title: 'Conta criada', message: 'Confira seu email para confirmar o acesso.' });
-          appendSecurityAuditEvent({ type: 'signup', status: 'pending_verification', message: 'Account created awaiting email verification.', email });
-          setModal(null);
-          return;
-        }
-
-        const { data, error } = await supabase.auth.signInWithPassword({ email, password });
-        if (error) throw error;
-        if (data?.session?.user) {
-          const next = mapSupabaseUserToSession(data.session.user, 'login', 'credentials');
-          setAuthSession(next);
-          setSystemAccount((prev) => ({
-            ...(prev || {}),
-            fullName: next.fullName || prev?.fullName || '',
-            email: next.email || prev?.email || '',
-          }));
-          setModal(null);
-          setPage('dashboard');
-          appendSecurityAuditEvent({ type: 'login', status: 'success', message: 'User signed in with credentials.', email });
-        }
-        return;
-      } catch (error) {
-        safeLogError('Supabase auth submit failed.', error);
-        appendSecurityAuditEvent({ type: 'login', status: 'failed', message: String(error?.message || 'Authentication failed.'), email });
-        addToast({ type: 'error', title: 'Erro de autenticação', message: String(error?.message || 'Falha na autenticação com Supabase.') });
-        return;
-      } finally {
-        setIsAuthProcessing(false);
-      }
-    }
-
-    addToast({
-      type: 'error',
-      title: 'Supabase não configurado',
-      message: supabaseConfigHint || 'Na Vercel, adicione VITE_SUPABASE_URL e VITE_SUPABASE_ANON_KEY e faca Redeploy.',
-    });
-  };
-
   const handleAdminAuthSubmit = async ({ email, password }) => {
     if (!isSupabaseConfigured || !supabase) {
       addToast({ type: 'error', message: supabaseConfigHint || 'Supabase nao configurado.' });
@@ -3009,37 +2883,6 @@ export default function App() {
       return false;
     } finally {
       setIsAdminAuthProcessing(false);
-    }
-  };
-
-  const handleForgotPassword = async (email) => {
-    if (!isSupabaseConfigured || !supabase) {
-      addToast({ type: 'error', message: supabaseConfigHint || 'Supabase nao configurado.' });
-      return;
-    }
-    const trimmed = String(email || '').trim();
-    if (!trimmed.includes('@')) {
-      addToast({ type: 'warning', message: 'Informe um email válido.' });
-      return;
-    }
-    setIsForgotPasswordProcessing(true);
-    try {
-      const guard = consumeRateLimit(`forgot:${trimmed.toLowerCase()}`, 5, 30 * 60 * 1000, 30 * 60 * 1000);
-      if (!guard.allowed) {
-        addToast({ type: 'warning', message: 'Too many reset attempts. Please wait before trying again.' });
-        appendSecurityAuditEvent({ type: 'password_reset', status: 'blocked', message: 'Password reset temporarily rate-limited.', email: trimmed });
-        return;
-      }
-      const { error } = await supabase.auth.resetPasswordForEmail(trimmed, {
-        redirectTo: authRedirectUrl,
-      });
-      if (error) throw error;
-      addToast({ type: 'success', title: 'Email enviado', message: 'Confira sua caixa de entrada para redefinir a senha.' });
-      appendSecurityAuditEvent({ type: 'password_reset', status: 'success', message: 'Password reset email sent.', email: trimmed });
-    } catch (err) {
-      addToast({ type: 'error', message: String(err?.message || 'Falha ao enviar email de redefinição.') });
-    } finally {
-      setIsForgotPasswordProcessing(false);
     }
   };
 
@@ -3140,30 +2983,6 @@ export default function App() {
       return { ok: true };
     } catch (err) {
       return { ok: false, message: String(err?.message || 'Falha ao reenviar email de confirmacao.') };
-    }
-  };
-
-  const refreshAuthSessionSnapshot = async () => {
-    if (!isSupabaseConfigured || !supabase) {
-      return { ok: false, session: authSession || null };
-    }
-
-    try {
-      const { data, error } = await supabase.auth.getSession();
-      if (error) throw error;
-
-      const user = data?.session?.user;
-      if (!user) {
-        setAuthSession(null);
-        return { ok: false, session: null };
-      }
-
-      const next = mapSupabaseUserToSession(user, 'login', 'supabase');
-      setAuthSession(next);
-      return { ok: true, session: next };
-    } catch (err) {
-      safeLogError('Supabase auth session refresh failed.', err);
-      return { ok: false, session: authSession || null, message: String(err?.message || 'Falha ao atualizar sessao.') };
     }
   };
 
