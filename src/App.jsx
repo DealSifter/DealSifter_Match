@@ -80,15 +80,15 @@ import { ToastContainer } from './components/ui/Toast';
 const ConsentBanner = lazyWithRetry(() => import('./components/ui/ConsentBanner').then((m) => ({ default: m.ConsentBanner })), 'consent');
 const CookieBanner = lazyWithRetry(() => import('./components/ui/CookieBanner').then((m) => ({ default: m.CookieBanner })), 'cookie');
 import { getT } from './i18n/translations';
-import { CATEGORIES, CARDS as _MOCK_CARDS, NUGGET_PACKS, PLANS } from './data/mockData';
+import { CATEGORIES, CARDS as _MOCK_CARDS, PLANS } from './data/mockData';
 import { supabase, isSupabaseConfigured, supabaseConfigHint } from './lib/supabaseClient';
-import { redirectToCheckout, redirectToSubscription } from './lib/stripeClient';
 import { buildScopedProfilePayload, extractScopedProfileLegacy } from './lib/profileScopeResolver';
 import { getPortfolioFull, setPortfolioFull, clearAllUserData, uploadDataUrlToStorage } from './lib/localforageHelper';
 import { getMatchPressure, setDealAlert, shouldSendDealAlert } from './lib/matchPressure';
 import { useAuthSession, mapSupabaseUserToSession } from './hooks/useAuthSession';
 import { useProfileSync } from './hooks/useProfileSync';
 import { usePortfolioSync } from './hooks/usePortfolioSync';
+import { useCheckoutFlow } from './hooks/useCheckoutFlow';
 
 // Safe error logger — strips Supabase error details that may contain personal data
 const safeLogError = (label, error) => {
@@ -278,33 +278,6 @@ const normalizeUserPreferences = (value) => {
   };
 };
 
-const normalizeCheckoutIntent = (intent) => {
-  if (!intent || typeof intent !== 'object') return null;
-  const kind = String(intent.kind || '').trim().toLowerCase();
-
-  if (kind === 'subscription') {
-    const planId = String(intent.planId || '').trim().toLowerCase();
-    if (!planId) return null;
-    return {
-      kind: 'subscription',
-      planId,
-      source: String(intent.source || 'pricing').trim().toLowerCase() || 'pricing',
-    };
-  }
-
-  if (kind === 'nuggets') {
-    const packId = String(intent.packId || '').trim().toLowerCase();
-    if (!packId) return null;
-    return {
-      kind: 'nuggets',
-      packId,
-      source: String(intent.source || 'pricing').trim().toLowerCase() || 'pricing',
-    };
-  }
-
-  return null;
-};
-
 // Keys whose full (media-inclusive) version is stored in localforage (IndexedDB)
 // instead of localStorage to avoid the ~5MB quota limit.
 const LOCALFORAGE_FULL_KEYS = new Set(['propertyPortfolio', 'servicePortfolio']);
@@ -317,7 +290,7 @@ const persistJsonSafely = (key, value, fallbackValue) => {
     }
 
     if (LOCALFORAGE_FULL_KEYS.has(key)) {
-      // Store full payload (images included) in localforage (IndexedDB — no 5MB limit).
+      // Store full payload (images included) in localforage (IndexedDB - no 5MB limit).
       setPortfolioFull(key, value); // async, fire-and-forget
       if (fallbackValue === undefined) {
         try { localStorage.setItem(key, JSON.stringify(value)); } catch { /* ignore quota */ }
@@ -749,16 +722,6 @@ export default function App() {
   const [unlockTarget, setUnlockTarget] = useState(null);
   const [settingsInitialTab, setSettingsInitialTab] = useState('profile');
   const [onboardingInitialTab, setOnboardingInitialTab] = useState('personal');
-  const [checkoutModalIntent, setCheckoutModalIntent] = useState(null);
-  const [pendingCheckoutIntent, setPendingCheckoutIntent] = useState(() => {
-    try {
-      const raw = localStorage.getItem('ds_pending_checkout_intent');
-      const parsed = raw ? JSON.parse(raw) : null;
-      return normalizeCheckoutIntent(parsed);
-    } catch {
-      return null;
-    }
-  });
   const [authSession, setAuthSession] = useState(() => {
     try {
       const raw = localStorage.getItem('authSession');
@@ -1207,18 +1170,6 @@ export default function App() {
     }
   }, [authSession, openAuthModal, page]);
 
-  useEffect(() => {
-    try {
-      if (pendingCheckoutIntent) {
-        localStorage.setItem('ds_pending_checkout_intent', JSON.stringify(pendingCheckoutIntent));
-      } else {
-        localStorage.removeItem('ds_pending_checkout_intent');
-      }
-    } catch {
-      // ignore persistence failures
-    }
-  }, [pendingCheckoutIntent]);
-
   const [userProfile, setUserProfile] = useState(() => {
     const saved = localStorage.getItem('userProfile');
     if (saved) {
@@ -1274,6 +1225,31 @@ export default function App() {
   }, [userProfile]);
 
   const supabaseUserId = authSession?.userId || null;
+
+  const refreshProfileHydration = useCallback(() => {
+    setProfileHydrationCycle((prev) => prev + 1);
+  }, []);
+
+  const {
+    checkoutModalIntent,
+    pendingCheckoutIntent,
+    closeCheckoutModal,
+    handleContinuePendingCheckout,
+    handleEmbeddedCheckoutComplete,
+    handleHostedCheckoutFallback,
+    handlePricingCheckoutSelection,
+    openCheckoutPrivacy,
+    openCheckoutTerms,
+    openPricingHub,
+  } = useCheckoutFlow({
+    addToast,
+    refreshProfileHydration,
+    setModal,
+    setPage,
+    setSettingsInitialTab,
+    setSystemAccount,
+    supabaseUserId,
+  });
 
   // Keep profileOwnerMap in localStorage so Dashboard/MatchesPage can resolve
   // which ownerId belongs to each profile scope (personal / secondary / fsbo).
@@ -1665,48 +1641,6 @@ export default function App() {
     }
     if (!authSession) emailVerifyWarnedRef.current = false;
   }, [authSession, addToast]);
-
-  // ── Stripe checkout / portal return handler ──────────────────────────────
-  useEffect(() => {
-    const params = new URLSearchParams(window.location.search);
-    const checkout = params.get('checkout');
-    const settingsTab = String(params.get('settings') || '').trim().toLowerCase();
-    if (!checkout && !settingsTab) return;
-
-    // Clean URL immediately to prevent re-trigger on refresh
-    const cleanUrl = window.location.pathname;
-    window.history.replaceState({}, '', cleanUrl);
-
-    if (settingsTab === 'payments') {
-      setSystemAccount((prev) => ({
-        ...(prev || {}),
-        paymentSetupComplete: true,
-        paymentSetupCompletedAt: prev?.paymentSetupCompletedAt || Date.now(),
-      }));
-      setSettingsInitialTab('payments');
-      setPage('settings');
-    }
-
-    if (checkout === 'success') {
-      setPendingCheckoutIntent(null);
-      if (isSupabaseConfigured && supabaseUserId) {
-        setProfileHydrationCycle((prev) => prev + 1);
-      }
-      addToast({
-        type: 'success',
-        title: 'Pagamento confirmado!',
-        message: 'Seus nuggets serão creditados em instantes via webhook.',
-        duration: 7000,
-      });
-    } else if (checkout === 'cancelled') {
-      setPendingCheckoutIntent(null);
-      addToast({
-        type: 'info',
-        title: 'Compra cancelada',
-        message: 'O pagamento foi cancelado. Seus nuggets não foram alterados.',
-      });
-    }
-  }, [addToast, supabaseUserId, setPage]);
 
   // ── Periodic deal-alert notifications (every 3 days per property) ──
   // Fires for each owner property that has active market pressure and is not yet deal-closed.
@@ -2702,71 +2636,6 @@ export default function App() {
     setPage('settings');
   };
 
-  const openPricingHub = () => {
-    setModal(null);
-    setPage('pricing');
-  };
-
-  const executeCheckoutIntent = async (intentInput, checkoutOptions = {}) => {
-    const intent = normalizeCheckoutIntent(intentInput);
-    if (!intent) return false;
-
-    try {
-      if (intent.kind === 'subscription') {
-        await redirectToSubscription(intent.planId, checkoutOptions);
-      } else if (intent.kind === 'nuggets') {
-        const pack = NUGGET_PACKS.find((item) => String(item.id) === String(intent.packId));
-        if (!pack) {
-          throw new Error('Pacote de nuggets inválido para checkout.');
-        }
-        await redirectToCheckout(pack, checkoutOptions);
-      }
-      setPendingCheckoutIntent(null);
-      return true;
-    } catch (error) {
-      addToast({ type: 'error', title: 'Falha no checkout', message: String(error?.message || 'Não foi possível iniciar o checkout no Stripe.') });
-      return false;
-    }
-  };
-
-  const handlePricingCheckoutSelection = async (intentInput) => {
-    const intent = normalizeCheckoutIntent(intentInput);
-    if (!intent) {
-      addToast({ type: 'warning', title: 'Seleção inválida', message: 'Escolha um plano ou pacote válido para continuar.' });
-      return;
-    }
-
-    setPendingCheckoutIntent(intent);
-    setCheckoutModalIntent(intent);
-  };
-
-  const handleContinuePendingCheckout = async () => {
-    if (!pendingCheckoutIntent) return;
-
-    setCheckoutModalIntent(pendingCheckoutIntent);
-  };
-
-  const handleHostedCheckoutFallback = async () => {
-    const intent = normalizeCheckoutIntent(checkoutModalIntent || pendingCheckoutIntent);
-    if (!intent) return;
-    setCheckoutModalIntent(null);
-    await executeCheckoutIntent(intent, { termsAccepted: true });
-  };
-
-  const handleEmbeddedCheckoutComplete = () => {
-    setPendingCheckoutIntent(null);
-    setCheckoutModalIntent(null);
-    if (isSupabaseConfigured && supabaseUserId) {
-      setProfileHydrationCycle((prev) => prev + 1);
-    }
-    addToast({
-      type: 'success',
-      title: 'Pagamento confirmado!',
-      message: 'Seu pagamento foi confirmado pelo Stripe. Atualizaremos seu saldo/plano em instantes.',
-      duration: 7000,
-    });
-  };
-
   const openOnboardingTab = (tab = 'personal') => {
     const normalized = String(tab || '').trim().toLowerCase();
     const professionalTabs = new Set(['professional', 'business', 'secondary', 'operation', 'operations']);
@@ -3335,17 +3204,11 @@ export default function App() {
           <Suspense fallback={null}>
             <EmbeddedCheckoutModal
               intent={checkoutModalIntent}
-              onClose={() => setCheckoutModalIntent(null)}
+              onClose={closeCheckoutModal}
               onHostedFallback={handleHostedCheckoutFallback}
               onComplete={handleEmbeddedCheckoutComplete}
-              onOpenTerms={() => {
-                setCheckoutModalIntent(null);
-                setPage('terms');
-              }}
-              onOpenPrivacy={() => {
-                setCheckoutModalIntent(null);
-                setPage('privacy');
-              }}
+              onOpenTerms={openCheckoutTerms}
+              onOpenPrivacy={openCheckoutPrivacy}
             />
           </Suspense>
         )}
