@@ -87,6 +87,7 @@ import { buildScopedProfilePayload, extractScopedProfileLegacy } from './lib/pro
 import { getPortfolioFull, setPortfolioFull, clearAllUserData, uploadDataUrlToStorage } from './lib/localforageHelper';
 import { getMatchPressure, setDealAlert, shouldSendDealAlert } from './lib/matchPressure';
 import { useAuthSession, mapSupabaseUserToSession } from './hooks/useAuthSession';
+import { useProfileSync } from './hooks/useProfileSync';
 
 // Safe error logger — strips Supabase error details that may contain personal data
 const safeLogError = (label, error) => {
@@ -656,8 +657,6 @@ const sanitizeLegacyName = (value) => {
 
 export default function App() {
   const profileSyncStateRef = useRef({ userId: null, loaded: false, hydrating: false, personalLoadedFromRemote: false, professionalLoadedFromRemote: false });
-  const profileSaveDebounceRef = useRef({ personal: null, professional: null, services: null, properties: null });
-  const pendingFlushRef = useRef({ personal: null, professional: null, services: null, properties: null });
   const portfolioSyncStateRef = useRef({ userId: null, loaded: false, hydrating: false, servicesLoadedFromRemote: false, propertiesLoadedFromRemote: false, propertyImagesLoadedFromRemote: false });
   const profileHydrationRetryRef = useRef({ timer: null, attempts: 0 });
   const portfolioHydrationRetryRef = useRef({ timer: null, attempts: 0 });
@@ -670,9 +669,7 @@ export default function App() {
   }, []);
   const realtimeRefreshDebounceRef = useRef({ profiles: null, portfolio: null });
   const lastLocalSupabaseWriteAtRef = useRef(0);
-  const profileSyncPendingRef = useRef(0);
   const prevUserIdRef = useRef(null); // tracks userId across renders to detect user change
-  const [profileSyncStatus, setProfileSyncStatus] = useState('idle');
   const [isHydratingProfiles, setIsHydratingProfiles] = useState(false);
   const [isHydratingPortfolio, setIsHydratingPortfolio] = useState(false);
   const [showHydrationBlocking, setShowHydrationBlocking] = useState(false);
@@ -902,6 +899,22 @@ export default function App() {
     safeLogError,
     onAuthenticated: handleAuthenticatedNavigation,
     onSessionRestored: handleSessionRestored,
+  });
+
+  const markLocalSupabaseWrite = useCallback(() => {
+    lastLocalSupabaseWriteAtRef.current = Date.now();
+  }, []);
+
+  const {
+    profileSaveDebounceRef,
+    pendingFlushRef,
+    profileSyncStatus,
+    beginProfileSync,
+    endProfileSync,
+    resetProfileSync,
+  } = useProfileSync({
+    addToast,
+    markLocalWrite: markLocalSupabaseWrite,
   });
 
   useEffect(() => {
@@ -1271,29 +1284,6 @@ export default function App() {
     } catch (e) { void e; }
   }, [supabaseUserId]);
 
-  const beginProfileSync = useCallback(() => {
-    lastLocalSupabaseWriteAtRef.current = Date.now();
-    profileSyncPendingRef.current += 1;
-    setProfileSyncStatus('syncing');
-  }, []);
-
-  const syncErrorThrottleRef = useRef(0);
-  const endProfileSync = useCallback((withError = false) => {
-    profileSyncPendingRef.current = Math.max(0, profileSyncPendingRef.current - 1);
-    if (withError) {
-      setProfileSyncStatus('error');
-      const now = Date.now();
-      if (now - syncErrorThrottleRef.current > 30000) {
-        syncErrorThrottleRef.current = now;
-        addToast({ type: 'error', title: 'Falha na sincronização', message: 'Seus dados locais estão salvos, mas houve um erro ao sincronizar com o servidor. Tentaremos novamente.' });
-      }
-      return;
-    }
-    if (profileSyncPendingRef.current === 0) {
-      setProfileSyncStatus('synced');
-    }
-  }, [addToast]);
-
   const [servicePortfolio, setServicePortfolio] = useState(() => {
     // On initial synchronous render, load from localStorage (lightweight, no images).
     // A useEffect below will rehydrate from localforage (IndexedDB) with full images.
@@ -1621,7 +1611,7 @@ export default function App() {
       window.removeEventListener('beforeunload', handleBeforeUnload);
       document.removeEventListener('visibilitychange', handleVisibilityChange);
     };
-  }, []);
+  }, [pendingFlushRef, profileSaveDebounceRef]);
 
   useEffect(() => {
     try {
@@ -1751,12 +1741,7 @@ export default function App() {
     if (!isSupabaseConfigured || !supabase || !supabaseUserId) {
       profileSyncStateRef.current = { userId: null, loaded: false, hydrating: false, personalLoadedFromRemote: false, professionalLoadedFromRemote: false };
       setIsHydratingProfiles(false);
-      profileSyncPendingRef.current = 0;
-      setProfileSyncStatus('idle');
-      if (profileSaveDebounceRef.current.personal) clearTimeout(profileSaveDebounceRef.current.personal);
-      if (profileSaveDebounceRef.current.professional) clearTimeout(profileSaveDebounceRef.current.professional);
-      if (profileSaveDebounceRef.current.services) clearTimeout(profileSaveDebounceRef.current.services);
-      if (profileSaveDebounceRef.current.properties) clearTimeout(profileSaveDebounceRef.current.properties);
+      resetProfileSync();
       portfolioSyncStateRef.current = { userId: null, loaded: false, hydrating: false, servicesLoadedFromRemote: false, propertiesLoadedFromRemote: false, propertyImagesLoadedFromRemote: false };
       if (profileHydrationRetryRef.current.timer) {
         clearTimeout(profileHydrationRetryRef.current.timer);
@@ -2021,7 +2006,7 @@ export default function App() {
       }
       setIsHydratingProfiles(false);
     };
-  }, [supabaseUserId, profileHydrationCycle]);
+  }, [supabaseUserId, profileHydrationCycle, resetProfileSync]);
 
   const scheduleProfileRealtimeRefresh = useCallback((delayMs = 350) => {
     if (!isSupabaseConfigured || !supabase || !supabaseUserId) return;
@@ -2157,7 +2142,7 @@ export default function App() {
     return () => {
       if (personalDebounceTimer) clearTimeout(personalDebounceTimer);
     };
-  }, [supabaseUserId, personalProfile, beginProfileSync, endProfileSync]);
+  }, [supabaseUserId, personalProfile, beginProfileSync, endProfileSync, pendingFlushRef, profileSaveDebounceRef]);
 
   useEffect(() => {
     if (!isSupabaseConfigured || !supabase || !supabaseUserId) return;
@@ -2235,7 +2220,7 @@ export default function App() {
     return () => {
       if (professionalDebounceTimer) clearTimeout(professionalDebounceTimer);
     };
-  }, [supabaseUserId, accountType, professionalProfile, personalProfile, userProfile, beginProfileSync, endProfileSync]);
+  }, [supabaseUserId, accountType, professionalProfile, personalProfile, userProfile, beginProfileSync, endProfileSync, pendingFlushRef, profileSaveDebounceRef]);
 
   useEffect(() => {
     if (!isSupabaseConfigured || !supabase || !supabaseUserId) {
@@ -2466,7 +2451,7 @@ export default function App() {
     return () => {
       if (servicesDebounceTimer) clearTimeout(servicesDebounceTimer);
     };
-  }, [supabaseUserId, servicePortfolio]);
+  }, [supabaseUserId, servicePortfolio, pendingFlushRef, profileSaveDebounceRef]);
 
   useEffect(() => {
     if (!isSupabaseConfigured || !supabase || !supabaseUserId) return;
@@ -2607,7 +2592,7 @@ export default function App() {
     return () => {
       if (propertiesDebounceTimer) clearTimeout(propertiesDebounceTimer);
     };
-  }, [supabaseUserId, propertyPortfolio]);
+  }, [supabaseUserId, propertyPortfolio, pendingFlushRef, profileSaveDebounceRef]);
 
   useEffect(() => {
     try {
