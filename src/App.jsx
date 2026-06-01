@@ -88,6 +88,7 @@ import { getPortfolioFull, setPortfolioFull, clearAllUserData, uploadDataUrlToSt
 import { getMatchPressure, setDealAlert, shouldSendDealAlert } from './lib/matchPressure';
 import { useAuthSession, mapSupabaseUserToSession } from './hooks/useAuthSession';
 import { useProfileSync } from './hooks/useProfileSync';
+import { usePortfolioSync } from './hooks/usePortfolioSync';
 
 // Safe error logger — strips Supabase error details that may contain personal data
 const safeLogError = (label, error) => {
@@ -657,10 +658,17 @@ const sanitizeLegacyName = (value) => {
 
 export default function App() {
   const profileSyncStateRef = useRef({ userId: null, loaded: false, hydrating: false, personalLoadedFromRemote: false, professionalLoadedFromRemote: false });
-  const portfolioSyncStateRef = useRef({ userId: null, loaded: false, hydrating: false, servicesLoadedFromRemote: false, propertiesLoadedFromRemote: false, propertyImagesLoadedFromRemote: false });
   const profileHydrationRetryRef = useRef({ timer: null, attempts: 0 });
-  const portfolioHydrationRetryRef = useRef({ timer: null, attempts: 0 });
   const profileHydrationInputRef = useRef({ accountType: 'professional', userCategory: 'wholesaler' });
+  const {
+    portfolioSyncStateRef,
+    portfolioHydrationRetryRef,
+    isHydratingPortfolio,
+    setIsHydratingPortfolio,
+    portfolioHydrationCycle,
+    refreshPortfolioHydration,
+    resetPortfolioSync,
+  } = usePortfolioSync();
   const authRedirectUrl = useMemo(() => {
     const envUrl = String(import.meta.env.VITE_APP_URL || '').trim();
     if (envUrl) return envUrl;
@@ -671,10 +679,8 @@ export default function App() {
   const lastLocalSupabaseWriteAtRef = useRef(0);
   const prevUserIdRef = useRef(null); // tracks userId across renders to detect user change
   const [isHydratingProfiles, setIsHydratingProfiles] = useState(false);
-  const [isHydratingPortfolio, setIsHydratingPortfolio] = useState(false);
   const [showHydrationBlocking, setShowHydrationBlocking] = useState(false);
   const [profileHydrationCycle, setProfileHydrationCycle] = useState(0);
-  const [portfolioHydrationCycle, setPortfolioHydrationCycle] = useState(0);
 
   useEffect(() => () => {
     if (profileHydrationRetryRef.current.timer) {
@@ -693,7 +699,7 @@ export default function App() {
       clearTimeout(realtimeRefreshDebounceRef.current.portfolio);
       realtimeRefreshDebounceRef.current.portfolio = null;
     }
-  }, []);
+  }, [portfolioHydrationRetryRef]);
 
   // Keep first-load hydration blocking short; continue syncing in background afterwards.
   useEffect(() => {
@@ -1742,17 +1748,12 @@ export default function App() {
       profileSyncStateRef.current = { userId: null, loaded: false, hydrating: false, personalLoadedFromRemote: false, professionalLoadedFromRemote: false };
       setIsHydratingProfiles(false);
       resetProfileSync();
-      portfolioSyncStateRef.current = { userId: null, loaded: false, hydrating: false, servicesLoadedFromRemote: false, propertiesLoadedFromRemote: false, propertyImagesLoadedFromRemote: false };
+      resetPortfolioSync();
       if (profileHydrationRetryRef.current.timer) {
         clearTimeout(profileHydrationRetryRef.current.timer);
         profileHydrationRetryRef.current.timer = null;
       }
       profileHydrationRetryRef.current.attempts = 0;
-      if (portfolioHydrationRetryRef.current.timer) {
-        clearTimeout(portfolioHydrationRetryRef.current.timer);
-        portfolioHydrationRetryRef.current.timer = null;
-      }
-      portfolioHydrationRetryRef.current.attempts = 0;
       return;
     }
 
@@ -2006,7 +2007,7 @@ export default function App() {
       }
       setIsHydratingProfiles(false);
     };
-  }, [supabaseUserId, profileHydrationCycle, resetProfileSync]);
+  }, [supabaseUserId, profileHydrationCycle, resetProfileSync, resetPortfolioSync]);
 
   const scheduleProfileRealtimeRefresh = useCallback((delayMs = 350) => {
     if (!isSupabaseConfigured || !supabase || !supabaseUserId) return;
@@ -2030,9 +2031,9 @@ export default function App() {
     }
     realtimeRefreshDebounceRef.current.portfolio = setTimeout(() => {
       realtimeRefreshDebounceRef.current.portfolio = null;
-      setPortfolioHydrationCycle((prev) => prev + 1);
+      refreshPortfolioHydration();
     }, delayMs);
-  }, [supabaseUserId]);
+  }, [supabaseUserId, refreshPortfolioHydration]);
 
   useEffect(() => {
     if (!isSupabaseConfigured || !supabase || !supabaseUserId) return undefined;
@@ -2386,7 +2387,7 @@ export default function App() {
             portfolioHydrationRetryRef.current.attempts += 1;
             portfolioHydrationRetryRef.current.timer = setTimeout(() => {
               portfolioHydrationRetryRef.current.timer = null;
-              setPortfolioHydrationCycle((prev) => prev + 1);
+              refreshPortfolioHydration();
             }, 2500);
           }
 
@@ -2401,7 +2402,7 @@ export default function App() {
       cancelled = true;
       setIsHydratingPortfolio(false);
     };
-  }, [supabaseUserId, portfolioHydrationCycle]);
+  }, [supabaseUserId, portfolioHydrationCycle, portfolioHydrationRetryRef, portfolioSyncStateRef, refreshPortfolioHydration, setIsHydratingPortfolio]);
 
   useEffect(() => {
     if (!isSupabaseConfigured || !supabase || !supabaseUserId) return;
@@ -2451,7 +2452,7 @@ export default function App() {
     return () => {
       if (servicesDebounceTimer) clearTimeout(servicesDebounceTimer);
     };
-  }, [supabaseUserId, servicePortfolio, pendingFlushRef, profileSaveDebounceRef]);
+  }, [supabaseUserId, servicePortfolio, pendingFlushRef, profileSaveDebounceRef, portfolioSyncStateRef]);
 
   useEffect(() => {
     if (!isSupabaseConfigured || !supabase || !supabaseUserId) return;
@@ -2592,7 +2593,7 @@ export default function App() {
     return () => {
       if (propertiesDebounceTimer) clearTimeout(propertiesDebounceTimer);
     };
-  }, [supabaseUserId, propertyPortfolio, pendingFlushRef, profileSaveDebounceRef]);
+  }, [supabaseUserId, propertyPortfolio, pendingFlushRef, profileSaveDebounceRef, portfolioSyncStateRef]);
 
   useEffect(() => {
     try {
@@ -3028,7 +3029,7 @@ export default function App() {
       return 'synced';
     }
     return 'degraded';
-  }, [isHydratingPortfolio, supabaseUserId]);
+  }, [isHydratingPortfolio, supabaseUserId, portfolioSyncStateRef]);
 
   const profileHydrationReady = useMemo(() => {
     if (!isSupabaseConfigured || !supabaseUserId) return true;
@@ -3046,7 +3047,7 @@ export default function App() {
     if (loaded) return true;
     if (!isHydratingPortfolio && portfolioHydrationRetryRef.current.attempts >= 6) return true;
     return false;
-  }, [isHydratingPortfolio, supabaseUserId]);
+  }, [isHydratingPortfolio, supabaseUserId, portfolioHydrationRetryRef, portfolioSyncStateRef]);
 
   const dashboardHydrationReady = profileHydrationReady && portfolioHydrationReady;
   const dashboardHydrationSyncing = isHydratingProfiles || isHydratingPortfolio;
