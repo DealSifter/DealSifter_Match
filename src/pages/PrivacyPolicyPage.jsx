@@ -35,7 +35,7 @@ export function PrivacyPolicyPage({ setPage, onReturnToCheckout = null }) {
   );
 
   return (
-    <div style={{ maxWidth: 720, margin: '0 auto', padding: '40px 20px 80px', color: C.t1 }}>
+    <div style={{ maxWidth: 720, margin: '0 auto', padding: `${showCheckoutReturn ? 88 : 40}px 20px 80px`, color: C.t1 }}>
       {!showCheckoutReturn ? (
         <button
           onClick={() => setPage('landing')}
