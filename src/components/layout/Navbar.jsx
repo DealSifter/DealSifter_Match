@@ -375,7 +375,7 @@ export function Navbar({ page, prevPage, setPage, nuggets = 0, setModal = () => 
               <img
                 src={isLanding ? compactLightLogoSrc : (theme === 'dark' ? compactDarkLogoSrc : compactLightLogoSrc)}
                 alt="DealSifter Match"
-                style={{ height: 34, width: 'auto', display: 'block' }}
+                style={{ height: 44, width: 'auto', display: 'block' }}
                 onError={(e) => {
                   // Fallback while custom theme logo files are not present in /public.
                   e.currentTarget.src = appLogo;
