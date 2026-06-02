@@ -1,10 +1,11 @@
 import React, { useEffect } from 'react';
 import { C } from '../theme/colors';
-import { useT } from '../i18n/translations';
+import { useLang, useT } from '../i18n/translations';
 import { CATEGORIES } from '../data/mockData';
 import { Icon } from '../components/ui/Icon';
 import { catIcon } from '../lib/catIcon';
 import { DealSifterLogo } from '../components/ui/DealSifterLogo';
+import { FOOTER_INFO } from '../content/footerInfoContent';
 
 /* ─── Preview cards used inside the "Most Requested Services" section ─── */
 function LandingProfCard({ onClick }) {
@@ -407,6 +408,7 @@ function ProfItem({ item }) {
 
 export function Landing({ setPage, onOpenAuthModal = () => {} }) {
   const [activeService, setActiveService] = React.useState(null);
+  const [footerInfoKey, setFooterInfoKey] = React.useState(null);
   const [isMobile, setIsMobile] = React.useState(() => {
     if (typeof window === 'undefined' || typeof window.matchMedia !== 'function') return false;
     return window.matchMedia('(max-width: 767px)').matches;
@@ -437,6 +439,41 @@ export function Landing({ setPage, onOpenAuthModal = () => {} }) {
     } catch (e) { void e; }
   }, []);
   const t = useT('landing').landing;
+  const lang = String(useLang('global') || 'en').slice(0, 2);
+  const footerInfo = (FOOTER_INFO[lang] || FOOTER_INFO.en)?.[footerInfoKey] || null;
+  const footerLabels = ({
+    en: {
+      services: 'Services',
+      company: 'Company',
+      legal: 'Legal',
+      privacy: 'Privacy Policy',
+      terms: 'Terms of Use',
+      cookie: 'Cookie Policy',
+    },
+    pt: {
+      services: 'Servicos',
+      company: 'Empresa',
+      legal: 'Legal',
+      privacy: 'Politica de Privacidade',
+      terms: 'Termos de Uso',
+      cookie: 'Politica de Cookies',
+    },
+    es: {
+      services: 'Servicios',
+      company: 'Empresa',
+      legal: 'Legal',
+      privacy: 'Politica de Privacidad',
+      terms: 'Terminos de Uso',
+      cookie: 'Politica de Cookies',
+    },
+  })[lang] || ({
+    services: 'Services',
+    company: 'Company',
+    legal: 'Legal',
+    privacy: 'Privacy Policy',
+    terms: 'Terms of Use',
+    cookie: 'Cookie Policy',
+  });
   const steps = [
     { icon:"grid",   t:t.steps.discover.t, d:t.steps.discover.d },
     { icon:"heart",  t:t.steps.match.t,    d:t.steps.match.d },
@@ -915,6 +952,44 @@ export function Landing({ setPage, onOpenAuthModal = () => {} }) {
         <button onClick={() => onOpenAuthModal('signup')} style={{ padding:"15px 44px", borderRadius:14, background:C.gold, color:'#fff', fontWeight:700, fontSize:17, border:"none", cursor:"pointer", width: isMobile ? '100%' : 'auto', maxWidth: isMobile ? 320 : 'none' }}>{t.ctaButton}</button>
       </section>
 
+      {footerInfo ? (
+        <div
+          role="dialog"
+          aria-modal="true"
+          aria-label={footerInfo.title}
+          onClick={() => setFooterInfoKey(null)}
+          style={{ position: 'fixed', inset: 0, zIndex: 10090, background: 'rgba(15,23,42,0.54)', display: 'grid', placeItems: 'center', padding: isMobile ? 14 : 24 }}
+        >
+          <div
+            onClick={(event) => event.stopPropagation()}
+            style={{ width: 'min(92vw, 620px)', maxHeight: 'min(82vh, 680px)', overflowY: 'auto', borderRadius: 22, background: '#fff', border: '1px solid rgba(20,184,166,0.28)', boxShadow: '0 26px 80px rgba(15,23,42,0.28)', padding: isMobile ? 18 : 26 }}
+          >
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 18, marginBottom: 14 }}>
+              <div>
+                <div style={{ color: '#14B8A6', fontSize: 11, fontWeight: 900, textTransform: 'uppercase', letterSpacing: '.08em', marginBottom: 8 }}>{footerInfo.kicker}</div>
+                <h2 style={{ margin: 0, color: '#111827', fontSize: isMobile ? 24 : 30, lineHeight: 1.05, letterSpacing: '-0.04em' }}>{footerInfo.title}</h2>
+              </div>
+              <button
+                type="button"
+                onClick={() => setFooterInfoKey(null)}
+                aria-label="Close"
+                style={{ width: 36, height: 36, borderRadius: 12, border: '1px solid rgba(34,44,72,0.14)', background: '#fff', color: '#222c48', cursor: 'pointer', display: 'inline-flex', alignItems: 'center', justifyContent: 'center' }}
+              >
+                <Icon name="close" size={16} color="#222c48" />
+              </button>
+            </div>
+            <div style={{ display: 'grid', gap: 12, marginTop: 18 }}>
+              {footerInfo.body.map((paragraph) => (
+                <p key={paragraph} style={{ margin: 0, color: '#334155', fontSize: 14, lineHeight: 1.65 }}>{paragraph}</p>
+              ))}
+            </div>
+            <div style={{ marginTop: 20, borderRadius: 16, border: '1px solid rgba(20,184,166,0.22)', background: 'rgba(20,184,166,0.07)', padding: 14, color: '#0f766e', fontSize: 13, fontWeight: 800, lineHeight: 1.5 }}>
+              {footerInfo.cta}
+            </div>
+          </div>
+        </div>
+      ) : null}
+
       <footer style={{ background: '#f2f2f2', color: '#222c48' }}>
         {/* ── Main columns ── */}
         <div style={{
@@ -946,12 +1021,12 @@ export function Landing({ setPage, onOpenAuthModal = () => {} }) {
 
           {/* Services */}
           <div>
-            <div style={{ fontSize: 13, fontWeight: 700, color: '#222c48', marginBottom: 18 }}>Services</div>
+            <div style={{ fontSize: 13, fontWeight: 700, color: '#222c48', marginBottom: 18 }}>{footerLabels.services}</div>
             {[
-              { label: 'Find Professionals',       action: () => {} },
-              { label: 'Investment Opportunities', action: () => {} },
-              { label: 'Legal Services',           action: () => {} },
-              { label: 'Financing',                action: () => {} },
+              { label: (FOOTER_INFO[lang] || FOOTER_INFO.en).findProfessionals.title,       action: () => setFooterInfoKey('findProfessionals') },
+              { label: (FOOTER_INFO[lang] || FOOTER_INFO.en).investmentOpportunities.title, action: () => setFooterInfoKey('investmentOpportunities') },
+              { label: (FOOTER_INFO[lang] || FOOTER_INFO.en).legalServices.title,           action: () => setFooterInfoKey('legalServices') },
+              { label: (FOOTER_INFO[lang] || FOOTER_INFO.en).financing.title,               action: () => setFooterInfoKey('financing') },
             ].map(item => (
               <button key={item.label} onClick={item.action} style={{ display: 'block', background: 'none', border: 'none', color: '#222c48', fontSize: 13, cursor: 'pointer', padding: '0 0 12px', textAlign: 'left', lineHeight: 1.4, transition: 'color .15s' }}
                 onMouseEnter={e => e.currentTarget.style.color = '#14B8A6'}
@@ -962,12 +1037,12 @@ export function Landing({ setPage, onOpenAuthModal = () => {} }) {
 
           {/* Company */}
           <div>
-            <div style={{ fontSize: 13, fontWeight: 700, color: '#222c48', marginBottom: 18 }}>Company</div>
+            <div style={{ fontSize: 13, fontWeight: 700, color: '#222c48', marginBottom: 18 }}>{footerLabels.company}</div>
             {[
-              { label: 'About Us',    action: () => {} },
-              { label: 'How it Works',action: () => {} },
-              { label: 'Security',    action: () => {} },
-              { label: 'Support',     action: () => {} },
+              { label: (FOOTER_INFO[lang] || FOOTER_INFO.en).about.title,      action: () => setFooterInfoKey('about') },
+              { label: (FOOTER_INFO[lang] || FOOTER_INFO.en).howItWorks.title, action: () => setFooterInfoKey('howItWorks') },
+              { label: (FOOTER_INFO[lang] || FOOTER_INFO.en).security.title,   action: () => setFooterInfoKey('security') },
+              { label: (FOOTER_INFO[lang] || FOOTER_INFO.en).support.title,    action: () => setFooterInfoKey('support') },
             ].map(item => (
               <button key={item.label} onClick={item.action} style={{ display: 'block', background: 'none', border: 'none', color: '#222c48', fontSize: 13, cursor: 'pointer', padding: '0 0 12px', textAlign: 'left', lineHeight: 1.4, transition: 'color .15s' }}
                 onMouseEnter={e => e.currentTarget.style.color = '#14B8A6'}
@@ -978,11 +1053,11 @@ export function Landing({ setPage, onOpenAuthModal = () => {} }) {
 
           {/* Legal */}
           <div>
-            <div style={{ fontSize: 13, fontWeight: 700, color: '#222c48', marginBottom: 18 }}>Legal</div>
+            <div style={{ fontSize: 13, fontWeight: 700, color: '#222c48', marginBottom: 18 }}>{footerLabels.legal}</div>
             {[
-              { label: 'Privacy Policy', action: () => setPage('privacy') },
-              { label: 'Terms of Use',   action: () => setPage('terms')   },
-              { label: 'Cookie Policy',  action: () => {}                  },
+              { label: footerLabels.privacy, action: () => setPage('privacy') },
+              { label: footerLabels.terms,   action: () => setPage('terms')   },
+              { label: footerLabels.cookie,  action: () => setFooterInfoKey('cookiePolicy') },
             ].map(item => (
               <button key={item.label} onClick={item.action} style={{ display: 'block', background: 'none', border: 'none', color: '#222c48', fontSize: 13, cursor: 'pointer', padding: '0 0 12px', textAlign: 'left', lineHeight: 1.4, transition: 'color .15s' }}
                 onMouseEnter={e => e.currentTarget.style.color = '#14B8A6'}
@@ -995,7 +1070,7 @@ export function Landing({ setPage, onOpenAuthModal = () => {} }) {
         {/* ── Bottom bar ── */}
         <div style={{ borderTop: '1px solid rgba(34,44,72,0.12)', padding: isMobile ? '14px 16px' : '18px 32px', display: 'flex', flexWrap: 'wrap', alignItems: 'center', justifyContent: isMobile ? 'center' : 'space-between', gap: '8px 20px', maxWidth: 1100, margin: '0 auto', textAlign: isMobile ? 'center' : 'left' }}>
           <span style={{ fontSize: 12, color: '#222c48' }}>© {new Date().getFullYear()} DealSifter. All rights reserved.</span>
-          <span style={{ fontSize: 12, color: '#222c48' }}>privacidade@dealsifter.com</span>
+          <span style={{ fontSize: 12, color: '#222c48' }}>contato.dealsifter@gmail.com</span>
         </div>
       </footer>
     </div>
