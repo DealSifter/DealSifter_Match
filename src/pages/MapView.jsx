@@ -8,6 +8,7 @@ import { CARDS, PROPERTIES } from '../data/mockData';
 import { useT } from '../i18n/translations';
 import { SmartImage } from '../components/ui/SmartImage';
 import { Icon } from '../components/ui/Icon';
+import { useMediaQuery } from '../hooks/useMediaQuery';
 
 const DEFAULT_CENTER = [39.5, -98.35];
 const DEFAULT_ZOOM = 4;
@@ -1331,10 +1332,7 @@ export function MapView({
     if (typeof initialMapUiState.panelCollapsed === 'boolean') return initialMapUiState.panelCollapsed;
     return localStorage.getItem('mapViewPanelCollapsed') === '1';
   });
-  const [isMobileViewport, setIsMobileViewport] = useState(() => {
-    if (typeof window === 'undefined' || typeof window.matchMedia !== 'function') return false;
-    return window.matchMedia('(max-width: 900px)').matches;
-  });
+  const isMobileViewport = useMediaQuery('(max-width: 900px)');
   const [panelToggleOffsetY, setPanelToggleOffsetY] = useState(() => {
     try {
       const raw = Number(localStorage.getItem('ds_map_panel_toggle_offset_y'));
@@ -1515,21 +1513,6 @@ export function MapView({
       setShowProperties(true);
     }
   }, [mapUiHydrated, showPeople, showProperties]);
-
-  React.useEffect(() => {
-    if (typeof window === 'undefined' || typeof window.matchMedia !== 'function') return undefined;
-    const mediaQuery = window.matchMedia('(max-width: 900px)');
-    const handleViewportChange = (event) => setIsMobileViewport(Boolean(event.matches));
-    setIsMobileViewport(Boolean(mediaQuery.matches));
-
-    if (typeof mediaQuery.addEventListener === 'function') {
-      mediaQuery.addEventListener('change', handleViewportChange);
-      return () => mediaQuery.removeEventListener('change', handleViewportChange);
-    }
-
-    mediaQuery.addListener(handleViewportChange);
-    return () => mediaQuery.removeListener(handleViewportChange);
-  }, []);
 
   React.useEffect(() => {
     try { localStorage.setItem('ds_map_panel_toggle_offset_y', String(panelToggleOffsetY)); } catch (e) { void e; }
