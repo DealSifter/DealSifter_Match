@@ -3,28 +3,12 @@ import { C } from '../../theme/colors';
 import { useT } from '../../i18n/translations';
 import { Icon } from '../ui/Icon';
 import { SmartImage } from '../ui/SmartImage';
+import { useMediaQuery } from '../../hooks/useMediaQuery';
 
 function SwipeCard({ card, action, isUnlocked, isSkipped, onSwipe, onUndo, onUnlock, previewOnly = false, showActions = true }) {
   const t = useT('dashboard').cards;
   const mt = useT('dashboard').matches;
-  const [isMobileLayout, setIsMobileLayout] = React.useState(
-    typeof window !== 'undefined' && typeof window.matchMedia === 'function'
-      ? window.matchMedia('(max-width: 767px)').matches
-      : false
-  );
-  React.useEffect(() => {
-    if (typeof window === 'undefined' || typeof window.matchMedia !== 'function') return;
-    const mq = window.matchMedia('(max-width: 767px)');
-    const onChange = (e) => setIsMobileLayout(e.matches);
-
-    if (typeof mq.addEventListener === 'function') {
-      mq.addEventListener('change', onChange);
-      return () => mq.removeEventListener('change', onChange);
-    }
-
-    mq.addListener(onChange);
-    return () => mq.removeListener(onChange);
-  }, []);
+  const isMobileLayout = useMediaQuery('(max-width: 767px)');
   const dragRef = React.useRef({ active: false, pointerId: null, startX: 0, startY: 0 });
   const dragFrameRef = React.useRef(null);
   const queuedDragRef = React.useRef({ x: 0, y: 0 });

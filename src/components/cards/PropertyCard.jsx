@@ -3,27 +3,11 @@ import { C } from '../../theme/colors';
 import { useT } from '../../i18n/translations';
 import { Icon } from '../ui/Icon';
 import { SmartImage } from '../ui/SmartImage';
+import { useMediaQuery } from '../../hooks/useMediaQuery';
 
 export function PropertyCard({ property, action, statusAction, onInterest, owner, isSkipped = false, previewOnly = false, matchPressure = 0, onAvatarClick, showActions = true }) {
   const t = useT('dashboard').cards;
-  const [isMobileLayout, setIsMobileLayout] = React.useState(
-    typeof window !== 'undefined' && typeof window.matchMedia === 'function'
-      ? window.matchMedia('(max-width: 767px)').matches
-      : false
-  );
-  React.useEffect(() => {
-    if (typeof window === 'undefined' || typeof window.matchMedia !== 'function') return;
-    const mq = window.matchMedia('(max-width: 767px)');
-    const onChange = (e) => setIsMobileLayout(e.matches);
-
-    if (typeof mq.addEventListener === 'function') {
-      mq.addEventListener('change', onChange);
-      return () => mq.removeEventListener('change', onChange);
-    }
-
-    mq.addListener(onChange);
-    return () => mq.removeListener(onChange);
-  }, []);
+  const isMobileLayout = useMediaQuery('(max-width: 767px)');
   // Card do perfil está em stand by (esmaecido)?
   const isDimmed = owner?._isDimmed;
   const [currentIdx, setCurrentIdx] = React.useState(0);
