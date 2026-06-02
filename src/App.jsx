@@ -2774,14 +2774,16 @@ export default function App() {
   };
 
   const blockingProcessingMessage = useMemo(() => {
+    const t = getT();
     if (isAuthProcessing) return 'Autenticando conta...';
     if (isAdminAuthProcessing) return 'Validando acesso administrativo...';
     if (isForgotPasswordProcessing) return 'Enviando recuperação de senha...';
     if (isConsentProcessing) return 'Processando consentimento...';
     if (isAccountProcessing) return 'Processando sua conta...';
+    if (checkoutSubmitting) return t.modals?.checkoutRedirecting || t.modals?.checkoutPreparing || 'Preparando checkout seguro...';
     if ((isHydratingProfiles || isHydratingPortfolio) && showHydrationBlocking) return 'Carregando dados do app...';
     return '';
-  }, [isAuthProcessing, isAdminAuthProcessing, isForgotPasswordProcessing, isConsentProcessing, isAccountProcessing, isHydratingProfiles, isHydratingPortfolio, showHydrationBlocking]);
+  }, [isAuthProcessing, isAdminAuthProcessing, isForgotPasswordProcessing, isConsentProcessing, isAccountProcessing, checkoutSubmitting, isHydratingProfiles, isHydratingPortfolio, showHydrationBlocking]);
 
   const showBlockingProcessing = Boolean(blockingProcessingMessage);
   const showHydrationBackgroundSync = (isHydratingProfiles || isHydratingPortfolio) && !showBlockingProcessing;

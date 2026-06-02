@@ -6,8 +6,6 @@ import { DealSifterLogo } from '../ui/DealSifterLogo';
 import { NuggetBadge } from '../ui/NuggetBadge';
 import { Icon } from '../ui/Icon';
 import appLogo from '../../assets/logo.png';
-import logoLightTheme from '../../assets/logo-light-theme.png';
-import logoDarkTheme from '../../assets/logo-dark-theme.png';
 import feedMatchIcon from '../../assets/feed-match-icon.png';
 import mapViewTaskbarIcon from '../../assets/taskbar-mapview-icon.png';
 import matchesTaskbarIcon from '../../assets/taskbar-matches-icon.png';
@@ -212,8 +210,8 @@ export function Navbar({ page, prevPage, setPage, nuggets = 0, setModal = () => 
   const presenceColor = presenceStatus === 'standby' ? '#facc15' : (presenceStatus === 'offline' ? '#ef4444' : '#22c55e');
   const allowMessagePreview = Boolean(userPreferences?.privacy?.messagePreview ?? true);
   const useImageLogoInHeader = isMobile;
-  const compactDarkLogoSrc = logoDarkTheme;
-  const compactLightLogoSrc = logoLightTheme;
+  const compactDarkLogoSrc = '/logo%20tema%20preto.png';
+  const compactLightLogoSrc = '/logo%20tema%20branco.png';
 
   const systemUnreadCount = useMemo(
     () => (systemNotifications || []).filter((n) => !n.read).length,
