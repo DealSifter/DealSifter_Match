@@ -1241,6 +1241,7 @@ export default function App() {
     openCheckoutPrivacy,
     openCheckoutTerms,
     openPricingHub,
+    returnToPendingCheckoutFromLegal,
   } = useCheckoutFlow({
     addToast,
     refreshProfileHydration,
@@ -3071,9 +3072,9 @@ export default function App() {
       case 'admin':
         return isAdmin ? <AdminDashboard setPage={setPage} prevPage={prevPage} logoutAdmin={logoutAdmin} /> : <Landing setPage={setPage} onOpenAuthModal={openAuthModal} />;
       case 'terms':
-        return <TermsPage setPage={setPage} />;
+        return <TermsPage setPage={setPage} onReturnToCheckout={pendingCheckoutIntent ? returnToPendingCheckoutFromLegal : null} />;
       case 'privacy':
-        return <PrivacyPolicyPage setPage={setPage} />;
+        return <PrivacyPolicyPage setPage={setPage} onReturnToCheckout={pendingCheckoutIntent ? returnToPendingCheckoutFromLegal : null} />;
       default:
         return <Landing setPage={setPage} onOpenAuthModal={openAuthModal} />;
     }

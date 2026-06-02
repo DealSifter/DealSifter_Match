@@ -489,6 +489,8 @@ export const translations = {
       checkoutSubscription: "Subscription plan",
       checkoutNuggets: "Nugget pack",
       checkoutLoading: "Loading secure Stripe checkout...",
+      checkoutBackToCheckout: "Back to checkout",
+      checkoutReturnHint: "Ready to continue? Return to the checkout modal to finish payment.",
     },
     // Cards
     cards: {
@@ -1300,6 +1302,8 @@ export const translations = {
       checkoutSubscription: "Plano de assinatura",
       checkoutNuggets: "Pacote de nuggets",
       checkoutLoading: "Carregando checkout seguro do Stripe...",
+      checkoutBackToCheckout: "Voltar ao checkout",
+      checkoutReturnHint: "Pronto para continuar? Volte ao modal de checkout para finalizar o pagamento.",
     },
     cards: {
       deals: "negócios",
@@ -2110,6 +2114,8 @@ export const translations = {
       checkoutSubscription: "Plan de suscripcion",
       checkoutNuggets: "Paquete de nuggets",
       checkoutLoading: "Cargando checkout seguro de Stripe...",
+      checkoutBackToCheckout: "Volver al checkout",
+      checkoutReturnHint: "Listo para continuar? Vuelve al modal de checkout para finalizar el pago.",
     },
     cards: {
       deals: "negocios",

@@ -152,6 +152,14 @@ export function useCheckoutFlow({
     setCheckoutModalIntent(pendingCheckoutIntent);
   }, [pendingCheckoutIntent]);
 
+  const returnToPendingCheckoutFromLegal = useCallback(() => {
+    const intent = normalizeCheckoutIntent(pendingCheckoutIntent);
+    if (!intent) return false;
+    setPage(intent.source === 'settings' ? 'settings' : 'pricing');
+    setCheckoutModalIntent(intent);
+    return true;
+  }, [pendingCheckoutIntent, setPage]);
+
   const closeCheckoutModal = useCallback(() => {
     setCheckoutModalIntent(null);
   }, []);
@@ -198,5 +206,6 @@ export function useCheckoutFlow({
     openCheckoutPrivacy,
     openCheckoutTerms,
     openPricingHub,
+    returnToPendingCheckoutFromLegal,
   };
 }
