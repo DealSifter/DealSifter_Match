@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { C } from '../../theme/colors';
 import { useT } from '../../i18n/translations';
 import { NUGGET_PACKS, PLANS } from '../../data/mockData';
+import appLogo from '../../assets/logo.png';
 import { Modal } from '../ui/Modal';
 import { Icon } from '../ui/Icon';
 
@@ -39,82 +40,92 @@ export function EmbeddedCheckoutModal({
   const pricingT = allT.pricing || {};
   const [accepted, setAccepted] = useState(false);
   const summary = resolveCheckoutSummary(intent, pricingT);
+  const isNuggetCheckout = intent?.kind === 'nuggets';
+  const orderCardTextColor = isNuggetCheckout ? '#121a16' : C.t1;
+  const orderCardMutedColor = isNuggetCheckout ? 'rgba(18,26,22,0.72)' : C.t2;
+  const orderCardBackground = isNuggetCheckout ? C.gold : C.alpha(summary.accent, 0.1);
 
   return (
     <Modal
       onClose={onClose}
-      maxWidth={920}
+      maxWidth={860}
       ariaLabel={t.checkoutTitle || 'Secure checkout'}
-      contentStyle={{ padding: 0, overflow: 'hidden' }}
+      contentStyle={{ padding: 0, overflow: 'hidden', maxHeight: 'calc(100dvh - 34px)' }}
     >
       <style>{`
         .ds-checkout-modal-shell {
           display: grid;
-          grid-template-columns: minmax(240px, 320px) minmax(0, 1fr);
-          min-height: min(78dvh, 720px);
+          grid-template-columns: minmax(220px, 292px) minmax(0, 1fr);
+          min-height: 0;
+          max-height: calc(100dvh - 34px);
+          overflow: hidden;
         }
         .ds-checkout-modal-side {
-          padding: 28px;
-          background:
-            radial-gradient(circle at 18% 12%, ${C.alpha(C.accent, 0.2)}, transparent 32%),
-            linear-gradient(160deg, ${C.alpha(C.card, 0.95)}, ${C.alpha(C.accent, 0.08)});
+          padding: 22px;
+          background: ${C.card};
           border-right: 1px solid ${C.border};
         }
         .ds-checkout-modal-main {
-          padding: 28px;
+          padding: 22px;
           display: grid;
           align-content: start;
-          gap: 16px;
+          gap: 12px;
           min-width: 0;
+          overflow: hidden;
+        }
+        .ds-checkout-terms-box {
+          animation: dsCheckoutTermsPulse 1.18s ease-in-out infinite;
         }
         .ds-checkout-hosted-panel {
           border: 1px solid ${C.border};
           border-radius: 16px;
-          padding: 20px;
-          background:
-            radial-gradient(circle at 12% 18%, ${C.alpha(C.accent, 0.13)}, transparent 34%),
-            ${C.alpha(C.card, 0.96)};
+          padding: 14px;
+          background: ${C.card};
           display: grid;
-          gap: 12px;
+          gap: 8px;
+        }
+        @keyframes dsCheckoutTermsPulse {
+          0%, 100% { border-color: ${C.gold}; box-shadow: 0 0 0 0 ${C.alpha(C.gold, 0.18)}; }
+          50% { border-color: ${C.gold}; box-shadow: 0 0 0 5px ${C.alpha(C.gold, 0.24)}, 0 0 22px ${C.alpha(C.gold, 0.28)}; }
         }
         @media (max-width: 760px) {
-          .ds-checkout-modal-shell { grid-template-columns: 1fr; max-height: 86dvh; overflow-y: auto; }
-          .ds-checkout-modal-side { border-right: 0; border-bottom: 1px solid ${C.border}; padding: 22px; }
-          .ds-checkout-modal-main { padding: 22px; }
+          .ds-checkout-modal-shell { grid-template-columns: 1fr; }
+          .ds-checkout-modal-side { border-right: 0; border-bottom: 1px solid ${C.border}; padding: 14px 16px; }
+          .ds-checkout-modal-main { padding: 14px 16px; gap: 10px; }
         }
       `}</style>
 
       <div className="ds-checkout-modal-shell">
         <aside className="ds-checkout-modal-side">
-          <div style={{ display: 'grid', gap: 18 }}>
-            <div style={{ display: 'inline-flex', alignItems: 'center', gap: 8, color: C.accent, fontWeight: 900, fontSize: 12, letterSpacing: '.08em', textTransform: 'uppercase' }}>
+          <div style={{ display: 'grid', gap: 14 }}>
+            <div style={{ display: 'inline-flex', alignItems: 'center', gap: 8, color: C.accent, fontWeight: 900, fontSize: 11, letterSpacing: '.08em', textTransform: 'uppercase' }}>
               <Icon name="shield" size={16} color={C.accent} />
               {t.checkoutSecureBadge || 'Secure Stripe Checkout'}
             </div>
             <div>
-              <h2 style={{ margin: '0 0 8px', color: C.t1, fontSize: 'clamp(24px, 4vw, 34px)', lineHeight: 1, letterSpacing: '-.04em' }}>
+              <h2 style={{ margin: '0 0 7px', color: C.t1, fontSize: 'clamp(22px, 3vw, 30px)', lineHeight: 1.02, letterSpacing: '-.04em' }}>
                 {t.checkoutTitle || 'Secure checkout'}
               </h2>
-              <p style={{ margin: 0, color: C.t2, fontSize: 13, lineHeight: 1.55 }}>
+              <p style={{ margin: 0, color: C.t2, fontSize: 12, lineHeight: 1.45 }}>
                 {t.checkoutSubtitle || 'Review the purchase, accept the terms, then complete payment without leaving DealSifter.'}
               </p>
             </div>
-            <div style={{ border: `1px solid ${C.alpha(summary.accent, 0.4)}`, borderRadius: 18, padding: 16, background: C.alpha(summary.accent, 0.08), display: 'grid', gap: 8 }}>
-              <div style={{ color: C.t3, fontSize: 11, fontWeight: 800, textTransform: 'uppercase', letterSpacing: '.08em' }}>
+            <div style={{ border: `1px solid ${isNuggetCheckout ? '#d89c00' : C.alpha(summary.accent, 0.42)}`, borderRadius: 16, padding: 14, background: orderCardBackground, display: 'grid', gap: 6 }}>
+              <div style={{ color: isNuggetCheckout ? 'rgba(18,26,22,0.7)' : C.t3, fontSize: 10, fontWeight: 900, textTransform: 'uppercase', letterSpacing: '.08em' }}>
                 {t.checkoutOrderSummary || 'Order summary'}
               </div>
-              <div style={{ color: C.t1, fontSize: 20, fontWeight: 900 }}>{summary.title}</div>
-              <div style={{ color: C.t2, fontSize: 12 }}>{summary.subtitle}</div>
-              <div style={{ color: summary.accent, fontSize: 28, fontWeight: 950, letterSpacing: '-.04em' }}>{summary.price}</div>
+              <div style={{ color: orderCardTextColor, fontSize: 19, fontWeight: 950 }}>{summary.title}</div>
+              <div style={{ color: orderCardMutedColor, fontSize: 11, fontWeight: 700 }}>{summary.subtitle}</div>
+              <div style={{ color: orderCardTextColor, fontSize: 27, fontWeight: 950, letterSpacing: '-.04em' }}>{summary.price}</div>
             </div>
-            <div style={{ color: C.t3, fontSize: 11, lineHeight: 1.55 }}>
+            <div style={{ color: C.t3, fontSize: 10.5, lineHeight: 1.45 }}>
               {t.checkoutPoweredByStripe || 'Card data is handled by Stripe. DealSifter does not store sensitive card numbers.'}
             </div>
           </div>
         </aside>
 
         <section className="ds-checkout-modal-main">
-          <div style={{ border: `1px solid ${accepted ? C.alpha(C.accent, 0.55) : C.border}`, borderRadius: 16, padding: 14, background: accepted ? C.alpha(C.accent, 0.07) : C.alpha(C.card, 0.92), display: 'grid', gap: 10 }}>
+          <div className="ds-checkout-terms-box" style={{ border: `1px solid ${C.gold}`, borderRadius: 16, padding: 13, background: accepted ? C.alpha(C.gold, 0.12) : C.alpha(C.gold, 0.07), display: 'grid', gap: 8 }}>
             <label style={{ display: 'grid', gridTemplateColumns: '22px 1fr', gap: 10, alignItems: 'start', cursor: 'pointer' }}>
               <input
                 type="checkbox"
@@ -122,7 +133,7 @@ export function EmbeddedCheckoutModal({
                 onChange={(event) => setAccepted(event.target.checked)}
                 style={{ width: 18, height: 18, marginTop: 1, accentColor: C.accent }}
               />
-              <span style={{ color: C.t2, fontSize: 12, lineHeight: 1.5 }}>
+              <span style={{ color: C.t2, fontSize: 12, lineHeight: 1.45 }}>
                 {t.checkoutTermsPrefix || 'I agree to the'}{' '}
                 <button type="button" onClick={onOpenTerms} style={{ border: 0, background: 'transparent', padding: 0, color: C.accent, fontWeight: 800, cursor: 'pointer' }}>
                   {t.checkoutTerms || 'Terms of Use'}
@@ -137,19 +148,19 @@ export function EmbeddedCheckoutModal({
           </div>
 
           {!accepted ? (
-            <div style={{ border: `1px dashed ${C.border}`, borderRadius: 16, padding: 18, color: C.t3, fontSize: 13, lineHeight: 1.5 }}>
+            <div style={{ border: `1px dashed ${C.border}`, borderRadius: 14, padding: 12, color: C.t3, fontSize: 12, lineHeight: 1.4 }}>
               {t.checkoutAcceptHint || 'Accept the terms above to continue to secure Stripe Checkout.'}
             </div>
           ) : null}
 
           <div className="ds-checkout-hosted-panel">
             <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-              <Icon name="shield" size={20} color={accepted ? C.accent : C.t3} />
+              <img src={appLogo} alt="DealSifter" style={{ width: 24, height: 24, objectFit: 'contain', flexShrink: 0 }} />
               <strong style={{ color: C.t1, fontSize: 15 }}>
                 {accepted ? (t.checkoutReadyTitle || 'Ready for secure payment') : (t.checkoutAcceptRequiredTitle || 'Terms acceptance required')}
               </strong>
             </div>
-            <p style={{ margin: 0, color: C.t2, fontSize: 12, lineHeight: 1.55 }}>
+            <p style={{ margin: 0, color: C.t2, fontSize: 12, lineHeight: 1.45 }}>
               {accepted
                 ? (t.checkoutHostedRedirectInfo || 'Click below to open secure Stripe Checkout. Stripe will return you to DealSifter after payment.')
                 : (t.checkoutAcceptHint || 'Accept the terms above to continue to secure Stripe Checkout.')}
@@ -159,9 +170,12 @@ export function EmbeddedCheckoutModal({
           <div style={{ display: 'flex', gap: 10, justifyContent: 'space-between', flexWrap: 'wrap' }}>
             <button
               type="button"
-              onClick={onHostedFallback}
+              onClick={() => {
+                if (!accepted) return;
+                onHostedFallback?.();
+              }}
               disabled={!accepted}
-              style={{ border: `1px solid ${accepted ? C.border : C.alpha(C.border, 0.65)}`, background: 'transparent', color: accepted ? C.t2 : C.t3, borderRadius: 12, padding: '10px 14px', fontSize: 12, fontWeight: 800, cursor: accepted ? 'pointer' : 'not-allowed', opacity: accepted ? 1 : 0.65 }}
+              style={{ border: `1px solid ${accepted ? C.accent : C.alpha(C.border, 0.65)}`, background: accepted ? C.accent : 'transparent', color: accepted ? '#fff' : C.t3, borderRadius: 12, padding: '10px 16px', fontSize: 12, fontWeight: 900, cursor: accepted ? 'pointer' : 'not-allowed', opacity: accepted ? 1 : 0.65, boxShadow: accepted ? `0 10px 22px ${C.alpha(C.accent, 0.24)}` : 'none' }}
             >
               {t.checkoutOpenHosted || 'Open hosted checkout'}
             </button>
