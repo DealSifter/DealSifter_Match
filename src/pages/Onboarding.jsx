@@ -20,94 +20,21 @@ import { getPortfolioVideoBlob, setPortfolioVideoBlob, clearPortfolioVideoBlob }
 import { getMatchPressure } from '../lib/matchPressure';
 import { INVESTMENT_TRIGGER_CATEGORY_IDS, computeInvestmentProfileStrength, normalizeInvestmentDraft } from '../lib/investmentProfile';
 import { readAndCompressFiles } from '../lib/onboardingMedia';
-
-const PREVIEW_PLACEHOLDER_IMAGE = "data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='800' height='500'><rect width='100%' height='100%' fill='%23dfe8f1'/></svg>";
-
-const US_STATES = [
-  { code: 'AL', name: 'Alabama' }, { code: 'AK', name: 'Alaska' }, { code: 'AZ', name: 'Arizona' },
-  { code: 'AR', name: 'Arkansas' }, { code: 'CA', name: 'California' }, { code: 'CO', name: 'Colorado' },
-  { code: 'CT', name: 'Connecticut' }, { code: 'DE', name: 'Delaware' }, { code: 'FL', name: 'Florida' },
-  { code: 'GA', name: 'Georgia' }, { code: 'HI', name: 'Hawaii' }, { code: 'ID', name: 'Idaho' },
-  { code: 'IL', name: 'Illinois' }, { code: 'IN', name: 'Indiana' }, { code: 'IA', name: 'Iowa' },
-  { code: 'KS', name: 'Kansas' }, { code: 'KY', name: 'Kentucky' }, { code: 'LA', name: 'Louisiana' },
-  { code: 'ME', name: 'Maine' }, { code: 'MD', name: 'Maryland' }, { code: 'MA', name: 'Massachusetts' },
-  { code: 'MI', name: 'Michigan' }, { code: 'MN', name: 'Minnesota' }, { code: 'MS', name: 'Mississippi' },
-  { code: 'MO', name: 'Missouri' }, { code: 'MT', name: 'Montana' }, { code: 'NE', name: 'Nebraska' },
-  { code: 'NV', name: 'Nevada' }, { code: 'NH', name: 'New Hampshire' }, { code: 'NJ', name: 'New Jersey' },
-  { code: 'NM', name: 'New Mexico' }, { code: 'NY', name: 'New York' }, { code: 'NC', name: 'North Carolina' },
-  { code: 'ND', name: 'North Dakota' }, { code: 'OH', name: 'Ohio' }, { code: 'OK', name: 'Oklahoma' },
-  { code: 'OR', name: 'Oregon' }, { code: 'PA', name: 'Pennsylvania' }, { code: 'RI', name: 'Rhode Island' },
-  { code: 'SC', name: 'South Carolina' }, { code: 'SD', name: 'South Dakota' }, { code: 'TN', name: 'Tennessee' },
-  { code: 'TX', name: 'Texas' }, { code: 'UT', name: 'Utah' }, { code: 'VT', name: 'Vermont' },
-  { code: 'VA', name: 'Virginia' }, { code: 'WA', name: 'Washington' }, { code: 'WV', name: 'West Virginia' },
-  { code: 'WI', name: 'Wisconsin' }, { code: 'WY', name: 'Wyoming' },
-];
-
-const SKILL_PRESETS = ['Off-Market', 'Fix & Flip', 'Finance', 'Due Diligence', 'Closings', 'Negotiation'];
-const FEED_TASKBAR_CATEGORY_OPTIONS = CATEGORIES
-  .filter((c) => !['all', 'seller', 'tax', 'wholesaler'].includes(c.id))
-  .flatMap((c) => [
-    c.label,
-    ...((c.sub || []).map((s) => s.label)),
-  ]);
-const CONTACT_METHOD_PRESETS = ['Call', 'SMS', 'WhatsApp', 'Telegram', 'E-mail', 'DealSifter chat'];
-const CARD_PRIORITY_OPTIONS = [
-  { value: 'primary', label: 'Primary' },
-  { value: 'secondary', label: 'Secondary' },
-  { value: 'tertiary', label: 'Tertiary' },
-];
-const CARD_PRIORITY_VALUES = CARD_PRIORITY_OPTIONS.map((opt) => opt.value);
-const PROFILE_PRIORITY_KEYS = ['A', 'B', 'C'];
-function normalizeUniqueCardPriorities(priorities, preferredKey = 'A') {
-  const next = { ...priorities };
-  const order = [preferredKey, ...PROFILE_PRIORITY_KEYS.filter((key) => key !== preferredKey)];
-  const used = new Set();
-
-  for (const key of order) {
-    const raw = String(next[key] || '').toLowerCase();
-    // Allow empty values — don't force a fallback
-    if (!raw) {
-      next[key] = '';
-      continue;
-    }
-    if (CARD_PRIORITY_VALUES.includes(raw) && !used.has(raw)) {
-      next[key] = raw;
-      used.add(raw);
-      continue;
-    }
-    // Conflict: find unused value or leave empty
-    const fallback = CARD_PRIORITY_VALUES.find((value) => !used.has(value));
-    next[key] = fallback || '';
-    if (fallback) used.add(fallback);
-  }
-
-  return next;
-}
-
-function hasDuplicateCardPriorities(priorities) {
-  const values = PROFILE_PRIORITY_KEYS
-    .map((key) => String(priorities?.[key] || '').toLowerCase())
-    .filter((value) => value && CARD_PRIORITY_VALUES.includes(value));
-  return new Set(values).size !== values.length;
-}
-
-function normalizeUsStateCode(value) {
-  const raw = String(value || '').trim();
-  if (!raw) return '';
-  if (/^[A-Za-z]{2}$/.test(raw)) return raw.toUpperCase();
-  const match = raw.match(/(?:,\s*|\b)([A-Za-z]{2})(?:\s+\d{5}(?:-\d{4})?)?\s*$/);
-  return match ? match[1].toUpperCase() : '';
-}
-
-function isTruthyFlag(value, defaultValue = true) {
-  if (value == null) return defaultValue;
-  if (typeof value === 'boolean') return value;
-  const raw = String(value).trim().toLowerCase();
-  if (!raw) return defaultValue;
-  if (raw === 'false' || raw === '0' || raw === 'off' || raw === 'no') return false;
-  if (raw === 'true' || raw === '1' || raw === 'on' || raw === 'yes') return true;
-  return Boolean(value);
-}
+import {
+  CARD_PRIORITY_OPTIONS,
+  CONTACT_METHOD_PRESETS,
+  FEED_TASKBAR_CATEGORY_OPTIONS,
+  PREVIEW_PLACEHOLDER_IMAGE,
+  PROFILE_PRIORITY_KEYS,
+  SKILL_PRESETS,
+  US_STATES,
+} from '../lib/onboardingConstants';
+import {
+  hasDuplicateCardPriorities,
+  isTruthyFlag,
+  normalizeUniqueCardPriorities,
+  normalizeUsStateCode,
+} from '../lib/onboardingHelpers';
 
 export function Onboarding({
   setPage,
