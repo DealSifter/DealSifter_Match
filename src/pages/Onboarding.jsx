@@ -9,6 +9,7 @@ import { Icon } from '../components/ui/Icon';
 import { InvestmentProfileModal } from '../components/onboarding/InvestmentProfileModal';
 import { ProfessionalPropertyForm } from '../components/onboarding/ProfessionalPropertyForm';
 import { FsboPropertyForm } from '../components/onboarding/FsboPropertyForm';
+import { PrimaryProfileSelect } from '../components/onboarding/PrimaryProfileSelect';
 import { useT } from '../i18n/translations';
 // removed unused import: toggleHidden
 import { genId } from '../lib/id';
@@ -3967,23 +3968,17 @@ export function Onboarding({
                         <span style={portfolioFieldLabelStyle}>{t.labelUsdPriceShort}</span>
                         <input data-mobile-step="servicePrice" value={servicePrice} onChange={(e) => setServicePrice(formatCurrencyInput(e.target.value))} inputMode="decimal" placeholder="" style={portfolioFieldInputStyle()} />
                       </div>
-                      <div style={{ position: 'relative', minWidth: 0 }}>
-                        <span style={portfolioFieldLabelStyle}>{'Link to Profile'}</span>
-                        <select
-                          data-mobile-step="servicePrimaryProfile"
-                          value={servicePrimaryProfileScope}
-                          onChange={(e) => setServicePrimaryProfileScope(e.target.value)}
-                          style={{
-                            ...portfolioFieldSelectStyle({ paddingLeft: isMobileViewport ? 102 : 124 }),
-                            borderColor: !servicePrimaryProfileScope ? C.danger : C.border,
-                          }}
-                        >
-                          <option value="">{t.optionSelectPlaceholder || 'Select'}</option>
-                          <option value="personal">Personal</option>
-                          <option value="professional">Business</option>
-                          <option value="fsbo">FSBO</option>
-                        </select>
-                      </div>
+                      <PrimaryProfileSelect
+                        t={t}
+                        C={C}
+                        value={servicePrimaryProfileScope}
+                        onChange={setServicePrimaryProfileScope}
+                        labelStyle={portfolioFieldLabelStyle}
+                        selectStyle={portfolioFieldSelectStyle}
+                        selectStyleOverrides={{ paddingLeft: isMobileViewport ? 102 : 124 }}
+                        dataMobileStep="servicePrimaryProfile"
+                        required
+                      />
                       <div style={{ position: 'relative', minWidth: 0, gridColumn: isMobileViewport ? '1 / -1' : 'auto' }}>
                         {renderMarketsSelector(serviceMarkets, (code) => toggleMulti(setServiceMarkets, code), { showSummary: false, inlineLabel: 'States' })}
                       </div>
@@ -4264,15 +4259,15 @@ export function Onboarding({
                                     <option value="Commercial Point">Commercial Point</option>
                                   </select>
                                 </div>
-                                <div style={{ flex: '0 0 200px', position: 'relative' }}>
-                                  <span style={portfolioFieldLabelStyle}>{'Link to Profile'}</span>
-                                  <select value={propertyEditDraft.primaryProfile} onChange={(e) => setPropertyEditDraft(prev => ({ ...prev, primaryProfile: e.target.value }))} style={portfolioFieldSelectStyle({ paddingLeft: 124 })}>
-                                    <option value="" >Select</option>
-                                    <option value="personal">Personal</option>
-                                    <option value="professional">Business</option>
-                                    <option value="fsbo">FSBO</option>
-                                  </select>
-                                </div>
+                                <PrimaryProfileSelect
+                                  t={t}
+                                  value={propertyEditDraft.primaryProfile}
+                                  onChange={(nextValue) => setPropertyEditDraft(prev => ({ ...prev, primaryProfile: nextValue }))}
+                                  labelStyle={portfolioFieldLabelStyle}
+                                  selectStyle={portfolioFieldSelectStyle}
+                                  selectStyleOverrides={{ paddingLeft: 124 }}
+                                  containerStyle={{ flex: '0 0 200px' }}
+                                />
                               </div>
                               <div style={{ paddingBottom: 8 }}>
                                 <div style={{ position: 'relative' }}>
@@ -4525,12 +4520,15 @@ export function Onboarding({
                                 ))}
                               </select>
                               <input value={serviceEditDraft.price} onChange={(e) => setServiceEditDraft((prev) => ({ ...prev, price: e.target.value }))} placeholder={t.placeholderPrice} style={{ padding: '7px 8px', borderRadius: 8, border: `1px solid ${C.border}`, background: C.card, color: C.t1, fontSize: 11 }} />
-                              <select value={serviceEditDraft.primaryProfile || ''} onChange={(e) => setServiceEditDraft((prev) => ({ ...prev, primaryProfile: e.target.value }))} style={{ padding: '7px 8px', borderRadius: 8, border: `1px solid ${serviceEditDraft.primaryProfile ? C.border : C.danger}`, background: C.card, color: C.t1, fontSize: 11 }}>
-                                <option value="">{t.optionSelectPlaceholder || 'Select'}</option>
-                                <option value="personal">Personal</option>
-                                <option value="professional">Business</option>
-                                <option value="fsbo">FSBO</option>
-                              </select>
+                              <PrimaryProfileSelect
+                                t={t}
+                                C={C}
+                                value={serviceEditDraft.primaryProfile || ''}
+                                onChange={(nextValue) => setServiceEditDraft((prev) => ({ ...prev, primaryProfile: nextValue }))}
+                                selectStyle={{ padding: '7px 8px', borderRadius: 8, border: `1px solid ${serviceEditDraft.primaryProfile ? C.border : C.danger}`, background: C.card, color: C.t1, fontSize: 11 }}
+                                showLabel={false}
+                                required
+                              />
                               <label style={{ fontSize: 10, color: C.t3, textTransform: 'uppercase' }}>
                                 {t.actionReplaceImages}
                                 <input type="file" accept="image/*" multiple onChange={(e) => handleEditServiceImages(e, svc.id)} style={{ display: 'block', marginTop: 4, fontSize: 11 }} />
@@ -5099,15 +5097,14 @@ export function Onboarding({
                 <option value="Commercial Point">Commercial Point</option>
               </select>
             </div>
-            <div style={{ position: 'relative' }}>
-              <span style={portfolioFieldLabelStyle}>{'Link to Profile'}</span>
-              <select value={propertyEditDraft.primaryProfile} onChange={(e) => setPropertyEditDraft(prev => ({ ...prev, primaryProfile: e.target.value }))} style={portfolioFieldSelectStyle({ paddingLeft: 124 })}>
-                <option value="" >Select</option>
-                <option value="personal">Personal</option>
-                <option value="professional">Business</option>
-                <option value="fsbo">FSBO</option>
-              </select>
-            </div>
+            <PrimaryProfileSelect
+              t={t}
+              value={propertyEditDraft.primaryProfile}
+              onChange={(nextValue) => setPropertyEditDraft(prev => ({ ...prev, primaryProfile: nextValue }))}
+              labelStyle={portfolioFieldLabelStyle}
+              selectStyle={portfolioFieldSelectStyle}
+              selectStyleOverrides={{ paddingLeft: 124 }}
+            />
             <div style={{ position: 'relative' }}>
               {renderMarketsSelector(propertyEditDraft.markets, (code) => setPropertyEditDraft((prev) => ({ ...prev, markets: toggleArrayValue(prev.markets || [], code) })), { showSummary: false, inlineLabel: 'States' })}
             </div>
@@ -5187,15 +5184,17 @@ export function Onboarding({
               <span style={portfolioFieldLabelStyle}>{t.labelUsdPriceShort}</span>
               <input value={serviceEditDraft.price} onChange={(e) => setServiceEditDraft((prev) => ({ ...prev, price: formatCurrencyInput(e.target.value) }))} inputMode="decimal" style={portfolioFieldInputStyle({ textAlign: 'right' })} />
             </div>
-            <div style={{ position: 'relative' }}>
-              <span style={portfolioFieldLabelStyle}>{'Link to Profile'}</span>
-              <select value={serviceEditDraft.primaryProfile || ''} onChange={(e) => setServiceEditDraft((prev) => ({ ...prev, primaryProfile: e.target.value }))} style={portfolioFieldSelectStyle({ paddingLeft: 124, border: `1px solid ${serviceEditDraft.primaryProfile ? C.border : C.danger}` })}>
-                <option value="">Select profile *</option>
-                <option value="personal">Personal</option>
-                <option value="professional">Business</option>
-                <option value="fsbo">FSBO</option>
-              </select>
-            </div>
+            <PrimaryProfileSelect
+              t={t}
+              C={C}
+              value={serviceEditDraft.primaryProfile || ''}
+              onChange={(nextValue) => setServiceEditDraft((prev) => ({ ...prev, primaryProfile: nextValue }))}
+              labelStyle={portfolioFieldLabelStyle}
+              selectStyle={portfolioFieldSelectStyle}
+              selectStyleOverrides={{ paddingLeft: 124 }}
+              emptyLabel={t.optionSelectProfileRequired || 'Select profile *'}
+              required
+            />
             <div style={{ position: 'relative' }}>
               {renderMarketsSelector(serviceEditDraft.markets, (code) => setServiceEditDraft((prev) => ({ ...prev, markets: toggleArrayValue(prev.markets || [], code) })), { showSummary: false, inlineLabel: 'States' })}
             </div>

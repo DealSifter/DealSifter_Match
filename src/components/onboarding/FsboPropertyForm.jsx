@@ -1,4 +1,5 @@
 import { SmartImage } from '../ui/SmartImage';
+import { PrimaryProfileSelect } from './PrimaryProfileSelect';
 
 export function FsboPropertyForm({
   t,
@@ -98,15 +99,18 @@ export function FsboPropertyForm({
                 <option value="Commercial Point">Commercial Point</option>
               </select>
             </div>
-            <div style={{ position: 'relative', minWidth: 0 }}>
-              <span style={portfolioFieldLabelStyle}>{t.prefixPrimary || 'Primary'}</span>
-              <select data-mobile-step="portfolioPrimaryProfile" name="primaryProfileScope" aria-label="Perfil principal" value={values.primaryProfileScope} onChange={(e) => onChange('primaryProfileScope', e.target.value)} style={portfolioFieldSelectStyle({ paddingRight: 32 })}>
-                <option value="">{t.optionSelectPlaceholder || 'Select'}</option>
-                <option value="personal">Personal</option>
-                <option value="professional">Business</option>
-                <option value="fsbo">FSBO</option>
-              </select>
-            </div>
+            <PrimaryProfileSelect
+              t={t}
+              value={values.primaryProfileScope}
+              onChange={(nextValue) => onChange('primaryProfileScope', nextValue)}
+              label={t.prefixPrimary || 'Primary'}
+              labelStyle={portfolioFieldLabelStyle}
+              selectStyle={portfolioFieldSelectStyle}
+              selectStyleOverrides={{ paddingRight: 32 }}
+              dataMobileStep="portfolioPrimaryProfile"
+              name="primaryProfileScope"
+              ariaLabel={t.prefixPrimary || 'Primary'}
+            />
           </div>
         </div>
         <div style={{ position: 'relative', minWidth: 0 }}>
