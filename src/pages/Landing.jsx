@@ -6,6 +6,7 @@ import { Icon } from '../components/ui/Icon';
 import { catIcon } from '../lib/catIcon';
 import { DealSifterLogo } from '../components/ui/DealSifterLogo';
 import { FOOTER_INFO } from '../content/footerInfoContent';
+import { useMediaQuery } from '../hooks/useMediaQuery';
 
 /* ─── Preview cards used inside the "Most Requested Services" section ─── */
 function LandingProfCard({ onClick }) {
@@ -409,24 +410,7 @@ function ProfItem({ item }) {
 export function Landing({ setPage, onOpenAuthModal = () => {} }) {
   const [activeService, setActiveService] = React.useState(null);
   const [footerInfoKey, setFooterInfoKey] = React.useState(null);
-  const [isMobile, setIsMobile] = React.useState(() => {
-    if (typeof window === 'undefined' || typeof window.matchMedia !== 'function') return false;
-    return window.matchMedia('(max-width: 767px)').matches;
-  });
-
-  useEffect(() => {
-    if (typeof window === 'undefined' || typeof window.matchMedia !== 'function') return undefined;
-    const mediaQuery = window.matchMedia('(max-width: 767px)');
-    const handleViewportChange = (event) => setIsMobile(event.matches);
-
-    if (typeof mediaQuery.addEventListener === 'function') {
-      mediaQuery.addEventListener('change', handleViewportChange);
-      return () => mediaQuery.removeEventListener('change', handleViewportChange);
-    }
-
-    mediaQuery.addListener(handleViewportChange);
-    return () => mediaQuery.removeListener(handleViewportChange);
-  }, []);
+  const isMobile = useMediaQuery('(max-width: 767px)');
 
   useEffect(() => {
     try {

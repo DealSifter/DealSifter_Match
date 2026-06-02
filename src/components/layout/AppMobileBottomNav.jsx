@@ -2,6 +2,7 @@ import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { C } from '../../theme/colors';
 import { useT } from '../../i18n/translations';
 import { Icon } from '../ui/Icon';
+import { useMediaQuery } from '../../hooks/useMediaQuery';
 import feedMatchIcon from '../../assets/feed-match-icon.png';
 import newCardTaskbarIcon from '../../assets/taskbar-newcard-icon.png';
 import mapViewTaskbarIcon from '../../assets/taskbar-mapview-icon.png';
@@ -11,14 +12,8 @@ const HIDDEN_PAGES = new Set(['landing', 'terms', 'privacy', 'admin']);
 
 export function AppMobileBottomNav({ page, setPage, collapsed = false, onCollapsedChange, needsPrimaryProfileAttention = false }) {
   const TABLET_PORTRAIT_QUERY = '(min-width: 768px) and (max-width: 1080px) and (orientation: portrait)';
-  const [isMobile, setIsMobile] = useState(() => {
-    if (typeof window === 'undefined' || typeof window.matchMedia !== 'function') return false;
-    return window.matchMedia('(max-width: 767px)').matches;
-  });
-  const [isTabletPortrait, setIsTabletPortrait] = useState(() => {
-    if (typeof window === 'undefined' || typeof window.matchMedia !== 'function') return false;
-    return window.matchMedia(TABLET_PORTRAIT_QUERY).matches;
-  });
+  const isMobile = useMediaQuery('(max-width: 767px)');
+  const isTabletPortrait = useMediaQuery(TABLET_PORTRAIT_QUERY);
   const [isDraggingHandle, setIsDraggingHandle] = useState(false);
   const [pressedItemId, setPressedItemId] = useState(null);
   const [dragOffsetY, setDragOffsetY] = useState(0);
@@ -37,34 +32,6 @@ export function AppMobileBottomNav({ page, setPage, collapsed = false, onCollaps
   const handleWidth = isTabletCompactOnly ? 52 : 44;
 
   const t = useT('global').nav;
-
-  useEffect(() => {
-    if (typeof window === 'undefined' || typeof window.matchMedia !== 'function') return undefined;
-    const mediaQuery = window.matchMedia('(max-width: 767px)');
-    const handleViewportChange = (event) => setIsMobile(event.matches);
-
-    if (typeof mediaQuery.addEventListener === 'function') {
-      mediaQuery.addEventListener('change', handleViewportChange);
-      return () => mediaQuery.removeEventListener('change', handleViewportChange);
-    }
-
-    mediaQuery.addListener(handleViewportChange);
-    return () => mediaQuery.removeListener(handleViewportChange);
-  }, []);
-
-  useEffect(() => {
-    if (typeof window === 'undefined' || typeof window.matchMedia !== 'function') return undefined;
-    const mediaQuery = window.matchMedia(TABLET_PORTRAIT_QUERY);
-    const handleViewportChange = (event) => setIsTabletPortrait(Boolean(event.matches));
-
-    if (typeof mediaQuery.addEventListener === 'function') {
-      mediaQuery.addEventListener('change', handleViewportChange);
-      return () => mediaQuery.removeEventListener('change', handleViewportChange);
-    }
-
-    mediaQuery.addListener(handleViewportChange);
-    return () => mediaQuery.removeListener(handleViewportChange);
-  }, [TABLET_PORTRAIT_QUERY]);
 
   useEffect(() => {
     if (!isCompactViewport) return undefined;

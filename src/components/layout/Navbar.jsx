@@ -5,6 +5,7 @@ import { useLang, useT, setLang } from '../../i18n/translations';
 import { DealSifterLogo } from '../ui/DealSifterLogo';
 import { NuggetBadge } from '../ui/NuggetBadge';
 import { Icon } from '../ui/Icon';
+import { useMediaQuery } from '../../hooks/useMediaQuery';
 import appLogo from '../../assets/logo.png';
 import feedMatchIcon from '../../assets/feed-match-icon.png';
 import mapViewTaskbarIcon from '../../assets/taskbar-mapview-icon.png';
@@ -178,14 +179,8 @@ export function Navbar({ page, prevPage, setPage, nuggets = 0, setModal = () => 
   const { theme, toggleTheme } = useTheme();
   const [notifOpen, setNotifOpen] = useState(false);
   const [notifTab, setNotifTab] = useState('matches');
-  const [isMobile, setIsMobile] = useState(() => {
-    if (typeof window === 'undefined' || typeof window.matchMedia !== 'function') return false;
-    return window.matchMedia('(max-width: 767px)').matches;
-  });
-  const [isTabletPortrait, setIsTabletPortrait] = useState(() => {
-    if (typeof window === 'undefined' || typeof window.matchMedia !== 'function') return false;
-    return window.matchMedia(TABLET_PORTRAIT_QUERY).matches;
-  });
+  const isMobile = useMediaQuery('(max-width: 767px)');
+  const isTabletPortrait = useMediaQuery(TABLET_PORTRAIT_QUERY);
   const [landingMenuOpen, setLandingMenuOpen] = useState(false);
   const [appMenuOpen, setAppMenuOpen] = useState(false);
   const [appNotifOpen, setAppNotifOpen] = useState(false);
@@ -243,34 +238,6 @@ export function Navbar({ page, prevPage, setPage, nuggets = 0, setModal = () => 
     document.addEventListener('mousedown', onClickOutside);
     return () => document.removeEventListener('mousedown', onClickOutside);
   }, []);
-
-  useEffect(() => {
-    if (typeof window === 'undefined' || typeof window.matchMedia !== 'function') return undefined;
-    const mediaQuery = window.matchMedia('(max-width: 767px)');
-    const handleViewportChange = (event) => setIsMobile(Boolean(event.matches));
-
-    if (typeof mediaQuery.addEventListener === 'function') {
-      mediaQuery.addEventListener('change', handleViewportChange);
-      return () => mediaQuery.removeEventListener('change', handleViewportChange);
-    }
-
-    mediaQuery.addListener(handleViewportChange);
-    return () => mediaQuery.removeListener(handleViewportChange);
-  }, []);
-
-  useEffect(() => {
-    if (typeof window === 'undefined' || typeof window.matchMedia !== 'function') return undefined;
-    const mediaQuery = window.matchMedia(TABLET_PORTRAIT_QUERY);
-    const handleViewportChange = (event) => setIsTabletPortrait(Boolean(event.matches));
-
-    if (typeof mediaQuery.addEventListener === 'function') {
-      mediaQuery.addEventListener('change', handleViewportChange);
-      return () => mediaQuery.removeEventListener('change', handleViewportChange);
-    }
-
-    mediaQuery.addListener(handleViewportChange);
-    return () => mediaQuery.removeListener(handleViewportChange);
-  }, [TABLET_PORTRAIT_QUERY]);
 
   useEffect(() => {
     if (!landingMenuOpen && !appMenuOpen) return undefined;
