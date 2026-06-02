@@ -20,6 +20,7 @@ import { getPortfolioVideoBlob, setPortfolioVideoBlob, clearPortfolioVideoBlob }
 import { getMatchPressure } from '../lib/matchPressure';
 import { INVESTMENT_TRIGGER_CATEGORY_IDS, computeInvestmentProfileStrength, normalizeInvestmentDraft } from '../lib/investmentProfile';
 import { readAndCompressFiles } from '../lib/onboardingMedia';
+import { useMediaQuery } from '../hooks/useMediaQuery';
 import {
   CARD_PRIORITY_OPTIONS,
   CONTACT_METHOD_PRESETS,
@@ -177,22 +178,10 @@ export function Onboarding({
   const activeSkills = profileTab === 'skills';
   const activeProfessional = profileTab === 'professional';
   const activeOperation = profileTab === 'operation';
-  const [isMobileViewport, setIsMobileViewport] = useState(() => {
-    if (typeof window === 'undefined' || typeof window.matchMedia !== 'function') return false;
-    return window.matchMedia('(max-width: 1024px)').matches;
-  });
-  const [isPhoneViewport, setIsPhoneViewport] = useState(() => {
-    if (typeof window === 'undefined' || typeof window.matchMedia !== 'function') return false;
-    return window.matchMedia('(max-width: 767px)').matches;
-  });
-  const [isTabletPortraitViewport, setIsTabletPortraitViewport] = useState(() => {
-    if (typeof window === 'undefined' || typeof window.matchMedia !== 'function') return false;
-    return window.matchMedia('(min-width: 480px) and (max-width: 1024px) and (orientation: portrait)').matches;
-  });
-  const [isTabletViewport, setIsTabletViewport] = useState(() => {
-    if (typeof window === 'undefined' || typeof window.matchMedia !== 'function') return false;
-    return window.matchMedia('(min-width: 480px) and (max-width: 1199px)').matches;
-  });
+  const isMobileViewport = useMediaQuery('(max-width: 1024px)');
+  const isPhoneViewport = useMediaQuery('(max-width: 767px)');
+  const isTabletPortraitViewport = useMediaQuery('(min-width: 480px) and (max-width: 1024px) and (orientation: portrait)');
+  const isTabletViewport = useMediaQuery('(min-width: 480px) and (max-width: 1199px)');
   const [previewOpen, setPreviewOpen] = useState(false);
   const [previewServiceIndex, setPreviewServiceIndex] = useState(0);
   const [previewPropertyIndex, setPreviewPropertyIndex] = useState(0);
@@ -278,62 +267,6 @@ export function Onboarding({
     setInvestmentProfileDraft(normalizeInvestmentDraft(professionalProfile?.investmentProfile));
     setInvestmentModalOpen(true);
   }, [professionalProfile?.investmentProfile]);
-
-  useEffect(() => {
-    if (typeof window === 'undefined' || typeof window.matchMedia !== 'function') return undefined;
-    const mediaQuery = window.matchMedia('(max-width: 1024px)');
-    const handleViewportChange = (event) => setIsMobileViewport(Boolean(event.matches));
-
-    if (typeof mediaQuery.addEventListener === 'function') {
-      mediaQuery.addEventListener('change', handleViewportChange);
-      return () => mediaQuery.removeEventListener('change', handleViewportChange);
-    }
-
-    mediaQuery.addListener(handleViewportChange);
-    return () => mediaQuery.removeListener(handleViewportChange);
-  }, []);
-
-  useEffect(() => {
-    if (typeof window === 'undefined' || typeof window.matchMedia !== 'function') return undefined;
-    const mediaQuery = window.matchMedia('(max-width: 767px)');
-    const handleViewportChange = (event) => setIsPhoneViewport(Boolean(event.matches));
-
-    if (typeof mediaQuery.addEventListener === 'function') {
-      mediaQuery.addEventListener('change', handleViewportChange);
-      return () => mediaQuery.removeEventListener('change', handleViewportChange);
-    }
-
-    mediaQuery.addListener(handleViewportChange);
-    return () => mediaQuery.removeListener(handleViewportChange);
-  }, []);
-
-  useEffect(() => {
-    if (typeof window === 'undefined' || typeof window.matchMedia !== 'function') return undefined;
-    const mediaQuery = window.matchMedia('(min-width: 480px) and (max-width: 1024px) and (orientation: portrait)');
-    const handleViewportChange = (event) => setIsTabletPortraitViewport(Boolean(event.matches));
-
-    if (typeof mediaQuery.addEventListener === 'function') {
-      mediaQuery.addEventListener('change', handleViewportChange);
-      return () => mediaQuery.removeEventListener('change', handleViewportChange);
-    }
-
-    mediaQuery.addListener(handleViewportChange);
-    return () => mediaQuery.removeListener(handleViewportChange);
-  }, []);
-
-  useEffect(() => {
-    if (typeof window === 'undefined' || typeof window.matchMedia !== 'function') return undefined;
-    const mediaQuery = window.matchMedia('(min-width: 480px) and (max-width: 1199px)');
-    const handleViewportChange = (event) => setIsTabletViewport(Boolean(event.matches));
-
-    if (typeof mediaQuery.addEventListener === 'function') {
-      mediaQuery.addEventListener('change', handleViewportChange);
-      return () => mediaQuery.removeEventListener('change', handleViewportChange);
-    }
-
-    mediaQuery.addListener(handleViewportChange);
-    return () => mediaQuery.removeListener(handleViewportChange);
-  }, []);
 
   const profileSyncVisual = useMemo(() => {
     const isSyncing = profileSyncStatus === 'syncing' || portfolioSyncStatus === 'syncing';
