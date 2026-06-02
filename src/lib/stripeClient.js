@@ -109,6 +109,16 @@ function getTermsMetadata(options = {}) {
   };
 }
 
+function getCheckoutReturnUrl(params = {}) {
+  const url = new URL(window.location.origin);
+  Object.entries(params).forEach(([key, value]) => {
+    if (value !== undefined && value !== null && value !== '') {
+      url.searchParams.set(key, String(value));
+    }
+  });
+  return url.toString();
+}
+
 /**
  * Redirects the user to Stripe Checkout to buy a nugget pack.
  */
@@ -120,8 +130,8 @@ export async function redirectToCheckout(pack, options = {}) {
   const data = await invokeEdge('create-checkout-session', {
     ...getNuggetCheckoutBody(pack),
     ...getTermsMetadata(options),
-    success_url: `${window.location.origin}/?checkout=success&pack=${pack.id}`,
-    cancel_url:  `${window.location.origin}/?checkout=cancelled`,
+    success_url: getCheckoutReturnUrl({ checkout: 'success', pack: pack.id }),
+    cancel_url:  getCheckoutReturnUrl({ checkout: 'cancelled', page: 'pricing' }),
   });
   if (!data?.url) throw new Error('URL de checkout nao retornada.');
 
@@ -139,8 +149,8 @@ export async function redirectToSubscription(planId, options = {}) {
   const data = await invokeEdge('create-checkout-session', {
     ...getSubscriptionCheckoutBody(planId),
     ...getTermsMetadata(options),
-    success_url: `${window.location.origin}/?checkout=success&plan=${planId}`,
-    cancel_url:  `${window.location.origin}/?checkout=cancelled`,
+    success_url: getCheckoutReturnUrl({ checkout: 'success', plan: planId }),
+    cancel_url:  getCheckoutReturnUrl({ checkout: 'cancelled', page: 'pricing' }),
   });
   if (!data?.url) throw new Error('URL de assinatura nao retornada.');
 

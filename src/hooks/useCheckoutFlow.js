@@ -84,6 +84,9 @@ export function useCheckoutFlow({
 
     if (checkout === 'success') {
       setPendingCheckoutIntent(null);
+      setCheckoutModalIntent(null);
+      setCheckoutSubmitting(false);
+      setCheckoutError('');
       if (isSupabaseConfigured && supabaseUserId) {
         refreshProfileHydration?.();
       }
@@ -95,13 +98,18 @@ export function useCheckoutFlow({
       });
     } else if (checkout === 'cancelled') {
       setPendingCheckoutIntent(null);
+      setCheckoutModalIntent(null);
+      setCheckoutSubmitting(false);
+      setCheckoutError('');
+      setModal(null);
+      setPage('pricing');
       addToast?.({
         type: 'info',
         title: 'Compra cancelada',
         message: 'O pagamento foi cancelado. Seus nuggets nao foram alterados.',
       });
     }
-  }, [addToast, refreshProfileHydration, setPage, setSettingsInitialTab, setSystemAccount, supabaseUserId]);
+  }, [addToast, refreshProfileHydration, setModal, setPage, setSettingsInitialTab, setSystemAccount, supabaseUserId]);
 
   const openPricingHub = useCallback(() => {
     setModal(null);
