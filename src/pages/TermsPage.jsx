@@ -60,12 +60,14 @@ export function TermsPage({ setPage, onReturnToCheckout = null }) {
 
   return (
     <div style={{ maxWidth: 820, margin: '0 auto', padding: '40px 20px 80px', color: C.t1 }}>
-      <button
-        onClick={() => setPage('landing')}
-        style={{ background: 'none', border: 'none', color: C.accent, fontSize: 13, fontWeight: 700, cursor: 'pointer', padding: 0, marginBottom: 24 }}
-      >
-        {t.back}
-      </button>
+      {!showCheckoutReturn ? (
+        <button
+          onClick={() => setPage('landing')}
+          style={{ background: 'none', border: 'none', color: C.accent, fontSize: 13, fontWeight: 700, cursor: 'pointer', padding: 0, marginBottom: 24 }}
+        >
+          {t.back}
+        </button>
+      ) : null}
 
       <h1 style={{ fontSize: 28, fontWeight: 900, marginBottom: 8 }}>{terms.title}</h1>
       <div style={{ display: 'grid', gap: 4, fontSize: 12, color: C.t3, marginBottom: 30 }}>
