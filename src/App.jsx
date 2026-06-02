@@ -1231,7 +1231,9 @@ export default function App() {
   }, []);
 
   const {
+    checkoutError,
     checkoutModalIntent,
+    checkoutSubmitting,
     pendingCheckoutIntent,
     closeCheckoutModal,
     handleContinuePendingCheckout,
@@ -3205,6 +3207,8 @@ export default function App() {
           <Suspense fallback={null}>
             <EmbeddedCheckoutModal
               intent={checkoutModalIntent}
+              checkoutError={checkoutError}
+              isSubmitting={checkoutSubmitting}
               onClose={closeCheckoutModal}
               onHostedFallback={handleHostedCheckoutFallback}
               onComplete={handleEmbeddedCheckoutComplete}

@@ -40,6 +40,8 @@ export function useCheckoutFlow({
   supabaseUserId,
 }) {
   const [checkoutModalIntent, setCheckoutModalIntent] = useState(null);
+  const [checkoutSubmitting, setCheckoutSubmitting] = useState(false);
+  const [checkoutError, setCheckoutError] = useState('');
   const [pendingCheckoutIntent, setPendingCheckoutIntent] = useState(() => {
     try {
       const raw = localStorage.getItem('ds_pending_checkout_intent');
@@ -110,6 +112,7 @@ export function useCheckoutFlow({
     const intent = normalizeCheckoutIntent(intentInput);
     if (!intent) return false;
 
+    setCheckoutError('');
     try {
       if (intent.kind === 'subscription') {
         await redirectToSubscription(intent.planId, checkoutOptions);
@@ -123,10 +126,12 @@ export function useCheckoutFlow({
       setPendingCheckoutIntent(null);
       return true;
     } catch (error) {
+      const message = String(error?.message || 'Nao foi possivel iniciar o checkout no Stripe.');
+      setCheckoutError(message);
       addToast?.({
         type: 'error',
         title: 'Falha no checkout',
-        message: String(error?.message || 'Nao foi possivel iniciar o checkout no Stripe.'),
+        message,
       });
       return false;
     }
@@ -144,11 +149,15 @@ export function useCheckoutFlow({
     }
 
     setPendingCheckoutIntent(intent);
+    setCheckoutError('');
+    setCheckoutSubmitting(false);
     setCheckoutModalIntent(intent);
   }, [addToast]);
 
   const handleContinuePendingCheckout = useCallback(async () => {
     if (!pendingCheckoutIntent) return;
+    setCheckoutError('');
+    setCheckoutSubmitting(false);
     setCheckoutModalIntent(pendingCheckoutIntent);
   }, [pendingCheckoutIntent]);
 
@@ -156,20 +165,41 @@ export function useCheckoutFlow({
     const intent = normalizeCheckoutIntent(pendingCheckoutIntent);
     if (!intent) return false;
     setPage(intent.source === 'settings' ? 'settings' : 'pricing');
+    setCheckoutError('');
+    setCheckoutSubmitting(false);
     setCheckoutModalIntent(intent);
     return true;
   }, [pendingCheckoutIntent, setPage]);
 
   const closeCheckoutModal = useCallback(() => {
+    setCheckoutSubmitting(false);
     setCheckoutModalIntent(null);
   }, []);
 
   const handleHostedCheckoutFallback = useCallback(async () => {
+    if (checkoutSubmitting) return false;
     const intent = normalizeCheckoutIntent(checkoutModalIntent || pendingCheckoutIntent);
-    if (!intent) return;
-    setCheckoutModalIntent(null);
-    await executeCheckoutIntent(intent, { termsAccepted: true });
-  }, [checkoutModalIntent, executeCheckoutIntent, pendingCheckoutIntent]);
+    if (!intent) {
+      const message = 'Selecao de checkout perdida. Escolha o plano ou pacote novamente.';
+      setCheckoutError(message);
+      addToast?.({
+        type: 'error',
+        title: 'Falha no checkout',
+        message,
+      });
+      return false;
+    }
+
+    setCheckoutError('');
+    setCheckoutSubmitting(true);
+    const completed = await executeCheckoutIntent(intent, { termsAccepted: true });
+    if (completed) {
+      setCheckoutModalIntent(null);
+    } else {
+      setCheckoutSubmitting(false);
+    }
+    return completed;
+  }, [addToast, checkoutModalIntent, checkoutSubmitting, executeCheckoutIntent, pendingCheckoutIntent]);
 
   const handleEmbeddedCheckoutComplete = useCallback(() => {
     setPendingCheckoutIntent(null);
@@ -186,17 +216,21 @@ export function useCheckoutFlow({
   }, [addToast, refreshProfileHydration, supabaseUserId]);
 
   const openCheckoutTerms = useCallback(() => {
+    setCheckoutSubmitting(false);
     setCheckoutModalIntent(null);
     setPage('terms');
   }, [setPage]);
 
   const openCheckoutPrivacy = useCallback(() => {
+    setCheckoutSubmitting(false);
     setCheckoutModalIntent(null);
     setPage('privacy');
   }, [setPage]);
 
   return {
+    checkoutError,
     checkoutModalIntent,
+    checkoutSubmitting,
     pendingCheckoutIntent,
     closeCheckoutModal,
     handleContinuePendingCheckout,

@@ -30,6 +30,8 @@ function resolveCheckoutSummary(intent, t) {
 
 export function EmbeddedCheckoutModal({
   intent,
+  checkoutError = '',
+  isSubmitting = false,
   onClose,
   onHostedFallback,
   onOpenTerms,
@@ -83,6 +85,12 @@ export function EmbeddedCheckoutModal({
           background: ${C.card};
           display: grid;
           gap: 8px;
+        }
+        .ds-checkout-modal-action {
+          transition: transform 160ms ease, box-shadow 160ms ease, opacity 160ms ease;
+        }
+        .ds-checkout-modal-action:not(:disabled):hover {
+          transform: translateY(-1px);
         }
         @keyframes dsCheckoutTermsPulse {
           0%, 100% { border-color: ${C.gold}; box-shadow: 0 0 0 0 ${C.alpha(C.gold, 0.18)}; }
@@ -161,28 +169,38 @@ export function EmbeddedCheckoutModal({
               </strong>
             </div>
             <p style={{ margin: 0, color: C.t2, fontSize: 12, lineHeight: 1.45 }}>
-              {accepted
+              {isSubmitting
+                ? (t.checkoutPreparingHint || 'Creating your secure Stripe session. Do not close this window.')
+                : accepted
                 ? (t.checkoutHostedRedirectInfo || 'Click below to open secure Stripe Checkout. Stripe will return you to DealSifter after payment.')
                 : (t.checkoutAcceptHint || 'Accept the terms above to continue to secure Stripe Checkout.')}
             </p>
           </div>
 
+          {checkoutError ? (
+            <div role="alert" style={{ border: `1px solid ${C.danger}`, background: C.alpha(C.danger, 0.08), color: C.danger, borderRadius: 12, padding: '10px 12px', fontSize: 12, fontWeight: 800, lineHeight: 1.35 }}>
+              {checkoutError}
+            </div>
+          ) : null}
+
           <div style={{ display: 'flex', gap: 10, justifyContent: 'space-between', flexWrap: 'wrap' }}>
             <button
+              className="ds-checkout-modal-action"
               type="button"
               onClick={() => {
-                if (!accepted) return;
+                if (!accepted || isSubmitting) return;
                 onHostedFallback?.();
               }}
-              disabled={!accepted}
-              style={{ border: `1px solid ${accepted ? C.accent : C.alpha(C.border, 0.65)}`, background: accepted ? C.accent : 'transparent', color: accepted ? '#fff' : C.t3, borderRadius: 12, padding: '10px 16px', fontSize: 12, fontWeight: 900, cursor: accepted ? 'pointer' : 'not-allowed', opacity: accepted ? 1 : 0.65, boxShadow: accepted ? `0 10px 22px ${C.alpha(C.accent, 0.24)}` : 'none' }}
+              disabled={!accepted || isSubmitting}
+              style={{ border: `1px solid ${accepted ? C.accent : C.alpha(C.border, 0.65)}`, background: accepted ? C.accent : 'transparent', color: accepted ? '#fff' : C.t3, borderRadius: 12, padding: '10px 16px', fontSize: 12, fontWeight: 900, cursor: accepted && !isSubmitting ? 'pointer' : 'not-allowed', opacity: accepted ? 1 : 0.65, boxShadow: accepted ? `0 10px 22px ${C.alpha(C.accent, 0.24)}` : 'none' }}
             >
-              {t.checkoutOpenHosted || 'Open hosted checkout'}
+              {isSubmitting ? (t.checkoutPreparing || 'Preparing checkout...') : (t.checkoutOpenHosted || 'Open hosted checkout')}
             </button>
             <button
               type="button"
               onClick={onClose}
-              style={{ border: `1px solid ${C.border}`, background: C.card, color: C.t2, borderRadius: 12, padding: '10px 14px', fontSize: 12, fontWeight: 800, cursor: 'pointer' }}
+              disabled={isSubmitting}
+              style={{ border: `1px solid ${C.border}`, background: C.card, color: C.t2, borderRadius: 12, padding: '10px 14px', fontSize: 12, fontWeight: 800, cursor: isSubmitting ? 'not-allowed' : 'pointer', opacity: isSubmitting ? 0.55 : 1 }}
             >
               {t.cancel || 'Cancel'}
             </button>
