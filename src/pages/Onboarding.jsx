@@ -10,7 +10,7 @@ import { InvestmentProfileModal } from '../components/onboarding/InvestmentProfi
 import { ProfessionalPropertyForm } from '../components/onboarding/ProfessionalPropertyForm';
 import { FsboPropertyForm } from '../components/onboarding/FsboPropertyForm';
 import { PrimaryProfileSelect } from '../components/onboarding/PrimaryProfileSelect';
-import { Chip, SectionCard } from '../components/onboarding/OnboardingUi';
+import { Chip, MarketsSelector, SectionCard } from '../components/onboarding/OnboardingUi';
 import { useT } from '../i18n/translations';
 // removed unused import: toggleHidden
 import { genId } from '../lib/id';
@@ -33,6 +33,7 @@ import {
 import {
   hasDuplicateCardPriorities,
   isTruthyFlag,
+  normalizeMarkets,
   normalizeUniqueCardPriorities,
   normalizeUsStateCode,
 } from '../lib/onboardingHelpers';
@@ -791,41 +792,20 @@ export function Onboarding({
     return nextProfile;
   };
 
-  const normalizeMarkets = (markets) => Array.from(new Set((Array.isArray(markets) ? markets : [])
-    .map((code) => String(code || '').trim().toUpperCase())
-    .filter((code) => /^[A-Z]{2}$/.test(code))));
-
   const renderMarketsSelector = (selected, onToggle, opts = {}) => (
-    <div>
-      {(() => {
-        const inlineLabel = opts?.inlineLabel || 'Estate';
-        return (
-      <div style={{ position: 'relative', minWidth: 0 }}>
-        <span style={portfolioFieldLabelStyle}>{inlineLabel}</span>
-        <select
-          aria-label="Estados de atuacao"
-          value={(selected && selected.length) ? selected[selected.length - 1] : ''}
-          onChange={(e) => {
-            const code = e.target.value;
-            if (!code) return;
-            onToggle(code);
-          }}
-          style={portfolioFieldSelectStyle({ minHeight: 32, paddingLeft: 72 })}
-        >
-          <option value="">{t.optionSelectPlaceholder || 'Select'}</option>
-          {US_STATES.map((state) => (
-            <option key={`state-market-${state.code}`} value={state.code}>{state.name} ({state.code})</option>
-          ))}
-        </select>
-      </div>
-        );
-      })()}
-      {opts?.showSummary !== false ? (
-        <div style={{ marginTop: 6, fontSize: 10, color: C.t3 }}>
-          {(selected || []).length ? `Selecionados: ${(selected || []).join(', ')}` : 'Nenhum estado selecionado'}
-        </div>
-      ) : null}
-    </div>
+    <MarketsSelector
+      selected={selected}
+      onToggle={onToggle}
+      stateOptions={US_STATES}
+      label={opts?.inlineLabel || t.labelStateShort || 'State'}
+      showSummary={opts?.showSummary !== false}
+      selectPlaceholder={t.optionSelectPlaceholder || 'Select'}
+      selectedSummaryLabel={t.selectedStatesLabel || 'Selected'}
+      emptySummaryLabel={t.noStatesSelected || 'No states selected'}
+      ariaLabel={t.operatingStatesAriaLabel || 'Operating states'}
+      labelStyle={portfolioFieldLabelStyle}
+      selectStyle={portfolioFieldSelectStyle({ minHeight: 32, paddingLeft: 72 })}
+    />
   );
 
   const togglePropertyDealClosed = (propertyId) => {

@@ -49,3 +49,49 @@ export function SectionCard({
     </section>
   );
 }
+
+export function MarketsSelector({
+  selected = [],
+  onToggle,
+  stateOptions = [],
+  label = 'State',
+  showSummary = true,
+  selectPlaceholder = 'Select',
+  selectedSummaryLabel = 'Selected',
+  emptySummaryLabel = 'No states selected',
+  ariaLabel = 'Operating states',
+  labelStyle,
+  selectStyle,
+}) {
+  const selectedList = Array.isArray(selected) ? selected : [];
+
+  return (
+    <div>
+      <div style={{ position: 'relative', minWidth: 0 }}>
+        <span style={labelStyle}>{label}</span>
+        <select
+          aria-label={ariaLabel}
+          value={selectedList.length ? selectedList[selectedList.length - 1] : ''}
+          onChange={(event) => {
+            const code = event.target.value;
+            if (!code) return;
+            onToggle?.(code);
+          }}
+          style={selectStyle}
+        >
+          <option value="">{selectPlaceholder}</option>
+          {stateOptions.map((state) => (
+            <option key={`state-market-${state.code}`} value={state.code}>
+              {state.name} ({state.code})
+            </option>
+          ))}
+        </select>
+      </div>
+      {showSummary ? (
+        <div style={{ marginTop: 6, fontSize: 10, color: C.t3 }}>
+          {selectedList.length ? `${selectedSummaryLabel}: ${selectedList.join(', ')}` : emptySummaryLabel}
+        </div>
+      ) : null}
+    </div>
+  );
+}

@@ -48,3 +48,9 @@ export function isTruthyFlag(value, defaultValue = true) {
   if (raw === 'true' || raw === '1' || raw === 'on' || raw === 'yes') return true;
   return Boolean(value);
 }
+
+export function normalizeMarkets(markets) {
+  return Array.from(new Set((Array.isArray(markets) ? markets : [])
+    .map((code) => String(code || '').trim().toUpperCase())
+    .filter((code) => /^[A-Z]{2}$/.test(code))));
+}
