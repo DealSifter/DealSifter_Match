@@ -1,11 +1,11 @@
 const TERMS_PT = {
   title: 'DealSifter - Termos de Uso',
   meta: [
-    'Ultima Atualizacao: Junho de 2026',
+    'Ultima Atualizacao: junho de 2026',
     'Versao: 1.0',
     'Jurisdicao: Estados Unidos da America',
   ],
-  effective: 'Versao 1.0 - Data de Vigencia: Junho de 2026',
+  effective: 'Versao 1.0 - Data de Vigencia: junho de 2026',
   sections: [
     {
       title: '1. Aceitacao dos Termos',
@@ -98,8 +98,8 @@ const TERMS_PT = {
         {
           title: '5.1. Logica de Match (Sistema de Duplo Opt-In)',
           bullets: [
-            { label: 'Requisito de Mutualidade', text: 'As informacoes de contato ou dados detalhados do perfil nao estao condicionadas a um match mutuo para serem desbloqueados, pois todos os usuarios ja se predispoem e aceitam previamente a divulgacao de seus contatos ao networking no DealSifter (cerne do servico da plataforma).' },
-            { label: 'Creditos/Nuggets na Tentativa de Match', text: 'Os Creditos/Nuggets consumidos para ferramentas premium de match (como "Super Like", "Exclusividade de Contato" ou "Pedido de Desbloqueio Instantaneo") sao gastos no momento da acao e **NAO SAO REEMBOLSAVEIS**, independentemente de a outra parte responder ou nao ao match, pelos canais internos ou externos da plataforma. O DealSifter **NAO GARANTE** uma taxa de resposta de 100% por parte dos usuarios independentes, tampouco interfere positivamente ou negativamente neste contato.' },
+            { label: 'Requisito de Mutualidade', text: 'As informacoes de contato ou dados detalhados do perfil **NAO** estao condicionadas a um match mutuo (so se ambas as partes "curtirem", selecionarem ou aceitarem os parametros mutuos de conexao) para serem desbloqueados, pois todos os usuarios ja se predispoem e aceitam previamente a divulgacao de seus contatos ao networking no DealSifter (cerne do servico da plataforma).' },
+            { label: 'Creditos/Nuggets na Tentativa de Match', text: 'Os Creditos/Nuggets consumidos para ferramentas premium de match (como "Super Like", "Exclusividade de Contato" ou "Pedido de Desbloqueio Instantaneo") sao gastos no momento da acao e **NAO SAO REEMBOLSAVEIS**, independentemente de a outra parte responder ou nao ao match, pelos canais internos ou externos da plataforma. O DealSifter **NAO GARANTE** uma taxa de resposta de 100% por parte dos usuarios independentes, tampouco interfere positivamente ou negativamente neste contato (apenas prove dados e o canal interno de chat para propiciar tal contato, como parte do servico pago).' },
           ],
         },
         {
@@ -157,7 +157,7 @@ const TERMS_PT = {
       subsections: [
         { title: '7.1. Limitacao de Responsabilidade (O Teto)', paragraphs: [{ text: 'NA MAXIMA EXTENSAO PERMITIDA PELA LEI APLICAVEL, O DEALSIFTER NAO SERA RESPONSAVEL POR DANOS INDIRETOS, INCIDENTAIS, ESPECIAIS OU CONSEQUENCIAIS (INCLUINDO LUCROS CESSANTES, NEGOCIOS IMOBILIARIOS PERDIDOS OU INTERRUPCAO DE NEGOCIOS). EM NENHUM CASO A RESPONSABILIDADE AGREGADA TOTAL DO DEALSIFTER EXCEDERA O VALOR EXATO QUE VOCE PAGOU AO DEALSIFTER NOS DOZE (12) MESES IMEDIATAMENTE ANTERIORES A RECLAMACAO.', highlight: true }] },
         { title: '7.2. Indenizacao', paragraphs: ['Voce concorda em defender, indenizar e isentar de responsabilidade o DealSifter, sua empresa controladora e seus diretores contra quaisquer reivindicacoes de terceiros, danos civis, multas regulatorias ou honorarios advocaticios decorrentes do uso do Servico, de sua violacao destes Termos, de suas comunicacoes de marketing de saida ou de qualquer transacao fisica ou financeira resultante de um match feito na plataforma.'] },
-        { title: '7.3. Repasse de Terceiros', paragraphs: ['O DealSifter integra feeds de dados e logica de mapas de provedores terceiros (ex: Google Maps, eventualmente registros publicos dos condados e majoritariamente informacoes fornecidas pelos proprios usuarios e proprietarios de imoveis). O DealSifter atua como um canal para esses fluxos de dados. Se um provedor modificar seus termos ou informacoes inicialmente divulgadas, atualizar o acesso aos dados ou encerrar o servico, o DealSifter podera alterar ou descontinuar os recursos imediatamente, sem aviso previo ou responsabilidade.'] },
+        { title: '7.3. Repasse de Terceiros', paragraphs: ['O DealSifter integra feeds de dados e logica de mapas de provedores terceiros (ex: Google Maps, eventualmente registros publicos dos condados e majoritariamente por informacoes fornecidas pelos proprios usuarios e proprietarios de imoveis). O DealSifter atua como um canal para esses fluxos de dados. Se um provedor modificar seus termos ou informacoes inicialmente divulgadas, atualizar o acesso aos dados ou encerrar o servico, o DealSifter podera alterar ou descontinuar os recursos imediatamente, sem aviso previo ou responsabilidade.'] },
       ],
     },
     {
