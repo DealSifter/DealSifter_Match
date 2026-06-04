@@ -361,6 +361,43 @@ const normalizeStringArray = (value) =>
     .map((item) => String(item || '').trim())
     .filter(Boolean)));
 
+const isInlineMediaUrl = (value) => /^data:(image|video|audio|application)\//i.test(String(value || '').trim());
+const MAX_PROFILE_PAYLOAD_BYTES = 64 * 1024;
+
+const normalizePersistableMediaUrls = (value) =>
+  normalizePortfolioImages(value).filter((item) => !isInlineMediaUrl(item));
+
+const getUtf8ByteSize = (value) => {
+  const text = typeof value === 'string' ? value : JSON.stringify(value ?? {});
+  if (typeof TextEncoder !== 'undefined') return new TextEncoder().encode(text).length;
+  return text.length;
+};
+
+const normalizePersistableProfilePayload = (value) => {
+  const stripped = stripInlineMediaFromObject(value || {});
+  return getUtf8ByteSize(stripped) <= MAX_PROFILE_PAYLOAD_BYTES ? stripped : {};
+};
+
+const stripInlineMediaFromObject = (value) => {
+  if (typeof value === 'string') return isInlineMediaUrl(value) ? '' : value;
+  if (Array.isArray(value)) return value.map(stripInlineMediaFromObject).filter((item) => {
+    if (item == null) return false;
+    if (typeof item === 'string') return item.trim().length > 0;
+    return true;
+  });
+  if (!value || typeof value !== 'object') return value;
+
+  return Object.entries(value).reduce((next, [key, raw]) => {
+    const normalizedKey = String(key || '').toLowerCase();
+    if (normalizedKey === 'video' && isInlineMediaUrl(raw)) {
+      next[key] = '';
+      return next;
+    }
+    next[key] = stripInlineMediaFromObject(raw);
+    return next;
+  }, {});
+};
+
 const normalizePersonalProfile = (value) => ({
   ...DEFAULT_PERSONAL_PROFILE,
   ...(value || {}),
@@ -534,7 +571,7 @@ const mapLocalPropertyToDb = (property, userId) => {
     source: String(property?.source || 'portfolio').trim() || 'portfolio',
     owner_account_type: String(property?.ownerAccountType || '').trim() || null,
     primary_profile: String(property?.primaryProfile || 'personal').trim() || 'personal',
-    video: String(property?.video || '').trim() || null,
+    video: isInlineMediaUrl(property?.video) ? null : (String(property?.video || '').trim() || null),
     lat,
     lng,
     geocode_status: normalizeGeocodeStatus(property?.geocodeStatus, geocodeStatusFallback),
@@ -594,14 +631,16 @@ const mapLocalServiceToDb = (service, userId) => ({
   category: String(service?.category || '').trim() || null,
   description: String(service?.description || '').trim() || null,
   price: toNumberOrNull(service?.price),
-  media_images: normalizePortfolioImages([
-    ...(Array.isArray(service?.media?.images) ? service.media.images : []),
-    ...(Array.isArray(service?.media?.archivedImages) ? service.media.archivedImages : []),
-  ]),
+  media_images: normalizePersistableMediaUrls(getLocalServiceMediaImages(service)),
   publish_to_connections: isTruthyFlag(service?.publishToConnections, true),
   markets: normalizeStringArray(service?.markets),
   primary_profile: String(service?.primaryProfile || 'personal').trim() || 'personal',
 });
+
+const getLocalServiceMediaImages = (service) => normalizePortfolioImages([
+  ...(Array.isArray(service?.media?.images) ? service.media.images : []),
+  ...(Array.isArray(service?.media?.archivedImages) ? service.media.archivedImages : []),
+]);
 
 const mapDbServiceToLocal = (row) => ({
   id: row.id,
@@ -2044,7 +2083,8 @@ export default function App() {
             photoUrl, 'profile-images', `${supabaseUserId}/avatar.jpg`, supabase
           );
         } catch (uploadErr) {
-          safeLogError('Avatar upload to Storage failed, using data URL fallback.', uploadErr);
+          safeLogError('Avatar upload to Storage failed; skipping inline media persistence.', uploadErr);
+          photoUrl = null;
         }
       }
 
@@ -2090,12 +2130,12 @@ export default function App() {
     const syncProfessional = async () => {
       pendingFlushRef.current.professional = null;
       const normalized = normalizeProfessionalProfile(professionalProfile, userProfile.category || 'wholesaler');
-      const profilePayload = buildScopedProfilePayload({
+      const profilePayload = normalizePersistableProfilePayload(buildScopedProfilePayload({
         accountType,
-        userProfile,
-        personalProfile,
-        professionalProfile: normalized,
-      });
+        userProfile: stripInlineMediaFromObject(userProfile),
+        personalProfile: stripInlineMediaFromObject(personalProfile),
+        professionalProfile: stripInlineMediaFromObject(normalized),
+      }));
 
       // Upload professional photo to Supabase Storage if it's a local data URL
       let photoBUrl = normalized.photoBUrl || normalized.photoB || null;
@@ -2105,7 +2145,8 @@ export default function App() {
             photoBUrl, 'profile-images', `${supabaseUserId}/photo-b.jpg`, supabase
           );
         } catch (uploadErr) {
-          safeLogError('Professional photo upload to Storage failed, using data URL fallback.', uploadErr);
+          safeLogError('Professional photo upload to Storage failed; skipping inline media persistence.', uploadErr);
+          photoBUrl = null;
         }
       }
 
@@ -2369,7 +2410,30 @@ export default function App() {
       try {
         if (userOwnedServices.length === 0) return;
 
-        const payload = userOwnedServices.map((service) => mapLocalServiceToDb(service, supabaseUserId));
+        const payload = await Promise.all(userOwnedServices.map(async (service) => {
+          const row = mapLocalServiceToDb(service, supabaseUserId);
+          const uploadedImages = await Promise.all(getLocalServiceMediaImages(service).map(async (imageUrl, index) => {
+            let finalUrl = imageUrl;
+            if (finalUrl && isInlineMediaUrl(finalUrl)) {
+              try {
+                finalUrl = await uploadDataUrlToStorage(
+                  finalUrl,
+                  'property-images',
+                  `${supabaseUserId}/services/${row.id}/${index}.jpg`,
+                  supabase
+                );
+              } catch (uploadErr) {
+                safeLogError('Service image upload to Storage failed; skipping inline media persistence.', uploadErr);
+                finalUrl = '';
+              }
+            }
+            return String(finalUrl || '').trim();
+          }));
+          return {
+            ...row,
+            media_images: normalizePersistableMediaUrls(uploadedImages),
+          };
+        }));
         lastLocalSupabaseWriteAtRef.current = Date.now();
         const { error: upsertError } = await supabase
           .from('services')
@@ -2469,7 +2533,8 @@ export default function App() {
                     supabase
                   );
                 } catch (uploadErr) {
-                  safeLogError('Property image upload to Storage failed, using data URL fallback.', uploadErr);
+                  safeLogError('Property image upload to Storage failed; skipping inline media persistence.', uploadErr);
+                  finalUrl = '';
                 }
               }
               return String(finalUrl || '').trim();

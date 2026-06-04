@@ -1,0 +1,1 @@
+﻿-- Remote administrative no-op migration used to validate Supabase Management API write access.\n
