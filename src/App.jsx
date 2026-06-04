@@ -128,6 +128,7 @@ const isMissingFunctionError = (error, functionName) => {
 };
 
 const LOCAL_REALTIME_IGNORE_MS = 2200;
+const REALTIME_REFRESH_MIN_INTERVAL_MS = 2500;
 
 // Global unhandled error capture — hooks into window.__DS_REPORT_ERROR for Sentry/external service
 if (typeof window !== 'undefined') {
@@ -688,6 +689,7 @@ export default function App() {
     return 'https://dealsiftermatch.vercel.app';
   }, []);
   const realtimeRefreshDebounceRef = useRef({ profiles: null, portfolio: null });
+  const lastRealtimeRefreshAtRef = useRef({ profiles: 0, portfolio: 0 });
   const lastLocalSupabaseWriteAtRef = useRef(0);
   const prevUserIdRef = useRef(null); // tracks userId across renders to detect user change
   const [isHydratingProfiles, setIsHydratingProfiles] = useState(false);
@@ -1988,27 +1990,33 @@ export default function App() {
   const scheduleProfileRealtimeRefresh = useCallback((delayMs = 350) => {
     if (!isSupabaseConfigured || !supabase || !supabaseUserId) return;
     if (Date.now() - lastLocalSupabaseWriteAtRef.current < LOCAL_REALTIME_IGNORE_MS) return;
+    const elapsed = Date.now() - lastRealtimeRefreshAtRef.current.profiles;
+    const nextDelay = Math.max(delayMs, REALTIME_REFRESH_MIN_INTERVAL_MS - elapsed, 0);
     if (realtimeRefreshDebounceRef.current.profiles) {
       clearTimeout(realtimeRefreshDebounceRef.current.profiles);
       realtimeRefreshDebounceRef.current.profiles = null;
     }
     realtimeRefreshDebounceRef.current.profiles = setTimeout(() => {
       realtimeRefreshDebounceRef.current.profiles = null;
+      lastRealtimeRefreshAtRef.current.profiles = Date.now();
       setProfileHydrationCycle((prev) => prev + 1);
-    }, delayMs);
+    }, nextDelay);
   }, [supabaseUserId]);
 
   const schedulePortfolioRealtimeRefresh = useCallback((delayMs = 350) => {
     if (!isSupabaseConfigured || !supabase || !supabaseUserId) return;
     if (Date.now() - lastLocalSupabaseWriteAtRef.current < LOCAL_REALTIME_IGNORE_MS) return;
+    const elapsed = Date.now() - lastRealtimeRefreshAtRef.current.portfolio;
+    const nextDelay = Math.max(delayMs, REALTIME_REFRESH_MIN_INTERVAL_MS - elapsed, 0);
     if (realtimeRefreshDebounceRef.current.portfolio) {
       clearTimeout(realtimeRefreshDebounceRef.current.portfolio);
       realtimeRefreshDebounceRef.current.portfolio = null;
     }
     realtimeRefreshDebounceRef.current.portfolio = setTimeout(() => {
       realtimeRefreshDebounceRef.current.portfolio = null;
+      lastRealtimeRefreshAtRef.current.portfolio = Date.now();
       refreshPortfolioHydration();
-    }, delayMs);
+    }, nextDelay);
   }, [supabaseUserId, refreshPortfolioHydration]);
 
   useEffect(() => {

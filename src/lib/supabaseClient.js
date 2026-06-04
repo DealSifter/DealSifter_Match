@@ -32,6 +32,46 @@ const readFirstEnv = (...keys) => {
 const supabaseUrl = canonicalizeSupabaseUrl(readFirstEnv('VITE_SUPABASE_URL', 'SUPABASE_URL', 'NEXT_PUBLIC_SUPABASE_URL'));
 const supabaseAnonKey = readFirstEnv('VITE_SUPABASE_ANON_KEY', 'SUPABASE_ANON_KEY', 'NEXT_PUBLIC_SUPABASE_ANON_KEY');
 const hasValidSupabaseUrl = isValidHttpUrl(supabaseUrl);
+const nativeFetch = (...args) => fetch(...args);
+const pendingReadRequests = new Map();
+
+const getRequestMethod = (input, init = {}) => {
+  const method = init?.method || (typeof input === 'object' && input?.method) || 'GET';
+  return String(method || 'GET').toUpperCase();
+};
+
+const getRequestUrl = (input) => {
+  if (typeof input === 'string') return input;
+  if (input instanceof URL) return input.toString();
+  return input?.url || '';
+};
+
+const shouldDedupeSupabaseRead = (input, init) => {
+  const method = getRequestMethod(input, init);
+  if (method !== 'GET' && method !== 'HEAD') return false;
+  const url = getRequestUrl(input);
+  if (!url || !supabaseUrl || !url.startsWith(supabaseUrl)) return false;
+  return !url.includes('/auth/v1/');
+};
+
+const quotaFriendlyFetch = async (input, init = {}) => {
+  if (!shouldDedupeSupabaseRead(input, init)) {
+    return nativeFetch(input, init);
+  }
+
+  const key = `${getRequestMethod(input, init)} ${getRequestUrl(input)}`;
+  if (!pendingReadRequests.has(key)) {
+    pendingReadRequests.set(
+      key,
+      nativeFetch(input, init).finally(() => {
+        pendingReadRequests.delete(key);
+      }),
+    );
+  }
+
+  const response = await pendingReadRequests.get(key);
+  return response.clone();
+};
 
 export const isSupabaseConfigured = Boolean(hasValidSupabaseUrl && supabaseAnonKey);
 export const supabaseConfigReason = hasValidSupabaseUrl
@@ -47,6 +87,9 @@ let supabase = null;
 if (isSupabaseConfigured) {
   try {
     supabase = createClient(supabaseUrl, supabaseAnonKey, {
+      global: {
+        fetch: quotaFriendlyFetch,
+      },
       auth: {
         persistSession: true,
         autoRefreshToken: true,
