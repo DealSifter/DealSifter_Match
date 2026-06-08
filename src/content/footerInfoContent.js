@@ -80,6 +80,30 @@ export const FOOTER_INFO = {
       ],
       cta: 'We recommend including your account email and a short description of the issue when contacting support.',
     },
+    termsOfUse: {
+      title: 'Terms of Use',
+      kicker: 'Homepage summary',
+      body: [
+        'By accessing DealSifter, creating an account, or using the platform, you agree to use the service responsibly and in accordance with applicable laws.',
+        'DealSifter is a peer-to-peer networking and matchmaking platform. It does not act as a real estate broker, agent, lender, legal advisor, financial advisor, or fiduciary.',
+        'Users are responsible for verifying counterparties, licenses, property information, deal terms, title, inspections, financing, and all due diligence before making decisions.',
+        'Platform fees, subscriptions, nuggets, and unlocks are charged for access and matching utility only. They are not brokerage commissions, referral fees, or transaction success fees.',
+        'Abusive conduct, misleading content, scraping, unauthorized data resale, phishing, and prohibited communications are not allowed.',
+      ],
+      cta: 'The full Terms of Use will be presented during account/payment flows when applicable.',
+    },
+    privacyPolicy: {
+      title: 'Privacy Policy',
+      kicker: 'Homepage summary',
+      body: [
+        'DealSifter collects account, profile, preference, property, service, matching, consent, billing-status, and usage data needed to operate the platform.',
+        'We use this information to authenticate users, personalize matches, support profiles and cards, process payments through Stripe, improve security, and provide support.',
+        'Sensitive card data is processed by Stripe. DealSifter does not store full card numbers.',
+        'We do not sell raw customer lists or private notes. Users should avoid sharing sensitive documents until they have independently verified a counterparty.',
+        'You may request access, correction, export, consent revocation, or account deletion through the app settings or by contacting support.',
+      ],
+      cta: 'Privacy contact: contato.dealsifter@gmail.com',
+    },
     cookiePolicy: {
       title: 'Cookie Policy',
       kicker: 'Cookies and local storage',
@@ -174,6 +198,30 @@ FOOTER_INFO.pt = {
     ],
     cta: 'Inclua o email da conta e uma descricao curta do problema ao contatar o suporte.',
   },
+  termsOfUse: {
+    title: 'Termos de uso',
+    kicker: 'Resumo da homepage',
+    body: [
+      'Ao acessar o DealSifter, criar uma conta ou usar a plataforma, voce concorda em utilizar o servico de forma responsavel e conforme as leis aplicaveis.',
+      'O DealSifter e uma plataforma peer-to-peer de networking e matchmaking. Nao atua como corretor, agente, lender, consultor juridico, consultor financeiro ou fiduciario.',
+      'Usuarios sao responsaveis por verificar contrapartes, licencas, informacoes de propriedades, termos de negocio, titulo, inspecoes, financiamento e toda due diligence antes de decidir.',
+      'Taxas de plataforma, assinaturas, nuggets e unlocks sao cobrados apenas por acesso e utilidade de matching. Nao sao comissoes de corretagem, referral fees ou taxas de sucesso.',
+      'Conduta abusiva, conteudo enganoso, scraping, revenda nao autorizada de dados, phishing e comunicacoes proibidas nao sao permitidos.',
+    ],
+    cta: 'Os Termos de Uso completos serao apresentados nos fluxos de conta/pagamento quando aplicavel.',
+  },
+  privacyPolicy: {
+    title: 'Politica de privacidade',
+    kicker: 'Resumo da homepage',
+    body: [
+      'O DealSifter coleta dados de conta, perfil, preferencias, propriedades, servicos, matching, consentimento, status de billing e uso necessarios para operar a plataforma.',
+      'Usamos essas informacoes para autenticar usuarios, personalizar matches, suportar perfis e cards, processar pagamentos via Stripe, melhorar seguranca e prestar suporte.',
+      'Dados sensiveis de cartao sao processados pelo Stripe. O DealSifter nao armazena numeros completos de cartao.',
+      'Nao vendemos listas brutas de clientes ou notas privadas. Usuarios devem evitar compartilhar documentos sensiveis antes de verificar independentemente uma contraparte.',
+      'Voce pode solicitar acesso, correcao, exportacao, revogacao de consentimento ou exclusao de conta pelas configuracoes do app ou pelo suporte.',
+    ],
+    cta: 'Contato de privacidade: contato.dealsifter@gmail.com',
+  },
   cookiePolicy: {
     title: 'Politica de cookies',
     kicker: 'Cookies e armazenamento local',
@@ -266,6 +314,30 @@ FOOTER_INFO.es = {
       'Usuarios logueados tambien pueden usar Communication dentro de Edit Profile para iniciar chat interno con soporte.',
     ],
     cta: 'Incluye el email de la cuenta y una descripcion breve del problema al contactar soporte.',
+  },
+  termsOfUse: {
+    title: 'Terminos de uso',
+    kicker: 'Resumen de homepage',
+    body: [
+      'Al acceder a DealSifter, crear una cuenta o usar la plataforma, aceptas usar el servicio de forma responsable y conforme a las leyes aplicables.',
+      'DealSifter es una plataforma peer-to-peer de networking y matchmaking. No actua como broker inmobiliario, agente, lender, asesor legal, asesor financiero ni fiduciario.',
+      'Los usuarios son responsables de verificar contrapartes, licencias, informacion de propiedades, terminos del negocio, titulo, inspecciones, financiamiento y toda due diligence antes de decidir.',
+      'Las tarifas de plataforma, suscripciones, nuggets y unlocks se cobran solo por acceso y utilidad de matching. No son comisiones de corretaje, referral fees ni tarifas de exito.',
+      'Conducta abusiva, contenido enganoso, scraping, reventa no autorizada de datos, phishing y comunicaciones prohibidas no estan permitidos.',
+    ],
+    cta: 'Los Terminos de Uso completos se presentaran en los flujos de cuenta/pago cuando corresponda.',
+  },
+  privacyPolicy: {
+    title: 'Politica de privacidad',
+    kicker: 'Resumen de homepage',
+    body: [
+      'DealSifter recopila datos de cuenta, perfil, preferencias, propiedades, servicios, matching, consentimiento, estado de billing y uso necesarios para operar la plataforma.',
+      'Usamos esta informacion para autenticar usuarios, personalizar matches, soportar perfiles y cards, procesar pagos via Stripe, mejorar seguridad y brindar soporte.',
+      'Los datos sensibles de tarjeta son procesados por Stripe. DealSifter no almacena numeros completos de tarjeta.',
+      'No vendemos listas brutas de clientes ni notas privadas. Los usuarios deben evitar compartir documentos sensibles antes de verificar independientemente una contraparte.',
+      'Puedes solicitar acceso, correccion, exportacion, revocacion de consentimiento o eliminacion de cuenta desde la configuracion del app o contactando soporte.',
+    ],
+    cta: 'Contacto de privacidad: contato.dealsifter@gmail.com',
   },
   cookiePolicy: {
     title: 'Politica de cookies',

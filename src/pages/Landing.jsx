@@ -407,7 +407,7 @@ function ProfItem({ item }) {
   );
 }
 
-export function Landing({ setPage, onOpenAuthModal = () => {} }) {
+export function Landing({ onOpenAuthModal = () => {} }) {
   const [activeService, setActiveService] = React.useState(null);
   const [footerInfoKey, setFooterInfoKey] = React.useState(null);
   const isMobile = useMediaQuery('(max-width: 767px)');
@@ -1039,8 +1039,8 @@ export function Landing({ setPage, onOpenAuthModal = () => {} }) {
           <div>
             <div style={{ fontSize: 13, fontWeight: 700, color: '#222c48', marginBottom: 18 }}>{footerLabels.legal}</div>
             {[
-              { label: footerLabels.privacy, action: () => setPage('privacy') },
-              { label: footerLabels.terms,   action: () => setPage('terms')   },
+              { label: footerLabels.privacy, action: () => setFooterInfoKey('privacyPolicy') },
+              { label: footerLabels.terms,   action: () => setFooterInfoKey('termsOfUse') },
               { label: footerLabels.cookie,  action: () => setFooterInfoKey('cookiePolicy') },
             ].map(item => (
               <button key={item.label} onClick={item.action} style={{ display: 'block', background: 'none', border: 'none', color: '#222c48', fontSize: 13, cursor: 'pointer', padding: '0 0 12px', textAlign: 'left', lineHeight: 1.4, transition: 'color .15s' }}
