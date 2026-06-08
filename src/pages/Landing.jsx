@@ -411,7 +411,7 @@ export function Landing({ onOpenAuthModal = () => {} }) {
   const [activeService, setActiveService] = React.useState(null);
   const [footerInfoKey, setFooterInfoKey] = React.useState(null);
   const isMobile = useMediaQuery('(max-width: 767px)');
-  const isTabletHero = useMediaQuery('(min-width: 768px) and (max-width: 1180px)');
+  const isTabletHero = useMediaQuery('(min-width: 768px) and (max-width: 1368px)');
 
   useEffect(() => {
     try {
