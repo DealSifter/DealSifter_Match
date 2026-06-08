@@ -666,27 +666,29 @@ export function Landing({ onOpenAuthModal = () => {} }) {
           })}
         </div>
 
-        {/* ── Gradiente central para legibilidade ── */}
-        <div style={{ position:'absolute', inset:0, zIndex:1, pointerEvents:'none', background:'radial-gradient(ellipse 76% 86% at 50% 50%, rgba(248,250,252,0.98) 0%, rgba(248,250,252,0.95) 32%, rgba(248,250,252,0.78) 54%, rgba(248,250,252,0.32) 72%, transparent 92%)' }} />
-
         {/* ── Conteúdo central ── */}
         <div style={{ position:'relative', zIndex:2, width: '100%', maxWidth: 800 }}>
-          <h1 style={{ fontSize:"clamp(30px,7vw,66px)", fontWeight:900, color:C.t1, lineHeight:1.1, marginBottom:20, letterSpacing:isMobile ? '-1.2px' : '-2px', maxWidth:800, marginInline: 'auto' }}>
-            {t.headline1}<br /><span style={{ color:C.accent }}>{t.headline2}</span><br />{t.headline3}
-          </h1>
-          <p style={{ fontSize:"clamp(14px,2.5vw,18px)", color:C.t2, maxWidth:520, lineHeight:1.7, marginBottom:36, margin:"0 auto 36px", textAlign:"center" }}>
-            {t.subtitle}
-          </p>
-          <div style={{ display:"flex", gap:22, flexWrap:"wrap", justifyContent:"center", marginBottom:10 }}>
-            <button onClick={() => onOpenAuthModal('signup')} style={{ padding:"14px 32px", borderRadius:12, background:C.gold, color:C.bg, fontWeight:700, fontSize:15, border:"none", cursor:"pointer", width: isMobile ? '100%' : 'auto', maxWidth: isMobile ? 340 : 'none' }}>{t.getStarted}</button>
+          <div style={{ position:'relative', display:'inline-block', marginBottom:18 }}>
+            <div style={{ position:'absolute', inset:isMobile ? '-22px -26px' : '-34px -70px', zIndex:0, pointerEvents:'none', background:'radial-gradient(ellipse 72% 78% at 50% 52%, rgba(248,250,252,0.98) 0%, rgba(248,250,252,0.88) 42%, rgba(248,250,252,0.36) 70%, transparent 100%)', filter:'blur(8px)' }} />
+            <h1 style={{ position:'relative', zIndex:1, fontSize:"clamp(30px,7vw,66px)", fontWeight:900, color:C.t1, lineHeight:1.1, margin:0, letterSpacing:isMobile ? '-1.2px' : '-2px', maxWidth:800, marginInline: 'auto' }}>
+              {t.headline1}<br /><span style={{ color:C.accent }}>{t.headline2}</span><br />{t.headline3}
+            </h1>
           </div>
-          <div style={{ display:"flex", gap:"clamp(18px,4vw,38px)", marginTop:22, flexWrap:"wrap", justifyContent:"center" }}>
-            {proofPoints.map(([title, desc]) => (
-              <div key={title} style={{ textAlign:"center", maxWidth: isMobile ? 142 : 170 }}>
-                <div style={{ fontSize:"clamp(13px,2vw,15px)", fontWeight:850, color:C.t1, lineHeight:1.2 }}>{title}</div>
-                <div style={{ fontSize:11, color:C.t3, lineHeight:1.35, marginTop:4 }}>{desc}</div>
-              </div>
-            ))}
+          <div style={{ width:'min(100%, 760px)', margin:'0 auto', padding:isMobile ? '16px 14px 18px' : '18px 24px 20px', borderRadius:isMobile ? 22 : 28, background:'linear-gradient(135deg, rgba(255,255,255,0.58), rgba(248,250,252,0.32))', border:'1px solid rgba(255,255,255,0.58)', boxShadow:'0 18px 60px rgba(15,23,42,0.12), inset 0 1px 0 rgba(255,255,255,0.72)', backdropFilter:'blur(18px) saturate(1.18)', WebkitBackdropFilter:'blur(18px) saturate(1.18)' }}>
+            <p style={{ fontSize:"clamp(14px,2.5vw,18px)", color:'#25324a', maxWidth:560, lineHeight:1.7, margin:"0 auto 22px", textAlign:"center", fontWeight:550 }}>
+              {t.subtitle}
+            </p>
+            <div style={{ display:"flex", gap:22, flexWrap:"wrap", justifyContent:"center", marginBottom:10 }}>
+              <button onClick={() => onOpenAuthModal('signup')} style={{ padding:"14px 32px", borderRadius:12, background:C.gold, color:C.bg, fontWeight:700, fontSize:15, border:"none", cursor:"pointer", width: isMobile ? '100%' : 'auto', maxWidth: isMobile ? 340 : 'none' }}>{t.getStarted}</button>
+            </div>
+            <div style={{ display:"flex", gap:"clamp(18px,4vw,34px)", marginTop:20, flexWrap:"wrap", justifyContent:"center" }}>
+              {proofPoints.map(([title, desc]) => (
+                <div key={title} style={{ textAlign:"center", maxWidth: isMobile ? 142 : 165 }}>
+                  <div style={{ fontSize:"clamp(13px,2vw,15px)", fontWeight:850, color:'#101827', lineHeight:1.2 }}>{title}</div>
+                  <div style={{ fontSize:11, color:'#39465d', lineHeight:1.35, marginTop:4, fontWeight:650 }}>{desc}</div>
+                </div>
+              ))}
+            </div>
           </div>
         </div>
       </section>
