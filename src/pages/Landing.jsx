@@ -411,6 +411,7 @@ export function Landing({ onOpenAuthModal = () => {} }) {
   const [activeService, setActiveService] = React.useState(null);
   const [footerInfoKey, setFooterInfoKey] = React.useState(null);
   const isMobile = useMediaQuery('(max-width: 767px)');
+  const isTabletHero = useMediaQuery('(min-width: 768px) and (max-width: 1180px)');
 
   useEffect(() => {
     try {
@@ -631,12 +632,15 @@ export function Landing({ onOpenAuthModal = () => {} }) {
         {/* ── Mosaico tipo Tinder de fundo ── */}
         <div aria-hidden="true" style={{ position:'absolute', inset:0, zIndex:0, pointerEvents:'none', display:'flex', alignItems:'stretch', gap:10, padding:'0 8px', contain:'paint' }}>
           {HERO_MOSAIC_COLS.map((col, ci) => {
-            const dirs = ['mosaicScrollUp','mosaicScrollDown','mosaicScrollUp','mosaicScrollDown','mosaicScrollUp'];
-            const durs = ['30s','22s','36s','26s','28s'];
+            const dirs = isTabletHero
+              ? ['mosaicScrollUp','mosaicScrollUp','mosaicScrollUp','mosaicScrollUp','mosaicScrollUp']
+              : ['mosaicScrollUp','mosaicScrollDown','mosaicScrollUp','mosaicScrollDown','mosaicScrollUp'];
+            const durs = isTabletHero ? ['34s','30s','38s','32s','36s'] : ['30s','22s','36s','26s','28s'];
+            const loopItems = [...col, ...col, ...col, ...col];
             return (
               <div key={ci} className={`hero-mc hero-mc-${ci}`} style={{ flex:1, minWidth:0, overflow:'hidden' }}>
                 <div style={{ display:'flex', flexDirection:'column', gap:10, animation:`${dirs[ci]} ${durs[ci]} linear infinite`, willChange:'transform' }}>
-                  {[...col, ...col].map((item, idx) => (
+                  {loopItems.map((item, idx) => (
                     <div key={idx} style={{ borderRadius:12, overflow:'hidden', background:'#fff', flexShrink:0, border: item.kind==='profile' ? '1px solid rgba(67,129,188,0.14)' : '1px solid rgba(0,0,0,0.06)', boxShadow:'0 2px 10px rgba(0,0,0,0.09)' }}>
                       {item.kind === 'property' ? (
                         <>
