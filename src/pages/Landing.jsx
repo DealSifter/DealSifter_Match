@@ -10,9 +10,10 @@ import { useMediaQuery } from '../hooks/useMediaQuery';
 
 /* ─── Preview cards used inside the "Most Requested Services" section ─── */
 function LandingProfCard({ onClick }) {
-  const tags = ['Contract Law', 'Property Disputes', 'Closing Services'];
+  const t = useT('landing').landing;
+  const tags = t.previewProfTags || ['Contract Law', 'Property Disputes', 'Closing Services'];
   return (
-    <div onClick={onClick} title="Click to join and connect" style={{
+    <div onClick={onClick} title={t.joinConnectTitle || 'Click to join and connect'} style={{
       position: 'relative', borderRadius: 16, padding: 1.5, cursor: 'pointer',
       backgroundImage: `linear-gradient(#fff, #fff), linear-gradient(to bottom, #14B8A6, #28324b)`,
       backgroundOrigin: 'border-box', backgroundClip: 'padding-box, border-box',
@@ -33,7 +34,7 @@ function LandingProfCard({ onClick }) {
           <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 6, marginBottom: 4 }}>
             <div>
               <div style={{ fontSize: 15, fontWeight: 800, color: '#1e2d4d', lineHeight: 1.2, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>Sarah Johnson</div>
-              <div style={{ fontSize: 11, color: '#14B8A6', fontWeight: 700, marginTop: 1 }}>Real Estate Attorney</div>
+              <div style={{ fontSize: 11, color: '#14B8A6', fontWeight: 700, marginTop: 1 }}>{t.previewAttorneyRole || 'Real Estate Attorney'}</div>
             </div>
             <div style={{ flexShrink: 0, padding: '3px 8px', borderRadius: 20, background: 'rgba(234,179,8,0.12)', border: '1px solid rgba(234,179,8,0.3)', color: C.gold, fontSize: 10, fontWeight: 800, whiteSpace: 'nowrap', display: 'flex', alignItems: 'center', gap: 3 }}>
               <Icon name="nugget" size={10} color={C.gold} strokeWidth={1.8} />
@@ -52,7 +53,7 @@ function LandingProfCard({ onClick }) {
           </div>
           <div style={{ display: 'flex', gap: 5, marginBottom: 8, flexWrap: 'wrap' }}>
             <div style={{ padding: '3px 8px', borderRadius: 8, background: 'rgba(20,184,166,0.08)', border: '1px solid rgba(20,184,166,0.15)', fontSize: 10, color: '#14B8A6', fontWeight: 700, display: 'flex', alignItems: 'center', gap: 3 }}>
-              <Icon name="layers" size={10} color="#14B8A6" />38 deals
+              <Icon name="layers" size={10} color="#14B8A6" />38 {t.previewDealsLabel || 'deals'}
             </div>
             <div style={{ padding: '3px 9px', borderRadius: 8, background: 'rgba(0,0,0,0.04)', border: '1px solid #e2e8f0', fontSize: 10, color: '#94a3b8', display: 'flex', alignItems: 'center', gap: 4 }}>
               <Icon name="phone" size={10} color="#94a3b8" strokeWidth={1.6} />
@@ -61,7 +62,7 @@ function LandingProfCard({ onClick }) {
             </div>
           </div>
           <p style={{ fontSize: 11, color: '#64748B', lineHeight: 1.5, margin: '0 0 8px', display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', overflow: 'hidden' }}>
-            Experienced real estate attorney specializing in complex transactions and property law.
+            {t.previewAttorneyBio || 'Experienced real estate attorney specializing in complex transactions and property law.'}
           </p>
           <div style={{ display: 'flex', flexWrap: 'wrap', gap: 4, marginBottom: 8 }}>
             {tags.map(tag => (
@@ -72,8 +73,8 @@ function LandingProfCard({ onClick }) {
           <div style={{ marginTop: 'auto', padding: '7px 10px', borderRadius: 10, background: 'rgba(234,179,8,0.06)', border: '1px solid rgba(234,179,8,0.25)', display: 'flex', alignItems: 'center', gap: 8 }}>
             <Icon name="lock" size={14} color={C.gold} strokeWidth={2} />
             <div style={{ flex: 1 }}>
-              <div style={{ fontWeight: 700, fontSize: 11, color: '#1e2d4d' }}>Contact Locked</div>
-              <div style={{ fontSize: 10, color: '#64748B' }}>Unlock with <span style={{ color: C.gold, fontWeight: 700 }}>3 nuggets</span></div>
+              <div style={{ fontWeight: 700, fontSize: 11, color: '#1e2d4d' }}>{t.previewContactLocked || 'Contact Locked'}</div>
+              <div style={{ fontSize: 10, color: '#64748B' }}>{t.previewUnlockWith || 'Unlock with'} <span style={{ color: C.gold, fontWeight: 700 }}>3 {t.previewNuggets || 'nuggets'}</span></div>
             </div>
             <Icon name="star" size={14} color={C.gold} strokeWidth={2} />
           </div>
@@ -84,8 +85,9 @@ function LandingProfCard({ onClick }) {
 }
 
 function LandingPropCard({ onClick }) {
+  const t = useT('landing').landing;
   return (
-    <div onClick={onClick} title="Click to join and connect" style={{
+    <div onClick={onClick} title={t.joinConnectTitle || 'Click to join and connect'} style={{
       position: 'relative', borderRadius: 16, padding: 1.5, cursor: 'pointer',
       backgroundImage: `linear-gradient(#fff, #fff), linear-gradient(to bottom, #4280ba, #28324b)`,
       backgroundOrigin: 'border-box', backgroundClip: 'padding-box, border-box',
@@ -99,34 +101,34 @@ function LandingPropCard({ onClick }) {
       <div style={{ background: '#fff', borderRadius: 14, overflow: 'hidden', display: 'flex', flexDirection: 'row', width: '100%', height: '100%' }}>
         {/* Photo */}
         <div style={{ width: '42%', flexShrink: 0, position: 'relative', overflow: 'hidden' }}>
-          <img src="https://picsum.photos/seed/orlando-ff/300/400" alt="Fix & Flip Property" style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }} />
-          <div style={{ position: 'absolute', top: 8, right: 8, padding: '3px 9px', borderRadius: 20, background: 'rgba(249,115,22,0.9)', color: '#fff', fontSize: 10, fontWeight: 800 }}>Fix & Flip</div>
+          <img src="https://images.unsplash.com/photo-1564013799919-ab600027ffc6?w=300&h=400&fit=crop&crop=center" alt={t.previewPropertyAlt || 'Fix and flip property'} style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }} />
+          <div style={{ position: 'absolute', top: 8, right: 8, padding: '3px 9px', borderRadius: 20, background: 'rgba(249,115,22,0.9)', color: '#fff', fontSize: 10, fontWeight: 800 }}>{t.previewFixFlip || 'Fix & Flip'}</div>
         </div>
         {/* Info */}
         <div style={{ flex: 1, padding: '13px', display: 'flex', flexDirection: 'column', boxSizing: 'border-box', overflow: 'hidden' }}>
-          <div style={{ fontSize: 14, fontWeight: 800, color: '#1e2d4d', lineHeight: 1.3, marginBottom: 4 }}>3BR/2BA Single Family Home</div>
+          <div style={{ fontSize: 14, fontWeight: 800, color: '#1e2d4d', lineHeight: 1.3, marginBottom: 4 }}>{t.previewPropertyTitle || '3BR/2BA Single Family Home'}</div>
           <div style={{ display: 'flex', alignItems: 'center', gap: 3, fontSize: 11, color: '#64748B', marginBottom: 10 }}>
             <Icon name="mapPin" size={11} color="#64748B" />
             <span>Orlando, FL</span>
           </div>
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '4px 8px', marginBottom: 10 }}>
-            <div><div style={{ fontSize: 10, color: '#64748B' }}>Price</div><div style={{ fontSize: 13, fontWeight: 800, color: '#16a34a' }}>$180,000</div></div>
-            <div><div style={{ fontSize: 10, color: '#64748B' }}>ARV</div><div style={{ fontSize: 13, fontWeight: 700, color: '#1e2d4d' }}>$280,000</div></div>
+            <div><div style={{ fontSize: 10, color: '#64748B' }}>{t.previewPrice || 'Price'}</div><div style={{ fontSize: 13, fontWeight: 800, color: '#16a34a' }}>$180,000</div></div>
+            <div><div style={{ fontSize: 10, color: '#64748B' }}>{t.previewArv || 'ARV'}</div><div style={{ fontSize: 13, fontWeight: 700, color: '#1e2d4d' }}>$280,000</div></div>
           </div>
           <p style={{ fontSize: 11, color: '#64748B', lineHeight: 1.5, margin: '0 0 8px', display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', overflow: 'hidden' }}>
-            Great investment opportunity in growing neighborhood. Needs cosmetic updates.
+            {t.previewPropertyBio || 'Great investment opportunity in growing neighborhood. Needs cosmetic updates.'}
           </p>
           <div style={{ display: 'flex', gap: 10, marginBottom: 8, fontSize: 11, color: '#64748B' }}>
             <span><strong>3</strong> BR</span>
             <span><strong>2</strong> BA</span>
-            <span><strong>1,450</strong> sqft</span>
+            <span><strong>1,450</strong> {t.previewSqft || 'sqft'}</span>
           </div>
           {/* Contact locked strip */}
           <div style={{ marginTop: 'auto', padding: '7px 10px', borderRadius: 10, background: 'rgba(234,179,8,0.06)', border: '1px solid rgba(234,179,8,0.25)', display: 'flex', alignItems: 'center', gap: 8 }}>
             <Icon name="lock" size={14} color={C.gold} strokeWidth={2} />
             <div style={{ flex: 1 }}>
-              <div style={{ fontWeight: 700, fontSize: 11, color: '#1e2d4d' }}>Contact Locked</div>
-              <div style={{ fontSize: 10, color: '#64748B' }}>Unlock with <span style={{ color: C.gold, fontWeight: 700 }}>3 nuggets</span></div>
+              <div style={{ fontWeight: 700, fontSize: 11, color: '#1e2d4d' }}>{t.previewContactLocked || 'Contact Locked'}</div>
+              <div style={{ fontSize: 10, color: '#64748B' }}>{t.previewUnlockWith || 'Unlock with'} <span style={{ color: C.gold, fontWeight: 700 }}>3 {t.previewNuggets || 'nuggets'}</span></div>
             </div>
             <Icon name="star" size={14} color={C.gold} strokeWidth={2} />
           </div>
@@ -138,6 +140,7 @@ function LandingPropCard({ onClick }) {
 
 /* ─── Animated swipe card stack for the Nuggets section ─── */
 function NuggetSwipeDemo() {
+  const t = useT('landing').landing;
   const DEMO_CARDS = [
     { img: 'https://randomuser.me/api/portraits/men/32.jpg',   name: 'Marcus Rivera',   type: 'Wholesaler',           loc: 'Phoenix, AZ',     rating: 4.8, reviews: 94,  deals: 52,  nuggets: 3,  bio: 'Connecting off-market deals with cash buyers across the Southwest for over 10 years.', tags: ['Off-Market', 'Wholesale', 'BRRRR'],             dir: 'right' },
     { img: 'https://randomuser.me/api/portraits/women/45.jpg', name: 'Sarah Johnson',   type: 'Real Estate Attorney', loc: 'Miami, FL',        rating: 4.9, reviews: 127, deals: 38,  nuggets: 3,  bio: 'Experienced real estate attorney specializing in complex transactions and property law.', tags: ['Contract Law', 'Property Disputes', 'Closing Services'], dir: 'left'  },
@@ -270,7 +273,7 @@ function NuggetSwipeDemo() {
                   <div style={{ display: 'flex', gap: 6, marginBottom: 9, flexWrap: 'wrap' }}>
                     <div style={{ padding: '4px 9px', borderRadius: 8, background: 'rgba(20,184,166,0.08)', border: '1px solid rgba(20,184,166,0.18)', fontSize: 11, color: '#14B8A6', fontWeight: 700, display: 'flex', alignItems: 'center', gap: 4 }}>
                       <Icon name="layers" size={11} color="#14B8A6" />
-                      {card.deals} deals
+                      {card.deals} {t.previewDealsLabel || 'deals'}
                     </div>
                     <div style={{ padding: '4px 9px', borderRadius: 8, background: 'rgba(0,0,0,0.04)', border: '1px solid #e2e8f0', display: 'flex', alignItems: 'center', gap: 5 }}>
                       <Icon name="phone" size={11} color="#94a3b8" strokeWidth={1.6} />
@@ -293,8 +296,8 @@ function NuggetSwipeDemo() {
                   <div style={{ marginTop: 10, padding: '7px 11px', borderRadius: 10, background: 'rgba(234,179,8,0.06)', border: '1px solid rgba(234,179,8,0.26)', display: 'flex', alignItems: 'center', gap: 8 }}>
                     <Icon name="lock" size={15} color={C.gold} strokeWidth={2} />
                     <div style={{ flex: 1 }}>
-                      <div style={{ fontWeight: 700, fontSize: 11, color: '#1e2d4d' }}>Contact Locked</div>
-                      <div style={{ fontSize: 10, color: '#64748B' }}>Unlock with <span style={{ color: C.gold, fontWeight: 700 }}>{card.nuggets} nuggets</span></div>
+                      <div style={{ fontWeight: 700, fontSize: 11, color: '#1e2d4d' }}>{t.previewContactLocked || 'Contact Locked'}</div>
+                      <div style={{ fontSize: 10, color: '#64748B' }}>{t.previewUnlockWith || 'Unlock with'} <span style={{ color: C.gold, fontWeight: 700 }}>{card.nuggets} {t.previewNuggets || 'nuggets'}</span></div>
                     </div>
                     <Icon name="star" size={15} color={C.gold} strokeWidth={2} />
                   </div>
@@ -313,7 +316,7 @@ function NuggetSwipeDemo() {
                 background: swipeDir === 'right' ? 'rgba(34,197,94,0.92)' : 'rgba(239,68,68,0.92)',
                 border: `2px solid ${swipeDir === 'right' ? '#22c55e' : '#ef4444'}`,
               }}>
-                {swipeDir === 'right' ? 'MATCH ♥' : 'PASS ✕'}
+                {swipeDir === 'right' ? (t.demoMatchStamp || 'MATCH') : (t.demoPassStamp || 'PASS')}
               </div>
             )}
           </div>
@@ -411,7 +414,6 @@ export function Landing({ onOpenAuthModal = () => {} }) {
   const [activeService, setActiveService] = React.useState(null);
   const [footerInfoKey, setFooterInfoKey] = React.useState(null);
   const isMobile = useMediaQuery('(max-width: 767px)');
-  const isTabletHero = useMediaQuery('(min-width: 768px) and (max-width: 1368px)');
 
   useEffect(() => {
     try {
@@ -484,37 +486,37 @@ export function Landing({ onOpenAuthModal = () => {} }) {
   const HERO_MOSAIC_COLS = [
     [
       { kind:'profile',  img:'https://randomuser.me/api/portraits/men/32.jpg',    name:'Marcus Realty',      role:'Wholesaler',       cat:'wholesaler' },
-      { kind:'property', img:'https://picsum.photos/seed/sfr-phoenix-1/300/200',  price:'$185K', city:'Phoenix, AZ',     type:'SFR',         tag:'Opportunity'       },
+      { kind:'property', img:'https://images.unsplash.com/photo-1568605114967-8130f3a36994?w=300&h=200&fit=crop&crop=center',  price:'$185K', city:'Phoenix, AZ',     type:'SFR',         tag:'Opportunity'       },
       { kind:'profile',  img:'https://randomuser.me/api/portraits/women/44.jpg',  name:'Sarah Mitchell',     role:'RE Investor',      cat:'investor'   },
-      { kind:'property', img:'https://picsum.photos/seed/multi-dallas-1/300/200', price:'$890K', city:'Dallas, TX',      type:'Multifamily',  tag:'FSBO'              },
+      { kind:'property', img:'https://images.unsplash.com/photo-1600585154340-be6161a56a0c?w=300&h=200&fit=crop&crop=center', price:'$890K', city:'Dallas, TX',      type:'Multifamily',  tag:'FSBO'              },
       { kind:'profile',  img:'https://randomuser.me/api/portraits/men/67.jpg',    name:'Tommy Const.',       role:'Contractor',       cat:'ff'         },
     ],
     [
-      { kind:'property', img:'https://picsum.photos/seed/sfr-atlanta-1/300/200',  price:'$220K', city:'Atlanta, GA',     type:'SFR',         tag:'Fix Upper'         },
+      { kind:'property', img:'https://images.unsplash.com/photo-1570129477492-45c003edd2be?w=300&h=200&fit=crop&crop=center',  price:'$220K', city:'Atlanta, GA',     type:'SFR',         tag:'Fix Upper'         },
       { kind:'profile',  img:'https://randomuser.me/api/portraits/women/28.jpg',  name:'Olivia Chen',        role:'RE Attorney',      cat:'attorney'   },
-      { kind:'property', img:'https://picsum.photos/seed/sfr-miami-1/300/200',    price:'$225K', city:'Miami, FL',       type:'SFR',         tag:'Fix Upper'         },
+      { kind:'property', img:'https://images.unsplash.com/photo-1600607687939-ce8a6c25118c?w=300&h=200&fit=crop&crop=center',    price:'$225K', city:'Miami, FL',       type:'SFR',         tag:'Fix Upper'         },
       { kind:'profile',  img:'https://randomuser.me/api/portraits/men/45.jpg',    name:'Jason Park',         role:'Cash Buyer',       cat:'buyer'      },
-      { kind:'property', img:'https://picsum.photos/seed/sfr-denver-1/300/200',   price:'$280K', city:'Denver, CO',      type:'SFR',         tag:'Motivated Seller'  },
+      { kind:'property', img:'https://images.unsplash.com/photo-1600566753190-17f0baa2a6c3?w=300&h=200&fit=crop&crop=center',   price:'$280K', city:'Denver, CO',      type:'SFR',         tag:'Motivated Seller'  },
     ],
     [
       { kind:'profile',  img:'https://randomuser.me/api/portraits/women/12.jpg',  name:'SunBelt Capital',    role:'Lender',           cat:'lender'     },
-      { kind:'property', img:'https://picsum.photos/seed/ind-la-1/300/200',       price:'$1.2M', city:'Los Angeles, CA', type:'Industrial',   tag:'Motivated Seller'  },
-      { kind:'profile',  img:'https://randomuser.me/api/portraits/women/56.jpg',  name:'LensUp Media',       role:'Photography',      cat:'services'   },
-      { kind:'property', img:'https://picsum.photos/seed/multi-nash-1/300/200',   price:'$760K', city:'Nashville, TN',   type:'Multifamily',  tag:'Value Add'         },
+      { kind:'property', img:'https://images.unsplash.com/photo-1486406146926-c627a92ad1ab?w=300&h=200&fit=crop&crop=center',       price:'$1.2M', city:'Los Angeles, CA', type:'Industrial',   tag:'Motivated Seller'  },
+      { kind:'profile',  img:'https://randomuser.me/api/portraits/women/56.jpg',  name:'Prime Title Co.',    role:'Title Services',   cat:'services'   },
+      { kind:'property', img:'https://images.unsplash.com/photo-1560518883-ce09059eeffa?w=300&h=200&fit=crop&crop=center',   price:'$760K', city:'Nashville, TN',   type:'Multifamily',  tag:'Value Add'         },
       { kind:'profile',  img:'https://randomuser.me/api/portraits/men/22.jpg',    name:'Cash Kings TX',      role:'Wholesaler',       cat:'wholesaler' },
     ],
     [
-      { kind:'property', img:'https://picsum.photos/seed/sfr-houston-1/300/200',  price:'$165K', city:'Houston, TX',     type:'SFR',         tag:'Fix Upper'         },
+      { kind:'property', img:'https://images.unsplash.com/photo-1598228723793-52759bba239c?w=300&h=200&fit=crop&crop=center',  price:'$165K', city:'Houston, TX',     type:'SFR',         tag:'Fix Upper'         },
       { kind:'profile',  img:'https://randomuser.me/api/portraits/women/34.jpg',  name:'Bridge Builders',    role:'Lender',           cat:'lender'     },
-      { kind:'property', img:'https://picsum.photos/seed/multi-la-1/300/200',     price:'$1.29M',city:'Los Angeles, CA', type:'Multifamily',  tag:'Value Add'         },
+      { kind:'property', img:'https://images.unsplash.com/photo-1600607687644-c7171b42498f?w=300&h=200&fit=crop&crop=center',     price:'$1.29M',city:'Los Angeles, CA', type:'Multifamily',  tag:'Value Add'         },
       { kind:'profile',  img:'https://randomuser.me/api/portraits/men/78.jpg',    name:'Iron Fox Renov.',    role:'Contractor',       cat:'ff'         },
-      { kind:'property', img:'https://picsum.photos/seed/sfr-seattle-1/300/200',  price:'$365K', city:'Seattle, WA',     type:'SFR',         tag:'Motivated Seller'  },
+      { kind:'property', img:'https://images.unsplash.com/photo-1613977257363-707ba9348227?w=300&h=200&fit=crop&crop=center',  price:'$365K', city:'Seattle, WA',     type:'SFR',         tag:'Motivated Seller'  },
     ],
     [
       { kind:'profile',  img:'https://randomuser.me/api/portraits/men/15.jpg',    name:'Desert Ridge',       role:'Auction Buyer',    cat:'auction'    },
-      { kind:'property', img:'https://picsum.photos/seed/comm-phoenix-1/300/200', price:'$450K', city:'Phoenix, AZ',     type:'Commercial',   tag:'Seller Financing'  },
+      { kind:'property', img:'https://images.unsplash.com/photo-1497366754035-f200968a6e72?w=300&h=200&fit=crop&crop=center', price:'$450K', city:'Phoenix, AZ',     type:'Commercial',   tag:'Seller Financing'  },
       { kind:'profile',  img:'https://randomuser.me/api/portraits/men/55.jpg',    name:'Apex RE Consulting', role:'RE Consulting',    cat:'consulting' },
-      { kind:'property', img:'https://picsum.photos/seed/sfr-denver-2/300/200',   price:'$245K', city:'Denver, CO',      type:'SFR',         tag:'Fix Upper'         },
+      { kind:'property', img:'https://images.unsplash.com/photo-1494526585095-c41746248156?w=300&h=200&fit=crop&crop=center',   price:'$245K', city:'Denver, CO',      type:'SFR',         tag:'Fix Upper'         },
       { kind:'profile',  img:'https://randomuser.me/api/portraits/women/67.jpg',  name:'Maria Rodriguez',    role:'Motivated Seller', cat:'seller'     },
     ],
   ];
@@ -634,7 +636,7 @@ export function Landing({ onOpenAuthModal = () => {} }) {
           {HERO_MOSAIC_COLS.map((col, ci) => {
             const dirs = ['mosaicScrollUp','mosaicScrollDown','mosaicScrollUp','mosaicScrollDown','mosaicScrollUp'];
             const durs = ['39s','29s','47s','34s','36s'];
-            const loopItems = [...col, ...col, ...col, ...col];
+            const loopItems = Array.from({ length: 7 }).flatMap(() => col);
             return (
               <div key={ci} className={`hero-mc hero-mc-${ci}`} style={{ flex:1, minWidth:0, overflow:'hidden' }}>
                 <div style={{ display:'flex', flexDirection:'column', gap:10, animation:`${dirs[ci]} ${durs[ci]} linear infinite`, willChange:'transform' }}>
@@ -676,7 +678,7 @@ export function Landing({ onOpenAuthModal = () => {} }) {
               {t.headline1}<br /><span style={{ color:C.accent }}>{t.headline2}</span><br />{t.headline3}
             </h1>
           </div>
-          <div style={{ width:'100vw', marginLeft:'calc(50% - 50vw)', marginRight:'calc(50% - 50vw)', padding:isMobile ? '16px 14px 18px' : '18px 24px 20px', background:isTabletHero ? 'rgba(248,250,252,0.56)' : 'linear-gradient(135deg, rgba(255,255,255,0.46), rgba(248,250,252,0.26))', borderTop:'1px solid rgba(255,255,255,0.46)', borderBottom:'1px solid rgba(255,255,255,0.42)', boxShadow:isTabletHero ? '0 18px 48px rgba(15,23,42,0.07), inset 0 1px 0 rgba(255,255,255,0.45)' : '0 18px 60px rgba(15,23,42,0.09), inset 0 1px 0 rgba(255,255,255,0.58)', backdropFilter:isTabletHero ? 'none' : 'blur(18px) saturate(1.18)', WebkitBackdropFilter:isTabletHero ? 'none' : 'blur(18px) saturate(1.18)' }}>
+          <div style={{ width:'100vw', marginLeft:'calc(50% - 50vw)', marginRight:'calc(50% - 50vw)', padding:isMobile ? '16px 14px 18px' : '18px 24px 20px', background:'linear-gradient(135deg, rgba(255,255,255,0.46), rgba(248,250,252,0.26))', borderTop:'1px solid rgba(255,255,255,0.46)', borderBottom:'1px solid rgba(255,255,255,0.42)', boxShadow:'0 18px 60px rgba(15,23,42,0.09), inset 0 1px 0 rgba(255,255,255,0.58)', backdropFilter:'blur(18px) saturate(1.18)', WebkitBackdropFilter:'blur(18px) saturate(1.18)' }}>
             <div style={{ width:'min(100%, 900px)', margin:'0 auto' }}>
               <p style={{ fontSize:"clamp(14px,2.5vw,18px)", color:'#25324a', maxWidth:560, lineHeight:1.7, margin:"0 auto 22px", textAlign:"center", fontWeight:550 }}>
                 {t.subtitle}
@@ -703,8 +705,8 @@ export function Landing({ onOpenAuthModal = () => {} }) {
           {/* ── LEFT: animated swipe card stack ── */}
           <div style={{ flex: isMobile ? '1 1 100%' : '1 1 460px', minWidth: isMobile ? 0 : 320 }}>
             <div style={{ marginBottom: 36 }}>
-              <div style={{ fontSize: 11, fontWeight: 700, letterSpacing: '0.12em', textTransform: 'uppercase', color: C.gold, marginBottom: 8 }}>Live Preview</div>
-              <h3 style={{ fontSize: 'clamp(16px,2.4vw,20px)', fontWeight: 800, color: '#222c48', marginBottom: 8, margin: '0 0 8px' }}>See it in action</h3>
+              <div style={{ fontSize: 11, fontWeight: 700, letterSpacing: '0.12em', textTransform: 'uppercase', color: C.gold, marginBottom: 8 }}>{t.livePreviewKicker || 'Live Preview'}</div>
+              <h3 style={{ fontSize: 'clamp(16px,2.4vw,20px)', fontWeight: 800, color: '#222c48', marginBottom: 8, margin: '0 0 8px' }}>{t.livePreviewTitle || 'See it in action'}</h3>
               <p style={{ fontSize: 13, color: '#222c48', lineHeight: 1.65, margin: 0 }}>{t.livePreviewDesc || 'Preview the matching flow. Swipe free — pay only to unlock contacts.'}</p>
             </div>
             {/* Stack + buttons wrapper — needs extra bottom padding for buttons */}
@@ -759,31 +761,31 @@ export function Landing({ onOpenAuthModal = () => {} }) {
       <section style={{ maxWidth:"100%", margin:"0 auto", padding:isMobile ? '56px 14px' : '72px 20px', background:"#fff" }}>
         <div style={{ maxWidth:980, margin:"0 auto" }}>
           <h2 style={{ textAlign:"center", fontSize:"clamp(22px,4vw,32px)", fontWeight:800, color:'#1e2d4d', marginBottom:10 }}>{t.onePlatform}</h2>
-          <p style={{ textAlign:"center", color:"#64748B", fontSize:"clamp(13px,2vw,15px)", marginBottom:isMobile ? 34 : 52, lineHeight:1.6 }}>Connect with experts in every area of the real estate industry</p>
+          <p style={{ textAlign:"center", color:"#64748B", fontSize:"clamp(13px,2vw,15px)", marginBottom:isMobile ? 34 : 52, lineHeight:1.6 }}>{t.onePlatformSubtitle || 'Connect with experts in every area of the real estate industry'}</p>
           {(() => {
             // 6-column grid — positions 6, 12, 18 are the new "sixth column" items
             const PROF_ITEMS = [
               // row 1
-              { iconId:'wholesaler',     label:'Wholesalers',           desc:'Connect deals and opportunities' },
-              { iconId:'investor',       label:'Investors',             desc:'Find investment opportunities' },
-              { iconId:'lender',         label:'Lenders',               desc:'Mortgage and financing solutions' },
-              { iconId:'seller',         label:'Property Owners',       desc:'List and manage your properties' },
-              { iconId:'buyer',          label:'Cash Buyers',           desc:'Direct acquisition ready' },
-              { iconId:'svc_d4d',        label:'Drive 4 $',             desc:'Find distressed properties by driving' },
+              { iconId:'wholesaler',     label:t.profWholesalersLabel || 'Wholesalers',           desc:t.profWholesalersDesc || 'Connect deals and opportunities' },
+              { iconId:'investor',       label:t.profInvestorsLabel || 'Investors',               desc:t.profInvestorsDesc || 'Find investment opportunities' },
+              { iconId:'lender',         label:t.profLendersLabel || 'Lenders',                   desc:t.profLendersDesc || 'Mortgage and financing solutions' },
+              { iconId:'seller',         label:t.profOwnersLabel || 'Property Owners',            desc:t.profOwnersDesc || 'List and manage your properties' },
+              { iconId:'buyer',          label:t.profCashBuyersLabel || 'Cash Buyers',            desc:t.profCashBuyersDesc || 'Direct acquisition ready' },
+              { iconId:'svc_d4d',        label:t.profDriveLabel || 'Drive 4 $',                   desc:t.profDriveDesc || 'Find distressed properties by driving' },
               // row 2
-              { iconId:'ff',             label:'Fix & Flip',            desc:'Rehab and resale specialists' },
-              { iconId:'ff_gc',          label:'Contractors',           desc:'Construction and renovation services' },
-              { iconId:'attorney',       label:'Real Estate Attorneys', desc:'Legal services for real estate' },
-              { iconId:'services',       label:'Title Companies',       desc:'Title insurance and closing services' },
-              { iconId:'auction',        label:'Auctions',              desc:'Consulting and Advisory Services for Auctions' },
-              { iconId:'ff_rehab',       label:'Rehab Staff',           desc:'Rehabilitation project specialists' },
+              { iconId:'ff',             label:t.profFixFlipLabel || 'Fix & Flip',                desc:t.profFixFlipDesc || 'Rehab and resale specialists' },
+              { iconId:'ff_gc',          label:t.profContractorsLabel || 'Contractors',           desc:t.profContractorsDesc || 'Construction and renovation services' },
+              { iconId:'attorney',       label:t.profAttorneysLabel || 'Real Estate Attorneys',   desc:t.profAttorneysDesc || 'Legal services for real estate' },
+              { iconId:'services',       label:t.profTitleLabel || 'Title Companies',             desc:t.profTitleDesc || 'Title insurance and closing services' },
+              { iconId:'auction',        label:t.profAuctionsLabel || 'Auctions',                 desc:t.profAuctionsDesc || 'Consulting and advisory services for auctions' },
+              { iconId:'ff_rehab',       label:t.profRehabLabel || 'Rehab Staff',                 desc:t.profRehabDesc || 'Rehabilitation project specialists' },
               // row 3
-              { iconId:'tax',            label:'Tax Deed / Lien',       desc:'Tax sale investment strategies' },
-              { iconId:'svc_photo',      label:'RE Photographers',      desc:'Listings and aerial photography' },
-              { iconId:'svc_survey',     label:'Surveyors',             desc:'Land and boundary surveys' },
-              { iconId:'svc_va',         label:'Virtual Assistants',    desc:'Remote support for RE businesses' },
-              { iconId:'svc_notary',     label:'Notaries',              desc:'Notarization and document services' },
-              { iconId:'svc_accountant', label:'Accountant',            desc:'Accounting and tax services for RE' },
+              { iconId:'tax',            label:t.profTaxLabel || 'Tax Deed / Lien',               desc:t.profTaxDesc || 'Tax sale investment strategies' },
+              { iconId:'svc_photo',      label:t.profPhotographersLabel || 'RE Photographers',    desc:t.profPhotographersDesc || 'Listings and aerial photography' },
+              { iconId:'svc_survey',     label:t.profSurveyorsLabel || 'Surveyors',               desc:t.profSurveyorsDesc || 'Land and boundary surveys' },
+              { iconId:'svc_va',         label:t.profVaLabel || 'Virtual Assistants',             desc:t.profVaDesc || 'Remote support for RE businesses' },
+              { iconId:'svc_notary',     label:t.profNotariesLabel || 'Notaries',                 desc:t.profNotariesDesc || 'Notarization and document services' },
+              { iconId:'svc_accountant', label:t.profAccountantLabel || 'Accountant',             desc:t.profAccountantDesc || 'Accounting and tax services for RE' },
             ];
             return (
               <div style={{ display:'grid', gridTemplateColumns:isMobile ? 'repeat(2, minmax(0, 1fr))' : 'repeat(6, 1fr)', gap:isMobile ? '16px 10px' : '24px 20px' }}>
@@ -802,20 +804,20 @@ export function Landing({ onOpenAuthModal = () => {} }) {
           {
             id: 'evaluation',
             img: 'https://images.unsplash.com/photo-1560518883-ce09059eeffa?w=460&h=220&fit=crop&crop=center',
-            title: 'Property Evaluation',
-            desc: 'Professional evaluations for investment',
+            title: t.serviceEvaluationTitle || 'Property Evaluation',
+            desc: t.serviceEvaluationDesc || 'Professional evaluations for investment',
           },
           {
             id: 'legal',
             img: 'https://images.unsplash.com/photo-1589829545856-d10d557cf95f?w=460&h=220&fit=crop&crop=center',
-            title: 'Legal Services',
-            desc: 'Specialized real estate legal advisory',
+            title: t.serviceLegalTitle || 'Legal Services',
+            desc: t.serviceLegalDesc || 'Specialized real estate legal advisory',
           },
           {
             id: 'financing',
             img: 'https://images.unsplash.com/photo-1554224155-6726b3ff858f?w=460&h=220&fit=crop&crop=center',
-            title: 'Financing',
-            desc: 'Flexible financing solutions',
+            title: t.serviceFinancingTitle || 'Financing',
+            desc: t.serviceFinancingDesc || 'Flexible financing solutions',
           },
         ];
         const activeSvc = SERVICES.find(s => s.id === activeService);
@@ -826,10 +828,10 @@ export function Landing({ onOpenAuthModal = () => {} }) {
                 /* ── Tile grid ── */
                 <>
                   <h2 style={{ textAlign: 'center', fontSize: 'clamp(22px,4vw,32px)', fontWeight: 800, color: '#1e2d4d', marginBottom: 8 }}>
-                    Most Requested Services
+                    {t.mostRequestedServices || 'Most Requested Services'}
                   </h2>
                   <p style={{ textAlign: 'center', color: '#64748B', fontSize: 'clamp(13px,2vw,15px)', marginBottom: isMobile ? 28 : 48, lineHeight: 1.6 }}>
-                    Discover the most popular services on our platform
+                    {t.mostRequestedServicesSubtitle || 'Discover the most popular services on our platform'}
                   </p>
                   <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : 'repeat(auto-fill, minmax(280px, 1fr))', gap: isMobile ? 16 : 24 }}>
                     {SERVICES.map(svc => (
@@ -844,7 +846,7 @@ export function Landing({ onOpenAuthModal = () => {} }) {
                             onMouseEnter={e => e.currentTarget.style.textDecoration = 'underline'}
                             onMouseLeave={e => e.currentTarget.style.textDecoration = 'none'}
                           >
-                            Request Service →
+                            {t.requestService || 'Request Service ->'}
                           </button>
                         </div>
                       </div>
@@ -862,7 +864,7 @@ export function Landing({ onOpenAuthModal = () => {} }) {
                       onMouseEnter={e => { e.currentTarget.style.borderColor = '#94a3b8'; e.currentTarget.style.color = '#1e2d4d'; }}
                       onMouseLeave={e => { e.currentTarget.style.borderColor = '#e2e8f0'; e.currentTarget.style.color = '#64748B'; }}
                     >
-                      ← Back
+                      {t.backToServices || '<- Back'}
                     </button>
                     <h2 style={{ fontSize: 'clamp(18px,3vw,26px)', fontWeight: 800, color: '#1e2d4d', margin: 0 }}>
                       {activeSvc?.title}
@@ -873,10 +875,10 @@ export function Landing({ onOpenAuthModal = () => {} }) {
                   <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : 'repeat(auto-fill, minmax(340px, 1fr))', gap: isMobile ? 24 : 40 }}>
                     {/* Professionals column */}
                     <div>
-                      <div style={{ fontWeight: 800, color: '#1e2d4d', fontSize: 20, marginBottom: 4 }}>Professionals</div>
+                      <div style={{ fontWeight: 800, color: '#1e2d4d', fontSize: 20, marginBottom: 4 }}>{t.professionalsTitle || 'Professionals'}</div>
                       <div style={{ display: 'flex', flexDirection: 'column', gap: 4, marginBottom: 20 }}>
-                        <div style={{ fontWeight: 600, color: '#1e2d4d', fontSize: 14 }}>Find Professionals</div>
-                        <div style={{ color: '#64748B', fontSize: 13 }}>Swipe right to connect</div>
+                        <div style={{ fontWeight: 600, color: '#1e2d4d', fontSize: 14 }}>{t.findProfessionals || 'Find Professionals'}</div>
+                        <div style={{ color: '#64748B', fontSize: 13 }}>{t.swipeRightToConnect || 'Swipe right to connect'}</div>
                       </div>
                       <div style={{ height: 280 }}>
                         <LandingProfCard onClick={() => onOpenAuthModal('signup')} />
@@ -892,15 +894,15 @@ export function Landing({ onOpenAuthModal = () => {} }) {
                           <Icon name="check" size={17} color="#22c55e" strokeWidth={2.2} />
                         </button>
                       </div>
-                      <div style={{ textAlign: 'center', fontSize: 12, color: '#94a3b8', marginTop: 10 }}>0 connections made • 6 remaining</div>
+                      <div style={{ textAlign: 'center', fontSize: 12, color: '#94a3b8', marginTop: 10 }}>0 {t.connectionsMade || 'connections made'} - 6 {t.remaining || 'remaining'}</div>
                     </div>
 
                     {/* Opportunities column */}
                     <div>
-                      <div style={{ fontWeight: 800, color: '#1e2d4d', fontSize: 20, marginBottom: 4 }}>Opportunities</div>
+                      <div style={{ fontWeight: 800, color: '#1e2d4d', fontSize: 20, marginBottom: 4 }}>{t.opportunitiesTitle || 'Opportunities'}</div>
                       <div style={{ display: 'flex', flexDirection: 'column', gap: 4, marginBottom: 20 }}>
-                        <div style={{ fontWeight: 600, color: '#1e2d4d', fontSize: 14 }}>Investment Opportunities</div>
-                        <div style={{ color: '#64748B', fontSize: 13 }}>Swipe right to connect</div>
+                        <div style={{ fontWeight: 600, color: '#1e2d4d', fontSize: 14 }}>{t.investmentOpportunitiesTitle || 'Investment Opportunities'}</div>
+                        <div style={{ color: '#64748B', fontSize: 13 }}>{t.swipeRightToConnect || 'Swipe right to connect'}</div>
                       </div>
                       <div style={{ height: 280 }}>
                         <LandingPropCard onClick={() => onOpenAuthModal('signup')} />
@@ -916,17 +918,17 @@ export function Landing({ onOpenAuthModal = () => {} }) {
                           <Icon name="check" size={17} color="#22c55e" strokeWidth={2.2} />
                         </button>
                       </div>
-                      <div style={{ textAlign: 'center', fontSize: 12, color: '#94a3b8', marginTop: 10 }}>0 connections made • 4 remaining</div>
+                      <div style={{ textAlign: 'center', fontSize: 12, color: '#94a3b8', marginTop: 10 }}>0 {t.connectionsMade || 'connections made'} - 4 {t.remaining || 'remaining'}</div>
                     </div>
                   </div>
 
                   {/* CTA bottom */}
                   <div style={{ textAlign: 'center', marginTop: isMobile ? 30 : 48, padding: isMobile ? '24px 14px' : '32px 20px', background: '#fff', borderRadius: 16, boxShadow: '0 2px 16px rgba(0,0,0,0.06)' }}>
-                    <p style={{ color: '#1e2d4d', fontWeight: 700, fontSize: 16, marginBottom: 6 }}>Ready to connect?</p>
-                    <p style={{ color: '#64748B', fontSize: 13, marginBottom: 20 }}>Create your free account to start swiping and unlock contacts</p>
+                    <p style={{ color: '#1e2d4d', fontWeight: 700, fontSize: 16, marginBottom: 6 }}>{t.readyToConnect || 'Ready to connect?'}</p>
+                    <p style={{ color: '#64748B', fontSize: 13, marginBottom: 20 }}>{t.readyToConnectDesc || 'Create your free account to start swiping and unlock contacts'}</p>
                     <button onClick={() => onOpenAuthModal('signup')} style={{ padding: '13px 40px', borderRadius: 12, background: C.gold, color: '#fff', fontWeight: 700, fontSize: 15, border: 'none', cursor: 'pointer', display: 'inline-flex', alignItems: 'center', gap: 8, width: isMobile ? '100%' : 'auto', justifyContent: 'center', maxWidth: isMobile ? 320 : 'none' }}>
                       <Icon name="heart" size={16} color="#fff" strokeWidth={2} />
-                      Get Started Free
+                      {t.ctaButton || 'Get Started Free'}
                     </button>
                   </div>
                 </>
