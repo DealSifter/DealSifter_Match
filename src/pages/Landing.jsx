@@ -674,20 +674,22 @@ export function Landing({ onOpenAuthModal = () => {} }) {
               {t.headline1}<br /><span style={{ color:C.accent }}>{t.headline2}</span><br />{t.headline3}
             </h1>
           </div>
-          <div style={{ width:'min(100%, 760px)', margin:'0 auto', padding:isMobile ? '16px 14px 18px' : '18px 24px 20px', borderRadius:isMobile ? 22 : 28, background:'linear-gradient(135deg, rgba(255,255,255,0.58), rgba(248,250,252,0.32))', border:'1px solid rgba(255,255,255,0.58)', boxShadow:'0 18px 60px rgba(15,23,42,0.12), inset 0 1px 0 rgba(255,255,255,0.72)', backdropFilter:'blur(18px) saturate(1.18)', WebkitBackdropFilter:'blur(18px) saturate(1.18)' }}>
-            <p style={{ fontSize:"clamp(14px,2.5vw,18px)", color:'#25324a', maxWidth:560, lineHeight:1.7, margin:"0 auto 22px", textAlign:"center", fontWeight:550 }}>
-              {t.subtitle}
-            </p>
-            <div style={{ display:"flex", gap:22, flexWrap:"wrap", justifyContent:"center", marginBottom:10 }}>
-              <button onClick={() => onOpenAuthModal('signup')} style={{ padding:"14px 32px", borderRadius:12, background:C.gold, color:C.bg, fontWeight:700, fontSize:15, border:"none", cursor:"pointer", width: isMobile ? '100%' : 'auto', maxWidth: isMobile ? 340 : 'none' }}>{t.getStarted}</button>
-            </div>
-            <div style={{ display:"flex", gap:"clamp(18px,4vw,34px)", marginTop:20, flexWrap:"wrap", justifyContent:"center" }}>
-              {proofPoints.map(([title, desc]) => (
-                <div key={title} style={{ textAlign:"center", maxWidth: isMobile ? 142 : 165 }}>
-                  <div style={{ fontSize:"clamp(13px,2vw,15px)", fontWeight:850, color:'#101827', lineHeight:1.2 }}>{title}</div>
-                  <div style={{ fontSize:11, color:'#39465d', lineHeight:1.35, marginTop:4, fontWeight:650 }}>{desc}</div>
-                </div>
-              ))}
+          <div style={{ width:'100vw', marginLeft:'calc(50% - 50vw)', marginRight:'calc(50% - 50vw)', padding:isMobile ? '16px 14px 18px' : '18px 24px 20px', background:'linear-gradient(135deg, rgba(255,255,255,0.46), rgba(248,250,252,0.26))', borderTop:'1px solid rgba(255,255,255,0.46)', borderBottom:'1px solid rgba(255,255,255,0.42)', boxShadow:'0 18px 60px rgba(15,23,42,0.09), inset 0 1px 0 rgba(255,255,255,0.58)', backdropFilter:'blur(18px) saturate(1.18)', WebkitBackdropFilter:'blur(18px) saturate(1.18)' }}>
+            <div style={{ width:'min(100%, 760px)', margin:'0 auto' }}>
+              <p style={{ fontSize:"clamp(14px,2.5vw,18px)", color:'#25324a', maxWidth:560, lineHeight:1.7, margin:"0 auto 22px", textAlign:"center", fontWeight:550 }}>
+                {t.subtitle}
+              </p>
+              <div style={{ display:"flex", gap:22, flexWrap:"wrap", justifyContent:"center", marginBottom:10 }}>
+                <button onClick={() => onOpenAuthModal('signup')} style={{ padding:"14px 32px", borderRadius:12, background:C.gold, color:C.bg, fontWeight:700, fontSize:15, border:"none", cursor:"pointer", width: isMobile ? '100%' : 'auto', maxWidth: isMobile ? 340 : 'none' }}>{t.getStarted}</button>
+              </div>
+              <div style={{ display:"flex", gap:"clamp(18px,4vw,34px)", marginTop:20, flexWrap:"wrap", justifyContent:"center" }}>
+                {proofPoints.map(([title, desc]) => (
+                  <div key={title} style={{ textAlign:"center", maxWidth: isMobile ? 142 : 165 }}>
+                    <div style={{ fontSize:"clamp(13px,2vw,15px)", fontWeight:850, color:'#101827', lineHeight:1.2 }}>{title}</div>
+                    <div style={{ fontSize:11, color:'#39465d', lineHeight:1.35, marginTop:4, fontWeight:650 }}>{desc}</div>
+                  </div>
+                ))}
+              </div>
             </div>
           </div>
         </div>
