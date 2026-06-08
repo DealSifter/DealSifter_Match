@@ -464,11 +464,11 @@ export function Landing({ setPage, onOpenAuthModal = () => {} }) {
     { icon:"nugget", t:t.steps.nugget.t,   d:t.steps.nugget.d },
     { icon:"phone",  t:t.steps.close.t,    d:t.steps.close.d },
   ];
-  const stats = [
-    ["1,1K", t.members],
-    ["$83M", t.deals],
-    ["50",   t.states],
-    ["4.9",  t.rating],
+  const proofPoints = [
+    [t.proofSmartMatchingTitle || 'Smart Matching', t.proofSmartMatchingDesc || 'Goals, capital and markets aligned'],
+    [t.proofMapFeedTitle || 'Map + Feed', t.proofMapFeedDesc || 'Discover opportunities by location and intent'],
+    [t.proofPrivateNetworkTitle || 'Private Network', t.proofPrivateNetworkDesc || 'Connect directly with owners, investors and pros'],
+    [t.proofSecureUnlocksTitle || 'Secure Unlocks', t.proofSecureUnlocksDesc || 'Controlled contact access with Stripe checkout'],
   ];
   const ROLE_COLORS = {
     wholesaler:'#4381BC', lender:'#10B981', ff:'#F97316',
@@ -680,11 +680,11 @@ export function Landing({ setPage, onOpenAuthModal = () => {} }) {
           <div style={{ display:"flex", gap:22, flexWrap:"wrap", justifyContent:"center", marginBottom:10 }}>
             <button onClick={() => onOpenAuthModal('signup')} style={{ padding:"14px 32px", borderRadius:12, background:C.gold, color:C.bg, fontWeight:700, fontSize:15, border:"none", cursor:"pointer", width: isMobile ? '100%' : 'auto', maxWidth: isMobile ? 340 : 'none' }}>{t.getStarted}</button>
           </div>
-          <div style={{ display:"flex", gap:"clamp(20px,5vw,48px)", marginTop:20, flexWrap:"wrap", justifyContent:"center" }}>
-            {stats.map(([n,l]) => (
-              <div key={l} style={{ textAlign:"center" }}>
-                <div style={{ fontSize:"clamp(22px,4vw,28px)", fontWeight:800, color:C.t1 }}>{n}</div>
-                <div style={{ fontSize:12, color:C.t3 }}>{l}</div>
+          <div style={{ display:"flex", gap:"clamp(18px,4vw,38px)", marginTop:22, flexWrap:"wrap", justifyContent:"center" }}>
+            {proofPoints.map(([title, desc]) => (
+              <div key={title} style={{ textAlign:"center", maxWidth: isMobile ? 142 : 170 }}>
+                <div style={{ fontSize:"clamp(13px,2vw,15px)", fontWeight:850, color:C.t1, lineHeight:1.2 }}>{title}</div>
+                <div style={{ fontSize:11, color:C.t3, lineHeight:1.35, marginTop:4 }}>{desc}</div>
               </div>
             ))}
           </div>
@@ -699,7 +699,7 @@ export function Landing({ setPage, onOpenAuthModal = () => {} }) {
             <div style={{ marginBottom: 36 }}>
               <div style={{ fontSize: 11, fontWeight: 700, letterSpacing: '0.12em', textTransform: 'uppercase', color: C.gold, marginBottom: 8 }}>Live Preview</div>
               <h3 style={{ fontSize: 'clamp(16px,2.4vw,20px)', fontWeight: 800, color: '#222c48', marginBottom: 8, margin: '0 0 8px' }}>See it in action</h3>
-              <p style={{ fontSize: 13, color: '#222c48', lineHeight: 1.65, margin: 0 }}>Real professionals, real deals. Swipe free — pay only to unlock contacts.</p>
+              <p style={{ fontSize: 13, color: '#222c48', lineHeight: 1.65, margin: 0 }}>{t.livePreviewDesc || 'Preview the matching flow. Swipe free — pay only to unlock contacts.'}</p>
             </div>
             {/* Stack + buttons wrapper — needs extra bottom padding for buttons */}
             <div style={{ paddingBottom: 64 }}>
