@@ -414,6 +414,7 @@ export function Landing({ onOpenAuthModal = () => {} }) {
   const [activeService, setActiveService] = React.useState(null);
   const [footerInfoKey, setFooterInfoKey] = React.useState(null);
   const isMobile = useMediaQuery('(max-width: 767px)');
+  const isTabletHero = useMediaQuery('(min-width: 768px) and (max-width: 1368px)');
 
   useEffect(() => {
     try {
@@ -590,6 +591,14 @@ export function Landing({ onOpenAuthModal = () => {} }) {
           from { transform: translateY(-50%); }
           to   { transform: translateY(0); }
         }
+        @keyframes mosaicScrollUpSeven {
+          from { transform: translateY(0); }
+          to   { transform: translateY(-14.2857%); }
+        }
+        @keyframes mosaicScrollDownSeven {
+          from { transform: translateY(-14.2857%); }
+          to   { transform: translateY(0); }
+        }
         .timeline-link {
           position: relative;
           width: 56px;
@@ -634,8 +643,8 @@ export function Landing({ onOpenAuthModal = () => {} }) {
         {/* ── Mosaico tipo Tinder de fundo ── */}
         <div aria-hidden="true" style={{ position:'absolute', inset:0, zIndex:0, pointerEvents:'none', display:'flex', alignItems:'stretch', gap:10, padding:'0 8px', contain:'paint' }}>
           {HERO_MOSAIC_COLS.map((col, ci) => {
-            const dirs = ['mosaicScrollUp','mosaicScrollDown','mosaicScrollUp','mosaicScrollDown','mosaicScrollUp'];
-            const durs = ['39s','29s','47s','34s','36s'];
+            const dirs = ['mosaicScrollUpSeven','mosaicScrollDownSeven','mosaicScrollUpSeven','mosaicScrollDownSeven','mosaicScrollUpSeven'];
+            const durs = ['55s','41s','66s','48s','50s'];
             const loopItems = Array.from({ length: 7 }).flatMap(() => col);
             return (
               <div key={ci} className={`hero-mc hero-mc-${ci}`} style={{ flex:1, minWidth:0, overflow:'hidden' }}>
@@ -678,7 +687,7 @@ export function Landing({ onOpenAuthModal = () => {} }) {
               {t.headline1}<br /><span style={{ color:C.accent }}>{t.headline2}</span><br />{t.headline3}
             </h1>
           </div>
-          <div style={{ width:'100vw', marginLeft:'calc(50% - 50vw)', marginRight:'calc(50% - 50vw)', padding:isMobile ? '16px 14px 18px' : '18px 24px 20px', background:'linear-gradient(135deg, rgba(255,255,255,0.46), rgba(248,250,252,0.26))', borderTop:'1px solid rgba(255,255,255,0.46)', borderBottom:'1px solid rgba(255,255,255,0.42)', boxShadow:'0 18px 60px rgba(15,23,42,0.09), inset 0 1px 0 rgba(255,255,255,0.58)', backdropFilter:'blur(18px) saturate(1.18)', WebkitBackdropFilter:'blur(18px) saturate(1.18)' }}>
+          <div style={{ width:'100vw', marginLeft:'calc(50% - 50vw)', marginRight:'calc(50% - 50vw)', padding:isMobile ? '16px 14px 18px' : '18px 24px 20px', background:'linear-gradient(135deg, rgba(255,255,255,0.46), rgba(248,250,252,0.26))', borderTop:'1px solid rgba(255,255,255,0.46)', borderBottom:'1px solid rgba(255,255,255,0.42)', boxShadow:'0 18px 60px rgba(15,23,42,0.09), inset 0 1px 0 rgba(255,255,255,0.58)', backdropFilter:isTabletHero ? 'blur(6px) saturate(1.08)' : 'blur(18px) saturate(1.18)', WebkitBackdropFilter:isTabletHero ? 'blur(6px) saturate(1.08)' : 'blur(18px) saturate(1.18)' }}>
             <div style={{ width:'min(100%, 900px)', margin:'0 auto' }}>
               <p style={{ fontSize:"clamp(14px,2.5vw,18px)", color:'#25324a', maxWidth:560, lineHeight:1.7, margin:"0 auto 22px", textAlign:"center", fontWeight:550 }}>
                 {t.subtitle}
