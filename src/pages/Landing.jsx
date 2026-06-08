@@ -632,10 +632,8 @@ export function Landing({ onOpenAuthModal = () => {} }) {
         {/* ── Mosaico tipo Tinder de fundo ── */}
         <div aria-hidden="true" style={{ position:'absolute', inset:0, zIndex:0, pointerEvents:'none', display:'flex', alignItems:'stretch', gap:10, padding:'0 8px', contain:'paint' }}>
           {HERO_MOSAIC_COLS.map((col, ci) => {
-            const dirs = isTabletHero
-              ? ['mosaicScrollUp','mosaicScrollUp','mosaicScrollUp','mosaicScrollUp','mosaicScrollUp']
-              : ['mosaicScrollUp','mosaicScrollDown','mosaicScrollUp','mosaicScrollDown','mosaicScrollUp'];
-            const durs = isTabletHero ? ['34s','30s','38s','32s','36s'] : ['30s','22s','36s','26s','28s'];
+            const dirs = ['mosaicScrollUp','mosaicScrollDown','mosaicScrollUp','mosaicScrollDown','mosaicScrollUp'];
+            const durs = ['39s','29s','47s','34s','36s'];
             const loopItems = [...col, ...col, ...col, ...col];
             return (
               <div key={ci} className={`hero-mc hero-mc-${ci}`} style={{ flex:1, minWidth:0, overflow:'hidden' }}>
@@ -678,17 +676,17 @@ export function Landing({ onOpenAuthModal = () => {} }) {
               {t.headline1}<br /><span style={{ color:C.accent }}>{t.headline2}</span><br />{t.headline3}
             </h1>
           </div>
-          <div style={{ width:'100vw', marginLeft:'calc(50% - 50vw)', marginRight:'calc(50% - 50vw)', padding:isMobile ? '16px 14px 18px' : '18px 24px 20px', background:'linear-gradient(135deg, rgba(255,255,255,0.46), rgba(248,250,252,0.26))', borderTop:'1px solid rgba(255,255,255,0.46)', borderBottom:'1px solid rgba(255,255,255,0.42)', boxShadow:'0 18px 60px rgba(15,23,42,0.09), inset 0 1px 0 rgba(255,255,255,0.58)', backdropFilter:'blur(18px) saturate(1.18)', WebkitBackdropFilter:'blur(18px) saturate(1.18)' }}>
-            <div style={{ width:'min(100%, 760px)', margin:'0 auto' }}>
+          <div style={{ width:'100vw', marginLeft:'calc(50% - 50vw)', marginRight:'calc(50% - 50vw)', padding:isMobile ? '16px 14px 18px' : '18px 24px 20px', background:isTabletHero ? 'rgba(248,250,252,0.56)' : 'linear-gradient(135deg, rgba(255,255,255,0.46), rgba(248,250,252,0.26))', borderTop:'1px solid rgba(255,255,255,0.46)', borderBottom:'1px solid rgba(255,255,255,0.42)', boxShadow:isTabletHero ? '0 18px 48px rgba(15,23,42,0.07), inset 0 1px 0 rgba(255,255,255,0.45)' : '0 18px 60px rgba(15,23,42,0.09), inset 0 1px 0 rgba(255,255,255,0.58)', backdropFilter:isTabletHero ? 'none' : 'blur(18px) saturate(1.18)', WebkitBackdropFilter:isTabletHero ? 'none' : 'blur(18px) saturate(1.18)' }}>
+            <div style={{ width:'min(100%, 900px)', margin:'0 auto' }}>
               <p style={{ fontSize:"clamp(14px,2.5vw,18px)", color:'#25324a', maxWidth:560, lineHeight:1.7, margin:"0 auto 22px", textAlign:"center", fontWeight:550 }}>
                 {t.subtitle}
               </p>
               <div style={{ display:"flex", gap:22, flexWrap:"wrap", justifyContent:"center", marginBottom:10 }}>
                 <button onClick={() => onOpenAuthModal('signup')} style={{ padding:"14px 32px", borderRadius:12, background:C.gold, color:C.bg, fontWeight:700, fontSize:15, border:"none", cursor:"pointer", width: isMobile ? '100%' : 'auto', maxWidth: isMobile ? 340 : 'none' }}>{t.getStarted}</button>
               </div>
-              <div style={{ display:"flex", gap:"clamp(18px,4vw,34px)", marginTop:20, flexWrap:"wrap", justifyContent:"center" }}>
+              <div style={{ display:"flex", gap:isMobile ? "18px" : "clamp(14px,2vw,24px)", marginTop:20, flexWrap:isMobile ? "wrap" : "nowrap", justifyContent:"center", alignItems:"flex-start" }}>
                 {proofPoints.map(([title, desc]) => (
-                  <div key={title} style={{ textAlign:"center", maxWidth: isMobile ? 142 : 165 }}>
+                  <div key={title} style={{ textAlign:"center", flex:isMobile ? "0 1 142px" : "1 1 0", maxWidth: isMobile ? 142 : 190, minWidth:0 }}>
                     <div style={{ fontSize:"clamp(13px,2vw,15px)", fontWeight:850, color:'#101827', lineHeight:1.2 }}>{title}</div>
                     <div style={{ fontSize:11, color:'#39465d', lineHeight:1.35, marginTop:4, fontWeight:650 }}>{desc}</div>
                   </div>
