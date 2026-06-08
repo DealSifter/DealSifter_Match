@@ -667,7 +667,7 @@ export function Landing({ setPage, onOpenAuthModal = () => {} }) {
         </div>
 
         {/* ── Gradiente central para legibilidade ── */}
-        <div style={{ position:'absolute', inset:0, zIndex:1, pointerEvents:'none', background:'radial-gradient(ellipse 62% 74% at 50% 50%, rgba(248,250,252,0.97) 0%, rgba(248,250,252,0.92) 26%, rgba(248,250,252,0.70) 46%, rgba(248,250,252,0.22) 64%, transparent 82%)' }} />
+        <div style={{ position:'absolute', inset:0, zIndex:1, pointerEvents:'none', background:'radial-gradient(ellipse 76% 86% at 50% 50%, rgba(248,250,252,0.98) 0%, rgba(248,250,252,0.95) 32%, rgba(248,250,252,0.78) 54%, rgba(248,250,252,0.32) 72%, transparent 92%)' }} />
 
         {/* ── Conteúdo central ── */}
         <div style={{ position:'relative', zIndex:2, width: '100%', maxWidth: 800 }}>
