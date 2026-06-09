@@ -414,8 +414,6 @@ export function Landing({ onOpenAuthModal = () => {} }) {
   const [activeService, setActiveService] = React.useState(null);
   const [footerInfoKey, setFooterInfoKey] = React.useState(null);
   const isMobile = useMediaQuery('(max-width: 767px)');
-  const isTabletHero = useMediaQuery('(min-width: 768px) and (max-width: 1368px)');
-
   useEffect(() => {
     try {
       const prev = document.documentElement.getAttribute('data-theme');
@@ -636,19 +634,33 @@ export function Landing({ onOpenAuthModal = () => {} }) {
         @media (max-width: 560px) {
           .hero-mc-3 { display: none; }
         }
+        .hero-mosaic-layer {
+          isolation: isolate;
+          transform: translateZ(0);
+          backface-visibility: hidden;
+        }
+        .hero-mosaic-track {
+          transform-style: flat;
+          backface-visibility: hidden;
+        }
+        .hero-glass-band {
+          isolation: isolate;
+          transform: translateZ(0);
+          backface-visibility: hidden;
+        }
       `}</style>
 
       <section style={{ minHeight:'92vh', display:'flex', flexDirection:'column', alignItems:'center', justifyContent:'center', textAlign:'center', padding:isMobile ? '18px 14px 42px' : '20px 20px 50px', position:'relative', overflow:'hidden', background:'#f8fafc' }}>
 
         {/* ── Mosaico tipo Tinder de fundo ── */}
-        <div aria-hidden="true" style={{ position:'absolute', inset:0, zIndex:0, pointerEvents:'none', display:'flex', alignItems:'stretch', gap:10, padding:'0 8px', contain:'paint' }}>
+        <div aria-hidden="true" className="hero-mosaic-layer" style={{ position:'absolute', inset:0, zIndex:0, pointerEvents:'none', display:'flex', alignItems:'stretch', gap:10, padding:'0 8px', contain:'layout paint style' }}>
           {HERO_MOSAIC_COLS.map((col, ci) => {
             const dirs = ['mosaicScrollUpSeven','mosaicScrollDownSeven','mosaicScrollUpSeven','mosaicScrollDownSeven','mosaicScrollUpSeven'];
             const durs = ['55s','41s','66s','48s','50s'];
             const loopItems = Array.from({ length: 7 }).flatMap(() => col);
             return (
               <div key={ci} className={`hero-mc hero-mc-${ci}`} style={{ flex:1, minWidth:0, overflow:'hidden' }}>
-                <div style={{ display:'flex', flexDirection:'column', gap:10, animation:`${dirs[ci]} ${durs[ci]} linear infinite`, willChange:'transform' }}>
+                <div className="hero-mosaic-track" style={{ display:'flex', flexDirection:'column', gap:10, animation:`${dirs[ci]} ${durs[ci]} linear infinite` }}>
                   {loopItems.map((item, idx) => (
                     <div key={idx} style={{ borderRadius:12, overflow:'hidden', background:'#fff', flexShrink:0, border: item.kind==='profile' ? '1px solid rgba(67,129,188,0.14)' : '1px solid rgba(0,0,0,0.06)', boxShadow:'0 2px 10px rgba(0,0,0,0.09)' }}>
                       {item.kind === 'property' ? (
@@ -687,7 +699,7 @@ export function Landing({ onOpenAuthModal = () => {} }) {
               {t.headline1}<br /><span style={{ color:C.accent }}>{t.headline2}</span><br />{t.headline3}
             </h1>
           </div>
-          <div style={{ width:'100vw', marginLeft:'calc(50% - 50vw)', marginRight:'calc(50% - 50vw)', padding:isMobile ? '16px 14px 18px' : '18px 24px 20px', background:'linear-gradient(135deg, rgba(255,255,255,0.46), rgba(248,250,252,0.26))', borderTop:'1px solid rgba(255,255,255,0.46)', borderBottom:'1px solid rgba(255,255,255,0.42)', boxShadow:'0 18px 60px rgba(15,23,42,0.09), inset 0 1px 0 rgba(255,255,255,0.58)', backdropFilter:isTabletHero ? 'blur(6px) saturate(1.08)' : 'blur(18px) saturate(1.18)', WebkitBackdropFilter:isTabletHero ? 'blur(6px) saturate(1.08)' : 'blur(18px) saturate(1.18)' }}>
+          <div className="hero-glass-band" style={{ width:'100vw', marginLeft:'calc(50% - 50vw)', marginRight:'calc(50% - 50vw)', padding:isMobile ? '16px 14px 18px' : '18px 24px 20px', background:'linear-gradient(135deg, rgba(255,255,255,0.46), rgba(248,250,252,0.26))', borderTop:'1px solid rgba(255,255,255,0.46)', borderBottom:'1px solid rgba(255,255,255,0.42)', boxShadow:'0 18px 60px rgba(15,23,42,0.09), inset 0 1px 0 rgba(255,255,255,0.58)', backdropFilter:'blur(18px) saturate(1.18)', WebkitBackdropFilter:'blur(18px) saturate(1.18)' }}>
             <div style={{ width:'min(100%, 900px)', margin:'0 auto' }}>
               <p style={{ fontSize:"clamp(14px,2.5vw,18px)", color:'#25324a', maxWidth:560, lineHeight:1.7, margin:"0 auto 22px", textAlign:"center", fontWeight:550 }}>
                 {t.subtitle}
