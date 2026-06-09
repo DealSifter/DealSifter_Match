@@ -155,8 +155,8 @@ const DevInspector = import.meta.env.DEV
 
 const PLAN_BONUS_BY_TIER = {
   free: 0,
-  pro: 10,
-  enterprise: 25,
+  pro: 3,
+  enterprise: 20,
 };
 
 const SECURITY_AUDIT_KEY = 'ds_security_audit';

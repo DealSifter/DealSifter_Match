@@ -1,7 +1,13 @@
 import React, { useState } from 'react';
 import { C } from '../theme/colors';
 import { useT } from '../i18n/translations';
-import { PLANS, NUGGET_PACKS } from '../data/mockData';
+import {
+  EXCLUSIVE_CONTACT_RULE,
+  FEATURED_PROFILE_RULE,
+  NUGGET_PACKS,
+  PLANS,
+  VERIFIED_PROFILE_RULE,
+} from '../data/mockData';
 import { Icon } from '../components/ui/Icon';
 
 export function Pricing({ setPage, setModal, prevPage, addToast, onRequestCheckoutIntent }) {
@@ -11,9 +17,9 @@ export function Pricing({ setPage, setModal, prevPage, addToast, onRequestChecko
 
   const planName = (id, fallback) => t.planNames?.[id] || fallback;
   const featureMap = {
-    free: ['f1', 'f2', 'f3', 'f4'],
-    pro: ['p1', 'p2', 'p3', 'p4', 'p5', 'p6'],
-    enterprise: ['e1', 'e2', 'e3', 'e4', 'e5', 'e6'],
+    free: ['f1', 'f2', 'f3', 'f4', 'f5'],
+    pro: ['p1', 'p2', 'p3', 'p4', 'p5', 'p6', 'p7'],
+    enterprise: ['e1', 'e2', 'e3', 'e4', 'e5'],
   };
   const planFeatures = (id, fallbackFeatures) => {
     const keys = featureMap[id] || [];
@@ -22,6 +28,38 @@ export function Pricing({ setPage, setModal, prevPage, addToast, onRequestChecko
   };
   const showBackButton = prevPage === "landing";
   const topPadding = showBackButton ? "40px" : "58px";
+  const addOns = [
+    {
+      id: 'exclusive-contact',
+      title: t.exclusiveContactTitle,
+      cost: t.exclusiveContactCost
+        ?.replace('{cost}', EXCLUSIVE_CONTACT_RULE.cost)
+        ?.replace('{days}', EXCLUSIVE_CONTACT_RULE.durationDays),
+      body: t.exclusiveContactDesc,
+      note: t.exclusiveContactPartial
+        ?.replace('{discount}', EXCLUSIVE_CONTACT_RULE.partialDiscountPct),
+      icon: 'lock',
+      color: C.gold,
+    },
+    {
+      id: 'featured-profile',
+      title: t.featuredProfileTitle,
+      cost: t.featuredProfileCost
+        ?.replace('{cost}', FEATURED_PROFILE_RULE.cost)
+        ?.replace('{days}', FEATURED_PROFILE_RULE.durationDays),
+      body: t.featuredProfileDesc,
+      icon: 'star',
+      color: C.accent,
+    },
+    {
+      id: 'verified-profile',
+      title: t.verifiedProfileTitle,
+      cost: t.verifiedProfileCost?.replace('{cost}', VERIFIED_PROFILE_RULE.cost),
+      body: t.verifiedProfileDesc,
+      icon: 'shieldCheck',
+      color: C.success,
+    },
+  ];
 
   const handlePlanCta = async (p) => {
     if (p.price === 0) {
@@ -106,7 +144,10 @@ export function Pricing({ setPage, setModal, prevPage, addToast, onRequestChecko
             <div style={{ background:C.alpha(C.gold, 0.08), border:`1px solid ${C.alpha(C.gold, 0.15)}`, borderRadius:10, padding:"10px 12px", marginBottom:16, display:"flex", alignItems:"center", gap:10 }}>
               <Icon name="nugget" size={18} color={C.gold} strokeWidth={1.3} />
               <div>
-                <div style={{ fontWeight:700, color:C.gold, fontSize:13 }}>{p.nuggets} {t.nuggetsPerMonth}</div>
+                <div style={{ fontWeight:700, color:C.gold, fontSize:13 }}>
+                  {p.nuggets} {t.nuggetsPerMonth}
+                  {p.firstMonthBonus > 0 ? ` + ${p.firstMonthBonus} ${t.firstMonthBonus}` : ''}
+                </div>
                 <div style={{ fontSize:11, color:C.t3 }}>{p.nuggets} {t.connections}</div>
               </div>
             </div>
@@ -127,6 +168,27 @@ export function Pricing({ setPage, setModal, prevPage, addToast, onRequestChecko
             </button>
           </div>
         ))}
+      </div>
+      <div style={{ borderTop:`1px solid ${C.border}`, paddingTop:36, marginBottom:46 }}>
+        <h3 style={{ fontSize:"clamp(18px,4vw,24px)", fontWeight:800, color:C.t1, marginBottom:6 }}>{t.addonsTitle}</h3>
+        <p style={{ color:C.t2, marginBottom:22, fontSize:13 }}>{t.addonsSubtitle}</p>
+        <div style={{ display:"grid", gridTemplateColumns:"repeat(auto-fit,minmax(240px,1fr))", gap:12, textAlign:"left" }}>
+          {addOns.map((item) => (
+            <div key={item.id} style={{ background:C.card, border:`1px solid ${C.border}`, borderRadius:16, padding:18 }}>
+              <div style={{ display:"flex", alignItems:"center", gap:10, marginBottom:10 }}>
+                <span style={{ width:34, height:34, borderRadius:999, display:"inline-flex", alignItems:"center", justifyContent:"center", background:C.alpha(item.color, 0.1), border:`1px solid ${C.alpha(item.color, 0.25)}` }}>
+                  <Icon name={item.icon} size={17} color={item.color} strokeWidth={1.7} />
+                </span>
+                <div>
+                  <div style={{ fontWeight:800, color:C.t1, fontSize:14 }}>{item.title}</div>
+                  <div style={{ fontWeight:800, color:item.color, fontSize:12 }}>{item.cost}</div>
+                </div>
+              </div>
+              <p style={{ margin:0, color:C.t2, fontSize:12, lineHeight:1.5 }}>{item.body}</p>
+              {item.note ? <p style={{ margin:"10px 0 0", color:C.t3, fontSize:11, lineHeight:1.45 }}>{item.note}</p> : null}
+            </div>
+          ))}
+        </div>
       </div>
       <div style={{ borderTop:`1px solid ${C.border}`, paddingTop:44 }}>
         <div style={{ display:"flex", justifyContent:"center", marginBottom:8 }}><Icon name="nugget" size={32} color={C.gold} strokeWidth={1.2} /></div>

@@ -27,13 +27,18 @@ const PACK_CREDITS: Record<string, { qty: number; bonus: number; price_cents: nu
 };
 
 const PLAN_NAMES: Record<string, string> = {
-  pro: 'Pro',
+  pro: 'Professional',
   enterprise: 'Enterprise',
 };
 
-const PLAN_NUGGETS: Record<string, number> = {
+const PLAN_BASE_NUGGETS: Record<string, number> = {
   pro: 20,
   enterprise: 60,
+};
+
+const PLAN_FIRST_MONTH_BONUS: Record<string, number> = {
+  pro: 3,
+  enterprise: 20,
 };
 
 function toIso(tsSeconds?: number | null) {
@@ -263,7 +268,9 @@ async function updateUserPlan(userId: string, planId: string) {
 }
 
 async function creditPlanNuggetsOnce(userId: string, planId: string, checkoutSessionId: string) {
-  const amount = PLAN_NUGGETS[planId] ?? 0;
+  const baseAmount = PLAN_BASE_NUGGETS[planId] ?? 0;
+  const bonusAmount = PLAN_FIRST_MONTH_BONUS[planId] ?? 0;
+  const amount = baseAmount + bonusAmount;
   if (!amount) return;
 
   const { error: insertErr } = await supabaseAdmin
@@ -273,8 +280,8 @@ async function creditPlanNuggetsOnce(userId: string, planId: string, checkoutSes
       stripe_payment_id: checkoutSessionId,
       stripe_checkout_session_id: `plan:${checkoutSessionId}`,
       pack_id: `plan:${planId}`,
-      qty: amount,
-      bonus: 0,
+      qty: baseAmount,
+      bonus: bonusAmount,
       price_cents: 0,
       status: 'completed',
     });
