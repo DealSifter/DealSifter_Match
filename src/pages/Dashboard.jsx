@@ -12,6 +12,7 @@ import { PropertyCard } from '../components/cards/PropertyCard';
 import { getHiddenSet, subscribe as subscribeHidden } from '../lib/hiddenCards';
 import { resolveScopedProfile, normalizeProfileScope } from '../lib/profileScopeResolver';
 import { getMatchPressure } from '../lib/matchPressure';
+import { formatPropertyLocation } from '../lib/formatPropertyLocation';
 import { useMediaQuery } from '../hooks/useMediaQuery';
 import feedMatchIcon from '../assets/feed-match-icon.png';
 
@@ -1726,7 +1727,7 @@ export function Dashboard({ page, nuggets, setModal, setPage, onOpenOnboardingTa
         source: 'properties',
         id: p.id,
         title: p.address,
-        subtitle: `${p.type} · ${p.city}`,
+        subtitle: `${p.type} · ${formatPropertyLocation(p)}`,
         meta: `${fmtPrice(p.price)} · ${p.capRate ? `${p.capRate}% Cap` : 'Cap N/A'}`,
         tone: C.gold,
         icon: 'home',

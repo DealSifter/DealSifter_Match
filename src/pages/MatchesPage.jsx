@@ -10,6 +10,7 @@ import { SmartImage } from '../components/ui/SmartImage';
 import { catIcon } from '../lib/catIcon';
 import { buildDisplayContacts, normalizeContactMethod } from '../lib/contactPriority';
 import { resolveScopedProfile, normalizeProfileScope } from '../lib/profileScopeResolver';
+import { formatPropertyLocation } from '../lib/formatPropertyLocation';
 import { translateChatText, getSafeLang } from '../services/chatTranslation';
 import appLogo from '../assets/logo.png';
 
@@ -1074,7 +1075,7 @@ function PortfolioDetail({ item, owner, ownerDesc, onBack, autoplayMedia = false
       <div style={{ padding:10, borderBottom:`1px solid ${C.border}`, display:"flex", alignItems:"center", justifyContent:"space-between", gap:8 }}>
         <div style={{ minWidth:0 }}>
           <div style={{ fontSize:12, fontWeight:800, color:C.t1, whiteSpace:"nowrap", overflow:"hidden", textOverflow:"ellipsis" }}>{item.address}</div>
-          <div style={{ fontSize:10, color:C.t3 }}>{item.city}</div>
+          <div style={{ fontSize:10, color:C.t3 }}>{formatPropertyLocation(item)}</div>
         </div>
         <div style={{ display:'flex', gap:8, alignItems:'center' }}>
           <button onClick={handleOpenEmailCompose}

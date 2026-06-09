@@ -4,6 +4,7 @@ import { useT } from '../../i18n/translations';
 import { Icon } from '../ui/Icon';
 import { SmartImage } from '../ui/SmartImage';
 import { useMediaQuery } from '../../hooks/useMediaQuery';
+import { formatPropertyLocation } from '../../lib/formatPropertyLocation';
 
 export function PropertyCard({ property, action, statusAction, onInterest, owner, isSkipped = false, previewOnly = false, matchPressure = 0, onAvatarClick, showActions = true }) {
   const t = useT('dashboard').cards;
@@ -27,6 +28,7 @@ export function PropertyCard({ property, action, statusAction, onInterest, owner
     ? ((property.ownerAccountType === 'fsbo_owner' || property.source === 'fsbo' || ownerLooksFsbo) ? 'FSBO' : null)
     : property.dealTag;
   const displayDealTagLabel = displayDealTag === 'FSBO' ? (t.fsbo || 'FSBO') : displayDealTag;
+  const propertyLocation = formatPropertyLocation(property);
 
   const effectiveAction = action || statusAction;
   // In pop-up previews, add a stronger theme-aware glow to emphasize card boundaries.
@@ -418,7 +420,7 @@ export function PropertyCard({ property, action, statusAction, onInterest, owner
         <div style={{ display: 'flex', alignItems: 'center', gap: 3, fontSize: 12, color: C.t2, marginBottom: 6 }}>
           <Icon name="mapPin" size={12} color={C.t3} />
           <span style={{ whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
-            {property.address}, {property.city}{property.zip ? ` ${property.zip}` : ''}
+            {[property.address, propertyLocation].filter(Boolean).join(', ')}
           </span>
         </div>
 
