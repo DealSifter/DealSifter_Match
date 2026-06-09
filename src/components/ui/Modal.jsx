@@ -45,25 +45,34 @@ export function Modal({
           from { opacity: 0; transform: scale(0.95) translateY(10px); }
           to { opacity: 1; transform: scale(1) translateY(0); }
         }
-        @media (max-width: 767px) {
+        @media (max-width: 1024px), (hover: none) and (pointer: coarse) {
           .ds-modal-overlay {
             align-items: flex-start !important;
-            overflow-y: auto;
+            height: calc(var(--app-vh, 1vh) * 100) !important;
+            max-height: calc(var(--app-vh, 1vh) * 100) !important;
+            overflow-x: hidden !important;
+            overflow-y: auto !important;
+            overscroll-behavior: contain;
             touch-action: pan-y;
             -webkit-overflow-scrolling: touch;
-            padding-top: max(18px, env(safe-area-inset-top)) !important;
-            padding-bottom: max(18px, env(safe-area-inset-bottom)) !important;
+            padding-top: max(14px, env(safe-area-inset-top)) !important;
+            padding-bottom: max(14px, env(safe-area-inset-bottom)) !important;
           }
           .ds-modal-content {
-            max-height: calc(100dvh - 36px - env(safe-area-inset-top) - env(safe-area-inset-bottom)) !important;
+            width: min(100%, calc(100vw - 24px)) !important;
+            max-height: calc((var(--app-vh, 1vh) * 100) - 28px - env(safe-area-inset-top) - env(safe-area-inset-bottom)) !important;
+            height: auto !important;
+            min-height: 0 !important;
+            overflow-x: hidden !important;
             overflow-y: auto !important;
             overscroll-behavior: contain;
             touch-action: pan-y;
             -webkit-overflow-scrolling: touch;
             margin-top: 0 !important;
+            padding-bottom: max(18px, env(safe-area-inset-bottom)) !important;
           }
           .modal-close-btn {
-            top: 26px !important;
+            top: 20px !important;
             right: 11px !important;
           }
         }
