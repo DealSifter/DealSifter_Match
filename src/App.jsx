@@ -837,6 +837,25 @@ export default function App() {
   }, [authSession?.id, authSession?.email]);
 
   useEffect(() => {
+    if (!isSupabaseConfigured || !supabase || !authSession?.userId) return undefined;
+    let cancelled = false;
+    const sendHeartbeat = async () => {
+      if (cancelled) return;
+      try {
+        await supabase.rpc('track_user_heartbeat', { p_page: String(page || 'app').slice(0, 48) });
+      } catch {
+        // Analytics must never interrupt app navigation.
+      }
+    };
+    sendHeartbeat();
+    const timer = window.setInterval(sendHeartbeat, 60000);
+    return () => {
+      cancelled = true;
+      window.clearInterval(timer);
+    };
+  }, [authSession?.userId, page]);
+
+  useEffect(() => {
     if (!authSession?.id) return undefined;
     const updateActivity = () => {
       lastActivityRef.current = Date.now();
