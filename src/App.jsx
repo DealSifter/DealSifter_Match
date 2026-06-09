@@ -89,6 +89,7 @@ import { useAuthSession, mapSupabaseUserToSession } from './hooks/useAuthSession
 import { useProfileSync } from './hooks/useProfileSync';
 import { usePortfolioSync } from './hooks/usePortfolioSync';
 import { useCheckoutFlow } from './hooks/useCheckoutFlow';
+import { canUsePlanAction, getPlanGateCopy, incrementPlanUsage, readPlanUsage } from './lib/planAccess';
 
 // Safe error logger — strips Supabase error details that may contain personal data
 const safeLogError = (label, error) => {
@@ -2952,9 +2953,20 @@ export default function App() {
 
   const handleUnlock = (card) => {
     const unlockCost = getUnlockCost(card);
+    const unlockGate = canUsePlanAction(subscription, 'unlock', {
+      unlocksThisMonth: readPlanUsage('month')?.unlocks || 0,
+    });
+    if (!unlockGate.allowed) {
+      const copy = getPlanGateCopy('unlock');
+      addToast({ type: 'warning', title: copy.title, message: copy.message });
+      setModal(null);
+      openPricingHub();
+      return;
+    }
     if (nuggets >= unlockCost && card) {
       setNuggets(n => n - unlockCost);
       setUnlocked(u => u.includes(card.id) ? u : [...u, card.id]);
+      incrementPlanUsage('month', 'unlocks');
       // Ensure unlocked contact stays available in Matches module.
       setMatched(prev => prev.some(x => x.id === card.id) ? prev : [...prev, card]);
       // Auto-add ALL active properties of this contact to `interested` so the
@@ -3065,6 +3077,7 @@ export default function App() {
             isHydrationReady={dashboardHydrationReady}
             isHydrationSyncing={dashboardHydrationSyncing}
             userPreferences={userPreferences}
+            subscription={subscription}
           />
         );
       case 'matches':
@@ -3092,6 +3105,9 @@ export default function App() {
             professionalProfile={professionalProfile}
             mobileBottomNavCollapsed={mobileBottomNavCollapsed}
             userPreferences={userPreferences}
+            subscription={subscription}
+            setPage={setPage}
+            addToast={addToast}
             onOpenChatLanguageConfig={() => openSettingsTab('preferences')}
           />
         );

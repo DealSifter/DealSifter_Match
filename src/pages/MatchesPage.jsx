@@ -4,6 +4,7 @@ import { useT } from '../i18n/translations';
 import { PROPERTIES, CARDS, CATEGORIES, SERVICE_PORTFOLIO } from '../data/mockData';
 import { Icon } from '../components/ui/Icon';
 import { Modal } from '../components/ui/Modal';
+import { PlanGateModal } from '../components/modals/PlanGateModal';
 import { PropertyCard } from '../components/cards/PropertyCard';
 import { SwipeCard } from '../components/cards/SwipeCard';
 import { SmartImage } from '../components/ui/SmartImage';
@@ -12,6 +13,7 @@ import { buildDisplayContacts, normalizeContactMethod } from '../lib/contactPrio
 import { resolveScopedProfile, normalizeProfileScope } from '../lib/profileScopeResolver';
 import { formatPropertyLocation } from '../lib/formatPropertyLocation';
 import { translateChatText, getSafeLang } from '../services/chatTranslation';
+import { getPlanGateCopy, isFeatureAllowed } from '../lib/planAccess';
 import appLogo from '../assets/logo.png';
 
 // Move chat templates and defaults to module scope so they are stable references
@@ -302,7 +304,7 @@ function getLocalOwnerId(scopeKey) {
   return 999999;
 }
 
-function PortfolioDetail({ item, owner, ownerDesc, onBack, autoplayMedia = false }) {
+function PortfolioDetail({ item, owner, ownerDesc, onBack, autoplayMedia = false, onBlockedExport = null }) {
   const allT = useT('matches');
   const matchesT = allT.matches;
   const modalsT = allT.modals;
@@ -978,6 +980,7 @@ function PortfolioDetail({ item, owner, ownerDesc, onBack, autoplayMedia = false
   };
 
   const handleOpenEmailCompose = () => {
+    if (typeof onBlockedExport === 'function' && onBlockedExport() === false) return;
     if (!String(emailTo || '').trim()) setEmailTo(getProfileEmailFallback());
     setEmailComposeOpen(true);
   };
@@ -1256,7 +1259,7 @@ function PortfolioDetail({ item, owner, ownerDesc, onBack, autoplayMedia = false
   );
 }
 
-export function MatchesPage({ nuggets, setModal, openUnlock, unlocked, initialChat, chatFocusToken = 0, interested, matched, setInterested, setMatched, convos, setConvos, categoryOrder, setCategoryOrder, showcaseProperties, propertyPortfolio, servicePortfolio, userProfile, personalProfile, professionalProfile, mobileBottomNavCollapsed = false, userPreferences = null, onOpenChatLanguageConfig = null }) {
+export function MatchesPage({ nuggets, setModal, openUnlock, unlocked, initialChat, chatFocusToken = 0, interested, matched, setInterested, setMatched, convos, setConvos, categoryOrder, setCategoryOrder, showcaseProperties, propertyPortfolio, servicePortfolio, userProfile, personalProfile, professionalProfile, mobileBottomNavCollapsed = false, userPreferences = null, subscription = null, setPage = null, addToast = null, onOpenChatLanguageConfig = null }) {
   const PORTFOLIO_PANEL_PADDING = 40;
   const PORTFOLIO_GRID_GAP = 12;
   const PORTFOLIO_CARD_MIN_WIDTH = 132;
@@ -1335,6 +1338,23 @@ export function MatchesPage({ nuggets, setModal, openUnlock, unlocked, initialCh
   
   const allT = useT('matches');
   const t = allT.matches;
+  const [planGate, setPlanGate] = useState(null);
+  const canUseChat = isFeatureAllowed(subscription, 'chat');
+  const canExportPdf = isFeatureAllowed(subscription, 'exportPdf');
+  const goToPricingFromGate = useCallback(() => {
+    setPlanGate(null);
+    if (typeof setPage === 'function') setPage('pricing');
+  }, [setPage]);
+  const blockFeature = useCallback((feature) => {
+    const copy = getPlanGateCopy(feature);
+    addToast?.({ type: 'warning', title: copy.title, message: copy.message });
+    setPlanGate(copy);
+    return false;
+  }, [addToast]);
+  const guardExportPdf = useCallback(() => {
+    if (canExportPdf) return true;
+    return blockFeature('exportPdf');
+  }, [blockFeature, canExportPdf]);
   const matchesPrefs = userPreferences?.feedMatches || {};
   const privacyPrefs = userPreferences?.privacy || {};
   const sortOrder = String(matchesPrefs.sortOrder || 'recent');
@@ -1727,6 +1747,10 @@ export function MatchesPage({ nuggets, setModal, openUnlock, unlocked, initialCh
 
   const handleSend = useCallback(async (customMsg, type = "text", refData = null) => {
     if (!activeOwner) return;
+    if (!canUseChat) {
+      blockFeature('chat');
+      return;
+    }
     const content = (typeof customMsg === 'string' ? customMsg : "") || msg;
     if (!content.trim() && !refData) return;
 
@@ -1810,6 +1834,8 @@ export function MatchesPage({ nuggets, setModal, openUnlock, unlocked, initialCh
     myInputLang,
     myOutputLang,
     activePeerLangs,
+    canUseChat,
+    blockFeature,
   ]);
 
   const mobileBottomNavOffset = isMobile ? (mobileBottomNavCollapsed ? 4 : 88) : 0;
@@ -2217,6 +2243,31 @@ export function MatchesPage({ nuggets, setModal, openUnlock, unlocked, initialCh
                     {isTyping && <div style={{ fontSize:12, color:C.t3 }}>{t.typing}</div>}
                     {isDragging && <div style={{ padding:20, border:`2px dashed ${C.accent}`, borderRadius:12, textAlign:"center", color:C.accent }}>{t.dropPropertyHere}</div>}
                   </div>
+                  {!canUseChat ? (
+                    <div style={{
+                      margin: '0 12px 10px',
+                      padding: 12,
+                      borderRadius: 12,
+                      border: `1px solid ${C.alpha(C.accent, 0.45)}`,
+                      background: C.alpha(C.accent, 0.08),
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'space-between',
+                      gap: 12,
+                    }}>
+                      <div style={{ minWidth: 0 }}>
+                        <div style={{ fontSize: 12, fontWeight: 900, color: C.t1 }}>{getPlanGateCopy('chat').title}</div>
+                        <div style={{ fontSize: 11, color: C.t2, lineHeight: 1.35 }}>{getPlanGateCopy('chat').message}</div>
+                      </div>
+                      <button
+                        type="button"
+                        onClick={goToPricingFromGate}
+                        style={{ border: 'none', background: C.accent, color: '#061412', borderRadius: 9, padding: '8px 10px', fontSize: 11, fontWeight: 900, cursor: 'pointer', flexShrink: 0 }}
+                      >
+                        {getPlanGateCopy('chat').cta}
+                      </button>
+                    </div>
+                  ) : null}
                   <div style={{
                     padding: isMobile ? 12 : '8px 12px',
                     minHeight: isMobile ? 82 : 70,
@@ -2229,6 +2280,7 @@ export function MatchesPage({ nuggets, setModal, openUnlock, unlocked, initialCh
                     <textarea
                       ref={msgInputRef}
                       value={msg}
+                      disabled={!canUseChat}
                       onChange={(e) => setMsg(e.target.value)}
                       onKeyDown={(e) => {
                         if (e.key === 'Enter' && !e.shiftKey && !e.nativeEvent?.isComposing) {
@@ -2237,7 +2289,7 @@ export function MatchesPage({ nuggets, setModal, openUnlock, unlocked, initialCh
                         }
                       }}
                       rows={1}
-                      placeholder={t.typeMsg}
+                      placeholder={canUseChat ? t.typeMsg : getPlanGateCopy('chat').title}
                       style={{
                         flex:1,
                         minHeight: isMobile ? 42 : 34,
@@ -2247,6 +2299,7 @@ export function MatchesPage({ nuggets, setModal, openUnlock, unlocked, initialCh
                         border:`1px solid ${C.border}`,
                         background:C.bg,
                         color:C.t1,
+                        opacity: canUseChat ? 1 : 0.62,
                         outline:"none",
                         resize:'none',
                         lineHeight: isMobile ? 1.35 : 1.3,
@@ -2256,13 +2309,15 @@ export function MatchesPage({ nuggets, setModal, openUnlock, unlocked, initialCh
                     />
                     <button
                       onClick={handleSend}
+                      disabled={!canUseChat}
                       style={{
                         width: isMobile ? 45 : 40,
                         height: isMobile ? 45 : 40,
                         background:C.accent,
                         border:"none",
                         borderRadius:10,
-                        cursor:"pointer",
+                        cursor: canUseChat ? "pointer" : "not-allowed",
+                        opacity: canUseChat ? 1 : 0.55,
                         display:"flex",
                         alignItems:"center",
                         justifyContent:"center",
@@ -2320,6 +2375,7 @@ export function MatchesPage({ nuggets, setModal, openUnlock, unlocked, initialCh
                         ownerDesc={ownerDesc}
                         onBack={() => setSelectedPortfolioItem(null)}
                         autoplayMedia={autoplayMedia}
+                        onBlockedExport={guardExportPdf}
                       />
                     ) : (
                       <div style={{ background:C.card, border:`1px solid ${C.border}`, borderRadius:12, padding:12 }}>
@@ -2442,15 +2498,20 @@ export function MatchesPage({ nuggets, setModal, openUnlock, unlocked, initialCh
                   ownerDesc={ownerDesc}
                   onBack={() => setMobileCardSheet(null)}
                   autoplayMedia={autoplayMedia}
+                  onBlockedExport={guardExportPdf}
                 />
                 <button
                   type="button"
                   onClick={() => {
+                    if (!canUseChat) {
+                      blockFeature('chat');
+                      return;
+                    }
                     handleSend('', 'reference', mobileCardSheet);
                     setMobileCardSheet(null);
                     setMobileChatTab('chat');
                   }}
-                  style={{ width:'100%', marginTop:16, padding:'14px', borderRadius:12, background:C.accent, color:'#fff', border:'none', fontWeight:800, fontSize:14, cursor:'pointer' }}
+                  style={{ width:'100%', marginTop:16, padding:'14px', borderRadius:12, background:C.accent, color:'#fff', border:'none', fontWeight:800, fontSize:14, cursor:canUseChat ? 'pointer' : 'not-allowed', opacity:canUseChat ? 1 : 0.62 }}
                 >
                   💬 {CHAT_INTEREST_PREFIX[myInputLang] || CHAT_INTEREST_PREFIX.pt}
                 </button>
@@ -2476,11 +2537,15 @@ export function MatchesPage({ nuggets, setModal, openUnlock, unlocked, initialCh
                 <button
                   type="button"
                   onClick={() => {
+                    if (!canUseChat) {
+                      blockFeature('chat');
+                      return;
+                    }
                     handleSend('', 'reference', mobileCardSheet);
                     setMobileCardSheet(null);
                     setMobileChatTab('chat');
                   }}
-                  style={{ width:'100%', marginTop:16, padding:'14px', borderRadius:12, background:C.accent, color:'#fff', border:'none', fontWeight:800, fontSize:14, cursor:'pointer' }}
+                  style={{ width:'100%', marginTop:16, padding:'14px', borderRadius:12, background:C.accent, color:'#fff', border:'none', fontWeight:800, fontSize:14, cursor:canUseChat ? 'pointer' : 'not-allowed', opacity:canUseChat ? 1 : 0.62 }}
                 >
                   💬 {CHAT_INTEREST_SERVICE_PREFIX[myInputLang] || CHAT_INTEREST_SERVICE_PREFIX.pt}
                 </button>
@@ -2513,6 +2578,12 @@ export function MatchesPage({ nuggets, setModal, openUnlock, unlocked, initialCh
           </div>
         </Modal>
       ) : null}
+
+      <PlanGateModal
+        gate={planGate}
+        onClose={() => setPlanGate(null)}
+        onUpgrade={goToPricingFromGate}
+      />
     </div>
   );
 }

@@ -6,6 +6,7 @@ import { Icon } from '../components/ui/Icon';
 import { SmartImage } from '../components/ui/SmartImage';
 import { CategoryBar } from '../components/layout/CategoryBar';
 import { Modal } from '../components/ui/Modal';
+import { PlanGateModal } from '../components/modals/PlanGateModal';
 import { catIcon } from '../lib/catIcon';
 import { SwipeCard } from '../components/cards/SwipeCard';
 import { PropertyCard } from '../components/cards/PropertyCard';
@@ -14,6 +15,7 @@ import { resolveScopedProfile, normalizeProfileScope } from '../lib/profileScope
 import { getMatchPressure } from '../lib/matchPressure';
 import { formatPropertyLocation } from '../lib/formatPropertyLocation';
 import { useMediaQuery } from '../hooks/useMediaQuery';
+import { canUsePlanAction, getPlanGateCopy, incrementPlanUsage, readPlanUsage } from '../lib/planAccess';
 import feedMatchIcon from '../assets/feed-match-icon.png';
 
 // Utilitário para checagem de flag booleana (string, bool, number)
@@ -44,7 +46,7 @@ function readPendingFocusCard() {
   }
 }
 
-export function Dashboard({ page, nuggets, setModal, setPage, onOpenOnboardingTab, openUnlock, unlocked, matched, setMatched, interested, setInterested, purchases, setPurchases, userProfile, personalProfile, professionalProfile, propertyPortfolio, servicePortfolio, accountType, showcaseProperties, categoryOrder, setCategoryOrder, editMode, setEditMode, mobileBottomNavCollapsed = false, addToast }) {
+export function Dashboard({ page, nuggets, setModal, setPage, onOpenOnboardingTab, openUnlock, unlocked, matched, setMatched, interested, setInterested, purchases, setPurchases, userProfile, personalProfile, professionalProfile, propertyPortfolio, servicePortfolio, accountType, showcaseProperties, categoryOrder, setCategoryOrder, editMode, setEditMode, mobileBottomNavCollapsed = false, addToast, subscription }) {
   const isMobileViewport = useMediaQuery('(max-width: 767px)');
   const isTabletPortraitViewport = useMediaQuery('(min-width: 768px) and (max-width: 1080px) and (orientation: portrait)');
   const isTouchModalViewport = useMediaQuery('(max-width: 1024px)');
@@ -717,6 +719,16 @@ export function Dashboard({ page, nuggets, setModal, setPage, onOpenOnboardingTa
   const t = useT('dashboard').dashboard;
   const cardsT = useT('dashboard').cards;
   const matchesT = useT('dashboard').matches;
+  const [planGate, setPlanGate] = useState(null);
+
+  const openPlanGate = useCallback((feature) => {
+    setPlanGate(getPlanGateCopy(feature));
+  }, []);
+
+  const goToPricingFromGate = useCallback(() => {
+    setPlanGate(null);
+    setPage?.('pricing');
+  }, [setPage]);
 
   const categoryLabelById = useMemo(() => {
     const labels = new Map();
@@ -731,6 +743,19 @@ export function Dashboard({ page, nuggets, setModal, setPage, onOpenOnboardingTa
     () => matched.filter((m, i, arr) => arr.findIndex((x) => x.id === m.id) === i),
     [matched],
   );
+
+  const canStartPlanAction = useCallback((feature) => {
+    const action = canUsePlanAction(subscription, feature, {
+      likesToday: readPlanUsage('day')?.likes || 0,
+      unlocksThisMonth: readPlanUsage('month')?.unlocks || 0,
+      activeMatches: dedupedMatched.length,
+    });
+    if (!action.allowed) {
+      openPlanGate(action.feature || feature);
+      return false;
+    }
+    return true;
+  }, [dedupedMatched.length, openPlanGate, subscription]);
 
   const matchCategoryOptions = useMemo(() => {
     const seen = new Set();
@@ -1386,8 +1411,13 @@ export function Dashboard({ page, nuggets, setModal, setPage, onOpenOnboardingTa
     }
     if (type === 'unlock') {
       if (!topCard || unlocked.includes(topCard.id)) return;
+      if (!canStartPlanAction('unlock')) return;
       if (typeof openUnlock === 'function') openUnlock(topCard);
       return;
+    }
+    if (type === 'match') {
+      if (!canStartPlanAction('like')) return;
+      if (!canStartPlanAction('match')) return;
     }
     const snap = [...connDeck];
     const propSnap = [...propDeck];
@@ -1399,6 +1429,7 @@ export function Dashboard({ page, nuggets, setModal, setPage, onOpenOnboardingTa
             const topOwnerId = String(topCard?.ownerId ?? topCard?.id ?? '');
           // Permanently remove from deck
           addMatchedCapped(topCard);
+          incrementPlanUsage('day', 'likes');
           setConnDeck(d => d.filter(id => id !== topCard.id));
           // Record purchase: remove properties of bought contact from propDeck
           setPurchases(prev => 
@@ -1500,6 +1531,10 @@ export function Dashboard({ page, nuggets, setModal, setPage, onOpenOnboardingTa
       addToast?.({ type: 'info', message: 'Own card, not selectionable' });
       return;
     }
+    if (type === "interest") {
+      if (!canStartPlanAction('like')) return;
+      if (!canStartPlanAction('match')) return;
+    }
     setIsSwipingProp(true);
     setPropAction(type);
     setPropStatusById(prev => ({ ...prev, [topProp.id]: type }));
@@ -1512,6 +1547,7 @@ export function Dashboard({ page, nuggets, setModal, setPage, onOpenOnboardingTa
       requestAnimationFrame(() => {
         if (type === "interest") {
           setInterested(p => p.find(x => x.id === topProp.id) ? p : [...p, topProp]);
+          incrementPlanUsage('day', 'likes');
           if (topOwner) {
             addMatchedCapped(topOwner);
             setConnDeck(d => d.filter(id => id !== topOwner.id));
@@ -3377,6 +3413,11 @@ export function Dashboard({ page, nuggets, setModal, setPage, onOpenOnboardingTa
         )}
       </div>
     ) : null}
+      <PlanGateModal
+        gate={planGate}
+        onClose={() => setPlanGate(null)}
+        onUpgrade={goToPricingFromGate}
+      />
     </div>
   );
 }
