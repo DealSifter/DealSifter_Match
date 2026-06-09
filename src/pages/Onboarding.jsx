@@ -5034,7 +5034,11 @@ export function Onboarding({
       ) : null}
 
         {previewOpen ? (
-        <Modal onClose={() => setPreviewOpen(false)} maxWidth={1320}>
+        <Modal
+          onClose={() => setPreviewOpen(false)}
+          maxWidth={1320}
+          contentStyle={isMobileViewport ? { maxHeight: 'calc(100dvh - 36px)', overflowY: 'auto', WebkitOverflowScrolling: 'touch', touchAction: 'pan-y' } : {}}
+        >
           <h3 style={{ margin: '0 0 6px', color: C.t1, fontSize: 20, fontWeight: 800 }}>{t.previewTitle}</h3>
           <p style={{ margin: '0 0 14px', color: C.t3, fontSize: 12 }}>
             {t.previewSubtitle}

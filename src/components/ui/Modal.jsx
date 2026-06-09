@@ -49,11 +49,17 @@ export function Modal({
           .ds-modal-overlay {
             align-items: flex-start !important;
             overflow-y: auto;
+            touch-action: pan-y;
+            -webkit-overflow-scrolling: touch;
             padding-top: max(18px, env(safe-area-inset-top)) !important;
             padding-bottom: max(18px, env(safe-area-inset-bottom)) !important;
           }
           .ds-modal-content {
-            max-height: none !important;
+            max-height: calc(100dvh - 36px - env(safe-area-inset-top) - env(safe-area-inset-bottom)) !important;
+            overflow-y: auto !important;
+            overscroll-behavior: contain;
+            touch-action: pan-y;
+            -webkit-overflow-scrolling: touch;
             margin-top: 0 !important;
           }
           .modal-close-btn {

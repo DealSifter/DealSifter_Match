@@ -2527,7 +2527,11 @@ export function Dashboard({ page, nuggets, setModal, setPage, onOpenOnboardingTa
 
         {/* My Card preview modal — top-level so it works regardless of which profile triggered it */}
         {myCardModal.open && (
-          <Modal onClose={() => setMyCardModal((prev) => ({ ...prev, open: false }))} maxWidth={isMobileViewport ? 760 : 1320}>
+          <Modal
+            onClose={() => setMyCardModal((prev) => ({ ...prev, open: false }))}
+            maxWidth={isMobileViewport ? 760 : 1320}
+            contentStyle={isMobileViewport ? { maxHeight: 'calc(100dvh - 36px)', overflowY: 'auto', WebkitOverflowScrolling: 'touch', touchAction: 'pan-y' } : {}}
+          >
             <div style={{ display: 'grid', gap: 10, paddingRight: isMobileViewport ? 2 : 0 }}>
               <div style={{ display: 'flex', flexWrap: isMobileViewport ? 'wrap' : 'nowrap', alignItems: 'center', justifyContent: 'space-between', gap: 8, paddingRight: 30 }}>
                 <div>

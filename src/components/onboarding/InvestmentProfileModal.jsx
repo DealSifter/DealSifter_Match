@@ -60,9 +60,9 @@ export function InvestmentProfileModal({
       onClose={onClose}
       maxWidth={1450}
       overlayStyle={isMobileViewport ? {} : { padding: '92px 24px 24px', alignItems: 'flex-start' }}
-      contentStyle={isMobileViewport ? {} : { width: 'min(1450px, calc(100vw - 48px))', height: 580, maxHeight: 580, overflow: 'hidden', padding: '20px 22px 18px' }}
+      contentStyle={isMobileViewport ? { overflowY: 'auto', WebkitOverflowScrolling: 'touch', touchAction: 'pan-y' } : { width: 'min(1450px, calc(100vw - 48px))', height: 580, maxHeight: 580, overflow: 'hidden', padding: '20px 22px 18px' }}
     >
-      <div style={{ display: 'grid', gridTemplateRows: 'auto auto minmax(0, 1fr)', gap: 8, height: isMobileViewport ? 'auto' : '100%', overflow: 'hidden' }}>
+      <div style={{ display: 'grid', gridTemplateRows: isMobileViewport ? 'auto' : 'auto auto minmax(0, 1fr)', gap: 8, height: isMobileViewport ? 'auto' : '100%', overflow: isMobileViewport ? 'visible' : 'hidden' }}>
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 10, paddingRight: 28 }}>
           <h3 style={{ margin: 0, color: C.t1, fontSize: 22, fontWeight: 800 }}>{t.investmentProfileTitle || 'Investor Profile'}</h3>
         </div>
@@ -77,8 +77,8 @@ export function InvestmentProfileModal({
           ) : null}
         </div>
 
-        <div style={{ display: 'grid', gridTemplateColumns: isMobileViewport ? '1fr' : '0.95fr 1fr 1.15fr', gap: 14, minHeight: 0, overflow: 'hidden' }}>
-          <div style={{ display: 'grid', gap: 9, alignContent: 'start', minHeight: 0, overflow: 'hidden' }}>
+        <div style={{ display: 'grid', gridTemplateColumns: isMobileViewport ? '1fr' : '0.95fr 1fr 1.15fr', gap: 14, minHeight: 0, overflow: isMobileViewport ? 'visible' : 'hidden' }}>
+          <div style={{ display: 'grid', gap: 9, alignContent: 'start', minHeight: 0, overflow: isMobileViewport ? 'visible' : 'hidden' }}>
             <div style={{ display: 'grid', gap: 5, paddingTop: 8, borderTop: `1px solid ${C.alpha(C.border, 0.75)}` }}>
               <div style={{ fontSize: 12, color: C.t1, fontWeight: 900 }}>{t.investmentIam || 'I am a... (select all that apply)'}</div>
               <div style={{ display: 'flex', flexWrap: 'wrap', gap: 5 }}>
@@ -127,7 +127,7 @@ export function InvestmentProfileModal({
             </div>
           </div>
 
-          <div style={{ display: 'grid', gap: 9, alignContent: 'start', minHeight: 0, overflow: 'hidden' }}>
+          <div style={{ display: 'grid', gap: 9, alignContent: 'start', minHeight: 0, overflow: isMobileViewport ? 'visible' : 'hidden' }}>
             <div style={{ display: 'grid', gap: 5, paddingTop: 8, borderTop: `1px solid ${C.alpha(C.border, 0.75)}` }}>
               <div style={{ fontSize: 12, color: C.t1, fontWeight: 900 }}>{t.investmentStrategies || 'Investment strategies'}</div>
               <div style={{ display: 'flex', flexWrap: 'wrap', gap: 5 }}>
@@ -195,7 +195,7 @@ export function InvestmentProfileModal({
             </div>
           </div>
 
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 8, minHeight: 0, overflow: 'hidden' }}>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 8, minHeight: 0, overflow: isMobileViewport ? 'visible' : 'hidden' }}>
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, minmax(0, 1fr))', gap: 8 }}>
               <label style={{ display: 'grid', gap: 5 }}>
                 <span style={{ fontSize: 12, color: C.t1, fontWeight: 900 }}>{t.investmentDealsLifetime || 'Deals closed (lifetime)'}</span>
