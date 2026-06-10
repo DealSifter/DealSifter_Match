@@ -8,7 +8,7 @@ import newCardTaskbarIcon from '../../assets/taskbar-newcard-icon.png';
 import mapViewTaskbarIcon from '../../assets/taskbar-mapview-icon.png';
 import matchesTaskbarIcon from '../../assets/taskbar-matches-icon.png';
 
-const HIDDEN_PAGES = new Set(['landing', 'terms', 'privacy', 'admin']);
+const HIDDEN_PAGES = new Set(['landing', 'pricing', 'terms', 'privacy', 'admin']);
 
 export function AppMobileBottomNav({ page, setPage, collapsed = false, onCollapsedChange, needsPrimaryProfileAttention = false }) {
   const TABLET_PORTRAIT_QUERY = '(min-width: 768px) and (max-width: 1080px) and (orientation: portrait)';

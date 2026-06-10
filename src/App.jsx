@@ -3203,8 +3203,10 @@ export default function App() {
     }
   };
 
+  const isPublicPricingPage = page === 'pricing' && (!authSession || prevPage === 'landing');
+
   return (
-    <ThemeProvider forcedTheme={page === 'landing' ? 'light' : null}>
+    <ThemeProvider forcedTheme={(page === 'landing' || isPublicPricingPage) ? 'light' : null}>
       <div style={{ minHeight: '100vh', background: 'var(--bg)', color: 'var(--t1)' }}>
         <Navbar
           page={page}
