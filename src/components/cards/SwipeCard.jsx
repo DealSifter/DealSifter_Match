@@ -53,13 +53,13 @@ function SwipeCard({ card, action, isUnlocked, isSkipped, onSwipe, onUndo, onUnl
     flexDirection: isMobileLayout ? 'column' : 'row',
     width: '100%',
     height: '100%',
-    willChange: 'transform, opacity',
+    willChange: isDragging ? 'transform' : 'auto',
     touchAction: previewOnly ? 'auto' : 'none',
     userSelect: 'none',
     WebkitUserSelect: 'none',
     cursor: previewOnly ? 'default' : (isDragging ? 'grabbing' : 'grab'),
     transform: `translate3d(${dragX}px, ${dragY}px, 0) rotate(${dragTilt}deg)`,
-    opacity: isDragging ? (1 - dragProgress * 0.06) : 1,
+    opacity: 1,
   }), [glowShadow, topGradient, bottomGradient, borderWidth, dragX, dragY, dragTilt, dragProgress, isDragging, previewOnly, isMobileLayout]);
 
   const flushQueuedDrag = React.useCallback(() => {

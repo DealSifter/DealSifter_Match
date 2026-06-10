@@ -54,8 +54,8 @@ export function PropertyCard({ property, action, statusAction, onInterest, owner
     ? (t.exclusivityPartialBadge || exclusivityStatus?.badge || 'Only {count} unlocks').replace('{count}', String(exclusivityStatus?.unlockCount || 2))
     : (t.exclusivityNewBadge || exclusivityStatus?.badge || 'New');
   const exclusivityStripText = isPartialExclusivity
-    ? (t.exclusivityPartialStrip || 'New card, be the first to unlock with partial exclusivity! Be quick and enjoy...')
-    : (t.exclusivityNewStrip || 'New card, be the first to unlock with exclusivity! Be quick and enjoy.');
+    ? (t.exclusivityPartialStrip || 'Unlock with partial exclusivity! Be quick.')
+    : (t.exclusivityNewStrip || 'Be the first to unlock with exclusivity! Be quick.');
   const exclusivityStripGradient = isPartialExclusivity
     ? 'linear-gradient(90deg, rgba(126,45,0,0.96) 0%, rgba(245,158,11,0.94) 100%)'
     : 'linear-gradient(90deg, rgba(5,70,45,0.96) 0%, rgba(20,184,166,0.94) 100%)';
@@ -80,12 +80,12 @@ export function PropertyCard({ property, action, statusAction, onInterest, owner
     backgroundOrigin: 'border-box',
     backgroundClip: 'padding-box, border-box',
     boxShadow: glowShadow,
-    transition: 'border-color .2s, filter .2s, opacity .2s',
+    transition: isDragging ? 'none' : 'border-color .18s, transform .18s cubic-bezier(0.22, 0.61, 0.36, 1)',
     display: 'flex',
     flexDirection: isMobileLayout ? 'column' : 'row',
     width: '100%',
     height: '100%',
-    willChange: 'transform, opacity',
+    willChange: isDragging ? 'transform' : 'auto',
     userSelect: 'none',
     WebkitUserSelect: 'none',
     filter: isDimmed ? 'grayscale(0.7) brightness(0.82)' : undefined,
@@ -93,7 +93,7 @@ export function PropertyCard({ property, action, statusAction, onInterest, owner
     touchAction: previewOnly ? 'auto' : 'none',
     cursor: previewOnly ? 'default' : (isDragging ? 'grabbing' : 'grab'),
     transform: `translate3d(${dragX}px, ${dragY}px, 0) rotate(${dragTilt}deg)`,
-    opacity: isDragging ? (1 - dragProgress * 0.06) : (isDimmed ? 0.62 : 1),
+    opacity: isDimmed ? 0.62 : 1,
   }), [glowShadow, topGradient, bottomGradient, borderWidth, isDimmed, isMobileLayout, previewOnly, isDragging, dragX, dragY, dragTilt, dragProgress]);
 
   const flushQueuedDrag = React.useCallback(() => {
@@ -195,8 +195,8 @@ export function PropertyCard({ property, action, statusAction, onInterest, owner
       {showExclusivityAlert ? (
         <style>{`
           @keyframes dsPropertyExclusivePulse {
-            0%, 100% { opacity: 1; filter: brightness(1); box-shadow: 0 0 0 0 rgba(250, 204, 21, 0.18); }
-            50% { opacity: .76; filter: brightness(1.18); box-shadow: 0 0 0 5px rgba(250, 204, 21, 0.18), 0 0 18px rgba(53, 202, 201, 0.24); }
+            0%, 100% { opacity: 1; transform: translateZ(0) scale(1); }
+            50% { opacity: .84; transform: translateZ(0) scale(1.015); }
           }
         `}</style>
       ) : null}

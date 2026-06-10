@@ -2878,8 +2878,8 @@ export function Dashboard({ page, nuggets, setModal, setPage, onOpenOnboardingTa
             <div style={{ position:"relative", width:`min(${FEED_CARD_WIDTH}px, 100%)`, height:FEED_STACK_CONTAINER_HEIGHT, boxShadow: 'none', borderRadius: 0, overflow: 'visible' }}>
               {view==="connections" && (
                 connDisplay.length > 0
-                  ? connDisplay.slice(0, 5).reverse().map((c, i) => {
-                      const reverseI = Math.min(connDisplay.length, 5) - 1 - i;
+                  ? connDisplay.slice(0, isMobileViewport ? 3 : 5).reverse().map((c, i) => {
+                      const reverseI = Math.min(connDisplay.length, isMobileViewport ? 3 : 5) - 1 - i;
                       const isTop    = reverseI === 0;
                       const shiftLeft    = reverseI * FEED_STACK_SHIFT_X;
                       const shiftDown    = reverseI * FEED_STACK_SHIFT_Y;
@@ -2926,8 +2926,8 @@ export function Dashboard({ page, nuggets, setModal, setPage, onOpenOnboardingTa
               )}
               {view==="properties" && (
                 propDisplay.length > 0
-                  ? propDisplay.slice(0, 5).reverse().map((p, i) => {
-                      const reverseI = Math.min(propDisplay.length, 5) - 1 - i;
+                  ? propDisplay.slice(0, isMobileViewport ? 3 : 5).reverse().map((p, i) => {
+                      const reverseI = Math.min(propDisplay.length, isMobileViewport ? 3 : 5) - 1 - i;
                       const isTop    = reverseI === 0;
                       const canonical = PROPERTIES.find(pp => String(pp.id) === String(p.id));
                       const ownerIdToUse = canonical ? canonical.ownerId : p.ownerId;
