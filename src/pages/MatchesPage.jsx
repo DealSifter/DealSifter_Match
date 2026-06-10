@@ -14,6 +14,7 @@ import { resolveScopedProfile, normalizeProfileScope } from '../lib/profileScope
 import { formatPropertyLocation } from '../lib/formatPropertyLocation';
 import { translateChatText, getSafeLang } from '../services/chatTranslation';
 import { getPlanGateCopy, isFeatureAllowed } from '../lib/planAccess';
+import { trackAppEvent } from '../lib/adminEventTracking';
 import appLogo from '../assets/logo.png';
 
 // Move chat templates and defaults to module scope so they are stable references
@@ -1342,13 +1343,25 @@ export function MatchesPage({ nuggets, setModal, openUnlock, unlocked, initialCh
   const canUseChat = isFeatureAllowed(subscription, 'chat');
   const canExportPdf = isFeatureAllowed(subscription, 'exportPdf');
   const goToPricingFromGate = useCallback(() => {
+    if (planGate?.feature) {
+      trackAppEvent('plan_gate_upgrade_clicked', {
+        entityType: 'feature',
+        entityId: planGate.feature,
+        metadata: { feature: String(planGate.feature || '') },
+      });
+    }
     setPlanGate(null);
     if (typeof setPage === 'function') setPage('pricing');
-  }, [setPage]);
+  }, [planGate, setPage]);
   const blockFeature = useCallback((feature) => {
     const copy = getPlanGateCopy(feature);
+    trackAppEvent('plan_gate_shown', {
+      entityType: 'feature',
+      entityId: feature,
+      metadata: { feature: String(feature || '') },
+    });
     addToast?.({ type: 'warning', title: copy.title, message: copy.message });
-    setPlanGate(copy);
+    setPlanGate({ ...copy, feature });
     return false;
   }, [addToast]);
   const guardExportPdf = useCallback(() => {

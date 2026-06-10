@@ -5,6 +5,8 @@ import { supabase, isSupabaseConfigured } from '../lib/supabaseClient';
 
 const fmtInt = (value) => Number(value || 0).toLocaleString('en-US');
 const fmtUsd = (cents) => `$${(Number(cents || 0) / 100).toLocaleString('en-US', { maximumFractionDigits: 0 })}`;
+const fmtPct = (value) => `${Number(value || 0).toLocaleString('en-US', { maximumFractionDigits: 1 })}%`;
+const fmtMb = (bytes) => `${(Number(bytes || 0) / 1048576).toLocaleString('en-US', { maximumFractionDigits: 1 })} MB`;
 const ADMIN_KPI_ORDER_KEY = 'ds_admin_kpi_order_v1';
 
 function readAdminKpiOrder() {
@@ -346,7 +348,11 @@ export function AdminDashboard({ setPage, prevPage, logoutAdmin }) {
         { id: 'active-now', label: 'Active now', value: fmtInt(m.activeUsersNow), sub: 'last 5 min', series: series['active-now'], seriesStatus: seriesStatus['active-now'] },
         { id: 'total-users', label: 'Total users', value: fmtInt(m.totalUsers), sub: 'all time', series: series['total-users'] },
         { id: 'new-users', label: 'New users', value: `${fmtInt(m.newUsersDay)} / ${fmtInt(m.newUsersWeek)} / ${fmtInt(m.newUsersMonth)}`, sub: 'day / week / month', series: series['new-users'] },
-        { id: 'deleted-users', label: 'Deleted users', value: '0 / 0 / 0', sub: 'day / week / month', series: series['deleted-users'] },
+        { id: 'deleted-users', label: 'Deleted users', value: `${fmtInt(m.deletedUsersDay)} / ${fmtInt(m.deletedUsersWeek)} / ${fmtInt(m.deletedUsersMonth)}`, sub: 'day / week / month', series: series['deleted-users'] },
+        { id: 'activation-funnel', label: 'Activation funnel', value: fmtPct(m.activationRate), sub: 'users with at least one card', series: series['activation-funnel'] },
+        { id: 'free-plan-pressure', label: 'Free plan pressure', value: fmtInt(m.freePlanPressureTotal), sub: `${fmtPct(m.freePlanUpgradeRate)} clicked upgrade`, series: series['free-plan-pressure'] },
+        { id: 'checkout-dropoff', label: 'Checkout drop-off', value: fmtPct(m.checkoutCompletionRate), sub: `${fmtInt(m.checkoutCompleted30d)} paid / ${fmtInt(m.checkoutClicked30d)} clicked`, series: series['checkout-dropoff'] },
+        { id: 'card-health', label: 'Card health', value: fmtPct(m.cardHealthPct), sub: `${fmtInt(m.cardHealthNeedsAttention)} need attention / ${fmtInt(m.cardHealthTotal)} total`, series: series['card-health'] },
         { id: 'unlocks', label: 'Unlocks', value: fmtInt(m.totalUnlocks), sub: `${fmtInt(m.usersWithUnlocks)} users`, series: series.unlocks },
         { id: 'swipes-today', label: 'Swipes today', value: fmtInt(m.swipesToday), sub: 'last 12 days', series: series['swipes-today'] },
         { id: 'packs-revenue', label: 'Packs revenue', value: fmtUsd(m.packRevenueUsdCents), sub: `${fmtInt(m.nuggetsPurchased)} nuggets`, series: series['packs-revenue'], chartFormatter: fmtUsd },
@@ -358,6 +364,7 @@ export function AdminDashboard({ setPage, prevPage, logoutAdmin }) {
         { id: 'properties', label: 'Properties', value: fmtInt(m.totalProperties), sub: 'published + saved', series: series.properties },
       ],
       system: [
+        { id: 'db-storage-guardrail', label: 'DB guardrail', value: fmtPct(m.dbUsagePct), sub: `${fmtMb(m.dbSizeBytes)} / ${fmtMb(m.dbLimitBytes)}`, series: series['db-storage-guardrail'], seriesStatus: seriesStatus['db-storage-guardrail'], chartFormatter: (value) => `${Number(value || 0).toLocaleString('en-US', { maximumFractionDigits: 1 })} MB` },
         { id: 'stripe-issues', label: 'Stripe issues', value: fmtInt(m.stripeIssuesDay), sub: 'last 12 days', series: series['stripe-issues'] },
         { id: 'supabase-issues', label: 'Supabase issues', value: fmtInt(m.supabaseIssuesDay), sub: 'last 12 days', series: series['supabase-issues'] },
         { id: 'admin-accounts', label: 'Admin accounts', value: fmtInt(m.adminAccounts), sub: 'restricted', series: series['admin-accounts'] },

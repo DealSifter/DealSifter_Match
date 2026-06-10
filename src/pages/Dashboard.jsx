@@ -16,7 +16,7 @@ import { getMatchPressure } from '../lib/matchPressure';
 import { formatPropertyLocation } from '../lib/formatPropertyLocation';
 import { useMediaQuery } from '../hooks/useMediaQuery';
 import { canUsePlanAction, getPlanGateCopy, incrementPlanUsage, readPlanUsage } from '../lib/planAccess';
-import { supabase, isSupabaseConfigured } from '../lib/supabaseClient';
+import { trackAppEvent } from '../lib/adminEventTracking';
 import feedMatchIcon from '../assets/feed-match-icon.png';
 
 // Utilitário para checagem de flag booleana (string, bool, number)
@@ -48,13 +48,11 @@ function readPendingFocusCard() {
 }
 
 function trackDashboardSwipe(entityType, entityId, action) {
-  if (!isSupabaseConfigured || !supabase) return;
-  supabase.rpc('track_app_event', {
-    p_event_type: 'swipe_given',
-    p_entity_type: entityType,
-    p_entity_id: String(entityId || ''),
-    p_metadata: { action: String(action || '') },
-  }).catch(() => {});
+  trackAppEvent('swipe_given', {
+    entityType,
+    entityId,
+    metadata: { action: String(action || '') },
+  });
 }
 
 export function Dashboard({ page, nuggets, setModal, setPage, onOpenOnboardingTab, openUnlock, unlocked, matched, setMatched, interested, setInterested, purchases, setPurchases, userProfile, personalProfile, professionalProfile, propertyPortfolio, servicePortfolio, accountType, showcaseProperties, categoryOrder, setCategoryOrder, editMode, setEditMode, mobileBottomNavCollapsed = false, addToast, subscription }) {
@@ -733,13 +731,25 @@ export function Dashboard({ page, nuggets, setModal, setPage, onOpenOnboardingTa
   const [planGate, setPlanGate] = useState(null);
 
   const openPlanGate = useCallback((feature) => {
-    setPlanGate(getPlanGateCopy(feature));
+    trackAppEvent('plan_gate_shown', {
+      entityType: 'feature',
+      entityId: feature,
+      metadata: { feature: String(feature || '') },
+    });
+    setPlanGate({ ...getPlanGateCopy(feature), feature });
   }, []);
 
   const goToPricingFromGate = useCallback(() => {
+    if (planGate?.feature) {
+      trackAppEvent('plan_gate_upgrade_clicked', {
+        entityType: 'feature',
+        entityId: planGate.feature,
+        metadata: { feature: String(planGate.feature || '') },
+      });
+    }
     setPlanGate(null);
     setPage?.('pricing');
-  }, [setPage]);
+  }, [planGate, setPage]);
 
   const categoryLabelById = useMemo(() => {
     const labels = new Map();

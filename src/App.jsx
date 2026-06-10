@@ -90,6 +90,7 @@ import { useProfileSync } from './hooks/useProfileSync';
 import { usePortfolioSync } from './hooks/usePortfolioSync';
 import { useCheckoutFlow } from './hooks/useCheckoutFlow';
 import { canUsePlanAction, getPlanGateCopy, incrementPlanUsage, readPlanUsage } from './lib/planAccess';
+import { trackAppEvent } from './lib/adminEventTracking';
 
 // Safe error logger — strips Supabase error details that may contain personal data
 const safeLogError = (label, error) => {
@@ -2958,6 +2959,16 @@ export default function App() {
     });
     if (!unlockGate.allowed) {
       const copy = getPlanGateCopy('unlock');
+      trackAppEvent('plan_gate_shown', {
+        entityType: 'feature',
+        entityId: 'unlock',
+        metadata: { feature: 'unlock', source: 'unlock_modal' },
+      });
+      trackAppEvent('plan_gate_upgrade_clicked', {
+        entityType: 'feature',
+        entityId: 'unlock',
+        metadata: { feature: 'unlock', source: 'unlock_modal_auto_redirect' },
+      });
       addToast({ type: 'warning', title: copy.title, message: copy.message });
       setModal(null);
       openPricingHub();

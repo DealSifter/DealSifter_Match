@@ -2,6 +2,7 @@ import { useCallback, useEffect, useState } from 'react';
 import { NUGGET_PACKS } from '../data/mockData';
 import { redirectToCheckout, redirectToSubscription } from '../lib/stripeClient';
 import { isSupabaseConfigured } from '../lib/supabaseClient';
+import { trackAppEvent } from '../lib/adminEventTracking';
 
 export const normalizeCheckoutIntent = (intent) => {
   if (!intent || typeof intent !== 'object') return null;
@@ -83,6 +84,11 @@ export function useCheckoutFlow({
     }
 
     if (checkout === 'success') {
+      trackAppEvent('checkout_success', {
+        entityType: pendingCheckoutIntent?.kind || 'checkout',
+        entityId: pendingCheckoutIntent?.planId || pendingCheckoutIntent?.packId || '',
+        metadata: { source: pendingCheckoutIntent?.source || 'return' },
+      });
       setPendingCheckoutIntent(null);
       setCheckoutModalIntent(null);
       setCheckoutSubmitting(false);
@@ -97,6 +103,11 @@ export function useCheckoutFlow({
         duration: 7000,
       });
     } else if (checkout === 'cancelled') {
+      trackAppEvent('checkout_cancelled', {
+        entityType: pendingCheckoutIntent?.kind || 'checkout',
+        entityId: pendingCheckoutIntent?.planId || pendingCheckoutIntent?.packId || '',
+        metadata: { source: pendingCheckoutIntent?.source || 'return' },
+      });
       setPendingCheckoutIntent(null);
       setCheckoutModalIntent(null);
       setCheckoutSubmitting(false);
@@ -109,7 +120,7 @@ export function useCheckoutFlow({
         message: 'O pagamento foi cancelado. Seus nuggets nao foram alterados.',
       });
     }
-  }, [addToast, refreshProfileHydration, setModal, setPage, setSettingsInitialTab, setSystemAccount, supabaseUserId]);
+  }, [addToast, pendingCheckoutIntent, refreshProfileHydration, setModal, setPage, setSettingsInitialTab, setSystemAccount, supabaseUserId]);
 
   const openPricingHub = useCallback(() => {
     setModal(null);
@@ -122,6 +133,11 @@ export function useCheckoutFlow({
 
     setCheckoutError('');
     try {
+      trackAppEvent('checkout_stripe_opened', {
+        entityType: intent.kind,
+        entityId: intent.planId || intent.packId || '',
+        metadata: { source: intent.source || 'pricing' },
+      });
       if (intent.kind === 'subscription') {
         await redirectToSubscription(intent.planId, checkoutOptions);
       } else if (intent.kind === 'nuggets') {
@@ -157,6 +173,11 @@ export function useCheckoutFlow({
     }
 
     setPendingCheckoutIntent(intent);
+    trackAppEvent('checkout_pricing_clicked', {
+      entityType: intent.kind,
+      entityId: intent.planId || intent.packId || '',
+      metadata: { source: intent.source || 'pricing' },
+    });
     setCheckoutError('');
     setCheckoutSubmitting(false);
     setCheckoutModalIntent(intent);
@@ -200,6 +221,11 @@ export function useCheckoutFlow({
 
     setCheckoutError('');
     setCheckoutSubmitting(true);
+    trackAppEvent('checkout_terms_accepted', {
+      entityType: intent.kind,
+      entityId: intent.planId || intent.packId || '',
+      metadata: { source: intent.source || 'pricing' },
+    });
     const completed = await executeCheckoutIntent(intent, { termsAccepted: true });
     if (completed) {
       setCheckoutModalIntent(null);
