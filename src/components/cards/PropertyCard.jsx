@@ -6,7 +6,7 @@ import { SmartImage } from '../ui/SmartImage';
 import { useMediaQuery } from '../../hooks/useMediaQuery';
 import { formatPropertyLocation } from '../../lib/formatPropertyLocation';
 
-export function PropertyCard({ property, action, statusAction, onInterest, owner, isSkipped = false, previewOnly = false, matchPressure = 0, onAvatarClick, showActions = true }) {
+export function PropertyCard({ property, action, statusAction, onInterest, owner, isSkipped = false, previewOnly = false, matchPressure = 0, exclusivityStatus = null, onAvatarClick, showActions = true }) {
   const t = useT('dashboard').cards;
   const isMobileLayout = useMediaQuery('(max-width: 767px)');
   // Card do perfil está em stand by (esmaecido)?
@@ -48,6 +48,20 @@ export function PropertyCard({ property, action, statusAction, onInterest, owner
   const topGradient = isSkipped ? C.danger : '#4280ba';
   const bottomGradient = '#28324b';
   const showMatchPressure = matchPressure > 0 && !previewOnly;
+  const showExclusivityAlert = !previewOnly && (exclusivityStatus?.kind === 'new' || exclusivityStatus?.kind === 'partial');
+  const isPartialExclusivity = exclusivityStatus?.kind === 'partial';
+  const exclusivityBadge = isPartialExclusivity
+    ? (t.exclusivityPartialBadge || exclusivityStatus?.badge || 'Only {count} unlocks').replace('{count}', String(exclusivityStatus?.unlockCount || 2))
+    : (t.exclusivityNewBadge || exclusivityStatus?.badge || 'New');
+  const exclusivityStripText = isPartialExclusivity
+    ? (t.exclusivityPartialStrip || 'New card, be the first to unlock with partial exclusivity! Be quick and enjoy...')
+    : (t.exclusivityNewStrip || 'New card, be the first to unlock with exclusivity! Be quick and enjoy.');
+  const exclusivityStripGradient = isPartialExclusivity
+    ? 'linear-gradient(90deg, rgba(126,45,0,0.96) 0%, rgba(245,158,11,0.94) 100%)'
+    : 'linear-gradient(90deg, rgba(5,70,45,0.96) 0%, rgba(20,184,166,0.94) 100%)';
+  const exclusivityBadgeBorder = isPartialExclusivity ? 'rgba(255, 218, 112, 0.9)' : 'rgba(124, 255, 226, 0.86)';
+  const exclusivityIcon = isPartialExclusivity ? '⚡' : '⚡';
+  const exclusivityIconColor = isPartialExclusivity ? '#ef4444' : '#facc15';
   const ownerBadgeBottom = images.length > 1 ? 24 : 8;
   const ownerBadgeHeight = 38;
   const swipeBadgeKind = action === 'pass' ? 'pass' : (action === 'interest' ? 'match' : null);
@@ -178,6 +192,14 @@ export function PropertyCard({ property, action, statusAction, onInterest, owner
     >
       {/* Ícone de visualização removido */}
       <div style={innerStyle}>
+      {showExclusivityAlert ? (
+        <style>{`
+          @keyframes dsPropertyExclusivePulse {
+            0%, 100% { opacity: 1; filter: brightness(1); box-shadow: 0 0 0 0 rgba(250, 204, 21, 0.18); }
+            50% { opacity: .76; filter: brightness(1.18); box-shadow: 0 0 0 5px rgba(250, 204, 21, 0.18), 0 0 18px rgba(53, 202, 201, 0.24); }
+          }
+        `}</style>
+      ) : null}
       {!previewOnly ? (
         <>
           <div style={{
@@ -258,7 +280,29 @@ export function PropertyCard({ property, action, statusAction, onInterest, owner
           </span>
         ) : null}
 
-        {showMatchPressure && (
+        {showExclusivityAlert && (
+          <span style={{
+            position: 'absolute',
+            top: 8,
+            left: 8,
+            zIndex: 14,
+            background: exclusivityStripGradient,
+            border: `1px solid ${exclusivityBadgeBorder}`,
+            color: '#fff',
+            padding: '2px 8px',
+            borderRadius: 999,
+            fontSize: 9,
+            fontWeight: 950,
+            letterSpacing: '0.5px',
+            pointerEvents: 'none',
+            textTransform: 'uppercase',
+            animation: 'dsPropertyExclusivePulse 1.05s ease-in-out infinite',
+          }}>
+            {exclusivityBadge}
+          </span>
+        )}
+
+        {showMatchPressure && !showExclusivityAlert && (
           <span style={{
             position: 'absolute',
             top: 8,
@@ -309,7 +353,33 @@ export function PropertyCard({ property, action, statusAction, onInterest, owner
         )}
 
         {/* ── Match-pressure urgency strip (image bottom, above owner badge) ── */}
-        {showMatchPressure && (
+        {showExclusivityAlert && (
+          <div style={{
+            position: 'absolute',
+            left: 0,
+            right: 0,
+            bottom: ownerBadgeBottom + ownerBadgeHeight + 4,
+            zIndex: 9,
+            background: exclusivityStripGradient,
+            padding: '5px 8px',
+            display: 'flex',
+            alignItems: 'center',
+            gap: 6,
+            color: '#fff',
+            fontSize: 10,
+            fontWeight: 850,
+            letterSpacing: '0.12px',
+            pointerEvents: 'none',
+            animation: 'dsPropertyExclusivePulse 1.05s ease-in-out infinite',
+          }}>
+            <span style={{ fontSize: 13, color: exclusivityIconColor, lineHeight: 1 }}>{exclusivityIcon}</span>
+            <span style={{ whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+              {exclusivityStripText}
+            </span>
+          </div>
+        )}
+
+        {showMatchPressure && !showExclusivityAlert && (
           <div style={{
             position: 'absolute',
             left: 0,
