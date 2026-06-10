@@ -5,6 +5,24 @@ import { supabase, isSupabaseConfigured } from '../lib/supabaseClient';
 
 const fmtInt = (value) => Number(value || 0).toLocaleString('en-US');
 const fmtUsd = (cents) => `$${(Number(cents || 0) / 100).toLocaleString('en-US', { maximumFractionDigits: 0 })}`;
+const ADMIN_KPI_ORDER_KEY = 'ds_admin_kpi_order_v1';
+
+function readAdminKpiOrder() {
+  try {
+    const parsed = JSON.parse(localStorage.getItem(ADMIN_KPI_ORDER_KEY) || '{}');
+    return parsed && typeof parsed === 'object' ? parsed : {};
+  } catch {
+    return {};
+  }
+}
+
+function writeAdminKpiOrder(order) {
+  try {
+    localStorage.setItem(ADMIN_KPI_ORDER_KEY, JSON.stringify(order || {}));
+  } catch {
+    // Persisting the visual order is best-effort only.
+  }
+}
 
 function Block({ title, children }) {
   return (
@@ -40,11 +58,16 @@ function MiniBars({ value = 0 }) {
   );
 }
 
-function KpiTile({ label, value, sub }) {
+function KpiTile({ label, value, sub, draggable = false, dragging = false, onDragStart, onDragOver, onDrop, onDragEnd }) {
   const [showChart, setShowChart] = useState(false);
   return (
     <button
       type="button"
+      draggable={draggable}
+      onDragStart={onDragStart}
+      onDragOver={onDragOver}
+      onDrop={onDrop}
+      onDragEnd={onDragEnd}
       onClick={() => setShowChart((prev) => !prev)}
       style={{
         minHeight: 132,
@@ -53,14 +76,21 @@ function KpiTile({ label, value, sub }) {
         background: C.bg2 || C.card,
         padding: 12,
         textAlign: 'left',
-        cursor: 'pointer',
+        cursor: draggable ? 'grab' : 'pointer',
         display: 'grid',
         alignContent: 'space-between',
         gap: 8,
+        opacity: dragging ? 0.48 : 1,
+        outline: dragging ? `2px dashed ${C.accent}` : 'none',
+        outlineOffset: -4,
+        transition: 'opacity .12s ease, transform .12s ease, border-color .12s ease',
       }}
     >
       <div>
-        <div style={{ color: C.t2, fontSize: 11, fontWeight: 800, textTransform: 'uppercase', letterSpacing: 0.3 }}>{label}</div>
+        <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 8 }}>
+          <div style={{ color: C.t2, fontSize: 11, fontWeight: 800, textTransform: 'uppercase', letterSpacing: 0.3 }}>{label}</div>
+          {draggable ? <span aria-hidden="true" style={{ color: C.t3, fontSize: 14, lineHeight: 1, letterSpacing: -1 }}>::</span> : null}
+        </div>
         {sub ? <div style={{ color: C.t3, fontSize: 10, marginTop: 2 }}>{sub}</div> : null}
       </div>
       {showChart ? (
@@ -209,12 +239,62 @@ function GrantNuggetsPanel({ onGranted }) {
   );
 }
 
+function SectionDivider({ title, hint }) {
+  return (
+    <div style={{ display: 'flex', alignItems: 'center', gap: 10, margin: '6px 0 10px' }}>
+      <div style={{ flex: 1, height: 1, background: `linear-gradient(90deg, transparent, ${C.border})` }} />
+      <div style={{ textAlign: 'center' }}>
+        <div style={{ fontSize: 11, fontWeight: 900, color: C.t1, letterSpacing: 0.7, textTransform: 'uppercase' }}>{title}</div>
+        {hint ? <div style={{ fontSize: 9, color: C.t3, marginTop: 1 }}>{hint}</div> : null}
+      </div>
+      <div style={{ flex: 1, height: 1, background: `linear-gradient(90deg, ${C.border}, transparent)` }} />
+    </div>
+  );
+}
+
+function KpiSection({ title, hint, tiles, order, group, draggingId, onDragStart, onDragOverTile, onDropTile, onDragEnd }) {
+  const ordered = [
+    ...(order || []).map((id) => tiles.find((tile) => tile.id === id)).filter(Boolean),
+    ...(tiles || []).filter((tile) => !(order || []).includes(tile.id)),
+  ];
+
+  return (
+    <div style={{ display: 'grid', gap: 10 }}>
+      <SectionDivider title={title} hint={hint} />
+      <div
+        style={{
+          display: 'grid',
+          gridTemplateColumns: 'repeat(auto-fit, minmax(168px, 1fr))',
+          gap: 10,
+        }}
+      >
+        {ordered.map((tile) => (
+          <KpiTile
+            key={tile.id}
+            label={tile.label}
+            value={tile.value}
+            sub={tile.sub}
+            draggable
+            dragging={draggingId === tile.id}
+            onDragStart={(event) => onDragStart(event, group, tile.id)}
+            onDragOver={(event) => onDragOverTile(event)}
+            onDrop={(event) => onDropTile(event, group, tile.id, ordered)}
+            onDragEnd={onDragEnd}
+          />
+        ))}
+      </div>
+    </div>
+  );
+}
+
 export function AdminDashboard({ setPage, prevPage, logoutAdmin }) {
   const allT = useT('global');
   const t = allT.admin || {};
   const [metrics, setMetrics] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
+  const [draggingTile, setDraggingTile] = useState(null);
+  const [kpiOrder, setKpiOrder] = useState(() => readAdminKpiOrder());
 
   const loadMetrics = async () => {
     if (!isSupabaseConfigured || !supabase) {
@@ -241,29 +321,96 @@ export function AdminDashboard({ setPage, prevPage, logoutAdmin }) {
 
   const tiles = useMemo(() => {
     const m = metrics || {};
-    return [
-      ['Active now', fmtInt(m.activeUsersNow), 'last 5 min'],
-      ['Total users', fmtInt(m.totalUsers), 'all time'],
-      ['New users', `${fmtInt(m.newUsersDay)} / ${fmtInt(m.newUsersWeek)} / ${fmtInt(m.newUsersMonth)}`, 'day / week / month'],
-      ['Deleted users', '0 / 0 / 0', 'day / week / month'],
-      ['Unlocks', fmtInt(m.totalUnlocks), `${fmtInt(m.usersWithUnlocks)} users`],
-      ['Swipes today', fmtInt(m.swipesToday), 'tracking starts now'],
-      ['Packs revenue', fmtUsd(m.packRevenueUsdCents), `${fmtInt(m.nuggetsPurchased)} nuggets`],
-      ['Subscriptions', fmtInt(m.activeSubscriptions), fmtUsd(m.subscriptionRevenueUsdCents)],
-      ['Manual grants', fmtInt(m.manualNuggetsGranted), `${fmtInt(m.manualNuggetsGrantedToday)} today`],
-      ['Support msgs', fmtInt(m.supportMessagesToday), 'today'],
-      ['Highlights', fmtInt(m.highlightsActive), `${fmtInt(m.highlightsPurchasedToday)} bought today`],
-      ['Exclusive contacts', fmtInt(m.exclusiveContactsToday), 'today'],
-      ['Stripe issues', fmtInt(m.stripeIssuesDay), 'last 24h'],
-      ['Supabase issues', fmtInt(m.supabaseIssuesDay), 'last 24h'],
-      ['Properties', fmtInt(m.totalProperties), 'published + saved'],
-      ['Admin accounts', fmtInt(m.adminAccounts), 'restricted'],
-    ];
+    return {
+      users: [
+        { id: 'active-now', label: 'Active now', value: fmtInt(m.activeUsersNow), sub: 'last 5 min' },
+        { id: 'total-users', label: 'Total users', value: fmtInt(m.totalUsers), sub: 'all time' },
+        { id: 'new-users', label: 'New users', value: `${fmtInt(m.newUsersDay)} / ${fmtInt(m.newUsersWeek)} / ${fmtInt(m.newUsersMonth)}`, sub: 'day / week / month' },
+        { id: 'deleted-users', label: 'Deleted users', value: '0 / 0 / 0', sub: 'day / week / month' },
+        { id: 'unlocks', label: 'Unlocks', value: fmtInt(m.totalUnlocks), sub: `${fmtInt(m.usersWithUnlocks)} users` },
+        { id: 'swipes-today', label: 'Swipes today', value: fmtInt(m.swipesToday), sub: 'tracking starts now' },
+        { id: 'packs-revenue', label: 'Packs revenue', value: fmtUsd(m.packRevenueUsdCents), sub: `${fmtInt(m.nuggetsPurchased)} nuggets` },
+        { id: 'subscriptions', label: 'Subscriptions', value: fmtInt(m.activeSubscriptions), sub: fmtUsd(m.subscriptionRevenueUsdCents) },
+        { id: 'manual-grants', label: 'Manual grants', value: fmtInt(m.manualNuggetsGranted), sub: `${fmtInt(m.manualNuggetsGrantedToday)} today` },
+        { id: 'support-msgs', label: 'Support msgs', value: fmtInt(m.supportMessagesToday), sub: 'today' },
+        { id: 'highlights', label: 'Highlights', value: fmtInt(m.highlightsActive), sub: `${fmtInt(m.highlightsPurchasedToday)} bought today` },
+        { id: 'exclusive-contacts', label: 'Exclusive contacts', value: fmtInt(m.exclusiveContactsToday), sub: 'today' },
+        { id: 'properties', label: 'Properties', value: fmtInt(m.totalProperties), sub: 'published + saved' },
+      ],
+      system: [
+        { id: 'stripe-issues', label: 'Stripe issues', value: fmtInt(m.stripeIssuesDay), sub: 'last 24h' },
+        { id: 'supabase-issues', label: 'Supabase issues', value: fmtInt(m.supabaseIssuesDay), sub: 'last 24h' },
+        { id: 'admin-accounts', label: 'Admin accounts', value: fmtInt(m.adminAccounts), sub: 'restricted' },
+      ],
+    };
   }, [metrics]);
+
+  const handleDragStart = (event, group, id) => {
+    setDraggingTile(id);
+    event.dataTransfer.effectAllowed = 'move';
+    event.dataTransfer.setData('application/json', JSON.stringify({ group, id }));
+  };
+
+  const handleDragOverTile = (event) => {
+    event.preventDefault();
+    event.dataTransfer.dropEffect = 'move';
+  };
+
+  const handleDropTile = (event, targetGroup, targetId, orderedTiles) => {
+    event.preventDefault();
+    let payload = null;
+    try {
+      payload = JSON.parse(event.dataTransfer.getData('application/json') || '{}');
+    } catch {
+      payload = null;
+    }
+    if (!payload?.id || payload.group !== targetGroup || payload.id === targetId) {
+      setDraggingTile(null);
+      return;
+    }
+
+    const currentOrder = (kpiOrder[targetGroup] && kpiOrder[targetGroup].length)
+      ? kpiOrder[targetGroup]
+      : orderedTiles.map((tile) => tile.id);
+    const withoutDragged = currentOrder.filter((id) => id !== payload.id);
+    const targetIndex = Math.max(0, withoutDragged.indexOf(targetId));
+    const nextOrder = [
+      ...withoutDragged.slice(0, targetIndex),
+      payload.id,
+      ...withoutDragged.slice(targetIndex),
+    ];
+    const next = { ...kpiOrder, [targetGroup]: nextOrder };
+    setKpiOrder(next);
+    writeAdminKpiOrder(next);
+    setDraggingTile(null);
+  };
+
+  const handleDragEnd = () => setDraggingTile(null);
 
   return (
     <div style={{ paddingTop: 58, minHeight: 'calc(var(--app-vh, 1vh) * 100)', background: C.bg }}>
-      <div style={{ maxWidth: 1320, margin: '0 auto', padding: '16px 18px 24px' }}>
+      <style>{`
+        .admin-shell {
+          max-width: 1520px;
+          margin: 0 auto;
+          padding: 16px 18px 24px;
+        }
+        .admin-workspace {
+          display: grid;
+          grid-template-columns: minmax(0, 1fr) minmax(300px, 360px);
+          gap: 12px;
+          align-items: start;
+        }
+        .admin-kpi-panel {
+          min-width: 0;
+        }
+        @media (max-width: 1100px) {
+          .admin-workspace {
+            grid-template-columns: 1fr;
+          }
+        }
+      `}</style>
+      <div className="admin-shell">
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12, marginBottom: 14 }}>
           <div>
             <h2 style={{ margin: 0, fontSize: 22, fontWeight: 900, color: C.t1 }}>{t.title || 'Adm.System Dashboard'}</h2>
@@ -288,18 +435,41 @@ export function AdminDashboard({ setPage, prevPage, logoutAdmin }) {
           </div>
         ) : null}
 
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(320px, 100%), 1fr))', gap: 12, alignItems: 'start' }}>
-          <GrantNuggetsPanel onGranted={loadMetrics} />
-          <Block title={loading ? 'Loading KPIs...' : 'General KPIs'}>
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(150px, 1fr))', gap: 10 }}>
-              {tiles.map(([label, value, sub]) => (
-                <KpiTile key={label} label={label} value={value} sub={sub} />
-              ))}
+        <div className="admin-workspace">
+          <Block title={loading ? 'Loading KPIs...' : 'KPI workspace'}>
+            <div className="admin-kpi-panel" style={{ display: 'grid', gap: 16 }}>
+              <KpiSection
+                title="User KPIs"
+                hint="Drag cards to customize your view"
+                tiles={tiles.users}
+                order={kpiOrder.users}
+                group="users"
+                draggingId={draggingTile}
+                onDragStart={handleDragStart}
+                onDragOverTile={handleDragOverTile}
+                onDropTile={handleDropTile}
+                onDragEnd={handleDragEnd}
+              />
+              <KpiSection
+                title="System KPIs"
+                hint="Stripe, Supabase and admin controls"
+                tiles={tiles.system}
+                order={kpiOrder.system}
+                group="system"
+                draggingId={draggingTile}
+                onDragStart={handleDragStart}
+                onDragOverTile={handleDragOverTile}
+                onDropTile={handleDropTile}
+                onDragEnd={handleDragEnd}
+              />
             </div>
             <div style={{ marginTop: 10, fontSize: 10, color: C.t3 }}>
-              Charts are compact placeholders for monthly trend windows. Event-based metrics start filling after tracking is enabled.
+              Click a card to alternate between number and compact chart. Drag/drop works inside each KPI section and is saved locally.
             </div>
           </Block>
+          <div style={{ display: 'grid', gap: 12 }}>
+            <GrantNuggetsPanel onGranted={loadMetrics} />
+          </div>
         </div>
       </div>
     </div>
