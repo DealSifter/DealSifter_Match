@@ -1692,10 +1692,6 @@ export default function App() {
 
   useEffect(() => {
     const pruned = pruneExpiredPropertyUnlocks(propertyUnlocks || []);
-    if (pruned.length !== (propertyUnlocks || []).length) {
-      setPropertyUnlocks(pruned);
-      return;
-    }
     try {
       localStorage.setItem('ds_property_exclusivity_unlocks', JSON.stringify(pruned));
     } catch (error) {
