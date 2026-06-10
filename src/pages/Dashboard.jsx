@@ -16,6 +16,7 @@ import { getMatchPressure } from '../lib/matchPressure';
 import { formatPropertyLocation } from '../lib/formatPropertyLocation';
 import { useMediaQuery } from '../hooks/useMediaQuery';
 import { canUsePlanAction, getPlanGateCopy, incrementPlanUsage, readPlanUsage } from '../lib/planAccess';
+import { supabase, isSupabaseConfigured } from '../lib/supabaseClient';
 import feedMatchIcon from '../assets/feed-match-icon.png';
 
 // Utilitário para checagem de flag booleana (string, bool, number)
@@ -44,6 +45,16 @@ function readPendingFocusCard() {
   } catch {
     return null;
   }
+}
+
+function trackDashboardSwipe(entityType, entityId, action) {
+  if (!isSupabaseConfigured || !supabase) return;
+  supabase.rpc('track_app_event', {
+    p_event_type: 'swipe_given',
+    p_entity_type: entityType,
+    p_entity_id: String(entityId || ''),
+    p_metadata: { action: String(action || '') },
+  }).catch(() => {});
 }
 
 export function Dashboard({ page, nuggets, setModal, setPage, onOpenOnboardingTab, openUnlock, unlocked, matched, setMatched, interested, setInterested, purchases, setPurchases, userProfile, personalProfile, professionalProfile, propertyPortfolio, servicePortfolio, accountType, showcaseProperties, categoryOrder, setCategoryOrder, editMode, setEditMode, mobileBottomNavCollapsed = false, addToast, subscription }) {
@@ -1430,6 +1441,7 @@ export function Dashboard({ page, nuggets, setModal, setPage, onOpenOnboardingTa
           // Permanently remove from deck
           addMatchedCapped(topCard);
           incrementPlanUsage('day', 'likes');
+          trackDashboardSwipe('connection', topCard?.id, type);
           setConnDeck(d => d.filter(id => id !== topCard.id));
           // Record purchase: remove properties of bought contact from propDeck
           setPurchases(prev => 
@@ -1444,6 +1456,7 @@ export function Dashboard({ page, nuggets, setModal, setPage, onOpenOnboardingTa
           }));
         } else if (type === "next") {
           // Next: rotate top card to the end of the deck (ship).
+        trackDashboardSwipe('connection', topCard?.id, type);
         // Do not bring skipped cards to the front automatically.
         setConnDeck(d => {
           const next = d.length > 1 ? [...d.slice(1), d[0]] : d;
@@ -1451,6 +1464,7 @@ export function Dashboard({ page, nuggets, setModal, setPage, onOpenOnboardingTa
         });
       } else {
         // Pass: rotate top card to the end of the deck and mark it as skipped
+        trackDashboardSwipe('connection', topCard?.id, type);
         setConnDeck(d => {
           const next = d.length > 1 ? [...d.slice(1), d[0]] : d;
           return next;
@@ -1548,6 +1562,7 @@ export function Dashboard({ page, nuggets, setModal, setPage, onOpenOnboardingTa
         if (type === "interest") {
           setInterested(p => p.find(x => x.id === topProp.id) ? p : [...p, topProp]);
           incrementPlanUsage('day', 'likes');
+          trackDashboardSwipe('property', topProp?.id, type);
           if (topOwner) {
             addMatchedCapped(topOwner);
             setConnDeck(d => d.filter(id => id !== topOwner.id));
@@ -1556,6 +1571,7 @@ export function Dashboard({ page, nuggets, setModal, setPage, onOpenOnboardingTa
         } else if (type === "next") {
           setPropDeck(d => d.length > 1 ? [...d.slice(1), d[0]] : d);
         } else {
+          trackDashboardSwipe('property', topProp?.id, type);
           setPropDeck(d => d.length > 1 ? [...d.slice(1), d[0]] : d);
           setPropStatusById(s => ({ ...s, [topProp.id]: { ...(s[topProp.id]||{}), seen: true, skipped: true } }));
           setSkippedSetProp(s => { const n = new Set(s); n.add(topProp.id); return n; });

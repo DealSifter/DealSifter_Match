@@ -33,18 +33,33 @@ function Block({ title, children }) {
   );
 }
 
-function MiniBars({ value = 0 }) {
-  const seed = Math.max(1, Number(value || 0));
-  const points = Array.from({ length: 12 }, (_, idx) => {
-    const wave = Math.abs(Math.sin((idx + 1) * 0.9) * 0.55 + Math.cos((idx + 2) * 0.37) * 0.45);
-    return Math.max(10, Math.round((seed ? Math.min(100, 18 + wave * 82) : 10)));
-  });
+function MiniBars({ series = [], formatter = fmtInt, emptyMessage = 'No history yet' }) {
+  const points = Array.isArray(series)
+    ? series
+        .map((point) => ({
+          label: String(point?.label || ''),
+          value: Number(point?.value || 0),
+        }))
+        .filter((point) => Number.isFinite(point.value))
+    : [];
+  const maxValue = Math.max(0, ...points.map((point) => point.value));
+
+  if (!points.length || maxValue <= 0) {
+    return (
+      <div style={{ height: 74, display: 'grid', placeItems: 'center', paddingTop: 12, color: C.t3, fontSize: 11, textAlign: 'center', lineHeight: 1.35 }}>
+        {emptyMessage}
+      </div>
+    );
+  }
+
   return (
     <div style={{ height: 74, display: 'flex', alignItems: 'flex-end', gap: 4, paddingTop: 12 }}>
-      {points.map((height, idx) => (
+      {points.map((point, idx) => {
+        const height = Math.max(6, Math.round((point.value / maxValue) * 100));
+        return (
         <div
           key={idx}
-          title={`M${idx + 1}`}
+          title={`${point.label}: ${formatter(point.value)}`}
           style={{
             flex: 1,
             height: `${height}%`,
@@ -53,12 +68,12 @@ function MiniBars({ value = 0 }) {
             background: idx === points.length - 1 ? C.accent : C.alpha(C.accent, 0.34),
           }}
         />
-      ))}
+      );})}
     </div>
   );
 }
 
-function KpiTile({ label, value, sub, draggable = false, dragging = false, onDragStart, onDragOver, onDrop, onDragEnd }) {
+function KpiTile({ label, value, sub, series, seriesStatus, chartFormatter = fmtInt, draggable = false, dragging = false, onDragStart, onDragOver, onDrop, onDragEnd }) {
   const [showChart, setShowChart] = useState(false);
   return (
     <button
@@ -94,7 +109,7 @@ function KpiTile({ label, value, sub, draggable = false, dragging = false, onDra
         {sub ? <div style={{ color: C.t3, fontSize: 10, marginTop: 2 }}>{sub}</div> : null}
       </div>
       {showChart ? (
-        <MiniBars value={value} />
+        <MiniBars series={series} formatter={chartFormatter} emptyMessage={seriesStatus || 'No real history yet'} />
       ) : (
         <div style={{ color: C.t1, fontSize: 28, lineHeight: 1, fontWeight: 900 }}>{value}</div>
       )}
@@ -274,6 +289,9 @@ function KpiSection({ title, hint, tiles, order, group, draggingId, onDragStart,
             label={tile.label}
             value={tile.value}
             sub={tile.sub}
+            series={tile.series}
+            seriesStatus={tile.seriesStatus}
+            chartFormatter={tile.chartFormatter}
             draggable
             dragging={draggingId === tile.id}
             onDragStart={(event) => onDragStart(event, group, tile.id)}
@@ -321,26 +339,28 @@ export function AdminDashboard({ setPage, prevPage, logoutAdmin }) {
 
   const tiles = useMemo(() => {
     const m = metrics || {};
+    const series = m.series || {};
+    const seriesStatus = m.seriesStatus || {};
     return {
       users: [
-        { id: 'active-now', label: 'Active now', value: fmtInt(m.activeUsersNow), sub: 'last 5 min' },
-        { id: 'total-users', label: 'Total users', value: fmtInt(m.totalUsers), sub: 'all time' },
-        { id: 'new-users', label: 'New users', value: `${fmtInt(m.newUsersDay)} / ${fmtInt(m.newUsersWeek)} / ${fmtInt(m.newUsersMonth)}`, sub: 'day / week / month' },
-        { id: 'deleted-users', label: 'Deleted users', value: '0 / 0 / 0', sub: 'day / week / month' },
-        { id: 'unlocks', label: 'Unlocks', value: fmtInt(m.totalUnlocks), sub: `${fmtInt(m.usersWithUnlocks)} users` },
-        { id: 'swipes-today', label: 'Swipes today', value: fmtInt(m.swipesToday), sub: 'tracking starts now' },
-        { id: 'packs-revenue', label: 'Packs revenue', value: fmtUsd(m.packRevenueUsdCents), sub: `${fmtInt(m.nuggetsPurchased)} nuggets` },
-        { id: 'subscriptions', label: 'Subscriptions', value: fmtInt(m.activeSubscriptions), sub: fmtUsd(m.subscriptionRevenueUsdCents) },
-        { id: 'manual-grants', label: 'Manual grants', value: fmtInt(m.manualNuggetsGranted), sub: `${fmtInt(m.manualNuggetsGrantedToday)} today` },
-        { id: 'support-msgs', label: 'Support msgs', value: fmtInt(m.supportMessagesToday), sub: 'today' },
-        { id: 'highlights', label: 'Highlights', value: fmtInt(m.highlightsActive), sub: `${fmtInt(m.highlightsPurchasedToday)} bought today` },
-        { id: 'exclusive-contacts', label: 'Exclusive contacts', value: fmtInt(m.exclusiveContactsToday), sub: 'today' },
-        { id: 'properties', label: 'Properties', value: fmtInt(m.totalProperties), sub: 'published + saved' },
+        { id: 'active-now', label: 'Active now', value: fmtInt(m.activeUsersNow), sub: 'last 5 min', series: series['active-now'], seriesStatus: seriesStatus['active-now'] },
+        { id: 'total-users', label: 'Total users', value: fmtInt(m.totalUsers), sub: 'all time', series: series['total-users'] },
+        { id: 'new-users', label: 'New users', value: `${fmtInt(m.newUsersDay)} / ${fmtInt(m.newUsersWeek)} / ${fmtInt(m.newUsersMonth)}`, sub: 'day / week / month', series: series['new-users'] },
+        { id: 'deleted-users', label: 'Deleted users', value: '0 / 0 / 0', sub: 'day / week / month', series: series['deleted-users'] },
+        { id: 'unlocks', label: 'Unlocks', value: fmtInt(m.totalUnlocks), sub: `${fmtInt(m.usersWithUnlocks)} users`, series: series.unlocks },
+        { id: 'swipes-today', label: 'Swipes today', value: fmtInt(m.swipesToday), sub: 'last 12 days', series: series['swipes-today'] },
+        { id: 'packs-revenue', label: 'Packs revenue', value: fmtUsd(m.packRevenueUsdCents), sub: `${fmtInt(m.nuggetsPurchased)} nuggets`, series: series['packs-revenue'], chartFormatter: fmtUsd },
+        { id: 'subscriptions', label: 'Subscriptions', value: fmtInt(m.activeSubscriptions), sub: fmtUsd(m.subscriptionRevenueUsdCents), series: series.subscriptions },
+        { id: 'manual-grants', label: 'Manual grants', value: fmtInt(m.manualNuggetsGranted), sub: `${fmtInt(m.manualNuggetsGrantedToday)} today`, series: series['manual-grants'] },
+        { id: 'support-msgs', label: 'Support msgs', value: fmtInt(m.supportMessagesToday), sub: 'last 12 days', series: series['support-msgs'] },
+        { id: 'highlights', label: 'Highlights', value: fmtInt(m.highlightsActive), sub: `${fmtInt(m.highlightsPurchasedToday)} bought today`, series: series.highlights },
+        { id: 'exclusive-contacts', label: 'Exclusive contacts', value: fmtInt(m.exclusiveContactsToday), sub: 'last 12 days', series: series['exclusive-contacts'] },
+        { id: 'properties', label: 'Properties', value: fmtInt(m.totalProperties), sub: 'published + saved', series: series.properties },
       ],
       system: [
-        { id: 'stripe-issues', label: 'Stripe issues', value: fmtInt(m.stripeIssuesDay), sub: 'last 24h' },
-        { id: 'supabase-issues', label: 'Supabase issues', value: fmtInt(m.supabaseIssuesDay), sub: 'last 24h' },
-        { id: 'admin-accounts', label: 'Admin accounts', value: fmtInt(m.adminAccounts), sub: 'restricted' },
+        { id: 'stripe-issues', label: 'Stripe issues', value: fmtInt(m.stripeIssuesDay), sub: 'last 12 days', series: series['stripe-issues'] },
+        { id: 'supabase-issues', label: 'Supabase issues', value: fmtInt(m.supabaseIssuesDay), sub: 'last 12 days', series: series['supabase-issues'] },
+        { id: 'admin-accounts', label: 'Admin accounts', value: fmtInt(m.adminAccounts), sub: 'restricted', series: series['admin-accounts'] },
       ],
     };
   }, [metrics]);
