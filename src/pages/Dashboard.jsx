@@ -1424,6 +1424,7 @@ export function Dashboard({ page, nuggets, setModal, setPage, onOpenOnboardingTa
 
   // ── Connections actions ──────────────────────────────────────────────────
   const act = type => {
+    if (isSwipingConn || isSwipingProp) return;
     if (connDisplay.length === 0) return;
     if (focusCard) setFocusCard(null);
     const topCard = connDisplay[0];
@@ -1549,6 +1550,7 @@ export function Dashboard({ page, nuggets, setModal, setPage, onOpenOnboardingTa
 
   // ── Properties actions ───────────────────────────────────────────────────
   const actProperty = type => {
+    if (isSwipingConn || isSwipingProp) return;
     if (propDisplay.length === 0) return;
     if (focusCard) setFocusCard(null);
     const topProp = propDisplay[0];
@@ -1872,7 +1874,8 @@ export function Dashboard({ page, nuggets, setModal, setPage, onOpenOnboardingTa
 
   const topConnectionCard = connDisplay[0] || null;
   const topPropertyCard = propDisplay[0] || null;
-  const mobileCanAct = view === 'connections' ? Boolean(topConnectionCard) : Boolean(topPropertyCard);
+  const mobileSwipeBusy = isSwipingConn || isSwipingProp;
+  const mobileCanAct = !mobileSwipeBusy && (view === 'connections' ? Boolean(topConnectionCard) : Boolean(topPropertyCard));
   const mobileCanUndo = view === 'connections'
     ? Boolean(lastConnOp || (skippedQueue && skippedQueue.length > 0))
     : Boolean(lastPropOp);
@@ -2899,6 +2902,7 @@ export function Dashboard({ page, nuggets, setModal, setPage, onOpenOnboardingTa
                             : `translate3d(${shiftLeft}px, ${shiftDown}px, 0) scale(${stackScale})`,
                           zIndex: 10 - reverseI,
                           opacity: stackOpacity,
+                          pointerEvents: isTop ? 'auto' : 'none',
                           animation: isTop && action ? (action === "match" ? `carouselRotateMatch ${SWIPE_ANIM_MS}ms cubic-bezier(0.23, 1, 0.32, 1) forwards` : `carouselRotatePass ${SWIPE_ANIM_MS}ms cubic-bezier(0.23, 1, 0.32, 1) forwards`) : "none"
                         }}>
                           <div style={{ position: 'relative', width: '100%', height: '100%' }}>
@@ -2951,6 +2955,7 @@ export function Dashboard({ page, nuggets, setModal, setPage, onOpenOnboardingTa
                             transformOrigin: "top left",
                             zIndex: 10 - reverseI,
                             opacity: stackOpacity,
+                            pointerEvents: isTop ? 'auto' : 'none',
                             animation: (
                               isTop && propAction
                                 ? propAction === "interest"
