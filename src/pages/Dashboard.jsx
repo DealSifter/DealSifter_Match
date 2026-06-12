@@ -1563,9 +1563,7 @@ export function Dashboard({ page, nuggets, setModal, setPage, onOpenOnboardingTa
     setIsSwipingProp(true);
     setPropAction(type);
     setPropStatusById(prev => ({ ...prev, [topProp.id]: type }));
-    const topScope = normalizeProfileScope(topProp?.primaryProfile || 'personal');
-    const topScopeKey = scopeToProfileKey(topScope);
-    const topOwner = connectionCards.find((c) => c.scopeKey === topScopeKey) || findConnectionById(topProp.ownerId);
+    const topOwner = findConnectionById(topProp.ownerId);
     const snap = [...propDeck];
     const connSnap = [...connDeck];
     setTimeout(() => {
@@ -1652,13 +1650,18 @@ export function Dashboard({ page, nuggets, setModal, setPage, onOpenOnboardingTa
     return normalized === 'true' || normalized === '1' || normalized === 'yes' || normalized === 'verified';
   };
 
-  const getUnlockCost = (personId) => {
-    const portfolioCount = (showcaseItems || []).filter((property) => property.ownerId === personId).length;
-    return Math.max(1, portfolioCount);
+  const getPortfolioCount = (personId) => {
+    const key = String(personId || '');
+    if (!key) return 0;
+    const propertyCount = (showcaseItems || []).filter((property) => String(property.ownerId) === key).length;
+    const serviceCount = (servicePortfolio || []).filter((service) => (
+      String(service.ownerId) === key && isTruthyFlag(service?.publishToConnections, true)
+    )).length;
+    return propertyCount + serviceCount;
   };
 
-  const getPortfolioCount = (personId) => {
-    return (showcaseItems || []).filter((property) => property.ownerId === personId).length;
+  const getUnlockCost = (personId) => {
+    return Math.max(1, getPortfolioCount(personId));
   };
 
   const ownOwnerIds = useMemo(() => {
@@ -1691,9 +1694,7 @@ export function Dashboard({ page, nuggets, setModal, setPage, onOpenOnboardingTa
       addToast?.({ type: 'info', message: 'Own card, not selectionable' });
       return;
     }
-    const ownerScope = normalizeProfileScope(topProp?.primaryProfile || 'personal');
-    const ownerScopeKey = scopeToProfileKey(ownerScope);
-    const ownerCard = connectionCards.find((c) => c.scopeKey === ownerScopeKey) || findConnectionById(topProp.ownerId);
+    const ownerCard = findConnectionById(topProp.ownerId);
 
     if (!ownerCard) {
       addToast?.({ type: 'warning', message: 'Contato responsável por este card não encontrado.' });

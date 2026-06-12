@@ -2968,15 +2968,20 @@ export default function App() {
     setModal('unlock');
   };
 
+  const getOwnerPortfolioCount = (ownerId) => {
+    const key = String(ownerId || '');
+    if (!key) return 0;
+    const propertyCount = (showcaseProperties || []).filter((p) => String(p.ownerId) === key).length;
+    const serviceCount = (servicePortfolio || []).filter((s) => (
+      String(s.ownerId) === key && isTruthyFlag(s?.publishToConnections, true)
+    )).length;
+    return propertyCount + serviceCount;
+  };
+
   const getUnlockCost = (card) => {
     if (!card?.id) return 1;
-    if (card?.unlockScope === 'property') {
-      const allProps = showcaseProperties || [];
-      const portfolioCount = allProps.filter((p) => String(p.ownerId) === String(card.ownerId)).length;
-      return Math.max(1, portfolioCount);
-    }
-    const allProps = showcaseProperties || [];
-    const portfolioCount = allProps.filter((p) => String(p.ownerId) === String(card.id)).length;
+    const ownerId = card?.unlockScope === 'property' ? (card.ownerId || card.id) : card.id;
+    const portfolioCount = getOwnerPortfolioCount(ownerId);
     return Math.max(1, portfolioCount);
   };
 
@@ -2988,7 +2993,10 @@ export default function App() {
     const unlockMode = unlockOptions?.mode === 'total' || unlockOptions?.mode === 'partial'
       ? unlockOptions.mode
       : 'normal';
-    const unlockCost = Number(unlockOptions?.cost || getUnlockCost(card));
+    const baseUnlockCost = getUnlockCost(card);
+    const unlockCost = unlockMode === 'normal'
+      ? baseUnlockCost
+      : baseUnlockCost + Number(propertyStatus?.exclusiveCost || 0);
     const unlockGate = canUsePlanAction(subscription, 'unlock', {
       unlocksThisMonth: readPlanUsage('month')?.unlocks || 0,
     });

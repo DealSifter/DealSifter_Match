@@ -9,7 +9,8 @@ export function UnlockModal({ match, nuggets, unlockCost = 1, exclusivityStatus 
   const isPropertyUnlock = match?.unlockScope === 'property';
   const isBlockedByExclusive = isPropertyUnlock && exclusivityStatus?.kind === 'blocked';
   const canBuyExclusive = isPropertyUnlock && exclusivityStatus?.canBuyExclusivity && exclusivityStatus?.exclusiveCost > 0;
-  const exclusiveCost = Number(exclusivityStatus?.exclusiveCost || 0);
+  const exclusiveExtraCost = Number(exclusivityStatus?.exclusiveCost || 0);
+  const exclusiveCost = unlockCost + exclusiveExtraCost;
   const can = nuggets >= unlockCost;
   const canExclusive = nuggets >= exclusiveCost;
   const nuggetUnit = unlockCost === 1 ? t.nuggetOne : t.nuggetOther;
