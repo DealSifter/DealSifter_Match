@@ -1448,50 +1448,55 @@ export function Dashboard({ page, nuggets, setModal, setPage, onOpenOnboardingTa
     setAction(type);
     setTimeout(() => {
       requestAnimationFrame(() => {
-        if (type === "match") {
+        try {
+          if (type === "match") {
             const topOwnerId = String(topCard?.ownerId ?? topCard?.id ?? '');
-          // Permanently remove from deck
-          addMatchedCapped(topCard);
-          incrementPlanUsage('day', 'likes');
-          trackDashboardSwipe('connection', topCard?.id, type);
-          setConnDeck(d => d.filter(id => id !== topCard.id));
-          // Record purchase: remove properties of bought contact from propDeck
-          setPurchases(prev => 
+            // Permanently remove from deck
+            addMatchedCapped(topCard);
+            incrementPlanUsage('day', 'likes');
+            trackDashboardSwipe('connection', topCard?.id, type);
+            setConnDeck(d => d.filter(id => id !== topCard.id));
+            // Record purchase: remove properties of bought contact from propDeck
+            setPurchases(prev =>
               prev.some(p => String(p.sellerId) === topOwnerId) 
-              ? prev 
+                ? prev
                 : [...prev, { sellerId: topOwnerId }]
-          );
-          // Remove properties of this bought contact from showcase
-          setPropDeck(d => d.filter(id => {
-            const prop = (showcaseItems || []).find(p => p.id === id);
+            );
+            // Remove properties of this bought contact from showcase
+            setPropDeck(d => d.filter(id => {
+              const prop = (showcaseItems || []).find(p => p.id === id);
               return String(prop?.ownerId) !== topOwnerId;
-          }));
-        } else if (type === "next") {
-          // Next: rotate top card to the end of the deck (ship).
-        trackDashboardSwipe('connection', topCard?.id, type);
-        // Do not bring skipped cards to the front automatically.
-        setConnDeck(d => {
-          const next = d.length > 1 ? [...d.slice(1), d[0]] : d;
-          return next;
-        });
-      } else {
-        // Pass: rotate top card to the end of the deck and mark it as skipped
-        trackDashboardSwipe('connection', topCard?.id, type);
-        setConnDeck(d => {
-          const next = d.length > 1 ? [...d.slice(1), d[0]] : d;
-          return next;
-        });
-        // mark as skipped (for red border / seen indicator)
-        setSkippedSet(s => { const n = new Set(s); n.add(topCard.id); return n; });
-        setSkippedQueue(q => {
-          if (!q) return [topCard.id];
-          if (q.includes(topCard.id)) return q;
-          return [...q, topCard.id];
-        });
-      }
-        setLastConnOp({ type, card: topCard, snap, propSnap });
-        setAction(null);
-        setIsSwipingConn(false);
+            }));
+          } else if (type === "next") {
+            // Next: rotate top card to the end of the deck (ship).
+            trackDashboardSwipe('connection', topCard?.id, type);
+            // Do not bring skipped cards to the front automatically.
+            setConnDeck(d => {
+              const next = d.length > 1 ? [...d.slice(1), d[0]] : d;
+              return next;
+            });
+          } else {
+            // Pass: rotate top card to the end of the deck and mark it as skipped
+            trackDashboardSwipe('connection', topCard?.id, type);
+            setConnDeck(d => {
+              const next = d.length > 1 ? [...d.slice(1), d[0]] : d;
+              return next;
+            });
+            // mark as skipped (for red border / seen indicator)
+            setSkippedSet(s => { const n = new Set(s); n.add(topCard.id); return n; });
+            setSkippedQueue(q => {
+              if (!q) return [topCard.id];
+              if (q.includes(topCard.id)) return q;
+              return [...q, topCard.id];
+            });
+          }
+          setLastConnOp({ type, card: topCard, snap, propSnap });
+        } catch (error) {
+          console.error('Connection swipe failed.', error);
+        } finally {
+          setAction(null);
+          setIsSwipingConn(false);
+        }
       });
     }, SWIPE_ANIM_MS);
   };
@@ -1570,31 +1575,36 @@ export function Dashboard({ page, nuggets, setModal, setPage, onOpenOnboardingTa
     const connSnap = [...connDeck];
     setTimeout(() => {
       requestAnimationFrame(() => {
-        if (type === "interest") {
-          setInterested(p => p.find(x => x.id === topProp.id) ? p : [...p, topProp]);
-          incrementPlanUsage('day', 'likes');
-          trackDashboardSwipe('property', topProp?.id, type);
-          if (topOwner) {
-            addMatchedCapped(topOwner);
-            setConnDeck(d => d.filter(id => id !== topOwner.id));
+        try {
+          if (type === "interest") {
+            setInterested(p => p.find(x => x.id === topProp.id) ? p : [...p, topProp]);
+            incrementPlanUsage('day', 'likes');
+            trackDashboardSwipe('property', topProp?.id, type);
+            if (topOwner) {
+              addMatchedCapped(topOwner);
+              setConnDeck(d => d.filter(id => id !== topOwner.id));
+            }
+            setPropDeck(d => d.filter(id => id !== topProp.id));
+          } else if (type === "next") {
+            setPropDeck(d => d.length > 1 ? [...d.slice(1), d[0]] : d);
+          } else {
+            trackDashboardSwipe('property', topProp?.id, type);
+            setPropDeck(d => d.length > 1 ? [...d.slice(1), d[0]] : d);
+            setPropStatusById(s => ({ ...s, [topProp.id]: { ...(s[topProp.id]||{}), seen: true, skipped: true } }));
+            setSkippedSetProp(s => { const n = new Set(s); n.add(topProp.id); return n; });
+            setSkippedQueueProp(q => {
+              if (!q) return [topProp.id];
+              if (q.includes(topProp.id)) return q;
+              return [...q, topProp.id];
+            });
           }
-          setPropDeck(d => d.filter(id => id !== topProp.id));
-        } else if (type === "next") {
-          setPropDeck(d => d.length > 1 ? [...d.slice(1), d[0]] : d);
-        } else {
-          trackDashboardSwipe('property', topProp?.id, type);
-          setPropDeck(d => d.length > 1 ? [...d.slice(1), d[0]] : d);
-          setPropStatusById(s => ({ ...s, [topProp.id]: { ...(s[topProp.id]||{}), seen: true, skipped: true } }));
-          setSkippedSetProp(s => { const n = new Set(s); n.add(topProp.id); return n; });
-          setSkippedQueueProp(q => {
-            if (!q) return [topProp.id];
-            if (q.includes(topProp.id)) return q;
-            return [...q, topProp.id];
-          });
+          setLastPropOp({ type, prop: topProp, snap, connSnap });
+        } catch (error) {
+          console.error('Property swipe failed.', error);
+        } finally {
+          setPropAction(null);
+          setIsSwipingProp(false);
         }
-        setLastPropOp({ type, prop: topProp, snap, connSnap });
-        setPropAction(null);
-        setIsSwipingProp(false);
       });
     }, SWIPE_ANIM_MS);
   };
@@ -2890,7 +2900,7 @@ export function Dashboard({ page, nuggets, setModal, setPage, onOpenOnboardingTa
                       const stackScale   = 1 - reverseI * 0.035;
                       const stackOpacity = isTop ? 1 : 0.9 - reverseI * 0.1;
                       return (
-                        <div key={c.id} className={`ds-feed-stack-card ${isTop ? 'is-top is-top-connection' : ''} ${isTop && action ? 'is-swipe-animating' : ''}`} style={{
+                        <div key={`${c.id}-${isTop ? 'top' : `stack-${reverseI}`}`} className={`ds-feed-stack-card ${isTop ? 'is-top is-top-connection' : ''} ${isTop && action ? 'is-swipe-animating' : ''}`} style={{
                           position: "absolute",
                           top: 0,
                           left: 0,
@@ -2944,7 +2954,7 @@ export function Dashboard({ page, nuggets, setModal, setPage, onOpenOnboardingTa
                       const stackOpacity = isTop ? 1 : 0.9 - reverseI * 0.1;
                       return (
                         <div
-                          key={p.id}
+                          key={`${p.id}-${isTop ? 'top' : `stack-${reverseI}`}`}
                           className={`ds-feed-stack-card ${isTop ? 'is-top is-top-showcase' : ''} ${isTop && propAction ? 'is-swipe-animating' : ''}`}
                           style={{
                             position: "absolute",
