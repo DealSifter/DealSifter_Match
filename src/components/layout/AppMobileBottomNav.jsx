@@ -127,6 +127,20 @@ export function AppMobileBottomNav({ page, setPage, collapsed = false, onCollaps
     ),
   );
 
+  useEffect(() => {
+    const root = document.documentElement;
+    if (!isCompactViewport || HIDDEN_PAGES.has(page)) {
+      root.style.setProperty('--ds-mobile-bottom-nav-visible-height', '0px');
+      return undefined;
+    }
+
+    const visibleHeight = Math.max(0, navMeasuredHeight - navTranslateY);
+    root.style.setProperty('--ds-mobile-bottom-nav-visible-height', `${Math.ceil(visibleHeight)}px`);
+    return () => {
+      root.style.setProperty('--ds-mobile-bottom-nav-visible-height', '0px');
+    };
+  }, [isCompactViewport, navMeasuredHeight, navTranslateY, page]);
+
   if (!isCompactViewport || HIDDEN_PAGES.has(page)) return null;
 
   return (

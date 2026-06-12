@@ -47,6 +47,8 @@ export function Modal({
         }
         @media (max-width: 1024px), (hover: none) and (pointer: coarse) {
           .ds-modal-overlay {
+            --ds-modal-top-offset: calc(var(--ds-mobile-header-offset, 58px) + max(10px, env(safe-area-inset-top)));
+            --ds-modal-bottom-offset: calc(var(--ds-mobile-bottom-nav-visible-height, 0px) + max(12px, env(safe-area-inset-bottom)));
             align-items: flex-start !important;
             height: calc(var(--app-vh, 1vh) * 100) !important;
             max-height: calc(var(--app-vh, 1vh) * 100) !important;
@@ -55,12 +57,12 @@ export function Modal({
             overscroll-behavior: contain;
             touch-action: pan-y;
             -webkit-overflow-scrolling: touch;
-            padding-top: max(14px, env(safe-area-inset-top)) !important;
-            padding-bottom: max(14px, env(safe-area-inset-bottom)) !important;
+            padding-top: var(--ds-modal-top-offset) !important;
+            padding-bottom: var(--ds-modal-bottom-offset) !important;
           }
           .ds-modal-content {
             width: min(100%, calc(100vw - 24px)) !important;
-            max-height: calc((var(--app-vh, 1vh) * 100) - 28px - env(safe-area-inset-top) - env(safe-area-inset-bottom)) !important;
+            max-height: calc((var(--app-vh, 1vh) * 100) - var(--ds-modal-top-offset) - var(--ds-modal-bottom-offset) - 8px) !important;
             height: auto !important;
             min-height: 0 !important;
             overflow-x: hidden !important;
@@ -69,7 +71,7 @@ export function Modal({
             touch-action: pan-y;
             -webkit-overflow-scrolling: touch;
             margin-top: 0 !important;
-            padding-bottom: max(18px, env(safe-area-inset-bottom)) !important;
+            padding-bottom: calc(18px + env(safe-area-inset-bottom)) !important;
           }
           .modal-close-btn {
             top: 20px !important;

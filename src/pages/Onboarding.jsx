@@ -5037,7 +5037,7 @@ export function Onboarding({
         <Modal
           onClose={() => setPreviewOpen(false)}
           maxWidth={1320}
-          contentStyle={isMobileViewport ? { maxHeight: 'calc(100dvh - 36px)', overflowY: 'auto', WebkitOverflowScrolling: 'touch', touchAction: 'pan-y' } : {}}
+          contentStyle={isMobileViewport ? { overflowY: 'auto', WebkitOverflowScrolling: 'touch', touchAction: 'pan-y' } : {}}
         >
           <h3 style={{ margin: '0 0 6px', color: C.t1, fontSize: 20, fontWeight: 800 }}>{t.previewTitle}</h3>
           <p style={{ margin: '0 0 14px', color: C.t3, fontSize: 12 }}>
@@ -5046,7 +5046,7 @@ export function Onboarding({
 
             {renderPreviewContent()}
 
-          <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 8, marginTop: 14, position: 'sticky', bottom: 0, zIndex: 3, background: C.card, paddingTop: 10, paddingBottom: 4, borderTop: `1px solid ${C.border}` }}>
+          <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 8, marginTop: 14, background: C.card, paddingTop: 10, paddingBottom: 4, borderTop: `1px solid ${C.border}`, flexWrap: 'wrap' }}>
             <button onClick={() => setPreviewOpen(false)} style={{ padding: '8px 12px', borderRadius: 9, border: `1px solid ${C.border}`, background: 'transparent', color: C.t2, fontWeight: 700, cursor: 'pointer', fontSize: 12 }}>
               {t.previewBackToEdit}
             </button>
