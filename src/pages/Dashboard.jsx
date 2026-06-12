@@ -17,6 +17,7 @@ import { formatPropertyLocation } from '../lib/formatPropertyLocation';
 import { useMediaQuery } from '../hooks/useMediaQuery';
 import { canUsePlanAction, getPlanGateCopy, incrementPlanUsage, readPlanUsage } from '../lib/planAccess';
 import { trackAppEvent } from '../lib/adminEventTracking';
+import { getPortfolioItemCount, getPortfolioUnlockCost, getPropertyExclusivityStatus } from '../lib/unlockRules';
 import feedMatchIcon from '../assets/feed-match-icon.png';
 
 // Utilitário para checagem de flag booleana (string, bool, number)
@@ -59,7 +60,7 @@ function trackDashboardSwipe(entityType, entityId, action) {
   }
 }
 
-export function Dashboard({ page, nuggets, setModal, setPage, onOpenOnboardingTab, openUnlock, unlocked, matched, setMatched, interested, setInterested, purchases, setPurchases, userProfile, personalProfile, professionalProfile, propertyPortfolio, servicePortfolio, accountType, showcaseProperties, categoryOrder, setCategoryOrder, editMode, setEditMode, mobileBottomNavCollapsed = false, addToast, subscription }) {
+export function Dashboard({ page, nuggets, setModal, setPage, onOpenOnboardingTab, openUnlock, unlocked, matched, setMatched, interested, setInterested, purchases, setPurchases, userProfile, personalProfile, professionalProfile, propertyPortfolio, servicePortfolio, accountType, showcaseProperties, categoryOrder, setCategoryOrder, editMode, setEditMode, mobileBottomNavCollapsed = false, addToast, subscription, propertyUnlocks = [], currentUserId = 'local-user' }) {
   const isMobileViewport = useMediaQuery('(max-width: 767px)');
   const isTabletPortraitViewport = useMediaQuery('(min-width: 768px) and (max-width: 1080px) and (orientation: portrait)');
   const isTouchModalViewport = useMediaQuery('(max-width: 1024px)');
@@ -1648,12 +1649,11 @@ export function Dashboard({ page, nuggets, setModal, setPage, onOpenOnboardingTa
   };
 
   const getUnlockCost = (personId) => {
-    const portfolioCount = (showcaseItems || []).filter((property) => property.ownerId === personId).length;
-    return Math.max(1, portfolioCount);
+    return getPortfolioUnlockCost(personId, showcaseItems || [], servicePortfolio || []);
   };
 
   const getPortfolioCount = (personId) => {
-    return (showcaseItems || []).filter((property) => property.ownerId === personId).length;
+    return getPortfolioItemCount(personId, showcaseItems || [], servicePortfolio || []);
   };
 
   const ownOwnerIds = useMemo(() => {
@@ -1700,7 +1700,14 @@ export function Dashboard({ page, nuggets, setModal, setPage, onOpenOnboardingTa
       return;
     }
 
-    if (typeof openUnlock === 'function') openUnlock(ownerCard);
+    if (typeof openUnlock === 'function') {
+      openUnlock(ownerCard, {
+        unlockScope: 'property',
+        property: topProp,
+        propertyId: topProp.id,
+        propertyAddress: topProp.address,
+      });
+    }
   };
 
   const _connDeckSet = useMemo(() => new Set(connDeck), [connDeck]);
@@ -2919,6 +2926,7 @@ export function Dashboard({ page, nuggets, setModal, setPage, onOpenOnboardingTa
                       const canonical = PROPERTIES.find(pp => String(pp.id) === String(p.id));
                       const ownerIdToUse = canonical ? canonical.ownerId : p.ownerId;
                       const pOwner   = p.ownerPreview || findConnectionById(ownerIdToUse);
+                      const exclusivityStatus = getPropertyExclusivityStatus(propertyUnlocks, p.id, currentUserId);
                       const shiftLeft    = reverseI * FEED_STACK_SHIFT_X;
                       const shiftDown    = reverseI * FEED_STACK_SHIFT_Y;
                       const stackScale   = 1 - reverseI * 0.035;
@@ -2960,6 +2968,7 @@ export function Dashboard({ page, nuggets, setModal, setPage, onOpenOnboardingTa
                               isSkipped={skippedSetProp.has(p.id)}
                               onUndo={lastPropOp && isTop ? undoProperty : null}
                               matchPressure={getMatchPressure(p.id)}
+                              exclusivityStatus={exclusivityStatus}
                               showActions={!isMobileViewport}
                             />
                           </div>

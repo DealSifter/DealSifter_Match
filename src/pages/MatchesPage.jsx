@@ -15,6 +15,7 @@ import { formatPropertyLocation } from '../lib/formatPropertyLocation';
 import { translateChatText, getSafeLang } from '../services/chatTranslation';
 import { getPlanGateCopy, isFeatureAllowed } from '../lib/planAccess';
 import { trackAppEvent } from '../lib/adminEventTracking';
+import { getPortfolioUnlockCost } from '../lib/unlockRules';
 import appLogo from '../assets/logo.png';
 
 // Move chat templates and defaults to module scope so they are stable references
@@ -1260,7 +1261,9 @@ function PortfolioDetail({ item, owner, ownerDesc, onBack, autoplayMedia = false
   );
 }
 
-export function MatchesPage({ nuggets, setModal, openUnlock, unlocked, initialChat, chatFocusToken = 0, interested, matched, setInterested, setMatched, convos, setConvos, categoryOrder, setCategoryOrder, showcaseProperties, propertyPortfolio, servicePortfolio, userProfile, personalProfile, professionalProfile, mobileBottomNavCollapsed = false, userPreferences = null, subscription = null, setPage = null, addToast = null, onOpenChatLanguageConfig = null }) {
+export function MatchesPage({ nuggets, setModal, openUnlock, unlocked, initialChat, chatFocusToken = 0, interested, matched, setInterested, setMatched, convos, setConvos, categoryOrder, setCategoryOrder, showcaseProperties, propertyPortfolio, servicePortfolio, userProfile, personalProfile, professionalProfile, mobileBottomNavCollapsed = false, userPreferences = null, subscription = null, setPage = null, addToast = null, onOpenChatLanguageConfig = null, propertyUnlocks = [], currentUserId = 'local-user' }) {
+  void propertyUnlocks;
+  void currentUserId;
   const PORTFOLIO_PANEL_PADDING = 40;
   const PORTFOLIO_GRID_GAP = 12;
   const PORTFOLIO_CARD_MIN_WIDTH = 132;
@@ -1622,15 +1625,13 @@ export function MatchesPage({ nuggets, setModal, openUnlock, unlocked, initialCh
 
   const activeUnlockCost = useMemo(() => {
     if (!activeOwner?.id) return 1;
-    const portfolioCount = allPropertiesSource.filter((p) => String(p.ownerId) === String(activeOwner.id)).length;
-    return Math.max(1, portfolioCount);
-  }, [activeOwner, allPropertiesSource]);
+    return getPortfolioUnlockCost(activeOwner.id, allPropertiesSource, allServicesSource);
+  }, [activeOwner, allPropertiesSource, allServicesSource]);
 
   const getUnlockCost = useCallback((ownerId) => {
     if (!ownerId) return 1;
-    const portfolioCount = allPropertiesSource.filter((p) => String(p.ownerId) === String(ownerId)).length;
-    return Math.max(1, portfolioCount);
-  }, [allPropertiesSource]);
+    return getPortfolioUnlockCost(ownerId, allPropertiesSource, allServicesSource);
+  }, [allPropertiesSource, allServicesSource]);
   
   const currentMsgs = useMemo(() => 
     (activeOwner && convos) ? (convos[activeOwner.id] || []) : [],
@@ -2129,7 +2130,7 @@ export function MatchesPage({ nuggets, setModal, openUnlock, unlocked, initialCh
                 })}
               </p>
               {nuggets >= activeUnlockCost ? (
-                <button onClick={() => openUnlock(activeOwner)} style={{ padding:"16px 32px", borderRadius:12, background:C.gold, color:C.bg, fontWeight:800, border:"none", cursor:"pointer" }}>
+                <button onClick={() => openUnlock(activeOwner, isActiveProperty ? { unlockScope: 'property', property: active, propertyId: active.id, propertyAddress: active.address } : {})} style={{ padding:"16px 32px", borderRadius:12, background:C.gold, color:C.bg, fontWeight:800, border:"none", cursor:"pointer" }}>
                   {formatTemplate(t.unlockCta, {
                     count: activeUnlockCost,
                     unit: activeUnlockCost === 1 ? modalsT.nuggetOne : modalsT.nuggetOther,

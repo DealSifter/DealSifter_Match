@@ -9,6 +9,7 @@ import { useT } from '../i18n/translations';
 import { SmartImage } from '../components/ui/SmartImage';
 import { Icon } from '../components/ui/Icon';
 import { useMediaQuery } from '../hooks/useMediaQuery';
+import { getPortfolioItemCount, getPortfolioUnlockCost } from '../lib/unlockRules';
 
 const DEFAULT_CENTER = [39.5, -98.35];
 const DEFAULT_ZOOM = 4;
@@ -1289,6 +1290,7 @@ export function MapView({
   unlocked,
   setPage,
   showcaseProperties = [],
+  servicePortfolio = [],
   userProfile,
   onUpdatePropertyCoords,
   userPreferences = null,
@@ -2204,12 +2206,11 @@ export function MapView({
   };
 
   const getUnlockCost = (personId) => {
-    const portfolioCount = PROPERTIES.filter((property) => property.ownerId === personId).length;
-    return Math.max(1, portfolioCount);
+    return getPortfolioUnlockCost(personId, showcaseProperties?.length ? showcaseProperties : PROPERTIES, servicePortfolio || []);
   };
 
   const getPortfolioCount = (personId) => {
-    return PROPERTIES.filter((property) => property.ownerId === personId).length;
+    return getPortfolioItemCount(personId, showcaseProperties?.length ? showcaseProperties : PROPERTIES, servicePortfolio || []);
   };
 
   const activeMapStyle = useMemo(() => {

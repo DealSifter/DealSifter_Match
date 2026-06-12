@@ -91,6 +91,7 @@ import { usePortfolioSync } from './hooks/usePortfolioSync';
 import { useCheckoutFlow } from './hooks/useCheckoutFlow';
 import { canUsePlanAction, getPlanGateCopy, incrementPlanUsage, readPlanUsage } from './lib/planAccess';
 import { trackAppEvent } from './lib/adminEventTracking';
+import { createPropertyUnlockRecord, getPortfolioUnlockCost, getPropertyExclusivityStatus } from './lib/unlockRules';
 
 // Safe error logger — strips Supabase error details that may contain personal data
 const safeLogError = (label, error) => {
@@ -1173,6 +1174,14 @@ export default function App() {
       return [];
     }
   });
+  const [propertyUnlocks, setPropertyUnlocks] = useState(() => {
+    try {
+      const saved = localStorage.getItem('ds_property_unlocks');
+      return saved ? JSON.parse(saved) : [];
+    } catch {
+      return [];
+    }
+  });
   const [purchases, setPurchases] = useState(() => {
     try {
       const saved = localStorage.getItem('ds_purchases');
@@ -1667,6 +1676,19 @@ export default function App() {
       console.error('Failed to persist unlocked contacts.', error);
     }
   }, [unlocked]);
+
+  useEffect(() => {
+    try {
+      const now = Date.now();
+      const cleaned = (propertyUnlocks || []).filter((row) => (
+        !row?.expiresAt || Number(row.expiresAt) > now
+      )).slice(-500);
+      localStorage.setItem('ds_property_unlocks', JSON.stringify(cleaned));
+      if (cleaned.length !== (propertyUnlocks || []).length) setPropertyUnlocks(cleaned);
+    } catch {
+      // Local exclusivity cache is best-effort.
+    }
+  }, [propertyUnlocks]);
 
   useEffect(() => {
     try {
@@ -2940,20 +2962,29 @@ export default function App() {
     }
   };
 
-  const openUnlock = (card) => {
-    setUnlockTarget(card);
+  const openUnlock = (card, context = {}) => {
+    setUnlockTarget({
+      ...(card || {}),
+      unlockScope: context.unlockScope || card?.unlockScope || 'contact',
+      propertyId: context.propertyId || context.property?.id || card?.propertyId || null,
+      propertyAddress: context.propertyAddress || context.property?.address || card?.propertyAddress || '',
+    });
     setModal('unlock');
   };
 
   const getUnlockCost = (card) => {
     if (!card?.id) return 1;
-    const allProps = showcaseProperties || [];
-    const portfolioCount = allProps.filter((p) => String(p.ownerId) === String(card.id)).length;
-    return Math.max(1, portfolioCount);
+    return getPortfolioUnlockCost(card.id, showcaseProperties || [], servicePortfolio || []);
   };
 
-  const handleUnlock = (card) => {
-    const unlockCost = getUnlockCost(card);
+  const getUnlockExclusivityStatus = (card) => {
+    if (!card?.propertyId || card?.unlockScope !== 'property') return null;
+    return getPropertyExclusivityStatus(propertyUnlocks, card.propertyId, supabaseUserId || 'local-user');
+  };
+
+  const handleUnlock = (card, options = {}) => {
+    const unlockCost = Number(options?.cost || getUnlockCost(card));
+    const unlockMode = options?.mode || 'normal';
     const unlockGate = canUsePlanAction(subscription, 'unlock', {
       unlocksThisMonth: readPlanUsage('month')?.unlocks || 0,
     });
@@ -2978,6 +3009,26 @@ export default function App() {
       setNuggets(n => n - unlockCost);
       setUnlocked(u => u.includes(card.id) ? u : [...u, card.id]);
       incrementPlanUsage('month', 'unlocks');
+      if (card.unlockScope === 'property' && card.propertyId) {
+        setPropertyUnlocks((prev) => {
+          const alreadyNormal = unlockMode === 'normal' && prev.some((row) => (
+            String(row?.propertyId) === String(card.propertyId)
+            && String(row?.buyerId) === String(supabaseUserId || 'local-user')
+            && row?.mode === 'normal'
+          ));
+          if (alreadyNormal) return prev;
+          return [
+            ...prev,
+            createPropertyUnlockRecord({
+              propertyId: card.propertyId,
+              ownerId: card.id,
+              buyerId: supabaseUserId || 'local-user',
+              mode: unlockMode,
+              cost: unlockCost,
+            }),
+          ];
+        });
+      }
       // Ensure unlocked contact stays available in Matches module.
       setMatched(prev => prev.some(x => x.id === card.id) ? prev : [...prev, card]);
       // Auto-add ALL active properties of this contact to `interested` so the
@@ -3089,6 +3140,8 @@ export default function App() {
             isHydrationSyncing={dashboardHydrationSyncing}
             userPreferences={userPreferences}
             subscription={subscription}
+            propertyUnlocks={propertyUnlocks}
+            currentUserId={supabaseUserId || 'local-user'}
           />
         );
       case 'matches':
@@ -3120,6 +3173,8 @@ export default function App() {
             setPage={setPage}
             addToast={addToast}
             onOpenChatLanguageConfig={() => openSettingsTab('preferences')}
+            propertyUnlocks={propertyUnlocks}
+            currentUserId={supabaseUserId || 'local-user'}
           />
         );
       case 'mapview':
@@ -3131,6 +3186,7 @@ export default function App() {
             unlocked={unlocked}
             setPage={setPage}
             showcaseProperties={showcaseProperties}
+            servicePortfolio={servicePortfolio}
             userProfile={userProfile}
             onUpdatePropertyCoords={handleMapPropertyCoordsUpdate}
             userPreferences={userPreferences}
@@ -3298,6 +3354,7 @@ export default function App() {
               match={unlockTarget}
               nuggets={nuggets}
               unlockCost={getUnlockCost(unlockTarget)}
+              exclusivityStatus={getUnlockExclusivityStatus(unlockTarget)}
               onUnlock={handleUnlock}
               onBuyMore={openPricingHub}
               onClose={() => setModal(null)}
