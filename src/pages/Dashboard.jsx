@@ -48,11 +48,15 @@ function readPendingFocusCard() {
 }
 
 function trackDashboardSwipe(entityType, entityId, action) {
-  trackAppEvent('swipe_given', {
-    entityType,
-    entityId,
-    metadata: { action: String(action || '') },
-  });
+  try {
+    trackAppEvent('swipe_given', {
+      entityType,
+      entityId,
+      metadata: { action: String(action || '') },
+    });
+  } catch {
+    // Telemetry must never interrupt deck interactions.
+  }
 }
 
 export function Dashboard({ page, nuggets, setModal, setPage, onOpenOnboardingTab, openUnlock, unlocked, matched, setMatched, interested, setInterested, purchases, setPurchases, userProfile, personalProfile, professionalProfile, propertyPortfolio, servicePortfolio, accountType, showcaseProperties, categoryOrder, setCategoryOrder, editMode, setEditMode, mobileBottomNavCollapsed = false, addToast, subscription }) {
@@ -1436,10 +1440,6 @@ export function Dashboard({ page, nuggets, setModal, setPage, onOpenOnboardingTa
       if (typeof openUnlock === 'function') openUnlock(topCard);
       return;
     }
-    if (type === 'match') {
-      if (!canStartPlanAction('like')) return;
-      if (!canStartPlanAction('match')) return;
-    }
     const snap = [...connDeck];
     const propSnap = [...propDeck];
     setIsSwipingConn(true);
@@ -1450,7 +1450,7 @@ export function Dashboard({ page, nuggets, setModal, setPage, onOpenOnboardingTa
             const topOwnerId = String(topCard?.ownerId ?? topCard?.id ?? '');
           // Permanently remove from deck
           addMatchedCapped(topCard);
-          incrementPlanUsage('day', 'likes');
+          try { incrementPlanUsage('day', 'likes'); } catch { /* best effort */ }
           trackDashboardSwipe('connection', topCard?.id, type);
           setConnDeck(d => d.filter(id => id !== topCard.id));
           // Record purchase: remove properties of bought contact from propDeck
@@ -1555,10 +1555,6 @@ export function Dashboard({ page, nuggets, setModal, setPage, onOpenOnboardingTa
       addToast?.({ type: 'info', message: 'Own card, not selectionable' });
       return;
     }
-    if (type === "interest") {
-      if (!canStartPlanAction('like')) return;
-      if (!canStartPlanAction('match')) return;
-    }
     setIsSwipingProp(true);
     setPropAction(type);
     setPropStatusById(prev => ({ ...prev, [topProp.id]: type }));
@@ -1571,7 +1567,7 @@ export function Dashboard({ page, nuggets, setModal, setPage, onOpenOnboardingTa
       requestAnimationFrame(() => {
         if (type === "interest") {
           setInterested(p => p.find(x => x.id === topProp.id) ? p : [...p, topProp]);
-          incrementPlanUsage('day', 'likes');
+          try { incrementPlanUsage('day', 'likes'); } catch { /* best effort */ }
           trackDashboardSwipe('property', topProp?.id, type);
           if (topOwner) {
             addMatchedCapped(topOwner);
