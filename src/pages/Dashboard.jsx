@@ -17,7 +17,6 @@ import { formatPropertyLocation } from '../lib/formatPropertyLocation';
 import { useMediaQuery } from '../hooks/useMediaQuery';
 import { canUsePlanAction, getPlanGateCopy, incrementPlanUsage, readPlanUsage } from '../lib/planAccess';
 import { trackAppEvent } from '../lib/adminEventTracking';
-import { getPropertyExclusivityStatus } from '../lib/propertyExclusivity';
 import feedMatchIcon from '../assets/feed-match-icon.png';
 
 // Utilitário para checagem de flag booleana (string, bool, number)
@@ -56,7 +55,7 @@ function trackDashboardSwipe(entityType, entityId, action) {
   });
 }
 
-export function Dashboard({ page, nuggets, setModal, setPage, onOpenOnboardingTab, openUnlock, unlocked, matched, setMatched, interested, setInterested, purchases, setPurchases, propertyUnlocks = [], currentUserId = 'local-user', userProfile, personalProfile, professionalProfile, propertyPortfolio, servicePortfolio, accountType, showcaseProperties, categoryOrder, setCategoryOrder, editMode, setEditMode, mobileBottomNavCollapsed = false, addToast, subscription }) {
+export function Dashboard({ page, nuggets, setModal, setPage, onOpenOnboardingTab, openUnlock, unlocked, matched, setMatched, interested, setInterested, purchases, setPurchases, userProfile, personalProfile, professionalProfile, propertyPortfolio, servicePortfolio, accountType, showcaseProperties, categoryOrder, setCategoryOrder, editMode, setEditMode, mobileBottomNavCollapsed = false, addToast, subscription }) {
   const isMobileViewport = useMediaQuery('(max-width: 767px)');
   const isTabletPortraitViewport = useMediaQuery('(min-width: 768px) and (max-width: 1080px) and (orientation: portrait)');
   const isTouchModalViewport = useMediaQuery('(max-width: 1024px)');
@@ -1424,7 +1423,6 @@ export function Dashboard({ page, nuggets, setModal, setPage, onOpenOnboardingTa
 
   // ── Connections actions ──────────────────────────────────────────────────
   const act = type => {
-    if (isSwipingConn || isSwipingProp) return;
     if (connDisplay.length === 0) return;
     if (focusCard) setFocusCard(null);
     const topCard = connDisplay[0];
@@ -1448,55 +1446,50 @@ export function Dashboard({ page, nuggets, setModal, setPage, onOpenOnboardingTa
     setAction(type);
     setTimeout(() => {
       requestAnimationFrame(() => {
-        try {
-          if (type === "match") {
+        if (type === "match") {
             const topOwnerId = String(topCard?.ownerId ?? topCard?.id ?? '');
-            // Permanently remove from deck
-            addMatchedCapped(topCard);
-            incrementPlanUsage('day', 'likes');
-            trackDashboardSwipe('connection', topCard?.id, type);
-            setConnDeck(d => d.filter(id => id !== topCard.id));
-            // Record purchase: remove properties of bought contact from propDeck
-            setPurchases(prev =>
+          // Permanently remove from deck
+          addMatchedCapped(topCard);
+          incrementPlanUsage('day', 'likes');
+          trackDashboardSwipe('connection', topCard?.id, type);
+          setConnDeck(d => d.filter(id => id !== topCard.id));
+          // Record purchase: remove properties of bought contact from propDeck
+          setPurchases(prev =>
               prev.some(p => String(p.sellerId) === topOwnerId) 
-                ? prev
+              ? prev
                 : [...prev, { sellerId: topOwnerId }]
-            );
-            // Remove properties of this bought contact from showcase
-            setPropDeck(d => d.filter(id => {
-              const prop = (showcaseItems || []).find(p => p.id === id);
+          );
+          // Remove properties of this bought contact from showcase
+          setPropDeck(d => d.filter(id => {
+            const prop = (showcaseItems || []).find(p => p.id === id);
               return String(prop?.ownerId) !== topOwnerId;
-            }));
-          } else if (type === "next") {
-            // Next: rotate top card to the end of the deck (ship).
-            trackDashboardSwipe('connection', topCard?.id, type);
-            // Do not bring skipped cards to the front automatically.
-            setConnDeck(d => {
-              const next = d.length > 1 ? [...d.slice(1), d[0]] : d;
-              return next;
-            });
-          } else {
-            // Pass: rotate top card to the end of the deck and mark it as skipped
-            trackDashboardSwipe('connection', topCard?.id, type);
-            setConnDeck(d => {
-              const next = d.length > 1 ? [...d.slice(1), d[0]] : d;
-              return next;
-            });
-            // mark as skipped (for red border / seen indicator)
-            setSkippedSet(s => { const n = new Set(s); n.add(topCard.id); return n; });
-            setSkippedQueue(q => {
-              if (!q) return [topCard.id];
-              if (q.includes(topCard.id)) return q;
-              return [...q, topCard.id];
-            });
-          }
-          setLastConnOp({ type, card: topCard, snap, propSnap });
-        } catch (error) {
-          console.error('Connection swipe failed.', error);
-        } finally {
-          setAction(null);
-          setIsSwipingConn(false);
-        }
+          }));
+        } else if (type === "next") {
+          // Next: rotate top card to the end of the deck (ship).
+        trackDashboardSwipe('connection', topCard?.id, type);
+        // Do not bring skipped cards to the front automatically.
+        setConnDeck(d => {
+          const next = d.length > 1 ? [...d.slice(1), d[0]] : d;
+          return next;
+        });
+      } else {
+        // Pass: rotate top card to the end of the deck and mark it as skipped
+        trackDashboardSwipe('connection', topCard?.id, type);
+        setConnDeck(d => {
+          const next = d.length > 1 ? [...d.slice(1), d[0]] : d;
+          return next;
+        });
+        // mark as skipped (for red border / seen indicator)
+        setSkippedSet(s => { const n = new Set(s); n.add(topCard.id); return n; });
+        setSkippedQueue(q => {
+          if (!q) return [topCard.id];
+          if (q.includes(topCard.id)) return q;
+          return [...q, topCard.id];
+        });
+      }
+        setLastConnOp({ type, card: topCard, snap, propSnap });
+        setAction(null);
+        setIsSwipingConn(false);
       });
     }, SWIPE_ANIM_MS);
   };
@@ -1555,7 +1548,6 @@ export function Dashboard({ page, nuggets, setModal, setPage, onOpenOnboardingTa
 
   // ── Properties actions ───────────────────────────────────────────────────
   const actProperty = type => {
-    if (isSwipingConn || isSwipingProp) return;
     if (propDisplay.length === 0) return;
     if (focusCard) setFocusCard(null);
     const topProp = propDisplay[0];
@@ -1570,41 +1562,38 @@ export function Dashboard({ page, nuggets, setModal, setPage, onOpenOnboardingTa
     setIsSwipingProp(true);
     setPropAction(type);
     setPropStatusById(prev => ({ ...prev, [topProp.id]: type }));
-    const topOwner = findConnectionById(topProp.ownerId);
+    const topScope = normalizeProfileScope(topProp?.primaryProfile || 'personal');
+    const topScopeKey = scopeToProfileKey(topScope);
+    const topOwner = connectionCards.find((c) => c.scopeKey === topScopeKey) || findConnectionById(topProp.ownerId);
     const snap = [...propDeck];
     const connSnap = [...connDeck];
     setTimeout(() => {
       requestAnimationFrame(() => {
-        try {
-          if (type === "interest") {
-            setInterested(p => p.find(x => x.id === topProp.id) ? p : [...p, topProp]);
-            incrementPlanUsage('day', 'likes');
-            trackDashboardSwipe('property', topProp?.id, type);
-            if (topOwner) {
-              addMatchedCapped(topOwner);
-              setConnDeck(d => d.filter(id => id !== topOwner.id));
-            }
-            setPropDeck(d => d.filter(id => id !== topProp.id));
-          } else if (type === "next") {
-            setPropDeck(d => d.length > 1 ? [...d.slice(1), d[0]] : d);
-          } else {
-            trackDashboardSwipe('property', topProp?.id, type);
-            setPropDeck(d => d.length > 1 ? [...d.slice(1), d[0]] : d);
-            setPropStatusById(s => ({ ...s, [topProp.id]: { ...(s[topProp.id]||{}), seen: true, skipped: true } }));
-            setSkippedSetProp(s => { const n = new Set(s); n.add(topProp.id); return n; });
-            setSkippedQueueProp(q => {
-              if (!q) return [topProp.id];
-              if (q.includes(topProp.id)) return q;
-              return [...q, topProp.id];
-            });
+        if (type === "interest") {
+          setInterested(p => p.find(x => x.id === topProp.id) ? p : [...p, topProp]);
+          incrementPlanUsage('day', 'likes');
+          trackDashboardSwipe('property', topProp?.id, type);
+          if (topOwner) {
+            addMatchedCapped(topOwner);
+            setConnDeck(d => d.filter(id => id !== topOwner.id));
           }
-          setLastPropOp({ type, prop: topProp, snap, connSnap });
-        } catch (error) {
-          console.error('Property swipe failed.', error);
-        } finally {
-          setPropAction(null);
-          setIsSwipingProp(false);
+          setPropDeck(d => d.filter(id => id !== topProp.id));
+        } else if (type === "next") {
+          setPropDeck(d => d.length > 1 ? [...d.slice(1), d[0]] : d);
+        } else {
+          trackDashboardSwipe('property', topProp?.id, type);
+          setPropDeck(d => d.length > 1 ? [...d.slice(1), d[0]] : d);
+          setPropStatusById(s => ({ ...s, [topProp.id]: { ...(s[topProp.id]||{}), seen: true, skipped: true } }));
+          setSkippedSetProp(s => { const n = new Set(s); n.add(topProp.id); return n; });
+          setSkippedQueueProp(q => {
+            if (!q) return [topProp.id];
+            if (q.includes(topProp.id)) return q;
+            return [...q, topProp.id];
+          });
         }
+        setLastPropOp({ type, prop: topProp, snap, connSnap });
+        setPropAction(null);
+        setIsSwipingProp(false);
       });
     }, SWIPE_ANIM_MS);
   };
@@ -1662,18 +1651,13 @@ export function Dashboard({ page, nuggets, setModal, setPage, onOpenOnboardingTa
     return normalized === 'true' || normalized === '1' || normalized === 'yes' || normalized === 'verified';
   };
 
-  const getPortfolioCount = (personId) => {
-    const key = String(personId || '');
-    if (!key) return 0;
-    const propertyCount = (showcaseItems || []).filter((property) => String(property.ownerId) === key).length;
-    const serviceCount = (servicePortfolio || []).filter((service) => (
-      String(service.ownerId) === key && isTruthyFlag(service?.publishToConnections, true)
-    )).length;
-    return propertyCount + serviceCount;
+  const getUnlockCost = (personId) => {
+    const portfolioCount = (showcaseItems || []).filter((property) => property.ownerId === personId).length;
+    return Math.max(1, portfolioCount);
   };
 
-  const getUnlockCost = (personId) => {
-    return Math.max(1, getPortfolioCount(personId));
+  const getPortfolioCount = (personId) => {
+    return (showcaseItems || []).filter((property) => property.ownerId === personId).length;
   };
 
   const ownOwnerIds = useMemo(() => {
@@ -1706,7 +1690,9 @@ export function Dashboard({ page, nuggets, setModal, setPage, onOpenOnboardingTa
       addToast?.({ type: 'info', message: 'Own card, not selectionable' });
       return;
     }
-    const ownerCard = findConnectionById(topProp.ownerId);
+    const ownerScope = normalizeProfileScope(topProp?.primaryProfile || 'personal');
+    const ownerScopeKey = scopeToProfileKey(ownerScope);
+    const ownerCard = connectionCards.find((c) => c.scopeKey === ownerScopeKey) || findConnectionById(topProp.ownerId);
 
     if (!ownerCard) {
       addToast?.({ type: 'warning', message: 'Contato responsável por este card não encontrado.' });
@@ -1718,15 +1704,7 @@ export function Dashboard({ page, nuggets, setModal, setPage, onOpenOnboardingTa
       return;
     }
 
-    const propertyUnlockTarget = {
-      ...topProp,
-      id: topProp.id,
-      name: topProp.address || topProp.title || ownerCard.name || 'Property',
-      unlockScope: 'property',
-      ownerId: ownerCard.id,
-      ownerCard,
-    };
-    if (typeof openUnlock === 'function') openUnlock(propertyUnlockTarget);
+    if (typeof openUnlock === 'function') openUnlock(ownerCard);
   };
 
   const _connDeckSet = useMemo(() => new Set(connDeck), [connDeck]);
@@ -1884,8 +1862,7 @@ export function Dashboard({ page, nuggets, setModal, setPage, onOpenOnboardingTa
 
   const topConnectionCard = connDisplay[0] || null;
   const topPropertyCard = propDisplay[0] || null;
-  const mobileSwipeBusy = isSwipingConn || isSwipingProp;
-  const mobileCanAct = !mobileSwipeBusy && (view === 'connections' ? Boolean(topConnectionCard) : Boolean(topPropertyCard));
+  const mobileCanAct = view === 'connections' ? Boolean(topConnectionCard) : Boolean(topPropertyCard);
   const mobileCanUndo = view === 'connections'
     ? Boolean(lastConnOp || (skippedQueue && skippedQueue.length > 0))
     : Boolean(lastPropOp);
@@ -2892,15 +2869,15 @@ export function Dashboard({ page, nuggets, setModal, setPage, onOpenOnboardingTa
             <div style={{ position:"relative", width:`min(${FEED_CARD_WIDTH}px, 100%)`, height:FEED_STACK_CONTAINER_HEIGHT, boxShadow: 'none', borderRadius: 0, overflow: 'visible' }}>
               {view==="connections" && (
                 connDisplay.length > 0
-                  ? connDisplay.slice(0, isMobileViewport ? 3 : 5).reverse().map((c, i) => {
-                      const reverseI = Math.min(connDisplay.length, isMobileViewport ? 3 : 5) - 1 - i;
+                  ? connDisplay.slice(0, 5).reverse().map((c, i) => {
+                      const reverseI = Math.min(connDisplay.length, 5) - 1 - i;
                       const isTop    = reverseI === 0;
                       const shiftLeft    = reverseI * FEED_STACK_SHIFT_X;
                       const shiftDown    = reverseI * FEED_STACK_SHIFT_Y;
                       const stackScale   = 1 - reverseI * 0.035;
                       const stackOpacity = isTop ? 1 : 0.9 - reverseI * 0.1;
                       return (
-                        <div key={`${c.id}-${isTop ? 'top' : `stack-${reverseI}`}`} className={`ds-feed-stack-card ${isTop ? 'is-top is-top-connection' : ''} ${isTop && action ? 'is-swipe-animating' : ''}`} style={{
+                        <div key={c.id} className={`ds-feed-stack-card ${isTop ? 'is-top is-top-connection' : ''} ${isTop && action ? 'is-swipe-animating' : ''}`} style={{
                           position: "absolute",
                           top: 0,
                           left: 0,
@@ -2912,7 +2889,6 @@ export function Dashboard({ page, nuggets, setModal, setPage, onOpenOnboardingTa
                             : `translate3d(${shiftLeft}px, ${shiftDown}px, 0) scale(${stackScale})`,
                           zIndex: 10 - reverseI,
                           opacity: stackOpacity,
-                          pointerEvents: isTop ? 'auto' : 'none',
                           animation: isTop && action ? (action === "match" ? `carouselRotateMatch ${SWIPE_ANIM_MS}ms cubic-bezier(0.23, 1, 0.32, 1) forwards` : `carouselRotatePass ${SWIPE_ANIM_MS}ms cubic-bezier(0.23, 1, 0.32, 1) forwards`) : "none"
                         }}>
                           <div style={{ position: 'relative', width: '100%', height: '100%' }}>
@@ -2941,20 +2917,19 @@ export function Dashboard({ page, nuggets, setModal, setPage, onOpenOnboardingTa
               )}
               {view==="properties" && (
                 propDisplay.length > 0
-                  ? propDisplay.slice(0, isMobileViewport ? 3 : 5).reverse().map((p, i) => {
-                      const reverseI = Math.min(propDisplay.length, isMobileViewport ? 3 : 5) - 1 - i;
+                  ? propDisplay.slice(0, 5).reverse().map((p, i) => {
+                      const reverseI = Math.min(propDisplay.length, 5) - 1 - i;
                       const isTop    = reverseI === 0;
                       const canonical = PROPERTIES.find(pp => String(pp.id) === String(p.id));
                       const ownerIdToUse = canonical ? canonical.ownerId : p.ownerId;
                       const pOwner   = p.ownerPreview || findConnectionById(ownerIdToUse);
-                      const exclusivityStatus = getPropertyExclusivityStatus(propertyUnlocks, p.id, currentUserId);
                       const shiftLeft    = reverseI * FEED_STACK_SHIFT_X;
                       const shiftDown    = reverseI * FEED_STACK_SHIFT_Y;
                       const stackScale   = 1 - reverseI * 0.035;
                       const stackOpacity = isTop ? 1 : 0.9 - reverseI * 0.1;
                       return (
                         <div
-                          key={`${p.id}-${isTop ? 'top' : `stack-${reverseI}`}`}
+                          key={p.id}
                           className={`ds-feed-stack-card ${isTop ? 'is-top is-top-showcase' : ''} ${isTop && propAction ? 'is-swipe-animating' : ''}`}
                           style={{
                             position: "absolute",
@@ -2965,7 +2940,6 @@ export function Dashboard({ page, nuggets, setModal, setPage, onOpenOnboardingTa
                             transformOrigin: "top left",
                             zIndex: 10 - reverseI,
                             opacity: stackOpacity,
-                            pointerEvents: isTop ? 'auto' : 'none',
                             animation: (
                               isTop && propAction
                                 ? propAction === "interest"
@@ -2990,7 +2964,6 @@ export function Dashboard({ page, nuggets, setModal, setPage, onOpenOnboardingTa
                               isSkipped={skippedSetProp.has(p.id)}
                               onUndo={lastPropOp && isTop ? undoProperty : null}
                               matchPressure={getMatchPressure(p.id)}
-                              exclusivityStatus={exclusivityStatus}
                               showActions={!isMobileViewport}
                             />
                           </div>
