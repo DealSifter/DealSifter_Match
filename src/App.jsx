@@ -3015,6 +3015,17 @@ export default function App() {
     setModal('unlock');
     if (nextTarget.unlockScope === 'property' && nextTarget.propertyId) {
       void fetchPropertyUnlockQuote(nextTarget.propertyId);
+    } else {
+      const linkedOwnerId = resolveUnlockOwnerId(nextTarget, unlockPortfolioProperties || [], unlockPortfolioServices || []);
+      const linkedProperty = (unlockPortfolioProperties || []).find((property) => (
+        String(property?.ownerId || '') === String(linkedOwnerId)
+        && isTruthyFlag(property?.isActive, true)
+        && isTruthyFlag(property?.publishToShowcase, true)
+        && property?.dealClosed !== true
+      ));
+      if (linkedProperty?.id && isUuid(linkedProperty.id)) {
+        void fetchPropertyUnlockQuote(linkedProperty.id);
+      }
     }
   };
 
@@ -3066,6 +3077,81 @@ export default function App() {
       }
     }
     return getPropertyExclusivityStatus(propertyUnlocks, card.propertyId, supabaseUserId || 'local-user');
+  };
+
+  const getContactExclusivityOption = (card) => {
+    if (!card || card.unlockScope === 'property') return null;
+    const unlockOwnerId = resolveUnlockOwnerId(card, unlockPortfolioProperties || [], unlockPortfolioServices || []);
+    if (!unlockOwnerId) return null;
+
+    const baseCost = getPortfolioUnlockCost(card, unlockPortfolioProperties || [], unlockPortfolioServices || []);
+    const candidates = (unlockPortfolioProperties || [])
+      .filter((property) => (
+        String(property?.ownerId || '') === String(unlockOwnerId)
+        && isTruthyFlag(property?.isActive, true)
+        && isTruthyFlag(property?.publishToShowcase, true)
+        && property?.dealClosed !== true
+      ))
+      .map((property) => ({
+        property,
+        status: getPropertyExclusivityStatus(propertyUnlocks, property.id, supabaseUserId || 'local-user'),
+      }))
+      .filter(({ status }) => status?.canBuyExclusivity && Number(status?.exclusiveCost || 0) > 0)
+      .sort((a, b) => {
+        if (a.status.kind === b.status.kind) return 0;
+        if (a.status.kind === 'new') return -1;
+        if (b.status.kind === 'new') return 1;
+        return 0;
+      });
+
+    const selected = candidates[0];
+    if (!selected) return null;
+    const quoteStatus = unlockQuote?.propertyId && String(unlockQuote.propertyId) === String(selected.property.id)
+      ? (() => {
+        if (unlockQuote.blocked) {
+          return {
+            kind: 'blocked',
+            canBuyExclusivity: false,
+            exclusiveCost: 0,
+            unlockCount: unlockQuote.normalUnlockCount,
+            expiresAt: unlockQuote.expiresAt,
+          };
+        }
+        if (unlockQuote.exclusivityKind === 'new') {
+          return {
+            kind: 'new',
+            canBuyExclusivity: true,
+            exclusivityMode: 'total',
+            exclusiveCost: unlockQuote.exclusivityCost,
+            unlockCount: 0,
+          };
+        }
+        if (unlockQuote.exclusivityKind === 'partial') {
+          return {
+            kind: 'partial',
+            canBuyExclusivity: true,
+            exclusivityMode: 'partial',
+            exclusiveCost: unlockQuote.exclusivityCost,
+            unlockCount: unlockQuote.normalUnlockCount,
+          };
+        }
+        return { kind: 'regular', canBuyExclusivity: false, exclusiveCost: 0 };
+      })()
+      : selected.status;
+
+    if (!quoteStatus?.canBuyExclusivity || Number(quoteStatus?.exclusiveCost || 0) <= 0) return null;
+
+    const images = selected.property?.images || selected.property?.media?.images || [];
+    return {
+      property: selected.property,
+      status: quoteStatus,
+      baseCost,
+      exclusiveCost: baseCost + Number(quoteStatus.exclusiveCost || 0),
+      mode: quoteStatus.exclusivityMode || (quoteStatus.kind === 'partial' ? 'partial' : 'total'),
+      title: selected.property?.address || selected.property?.title || selected.property?.name || 'Showcase property',
+      location: [selected.property?.city, selected.property?.state, selected.property?.zip].filter(Boolean).join(', '),
+      image: images[0] || selected.property?.image || selected.property?.photo || '',
+    };
   };
 
   const handleUnlock = async (card, options = {}) => {
@@ -3515,6 +3601,7 @@ export default function App() {
               nuggets={nuggets}
               unlockCost={getUnlockCost(unlockTarget)}
               exclusivityStatus={getUnlockExclusivityStatus(unlockTarget)}
+              contactExclusivityOption={getContactExclusivityOption(unlockTarget)}
               onUnlock={handleUnlock}
               onBuyMore={openPricingHub}
               onClose={() => { setUnlockQuote(null); setModal(null); }}

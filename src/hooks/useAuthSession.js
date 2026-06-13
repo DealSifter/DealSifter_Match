@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { supabase, isSupabaseConfigured, supabaseConfigHint } from '../lib/supabaseClient';
 
 export const mapSupabaseUserToSession = (user, mode = 'login', provider = 'supabase') => ({
@@ -27,6 +27,11 @@ export function useAuthSession({
 }) {
   const [isAuthProcessing, setIsAuthProcessing] = useState(false);
   const [isForgotPasswordProcessing, setIsForgotPasswordProcessing] = useState(false);
+  const lastKnownAuthSessionRef = useRef(authSession || null);
+
+  useEffect(() => {
+    lastKnownAuthSessionRef.current = authSession || null;
+  }, [authSession]);
 
   const applySystemAccountFromSession = useCallback((next) => {
     setSystemAccount?.((prev) => ({
@@ -49,16 +54,21 @@ export function useAuthSession({
     if (!isSupabaseConfigured || !supabase) return undefined;
 
     let active = true;
+    const clearSession = () => {
+      setAuthSession(null);
+      setIsAdmin?.(false);
+      lastKnownAuthSessionRef.current = null;
+    };
+
     const applySession = async (session) => {
       if (!active) return;
       const user = session?.user;
       if (!user) {
-        setAuthSession(null);
-        setIsAdmin?.(false);
         return;
       }
 
       const next = mapSupabaseUserToSession(user, 'login', 'supabase');
+      lastKnownAuthSessionRef.current = next;
       setAuthSession(next);
       applySystemAccountFromSession(next);
 
@@ -78,12 +88,24 @@ export function useAuthSession({
 
     supabase.auth.getSession().then(({ data }) => {
       if (data?.session) applySession(data.session);
+      else if (!lastKnownAuthSessionRef.current) clearSession();
     }).catch((error) => {
       safeLogError?.('Supabase session bootstrap failed.', error);
     });
 
-    const { data } = supabase.auth.onAuthStateChange((_event, session) => {
-      applySession(session);
+    const { data } = supabase.auth.onAuthStateChange((event, session) => {
+      if (session?.user) {
+        applySession(session);
+        return;
+      }
+      if (event === 'SIGNED_OUT' || event === 'USER_DELETED') {
+        clearSession();
+        return;
+      }
+      // Supabase can emit transient null sessions during bootstrap/refresh.
+      // Keep the last persisted app session until an explicit sign-out occurs,
+      // otherwise desktop navigation can reopen the login modal between modules.
+      if (!lastKnownAuthSessionRef.current) clearSession();
     });
 
     return () => {

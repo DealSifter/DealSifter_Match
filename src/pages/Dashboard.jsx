@@ -1898,6 +1898,22 @@ export function Dashboard({ page, nuggets, setModal, setPage, onOpenOnboardingTa
     }
   };
 
+  const handleMobileUnlockAction = () => {
+    if (view === 'connections') {
+      if (!topConnectionCard) return;
+      if (isOwnConnectionCard(topConnectionCard)) {
+        addToast?.({ type: 'info', message: 'Own card, not selectionable' });
+        return;
+      }
+      if (unlocked.includes(topConnectionCard.id)) return;
+      if (!canStartPlanAction('unlock')) return;
+      if (typeof openUnlock === 'function') openUnlock(topConnectionCard);
+      return;
+    }
+
+    openUnlockFromTopProperty();
+  };
+
   const _connDeckSet = useMemo(() => new Set(connDeck), [connDeck]);
   const _propDeckSet = useMemo(() => new Set(propDeck), [propDeck]);
   void _connDeckSet;
@@ -3211,10 +3227,7 @@ export function Dashboard({ page, nuggets, setModal, setPage, onOpenOnboardingTa
                 <button
                   type="button"
                   className="ds-mobile-action-btn"
-                  onClick={() => {
-                    if (view === 'connections') act('unlock');
-                    else openUnlockFromTopProperty();
-                  }}
+                  onClick={handleMobileUnlockAction}
                   disabled={!mobileCanAct}
                   title={view === 'connections' ? 'Unlock' : 'Interest'}
                   style={{ border: `1.5px solid ${C.gold}`, background: C.alpha(C.gold, 0.08) }}
