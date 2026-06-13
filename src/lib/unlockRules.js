@@ -11,18 +11,60 @@ const isTruthyFlag = (value, fallback = true) => {
   return normalized === 'true' || normalized === '1' || normalized === 'yes' || normalized === 'active';
 };
 
-export function getPortfolioUnlockCost(ownerId, properties = [], services = []) {
-  return Math.max(1, getPortfolioItemCount(ownerId, properties, services));
+const addCandidate = (set, value) => {
+  const raw = String(value ?? '').trim();
+  if (!raw) return;
+  set.add(raw);
+  if (raw.startsWith('local:')) {
+    const parts = raw.split(':').map((part) => part.trim()).filter(Boolean);
+    const tail = parts[parts.length - 1];
+    if (tail) set.add(tail);
+  }
+};
+
+export function getUnlockOwnerCandidates(ownerOrCard) {
+  const candidates = new Set();
+  if (ownerOrCard && typeof ownerOrCard === 'object') {
+    addCandidate(candidates, ownerOrCard.unlockOwnerId);
+    addCandidate(candidates, ownerOrCard.ownerId);
+    addCandidate(candidates, ownerOrCard.sellerId);
+    addCandidate(candidates, ownerOrCard.contactId);
+    addCandidate(candidates, ownerOrCard.id);
+  } else {
+    addCandidate(candidates, ownerOrCard);
+  }
+  return [...candidates];
 }
 
-export function getPortfolioItemCount(ownerId, properties = [], services = []) {
-  if (!ownerId) return 0;
-  const propertyCount = (properties || []).filter((property) => (
-    sameId(property?.ownerId, ownerId) && isTruthyFlag(property?.isActive, true)
-  )).length;
-  const serviceCount = (services || []).filter((service) => (
-    sameId(service?.ownerId, ownerId) && isTruthyFlag(service?.publishToConnections, true)
-  )).length;
+export function resolveUnlockOwnerId(ownerOrCard, properties = [], services = []) {
+  const candidates = getUnlockOwnerCandidates(ownerOrCard);
+  const allItems = [...(properties || []), ...(services || [])];
+  const matched = allItems.find((item) => candidates.some((candidate) => sameId(item?.ownerId, candidate)));
+  if (matched?.ownerId) return String(matched.ownerId);
+  return candidates[0] || '';
+}
+
+export function getPortfolioUnlockCost(ownerOrCard, properties = [], services = []) {
+  return Math.max(1, getPortfolioItemCount(ownerOrCard, properties, services));
+}
+
+export function getPortfolioItemCount(ownerOrCard, properties = [], services = []) {
+  const ownerCandidates = getUnlockOwnerCandidates(ownerOrCard);
+  if (!ownerCandidates.length) return 0;
+  const propertyIds = new Set();
+  (properties || []).forEach((property, idx) => {
+    if (!ownerCandidates.some((ownerId) => sameId(property?.ownerId, ownerId))) return;
+    if (!isTruthyFlag(property?.isActive, true) || property?.dealClosed === true) return;
+    propertyIds.add(String(property?.id || property?.portfolioId || `property:${property?.ownerId || 'owner'}:${idx}`));
+  });
+  const serviceIds = new Set();
+  (services || []).forEach((service, idx) => {
+    if (!ownerCandidates.some((ownerId) => sameId(service?.ownerId, ownerId))) return;
+    if (!isTruthyFlag(service?.publishToConnections, true)) return;
+    serviceIds.add(String(service?.id || `service:${service?.ownerId || 'owner'}:${idx}`));
+  });
+  const propertyCount = propertyIds.size;
+  const serviceCount = serviceIds.size;
   return propertyCount + serviceCount;
 }
 

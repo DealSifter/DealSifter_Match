@@ -1822,11 +1822,11 @@ export function Dashboard({ page, nuggets, setModal, setPage, onOpenOnboardingTa
   };
 
   const getUnlockCost = (personId) => {
-    return getPortfolioUnlockCost(personId, showcaseItems || [], servicePortfolio || []);
+    return getPortfolioUnlockCost(personId, [...(propertyPortfolio || []), ...(showcaseItems || []), ...(PROPERTIES || [])], servicePortfolio || []);
   };
 
   const getPortfolioCount = (personId) => {
-    return getPortfolioItemCount(personId, showcaseItems || [], servicePortfolio || []);
+    return getPortfolioItemCount(personId, [...(propertyPortfolio || []), ...(showcaseItems || []), ...(PROPERTIES || [])], servicePortfolio || []);
   };
 
   const ownOwnerIds = useMemo(() => {

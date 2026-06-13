@@ -80,7 +80,7 @@ import { ToastContainer } from './components/ui/Toast';
 const ConsentBanner = lazyWithRetry(() => import('./components/ui/ConsentBanner').then((m) => ({ default: m.ConsentBanner })), 'consent');
 const CookieBanner = lazyWithRetry(() => import('./components/ui/CookieBanner').then((m) => ({ default: m.CookieBanner })), 'cookie');
 import { getT } from './i18n/translations';
-import { CATEGORIES, CARDS as _MOCK_CARDS, PLANS } from './data/mockData';
+import { CATEGORIES, CARDS as _MOCK_CARDS, PLANS, PROPERTIES as _MOCK_PROPERTIES, SERVICE_PORTFOLIO as _MOCK_SERVICES } from './data/mockData';
 import { supabase, isSupabaseConfigured, supabaseConfigHint } from './lib/supabaseClient';
 import { buildScopedProfilePayload, extractScopedProfileLegacy } from './lib/profileScopeResolver';
 import { getPortfolioFull, setPortfolioFull, clearAllUserData, uploadDataUrlToStorage } from './lib/localforageHelper';
@@ -90,7 +90,7 @@ import { usePortfolioSync } from './hooks/usePortfolioSync';
 import { useCheckoutFlow } from './hooks/useCheckoutFlow';
 import { canUsePlanAction, getPlanGateCopy, incrementPlanUsage, readPlanUsage } from './lib/planAccess';
 import { trackAppEvent } from './lib/adminEventTracking';
-import { createPropertyUnlockRecord, getPortfolioUnlockCost, getPropertyExclusivityStatus } from './lib/unlockRules';
+import { createPropertyUnlockRecord, getPortfolioUnlockCost, getPropertyExclusivityStatus, resolveUnlockOwnerId } from './lib/unlockRules';
 import { isPendingDealExpired } from './lib/pendingDeal';
 
 // Safe error logger — strips Supabase error details that may contain personal data
@@ -154,6 +154,8 @@ if (typeof window !== 'undefined') {
 
 // In production, disable mock feed cards — real data comes from Supabase
 const CARDS = import.meta.env.DEV ? _MOCK_CARDS : [];
+const MOCK_PROPERTIES = import.meta.env.DEV ? _MOCK_PROPERTIES : [];
+const MOCK_SERVICES = import.meta.env.DEV ? _MOCK_SERVICES : [];
 
 // DevInspector: lazy-loaded, only rendered in dev
 const DevInspector = import.meta.env.DEV
@@ -776,6 +778,8 @@ export default function App() {
   const [modal, setModal] = useState(null);
   const [authModalTab, setAuthModalTab] = useState('signup');
   const [unlockTarget, setUnlockTarget] = useState(null);
+  const [unlockQuote, setUnlockQuote] = useState(null);
+  const unlockQuoteRequestRef = useRef(0);
   const [settingsInitialTab, setSettingsInitialTab] = useState('profile');
   const [onboardingInitialTab, setOnboardingInitialTab] = useState('personal');
   const [authSession, setAuthSession] = useState(() => {
@@ -1491,6 +1495,26 @@ export default function App() {
         id: p.id ?? p.portfolioId ?? `portfolio-${idx}`,
       }));
   }, [propertyPortfolio]);
+
+  const unlockPortfolioProperties = useMemo(() => {
+    const byId = new Map();
+    [...(propertyPortfolio || []), ...(showcaseProperties || []), ...(MOCK_PROPERTIES || [])].forEach((property, idx) => {
+      if (!property) return;
+      const key = String(property.id || property.portfolioId || `${property.ownerId || 'owner'}:${idx}`);
+      if (!byId.has(key)) byId.set(key, property);
+    });
+    return [...byId.values()];
+  }, [propertyPortfolio, showcaseProperties]);
+
+  const unlockPortfolioServices = useMemo(() => {
+    const byId = new Map();
+    [...(servicePortfolio || []), ...(MOCK_SERVICES || [])].forEach((service, idx) => {
+      if (!service) return;
+      const key = String(service.id || `${service.ownerId || 'owner'}:${idx}`);
+      if (!byId.has(key)) byId.set(key, service);
+    });
+    return [...byId.values()];
+  }, [servicePortfolio]);
 
   const handleMapPropertyCoordsUpdate = useCallback((propertyId, coordsMeta = {}) => {
     if (!propertyId) return;
@@ -2944,29 +2968,124 @@ export default function App() {
     }
   };
 
+  const fetchPropertyUnlockQuote = useCallback(async (propertyId) => {
+    if (!propertyId || !isUuid(propertyId) || !isSupabaseConfigured || !supabase || !supabaseUserId) return null;
+    const requestId = ++unlockQuoteRequestRef.current;
+    try {
+      const { data, error } = await supabase.rpc('ds_get_property_unlock_quote', {
+        p_property_id: propertyId,
+      });
+      if (error) throw error;
+      if (requestId !== unlockQuoteRequestRef.current) return null;
+      const row = Array.isArray(data) ? data[0] : data;
+      if (!row) return null;
+      const quote = {
+        propertyId: row.property_id || propertyId,
+        ownerId: row.owner_id || null,
+        baseCost: Math.max(1, Number(row.base_cost || 1)),
+        normalUnlockCount: Number(row.normal_unlock_count || 0),
+        exclusivityKind: String(row.exclusivity_kind || 'regular'),
+        exclusivityCost: Math.max(0, Number(row.exclusivity_cost || 0)),
+        blocked: row.blocked === true,
+        expiresAt: row.expires_at || null,
+      };
+      setUnlockQuote(quote);
+      return quote;
+    } catch (error) {
+      if (import.meta.env.DEV) console.warn('[Unlock] Failed to fetch property quote.', error);
+      return null;
+    }
+  }, [supabaseUserId]);
+
   const openUnlock = (card, context = {}) => {
-    setUnlockTarget({
+    const unlockOwnerId = resolveUnlockOwnerId(
+      context.owner || context.ownerId || context.property || card,
+      unlockPortfolioProperties || [],
+      unlockPortfolioServices || []
+    );
+    const nextTarget = {
       ...(card || {}),
+      unlockOwnerId,
       unlockScope: context.unlockScope || card?.unlockScope || 'contact',
       propertyId: context.propertyId || context.property?.id || card?.propertyId || null,
       propertyAddress: context.propertyAddress || context.property?.address || card?.propertyAddress || '',
-    });
+    };
+    setUnlockQuote(null);
+    setUnlockTarget(nextTarget);
     setModal('unlock');
+    if (nextTarget.unlockScope === 'property' && nextTarget.propertyId) {
+      void fetchPropertyUnlockQuote(nextTarget.propertyId);
+    }
   };
 
   const getUnlockCost = (card) => {
-    if (!card?.id) return 1;
-    return getPortfolioUnlockCost(card.id, showcaseProperties || [], servicePortfolio || []);
+    if (!card?.id && !card?.ownerId && !card?.unlockOwnerId) return 1;
+    if (
+      card?.unlockScope === 'property'
+      && unlockQuote?.propertyId
+      && String(unlockQuote.propertyId) === String(card?.propertyId)
+    ) {
+      return Math.max(1, Number(unlockQuote.baseCost || 1));
+    }
+    return getPortfolioUnlockCost(card, unlockPortfolioProperties || [], unlockPortfolioServices || []);
   };
 
   const getUnlockExclusivityStatus = (card) => {
     if (!card?.propertyId || card?.unlockScope !== 'property') return null;
+    if (unlockQuote?.propertyId && String(unlockQuote.propertyId) === String(card.propertyId)) {
+      if (unlockQuote.blocked) {
+        return {
+          kind: 'blocked',
+          badge: 'Exclusive',
+          unlockCount: unlockQuote.normalUnlockCount,
+          canBuyExclusivity: false,
+          exclusiveCost: 0,
+          expiresAt: unlockQuote.expiresAt,
+        };
+      }
+      if (unlockQuote.exclusivityKind === 'new') {
+        return {
+          kind: 'new',
+          badge: 'New',
+          unlockCount: 0,
+          canBuyExclusivity: true,
+          exclusivityMode: 'total',
+          exclusiveCost: unlockQuote.exclusivityCost,
+        };
+      }
+      if (unlockQuote.exclusivityKind === 'partial') {
+        return {
+          kind: 'partial',
+          badge: `Only ${unlockQuote.normalUnlockCount} unlock${unlockQuote.normalUnlockCount === 1 ? '' : 's'}`,
+          unlockCount: unlockQuote.normalUnlockCount,
+          canBuyExclusivity: true,
+          exclusivityMode: 'partial',
+          exclusiveCost: unlockQuote.exclusivityCost,
+        };
+      }
+    }
     return getPropertyExclusivityStatus(propertyUnlocks, card.propertyId, supabaseUserId || 'local-user');
   };
 
   const handleUnlock = async (card, options = {}) => {
-    const unlockCost = Number(options?.cost || getUnlockCost(card));
     const unlockMode = options?.mode || 'normal';
+    let quoteForUnlock = (
+      card?.unlockScope === 'property'
+      && unlockQuote?.propertyId
+      && String(unlockQuote.propertyId) === String(card?.propertyId)
+    ) ? unlockQuote : null;
+    if (!quoteForUnlock && card?.unlockScope === 'property' && card?.propertyId) {
+      quoteForUnlock = await fetchPropertyUnlockQuote(card.propertyId);
+    }
+    const baseUnlockCost = quoteForUnlock?.baseCost
+      ? Math.max(1, Number(quoteForUnlock.baseCost))
+      : getUnlockCost(card);
+    const quoteExclusiveCost = quoteForUnlock?.exclusivityCost != null
+      ? Math.max(0, Number(quoteForUnlock.exclusivityCost || 0))
+      : null;
+    const unlockCost = unlockMode !== 'normal' && quoteExclusiveCost != null
+      ? baseUnlockCost + quoteExclusiveCost
+      : Number(options?.cost || baseUnlockCost);
     const unlockGate = canUsePlanAction(subscription, 'unlock', {
       unlocksThisMonth: readPlanUsage('month')?.unlocks || 0,
     });
@@ -2984,6 +3103,7 @@ export default function App() {
       });
       addToast({ type: 'warning', title: copy.title, message: copy.message });
       setModal(null);
+      setUnlockQuote(null);
       openPricingHub();
       return;
     }
@@ -3003,7 +3123,8 @@ export default function App() {
             p_mode: unlockMode,
             p_metadata: {
               source: 'unlock_modal',
-              ownerId: String(card.id || ''),
+              ownerId: String(card.unlockOwnerId || card.ownerId || card.id || ''),
+              displayedBaseCost: baseUnlockCost,
               displayedCost: unlockCost,
             },
           });
@@ -3024,6 +3145,7 @@ export default function App() {
               message: error?.message || 'This property could not be unlocked right now. Please try again.',
             });
             setModal(null);
+            setUnlockQuote(null);
             return;
           }
           setNuggets(n => n - unlockCost);
@@ -3045,7 +3167,7 @@ export default function App() {
             ...prev,
             createPropertyUnlockRecord({
               propertyId: card.propertyId,
-              ownerId: card.id,
+              ownerId: card.unlockOwnerId || card.ownerId || card.id,
               buyerId: supabaseUserId || 'local-user',
               mode: unlockMode,
               cost: Number(remoteUnlockRow?.total_cost || unlockCost),
@@ -3057,9 +3179,9 @@ export default function App() {
       setMatched(prev => prev.some(x => x.id === card.id) ? prev : [...prev, card]);
       // Auto-add ALL active properties of this contact to `interested` so the
       // full portfolio appears in the Interests column immediately after unlock.
-      const allProps = showcaseProperties || [];
+      const allProps = unlockPortfolioProperties || [];
       const contactProps = allProps.filter(
-        (p) => String(p.ownerId) === String(card.id) && isTruthyFlag(p?.isActive, true)
+        (p) => String(p.ownerId) === String(card.unlockOwnerId || card.ownerId || card.id) && isTruthyFlag(p?.isActive, true)
       );
       if (contactProps.length > 0) {
         setInterested(prev => {
@@ -3070,16 +3192,18 @@ export default function App() {
       }
       // Record purchase: current user buys this contact
       setPurchases(prev => 
-        prev.some(p => p.sellerId === card.id)
+        prev.some(p => p.sellerId === (card.unlockOwnerId || card.ownerId || card.id))
           ? prev 
-          : [...prev, { sellerId: card.id }]
+          : [...prev, { sellerId: card.unlockOwnerId || card.ownerId || card.id }]
       );
       setModal(null);
+      setUnlockQuote(null);
       // Navegar para Matches para visualizar o contato
       setPage('matches');
     } else {
       addToast({ type: 'warning', title: 'Nuggets insuficientes', message: `Você precisa de ${unlockCost} nugget(s) para desbloquear este contato. Vá para Pricing para escolher um upgrade de plano ou pacote extra de nuggets.` });
       setModal(null);
+      setUnlockQuote(null);
       openPricingHub();
     }
   };
@@ -3382,7 +3506,7 @@ export default function App() {
               exclusivityStatus={getUnlockExclusivityStatus(unlockTarget)}
               onUnlock={handleUnlock}
               onBuyMore={openPricingHub}
-              onClose={() => setModal(null)}
+              onClose={() => { setUnlockQuote(null); setModal(null); }}
             />
           </Suspense>
         )}

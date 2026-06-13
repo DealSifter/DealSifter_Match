@@ -1625,7 +1625,7 @@ export function MatchesPage({ nuggets, setModal, openUnlock, unlocked, initialCh
 
   const activeUnlockCost = useMemo(() => {
     if (!activeOwner?.id) return 1;
-    return getPortfolioUnlockCost(activeOwner.id, allPropertiesSource, allServicesSource);
+    return getPortfolioUnlockCost(activeOwner, allPropertiesSource, allServicesSource);
   }, [activeOwner, allPropertiesSource, allServicesSource]);
 
   const getUnlockCost = useCallback((ownerId) => {
