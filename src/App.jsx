@@ -152,10 +152,10 @@ if (typeof window !== 'undefined') {
   });
 }
 
-// In production, disable mock feed cards — real data comes from Supabase
+// In production, keep mock portfolio metadata available for demo cards and unlock pricing; only standalone mock contact cards stay disabled here.
 const CARDS = import.meta.env.DEV ? _MOCK_CARDS : [];
-const MOCK_PROPERTIES = import.meta.env.DEV ? _MOCK_PROPERTIES : [];
-const MOCK_SERVICES = import.meta.env.DEV ? _MOCK_SERVICES : [];
+const MOCK_PROPERTIES = _MOCK_PROPERTIES || [];
+const MOCK_SERVICES = _MOCK_SERVICES || [];
 
 // DevInspector: lazy-loaded, only rendered in dev
 const DevInspector = import.meta.env.DEV

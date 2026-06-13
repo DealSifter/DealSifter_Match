@@ -1861,9 +1861,14 @@ export function Dashboard({ page, nuggets, setModal, setPage, onOpenOnboardingTa
     }
     const ownerScope = normalizeProfileScope(topProp?.primaryProfile || 'personal');
     const ownerScopeKey = scopeToProfileKey(ownerScope);
-    const ownerCard = connectionCards.find((c) => c.scopeKey === ownerScopeKey) || findConnectionById(topProp.ownerId);
+    const ownerCard = connectionCards.find((c) => c.scopeKey === ownerScopeKey) || findConnectionById(topProp.ownerId) || {
+      id: topProp.ownerId,
+      ownerId: topProp.ownerId,
+      name: topProp.ownerName || topProp.ownerPreview?.name || topProp.sellerName || 'Property contact',
+      type: topProp.ownerPreview?.type || 'Property owner',
+    };
 
-    if (!ownerCard) {
+    if (!ownerCard?.id && !ownerCard?.ownerId) {
       addToast?.({ type: 'warning', message: 'Contato responsável por este card não encontrado.' });
       return;
     }
