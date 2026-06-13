@@ -12,12 +12,13 @@ import { SwipeCard } from '../components/cards/SwipeCard';
 import { PropertyCard } from '../components/cards/PropertyCard';
 import { getHiddenSet, subscribe as subscribeHidden } from '../lib/hiddenCards';
 import { resolveScopedProfile, normalizeProfileScope } from '../lib/profileScopeResolver';
-import { getMatchPressure } from '../lib/matchPressure';
 import { formatPropertyLocation } from '../lib/formatPropertyLocation';
 import { useMediaQuery } from '../hooks/useMediaQuery';
 import { canUsePlanAction, getPlanGateCopy, incrementPlanUsage, readPlanUsage } from '../lib/planAccess';
 import { trackAppEvent } from '../lib/adminEventTracking';
 import { getPortfolioItemCount, getPortfolioUnlockCost, getPropertyExclusivityStatus } from '../lib/unlockRules';
+import { isSupabaseConfigured, supabase } from '../lib/supabaseClient';
+import { isUuid, mapPropertyHotMetrics } from '../lib/propertyHotMetrics';
 import feedMatchIcon from '../assets/feed-match-icon.png';
 
 // Utilitário para checagem de flag booleana (string, bool, number)
@@ -57,6 +58,19 @@ function trackDashboardSwipe(entityType, entityId, action) {
     });
   } catch {
     // Telemetry must never interrupt deck interactions.
+  }
+}
+
+function trackPropertySaved(propertyId, metadata = {}) {
+  if (!propertyId || !isUuid(propertyId)) return;
+  try {
+    trackAppEvent('property_saved', {
+      entityType: 'property',
+      entityId: propertyId,
+      metadata,
+    });
+  } catch {
+    // Social proof telemetry must never interrupt swipes.
   }
 }
 
@@ -130,6 +144,40 @@ export function Dashboard({ page, nuggets, setModal, setPage, onOpenOnboardingTa
   const [skippedQueueProp, setSkippedQueueProp] = useState([]);
   const [skippedSetProp, setSkippedSetProp] = useState(new Set());
   const [hiddenSet, setHiddenSet] = useState(() => getHiddenSet());
+  const [propertyHotMetrics, setPropertyHotMetrics] = useState({});
+
+  const propertyMetricIds = useMemo(() => (
+    [...new Set((showcaseProperties || [])
+      .filter((property) => isTruthyFlag(property?.publishToShowcase, true) && !property?.dealClosed && isUuid(property?.id))
+      .map((property) => String(property.id)))]
+      .slice(0, 150)
+  ), [showcaseProperties]);
+
+  useEffect(() => {
+    if (!isSupabaseConfigured || !supabase || propertyMetricIds.length === 0) {
+      setPropertyHotMetrics({});
+      return undefined;
+    }
+
+    let cancelled = false;
+    const timer = window.setTimeout(async () => {
+      try {
+        const { data, error } = await supabase.rpc('ds_get_property_engagement_metrics', {
+          p_property_ids: propertyMetricIds,
+        });
+        if (error) throw error;
+        if (!cancelled) setPropertyHotMetrics(mapPropertyHotMetrics(data || []));
+      } catch (error) {
+        if (import.meta.env.DEV) console.warn('[Dashboard] Property HOT metrics unavailable.', error);
+        if (!cancelled) setPropertyHotMetrics({});
+      }
+    }, 220);
+
+    return () => {
+      cancelled = true;
+      window.clearTimeout(timer);
+    };
+  }, [propertyMetricIds, propertyUnlocks.length]);
 
   useEffect(() => {
     if (!isMobileViewport) {
@@ -1570,6 +1618,7 @@ export function Dashboard({ page, nuggets, setModal, setPage, onOpenOnboardingTa
           setInterested(p => p.find(x => x.id === topProp.id) ? p : [...p, topProp]);
           try { incrementPlanUsage('day', 'likes'); } catch { /* best effort */ }
           trackDashboardSwipe('property', topProp?.id, type);
+          trackPropertySaved(topProp?.id, { ownerId: topOwner?.id || topProp?.ownerId || null, source: 'feed_interest' });
           if (topOwner) {
             addMatchedCapped(topOwner);
             setConnDeck(d => d.filter(id => id !== topOwner.id));
@@ -1737,16 +1786,9 @@ export function Dashboard({ page, nuggets, setModal, setPage, onOpenOnboardingTa
         const ownerProps = (showcaseProperties || []).filter(
           (p) => String(p.ownerId) === ownerKey && !p?.dealClosed
         );
-        const ownerServices = (servicePortfolio || []).filter(
-          (s) => String(s.ownerId) === ownerKey && isTruthyFlag(s.publishToConnections, true) && !s?.dealClosed
-        );
-        const pendingPressure = ownerProps.reduce(
-          (max, p) => Math.max(max, getMatchPressure(p.id)),
+        const hotPressure = ownerProps.reduce(
+          (max, p) => Math.max(max, Number(propertyHotMetrics[String(p.id)]?.hotScore || 0)),
           0
-        );
-        const pendingPressureWithServices = ownerServices.reduce(
-          (max, s) => Math.max(max, getMatchPressure(s.id)),
-          pendingPressure
         );
         // Fallback seguro para thumbs/avatars
         let safeThumb = c.photo;
@@ -1767,18 +1809,18 @@ export function Dashboard({ page, nuggets, setModal, setPage, onOpenOnboardingTa
           icon: catIcon(c.cat),
           thumb: safeThumb,
           thumbRound: true,
-          isPending: pendingPressureWithServices > 0,
-          pendingPressure: pendingPressureWithServices,
+          isPending: hotPressure > 0,
+          pendingPressure: hotPressure,
           isVerified: isTruthyVerified(c?.verified) || verifiedOwnerIds.has(String(c.ownerId ?? c.id)),
         };
       })
-  ), [connectionCards, showcaseProperties, servicePortfolio, verifiedOwnerIds, hiddenSet]);
+  ), [connectionCards, showcaseProperties, verifiedOwnerIds, hiddenSet, propertyHotMetrics]);
 
   const bannerPropItems = useMemo(() => (
   (showcaseProperties || [])
     .filter((p) => isTruthyFlag(p.publishToShowcase, true) && !p?.dealClosed)
     .map(p => {
-      const pendingPressure = p?.dealClosed ? 0 : getMatchPressure(p.id);
+      const hotPressure = p?.dealClosed ? 0 : Number(propertyHotMetrics[String(p.id)]?.hotScore || 0);
       const ownerVerified = isTruthyVerified(p?.verified) || verifiedOwnerIds.has(String(p.ownerId));
       let safeThumb = p.images?.[0] || p.image;
       if (!safeThumb || typeof safeThumb !== 'string' || (safeThumb.length < 8) || (safeThumb.startsWith('data:') && safeThumb.length < 32)) {
@@ -1798,12 +1840,12 @@ export function Dashboard({ page, nuggets, setModal, setPage, onOpenOnboardingTa
         icon: 'home',
         thumb: safeThumb,
         thumbRound: false,
-        isPending: pendingPressure > 0,
-        pendingPressure,
+        isPending: hotPressure > 0,
+        pendingPressure: hotPressure,
         isVerified: ownerVerified,
       };
     })
-), [showcaseProperties, verifiedOwnerIds]);
+), [showcaseProperties, verifiedOwnerIds, propertyHotMetrics]);
 
   const hashStringToSeed = (value) => {
     const input = String(value || '');
@@ -2926,7 +2968,8 @@ export function Dashboard({ page, nuggets, setModal, setPage, onOpenOnboardingTa
                       const canonical = PROPERTIES.find(pp => String(pp.id) === String(p.id));
                       const ownerIdToUse = canonical ? canonical.ownerId : p.ownerId;
                       const pOwner   = p.ownerPreview || findConnectionById(ownerIdToUse);
-                      const exclusivityStatus = getPropertyExclusivityStatus(propertyUnlocks, p.id, currentUserId);
+                      const hotMetrics = propertyHotMetrics[String(p.id)] || null;
+                      const exclusivityStatus = hotMetrics?.exclusivityStatus || getPropertyExclusivityStatus(propertyUnlocks, p.id, currentUserId);
                       const shiftLeft    = reverseI * FEED_STACK_SHIFT_X;
                       const shiftDown    = reverseI * FEED_STACK_SHIFT_Y;
                       const stackScale   = 1 - reverseI * 0.035;
@@ -2967,7 +3010,7 @@ export function Dashboard({ page, nuggets, setModal, setPage, onOpenOnboardingTa
                               owner={pOwner}
                               isSkipped={skippedSetProp.has(p.id)}
                               onUndo={lastPropOp && isTop ? undoProperty : null}
-                              matchPressure={getMatchPressure(p.id)}
+                              hotMetrics={hotMetrics}
                               exclusivityStatus={exclusivityStatus}
                               showActions={!isMobileViewport}
                             />
@@ -3413,8 +3456,9 @@ export function Dashboard({ page, nuggets, setModal, setPage, onOpenOnboardingTa
                         letterSpacing: '0.4px',
                         lineHeight: 1.2,
                         pointerEvents: 'none',
+                        animation: 'blink 1.05s ease-in-out infinite',
                       }}>
-                        PENDING
+                        HOT
                       </span>
                     )}
                     {/* Thumb/avatar seguro, sempre contido. Nunca renderiza imagem se inválida. */}

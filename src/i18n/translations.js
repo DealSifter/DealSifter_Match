@@ -629,6 +629,9 @@ export const translations = {
       lot: "lot",
       estimatedRehab: "Estimated Rehab",
       verified: "Verified",
+      hotStrip: "{unlockCount} unlocks · U {unlockPct}% / F {favoritePct}% / M {matchPct}%",
+      trendingBadge: "Trending",
+      trendingStrip: "Several users want to know more... worth checking out!",
     },
     categoryBar: {
       allPrefix: "All",
@@ -1613,6 +1616,9 @@ export const translations = {
       lot: "terreno",
       estimatedRehab: "Reforma Estimada",
       verified: "Verificado",
+      hotStrip: "{unlockCount} desbloqueios · D {unlockPct}% / F {favoritePct}% / M {matchPct}%",
+      trendingBadge: "Em Alta",
+      trendingStrip: "Varios interessados em saber mais... vale a pena conferir!",
     },
     categoryBar: {
       allPrefix: "Todos",
@@ -2597,6 +2603,9 @@ export const translations = {
       lot: "lote",
       estimatedRehab: "Reforma Estimada",
       verified: "Verificado",
+      hotStrip: "{unlockCount} desbloqueos · D {unlockPct}% / F {favoritePct}% / M {matchPct}%",
+      trendingBadge: "En Tendencia",
+      trendingStrip: "Varios interesados quieren saber mas... vale la pena revisar!",
     },
     categoryBar: {
       allPrefix: "Todos",

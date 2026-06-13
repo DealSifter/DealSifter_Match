@@ -6,7 +6,7 @@ import { SmartImage } from '../ui/SmartImage';
 import { useMediaQuery } from '../../hooks/useMediaQuery';
 import { formatPropertyLocation } from '../../lib/formatPropertyLocation';
 
-export function PropertyCard({ property, action, statusAction, onInterest, owner, isSkipped = false, previewOnly = false, matchPressure = 0, exclusivityStatus = null, onAvatarClick, showActions = true }) {
+export function PropertyCard({ property, action, statusAction, onInterest, owner, isSkipped = false, previewOnly = false, hotMetrics = null, exclusivityStatus = null, onAvatarClick, showActions = true }) {
   const t = useT('dashboard').cards;
   const isMobileLayout = useMediaQuery('(max-width: 767px)');
   // Card do perfil está em stand by (esmaecido)?
@@ -47,7 +47,22 @@ export function PropertyCard({ property, action, statusAction, onInterest, owner
   const borderWidth = 1.5;
   const topGradient = isSkipped ? C.danger : '#4280ba';
   const bottomGradient = '#28324b';
-  const showMatchPressure = matchPressure > 0 && !previewOnly;
+  const hotUnlockPct = Number(hotMetrics?.unlockPct || 0);
+  const hotFavoritePct = Number(hotMetrics?.favoritePct || 0);
+  const hotMatchPct = Number(hotMetrics?.matchPct || 0);
+  const hotUnlockCount = Number(hotMetrics?.unlockCount || 0);
+  const hotFavoriteCount = Number(hotMetrics?.favoriteCount || 0);
+  const showHotAlert = hotUnlockCount > 0 && !previewOnly;
+  const showTrendingAlert = !showHotAlert && hotFavoriteCount >= 10 && !previewOnly;
+  const hotStripText = t.hotStrip
+    ? t.hotStrip
+        .replace('{unlockCount}', String(hotUnlockCount))
+        .replace('{unlockPct}', String(hotUnlockPct))
+        .replace('{favoritePct}', String(hotFavoritePct))
+        .replace('{matchPct}', String(hotMatchPct))
+    : `${hotUnlockCount} unlock${hotUnlockCount === 1 ? '' : 's'} · U ${hotUnlockPct}% / F ${hotFavoritePct}% / M ${hotMatchPct}%`;
+  const trendingBadgeText = t.trendingBadge || 'Trending';
+  const trendingStripText = t.trendingStrip || 'Several users want to know more... worth checking out!';
   const showExclusivityAlert = !previewOnly && (exclusivityStatus?.kind === 'new' || exclusivityStatus?.kind === 'partial');
   const isPartialExclusivity = exclusivityStatus?.kind === 'partial';
   const exclusivityBadge = isPartialExclusivity ? String(exclusivityStatus?.badge || 'Only 2 unlocks') : 'New';
@@ -299,7 +314,7 @@ export function PropertyCard({ property, action, statusAction, onInterest, owner
           </span>
         ) : null}
 
-        {showMatchPressure && !showExclusivityAlert && (
+        {showHotAlert && !showExclusivityAlert && (
           <span style={{
             position: 'absolute',
             top: 8,
@@ -314,8 +329,30 @@ export function PropertyCard({ property, action, statusAction, onInterest, owner
             fontWeight: 900,
             letterSpacing: '0.5px',
             pointerEvents: 'none',
+            animation: 'dsPropertyExclusivePulse 1.05s ease-in-out infinite',
           }}>
-            PENDING
+            HOT
+          </span>
+        )}
+
+        {showTrendingAlert && !showExclusivityAlert && (
+          <span style={{
+            position: 'absolute',
+            top: 8,
+            left: 8,
+            zIndex: 12,
+            background: 'rgba(255,255,255,0.94)',
+            border: '1px solid rgba(255,255,255,0.88)',
+            color: '#111827',
+            padding: '2px 8px',
+            borderRadius: 999,
+            fontSize: 9,
+            fontWeight: 950,
+            letterSpacing: '0.5px',
+            pointerEvents: 'none',
+            textTransform: 'uppercase',
+          }}>
+            {trendingBadgeText}
           </span>
         )}
 
@@ -376,7 +413,7 @@ export function PropertyCard({ property, action, statusAction, onInterest, owner
           </div>
         ) : null}
 
-        {showMatchPressure && !showExclusivityAlert && (
+        {showHotAlert && !showExclusivityAlert && (
           <div style={{
             position: 'absolute',
             left: 0,
@@ -393,10 +430,38 @@ export function PropertyCard({ property, action, statusAction, onInterest, owner
             fontWeight: 800,
             letterSpacing: '0.15px',
             pointerEvents: 'none',
+            animation: 'dsPropertyExclusivePulse 1.05s ease-in-out infinite',
           }}>
             <span style={{ fontSize: 12 }}>🔥</span>
             <span style={{ whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
-              {matchPressure}% dos usuários ativos já acessaram este imóvel
+              {hotStripText}
+            </span>
+          </div>
+        )}
+
+        {showTrendingAlert && !showExclusivityAlert && (
+          <div style={{
+            position: 'absolute',
+            left: 0,
+            right: 0,
+            bottom: ownerBadgeBottom + ownerBadgeHeight + 4,
+            zIndex: 8,
+            background: 'rgba(255,255,255,0.92)',
+            borderTop: '1px solid rgba(255,255,255,0.78)',
+            borderBottom: '1px solid rgba(255,255,255,0.78)',
+            padding: '4px 8px',
+            display: 'flex',
+            alignItems: 'center',
+            gap: 5,
+            color: '#111827',
+            fontSize: 10,
+            fontWeight: 850,
+            letterSpacing: '0.12px',
+            pointerEvents: 'none',
+          }}>
+            <span style={{ fontSize: 12 }}>★</span>
+            <span style={{ whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+              {trendingStripText}
             </span>
           </div>
         )}

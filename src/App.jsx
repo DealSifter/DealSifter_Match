@@ -2982,7 +2982,7 @@ export default function App() {
     return getPropertyExclusivityStatus(propertyUnlocks, card.propertyId, supabaseUserId || 'local-user');
   };
 
-  const handleUnlock = (card, options = {}) => {
+  const handleUnlock = async (card, options = {}) => {
     const unlockCost = Number(options?.cost || getUnlockCost(card));
     const unlockMode = options?.mode || 'normal';
     const unlockGate = canUsePlanAction(subscription, 'unlock', {
@@ -3006,7 +3006,49 @@ export default function App() {
       return;
     }
     if (nuggets >= unlockCost && card) {
-      setNuggets(n => n - unlockCost);
+      let remoteUnlockRow = null;
+      if (
+        card.unlockScope === 'property'
+        && card.propertyId
+        && isUuid(card.propertyId)
+        && isSupabaseConfigured
+        && supabase
+        && supabaseUserId
+      ) {
+        try {
+          const { data, error } = await supabase.rpc('ds_purchase_property_unlock', {
+            p_property_id: card.propertyId,
+            p_mode: unlockMode,
+            p_metadata: {
+              source: 'unlock_modal',
+              ownerId: String(card.id || ''),
+              displayedCost: unlockCost,
+            },
+          });
+          if (error) throw error;
+          remoteUnlockRow = Array.isArray(data) ? data[0] : data;
+          if (remoteUnlockRow && Number.isFinite(Number(remoteUnlockRow.remaining_nuggets))) {
+            setNuggets(Number(remoteUnlockRow.remaining_nuggets));
+          } else {
+            setNuggets(n => n - unlockCost);
+          }
+        } catch (error) {
+          const message = String(error?.message || '').toLowerCase();
+          const missingRpc = message.includes('function') && message.includes('ds_purchase_property_unlock');
+          if (!missingRpc) {
+            addToast({
+              type: 'warning',
+              title: 'Unlock unavailable',
+              message: error?.message || 'This property could not be unlocked right now. Please try again.',
+            });
+            setModal(null);
+            return;
+          }
+          setNuggets(n => n - unlockCost);
+        }
+      } else {
+        setNuggets(n => n - unlockCost);
+      }
       setUnlocked(u => u.includes(card.id) ? u : [...u, card.id]);
       incrementPlanUsage('month', 'unlocks');
       if (card.unlockScope === 'property' && card.propertyId) {
@@ -3024,7 +3066,7 @@ export default function App() {
               ownerId: card.id,
               buyerId: supabaseUserId || 'local-user',
               mode: unlockMode,
-              cost: unlockCost,
+              cost: Number(remoteUnlockRow?.total_cost || unlockCost),
             }),
           ];
         });
