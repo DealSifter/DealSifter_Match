@@ -75,7 +75,7 @@ function trackPropertySaved(propertyId, metadata = {}) {
   }
 }
 
-export function Dashboard({ page, nuggets, setModal, setPage, onOpenOnboardingTab, openUnlock, unlocked, matched, setMatched, interested, setInterested, purchases, setPurchases, userProfile, personalProfile, professionalProfile, propertyPortfolio, servicePortfolio, accountType, showcaseProperties, categoryOrder, setCategoryOrder, editMode, setEditMode, mobileBottomNavCollapsed = false, addToast, subscription, propertyUnlocks = [], currentUserId = 'local-user' }) {
+export function Dashboard({ page, nuggets, setModal, setPage, onOpenOnboardingTab, openUnlock, unlocked, matched, setMatched, interested, setInterested, purchases, setPurchases, userProfile, personalProfile, professionalProfile, propertyPortfolio, servicePortfolio, accountType, showcaseProperties, categoryOrder, setCategoryOrder, editMode, setEditMode, mobileBottomNavCollapsed = false, addToast, setSystemNotifications = null, subscription, propertyUnlocks = [], currentUserId = 'local-user' }) {
   const isMobileViewport = useMediaQuery('(max-width: 767px)');
   const isTabletPortraitViewport = useMediaQuery('(min-width: 768px) and (max-width: 1080px) and (orientation: portrait)');
   const isTouchModalViewport = useMediaQuery('(max-width: 1024px)');
@@ -103,6 +103,9 @@ export function Dashboard({ page, nuggets, setModal, setPage, onOpenOnboardingTa
   const mobileActionDockBottom = isMobileViewport
     ? (mobileBottomNavOffset + mobileMiniCardsBandHeight + 12)
     : 20;
+  const t = useT('dashboard').dashboard;
+  const cardsT = useT('dashboard').cards;
+  const matchesT = useT('dashboard').matches;
 
   const [activeCat, setActiveCat] = useState(() => {
     try { return localStorage.getItem('ds_activeCat') || 'all'; } catch (e) { void e; return 'all'; }
@@ -147,6 +150,15 @@ export function Dashboard({ page, nuggets, setModal, setPage, onOpenOnboardingTa
   const [hiddenSet, setHiddenSet] = useState(() => getHiddenSet());
   const [propertyHotMetrics, setPropertyHotMetrics] = useState({});
 
+  const getTrendingMilestone = (favoriteCount) => {
+    const count = Number(favoriteCount || 0);
+    if (count >= 100) return 100;
+    if (count >= 50) return 50;
+    if (count >= 25) return 25;
+    if (count >= 10) return 10;
+    return 0;
+  };
+
   const propertyMetricIds = useMemo(() => (
     [...new Set((showcaseProperties || [])
       .filter((property) => isTruthyFlag(property?.publishToShowcase, true) && !property?.dealClosed && isUuid(property?.id))
@@ -179,6 +191,116 @@ export function Dashboard({ page, nuggets, setModal, setPage, onOpenOnboardingTa
       window.clearTimeout(timer);
     };
   }, [propertyMetricIds, propertyUnlocks.length]);
+
+  useEffect(() => {
+    if (!setSystemNotifications || !propertyHotMetrics || Object.keys(propertyHotMetrics).length === 0) return;
+
+    const now = Date.now();
+    const interestedIds = new Set((interested || []).map((item) => String(item?.id || '').trim()).filter(Boolean));
+    const ownedIds = new Set((propertyPortfolio || []).map((item) => String(item?.id || '').trim()).filter(Boolean));
+
+    const pushSystemNotification = (notification) => {
+      setSystemNotifications((prev) => {
+        const list = Array.isArray(prev) ? prev : [];
+        if (list.some((item) => item?.id === notification.id)) return list;
+        return [notification, ...list].slice(0, 80);
+      });
+    };
+
+    const claimTrendingNotification = (id) => {
+      try {
+        const raw = localStorage.getItem('ds_trending_notification_seen');
+        const parsed = raw ? JSON.parse(raw) : [];
+        const seen = new Set(Array.isArray(parsed) ? parsed.map(String) : []);
+        if (seen.has(id)) return false;
+        seen.add(id);
+        localStorage.setItem('ds_trending_notification_seen', JSON.stringify([...seen].slice(-240)));
+        return true;
+      } catch {
+        return true;
+      }
+    };
+
+    (showcaseProperties || []).forEach((property) => {
+      const propertyId = String(property?.id || '').trim();
+      if (!propertyId || property?.dealClosed === true || isPendingDealExpired(property)) return;
+      if (!isTruthyFlag(property?.publishToShowcase, true) || property?.isActive === false) return;
+
+      const metrics = propertyHotMetrics[propertyId];
+      const milestone = getTrendingMilestone(metrics?.favoriteCount);
+      if (!milestone) return;
+
+      const shortAddress = String(property?.address || cardsT?.property || 'Property').split(',')[0].trim();
+      const unlockCount = Number(metrics?.unlockCount || 0);
+      const favoriteCount = Number(metrics?.favoriteCount || 0);
+      const matchCount = Number(metrics?.matchCount || 0);
+      const isOwned = ownedIds.has(propertyId) || String(property?.ownerId || '') === String(currentUserId || '');
+      const isFavoritedByCurrentUser = interestedIds.has(propertyId);
+      const exclusivityStatus = getPropertyExclusivityStatus(propertyUnlocks, propertyId, currentUserId);
+
+      if (isOwned) {
+        const noticeId = `property-trending-owner-${propertyId}-${milestone}`;
+        if (!claimTrendingNotification(noticeId)) return;
+        const title = cardsT?.trendingOwnerNotificationTitle || 'Your property is trending';
+        const messageTemplate = cardsT?.trendingOwnerNotificationMessage
+          || '"{address}" reached {favoriteCount} saves, {unlockCount} unlocks and {matchCount} matches. Follow up while interest is warm.';
+        pushSystemNotification({
+          id: noticeId,
+          title,
+          message: messageTemplate
+            .replace('{address}', shortAddress)
+            .replace('{favoriteCount}', String(favoriteCount))
+            .replace('{unlockCount}', String(unlockCount))
+            .replace('{matchCount}', String(matchCount)),
+          createdAt: now,
+          read: false,
+          type: 'property_trending_owner',
+          propertyId,
+        });
+        addToast?.({
+          type: 'success',
+          title,
+          message: messageTemplate
+            .replace('{address}', shortAddress)
+            .replace('{favoriteCount}', String(favoriteCount))
+            .replace('{unlockCount}', String(unlockCount))
+            .replace('{matchCount}', String(matchCount)),
+          duration: 7000,
+        });
+      }
+
+      if (isFavoritedByCurrentUser && !isOwned && exclusivityStatus?.kind !== 'blocked') {
+        const noticeId = `property-trending-favorite-${propertyId}-${milestone}`;
+        if (!claimTrendingNotification(noticeId)) return;
+        const title = cardsT?.trendingFavoriteNotificationTitle || 'Saved opportunity is trending';
+        const messageTemplate = cardsT?.trendingFavoriteNotificationMessage
+          || '"{address}" is still available and now has {favoriteCount} saves. Review it before competition increases.';
+        pushSystemNotification({
+          id: noticeId,
+          title,
+          message: messageTemplate
+            .replace('{address}', shortAddress)
+            .replace('{favoriteCount}', String(favoriteCount))
+            .replace('{unlockCount}', String(unlockCount))
+            .replace('{matchCount}', String(matchCount)),
+          createdAt: now,
+          read: false,
+          type: 'property_trending_favorite',
+          propertyId,
+        });
+        addToast?.({
+          type: 'info',
+          title,
+          message: messageTemplate
+            .replace('{address}', shortAddress)
+            .replace('{favoriteCount}', String(favoriteCount))
+            .replace('{unlockCount}', String(unlockCount))
+            .replace('{matchCount}', String(matchCount)),
+          duration: 7000,
+        });
+      }
+    });
+  }, [addToast, cardsT, currentUserId, interested, propertyHotMetrics, propertyPortfolio, propertyUnlocks, setSystemNotifications, showcaseProperties]);
 
   useEffect(() => {
     if (!isMobileViewport) {
@@ -780,9 +902,6 @@ export function Dashboard({ page, nuggets, setModal, setPage, onOpenOnboardingTa
     return () => { if (typeof unsub === 'function') unsub(); };
   }, [connectionCards, showcaseItems, matched, interested, unlocked, view, publishingProfileKey, hiddenSet, focusCard, selectedStates, activeCat, isSwipingConn, isSwipingProp, collectRecordStates, connDeck, propDeck, getOwnerIdForKey, matchesCat]);
 
-  const t = useT('dashboard').dashboard;
-  const cardsT = useT('dashboard').cards;
-  const matchesT = useT('dashboard').matches;
   const [planGate, setPlanGate] = useState(null);
 
   const openPlanGate = useCallback((feature) => {

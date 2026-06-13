@@ -84,7 +84,6 @@ import { CATEGORIES, CARDS as _MOCK_CARDS, PLANS } from './data/mockData';
 import { supabase, isSupabaseConfigured, supabaseConfigHint } from './lib/supabaseClient';
 import { buildScopedProfilePayload, extractScopedProfileLegacy } from './lib/profileScopeResolver';
 import { getPortfolioFull, setPortfolioFull, clearAllUserData, uploadDataUrlToStorage } from './lib/localforageHelper';
-import { getMatchPressure, setDealAlert, shouldSendDealAlert } from './lib/matchPressure';
 import { useAuthSession, mapSupabaseUserToSession } from './hooks/useAuthSession';
 import { useProfileSync } from './hooks/useProfileSync';
 import { usePortfolioSync } from './hooks/usePortfolioSync';
@@ -1747,41 +1746,6 @@ export default function App() {
     if (!authSession) emailVerifyWarnedRef.current = false;
   }, [authSession, addToast]);
 
-  // ── Periodic deal-alert notifications (every 3 days per property) ──
-  // Fires for each owner property that has active market pressure and is not yet deal-closed.
-  // Keep this active for both authenticated and local-only sessions.
-  useEffect(() => {
-    const ownedProps = (propertyPortfolio || []).filter((p) => !p.dealClosed);
-    if (!ownedProps.length) return;
-    ownedProps.forEach((p) => {
-      const pressure = getMatchPressure(p.id);
-      if (pressure > 0 && shouldSendDealAlert(p.id)) {
-        setDealAlert(p.id);
-        const shortAddr = String(p.address || 'Imóvel').split(',')[0].trim();
-        setSystemNotifications((prev) => {
-          const alertId = `deal-alert-${p.id}`;
-          if (prev.some((n) => n.id === alertId)) return prev; // dedup by stable id
-          return [
-            ...prev,
-            {
-              id: alertId,
-              title: '📢 Seu imóvel está atraindo interesse!',
-              message: `"${shortAddr}": ${pressure}% dos usuários ativos já acessaram este imóvel. Não perca o timing — entre em contato com os interessados!`,
-              createdAt: Date.now(),
-              read: false,
-            },
-          ];
-        });
-        addToast({
-          type: 'warning',
-          title: '🔥 Imóvel com demanda!',
-          message: `"${shortAddr}": ${pressure}% já acessaram. Acesse Onboarding e feche o deal ($).`,
-          duration: 8000,
-        });
-      }
-    });
-  }, [propertyPortfolio, addToast]);
-
   useEffect(() => {
     if (!isSupabaseConfigured || !supabase || !supabaseUserId) {
       profileSyncStateRef.current = { userId: null, loaded: false, hydrating: false, personalLoadedFromRemote: false, professionalLoadedFromRemote: false };
@@ -3196,6 +3160,7 @@ export default function App() {
             setEditMode={setEditMode}
             mobileBottomNavCollapsed={mobileBottomNavCollapsed}
             addToast={addToast}
+            setSystemNotifications={setSystemNotifications}
             isHydrationReady={dashboardHydrationReady}
             isHydrationSyncing={dashboardHydrationSyncing}
             userPreferences={userPreferences}
