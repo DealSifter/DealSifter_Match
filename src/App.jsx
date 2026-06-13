@@ -3020,14 +3020,15 @@ export default function App() {
 
   const getUnlockCost = (card) => {
     if (!card?.id && !card?.ownerId && !card?.unlockOwnerId) return 1;
+    const localPortfolioCost = getPortfolioUnlockCost(card, unlockPortfolioProperties || [], unlockPortfolioServices || []);
     if (
       card?.unlockScope === 'property'
       && unlockQuote?.propertyId
       && String(unlockQuote.propertyId) === String(card?.propertyId)
     ) {
-      return Math.max(1, Number(unlockQuote.baseCost || 1));
+      return Math.max(1, localPortfolioCost, Number(unlockQuote.baseCost || 1));
     }
-    return getPortfolioUnlockCost(card, unlockPortfolioProperties || [], unlockPortfolioServices || []);
+    return localPortfolioCost;
   };
 
   const getUnlockExclusivityStatus = (card) => {
@@ -3078,7 +3079,11 @@ export default function App() {
       quoteForUnlock = await fetchPropertyUnlockQuote(card.propertyId);
     }
     const baseUnlockCost = quoteForUnlock?.baseCost
-      ? Math.max(1, Number(quoteForUnlock.baseCost))
+      ? Math.max(
+        1,
+        Number(quoteForUnlock.baseCost),
+        getPortfolioUnlockCost(card, unlockPortfolioProperties || [], unlockPortfolioServices || [])
+      )
       : getUnlockCost(card);
     const quoteExclusiveCost = quoteForUnlock?.exclusivityCost != null
       ? Math.max(0, Number(quoteForUnlock.exclusivityCost || 0))
@@ -3130,7 +3135,13 @@ export default function App() {
           });
           if (error) throw error;
           remoteUnlockRow = Array.isArray(data) ? data[0] : data;
-          if (remoteUnlockRow && Number.isFinite(Number(remoteUnlockRow.remaining_nuggets))) {
+          const remoteTotalCost = Number(remoteUnlockRow?.total_cost);
+          if (
+            remoteUnlockRow
+            && Number.isFinite(Number(remoteUnlockRow.remaining_nuggets))
+            && Number.isFinite(remoteTotalCost)
+            && remoteTotalCost === unlockCost
+          ) {
             setNuggets(Number(remoteUnlockRow.remaining_nuggets));
           } else {
             setNuggets(n => n - unlockCost);

@@ -1485,9 +1485,11 @@ export function Dashboard({ page, nuggets, setModal, setPage, onOpenOnboardingTa
       if (!raw) return;
       const parsed = JSON.parse(raw);
       if (!parsed || !parsed.id) return;
-      setFocusCard(parsed);
-      if (parsed.type === 'person') setView('connections');
-      else setView('properties');
+      window.setTimeout(() => {
+        setFocusCard(parsed);
+        if (parsed.type === 'person') setView('connections');
+        else setView('properties');
+      }, 0);
       localStorage.removeItem('focusCard');
     } catch (e) { void e; }
   }, [page]);
