@@ -171,6 +171,9 @@ const PLAN_BONUS_BY_TIER = {
 const SECURITY_AUDIT_KEY = 'ds_security_audit';
 const SECURITY_SESSIONS_KEY = 'ds_security_sessions';
 const SECURITY_ACTIVE_SESSION_KEY = 'ds_security_active_session_id';
+const APP_SESSION_TOKEN_KEY = 'ds_app_session_token';
+const APP_LAST_ACTIVITY_KEY = 'ds_app_last_activity_at';
+const APP_IDLE_SIGNOUT_MS = 60 * 60 * 1000;
 const USER_PREFERENCES_KEY = 'ds_user_preferences';
 
 const appendSecurityAuditEvent = (event) => {
@@ -207,6 +210,27 @@ const consumeRateLimit = (key, maxAttempts, windowMs, lockMs = windowMs) => {
     return { allowed: true, retryAfterMs: 0 };
   } catch {
     return { allowed: true, retryAfterMs: 0 };
+  }
+};
+
+const getAppSessionToken = () => {
+  try {
+    let token = safeSessionGet(APP_SESSION_TOKEN_KEY);
+    if (!token) {
+      token = (crypto?.randomUUID?.() || `tab-${Date.now()}-${Math.random().toString(16).slice(2)}`);
+      safeSessionSet(APP_SESSION_TOKEN_KEY, token);
+    }
+    return token;
+  } catch {
+    return `tab-${Date.now()}-${Math.random().toString(16).slice(2)}`;
+  }
+};
+
+const getDeviceLabel = () => {
+  try {
+    return String(navigator.userAgent || 'Unknown device').slice(0, 180);
+  } catch {
+    return 'Unknown device';
   }
 };
 
@@ -877,7 +901,9 @@ export default function App() {
   useEffect(() => {
     if (!authSession?.id) return undefined;
     const updateActivity = () => {
-      lastActivityRef.current = Date.now();
+      const now = Date.now();
+      lastActivityRef.current = now;
+      try { localStorage.setItem(APP_LAST_ACTIVITY_KEY, String(now)); } catch { /* no-op */ }
       try {
         const currentId = localStorage.getItem(SECURITY_ACTIVE_SESSION_KEY);
         if (!currentId) return;
@@ -887,22 +913,38 @@ export default function App() {
         const next = rows.map((row) => {
           if (String(row?.id || '') !== String(currentId)) return row;
           changed = true;
-          return { ...row, lastSeenAt: Date.now() };
+          return { ...row, lastSeenAt: now };
         });
         if (changed) localStorage.setItem(SECURITY_SESSIONS_KEY, JSON.stringify(next));
       } catch { /* no-op */ }
     };
-    const events = ['pointerdown', 'keydown', 'mousemove', 'touchstart'];
-    events.forEach((evt) => window.addEventListener(evt, updateActivity, { passive: true }));
-    const timer = window.setInterval(() => {
-      const inactiveMs = Date.now() - Number(lastActivityRef.current || 0);
-      if (inactiveMs > 45 * 60 * 1000) {
-        appendSecurityAuditEvent({ type: 'session', status: 'timeout', message: 'Session ended due to inactivity.' });
+    const getLastActivityAt = () => {
+      try {
+        const stored = Number(localStorage.getItem(APP_LAST_ACTIVITY_KEY) || '0');
+        if (Number.isFinite(stored) && stored > 0) return stored;
+      } catch { /* no-op */ }
+      return Number(lastActivityRef.current || Date.now());
+    };
+    const checkIdleTimeout = () => {
+      const inactiveMs = Date.now() - getLastActivityAt();
+      if (inactiveMs > APP_IDLE_SIGNOUT_MS) {
+        appendSecurityAuditEvent({ type: 'session', status: 'timeout', message: 'Session ended after 1 hour without activity.' });
         handleUserLogoutRef.current?.();
       }
-    }, 60 * 1000);
+    };
+    updateActivity();
+    const events = ['pointerdown', 'keydown', 'mousemove', 'touchstart'];
+    events.forEach((evt) => window.addEventListener(evt, updateActivity, { passive: true }));
+    const visibilityHandler = () => {
+      if (document.visibilityState === 'visible') checkIdleTimeout();
+    };
+    window.addEventListener('focus', checkIdleTimeout);
+    document.addEventListener('visibilitychange', visibilityHandler);
+    const timer = window.setInterval(checkIdleTimeout, 60 * 1000);
     return () => {
       events.forEach((evt) => window.removeEventListener(evt, updateActivity));
+      window.removeEventListener('focus', checkIdleTimeout);
+      document.removeEventListener('visibilitychange', visibilityHandler);
       window.clearInterval(timer);
     };
   }, [authSession?.id]);
@@ -916,6 +958,81 @@ export default function App() {
     const id = ++toastIdRef.current;
     setToasts((prev) => [...prev.slice(-4), { id, type, title, message, duration }]);
   }, []);
+
+  useEffect(() => {
+    if (!isSupabaseConfigured || !supabase || !authSession?.userId) return undefined;
+
+    let cancelled = false;
+    const token = getAppSessionToken();
+    const pageLabel = String(page || 'app').slice(0, 64);
+
+    const endReplacedSession = async () => {
+      if (cancelled) return;
+      appendSecurityAuditEvent({ type: 'session', status: 'replaced', message: 'Session replaced by another device or browser tab.' });
+      addToast({
+        type: 'warning',
+        title: 'Session ended',
+        message: 'This account was opened in another device or tab. Please sign in again to continue here.',
+        duration: 8000,
+      });
+      try { await supabase.auth.signOut(); } catch { /* no-op */ }
+      setAuthSession(null);
+      safeSessionRemove(APP_SESSION_TOKEN_KEY);
+      setModal(null);
+      setPage('landing');
+    };
+
+    const register = async () => {
+      try {
+        const { data, error } = await supabase.rpc('ds_register_app_session', {
+          p_session_token: token,
+          p_device_label: getDeviceLabel(),
+          p_page: pageLabel,
+        });
+        if (error) {
+          if (isMissingFunctionError(error, 'ds_register_app_session')) return;
+          throw error;
+        }
+        if (data && data.ok === false && data.reason === 'session_replaced') {
+          await endReplacedSession();
+        }
+      } catch (error) {
+        safeLogError('App session registration failed.', error);
+      }
+    };
+
+    const touch = async () => {
+      if (cancelled) return;
+      try {
+        const { data, error } = await supabase.rpc('ds_touch_app_session', {
+          p_session_token: token,
+          p_page: String(page || 'app').slice(0, 64),
+        });
+        if (error) {
+          if (isMissingFunctionError(error, 'ds_touch_app_session')) return;
+          throw error;
+        }
+        if (data && data.ok === false && data.reason === 'session_replaced') {
+          await endReplacedSession();
+        }
+      } catch (error) {
+        safeLogError('App session heartbeat failed.', error);
+      }
+    };
+
+    register();
+    const timer = window.setInterval(touch, 30000);
+    const visibilityHandler = () => {
+      if (document.visibilityState === 'visible') touch();
+    };
+    document.addEventListener('visibilitychange', visibilityHandler);
+
+    return () => {
+      cancelled = true;
+      window.clearInterval(timer);
+      document.removeEventListener('visibilitychange', visibilityHandler);
+    };
+  }, [addToast, authSession?.userId, page, setPage]);
 
   const handleAuthenticatedNavigation = useCallback((_session, options = {}) => {
     setModal(null);
@@ -1582,17 +1699,32 @@ export default function App() {
     const previousUserId = prevUserIdRef.current;
     prevUserIdRef.current = supabaseUserId;
 
-    // Fire on any real transition (ignore the very first mount when both are null)
     if (previousUserId === supabaseUserId) return;
     if (previousUserId === null && supabaseUserId === null) return;
 
-    // Always clear user-specific localStorage on any user transition.
-    // This covers: logout, session expiry, and login (to flush stale data from
-    // a previous user that may have been left behind by an incomplete logout).
+    let lastStoredUserId = null;
+    try { lastStoredUserId = localStorage.getItem('ds_last_auth_user_id'); } catch { /* no-op */ }
+
+    const isSwitchingToDifferentUser = Boolean(
+      supabaseUserId
+      && lastStoredUserId
+      && String(lastStoredUserId) !== String(supabaseUserId)
+    );
+    const isInAppAccountSwitch = Boolean(
+      previousUserId
+      && supabaseUserId
+      && String(previousUserId) !== String(supabaseUserId)
+    );
+
+    if (supabaseUserId) {
+      try { localStorage.setItem('ds_last_auth_user_id', String(supabaseUserId)); } catch { /* no-op */ }
+    }
+
+    if (!(isSwitchingToDifferentUser || isInAppAccountSwitch)) return;
+
     clearUserSpecificLocalStorage();
 
-    // Also reset React state and IndexedDB when leaving a logged-in state
-    if (previousUserId !== null) {
+    if (previousUserId !== null || isSwitchingToDifferentUser) {
       setMatched([]);
       setInterested([]);
       setUnlocked([]);
@@ -2799,19 +2931,8 @@ export default function App() {
     }
 
     setAuthSession(null);
-
-    const keysToKeep = ['theme', 'ds_lgpd_consent'];
-    const allKeys = [];
-    for (let i = 0; i < localStorage.length; i++) {
-      allKeys.push(localStorage.key(i));
-    }
-    allKeys.forEach((key) => {
-      if (key && !keysToKeep.includes(key)) {
-        try { localStorage.removeItem(key); } catch (e) { void e; }
-      }
-    });
-
-    clearAllUserData();
+    try { localStorage.removeItem('authSession'); } catch { /* no-op */ }
+    safeSessionRemove(APP_SESSION_TOKEN_KEY);
     appendSecurityAuditEvent({ type: 'logout', status: 'success', message: 'User signed out from current device.' });
     setModal(null);
     setPage('landing');

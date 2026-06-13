@@ -774,6 +774,13 @@ export function Dashboard({ page, nuggets, setModal, setPage, onOpenOnboardingTa
         ownerCategoryByOwnerId.set(String(card.id), category);
         ownerCategoryByOwnerId.set(String(card.ownerId), category);
       });
+      const selfOwnerIds = new Set([
+        String(currentUserId || ''),
+        String(getOwnerIdForKey('personal')),
+        String(getOwnerIdForKey('secondary')),
+        String(getOwnerIdForKey('fsbo')),
+        '999999',
+      ].filter(Boolean));
 
       const isAllowedByState = (record) => {
         if (!stateFilterActive) return true;
@@ -793,9 +800,52 @@ export function Dashboard({ page, nuggets, setModal, setPage, onOpenOnboardingTa
         return matchesCat(ownerCategory, activeCat);
       };
 
+      const preferredStateSet = new Set([
+        ...collectRecordStates(userProfile || {}),
+        ...collectRecordStates(personalProfile || {}),
+        ...collectRecordStates(professionalProfile || {}),
+      ].filter(Boolean));
+
+      const scoreByFreshness = (record) => {
+        const time = Date.parse(record?.createdAt || record?.updatedAt || record?.created_at || record?.updated_at || '');
+        if (!Number.isFinite(time)) return 0;
+        const ageDays = Math.max(0, (Date.now() - time) / 86400000);
+        return Math.max(0, 12 - Math.min(12, ageDays));
+      };
+
+      const scoreByStateAffinity = (record) => {
+        const states = collectRecordStates(record);
+        if (!states.length || preferredStateSet.size === 0) return 0;
+        return states.some((state) => preferredStateSet.has(state)) ? 24 : 0;
+      };
+
+      const getConnectionRank = (card) => {
+        if (!card) return -9999;
+        const ownerId = String(card.ownerId || card.id || '');
+        const ownPenalty = selfOwnerIds.has(ownerId) || selfOwnerIds.has(String(card.id || '')) ? -1000 : 0;
+        const categoryScore = activeCat !== 'all' && matchesCat(card?.cat, activeCat) ? 26 : 0;
+        const priorityScore = card._priority === 'primary' ? 12 : (card._priority === 'secondary' ? 8 : (card._priority === 'tertiary' ? 4 : 0));
+        const portfolioScore = Math.min(18, Number(card.portfolioCount || 0) * 3);
+        const verifiedScore = card.verified ? 8 : 0;
+        return ownPenalty + categoryScore + priorityScore + portfolioScore + verifiedScore + scoreByStateAffinity(card) + scoreByFreshness(card);
+      };
+
+      const getPropertyRank = (prop) => {
+        if (!prop) return -9999;
+        const ownerId = String(prop.ownerId || '');
+        const ownPenalty = selfOwnerIds.has(ownerId) ? -1000 : 0;
+        const metrics = propertyHotMetrics?.[String(prop.id)] || {};
+        const hotScore = Math.min(30, Number(metrics.unlockCount || 0) * 10 + Number(metrics.favoriteCount || 0));
+        const pendingPenalty = prop.pendingDeal ? -24 : 0;
+        const priceScore = Number(prop.price || 0) > 0 ? 4 : 0;
+        return ownPenalty + hotScore + pendingPenalty + priceScore + scoreByStateAffinity(prop) + scoreByFreshness(prop);
+      };
+
       // Build new connection deck respecting filters
       // Start from the current connDeck (preserve rotations) and fall back to canonical order
-      const canonicalConn = (connectionCards || []).map(c => c.id);
+      const canonicalConn = [...(connectionCards || [])]
+        .sort((a, b) => getConnectionRank(b) - getConnectionRank(a))
+        .map(c => c.id);
       const baseConn = (connDeck && connDeck.length) ? connDeck : canonicalConn;
       let newConn = baseConn.filter(id => {
         if (focusCard && focusCard.type === 'person' && String(focusCard.id) === String(id)) return true;
@@ -852,7 +902,9 @@ export function Dashboard({ page, nuggets, setModal, setPage, onOpenOnboardingTa
 
       const selfOwnerId = getOwnerIdForKey(publishingProfileKey);
       // Preserve propDeck rotations similarly
-      const canonicalProp = (showcaseItems || []).map(p => p.id);
+      const canonicalProp = [...(showcaseItems || [])]
+        .sort((a, b) => getPropertyRank(b) - getPropertyRank(a))
+        .map(p => p.id);
       const baseProp = (propDeck && propDeck.length) ? propDeck : canonicalProp;
       const shouldKeepPropertyVisible = (prop) => {
         if (!prop) return false;
@@ -917,7 +969,7 @@ export function Dashboard({ page, nuggets, setModal, setPage, onOpenOnboardingTa
     });
 
     return () => { if (typeof unsub === 'function') unsub(); };
-  }, [connectionCards, showcaseItems, matched, interested, unlocked, view, publishingProfileKey, hiddenSet, focusCard, selectedStates, activeCat, isSwipingConn, isSwipingProp, collectRecordStates, connDeck, propDeck, getOwnerIdForKey, matchesCat]);
+  }, [connectionCards, showcaseItems, matched, interested, unlocked, view, publishingProfileKey, hiddenSet, focusCard, selectedStates, activeCat, isSwipingConn, isSwipingProp, collectRecordStates, connDeck, propDeck, getOwnerIdForKey, matchesCat, currentUserId, userProfile, personalProfile, professionalProfile, propertyHotMetrics]);
 
   const [planGate, setPlanGate] = useState(null);
 
