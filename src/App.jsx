@@ -979,7 +979,8 @@ export default function App() {
       setAuthSession(null);
       safeSessionRemove(APP_SESSION_TOKEN_KEY);
       setModal(null);
-      setPage('landing');
+      _setPage('landing');
+      try { localStorage.removeItem('ds_last_page'); } catch { /* no-op */ }
     };
 
     const register = async () => {
@@ -1032,7 +1033,7 @@ export default function App() {
       window.clearInterval(timer);
       document.removeEventListener('visibilitychange', visibilityHandler);
     };
-  }, [addToast, authSession?.userId, page, setPage]);
+  }, [addToast, authSession?.userId, page]);
 
   const handleAuthenticatedNavigation = useCallback((_session, options = {}) => {
     setModal(null);
