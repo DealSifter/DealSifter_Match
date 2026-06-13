@@ -155,8 +155,8 @@ export function Dashboard({ page, nuggets, setModal, setPage, onOpenOnboardingTa
 
   useEffect(() => {
     if (!isSupabaseConfigured || !supabase || propertyMetricIds.length === 0) {
-      setPropertyHotMetrics({});
-      return undefined;
+      const timer = window.setTimeout(() => setPropertyHotMetrics({}), 0);
+      return () => window.clearTimeout(timer);
     }
 
     let cancelled = false;
