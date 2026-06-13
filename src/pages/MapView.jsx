@@ -2583,12 +2583,19 @@ export function MapView({
           z-index: 2;
         }
         @media (max-width: 900px) {
-          .map-layout { height: calc((var(--app-vh, 1vh) * 100) - 58px); }
+          .map-layout {
+            --ds-map-mobile-bottom-offset: 108px;
+            height: calc((var(--app-vh, 1vh) * 100) - 58px);
+          }
           .map-panel {
             max-height: none;
-            height: 100%;
+            height: auto;
+            bottom: var(--ds-map-mobile-bottom-offset);
             margin-right: 0;
             box-shadow: 10px 0 28px ${C.alpha(C.bg, 0.24)};
+          }
+          .map-panel-mobile-overlay {
+            bottom: var(--ds-map-mobile-bottom-offset);
           }
           .map-resize-handle { display: none; }
           .map-panel-toggle-tab {

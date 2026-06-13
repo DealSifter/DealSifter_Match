@@ -25,12 +25,14 @@
   position: fixed;
   inset: 0;
   z-index: 10080;
-  background: rgba(7, 11, 17, 0.54);
-  -webkit-backdrop-filter: blur(6px);
-  backdrop-filter: blur(6px);
+  width: 100vw;
+  height: 100dvh;
+  background: rgba(7, 11, 17, 0.78);
   display: flex;
   align-items: center;
   justify-content: center;
+  isolation: isolate;
+  contain: paint;
 }
 
 .ds-processing-card {
@@ -38,9 +40,7 @@
   max-width: min(90vw, 380px);
   border-radius: 16px;
   border: none;
-  background: rgba(22, 30, 42, 0.56);
-  -webkit-backdrop-filter: blur(12px);
-  backdrop-filter: blur(12px);
+  background: rgba(22, 30, 42, 0.96);
   box-shadow: 0 14px 42px rgba(0, 0, 0, 0.42);
   padding: 18px 20px;
   display: grid;
