@@ -688,7 +688,7 @@ export function Dashboard({ page, nuggets, setModal, setPage, onOpenOnboardingTa
   const resolvePropertyOwnerCard = useCallback((property) => {
     if (!property) return null;
     const ownerScope = normalizeProfileScope(property?.primaryProfile || '');
-    const ownerScopeKey = scopeToProfileKey(ownerScope);
+    const ownerScopeKey = ownerScope === 'professional' ? 'secondary' : (ownerScope === 'fsbo' ? 'fsbo' : (ownerScope ? 'personal' : ''));
     const ownerByScope = ownerScopeKey ? connectionCards.find((c) => c.scopeKey === ownerScopeKey) : null;
     const ownerById = findConnectionById(property.ownerId);
     const ownerPreview = property.ownerPreview && (property.ownerPreview.id || property.ownerPreview.ownerId)
