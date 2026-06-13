@@ -685,6 +685,23 @@ export function Dashboard({ page, nuggets, setModal, setPage, onOpenOnboardingTa
     return connectionCards.find((c) => String(c.id) === needle || String(c.ownerId) === needle);
   }, [connectionCards]);
 
+  const resolvePropertyOwnerCard = useCallback((property) => {
+    if (!property) return null;
+    const ownerScope = normalizeProfileScope(property?.primaryProfile || '');
+    const ownerScopeKey = scopeToProfileKey(ownerScope);
+    const ownerByScope = ownerScopeKey ? connectionCards.find((c) => c.scopeKey === ownerScopeKey) : null;
+    const ownerById = findConnectionById(property.ownerId);
+    const ownerPreview = property.ownerPreview && (property.ownerPreview.id || property.ownerPreview.ownerId)
+      ? { ...property.ownerPreview, ownerId: property.ownerPreview.ownerId || property.ownerPreview.id }
+      : null;
+    const mockOwnerCard = (CARDS || []).find((c) => String(c.id) === String(property.ownerId));
+
+    return ownerById
+      || ownerByScope
+      || ownerPreview
+      || (mockOwnerCard ? { ...mockOwnerCard, ownerId: mockOwnerCard.ownerId || mockOwnerCard.id } : null);
+  }, [connectionCards, findConnectionById]);
+
   // Circular deck: skip → rotate to back; match → remove permanently
   const [connDeck, setConnDeck] = useState(() => connectionCards.map(c => c.id).filter(id => !getHiddenSet().has(String(id))));
   const [propDeck, setPropDeck] = useState(() => (showcaseItems || []).map(p => p.id).filter(id => !getHiddenSet().has(String(id))));
@@ -1731,9 +1748,7 @@ export function Dashboard({ page, nuggets, setModal, setPage, onOpenOnboardingTa
     setIsSwipingProp(true);
     setPropAction(type);
     setPropStatusById(prev => ({ ...prev, [topProp.id]: type }));
-    const topScope = normalizeProfileScope(topProp?.primaryProfile || 'personal');
-    const topScopeKey = scopeToProfileKey(topScope);
-    const topOwner = connectionCards.find((c) => c.scopeKey === topScopeKey) || findConnectionById(topProp.ownerId);
+    const topOwner = resolvePropertyOwnerCard(topProp);
     const snap = [...propDeck];
     const connSnap = [...connDeck];
     setTimeout(() => {
@@ -1859,16 +1874,7 @@ export function Dashboard({ page, nuggets, setModal, setPage, onOpenOnboardingTa
       addToast?.({ type: 'info', message: 'Own card, not selectionable' });
       return;
     }
-    const ownerScope = normalizeProfileScope(topProp?.primaryProfile || 'personal');
-    const ownerScopeKey = scopeToProfileKey(ownerScope);
-    const ownerPreview = topProp.ownerPreview && (topProp.ownerPreview.id || topProp.ownerPreview.ownerId)
-      ? { ...topProp.ownerPreview, ownerId: topProp.ownerPreview.ownerId || topProp.ownerPreview.id }
-      : null;
-    const mockOwnerCard = (CARDS || []).find((c) => String(c.id) === String(topProp.ownerId));
-    const ownerCard = connectionCards.find((c) => c.scopeKey === ownerScopeKey)
-      || findConnectionById(topProp.ownerId)
-      || ownerPreview
-      || (mockOwnerCard ? { ...mockOwnerCard, ownerId: mockOwnerCard.ownerId || mockOwnerCard.id } : null);
+    const ownerCard = resolvePropertyOwnerCard(topProp);
 
     if (!ownerCard?.id && !ownerCard?.ownerId) {
       addToast?.({ type: 'warning', message: 'Contato responsável por este card não encontrado.' });
@@ -3096,9 +3102,7 @@ export function Dashboard({ page, nuggets, setModal, setPage, onOpenOnboardingTa
                   ? propDisplay.slice(0, 5).reverse().map((p, i) => {
                       const reverseI = Math.min(propDisplay.length, 5) - 1 - i;
                       const isTop    = reverseI === 0;
-                      const canonical = PROPERTIES.find(pp => String(pp.id) === String(p.id));
-                      const ownerIdToUse = canonical ? canonical.ownerId : p.ownerId;
-                      const pOwner   = p.ownerPreview || findConnectionById(ownerIdToUse);
+                      const pOwner = resolvePropertyOwnerCard(p);
                       const hotMetrics = propertyHotMetrics[String(p.id)] || null;
                       const exclusivityStatus = hotMetrics?.exclusivityStatus || getPropertyExclusivityStatus(propertyUnlocks, p.id, currentUserId);
                       const shiftLeft    = reverseI * FEED_STACK_SHIFT_X;
@@ -3423,7 +3427,7 @@ export function Dashboard({ page, nuggets, setModal, setPage, onOpenOnboardingTa
           {filteredInterested.length === 0 && <div style={{ textAlign:"center", padding:16, color:C.t3, fontSize:10 }}>{t.markToTrack}</div>}
           <div style={{ flex:1, minHeight:0, overflowY:"auto", paddingRight:2, paddingBottom:8 }} className="custom-scroll">
             {filteredInterested.map((m, i) => {
-              const propOwner = findConnectionById(m.ownerId);
+              const propOwner = resolvePropertyOwnerCard(m);
               const isOwnerUnlocked = propOwner && unlocked.includes(propOwner.id);
               const ownerUnlockCost = propOwner ? getUnlockCost(propOwner.id) : 1;
               return (
