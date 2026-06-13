@@ -1861,12 +1861,14 @@ export function Dashboard({ page, nuggets, setModal, setPage, onOpenOnboardingTa
     }
     const ownerScope = normalizeProfileScope(topProp?.primaryProfile || 'personal');
     const ownerScopeKey = scopeToProfileKey(ownerScope);
-    const ownerCard = connectionCards.find((c) => c.scopeKey === ownerScopeKey) || findConnectionById(topProp.ownerId) || {
-      id: topProp.ownerId,
-      ownerId: topProp.ownerId,
-      name: topProp.ownerName || topProp.ownerPreview?.name || topProp.sellerName || 'Property contact',
-      type: topProp.ownerPreview?.type || 'Property owner',
-    };
+    const ownerPreview = topProp.ownerPreview && (topProp.ownerPreview.id || topProp.ownerPreview.ownerId)
+      ? { ...topProp.ownerPreview, ownerId: topProp.ownerPreview.ownerId || topProp.ownerPreview.id }
+      : null;
+    const mockOwnerCard = (CARDS || []).find((c) => String(c.id) === String(topProp.ownerId));
+    const ownerCard = connectionCards.find((c) => c.scopeKey === ownerScopeKey)
+      || findConnectionById(topProp.ownerId)
+      || ownerPreview
+      || (mockOwnerCard ? { ...mockOwnerCard, ownerId: mockOwnerCard.ownerId || mockOwnerCard.id } : null);
 
     if (!ownerCard?.id && !ownerCard?.ownerId) {
       addToast?.({ type: 'warning', message: 'Contato responsável por este card não encontrado.' });
