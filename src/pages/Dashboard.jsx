@@ -19,6 +19,7 @@ import { trackAppEvent } from '../lib/adminEventTracking';
 import { getPortfolioItemCount, getPortfolioUnlockCost, getPropertyExclusivityStatus } from '../lib/unlockRules';
 import { isSupabaseConfigured, supabase } from '../lib/supabaseClient';
 import { isUuid, mapPropertyHotMetrics } from '../lib/propertyHotMetrics';
+import { isPendingDealExpired } from '../lib/pendingDeal';
 import feedMatchIcon from '../assets/feed-match-icon.png';
 
 // Utilitário para checagem de flag booleana (string, bool, number)
@@ -514,6 +515,7 @@ export function Dashboard({ page, nuggets, setModal, setPage, onOpenOnboardingTa
           const recordOwnerId = String(p.ownerId || '').trim();
           if (!userOwnerIds.includes(recordOwnerId) && recordOwnerId !== '999999') return false;
           if (!isTruthyFlag(p.publishToShowcase, true)) return false;
+          if (p?.dealClosed === true || isPendingDealExpired(p)) return false;
           // Do NOT filter by activeFeedScopeSet: user properties with publishToShowcase=true
           // must always appear in the showcase deck regardless of whether their scope's card
           // priority has been configured in onboarding. The scope filter was blocking valid
@@ -997,7 +999,10 @@ export function Dashboard({ page, nuggets, setModal, setPage, onOpenOnboardingTa
     // Use propertyPortfolio for real-time state (not showcaseProperties)
     // Filter by show in = ON and matching profile scope.
     const properties = (propertyPortfolio || []).filter((p) => {
-      return isTruthyFlag(p.publishToShowcase, true) && normalizeProfileScope(p.primaryProfile || 'personal') === profileScope;
+      return isTruthyFlag(p.publishToShowcase, true)
+        && p?.dealClosed !== true
+        && !isPendingDealExpired(p)
+        && normalizeProfileScope(p.primaryProfile || 'personal') === profileScope;
     });
     const services = (servicePortfolio || []).filter((s) => {
       return isTruthyFlag(s.publishToConnections, true) && normalizeProfileScope(s.primaryProfile || 'personal') === profileScope;

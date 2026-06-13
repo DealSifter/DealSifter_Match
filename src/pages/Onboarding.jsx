@@ -20,6 +20,7 @@ import { getPortfolioVideoBlob, setPortfolioVideoBlob, clearPortfolioVideoBlob }
 import { getMatchPressure } from '../lib/matchPressure';
 import { INVESTMENT_TRIGGER_CATEGORY_IDS, computeInvestmentProfileStrength, normalizeInvestmentDraft } from '../lib/investmentProfile';
 import { readAndCompressFiles } from '../lib/onboardingMedia';
+import { clearPendingDeal, getPendingDealRemainingDays, isPendingDealActive, isPendingDealExpired, markPendingDeal } from '../lib/pendingDeal';
 import { useMediaQuery } from '../hooks/useMediaQuery';
 import {
   CARD_PRIORITY_OPTIONS,
@@ -813,15 +814,55 @@ export function Onboarding({
       if (prop.id !== propertyId) return prop;
       // If already closed, toggle back open (reactivate)
       if (prop.dealClosed) {
-        return { ...prop, dealClosed: false };
+        return clearPendingDeal({ ...prop, dealClosed: false });
       }
-      return {
+      return clearPendingDeal({
         ...prop,
         dealClosed: true,
         publishToShowcase: false,
         includeInPreview: false,
-      };
+      });
     }));
+  };
+
+  const togglePropertyPendingDeal = (propertyId) => {
+    setPropertyPortfolio((prev) => prev.map((prop) => {
+      if (prop.id !== propertyId || prop.dealClosed) return prop;
+      if (isPendingDealActive(prop)) return clearPendingDeal(prop);
+      return markPendingDeal(prop);
+    }));
+  };
+
+  const renderPropertyPendingDealButton = (property) => {
+    if (!property || property.dealClosed) return null;
+    const isActive = isPendingDealActive(property);
+    const isExpired = isPendingDealExpired(property);
+    const daysLeft = getPendingDealRemainingDays(property);
+    const title = isActive
+      ? `Pending deal active - ${daysLeft}d left. Click to remove.`
+      : isExpired
+        ? 'Pending deal expired - click to reactivate for 7 days.'
+        : 'Mark as pending deal for 7 days.';
+    return (
+      <button
+        type="button"
+        onClick={() => togglePropertyPendingDeal(property.id)}
+        title={title}
+        aria-label={title}
+        style={{
+          background: isActive ? 'rgba(107,114,128,0.16)' : isExpired ? 'rgba(245,158,11,0.10)' : 'none',
+          border: isActive ? '1px solid rgba(156,163,175,0.55)' : isExpired ? '1px solid rgba(245,158,11,0.42)' : '1px solid transparent',
+          borderRadius: 6,
+          cursor: 'pointer',
+          padding: '0 5px',
+          lineHeight: 1,
+          flexShrink: 0,
+          color: isActive ? '#6b7280' : isExpired ? '#d97706' : C.t3,
+        }}
+      >
+        <Icon name="hourglass" size={14} color={isActive ? '#6b7280' : isExpired ? '#d97706' : C.t3} strokeWidth={2.2} />
+      </button>
+    );
   };
 
   const toggleServiceDealClosed = (serviceId) => {
@@ -3913,6 +3954,7 @@ export function Onboarding({
                                 </button>
                               ) : null}
                               {/* ── Deal-closed "$" button ── */}
+                              {renderPropertyPendingDealButton(p)}
                               {(() => {
                                 const pressure = getMatchPressure(p.id);
                                 const isClosed = !!p.dealClosed;
@@ -4487,6 +4529,7 @@ export function Onboarding({
                                   <Icon name="eye" size={14} color={isTruthyFlag(p.includeInPreview, false) ? C.accent : C.t3} />
                                 </button>
                               ) : null}
+                              {renderPropertyPendingDealButton(p)}
                               {(() => {
                                 const pressure = getMatchPressure(p.id);
                                 const isClosed = !!p.dealClosed;
@@ -5059,3 +5102,4 @@ export function Onboarding({
     </div>
   );
 }
+

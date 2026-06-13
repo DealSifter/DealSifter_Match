@@ -18,6 +18,7 @@ export const Icon = ({ name, size=18, color="currentColor", strokeWidth=1.5 }) =
     // Locks
     lock:       <svg style={s} viewBox="0 0 24 24"><rect {...p} x="3" y="11" width="18" height="11" rx="2"/><path {...p} d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>,
     unlock:     <svg style={s} viewBox="0 0 24 24"><rect {...p} x="3" y="11" width="18" height="11" rx="2"/><path {...p} d="M7 11V7a5 5 0 0 1 9.9-1"/></svg>,
+    hourglass:  <svg style={s} viewBox="0 0 24 24"><path {...p} d="M6 2h12"/><path {...p} d="M6 22h12"/><path {...p} d="M8 2v5.5c0 1.2.5 2.3 1.4 3.1L12 13l2.6-2.4c.9-.8 1.4-1.9 1.4-3.1V2"/><path {...p} d="M8 22v-5.5c0-1.2.5-2.3 1.4-3.1L12 11l2.6 2.4c.9.8 1.4 1.9 1.4 3.1V22"/></svg>,
     logOut:     <svg style={s} viewBox="0 0 24 24"><path {...p} d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline {...p} points="16 17 21 12 16 7"/><line {...p} x1="21" y1="12" x2="9" y2="12"/></svg>,
     // Contact
     phone:      <svg style={s} viewBox="0 0 24 24"><path {...p} d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07A19.5 19.5 0 0 1 4.69 11.5 19.79 19.79 0 0 1 1.58 2.92 2 2 0 0 1 3.55 1h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L7.91 8.73a16 16 0 0 0 6 6l.91-.91a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 21.5 16a2 2 0 0 1 .5.92z"/></svg>,

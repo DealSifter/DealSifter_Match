@@ -5,6 +5,7 @@ import { Icon } from '../ui/Icon';
 import { SmartImage } from '../ui/SmartImage';
 import { useMediaQuery } from '../../hooks/useMediaQuery';
 import { formatPropertyLocation } from '../../lib/formatPropertyLocation';
+import { getPendingDealRemainingDays, isPendingDealActive } from '../../lib/pendingDeal';
 
 export function PropertyCard({ property, action, statusAction, onInterest, owner, isSkipped = false, previewOnly = false, hotMetrics = null, exclusivityStatus = null, onAvatarClick, showActions = true }) {
   const t = useT('dashboard').cards;
@@ -52,8 +53,10 @@ export function PropertyCard({ property, action, statusAction, onInterest, owner
   const hotMatchPct = Number(hotMetrics?.matchPct || 0);
   const hotUnlockCount = Number(hotMetrics?.unlockCount || 0);
   const hotFavoriteCount = Number(hotMetrics?.favoriteCount || 0);
-  const showHotAlert = hotUnlockCount > 0 && !previewOnly;
-  const showTrendingAlert = !showHotAlert && hotFavoriteCount >= 10 && !previewOnly;
+  const showPendingDealAlert = isPendingDealActive(property) && !previewOnly;
+  const pendingDealDaysLeft = getPendingDealRemainingDays(property);
+  const showHotAlert = hotUnlockCount > 0 && !previewOnly && !showPendingDealAlert;
+  const showTrendingAlert = !showHotAlert && hotFavoriteCount >= 10 && !previewOnly && !showPendingDealAlert;
   const hotStripText = t.hotStrip
     ? t.hotStrip
         .replace('{unlockCount}', String(hotUnlockCount))
@@ -63,6 +66,9 @@ export function PropertyCard({ property, action, statusAction, onInterest, owner
     : `${hotUnlockCount} unlock${hotUnlockCount === 1 ? '' : 's'} · U ${hotUnlockPct}% / F ${hotFavoritePct}% / M ${hotMatchPct}%`;
   const trendingBadgeText = t.trendingBadge || 'Trending';
   const trendingStripText = t.trendingStrip || 'Several users want to know more... worth checking out!';
+  const pendingDealBadgeText = t.pendingDealBadge || 'Pending';
+  const pendingDealStripText = (t.pendingDealStrip || 'Advanced conversation reported by owner · {days}d left before feed block')
+    .replace('{days}', String(pendingDealDaysLeft || 0));
   const showExclusivityAlert = !previewOnly && (exclusivityStatus?.kind === 'new' || exclusivityStatus?.kind === 'partial');
   const isPartialExclusivity = exclusivityStatus?.kind === 'partial';
   const exclusivityBadge = isPartialExclusivity ? String(exclusivityStatus?.badge || 'Only 2 unlocks') : 'New';
@@ -314,6 +320,31 @@ export function PropertyCard({ property, action, statusAction, onInterest, owner
           </span>
         ) : null}
 
+        {showPendingDealAlert && !showExclusivityAlert ? (
+          <span style={{
+            position: 'absolute',
+            top: 8,
+            left: 8,
+            zIndex: 13,
+            background: 'linear-gradient(90deg, rgba(55,65,81,0.95) 0%, rgba(156,163,175,0.92) 100%)',
+            border: '1px solid rgba(209,213,219,0.88)',
+            color: '#fff',
+            padding: '2px 8px',
+            borderRadius: 999,
+            fontSize: 9,
+            fontWeight: 950,
+            letterSpacing: '0.5px',
+            pointerEvents: 'none',
+            textTransform: 'uppercase',
+            display: 'inline-flex',
+            alignItems: 'center',
+            gap: 4,
+          }}>
+            <Icon name="hourglass" size={10} color="#fff" strokeWidth={2.4} />
+            {pendingDealBadgeText}
+          </span>
+        ) : null}
+
         {showHotAlert && !showExclusivityAlert && (
           <span style={{
             position: 'absolute',
@@ -335,7 +366,7 @@ export function PropertyCard({ property, action, statusAction, onInterest, owner
           </span>
         )}
 
-        {showTrendingAlert && !showExclusivityAlert && (
+        {showTrendingAlert && !showExclusivityAlert && !showPendingDealAlert && (
           <span style={{
             position: 'absolute',
             top: 8,
@@ -413,6 +444,33 @@ export function PropertyCard({ property, action, statusAction, onInterest, owner
           </div>
         ) : null}
 
+        {showPendingDealAlert && !showExclusivityAlert ? (
+          <div style={{
+            position: 'absolute',
+            left: 0,
+            right: 0,
+            bottom: ownerBadgeBottom + ownerBadgeHeight + 4,
+            zIndex: 8,
+            background: 'linear-gradient(90deg, rgba(55,65,81,0.94) 0%, rgba(156,163,175,0.9) 100%)',
+            borderTop: '1px solid rgba(209,213,219,0.45)',
+            borderBottom: '1px solid rgba(209,213,219,0.45)',
+            padding: '4px 8px',
+            display: 'flex',
+            alignItems: 'center',
+            gap: 5,
+            color: '#fff',
+            fontSize: 10,
+            fontWeight: 850,
+            letterSpacing: '0.12px',
+            pointerEvents: 'none',
+          }}>
+            <Icon name="hourglass" size={12} color="#fff" strokeWidth={2.4} />
+            <span style={{ whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+              {pendingDealStripText}
+            </span>
+          </div>
+        ) : null}
+
         {showHotAlert && !showExclusivityAlert && (
           <div style={{
             position: 'absolute',
@@ -439,7 +497,7 @@ export function PropertyCard({ property, action, statusAction, onInterest, owner
           </div>
         )}
 
-        {showTrendingAlert && !showExclusivityAlert && (
+        {showTrendingAlert && !showExclusivityAlert && !showPendingDealAlert && (
           <div style={{
             position: 'absolute',
             left: 0,

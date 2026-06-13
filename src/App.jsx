@@ -92,6 +92,7 @@ import { useCheckoutFlow } from './hooks/useCheckoutFlow';
 import { canUsePlanAction, getPlanGateCopy, incrementPlanUsage, readPlanUsage } from './lib/planAccess';
 import { trackAppEvent } from './lib/adminEventTracking';
 import { createPropertyUnlockRecord, getPortfolioUnlockCost, getPropertyExclusivityStatus } from './lib/unlockRules';
+import { isPendingDealExpired } from './lib/pendingDeal';
 
 // Safe error logger — strips Supabase error details that may contain personal data
 const safeLogError = (label, error) => {
@@ -119,6 +120,10 @@ const isPropertiesOptionalColumnMissingError = (error) => {
     'properties.geocode_confidence',
     'properties.geocode_input',
     'properties.geocoded_at',
+    'properties.deal_closed',
+    'properties.pending_deal',
+    'properties.pending_deal_started_at',
+    'properties.pending_deal_expires_at',
   ];
   return optionalColumns.some((column) => isMissingColumnError(error, column));
 };
@@ -570,6 +575,10 @@ const mapLocalPropertyToDb = (property, userId) => {
     description: String(property?.description || '').trim() || null,
     markets,
     is_active: isTruthyFlag(property?.isActive, true),
+    deal_closed: isTruthyFlag(property?.dealClosed, false),
+    pending_deal: isTruthyFlag(property?.pendingDeal, false),
+    pending_deal_started_at: toIsoDateOrNull(property?.pendingDealStartedAt),
+    pending_deal_expires_at: toIsoDateOrNull(property?.pendingDealExpiresAt),
     publish_to_showcase: isTruthyFlag(property?.publishToShowcase, true),
     include_in_preview: isTruthyFlag(property?.includeInPreview, true),
     source: String(property?.source || 'portfolio').trim() || 'portfolio',
@@ -609,6 +618,10 @@ const mapDbPropertyToLocal = (row, images = []) => ({
   description: row.description || '',
   markets: normalizeStringArray(row.markets),
   isActive: isTruthyFlag(row.is_active, true),
+  dealClosed: isTruthyFlag(row.deal_closed, false),
+  pendingDeal: isTruthyFlag(row.pending_deal, false),
+  pendingDealStartedAt: row.pending_deal_started_at || null,
+  pendingDealExpiresAt: row.pending_deal_expires_at || null,
   dealUnavailable: isTruthyFlag(row.is_active, true) === false,
   publishToShowcase: isTruthyFlag(row.publish_to_showcase, true),
   includeInPreview: isTruthyFlag(row.include_in_preview, true),
@@ -1468,7 +1481,12 @@ export default function App() {
 
   const showcaseProperties = useMemo(() => {
     return propertyPortfolio
-      .filter((p) => isTruthyFlag(p?.isActive, true) && isTruthyFlag(p?.publishToShowcase, true))
+      .filter((p) => (
+        isTruthyFlag(p?.isActive, true)
+        && isTruthyFlag(p?.publishToShowcase, true)
+        && p?.dealClosed !== true
+        && !isPendingDealExpired(p)
+      ))
       .map((p, idx) => ({
         ...p,
         id: p.id ?? p.portfolioId ?? `portfolio-${idx}`,
@@ -2280,7 +2298,7 @@ export default function App() {
       try {
         let propertiesResult = await supabase
           .from('properties')
-          .select('id, type, address, city, state, zip, price, beds, baths, sqft, improvement, lot, deal_tag, objective, rehab, cap_rate, description, markets, is_active, publish_to_showcase, include_in_preview, source, owner_account_type, primary_profile, video, lat, lng, geocode_status, geocode_source, geocode_confidence, geocode_input, geocoded_at, created_at, updated_at')
+          .select('id, type, address, city, state, zip, price, beds, baths, sqft, improvement, lot, deal_tag, objective, rehab, cap_rate, description, markets, is_active, deal_closed, pending_deal, pending_deal_started_at, pending_deal_expires_at, publish_to_showcase, include_in_preview, source, owner_account_type, primary_profile, video, lat, lng, geocode_status, geocode_source, geocode_confidence, geocode_input, geocoded_at, created_at, updated_at')
           .eq('owner_id', supabaseUserId)
           .order('created_at', { ascending: false });
 

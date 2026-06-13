@@ -632,6 +632,8 @@ export const translations = {
       hotStrip: "{unlockCount} unlocks · U {unlockPct}% / F {favoritePct}% / M {matchPct}%",
       trendingBadge: "Trending",
       trendingStrip: "Several users want to know more... worth checking out!",
+      pendingDealBadge: "Pending",
+      pendingDealStrip: "Advanced conversation reported by owner · {days}d left before feed block",
     },
     categoryBar: {
       allPrefix: "All",
@@ -1619,6 +1621,8 @@ export const translations = {
       hotStrip: "{unlockCount} desbloqueios · D {unlockPct}% / F {favoritePct}% / M {matchPct}%",
       trendingBadge: "Em Alta",
       trendingStrip: "Varios interessados em saber mais... vale a pena conferir!",
+      pendingDealBadge: "Pendente",
+      pendingDealStrip: "Conversa avancada informada pelo dono · {days}d antes do bloqueio no feed",
     },
     categoryBar: {
       allPrefix: "Todos",
@@ -2606,6 +2610,8 @@ export const translations = {
       hotStrip: "{unlockCount} desbloqueos · D {unlockPct}% / F {favoritePct}% / M {matchPct}%",
       trendingBadge: "En Tendencia",
       trendingStrip: "Varios interesados quieren saber mas... vale la pena revisar!",
+      pendingDealBadge: "Pendiente",
+      pendingDealStrip: "Conversacion avanzada reportada por el dueno · {days}d antes del bloqueo en el feed",
     },
     categoryBar: {
       allPrefix: "Todos",
