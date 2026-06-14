@@ -3056,6 +3056,12 @@ export default function App() {
     }
   }, [subscription]);
 
+  const accessSubscription = useMemo(() => (
+    isAdmin
+      ? { planId: 'admin', id: 'admin', planName: 'Admin', status: 'active' }
+      : subscription
+  ), [isAdmin, subscription]);
+
   const chatNotifications = useMemo(() => {
     const entries = Object.entries(convos || {});
     let seenIncomingByContact = {};
@@ -3542,7 +3548,7 @@ export default function App() {
     const unlockCost = unlockMode !== 'normal' && quoteExclusiveCost != null
       ? baseUnlockCost + quoteExclusiveCost
       : Number(options?.cost || baseUnlockCost);
-    const unlockGate = canUsePlanAction(subscription, 'unlock', {
+    const unlockGate = canUsePlanAction(accessSubscription, 'unlock', {
       unlocksThisMonth: readPlanUsage('month')?.unlocks || 0,
     });
     if (!unlockGate.allowed) {
@@ -3557,7 +3563,7 @@ export default function App() {
         entityId: 'unlock',
         metadata: { feature: 'unlock', source: 'unlock_modal_auto_redirect' },
       });
-      addToast({ type: 'warning', title: copy.title, message: copy.message });
+      addToast({ type: 'warning', title: copy.title, message: copy.message, duration: 6500 });
       setModal(null);
       setUnlockQuote(null);
       openPricingHub();
@@ -3752,7 +3758,7 @@ export default function App() {
             isHydrationReady={dashboardHydrationReady}
             isHydrationSyncing={dashboardHydrationSyncing}
             userPreferences={userPreferences}
-            subscription={subscription}
+            subscription={accessSubscription}
             propertyUnlocks={propertyUnlocks}
             currentUserId={supabaseUserId || 'local-user'}
           />
@@ -3782,7 +3788,7 @@ export default function App() {
             professionalProfile={professionalProfile}
             mobileBottomNavCollapsed={mobileBottomNavCollapsed}
             userPreferences={userPreferences}
-            subscription={subscription}
+            subscription={accessSubscription}
             setPage={setPage}
             addToast={addToast}
             onOpenChatLanguageConfig={() => openSettingsTab('preferences')}
@@ -3850,7 +3856,7 @@ export default function App() {
             setSystemAccount={setSystemAccount}
             authSession={authSession}
             setAuthSession={setAuthSession}
-            subscription={subscription}
+            subscription={accessSubscription}
             onSubscriptionChanged={handleSubscriptionChanged}
             addToast={addToast}
             supabaseUserId={supabaseUserId}

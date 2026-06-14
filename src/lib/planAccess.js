@@ -97,9 +97,11 @@ export function getPlanLimit(subscriptionOrPlan, key) {
 }
 
 export function isFeatureAllowed(subscriptionOrPlan, feature) {
+  const planId = getPlanId(subscriptionOrPlan);
   const limits = getPlan(subscriptionOrPlan)?.limits || {};
+  if (planId === 'admin' || planId === 'enterprise') return true;
   if (feature === 'chat') return Boolean(limits.hasDealSifterChat);
-  if (feature === 'exportPdf') return Boolean(limits.canExportUnlockedPdf || getPlanId(subscriptionOrPlan) === 'enterprise');
+  if (feature === 'exportPdf') return Boolean(limits.canExportUnlockedPdf);
   return true;
 }
 
@@ -160,6 +162,8 @@ export function pruneOldPlanUsage() {
 }
 
 export function canUsePlanAction(subscriptionOrPlan, action, usage = {}) {
+  const planId = getPlanId(subscriptionOrPlan);
+  if (planId === 'admin') return { allowed: true, feature: action };
   const plan = getPlan(subscriptionOrPlan);
   const limits = plan?.limits || {};
 

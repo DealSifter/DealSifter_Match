@@ -519,7 +519,7 @@ export const translations = {
       planFeatures: {
         f1: "3 Gold Nuggets/month",
         f2: "5 likes/day",
-        f3: "3 active matches",
+        f3: "2 active matches",
         f4: "3 requests/month",
         f5: "Standard profile",
         p1: "20 Gold Nuggets + 3 in the first month",
@@ -1518,7 +1518,7 @@ export const translations = {
       planFeatures: {
         f1: "3 Gold Nuggets/mes",
         f2: "5 curtidas/dia",
-        f3: "3 matches ativos",
+        f3: "2 matches ativos",
         f4: "3 solicitacoes/mes",
         f5: "Perfil padrao",
         p1: "20 Gold Nuggets + 3 no primeiro mes",
@@ -2515,7 +2515,7 @@ export const translations = {
       planFeatures: {
         f1: "3 Gold Nuggets/mes",
         f2: "5 likes/dia",
-        f3: "3 matches activos",
+        f3: "2 matches activos",
         f4: "3 solicitudes/mes",
         f5: "Perfil estandar",
         p1: "20 Gold Nuggets + 3 en el primer mes",

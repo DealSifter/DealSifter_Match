@@ -974,13 +974,15 @@ export function Dashboard({ page, nuggets, setModal, setPage, onOpenOnboardingTa
   const [planGate, setPlanGate] = useState(null);
 
   const openPlanGate = useCallback((feature) => {
+    const copy = getPlanGateCopy(feature);
     trackAppEvent('plan_gate_shown', {
       entityType: 'feature',
       entityId: feature,
       metadata: { feature: String(feature || '') },
     });
-    setPlanGate({ ...getPlanGateCopy(feature), feature });
-  }, []);
+    addToast?.({ type: 'warning', title: copy.title, message: copy.message, duration: 6500 });
+    setPlanGate({ ...copy, feature });
+  }, [addToast]);
 
   const goToPricingFromGate = useCallback(() => {
     if (planGate?.feature) {
