@@ -306,7 +306,7 @@ function getLocalOwnerId(scopeKey) {
   return 999999;
 }
 
-function PortfolioDetail({ item, owner, ownerDesc, onBack, autoplayMedia = false, onBlockedExport = null }) {
+function PortfolioDetail({ item, owner, ownerDesc, onBack, autoplayMedia = false, onBlockedExport = null, imageSources = [] }) {
   const allT = useT('matches');
   const matchesT = allT.matches;
   const modalsT = allT.modals;
@@ -509,6 +509,16 @@ function PortfolioDetail({ item, owner, ownerDesc, onBack, autoplayMedia = false
   const fetchImageData = async (url) => {
     if (!url) return null;
     try {
+      if (url instanceof Blob || (typeof File !== 'undefined' && url instanceof File)) {
+        const dataUrl = await blobToDataUrl(url);
+        const format = String(url.type || '').includes('png') ? 'PNG' : 'JPEG';
+        return { dataUrl, format };
+      }
+      if (typeof url === 'object' && url?.blob instanceof Blob) {
+        const dataUrl = await blobToDataUrl(url.blob);
+        const format = String(url.blob.type || '').includes('png') ? 'PNG' : 'JPEG';
+        return { dataUrl, format };
+      }
       if (String(url).startsWith('data:image/')) {
         const format = String(url).slice(0, 30).toLowerCase().includes('png') ? 'PNG' : 'JPEG';
         return { dataUrl: url, format };
@@ -525,24 +535,137 @@ function PortfolioDetail({ item, owner, ownerDesc, onBack, autoplayMedia = false
     }
   };
 
+  const loadCanvasImage = (src) => new Promise((resolve, reject) => {
+    const img = new Image();
+    img.crossOrigin = 'anonymous';
+    img.onload = () => resolve(img);
+    img.onerror = () => reject(new Error('Image load failed'));
+    img.src = src;
+  });
+
+  const makeOsmTileMapImage = async ({ lat, lng, zoom = 12, width = 1200, height = 520 }) => {
+    try {
+      const tileSize = 256;
+      const scale = 2 ** zoom;
+      const latRad = lat * Math.PI / 180;
+      const centerX = ((lng + 180) / 360) * scale * tileSize;
+      const centerY = (0.5 - Math.log((1 + Math.sin(latRad)) / (1 - Math.sin(latRad))) / (4 * Math.PI)) * scale * tileSize;
+      const startX = centerX - width / 2;
+      const startY = centerY - height / 2;
+      const endX = centerX + width / 2;
+      const endY = centerY + height / 2;
+      const minTileX = Math.floor(startX / tileSize);
+      const maxTileX = Math.floor(endX / tileSize);
+      const minTileY = Math.floor(startY / tileSize);
+      const maxTileY = Math.floor(endY / tileSize);
+      const maxTileIndex = scale - 1;
+
+      const canvas = document.createElement('canvas');
+      canvas.width = width;
+      canvas.height = height;
+      const ctx = canvas.getContext('2d');
+      if (!ctx) return null;
+      ctx.fillStyle = '#eef4f4';
+      ctx.fillRect(0, 0, width, height);
+
+      for (let tx = minTileX; tx <= maxTileX; tx += 1) {
+        for (let ty = minTileY; ty <= maxTileY; ty += 1) {
+          if (ty < 0 || ty > maxTileIndex) continue;
+          const wrappedX = ((tx % scale) + scale) % scale;
+          const tileUrl = `https://tile.openstreetmap.org/${zoom}/${wrappedX}/${ty}.png`;
+          try {
+            const tile = await loadCanvasImage(tileUrl);
+            const dx = Math.round((tx * tileSize) - startX);
+            const dy = Math.round((ty * tileSize) - startY);
+            ctx.drawImage(tile, dx, dy, tileSize, tileSize);
+          } catch (e) {
+            void e;
+          }
+        }
+      }
+
+      const pinX = width / 2;
+      const pinY = height / 2 - 22;
+      ctx.shadowColor = 'rgba(0,0,0,0.34)';
+      ctx.shadowBlur = 14;
+      ctx.shadowOffsetY = 7;
+      ctx.fillStyle = '#f5a623';
+      ctx.beginPath();
+      ctx.arc(pinX, pinY, 30, 0, Math.PI * 2);
+      ctx.lineTo(pinX, pinY + 74);
+      ctx.closePath();
+      ctx.fill();
+      ctx.shadowColor = 'transparent';
+      ctx.fillStyle = '#fff';
+      ctx.beginPath();
+      ctx.arc(pinX, pinY, 12, 0, Math.PI * 2);
+      ctx.fill();
+
+      ctx.fillStyle = 'rgba(255,255,255,0.86)';
+      ctx.fillRect(10, height - 28, 178, 18);
+      ctx.fillStyle = '#4f5f6f';
+      ctx.font = '12px Arial, sans-serif';
+      ctx.textAlign = 'left';
+      ctx.fillText('© OpenStreetMap contributors', 16, height - 15);
+      return canvas.toDataURL('image/jpeg', 0.88);
+    } catch (e) {
+      void e;
+      return null;
+    }
+  };
+
   const normalizeExportImageUrl = (value) => {
     if (!value) return '';
+    if (value instanceof Blob || (typeof File !== 'undefined' && value instanceof File)) return value;
     if (typeof value === 'string') return value;
     if (typeof value === 'object') {
-      return value.url || value.src || value.publicUrl || value.dataUrl || value.preview || '';
+      return value.url || value.src || value.publicUrl || value.publicURL || value.signedUrl || value.signedURL || value.image_url || value.imageUrl || value.dataUrl || value.preview || value.blob || '';
     }
     return '';
   };
 
+  const resolveFullExportItem = () => {
+    const itemIds = new Set([
+      item?.id,
+      item?.portfolioId,
+      item?.propertyId,
+    ].map((v) => String(v || '').trim()).filter(Boolean));
+    const address = normalizeExportText(item?.address || '').toLowerCase();
+    const candidates = [
+      item,
+      ...(Array.isArray(imageSources) ? imageSources : []),
+      ...(Array.isArray(PROPERTIES) ? PROPERTIES : []),
+    ].filter(Boolean);
+
+    const found = candidates.find((candidate) => {
+      const candidateIds = [candidate?.id, candidate?.portfolioId, candidate?.propertyId]
+        .map((v) => String(v || '').trim())
+        .filter(Boolean);
+      if (candidateIds.some((id) => itemIds.has(id))) return true;
+      return address && normalizeExportText(candidate?.address || '').toLowerCase() === address;
+    });
+    const itemImages = Array.isArray(item?.images) ? item.images : (typeof item?.images === 'string' ? [item.images] : []);
+    return found ? { ...found, ...item, images: (itemImages.length ? itemImages : found.images) } : item;
+  };
+
   const getExportImageUrls = () => {
+    const fullItem = resolveFullExportItem();
     const raw = [
-      ...(Array.isArray(item?.images) ? item.images : []),
-      ...(Array.isArray(item?.media?.images) ? item.media.images : []),
-      item?.image,
-      item?.photo,
-      item?.thumbnail,
+      ...(Array.isArray(fullItem?.images) ? fullItem.images : []),
+      ...(typeof fullItem?.images === 'string' ? [fullItem.images] : []),
+      ...(Array.isArray(fullItem?.media?.images) ? fullItem.media.images : []),
+      fullItem?.image,
+      fullItem?.photo,
+      fullItem?.thumbnail,
+      fullItem?.thumb,
     ];
-    return Array.from(new Set(raw.map(normalizeExportImageUrl).filter(Boolean)));
+    const seen = new Set();
+    return raw.map(normalizeExportImageUrl).filter(Boolean).filter((entry) => {
+      const key = typeof entry === 'string' ? entry : `${entry?.type || 'blob'}:${entry?.size || ''}:${entry?.name || ''}`;
+      if (seen.has(key)) return false;
+      seen.add(key);
+      return true;
+    });
   };
 
   const getPropertyCoordinates = () => {
@@ -1009,8 +1132,23 @@ function PortfolioDetail({ item, owner, ownerDesc, onBack, autoplayMedia = false
       doc.roundedRect(mapX, mapY, mapW, mapInnerH, 5, 5);
 
       if (canRenderMap) {
-        const mapUrl = `https://staticmap.openstreetmap.de/staticmap.php?center=${lat},${lng}&zoom=14&size=1200x600&markers=${lat},${lng},red-pushpin`;
-        const mapImage = await fetchImageData(mapUrl);
+        const cityZoom = 12;
+        const mapUrls = [
+          `https://staticmap.openstreetmap.de/staticmap.php?center=${lat},${lng}&zoom=${cityZoom}&size=1200x520&markers=${lat},${lng},red-pushpin`,
+          `https://staticmap.openstreetmap.de/staticmap.php?center=${lat},${lng}&zoom=${cityZoom}&size=1200x520&maptype=mapnik&markers=${lat},${lng},red-pushpin`,
+          `https://staticmap.openstreetmap.de/staticmap.php?center=${lat},${lng}&zoom=13&size=1200x520&markers=${lat},${lng},red-pushpin`,
+          `https://staticmap.openstreetmap.de/staticmap.php?center=${lat},${lng}&zoom=12&size=1200x520`,
+          `https://staticmap.openstreetmap.de/staticmap.php?bbox=${lng - 0.09},${lat - 0.06},${lng + 0.09},${lat + 0.06}&size=1200x520&markers=${lat},${lng},red-pushpin`,
+        ];
+        let mapImage = null;
+        for (const mapUrl of mapUrls) {
+          mapImage = await fetchImageData(mapUrl);
+          if (mapImage) break;
+        }
+        if (!mapImage) {
+          const tileSnapshot = await makeOsmTileMapImage({ lat, lng, zoom: cityZoom, width: 1200, height: 520 });
+          if (tileSnapshot) mapImage = { dataUrl: tileSnapshot, format: 'JPEG' };
+        }
         if (mapImage) {
           drawImageContain(doc, mapImage.dataUrl, mapImage.format, mapX + 1, mapY + 1, mapW - 2, mapInnerH - 2);
         } else {
@@ -2557,6 +2695,7 @@ export function MatchesPage({ nuggets, setModal, openUnlock, unlocked, initialCh
                         onBack={() => setSelectedPortfolioItem(null)}
                         autoplayMedia={autoplayMedia}
                         onBlockedExport={guardExportPdf}
+                        imageSources={[...(propertyPortfolio || []), ...(showcaseProperties || []), ...(allPropertiesSource || [])]}
                       />
                     ) : (
                       <div style={{ background:C.card, border:`1px solid ${C.border}`, borderRadius:12, padding:12 }}>
@@ -2700,6 +2839,7 @@ export function MatchesPage({ nuggets, setModal, openUnlock, unlocked, initialCh
                   onBack={() => setMobileCardSheet(null)}
                   autoplayMedia={autoplayMedia}
                   onBlockedExport={guardExportPdf}
+                  imageSources={[...(propertyPortfolio || []), ...(showcaseProperties || []), ...(allPropertiesSource || [])]}
                 />
                 <button
                   type="button"
