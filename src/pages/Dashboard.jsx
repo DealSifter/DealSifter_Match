@@ -21,6 +21,7 @@ import { isSupabaseConfigured, supabase } from '../lib/supabaseClient';
 import { isUuid, mapPropertyHotMetrics } from '../lib/propertyHotMetrics';
 import { isPendingDealExpired } from '../lib/pendingDeal';
 import feedMatchIcon from '../assets/feed-match-icon.png';
+import spotlightIcon from '../assets/spotlight-icon.png';
 
 // Utilitário para checagem de flag booleana (string, bool, number)
 function isTruthyFlag(value, defaultValue = false) {
@@ -2341,6 +2342,13 @@ export function Dashboard({ page, nuggets, setModal, setPage, onOpenOnboardingTa
         .ds-spotlight-trigger {
           animation: dsSpotlightButtonPulse 1.15s ease-in-out infinite;
         }
+        .ds-spotlight-icon-mask {
+          display: inline-block;
+          flex-shrink: 0;
+          background: currentColor;
+          -webkit-mask: url(${spotlightIcon}) center / contain no-repeat;
+          mask: url(${spotlightIcon}) center / contain no-repeat;
+        }
         .ds-mobile-feed-overlay {
           position: fixed;
           inset: 58px 0 0 0;
@@ -3162,9 +3170,9 @@ export function Dashboard({ page, nuggets, setModal, setPage, onOpenOnboardingTa
                 style={{ display: 'inline-flex', alignItems: 'center', gap: 6, border: `1px solid ${C.alpha(C.accent, 0.86)}`, background: C.accent, color: '#061312', borderRadius: 999, padding: '4px 11px', minHeight: 30, fontSize: 12, lineHeight: '16px', fontWeight: 900, cursor: 'pointer', boxShadow: `0 0 14px ${C.alpha(C.accent, 0.28)}` }}
                 title="Spotlight paid cards"
               >
-                <Icon name="spotlight" size={16} color="#061312" strokeWidth={3.1} />
-                Spotlight
-              </button>
+              <span className="ds-spotlight-icon-mask" style={{ width: 18, height: 18, color: '#061312' }} />
+              Spotlight
+            </button>
               <div style={{ display: 'flex', alignItems: 'center', gap: 8, position: 'relative' }}>
                 <label style={{ marginRight: 4, fontSize: 13, color: C.t3 }}>State</label>
                 <details className="onb-multiselect" open={dropdownOpen} onToggle={(e) => setDropdownOpen(Boolean(e.target.open))} style={{ position: 'relative' }}>
@@ -3245,6 +3253,33 @@ export function Dashboard({ page, nuggets, setModal, setPage, onOpenOnboardingTa
                 Showcase
               </button>
             </div>
+            {isMobileViewport && (
+              <button
+                type="button"
+                className="ds-spotlight-trigger"
+                onClick={() => onOpenSpotlight?.()}
+                aria-label="Spotlight paid cards"
+                title="Spotlight paid cards"
+                style={{
+                  position: 'absolute',
+                  right: 8,
+                  top: '50%',
+                  transform: 'translateY(-50%)',
+                  width: 34,
+                  height: 30,
+                  borderRadius: 999,
+                  border: `1px solid ${C.alpha(C.accent, 0.86)}`,
+                  background: C.accent,
+                  color: '#061312',
+                  display: 'grid',
+                  placeItems: 'center',
+                  cursor: 'pointer',
+                  padding: 0,
+                }}
+              >
+                <span className="ds-spotlight-icon-mask" style={{ width: 22, height: 22, color: '#061312' }} />
+              </button>
+            )}
             {isMobileViewport && !mobileFeedSidebarOpen && (
               <button
                 type="button"

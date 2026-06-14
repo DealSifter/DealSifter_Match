@@ -1,6 +1,7 @@
 import React, { useMemo, useState } from 'react';
 import { C } from '../../theme/colors';
 import { Icon } from '../ui/Icon';
+import spotlightIcon from '../../assets/spotlight-icon.png';
 
 const SPOTLIGHT_COST = 10;
 
@@ -52,6 +53,13 @@ export function SpotlightModal({
           gap: 8px;
           margin-bottom: 14px;
         }
+        .ds-spotlight-modal-icon {
+          display: inline-block;
+          flex-shrink: 0;
+          background: currentColor;
+          -webkit-mask: url(${spotlightIcon}) center / contain no-repeat;
+          mask: url(${spotlightIcon}) center / contain no-repeat;
+        }
         @media (min-width: 768px) {
           .ds-spotlight-items-grid {
             grid-template-columns: repeat(2, minmax(0, 1fr));
@@ -73,7 +81,7 @@ export function SpotlightModal({
         <div style={{ display: 'flex', justifyContent: 'space-between', gap: 12, alignItems: 'flex-start', marginBottom: 14 }}>
           <div>
             <div style={{ display: 'inline-flex', alignItems: 'center', gap: 8, color: C.accent, fontSize: 12, fontWeight: 900, letterSpacing: '.08em', textTransform: 'uppercase', marginBottom: 8 }}>
-              <Icon name="spotlight" size={20} color={C.accent} strokeWidth={3} />
+              <span className="ds-spotlight-modal-icon" style={{ width: 24, height: 24, color: C.accent }} />
               Spotlight Cards
             </div>
             <h2 style={{ margin: 0, color: C.t1, fontSize: 26, lineHeight: 1.1 }}>Boost your cards for 30 days</h2>
