@@ -651,10 +651,10 @@ const mapLocalPropertyToDb = (property, userId) => {
 };
 
 // Sempre normaliza imagens apenas aqui
-const mapDbPropertyToLocal = (row, images = []) => ({
+const mapDbPropertyToLocal = (row, images = [], options = {}) => ({
   id: row.id,
   portfolioId: row.id,
-  ownerId: LOCAL_OWNER_ID,
+  ownerId: options.ownerId || LOCAL_OWNER_ID,
   type: row.type || 'SFR',
   address: row.address || '',
   city: row.city || '',
@@ -1845,19 +1845,102 @@ export default function App() {
     }
   }, []);
 
+  const [globalShowcaseProperties, setGlobalShowcaseProperties] = useState([]);
+
+  useEffect(() => {
+    if (!isSupabaseConfigured || !supabase || !supabaseUserId) {
+      setGlobalShowcaseProperties([]);
+      return undefined;
+    }
+
+    let cancelled = false;
+
+    const hydrateGlobalShowcase = async () => {
+      try {
+        let propertiesResult = await supabase
+          .from('properties')
+          .select('id, owner_id, type, address, city, state, zip, price, beds, baths, sqft, improvement, lot, deal_tag, objective, rehab, cap_rate, description, markets, is_active, deal_closed, pending_deal, pending_deal_started_at, pending_deal_expires_at, publish_to_showcase, include_in_preview, source, owner_account_type, primary_profile, video, lat, lng, geocode_status, geocode_source, geocode_confidence, geocode_input, geocoded_at, created_at, updated_at')
+          .eq('is_active', true)
+          .eq('publish_to_showcase', true)
+          .order('created_at', { ascending: false })
+          .limit(250);
+
+        if (propertiesResult?.error && isPropertiesOptionalColumnMissingError(propertiesResult.error)) {
+          propertiesResult = await supabase
+            .from('properties')
+            .select('id, owner_id, type, address, city, state, zip, price, beds, baths, sqft, improvement, lot, deal_tag, objective, rehab, cap_rate, description, markets, is_active, publish_to_showcase, include_in_preview, source, owner_account_type, primary_profile, created_at, updated_at')
+            .eq('is_active', true)
+            .eq('publish_to_showcase', true)
+            .order('created_at', { ascending: false })
+            .limit(250);
+        }
+
+        if (cancelled) return;
+        if (propertiesResult.error) {
+          safeLogError('Supabase global showcase hydration failed.', propertiesResult.error);
+          setGlobalShowcaseProperties([]);
+          return;
+        }
+
+        const propertyRows = Array.isArray(propertiesResult.data) ? propertiesResult.data : [];
+        let imageRows = [];
+        if (propertyRows.length > 0) {
+          const imageResult = await supabase
+            .from('property_images')
+            .select('property_id, image_url, sort_order')
+            .in('property_id', propertyRows.map((row) => row.id))
+            .order('sort_order', { ascending: true });
+
+          if (imageResult.error) {
+            safeLogError('Supabase global showcase images hydration failed.', imageResult.error);
+          } else {
+            imageRows = Array.isArray(imageResult.data) ? imageResult.data : [];
+          }
+        }
+
+        if (cancelled) return;
+
+        const imagesByProperty = imageRows.reduce((acc, row) => {
+          const key = String(row.property_id || '');
+          if (!key) return acc;
+          if (!acc[key]) acc[key] = [];
+          acc[key].push(String(row.image_url || '').trim());
+          return acc;
+        }, {});
+
+        setGlobalShowcaseProperties(propertyRows.map((row) => mapDbPropertyToLocal(row, imagesByProperty[row.id] || [], {
+          ownerId: row.owner_id || row.ownerId || '',
+        })));
+      } catch (error) {
+        if (!cancelled) {
+          safeLogError('Global showcase hydration failed.', error);
+          setGlobalShowcaseProperties([]);
+        }
+      }
+    };
+
+    hydrateGlobalShowcase();
+    return () => {
+      cancelled = true;
+    };
+  }, [supabaseUserId]);
+
   const showcaseProperties = useMemo(() => {
-    return propertyPortfolio
+    const byId = new Map();
+    [...(globalShowcaseProperties || []), ...(propertyPortfolio || [])]
       .filter((p) => (
         isTruthyFlag(p?.isActive, true)
         && isTruthyFlag(p?.publishToShowcase, true)
         && p?.dealClosed !== true
         && !isPendingDealExpired(p)
       ))
-      .map((p, idx) => ({
-        ...p,
-        id: p.id ?? p.portfolioId ?? `portfolio-${idx}`,
-      }));
-  }, [propertyPortfolio]);
+      .forEach((p, idx) => {
+        const id = p.id ?? p.portfolioId ?? `portfolio-${idx}`;
+        if (!id) return;
+        byId.set(String(id), { ...p, id });
+      });
+    return [...byId.values()];
+  }, [globalShowcaseProperties, propertyPortfolio]);
 
   const unlockPortfolioProperties = useMemo(() => {
     const byId = new Map();
