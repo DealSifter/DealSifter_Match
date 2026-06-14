@@ -369,6 +369,12 @@ function PortfolioDetail({ item, owner, ownerDesc, onBack, autoplayMedia = false
       return Boolean(saved?.exportPhotosWithEmail);
     } catch (e) { void e; return false; }
   });
+  const [exportMode, setExportMode] = useState(() => {
+    try {
+      const saved = JSON.parse(localStorage.getItem('ds_export_mail_defaults') || 'null');
+      return saved?.exportMode === 'email' ? 'email' : 'download';
+    } catch (e) { void e; return 'download'; }
+  });
   const [isPreparingExport, setIsPreparingExport] = useState(false);
 
   useEffect(() => {
@@ -503,12 +509,110 @@ function PortfolioDetail({ item, owner, ownerDesc, onBack, autoplayMedia = false
   const fetchImageData = async (url) => {
     if (!url) return null;
     try {
+      if (String(url).startsWith('data:image/')) {
+        const format = String(url).slice(0, 30).toLowerCase().includes('png') ? 'PNG' : 'JPEG';
+        return { dataUrl: url, format };
+      }
       const response = await fetch(url);
       if (!response.ok) return null;
       const blob = await response.blob();
       const dataUrl = await blobToDataUrl(blob);
       const format = String(blob.type || '').includes('png') ? 'PNG' : 'JPEG';
       return { dataUrl, format };
+    } catch (e) {
+      void e;
+      return null;
+    }
+  };
+
+  const normalizeExportImageUrl = (value) => {
+    if (!value) return '';
+    if (typeof value === 'string') return value;
+    if (typeof value === 'object') {
+      return value.url || value.src || value.publicUrl || value.dataUrl || value.preview || '';
+    }
+    return '';
+  };
+
+  const getExportImageUrls = () => {
+    const raw = [
+      ...(Array.isArray(item?.images) ? item.images : []),
+      ...(Array.isArray(item?.media?.images) ? item.media.images : []),
+      item?.image,
+      item?.photo,
+      item?.thumbnail,
+    ];
+    return Array.from(new Set(raw.map(normalizeExportImageUrl).filter(Boolean)));
+  };
+
+  const getPropertyCoordinates = () => {
+    const lat = Number(item?.lat ?? item?.latitude ?? item?.geo?.lat ?? item?.location?.lat);
+    const lng = Number(item?.lng ?? item?.longitude ?? item?.geo?.lng ?? item?.location?.lng);
+    return {
+      lat: Number.isFinite(lat) ? lat : null,
+      lng: Number.isFinite(lng) ? lng : null,
+    };
+  };
+
+  const makeFallbackMapImage = ({ lat, lng, label }) => {
+    try {
+      const canvas = document.createElement('canvas');
+      canvas.width = 1200;
+      canvas.height = 520;
+      const ctx = canvas.getContext('2d');
+      if (!ctx) return null;
+
+      const w = canvas.width;
+      const h = canvas.height;
+      const grd = ctx.createLinearGradient(0, 0, w, h);
+      grd.addColorStop(0, '#e9f5f4');
+      grd.addColorStop(0.55, '#f7fafc');
+      grd.addColorStop(1, '#dce8f3');
+      ctx.fillStyle = grd;
+      ctx.fillRect(0, 0, w, h);
+
+      ctx.strokeStyle = 'rgba(88, 106, 126, 0.2)';
+      ctx.lineWidth = 4;
+      for (let x = -120; x < w + 160; x += 145) {
+        ctx.beginPath();
+        ctx.moveTo(x, 0);
+        ctx.bezierCurveTo(x + 90, h * 0.28, x - 60, h * 0.62, x + 120, h);
+        ctx.stroke();
+      }
+      ctx.strokeStyle = 'rgba(53, 202, 201, 0.32)';
+      ctx.lineWidth = 7;
+      for (let yLine = 58; yLine < h; yLine += 112) {
+        ctx.beginPath();
+        ctx.moveTo(0, yLine);
+        ctx.bezierCurveTo(w * 0.27, yLine - 54, w * 0.68, yLine + 52, w, yLine - 22);
+        ctx.stroke();
+      }
+
+      const pinX = w / 2;
+      const pinY = h / 2 - 26;
+      ctx.shadowColor = 'rgba(0,0,0,0.28)';
+      ctx.shadowBlur = 18;
+      ctx.shadowOffsetY = 8;
+      ctx.fillStyle = '#f5a623';
+      ctx.beginPath();
+      ctx.arc(pinX, pinY, 42, 0, Math.PI * 2);
+      ctx.lineTo(pinX, pinY + 96);
+      ctx.closePath();
+      ctx.fill();
+      ctx.shadowColor = 'transparent';
+      ctx.fillStyle = '#ffffff';
+      ctx.beginPath();
+      ctx.arc(pinX, pinY, 18, 0, Math.PI * 2);
+      ctx.fill();
+
+      ctx.fillStyle = '#101827';
+      ctx.font = 'bold 38px Arial, sans-serif';
+      ctx.textAlign = 'center';
+      ctx.fillText(label || 'Property location', pinX, h - 92);
+      ctx.font = 'bold 28px Arial, sans-serif';
+      ctx.fillStyle = '#526174';
+      ctx.fillText(`${Number(lat).toFixed(5)}, ${Number(lng).toFixed(5)}`, pinX, h - 52);
+      return canvas.toDataURL('image/jpeg', 0.9);
     } catch (e) {
       void e;
       return null;
@@ -641,7 +745,8 @@ function PortfolioDetail({ item, owner, ownerDesc, onBack, autoplayMedia = false
     let y = margin;
 
     const logo = await fetchImageData(appLogo);
-    const mainImage = await fetchImageData(imageUrls?.[0]);
+    const normalizedImageUrls = Array.isArray(imageUrls) && imageUrls.length ? imageUrls : getExportImageUrls();
+    const mainImage = await fetchImageData(normalizedImageUrls?.[0]);
 
     const safe = (v, fallback = '-') => {
       const s = normalizeExportText(v);
@@ -884,8 +989,9 @@ function PortfolioDetail({ item, owner, ownerDesc, onBack, autoplayMedia = false
     // Map snapshot replaces old Additional Notes block.
     const mapH = pageHeight - y - margin;
     if (mapH > 90) {
-      const lat = Number(item?.lat);
-      const lng = Number(item?.lng);
+      const coords = getPropertyCoordinates();
+      const lat = coords.lat;
+      const lng = coords.lng;
       const canRenderMap = Number.isFinite(lat) && Number.isFinite(lng);
       doc.setFillColor(249, 250, 252);
       doc.setDrawColor(208, 216, 229);
@@ -908,53 +1014,25 @@ function PortfolioDetail({ item, owner, ownerDesc, onBack, autoplayMedia = false
         if (mapImage) {
           drawImageContain(doc, mapImage.dataUrl, mapImage.format, mapX + 1, mapY + 1, mapW - 2, mapInnerH - 2);
         } else {
-          doc.setFont('helvetica', 'normal');
-          doc.setFontSize(9.5);
-          doc.setTextColor(110, 120, 132);
-          doc.text('Map preview unavailable at the moment.', mapX + 10, mapY + 20);
+          const fallbackMap = makeFallbackMapImage({
+            lat,
+            lng,
+            label: `${safe(item?.city)}, ${safe(item?.state)} ${safe(item?.zip, '')}`.trim(),
+          });
+          if (fallbackMap) {
+            drawImageContain(doc, fallbackMap, 'JPEG', mapX + 1, mapY + 1, mapW - 2, mapInnerH - 2);
+          } else {
+            doc.setFont('helvetica', 'normal');
+            doc.setFontSize(9.5);
+            doc.setTextColor(110, 120, 132);
+            doc.text('Map preview unavailable at the moment.', mapX + 10, mapY + 20);
+          }
         }
       } else {
         doc.setFont('helvetica', 'normal');
         doc.setFontSize(9.5);
         doc.setTextColor(110, 120, 132);
         doc.text('Coordinates unavailable for this property.', mapX + 10, mapY + 20);
-      }
-    }
-
-    for (let i = 1; i < imageUrls.length; i += 2) {
-      doc.addPage();
-      const slotGap = 12;
-      const headerH = 18;
-      const slotW = pageWidth - margin * 2;
-      const slotH = Math.floor((pageHeight - margin * 2 - slotGap) / 2);
-
-      for (let slot = 0; slot < 2; slot += 1) {
-        const imgIndex = i + slot;
-        if (imgIndex >= imageUrls.length) break;
-        const url = imageUrls[imgIndex];
-        if (!url) continue;
-        try {
-          const img = await fetchImageData(url);
-          if (!img) continue;
-
-          const slotY = margin + slot * (slotH + slotGap);
-          const imgTop = slotY + headerH + 6;
-          const imgH = slotH - headerH - 8;
-
-          doc.setFillColor(245, 249, 255);
-          doc.setDrawColor(218, 227, 240);
-          doc.roundedRect(margin, slotY, slotW, headerH, 6, 6, 'FD');
-          doc.setFont('helvetica', 'bold');
-          doc.setTextColor(43, 67, 103);
-          doc.setFontSize(10.5);
-          doc.text(`Property Photo ${imgIndex + 1}`, margin + 8, slotY + 12);
-
-          doc.setDrawColor(205, 216, 232);
-          doc.roundedRect(margin, imgTop, slotW, imgH, 8, 8);
-          drawImageContain(doc, img.dataUrl, img.format, margin + 2, imgTop + 2, slotW - 4, imgH - 4);
-        } catch (e) {
-          void e;
-        }
       }
     }
 
@@ -992,16 +1070,15 @@ function PortfolioDetail({ item, owner, ownerDesc, onBack, autoplayMedia = false
       to: String(emailTo || '').trim(),
       cc: String(emailCc || '').trim(),
       bcc: String(emailBcc || '').trim(),
-      exportPdfLocal: Boolean(exportPdfLocal),
-      exportPhotosLocal: Boolean(exportPhotosLocal),
-      exportPdfWithEmail: Boolean(exportPdfWithEmail),
-      exportPhotosWithEmail: Boolean(exportPhotosWithEmail),
+      exportMode,
+      exportPdfLocal: exportMode === 'download' ? Boolean(exportPdfLocal) : false,
+      exportPhotosLocal: exportMode === 'download' ? Boolean(exportPhotosLocal) : false,
+      exportPdfWithEmail: exportMode === 'email' ? Boolean(exportPdfWithEmail) : false,
+      exportPhotosWithEmail: exportMode === 'email' ? Boolean(exportPhotosWithEmail) : false,
     };
     try { localStorage.setItem('ds_export_mail_defaults', JSON.stringify(payload)); } catch (e) { void e; }
 
-    const imageUrls = Array.isArray(item?.images) && item.images.length
-      ? item.images.filter(Boolean)
-      : [item?.image].filter(Boolean);
+    const imageUrls = getExportImageUrls();
 
     setIsPreparingExport(true);
     let bodySuffix = '';
@@ -1186,72 +1263,136 @@ function PortfolioDetail({ item, owner, ownerDesc, onBack, autoplayMedia = false
       {emailComposeOpen ? (
         <Modal onClose={() => setEmailComposeOpen(false)} maxWidth={520}>
           <div style={{ display: 'grid', gap: 10 }}>
-            <div style={{ fontSize: 14, fontWeight: 800, color: C.t1 }}>Email recipients</div>
-            <label style={{ display: 'grid', gap: 4 }}>
-              <span style={{ fontSize: 11, color: C.t2, fontWeight: 700 }}>To</span>
-              <input
-                value={emailTo}
-                onChange={(e) => setEmailTo(e.target.value)}
-                placeholder="recipient@company.com"
-                style={{ padding: '9px 10px', borderRadius: 8, border: `1px solid ${C.border}`, background: C.card, color: C.t1, outline: 'none' }}
-              />
-            </label>
-            <label style={{ display: 'grid', gap: 4 }}>
-              <span style={{ fontSize: 11, color: C.t2, fontWeight: 700 }}>Cc</span>
-              <input
-                value={emailCc}
-                onChange={(e) => setEmailCc(e.target.value)}
-                placeholder="copy@company.com"
-                style={{ padding: '9px 10px', borderRadius: 8, border: `1px solid ${C.border}`, background: C.card, color: C.t1, outline: 'none' }}
-              />
-            </label>
-            <label style={{ display: 'grid', gap: 4 }}>
-              <span style={{ fontSize: 11, color: C.t2, fontWeight: 700 }}>Bcc</span>
-              <input
-                value={emailBcc}
-                onChange={(e) => setEmailBcc(e.target.value)}
-                placeholder="hidden@company.com"
-                style={{ padding: '9px 10px', borderRadius: 8, border: `1px solid ${C.border}`, background: C.card, color: C.t1, outline: 'none' }}
-              />
-            </label>
-            <div style={{ fontSize: 10, color: C.t3 }}>
-              These values are saved as your default for future exports.
+            <div style={{ fontSize: 14, fontWeight: 800, color: C.t1 }}>{matchesT.exportModalTitle || 'Export portfolio release'}</div>
+
+            <div style={{ border: `1px solid ${C.border}`, borderRadius: 10, padding: 10, display: 'grid', gap: 8, background: C.alpha(C.accent, 0.04) }}>
+              <div style={{ fontSize: 11, color: C.t2, fontWeight: 800 }}>{matchesT.exportOptions || 'Export options'}</div>
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8 }}>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setExportMode('download');
+                    setExportPdfLocal(true);
+                    setExportPdfWithEmail(false);
+                    setExportPhotosWithEmail(false);
+                  }}
+                  style={{
+                    border: `1px solid ${exportMode === 'download' ? C.accent : C.border}`,
+                    background: exportMode === 'download' ? C.alpha(C.accent, 0.12) : C.card,
+                    color: exportMode === 'download' ? C.accent : C.t1,
+                    borderRadius: 9,
+                    padding: '9px 8px',
+                    fontSize: 11,
+                    fontWeight: 800,
+                    cursor: 'pointer',
+                  }}
+                >
+                  {matchesT.exportModeDownload || 'Download to device'}
+                </button>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setExportMode('email');
+                    setExportPdfWithEmail(true);
+                    setExportPdfLocal(false);
+                    if (!String(emailTo || '').trim()) setEmailTo(getProfileEmailFallback());
+                  }}
+                  style={{
+                    border: `1px solid ${exportMode === 'email' ? C.accent : C.border}`,
+                    background: exportMode === 'email' ? C.alpha(C.accent, 0.12) : C.card,
+                    color: exportMode === 'email' ? C.accent : C.t1,
+                    borderRadius: 9,
+                    padding: '9px 8px',
+                    fontSize: 11,
+                    fontWeight: 800,
+                    cursor: 'pointer',
+                  }}
+                >
+                  {matchesT.exportModeEmail || 'Prepare by email'}
+                </button>
+              </div>
+
+              {exportMode === 'download' ? (
+                <>
+                  <label style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 11, color: C.t1 }}>
+                    <input type="checkbox" checked={exportPdfLocal} onChange={(e) => setExportPdfLocal(e.target.checked)} />
+                    {matchesT.exportDownloadPdf || 'Download portfolio release PDF to device'}
+                  </label>
+                  <label style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 11, color: C.t1 }}>
+                    <input type="checkbox" checked={exportPhotosLocal} onChange={(e) => setExportPhotosLocal(e.target.checked)} />
+                    {matchesT.exportDownloadPhotos || 'Download property photos separately to device'}
+                  </label>
+                </>
+              ) : (
+                <>
+                  <label style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 11, color: C.t1 }}>
+                    <input type="checkbox" checked={exportPdfWithEmail} onChange={(e) => setExportPdfWithEmail(e.target.checked)} />
+                    {matchesT.exportEmailPdf || 'Prepare PDF to include with email'}
+                  </label>
+                  <label style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 11, color: C.t1 }}>
+                    <input type="checkbox" checked={exportPhotosWithEmail} onChange={(e) => setExportPhotosWithEmail(e.target.checked)} />
+                    {matchesT.exportEmailPhotos || 'Prepare separate photos to include with email'}
+                  </label>
+                  <div style={{ fontSize: 10, color: C.t3 }}>
+                    {matchesT.exportAttachmentHint || 'Email attachments are prepared locally and can be attached manually in your email client.'}
+                  </div>
+                </>
+              )}
             </div>
-            <div style={{ borderTop: `1px solid ${C.border}`, paddingTop: 10, display: 'grid', gap: 8 }}>
-              <div style={{ fontSize: 11, color: C.t2, fontWeight: 700 }}>Export options</div>
-              <label style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 11, color: C.t1 }}>
-                <input type="checkbox" checked={exportPdfLocal} onChange={(e) => setExportPdfLocal(e.target.checked)} />
-                Download portfolio release PDF to PC
+
+            <div style={{ borderTop: `1px solid ${C.border}`, paddingTop: 10, display: 'grid', gap: 8, opacity: exportMode === 'email' ? 1 : 0.48 }}>
+              <div style={{ fontSize: 14, fontWeight: 800, color: C.t1 }}>{matchesT.exportEmailRecipients || 'Email recipients'}</div>
+              <label style={{ display: 'grid', gap: 4 }}>
+                <span style={{ fontSize: 11, color: C.t2, fontWeight: 700 }}>{matchesT.exportRecipientTo || 'To'}</span>
+                <input
+                  value={emailTo}
+                  onChange={(e) => setEmailTo(e.target.value)}
+                  disabled={exportMode !== 'email'}
+                  placeholder={matchesT.exportRecipientPlaceholder || 'recipient@company.com'}
+                  style={{ padding: '9px 10px', borderRadius: 8, border: `1px solid ${C.border}`, background: exportMode === 'email' ? C.card : C.alpha(C.t1, 0.04), color: C.t1, outline: 'none' }}
+                />
               </label>
-              <label style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 11, color: C.t1 }}>
-                <input type="checkbox" checked={exportPhotosLocal} onChange={(e) => setExportPhotosLocal(e.target.checked)} />
-                Download property photos separately to PC
+              <label style={{ display: 'grid', gap: 4 }}>
+                <span style={{ fontSize: 11, color: C.t2, fontWeight: 700 }}>{matchesT.exportRecipientCc || 'Cc'}</span>
+                <input
+                  value={emailCc}
+                  onChange={(e) => setEmailCc(e.target.value)}
+                  disabled={exportMode !== 'email'}
+                  placeholder={matchesT.exportCcPlaceholder || 'copy@company.com'}
+                  style={{ padding: '9px 10px', borderRadius: 8, border: `1px solid ${C.border}`, background: exportMode === 'email' ? C.card : C.alpha(C.t1, 0.04), color: C.t1, outline: 'none' }}
+                />
               </label>
-              <label style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 11, color: C.t1 }}>
-                <input type="checkbox" checked={exportPdfWithEmail} onChange={(e) => setExportPdfWithEmail(e.target.checked)} />
-                Prepare PDF to include with email
-              </label>
-              <label style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 11, color: C.t1 }}>
-                <input type="checkbox" checked={exportPhotosWithEmail} onChange={(e) => setExportPhotosWithEmail(e.target.checked)} />
-                Prepare separate photos to include with email
+              <label style={{ display: 'grid', gap: 4 }}>
+                <span style={{ fontSize: 11, color: C.t2, fontWeight: 700 }}>{matchesT.exportRecipientBcc || 'Bcc'}</span>
+                <input
+                  value={emailBcc}
+                  onChange={(e) => setEmailBcc(e.target.value)}
+                  disabled={exportMode !== 'email'}
+                  placeholder={matchesT.exportBccPlaceholder || 'hidden@company.com'}
+                  style={{ padding: '9px 10px', borderRadius: 8, border: `1px solid ${C.border}`, background: exportMode === 'email' ? C.card : C.alpha(C.t1, 0.04), color: C.t1, outline: 'none' }}
+                />
               </label>
               <div style={{ fontSize: 10, color: C.t3 }}>
-                Email attachments are prepared locally and can be attached manually in your email client.
+                {exportMode === 'email'
+                  ? (matchesT.exportEmailSavedDefaults || 'These values are saved as your default for future exports.')
+                  : (matchesT.exportEmailDisabledHint || 'Choose email delivery to edit and save recipient fields.')}
               </div>
             </div>
             <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 8 }}>
               <button
+                type="button"
                 onClick={() => setEmailComposeOpen(false)}
                 style={{ border:`1px solid ${C.border}`, background:'transparent', color:C.t2, borderRadius:8, padding:'7px 10px', fontSize:11, cursor:'pointer' }}
               >
-                Cancel
+                {modalsT.cancel || 'Cancel'}
               </button>
               <button
+                type="button"
                 onClick={handleConfirmEmailExport}
                 disabled={isPreparingExport}
                 style={{ border:'none', background:C.accent, color:'#fff', borderRadius:8, padding:'7px 10px', fontSize:11, fontWeight:700, cursor:'pointer' }}
               >
-                {isPreparingExport ? 'Preparing...' : 'Continue'}
+                {isPreparingExport ? (matchesT.exportPreparing || 'Preparing...') : (matchesT.exportContinue || 'Continue')}
               </button>
             </div>
           </div>
