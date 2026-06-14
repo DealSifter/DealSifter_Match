@@ -8,7 +8,9 @@ export function ThemeProvider({ children, forcedTheme = null }) {
       const saved = localStorage.getItem('theme');
       if (saved === 'light' || saved === 'dark') return saved;
     } catch (e) { void e; }
-    return window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
+    // Keep the app deterministic across devices. The OS preference can change
+    // between tablet/browser sessions and was causing unsolicited theme flips.
+    return 'dark';
   });
 
   const effectiveTheme = forcedTheme === 'light' || forcedTheme === 'dark' ? forcedTheme : theme;

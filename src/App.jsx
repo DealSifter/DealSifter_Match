@@ -740,6 +740,85 @@ const sanitizeLegacyName = (value) => {
   return normalized;
 };
 
+const FEED_ACTION_SYNC_DEBOUNCE_MS = 700;
+const FEED_ACTION_MAX_ROWS = 240;
+
+const stripFeedActionValue = (value) => {
+  if (value == null) return value;
+  if (typeof value === 'string') {
+    if (value.startsWith('data:')) return '';
+    return value.length > 420 ? `${value.slice(0, 420)}...` : value;
+  }
+  if (typeof value === 'number' || typeof value === 'boolean') return value;
+  if (Array.isArray(value)) return value.slice(0, 8).map(stripFeedActionValue).filter((item) => item !== '');
+  if (typeof value === 'object') {
+    const next = {};
+    Object.entries(value).forEach(([key, raw]) => {
+      const lower = key.toLowerCase();
+      if (lower.includes('base64') || lower.includes('file') || lower.includes('blob')) return;
+      if (lower.includes('archived')) return;
+      const cleaned = stripFeedActionValue(raw);
+      if (cleaned == null || cleaned === '') return;
+      next[key] = cleaned;
+    });
+    return next;
+  }
+  return null;
+};
+
+const buildFeedActionPayload = (item) => {
+  if (!item || typeof item !== 'object') return {};
+  const allowedKeys = [
+    'id', 'ownerId', 'unlockOwnerId', 'name', 'title', 'category', 'sub', 'role', 'badge',
+    'avatar', 'photo', 'photoUrl', 'image', 'img', 'address', 'street', 'city', 'state',
+    'zip', 'zipcode', 'price', 'type', 'beds', 'baths', 'cap', 'portfolioCount',
+    'portfolioSize', 'createdAt', 'source',
+  ];
+  const compact = {};
+  allowedKeys.forEach((key) => {
+    if (item[key] != null) compact[key] = item[key];
+  });
+  return stripFeedActionValue(compact) || {};
+};
+
+const makeFeedActionRows = ({ matched = [], interested = [], unlocked = [] }) => {
+  const rows = [];
+  const pushRow = (action, entityType, entityId, payload = {}) => {
+    const id = String(entityId || '').trim();
+    if (!id) return;
+    rows.push({
+      action,
+      entity_type: entityType,
+      entity_id: id,
+      payload,
+    });
+  };
+
+  (Array.isArray(matched) ? matched : []).slice(-FEED_ACTION_MAX_ROWS).forEach((item) => {
+    pushRow('matched', 'person', item?.id, buildFeedActionPayload(item));
+  });
+  (Array.isArray(interested) ? interested : []).slice(-FEED_ACTION_MAX_ROWS).forEach((item) => {
+    pushRow('interested', 'property', item?.id, buildFeedActionPayload(item));
+  });
+  (Array.isArray(unlocked) ? unlocked : []).slice(-FEED_ACTION_MAX_ROWS).forEach((id) => {
+    pushRow('unlocked', 'person', id, { id: String(id) });
+  });
+
+  return rows;
+};
+
+const mergeFeedActionItems = (prev, incoming) => {
+  const next = Array.isArray(prev) ? [...prev] : [];
+  const seen = new Set(next.map((item) => String(item?.id || '')));
+  (Array.isArray(incoming) ? incoming : []).forEach((item) => {
+    const id = String(item?.id || '').trim();
+    if (!id || seen.has(id)) return;
+    seen.add(id);
+    next.push(item);
+  });
+  return next;
+};
+
 export default function App() {
   const profileSyncStateRef = useRef({ userId: null, loaded: false, hydrating: false, personalLoadedFromRemote: false, professionalLoadedFromRemote: false });
   const profileHydrationRetryRef = useRef({ timer: null, attempts: 0 });
@@ -763,6 +842,11 @@ export default function App() {
   const lastRealtimeRefreshAtRef = useRef({ profiles: 0, portfolio: 0 });
   const lastLocalSupabaseWriteAtRef = useRef(0);
   const prevUserIdRef = useRef(null); // tracks userId across renders to detect user change
+  const feedActionHydratingRef = useRef(false);
+  const feedActionLoadedUserRef = useRef(null);
+  const feedActionSyncTimerRef = useRef(null);
+  const feedActionLastSignatureRef = useRef('');
+  const hydrationBlockShownUserRef = useRef(null);
   const [isHydratingProfiles, setIsHydratingProfiles] = useState(false);
   const [showHydrationBlocking, setShowHydrationBlocking] = useState(false);
   const [profileHydrationCycle, setProfileHydrationCycle] = useState(0);
@@ -784,19 +868,33 @@ export default function App() {
       clearTimeout(realtimeRefreshDebounceRef.current.portfolio);
       realtimeRefreshDebounceRef.current.portfolio = null;
     }
+    if (feedActionSyncTimerRef.current) {
+      clearTimeout(feedActionSyncTimerRef.current);
+      feedActionSyncTimerRef.current = null;
+    }
   }, [portfolioHydrationRetryRef]);
 
   // Keep first-load hydration blocking short; continue syncing in background afterwards.
   useEffect(() => {
     const hydrating = isHydratingProfiles || isHydratingPortfolio;
+    if (!supabaseUserId) {
+      hydrationBlockShownUserRef.current = null;
+      setShowHydrationBlocking(false);
+      return;
+    }
     if (!hydrating) {
       setShowHydrationBlocking(false);
       return;
     }
+    if (hydrationBlockShownUserRef.current === supabaseUserId) {
+      setShowHydrationBlocking(false);
+      return;
+    }
+    hydrationBlockShownUserRef.current = supabaseUserId;
     setShowHydrationBlocking(true);
-    const timer = setTimeout(() => setShowHydrationBlocking(false), 4500);
+    const timer = setTimeout(() => setShowHydrationBlocking(false), 1600);
     return () => clearTimeout(timer);
-  }, [isHydratingProfiles, isHydratingPortfolio]);
+  }, [isHydratingProfiles, isHydratingPortfolio, supabaseUserId]);
 
   const [isAdminAuthProcessing, setIsAdminAuthProcessing] = useState(false);
   const [isConsentProcessing, setIsConsentProcessing] = useState(false);
@@ -1499,6 +1597,126 @@ export default function App() {
       localStorage.setItem('profileOwnerMap', JSON.stringify(ownerMap));
     } catch (e) { void e; }
   }, [supabaseUserId]);
+
+  const applyRemoteFeedActions = useCallback((rows = []) => {
+    const matchedItems = [];
+    const interestedItems = [];
+    const unlockedIds = [];
+
+    (Array.isArray(rows) ? rows : []).forEach((row) => {
+      const payload = row?.payload && typeof row.payload === 'object' ? row.payload : {};
+      const entityId = String(row?.entity_id || payload?.id || '').trim();
+      if (!entityId) return;
+
+      if (row.action === 'matched') {
+        matchedItems.push({ ...payload, id: payload?.id || entityId });
+      } else if (row.action === 'interested') {
+        interestedItems.push({ ...payload, id: payload?.id || entityId });
+      } else if (row.action === 'unlocked') {
+        unlockedIds.push(entityId);
+      }
+    });
+
+    feedActionHydratingRef.current = true;
+    if (matchedItems.length) setMatched((prev) => mergeFeedActionItems(prev, matchedItems));
+    if (interestedItems.length) setInterested((prev) => mergeFeedActionItems(prev, interestedItems));
+    if (unlockedIds.length) {
+      setUnlocked((prev) => {
+        const next = Array.isArray(prev) ? [...prev] : [];
+        const seen = new Set(next.map((id) => String(id)));
+        unlockedIds.forEach((id) => {
+          if (!seen.has(String(id))) {
+            seen.add(String(id));
+            next.push(id);
+          }
+        });
+        return next;
+      });
+    }
+    window.setTimeout(() => { feedActionHydratingRef.current = false; }, 0);
+  }, []);
+
+  const fetchRemoteFeedActions = useCallback(async () => {
+    if (!isSupabaseConfigured || !supabase || !supabaseUserId) return;
+    const { data, error } = await supabase
+      .from('user_feed_actions')
+      .select('action, entity_type, entity_id, payload, updated_at')
+      .eq('user_id', supabaseUserId)
+      .order('updated_at', { ascending: false })
+      .limit(FEED_ACTION_MAX_ROWS * 3);
+    if (error) {
+      safeLogError('Failed to hydrate feed actions', error);
+      return;
+    }
+    applyRemoteFeedActions(data || []);
+    feedActionLoadedUserRef.current = supabaseUserId;
+  }, [applyRemoteFeedActions, supabaseUserId]);
+
+  useEffect(() => {
+    feedActionLoadedUserRef.current = null;
+    feedActionLastSignatureRef.current = '';
+    if (!supabaseUserId) return;
+    fetchRemoteFeedActions();
+  }, [fetchRemoteFeedActions, supabaseUserId]);
+
+  useEffect(() => {
+    if (!isSupabaseConfigured || !supabase || !supabaseUserId) return undefined;
+    const channel = supabase
+      .channel(`user-feed-actions-${supabaseUserId}`)
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'user_feed_actions',
+          filter: `user_id=eq.${supabaseUserId}`,
+        },
+        (payload) => {
+          if (payload?.eventType === 'DELETE') return;
+          if (payload?.new) applyRemoteFeedActions([payload.new]);
+        }
+      )
+      .subscribe();
+
+    const refreshOnFocus = () => {
+      if (document.visibilityState === 'visible') fetchRemoteFeedActions();
+    };
+    window.addEventListener('focus', fetchRemoteFeedActions);
+    document.addEventListener('visibilitychange', refreshOnFocus);
+
+    return () => {
+      window.removeEventListener('focus', fetchRemoteFeedActions);
+      document.removeEventListener('visibilitychange', refreshOnFocus);
+      supabase.removeChannel(channel);
+    };
+  }, [applyRemoteFeedActions, fetchRemoteFeedActions, supabaseUserId]);
+
+  useEffect(() => {
+    if (!isSupabaseConfigured || !supabase || !supabaseUserId) return;
+    if (feedActionLoadedUserRef.current !== supabaseUserId) return;
+    if (feedActionHydratingRef.current) return;
+
+    const rows = makeFeedActionRows({ matched, interested, unlocked });
+    if (!rows.length) return;
+    const signature = JSON.stringify(rows.map((row) => [
+      row.action,
+      row.entity_type,
+      row.entity_id,
+      row.payload?.updatedAt || row.payload?.createdAt || '',
+    ]));
+    if (signature === feedActionLastSignatureRef.current) return;
+
+    if (feedActionSyncTimerRef.current) clearTimeout(feedActionSyncTimerRef.current);
+    feedActionSyncTimerRef.current = window.setTimeout(async () => {
+      feedActionLastSignatureRef.current = signature;
+      try {
+        const { error } = await supabase.rpc('ds_upsert_user_feed_actions', { p_actions: rows });
+        if (error) safeLogError('Failed to sync feed actions', error);
+      } catch (error) {
+        safeLogError('Failed to sync feed actions', error);
+      }
+    }, FEED_ACTION_SYNC_DEBOUNCE_MS);
+  }, [interested, matched, supabaseUserId, unlocked]);
 
   const [servicePortfolio, setServicePortfolio] = useState(() => {
     // On initial synchronous render, load from localStorage (lightweight, no images).
