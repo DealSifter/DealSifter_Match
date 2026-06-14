@@ -32,6 +32,11 @@ export const translations = {
       collapseFooterModules: "Collapse footer modules",
       dragDownHint: "drag down",
     },
+    orientationGuard: {
+      title: "Rotate your phone",
+      body: "DealSifter mobile is optimized for portrait mode. Turn your phone upright to continue.",
+      action: "Portrait mode",
+    },
     // Landing
     landing: {
       badge: "Now live in all 50 states",
@@ -1057,6 +1062,11 @@ export const translations = {
       collapseFooterModules: "Ocultar módulos do rodapé",
       dragDownHint: "arraste para baixo",
     },
+    orientationGuard: {
+      title: "Gire o celular",
+      body: "O DealSifter mobile foi otimizado para o modo vertical. Coloque o celular em pe para continuar.",
+      action: "Modo vertical",
+    },
     landing: {
       badge: "Ativo nos 50 estados",
       headline1: "A Maneira Mais Inteligente de",
@@ -2074,6 +2084,11 @@ export const translations = {
       expandFooterModules: "Expandir módulos del pie",
       collapseFooterModules: "Ocultar módulos del pie",
       dragDownHint: "arrastra hacia abajo",
+    },
+    orientationGuard: {
+      title: "Gira el celular",
+      body: "DealSifter mobile esta optimizado para modo vertical. Coloca el celular en posicion vertical para continuar.",
+      action: "Modo vertical",
     },
     landing: {
       badge: "Activo en los 50 estados",

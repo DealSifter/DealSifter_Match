@@ -89,6 +89,7 @@ import { useAuthSession, mapSupabaseUserToSession } from './hooks/useAuthSession
 import { useProfileSync } from './hooks/useProfileSync';
 import { usePortfolioSync } from './hooks/usePortfolioSync';
 import { useCheckoutFlow } from './hooks/useCheckoutFlow';
+import { useMediaQuery } from './hooks/useMediaQuery';
 import { canUsePlanAction, getPlanGateCopy, incrementPlanUsage, readPlanUsage } from './lib/planAccess';
 import { trackAppEvent } from './lib/adminEventTracking';
 import { createPropertyUnlockRecord, getPortfolioUnlockCost, getPropertyExclusivityStatus, resolveUnlockOwnerId } from './lib/unlockRules';
@@ -820,7 +821,43 @@ const mergeFeedActionItems = (prev, incoming) => {
   return next;
 };
 
+const MobilePortraitGuard = ({ copy }) => (
+  <div
+    role="dialog"
+    aria-modal="true"
+    aria-live="polite"
+    aria-label={copy?.title || 'Portrait mode required'}
+    style={{
+      position: 'fixed',
+      inset: 0,
+      zIndex: 2147483000,
+      display: 'grid',
+      placeItems: 'center',
+      padding: 'max(18px, env(safe-area-inset-top)) max(18px, env(safe-area-inset-right)) max(18px, env(safe-area-inset-bottom)) max(18px, env(safe-area-inset-left))',
+      background: 'radial-gradient(circle at 50% 24%, rgba(53,202,201,0.24), transparent 34%), rgba(7, 13, 12, 0.96)',
+      color: '#f8fffd',
+      textAlign: 'center',
+      boxSizing: 'border-box',
+    }}
+  >
+    <div style={{ width: 'min(88vw, 420px)', border: '1px solid rgba(53,202,201,0.42)', borderRadius: 24, padding: '24px 22px', background: 'rgba(12, 22, 20, 0.9)', boxShadow: '0 26px 80px rgba(0,0,0,0.42)' }}>
+      <img src={loaderMark} alt="DealSifter" style={{ width: 62, height: 62, objectFit: 'contain', marginBottom: 14, filter: 'drop-shadow(0 0 18px rgba(53,202,201,0.38))' }} />
+      <div style={{ fontSize: 22, lineHeight: 1.08, fontWeight: 900, letterSpacing: '-0.04em', marginBottom: 9 }}>
+        {copy?.title || 'Rotate your phone'}
+      </div>
+      <div style={{ fontSize: 14, lineHeight: 1.55, color: 'rgba(232, 249, 246, 0.82)', fontWeight: 650, marginBottom: 18 }}>
+        {copy?.body || 'DealSifter mobile is optimized for portrait mode. Turn your phone upright to continue.'}
+      </div>
+      <div style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: 10, border: '1px solid rgba(53,202,201,0.54)', background: 'rgba(53,202,201,0.12)', color: '#6ff4ec', borderRadius: 999, padding: '9px 14px', fontSize: 12, fontWeight: 900, textTransform: 'uppercase', letterSpacing: '.08em' }}>
+        <span aria-hidden="true" style={{ fontSize: 18, lineHeight: 1 }}>↻</span>
+        {copy?.action || 'Portrait mode'}
+      </div>
+    </div>
+  </div>
+);
+
 export default function App() {
+  const blockMobileLandscape = useMediaQuery('(hover: none) and (pointer: coarse) and (orientation: landscape) and (max-height: 520px)');
   const profileSyncStateRef = useRef({ userId: null, loaded: false, hydrating: false, personalLoadedFromRemote: false, professionalLoadedFromRemote: false });
   const profileHydrationRetryRef = useRef({ timer: null, attempts: 0 });
   const profileHydrationInputRef = useRef({ accountType: 'professional', userCategory: 'wholesaler' });
@@ -4218,6 +4255,7 @@ export default function App() {
   };
 
   const isPublicPricingPage = page === 'pricing' && (!authSession || prevPage === 'landing');
+  const orientationGuardCopy = getT().orientationGuard;
 
   return (
     <ThemeProvider forcedTheme={(page === 'landing' || isPublicPricingPage) ? 'light' : null}>
@@ -4378,6 +4416,8 @@ export default function App() {
             <DevInspector />
           </Suspense>
         )}
+
+        {blockMobileLandscape && <MobilePortraitGuard copy={orientationGuardCopy} />}
 
         <ToastContainer toasts={toasts} onDismiss={dismissToast} />
       </div>
