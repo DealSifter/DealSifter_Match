@@ -20,7 +20,9 @@ export function SpotlightModal({
 
   const selectedItems = eligibleItems.filter((item) => selected.has(item.key));
   const totalCost = selectedItems.length * SPOTLIGHT_COST;
-  const canPay = selectedItems.length > 0 && nuggets >= totalCost && !isLoading && !isProcessing;
+  const hasSelection = selectedItems.length > 0;
+  const hasEnoughBalance = nuggets >= totalCost;
+  const canSubmit = hasSelection && !isLoading && !isProcessing;
 
   const toggle = (key) => {
     setSelected((prev) => {
@@ -32,12 +34,46 @@ export function SpotlightModal({
   };
 
   return (
-    <div style={{ position: 'fixed', inset: 0, zIndex: 2600, display: 'grid', placeItems: 'center', padding: 18, background: 'rgba(0,0,0,.62)' }}>
-      <div style={{ width: 'min(94vw, 620px)', maxHeight: 'min(88vh, 720px)', overflow: 'auto', borderRadius: 24, background: C.card, border: `1px solid ${C.border}`, boxShadow: `0 24px 70px ${C.alpha('#000', 0.42)}`, padding: 22 }}>
+    <div className="ds-spotlight-modal-overlay" style={{ position: 'fixed', inset: 0, zIndex: 2600, display: 'grid', placeItems: 'center', padding: '82px 18px 22px', background: 'rgba(0,0,0,.62)', boxSizing: 'border-box' }}>
+      <style>{`
+        .ds-spotlight-modal-card {
+          width: min(94vw, 980px);
+          max-height: calc(100vh - 112px);
+          overflow: auto;
+          border-radius: 24px;
+          background: ${C.card};
+          border: 1px solid ${C.border};
+          box-shadow: 0 24px 70px ${C.alpha('#000', 0.42)};
+          padding: 22px;
+          box-sizing: border-box;
+        }
+        .ds-spotlight-items-grid {
+          display: grid;
+          gap: 8px;
+          margin-bottom: 14px;
+        }
+        @media (min-width: 768px) {
+          .ds-spotlight-items-grid {
+            grid-template-columns: repeat(2, minmax(0, 1fr));
+          }
+        }
+        @media (max-width: 767px) {
+          .ds-spotlight-modal-overlay {
+            padding: calc(70px + env(safe-area-inset-top, 0px)) 14px calc(20px + env(safe-area-inset-bottom, 0px)) !important;
+          }
+          .ds-spotlight-modal-card {
+            width: 100%;
+            max-height: calc(100vh - 100px);
+            border-radius: 20px;
+            padding: 18px;
+          }
+        }
+      `}</style>
+      <div className="ds-spotlight-modal-card">
         <div style={{ display: 'flex', justifyContent: 'space-between', gap: 12, alignItems: 'flex-start', marginBottom: 14 }}>
           <div>
             <div style={{ display: 'inline-flex', alignItems: 'center', gap: 8, color: C.accent, fontSize: 12, fontWeight: 900, letterSpacing: '.08em', textTransform: 'uppercase', marginBottom: 8 }}>
-              <Icon name="zap" size={15} color={C.accent} strokeWidth={2.4} />
+              <Icon name="spotlight" size={20} color={C.accent} strokeWidth={3} />
               Spotlight Cards
             </div>
             <h2 style={{ margin: 0, color: C.t1, fontSize: 26, lineHeight: 1.1 }}>Boost your cards for 30 days</h2>
@@ -68,7 +104,7 @@ export function SpotlightModal({
             No active published cards are available for spotlight yet.
           </div>
         ) : (
-          <div style={{ display: 'grid', gap: 8, marginBottom: 14 }}>
+          <div className="ds-spotlight-items-grid">
             {eligibleItems.map((item) => {
               const active = selected.has(item.key);
               return (
@@ -103,28 +139,30 @@ export function SpotlightModal({
           </div>
         )}
 
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 12, borderTop: `1px solid ${C.border}`, paddingTop: 14 }}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 12, borderTop: `1px solid ${C.border}`, paddingTop: 14, flexWrap: 'wrap' }}>
           <div style={{ color: totalCost > nuggets ? C.danger : C.t2, fontSize: 13, fontWeight: 800 }}>
             Total: {totalCost} nuggets
           </div>
           <button
             type="button"
-            disabled={!canPay}
+            disabled={!canSubmit}
             onClick={() => {
-              if (!canPay) return;
+              if (!canSubmit) return;
               onConfirm?.(selectedItems);
             }}
             style={{
-              border: 'none',
-              borderRadius: 14,
-              background: canPay ? C.accent : C.alpha(C.t1, 0.12),
-              color: canPay ? '#061312' : C.t3,
-              padding: '11px 18px',
+              border: `1px solid ${canSubmit ? C.accent : C.border}`,
+              borderRadius: 999,
+              background: canSubmit ? C.accent : C.alpha(C.t1, 0.12),
+              color: canSubmit ? '#061312' : C.t3,
+              minHeight: 36,
+              padding: '8px 18px',
               fontWeight: 900,
-              cursor: canPay ? 'pointer' : 'not-allowed',
+              cursor: canSubmit ? 'pointer' : 'not-allowed',
+              boxShadow: canSubmit ? `0 0 14px ${C.alpha(C.accent, 0.22)}` : 'none',
             }}
           >
-            {isProcessing ? 'Activating...' : 'Activate Spotlight'}
+            {isProcessing ? 'Activating...' : hasSelection && !hasEnoughBalance ? 'Get nuggets / upgrade' : 'Activate Spotlight'}
           </button>
         </div>
       </div>

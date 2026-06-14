@@ -3159,10 +3159,10 @@ export function Dashboard({ page, nuggets, setModal, setPage, onOpenOnboardingTa
                 type="button"
                 onClick={() => onOpenSpotlight?.()}
                 className="ds-spotlight-trigger"
-                style={{ display: 'inline-flex', alignItems: 'center', gap: 7, border: `1px solid ${C.alpha(C.accent, 0.86)}`, background: C.accent, color: '#061312', borderRadius: 999, padding: '7px 12px', fontSize: 12, fontWeight: 900, cursor: 'pointer', boxShadow: `0 0 14px ${C.alpha(C.accent, 0.28)}` }}
+                style={{ display: 'inline-flex', alignItems: 'center', gap: 6, border: `1px solid ${C.alpha(C.accent, 0.86)}`, background: C.accent, color: '#061312', borderRadius: 999, padding: '4px 11px', minHeight: 30, fontSize: 12, lineHeight: '16px', fontWeight: 900, cursor: 'pointer', boxShadow: `0 0 14px ${C.alpha(C.accent, 0.28)}` }}
                 title="Spotlight paid cards"
               >
-                <Icon name="spotlight" size={17} color="#061312" strokeWidth={3.1} />
+                <Icon name="spotlight" size={16} color="#061312" strokeWidth={3.1} />
                 Spotlight
               </button>
               <div style={{ display: 'flex', alignItems: 'center', gap: 8, position: 'relative' }}>
