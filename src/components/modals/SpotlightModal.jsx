@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { useMemo, useState } from 'react';
 import { C } from '../../theme/colors';
 import { Icon } from '../ui/Icon';
 
@@ -15,14 +15,6 @@ export function SpotlightModal({
 }) {
   const eligibleItems = useMemo(() => (items || []).filter((item) => item?.cardId && item?.cardKind), [items]);
   const [selected, setSelected] = useState(() => new Set());
-
-  useEffect(() => {
-    const allowed = new Set(eligibleItems.map((item) => item.key));
-    setSelected((prev) => {
-      const next = new Set([...prev].filter((key) => allowed.has(key)));
-      return next.size === prev.size ? prev : next;
-    });
-  }, [eligibleItems]);
 
   if (!open) return null;
 
