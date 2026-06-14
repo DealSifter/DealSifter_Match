@@ -1952,14 +1952,31 @@ export function Dashboard({ page, nuggets, setModal, setPage, onOpenOnboardingTa
 
   const handleMobileUnlockAction = () => {
     if (view === 'connections') {
-      if (!topConnectionCard) return;
-      if (isOwnConnectionCard(topConnectionCard)) {
+      const targetCard = topConnectionCard || connDisplay[0] || null;
+      if (!targetCard) {
+        addToast?.({ type: 'warning', message: 'No contact card available to unlock.' });
+        return;
+      }
+      if (isOwnConnectionCard(targetCard)) {
         addToast?.({ type: 'info', message: 'Own card, not selectionable' });
         return;
       }
-      if (unlocked.includes(topConnectionCard.id)) return;
+      const resolvedId = String(targetCard?.id || targetCard?.ownerId || '').trim();
+      if (!resolvedId) {
+        addToast?.({ type: 'warning', message: 'Contact owner could not be resolved for unlock.' });
+        return;
+      }
+      if (unlocked.some((id) => String(id) === resolvedId)) return;
       if (!canStartPlanAction('unlock')) return;
-      if (typeof openUnlock === 'function') openUnlock(topConnectionCard);
+      if (typeof openUnlock === 'function') {
+        openUnlock({
+          ...targetCard,
+          id: targetCard.id || resolvedId,
+          ownerId: targetCard.ownerId || resolvedId,
+          unlockOwnerId: targetCard.unlockOwnerId || targetCard.ownerId || resolvedId,
+          unlockScope: 'contact',
+        });
+      }
       return;
     }
 

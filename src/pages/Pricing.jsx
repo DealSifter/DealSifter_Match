@@ -27,6 +27,7 @@ export function Pricing({ setPage, setModal, prevPage, addToast, onRequestChecko
     return keys.map((k, i) => t.planFeatures?.[k] || fallbackFeatures[i]).filter(Boolean);
   };
   const showBackButton = prevPage === "landing";
+  const showMobileBackToApp = prevPage !== "landing";
   const topPadding = showBackButton ? "40px" : "58px";
   const addOns = [
     {
@@ -101,6 +102,42 @@ export function Pricing({ setPage, setModal, prevPage, addToast, onRequestChecko
 
   return (
     <div style={{ maxWidth:1000, margin:"0 auto", padding:`${topPadding} 20px 60px`, textAlign:"center" }}>
+      <style>{`
+        .pricing-mobile-back-app { display: none; }
+        @media (max-width: 900px), (hover: none) and (pointer: coarse) {
+          .pricing-mobile-back-app {
+            display: inline-flex !important;
+            position: fixed;
+            top: calc(64px + env(safe-area-inset-top, 0px));
+            left: 14px;
+            z-index: 20;
+            align-items: center;
+            gap: 6px;
+            padding: 8px 12px;
+            border-radius: 999px;
+            box-shadow: 0 10px 24px rgba(0,0,0,.16);
+          }
+        }
+      `}</style>
+      {showMobileBackToApp && (
+        <button
+          type="button"
+          className="pricing-mobile-back-app"
+          onClick={() => setPage(prevPage && prevPage !== 'pricing' ? prevPage : 'dashboard')}
+          style={{
+            display: 'none',
+            background: C.card,
+            border: `1px solid ${C.border}`,
+            color: C.t2,
+            fontSize: 12,
+            fontWeight: 800,
+            cursor: 'pointer',
+          }}
+        >
+          <Icon name="back" size={13} color={C.t2} />
+          {t.backToApp || 'Back to app'}
+        </button>
+      )}
       {showBackButton && (
         <button
           onClick={() => setPage("landing")}

@@ -2249,7 +2249,7 @@ export function MapView({
     PUBLIC_MAP_STYLE_KEYS.map((styleKey) => [styleKey, MAP_STYLE_OPTIONS[styleKey]]).filter(([, cfg]) => Boolean(cfg))
   ), []);
 
-  const panelOpenWidth = isMobileViewport ? 'min(84vw, 340px)' : `${panelWidth}px`;
+  const panelOpenWidth = isMobileViewport ? 'min(92vw, 390px)' : `${panelWidth}px`;
   const panelToggleLeft = panelCollapsed
     ? '0px'
     : (isMobileViewport ? '0px' : `${panelWidth}px`);
@@ -2259,6 +2259,7 @@ export function MapView({
       <style>{`
         .map-layout {
           height: calc((var(--app-vh, 1vh) * 100) - 58px);
+          --ds-map-bottom-offset: var(--ds-mobile-bottom-nav-visible-height, 0px);
           padding: 0;
           position: relative;
           overflow: hidden;
@@ -2268,7 +2269,7 @@ export function MapView({
           position: absolute;
           left: 0;
           top: 0;
-          bottom: 0;
+          bottom: var(--ds-map-bottom-offset);
           z-index: 12050;
           width: ${panelCollapsed ? '0px' : panelOpenWidth};
           padding: ${panelCollapsed ? 0 : 12}px;
@@ -2376,7 +2377,7 @@ export function MapView({
           position: absolute; 
           left: ${panelWidth}px; 
           top: 0; 
-          bottom: 0; 
+          bottom: var(--ds-map-bottom-offset); 
           width: 4px; 
           cursor: col-resize; 
           z-index: 12045;
@@ -2412,31 +2413,32 @@ export function MapView({
         .map-cluster-unlocked { background: linear-gradient(145deg, ${C.success}, #75ba75); }
         .map-cluster-total { font-size: var(--cluster-total-size, 14px); font-weight: 700; letter-spacing: -0.2px; line-height: 1; max-width: 100%; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
         .map-cluster-breakdown { font-size: var(--cluster-breakdown-size, 8px); opacity: .95; margin-top: 2px; line-height: 1; max-width: calc(100% - 8px); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-        .map-chip, .map-filter-mode { border: 1px solid var(--ui-border); border-radius: 999px; padding: 6px 10px; background: var(--ui-surface); color: ${C.t2}; cursor: pointer; font-size: 12px; font-weight: 400; transition: all .15s ease; }
+        .map-chip, .map-filter-mode { border: 1px solid var(--ui-border); border-radius: 999px; padding: 6px 10px; background: var(--ui-surface); color: ${C.t2}; cursor: pointer; font-size: 12px; font-weight: 400; transition: all .15s ease; min-height: 30px; line-height: 1.15; }
         .map-chip:hover, .map-filter-mode:hover { border-color: var(--ui-border); color: ${C.t1}; background: var(--ui-hover); }
         .map-panel-tab:hover { color: ${C.t1}; background: var(--ui-hover); }
         .map-chip-active, .map-filter-mode-active { background: var(--ui-surface); border-color: var(--ui-active); color: var(--ui-active); font-weight: 600; }
         .map-chip-active:hover, .map-filter-mode-active:hover { background: var(--ui-hover); }
         .map-panel-tab.active:hover { background: var(--ui-surface); }
         .map-chip-row-main {
-          display: flex;
+          display: grid;
+          grid-template-columns: repeat(2, minmax(0, 1fr));
           gap: 6px;
-          flex-wrap: nowrap;
           align-items: center;
-          justify-content: space-between;
         }
         .map-chip-row-main .map-chip {
-          flex: 1 1 0;
+          width: 100%;
           min-width: 0;
           display: inline-flex;
           align-items: center;
           justify-content: center;
           text-align: center;
-          padding: 6px 8px;
-          font-size: 12px;
-          white-space: nowrap;
-          overflow: hidden;
-          text-overflow: ellipsis;
+          padding: 7px 8px;
+          font-size: 11px;
+          white-space: normal;
+          overflow: visible;
+          text-overflow: clip;
+          word-break: normal;
+          hyphens: auto;
         }
         .map-list-item {
           border-radius: 10px;
@@ -2584,7 +2586,7 @@ export function MapView({
         }
         @media (max-width: 900px) {
           .map-layout {
-            --ds-map-mobile-bottom-offset: 108px;
+            --ds-map-mobile-bottom-offset: var(--ds-mobile-bottom-nav-visible-height, 0px);
             height: calc((var(--app-vh, 1vh) * 100) - 58px);
           }
           .map-panel {

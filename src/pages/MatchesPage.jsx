@@ -1083,12 +1083,12 @@ function PortfolioDetail({ item, owner, ownerDesc, onBack, autoplayMedia = false
           <div style={{ fontSize:10, color:C.t3 }}>{formatPropertyLocation(item)}</div>
         </div>
         <div style={{ display:'flex', gap:8, alignItems:'center' }}>
-          <button onClick={handleOpenEmailCompose}
+          <button type="button" onClick={handleOpenEmailCompose}
             title={matchesT.exportEmailTrello || 'Export to email (Trello format)'}
             style={{ border:`1px solid ${C.border}`, background:"transparent", color:C.t2, borderRadius:8, padding:"5px 8px", fontSize:11, cursor:"pointer" }}>
             {matchesT.export || 'Export'}
           </button>
-          <button onClick={onBack} style={{ border:`1px solid ${C.border}`, background:"transparent", color:C.t2, borderRadius:8, padding:"5px 8px", fontSize:11, cursor:"pointer" }}>
+          <button type="button" onClick={onBack} style={{ border:`1px solid ${C.border}`, background:"transparent", color:C.t2, borderRadius:8, padding:"5px 8px", fontSize:11, cursor:"pointer" }}>
             {matchesT.backToList}
           </button>
         </div>
@@ -2120,7 +2120,33 @@ export function MatchesPage({ nuggets, setModal, openUnlock, unlocked, initialCh
               <div>{t.selectConversation}</div>
             </div>
           ) : !isUnlocked ? (
-            <div style={{ flex:1, display:"flex", flexDirection:"column", alignItems:"center", justifyContent:"center", padding:40, textAlign:"center" }}>
+            <div style={{ flex:1, display:"flex", flexDirection:"column", alignItems:"center", justifyContent:"center", padding: isMobile ? '54px 22px 30px' : 40, textAlign:"center", position:'relative' }}>
+              {isMobile ? (
+                <button
+                  type="button"
+                  onClick={() => setActive(null)}
+                  style={{
+                    position:'absolute',
+                    top:12,
+                    right:12,
+                    display:'inline-flex',
+                    alignItems:'center',
+                    gap:6,
+                    padding:'8px 10px',
+                    borderRadius:999,
+                    border:`1px solid ${C.border}`,
+                    background:C.card,
+                    color:C.t2,
+                    fontSize:11,
+                    fontWeight:800,
+                    cursor:'pointer',
+                    boxShadow:'0 8px 18px rgba(0,0,0,.12)',
+                  }}
+                >
+                  <Icon name="back" size={12} color={C.t2} />
+                  {t.backToMatches || 'Back to Matches'}
+                </button>
+              ) : null}
               <Icon name="lock" size={64} color={C.gold} style={{ marginBottom:20 }} />
               <h3 style={{ fontSize:22, fontWeight:800, marginBottom:10 }}>{t.chatLocked}</h3>
               <p style={{ color:C.t3, maxWidth:360, marginBottom:30 }}>
@@ -2130,14 +2156,14 @@ export function MatchesPage({ nuggets, setModal, openUnlock, unlocked, initialCh
                 })}
               </p>
               {nuggets >= activeUnlockCost ? (
-                <button onClick={() => openUnlock(activeOwner, isActiveProperty ? { unlockScope: 'property', property: active, propertyId: active.id, propertyAddress: active.address } : {})} style={{ padding:"16px 32px", borderRadius:12, background:C.gold, color:C.bg, fontWeight:800, border:"none", cursor:"pointer" }}>
+                <button type="button" onClick={() => openUnlock(activeOwner, isActiveProperty ? { unlockScope: 'property', property: active, propertyId: active.id, propertyAddress: active.address } : {})} style={{ padding:"16px 32px", borderRadius:12, background:C.gold, color:C.bg, fontWeight:800, border:"none", cursor:"pointer" }}>
                   {formatTemplate(t.unlockCta, {
                     count: activeUnlockCost,
                     unit: activeUnlockCost === 1 ? modalsT.nuggetOne : modalsT.nuggetOther,
                   })}
                 </button>
               ) : (
-                <button onClick={() => setModal('store')} style={{ padding:"16px 32px", borderRadius:12, background:C.accent, color:'#fff', fontWeight:800, border:"none", cursor:"pointer" }}>
+                <button type="button" onClick={() => setModal('store')} style={{ padding:"16px 32px", borderRadius:12, background:C.accent, color:'#fff', fontWeight:800, border:"none", cursor:"pointer" }}>
                   {formatTemplate(t.buyNuggetsRequired, { count: activeUnlockCost })}
                 </button>
               )}

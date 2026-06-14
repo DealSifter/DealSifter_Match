@@ -26,9 +26,35 @@ export function UnlockModal({ match, nuggets, unlockCost = 1, exclusivityStatus 
     .replace('{count}', String(unlockCost))
     .replace('{unit}', nuggetUnit);
   return (
-    <Modal onClose={onClose} maxWidth={canBuyLinkedExclusive ? 440 : 400}>
-      <div style={{ textAlign:"center" }}>
-        <div style={{ display:"flex", justifyContent:"center", marginBottom:16 }}><Icon name="lock" size={48} color={C.gold} strokeWidth={1.5} /></div>
+    <Modal
+      onClose={onClose}
+      maxWidth={canBuyLinkedExclusive ? 440 : 400}
+      contentClassName="ds-unlock-modal"
+      contentStyle={{ overflowY: 'visible' }}
+    >
+      <style>{`
+        @media (max-width: 767px), (hover: none) and (pointer: coarse) {
+          .ds-unlock-modal.ds-modal-content {
+            padding: 18px 16px 16px !important;
+            overflow: visible !important;
+            max-height: none !important;
+          }
+          .ds-unlock-body .unlock-lock-icon { margin-bottom: 8px !important; }
+          .ds-unlock-body .unlock-lock-icon svg { width: 34px !important; height: 34px !important; }
+          .ds-unlock-body h3 { font-size: 18px !important; margin-bottom: 6px !important; padding-right: 18px; }
+          .ds-unlock-body p { font-size: 12px !important; line-height: 1.35 !important; margin-bottom: 10px !important; padding: 0 !important; }
+          .ds-unlock-info { padding: 9px !important; margin-bottom: 10px !important; border-radius: 12px !important; }
+          .ds-unlock-info > div { margin-bottom: 6px !important; }
+          .ds-unlock-linked { gap: 6px !important; padding: 8px !important; margin-bottom: 10px !important; }
+          .ds-unlock-linked-card { grid-template-columns: 56px 1fr !important; padding: 6px !important; }
+          .ds-unlock-linked-card > div:first-child { width: 56px !important; height: 42px !important; }
+          .ds-unlock-cost { padding: 11px !important; margin-bottom: 12px !important; border-radius: 13px !important; }
+          .ds-unlock-actions { gap: 7px !important; }
+          .ds-unlock-actions button { padding: 11px 12px !important; min-height: 42px !important; font-size: 13px !important; border-radius: 12px !important; }
+        }
+      `}</style>
+      <div className="ds-unlock-body" style={{ textAlign:"center" }}>
+        <div className="unlock-lock-icon" style={{ display:"flex", justifyContent:"center", marginBottom:16 }}><Icon name="lock" size={48} color={C.gold} strokeWidth={1.5} /></div>
         <h3 style={{ color:C.t1, fontWeight:800, fontSize:22, marginBottom:8 }}>{t.unlockTitle} {match.name}</h3>
         <p style={{ color:C.t2, fontSize:14, lineHeight:1.6, marginBottom: canBuyExclusive || isBlockedByExclusive ? 12 : 24, padding: "0 10px" }}>
           {isBlockedByExclusive
@@ -37,7 +63,7 @@ export function UnlockModal({ match, nuggets, unlockCost = 1, exclusivityStatus 
         </p>
 
         {canBuyExclusive ? (
-          <div style={{
+          <div className="ds-unlock-info" style={{
             margin: '0 0 18px',
             padding: 13,
             borderRadius: 14,
@@ -60,7 +86,7 @@ export function UnlockModal({ match, nuggets, unlockCost = 1, exclusivityStatus 
         ) : null}
 
         {canBuyLinkedExclusive ? (
-          <div style={{
+          <div className="ds-unlock-linked" style={{
             margin: '0 0 18px',
             padding: 12,
             borderRadius: 14,
@@ -79,7 +105,7 @@ export function UnlockModal({ match, nuggets, unlockCost = 1, exclusivityStatus 
             <div style={{ color: C.t2, fontSize: 12, lineHeight: 1.45 }}>
               {t.linkedExclusivityDesc || 'This contact has at least one showcase property eligible for exclusivity. You can unlock the contact normally or secure exclusivity on this property for 7 days.'}
             </div>
-            <div style={{ display: 'grid', gridTemplateColumns: '72px 1fr', gap: 10, alignItems: 'center', padding: 8, borderRadius: 12, background: C.alpha(C.card, 0.72), border: `1px solid ${C.border}` }}>
+            <div className="ds-unlock-linked-card" style={{ display: 'grid', gridTemplateColumns: '72px 1fr', gap: 10, alignItems: 'center', padding: 8, borderRadius: 12, background: C.alpha(C.card, 0.72), border: `1px solid ${C.border}` }}>
               <div style={{ width: 72, height: 54, borderRadius: 10, overflow: 'hidden', background: C.alpha(C.t1, 0.06), display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                 {contactExclusivityOption.image ? (
                   <img src={contactExclusivityOption.image} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }} />
@@ -106,7 +132,7 @@ export function UnlockModal({ match, nuggets, unlockCost = 1, exclusivityStatus 
           </div>
         ) : null}
         
-        <div style={{ background:C.alpha(C.gold, 0.08), border:`1px solid ${C.alpha(C.gold, 0.25)}`, borderRadius:16, padding:18, marginBottom:24 }}>
+        <div className="ds-unlock-cost" style={{ background:C.alpha(C.gold, 0.08), border:`1px solid ${C.alpha(C.gold, 0.25)}`, borderRadius:16, padding:18, marginBottom:24 }}>
           <div style={{ display:"flex", justifyContent:"space-between", marginBottom:10 }}>
             <span style={{ color:C.t2, fontSize:14 }}>{t.cost}</span>
             <div style={{ display:"flex", alignItems:"center", gap:6 }}><Icon name="nugget" size={14} color={C.gold} /><span style={{ color:C.gold, fontWeight:700 }}>{unlockCost} {nuggetUnit}</span></div>
@@ -118,29 +144,29 @@ export function UnlockModal({ match, nuggets, unlockCost = 1, exclusivityStatus 
           {!can && <div style={{ marginTop:12, color:C.danger, fontSize:13, fontWeight:600, display:"flex", alignItems:"center", gap:6, justifyContent:"center" }}><Icon name="info" size={14} color={C.danger} /> {t.notEnough}</div>}
         </div>
 
-        <div style={{ display:"flex", flexDirection:"column", gap:10 }}>
+        <div className="ds-unlock-actions" style={{ display:"flex", flexDirection:"column", gap:10 }}>
           {isBlockedByExclusive ? (
-            <button onClick={onClose} style={{ width:"100%", padding:"15px", borderRadius:14, background:C.alpha(C.gold, 0.14), border:`1px solid ${C.alpha(C.gold, 0.35)}`, color:C.gold, fontWeight:800, fontSize:16, cursor:"pointer" }}>
+            <button type="button" onClick={onClose} style={{ width:"100%", padding:"15px", borderRadius:14, background:C.alpha(C.gold, 0.14), border:`1px solid ${C.alpha(C.gold, 0.35)}`, color:C.gold, fontWeight:800, fontSize:16, cursor:"pointer" }}>
               {t.exclusivityCheckLater || 'Favorite and check later'}
             </button>
           ) : can
-            ? <button onClick={() => onUnlock(match)} style={{ width:"100%", padding:"15px", borderRadius:14, background:C.gold, border:"none", color:C.bg, fontWeight:800, fontSize:16, cursor:"pointer", display:"flex", alignItems:"center", justifyContent:"center", gap:10, boxShadow: `0 4px 15px ${C.alpha(C.gold, 0.3)}` }}>
+            ? <button type="button" onClick={() => onUnlock(match)} style={{ width:"100%", padding:"15px", borderRadius:14, background:C.gold, border:"none", color:C.bg, fontWeight:800, fontSize:16, cursor:"pointer", display:"flex", alignItems:"center", justifyContent:"center", gap:10, boxShadow: `0 4px 15px ${C.alpha(C.gold, 0.3)}` }}>
                 <Icon name="unlock" size={18} color={C.bg} /> {unlockForLabel}
               </button>
-            : <button onClick={onBuyMore} style={{ width:"100%", padding:"15px", borderRadius:14, background:C.accent, border:"none", color:"#fff", fontWeight:800, fontSize:16, cursor:"pointer", display:"flex", alignItems:"center", justifyContent:"center", gap:10 }}>
+            : <button type="button" onClick={onBuyMore} style={{ width:"100%", padding:"15px", borderRadius:14, background:C.accent, border:"none", color:"#fff", fontWeight:800, fontSize:16, cursor:"pointer", display:"flex", alignItems:"center", justifyContent:"center", gap:10 }}>
                 <Icon name="cart" size={18} color="#fff" /> {t.buyMore}
               </button>
           }
           {canBuyExclusive ? (
             canExclusive ? (
-              <button onClick={() => onUnlock(match, { mode: exclusivityStatus.exclusivityMode || 'total', cost: exclusiveCost })} style={{ width:"100%", padding:"15px", borderRadius:14, background: exclusivityStatus.kind === 'partial' ? 'linear-gradient(90deg, #7e2d00, #f59e0b)' : 'linear-gradient(90deg, #05462d, #14b8a6)', border:"none", color:"#fff", fontWeight:900, fontSize:15, cursor:"pointer", display:"flex", alignItems:"center", justifyContent:"center", gap:10, boxShadow: `0 4px 18px ${C.alpha(exclusivityStatus.kind === 'partial' ? C.gold : C.accent, 0.28)}` }}>
+              <button type="button" onClick={() => onUnlock(match, { mode: exclusivityStatus.exclusivityMode || 'total', cost: exclusiveCost })} style={{ width:"100%", padding:"15px", borderRadius:14, background: exclusivityStatus.kind === 'partial' ? 'linear-gradient(90deg, #7e2d00, #f59e0b)' : 'linear-gradient(90deg, #05462d, #14b8a6)', border:"none", color:"#fff", fontWeight:900, fontSize:15, cursor:"pointer", display:"flex", alignItems:"center", justifyContent:"center", gap:10, boxShadow: `0 4px 18px ${C.alpha(exclusivityStatus.kind === 'partial' ? C.gold : C.accent, 0.28)}` }}>
                 <span style={{ color: exclusivityStatus.kind === 'partial' ? C.danger : C.gold }}>⚡</span>
                 {(t.unlockExclusiveForCount || 'Unlock with exclusivity for {count} {unit}')
                   .replace('{count}', String(exclusiveCost))
                   .replace('{unit}', exclusiveUnit)}
               </button>
             ) : (
-              <button onClick={onBuyMore} style={{ width:"100%", padding:"15px", borderRadius:14, background:C.accent, border:"none", color:"#fff", fontWeight:800, fontSize:15, cursor:"pointer" }}>
+              <button type="button" onClick={onBuyMore} style={{ width:"100%", padding:"15px", borderRadius:14, background:C.accent, border:"none", color:"#fff", fontWeight:800, fontSize:15, cursor:"pointer" }}>
                 {t.buyMore} ({exclusiveCost} {exclusiveUnit})
               </button>
             )
@@ -148,6 +174,7 @@ export function UnlockModal({ match, nuggets, unlockCost = 1, exclusivityStatus 
           {canBuyLinkedExclusive ? (
             canLinkedExclusive ? (
               <button
+                type="button"
                 onClick={() => onUnlock({
                   ...match,
                   unlockScope: 'property',
@@ -162,12 +189,12 @@ export function UnlockModal({ match, nuggets, unlockCost = 1, exclusivityStatus 
                   .replace('{unit}', linkedExclusiveUnit)}
               </button>
             ) : (
-              <button onClick={onBuyMore} style={{ width:"100%", padding:"15px", borderRadius:14, background:C.accent, border:"none", color:"#fff", fontWeight:800, fontSize:15, cursor:"pointer" }}>
+              <button type="button" onClick={onBuyMore} style={{ width:"100%", padding:"15px", borderRadius:14, background:C.accent, border:"none", color:"#fff", fontWeight:800, fontSize:15, cursor:"pointer" }}>
                 {t.buyMore} ({linkedExclusiveCost} {linkedExclusiveUnit})
               </button>
             )
           ) : null}
-          <button onClick={onClose} style={{ width:"100%", padding:"12px", borderRadius:14, background:"transparent", border:`1px solid ${C.border}`, color:C.t2, fontWeight:600, fontSize:14, cursor:"pointer" }}>{t.cancel}</button>
+          <button type="button" onClick={onClose} style={{ width:"100%", padding:"12px", borderRadius:14, background:"transparent", border:`1px solid ${C.border}`, color:C.t2, fontWeight:600, fontSize:14, cursor:"pointer" }}>{t.cancel}</button>
         </div>
       </div>
     </Modal>

@@ -8,6 +8,7 @@ export function Modal({
   ariaLabel = 'Modal dialog',
   overlayStyle = {},
   contentStyle = {},
+  contentClassName = '',
 }) {
   // Prevent scrolling on body when modal is open; restore previous overflow on unmount
   useEffect(() => {
@@ -80,7 +81,7 @@ export function Modal({
         }
       `}</style>
       <div
-        className="ds-modal-content"
+        className={`ds-modal-content ${contentClassName}`.trim()}
         role="dialog"
         aria-modal="true"
         aria-label={ariaLabel}
