@@ -7,7 +7,7 @@ import { Modal } from '../ui/Modal';
 
 const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/;
 
-export function AuthAccessModal({ initialTab = 'signup', onClose, onSubmit, onForgotPassword, onOpenAdminAuth = () => {} }) {
+export function AuthAccessModal({ initialTab = 'signup', onClose, onSubmit, onForgotPassword }) {
   const allT = useT('global');
   const t = allT.auth || {};
   const [tab, setTab] = useState(initialTab === 'login' ? 'login' : 'signup');
@@ -204,22 +204,6 @@ export function AuthAccessModal({ initialTab = 'signup', onClose, onSubmit, onFo
           {t.continueGoogle || 'Continue with Google'}
         </button>
 
-        <button
-          onClick={onOpenAdminAuth}
-          style={{
-            width: '100%',
-            border: `1px dashed ${C.border}`,
-            borderRadius: 10,
-            background: 'transparent',
-            color: C.t3,
-            padding: '8px 10px',
-            fontSize: 11,
-            fontWeight: 700,
-            cursor: 'pointer',
-          }}
-        >
-          {t.adminAccess || 'Admin access'}
-        </button>
       </div>
     </Modal>
   );

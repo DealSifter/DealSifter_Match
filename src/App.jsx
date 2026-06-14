@@ -175,6 +175,9 @@ const APP_SESSION_TOKEN_KEY = 'ds_app_session_token';
 const APP_LAST_ACTIVITY_KEY = 'ds_app_last_activity_at';
 const APP_IDLE_SIGNOUT_MS = 60 * 60 * 1000;
 const USER_PREFERENCES_KEY = 'ds_user_preferences';
+const COOKIE_CONSENT_KEY = 'ds_cookie_consent';
+const COOKIE_CONSENT_VERSION = '2026-06';
+const COOKIE_CONSENT_TTL_MS = 365 * 24 * 60 * 60 * 1000;
 
 const appendSecurityAuditEvent = (event) => {
   try {
@@ -232,6 +235,33 @@ const getDeviceLabel = () => {
   } catch {
     return 'Unknown device';
   }
+};
+
+const readCookieConsent = () => {
+  try {
+    const raw = localStorage.getItem(COOKIE_CONSENT_KEY);
+    if (raw === '1') return true; // legacy acceptance
+    if (!raw) return false;
+    const parsed = JSON.parse(raw);
+    if (!parsed || typeof parsed !== 'object') return false;
+    if (parsed.version !== COOKIE_CONSENT_VERSION) return false;
+    if (!['accepted', 'essential'].includes(String(parsed.choice || ''))) return false;
+    const expiresAt = Number(parsed.expiresAt || 0);
+    return Number.isFinite(expiresAt) && expiresAt > Date.now();
+  } catch {
+    return false;
+  }
+};
+
+const writeCookieConsent = (choice = 'accepted') => {
+  try {
+    localStorage.setItem(COOKIE_CONSENT_KEY, JSON.stringify({
+      version: COOKIE_CONSENT_VERSION,
+      choice: choice === 'essential' ? 'essential' : 'accepted',
+      acceptedAt: Date.now(),
+      expiresAt: Date.now() + COOKIE_CONSENT_TTL_MS,
+    }));
+  } catch { /* no-op */ }
 };
 
 const DEFAULT_USER_PREFERENCES = {
@@ -1171,15 +1201,11 @@ export default function App() {
 
   // Cookie consent state (landing page banner)
   const [cookieConsent, setCookieConsent] = useState(() => {
-    try {
-      return localStorage.getItem('ds_cookie_consent') === '1';
-    } catch {
-      return false;
-    }
+    return readCookieConsent();
   });
-  const handleCookieAccept = () => {
+  const handleCookieAccept = (choice = 'accepted') => {
     setCookieConsent(true);
-    try { localStorage.setItem('ds_cookie_consent', '1'); } catch { /* no-op */ }
+    writeCookieConsent(choice);
   };
 
   const handleLgpdAccept = async () => {
@@ -3705,7 +3731,11 @@ export default function App() {
         {/* Cookie banner — landing page only, before login */}
         {!cookieConsent && !authSession && (
           <Suspense fallback={null}>
-            <CookieBanner onAccept={handleCookieAccept} onLearnMore={() => setPage('privacy')} />
+            <CookieBanner
+              onAccept={() => handleCookieAccept('accepted')}
+              onEssential={() => handleCookieAccept('essential')}
+              onLearnMore={() => setPage('privacy')}
+            />
           </Suspense>
         )}
 
@@ -3738,7 +3768,6 @@ export default function App() {
               onClose={() => setModal(null)}
               onSubmit={handleAuthSubmit}
               onForgotPassword={handleForgotPassword}
-              onOpenAdminAuth={openAdminAuthModal}
             />
           </Suspense>
         )}

@@ -6,7 +6,7 @@ import { useT } from '../../i18n/translations';
  * Cookie consent banner — non-blocking bottom bar on the landing page.
  * Stores acceptance in localStorage ('ds_cookie_consent').
  */
-export function CookieBanner({ onAccept, onLearnMore }) {
+export function CookieBanner({ onAccept, onEssential, onLearnMore }) {
   const t = useT('cookie').cookie;
 
   return (
@@ -31,7 +31,25 @@ export function CookieBanner({ onAccept, onLearnMore }) {
       <span style={{ fontSize: 12, color: C.t2, maxWidth: 560, textAlign: 'center' }}>
         {t.message}
       </span>
-      <div style={{ display: 'flex', gap: 8 }}>
+      <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', justifyContent: 'center' }}>
+        {onEssential && (
+          <button
+            onClick={onEssential}
+            style={{
+              border: `1px solid ${C.border}`,
+              borderRadius: 8,
+              background: 'transparent',
+              color: C.t2,
+              padding: '8px 12px',
+              fontSize: 11,
+              fontWeight: 700,
+              cursor: 'pointer',
+              whiteSpace: 'nowrap',
+            }}
+          >
+            {t.essentialOnly || 'Essential only'}
+          </button>
+        )}
         <button
           onClick={onAccept}
           style={{

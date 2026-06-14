@@ -910,6 +910,7 @@ export const translations = {
     cookie: {
       message: "We use cookies and local storage to enhance your experience. By continuing to browse, you accept our use of cookies.",
       accept: "Accept",
+      essentialOnly: "Essential only",
       learnMore: "Learn more"
     },
     terms: {
@@ -1906,6 +1907,7 @@ export const translations = {
     cookie: {
       message: "Utilizamos cookies e armazenamento local para melhorar sua experiência. Ao continuar navegando, você aceita o uso de cookies.",
       accept: "Aceitar",
+      essentialOnly: "Somente essenciais",
       learnMore: "Saiba mais"
     },
     terms: {
@@ -2902,6 +2904,7 @@ export const translations = {
     cookie: {
       message: "Utilizamos cookies y almacenamiento local para mejorar su experiencia. Al continuar navegando, acepta el uso de cookies.",
       accept: "Aceptar",
+      essentialOnly: "Solo esenciales",
       learnMore: "Más información"
     },
     terms: {
