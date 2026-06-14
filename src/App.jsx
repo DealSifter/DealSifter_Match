@@ -73,10 +73,10 @@ const AdminDashboard = lazyWithRetry(() => import('./pages/AdminDashboard').then
 const TermsPage = lazyWithRetry(() => import('./pages/TermsPage').then((m) => ({ default: m.TermsPage })), 'terms');
 const PrivacyPolicyPage = lazyWithRetry(() => import('./pages/PrivacyPolicyPage').then((m) => ({ default: m.PrivacyPolicyPage })), 'privacy');
 import { UnlockModal } from './components/modals/UnlockModal';
+import { SpotlightModal } from './components/modals/SpotlightModal';
 const AuthAccessModal = lazyWithRetry(() => import('./components/modals/AuthAccessModal').then((m) => ({ default: m.AuthAccessModal })), 'auth-access');
 const AdminLoginModal = lazyWithRetry(() => import('./components/modals/AdminLoginModal').then((m) => ({ default: m.AdminLoginModal })), 'admin-login');
 const EmbeddedCheckoutModal = lazyWithRetry(() => import('./components/modals/EmbeddedCheckoutModal').then((m) => ({ default: m.EmbeddedCheckoutModal })), 'embedded-checkout');
-const SpotlightModal = lazyWithRetry(() => import('./components/modals/SpotlightModal').then((m) => ({ default: m.SpotlightModal })), 'spotlight');
 import { ToastContainer } from './components/ui/Toast';
 const ConsentBanner = lazyWithRetry(() => import('./components/ui/ConsentBanner').then((m) => ({ default: m.ConsentBanner })), 'consent');
 const CookieBanner = lazyWithRetry(() => import('./components/ui/CookieBanner').then((m) => ({ default: m.CookieBanner })), 'cookie');
@@ -1865,6 +1865,8 @@ export default function App() {
   const [globalShowcaseProperties, setGlobalShowcaseProperties] = useState([]);
   const [globalConnectionServices, setGlobalConnectionServices] = useState([]);
   const [activeSpotlights, setActiveSpotlights] = useState([]);
+  const [spotlightDbCandidates, setSpotlightDbCandidates] = useState([]);
+  const [isSpotlightCandidatesLoading, setIsSpotlightCandidatesLoading] = useState(false);
   const [isSpotlightProcessing, setIsSpotlightProcessing] = useState(false);
 
   useEffect(() => {
@@ -2004,9 +2006,89 @@ export default function App() {
       if (!row?.cardKind || !row?.cardId) return;
       if (row.expiresAt && Date.parse(row.expiresAt) <= now) return;
       keys.add(`${row.cardKind}:${row.cardId}`);
+      if (row.cardKind === 'profile' && String(row.cardId).startsWith('profile:')) {
+        keys.add(String(row.cardId));
+      }
     });
     return keys;
   }, [activeSpotlights]);
+
+  useEffect(() => {
+    if (modal !== 'spotlight' || !isSupabaseConfigured || !supabase || !supabaseUserId) {
+      if (modal !== 'spotlight') setSpotlightDbCandidates([]);
+      return undefined;
+    }
+
+    let cancelled = false;
+    const loadSpotlightCandidates = async () => {
+      setIsSpotlightCandidatesLoading(true);
+      try {
+        const [propertiesResult, servicesResult] = await Promise.all([
+          supabase
+            .from('properties')
+            .select('id, type, address, city, state, is_active, publish_to_showcase, deal_closed, pending_deal_expires_at, primary_profile, updated_at, created_at')
+            .eq('owner_id', supabaseUserId)
+            .eq('is_active', true)
+            .eq('publish_to_showcase', true)
+            .or('deal_closed.is.false,deal_closed.is.null')
+            .order('updated_at', { ascending: false })
+            .limit(80),
+          supabase
+            .from('services')
+            .select('id, title, category, publish_to_connections, primary_profile, updated_at, created_at')
+            .eq('owner_id', supabaseUserId)
+            .eq('publish_to_connections', true)
+            .order('updated_at', { ascending: false })
+            .limit(80),
+        ]);
+
+        if (cancelled) return;
+        if (propertiesResult.error) throw propertiesResult.error;
+        if (servicesResult.error) throw servicesResult.error;
+
+        const properties = (Array.isArray(propertiesResult.data) ? propertiesResult.data : [])
+          .filter((row) => row?.id && !isPendingDealExpired({
+            pendingDealExpiresAt: row.pending_deal_expires_at,
+          }))
+          .map((row) => ({
+            key: `property:${row.id}`,
+            cardKind: 'property',
+            cardId: String(row.id),
+            ownerId: supabaseUserId,
+            scope: row.primary_profile || '',
+            title: row.address || 'Property card',
+            label: [row.type || 'Property', row.city, row.state].filter(Boolean).join(' - '),
+          }));
+
+        const services = (Array.isArray(servicesResult.data) ? servicesResult.data : [])
+          .filter((row) => row?.id)
+          .map((row) => ({
+            key: `service:${row.id}`,
+            cardKind: 'service',
+            cardId: String(row.id),
+            ownerId: supabaseUserId,
+            scope: row.primary_profile || '',
+            title: row.title || 'Service card',
+            label: row.category || 'Service',
+          }));
+
+        setSpotlightDbCandidates([...properties, ...services]);
+      } catch (error) {
+        safeLogError('Spotlight candidate hydration failed.', error);
+        if (!cancelled) {
+          setSpotlightDbCandidates([]);
+          addToast({ type: 'error', title: 'Spotlight unavailable', message: 'Could not load your active cards for spotlight.' });
+        }
+      } finally {
+        if (!cancelled) setIsSpotlightCandidatesLoading(false);
+      }
+    };
+
+    loadSpotlightCandidates();
+    return () => {
+      cancelled = true;
+    };
+  }, [addToast, modal, supabaseUserId]);
 
   const spotlightCandidates = useMemo(() => {
     if (!supabaseUserId) return [];
@@ -2031,39 +2113,16 @@ export default function App() {
     addProfile('personal', professionalProfile?.fullNameA || personalProfile?.fullName || userProfile?.name || 'Personal profile', hasPersonalName);
     addProfile('professional', professionalProfile?.fullNameB || 'Business profile', hasBusinessName);
     addProfile('fsbo', personalProfile?.fullName || userProfile?.name || 'FSBO profile', hasFsbo);
+    candidates.push(...spotlightDbCandidates);
 
-    (propertyPortfolio || [])
-      .filter((p) => isTruthyFlag(p?.isActive, true) && isTruthyFlag(p?.publishToShowcase, true) && p?.dealClosed !== true && !isPendingDealExpired(p))
-      .forEach((p) => {
-        if (!p?.id) return;
-        candidates.push({
-          key: `property:${p.id}`,
-          cardKind: 'property',
-          cardId: String(p.id),
-          ownerId: supabaseUserId,
-          scope: p.primaryProfile || '',
-          title: p.address || p.title || 'Property card',
-          label: [p.type || 'Property', p.city, p.state].filter(Boolean).join(' - '),
-        });
-      });
-
-    (servicePortfolio || [])
-      .filter((s) => isTruthyFlag(s?.publishToConnections, true))
-      .forEach((s) => {
-        if (!s?.id) return;
-        candidates.push({
-          key: `service:${s.id}`,
-          cardKind: 'service',
-          cardId: String(s.id),
-          ownerId: supabaseUserId,
-          scope: s.primaryProfile || '',
-          title: s.title || 'Service card',
-          label: s.category || 'Service',
-        });
-      });
-
-    return candidates.filter((item) => !activeSpotlightKeys.has(`${item.cardKind}:${item.cardId}`));
-  }, [accountType, activeSpotlightKeys, personalProfile, professionalProfile, propertyPortfolio, servicePortfolio, supabaseUserId, userProfile]);
+    const byKey = new Map();
+    candidates.forEach((item) => {
+      if (!item?.cardKind || !item?.cardId) return;
+      if (activeSpotlightKeys.has(`${item.cardKind}:${item.cardId}`)) return;
+      byKey.set(`${item.cardKind}:${item.cardId}`, item);
+    });
+    return [...byKey.values()];
+  }, [accountType, activeSpotlightKeys, personalProfile, professionalProfile, spotlightDbCandidates, supabaseUserId, userProfile]);
 
   const showcaseProperties = useMemo(() => {
     const byId = new Map();
@@ -4267,16 +4326,15 @@ export default function App() {
         )}
 
         {modal === 'spotlight' && (
-          <Suspense fallback={null}>
-            <SpotlightModal
-              open
-              items={spotlightCandidates}
-              nuggets={nuggets}
-              isProcessing={isSpotlightProcessing}
-              onConfirm={handlePurchaseSpotlights}
-              onClose={() => setModal(null)}
-            />
-          </Suspense>
+          <SpotlightModal
+            open
+            items={spotlightCandidates}
+            nuggets={nuggets}
+            isLoading={isSpotlightCandidatesLoading}
+            isProcessing={isSpotlightProcessing}
+            onConfirm={handlePurchaseSpotlights}
+            onClose={() => setModal(null)}
+          />
         )}
 
         {modal === 'auth' && (

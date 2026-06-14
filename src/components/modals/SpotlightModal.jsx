@@ -1,4 +1,4 @@
-import React, { useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import { C } from '../../theme/colors';
 import { Icon } from '../ui/Icon';
 
@@ -10,16 +10,25 @@ export function SpotlightModal({
   nuggets = 0,
   onClose,
   onConfirm,
+  isLoading = false,
   isProcessing = false,
 }) {
   const eligibleItems = useMemo(() => (items || []).filter((item) => item?.cardId && item?.cardKind), [items]);
   const [selected, setSelected] = useState(() => new Set());
 
+  useEffect(() => {
+    const allowed = new Set(eligibleItems.map((item) => item.key));
+    setSelected((prev) => {
+      const next = new Set([...prev].filter((key) => allowed.has(key)));
+      return next.size === prev.size ? prev : next;
+    });
+  }, [eligibleItems]);
+
   if (!open) return null;
 
   const selectedItems = eligibleItems.filter((item) => selected.has(item.key));
   const totalCost = selectedItems.length * SPOTLIGHT_COST;
-  const canPay = selectedItems.length > 0 && nuggets >= totalCost && !isProcessing;
+  const canPay = selectedItems.length > 0 && nuggets >= totalCost && !isLoading && !isProcessing;
 
   const toggle = (key) => {
     setSelected((prev) => {
@@ -58,7 +67,11 @@ export function SpotlightModal({
           </div>
         </div>
 
-        {eligibleItems.length === 0 ? (
+        {isLoading ? (
+          <div style={{ border: `1px dashed ${C.border}`, borderRadius: 16, padding: 18, color: C.t2, fontSize: 13 }}>
+            Loading your active published cards...
+          </div>
+        ) : eligibleItems.length === 0 ? (
           <div style={{ border: `1px dashed ${C.border}`, borderRadius: 16, padding: 18, color: C.t2, fontSize: 13 }}>
             No active published cards are available for spotlight yet.
           </div>
@@ -91,7 +104,7 @@ export function SpotlightModal({
                     <span style={{ display: 'block', color: C.t1, fontWeight: 800, fontSize: 13, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{item.title}</span>
                     <span style={{ display: 'block', color: C.t3, fontSize: 11, marginTop: 2 }}>{item.label}</span>
                   </span>
-                  <span style={{ color: C.gold, fontWeight: 900, fontSize: 12 }}>10★</span>
+                  <span style={{ color: C.gold, fontWeight: 900, fontSize: 12 }}>10 nuggets</span>
                 </button>
               );
             })}
@@ -105,7 +118,10 @@ export function SpotlightModal({
           <button
             type="button"
             disabled={!canPay}
-            onClick={() => onConfirm?.(selectedItems)}
+            onClick={() => {
+              if (!canPay) return;
+              onConfirm?.(selectedItems);
+            }}
             style={{
               border: 'none',
               borderRadius: 14,

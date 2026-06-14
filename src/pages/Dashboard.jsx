@@ -2328,6 +2328,19 @@ export function Dashboard({ page, nuggets, setModal, setPage, onOpenOnboardingTa
         .blink {
           animation: blink 1s linear infinite;
         }
+        @keyframes dsSpotlightButtonPulse {
+          0%, 100% {
+            transform: translateZ(0) scale(1);
+            box-shadow: 0 0 0 0 ${C.alpha(C.accent, 0.34)}, 0 0 16px ${C.alpha(C.accent, 0.28)};
+          }
+          50% {
+            transform: translateZ(0) scale(1.035);
+            box-shadow: 0 0 0 7px ${C.alpha(C.accent, 0.05)}, 0 0 24px ${C.alpha(C.accent, 0.5)};
+          }
+        }
+        .ds-spotlight-trigger {
+          animation: dsSpotlightButtonPulse 1.15s ease-in-out infinite;
+        }
         .ds-mobile-feed-overlay {
           position: fixed;
           inset: 58px 0 0 0;
@@ -3145,10 +3158,11 @@ export function Dashboard({ page, nuggets, setModal, setPage, onOpenOnboardingTa
               <button
                 type="button"
                 onClick={() => onOpenSpotlight?.()}
-                style={{ display: 'inline-flex', alignItems: 'center', gap: 7, border: `1px solid ${C.alpha(C.accent, 0.55)}`, background: C.alpha(C.accent, 0.08), color: C.accent, borderRadius: 999, padding: '7px 12px', fontSize: 12, fontWeight: 900, cursor: 'pointer', boxShadow: `0 0 14px ${C.alpha(C.accent, 0.16)}` }}
+                className="ds-spotlight-trigger"
+                style={{ display: 'inline-flex', alignItems: 'center', gap: 7, border: `1px solid ${C.alpha(C.accent, 0.86)}`, background: C.accent, color: '#061312', borderRadius: 999, padding: '7px 12px', fontSize: 12, fontWeight: 900, cursor: 'pointer', boxShadow: `0 0 14px ${C.alpha(C.accent, 0.28)}` }}
                 title="Spotlight paid cards"
               >
-                <Icon name="zap" size={13} color={C.accent} strokeWidth={2.5} />
+                <Icon name="spotlight" size={17} color="#061312" strokeWidth={3.1} />
                 Spotlight
               </button>
               <div style={{ display: 'flex', alignItems: 'center', gap: 8, position: 'relative' }}>
