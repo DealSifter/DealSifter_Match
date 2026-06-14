@@ -2939,10 +2939,6 @@ export default function App() {
     setPage('onboarding');
   };
 
-  const openAdminAuthModal = () => {
-    setModal('adminAuth');
-  };
-
   const logoutAdmin = () => {
     setIsAdmin(false);
     if (page === 'admin') setPage('dashboard');
