@@ -1293,6 +1293,7 @@ export function MapView({
   propertyPortfolio = [],
   servicePortfolio = [],
   userProfile,
+  currentUserId = 'local-user',
   onUpdatePropertyCoords,
   userPreferences = null,
 }) {
@@ -1803,9 +1804,12 @@ export function MapView({
         });
     };
 
-    // Add user's own published properties (showcaseProperties) to the map
-    const addUserProperties = () => {
+    // Add globally published properties while preserving their real owner.
+    const addPublishedProperties = (onlyMine = false) => {
       (showcaseProperties || []).forEach((property) => {
+        const isOwnProperty = String(property?.ownerId || '') === String(currentUserId || '')
+          || String(property?.ownerId || '') === '999999';
+        if (onlyMine && !isOwnProperty) return;
         const coords = resolvePropertyCoords(property, geocodeCache, pinOverrides);
         if (!coords) return;
         const key = `user-property-${property.id}`;
@@ -1816,29 +1820,28 @@ export function MapView({
           properties: {
             itemType: 'property',
             itemId: property.id,
-            title: property.address || 'My Property',
-            subtitle: `${property.type || 'Property'} · ${property.city || ''}`,
-            isUnlocked: true,
-            isOwn: true,
+            title: property.address || 'Property',
+            subtitle: `${property.type || 'Property'} - ${property.city || ''}`,
+            isUnlocked: isOwnProperty || isUnlockedId(property.ownerId),
+            isOwn: isOwnProperty,
           },
-          payload: { ...property, lat: coords.lat, lng: coords.lng, ownerId: 'self' },
+          payload: { ...property, lat: coords.lat, lng: coords.lng },
         });
       });
     };
-
     if (showOnlyMyPins) {
-      addUserProperties();
+      addPublishedProperties(true);
       return Array.from(mapById.values());
     }
 
     if (showPeople) addPeople(false);
     if (showProperties) {
       addProperties(false);
-      addUserProperties();
+      addPublishedProperties(false);
     }
 
     return Array.from(mapById.values());
-  }, [showPeople, showProperties, showOnlyMyPins, showcaseProperties, geocodeCache, pinOverrides, isUnlockedId]);
+  }, [showPeople, showProperties, showOnlyMyPins, showcaseProperties, geocodeCache, pinOverrides, isUnlockedId, currentUserId]);
 
   const realUserPoints = useMemo(() => {
     return (showcaseProperties || [])
@@ -1848,12 +1851,17 @@ export function MapView({
         return {
           type: 'Feature',
           geometry: { type: 'Point', coordinates: [Number(coords.lng), Number(coords.lat)] },
-          properties: { itemType: 'property', itemId: property.id, isOwn: true, isUnlocked: true },
+          properties: {
+            itemType: 'property',
+            itemId: property.id,
+            isOwn: String(property?.ownerId || '') === String(currentUserId || '') || String(property?.ownerId || '') === '999999',
+            isUnlocked: isUnlockedId(property.ownerId),
+          },
           payload: property,
         };
       })
       .filter(Boolean);
-  }, [showcaseProperties, geocodeCache, pinOverrides]);
+  }, [showcaseProperties, geocodeCache, pinOverrides, currentUserId, isUnlockedId]);
 
   const getLocationMeta = (item, isPerson) => {
     const rawLocation = isPerson ? item?.loc : item?.city;
@@ -3324,4 +3332,5 @@ export function MapView({
     </div>
   );
 }
+
 

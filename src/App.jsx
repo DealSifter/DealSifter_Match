@@ -714,9 +714,9 @@ const getLocalServiceMediaImages = (service) => normalizePortfolioImages([
   ...(Array.isArray(service?.media?.archivedImages) ? service.media.archivedImages : []),
 ]);
 
-const mapDbServiceToLocal = (row) => ({
+const mapDbServiceToLocal = (row, options = {}) => ({
   id: row.id,
-  ownerId: LOCAL_OWNER_ID,
+  ownerId: options.ownerId || LOCAL_OWNER_ID,
   title: row.title || '',
   category: row.category || '',
   description: row.description || '',
@@ -920,6 +920,7 @@ export default function App() {
       return null;
     }
   });
+  const authBootstrappingRef = useRef(Boolean(isSupabaseConfigured && supabase));
   const [sessionVersion, setSessionVersion] = useState(0);
   const [systemAccount, setSystemAccount] = useState(() => {
     try {
@@ -1154,6 +1155,7 @@ export default function App() {
   }, []);
 
   const {
+    isAuthBootstrapping,
     isAuthProcessing,
     isForgotPasswordProcessing,
     handleAuthSubmit,
@@ -1172,6 +1174,16 @@ export default function App() {
     onAuthenticated: handleAuthenticatedNavigation,
     onSessionRestored: handleSessionRestored,
   });
+
+  useEffect(() => {
+    authBootstrappingRef.current = Boolean(isAuthBootstrapping);
+  }, [isAuthBootstrapping]);
+
+  useEffect(() => {
+    const protectedPages = new Set(['dashboard', 'matches', 'mapview', 'onboarding', 'settings']);
+    if (isAuthBootstrapping || authSession || !protectedPages.has(page)) return;
+    openAuthModal('login');
+  }, [authSession, isAuthBootstrapping, openAuthModal, page]);
 
   const markLocalSupabaseWrite = useCallback(() => {
     lastLocalSupabaseWriteAtRef.current = Date.now();
@@ -1461,6 +1473,11 @@ export default function App() {
   const setPage = useCallback((newPage) => {
     const protectedPages = new Set(['dashboard', 'matches', 'mapview', 'onboarding', 'settings']);
     if (!authSession && protectedPages.has(newPage)) {
+      if (authBootstrappingRef.current) {
+        setPrevPage(page);
+        _setPage(newPage);
+        return;
+      }
       setPrevPage(page);
       openAuthModal('login');
       return;
@@ -1846,10 +1863,12 @@ export default function App() {
   }, []);
 
   const [globalShowcaseProperties, setGlobalShowcaseProperties] = useState([]);
+  const [globalConnectionServices, setGlobalConnectionServices] = useState([]);
 
   useEffect(() => {
     if (!isSupabaseConfigured || !supabase || !supabaseUserId) {
       setGlobalShowcaseProperties([]);
+      setGlobalConnectionServices([]);
       return undefined;
     }
 
@@ -1875,14 +1894,25 @@ export default function App() {
             .limit(250);
         }
 
+        let servicesResult = await supabase
+          .from('services')
+          .select('id, owner_id, title, category, description, price, media_images, publish_to_connections, markets, primary_profile, created_at, updated_at')
+          .eq('publish_to_connections', true)
+          .order('created_at', { ascending: false })
+          .limit(250);
+
         if (cancelled) return;
         if (propertiesResult.error) {
           safeLogError('Supabase global showcase hydration failed.', propertiesResult.error);
           setGlobalShowcaseProperties([]);
-          return;
+        }
+        if (servicesResult.error) {
+          safeLogError('Supabase global connections hydration failed.', servicesResult.error);
+          servicesResult = { data: [] };
         }
 
         const propertyRows = Array.isArray(propertiesResult.data) ? propertiesResult.data : [];
+        const serviceRows = Array.isArray(servicesResult.data) ? servicesResult.data : [];
         let imageRows = [];
         if (propertyRows.length > 0) {
           const imageResult = await supabase
@@ -1908,13 +1938,17 @@ export default function App() {
           return acc;
         }, {});
 
-        setGlobalShowcaseProperties(propertyRows.map((row) => mapDbPropertyToLocal(row, imagesByProperty[row.id] || [], {
+        setGlobalShowcaseProperties(propertiesResult.error ? [] : propertyRows.map((row) => mapDbPropertyToLocal(row, imagesByProperty[row.id] || [], {
+          ownerId: row.owner_id || row.ownerId || '',
+        })));
+        setGlobalConnectionServices(serviceRows.map((row) => mapDbServiceToLocal(row, {
           ownerId: row.owner_id || row.ownerId || '',
         })));
       } catch (error) {
         if (!cancelled) {
           safeLogError('Global showcase hydration failed.', error);
           setGlobalShowcaseProperties([]);
+          setGlobalConnectionServices([]);
         }
       }
     };
@@ -1924,6 +1958,18 @@ export default function App() {
       cancelled = true;
     };
   }, [supabaseUserId]);
+
+  const globalServicePortfolio = useMemo(() => {
+    const byId = new Map();
+    [...(globalConnectionServices || []), ...(servicePortfolio || [])]
+      .filter((service) => isTruthyFlag(service?.publishToConnections, true))
+      .forEach((service, idx) => {
+        const id = service?.id || `${service?.ownerId || 'service'}:${idx}`;
+        if (!id) return;
+        byId.set(String(id), { ...service, id });
+      });
+    return [...byId.values()];
+  }, [globalConnectionServices, servicePortfolio]);
 
   const showcaseProperties = useMemo(() => {
     const byId = new Map();
@@ -1954,13 +2000,13 @@ export default function App() {
 
   const unlockPortfolioServices = useMemo(() => {
     const byId = new Map();
-    [...(servicePortfolio || []), ...(MOCK_SERVICES || [])].forEach((service, idx) => {
+    [...(globalServicePortfolio || []), ...(MOCK_SERVICES || [])].forEach((service, idx) => {
       if (!service) return;
       const key = String(service.id || `${service.ownerId || 'owner'}:${idx}`);
       if (!byId.has(key)) byId.set(key, service);
     });
     return [...byId.values()];
-  }, [servicePortfolio]);
+  }, [globalServicePortfolio]);
 
   const handleMapPropertyCoordsUpdate = useCallback((propertyId, coordsMeta = {}) => {
     if (!propertyId) return;
@@ -3828,7 +3874,7 @@ export default function App() {
             personalProfile={personalProfile}
             professionalProfile={professionalProfile}
             propertyPortfolio={propertyPortfolio}
-            servicePortfolio={servicePortfolio}
+            servicePortfolio={globalServicePortfolio}
             accountType={accountType}
             showcaseProperties={showcaseProperties}
             categoryOrder={categoryOrder}
@@ -3865,7 +3911,7 @@ export default function App() {
             setCategoryOrder={setCategoryOrder}
             showcaseProperties={showcaseProperties}
             propertyPortfolio={propertyPortfolio}
-            servicePortfolio={servicePortfolio}
+            servicePortfolio={globalServicePortfolio}
             userProfile={userProfile}
             personalProfile={personalProfile}
             professionalProfile={professionalProfile}
@@ -3889,8 +3935,9 @@ export default function App() {
             setPage={setPage}
             showcaseProperties={showcaseProperties}
             propertyPortfolio={propertyPortfolio}
-            servicePortfolio={servicePortfolio}
+            servicePortfolio={globalServicePortfolio}
             userProfile={userProfile}
+            currentUserId={supabaseUserId || 'local-user'}
             onUpdatePropertyCoords={handleMapPropertyCoordsUpdate}
             userPreferences={userPreferences}
           />

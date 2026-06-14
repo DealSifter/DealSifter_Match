@@ -583,6 +583,55 @@ export function Dashboard({ page, nuggets, setModal, setPage, onOpenOnboardingTa
     }
     // Mock cards
     const staticCards = CARDS.filter((c) => !cards.some(card => String(card.id) === String(c.id)));
+    const localOwnerIds = new Set([
+      String(getOwnerIdForKey('personal')),
+      String(getOwnerIdForKey('secondary')),
+      String(getOwnerIdForKey('fsbo')),
+      String(currentUserId || ''),
+      '999999',
+    ].filter(Boolean));
+    const mockOwnerIdsForConnections = new Set((CARDS || []).map((c) => String(c.id)));
+    const globalOwnerIds = Array.from(new Set([
+      ...(showcaseProperties || []).map((p) => String(p?.ownerId || '').trim()),
+      ...(servicePortfolio || []).map((s) => String(s?.ownerId || '').trim()),
+    ].filter((ownerId) => ownerId && !localOwnerIds.has(ownerId) && !mockOwnerIdsForConnections.has(ownerId))));
+    const globalCards = globalOwnerIds.map((ownerId) => {
+      const props = (showcaseProperties || []).filter((p) => String(p.ownerId) === ownerId);
+      const services = (servicePortfolio || []).filter((s) => String(s.ownerId) === ownerId && isTruthyFlag(s.publishToConnections, true));
+      const firstService = services[0] || null;
+      const firstProperty = props[0] || null;
+      const serviceImages = services.flatMap(s => (s.media && s.media.images) ? s.media.images : []);
+      const propertyImages = props.flatMap((p) => Array.isArray(p.images) ? p.images : []);
+      const markets = Array.from(new Set([
+        ...props.flatMap((p) => collectRecordStates(p)),
+        ...services.flatMap((s) => collectRecordStates(s)),
+      ].filter(Boolean)));
+      const location = markets[0] || [firstProperty?.city, firstProperty?.state].filter(Boolean).join(', ') || '';
+      const name = String(firstService?.title || firstProperty?.ownerName || firstProperty?.contactName || '').trim() || 'Published contact';
+      const type = String(firstService?.category || firstProperty?.ownerAccountType || 'Real estate contact').trim();
+      const desc = String(firstService?.description || firstProperty?.description || '').trim();
+      return {
+        id: ownerId,
+        ownerId,
+        name,
+        type,
+        badge: firstService ? 'Service' : 'Property',
+        loc: location,
+        photo: '',
+        images: serviceImages.length ? serviceImages : propertyImages,
+        rating: 0,
+        reviews: 0,
+        deals: 0,
+        cat: firstService?.category || '',
+        desc,
+        portfolioCount: props.length + services.length,
+        primaryProfile: normalizeProfileScope(firstService?.primaryProfile || firstProperty?.primaryProfile || 'personal'),
+        markets,
+        contactMethods: [],
+        verified: false,
+        _priority: 'tertiary',
+      };
+    });
     const enriched = staticCards.map((c) => {
       try {
         const props = (showcaseProperties || []).filter((p) => String(p.ownerId) === String(c.id));
@@ -617,8 +666,8 @@ export function Dashboard({ page, nuggets, setModal, setPage, onOpenOnboardingTa
         _isDimmed: true,
       });
     }
-    return [...cards, ...enriched];
-  }, [showcaseProperties, servicePortfolio, buildLocalProfileCard, collectRecordStates, priorityByScopeForFeed.personal, priorityByScopeForFeed.professional, priorityByScopeForFeed.fsbo]);
+    return [...cards, ...globalCards, ...enriched];
+  }, [showcaseProperties, servicePortfolio, buildLocalProfileCard, collectRecordStates, getOwnerIdForKey, currentUserId, priorityByScopeForFeed.personal, priorityByScopeForFeed.professional, priorityByScopeForFeed.fsbo]);
 
   // Showcase items: only properties published to the showcase should appear here.
   // Usar propertyPortfolio como fonte para garantir sincronização visual/lógica
@@ -631,11 +680,9 @@ export function Dashboard({ page, nuggets, setModal, setPage, onOpenOnboardingTa
       // IDs dos cards mockados
       const mockOwnerIds = (CARDS || []).map(c => String(c.id));
       // Imóveis reais do usuário
-      const userOwnerIds = [String(personalOwnerId), String(secondaryOwnerId), String(fsboOwnerId)];
-      const userProperties = (propertyPortfolio || [])
+      const localOwnerIds = [String(personalOwnerId), String(secondaryOwnerId), String(fsboOwnerId), '999999'];
+      const userProperties = (showcaseProperties || [])
         .filter((p) => {
-          const recordOwnerId = String(p.ownerId || '').trim();
-          if (!userOwnerIds.includes(recordOwnerId) && recordOwnerId !== '999999') return false;
           if (!isTruthyFlag(p.publishToShowcase, true)) return false;
           if (p?.dealClosed === true || isPendingDealExpired(p)) return false;
           // Do NOT filter by activeFeedScopeSet: user properties with publishToShowcase=true
@@ -661,7 +708,7 @@ export function Dashboard({ page, nuggets, setModal, setPage, onOpenOnboardingTa
             ...p,
             _source: 'property',
             markets: collectRecordStates(p),
-            ownerPreview: buildLocalProfileCard(scopeKey),
+            ownerPreview: localOwnerIds.includes(String(p.ownerId || '')) ? buildLocalProfileCard(scopeKey) : null,
           };
         }),
         ...mockProperties.map((p) => {
@@ -678,7 +725,7 @@ export function Dashboard({ page, nuggets, setModal, setPage, onOpenOnboardingTa
     } catch {
       return [];
     }
-  }, [propertyPortfolio, buildLocalProfileCard, collectRecordStates, getOwnerIdForKey]);
+  }, [showcaseProperties, buildLocalProfileCard, collectRecordStates, getOwnerIdForKey]);
 
   const findConnectionById = useCallback((id) => {
     const needle = String(id);
@@ -3745,6 +3792,7 @@ export function Dashboard({ page, nuggets, setModal, setPage, onOpenOnboardingTa
     </div>
   );
 }
+
 
 
 

@@ -25,6 +25,7 @@ export function useAuthSession({
   onAuthenticated,
   onSessionRestored,
 }) {
+  const [isAuthBootstrapping, setIsAuthBootstrapping] = useState(() => Boolean(isSupabaseConfigured && supabase));
   const [isAuthProcessing, setIsAuthProcessing] = useState(false);
   const [isForgotPasswordProcessing, setIsForgotPasswordProcessing] = useState(false);
   const lastKnownAuthSessionRef = useRef(authSession || null);
@@ -86,11 +87,13 @@ export function useAuthSession({
       onSessionRestored?.(next);
     };
 
-    supabase.auth.getSession().then(({ data }) => {
-      if (data?.session) applySession(data.session);
+    supabase.auth.getSession().then(async ({ data }) => {
+      if (data?.session) await applySession(data.session);
       else if (!lastKnownAuthSessionRef.current) clearSession();
     }).catch((error) => {
       safeLogError?.('Supabase session bootstrap failed.', error);
+    }).finally(() => {
+      if (active) setIsAuthBootstrapping(false);
     });
 
     const { data } = supabase.auth.onAuthStateChange((event, session) => {
@@ -265,6 +268,7 @@ export function useAuthSession({
   }, [authSession, safeLogError, setAuthSession]);
 
   return {
+    isAuthBootstrapping,
     isAuthProcessing,
     isForgotPasswordProcessing,
     handleAuthSubmit,
