@@ -105,6 +105,10 @@ export function Pricing({ setPage, setModal, prevPage, addToast, onRequestChecko
       <style>{`
         .pricing-mobile-back-app { display: none; }
         @media (max-width: 900px), (hover: none) and (pointer: coarse) {
+          .pricing-mobile-back-spacer {
+            display: block !important;
+            height: 44px;
+          }
           .pricing-mobile-back-app {
             display: inline-flex !important;
             position: fixed;
@@ -138,6 +142,7 @@ export function Pricing({ setPage, setModal, prevPage, addToast, onRequestChecko
           {t.backToApp || 'Back to app'}
         </button>
       )}
+      {showMobileBackToApp && <div className="pricing-mobile-back-spacer" style={{ display: 'none' }} />}
       {showBackButton && (
         <button
           onClick={() => setPage("landing")}

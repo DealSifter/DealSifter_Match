@@ -1363,7 +1363,7 @@ export function MatchesPage({ nuggets, setModal, openUnlock, unlocked, initialCh
       entityId: feature,
       metadata: { feature: String(feature || '') },
     });
-    addToast?.({ type: 'warning', title: copy.title, message: copy.message });
+    addToast?.({ type: 'warning', title: copy.title, message: copy.message, duration: 6500 });
     setPlanGate({ ...copy, feature });
     return false;
   }, [addToast]);
@@ -2523,10 +2523,30 @@ export function MatchesPage({ nuggets, setModal, openUnlock, unlocked, initialCh
         </div>
       </div>
       {mobileCardSheet && isMobile && (
-        <div style={{ position:'fixed', inset:0, zIndex:300, display:'flex', flexDirection:'column', justifyContent:'flex-end' }} onClick={() => setMobileCardSheet(null)}>
+        <div
+          style={{
+            position:'fixed',
+            inset:0,
+            zIndex:300,
+            display:'flex',
+            flexDirection:'column',
+            justifyContent:'flex-end',
+            '--ds-sheet-bottom-offset': 'var(--ds-mobile-bottom-nav-visible-height, 0px)',
+          }}
+          onClick={() => setMobileCardSheet(null)}
+        >
           <div style={{ position:'absolute', inset:0, background:'rgba(0,0,0,0.45)' }} />
           <div
-            style={{ position:'relative', background:C.card, borderRadius:'20px 20px 0 0', maxHeight:'82vh', overflowY:'auto', padding:20, paddingBottom:36 }}
+            style={{
+              position:'relative',
+              background:C.card,
+              borderRadius:'20px 20px 0 0',
+              maxHeight:'calc((var(--app-vh, 1vh) * 100) - var(--ds-mobile-header-offset, 58px) - var(--ds-sheet-bottom-offset) - 18px)',
+              overflowY:'auto',
+              padding:20,
+              paddingBottom:'calc(32px + var(--ds-sheet-bottom-offset) + env(safe-area-inset-bottom, 0px))',
+              boxSizing:'border-box',
+            }}
             onClick={e => e.stopPropagation()}
           >
             <div style={{ width:36, height:4, background:C.border, borderRadius:999, margin:'0 auto 16px' }} />

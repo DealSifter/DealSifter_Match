@@ -25,10 +25,16 @@ export function UnlockModal({ match, nuggets, unlockCost = 1, exclusivityStatus 
   const unlockForLabel = t.unlockForCount
     .replace('{count}', String(unlockCost))
     .replace('{unit}', nuggetUnit);
+  const handleButtonAction = (event, action) => {
+    event?.preventDefault?.();
+    event?.stopPropagation?.();
+    action?.();
+  };
   return (
     <Modal
       onClose={onClose}
       maxWidth={canBuyLinkedExclusive ? 440 : 400}
+      overlayStyle={{ zIndex: 13000 }}
       contentClassName="ds-unlock-modal"
       contentStyle={{ overflowY: 'visible' }}
     >
@@ -146,27 +152,27 @@ export function UnlockModal({ match, nuggets, unlockCost = 1, exclusivityStatus 
 
         <div className="ds-unlock-actions" style={{ display:"flex", flexDirection:"column", gap:10 }}>
           {isBlockedByExclusive ? (
-            <button type="button" onClick={onClose} style={{ width:"100%", padding:"15px", borderRadius:14, background:C.alpha(C.gold, 0.14), border:`1px solid ${C.alpha(C.gold, 0.35)}`, color:C.gold, fontWeight:800, fontSize:16, cursor:"pointer" }}>
+            <button type="button" onClick={(event) => handleButtonAction(event, onClose)} style={{ width:"100%", padding:"15px", borderRadius:14, background:C.alpha(C.gold, 0.14), border:`1px solid ${C.alpha(C.gold, 0.35)}`, color:C.gold, fontWeight:800, fontSize:16, cursor:"pointer" }}>
               {t.exclusivityCheckLater || 'Favorite and check later'}
             </button>
           ) : can
-            ? <button type="button" onClick={() => onUnlock(match)} style={{ width:"100%", padding:"15px", borderRadius:14, background:C.gold, border:"none", color:C.bg, fontWeight:800, fontSize:16, cursor:"pointer", display:"flex", alignItems:"center", justifyContent:"center", gap:10, boxShadow: `0 4px 15px ${C.alpha(C.gold, 0.3)}` }}>
+            ? <button type="button" onClick={(event) => handleButtonAction(event, () => onUnlock(match))} style={{ width:"100%", padding:"15px", borderRadius:14, background:C.gold, border:"none", color:C.bg, fontWeight:800, fontSize:16, cursor:"pointer", display:"flex", alignItems:"center", justifyContent:"center", gap:10, boxShadow: `0 4px 15px ${C.alpha(C.gold, 0.3)}` }}>
                 <Icon name="unlock" size={18} color={C.bg} /> {unlockForLabel}
               </button>
-            : <button type="button" onClick={onBuyMore} style={{ width:"100%", padding:"15px", borderRadius:14, background:C.accent, border:"none", color:"#fff", fontWeight:800, fontSize:16, cursor:"pointer", display:"flex", alignItems:"center", justifyContent:"center", gap:10 }}>
+            : <button type="button" onClick={(event) => handleButtonAction(event, onBuyMore)} style={{ width:"100%", padding:"15px", borderRadius:14, background:C.accent, border:"none", color:"#fff", fontWeight:800, fontSize:16, cursor:"pointer", display:"flex", alignItems:"center", justifyContent:"center", gap:10 }}>
                 <Icon name="cart" size={18} color="#fff" /> {t.buyMore}
               </button>
           }
           {canBuyExclusive ? (
             canExclusive ? (
-              <button type="button" onClick={() => onUnlock(match, { mode: exclusivityStatus.exclusivityMode || 'total', cost: exclusiveCost })} style={{ width:"100%", padding:"15px", borderRadius:14, background: exclusivityStatus.kind === 'partial' ? 'linear-gradient(90deg, #7e2d00, #f59e0b)' : 'linear-gradient(90deg, #05462d, #14b8a6)', border:"none", color:"#fff", fontWeight:900, fontSize:15, cursor:"pointer", display:"flex", alignItems:"center", justifyContent:"center", gap:10, boxShadow: `0 4px 18px ${C.alpha(exclusivityStatus.kind === 'partial' ? C.gold : C.accent, 0.28)}` }}>
+              <button type="button" onClick={(event) => handleButtonAction(event, () => onUnlock(match, { mode: exclusivityStatus.exclusivityMode || 'total', cost: exclusiveCost }))} style={{ width:"100%", padding:"15px", borderRadius:14, background: exclusivityStatus.kind === 'partial' ? 'linear-gradient(90deg, #7e2d00, #f59e0b)' : 'linear-gradient(90deg, #05462d, #14b8a6)', border:"none", color:"#fff", fontWeight:900, fontSize:15, cursor:"pointer", display:"flex", alignItems:"center", justifyContent:"center", gap:10, boxShadow: `0 4px 18px ${C.alpha(exclusivityStatus.kind === 'partial' ? C.gold : C.accent, 0.28)}` }}>
                 <span style={{ color: exclusivityStatus.kind === 'partial' ? C.danger : C.gold }}>⚡</span>
                 {(t.unlockExclusiveForCount || 'Unlock with exclusivity for {count} {unit}')
                   .replace('{count}', String(exclusiveCost))
                   .replace('{unit}', exclusiveUnit)}
               </button>
             ) : (
-              <button type="button" onClick={onBuyMore} style={{ width:"100%", padding:"15px", borderRadius:14, background:C.accent, border:"none", color:"#fff", fontWeight:800, fontSize:15, cursor:"pointer" }}>
+              <button type="button" onClick={(event) => handleButtonAction(event, onBuyMore)} style={{ width:"100%", padding:"15px", borderRadius:14, background:C.accent, border:"none", color:"#fff", fontWeight:800, fontSize:15, cursor:"pointer" }}>
                 {t.buyMore} ({exclusiveCost} {exclusiveUnit})
               </button>
             )
@@ -175,12 +181,13 @@ export function UnlockModal({ match, nuggets, unlockCost = 1, exclusivityStatus 
             canLinkedExclusive ? (
               <button
                 type="button"
-                onClick={() => onUnlock({
+                onClick={(event) => handleButtonAction(event, () => onUnlock({
                   ...match,
+                  unlockContactId: match?.id,
                   unlockScope: 'property',
                   propertyId: contactExclusivityOption.property.id,
                   propertyAddress: contactExclusivityOption.property.address || contactExclusivityOption.title,
-                }, { mode: contactExclusivityOption.mode, cost: linkedExclusiveCost })}
+                }, { mode: contactExclusivityOption.mode, cost: linkedExclusiveCost }))}
                 style={{ width:"100%", padding:"15px", borderRadius:14, background: contactExclusivityOption.status.kind === 'partial' ? 'linear-gradient(90deg, #7e2d00, #f59e0b)' : 'linear-gradient(90deg, #05462d, #14b8a6)', border:"none", color:"#fff", fontWeight:900, fontSize:15, cursor:"pointer", display:"flex", alignItems:"center", justifyContent:"center", gap:10, boxShadow: `0 4px 18px ${C.alpha(contactExclusivityOption.status.kind === 'partial' ? C.gold : C.accent, 0.28)}` }}
               >
                 <span style={{ color: contactExclusivityOption.status.kind === 'partial' ? C.danger : C.gold }}>⚡</span>
@@ -189,12 +196,12 @@ export function UnlockModal({ match, nuggets, unlockCost = 1, exclusivityStatus 
                   .replace('{unit}', linkedExclusiveUnit)}
               </button>
             ) : (
-              <button type="button" onClick={onBuyMore} style={{ width:"100%", padding:"15px", borderRadius:14, background:C.accent, border:"none", color:"#fff", fontWeight:800, fontSize:15, cursor:"pointer" }}>
+              <button type="button" onClick={(event) => handleButtonAction(event, onBuyMore)} style={{ width:"100%", padding:"15px", borderRadius:14, background:C.accent, border:"none", color:"#fff", fontWeight:800, fontSize:15, cursor:"pointer" }}>
                 {t.buyMore} ({linkedExclusiveCost} {linkedExclusiveUnit})
               </button>
             )
           ) : null}
-          <button type="button" onClick={onClose} style={{ width:"100%", padding:"12px", borderRadius:14, background:"transparent", border:`1px solid ${C.border}`, color:C.t2, fontWeight:600, fontSize:14, cursor:"pointer" }}>{t.cancel}</button>
+          <button type="button" onClick={(event) => handleButtonAction(event, onClose)} style={{ width:"100%", padding:"12px", borderRadius:14, background:"transparent", border:`1px solid ${C.border}`, color:C.t2, fontWeight:600, fontSize:14, cursor:"pointer" }}>{t.cancel}</button>
         </div>
       </div>
     </Modal>

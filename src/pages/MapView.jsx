@@ -1290,6 +1290,7 @@ export function MapView({
   unlocked,
   setPage,
   showcaseProperties = [],
+  propertyPortfolio = [],
   servicePortfolio = [],
   userProfile,
   onUpdatePropertyCoords,
@@ -2205,12 +2206,22 @@ export function MapView({
     setPage('dashboard');
   };
 
+  const unlockPropertySource = useMemo(() => {
+    const byId = new Map();
+    [...(propertyPortfolio || []), ...(showcaseProperties || []), ...(PROPERTIES || [])].forEach((property, idx) => {
+      if (!property) return;
+      const key = String(property.id || property.portfolioId || `${property.ownerId || 'owner'}:${idx}`);
+      if (!byId.has(key)) byId.set(key, property);
+    });
+    return Array.from(byId.values());
+  }, [propertyPortfolio, showcaseProperties]);
+
   const getUnlockCost = (personId) => {
-    return getPortfolioUnlockCost(personId, showcaseProperties?.length ? showcaseProperties : PROPERTIES, servicePortfolio || []);
+    return getPortfolioUnlockCost(personId, unlockPropertySource, servicePortfolio || []);
   };
 
   const getPortfolioCount = (personId) => {
-    return getPortfolioItemCount(personId, showcaseProperties?.length ? showcaseProperties : PROPERTIES, servicePortfolio || []);
+    return getPortfolioItemCount(personId, unlockPropertySource, servicePortfolio || []);
   };
 
   const activeMapStyle = useMemo(() => {

@@ -1679,9 +1679,7 @@ export function Dashboard({ page, nuggets, setModal, setPage, onOpenOnboardingTa
       return;
     }
     if (type === 'unlock') {
-      if (!topCard || unlocked.includes(topCard.id)) return;
-      if (!canStartPlanAction('unlock')) return;
-      if (typeof openUnlock === 'function') openUnlock(topCard);
+      openUnlockFromConnectionCard(topCard);
       return;
     }
     const snap = [...connDeck];
@@ -1950,33 +1948,46 @@ export function Dashboard({ page, nuggets, setModal, setPage, onOpenOnboardingTa
     }
   };
 
+  const openUnlockFromConnectionCard = useCallback((rawCard) => {
+    const targetCard = rawCard
+      ? (findConnectionById(rawCard.id) || findConnectionById(rawCard.ownerId) || rawCard)
+      : null;
+    if (!targetCard) {
+      addToast?.({ type: 'warning', message: 'No contact card available to unlock.' });
+      return false;
+    }
+    if (isOwnConnectionCard(targetCard)) {
+      addToast?.({ type: 'info', message: 'Own card, not selectionable' });
+      return false;
+    }
+    const contactId = String(targetCard?.id || '').trim();
+    const ownerId = String(targetCard?.unlockOwnerId || targetCard?.ownerId || targetCard?.id || '').trim();
+    if (!contactId && !ownerId) {
+      addToast?.({ type: 'warning', message: 'Contact owner could not be resolved for unlock.' });
+      return false;
+    }
+    const alreadyUnlocked = unlocked.some((id) => {
+      const value = String(id);
+      return (contactId && value === contactId) || (ownerId && value === ownerId);
+    });
+    if (alreadyUnlocked) return false;
+    if (!canStartPlanAction('unlock')) return false;
+    if (typeof openUnlock === 'function') {
+      openUnlock({
+        ...targetCard,
+        id: contactId || ownerId,
+        ownerId: ownerId || contactId,
+        unlockOwnerId: ownerId || contactId,
+        unlockScope: 'contact',
+      });
+      return true;
+    }
+    return false;
+  }, [addToast, canStartPlanAction, findConnectionById, isOwnConnectionCard, openUnlock, unlocked]);
+
   const handleMobileUnlockAction = () => {
     if (view === 'connections') {
-      const targetCard = topConnectionCard || connDisplay[0] || null;
-      if (!targetCard) {
-        addToast?.({ type: 'warning', message: 'No contact card available to unlock.' });
-        return;
-      }
-      if (isOwnConnectionCard(targetCard)) {
-        addToast?.({ type: 'info', message: 'Own card, not selectionable' });
-        return;
-      }
-      const resolvedId = String(targetCard?.id || targetCard?.ownerId || '').trim();
-      if (!resolvedId) {
-        addToast?.({ type: 'warning', message: 'Contact owner could not be resolved for unlock.' });
-        return;
-      }
-      if (unlocked.some((id) => String(id) === resolvedId)) return;
-      if (!canStartPlanAction('unlock')) return;
-      if (typeof openUnlock === 'function') {
-        openUnlock({
-          ...targetCard,
-          id: targetCard.id || resolvedId,
-          ownerId: targetCard.ownerId || resolvedId,
-          unlockOwnerId: targetCard.unlockOwnerId || targetCard.ownerId || resolvedId,
-          unlockScope: 'contact',
-        });
-      }
+      openUnlockFromConnectionCard(topConnectionCard || connDisplay[0] || null);
       return;
     }
 

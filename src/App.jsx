@@ -3519,6 +3519,8 @@ export default function App() {
 
   const handleUnlock = async (card, options = {}) => {
     const unlockMode = options?.mode || 'normal';
+    const unlockOwnerId = card?.unlockOwnerId || card?.ownerId || card?.id;
+    const contactUnlockId = card?.unlockContactId || card?.contactId || card?.id || unlockOwnerId;
     let quoteForUnlock = (
       card?.unlockScope === 'property'
       && unlockQuote?.propertyId
@@ -3577,7 +3579,8 @@ export default function App() {
             p_mode: unlockMode,
             p_metadata: {
               source: 'unlock_modal',
-              ownerId: String(card.unlockOwnerId || card.ownerId || card.id || ''),
+              ownerId: String(unlockOwnerId || ''),
+              contactId: String(contactUnlockId || ''),
               displayedBaseCost: baseUnlockCost,
               displayedCost: unlockCost,
             },
@@ -3613,7 +3616,7 @@ export default function App() {
       } else {
         setNuggets(n => n - unlockCost);
       }
-      setUnlocked(u => u.includes(card.id) ? u : [...u, card.id]);
+      setUnlocked(u => u.some((id) => String(id) === String(contactUnlockId)) ? u : [...u, contactUnlockId]);
       incrementPlanUsage('month', 'unlocks');
       if (card.unlockScope === 'property' && card.propertyId) {
         setPropertyUnlocks((prev) => {
@@ -3627,7 +3630,7 @@ export default function App() {
             ...prev,
             createPropertyUnlockRecord({
               propertyId: card.propertyId,
-              ownerId: card.unlockOwnerId || card.ownerId || card.id,
+              ownerId: unlockOwnerId,
               buyerId: supabaseUserId || 'local-user',
               mode: unlockMode,
               cost: Number(remoteUnlockRow?.total_cost || unlockCost),
@@ -3636,12 +3639,13 @@ export default function App() {
         });
       }
       // Ensure unlocked contact stays available in Matches module.
-      setMatched(prev => prev.some(x => x.id === card.id) ? prev : [...prev, card]);
+      const matchedCard = { ...card, id: contactUnlockId, ownerId: unlockOwnerId || card.ownerId || contactUnlockId };
+      setMatched(prev => prev.some(x => String(x.id) === String(contactUnlockId)) ? prev : [...prev, matchedCard]);
       // Auto-add ALL active properties of this contact to `interested` so the
       // full portfolio appears in the Interests column immediately after unlock.
       const allProps = unlockPortfolioProperties || [];
       const contactProps = allProps.filter(
-        (p) => String(p.ownerId) === String(card.unlockOwnerId || card.ownerId || card.id) && isTruthyFlag(p?.isActive, true)
+        (p) => String(p.ownerId) === String(unlockOwnerId) && isTruthyFlag(p?.isActive, true)
       );
       if (contactProps.length > 0) {
         setInterested(prev => {
@@ -3652,9 +3656,9 @@ export default function App() {
       }
       // Record purchase: current user buys this contact
       setPurchases(prev => 
-        prev.some(p => p.sellerId === (card.unlockOwnerId || card.ownerId || card.id))
+        prev.some(p => String(p.sellerId) === String(unlockOwnerId))
           ? prev 
-          : [...prev, { sellerId: card.unlockOwnerId || card.ownerId || card.id }]
+          : [...prev, { sellerId: unlockOwnerId }]
       );
       setModal(null);
       setUnlockQuote(null);
@@ -3795,6 +3799,7 @@ export default function App() {
             unlocked={unlocked}
             setPage={setPage}
             showcaseProperties={showcaseProperties}
+            propertyPortfolio={propertyPortfolio}
             servicePortfolio={servicePortfolio}
             userProfile={userProfile}
             onUpdatePropertyCoords={handleMapPropertyCoordsUpdate}
