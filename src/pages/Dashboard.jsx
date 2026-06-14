@@ -75,7 +75,7 @@ function trackPropertySaved(propertyId, metadata = {}) {
   }
 }
 
-export function Dashboard({ page, nuggets, setModal, setPage, onOpenOnboardingTab, openUnlock, unlocked, matched, setMatched, interested, setInterested, purchases, setPurchases, userProfile, personalProfile, professionalProfile, propertyPortfolio, servicePortfolio, accountType, showcaseProperties, categoryOrder, setCategoryOrder, editMode, setEditMode, mobileBottomNavCollapsed = false, addToast, setSystemNotifications = null, subscription, propertyUnlocks = [], currentUserId = 'local-user' }) {
+export function Dashboard({ page, nuggets, setModal, setPage, onOpenOnboardingTab, openUnlock, unlocked, matched, setMatched, interested, setInterested, purchases, setPurchases, userProfile, personalProfile, professionalProfile, propertyPortfolio, servicePortfolio, accountType, showcaseProperties, categoryOrder, setCategoryOrder, editMode, setEditMode, mobileBottomNavCollapsed = false, addToast, setSystemNotifications = null, subscription, propertyUnlocks = [], currentUserId = 'local-user', activeSpotlightKeys = new Set(), onOpenSpotlight = null }) {
   const isMobileViewport = useMediaQuery('(max-width: 767px)');
   const isTabletPortraitViewport = useMediaQuery('(min-width: 768px) and (max-width: 1080px) and (orientation: portrait)');
   const isTouchModalViewport = useMediaQuery('(max-width: 1024px)');
@@ -2079,9 +2079,37 @@ export function Dashboard({ page, nuggets, setModal, setPage, onOpenOnboardingTa
   );
 
   // Banner: incluir todos os cards/p imóveis ativos (não só o deck corrente).
+  const hasSpotlightKey = useCallback((key) => {
+    if (!key) return false;
+    if (activeSpotlightKeys instanceof Set) return activeSpotlightKeys.has(key);
+    if (Array.isArray(activeSpotlightKeys)) return activeSpotlightKeys.includes(key);
+    return false;
+  }, [activeSpotlightKeys]);
+
+  const isConnectionSpotlight = useCallback((card) => {
+    if (!card) return false;
+    const ownerId = String(card.ownerId || card.id || '').trim();
+    const scope = normalizeProfileScope(card.primaryProfile || card.scopeKey || 'personal');
+    const ownerCandidates = Array.from(new Set([
+      ownerId,
+      ownerId === '999999' ? String(currentUserId || '') : '',
+    ].filter(Boolean)));
+    return ownerCandidates.some((candidate) => (
+      hasSpotlightKey(`profile:${scope}:${candidate}`)
+      || hasSpotlightKey(`profile:personal:${candidate}`)
+    ))
+      || (servicePortfolio || []).some((service) => (
+        ownerCandidates.includes(String(service?.ownerId || ''))
+        && hasSpotlightKey(`service:${service.id}`)
+      ));
+  }, [currentUserId, hasSpotlightKey, servicePortfolio]);
+
+  const isPropertySpotlight = useCallback((property) => (
+    Boolean(property?.id) && hasSpotlightKey(`property:${property.id}`)
+  ), [hasSpotlightKey]);
   const bannerConnItems = useMemo(() => (
     connectionCards
-      .filter(c => !hiddenSet.has(String(c.id)))
+      .filter(c => !hiddenSet.has(String(c.id)) && isConnectionSpotlight(c))
       .map(c => {
         const ownerKey = String(c.ownerId ?? c.id);
         const ownerProps = (showcaseProperties || []).filter(
@@ -2115,11 +2143,11 @@ export function Dashboard({ page, nuggets, setModal, setPage, onOpenOnboardingTa
           isVerified: isTruthyVerified(c?.verified) || verifiedOwnerIds.has(String(c.ownerId ?? c.id)),
         };
       })
-  ), [connectionCards, showcaseProperties, verifiedOwnerIds, hiddenSet, propertyHotMetrics]);
+  ), [connectionCards, showcaseProperties, verifiedOwnerIds, hiddenSet, propertyHotMetrics, isConnectionSpotlight]);
 
   const bannerPropItems = useMemo(() => (
   (showcaseProperties || [])
-    .filter((p) => isTruthyFlag(p.publishToShowcase, true) && !p?.dealClosed)
+    .filter((p) => isTruthyFlag(p.publishToShowcase, true) && !p?.dealClosed && isPropertySpotlight(p))
     .map(p => {
       const hotPressure = p?.dealClosed ? 0 : Number(propertyHotMetrics[String(p.id)]?.hotScore || 0);
       const ownerVerified = isTruthyVerified(p?.verified) || verifiedOwnerIds.has(String(p.ownerId));
@@ -2146,7 +2174,7 @@ export function Dashboard({ page, nuggets, setModal, setPage, onOpenOnboardingTa
         isVerified: ownerVerified,
       };
     })
-), [showcaseProperties, verifiedOwnerIds, propertyHotMetrics]);
+), [showcaseProperties, verifiedOwnerIds, propertyHotMetrics, isPropertySpotlight]);
 
   const hashStringToSeed = (value) => {
     const input = String(value || '');
@@ -3113,7 +3141,16 @@ export function Dashboard({ page, nuggets, setModal, setPage, onOpenOnboardingTa
 
           {/* View Tabs + State Filter (inline) */}
           {!isMobileViewport && (
-            <div style={{ display:"flex", marginBottom:8, justifyContent:"flex-end", alignItems: 'center', width: '100%', maxWidth: 700 }}>
+            <div style={{ display:"flex", marginBottom:8, justifyContent:"space-between", alignItems: 'center', width: '100%', maxWidth: 700 }}>
+              <button
+                type="button"
+                onClick={() => onOpenSpotlight?.()}
+                style={{ display: 'inline-flex', alignItems: 'center', gap: 7, border: `1px solid ${C.alpha(C.accent, 0.55)}`, background: C.alpha(C.accent, 0.08), color: C.accent, borderRadius: 999, padding: '7px 12px', fontSize: 12, fontWeight: 900, cursor: 'pointer', boxShadow: `0 0 14px ${C.alpha(C.accent, 0.16)}` }}
+                title="Spotlight paid cards"
+              >
+                <Icon name="zap" size={13} color={C.accent} strokeWidth={2.5} />
+                Spotlight
+              </button>
               <div style={{ display: 'flex', alignItems: 'center', gap: 8, position: 'relative' }}>
                 <label style={{ marginRight: 4, fontSize: 13, color: C.t3 }}>State</label>
                 <details className="onb-multiselect" open={dropdownOpen} onToggle={(e) => setDropdownOpen(Boolean(e.target.open))} style={{ position: 'relative' }}>
@@ -3222,6 +3259,7 @@ export function Dashboard({ page, nuggets, setModal, setPage, onOpenOnboardingTa
                       const shiftDown    = reverseI * FEED_STACK_SHIFT_Y;
                       const stackScale   = 1 - reverseI * 0.035;
                       const stackOpacity = isTop ? 1 : 0.9 - reverseI * 0.1;
+                      const isSponsored = isConnectionSpotlight(c);
                       return (
                         <div key={c.id} className={`ds-feed-stack-card ${isTop ? 'is-top is-top-connection' : ''} ${isTop && action ? 'is-swipe-animating' : ''}`} style={{
                           position: "absolute",
@@ -3237,7 +3275,13 @@ export function Dashboard({ page, nuggets, setModal, setPage, onOpenOnboardingTa
                           opacity: stackOpacity,
                           animation: isTop && action ? (action === "match" ? `carouselRotateMatch ${SWIPE_ANIM_MS}ms cubic-bezier(0.23, 1, 0.32, 1) forwards` : `carouselRotatePass ${SWIPE_ANIM_MS}ms cubic-bezier(0.23, 1, 0.32, 1) forwards`) : "none"
                         }}>
-                          <div style={{ position: 'relative', width: '100%', height: '100%' }}>
+                          <div style={{
+                            position: 'relative',
+                            width: '100%',
+                            height: '100%',
+                            borderRadius: 22,
+                            boxShadow: isSponsored ? `0 0 0 2px ${C.alpha(C.accent, 0.85)}, 0 0 22px ${C.alpha(C.accent, 0.62)}` : 'none',
+                          }}>
                             <SwipeCard card={{ ...c, portfolioCount: getPortfolioCount(c.ownerId ?? c.id) }} action={isTop ? action : null} isUnlocked={unlocked.includes(c.id)} isSkipped={skippedSet.has(c.id)} onSwipe={act} onUndo={lastConnOp && isTop ? undo : null} onUnlock={act} showActions={!isMobileViewport} />
                           </div>
                         </div>
@@ -3273,6 +3317,7 @@ export function Dashboard({ page, nuggets, setModal, setPage, onOpenOnboardingTa
                       const shiftDown    = reverseI * FEED_STACK_SHIFT_Y;
                       const stackScale   = 1 - reverseI * 0.035;
                       const stackOpacity = isTop ? 1 : 0.9 - reverseI * 0.1;
+                      const isSponsored = isPropertySpotlight(p);
                       return (
                         <div
                           key={p.id}
@@ -3300,7 +3345,13 @@ export function Dashboard({ page, nuggets, setModal, setPage, onOpenOnboardingTa
                             )
                           }}
                         >
-                          <div style={{ position: 'relative', width: '100%', height: '100%' }}>
+                          <div style={{
+                            position: 'relative',
+                            width: '100%',
+                            height: '100%',
+                            borderRadius: 22,
+                            boxShadow: isSponsored ? `0 0 0 2px ${C.alpha('#4381bc', 0.9)}, 0 0 24px ${C.alpha('#4381bc', 0.62)}` : 'none',
+                          }}>
                             <PropertyCard
                               property={p}
                               action={isTop ? propAction : null}
@@ -3792,6 +3843,7 @@ export function Dashboard({ page, nuggets, setModal, setPage, onOpenOnboardingTa
     </div>
   );
 }
+
 
 
 

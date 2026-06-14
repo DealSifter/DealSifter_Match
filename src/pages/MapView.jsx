@@ -1296,6 +1296,7 @@ export function MapView({
   currentUserId = 'local-user',
   onUpdatePropertyCoords,
   userPreferences = null,
+  activeSpotlightKeys = new Set(),
 }) {
   const allT = useT('mapview');
   const tMatches = allT.matches;
@@ -2054,6 +2055,30 @@ export function MapView({
     return filteredPoints.map(p => p.payload).filter(Boolean);
   }, [filteredPoints, selectedClusterLeaves]);
 
+  const hasSpotlightKey = React.useCallback((key) => {
+    if (!key) return false;
+    if (activeSpotlightKeys instanceof Set) return activeSpotlightKeys.has(key);
+    if (Array.isArray(activeSpotlightKeys)) return activeSpotlightKeys.includes(key);
+    return false;
+  }, [activeSpotlightKeys]);
+
+  const isSpotlightItem = React.useCallback((item) => {
+    if (!item) return false;
+    const isPerson = Boolean(item?.loc);
+    if (!isPerson) return Boolean(item?.id) && hasSpotlightKey(`property:${item.id}`);
+    const ownerId = String(item.ownerId || item.id || '').trim();
+    const scope = String(item.primaryProfile || 'personal').trim().toLowerCase() || 'personal';
+    return hasSpotlightKey(`profile:${scope}:${ownerId}`)
+      || hasSpotlightKey(`profile:personal:${ownerId}`)
+      || (servicePortfolio || []).some((service) => (
+        String(service?.ownerId || '') === ownerId
+        && hasSpotlightKey(`service:${service.id}`)
+      ));
+  }, [hasSpotlightKey, servicePortfolio]);
+
+  const spotlightVisibleItems = useMemo(() => visibleItems.filter(isSpotlightItem), [visibleItems, isSpotlightItem]);
+  const spotlightNoPinProperties = useMemo(() => noPinProperties.filter(isSpotlightItem), [noPinProperties, isSpotlightItem]);
+
   const openCluster = (clusterFeature) => {
     const clusterId = clusterFeature.properties.cluster_id;
     const rawLeaves = clusterIndex.getLeaves(clusterId, Infinity, 0);
@@ -2704,7 +2729,7 @@ export function MapView({
               aria-selected={panelTab === 'cards'}
               onClick={() => setPanelTab('cards')}
             >
-              {tMap.tabCards} ({visibleItems.length})
+              Spotlight Cards ({spotlightVisibleItems.length})
             </button>
           </div>
 
@@ -2935,10 +2960,10 @@ export function MapView({
                   </button>
                 </div>
               )}
-              {visibleItems.length === 0 && (
-                <div style={{ color: C.t3, fontSize: 13 }}>{tMap.noVisibleItems}</div>
+              {spotlightVisibleItems.length === 0 && (
+                <div style={{ color: C.t3, fontSize: 13 }}>No paid spotlight cards are active in this view.</div>
               )}
-              {visibleItems.map((item) => {
+              {spotlightVisibleItems.map((item) => {
               const isPerson = Boolean(item?.loc);
               const isOwnCard = !isPerson && String(item?.ownerId || '') === 'self';
               const isUnlockedCard = isPerson ? isUnlockedId(item.id) : isUnlockedId(item.ownerId);
@@ -3039,7 +3064,7 @@ export function MapView({
                 </div>
               );
             })}
-              {noPinProperties.length > 0 && (
+              {spotlightNoPinProperties.length > 0 && (
                 <>
                   <div className="ds-geocode-pending-section-label">
                     <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" style={{ animation: 'ds-geocode-spin 1s linear infinite', color: '#e53e3e' }}>
@@ -3050,7 +3075,7 @@ export function MapView({
                     </svg>
                     {tMap.plottingLocation || 'Plotting location...'}
                   </div>
-                  {noPinProperties.map((prop) => (
+                  {spotlightNoPinProperties.map((prop) => (
                     <div
                       key={`noping-${prop.id}`}
                       className="map-list-item property"
@@ -3332,5 +3357,6 @@ export function MapView({
     </div>
   );
 }
+
 
 

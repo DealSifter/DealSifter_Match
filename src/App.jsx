@@ -76,6 +76,7 @@ import { UnlockModal } from './components/modals/UnlockModal';
 const AuthAccessModal = lazyWithRetry(() => import('./components/modals/AuthAccessModal').then((m) => ({ default: m.AuthAccessModal })), 'auth-access');
 const AdminLoginModal = lazyWithRetry(() => import('./components/modals/AdminLoginModal').then((m) => ({ default: m.AdminLoginModal })), 'admin-login');
 const EmbeddedCheckoutModal = lazyWithRetry(() => import('./components/modals/EmbeddedCheckoutModal').then((m) => ({ default: m.EmbeddedCheckoutModal })), 'embedded-checkout');
+const SpotlightModal = lazyWithRetry(() => import('./components/modals/SpotlightModal').then((m) => ({ default: m.SpotlightModal })), 'spotlight');
 import { ToastContainer } from './components/ui/Toast';
 const ConsentBanner = lazyWithRetry(() => import('./components/ui/ConsentBanner').then((m) => ({ default: m.ConsentBanner })), 'consent');
 const CookieBanner = lazyWithRetry(() => import('./components/ui/CookieBanner').then((m) => ({ default: m.CookieBanner })), 'cookie');
@@ -1864,11 +1865,14 @@ export default function App() {
 
   const [globalShowcaseProperties, setGlobalShowcaseProperties] = useState([]);
   const [globalConnectionServices, setGlobalConnectionServices] = useState([]);
+  const [activeSpotlights, setActiveSpotlights] = useState([]);
+  const [isSpotlightProcessing, setIsSpotlightProcessing] = useState(false);
 
   useEffect(() => {
     if (!isSupabaseConfigured || !supabase || !supabaseUserId) {
       setGlobalShowcaseProperties([]);
       setGlobalConnectionServices([]);
+      setActiveSpotlights([]);
       return undefined;
     }
 
@@ -1901,6 +1905,13 @@ export default function App() {
           .order('created_at', { ascending: false })
           .limit(250);
 
+        let spotlightsResult = await supabase
+          .from('card_spotlights')
+          .select('id, user_id, owner_id, card_kind, card_id, scope, starts_at, expires_at, nuggets_spent')
+          .gt('expires_at', new Date().toISOString())
+          .order('expires_at', { ascending: false })
+          .limit(500);
+
         if (cancelled) return;
         if (propertiesResult.error) {
           safeLogError('Supabase global showcase hydration failed.', propertiesResult.error);
@@ -1910,9 +1921,14 @@ export default function App() {
           safeLogError('Supabase global connections hydration failed.', servicesResult.error);
           servicesResult = { data: [] };
         }
+        if (spotlightsResult.error) {
+          safeLogError('Supabase card spotlights hydration failed.', spotlightsResult.error);
+          spotlightsResult = { data: [] };
+        }
 
         const propertyRows = Array.isArray(propertiesResult.data) ? propertiesResult.data : [];
         const serviceRows = Array.isArray(servicesResult.data) ? servicesResult.data : [];
+        const spotlightRows = Array.isArray(spotlightsResult.data) ? spotlightsResult.data : [];
         let imageRows = [];
         if (propertyRows.length > 0) {
           const imageResult = await supabase
@@ -1944,11 +1960,22 @@ export default function App() {
         setGlobalConnectionServices(serviceRows.map((row) => mapDbServiceToLocal(row, {
           ownerId: row.owner_id || row.ownerId || '',
         })));
+        setActiveSpotlights(spotlightRows.map((row) => ({
+          id: row.id,
+          userId: row.user_id,
+          ownerId: row.owner_id,
+          cardKind: row.card_kind,
+          cardId: row.card_id,
+          scope: row.scope || '',
+          expiresAt: row.expires_at,
+          nuggetsSpent: row.nuggets_spent,
+        })));
       } catch (error) {
         if (!cancelled) {
           safeLogError('Global showcase hydration failed.', error);
           setGlobalShowcaseProperties([]);
           setGlobalConnectionServices([]);
+          setActiveSpotlights([]);
         }
       }
     };
@@ -1970,6 +1997,74 @@ export default function App() {
       });
     return [...byId.values()];
   }, [globalConnectionServices, servicePortfolio]);
+
+  const activeSpotlightKeys = useMemo(() => {
+    const now = Date.now();
+    const keys = new Set();
+    (activeSpotlights || []).forEach((row) => {
+      if (!row?.cardKind || !row?.cardId) return;
+      if (row.expiresAt && Date.parse(row.expiresAt) <= now) return;
+      keys.add(`${row.cardKind}:${row.cardId}`);
+    });
+    return keys;
+  }, [activeSpotlights]);
+
+  const spotlightCandidates = useMemo(() => {
+    if (!supabaseUserId) return [];
+    const candidates = [];
+    const addProfile = (scope, title, enabled = true) => {
+      if (!enabled) return;
+      candidates.push({
+        key: `profile:${scope}:${supabaseUserId}`,
+        cardKind: 'profile',
+        cardId: `profile:${scope}:${supabaseUserId}`,
+        ownerId: supabaseUserId,
+        scope,
+        title,
+        label: `${scope === 'professional' ? 'Business' : scope === 'fsbo' ? 'FSBO' : 'Personal'} profile`,
+      });
+    };
+
+    const hasPersonalName = Boolean(String(professionalProfile?.fullNameA || personalProfile?.fullName || userProfile?.name || '').trim());
+    const hasBusinessName = Boolean(String(professionalProfile?.fullNameB || '').trim());
+    const hasFsbo = accountType === 'fsbo_owner'
+      || Boolean((propertyPortfolio || []).some((p) => String(p?.primaryProfile || '').toLowerCase() === 'fsbo'));
+    addProfile('personal', professionalProfile?.fullNameA || personalProfile?.fullName || userProfile?.name || 'Personal profile', hasPersonalName);
+    addProfile('professional', professionalProfile?.fullNameB || 'Business profile', hasBusinessName);
+    addProfile('fsbo', personalProfile?.fullName || userProfile?.name || 'FSBO profile', hasFsbo);
+
+    (propertyPortfolio || [])
+      .filter((p) => isTruthyFlag(p?.isActive, true) && isTruthyFlag(p?.publishToShowcase, true) && p?.dealClosed !== true && !isPendingDealExpired(p))
+      .forEach((p) => {
+        if (!p?.id) return;
+        candidates.push({
+          key: `property:${p.id}`,
+          cardKind: 'property',
+          cardId: String(p.id),
+          ownerId: supabaseUserId,
+          scope: p.primaryProfile || '',
+          title: p.address || p.title || 'Property card',
+          label: [p.type || 'Property', p.city, p.state].filter(Boolean).join(' - '),
+        });
+      });
+
+    (servicePortfolio || [])
+      .filter((s) => isTruthyFlag(s?.publishToConnections, true))
+      .forEach((s) => {
+        if (!s?.id) return;
+        candidates.push({
+          key: `service:${s.id}`,
+          cardKind: 'service',
+          cardId: String(s.id),
+          ownerId: supabaseUserId,
+          scope: s.primaryProfile || '',
+          title: s.title || 'Service card',
+          label: s.category || 'Service',
+        });
+      });
+
+    return candidates.filter((item) => !activeSpotlightKeys.has(`${item.cardKind}:${item.cardId}`));
+  }, [accountType, activeSpotlightKeys, personalProfile, professionalProfile, propertyPortfolio, servicePortfolio, supabaseUserId, userProfile]);
 
   const showcaseProperties = useMemo(() => {
     const byId = new Map();
@@ -3807,6 +3902,58 @@ export default function App() {
     }
   };
 
+  const handlePurchaseSpotlights = async (items = []) => {
+    const selected = (items || []).filter((item) => item?.cardKind && item?.cardId);
+    const totalCost = selected.length * 10;
+    if (!selected.length) return;
+    if (nuggets < totalCost) {
+      addToast({ type: 'warning', title: 'Not enough nuggets', message: `You need ${totalCost} nuggets to activate these spotlights.` });
+      openPricingHub();
+      return;
+    }
+    if (!isSupabaseConfigured || !supabase || !supabaseUserId) {
+      addToast({ type: 'error', title: 'Spotlight unavailable', message: 'Supabase is required to activate paid spotlights.' });
+      return;
+    }
+
+    setIsSpotlightProcessing(true);
+    try {
+      const payload = selected.map((item) => ({
+        cardKind: item.cardKind,
+        cardId: item.cardId,
+        ownerId: supabaseUserId,
+        scope: item.scope || '',
+        metadata: { source: 'spotlight_modal', title: String(item.title || '').slice(0, 120) },
+      }));
+      const { data, error } = await supabase.rpc('ds_purchase_card_spotlights', { p_items: payload });
+      if (error) throw error;
+      const rows = Array.isArray(data) ? data : [];
+      const firstRow = rows[0] || null;
+      if (Number.isFinite(Number(firstRow?.remaining_nuggets))) {
+        setNuggets(Number(firstRow.remaining_nuggets));
+      } else {
+        setNuggets((current) => current - totalCost);
+      }
+      const nextRows = rows.map((row) => ({
+        id: row.spotlight_id || `${row.card_kind}:${row.card_id}:${Date.now()}`,
+        userId: supabaseUserId,
+        ownerId: supabaseUserId,
+        cardKind: row.card_kind,
+        cardId: row.card_id,
+        scope: selected.find((item) => item.cardId === row.card_id)?.scope || '',
+        expiresAt: row.expires_at,
+        nuggetsSpent: 10,
+      }));
+      setActiveSpotlights((prev) => [...nextRows, ...(prev || [])]);
+      addToast({ type: 'success', title: 'Spotlight activated', message: `${selected.length} card(s) will be featured for 30 days.` });
+      setModal(null);
+    } catch (error) {
+      addToast({ type: 'error', title: 'Spotlight failed', message: String(error?.message || 'Could not activate spotlight right now.') });
+    } finally {
+      setIsSpotlightProcessing(false);
+    }
+  };
+
   const portfolioSyncStatus = useMemo(() => {
     if (!isSupabaseConfigured || !supabaseUserId) return 'idle';
     if (isHydratingPortfolio) return 'syncing';
@@ -3890,6 +4037,8 @@ export default function App() {
             subscription={accessSubscription}
             propertyUnlocks={propertyUnlocks}
             currentUserId={supabaseUserId || 'local-user'}
+            activeSpotlightKeys={activeSpotlightKeys}
+            onOpenSpotlight={() => setModal('spotlight')}
           />
         );
       case 'matches':
@@ -3923,6 +4072,7 @@ export default function App() {
             onOpenChatLanguageConfig={() => openSettingsTab('preferences')}
             propertyUnlocks={propertyUnlocks}
             currentUserId={supabaseUserId || 'local-user'}
+            activeSpotlightKeys={activeSpotlightKeys}
           />
         );
       case 'mapview':
@@ -4113,6 +4263,19 @@ export default function App() {
               onUnlock={handleUnlock}
               onBuyMore={openPricingHub}
               onClose={() => { setUnlockQuote(null); setModal(null); }}
+            />
+          </Suspense>
+        )}
+
+        {modal === 'spotlight' && (
+          <Suspense fallback={null}>
+            <SpotlightModal
+              open
+              items={spotlightCandidates}
+              nuggets={nuggets}
+              isProcessing={isSpotlightProcessing}
+              onConfirm={handlePurchaseSpotlights}
+              onClose={() => setModal(null)}
             />
           </Suspense>
         )}
