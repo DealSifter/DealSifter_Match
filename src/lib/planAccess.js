@@ -11,15 +11,19 @@ const FEATURE_COPY = {
     },
     unlock: {
       title: 'Monthly unlock limit reached',
-      message: 'Your Basic plan includes 3 unlock requests per month. Upgrade to keep opening contacts and property opportunities.',
+      message: 'Your Basic plan includes 3 unlocks per month. Upgrade to keep opening contacts and property opportunities.',
     },
     match: {
       title: 'Active match limit reached',
       message: 'Your current plan has reached its active match limit. Upgrade to continue matching without this restriction.',
     },
+    swipe: {
+      title: 'Daily swipe limit reached',
+      message: 'Your Basic plan includes 10 feed swipes per day. Upgrade for unlimited browsing and faster deal discovery.',
+    },
     like: {
-      title: 'Daily like limit reached',
-      message: 'Your Basic plan includes 5 likes per day. Upgrade for unlimited likes and faster deal discovery.',
+      title: 'Daily favorite limit reached',
+      message: 'Your Basic plan includes 5 favorited matches per day. Upgrade for unlimited favorites and matching.',
     },
     exportPdf: {
       title: 'PDF export requires Professional',
@@ -35,15 +39,19 @@ const FEATURE_COPY = {
     },
     unlock: {
       title: 'Limite mensal de desbloqueios atingido',
-      message: 'Seu plano Basico inclui 3 solicitacoes de desbloqueio por mes. Faca upgrade para continuar abrindo contatos e oportunidades.',
+      message: 'Seu plano Basico inclui 3 desbloqueios por mes. Faca upgrade para continuar abrindo contatos e oportunidades.',
     },
     match: {
       title: 'Limite de matches ativos atingido',
       message: 'Seu plano atual atingiu o limite de matches ativos. Faca upgrade para continuar dando match sem essa restricao.',
     },
+    swipe: {
+      title: 'Limite diario de swipes atingido',
+      message: 'Seu plano Basico inclui 10 swipes no feed por dia. Faca upgrade para navegar sem limite e descobrir oportunidades mais rapido.',
+    },
     like: {
-      title: 'Limite diario de curtidas atingido',
-      message: 'Seu plano Basico inclui 5 curtidas por dia. Faca upgrade para curtidas ilimitadas e descoberta mais rapida de negocios.',
+      title: 'Limite diario de favoritos atingido',
+      message: 'Seu plano Basico inclui 5 matches favoritados por dia. Faca upgrade para favoritos e matching ilimitados.',
     },
     exportPdf: {
       title: 'Exportar PDF exige plano Profissional',
@@ -59,15 +67,19 @@ const FEATURE_COPY = {
     },
     unlock: {
       title: 'Limite mensual de desbloqueos alcanzado',
-      message: 'Tu plan Basico incluye 3 solicitudes de desbloqueo por mes. Haz upgrade para seguir abriendo contactos y oportunidades.',
+      message: 'Tu plan Basico incluye 3 desbloqueos por mes. Haz upgrade para seguir abriendo contactos y oportunidades.',
     },
     match: {
       title: 'Limite de matches activos alcanzado',
       message: 'Tu plan actual alcanzo el limite de matches activos. Haz upgrade para continuar sin esta restriccion.',
     },
+    swipe: {
+      title: 'Limite diario de swipes alcanzado',
+      message: 'Tu plan Basico incluye 10 swipes en el feed por dia. Haz upgrade para navegar sin limite y descubrir oportunidades mas rapido.',
+    },
     like: {
-      title: 'Limite diario de likes alcanzado',
-      message: 'Tu plan Basico incluye 5 likes por dia. Haz upgrade para likes ilimitados y descubrimiento mas rapido de negocios.',
+      title: 'Limite diario de favoritos alcanzado',
+      message: 'Tu plan Basico incluye 5 matches favoritos por dia. Haz upgrade para favoritos y matching ilimitados.',
     },
     exportPdf: {
       title: 'Exportar PDF requiere Profesional',
@@ -180,6 +192,13 @@ export function canUsePlanAction(subscriptionOrPlan, action, usage = {}) {
     if (limit == null) return { allowed: true, feature: 'like' };
     const used = Number(usage.likesToday || readPlanUsage('day')?.likes || 0);
     return { allowed: used < limit, feature: 'like', used, limit };
+  }
+
+  if (action === 'swipe') {
+    const limit = limits.swipesPerDay;
+    if (limit == null) return { allowed: true, feature: 'swipe' };
+    const used = Number(usage.swipesToday || readPlanUsage('day')?.swipes || 0);
+    return { allowed: used < limit, feature: 'swipe', used, limit };
   }
 
   if (action === 'match') {
