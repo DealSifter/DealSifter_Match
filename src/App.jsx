@@ -874,28 +874,6 @@ export default function App() {
     }
   }, [portfolioHydrationRetryRef]);
 
-  // Keep first-load hydration blocking short; continue syncing in background afterwards.
-  useEffect(() => {
-    const hydrating = isHydratingProfiles || isHydratingPortfolio;
-    if (!supabaseUserId) {
-      hydrationBlockShownUserRef.current = null;
-      setShowHydrationBlocking(false);
-      return;
-    }
-    if (!hydrating) {
-      setShowHydrationBlocking(false);
-      return;
-    }
-    if (hydrationBlockShownUserRef.current === supabaseUserId) {
-      setShowHydrationBlocking(false);
-      return;
-    }
-    hydrationBlockShownUserRef.current = supabaseUserId;
-    setShowHydrationBlocking(true);
-    const timer = setTimeout(() => setShowHydrationBlocking(false), 1600);
-    return () => clearTimeout(timer);
-  }, [isHydratingProfiles, isHydratingPortfolio, supabaseUserId]);
-
   const [isAdminAuthProcessing, setIsAdminAuthProcessing] = useState(false);
   const [isConsentProcessing, setIsConsentProcessing] = useState(false);
   const [isAccountProcessing, setIsAccountProcessing] = useState(false);
@@ -1555,6 +1533,28 @@ export default function App() {
 
   const supabaseUserId = authSession?.userId || null;
 
+  // Keep first-load hydration blocking short; continue syncing in background afterwards.
+  useEffect(() => {
+    const hydrating = isHydratingProfiles || isHydratingPortfolio;
+    if (!supabaseUserId) {
+      hydrationBlockShownUserRef.current = null;
+      window.setTimeout(() => setShowHydrationBlocking(false), 0);
+      return undefined;
+    }
+    if (!hydrating) {
+      window.setTimeout(() => setShowHydrationBlocking(false), 0);
+      return undefined;
+    }
+    if (hydrationBlockShownUserRef.current === supabaseUserId) {
+      window.setTimeout(() => setShowHydrationBlocking(false), 0);
+      return undefined;
+    }
+    hydrationBlockShownUserRef.current = supabaseUserId;
+    window.setTimeout(() => setShowHydrationBlocking(true), 0);
+    const timer = window.setTimeout(() => setShowHydrationBlocking(false), 1600);
+    return () => clearTimeout(timer);
+  }, [isHydratingProfiles, isHydratingPortfolio, supabaseUserId]);
+
   const refreshProfileHydration = useCallback(() => {
     setProfileHydrationCycle((prev) => prev + 1);
   }, []);
@@ -1634,7 +1634,7 @@ export default function App() {
       });
     }
     window.setTimeout(() => { feedActionHydratingRef.current = false; }, 0);
-  }, []);
+  }, [setInterested, setMatched, setUnlocked]);
 
   const fetchRemoteFeedActions = useCallback(async () => {
     if (!isSupabaseConfigured || !supabase || !supabaseUserId) return;
@@ -1656,7 +1656,8 @@ export default function App() {
     feedActionLoadedUserRef.current = null;
     feedActionLastSignatureRef.current = '';
     if (!supabaseUserId) return;
-    fetchRemoteFeedActions();
+    const timer = window.setTimeout(fetchRemoteFeedActions, 0);
+    return () => clearTimeout(timer);
   }, [fetchRemoteFeedActions, supabaseUserId]);
 
   useEffect(() => {
