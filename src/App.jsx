@@ -908,6 +908,10 @@ export default function App() {
   });
   const [modal, setModal] = useState(null);
   const [authModalTab, setAuthModalTab] = useState('signup');
+  const openAuthModal = useCallback((tab = 'signup') => {
+    setAuthModalTab(tab === 'login' ? 'login' : 'signup');
+    setModal('auth');
+  }, []);
   const [unlockTarget, setUnlockTarget] = useState(null);
   const [unlockQuote, setUnlockQuote] = useState(null);
   const unlockQuoteRequestRef = useRef(0);
@@ -1464,11 +1468,6 @@ export default function App() {
   useEffect(() => {
     profileHydrationInputRef.current.accountType = accountType || 'professional';
   }, [accountType]);
-
-  const openAuthModal = useCallback((tab = 'signup') => {
-    setAuthModalTab(tab === 'login' ? 'login' : 'signup');
-    setModal('auth');
-  }, []);
 
   // Wrapper for setPage that tracks previous page
   const setPage = useCallback((newPage) => {
