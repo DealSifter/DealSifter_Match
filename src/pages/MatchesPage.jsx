@@ -1924,6 +1924,10 @@ export function MatchesPage({ nuggets, setModal, openUnlock, unlocked, initialCh
   const [portfolioTab, setPortfolioTab] = useState('properties');
   const [portfolioShowAll, setPortfolioShowAll] = useState(false);
   const [isMobile, setIsMobile] = useState(() => typeof window !== 'undefined' && window.innerWidth <= 767);
+  const [isTabletPortrait, setIsTabletPortrait] = useState(() => (
+    typeof window !== 'undefined'
+    && window.matchMedia('(min-width: 768px) and (max-width: 1080px) and (orientation: portrait)').matches
+  ));
   const [mobileTab, setMobileTab] = useState('connections');
   const [mobileChatTab, setMobileChatTab] = useState('chat');
   const [mobileCardSheet, setMobileCardSheet] = useState(null);
@@ -2012,9 +2016,16 @@ export function MatchesPage({ nuggets, setModal, openUnlock, unlocked, initialCh
   }, [activeOwner?.id]);
 
   useEffect(() => {
-    const onResize = () => setIsMobile(window.innerWidth <= 767);
+    const onResize = () => {
+      setIsMobile(window.innerWidth <= 767);
+      setIsTabletPortrait(window.matchMedia('(min-width: 768px) and (max-width: 1080px) and (orientation: portrait)').matches);
+    };
     window.addEventListener('resize', onResize);
-    return () => window.removeEventListener('resize', onResize);
+    window.addEventListener('orientationchange', onResize);
+    return () => {
+      window.removeEventListener('resize', onResize);
+      window.removeEventListener('orientationchange', onResize);
+    };
   }, []);
 
   useEffect(() => {
@@ -2155,6 +2166,45 @@ export function MatchesPage({ nuggets, setModal, openUnlock, unlocked, initialCh
           .matches-portfolio-col { display: ${mobileChatTab === 'portfolio' ? 'block' : 'none'} !important; width: 100% !important; max-width: 100% !important; overflow-y: auto !important; }
           .matches-resize-handle { display: none !important; }
           .matches-lang-row { display: none !important; }
+        }
+        @media (min-width: 768px) and (max-width: 1080px) and (orientation: portrait) {
+          .matches-sidebar {
+            width: clamp(300px, 39vw, 350px) !important;
+            flex-shrink: 0 !important;
+          }
+          .matches-detail-split {
+            flex-direction: column !important;
+            min-width: 0 !important;
+            min-height: 0 !important;
+          }
+          .matches-resize-handle {
+            display: none !important;
+          }
+          .matches-portfolio-col {
+            order: 1 !important;
+            display: block !important;
+            width: 100% !important;
+            max-width: none !important;
+            flex: 0 0 46% !important;
+            min-height: 0 !important;
+            padding: 12px !important;
+            border-bottom: 1px solid ${C.border} !important;
+            box-sizing: border-box !important;
+          }
+          .matches-portfolio-col .map-panel-tabs {
+            margin-bottom: 8px !important;
+            overflow-x: auto !important;
+          }
+          .matches-chat-col {
+            order: 2 !important;
+            flex: 1 1 54% !important;
+            min-height: 0 !important;
+            border-right: none !important;
+          }
+          .matches-chat-col > div:first-child {
+            transform: scale(0.92);
+            transform-origin: top left;
+          }
         }
       `}</style>
       <div style={{ flex:1, display:"flex", overflow:"hidden" }}>
@@ -2465,16 +2515,16 @@ export function MatchesPage({ nuggets, setModal, openUnlock, unlocked, initialCh
                       <div style={{ fontWeight:800, whiteSpace:"nowrap", overflow:"hidden", textOverflow:"ellipsis" }}>{isActiveProperty ? active.address : active.name}</div>
                       <div style={{ fontSize:11, color:C.success }}>{t.onlineBy} · {activeOwner.name}</div>
                     </div>
-                    {!isMobile ? (
+                    {!isMobile && !isTabletPortrait ? (
                       <div style={{ minWidth:0, maxWidth:'64%', display:'flex', justifyContent:'flex-end', alignSelf:'flex-start' }}>
                         <ContactButtons item={activeOwner} variant="unlocked-header" isMobile={false} desktopRightToLeft />
                       </div>
                     ) : null}
                   </div>
                 </div>
-                {isMobile ? (
-                  <div style={{ marginTop:10 }}>
-                        <ContactButtons item={activeOwner} variant="unlocked-header" isMobile />
+                {(isMobile || isTabletPortrait) ? (
+                  <div style={{ marginTop:10, paddingLeft: isTabletPortrait ? 52 : 0 }}>
+                        <ContactButtons item={activeOwner} variant="unlocked-header" isMobile={isMobile} />
                   </div>
                 ) : null}
               </div>
@@ -2498,7 +2548,7 @@ export function MatchesPage({ nuggets, setModal, openUnlock, unlocked, initialCh
                   </button>
                 </div>
               )}
-              <div ref={splitPaneRef} style={{ flex:1, display:"flex", overflow:"hidden", minWidth:0 }}>
+              <div ref={splitPaneRef} className="matches-detail-split" style={{ flex:1, display:"flex", overflow:"hidden", minWidth:0 }}>
                 <div style={{ flex:1, minWidth:0, display:"flex", flexDirection:"column", borderRight:`1px solid ${C.border}`, position:'relative' }} className="matches-chat-col">
                   <div style={{ position:'absolute', top:10, left:10, zIndex:3, display:'inline-flex', flexDirection:'column', alignItems:'stretch', gap:6, background:C.alpha(C.bg, 0.92), border:`1px solid ${C.border}`, borderRadius:10, padding:'4px 6px' }}>
                     <div style={{ display:'inline-flex', alignItems:'center', gap:6 }}>
