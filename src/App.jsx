@@ -4342,9 +4342,9 @@ export default function App() {
         )}
 
         {/* LGPD consent — after login only */}
-        {!lgpdConsent && authSession && (
+        {!lgpdConsent && authSession && !['terms', 'privacy'].includes(page) && (
           <Suspense fallback={null}>
-            <ConsentBanner onAccept={handleLgpdAccept} onReject={() => { const t = getT(); setPage('landing'); addToast({ type: 'info', title: t.consent.requiredTitle, message: t.consent.requiredMessage }); }} onOpenTerms={() => setPage('terms')} onOpenPrivacy={() => setPage('privacy')} />
+            <ConsentBanner processing={isConsentProcessing} onAccept={handleLgpdAccept} onReject={() => { const t = getT(); setPage('landing'); addToast({ type: 'info', title: t.consent.requiredTitle, message: t.consent.requiredMessage }); }} onOpenTerms={() => setPage('terms')} onOpenPrivacy={() => setPage('privacy')} />
           </Suspense>
         )}
 

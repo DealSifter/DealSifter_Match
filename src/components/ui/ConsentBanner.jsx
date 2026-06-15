@@ -8,9 +8,11 @@ import { useT } from '../../i18n/translations';
  * LGPD Consent Banner — shown once after first login before the user can proceed.
  * Records acceptance timestamp; proof is persisted server-side via onAccept callback.
  */
-export function ConsentBanner({ onAccept, onReject, onOpenTerms, onOpenPrivacy }) {
+export function ConsentBanner({ onAccept, onReject, onOpenTerms, onOpenPrivacy, processing = false }) {
   const [expanded, setExpanded] = useState(false);
+  const [checked, setChecked] = useState(false);
   const t = useT('consent').consent;
+  const canAccept = checked && !processing;
 
   return (
     <div
@@ -95,26 +97,54 @@ export function ConsentBanner({ onAccept, onReject, onOpenTerms, onOpenPrivacy }
         )}
 
         <div style={{ display: 'grid', gap: 8 }}>
+          <label
+            style={{
+              display: 'flex',
+              alignItems: 'flex-start',
+              gap: 10,
+              padding: '10px 12px',
+              borderRadius: 12,
+              border: `1px solid ${checked ? C.accent : C.border}`,
+              background: checked ? C.alpha(C.accent, 0.08) : C.alpha(C.t1, 0.03),
+              color: C.t2,
+              fontSize: 11,
+              lineHeight: 1.45,
+              cursor: 'pointer',
+            }}
+          >
+            <input
+              type="checkbox"
+              checked={checked}
+              onChange={(event) => setChecked(event.target.checked)}
+              style={{ marginTop: 2, accentColor: C.accent, width: 15, height: 15, flexShrink: 0 }}
+            />
+            <span>{t.readConfirm}</span>
+          </label>
           <button
-            onClick={onAccept}
+            onClick={() => {
+              if (!canAccept) return;
+              onAccept?.();
+            }}
+            disabled={!canAccept}
             style={{
               width: '100%',
               border: 'none',
               borderRadius: 10,
-              background: C.accent,
+              background: canAccept ? C.accent : C.alpha(C.t1, 0.16),
               color: '#fff',
               padding: '12px 14px',
               fontSize: 13,
               fontWeight: 800,
-              cursor: 'pointer',
+              cursor: canAccept ? 'pointer' : 'not-allowed',
               display: 'inline-flex',
               alignItems: 'center',
               justifyContent: 'center',
               gap: 8,
+              opacity: canAccept ? 1 : 0.72,
             }}
           >
             <Icon name="check" size={14} color="#fff" />
-            {t.accept}
+            {processing ? t.processing : t.accept}
           </button>
           {onReject && (
             <button
@@ -139,7 +169,7 @@ export function ConsentBanner({ onAccept, onReject, onOpenTerms, onOpenPrivacy }
             {onOpenPrivacy ? (
               <button onClick={onOpenPrivacy} style={{ background: 'none', border: 'none', color: C.accent, fontSize: 10, cursor: 'pointer', padding: 0, textDecoration: 'underline' }}>{t.privacyLink}</button>
             ) : t.privacyLink}
-            {' '}e{' '}
+            {' '}{t.termsJoiner}{' '}
             {onOpenTerms ? (
               <button onClick={onOpenTerms} style={{ background: 'none', border: 'none', color: C.accent, fontSize: 10, cursor: 'pointer', padding: 0, textDecoration: 'underline' }}>{t.termsLink}</button>
             ) : t.termsLink}
