@@ -306,7 +306,7 @@ function getLocalOwnerId(scopeKey) {
   return 999999;
 }
 
-function PortfolioDetail({ item, owner, ownerDesc, onBack, autoplayMedia = false, onBlockedExport = null, imageSources = [] }) {
+function PortfolioDetail({ item, owner, ownerDesc, onBack, autoplayMedia = false, onBlockedExport = null, imageSources = [], onStartChat = null, canUseChat = true, chatInterestLabel = CHAT_INTEREST_PREFIX.en }) {
   const allT = useT('matches');
   const matchesT = allT.matches;
   const modalsT = allT.modals;
@@ -1389,6 +1389,34 @@ function PortfolioDetail({ item, owner, ownerDesc, onBack, autoplayMedia = false
         <ContactButtons item={item} />
       </div>
 
+      {typeof onStartChat === 'function' ? (
+        <div style={{ padding: '0 10px 10px' }}>
+          <button
+            type="button"
+            onClick={() => onStartChat(item)}
+            style={{
+              width: '100%',
+              minHeight: 38,
+              borderRadius: 10,
+              border: 'none',
+              background: C.accent,
+              color: '#fff',
+              fontSize: 12,
+              fontWeight: 900,
+              cursor: canUseChat ? 'pointer' : 'not-allowed',
+              opacity: canUseChat ? 1 : 0.62,
+              display: 'inline-flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              gap: 8,
+            }}
+          >
+            <Icon name="chat" size={14} color="#fff" />
+            {chatInterestLabel}
+          </button>
+        </div>
+      ) : null}
+
       <div style={{ padding:"0 10px 10px" }}>
         <div style={{ border:`1px solid ${C.border}`, borderRadius:8, padding:8, background:C.alpha(C.accent, 0.04) }}>
           <div style={{ fontSize:10, color:C.t3, marginBottom:3 }}>{matchesT.ownerNotes}</div>
@@ -1563,6 +1591,7 @@ export function MatchesPage({ nuggets, setModal, openUnlock, unlocked, initialCh
   
   // Resizing logic
   const [portfolioWidth, setPortfolioWidth] = useState(DESKTOP_PORTFOLIO_WIDTH);
+  const [tabletPortfolioPct, setTabletPortfolioPct] = useState(64);
   const [selectedPortfolioItem, setSelectedPortfolioItem] = useState(null);
   const [previewCardOpen, setPreviewCardOpen] = useState(false);
   const [_previewShowcaseIdx, setPreviewShowcaseIdx] = useState(0);
@@ -1589,9 +1618,11 @@ export function MatchesPage({ nuggets, setModal, openUnlock, unlocked, initialCh
     } catch (e) { void e; return {}; }
   }, []);
   const isResizing = useRef(false);
+  const resizingMode = useRef('horizontal');
 
   const stopResizing = useCallback(() => {
     isResizing.current = false;
+    resizingMode.current = 'horizontal';
     document.body.style.cursor = "default";
     document.body.style.userSelect = "auto";
   }, []);
@@ -1599,6 +1630,11 @@ export function MatchesPage({ nuggets, setModal, openUnlock, unlocked, initialCh
   const handleMouseMove = useCallback((e) => {
     if (!isResizing.current || !splitPaneRef.current) return;
     const rect = splitPaneRef.current.getBoundingClientRect();
+    if (resizingMode.current === 'vertical') {
+      const rawPct = ((e.clientY - rect.top) / Math.max(1, rect.height)) * 100;
+      setTabletPortfolioPct(Math.max(48, Math.min(rawPct, 76)));
+      return;
+    }
     const nextWidth = rect.right - e.clientX;
     const hardMax = Math.max(0, Math.min(DESKTOP_PORTFOLIO_MAX_WIDTH, rect.width - DESKTOP_CHAT_MIN_WIDTH - 4));
     const effectiveMin = Math.min(DESKTOP_PORTFOLIO_MIN_WIDTH, hardMax);
@@ -1606,17 +1642,24 @@ export function MatchesPage({ nuggets, setModal, openUnlock, unlocked, initialCh
     setPortfolioWidth(clamped);
   }, [DESKTOP_CHAT_MIN_WIDTH, DESKTOP_PORTFOLIO_MAX_WIDTH, DESKTOP_PORTFOLIO_MIN_WIDTH]);
 
-  const startResizing = useCallback(() => {
+  const startResizing = useCallback((mode = 'horizontal') => {
     isResizing.current = true;
-    document.body.style.cursor = "col-resize";
+    resizingMode.current = mode;
+    document.body.style.cursor = mode === 'vertical' ? "row-resize" : "col-resize";
     document.body.style.userSelect = "none";
     const onUp = () => {
       stopResizing();
       window.removeEventListener("mousemove", handleMouseMove);
+      window.removeEventListener("pointermove", handleMouseMove);
       window.removeEventListener("mouseup", onUp);
+      window.removeEventListener("pointerup", onUp);
+      window.removeEventListener("pointercancel", onUp);
     };
     window.addEventListener("mousemove", handleMouseMove);
+    window.addEventListener("pointermove", handleMouseMove);
     window.addEventListener("mouseup", onUp);
+    window.addEventListener("pointerup", onUp);
+    window.addEventListener("pointercancel", onUp);
   }, [handleMouseMove, stopResizing]);
   
   const allT = useT('matches');
@@ -2143,12 +2186,14 @@ export function MatchesPage({ nuggets, setModal, openUnlock, unlocked, initialCh
   ]);
 
   const mobileBottomNavOffset = isMobile ? (mobileBottomNavCollapsed ? 4 : 88) : 0;
+  const tabletBottomNavOffset = isTabletPortrait ? (mobileBottomNavCollapsed ? 4 : 88) : 0;
+  const bottomNavOffset = Math.max(mobileBottomNavOffset, tabletBottomNavOffset);
   const previewFeedCardWidth = isMobile ? 360 : 654;
   const previewFeedCardHeight = isMobile ? 576 : 400;
   const previewModalMaxWidth = isMobile ? 420 : 730;
 
   return (
-    <div style={{ paddingTop:58, paddingBottom:mobileBottomNavOffset, height:"calc(var(--app-vh, 1vh) * 100)", boxSizing:"border-box", display:"flex", flexDirection:"column", background:C.bg }}>
+    <div style={{ paddingTop:58, paddingBottom:bottomNavOffset, height:"calc(var(--app-vh, 1vh) * 100)", boxSizing:"border-box", display:"flex", flexDirection:"column", background:C.bg }}>
       <style>{`
         .map-panel-tabs { display: flex; gap: 4px; margin-bottom: 12px; padding-bottom: 2px; border-bottom: 1px solid var(--ui-border); }
         .map-panel-tab { flex: none; white-space: nowrap; padding: 8px 14px 7px; border-top-left-radius: 10px; border-top-right-radius: 10px; border-bottom-left-radius: 0; border-bottom-right-radius: 0; border: 1px solid transparent; border-bottom: 1px solid transparent; background: var(--ui-hover); color: ${C.t2}; font-size: 12px; font-weight: 600; cursor: pointer; margin-bottom: -3px; transition: all .15s ease; }
@@ -2169,23 +2214,23 @@ export function MatchesPage({ nuggets, setModal, openUnlock, unlocked, initialCh
         }
         @media (min-width: 768px) and (max-width: 1080px) and (orientation: portrait) {
           .matches-sidebar {
-            width: clamp(300px, 39vw, 350px) !important;
+            width: 50% !important;
             flex-shrink: 0 !important;
+          }
+          .matches-sidebar > div:last-child {
+            min-height: 0 !important;
           }
           .matches-detail-split {
             flex-direction: column !important;
             min-width: 0 !important;
             min-height: 0 !important;
           }
-          .matches-resize-handle {
-            display: none !important;
-          }
           .matches-portfolio-col {
             order: 1 !important;
             display: block !important;
             width: 100% !important;
             max-width: none !important;
-            flex: 0 0 46% !important;
+            flex: 0 0 var(--matches-portfolio-pane, 64%) !important;
             min-height: 0 !important;
             padding: 12px !important;
             border-bottom: 1px solid ${C.border} !important;
@@ -2195,9 +2240,19 @@ export function MatchesPage({ nuggets, setModal, openUnlock, unlocked, initialCh
             margin-bottom: 8px !important;
             overflow-x: auto !important;
           }
-          .matches-chat-col {
+          .matches-resize-handle {
             order: 2 !important;
-            flex: 1 1 54% !important;
+            display: block !important;
+            width: 100% !important;
+            height: 7px !important;
+            min-height: 7px !important;
+            cursor: row-resize !important;
+            flex: 0 0 7px !important;
+            touch-action: none !important;
+          }
+          .matches-chat-col {
+            order: 3 !important;
+            flex: 1 1 var(--matches-chat-pane, 36%) !important;
             min-height: 0 !important;
             border-right: none !important;
           }
@@ -2548,7 +2603,18 @@ export function MatchesPage({ nuggets, setModal, openUnlock, unlocked, initialCh
                   </button>
                 </div>
               )}
-              <div ref={splitPaneRef} className="matches-detail-split" style={{ flex:1, display:"flex", overflow:"hidden", minWidth:0 }}>
+              <div
+                ref={splitPaneRef}
+                className="matches-detail-split"
+                style={{
+                  flex:1,
+                  display:"flex",
+                  overflow:"hidden",
+                  minWidth:0,
+                  '--matches-portfolio-pane': `${tabletPortfolioPct}%`,
+                  '--matches-chat-pane': `${Math.max(20, 100 - tabletPortfolioPct)}%`,
+                }}
+              >
                 <div style={{ flex:1, minWidth:0, display:"flex", flexDirection:"column", borderRight:`1px solid ${C.border}`, position:'relative' }} className="matches-chat-col">
                   <div style={{ position:'absolute', top:10, left:10, zIndex:3, display:'inline-flex', flexDirection:'column', alignItems:'stretch', gap:6, background:C.alpha(C.bg, 0.92), border:`1px solid ${C.border}`, borderRadius:10, padding:'4px 6px' }}>
                     <div style={{ display:'inline-flex', alignItems:'center', gap:6 }}>
@@ -2701,16 +2767,26 @@ export function MatchesPage({ nuggets, setModal, openUnlock, unlocked, initialCh
                 {!isMobile && (
                   <div 
                     className="matches-resize-handle"
-                    onMouseDown={startResizing}
-                    style={{ width:4, cursor:"col-resize", background:C.border, transition:"background .2s", zIndex:10 }}
+                    onPointerDown={(e) => {
+                      e.preventDefault();
+                      startResizing(isTabletPortrait ? 'vertical' : 'horizontal');
+                    }}
+                    style={{ width:4, cursor:isTabletPortrait ? "row-resize" : "col-resize", background:C.border, transition:"background .2s", zIndex:10, touchAction:'none' }}
                     onMouseEnter={e => e.currentTarget.style.background = C.accent}
                     onMouseLeave={e => e.currentTarget.style.background = C.border}
                   />
                 )}
                 
                 <div style={{ width:portfolioWidth, minWidth:0, maxWidth:DESKTOP_PORTFOLIO_MAX_WIDTH, overflowY:"auto", padding:20, flexShrink:0, boxSizing:"border-box" }} className="desktop-only matches-portfolio-col">
-                  <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', marginBottom:12 }}>
-                    <div style={{ fontSize:12, fontWeight:800, color:C.t3, letterSpacing:"0.5px" }}>{t.portfolio.toUpperCase()}</div>
+                  <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', gap:10, marginBottom:12 }}>
+                    <div style={{ display:'flex', alignItems:'center', gap:10, minWidth:0, flex:1 }}>
+                      <div style={{ fontSize:12, fontWeight:800, color:C.t3, letterSpacing:"0.5px", flexShrink:0 }}>{t.portfolio.toUpperCase()}</div>
+                      {isTabletPortrait && activeOwner ? (
+                        <div style={{ minWidth:0, flex:1, overflow:'hidden' }}>
+                          <ContactButtons item={activeOwner} variant="unlocked-header" isMobile={false} />
+                        </div>
+                      ) : null}
+                    </div>
                     <div style={{ display:'flex', gap:8 }}>
                       <div className="map-panel-tabs" role="tablist" aria-label="Portfolio tabs">
                         <button
@@ -2746,6 +2822,15 @@ export function MatchesPage({ nuggets, setModal, openUnlock, unlocked, initialCh
                         autoplayMedia={autoplayMedia}
                         onBlockedExport={guardExportPdf}
                         imageSources={[...(propertyPortfolio || []), ...(showcaseProperties || []), ...(allPropertiesSource || [])]}
+                        canUseChat={canUseChat}
+                        chatInterestLabel={CHAT_INTEREST_PREFIX[myInputLang] || CHAT_INTEREST_PREFIX.en}
+                        onStartChat={(refItem) => {
+                          if (!canUseChat) {
+                            blockFeature('chat');
+                            return;
+                          }
+                          handleSend('', 'reference', refItem);
+                        }}
                       />
                     ) : (
                       <div style={{ background:C.card, border:`1px solid ${C.border}`, borderRadius:12, padding:12 }}>
