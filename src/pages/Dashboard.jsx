@@ -94,8 +94,8 @@ export function Dashboard({ page, nuggets, setModal, setPage, onOpenOnboardingTa
   const feedStackBottomGap = isMobileViewport ? 72 : (isTabletPortraitViewport ? 58 : 160);
   const FEED_STACK_CONTAINER_HEIGHT = FEED_CARD_HEIGHT + feedStackBottomGap;
   const tabletFeedSideWidth = isTabletPortraitWideViewport ? 210 : 184;
-  const tabletFeedGap = isTabletPortraitWideViewport ? 54 : 42;
-  const tabletFeedSideOffset = tabletFeedSideWidth + tabletFeedGap + (isTabletPortraitWideViewport ? 48 : 38);
+  const tabletFeedGap = isTabletPortraitWideViewport ? 76 : 58;
+  const tabletFeedSideOffset = tabletFeedSideWidth + tabletFeedGap + (isTabletPortraitWideViewport ? 52 : 42);
   const sidePanelHeight = isTabletPortraitViewport ? 510 : 550;
   const SWIPE_ANIM_MS = 380;
   const pendingFocusOnInit = readPendingFocusCard();
@@ -3309,7 +3309,7 @@ export function Dashboard({ page, nuggets, setModal, setPage, onOpenOnboardingTa
           )}
 
           <div ref={mobileFeedTitleRef} style={{
-            marginBottom: isTabletPortraitViewport ? 18 : 8,
+            marginBottom: isTabletPortraitViewport ? 24 : 8,
             width: '100%',
             maxWidth: `min(${FEED_CARD_WIDTH}px, 100%)`,
             display: isTabletPortraitViewport ? 'grid' : 'flex',
@@ -3318,7 +3318,7 @@ export function Dashboard({ page, nuggets, setModal, setPage, onOpenOnboardingTa
             justifyContent: isTabletPortraitViewport ? undefined : 'center',
             gap: isTabletPortraitViewport ? 12 : 8,
             position: 'relative',
-            minHeight: isTabletPortraitViewport ? 62 : 38
+            minHeight: isTabletPortraitViewport ? 82 : 38
           }}>
             <div style={{
               display: 'inline-flex',
@@ -3330,7 +3330,7 @@ export function Dashboard({ page, nuggets, setModal, setPage, onOpenOnboardingTa
               background: C.alpha(C.t1, 0.03),
               gridColumn: isTabletPortraitViewport ? 2 : undefined,
               justifySelf: isTabletPortraitViewport ? 'center' : undefined,
-              transform: isTabletPortraitViewport ? 'translateY(18px)' : undefined,
+              transform: isTabletPortraitViewport ? 'translateY(32px)' : undefined,
             }}>
               <button
                 type="button"
