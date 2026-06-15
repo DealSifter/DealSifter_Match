@@ -79,6 +79,7 @@ function trackPropertySaved(propertyId, metadata = {}) {
 export function Dashboard({ page, nuggets, setModal, setPage, onOpenOnboardingTab, openUnlock, unlocked, matched, setMatched, interested, setInterested, purchases, setPurchases, userProfile, personalProfile, professionalProfile, propertyPortfolio, servicePortfolio, accountType, showcaseProperties, categoryOrder, setCategoryOrder, editMode, setEditMode, mobileBottomNavCollapsed = false, addToast, setSystemNotifications = null, subscription, propertyUnlocks = [], currentUserId = 'local-user', activeSpotlightKeys = new Set(), onOpenSpotlight = null }) {
   const isMobileViewport = useMediaQuery('(max-width: 767px)');
   const isTabletPortraitViewport = useMediaQuery('(min-width: 768px) and (max-width: 1080px) and (orientation: portrait)');
+  const isTabletLandscapeViewport = useMediaQuery('(min-width: 768px) and (max-width: 1180px) and (orientation: landscape)');
   const isTabletPortraitWideViewport = useMediaQuery('(min-width: 900px) and (max-width: 1080px) and (orientation: portrait)');
   const isTouchModalViewport = useMediaQuery('(max-width: 1024px)');
 
@@ -3172,7 +3173,7 @@ export function Dashboard({ page, nuggets, setModal, setPage, onOpenOnboardingTa
               ? `${tabletFeedSideWidth}px minmax(0, min(${FEED_CARD_WIDTH}px, calc(100vw - ${tabletFeedSideOffset}px)))`
               : undefined,
             columnGap: isTabletPortraitViewport ? tabletFeedGap : undefined,
-            alignItems: isTabletPortraitViewport ? 'start' : 'center',
+            alignItems: isTabletPortraitViewport || isTabletLandscapeViewport ? 'flex-start' : 'center',
             justifyContent: isTabletPortraitViewport ? 'center' : undefined,
             overflow:"visible",
             width:"100%"
@@ -3238,6 +3239,75 @@ export function Dashboard({ page, nuggets, setModal, setPage, onOpenOnboardingTa
                   </div>
                 </div>
               </div>
+
+              {hasSecondaryProfile && (
+                <div style={{ background: C.card, border: `1px solid ${C.border}`, borderRadius: 16, padding: isTabletPortraitWideViewport ? 12 : 10, boxShadow: `0 12px 28px ${C.alpha(C.shadow, 0.06)}` }}>
+                  <div style={{ display: 'flex', alignItems: 'flex-start', gap: 9, marginBottom: 8 }}>
+                    <div style={{ width: isTabletPortraitWideViewport ? 42 : 38, height: isTabletPortraitWideViewport ? 42 : 38, borderRadius: '50%', position: 'relative', flexShrink: 0, background: C.alpha(C.accent, 0.08), overflow: 'hidden', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                      {typeof profileThumbB === 'string' && profileThumbB.length > 8 ? (
+                        <SmartImage
+                          src={profileThumbB}
+                          alt={profileNameB}
+                          role="button"
+                          tabIndex={0}
+                          onClick={(e) => { e.stopPropagation(); openOnboardingForScope(secondaryVisibleScope); }}
+                          onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); e.stopPropagation(); openOnboardingForScope(secondaryVisibleScope); } }}
+                          style={{ width: '100%', height: '100%', objectFit: 'cover', borderRadius: '50%', cursor: 'pointer' }}
+                        />
+                      ) : (
+                        <button
+                          type="button"
+                          onClick={(e) => { e.stopPropagation(); openOnboardingForScope(secondaryVisibleScope); }}
+                          style={{ width: '100%', height: '100%', border: 0, background: 'transparent', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', padding: 0 }}
+                          aria-label="Edit secondary profile"
+                        >
+                          <Icon name="user" size={16} color={C.accent} strokeWidth={1.5} />
+                        </button>
+                      )}
+                    </div>
+                    <div style={{ minWidth: 0, flex: 1 }}>
+                      <div style={{ fontSize: isTabletPortraitWideViewport ? 13 : 12, fontWeight: 800, color: C.t1, lineHeight: 1.15, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{profileNameB}</div>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 3, color: C.t3, fontSize: isTabletPortraitWideViewport ? 10 : 9, marginTop: 2 }}>
+                        <Icon name="mapPin" size={9} color={C.t3} />
+                        <span style={{ whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{profileLocationB}</span>
+                      </div>
+                      <div style={{ color: C.accent, fontSize: isTabletPortraitWideViewport ? 10 : 9, fontWeight: 700, marginTop: 3, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{profileRoleLineB}</div>
+                    </div>
+                  </div>
+
+                  <div style={{ display: 'flex', justifyContent: 'space-between', gap: 6, alignItems: 'center', marginBottom: 7 }}>
+                    <span style={{ display: 'inline-flex', alignItems: 'center', padding: '3px 7px', border: `1px solid ${C.border}`, borderRadius: 999, color: C.t2, fontSize: 9, fontWeight: 800, maxWidth: isTabletPortraitWideViewport ? 96 : 86, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{secondaryProfileBadgeLabel}</span>
+                    <button
+                      type="button"
+                      onClick={(e) => { e.stopPropagation(); toggleMyCardModal(secondaryModalKey); }}
+                      style={{ display: 'inline-flex', alignItems: 'center', gap: 4, border: `1px solid ${(myCardModal.open && myCardModal.scope === secondaryModalKey) ? C.accent : C.border}`, background: (myCardModal.open && myCardModal.scope === secondaryModalKey) ? C.alpha(C.accent, 0.12) : 'transparent', color: C.t2, borderRadius: 999, padding: '3px 7px', fontSize: 9, fontWeight: 900, cursor: 'pointer' }}
+                    >
+                      <span>My Card</span>
+                      {secondaryLinkedCardsCount > 0 && <span style={{ background: C.danger, color: '#fff', borderRadius: 99, padding: '0 4px', fontSize: 7 }}>{secondaryLinkedCardsCount}</span>}
+                    </button>
+                  </div>
+
+                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, minmax(0, 1fr))', gap: 4, paddingTop: 7, borderTop: `1px solid ${C.border}`, textAlign: 'center' }}>
+                    <div>
+                      <div style={{ fontSize: isTabletPortraitWideViewport ? 14 : 13, fontWeight: 900, color: C.t1 }}>{String(matchedCountB ?? '-')}</div>
+                      <div style={{ fontSize: 8, color: C.t3 }}>{t.allMatches}</div>
+                    </div>
+                    <div>
+                      <div style={{ fontSize: isTabletPortraitWideViewport ? 14 : 13, fontWeight: 900, color: C.t1 }}>{String(dealsCountB ?? '-')}</div>
+                      <div style={{ fontSize: 8, color: C.t3 }}>{t.deals}</div>
+                    </div>
+                    <div
+                      onMouseEnter={() => setRatingTooltipScope('secondary')}
+                      onMouseLeave={() => setRatingTooltipScope((prev) => (prev === 'secondary' ? null : prev))}
+                      style={{ position: 'relative' }}
+                    >
+                      <div style={{ fontSize: isTabletPortraitWideViewport ? 14 : 13, fontWeight: 900, color: C.t1 }}>{ratingLabelB ?? '-'}</div>
+                      <div style={{ fontSize: 8, color: C.t3 }}>{t.rating}</div>
+                      {ratingTooltipScope === 'secondary' && renderRatingTooltip(secondaryRatingDetails)}
+                    </div>
+                  </div>
+                </div>
+              )}
 
               <div style={{ background: C.alpha(C.gold, 0.08), border: `1px solid ${C.alpha(C.gold, 0.34)}`, borderRadius: 14, padding: isTabletPortraitWideViewport ? 10 : 9 }}>
                 <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8, color: C.gold, fontWeight: 900, fontSize: isTabletPortraitWideViewport ? 12 : 11 }}>
