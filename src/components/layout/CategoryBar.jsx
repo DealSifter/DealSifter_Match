@@ -132,7 +132,7 @@ export function CategoryBar({ activeCat, setActiveCat, categoryOrder, setCategor
 
   return (
     <div ref={ref} style={{ position:"sticky", top:stickyTop, zIndex:50, background:C.card, backdropFilter:"blur(10px)", borderBottom:`1px solid ${C.border}` }}>
-      <div ref={listRef} style={{ maxWidth:"100%", margin:"0 auto", padding:"8px 4%", display:"flex", alignItems:"center", overflowX:"auto", gap:4, scrollbarWidth:"none", position:"relative" }}>
+      <div ref={listRef} style={{ maxWidth:"100%", margin:"0 auto", padding:"8px max(4%, 14px) 8px 4%", display:"flex", alignItems:"center", overflowX:"auto", gap:4, scrollbarWidth:"none", position:"relative" }}>
         {orderedCategories.map((cat, index) => {
           const active = isActive(cat);
           const isDragging = draggedIndex === index;
@@ -180,17 +180,17 @@ export function CategoryBar({ activeCat, setActiveCat, categoryOrder, setCategor
           );
         })}
         
-        {/* Edit button - pushed to the right */}
+        <div aria-hidden="true" style={{ flex:"0 0 14px" }} />
+        {/* Edit button - fixed at the right edge without covering category chips */}
         <button
           onClick={() => setEditMode(!editMode)}
           style={{
-            position: "absolute",
-            right: "12px",
-            top: "50%",
-            transform: "translateY(-50%)",
-            width: 38, height: 34,
+            position: "sticky",
+            right: 0,
+            marginLeft: 12,
+            width: 42, height: 34,
             padding: 0, borderRadius: 6,
-            background: "transparent",
+            background: C.card,
             border: "none",
               color: C.t1,
             cursor: "pointer",
@@ -198,7 +198,9 @@ export function CategoryBar({ activeCat, setActiveCat, categoryOrder, setCategor
             alignItems: "center",
             justifyContent: "center",
             transition: "all .2s",
-            flexShrink: 0
+            flexShrink: 0,
+            zIndex: 3,
+            boxShadow: `-14px 0 18px ${C.card}, 0 0 0 1px ${C.alpha(C.border, 0.72)}`
           }}
           onMouseEnter={(e) => {
               e.currentTarget.style.border = `1px solid ${C.t1}`;
