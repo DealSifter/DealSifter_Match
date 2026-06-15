@@ -3337,6 +3337,7 @@ export function Dashboard({ page, nuggets, setModal, setPage, onOpenOnboardingTa
               display: 'flex',
               flexDirection: 'column',
               alignItems: 'center',
+              transform: isTabletLandscapeViewport ? 'translateY(-72px)' : undefined,
             }}
           >
 
