@@ -3164,9 +3164,8 @@ export function Dashboard({ page, nuggets, setModal, setPage, onOpenOnboardingTa
           className="dashboard-stack"
           style={{
             display: isTabletPortraitViewport ? 'grid' : 'flex',
-            gridTemplateColumns: isTabletPortraitViewport ? '154px minmax(0, 540px)' : undefined,
-            gridTemplateRows: isTabletPortraitViewport ? 'auto auto' : undefined,
-            columnGap: isTabletPortraitViewport ? 14 : undefined,
+            gridTemplateColumns: isTabletPortraitViewport ? '156px minmax(0, min(540px, calc(100vw - 222px)))' : undefined,
+            columnGap: isTabletPortraitViewport ? 16 : undefined,
             alignItems: isTabletPortraitViewport ? 'start' : 'center',
             justifyContent: isTabletPortraitViewport ? 'center' : undefined,
             overflow:"visible",
@@ -3179,8 +3178,8 @@ export function Dashboard({ page, nuggets, setModal, setPage, onOpenOnboardingTa
               aria-label="Profile summary"
               style={{
                 gridColumn: 1,
-                gridRow: '1 / span 2',
-                width: 154,
+                gridRow: 1,
+                width: 156,
                 display: 'grid',
                 gap: 8,
                 alignContent: 'start',
@@ -3254,10 +3253,20 @@ export function Dashboard({ page, nuggets, setModal, setPage, onOpenOnboardingTa
             </aside>
           )}
 
+          <div
+            style={{
+              gridColumn: isTabletPortraitViewport ? 2 : undefined,
+              minWidth: 0,
+              width: '100%',
+              display: 'flex',
+              flexDirection: 'column',
+              alignItems: 'center',
+            }}
+          >
 
           {/* View Tabs + State Filter (inline) */}
           {!isMobileViewport && (
-            <div style={{ gridColumn: isTabletPortraitViewport ? 2 : undefined, display:"flex", marginBottom:8, justifyContent:"flex-end", alignItems: 'center', width: '100%', maxWidth: isTabletPortraitViewport ? FEED_CARD_WIDTH : 700 }}>
+            <div style={{ display:"flex", marginBottom: isTabletPortraitViewport ? 4 : 8, justifyContent:"flex-end", alignItems: 'center', width: '100%', maxWidth: isTabletPortraitViewport ? FEED_CARD_WIDTH : 700 }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: 8, position: 'relative' }}>
                 <label style={{ marginRight: 4, fontSize: 13, color: C.t3 }}>State</label>
                 <details className="onb-multiselect" open={dropdownOpen} onToggle={(e) => setDropdownOpen(Boolean(e.target.open))} style={{ position: 'relative' }}>
@@ -3293,7 +3302,7 @@ export function Dashboard({ page, nuggets, setModal, setPage, onOpenOnboardingTa
             </div>
           )}
 
-          <div ref={mobileFeedTitleRef} style={{ gridColumn: isTabletPortraitViewport ? 2 : undefined, marginBottom:8, width: '100%', maxWidth: `min(${FEED_CARD_WIDTH}px, 100%)`, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8, position: 'relative', minHeight: 38 }}>
+          <div ref={mobileFeedTitleRef} style={{ marginBottom: isTabletPortraitViewport ? 8 : 8, width: '100%', maxWidth: `min(${FEED_CARD_WIDTH}px, 100%)`, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8, position: 'relative', minHeight: 38 }}>
             <div style={{
               display: 'inline-flex',
               alignItems: 'center',
@@ -3390,7 +3399,7 @@ export function Dashboard({ page, nuggets, setModal, setPage, onOpenOnboardingTa
             )}
           </div>
 
-          <div style={{ gridColumn: isTabletPortraitViewport ? 2 : undefined, position:"relative", width:"100%", minHeight:FEED_STACK_CONTAINER_HEIGHT, overflow:"visible", display:"flex", justifyContent:"center", alignItems:"flex-start", boxSizing:"border-box" }}>
+          <div style={{ position:"relative", width:"100%", minHeight:FEED_STACK_CONTAINER_HEIGHT, overflow:"visible", display:"flex", justifyContent:"center", alignItems:"flex-start", boxSizing:"border-box" }}>
             <div style={{ position:"relative", width:`min(${FEED_CARD_WIDTH}px, 100%)`, height:FEED_STACK_CONTAINER_HEIGHT, boxShadow: 'none', borderRadius: 0, overflow: 'visible' }}>
               {view==="connections" && (
                 connDisplay.length > 0
@@ -3606,6 +3615,7 @@ export function Dashboard({ page, nuggets, setModal, setPage, onOpenOnboardingTa
           </div>
         </div>
         {/* Matches List — col 3 of grid (desktop-only) */}
+        </div>
         <div className="desktop-only merge-next-col dashboard-matches" style={{ background:C.card, border:`1px solid ${C.border}`, borderRadius:0, padding:10, height:sidePanelHeight, display:"flex", flexDirection:"column", boxSizing:"border-box", marginLeft: isTabletPortraitViewport ? 0 : 12, marginTop: isTabletPortraitViewport ? 0 : -12 }}>
           <div style={{ fontWeight:700, color:C.t1, marginBottom:8, display:"flex", justifyContent:"space-between", fontSize:10, textTransform:"uppercase", letterSpacing:"0.5px" }}>
             <span>{t.matches}</span>
