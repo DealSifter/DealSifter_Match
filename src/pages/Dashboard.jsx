@@ -2329,24 +2329,27 @@ export function Dashboard({ page, nuggets, setModal, setPage, onOpenOnboardingTa
         .blink {
           animation: blink 1s linear infinite;
         }
-        @keyframes dsSpotlightLinePulse {
+        @keyframes dsSpotlightButtonPulse {
           0%, 100% {
-            filter: brightness(0) saturate(1);
-            opacity: 0.9;
+            border-color: ${C.alpha(C.gold, 0.52)};
+            box-shadow: 0 0 0 0 rgba(245, 169, 30, 0), 0 0 10px ${C.alpha(C.gold, 0.14)};
+            background: ${C.alpha(C.gold, 0.82)};
           }
           50% {
-            filter: brightness(0) saturate(1) invert(70%) sepia(93%) saturate(972%) hue-rotate(351deg) brightness(104%) contrast(103%) drop-shadow(0 0 7px rgba(245, 169, 30, 0.84));
-            opacity: 1;
+            border-color: ${C.alpha(C.gold, 0.92)};
+            box-shadow: 0 0 0 5px ${C.alpha(C.gold, 0.12)}, 0 0 20px ${C.alpha(C.gold, 0.38)};
+            background: ${C.gold};
           }
         }
         .ds-spotlight-trigger {
-          animation: dsSpotlightLinePulse 1.05s ease-in-out infinite;
+          animation: dsSpotlightButtonPulse 2.6s ease-in-out infinite;
         }
         .ds-spotlight-icon-img {
           display: block;
           flex-shrink: 0;
           object-fit: contain;
           pointer-events: none;
+          filter: brightness(0) saturate(1) opacity(0.78);
         }
         .ds-mobile-feed-overlay {
           position: fixed;
@@ -3226,37 +3229,38 @@ export function Dashboard({ page, nuggets, setModal, setPage, onOpenOnboardingTa
               </button>
               <button
                 type="button"
+                className="ds-spotlight-trigger"
                 onClick={() => onOpenSpotlight?.()}
                 aria-label="Spotlight paid cards"
                 title="Spotlight paid cards"
                 style={{
-                  border: isMobileViewport ? 'none' : `1px solid ${C.alpha(C.gold, 0.58)}`,
+                  border: `1px solid ${C.alpha(C.gold, 0.58)}`,
                   borderRadius: 999,
-                  background: isMobileViewport ? 'transparent' : C.gold,
-                  color: isMobileViewport ? C.t1 : '#061312',
+                  background: C.gold,
+                  color: '#3f3a42',
                   fontWeight: 900,
                   fontSize: 12,
-                  padding: isMobileViewport ? '2px 8px' : '6px 13px',
-                  minHeight: isMobileViewport ? 30 : 31,
-                  minWidth: isMobileViewport ? 42 : 0,
+                  padding: isMobileViewport ? '6px 10px' : '6px 13px',
+                  minHeight: 31,
+                  minWidth: 0,
                   cursor: 'pointer',
                   transition: 'all .2s ease',
                   display: 'inline-flex',
                   alignItems: 'center',
                   justifyContent: 'center',
-                  gap: 7,
+                  gap: isMobileViewport ? 5 : 7,
                   marginInline: isMobileViewport ? 6 : 8,
-                  boxShadow: isMobileViewport ? 'none' : `0 0 14px ${C.alpha(C.gold, 0.22)}`,
+                  lineHeight: 1,
                 }}
               >
                 <img
                   src={spotlightIcon}
                   alt=""
                   aria-hidden="true"
-                  className="ds-spotlight-icon-img ds-spotlight-trigger"
-                  style={{ width: isMobileViewport ? 25 : 18, height: isMobileViewport ? 25 : 18 }}
+                  className="ds-spotlight-icon-img"
+                  style={{ width: isMobileViewport ? 18 : 18, height: isMobileViewport ? 18 : 18 }}
                 />
-                {!isMobileViewport && <span>Spotlight</span>}
+                <span>Spotlight</span>
               </button>
               <button
                 type="button"
