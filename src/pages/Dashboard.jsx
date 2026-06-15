@@ -84,8 +84,8 @@ export function Dashboard({ page, nuggets, setModal, setPage, onOpenOnboardingTa
   const MAX_SIDE_LIST_VISIBLE = 9; // Max visible items before scroll
   const SIDE_PANEL_HEIGHT = MAX_SIDE_LIST_VISIBLE * 54 + 44;
   const FEED_CARD_SCALE = 1;
-  const FEED_CARD_BASE_WIDTH = isMobileViewport ? 360 : 654;
-  const FEED_CARD_BASE_HEIGHT = isMobileViewport ? 576 : 400;
+  const FEED_CARD_BASE_WIDTH = isMobileViewport ? 360 : (isTabletPortraitViewport ? 540 : 654);
+  const FEED_CARD_BASE_HEIGHT = isMobileViewport ? 576 : (isTabletPortraitViewport ? 360 : 400);
   const FEED_CARD_WIDTH = Math.round(FEED_CARD_BASE_WIDTH * FEED_CARD_SCALE);
   const FEED_CARD_HEIGHT = Math.round(FEED_CARD_BASE_HEIGHT * FEED_CARD_SCALE);
   const FEED_STACK_SHIFT_X = Math.round(20 * FEED_CARD_SCALE);
@@ -105,6 +105,7 @@ export function Dashboard({ page, nuggets, setModal, setPage, onOpenOnboardingTa
     ? (mobileBottomNavOffset + mobileMiniCardsBandHeight + 12)
     : 20;
   const t = useT('dashboard').dashboard;
+  const navT = useT('dashboard').nav;
   const cardsT = useT('dashboard').cards;
   const matchesT = useT('dashboard').matches;
 
@@ -3159,12 +3160,104 @@ export function Dashboard({ page, nuggets, setModal, setPage, onOpenOnboardingTa
         )}
 
         {/* Card stack */}
-        <div className="dashboard-stack" style={{ display:"flex", flexDirection:"column", alignItems:"center", overflow:"visible", width:"100%" }}>
+        <div
+          className="dashboard-stack"
+          style={{
+            display: isTabletPortraitViewport ? 'grid' : 'flex',
+            gridTemplateColumns: isTabletPortraitViewport ? '154px minmax(0, 540px)' : undefined,
+            gridTemplateRows: isTabletPortraitViewport ? 'auto auto' : undefined,
+            columnGap: isTabletPortraitViewport ? 14 : undefined,
+            alignItems: isTabletPortraitViewport ? 'start' : 'center',
+            justifyContent: isTabletPortraitViewport ? 'center' : undefined,
+            overflow:"visible",
+            width:"100%"
+          }}
+        >
+
+          {isTabletPortraitViewport && (
+            <aside
+              aria-label="Profile summary"
+              style={{
+                gridColumn: 1,
+                gridRow: '1 / span 2',
+                width: 154,
+                display: 'grid',
+                gap: 8,
+                alignContent: 'start',
+              }}
+            >
+              <div style={{ background: C.card, border: `1px solid ${C.border}`, borderRadius: 14, padding: 9, boxShadow: `0 10px 24px ${C.alpha(C.shadow, 0.06)}` }}>
+                <div style={{ display: 'flex', alignItems: 'flex-start', gap: 8, marginBottom: 7 }}>
+                  <div style={{ width: 34, height: 34, borderRadius: '50%', position: 'relative', flexShrink: 0, background: C.alpha(C.accent, 0.08), overflow: 'hidden' }}>
+                    <SmartImage
+                      src={quickRegistered && typeof primaryCardData?.photo === 'string' && primaryCardData.photo.length > 8 ? primaryCardData.photo : undefined}
+                      alt={profileName}
+                      fallback={<Icon name="user" size={16} color={C.accent} strokeWidth={1.5} />}
+                      style={{ width: '100%', height: '100%', objectFit: 'cover', borderRadius: '50%' }}
+                    />
+                  </div>
+                  <div style={{ minWidth: 0, flex: 1 }}>
+                    <div style={{ fontSize: 12, fontWeight: 800, color: C.t1, lineHeight: 1.15, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{profileName}</div>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 3, color: C.t3, fontSize: 9, marginTop: 2 }}>
+                      <Icon name="mapPin" size={9} color={C.t3} />
+                      <span style={{ whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{profileLocation}</span>
+                    </div>
+                    <div style={{ color: C.accent, fontSize: 9, fontWeight: 700, marginTop: 3, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{activePrimaryCategoryLabel}</div>
+                  </div>
+                </div>
+
+                <div style={{ display: 'flex', justifyContent: 'space-between', gap: 6, alignItems: 'center', marginBottom: 7 }}>
+                  <span style={{ display: 'inline-flex', alignItems: 'center', padding: '2px 6px', border: `1px solid ${C.border}`, borderRadius: 999, color: C.t2, fontSize: 8, fontWeight: 800, maxWidth: 76, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{primaryProfileBadgeLabel}</span>
+                  <button
+                    type="button"
+                    onClick={(e) => { e.stopPropagation(); toggleMyCardModal(primaryModalKey); }}
+                    style={{ display: 'inline-flex', alignItems: 'center', gap: 4, border: `1px solid ${(myCardModal.open && myCardModal.scope === primaryModalKey) ? C.accent : C.border}`, background: (myCardModal.open && myCardModal.scope === primaryModalKey) ? C.alpha(C.accent, 0.12) : 'transparent', color: C.t2, borderRadius: 999, padding: '2px 6px', fontSize: 8, fontWeight: 900, cursor: 'pointer' }}
+                  >
+                    <span>My Card</span>
+                    {primaryLinkedCardsCount > 0 && <span style={{ background: C.danger, color: '#fff', borderRadius: 99, padding: '0 4px', fontSize: 7 }}>{primaryLinkedCardsCount}</span>}
+                  </button>
+                </div>
+
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, minmax(0, 1fr))', gap: 4, paddingTop: 7, borderTop: `1px solid ${C.border}`, textAlign: 'center' }}>
+                  <div>
+                    <div style={{ fontSize: 12, fontWeight: 900, color: C.t1 }}>{String(matchedCount ?? '-')}</div>
+                    <div style={{ fontSize: 7, color: C.t3 }}>{t.allMatches}</div>
+                  </div>
+                  <div>
+                    <div style={{ fontSize: 12, fontWeight: 900, color: C.t1 }}>{String(dealsCount ?? '-')}</div>
+                    <div style={{ fontSize: 7, color: C.t3 }}>{t.deals}</div>
+                  </div>
+                  <div>
+                    <div style={{ fontSize: 12, fontWeight: 900, color: C.t1 }}>{ratingLabel ?? '-'}</div>
+                    <div style={{ fontSize: 7, color: C.t3 }}>{t.rating}</div>
+                  </div>
+                </div>
+              </div>
+
+              <div style={{ background: C.alpha(C.gold, 0.08), border: `1px solid ${C.alpha(C.gold, 0.34)}`, borderRadius: 12, padding: 8 }}>
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8, color: C.gold, fontWeight: 900, fontSize: 11 }}>
+                  <span>Gold Nuggets</span>
+                  <span>{String(nuggets ?? 0)}</span>
+                </div>
+                <button type="button" onClick={() => setPage('pricing')} style={{ marginTop: 7, width: '100%', minHeight: 24, borderRadius: 8, border: `1px solid ${C.gold}`, background: 'transparent', color: C.gold, fontSize: 9, fontWeight: 900, cursor: 'pointer' }}>
+                  + {navT.buyNuggets || 'Buy Nuggets'}
+                </button>
+              </div>
+
+              <div style={{ background: C.alpha(C.accent, 0.08), border: `1px solid ${C.alpha(C.accent, 0.32)}`, borderRadius: 12, padding: 8, color: C.t2, fontSize: 9, lineHeight: 1.3 }}>
+                <div style={{ color: C.accent, fontWeight: 900, marginBottom: 3 }}>Upgrade para Pro</div>
+                <div>Deslizes ilimitados e mais visibilidade para seus cards.</div>
+                <button type="button" onClick={() => setPage('pricing')} style={{ marginTop: 7, width: '100%', minHeight: 24, borderRadius: 8, border: `1px solid ${C.accent}`, background: C.alpha(C.accent, 0.12), color: C.accent, fontSize: 9, fontWeight: 900, cursor: 'pointer' }}>
+                  Iniciar periodo de teste
+                </button>
+              </div>
+            </aside>
+          )}
 
 
           {/* View Tabs + State Filter (inline) */}
           {!isMobileViewport && (
-            <div style={{ display:"flex", marginBottom:8, justifyContent:"flex-end", alignItems: 'center', width: '100%', maxWidth: 700 }}>
+            <div style={{ gridColumn: isTabletPortraitViewport ? 2 : undefined, display:"flex", marginBottom:8, justifyContent:"flex-end", alignItems: 'center', width: '100%', maxWidth: isTabletPortraitViewport ? FEED_CARD_WIDTH : 700 }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: 8, position: 'relative' }}>
                 <label style={{ marginRight: 4, fontSize: 13, color: C.t3 }}>State</label>
                 <details className="onb-multiselect" open={dropdownOpen} onToggle={(e) => setDropdownOpen(Boolean(e.target.open))} style={{ position: 'relative' }}>
@@ -3200,7 +3293,7 @@ export function Dashboard({ page, nuggets, setModal, setPage, onOpenOnboardingTa
             </div>
           )}
 
-          <div ref={mobileFeedTitleRef} style={{ marginBottom:8, width: '100%', maxWidth: `min(${FEED_CARD_WIDTH}px, 100%)`, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8, position: 'relative', minHeight: 38 }}>
+          <div ref={mobileFeedTitleRef} style={{ gridColumn: isTabletPortraitViewport ? 2 : undefined, marginBottom:8, width: '100%', maxWidth: `min(${FEED_CARD_WIDTH}px, 100%)`, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8, position: 'relative', minHeight: 38 }}>
             <div style={{
               display: 'inline-flex',
               alignItems: 'center',
@@ -3297,7 +3390,7 @@ export function Dashboard({ page, nuggets, setModal, setPage, onOpenOnboardingTa
             )}
           </div>
 
-          <div style={{ position:"relative", width:"100%", minHeight:FEED_STACK_CONTAINER_HEIGHT, overflow:"visible", display:"flex", justifyContent:"center", alignItems:"flex-start", boxSizing:"border-box" }}>
+          <div style={{ gridColumn: isTabletPortraitViewport ? 2 : undefined, position:"relative", width:"100%", minHeight:FEED_STACK_CONTAINER_HEIGHT, overflow:"visible", display:"flex", justifyContent:"center", alignItems:"flex-start", boxSizing:"border-box" }}>
             <div style={{ position:"relative", width:`min(${FEED_CARD_WIDTH}px, 100%)`, height:FEED_STACK_CONTAINER_HEIGHT, boxShadow: 'none', borderRadius: 0, overflow: 'visible' }}>
               {view==="connections" && (
                 connDisplay.length > 0
