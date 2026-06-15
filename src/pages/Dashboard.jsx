@@ -79,19 +79,23 @@ function trackPropertySaved(propertyId, metadata = {}) {
 export function Dashboard({ page, nuggets, setModal, setPage, onOpenOnboardingTab, openUnlock, unlocked, matched, setMatched, interested, setInterested, purchases, setPurchases, userProfile, personalProfile, professionalProfile, propertyPortfolio, servicePortfolio, accountType, showcaseProperties, categoryOrder, setCategoryOrder, editMode, setEditMode, mobileBottomNavCollapsed = false, addToast, setSystemNotifications = null, subscription, propertyUnlocks = [], currentUserId = 'local-user', activeSpotlightKeys = new Set(), onOpenSpotlight = null }) {
   const isMobileViewport = useMediaQuery('(max-width: 767px)');
   const isTabletPortraitViewport = useMediaQuery('(min-width: 768px) and (max-width: 1080px) and (orientation: portrait)');
+  const isTabletPortraitWideViewport = useMediaQuery('(min-width: 900px) and (max-width: 1080px) and (orientation: portrait)');
   const isTouchModalViewport = useMediaQuery('(max-width: 1024px)');
 
   const MAX_SIDE_LIST_VISIBLE = 9; // Max visible items before scroll
   const SIDE_PANEL_HEIGHT = MAX_SIDE_LIST_VISIBLE * 54 + 44;
   const FEED_CARD_SCALE = 1;
-  const FEED_CARD_BASE_WIDTH = isMobileViewport ? 360 : (isTabletPortraitViewport ? 540 : 654);
-  const FEED_CARD_BASE_HEIGHT = isMobileViewport ? 576 : (isTabletPortraitViewport ? 360 : 400);
+  const FEED_CARD_BASE_WIDTH = isMobileViewport ? 360 : (isTabletPortraitViewport ? (isTabletPortraitWideViewport ? 650 : 552) : 654);
+  const FEED_CARD_BASE_HEIGHT = isMobileViewport ? 576 : (isTabletPortraitViewport ? (isTabletPortraitWideViewport ? 390 : 370) : 400);
   const FEED_CARD_WIDTH = Math.round(FEED_CARD_BASE_WIDTH * FEED_CARD_SCALE);
   const FEED_CARD_HEIGHT = Math.round(FEED_CARD_BASE_HEIGHT * FEED_CARD_SCALE);
   const FEED_STACK_SHIFT_X = Math.round(20 * FEED_CARD_SCALE);
   const FEED_STACK_SHIFT_Y = Math.round(24 * FEED_CARD_SCALE);
-  const feedStackBottomGap = isMobileViewport ? 72 : (isTabletPortraitViewport ? 72 : 160);
+  const feedStackBottomGap = isMobileViewport ? 72 : (isTabletPortraitViewport ? 58 : 160);
   const FEED_STACK_CONTAINER_HEIGHT = FEED_CARD_HEIGHT + feedStackBottomGap;
+  const tabletFeedSideWidth = isTabletPortraitWideViewport ? 210 : 184;
+  const tabletFeedGap = isTabletPortraitWideViewport ? 34 : 26;
+  const tabletFeedSideOffset = tabletFeedSideWidth + tabletFeedGap + (isTabletPortraitWideViewport ? 40 : 32);
   const sidePanelHeight = isTabletPortraitViewport ? 510 : 550;
   const SWIPE_ANIM_MS = 380;
   const pendingFocusOnInit = readPendingFocusCard();
@@ -2746,7 +2750,7 @@ export function Dashboard({ page, nuggets, setModal, setPage, onOpenOnboardingTa
       {/* Quick registration detection: consider completed when personalProfile.fullName exists in localStorage */}
       {/* Note: accessing localStorage synchronously here is acceptable in this SPA context */}
       {null}
-      <div style={{ maxWidth:"100%", margin:"0 auto", padding:"12px 12px 0 12px", display:"grid", alignItems:"stretch", height:"100%", boxSizing:'border-box' }} className="dashboard-grid">
+      <div style={{ maxWidth:"100%", margin:"0 auto", padding: isTabletPortraitViewport ? "8px 14px 0 14px" : "12px 12px 0 12px", display:"grid", alignItems:"stretch", height:"100%", boxSizing:'border-box' }} className="dashboard-grid">
 
         {/* Left sidebar */}
         <div className="desktop-only dashboard-sidebar">
@@ -3164,8 +3168,10 @@ export function Dashboard({ page, nuggets, setModal, setPage, onOpenOnboardingTa
           className="dashboard-stack"
           style={{
             display: isTabletPortraitViewport ? 'grid' : 'flex',
-            gridTemplateColumns: isTabletPortraitViewport ? '156px minmax(0, min(540px, calc(100vw - 222px)))' : undefined,
-            columnGap: isTabletPortraitViewport ? 16 : undefined,
+            gridTemplateColumns: isTabletPortraitViewport
+              ? `${tabletFeedSideWidth}px minmax(0, min(${FEED_CARD_WIDTH}px, calc(100vw - ${tabletFeedSideOffset}px)))`
+              : undefined,
+            columnGap: isTabletPortraitViewport ? tabletFeedGap : undefined,
             alignItems: isTabletPortraitViewport ? 'start' : 'center',
             justifyContent: isTabletPortraitViewport ? 'center' : undefined,
             overflow:"visible",
@@ -3179,15 +3185,15 @@ export function Dashboard({ page, nuggets, setModal, setPage, onOpenOnboardingTa
               style={{
                 gridColumn: 1,
                 gridRow: 1,
-                width: 156,
+                width: tabletFeedSideWidth,
                 display: 'grid',
-                gap: 8,
+                gap: isTabletPortraitWideViewport ? 11 : 9,
                 alignContent: 'start',
               }}
             >
-              <div style={{ background: C.card, border: `1px solid ${C.border}`, borderRadius: 14, padding: 9, boxShadow: `0 10px 24px ${C.alpha(C.shadow, 0.06)}` }}>
-                <div style={{ display: 'flex', alignItems: 'flex-start', gap: 8, marginBottom: 7 }}>
-                  <div style={{ width: 34, height: 34, borderRadius: '50%', position: 'relative', flexShrink: 0, background: C.alpha(C.accent, 0.08), overflow: 'hidden' }}>
+              <div style={{ background: C.card, border: `1px solid ${C.border}`, borderRadius: 16, padding: isTabletPortraitWideViewport ? 12 : 10, boxShadow: `0 12px 28px ${C.alpha(C.shadow, 0.07)}` }}>
+                <div style={{ display: 'flex', alignItems: 'flex-start', gap: 9, marginBottom: 8 }}>
+                  <div style={{ width: isTabletPortraitWideViewport ? 42 : 38, height: isTabletPortraitWideViewport ? 42 : 38, borderRadius: '50%', position: 'relative', flexShrink: 0, background: C.alpha(C.accent, 0.08), overflow: 'hidden' }}>
                     <SmartImage
                       src={quickRegistered && typeof primaryCardData?.photo === 'string' && primaryCardData.photo.length > 8 ? primaryCardData.photo : undefined}
                       alt={profileName}
@@ -3196,21 +3202,21 @@ export function Dashboard({ page, nuggets, setModal, setPage, onOpenOnboardingTa
                     />
                   </div>
                   <div style={{ minWidth: 0, flex: 1 }}>
-                    <div style={{ fontSize: 12, fontWeight: 800, color: C.t1, lineHeight: 1.15, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{profileName}</div>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: 3, color: C.t3, fontSize: 9, marginTop: 2 }}>
+                    <div style={{ fontSize: isTabletPortraitWideViewport ? 13 : 12, fontWeight: 800, color: C.t1, lineHeight: 1.15, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{profileName}</div>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 3, color: C.t3, fontSize: isTabletPortraitWideViewport ? 10 : 9, marginTop: 2 }}>
                       <Icon name="mapPin" size={9} color={C.t3} />
                       <span style={{ whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{profileLocation}</span>
                     </div>
-                    <div style={{ color: C.accent, fontSize: 9, fontWeight: 700, marginTop: 3, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{activePrimaryCategoryLabel}</div>
+                    <div style={{ color: C.accent, fontSize: isTabletPortraitWideViewport ? 10 : 9, fontWeight: 700, marginTop: 3, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{activePrimaryCategoryLabel}</div>
                   </div>
                 </div>
 
                 <div style={{ display: 'flex', justifyContent: 'space-between', gap: 6, alignItems: 'center', marginBottom: 7 }}>
-                  <span style={{ display: 'inline-flex', alignItems: 'center', padding: '2px 6px', border: `1px solid ${C.border}`, borderRadius: 999, color: C.t2, fontSize: 8, fontWeight: 800, maxWidth: 76, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{primaryProfileBadgeLabel}</span>
+                  <span style={{ display: 'inline-flex', alignItems: 'center', padding: '3px 7px', border: `1px solid ${C.border}`, borderRadius: 999, color: C.t2, fontSize: 9, fontWeight: 800, maxWidth: isTabletPortraitWideViewport ? 96 : 86, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{primaryProfileBadgeLabel}</span>
                   <button
                     type="button"
                     onClick={(e) => { e.stopPropagation(); toggleMyCardModal(primaryModalKey); }}
-                    style={{ display: 'inline-flex', alignItems: 'center', gap: 4, border: `1px solid ${(myCardModal.open && myCardModal.scope === primaryModalKey) ? C.accent : C.border}`, background: (myCardModal.open && myCardModal.scope === primaryModalKey) ? C.alpha(C.accent, 0.12) : 'transparent', color: C.t2, borderRadius: 999, padding: '2px 6px', fontSize: 8, fontWeight: 900, cursor: 'pointer' }}
+                    style={{ display: 'inline-flex', alignItems: 'center', gap: 4, border: `1px solid ${(myCardModal.open && myCardModal.scope === primaryModalKey) ? C.accent : C.border}`, background: (myCardModal.open && myCardModal.scope === primaryModalKey) ? C.alpha(C.accent, 0.12) : 'transparent', color: C.t2, borderRadius: 999, padding: '3px 7px', fontSize: 9, fontWeight: 900, cursor: 'pointer' }}
                   >
                     <span>My Card</span>
                     {primaryLinkedCardsCount > 0 && <span style={{ background: C.danger, color: '#fff', borderRadius: 99, padding: '0 4px', fontSize: 7 }}>{primaryLinkedCardsCount}</span>}
@@ -3219,31 +3225,31 @@ export function Dashboard({ page, nuggets, setModal, setPage, onOpenOnboardingTa
 
                 <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, minmax(0, 1fr))', gap: 4, paddingTop: 7, borderTop: `1px solid ${C.border}`, textAlign: 'center' }}>
                   <div>
-                    <div style={{ fontSize: 12, fontWeight: 900, color: C.t1 }}>{String(matchedCount ?? '-')}</div>
-                    <div style={{ fontSize: 7, color: C.t3 }}>{t.allMatches}</div>
+                    <div style={{ fontSize: isTabletPortraitWideViewport ? 14 : 13, fontWeight: 900, color: C.t1 }}>{String(matchedCount ?? '-')}</div>
+                    <div style={{ fontSize: 8, color: C.t3 }}>{t.allMatches}</div>
                   </div>
                   <div>
-                    <div style={{ fontSize: 12, fontWeight: 900, color: C.t1 }}>{String(dealsCount ?? '-')}</div>
-                    <div style={{ fontSize: 7, color: C.t3 }}>{t.deals}</div>
+                    <div style={{ fontSize: isTabletPortraitWideViewport ? 14 : 13, fontWeight: 900, color: C.t1 }}>{String(dealsCount ?? '-')}</div>
+                    <div style={{ fontSize: 8, color: C.t3 }}>{t.deals}</div>
                   </div>
                   <div>
-                    <div style={{ fontSize: 12, fontWeight: 900, color: C.t1 }}>{ratingLabel ?? '-'}</div>
-                    <div style={{ fontSize: 7, color: C.t3 }}>{t.rating}</div>
+                    <div style={{ fontSize: isTabletPortraitWideViewport ? 14 : 13, fontWeight: 900, color: C.t1 }}>{ratingLabel ?? '-'}</div>
+                    <div style={{ fontSize: 8, color: C.t3 }}>{t.rating}</div>
                   </div>
                 </div>
               </div>
 
-              <div style={{ background: C.alpha(C.gold, 0.08), border: `1px solid ${C.alpha(C.gold, 0.34)}`, borderRadius: 12, padding: 8 }}>
-                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8, color: C.gold, fontWeight: 900, fontSize: 11 }}>
+              <div style={{ background: C.alpha(C.gold, 0.08), border: `1px solid ${C.alpha(C.gold, 0.34)}`, borderRadius: 14, padding: isTabletPortraitWideViewport ? 10 : 9 }}>
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8, color: C.gold, fontWeight: 900, fontSize: isTabletPortraitWideViewport ? 12 : 11 }}>
                   <span>Gold Nuggets</span>
                   <span>{String(nuggets ?? 0)}</span>
                 </div>
-                <button type="button" onClick={() => setPage('pricing')} style={{ marginTop: 7, width: '100%', minHeight: 24, borderRadius: 8, border: `1px solid ${C.gold}`, background: 'transparent', color: C.gold, fontSize: 9, fontWeight: 900, cursor: 'pointer' }}>
+                <button type="button" onClick={() => setPage('pricing')} style={{ marginTop: 8, width: '100%', minHeight: isTabletPortraitWideViewport ? 28 : 26, borderRadius: 9, border: `1px solid ${C.gold}`, background: 'transparent', color: C.gold, fontSize: 9, fontWeight: 900, cursor: 'pointer' }}>
                   + {navT.buyNuggets || 'Buy Nuggets'}
                 </button>
               </div>
 
-              <div style={{ background: C.alpha(C.accent, 0.08), border: `1px solid ${C.alpha(C.accent, 0.32)}`, borderRadius: 12, padding: 8, color: C.t2, fontSize: 9, lineHeight: 1.3 }}>
+              <div style={{ background: C.alpha(C.accent, 0.08), border: `1px solid ${C.alpha(C.accent, 0.32)}`, borderRadius: 14, padding: isTabletPortraitWideViewport ? 10 : 9, color: C.t2, fontSize: isTabletPortraitWideViewport ? 10 : 9, lineHeight: 1.35 }}>
                 <div style={{ color: C.accent, fontWeight: 900, marginBottom: 3 }}>Upgrade para Pro</div>
                 <div>Deslizes ilimitados e mais visibilidade para seus cards.</div>
                 <button type="button" onClick={() => setPage('pricing')} style={{ marginTop: 7, width: '100%', minHeight: 24, borderRadius: 8, border: `1px solid ${C.accent}`, background: C.alpha(C.accent, 0.12), color: C.accent, fontSize: 9, fontWeight: 900, cursor: 'pointer' }}>
@@ -3265,7 +3271,7 @@ export function Dashboard({ page, nuggets, setModal, setPage, onOpenOnboardingTa
           >
 
           {/* View Tabs + State Filter (inline) */}
-          {!isMobileViewport && (
+          {!isMobileViewport && !isTabletPortraitViewport && (
             <div style={{ display:"flex", marginBottom: isTabletPortraitViewport ? 4 : 8, justifyContent:"flex-end", alignItems: 'center', width: '100%', maxWidth: isTabletPortraitViewport ? FEED_CARD_WIDTH : 700 }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: 8, position: 'relative' }}>
                 <label style={{ marginRight: 4, fontSize: 13, color: C.t3 }}>State</label>
@@ -3302,7 +3308,18 @@ export function Dashboard({ page, nuggets, setModal, setPage, onOpenOnboardingTa
             </div>
           )}
 
-          <div ref={mobileFeedTitleRef} style={{ marginBottom: isTabletPortraitViewport ? 8 : 8, width: '100%', maxWidth: `min(${FEED_CARD_WIDTH}px, 100%)`, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8, position: 'relative', minHeight: 38 }}>
+          <div ref={mobileFeedTitleRef} style={{
+            marginBottom: isTabletPortraitViewport ? 14 : 8,
+            width: '100%',
+            maxWidth: `min(${FEED_CARD_WIDTH}px, 100%)`,
+            display: isTabletPortraitViewport ? 'grid' : 'flex',
+            gridTemplateColumns: isTabletPortraitViewport ? '1fr auto 1fr' : undefined,
+            alignItems: 'center',
+            justifyContent: isTabletPortraitViewport ? undefined : 'center',
+            gap: isTabletPortraitViewport ? 12 : 8,
+            position: 'relative',
+            minHeight: isTabletPortraitViewport ? 42 : 38
+          }}>
             <div style={{
               display: 'inline-flex',
               alignItems: 'center',
@@ -3311,6 +3328,8 @@ export function Dashboard({ page, nuggets, setModal, setPage, onOpenOnboardingTa
               borderRadius: 999,
               border: `1px solid ${C.border}`,
               background: C.alpha(C.t1, 0.03),
+              gridColumn: isTabletPortraitViewport ? 2 : undefined,
+              justifySelf: isTabletPortraitViewport ? 'center' : undefined,
             }}>
               <button
                 type="button"
@@ -3382,6 +3401,40 @@ export function Dashboard({ page, nuggets, setModal, setPage, onOpenOnboardingTa
                 Showcase
               </button>
             </div>
+            {isTabletPortraitViewport && (
+              <div style={{ gridColumn: 3, justifySelf: 'end', display: 'flex', alignItems: 'center', gap: 8, position: 'relative' }}>
+                <label style={{ fontSize: 12, color: C.t3, whiteSpace: 'nowrap' }}>State</label>
+                <details className="onb-multiselect" open={dropdownOpen} onToggle={(e) => setDropdownOpen(Boolean(e.target.open))} style={{ position: 'relative' }}>
+                  <summary style={{ listStyle: 'none', display: 'inline-flex', alignItems: 'center', gap: 6, padding: '7px 12px', borderRadius: 999, border: `1px solid ${hasActiveStates ? C.accent : C.border}`, background: C.card, color: hasActiveStates ? C.accent : C.t1, cursor: 'pointer', fontSize: 12, lineHeight: '16px', minHeight: 32, minWidth: 112, justifyContent: 'center', fontWeight: hasActiveStates ? 700 : 600, whiteSpace: 'nowrap', boxShadow: `0 8px 18px ${C.alpha(C.shadow, 0.04)}` }}>
+                    <Icon name="mapPin" size={12} color={hasActiveStates ? C.accent : C.t1} strokeWidth={hasActiveStates ? 2 : 1.6} />
+                    <span>{stateSummaryLabel}</span>
+                    <Icon name={dropdownOpen ? 'chevUp' : 'chevDown'} size={11} color={hasActiveStates ? C.accent : C.t1} />
+                  </summary>
+                  <div style={{ position: 'absolute', top: 'calc(100% + 8px)', right: 0, width: 132, maxHeight: 280, overflowY: 'auto', background: C.card, border: `1px solid ${C.border}`, borderRadius: 16, padding: 8, boxShadow: `0 12px 30px ${C.alpha(C.shadow, 0.08)}`, zIndex: 1200 }}>
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+                      {stateOptions.filter(s => s !== 'all').map(s => (
+                        <label key={s} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 6, padding: '7px 9px', borderRadius: 999, cursor: 'pointer', border: `1px solid ${selectedStates.includes(s) ? C.accent : C.border}`, background: selectedStates.includes(s) ? C.alpha(C.accent, 0.1) : 'transparent', color: selectedStates.includes(s) ? C.accent : C.t1, fontSize: 11, fontWeight: selectedStates.includes(s) ? 700 : 500, lineHeight: 1 }}>
+                          <input type="checkbox" style={{ display: 'none' }} checked={selectedStates.includes(s)} onChange={() => {
+                            setSelectedStates(prev => {
+                              if (!prev) prev = [];
+                              if (prev.includes(s)) return prev.filter(x => x !== s);
+                              return [...prev.filter(x => x !== 'all'), s];
+                            });
+                          }} />
+                          <span style={{ fontSize: 10 }}>US</span>
+                          <span style={{ flex: 1 }}>{s}</span>
+                          {selectedStates.includes(s) ? <Icon name="check" size={11} color={C.accent} strokeWidth={2.2} /> : null}
+                        </label>
+                      ))}
+                    </div>
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: 6, marginTop: 8, paddingTop: 8, borderTop: `1px solid ${C.border}` }}>
+                      <button type="button" onClick={() => setSelectedStates([])} style={{ padding: '7px 8px', borderRadius: 999, background: 'transparent', border: `1px solid ${C.border}`, color: C.t2, cursor: 'pointer', fontSize: 11, fontWeight: 700 }}>Clear</button>
+                      <button type="button" onClick={() => setSelectedStates(['all'])} style={{ padding: '7px 8px', borderRadius: 999, background: 'transparent', border: `1px solid ${C.border}`, color: C.t2, cursor: 'pointer', fontSize: 11, fontWeight: 700 }}>All</button>
+                    </div>
+                  </div>
+                </details>
+              </div>
+            )}
             {isMobileViewport && !mobileFeedSidebarOpen && (
               <button
                 type="button"
