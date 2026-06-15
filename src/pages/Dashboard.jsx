@@ -2329,25 +2329,24 @@ export function Dashboard({ page, nuggets, setModal, setPage, onOpenOnboardingTa
         .blink {
           animation: blink 1s linear infinite;
         }
-        @keyframes dsSpotlightButtonPulse {
+        @keyframes dsSpotlightLinePulse {
           0%, 100% {
-            transform: translateZ(0) scale(1);
-            box-shadow: 0 0 0 0 ${C.alpha(C.accent, 0.34)}, 0 0 16px ${C.alpha(C.accent, 0.28)};
+            filter: brightness(0) saturate(1);
+            opacity: 0.9;
           }
           50% {
-            transform: translateZ(0) scale(1.035);
-            box-shadow: 0 0 0 7px ${C.alpha(C.accent, 0.05)}, 0 0 24px ${C.alpha(C.accent, 0.5)};
+            filter: brightness(0) saturate(1) invert(70%) sepia(93%) saturate(972%) hue-rotate(351deg) brightness(104%) contrast(103%) drop-shadow(0 0 7px rgba(245, 169, 30, 0.84));
+            opacity: 1;
           }
         }
         .ds-spotlight-trigger {
-          animation: dsSpotlightButtonPulse 1.15s ease-in-out infinite;
+          animation: dsSpotlightLinePulse 1.05s ease-in-out infinite;
         }
-        .ds-spotlight-icon-mask {
-          display: inline-block;
+        .ds-spotlight-icon-img {
+          display: block;
           flex-shrink: 0;
-          background: currentColor;
-          -webkit-mask: url(${spotlightIcon}) center / contain no-repeat;
-          mask: url(${spotlightIcon}) center / contain no-repeat;
+          object-fit: contain;
+          pointer-events: none;
         }
         .ds-mobile-feed-overlay {
           position: fixed;
@@ -3162,17 +3161,7 @@ export function Dashboard({ page, nuggets, setModal, setPage, onOpenOnboardingTa
 
           {/* View Tabs + State Filter (inline) */}
           {!isMobileViewport && (
-            <div style={{ display:"flex", marginBottom:8, justifyContent:"space-between", alignItems: 'center', width: '100%', maxWidth: 700 }}>
-              <button
-                type="button"
-                onClick={() => onOpenSpotlight?.()}
-                className="ds-spotlight-trigger"
-                style={{ display: 'inline-flex', alignItems: 'center', gap: 6, border: `1px solid ${C.alpha(C.accent, 0.86)}`, background: C.accent, color: '#061312', borderRadius: 999, padding: '4px 11px', minHeight: 30, fontSize: 12, lineHeight: '16px', fontWeight: 900, cursor: 'pointer', boxShadow: `0 0 14px ${C.alpha(C.accent, 0.28)}` }}
-                title="Spotlight paid cards"
-              >
-              <span className="ds-spotlight-icon-mask" style={{ width: 18, height: 18, color: '#061312' }} />
-              Spotlight
-            </button>
+            <div style={{ display:"flex", marginBottom:8, justifyContent:"flex-end", alignItems: 'center', width: '100%', maxWidth: 700 }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: 8, position: 'relative' }}>
                 <label style={{ marginRight: 4, fontSize: 13, color: C.t3 }}>State</label>
                 <details className="onb-multiselect" open={dropdownOpen} onToggle={(e) => setDropdownOpen(Boolean(e.target.open))} style={{ position: 'relative' }}>
@@ -3237,6 +3226,40 @@ export function Dashboard({ page, nuggets, setModal, setPage, onOpenOnboardingTa
               </button>
               <button
                 type="button"
+                onClick={() => onOpenSpotlight?.()}
+                aria-label="Spotlight paid cards"
+                title="Spotlight paid cards"
+                style={{
+                  border: isMobileViewport ? 'none' : `1px solid ${C.alpha(C.gold, 0.58)}`,
+                  borderRadius: 999,
+                  background: isMobileViewport ? 'transparent' : C.gold,
+                  color: isMobileViewport ? C.t1 : '#061312',
+                  fontWeight: 900,
+                  fontSize: 12,
+                  padding: isMobileViewport ? '2px 8px' : '6px 13px',
+                  minHeight: isMobileViewport ? 30 : 31,
+                  minWidth: isMobileViewport ? 42 : 0,
+                  cursor: 'pointer',
+                  transition: 'all .2s ease',
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  gap: 7,
+                  marginInline: isMobileViewport ? 6 : 8,
+                  boxShadow: isMobileViewport ? 'none' : `0 0 14px ${C.alpha(C.gold, 0.22)}`,
+                }}
+              >
+                <img
+                  src={spotlightIcon}
+                  alt=""
+                  aria-hidden="true"
+                  className="ds-spotlight-icon-img ds-spotlight-trigger"
+                  style={{ width: isMobileViewport ? 25 : 18, height: isMobileViewport ? 25 : 18 }}
+                />
+                {!isMobileViewport && <span>Spotlight</span>}
+              </button>
+              <button
+                type="button"
                 onClick={() => setView('properties')}
                 style={{
                   border: 'none',
@@ -3253,33 +3276,6 @@ export function Dashboard({ page, nuggets, setModal, setPage, onOpenOnboardingTa
                 Showcase
               </button>
             </div>
-            {isMobileViewport && (
-              <button
-                type="button"
-                className="ds-spotlight-trigger"
-                onClick={() => onOpenSpotlight?.()}
-                aria-label="Spotlight paid cards"
-                title="Spotlight paid cards"
-                style={{
-                  position: 'absolute',
-                  right: 8,
-                  top: '50%',
-                  transform: 'translateY(-50%)',
-                  width: 34,
-                  height: 30,
-                  borderRadius: 999,
-                  border: `1px solid ${C.alpha(C.accent, 0.86)}`,
-                  background: C.accent,
-                  color: '#061312',
-                  display: 'grid',
-                  placeItems: 'center',
-                  cursor: 'pointer',
-                  padding: 0,
-                }}
-              >
-                <span className="ds-spotlight-icon-mask" style={{ width: 22, height: 22, color: '#061312' }} />
-              </button>
-            )}
             {isMobileViewport && !mobileFeedSidebarOpen && (
               <button
                 type="button"
