@@ -1340,28 +1340,36 @@ export default function App() {
 
   const handleLgpdAccept = async () => {
     setIsConsentProcessing(true);
-    // Record consent server-side FIRST as proof (Art. 8) before updating local state
-    const anonId = `anon-${Date.now()}`;
-    if (isSupabaseConfigured && supabase) {
-      try {
-        const userId = authSession?.userId || null;
-        await supabase.from('consent_records').insert({
-          user_id: userId,
-          anonymous_id: userId ? null : anonId,
-          consent_type: 'data_processing',
-          version: '1.0',
-          user_agent: navigator.userAgent?.slice(0, 200) || null,
-        });
-        // Persist anonymous_id so we can link it after login
-        if (!userId) {
-          try { localStorage.setItem('ds_lgpd_consent_anon_id', anonId); } catch { /* no-op */ }
-        }
-      } catch { /* best-effort */ }
+    try {
+      // Record consent server-side FIRST as proof (Art. 8) before updating local state
+      const anonId = `anon-${Date.now()}`;
+      if (isSupabaseConfigured && supabase) {
+        try {
+          const userId = authSession?.userId || null;
+          await supabase.from('consent_records').insert({
+            user_id: userId,
+            anonymous_id: userId ? null : anonId,
+            consent_type: 'data_processing',
+            version: '1.0',
+            user_agent: navigator.userAgent?.slice(0, 200) || null,
+          });
+          // Persist anonymous_id so we can link it after login
+          if (!userId) {
+            try { localStorage.setItem('ds_lgpd_consent_anon_id', anonId); } catch { /* no-op */ }
+          }
+        } catch { /* best-effort */ }
+      }
+      // Update local state only after server-side record attempt
+      setLgpdConsent(true);
+      setModal(null);
+      try { localStorage.setItem('ds_lgpd_consent', '1'); } catch { /* no-op */ }
+      if (authSession && ['landing', 'terms', 'privacy'].includes(page)) {
+        _setPage('dashboard');
+        try { localStorage.setItem('ds_last_page', 'dashboard'); } catch { /* no-op */ }
+      }
+    } finally {
+      setIsConsentProcessing(false);
     }
-    // Update local state only after server-side record attempt
-    setLgpdConsent(true);
-    try { localStorage.setItem('ds_lgpd_consent', '1'); } catch { /* no-op */ }
-    setIsConsentProcessing(false);
   };
 
   // After login, link any anonymous consent record to the authenticated user_id

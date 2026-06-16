@@ -7,7 +7,9 @@ const fmtInt = (value) => Number(value || 0).toLocaleString('en-US');
 const fmtUsd = (cents) => `$${(Number(cents || 0) / 100).toLocaleString('en-US', { maximumFractionDigits: 0 })}`;
 const fmtPct = (value) => `${Number(value || 0).toLocaleString('en-US', { maximumFractionDigits: 1 })}%`;
 const fmtMb = (bytes) => `${(Number(bytes || 0) / 1048576).toLocaleString('en-US', { maximumFractionDigits: 1 })} MB`;
+const fmtNuggets = (value) => `${fmtInt(value)} nuggets`;
 const ADMIN_KPI_ORDER_KEY = 'ds_admin_kpi_order_v1';
+const ADMIN_KPI_VIEW_KEY = 'ds_admin_kpi_view_v1';
 
 function readAdminKpiOrder() {
   try {
@@ -26,6 +28,23 @@ function writeAdminKpiOrder(order) {
   }
 }
 
+function readAdminKpiView() {
+  try {
+    const parsed = JSON.parse(localStorage.getItem(ADMIN_KPI_VIEW_KEY) || '{}');
+    return parsed && typeof parsed === 'object' ? parsed : {};
+  } catch {
+    return {};
+  }
+}
+
+function writeAdminKpiView(view) {
+  try {
+    localStorage.setItem(ADMIN_KPI_VIEW_KEY, JSON.stringify(view || {}));
+  } catch {
+    // Persisting chart/numeric preference is best-effort only.
+  }
+}
+
 function Block({ title, children }) {
   return (
     <section style={{ border: `1px solid ${C.border}`, borderRadius: 14, background: C.card, overflow: 'hidden' }}>
@@ -35,7 +54,7 @@ function Block({ title, children }) {
   );
 }
 
-function MiniBars({ series = [], formatter = fmtInt, emptyMessage = 'No history yet' }) {
+function MiniChart({ series = [], formatter = fmtInt, emptyMessage = 'No history yet', type = 'bar' }) {
   const points = Array.isArray(series)
     ? series
         .map((point) => ({
@@ -54,29 +73,113 @@ function MiniBars({ series = [], formatter = fmtInt, emptyMessage = 'No history 
     );
   }
 
+  if (type === 'line') {
+    const width = 180;
+    const height = 74;
+    const coords = points.map((point, idx) => {
+      const x = points.length <= 1 ? width / 2 : (idx / (points.length - 1)) * width;
+      const y = height - ((point.value / maxValue) * (height - 18)) - 6;
+      return { ...point, x, y };
+    });
+    const path = coords.map((point, idx) => `${idx === 0 ? 'M' : 'L'}${point.x.toFixed(1)},${point.y.toFixed(1)}`).join(' ');
+    return (
+      <div style={{ height: 82, position: 'relative', paddingTop: 8 }}>
+        <svg viewBox={`0 0 ${width} ${height}`} preserveAspectRatio="none" style={{ width: '100%', height: 74, overflow: 'visible' }}>
+          <path d={path} fill="none" stroke={C.accent} strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" />
+          {coords.map((point, idx) => (
+            <g key={idx}>
+              <circle cx={point.x} cy={point.y} r="3.5" fill={idx === coords.length - 1 ? C.gold : C.accent} />
+              <text x={point.x} y={Math.max(8, point.y - 8)} textAnchor="middle" fontSize="8" fontWeight="900" fill={idx === coords.length - 1 ? C.gold : C.t3}>
+                {formatter(point.value)}
+              </text>
+            </g>
+          ))}
+        </svg>
+      </div>
+    );
+  }
+
+  if (type === 'donut') {
+    const total = points.reduce((sum, point) => sum + point.value, 0);
+    const current = points[points.length - 1]?.value || 0;
+    const pct = total > 0 ? Math.min(100, Math.max(0, (current / total) * 100)) : 0;
+    const radius = 26;
+    const circumference = 2 * Math.PI * radius;
+    return (
+      <div style={{ height: 82, display: 'grid', gridTemplateColumns: '82px minmax(0, 1fr)', alignItems: 'center', gap: 10 }}>
+        <svg viewBox="0 0 72 72" style={{ width: 72, height: 72 }}>
+          <circle cx="36" cy="36" r={radius} fill="none" stroke={C.alpha(C.accent, 0.16)} strokeWidth="10" />
+          <circle
+            cx="36"
+            cy="36"
+            r={radius}
+            fill="none"
+            stroke={C.accent}
+            strokeWidth="10"
+            strokeLinecap="round"
+            strokeDasharray={`${(pct / 100) * circumference} ${circumference}`}
+            transform="rotate(-90 36 36)"
+          />
+          <text x="36" y="34" textAnchor="middle" fontSize="11" fontWeight="900" fill={C.t1}>{formatter(current)}</text>
+          <text x="36" y="47" textAnchor="middle" fontSize="8" fontWeight="800" fill={C.t3}>latest</text>
+        </svg>
+        <div style={{ display: 'grid', gap: 3 }}>
+          {points.slice(-4).map((point, idx) => (
+            <div key={idx} style={{ display: 'flex', justifyContent: 'space-between', gap: 8, fontSize: 9, color: C.t3, fontWeight: 800 }}>
+              <span style={{ overflow: 'hidden', textOverflow: 'ellipsis' }}>{point.label}</span>
+              <span style={{ color: idx === points.slice(-4).length - 1 ? C.accent : C.t2 }}>{formatter(point.value)}</span>
+            </div>
+          ))}
+        </div>
+      </div>
+    );
+  }
+
   return (
-    <div style={{ height: 74, display: 'flex', alignItems: 'flex-end', gap: 4, paddingTop: 12 }}>
+    <div style={{ height: 82, display: 'flex', alignItems: 'flex-end', gap: 4, paddingTop: 12 }}>
       {points.map((point, idx) => {
         const height = Math.max(6, Math.round((point.value / maxValue) * 100));
         return (
-        <div
-          key={idx}
-          title={`${point.label}: ${formatter(point.value)}`}
-          style={{
-            flex: 1,
-            height: `${height}%`,
-            minWidth: 4,
-            borderRadius: '5px 5px 2px 2px',
-            background: idx === points.length - 1 ? C.accent : C.alpha(C.accent, 0.34),
-          }}
-        />
+          <div
+            key={idx}
+            title={`${point.label}: ${formatter(point.value)}`}
+            style={{
+              flex: 1,
+              height: `${height}%`,
+              minWidth: 10,
+              borderRadius: '6px 6px 2px 2px',
+              background: idx === points.length - 1 ? C.accent : C.alpha(C.accent, 0.34),
+              position: 'relative',
+              display: 'flex',
+              alignItems: 'flex-end',
+              justifyContent: 'center',
+              overflow: 'visible',
+            }}
+          >
+            <span
+              style={{
+                position: 'absolute',
+                bottom: `calc(100% + 3px)`,
+                left: '50%',
+                transform: 'translateX(-50%) rotate(-18deg)',
+                transformOrigin: 'center',
+                color: idx === points.length - 1 ? C.accent : C.t3,
+                fontSize: 8,
+                fontWeight: 900,
+                whiteSpace: 'nowrap',
+                pointerEvents: 'none',
+              }}
+            >
+              {formatter(point.value)}
+            </span>
+          </div>
       );})}
     </div>
   );
 }
 
-function KpiTile({ label, value, sub, series, seriesStatus, chartFormatter = fmtInt, draggable = false, dragging = false, emptyChartMessage = 'No real history yet', onDragStart, onDragOver, onDrop, onDragEnd }) {
-  const [showChart, setShowChart] = useState(false);
+function KpiTile({ id, label, value, sub, series, seriesStatus, chartFormatter = fmtInt, chartType = 'bar', viewMode, onToggleView, draggable = false, dragging = false, emptyChartMessage = 'No real history yet', onDragStart, onDragOver, onDrop, onDragEnd }) {
+  const showChart = viewMode === 'chart';
   return (
     <button
       type="button"
@@ -85,7 +188,7 @@ function KpiTile({ label, value, sub, series, seriesStatus, chartFormatter = fmt
       onDragOver={onDragOver}
       onDrop={onDrop}
       onDragEnd={onDragEnd}
-      onClick={() => setShowChart((prev) => !prev)}
+      onClick={() => onToggleView?.(id)}
       style={{
         minHeight: 132,
         border: `1px solid ${C.border}`,
@@ -111,7 +214,7 @@ function KpiTile({ label, value, sub, series, seriesStatus, chartFormatter = fmt
         {sub ? <div style={{ color: C.t3, fontSize: 10, marginTop: 2 }}>{sub}</div> : null}
       </div>
       {showChart ? (
-        <MiniBars series={series} formatter={chartFormatter} emptyMessage={seriesStatus || emptyChartMessage} />
+        <MiniChart series={series} formatter={chartFormatter} emptyMessage={seriesStatus || emptyChartMessage} type={chartType} />
       ) : (
         <div style={{ color: C.t1, fontSize: 28, lineHeight: 1, fontWeight: 900 }}>{value}</div>
       )}
@@ -279,7 +382,7 @@ function SectionDivider({ title, hint }) {
   );
 }
 
-function KpiSection({ title, hint, tiles, order, group, draggingId, emptyChartMessage, onDragStart, onDragOverTile, onDropTile, onDragEnd }) {
+function KpiSection({ title, hint, tiles, order, group, draggingId, viewModes, emptyChartMessage, onToggleView, onDragStart, onDragOverTile, onDropTile, onDragEnd }) {
   const ordered = [
     ...(order || []).map((id) => tiles.find((tile) => tile.id === id)).filter(Boolean),
     ...(tiles || []).filter((tile) => !(order || []).includes(tile.id)),
@@ -298,12 +401,16 @@ function KpiSection({ title, hint, tiles, order, group, draggingId, emptyChartMe
         {ordered.map((tile) => (
           <KpiTile
             key={tile.id}
+            id={tile.id}
             label={tile.label}
             value={tile.value}
             sub={tile.sub}
             series={tile.series}
             seriesStatus={tile.seriesStatus}
             chartFormatter={tile.chartFormatter}
+            chartType={tile.chartType}
+            viewMode={viewModes?.[tile.id] || 'number'}
+            onToggleView={onToggleView}
             emptyChartMessage={tile.emptyChartMessage || emptyChartMessage}
             draggable
             dragging={draggingId === tile.id}
@@ -326,6 +433,7 @@ export function AdminDashboard({ setPage, prevPage, logoutAdmin }) {
   const [error, setError] = useState('');
   const [draggingTile, setDraggingTile] = useState(null);
   const [kpiOrder, setKpiOrder] = useState(() => readAdminKpiOrder());
+  const [kpiView, setKpiView] = useState(() => readAdminKpiView());
 
   const loadMetrics = async () => {
     if (!isSupabaseConfigured || !supabase) {
@@ -358,29 +466,29 @@ export function AdminDashboard({ setPage, prevPage, logoutAdmin }) {
     const noHistory = t.noRealHistory || 'No real history yet';
     return {
       users: [
-        { id: 'active-now', label: k.activeNow || 'Active now', value: fmtInt(m.activeUsersNow), sub: k.last5Min || 'last 5 min', series: series['active-now'], seriesStatus: seriesStatus['active-now'], emptyChartMessage: noHistory },
-        { id: 'total-users', label: k.totalUsers || 'Total users', value: fmtInt(m.totalUsers), sub: k.allTime || 'all time', series: series['total-users'] },
-        { id: 'new-users', label: k.newUsers || 'New users', value: `${fmtInt(m.newUsersDay)} / ${fmtInt(m.newUsersWeek)} / ${fmtInt(m.newUsersMonth)}`, sub: k.dayWeekMonth || 'day / week / month', series: series['new-users'] },
-        { id: 'deleted-users', label: k.deletedUsers || 'Deleted users', value: `${fmtInt(m.deletedUsersDay)} / ${fmtInt(m.deletedUsersWeek)} / ${fmtInt(m.deletedUsersMonth)}`, sub: k.dayWeekMonth || 'day / week / month', series: series['deleted-users'] },
-        { id: 'activation-funnel', label: k.activationFunnel || 'Activation funnel', value: fmtPct(m.activationRate), sub: k.usersWithCard || 'users with at least one card', series: series['activation-funnel'] },
-        { id: 'free-plan-pressure', label: k.freePlanPressure || 'Free plan pressure', value: fmtInt(m.freePlanPressureTotal), sub: (k.clickedUpgrade || '{rate} clicked upgrade').replace('{rate}', fmtPct(m.freePlanUpgradeRate)), series: series['free-plan-pressure'] },
-        { id: 'checkout-dropoff', label: k.checkoutDropoff || 'Checkout drop-off', value: fmtPct(m.checkoutCompletionRate), sub: (k.paidClicked || '{paid} paid / {clicked} clicked').replace('{paid}', fmtInt(m.checkoutCompleted30d)).replace('{clicked}', fmtInt(m.checkoutClicked30d)), series: series['checkout-dropoff'] },
-        { id: 'card-health', label: k.cardHealth || 'Card health', value: fmtPct(m.cardHealthPct), sub: (k.cardHealthSub || '{needs} need attention / {total} total').replace('{needs}', fmtInt(m.cardHealthNeedsAttention)).replace('{total}', fmtInt(m.cardHealthTotal)), series: series['card-health'] },
-        { id: 'unlocks', label: k.unlocks || 'Unlocks', value: fmtInt(m.totalUnlocks), sub: (k.usersCount || '{count} users').replace('{count}', fmtInt(m.usersWithUnlocks)), series: series.unlocks },
-        { id: 'swipes-today', label: k.swipesToday || 'Swipes today', value: fmtInt(m.swipesToday), sub: k.last12Days || 'last 12 days', series: series['swipes-today'] },
-        { id: 'packs-revenue', label: k.packsRevenue || 'Packs revenue', value: fmtUsd(m.packRevenueUsdCents), sub: `${fmtInt(m.nuggetsPurchased)} ${k.nuggets || 'nuggets'}`, series: series['packs-revenue'], chartFormatter: fmtUsd },
-        { id: 'subscriptions', label: k.subscriptions || 'Subscriptions', value: fmtInt(m.activeSubscriptions), sub: fmtUsd(m.subscriptionRevenueUsdCents), series: series.subscriptions },
-        { id: 'manual-grants', label: k.manualGrants || 'Manual grants', value: fmtInt(m.manualNuggetsGranted), sub: `${fmtInt(m.manualNuggetsGrantedToday)} ${k.today || 'today'}`, series: series['manual-grants'] },
-        { id: 'support-msgs', label: k.supportMsgs || 'Support msgs', value: fmtInt(m.supportMessagesToday), sub: k.last12Days || 'last 12 days', series: series['support-msgs'] },
-        { id: 'highlights', label: k.highlights || 'Highlights', value: fmtInt(m.highlightsActive), sub: (k.boughtToday || '{count} bought today').replace('{count}', fmtInt(m.highlightsPurchasedToday)), series: series.highlights },
-        { id: 'exclusive-contacts', label: k.exclusiveContacts || 'Exclusive contacts', value: fmtInt(m.exclusiveContactsToday), sub: k.last12Days || 'last 12 days', series: series['exclusive-contacts'] },
-        { id: 'properties', label: k.properties || 'Properties', value: fmtInt(m.totalProperties), sub: k.publishedSaved || 'published + saved', series: series.properties },
+        { id: 'active-now', label: k.activeNow || 'Active now', value: fmtInt(m.activeUsersNow), sub: k.last5Min || 'last 5 min', series: series['active-now'], seriesStatus: seriesStatus['active-now'], emptyChartMessage: noHistory, chartType: 'bar' },
+        { id: 'total-users', label: k.totalUsers || 'Total users', value: fmtInt(m.totalUsers), sub: k.allTime || 'all time', series: series['total-users'], chartType: 'line' },
+        { id: 'new-users', label: k.newUsers || 'New users', value: `${fmtInt(m.newUsersDay)} / ${fmtInt(m.newUsersWeek)} / ${fmtInt(m.newUsersMonth)}`, sub: k.dayWeekMonth || 'day / week / month', series: series['new-users'], chartType: 'bar' },
+        { id: 'deleted-users', label: k.deletedUsers || 'Deleted users', value: `${fmtInt(m.deletedUsersDay)} / ${fmtInt(m.deletedUsersWeek)} / ${fmtInt(m.deletedUsersMonth)}`, sub: k.dayWeekMonth || 'day / week / month', series: series['deleted-users'], chartType: 'bar' },
+        { id: 'activation-funnel', label: k.activationFunnel || 'Activation funnel', value: fmtPct(m.activationRate), sub: k.usersWithCard || 'users with at least one card', series: series['activation-funnel'], chartType: 'donut' },
+        { id: 'free-plan-pressure', label: k.freePlanPressure || 'Free plan pressure', value: fmtInt(m.freePlanPressureTotal), sub: (k.clickedUpgrade || '{rate} clicked upgrade').replace('{rate}', fmtPct(m.freePlanUpgradeRate)), series: series['free-plan-pressure'], chartType: 'bar' },
+        { id: 'checkout-dropoff', label: k.checkoutDropoff || 'Checkout drop-off', value: fmtPct(m.checkoutCompletionRate), sub: (k.paidClicked || '{paid} paid / {clicked} clicked').replace('{paid}', fmtInt(m.checkoutCompleted30d)).replace('{clicked}', fmtInt(m.checkoutClicked30d)), series: series['checkout-dropoff'], chartType: 'donut' },
+        { id: 'card-health', label: k.cardHealth || 'Card health', value: fmtPct(m.cardHealthPct), sub: (k.cardHealthSub || '{needs} need attention / {total} total').replace('{needs}', fmtInt(m.cardHealthNeedsAttention)).replace('{total}', fmtInt(m.cardHealthTotal)), series: series['card-health'], chartType: 'donut' },
+        { id: 'unlocks', label: k.unlocks || 'Unlocks', value: fmtInt(m.totalUnlocks), sub: (k.usersCount || '{count} users').replace('{count}', fmtInt(m.usersWithUnlocks)), series: series.unlocks, chartType: 'line' },
+        { id: 'swipes-today', label: k.swipesToday || 'Swipes today', value: fmtInt(m.swipesToday), sub: k.last12Days || 'last 12 days', series: series['swipes-today'], chartType: 'bar' },
+        { id: 'packs-revenue', label: k.packsRevenue || 'Packs revenue', value: fmtUsd(m.packRevenueUsdCents), sub: `${fmtInt(m.packPurchasesCompleted)} packs · ${fmtInt(m.nuggetsPurchased)} ${k.nuggets || 'nuggets'}`, series: series['packs-revenue'], chartFormatter: fmtUsd, chartType: 'line' },
+        { id: 'subscriptions', label: k.subscriptions || 'Subscriptions', value: fmtUsd(m.subscriptionRevenueUsdCents), sub: `${fmtInt(m.activeSubscriptions)} active`, series: series.subscriptions, chartType: 'line' },
+        { id: 'manual-grants', label: k.manualGrants || 'Manual grants', value: fmtNuggets(m.manualNuggetsGranted), sub: `${fmtInt(m.manualNuggetsGrantedToday)} ${k.today || 'today'}`, series: series['manual-grants'], chartFormatter: fmtNuggets, chartType: 'bar' },
+        { id: 'support-msgs', label: k.supportMsgs || 'Support msgs', value: fmtInt(m.supportMessagesToday), sub: k.last12Days || 'last 12 days', series: series['support-msgs'], chartType: 'bar' },
+        { id: 'highlights', label: k.highlights || 'Highlights', value: fmtNuggets(m.highlightsNuggetsSpent), sub: `${fmtInt(m.highlightsActive)} active · ${fmtInt(m.highlightsPurchasedToday)} ${k.today || 'today'}`, series: series.highlights, chartFormatter: fmtNuggets, chartType: 'bar' },
+        { id: 'exclusive-contacts', label: k.exclusiveContacts || 'Exclusive contacts', value: fmtNuggets(m.exclusiveContactsNuggetsSpent), sub: `${fmtInt(m.exclusiveContactsTotal)} total · ${fmtInt(m.exclusiveContactsToday)} ${k.today || 'today'}`, series: series['exclusive-contacts'], chartFormatter: fmtNuggets, chartType: 'bar' },
+        { id: 'properties', label: k.properties || 'Properties', value: fmtInt(m.totalProperties), sub: k.publishedSaved || 'published + saved', series: series.properties, chartType: 'line' },
       ],
       system: [
-        { id: 'db-storage-guardrail', label: k.dbGuardrail || 'DB guardrail', value: fmtPct(m.dbUsagePct), sub: `${fmtMb(m.dbSizeBytes)} / ${fmtMb(m.dbLimitBytes)}`, series: series['db-storage-guardrail'], seriesStatus: seriesStatus['db-storage-guardrail'], chartFormatter: (value) => `${Number(value || 0).toLocaleString('en-US', { maximumFractionDigits: 1 })} MB` },
-        { id: 'stripe-issues', label: k.stripeIssues || 'Stripe issues', value: fmtInt(m.stripeIssuesDay), sub: k.last12Days || 'last 12 days', series: series['stripe-issues'] },
-        { id: 'supabase-issues', label: k.supabaseIssues || 'Supabase issues', value: fmtInt(m.supabaseIssuesDay), sub: k.last12Days || 'last 12 days', series: series['supabase-issues'] },
-        { id: 'admin-accounts', label: k.adminAccounts || 'Admin accounts', value: fmtInt(m.adminAccounts), sub: k.restricted || 'restricted', series: series['admin-accounts'] },
+        { id: 'db-storage-guardrail', label: k.dbGuardrail || 'DB guardrail', value: fmtPct(m.dbUsagePct), sub: `${fmtMb(m.dbSizeBytes)} / ${fmtMb(m.dbLimitBytes)}`, series: series['db-storage-guardrail'], seriesStatus: seriesStatus['db-storage-guardrail'], chartFormatter: (value) => `${Number(value || 0).toLocaleString('en-US', { maximumFractionDigits: 1 })} MB`, chartType: 'donut' },
+        { id: 'stripe-issues', label: k.stripeIssues || 'Stripe issues', value: fmtInt(m.stripeIssuesDay), sub: k.last12Days || 'last 12 days', series: series['stripe-issues'], chartType: 'bar' },
+        { id: 'supabase-issues', label: k.supabaseIssues || 'Supabase issues', value: fmtInt(m.supabaseIssuesDay), sub: k.last12Days || 'last 12 days', series: series['supabase-issues'], chartType: 'bar' },
+        { id: 'admin-accounts', label: k.adminAccounts || 'Admin accounts', value: fmtInt(m.adminAccounts), sub: k.restricted || 'restricted', series: series['admin-accounts'], chartType: 'donut' },
       ],
     };
   }, [metrics, t]);
@@ -426,6 +534,17 @@ export function AdminDashboard({ setPage, prevPage, logoutAdmin }) {
   };
 
   const handleDragEnd = () => setDraggingTile(null);
+  const handleToggleKpiView = (id) => {
+    if (!id) return;
+    setKpiView((prev) => {
+      const next = {
+        ...(prev || {}),
+        [id]: prev?.[id] === 'chart' ? 'number' : 'chart',
+      };
+      writeAdminKpiView(next);
+      return next;
+    });
+  };
 
   return (
     <div style={{ paddingTop: 58, minHeight: 'calc(var(--app-vh, 1vh) * 100)', background: C.bg }}>
@@ -485,7 +604,9 @@ export function AdminDashboard({ setPage, prevPage, logoutAdmin }) {
                 order={kpiOrder.users}
                 group="users"
                 draggingId={draggingTile}
+                viewModes={kpiView}
                 emptyChartMessage={t.noRealHistory || 'No real history yet'}
+                onToggleView={handleToggleKpiView}
                 onDragStart={handleDragStart}
                 onDragOverTile={handleDragOverTile}
                 onDropTile={handleDropTile}
@@ -498,7 +619,9 @@ export function AdminDashboard({ setPage, prevPage, logoutAdmin }) {
                 order={kpiOrder.system}
                 group="system"
                 draggingId={draggingTile}
+                viewModes={kpiView}
                 emptyChartMessage={t.noRealHistory || 'No real history yet'}
+                onToggleView={handleToggleKpiView}
                 onDragStart={handleDragStart}
                 onDragOverTile={handleDragOverTile}
                 onDropTile={handleDropTile}

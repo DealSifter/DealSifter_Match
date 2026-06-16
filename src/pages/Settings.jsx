@@ -1481,7 +1481,11 @@ export function Settings({ setPage, prevPage, initialTab = 'profile', systemAcco
                     setSupportMessages((prev) => ([...(prev || []), { id: `user-${now}`, from: 'user', text: outToSupport.text, createdAt: now }]));
                     setSupportInput('');
                     if (isSupabaseConfigured && supabase) {
-                      supabase.rpc('track_app_event', { p_event_type: 'support_message_sent', p_entity_type: 'support_chat', p_entity_id: 'admin_support' }).catch(() => {});
+                      void (async () => {
+                        try {
+                          await supabase.rpc('track_app_event', { p_event_type: 'support_message_sent', p_entity_type: 'support_chat', p_entity_id: 'admin_support' });
+                        } catch {}
+                      })();
                     }
                     setTimeout(async () => {
                       const adminReplyBase = t.supportAutoReply || 'Message received. Admin/Support will reply soon.';
@@ -1503,7 +1507,11 @@ export function Settings({ setPage, prevPage, initialTab = 'profile', systemAcco
                     setSupportMessages((prev) => ([...(prev || []), { id: `user-${now}`, from: 'user', text: outToSupport.text, createdAt: now }]));
                     setSupportInput('');
                     if (isSupabaseConfigured && supabase) {
-                      supabase.rpc('track_app_event', { p_event_type: 'support_message_sent', p_entity_type: 'support_chat', p_entity_id: 'admin_support' }).catch(() => {});
+                      void (async () => {
+                        try {
+                          await supabase.rpc('track_app_event', { p_event_type: 'support_message_sent', p_entity_type: 'support_chat', p_entity_id: 'admin_support' });
+                        } catch {}
+                      })();
                     }
                     setTimeout(async () => {
                       const adminReplyBase = t.supportAutoReply || 'Message received. Admin/Support will reply soon.';
