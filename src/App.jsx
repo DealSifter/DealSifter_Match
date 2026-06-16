@@ -2427,7 +2427,7 @@ export default function App() {
     try {
       const now = Date.now();
       const cleaned = (propertyUnlocks || []).filter((row) => (
-        !row?.expiresAt || Number(row.expiresAt) > now
+        !row?.expiresAt || Number(new Date(row.expiresAt).getTime()) > now
       )).slice(-500);
       localStorage.setItem('ds_property_unlocks', JSON.stringify(cleaned));
       if (cleaned.length !== (propertyUnlocks || []).length) setPropertyUnlocks(cleaned);

@@ -3,6 +3,7 @@ import { C } from '../../theme/colors';
 import { useT } from '../../i18n/translations';
 import { Icon } from '../ui/Icon';
 import { SmartImage } from '../ui/SmartImage';
+import { ExclusivityBadge } from '../ui/ExclusivityBadge';
 import { useMediaQuery } from '../../hooks/useMediaQuery';
 import { formatPropertyLocation } from '../../lib/formatPropertyLocation';
 import { getPendingDealRemainingDays, isPendingDealActive } from '../../lib/pendingDeal';
@@ -70,7 +71,12 @@ export function PropertyCard({ property, action, statusAction, onInterest, owner
   const pendingDealStripText = (t.pendingDealStrip || 'Advanced conversation reported by owner · {days}d left before feed block')
     .replace('{days}', String(pendingDealDaysLeft || 0));
   const showExclusivityAlert = !previewOnly && (exclusivityStatus?.kind === 'new' || exclusivityStatus?.kind === 'partial');
+  const showActiveExclusivityLock = !previewOnly
+    && (exclusivityStatus?.kind === 'blocked' || exclusivityStatus?.kind === 'owned')
+    && Boolean(exclusivityStatus?.expiresAt);
   const isPartialExclusivity = exclusivityStatus?.kind === 'partial';
+  const activeExclusivityLabel = t.exclusivityActiveBadge || 'Exclusivity';
+  const activeExclusivityStripText = t.exclusivityActiveStrip || 'Exclusive lock active. This card is blocked until the timer ends.';
   const exclusivityBadge = isPartialExclusivity ? String(exclusivityStatus?.badge || 'Only 2 unlocks') : 'New';
   const exclusivityStripText = isPartialExclusivity
     ? (t.exclusivityPartialStrip || 'Be the first to unlock with partial exclusivity! Be quick and enjoy...')
@@ -210,7 +216,7 @@ export function PropertyCard({ property, action, statusAction, onInterest, owner
     >
       {/* Ícone de visualização removido */}
       <div style={innerStyle}>
-      {showExclusivityAlert ? (
+      {showExclusivityAlert || showActiveExclusivityLock ? (
         <style>{`
           @keyframes dsPropertyExclusivePulse {
             0%, 100% { opacity: 1; transform: translateZ(0) scale(1); }
@@ -298,6 +304,20 @@ export function PropertyCard({ property, action, statusAction, onInterest, owner
           </span>
         ) : null}
 
+        {showActiveExclusivityLock ? (
+          <div style={{
+            position: 'absolute',
+            top: 8,
+            left: 8,
+            zIndex: 15,
+            pointerEvents: 'none',
+            animation: 'dsPropertyExclusivePulse 1.35s ease-in-out infinite',
+            maxWidth: 'calc(100% - 16px)',
+          }}>
+            <ExclusivityBadge expiresAt={exclusivityStatus.expiresAt} label={activeExclusivityLabel} />
+          </div>
+        ) : null}
+
         {showExclusivityAlert ? (
           <span style={{
             position: 'absolute',
@@ -320,7 +340,7 @@ export function PropertyCard({ property, action, statusAction, onInterest, owner
           </span>
         ) : null}
 
-        {showPendingDealAlert && !showExclusivityAlert ? (
+        {showPendingDealAlert && !showExclusivityAlert && !showActiveExclusivityLock ? (
           <span style={{
             position: 'absolute',
             top: 8,
@@ -345,7 +365,7 @@ export function PropertyCard({ property, action, statusAction, onInterest, owner
           </span>
         ) : null}
 
-        {showHotAlert && !showExclusivityAlert && (
+        {showHotAlert && !showExclusivityAlert && !showActiveExclusivityLock && (
           <span style={{
             position: 'absolute',
             top: 8,
@@ -366,7 +386,7 @@ export function PropertyCard({ property, action, statusAction, onInterest, owner
           </span>
         )}
 
-        {showTrendingAlert && !showExclusivityAlert && !showPendingDealAlert && (
+        {showTrendingAlert && !showExclusivityAlert && !showActiveExclusivityLock && !showPendingDealAlert && (
           <span style={{
             position: 'absolute',
             top: 8,
@@ -418,6 +438,32 @@ export function PropertyCard({ property, action, statusAction, onInterest, owner
         )}
 
         {/* ── Match-pressure urgency strip (image bottom, above owner badge) ── */}
+        {showActiveExclusivityLock ? (
+          <div style={{
+            position: 'absolute',
+            left: 0,
+            right: 0,
+            bottom: ownerBadgeBottom + ownerBadgeHeight + 4,
+            zIndex: 10,
+            background: 'linear-gradient(90deg, rgba(5,70,45,0.96) 0%, rgba(20,184,166,0.94) 100%)',
+            padding: '5px 8px',
+            display: 'flex',
+            alignItems: 'center',
+            gap: 6,
+            color: '#fff',
+            fontSize: 10,
+            fontWeight: 850,
+            letterSpacing: '0.12px',
+            pointerEvents: 'none',
+            animation: 'dsPropertyExclusivePulse 1.35s ease-in-out infinite',
+          }}>
+            <ExclusivityBadge expiresAt={exclusivityStatus.expiresAt} compact />
+            <span style={{ whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+              {activeExclusivityStripText}
+            </span>
+          </div>
+        ) : null}
+
         {showExclusivityAlert ? (
           <div style={{
             position: 'absolute',
@@ -444,7 +490,7 @@ export function PropertyCard({ property, action, statusAction, onInterest, owner
           </div>
         ) : null}
 
-        {showPendingDealAlert && !showExclusivityAlert ? (
+        {showPendingDealAlert && !showExclusivityAlert && !showActiveExclusivityLock ? (
           <div style={{
             position: 'absolute',
             left: 0,
@@ -471,7 +517,7 @@ export function PropertyCard({ property, action, statusAction, onInterest, owner
           </div>
         ) : null}
 
-        {showHotAlert && !showExclusivityAlert && (
+        {showHotAlert && !showExclusivityAlert && !showActiveExclusivityLock && (
           <div style={{
             position: 'absolute',
             left: 0,
@@ -497,7 +543,7 @@ export function PropertyCard({ property, action, statusAction, onInterest, owner
           </div>
         )}
 
-        {showTrendingAlert && !showExclusivityAlert && !showPendingDealAlert && (
+        {showTrendingAlert && !showExclusivityAlert && !showActiveExclusivityLock && !showPendingDealAlert && (
           <div style={{
             position: 'absolute',
             left: 0,

@@ -129,10 +129,39 @@ export function CategoryBar({ activeCat, setActiveCat, categoryOrder, setCategor
   };
 
   const neonBox = `0 0 0 1px ${C.alpha(C.accent, 0.5)}, 0 0 14px ${C.alpha(C.accent, 0.34)}, inset 0 0 10px ${C.alpha(C.accent, 0.18)}`;
+  const editCategoryButton = (
+    <button
+      type="button"
+      onClick={() => setEditMode(!editMode)}
+      style={{
+        display: "flex",
+        alignItems: "center",
+        gap: 6,
+        padding: "6px 13px",
+        borderRadius: 100,
+        background: editMode ? C.alpha(C.accent, 0.12) : "transparent",
+        border: `1px solid ${editMode ? C.accent : C.border}`,
+        color: editMode ? C.accent : C.t1,
+        fontWeight: editMode ? 700 : 500,
+        fontSize: 12,
+        cursor: "pointer",
+        whiteSpace: "nowrap",
+        transition: "all .15s",
+        flexShrink: 0,
+        boxShadow: editMode ? neonBox : 'none',
+        textShadow: editMode ? `0 0 10px ${C.alpha(C.accent, 0.4)}` : 'none',
+      }}
+      title={t.categoryBar?.editCategoryOrder || 'Edit category order'}
+    >
+      <Icon name={editMode ? "check" : "edit"} size={13} color={editMode ? C.accent : C.t1} strokeWidth={1.8} />
+      <span>{editMode ? (t.categoryBar?.done || 'Done') : (t.categoryBar?.edit || 'Edit')}</span>
+    </button>
+  );
 
   return (
     <div ref={ref} style={{ position:"sticky", top:stickyTop, zIndex:50, background:C.card, backdropFilter:"blur(10px)", borderBottom:`1px solid ${C.border}` }}>
       <div ref={listRef} style={{ maxWidth:"100%", margin:"0 auto", padding:"8px max(4%, 14px) 8px 4%", display:"flex", alignItems:"center", overflowX:"auto", gap:4, scrollbarWidth:"none", position:"relative" }}>
+        {editCategoryButton}
         {orderedCategories.map((cat, index) => {
           const active = isActive(cat);
           const isDragging = draggedIndex === index;
@@ -179,39 +208,6 @@ export function CategoryBar({ activeCat, setActiveCat, categoryOrder, setCategor
             </div>
           );
         })}
-        
-        <div aria-hidden="true" style={{ flex:"0 0 14px" }} />
-        {/* Edit button - fixed at the right edge without covering category chips */}
-        <button
-          onClick={() => setEditMode(!editMode)}
-          style={{
-            position: "sticky",
-            right: 0,
-            marginLeft: 12,
-            width: 42, height: 34,
-            padding: 0, borderRadius: 6,
-            background: C.card,
-            border: "none",
-              color: C.t1,
-            cursor: "pointer",
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "center",
-            transition: "all .2s",
-            flexShrink: 0,
-            zIndex: 3,
-            boxShadow: `-14px 0 18px ${C.card}, 0 0 0 1px ${C.alpha(C.border, 0.72)}`
-          }}
-          onMouseEnter={(e) => {
-              e.currentTarget.style.border = `1px solid ${C.t1}`;
-          }}
-          onMouseLeave={(e) => {
-            e.currentTarget.style.border = "none";
-          }}
-          title={t.categoryBar?.editCategoryOrder || 'Edit category order'}
-        >
-          <Icon name={editMode ? "check" : "edit"} size={16} color={C.t2} strokeWidth={1.5} />
-        </button>
       </div>
       {openDrop && CATEGORIES.find(c => c.id === openDrop)?.sub && (
         <div

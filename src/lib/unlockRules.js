@@ -22,6 +22,15 @@ const addCandidate = (set, value) => {
   }
 };
 
+const toEpochMs = (value) => {
+  if (value === undefined || value === null || value === '') return null;
+  if (typeof value === 'number' && Number.isFinite(value)) return value;
+  const asNumber = Number(value);
+  if (Number.isFinite(asNumber) && asNumber > 0) return asNumber;
+  const parsed = Date.parse(String(value));
+  return Number.isFinite(parsed) ? parsed : null;
+};
+
 export function getUnlockOwnerCandidates(ownerOrCard) {
   const candidates = new Set();
   if (ownerOrCard && typeof ownerOrCard === 'object') {
@@ -72,7 +81,7 @@ export function getPropertyExclusivityStatus(records = [], propertyId, currentUs
   if (!propertyId) return { kind: 'none', canBuyExclusivity: false, exclusiveCost: 0, unlockCount: 0 };
   const rows = (records || []).filter((row) => sameId(row?.propertyId, propertyId));
   const activeExclusive = rows.find((row) => (
-    (row?.mode === 'total' || row?.mode === 'partial') && Number(row?.expiresAt || 0) > now
+    (row?.mode === 'total' || row?.mode === 'partial') && Number(toEpochMs(row?.expiresAt ?? row?.expires_at) || 0) > now
   ));
   const normalUnlockCount = rows.filter((row) => row?.mode === 'normal').length;
 
@@ -83,7 +92,7 @@ export function getPropertyExclusivityStatus(records = [], propertyId, currentUs
       unlockCount: normalUnlockCount,
       canBuyExclusivity: false,
       exclusiveCost: 0,
-      expiresAt: activeExclusive.expiresAt,
+      expiresAt: toEpochMs(activeExclusive.expiresAt ?? activeExclusive.expires_at),
       mode: activeExclusive.mode,
     };
   }
