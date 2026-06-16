@@ -774,7 +774,8 @@ const buildFeedActionPayload = (item) => {
     'id', 'ownerId', 'unlockOwnerId', 'name', 'title', 'category', 'sub', 'role', 'badge',
     'avatar', 'photo', 'photoUrl', 'image', 'img', 'address', 'street', 'city', 'state',
     'zip', 'zipcode', 'price', 'type', 'beds', 'baths', 'cap', 'portfolioCount',
-    'portfolioSize', 'createdAt', 'source',
+    'portfolioSize', 'createdAt', 'source', 'primaryProfile', 'contactMethods',
+    'phone', 'primaryPhone', 'secondaryPhone', 'tertiaryPhone', 'whatsapp', 'email',
   ];
   const compact = {};
   allowedKeys.forEach((key) => {
@@ -809,14 +810,34 @@ const makeFeedActionRows = ({ matched = [], interested = [], unlocked = [] }) =>
   return rows;
 };
 
+const scoreContactPayloadRichness = (item) => {
+  if (!item || typeof item !== 'object') return 0;
+  const keys = [
+    'name', 'title', 'type', 'category', 'sub', 'badge', 'photo', 'avatar',
+    'email', 'phone', 'primaryPhone', 'secondaryPhone', 'whatsapp', 'loc',
+    'address', 'city', 'state', 'zip',
+  ];
+  return keys.reduce((score, key) => (
+    String(item?.[key] || '').trim() ? score + 1 : score
+  ), 0);
+};
+
 const mergeFeedActionItems = (prev, incoming) => {
   const next = Array.isArray(prev) ? [...prev] : [];
-  const seen = new Set(next.map((item) => String(item?.id || '')));
+  const indexById = new Map(next.map((item, index) => [String(item?.id || ''), index]));
   (Array.isArray(incoming) ? incoming : []).forEach((item) => {
     const id = String(item?.id || '').trim();
-    if (!id || seen.has(id)) return;
-    seen.add(id);
-    next.push(item);
+    if (!id) return;
+    if (!indexById.has(id)) {
+      indexById.set(id, next.length);
+      next.push(item);
+      return;
+    }
+    const existingIndex = indexById.get(id);
+    const existing = next[existingIndex];
+    if (scoreContactPayloadRichness(item) >= scoreContactPayloadRichness(existing)) {
+      next[existingIndex] = { ...(existing || {}), ...(item || {}) };
+    }
   });
   return next;
 };
@@ -2205,6 +2226,164 @@ export default function App() {
     });
     return [...byId.values()];
   }, [globalServicePortfolio]);
+
+  const buildUnlockedContactSnapshot = useCallback((ownerId) => {
+    const rawOwnerId = String(ownerId || '').trim();
+    if (!rawOwnerId) return null;
+
+    const exactMock = (CARDS || []).find((card) => String(card?.id || '') === rawOwnerId);
+    if (exactMock) {
+      return {
+        ...exactMock,
+        id: rawOwnerId,
+        ownerId: rawOwnerId,
+      };
+    }
+
+    const linkedService = (unlockPortfolioServices || []).find((service) => String(service?.ownerId || '') === rawOwnerId);
+    const linkedProperty = (unlockPortfolioProperties || []).find((property) => String(property?.ownerId || '') === rawOwnerId);
+    const fallbackName = String(
+      linkedService?.title
+      || linkedProperty?.address
+      || `Contact ${rawOwnerId.slice(0, 8)}`
+    ).trim();
+    const fallbackLoc = [
+      linkedProperty?.city,
+      linkedProperty?.state,
+      linkedProperty?.zip,
+    ].filter(Boolean).join(', ');
+
+    return {
+      id: rawOwnerId,
+      ownerId: rawOwnerId,
+      name: fallbackName,
+      title: fallbackName,
+      type: String(linkedService?.category || linkedProperty?.type || 'Contact').trim(),
+      category: String(linkedService?.category || linkedProperty?.type || '').trim(),
+      loc: fallbackLoc,
+      address: linkedProperty?.address || '',
+      city: linkedProperty?.city || '',
+      state: linkedProperty?.state || '',
+      zip: linkedProperty?.zip || '',
+      photo: String(linkedProperty?.images?.[0] || linkedService?.media?.images?.[0] || '').trim(),
+      source: 'remote-unlock',
+    };
+  }, [unlockPortfolioProperties, unlockPortfolioServices]);
+
+  const fetchRemoteUnlockState = useCallback(async () => {
+    if (!isSupabaseConfigured || !supabase || !supabaseUserId) return;
+    try {
+      const [contactSnapshotsResult, unlocksResult, propertyUnlocksResult] = await Promise.all([
+        supabase.rpc('ds_get_unlocked_contact_snapshots'),
+        supabase
+          .from('unlocks')
+          .select('seller_id, nuggets_spent, created_at')
+          .eq('buyer_id', supabaseUserId)
+          .order('created_at', { ascending: false })
+          .limit(500),
+        supabase
+          .from('property_unlocks')
+          .select('id, property_id, owner_id, buyer_id, mode, total_cost, created_at, expires_at, status')
+          .or(`buyer_id.eq.${supabaseUserId},owner_id.eq.${supabaseUserId}`)
+          .order('created_at', { ascending: false })
+          .limit(500),
+      ]);
+
+      const snapshotMissing = contactSnapshotsResult.error
+        && String(contactSnapshotsResult.error?.message || '').toLowerCase().includes('ds_get_unlocked_contact_snapshots');
+      if (contactSnapshotsResult.error && !snapshotMissing) {
+        safeLogError('Failed to hydrate unlocked contact snapshots.', contactSnapshotsResult.error);
+      }
+      if (unlocksResult.error) {
+        safeLogError('Failed to hydrate remote unlocks.', unlocksResult.error);
+      }
+      if (propertyUnlocksResult.error) {
+        safeLogError('Failed to hydrate remote property unlocks.', propertyUnlocksResult.error);
+      }
+
+      const unlockRows = Array.isArray(unlocksResult.data) ? unlocksResult.data : [];
+      const propertyUnlockRows = Array.isArray(propertyUnlocksResult.data) ? propertyUnlocksResult.data : [];
+      const snapshotRows = Array.isArray(contactSnapshotsResult.data) ? contactSnapshotsResult.data : [];
+      const unlockedOwnerIds = unlockRows
+        .map((row) => String(row?.seller_id || '').trim())
+        .filter(Boolean);
+      snapshotRows.forEach((row) => {
+        const ownerId = String(row?.seller_id || row?.contact?.ownerId || row?.contact?.id || '').trim();
+        if (ownerId && !unlockedOwnerIds.includes(ownerId)) unlockedOwnerIds.push(ownerId);
+      });
+
+      if (unlockedOwnerIds.length) {
+        setUnlocked((prev) => {
+          const next = Array.isArray(prev) ? [...prev] : [];
+          const seen = new Set(next.map((value) => String(value || '').trim()).filter(Boolean));
+          unlockedOwnerIds.forEach((ownerId) => {
+            if (!seen.has(ownerId)) {
+              seen.add(ownerId);
+              next.push(ownerId);
+            }
+          });
+          return next;
+        });
+
+        setPurchases((prev) => {
+          const current = Array.isArray(prev) ? [...prev] : [];
+          const seen = new Set(current.map((row) => String(row?.sellerId || '').trim()).filter(Boolean));
+          unlockedOwnerIds.forEach((ownerId) => {
+            if (!seen.has(ownerId)) {
+              seen.add(ownerId);
+              current.push({ sellerId: ownerId });
+            }
+          });
+          return current;
+        });
+
+        const hydratedContacts = [
+          ...snapshotRows
+            .map((row) => row?.contact)
+            .filter((contact) => contact && typeof contact === 'object'),
+          ...unlockedOwnerIds
+            .map((ownerId) => buildUnlockedContactSnapshot(ownerId))
+            .filter(Boolean),
+        ];
+
+        if (hydratedContacts.length) {
+          setMatched((prev) => mergeFeedActionItems(prev, hydratedContacts));
+        }
+      }
+
+      if (propertyUnlockRows.length) {
+        setPropertyUnlocks((prev) => {
+          const current = Array.isArray(prev) ? [...prev] : [];
+          const byId = new Map(current.map((row) => [String(row?.id || ''), row]));
+          propertyUnlockRows.forEach((row) => {
+            const key = String(row?.id || '').trim();
+            if (!key) return;
+            byId.set(key, {
+              ...(byId.get(key) || {}),
+              id: key,
+              propertyId: row.property_id,
+              ownerId: row.owner_id,
+              buyerId: row.buyer_id,
+              mode: row.mode || 'normal',
+              cost: Number(row.total_cost || 0),
+              createdAt: row.created_at || null,
+              expiresAt: row.expires_at || null,
+              status: row.status || 'active',
+            });
+          });
+          return [...byId.values()];
+        });
+      }
+    } catch (error) {
+      safeLogError('Remote unlock hydration failed.', error);
+    }
+  }, [buildUnlockedContactSnapshot, isSupabaseConfigured, supabase, supabaseUserId]);
+
+  useEffect(() => {
+    if (!supabaseUserId) return;
+    const timer = window.setTimeout(() => { void fetchRemoteUnlockState(); }, 0);
+    return () => clearTimeout(timer);
+  }, [fetchRemoteUnlockState, supabaseUserId]);
 
   const handleMapPropertyCoordsUpdate = useCallback((propertyId, coordsMeta = {}) => {
     if (!propertyId) return;
@@ -3949,7 +4128,16 @@ export default function App() {
       } else {
         setNuggets(n => n - unlockCost);
       }
-      setUnlocked(u => u.some((id) => String(id) === String(contactUnlockId)) ? u : [...u, contactUnlockId]);
+      setUnlocked((prev) => {
+        const next = Array.isArray(prev) ? [...prev] : [];
+        const candidates = [contactUnlockId, unlockOwnerId]
+          .map((value) => String(value || '').trim())
+          .filter(Boolean);
+        candidates.forEach((candidate) => {
+          if (!next.some((id) => String(id) === candidate)) next.push(candidate);
+        });
+        return next;
+      });
       incrementPlanUsage('month', 'unlocks');
       if (card.unlockScope === 'property' && card.propertyId) {
         setPropertyUnlocks((prev) => {
@@ -3973,7 +4161,15 @@ export default function App() {
       }
       // Ensure unlocked contact stays available in Matches module.
       const matchedCard = { ...card, id: contactUnlockId, ownerId: unlockOwnerId || card.ownerId || contactUnlockId };
-      setMatched(prev => prev.some(x => String(x.id) === String(contactUnlockId)) ? prev : [...prev, matchedCard]);
+      setMatched((prev) => {
+        const current = Array.isArray(prev) ? prev : [];
+        const filtered = current.filter((item) => {
+          const itemId = String(item?.id || '');
+          const itemOwnerId = String(item?.ownerId || '');
+          return itemId !== String(contactUnlockId) && itemOwnerId !== String(unlockOwnerId || '');
+        });
+        return [...filtered, matchedCard];
+      });
       // Auto-add ALL active properties of this contact to `interested` so the
       // full portfolio appears in the Interests column immediately after unlock.
       const allProps = unlockPortfolioProperties || [];
@@ -3995,6 +4191,7 @@ export default function App() {
       );
       setModal(null);
       setUnlockQuote(null);
+      window.setTimeout(() => { void fetchRemoteUnlockState(); }, 0);
       // Navegar para Matches para visualizar o contato
       setPage('matches');
     } else {

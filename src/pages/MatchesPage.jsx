@@ -1816,9 +1816,41 @@ export function MatchesPage({ nuggets, setModal, openUnlock, unlocked, initialCh
     };
   }, [buildLocalOwnerCard, fsboOwnerId, personalOwnerId, secondaryOwnerId]);
 
+  const getContactUnlockKeys = useCallback((itemOrId) => {
+    if (itemOrId == null) return [];
+    if (typeof itemOrId === 'string' || typeof itemOrId === 'number') {
+      const key = String(itemOrId).trim();
+      return key ? [key] : [];
+    }
+    const candidates = [
+      itemOrId.ownerId,
+      itemOrId.unlockOwnerId,
+      itemOrId.sellerId,
+      itemOrId.contactId,
+      itemOrId.unlockContactId,
+      itemOrId.id,
+      itemOrId.sourceCardId,
+    ];
+    return Array.from(new Set(
+      candidates
+        .map((value) => String(value || '').trim())
+        .filter(Boolean)
+    ));
+  }, []);
+
+  const unlockedIdSet = useMemo(() => new Set(
+    (Array.isArray(unlocked) ? unlocked : [])
+      .map((value) => String(value || '').trim())
+      .filter(Boolean)
+  ), [unlocked]);
+
+  const isContactUnlockedByState = useCallback((itemOrId) => (
+    getContactUnlockKeys(itemOrId).some((key) => unlockedIdSet.has(key))
+  ), [getContactUnlockKeys, unlockedIdSet]);
+
   const enrichContactFromPortfolio = useCallback((contactLike) => {
     if (!contactLike) return null;
-    const ownerId = contactLike.id || contactLike.ownerId || contactLike.unlockOwnerId;
+    const ownerId = contactLike.ownerId || contactLike.unlockOwnerId || contactLike.id;
     if (!ownerId) return contactLike;
     const linkedProperty = allPropertiesSource.find((property) => String(property?.ownerId || '') === String(ownerId));
     const linkedService = allServicesSource.find((service) => String(service?.ownerId || '') === String(ownerId));
@@ -1831,6 +1863,10 @@ export function MatchesPage({ nuggets, setModal, openUnlock, unlocked, initialCh
 
     return {
       ...contactLike,
+      id: String(ownerId),
+      ownerId: String(ownerId),
+      unlockOwnerId: String(ownerId),
+      sourceCardId: String(contactLike.id || '') !== String(ownerId) ? contactLike.id : contactLike.sourceCardId,
       contactMethods: mergedContactMethods,
       primaryPhone: pick(contactLike.primaryPhone, linkedProperty?.primaryPhone, linkedProperty?.phone, linkedProperty?.ownerPhone, linkedService?.primaryPhone, linkedService?.phone),
       secondaryPhone: pick(contactLike.secondaryPhone, linkedProperty?.secondaryPhone, linkedService?.secondaryPhone),
@@ -1864,11 +1900,18 @@ export function MatchesPage({ nuggets, setModal, openUnlock, unlocked, initialCh
     return out;
   }, []);
 
-  const allMatched = useMemo(() =>
-    matched
-      .filter((m, i, arr) => arr.findIndex(x => x.id === m.id) === i)
-      .map((m) => enrichContactFromPortfolio(resolveContactCard(m))),
-  [matched, enrichContactFromPortfolio, resolveContactCard]);
+  const allMatched = useMemo(() => {
+    const byKey = new Map();
+    (Array.isArray(matched) ? matched : [])
+      .map((m) => enrichContactFromPortfolio(resolveContactCard(m)))
+      .filter(Boolean)
+      .forEach((contact) => {
+        const key = getContactUnlockKeys(contact)[0] || String(contact?.id || '');
+        if (!key) return;
+        byKey.set(key, { ...(byKey.get(key) || {}), ...contact });
+      });
+    return [...byKey.values()];
+  }, [matched, enrichContactFromPortfolio, resolveContactCard, getContactUnlockKeys]);
 
   const parseStateCode = useCallback((value) => {
     const raw = String(value || '').trim();
@@ -1907,7 +1950,7 @@ export function MatchesPage({ nuggets, setModal, openUnlock, unlocked, initialCh
 
   const filteredMatched = useMemo(() => {
     const list = allMatched.filter(m => {
-      const paid = unlocked.includes(m.id);
+      const paid = isContactUnlockedByState(m);
       if (peopleFilter === "paid") return paid;
       if (peopleFilter === "locked") return !paid;
       if (selectedPeopleCategories.length > 0) {
@@ -1918,11 +1961,11 @@ export function MatchesPage({ nuggets, setModal, openUnlock, unlocked, initialCh
     });
     if (sortOrder === 'name_asc') return [...list].sort((a, b) => String(a?.name || '').localeCompare(String(b?.name || '')));
     return list;
-  }, [allMatched, peopleFilter, unlocked, selectedPeopleCategories, sortOrder]);
+  }, [allMatched, peopleFilter, isContactUnlockedByState, selectedPeopleCategories, sortOrder]);
 
   const filteredInterested = useMemo(() => {
     const list = interested.filter(p => {
-      const paid = unlocked.includes(p.ownerId);
+      const paid = isContactUnlockedByState({ ownerId: p.ownerId });
       if (interestsFilter === "paid") return paid;
       if (interestsFilter === "locked") return !paid;
       if (selectedInterestStates.length > 0) {
@@ -1933,12 +1976,12 @@ export function MatchesPage({ nuggets, setModal, openUnlock, unlocked, initialCh
     });
     if (sortOrder === 'price_desc') return [...list].sort((a, b) => Number(b?.price || 0) - Number(a?.price || 0));
     return list;
-  }, [interested, interestsFilter, unlocked, selectedInterestStates, parseStateCode, sortOrder]);
+  }, [interested, interestsFilter, isContactUnlockedByState, selectedInterestStates, parseStateCode, sortOrder]);
 
   const isActiveProperty = active?.address !== undefined;
   const activeContactId = useMemo(() => {
     if (!active) return null;
-    return isActiveProperty ? active.ownerId : active.id;
+    return isActiveProperty ? active.ownerId : (active.ownerId || active.unlockOwnerId || active.id);
   }, [active, isActiveProperty]);
 
   const activeOwner = useMemo(() => {
@@ -1957,8 +2000,10 @@ export function MatchesPage({ nuggets, setModal, openUnlock, unlocked, initialCh
     ) {
       return enrichContactFromPortfolio(buildLocalOwnerCard(activeScope));
     }
-    return enrichContactFromPortfolio(CARDS.find(c => c.id === active.ownerId));
-  }, [active, isActiveProperty, resolveContactCard, secondaryOwnerId, fsboOwnerId, personalOwnerId, buildLocalOwnerCard, enrichContactFromPortfolio]);
+    const hydratedOwner = allMatched.find((contact) => getContactUnlockKeys(contact).includes(String(active.ownerId || '')));
+    if (hydratedOwner) return enrichContactFromPortfolio(hydratedOwner);
+    return enrichContactFromPortfolio(CARDS.find(c => String(c.id) === String(active.ownerId)));
+  }, [active, isActiveProperty, resolveContactCard, secondaryOwnerId, fsboOwnerId, personalOwnerId, buildLocalOwnerCard, enrichContactFromPortfolio, allMatched, getContactUnlockKeys]);
 
   const handleOpenActiveCardPreview = useCallback(() => {
     if (!activeOwner && !active) return;
@@ -1987,8 +2032,8 @@ export function MatchesPage({ nuggets, setModal, openUnlock, unlocked, initialCh
   }, [activeOwner, peerLangPrefs]);
 
   const isUnlocked = useMemo(() => 
-    activeOwner && unlocked.includes(activeOwner.id),
-  [activeOwner, unlocked]);
+    activeOwner && isContactUnlockedByState(activeOwner),
+  [activeOwner, isContactUnlockedByState]);
 
   const activeUnlockCost = useMemo(() => {
     if (!activeOwner?.id) return 1;
@@ -2306,9 +2351,24 @@ export function MatchesPage({ nuggets, setModal, openUnlock, unlocked, initialCh
             min-height: 0 !important;
             border-right: none !important;
           }
-          .matches-chat-col > div:first-child {
+          .matches-chat-tools {
             transform: scale(0.92);
             transform-origin: top left;
+          }
+          .matches-chat-scroll {
+            padding-top: 46px !important;
+          }
+        }
+        @media (max-width: 767px) {
+          .matches-chat-tools {
+            position: static !important;
+            margin: 8px 12px 0 !important;
+            width: max-content !important;
+            max-width: calc(100% - 24px) !important;
+            transform: none !important;
+          }
+          .matches-chat-scroll {
+            padding-top: 12px !important;
           }
         }
       `}</style>
@@ -2390,8 +2450,9 @@ export function MatchesPage({ nuggets, setModal, openUnlock, unlocked, initialCh
               </div>
               <div style={{ flex:1, overflowY:"auto" }}>
                 {filteredMatched.map(m => {
-                  const isLinkedContact = activeContactId === m.id;
-                  const isContactUnlocked = unlocked.includes(m.id);
+                  const contactKeys = getContactUnlockKeys(m);
+                  const isLinkedContact = contactKeys.includes(String(activeContactId || ''));
+                  const rowContactUnlocked = isContactUnlockedByState(m);
                   const contactUnlockCost = getUnlockCost(m.id);
                   const contactIncomingCount = Array.isArray(convos?.[m.id])
                     ? convos[m.id].filter((message) => message?.from !== 'me').length
@@ -2406,9 +2467,9 @@ export function MatchesPage({ nuggets, setModal, openUnlock, unlocked, initialCh
                       <div style={{ flex:1, minWidth:0 }}>
                         <div style={{ fontWeight:700, fontSize:12, color:isLinkedContact?CONTACT_SIGNAL:C.t1, textOverflow:"ellipsis", overflow:"hidden", whiteSpace:"nowrap" }}>{m.name}</div>
                         <div style={{ fontSize:10, color:C.t3, display:"flex", alignItems:"center", gap:4 }}>
-                          <span style={{ color:isContactUnlocked ? C.success : C.gold, fontWeight:700 }}>{isContactUnlocked ? cardsT.unlocked : `${cardsT.locked} · ${contactUnlockCost}★`}</span>
+                          <span style={{ color:rowContactUnlocked ? C.success : C.gold, fontWeight:700 }}>{rowContactUnlocked ? cardsT.unlocked : `${cardsT.locked} · ${contactUnlockCost}★`}</span>
                           <span>{m.type}</span>
-                          {isContactUnlocked && contactUnreadCount > 0 ? (
+                          {rowContactUnlocked && contactUnreadCount > 0 ? (
                             <span style={{ display:'inline-flex', alignItems:'center', justifyContent:'center', minWidth:16, height:16, padding:'0 4px', borderRadius:999, background:C.alpha(C.danger, 0.2), border:`1px solid ${C.alpha(C.danger, 0.55)}`, color:C.danger, fontSize:9, fontWeight:800 }}>
                               {contactUnreadCount > 99 ? '99+' : contactUnreadCount}
                             </span>
@@ -2496,7 +2557,7 @@ export function MatchesPage({ nuggets, setModal, openUnlock, unlocked, initialCh
               <div style={{ flex:1, overflowY:"auto" }}>
                 {filteredInterested.map(p => {
                   const isLinkedProperty = activeContactId === p.ownerId;
-                  const isOwnerUnlocked = unlocked.includes(p.ownerId);
+                  const isOwnerUnlocked = isContactUnlockedByState({ ownerId: p.ownerId });
                   const ownerUnlockCost = getUnlockCost(p.ownerId);
                   const propertyExclusiveStatus = getPropertyExclusiveStatus(p.id);
                   const owner = p.ownerPreview
@@ -2677,7 +2738,7 @@ export function MatchesPage({ nuggets, setModal, openUnlock, unlocked, initialCh
                 }}
               >
                 <div style={{ flex:1, minWidth:0, display:"flex", flexDirection:"column", borderRight:`1px solid ${C.border}`, position:'relative' }} className="matches-chat-col">
-                  <div style={{ position:'absolute', top:10, left:10, zIndex:3, display:'inline-flex', flexDirection:'column', alignItems:'stretch', gap:6, background:C.alpha(C.bg, 0.92), border:`1px solid ${C.border}`, borderRadius:10, padding:'4px 6px' }}>
+                  <div className="matches-chat-tools" style={{ position:'absolute', top:10, left:10, zIndex:3, display:'inline-flex', flexDirection:'column', alignItems:'stretch', gap:6, background:C.alpha(C.bg, 0.92), border:`1px solid ${C.border}`, borderRadius:10, padding:'4px 6px' }}>
                     <div style={{ display:'inline-flex', alignItems:'center', gap:6 }}>
                     <button
                       onClick={() => setChatMainTextSize((v) => Math.max(10, v - 1))}
@@ -2706,7 +2767,7 @@ export function MatchesPage({ nuggets, setModal, openUnlock, unlocked, initialCh
                       <span>Configuration</span>
                     </button>
                   </div>
-                  <div ref={scrollRef} style={{ flex:1, overflowY:"auto", padding:"46px 20px 20px", display:"flex", flexDirection:"column", gap:12 }}
+                  <div ref={scrollRef} className="matches-chat-scroll" style={{ flex:1, overflowY:"auto", padding:"46px 20px 20px", display:"flex", flexDirection:"column", gap:12 }}
                     onDragOver={e => { e.preventDefault(); setIsDragging(true); }}
                     onDragLeave={() => setIsDragging(false)}
                     onDrop={e => {

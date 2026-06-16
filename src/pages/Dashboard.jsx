@@ -756,6 +756,33 @@ export function Dashboard({ page, nuggets, setModal, setPage, onOpenOnboardingTa
       || (mockOwnerCard ? { ...mockOwnerCard, ownerId: mockOwnerCard.ownerId || mockOwnerCard.id } : null);
   }, [connectionCards, findConnectionById]);
 
+  const getUnlockKeys = useCallback((itemOrId) => {
+    if (itemOrId == null) return [];
+    if (typeof itemOrId === 'string' || typeof itemOrId === 'number') {
+      const key = String(itemOrId).trim();
+      return key ? [key] : [];
+    }
+    return Array.from(new Set([
+      itemOrId.ownerId,
+      itemOrId.unlockOwnerId,
+      itemOrId.sellerId,
+      itemOrId.contactId,
+      itemOrId.unlockContactId,
+      itemOrId.id,
+      itemOrId.sourceCardId,
+    ].map((value) => String(value || '').trim()).filter(Boolean)));
+  }, []);
+
+  const unlockedIdSet = useMemo(() => new Set(
+    (Array.isArray(unlocked) ? unlocked : [])
+      .map((value) => String(value || '').trim())
+      .filter(Boolean)
+  ), [unlocked]);
+
+  const isContactUnlocked = useCallback((itemOrId) => (
+    getUnlockKeys(itemOrId).some((key) => unlockedIdSet.has(key))
+  ), [getUnlockKeys, unlockedIdSet]);
+
   // Circular deck: skip → rotate to back; match → remove permanently
   const [connDeck, setConnDeck] = useState(() => connectionCards.map(c => c.id).filter(id => !getHiddenSet().has(String(id))));
   const [propDeck, setPropDeck] = useState(() => (showcaseItems || []).map(p => p.id).filter(id => !getHiddenSet().has(String(id))));
@@ -2006,7 +2033,7 @@ export function Dashboard({ page, nuggets, setModal, setPage, onOpenOnboardingTa
       return;
     }
 
-    if (unlocked.includes(ownerCard.id)) {
+    if (isContactUnlocked(ownerCard)) {
       actProperty('interest');
       return;
     }
@@ -2056,7 +2083,7 @@ export function Dashboard({ page, nuggets, setModal, setPage, onOpenOnboardingTa
       return true;
     }
     return false;
-  }, [addToast, canStartPlanAction, findConnectionById, isOwnConnectionCard, openUnlock, unlocked]);
+  }, [addToast, canStartPlanAction, findConnectionById, isContactUnlocked, isOwnConnectionCard, openUnlock]);
 
   const handleMobileUnlockAction = () => {
     if (view === 'connections') {
@@ -3558,7 +3585,7 @@ export function Dashboard({ page, nuggets, setModal, setPage, onOpenOnboardingTa
                             borderRadius: 22,
                             boxShadow: isSponsored ? `0 0 0 2px ${C.alpha(C.accent, 0.85)}, 0 0 22px ${C.alpha(C.accent, 0.62)}` : 'none',
                           }}>
-                            <SwipeCard card={{ ...c, portfolioCount: getPortfolioCount(c.ownerId ?? c.id) }} action={isTop ? action : null} isUnlocked={unlocked.includes(c.id)} isSkipped={skippedSet.has(c.id)} onSwipe={act} onUndo={lastConnOp && isTop ? undo : null} onUnlock={act} showActions={!isMobileViewport} />
+                            <SwipeCard card={{ ...c, portfolioCount: getPortfolioCount(c.ownerId ?? c.id) }} action={isTop ? action : null} isUnlocked={isContactUnlocked(c)} isSkipped={skippedSet.has(c.id)} onSwipe={act} onUndo={lastConnOp && isTop ? undo : null} onUnlock={act} showActions={!isMobileViewport} />
                           </div>
                         </div>
                       );
@@ -3795,7 +3822,7 @@ export function Dashboard({ page, nuggets, setModal, setPage, onOpenOnboardingTa
           <div style={{ flex:1, minHeight:0, overflowY:"auto", paddingRight:2, paddingBottom:8 }} className="custom-scroll">
             {filteredMatched.map((m, i, filteredArr) => (
               (() => {
-                const isUnlockedMatch = unlocked.includes(m.id);
+                const isUnlockedMatch = isContactUnlocked(m);
                 const unlockCost = getUnlockCost(m.id);
                 const portfolioCount = getPortfolioCount(m.id);
                 return (
@@ -3917,7 +3944,7 @@ export function Dashboard({ page, nuggets, setModal, setPage, onOpenOnboardingTa
           <div style={{ flex:1, minHeight:0, overflowY:"auto", paddingRight:2, paddingBottom:8 }} className="custom-scroll">
             {filteredInterested.map((m, i) => {
               const propOwner = resolvePropertyOwnerCard(m);
-              const isOwnerUnlocked = propOwner && unlocked.includes(propOwner.id);
+              const isOwnerUnlocked = propOwner && isContactUnlocked(propOwner);
               const ownerUnlockCost = propOwner ? getUnlockCost(propOwner.id) : 1;
               return (
                 <div key={i} style={{ display:"flex", alignItems:"center", gap:8, padding:"8px 0", borderBottom:i < interested.length-1 ? `1px solid ${C.border}` : "none" }}>

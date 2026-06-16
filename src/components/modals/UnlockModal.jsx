@@ -183,10 +183,11 @@ export function UnlockModal({ match, nuggets, unlockCost = 1, exclusivityStatus 
                 type="button"
                 onClick={(event) => handleButtonAction(event, () => onUnlock({
                   ...match,
-                  unlockContactId: match?.id,
+                  unlockContactId: match?.unlockContactId || match?.ownerId || match?.unlockOwnerId || match?.id,
                   unlockScope: 'property',
                   propertyId: contactExclusivityOption.property.id,
                   propertyAddress: contactExclusivityOption.property.address || contactExclusivityOption.title,
+                  unlockOwnerId: match?.unlockOwnerId || match?.ownerId || match?.id,
                 }, { mode: contactExclusivityOption.mode, cost: linkedExclusiveCost }))}
                 style={{ width:"100%", padding:"15px", borderRadius:14, background: contactExclusivityOption.status.kind === 'partial' ? 'linear-gradient(90deg, #7e2d00, #f59e0b)' : 'linear-gradient(90deg, #05462d, #14b8a6)', border:"none", color:"#fff", fontWeight:900, fontSize:15, cursor:"pointer", display:"flex", alignItems:"center", justifyContent:"center", gap:10, boxShadow: `0 4px 18px ${C.alpha(contactExclusivityOption.status.kind === 'partial' ? C.gold : C.accent, 0.28)}` }}
               >

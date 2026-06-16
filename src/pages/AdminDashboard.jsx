@@ -62,8 +62,10 @@ function MiniChart({ series = [], formatter = fmtInt, emptyMessage = 'No history
           value: Number(point?.value || 0),
         }))
         .filter((point) => Number.isFinite(point.value))
+        .slice(-10)
     : [];
   const maxValue = Math.max(0, ...points.map((point) => point.value));
+  const pointLabelFormatter = formatter === fmtNuggets ? fmtInt : formatter;
 
   if (!points.length || maxValue <= 0) {
     return (
@@ -74,23 +76,26 @@ function MiniChart({ series = [], formatter = fmtInt, emptyMessage = 'No history
   }
 
   if (type === 'line') {
-    const width = 180;
-    const height = 74;
+    const width = 200;
+    const height = 76;
     const coords = points.map((point, idx) => {
       const x = points.length <= 1 ? width / 2 : (idx / (points.length - 1)) * width;
-      const y = height - ((point.value / maxValue) * (height - 18)) - 6;
+      const y = height - ((point.value / maxValue) * (height - 24)) - 10;
       return { ...point, x, y };
     });
     const path = coords.map((point, idx) => `${idx === 0 ? 'M' : 'L'}${point.x.toFixed(1)},${point.y.toFixed(1)}`).join(' ');
+    const areaPath = `${path} L${width},${height - 4} L0,${height - 4} Z`;
     return (
-      <div style={{ height: 82, position: 'relative', paddingTop: 8 }}>
+      <div style={{ height: 82, position: 'relative', paddingTop: 6 }}>
         <svg viewBox={`0 0 ${width} ${height}`} preserveAspectRatio="none" style={{ width: '100%', height: 74, overflow: 'visible' }}>
-          <path d={path} fill="none" stroke={C.accent} strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" />
+          <path d={areaPath} fill={C.alpha(C.accent, 0.1)} stroke="none" />
+          <path d={`M0,${height - 4} L${width},${height - 4}`} stroke={C.alpha(C.t3, 0.16)} strokeWidth="1" />
+          <path d={path} fill="none" stroke={C.accent} strokeWidth="3.2" strokeLinecap="round" strokeLinejoin="round" />
           {coords.map((point, idx) => (
             <g key={idx}>
-              <circle cx={point.x} cy={point.y} r="3.5" fill={idx === coords.length - 1 ? C.gold : C.accent} />
-              <text x={point.x} y={Math.max(8, point.y - 8)} textAnchor="middle" fontSize="8" fontWeight="900" fill={idx === coords.length - 1 ? C.gold : C.t3}>
-                {formatter(point.value)}
+              <circle cx={point.x} cy={point.y} r="3.7" fill={idx === coords.length - 1 ? C.gold : C.accent} stroke={C.bg2 || C.card} strokeWidth="1.2" />
+              <text x={point.x} y={Math.max(9, point.y - 7)} textAnchor="middle" fontSize="7.5" fontWeight="900" fill={idx === coords.length - 1 ? C.gold : C.t2}>
+                {pointLabelFormatter(point.value)}
               </text>
             </g>
           ))}
@@ -170,7 +175,7 @@ function MiniChart({ series = [], formatter = fmtInt, emptyMessage = 'No history
                 pointerEvents: 'none',
               }}
             >
-              {formatter(point.value)}
+                {pointLabelFormatter(point.value)}
             </span>
           </div>
       );})}
@@ -475,19 +480,19 @@ export function AdminDashboard({ setPage, prevPage, logoutAdmin }) {
         { id: 'checkout-dropoff', label: k.checkoutDropoff || 'Checkout drop-off', value: fmtPct(m.checkoutCompletionRate), sub: (k.paidClicked || '{paid} paid / {clicked} clicked').replace('{paid}', fmtInt(m.checkoutCompleted30d)).replace('{clicked}', fmtInt(m.checkoutClicked30d)), series: series['checkout-dropoff'], chartType: 'donut' },
         { id: 'card-health', label: k.cardHealth || 'Card health', value: fmtPct(m.cardHealthPct), sub: (k.cardHealthSub || '{needs} need attention / {total} total').replace('{needs}', fmtInt(m.cardHealthNeedsAttention)).replace('{total}', fmtInt(m.cardHealthTotal)), series: series['card-health'], chartType: 'donut' },
         { id: 'unlocks', label: k.unlocks || 'Unlocks', value: fmtInt(m.totalUnlocks), sub: (k.usersCount || '{count} users').replace('{count}', fmtInt(m.usersWithUnlocks)), series: series.unlocks, chartType: 'line' },
-        { id: 'swipes-today', label: k.swipesToday || 'Swipes today', value: fmtInt(m.swipesToday), sub: k.last12Days || 'last 12 days', series: series['swipes-today'], chartType: 'bar' },
+        { id: 'swipes-today', label: k.swipesToday || 'Swipes today', value: fmtInt(m.swipesToday), sub: k.last10Days || 'last 10 days', series: series['swipes-today'], chartType: 'bar' },
         { id: 'packs-revenue', label: k.packsRevenue || 'Packs revenue', value: fmtUsd(m.packRevenueUsdCents), sub: `${fmtInt(m.packPurchasesCompleted)} packs · ${fmtInt(m.nuggetsPurchased)} ${k.nuggets || 'nuggets'}`, series: series['packs-revenue'], chartFormatter: fmtUsd, chartType: 'line' },
         { id: 'subscriptions', label: k.subscriptions || 'Subscriptions', value: fmtUsd(m.subscriptionRevenueUsdCents), sub: `${fmtInt(m.activeSubscriptions)} active`, series: series.subscriptions, chartType: 'line' },
         { id: 'manual-grants', label: k.manualGrants || 'Manual grants', value: fmtNuggets(m.manualNuggetsGranted), sub: `${fmtInt(m.manualNuggetsGrantedToday)} ${k.today || 'today'}`, series: series['manual-grants'], chartFormatter: fmtNuggets, chartType: 'bar' },
-        { id: 'support-msgs', label: k.supportMsgs || 'Support msgs', value: fmtInt(m.supportMessagesToday), sub: k.last12Days || 'last 12 days', series: series['support-msgs'], chartType: 'bar' },
+        { id: 'support-msgs', label: k.supportMsgs || 'Support msgs', value: fmtInt(m.supportMessagesToday), sub: k.last10Days || 'last 10 days', series: series['support-msgs'], chartType: 'bar' },
         { id: 'highlights', label: k.highlights || 'Highlights', value: fmtNuggets(m.highlightsNuggetsSpent), sub: `${fmtInt(m.highlightsActive)} active · ${fmtInt(m.highlightsPurchasedToday)} ${k.today || 'today'}`, series: series.highlights, chartFormatter: fmtNuggets, chartType: 'bar' },
-        { id: 'exclusive-contacts', label: k.exclusiveContacts || 'Exclusive contacts', value: fmtNuggets(m.exclusiveContactsNuggetsSpent), sub: `${fmtInt(m.exclusiveContactsTotal)} total · ${fmtInt(m.exclusiveContactsToday)} ${k.today || 'today'}`, series: series['exclusive-contacts'], chartFormatter: fmtNuggets, chartType: 'bar' },
+        { id: 'exclusive-contacts', label: k.exclusiveContacts || 'Exclusive contacts', value: fmtInt(m.exclusiveContactsTotal), sub: `${fmtInt(m.exclusiveContactsToday)} ${k.today || 'today'} · ${fmtNuggets(m.exclusiveContactsNuggetsSpent)}`, series: series['exclusive-contacts'], chartFormatter: fmtInt, chartType: 'bar' },
         { id: 'properties', label: k.properties || 'Properties', value: fmtInt(m.totalProperties), sub: k.publishedSaved || 'published + saved', series: series.properties, chartType: 'line' },
       ],
       system: [
         { id: 'db-storage-guardrail', label: k.dbGuardrail || 'DB guardrail', value: fmtPct(m.dbUsagePct), sub: `${fmtMb(m.dbSizeBytes)} / ${fmtMb(m.dbLimitBytes)}`, series: series['db-storage-guardrail'], seriesStatus: seriesStatus['db-storage-guardrail'], chartFormatter: (value) => `${Number(value || 0).toLocaleString('en-US', { maximumFractionDigits: 1 })} MB`, chartType: 'donut' },
-        { id: 'stripe-issues', label: k.stripeIssues || 'Stripe issues', value: fmtInt(m.stripeIssuesDay), sub: k.last12Days || 'last 12 days', series: series['stripe-issues'], chartType: 'bar' },
-        { id: 'supabase-issues', label: k.supabaseIssues || 'Supabase issues', value: fmtInt(m.supabaseIssuesDay), sub: k.last12Days || 'last 12 days', series: series['supabase-issues'], chartType: 'bar' },
+        { id: 'stripe-issues', label: k.stripeIssues || 'Stripe issues', value: fmtInt(m.stripeIssuesDay), sub: k.last10Days || 'last 10 days', series: series['stripe-issues'], chartType: 'bar' },
+        { id: 'supabase-issues', label: k.supabaseIssues || 'Supabase issues', value: fmtInt(m.supabaseIssuesDay), sub: k.last10Days || 'last 10 days', series: series['supabase-issues'], chartType: 'bar' },
         { id: 'admin-accounts', label: k.adminAccounts || 'Admin accounts', value: fmtInt(m.adminAccounts), sub: k.restricted || 'restricted', series: series['admin-accounts'], chartType: 'donut' },
       ],
     };
