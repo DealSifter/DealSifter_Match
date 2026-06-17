@@ -1731,7 +1731,21 @@ export default function App() {
       safeLogError('Failed to hydrate feed actions', error);
       return;
     }
-    applyRemoteFeedActions(data || []);
+    const rows = Array.isArray(data) ? data : [];
+    if (!rows.length) {
+      feedActionHydratingRef.current = true;
+      setMatched([]);
+      setInterested([]);
+      setUnlocked([]);
+      try { localStorage.removeItem('ds_matched'); } catch { /* no-op */ }
+      try { localStorage.removeItem('ds_interested'); } catch { /* no-op */ }
+      try { localStorage.removeItem('ds_unlocked'); } catch { /* no-op */ }
+      feedActionLastSignatureRef.current = '[]';
+      window.setTimeout(() => { feedActionHydratingRef.current = false; }, 0);
+      feedActionLoadedUserRef.current = supabaseUserId;
+      return;
+    }
+    applyRemoteFeedActions(rows);
     feedActionLoadedUserRef.current = supabaseUserId;
   }, [applyRemoteFeedActions, supabaseUserId]);
 
