@@ -79,7 +79,7 @@ export function getPortfolioItemCount(ownerOrCard, properties = [], services = [
 
 export function getPropertyExclusivityStatus(records = [], propertyId, currentUserId = 'local-user', now = Date.now()) {
   if (!propertyId) return { kind: 'none', canBuyExclusivity: false, exclusiveCost: 0, unlockCount: 0 };
-  const rows = (records || []).filter((row) => sameId(row?.propertyId, propertyId));
+  const rows = (records || []).filter((row) => sameId(row?.propertyId ?? row?.property_id, propertyId));
   const activeExclusive = rows.find((row) => (
     (row?.mode === 'total' || row?.mode === 'partial') && Number(toEpochMs(row?.expiresAt ?? row?.expires_at) || 0) > now
   ));

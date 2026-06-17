@@ -1905,20 +1905,17 @@ export function MatchesPage({ nuggets, setModal, openUnlock, unlocked, initialCh
     };
   }, [allPropertiesSource, allServicesSource]);
 
-  const getOwnerExclusiveStatus = useCallback((ownerId) => {
-    if (!ownerId) return null;
-    const ownerProperties = allPropertiesSource.filter((property) => String(property?.ownerId || '') === String(ownerId));
-    for (const property of ownerProperties) {
-      const status = getPropertyExclusivityStatus(propertyUnlocks, property.id, currentUserId);
+  const getPropertyExclusiveStatus = useCallback((propertyOrId) => {
+    const candidates = propertyOrId && typeof propertyOrId === 'object'
+      ? [propertyOrId.id, propertyOrId.propertyId, propertyOrId.property_id, propertyOrId.portfolioId]
+      : [propertyOrId];
+    for (const candidate of candidates) {
+      const propertyId = String(candidate || '').trim();
+      if (!propertyId) continue;
+      const status = getPropertyExclusivityStatus(propertyUnlocks, propertyId, currentUserId);
       if ((status?.kind === 'owned' || status?.kind === 'blocked') && status?.expiresAt) return status;
     }
     return null;
-  }, [allPropertiesSource, currentUserId, propertyUnlocks]);
-
-  const getPropertyExclusiveStatus = useCallback((propertyId) => {
-    if (!propertyId) return null;
-    const status = getPropertyExclusivityStatus(propertyUnlocks, propertyId, currentUserId);
-    return (status?.kind === 'owned' || status?.kind === 'blocked') && status?.expiresAt ? status : null;
   }, [currentUserId, propertyUnlocks]);
 
   const formatTemplate = useCallback((template, values) => {
@@ -1997,13 +1994,14 @@ export function MatchesPage({ nuggets, setModal, openUnlock, unlocked, initialCh
     if (!active) return null;
     return isActiveProperty ? active.ownerId : (active.ownerId || active.unlockOwnerId || active.id);
   }, [active, isActiveProperty]);
+  const activeContactKey = useMemo(() => String(activeContactId || '').trim(), [activeContactId]);
 
   const interestBaseList = useMemo(() => {
     const list = Array.isArray(interested) ? [...interested] : [];
-    if (activeContactId) {
+    if (activeContactKey) {
       const existingIds = new Set(list.map((item) => String(item?.id || '')));
       (allPropertiesSource || [])
-        .filter((property) => String(property?.ownerId || '') === String(activeContactId))
+        .filter((property) => String(property?.ownerId || '') === activeContactKey)
         .forEach((property) => {
           if (!existingIds.has(String(property?.id || ''))) {
             list.push(property);
@@ -2012,7 +2010,7 @@ export function MatchesPage({ nuggets, setModal, openUnlock, unlocked, initialCh
         });
     }
     return list;
-  }, [activeContactId, allPropertiesSource, interested]);
+  }, [activeContactKey, allPropertiesSource, interested]);
 
   const filteredInterested = useMemo(() => {
     const list = interestBaseList.filter(p => {
@@ -2025,9 +2023,20 @@ export function MatchesPage({ nuggets, setModal, openUnlock, unlocked, initialCh
       }
       return true;
     });
-    if (sortOrder === 'price_desc') return [...list].sort((a, b) => Number(b?.price || 0) - Number(a?.price || 0));
-    return list;
-  }, [interestBaseList, interestsFilter, isContactUnlockedByState, selectedInterestStates, parseStateCode, sortOrder]);
+    const sortList = (items) => (
+      sortOrder === 'price_desc'
+        ? [...items].sort((a, b) => Number(b?.price || 0) - Number(a?.price || 0))
+        : items
+    );
+    if (!activeContactKey) return sortList(list);
+    const linked = [];
+    const others = [];
+    list.forEach((property) => {
+      if (String(property?.ownerId || '') === activeContactKey) linked.push(property);
+      else others.push(property);
+    });
+    return [...sortList(linked), ...sortList(others)];
+  }, [activeContactKey, interestBaseList, interestsFilter, isContactUnlockedByState, selectedInterestStates, parseStateCode, sortOrder]);
 
   const activeOwner = useMemo(() => {
     if (!active) return null;
@@ -2087,7 +2096,7 @@ export function MatchesPage({ nuggets, setModal, openUnlock, unlocked, initialCh
 
   const activeExclusiveStatus = useMemo(() => {
     if (!active || !isActiveProperty) return null;
-    return getPropertyExclusiveStatus(active.id);
+    return getPropertyExclusiveStatus(active);
   }, [active, getPropertyExclusiveStatus, isActiveProperty]);
 
   const getUnlockCost = useCallback((ownerId) => {
@@ -2496,17 +2505,17 @@ export function MatchesPage({ nuggets, setModal, openUnlock, unlocked, initialCh
               <div style={{ flex:1, overflowY:"auto" }}>
                 {filteredMatched.map(m => {
                   const contactKeys = getContactUnlockKeys(m);
-                  const isLinkedContact = contactKeys.includes(String(activeContactId || ''));
+                  const contactRowKey = contactKeys[0] || String(m?.id || '');
+                  const isLinkedContact = Boolean(activeContactKey && contactKeys.includes(activeContactKey));
                   const rowContactUnlocked = isContactUnlockedByState(m);
                   const contactUnlockCost = getUnlockCost(m.id);
                   const contactIncomingCount = Array.isArray(convos?.[m.id])
                     ? convos[m.id].filter((message) => message?.from !== 'me').length
                     : 0;
-                  const ownerExclusiveStatus = getOwnerExclusiveStatus(m.ownerId || m.id);
                   const seenIncomingCount = seenIncomingByContact[m.id] || 0;
                   const contactUnreadCount = Math.max(0, contactIncomingCount - seenIncomingCount);
                   return (
-                    <div key={m.id} onClick={() => setActive(m)} style={{ display:"flex", alignItems:"center", gap:10, padding:12, borderBottom:`1px solid ${C.border}`, cursor:"pointer", background:isLinkedContact?C.alpha(CONTACT_SIGNAL, 0.12):"transparent" }}>
+                    <div key={contactRowKey} onClick={() => setActive(m)} style={{ display:"flex", alignItems:"center", gap:10, padding:12, borderBottom:`1px solid ${C.border}`, cursor:"pointer", background:isLinkedContact?C.alpha(CONTACT_SIGNAL, 0.12):"transparent" }}>
                       <div style={{ width:32, height:32, borderRadius:"50%", overflow:"hidden", border:`1px solid ${isLinkedContact?CONTACT_SIGNAL:C.border}` }}>
                         <SmartImage src={m.photo} alt={m.name} style={{ width:"100%", height:"100%", objectFit:"cover" }} fallback={<div style={{ display:"flex", alignItems:"center", justifyContent:"center", width:"100%", height:"100%" }}><Icon name={catIcon(m.cat)} size={14} color={C.accent} /></div>} />
                       </div>
@@ -2525,15 +2534,21 @@ export function MatchesPage({ nuggets, setModal, openUnlock, unlocked, initialCh
                               {t.professionalBadge || 'Business'}
                             </span>
                           ) : null}
-                          {ownerExclusiveStatus?.expiresAt ? (
-                            <ExclusivityBadge compact expiresAt={ownerExclusiveStatus.expiresAt} />
-                          ) : null}
                         </div>
                       </div>
                       <button
                         type="button"
-                        onPointerDown={(e) => { e.preventDefault(); e.stopPropagation(); if(active?.id === m.id) setActive(null); setMatched(p => p.filter(x => x.id !== m.id)); }}
-                        onClick={(e) => { e.stopPropagation(); if(active?.id === m.id) setActive(null); setMatched(p => p.filter(x => x.id !== m.id)); }}
+                        onPointerDown={(e) => {
+                          e.preventDefault();
+                          e.stopPropagation();
+                          if (getContactUnlockKeys(active).some((key) => contactKeys.includes(key))) setActive(null);
+                          setMatched(p => p.filter(x => !getContactUnlockKeys(x).some((key) => contactKeys.includes(key))));
+                        }}
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          if (getContactUnlockKeys(active).some((key) => contactKeys.includes(key))) setActive(null);
+                          setMatched(p => p.filter(x => !getContactUnlockKeys(x).some((key) => contactKeys.includes(key))));
+                        }}
                         style={{
                           width: 16,
                           height: 16,
@@ -2607,10 +2622,10 @@ export function MatchesPage({ nuggets, setModal, openUnlock, unlocked, initialCh
               </div>
               <div style={{ flex:1, overflowY:"auto" }}>
                 {filteredInterested.map(p => {
-                  const isLinkedProperty = activeContactId === p.ownerId;
+                  const isLinkedProperty = Boolean(activeContactKey && String(p.ownerId || '') === activeContactKey);
                   const isOwnerUnlocked = isContactUnlockedByState({ ownerId: p.ownerId });
                   const ownerUnlockCost = getUnlockCost(p.ownerId);
-                  const propertyExclusiveStatus = getPropertyExclusiveStatus(p.id);
+                  const propertyExclusiveStatus = getPropertyExclusiveStatus(p);
                   const owner = p.ownerPreview
                     ? resolveContactCard(p.ownerPreview, p.primaryProfile || p.ownerPreview?.primaryProfile || null)
                     : (
@@ -2619,7 +2634,7 @@ export function MatchesPage({ nuggets, setModal, openUnlock, unlocked, initialCh
                         : CARDS.find(c => c.id === p.ownerId)
                     );
                   return (
-                    <div key={p.id} onClick={() => setActive(p)} style={{ display:"flex", alignItems:"center", gap:10, padding:12, borderBottom:`1px solid ${C.border}`, cursor:"pointer", background:isLinkedProperty?C.alpha(PROPERTY_SIGNAL, 0.12):"transparent" }}>
+                    <div key={p.id} onClick={() => setActive(p)} style={{ display:"flex", alignItems:"center", gap:10, padding:12, borderBottom:`1px solid ${C.border}`, borderLeft:isLinkedProperty?`3px solid ${C.alpha(PROPERTY_SIGNAL, 0.7)}`:'3px solid transparent', cursor:"pointer", background:isLinkedProperty?C.alpha(PROPERTY_SIGNAL, 0.14):"transparent" }}>
                       <div style={{ width:32, height:32, borderRadius:6, overflow:"hidden", border:`1px solid ${isLinkedProperty?PROPERTY_SIGNAL:C.border}` }}>
                         <SmartImage src={p.images?.[0] || p.image} alt={p.address} style={{ width:"100%", height:"100%", objectFit:"cover" }} fallback={<div style={{ width:"100%", height:"100%", display:"flex", alignItems:"center", justifyContent:"center", background:C.alpha(C.t1, 0.05) }}><Icon name="home" size={14} color={C.t3} /></div>} />
                       </div>
@@ -2992,7 +3007,7 @@ export function MatchesPage({ nuggets, setModal, openUnlock, unlocked, initialCh
                         autoplayMedia={autoplayMedia}
                         onBlockedExport={guardExportPdf}
                         imageSources={[...(propertyPortfolio || []), ...(showcaseProperties || []), ...(allPropertiesSource || [])]}
-                        exclusiveStatus={getPropertyExclusiveStatus(selectedPortfolioItem.id)}
+                        exclusiveStatus={getPropertyExclusiveStatus(selectedPortfolioItem)}
                         canUseChat={canUseChat}
                         chatInterestLabel={CHAT_INTEREST_PREFIX[myInputLang] || CHAT_INTEREST_PREFIX.en}
                         onStartChat={(refItem) => {
@@ -3052,8 +3067,8 @@ export function MatchesPage({ nuggets, setModal, openUnlock, unlocked, initialCh
                         <>
                           <div style={{ display:"grid", gridTemplateColumns:"repeat(2, minmax(0, 1fr))", gap:PORTFOLIO_GRID_GAP }}>
                             {(portfolioShowAll ? portfolioItems : portfolioItems.slice(0, 4)).map(p => {
-                              const exclusivityStatus = (typeof getPropertyExclusiveStatus === 'function') ? getPropertyExclusiveStatus(p.id) : null;
-                              const ownerCard = (allMatched || []).find(c => String(c.ownerId || c.id) === String(p.ownerId)) || CARDS.find(c => String(c.id) === String(p.ownerId));
+                              const exclusivityStatus = (typeof getPropertyExclusiveStatus === 'function') ? getPropertyExclusiveStatus(p) : null;
+                              const ownerCard = (allMatched || []).find(c => String(c.ownerId || c.id) === String(p.ownerId)) || activeOwner || CARDS.find(c => String(c.id) === String(p.ownerId));
                               const ownerVerified = Boolean(ownerCard && (ownerCard.verified === true || String(ownerCard.verified).toLowerCase() === 'verified'));
                               const isHot = false;
                               return (
@@ -3163,7 +3178,7 @@ export function MatchesPage({ nuggets, setModal, openUnlock, unlocked, initialCh
                   autoplayMedia={autoplayMedia}
                   onBlockedExport={guardExportPdf}
                   imageSources={[...(propertyPortfolio || []), ...(showcaseProperties || []), ...(allPropertiesSource || [])]}
-                  exclusiveStatus={getPropertyExclusiveStatus(mobileCardSheet.id)}
+                  exclusiveStatus={getPropertyExclusiveStatus(mobileCardSheet)}
                 />
                 <button
                   type="button"

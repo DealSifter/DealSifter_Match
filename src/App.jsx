@@ -798,7 +798,7 @@ const makeFeedActionRows = ({ matched = [], interested = [], unlocked = [] }) =>
   };
 
   (Array.isArray(matched) ? matched : []).slice(-FEED_ACTION_MAX_ROWS).forEach((item) => {
-    pushRow('matched', 'person', item?.id, buildFeedActionPayload(item));
+    pushRow('matched', 'person', item?.ownerId || item?.unlockOwnerId || item?.sellerId || item?.contactId || item?.id, buildFeedActionPayload(item));
   });
   (Array.isArray(interested) ? interested : []).slice(-FEED_ACTION_MAX_ROWS).forEach((item) => {
     pushRow('interested', 'property', item?.id, buildFeedActionPayload(item));
@@ -808,6 +808,16 @@ const makeFeedActionRows = ({ matched = [], interested = [], unlocked = [] }) =>
   });
 
   return rows;
+};
+
+const getFeedActionMergeKey = (item) => {
+  if (!item || typeof item !== 'object') return '';
+  const hasContactIdentity = Boolean(item.name || item.cat || item.role || item.primaryProfile || item.contactMethods || item.phone || item.primaryPhone || item.email);
+  const hasPropertyIdentity = Boolean(item.propertyId || item.property_id || item.portfolioId || ((item.address || item.street) && (item.price != null || !hasContactIdentity)));
+  if (hasPropertyIdentity) {
+    return `property:${String(item.id || item.propertyId || item.property_id || item.portfolioId || '').trim()}`;
+  }
+  return `person:${String(item.ownerId || item.unlockOwnerId || item.sellerId || item.contactId || item.id || '').trim()}`;
 };
 
 const scoreContactPayloadRichness = (item) => {
@@ -824,9 +834,9 @@ const scoreContactPayloadRichness = (item) => {
 
 const mergeFeedActionItems = (prev, incoming) => {
   const next = Array.isArray(prev) ? [...prev] : [];
-  const indexById = new Map(next.map((item, index) => [String(item?.id || ''), index]));
+  const indexById = new Map(next.map((item, index) => [getFeedActionMergeKey(item), index]).filter(([key]) => key && !key.endsWith(':')));
   (Array.isArray(incoming) ? incoming : []).forEach((item) => {
-    const id = String(item?.id || '').trim();
+    const id = getFeedActionMergeKey(item);
     if (!id) return;
     if (!indexById.has(id)) {
       indexById.set(id, next.length);
@@ -1692,7 +1702,17 @@ export default function App() {
       if (!entityId) return;
 
       if (row.action === 'matched') {
-        matchedItems.push({ ...payload, id: payload?.id || entityId });
+        const ownerKey = String(payload?.ownerId || payload?.unlockOwnerId || payload?.sellerId || payload?.contactId || entityId || payload?.id || '').trim();
+        const sourceCardId = payload?.id && String(payload.id) !== ownerKey
+          ? (payload.sourceCardId || payload.id)
+          : payload?.sourceCardId;
+        matchedItems.push({
+          ...payload,
+          id: ownerKey || payload?.id || entityId,
+          ownerId: ownerKey || payload?.ownerId || entityId,
+          unlockOwnerId: ownerKey || payload?.unlockOwnerId || entityId,
+          ...(sourceCardId ? { sourceCardId } : {}),
+        });
       } else if (row.action === 'interested') {
         interestedItems.push({ ...payload, id: payload?.id || entityId });
       } else if (row.action === 'unlocked') {
