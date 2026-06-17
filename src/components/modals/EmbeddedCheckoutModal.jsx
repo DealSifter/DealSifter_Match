@@ -10,10 +10,20 @@ function resolveCheckoutSummary(intent, t) {
   if (intent?.kind === 'subscription') {
     const plan = PLANS.find((item) => String(item.id) === String(intent.planId));
     const name = t.planNames?.[intent.planId] || plan?.name || String(intent.planId || '').toUpperCase();
+    const billingCycle = String(intent.billingCycle || intent.billing_cycle || 'monthly').toLowerCase() === 'annual'
+      ? 'annual'
+      : 'monthly';
+    const annualTotal = plan ? Math.round(Number(plan.price || 0) * 12 * 0.85) : 0;
     return {
       title: name,
-      subtitle: t.checkoutSubscription || 'Subscription plan',
-      price: plan ? `$${Number(plan.price || 0).toLocaleString('en-US')}/mo` : '',
+      subtitle: billingCycle === 'annual'
+        ? (t.billingAnnual || 'Annual · save {discount}%').replace('{discount}', 15)
+        : (t.checkoutSubscription || 'Subscription plan'),
+      price: plan
+        ? billingCycle === 'annual'
+          ? `$${Number(annualTotal || 0).toLocaleString('en-US')}/yr`
+          : `$${Number(plan.price || 0).toLocaleString('en-US')}/mo`
+        : '',
       accent: C.accent,
     };
   }

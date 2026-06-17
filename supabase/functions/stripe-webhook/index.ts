@@ -31,6 +31,15 @@ const PLAN_NAMES: Record<string, string> = {
   enterprise: 'Enterprise',
 };
 
+function normalizeBillingCycle(value?: string | null) {
+  return String(value ?? '').trim().toLowerCase() === 'annual' ? 'annual' : 'monthly';
+}
+
+function planNameWithCycle(planId: string, billingCycle?: string | null) {
+  const baseName = PLAN_NAMES[planId] ?? planId;
+  return normalizeBillingCycle(billingCycle) === 'annual' ? `${baseName} Annual` : baseName;
+}
+
 const PLAN_BASE_NUGGETS: Record<string, number> = {
   pro: 20,
   enterprise: 60,
@@ -104,6 +113,7 @@ async function handleCheckoutCompleted(session: Stripe.Checkout.Session) {
   }
 
   if (planId) {
+    const billingCycle = normalizeBillingCycle(session.metadata?.billing_cycle);
     const subscription =
       typeof session.subscription === 'string'
         ? await stripe.subscriptions.retrieve(session.subscription)
@@ -114,7 +124,7 @@ async function handleCheckoutCompleted(session: Stripe.Checkout.Session) {
       stripeCustomerId: typeof session.customer === 'string' ? session.customer : null,
       stripeSubId: typeof session.subscription === 'string' ? session.subscription : null,
       planId,
-      planName: PLAN_NAMES[planId] ?? planId,
+      planName: planNameWithCycle(planId, billingCycle),
       priceCents: session.amount_total ?? 0,
       status: normalizeSubscriptionStatus(subscription?.status ?? 'active'),
       currentPeriodEnd: toIso(subscription?.current_period_end),
@@ -168,6 +178,10 @@ async function recordNuggetPurchase(session: Stripe.Checkout.Session, userId: st
 async function syncSubscription(subscription: Stripe.Subscription) {
   const userId = subscription.metadata?.user_id;
   const planId = subscription.metadata?.plan_id;
+  const billingCycle = normalizeBillingCycle(
+    subscription.metadata?.billing_cycle
+      ?? (subscription.items.data[0]?.price?.recurring?.interval === 'year' ? 'annual' : 'monthly'),
+  );
 
   if (!userId || !planId) {
     console.warn('Subscription missing app metadata:', subscription.id);
@@ -179,7 +193,7 @@ async function syncSubscription(subscription: Stripe.Subscription) {
     stripeCustomerId: typeof subscription.customer === 'string' ? subscription.customer : null,
     stripeSubId: subscription.id,
     planId,
-    planName: PLAN_NAMES[planId] ?? planId,
+    planName: planNameWithCycle(planId, billingCycle),
     priceCents: subscription.items.data[0]?.price?.unit_amount ?? 0,
     status: normalizeSubscriptionStatus(subscription.status),
     currentPeriodEnd: toIso(subscription.current_period_end),

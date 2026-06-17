@@ -137,7 +137,7 @@ export function Pricing({ setPage, setModal, prevPage, addToast, onRequestChecko
     setCheckoutLoading(`plan-${p.id}`);
     try {
       if (typeof onRequestCheckoutIntent === 'function') {
-        await onRequestCheckoutIntent({ kind: 'subscription', planId: p.id, source: 'pricing' });
+        await onRequestCheckoutIntent({ kind: 'subscription', planId: p.id, billingCycle, source: 'pricing' });
         return;
       }
       addToast?.({ type: 'warning', message: 'Fluxo de checkout indisponível no momento.' });

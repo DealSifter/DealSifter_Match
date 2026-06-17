@@ -15,8 +15,14 @@ export const STRIPE_PRICE_IDS = {
  * Stripe Subscription Price IDs - configure per plan in Stripe Dashboard.
  */
 export const STRIPE_SUBSCRIPTION_PRICE_IDS = {
-  pro:        import.meta.env.VITE_STRIPE_PRICE_PLAN_PRO        || null,
-  enterprise: import.meta.env.VITE_STRIPE_PRICE_PLAN_ENTERPRISE || null,
+  monthly: {
+    pro:        import.meta.env.VITE_STRIPE_PRICE_PLAN_PRO        || null,
+    enterprise: import.meta.env.VITE_STRIPE_PRICE_PLAN_ENTERPRISE || null,
+  },
+  annual: {
+    pro:        import.meta.env.VITE_STRIPE_PRICE_PLAN_PRO_YEAR        || null,
+    enterprise: import.meta.env.VITE_STRIPE_PRICE_PLAN_ENTERPRISE_YEAR || null,
+  },
 };
 
 async function invokeEdge(functionName, body) {
@@ -83,19 +89,25 @@ function getNuggetCheckoutBody(pack) {
   };
 }
 
-function getSubscriptionCheckoutBody(planId) {
+function normalizeBillingCycle(value) {
+  return String(value || '').trim().toLowerCase() === 'annual' ? 'annual' : 'monthly';
+}
+
+function getSubscriptionCheckoutBody(planId, options = {}) {
   const normalizedPlanId = String(planId || '').trim();
-  const priceId = STRIPE_SUBSCRIPTION_PRICE_IDS[normalizedPlanId];
+  const billingCycle = normalizeBillingCycle(options.billingCycle || options.billing_cycle);
+  const priceId = STRIPE_SUBSCRIPTION_PRICE_IDS[billingCycle]?.[normalizedPlanId];
 
   if (!priceId) {
     throw new Error(
-      `Stripe subscription price ID para o plano "${normalizedPlanId}" nao configurado. ` +
+      `Stripe subscription price ID para o plano "${normalizedPlanId}" (${billingCycle}) nao configurado. ` +
       'Adicione VITE_STRIPE_PRICE_PLAN_* no .env.'
     );
   }
 
   return {
     plan_id: normalizedPlanId,
+    billing_cycle: billingCycle,
     price_id: priceId,
     mode: 'subscription',
   };
@@ -147,9 +159,9 @@ export async function redirectToSubscription(planId, options = {}) {
   }
 
   const data = await invokeEdge('create-checkout-session', {
-    ...getSubscriptionCheckoutBody(planId),
+    ...getSubscriptionCheckoutBody(planId, options),
     ...getTermsMetadata(options),
-    success_url: getCheckoutReturnUrl({ checkout: 'success', plan: planId }),
+    success_url: getCheckoutReturnUrl({ checkout: 'success', plan: planId, billing: normalizeBillingCycle(options.billingCycle || options.billing_cycle) }),
     cancel_url:  getCheckoutReturnUrl({ checkout: 'cancelled', page: 'pricing' }),
   });
   if (!data?.url) throw new Error('URL de assinatura nao retornada.');

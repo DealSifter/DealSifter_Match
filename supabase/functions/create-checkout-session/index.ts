@@ -30,13 +30,23 @@ const PACK_PRICE_ENV: Record<string, string> = {
   p100: 'STRIPE_PRICE_P100',
 };
 
-const PLAN_PRICE_ENV: Record<string, string> = {
-  pro: 'STRIPE_PRICE_PLAN_PRO',
-  enterprise: 'STRIPE_PRICE_PLAN_ENTERPRISE',
+const PLAN_PRICE_ENV: Record<string, Record<string, string>> = {
+  monthly: {
+    pro: 'STRIPE_PRICE_PLAN_PRO',
+    enterprise: 'STRIPE_PRICE_PLAN_ENTERPRISE',
+  },
+  annual: {
+    pro: 'STRIPE_PRICE_PLAN_PRO_YEAR',
+    enterprise: 'STRIPE_PRICE_PLAN_ENTERPRISE_YEAR',
+  },
 };
 
-function getAllowedPriceId(kind: 'pack' | 'plan', id: string) {
-  const envName = kind === 'pack' ? PACK_PRICE_ENV[id] : PLAN_PRICE_ENV[id];
+function normalizeBillingCycle(value: unknown) {
+  return String(value ?? '').trim().toLowerCase() === 'annual' ? 'annual' : 'monthly';
+}
+
+function getAllowedPriceId(kind: 'pack' | 'plan', id: string, billingCycle = 'monthly') {
+  const envName = kind === 'pack' ? PACK_PRICE_ENV[id] : PLAN_PRICE_ENV[billingCycle]?.[id];
   return envName ? Deno.env.get(envName) ?? '' : '';
 }
 
@@ -116,6 +126,7 @@ Deno.serve(async (req) => {
     const mode = body?.mode === 'subscription' ? 'subscription' : 'payment';
     const packId = String(body?.pack_id ?? '').trim();
     const planId = String(body?.plan_id ?? '').trim();
+    const billingCycle = normalizeBillingCycle(body?.billing_cycle);
     const appUrl = Deno.env.get('APP_URL') ?? 'https://dealsifter.com';
     const isEmbedded = body?.ui_mode === 'embedded' || body?.embedded === true;
     const successUrl = String(body?.success_url ?? `${appUrl}/?checkout=success`).trim();
@@ -123,7 +134,7 @@ Deno.serve(async (req) => {
     const returnUrl = String(body?.return_url ?? successUrl).trim();
 
     const itemId = mode === 'subscription' ? planId : packId;
-    const expectedPriceId = getAllowedPriceId(mode === 'subscription' ? 'plan' : 'pack', itemId);
+    const expectedPriceId = getAllowedPriceId(mode === 'subscription' ? 'plan' : 'pack', itemId, billingCycle);
 
     if (!itemId || !expectedPriceId) {
       return new Response(JSON.stringify({ error: 'Stripe price is not configured for this item.' }), {
@@ -138,7 +149,10 @@ Deno.serve(async (req) => {
       user_id: user.id,
       mode,
     };
-    if (mode === 'subscription') metadata.plan_id = planId;
+    if (mode === 'subscription') {
+      metadata.plan_id = planId;
+      metadata.billing_cycle = billingCycle;
+    }
     else metadata.pack_id = packId;
     if (body?.terms_accepted === true) {
       metadata.terms_accepted = 'true';

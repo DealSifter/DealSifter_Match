@@ -11,9 +11,13 @@ export const normalizeCheckoutIntent = (intent) => {
   if (kind === 'subscription') {
     const planId = String(intent.planId || '').trim().toLowerCase();
     if (!planId) return null;
+    const billingCycle = String(intent.billingCycle || intent.billing_cycle || 'monthly').trim().toLowerCase() === 'annual'
+      ? 'annual'
+      : 'monthly';
     return {
       kind: 'subscription',
       planId,
+      billingCycle,
       source: String(intent.source || 'pricing').trim().toLowerCase() || 'pricing',
     };
   }
@@ -139,7 +143,7 @@ export function useCheckoutFlow({
         metadata: { source: intent.source || 'pricing' },
       });
       if (intent.kind === 'subscription') {
-        await redirectToSubscription(intent.planId, checkoutOptions);
+        await redirectToSubscription(intent.planId, { ...checkoutOptions, billingCycle: intent.billingCycle });
       } else if (intent.kind === 'nuggets') {
         const pack = NUGGET_PACKS.find((item) => String(item.id) === String(intent.packId));
         if (!pack) {
