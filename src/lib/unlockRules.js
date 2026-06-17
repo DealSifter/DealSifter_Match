@@ -87,7 +87,7 @@ export function getPropertyExclusivityStatus(records = [], propertyId, currentUs
 
   if (activeExclusive) {
     return {
-      kind: sameId(activeExclusive.buyerId, currentUserId) ? 'owned' : 'blocked',
+      kind: sameId(activeExclusive.buyerId ?? activeExclusive.buyer_id, currentUserId) ? 'owned' : 'blocked',
       badge: activeExclusive.mode === 'partial' ? 'Partial exclusivity' : 'Exclusive',
       unlockCount: normalUnlockCount,
       canBuyExclusivity: false,

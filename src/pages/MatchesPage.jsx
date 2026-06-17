@@ -9,6 +9,7 @@ import { PropertyCard } from '../components/cards/PropertyCard';
 import { SwipeCard } from '../components/cards/SwipeCard';
 import { SmartImage } from '../components/ui/SmartImage';
 import { ExclusivityBadge } from '../components/ui/ExclusivityBadge';
+import { CARD_STATUS, CardStatusIcon } from '../components/ui/CardStatusIndicators';
 import { catIcon } from '../lib/catIcon';
 import { buildDisplayContacts, normalizeContactMethod } from '../lib/contactPriority';
 import { resolveScopedProfile, normalizeProfileScope } from '../lib/profileScopeResolver';
@@ -129,16 +130,14 @@ const PortfolioItem = ({ p, onOpen, exclusivityStatus = null, ownerVerified = fa
         {/* Inline icons area (top-right): HOT, Verified, Exclusive lock */}
         <div style={{ position: 'absolute', top: 6, right: 6, display: 'inline-flex', alignItems: 'center', gap: 6, pointerEvents: 'auto' }}>
           {isHot ? (
-            <span style={{ display:'inline-flex', alignItems:'center', lineHeight:1, fontSize:12 }}>🔥</span>
+            <CardStatusIcon type={CARD_STATUS.hot} size={20} iconSize={12} />
           ) : null}
           {ownerVerified ? (
-            <span style={{ display:'inline-flex', alignItems:'center', lineHeight:1 }}>
-              <Icon name="shieldCheck" size={11} color={C.accent} strokeWidth={2.45} />
-            </span>
+            <CardStatusIcon type={CARD_STATUS.verified} size={20} iconSize={12} />
           ) : null}
           {exclusivityStatus ? (
-            <button type="button" onClick={handleLockClick} aria-label={exclusivityStatus.kind === 'blocked' ? 'Locked' : 'Exclusive owned'} style={{ display:'inline-flex', alignItems:'center', justifyContent:'center', background:'transparent', border:'none', padding:0, cursor:'pointer' }}>
-              <Icon name="lock" size={12} color={C.success} strokeWidth={2.2} secondaryColor={C.gold} />
+            <button type="button" onClick={handleLockClick} aria-label={exclusivityStatus.kind === 'blocked' ? 'Locked' : 'Exclusive owned'} style={{ background:'transparent', border:'none', padding:0, cursor:'pointer', display:'inline-flex' }}>
+              <CardStatusIcon type={CARD_STATUS.exclusive} size={20} iconSize={12} />
             </button>
           ) : null}
         </div>
@@ -342,6 +341,7 @@ function PortfolioDetail({ item, owner, ownerDesc, onBack, autoplayMedia = false
   const modalsT = allT.modals;
   const [imgIdx, setImgIdx] = useState(0);
   const imgs = item?.images?.length ? item.images : [item?.image].filter(Boolean);
+  const isMobile = typeof window !== 'undefined' && window.innerWidth <= 767;
   const getProfileEmailFallback = () => {
     try {
       const personalRaw = localStorage.getItem('personalProfile');
@@ -1324,9 +1324,21 @@ function PortfolioDetail({ item, owner, ownerDesc, onBack, autoplayMedia = false
     <div style={{ background:C.card, border:`1px solid ${C.border}`, borderRadius:12, overflow:"hidden" }}>
       <div style={{ padding:10, borderBottom:`1px solid ${C.border}`, display:"flex", alignItems:"center", justifyContent:"space-between", gap:8 }}>
         <div style={{ minWidth:0 }}>
-          <div style={{ display:'flex', alignItems:'center', gap:8, minWidth:0, flexWrap:'wrap' }}>
+          <div
+            style={{
+              display:'flex',
+              flexDirection: isMobile ? 'column' : 'row',
+              alignItems: isMobile ? 'flex-start' : 'center',
+              gap: isMobile ? 4 : 8,
+              minWidth:0,
+              flexWrap:'wrap',
+            }}
+          >
+            {isMobile && exclusiveStatus?.expiresAt ? (
+              <ExclusivityBadge expiresAt={exclusiveStatus.expiresAt} />
+            ) : null}
             <div style={{ fontSize:12, fontWeight:800, color:C.t1, whiteSpace:"nowrap", overflow:"hidden", textOverflow:"ellipsis" }}>{item.address}</div>
-            {exclusiveStatus?.expiresAt ? (
+            {!isMobile && exclusiveStatus?.expiresAt ? (
               <ExclusivityBadge expiresAt={exclusiveStatus.expiresAt} />
             ) : null}
           </div>
@@ -1918,6 +1930,17 @@ export function MatchesPage({ nuggets, setModal, openUnlock, unlocked, initialCh
     return null;
   }, [currentUserId, propertyUnlocks]);
 
+  const getOwnerExclusiveStatus = useCallback((ownerId) => {
+    const ownerKey = String(ownerId || '').trim();
+    if (!ownerKey) return null;
+    const ownerProperties = (allPropertiesSource || []).filter((property) => String(property?.ownerId || '') === ownerKey);
+    for (const property of ownerProperties) {
+      const status = getPropertyExclusiveStatus(property);
+      if (status?.expiresAt) return status;
+    }
+    return null;
+  }, [allPropertiesSource, getPropertyExclusiveStatus]);
+
   const formatTemplate = useCallback((template, values) => {
     let out = String(template || '');
     Object.entries(values || {}).forEach(([key, value]) => {
@@ -1994,14 +2017,23 @@ export function MatchesPage({ nuggets, setModal, openUnlock, unlocked, initialCh
     if (!active) return null;
     return isActiveProperty ? active.ownerId : (active.ownerId || active.unlockOwnerId || active.id);
   }, [active, isActiveProperty]);
-  const activeContactKey = useMemo(() => String(activeContactId || '').trim(), [activeContactId]);
+  const activeContactKeys = useMemo(() => {
+    const keys = new Set(getContactUnlockKeys(active));
+    const ownerKey = String(activeContactId || '').trim();
+    if (ownerKey) keys.add(ownerKey);
+    return keys;
+  }, [active, activeContactId, getContactUnlockKeys]);
+  const activeContactKey = useMemo(() => [...activeContactKeys][0] || '', [activeContactKeys]);
+  const isLinkedToActiveContact = useCallback((ownerId) => (
+    Boolean(ownerId) && activeContactKeys.has(String(ownerId || '').trim())
+  ), [activeContactKeys]);
 
   const interestBaseList = useMemo(() => {
     const list = Array.isArray(interested) ? [...interested] : [];
     if (activeContactKey) {
       const existingIds = new Set(list.map((item) => String(item?.id || '')));
       (allPropertiesSource || [])
-        .filter((property) => String(property?.ownerId || '') === activeContactKey)
+        .filter((property) => isLinkedToActiveContact(property?.ownerId))
         .forEach((property) => {
           if (!existingIds.has(String(property?.id || ''))) {
             list.push(property);
@@ -2010,7 +2042,7 @@ export function MatchesPage({ nuggets, setModal, openUnlock, unlocked, initialCh
         });
     }
     return list;
-  }, [activeContactKey, allPropertiesSource, interested]);
+  }, [activeContactKey, allPropertiesSource, interested, isLinkedToActiveContact]);
 
   const filteredInterested = useMemo(() => {
     const list = interestBaseList.filter(p => {
@@ -2032,11 +2064,11 @@ export function MatchesPage({ nuggets, setModal, openUnlock, unlocked, initialCh
     const linked = [];
     const others = [];
     list.forEach((property) => {
-      if (String(property?.ownerId || '') === activeContactKey) linked.push(property);
+      if (isLinkedToActiveContact(property?.ownerId)) linked.push(property);
       else others.push(property);
     });
     return [...sortList(linked), ...sortList(others)];
-  }, [activeContactKey, interestBaseList, interestsFilter, isContactUnlockedByState, selectedInterestStates, parseStateCode, sortOrder]);
+  }, [activeContactKey, interestBaseList, interestsFilter, isContactUnlockedByState, selectedInterestStates, parseStateCode, sortOrder, isLinkedToActiveContact]);
 
   const activeOwner = useMemo(() => {
     if (!active) return null;
@@ -2098,6 +2130,11 @@ export function MatchesPage({ nuggets, setModal, openUnlock, unlocked, initialCh
     if (!active || !isActiveProperty) return null;
     return getPropertyExclusiveStatus(active);
   }, [active, getPropertyExclusiveStatus, isActiveProperty]);
+
+  const activeOwnerExclusiveStatus = useMemo(() => {
+    if (!activeOwner?.id || isActiveProperty) return null;
+    return getOwnerExclusiveStatus(activeOwner.id);
+  }, [activeOwner?.id, getOwnerExclusiveStatus, isActiveProperty]);
 
   const getUnlockCost = useCallback((ownerId) => {
     if (!ownerId) return 1;
@@ -2512,6 +2549,7 @@ export function MatchesPage({ nuggets, setModal, openUnlock, unlocked, initialCh
                   const contactIncomingCount = Array.isArray(convos?.[m.id])
                     ? convos[m.id].filter((message) => message?.from !== 'me').length
                     : 0;
+                  const ownerExclusiveStatus = getOwnerExclusiveStatus(m.ownerId || m.unlockOwnerId || m.id);
                   const seenIncomingCount = seenIncomingByContact[m.id] || 0;
                   const contactUnreadCount = Math.max(0, contactIncomingCount - seenIncomingCount);
                   return (
@@ -2533,6 +2571,9 @@ export function MatchesPage({ nuggets, setModal, openUnlock, unlocked, initialCh
                             <span style={{ padding:"1px 6px", borderRadius:999, background:C.alpha(C.accent, 0.12), border:`1px solid ${C.alpha(C.accent, 0.25)}`, color:C.accent, fontSize:9, fontWeight:800 }}>
                               {t.professionalBadge || 'Business'}
                             </span>
+                          ) : null}
+                          {ownerExclusiveStatus?.expiresAt ? (
+                            <CardStatusIcon type={CARD_STATUS.exclusive} size={20} iconSize={12} />
                           ) : null}
                         </div>
                       </div>
@@ -2622,7 +2663,7 @@ export function MatchesPage({ nuggets, setModal, openUnlock, unlocked, initialCh
               </div>
               <div style={{ flex:1, overflowY:"auto" }}>
                 {filteredInterested.map(p => {
-                  const isLinkedProperty = Boolean(activeContactKey && String(p.ownerId || '') === activeContactKey);
+                  const isLinkedProperty = isLinkedToActiveContact(p.ownerId);
                   const isOwnerUnlocked = isContactUnlockedByState({ ownerId: p.ownerId });
                   const ownerUnlockCost = getUnlockCost(p.ownerId);
                   const propertyExclusiveStatus = getPropertyExclusiveStatus(p);
@@ -2642,7 +2683,7 @@ export function MatchesPage({ nuggets, setModal, openUnlock, unlocked, initialCh
                         <div style={{ display:'flex', alignItems:'center', gap:6, minWidth:0 }}>
                           <div style={{ fontWeight:700, fontSize:11, color:isLinkedProperty?PROPERTY_SIGNAL:C.t1, textOverflow:"ellipsis", overflow:"hidden", whiteSpace:"nowrap" }}>{p.address}</div>
                           {propertyExclusiveStatus?.expiresAt ? (
-                            <ExclusivityBadge compact expiresAt={propertyExclusiveStatus.expiresAt} />
+                            <CardStatusIcon type={CARD_STATUS.exclusive} size={20} iconSize={12} />
                           ) : null}
                         </div>
                         <div style={{ fontSize:9, color:C.gold }}>${(p.price/1000).toFixed(0)}K</div>
@@ -2752,10 +2793,15 @@ export function MatchesPage({ nuggets, setModal, openUnlock, unlocked, initialCh
                   </button>
                   <div style={{ flex:1, minWidth:0, display:"flex", alignItems:"flex-start", gap:12 }}>
                     <div style={{ flex:1, minWidth:0 }}>
+                      {isActiveProperty && activeExclusiveStatus?.expiresAt ? (
+                        <div style={{ marginBottom:4, display:'flex', alignItems:'center' }}>
+                          <ExclusivityBadge expiresAt={activeExclusiveStatus.expiresAt} />
+                        </div>
+                      ) : null}
                       <div style={{ display:'flex', alignItems:'center', gap:8, minWidth:0, flexWrap:'wrap' }}>
                         <div style={{ fontWeight:800, whiteSpace:"nowrap", overflow:"hidden", textOverflow:"ellipsis", maxWidth:'100%' }}>{isActiveProperty ? active.address : active.name}</div>
-                        {activeExclusiveStatus?.expiresAt ? (
-                          <ExclusivityBadge expiresAt={activeExclusiveStatus.expiresAt} />
+                        {!isActiveProperty && activeOwnerExclusiveStatus?.expiresAt ? (
+                          <CardStatusIcon type={CARD_STATUS.exclusive} size={20} iconSize={12} />
                         ) : null}
                       </div>
                       <div style={{ fontSize:11, color:C.success }}>{t.onlineBy} · {activeOwner.name}</div>

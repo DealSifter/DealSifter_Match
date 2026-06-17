@@ -4,6 +4,7 @@ import { useT } from '../../i18n/translations';
 import { Icon } from '../ui/Icon';
 import { SmartImage } from '../ui/SmartImage';
 import { ExclusivityBadge } from '../ui/ExclusivityBadge';
+import { CARD_STATUS, CardStatusBadge, CardStatusIcon } from '../ui/CardStatusIndicators';
 import { useMediaQuery } from '../../hooks/useMediaQuery';
 import { formatPropertyLocation } from '../../lib/formatPropertyLocation';
 import { getPendingDealRemainingDays, isPendingDealActive } from '../../lib/pendingDeal';
@@ -86,6 +87,28 @@ export function PropertyCard({ property, action, statusAction, onInterest, owner
     : 'linear-gradient(90deg, rgba(5,70,45,0.96) 0%, rgba(20,184,166,0.94) 100%)';
   const exclusivityBadgeBorder = isPartialExclusivity ? 'rgba(255, 218, 112, 0.9)' : 'rgba(124, 255, 226, 0.86)';
   const exclusivityIconColor = isPartialExclusivity ? '#ef4444' : '#facc15';
+  const ownerVerified = owner?.verified === true || String(owner?.verified || '').toLowerCase() === 'verified';
+  const primaryBadgeStatus = showActiveExclusivityLock
+    ? CARD_STATUS.exclusive
+    : (showExclusivityAlert
+      ? (isPartialExclusivity ? CARD_STATUS.partialExclusive : CARD_STATUS.exclusive)
+      : (showPendingDealAlert
+        ? CARD_STATUS.pending
+        : (showHotAlert ? CARD_STATUS.hot : (showTrendingAlert ? CARD_STATUS.trending : null))));
+  const primaryBadgeLabel = showActiveExclusivityLock
+    ? activeExclusivityLabel
+    : (showExclusivityAlert
+      ? exclusivityBadge
+      : (showPendingDealAlert
+        ? pendingDealBadgeText
+        : (showHotAlert ? 'HOT' : trendingBadgeText)));
+  const topRightIcons = [
+    showActiveExclusivityLock ? CARD_STATUS.exclusive : null,
+    ownerVerified ? CARD_STATUS.verified : null,
+    showPendingDealAlert && !showActiveExclusivityLock ? CARD_STATUS.pending : null,
+    showHotAlert && !showPendingDealAlert && !showActiveExclusivityLock ? CARD_STATUS.hot : null,
+    showTrendingAlert && !showHotAlert && !showPendingDealAlert && !showActiveExclusivityLock ? CARD_STATUS.trending : null,
+  ].filter(Boolean);
   const ownerBadgeBottom = images.length > 1 ? 24 : 8;
   const ownerBadgeHeight = 38;
   const swipeBadgeKind = action === 'pass' ? 'pass' : (action === 'interest' ? 'match' : null);
@@ -304,108 +327,21 @@ export function PropertyCard({ property, action, statusAction, onInterest, owner
           </span>
         ) : null}
 
-        {showActiveExclusivityLock ? (
-          <div style={{
-            position: 'absolute',
-            top: 8,
-            left: 8,
-            zIndex: 15,
-            pointerEvents: 'none',
-            animation: 'dsPropertyExclusivePulse 1.35s ease-in-out infinite',
-            maxWidth: 'calc(100% - 16px)',
-          }}>
-            <ExclusivityBadge expiresAt={exclusivityStatus.expiresAt} label={activeExclusivityLabel} />
+        {primaryBadgeStatus ? (
+          <div style={{ position: 'absolute', top: 8, left: 8, zIndex: 15, pointerEvents: 'none', maxWidth: 'calc(100% - 70px)' }}>
+            <CardStatusBadge type={primaryBadgeStatus} pulse={showExclusivityAlert || showActiveExclusivityLock || showHotAlert}>
+              {primaryBadgeLabel}
+            </CardStatusBadge>
           </div>
         ) : null}
 
-        {showExclusivityAlert ? (
-          <span style={{
-            position: 'absolute',
-            top: 8,
-            left: 8,
-            zIndex: 14,
-            background: exclusivityStripGradient,
-            border: `1px solid ${exclusivityBadgeBorder}`,
-            color: '#fff',
-            padding: '2px 8px',
-            borderRadius: 999,
-            fontSize: 9,
-            fontWeight: 950,
-            letterSpacing: '0.5px',
-            pointerEvents: 'none',
-            textTransform: 'uppercase',
-            animation: 'dsPropertyExclusivePulse 1.05s ease-in-out infinite',
-          }}>
-            {exclusivityBadge}
-          </span>
+        {topRightIcons.length ? (
+          <div style={{ position: 'absolute', top: 8, right: 8, zIndex: 16, display: 'inline-flex', alignItems: 'center', gap: 5, pointerEvents: 'none' }}>
+            {topRightIcons.map((status) => (
+              <CardStatusIcon key={status} type={status} size={20} iconSize={12} />
+            ))}
+          </div>
         ) : null}
-
-        {showPendingDealAlert && !showExclusivityAlert && !showActiveExclusivityLock ? (
-          <span style={{
-            position: 'absolute',
-            top: 8,
-            left: 8,
-            zIndex: 13,
-            background: 'linear-gradient(90deg, rgba(55,65,81,0.95) 0%, rgba(156,163,175,0.92) 100%)',
-            border: '1px solid rgba(209,213,219,0.88)',
-            color: '#fff',
-            padding: '2px 8px',
-            borderRadius: 999,
-            fontSize: 9,
-            fontWeight: 950,
-            letterSpacing: '0.5px',
-            pointerEvents: 'none',
-            textTransform: 'uppercase',
-            display: 'inline-flex',
-            alignItems: 'center',
-            gap: 4,
-          }}>
-            <Icon name="hourglass" size={10} color="#fff" strokeWidth={2.4} />
-            {pendingDealBadgeText}
-          </span>
-        ) : null}
-
-        {showHotAlert && !showExclusivityAlert && !showActiveExclusivityLock && (
-          <span style={{
-            position: 'absolute',
-            top: 8,
-            left: 8,
-            zIndex: 12,
-            background: 'linear-gradient(90deg, rgba(213,38,20,0.93) 0%, rgba(230,110,0,0.92) 100%)',
-            border: '1px solid rgba(255, 198, 138, 0.82)',
-            color: '#fff',
-            padding: '2px 7px',
-            borderRadius: 999,
-            fontSize: 9,
-            fontWeight: 900,
-            letterSpacing: '0.5px',
-            pointerEvents: 'none',
-            animation: 'dsPropertyExclusivePulse 1.05s ease-in-out infinite',
-          }}>
-            HOT
-          </span>
-        )}
-
-        {showTrendingAlert && !showExclusivityAlert && !showActiveExclusivityLock && !showPendingDealAlert && (
-          <span style={{
-            position: 'absolute',
-            top: 8,
-            left: 8,
-            zIndex: 12,
-            background: 'rgba(255,255,255,0.94)',
-            border: '1px solid rgba(255,255,255,0.88)',
-            color: '#111827',
-            padding: '2px 8px',
-            borderRadius: 999,
-            fontSize: 9,
-            fontWeight: 950,
-            letterSpacing: '0.5px',
-            pointerEvents: 'none',
-            textTransform: 'uppercase',
-          }}>
-            {trendingBadgeText}
-          </span>
-        )}
 
         {/* removed image overlay for skipped status; follows existing pattern next to price */}
 
@@ -536,7 +472,7 @@ export function PropertyCard({ property, action, statusAction, onInterest, owner
             pointerEvents: 'none',
             animation: 'dsPropertyExclusivePulse 1.05s ease-in-out infinite',
           }}>
-            <span style={{ fontSize: 12 }}>🔥</span>
+            <CardStatusIcon type={CARD_STATUS.hot} size={18} iconSize={11} />
             <span style={{ whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
               {hotStripText}
             </span>

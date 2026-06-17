@@ -10,7 +10,7 @@ import { PlanGateModal } from '../components/modals/PlanGateModal';
 import { catIcon } from '../lib/catIcon';
 import { SwipeCard } from '../components/cards/SwipeCard';
 import { PropertyCard } from '../components/cards/PropertyCard';
-import { ExclusivityBadge } from '../components/ui/ExclusivityBadge';
+import { CARD_STATUS, CardStatusBadge, CardStatusIcon, pickPriorityStatus } from '../components/ui/CardStatusIndicators';
 import { getHiddenSet, subscribe as subscribeHidden } from '../lib/hiddenCards';
 import { resolveScopedProfile, normalizeProfileScope } from '../lib/profileScopeResolver';
 import { formatPropertyLocation } from '../lib/formatPropertyLocation';
@@ -2173,8 +2173,8 @@ export function Dashboard({ page, nuggets, setModal, setPage, onOpenOnboardingTa
           icon: catIcon(c.cat),
           thumb: safeThumb,
           thumbRound: true,
-          isPending: hotPressure > 0,
-          pendingPressure: hotPressure,
+          isHot: hotPressure > 0,
+          hotPressure,
           isVerified: isTruthyVerified(c?.verified) || verifiedOwnerIds.has(String(c.ownerId ?? c.id)),
         };
       })
@@ -2205,8 +2205,8 @@ export function Dashboard({ page, nuggets, setModal, setPage, onOpenOnboardingTa
         icon: 'home',
         thumb: safeThumb,
         thumbRound: false,
-        isPending: hotPressure > 0,
-        pendingPressure: hotPressure,
+        isHot: hotPressure > 0,
+        hotPressure,
         isVerified: ownerVerified,
         exclusiveExpiresAt: exclusivityStatus?.expiresAt || null,
       };
@@ -4036,7 +4036,16 @@ export function Dashboard({ page, nuggets, setModal, setPage, onOpenOnboardingTa
               {[0, 1].map(loop => (
                 marqueeBannerItems.map((item) => (
                   (() => {
-                    const isNeonVerified = item.isPending && item.isVerified;
+                    const isNeonVerified = item.isHot && item.isVerified;
+                    const miniStatuses = [
+                      item.exclusiveExpiresAt ? CARD_STATUS.exclusive : null,
+                      item.isVerified ? CARD_STATUS.verified : null,
+                      item.isHot ? CARD_STATUS.hot : null,
+                    ].filter(Boolean);
+                    const miniBadgeStatus = pickPriorityStatus(miniStatuses.filter((status) => status !== CARD_STATUS.verified));
+                    const miniBadgeLabel = miniBadgeStatus === CARD_STATUS.exclusive
+                      ? 'EXCLUSIVE'
+                      : (miniBadgeStatus === CARD_STATUS.hot ? 'HOT' : null);
                     return (
                   <button
                     key={`${item.key}-${loop}`}
@@ -4046,8 +4055,8 @@ export function Dashboard({ page, nuggets, setModal, setPage, onOpenOnboardingTa
                       minWidth:260,
                       maxWidth:260,
                       padding:"8px 10px",
-                      paddingLeft: item.exclusiveExpiresAt ? 34 : 10,
-                      paddingRight: item.isPending ? (item.isVerified ? 78 : 60) : 10,
+                      paddingLeft: 10,
+                      paddingRight: miniStatuses.length ? Math.max(38, 14 + miniStatuses.length * 23) : 10,
                       borderRadius:10,
                       border: isNeonVerified
                         ? `1px solid ${C.alpha(C.accent, 0.88)}`
@@ -4063,63 +4072,23 @@ export function Dashboard({ page, nuggets, setModal, setPage, onOpenOnboardingTa
                       gap:8,
                     }}
                   >
-                    {item.isPending && (
-                      <div style={{
-                        position: 'absolute',
-                        top: 6,
-                        right: 6,
-                        display: 'inline-flex',
-                        alignItems: 'center',
-                        gap: 4,
-                        pointerEvents: 'none',
-                      }}>
-                        <span style={{
-                          display: 'inline-flex',
-                          alignItems: 'center',
-                          gap: 3,
-                          background: C.alpha(C.t1, 0.18),
-                          border: `1px solid ${C.alpha(C.t1, 0.32)}`,
-                          color: '#fff',
-                          borderRadius: 999,
-                          padding: '1px 5px',
-                          lineHeight: 1,
-                          fontSize: 10,
-                          fontWeight: 900,
-                        }}>
-                          <span style={{ fontSize: 10, lineHeight: 1 }}>🔥</span>
-                          {item.isVerified && (
-                            <span style={{ display: 'inline-flex', alignItems: 'center', lineHeight: 1 }}>
-                              <Icon name="shieldCheck" size={11} color={C.accent} strokeWidth={2.45} />
-                            </span>
-                          )}
-                        </span>
+                    {miniStatuses.length ? (
+                      <div style={{ position: 'absolute', top: 6, right: 6, display: 'inline-flex', alignItems: 'center', gap: 4, pointerEvents: 'none' }}>
+                        {miniStatuses.map((status) => (
+                          <CardStatusIcon key={status} type={status} size={18} iconSize={11} />
+                        ))}
                       </div>
-                    )}
-                    {item.exclusiveExpiresAt ? (
-                      <span style={{ position: 'absolute', top: 6, left: 6, pointerEvents: 'none' }}>
-                        <ExclusivityBadge compact expiresAt={item.exclusiveExpiresAt} />
-                      </span>
                     ) : null}
-                    {item.isPending && (
-                      <span style={{
-                        position: 'absolute',
-                        right: 6,
-                        bottom: 8,
-                        background: 'linear-gradient(90deg, rgba(213,38,20,0.93) 0%, rgba(230,110,0,0.92) 100%)',
-                        border: '1px solid rgba(255, 198, 138, 0.82)',
-                        color: '#fff',
-                        borderRadius: 999,
-                        padding: '1px 6px',
-                        fontSize: 8,
-                        fontWeight: 900,
-                        letterSpacing: '0.4px',
-                        lineHeight: 1.2,
-                        pointerEvents: 'none',
-                        animation: 'blink 1.05s ease-in-out infinite',
-                      }}>
-                        HOT
-                      </span>
-                    )}
+                    {miniBadgeStatus ? (
+                      <CardStatusBadge
+                        type={miniBadgeStatus}
+                        compact
+                        pulse={miniBadgeStatus === CARD_STATUS.hot || miniBadgeStatus === CARD_STATUS.exclusive}
+                        style={{ position: 'absolute', right: 6, bottom: 8 }}
+                      >
+                        {miniBadgeLabel}
+                      </CardStatusBadge>
+                    ) : null}
                     {/* Thumb/avatar seguro, sempre contido. Nunca renderiza imagem se inválida. */}
                     <div style={{ display:'flex', alignItems:'center', gap:8 }}>
                       <div style={{ width:item.thumbRound ? 34 : 38, height:item.thumbRound ? 34 : 38, borderRadius:item.thumbRound ? '50%' : 7, background:C.alpha(item.tone, 0.14), border:`1px solid ${C.alpha(item.tone, 0.3)}`, display:"flex", alignItems:"center", justifyContent:"center", flexShrink:0, overflow:'hidden' }}>

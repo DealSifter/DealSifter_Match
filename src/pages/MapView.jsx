@@ -8,6 +8,7 @@ import { CARDS, PROPERTIES } from '../data/mockData';
 import { useT } from '../i18n/translations';
 import { SmartImage } from '../components/ui/SmartImage';
 import { Icon } from '../components/ui/Icon';
+import { CARD_STATUS, CardStatusBadge, CardStatusIcon, pickPriorityStatus } from '../components/ui/CardStatusIndicators';
 import { useMediaQuery } from '../hooks/useMediaQuery';
 import { getPortfolioItemCount, getPortfolioUnlockCost, getPropertyExclusivityStatus } from '../lib/unlockRules';
 
@@ -2968,6 +2969,11 @@ export function MapView({
               const isPerson = Boolean(item?.loc);
               const isOwnCard = !isPerson && String(item?.ownerId || '') === 'self';
               const exclusivityStatus = !isPerson ? getPropertyExclusivityStatus(propertyUnlocks, item.id, currentUserId) : null;
+              const mapCardStatuses = [
+                !isPerson && exclusivityStatus?.expiresAt ? CARD_STATUS.exclusive : null,
+                item?.verified ? CARD_STATUS.verified : null,
+              ].filter(Boolean);
+              const mapCardBadgeStatus = pickPriorityStatus(mapCardStatuses.filter((status) => status !== CARD_STATUS.verified));
               const isUnlockedCard = isPerson ? isUnlockedId(item.id) : isUnlockedId(item.ownerId);
               const neonTone = isOwnCard
                 ? MY_PINS_COLOR
@@ -2993,6 +2999,23 @@ export function MapView({
                   onMouseLeave={(e) => e.currentTarget.style.backgroundColor = 'var(--ui-surface)'}
                   onClick={() => zoomToCard(item)}
                 >
+                  {mapCardStatuses.length ? (
+                    <div style={{ position: 'absolute', top: 6, right: 6, zIndex: 4, display: 'inline-flex', alignItems: 'center', gap: 4, pointerEvents: 'none' }}>
+                      {mapCardStatuses.map((status) => (
+                        <CardStatusIcon key={status} type={status} size={18} iconSize={11} />
+                      ))}
+                    </div>
+                  ) : null}
+                  {mapCardBadgeStatus ? (
+                    <CardStatusBadge
+                      type={mapCardBadgeStatus}
+                      compact
+                      pulse={mapCardBadgeStatus === CARD_STATUS.exclusive}
+                      style={{ position: 'absolute', right: 6, bottom: 6, zIndex: 4 }}
+                    >
+                      EXCLUSIVE
+                    </CardStatusBadge>
+                  ) : null}
                   <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 8 }}>
                     <div style={{ display: 'flex', gap: 8, alignItems: 'center', flex: 1, minWidth: 0 }}>
                       <img
@@ -3008,11 +3031,6 @@ export function MapView({
                               <div style={{ minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
                                 {isPerson ? `${item.type} · ${item.loc}` : `${item.type} · ${item.city}`}
                               </div>
-                              {!isPerson && exclusivityStatus?.kind === 'blocked' && (
-                                <div title="Exclusive lock active" style={{ display: 'inline-flex', alignItems: 'center', color: C.t2 }}>
-                                  <Icon name="lock" size={12} color={C.success} secondaryColor={C.gold} />
-                                </div>
-                              )}
                             </div>
                       </div>
                     </div>
