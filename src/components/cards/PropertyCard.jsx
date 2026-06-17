@@ -4,7 +4,8 @@ import { useT } from '../../i18n/translations';
 import { Icon } from '../ui/Icon';
 import { SmartImage } from '../ui/SmartImage';
 import { ExclusivityBadge } from '../ui/ExclusivityBadge';
-import { CARD_STATUS, CardStatusBadge, CardStatusIcon } from '../ui/CardStatusIndicators';
+import { CardStatusBadge, CardStatusIcon } from '../ui/CardStatusIndicators';
+import { CARD_STATUS } from '../ui/cardStatusTokens';
 import { useMediaQuery } from '../../hooks/useMediaQuery';
 import { formatPropertyLocation } from '../../lib/formatPropertyLocation';
 import { getPendingDealRemainingDays, isPendingDealActive } from '../../lib/pendingDeal';
@@ -85,7 +86,6 @@ export function PropertyCard({ property, action, statusAction, onInterest, owner
   const exclusivityStripGradient = isPartialExclusivity
     ? 'linear-gradient(90deg, rgba(126,45,0,0.96) 0%, rgba(245,158,11,0.94) 100%)'
     : 'linear-gradient(90deg, rgba(5,70,45,0.96) 0%, rgba(20,184,166,0.94) 100%)';
-  const exclusivityBadgeBorder = isPartialExclusivity ? 'rgba(255, 218, 112, 0.9)' : 'rgba(124, 255, 226, 0.86)';
   const exclusivityIconColor = isPartialExclusivity ? '#ef4444' : '#facc15';
   const ownerVerified = owner?.verified === true || String(owner?.verified || '').toLowerCase() === 'verified';
   const primaryBadgeStatus = showActiveExclusivityLock

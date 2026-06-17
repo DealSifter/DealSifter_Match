@@ -8,7 +8,8 @@ import { CARDS, PROPERTIES } from '../data/mockData';
 import { useT } from '../i18n/translations';
 import { SmartImage } from '../components/ui/SmartImage';
 import { Icon } from '../components/ui/Icon';
-import { CARD_STATUS, CardStatusBadge, CardStatusIcon, pickPriorityStatus } from '../components/ui/CardStatusIndicators';
+import { CardStatusBadge, CardStatusIcon } from '../components/ui/CardStatusIndicators';
+import { CARD_STATUS, pickPriorityStatus } from '../components/ui/cardStatusTokens';
 import { useMediaQuery } from '../hooks/useMediaQuery';
 import { getPortfolioItemCount, getPortfolioUnlockCost, getPropertyExclusivityStatus } from '../lib/unlockRules';
 

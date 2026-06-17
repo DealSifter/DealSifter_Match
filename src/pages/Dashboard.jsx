@@ -10,7 +10,8 @@ import { PlanGateModal } from '../components/modals/PlanGateModal';
 import { catIcon } from '../lib/catIcon';
 import { SwipeCard } from '../components/cards/SwipeCard';
 import { PropertyCard } from '../components/cards/PropertyCard';
-import { CARD_STATUS, CardStatusBadge, CardStatusIcon, pickPriorityStatus } from '../components/ui/CardStatusIndicators';
+import { CardStatusBadge, CardStatusIcon } from '../components/ui/CardStatusIndicators';
+import { CARD_STATUS, pickPriorityStatus } from '../components/ui/cardStatusTokens';
 import { getHiddenSet, subscribe as subscribeHidden } from '../lib/hiddenCards';
 import { resolveScopedProfile, normalizeProfileScope } from '../lib/profileScopeResolver';
 import { formatPropertyLocation } from '../lib/formatPropertyLocation';
@@ -3736,7 +3737,7 @@ export function Dashboard({ page, nuggets, setModal, setPage, onOpenOnboardingTa
                 <button
                   type="button"
                   className="ds-mobile-action-btn"
-                  onPointerDown={(e) => { try { e.preventDefault(); e.stopPropagation(); } catch (err) { /* noop */ } handleMobileUnlockAction(); }}
+                  onPointerDown={(e) => { try { e.preventDefault(); e.stopPropagation(); } catch { /* noop */ } handleMobileUnlockAction(); }}
                   onClick={(e) => { e.stopPropagation(); handleMobileUnlockAction(); }}
                   disabled={!mobileCanAct}
                   title={view === 'connections' ? 'Unlock' : 'Interest'}
@@ -3865,7 +3866,7 @@ export function Dashboard({ page, nuggets, setModal, setPage, onOpenOnboardingTa
                     </div>
                   )}
                 </div>
-                <button type="button" onPointerDown={(e) => { try { e.preventDefault(); e.stopPropagation(); } catch (err) { /* noop */ } setMatched(prev => prev.filter(x => x.id !== m.id)); setConnDeck(d => [m.id, ...d]); }} onClick={(e) => { e.stopPropagation(); setMatched(prev => prev.filter(x => x.id !== m.id)); setConnDeck(d => [m.id, ...d]); }}
+                <button type="button" onPointerDown={(e) => { try { e.preventDefault(); e.stopPropagation(); } catch { /* noop */ } setMatched(prev => prev.filter(x => x.id !== m.id)); setConnDeck(d => [m.id, ...d]); }} onClick={(e) => { e.stopPropagation(); setMatched(prev => prev.filter(x => x.id !== m.id)); setConnDeck(d => [m.id, ...d]); }}
                   style={{
                     width: 16,
                     height: 16,
@@ -3978,7 +3979,7 @@ export function Dashboard({ page, nuggets, setModal, setPage, onOpenOnboardingTa
                       {matchesT.by} {propOwner?.name || "..."}
                     </div>
                   </div>
-                  <button type="button" onPointerDown={(e) => { try { e.preventDefault(); e.stopPropagation(); } catch (err) { /* noop */ } setInterested(prev => prev.filter(x => x.id !== m.id)); setPropDeck(d => [m.id, ...d]); }} onClick={(e) => { e.stopPropagation(); setInterested(prev => prev.filter(x => x.id !== m.id)); setPropDeck(d => [m.id, ...d]); }}
+                  <button type="button" onPointerDown={(e) => { try { e.preventDefault(); e.stopPropagation(); } catch { /* noop */ } setInterested(prev => prev.filter(x => x.id !== m.id)); setPropDeck(d => [m.id, ...d]); }} onClick={(e) => { e.stopPropagation(); setInterested(prev => prev.filter(x => x.id !== m.id)); setPropDeck(d => [m.id, ...d]); }}
                     style={{
                       width: 16,
                       height: 16,

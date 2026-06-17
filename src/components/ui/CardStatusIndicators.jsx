@@ -2,15 +2,7 @@ import React from 'react';
 import { C } from '../../theme/colors';
 import { Icon } from './Icon';
 import { ExclusiveLockIcon } from './ExclusivityBadge';
-
-export const CARD_STATUS = {
-  exclusive: 'exclusive',
-  partialExclusive: 'partialExclusive',
-  verified: 'verified',
-  pending: 'pending',
-  hot: 'hot',
-  trending: 'trending',
-};
+import { CARD_STATUS } from './cardStatusTokens';
 
 const STATUS_STYLE = {
   [CARD_STATUS.exclusive]: {
@@ -127,14 +119,3 @@ export function CardStatusBadge({ type, children, title, compact = false, pulse 
   );
 }
 
-export function pickPriorityStatus(statuses = []) {
-  const order = [
-    CARD_STATUS.exclusive,
-    CARD_STATUS.partialExclusive,
-    CARD_STATUS.pending,
-    CARD_STATUS.hot,
-    CARD_STATUS.trending,
-    CARD_STATUS.verified,
-  ];
-  return order.find((status) => statuses.includes(status)) || null;
-}
