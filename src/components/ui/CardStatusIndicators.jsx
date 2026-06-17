@@ -43,7 +43,7 @@ const STATUS_STYLE = {
   },
 };
 
-export function getCardStatusStyle(type) {
+function getCardStatusStyle(type) {
   return STATUS_STYLE[type] || STATUS_STYLE[CARD_STATUS.trending];
 }
 
