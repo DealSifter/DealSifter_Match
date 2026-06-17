@@ -13,23 +13,17 @@ export function AuthAccessModal({ initialTab = 'signup', onClose, onSubmit, onFo
   const t = allT.auth || {};
   const [tab, setTab] = useState(initialTab === 'login' ? 'login' : 'signup');
   const [fullName, setFullName] = useState('');
-  const [email, setEmail] = useState('');
+  const [email, setEmail] = useState(() => {
+    try { return localStorage.getItem(REMEMBER_LOGIN_KEY) || ''; }
+    catch { return ''; }
+  });
   const [password, setPassword] = useState('');
-  const [rememberLogin, setRememberLogin] = useState(false);
+  const [rememberLogin, setRememberLogin] = useState(() => {
+    try { return Boolean(localStorage.getItem(REMEMBER_LOGIN_KEY)); }
+    catch { return false; }
+  });
   const [error, setError] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
-
-  useEffect(() => {
-    try {
-      const savedEmail = localStorage.getItem(REMEMBER_LOGIN_KEY) || '';
-      if (savedEmail) {
-        setEmail(savedEmail);
-        setRememberLogin(true);
-      }
-    } catch (e) {
-      void e;
-    }
-  }, []);
 
   const canSubmit = useMemo(() => {
     const validEmail = EMAIL_REGEX.test(String(email).trim());
