@@ -816,13 +816,9 @@ export function PropertyCard({ property, action, statusAction, onInterest, owner
 
               <button onClick={(e) => {
                   e.stopPropagation();
-                  // If property is currently under an active exclusivity lock, open unlock flow instead
-                  if (showActiveExclusivityLock || (exclusivityStatus && ['blocked','owned'].includes(exclusivityStatus.kind))) {
-                    if (typeof onUnlock === 'function') onUnlock(property);
-                    return;
-                  }
-                  if (typeof onInterest === 'function') onInterest('interest');
-                }} title={t.interested} style={{
+                  if (typeof onUnlock === 'function') onUnlock(property);
+                  else if (typeof onInterest === 'function') onInterest('interest');
+                }} title={t.unlock || 'Unlock'} style={{
                 width: 38, height: 38, borderRadius: '50%',
                 border: `1.5px solid ${C.gold}`,
                 background: C.alpha(C.gold, 0.08),

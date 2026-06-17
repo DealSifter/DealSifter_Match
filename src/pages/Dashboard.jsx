@@ -10,6 +10,7 @@ import { PlanGateModal } from '../components/modals/PlanGateModal';
 import { catIcon } from '../lib/catIcon';
 import { SwipeCard } from '../components/cards/SwipeCard';
 import { PropertyCard } from '../components/cards/PropertyCard';
+import { ExclusivityBadge } from '../components/ui/ExclusivityBadge';
 import { getHiddenSet, subscribe as subscribeHidden } from '../lib/hiddenCards';
 import { resolveScopedProfile, normalizeProfileScope } from '../lib/profileScopeResolver';
 import { formatPropertyLocation } from '../lib/formatPropertyLocation';
@@ -2184,6 +2185,7 @@ export function Dashboard({ page, nuggets, setModal, setPage, onOpenOnboardingTa
     .filter((p) => isTruthyFlag(p.publishToShowcase, true) && !p?.dealClosed && isPropertySpotlight(p))
     .map(p => {
       const hotPressure = p?.dealClosed ? 0 : Number(propertyHotMetrics[String(p.id)]?.hotScore || 0);
+      const exclusivityStatus = getPropertyExclusivityStatus(propertyUnlocks, p.id, currentUserId);
       const ownerVerified = isTruthyVerified(p?.verified) || verifiedOwnerIds.has(String(p.ownerId));
       let safeThumb = p.images?.[0] || p.image;
       if (!safeThumb || typeof safeThumb !== 'string' || (safeThumb.length < 8) || (safeThumb.startsWith('data:') && safeThumb.length < 32)) {
@@ -2206,9 +2208,10 @@ export function Dashboard({ page, nuggets, setModal, setPage, onOpenOnboardingTa
         isPending: hotPressure > 0,
         pendingPressure: hotPressure,
         isVerified: ownerVerified,
+        exclusiveExpiresAt: exclusivityStatus?.expiresAt || null,
       };
     })
-), [showcaseProperties, verifiedOwnerIds, propertyHotMetrics, isPropertySpotlight]);
+), [showcaseProperties, verifiedOwnerIds, propertyHotMetrics, isPropertySpotlight, propertyUnlocks, currentUserId]);
 
   const hashStringToSeed = (value) => {
     const input = String(value || '');
@@ -3666,7 +3669,12 @@ export function Dashboard({ page, nuggets, setModal, setPage, onOpenOnboardingTa
                               hotMetrics={hotMetrics}
                               exclusivityStatus={exclusivityStatus}
                               showActions={!isMobileViewport}
-                              onUnlock={openUnlock}
+                              onUnlock={() => openUnlock(pOwner || p, {
+                                unlockScope: 'property',
+                                property: p,
+                                propertyId: p.id,
+                                propertyAddress: p.address,
+                              })}
                             />
                           </div>
                         </div>
@@ -4038,6 +4046,7 @@ export function Dashboard({ page, nuggets, setModal, setPage, onOpenOnboardingTa
                       minWidth:260,
                       maxWidth:260,
                       padding:"8px 10px",
+                      paddingLeft: item.exclusiveExpiresAt ? 34 : 10,
                       paddingRight: item.isPending ? (item.isVerified ? 78 : 60) : 10,
                       borderRadius:10,
                       border: isNeonVerified
@@ -4086,6 +4095,11 @@ export function Dashboard({ page, nuggets, setModal, setPage, onOpenOnboardingTa
                         </span>
                       </div>
                     )}
+                    {item.exclusiveExpiresAt ? (
+                      <span style={{ position: 'absolute', top: 6, left: 6, pointerEvents: 'none' }}>
+                        <ExclusivityBadge compact expiresAt={item.exclusiveExpiresAt} />
+                      </span>
+                    ) : null}
                     {item.isPending && (
                       <span style={{
                         position: 'absolute',

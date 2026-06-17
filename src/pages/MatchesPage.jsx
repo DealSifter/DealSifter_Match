@@ -1992,8 +1992,30 @@ export function MatchesPage({ nuggets, setModal, openUnlock, unlocked, initialCh
     return list;
   }, [allMatched, peopleFilter, isContactUnlockedByState, selectedPeopleCategories, sortOrder]);
 
+  const isActiveProperty = active?.address !== undefined;
+  const activeContactId = useMemo(() => {
+    if (!active) return null;
+    return isActiveProperty ? active.ownerId : (active.ownerId || active.unlockOwnerId || active.id);
+  }, [active, isActiveProperty]);
+
+  const interestBaseList = useMemo(() => {
+    const list = Array.isArray(interested) ? [...interested] : [];
+    if (activeContactId) {
+      const existingIds = new Set(list.map((item) => String(item?.id || '')));
+      (allPropertiesSource || [])
+        .filter((property) => String(property?.ownerId || '') === String(activeContactId))
+        .forEach((property) => {
+          if (!existingIds.has(String(property?.id || ''))) {
+            list.push(property);
+            existingIds.add(String(property?.id || ''));
+          }
+        });
+    }
+    return list;
+  }, [activeContactId, allPropertiesSource, interested]);
+
   const filteredInterested = useMemo(() => {
-    const list = interested.filter(p => {
+    const list = interestBaseList.filter(p => {
       const paid = isContactUnlockedByState({ ownerId: p.ownerId });
       if (interestsFilter === "paid") return paid;
       if (interestsFilter === "locked") return !paid;
@@ -2005,13 +2027,7 @@ export function MatchesPage({ nuggets, setModal, openUnlock, unlocked, initialCh
     });
     if (sortOrder === 'price_desc') return [...list].sort((a, b) => Number(b?.price || 0) - Number(a?.price || 0));
     return list;
-  }, [interested, interestsFilter, isContactUnlockedByState, selectedInterestStates, parseStateCode, sortOrder]);
-
-  const isActiveProperty = active?.address !== undefined;
-  const activeContactId = useMemo(() => {
-    if (!active) return null;
-    return isActiveProperty ? active.ownerId : (active.ownerId || active.unlockOwnerId || active.id);
-  }, [active, isActiveProperty]);
+  }, [interestBaseList, interestsFilter, isContactUnlockedByState, selectedInterestStates, parseStateCode, sortOrder]);
 
   const activeOwner = useMemo(() => {
     if (!active) return null;
@@ -2486,6 +2502,7 @@ export function MatchesPage({ nuggets, setModal, openUnlock, unlocked, initialCh
                   const contactIncomingCount = Array.isArray(convos?.[m.id])
                     ? convos[m.id].filter((message) => message?.from !== 'me').length
                     : 0;
+                  const ownerExclusiveStatus = getOwnerExclusiveStatus(m.ownerId || m.id);
                   const seenIncomingCount = seenIncomingByContact[m.id] || 0;
                   const contactUnreadCount = Math.max(0, contactIncomingCount - seenIncomingCount);
                   return (
@@ -2507,6 +2524,9 @@ export function MatchesPage({ nuggets, setModal, openUnlock, unlocked, initialCh
                             <span style={{ padding:"1px 6px", borderRadius:999, background:C.alpha(C.accent, 0.12), border:`1px solid ${C.alpha(C.accent, 0.25)}`, color:C.accent, fontSize:9, fontWeight:800 }}>
                               {t.professionalBadge || 'Business'}
                             </span>
+                          ) : null}
+                          {ownerExclusiveStatus?.expiresAt ? (
+                            <ExclusivityBadge compact expiresAt={ownerExclusiveStatus.expiresAt} />
                           ) : null}
                         </div>
                       </div>
@@ -2936,11 +2956,6 @@ export function MatchesPage({ nuggets, setModal, openUnlock, unlocked, initialCh
                   <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', gap:10, marginBottom:12 }}>
                     <div style={{ display:'flex', alignItems:'center', gap:10, minWidth:0, flex:1 }}>
                       <div style={{ fontSize:12, fontWeight:800, color:C.t3, letterSpacing:"0.5px", flexShrink:0 }}>{t.portfolio.toUpperCase()}</div>
-                      {isTabletPortrait && activeOwner ? (
-                        <div style={{ minWidth:0, flex:1, overflow:'hidden' }}>
-                          <ContactButtons item={activeOwner} variant="unlocked-header" isMobile={false} />
-                        </div>
-                      ) : null}
                     </div>
                     <div style={{ display:'flex', gap:8 }}>
                       <div className="map-panel-tabs" role="tablist" aria-label="Portfolio tabs">

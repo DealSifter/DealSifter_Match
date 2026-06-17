@@ -6,6 +6,7 @@ import { Icon } from '../ui/Icon';
 import { Modal } from '../ui/Modal';
 
 const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/;
+const REMEMBER_LOGIN_KEY = 'ds_remember_login_email';
 
 export function AuthAccessModal({ initialTab = 'signup', onClose, onSubmit, onForgotPassword }) {
   const allT = useT('global');
@@ -14,8 +15,21 @@ export function AuthAccessModal({ initialTab = 'signup', onClose, onSubmit, onFo
   const [fullName, setFullName] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [rememberLogin, setRememberLogin] = useState(false);
   const [error, setError] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
+
+  useEffect(() => {
+    try {
+      const savedEmail = localStorage.getItem(REMEMBER_LOGIN_KEY) || '';
+      if (savedEmail) {
+        setEmail(savedEmail);
+        setRememberLogin(true);
+      }
+    } catch (e) {
+      void e;
+    }
+  }, []);
 
   const canSubmit = useMemo(() => {
     const validEmail = EMAIL_REGEX.test(String(email).trim());
@@ -49,6 +63,12 @@ export function AuthAccessModal({ initialTab = 'signup', onClose, onSubmit, onFo
     }
     setIsSubmitting(true);
     try {
+      try {
+        if (rememberLogin) localStorage.setItem(REMEMBER_LOGIN_KEY, email.trim());
+        else localStorage.removeItem(REMEMBER_LOGIN_KEY);
+      } catch (e) {
+        void e;
+      }
       await onSubmit?.({
         mode: tab,
         provider,
@@ -142,23 +162,36 @@ export function AuthAccessModal({ initialTab = 'signup', onClose, onSubmit, onFo
 
         {error ? <div style={{ color: C.danger, fontSize: 12, fontWeight: 600 }}>{error}</div> : null}
 
-        {tab === 'login' && onForgotPassword ? (
-          <button
-            type="button"
-            onClick={() => onForgotPassword(email)}
-            style={{
-              background: 'none',
-              border: 'none',
-              color: C.accent,
-              fontSize: 12,
-              fontWeight: 600,
-              cursor: 'pointer',
-              padding: 0,
-              textAlign: 'left',
-            }}
-          >
-            {t.forgotPassword || 'Forgot your password?'}
-          </button>
+        {tab === 'login' ? (
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 10, flexWrap: 'wrap' }}>
+            <label style={{ display: 'inline-flex', alignItems: 'center', gap: 6, color: C.t2, fontSize: 12, fontWeight: 700, cursor: 'pointer' }}>
+              <input
+                type="checkbox"
+                checked={rememberLogin}
+                onChange={(e) => setRememberLogin(e.target.checked)}
+                style={{ accentColor: C.accent }}
+              />
+              <span>{t.rememberLogin || 'Remember my data'}</span>
+            </label>
+            {onForgotPassword ? (
+              <button
+                type="button"
+                onClick={() => onForgotPassword(email)}
+                style={{
+                  background: 'none',
+                  border: 'none',
+                  color: C.accent,
+                  fontSize: 12,
+                  fontWeight: 600,
+                  cursor: 'pointer',
+                  padding: 0,
+                  textAlign: 'right',
+                }}
+              >
+                {t.forgotPassword || 'Forgot your password?'}
+              </button>
+            ) : null}
+          </div>
         ) : null}
 
         <button

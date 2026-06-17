@@ -469,6 +469,14 @@ export function AdminDashboard({ setPage, prevPage, logoutAdmin }) {
     const seriesStatus = m.seriesStatus || {};
     const k = t.kpis || {};
     const noHistory = t.noRealHistory || 'No real history yet';
+    const checkoutClicked = Number(m.checkoutClicked30d || 0);
+    const checkoutCompleted = Number(m.checkoutCompleted30d || 0);
+    const checkoutAbandoned = Math.max(0, checkoutClicked - checkoutCompleted);
+    const checkoutAbandonedSeries = [
+      { label: k.started || 'Started', value: checkoutClicked },
+      { label: k.abandoned || 'Abandoned', value: checkoutAbandoned },
+      { label: k.paid || 'Paid', value: checkoutCompleted },
+    ];
     return {
       users: [
         { id: 'active-now', label: k.activeNow || 'Active now', value: fmtInt(m.activeUsersNow), sub: k.last5Min || 'last 5 min', series: series['active-now'], seriesStatus: seriesStatus['active-now'], emptyChartMessage: noHistory, chartType: 'bar' },
@@ -482,7 +490,8 @@ export function AdminDashboard({ setPage, prevPage, logoutAdmin }) {
         { id: 'unlocks', label: k.unlocks || 'Unlocks', value: fmtInt(m.totalUnlocks), sub: (k.usersCount || '{count} users').replace('{count}', fmtInt(m.usersWithUnlocks)), series: series.unlocks, chartType: 'line' },
         { id: 'swipes-today', label: k.swipesToday || 'Swipes today', value: fmtInt(m.swipesToday), sub: k.last10Days || 'last 10 days', series: series['swipes-today'], chartType: 'bar' },
         { id: 'packs-revenue', label: k.packsRevenue || 'Packs revenue', value: fmtUsd(m.packRevenueUsdCents), sub: `${fmtInt(m.packPurchasesCompleted)} packs · ${fmtInt(m.nuggetsPurchased)} ${k.nuggets || 'nuggets'}`, series: series['packs-revenue'], chartFormatter: fmtUsd, chartType: 'line' },
-        { id: 'subscriptions', label: k.subscriptions || 'Subscriptions', value: fmtUsd(m.subscriptionRevenueUsdCents), sub: `${fmtInt(m.activeSubscriptions)} active`, series: series.subscriptions, chartType: 'line' },
+        { id: 'subscriptions', label: k.subscriptions || 'Subscriptions', value: fmtUsd(m.subscriptionRevenueUsdCents), sub: `${fmtInt(m.activeSubscriptions)} ${k.paidActive || 'paid active'}`, series: series.subscriptions, chartType: 'line' },
+        { id: 'abandoned-cart', label: k.abandonedCart || 'Abandoned cart', value: fmtInt(checkoutAbandoned), sub: `${fmtInt(checkoutCompleted)} ${k.paid || 'paid'} / ${fmtInt(checkoutClicked)} ${k.started || 'started'}`, series: checkoutAbandonedSeries, chartType: 'donut' },
         { id: 'manual-grants', label: k.manualGrants || 'Manual grants', value: fmtNuggets(m.manualNuggetsGranted), sub: `${fmtInt(m.manualNuggetsGrantedToday)} ${k.today || 'today'}`, series: series['manual-grants'], chartFormatter: fmtNuggets, chartType: 'bar' },
         { id: 'support-msgs', label: k.supportMsgs || 'Support msgs', value: fmtInt(m.supportMessagesToday), sub: k.last10Days || 'last 10 days', series: series['support-msgs'], chartType: 'bar' },
         { id: 'highlights', label: k.highlights || 'Highlights', value: fmtNuggets(m.highlightsNuggetsSpent), sub: `${fmtInt(m.highlightsActive)} active · ${fmtInt(m.highlightsPurchasedToday)} ${k.today || 'today'}`, series: series.highlights, chartFormatter: fmtNuggets, chartType: 'bar' },

@@ -4231,6 +4231,8 @@ export default function App() {
         // Trigger a portfolio refresh to ensure UI reflects server-side unlocks
         try { schedulePortfolioRealtimeRefresh(120); } catch (e) { void e; }
         // Navegar para Matches para visualizar o contato
+        setChatFocusTarget(matchedCard);
+        setChatFocusToken((v) => v + 1);
         setPage('matches');
       } catch (err) {
         // Rollback any optimistic updates
