@@ -9,7 +9,7 @@ import { useT } from '../i18n/translations';
 import { SmartImage } from '../components/ui/SmartImage';
 import { Icon } from '../components/ui/Icon';
 import { useMediaQuery } from '../hooks/useMediaQuery';
-import { getPortfolioItemCount, getPortfolioUnlockCost } from '../lib/unlockRules';
+import { getPortfolioItemCount, getPortfolioUnlockCost, getPropertyExclusivityStatus } from '../lib/unlockRules';
 
 const DEFAULT_CENTER = [39.5, -98.35];
 const DEFAULT_ZOOM = 4;
@@ -1297,6 +1297,7 @@ export function MapView({
   onUpdatePropertyCoords,
   userPreferences = null,
   activeSpotlightKeys = new Set(),
+  propertyUnlocks = [],
 }) {
   const allT = useT('mapview');
   const tMatches = allT.matches;
@@ -2966,11 +2967,12 @@ export function MapView({
               {spotlightVisibleItems.map((item) => {
               const isPerson = Boolean(item?.loc);
               const isOwnCard = !isPerson && String(item?.ownerId || '') === 'self';
+              const exclusivityStatus = !isPerson ? getPropertyExclusivityStatus(propertyUnlocks, item.id, currentUserId) : null;
               const isUnlockedCard = isPerson ? isUnlockedId(item.id) : isUnlockedId(item.ownerId);
               const neonTone = isOwnCard
                 ? MY_PINS_COLOR
                 : (isUnlockedCard ? UNLOCKED_PERSON_PIN : (isPerson ? C.accent : '#4381bc'));
-              const isLocked = isPerson ? !isUnlockedId(item.id) : false;
+              const isLocked = isPerson ? !isUnlockedId(item.id) : (exclusivityStatus?.kind === 'blocked' || !isUnlockedId(item.ownerId));
               const unlockCost = isPerson ? getUnlockCost(item.id) : 0;
               const portfolioCount = isPerson ? getPortfolioCount(item.id) : 0;
               return (
@@ -3002,9 +3004,16 @@ export function MapView({
                         <div style={{ color: C.t2, fontWeight: 700, fontSize: 13, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
                           {isPerson ? item.name : item.address}
                         </div>
-                        <div style={{ color: C.t2, fontSize: 12, marginTop: 4, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                          {isPerson ? `${item.type} · ${item.loc}` : `${item.type} · ${item.city}`}
-                        </div>
+                        <div style={{ color: C.t2, fontSize: 12, marginTop: 4, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', display: 'flex', gap: 6, alignItems: 'center' }}>
+                              <div style={{ minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                                {isPerson ? `${item.type} · ${item.loc}` : `${item.type} · ${item.city}`}
+                              </div>
+                              {!isPerson && exclusivityStatus?.kind === 'blocked' && (
+                                <div title="Exclusive lock active" style={{ display: 'inline-flex', alignItems: 'center', color: C.t2 }}>
+                                  <Icon name="lock" size={12} color={C.success} secondaryColor={C.gold} />
+                                </div>
+                              )}
+                            </div>
                       </div>
                     </div>
 

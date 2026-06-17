@@ -58,7 +58,7 @@ function LandingProfCard({ onClick }) {
             <div style={{ padding: '3px 9px', borderRadius: 8, background: 'rgba(0,0,0,0.04)', border: '1px solid #e2e8f0', fontSize: 10, color: '#94a3b8', display: 'flex', alignItems: 'center', gap: 4 }}>
               <Icon name="phone" size={10} color="#94a3b8" strokeWidth={1.6} />
               <span style={{ filter: 'blur(3px)', userSelect: 'none', letterSpacing: 1 }}>•••••••</span>
-              <Icon name="lock" size={9} color="#94a3b8" strokeWidth={1.8} />
+              <Icon name="lock" size={9} color={C.success} strokeWidth={1.8} secondaryColor={C.gold} />
             </div>
           </div>
           <p style={{ fontSize: 11, color: '#64748B', lineHeight: 1.5, margin: '0 0 8px', display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', overflow: 'hidden' }}>
@@ -71,7 +71,7 @@ function LandingProfCard({ onClick }) {
           </div>
           {/* Contact locked strip */}
           <div style={{ marginTop: 'auto', padding: '7px 10px', borderRadius: 10, background: 'rgba(234,179,8,0.06)', border: '1px solid rgba(234,179,8,0.25)', display: 'flex', alignItems: 'center', gap: 8 }}>
-            <Icon name="lock" size={14} color={C.gold} strokeWidth={2} />
+            <Icon name="lock" size={14} color={C.success} strokeWidth={2} secondaryColor={C.gold} />
             <div style={{ flex: 1 }}>
               <div style={{ fontWeight: 700, fontSize: 11, color: '#1e2d4d' }}>{t.previewContactLocked || 'Contact Locked'}</div>
               <div style={{ fontSize: 10, color: '#64748B' }}>{t.previewUnlockWith || 'Unlock with'} <span style={{ color: C.gold, fontWeight: 700 }}>3 {t.previewNuggets || 'nuggets'}</span></div>
@@ -125,7 +125,7 @@ function LandingPropCard({ onClick }) {
           </div>
           {/* Contact locked strip */}
           <div style={{ marginTop: 'auto', padding: '7px 10px', borderRadius: 10, background: 'rgba(234,179,8,0.06)', border: '1px solid rgba(234,179,8,0.25)', display: 'flex', alignItems: 'center', gap: 8 }}>
-            <Icon name="lock" size={14} color={C.gold} strokeWidth={2} />
+            <Icon name="lock" size={14} color={C.success} strokeWidth={2} secondaryColor={C.gold} />
             <div style={{ flex: 1 }}>
               <div style={{ fontWeight: 700, fontSize: 11, color: '#1e2d4d' }}>{t.previewContactLocked || 'Contact Locked'}</div>
               <div style={{ fontSize: 10, color: '#64748B' }}>{t.previewUnlockWith || 'Unlock with'} <span style={{ color: C.gold, fontWeight: 700 }}>3 {t.previewNuggets || 'nuggets'}</span></div>
@@ -278,7 +278,7 @@ function NuggetSwipeDemo() {
                     <div style={{ padding: '4px 9px', borderRadius: 8, background: 'rgba(0,0,0,0.04)', border: '1px solid #e2e8f0', display: 'flex', alignItems: 'center', gap: 5 }}>
                       <Icon name="phone" size={11} color="#94a3b8" strokeWidth={1.6} />
                       <span style={{ fontSize: 11, color: '#94a3b8', filter: 'blur(3px)', userSelect: 'none', letterSpacing: 1 }}>•••••••</span>
-                      <Icon name="lock" size={10} color="#94a3b8" strokeWidth={1.8} />
+                      <Icon name="lock" size={10} color={C.success} strokeWidth={1.8} secondaryColor={C.gold} />
                     </div>
                   </div>
 
@@ -294,7 +294,7 @@ function NuggetSwipeDemo() {
 
                   {/* Row 6: contact locked strip */}
                   <div style={{ marginTop: 10, padding: '7px 11px', borderRadius: 10, background: 'rgba(234,179,8,0.06)', border: '1px solid rgba(234,179,8,0.26)', display: 'flex', alignItems: 'center', gap: 8 }}>
-                    <Icon name="lock" size={15} color={C.gold} strokeWidth={2} />
+                    <Icon name="lock" size={15} color={C.success} strokeWidth={2} secondaryColor={C.gold} />
                     <div style={{ flex: 1 }}>
                       <div style={{ fontWeight: 700, fontSize: 11, color: '#1e2d4d' }}>{t.previewContactLocked || 'Contact Locked'}</div>
                       <div style={{ fontSize: 10, color: '#64748B' }}>{t.previewUnlockWith || 'Unlock with'} <span style={{ color: C.gold, fontWeight: 700 }}>{card.nuggets} {t.previewNuggets || 'nuggets'}</span></div>

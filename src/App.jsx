@@ -4076,7 +4076,28 @@ export default function App() {
       return;
     }
     if (nuggets >= unlockCost && card) {
-      let remoteUnlockRow = null;
+        // Snapshot local state so we can rollback if a later step fails
+        const prevStateSnapshot = {
+          nuggets,
+          unlocked: Array.isArray(unlocked) ? [...unlocked] : [],
+          propertyUnlocks: Array.isArray(propertyUnlocks) ? [...propertyUnlocks] : [],
+          matched: Array.isArray(matched) ? [...matched] : [],
+          interested: Array.isArray(interested) ? [...interested] : [],
+          purchases: Array.isArray(purchases) ? [...purchases] : [],
+        };
+
+        const restorePrevState = () => {
+          try {
+            setNuggets(prevStateSnapshot.nuggets);
+          } catch (e) { void e; }
+          try { setUnlocked(prevStateSnapshot.unlocked); } catch (e) { void e; }
+          try { setPropertyUnlocks(prevStateSnapshot.propertyUnlocks); } catch (e) { void e; }
+          try { setMatched(prevStateSnapshot.matched); } catch (e) { void e; }
+          try { setInterested(prevStateSnapshot.interested); } catch (e) { void e; }
+          try { setPurchases(prevStateSnapshot.purchases); } catch (e) { void e; }
+        };
+
+        let remoteUnlockRow = null;
       if (
         card.unlockScope === 'property'
         && card.propertyId
@@ -4128,72 +4149,97 @@ export default function App() {
       } else {
         setNuggets(n => n - unlockCost);
       }
-      setUnlocked((prev) => {
-        const next = Array.isArray(prev) ? [...prev] : [];
-        const candidates = [contactUnlockId, unlockOwnerId]
-          .map((value) => String(value || '').trim())
-          .filter(Boolean);
-        candidates.forEach((candidate) => {
-          if (!next.some((id) => String(id) === candidate)) next.push(candidate);
+      try {
+        setUnlocked((prev) => {
+          const next = Array.isArray(prev) ? [...prev] : [];
+          const candidates = [contactUnlockId, unlockOwnerId]
+            .map((value) => String(value || '').trim())
+            .filter(Boolean);
+          candidates.forEach((candidate) => {
+            if (!next.some((id) => String(id) === candidate)) next.push(candidate);
+          });
+          return next;
         });
-        return next;
-      });
-      incrementPlanUsage('month', 'unlocks');
-      if (card.unlockScope === 'property' && card.propertyId) {
-        setPropertyUnlocks((prev) => {
-          const alreadyNormal = unlockMode === 'normal' && prev.some((row) => (
-            String(row?.propertyId) === String(card.propertyId)
-            && String(row?.buyerId) === String(supabaseUserId || 'local-user')
-            && row?.mode === 'normal'
-          ));
-          if (alreadyNormal) return prev;
-          return [
-            ...prev,
-            createPropertyUnlockRecord({
+        incrementPlanUsage('month', 'unlocks');
+        if (card.unlockScope === 'property' && card.propertyId) {
+          setPropertyUnlocks((prev) => {
+            const alreadyNormal = unlockMode === 'normal' && prev.some((row) => (
+              String(row?.propertyId) === String(card.propertyId)
+              && String(row?.buyerId) === String(supabaseUserId || 'local-user')
+              && row?.mode === 'normal'
+            ));
+            if (alreadyNormal) return prev;
+            const baseRecord = createPropertyUnlockRecord({
               propertyId: card.propertyId,
               ownerId: unlockOwnerId,
               buyerId: supabaseUserId || 'local-user',
               mode: unlockMode,
               cost: Number(remoteUnlockRow?.total_cost || unlockCost),
-            }),
-          ];
+            });
+            const merged = { ...baseRecord };
+            if (remoteUnlockRow) {
+              merged.id = remoteUnlockRow.unlock_id || remoteUnlockRow.id || merged.id;
+              try {
+                if (remoteUnlockRow.created_at) merged.createdAt = Number(Date.parse(String(remoteUnlockRow.created_at)));
+              } catch (e) { /* noop */ }
+              try {
+                if (remoteUnlockRow.expires_at) merged.expiresAt = Number(Date.parse(String(remoteUnlockRow.expires_at)));
+              } catch (e) { /* noop */ }
+            }
+            return [
+              ...prev,
+              merged,
+            ];
+          });
+        }
+
+        // Ensure unlocked contact stays available in Matches module.
+        const matchedCard = { ...card, id: contactUnlockId, ownerId: unlockOwnerId || card.ownerId || contactUnlockId };
+        setMatched((prev) => {
+          const current = Array.isArray(prev) ? prev : [];
+          const filtered = current.filter((item) => {
+            const itemId = String(item?.id || '');
+            const itemOwnerId = String(item?.ownerId || '');
+            return itemId !== String(contactUnlockId) && itemOwnerId !== String(unlockOwnerId || '');
+          });
+          return [...filtered, matchedCard];
         });
+        // Auto-add ALL active properties of this contact to `interested` so the
+        // full portfolio appears in the Interests column immediately after unlock.
+        const allProps = unlockPortfolioProperties || [];
+        const contactProps = allProps.filter(
+          (p) => String(p.ownerId) === String(unlockOwnerId) && isTruthyFlag(p?.isActive, true)
+        );
+        if (contactProps.length > 0) {
+          setInterested(prev => {
+            const existingIds = new Set(prev.map((x) => String(x.id)));
+            const newItems = contactProps.filter((p) => !existingIds.has(String(p.id)));
+            return newItems.length ? [...prev, ...newItems] : prev;
+          });
+        }
+        // Record purchase: current user buys this contact
+        setPurchases(prev => 
+          prev.some(p => String(p.sellerId) === String(unlockOwnerId))
+            ? prev 
+            : [...prev, { sellerId: unlockOwnerId }]
+        );
+        setModal(null);
+        setUnlockQuote(null);
+        window.setTimeout(() => { void fetchRemoteUnlockState(); }, 0);
+        // Retry remote state hydration shortly after to cover eventual consistency delays
+        window.setTimeout(() => { void fetchRemoteUnlockState(); }, 2000);
+        // Trigger a portfolio refresh to ensure UI reflects server-side unlocks
+        try { schedulePortfolioRealtimeRefresh(120); } catch (e) { void e; }
+        // Navegar para Matches para visualizar o contato
+        setPage('matches');
+      } catch (err) {
+        // Rollback any optimistic updates
+        restorePrevState();
+        addToast({ type: 'error', title: 'Unlock failed', message: 'Could not complete unlock. Your balance has been restored.' });
+        setModal(null);
+        setUnlockQuote(null);
+        return;
       }
-      // Ensure unlocked contact stays available in Matches module.
-      const matchedCard = { ...card, id: contactUnlockId, ownerId: unlockOwnerId || card.ownerId || contactUnlockId };
-      setMatched((prev) => {
-        const current = Array.isArray(prev) ? prev : [];
-        const filtered = current.filter((item) => {
-          const itemId = String(item?.id || '');
-          const itemOwnerId = String(item?.ownerId || '');
-          return itemId !== String(contactUnlockId) && itemOwnerId !== String(unlockOwnerId || '');
-        });
-        return [...filtered, matchedCard];
-      });
-      // Auto-add ALL active properties of this contact to `interested` so the
-      // full portfolio appears in the Interests column immediately after unlock.
-      const allProps = unlockPortfolioProperties || [];
-      const contactProps = allProps.filter(
-        (p) => String(p.ownerId) === String(unlockOwnerId) && isTruthyFlag(p?.isActive, true)
-      );
-      if (contactProps.length > 0) {
-        setInterested(prev => {
-          const existingIds = new Set(prev.map((x) => String(x.id)));
-          const newItems = contactProps.filter((p) => !existingIds.has(String(p.id)));
-          return newItems.length ? [...prev, ...newItems] : prev;
-        });
-      }
-      // Record purchase: current user buys this contact
-      setPurchases(prev => 
-        prev.some(p => String(p.sellerId) === String(unlockOwnerId))
-          ? prev 
-          : [...prev, { sellerId: unlockOwnerId }]
-      );
-      setModal(null);
-      setUnlockQuote(null);
-      window.setTimeout(() => { void fetchRemoteUnlockState(); }, 0);
-      // Navegar para Matches para visualizar o contato
-      setPage('matches');
     } else {
       addToast({ type: 'warning', title: 'Nuggets insuficientes', message: `Você precisa de ${unlockCost} nugget(s) para desbloquear este contato. Vá para Pricing para escolher um upgrade de plano ou pacote extra de nuggets.` });
       setModal(null);
@@ -4385,6 +4431,7 @@ export default function App() {
             setPage={setPage}
             showcaseProperties={showcaseProperties}
             propertyPortfolio={propertyPortfolio}
+            propertyUnlocks={propertyUnlocks}
             servicePortfolio={globalServicePortfolio}
             userProfile={userProfile}
             currentUserId={supabaseUserId || 'local-user'}

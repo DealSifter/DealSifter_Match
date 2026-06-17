@@ -86,9 +86,22 @@ function readScopedProfileFallback(scope = 'personal') {
   }
 }
 
-const PortfolioItem = ({ p, onOpen }) => {
+const PortfolioItem = ({ p, onOpen, exclusivityStatus = null, ownerVerified = false, isHot = false, openUnlock = null, getUnlockCost = null, nuggets = 0, setModal = null }) => {
   const [idx, setIdx] = useState(0);
   const imgs = p.images || [p.image];
+  const handleLockClick = (e) => {
+    e.stopPropagation();
+    try {
+      const cost = (typeof getUnlockCost === 'function') ? getUnlockCost(p.ownerId) : 1;
+      if (typeof openUnlock === 'function') {
+        if (Number.isFinite(nuggets) && Number(nuggets) < Number(cost)) {
+          if (typeof setModal === 'function') setModal('store');
+          return;
+        }
+        openUnlock(p, { unlockScope: 'property', property: p, propertyId: p.id, propertyAddress: p.address });
+      }
+    } catch (err) { void err; }
+  };
   return (
     <div 
       draggable 
@@ -112,6 +125,22 @@ const PortfolioItem = ({ p, onOpen }) => {
            {imgs.map((_, i) => (
              <div key={i} style={{ flex:1, height:2, background: idx===i?"#fff":"rgba(255,255,255,0.4)", borderRadius:10 }} />
            ))}
+        </div>
+        {/* Inline icons area (top-right): HOT, Verified, Exclusive lock */}
+        <div style={{ position: 'absolute', top: 6, right: 6, display: 'inline-flex', alignItems: 'center', gap: 6, pointerEvents: 'auto' }}>
+          {isHot ? (
+            <span style={{ display:'inline-flex', alignItems:'center', lineHeight:1, fontSize:12 }}>🔥</span>
+          ) : null}
+          {ownerVerified ? (
+            <span style={{ display:'inline-flex', alignItems:'center', lineHeight:1 }}>
+              <Icon name="shieldCheck" size={11} color={C.accent} strokeWidth={2.45} />
+            </span>
+          ) : null}
+          {exclusivityStatus ? (
+            <button type="button" onClick={handleLockClick} aria-label={exclusivityStatus.kind === 'blocked' ? 'Locked' : 'Exclusive owned'} style={{ display:'inline-flex', alignItems:'center', justifyContent:'center', background:'transparent', border:'none', padding:0, cursor:'pointer' }}>
+              <Icon name="lock" size={12} color={C.success} strokeWidth={2.2} secondaryColor={C.gold} />
+            </button>
+          ) : null}
         </div>
       </div>
       <div style={{ padding:8 }}>
@@ -2482,7 +2511,9 @@ export function MatchesPage({ nuggets, setModal, openUnlock, unlocked, initialCh
                         </div>
                       </div>
                       <button
-                        onClick={(e) => { e.stopPropagation(); if(active?.id === m.id) setActive(null); setMatched(p=>p.filter(x=>x.id!==m.id)); }}
+                        type="button"
+                        onPointerDown={(e) => { e.preventDefault(); e.stopPropagation(); if(active?.id === m.id) setActive(null); setMatched(p => p.filter(x => x.id !== m.id)); }}
+                        onClick={(e) => { e.stopPropagation(); if(active?.id === m.id) setActive(null); setMatched(p => p.filter(x => x.id !== m.id)); }}
                         style={{
                           width: 16,
                           height: 16,
@@ -2586,7 +2617,9 @@ export function MatchesPage({ nuggets, setModal, openUnlock, unlocked, initialCh
                         </div>
                       </div>
                       <button
-                        onClick={(e) => { e.stopPropagation(); if(active?.id === p.id) setActive(null); setInterested(prev=>prev.filter(x=>x.id!==p.id)); }}
+                        type="button"
+                        onPointerDown={(e) => { e.preventDefault(); e.stopPropagation(); if(active?.id === p.id) setActive(null); setInterested(prev => prev.filter(x => x.id !== p.id)); }}
+                        onClick={(e) => { e.stopPropagation(); if(active?.id === p.id) setActive(null); setInterested(prev => prev.filter(x => x.id !== p.id)); }}
                         style={{
                           width: 16,
                           height: 16,
@@ -2648,7 +2681,7 @@ export function MatchesPage({ nuggets, setModal, openUnlock, unlocked, initialCh
                   {t.backToMatches || 'Back to Matches'}
                 </button>
               ) : null}
-              <Icon name="lock" size={64} color={C.gold} style={{ marginBottom:20 }} />
+              <Icon name="lock" size={64} color={C.success} secondaryColor={C.gold} style={{ marginBottom:20 }} />
               <h3 style={{ fontSize:22, fontWeight:800, marginBottom:10 }}>{t.chatLocked}</h3>
               <p style={{ color:C.t3, maxWidth:360, marginBottom:30 }}>
                 {formatTemplate(t.unlockCostInfo, {
@@ -3003,9 +3036,26 @@ export function MatchesPage({ nuggets, setModal, openUnlock, unlocked, initialCh
                       (portfolioItems.length > 0) ? (
                         <>
                           <div style={{ display:"grid", gridTemplateColumns:"repeat(2, minmax(0, 1fr))", gap:PORTFOLIO_GRID_GAP }}>
-                            {(portfolioShowAll ? portfolioItems : portfolioItems.slice(0, 4)).map(p => (
-                              <PortfolioItem key={p.id} p={p} onOpen={isMobile ? setMobileCardSheet : setSelectedPortfolioItem} />
-                            ))}
+                            {(portfolioShowAll ? portfolioItems : portfolioItems.slice(0, 4)).map(p => {
+                              const exclusivityStatus = (typeof getPropertyExclusiveStatus === 'function') ? getPropertyExclusiveStatus(p.id) : null;
+                              const ownerCard = (allMatched || []).find(c => String(c.ownerId || c.id) === String(p.ownerId)) || CARDS.find(c => String(c.id) === String(p.ownerId));
+                              const ownerVerified = Boolean(ownerCard && (ownerCard.verified === true || String(ownerCard.verified).toLowerCase() === 'verified'));
+                              const isHot = false;
+                              return (
+                                <PortfolioItem
+                                  key={p.id}
+                                  p={p}
+                                  onOpen={isMobile ? setMobileCardSheet : setSelectedPortfolioItem}
+                                  exclusivityStatus={exclusivityStatus}
+                                  ownerVerified={ownerVerified}
+                                  isHot={isHot}
+                                  openUnlock={openUnlock}
+                                  getUnlockCost={getUnlockCost}
+                                  nuggets={nuggets}
+                                  setModal={setModal}
+                                />
+                              );
+                            })}
                           </div>
                           {portfolioItems.length > 4 && (
                             <button

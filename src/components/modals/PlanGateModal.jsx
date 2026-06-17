@@ -18,7 +18,7 @@ export function PlanGateModal({ gate, onClose, onUpgrade }) {
           background: C.alpha(C.accent, 0.12),
           border: `1px solid ${C.alpha(C.accent, 0.45)}`,
         }}>
-          <Icon name="lock" size={22} color={C.accent} />
+          <Icon name="lock" size={22} color={C.success} secondaryColor={C.gold} />
         </div>
         <div>
           <div style={{ fontSize: 22, lineHeight: 1.15, fontWeight: 900, color: C.t1, marginBottom: 8 }}>

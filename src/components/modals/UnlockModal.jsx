@@ -60,7 +60,7 @@ export function UnlockModal({ match, nuggets, unlockCost = 1, exclusivityStatus 
         }
       `}</style>
       <div className="ds-unlock-body" style={{ textAlign:"center" }}>
-        <div className="unlock-lock-icon" style={{ display:"flex", justifyContent:"center", marginBottom:16 }}><Icon name="lock" size={48} color={C.gold} strokeWidth={1.5} /></div>
+        <div className="unlock-lock-icon" style={{ display:"flex", justifyContent:"center", marginBottom:16 }}><Icon name="lock" size={48} color={C.success} strokeWidth={1.5} secondaryColor={C.gold} /></div>
         <h3 style={{ color:C.t1, fontWeight:800, fontSize:22, marginBottom:8 }}>{t.unlockTitle} {match.name}</h3>
         <p style={{ color:C.t2, fontSize:14, lineHeight:1.6, marginBottom: canBuyExclusive || isBlockedByExclusive ? 12 : 24, padding: "0 10px" }}>
           {isBlockedByExclusive

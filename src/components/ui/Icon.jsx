@@ -1,9 +1,10 @@
 import React from 'react';
 
 // ── SVG Icon System (line-only, minimal) ─────────────────────────────────────
-export const Icon = ({ name, size=18, color="currentColor", strokeWidth=1.5 }) => {
+export const Icon = ({ name, size=18, color="currentColor", strokeWidth=1.5, secondaryColor = null }) => {
   const s = { width:size, height:size, display:"inline-block", flexShrink:0 };
   const p = { fill:"none", stroke:color, strokeWidth, strokeLinecap:"round", strokeLinejoin:"round" };
+  const boltFill = secondaryColor || '#FFD23F';
   const icons = {
     // Nav & UI
     menu:       <svg style={s} viewBox="0 0 24 24"><line {...p} x1="3" y1="6"  x2="21" y2="6"/><line {...p} x1="3" y1="12" x2="21" y2="12"/><line {...p} x1="3" y1="18" x2="21" y2="18"/></svg>,
@@ -16,7 +17,11 @@ export const Icon = ({ name, size=18, color="currentColor", strokeWidth=1.5 }) =
     copy:       <svg style={s} viewBox="0 0 24 24"><rect {...p} x="9" y="9" width="13" height="13" rx="2"/><path {...p} d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>,
     check:      <svg style={s} viewBox="0 0 24 24"><polyline {...p} points="20 6 9 17 4 12"/></svg>,
     // Locks
-    lock:       <svg style={s} viewBox="0 0 24 24"><rect {...p} x="3" y="11" width="18" height="11" rx="2"/><path {...p} d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>,
+    lock:       <svg style={s} viewBox="0 0 24 24">
+                  <rect {...p} x="3" y="11" width="18" height="11" rx="2"/>
+                  <path {...p} d="M7 11V7a5 5 0 0 1 10 0v4"/>
+                  <polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2" fill={boltFill} transform="translate(0,2) scale(0.6)" />
+                </svg>,
     unlock:     <svg style={s} viewBox="0 0 24 24"><rect {...p} x="3" y="11" width="18" height="11" rx="2"/><path {...p} d="M7 11V7a5 5 0 0 1 9.9-1"/></svg>,
     hourglass:  <svg style={s} viewBox="0 0 24 24"><path {...p} d="M6 2h12"/><path {...p} d="M6 22h12"/><path {...p} d="M8 2v5.5c0 1.2.5 2.3 1.4 3.1L12 13l2.6-2.4c.9-.8 1.4-1.9 1.4-3.1V2"/><path {...p} d="M8 22v-5.5c0-1.2.5-2.3 1.4-3.1L12 11l2.6 2.4c.9.8 1.4 1.9 1.4 3.1V22"/></svg>,
     logOut:     <svg style={s} viewBox="0 0 24 24"><path {...p} d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline {...p} points="16 17 21 12 16 7"/><line {...p} x1="21" y1="12" x2="9" y2="12"/></svg>,

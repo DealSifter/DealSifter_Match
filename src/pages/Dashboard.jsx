@@ -3585,7 +3585,7 @@ export function Dashboard({ page, nuggets, setModal, setPage, onOpenOnboardingTa
                             borderRadius: 22,
                             boxShadow: isSponsored ? `0 0 0 2px ${C.alpha(C.accent, 0.85)}, 0 0 22px ${C.alpha(C.accent, 0.62)}` : 'none',
                           }}>
-                            <SwipeCard card={{ ...c, portfolioCount: getPortfolioCount(c.ownerId ?? c.id) }} action={isTop ? action : null} isUnlocked={isContactUnlocked(c)} isSkipped={skippedSet.has(c.id)} onSwipe={act} onUndo={lastConnOp && isTop ? undo : null} onUnlock={act} showActions={!isMobileViewport} />
+                            <SwipeCard card={{ ...c, portfolioCount: getPortfolioCount(c.ownerId ?? c.id) }} action={isTop ? action : null} isUnlocked={isContactUnlocked(c)} isSkipped={skippedSet.has(c.id)} onSwipe={act} onUndo={lastConnOp && isTop ? undo : null} onUnlock={openUnlockFromConnectionCard} showActions={!isMobileViewport} />
                           </div>
                         </div>
                       );
@@ -3666,6 +3666,7 @@ export function Dashboard({ page, nuggets, setModal, setPage, onOpenOnboardingTa
                               hotMetrics={hotMetrics}
                               exclusivityStatus={exclusivityStatus}
                               showActions={!isMobileViewport}
+                              onUnlock={openUnlock}
                             />
                           </div>
                         </div>
@@ -3727,7 +3728,8 @@ export function Dashboard({ page, nuggets, setModal, setPage, onOpenOnboardingTa
                 <button
                   type="button"
                   className="ds-mobile-action-btn"
-                  onClick={handleMobileUnlockAction}
+                  onPointerDown={(e) => { try { e.preventDefault(); e.stopPropagation(); } catch (err) { /* noop */ } handleMobileUnlockAction(); }}
+                  onClick={(e) => { e.stopPropagation(); handleMobileUnlockAction(); }}
                   disabled={!mobileCanAct}
                   title={view === 'connections' ? 'Unlock' : 'Interest'}
                   style={{ border: `1.5px solid ${C.gold}`, background: C.alpha(C.gold, 0.08) }}
@@ -3855,11 +3857,7 @@ export function Dashboard({ page, nuggets, setModal, setPage, onOpenOnboardingTa
                     </div>
                   )}
                 </div>
-                <button onClick={(e) => { 
-                  e.stopPropagation(); 
-                  setMatched(prev => prev.filter(x => x.id !== m.id));
-                  setConnDeck(d => [m.id, ...d]); // Return to deck
-                }}
+                <button type="button" onPointerDown={(e) => { try { e.preventDefault(); e.stopPropagation(); } catch (err) { /* noop */ } setMatched(prev => prev.filter(x => x.id !== m.id)); setConnDeck(d => [m.id, ...d]); }} onClick={(e) => { e.stopPropagation(); setMatched(prev => prev.filter(x => x.id !== m.id)); setConnDeck(d => [m.id, ...d]); }}
                   style={{
                     width: 16,
                     height: 16,
@@ -3972,11 +3970,7 @@ export function Dashboard({ page, nuggets, setModal, setPage, onOpenOnboardingTa
                       {matchesT.by} {propOwner?.name || "..."}
                     </div>
                   </div>
-                  <button onClick={(e) => { 
-                    e.stopPropagation(); 
-                    setInterested(prev => prev.filter(x => x.id !== m.id));
-                    setPropDeck(d => [m.id, ...d]); // Return to deck
-                  }}
+                  <button type="button" onPointerDown={(e) => { try { e.preventDefault(); e.stopPropagation(); } catch (err) { /* noop */ } setInterested(prev => prev.filter(x => x.id !== m.id)); setPropDeck(d => [m.id, ...d]); }} onClick={(e) => { e.stopPropagation(); setInterested(prev => prev.filter(x => x.id !== m.id)); setPropDeck(d => [m.id, ...d]); }}
                     style={{
                       width: 16,
                       height: 16,

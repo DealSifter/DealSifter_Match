@@ -242,6 +242,25 @@ function SwipeCard({ card, action, isUnlocked, isSkipped, onSwipe, onUndo, onUnl
             MATCH
           </span>
         ) : null}
+        {card?.isVerified ? (
+          <span style={{
+            position: 'absolute',
+            top: 10,
+            right: showMatchBadge ? 44 : 10,
+            zIndex: 13,
+            display: 'inline-flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            width: 22,
+            height: 22,
+            background: 'rgba(255,255,255,0.92)',
+            borderRadius: 999,
+            boxShadow: '0 3px 8px rgba(0,0,0,0.12)',
+            pointerEvents: 'none',
+          }}>
+            <Icon name="shieldCheck" size={12} color={C.accent} strokeWidth={2.35} />
+          </span>
+        ) : null}
       </div>
       {/* ── RIGHT: info column ── */}
       <div style={{ position: 'relative', padding: isMobileLayout ? '11px 11px 12px' : '13px', flex: 1, display: 'flex', flexDirection: 'column', boxSizing: 'border-box' }}>
@@ -341,7 +360,7 @@ function SwipeCard({ card, action, isUnlocked, isSkipped, onSwipe, onUndo, onUnl
                 }}>
                   ••• •••••••
                 </span>
-                <Icon name="lock" size={10} color={C.t2} strokeWidth={1.8} />
+                <Icon name="lock" size={10} color={C.success} strokeWidth={1.8} secondaryColor={C.gold} />
               </>
             )}
           </div>
@@ -373,7 +392,7 @@ function SwipeCard({ card, action, isUnlocked, isSkipped, onSwipe, onUndo, onUnl
                 }}>
                   ••• •••••••
                 </span>
-                <Icon name="lock" size={10} color={C.t2} strokeWidth={1.8} />
+                <Icon name="lock" size={10} color={C.success} strokeWidth={1.8} secondaryColor={C.gold} />
               </>
             )}
           </div>
@@ -431,9 +450,10 @@ function SwipeCard({ card, action, isUnlocked, isSkipped, onSwipe, onUndo, onUnl
             </button>
 
             <button
-              onClick={() => {
+              onPointerDown={(e) => {
+                try { e.preventDefault(); e.stopPropagation(); } catch (err) { /* best-effort */ }
                 if (isUnlocked) return;
-                if (typeof onUnlock === 'function') onUnlock('unlock');
+                if (typeof onUnlock === 'function') onUnlock(card);
                 else onSwipe('unlock');
               }}
               title={isUnlocked ? mt.unlocked : mt.unlock}

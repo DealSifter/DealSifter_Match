@@ -8,7 +8,7 @@ import { useMediaQuery } from '../../hooks/useMediaQuery';
 import { formatPropertyLocation } from '../../lib/formatPropertyLocation';
 import { getPendingDealRemainingDays, isPendingDealActive } from '../../lib/pendingDeal';
 
-export function PropertyCard({ property, action, statusAction, onInterest, owner, isSkipped = false, previewOnly = false, hotMetrics = null, exclusivityStatus = null, onAvatarClick, showActions = true }) {
+export function PropertyCard({ property, action, statusAction, onInterest, owner, isSkipped = false, previewOnly = false, hotMetrics = null, exclusivityStatus = null, onAvatarClick, onUnlock = null, showActions = true }) {
   const t = useT('dashboard').cards;
   const isMobileLayout = useMediaQuery('(max-width: 767px)');
   // Card do perfil está em stand by (esmaecido)?
@@ -814,7 +814,15 @@ export function PropertyCard({ property, action, statusAction, onInterest, owner
                 <Icon name="close" size={16} color={C.danger} strokeWidth={2.2} />
               </button>
 
-              <button onClick={() => onInterest('interest')} title={t.interested} style={{
+              <button onClick={(e) => {
+                  e.stopPropagation();
+                  // If property is currently under an active exclusivity lock, open unlock flow instead
+                  if (showActiveExclusivityLock || (exclusivityStatus && ['blocked','owned'].includes(exclusivityStatus.kind))) {
+                    if (typeof onUnlock === 'function') onUnlock(property);
+                    return;
+                  }
+                  if (typeof onInterest === 'function') onInterest('interest');
+                }} title={t.interested} style={{
                 width: 38, height: 38, borderRadius: '50%',
                 border: `1.5px solid ${C.gold}`,
                 background: C.alpha(C.gold, 0.08),
