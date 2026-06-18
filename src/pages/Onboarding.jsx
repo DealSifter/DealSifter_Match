@@ -3941,6 +3941,8 @@ export function Onboarding({
                                   background: isTruthyFlag(p.publishToShowcase, true) ? C.alpha(C.danger, 0.08) : C.alpha(C.accent, 0.1),
                                   border: `1px solid ${isTruthyFlag(p.publishToShowcase, true) ? C.danger : C.accent}`,
                                   color: isTruthyFlag(p.publishToShowcase, true) ? C.danger : C.accent,
+                                  fontSize: isPhoneViewport ? 9 : 11,
+                                  padding: isPhoneViewport ? '5px 8px' : undefined,
                                 }}>
                                   {isTruthyFlag(p.publishToShowcase, true) ? t.publishInShowcaseInactive : t.publishInShowcaseActive}
                                 </Chip>
@@ -4517,6 +4519,8 @@ export function Onboarding({
                                   background: isTruthyFlag(p.publishToShowcase, true) ? C.alpha(C.danger, 0.08) : C.alpha(C.accent, 0.1),
                                   border: `1px solid ${isTruthyFlag(p.publishToShowcase, true) ? C.danger : C.accent}`,
                                   color: isTruthyFlag(p.publishToShowcase, true) ? C.danger : C.accent,
+                                  fontSize: isPhoneViewport ? 9 : 11,
+                                  padding: isPhoneViewport ? '5px 8px' : undefined,
                                 }}>
                                   {isTruthyFlag(p.publishToShowcase, true) ? t.publishInShowcaseInactive : t.publishInShowcaseActive}
                                 </Chip>
@@ -5094,23 +5098,31 @@ export function Onboarding({
         {previewOpen ? (
         <Modal
           onClose={() => setPreviewOpen(false)}
-          maxWidth={1320}
-          contentStyle={isMobileViewport ? { overflowY: 'auto', WebkitOverflowScrolling: 'touch', touchAction: 'pan-y' } : {}}
+          maxWidth={isMobileViewport ? 820 : 1480}
+          overlayStyle={isMobileViewport ? {} : { zIndex: 20000 }}
+          contentStyle={isMobileViewport
+            ? { overflowY: 'auto', WebkitOverflowScrolling: 'touch', touchAction: 'pan-y' }
+            : { overflow: 'hidden', maxHeight: 'min(92dvh, 920px)' }}
         >
-          <h3 style={{ margin: '0 0 6px', color: C.t1, fontSize: 20, fontWeight: 800 }}>{t.previewTitle}</h3>
-          <p style={{ margin: '0 0 14px', color: C.t3, fontSize: 12 }}>
-            {t.previewSubtitle}
-          </p>
+          <div style={{ display: 'grid', gap: 10, paddingRight: isMobileViewport ? 2 : 0 }}>
+            <div style={{ display: 'flex', flexWrap: isMobileViewport ? 'wrap' : 'nowrap', alignItems: 'center', justifyContent: 'space-between', gap: 10, paddingRight: 30 }}>
+              <div style={{ minWidth: 0 }}>
+                <h3 style={{ margin: 0, color: C.t1, fontSize: isMobileViewport ? 20 : 18, fontWeight: 800 }}>{t.previewTitle}</h3>
+                <p style={{ margin: '4px 0 0', color: C.t3, fontSize: 12 }}>
+                  {t.previewSubtitle}
+                </p>
+              </div>
+              <div style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'flex-end', gap: 8, flexWrap: 'wrap', marginLeft: 'auto' }}>
+                <button onClick={() => setPreviewOpen(false)} style={{ padding: '8px 12px', borderRadius: 9, border: `1px solid ${C.border}`, background: 'transparent', color: C.t2, fontWeight: 700, cursor: 'pointer', fontSize: 12 }}>
+                  {t.previewBackToEdit}
+                </button>
+                <button onClick={() => { setPreviewOpen(false); publishRegistration(); }} style={{ padding: '8px 12px', borderRadius: 9, border: 'none', background: C.accent, color: '#fff', fontWeight: 700, cursor: 'pointer', fontSize: 12 }}>
+                  {t.previewConfirmPublish}
+                </button>
+              </div>
+            </div>
 
             {renderPreviewContent()}
-
-          <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 8, marginTop: 14, background: C.card, paddingTop: 10, paddingBottom: 4, borderTop: `1px solid ${C.border}`, flexWrap: 'wrap' }}>
-            <button onClick={() => setPreviewOpen(false)} style={{ padding: '8px 12px', borderRadius: 9, border: `1px solid ${C.border}`, background: 'transparent', color: C.t2, fontWeight: 700, cursor: 'pointer', fontSize: 12 }}>
-              {t.previewBackToEdit}
-            </button>
-            <button onClick={() => { setPreviewOpen(false); publishRegistration(); }} style={{ padding: '8px 12px', borderRadius: 9, border: 'none', background: C.accent, color: '#fff', fontWeight: 700, cursor: 'pointer', fontSize: 12 }}>
-              {t.previewConfirmPublish}
-            </button>
           </div>
         </Modal>
       ) : null}
