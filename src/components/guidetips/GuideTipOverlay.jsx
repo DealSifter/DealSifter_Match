@@ -1,7 +1,7 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { C } from '../../theme/colors';
 import { Icon } from '../ui/Icon';
-import { useGuideTips } from './GuideTipsProvider';
+import { useGuideTips } from './useGuideTips';
 import { useT } from '../../i18n/translations';
 
 const getRect = (selector) => {
@@ -22,10 +22,6 @@ export function GuideTipOverlay({ page }) {
   const [rect, setRect] = useState(null);
 
   const step = steps[index] || null;
-
-  useEffect(() => {
-    setIndex(0);
-  }, [page]);
 
   useEffect(() => {
     if (!enabled || !step) return undefined;

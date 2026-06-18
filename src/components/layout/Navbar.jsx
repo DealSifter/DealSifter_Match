@@ -10,7 +10,7 @@ import appLogo from '../../assets/logo.png';
 import feedMatchIcon from '../../assets/feed-match-icon.png';
 import mapViewTaskbarIcon from '../../assets/taskbar-mapview-icon.png';
 import matchesTaskbarIcon from '../../assets/taskbar-matches-icon.png';
-import { useGuideTips } from '../guidetips/GuideTipsProvider';
+import { useGuideTips } from '../guidetips/useGuideTips';
 
 const LANGS = [
   { code: 'en-US', label: 'EN' },

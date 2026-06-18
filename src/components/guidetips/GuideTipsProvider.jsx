@@ -1,8 +1,8 @@
-import React, { createContext, useCallback, useContext, useEffect, useMemo, useState } from 'react';
+import React, { createContext, useCallback, useEffect, useMemo, useState } from 'react';
 
 const STORAGE_KEY = 'ds_guidetips_enabled';
 
-const GuideTipsContext = createContext({
+export const GuideTipsContext = createContext({
   enabled: false,
   setEnabled: () => {},
   toggle: () => {},
@@ -48,5 +48,3 @@ export function GuideTipsProvider({ children }) {
     </GuideTipsContext.Provider>
   );
 }
-
-export const useGuideTips = () => useContext(GuideTipsContext);

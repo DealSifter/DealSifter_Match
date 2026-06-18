@@ -4574,7 +4574,7 @@ export default function App() {
           onInstallApp={handleInstallApp}
           userPreferences={userPreferences}
         />
-        <GuideTipOverlay page={page} />
+        <GuideTipOverlay key={page} page={page} />
         <Suspense fallback={<div style={{ minHeight: '60vh' }} />}>
           {(() => {
             const keepAlivePages = new Set(['dashboard', 'mapview', 'matches', 'onboarding']);
