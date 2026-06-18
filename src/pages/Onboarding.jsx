@@ -463,9 +463,18 @@ export function Onboarding({
     const timer = window.setTimeout(() => setPreviewPropertyIndex(0), 0);
     return () => window.clearTimeout(timer);
   }, [previewPropertyIndex, previewPropertiesCount]);
+  const dedupePreviewRecords = useCallback((records, fallbackPrefix) => {
+    const seen = new Set();
+    return (records || []).filter((record, index) => {
+      const key = String(record?.id || `${fallbackPrefix}:${record?.title || record?.address || index}`).trim();
+      if (!key || seen.has(key)) return false;
+      seen.add(key);
+      return true;
+    });
+  }, []);
   const propertiesForPreview = useMemo(
-    () => (myPortfolio || []).filter((p) => isPropertyVisibleInPreview(p)),
-    [myPortfolio]
+    () => dedupePreviewRecords((myPortfolio || []).filter((p) => isPropertyVisibleInPreview(p)), 'property'),
+    [myPortfolio, dedupePreviewRecords]
   );
 
   useEffect(() => {
@@ -481,8 +490,8 @@ export function Onboarding({
     [servicePortfolio, accountType]
   );
   const servicesForPreview = useMemo(() => (
-    (myServicePortfolio || []).filter((s) => isServiceVisibleInPreview(s))
-  ), [myServicePortfolio]);
+    dedupePreviewRecords((myServicePortfolio || []).filter((s) => isServiceVisibleInPreview(s)), 'service')
+  ), [myServicePortfolio, dedupePreviewRecords]);
   const _servicePortfolioImages = useMemo(() => servicesForPreview.flatMap((s) => {
     const base = (s.media?.images || []).filter(Boolean).map((src) => ({ src, title: s.title }));
     const archived = (showArchivedImages[s.id] ? (s.media?.archivedImages || []).filter(Boolean).map((src) => ({ src, title: s.title })) : []);
@@ -577,6 +586,7 @@ export function Onboarding({
   }, [settlePreviewShowcaseIndex]);
 
   const handlePreviewShowcaseScroll = (event) => {
+    if (previewShowcaseTouchActiveRef.current) return;
     const container = event.currentTarget;
     queuePreviewShowcaseSettle(container, 90);
   };
@@ -588,7 +598,7 @@ export function Onboarding({
 
   const handlePreviewShowcaseTouchEnd = (event) => {
     const container = event.currentTarget;
-    queuePreviewShowcaseSettle(container, 24);
+    queuePreviewShowcaseSettle(container, 80);
   };
 
   useEffect(() => {
@@ -607,7 +617,7 @@ export function Onboarding({
     if (!container) return;
     const width = container.clientWidth || 0;
     if (!width) return;
-    container.scrollTo({ left: width * previewUnifiedIndex, behavior: 'smooth' });
+    container.scrollTo({ left: width * previewUnifiedIndex, behavior: isMobileViewport ? 'auto' : 'smooth' });
   }, [previewOpen, previewUnifiedIndex, previewShowcaseCount, isMobileViewport]);
   const registeredServiceSkills = useMemo(() => {
     const raw = myServicePortfolio.flatMap((svc) => [svc?.category, svc?.title]);
@@ -1097,13 +1107,15 @@ export function Onboarding({
     const personalPreviewTitle = accountType === 'fsbo_owner'
       ? (t.previewBasicCardTitle || t.previewPersonalCardTitle)
       : t.previewPersonalCardTitle;
-    const previewDeckHeight = isMobileViewport ? 560 : 380;
+    const previewCardWidth = isMobileViewport ? 360 : 654;
+    const previewCardHeight = isMobileViewport ? 576 : 400;
+    const previewDeckHeight = previewCardHeight + 24;
 
     return (
-      <div style={{ display: 'grid', gridTemplateColumns: isMobileViewport ? '1fr' : '1fr 1fr', gap: 14 }}>
+      <div style={{ display: 'grid', gridTemplateColumns: isMobileViewport ? '1fr' : `minmax(${previewCardWidth}px, 1fr) minmax(${previewCardWidth}px, 1fr)`, gap: isMobileViewport ? 14 : 18, alignItems: 'stretch' }}>
         {/* ── Left: Feed / Connection Card ── */}
         <section style={{ border: `1px solid ${C.border}`, borderRadius: 14, background: C.card, overflow: 'hidden', display: 'grid', gridTemplateRows: 'auto 1fr' }}>
-          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '8px 10px', borderBottom: `1px solid ${C.border}`, fontSize: 11, color: C.t3, textTransform: 'uppercase', fontWeight: 700 }}>
+          <div style={{ minHeight: 44, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '8px 10px', borderBottom: `1px solid ${C.border}`, fontSize: 11, color: C.t3, textTransform: 'uppercase', fontWeight: 700 }}>
             {personalPreviewTitle}
           </div>
           <div style={{
@@ -1115,7 +1127,7 @@ export function Onboarding({
             alignItems: 'center',
             boxSizing: 'border-box',
           }}>
-            <div style={{ width: '100%', height: '100%', maxWidth: 603, margin: '0 auto', boxSizing: 'border-box' }}>
+            <div style={{ width: `min(${previewCardWidth}px, 100%)`, height: previewCardHeight, margin: '0 auto', boxSizing: 'border-box' }}>
               <SwipeCard
                 card={activePreviewFeedCard}
                 action={null}
@@ -1133,7 +1145,7 @@ export function Onboarding({
         {/* ── Right: Showcase / Portfolio Cards ── */}
 
         <section style={{ border: `1px solid ${C.border}`, borderRadius: 14, background: C.card, overflow: 'hidden', display: 'grid', gridTemplateRows: 'auto 1fr auto' }}>
-          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '8px 10px', borderBottom: `1px solid ${C.border}`, fontSize: 11, color: C.t3, textTransform: 'uppercase', fontWeight: 700 }}>
+          <div style={{ minHeight: 44, display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '8px 10px', borderBottom: `1px solid ${C.border}`, fontSize: 11, color: C.t3, textTransform: 'uppercase', fontWeight: 700 }}>
             <span>{t.previewShowcaseCardTitle}</span>
             {previewShowcaseCount > 1 ? (
               <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
@@ -1175,7 +1187,7 @@ export function Onboarding({
                 overflowY: 'hidden',
                 scrollSnapType: 'x mandatory',
                 WebkitOverflowScrolling: 'touch',
-                touchAction: 'auto',
+                touchAction: 'pan-x',
                 minHeight: previewDeckHeight,
               }}
             >
@@ -1183,7 +1195,7 @@ export function Onboarding({
                 <div key={`preview-showcase-item-${item.kind}-${item.data?.id || idx}`} style={{ flex: '0 0 100%', width: '100%', scrollSnapAlign: 'start', scrollSnapStop: 'always' }}>
                   {item.kind === 'property' ? (
                     <div style={{ padding: 12, minHeight: previewDeckHeight, boxSizing: 'border-box' }}>
-                      <div style={{ width: '100%', height: previewDeckHeight, maxWidth: 603, margin: '0 auto', boxSizing: 'border-box' }}>
+                      <div style={{ width: `min(${previewCardWidth}px, 100%)`, height: previewCardHeight, margin: '0 auto', boxSizing: 'border-box' }}>
                         <PropertyCard
                           property={item.data}
                           action={null}
@@ -1207,7 +1219,7 @@ export function Onboarding({
                     const svcImages = (svc?.media?.images || []).filter(Boolean);
                     return (
                       <div style={{ padding: 12, minHeight: previewDeckHeight, boxSizing: 'border-box' }}>
-                        <div style={{ height: previewDeckHeight - 24, overflowY: 'auto', paddingRight: 2, boxSizing: 'border-box', WebkitOverflowScrolling: 'touch' }}>
+                        <div style={{ width: `min(${previewCardWidth}px, 100%)`, height: previewCardHeight, overflowY: 'auto', padding: 12, margin: '0 auto', border: `1px solid ${C.border}`, borderRadius: 16, boxSizing: 'border-box', WebkitOverflowScrolling: 'touch' }}>
                           <div style={{ marginBottom: 8 }}>
                             <div style={{ fontSize: 14, fontWeight: 700, color: C.t1 }}>{svc?.title || t.serviceFallbackName}</div>
                             {svc?.description && <div style={{ fontSize: 12, color: C.t2, marginTop: 2 }}>{svc.description}</div>}
@@ -2073,7 +2085,7 @@ export function Onboarding({
   const previewPersonalFeedCard = buildPreviewFeedCard('personal');
   const previewProfessionalFeedCard = buildPreviewFeedCard('professional');
 
-  const previewShowcaseCard = useMemo(() => {
+  const previewShowcaseCard = (() => {
     const total = propertiesForPreview.length;
     const safeIndex = total > 0
       ? ((previewPropertyIndex % total) + total) % total
@@ -2094,7 +2106,7 @@ export function Onboarding({
     }
 
     return null;
-  }, [propertiesForPreview, previewPropertyIndex, accountType]);
+  })();
 
   const portfolioFieldLabelStyle = {
     position: 'absolute',
@@ -3245,6 +3257,8 @@ export function Onboarding({
           -ms-overflow-style: none;
           -webkit-overflow-scrolling: touch;
           overscroll-behavior: contain;
+          scroll-behavior: auto;
+          contain: layout paint;
         }
         .onb-preview-showcase-scroll::-webkit-scrollbar {
           display: none;
@@ -3359,6 +3373,7 @@ export function Onboarding({
               )}
               subtitle={accountType === 'professional' ? t.sectionProfileSubProfessional : t.sectionProfileSubBasic}
               grow
+              scrollBody={!isMobileViewport}
               headerRight={(
                 <div style={{ display: 'inline-flex', alignItems: 'center', gap: 8 }}>
                   {headerThumbSrc ? (

@@ -1470,8 +1470,17 @@ export function Dashboard({ page, nuggets, setModal, setPage, onOpenOnboardingTa
     const ownerId = getOwnerIdForKey(scopeKey);
     const profileCard = buildLocalProfileCard(scopeKey);
     const scopedPublished = getMyCardScopedRecords(scopeKey);
-    const publishedPropertiesScoped = scopedPublished.properties;
-    const publishedServicesScoped = scopedPublished.services;
+    const dedupeRecords = (records, fallbackPrefix) => {
+      const seen = new Set();
+      return (records || []).filter((record, index) => {
+        const key = String(record?.id || `${fallbackPrefix}:${record?.title || record?.address || index}`).trim();
+        if (!key || seen.has(key)) return false;
+        seen.add(key);
+        return true;
+      });
+    };
+    const publishedPropertiesScoped = dedupeRecords(scopedPublished.properties, 'property');
+    const publishedServicesScoped = dedupeRecords(scopedPublished.services, 'service');
 
     const showcaseItems = [
       ...publishedPropertiesScoped.map((p) => ({ ...p, _itemType: 'property' })),
@@ -1536,6 +1545,7 @@ export function Dashboard({ page, nuggets, setModal, setPage, onOpenOnboardingTa
   }, [settleMyCardShowcaseIndex]);
 
   const handleMyCardShowcaseScroll = (event) => {
+    if (myCardShowcaseTouchActiveRef.current) return;
     const container = event.currentTarget;
     queueMyCardShowcaseSettle(container, 90);
   };
@@ -1547,7 +1557,7 @@ export function Dashboard({ page, nuggets, setModal, setPage, onOpenOnboardingTa
 
   const handleMyCardShowcaseTouchEnd = (event) => {
     const container = event.currentTarget;
-    queueMyCardShowcaseSettle(container, 24);
+    queueMyCardShowcaseSettle(container, 80);
   };
 
   const openOnboardingForScope = (scope) => {
@@ -2293,7 +2303,9 @@ export function Dashboard({ page, nuggets, setModal, setPage, onOpenOnboardingTa
     ? Boolean(lastConnOp || (skippedQueue && skippedQueue.length > 0))
     : Boolean(lastPropOp);
   const myCardShowcaseCount = myCardPreviewData.showcaseItems.length;
-  const myCardPreviewDeckHeight = isTouchModalViewport ? 560 : 380;
+  const myCardPreviewCardWidth = FEED_CARD_WIDTH;
+  const myCardPreviewCardHeight = FEED_CARD_HEIGHT;
+  const myCardPreviewDeckHeight = myCardPreviewCardHeight + 24;
 
   useEffect(() => {
     return () => {
@@ -2322,7 +2334,7 @@ export function Dashboard({ page, nuggets, setModal, setPage, onOpenOnboardingTa
     if (!container) return;
     const width = container.clientWidth || 0;
     if (!width) return;
-    container.scrollTo({ left: width * myCardShowcaseIdx, behavior: 'smooth' });
+    container.scrollTo({ left: width * myCardShowcaseIdx, behavior: isTouchModalViewport ? 'auto' : 'smooth' });
   }, [myCardShowcaseIdx, myCardModal.open, myCardShowcaseCount, isTouchModalViewport]);
 
   return (
@@ -2352,6 +2364,8 @@ export function Dashboard({ page, nuggets, setModal, setPage, onOpenOnboardingTa
           -ms-overflow-style: none;
           -webkit-overflow-scrolling: touch;
           overscroll-behavior: contain;
+          scroll-behavior: auto;
+          contain: layout paint;
         }
         .ds-mycard-showcase-scroll::-webkit-scrollbar {
           display: none;
@@ -3090,7 +3104,7 @@ export function Dashboard({ page, nuggets, setModal, setPage, onOpenOnboardingTa
         {myCardModal.open && (
           <Modal
             onClose={() => setMyCardModal((prev) => ({ ...prev, open: false }))}
-            maxWidth={isTouchModalViewport ? 760 : 1320}
+            maxWidth={isTouchModalViewport ? 820 : 1480}
             contentStyle={isTouchModalViewport ? { maxHeight: 'calc((var(--app-vh, 1vh) * 100) - 28px)', overflowY: 'auto', WebkitOverflowScrolling: 'touch', touchAction: 'pan-y' } : {}}
           >
             <div style={{ display: 'grid', gap: 10, paddingRight: isTouchModalViewport ? 2 : 0 }}>
@@ -3108,9 +3122,9 @@ export function Dashboard({ page, nuggets, setModal, setPage, onOpenOnboardingTa
                 </div>
               </div>
 
-              <div style={{ display: 'grid', gridTemplateColumns: isTouchModalViewport ? '1fr' : 'minmax(0, 1fr) minmax(0, 1fr)', gap: 14 }}>
+              <div style={{ display: 'grid', gridTemplateColumns: isTouchModalViewport ? '1fr' : `minmax(${myCardPreviewCardWidth}px, 1fr) minmax(${myCardPreviewCardWidth}px, 1fr)`, gap: isTouchModalViewport ? 14 : 18, alignItems: 'stretch' }}>
                 <section style={{ border: `1px solid ${C.border}`, borderRadius: 14, background: C.card, overflow: 'hidden', display: 'grid', gridTemplateRows: 'auto 1fr' }}>
-                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '8px 10px', borderBottom: `1px solid ${C.border}`, fontSize: 11, color: C.t3, textTransform: 'uppercase', fontWeight: 700 }}>Feed Card (Connections)</div>
+                  <div style={{ minHeight: 44, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '8px 10px', borderBottom: `1px solid ${C.border}`, fontSize: 11, color: C.t3, textTransform: 'uppercase', fontWeight: 700 }}>Feed Card (Connections)</div>
               <div data-guide="feed-view-switch" style={{
                     padding: 12,
                     minHeight: myCardPreviewDeckHeight,
@@ -3121,9 +3135,8 @@ export function Dashboard({ page, nuggets, setModal, setPage, onOpenOnboardingTa
                     boxSizing: 'border-box',
                   }}>
                     <div style={{
-                      width: '100%',
-                      height: '100%',
-                      maxWidth: 603,
+                      width: `min(${myCardPreviewCardWidth}px, 100%)`,
+                      height: myCardPreviewCardHeight,
                       margin: '0 auto',
                       boxSizing: 'border-box',
                     }}>
@@ -3137,7 +3150,7 @@ export function Dashboard({ page, nuggets, setModal, setPage, onOpenOnboardingTa
                 </section>
 
                 <section style={{ border: `1px solid ${C.border}`, borderRadius: 14, background: C.card, overflow: 'hidden', display: 'grid', gridTemplateRows: 'auto 1fr' }}>
-                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '8px 10px', borderBottom: `1px solid ${C.border}`, fontSize: 11, color: C.t3, textTransform: 'uppercase', fontWeight: 700 }}>
+                  <div style={{ minHeight: 44, display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '8px 10px', borderBottom: `1px solid ${C.border}`, fontSize: 11, color: C.t3, textTransform: 'uppercase', fontWeight: 700 }}>
                     <span>Enabled Showcase Cards</span>
                     {myCardShowcaseCount > 1 && (
                       <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
@@ -3175,7 +3188,7 @@ export function Dashboard({ page, nuggets, setModal, setPage, onOpenOnboardingTa
                         overflowY: 'visible',
                         scrollSnapType: 'x mandatory',
                         WebkitOverflowScrolling: 'touch',
-                        touchAction: 'auto',
+                        touchAction: 'pan-x',
                         minHeight: myCardPreviewDeckHeight,
                       }}
                     >
@@ -3183,8 +3196,8 @@ export function Dashboard({ page, nuggets, setModal, setPage, onOpenOnboardingTa
                         if (item._itemType === 'property') {
                           return (
                             <div key={`${item.id || 'property'}-${idx}`} style={{ flex: '0 0 100%', width: '100%', scrollSnapAlign: 'start', scrollSnapStop: 'always' }}>
-                              <div style={{ padding: 12, minHeight: myCardPreviewDeckHeight, boxSizing: 'border-box' }}>
-                                <div style={{ width: '100%', height: isTouchModalViewport ? 'auto' : myCardPreviewDeckHeight, minHeight: isTouchModalViewport ? myCardPreviewDeckHeight : undefined, maxWidth: 603, margin: '0 auto', boxSizing: 'border-box' }}>
+                            <div style={{ padding: 12, minHeight: myCardPreviewDeckHeight, boxSizing: 'border-box' }}>
+                                <div style={{ width: `min(${myCardPreviewCardWidth}px, 100%)`, height: myCardPreviewCardHeight, margin: '0 auto', boxSizing: 'border-box' }}>
                                   <PropertyCard
                                     property={item}
                                     owner={myCardPreviewData.profileCard}
@@ -3200,7 +3213,7 @@ export function Dashboard({ page, nuggets, setModal, setPage, onOpenOnboardingTa
                         return (
                           <div key={`${item.id || item.title || 'service'}-${idx}`} style={{ flex: '0 0 100%', width: '100%', scrollSnapAlign: 'start', scrollSnapStop: 'always' }}>
                             <div style={{ padding: 12, minHeight: myCardPreviewDeckHeight, boxSizing: 'border-box' }}>
-                              <div style={{ height: isTouchModalViewport ? 'auto' : myCardPreviewDeckHeight - 24, overflowY: isTouchModalViewport ? 'visible' : 'auto', paddingRight: 2, boxSizing: 'border-box' }}>
+                              <div style={{ width: `min(${myCardPreviewCardWidth}px, 100%)`, height: myCardPreviewCardHeight, overflowY: 'auto', padding: 12, margin: '0 auto', border: `1px solid ${C.border}`, borderRadius: 16, boxSizing: 'border-box', WebkitOverflowScrolling: 'touch' }}>
                                 <div style={{ marginBottom: 8 }}>
                                   <div style={{ fontSize: 14, fontWeight: 700, color: C.t1 }}>{item.title || 'Service'}</div>
                                   {item.description && <div style={{ fontSize: 12, color: C.t2, marginTop: 2 }}>{item.description}</div>}
