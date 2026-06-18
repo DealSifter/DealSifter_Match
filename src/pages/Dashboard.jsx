@@ -363,7 +363,7 @@ export function Dashboard({ page, nuggets, setModal, setPage, onOpenOnboardingTa
     const updateFeedHandleBaseTop = () => {
       const stackRect = mobileFeedStackRef.current?.getBoundingClientRect?.();
       if (stackRect) {
-        setMobileFeedHandleBaseTop(Math.round(stackRect.top + (FEED_CARD_HEIGHT * 0.5)));
+        setMobileFeedHandleBaseTop(Math.round(stackRect.top + (FEED_CARD_HEIGHT * 0.22)));
         return;
       }
       const titleRect = mobileFeedTitleRef.current?.getBoundingClientRect?.();
@@ -2412,30 +2412,34 @@ export function Dashboard({ page, nuggets, setModal, setPage, onOpenOnboardingTa
           animation-duration: 2.9s;
         }
         .ds-feed-view-btn {
-          width: clamp(106px, 16vw, 172px);
-          min-height: 31px;
+          width: clamp(126px, 16vw, 172px);
+          min-height: 34px;
           justify-content: center;
-          white-space: nowrap;
-          overflow: hidden;
-          text-overflow: ellipsis;
+          white-space: normal;
+          overflow: visible;
+          text-overflow: clip;
         }
         .ds-feed-view-btn > span {
           min-width: 0;
-          overflow: hidden;
-          text-overflow: ellipsis;
-          white-space: nowrap;
+          max-width: 100%;
+          overflow: visible;
+          text-overflow: clip;
+          white-space: normal;
+          text-align: center;
+          line-height: 1.05;
         }
         @media (max-width: 767px) {
           .ds-feed-view-btn {
-            width: 104px;
-            font-size: 11px !important;
-            padding-left: 8px !important;
-            padding-right: 8px !important;
+            width: 108px;
+            min-height: 35px;
+            font-size: 9.5px !important;
+            padding-left: 6px !important;
+            padding-right: 6px !important;
           }
         }
         @media (min-width: 768px) and (max-width: 1180px) {
           .ds-feed-view-btn {
-            width: 128px;
+            width: 156px;
           }
         }
         .ds-spotlight-icon-img {

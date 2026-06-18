@@ -210,6 +210,19 @@ export function Navbar({ page, prevPage, setPage, nuggets = 0, setModal = () => 
   const useImageLogoInHeader = isMobile;
   const compactDarkLogoSrc = '/logo%20tema%20preto.png';
   const compactLightLogoSrc = '/logo%20tema%20branco.png';
+  const headerIconButtonStyle = {
+    width: 34,
+    height: 34,
+    borderRadius: 999,
+    border: 'none',
+    background: 'transparent',
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'center',
+    cursor: 'pointer',
+    position: 'relative',
+    padding: 0,
+  };
 
   const systemUnreadCount = useMemo(
     () => (systemNotifications || []).filter((n) => !n.read).length,
@@ -604,18 +617,20 @@ export function Navbar({ page, prevPage, setPage, nuggets = 0, setModal = () => 
                   onClick={toggleGuideTips}
                   title={guideTipsEnabled ? (guideT.turnOff || 'Turn off GuideTips') : (guideT.turnOn || 'GuideTips')}
                   aria-pressed={guideTipsEnabled}
-                  style={{ width: 36, height: 36, borderRadius: 8, border: `1px solid ${guideTipsEnabled ? C.gold : C.border}`, background: guideTipsEnabled ? C.alpha(C.gold, 0.14) : C.card, display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', boxShadow: guideTipsEnabled ? `0 0 16px ${C.alpha(C.gold, 0.34)}` : 'none' }}
+                  style={headerIconButtonStyle}
                 >
-                  <Icon name="lightbulb" size={17} color={guideTipsEnabled ? C.gold : C.t2} strokeWidth={2} />
+                  <span style={{ display: 'inline-flex', filter: guideTipsEnabled ? `drop-shadow(0 0 7px ${C.alpha(C.gold, 0.74)})` : 'none' }}>
+                    <Icon name="lightbulb" size={18} color={guideTipsEnabled ? C.gold : C.t2} strokeWidth={2.2} />
+                  </span>
                 </button>
                 <NuggetBadge count={nuggets} onClick={() => setModal && setModal('store')} />
                 <div ref={notifRef} style={{ position: 'relative' }}>
                   <button
                     onClick={() => setNotifOpen((v) => !v)}
                     title={t.notificationsTitle || 'Notifications'}
-                    style={{ width: 36, height: 36, borderRadius: 8, border: `1px solid ${C.border}`, background: C.card, display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', position: 'relative' }}
+                    style={headerIconButtonStyle}
                   >
-                    <Icon name="bell" size={16} color={C.t2} />
+                    <Icon name="bell" size={18} color={C.t2} strokeWidth={1.9} />
                     {consolidatedCount > 0 ? (
                       <span style={{ position: 'absolute', top: -5, right: -5, minWidth: 16, height: 16, padding: '0 4px', borderRadius: 999, background: C.danger, color: '#fff', fontSize: 9, fontWeight: 800, display: 'inline-flex', alignItems: 'center', justifyContent: 'center', lineHeight: 1 }}>
                         {consolidatedCount > 99 ? '99+' : consolidatedCount}
@@ -702,15 +717,15 @@ export function Navbar({ page, prevPage, setPage, nuggets = 0, setModal = () => 
                   ) : null}
                 </div>
                 <LangPicker />
-                <button onClick={toggleTheme} title={theme === 'dark' ? (t.themeToLight || 'Enable light mode') : (t.themeToDark || 'Enable dark mode')} style={{ width: 36, height: 36, borderRadius: 8, border: `1px solid ${C.border}`, background: C.card, display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer' }}>
-                  <Icon name={theme === 'dark' ? 'sun' : 'moon'} size={16} color={C.t2} />
+                <button onClick={toggleTheme} title={theme === 'dark' ? (t.themeToLight || 'Enable light mode') : (t.themeToDark || 'Enable dark mode')} style={headerIconButtonStyle}>
+                  <Icon name={theme === 'dark' ? 'sun' : 'moon'} size={18} color={C.t2} strokeWidth={1.9} />
                 </button>
                 <button
                   onClick={onOpenSettings}
                   title={t.editProfile || 'Edit profile'}
-                  style={{ width: 36, height: 36, borderRadius: 8, background: 'transparent', border: 'none', cursor: 'pointer', opacity: 1 }}
+                  style={headerIconButtonStyle}
                 >
-                  <Icon name="user" size={18} color={C.t2} />
+                  <Icon name="user" size={19} color={C.t2} strokeWidth={1.9} />
                 </button>
               </>
             )
