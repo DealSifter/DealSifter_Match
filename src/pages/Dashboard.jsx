@@ -130,17 +130,12 @@ export function Dashboard({ page, nuggets, setModal, setPage, onOpenOnboardingTa
   }); // empty => all
   const [dropdownOpen, setDropdownOpen] = useState(false);
   const [mobileFeedSidebarOpen, setMobileFeedSidebarOpen] = useState(false);
-  const [mobileFeedHandleOffsetY, setMobileFeedHandleOffsetY] = useState(() => {
-    try {
-      const raw = Number(localStorage.getItem('ds_mobile_feed_handle_offset_y'));
-      if (!Number.isFinite(raw)) return 0;
-      return Math.max(-120, Math.min(260, raw));
-    } catch (e) { void e; return 0; }
-  });
+  const [mobileFeedHandleOffsetY, setMobileFeedHandleOffsetY] = useState(0);
   const [isDraggingFeedHandle, setIsDraggingFeedHandle] = useState(false);
   const mobileFeedHandleDragRef = useRef({ active: false, pointerId: null, startY: 0, startOffsetY: 0 });
   const mobileFeedHandleSuppressClickRef = useRef(false);
   const mobileFeedTitleRef = useRef(null);
+  const mobileFeedStackRef = useRef(null);
   const [mobileFeedHandleBaseTop, setMobileFeedHandleBaseTop] = useState(146);
   const [isMobileDockSuppressed, setIsMobileDockSuppressed] = useState(false);
   const isMobileDockSuppressedRef = useRef(false);
@@ -323,8 +318,22 @@ export function Dashboard({ page, nuggets, setModal, setPage, onOpenOnboardingTa
   }, [isMobileViewport]);
 
   useEffect(() => {
-    try { localStorage.setItem('ds_mobile_feed_handle_offset_y', String(mobileFeedHandleOffsetY)); } catch (e) { void e; }
-  }, [mobileFeedHandleOffsetY]);
+    if (!isMobileViewport) return undefined;
+    const onGuideStep = (event) => {
+      const target = String(event?.detail?.target || '');
+      if (target === '[data-guide="feed-categories"]') {
+        setMobileFeedSidebarOpen(true);
+        setDropdownOpen(false);
+        return;
+      }
+      if (target) {
+        setMobileFeedSidebarOpen(false);
+        setDropdownOpen(false);
+      }
+    };
+    window.addEventListener('ds-guidetip-step', onGuideStep);
+    return () => window.removeEventListener('ds-guidetip-step', onGuideStep);
+  }, [isMobileViewport]);
 
   const suppressMobileDockTemporarily = (durationMs = 1200) => {
     if (!isMobileDockSuppressedRef.current) {
@@ -352,9 +361,14 @@ export function Dashboard({ page, nuggets, setModal, setPage, onOpenOnboardingTa
     if (!isMobileViewport) return undefined;
 
     const updateFeedHandleBaseTop = () => {
-      const rect = mobileFeedTitleRef.current?.getBoundingClientRect?.();
-      if (!rect) return;
-      setMobileFeedHandleBaseTop(Math.round(rect.top + (rect.height / 2)));
+      const stackRect = mobileFeedStackRef.current?.getBoundingClientRect?.();
+      if (stackRect) {
+        setMobileFeedHandleBaseTop(Math.round(stackRect.top + (FEED_CARD_HEIGHT * 0.5)));
+        return;
+      }
+      const titleRect = mobileFeedTitleRef.current?.getBoundingClientRect?.();
+      if (!titleRect) return;
+      setMobileFeedHandleBaseTop(Math.round(titleRect.top + (titleRect.height / 2)));
     };
 
     updateFeedHandleBaseTop();
@@ -365,7 +379,7 @@ export function Dashboard({ page, nuggets, setModal, setPage, onOpenOnboardingTa
       window.removeEventListener('resize', updateFeedHandleBaseTop);
       window.removeEventListener('scroll', updateFeedHandleBaseTop, true);
     };
-  }, [isMobileViewport, view, activeCat]);
+  }, [isMobileViewport, view, activeCat, FEED_CARD_HEIGHT]);
 
   const clampFeedHandleOffset = (value) => Math.max(-220, Math.min(320, value));
 
@@ -2378,8 +2392,51 @@ export function Dashboard({ page, nuggets, setModal, setPage, onOpenOnboardingTa
             background: ${C.gold};
           }
         }
+        @keyframes dsSpotlightButtonPulseLight {
+          0%, 100% {
+            border-color: ${C.alpha(C.gold, 0.58)};
+            box-shadow: 0 0 0 0 rgba(245, 169, 30, 0), 0 0 10px ${C.alpha(C.gold, 0.16)};
+            background: #ffffff;
+          }
+          50% {
+            border-color: ${C.alpha(C.gold, 0.96)};
+            box-shadow: 0 0 0 5px ${C.alpha(C.gold, 0.18)}, 0 0 24px ${C.alpha(C.gold, 0.46)};
+            background: ${C.gold};
+          }
+        }
         .ds-spotlight-trigger {
           animation: dsSpotlightButtonPulse 2.6s ease-in-out infinite;
+        }
+        [data-theme="light"] .ds-spotlight-trigger {
+          animation-name: dsSpotlightButtonPulseLight;
+          animation-duration: 2.9s;
+        }
+        .ds-feed-view-btn {
+          width: clamp(106px, 16vw, 172px);
+          min-height: 31px;
+          justify-content: center;
+          white-space: nowrap;
+          overflow: hidden;
+          text-overflow: ellipsis;
+        }
+        .ds-feed-view-btn > span {
+          min-width: 0;
+          overflow: hidden;
+          text-overflow: ellipsis;
+          white-space: nowrap;
+        }
+        @media (max-width: 767px) {
+          .ds-feed-view-btn {
+            width: 104px;
+            font-size: 11px !important;
+            padding-left: 8px !important;
+            padding-right: 8px !important;
+          }
+        }
+        @media (min-width: 768px) and (max-width: 1180px) {
+          .ds-feed-view-btn {
+            width: 128px;
+          }
         }
         .ds-spotlight-icon-img {
           display: block;
@@ -2596,7 +2653,7 @@ export function Dashboard({ page, nuggets, setModal, setPage, onOpenOnboardingTa
             <div className="ds-mobile-feed-side-scroll">
               <div className="ds-mobile-feed-section">
                 <div className="ds-mobile-feed-section-title">Feed filters</div>
-                <div className="ds-mobile-category-list">
+                <div className="ds-mobile-category-list" data-guide="feed-categories">
                   {mobileCategoryRows.map((row) => {
                     const active = activeCat === row.id;
                     const isFeedAllRow = row.id === 'all';
@@ -3438,6 +3495,7 @@ export function Dashboard({ page, nuggets, setModal, setPage, onOpenOnboardingTa
             }}>
               <button
                 type="button"
+                className="ds-feed-view-btn"
                 onClick={() => setView('connections')}
                 style={{
                   border: 'none',
@@ -3451,11 +3509,11 @@ export function Dashboard({ page, nuggets, setModal, setPage, onOpenOnboardingTa
                   transition: 'all .2s ease',
                 }}
               >
-                {matchesT.people || 'Connections'}
+                <span>{t.feedConnectionsButton || 'Connections'}</span>
               </button>
               <button
                 type="button"
-                className="ds-spotlight-trigger"
+                className="ds-spotlight-trigger ds-feed-view-btn"
                 data-guide="feed-spotlight"
                 onClick={() => onOpenSpotlight?.()}
                 aria-label={t.spotlightPaidCards || 'Spotlight paid cards'}
@@ -3469,7 +3527,6 @@ export function Dashboard({ page, nuggets, setModal, setPage, onOpenOnboardingTa
                   fontSize: 12,
                   padding: isMobileViewport ? '6px 10px' : '6px 13px',
                   minHeight: 31,
-                  minWidth: 0,
                   cursor: 'pointer',
                   transition: 'all .2s ease',
                   display: 'inline-flex',
@@ -3487,10 +3544,11 @@ export function Dashboard({ page, nuggets, setModal, setPage, onOpenOnboardingTa
                   className="ds-spotlight-icon-img"
                   style={{ width: isMobileViewport ? 18 : 18, height: isMobileViewport ? 18 : 18 }}
                 />
-                <span>{t.spotlight || 'Spotlight'}</span>
+                <span>{t.feedSpotlightButton || 'Spotlight'}</span>
               </button>
               <button
                 type="button"
+                className="ds-feed-view-btn"
                 onClick={() => setView('properties')}
                 style={{
                   border: 'none',
@@ -3504,7 +3562,7 @@ export function Dashboard({ page, nuggets, setModal, setPage, onOpenOnboardingTa
                   transition: 'all .2s ease',
                 }}
               >
-                {t.showcase || 'Showcase'}
+                <span>{t.feedShowcaseButton || 'Showcase'}</span>
               </button>
             </div>
             {isTabletPortraitViewport && (
@@ -3558,7 +3616,7 @@ export function Dashboard({ page, nuggets, setModal, setPage, onOpenOnboardingTa
             )}
           </div>
 
-          <div data-guide="feed-stack" style={{ position:"relative", width:"100%", minHeight:FEED_STACK_CONTAINER_HEIGHT, overflow:"visible", display:"flex", justifyContent:"center", alignItems:"flex-start", boxSizing:"border-box" }}>
+          <div ref={mobileFeedStackRef} data-guide="feed-stack" style={{ position:"relative", width:"100%", minHeight:FEED_STACK_CONTAINER_HEIGHT, overflow:"visible", display:"flex", justifyContent:"center", alignItems:"flex-start", boxSizing:"border-box" }}>
             <div style={{ position:"relative", width:`min(${FEED_CARD_WIDTH}px, 100%)`, height:FEED_STACK_CONTAINER_HEIGHT, boxShadow: 'none', borderRadius: 0, overflow: 'visible' }}>
               {view==="connections" && (
                 connDisplay.length > 0
