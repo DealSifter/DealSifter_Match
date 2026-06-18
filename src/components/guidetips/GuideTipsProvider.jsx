@@ -1,12 +1,7 @@
-import React, { createContext, useCallback, useEffect, useMemo, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useState } from 'react';
+import { GuideTipsContext } from './GuideTipsContext';
 
 const STORAGE_KEY = 'ds_guidetips_enabled';
-
-export const GuideTipsContext = createContext({
-  enabled: false,
-  setEnabled: () => {},
-  toggle: () => {},
-});
 
 const readInitialEnabled = () => {
   try {
