@@ -4,6 +4,8 @@ import loaderMark from './assets/logo.png';
 import { ThemeProvider } from './theme/theme';
 import { Navbar } from './components/layout/Navbar';
 import { AppMobileBottomNav } from './components/layout/AppMobileBottomNav';
+import { GuideTipsProvider } from './components/guidetips/GuideTipsProvider';
+import { GuideTipOverlay } from './components/guidetips/GuideTipOverlay';
 const safeSessionGet = (key) => {
   try { return typeof window !== 'undefined' ? window.sessionStorage.getItem(key) : null; } catch { return null; }
 };
@@ -4547,6 +4549,7 @@ export default function App() {
 
   return (
     <ThemeProvider forcedTheme={(page === 'landing' || isPublicPricingPage) ? 'light' : null}>
+      <GuideTipsProvider>
       <div style={{ minHeight: '100vh', background: 'var(--bg)', color: 'var(--t1)' }}>
         <Navbar
           page={page}
@@ -4571,6 +4574,7 @@ export default function App() {
           onInstallApp={handleInstallApp}
           userPreferences={userPreferences}
         />
+        <GuideTipOverlay page={page} />
         <Suspense fallback={<div style={{ minHeight: '60vh' }} />}>
           {(() => {
             const keepAlivePages = new Set(['dashboard', 'mapview', 'matches', 'onboarding']);
@@ -4709,6 +4713,7 @@ export default function App() {
 
         <ToastContainer toasts={toasts} onDismiss={dismissToast} />
       </div>
+      </GuideTipsProvider>
     </ThemeProvider>
   );
 }

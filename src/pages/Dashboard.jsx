@@ -2569,7 +2569,9 @@ export function Dashboard({ page, nuggets, setModal, setPage, onOpenOnboardingTa
         }
       `}</style>
       {!isMobileViewport && (
-        <CategoryBar activeCat={activeCat} setActiveCat={handleCatChange} categoryOrder={categoryOrder} setCategoryOrder={setCategoryOrder} editMode={editMode} setEditMode={setEditMode} stickyTop={0} />
+        <div data-guide="feed-categories">
+          <CategoryBar activeCat={activeCat} setActiveCat={handleCatChange} categoryOrder={categoryOrder} setCategoryOrder={setCategoryOrder} editMode={editMode} setEditMode={setEditMode} stickyTop={0} />
+        </div>
       )}
       {isMobileViewport && mobileFeedSidebarOpen && (
         <>
@@ -3048,7 +3050,7 @@ export function Dashboard({ page, nuggets, setModal, setPage, onOpenOnboardingTa
               <div style={{ display: 'grid', gridTemplateColumns: isTouchModalViewport ? '1fr' : 'minmax(0, 1fr) minmax(0, 1fr)', gap: 14 }}>
                 <section style={{ border: `1px solid ${C.border}`, borderRadius: 14, background: C.card, overflow: 'hidden', display: 'grid', gridTemplateRows: 'auto 1fr' }}>
                   <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '8px 10px', borderBottom: `1px solid ${C.border}`, fontSize: 11, color: C.t3, textTransform: 'uppercase', fontWeight: 700 }}>Feed Card (Connections)</div>
-                  <div style={{
+              <div data-guide="feed-view-switch" style={{
                     padding: 12,
                     minHeight: myCardPreviewDeckHeight,
                     height: myCardPreviewDeckHeight,
@@ -3449,14 +3451,15 @@ export function Dashboard({ page, nuggets, setModal, setPage, onOpenOnboardingTa
                   transition: 'all .2s ease',
                 }}
               >
-                Connections
+                {matchesT.people || 'Connections'}
               </button>
               <button
                 type="button"
                 className="ds-spotlight-trigger"
+                data-guide="feed-spotlight"
                 onClick={() => onOpenSpotlight?.()}
-                aria-label="Spotlight paid cards"
-                title="Spotlight paid cards"
+                aria-label={t.spotlightPaidCards || 'Spotlight paid cards'}
+                title={t.spotlightPaidCards || 'Spotlight paid cards'}
                 style={{
                   border: `1px solid ${C.alpha(C.gold, 0.58)}`,
                   borderRadius: 999,
@@ -3484,7 +3487,7 @@ export function Dashboard({ page, nuggets, setModal, setPage, onOpenOnboardingTa
                   className="ds-spotlight-icon-img"
                   style={{ width: isMobileViewport ? 18 : 18, height: isMobileViewport ? 18 : 18 }}
                 />
-                <span>Spotlight</span>
+                <span>{t.spotlight || 'Spotlight'}</span>
               </button>
               <button
                 type="button"
@@ -3501,7 +3504,7 @@ export function Dashboard({ page, nuggets, setModal, setPage, onOpenOnboardingTa
                   transition: 'all .2s ease',
                 }}
               >
-                Showcase
+                {t.showcase || 'Showcase'}
               </button>
             </div>
             {isTabletPortraitViewport && (
@@ -3555,7 +3558,7 @@ export function Dashboard({ page, nuggets, setModal, setPage, onOpenOnboardingTa
             )}
           </div>
 
-          <div style={{ position:"relative", width:"100%", minHeight:FEED_STACK_CONTAINER_HEIGHT, overflow:"visible", display:"flex", justifyContent:"center", alignItems:"flex-start", boxSizing:"border-box" }}>
+          <div data-guide="feed-stack" style={{ position:"relative", width:"100%", minHeight:FEED_STACK_CONTAINER_HEIGHT, overflow:"visible", display:"flex", justifyContent:"center", alignItems:"flex-start", boxSizing:"border-box" }}>
             <div style={{ position:"relative", width:`min(${FEED_CARD_WIDTH}px, 100%)`, height:FEED_STACK_CONTAINER_HEIGHT, boxShadow: 'none', borderRadius: 0, overflow: 'visible' }}>
               {view==="connections" && (
                 connDisplay.length > 0
@@ -4012,7 +4015,7 @@ export function Dashboard({ page, nuggets, setModal, setPage, onOpenOnboardingTa
       </div>
 
       {page !== 'onboarding' ? (
-        <div className="ds-dashboard-opportunity-banner" style={{ background:C.card, zIndex:10, boxSizing:"border-box" }}>
+        <div data-guide="feed-minicards" className="ds-dashboard-opportunity-banner" style={{ background:C.card, zIndex:10, boxSizing:"border-box" }}>
         {marqueeBannerItems.length > 0 ? (
           <div
             className="opportunity-banner"
@@ -4045,8 +4048,8 @@ export function Dashboard({ page, nuggets, setModal, setPage, onOpenOnboardingTa
                     ].filter(Boolean);
                     const miniBadgeStatus = pickPriorityStatus(miniStatuses.filter((status) => status !== CARD_STATUS.verified));
                     const miniBadgeLabel = miniBadgeStatus === CARD_STATUS.exclusive
-                      ? 'EXCLUSIVE'
-                      : (miniBadgeStatus === CARD_STATUS.hot ? 'HOT' : null);
+                      ? (cardsT.exclusiveBadge || 'EXCLUSIVE')
+                      : (miniBadgeStatus === CARD_STATUS.hot ? (cardsT.hotBadge || 'HOT') : null);
                     return (
                   <button
                     key={`${item.key}-${loop}`}

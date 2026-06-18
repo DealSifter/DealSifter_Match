@@ -2732,7 +2732,7 @@ export function MapView({
               aria-selected={panelTab === 'cards'}
               onClick={() => setPanelTab('cards')}
             >
-              Spotlight Cards ({spotlightVisibleItems.length})
+              {(tMap.spotlightCards || 'Spotlight Cards')} ({spotlightVisibleItems.length})
             </button>
           </div>
 
@@ -3014,7 +3014,7 @@ export function MapView({
                       pulse={mapCardBadgeStatus === CARD_STATUS.exclusive}
                       style={{ position: 'absolute', right: 6, bottom: 6, zIndex: 4 }}
                     >
-                      EXCLUSIVE
+                      {tCards.exclusiveBadge || 'EXCLUSIVE'}
                     </CardStatusBadge>
                   ) : null}
                   <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 8 }}>

@@ -19,7 +19,7 @@ import { translateChatText, getSafeLang } from '../services/chatTranslation';
 import { getPlanGateCopy, isFeatureAllowed } from '../lib/planAccess';
 import { trackAppEvent } from '../lib/adminEventTracking';
 import { getPortfolioUnlockCost, getPropertyExclusivityStatus } from '../lib/unlockRules';
-import appLogo from '../assets/logo.png';
+import appLogo from '../assets/logo-dark-theme.png';
 
 // Move chat templates and defaults to module scope so they are stable references
 const CHAT_REPLY_TEMPLATES = {
@@ -649,8 +649,26 @@ function PortfolioDetail({ item, owner, ownerDesc, onBack, autoplayMedia = false
     if (!value) return '';
     if (value instanceof Blob || (typeof File !== 'undefined' && value instanceof File)) return value;
     if (typeof value === 'string') return value;
+    if (Array.isArray(value)) return value.map(normalizeExportImageUrl).find(Boolean) || '';
     if (typeof value === 'object') {
-      return value.url || value.src || value.publicUrl || value.publicURL || value.signedUrl || value.signedURL || value.image_url || value.imageUrl || value.dataUrl || value.preview || value.blob || '';
+      return value.url
+        || value.src
+        || value.href
+        || value.publicUrl
+        || value.publicURL
+        || value.signedUrl
+        || value.signedURL
+        || value.image_url
+        || value.imageUrl
+        || value.photo_url
+        || value.photoUrl
+        || value.thumbnail_url
+        || value.thumbnailUrl
+        || value.dataUrl
+        || value.dataURL
+        || value.preview
+        || value.blob
+        || '';
     }
     return '';
   };
@@ -682,12 +700,35 @@ function PortfolioDetail({ item, owner, ownerDesc, onBack, autoplayMedia = false
   const getExportImageUrls = () => {
     const fullItem = resolveFullExportItem();
     const raw = [
+      fullItem?.coverImage,
+      fullItem?.cover_image,
+      fullItem?.mainImage,
+      fullItem?.main_image,
+      fullItem?.propertyImage,
+      fullItem?.property_image,
+      fullItem?.primaryImage,
+      fullItem?.primary_image,
+      fullItem?.heroImage,
+      fullItem?.hero_image,
       ...(Array.isArray(fullItem?.images) ? fullItem.images : []),
       ...(typeof fullItem?.images === 'string' ? [fullItem.images] : []),
+      ...(Array.isArray(fullItem?.photos) ? fullItem.photos : []),
+      ...(typeof fullItem?.photos === 'string' ? [fullItem.photos] : []),
       ...(Array.isArray(fullItem?.media?.images) ? fullItem.media.images : []),
+      ...(Array.isArray(fullItem?.media?.photos) ? fullItem.media.photos : []),
+      fullItem?.media?.coverImage,
+      fullItem?.media?.cover_image,
+      fullItem?.media?.mainImage,
+      fullItem?.media?.main_image,
       fullItem?.image,
+      fullItem?.imageUrl,
+      fullItem?.image_url,
       fullItem?.photo,
+      fullItem?.photoUrl,
+      fullItem?.photo_url,
       fullItem?.thumbnail,
+      fullItem?.thumbnailUrl,
+      fullItem?.thumbnail_url,
       fullItem?.thumb,
     ];
     const seen = new Set();
@@ -809,29 +850,6 @@ function PortfolioDetail({ item, owner, ownerDesc, onBack, autoplayMedia = false
     }
   };
 
-  const makeDealSifterWordmark = () => {
-    try {
-      const canvas = document.createElement('canvas');
-      canvas.width = 320;
-      canvas.height = 64;
-      const ctx = canvas.getContext('2d');
-      if (!ctx) return null;
-      ctx.clearRect(0, 0, canvas.width, canvas.height);
-      // Prefer Eras Bold ITC when available on the host OS.
-      ctx.font = "bold 46px 'Eras Bold ITC', 'Eras Demi ITC', 'Arial Black', sans-serif";
-      ctx.textBaseline = 'middle';
-      ctx.fillStyle = '#101827';
-      ctx.fillText('Deal', 0, 34);
-      const dealW = ctx.measureText('Deal').width;
-      ctx.fillStyle = '#35cac9';
-      ctx.fillText('Sifter', dealW + 2, 34);
-      return canvas.toDataURL('image/png');
-    } catch (e) {
-      void e;
-      return null;
-    }
-  };
-
   const renderFittedImageDataUrl = async ({ sourceDataUrl, targetW, targetH, mode = 'contain', radius = 0, background = '#ffffff' }) => {
     try {
       if (!sourceDataUrl || !targetW || !targetH) return null;
@@ -906,6 +924,7 @@ function PortfolioDetail({ item, owner, ownerDesc, onBack, autoplayMedia = false
       const s = normalizeExportText(v);
       return s && s !== '-' ? s : fallback;
     };
+    const pdfLabel = (key, fallback) => matchesT[key] || fallback;
 
     const shouldUseSavedProfile = !owner?.id || owner?.id === 999999 || owner?.ownerId === 999999 || owner?.id === 'preview-personal';
     let savedProfile = null;
@@ -926,20 +945,20 @@ function PortfolioDetail({ item, owner, ownerDesc, onBack, autoplayMedia = false
     const labelSuggestions = [safe(item?.objective || 'General'), safe(item?.dealTag || 'No DealTag'), safe(item?.source || 'No Source')].join(' | ');
 
     const panelRowsOwner = [
-      ['Owner Name', ownerName],
-      ['Type', ownerType],
-      ['Address', ownerAddress],
-      ['Owner Status', ownerStatus],
+      [pdfLabel('exportOwnerName', 'Owner Name'), ownerName],
+      [pdfLabel('type', 'Type'), ownerType],
+      [pdfLabel('address', 'Address'), ownerAddress],
+      [pdfLabel('exportOwnerStatus', 'Owner Status'), ownerStatus],
       ['Contact 1', ownerContacts[0] ? `${safe(ownerContacts[0].label)}: ${safe(ownerContacts[0].val)}` : 'No unlocked contacts'],
       ['Contact 2', ownerContacts[1] ? `${safe(ownerContacts[1].label)}: ${safe(ownerContacts[1].val)}` : '-'],
       ['Contact 3', ownerContacts[2] ? `${safe(ownerContacts[2].label)}: ${safe(ownerContacts[2].val)}` : '-'],
     ];
 
     const panelRowsProperty = [
-      ['Title', safe(item?.address || title)],
-      ['Price', fmtMoney(item?.price)],
-      ['Type', safe(item?.type)],
-      ['Strategy', safe(item?.objective)],
+      [pdfLabel('exportTitle', 'Title'), safe(item?.address || title)],
+      [pdfLabel('price', 'Price'), fmtMoney(item?.price)],
+      [pdfLabel('type', 'Type'), safe(item?.type)],
+      [pdfLabel('strategy', 'Strategy'), safe(item?.objective)],
       ['Cap Rate', item?.capRate ? `${item.capRate}%` : '-'],
       ['Beds', `${item?.beds > 0 ? item.beds : '-'}`],
       ['Baths', `${item?.baths > 0 ? item.baths : '-'}`],
@@ -949,10 +968,10 @@ function PortfolioDetail({ item, owner, ownerDesc, onBack, autoplayMedia = false
     ];
 
     const panelRowsLand = [
-      ['Location', `${safe(item?.city)}, ${safe(item?.state)} ${safe(item?.zip, '')}`.trim()],
-      ['Deal Tag', safe(item?.dealTag)],
-      ['Source', safe(item?.source)],
-      ['Lot Size', safe(item?.lot)],
+      [pdfLabel('location', 'Location'), `${safe(item?.city)}, ${safe(item?.state)} ${safe(item?.zip, '')}`.trim()],
+      [pdfLabel('dealTag', 'Deal Tag'), safe(item?.dealTag)],
+      [pdfLabel('source', 'Source'), safe(item?.source)],
+      [pdfLabel('lot', 'Lot Size'), safe(item?.lot)],
       ['Improvement', safe(item?.improvement || '-')],
       ['Portfolio', safe(item?.includeInPreview ? 'Yes' : 'No')],
       ['Labels', labelSuggestions],
@@ -1013,48 +1032,45 @@ function PortfolioDetail({ item, owner, ownerDesc, onBack, autoplayMedia = false
       }
     };
 
-    // Header (no background box): logo + app name.
+    // Branded header using the same complete logo image used in the app header.
+    doc.setFillColor(13, 24, 21);
+    doc.roundedRect(margin, y, maxTextWidth, 54, 10, 10, 'F');
     if (logo) {
-      drawImageContain(doc, logo.dataUrl, logo.format, margin, y + 2, 26, 26);
+      drawImageContain(doc, logo.dataUrl, logo.format, margin + 12, y + 7, 170, 40);
     }
-    const wordmarkData = makeDealSifterWordmark();
-    if (wordmarkData) {
-      doc.addImage(wordmarkData, 'PNG', margin + 40, y + 3, 118, 22, undefined, 'FAST');
-    } else {
-      doc.setFont('helvetica', 'bold');
-      doc.setTextColor(22, 31, 47);
-      doc.setFontSize(17);
-      doc.text('Deal', margin + 40, y + 18);
-      const dealWidth = doc.getTextWidth('Deal');
-      doc.setTextColor(53, 202, 201);
-      doc.text('Sifter', margin + 40 + dealWidth + 2, y + 18);
-    }
-    y += 44;
+    doc.setFont('helvetica', 'bold');
+    doc.setTextColor(53, 202, 201);
+    doc.setFontSize(12);
+    doc.text(matchesT.exportPdfHeader || 'Investor-ready property release', pageWidth - margin - 10, y + 22, { align: 'right' });
+    doc.setFont('helvetica', 'normal');
+    doc.setTextColor(187, 202, 214);
+    doc.setFontSize(8.5);
+    doc.text(`${matchesT.generated || 'Generated'}: ${new Date().toLocaleString()}`, pageWidth - margin - 10, y + 38, { align: 'right' });
+    y += 68;
 
     const heroH = 138;
     const heroGap = 14;
     const heroLeftW = Math.floor((maxTextWidth - heroGap) * 0.52);
     const heroRightW = maxTextWidth - heroLeftW - heroGap;
     const heroRightX = margin + heroLeftW + heroGap;
-    doc.setFillColor(255, 255, 255);
-    doc.setDrawColor(213, 221, 233);
-    doc.roundedRect(margin, y, heroLeftW, heroH, 8, 8, 'FD');
-
-    // Move generated timestamp to the right, above the main photo.
-    doc.setFont('helvetica', 'normal');
-    doc.setTextColor(92, 102, 117);
-    doc.setFontSize(9.5);
-    doc.text(`Generated: ${new Date().toLocaleString()}`, heroRightX, y - 6);
+    doc.setFillColor(246, 251, 251);
+    doc.setDrawColor(159, 231, 229);
+    doc.roundedRect(margin, y, heroLeftW, heroH, 10, 10, 'FD');
 
     doc.setFont('helvetica', 'bold');
-    doc.setTextColor(25, 35, 50);
-    doc.setFontSize(20);
+    doc.setTextColor(8, 18, 34);
+    doc.setFontSize(18);
     const heroTitle = doc.splitTextToSize(safe(item?.address || title), heroLeftW - 16);
     doc.text(heroTitle[0] || '-', margin + 8, y + 26);
     doc.setFont('helvetica', 'bold');
-    doc.setTextColor(58, 68, 84);
+    doc.setTextColor(73, 86, 105);
     doc.setFontSize(11.5);
     doc.text(`${safe(item?.city)}, ${safe(item?.state)} ${safe(item?.zip, '')}`.trim(), margin + 8, y + 44);
+
+    doc.setFont('helvetica', 'bold');
+    doc.setTextColor(245, 166, 35);
+    doc.setFontSize(22);
+    doc.text(fmtMoney(item?.price), margin + 8, y + 70);
 
     doc.setDrawColor(120, 130, 142);
     doc.setLineDashPattern([2, 2], 0);
@@ -1070,13 +1086,13 @@ function PortfolioDetail({ item, owner, ownerDesc, onBack, autoplayMedia = false
     let chipX = margin + 8;
     for (const chip of chips) {
       const chipW = Math.min(116, doc.getTextWidth(chip) + 12);
-      doc.setFillColor(239, 244, 252);
-      doc.setDrawColor(210, 220, 235);
-      doc.roundedRect(chipX, y + 66, chipW, 18, 6, 6, 'FD');
+      doc.setFillColor(255, 255, 255);
+      doc.setDrawColor(187, 229, 229);
+      doc.roundedRect(chipX, y + 86, chipW, 18, 6, 6, 'FD');
       doc.setFont('helvetica', 'bold');
-      doc.setTextColor(61, 80, 111);
+      doc.setTextColor(43, 68, 88);
       doc.setFontSize(8.5);
-      doc.text(chip, chipX + 6, y + 78);
+      doc.text(chip, chipX + 6, y + 98);
       chipX += chipW + 6;
       if (chipX > margin + heroLeftW - 80) break;
     }
@@ -1086,18 +1102,21 @@ function PortfolioDetail({ item, owner, ownerDesc, onBack, autoplayMedia = false
     doc.setTextColor(72, 84, 102);
     const noteSnippet = safe(item?.description || ownerNotes || '-', '-');
     const noteLines = doc.splitTextToSize(noteSnippet, heroLeftW - 16);
-    doc.text((noteLines[0] || '-') + (noteLines[1] ? '...' : ''), margin + 8, y + 114);
+    doc.text((noteLines[0] || '-') + (noteLines[1] ? '...' : ''), margin + 8, y + 124);
 
+    doc.setFillColor(244, 247, 250);
+    doc.setDrawColor(205, 216, 232);
+    doc.roundedRect(heroRightX, y, heroRightW, heroH, 10, 10, 'FD');
     if (mainImage) {
       // Single image occupying the full right hero element (no nested inner image container).
       doc.setDrawColor(205, 216, 232);
-      doc.roundedRect(heroRightX, y, heroRightW, heroH, 8, 8);
+      doc.roundedRect(heroRightX, y, heroRightW, heroH, 10, 10);
       const fitted = await renderFittedImageDataUrl({
         sourceDataUrl: mainImage.dataUrl,
         targetW: heroRightW,
         targetH: heroH,
         mode: 'cover',
-        radius: 8,
+        radius: 10,
         background: '#ffffff',
       });
       if (fitted) {
@@ -1106,19 +1125,21 @@ function PortfolioDetail({ item, owner, ownerDesc, onBack, autoplayMedia = false
         drawImageCover(doc, mainImage.dataUrl, mainImage.format, heroRightX, y, heroRightW, heroH);
       }
     } else {
+      doc.setFillColor(238, 244, 247);
+      doc.roundedRect(heroRightX + 8, y + 8, heroRightW - 16, heroH - 16, 8, 8, 'F');
       doc.setFont('helvetica', 'bold');
-      doc.setTextColor(140, 150, 165);
+      doc.setTextColor(91, 107, 124);
       doc.setFontSize(10);
-      doc.text('NO IMAGE AVAILABLE', heroRightX + 12, y + 24);
+      doc.text(matchesT.exportImageUnavailable || 'PROPERTY IMAGE UNAVAILABLE', heroRightX + 14, y + 30);
     }
     y += heroH + 12;
 
     const panelGap = 10;
     const panelW = Math.floor((maxTextWidth - panelGap * 2) / 3);
     const panelH = 198;
-    drawPanel('Owner Information', panelRowsOwner, margin, y, panelW, panelH);
-    drawPanel('Property Characteristics', panelRowsProperty, margin + panelW + panelGap, y, panelW, panelH);
-    drawPanel('Land Information', panelRowsLand, margin + (panelW + panelGap) * 2, y, panelW, panelH);
+    drawPanel(pdfLabel('exportOwnerInfo', 'Owner Information'), panelRowsOwner, margin, y, panelW, panelH);
+    drawPanel(pdfLabel('exportPropertyInfo', 'Property Characteristics'), panelRowsProperty, margin + panelW + panelGap, y, panelW, panelH);
+    drawPanel(pdfLabel('exportLandInfo', 'Land Information'), panelRowsLand, margin + (panelW + panelGap) * 2, y, panelW, panelH);
     y += panelH + 10;
 
     // Full-width intermediate Notes block between the 3 columns and the map section.
@@ -1129,7 +1150,7 @@ function PortfolioDetail({ item, owner, ownerDesc, onBack, autoplayMedia = false
     doc.setFont('helvetica', 'bold');
     doc.setTextColor(46, 56, 72);
     doc.setFontSize(10.5);
-    doc.text('Notes', margin + 8, y + 16);
+    doc.text(pdfLabel('notes', 'Notes'), margin + 8, y + 16);
     doc.setFont('helvetica', 'normal');
     doc.setTextColor(74, 84, 96);
     doc.setFontSize(8.8);
@@ -1153,7 +1174,7 @@ function PortfolioDetail({ item, owner, ownerDesc, onBack, autoplayMedia = false
       doc.setFont('helvetica', 'bold');
       doc.setTextColor(46, 56, 72);
       doc.setFontSize(10.5);
-      doc.text('Property Map Snapshot', margin + 8, y + 16);
+      doc.text(pdfLabel('exportMapSnapshot', 'Property Map Snapshot'), margin + 8, y + 16);
 
       const mapX = margin + 8;
       const mapY = y + 24;
@@ -1194,14 +1215,14 @@ function PortfolioDetail({ item, owner, ownerDesc, onBack, autoplayMedia = false
             doc.setFont('helvetica', 'normal');
             doc.setFontSize(9.5);
             doc.setTextColor(110, 120, 132);
-            doc.text('Map preview unavailable at the moment.', mapX + 10, mapY + 20);
+            doc.text(pdfLabel('exportMapUnavailable', 'Map preview unavailable at the moment.'), mapX + 10, mapY + 20);
           }
         }
       } else {
         doc.setFont('helvetica', 'normal');
         doc.setFontSize(9.5);
         doc.setTextColor(110, 120, 132);
-        doc.text('Coordinates unavailable for this property.', mapX + 10, mapY + 20);
+        doc.text(pdfLabel('exportCoordinatesUnavailable', 'Coordinates unavailable for this property.'), mapX + 10, mapY + 20);
       }
     }
 

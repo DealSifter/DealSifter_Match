@@ -101,7 +101,7 @@ export function PropertyCard({ property, action, statusAction, onInterest, owner
       ? exclusivityBadge
       : (showPendingDealAlert
         ? pendingDealBadgeText
-        : (showHotAlert ? 'HOT' : trendingBadgeText)));
+        : (showHotAlert ? (t.hotBadge || 'HOT') : trendingBadgeText)));
   const topRightIcons = [
     showActiveExclusivityLock ? CARD_STATUS.exclusive : null,
     ownerVerified ? CARD_STATUS.verified : null,

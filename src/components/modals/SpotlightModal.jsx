@@ -2,6 +2,7 @@ import React, { useMemo, useState } from 'react';
 import { C } from '../../theme/colors';
 import { Icon } from '../ui/Icon';
 import spotlightIcon from '../../assets/spotlight-icon.png';
+import { useT } from '../../i18n/translations';
 
 const SPOTLIGHT_COST = 10;
 
@@ -14,6 +15,7 @@ export function SpotlightModal({
   isLoading = false,
   isProcessing = false,
 }) {
+  const t = useT('spotlight');
   const eligibleItems = useMemo(() => (items || []).filter((item) => item?.cardId && item?.cardKind), [items]);
   const [selected, setSelected] = useState(() => new Set());
 
@@ -82,11 +84,11 @@ export function SpotlightModal({
           <div>
             <div style={{ display: 'inline-flex', alignItems: 'center', gap: 8, color: C.accent, fontSize: 12, fontWeight: 900, letterSpacing: '.08em', textTransform: 'uppercase', marginBottom: 8 }}>
               <span className="ds-spotlight-modal-icon" style={{ width: 24, height: 24, color: C.accent }} />
-              Spotlight Cards
+              {t.kicker || 'Spotlight Cards'}
             </div>
-            <h2 style={{ margin: 0, color: C.t1, fontSize: 26, lineHeight: 1.1 }}>Boost your cards for 30 days</h2>
+            <h2 style={{ margin: 0, color: C.t1, fontSize: 26, lineHeight: 1.1 }}>{t.title || 'Boost your cards for 30 days'}</h2>
             <p style={{ margin: '9px 0 0', color: C.t2, fontSize: 13, lineHeight: 1.45 }}>
-              Selected cards appear in the paid mini-card banner and in the Map View Spotlight Cards list. Sponsored feed cards receive a neon halo.
+              {t.description || 'Selected cards appear in the paid mini-card banner and in the Map View Spotlight Cards list. Sponsored feed cards receive a neon halo.'}
             </p>
           </div>
           <button type="button" onClick={onClose} style={{ border: `1px solid ${C.border}`, background: 'transparent', color: C.t2, width: 34, height: 34, borderRadius: 12, cursor: 'pointer' }}>
@@ -96,20 +98,20 @@ export function SpotlightModal({
 
         <div style={{ display: 'grid', gridTemplateColumns: '1fr auto', gap: 10, alignItems: 'center', border: `1px solid ${C.alpha(C.gold, 0.45)}`, background: C.alpha(C.gold, 0.08), borderRadius: 16, padding: '10px 12px', marginBottom: 14 }}>
           <div style={{ color: C.t2, fontSize: 12 }}>
-            Cost: <strong style={{ color: C.gold }}>{SPOTLIGHT_COST} nuggets per card</strong>
+            {t.cost || 'Cost'}: <strong style={{ color: C.gold }}>{SPOTLIGHT_COST} {t.nuggetsPerCard || 'nuggets per card'}</strong>
           </div>
           <div style={{ color: C.gold, fontWeight: 900, fontSize: 13 }}>
-            Balance: {nuggets}
+            {t.balance || 'Balance'}: {nuggets}
           </div>
         </div>
 
         {isLoading ? (
           <div style={{ border: `1px dashed ${C.border}`, borderRadius: 16, padding: 18, color: C.t2, fontSize: 13 }}>
-            Loading your active published cards...
+            {t.loading || 'Loading your active published cards...'}
           </div>
         ) : eligibleItems.length === 0 ? (
           <div style={{ border: `1px dashed ${C.border}`, borderRadius: 16, padding: 18, color: C.t2, fontSize: 13 }}>
-            No active published cards are available for spotlight yet.
+            {t.empty || 'No active published cards are available for spotlight yet.'}
           </div>
         ) : (
           <div className="ds-spotlight-items-grid">
@@ -140,7 +142,7 @@ export function SpotlightModal({
                     <span style={{ display: 'block', color: C.t1, fontWeight: 800, fontSize: 13, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{item.title}</span>
                     <span style={{ display: 'block', color: C.t3, fontSize: 11, marginTop: 2 }}>{item.label}</span>
                   </span>
-                  <span style={{ color: C.gold, fontWeight: 900, fontSize: 12 }}>10 nuggets</span>
+                  <span style={{ color: C.gold, fontWeight: 900, fontSize: 12 }}>10 {t.nuggets || 'nuggets'}</span>
                 </button>
               );
             })}
@@ -149,7 +151,7 @@ export function SpotlightModal({
 
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 12, borderTop: `1px solid ${C.border}`, paddingTop: 14, flexWrap: 'wrap' }}>
           <div style={{ color: totalCost > nuggets ? C.danger : C.t2, fontSize: 13, fontWeight: 800 }}>
-            Total: {totalCost} nuggets
+            {t.total || 'Total'}: {totalCost} {t.nuggets || 'nuggets'}
           </div>
           <button
             type="button"
@@ -170,7 +172,7 @@ export function SpotlightModal({
               boxShadow: canSubmit ? `0 0 14px ${C.alpha(C.accent, 0.22)}` : 'none',
             }}
           >
-            {isProcessing ? 'Activating...' : hasSelection && !hasEnoughBalance ? 'Get nuggets / upgrade' : 'Activate Spotlight'}
+            {isProcessing ? (t.activating || 'Activating...') : hasSelection && !hasEnoughBalance ? (t.getNuggets || 'Get nuggets / upgrade') : (t.activate || 'Activate Spotlight')}
           </button>
         </div>
       </div>

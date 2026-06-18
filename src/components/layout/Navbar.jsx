@@ -10,6 +10,7 @@ import appLogo from '../../assets/logo.png';
 import feedMatchIcon from '../../assets/feed-match-icon.png';
 import mapViewTaskbarIcon from '../../assets/taskbar-mapview-icon.png';
 import matchesTaskbarIcon from '../../assets/taskbar-matches-icon.png';
+import { useGuideTips } from '../guidetips/GuideTipsProvider';
 
 const LANGS = [
   { code: 'en-US', label: 'EN' },
@@ -176,6 +177,8 @@ export function Navbar({ page, prevPage, setPage, nuggets = 0, setModal = () => 
   const isLanding = page === 'landing';
   const allT = useT('global');
   const t = allT.nav;
+  const guideT = allT.guideTips || {};
+  const { enabled: guideTipsEnabled, toggle: toggleGuideTips } = useGuideTips();
   const { theme, toggleTheme } = useTheme();
   const [notifOpen, setNotifOpen] = useState(false);
   const [notifTab, setNotifTab] = useState('matches');
@@ -544,6 +547,15 @@ export function Navbar({ page, prevPage, setPage, nuggets = 0, setModal = () => 
                             </span>
                           </button>
 
+                          <button
+                            onClick={toggleGuideTips}
+                            aria-pressed={guideTipsEnabled}
+                            style={{ width: '100%', display: 'flex', alignItems: 'center', gap: 10, borderRadius: 10, border: `1px solid ${guideTipsEnabled ? C.gold : C.border}`, background: guideTipsEnabled ? C.alpha(C.gold, 0.14) : 'transparent', color: guideTipsEnabled ? C.gold : C.t2, fontWeight: 800, fontSize: 14, padding: '10px 12px', cursor: 'pointer' }}
+                          >
+                            <Icon name="lightbulb" size={15} color={guideTipsEnabled ? C.gold : C.t2} strokeWidth={2} />
+                            <span>{guideTipsEnabled ? (guideT.turnOff || 'Turn off GuideTips') : (guideT.turnOn || 'GuideTips')}</span>
+                          </button>
+
                           <div style={{ width: '100%', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 10, borderRadius: 10, border: `1px solid ${C.border}`, color: C.t2, fontWeight: 700, fontSize: 14, padding: '10px 12px' }}>
                             <span style={{ display: 'inline-flex', alignItems: 'center', gap: 8 }}>
                               <Icon name="globe" size={15} color={C.t2} />
@@ -588,6 +600,14 @@ export function Navbar({ page, prevPage, setPage, nuggets = 0, setModal = () => 
               </>
             ) : (
               <>
+                <button
+                  onClick={toggleGuideTips}
+                  title={guideTipsEnabled ? (guideT.turnOff || 'Turn off GuideTips') : (guideT.turnOn || 'GuideTips')}
+                  aria-pressed={guideTipsEnabled}
+                  style={{ width: 36, height: 36, borderRadius: 8, border: `1px solid ${guideTipsEnabled ? C.gold : C.border}`, background: guideTipsEnabled ? C.alpha(C.gold, 0.14) : C.card, display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', boxShadow: guideTipsEnabled ? `0 0 16px ${C.alpha(C.gold, 0.34)}` : 'none' }}
+                >
+                  <Icon name="lightbulb" size={17} color={guideTipsEnabled ? C.gold : C.t2} strokeWidth={2} />
+                </button>
                 <NuggetBadge count={nuggets} onClick={() => setModal && setModal('store')} />
                 <div ref={notifRef} style={{ position: 'relative' }}>
                   <button
