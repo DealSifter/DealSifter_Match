@@ -111,6 +111,7 @@ export function Dashboard({ page, nuggets, setModal, setPage, onOpenOnboardingTa
   const mobileActionDockBottom = isMobileViewport
     ? (mobileBottomNavOffset + mobileMiniCardsBandHeight + 12)
     : 20;
+  const PROPERTY_BLUE = '#4381bc';
   const t = useT('dashboard').dashboard;
   const navT = useT('dashboard').nav;
   const cardsT = useT('dashboard').cards;
@@ -2463,6 +2464,12 @@ export function Dashboard({ page, nuggets, setModal, setPage, onOpenOnboardingTa
           pointer-events: none;
           filter: brightness(0) saturate(1) opacity(0.78);
         }
+        .ds-property-spotlight-halo {
+          box-shadow: 0 0 0 2px ${C.alpha('#4381bc', 0.9)}, 0 0 24px ${C.alpha('#4381bc', 0.62)};
+        }
+        [data-theme="light"] .ds-property-spotlight-halo {
+          box-shadow: 0 0 0 3px ${C.alpha('#4381bc', 0.96)}, 0 0 31px ${C.alpha('#4381bc', 0.8)}, 0 0 52px ${C.alpha('#4381bc', 0.18)};
+        }
         .ds-mobile-feed-overlay {
           position: fixed;
           inset: 58px 0 0 0;
@@ -3570,7 +3577,7 @@ export function Dashboard({ page, nuggets, setModal, setPage, onOpenOnboardingTa
                 style={{
                   border: 'none',
                   borderRadius: 999,
-                  background: view === 'properties' ? C.accent : 'transparent',
+                  background: view === 'properties' ? PROPERTY_BLUE : 'transparent',
                   color: view === 'properties' ? '#fff' : C.t2,
                   fontWeight: 700,
                   fontSize: 12,
@@ -3730,12 +3737,11 @@ export function Dashboard({ page, nuggets, setModal, setPage, onOpenOnboardingTa
                             )
                           }}
                         >
-                          <div style={{
+                          <div className={isSponsored ? 'ds-property-spotlight-halo' : undefined} style={{
                             position: 'relative',
                             width: '100%',
                             height: '100%',
                             borderRadius: 22,
-                            boxShadow: isSponsored ? `0 0 0 2px ${C.alpha('#4381bc', 0.9)}, 0 0 24px ${C.alpha('#4381bc', 0.62)}` : 'none',
                           }}>
                             <PropertyCard
                               property={p}
