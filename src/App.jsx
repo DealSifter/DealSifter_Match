@@ -182,6 +182,8 @@ const USER_PREFERENCES_KEY = 'ds_user_preferences';
 const COOKIE_CONSENT_KEY = 'ds_cookie_consent';
 const COOKIE_CONSENT_VERSION = '2026-06';
 const COOKIE_CONSENT_TTL_MS = 365 * 24 * 60 * 60 * 1000;
+const LGPD_CONSENT_KEY = 'ds_lgpd_consent';
+const LGPD_CONSENT_VERSION = '1.0';
 
 const appendSecurityAuditEvent = (event) => {
   try {
@@ -242,8 +244,7 @@ const getDeviceLabel = () => {
 };
 
 const readCookieConsent = () => {
-  try {
-    const raw = localStorage.getItem(COOKIE_CONSENT_KEY);
+  const isValidPayload = (raw) => {
     if (raw === '1') return true; // legacy acceptance
     if (!raw) return false;
     const parsed = JSON.parse(raw);
@@ -252,19 +253,71 @@ const readCookieConsent = () => {
     if (!['accepted', 'essential'].includes(String(parsed.choice || ''))) return false;
     const expiresAt = Number(parsed.expiresAt || 0);
     return Number.isFinite(expiresAt) && expiresAt > Date.now();
+  };
+  try {
+    const raw = localStorage.getItem(COOKIE_CONSENT_KEY);
+    if (isValidPayload(raw)) return true;
+  } catch { /* no-op */ }
+  try {
+    const cookie = document.cookie
+      .split(';')
+      .map((item) => item.trim())
+      .find((item) => item.startsWith(`${COOKIE_CONSENT_KEY}=`));
+    if (!cookie) return false;
+    return isValidPayload(decodeURIComponent(cookie.split('=').slice(1).join('=')));
+  } catch { /* no-op */ }
+  return false;
+};
+
+const writeCookieConsent = (choice = 'accepted') => {
+  const payload = JSON.stringify({
+    version: COOKIE_CONSENT_VERSION,
+    choice: choice === 'essential' ? 'essential' : 'accepted',
+    acceptedAt: Date.now(),
+    expiresAt: Date.now() + COOKIE_CONSENT_TTL_MS,
+  });
+  try {
+    localStorage.setItem(COOKIE_CONSENT_KEY, payload);
+  } catch { /* no-op */ }
+  try {
+    document.cookie = `${COOKIE_CONSENT_KEY}=${encodeURIComponent(payload)}; Max-Age=${Math.floor(COOKIE_CONSENT_TTL_MS / 1000)}; Path=/; SameSite=Lax; Secure`;
+  } catch { /* no-op */ }
+};
+
+const readLgpdConsent = (userId = '') => {
+  const keys = [
+    userId ? `${LGPD_CONSENT_KEY}:${userId}` : '',
+    LGPD_CONSENT_KEY,
+  ].filter(Boolean);
+  try {
+    return keys.some((key) => {
+      const raw = localStorage.getItem(key);
+      if (raw === '1') return true;
+      if (!raw) return false;
+      const parsed = JSON.parse(raw);
+      return parsed?.accepted === true && String(parsed?.version || '') === LGPD_CONSENT_VERSION;
+    });
   } catch {
     return false;
   }
 };
 
-const writeCookieConsent = (choice = 'accepted') => {
+const writeLgpdConsent = (userId = '') => {
+  const payload = JSON.stringify({
+    accepted: true,
+    version: LGPD_CONSENT_VERSION,
+    acceptedAt: Date.now(),
+  });
   try {
-    localStorage.setItem(COOKIE_CONSENT_KEY, JSON.stringify({
-      version: COOKIE_CONSENT_VERSION,
-      choice: choice === 'essential' ? 'essential' : 'accepted',
-      acceptedAt: Date.now(),
-      expiresAt: Date.now() + COOKIE_CONSENT_TTL_MS,
-    }));
+    localStorage.setItem(LGPD_CONSENT_KEY, payload);
+    if (userId) localStorage.setItem(`${LGPD_CONSENT_KEY}:${userId}`, payload);
+  } catch { /* no-op */ }
+};
+
+const clearLgpdConsent = (userId = '') => {
+  try {
+    localStorage.removeItem(LGPD_CONSENT_KEY);
+    if (userId) localStorage.removeItem(`${LGPD_CONSENT_KEY}:${userId}`);
   } catch { /* no-op */ }
 };
 
@@ -544,6 +597,10 @@ const clearUserSpecificLocalStorage = () => {
 };
 
 const isUuid = (value) => /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(String(value || '').trim());
+
+const isMockPropertyId = (propertyId) => (
+  (MOCK_PROPERTIES || []).some((property) => String(property?.id || '') === String(propertyId || ''))
+);
 
 const toNumberOrZero = (value) => {
   const n = Number(value);
@@ -1368,12 +1425,9 @@ export default function App() {
 
   // LGPD consent state
   const [lgpdConsent, setLgpdConsent] = useState(() => {
-    try {
-      return localStorage.getItem('ds_lgpd_consent') === '1';
-    } catch {
-      return false;
-    }
+    return readLgpdConsent();
   });
+  const [lgpdConsentChecked, setLgpdConsentChecked] = useState(false);
 
   // Cookie consent state (landing page banner)
   const [cookieConsent, setCookieConsent] = useState(() => {
@@ -1396,7 +1450,7 @@ export default function App() {
             user_id: userId,
             anonymous_id: userId ? null : anonId,
             consent_type: 'data_processing',
-            version: '1.0',
+            version: LGPD_CONSENT_VERSION,
             user_agent: navigator.userAgent?.slice(0, 200) || null,
           });
           // Persist anonymous_id so we can link it after login
@@ -1407,8 +1461,9 @@ export default function App() {
       }
       // Update local state only after server-side record attempt
       setLgpdConsent(true);
+      setLgpdConsentChecked(true);
       setModal(null);
-      try { localStorage.setItem('ds_lgpd_consent', '1'); } catch { /* no-op */ }
+      writeLgpdConsent(authSession?.userId || '');
       if (authSession && ['landing', 'terms', 'privacy'].includes(page)) {
         _setPage('dashboard');
         try { localStorage.setItem('ds_last_page', 'dashboard'); } catch { /* no-op */ }
@@ -1420,6 +1475,87 @@ export default function App() {
 
   // After login, link any anonymous consent record to the authenticated user_id
   const consentLinkedRef = useRef(false);
+  useEffect(() => {
+    let cancelled = false;
+    const userId = authSession?.userId || '';
+    consentLinkedRef.current = false;
+    if (!userId) {
+      const timer = window.setTimeout(() => {
+        if (cancelled) return;
+        setLgpdConsent(readLgpdConsent());
+        setLgpdConsentChecked(true);
+      }, 0);
+      return () => {
+        cancelled = true;
+        window.clearTimeout(timer);
+      };
+    }
+
+    const timer = window.setTimeout(() => {
+      if (cancelled) return;
+      const localAccepted = readLgpdConsent(userId);
+      if (localAccepted) setLgpdConsent(true);
+      setLgpdConsentChecked(false);
+
+      if (!isSupabaseConfigured || !supabase) {
+        setLgpdConsent(localAccepted);
+        setLgpdConsentChecked(true);
+        return;
+      }
+
+      (async () => {
+        try {
+          const { data, error } = await supabase
+            .from('consent_records')
+            .select('id, accepted_at')
+            .eq('user_id', userId)
+            .eq('consent_type', 'data_processing')
+            .is('revoked_at', null)
+            .order('accepted_at', { ascending: false })
+            .limit(1);
+          if (error) throw error;
+          if (cancelled) return;
+
+          const hasRemoteConsent = Array.isArray(data) && data.length > 0;
+          if (hasRemoteConsent) {
+            writeLgpdConsent(userId);
+            setLgpdConsent(true);
+            return;
+          }
+
+          if (localAccepted) {
+            try {
+              await supabase.from('consent_records').insert({
+                user_id: userId,
+                anonymous_id: null,
+                consent_type: 'data_processing',
+                version: LGPD_CONSENT_VERSION,
+                user_agent: navigator.userAgent?.slice(0, 200) || null,
+              });
+              writeLgpdConsent(userId);
+              setLgpdConsent(true);
+              return;
+            } catch (insertError) {
+              safeLogError('Failed to backfill local consent record.', insertError);
+            }
+          }
+
+          setLgpdConsent(false);
+        } catch (error) {
+          safeLogError('Failed to verify data-processing consent.', error);
+          setLgpdConsent(localAccepted);
+        } finally {
+          if (!cancelled) setLgpdConsentChecked(true);
+        }
+      })();
+    }, 0);
+
+    return () => {
+      cancelled = true;
+      window.clearTimeout(timer);
+    };
+  }, [authSession?.userId]);
+
   useEffect(() => {
     if (!authSession?.userId || consentLinkedRef.current) return;
     if (!isSupabaseConfigured || !supabase || !lgpdConsent) return;
@@ -1466,7 +1602,7 @@ export default function App() {
         .eq('consent_type', 'data_processing')
         .is('revoked_at', null);
       setLgpdConsent(false);
-      try { localStorage.removeItem('ds_lgpd_consent'); } catch { /* no-op */ }
+      clearLgpdConsent(authSession.userId);
       consentLinkedRef.current = false;
       addToast({ type: 'success', title: 'Consentimento revogado', message: 'Seu consentimento foi revogado. Você será redirecionado.' });
       setPage('landing');
@@ -4044,6 +4180,7 @@ export default function App() {
 
   const getUnlockExclusivityStatus = (card) => {
     if (!card?.propertyId || card?.unlockScope !== 'property') return null;
+    if (!isUuid(card.propertyId) && !(isAdmin && isMockPropertyId(card.propertyId))) return null;
     if (unlockQuote?.propertyId && String(unlockQuote.propertyId) === String(card.propertyId)) {
       if (unlockQuote.blocked) {
         return {
@@ -4087,7 +4224,8 @@ export default function App() {
     const baseCost = getPortfolioUnlockCost(card, unlockPortfolioProperties || [], unlockPortfolioServices || []);
     const candidates = (unlockPortfolioProperties || [])
       .filter((property) => (
-        String(property?.ownerId || '') === String(unlockOwnerId)
+        (isUuid(property?.id) || (isAdmin && isMockPropertyId(property?.id)))
+        && String(property?.ownerId || '') === String(unlockOwnerId)
         && isTruthyFlag(property?.isActive, true)
         && isTruthyFlag(property?.publishToShowcase, true)
         && property?.dealClosed !== true
@@ -4179,6 +4317,35 @@ export default function App() {
     const unlockCost = unlockMode !== 'normal' && quoteExclusiveCost != null
       ? baseUnlockCost + quoteExclusiveCost
       : Number(options?.cost || baseUnlockCost);
+    const isPropertyUnlock = card?.unlockScope === 'property';
+    const isMockSandboxPropertyUnlock = Boolean(
+      isPropertyUnlock
+      && !isUuid(card?.propertyId)
+      && isAdmin
+      && isMockPropertyId(card?.propertyId)
+    );
+    if (isPropertyUnlock) {
+      if (!card?.propertyId || (!isUuid(card.propertyId) && !isMockSandboxPropertyUnlock)) {
+        addToast({
+          type: 'error',
+          title: 'Unlock unavailable',
+          message: 'This property cannot be unlocked because it is not linked to a saved database record yet.',
+        });
+        setModal(null);
+        setUnlockQuote(null);
+        return;
+      }
+      if (!isMockSandboxPropertyUnlock && (!isSupabaseConfigured || !supabase || !supabaseUserId)) {
+        addToast({
+          type: 'error',
+          title: 'Unlock unavailable',
+          message: 'Sign in and wait for the app to sync before unlocking this property.',
+        });
+        setModal(null);
+        setUnlockQuote(null);
+        return;
+      }
+    }
     const unlockGate = canUsePlanAction(accessSubscription, 'unlock', {
       unlocksThisMonth: readPlanUsage('month')?.unlocks || 0,
     });
@@ -4224,12 +4391,8 @@ export default function App() {
 
         let remoteUnlockRow = null;
       if (
-        card.unlockScope === 'property'
-        && card.propertyId
-        && isUuid(card.propertyId)
-        && isSupabaseConfigured
-        && supabase
-        && supabaseUserId
+        isPropertyUnlock
+        && !isMockSandboxPropertyUnlock
       ) {
         try {
           const { data, error } = await supabase.rpc('ds_purchase_property_unlock', {
@@ -4245,32 +4408,36 @@ export default function App() {
           });
           if (error) throw error;
           remoteUnlockRow = Array.isArray(data) ? data[0] : data;
+          if (!remoteUnlockRow?.unlock_id && !remoteUnlockRow?.id) {
+            throw new Error('Property unlock did not return a persisted record.');
+          }
           const remoteTotalCost = Number(remoteUnlockRow?.total_cost);
           if (
             remoteUnlockRow
             && Number.isFinite(Number(remoteUnlockRow.remaining_nuggets))
             && Number.isFinite(remoteTotalCost)
-            && remoteTotalCost === unlockCost
           ) {
             setNuggets(Number(remoteUnlockRow.remaining_nuggets));
           } else {
-            setNuggets(n => n - unlockCost);
+            throw new Error('Property unlock did not return a confirmed balance.');
           }
         } catch (error) {
-          const message = String(error?.message || '').toLowerCase();
-          const missingRpc = message.includes('function') && message.includes('ds_purchase_property_unlock');
-          if (!missingRpc) {
-            addToast({
-              type: 'warning',
-              title: 'Unlock unavailable',
-              message: error?.message || 'This property could not be unlocked right now. Please try again.',
-            });
-            setModal(null);
-            setUnlockQuote(null);
-            return;
-          }
-          setNuggets(n => n - unlockCost);
+          addToast({
+            type: 'warning',
+            title: 'Unlock unavailable',
+            message: error?.message || 'This property could not be unlocked right now. Please try again.',
+          });
+          setModal(null);
+          setUnlockQuote(null);
+          return;
         }
+      } else if (isMockSandboxPropertyUnlock) {
+        addToast({
+          type: 'info',
+          title: 'Mock sandbox',
+          message: 'Test unlock simulated locally for this mock card. No real nuggets, KPI, or Supabase history were changed.',
+          duration: 6500,
+        });
       } else {
         setNuggets(n => n - unlockCost);
       }
@@ -4723,7 +4890,7 @@ export default function App() {
         )}
 
         {/* LGPD consent — after login only */}
-        {!lgpdConsent && authSession && !['terms', 'privacy'].includes(page) && (
+        {lgpdConsentChecked && !lgpdConsent && authSession && !['terms', 'privacy'].includes(page) && (
           <Suspense fallback={null}>
             <ConsentBanner processing={isConsentProcessing} onAccept={handleLgpdAccept} onReject={() => { const t = getT(); setPage('landing'); addToast({ type: 'info', title: t.consent.requiredTitle, message: t.consent.requiredMessage }); }} onOpenTerms={() => setPage('terms')} onOpenPrivacy={() => setPage('privacy')} />
           </Suspense>
