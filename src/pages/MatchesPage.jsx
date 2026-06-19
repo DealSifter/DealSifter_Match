@@ -1992,22 +1992,69 @@ export function MatchesPage({ nuggets, setModal, openUnlock, unlocked, initialCh
     return m ? m[1].toUpperCase() : null;
   }, []);
 
-  const peopleCategoryOptions = useMemo(() => {
-    const categoryLabelById = new Map();
-    CATEGORIES.forEach((c) => {
-      categoryLabelById.set(c.id, c.label);
-      (c.sub || []).forEach((s) => categoryLabelById.set(s.id, s.label));
+  const categoryLookup = useMemo(() => {
+    const labelByKey = new Map();
+    const aliasToKeys = new Map();
+    const addAlias = (alias, ...keys) => {
+      const normalizedAlias = String(alias || '').trim().toLowerCase();
+      if (!normalizedAlias) return;
+      const current = aliasToKeys.get(normalizedAlias) || new Set();
+      keys.filter(Boolean).forEach((key) => current.add(String(key).trim().toLowerCase()));
+      aliasToKeys.set(normalizedAlias, current);
+    };
+
+    CATEGORIES.forEach((category) => {
+      const categoryId = String(category.id || '').trim().toLowerCase();
+      if (!categoryId || categoryId === 'all') return;
+      labelByKey.set(categoryId, category.label);
+      addAlias(category.id, categoryId);
+      addAlias(category.label, categoryId);
+      (category.sub || []).forEach((subCategory) => {
+        const subId = String(subCategory.id || '').trim().toLowerCase();
+        if (!subId) return;
+        labelByKey.set(subId, subCategory.label);
+        addAlias(subCategory.id, subId, categoryId);
+        addAlias(subCategory.label, subId, categoryId);
+      });
     });
+
+    return { labelByKey, aliasToKeys };
+  }, []);
+
+  const getPeopleCategoryKeys = useCallback((contact) => {
+    const keys = new Set();
+    [
+      contact?.cat,
+      contact?.category,
+      contact?.type,
+      contact?.role,
+      contact?.sub,
+      contact?.badge,
+      contact?.primaryCategory,
+      contact?.primary_category,
+    ].forEach((value) => {
+      const raw = String(value || '').trim();
+      if (!raw) return;
+      const normalized = raw.toLowerCase();
+      keys.add(normalized);
+      const mapped = categoryLookup.aliasToKeys.get(normalized);
+      if (mapped) mapped.forEach((key) => keys.add(key));
+    });
+    return keys;
+  }, [categoryLookup]);
+
+  const peopleCategoryOptions = useMemo(() => {
     const unique = new Map();
     allMatched.forEach((m) => {
-      const key = String(m?.cat || '').trim().toLowerCase();
-      if (!key) return;
-      if (!unique.has(key)) unique.set(key, categoryLabelById.get(key) || m?.type || key);
+      getPeopleCategoryKeys(m).forEach((key) => {
+        if (!key || key === 'all') return;
+        if (!unique.has(key)) unique.set(key, categoryLookup.labelByKey.get(key) || key);
+      });
     });
     return Array.from(unique.entries())
       .map(([id, label]) => ({ id, label }))
       .sort((a, b) => a.label.localeCompare(b.label));
-  }, [allMatched]);
+  }, [allMatched, categoryLookup, getPeopleCategoryKeys]);
 
   const interestStateOptions = useMemo(() => {
     const states = Array.from(new Set(
@@ -2022,17 +2069,17 @@ export function MatchesPage({ nuggets, setModal, openUnlock, unlocked, initialCh
   const filteredMatched = useMemo(() => {
     const list = allMatched.filter(m => {
       const paid = isContactUnlockedByState(m);
-      if (peopleFilter === "paid") return paid;
-      if (peopleFilter === "locked") return !paid;
+      if (peopleFilter === "paid" && !paid) return false;
+      if (peopleFilter === "locked" && paid) return false;
       if (selectedPeopleCategories.length > 0) {
-        const cat = String(m?.cat || '').trim().toLowerCase();
-        if (!selectedPeopleCategories.includes(cat)) return false;
+        const categoryKeys = getPeopleCategoryKeys(m);
+        if (!selectedPeopleCategories.some((cat) => categoryKeys.has(String(cat || '').trim().toLowerCase()))) return false;
       }
       return true;
     });
     if (sortOrder === 'name_asc') return [...list].sort((a, b) => String(a?.name || '').localeCompare(String(b?.name || '')));
     return list;
-  }, [allMatched, peopleFilter, isContactUnlockedByState, selectedPeopleCategories, sortOrder]);
+  }, [allMatched, peopleFilter, isContactUnlockedByState, selectedPeopleCategories, sortOrder, getPeopleCategoryKeys]);
 
   const isActiveProperty = active?.address !== undefined;
   const activeContactId = useMemo(() => {
