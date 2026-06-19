@@ -1281,7 +1281,6 @@ export function Dashboard({ page, nuggets, setModal, setPage, onOpenOnboardingTa
   const getMyCardScopedRecords = useCallback((scopeKey) => {
     const profileScope = scopeKey === 'secondary' ? 'professional' : (scopeKey === 'fsbo' ? 'fsbo' : 'personal');
     const ownerId = String(getOwnerIdForKey(scopeKey) || '').trim();
-    const isPersistedDbRecord = (record) => String(record?.source || '').trim().toLowerCase() === 'supabase';
     const isScopedOwnerRecord = (record) => {
       const recordOwnerId = String(record?.ownerId || '').trim();
       return Boolean(ownerId) && Boolean(recordOwnerId) && recordOwnerId === ownerId;
@@ -1289,16 +1288,14 @@ export function Dashboard({ page, nuggets, setModal, setPage, onOpenOnboardingTa
     // Use propertyPortfolio for real-time state (not showcaseProperties)
     // Filter by show in = ON and matching profile scope.
     const properties = (propertyPortfolio || []).filter((p) => {
-      return isPersistedDbRecord(p)
-        && isScopedOwnerRecord(p)
+      return isScopedOwnerRecord(p)
         && isTruthyFlag(p.publishToShowcase, true)
         && p?.dealClosed !== true
         && !isPendingDealExpired(p)
         && normalizeProfileScope(p.primaryProfile || 'personal') === profileScope;
     });
     const services = (servicePortfolio || []).filter((s) => {
-      return isPersistedDbRecord(s)
-        && isScopedOwnerRecord(s)
+      return isScopedOwnerRecord(s)
         && isTruthyFlag(s.publishToConnections, true)
         && s?.dealClosed !== true
         && normalizeProfileScope(s.primaryProfile || 'personal') === profileScope;
