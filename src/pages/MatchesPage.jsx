@@ -417,17 +417,20 @@ function PortfolioDetail({ item, owner, ownerDesc, onBack, autoplayMedia = false
 
   useEffect(() => {
     // Reset email fields when the selected item changes, restoring saved defaults.
-    try {
-      const saved = JSON.parse(localStorage.getItem('ds_export_mail_defaults') || 'null');
-      setEmailTo(saved?.to?.trim() || getProfileEmailFallback());
-      setEmailCc(saved?.cc || '');
-      setEmailBcc(saved?.bcc || '');
-    } catch (e) {
-      void e;
-      setEmailTo(getProfileEmailFallback());
-      setEmailCc('');
-      setEmailBcc('');
-    }
+    const t = setTimeout(() => {
+      try {
+        const saved = JSON.parse(localStorage.getItem('ds_export_mail_defaults') || 'null');
+        setEmailTo(saved?.to?.trim() || getProfileEmailFallback());
+        setEmailCc(saved?.cc || '');
+        setEmailBcc(saved?.bcc || '');
+      } catch (e) {
+        void e;
+        setEmailTo(getProfileEmailFallback());
+        setEmailCc('');
+        setEmailBcc('');
+      }
+    }, 0);
+    return () => clearTimeout(t);
   }, [item?.id]);
 
   const fmtMoney = (v) => {
