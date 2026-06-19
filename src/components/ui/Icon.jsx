@@ -16,6 +16,15 @@ export const Icon = ({ name, size=18, color="currentColor", strokeWidth=1.5, sec
     send:       <svg style={s} viewBox="0 0 24 24"><line {...p} x1="22" y1="2" x2="11" y2="13"/><polygon {...p} points="22 2 15 22 11 13 2 9 22 2"/></svg>,
     copy:       <svg style={s} viewBox="0 0 24 24"><rect {...p} x="9" y="9" width="13" height="13" rx="2"/><path {...p} d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>,
     check:      <svg style={s} viewBox="0 0 24 24"><polyline {...p} points="20 6 9 17 4 12"/></svg>,
+    installDevice: <svg style={s} viewBox="0 0 64 64">
+                  <path {...p} d="M8 51h48"/>
+                  <path {...p} d="M13 49h38l-3 5H16l-3-5Z"/>
+                  <path {...p} d="M12 47V20c0-3.3 2.7-6 6-6h24"/>
+                  <path {...p} d="M16 45h32V31"/>
+                  <rect {...p} x="39" y="8" width="15" height="27" rx="3"/>
+                  <path {...p} d="M43 12h7"/>
+                  <circle {...p} cx="46.5" cy="31" r="1.7"/>
+                </svg>,
     // Locks
     lock:       <svg style={s} viewBox="0 0 24 24">
                   <rect {...p} x="3" y="11" width="18" height="11" rx="2"/>

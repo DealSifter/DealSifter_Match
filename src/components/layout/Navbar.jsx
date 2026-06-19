@@ -584,7 +584,7 @@ export function Navbar({ page, prevPage, setPage, nuggets = 0, setModal = () => 
 
                           {showInstallAppButton ? (
                             <button onClick={onInstallApp} style={{ width: '100%', display: 'flex', alignItems: 'center', gap: 10, borderRadius: 10, border: `1px solid ${C.border}`, background: 'transparent', color: C.t2, fontWeight: 700, fontSize: 14, padding: '10px 12px', cursor: 'pointer' }}>
-                              <Icon name="download" size={15} color={C.t2} />
+                              <Icon name="installDevice" size={17} color={C.t2} strokeWidth={1.7} />
                               <span>{t.installToHome || 'Add to Home Screen'}</span>
                             </button>
                           ) : null}
@@ -768,7 +768,7 @@ export function Navbar({ page, prevPage, setPage, nuggets = 0, setModal = () => 
                       </button>
                       {showInstallAppButton ? (
                         <button onClick={onInstallApp} style={{ width: '100%', display: 'flex', alignItems: 'center', gap: 10, borderRadius: 10, border: `1px solid ${C.border}`, background: 'transparent', color: C.t2, fontWeight: 700, fontSize: 14, padding: '10px 12px', cursor: 'pointer' }}>
-                          <Icon name="download" size={15} color={C.t2} />
+                          <Icon name="installDevice" size={17} color={C.t2} strokeWidth={1.7} />
                           <span>{t.installToHome || 'Add to Home Screen'}</span>
                         </button>
                       ) : null}
