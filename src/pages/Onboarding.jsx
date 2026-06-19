@@ -3911,7 +3911,8 @@ export function Onboarding({
                           <div style={{ display: 'flex', flexWrap: isPhoneViewport ? 'wrap' : 'nowrap', alignItems: 'center', gap: 6, padding: '7px 0', minWidth: 0 }}>
                             <div style={{
                               minWidth: 0,
-                              flex: isPhoneViewport ? '1 1 100%' : '1 1 auto',
+                              flex: isPhoneViewport ? '1 1 100%' : '0 1 50%',
+                              maxWidth: isPhoneViewport ? '100%' : '52%',
                               fontSize: 11,
                               color: C.t1,
                               fontWeight: 700,
@@ -3923,9 +3924,9 @@ export function Onboarding({
                               WebkitLineClamp: (isPhoneViewport && (p.dealClosed || !isTruthyFlag(p.publishToShowcase, true))) ? 2 : 1,
                               WebkitBoxOrient: 'vertical',
                             }}>
-                              {p.address} · {p.city} · ${Number(p.price || 0).toLocaleString('en-US')} · {p.dealTag || t.sectionPortfolio} · {p.images?.length || 0} img
+                              {p.address} · {p.city} · ${Number(p.price || 0).toLocaleString('en-US')} · {p.images?.length || 0} img
                             </div>
-                            <div style={{ display:'flex', alignItems:'center', gap:6, width: isPhoneViewport ? '100%' : 'auto', flexWrap: 'nowrap', marginLeft: isPhoneViewport ? 0 : 'auto', minWidth: 0 }}>
+                            <div style={{ display:'flex', alignItems:'center', justifyContent: isPhoneViewport ? 'flex-start' : 'flex-end', gap:6, width: isPhoneViewport ? '100%' : 'auto', flex: isPhoneViewport ? '0 0 100%' : '1 1 0', flexWrap: 'nowrap', marginLeft: isPhoneViewport ? 0 : 'auto', minWidth: 0 }}>
                               {!p.dealClosed ? (
                                 <Chip active={isTruthyFlag(p.publishToShowcase, true)} onClick={() => {
                                   togglePropertyShowInShowcase(p.id);
@@ -3934,15 +3935,16 @@ export function Onboarding({
                                 aria-pressed={isTruthyFlag(p.publishToShowcase, true)}
                                 title={isTruthyFlag(p.publishToShowcase, true) ? t.publishInShowcaseInactive : t.publishInShowcaseActive}
                                 style={{
-                                  marginRight: 'auto',
+                                  marginRight: isPhoneViewport ? 'auto' : 0,
                                   overflow: 'hidden',
                                   textOverflow: 'ellipsis',
                                   whiteSpace: 'nowrap',
                                   background: isTruthyFlag(p.publishToShowcase, true) ? C.alpha(C.danger, 0.08) : C.alpha(C.accent, 0.1),
                                   border: `1px solid ${isTruthyFlag(p.publishToShowcase, true) ? C.danger : C.accent}`,
                                   color: isTruthyFlag(p.publishToShowcase, true) ? C.danger : C.accent,
-                                  fontSize: isPhoneViewport ? 9 : 11,
-                                  padding: isPhoneViewport ? '5px 8px' : undefined,
+                                  fontSize: isPhoneViewport ? 9 : 10.5,
+                                  padding: isPhoneViewport ? '5px 8px' : '6px 11px',
+                                  minWidth: isPhoneViewport ? undefined : 116,
                                 }}>
                                   {isTruthyFlag(p.publishToShowcase, true) ? t.publishInShowcaseInactive : t.publishInShowcaseActive}
                                 </Chip>
@@ -4259,7 +4261,8 @@ export function Onboarding({
                           <div style={{ display: 'flex', flexWrap: isPhoneViewport ? 'wrap' : 'nowrap', alignItems: 'center', gap: 6, padding: '7px 0', minWidth: 0 }}>
                             <div style={{
                               minWidth: 0,
-                              flex: isPhoneViewport ? '1 1 100%' : '1 1 auto',
+                              flex: isPhoneViewport ? '1 1 100%' : '0 1 50%',
+                              maxWidth: isPhoneViewport ? '100%' : '52%',
                               fontSize: 11,
                               color: C.t1,
                               fontWeight: 700,
@@ -4273,7 +4276,7 @@ export function Onboarding({
                             }}>
                               {svc.title || t.serviceFallbackName}{svc.category ? ` · ${svc.category}` : ''} · {svc.media?.images?.length || 0} img
                             </div>
-                            <div style={{ display:'flex', alignItems:'center', gap:6, width: isPhoneViewport ? '100%' : 'auto', flexWrap: 'nowrap', marginLeft: isPhoneViewport ? 0 : 'auto', minWidth: 0 }}>
+                            <div style={{ display:'flex', alignItems:'center', justifyContent: isPhoneViewport ? 'flex-start' : 'flex-end', gap:6, width: isPhoneViewport ? '100%' : 'auto', flex: isPhoneViewport ? '0 0 100%' : '1 1 0', flexWrap: 'nowrap', marginLeft: isPhoneViewport ? 0 : 'auto', minWidth: 0 }}>
                               {!svc.dealClosed ? (
                                 <Chip active={isTruthyFlag(svc.publishToConnections, true)} onClick={() => {
                                   toggleServiceShowInConnections(svc.id);
@@ -4282,13 +4285,16 @@ export function Onboarding({
                                 aria-pressed={isTruthyFlag(svc.publishToConnections, true)}
                                 title={isTruthyFlag(svc.publishToConnections, true) ? t.labelConnectionsInactive : t.labelConnectionsActive}
                                 style={{
-                                  marginRight: 'auto',
+                                  marginRight: isPhoneViewport ? 'auto' : 0,
                                   overflow: 'hidden',
                                   textOverflow: 'ellipsis',
                                   whiteSpace: 'nowrap',
                                   background: isTruthyFlag(svc.publishToConnections, true) ? C.alpha(C.danger, 0.08) : C.alpha(C.accent, 0.1),
                                   border: `1px solid ${isTruthyFlag(svc.publishToConnections, true) ? C.danger : C.accent}`,
                                   color: isTruthyFlag(svc.publishToConnections, true) ? C.danger : C.accent,
+                                  fontSize: isPhoneViewport ? 9 : 10.5,
+                                  padding: isPhoneViewport ? '5px 8px' : '6px 11px',
+                                  minWidth: isPhoneViewport ? undefined : 126,
                                 }}>
                                   {isTruthyFlag(svc.publishToConnections, true) ? t.labelConnectionsInactive : t.labelConnectionsActive}
                                 </Chip>
@@ -4489,7 +4495,8 @@ export function Onboarding({
                           <div style={{ display: 'flex', flexWrap: isPhoneViewport ? 'wrap' : 'nowrap', alignItems: 'center', gap: 6, padding: '7px 0', minWidth: 0 }}>
                             <div style={{
                               minWidth: 0,
-                              flex: isPhoneViewport ? '1 1 100%' : '1 1 auto',
+                              flex: isPhoneViewport ? '1 1 100%' : '0 1 50%',
+                              maxWidth: isPhoneViewport ? '100%' : '52%',
                               fontSize: 11,
                               color: C.t1,
                               fontWeight: 700,
@@ -4503,7 +4510,7 @@ export function Onboarding({
                             }}>
                               {p.address} · {p.city} · ${Number(p.price || 0).toLocaleString('en-US')} · {p.images?.length || 0} img
                             </div>
-                            <div style={{ display:'flex', alignItems:'center', gap:6, width: isPhoneViewport ? '100%' : 'auto', flexWrap: 'nowrap', marginLeft: isPhoneViewport ? 0 : 'auto', minWidth: 0 }}>
+                            <div style={{ display:'flex', alignItems:'center', justifyContent: isPhoneViewport ? 'flex-start' : 'flex-end', gap:6, width: isPhoneViewport ? '100%' : 'auto', flex: isPhoneViewport ? '0 0 100%' : '1 1 0', flexWrap: 'nowrap', marginLeft: isPhoneViewport ? 0 : 'auto', minWidth: 0 }}>
                               {!p.dealClosed ? (
                                 <Chip active={isTruthyFlag(p.publishToShowcase, true)} onClick={() => {
                                   togglePropertyShowInShowcase(p.id);
@@ -4512,15 +4519,16 @@ export function Onboarding({
                                 aria-pressed={isTruthyFlag(p.publishToShowcase, true)}
                                 title={isTruthyFlag(p.publishToShowcase, true) ? t.publishInShowcaseInactive : t.publishInShowcaseActive}
                                 style={{
-                                  marginRight: 'auto',
+                                  marginRight: isPhoneViewport ? 'auto' : 0,
                                   overflow: 'hidden',
                                   textOverflow: 'ellipsis',
                                   whiteSpace: 'nowrap',
                                   background: isTruthyFlag(p.publishToShowcase, true) ? C.alpha(C.danger, 0.08) : C.alpha(C.accent, 0.1),
                                   border: `1px solid ${isTruthyFlag(p.publishToShowcase, true) ? C.danger : C.accent}`,
                                   color: isTruthyFlag(p.publishToShowcase, true) ? C.danger : C.accent,
-                                  fontSize: isPhoneViewport ? 9 : 11,
-                                  padding: isPhoneViewport ? '5px 8px' : undefined,
+                                  fontSize: isPhoneViewport ? 9 : 10.5,
+                                  padding: isPhoneViewport ? '5px 8px' : '6px 11px',
+                                  minWidth: isPhoneViewport ? undefined : 116,
                                 }}>
                                   {isTruthyFlag(p.publishToShowcase, true) ? t.publishInShowcaseInactive : t.publishInShowcaseActive}
                                 </Chip>

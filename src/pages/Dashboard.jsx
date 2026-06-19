@@ -1285,19 +1285,28 @@ export function Dashboard({ page, nuggets, setModal, setPage, onOpenOnboardingTa
   // My Card should mirror the "show in" toggles directly for the current scope.
   const getMyCardScopedRecords = useCallback((scopeKey) => {
     const profileScope = scopeKey === 'secondary' ? 'professional' : (scopeKey === 'fsbo' ? 'fsbo' : 'personal');
+    const ownerId = String(getOwnerIdForKey(scopeKey) || '').trim();
+    const isScopedOwnerRecord = (record) => {
+      const recordOwnerId = String(record?.ownerId || '').trim();
+      return recordOwnerId !== '' && (recordOwnerId === ownerId || recordOwnerId === '999999');
+    };
     // Use propertyPortfolio for real-time state (not showcaseProperties)
     // Filter by show in = ON and matching profile scope.
     const properties = (propertyPortfolio || []).filter((p) => {
-      return isTruthyFlag(p.publishToShowcase, true)
+      return isScopedOwnerRecord(p)
+        && isTruthyFlag(p.publishToShowcase, true)
         && p?.dealClosed !== true
         && !isPendingDealExpired(p)
         && normalizeProfileScope(p.primaryProfile || 'personal') === profileScope;
     });
     const services = (servicePortfolio || []).filter((s) => {
-      return isTruthyFlag(s.publishToConnections, true) && normalizeProfileScope(s.primaryProfile || 'personal') === profileScope;
+      return isScopedOwnerRecord(s)
+        && isTruthyFlag(s.publishToConnections, true)
+        && s?.dealClosed !== true
+        && normalizeProfileScope(s.primaryProfile || 'personal') === profileScope;
     });
     return { properties, services };
-  }, [propertyPortfolio, servicePortfolio]);
+  }, [getOwnerIdForKey, propertyPortfolio, servicePortfolio]);
 
   const countMyCardLinkedCardsForScope = (scopeKey) => {
     const scoped = getMyCardScopedRecords(scopeKey);
@@ -1475,8 +1484,20 @@ export function Dashboard({ page, nuggets, setModal, setPage, onOpenOnboardingTa
       const seen = new Set();
       return (records || []).filter((record, index) => {
         const key = String(record?.id || `${fallbackPrefix}:${record?.title || record?.address || index}`).trim();
+        const ownerKey = String(record?.ownerId || ownerId || '').trim();
+        const contentKey = [
+          fallbackPrefix,
+          ownerKey,
+          normalizeProfileScope(record?.primaryProfile || 'personal'),
+          String(record?.address || record?.title || '').trim().toLowerCase(),
+          String(record?.city || '').trim().toLowerCase(),
+          String(record?.state || record?.loc || '').trim().toLowerCase(),
+          String(record?.price || '').trim(),
+        ].join('|');
         if (!key || seen.has(key)) return false;
+        if (seen.has(contentKey)) return false;
         seen.add(key);
+        seen.add(contentKey);
         return true;
       });
     };
