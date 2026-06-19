@@ -2306,11 +2306,14 @@ export default function App() {
 
     const linkedService = (unlockPortfolioServices || []).find((service) => String(service?.ownerId || '') === rawOwnerId);
     const linkedProperty = (unlockPortfolioProperties || []).find((property) => String(property?.ownerId || '') === rawOwnerId);
+    if (!linkedService && !linkedProperty) return null;
+
     const fallbackName = String(
       linkedService?.title
       || linkedProperty?.address
-      || `Contact ${rawOwnerId.slice(0, 8)}`
+      || ''
     ).trim();
+    if (!fallbackName) return null;
     const fallbackLoc = [
       linkedProperty?.city,
       linkedProperty?.state,
@@ -2368,11 +2371,18 @@ export default function App() {
       const unlockRows = Array.isArray(unlocksResult.data) ? unlocksResult.data : [];
       const propertyUnlockRows = Array.isArray(propertyUnlocksResult.data) ? propertyUnlocksResult.data : [];
       const snapshotRows = Array.isArray(contactSnapshotsResult.data) ? contactSnapshotsResult.data : [];
+      const buyerPropertyUnlockRows = propertyUnlockRows.filter((row) => (
+        String(row?.buyer_id || '').trim() === String(supabaseUserId || '').trim()
+      ));
       const unlockedOwnerIds = unlockRows
         .map((row) => String(row?.seller_id || '').trim())
         .filter(Boolean);
       snapshotRows.forEach((row) => {
         const ownerId = String(row?.seller_id || row?.contact?.ownerId || row?.contact?.id || '').trim();
+        if (ownerId && !unlockedOwnerIds.includes(ownerId)) unlockedOwnerIds.push(ownerId);
+      });
+      buyerPropertyUnlockRows.forEach((row) => {
+        const ownerId = String(row?.owner_id || '').trim();
         if (ownerId && !unlockedOwnerIds.includes(ownerId)) unlockedOwnerIds.push(ownerId);
       });
 
@@ -2415,6 +2425,26 @@ export default function App() {
         }
       }
 
+      if (buyerPropertyUnlockRows.length) {
+        const unlockedPropertyIds = new Set(
+          buyerPropertyUnlockRows
+            .map((row) => String(row?.property_id || '').trim())
+            .filter(Boolean)
+        );
+        const hydratedUnlockedProperties = (unlockPortfolioProperties || []).filter((property) => {
+          const ids = [
+            property?.id,
+            property?.propertyId,
+            property?.property_id,
+            property?.portfolioId,
+          ].map((value) => String(value || '').trim()).filter(Boolean);
+          return ids.some((id) => unlockedPropertyIds.has(id));
+        });
+        if (hydratedUnlockedProperties.length) {
+          setInterested((prev) => mergeFeedActionItems(prev, hydratedUnlockedProperties));
+        }
+      }
+
       if (propertyUnlockRows.length) {
         setPropertyUnlocks((prev) => {
           const current = Array.isArray(prev) ? [...prev] : [];
@@ -2441,7 +2471,7 @@ export default function App() {
     } catch (error) {
       safeLogError('Remote unlock hydration failed.', error);
     }
-  }, [buildUnlockedContactSnapshot, setMatched, setPropertyUnlocks, setPurchases, setUnlocked, supabaseUserId]);
+  }, [buildUnlockedContactSnapshot, setInterested, setMatched, setPropertyUnlocks, setPurchases, setUnlocked, supabaseUserId, unlockPortfolioProperties]);
 
   useEffect(() => {
     if (!supabaseUserId) return;
