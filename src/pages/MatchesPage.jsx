@@ -21,6 +21,24 @@ import { trackAppEvent } from '../lib/adminEventTracking';
 import { getPortfolioUnlockCost, getPropertyExclusivityStatus } from '../lib/unlockRules';
 import appLogo from '../assets/logo-dark-theme.png';
 
+function readLocalStringSet(key) {
+  try {
+    const parsed = JSON.parse(localStorage.getItem(key) || '[]');
+    return new Set(Array.isArray(parsed) ? parsed.map((item) => String(item || '').trim()).filter(Boolean) : []);
+  } catch (e) {
+    void e;
+    return new Set();
+  }
+}
+
+function writeLocalStringSet(key, value) {
+  try {
+    localStorage.setItem(key, JSON.stringify([...value].map((item) => String(item || '').trim()).filter(Boolean)));
+  } catch (e) {
+    void e;
+  }
+}
+
 // Move chat templates and defaults to module scope so they are stable references
 const CHAT_REPLY_TEMPLATES = {
   pt: [
@@ -1789,6 +1807,10 @@ export function MatchesPage({ nuggets, setModal, openUnlock, unlocked, initialCh
   const [interestsStateDropdownOpen, setInterestsStateDropdownOpen] = useState(false);
   const [selectedPeopleCategories, setSelectedPeopleCategories] = useState([]);
   const [selectedInterestStates, setSelectedInterestStates] = useState([]);
+  const [archivedContacts, setArchivedContacts] = useState(() => readLocalStringSet('ds_matches_archived_contacts'));
+  const [archivedInterests, setArchivedInterests] = useState(() => readLocalStringSet('ds_matches_archived_interests'));
+  const [deletedContacts, setDeletedContacts] = useState(() => readLocalStringSet('ds_matches_deleted_contacts'));
+  const [deletedInterests, setDeletedInterests] = useState(() => readLocalStringSet('ds_matches_deleted_interests'));
 
   // Combined sources: user data merged with mock seed data for mock card owners.
   // Uses String() comparison and deduplication by id so user's own records always win.
@@ -1966,6 +1988,127 @@ export function MatchesPage({ nuggets, setModal, openUnlock, unlocked, initialCh
     return null;
   }, [allPropertiesSource, getPropertyExclusiveStatus]);
 
+  const getInterestKey = useCallback((interest) => (
+    String(interest?.id || interest?.propertyId || interest?.property_id || '').trim()
+  ), []);
+
+  const warnExclusiveLocked = useCallback(() => {
+    addToast?.({
+      type: 'warning',
+      title: t.exclusivityActiveTitle || 'Active exclusivity',
+      message: t.exclusivityActiveArchiveBlocked || 'This item has active exclusivity and cannot be archived or deleted until the exclusivity timer ends.',
+      duration: 6500,
+    });
+  }, [addToast, t]);
+
+  const confirmPaidContactAction = useCallback((mode = 'archive') => {
+    const body = mode === 'delete'
+      ? (t.deletePaidContactWarning || 'This contact was already unlocked/paid. Deleting hides it permanently from your lists and does not refund nuggets. Every unlocked/paid contact is yours by right; DealSifter strongly encourages you not to delete it so you can keep tracking future opportunities from this contact.')
+      : (t.archivePaidContactWarning || 'This contact was already unlocked/paid. Archiving hides it from your active list, but you can restore it later from Archived. Every unlocked/paid contact is yours by right; DealSifter strongly encourages you not to delete it so you can keep tracking future opportunities from this contact.');
+    return window.confirm(body);
+  }, [t]);
+
+  const archiveContact = useCallback((contact) => {
+    const keys = getContactUnlockKeys(contact);
+    if (!keys.length) return;
+    if (getOwnerExclusiveStatus(contact?.ownerId || contact?.unlockOwnerId || contact?.id)?.expiresAt) {
+      warnExclusiveLocked();
+      return;
+    }
+    if (isContactUnlockedByState(contact) && !confirmPaidContactAction('archive')) return;
+    setArchivedContacts((prev) => {
+      const next = new Set(prev);
+      keys.forEach((key) => next.add(key));
+      writeLocalStringSet('ds_matches_archived_contacts', next);
+      return next;
+    });
+    setActive((prev) => (getContactUnlockKeys(prev).some((key) => keys.includes(key)) ? null : prev));
+  }, [confirmPaidContactAction, getContactUnlockKeys, getOwnerExclusiveStatus, isContactUnlockedByState, warnExclusiveLocked]);
+
+  const restoreContact = useCallback((contact) => {
+    const keys = getContactUnlockKeys(contact);
+    setArchivedContacts((prev) => {
+      const next = new Set(prev);
+      keys.forEach((key) => next.delete(key));
+      writeLocalStringSet('ds_matches_archived_contacts', next);
+      return next;
+    });
+  }, [getContactUnlockKeys]);
+
+  const deleteContactFromMatches = useCallback((contact) => {
+    const keys = getContactUnlockKeys(contact);
+    if (!keys.length) return;
+    if (getOwnerExclusiveStatus(contact?.ownerId || contact?.unlockOwnerId || contact?.id)?.expiresAt) {
+      warnExclusiveLocked();
+      return;
+    }
+    if (isContactUnlockedByState(contact) && !confirmPaidContactAction('delete')) return;
+    setDeletedContacts((prev) => {
+      const next = new Set(prev);
+      keys.forEach((key) => next.add(key));
+      writeLocalStringSet('ds_matches_deleted_contacts', next);
+      return next;
+    });
+    setArchivedContacts((prev) => {
+      const next = new Set(prev);
+      keys.forEach((key) => next.delete(key));
+      writeLocalStringSet('ds_matches_archived_contacts', next);
+      return next;
+    });
+    setMatched((prev) => prev.filter((item) => !getContactUnlockKeys(item).some((key) => keys.includes(key))));
+    setInterested((prev) => prev.filter((item) => !keys.includes(String(item?.ownerId || '').trim())));
+    setActive((prev) => (getContactUnlockKeys(prev).some((key) => keys.includes(key)) ? null : prev));
+  }, [confirmPaidContactAction, getContactUnlockKeys, getOwnerExclusiveStatus, isContactUnlockedByState, setInterested, setMatched, warnExclusiveLocked]);
+
+  const archiveInterest = useCallback((interest) => {
+    const key = getInterestKey(interest);
+    if (!key) return;
+    if (getPropertyExclusiveStatus(interest)?.expiresAt) {
+      warnExclusiveLocked();
+      return;
+    }
+    setArchivedInterests((prev) => {
+      const next = new Set(prev);
+      next.add(key);
+      writeLocalStringSet('ds_matches_archived_interests', next);
+      return next;
+    });
+    setActive((prev) => (getInterestKey(prev) === key ? null : prev));
+  }, [getInterestKey, getPropertyExclusiveStatus, warnExclusiveLocked]);
+
+  const restoreInterest = useCallback((interest) => {
+    const key = getInterestKey(interest);
+    setArchivedInterests((prev) => {
+      const next = new Set(prev);
+      next.delete(key);
+      writeLocalStringSet('ds_matches_archived_interests', next);
+      return next;
+    });
+  }, [getInterestKey]);
+
+  const deleteInterestFromMatches = useCallback((interest) => {
+    const key = getInterestKey(interest);
+    if (!key) return;
+    if (getPropertyExclusiveStatus(interest)?.expiresAt) {
+      warnExclusiveLocked();
+      return;
+    }
+    setDeletedInterests((prev) => {
+      const next = new Set(prev);
+      next.add(key);
+      writeLocalStringSet('ds_matches_deleted_interests', next);
+      return next;
+    });
+    setArchivedInterests((prev) => {
+      const next = new Set(prev);
+      next.delete(key);
+      writeLocalStringSet('ds_matches_archived_interests', next);
+      return next;
+    });
+    setInterested((prev) => prev.filter((item) => getInterestKey(item) !== key));
+    setActive((prev) => (getInterestKey(prev) === key ? null : prev));
+  }, [getInterestKey, getPropertyExclusiveStatus, setInterested, warnExclusiveLocked]);
+
   const formatTemplate = useCallback((template, values) => {
     let out = String(template || '');
     Object.entries(values || {}).forEach(([key, value]) => {
@@ -2072,6 +2215,12 @@ export function MatchesPage({ nuggets, setModal, openUnlock, unlocked, initialCh
   const filteredMatched = useMemo(() => {
     const list = allMatched.filter(m => {
       const paid = isContactUnlockedByState(m);
+      const contactKeys = getContactUnlockKeys(m);
+      const isArchived = contactKeys.some((key) => archivedContacts.has(key));
+      const isDeleted = contactKeys.some((key) => deletedContacts.has(key));
+      if (isDeleted) return false;
+      if (peopleFilter === "archived") return isArchived;
+      if (isArchived) return false;
       if (peopleFilter === "paid" && !paid) return false;
       if (peopleFilter === "locked" && paid) return false;
       if (selectedPeopleCategories.length > 0) {
@@ -2082,7 +2231,7 @@ export function MatchesPage({ nuggets, setModal, openUnlock, unlocked, initialCh
     });
     if (sortOrder === 'name_asc') return [...list].sort((a, b) => String(a?.name || '').localeCompare(String(b?.name || '')));
     return list;
-  }, [allMatched, peopleFilter, isContactUnlockedByState, selectedPeopleCategories, sortOrder, getPeopleCategoryKeys]);
+  }, [allMatched, peopleFilter, isContactUnlockedByState, selectedPeopleCategories, sortOrder, getPeopleCategoryKeys, getContactUnlockKeys, archivedContacts, deletedContacts]);
 
   const isActiveProperty = active?.address !== undefined;
   const activeContactId = useMemo(() => {
@@ -2118,9 +2267,16 @@ export function MatchesPage({ nuggets, setModal, openUnlock, unlocked, initialCh
 
   const filteredInterested = useMemo(() => {
     const list = interestBaseList.filter(p => {
+      const interestKey = getInterestKey(p);
+      const ownerKeys = getContactUnlockKeys({ ownerId: p.ownerId });
+      const isArchived = archivedInterests.has(interestKey) || ownerKeys.some((key) => archivedContacts.has(key));
+      const isDeleted = deletedInterests.has(interestKey) || ownerKeys.some((key) => deletedContacts.has(key));
+      if (isDeleted) return false;
+      if (interestsFilter === "archived") return isArchived;
+      if (isArchived) return false;
       const paid = isContactUnlockedByState({ ownerId: p.ownerId });
-      if (interestsFilter === "paid") return paid;
-      if (interestsFilter === "locked") return !paid;
+      if (interestsFilter === "paid" && !paid) return false;
+      if (interestsFilter === "locked" && paid) return false;
       if (selectedInterestStates.length > 0) {
         const state = parseStateCode(p?.city || p?.loc || p?.address || '');
         if (!state || !selectedInterestStates.includes(state)) return false;
@@ -2140,7 +2296,7 @@ export function MatchesPage({ nuggets, setModal, openUnlock, unlocked, initialCh
       else others.push(property);
     });
     return [...sortList(linked), ...sortList(others)];
-  }, [activeContactKey, interestBaseList, interestsFilter, isContactUnlockedByState, selectedInterestStates, parseStateCode, sortOrder, isLinkedToActiveContact]);
+  }, [activeContactKey, interestBaseList, interestsFilter, isContactUnlockedByState, selectedInterestStates, parseStateCode, sortOrder, isLinkedToActiveContact, getInterestKey, getContactUnlockKeys, archivedInterests, archivedContacts, deletedInterests, deletedContacts]);
 
   const activeOwner = useMemo(() => {
     if (!active) return null;
@@ -2572,6 +2728,7 @@ export function MatchesPage({ nuggets, setModal, openUnlock, unlocked, initialCh
                     { id:"all", label:t.all },
                     { id:"paid", label:t.paid },
                     { id:"locked", label:cardsT.locked },
+                    { id:"archived", label:t.archived || 'Archived' },
                   ].map(f => (
                     <button key={f.id} onClick={(e) => { e.stopPropagation(); setPeopleFilter(f.id); }} style={{ border:`1px solid ${peopleFilter===f.id ? C.alpha(CONTACT_SIGNAL, 0.35) : C.border}`, background:peopleFilter===f.id ? C.alpha(CONTACT_SIGNAL, 0.12) : "transparent", color:peopleFilter===f.id ? CONTACT_SIGNAL : C.t3, borderRadius:999, padding:"1px 6px", fontSize:9, lineHeight:1.3, cursor:"pointer" }}>
                       {f.label}
@@ -2624,6 +2781,7 @@ export function MatchesPage({ nuggets, setModal, openUnlock, unlocked, initialCh
                   const ownerExclusiveStatus = getOwnerExclusiveStatus(m.ownerId || m.unlockOwnerId || m.id);
                   const seenIncomingCount = seenIncomingByContact[m.id] || 0;
                   const contactUnreadCount = Math.max(0, contactIncomingCount - seenIncomingCount);
+                  const isArchivedRow = contactKeys.some((key) => archivedContacts.has(key));
                   return (
                     <div key={contactRowKey} onClick={() => setActive(m)} style={{ display:"flex", alignItems:"center", gap:10, padding:12, borderBottom:`1px solid ${C.border}`, cursor:"pointer", background:isLinkedContact?C.alpha(CONTACT_SIGNAL, 0.12):"transparent" }}>
                       <div style={{ width:32, height:32, borderRadius:"50%", overflow:"hidden", border:`1px solid ${isLinkedContact?CONTACT_SIGNAL:C.border}` }}>
@@ -2649,18 +2807,29 @@ export function MatchesPage({ nuggets, setModal, openUnlock, unlocked, initialCh
                           ) : null}
                         </div>
                       </div>
+                      {peopleFilter === 'archived' ? (
+                        <button
+                          type="button"
+                          title={t.restore || 'Restore'}
+                          onPointerDown={(e) => { e.preventDefault(); e.stopPropagation(); restoreContact(m); }}
+                          onClick={(e) => { e.stopPropagation(); restoreContact(m); }}
+                          style={{ width:18, height:18, display:'inline-flex', alignItems:'center', justifyContent:'center', border:`1px solid ${C.alpha(C.success, 0.35)}`, borderRadius:999, background:C.alpha(C.success, 0.1), padding:0, cursor:'pointer', flexShrink:0 }}
+                        >
+                          <Icon name="rotateCw" size={10} color={C.success} />
+                        </button>
+                      ) : null}
                       <button
                         type="button"
                         onPointerDown={(e) => {
                           e.preventDefault();
                           e.stopPropagation();
-                          if (getContactUnlockKeys(active).some((key) => contactKeys.includes(key))) setActive(null);
-                          setMatched(p => p.filter(x => !getContactUnlockKeys(x).some((key) => contactKeys.includes(key))));
+                          if (isArchivedRow || peopleFilter === 'archived') deleteContactFromMatches(m);
+                          else archiveContact(m);
                         }}
                         onClick={(e) => {
                           e.stopPropagation();
-                          if (getContactUnlockKeys(active).some((key) => contactKeys.includes(key))) setActive(null);
-                          setMatched(p => p.filter(x => !getContactUnlockKeys(x).some((key) => contactKeys.includes(key))));
+                          if (isArchivedRow || peopleFilter === 'archived') deleteContactFromMatches(m);
+                          else archiveContact(m);
                         }}
                         style={{
                           width: 16,
@@ -2694,6 +2863,7 @@ export function MatchesPage({ nuggets, setModal, openUnlock, unlocked, initialCh
                     { id:"all", label:t.all },
                     { id:"paid", label:t.paid },
                     { id:"locked", label:cardsT.locked },
+                    { id:"archived", label:t.archived || 'Archived' },
                   ].map(f => (
                     <button key={f.id} onClick={(e) => { e.stopPropagation(); setInterestsFilter(f.id); }} style={{ border:`1px solid ${interestsFilter===f.id ? C.alpha(PROPERTY_SIGNAL, 0.35) : C.border}`, background:interestsFilter===f.id ? C.alpha(PROPERTY_SIGNAL, 0.14) : "transparent", color:interestsFilter===f.id ? PROPERTY_SIGNAL : C.t3, borderRadius:999, padding:"1px 6px", fontSize:9, lineHeight:1.3, cursor:"pointer" }}>
                       {f.label}
@@ -2739,6 +2909,7 @@ export function MatchesPage({ nuggets, setModal, openUnlock, unlocked, initialCh
                   const isOwnerUnlocked = isContactUnlockedByState({ ownerId: p.ownerId });
                   const ownerUnlockCost = getUnlockCost(p.ownerId);
                   const propertyExclusiveStatus = getPropertyExclusiveStatus(p);
+                  const isArchivedInterestRow = archivedInterests.has(getInterestKey(p));
                   const owner = p.ownerPreview
                     ? resolveContactCard(p.ownerPreview, p.primaryProfile || p.ownerPreview?.primaryProfile || null)
                     : (
@@ -2764,10 +2935,30 @@ export function MatchesPage({ nuggets, setModal, openUnlock, unlocked, initialCh
                           <span>{t.by} {owner?.name || "..."}</span>
                         </div>
                       </div>
+                      {interestsFilter === 'archived' ? (
+                        <button
+                          type="button"
+                          title={t.restore || 'Restore'}
+                          onPointerDown={(e) => { e.preventDefault(); e.stopPropagation(); restoreInterest(p); }}
+                          onClick={(e) => { e.stopPropagation(); restoreInterest(p); }}
+                          style={{ width:18, height:18, display:'inline-flex', alignItems:'center', justifyContent:'center', border:`1px solid ${C.alpha(C.success, 0.35)}`, borderRadius:999, background:C.alpha(C.success, 0.1), padding:0, cursor:'pointer', flexShrink:0 }}
+                        >
+                          <Icon name="rotateCw" size={10} color={C.success} />
+                        </button>
+                      ) : null}
                       <button
                         type="button"
-                        onPointerDown={(e) => { e.preventDefault(); e.stopPropagation(); if(active?.id === p.id) setActive(null); setInterested(prev => prev.filter(x => x.id !== p.id)); }}
-                        onClick={(e) => { e.stopPropagation(); if(active?.id === p.id) setActive(null); setInterested(prev => prev.filter(x => x.id !== p.id)); }}
+                        onPointerDown={(e) => {
+                          e.preventDefault();
+                          e.stopPropagation();
+                          if (isArchivedInterestRow || interestsFilter === 'archived') deleteInterestFromMatches(p);
+                          else archiveInterest(p);
+                        }}
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          if (isArchivedInterestRow || interestsFilter === 'archived') deleteInterestFromMatches(p);
+                          else archiveInterest(p);
+                        }}
                         style={{
                           width: 16,
                           height: 16,

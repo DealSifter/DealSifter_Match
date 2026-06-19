@@ -38,6 +38,24 @@ function isTruthyFlag(value, defaultValue = false) {
   return Boolean(value);
 }
 
+function readLocalStringSet(key) {
+  try {
+    const parsed = JSON.parse(localStorage.getItem(key) || '[]');
+    return new Set(Array.isArray(parsed) ? parsed.map((item) => String(item || '').trim()).filter(Boolean) : []);
+  } catch (e) {
+    void e;
+    return new Set();
+  }
+}
+
+function writeLocalStringSet(key, value) {
+  try {
+    localStorage.setItem(key, JSON.stringify([...value].map((item) => String(item || '').trim()).filter(Boolean)));
+  } catch (e) {
+    void e;
+  }
+}
+
 function readPendingFocusCard() {
   try {
     const raw = localStorage.getItem('focusCard');
@@ -145,6 +163,12 @@ export function Dashboard({ page, nuggets, setModal, setPage, onOpenOnboardingTa
   const [interestStateDropdownOpen, setInterestStateDropdownOpen] = useState(false);
   const [selectedMatchCategories, setSelectedMatchCategories] = useState([]);
   const [selectedInterestStates, setSelectedInterestStates] = useState([]);
+  const [feedHiddenContacts, setFeedHiddenContacts] = useState(() => readLocalStringSet('ds_feed_hidden_contacts'));
+  const [feedHiddenInterests, setFeedHiddenInterests] = useState(() => readLocalStringSet('ds_feed_hidden_interests'));
+  const [matchArchivedContacts] = useState(() => readLocalStringSet('ds_matches_archived_contacts'));
+  const [matchArchivedInterests] = useState(() => readLocalStringSet('ds_matches_archived_interests'));
+  const [matchDeletedContacts] = useState(() => readLocalStringSet('ds_matches_deleted_contacts'));
+  const [matchDeletedInterests] = useState(() => readLocalStringSet('ds_matches_deleted_interests'));
   const [action, setAction] = useState(null);
   const [propAction, setPropAction] = useState(null);
   const [propStatusById, setPropStatusById] = useState({});
@@ -1150,6 +1174,38 @@ export function Dashboard({ page, nuggets, setModal, setPage, onOpenOnboardingTa
     return keys;
   }, [categoryLookup]);
 
+  const getFeedContactKeys = useCallback((contact) => (
+    [contact?.unlockOwnerId, contact?.ownerId, contact?.contactId, contact?.id]
+      .map((value) => String(value || '').trim())
+      .filter(Boolean)
+  ), []);
+
+  const getFeedInterestKey = useCallback((interest) => (
+    String(interest?.id || interest?.propertyId || interest?.property_id || '').trim()
+  ), []);
+
+  const hideContactFromFeed = useCallback((contact) => {
+    const keys = getFeedContactKeys(contact);
+    if (!keys.length) return;
+    setFeedHiddenContacts((prev) => {
+      const next = new Set(prev);
+      keys.forEach((key) => next.add(key));
+      writeLocalStringSet('ds_feed_hidden_contacts', next);
+      return next;
+    });
+  }, [getFeedContactKeys]);
+
+  const hideInterestFromFeed = useCallback((interest) => {
+    const key = getFeedInterestKey(interest);
+    if (!key) return;
+    setFeedHiddenInterests((prev) => {
+      const next = new Set(prev);
+      next.add(key);
+      writeLocalStringSet('ds_feed_hidden_interests', next);
+      return next;
+    });
+  }, [getFeedInterestKey]);
+
   const dedupedMatched = useMemo(
     () => matched.filter((m, i, arr) => arr.findIndex((x) => x.id === m.id) === i),
     [matched],
@@ -1184,13 +1240,15 @@ export function Dashboard({ page, nuggets, setModal, setPage, onOpenOnboardingTa
   }, [dedupedMatched, categoryLabelById, categoryLookup, getContactCategoryKeys]);
 
   const filteredMatched = useMemo(() => {
-    if (!selectedMatchCategories.length) return dedupedMatched;
     const chosen = new Set(selectedMatchCategories.map((cat) => String(cat || '').trim().toLowerCase()).filter(Boolean));
     return dedupedMatched.filter((m) => {
+      const contactKeys = getFeedContactKeys(m);
+      if (contactKeys.some((key) => feedHiddenContacts.has(key) || matchArchivedContacts.has(key) || matchDeletedContacts.has(key))) return false;
+      if (!chosen.size) return true;
       const categoryKeys = getContactCategoryKeys(m);
       return [...chosen].some((cat) => categoryKeys.has(cat));
     });
-  }, [dedupedMatched, selectedMatchCategories, getContactCategoryKeys]);
+  }, [dedupedMatched, selectedMatchCategories, getContactCategoryKeys, getFeedContactKeys, feedHiddenContacts, matchArchivedContacts]);
 
   const interestStateOptions = useMemo(() => {
     const states = Array.from(new Set(
@@ -1201,12 +1259,18 @@ export function Dashboard({ page, nuggets, setModal, setPage, onOpenOnboardingTa
   }, [interested, collectRecordStates]);
 
   const filteredInterested = useMemo(() => {
-    if (!selectedInterestStates.length) return interested;
     const chosen = new Set(selectedInterestStates);
     return interested.filter((item) =>
+      !feedHiddenInterests.has(getFeedInterestKey(item))
+      && !matchArchivedInterests.has(getFeedInterestKey(item))
+      && !matchDeletedInterests.has(getFeedInterestKey(item))
+      && !getFeedContactKeys({ ownerId: item?.ownerId }).some((key) => matchArchivedContacts.has(key))
+      && !getFeedContactKeys({ ownerId: item?.ownerId }).some((key) => matchDeletedContacts.has(key))
+      && (!chosen.size ||
       collectRecordStates(item).some((code) => chosen.has(code))
+      )
     );
-  }, [interested, selectedInterestStates, collectRecordStates]);
+  }, [interested, selectedInterestStates, collectRecordStates, feedHiddenInterests, matchArchivedInterests, getFeedInterestKey, getFeedContactKeys, matchArchivedContacts]);
   const hasValue = (v) => String(v || '').trim().length > 0;
   const getExplicitRecordProfileScope = (record) => {
     const rawScope = String(record?.primaryProfile || '').trim();
@@ -4019,7 +4083,7 @@ export function Dashboard({ page, nuggets, setModal, setPage, onOpenOnboardingTa
                     </div>
                   )}
                 </div>
-                <button type="button" onPointerDown={(e) => { try { e.preventDefault(); e.stopPropagation(); } catch { /* noop */ } setMatched(prev => prev.filter(x => x.id !== m.id)); setConnDeck(d => [m.id, ...d]); }} onClick={(e) => { e.stopPropagation(); setMatched(prev => prev.filter(x => x.id !== m.id)); setConnDeck(d => [m.id, ...d]); }}
+                <button type="button" onPointerDown={(e) => { try { e.preventDefault(); e.stopPropagation(); } catch { /* noop */ } hideContactFromFeed(m); }} onClick={(e) => { e.stopPropagation(); hideContactFromFeed(m); }}
                   style={{
                     width: 16,
                     height: 16,
@@ -4132,7 +4196,7 @@ export function Dashboard({ page, nuggets, setModal, setPage, onOpenOnboardingTa
                       {matchesT.by} {propOwner?.name || "..."}
                     </div>
                   </div>
-                  <button type="button" onPointerDown={(e) => { try { e.preventDefault(); e.stopPropagation(); } catch { /* noop */ } setInterested(prev => prev.filter(x => x.id !== m.id)); setPropDeck(d => [m.id, ...d]); }} onClick={(e) => { e.stopPropagation(); setInterested(prev => prev.filter(x => x.id !== m.id)); setPropDeck(d => [m.id, ...d]); }}
+                  <button type="button" onPointerDown={(e) => { try { e.preventDefault(); e.stopPropagation(); } catch { /* noop */ } hideInterestFromFeed(m); }} onClick={(e) => { e.stopPropagation(); hideInterestFromFeed(m); }}
                     style={{
                       width: 16,
                       height: 16,
