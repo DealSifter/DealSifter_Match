@@ -1099,6 +1099,57 @@ export function Dashboard({ page, nuggets, setModal, setPage, onOpenOnboardingTa
     return labels;
   }, []);
 
+  const categoryLookup = useMemo(() => {
+    const labelByKey = new Map();
+    const aliasToKeys = new Map();
+    const addAlias = (alias, ...keys) => {
+      const normalizedAlias = String(alias || '').trim().toLowerCase();
+      if (!normalizedAlias) return;
+      const current = aliasToKeys.get(normalizedAlias) || new Set();
+      keys.filter(Boolean).forEach((key) => current.add(String(key).trim().toLowerCase()));
+      aliasToKeys.set(normalizedAlias, current);
+    };
+
+    CATEGORIES.forEach((category) => {
+      const categoryId = String(category.id || '').trim().toLowerCase();
+      if (!categoryId || categoryId === 'all') return;
+      labelByKey.set(categoryId, category.label);
+      addAlias(category.id, categoryId);
+      addAlias(category.label, categoryId);
+      (category.sub || []).forEach((subCategory) => {
+        const subId = String(subCategory.id || '').trim().toLowerCase();
+        if (!subId) return;
+        labelByKey.set(subId, subCategory.label);
+        addAlias(subCategory.id, subId, categoryId);
+        addAlias(subCategory.label, subId, categoryId);
+      });
+    });
+
+    return { labelByKey, aliasToKeys };
+  }, []);
+
+  const getContactCategoryKeys = useCallback((contact) => {
+    const keys = new Set();
+    [
+      contact?.cat,
+      contact?.category,
+      contact?.type,
+      contact?.role,
+      contact?.sub,
+      contact?.badge,
+      contact?.primaryCategory,
+      contact?.primary_category,
+    ].forEach((value) => {
+      const raw = String(value || '').trim();
+      if (!raw) return;
+      const normalized = raw.toLowerCase();
+      keys.add(normalized);
+      const mapped = categoryLookup.aliasToKeys.get(normalized);
+      if (mapped) mapped.forEach((key) => keys.add(key));
+    });
+    return keys;
+  }, [categoryLookup]);
+
   const dedupedMatched = useMemo(
     () => matched.filter((m, i, arr) => arr.findIndex((x) => x.id === m.id) === i),
     [matched],
@@ -1122,20 +1173,24 @@ export function Dashboard({ page, nuggets, setModal, setPage, onOpenOnboardingTa
     const seen = new Set();
     const out = [];
     dedupedMatched.forEach((m) => {
-      const id = String(m?.cat || '').trim().toLowerCase();
-      if (!id || seen.has(id)) return;
-      seen.add(id);
-      out.push({ id, label: categoryLabelById.get(id) || m?.type || id });
+      getContactCategoryKeys(m).forEach((id) => {
+        if (!id || id === 'all' || seen.has(id)) return;
+        seen.add(id);
+        out.push({ id, label: categoryLookup.labelByKey.get(id) || categoryLabelById.get(id) || id });
+      });
     });
     out.sort((a, b) => a.label.localeCompare(b.label));
     return out;
-  }, [dedupedMatched, categoryLabelById]);
+  }, [dedupedMatched, categoryLabelById, categoryLookup, getContactCategoryKeys]);
 
   const filteredMatched = useMemo(() => {
     if (!selectedMatchCategories.length) return dedupedMatched;
-    const chosen = new Set(selectedMatchCategories);
-    return dedupedMatched.filter((m) => chosen.has(String(m?.cat || '').trim().toLowerCase()));
-  }, [dedupedMatched, selectedMatchCategories]);
+    const chosen = new Set(selectedMatchCategories.map((cat) => String(cat || '').trim().toLowerCase()).filter(Boolean));
+    return dedupedMatched.filter((m) => {
+      const categoryKeys = getContactCategoryKeys(m);
+      return [...chosen].some((cat) => categoryKeys.has(cat));
+    });
+  }, [dedupedMatched, selectedMatchCategories, getContactCategoryKeys]);
 
   const interestStateOptions = useMemo(() => {
     const states = Array.from(new Set(
@@ -3117,7 +3172,7 @@ export function Dashboard({ page, nuggets, setModal, setPage, onOpenOnboardingTa
           <div style={{ background:C.alpha(C.accent, 0.07), border:`1px solid ${C.alpha(C.accent, 0.15)}`, borderRadius:12, padding:'8px 8px', height:98, boxSizing:'border-box', display:'grid', gridTemplateRows:'auto auto auto', alignContent:'start', gap:6 }}>
             <div style={{ display:"flex", alignItems:"center", gap:4 }}><Icon name="zap" size={10} color={C.accentL} /><span style={{ fontSize:10, fontWeight:700, color:C.accentL, lineHeight:1 }}>{t.upgradeTitle}</span></div>
             <div style={{ fontSize:10, color:C.t2, lineHeight:1.2, display:'-webkit-box', WebkitLineClamp:2, WebkitBoxOrient:'vertical', overflow:'hidden' }}>{t.upgradeDesc}</div>
-            <button style={{ width:"100%", height:24, padding:'0 6px', borderRadius:7, background:"transparent", border:`1px solid ${C.accent}`, color:C.accent, fontWeight:700, fontSize:10, cursor:"pointer" }}>{t.startTrial}</button>
+            <button type="button" onClick={() => setPage('pricing')} style={{ width:"100%", height:24, padding:'0 6px', borderRadius:7, background:"transparent", border:`1px solid ${C.accent}`, color:C.accent, fontWeight:700, fontSize:10, cursor:"pointer" }}>{t.startTrial}</button>
           </div>
         </div>
 
