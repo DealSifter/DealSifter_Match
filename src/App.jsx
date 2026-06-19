@@ -3266,8 +3266,12 @@ export default function App() {
           return acc;
         }, {});
 
-        const hydratedProperties = propertyRows.map((row) => mapDbPropertyToLocal(row, imagesByProperty[row.id] || []));
-        const hydratedServices = serviceRows.map((row) => mapDbServiceToLocal(row));
+        const hydratedProperties = propertyRows.map((row) => mapDbPropertyToLocal(row, imagesByProperty[row.id] || [], {
+          ownerId: row.owner_id || supabaseUserId,
+        }));
+        const hydratedServices = serviceRows.map((row) => mapDbServiceToLocal(row, {
+          ownerId: row.owner_id || supabaseUserId,
+        }));
 
         setPropertyPortfolio((prev) => {
           const prior = Array.isArray(prev) ? prev : [];
@@ -3285,12 +3289,17 @@ export default function App() {
               ...local,
               ...hp,
               images: resolvedImages,
-              ownerId: LOCAL_OWNER_ID,
+              ownerId: hp.ownerId || supabaseUserId,
             };
           });
           // Inclui registros locais ainda não sincronizados
           const hydratedIds = new Set(hydratedProperties.map((h) => String(h.id)));
-          const additionalLocal = prior.filter((item) => isUserOwnedPropertyRecord(item) && !hydratedIds.has(String(item.id)));
+          const additionalLocal = prior
+            .filter((item) => isUserOwnedPropertyRecord(item) && !hydratedIds.has(String(item.id)))
+            .map((item) => ({
+              ...item,
+              ownerId: String(item?.ownerId || '') === String(LOCAL_OWNER_ID) ? supabaseUserId : item.ownerId,
+            }));
           return [...preservedNonUser, ...merged, ...additionalLocal];
         });
 
@@ -3308,7 +3317,7 @@ export default function App() {
               return {
                 ...local,
                 ...hs,
-                ownerId: LOCAL_OWNER_ID,
+                ownerId: hs.ownerId || supabaseUserId,
               };
             }
             return hs;
@@ -3316,7 +3325,12 @@ export default function App() {
 
           // Include any local user-owned items that don't exist on server yet (newly created)
           const hydratedIds = new Set(hydratedServices.map((h) => String(h.id)));
-          const additionalLocal = prior.filter((item) => isUserOwnedServiceRecord(item) && !hydratedIds.has(String(item.id)));
+          const additionalLocal = prior
+            .filter((item) => isUserOwnedServiceRecord(item) && !hydratedIds.has(String(item.id)))
+            .map((item) => ({
+              ...item,
+              ownerId: String(item?.ownerId || '') === String(LOCAL_OWNER_ID) ? supabaseUserId : item.ownerId,
+            }));
 
           return [...preserved, ...merged, ...additionalLocal];
         });
@@ -3375,7 +3389,7 @@ export default function App() {
           ...service,
           id: replacements.get(key),
           source: service?.source || 'portfolio',
-          ownerId: LOCAL_OWNER_ID,
+          ownerId: supabaseUserId,
         };
       }));
       return;
@@ -3449,7 +3463,7 @@ export default function App() {
           id: replacements.get(key),
           portfolioId: replacements.get(key),
           source: property?.source || 'portfolio',
-          ownerId: LOCAL_OWNER_ID,
+          ownerId: supabaseUserId,
         };
       }));
       return;
