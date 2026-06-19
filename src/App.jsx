@@ -892,6 +892,8 @@ const MobilePortraitGuard = ({ copy }) => (
 export default function App() {
   const blockMobileLandscape = useMediaQuery('(hover: none) and (pointer: coarse) and (orientation: landscape) and (max-height: 520px)');
   const profileSyncStateRef = useRef({ userId: null, loaded: false, hydrating: false, personalLoadedFromRemote: false, professionalLoadedFromRemote: false });
+  const [profileSyncSnapshot, setProfileSyncSnapshot] = useState({ userId: null, loaded: false, hydrating: false, personalLoadedFromRemote: false, professionalLoadedFromRemote: false });
+  const [profileHydrationAttempts, setProfileHydrationAttempts] = useState(0);
   const profileHydrationRetryRef = useRef({ timer: null, attempts: 0 });
   const profileHydrationInputRef = useRef({ accountType: 'professional', userCategory: 'wholesaler' });
   const {
@@ -903,6 +905,16 @@ export default function App() {
     refreshPortfolioHydration,
     resetPortfolioSync,
   } = usePortfolioSync();
+  const [portfolioSyncSnapshot, setPortfolioSyncSnapshot] = useState({ userId: null, loaded: false, hydrating: false, servicesLoadedFromRemote: false, propertiesLoadedFromRemote: false, propertyImagesLoadedFromRemote: false });
+  const [portfolioHydrationAttempts, setPortfolioHydrationAttempts] = useState(0);
+  const scheduleProfileSyncSnapshot = useCallback(() => {
+    const next = { ...(profileSyncStateRef.current || {}) };
+    window.setTimeout(() => setProfileSyncSnapshot(next), 0);
+  }, []);
+  const schedulePortfolioSyncSnapshot = useCallback(() => {
+    const next = { ...(portfolioSyncStateRef.current || {}) };
+    window.setTimeout(() => setPortfolioSyncSnapshot(next), 0);
+  }, [portfolioSyncStateRef]);
   const authRedirectUrl = useMemo(() => {
     const envUrl = String(import.meta.env.VITE_APP_URL || '').trim();
     if (envUrl) return envUrl;
@@ -1057,7 +1069,7 @@ export default function App() {
         appendSecurityAuditEvent({ type: 'session', status: 'created', message: 'New active session started.' });
       }
       localStorage.setItem(SECURITY_SESSIONS_KEY, JSON.stringify(nextRows.slice(0, 20)));
-      setSessionVersion((v) => v + 1);
+      window.setTimeout(() => setSessionVersion((v) => v + 1), 0);
     } catch { /* no-op */ }
   }, [authSession?.id, authSession?.email]);
 
@@ -1257,7 +1269,8 @@ export default function App() {
   useEffect(() => {
     const protectedPages = new Set(['dashboard', 'matches', 'mapview', 'onboarding', 'settings']);
     if (isAuthBootstrapping || authSession || !protectedPages.has(page)) return;
-    openAuthModal('login');
+    const timer = window.setTimeout(() => openAuthModal('login'), 0);
+    return () => window.clearTimeout(timer);
   }, [authSession, isAuthBootstrapping, openAuthModal, page]);
 
   const markLocalSupabaseWrite = useCallback(() => {
@@ -1527,7 +1540,7 @@ export default function App() {
   void chatSeenVersion;
   const [chatFocusTarget, setChatFocusTarget] = useState(null);
   const [chatFocusToken, setChatFocusToken] = useState(0);
-  const lastActivityRef = useRef(Date.now());
+  const lastActivityRef = useRef(0);
   const [systemNotifications, setSystemNotifications] = useState(() => {
     try {
       const saved = localStorage.getItem('ds_system_notifications');
@@ -1769,7 +1782,7 @@ export default function App() {
     }
     applyRemoteFeedActions(rows);
     feedActionLoadedUserRef.current = supabaseUserId;
-  }, [applyRemoteFeedActions, supabaseUserId]);
+  }, [applyRemoteFeedActions, supabaseUserId, setInterested, setMatched, setUnlocked]);
 
   useEffect(() => {
     feedActionLoadedUserRef.current = null;
@@ -1894,11 +1907,14 @@ export default function App() {
       const cleanedPropertyFull = cleanupArrayKey('propertyPortfolio_full', (item) => isUserOwnedPropertyRecord(item) && !isSeededPropertyRecord(item));
       const cleanedProperty = cleanupArrayKey('propertyPortfolio', (item) => isUserOwnedPropertyRecord(item) && !isSeededPropertyRecord(item));
 
-      if (Array.isArray(cleanedServiceFull)) setServicePortfolio(cleanedServiceFull);
-      else if (Array.isArray(cleanedService)) setServicePortfolio(cleanedService);
-
-      if (Array.isArray(cleanedPropertyFull)) setPropertyPortfolio(cleanedPropertyFull);
-      else if (Array.isArray(cleanedProperty)) setPropertyPortfolio(cleanedProperty);
+      const nextServices = Array.isArray(cleanedServiceFull) ? cleanedServiceFull : (Array.isArray(cleanedService) ? cleanedService : null);
+      const nextProperties = Array.isArray(cleanedPropertyFull) ? cleanedPropertyFull : (Array.isArray(cleanedProperty) ? cleanedProperty : null);
+      if (nextServices || nextProperties) {
+        window.setTimeout(() => {
+          if (nextServices) setServicePortfolio(nextServices);
+          if (nextProperties) setPropertyPortfolio(nextProperties);
+        }, 0);
+      }
 
       const userProfileRaw = localStorage.getItem('userProfile');
       if (userProfileRaw) {
@@ -1911,7 +1927,7 @@ export default function App() {
             badge: String(parsed?.badge || '').trim(),
           };
           localStorage.setItem('userProfile', JSON.stringify(next));
-          setUserProfile((prev) => ({ ...(prev || {}), ...next }));
+          window.setTimeout(() => setUserProfile((prev) => ({ ...(prev || {}), ...next })), 0);
         } catch {
           localStorage.removeItem('userProfile');
         }
@@ -1926,7 +1942,7 @@ export default function App() {
             fullName: sanitizeLegacyName(parsed?.fullName),
           };
           localStorage.setItem('personalProfile', JSON.stringify(next));
-          setPersonalProfile((prev) => ({ ...(prev || {}), ...next }));
+          window.setTimeout(() => setPersonalProfile((prev) => ({ ...(prev || {}), ...next })), 0);
         } catch {
           localStorage.removeItem('personalProfile');
         }
@@ -1942,7 +1958,7 @@ export default function App() {
             fullNameA: sanitizeLegacyName(parsed?.fullNameA),
           };
           localStorage.setItem('professionalProfile', JSON.stringify(next));
-          setProfessionalProfile((prev) => ({ ...(prev || {}), ...next }));
+          window.setTimeout(() => setProfessionalProfile((prev) => ({ ...(prev || {}), ...next })), 0);
         } catch {
           localStorage.removeItem('professionalProfile');
         }
@@ -1973,10 +1989,12 @@ export default function App() {
 
   useEffect(() => {
     if (!isSupabaseConfigured || !supabase || !supabaseUserId) {
-      setGlobalShowcaseProperties([]);
-      setGlobalConnectionServices([]);
-      setActiveSpotlights([]);
-      return undefined;
+      const timer = window.setTimeout(() => {
+        setGlobalShowcaseProperties([]);
+        setGlobalConnectionServices([]);
+        setActiveSpotlights([]);
+      }, 0);
+      return () => window.clearTimeout(timer);
     }
 
     let cancelled = false;
@@ -2101,8 +2119,15 @@ export default function App() {
     return [...byId.values()];
   }, [globalConnectionServices, servicePortfolio]);
 
+  const [spotlightNow, setSpotlightNow] = useState(() => Date.now());
+
+  useEffect(() => {
+    const timer = window.setInterval(() => setSpotlightNow(Date.now()), 60 * 1000);
+    return () => window.clearInterval(timer);
+  }, []);
+
   const activeSpotlightKeys = useMemo(() => {
-    const now = Date.now();
+    const now = spotlightNow;
     const keys = new Set();
     (activeSpotlights || []).forEach((row) => {
       if (!row?.cardKind || !row?.cardId) return;
@@ -2113,11 +2138,14 @@ export default function App() {
       }
     });
     return keys;
-  }, [activeSpotlights]);
+  }, [activeSpotlights, spotlightNow]);
 
   useEffect(() => {
     if (modal !== 'spotlight' || !isSupabaseConfigured || !supabase || !supabaseUserId) {
-      if (modal !== 'spotlight') setSpotlightDbCandidates([]);
+      if (modal !== 'spotlight') {
+        const timer = window.setTimeout(() => setSpotlightDbCandidates([]), 0);
+        return () => window.clearTimeout(timer);
+      }
       return undefined;
     }
 
@@ -2224,7 +2252,7 @@ export default function App() {
       byKey.set(`${item.cardKind}:${item.cardId}`, item);
     });
     return [...byKey.values()];
-  }, [accountType, activeSpotlightKeys, personalProfile, professionalProfile, spotlightDbCandidates, supabaseUserId, userProfile]);
+  }, [accountType, activeSpotlightKeys, personalProfile, professionalProfile, propertyPortfolio, spotlightDbCandidates, supabaseUserId, userProfile]);
 
   const showcaseProperties = useMemo(() => {
     const byId = new Map();
@@ -2413,7 +2441,7 @@ export default function App() {
     } catch (error) {
       safeLogError('Remote unlock hydration failed.', error);
     }
-  }, [buildUnlockedContactSnapshot, isSupabaseConfigured, supabase, supabaseUserId]);
+  }, [buildUnlockedContactSnapshot, setMatched, setPropertyUnlocks, setPurchases, setUnlocked, supabaseUserId]);
 
   useEffect(() => {
     if (!supabaseUserId) return;
@@ -2645,7 +2673,9 @@ export default function App() {
         !row?.expiresAt || Number(new Date(row.expiresAt).getTime()) > now
       )).slice(-500);
       localStorage.setItem('ds_property_unlocks', JSON.stringify(cleaned));
-      if (cleaned.length !== (propertyUnlocks || []).length) setPropertyUnlocks(cleaned);
+      if (cleaned.length !== (propertyUnlocks || []).length) {
+        window.setTimeout(() => setPropertyUnlocks(cleaned), 0);
+      }
     } catch {
       // Local exclusivity cache is best-effort.
     }
@@ -2693,7 +2723,8 @@ export default function App() {
   useEffect(() => {
     if (!isSupabaseConfigured || !supabase || !supabaseUserId) {
       profileSyncStateRef.current = { userId: null, loaded: false, hydrating: false, personalLoadedFromRemote: false, professionalLoadedFromRemote: false };
-      setIsHydratingProfiles(false);
+      scheduleProfileSyncSnapshot();
+      window.setTimeout(() => setIsHydratingProfiles(false), 0);
       resetProfileSync();
       resetPortfolioSync();
       if (profileHydrationRetryRef.current.timer) {
@@ -2701,6 +2732,7 @@ export default function App() {
         profileHydrationRetryRef.current.timer = null;
       }
       profileHydrationRetryRef.current.attempts = 0;
+      window.setTimeout(() => setProfileHydrationAttempts(0), 0);
       return;
     }
 
@@ -2717,6 +2749,7 @@ export default function App() {
       profileHydrationRetryRef.current.timer = null;
     }
     profileSyncStateRef.current = { userId: supabaseUserId, loaded: false, hydrating: true, personalLoadedFromRemote: false, professionalLoadedFromRemote: false };
+    scheduleProfileSyncSnapshot();
     setIsHydratingProfiles(true);
 
     const hydrateProfilesFromSupabase = async () => {
@@ -2924,10 +2957,13 @@ export default function App() {
             personalLoadedFromRemote,
             professionalLoadedFromRemote,
           };
+          scheduleProfileSyncSnapshot();
           if (fullyLoadedFromRemote) {
             profileHydrationRetryRef.current.attempts = 0;
+            setProfileHydrationAttempts(0);
           } else if (profileHydrationRetryRef.current.attempts < 6) {
             profileHydrationRetryRef.current.attempts += 1;
+            setProfileHydrationAttempts(profileHydrationRetryRef.current.attempts);
             profileHydrationRetryRef.current.timer = setTimeout(() => {
               profileHydrationRetryRef.current.timer = null;
               setProfileHydrationCycle((prev) => prev + 1);
@@ -2951,10 +2987,11 @@ export default function App() {
           loaded: false,
           hydrating: false,
         };
+        scheduleProfileSyncSnapshot();
       }
       setIsHydratingProfiles(false);
     };
-  }, [supabaseUserId, profileHydrationCycle, resetProfileSync, resetPortfolioSync]);
+  }, [supabaseUserId, profileHydrationCycle, resetProfileSync, resetPortfolioSync, scheduleProfileSyncSnapshot]);
 
   const scheduleProfileRealtimeRefresh = useCallback((delayMs = 350) => {
     if (!isSupabaseConfigured || !supabase || !supabaseUserId) return;
@@ -3197,6 +3234,7 @@ export default function App() {
       portfolioHydrationRetryRef.current.timer = null;
     }
     portfolioSyncStateRef.current = { userId: supabaseUserId, loaded: false, hydrating: true, servicesLoadedFromRemote: false, propertiesLoadedFromRemote: false, propertyImagesLoadedFromRemote: false };
+    schedulePortfolioSyncSnapshot();
     setIsHydratingPortfolio(true);
 
     const hydratePortfolioFromSupabase = async () => {
@@ -3349,11 +3387,14 @@ export default function App() {
             propertiesLoadedFromRemote,
             propertyImagesLoadedFromRemote,
           };
+          schedulePortfolioSyncSnapshot();
 
           if (fullyLoadedFromRemote) {
             portfolioHydrationRetryRef.current.attempts = 0;
+            setPortfolioHydrationAttempts(0);
           } else if (portfolioHydrationRetryRef.current.attempts < 6) {
             portfolioHydrationRetryRef.current.attempts += 1;
+            setPortfolioHydrationAttempts(portfolioHydrationRetryRef.current.attempts);
             portfolioHydrationRetryRef.current.timer = setTimeout(() => {
               portfolioHydrationRetryRef.current.timer = null;
               refreshPortfolioHydration();
@@ -3371,7 +3412,7 @@ export default function App() {
       cancelled = true;
       setIsHydratingPortfolio(false);
     };
-  }, [supabaseUserId, portfolioHydrationCycle, portfolioHydrationRetryRef, portfolioSyncStateRef, refreshPortfolioHydration, setIsHydratingPortfolio]);
+  }, [supabaseUserId, portfolioHydrationCycle, portfolioHydrationRetryRef, portfolioSyncStateRef, refreshPortfolioHydration, schedulePortfolioSyncSnapshot, setIsHydratingPortfolio]);
 
   useEffect(() => {
     if (!isSupabaseConfigured || !supabase || !supabaseUserId) return;
@@ -3382,17 +3423,19 @@ export default function App() {
 
     if (missingUuid.length > 0) {
       const replacements = new Map(missingUuid.map((service) => [String(service.id), crypto.randomUUID()]));
-      setServicePortfolio((prev) => (prev || []).map((service) => {
-        const key = String(service?.id);
-        if (!replacements.has(key)) return service;
-        return {
-          ...service,
-          id: replacements.get(key),
-          source: service?.source || 'portfolio',
-          ownerId: supabaseUserId,
-        };
-      }));
-      return;
+      const timer = window.setTimeout(() => {
+        setServicePortfolio((prev) => (prev || []).map((service) => {
+          const key = String(service?.id);
+          if (!replacements.has(key)) return service;
+          return {
+            ...service,
+            id: replacements.get(key),
+            source: service?.source || 'portfolio',
+            ownerId: supabaseUserId,
+          };
+        }));
+      }, 0);
+      return () => window.clearTimeout(timer);
     }
 
     if (profileSaveDebounceRef.current.services) clearTimeout(profileSaveDebounceRef.current.services);
@@ -3455,18 +3498,20 @@ export default function App() {
 
     if (missingUuid.length > 0) {
       const replacements = new Map(missingUuid.map((property) => [String(property.id), crypto.randomUUID()]));
-      setPropertyPortfolio((prev) => (prev || []).map((property) => {
-        const key = String(property?.id);
-        if (!replacements.has(key)) return property;
-        return {
-          ...property,
-          id: replacements.get(key),
-          portfolioId: replacements.get(key),
-          source: property?.source || 'portfolio',
-          ownerId: supabaseUserId,
-        };
-      }));
-      return;
+      const timer = window.setTimeout(() => {
+        setPropertyPortfolio((prev) => (prev || []).map((property) => {
+          const key = String(property?.id);
+          if (!replacements.has(key)) return property;
+          return {
+            ...property,
+            id: replacements.get(key),
+            portfolioId: replacements.get(key),
+            source: property?.source || 'portfolio',
+            ownerId: supabaseUserId,
+          };
+        }));
+      }, 0);
+      return () => window.clearTimeout(timer);
     }
 
     if (profileSaveDebounceRef.current.properties) clearTimeout(profileSaveDebounceRef.current.properties);
@@ -4231,10 +4276,10 @@ export default function App() {
               merged.id = remoteUnlockRow.unlock_id || remoteUnlockRow.id || merged.id;
               try {
                 if (remoteUnlockRow.created_at) merged.createdAt = Number(Date.parse(String(remoteUnlockRow.created_at)));
-              } catch (e) { /* noop */ }
+              } catch { /* noop */ }
               try {
                 if (remoteUnlockRow.expires_at) merged.expiresAt = Number(Date.parse(String(remoteUnlockRow.expires_at)));
-              } catch (e) { /* noop */ }
+              } catch { /* noop */ }
             }
             return [
               ...prev,
@@ -4284,7 +4329,7 @@ export default function App() {
         setChatFocusTarget(matchedCard);
         setChatFocusToken((v) => v + 1);
         setPage('matches');
-      } catch (err) {
+      } catch {
         // Rollback any optimistic updates
         restorePrevState();
         addToast({ type: 'error', title: 'Unlock failed', message: 'Could not complete unlock. Your balance has been restored.' });
@@ -4355,31 +4400,31 @@ export default function App() {
   const portfolioSyncStatus = useMemo(() => {
     if (!isSupabaseConfigured || !supabaseUserId) return 'idle';
     if (isHydratingPortfolio) return 'syncing';
-    const state = portfolioSyncStateRef.current || {};
+    const state = portfolioSyncSnapshot || {};
     if (!state.loaded) return 'syncing';
     if (state.servicesLoadedFromRemote && state.propertiesLoadedFromRemote && state.propertyImagesLoadedFromRemote) {
       return 'synced';
     }
     return 'degraded';
-  }, [isHydratingPortfolio, supabaseUserId, portfolioSyncStateRef]);
+  }, [isHydratingPortfolio, portfolioSyncSnapshot, supabaseUserId]);
 
   const profileHydrationReady = useMemo(() => {
     if (!isSupabaseConfigured || !supabaseUserId) return true;
-    const state = profileSyncStateRef.current || {};
+    const state = profileSyncSnapshot || {};
     const loaded = Boolean(state.loaded && state.personalLoadedFromRemote && state.professionalLoadedFromRemote);
     if (loaded) return true;
-    if (!isHydratingProfiles && profileHydrationRetryRef.current.attempts >= 6) return true;
+    if (!isHydratingProfiles && profileHydrationAttempts >= 6) return true;
     return false;
-  }, [isHydratingProfiles, supabaseUserId]);
+  }, [isHydratingProfiles, profileHydrationAttempts, profileSyncSnapshot, supabaseUserId]);
 
   const portfolioHydrationReady = useMemo(() => {
     if (!isSupabaseConfigured || !supabaseUserId) return true;
-    const state = portfolioSyncStateRef.current || {};
+    const state = portfolioSyncSnapshot || {};
     const loaded = Boolean(state.loaded && state.servicesLoadedFromRemote && state.propertiesLoadedFromRemote && state.propertyImagesLoadedFromRemote);
     if (loaded) return true;
-    if (!isHydratingPortfolio && portfolioHydrationRetryRef.current.attempts >= 6) return true;
+    if (!isHydratingPortfolio && portfolioHydrationAttempts >= 6) return true;
     return false;
-  }, [isHydratingPortfolio, supabaseUserId, portfolioHydrationRetryRef, portfolioSyncStateRef]);
+  }, [isHydratingPortfolio, portfolioHydrationAttempts, portfolioSyncSnapshot, supabaseUserId]);
 
   const dashboardHydrationReady = profileHydrationReady && portfolioHydrationReady;
   const dashboardHydrationSyncing = isHydratingProfiles || isHydratingPortfolio;
