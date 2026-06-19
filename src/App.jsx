@@ -4411,6 +4411,22 @@ export default function App() {
           if (!remoteUnlockRow?.unlock_id && !remoteUnlockRow?.id) {
             throw new Error('Property unlock did not return a persisted record.');
           }
+          const persistedUnlockId = remoteUnlockRow.unlock_id || remoteUnlockRow.id;
+          const { data: confirmedUnlock, error: confirmError } = await supabase
+            .from('property_unlocks')
+            .select('id, property_id, owner_id, buyer_id, mode, base_cost, exclusivity_cost, total_cost, created_at, expires_at, status')
+            .eq('id', persistedUnlockId)
+            .eq('buyer_id', supabaseUserId)
+            .maybeSingle();
+          if (confirmError) throw confirmError;
+          if (!confirmedUnlock?.id) {
+            throw new Error('Property unlock was not confirmed in the database.');
+          }
+          remoteUnlockRow = {
+            ...remoteUnlockRow,
+            ...confirmedUnlock,
+            unlock_id: confirmedUnlock.id,
+          };
           const remoteTotalCost = Number(remoteUnlockRow?.total_cost);
           if (
             remoteUnlockRow
