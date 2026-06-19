@@ -443,14 +443,16 @@ export function Dashboard({ page, nuggets, setModal, setPage, onOpenOnboardingTa
   const getOwnerIdForKey = useCallback((key) => {
     try {
       const map = JSON.parse(localStorage.getItem('profileOwnerMap') || 'null');
-      if (map && typeof map[key] !== 'undefined') return map[key];
+      if (map && typeof map[key] !== 'undefined') {
+        const mappedOwnerId = String(map[key] || '').trim();
+        if (mappedOwnerId && mappedOwnerId !== '999999') return mappedOwnerId;
+      }
     } catch (e) { void e; }
-    // Fallback to profiles passed into this component when the map is missing
-    // Prefer explicit ownerId fields, then id, then userProfile id, finally a sentinel
-    if (key === 'personal') return personalProfile?.ownerId || personalProfile?.id || userProfile?.id || 999999;
-    if (key === 'secondary') return professionalProfile?.ownerId || professionalProfile?.id || userProfile?.id || 999999;
-    if (key === 'fsbo') return professionalProfile?.ownerIdC || professionalProfile?.ownerId || professionalProfile?.id || userProfile?.id || 999999;
-    return userProfile?.id || 999999;
+    // Production records must be tied to a real persisted owner id.
+    if (key === 'personal') return personalProfile?.ownerId || personalProfile?.id || userProfile?.id || '';
+    if (key === 'secondary') return professionalProfile?.ownerId || professionalProfile?.id || userProfile?.id || '';
+    if (key === 'fsbo') return professionalProfile?.ownerIdC || professionalProfile?.ownerId || professionalProfile?.id || userProfile?.id || '';
+    return userProfile?.id || '';
   }, [personalProfile, professionalProfile, userProfile]);
 
   const parseStateCode = useCallback((value) => {
@@ -487,10 +489,7 @@ export function Dashboard({ page, nuggets, setModal, setPage, onOpenOnboardingTa
     const isOwnerRecord = (record) => {
       if (!record) return false;
       const recordOwnerId = String(record.ownerId || '').trim();
-      // Accept the Supabase UUID match OR the local sentinel (999999).
-      // Records without a valid ownerId are excluded — no source-based fallback
-      // because that would allow records from other users to leak through.
-      return recordOwnerId !== '' && (recordOwnerId === String(ownerId) || recordOwnerId === '999999');
+      return recordOwnerId !== '' && recordOwnerId === String(ownerId);
     };
     const scopedProperties = (showcaseProperties || []).filter((p) => (
       isOwnerRecord(p)
@@ -612,7 +611,6 @@ export function Dashboard({ page, nuggets, setModal, setPage, onOpenOnboardingTa
       String(getOwnerIdForKey('secondary')),
       String(getOwnerIdForKey('fsbo')),
       String(currentUserId || ''),
-      '999999',
     ].filter(Boolean));
     const mockOwnerIdsForConnections = new Set((CARDS || []).map((c) => String(c.id)));
     const globalOwnerIds = Array.from(new Set([
@@ -704,7 +702,7 @@ export function Dashboard({ page, nuggets, setModal, setPage, onOpenOnboardingTa
       // IDs dos cards mockados
       const mockOwnerIds = (CARDS || []).map(c => String(c.id));
       // Imóveis reais do usuário
-      const localOwnerIds = [String(personalOwnerId), String(secondaryOwnerId), String(fsboOwnerId), '999999'];
+      const localOwnerIds = [String(personalOwnerId), String(secondaryOwnerId), String(fsboOwnerId)];
       const userProperties = (showcaseProperties || [])
         .filter((p) => {
           if (!isTruthyFlag(p.publishToShowcase, true)) return false;
@@ -833,7 +831,6 @@ export function Dashboard({ page, nuggets, setModal, setPage, onOpenOnboardingTa
       // keep showcase properties visible so owners' portfolios remain accessible.
       if (view === 'connections') {
         // Never block the current user's own properties from the discover feed.
-        // The local "profile card" ownerId is hard-coded as 999999.
         const selfOwnerId = getOwnerIdForKey(publishingProfileKey);
         setPropDeck(prevDeck =>
           prevDeck.filter(id => {
@@ -877,7 +874,6 @@ export function Dashboard({ page, nuggets, setModal, setPage, onOpenOnboardingTa
         String(getOwnerIdForKey('personal')),
         String(getOwnerIdForKey('secondary')),
         String(getOwnerIdForKey('fsbo')),
-        '999999',
       ].filter(Boolean));
 
       const isAllowedByState = (record) => {
@@ -1223,7 +1219,7 @@ export function Dashboard({ page, nuggets, setModal, setPage, onOpenOnboardingTa
     const isOwnerRecord = (record) => {
       if (!record) return false;
       const recordOwnerId = String(record.ownerId || '').trim();
-      return recordOwnerId !== '' && (recordOwnerId === String(ownerId) || recordOwnerId === '999999');
+      return recordOwnerId !== '' && recordOwnerId === String(ownerId || '');
     };
     const propertiesCount = (propertyPortfolio || []).filter((p) => (
       isOwnerRecord(p)
@@ -1250,7 +1246,6 @@ export function Dashboard({ page, nuggets, setModal, setPage, onOpenOnboardingTa
       String(getOwnerIdForKey('personal')),
       String(getOwnerIdForKey('secondary')),
       String(getOwnerIdForKey('fsbo')),
-      '999999',
     ]);
 
     const isOwnerRecord = (record) => {
@@ -1286,21 +1281,24 @@ export function Dashboard({ page, nuggets, setModal, setPage, onOpenOnboardingTa
   const getMyCardScopedRecords = useCallback((scopeKey) => {
     const profileScope = scopeKey === 'secondary' ? 'professional' : (scopeKey === 'fsbo' ? 'fsbo' : 'personal');
     const ownerId = String(getOwnerIdForKey(scopeKey) || '').trim();
+    const isPersistedDbRecord = (record) => String(record?.source || '').trim().toLowerCase() === 'supabase';
     const isScopedOwnerRecord = (record) => {
       const recordOwnerId = String(record?.ownerId || '').trim();
-      return recordOwnerId !== '' && (recordOwnerId === ownerId || recordOwnerId === '999999');
+      return Boolean(ownerId) && Boolean(recordOwnerId) && recordOwnerId === ownerId;
     };
     // Use propertyPortfolio for real-time state (not showcaseProperties)
     // Filter by show in = ON and matching profile scope.
     const properties = (propertyPortfolio || []).filter((p) => {
-      return isScopedOwnerRecord(p)
+      return isPersistedDbRecord(p)
+        && isScopedOwnerRecord(p)
         && isTruthyFlag(p.publishToShowcase, true)
         && p?.dealClosed !== true
         && !isPendingDealExpired(p)
         && normalizeProfileScope(p.primaryProfile || 'personal') === profileScope;
     });
     const services = (servicePortfolio || []).filter((s) => {
-      return isScopedOwnerRecord(s)
+      return isPersistedDbRecord(s)
+        && isScopedOwnerRecord(s)
         && isTruthyFlag(s.publishToConnections, true)
         && s?.dealClosed !== true
         && normalizeProfileScope(s.primaryProfile || 'personal') === profileScope;
@@ -2050,7 +2048,6 @@ export function Dashboard({ page, nuggets, setModal, setPage, onOpenOnboardingTa
       const id = getOwnerIdForKey(key);
       if (id !== undefined && id !== null && String(id).trim() !== '') ids.add(String(id));
     });
-    ids.add('999999');
     return ids;
   }, [getOwnerIdForKey]);
 
@@ -2174,7 +2171,6 @@ export function Dashboard({ page, nuggets, setModal, setPage, onOpenOnboardingTa
     const scope = normalizeProfileScope(card.primaryProfile || card.scopeKey || 'personal');
     const ownerCandidates = Array.from(new Set([
       ownerId,
-      ownerId === '999999' ? String(currentUserId || '') : '',
     ].filter(Boolean)));
     return ownerCandidates.some((candidate) => (
       hasSpotlightKey(`profile:${scope}:${candidate}`)
@@ -2184,7 +2180,7 @@ export function Dashboard({ page, nuggets, setModal, setPage, onOpenOnboardingTa
         ownerCandidates.includes(String(service?.ownerId || ''))
         && hasSpotlightKey(`service:${service.id}`)
       ));
-  }, [currentUserId, hasSpotlightKey, servicePortfolio]);
+  }, [hasSpotlightKey, servicePortfolio]);
 
   const isPropertySpotlight = useCallback((property) => (
     Boolean(property?.id) && hasSpotlightKey(`property:${property.id}`)

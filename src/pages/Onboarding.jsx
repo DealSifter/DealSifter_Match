@@ -417,14 +417,12 @@ export function Onboarding({
 
   const isOwnPropertyRecord = (record) => {
     if (!record) return false;
-    if (String(record.ownerId) === '999999') return true;
     const src = String(record.source || '').trim();
     return src === 'portfolio' || src === 'fsbo' || src === 'supabase';
   };
 
   const isOwnServiceRecord = (record) => {
     if (!record) return false;
-    if (String(record.ownerId) === '999999') return true;
     const src = String(record.source || '').trim();
     return src === 'portfolio' || src === 'supabase';
   };
@@ -1205,11 +1203,9 @@ export function Onboarding({
                             try { if (act === 'next' || act === 'pass') handlePreviewNext(); } catch (e) { void e; }
                           }}
                           owner={
-                            item.data?.ownerId === 999999
-                              ? ((item.data?.primaryProfile || 'personal') === 'professional'
-                                  ? previewProfessionalFeedCard
-                                  : previewPersonalFeedCard)
-                              : CARDS.find(c => c.id === item.data?.ownerId)
+                            (item.data?.primaryProfile || 'personal') === 'professional'
+                              ? previewProfessionalFeedCard
+                              : previewPersonalFeedCard
                           }
                         />
                       </div>
@@ -1586,7 +1582,7 @@ export function Onboarding({
   const movePortfolioTo = (fromIdx, toIdx) => {
     setPropertyPortfolio((prev) => {
       const scoped = prev.filter((x) => (
-        x.ownerId === 999999
+        String(x.ownerId || '') === String(getPublishOwnerId() || '')
         && (accountType === 'fsbo_owner' ? isFsboPropertyRecord(x) : !isFsboPropertyRecord(x))
       ));
       const fromItem = scoped[fromIdx];
@@ -1793,7 +1789,8 @@ export function Onboarding({
       return null;
     }
 
-    const publishOwnerId = getPublishOwnerId();
+    const publishOwnerId = requirePublishOwnerId();
+    if (!publishOwnerId) return null;
     const newItem = createFsboProperty({
       ownerId: publishOwnerId,
       type: portfolioType,
@@ -1858,7 +1855,8 @@ export function Onboarding({
       return null;
     }
 
-    const publishOwnerId = getPublishOwnerId();
+    const publishOwnerId = requirePublishOwnerId();
+    if (!publishOwnerId) return null;
     const newItem = createProfessionalProperty({
       ownerId: publishOwnerId,
       type: portfolioType,
@@ -1915,7 +1913,8 @@ export function Onboarding({
     if (!serviceTitle || !serviceCategory || !servicePrimaryProfileScope) return;
     const numericPrice = parseCurrencyInput(servicePrice);
 
-    const publishOwnerId = getPublishOwnerId();
+    const publishOwnerId = requirePublishOwnerId();
+    if (!publishOwnerId) return;
     setServicePortfolio((prev) => [
       ...prev,
       {
@@ -1997,13 +1996,19 @@ export function Onboarding({
   const getPublishOwnerId = () => {
     try {
       const map = JSON.parse(localStorage.getItem('profileOwnerMap') || 'null');
-      if (map?.personal && map.personal !== 999999) return map.personal;
+      const mappedOwnerId = String(map?.personal || '').trim();
+      if (mappedOwnerId && mappedOwnerId !== '999999') return mappedOwnerId;
     } catch (e) { void e; }
-    // Return the LOCAL_OWNER_ID sentinel (999999) so the record is still
-    // recognised as user-owned in the same session. The real owner_id will be
-    // written to Supabase on sync, and localStorage is cleared on user change,
-    // so the sentinel cannot bleed into another user's session.
-    return 999999;
+    return authSession?.userId || authSession?.id || '';
+  };
+
+  const requirePublishOwnerId = () => {
+    const ownerId = String(getPublishOwnerId() || '').trim();
+    if (!ownerId) {
+      setPortfolioMsg(t.saveProfilesFirst || 'Save your profile before adding portfolio records.');
+      return '';
+    }
+    return ownerId;
   };
 
   const previewPersonalCard = useMemo(() => ({
