@@ -156,10 +156,11 @@ if (typeof window !== 'undefined') {
   });
 }
 
-// In production, keep mock portfolio metadata available for demo cards and unlock pricing; only standalone mock contact cards stay disabled here.
+// Production must use real DB/user-owned records only. Mock metadata is dev-only
+// so portfolio counts, unlock pricing, and feeds cannot be polluted by test data.
 const CARDS = import.meta.env.DEV ? _MOCK_CARDS : [];
-const MOCK_PROPERTIES = _MOCK_PROPERTIES || [];
-const MOCK_SERVICES = _MOCK_SERVICES || [];
+const MOCK_PROPERTIES = import.meta.env.DEV ? (_MOCK_PROPERTIES || []) : [];
+const MOCK_SERVICES = import.meta.env.DEV ? (_MOCK_SERVICES || []) : [];
 
 // DevInspector: lazy-loaded, only rendered in dev
 const DevInspector = import.meta.env.DEV
@@ -650,6 +651,7 @@ const normalizePortfolioImages = (value) => {
 };
 
 const isSeededPropertyRecord = (property) => String(property?.portfolioId || '').startsWith('seed-');
+const isDemoSeedMockRecord = (record) => String(record?.source || '').trim() === 'demo_seed_mock';
 
 const isUserOwnedPropertyRecord = (property) => {
   if (!property) return false;
@@ -2397,6 +2399,7 @@ export default function App() {
         isTruthyFlag(p?.isActive, true)
         && isTruthyFlag(p?.publishToShowcase, true)
         && p?.dealClosed !== true
+        && (import.meta.env.DEV || !isDemoSeedMockRecord(p))
         && !isPendingDealExpired(p)
       ))
       .forEach((p, idx) => {

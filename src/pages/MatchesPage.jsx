@@ -704,7 +704,7 @@ function PortfolioDetail({ item, owner, ownerDesc, onBack, autoplayMedia = false
     const candidates = [
       item,
       ...(Array.isArray(imageSources) ? imageSources : []),
-      ...(Array.isArray(PROPERTIES) ? PROPERTIES : []),
+      ...(import.meta.env.DEV && Array.isArray(PROPERTIES) ? PROPERTIES : []),
     ].filter(Boolean);
 
     const found = candidates.find((candidate) => {
@@ -1818,13 +1818,15 @@ export function MatchesPage({ nuggets, setModal, openUnlock, unlocked, initialCh
   const allPropertiesSource = useMemo(() => {
     const userProps = propertyPortfolio || showcaseProperties || [];
     const userIds = new Set(userProps.map((p) => String(p.id)));
-    return [...userProps, ...PROPERTIES.filter((p) => !userIds.has(String(p.id)))];
+    const devMockProperties = import.meta.env.DEV ? PROPERTIES.filter((p) => !userIds.has(String(p.id))) : [];
+    return [...userProps, ...devMockProperties];
   }, [propertyPortfolio, showcaseProperties]);
 
   const allServicesSource = useMemo(() => {
     const userSvcs = servicePortfolio || [];
     const userIds = new Set(userSvcs.map((s) => String(s.id)));
-    return [...userSvcs, ...SERVICE_PORTFOLIO.filter((s) => !userIds.has(String(s.id)))];
+    const devMockServices = import.meta.env.DEV ? SERVICE_PORTFOLIO.filter((s) => !userIds.has(String(s.id))) : [];
+    return [...userSvcs, ...devMockServices];
   }, [servicePortfolio]);
 
   const buildLocalOwnerCard = useCallback((scope = 'personal') => {

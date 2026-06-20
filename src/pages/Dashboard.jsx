@@ -740,8 +740,9 @@ export function Dashboard({ page, nuggets, setModal, setPage, onOpenOnboardingTa
           return true;
         });
       // Imóveis mockados (vinculados aos cards fakes)
-      const mockProperties = (PROPERTIES || [])
-        .filter((p) => mockOwnerIds.includes(String(p.ownerId)) && isTruthyFlag(p.publishToShowcase, true));
+      const mockProperties = import.meta.env.DEV
+        ? (PROPERTIES || []).filter((p) => mockOwnerIds.includes(String(p.ownerId)) && isTruthyFlag(p.publishToShowcase, true))
+        : [];
       // Retornar imóveis do usuário e mockados, cada um com seu ownerId original
       return [
         ...userProperties.map((p) => {
@@ -1065,8 +1066,8 @@ export function Dashboard({ page, nuggets, setModal, setPage, onOpenOnboardingTa
         if (typeof match !== 'undefined') {
           newProp = [match, ...newProp.filter(x => String(x) !== String(match))];
         } else {
-          // try to inject from PROPERTIES
-          const found = PROPERTIES.find(p => String(p.id) === String(fidRaw) || p.id === fidRaw);
+          // Dev-only: try to inject mock properties for local sandbox focus tests.
+          const found = import.meta.env.DEV ? PROPERTIES.find(p => String(p.id) === String(fidRaw) || p.id === fidRaw) : null;
           if (found) {
             setInjectedProps(prev => (prev && prev[found.id] ? prev : ({ ...prev, [found.id]: found })));
             newProp = [found.id, ...newProp];
@@ -1862,7 +1863,7 @@ export function Dashboard({ page, nuggets, setModal, setPage, onOpenOnboardingTa
     const fromShowcase = (showcaseItems || []).find((p) => String(p.id) === fid);
     if (fromShowcase) return [fromShowcase, ...base];
 
-    const fromMock = PROPERTIES.find((p) => String(p.id) === fid);
+    const fromMock = import.meta.env.DEV ? PROPERTIES.find((p) => String(p.id) === fid) : null;
     if (fromMock) return [fromMock, ...base];
 
     // Fallback: look in the full property portfolio (real user property not in showcaseItems)
@@ -2153,11 +2154,13 @@ export function Dashboard({ page, nuggets, setModal, setPage, onOpenOnboardingTa
   };
 
   const getUnlockCost = (personId) => {
-    return getPortfolioUnlockCost(personId, [...(propertyPortfolio || []), ...(showcaseItems || []), ...(PROPERTIES || [])], servicePortfolio || []);
+    const devMockProperties = import.meta.env.DEV ? (PROPERTIES || []) : [];
+    return getPortfolioUnlockCost(personId, [...(propertyPortfolio || []), ...(showcaseItems || []), ...devMockProperties], servicePortfolio || []);
   };
 
   const getPortfolioCount = (personId) => {
-    return getPortfolioItemCount(personId, [...(propertyPortfolio || []), ...(showcaseItems || []), ...(PROPERTIES || [])], servicePortfolio || []);
+    const devMockProperties = import.meta.env.DEV ? (PROPERTIES || []) : [];
+    return getPortfolioItemCount(personId, [...(propertyPortfolio || []), ...(showcaseItems || []), ...devMockProperties], servicePortfolio || []);
   };
 
   const ownOwnerIds = useMemo(() => {
