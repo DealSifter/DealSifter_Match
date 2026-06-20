@@ -745,7 +745,7 @@ const mapDbPropertyToLocal = (row, images = [], options = {}) => ({
   includeInPreview: isTruthyFlag(row.include_in_preview, true),
   source: 'supabase',
   ownerAccountType: row.owner_account_type || '',
-  primaryProfile: row.primary_profile || 'personal',
+  primaryProfile: options.primaryProfile || row.primary_profile || 'personal',
   ownerPreview: options.ownerPreview || null,
   images: normalizePortfolioImages(images),
   video: row.video || '',
@@ -821,6 +821,14 @@ const getProfilePayloadScope = (profilePayload, scope) => {
   return {};
 };
 
+const inferDbPropertyProfileScope = (row) => {
+  const ownerAccountType = String(row?.owner_account_type || row?.ownerAccountType || '').trim().toLowerCase();
+  const dealTag = String(row?.deal_tag || row?.dealTag || '').trim().toUpperCase();
+  const source = String(row?.source || '').trim().toLowerCase();
+  if (ownerAccountType === 'fsbo_owner' || dealTag === 'FSBO' || source === 'fsbo') return 'fsbo';
+  return normalizeProfileScope(row?.primary_profile || row?.primaryProfile || 'personal');
+};
+
 const buildDbOwnerPreview = ({ ownerId, scope, userRow, personalRow, professionalRow }) => {
   const id = String(ownerId || '').trim();
   if (!id) return null;
@@ -870,13 +878,13 @@ const buildDbOwnerPreview = ({ ownerId, scope, userRow, personalRow, professiona
     professionalRow?.primary_category_b,
     professionalRow?.primary_category,
     userRow?.account_type,
-    normalizedScope === 'fsbo' ? 'FSBO' : 'Profile'
+    normalizedScope === 'fsbo' ? 'FSBO' : ''
   );
 
   const badge = pickFirstString(
     payloadScope?.badge,
     normalizedScope === 'professional' ? 'Business' : '',
-    normalizedScope === 'fsbo' ? 'FSBO' : 'Profile'
+    normalizedScope === 'fsbo' ? 'FSBO' : ''
   );
 
   const loc = pickFirstString(payloadScope?.loc, payloadProfile?.loc, payloadProfile?.locB);
@@ -1059,7 +1067,7 @@ export default function App() {
   const [profileSyncSnapshot, setProfileSyncSnapshot] = useState({ userId: null, loaded: false, hydrating: false, personalLoadedFromRemote: false, professionalLoadedFromRemote: false });
   const [profileHydrationAttempts, setProfileHydrationAttempts] = useState(0);
   const profileHydrationRetryRef = useRef({ timer: null, attempts: 0 });
-  const profileHydrationInputRef = useRef({ accountType: 'professional', userCategory: 'wholesaler' });
+  const profileHydrationInputRef = useRef({ accountType: 'professional', userCategory: '' });
   const {
     portfolioSyncStateRef,
     portfolioHydrationRetryRef,
@@ -2335,9 +2343,13 @@ export default function App() {
         const getOwnerPreviewForRow = (row) => {
           const ownerId = String(row?.owner_id || row?.ownerId || '').trim();
           if (!ownerId) return null;
+          const resolvedScope = Object.prototype.hasOwnProperty.call(row || {}, 'deal_tag')
+            || Object.prototype.hasOwnProperty.call(row || {}, 'owner_account_type')
+            ? inferDbPropertyProfileScope(row)
+            : normalizeProfileScope(row?.primary_profile || 'personal');
           return buildDbOwnerPreview({
             ownerId,
-            scope: row?.primary_profile || 'personal',
+            scope: resolvedScope,
             userRow: usersById.get(ownerId),
             personalRow: personalByOwnerId.get(ownerId),
             professionalRow: professionalByOwnerId.get(ownerId),
@@ -2372,6 +2384,7 @@ export default function App() {
         setGlobalShowcaseProperties(propertiesResult.error ? [] : propertyRows.map((row) => mapDbPropertyToLocal(row, imagesByProperty[row.id] || [], {
           ownerId: row.owner_id || row.ownerId || '',
           ownerPreview: getOwnerPreviewForRow(row),
+          primaryProfile: inferDbPropertyProfileScope(row),
         })));
         setGlobalConnectionServices(serviceRows.map((row) => mapDbServiceToLocal(row, {
           ownerId: row.owner_id || row.ownerId || '',
@@ -3503,7 +3516,7 @@ export default function App() {
     if (profileSaveDebounceRef.current.professional) clearTimeout(profileSaveDebounceRef.current.professional);
     const syncProfessional = async () => {
       pendingFlushRef.current.professional = null;
-      const normalized = normalizeProfessionalProfile(professionalProfile, userProfile.category || 'wholesaler');
+      const normalized = normalizeProfessionalProfile(professionalProfile, userProfile.category || '');
       const profilePayload = normalizePersistableProfilePayload(buildScopedProfilePayload({
         accountType,
         userProfile: stripInlineMediaFromObject(userProfile),

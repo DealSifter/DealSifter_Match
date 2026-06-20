@@ -91,8 +91,7 @@ export function resolveScopedProfile(scope, {
       name: pickString(
         professional.fullNameB,
         professional.fullName,
-        user.name,
-        'Secondary Profile'
+        user.name
       ),
       loc: pickString(
         professional.locB,
@@ -110,15 +109,13 @@ export function resolveScopedProfile(scope, {
       ),
       categoryLabelFallback: pickString(
         professional.categoryB,
-        professional.primaryCategoryB,
-        'Business'
+        professional.primaryCategoryB
       ),
-      badge: 'Business',
+      badge: pickString(professional.badgeB),
       pitch: pickString(
         professional.pitchB,
         professional.pitch,
-        user.type,
-        'Business'
+        user.type
       ),
       contactMethods: pickArray(professional.contactMethodsB),
       primaryPhone: pickString(
@@ -159,12 +156,12 @@ export function resolveScopedProfile(scope, {
     ),
     categoryLabelFallback: isFsboScope
       ? 'FSBO'
-      : pickString(user.type, professional.category, 'Business'),
-    badge: isFsboScope ? 'FSBO' : pickString(user.badge, 'Profile'),
+      : pickString(user.type, professional.category),
+    badge: isFsboScope ? 'FSBO' : pickString(user.badge),
     pitch: pickString(
       professional.pitch,
       user.type,
-      isFsboScope ? 'FSBO' : 'Profile'
+      isFsboScope ? 'FSBO' : ''
     ),
     contactMethods: pickArray(
       professional.contactMethodsA,

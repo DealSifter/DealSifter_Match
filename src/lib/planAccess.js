@@ -19,7 +19,7 @@ const FEATURE_COPY = {
     },
     swipe: {
       title: 'Daily swipe limit reached',
-      message: 'Your Basic plan includes 10 feed swipes per day. Upgrade for unlimited browsing and faster deal discovery.',
+      message: 'Your Basic plan includes 20 feed swipes per day. Upgrade for unlimited browsing and faster deal discovery.',
     },
     like: {
       title: 'Daily favorite limit reached',
@@ -47,7 +47,7 @@ const FEATURE_COPY = {
     },
     swipe: {
       title: 'Limite diario de swipes atingido',
-      message: 'Seu plano Basico inclui 10 swipes no feed por dia. Faca upgrade para navegar sem limite e descobrir oportunidades mais rapido.',
+      message: 'Seu plano Basico inclui 20 swipes no feed por dia. Faca upgrade para navegar sem limite e descobrir oportunidades mais rapido.',
     },
     like: {
       title: 'Limite diario de favoritos atingido',
@@ -75,7 +75,7 @@ const FEATURE_COPY = {
     },
     swipe: {
       title: 'Limite diario de swipes alcanzado',
-      message: 'Tu plan Basico incluye 10 swipes en el feed por dia. Haz upgrade para navegar sin limite y descubrir oportunidades mas rapido.',
+      message: 'Tu plan Basico incluye 20 swipes en el feed por dia. Haz upgrade para navegar sin limite y descubrir oportunidades mas rapido.',
     },
     like: {
       title: 'Limite diario de favoritos alcanzado',

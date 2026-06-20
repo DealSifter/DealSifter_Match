@@ -536,6 +536,40 @@ export function Dashboard({ page, nuggets, setModal, setPage, onOpenOnboardingTa
       .filter((c) => c.id !== 'all')
       .flatMap((c) => (c.sub ? [{ ...c, sub: null }, ...c.sub] : [c]))
       .find((p) => p.id === categoryId)?.label;
+    const hasText = (value) => String(value || '').trim().length > 0;
+    const hasScopedIdentity = isSecondary
+      ? [
+        professionalProfile?.fullNameB,
+        professionalProfile?.primaryPhoneB,
+        professionalProfile?.emailB,
+        professionalProfile?.photoB,
+        professionalProfile?.photoBUrl,
+        professionalProfile?.categoryB,
+        professionalProfile?.primaryCategoryB,
+        professionalProfile?.pitchB,
+      ].some(hasText)
+      : isFsbo
+        ? [
+          personalProfile?.fullName,
+          personalProfile?.primaryPhone,
+          personalProfile?.email,
+          personalProfile?.photo,
+          personalProfile?.cardPriorityC,
+          professionalProfile?.cardPriorityC,
+        ].some(hasText) || scopedProperties.length > 0
+        : [
+          professionalProfile?.fullNameA,
+          personalProfile?.fullName,
+          professionalProfile?.primaryPhoneA,
+          personalProfile?.primaryPhone,
+          professionalProfile?.emailA,
+          personalProfile?.email,
+          professionalProfile?.photoA,
+          personalProfile?.photo,
+          professionalProfile?.category,
+          professionalProfile?.primaryCategory,
+          professionalProfile?.pitch,
+        ].some(hasText);
     const typeLabel = isSecondary
       ? (categoryLabel || scopedIdentity?.categoryLabelFallback || '')
       : (isFsbo ? 'FSBO' : (categoryLabel || scopedIdentity?.categoryLabelFallback || ''));
@@ -551,15 +585,15 @@ export function Dashboard({ page, nuggets, setModal, setPage, onOpenOnboardingTa
       ownerId,
       scopeKey,
       name: scopedIdentity?.name || '',
-      type: typeLabel,
-      badge: scopedIdentity?.badge || '',
+      type: hasScopedIdentity ? typeLabel : '',
+      badge: hasScopedIdentity ? (scopedIdentity?.badge || '') : '',
       loc: isFsbo ? (fsboStateCode || '') : (scopedIdentity?.loc || ''),
       photo: scopedIdentity?.photo || '',
       // Profile cards must use profile-origin fields only (no portfolio synthesis).
       rating: Number.isFinite(rawRating) && rawRating > 0 ? rawRating : 0,
       reviews: Number.isFinite(rawReviews) && rawReviews > 0 ? Math.round(rawReviews) : 0,
       deals: Number.isFinite(rawDeals) && rawDeals > 0 ? Math.round(rawDeals) : 0,
-      cat: userProfile?.category || '',
+      cat: hasScopedIdentity ? (userProfile?.category || '') : '',
       desc: (profileDescription && normalizedProfileDescription !== normalizedTypeLabel)
         ? profileDescription
         : '',

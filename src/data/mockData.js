@@ -38,8 +38,8 @@ export const NUGGET_PACKS = [
 ];
 
 export const PLANS = [
-  { id:"free",       name:"Basic",        price:0,   nuggets:3,  firstMonthBonus:0,  color:C.t2,    limits:{ swipesPerDay:10, likesPerDay:5, activeMatches:3, unlockRequestsPerMonth:3, profile:"standard" }, features:["3 Gold Nuggets/month","10 swipes/day","5 favorited matches/day","3 active unlocked matches","Standard profile with optional verification"] },
-  { id:"pro",        name:"Professional", price:49,  nuggets:20, firstMonthBonus:3,  color:C.accent, limits:{ likesPerDay:null, activeMatches:10, unlockRequestsPerMonth:10, canExportUnlockedPdf:true, hasDealSifterChat:true, featuredProfileDiscountPct:20 }, features:["20 Gold Nuggets/month + 3 first month","Unlimited likes","10 unlocks/month","10 active matches","Export unlocked properties as PDF","DealSifter chat","20% off Featured Profile"], popular:true },
+  { id:"free",       name:"Basic",        price:0,   nuggets:3,  firstMonthBonus:0,  color:C.t2,    limits:{ swipesPerDay:20, likesPerDay:5, activeMatches:3, unlockRequestsPerMonth:3, profile:"standard" }, features:["3 Gold Nuggets/month","20 swipes/day","5 favorited matches/day","3 active unlocked matches","Standard profile with optional verification"] },
+  { id:"pro",        name:"Professional", price:49,  nuggets:20, firstMonthBonus:3,  color:C.accent, limits:{ likesPerDay:null, activeMatches:15, unlockRequestsPerMonth:10, canExportUnlockedPdf:true, hasDealSifterChat:true, featuredProfileDiscountPct:20 }, features:["20 Gold Nuggets/month + 3 first month","Unlimited likes","10 unlocks/month","15 active matches","Export unlocked properties as PDF","DealSifter chat","20% off Featured Profile"], popular:true },
   { id:"enterprise", name:"Enterprise",   price:129, nuggets:60, firstMonthBonus:20, color:C.gold,   limits:{ likesPerDay:null, activeMatches:null, unlockRequestsPerMonth:null, exclusiveContactsIncluded:2, featuredProfileIncluded:true }, features:["60 Gold Nuggets/month + 20 first month","Everything in Professional","Unlimited unlocks and active matches","2 free exclusive contacts/month","Free Featured Profile"] },
 ];
 

@@ -82,7 +82,7 @@ export function Pricing({ setPage, setModal, prevPage, addToast, onRequestChecko
     },
     {
       q: t.faqFreeQ || 'What happens when I reach Basic plan limits?',
-      a: t.faqFreeA || 'The app keeps your account active, but restricted actions show an upgrade notice. Basic includes 10 swipes/day, 5 favorited matches/day and 3 active unlocked matches.',
+      a: t.faqFreeA || 'The app keeps your account active, but restricted actions show an upgrade notice. Basic includes 20 swipes/day, 5 favorited matches/day and 3 active unlocked matches.',
     },
     {
       q: t.faqExclusivityQ || 'What is exclusive contact access?',
