@@ -1766,22 +1766,6 @@ export function Dashboard({ page, nuggets, setModal, setPage, onOpenOnboardingTa
     try { localStorage.setItem('ds_selectedStates', JSON.stringify(selectedStates || [])); } catch (e) { void e; }
   }, [selectedStates]);
 
-  // Persist matched & interested and restore them on mount
-  useEffect(() => {
-    try {
-      const rawM = localStorage.getItem('ds_matched');
-      if (rawM) {
-        const parsed = JSON.parse(rawM);
-        if (Array.isArray(parsed) && setMatched) setMatched(parsed);
-      }
-      const rawI = localStorage.getItem('ds_interested');
-      if (rawI) {
-        const parsedI = JSON.parse(rawI);
-        if (Array.isArray(parsedI) && setInterested) setInterested(parsedI);
-      }
-    } catch (e) { void e; }
-  }, [setInterested, setMatched]);
-
   // When the app navigates to the dashboard (page prop), check for a pending
   // focusCard set by other views (e.g., MapView) and apply it. This covers the
   // case where Dashboard is already mounted but was hidden when the focus was

@@ -469,7 +469,7 @@ const _stripPersonalProfileMedia = (profile) => {
 
 const DEFAULT_PERSONAL_PROFILE = { fullName: '', photo: '', bio: '', visibility: 'hidden' };
 
-const DEFAULT_PROFESSIONAL_PROFILE = (fallbackCategory = 'wholesaler') => ({
+const DEFAULT_PROFESSIONAL_PROFILE = (fallbackCategory = '') => ({
   category: fallbackCategory,
   subcategory: '',
   markets: [],
@@ -531,14 +531,14 @@ const normalizePersonalProfile = (value) => ({
     : 'hidden',
 });
 
-const normalizeProfessionalProfile = (value, fallbackCategory = 'wholesaler') => {
+const normalizeProfessionalProfile = (value, fallbackCategory = '') => {
   const base = {
     ...DEFAULT_PROFESSIONAL_PROFILE(fallbackCategory),
     ...(value || {}),
   };
   return {
     ...base,
-    category: String(base.category || fallbackCategory || 'wholesaler').trim(),
+    category: String(base.category || fallbackCategory || '').trim(),
     subcategory: String(base.subcategory || '').trim(),
     markets: normalizeStringArray(base.markets),
     skills: normalizeStringArray(base.skills),
@@ -1737,6 +1737,7 @@ export default function App() {
     };
   });
   const [matched, setMatched] = useState(() => {
+    if (isSupabaseConfigured) return [];
     try {
       const saved = localStorage.getItem('ds_matched');
       return saved ? JSON.parse(saved) : [];
@@ -1745,6 +1746,7 @@ export default function App() {
     }
   });
   const [interested, setInterested] = useState(() => {
+    if (isSupabaseConfigured) return [];
     try {
       const saved = localStorage.getItem('ds_interested');
       return saved ? JSON.parse(saved) : [];
@@ -1753,6 +1755,7 @@ export default function App() {
     }
   });
   const [unlocked, setUnlocked] = useState(() => {
+    if (isSupabaseConfigured) return [];
     try {
       const saved = localStorage.getItem('ds_unlocked');
       const parsed = saved ? JSON.parse(saved) : [];
@@ -1839,7 +1842,7 @@ export default function App() {
     }
     return {
       name: '',
-      category: 'wholesaler',
+      category: '',
       type: '',
       location: '',
       badge: '',
@@ -1869,17 +1872,17 @@ export default function App() {
   const [professionalProfile, setProfessionalProfile] = useState(() => {
     const saved = localStorage.getItem('professionalProfile');
     if (!saved) {
-      return DEFAULT_PROFESSIONAL_PROFILE(userProfile.category || 'wholesaler');
+      return DEFAULT_PROFESSIONAL_PROFILE(userProfile.category || '');
     }
     try {
-      return normalizeProfessionalProfile(JSON.parse(saved), userProfile.category || 'wholesaler');
+      return normalizeProfessionalProfile(JSON.parse(saved), userProfile.category || '');
     } catch {
-      return DEFAULT_PROFESSIONAL_PROFILE(userProfile.category || 'wholesaler');
+      return DEFAULT_PROFESSIONAL_PROFILE(userProfile.category || '');
     }
   });
 
   useEffect(() => {
-    profileHydrationInputRef.current.userCategory = String(userProfile?.category || 'wholesaler').trim() || 'wholesaler';
+    profileHydrationInputRef.current.userCategory = String(userProfile?.category || '').trim();
   }, [userProfile]);
 
   const supabaseUserId = authSession?.userId || null;
@@ -2873,9 +2876,9 @@ export default function App() {
       setNuggets(5);
       setSubscription({ planId: 'free', planName: 'Free', price: 0, status: 'active', nextBillingAt: null });
       setSystemNotifications([]);
-      setUserProfile({ name: '', category: 'wholesaler', type: '', location: '', badge: '' });
+      setUserProfile({ name: '', category: '', type: '', location: '', badge: '' });
       setPersonalProfile(DEFAULT_PERSONAL_PROFILE);
-      setProfessionalProfile(DEFAULT_PROFESSIONAL_PROFILE('wholesaler'));
+      setProfessionalProfile(DEFAULT_PROFESSIONAL_PROFILE(''));
       setServicePortfolio([]);
       setPropertyPortfolio([]);
       clearAllUserData(); // clears IndexedDB portfolioStore + tempUploads
@@ -3184,6 +3187,39 @@ export default function App() {
         }
         if (professionalResult.error) {
           safeLogError('Supabase professional profile hydration failed.', professionalResult.error);
+        }
+
+        const hasAnyInitialProfileRecord = Boolean(personalResult.data || professionalResult.data);
+        if (!hasAnyInitialProfileRecord) {
+          feedActionHydratingRef.current = true;
+          setMatched([]);
+          setInterested([]);
+          setUnlocked([]);
+          setUserProfile((prev) => ({
+            ...(prev || {}),
+            name: '',
+            category: '',
+            type: '',
+            location: '',
+            badge: '',
+          }));
+          setPersonalProfile(DEFAULT_PERSONAL_PROFILE);
+          setProfessionalProfile(DEFAULT_PROFESSIONAL_PROFILE(''));
+          try { localStorage.removeItem('ds_matched'); } catch { /* no-op */ }
+          try { localStorage.removeItem('ds_interested'); } catch { /* no-op */ }
+          try { localStorage.removeItem('ds_unlocked'); } catch { /* no-op */ }
+          feedActionLastSignatureRef.current = '[]';
+          feedActionLoadedUserRef.current = supabaseUserId;
+          try {
+            await supabase
+              .from('user_feed_actions')
+              .delete()
+              .eq('user_id', supabaseUserId);
+          } catch (deleteError) {
+            safeLogError('Failed to clear stale feed actions for empty profile.', deleteError);
+          }
+          window.setTimeout(() => { feedActionHydratingRef.current = false; }, 0);
+          return;
         }
 
         if (personalResult.data) {
