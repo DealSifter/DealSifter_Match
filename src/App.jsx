@@ -85,7 +85,7 @@ const CookieBanner = lazyWithRetry(() => import('./components/ui/CookieBanner').
 import { getT } from './i18n/translations';
 import { CATEGORIES, CARDS as _MOCK_CARDS, PLANS, PROPERTIES as _MOCK_PROPERTIES, SERVICE_PORTFOLIO as _MOCK_SERVICES } from './data/mockData';
 import { supabase, isSupabaseConfigured, supabaseConfigHint } from './lib/supabaseClient';
-import { buildScopedProfilePayload, extractScopedProfileLegacy } from './lib/profileScopeResolver';
+import { buildScopedProfilePayload, extractScopedProfileLegacy, normalizeProfileScope } from './lib/profileScopeResolver';
 import { getPortfolioFull, setPortfolioFull, clearAllUserData, uploadDataUrlToStorage } from './lib/localforageHelper';
 import { useAuthSession, mapSupabaseUserToSession } from './hooks/useAuthSession';
 import { useProfileSync } from './hooks/useProfileSync';
@@ -746,6 +746,7 @@ const mapDbPropertyToLocal = (row, images = [], options = {}) => ({
   source: 'supabase',
   ownerAccountType: row.owner_account_type || '',
   primaryProfile: row.primary_profile || 'personal',
+  ownerPreview: options.ownerPreview || null,
   images: normalizePortfolioImages(images),
   video: row.video || '',
   lat: toNumberOrNull(row.lat),
@@ -791,10 +792,114 @@ const mapDbServiceToLocal = (row, options = {}) => ({
   dealClosed: false,
   markets: normalizeStringArray(row.markets),
   primaryProfile: row.primary_profile || 'personal',
+  ownerPreview: options.ownerPreview || null,
   source: 'supabase',
   createdAt: row.created_at || null,
   updatedAt: row.updated_at || null,
 });
+
+const pickFirstString = (...values) => {
+  for (const value of values) {
+    const normalized = String(value || '').trim();
+    if (normalized) return normalized;
+  }
+  return '';
+};
+
+const getEmailHandle = (email = '') => {
+  const handle = String(email || '').split('@')[0] || '';
+  return handle.trim();
+};
+
+const getProfilePayloadScope = (profilePayload, scope) => {
+  const payload = profilePayload && typeof profilePayload === 'object' ? profilePayload : {};
+  const normalizedScope = normalizeProfileScope(scope);
+  const resolved = payload.resolved && typeof payload.resolved === 'object' ? payload.resolved : {};
+  const profiles = payload.profiles && typeof payload.profiles === 'object' ? payload.profiles : {};
+  if (resolved[normalizedScope] && typeof resolved[normalizedScope] === 'object') return resolved[normalizedScope];
+  if (profiles[normalizedScope] && typeof profiles[normalizedScope] === 'object') return profiles[normalizedScope];
+  return {};
+};
+
+const buildDbOwnerPreview = ({ ownerId, scope, userRow, personalRow, professionalRow }) => {
+  const id = String(ownerId || '').trim();
+  if (!id) return null;
+
+  const normalizedScope = normalizeProfileScope(scope || 'personal');
+  const profilePayload = professionalRow?.profile_payload && typeof professionalRow.profile_payload === 'object'
+    ? professionalRow.profile_payload
+    : null;
+  const payloadScope = getProfilePayloadScope(profilePayload, normalizedScope);
+  const extracted = profilePayload ? extractScopedProfileLegacy(profilePayload) : {};
+  const payloadPersonal = normalizedScope === 'fsbo'
+    ? (extracted.fsboProfileFromPayload || extracted.personalProfileFromPayload || {})
+    : (extracted.personalProfileFromPayload || {});
+  const payloadProfessional = extracted.professionalProfileFromPayload || {};
+  const payloadProfile = normalizedScope === 'professional' ? payloadProfessional : payloadPersonal;
+  const isProfessional = normalizedScope === 'professional';
+  const userEmail = pickFirstString(userRow?.email);
+
+  const name = pickFirstString(
+    payloadScope?.name,
+    payloadProfile?.fullName,
+    payloadProfile?.fullNameB,
+    isProfessional ? professionalRow?.full_name : '',
+    personalRow?.full_name,
+    userRow?.full_name,
+    getEmailHandle(userEmail)
+  );
+
+  if (!name) return null;
+
+  const photo = pickFirstString(
+    payloadScope?.photo,
+    payloadProfile?.photo,
+    payloadProfile?.photoB,
+    payloadProfile?.photoBUrl,
+    isProfessional ? professionalRow?.photo_b_url : '',
+    personalRow?.photo_url
+  );
+
+  const type = pickFirstString(
+    payloadScope?.pitch,
+    payloadScope?.categoryLabelFallback,
+    payloadProfile?.pitchB,
+    payloadProfile?.pitch,
+    professionalRow?.subcategory,
+    professionalRow?.category,
+    professionalRow?.primary_category_b,
+    professionalRow?.primary_category,
+    userRow?.account_type,
+    normalizedScope === 'fsbo' ? 'FSBO' : 'Profile'
+  );
+
+  const badge = pickFirstString(
+    payloadScope?.badge,
+    normalizedScope === 'professional' ? 'Business' : '',
+    normalizedScope === 'fsbo' ? 'FSBO' : 'Profile'
+  );
+
+  const loc = pickFirstString(payloadScope?.loc, payloadProfile?.loc, payloadProfile?.locB);
+  const email = pickFirstString(payloadScope?.email, payloadProfile?.email, payloadProfile?.emailB, userEmail);
+  const primaryPhone = pickFirstString(payloadScope?.primaryPhone, payloadProfile?.primaryPhone, payloadProfile?.primaryPhoneB, userRow?.phone);
+
+  return {
+    id,
+    ownerId: id,
+    name,
+    type,
+    badge,
+    loc,
+    photo,
+    cat: pickFirstString(professionalRow?.primary_category_b, professionalRow?.primary_category, professionalRow?.category),
+    desc: pickFirstString(payloadScope?.pitch, payloadProfile?.pitchB, payloadProfile?.pitch, professionalRow?.pitch),
+    email,
+    primaryPhone,
+    contactMethods: Array.isArray(payloadScope?.contactMethods) ? payloadScope.contactMethods : [],
+    primaryProfile: normalizedScope,
+    verified: payloadScope?.verified === true || payloadProfile?.verified === true,
+  };
+};
 
 const sanitizeLegacyName = (value) => {
   const normalized = String(value || '').trim();
@@ -2188,6 +2293,54 @@ export default function App() {
         const propertyRows = Array.isArray(propertiesResult.data) ? propertiesResult.data : [];
         const serviceRows = Array.isArray(servicesResult.data) ? servicesResult.data : [];
         const spotlightRows = Array.isArray(spotlightsResult.data) ? spotlightsResult.data : [];
+        const ownerIds = Array.from(new Set([
+          ...propertyRows.map((row) => String(row.owner_id || '').trim()),
+          ...serviceRows.map((row) => String(row.owner_id || '').trim()),
+        ].filter(Boolean)));
+        let userRows = [];
+        let personalRows = [];
+        let professionalRows = [];
+
+        if (ownerIds.length > 0) {
+          const [usersResult, userProfilesResult, professionalProfilesResult] = await Promise.all([
+            supabase
+              .from('users')
+              .select('id, email, full_name, phone, account_type, is_admin')
+              .in('id', ownerIds),
+            supabase
+              .from('user_profiles')
+              .select('user_id, full_name, photo_url, bio, visibility')
+              .in('user_id', ownerIds),
+            supabase
+              .from('professional_profiles')
+              .select('user_id, category, subcategory, markets, skills, services, pitch, primary_category, category_b, primary_category_b, photo_b_url, profile_payload')
+              .in('user_id', ownerIds),
+          ]);
+
+          if (usersResult.error) safeLogError('Supabase owner users hydration failed.', usersResult.error);
+          if (userProfilesResult.error) safeLogError('Supabase owner personal profiles hydration failed.', userProfilesResult.error);
+          if (professionalProfilesResult.error) safeLogError('Supabase owner professional profiles hydration failed.', professionalProfilesResult.error);
+
+          userRows = usersResult.error ? [] : (Array.isArray(usersResult.data) ? usersResult.data : []);
+          personalRows = userProfilesResult.error ? [] : (Array.isArray(userProfilesResult.data) ? userProfilesResult.data : []);
+          professionalRows = professionalProfilesResult.error ? [] : (Array.isArray(professionalProfilesResult.data) ? professionalProfilesResult.data : []);
+        }
+
+        const usersById = new Map(userRows.map((row) => [String(row.id), row]));
+        const personalByOwnerId = new Map(personalRows.map((row) => [String(row.user_id), row]));
+        const professionalByOwnerId = new Map(professionalRows.map((row) => [String(row.user_id), row]));
+        const getOwnerPreviewForRow = (row) => {
+          const ownerId = String(row?.owner_id || row?.ownerId || '').trim();
+          if (!ownerId) return null;
+          return buildDbOwnerPreview({
+            ownerId,
+            scope: row?.primary_profile || 'personal',
+            userRow: usersById.get(ownerId),
+            personalRow: personalByOwnerId.get(ownerId),
+            professionalRow: professionalByOwnerId.get(ownerId),
+          });
+        };
+
         let imageRows = [];
         if (propertyRows.length > 0) {
           const imageResult = await supabase
@@ -2215,9 +2368,11 @@ export default function App() {
 
         setGlobalShowcaseProperties(propertiesResult.error ? [] : propertyRows.map((row) => mapDbPropertyToLocal(row, imagesByProperty[row.id] || [], {
           ownerId: row.owner_id || row.ownerId || '',
+          ownerPreview: getOwnerPreviewForRow(row),
         })));
         setGlobalConnectionServices(serviceRows.map((row) => mapDbServiceToLocal(row, {
           ownerId: row.owner_id || row.ownerId || '',
+          ownerPreview: getOwnerPreviewForRow(row),
         })));
         setActiveSpotlights(spotlightRows.map((row) => ({
           id: row.id,
@@ -4016,6 +4171,7 @@ export default function App() {
       if (error) throw error;
       // Sign out and clear all local data
       try { await supabase.auth.signOut(); } catch { /* no-op */ }
+      try { await clearAllUserData(); } catch { /* no-op */ }
       setAuthSession(null);
       const keysToKeep = ['theme'];
       const allKeys = [];

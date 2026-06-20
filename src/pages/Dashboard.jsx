@@ -648,6 +648,7 @@ export function Dashboard({ page, nuggets, setModal, setPage, onOpenOnboardingTa
       const services = (servicePortfolio || []).filter((s) => String(s.ownerId) === ownerId && isTruthyFlag(s.publishToConnections, true));
       const firstService = services[0] || null;
       const firstProperty = props[0] || null;
+      const ownerPreview = firstService?.ownerPreview || firstProperty?.ownerPreview || null;
       const serviceImages = services.flatMap(s => (s.media && s.media.images) ? s.media.images : []);
       const propertyImages = props.flatMap((p) => Array.isArray(p.images) ? p.images : []);
       const markets = Array.from(new Set([
@@ -655,31 +656,34 @@ export function Dashboard({ page, nuggets, setModal, setPage, onOpenOnboardingTa
         ...services.flatMap((s) => collectRecordStates(s)),
       ].filter(Boolean)));
       const location = markets[0] || [firstProperty?.city, firstProperty?.state].filter(Boolean).join(', ') || '';
-      const name = String(firstService?.title || firstProperty?.ownerName || firstProperty?.contactName || '').trim() || 'Published contact';
-      const type = String(firstService?.category || firstProperty?.ownerAccountType || 'Real estate contact').trim();
+      const name = String(ownerPreview?.name || firstProperty?.ownerName || firstProperty?.contactName || '').trim();
+      if (!name) return null;
+      const type = String(ownerPreview?.type || firstService?.category || firstProperty?.ownerAccountType || 'Real estate contact').trim();
       const desc = String(firstService?.description || firstProperty?.description || '').trim();
       return {
         id: ownerId,
         ownerId,
         name,
         type,
-        badge: firstService ? 'Service' : 'Property',
+        badge: ownerPreview?.badge || (firstService ? 'Service' : 'Property'),
         loc: location,
-        photo: '',
+        photo: ownerPreview?.photo || '',
         images: serviceImages.length ? serviceImages : propertyImages,
         rating: 0,
         reviews: 0,
         deals: 0,
-        cat: firstService?.category || '',
-        desc,
+        cat: ownerPreview?.cat || firstService?.category || '',
+        desc: ownerPreview?.desc || desc,
+        email: ownerPreview?.email || '',
+        primaryPhone: ownerPreview?.primaryPhone || '',
         portfolioCount: props.length + services.length,
-        primaryProfile: normalizeProfileScope(firstService?.primaryProfile || firstProperty?.primaryProfile || 'personal'),
+        primaryProfile: normalizeProfileScope(ownerPreview?.primaryProfile || firstService?.primaryProfile || firstProperty?.primaryProfile || 'personal'),
         markets,
-        contactMethods: [],
-        verified: false,
+        contactMethods: ownerPreview?.contactMethods || [],
+        verified: ownerPreview?.verified === true,
         _priority: 'tertiary',
       };
-    });
+    }).filter(Boolean);
     const enriched = staticCards.map((c) => {
       try {
         const props = (showcaseProperties || []).filter((p) => String(p.ownerId) === String(c.id));
@@ -757,7 +761,7 @@ export function Dashboard({ page, nuggets, setModal, setPage, onOpenOnboardingTa
             ...p,
             _source: 'property',
             markets: collectRecordStates(p),
-            ownerPreview: localOwnerIds.includes(String(p.ownerId || '')) ? buildLocalProfileCard(scopeKey) : null,
+            ownerPreview: localOwnerIds.includes(String(p.ownerId || '')) ? buildLocalProfileCard(scopeKey) : (p.ownerPreview || null),
           };
         }),
         ...mockProperties.map((p) => {
@@ -785,16 +789,19 @@ export function Dashboard({ page, nuggets, setModal, setPage, onOpenOnboardingTa
     if (!property) return null;
     const ownerScope = normalizeProfileScope(property?.primaryProfile || '');
     const ownerScopeKey = ownerScope === 'professional' ? 'secondary' : (ownerScope === 'fsbo' ? 'fsbo' : (ownerScope ? 'personal' : ''));
-    const ownerByScope = ownerScopeKey ? connectionCards.find((c) => c.scopeKey === ownerScopeKey) : null;
-    const ownerById = findConnectionById(property.ownerId);
+    const propertyOwnerId = String(property.ownerId || '').trim();
+    const ownerByScope = ownerScopeKey
+      ? connectionCards.find((c) => c.scopeKey === ownerScopeKey && String(c.ownerId || c.id || '') === propertyOwnerId)
+      : null;
+    const ownerById = findConnectionById(propertyOwnerId);
     const ownerPreview = property.ownerPreview && (property.ownerPreview.id || property.ownerPreview.ownerId)
       ? { ...property.ownerPreview, ownerId: property.ownerPreview.ownerId || property.ownerPreview.id }
       : null;
-    const mockOwnerCard = (CARDS || []).find((c) => String(c.id) === String(property.ownerId));
+    const mockOwnerCard = import.meta.env.DEV ? (CARDS || []).find((c) => String(c.id) === String(property.ownerId)) : null;
 
     return ownerById
-      || ownerByScope
       || ownerPreview
+      || ownerByScope
       || (mockOwnerCard ? { ...mockOwnerCard, ownerId: mockOwnerCard.ownerId || mockOwnerCard.id } : null);
   }, [connectionCards, findConnectionById]);
 

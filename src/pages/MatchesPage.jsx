@@ -1816,7 +1816,13 @@ export function MatchesPage({ nuggets, setModal, openUnlock, unlocked, initialCh
   // Combined sources: user data merged with mock seed data for mock card owners.
   // Uses String() comparison and deduplication by id so user's own records always win.
   const allPropertiesSource = useMemo(() => {
-    const userProps = propertyPortfolio || showcaseProperties || [];
+    const byId = new Map();
+    [...(showcaseProperties || []), ...(propertyPortfolio || [])].forEach((property) => {
+      const key = String(property?.id || property?.portfolioId || '').trim();
+      if (!key) return;
+      byId.set(key, property);
+    });
+    const userProps = [...byId.values()];
     const userIds = new Set(userProps.map((p) => String(p.id)));
     const devMockProperties = import.meta.env.DEV ? PROPERTIES.filter((p) => !userIds.has(String(p.id))) : [];
     return [...userProps, ...devMockProperties];
@@ -2324,7 +2330,9 @@ export function MatchesPage({ nuggets, setModal, openUnlock, unlocked, initialCh
     }
     const hydratedOwner = allMatched.find((contact) => getContactUnlockKeys(contact).includes(String(active.ownerId || '')));
     if (hydratedOwner) return enrichContactFromPortfolio(hydratedOwner);
-    return enrichContactFromPortfolio(CARDS.find(c => String(c.id) === String(active.ownerId)));
+    return import.meta.env.DEV
+      ? enrichContactFromPortfolio(CARDS.find(c => String(c.id) === String(active.ownerId)))
+      : null;
   }, [active, isActiveProperty, resolveContactCard, secondaryOwnerId, fsboOwnerId, personalOwnerId, buildLocalOwnerCard, enrichContactFromPortfolio, allMatched, getContactUnlockKeys]);
 
   const handleOpenActiveCardPreview = useCallback(() => {
@@ -2950,7 +2958,7 @@ export function MatchesPage({ nuggets, setModal, openUnlock, unlocked, initialCh
                     : (
                       String(p.ownerId) === String(personalOwnerId) || String(p.ownerId) === String(secondaryOwnerId) || String(p.ownerId) === String(fsboOwnerId)
                         ? buildLocalOwnerCard(p.primaryProfile || (String(p.ownerId) === String(secondaryOwnerId) ? 'professional' : (String(p.ownerId) === String(fsboOwnerId) ? 'fsbo' : 'personal')))
-                        : CARDS.find(c => c.id === p.ownerId)
+                        : (import.meta.env.DEV ? CARDS.find(c => c.id === p.ownerId) : null)
                     );
                   return (
                     <div key={p.id} onClick={() => setActive(p)} style={{ display:"flex", alignItems:"center", gap:10, padding:12, borderBottom:`1px solid ${C.border}`, borderLeft:isLinkedProperty?`3px solid ${C.alpha(PROPERTY_SIGNAL, 0.7)}`:'3px solid transparent', cursor:"pointer", background:isLinkedProperty?C.alpha(PROPERTY_SIGNAL, 0.14):"transparent" }}>
@@ -3412,7 +3420,10 @@ export function MatchesPage({ nuggets, setModal, openUnlock, unlocked, initialCh
                           <div style={{ display:"grid", gridTemplateColumns:"repeat(2, minmax(0, 1fr))", gap:PORTFOLIO_GRID_GAP }}>
                             {(portfolioShowAll ? portfolioItems : portfolioItems.slice(0, 4)).map(p => {
                               const exclusivityStatus = (typeof getPropertyExclusiveStatus === 'function') ? getPropertyExclusiveStatus(p) : null;
-                              const ownerCard = (allMatched || []).find(c => String(c.ownerId || c.id) === String(p.ownerId)) || activeOwner || CARDS.find(c => String(c.id) === String(p.ownerId));
+                              const ownerCard = (allMatched || []).find(c => String(c.ownerId || c.id) === String(p.ownerId))
+                                || p.ownerPreview
+                                || activeOwner
+                                || (import.meta.env.DEV ? CARDS.find(c => String(c.id) === String(p.ownerId)) : null);
                               const ownerVerified = Boolean(ownerCard && (ownerCard.verified === true || String(ownerCard.verified).toLowerCase() === 'verified'));
                               const isHot = false;
                               return (
