@@ -628,8 +628,11 @@ export function Dashboard({ page, nuggets, setModal, setPage, onOpenOnboardingTa
         _isDimmed: fsboPriority === '',
       });
     }
-    // Mock cards
-    const staticCards = CARDS.filter((c) => !cards.some(card => String(card.id) === String(c.id)));
+    // Static mock cards are useful in local development, but production feeds must
+    // come from real published records to avoid showing stale/fantom profiles.
+    const staticCards = import.meta.env.DEV
+      ? CARDS.filter((c) => !cards.some(card => String(card.id) === String(c.id)))
+      : [];
     const localOwnerIds = new Set([
       String(getOwnerIdForKey('personal')),
       String(getOwnerIdForKey('secondary')),
@@ -3807,7 +3810,11 @@ export function Dashboard({ page, nuggets, setModal, setPage, onOpenOnboardingTa
                             borderRadius: 22,
                             boxShadow: isSponsored ? `0 0 0 2px ${C.alpha(C.accent, 0.85)}, 0 0 22px ${C.alpha(C.accent, 0.62)}` : 'none',
                           }}>
-                            <SwipeCard card={{ ...c, portfolioCount: getPortfolioCount(c.ownerId ?? c.id) }} action={isTop ? action : null} isUnlocked={isContactUnlocked(c)} isSkipped={skippedSet.has(c.id)} onSwipe={act} onUndo={lastConnOp && isTop ? undo : null} onUnlock={openUnlockFromConnectionCard} showActions={!isMobileViewport} />
+                            <SwipeCard card={{
+                              ...c,
+                              portfolioCount: getPortfolioCount(c.ownerId ?? c.id),
+                              isVerified: isTruthyVerified(c?.verified) || verifiedOwnerIds.has(String(c.ownerId ?? c.id)),
+                            }} action={isTop ? action : null} isUnlocked={isContactUnlocked(c)} isSkipped={skippedSet.has(c.id)} onSwipe={act} onUndo={lastConnOp && isTop ? undo : null} onUnlock={openUnlockFromConnectionCard} showActions={!isMobileViewport} />
                           </div>
                         </div>
                       );

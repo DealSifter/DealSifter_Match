@@ -1811,6 +1811,7 @@ export function MatchesPage({ nuggets, setModal, openUnlock, unlocked, initialCh
   const [archivedInterests, setArchivedInterests] = useState(() => readLocalStringSet('ds_matches_archived_interests'));
   const [deletedContacts, setDeletedContacts] = useState(() => readLocalStringSet('ds_matches_deleted_contacts'));
   const [deletedInterests, setDeletedInterests] = useState(() => readLocalStringSet('ds_matches_deleted_interests'));
+  const [paidContactPrompt, setPaidContactPrompt] = useState(null);
 
   // Combined sources: user data merged with mock seed data for mock card owners.
   // Uses String() comparison and deduplication by id so user's own records always win.
@@ -2001,21 +2002,23 @@ export function MatchesPage({ nuggets, setModal, openUnlock, unlocked, initialCh
     });
   }, [addToast, t]);
 
-  const confirmPaidContactAction = useCallback((mode = 'archive') => {
-    const body = mode === 'delete'
+  const getPaidContactWarning = useCallback((mode = 'archive') => (
+    mode === 'delete'
       ? (t.deletePaidContactWarning || 'This contact was already unlocked/paid. Deleting hides it permanently from your lists and does not refund nuggets. Every unlocked/paid contact is yours by right; DealSifter strongly encourages you not to delete it so you can keep tracking future opportunities from this contact.')
-      : (t.archivePaidContactWarning || 'This contact was already unlocked/paid. Archiving hides it from your active list, but you can restore it later from Archived. Every unlocked/paid contact is yours by right; DealSifter strongly encourages you not to delete it so you can keep tracking future opportunities from this contact.');
-    return window.confirm(body);
-  }, [t]);
+      : (t.archivePaidContactWarning || 'This contact was already unlocked/paid. Archiving hides it from your active list, but you can restore it later from Archived. Every unlocked/paid contact is yours by right; DealSifter strongly encourages you not to delete it so you can keep tracking future opportunities from this contact.')
+  ), [t]);
 
-  const archiveContact = useCallback((contact) => {
+  const archiveContact = useCallback((contact, options = {}) => {
     const keys = getContactUnlockKeys(contact);
     if (!keys.length) return;
     if (getOwnerExclusiveStatus(contact?.ownerId || contact?.unlockOwnerId || contact?.id)?.expiresAt) {
       warnExclusiveLocked();
       return;
     }
-    if (isContactUnlockedByState(contact) && !confirmPaidContactAction('archive')) return;
+    if (isContactUnlockedByState(contact) && !options.confirmed) {
+      setPaidContactPrompt({ mode: 'archive', contact });
+      return;
+    }
     setArchivedContacts((prev) => {
       const next = new Set(prev);
       keys.forEach((key) => next.add(key));
@@ -2023,7 +2026,7 @@ export function MatchesPage({ nuggets, setModal, openUnlock, unlocked, initialCh
       return next;
     });
     setActive((prev) => (getContactUnlockKeys(prev).some((key) => keys.includes(key)) ? null : prev));
-  }, [confirmPaidContactAction, getContactUnlockKeys, getOwnerExclusiveStatus, isContactUnlockedByState, warnExclusiveLocked]);
+  }, [getContactUnlockKeys, getOwnerExclusiveStatus, isContactUnlockedByState, warnExclusiveLocked]);
 
   const restoreContact = useCallback((contact) => {
     const keys = getContactUnlockKeys(contact);
@@ -2035,14 +2038,17 @@ export function MatchesPage({ nuggets, setModal, openUnlock, unlocked, initialCh
     });
   }, [getContactUnlockKeys]);
 
-  const deleteContactFromMatches = useCallback((contact) => {
+  const deleteContactFromMatches = useCallback((contact, options = {}) => {
     const keys = getContactUnlockKeys(contact);
     if (!keys.length) return;
     if (getOwnerExclusiveStatus(contact?.ownerId || contact?.unlockOwnerId || contact?.id)?.expiresAt) {
       warnExclusiveLocked();
       return;
     }
-    if (isContactUnlockedByState(contact) && !confirmPaidContactAction('delete')) return;
+    if (isContactUnlockedByState(contact) && !options.confirmed) {
+      setPaidContactPrompt({ mode: 'delete', contact });
+      return;
+    }
     setDeletedContacts((prev) => {
       const next = new Set(prev);
       keys.forEach((key) => next.add(key));
@@ -2058,7 +2064,7 @@ export function MatchesPage({ nuggets, setModal, openUnlock, unlocked, initialCh
     setMatched((prev) => prev.filter((item) => !getContactUnlockKeys(item).some((key) => keys.includes(key))));
     setInterested((prev) => prev.filter((item) => !keys.includes(String(item?.ownerId || '').trim())));
     setActive((prev) => (getContactUnlockKeys(prev).some((key) => keys.includes(key)) ? null : prev));
-  }, [confirmPaidContactAction, getContactUnlockKeys, getOwnerExclusiveStatus, isContactUnlockedByState, setInterested, setMatched, warnExclusiveLocked]);
+  }, [getContactUnlockKeys, getOwnerExclusiveStatus, isContactUnlockedByState, setInterested, setMatched, warnExclusiveLocked]);
 
   const archiveInterest = useCallback((interest) => {
     const key = getInterestKey(interest);
@@ -2615,6 +2621,33 @@ export function MatchesPage({ nuggets, setModal, openUnlock, unlocked, initialCh
         .map-panel-tab:hover { color: ${C.t1}; background: var(--ui-hover); }
         .matches-mobile-tabbar { display: none; }
         .matches-chat-mobile-tabs { display: none; }
+        @keyframes ds-warning-triangle-pulse {
+          0%, 100% { transform: scale(1); filter: drop-shadow(0 0 0 rgba(245, 158, 11, 0)); }
+          50% { transform: scale(1.08); filter: drop-shadow(0 0 12px rgba(245, 158, 11, .65)); }
+        }
+        .ds-warning-triangle {
+          position: relative;
+          width: 38px;
+          height: 34px;
+          display: inline-flex;
+          align-items: flex-end;
+          justify-content: center;
+          color: #0f172a;
+          font-size: 16px;
+          font-weight: 1000;
+          line-height: 1;
+          padding-bottom: 4px;
+          flex: 0 0 auto;
+          animation: ds-warning-triangle-pulse 1.05s ease-in-out infinite;
+        }
+        .ds-warning-triangle::before {
+          content: "";
+          position: absolute;
+          inset: 0;
+          background: #f5b21d;
+          clip-path: polygon(50% 0%, 100% 100%, 0% 100%);
+          z-index: -1;
+        }
         @media (max-width: 767px) {
           .matches-sidebar { width: ${active ? '0px' : '100%'} !important; flex-shrink: 0 !important; }
           .matches-mobile-tabbar { display: flex !important; }
@@ -2721,9 +2754,9 @@ export function MatchesPage({ nuggets, setModal, openUnlock, unlocked, initialCh
           )}
           <div style={{ flex:1, display:"flex", overflow:"hidden" }}>
             <div style={{ flex:1, borderRight:`1px solid ${C.border}`, display:"flex", flexDirection:"column" }} className="matches-col-people">
-              <div style={{ padding:"8px 10px", fontSize:10, fontWeight:700, color:C.t3, background:C.alpha(C.bg, 0.4), textTransform:"uppercase", display:"flex", alignItems:"center", justifyContent:"space-between", gap:6 }}>
+              <div style={{ padding:"8px 10px", fontSize:10, fontWeight:700, color:C.t3, background:C.alpha(C.bg, 0.4), textTransform:"uppercase", display:"flex", flexDirection:"column", alignItems:"stretch", gap:6 }}>
                 <span style={{ color:C.t1 }}>{t.people} ({filteredMatched.length})</span>
-                <div style={{ display:"flex", gap:4 }}>
+                <div style={{ display:"flex", gap:4, flexWrap:"wrap" }}>
                   {[
                     { id:"all", label:t.all },
                     { id:"paid", label:t.paid },
@@ -2856,9 +2889,9 @@ export function MatchesPage({ nuggets, setModal, openUnlock, unlocked, initialCh
               </div>
             </div>
             <div style={{ flex:1, display:"flex", flexDirection:"column" }} className="matches-col-interests">
-              <div style={{ padding:"8px 10px", fontSize:10, fontWeight:700, color:C.gold, background:C.alpha(C.bg, 0.4), textTransform:"uppercase", display:"flex", alignItems:"center", justifyContent:"space-between", gap:6 }}>
+              <div style={{ padding:"8px 10px", fontSize:10, fontWeight:700, color:C.gold, background:C.alpha(C.bg, 0.4), textTransform:"uppercase", display:"flex", flexDirection:"column", alignItems:"stretch", gap:6 }}>
                 <span style={{ color:C.t1 }}>{t.interests} ({filteredInterested.length})</span>
-                <div style={{ display:"flex", gap:4 }}>
+                <div style={{ display:"flex", gap:4, flexWrap:"wrap" }}>
                   {[
                     { id:"all", label:t.all },
                     { id:"paid", label:t.paid },
@@ -3563,6 +3596,49 @@ export function MatchesPage({ nuggets, setModal, openUnlock, unlocked, initialCh
                 onSwipe={() => {}}
                 previewOnly
               />
+            </div>
+          </div>
+        </Modal>
+      ) : null}
+
+      {paidContactPrompt ? (
+        <Modal onClose={() => setPaidContactPrompt(null)} maxWidth={520}>
+          <div style={{ padding:22, borderRadius:22, background:C.card, color:C.t1 }}>
+            <div style={{ display:'flex', alignItems:'flex-start', gap:14, marginBottom:16 }}>
+              <span className="ds-warning-triangle">!</span>
+              <div style={{ minWidth:0 }}>
+                <div style={{ fontSize:18, fontWeight:900, color:C.t1, marginBottom:6 }}>
+                  {paidContactPrompt.mode === 'delete'
+                    ? (t.delete || 'Delete')
+                    : (t.archived || 'Archive')}
+                </div>
+                <div style={{ fontSize:13, lineHeight:1.55, color:C.t2, fontWeight:650 }}>
+                  {getPaidContactWarning(paidContactPrompt.mode)}
+                </div>
+              </div>
+            </div>
+            <div style={{ display:'flex', gap:10, justifyContent:'flex-end', flexWrap:'wrap' }}>
+              <button
+                type="button"
+                onClick={() => setPaidContactPrompt(null)}
+                style={{ minWidth:118, padding:'11px 16px', borderRadius:12, border:`1px solid ${C.border}`, background:'transparent', color:C.t1, fontWeight:800, cursor:'pointer' }}
+              >
+                {modalsT.cancel || 'Cancel'}
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  const pending = paidContactPrompt;
+                  setPaidContactPrompt(null);
+                  if (pending.mode === 'delete') deleteContactFromMatches(pending.contact, { confirmed: true });
+                  else archiveContact(pending.contact, { confirmed: true });
+                }}
+                style={{ minWidth:156, padding:'11px 16px', borderRadius:12, border:'none', background:paidContactPrompt.mode === 'delete' ? C.danger : C.accent, color:'#fff', fontWeight:900, cursor:'pointer', boxShadow:`0 12px 24px ${C.alpha(paidContactPrompt.mode === 'delete' ? C.danger : C.accent, 0.25)}` }}
+              >
+                {paidContactPrompt.mode === 'delete'
+                  ? (t.delete || 'Delete')
+                  : (t.archived || 'Archive')}
+              </button>
             </div>
           </div>
         </Modal>
