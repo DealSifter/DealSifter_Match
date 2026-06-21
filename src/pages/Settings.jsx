@@ -62,6 +62,17 @@ const isMissingColumnError = (error, columnName) => {
   return message.includes(target) || hint.includes(target);
 };
 
+const createSecuritySessionTerminatedAudit = (sessionId) => {
+  const now = Date.now();
+  return {
+    id: `sec-${now}-${Math.random().toString(16).slice(2, 7)}`,
+    at: now,
+    type: 'session',
+    status: 'terminated',
+    message: `Session ${sessionId} terminated from Security Center.`,
+  };
+};
+
 export function Settings({ setPage, prevPage, initialTab = 'profile', systemAccount, setSystemAccount, authSession, setAuthSession, subscription, addToast, supabaseUserId, onDeleteAccount, onRevokeConsent, pendingCheckoutIntent = null, onContinuePendingCheckout = null, userPreferences = null, onChangeUserPreferences = null }) {
   const allT = useT('settings');
   const t = allT.settings || {};
@@ -159,11 +170,13 @@ export function Settings({ setPage, prevPage, initialTab = 'profile', systemAcco
   };
 
   useEffect(() => {
-    setTab(initialTab || 'profile');
+    const timer = window.setTimeout(() => setTab(initialTab || 'profile'), 0);
+    return () => window.clearTimeout(timer);
   }, [initialTab]);
   useEffect(() => {
     if (!userPreferences || typeof userPreferences !== 'object') return;
-    setPrefs(userPreferences);
+    const timer = window.setTimeout(() => setPrefs(userPreferences), 0);
+    return () => window.clearTimeout(timer);
   }, [userPreferences]);
   useEffect(() => {
     if (!isSupabaseConfigured || !supabase || !supabaseUserId) {
@@ -270,7 +283,9 @@ export function Settings({ setPage, prevPage, initialTab = 'profile', systemAcco
     return () => { cancelled = true; };
   }, [supabaseUserId, onChangeUserPreferences, setSystemAccount, setBillingHistory]);
   useEffect(() => {
-    if (tab !== 'communication') setCommView('menu');
+    if (tab === 'communication') return undefined;
+    const timer = window.setTimeout(() => setCommView('menu'), 0);
+    return () => window.clearTimeout(timer);
   }, [tab]);
 
   const setPaymentTab = () => setTab('payments');
@@ -438,18 +453,21 @@ export function Settings({ setPage, prevPage, initialTab = 'profile', systemAcco
   }, [tab, authSession?.id]);
   useEffect(() => {
     if (tab !== 'communication' || commView !== 'support') return;
-    setSupportMessages((prev) => {
-      const list = Array.isArray(prev) ? prev : [];
-      if (!list.length) return list;
-      const first = list[0];
-      if (!first || first.from !== 'admin') return list;
-      const firstId = String(first.id || '');
-      if (!firstId.startsWith('support-')) return list;
-      if (String(first.text || '') === String(t.supportWelcome || '')) return list;
-      const next = [...list];
-      next[0] = { ...first, text: t.supportWelcome || 'Hello! This is DealSifter Admin/Support. How can we help?' };
-      return next;
-    });
+    const timer = window.setTimeout(() => {
+      setSupportMessages((prev) => {
+        const list = Array.isArray(prev) ? prev : [];
+        if (!list.length) return list;
+        const first = list[0];
+        if (!first || first.from !== 'admin') return list;
+        const firstId = String(first.id || '');
+        if (!firstId.startsWith('support-')) return list;
+        if (String(first.text || '') === String(t.supportWelcome || '')) return list;
+        const next = [...list];
+        next[0] = { ...first, text: t.supportWelcome || 'Hello! This is DealSifter Admin/Support. How can we help?' };
+        return next;
+      });
+    }, 0);
+    return () => window.clearTimeout(timer);
   }, [tab, commView, t.supportWelcome]);
 
   const pendingCheckoutLabel = (() => {
@@ -654,13 +672,7 @@ export function Settings({ setPage, prevPage, initialTab = 'profile', systemAcco
       setSecuritySessions((prev) => (prev || []).filter((row) => String(row?.id || '') !== String(sessionId)));
       const audit = JSON.parse(localStorage.getItem('ds_security_audit') || '[]');
       const nextAudit = Array.isArray(audit) ? audit : [];
-      nextAudit.unshift({
-        id: `sec-${Date.now()}-${Math.random().toString(16).slice(2, 7)}`,
-        at: Date.now(),
-        type: 'session',
-        status: 'terminated',
-        message: `Session ${sessionId} terminated from Security Center.`,
-      });
+      nextAudit.unshift(createSecuritySessionTerminatedAudit(sessionId));
       localStorage.setItem('ds_security_audit', JSON.stringify(nextAudit.slice(0, 200)));
       setSecurityAudit(nextAudit.slice(0, 12));
       addToast?.({ type: 'success', message: t.securitySessionTerminated || 'Session terminated.' });
@@ -1496,7 +1508,7 @@ export function Settings({ setPage, prevPage, initialTab = 'profile', systemAcco
                       void (async () => {
                         try {
                           await supabase.rpc('track_app_event', { p_event_type: 'support_message_sent', p_entity_type: 'support_chat', p_entity_id: 'admin_support' });
-                        } catch {}
+                        } catch { /* no-op */ }
                       })();
                     }
                     setTimeout(async () => {
@@ -1522,7 +1534,7 @@ export function Settings({ setPage, prevPage, initialTab = 'profile', systemAcco
                       void (async () => {
                         try {
                           await supabase.rpc('track_app_event', { p_event_type: 'support_message_sent', p_entity_type: 'support_chat', p_entity_id: 'admin_support' });
-                        } catch {}
+                        } catch { /* no-op */ }
                       })();
                     }
                     setTimeout(async () => {
