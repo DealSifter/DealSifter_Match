@@ -96,7 +96,95 @@ function trackPropertySaved(propertyId, metadata = {}) {
   }
 }
 
-export function Dashboard({ page, nuggets, setModal, setPage, onOpenOnboardingTab, openUnlock, unlocked, matched, setMatched, interested, setInterested, purchases, setPurchases, userProfile, personalProfile, professionalProfile, propertyPortfolio, servicePortfolio, accountType, showcaseProperties, categoryOrder, setCategoryOrder, editMode, setEditMode, mobileBottomNavCollapsed = false, addToast, setSystemNotifications = null, subscription, propertyUnlocks = [], currentUserId = 'local-user', activeSpotlightKeys = new Set(), onOpenSpotlight = null }) {
+function hashFeedString(value = '') {
+  const input = String(value || '');
+  let hash = 2166136261;
+  for (let i = 0; i < input.length; i += 1) {
+    hash ^= input.charCodeAt(i);
+    hash = Math.imul(hash, 16777619);
+  }
+  return hash >>> 0;
+}
+
+function getFeedPseudoRandomRank(id, seed) {
+  return hashFeedString(`${seed || 'feed'}:${String(id || '')}`);
+}
+
+function getComparableName(record) {
+  return String(record?.name || record?.title || record?.address || '').trim().toLowerCase();
+}
+
+function getComparableTime(record) {
+  const time = Date.parse(record?.createdAt || record?.created_at || record?.updatedAt || record?.updated_at || '');
+  return Number.isFinite(time) ? time : 0;
+}
+
+function getComparablePrice(record) {
+  const price = Number(record?.price || record?.value || 0);
+  return Number.isFinite(price) ? price : 0;
+}
+
+function readFeedDeckSession(key, fallbackIds = []) {
+  try {
+    const parsed = JSON.parse(window.sessionStorage.getItem(key) || '[]');
+    const ids = Array.isArray(parsed) ? parsed.map((id) => String(id || '').trim()).filter(Boolean) : [];
+    return ids.length ? ids : fallbackIds;
+  } catch {
+    return fallbackIds;
+  }
+}
+
+function writeFeedDeckSession(key, ids = []) {
+  try {
+    window.sessionStorage.setItem(key, JSON.stringify((ids || []).map((id) => String(id || '').trim()).filter(Boolean)));
+  } catch {
+    // Feed deck cache is only UI continuity; never block the feed.
+  }
+}
+
+function sortFeedRecords(records, {
+  sortOrder = 'random',
+  seed = 'feed',
+  selfOwnerIds = new Set(),
+  ownPlacement = 'last',
+  getId = (item) => item?.id,
+  getOwnerId = (item) => item?.ownerId || item?.id,
+  fallbackRank = () => 0,
+} = {}) {
+  return [...(records || [])].sort((a, b) => {
+    const aOwner = String(getOwnerId(a) || '');
+    const bOwner = String(getOwnerId(b) || '');
+    const aSelf = selfOwnerIds.has(aOwner) || selfOwnerIds.has(String(getId(a) || ''));
+    const bSelf = selfOwnerIds.has(bOwner) || selfOwnerIds.has(String(getId(b) || ''));
+    if (aSelf !== bSelf) return ownPlacement === 'first' ? (aSelf ? -1 : 1) : (aSelf ? 1 : -1);
+
+    if (sortOrder === 'name_asc') {
+      const byName = getComparableName(a).localeCompare(getComparableName(b));
+      if (byName !== 0) return byName;
+    } else if (sortOrder === 'price_asc') {
+      const byPrice = getComparablePrice(a) - getComparablePrice(b);
+      if (byPrice !== 0) return byPrice;
+    } else if (sortOrder === 'price_desc') {
+      const byPrice = getComparablePrice(b) - getComparablePrice(a);
+      if (byPrice !== 0) return byPrice;
+    } else if (sortOrder === 'recent') {
+      const byRecent = getComparableTime(b) - getComparableTime(a);
+      if (byRecent !== 0) return byRecent;
+    } else if (sortOrder === 'my_cards_first') {
+      const byRank = fallbackRank(b) - fallbackRank(a);
+      if (byRank !== 0) return byRank;
+    } else {
+      const byRandom = getFeedPseudoRandomRank(getId(a), seed) - getFeedPseudoRandomRank(getId(b), seed);
+      if (byRandom !== 0) return byRandom;
+    }
+
+    const byRank = fallbackRank(b) - fallbackRank(a);
+    if (byRank !== 0) return byRank;
+    return String(getId(a) || '').localeCompare(String(getId(b) || ''));
+  });
+}
+
+export function Dashboard({ page, nuggets, setModal, setPage, onOpenOnboardingTab, openUnlock, unlocked, matched, setMatched, interested, setInterested, purchases, setPurchases, userProfile, personalProfile, professionalProfile, propertyPortfolio, servicePortfolio, accountType, showcaseProperties, categoryOrder, setCategoryOrder, editMode, setEditMode, mobileBottomNavCollapsed = false, addToast, setSystemNotifications = null, subscription, propertyUnlocks = [], currentUserId = 'local-user', activeSpotlightKeys = new Set(), onOpenSpotlight = null, userPreferences = null }) {
   const isMobileViewport = useMediaQuery('(max-width: 767px)');
   const isTabletPortraitViewport = useMediaQuery('(min-width: 768px) and (max-width: 1080px) and (orientation: portrait)');
   const isTabletLandscapeViewport = useMediaQuery('(min-width: 768px) and (max-width: 1180px) and (orientation: landscape)');
@@ -868,8 +956,11 @@ export function Dashboard({ page, nuggets, setModal, setPage, onOpenOnboardingTa
   ), [getUnlockKeys, unlockedIdSet]);
 
   // Circular deck: skip → rotate to back; match → remove permanently
-  const [connDeck, setConnDeck] = useState(() => connectionCards.map(c => c.id).filter(id => !getHiddenSet().has(String(id))));
-  const [propDeck, setPropDeck] = useState(() => (showcaseItems || []).map(p => p.id).filter(id => !getHiddenSet().has(String(id))));
+  const feedDeckSessionPrefix = `ds_feed_deck_v1:${String(currentUserId || 'local-user')}`;
+  const connDeckSessionKey = `${feedDeckSessionPrefix}:connections`;
+  const propDeckSessionKey = `${feedDeckSessionPrefix}:showcase`;
+  const [connDeck, setConnDeck] = useState(() => readFeedDeckSession(connDeckSessionKey, connectionCards.map(c => c.id).filter(id => !getHiddenSet().has(String(id)))));
+  const [propDeck, setPropDeck] = useState(() => readFeedDeckSession(propDeckSessionKey, (showcaseItems || []).map(p => p.id).filter(id => !getHiddenSet().has(String(id)))));
   const [lastConnOp, setLastConnOp] = useState(null); // {type, card, snap}
   const [lastPropOp, setLastPropOp] = useState(null);
   const [injectedProps, setInjectedProps] = useState({});
@@ -883,6 +974,14 @@ export function Dashboard({ page, nuggets, setModal, setPage, onOpenOnboardingTa
   const [ratingTooltipScope, setRatingTooltipScope] = useState(null);
   const [isSwipingConn, setIsSwipingConn] = useState(false);
   const [isSwipingProp, setIsSwipingProp] = useState(false);
+
+  useEffect(() => {
+    writeFeedDeckSession(connDeckSessionKey, connDeck);
+  }, [connDeckSessionKey, connDeck]);
+
+  useEffect(() => {
+    writeFeedDeckSession(propDeckSessionKey, propDeck);
+  }, [propDeckSessionKey, propDeck]);
 
   // Keep feeds buyer-specific: a contact should leave the general feed only
   // for the user who already unlocked it. A purchase must not hide the card
@@ -944,6 +1043,27 @@ export function Dashboard({ page, nuggets, setModal, setPage, onOpenOnboardingTa
         String(getOwnerIdForKey('secondary')),
         String(getOwnerIdForKey('fsbo')),
       ].filter(Boolean));
+      const rawSortOrder = String(userPreferences?.feedMatches?.sortOrder || 'random').trim();
+      const paidPlanId = String(subscription?.planId || subscription?.id || 'free').trim().toLowerCase();
+      const hasPaidFeedOrdering = paidPlanId !== 'free' && paidPlanId !== 'basic';
+      const allowedSortOrders = new Set(['random', 'recent', 'name_asc', 'price_asc', 'price_desc']);
+      const effectiveSortOrder = rawSortOrder === 'my_cards_first'
+        ? (hasPaidFeedOrdering ? 'my_cards_first' : 'random')
+        : (allowedSortOrders.has(rawSortOrder) ? rawSortOrder : 'random');
+      const ownPlacement = effectiveSortOrder === 'my_cards_first' ? 'first' : 'last';
+      const feedSortSeed = `${String(currentUserId || 'anon')}:${String(activeCat || 'all')}:${(selectedStates || []).join(',') || 'all'}`;
+      const placeOwnDeckIds = (ids, findRecord, getOwnerId = (record) => record?.ownerId || record?.id) => {
+        if (!Array.isArray(ids) || focusCard) return ids;
+        const own = [];
+        const other = [];
+        ids.forEach((id) => {
+          const record = findRecord(id);
+          const ownerId = String(getOwnerId(record) || id || '');
+          const isSelf = selfOwnerIds.has(ownerId) || selfOwnerIds.has(String(id || ''));
+          (isSelf ? own : other).push(id);
+        });
+        return ownPlacement === 'first' ? [...own, ...other] : [...other, ...own];
+      };
 
       const isAllowedByState = (record) => {
         if (!stateFilterActive) return true;
@@ -1006,9 +1126,15 @@ export function Dashboard({ page, nuggets, setModal, setPage, onOpenOnboardingTa
 
       // Build new connection deck respecting filters
       // Start from the current connDeck (preserve rotations) and fall back to canonical order
-      const canonicalConn = [...(connectionCards || [])]
-        .sort((a, b) => getConnectionRank(b) - getConnectionRank(a))
-        .map(c => c.id);
+      const canonicalConn = sortFeedRecords(connectionCards || [], {
+        sortOrder: effectiveSortOrder,
+        seed: `connections:${feedSortSeed}`,
+        selfOwnerIds,
+        ownPlacement,
+        getId: (card) => card?.id,
+        getOwnerId: (card) => card?.ownerId || card?.id,
+        fallbackRank: getConnectionRank,
+      }).map(c => c.id);
       const baseConn = (connDeck && connDeck.length) ? connDeck : canonicalConn;
       let newConn = baseConn.filter(id => {
         if (focusCard && focusCard.type === 'person' && String(focusCard.id) === String(id)) return true;
@@ -1052,6 +1178,11 @@ export function Dashboard({ page, nuggets, setModal, setPage, onOpenOnboardingTa
           newConn = [idToInsert, ...newConn.filter(x => String(x) !== String(idToInsert))];
         }
       }
+      newConn = placeOwnDeckIds(
+        newConn,
+        (id) => connectionCards.find((c) => String(c.id) === String(id)),
+        (card) => card?.ownerId || card?.id
+      );
 
       // Only update state if the deck actually changed (avoid triggering re-renders)
       const arraysEqual = (a, b) => {
@@ -1065,9 +1196,15 @@ export function Dashboard({ page, nuggets, setModal, setPage, onOpenOnboardingTa
 
       const selfOwnerId = getOwnerIdForKey(publishingProfileKey);
       // Preserve propDeck rotations similarly
-      const canonicalProp = [...(showcaseItems || [])]
-        .sort((a, b) => getPropertyRank(b) - getPropertyRank(a))
-        .map(p => p.id);
+      const canonicalProp = sortFeedRecords(showcaseItems || [], {
+        sortOrder: effectiveSortOrder,
+        seed: `showcase:${feedSortSeed}`,
+        selfOwnerIds,
+        ownPlacement,
+        getId: (prop) => prop?.id,
+        getOwnerId: (prop) => prop?.ownerId,
+        fallbackRank: getPropertyRank,
+      }).map(p => p.id);
       const baseProp = (propDeck && propDeck.length) ? propDeck : canonicalProp;
       const shouldKeepPropertyVisible = (prop) => {
         if (!prop) return false;
@@ -1118,6 +1255,11 @@ export function Dashboard({ page, nuggets, setModal, setPage, onOpenOnboardingTa
           }
         }
       }
+      newProp = placeOwnDeckIds(
+        newProp,
+        (id) => (showcaseItems || []).find((p) => String(p.id) === String(id)),
+        (prop) => prop?.ownerId
+      );
 
       if (!arraysEqual(newProp, propDeck)) setPropDeck(newProp);
 
@@ -1132,7 +1274,7 @@ export function Dashboard({ page, nuggets, setModal, setPage, onOpenOnboardingTa
     });
 
     return () => { if (typeof unsub === 'function') unsub(); };
-  }, [connectionCards, showcaseItems, matched, interested, unlocked, view, publishingProfileKey, hiddenSet, focusCard, selectedStates, activeCat, isSwipingConn, isSwipingProp, collectRecordStates, connDeck, propDeck, getOwnerIdForKey, matchesCat, currentUserId, userProfile, personalProfile, professionalProfile, propertyHotMetrics]);
+  }, [connectionCards, showcaseItems, matched, interested, unlocked, view, publishingProfileKey, hiddenSet, focusCard, selectedStates, activeCat, isSwipingConn, isSwipingProp, collectRecordStates, connDeck, propDeck, getOwnerIdForKey, matchesCat, currentUserId, userProfile, personalProfile, professionalProfile, propertyHotMetrics, userPreferences, subscription]);
 
   const [planGate, setPlanGate] = useState(null);
 

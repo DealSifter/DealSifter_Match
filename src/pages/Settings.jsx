@@ -1164,10 +1164,24 @@ export function Settings({ setPage, prevPage, initialTab = 'profile', systemAcco
                   <div style={{ fontSize: 12, fontWeight: 800, color: C.t1 }}>2) Feed & Matches</div>
                   <label style={{ display: 'grid', gap: 5 }}>
                     <span style={{ fontSize: 11, color: C.t2, fontWeight: 700 }}>Default ordering</span>
-                    <select value={String(prefs?.feedMatches?.sortOrder || 'recent')} onChange={(e) => updatePreferences((prev) => ({ ...prev, feedMatches: { ...(prev?.feedMatches || {}), sortOrder: e.target.value } }))} style={controlStyle}>
+                    <select
+                      value={String(prefs?.feedMatches?.sortOrder || 'random')}
+                      onChange={(e) => {
+                        const nextSortOrder = e.target.value;
+                        if (nextSortOrder === 'my_cards_first' && !hasPaidPlan) {
+                          addToast?.({ type: 'warning', message: 'My cards first is available for paid plans.' });
+                          return;
+                        }
+                        updatePreferences((prev) => ({ ...prev, feedMatches: { ...(prev?.feedMatches || {}), sortOrder: nextSortOrder } }));
+                      }}
+                      style={controlStyle}
+                    >
+                      <option value="random">Random on first login</option>
                       <option value="recent">Most recent</option>
                       <option value="name_asc">Name (A-Z)</option>
+                      <option value="price_asc">Price (low to high)</option>
                       <option value="price_desc">Price (high to low)</option>
+                      <option value="my_cards_first" disabled={!hasPaidPlan}>My cards first (paid plans)</option>
                     </select>
                   </label>
                   <label style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8, fontSize: 12, color: C.t2 }}>
@@ -1239,7 +1253,7 @@ export function Settings({ setPage, prevPage, initialTab = 'profile', systemAcco
                     onClick={() => {
                       const resetPrefs = {
                         map: { initialZoom: 4, defaultStyle: 'simple', clusterBehavior: 'pins_city', defaultFilters: { showPeople: true, showProperties: true, showOnlyUnlocked: false, showOnlyMyPins: false } },
-                        feedMatches: { sortOrder: 'recent', autoplayMedia: false },
+                        feedMatches: { sortOrder: 'random', autoplayMedia: false },
                         chatLanguage: { input: 'pt', output: 'en' },
                         privacy: { presenceStatus: 'online', readReceipts: true, messagePreview: true },
                       };

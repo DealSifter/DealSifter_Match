@@ -335,7 +335,7 @@ const DEFAULT_USER_PREFERENCES = {
     },
   },
   feedMatches: {
-    sortOrder: 'recent',
+    sortOrder: 'random',
     autoplayMedia: false,
   },
   chatLanguage: {
@@ -365,7 +365,7 @@ const normalizeUserPreferences = (value) => {
   const clusterBehavior = ['pins_city', 'mixed'].includes(String(map.clusterBehavior || '').trim())
     ? String(map.clusterBehavior).trim()
     : DEFAULT_USER_PREFERENCES.map.clusterBehavior;
-  const sortOrder = ['recent', 'name_asc', 'price_desc'].includes(String(feedMatches.sortOrder || '').trim())
+  const sortOrder = ['random', 'recent', 'name_asc', 'price_asc', 'price_desc', 'my_cards_first'].includes(String(feedMatches.sortOrder || '').trim())
     ? String(feedMatches.sortOrder).trim()
     : DEFAULT_USER_PREFERENCES.feedMatches.sortOrder;
   const presenceStatus = ['online', 'standby', 'offline'].includes(String(privacy.presenceStatus || '').trim())
@@ -1924,6 +1924,39 @@ export default function App() {
   }, [userProfile]);
 
   const supabaseUserId = authSession?.userId || null;
+
+  useEffect(() => {
+    if (!isSupabaseConfigured || !supabase || !supabaseUserId) return;
+    const email = String(authSession?.email || '').trim();
+    const fullName = String(authSession?.fullName || '').trim();
+    let cancelled = false;
+
+    const ensurePublicUserRow = async () => {
+      try {
+        const payload = {
+          id: supabaseUserId,
+          email: email || `${supabaseUserId}@auth.local`,
+        };
+        if (fullName) payload.full_name = fullName;
+
+        const { error } = await supabase
+          .from('users')
+          .upsert(payload, { onConflict: 'id', ignoreDuplicates: false });
+
+        if (error && !cancelled) {
+          safeLogError('Supabase public user bootstrap failed.', error);
+        }
+      } catch (error) {
+        if (!cancelled) safeLogError('Supabase public user bootstrap failed.', error);
+      }
+    };
+
+    ensurePublicUserRow();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [authSession?.email, authSession?.fullName, supabaseUserId]);
 
   // Keep first-load hydration blocking short; continue syncing in background afterwards.
   useEffect(() => {

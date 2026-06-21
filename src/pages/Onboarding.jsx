@@ -3768,7 +3768,7 @@ export function Onboarding({
             {accountType === 'professional' ? (
               <SectionCard title={t.sectionPortfolio} subtitle={t.sectionPortfolioSub} grow={true}>
                 {/* scrollable form area: tab1 + form + add-preview buttons */}
-                <div style={{ flex: isMobileViewport ? '0 0 auto' : 1, minHeight: isMobileViewport ? 'auto' : 0, overflowY: 'visible', display: 'flex', flexDirection: 'column', paddingBottom: isMobileViewport ? 8 : 12 }}>
+                <div style={{ flex: isMobileViewport ? '0 0 auto' : 1, minHeight: isMobileViewport ? 'auto' : 0, overflowY: isMobileViewport ? 'visible' : 'auto', overflowX: 'hidden', display: 'flex', flexDirection: 'column', paddingBottom: isMobileViewport ? 8 : 14, paddingRight: isMobileViewport ? 0 : 4 }}>
                 <div style={{ display: 'flex', gap: 4, marginBottom: 10, paddingBottom: 2, borderBottom: `1px solid ${C.border}` }}>
                   <button onClick={() => setPortfolioEntryType('property')} style={{ padding: '8px 14px 7px', borderTopLeftRadius: 10, borderTopRightRadius: 10, borderBottomLeftRadius: 0, borderBottomRightRadius: 0, border: `1px solid ${portfolioEntryType === 'property' ? C.border : 'transparent'}`, borderBottom: portfolioEntryType === 'property' ? `1px solid ${C.card}` : `1px solid transparent`, background: portfolioEntryType === 'property' ? C.card : C.alpha(C.t1, 0.04), color: portfolioEntryType === 'property' ? C.t1 : C.t2, fontWeight: 700, fontSize: 11, cursor: 'pointer', marginBottom: -3, boxShadow: portfolioEntryType === 'property' ? `inset 0 2px 0 ${C.accent}` : 'none' }}>
                     {t.tabProperty}
@@ -3830,12 +3830,61 @@ export function Onboarding({
                         {renderMarketsSelector(serviceMarkets, (code) => toggleMulti(setServiceMarkets, code), { showSummary: false, inlineLabel: 'States' })}
                       </div>
                     </div>
-                    <div style={{ marginBottom: 8 }}>
+                    <div style={{ marginBottom: serviceImages.length > 0 ? 10 : 8 }}>
                       <label style={{ fontSize: 10, color: C.t3, textTransform: 'uppercase', display: 'inline-flex', alignItems: 'center', width: 'auto', gap: 8 }}>
                         {t.labelImagesOptional}
                         <input type="file" accept="image/*" multiple onChange={handleServiceImages} style={{ display: 'block', marginTop: 4, fontSize: 11 }} />
                       </label>
                     </div>
+                    {serviceImages.length > 0 && (
+                      <div style={{ marginBottom: 10, display: 'flex', gap: 6, overflowX: 'auto', padding: '2px 0 6px' }}>
+                        {serviceImages.map((src, idx) => (
+                          <div key={`service-upload-preview-${idx}`} style={{ position: 'relative', borderRadius: 8, overflow: 'hidden', background: C.alpha(C.t1, 0.02), border: `1px solid ${C.border}`, display: 'flex', alignItems: 'center', justifyContent: 'center', width: 120, height: 72, flex: '0 0 120px' }}>
+                            <SmartImage src={src} alt={`service-img-${idx + 1}`} style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }} />
+                            <div style={{ position: 'absolute', right: 6, top: 6, display: 'flex', gap: 6 }}>
+                              <button
+                                type="button"
+                                onClick={() => {
+                                  if (idx <= 0) return;
+                                  setServiceImages((prev) => prev.map((_, i, arr) => {
+                                    if (i === idx - 1) return arr[idx];
+                                    if (i === idx) return arr[idx - 1];
+                                    return arr[i];
+                                  }));
+                                }}
+                                title={t.moveUp}
+                                style={{ background: 'rgba(0,0,0,0.35)', border: 'none', color: '#fff', borderRadius: 6, width: 26, height: 26, cursor: idx <= 0 ? 'default' : 'pointer' }}
+                              >
+                                {'<'}
+                              </button>
+                              <button
+                                type="button"
+                                onClick={() => {
+                                  if (idx >= serviceImages.length - 1) return;
+                                  setServiceImages((prev) => prev.map((_, i, arr) => {
+                                    if (i === idx + 1) return arr[idx];
+                                    if (i === idx) return arr[idx + 1];
+                                    return arr[i];
+                                  }));
+                                }}
+                                title={t.moveDown}
+                                style={{ background: 'rgba(0,0,0,0.35)', border: 'none', color: '#fff', borderRadius: 6, width: 26, height: 26, cursor: idx >= serviceImages.length - 1 ? 'default' : 'pointer' }}
+                              >
+                                {'>'}
+                              </button>
+                              <button
+                                type="button"
+                                onClick={() => setServiceImages((prev) => prev.filter((_, i) => i !== idx))}
+                                title={t.actionRemove}
+                                style={{ background: 'rgba(0,0,0,0.35)', border: 'none', color: '#fff', borderRadius: 6, width: 26, height: 26, cursor: 'pointer' }}
+                              >
+                                x
+                              </button>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    )}
                     <div style={{ position: 'relative', minWidth: 0, marginBottom: 8 }}>
                       <span style={portfolioTextareaLabelStyle}>{t.placeholderDescription.toUpperCase()}</span>
                       <textarea value={serviceDescription} onChange={(e) => setServiceDescription(e.target.value)} placeholder="" style={portfolioFieldTextareaStyle()} />
@@ -3844,7 +3893,7 @@ export function Onboarding({
                   </>
                 )}
 
-                <div style={{ display: 'flex', flexDirection: (isTabletViewport || !isMobileViewport) ? 'row' : 'column', gap: 8, alignItems: (isTabletViewport || !isMobileViewport) ? 'center' : 'stretch' }}>
+                <div style={{ display: 'flex', flexDirection: (isTabletViewport || !isMobileViewport) ? 'row' : 'column', gap: 8, alignItems: (isTabletViewport || !isMobileViewport) ? 'center' : 'stretch', marginTop: 8, marginBottom: 12 }}>
                   <button onClick={portfolioEntryType === 'property' ? addProfessionalPortfolioProperty : addProfessionalPortfolioService} style={{ flex: 1, padding: '8px 10px', borderRadius: 9, border: `1px solid ${C.accent}`, background: 'transparent', color: C.accent, fontWeight: 700, cursor: 'pointer', fontSize: 11 }}>
                     + Add to Portfolio
                   </button>
@@ -4461,34 +4510,36 @@ export function Onboarding({
               </SectionCard>
             ) : (
               <SectionCard title={t.sectionPortfolio} subtitle={t.sectionPortfolioSub} grow={true}>
-                <FsboPropertyForm
-                  t={t}
-                  C={C}
-                  isMobileViewport={isMobileViewport}
-                  isTabletPortraitViewport={isTabletPortraitViewport}
-                  values={portfolioFormValues}
-                  onChange={handlePortfolioFieldChange}
-                  formatCurrencyInput={formatCurrencyInput}
-                  formatRateInput={formatRateInput}
-                  renderMarketsSelector={renderMarketsSelector}
-                  togglePortfolioMarket={(code) => toggleMulti(setPortfolioMarkets, code)}
-                  handlePortfolioImages={handlePortfolioImages}
-                  handlePortfolioVideo={handlePortfolioVideo}
-                  portfolioFieldLabelStyle={portfolioFieldLabelStyle}
-                  portfolioFieldInputStyle={portfolioFieldInputStyle}
-                  portfolioFieldSelectStyle={portfolioFieldSelectStyle}
-                  portfolioTextareaLabelStyle={portfolioTextareaLabelStyle}
-                  portfolioFieldTextareaStyle={portfolioFieldTextareaStyle}
-                />
+                <div style={{ flex: isMobileViewport ? '0 0 auto' : '0 1 auto', minHeight: 0, maxHeight: isMobileViewport ? 'none' : 'calc(100% - 150px)', overflowY: isMobileViewport ? 'visible' : 'auto', overflowX: 'hidden', paddingRight: isMobileViewport ? 0 : 4, paddingBottom: isMobileViewport ? 8 : 14 }}>
+                  <FsboPropertyForm
+                    t={t}
+                    C={C}
+                    isMobileViewport={isMobileViewport}
+                    isTabletPortraitViewport={isTabletPortraitViewport}
+                    values={portfolioFormValues}
+                    onChange={handlePortfolioFieldChange}
+                    formatCurrencyInput={formatCurrencyInput}
+                    formatRateInput={formatRateInput}
+                    renderMarketsSelector={renderMarketsSelector}
+                    togglePortfolioMarket={(code) => toggleMulti(setPortfolioMarkets, code)}
+                    handlePortfolioImages={handlePortfolioImages}
+                    handlePortfolioVideo={handlePortfolioVideo}
+                    portfolioFieldLabelStyle={portfolioFieldLabelStyle}
+                    portfolioFieldInputStyle={portfolioFieldInputStyle}
+                    portfolioFieldSelectStyle={portfolioFieldSelectStyle}
+                    portfolioTextareaLabelStyle={portfolioTextareaLabelStyle}
+                    portfolioFieldTextareaStyle={portfolioFieldTextareaStyle}
+                  />
 
-                <div style={{ display: 'flex', flexDirection: (isTabletViewport || !isMobileViewport) ? 'row' : 'column', gap: 8, alignItems: (isTabletViewport || !isMobileViewport) ? 'center' : 'stretch' }}>
-                  <button onClick={addFsboProperty} style={{ flex: 1, padding: '8px 10px', borderRadius: 9, border: `1px solid ${C.accent}`, background: 'transparent', color: C.accent, fontWeight: 700, cursor: 'pointer', fontSize: 11 }}>
-                    {t.addToPortfolio}
-                  </button>
-                  <button className={`onb-preview-feed ${isPreviewToFeedDirty ? 'is-dirty' : ''}`} onClick={openPreviewToFeed} style={{ flex: 1, padding: '8px 10px', borderRadius: 9, border: 'none', background: C.accent, color: '#1a1a1a', fontWeight: 700, cursor: 'pointer', fontSize: 11, display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: 6 }}>
-                    <Icon name="eye" size={13} color="#1a1a1a" />
-                    <span>{t.saveAndPreview}</span>
-                  </button>
+                  <div style={{ display: 'flex', flexDirection: (isTabletViewport || !isMobileViewport) ? 'row' : 'column', gap: 8, alignItems: (isTabletViewport || !isMobileViewport) ? 'center' : 'stretch', marginTop: 8, marginBottom: 12 }}>
+                    <button onClick={addFsboProperty} style={{ flex: 1, padding: '8px 10px', borderRadius: 9, border: `1px solid ${C.accent}`, background: 'transparent', color: C.accent, fontWeight: 700, cursor: 'pointer', fontSize: 11 }}>
+                      {t.addToPortfolio}
+                    </button>
+                    <button className={`onb-preview-feed ${isPreviewToFeedDirty ? 'is-dirty' : ''}`} onClick={openPreviewToFeed} style={{ flex: 1, padding: '8px 10px', borderRadius: 9, border: 'none', background: C.accent, color: '#1a1a1a', fontWeight: 700, cursor: 'pointer', fontSize: 11, display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: 6 }}>
+                      <Icon name="eye" size={13} color="#1a1a1a" />
+                      <span>{t.saveAndPreview}</span>
+                    </button>
+                  </div>
                 </div>
 
                 <div className="onb-scroll-list" style={{ border: `1px solid ${C.border}`, borderRadius: 10, padding: 8, background: C.card, marginTop: 8, flex: 1, minHeight: 0, maxHeight: 'none', overflowY: 'auto', overflowX: 'hidden' }}>
