@@ -1773,6 +1773,7 @@ export default function App() {
     }
   });
   const [propertyUnlocks, setPropertyUnlocks] = useState(() => {
+    if (isSupabaseConfigured) return [];
     try {
       const saved = localStorage.getItem('ds_property_unlocks');
       return saved ? JSON.parse(saved) : [];
@@ -1781,6 +1782,7 @@ export default function App() {
     }
   });
   const [purchases, setPurchases] = useState(() => {
+    if (isSupabaseConfigured) return [];
     try {
       const saved = localStorage.getItem('ds_purchases');
       const parsed = saved ? JSON.parse(saved) : [];
@@ -2106,6 +2108,7 @@ export default function App() {
   }, [interested, matched, supabaseUserId, unlocked]);
 
   const [servicePortfolio, setServicePortfolio] = useState(() => {
+    if (isSupabaseConfigured) return [];
     // On initial synchronous render, load from localStorage (lightweight, no images).
     // A useEffect below will rehydrate from localforage (IndexedDB) with full images.
     const saved = localStorage.getItem('servicePortfolio');
@@ -2119,6 +2122,7 @@ export default function App() {
   });
 
   const [propertyPortfolio, setPropertyPortfolio] = useState(() => {
+    if (isSupabaseConfigured) return [];
     // On initial synchronous render, load from localStorage (lightweight, no images).
     // A useEffect below will rehydrate from localforage (IndexedDB) with full images.
     const saved = localStorage.getItem('propertyPortfolio');
@@ -2605,7 +2609,7 @@ export default function App() {
     const rawOwnerId = String(ownerId || '').trim();
     if (!rawOwnerId) return null;
 
-    const exactMock = (CARDS || []).find((card) => String(card?.id || '') === rawOwnerId);
+    const exactMock = import.meta.env.DEV ? (CARDS || []).find((card) => String(card?.id || '') === rawOwnerId) : null;
     if (exactMock) {
       return {
         ...exactMock,
@@ -2616,33 +2620,27 @@ export default function App() {
 
     const linkedService = (unlockPortfolioServices || []).find((service) => String(service?.ownerId || '') === rawOwnerId);
     const linkedProperty = (unlockPortfolioProperties || []).find((property) => String(property?.ownerId || '') === rawOwnerId);
-    if (!linkedService && !linkedProperty) return null;
-
-    const fallbackName = String(
-      linkedService?.title
-      || linkedProperty?.address
-      || ''
-    ).trim();
-    if (!fallbackName) return null;
-    const fallbackLoc = [
-      linkedProperty?.city,
-      linkedProperty?.state,
-      linkedProperty?.zip,
-    ].filter(Boolean).join(', ');
+    const ownerPreview = linkedService?.ownerPreview || linkedProperty?.ownerPreview || null;
+    const ownerName = String(ownerPreview?.name || '').trim();
+    if (!ownerName) return null;
 
     return {
       id: rawOwnerId,
       ownerId: rawOwnerId,
-      name: fallbackName,
-      title: fallbackName,
-      type: String(linkedService?.category || linkedProperty?.type || 'Contact').trim(),
-      category: String(linkedService?.category || linkedProperty?.type || '').trim(),
-      loc: fallbackLoc,
-      address: linkedProperty?.address || '',
-      city: linkedProperty?.city || '',
-      state: linkedProperty?.state || '',
-      zip: linkedProperty?.zip || '',
-      photo: String(linkedProperty?.images?.[0] || linkedService?.media?.images?.[0] || '').trim(),
+      unlockOwnerId: rawOwnerId,
+      name: ownerName,
+      title: ownerName,
+      type: String(ownerPreview?.type || ownerPreview?.cat || '').trim(),
+      category: String(ownerPreview?.cat || linkedService?.category || '').trim(),
+      badge: ownerPreview?.badge || '',
+      loc: ownerPreview?.loc || '',
+      photo: String(ownerPreview?.photo || '').trim(),
+      email: ownerPreview?.email || '',
+      primaryPhone: ownerPreview?.primaryPhone || '',
+      contactMethods: Array.isArray(ownerPreview?.contactMethods) ? ownerPreview.contactMethods : [],
+      primaryProfile: ownerPreview?.primaryProfile || linkedService?.primaryProfile || linkedProperty?.primaryProfile || 'personal',
+      portfolioCount: [linkedService, linkedProperty].filter(Boolean).length,
+      verified: ownerPreview?.verified === true,
       source: 'remote-unlock',
     };
   }, [unlockPortfolioProperties, unlockPortfolioServices]);
@@ -2935,6 +2933,7 @@ export default function App() {
   // The synchronous useState init above loads the lightweight localStorage version (no images).
   // These effects fire on mount and load the full version (with images) from localforage.
   useEffect(() => {
+    if (isSupabaseConfigured) return;
     getPortfolioFull('propertyPortfolio').then((full) => {
       if (!Array.isArray(full) || !full.length) return;
       const filtered = full.filter((item) => isUserOwnedPropertyRecord(item) && !isSeededPropertyRecord(item));
@@ -2953,6 +2952,7 @@ export default function App() {
   }, []);
 
   useEffect(() => {
+    if (isSupabaseConfigured) return;
     getPortfolioFull('servicePortfolio').then((full) => {
       if (!Array.isArray(full) || !full.length) return;
       const filtered = full.filter((item) => isUserOwnedServiceRecord(item));

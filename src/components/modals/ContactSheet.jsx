@@ -3,12 +3,14 @@ import { C } from '../../theme/colors';
 import { useT } from '../../i18n/translations';
 import { buildDisplayContacts } from '../../lib/contactPriority';
 import { resolveScopedProfile, normalizeProfileScope } from '../../lib/profileScopeResolver';
+import { isSupabaseConfigured } from '../../lib/supabaseClient';
 import { Icon } from '../ui/Icon';
 import { Modal } from '../ui/Modal';
 
 export function ContactSheet({ match, onClose, onOpenChat }) {
   const t = useT('matches').modals;
-  const shouldUseSavedProfile = !match?.id || match?.id === 999999 || match?.ownerId === 999999 || match?.id === 'preview-personal';
+  const shouldUseSavedProfile = (!isSupabaseConfigured || import.meta.env.DEV)
+    && (!match?.id || match?.id === 999999 || match?.ownerId === 999999 || match?.id === 'preview-personal');
   let savedProfile = null;
   if (shouldUseSavedProfile) {
     try {

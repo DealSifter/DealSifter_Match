@@ -683,6 +683,7 @@ export function Dashboard({ page, nuggets, setModal, setPage, onOpenOnboardingTa
       const firstService = services[0] || null;
       const firstProperty = props[0] || null;
       const ownerPreview = firstService?.ownerPreview || firstProperty?.ownerPreview || null;
+      if (!ownerPreview?.name) return null;
       const serviceImages = services.flatMap(s => (s.media && s.media.images) ? s.media.images : []);
       const propertyImages = props.flatMap((p) => Array.isArray(p.images) ? p.images : []);
       const markets = Array.from(new Set([
@@ -690,16 +691,16 @@ export function Dashboard({ page, nuggets, setModal, setPage, onOpenOnboardingTa
         ...services.flatMap((s) => collectRecordStates(s)),
       ].filter(Boolean)));
       const location = markets[0] || [firstProperty?.city, firstProperty?.state].filter(Boolean).join(', ') || '';
-      const name = String(ownerPreview?.name || firstProperty?.ownerName || firstProperty?.contactName || '').trim();
+      const name = String(ownerPreview?.name || '').trim();
       if (!name) return null;
-      const type = String(ownerPreview?.type || firstService?.category || firstProperty?.ownerAccountType || 'Real estate contact').trim();
+      const type = String(ownerPreview?.type || firstService?.category || '').trim();
       const desc = String(firstService?.description || firstProperty?.description || '').trim();
       return {
         id: ownerId,
         ownerId,
         name,
         type,
-        badge: ownerPreview?.badge || (firstService ? 'Service' : 'Property'),
+        badge: ownerPreview?.badge || '',
         loc: location,
         photo: ownerPreview?.photo || '',
         images: serviceImages.length ? serviceImages : propertyImages,

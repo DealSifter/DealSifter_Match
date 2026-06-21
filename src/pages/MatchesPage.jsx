@@ -19,6 +19,7 @@ import { translateChatText, getSafeLang } from '../services/chatTranslation';
 import { getPlanGateCopy, isFeatureAllowed } from '../lib/planAccess';
 import { trackAppEvent } from '../lib/adminEventTracking';
 import { getPortfolioUnlockCost, getPropertyExclusivityStatus } from '../lib/unlockRules';
+import { isSupabaseConfigured } from '../lib/supabaseClient';
 import appLogo from '../assets/logo-dark-theme.png';
 
 function readLocalStringSet(key) {
@@ -79,6 +80,7 @@ const CHAT_INTEREST_SERVICE_PREFIX = {
 const DEFAULT_PEER_LANGS = { input: 'en', output: 'en' };
 
 function readScopedProfileFallback(scope = 'personal') {
+  if (isSupabaseConfigured && !import.meta.env.DEV) return null;
   try {
     const personalRaw = localStorage.getItem('personalProfile');
     const professionalRaw = localStorage.getItem('professionalProfile');
