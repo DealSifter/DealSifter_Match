@@ -764,6 +764,7 @@ export function Dashboard({ page, nuggets, setModal, setPage, onOpenOnboardingTa
     const mockOwnerIdsForConnections = new Set((CARDS || []).map((c) => String(c.id)));
     const globalOwnerIds = Array.from(new Set([
       ...(servicePortfolio || []).map((s) => String(s?.ownerId || '').trim()),
+      ...(showcaseProperties || []).map((p) => String(p?.ownerId || '').trim()),
     ].filter((ownerId) => ownerId && !localOwnerIds.has(ownerId) && !mockOwnerIdsForConnections.has(ownerId))));
     const globalCards = globalOwnerIds.map((ownerId) => {
       const props = (showcaseProperties || []).filter((p) => String(p.ownerId) === ownerId);

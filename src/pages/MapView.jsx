@@ -1759,7 +1759,7 @@ export function MapView({
     const mapById = new Map();
 
     const addPeople = (onlyUnlocked = false) => {
-      CARDS
+      (import.meta.env.DEV ? CARDS : [])
         .filter((card) => (
           card.verified
           && Number.isFinite(card.lat)
@@ -1784,8 +1784,49 @@ export function MapView({
         });
     };
 
+    const addPublishedPeople = (onlyUnlocked = false) => {
+      const byOwner = new Map();
+      (showcaseProperties || []).forEach((property) => {
+        const ownerId = String(property?.ownerId || '').trim();
+        const ownerPreview = property?.ownerPreview && typeof property.ownerPreview === 'object'
+          ? property.ownerPreview
+          : null;
+        if (!ownerId || !ownerPreview?.name) return;
+        if (onlyUnlocked && !isUnlockedId(ownerId)) return;
+        if (byOwner.has(ownerId)) return;
+        const coords = resolvePropertyCoords(property, geocodeCache, pinOverrides);
+        if (!coords) return;
+        byOwner.set(ownerId, { ownerId, ownerPreview, coords, property });
+      });
+
+      byOwner.forEach(({ ownerId, ownerPreview, coords, property }) => {
+        const key = `person-${ownerId}`;
+        if (mapById.has(key)) return;
+        mapById.set(key, {
+          type: 'Feature',
+          geometry: { type: 'Point', coordinates: [coords.lng, coords.lat] },
+          properties: {
+            itemType: 'person',
+            itemId: ownerId,
+            title: ownerPreview.name,
+            subtitle: `${ownerPreview.type || ownerPreview.cat || 'Contact'} - ${ownerPreview.loc || property?.state || ''}`,
+            locked: !isUnlockedId(ownerId),
+            isUnlocked: isUnlockedId(ownerId),
+          },
+          payload: {
+            ...ownerPreview,
+            id: ownerId,
+            ownerId,
+            lat: coords.lat,
+            lng: coords.lng,
+            portfolioCount: (showcaseProperties || []).filter((p) => String(p?.ownerId || '') === ownerId).length,
+          },
+        });
+      });
+    };
+
     const addProperties = (onlyUnlocked = false) => {
-      PROPERTIES
+      (import.meta.env.DEV ? PROPERTIES : [])
         .filter((property) => (
           Number.isFinite(property.lat)
           && Number.isFinite(property.lng)
@@ -1838,7 +1879,10 @@ export function MapView({
       return Array.from(mapById.values());
     }
 
-    if (showPeople) addPeople(false);
+    if (showPeople) {
+      addPeople(false);
+      addPublishedPeople(false);
+    }
     if (showProperties) {
       addProperties(false);
       addPublishedProperties(false);
@@ -2244,7 +2288,7 @@ export function MapView({
 
   const unlockPropertySource = useMemo(() => {
     const byId = new Map();
-    [...(propertyPortfolio || []), ...(showcaseProperties || []), ...(PROPERTIES || [])].forEach((property, idx) => {
+    [...(propertyPortfolio || []), ...(showcaseProperties || []), ...(import.meta.env.DEV ? (PROPERTIES || []) : [])].forEach((property, idx) => {
       if (!property) return;
       const key = String(property.id || property.portfolioId || `${property.ownerId || 'owner'}:${idx}`);
       if (!byId.has(key)) byId.set(key, property);

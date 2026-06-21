@@ -223,12 +223,14 @@ const consumeRateLimit = (key, maxAttempts, windowMs, lockMs = windowMs) => {
   }
 };
 
-const getAppSessionToken = () => {
+const getAppSessionToken = (userId = '') => {
   try {
-    let token = safeSessionGet(APP_SESSION_TOKEN_KEY);
+    const normalizedUserId = String(userId || '').trim();
+    const tokenKey = normalizedUserId ? `${APP_SESSION_TOKEN_KEY}:${normalizedUserId}` : APP_SESSION_TOKEN_KEY;
+    let token = safeSessionGet(tokenKey);
     if (!token) {
       token = (crypto?.randomUUID?.() || `tab-${Date.now()}-${Math.random().toString(16).slice(2)}`);
-      safeSessionSet(APP_SESSION_TOKEN_KEY, token);
+      safeSessionSet(tokenKey, token);
     }
     return token;
   } catch {
@@ -1180,6 +1182,16 @@ export default function App() {
       return null;
     }
   });
+  const [isAuthCallbackSettling, setIsAuthCallbackSettling] = useState(() => {
+    if (!isSupabaseConfigured || !supabase || typeof window === 'undefined') return false;
+    try {
+      const search = new URLSearchParams(window.location.search || '');
+      const hash = String(window.location.hash || '');
+      return search.has('code') || search.has('error') || hash.includes('access_token=');
+    } catch {
+      return false;
+    }
+  });
   const authBootstrappingRef = useRef(Boolean(isSupabaseConfigured && supabase));
   const [sessionVersion, setSessionVersion] = useState(0);
   const [systemAccount, setSystemAccount] = useState(() => {
@@ -1334,7 +1346,7 @@ export default function App() {
     if (!isSupabaseConfigured || !supabase || !authSession?.userId) return undefined;
 
     let cancelled = false;
-    const token = getAppSessionToken();
+    const token = getAppSessionToken(authSession.userId);
     const pageLabel = String(page || 'app').slice(0, 64);
 
     const endReplacedSession = async () => {
@@ -1349,6 +1361,7 @@ export default function App() {
       try { await supabase.auth.signOut(); } catch { /* no-op */ }
       setAuthSession(null);
       safeSessionRemove(APP_SESSION_TOKEN_KEY);
+      safeSessionRemove(`${APP_SESSION_TOKEN_KEY}:${authSession.userId}`);
       setModal(null);
       _setPage('landing');
       try { localStorage.removeItem('ds_last_page'); } catch { /* no-op */ }
@@ -1442,6 +1455,49 @@ export default function App() {
   useEffect(() => {
     authBootstrappingRef.current = Boolean(isAuthBootstrapping);
   }, [isAuthBootstrapping]);
+
+  useEffect(() => {
+    if (!isAuthCallbackSettling) return undefined;
+
+    const cleanupAuthCallbackUrl = () => {
+      if (typeof window === 'undefined') return;
+      try {
+        const url = new URL(window.location.href);
+        let changed = false;
+        ['code', 'error', 'error_code', 'error_description', 'state'].forEach((key) => {
+          if (url.searchParams.has(key)) {
+            url.searchParams.delete(key);
+            changed = true;
+          }
+        });
+        if (String(url.hash || '').includes('access_token=')) {
+          url.hash = '';
+          changed = true;
+        }
+        if (changed) {
+          const next = `${url.pathname}${url.search}${url.hash}`;
+          window.history.replaceState(window.history.state || {}, document.title, next || '/');
+        }
+      } catch { /* no-op */ }
+    };
+
+    if (authSession?.userId) {
+      cleanupAuthCallbackUrl();
+      setIsAuthCallbackSettling(false);
+      return undefined;
+    }
+
+    if (isAuthBootstrapping) return undefined;
+
+    // Give Supabase one paint cycle after getSession() to emit the OAuth
+    // SIGNED_IN event. Without this, the app briefly renders Landing before
+    // the restored Google session is applied.
+    const timer = window.setTimeout(() => {
+      cleanupAuthCallbackUrl();
+      setIsAuthCallbackSettling(false);
+    }, 1200);
+    return () => window.clearTimeout(timer);
+  }, [authSession?.userId, isAuthBootstrapping, isAuthCallbackSettling]);
 
   useEffect(() => {
     const protectedPages = new Set(['dashboard', 'matches', 'mapview', 'onboarding', 'settings']);
@@ -2309,6 +2365,7 @@ export default function App() {
   const [globalShowcaseProperties, setGlobalShowcaseProperties] = useState([]);
   const [globalConnectionServices, setGlobalConnectionServices] = useState([]);
   const [activeSpotlights, setActiveSpotlights] = useState([]);
+  const [globalFeedRefreshTick, setGlobalFeedRefreshTick] = useState(0);
   const [spotlightDbCandidates, setSpotlightDbCandidates] = useState([]);
   const [isSpotlightCandidatesLoading, setIsSpotlightCandidatesLoading] = useState(false);
   const [isSpotlightProcessing, setIsSpotlightProcessing] = useState(false);
@@ -3557,10 +3614,12 @@ export default function App() {
       const payload = {
         user_id: supabaseUserId,
         full_name: normalized.fullName || null,
-        photo_url: photoUrl,
         bio: normalized.bio || null,
         visibility: normalized.visibility || 'hidden',
       };
+      // Do not wipe a persisted avatar when the current form state is empty.
+      // Production identity must prefer DB/Storage records over transient gaps.
+      if (photoUrl) payload.photo_url = photoUrl;
 
       beginProfileSync();
       try {
@@ -3627,8 +3686,10 @@ export default function App() {
         primary_category: normalized.primaryCategory || null,
         category_b: normalized.categoryB || null,
         primary_category_b: normalized.primaryCategoryB || null,
-        photo_b_url: photoBUrl,
       };
+      // Same rule for the secondary/professional avatar: never replace a real
+      // stored URL with null just because the local draft did not carry media.
+      if (photoBUrl) payload.photo_b_url = photoBUrl;
 
       let writePayload = {
         ...payload,
@@ -4192,6 +4253,171 @@ export default function App() {
     setChatFocusToken((v) => v + 1);
     setPage('matches');
   };
+
+  const appendChatMessageToState = useCallback((messageRow) => {
+    if (!messageRow || !supabaseUserId) return;
+    const senderId = String(messageRow.sender_id || '').trim();
+    const recipientId = String(messageRow.recipient_id || '').trim();
+    if (!senderId || !recipientId) return;
+    const peerId = senderId === String(supabaseUserId) ? recipientId : senderId;
+    const metadata = messageRow.metadata && typeof messageRow.metadata === 'object' ? messageRow.metadata : {};
+    const mapped = {
+      id: messageRow.id,
+      from: senderId === String(supabaseUserId) ? 'me' : 'them',
+      text: messageRow.body || '',
+      type: messageRow.message_type || metadata.type || 'text',
+      refData: metadata.refData || null,
+      originalText: metadata.originalText || messageRow.body || '',
+      originalLang: metadata.originalLang || '',
+      translatedText: messageRow.body || '',
+      translatedLang: metadata.translatedLang || '',
+      createdAt: messageRow.created_at || null,
+    };
+    setConvos((prev) => {
+      const current = Array.isArray(prev?.[peerId]) ? prev[peerId] : [];
+      if (mapped.id && current.some((msg) => String(msg?.id || '') === String(mapped.id))) return prev;
+      return {
+        ...(prev || {}),
+        [peerId]: [...current, mapped].sort((a, b) => new Date(a.createdAt || 0) - new Date(b.createdAt || 0)),
+      };
+    });
+  }, [supabaseUserId, globalFeedRefreshTick]);
+
+  useEffect(() => {
+    if (!isSupabaseConfigured || !supabase || !supabaseUserId) return undefined;
+    let timer = null;
+    const scheduleGlobalRefresh = () => {
+      if (timer) window.clearTimeout(timer);
+      timer = window.setTimeout(() => {
+        timer = null;
+        setGlobalFeedRefreshTick((value) => value + 1);
+      }, 1400);
+    };
+
+    const channel = supabase
+      .channel(`global-feed-refresh-${supabaseUserId}`)
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'properties' }, scheduleGlobalRefresh)
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'property_images' }, scheduleGlobalRefresh)
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'services' }, scheduleGlobalRefresh)
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'user_profiles' }, scheduleGlobalRefresh)
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'professional_profiles' }, scheduleGlobalRefresh)
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'card_spotlights' }, scheduleGlobalRefresh)
+      .subscribe();
+
+    return () => {
+      if (timer) window.clearTimeout(timer);
+      supabase.removeChannel(channel);
+    };
+  }, [supabaseUserId]);
+
+  const sendChatMessage = useCallback(async (payload = {}) => {
+    if (!isSupabaseConfigured || !supabase || !supabaseUserId) return;
+    const recipientId = String(payload.recipientId || '').trim();
+    const text = String(payload.text || '').trim();
+    if (!recipientId || !text) return;
+
+    const optimisticId = `pending:${Date.now()}:${Math.random().toString(36).slice(2)}`;
+    const optimistic = {
+      id: optimisticId,
+      sender_id: supabaseUserId,
+      recipient_id: recipientId,
+      contact_owner_id: payload.contactOwnerId || recipientId,
+      body: text,
+      message_type: payload.type || 'text',
+      metadata: {
+        refData: payload.refData || null,
+        originalText: payload.originalText || text,
+        originalLang: payload.originalLang || '',
+        translatedLang: payload.translatedLang || '',
+      },
+      created_at: new Date().toISOString(),
+    };
+    appendChatMessageToState(optimistic);
+
+    const { data, error } = await supabase
+      .from('chat_messages')
+      .insert({
+        sender_id: supabaseUserId,
+        recipient_id: recipientId,
+        contact_owner_id: payload.contactOwnerId || recipientId,
+        body: text,
+        message_type: payload.type || 'text',
+        metadata: optimistic.metadata,
+      })
+      .select('id, sender_id, recipient_id, contact_owner_id, body, message_type, metadata, created_at')
+      .single();
+
+    if (error) {
+      safeLogError('Chat message persistence failed.', error);
+      addToast({ type: 'error', message: 'Chat message could not be sent.' });
+      return;
+    }
+
+    setConvos((prev) => {
+      const current = Array.isArray(prev?.[recipientId]) ? prev[recipientId] : [];
+      return {
+        ...(prev || {}),
+        [recipientId]: current.filter((msg) => String(msg?.id || '') !== optimisticId),
+      };
+    });
+    appendChatMessageToState(data);
+  }, [addToast, appendChatMessageToState, supabase, supabaseUserId]);
+
+  useEffect(() => {
+    if (!isSupabaseConfigured || !supabase || !supabaseUserId) {
+      window.setTimeout(() => setConvos({}), 0);
+      return undefined;
+    }
+
+    let cancelled = false;
+    const hydrateChatMessages = async () => {
+      const { data, error } = await supabase
+        .from('chat_messages')
+        .select('id, sender_id, recipient_id, contact_owner_id, body, message_type, metadata, created_at')
+        .or(`sender_id.eq.${supabaseUserId},recipient_id.eq.${supabaseUserId}`)
+        .order('created_at', { ascending: true })
+        .limit(500);
+      if (cancelled) return;
+      if (error) {
+        safeLogError('Chat message hydration failed.', error);
+        return;
+      }
+      const grouped = {};
+      (Array.isArray(data) ? data : []).forEach((row) => {
+        const senderId = String(row.sender_id || '').trim();
+        const recipientId = String(row.recipient_id || '').trim();
+        const peerId = senderId === String(supabaseUserId) ? recipientId : senderId;
+        if (!peerId) return;
+        const metadata = row.metadata && typeof row.metadata === 'object' ? row.metadata : {};
+        if (!grouped[peerId]) grouped[peerId] = [];
+        grouped[peerId].push({
+          id: row.id,
+          from: senderId === String(supabaseUserId) ? 'me' : 'them',
+          text: row.body || '',
+          type: row.message_type || metadata.type || 'text',
+          refData: metadata.refData || null,
+          originalText: metadata.originalText || row.body || '',
+          originalLang: metadata.originalLang || '',
+          translatedText: row.body || '',
+          translatedLang: metadata.translatedLang || '',
+          createdAt: row.created_at || null,
+        });
+      });
+      setConvos(grouped);
+    };
+
+    hydrateChatMessages();
+    const channel = supabase
+      .channel(`chat-messages-${supabaseUserId}`)
+      .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'chat_messages', filter: `recipient_id=eq.${supabaseUserId}` }, (payload) => appendChatMessageToState(payload.new))
+      .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'chat_messages', filter: `sender_id=eq.${supabaseUserId}` }, (payload) => appendChatMessageToState(payload.new))
+      .subscribe();
+
+    return () => {
+      cancelled = true;
+      supabase.removeChannel(channel);
+    };
+  }, [appendChatMessageToState, supabase, supabaseUserId]);
 
   const openSettingsTab = (tab = 'profile') => {
     setSettingsInitialTab(tab);
@@ -5013,6 +5239,7 @@ export default function App() {
             setPage={setPage}
             addToast={addToast}
             onOpenChatLanguageConfig={() => openSettingsTab('preferences')}
+            onSendChatMessage={sendChatMessage}
             propertyUnlocks={propertyUnlocks}
             currentUserId={supabaseUserId || 'local-user'}
             activeSpotlightKeys={activeSpotlightKeys}
@@ -5105,65 +5332,78 @@ export default function App() {
 
   const isPublicPricingPage = page === 'pricing' && (!authSession || prevPage === 'landing');
   const orientationGuardCopy = getT().orientationGuard;
+  const isAppShellBooting = Boolean(isAuthBootstrapping || isAuthCallbackSettling);
+  const shellForcedTheme = isAppShellBooting ? null : ((page === 'landing' || isPublicPricingPage) ? 'light' : null);
 
   return (
-    <ThemeProvider forcedTheme={(page === 'landing' || isPublicPricingPage) ? 'light' : null}>
+    <ThemeProvider forcedTheme={shellForcedTheme}>
       <GuideTipsProvider>
       <div style={{ minHeight: '100vh', background: 'var(--bg)', color: 'var(--t1)' }}>
-        <Navbar
-          page={page}
-          prevPage={prevPage}
-          setPage={setPage}
-          nuggets={nuggets}
-          setModal={handleOpenModal}
-          chatNotifications={chatNotifications}
-          systemNotifications={systemNotifications}
-          setSystemNotifications={setSystemNotifications}
-          onOpenChatNotification={openChatFromNotification}
-          onMarkChatNotificationRead={markChatNotificationAsRead}
-          onOpenAuthModal={openAuthModal}
-          onOpenSettings={() => openSettingsTab('profile')}
-          onOpenAdmin={() => setPage('admin')}
-          onLogoutUser={handleUserLogout}
-          isAdmin={isAdmin}
-          userProfile={userProfile}
-          editMode={editMode}
-          setEditMode={setEditMode}
-          showInstallAppButton={showInstallAppButton}
-          onInstallApp={handleInstallApp}
-          userPreferences={userPreferences}
-        />
-        <GuideTipOverlay key={page} page={page} />
-        <Suspense fallback={<div style={{ minHeight: '60vh' }} />}>
-          {(() => {
-            const keepAlivePages = new Set(['dashboard', 'mapview', 'matches', 'onboarding']);
-            if (!keepAlivePages.has(page)) return renderPageContent(page);
+        {isAppShellBooting ? (
+          <div className="ds-app-boot-screen" role="status" aria-live="polite" aria-label="Loading DealSifter">
+            <div className="ds-processing-card">
+              <img src={loaderMark} alt="DealSifter" className="ds-processing-logo" />
+              <div className="ds-processing-text">Loading DealSifter...</div>
+            </div>
+          </div>
+        ) : (
+          <>
+            <Navbar
+              page={page}
+              prevPage={prevPage}
+              setPage={setPage}
+              nuggets={nuggets}
+              setModal={handleOpenModal}
+              chatNotifications={chatNotifications}
+              systemNotifications={systemNotifications}
+              setSystemNotifications={setSystemNotifications}
+              onOpenChatNotification={openChatFromNotification}
+              onMarkChatNotificationRead={markChatNotificationAsRead}
+              onOpenAuthModal={openAuthModal}
+              onOpenSettings={() => openSettingsTab('profile')}
+              onOpenAdmin={() => setPage('admin')}
+              onLogoutUser={handleUserLogout}
+              isAdmin={isAdmin}
+              userProfile={userProfile}
+              editMode={editMode}
+              setEditMode={setEditMode}
+              showInstallAppButton={showInstallAppButton}
+              onInstallApp={handleInstallApp}
+              userPreferences={userPreferences}
+            />
+            <GuideTipOverlay key={page} page={page} />
+            <Suspense fallback={<div style={{ minHeight: '60vh' }} />}>
+              {(() => {
+                const keepAlivePages = new Set(['dashboard', 'mapview', 'matches', 'onboarding']);
+                if (!keepAlivePages.has(page)) return renderPageContent(page);
 
-            return (
-              <>
-                <Activity mode={page === 'dashboard' ? 'visible' : 'hidden'}>
-                  {renderPageContent('dashboard')}
-                </Activity>
-                <Activity mode={page === 'mapview' ? 'visible' : 'hidden'}>
-                  {renderPageContent('mapview')}
-                </Activity>
-                <Activity mode={page === 'matches' ? 'visible' : 'hidden'}>
-                  {renderPageContent('matches')}
-                </Activity>
-                <Activity mode={page === 'onboarding' ? 'visible' : 'hidden'}>
-                  {renderPageContent('onboarding')}
-                </Activity>
-              </>
-            );
-          })()}
-        </Suspense>
-        <AppMobileBottomNav
-          page={page}
-          setPage={setPage}
-          collapsed={mobileBottomNavCollapsed}
-          onCollapsedChange={setMobileBottomNavCollapsed}
-          needsPrimaryProfileAttention={!hasPrimaryProfileRegistered}
-        />
+                return (
+                  <>
+                    <Activity mode={page === 'dashboard' ? 'visible' : 'hidden'}>
+                      {renderPageContent('dashboard')}
+                    </Activity>
+                    <Activity mode={page === 'mapview' ? 'visible' : 'hidden'}>
+                      {renderPageContent('mapview')}
+                    </Activity>
+                    <Activity mode={page === 'matches' ? 'visible' : 'hidden'}>
+                      {renderPageContent('matches')}
+                    </Activity>
+                    <Activity mode={page === 'onboarding' ? 'visible' : 'hidden'}>
+                      {renderPageContent('onboarding')}
+                    </Activity>
+                  </>
+                );
+              })()}
+            </Suspense>
+            <AppMobileBottomNav
+              page={page}
+              setPage={setPage}
+              collapsed={mobileBottomNavCollapsed}
+              onCollapsedChange={setMobileBottomNavCollapsed}
+              needsPrimaryProfileAttention={!hasPrimaryProfileRegistered}
+            />
+          </>
+        )}
 
         {/* REMOVIDO: imagens de processamento para evitar bug visual de imagem gigante no feed */}
         {showSyncProcessing && (

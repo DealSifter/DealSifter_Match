@@ -35,6 +35,21 @@
   contain: paint;
 }
 
+.ds-app-boot-screen {
+  min-height: 100dvh;
+  width: 100%;
+  display: grid;
+  place-items: center;
+  padding: 24px;
+  box-sizing: border-box;
+  background:
+    radial-gradient(circle at 50% 28%, rgba(53, 202, 201, 0.18), transparent 34%),
+    var(--bg);
+  color: var(--t1);
+  overflow: hidden;
+  contain: paint;
+}
+
 .ds-processing-card {
   min-width: 240px;
   max-width: min(90vw, 380px);

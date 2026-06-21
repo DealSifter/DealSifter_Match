@@ -1660,7 +1660,7 @@ function PortfolioDetail({ item, owner, ownerDesc, onBack, autoplayMedia = false
   );
 }
 
-export function MatchesPage({ nuggets, setModal, openUnlock, unlocked, initialChat, chatFocusToken = 0, interested, matched, setInterested, setMatched, convos, setConvos, categoryOrder, setCategoryOrder, showcaseProperties, propertyPortfolio, servicePortfolio, userProfile, personalProfile, professionalProfile, mobileBottomNavCollapsed = false, userPreferences = null, subscription = null, setPage = null, addToast = null, onOpenChatLanguageConfig = null, propertyUnlocks = [], currentUserId = 'local-user' }) {
+export function MatchesPage({ nuggets, setModal, openUnlock, unlocked, initialChat, chatFocusToken = 0, interested, matched, setInterested, setMatched, convos, setConvos, categoryOrder, setCategoryOrder, showcaseProperties, propertyPortfolio, servicePortfolio, userProfile, personalProfile, professionalProfile, mobileBottomNavCollapsed = false, userPreferences = null, subscription = null, setPage = null, addToast = null, onOpenChatLanguageConfig = null, onSendChatMessage = null, propertyUnlocks = [], currentUserId = 'local-user' }) {
   const PORTFOLIO_PANEL_PADDING = 40;
   const PORTFOLIO_GRID_GAP = 12;
   const PORTFOLIO_CARD_MIN_WIDTH = 132;
@@ -2552,25 +2552,40 @@ export function MatchesPage({ nuggets, setModal, openUnlock, unlocked, initialCh
       outgoingMeta = translated;
     }
 
-    setConvos(prev => ({
-      ...prev,
-      [oid]: [
-        ...(prev[oid] || []),
-        {
-          from: "me",
-          text: outgoingText,
-          type,
-          refData,
-          originalText: content,
-          originalLang: sourceLang,
-          translatedText: outgoingText,
-          translatedLang: type === 'text' ? toPeerLang : sourceLang,
-          translationProvider: outgoingMeta?.provider || 'none',
-        },
-      ],
-    }));
+    if (typeof onSendChatMessage === 'function') {
+      onSendChatMessage({
+        recipientId: oid,
+        contactOwnerId: oid,
+        text: outgoingText,
+        type,
+        refData,
+        originalText: content,
+        originalLang: sourceLang,
+        translatedLang: type === 'text' ? toPeerLang : sourceLang,
+      });
+    } else {
+      setConvos(prev => ({
+        ...prev,
+        [oid]: [
+          ...(prev[oid] || []),
+          {
+            from: "me",
+            text: outgoingText,
+            type,
+            refData,
+            originalText: content,
+            originalLang: sourceLang,
+            translatedText: outgoingText,
+            translatedLang: type === 'text' ? toPeerLang : sourceLang,
+            translationProvider: outgoingMeta?.provider || 'none',
+          },
+        ],
+      }));
+    }
 
     if (typeof customMsg !== 'string') setMsg("");
+
+    if (typeof onSendChatMessage === 'function') return;
 
     setTimeout(() => {
       setIsTyping(true);
@@ -2615,6 +2630,7 @@ export function MatchesPage({ nuggets, setModal, openUnlock, unlocked, initialCh
     activePeerLangs,
     canUseChat,
     blockFeature,
+    onSendChatMessage,
   ]);
 
   const mobileBottomNavOffset = isMobile ? (mobileBottomNavCollapsed ? 4 : 88) : 0;
