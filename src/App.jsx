@@ -1152,6 +1152,7 @@ export default function App() {
   });
   const [prevPage, setPrevPage] = useState('landing');
   const [nuggets, setNuggets] = useState(() => {
+    if (isSupabaseConfigured) return 0;
     try {
       const raw = localStorage.getItem('ds_nuggets');
       const parsed = raw ? Number(raw) : 5;
@@ -1182,6 +1183,9 @@ export default function App() {
   const authBootstrappingRef = useRef(Boolean(isSupabaseConfigured && supabase));
   const [sessionVersion, setSessionVersion] = useState(0);
   const [systemAccount, setSystemAccount] = useState(() => {
+    if (isSupabaseConfigured) {
+      return { fullName: '', email: '', phone: '', phoneCountryCode: '+1', marketAreas: '', accountType: 'individual', paymentSetupComplete: false };
+    }
     try {
       const raw = localStorage.getItem('systemAccount');
       return raw
@@ -1192,6 +1196,7 @@ export default function App() {
     }
   });
   const [userPreferences, setUserPreferences] = useState(() => {
+    if (isSupabaseConfigured) return normalizeUserPreferences(null);
     try {
       const raw = localStorage.getItem(USER_PREFERENCES_KEY);
       return normalizeUserPreferences(raw ? JSON.parse(raw) : null);
@@ -1729,6 +1734,15 @@ export default function App() {
   };
 
   const [subscription, setSubscription] = useState(() => {
+    if (isSupabaseConfigured) {
+      return {
+        planId: 'free',
+        planName: 'Free',
+        price: 0,
+        status: 'active',
+        nextBillingAt: null,
+      };
+    }
     try {
       const raw = localStorage.getItem('ds_subscription_mock');
       const parsed = raw ? JSON.parse(raw) : null;
@@ -1810,7 +1824,10 @@ export default function App() {
     return [];
   });
   const [editMode, setEditMode] = useState(false);
-  const [accountType, setAccountType] = useState(() => localStorage.getItem('accountType') || 'professional');
+  const [accountType, setAccountType] = useState(() => {
+    if (isSupabaseConfigured) return 'professional';
+    return localStorage.getItem('accountType') || 'professional';
+  });
 
   useEffect(() => {
     profileHydrationInputRef.current.accountType = accountType || 'professional';
@@ -1842,6 +1859,15 @@ export default function App() {
   }, [authSession, openAuthModal, page]);
 
   const [userProfile, setUserProfile] = useState(() => {
+    if (isSupabaseConfigured) {
+      return {
+        name: '',
+        category: '',
+        type: '',
+        location: '',
+        badge: '',
+      };
+    }
     const saved = localStorage.getItem('userProfile');
     if (saved) {
       try {
@@ -1860,6 +1886,7 @@ export default function App() {
   });
 
   const [personalProfile, setPersonalProfile] = useState(() => {
+    if (isSupabaseConfigured) return DEFAULT_PERSONAL_PROFILE;
     const savedFull = localStorage.getItem('personalProfile_full');
     if (savedFull) {
       try {
@@ -1880,6 +1907,7 @@ export default function App() {
   });
 
   const [professionalProfile, setProfessionalProfile] = useState(() => {
+    if (isSupabaseConfigured) return DEFAULT_PROFESSIONAL_PROFILE('');
     const saved = localStorage.getItem('professionalProfile');
     if (!saved) {
       return DEFAULT_PROFESSIONAL_PROFILE(userProfile.category || '');
@@ -2141,6 +2169,7 @@ export default function App() {
     const cleanupKey = 'ds_runtime_cleanup_v2_done';
     try {
       if (localStorage.getItem(cleanupKey) === '1') return;
+      const allowLocalRuntimeHydration = !isSupabaseConfigured;
 
       const cleanupArrayKey = (key, filterFn) => {
         const raw = localStorage.getItem(key);
@@ -2167,7 +2196,7 @@ export default function App() {
 
       const nextServices = Array.isArray(cleanedServiceFull) ? cleanedServiceFull : (Array.isArray(cleanedService) ? cleanedService : null);
       const nextProperties = Array.isArray(cleanedPropertyFull) ? cleanedPropertyFull : (Array.isArray(cleanedProperty) ? cleanedProperty : null);
-      if (nextServices || nextProperties) {
+      if (allowLocalRuntimeHydration && (nextServices || nextProperties)) {
         window.setTimeout(() => {
           if (nextServices) setServicePortfolio(nextServices);
           if (nextProperties) setPropertyPortfolio(nextProperties);
@@ -2185,7 +2214,9 @@ export default function App() {
             badge: String(parsed?.badge || '').trim(),
           };
           localStorage.setItem('userProfile', JSON.stringify(next));
-          window.setTimeout(() => setUserProfile((prev) => ({ ...(prev || {}), ...next })), 0);
+          if (allowLocalRuntimeHydration) {
+            window.setTimeout(() => setUserProfile((prev) => ({ ...(prev || {}), ...next })), 0);
+          }
         } catch {
           localStorage.removeItem('userProfile');
         }
@@ -2200,7 +2231,9 @@ export default function App() {
             fullName: sanitizeLegacyName(parsed?.fullName),
           };
           localStorage.setItem('personalProfile', JSON.stringify(next));
-          window.setTimeout(() => setPersonalProfile((prev) => ({ ...(prev || {}), ...next })), 0);
+          if (allowLocalRuntimeHydration) {
+            window.setTimeout(() => setPersonalProfile((prev) => ({ ...(prev || {}), ...next })), 0);
+          }
         } catch {
           localStorage.removeItem('personalProfile');
         }
@@ -2216,7 +2249,9 @@ export default function App() {
             fullNameA: sanitizeLegacyName(parsed?.fullNameA),
           };
           localStorage.setItem('professionalProfile', JSON.stringify(next));
-          window.setTimeout(() => setProfessionalProfile((prev) => ({ ...(prev || {}), ...next })), 0);
+          if (allowLocalRuntimeHydration) {
+            window.setTimeout(() => setProfessionalProfile((prev) => ({ ...(prev || {}), ...next })), 0);
+          }
         } catch {
           localStorage.removeItem('professionalProfile');
         }
@@ -3143,12 +3178,12 @@ export default function App() {
               : {};
             return {
               ...(prev || {}),
-              fullName: String(payloadSystem.fullName || userRow.data.full_name || prev?.fullName || ''),
-              email: String(payloadSystem.email || prev?.email || ''),
-              phone: String(payloadSystem.phone || userRow.data.phone || prev?.phone || ''),
-              phoneCountryCode: String(payloadSystem.phoneCountryCode || prev?.phoneCountryCode || '+1'),
-              marketAreas: String(payloadSystem.marketAreas || prev?.marketAreas || ''),
-              accountType: String(payloadSystem.accountType || prev?.accountType || 'individual'),
+              fullName: String(payloadSystem.fullName || userRow.data.full_name || ''),
+              email: String(payloadSystem.email || ''),
+              phone: String(payloadSystem.phone || userRow.data.phone || ''),
+              phoneCountryCode: String(payloadSystem.phoneCountryCode || '+1'),
+              marketAreas: String(payloadSystem.marketAreas || ''),
+              accountType: String(payloadSystem.accountType || 'individual'),
             };
           });
 
@@ -3256,6 +3291,17 @@ export default function App() {
         }
 
         if (professionalResult.data) {
+          const profilePayload = professionalResult.data.profile_payload && typeof professionalResult.data.profile_payload === 'object'
+            ? professionalResult.data.profile_payload
+            : null;
+          const persistedAccountType = String(profilePayload?.accountType || '').trim();
+          const resolvedAccountType = ['professional', 'fsbo_owner'].includes(persistedAccountType)
+            ? persistedAccountType
+            : profileHydrationInputRef.current.accountType;
+          if (['professional', 'fsbo_owner'].includes(persistedAccountType)) {
+            setAccountType(persistedAccountType);
+          }
+
           const {
             personalFromPayload,
             professionalFromPayload,
@@ -3264,7 +3310,7 @@ export default function App() {
             fsboProfileFromPayload,
           } = extractScopedProfileLegacy(professionalResult.data.profile_payload);
 
-          const activeAccountType = profileHydrationInputRef.current.accountType;
+          const activeAccountType = resolvedAccountType;
           const activeUserCategory = profileHydrationInputRef.current.userCategory;
 
           const scopedPersonalPayload = activeAccountType === 'fsbo_owner'

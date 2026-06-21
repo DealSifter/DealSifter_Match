@@ -69,6 +69,7 @@ export function Settings({ setPage, prevPage, initialTab = 'profile', systemAcco
   const [confirmPayload, setConfirmPayload] = useState(null); // { message, onConfirm, variant }
   const [profileSaveState, setProfileSaveState] = useState('saved');
   const [billingHistory, setBillingHistory] = useState(() => {
+    if (isSupabaseConfigured) return [];
     try {
       const raw = JSON.parse(localStorage.getItem('ds_billing_history_mock') || '[]');
       return Array.isArray(raw) ? raw : [];
@@ -76,6 +77,7 @@ export function Settings({ setPage, prevPage, initialTab = 'profile', systemAcco
   });
   void setBillingHistory;
   const [commPrefs, setCommPrefs] = useState(() => {
+    if (isSupabaseConfigured) return { email: true, chat: true, marketing: false };
     try {
       const saved = JSON.parse(localStorage.getItem('ds_comm_prefs') || 'null');
       if (saved && typeof saved === 'object') return { email: true, chat: true, marketing: false, ...saved };
@@ -91,12 +93,22 @@ export function Settings({ setPage, prevPage, initialTab = 'profile', systemAcco
   const [securityAudit, setSecurityAudit] = useState([]);
   const [securitySessions, setSecuritySessions] = useState([]);
   const [supportMessages, setSupportMessages] = useState(() => {
+    if (isSupabaseConfigured) return [];
     try {
       const raw = JSON.parse(localStorage.getItem('ds_support_chat_thread') || '[]');
       return Array.isArray(raw) ? raw : [];
     } catch { return []; }
   });
   const [privacyControls, setPrivacyControls] = useState(() => {
+    if (isSupabaseConfigured) {
+      return {
+        doNotSellShare: false,
+        targetedAdsOptOut: false,
+        marketingEmails: true,
+        cookieScope: 'all',
+        dataProcessingConsent: true,
+      };
+    }
     try {
       const raw = JSON.parse(localStorage.getItem('ds_privacy_controls') || 'null');
       if (raw && typeof raw === 'object') {
@@ -216,12 +228,12 @@ export function Settings({ setPage, prevPage, initialTab = 'profile', systemAcco
 
         setSystemAccount?.((prev) => ({
           ...(prev || {}),
-          fullName: String(payloadSystemAccount.fullName || prev?.fullName || ''),
-          email: String(payloadSystemAccount.email || prev?.email || ''),
-          phoneCountryCode: String(payloadSystemAccount.phoneCountryCode || prev?.phoneCountryCode || '+1'),
-          marketAreas: String(payloadSystemAccount.marketAreas || prev?.marketAreas || ''),
-          accountType: String(payloadSystemAccount.accountType || prev?.accountType || 'individual'),
-          phone: String(payloadSystemAccount.phone || prev?.phone || ''),
+          fullName: String(payloadSystemAccount.fullName || userRow?.full_name || ''),
+          email: String(payloadSystemAccount.email || ''),
+          phoneCountryCode: String(payloadSystemAccount.phoneCountryCode || '+1'),
+          marketAreas: String(payloadSystemAccount.marketAreas || ''),
+          accountType: String(payloadSystemAccount.accountType || 'individual'),
+          phone: String(payloadSystemAccount.phone || userRow?.phone || ''),
         }));
 
         if (payloadPrefs) {
