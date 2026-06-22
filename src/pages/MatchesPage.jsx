@@ -1798,9 +1798,14 @@ export function MatchesPage({ nuggets, setModal, openUnlock, unlocked, initialCh
   const modalsT = allT.modals;
   const CONTACT_SIGNAL = C.accent;
   const PROPERTY_SIGNAL = "#4381bc";
-  const personalOwnerId = useMemo(() => getLocalOwnerId('personal'), []);
-  const secondaryOwnerId = useMemo(() => getLocalOwnerId('secondary'), []);
-  const fsboOwnerId = useMemo(() => getLocalOwnerId('fsbo'), []);
+  const getOwnerIdForScope = useCallback((scopeKey) => {
+    const liveUserId = String(currentUserId || '').trim();
+    if (isSupabaseConfigured && liveUserId && liveUserId !== 'local-user') return liveUserId;
+    return getLocalOwnerId(scopeKey);
+  }, [currentUserId]);
+  const personalOwnerId = useMemo(() => getOwnerIdForScope('personal'), [getOwnerIdForScope]);
+  const secondaryOwnerId = useMemo(() => getOwnerIdForScope('secondary'), [getOwnerIdForScope]);
+  const fsboOwnerId = useMemo(() => getOwnerIdForScope('fsbo'), [getOwnerIdForScope]);
   // Use module-scope CHAT_REPLY_TEMPLATES, CHAT_INTEREST_PREFIX and DEFAULT_PEER_LANGS
   // (defined at top of file) to keep references stable for hook dependencies.
   const [peopleFilter, setPeopleFilter] = useState("all");
@@ -1842,7 +1847,7 @@ export function MatchesPage({ nuggets, setModal, openUnlock, unlocked, initialCh
     const ownerKey = normalizedScope === 'professional'
       ? 'secondary'
       : (normalizedScope === 'fsbo' ? 'fsbo' : 'personal');
-    const ownerId = getLocalOwnerId(ownerKey);
+    const ownerId = getOwnerIdForScope(ownerKey);
     const scopedIdentity = resolveScopedProfile(normalizedScope, {
       accountType: userProfile?.accountType || '',
       userProfile,
@@ -1973,7 +1978,7 @@ export function MatchesPage({ nuggets, setModal, openUnlock, unlocked, initialCh
       whatsapp: pick(contactLike.whatsapp, linkedProperty?.whatsapp, linkedProperty?.ownerWhatsapp, linkedService?.whatsapp),
       email: pick(contactLike.email, linkedProperty?.email, linkedProperty?.ownerEmail, linkedProperty?.contactEmail, linkedService?.email, linkedService?.ownerEmail),
     };
-  }, [allPropertiesSource, allServicesSource]);
+  }, [allPropertiesSource, allServicesSource, getOwnerIdForScope, personalProfile, professionalProfile, userProfile]);
 
   const getPropertyExclusiveStatus = useCallback((propertyOrId) => {
     const candidates = propertyOrId && typeof propertyOrId === 'object'

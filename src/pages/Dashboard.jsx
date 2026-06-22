@@ -553,6 +553,8 @@ export function Dashboard({ page, nuggets, setModal, setPage, onOpenOnboardingTa
   }, [accountType, publishingProfileKey]);
 
   const getOwnerIdForKey = useCallback((key) => {
+    const liveUserId = String(currentUserId || '').trim();
+    if (isSupabaseConfigured && liveUserId && liveUserId !== 'local-user') return liveUserId;
     try {
       const map = JSON.parse(localStorage.getItem('profileOwnerMap') || 'null');
       if (map && typeof map[key] !== 'undefined') {
@@ -565,7 +567,7 @@ export function Dashboard({ page, nuggets, setModal, setPage, onOpenOnboardingTa
     if (key === 'secondary') return professionalProfile?.ownerId || professionalProfile?.id || userProfile?.id || '';
     if (key === 'fsbo') return professionalProfile?.ownerIdC || professionalProfile?.ownerId || professionalProfile?.id || userProfile?.id || '';
     return userProfile?.id || '';
-  }, [personalProfile, professionalProfile, userProfile]);
+  }, [currentUserId, personalProfile, professionalProfile, userProfile]);
 
   const parseStateCode = useCallback((value) => {
     const raw = String(value || '').trim();
