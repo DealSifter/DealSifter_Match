@@ -654,19 +654,34 @@ const normalizePortfolioImages = (value) => {
 const isSeededPropertyRecord = (property) => String(property?.portfolioId || '').startsWith('seed-');
 const isDemoSeedMockRecord = (record) => String(record?.source || '').trim() === 'demo_seed_mock';
 
-const isUserOwnedPropertyRecord = (property) => {
+const isUserOwnedPropertyRecord = (property, currentUserId = '') => {
   if (!property) return false;
-  if (String(property?.ownerId) === String(LOCAL_OWNER_ID)) return true;
+  const ownerId = String(property?.ownerId || property?.owner_id || '').trim();
+  const userId = String(currentUserId || '').trim();
+  if (userId) {
+    if (ownerId === String(LOCAL_OWNER_ID)) return true;
+    return Boolean(ownerId) && ownerId === userId;
+  }
+  if (ownerId === String(LOCAL_OWNER_ID)) return true;
   if (isSeededPropertyRecord(property)) return false;
   const source = String(property?.source || '').trim();
   return source === 'fsbo' || source === 'supabase' || source === 'portfolio';
 };
 
-const isUserOwnedServiceRecord = (service) => (
-  String(service?.ownerId) === String(LOCAL_OWNER_ID)
-  || String(service?.source || '').trim() === 'portfolio'
-  || String(service?.source || '').trim() === 'supabase'
-);
+const isUserOwnedServiceRecord = (service, currentUserId = '') => {
+  if (!service) return false;
+  const ownerId = String(service?.ownerId || service?.owner_id || '').trim();
+  const userId = String(currentUserId || '').trim();
+  if (userId) {
+    if (ownerId === String(LOCAL_OWNER_ID)) return true;
+    return Boolean(ownerId) && ownerId === userId;
+  }
+  return (
+    ownerId === String(LOCAL_OWNER_ID)
+    || String(service?.source || '').trim() === 'portfolio'
+    || String(service?.source || '').trim() === 'supabase'
+  );
+};
 
 const mapLocalPropertyToDb = (property, userId) => {
   const markets = normalizeStringArray(property?.markets);
@@ -3844,7 +3859,7 @@ export default function App() {
 
         setPropertyPortfolio((prev) => {
           const prior = Array.isArray(prev) ? prev : [];
-          const preservedNonUser = prior.filter((item) => !isUserOwnedPropertyRecord(item));
+          const preservedNonUser = [];
           const prevById = prior.reduce((m, it) => { m[String(it.id)] = it; return m; }, {});
           const merged = hydratedProperties.map((hp) => {
             const local = prevById[String(hp.id)];
@@ -3864,7 +3879,7 @@ export default function App() {
           // Inclui registros locais ainda não sincronizados
           const hydratedIds = new Set(hydratedProperties.map((h) => String(h.id)));
           const additionalLocal = prior
-            .filter((item) => isUserOwnedPropertyRecord(item) && !hydratedIds.has(String(item.id)))
+            .filter((item) => isUserOwnedPropertyRecord(item, supabaseUserId) && !hydratedIds.has(String(item.id)))
             .map((item) => ({
               ...item,
               ownerId: String(item?.ownerId || '') === String(LOCAL_OWNER_ID) ? supabaseUserId : item.ownerId,
@@ -3874,7 +3889,7 @@ export default function App() {
 
         setServicePortfolio((prev) => {
           const prior = Array.isArray(prev) ? prev : [];
-          const preserved = prior.filter((item) => !isUserOwnedServiceRecord(item));
+          const preserved = [];
 
           const prevById = prior.reduce((m, it) => { m[String(it.id)] = it; return m; }, {});
 
@@ -3895,7 +3910,7 @@ export default function App() {
           // Include any local user-owned items that don't exist on server yet (newly created)
           const hydratedIds = new Set(hydratedServices.map((h) => String(h.id)));
           const additionalLocal = prior
-            .filter((item) => isUserOwnedServiceRecord(item) && !hydratedIds.has(String(item.id)))
+            .filter((item) => isUserOwnedServiceRecord(item, supabaseUserId) && !hydratedIds.has(String(item.id)))
             .map((item) => ({
               ...item,
               ownerId: String(item?.ownerId || '') === String(LOCAL_OWNER_ID) ? supabaseUserId : item.ownerId,
@@ -3949,7 +3964,7 @@ export default function App() {
     if (!isSupabaseConfigured || !supabase || !supabaseUserId) return;
     if (!portfolioSyncStateRef.current.loaded || portfolioSyncStateRef.current.hydrating) return;
 
-    const userOwnedServices = (servicePortfolio || []).filter((service) => isUserOwnedServiceRecord(service));
+    const userOwnedServices = (servicePortfolio || []).filter((service) => isUserOwnedServiceRecord(service, supabaseUserId));
     const missingUuid = userOwnedServices.filter((service) => !isUuid(service?.id));
 
     if (missingUuid.length > 0) {
@@ -4024,7 +4039,7 @@ export default function App() {
     if (!isSupabaseConfigured || !supabase || !supabaseUserId) return;
     if (!portfolioSyncStateRef.current.loaded || portfolioSyncStateRef.current.hydrating) return;
 
-    const userOwnedProperties = (propertyPortfolio || []).filter((property) => isUserOwnedPropertyRecord(property));
+    const userOwnedProperties = (propertyPortfolio || []).filter((property) => isUserOwnedPropertyRecord(property, supabaseUserId));
     const missingUuid = userOwnedProperties.filter((property) => !isUuid(property?.id));
 
     if (missingUuid.length > 0) {
