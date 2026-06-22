@@ -28,6 +28,16 @@ const MY_PINS_COLOR = C.gold;
 const FEMA_WMS_URL = 'https://hazards.fema.gov/arcgis/rest/services/public/NFHLWMS/MapServer/WMSServer';
 const FEMA_TILE_ERROR_STREAK_LIMIT = 3;
 
+const isTruthyFlag = (value, fallback = false) => {
+  if (value === undefined || value === null || value === '') return fallback;
+  if (typeof value === 'boolean') return value;
+  if (typeof value === 'number') return value !== 0;
+  const normalized = String(value).trim().toLowerCase();
+  if (['true', '1', 'yes', 'y', 'sim', 'on'].includes(normalized)) return true;
+  if (['false', '0', 'no', 'n', 'nao', 'não', 'off'].includes(normalized)) return false;
+  return fallback;
+};
+
 const BASE_TILE_FALLBACK_CHAIN = [
   {
     id: 'osm-main',
@@ -806,6 +816,31 @@ const STATE_FULL_NAME = {
   TN:'Tennessee',TX:'Texas',UT:'Utah',VT:'Vermont',VA:'Virginia',WA:'Washington',
   WV:'West Virginia',WI:'Wisconsin',WY:'Wyoming',DC:'District of Columbia',
 };
+
+const STATE_CENTER_COORDS = {
+  AL:{ lat:32.8067,lng:-86.7911 }, AK:{ lat:64.2008,lng:-149.4937 }, AZ:{ lat:34.0489,lng:-111.0937 }, AR:{ lat:35.2010,lng:-91.8318 },
+  CA:{ lat:36.7783,lng:-119.4179 }, CO:{ lat:39.5501,lng:-105.7821 }, CT:{ lat:41.6032,lng:-73.0877 }, DE:{ lat:38.9108,lng:-75.5277 },
+  FL:{ lat:27.6648,lng:-81.5158 }, GA:{ lat:32.1656,lng:-82.9001 }, HI:{ lat:19.8968,lng:-155.5828 }, ID:{ lat:44.0682,lng:-114.7420 },
+  IL:{ lat:40.6331,lng:-89.3985 }, IN:{ lat:40.2672,lng:-86.1349 }, IA:{ lat:41.8780,lng:-93.0977 }, KS:{ lat:39.0119,lng:-98.4842 },
+  KY:{ lat:37.8393,lng:-84.2700 }, LA:{ lat:30.9843,lng:-91.9623 }, ME:{ lat:45.2538,lng:-69.4455 }, MD:{ lat:39.0458,lng:-76.6413 },
+  MA:{ lat:42.4072,lng:-71.3824 }, MI:{ lat:44.3148,lng:-85.6024 }, MN:{ lat:46.7296,lng:-94.6859 }, MS:{ lat:32.3547,lng:-89.3985 },
+  MO:{ lat:37.9643,lng:-91.8318 }, MT:{ lat:46.8797,lng:-110.3626 }, NE:{ lat:41.4925,lng:-99.9018 }, NV:{ lat:38.8026,lng:-116.4194 },
+  NH:{ lat:43.1939,lng:-71.5724 }, NJ:{ lat:40.0583,lng:-74.4057 }, NM:{ lat:34.5199,lng:-105.8701 }, NY:{ lat:43.2994,lng:-74.2179 },
+  NC:{ lat:35.7596,lng:-79.0193 }, ND:{ lat:47.5515,lng:-101.0020 }, OH:{ lat:40.4173,lng:-82.9071 }, OK:{ lat:35.0078,lng:-97.0929 },
+  OR:{ lat:43.8041,lng:-120.5542 }, PA:{ lat:41.2033,lng:-77.1945 }, RI:{ lat:41.5801,lng:-71.4774 }, SC:{ lat:33.8361,lng:-81.1637 },
+  SD:{ lat:43.9695,lng:-99.9018 }, TN:{ lat:35.5175,lng:-86.5804 }, TX:{ lat:31.9686,lng:-99.9018 }, UT:{ lat:39.3210,lng:-111.0937 },
+  VT:{ lat:44.5588,lng:-72.5778 }, VA:{ lat:37.4316,lng:-78.6569 }, WA:{ lat:47.7511,lng:-120.7401 }, WV:{ lat:38.5976,lng:-80.4549 },
+  WI:{ lat:43.7844,lng:-88.7879 }, WY:{ lat:43.0760,lng:-107.2903 }, DC:{ lat:38.9072,lng:-77.0369 },
+};
+
+function getStateCodeFromMarket(value) {
+  const raw = String(value || '').trim();
+  if (!raw) return '';
+  const direct = raw.toUpperCase();
+  if (STATE_FULL_NAME[direct]) return direct;
+  const matched = Object.entries(STATE_FULL_NAME).find(([, name]) => name.toLowerCase() === raw.toLowerCase());
+  return matched ? matched[0] : '';
+}
 
 function _pickBestPhotonFeature(features, context) {
   if (!Array.isArray(features) || !features.length) return null;
@@ -1826,6 +1861,54 @@ export function MapView({
       });
     };
 
+    const addPublishedServicePeople = (onlyUnlocked = false) => {
+      const byOwner = new Map();
+      (servicePortfolio || []).forEach((service) => {
+        const ownerId = String(service?.ownerId || '').trim();
+        const ownerPreview = service?.ownerPreview && typeof service.ownerPreview === 'object'
+          ? service.ownerPreview
+          : null;
+        if (!ownerId || !ownerPreview?.name) return;
+        if (!isTruthyFlag(service?.publishToConnections, true)) return;
+        if (onlyUnlocked && !isUnlockedId(ownerId)) return;
+        if (mapById.has(`person-${ownerId}`) || byOwner.has(ownerId)) return;
+        const stateCode = [
+          ...(Array.isArray(service?.markets) ? service.markets : []),
+          ownerPreview?.loc,
+          service?.state,
+        ].map(getStateCodeFromMarket).find(Boolean);
+        const coords = STATE_CENTER_COORDS[stateCode];
+        if (!coords) return;
+        byOwner.set(ownerId, { ownerId, ownerPreview, coords, stateCode, service });
+      });
+
+      byOwner.forEach(({ ownerId, ownerPreview, coords, stateCode, service }) => {
+        const key = `person-${ownerId}`;
+        if (mapById.has(key)) return;
+        mapById.set(key, {
+          type: 'Feature',
+          geometry: { type: 'Point', coordinates: [coords.lng, coords.lat] },
+          properties: {
+            itemType: 'person',
+            itemId: ownerId,
+            title: ownerPreview.name,
+            subtitle: `${ownerPreview.type || ownerPreview.cat || service?.category || 'Service'} - ${stateCode}`,
+            locked: !isUnlockedId(ownerId),
+            isUnlocked: isUnlockedId(ownerId),
+          },
+          payload: {
+            ...ownerPreview,
+            id: ownerId,
+            ownerId,
+            lat: coords.lat,
+            lng: coords.lng,
+            loc: ownerPreview.loc || stateCode,
+            portfolioCount: (servicePortfolio || []).filter((s) => String(s?.ownerId || '') === ownerId).length,
+          },
+        });
+      });
+    };
+
     const addProperties = (onlyUnlocked = false) => {
       (enableMockMapData ? PROPERTIES : [])
         .filter((property) => (
@@ -1883,6 +1966,7 @@ export function MapView({
     if (showPeople) {
       addPeople(false);
       addPublishedPeople(false);
+      addPublishedServicePeople(false);
     }
     if (showProperties) {
       addProperties(false);
@@ -1890,7 +1974,7 @@ export function MapView({
     }
 
     return Array.from(mapById.values());
-  }, [enableMockMapData, showPeople, showProperties, showOnlyMyPins, showcaseProperties, geocodeCache, pinOverrides, isUnlockedId, currentUserId]);
+  }, [enableMockMapData, showPeople, showProperties, showOnlyMyPins, showcaseProperties, servicePortfolio, geocodeCache, pinOverrides, isUnlockedId, currentUserId]);
 
   const realUserPoints = useMemo(() => {
     return (showcaseProperties || [])

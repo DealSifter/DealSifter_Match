@@ -204,6 +204,7 @@ export function Onboarding({
   const [verificationModal, setVerificationModal] = useState({ open: false, scope: 'personal', error: '', info: '' });
   const [saveProfilesBaseline, setSaveProfilesBaseline] = useState('');
   const [isSaveProfilesDirty, setIsSaveProfilesDirty] = useState(false);
+  const [pendingProfileClearScope, setPendingProfileClearScope] = useState('');
   const [isPreviewToFeedDirty, setIsPreviewToFeedDirty] = useState(false);
   const [investmentProfileDraft, setInvestmentProfileDraft] = useState(() => normalizeInvestmentDraft(professionalProfile?.investmentProfile));
   const [investmentModalOpen, setInvestmentModalOpen] = useState(false);
@@ -1343,8 +1344,10 @@ export function Onboarding({
     setSelectedSkills([]);
     setSelectedServices([]);
     setPitch('');
+    setCardPriorityA('');
     setIsSaveProfilesDirty(true);
     setSaveProfilesBaseline('');
+    setPendingProfileClearScope('A');
   };
 
   const clearProfileBFields = () => {
@@ -1362,8 +1365,10 @@ export function Onboarding({
     setSelectedSkillsB([]);
     setSelectedServicesB([]);
     _setPitchB('');
+    setCardPriorityB('');
     setIsSaveProfilesDirty(true);
     setSaveProfilesBaseline('');
+    setPendingProfileClearScope('B');
   };
 
   useEffect(() => {
@@ -2474,7 +2479,15 @@ export function Onboarding({
   }, [isMobileViewport, mobileStepOrder, mobileStepCompletionMap]);
 
   const handleSaveProfiles = () => {
-    const validation = validateMinimumProfileCompletion();
+    const allowExplicitProfileClearSave = Boolean(pendingProfileClearScope && isSaveProfilesDirty);
+    const validation = allowExplicitProfileClearSave
+      ? {
+        valid: true,
+        primaryProfile: pendingProfileClearScope,
+        profileAComplete: false,
+        profileBComplete: false,
+      }
+      : validateMinimumProfileCompletion();
     if (!validation.valid) return;
 
     // Permite qualquer perfil ser neutro/não ativo, apenas impede duplicidade
@@ -2520,6 +2533,29 @@ export function Onboarding({
           ...(professionalProfile || {}),
           // FSBO mode can still expose Business profile (B), so priorities must remain
           // synchronized across both profile stores to avoid stale payload hydration.
+          // Keep B fields scoped here too; otherwise FSBO edits can rehydrate stale
+          // secondary-profile identity/media from a previous save.
+          fullNameB: nameB || '',
+          fullName: nameB || '',
+          locB: normalizeUsStateCode(locB),
+          photoB: profileThumbB || '',
+          photoBUrl: profileThumbB || '',
+          photo: profileThumbB || '',
+          categoryB: primaryCategoryB,
+          primaryCategoryB,
+          goalB,
+          categoriesB: selectedCategoriesB,
+          auxiliaryCategoriesB: selectedCategoriesB.filter((c) => c !== primaryCategoryB),
+          marketsB: selectedMarketsB,
+          skillsB: selectedSkillsB,
+          servicesB: selectedServicesB,
+          pitchB: pitchB || '',
+          phoneB: personalPrimaryPhoneB,
+          primaryPhoneB: personalPrimaryPhoneB,
+          secondaryPhoneB: personalSecondaryPhoneB,
+          tertiaryPhoneB: personalTertiaryPhoneB,
+          emailB: personalEmailB,
+          contactMethodsB,
           cardPriorityA: '',
           cardPriorityAExplicit: false,
           cardPriorityB: safeCardPriorities.B,
@@ -2646,6 +2682,7 @@ export function Onboarding({
       setTimeout(() => setPublishToast(''), 2200);
       setSaveProfilesBaseline(saveProfilesFingerprint);
       setIsSaveProfilesDirty(false);
+      setPendingProfileClearScope('');
       setBasicRequiredMsg('');
       clearInlineValidationHint();
 
@@ -2724,7 +2761,7 @@ export function Onboarding({
       type: selectedProfile?.label || 'Business',
       location: finalLocation,
       badge: selectedProfile?.label || 'Business',
-      photo: useProfileB ? (profileThumbB || profileThumb || '') : (profileThumb || profileThumbB || ''),
+      photo: useProfileB ? (profileThumbB || '') : (profileThumb || ''),
     });
 
     if (accountType === 'fsbo_owner') {

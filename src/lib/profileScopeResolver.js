@@ -100,8 +100,7 @@ export function resolveScopedProfile(scope, {
       photo: pickString(
         professional.photoB,
         professional.photoBUrl,
-        professional.photo,
-        user.photo
+        professional.photo
       ),
       categoryId: pickString(
         professional.primaryCategoryB,
@@ -146,8 +145,7 @@ export function resolveScopedProfile(scope, {
     ),
     photo: pickString(
       professional.photoA,
-      personal.photo,
-      user.photo
+      personal.photo
     ),
     categoryId: pickString(
       professional.primaryCategory,
