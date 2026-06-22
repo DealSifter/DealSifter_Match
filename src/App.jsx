@@ -288,10 +288,9 @@ const writeCookieConsent = (choice = 'accepted') => {
 };
 
 const readLgpdConsent = (userId = '') => {
-  const keys = [
-    userId ? `${LGPD_CONSENT_KEY}:${userId}` : '',
-    LGPD_CONSENT_KEY,
-  ].filter(Boolean);
+  const keys = userId
+    ? [`${LGPD_CONSENT_KEY}:${userId}`]
+    : [LGPD_CONSENT_KEY];
   try {
     return keys.some((key) => {
       const raw = localStorage.getItem(key);
@@ -1431,6 +1430,26 @@ export default function App() {
     _setPage((prev) => prev === 'landing' || !prev ? 'dashboard' : prev);
   }, []);
 
+  const handleEmailConfirmedNeedsLogin = useCallback((email = '') => {
+    setModal(null);
+    setAuthSession(null);
+    setIsAdmin(false);
+    _setPage('landing');
+    try {
+      localStorage.removeItem('authSession');
+      localStorage.setItem('ds_last_page', 'landing');
+    } catch { /* no-op */ }
+    window.setTimeout(() => openAuthModal('login'), 0);
+    addToast({
+      type: 'success',
+      title: 'Email confirmed',
+      message: email
+        ? `Your email ${email} was confirmed. Sign in to continue.`
+        : 'Your email was confirmed. Sign in to continue.',
+      duration: 6500,
+    });
+  }, [addToast, openAuthModal]);
+
   const {
     isAuthBootstrapping,
     isAuthProcessing,
@@ -1450,6 +1469,7 @@ export default function App() {
     safeLogError,
     onAuthenticated: handleAuthenticatedNavigation,
     onSessionRestored: handleSessionRestored,
+    onEmailConfirmedNeedsLogin: handleEmailConfirmedNeedsLogin,
   });
 
   useEffect(() => {
@@ -1464,7 +1484,7 @@ export default function App() {
       try {
         const url = new URL(window.location.href);
         let changed = false;
-        ['code', 'error', 'error_code', 'error_description', 'state'].forEach((key) => {
+        ['code', 'type', 'error', 'error_code', 'error_description', 'state'].forEach((key) => {
           if (url.searchParams.has(key)) {
             url.searchParams.delete(key);
             changed = true;
@@ -1600,9 +1620,7 @@ export default function App() {
   const dismissToast = (id) => setToasts((prev) => prev.filter((t) => t.id !== id));
 
   // LGPD consent state
-  const [lgpdConsent, setLgpdConsent] = useState(() => {
-    return readLgpdConsent();
-  });
+  const [lgpdConsent, setLgpdConsent] = useState(false);
   const [lgpdConsentChecked, setLgpdConsentChecked] = useState(false);
 
   // Cookie consent state (landing page banner)
@@ -1658,7 +1676,7 @@ export default function App() {
     if (!userId) {
       const timer = window.setTimeout(() => {
         if (cancelled) return;
-        setLgpdConsent(readLgpdConsent());
+        setLgpdConsent(false);
         setLgpdConsentChecked(true);
       }, 0);
       return () => {
@@ -1670,7 +1688,7 @@ export default function App() {
     const timer = window.setTimeout(() => {
       if (cancelled) return;
       const localAccepted = readLgpdConsent(userId);
-      if (localAccepted) setLgpdConsent(true);
+      setLgpdConsent(localAccepted);
       setLgpdConsentChecked(false);
 
       if (!isSupabaseConfigured || !supabase) {

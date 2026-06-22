@@ -12,6 +12,24 @@ export const mapSupabaseUserToSession = (user, mode = 'login', provider = 'supab
   emailVerified: !!user?.email_confirmed_at,
 });
 
+const getAuthCallbackType = () => {
+  if (typeof window === 'undefined') return '';
+  try {
+    const url = new URL(window.location.href);
+    const searchType = String(url.searchParams.get('type') || '').toLowerCase();
+    if (searchType) return searchType;
+    const hashParams = new URLSearchParams(String(url.hash || '').replace(/^#/, ''));
+    return String(hashParams.get('type') || '').toLowerCase();
+  } catch {
+    return '';
+  }
+};
+
+const isEmailConfirmationCallback = () => {
+  const type = getAuthCallbackType();
+  return type === 'signup' || type === 'email';
+};
+
 export function useAuthSession({
   authSession,
   setAuthSession,
@@ -24,11 +42,13 @@ export function useAuthSession({
   safeLogError,
   onAuthenticated,
   onSessionRestored,
+  onEmailConfirmedNeedsLogin,
 }) {
   const [isAuthBootstrapping, setIsAuthBootstrapping] = useState(() => Boolean(isSupabaseConfigured && supabase));
   const [isAuthProcessing, setIsAuthProcessing] = useState(false);
   const [isForgotPasswordProcessing, setIsForgotPasswordProcessing] = useState(false);
   const lastKnownAuthSessionRef = useRef(authSession || null);
+  const emailConfirmationHandledRef = useRef(false);
 
   useEffect(() => {
     lastKnownAuthSessionRef.current = authSession || null;
@@ -61,12 +81,29 @@ export function useAuthSession({
       lastKnownAuthSessionRef.current = null;
     };
 
+    const forceLoginAfterEmailConfirmation = async (session) => {
+      if (!active || emailConfirmationHandledRef.current) return true;
+      if (!isEmailConfirmationCallback()) return false;
+
+      emailConfirmationHandledRef.current = true;
+      const email = String(session?.user?.email || '').trim();
+      clearSession();
+      try {
+        await supabase.auth.signOut({ scope: 'local' });
+      } catch {
+        try { await supabase.auth.signOut(); } catch { /* no-op */ }
+      }
+      onEmailConfirmedNeedsLogin?.(email);
+      return true;
+    };
+
     const applySession = async (session) => {
       if (!active) return;
       const user = session?.user;
       if (!user) {
         return;
       }
+      if (await forceLoginAfterEmailConfirmation(session)) return;
 
       const next = mapSupabaseUserToSession(user, 'login', 'supabase');
       lastKnownAuthSessionRef.current = next;
@@ -115,7 +152,7 @@ export function useAuthSession({
       active = false;
       data.subscription.unsubscribe();
     };
-  }, [applySystemAccountFromSession, onSessionRestored, safeLogError, setAuthSession, setIsAdmin]);
+  }, [applySystemAccountFromSession, onEmailConfirmedNeedsLogin, onSessionRestored, safeLogError, setAuthSession, setIsAdmin]);
 
   const handleAuthSubmit = useCallback(async (payload) => {
     if (isSupabaseConfigured && supabase) {
