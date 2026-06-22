@@ -885,14 +885,16 @@ const buildDbOwnerPreview = ({ ownerId, scope, userRow, personalRow, professiona
   );
 
   const type = pickFirstString(
-    payloadScope?.pitch,
     payloadScope?.categoryLabelFallback,
-    payloadProfile?.pitchB,
-    payloadProfile?.pitch,
-    professionalRow?.subcategory,
-    professionalRow?.category,
     professionalRow?.primary_category_b,
     professionalRow?.primary_category,
+    professionalRow?.subcategory,
+    professionalRow?.category,
+    payloadProfile?.categoryLabelFallback,
+    payloadProfile?.categoryB,
+    payloadProfile?.category,
+    payloadProfile?.primaryCategoryB,
+    payloadProfile?.primaryCategory,
     userRow?.account_type,
     normalizedScope === 'fsbo' ? 'FSBO' : ''
   );

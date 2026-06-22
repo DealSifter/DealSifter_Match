@@ -1301,6 +1301,7 @@ export function MapView({
   activeSpotlightKeys = new Set(),
   propertyUnlocks = [],
 }) {
+  const enableMockMapData = import.meta.env.DEV && String(import.meta.env.VITE_ENABLE_MOCK_DATA || '').toLowerCase() === 'true';
   const allT = useT('mapview');
   const tMatches = allT.matches;
   const tCards = allT.cards;
@@ -1759,7 +1760,7 @@ export function MapView({
     const mapById = new Map();
 
     const addPeople = (onlyUnlocked = false) => {
-      (import.meta.env.DEV ? CARDS : [])
+      (enableMockMapData ? CARDS : [])
         .filter((card) => (
           card.verified
           && Number.isFinite(card.lat)
@@ -1826,7 +1827,7 @@ export function MapView({
     };
 
     const addProperties = (onlyUnlocked = false) => {
-      (import.meta.env.DEV ? PROPERTIES : [])
+      (enableMockMapData ? PROPERTIES : [])
         .filter((property) => (
           Number.isFinite(property.lat)
           && Number.isFinite(property.lng)
@@ -1889,7 +1890,7 @@ export function MapView({
     }
 
     return Array.from(mapById.values());
-  }, [showPeople, showProperties, showOnlyMyPins, showcaseProperties, geocodeCache, pinOverrides, isUnlockedId, currentUserId]);
+  }, [enableMockMapData, showPeople, showProperties, showOnlyMyPins, showcaseProperties, geocodeCache, pinOverrides, isUnlockedId, currentUserId]);
 
   const realUserPoints = useMemo(() => {
     return (showcaseProperties || [])
@@ -2288,13 +2289,13 @@ export function MapView({
 
   const unlockPropertySource = useMemo(() => {
     const byId = new Map();
-    [...(propertyPortfolio || []), ...(showcaseProperties || []), ...(import.meta.env.DEV ? (PROPERTIES || []) : [])].forEach((property, idx) => {
+    [...(propertyPortfolio || []), ...(showcaseProperties || []), ...(enableMockMapData ? (PROPERTIES || []) : [])].forEach((property, idx) => {
       if (!property) return;
       const key = String(property.id || property.portfolioId || `${property.ownerId || 'owner'}:${idx}`);
       if (!byId.has(key)) byId.set(key, property);
     });
     return Array.from(byId.values());
-  }, [propertyPortfolio, showcaseProperties]);
+  }, [enableMockMapData, propertyPortfolio, showcaseProperties]);
 
   const getUnlockCost = (personId) => {
     return getPortfolioUnlockCost(personId, unlockPropertySource, servicePortfolio || []);

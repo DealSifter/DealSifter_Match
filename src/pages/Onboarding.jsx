@@ -3837,7 +3837,7 @@ export function Onboarding({
                       </label>
                     </div>
                     {serviceImages.length > 0 && (
-                      <div style={{ marginBottom: 10, display: 'flex', gap: 6, overflowX: 'auto', padding: '2px 0 6px' }}>
+                      <div style={{ position: 'relative', zIndex: 1, flex: '0 0 auto', minHeight: 84, marginTop: 4, marginBottom: 14, display: 'flex', gap: 6, overflowX: 'auto', overflowY: 'hidden', padding: '4px 0 8px', clear: 'both' }}>
                         {serviceImages.map((src, idx) => (
                           <div key={`service-upload-preview-${idx}`} style={{ position: 'relative', borderRadius: 8, overflow: 'hidden', background: C.alpha(C.t1, 0.02), border: `1px solid ${C.border}`, display: 'flex', alignItems: 'center', justifyContent: 'center', width: 120, height: 72, flex: '0 0 120px' }}>
                             <SmartImage src={src} alt={`service-img-${idx + 1}`} style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }} />

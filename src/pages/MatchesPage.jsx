@@ -2384,7 +2384,8 @@ export function MatchesPage({ nuggets, setModal, openUnlock, unlocked, initialCh
 
   const activeOwnerExclusiveStatus = useMemo(() => {
     if (!activeOwner?.id || isActiveProperty) return null;
-    return getOwnerExclusiveStatus(activeOwner.id);
+    const status = getOwnerExclusiveStatus(activeOwner.id);
+    return status?.kind === 'owned' ? status : null;
   }, [activeOwner?.id, getOwnerExclusiveStatus, isActiveProperty]);
 
   const getUnlockCost = useCallback((ownerId) => {
@@ -2845,6 +2846,7 @@ export function MatchesPage({ nuggets, setModal, openUnlock, unlocked, initialCh
                     ? convos[m.id].filter((message) => message?.from !== 'me').length
                     : 0;
                   const ownerExclusiveStatus = getOwnerExclusiveStatus(m.ownerId || m.unlockOwnerId || m.id);
+                  const showOwnedOwnerExclusiveStatus = ownerExclusiveStatus?.kind === 'owned' ? ownerExclusiveStatus : null;
                   const seenIncomingCount = seenIncomingByContact[m.id] || 0;
                   const contactUnreadCount = Math.max(0, contactIncomingCount - seenIncomingCount);
                   const isArchivedRow = contactKeys.some((key) => archivedContacts.has(key));
@@ -2868,7 +2870,7 @@ export function MatchesPage({ nuggets, setModal, openUnlock, unlocked, initialCh
                               {t.professionalBadge || 'Business'}
                             </span>
                           ) : null}
-                          {ownerExclusiveStatus?.expiresAt ? (
+                          {showOwnedOwnerExclusiveStatus?.expiresAt ? (
                             <CardStatusIcon type={CARD_STATUS.exclusive} size={20} iconSize={12} />
                           ) : null}
                         </div>

@@ -806,7 +806,7 @@ export function Dashboard({ page, nuggets, setModal, setPage, onOpenOnboardingTa
       const name = String(ownerPreview?.name || '').trim();
       if (!name) return null;
       const type = String(ownerPreview?.type || firstService?.category || '').trim();
-      const desc = String(firstService?.description || firstProperty?.description || '').trim();
+      const desc = String(firstService?.description || '').trim();
       return {
         id: ownerId,
         ownerId,
