@@ -1503,8 +1503,8 @@ export default function App() {
 
     if (authSession?.userId) {
       cleanupAuthCallbackUrl();
-      setIsAuthCallbackSettling(false);
-      return undefined;
+      const timer = window.setTimeout(() => setIsAuthCallbackSettling(false), 0);
+      return () => window.clearTimeout(timer);
     }
 
     if (isAuthBootstrapping) return undefined;
