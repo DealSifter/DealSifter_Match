@@ -5411,6 +5411,22 @@ export default function App() {
               {(() => {
                 const keepAlivePages = new Set(['dashboard', 'mapview', 'matches', 'onboarding']);
                 if (!keepAlivePages.has(page)) return renderPageContent(page);
+                const shouldHoldDataHydration = Boolean(
+                  authSession
+                  && isSupabaseConfigured
+                  && supabaseUserId
+                  && !dashboardHydrationReady
+                );
+                if (shouldHoldDataHydration) {
+                  return (
+                    <div className="ds-app-boot-screen" role="status" aria-live="polite" aria-label="Loading DealSifter data">
+                      <div className="ds-processing-card">
+                        <img src={loaderMark} alt="DealSifter" className="ds-processing-logo" />
+                        <div className="ds-processing-text">Loading your DealSifter data...</div>
+                      </div>
+                    </div>
+                  );
+                }
 
                 return (
                   <>
