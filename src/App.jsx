@@ -822,6 +822,20 @@ const pickFirstString = (...values) => {
   return '';
 };
 
+const isLikelyNonIdentityName = (value) => {
+  const normalized = String(value || '').trim().toLowerCase();
+  if (!normalized) return false;
+  return normalized === 'd4$' || normalized === 'drive4$';
+};
+
+const pickIdentityName = (...values) => {
+  for (const value of values) {
+    const normalized = String(value || '').trim();
+    if (normalized && !isLikelyNonIdentityName(normalized)) return normalized;
+  }
+  return '';
+};
+
 const getEmailHandle = (email = '') => {
   const handle = String(email || '').split('@')[0] || '';
   return handle.trim();
@@ -863,15 +877,23 @@ const buildDbOwnerPreview = ({ ownerId, scope, userRow, personalRow, professiona
   const isProfessional = normalizedScope === 'professional';
   const userEmail = pickFirstString(userRow?.email);
 
-  const name = pickFirstString(
-    payloadScope?.name,
-    payloadProfile?.fullName,
-    payloadProfile?.fullNameB,
-    isProfessional ? professionalRow?.full_name : '',
-    personalRow?.full_name,
-    userRow?.full_name,
-    getEmailHandle(userEmail)
-  );
+  const name = isProfessional
+    ? pickIdentityName(
+      payloadScope?.name,
+      payloadProfile?.fullName,
+      payloadProfile?.fullNameB,
+      professionalRow?.full_name,
+      personalRow?.full_name,
+      userRow?.full_name,
+      getEmailHandle(userEmail)
+    )
+    : pickIdentityName(
+      personalRow?.full_name,
+      userRow?.full_name,
+      payloadProfile?.fullName,
+      payloadScope?.name,
+      getEmailHandle(userEmail)
+    );
 
   if (!name) return null;
 
@@ -1037,7 +1059,11 @@ const mergeFeedActionItems = (prev, incoming) => {
     }
     const existingIndex = indexById.get(id);
     const existing = next[existingIndex];
-    if (scoreContactPayloadRichness(item) >= scoreContactPayloadRichness(existing)) {
+    const incomingCanonical = ['remote-unlock', 'supabase'].includes(String(item?.source || '').trim());
+    const existingCanonical = ['remote-unlock', 'supabase'].includes(String(existing?.source || '').trim());
+    if (incomingCanonical && !existingCanonical) {
+      next[existingIndex] = { ...(existing || {}), ...(item || {}) };
+    } else if (scoreContactPayloadRichness(item) >= scoreContactPayloadRichness(existing)) {
       next[existingIndex] = { ...(existing || {}), ...(item || {}) };
     }
   });
