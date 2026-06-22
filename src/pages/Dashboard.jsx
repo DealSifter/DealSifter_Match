@@ -704,6 +704,21 @@ export function Dashboard({ page, nuggets, setModal, setPage, onOpenOnboardingTa
     if (normalized === 'primary' || normalized === 'secondary' || normalized === 'tertiary') return normalized;
     return '';
   };
+  const hasPublishableLocalProfileCard = (card) => {
+    if (!card) return false;
+    const ownerId = String(card.ownerId || '').trim();
+    const name = String(card.name || '').trim();
+    if (!ownerId || !name || /^new user$/i.test(name)) return false;
+    return Boolean(
+      String(card.type || '').trim()
+      || String(card.badge || '').trim()
+      || String(card.photo || '').trim()
+      || String(card.primaryPhone || '').trim()
+      || String(card.email || '').trim()
+      || String(card.desc || '').trim()
+      || Number(card.portfolioCount || 0) > 0
+    );
+  };
   const cardPriorityAResolved = accountType === 'fsbo_owner'
     ? ''
     : (professionalProfile?.cardPriorityA || personalProfile?.cardPriorityA || '');
@@ -723,34 +738,40 @@ export function Dashboard({ page, nuggets, setModal, setPage, onOpenOnboardingTa
     const personalPriority = priorityByScopeForFeed.personal;
     if (personalPriority !== '') {
       const cardA = buildLocalProfileCard('personal');
-      cards.push({
-        ...cardA,
-        markets: cardA.markets || [],
-        _priority: personalPriority,
-        _isDimmed: personalPriority === '',
-      });
+      if (hasPublishableLocalProfileCard(cardA)) {
+        cards.push({
+          ...cardA,
+          markets: cardA.markets || [],
+          _priority: personalPriority,
+          _isDimmed: personalPriority === '',
+        });
+      }
     }
     // Card secundário (B)
     const secondaryPriority = priorityByScopeForFeed.professional;
     if (secondaryPriority !== '') {
       const cardB = buildLocalProfileCard('secondary');
-      cards.push({
-        ...cardB,
-        markets: cardB.markets || [],
-        _priority: secondaryPriority,
-        _isDimmed: secondaryPriority === '',
-      });
+      if (hasPublishableLocalProfileCard(cardB)) {
+        cards.push({
+          ...cardB,
+          markets: cardB.markets || [],
+          _priority: secondaryPriority,
+          _isDimmed: secondaryPriority === '',
+        });
+      }
     }
     // Card FSBO (C)
     const fsboPriority = priorityByScopeForFeed.fsbo;
     if (fsboPriority !== '') {
       const cardC = buildLocalProfileCard('fsbo');
-      cards.push({
-        ...cardC,
-        markets: cardC.markets || [],
-        _priority: fsboPriority,
-        _isDimmed: fsboPriority === '',
-      });
+      if (hasPublishableLocalProfileCard(cardC)) {
+        cards.push({
+          ...cardC,
+          markets: cardC.markets || [],
+          _priority: fsboPriority,
+          _isDimmed: fsboPriority === '',
+        });
+      }
     }
     // Static mock cards are useful in local development, but production feeds must
     // come from real published records to avoid showing stale/fantom profiles.
@@ -835,15 +856,6 @@ export function Dashboard({ page, nuggets, setModal, setPage, onOpenOnboardingTa
       }
     });
     // Garante pelo menos 1 card pessoal visível
-    if (!cards.length) {
-      const cardA = buildLocalProfileCard('personal');
-      cards.push({
-        ...cardA,
-        markets: cardA.markets || [],
-        _priority: '',
-        _isDimmed: true,
-      });
-    }
     return [...cards, ...globalCards, ...enriched];
   }, [showcaseProperties, servicePortfolio, buildLocalProfileCard, collectRecordStates, getOwnerIdForKey, currentUserId, priorityByScopeForFeed.personal, priorityByScopeForFeed.professional, priorityByScopeForFeed.fsbo]);
 
