@@ -927,7 +927,7 @@ export function Dashboard({ page, nuggets, setModal, setPage, onOpenOnboardingTa
     } catch {
       return [];
     }
-  }, [showcaseProperties, buildLocalProfileCard, collectRecordStates, getOwnerIdForKey, currentUserId, userProfile?.id]);
+  }, [showcaseProperties, buildLocalProfileCard, collectRecordStates, getOwnerIdForKey, currentUserId, userProfile]);
 
   const findConnectionById = useCallback((id) => {
     const needle = String(id);
@@ -1643,7 +1643,7 @@ export function Dashboard({ page, nuggets, setModal, setPage, onOpenOnboardingTa
         && normalizeProfileScope(s.primaryProfile || 'personal') === profileScope;
     });
     return { properties, services };
-  }, [getOwnerIdForKey, propertyPortfolio, servicePortfolio, currentUserId, userProfile?.id]);
+  }, [getOwnerIdForKey, propertyPortfolio, servicePortfolio, currentUserId, userProfile]);
 
   const countMyCardLinkedCardsForScope = (scopeKey) => {
     const scoped = getMyCardScopedRecords(scopeKey);
