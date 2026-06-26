@@ -603,7 +603,12 @@ export function Dashboard({ page, nuggets, setModal, setPage, onOpenOnboardingTa
     const isOwnerRecord = (record) => {
       if (!record) return false;
       const recordOwnerId = String(record.ownerId || '').trim();
-      return recordOwnerId !== '' && recordOwnerId === String(ownerId);
+      const scopedOwnerId = String(ownerId || '').trim();
+      const sessionOwnerId = String(currentUserId || userProfile?.id || '').trim();
+      return Boolean(recordOwnerId) && (
+        (scopedOwnerId && recordOwnerId === scopedOwnerId)
+        || (sessionOwnerId && recordOwnerId === sessionOwnerId)
+      );
     };
     const scopedProperties = (showcaseProperties || []).filter((p) => (
       isOwnerRecord(p)
@@ -687,7 +692,7 @@ export function Dashboard({ page, nuggets, setModal, setPage, onOpenOnboardingTa
       desc: (profileDescription && normalizedProfileDescription !== normalizedTypeLabel)
         ? profileDescription
         : '',
-      portfolioCount: scopedProperties.length,
+      portfolioCount: scopedProperties.length + scopedServices.length,
       primaryProfile: profileScope,
       markets: scopedMarkets,
       contactMethods: scopedIdentity?.contactMethods || [],
@@ -697,7 +702,7 @@ export function Dashboard({ page, nuggets, setModal, setPage, onOpenOnboardingTa
       email: scopedIdentity?.email || '',
       verified: scopedIdentity?.verified === true,
     };
-  }, [accountType, userProfile, personalProfile, professionalProfile, showcaseProperties, servicePortfolio, getOwnerIdForKey, collectRecordStates, parseStateCode]);
+  }, [accountType, currentUserId, userProfile, personalProfile, professionalProfile, showcaseProperties, servicePortfolio, getOwnerIdForKey, collectRecordStates, parseStateCode]);
   const normalizeCardPriority = (value) => {
     const normalized = String(value || '').trim().toLowerCase();
     if (!normalized || normalized === 'select') return '';
@@ -870,7 +875,13 @@ export function Dashboard({ page, nuggets, setModal, setPage, onOpenOnboardingTa
       // IDs dos cards mockados
       const mockOwnerIds = (CARDS || []).map(c => String(c.id));
       // Imóveis reais do usuário
-      const localOwnerIds = [String(personalOwnerId), String(secondaryOwnerId), String(fsboOwnerId)];
+      const localOwnerIds = [
+        String(personalOwnerId || ''),
+        String(secondaryOwnerId || ''),
+        String(fsboOwnerId || ''),
+        String(currentUserId || ''),
+        String(userProfile?.id || ''),
+      ].filter(Boolean);
       const userProperties = (showcaseProperties || [])
         .filter((p) => {
           if (!isTruthyFlag(p.publishToShowcase, true)) return false;
@@ -916,7 +927,7 @@ export function Dashboard({ page, nuggets, setModal, setPage, onOpenOnboardingTa
     } catch {
       return [];
     }
-  }, [showcaseProperties, buildLocalProfileCard, collectRecordStates, getOwnerIdForKey]);
+  }, [showcaseProperties, buildLocalProfileCard, collectRecordStates, getOwnerIdForKey, currentUserId, userProfile?.id]);
 
   const findConnectionById = useCallback((id) => {
     const needle = String(id);
@@ -1540,7 +1551,12 @@ export function Dashboard({ page, nuggets, setModal, setPage, onOpenOnboardingTa
     const isOwnerRecord = (record) => {
       if (!record) return false;
       const recordOwnerId = String(record.ownerId || '').trim();
-      return recordOwnerId !== '' && recordOwnerId === String(ownerId || '');
+      const scopedOwnerId = String(ownerId || '').trim();
+      const sessionOwnerId = String(currentUserId || userProfile?.id || '').trim();
+      return Boolean(recordOwnerId) && (
+        (scopedOwnerId && recordOwnerId === scopedOwnerId)
+        || (sessionOwnerId && recordOwnerId === sessionOwnerId)
+      );
     };
     const propertiesCount = (propertyPortfolio || []).filter((p) => (
       isOwnerRecord(p)
@@ -1567,6 +1583,7 @@ export function Dashboard({ page, nuggets, setModal, setPage, onOpenOnboardingTa
       String(getOwnerIdForKey('personal')),
       String(getOwnerIdForKey('secondary')),
       String(getOwnerIdForKey('fsbo')),
+      String(currentUserId || userProfile?.id || ''),
     ]);
 
     const isOwnerRecord = (record) => {
@@ -1604,7 +1621,11 @@ export function Dashboard({ page, nuggets, setModal, setPage, onOpenOnboardingTa
     const ownerId = String(getOwnerIdForKey(scopeKey) || '').trim();
     const isScopedOwnerRecord = (record) => {
       const recordOwnerId = String(record?.ownerId || '').trim();
-      return Boolean(ownerId) && Boolean(recordOwnerId) && recordOwnerId === ownerId;
+      const sessionOwnerId = String(currentUserId || userProfile?.id || '').trim();
+      return Boolean(recordOwnerId) && (
+        (Boolean(ownerId) && recordOwnerId === ownerId)
+        || (Boolean(sessionOwnerId) && recordOwnerId === sessionOwnerId)
+      );
     };
     // Use propertyPortfolio for real-time state (not showcaseProperties)
     // Filter by show in = ON and matching profile scope.
@@ -1622,7 +1643,7 @@ export function Dashboard({ page, nuggets, setModal, setPage, onOpenOnboardingTa
         && normalizeProfileScope(s.primaryProfile || 'personal') === profileScope;
     });
     return { properties, services };
-  }, [getOwnerIdForKey, propertyPortfolio, servicePortfolio]);
+  }, [getOwnerIdForKey, propertyPortfolio, servicePortfolio, currentUserId, userProfile?.id]);
 
   const countMyCardLinkedCardsForScope = (scopeKey) => {
     const scoped = getMyCardScopedRecords(scopeKey);
