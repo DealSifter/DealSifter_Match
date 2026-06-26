@@ -12,6 +12,7 @@ import { CardStatusBadge, CardStatusIcon } from '../components/ui/CardStatusIndi
 import { CARD_STATUS, pickPriorityStatus } from '../components/ui/cardStatusTokens';
 import { useMediaQuery } from '../hooks/useMediaQuery';
 import { getPortfolioItemCount, getPortfolioUnlockCost, getPropertyExclusivityStatus } from '../lib/unlockRules';
+import { normalizeProfileScope } from '../lib/profileScopeResolver';
 
 const DEFAULT_CENTER = [39.5, -98.35];
 const DEFAULT_ZOOM = 4;
@@ -1330,6 +1331,9 @@ export function MapView({
   propertyPortfolio = [],
   servicePortfolio = [],
   userProfile,
+  accountType = 'professional',
+  personalProfile = null,
+  professionalProfile = null,
   currentUserId = 'local-user',
   onUpdatePropertyCoords,
   userPreferences = null,
@@ -1352,6 +1356,31 @@ export function MapView({
   const mapUiStateRef = React.useRef(initialMapUiState || {});
   const unlockedIds = useMemo(() => (Array.isArray(unlocked) ? unlocked : []), [unlocked]);
   const isUnlockedId = useCallback((id) => unlockedIds.includes(id), [unlockedIds]);
+  const normalizeCardPriority = useCallback((value) => {
+    const normalized = String(value || '').trim().toLowerCase();
+    if (normalized === 'primary' || normalized === 'secondary' || normalized === 'tertiary') return normalized;
+    return '';
+  }, []);
+  const publishedLocalProfileScopes = useMemo(() => {
+    const priorityA = accountType === 'fsbo_owner'
+      ? ''
+      : normalizeCardPriority(professionalProfile?.cardPriorityA || personalProfile?.cardPriorityA || '');
+    const priorityB = normalizeCardPriority(professionalProfile?.cardPriorityB || '');
+    const priorityC = normalizeCardPriority(accountType === 'fsbo_owner'
+      ? (personalProfile?.cardPriorityC || professionalProfile?.cardPriorityC || '')
+      : (professionalProfile?.cardPriorityC || personalProfile?.cardPriorityC || ''));
+    return new Set([
+      priorityA ? 'personal' : '',
+      priorityB ? 'professional' : '',
+      priorityC ? 'fsbo' : '',
+    ].filter(Boolean));
+  }, [accountType, normalizeCardPriority, personalProfile, professionalProfile]);
+  const isLocalPublishedRecord = useCallback((record) => {
+    const ownerId = String(record?.ownerId || '').trim();
+    const isLocal = ownerId && ownerId === String(currentUserId || '').trim();
+    if (!isLocal) return true;
+    return publishedLocalProfileScopes.has(normalizeProfileScope(record?.primaryProfile || 'personal'));
+  }, [currentUserId, publishedLocalProfileScopes]);
   const [showPeople, setShowPeople] = useState(() => initialMapUiState.showPeople ?? Boolean(preferredDefaultFilters.showPeople ?? true));
   const [showProperties, setShowProperties] = useState(() => initialMapUiState.showProperties ?? Boolean(preferredDefaultFilters.showProperties ?? true));
   const [showOnlyUnlocked, setShowOnlyUnlocked] = useState(() => initialMapUiState.showOnlyUnlocked ?? Boolean(preferredDefaultFilters.showOnlyUnlocked ?? false));
@@ -1823,6 +1852,8 @@ export function MapView({
     const addPublishedPeople = (onlyUnlocked = false) => {
       const byOwner = new Map();
       (showcaseProperties || []).forEach((property) => {
+        if (!isTruthyFlag(property?.publishToShowcase, true)) return;
+        if (!isLocalPublishedRecord(property)) return;
         const ownerId = String(property?.ownerId || '').trim();
         const ownerPreview = property?.ownerPreview && typeof property.ownerPreview === 'object'
           ? property.ownerPreview
@@ -1864,6 +1895,7 @@ export function MapView({
     const addPublishedServicePeople = (onlyUnlocked = false) => {
       const byOwner = new Map();
       (servicePortfolio || []).forEach((service) => {
+        if (!isLocalPublishedRecord(service)) return;
         const ownerId = String(service?.ownerId || '').trim();
         const ownerPreview = service?.ownerPreview && typeof service.ownerPreview === 'object'
           ? service.ownerPreview
@@ -1936,6 +1968,8 @@ export function MapView({
     // Add globally published properties while preserving their real owner.
     const addPublishedProperties = (onlyMine = false) => {
       (showcaseProperties || []).forEach((property) => {
+        if (!isTruthyFlag(property?.publishToShowcase, true)) return;
+        if (!isLocalPublishedRecord(property)) return;
         const isOwnProperty = String(property?.ownerId || '') === String(currentUserId || '')
           || String(property?.ownerId || '') === '999999';
         if (onlyMine && !isOwnProperty) return;
@@ -1974,10 +2008,12 @@ export function MapView({
     }
 
     return Array.from(mapById.values());
-  }, [enableMockMapData, showPeople, showProperties, showOnlyMyPins, showcaseProperties, servicePortfolio, geocodeCache, pinOverrides, isUnlockedId, currentUserId]);
+  }, [enableMockMapData, showPeople, showProperties, showOnlyMyPins, showcaseProperties, servicePortfolio, geocodeCache, pinOverrides, isUnlockedId, currentUserId, isLocalPublishedRecord]);
 
   const realUserPoints = useMemo(() => {
     return (showcaseProperties || [])
+      .filter((property) => isTruthyFlag(property?.publishToShowcase, true))
+      .filter(isLocalPublishedRecord)
       .map((property) => {
         const coords = resolvePropertyCoords(property, geocodeCache, pinOverrides);
         if (!hasValidCoords(coords)) return null;
@@ -1994,7 +2030,7 @@ export function MapView({
         };
       })
       .filter(Boolean);
-  }, [showcaseProperties, geocodeCache, pinOverrides, currentUserId, isUnlockedId]);
+  }, [showcaseProperties, geocodeCache, pinOverrides, currentUserId, isUnlockedId, isLocalPublishedRecord]);
 
   const getLocationMeta = (item, isPerson) => {
     const rawLocation = isPerson ? item?.loc : item?.city;
@@ -2028,9 +2064,9 @@ export function MapView({
     if (showOnlyUnlocked && !showOnlyMyPins) return [];
     if (!showcaseProperties?.length) return [];
     return showcaseProperties.filter(
-      (prop) => !resolvePropertyCoords(prop, geocodeCache, pinOverrides)
+      (prop) => isTruthyFlag(prop?.publishToShowcase, true) && isLocalPublishedRecord(prop) && !resolvePropertyCoords(prop, geocodeCache, pinOverrides)
     );
-  }, [showcaseProperties, geocodeCache, pinOverrides, showOnlyUnlocked, showOnlyMyPins]);
+  }, [showcaseProperties, geocodeCache, pinOverrides, showOnlyUnlocked, showOnlyMyPins, isLocalPublishedRecord]);
 
   React.useEffect(() => {
     if (showOnlyMyPins) return;

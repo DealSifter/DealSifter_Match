@@ -14,7 +14,7 @@ import { Chip, MarketsSelector, SectionCard } from '../components/onboarding/Onb
 import { useT } from '../i18n/translations';
 // removed unused import: toggleHidden
 import { genId } from '../lib/id';
-import { createFsboProperty, createProfessionalProperty, isFsboPropertyRecord } from '../lib/propertyFactory';
+import { createFsboProperty, createProfessionalProperty } from '../lib/propertyFactory';
 import { validateFsboPropertyDraft, validateProfessionalPropertyDraft } from '../lib/propertyValidation';
 import { getPortfolioVideoBlob, setPortfolioVideoBlob, clearPortfolioVideoBlob } from '../lib/localforageHelper';
 import { getMatchPressure } from '../lib/matchPressure';
@@ -446,12 +446,8 @@ export function Onboarding({
   );
 
   const myPortfolio = useMemo(() => (
-    propertyPortfolio.filter((p) => {
-      if (!isOwnPropertyRecord(p)) return false;
-      const isFsbo = isFsboPropertyRecord(p);
-      return accountType === 'fsbo_owner' ? isFsbo : !isFsbo;
-    })
-  ), [propertyPortfolio, accountType]);
+    propertyPortfolio.filter((p) => isOwnPropertyRecord(p))
+  ), [propertyPortfolio]);
   const previewPropertiesCount = useMemo(
     () => (myPortfolio || []).filter((p) => isPropertyVisibleInPreview(p)).length,
     [myPortfolio]
@@ -483,10 +479,8 @@ export function Onboarding({
   }, [propertiesForPreview]);
 
   const myServicePortfolio = useMemo(
-    () => (accountType === 'fsbo_owner'
-      ? []
-      : (servicePortfolio || []).filter((service) => isOwnServiceRecord(service))),
-    [servicePortfolio, accountType]
+    () => (servicePortfolio || []).filter((service) => isOwnServiceRecord(service)),
+    [servicePortfolio]
   );
   const servicesForPreview = useMemo(() => (
     dedupePreviewRecords((myServicePortfolio || []).filter((s) => isServiceVisibleInPreview(s)), 'service')
@@ -1588,7 +1582,6 @@ export function Onboarding({
     setPropertyPortfolio((prev) => {
       const scoped = prev.filter((x) => (
         String(x.ownerId || '') === String(getPublishOwnerId() || '')
-        && (accountType === 'fsbo_owner' ? isFsboPropertyRecord(x) : !isFsboPropertyRecord(x))
       ));
       const fromItem = scoped[fromIdx];
       const toItem = scoped[toIdx];

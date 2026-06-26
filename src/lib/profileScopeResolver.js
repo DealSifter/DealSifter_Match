@@ -132,57 +132,40 @@ export function resolveScopedProfile(scope, {
 
   return {
     scope: normalizedScope,
-    name: pickString(
-      professional.fullNameA,
-      personal.fullName,
-      user.name,
-      isFsboScope ? 'FSBO Profile' : 'New User'
-    ),
-    loc: pickString(
-      professional.locA,
-      personal.loc,
-      user.location
-    ),
-    photo: pickString(
-      professional.photoA,
-      personal.photo
-    ),
-    categoryId: pickString(
-      professional.primaryCategory,
-      professional.category,
-      user.category
-    ),
+    name: isFsboScope
+      ? pickString(personal.fullName, user.name, 'FSBO Profile')
+      : pickString(professional.fullNameA, personal.fullName, user.name, 'New User'),
+    loc: isFsboScope
+      ? pickString(personal.loc, user.location)
+      : pickString(professional.locA, personal.loc, user.location),
+    photo: isFsboScope
+      ? pickString(personal.photo)
+      : pickString(professional.photoA, personal.photo),
+    categoryId: isFsboScope
+      ? 'fsbo'
+      : pickString(professional.primaryCategory, professional.category, user.category),
     categoryLabelFallback: isFsboScope
       ? 'FSBO'
       : pickString(user.type, professional.category),
     badge: isFsboScope ? 'FSBO' : pickString(user.badge),
-    pitch: pickString(
-      professional.pitch,
-      user.type,
-      isFsboScope ? 'FSBO' : ''
-    ),
-    contactMethods: pickArray(
-      professional.contactMethodsA,
-      personal.contactMethods
-    ),
-    primaryPhone: pickString(
-      professional.primaryPhoneA,
-      professional.phoneA,
-      personal.primaryPhone,
-      personal.phone
-    ),
-    secondaryPhone: pickString(
-      professional.secondaryPhoneA,
-      personal.secondaryPhone
-    ),
-    tertiaryPhone: pickString(
-      professional.tertiaryPhoneA,
-      personal.tertiaryPhone
-    ),
-    email: pickString(
-      professional.emailA,
-      personal.email
-    ),
+    pitch: isFsboScope
+      ? pickString(personal.bio, personal.pitch, 'FSBO')
+      : pickString(professional.pitch, user.type),
+    contactMethods: isFsboScope
+      ? pickArray(personal.contactMethods)
+      : pickArray(professional.contactMethodsA, personal.contactMethods),
+    primaryPhone: isFsboScope
+      ? pickString(personal.primaryPhone, personal.phone)
+      : pickString(professional.primaryPhoneA, professional.phoneA, personal.primaryPhone, personal.phone),
+    secondaryPhone: isFsboScope
+      ? pickString(personal.secondaryPhone)
+      : pickString(professional.secondaryPhoneA, personal.secondaryPhone),
+    tertiaryPhone: isFsboScope
+      ? pickString(personal.tertiaryPhone)
+      : pickString(professional.tertiaryPhoneA, personal.tertiaryPhone),
+    email: isFsboScope
+      ? pickString(personal.email)
+      : pickString(professional.emailA, personal.email),
     cardPriority: isFsboScope
       ? (String(accountType || '').trim() === 'fsbo_owner'
         ? pickString(

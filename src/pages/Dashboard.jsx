@@ -714,6 +714,7 @@ export function Dashboard({ page, nuggets, setModal, setPage, onOpenOnboardingTa
     const ownerId = String(card.ownerId || '').trim();
     const name = String(card.name || '').trim();
     if (!ownerId || !name || /^new user$/i.test(name)) return false;
+    if (Number(card.portfolioCount || 0) <= 0) return false;
     return Boolean(
       String(card.type || '').trim()
       || String(card.badge || '').trim()
@@ -735,6 +736,11 @@ export function Dashboard({ page, nuggets, setModal, setPage, onOpenOnboardingTa
     professional: normalizeCardPriority(professionalProfile?.cardPriorityB || ''),
     fsbo: normalizeCardPriority(cardPriorityCResolved),
   };
+  const publishedProfileScopeSet = useMemo(() => new Set(
+    Object.entries(priorityByScopeForFeed)
+      .filter(([, priority]) => Boolean(priority))
+      .map(([scope]) => normalizeProfileScope(scope))
+  ), [priorityByScopeForFeed.personal, priorityByScopeForFeed.professional, priorityByScopeForFeed.fsbo]);
 
   const connectionCards = useMemo(() => {
     // Inclui sempre o card pessoal (A) e, se existir, o secundário (B), desde que não estejam em 'select'.
@@ -886,10 +892,11 @@ export function Dashboard({ page, nuggets, setModal, setPage, onOpenOnboardingTa
         .filter((p) => {
           if (!isTruthyFlag(p.publishToShowcase, true)) return false;
           if (p?.dealClosed === true || isPendingDealExpired(p)) return false;
-          // Do NOT filter by activeFeedScopeSet: user properties with publishToShowcase=true
-          // must always appear in the showcase deck regardless of whether their scope's card
-          // priority has been configured in onboarding. The scope filter was blocking valid
-          // published properties when only one profile scope had a priority assigned.
+          const propertyOwnerId = String(p?.ownerId || '').trim();
+          const isLocalProperty = propertyOwnerId && localOwnerIds.includes(propertyOwnerId);
+          if (isLocalProperty) {
+            return publishedProfileScopeSet.has(normalizeProfileScope(p.primaryProfile || 'personal'));
+          }
           return true;
         });
       // Imóveis mockados (vinculados aos cards fakes)
@@ -900,12 +907,9 @@ export function Dashboard({ page, nuggets, setModal, setPage, onOpenOnboardingTa
       return [
         ...userProperties.map((p) => {
           const normalizedScope = normalizeProfileScope(p.primaryProfile || 'personal');
-          const isFsboProperty = p.ownerAccountType === 'fsbo_owner'
-            || p.dealTag === 'FSBO'
-            || p.source === 'fsbo';
           const scopeKey = normalizedScope === 'professional'
             ? 'secondary'
-            : (normalizedScope === 'fsbo' || isFsboProperty ? 'fsbo' : 'personal');
+            : (normalizedScope === 'fsbo' ? 'fsbo' : 'personal');
           return {
             ...p,
             _source: 'property',
@@ -927,7 +931,7 @@ export function Dashboard({ page, nuggets, setModal, setPage, onOpenOnboardingTa
     } catch {
       return [];
     }
-  }, [showcaseProperties, buildLocalProfileCard, collectRecordStates, getOwnerIdForKey, currentUserId, userProfile]);
+  }, [showcaseProperties, buildLocalProfileCard, collectRecordStates, getOwnerIdForKey, currentUserId, userProfile, publishedProfileScopeSet]);
 
   const findConnectionById = useCallback((id) => {
     const needle = String(id);

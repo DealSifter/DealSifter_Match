@@ -852,11 +852,15 @@ const getProfilePayloadScope = (profilePayload, scope) => {
 };
 
 const inferDbPropertyProfileScope = (row) => {
+  const explicitScope = normalizeProfileScope(row?.primary_profile || row?.primaryProfile || '');
+  if (explicitScope === 'personal' || explicitScope === 'professional' || explicitScope === 'fsbo') {
+    return explicitScope;
+  }
   const ownerAccountType = String(row?.owner_account_type || row?.ownerAccountType || '').trim().toLowerCase();
   const dealTag = String(row?.deal_tag || row?.dealTag || '').trim().toUpperCase();
   const source = String(row?.source || '').trim().toLowerCase();
   if (ownerAccountType === 'fsbo_owner' || dealTag === 'FSBO' || source === 'fsbo') return 'fsbo';
-  return normalizeProfileScope(row?.primary_profile || row?.primaryProfile || 'personal');
+  return 'personal';
 };
 
 const buildDbOwnerPreview = ({ ownerId, scope, userRow, personalRow, professionalRow }) => {
@@ -5319,6 +5323,9 @@ export default function App() {
             propertyUnlocks={propertyUnlocks}
             servicePortfolio={globalServicePortfolio}
             userProfile={userProfile}
+            accountType={accountType}
+            personalProfile={personalProfile}
+            professionalProfile={professionalProfile}
             currentUserId={supabaseUserId || 'local-user'}
             onUpdatePropertyCoords={handleMapPropertyCoordsUpdate}
             userPreferences={userPreferences}
