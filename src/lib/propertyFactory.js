@@ -73,7 +73,7 @@ export function createProfessionalProperty(input) {
     sqft: input.sqft || '',
     improvement: input.improvement || '',
     lot: input.lot || '',
-    dealTag: 'Portfolio',
+    dealTag: primaryProfile === 'fsbo' ? 'FSBO' : 'Portfolio',
     images: Array.isArray(input.images) ? input.images : [],
     video: input.video || '',
     objective: input.objective || 'Sell',
@@ -87,7 +87,7 @@ export function createProfessionalProperty(input) {
     isActive: true,
     publishToShowcase: true,
     source: 'portfolio',
-    ownerAccountType: 'professional',
+    ownerAccountType: '',
     includeInPreview: true,
   };
 }

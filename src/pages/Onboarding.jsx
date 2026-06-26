@@ -8,14 +8,13 @@ import { SmartImage } from '../components/ui/SmartImage';
 import { Icon } from '../components/ui/Icon';
 import { InvestmentProfileModal } from '../components/onboarding/InvestmentProfileModal';
 import { ProfessionalPropertyForm } from '../components/onboarding/ProfessionalPropertyForm';
-import { FsboPropertyForm } from '../components/onboarding/FsboPropertyForm';
 import { PrimaryProfileSelect } from '../components/onboarding/PrimaryProfileSelect';
 import { Chip, MarketsSelector, SectionCard } from '../components/onboarding/OnboardingUi';
 import { useT } from '../i18n/translations';
 // removed unused import: toggleHidden
 import { genId } from '../lib/id';
-import { createFsboProperty, createProfessionalProperty } from '../lib/propertyFactory';
-import { validateFsboPropertyDraft, validateProfessionalPropertyDraft } from '../lib/propertyValidation';
+import { createProfessionalProperty } from '../lib/propertyFactory';
+import { validateProfessionalPropertyDraft } from '../lib/propertyValidation';
 import { getPortfolioVideoBlob, setPortfolioVideoBlob, clearPortfolioVideoBlob } from '../lib/localforageHelper';
 import { getMatchPressure } from '../lib/matchPressure';
 import { INVESTMENT_TRIGGER_CATEGORY_IDS, computeInvestmentProfileStrength, normalizeInvestmentDraft } from '../lib/investmentProfile';
@@ -38,6 +37,8 @@ import {
   normalizeUniqueCardPriorities,
   normalizeUsStateCode,
 } from '../lib/onboardingHelpers';
+
+const USE_UNIFIED_PORTFOLIO_SECTION = true;
 
 export function Onboarding({
   setPage,
@@ -1775,72 +1776,6 @@ export function Onboarding({
     });
   };
 
-  const addFsboProperty = () => {
-    const validation = validateFsboPropertyDraft({
-      address: portfolioAddress,
-      city: portfolioCity,
-      price: portfolioPrice,
-      primaryProfileScope,
-    });
-    if (!validation.valid) {
-      setPortfolioMsg(validation.reason === 'invalid_price' ? t.errorPropertyPriceInvalid : t.errorPropertyRequiresCityPrice);
-      return null;
-    }
-
-    const publishOwnerId = requirePublishOwnerId();
-    if (!publishOwnerId) return null;
-    const newItem = createFsboProperty({
-      ownerId: publishOwnerId,
-      type: portfolioType,
-      address: portfolioAddress,
-      city: portfolioCity,
-      zip: portfolioZip,
-      price: validation.parsedPrice,
-      beds: portfolioBeds,
-      baths: portfolioBaths,
-      sqft: portfolioSqft,
-      lot: portfolioLot,
-      objective: portfolioObjective,
-      rehab: parseCurrencyInput(portfolioRehab),
-      capRate: Number(portfolioCapRate),
-      markets: normalizeMarkets(portfolioMarkets),
-      description: portfolioDescription,
-      images: portfolioImages,
-      video: portfolioVideo,
-      primaryProfileScope,
-    });
-    setPropertyPortfolio((prev) => [
-      ...prev,
-      {
-        ...newItem,
-        publishToShowcase: false,
-        includeInPreview: true,
-      },
-    ]);
-
-    setPortfolioAddress('');
-    setPortfolioCity('');
-    setPortfolioZip('');
-    setPortfolioPrice('');
-    setPortfolioType('SFR');
-    setPortfolioBeds('');
-    setPortfolioBaths('');
-    setPortfolioSqft('');
-    setPortfolioLot('');
-    setPortfolioRehab('');
-    setPortfolioCapRate('');
-    setPortfolioObjective('Sell');
-    setPortfolioMarkets([]);
-    setPortfolioDescription('');
-    setPortfolioImages([]);
-    setPortfolioVideo('');
-    clearPortfolioVideoBlob(`portfolioVideo_${accountType}`).catch(() => {});
-    setPortfolioMsg('');
-    setIsPreviewToFeedDirty(true);
-
-    return newItem.id;
-  };
-
   const addProfessionalPortfolioProperty = () => {
     const validation = validateProfessionalPropertyDraft({
       address: portfolioAddress,
@@ -1906,6 +1841,8 @@ export function Onboarding({
 
     return newItem.id;
   };
+
+  const addFsboProperty = addProfessionalPortfolioProperty;
 
   const addProfessionalPortfolioService = () => {
     if (!serviceTitle || !serviceCategory || !servicePrimaryProfileScope) return;
@@ -3795,7 +3732,7 @@ export function Onboarding({
           </div>
 
           <div className="onb-col onb-col-mid">
-            {accountType === 'professional' ? (
+            {USE_UNIFIED_PORTFOLIO_SECTION ? (
               <SectionCard title={t.sectionPortfolio} subtitle={t.sectionPortfolioSub} grow={true}>
                 {/* scrollable form area: tab1 + form + add-preview buttons */}
                 <div style={{ flex: isMobileViewport ? '0 0 auto' : 1, minHeight: isMobileViewport ? 'auto' : 0, overflowY: isMobileViewport ? 'visible' : 'auto', overflowX: 'hidden', display: 'flex', flexDirection: 'column', paddingBottom: isMobileViewport ? 8 : 14, paddingRight: isMobileViewport ? 0 : 4 }}>
