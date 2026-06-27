@@ -745,6 +745,10 @@ export function Onboarding({
   ]);
 
   useEffect(() => {
+    if (pendingProfileClearScope) {
+      setIsSaveProfilesDirty(true);
+      return undefined;
+    }
     if (!saveProfilesBaseline) {
       const timer = window.setTimeout(() => {
         setSaveProfilesBaseline(saveProfilesFingerprint);
@@ -754,7 +758,7 @@ export function Onboarding({
     }
     const timer = window.setTimeout(() => setIsSaveProfilesDirty(saveProfilesFingerprint !== saveProfilesBaseline), 0);
     return () => window.clearTimeout(timer);
-  }, [saveProfilesFingerprint, saveProfilesBaseline]);
+  }, [saveProfilesFingerprint, saveProfilesBaseline, pendingProfileClearScope]);
   const effectiveProfileServices = useMemo(() => {
     const raw = [...selectedServices, ...registeredServiceSkills];
     return Array.from(new Set(raw.map((x) => String(x || '').trim()).filter(Boolean)));
@@ -1434,9 +1438,7 @@ export function Onboarding({
         const priorityBExplicit = professionalProfile?.cardPriorityBExplicit === true;
         const priorityCExplicit = personalProfile?.cardPriorityCExplicit === true || professionalProfile?.cardPriorityCExplicit === true;
         applyCardPrioritySet({
-          A: priorityAExplicit
-            ? (readStoredPriority(personalProfile, 'cardPriorityA') || readStoredPriority(professionalProfile, 'cardPriorityA'))
-            : '',
+          A: '',
           B: priorityBExplicit ? readStoredPriority(professionalProfile, 'cardPriorityB') : '',
           C: priorityCExplicit
             ? (readStoredPriority(personalProfile, 'cardPriorityC') || readStoredPriority(professionalProfile, 'cardPriorityC'))
@@ -2438,14 +2440,16 @@ export function Onboarding({
     const persistedInvestmentProfile = requiresInvestmentProfile
       ? getPersistedInvestmentProfile()
       : normalizeInvestmentDraft(professionalProfile?.investmentProfile);
+    const isClearingProfileA = pendingProfileClearScope === 'A';
+    const isClearingProfileB = pendingProfileClearScope === 'B';
 
     // Save profile data per account branch to avoid cross-populating forms.
     try {
       if (accountType === 'fsbo_owner') {
         const nextPersonalProfile = {
           ...(personalProfile || {}),
-          fullName: name || personalProfile?.fullName || '',
-          loc: normalizeUsStateCode(loc) || normalizeUsStateCode(personalProfile?.loc) || '',
+          fullName: name || '',
+          loc: normalizeUsStateCode(loc),
           photo: profileThumb || '',
           phone: personalPrimaryPhone,
           primaryPhone: personalPrimaryPhone,
@@ -2526,7 +2530,7 @@ export function Onboarding({
           markets: selectedMarkets,
           skills: effectiveProfileSkills,
           services: effectiveProfileServices,
-          pitch: pitch || professionalProfile?.pitch || '',
+          pitch: pitch || '',
 
           // Profile B (Professional/Operations)
           fullNameB: nameB || '',
@@ -2575,9 +2579,9 @@ export function Onboarding({
         : (loc || '');
       setUserProfile((prev) => ({
         ...prev,
-        name: activeName || prev?.name || '',
+        name: (isClearingProfileA || isClearingProfileB) ? activeName : (activeName || prev?.name || ''),
         photo: activeHeaderPhoto,
-        location: activeLoc ? `${stateNameByCode[activeLoc]}, ${activeLoc}` : (prev?.location || ''),
+        location: activeLoc ? `${stateNameByCode[activeLoc]}, ${activeLoc}` : ((isClearingProfileA || isClearingProfileB) ? '' : (prev?.location || '')),
       }));
 
       // Fix 4: If only 1 profile is truly filled, reassign ONLY orphaned records to it.

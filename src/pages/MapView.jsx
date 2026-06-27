@@ -1867,7 +1867,7 @@ export function MapView({
       });
 
       byOwner.forEach(({ ownerId, ownerPreview, coords, property }) => {
-        const key = `person-${ownerId}`;
+        const key = `person-${ownerId}-${normalizedScope}`;
         if (mapById.has(key)) return;
         mapById.set(key, {
           type: 'Feature',
@@ -1987,6 +1987,7 @@ export function MapView({
             ...ownerPreview,
             id: ownerId,
             ownerId,
+            primaryProfile: normalizedScope,
             loc: stateCode,
             lat: coords.lat,
             lng: coords.lng,

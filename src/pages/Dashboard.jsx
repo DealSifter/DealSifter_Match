@@ -796,13 +796,33 @@ export function Dashboard({ page, nuggets, setModal, setPage, onOpenOnboardingTa
       String(currentUserId || ''),
     ].filter(Boolean));
     const mockOwnerIdsForConnections = new Set((CARDS || []).map((c) => String(c.id)));
-    const globalOwnerIds = Array.from(new Set([
-      ...(servicePortfolio || []).map((s) => String(s?.ownerId || '').trim()),
-      ...(showcaseProperties || []).map((p) => String(p?.ownerId || '').trim()),
-    ].filter((ownerId) => ownerId && !localOwnerIds.has(ownerId) && !mockOwnerIdsForConnections.has(ownerId))));
-    const globalCards = globalOwnerIds.map((ownerId) => {
-      const props = (showcaseProperties || []).filter((p) => String(p.ownerId) === ownerId);
-      const services = (servicePortfolio || []).filter((s) => String(s.ownerId) === ownerId && isTruthyFlag(s.publishToConnections, true));
+    const globalProfileKeys = Array.from(new Set([
+      ...(servicePortfolio || []).map((s) => {
+        const ownerId = String(s?.ownerId || '').trim();
+        const scope = normalizeProfileScope(s?.primaryProfile || 'personal');
+        return ownerId ? `${ownerId}::${scope}` : '';
+      }),
+      ...(showcaseProperties || []).map((p) => {
+        const ownerId = String(p?.ownerId || '').trim();
+        const scope = normalizeProfileScope(p?.primaryProfile || 'personal');
+        return ownerId ? `${ownerId}::${scope}` : '';
+      }),
+    ].filter((key) => {
+      const [ownerId] = String(key || '').split('::');
+      return ownerId && !localOwnerIds.has(ownerId) && !mockOwnerIdsForConnections.has(ownerId);
+    })));
+    const globalCards = globalProfileKeys.map((profileKey) => {
+      const [ownerId, scope = 'personal'] = String(profileKey || '').split('::');
+      const normalizedScope = normalizeProfileScope(scope);
+      const props = (showcaseProperties || []).filter((p) => (
+        String(p.ownerId) === ownerId
+        && normalizeProfileScope(p.primaryProfile || 'personal') === normalizedScope
+      ));
+      const services = (servicePortfolio || []).filter((s) => (
+        String(s.ownerId) === ownerId
+        && normalizeProfileScope(s.primaryProfile || 'personal') === normalizedScope
+        && isTruthyFlag(s.publishToConnections, true)
+      ));
       const firstService = services[0] || null;
       const firstProperty = props[0] || null;
       const ownerPreview = firstService?.ownerPreview || firstProperty?.ownerPreview || null;
@@ -835,7 +855,7 @@ export function Dashboard({ page, nuggets, setModal, setPage, onOpenOnboardingTa
         email: ownerPreview?.email || '',
         primaryPhone: ownerPreview?.primaryPhone || '',
         portfolioCount: props.length + services.length,
-        primaryProfile: normalizeProfileScope(ownerPreview?.primaryProfile || firstService?.primaryProfile || firstProperty?.primaryProfile || 'personal'),
+        primaryProfile: normalizedScope,
         markets,
         contactMethods: ownerPreview?.contactMethods || [],
         verified: ownerPreview?.verified === true,
@@ -952,9 +972,9 @@ export function Dashboard({ page, nuggets, setModal, setPage, onOpenOnboardingTa
       : null;
     const mockOwnerCard = import.meta.env.DEV ? (CARDS || []).find((c) => String(c.id) === String(property.ownerId)) : null;
 
-    return ownerById
+    return ownerByScope
       || ownerPreview
-      || ownerByScope
+      || ownerById
       || (mockOwnerCard ? { ...mockOwnerCard, ownerId: mockOwnerCard.ownerId || mockOwnerCard.id } : null);
   }, [connectionCards, findConnectionById]);
 
