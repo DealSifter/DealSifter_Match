@@ -625,7 +625,7 @@ export function Dashboard({ page, nuggets, setModal, setPage, onOpenOnboardingTa
       ...scopedServices.flatMap((s) => collectRecordStates(s)),
       parseStateCode(scopedLoc),
     ].filter(Boolean)));
-    const fsboStateCode = scopedMarkets[0] || parseStateCode(scopedLoc || userProfile?.location);
+    const fsboStateCode = parseStateCode(scopedLoc || userProfile?.location) || scopedMarkets[0];
     const categoryId = scopedIdentity?.categoryId || '';
     const categoryLabel = CATEGORIES
       .filter((c) => c.id !== 'all')
@@ -689,7 +689,7 @@ export function Dashboard({ page, nuggets, setModal, setPage, onOpenOnboardingTa
       reviews: Number.isFinite(rawReviews) && rawReviews > 0 ? Math.round(rawReviews) : 0,
       deals: Number.isFinite(rawDeals) && rawDeals > 0 ? Math.round(rawDeals) : 0,
       cat: hasScopedIdentity ? (userProfile?.category || '') : '',
-      desc: (profileDescription && normalizedProfileDescription !== normalizedTypeLabel)
+      desc: (!isFsbo && profileDescription && normalizedProfileDescription !== normalizedTypeLabel)
         ? profileDescription
         : '',
       portfolioCount: scopedProperties.length + scopedServices.length,

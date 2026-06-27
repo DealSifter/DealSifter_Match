@@ -881,6 +881,7 @@ const buildDbOwnerPreview = ({ ownerId, scope, userRow, personalRow, professiona
   const isProfessional = normalizedScope === 'professional';
   const userEmail = pickFirstString(userRow?.email);
 
+  const isFsbo = normalizedScope === 'fsbo';
   const name = isProfessional
     ? pickIdentityName(
       payloadScope?.name,
@@ -891,13 +892,21 @@ const buildDbOwnerPreview = ({ ownerId, scope, userRow, personalRow, professiona
       userRow?.full_name,
       getEmailHandle(userEmail)
     )
-    : pickIdentityName(
-      personalRow?.full_name,
-      userRow?.full_name,
-      payloadProfile?.fullName,
-      payloadScope?.name,
-      getEmailHandle(userEmail)
-    );
+    : isFsbo
+      ? pickIdentityName(
+        payloadScope?.name,
+        payloadProfile?.fullName,
+        personalRow?.full_name,
+        userRow?.full_name,
+        getEmailHandle(userEmail)
+      )
+      : pickIdentityName(
+        personalRow?.full_name,
+        userRow?.full_name,
+        payloadProfile?.fullName,
+        payloadScope?.name,
+        getEmailHandle(userEmail)
+      );
 
   if (!name) return null;
 
@@ -910,20 +919,21 @@ const buildDbOwnerPreview = ({ ownerId, scope, userRow, personalRow, professiona
     personalRow?.photo_url
   );
 
-  const type = pickFirstString(
-    payloadScope?.categoryLabelFallback,
-    professionalRow?.primary_category_b,
-    professionalRow?.primary_category,
-    professionalRow?.subcategory,
-    professionalRow?.category,
-    payloadProfile?.categoryLabelFallback,
-    payloadProfile?.categoryB,
-    payloadProfile?.category,
-    payloadProfile?.primaryCategoryB,
-    payloadProfile?.primaryCategory,
-    userRow?.account_type,
-    normalizedScope === 'fsbo' ? 'FSBO' : ''
-  );
+  const type = isFsbo
+    ? 'FSBO'
+    : pickFirstString(
+      payloadScope?.categoryLabelFallback,
+      professionalRow?.primary_category_b,
+      professionalRow?.primary_category,
+      professionalRow?.subcategory,
+      professionalRow?.category,
+      payloadProfile?.categoryLabelFallback,
+      payloadProfile?.categoryB,
+      payloadProfile?.category,
+      payloadProfile?.primaryCategoryB,
+      payloadProfile?.primaryCategory,
+      userRow?.account_type
+    );
 
   const badge = pickFirstString(
     payloadScope?.badge,
@@ -944,7 +954,7 @@ const buildDbOwnerPreview = ({ ownerId, scope, userRow, personalRow, professiona
     loc,
     photo,
     cat: pickFirstString(professionalRow?.primary_category_b, professionalRow?.primary_category, professionalRow?.category),
-    desc: pickFirstString(payloadScope?.pitch, payloadProfile?.pitchB, payloadProfile?.pitch, professionalRow?.pitch),
+    desc: isFsbo ? '' : pickFirstString(payloadScope?.pitch, payloadProfile?.pitchB, payloadProfile?.pitch, professionalRow?.pitch),
     email,
     primaryPhone,
     contactMethods: Array.isArray(payloadScope?.contactMethods) ? payloadScope.contactMethods : [],

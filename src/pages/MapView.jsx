@@ -12,7 +12,7 @@ import { CardStatusBadge, CardStatusIcon } from '../components/ui/CardStatusIndi
 import { CARD_STATUS, pickPriorityStatus } from '../components/ui/cardStatusTokens';
 import { useMediaQuery } from '../hooks/useMediaQuery';
 import { getPortfolioItemCount, getPortfolioUnlockCost, getPropertyExclusivityStatus } from '../lib/unlockRules';
-import { normalizeProfileScope } from '../lib/profileScopeResolver';
+import { normalizeProfileScope, resolveScopedProfile } from '../lib/profileScopeResolver';
 
 const DEFAULT_CENTER = [39.5, -98.35];
 const DEFAULT_ZOOM = 4;
@@ -1941,6 +1941,61 @@ export function MapView({
       });
     };
 
+    const addLocalProfilePeople = (onlyUnlocked = false) => {
+      const ownerId = String(currentUserId || '').trim();
+      if (!ownerId) return;
+      ['personal', 'professional', 'fsbo'].forEach((scope) => {
+        const normalizedScope = normalizeProfileScope(scope);
+        if (!publishedLocalProfileScopes.has(normalizedScope)) return;
+        const linkedPropertyCount = (showcaseProperties || []).filter((property) => (
+          String(property?.ownerId || '') === ownerId
+          && normalizeProfileScope(property?.primaryProfile || 'personal') === normalizedScope
+          && isTruthyFlag(property?.publishToShowcase, true)
+        )).length;
+        const linkedServiceCount = (servicePortfolio || []).filter((service) => (
+          String(service?.ownerId || '') === ownerId
+          && normalizeProfileScope(service?.primaryProfile || 'personal') === normalizedScope
+          && isTruthyFlag(service?.publishToConnections, true)
+        )).length;
+        if (linkedPropertyCount + linkedServiceCount <= 0) return;
+        if (onlyUnlocked && !isUnlockedId(ownerId)) return;
+
+        const ownerPreview = resolveScopedProfile(normalizedScope, {
+          accountType,
+          userProfile,
+          personalProfile,
+          professionalProfile,
+        });
+        const name = String(ownerPreview?.name || '').trim();
+        const stateCode = getStateCodeFromMarket(ownerPreview?.loc);
+        const coords = STATE_CENTER_COORDS[stateCode];
+        if (!name || !coords) return;
+        const key = `person-${ownerId}`;
+        if (mapById.has(key)) return;
+        mapById.set(key, {
+          type: 'Feature',
+          geometry: { type: 'Point', coordinates: [coords.lng, coords.lat] },
+          properties: {
+            itemType: 'person',
+            itemId: ownerId,
+            title: name,
+            subtitle: `${ownerPreview?.badge || ownerPreview?.categoryLabelFallback || 'Contact'} - ${stateCode}`,
+            locked: !isUnlockedId(ownerId),
+            isUnlocked: isUnlockedId(ownerId),
+          },
+          payload: {
+            ...ownerPreview,
+            id: ownerId,
+            ownerId,
+            loc: stateCode,
+            lat: coords.lat,
+            lng: coords.lng,
+            portfolioCount: linkedPropertyCount + linkedServiceCount,
+          },
+        });
+      });
+    };
+
     const addProperties = (onlyUnlocked = false) => {
       (enableMockMapData ? PROPERTIES : [])
         .filter((property) => (
@@ -1999,6 +2054,7 @@ export function MapView({
 
     if (showPeople) {
       addPeople(false);
+      addLocalProfilePeople(false);
       addPublishedPeople(false);
       addPublishedServicePeople(false);
     }
@@ -2008,7 +2064,7 @@ export function MapView({
     }
 
     return Array.from(mapById.values());
-  }, [enableMockMapData, showPeople, showProperties, showOnlyMyPins, showcaseProperties, servicePortfolio, geocodeCache, pinOverrides, isUnlockedId, currentUserId, isLocalPublishedRecord]);
+  }, [enableMockMapData, showPeople, showProperties, showOnlyMyPins, showcaseProperties, servicePortfolio, geocodeCache, pinOverrides, isUnlockedId, currentUserId, isLocalPublishedRecord, publishedLocalProfileScopes, accountType, userProfile, personalProfile, professionalProfile]);
 
   const realUserPoints = useMemo(() => {
     return (showcaseProperties || [])
