@@ -2459,6 +2459,71 @@ export default function App() {
 
     const hydrateGlobalShowcase = async () => {
       try {
+        const rpcInventoryResult = await supabase.rpc('ds_get_global_feed_inventory');
+        if (!cancelled && !rpcInventoryResult?.error && rpcInventoryResult?.data) {
+          const inventory = rpcInventoryResult.data && typeof rpcInventoryResult.data === 'object'
+            ? rpcInventoryResult.data
+            : {};
+          const propertyRows = Array.isArray(inventory.properties) ? inventory.properties : [];
+          const serviceRows = Array.isArray(inventory.services) ? inventory.services : [];
+          const spotlightRows = Array.isArray(inventory.spotlights) ? inventory.spotlights : [];
+          const userRows = Array.isArray(inventory.users) ? inventory.users : [];
+          const personalRows = Array.isArray(inventory.personalProfiles) ? inventory.personalProfiles : [];
+          const professionalRows = Array.isArray(inventory.professionalProfiles) ? inventory.professionalProfiles : [];
+          const imageRows = Array.isArray(inventory.propertyImages) ? inventory.propertyImages : [];
+
+          const usersById = new Map(userRows.map((row) => [String(row.id), row]));
+          const personalByOwnerId = new Map(personalRows.map((row) => [String(row.user_id), row]));
+          const professionalByOwnerId = new Map(professionalRows.map((row) => [String(row.user_id), row]));
+          const getOwnerPreviewForRow = (row) => {
+            const ownerId = String(row?.owner_id || row?.ownerId || '').trim();
+            if (!ownerId) return null;
+            const resolvedScope = Object.prototype.hasOwnProperty.call(row || {}, 'deal_tag')
+              || Object.prototype.hasOwnProperty.call(row || {}, 'owner_account_type')
+              ? inferDbPropertyProfileScope(row)
+              : normalizeProfileScope(row?.primary_profile || 'personal');
+            return buildDbOwnerPreview({
+              ownerId,
+              scope: resolvedScope,
+              userRow: usersById.get(ownerId),
+              personalRow: personalByOwnerId.get(ownerId),
+              professionalRow: professionalByOwnerId.get(ownerId),
+            });
+          };
+
+          const imagesByProperty = imageRows.reduce((acc, row) => {
+            const key = String(row.property_id || '');
+            if (!key) return acc;
+            if (!acc[key]) acc[key] = [];
+            acc[key].push(String(row.image_url || '').trim());
+            return acc;
+          }, {});
+
+          setGlobalShowcaseProperties(propertyRows.map((row) => mapDbPropertyToLocal(row, imagesByProperty[row.id] || [], {
+            ownerId: row.owner_id || row.ownerId || '',
+            ownerPreview: getOwnerPreviewForRow(row),
+            primaryProfile: inferDbPropertyProfileScope(row),
+          })));
+          setGlobalConnectionServices(serviceRows.map((row) => mapDbServiceToLocal(row, {
+            ownerId: row.owner_id || row.ownerId || '',
+            ownerPreview: getOwnerPreviewForRow(row),
+          })));
+          setActiveSpotlights(spotlightRows.map((row) => ({
+            id: row.id,
+            userId: row.user_id,
+            ownerId: row.owner_id,
+            cardKind: row.card_kind,
+            cardId: row.card_id,
+            scope: row.scope || '',
+            expiresAt: row.expires_at,
+            nuggetsSpent: row.nuggets_spent,
+          })));
+          return;
+        }
+        if (rpcInventoryResult?.error) {
+          safeLogError('Global feed inventory RPC unavailable; falling back to table hydration.', rpcInventoryResult.error);
+        }
+
         let propertiesResult = await supabase
           .from('properties')
           .select('id, owner_id, type, address, city, state, zip, price, beds, baths, sqft, improvement, lot, deal_tag, objective, rehab, cap_rate, description, markets, is_active, deal_closed, pending_deal, pending_deal_started_at, pending_deal_expires_at, publish_to_showcase, include_in_preview, source, owner_account_type, primary_profile, video, lat, lng, geocode_status, geocode_source, geocode_confidence, geocode_input, geocoded_at, created_at, updated_at')
