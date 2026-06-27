@@ -3147,6 +3147,16 @@ export default function App() {
 
     if (!(isSwitchingToDifferentUser || isInAppAccountSwitch)) return;
 
+    Object.values(profileSaveDebounceRef.current || {}).forEach((timer) => {
+      if (timer) clearTimeout(timer);
+    });
+    profileSaveDebounceRef.current = {};
+    pendingFlushRef.current = {};
+    profileSyncStateRef.current = { userId: null, loaded: false, hydrating: false, personalLoadedFromRemote: false, professionalLoadedFromRemote: false };
+    portfolioSyncStateRef.current = { userId: null, loaded: false, hydrating: false, servicesLoadedFromRemote: false, propertiesLoadedFromRemote: false, propertyImagesLoadedFromRemote: false };
+    feedActionLoadedUserRef.current = null;
+    feedActionLastSignatureRef.current = '';
+
     clearUserSpecificLocalStorage();
 
     if (previousUserId !== null || isSwitchingToDifferentUser) {
@@ -3742,7 +3752,12 @@ export default function App() {
 
   useEffect(() => {
     if (!isSupabaseConfigured || !supabase || !supabaseUserId) return;
-    if (!profileSyncStateRef.current.loaded || profileSyncStateRef.current.hydrating || !profileSyncStateRef.current.personalLoadedFromRemote) return;
+    if (
+      profileSyncStateRef.current.userId !== supabaseUserId
+      || !profileSyncStateRef.current.loaded
+      || profileSyncStateRef.current.hydrating
+      || !profileSyncStateRef.current.personalLoadedFromRemote
+    ) return;
 
     if (profileSaveDebounceRef.current.personal) clearTimeout(profileSaveDebounceRef.current.personal);
     const syncPersonal = async () => {
@@ -3800,7 +3815,12 @@ export default function App() {
 
   useEffect(() => {
     if (!isSupabaseConfigured || !supabase || !supabaseUserId) return;
-    if (!profileSyncStateRef.current.loaded || profileSyncStateRef.current.hydrating || !profileSyncStateRef.current.professionalLoadedFromRemote) return;
+    if (
+      profileSyncStateRef.current.userId !== supabaseUserId
+      || !profileSyncStateRef.current.loaded
+      || profileSyncStateRef.current.hydrating
+      || !profileSyncStateRef.current.professionalLoadedFromRemote
+    ) return;
 
     if (profileSaveDebounceRef.current.professional) clearTimeout(profileSaveDebounceRef.current.professional);
     const syncProfessional = async () => {
@@ -4080,7 +4100,11 @@ export default function App() {
 
   useEffect(() => {
     if (!isSupabaseConfigured || !supabase || !supabaseUserId) return;
-    if (!portfolioSyncStateRef.current.loaded || portfolioSyncStateRef.current.hydrating) return;
+    if (
+      portfolioSyncStateRef.current.userId !== supabaseUserId
+      || !portfolioSyncStateRef.current.loaded
+      || portfolioSyncStateRef.current.hydrating
+    ) return;
 
     const userOwnedServices = (servicePortfolio || []).filter((service) => isUserOwnedServiceRecord(service, supabaseUserId));
     const missingUuid = userOwnedServices.filter((service) => !isUuid(service?.id));
@@ -4155,7 +4179,11 @@ export default function App() {
 
   useEffect(() => {
     if (!isSupabaseConfigured || !supabase || !supabaseUserId) return;
-    if (!portfolioSyncStateRef.current.loaded || portfolioSyncStateRef.current.hydrating) return;
+    if (
+      portfolioSyncStateRef.current.userId !== supabaseUserId
+      || !portfolioSyncStateRef.current.loaded
+      || portfolioSyncStateRef.current.hydrating
+    ) return;
 
     const userOwnedProperties = (propertyPortfolio || []).filter((property) => isUserOwnedPropertyRecord(property, supabaseUserId));
     const missingUuid = userOwnedProperties.filter((property) => !isUuid(property?.id));
