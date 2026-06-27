@@ -833,11 +833,13 @@ export function Dashboard({ page, nuggets, setModal, setPage, onOpenOnboardingTa
         ...props.flatMap((p) => collectRecordStates(p)),
         ...services.flatMap((s) => collectRecordStates(s)),
       ].filter(Boolean)));
-      const location = markets[0] || [firstProperty?.city, firstProperty?.state].filter(Boolean).join(', ') || '';
+      const profileLocation = String(ownerPreview?.loc || '').trim();
+      const location = profileLocation || markets[0] || [firstProperty?.city, firstProperty?.state].filter(Boolean).join(', ') || '';
       const name = String(ownerPreview?.name || '').trim();
       if (!name) return null;
       const type = String(ownerPreview?.type || firstService?.category || '').trim();
-      const desc = String(firstService?.description || '').trim();
+      const isFsboOwner = normalizedScope === 'fsbo';
+      const desc = isFsboOwner ? '' : String(firstService?.description || '').trim();
       return {
         id: ownerId,
         ownerId,
@@ -851,7 +853,7 @@ export function Dashboard({ page, nuggets, setModal, setPage, onOpenOnboardingTa
         reviews: 0,
         deals: 0,
         cat: ownerPreview?.cat || firstService?.category || '',
-        desc: ownerPreview?.desc || desc,
+        desc: isFsboOwner ? '' : (ownerPreview?.desc || desc),
         email: ownerPreview?.email || '',
         primaryPhone: ownerPreview?.primaryPhone || '',
         portfolioCount: props.length + services.length,

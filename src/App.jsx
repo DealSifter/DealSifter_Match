@@ -894,8 +894,8 @@ const buildDbOwnerPreview = ({ ownerId, scope, userRow, personalRow, professiona
     )
     : isFsbo
       ? pickIdentityName(
-        payloadScope?.name,
         payloadProfile?.fullName,
+        payloadScope?.name,
         personalRow?.full_name,
         userRow?.full_name,
         getEmailHandle(userEmail)
@@ -911,8 +911,8 @@ const buildDbOwnerPreview = ({ ownerId, scope, userRow, personalRow, professiona
   if (!name) return null;
 
   const photo = pickFirstString(
-    payloadScope?.photo,
-    payloadProfile?.photo,
+    isFsbo ? payloadProfile?.photo : payloadScope?.photo,
+    isFsbo ? payloadScope?.photo : payloadProfile?.photo,
     payloadProfile?.photoB,
     payloadProfile?.photoBUrl,
     isProfessional ? professionalRow?.photo_b_url : '',
@@ -941,9 +941,15 @@ const buildDbOwnerPreview = ({ ownerId, scope, userRow, personalRow, professiona
     normalizedScope === 'fsbo' ? 'FSBO' : ''
   );
 
-  const loc = pickFirstString(payloadScope?.loc, payloadProfile?.loc, payloadProfile?.locB);
-  const email = pickFirstString(payloadScope?.email, payloadProfile?.email, payloadProfile?.emailB, userEmail);
-  const primaryPhone = pickFirstString(payloadScope?.primaryPhone, payloadProfile?.primaryPhone, payloadProfile?.primaryPhoneB, userRow?.phone);
+  const loc = isFsbo
+    ? pickFirstString(payloadProfile?.loc, payloadScope?.loc)
+    : pickFirstString(payloadScope?.loc, payloadProfile?.loc, payloadProfile?.locB);
+  const email = isFsbo
+    ? pickFirstString(payloadProfile?.email, payloadScope?.email, userEmail)
+    : pickFirstString(payloadScope?.email, payloadProfile?.email, payloadProfile?.emailB, userEmail);
+  const primaryPhone = isFsbo
+    ? pickFirstString(payloadProfile?.primaryPhone, payloadScope?.primaryPhone, userRow?.phone)
+    : pickFirstString(payloadScope?.primaryPhone, payloadProfile?.primaryPhone, payloadProfile?.primaryPhoneB, userRow?.phone);
 
   return {
     id,
@@ -3549,10 +3555,15 @@ export default function App() {
 
           // Prefer legacy payload values when present to avoid sparse/derived
           // profile_payload snapshots wiping persisted primary-profile fields.
-          const effectivePersonalPayload = mergeProfilePayloadNonEmpty(
-            scopedPersonalPayload,
-            personalFromPayload
-          );
+          const effectivePersonalPayload = activeAccountType === 'fsbo_owner'
+            ? mergeProfilePayloadNonEmpty(
+              personalFromPayload,
+              scopedPersonalPayload
+            )
+            : mergeProfilePayloadNonEmpty(
+              scopedPersonalPayload,
+              personalFromPayload
+            );
 
           if (Object.keys(effectivePersonalPayload).length > 0) {
             setPersonalProfile((prev) => normalizePersonalProfile({
