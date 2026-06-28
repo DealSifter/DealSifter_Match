@@ -3147,13 +3147,14 @@ export default function App() {
 
     if (!(isSwitchingToDifferentUser || isInAppAccountSwitch)) return;
 
-    Object.values(profileSaveDebounceRef.current || {}).forEach((timer) => {
+    Object.keys(profileSaveDebounceRef.current || {}).forEach((key) => {
+      const timer = profileSaveDebounceRef.current[key];
       if (timer) clearTimeout(timer);
+      profileSaveDebounceRef.current[key] = null;
     });
-    profileSaveDebounceRef.current = {};
-    pendingFlushRef.current = {};
-    profileSyncStateRef.current = { userId: null, loaded: false, hydrating: false, personalLoadedFromRemote: false, professionalLoadedFromRemote: false };
-    portfolioSyncStateRef.current = { userId: null, loaded: false, hydrating: false, servicesLoadedFromRemote: false, propertiesLoadedFromRemote: false, propertyImagesLoadedFromRemote: false };
+    Object.keys(pendingFlushRef.current || {}).forEach((key) => {
+      pendingFlushRef.current[key] = null;
+    });
     feedActionLoadedUserRef.current = null;
     feedActionLastSignatureRef.current = '';
 
