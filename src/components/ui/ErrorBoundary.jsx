@@ -11,7 +11,7 @@ const reportError = (error, info) => {
 export default class ErrorBoundary extends React.Component {
   constructor(props) {
     super(props);
-    this.state = { hasError: false, error: null, errorInfo: null };
+    this.state = { hasError: false, error: null, errorInfo: null, resetKey: 0 };
   }
 
   static getDerivedStateFromError(error) {
@@ -30,7 +30,12 @@ export default class ErrorBoundary extends React.Component {
   }
 
   handleReset = () => {
-    this.setState({ hasError: false, error: null, errorInfo: null });
+    this.setState((prev) => ({
+      hasError: false,
+      error: null,
+      errorInfo: null,
+      resetKey: prev.resetKey + 1,
+    }));
   };
 
   render() {
@@ -116,6 +121,6 @@ export default class ErrorBoundary extends React.Component {
       );
     }
 
-    return this.props.children;
+    return <React.Fragment key={this.state.resetKey}>{this.props.children}</React.Fragment>;
   }
 }

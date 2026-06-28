@@ -17,6 +17,7 @@ export function ThemeProvider({ children, forcedTheme = null }) {
 
   useLayoutEffect(() => {
     document.documentElement.setAttribute('data-theme', effectiveTheme);
+    document.documentElement.style.colorScheme = effectiveTheme;
   }, [effectiveTheme]);
 
   useEffect(() => {

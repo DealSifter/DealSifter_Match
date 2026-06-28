@@ -1677,7 +1677,11 @@ export function Dashboard({ page, nuggets, setModal, setPage, onOpenOnboardingTa
     : { properties: [], services: [] };
   const secondaryPublishedProperties = secondaryScopedRecords.properties;
   const secondaryPublishedServices = secondaryScopedRecords.services;
-  const hasSecondaryProfile = Boolean(secondaryVisibleScope);
+  const hasSecondaryProfile = Boolean(
+    secondaryVisibleScope
+    && secondaryModalKey
+    && hasPublishableLocalProfileCard(secondaryCardData)
+  );
   const secondaryLinkedCardsCount = hasSecondaryProfile
     ? countMyCardLinkedCardsForScope(secondaryModalKey)
     : 0;
@@ -1778,7 +1782,8 @@ export function Dashboard({ page, nuggets, setModal, setPage, onOpenOnboardingTa
   };
 
   const primaryRatingDetails = computeScopeRatingDetails(primaryModalKey);
-  const secondaryRatingDetails = computeScopeRatingDetails(secondaryModalKey);
+  const emptyRatingDetails = { label: '-', interactionScore: 0, publishedScore: 0, reliabilityScore: 0, closedDealsBonus: 0, total: 0 };
+  const secondaryRatingDetails = hasSecondaryProfile ? computeScopeRatingDetails(secondaryModalKey) : emptyRatingDetails;
 
   const matchedCount = activeUnlockedMatchesCount;
   const dealsCount = countClosedDealsForScope(primaryVisibleScope);
@@ -1803,7 +1808,7 @@ export function Dashboard({ page, nuggets, setModal, setPage, onOpenOnboardingTa
     return String(operationsPrimaryCategoryId || '').trim() || 'Not set';
   })();
   const matchedCountB = activeUnlockedMatchesCount;
-  const dealsCountB = countClosedDealsForScope(secondaryVisibleScope);
+  const dealsCountB = hasSecondaryProfile ? countClosedDealsForScope(secondaryVisibleScope) : 0;
   const ratingLabelB = secondaryRatingDetails.label;
 
   const renderRatingTooltip = (details) => (
