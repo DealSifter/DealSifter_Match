@@ -90,12 +90,10 @@ export function resolveScopedProfile(scope, {
       scope: normalizedScope,
       name: pickString(
         professional.fullNameB,
-        professional.fullName,
-        user.name
+        professional.fullName
       ),
       loc: pickString(
-        professional.locB,
-        user.location
+        professional.locB
       ),
       photo: pickString(
         professional.photoB,
@@ -133,52 +131,43 @@ export function resolveScopedProfile(scope, {
   return {
     scope: normalizedScope,
     name: isFsboScope
-      ? pickString(personal.fullName, user.name, 'FSBO Profile')
-      : pickString(professional.fullNameA, personal.fullName, user.name, 'New User'),
+      ? pickString(personal.fullName)
+      : pickString(professional.fullNameA),
     loc: isFsboScope
-      ? pickString(personal.loc, user.location)
-      : pickString(professional.locA, personal.loc, user.location),
+      ? pickString(personal.loc)
+      : pickString(professional.locA),
     photo: isFsboScope
       ? pickString(personal.photo)
-      : pickString(professional.photoA, personal.photo),
+      : pickString(professional.photoA),
     categoryId: isFsboScope
       ? 'fsbo'
-      : pickString(professional.primaryCategory, professional.category, user.category),
+      : pickString(professional.primaryCategory, professional.category),
     categoryLabelFallback: isFsboScope
       ? 'FSBO'
-      : pickString(user.type, professional.category),
+      : pickString(professional.category),
     badge: isFsboScope ? 'FSBO' : pickString(user.badge),
     pitch: isFsboScope
-      ? pickString(personal.bio, personal.pitch, 'FSBO')
-      : pickString(professional.pitch, user.type),
+      ? pickString(personal.bio, personal.pitch)
+      : pickString(professional.pitch),
     contactMethods: isFsboScope
       ? pickArray(personal.contactMethods)
-      : pickArray(professional.contactMethodsA, personal.contactMethods),
+      : pickArray(professional.contactMethodsA),
     primaryPhone: isFsboScope
       ? pickString(personal.primaryPhone, personal.phone)
-      : pickString(professional.primaryPhoneA, professional.phoneA, personal.primaryPhone, personal.phone),
+      : pickString(professional.primaryPhoneA, professional.phoneA),
     secondaryPhone: isFsboScope
       ? pickString(personal.secondaryPhone)
-      : pickString(professional.secondaryPhoneA, personal.secondaryPhone),
+      : pickString(professional.secondaryPhoneA),
     tertiaryPhone: isFsboScope
       ? pickString(personal.tertiaryPhone)
-      : pickString(professional.tertiaryPhoneA, personal.tertiaryPhone),
+      : pickString(professional.tertiaryPhoneA),
     email: isFsboScope
       ? pickString(personal.email)
-      : pickString(professional.emailA, personal.email),
+      : pickString(professional.emailA),
     cardPriority: isFsboScope
-      ? (String(accountType || '').trim() === 'fsbo_owner'
-        ? pickString(
-          personal.cardPriorityC,
-          professional.cardPriorityC
-        )
-        : pickString(
-          professional.cardPriorityC,
-          personal.cardPriorityC
-        ))
+      ? pickString(personal.cardPriorityC)
       : pickString(
-          professional.cardPriorityA,
-          personal.cardPriorityA
+          professional.cardPriorityA
         ),
     verified: isFsboScope ? isVerifiedFsbo : isVerifiedA,
     accountType: String(accountType || ''),
@@ -200,7 +189,7 @@ export function buildScopedProfilePayload({
       fsbo: resolveScopedProfile('fsbo', { accountType, userProfile, personalProfile, professionalProfile }),
     },
     profiles: {
-      personal: toPersonalProfileShape(resolveScopedProfile('personal', { accountType, userProfile, personalProfile, professionalProfile }), personalProfile || {}),
+      personal: toPersonalProfileShape(resolveScopedProfile('personal', { accountType, userProfile, personalProfile, professionalProfile }), {}),
       professional: toProfessionalProfileShape(resolveScopedProfile('professional', { accountType, userProfile, personalProfile, professionalProfile }), professionalProfile || {}),
       fsbo: toPersonalProfileShape(resolveScopedProfile('fsbo', { accountType, userProfile, personalProfile, professionalProfile }), personalProfile || {}),
     },

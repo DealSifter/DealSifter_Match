@@ -646,21 +646,18 @@ export function Dashboard({ page, nuggets, setModal, setPage, onOpenOnboardingTa
       : isFsbo
         ? [
           personalProfile?.fullName,
+          personalProfile?.loc,
           personalProfile?.primaryPhone,
           personalProfile?.email,
           personalProfile?.photo,
           personalProfile?.cardPriorityC,
-          professionalProfile?.cardPriorityC,
-        ].some(hasText) || scopedProperties.length > 0
+        ].some(hasText)
         : [
           professionalProfile?.fullNameA,
-          personalProfile?.fullName,
+          professionalProfile?.locA,
           professionalProfile?.primaryPhoneA,
-          personalProfile?.primaryPhone,
           professionalProfile?.emailA,
-          personalProfile?.email,
           professionalProfile?.photoA,
-          personalProfile?.photo,
           professionalProfile?.category,
           professionalProfile?.primaryCategory,
           professionalProfile?.pitch,
@@ -727,10 +724,8 @@ export function Dashboard({ page, nuggets, setModal, setPage, onOpenOnboardingTa
   };
   const cardPriorityAResolved = accountType === 'fsbo_owner'
     ? ''
-    : (professionalProfile?.cardPriorityA || personalProfile?.cardPriorityA || '');
-  const cardPriorityCResolved = accountType === 'fsbo_owner'
-    ? (personalProfile?.cardPriorityC || professionalProfile?.cardPriorityC || '')
-    : (professionalProfile?.cardPriorityC || personalProfile?.cardPriorityC || '');
+    : (professionalProfile?.cardPriorityA || '');
+  const cardPriorityCResolved = personalProfile?.cardPriorityC || '';
   const priorityByScopeForFeed = {
     personal: normalizeCardPriority(cardPriorityAResolved),
     professional: normalizeCardPriority(professionalProfile?.cardPriorityB || ''),
@@ -1970,10 +1965,7 @@ export function Dashboard({ page, nuggets, setModal, setPage, onOpenOnboardingTa
 
   // Quick registration is based on onboarding data only (not system settings/login profile).
   const quickRegistered = (() => {
-    const hasProfileA = hasValue(personalProfile?.fullName)
-      || hasValue(personalProfile?.primaryPhone)
-      || hasValue(personalProfile?.email)
-      || hasValue(professionalProfile?.fullNameA)
+    const hasProfileA = hasValue(professionalProfile?.fullNameA)
       || hasValue(professionalProfile?.primaryPhoneA)
       || hasValue(professionalProfile?.emailA);
     const hasProfileB = hasValue(professionalProfile?.fullName)
@@ -1983,6 +1975,10 @@ export function Dashboard({ page, nuggets, setModal, setPage, onOpenOnboardingTa
       || hasValue(professionalProfile?.emailB)
       || hasValue(professionalProfile?.photoB)
       || hasValue(professionalProfile?.photoBUrl);
+    const hasProfileC = hasValue(personalProfile?.fullName)
+      || hasValue(personalProfile?.primaryPhone)
+      || hasValue(personalProfile?.email)
+      || hasValue(personalProfile?.photo);
     const hasPortfolio = (showcaseProperties || []).some((p) => (
       String(p.ownerId) === String(getOwnerIdForKey('personal'))
       || String(p.ownerId) === String(getOwnerIdForKey('secondary'))
@@ -1993,7 +1989,7 @@ export function Dashboard({ page, nuggets, setModal, setPage, onOpenOnboardingTa
         || String(s.ownerId) === String(getOwnerIdForKey('secondary'))
         || String(s.ownerId) === String(getOwnerIdForKey('fsbo'))
       ));
-    return hasProfileA || hasProfileB || hasPortfolio;
+    return hasProfileA || hasProfileB || hasProfileC || hasPortfolio;
   })();
 
   // Persist active category and selected states across navigation/login

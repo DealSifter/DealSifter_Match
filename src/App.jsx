@@ -836,18 +836,13 @@ const pickIdentityName = (...values) => {
   return '';
 };
 
-const getEmailHandle = (email = '') => {
-  const handle = String(email || '').split('@')[0] || '';
-  return handle.trim();
-};
-
 const getProfilePayloadScope = (profilePayload, scope) => {
   const payload = profilePayload && typeof profilePayload === 'object' ? profilePayload : {};
   const normalizedScope = normalizeProfileScope(scope);
   const resolved = payload.resolved && typeof payload.resolved === 'object' ? payload.resolved : {};
   const profiles = payload.profiles && typeof payload.profiles === 'object' ? payload.profiles : {};
-  if (resolved[normalizedScope] && typeof resolved[normalizedScope] === 'object') return resolved[normalizedScope];
   if (profiles[normalizedScope] && typeof profiles[normalizedScope] === 'object') return profiles[normalizedScope];
+  if (resolved[normalizedScope] && typeof resolved[normalizedScope] === 'object') return resolved[normalizedScope];
   return {};
 };
 
@@ -874,7 +869,7 @@ const buildDbOwnerPreview = ({ ownerId, scope, userRow, personalRow, professiona
   const payloadScope = getProfilePayloadScope(profilePayload, normalizedScope);
   const extracted = profilePayload ? extractScopedProfileLegacy(profilePayload) : {};
   const payloadPersonal = normalizedScope === 'fsbo'
-    ? (extracted.fsboProfileFromPayload || extracted.personalProfileFromPayload || {})
+    ? (extracted.fsboProfileFromPayload || {})
     : (extracted.personalProfileFromPayload || {});
   const payloadProfessional = extracted.professionalProfileFromPayload || {};
   const payloadProfile = normalizedScope === 'professional' ? payloadProfessional : payloadPersonal;
@@ -887,36 +882,28 @@ const buildDbOwnerPreview = ({ ownerId, scope, userRow, personalRow, professiona
       payloadScope?.name,
       payloadProfile?.fullName,
       payloadProfile?.fullNameB,
-      professionalRow?.full_name,
-      personalRow?.full_name,
-      userRow?.full_name,
-      getEmailHandle(userEmail)
+      professionalRow?.full_name
     )
     : isFsbo
       ? pickIdentityName(
         payloadProfile?.fullName,
         payloadScope?.name,
-        personalRow?.full_name,
-        userRow?.full_name,
-        getEmailHandle(userEmail)
+        personalRow?.full_name
       )
       : pickIdentityName(
-        personalRow?.full_name,
-        userRow?.full_name,
-        payloadProfile?.fullName,
-        payloadScope?.name,
-        getEmailHandle(userEmail)
-      );
+          payloadProfile?.fullName,
+          payloadScope?.name
+        );
 
   if (!name) return null;
 
   const photo = pickFirstString(
-    isFsbo ? payloadProfile?.photo : payloadScope?.photo,
-    isFsbo ? payloadScope?.photo : payloadProfile?.photo,
+    payloadProfile?.photo,
+    payloadScope?.photo,
     payloadProfile?.photoB,
     payloadProfile?.photoBUrl,
     isProfessional ? professionalRow?.photo_b_url : '',
-    personalRow?.photo_url
+    isFsbo ? personalRow?.photo_url : ''
   );
 
   const type = isFsbo
@@ -945,10 +932,10 @@ const buildDbOwnerPreview = ({ ownerId, scope, userRow, personalRow, professiona
     ? pickFirstString(payloadProfile?.loc, payloadScope?.loc)
     : pickFirstString(payloadScope?.loc, payloadProfile?.loc, payloadProfile?.locB);
   const email = isFsbo
-    ? pickFirstString(payloadProfile?.email, payloadScope?.email, userEmail)
+    ? pickFirstString(payloadProfile?.email, payloadScope?.email)
     : pickFirstString(payloadScope?.email, payloadProfile?.email, payloadProfile?.emailB, userEmail);
   const primaryPhone = isFsbo
-    ? pickFirstString(payloadProfile?.primaryPhone, payloadScope?.primaryPhone, userRow?.phone)
+    ? pickFirstString(payloadProfile?.primaryPhone, payloadScope?.primaryPhone)
     : pickFirstString(payloadScope?.primaryPhone, payloadProfile?.primaryPhone, payloadProfile?.primaryPhoneB, userRow?.phone);
 
   return {
@@ -3531,9 +3518,6 @@ export default function App() {
             ? professionalResult.data.profile_payload
             : null;
           const persistedAccountType = String(profilePayload?.accountType || '').trim();
-          const resolvedAccountType = ['professional', 'fsbo_owner'].includes(persistedAccountType)
-            ? persistedAccountType
-            : profileHydrationInputRef.current.accountType;
           if (['professional', 'fsbo_owner'].includes(persistedAccountType)) {
             setAccountType(persistedAccountType);
           }
@@ -3541,29 +3525,20 @@ export default function App() {
           const {
             personalFromPayload,
             professionalFromPayload,
-            personalProfileFromPayload,
             professionalProfileFromPayload,
             fsboProfileFromPayload,
           } = extractScopedProfileLegacy(professionalResult.data.profile_payload);
 
-          const activeAccountType = resolvedAccountType;
           const activeUserCategory = profileHydrationInputRef.current.userCategory;
 
-          const scopedPersonalPayload = activeAccountType === 'fsbo_owner'
-            ? (fsboProfileFromPayload || personalProfileFromPayload || personalFromPayload)
-            : (personalProfileFromPayload || personalFromPayload);
-
-          // Prefer legacy payload values when present to avoid sparse/derived
-          // profile_payload snapshots wiping persisted primary-profile fields.
-          const effectivePersonalPayload = activeAccountType === 'fsbo_owner'
-            ? mergeProfilePayloadNonEmpty(
-              personalFromPayload,
-              scopedPersonalPayload
-            )
-            : mergeProfilePayloadNonEmpty(
-              scopedPersonalPayload,
-              personalFromPayload
-            );
+          // personalProfile is the canonical FSBO/C-profile store. Personal/A
+          // lives inside professionalProfile (fullNameA/photoA/locA/etc.).
+          // Never hydrate profiles.personal into personalProfile, or A and C
+          // identities bleed into each other across account modes.
+          const effectivePersonalPayload = mergeProfilePayloadNonEmpty(
+            personalFromPayload,
+            fsboProfileFromPayload
+          );
 
           if (Object.keys(effectivePersonalPayload).length > 0) {
             setPersonalProfile((prev) => normalizePersonalProfile({
