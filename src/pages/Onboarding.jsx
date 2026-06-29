@@ -1,4 +1,4 @@
-import { CATEGORIES, CARDS, SERVICE_PORTFOLIO, PROPERTIES } from '../data/mockData';
+﻿import { CATEGORIES, CARDS, SERVICE_PORTFOLIO, PROPERTIES } from '../data/mockData';
 import React, { useCallback, useMemo, useState, useEffect, useRef } from 'react';
 import { C } from '../theme/colors';
 import { Modal } from '../components/ui/Modal';
@@ -38,7 +38,6 @@ import {
   normalizeUsStateCode,
 } from '../lib/onboardingHelpers';
 
-const USE_UNIFIED_PORTFOLIO_SECTION = true;
 
 export function Onboarding({
   setPage,
@@ -108,6 +107,7 @@ export function Onboarding({
   const [selectedCategories, setSelectedCategories] = useState(professionalProfile?.categories || []);
   const [primaryCategory, setPrimaryCategory] = useState(professionalProfile?.primaryCategory || (professionalProfile?.categories || [])[0] || '');
   const [profileThumb, setProfileThumb] = useState(savedThumbA);
+  const [profileThumbClearRequested, setProfileThumbClearRequested] = useState(false);
   const [contactMethods, setContactMethods] = useState(accountType === 'professional' ? (professionalProfile?.contactMethodsA || []) : (personalProfile?.contactMethods || []));
   const [personalPrimaryPhone, setPersonalPrimaryPhone] = useState(accountType === 'professional' ? (professionalProfile?.primaryPhoneA || professionalProfile?.phoneA || '') : (personalProfile?.primaryPhone || personalProfile?.phone || ''));
   const [personalSecondaryPhone, setPersonalSecondaryPhone] = useState(accountType === 'professional' ? (professionalProfile?.secondaryPhoneA || '') : (personalProfile?.secondaryPhone || ''));
@@ -137,6 +137,7 @@ export function Onboarding({
   // setter intentionally unused in this component
   void _setPitchB;
   const [profileThumbB, setProfileThumbB] = useState(savedThumbB);
+  const [profileThumbBClearRequested, setProfileThumbBClearRequested] = useState(false);
   const [contactMethodsB, setContactMethodsB] = useState(professionalProfile?.contactMethodsB || []);
   const [personalPrimaryPhoneB, setPersonalPrimaryPhoneB] = useState(professionalProfile?.primaryPhoneB || professionalProfile?.phoneB || '');
   const [personalSecondaryPhoneB, setPersonalSecondaryPhoneB] = useState(professionalProfile?.secondaryPhoneB || '');
@@ -417,6 +418,21 @@ export function Onboarding({
     return () => window.clearTimeout(timer);
   }, [accountType, activeOperation, activeProfessional, cardPriorityA, cardPriorityB, cardPriorityC]);
 
+  const normalizePortfolioProfileScope = useCallback((scope) => {
+    const normalized = String(scope || '').trim().toLowerCase();
+    if (normalized === 'personal' || normalized === 'primary' || normalized === 'a') return 'personal';
+    if (
+      normalized === 'professional'
+      || normalized === 'secondary'
+      || normalized === 'business'
+      || normalized === 'operation'
+      || normalized === 'operations'
+      || normalized === 'b'
+    ) return 'professional';
+    if (normalized === 'fsbo' || normalized === 'c') return 'fsbo';
+    return '';
+  }, []);
+
   const isOwnPropertyRecord = (record) => {
     if (!record) return false;
     const src = String(record.source || '').trim();
@@ -429,17 +445,19 @@ export function Onboarding({
     return src === 'portfolio' || src === 'supabase';
   };
 
-  const isPropertyVisibleInPreview = (property) => (
+  const isPropertyVisibleInPreview = useCallback((property) => (
     Boolean(property)
+    && Boolean(normalizePortfolioProfileScope(property.primaryProfile))
     && isTruthyFlag(property.includeInPreview, false)
     && property.dealClosed !== true
-  );
+  ), [normalizePortfolioProfileScope]);
 
-  const isServiceVisibleInPreview = (service) => (
+  const isServiceVisibleInPreview = useCallback((service) => (
     Boolean(service)
+    && Boolean(normalizePortfolioProfileScope(service.primaryProfile))
     && isTruthyFlag(service.includeInPreview, false)
     && service.dealClosed !== true
-  );
+  ), [normalizePortfolioProfileScope]);
 
   const allProfiles = useMemo(
     () => CATEGORIES.filter((c) => c.id !== 'all').flatMap((c) => (c.sub ? [{ ...c, sub: null }, ...c.sub] : [c])),
@@ -451,7 +469,7 @@ export function Onboarding({
   ), [propertyPortfolio]);
   const previewPropertiesCount = useMemo(
     () => (myPortfolio || []).filter((p) => isPropertyVisibleInPreview(p)).length,
-    [myPortfolio]
+    [isPropertyVisibleInPreview, myPortfolio]
   );
 
   useEffect(() => {
@@ -470,7 +488,7 @@ export function Onboarding({
   }, []);
   const propertiesForPreview = useMemo(
     () => dedupePreviewRecords((myPortfolio || []).filter((p) => isPropertyVisibleInPreview(p)), 'property'),
-    [myPortfolio, dedupePreviewRecords]
+    [dedupePreviewRecords, isPropertyVisibleInPreview, myPortfolio]
   );
 
   useEffect(() => {
@@ -485,7 +503,7 @@ export function Onboarding({
   );
   const servicesForPreview = useMemo(() => (
     dedupePreviewRecords((myServicePortfolio || []).filter((s) => isServiceVisibleInPreview(s)), 'service')
-  ), [myServicePortfolio, dedupePreviewRecords]);
+  ), [dedupePreviewRecords, isServiceVisibleInPreview, myServicePortfolio]);
   const _servicePortfolioImages = useMemo(() => servicesForPreview.flatMap((s) => {
     const base = (s.media?.images || []).filter(Boolean).map((src) => ({ src, title: s.title }));
     const archived = (showArchivedImages[s.id] ? (s.media?.archivedImages || []).filter(Boolean).map((src) => ({ src, title: s.title })) : []);
@@ -746,8 +764,8 @@ export function Onboarding({
 
   useEffect(() => {
     if (pendingProfileClearScope) {
-      setIsSaveProfilesDirty(true);
-      return undefined;
+      const timer = window.setTimeout(() => setIsSaveProfilesDirty(true), 0);
+      return () => window.clearTimeout(timer);
     }
     if (!saveProfilesBaseline) {
       const timer = window.setTimeout(() => {
@@ -928,17 +946,7 @@ export function Onboarding({
   };
 
   const normalizePrimaryProfileScope = (scope) => {
-    const normalized = String(scope || '').trim().toLowerCase();
-    if (
-      normalized === 'professional'
-      || normalized === 'secondary'
-      || normalized === 'business'
-      || normalized === 'operation'
-      || normalized === 'operations'
-      || normalized === 'b'
-    ) return 'professional';
-    if (normalized === 'fsbo' || normalized === 'c') return 'fsbo';
-    return 'personal';
+    return normalizePortfolioProfileScope(scope);
   };
 
   const getPrimaryProfileId = (scope) => {
@@ -948,14 +956,14 @@ export function Onboarding({
     return 'A';
   };
 
-  const toPreviewScope = (scope) => (scope === 'personal' ? 'personal' : 'professional');
+  const toPreviewScope = (scope) => normalizePrimaryProfileScope(scope);
 
   // Resolve which profile scope currently has "primary" card priority
   const getPrimaryProfileScope = useCallback(() => {
     if (String(cardPriorityA).toLowerCase() === 'primary') return 'personal';
     if (String(cardPriorityB).toLowerCase() === 'primary') return 'professional';
     if (String(cardPriorityC).toLowerCase() === 'primary') return 'fsbo';
-    return 'personal';
+    return '';
   }, [cardPriorityA, cardPriorityB, cardPriorityC]);
 
   const _getGeneratedAddressLabel = (type) => `${type || 'Property'} listing`;
@@ -1096,12 +1104,14 @@ export function Onboarding({
     const activePreviewProfileScope = (() => {
       if (previewMode === 'properties') {
         const activeProperty = previewShowcaseCard || propertiesForPreview[previewPropertyIndex] || propertiesForPreview[0];
-        return activeProperty?.primaryProfile || 'personal';
+        return normalizePrimaryProfileScope(activeProperty?.primaryProfile);
       }
       const activeService = servicesForPreview[previewServiceIndex] || servicesForPreview[0];
-      return activeService?.primaryProfile || 'personal';
+      return normalizePrimaryProfileScope(activeService?.primaryProfile);
     })();
-    const activePreviewFeedCard = activePreviewProfileScope === 'professional' ? previewProfessionalFeedCard : previewPersonalFeedCard;
+    const activePreviewFeedCard = activePreviewProfileScope === 'professional'
+      ? previewProfessionalFeedCard
+      : (activePreviewProfileScope === 'fsbo' ? previewFsboFeedCard : previewPersonalFeedCard);
     const personalPreviewTitle = accountType === 'fsbo_owner'
       ? (t.previewBasicCardTitle || t.previewPersonalCardTitle)
       : t.previewPersonalCardTitle;
@@ -1111,7 +1121,7 @@ export function Onboarding({
 
     return (
       <div style={{ display: 'grid', gridTemplateColumns: isMobileViewport ? '1fr' : `minmax(${previewCardWidth}px, 1fr) minmax(${previewCardWidth}px, 1fr)`, gap: isMobileViewport ? 14 : 18, alignItems: 'stretch' }}>
-        {/* ── Left: Feed / Connection Card ── */}
+        {/* â”€â”€ Left: Feed / Connection Card â”€â”€ */}
         <section style={{ border: `1px solid ${C.border}`, borderRadius: 14, background: C.card, overflow: 'hidden', display: 'grid', gridTemplateRows: 'auto 1fr' }}>
           <div style={{ minHeight: 44, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '8px 10px', borderBottom: `1px solid ${C.border}`, fontSize: 11, color: C.t3, textTransform: 'uppercase', fontWeight: 700 }}>
             {personalPreviewTitle}
@@ -1140,7 +1150,7 @@ export function Onboarding({
           </div>
         </section>
 
-        {/* ── Right: Showcase / Portfolio Cards ── */}
+        {/* â”€â”€ Right: Showcase / Portfolio Cards â”€â”€ */}
 
         <section style={{ border: `1px solid ${C.border}`, borderRadius: 14, background: C.card, overflow: 'hidden', display: 'grid', gridTemplateRows: 'auto 1fr auto' }}>
           <div style={{ minHeight: 44, display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '8px 10px', borderBottom: `1px solid ${C.border}`, fontSize: 11, color: C.t3, textTransform: 'uppercase', fontWeight: 700 }}>
@@ -1161,7 +1171,7 @@ export function Onboarding({
                 </span>
                 <button
                   type="button"
-                  aria-label="Próximo"
+                  aria-label="PrÃ³ximo"
                   disabled={previewUnifiedIndex >= previewShowcaseCount - 1}
                   onClick={handlePreviewNext}
                   style={{ border: 'none', background: 'transparent', cursor: previewUnifiedIndex >= previewShowcaseCount - 1 ? 'not-allowed' : 'pointer', padding: 4, borderRadius: 999, display: 'flex', alignItems: 'center', justifyContent: 'center' }}
@@ -1203,9 +1213,11 @@ export function Onboarding({
                             try { if (act === 'next' || act === 'pass') handlePreviewNext(); } catch (e) { void e; }
                           }}
                           owner={
-                            (item.data?.primaryProfile || 'personal') === 'professional'
+                            normalizePrimaryProfileScope(item.data?.primaryProfile) === 'professional'
                               ? previewProfessionalFeedCard
-                              : previewPersonalFeedCard
+                              : (normalizePrimaryProfileScope(item.data?.primaryProfile) === 'fsbo'
+                                  ? previewFsboFeedCard
+                                  : previewPersonalFeedCard)
                           }
                         />
                       </div>
@@ -1314,24 +1326,42 @@ export function Onboarding({
   const handleProfileThumb = (e) => {
     const file = e.target.files?.[0];
     if (!file) { if (e?.target) e.target.value = ''; return; }
-    readAndCompressFiles([file], 512, 0.85).then(([url]) => { if (url) setProfileThumb(url); });
+    readAndCompressFiles([file], 512, 0.85).then(([url]) => {
+      if (url) {
+        setProfileThumbClearRequested(false);
+        setProfileThumb(url);
+      }
+    });
     if (e?.target) e.target.value = '';
   };
 
   const handleProfileThumbB = (e) => {
     const file = e.target.files?.[0];
     if (!file) { if (e?.target) e.target.value = ''; return; }
-    readAndCompressFiles([file], 512, 0.85).then(([url]) => { if (url) setProfileThumbB(url); });
+    readAndCompressFiles([file], 512, 0.85).then(([url]) => {
+      if (url) {
+        setProfileThumbBClearRequested(false);
+        setProfileThumbB(url);
+      }
+    });
     if (e?.target) e.target.value = '';
   };
 
-  const removeProfileThumb = () => setProfileThumb('');
-  const removeProfileThumbB = () => setProfileThumbB('');
+  const removeProfileThumb = () => {
+    setProfileThumb('');
+    setProfileThumbClearRequested(true);
+  };
+  const removeProfileThumbB = () => {
+    setProfileThumbB('');
+    setProfileThumbBClearRequested(true);
+  };
 
   const clearProfileAFields = () => {
+    const profileKey = accountType === 'fsbo_owner' ? 'C' : 'A';
     setName('');
     setLoc('');
     setProfileThumb('');
+    setProfileThumbClearRequested(true);
     setPersonalPrimaryPhone('');
     setPersonalSecondaryPhone('');
     setPersonalTertiaryPhone('');
@@ -1343,16 +1373,18 @@ export function Onboarding({
     setSelectedSkills([]);
     setSelectedServices([]);
     setPitch('');
-    setCardPriorityA('');
+    if (profileKey === 'C') setCardPriorityC('');
+    else setCardPriorityA('');
     setIsSaveProfilesDirty(true);
     setSaveProfilesBaseline('');
-    setPendingProfileClearScope('A');
+    setPendingProfileClearScope(profileKey);
   };
 
   const clearProfileBFields = () => {
     setNameB('');
     setLocB('');
     setProfileThumbB('');
+    setProfileThumbBClearRequested(true);
     setPersonalPrimaryPhoneB('');
     setPersonalSecondaryPhoneB('');
     setPersonalTertiaryPhoneB('');
@@ -1425,6 +1457,7 @@ export function Onboarding({
   }, [accountType, activeTempStorageKey, shouldUseTempStorage, getPrimaryProfileScope]);
 
   useEffect(() => {
+    if (pendingProfileClearScope) return undefined;
     const timer = window.setTimeout(() => {
       if (accountType === 'fsbo_owner') {
         setName(personalProfile?.fullName || '');
@@ -1434,7 +1467,6 @@ export function Onboarding({
         setPersonalSecondaryPhone(personalProfile?.secondaryPhone || '');
         setPersonalTertiaryPhone(personalProfile?.tertiaryPhone || '');
         setPersonalEmail(personalProfile?.email || '');
-        const priorityAExplicit = professionalProfile?.cardPriorityAExplicit === true || personalProfile?.cardPriorityAExplicit === true;
         const priorityBExplicit = professionalProfile?.cardPriorityBExplicit === true;
         const priorityCExplicit = personalProfile?.cardPriorityCExplicit === true || professionalProfile?.cardPriorityCExplicit === true;
         applyCardPrioritySet({
@@ -1505,7 +1537,7 @@ export function Onboarding({
       setSaveProfilesBaseline('');
     }, 0);
     return () => window.clearTimeout(timer);
-  }, [accountType, personalProfile, professionalProfile]);
+  }, [accountType, personalProfile, professionalProfile, pendingProfileClearScope]);
 
   // persist temporary uploads so the user doesn't need to re-upload on dev reload
   useEffect(() => {
@@ -1818,6 +1850,8 @@ export function Onboarding({
         ...newItem,
         publishToShowcase: false,
         includeInPreview: true,
+        _localDraft: true,
+        _localDraftAt: Date.now(),
       },
     ]);
 
@@ -1844,7 +1878,6 @@ export function Onboarding({
     return newItem.id;
   };
 
-  const addFsboProperty = addProfessionalPortfolioProperty;
 
   const addProfessionalPortfolioService = () => {
     if (!serviceTitle || !serviceCategory || !servicePrimaryProfileScope) return;
@@ -1870,6 +1903,8 @@ export function Onboarding({
         includeInPreview: true,
         dealClosed: false,
         source: 'portfolio',
+        _localDraft: true,
+        _localDraftAt: Date.now(),
       },
     ]);
 
@@ -1916,7 +1951,7 @@ export function Onboarding({
           publishToShowcase: nextShowIn,
         };
       });
-      // Garante nova referência mesmo se nada mudar (edge case)
+      // Garante nova referÃªncia mesmo se nada mudar (edge case)
       return changed ? next : [...prev];
     });
   };
@@ -1931,11 +1966,6 @@ export function Onboarding({
 
   // User-created records should always belong to the local authenticated profile.
   const getPublishOwnerId = () => {
-    try {
-      const map = JSON.parse(localStorage.getItem('profileOwnerMap') || 'null');
-      const mappedOwnerId = String(map?.personal || '').trim();
-      if (mappedOwnerId && mappedOwnerId !== '999999') return mappedOwnerId;
-    } catch (e) { void e; }
     return authSession?.userId || authSession?.id || '';
   };
 
@@ -1948,26 +1978,15 @@ export function Onboarding({
     return ownerId;
   };
 
-  const previewPersonalCard = useMemo(() => ({
-    name: name || '',
-    type: accountType === 'professional' ? 'Business' : 'FSBO Owner',
-    location: loc ? `${stateNameByCode[loc]}, ${loc}` : '',
-    categories: selectedCategories,
-    markets: selectedMarkets,
-    skills: effectiveProfileSkills,
-    photo: profileThumb || '',
-  }), [name, accountType, loc, stateNameByCode, selectedCategories, selectedMarkets, effectiveProfileSkills, profileThumb]);
-
   const buildPreviewFeedCard = (scope = 'personal') => {
     const isProfessionalScope = scope === 'professional';
-    const previewBadge = accountType === 'fsbo_owner'
-      ? ''
-      : (isProfessionalScope ? 'Business' : 'Personal');
-    const categoryId = isProfessionalScope ? primaryCategoryB : primaryCategory;
-    const bestCategory = allProfiles.find((p) => p.id === categoryId)?.label || '';
-    const scopedProperties = (myPortfolio || []).filter((p) => toPreviewScope(p.primaryProfile || 'personal') === scope);
+    const isFsboScope = scope === 'fsbo';
+    const previewBadge = isFsboScope ? 'FSBO' : (isProfessionalScope ? 'Business' : 'Personal');
+    const categoryId = isProfessionalScope ? primaryCategoryB : (isFsboScope ? 'fsbo' : primaryCategory);
+    const bestCategory = isFsboScope ? 'FSBO' : (allProfiles.find((p) => p.id === categoryId)?.label || '');
+    const scopedProperties = (myPortfolio || []).filter((p) => toPreviewScope(p.primaryProfile) === scope);
     const scopedServices = (myServicePortfolio || []).filter((s) => {
-      const serviceScope = s.primaryProfile || 'personal';
+      const serviceScope = s.primaryProfile;
       return toPreviewScope(serviceScope) === scope && isServiceVisibleInPreview(s);
     });
     const autoDeals = scopedProperties.length || scopedServices.length ? Math.max(1, (scopedProperties.length + scopedServices.length) * 3) : 0;
@@ -1994,17 +2013,17 @@ export function Onboarding({
     );
     const scopedManualSkills = isProfessionalScope ? selectedSkillsB : selectedSkills;
 
-    const previewTags = accountType === 'fsbo_owner'
+    const previewTags = isFsboScope
       ? []
       : (scopedServiceTags.length ? scopedServiceTags.slice(0, 4) : ((scopedManualSkills || []).slice(0, 4)));
 
     return {
-      id: isProfessionalScope ? 'preview-professional' : 'preview-personal',
-      photo: (isProfessionalScope ? profileThumbB : previewPersonalCard.photo) || '',
-      name: isProfessionalScope ? (nameB || '') : previewPersonalCard.name,
+      id: isProfessionalScope ? 'preview-professional' : (isFsboScope ? 'preview-fsbo' : 'preview-personal'),
+      photo: (isProfessionalScope ? profileThumbB : profileThumb) || '',
+      name: isProfessionalScope ? (nameB || '') : (name || ''),
       type: bestCategory,
       badge: previewBadge,
-      loc: isProfessionalScope ? (locB ? `${stateNameByCode[locB]}, ${locB}` : '') : previewPersonalCard.location,
+      loc: isProfessionalScope ? (locB ? `${stateNameByCode[locB]}, ${locB}` : '') : (loc ? `${stateNameByCode[loc]}, ${loc}` : ''),
       rating: autoRating,
       reviews: autoReviews,
       portfolioCount: scopedProperties.length,
@@ -2018,7 +2037,7 @@ export function Onboarding({
           if (scopePitch && String(scopePitch).trim().length) parts.push(String(scopePitch).trim());
           if (scopedServiceDescriptions.length) parts.push(...scopedServiceDescriptions);
         } catch (e) { void e; }
-        return parts.length ? parts.join(' • ') : '';
+        return parts.length ? parts.join(' â€¢ ') : '';
       })(),
       tags: previewTags,
     };
@@ -2026,6 +2045,7 @@ export function Onboarding({
 
   const previewPersonalFeedCard = buildPreviewFeedCard('personal');
   const previewProfessionalFeedCard = buildPreviewFeedCard('professional');
+  const previewFsboFeedCard = buildPreviewFeedCard('fsbo');
 
   const previewShowcaseCard = (() => {
     const total = propertiesForPreview.length;
@@ -2271,7 +2291,7 @@ export function Onboarding({
       };
     }
 
-    // Neither path fully ready — guide user based on their active tab
+    // Neither path fully ready â€” guide user based on their active tab
     if (preferProfessionalPath) {
       if (!profileBComplete) {
         const hintMessage = t.errorCompleteBusinessProfile || 'Complete the Business profile: full name, priority phone, email and contact methods.';
@@ -2422,7 +2442,7 @@ export function Onboarding({
       : validateMinimumProfileCompletion();
     if (!validation.valid) return;
 
-    // Permite qualquer perfil ser neutro/não ativo, apenas impede duplicidade
+    // Permite qualquer perfil ser neutro/nÃ£o ativo, apenas impede duplicidade
     const safeCardPriorities = normalizeUniqueCardPriorities(
       {
         A: cardPriorityA,
@@ -2442,6 +2462,8 @@ export function Onboarding({
       : normalizeInvestmentDraft(professionalProfile?.investmentProfile);
     const isClearingProfileA = pendingProfileClearScope === 'A';
     const isClearingProfileB = pendingProfileClearScope === 'B';
+    const isClearingProfileC = pendingProfileClearScope === 'C';
+    const isClearingActiveProfile = isClearingProfileA || isClearingProfileB || isClearingProfileC;
 
     // Save profile data per account branch to avoid cross-populating forms.
     try {
@@ -2451,6 +2473,7 @@ export function Onboarding({
           fullName: name || '',
           loc: normalizeUsStateCode(loc),
           photo: profileThumb || '',
+          photoClearRequested: profileThumbClearRequested === true,
           phone: personalPrimaryPhone,
           primaryPhone: personalPrimaryPhone,
           secondaryPhone: personalSecondaryPhone,
@@ -2475,6 +2498,7 @@ export function Onboarding({
           photoB: profileThumbB || '',
           photoBUrl: profileThumbB || '',
           photo: profileThumbB || '',
+          photoBClearRequested: profileThumbBClearRequested === true,
           categoryB: primaryCategoryB,
           primaryCategoryB,
           goalB,
@@ -2514,6 +2538,7 @@ export function Onboarding({
           fullNameA: name || '',
           locA: normalizeUsStateCode(loc),
           photoA: profileThumb || '',
+          photoAClearRequested: profileThumbClearRequested === true,
           phoneA: personalPrimaryPhone,
           primaryPhoneA: personalPrimaryPhone,
           secondaryPhoneA: personalSecondaryPhone,
@@ -2539,6 +2564,7 @@ export function Onboarding({
           photoB: profileThumbB || '',
           photoBUrl: profileThumbB || '',
           photo: profileThumbB || '',
+          photoBClearRequested: profileThumbBClearRequested === true,
           categoryB: primaryCategoryB,
           primaryCategoryB,
           goalB,
@@ -2579,9 +2605,9 @@ export function Onboarding({
         : (loc || '');
       setUserProfile((prev) => ({
         ...prev,
-        name: (isClearingProfileA || isClearingProfileB) ? activeName : (activeName || prev?.name || ''),
+        name: isClearingActiveProfile ? activeName : (activeName || prev?.name || ''),
         photo: activeHeaderPhoto,
-        location: activeLoc ? `${stateNameByCode[activeLoc]}, ${activeLoc}` : ((isClearingProfileA || isClearingProfileB) ? '' : (prev?.location || '')),
+        location: activeLoc ? `${stateNameByCode[activeLoc]}, ${activeLoc}` : (isClearingActiveProfile ? '' : (prev?.location || '')),
       }));
 
       // Fix 4: If only 1 profile is truly filled, reassign ONLY orphaned records to it.
@@ -2617,6 +2643,8 @@ export function Onboarding({
       setSaveProfilesBaseline(saveProfilesFingerprint);
       setIsSaveProfilesDirty(false);
       setPendingProfileClearScope('');
+      setProfileThumbClearRequested(false);
+      setProfileThumbBClearRequested(false);
       setBasicRequiredMsg('');
       clearInlineValidationHint();
 
@@ -2704,6 +2732,7 @@ export function Onboarding({
         fullName: finalName,
         loc: effectiveLoc || normalizeUsStateCode(prev.loc) || '',
         photo: profileThumb || '',
+        photoClearRequested: profileThumbClearRequested === true,
         phone: effectivePrimaryPhone,
         primaryPhone: effectivePrimaryPhone,
         secondaryPhone: effectiveSecondaryPhone,
@@ -2734,6 +2763,7 @@ export function Onboarding({
         fullNameA: name || '',
         locA: normalizeUsStateCode(loc),
         photoA: profileThumb || '',
+        photoAClearRequested: profileThumbClearRequested === true,
         phoneA: personalPrimaryPhone,
         primaryPhoneA: personalPrimaryPhone,
         secondaryPhoneA: personalSecondaryPhone,
@@ -2758,6 +2788,7 @@ export function Onboarding({
         photoB: profileThumbB || '',
         photoBUrl: profileThumbB || '',
         photo: profileThumbB || '',
+        photoBClearRequested: profileThumbBClearRequested === true,
         categoryB: primaryCategoryB,
         primaryCategoryB,
         goalB,
@@ -2783,11 +2814,9 @@ export function Onboarding({
     // Services are only created explicitly through the service form.
 
     // Se houver um rascunho de propriedade preenchido, publique-o antes de navegar
-    // para o dashboard para garantir que apareça no Showcase/feed.
+    // para o dashboard para garantir que apareÃ§a no Showcase/feed.
     let autoAddedPropertyId = null;
-    if (accountType === 'fsbo_owner' && portfolioAddress && portfolioCity && portfolioPrice) {
-      autoAddedPropertyId = addFsboProperty();
-    } else if (portfolioEntryType === 'property' && portfolioAddress && portfolioCity && portfolioPrice) {
+    if (portfolioEntryType === 'property' && portfolioAddress && portfolioCity && portfolioPrice) {
       autoAddedPropertyId = addProfessionalPortfolioProperty();
     }
 
@@ -2829,11 +2858,13 @@ export function Onboarding({
       const msgParts = [];
       if (propsCount > 0) msgParts.push(`${propsCount} ${propsCount === 1 ? t.toastPropertyPublishedOne : t.toastPropertyPublishedOther}`);
       if (servicesCount > 0) msgParts.push(`${servicesCount} ${servicesCount === 1 ? t.toastServicePublishedOne : t.toastServicePublishedOther}`);
-      const toastMsg = msgParts.length ? `${t.published}: ${msgParts.join(' · ')}` : t.nothingPublished;
+      const toastMsg = msgParts.length ? `${t.published}: ${msgParts.join(' Â· ')}` : t.nothingPublished;
       setPublishToast(toastMsg);
       setTimeout(() => setPublishToast(''), 2800);
       setSaveProfilesBaseline(saveProfilesFingerprint);
       setIsSaveProfilesDirty(false);
+      setProfileThumbClearRequested(false);
+      setProfileThumbBClearRequested(false);
     } catch (e) {
       if (import.meta.env.DEV) console.warn('Publish step failed during registration publish.', e);
     }
@@ -3416,7 +3447,7 @@ export function Onboarding({
                     <div style={{ fontSize: 11, fontWeight: 800, color: C.t1 }}>{t.investmentProfileTitle || 'Investor Profile'}</div>
                     <div style={{ fontSize: 10, color: C.t3 }}>
                       {(t.investmentProfileStrength || 'Profile strength')}: <strong style={{ color: investmentProfileStrength >= 70 ? C.accent : C.warning }}>{investmentProfileStrength}%</strong>
-                      {requiresInvestmentProfile && !investmentProfileRequiredComplete ? ` · ${t.investmentProfileRequiredHint || 'Required for selected categories'}` : ''}
+                      {requiresInvestmentProfile && !investmentProfileRequiredComplete ? ` Â· ${t.investmentProfileRequiredHint || 'Required for selected categories'}` : ''}
                     </div>
                   </div>
                   <button
@@ -3736,7 +3767,6 @@ export function Onboarding({
           </div>
 
           <div className="onb-col onb-col-mid">
-            {USE_UNIFIED_PORTFOLIO_SECTION ? (
               <SectionCard title={t.sectionPortfolio} subtitle={t.sectionPortfolioSub} grow={true}>
                 {/* scrollable form area: tab1 + form + add-preview buttons */}
                 <div style={{ flex: isMobileViewport ? '0 0 auto' : 1, minHeight: isMobileViewport ? 'auto' : 0, overflowY: isMobileViewport ? 'visible' : 'auto', overflowX: 'hidden', display: 'flex', flexDirection: 'column', paddingBottom: isMobileViewport ? 8 : 14, paddingRight: isMobileViewport ? 0 : 4 }}>
@@ -3808,7 +3838,23 @@ export function Onboarding({
                       </label>
                     </div>
                     {serviceImages.length > 0 && (
-                      <div style={{ position: 'relative', zIndex: 1, flex: '0 0 auto', minHeight: 84, marginTop: 4, marginBottom: 14, display: 'flex', gap: 6, overflowX: 'auto', overflowY: 'hidden', padding: '4px 0 8px', clear: 'both' }}>
+                      <div style={{
+                        position: 'relative',
+                        zIndex: 1,
+                        width: '100%',
+                        minHeight: 104,
+                        marginTop: 6,
+                        marginBottom: 18,
+                        display: 'grid',
+                        gridAutoFlow: 'column',
+                        gridAutoColumns: '120px',
+                        gap: 8,
+                        overflowX: 'auto',
+                        overflowY: 'hidden',
+                        padding: '8px 0 14px',
+                        boxSizing: 'border-box',
+                        clear: 'both',
+                      }}>
                         {serviceImages.map((src, idx) => (
                           <div key={`service-upload-preview-${idx}`} style={{ position: 'relative', borderRadius: 8, overflow: 'hidden', background: C.alpha(C.t1, 0.02), border: `1px solid ${C.border}`, display: 'flex', alignItems: 'center', justifyContent: 'center', width: 120, height: 72, flex: '0 0 120px' }}>
                             <SmartImage src={src} alt={`service-img-${idx + 1}`} style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }} />
@@ -3949,7 +3995,7 @@ export function Onboarding({
                               WebkitLineClamp: (isPhoneViewport && (p.dealClosed || !isTruthyFlag(p.publishToShowcase, true))) ? 2 : 1,
                               WebkitBoxOrient: 'vertical',
                             }}>
-                              {p.address} · {p.city} · ${Number(p.price || 0).toLocaleString('en-US')} · {p.images?.length || 0} img
+                              {p.address} Â· {p.city} Â· ${Number(p.price || 0).toLocaleString('en-US')} Â· {p.images?.length || 0} img
                             </div>
                             <div style={{ display:'flex', alignItems:'center', justifyContent: isPhoneViewport ? 'flex-start' : 'flex-end', gap:6, width: isPhoneViewport ? '100%' : 'auto', flex: isPhoneViewport ? '0 0 100%' : '1 1 0', flexWrap: 'nowrap', marginLeft: isPhoneViewport ? 0 : 'auto', minWidth: 0 }}>
                               {!p.dealClosed ? (
@@ -3997,7 +4043,7 @@ export function Onboarding({
                                   <Icon name="eye" size={14} color={isTruthyFlag(p.includeInPreview, false) ? C.accent : C.t3} />
                                 </button>
                               ) : null}
-                              {/* ── Deal-closed "$" button ── */}
+                              {/* â”€â”€ Deal-closed "$" button â”€â”€ */}
                               {renderPropertyPendingDealButton(p)}
                               {(() => {
                                 const pressure = getMatchPressure(p.id);
@@ -4007,7 +4053,7 @@ export function Onboarding({
                                   <button
                                     type="button"
                                     onClick={() => togglePropertyDealClosed(p.id)}
-                                    title={isClosed ? 'Deal fechado — clique para reabrir' : `${pressure}% de usuários acessaram — marcar deal como fechado`}
+                                    title={isClosed ? 'Deal fechado â€” clique para reabrir' : `${pressure}% de usuÃ¡rios acessaram â€” marcar deal como fechado`}
                                     aria-label={isClosed ? 'Deal fechado' : 'Fechar deal'}
                                     className={isActive ? 'deal-blink' : undefined}
                                     style={{
@@ -4299,7 +4345,7 @@ export function Onboarding({
                               WebkitLineClamp: (isPhoneViewport && (svc.dealClosed || !isTruthyFlag(svc.publishToConnections, true))) ? 2 : 1,
                               WebkitBoxOrient: 'vertical',
                             }}>
-                              {svc.title || t.serviceFallbackName}{svc.category ? ` · ${svc.category}` : ''} · {svc.media?.images?.length || 0} img
+                              {svc.title || t.serviceFallbackName}{svc.category ? ` Â· ${svc.category}` : ''} Â· {svc.media?.images?.length || 0} img
                             </div>
                             <div style={{ display:'flex', alignItems:'center', justifyContent: isPhoneViewport ? 'flex-start' : 'flex-end', gap:6, width: isPhoneViewport ? '100%' : 'auto', flex: isPhoneViewport ? '0 0 100%' : '1 1 0', flexWrap: 'nowrap', marginLeft: isPhoneViewport ? 0 : 'auto', minWidth: 0 }}>
                               {!svc.dealClosed ? (
@@ -4479,234 +4525,6 @@ export function Onboarding({
                   )}
                 </div>
               </SectionCard>
-            ) : (
-              <SectionCard title={t.sectionPortfolio} subtitle={t.sectionPortfolioSub} grow={true}>
-                <div style={{ flex: isMobileViewport ? '0 0 auto' : '0 1 auto', minHeight: 0, maxHeight: isMobileViewport ? 'none' : 'calc(100% - 150px)', overflowY: isMobileViewport ? 'visible' : 'auto', overflowX: 'hidden', paddingRight: isMobileViewport ? 0 : 4, paddingBottom: isMobileViewport ? 8 : 14 }}>
-                  <FsboPropertyForm
-                    t={t}
-                    C={C}
-                    isMobileViewport={isMobileViewport}
-                    isTabletPortraitViewport={isTabletPortraitViewport}
-                    values={portfolioFormValues}
-                    onChange={handlePortfolioFieldChange}
-                    formatCurrencyInput={formatCurrencyInput}
-                    formatRateInput={formatRateInput}
-                    renderMarketsSelector={renderMarketsSelector}
-                    togglePortfolioMarket={(code) => toggleMulti(setPortfolioMarkets, code)}
-                    handlePortfolioImages={handlePortfolioImages}
-                    handlePortfolioVideo={handlePortfolioVideo}
-                    portfolioFieldLabelStyle={portfolioFieldLabelStyle}
-                    portfolioFieldInputStyle={portfolioFieldInputStyle}
-                    portfolioFieldSelectStyle={portfolioFieldSelectStyle}
-                    portfolioTextareaLabelStyle={portfolioTextareaLabelStyle}
-                    portfolioFieldTextareaStyle={portfolioFieldTextareaStyle}
-                  />
-
-                  <div style={{ display: 'flex', flexDirection: (isTabletViewport || !isMobileViewport) ? 'row' : 'column', gap: 8, alignItems: (isTabletViewport || !isMobileViewport) ? 'center' : 'stretch', marginTop: 8, marginBottom: 12 }}>
-                    <button onClick={addFsboProperty} style={{ flex: 1, padding: '8px 10px', borderRadius: 9, border: `1px solid ${C.accent}`, background: 'transparent', color: C.accent, fontWeight: 700, cursor: 'pointer', fontSize: 11 }}>
-                      {t.addToPortfolio}
-                    </button>
-                    <button className={`onb-preview-feed ${isPreviewToFeedDirty ? 'is-dirty' : ''}`} onClick={openPreviewToFeed} style={{ flex: 1, padding: '8px 10px', borderRadius: 9, border: 'none', background: C.accent, color: '#1a1a1a', fontWeight: 700, cursor: 'pointer', fontSize: 11, display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: 6 }}>
-                      <Icon name="eye" size={13} color="#1a1a1a" />
-                      <span>{t.saveAndPreview}</span>
-                    </button>
-                  </div>
-                </div>
-
-                <div className="onb-scroll-list" style={{ border: `1px solid ${C.border}`, borderRadius: 10, padding: 8, background: C.card, marginTop: 8, flex: 1, minHeight: 0, maxHeight: 'none', overflowY: 'auto', overflowX: 'hidden' }}>
-                  {myPortfolio.length === 0 ? (
-                    <div style={{ fontSize: 11, color: C.t3 }}>{t.recordsNoFsbo}</div>
-                  ) : (
-                    myPortfolio.map((p, i) => (
-                      <div key={p.id} style={{ borderBottom: i < myPortfolio.length - 1 ? `1px solid ${C.border}` : 'none' }}>
-                          <div style={{ display: 'flex', flexWrap: isPhoneViewport ? 'wrap' : 'nowrap', alignItems: 'center', gap: 6, padding: '7px 0', minWidth: 0 }}>
-                            <div style={{
-                              minWidth: 0,
-                              flex: isPhoneViewport ? '1 1 100%' : '0 1 50%',
-                              maxWidth: isPhoneViewport ? '100%' : '52%',
-                              fontSize: 11,
-                              color: C.t1,
-                              fontWeight: 700,
-                              lineHeight: 1.2,
-                              overflow: 'hidden',
-                              textOverflow: 'ellipsis',
-                              whiteSpace: (isPhoneViewport && (p.dealClosed || !isTruthyFlag(p.publishToShowcase, true))) ? 'normal' : 'nowrap',
-                              display: (isPhoneViewport && (p.dealClosed || !isTruthyFlag(p.publishToShowcase, true))) ? '-webkit-box' : 'block',
-                              WebkitLineClamp: (isPhoneViewport && (p.dealClosed || !isTruthyFlag(p.publishToShowcase, true))) ? 2 : 1,
-                              WebkitBoxOrient: 'vertical',
-                            }}>
-                              {p.address} · {p.city} · ${Number(p.price || 0).toLocaleString('en-US')} · {p.images?.length || 0} img
-                            </div>
-                            <div style={{ display:'flex', alignItems:'center', justifyContent: isPhoneViewport ? 'flex-start' : 'flex-end', gap:6, width: isPhoneViewport ? '100%' : 'auto', flex: isPhoneViewport ? '0 0 100%' : '1 1 0', flexWrap: 'nowrap', marginLeft: isPhoneViewport ? 0 : 'auto', minWidth: 0 }}>
-                              {!p.dealClosed ? (
-                                <Chip active={isTruthyFlag(p.publishToShowcase, true)} onClick={() => {
-                                  togglePropertyShowInShowcase(p.id);
-                                }}
-                                aria-label={isTruthyFlag(p.publishToShowcase, true) ? t.publishInShowcaseInactive : t.publishInShowcaseActive}
-                                aria-pressed={isTruthyFlag(p.publishToShowcase, true)}
-                                title={isTruthyFlag(p.publishToShowcase, true) ? t.publishInShowcaseInactive : t.publishInShowcaseActive}
-                                style={{
-                                  marginRight: isPhoneViewport ? 'auto' : 0,
-                                  overflow: 'hidden',
-                                  textOverflow: 'ellipsis',
-                                  whiteSpace: 'nowrap',
-                                  background: isTruthyFlag(p.publishToShowcase, true) ? C.alpha(C.danger, 0.08) : C.alpha(C.accent, 0.1),
-                                  border: `1px solid ${isTruthyFlag(p.publishToShowcase, true) ? C.danger : C.accent}`,
-                                  color: isTruthyFlag(p.publishToShowcase, true) ? C.danger : C.accent,
-                                  fontSize: isPhoneViewport ? 9 : 10.5,
-                                  padding: isPhoneViewport ? '5px 8px' : '6px 11px',
-                                  minWidth: isPhoneViewport ? undefined : 116,
-                                }}>
-                                  {isTruthyFlag(p.publishToShowcase, true) ? t.publishInShowcaseInactive : t.publishInShowcaseActive}
-                                </Chip>
-                              ) : null}
-                              {!p.dealClosed ? (
-                                <button
-                                  type="button"
-                                  onClick={() => togglePropertyPreviewInclusion(p.id)}
-                                  title={t.useInPreview}
-                                  aria-label={t.useInPreview}
-                                  aria-pressed={isTruthyFlag(p.includeInPreview, false)}
-                                  style={{
-                                    background: isTruthyFlag(p.includeInPreview, false) ? C.alpha(C.accent, 0.12) : 'none',
-                                    border: isTruthyFlag(p.includeInPreview, false) ? `1px solid ${C.alpha(C.accent, 0.65)}` : '1px solid transparent',
-                                    borderRadius: 8,
-                                    boxShadow: isTruthyFlag(p.includeInPreview, false) ? `0 0 10px ${C.alpha(C.accent, 0.65)}, inset 0 0 6px ${C.alpha(C.accent, 0.28)}` : 'none',
-                                    cursor: 'pointer',
-                                    padding: '0 6px',
-                                    fontSize: 14,
-                                    lineHeight: 1,
-                                    flexShrink: 0,
-                                    transition: 'box-shadow .18s ease, border-color .18s ease, background .18s ease'
-                                  }}
-                                >
-                                  <Icon name="eye" size={14} color={isTruthyFlag(p.includeInPreview, false) ? C.accent : C.t3} />
-                                </button>
-                              ) : null}
-                              {renderPropertyPendingDealButton(p)}
-                              {(() => {
-                                const pressure = getMatchPressure(p.id);
-                                const isClosed = !!p.dealClosed;
-                                const isActive = pressure > 0 && !isClosed;
-                                return (
-                                  <button
-                                    type="button"
-                                    onClick={() => togglePropertyDealClosed(p.id)}
-                                    title={isClosed ? 'Deal fechado - clique para reabrir' : `${pressure}% de usuários acessaram - marcar deal como fechado`}
-                                    aria-label={isClosed ? 'Deal fechado' : 'Fechar deal'}
-                                    className={isActive ? 'deal-blink' : undefined}
-                                    style={{
-                                      background: isClosed ? 'rgba(39,174,96,0.12)' : isActive ? 'rgba(213,38,20,0.10)' : 'none',
-                                      border: isClosed ? '1px solid rgba(39,174,96,0.4)' : isActive ? '1px solid rgba(213,38,20,0.3)' : '1px solid transparent',
-                                      borderRadius: 6,
-                                      cursor: 'pointer',
-                                      padding: '0 5px',
-                                      fontSize: 13,
-                                      fontWeight: 900,
-                                      lineHeight: 1,
-                                      flexShrink: 0,
-                                      color: isClosed ? '#27ae60' : isActive ? C.danger : C.t3,
-                                    }}
-                                  >
-                                    $
-                                  </button>
-                                );
-                              })()}
-                              {!p.dealClosed ? (
-                                <button type="button" onClick={() => startEditProperty(p)} title={t.actionEditService} aria-label={t.actionEditService} style={{ background: 'none', border: 'none', cursor: 'pointer', color: editingPropertyId === p.id ? C.accent : C.t3, padding: '0 6px', fontSize: 14, lineHeight: 1, flexShrink: 0 }}>
-                                  <Icon name="edit" size={14} color={editingPropertyId === p.id ? C.accent : C.t3} />
-                                </button>
-                              ) : null}
-                              <div style={{ display: 'flex', gap: 6, alignItems: 'center' }}>
-                                <button type="button" onClick={() => setPropertyPortfolio(prev => {
-                                  const idx = prev.findIndex(x => x.id === p.id);
-                                  if (idx <= 0) return prev;
-                                  const next = [...prev]; const tmp = next[idx-1]; next[idx-1] = next[idx]; next[idx] = tmp; return next;
-                                })} title={t.moveUp} aria-label={t.moveUp} style={{ background: 'none', border: 'none', cursor: 'pointer', padding: '0 6px', flexShrink: 0 }}>
-                                  <Icon name="chevUp" size={14} color={C.t3} />
-                                </button>
-                                <button type="button" onClick={() => setPropertyPortfolio(prev => {
-                                  const idx = prev.findIndex(x => x.id === p.id);
-                                  if (idx === -1 || idx >= prev.length-1) return prev;
-                                  const next = [...prev]; const tmp = next[idx+1]; next[idx+1] = next[idx]; next[idx] = tmp; return next;
-                                })} title={t.moveDown} aria-label={t.moveDown} style={{ background: 'none', border: 'none', cursor: 'pointer', padding: '0 6px', flexShrink: 0 }}>
-                                  <Icon name="chevDown" size={14} color={C.t3} />
-                                </button>
-                                <button type="button" onClick={() => setPropertyPortfolio(prev => prev.filter(x => x.id !== p.id))} title={t.actionRemove} aria-label={t.actionRemove} style={{ background: 'none', border: 'none', cursor: 'pointer', padding: '0 6px', flexShrink: 0 }}>
-                                  <Icon name="trash" size={14} color={C.danger} />
-                                </button>
-                              </div>
-                            </div>
-                        </div>
-                        {editingImagesId === p.id && (
-                          <div style={{ paddingBottom: 8 }}>
-                            <label style={{ fontSize: 10, color: C.t3, textTransform: 'uppercase' }}>
-                              {t.actionReplaceImagesUpTo10}
-                              <input type="file" accept="image/*" multiple onChange={(e) => handleEditImages(e, p.id)} style={{ display: 'block', marginTop: 4, fontSize: 11 }} />
-                            </label>
-                            {(p.images?.length || 0) > 0 ? (
-                              <div style={{ marginTop: 6, display: 'grid', gridTemplateColumns: 'repeat(3, minmax(0, 1fr))', gap: 6 }}>
-                                {p.images.map((_, imgIdx) => (
-                                  <div key={`${p.id}-img-${imgIdx}`} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8, fontSize: 10, color: C.t2, border: `1px solid ${C.border}`, borderRadius: 7, padding: '4px 6px' }}>
-                                    <span style={{ minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{t.labelImageItem} {imgIdx + 1}</span>
-                                    <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-                                      <button type="button"
-                                        onClick={() => {
-                                          if (imgIdx <= 0) return;
-                                          setPropertyPortfolio((prev) => prev.map((x) => {
-                                            if (x.id !== p.id) return x;
-                                            const imgs = [...(x.images || [])]; const next = imgs.slice(); const tmp = next[imgIdx-1]; next[imgIdx-1] = next[imgIdx]; next[imgIdx] = tmp; return { ...x, images: next };
-                                          }));
-                                        }}
-                                        title={t.moveUp}
-                                        aria-label={t.moveUp}
-                                        style={{ background: 'none', border: 'none', cursor: imgIdx <= 0 ? 'default' : 'pointer', padding: '0 6px', flexShrink: 0 }}
-                                      >
-                                        <Icon name="chevUp" size={12} color={imgIdx <= 0 ? C.border : C.t3} />
-                                      </button>
-                                      <button type="button"
-                                        onClick={() => {
-                                          if (imgIdx >= (p.images || []).length - 1) return;
-                                          setPropertyPortfolio((prev) => prev.map((x) => {
-                                            if (x.id !== p.id) return x;
-                                            const imgs = [...(x.images || [])]; const next = imgs.slice(); const tmp = next[imgIdx+1]; next[imgIdx+1] = next[imgIdx]; next[imgIdx] = tmp; return { ...x, images: next };
-                                          }));
-                                        }}
-                                        title={t.moveDown}
-                                        aria-label={t.moveDown}
-                                        style={{ background: 'none', border: 'none', cursor: imgIdx >= (p.images || []).length - 1 ? 'default' : 'pointer', padding: '0 6px', flexShrink: 0 }}
-                                      >
-                                        <Icon name="chevDown" size={12} color={imgIdx >= (p.images || []).length - 1 ? C.border : C.t3} />
-                                      </button>
-                                      <button type="button"
-                                        onClick={() => {
-                                          setPropertyPortfolio((prev) => prev.map((x) => (
-                                            x.id === p.id
-                                              ? { ...x, images: (x.images || []).filter((__, i) => i !== imgIdx) }
-                                              : x
-                                          )));
-                                        }}
-                                        title={t.actionRemove}
-                                        aria-label={t.actionRemove}
-                                        style={{ background: 'none', border: 'none', cursor: 'pointer', padding: '0 6px', flexShrink: 0 }}
-                                      >
-                                        <Icon name="trash" size={12} color={C.danger} />
-                                      </button>
-                                    </div>
-                                  </div>
-                                ))}
-                              </div>
-                            ) : (
-                              <div style={{ marginTop: 6, fontSize: 10, color: C.t3 }}>{t.uploadedImagesEmpty}</div>
-                            )}
-                          </div>
-                        )}
-                      </div>
-                    ))
-                  )}
-                </div>
-              </SectionCard>
-            )}
           </div>
 
           <div className="onb-col onb-col-right">
@@ -4908,8 +4726,8 @@ export function Onboarding({
 
       {editingPropertyRecord ? (
         <Modal onClose={() => setEditingPropertyId(null)} maxWidth={1080}>
-          <h3 style={{ margin: '0 0 6px', color: C.t1, fontSize: 20, fontWeight: 800 }}>Editar Imóvel</h3>
-          <p style={{ margin: '0 0 14px', color: C.t3, fontSize: 12 }}>{editingPropertyRecord.address} · {editingPropertyRecord.city}</p>
+          <h3 style={{ margin: '0 0 6px', color: C.t1, fontSize: 20, fontWeight: 800 }}>Editar ImÃ³vel</h3>
+          <p style={{ margin: '0 0 14px', color: C.t3, fontSize: 12 }}>{editingPropertyRecord.address} Â· {editingPropertyRecord.city}</p>
           <div style={{ display: 'grid', gridTemplateColumns: isMobileViewport ? 'repeat(2, minmax(0, 1fr))' : 'minmax(0, 1.5fr) minmax(0, 1.15fr) minmax(96px, 0.7fr) minmax(112px, 0.8fr)', gap: 10, marginBottom: 10 }}>
             <div style={{ position: 'relative', minWidth: 0 }}>
               <span style={portfolioFieldLabelStyle}>{t.labelAddrShort}</span>
@@ -5164,4 +4982,5 @@ export function Onboarding({
     </div>
   );
 }
+
 
