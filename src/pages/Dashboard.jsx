@@ -16,7 +16,7 @@ import { getHiddenSet, subscribe as subscribeHidden } from '../lib/hiddenCards';
 import { inferRecordProfileScope, normalizeProfileScope, resolveScopedProfile } from '../lib/profileScopeResolver';
 import { formatPropertyLocation } from '../lib/formatPropertyLocation';
 import { useMediaQuery } from '../hooks/useMediaQuery';
-import { canUsePlanAction, getPlanGateCopy, incrementPlanUsage, readPlanUsage } from '../lib/planAccess';
+import { consumePlanActions, getPlanGateCopy } from '../lib/planAccess';
 import { trackAppEvent } from '../lib/adminEventTracking';
 import { getPortfolioItemCount, getPortfolioUnlockCost, getPropertyExclusivityStatus } from '../lib/unlockRules';
 import { isSupabaseConfigured, supabase } from '../lib/supabaseClient';
@@ -1483,19 +1483,28 @@ export function Dashboard({ page, nuggets, setModal, setPage, onOpenOnboardingTa
     [matched],
   );
 
-  const canStartPlanAction = useCallback((feature) => {
-    const action = canUsePlanAction(subscription, feature, {
-      swipesToday: readPlanUsage('day')?.swipes || 0,
-      likesToday: readPlanUsage('day')?.likes || 0,
-      unlocksThisMonth: readPlanUsage('month')?.unlocks || 0,
-      activeMatches: dedupedMatched.length,
-    });
-    if (!action.allowed) {
-      openPlanGate(action.feature || feature);
+  const consumeLimitedFeedActions = useCallback(async (actions = []) => {
+    if (!actions.length) return true;
+    if (!isSupabaseConfigured || !supabase || !currentUserId || currentUserId === 'local-user') {
+      openPlanGate(actions[0]);
       return false;
     }
-    return true;
-  }, [dedupedMatched.length, openPlanGate, subscription]);
+    try {
+      const result = await consumePlanActions(supabase, actions);
+      if (!result?.allowed) {
+        openPlanGate(result.failedAction || result.feature || actions[0]);
+        return false;
+      }
+      return true;
+    } catch {
+      addToast?.({
+        type: 'warning',
+        title: 'Plan usage unavailable',
+        message: 'Could not confirm your plan limits right now. Please try again.',
+      });
+      return false;
+    }
+  }, [addToast, currentUserId, openPlanGate]);
 
   const matchCategoryOptions = useMemo(() => {
     const seen = new Set();
@@ -2186,7 +2195,7 @@ export function Dashboard({ page, nuggets, setModal, setPage, onOpenOnboardingTa
   }, []);
 
   // ── Connections actions ──────────────────────────────────────────────────
-  const act = type => {
+  const act = async type => {
     if (connDisplay.length === 0) return;
     if (focusCard) setFocusCard(null);
     const topCard = connDisplay[0];
@@ -2198,9 +2207,8 @@ export function Dashboard({ page, nuggets, setModal, setPage, onOpenOnboardingTa
       openUnlockFromConnectionCard(topCard);
       return;
     }
-    if (!canStartPlanAction('swipe')) return;
-    if (type === 'match' && !canStartPlanAction('like')) return;
-    if (type === 'match' && !canStartPlanAction('match')) return;
+    const limitedActions = type === 'match' ? ['match', 'swipe', 'like'] : ['swipe'];
+    if (!await consumeLimitedFeedActions(limitedActions)) return;
     const snap = [...connDeck];
     const propSnap = [...propDeck];
     setIsSwipingConn(true);
@@ -2208,13 +2216,9 @@ export function Dashboard({ page, nuggets, setModal, setPage, onOpenOnboardingTa
     setTimeout(() => {
       requestAnimationFrame(() => {
         if (type === "match") {
-            const topOwnerId = String(topCard?.ownerId ?? topCard?.id ?? '');
+          const topOwnerId = String(topCard?.ownerId ?? topCard?.id ?? '');
           // Permanently remove from deck
           addMatchedCapped(topCard);
-          try {
-            incrementPlanUsage('day', 'swipes');
-            incrementPlanUsage('day', 'likes');
-          } catch { /* best effort */ }
           trackDashboardSwipe('connection', topCard?.id, type);
           setConnDeck(d => d.filter(id => id !== topCard.id));
           // Record purchase: remove properties of bought contact from propDeck
@@ -2230,7 +2234,6 @@ export function Dashboard({ page, nuggets, setModal, setPage, onOpenOnboardingTa
           }));
         } else if (type === "next") {
           // Next: rotate top card to the end of the deck (ship).
-        try { incrementPlanUsage('day', 'swipes'); } catch { /* best effort */ }
         trackDashboardSwipe('connection', topCard?.id, type);
         // Do not bring skipped cards to the front automatically.
         setConnDeck(d => {
@@ -2239,7 +2242,6 @@ export function Dashboard({ page, nuggets, setModal, setPage, onOpenOnboardingTa
         });
       } else {
         // Pass: rotate top card to the end of the deck and mark it as skipped
-        try { incrementPlanUsage('day', 'swipes'); } catch { /* best effort */ }
         trackDashboardSwipe('connection', topCard?.id, type);
         setConnDeck(d => {
           const next = d.length > 1 ? [...d.slice(1), d[0]] : d;
@@ -2313,7 +2315,7 @@ export function Dashboard({ page, nuggets, setModal, setPage, onOpenOnboardingTa
   };
 
   // ── Properties actions ───────────────────────────────────────────────────
-  const actProperty = type => {
+  const actProperty = async type => {
     if (propDisplay.length === 0) return;
     if (focusCard) setFocusCard(null);
     const topProp = propDisplay[0];
@@ -2321,9 +2323,8 @@ export function Dashboard({ page, nuggets, setModal, setPage, onOpenOnboardingTa
       addToast?.({ type: 'info', message: 'Own card, not selectionable' });
       return;
     }
-    if (!canStartPlanAction('swipe')) return;
-    if (type === 'interest' && !canStartPlanAction('like')) return;
-    if (type === 'interest' && !canStartPlanAction('match')) return;
+    const limitedActions = type === 'interest' ? ['match', 'swipe', 'like'] : ['swipe'];
+    if (!await consumeLimitedFeedActions(limitedActions)) return;
     setIsSwipingProp(true);
     setPropAction(type);
     setPropStatusById(prev => ({ ...prev, [topProp.id]: type }));
@@ -2334,10 +2335,6 @@ export function Dashboard({ page, nuggets, setModal, setPage, onOpenOnboardingTa
       requestAnimationFrame(() => {
         if (type === "interest") {
           setInterested(p => p.find(x => x.id === topProp.id) ? p : [...p, topProp]);
-          try {
-            incrementPlanUsage('day', 'swipes');
-            incrementPlanUsage('day', 'likes');
-          } catch { /* best effort */ }
           trackDashboardSwipe('property', topProp?.id, type);
           trackPropertySaved(topProp?.id, { ownerId: topOwner?.id || topProp?.ownerId || null, source: 'feed_interest' });
           if (topOwner) {
@@ -2346,10 +2343,8 @@ export function Dashboard({ page, nuggets, setModal, setPage, onOpenOnboardingTa
           }
           setPropDeck(d => d.filter(id => id !== topProp.id));
         } else if (type === "next") {
-          try { incrementPlanUsage('day', 'swipes'); } catch { /* best effort */ }
           setPropDeck(d => d.length > 1 ? [...d.slice(1), d[0]] : d);
         } else {
-          try { incrementPlanUsage('day', 'swipes'); } catch { /* best effort */ }
           trackDashboardSwipe('property', topProp?.id, type);
           setPropDeck(d => d.length > 1 ? [...d.slice(1), d[0]] : d);
           setPropStatusById(s => ({ ...s, [topProp.id]: { ...(s[topProp.id]||{}), seen: true, skipped: true } }));
@@ -2508,7 +2503,6 @@ export function Dashboard({ page, nuggets, setModal, setPage, onOpenOnboardingTa
       return (contactId && value === contactId) || (ownerId && value === ownerId);
     });
     if (alreadyUnlocked) return false;
-    if (!canStartPlanAction('unlock')) return false;
     if (typeof openUnlock === 'function') {
       openUnlock({
         ...targetCard,
@@ -2520,7 +2514,7 @@ export function Dashboard({ page, nuggets, setModal, setPage, onOpenOnboardingTa
       return true;
     }
     return false;
-  }, [addToast, canStartPlanAction, findConnectionById, openUnlock, ownOwnerIdsKey, unlocked]);
+  }, [addToast, findConnectionById, openUnlock, ownOwnerIdsKey, unlocked]);
 
   const handleMobileUnlockAction = () => {
     if (view === 'connections') {

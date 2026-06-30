@@ -93,7 +93,7 @@ import { useProfileSync } from './hooks/useProfileSync';
 import { usePortfolioSync } from './hooks/usePortfolioSync';
 import { useCheckoutFlow } from './hooks/useCheckoutFlow';
 import { useMediaQuery } from './hooks/useMediaQuery';
-import { canUsePlanAction, getPlanGateCopy, incrementPlanUsage, readPlanUsage } from './lib/planAccess';
+import { getPlanGateCopy } from './lib/planAccess';
 import { trackAppEvent } from './lib/adminEventTracking';
 import { createPropertyUnlockRecord, getPortfolioUnlockCost, getPropertyExclusivityStatus, resolveUnlockOwnerId } from './lib/unlockRules';
 import { isPendingDealExpired } from './lib/pendingDeal';
@@ -167,12 +167,6 @@ const MOCK_SERVICES = import.meta.env.DEV ? (_MOCK_SERVICES || []) : [];
 const DevInspector = import.meta.env.DEV
   ? lazy(() => import('./components/dev/DevInspector').then((m) => ({ default: m.DevInspector })))
   : () => null;
-
-const PLAN_BONUS_BY_TIER = {
-  free: 0,
-  pro: 3,
-  enterprise: 20,
-};
 
 const SECURITY_AUDIT_KEY = 'ds_security_audit';
 const SECURITY_SESSIONS_KEY = 'ds_security_sessions';
@@ -595,6 +589,7 @@ const USER_DATA_KEYS = [
   'ds_matches_archived_contacts', 'ds_matches_archived_interests',
   'ds_matches_deleted_contacts', 'ds_matches_deleted_interests',
   'ds_nuggets', 'ds_subscription_mock', 'ds_system_notifications',
+  'ds_plan_usage_cache',
   'profileOwnerMap', 'publishingProfileKey',
   'ds_last_page', 'categoryOrder',
 ];
@@ -3306,7 +3301,7 @@ export default function App() {
       setUnlocked([]);
       setPurchases([]);
       setConvos({});
-      setNuggets(5);
+      setNuggets(isSupabaseConfigured ? 0 : 5);
       setSubscription({ planId: 'free', planName: 'Free', price: 0, status: 'active', nextBillingAt: null });
       setSystemNotifications([]);
       setUserProfile({ name: '', category: '', type: '', location: '', badge: '' });
@@ -4876,31 +4871,6 @@ export default function App() {
     ? 'Sincronizando dados em segundo plano...'
     : 'Salvando dados...';
 
-  const handleSubscriptionChanged = (nextSubscription) => {
-    if (!nextSubscription?.planId) return;
-    const prevPlanId = subscription?.planId || 'free';
-    const nextPlanId = nextSubscription.planId;
-    const prevBonus = PLAN_BONUS_BY_TIER[prevPlanId] || 0;
-    const nextBonus = PLAN_BONUS_BY_TIER[nextPlanId] || 0;
-    const bonusDelta = Math.max(0, nextBonus - prevBonus);
-
-    setSubscription(nextSubscription);
-
-    if (bonusDelta > 0) {
-      setNuggets((current) => current + bonusDelta);
-      setSystemNotifications((prev) => ([
-        {
-          id: `sys-plan-bonus-${Date.now()}`,
-          title: 'Bonus de Plano Aplicado',
-          message: `+${bonusDelta} nuggets adicionados ao migrar para ${nextSubscription.planName || nextPlanId}.`,
-          createdAt: Date.now(),
-          read: false,
-        },
-        ...(prev || []),
-      ]).slice(0, 60));
-    }
-  };
-
   const resendEmailVerificationForAccount = async ({ email } = {}) => {
     if (!isSupabaseConfigured || !supabase) {
       return { ok: false, message: 'Supabase nao configurado para reenviar confirmacao.' };
@@ -5172,28 +5142,29 @@ export default function App() {
         return;
       }
     }
-    const unlockGate = canUsePlanAction(accessSubscription, 'unlock', {
-      unlocksThisMonth: readPlanUsage('month')?.unlocks || 0,
-    });
-    if (!unlockGate.allowed) {
+    const isPlanLimitError = (error) => {
+      const message = String(error?.message || '');
+      const details = String(error?.details || error?.detail || '');
+      return message.includes('plan_limit_reached') || details.includes('plan_limit_reached');
+    };
+    const showUnlockPlanGate = () => {
       const copy = getPlanGateCopy('unlock');
       trackAppEvent('plan_gate_shown', {
         entityType: 'feature',
         entityId: 'unlock',
-        metadata: { feature: 'unlock', source: 'unlock_modal' },
+        metadata: { feature: 'unlock', source: 'unlock_purchase_rpc' },
       });
       trackAppEvent('plan_gate_upgrade_clicked', {
         entityType: 'feature',
         entityId: 'unlock',
-        metadata: { feature: 'unlock', source: 'unlock_modal_auto_redirect' },
+        metadata: { feature: 'unlock', source: 'unlock_purchase_rpc_auto_redirect' },
       });
       addToast({ type: 'warning', title: copy.title, message: copy.message, duration: 6500 });
       setModal(null);
       setUnlockQuote(null);
       openPricingHub();
-      return;
-    }
-    if (nuggets >= unlockCost && card) {
+    };
+    if ((isSupabaseConfigured || nuggets >= unlockCost) && card) {
         // Snapshot local state so we can rollback if a later step fails
         const prevStateSnapshot = {
           nuggets,
@@ -5264,6 +5235,10 @@ export default function App() {
             throw new Error('Property unlock did not return a confirmed balance.');
           }
         } catch (error) {
+          if (isPlanLimitError(error)) {
+            showUnlockPlanGate();
+            return;
+          }
           addToast({
             type: 'warning',
             title: 'Unlock unavailable',
@@ -5281,7 +5256,44 @@ export default function App() {
           duration: 6500,
         });
       } else {
-        setNuggets(n => n - unlockCost);
+        try {
+          if (!unlockOwnerId || !isUuid(unlockOwnerId)) {
+            throw new Error('Contact is not linked to a saved database user.');
+          }
+          const { data, error } = await supabase.rpc('ds_purchase_contact_unlock', {
+            p_seller_id: unlockOwnerId,
+          });
+          if (error) throw error;
+          const remoteContactUnlock = Array.isArray(data) ? data[0] : data;
+          if (!remoteContactUnlock?.unlock_id) {
+            throw new Error('Contact unlock did not return a persisted record.');
+          }
+          remoteUnlockRow = {
+            ...remoteUnlockRow,
+            ...remoteContactUnlock,
+            unlock_id: remoteContactUnlock.unlock_id,
+            total_cost: Number(remoteContactUnlock.total_cost || unlockCost),
+            remaining_nuggets: Number(remoteContactUnlock.remaining_nuggets),
+          };
+          if (Number.isFinite(Number(remoteUnlockRow.remaining_nuggets))) {
+            setNuggets(Number(remoteUnlockRow.remaining_nuggets));
+          } else {
+            throw new Error('Contact unlock did not return a confirmed balance.');
+          }
+        } catch (error) {
+          if (isPlanLimitError(error)) {
+            showUnlockPlanGate();
+            return;
+          }
+          addToast({
+            type: 'warning',
+            title: 'Unlock unavailable',
+            message: error?.message || 'This contact could not be unlocked right now. Please try again.',
+          });
+          setModal(null);
+          setUnlockQuote(null);
+          return;
+        }
       }
       try {
         setUnlocked((prev) => {
@@ -5294,7 +5306,6 @@ export default function App() {
           });
           return next;
         });
-        incrementPlanUsage('month', 'unlocks');
         if (card.unlockScope === 'property' && card.propertyId) {
           setPropertyUnlocks((prev) => {
             const alreadyNormal = unlockMode === 'normal' && prev.some((row) => (
@@ -5630,7 +5641,6 @@ export default function App() {
             authSession={authSession}
             setAuthSession={setAuthSession}
             subscription={accessSubscription}
-            onSubscriptionChanged={handleSubscriptionChanged}
             addToast={addToast}
             supabaseUserId={supabaseUserId}
             onDeleteAccount={handleDeleteAccount}

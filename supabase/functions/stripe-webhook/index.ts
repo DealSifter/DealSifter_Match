@@ -50,6 +50,8 @@ const PLAN_FIRST_MONTH_BONUS: Record<string, number> = {
   enterprise: 20,
 };
 
+const WEBHOOK_PROCESSING_STALE_MS = 5 * 60 * 1000;
+
 function toIso(tsSeconds?: number | null) {
   return tsSeconds ? new Date(tsSeconds * 1000).toISOString() : null;
 }
@@ -77,6 +79,11 @@ Deno.serve(async (req) => {
   }
 
   try {
+    const shouldProcess = await claimStripeEvent(event);
+    if (!shouldProcess) {
+      return new Response('ok', { status: 200 });
+    }
+
     switch (event.type) {
       case 'checkout.session.completed':
         await handleCheckoutCompleted(event.data.object as Stripe.Checkout.Session);
@@ -95,12 +102,97 @@ Deno.serve(async (req) => {
         break;
     }
 
+    await markStripeEventProcessed(event.id);
     return new Response('ok', { status: 200 });
   } catch (err) {
     console.error('stripe-webhook processing failed:', err);
+    await markStripeEventFailed(event.id, String(err?.message ?? err ?? 'Unknown webhook processing error'));
     return new Response('Webhook processing failed', { status: 500 });
   }
 });
+
+async function claimStripeEvent(event: Stripe.Event) {
+  const now = new Date();
+  const staleBefore = new Date(now.getTime() - WEBHOOK_PROCESSING_STALE_MS).toISOString();
+
+  const { data: inserted, error: insertError } = await supabaseAdmin
+    .from('stripe_webhook_events')
+    .insert({
+      event_id: event.id,
+      event_type: event.type,
+      status: 'processing',
+      attempts: 1,
+      received_at: now.toISOString(),
+      updated_at: now.toISOString(),
+    })
+    .select('event_id')
+    .maybeSingle();
+
+  if (!insertError && inserted?.event_id) return true;
+  if (insertError && insertError.code !== '23505') throw insertError;
+
+  const { data: existing, error: readError } = await supabaseAdmin
+    .from('stripe_webhook_events')
+    .select('status, updated_at')
+    .eq('event_id', event.id)
+    .maybeSingle();
+
+  if (readError) throw readError;
+  if (!existing) return false;
+  if (existing.status === 'processed') return false;
+
+  const isFailed = existing.status === 'failed';
+  const isStaleProcessing = existing.status === 'processing'
+    && String(existing.updated_at || '') < staleBefore;
+
+  if (!isFailed && !isStaleProcessing) return false;
+
+  const { data: claimed, error: claimError } = await supabaseAdmin
+    .from('stripe_webhook_events')
+    .update({
+      status: 'processing',
+      last_error: null,
+      updated_at: now.toISOString(),
+    })
+    .eq('event_id', event.id)
+    .neq('status', 'processed')
+    .select('event_id')
+    .maybeSingle();
+
+  if (claimError) throw claimError;
+  if (!claimed?.event_id) return false;
+
+  await supabaseAdmin
+    .rpc('increment_stripe_webhook_attempts', { p_event_id: event.id })
+    .then(() => null)
+    .catch(() => null);
+  return true;
+}
+
+async function markStripeEventProcessed(eventId: string) {
+  const { error } = await supabaseAdmin
+    .from('stripe_webhook_events')
+    .update({
+      status: 'processed',
+      processed_at: new Date().toISOString(),
+      updated_at: new Date().toISOString(),
+      last_error: null,
+    })
+    .eq('event_id', eventId);
+  if (error) throw error;
+}
+
+async function markStripeEventFailed(eventId: string, message: string) {
+  if (!eventId) return;
+  await supabaseAdmin
+    .from('stripe_webhook_events')
+    .update({
+      status: 'failed',
+      last_error: message.slice(0, 2000),
+      updated_at: new Date().toISOString(),
+    })
+    .eq('event_id', eventId);
+}
 
 async function handleCheckoutCompleted(session: Stripe.Checkout.Session) {
   const userId = session.metadata?.user_id;

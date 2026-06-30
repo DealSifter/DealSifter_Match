@@ -2,6 +2,7 @@ import { PLANS } from '../data/mockData';
 import { getLang } from '../i18n/translations';
 
 const DAY_MS = 24 * 60 * 60 * 1000;
+const PLAN_USAGE_CACHE_KEY = 'ds_plan_usage_cache';
 
 const FEATURE_COPY = {
   en: {
@@ -143,21 +144,36 @@ function safeWriteJson(key, value) {
 }
 
 export function readPlanUsage(scope) {
-  const key = scope === 'month'
-    ? `ds_plan_usage_month_${monthKey()}`
-    : `ds_plan_usage_day_${dateKey()}`;
-  return safeReadJson(key, {});
+  // Cache only. Server/RPC remains the source of truth for all enforceable
+  // limits; this exists only to keep UI counters responsive between refreshes.
+  const cache = safeReadJson(PLAN_USAGE_CACHE_KEY, {});
+  if (scope === 'month') return { unlocks: Number(cache?.unlocksThisMonth || 0) };
+  return {
+    swipes: Number(cache?.swipesToday || 0),
+    likes: Number(cache?.likesToday || 0),
+  };
 }
 
 export function incrementPlanUsage(scope, feature, amount = 1) {
-  const key = scope === 'month'
-    ? `ds_plan_usage_month_${monthKey()}`
-    : `ds_plan_usage_day_${dateKey()}`;
-  const current = safeReadJson(key, {});
-  const next = { ...current, [feature]: Number(current?.[feature] || 0) + amount, updatedAt: Date.now() };
-  safeWriteJson(key, next);
-  pruneOldPlanUsage();
-  return next[feature];
+  // Cache only. Do not use this to authorize paid/limited actions.
+  const current = safeReadJson(PLAN_USAGE_CACHE_KEY, {});
+  const fieldByFeature = {
+    swipes: 'swipesToday',
+    swipe: 'swipesToday',
+    likes: 'likesToday',
+    like: 'likesToday',
+    unlocks: 'unlocksThisMonth',
+    unlock: 'unlocksThisMonth',
+  };
+  const field = fieldByFeature[feature] || feature;
+  const next = {
+    ...current,
+    [field]: Number(current?.[field] || 0) + amount,
+    cachedAt: Date.now(),
+    cacheOnly: true,
+  };
+  safeWriteJson(PLAN_USAGE_CACHE_KEY, next);
+  return next[field];
 }
 
 export function pruneOldPlanUsage() {
@@ -168,9 +184,69 @@ export function pruneOldPlanUsage() {
       const value = safeReadJson(key, null);
       if (value?.updatedAt && value.updatedAt < cutoff) localStorage.removeItem(key);
     });
+    const cache = safeReadJson(PLAN_USAGE_CACHE_KEY, null);
+    if (cache?.cachedAt && cache.cachedAt < cutoff) localStorage.removeItem(PLAN_USAGE_CACHE_KEY);
   } catch {
     // noop
   }
+}
+
+function normalizeUsageSnapshot(row = {}) {
+  return {
+    planId: getPlanId(row.plan_id || row.planId || 'free'),
+    isAdmin: Boolean(row.is_admin ?? row.isAdmin),
+    swipesToday: Number(row.swipes_today ?? row.swipesToday ?? 0),
+    likesToday: Number(row.likes_today ?? row.likesToday ?? 0),
+    unlocksThisMonth: Number(row.unlocks_this_month ?? row.unlocksThisMonth ?? 0),
+    activeMatches: Number(row.active_matches ?? row.activeMatches ?? 0),
+    updatedAt: Date.now(),
+  };
+}
+
+export async function fetchPlanUsageSnapshot(supabaseClient) {
+  if (!supabaseClient?.rpc) {
+    return normalizeUsageSnapshot(safeReadJson(PLAN_USAGE_CACHE_KEY, {}));
+  }
+  const { data, error } = await supabaseClient.rpc('ds_get_plan_usage_snapshot');
+  if (error) throw error;
+  const row = Array.isArray(data) ? data[0] : data;
+  const snapshot = normalizeUsageSnapshot(row || {});
+  safeWriteJson(PLAN_USAGE_CACHE_KEY, snapshot);
+  return snapshot;
+}
+
+export async function consumePlanActions(supabaseClient, actions = []) {
+  const normalizedActions = [...new Set((actions || [])
+    .map((action) => String(action || '').trim().toLowerCase())
+    .filter(Boolean))];
+  if (!normalizedActions.length) return { allowed: true, usages: safeReadJson(PLAN_USAGE_CACHE_KEY, {}) };
+  if (!supabaseClient?.rpc) {
+    return {
+      allowed: false,
+      failedAction: normalizedActions[0],
+      feature: normalizedActions[0],
+      reason: 'db_required',
+      usages: safeReadJson(PLAN_USAGE_CACHE_KEY, {}),
+    };
+  }
+  const { data, error } = await supabaseClient.rpc('ds_consume_plan_actions', { p_actions: normalizedActions });
+  if (error) throw error;
+  const result = data || {};
+  const snapshot = normalizeUsageSnapshot(result.usages || result);
+  safeWriteJson(PLAN_USAGE_CACHE_KEY, snapshot);
+  return {
+    allowed: Boolean(result.allowed),
+    failedAction: result.failed_action || result.failedAction || null,
+    feature: result.failed_action || result.failedAction || normalizedActions[0],
+    reason: result.reason || null,
+    used: Number(result.used ?? 0),
+    limit: result.limit == null ? null : Number(result.limit),
+    usages: snapshot,
+  };
+}
+
+export async function consumePlanAction(supabaseClient, action) {
+  return consumePlanActions(supabaseClient, [action]);
 }
 
 export function canUsePlanAction(subscriptionOrPlan, action, usage = {}) {
@@ -190,14 +266,14 @@ export function canUsePlanAction(subscriptionOrPlan, action, usage = {}) {
   if (action === 'like') {
     const limit = limits.likesPerDay;
     if (limit == null) return { allowed: true, feature: 'like' };
-    const used = Number(usage.likesToday || readPlanUsage('day')?.likes || 0);
+    const used = Number(usage.likesToday ?? 0);
     return { allowed: used < limit, feature: 'like', used, limit };
   }
 
   if (action === 'swipe') {
     const limit = limits.swipesPerDay;
     if (limit == null) return { allowed: true, feature: 'swipe' };
-    const used = Number(usage.swipesToday || readPlanUsage('day')?.swipes || 0);
+    const used = Number(usage.swipesToday ?? 0);
     return { allowed: used < limit, feature: 'swipe', used, limit };
   }
 
@@ -211,7 +287,7 @@ export function canUsePlanAction(subscriptionOrPlan, action, usage = {}) {
   if (action === 'unlock') {
     const limit = limits.unlockRequestsPerMonth;
     if (limit == null) return { allowed: true, feature: 'unlock' };
-    const used = Number(usage.unlocksThisMonth || readPlanUsage('month')?.unlocks || 0);
+    const used = Number(usage.unlocksThisMonth ?? 0);
     return { allowed: used < limit, feature: 'unlock', used, limit };
   }
 
