@@ -4,7 +4,7 @@ import { GeoJSON, MapContainer, Marker, Popup, Rectangle, TileLayer, WMSTileLaye
 import L from 'leaflet';
 import Supercluster from 'supercluster';
 import { C } from '../theme/colors';
-import { CARDS, PROPERTIES } from '../data/mockData';
+import { CARDS as _MOCK_CARDS, PROPERTIES as _MOCK_PROPERTIES } from '../data/mockData';
 import { useT } from '../i18n/translations';
 import { SmartImage } from '../components/ui/SmartImage';
 import { Icon } from '../components/ui/Icon';
@@ -12,7 +12,7 @@ import { CardStatusBadge, CardStatusIcon } from '../components/ui/CardStatusIndi
 import { CARD_STATUS, pickPriorityStatus } from '../components/ui/cardStatusTokens';
 import { useMediaQuery } from '../hooks/useMediaQuery';
 import { getPortfolioItemCount, getPortfolioUnlockCost, getPropertyExclusivityStatus } from '../lib/unlockRules';
-import { normalizeProfileScope, resolveScopedProfile } from '../lib/profileScopeResolver';
+import { inferRecordProfileScope, normalizeProfileScope, resolveScopedProfile } from '../lib/profileScopeResolver';
 
 const DEFAULT_CENTER = [39.5, -98.35];
 const DEFAULT_ZOOM = 4;
@@ -28,6 +28,8 @@ const UNLOCKED_PERSON_PIN = '#75ba75';
 const MY_PINS_COLOR = C.gold;
 const FEMA_WMS_URL = 'https://hazards.fema.gov/arcgis/rest/services/public/NFHLWMS/MapServer/WMSServer';
 const FEMA_TILE_ERROR_STREAK_LIMIT = 3;
+const CARDS = import.meta.env.DEV ? (_MOCK_CARDS || []) : [];
+const PROPERTIES = import.meta.env.DEV ? (_MOCK_PROPERTIES || []) : [];
 
 const isTruthyFlag = (value, fallback = false) => {
   if (value === undefined || value === null || value === '') return fallback;
@@ -1375,12 +1377,16 @@ export function MapView({
       priorityC ? 'fsbo' : '',
     ].filter(Boolean));
   }, [accountType, normalizeCardPriority, personalProfile, professionalProfile]);
+  const getRecordProfileScope = useCallback((record, fallbackScope = '') => {
+    return inferRecordProfileScope(record, fallbackScope);
+  }, []);
   const isLocalPublishedRecord = useCallback((record) => {
     const ownerId = String(record?.ownerId || '').trim();
     const isLocal = ownerId && ownerId === String(currentUserId || '').trim();
     if (!isLocal) return true;
-    return publishedLocalProfileScopes.has(normalizeProfileScope(record?.primaryProfile || 'personal'));
-  }, [currentUserId, publishedLocalProfileScopes]);
+    const profileScope = getRecordProfileScope(record);
+    return Boolean(profileScope) && publishedLocalProfileScopes.has(profileScope);
+  }, [currentUserId, publishedLocalProfileScopes, getRecordProfileScope]);
   const [showPeople, setShowPeople] = useState(() => initialMapUiState.showPeople ?? Boolean(preferredDefaultFilters.showPeople ?? true));
   const [showProperties, setShowProperties] = useState(() => initialMapUiState.showProperties ?? Boolean(preferredDefaultFilters.showProperties ?? true));
   const [showOnlyUnlocked, setShowOnlyUnlocked] = useState(() => initialMapUiState.showOnlyUnlocked ?? Boolean(preferredDefaultFilters.showOnlyUnlocked ?? false));
@@ -1510,7 +1516,9 @@ export function MapView({
   const [mapUiHydrated, setMapUiHydrated] = useState(false);
   // Start as true when returning from feed navigation so auto-fit doesn't override the restored viewport.
   const hasAutoFitRealPinsRef = React.useRef(_navReturnViewportConsumed);
-  _navReturnViewportConsumed = false; // reset after the ref has captured the value
+  React.useEffect(() => {
+    _navReturnViewportConsumed = false;
+  }, []);
 
   const persistMapUiState = React.useCallback((overrides = {}) => {
     const snapshot = {
@@ -1552,39 +1560,47 @@ export function MapView({
   // Active restore pass on mount to avoid losing context after redirection/unmount cycles.
   React.useEffect(() => {
     const saved = _loadMapUiState();
-    if (!saved || typeof saved !== 'object') return;
-    if (typeof saved.showPeople === 'boolean') setShowPeople(saved.showPeople);
-    if (typeof saved.showProperties === 'boolean') setShowProperties(saved.showProperties);
-    if (typeof saved.showOnlyUnlocked === 'boolean') setShowOnlyUnlocked(saved.showOnlyUnlocked);
-    if (typeof saved.showOnlyMyPins === 'boolean') setShowOnlyMyPins(saved.showOnlyMyPins);
-    if (saved.locationMode === 'state' || saved.locationMode === 'city' || saved.locationMode === 'zip') {
-      setLocationMode(saved.locationMode);
-    }
-    if (typeof saved.mapStyle === 'string') {
-      const sanitizedMapStyle = normalizeVisibleMapStyle(saved.mapStyle);
-      if (MAP_STYLE_OPTIONS[sanitizedMapStyle]) setMapStyle(sanitizedMapStyle);
-    }
-    if (typeof saved.locationQuery === 'string') setLocationQuery(saved.locationQuery);
-    if (typeof saved.appliedLocationQuery === 'string') setAppliedLocationQuery(saved.appliedLocationQuery);
-    if (saved.panelTab === 'filters' || saved.panelTab === 'cards') setPanelTab(saved.panelTab);
-    const floodOpacity = Number(saved.floodOverlayOpacity);
-    if (Number.isFinite(floodOpacity)) setFloodOverlayOpacity(clamp(floodOpacity, 0, 1));
-    const sanitizedFilterBounds = sanitizeLeafletBounds(saved.filterBounds);
-    if (sanitizedFilterBounds) setFilterBounds(sanitizedFilterBounds);
-    if (typeof saved.panelCollapsed === 'boolean') setPanelCollapsed(saved.panelCollapsed);
-    const savedWidth = Number(saved.panelWidth);
-    if (Number.isFinite(savedWidth)) setPanelWidth(Math.max(250, Math.min(600, savedWidth)));
-    const sanitizedViewport = sanitizeViewport(saved.viewport, preferredInitialZoom);
-    if (sanitizedViewport) setViewport(sanitizedViewport);
-    mapUiStateRef.current = saved;
-    setMapUiHydrated(true);
+    const timer = window.setTimeout(() => {
+      if (!saved || typeof saved !== 'object') {
+        setMapUiHydrated(true);
+        return;
+      }
+      if (typeof saved.showPeople === 'boolean') setShowPeople(saved.showPeople);
+      if (typeof saved.showProperties === 'boolean') setShowProperties(saved.showProperties);
+      if (typeof saved.showOnlyUnlocked === 'boolean') setShowOnlyUnlocked(saved.showOnlyUnlocked);
+      if (typeof saved.showOnlyMyPins === 'boolean') setShowOnlyMyPins(saved.showOnlyMyPins);
+      if (saved.locationMode === 'state' || saved.locationMode === 'city' || saved.locationMode === 'zip') {
+        setLocationMode(saved.locationMode);
+      }
+      if (typeof saved.mapStyle === 'string') {
+        const sanitizedMapStyle = normalizeVisibleMapStyle(saved.mapStyle);
+        if (MAP_STYLE_OPTIONS[sanitizedMapStyle]) setMapStyle(sanitizedMapStyle);
+      }
+      if (typeof saved.locationQuery === 'string') setLocationQuery(saved.locationQuery);
+      if (typeof saved.appliedLocationQuery === 'string') setAppliedLocationQuery(saved.appliedLocationQuery);
+      if (saved.panelTab === 'filters' || saved.panelTab === 'cards') setPanelTab(saved.panelTab);
+      const floodOpacity = Number(saved.floodOverlayOpacity);
+      if (Number.isFinite(floodOpacity)) setFloodOverlayOpacity(clamp(floodOpacity, 0, 1));
+      const sanitizedFilterBounds = sanitizeLeafletBounds(saved.filterBounds);
+      if (sanitizedFilterBounds) setFilterBounds(sanitizedFilterBounds);
+      if (typeof saved.panelCollapsed === 'boolean') setPanelCollapsed(saved.panelCollapsed);
+      const savedWidth = Number(saved.panelWidth);
+      if (Number.isFinite(savedWidth)) setPanelWidth(Math.max(250, Math.min(600, savedWidth)));
+      const sanitizedViewport = sanitizeViewport(saved.viewport, preferredInitialZoom);
+      if (sanitizedViewport) setViewport(sanitizedViewport);
+      mapUiStateRef.current = saved;
+      setMapUiHydrated(true);
+    }, 0);
+    return () => window.clearTimeout(timer);
   }, [preferredInitialZoom]);
 
   React.useEffect(() => {
     if (!mapUiHydrated) return;
     if (!showPeople && !showProperties) {
-      setShowProperties(true);
+      const timer = window.setTimeout(() => setShowProperties(true), 0);
+      return () => window.clearTimeout(timer);
     }
+    return undefined;
   }, [mapUiHydrated, showPeople, showProperties]);
 
   React.useEffect(() => {
@@ -1632,12 +1648,15 @@ export function MapView({
   };
 
   React.useEffect(() => {
-    lastBaseFallbackSwitchAtRef.current = 0;
-    femaTileErrorStreakRef.current = 0;
-    setFemaOverlayUnavailable(false);
-    setForceSimpleBaseTiles(false);
-    setBaseTileFallbackIndex(0);
-    setDisabledOverlayUrls({});
+    const timer = window.setTimeout(() => {
+      lastBaseFallbackSwitchAtRef.current = 0;
+      femaTileErrorStreakRef.current = 0;
+      setFemaOverlayUnavailable(false);
+      setForceSimpleBaseTiles(false);
+      setBaseTileFallbackIndex(0);
+      setDisabledOverlayUrls({});
+    }, 0);
+    return () => window.clearTimeout(timer);
   }, [mapStyle]);
 
   const handleOverlayTileError = React.useCallback((overlay) => {
@@ -1714,7 +1733,10 @@ export function MapView({
 
   // Keep pin overrides scoped by the active login/user profile.
   React.useEffect(() => {
-    setPinOverrides(_loadPinOverrides(userProfile));
+    const timer = window.setTimeout(() => {
+      setPinOverrides(_loadPinOverrides(userProfile));
+    }, 0);
+    return () => window.clearTimeout(timer);
   }, [userProfile, userProfile?.id, userProfile?.userId, userProfile?.email, userProfile?.phone]);
 
   // Handle panel resize
@@ -1855,18 +1877,21 @@ export function MapView({
         if (!isTruthyFlag(property?.publishToShowcase, true)) return;
         if (!isLocalPublishedRecord(property)) return;
         const ownerId = String(property?.ownerId || '').trim();
+        const normalizedScope = getRecordProfileScope(property);
+        if (!normalizedScope) return;
         const ownerPreview = property?.ownerPreview && typeof property.ownerPreview === 'object'
           ? property.ownerPreview
           : null;
         if (!ownerId || !ownerPreview?.name) return;
         if (onlyUnlocked && !isUnlockedId(ownerId)) return;
-        if (byOwner.has(ownerId)) return;
+        const ownerKey = `${ownerId}:${normalizedScope}`;
+        if (byOwner.has(ownerKey)) return;
         const coords = resolvePropertyCoords(property, geocodeCache, pinOverrides);
         if (!coords) return;
-        byOwner.set(ownerId, { ownerId, ownerPreview, coords, property });
+        byOwner.set(ownerKey, { ownerId, normalizedScope, ownerPreview, coords, property });
       });
 
-      byOwner.forEach(({ ownerId, ownerPreview, coords, property }) => {
+      byOwner.forEach(({ ownerId, normalizedScope, ownerPreview, coords, property }) => {
         const key = `person-${ownerId}-${normalizedScope}`;
         if (mapById.has(key)) return;
         mapById.set(key, {
@@ -1884,9 +1909,13 @@ export function MapView({
             ...ownerPreview,
             id: ownerId,
             ownerId,
+            primaryProfile: normalizedScope,
             lat: coords.lat,
             lng: coords.lng,
-            portfolioCount: (showcaseProperties || []).filter((p) => String(p?.ownerId || '') === ownerId).length,
+            portfolioCount: (showcaseProperties || []).filter((p) => (
+              String(p?.ownerId || '') === ownerId
+              && getRecordProfileScope(p) === normalizedScope
+            )).length,
           },
         });
       });
@@ -1900,10 +1929,13 @@ export function MapView({
         const ownerPreview = service?.ownerPreview && typeof service.ownerPreview === 'object'
           ? service.ownerPreview
           : null;
+        const normalizedScope = getRecordProfileScope(service);
+        if (!normalizedScope) return;
         if (!ownerId || !ownerPreview?.name) return;
         if (!isTruthyFlag(service?.publishToConnections, true)) return;
         if (onlyUnlocked && !isUnlockedId(ownerId)) return;
-        if (mapById.has(`person-${ownerId}`) || byOwner.has(ownerId)) return;
+        const ownerKey = `${ownerId}:${normalizedScope}`;
+        if (mapById.has(`person-${ownerId}-${normalizedScope}`) || byOwner.has(ownerKey)) return;
         const stateCode = [
           ...(Array.isArray(service?.markets) ? service.markets : []),
           ownerPreview?.loc,
@@ -1911,11 +1943,11 @@ export function MapView({
         ].map(getStateCodeFromMarket).find(Boolean);
         const coords = STATE_CENTER_COORDS[stateCode];
         if (!coords) return;
-        byOwner.set(ownerId, { ownerId, ownerPreview, coords, stateCode, service });
+        byOwner.set(ownerKey, { ownerId, normalizedScope, ownerPreview, coords, stateCode, service });
       });
 
-      byOwner.forEach(({ ownerId, ownerPreview, coords, stateCode, service }) => {
-        const key = `person-${ownerId}`;
+      byOwner.forEach(({ ownerId, normalizedScope, ownerPreview, coords, stateCode, service }) => {
+        const key = `person-${ownerId}-${normalizedScope}`;
         if (mapById.has(key)) return;
         mapById.set(key, {
           type: 'Feature',
@@ -1932,10 +1964,14 @@ export function MapView({
             ...ownerPreview,
             id: ownerId,
             ownerId,
+            primaryProfile: normalizedScope,
             lat: coords.lat,
             lng: coords.lng,
             loc: ownerPreview.loc || stateCode,
-            portfolioCount: (servicePortfolio || []).filter((s) => String(s?.ownerId || '') === ownerId).length,
+            portfolioCount: (servicePortfolio || []).filter((s) => (
+              String(s?.ownerId || '') === ownerId
+              && getRecordProfileScope(s) === normalizedScope
+            )).length,
           },
         });
       });
@@ -1949,12 +1985,12 @@ export function MapView({
         if (!publishedLocalProfileScopes.has(normalizedScope)) return;
         const linkedPropertyCount = (showcaseProperties || []).filter((property) => (
           String(property?.ownerId || '') === ownerId
-          && normalizeProfileScope(property?.primaryProfile || 'personal') === normalizedScope
+          && getRecordProfileScope(property) === normalizedScope
           && isTruthyFlag(property?.publishToShowcase, true)
         )).length;
         const linkedServiceCount = (servicePortfolio || []).filter((service) => (
           String(service?.ownerId || '') === ownerId
-          && normalizeProfileScope(service?.primaryProfile || 'personal') === normalizedScope
+          && getRecordProfileScope(service) === normalizedScope
           && isTruthyFlag(service?.publishToConnections, true)
         )).length;
         if (linkedPropertyCount + linkedServiceCount <= 0) return;
@@ -1970,7 +2006,7 @@ export function MapView({
         const stateCode = getStateCodeFromMarket(ownerPreview?.loc);
         const coords = STATE_CENTER_COORDS[stateCode];
         if (!name || !coords) return;
-        const key = `person-${ownerId}`;
+        const key = `person-${ownerId}-${normalizedScope}`;
         if (mapById.has(key)) return;
         mapById.set(key, {
           type: 'Feature',
@@ -2065,7 +2101,7 @@ export function MapView({
     }
 
     return Array.from(mapById.values());
-  }, [enableMockMapData, showPeople, showProperties, showOnlyMyPins, showcaseProperties, servicePortfolio, geocodeCache, pinOverrides, isUnlockedId, currentUserId, isLocalPublishedRecord, publishedLocalProfileScopes, accountType, userProfile, personalProfile, professionalProfile]);
+  }, [enableMockMapData, showPeople, showProperties, showOnlyMyPins, showcaseProperties, servicePortfolio, geocodeCache, pinOverrides, isUnlockedId, currentUserId, isLocalPublishedRecord, publishedLocalProfileScopes, accountType, userProfile, personalProfile, professionalProfile, getRecordProfileScope]);
 
   const realUserPoints = useMemo(() => {
     return (showcaseProperties || [])
@@ -2128,9 +2164,13 @@ export function MapView({
   React.useEffect(() => {
     if (showOnlyMyPins) return;
     if (showOnlyUnlocked && realUserPoints.length > 0 && filteredPoints.length === 0) {
-      setShowOnlyUnlocked(false);
-      setShowProperties(true);
+      const timer = window.setTimeout(() => {
+        setShowOnlyUnlocked(false);
+        setShowProperties(true);
+      }, 0);
+      return () => window.clearTimeout(timer);
     }
+    return undefined;
   }, [showOnlyMyPins, showOnlyUnlocked, realUserPoints.length, filteredPoints.length]);
 
   React.useEffect(() => {
@@ -2139,12 +2179,15 @@ export function MapView({
     const ownBounds = buildBoundsFromPoints(realUserPoints, 'city');
     if (!ownBounds) return;
     hasAutoFitRealPinsRef.current = true;
-    setFitToBounds({
-      bounds: ownBounds,
-      maxZoom: 14,
-      key: `real-pins-${realUserPoints.length}`,
-    });
-    setShowProperties(true);
+    const timer = window.setTimeout(() => {
+      setFitToBounds({
+        bounds: ownBounds,
+        maxZoom: 14,
+        key: `real-pins-${realUserPoints.length}`,
+      });
+      setShowProperties(true);
+    }, 0);
+    return () => window.clearTimeout(timer);
   }, [realUserPoints]);
 
   const manualPinTarget = useMemo(() => {
@@ -2265,9 +2308,13 @@ export function MapView({
     const roundedZoom = Math.round(viewport?.zoom || DEFAULT_ZOOM);
     // Exit explicit opened-cluster pin mode only after zooming OUT below city level.
     if (roundedZoom < CLUSTER_BREAKOUT_ZOOM) {
-      setSelectedClusterFeatures([]);
-      setSelectedClusterLeaves([]);
+      const timer = window.setTimeout(() => {
+        setSelectedClusterFeatures([]);
+        setSelectedClusterLeaves([]);
+      }, 0);
+      return () => window.clearTimeout(timer);
     }
+    return undefined;
   }, [selectedClusterFeatures.length, viewport?.zoom]);
 
   const visibleItems = useMemo(() => {
@@ -2292,14 +2339,15 @@ export function MapView({
     const isPerson = Boolean(item?.loc);
     if (!isPerson) return Boolean(item?.id) && hasSpotlightKey(`property:${item.id}`);
     const ownerId = String(item.ownerId || item.id || '').trim();
-    const scope = String(item.primaryProfile || 'personal').trim().toLowerCase() || 'personal';
+    const scope = getRecordProfileScope(item);
+    if (!ownerId || !scope) return false;
     return hasSpotlightKey(`profile:${scope}:${ownerId}`)
-      || hasSpotlightKey(`profile:personal:${ownerId}`)
       || (servicePortfolio || []).some((service) => (
         String(service?.ownerId || '') === ownerId
+        && getRecordProfileScope(service) === scope
         && hasSpotlightKey(`service:${service.id}`)
       ));
-  }, [hasSpotlightKey, servicePortfolio]);
+  }, [getRecordProfileScope, hasSpotlightKey, servicePortfolio]);
 
   const spotlightVisibleItems = useMemo(() => visibleItems.filter(isSpotlightItem), [visibleItems, isSpotlightItem]);
   const spotlightNoPinProperties = useMemo(() => noPinProperties.filter(isSpotlightItem), [noPinProperties, isSpotlightItem]);
@@ -2349,8 +2397,11 @@ export function MapView({
 
   React.useEffect(() => {
     if (!selectedClusterFeatures.length && !selectedClusterLeaves.length) return;
-    clearClusterSelection();
-    setSelectedCardId(null);
+    const timer = window.setTimeout(() => {
+      clearClusterSelection();
+      setSelectedCardId(null);
+    }, 0);
+    return () => window.clearTimeout(timer);
   }, [
     showPeople,
     showProperties,

@@ -1,7 +1,7 @@
 import React, { useCallback, useMemo, useState, useEffect, useRef } from 'react';
 import { C } from '../theme/colors';
 import { useT } from '../i18n/translations';
-import { CATEGORIES, CARDS, PROPERTIES } from '../data/mockData';
+import { CATEGORIES, CARDS as _MOCK_CARDS, PROPERTIES as _MOCK_PROPERTIES } from '../data/mockData';
 import { Icon } from '../components/ui/Icon';
 import { SmartImage } from '../components/ui/SmartImage';
 import { CategoryBar } from '../components/layout/CategoryBar';
@@ -13,7 +13,7 @@ import { PropertyCard } from '../components/cards/PropertyCard';
 import { CardStatusBadge, CardStatusIcon } from '../components/ui/CardStatusIndicators';
 import { CARD_STATUS, pickPriorityStatus } from '../components/ui/cardStatusTokens';
 import { getHiddenSet, subscribe as subscribeHidden } from '../lib/hiddenCards';
-import { resolveScopedProfile, normalizeProfileScope } from '../lib/profileScopeResolver';
+import { inferRecordProfileScope, normalizeProfileScope, resolveScopedProfile } from '../lib/profileScopeResolver';
 import { formatPropertyLocation } from '../lib/formatPropertyLocation';
 import { useMediaQuery } from '../hooks/useMediaQuery';
 import { canUsePlanAction, getPlanGateCopy, incrementPlanUsage, readPlanUsage } from '../lib/planAccess';
@@ -24,6 +24,9 @@ import { isUuid, mapPropertyHotMetrics } from '../lib/propertyHotMetrics';
 import { isPendingDealExpired } from '../lib/pendingDeal';
 import feedMatchIcon from '../assets/feed-match-icon.png';
 import spotlightIcon from '../assets/spotlight-icon.png';
+
+const CARDS = import.meta.env.DEV ? (_MOCK_CARDS || []) : [];
+const PROPERTIES = import.meta.env.DEV ? (_MOCK_PROPERTIES || []) : [];
 
 // Utilitário para checagem de flag booleana (string, bool, number)
 function isTruthyFlag(value, defaultValue = false) {
@@ -54,6 +57,14 @@ function writeLocalStringSet(key, value) {
   } catch (e) {
     void e;
   }
+}
+
+function getUserScopedStorageKey(baseKey, userId) {
+  const normalizedUserId = String(userId || '').trim();
+  if (isSupabaseConfigured && normalizedUserId && normalizedUserId !== 'local-user') {
+    return `${baseKey}:${normalizedUserId}`;
+  }
+  return baseKey;
 }
 
 function readPendingFocusCard() {
@@ -184,7 +195,7 @@ function sortFeedRecords(records, {
   });
 }
 
-export function Dashboard({ page, nuggets, setModal, setPage, onOpenOnboardingTab, openUnlock, unlocked, matched, setMatched, interested, setInterested, purchases, setPurchases, userProfile, personalProfile, professionalProfile, propertyPortfolio, servicePortfolio, accountType, showcaseProperties, categoryOrder, setCategoryOrder, editMode, setEditMode, mobileBottomNavCollapsed = false, addToast, setSystemNotifications = null, subscription, propertyUnlocks = [], currentUserId = 'local-user', activeSpotlightKeys = new Set(), onOpenSpotlight = null, userPreferences = null }) {
+export function Dashboard({ page, nuggets, setModal, setPage, onOpenOnboardingTab, openUnlock, unlocked, matched, setMatched, interested, setInterested, purchases, setPurchases, userProfile, personalProfile, professionalProfile, propertyPortfolio, servicePortfolio, accountType, showcaseProperties, categoryOrder, setCategoryOrder, editMode, setEditMode, mobileBottomNavCollapsed = false, addToast, setSystemNotifications = null, isHydrationReady = true, isHydrationSyncing = false, subscription, propertyUnlocks = [], currentUserId = 'local-user', activeSpotlightKeys = new Set(), onOpenSpotlight = null, userPreferences = null }) {
   const isMobileViewport = useMediaQuery('(max-width: 767px)');
   const isTabletPortraitViewport = useMediaQuery('(min-width: 768px) and (max-width: 1080px) and (orientation: portrait)');
   const isTabletLandscapeViewport = useMediaQuery('(min-width: 768px) and (max-width: 1180px) and (orientation: landscape)');
@@ -251,12 +262,20 @@ export function Dashboard({ page, nuggets, setModal, setPage, onOpenOnboardingTa
   const [interestStateDropdownOpen, setInterestStateDropdownOpen] = useState(false);
   const [selectedMatchCategories, setSelectedMatchCategories] = useState([]);
   const [selectedInterestStates, setSelectedInterestStates] = useState([]);
-  const [feedHiddenContacts, setFeedHiddenContacts] = useState(() => readLocalStringSet('ds_feed_hidden_contacts'));
-  const [feedHiddenInterests, setFeedHiddenInterests] = useState(() => readLocalStringSet('ds_feed_hidden_interests'));
-  const [matchArchivedContacts] = useState(() => readLocalStringSet('ds_matches_archived_contacts'));
-  const [matchArchivedInterests] = useState(() => readLocalStringSet('ds_matches_archived_interests'));
-  const [matchDeletedContacts] = useState(() => readLocalStringSet('ds_matches_deleted_contacts'));
-  const [matchDeletedInterests] = useState(() => readLocalStringSet('ds_matches_deleted_interests'));
+  const feedStorageKeys = useMemo(() => ({
+    hiddenContacts: getUserScopedStorageKey('ds_feed_hidden_contacts', currentUserId),
+    hiddenInterests: getUserScopedStorageKey('ds_feed_hidden_interests', currentUserId),
+    archivedContacts: getUserScopedStorageKey('ds_matches_archived_contacts', currentUserId),
+    archivedInterests: getUserScopedStorageKey('ds_matches_archived_interests', currentUserId),
+    deletedContacts: getUserScopedStorageKey('ds_matches_deleted_contacts', currentUserId),
+    deletedInterests: getUserScopedStorageKey('ds_matches_deleted_interests', currentUserId),
+  }), [currentUserId]);
+  const [feedHiddenContacts, setFeedHiddenContacts] = useState(() => readLocalStringSet(getUserScopedStorageKey('ds_feed_hidden_contacts', currentUserId)));
+  const [feedHiddenInterests, setFeedHiddenInterests] = useState(() => readLocalStringSet(getUserScopedStorageKey('ds_feed_hidden_interests', currentUserId)));
+  const [matchArchivedContacts, setMatchArchivedContacts] = useState(() => readLocalStringSet(getUserScopedStorageKey('ds_matches_archived_contacts', currentUserId)));
+  const [matchArchivedInterests, setMatchArchivedInterests] = useState(() => readLocalStringSet(getUserScopedStorageKey('ds_matches_archived_interests', currentUserId)));
+  const [matchDeletedContacts, setMatchDeletedContacts] = useState(() => readLocalStringSet(getUserScopedStorageKey('ds_matches_deleted_contacts', currentUserId)));
+  const [matchDeletedInterests, setMatchDeletedInterests] = useState(() => readLocalStringSet(getUserScopedStorageKey('ds_matches_deleted_interests', currentUserId)));
   const [action, setAction] = useState(null);
   const [propAction, setPropAction] = useState(null);
   const [propStatusById, setPropStatusById] = useState({});
@@ -266,6 +285,18 @@ export function Dashboard({ page, nuggets, setModal, setPage, onOpenOnboardingTa
   const [skippedSetProp, setSkippedSetProp] = useState(new Set());
   const [hiddenSet, setHiddenSet] = useState(() => getHiddenSet());
   const [propertyHotMetrics, setPropertyHotMetrics] = useState({});
+
+  useEffect(() => {
+    const timer = window.setTimeout(() => {
+      setFeedHiddenContacts(readLocalStringSet(feedStorageKeys.hiddenContacts));
+      setFeedHiddenInterests(readLocalStringSet(feedStorageKeys.hiddenInterests));
+      setMatchArchivedContacts(readLocalStringSet(feedStorageKeys.archivedContacts));
+      setMatchArchivedInterests(readLocalStringSet(feedStorageKeys.archivedInterests));
+      setMatchDeletedContacts(readLocalStringSet(feedStorageKeys.deletedContacts));
+      setMatchDeletedInterests(readLocalStringSet(feedStorageKeys.deletedInterests));
+    }, 0);
+    return () => window.clearTimeout(timer);
+  }, [feedStorageKeys]);
 
   const getTrendingMilestone = (favoriteCount) => {
     const count = Number(favoriteCount || 0);
@@ -588,6 +619,10 @@ export function Dashboard({ page, nuggets, setModal, setPage, onOpenOnboardingTa
     return Array.from(new Set(fallbacks));
   }, [parseStateCode]);
 
+  const getRecordProfileScope = useCallback((record, fallbackScope = '') => {
+    return inferRecordProfileScope(record, fallbackScope);
+  }, []);
+
   const buildLocalProfileCard = useCallback((scopeKey = 'personal') => {
     const isSecondary = scopeKey === 'secondary';
     const isFsbo = scopeKey === 'fsbo';
@@ -612,12 +647,12 @@ export function Dashboard({ page, nuggets, setModal, setPage, onOpenOnboardingTa
     };
     const scopedProperties = (showcaseProperties || []).filter((p) => (
       isOwnerRecord(p)
-      && normalizeProfileScope(p.primaryProfile || 'personal') === profileScope
+      && getRecordProfileScope(p) === profileScope
       && isTruthyFlag(p.publishToShowcase, true)
     ));
     const scopedServices = (servicePortfolio || []).filter((s) => (
       isOwnerRecord(s)
-      && normalizeProfileScope(s.primaryProfile || 'personal') === profileScope
+      && getRecordProfileScope(s) === profileScope
       && isTruthyFlag(s.publishToConnections, true)
     ));
     const scopedMarkets = Array.from(new Set([
@@ -685,7 +720,7 @@ export function Dashboard({ page, nuggets, setModal, setPage, onOpenOnboardingTa
       rating: Number.isFinite(rawRating) && rawRating > 0 ? rawRating : 0,
       reviews: Number.isFinite(rawReviews) && rawReviews > 0 ? Math.round(rawReviews) : 0,
       deals: Number.isFinite(rawDeals) && rawDeals > 0 ? Math.round(rawDeals) : 0,
-      cat: hasScopedIdentity ? (userProfile?.category || '') : '',
+      cat: hasScopedIdentity ? (scopedIdentity?.categoryId || scopedIdentity?.categoryLabelFallback || '') : '',
       desc: (!isFsbo && profileDescription && normalizedProfileDescription !== normalizedTypeLabel)
         ? profileDescription
         : '',
@@ -699,7 +734,7 @@ export function Dashboard({ page, nuggets, setModal, setPage, onOpenOnboardingTa
       email: scopedIdentity?.email || '',
       verified: scopedIdentity?.verified === true,
     };
-  }, [accountType, currentUserId, userProfile, personalProfile, professionalProfile, showcaseProperties, servicePortfolio, getOwnerIdForKey, collectRecordStates, parseStateCode]);
+  }, [accountType, currentUserId, userProfile, personalProfile, professionalProfile, showcaseProperties, servicePortfolio, getOwnerIdForKey, collectRecordStates, parseStateCode, getRecordProfileScope]);
   const normalizeCardPriority = (value) => {
     const normalized = String(value || '').trim().toLowerCase();
     if (!normalized || normalized === 'select') return '';
@@ -726,16 +761,16 @@ export function Dashboard({ page, nuggets, setModal, setPage, onOpenOnboardingTa
     ? ''
     : (professionalProfile?.cardPriorityA || '');
   const cardPriorityCResolved = personalProfile?.cardPriorityC || '';
-  const priorityByScopeForFeed = {
+  const priorityByScopeForFeed = useMemo(() => ({
     personal: normalizeCardPriority(cardPriorityAResolved),
     professional: normalizeCardPriority(professionalProfile?.cardPriorityB || ''),
     fsbo: normalizeCardPriority(cardPriorityCResolved),
-  };
+  }), [cardPriorityAResolved, professionalProfile?.cardPriorityB, cardPriorityCResolved]);
   const publishedProfileScopeSet = useMemo(() => new Set(
     Object.entries(priorityByScopeForFeed)
       .filter(([, priority]) => Boolean(priority))
       .map(([scope]) => normalizeProfileScope(scope))
-  ), [priorityByScopeForFeed.personal, priorityByScopeForFeed.professional, priorityByScopeForFeed.fsbo]);
+  ), [priorityByScopeForFeed]);
 
   const connectionCards = useMemo(() => {
     // Inclui sempre o card pessoal (A) e, se existir, o secundário (B), desde que não estejam em 'select'.
@@ -794,28 +829,29 @@ export function Dashboard({ page, nuggets, setModal, setPage, onOpenOnboardingTa
     const globalProfileKeys = Array.from(new Set([
       ...(servicePortfolio || []).map((s) => {
         const ownerId = String(s?.ownerId || '').trim();
-        const scope = normalizeProfileScope(s?.primaryProfile || 'personal');
-        return ownerId ? `${ownerId}::${scope}` : '';
+        const scope = getRecordProfileScope(s);
+        return ownerId && scope ? `${ownerId}::${scope}` : '';
       }),
       ...(showcaseProperties || []).map((p) => {
         const ownerId = String(p?.ownerId || '').trim();
-        const scope = normalizeProfileScope(p?.primaryProfile || 'personal');
-        return ownerId ? `${ownerId}::${scope}` : '';
+        const scope = getRecordProfileScope(p);
+        return ownerId && scope ? `${ownerId}::${scope}` : '';
       }),
     ].filter((key) => {
       const [ownerId] = String(key || '').split('::');
       return ownerId && !localOwnerIds.has(ownerId) && !mockOwnerIdsForConnections.has(ownerId);
     })));
     const globalCards = globalProfileKeys.map((profileKey) => {
-      const [ownerId, scope = 'personal'] = String(profileKey || '').split('::');
+      const [ownerId, scope = ''] = String(profileKey || '').split('::');
       const normalizedScope = normalizeProfileScope(scope);
+      if (!ownerId || !normalizedScope) return null;
       const props = (showcaseProperties || []).filter((p) => (
         String(p.ownerId) === ownerId
-        && normalizeProfileScope(p.primaryProfile || 'personal') === normalizedScope
+        && getRecordProfileScope(p) === normalizedScope
       ));
       const services = (servicePortfolio || []).filter((s) => (
         String(s.ownerId) === ownerId
-        && normalizeProfileScope(s.primaryProfile || 'personal') === normalizedScope
+        && getRecordProfileScope(s) === normalizedScope
         && isTruthyFlag(s.publishToConnections, true)
       ));
       const firstService = services[0] || null;
@@ -836,8 +872,9 @@ export function Dashboard({ page, nuggets, setModal, setPage, onOpenOnboardingTa
       const isFsboOwner = normalizedScope === 'fsbo';
       const desc = isFsboOwner ? '' : String(firstService?.description || '').trim();
       return {
-        id: ownerId,
+        id: `${ownerId}:${normalizedScope}`,
         ownerId,
+        scopeKey: normalizedScope === 'professional' ? 'secondary' : normalizedScope,
         name,
         type,
         badge: ownerPreview?.badge || '',
@@ -885,7 +922,7 @@ export function Dashboard({ page, nuggets, setModal, setPage, onOpenOnboardingTa
     });
     // Garante pelo menos 1 card pessoal visível
     return [...cards, ...globalCards, ...enriched];
-  }, [showcaseProperties, servicePortfolio, buildLocalProfileCard, collectRecordStates, getOwnerIdForKey, currentUserId, priorityByScopeForFeed.personal, priorityByScopeForFeed.professional, priorityByScopeForFeed.fsbo]);
+  }, [showcaseProperties, servicePortfolio, buildLocalProfileCard, collectRecordStates, getOwnerIdForKey, currentUserId, priorityByScopeForFeed.personal, priorityByScopeForFeed.professional, priorityByScopeForFeed.fsbo, getRecordProfileScope]);
 
   // Showcase items: only properties published to the showcase should appear here.
   // Usar propertyPortfolio como fonte para garantir sincronização visual/lógica
@@ -912,7 +949,7 @@ export function Dashboard({ page, nuggets, setModal, setPage, onOpenOnboardingTa
           const propertyOwnerId = String(p?.ownerId || '').trim();
           const isLocalProperty = propertyOwnerId && localOwnerIds.includes(propertyOwnerId);
           if (isLocalProperty) {
-            return publishedProfileScopeSet.has(normalizeProfileScope(p.primaryProfile || 'personal'));
+            return publishedProfileScopeSet.has(getRecordProfileScope(p));
           }
           return true;
         });
@@ -923,7 +960,8 @@ export function Dashboard({ page, nuggets, setModal, setPage, onOpenOnboardingTa
       // Retornar imóveis do usuário e mockados, cada um com seu ownerId original
       return [
         ...userProperties.map((p) => {
-          const normalizedScope = normalizeProfileScope(p.primaryProfile || 'personal');
+          const normalizedScope = getRecordProfileScope(p);
+          if (!normalizedScope) return null;
           const scopeKey = normalizedScope === 'professional'
             ? 'secondary'
             : (normalizedScope === 'fsbo' ? 'fsbo' : 'personal');
@@ -933,7 +971,7 @@ export function Dashboard({ page, nuggets, setModal, setPage, onOpenOnboardingTa
             markets: collectRecordStates(p),
             ownerPreview: localOwnerIds.includes(String(p.ownerId || '')) ? buildLocalProfileCard(scopeKey) : (p.ownerPreview || null),
           };
-        }),
+        }).filter(Boolean),
         ...mockProperties.map((p) => {
           // ownerId permanece do card fake
           const ownerCard = CARDS.find(c => String(c.id) === String(p.ownerId));
@@ -948,7 +986,7 @@ export function Dashboard({ page, nuggets, setModal, setPage, onOpenOnboardingTa
     } catch {
       return [];
     }
-  }, [showcaseProperties, buildLocalProfileCard, collectRecordStates, getOwnerIdForKey, currentUserId, userProfile, publishedProfileScopeSet]);
+  }, [showcaseProperties, buildLocalProfileCard, collectRecordStates, getOwnerIdForKey, currentUserId, userProfile, publishedProfileScopeSet, getRecordProfileScope]);
 
   const findConnectionById = useCallback((id) => {
     const needle = String(id);
@@ -957,7 +995,7 @@ export function Dashboard({ page, nuggets, setModal, setPage, onOpenOnboardingTa
 
   const resolvePropertyOwnerCard = useCallback((property) => {
     if (!property) return null;
-    const ownerScope = normalizeProfileScope(property?.primaryProfile || '');
+    const ownerScope = getRecordProfileScope(property, '');
     const ownerScopeKey = ownerScope === 'professional' ? 'secondary' : (ownerScope === 'fsbo' ? 'fsbo' : (ownerScope ? 'personal' : ''));
     const propertyOwnerId = String(property.ownerId || '').trim();
     const ownerByScope = ownerScopeKey
@@ -973,7 +1011,7 @@ export function Dashboard({ page, nuggets, setModal, setPage, onOpenOnboardingTa
       || ownerPreview
       || ownerById
       || (mockOwnerCard ? { ...mockOwnerCard, ownerId: mockOwnerCard.ownerId || mockOwnerCard.id } : null);
-  }, [connectionCards, findConnectionById]);
+  }, [connectionCards, findConnectionById, getRecordProfileScope]);
 
   const getUnlockKeys = useCallback((itemOrId) => {
     if (itemOrId == null) return [];
@@ -1424,10 +1462,10 @@ export function Dashboard({ page, nuggets, setModal, setPage, onOpenOnboardingTa
     setFeedHiddenContacts((prev) => {
       const next = new Set(prev);
       keys.forEach((key) => next.add(key));
-      writeLocalStringSet('ds_feed_hidden_contacts', next);
+      writeLocalStringSet(feedStorageKeys.hiddenContacts, next);
       return next;
     });
-  }, [getFeedContactKeys]);
+  }, [feedStorageKeys.hiddenContacts, getFeedContactKeys]);
 
   const hideInterestFromFeed = useCallback((interest) => {
     const key = getFeedInterestKey(interest);
@@ -1435,10 +1473,10 @@ export function Dashboard({ page, nuggets, setModal, setPage, onOpenOnboardingTa
     setFeedHiddenInterests((prev) => {
       const next = new Set(prev);
       next.add(key);
-      writeLocalStringSet('ds_feed_hidden_interests', next);
+      writeLocalStringSet(feedStorageKeys.hiddenInterests, next);
       return next;
     });
-  }, [getFeedInterestKey]);
+  }, [feedStorageKeys.hiddenInterests, getFeedInterestKey]);
 
   const dedupedMatched = useMemo(
     () => matched.filter((m, i, arr) => arr.findIndex((x) => x.id === m.id) === i),
@@ -1482,7 +1520,7 @@ export function Dashboard({ page, nuggets, setModal, setPage, onOpenOnboardingTa
       const categoryKeys = getContactCategoryKeys(m);
       return [...chosen].some((cat) => categoryKeys.has(cat));
     });
-  }, [dedupedMatched, selectedMatchCategories, getContactCategoryKeys, getFeedContactKeys, feedHiddenContacts, matchArchivedContacts]);
+  }, [dedupedMatched, selectedMatchCategories, getContactCategoryKeys, getFeedContactKeys, feedHiddenContacts, matchArchivedContacts, matchDeletedContacts]);
 
   const interestStateOptions = useMemo(() => {
     const states = Array.from(new Set(
@@ -1504,16 +1542,9 @@ export function Dashboard({ page, nuggets, setModal, setPage, onOpenOnboardingTa
       collectRecordStates(item).some((code) => chosen.has(code))
       )
     );
-  }, [interested, selectedInterestStates, collectRecordStates, feedHiddenInterests, matchArchivedInterests, getFeedInterestKey, getFeedContactKeys, matchArchivedContacts]);
-  const hasValue = (v) => String(v || '').trim().length > 0;
+  }, [interested, selectedInterestStates, collectRecordStates, feedHiddenInterests, matchArchivedInterests, matchDeletedInterests, getFeedInterestKey, getFeedContactKeys, matchArchivedContacts, matchDeletedContacts]);
   const getExplicitRecordProfileScope = (record) => {
-    const rawScope = String(record?.primaryProfile || '').trim();
-    if (!rawScope) return accountType === 'fsbo_owner' ? 'fsbo' : 'personal';
-    const normalized = normalizeProfileScope(rawScope);
-    if (normalized !== 'personal' && normalized !== 'professional' && normalized !== 'fsbo') {
-      return accountType === 'fsbo_owner' ? 'fsbo' : 'personal';
-    }
-    return normalized;
+    return getRecordProfileScope(record);
   };
   const activeUnlockedMatchesCount = useMemo(() => {
     const matchedIds = new Set((matched || []).map((m) => String(m?.id || '').trim()).filter(Boolean));
@@ -1535,13 +1566,14 @@ export function Dashboard({ page, nuggets, setModal, setPage, onOpenOnboardingTa
   const profilePriorityC = cardPriorityCResolved;
 
   const profileKeyToScope = (profileKey) => {
+    if (!profileKey) return '';
     if (profileKey === 'secondary') return 'professional';
     if (profileKey === 'fsbo') return 'fsbo';
     return 'personal';
   };
 
-  const scopeToProfileKey = (scope) => (scope === 'professional' ? 'secondary' : (scope === 'fsbo' ? 'fsbo' : 'personal'));
-  const scopeToModalKey = (scope) => (scope === 'professional' ? 'secondary' : (scope === 'fsbo' ? 'fsbo' : 'personal'));
+  const scopeToProfileKey = (scope) => (scope ? (scope === 'professional' ? 'secondary' : (scope === 'fsbo' ? 'fsbo' : 'personal')) : '');
+  const scopeToModalKey = (scope) => (scope ? (scope === 'professional' ? 'secondary' : (scope === 'fsbo' ? 'fsbo' : 'personal')) : '');
 
   const priorityByProfileKey = {
     personal: normalizePriorityValue(profilePriorityA),
@@ -1553,9 +1585,8 @@ export function Dashboard({ page, nuggets, setModal, setPage, onOpenOnboardingTa
     return acc;
   }, {});
 
-  const fallbackPrimaryProfileKey = accountType === 'fsbo_owner' ? 'fsbo' : 'personal';
-  const primaryProfileKey = profileKeyByPriority.primary || fallbackPrimaryProfileKey;
-  const secondaryProfileKey = profileKeyByPriority.secondary && profileKeyByPriority.secondary !== primaryProfileKey
+  const primaryProfileKey = profileKeyByPriority.primary || null;
+  const secondaryProfileKey = primaryProfileKey && profileKeyByPriority.secondary && profileKeyByPriority.secondary !== primaryProfileKey
     ? profileKeyByPriority.secondary
     : null;
   const primaryVisibleScope = profileKeyToScope(primaryProfileKey);
@@ -1563,7 +1594,7 @@ export function Dashboard({ page, nuggets, setModal, setPage, onOpenOnboardingTa
 
   const primaryModalKey = scopeToModalKey(primaryVisibleScope);
   const secondaryModalKey = secondaryVisibleScope ? scopeToModalKey(secondaryVisibleScope) : null;
-  const primaryCardData = buildLocalProfileCard(primaryProfileKey);
+  const primaryCardData = primaryProfileKey ? buildLocalProfileCard(primaryProfileKey) : null;
   const secondaryCardData = secondaryProfileKey ? buildLocalProfileCard(secondaryProfileKey) : null;
   const countByScope = (scope) => {
     const key = scopeToProfileKey(scope);
@@ -1581,20 +1612,22 @@ export function Dashboard({ page, nuggets, setModal, setPage, onOpenOnboardingTa
     };
     const propertiesCount = (propertyPortfolio || []).filter((p) => (
       isOwnerRecord(p)
-      && normalizeProfileScope(p.primaryProfile || 'personal') === profileScope
+      && getRecordProfileScope(p) === profileScope
       && isTruthyFlag(p.publishToShowcase, true)
       && p.isActive !== false
       && p.dealClosed !== true
     )).length;
     const servicesCount = (servicePortfolio || []).filter((s) => (
       isOwnerRecord(s)
-      && normalizeProfileScope(s.primaryProfile || 'personal') === profileScope
+      && getRecordProfileScope(s) === profileScope
       && isTruthyFlag(s.publishToConnections, true)
       && s.dealClosed !== true
     )).length;
     return { propertiesCount, servicesCount };
   };
-  const _primaryScopeCounts = countByScope(primaryVisibleScope);
+  const _primaryScopeCounts = primaryVisibleScope
+    ? countByScope(primaryVisibleScope)
+    : { propertiesCount: 0, servicesCount: 0 };
   const _secondaryScopeCounts = secondaryVisibleScope ? countByScope(secondaryVisibleScope) : { propertiesCount: 0, servicesCount: 0 };
   void _primaryScopeCounts;
   void _secondaryScopeCounts;
@@ -1618,14 +1651,14 @@ export function Dashboard({ page, nuggets, setModal, setPage, onOpenOnboardingTa
       if (!isTruthyFlag(p.publishToShowcase, true)) return false;
       if (p.isActive === false) return false;
       if (p.dealClosed === true) return false;
-      return normalizeProfileScope(p.primaryProfile || 'personal') === profileScope;
+      return getRecordProfileScope(p) === profileScope;
     });
 
     const services = (servicePortfolio || []).filter((s) => {
       if (!isOwnerRecord(s)) return false;
       if (!isTruthyFlag(s.publishToConnections, true)) return false;
       if (s.dealClosed === true) return false;
-      return normalizeProfileScope(s.primaryProfile || 'personal') === profileScope;
+      return getRecordProfileScope(s) === profileScope;
     });
 
     return { profileScope, properties, services };
@@ -1655,29 +1688,34 @@ export function Dashboard({ page, nuggets, setModal, setPage, onOpenOnboardingTa
         && isTruthyFlag(p.publishToShowcase, true)
         && p?.dealClosed !== true
         && !isPendingDealExpired(p)
-        && normalizeProfileScope(p.primaryProfile || 'personal') === profileScope;
+        && getRecordProfileScope(p) === profileScope;
     });
     const services = (servicePortfolio || []).filter((s) => {
       return isScopedOwnerRecord(s)
         && isTruthyFlag(s.publishToConnections, true)
         && s?.dealClosed !== true
-        && normalizeProfileScope(s.primaryProfile || 'personal') === profileScope;
+        && getRecordProfileScope(s) === profileScope;
     });
     return { properties, services };
-  }, [getOwnerIdForKey, propertyPortfolio, servicePortfolio, currentUserId, userProfile]);
+  }, [getOwnerIdForKey, propertyPortfolio, servicePortfolio, currentUserId, userProfile, getRecordProfileScope]);
 
   const countMyCardLinkedCardsForScope = (scopeKey) => {
     const scoped = getMyCardScopedRecords(scopeKey);
     return Math.max(0, scoped.properties.length + scoped.services.length);
   };
 
-  const primaryLinkedCardsCount = countMyCardLinkedCardsForScope(primaryModalKey);
+  const primaryLinkedCardsCount = primaryModalKey
+    ? countMyCardLinkedCardsForScope(primaryModalKey)
+    : 0;
   const secondaryScopedRecords = secondaryModalKey
     ? getScopedPublishedRecords(secondaryModalKey)
     : { properties: [], services: [] };
   const secondaryPublishedProperties = secondaryScopedRecords.properties;
   const secondaryPublishedServices = secondaryScopedRecords.services;
+  const isInitialDashboardHydrating = isSupabaseConfigured && !isHydrationReady;
   const hasSecondaryProfile = Boolean(
+    !isInitialDashboardHydrating
+    &&
     secondaryVisibleScope
     && secondaryModalKey
     && hasPublishableLocalProfileCard(secondaryCardData)
@@ -1686,9 +1724,14 @@ export function Dashboard({ page, nuggets, setModal, setPage, onOpenOnboardingTa
     ? countMyCardLinkedCardsForScope(secondaryModalKey)
     : 0;
 
-  const profileName = primaryCardData?.name || userProfile?.name || 'User';
-  const profileLocation = primaryCardData?.loc || userProfile?.location || 'Location not set';
-  const primaryProfileBadgeLabel = primaryVisibleScope === 'professional'
+  const displayPrimaryLinkedCardsCount = isInitialDashboardHydrating ? 0 : primaryLinkedCardsCount;
+  const profileName = isInitialDashboardHydrating ? 'Syncing profile...' : (primaryCardData?.name || 'New User');
+  const profileLocation = isInitialDashboardHydrating
+    ? (isHydrationSyncing ? 'Syncing saved data' : 'Loading saved data')
+    : (primaryCardData?.loc || 'Location not set');
+  const primaryProfileBadgeLabel = !primaryVisibleScope
+    ? 'Profile'
+    : primaryVisibleScope === 'professional'
     ? 'Business'
     : (primaryVisibleScope === 'fsbo' ? 'FSBO' : 'Personal');
   const secondaryProfileBadgeLabel = secondaryVisibleScope === 'professional'
@@ -1698,7 +1741,7 @@ export function Dashboard({ page, nuggets, setModal, setPage, onOpenOnboardingTa
     ? (professionalProfile?.primaryCategoryB || professionalProfile?.categoryB || '')
     : (professionalProfile?.primaryCategory || professionalProfile?.category || '');
   void _activePrimaryCategoryId;
-  const activePrimaryCategoryLabel = String(primaryCardData?.type || '').trim() || 'Not set';
+  const activePrimaryCategoryLabel = isInitialDashboardHydrating ? 'Syncing...' : (String(primaryCardData?.type || '').trim() || 'Not set');
   const countClosedDealsForScope = (scope) => {
     const normalizedScope = normalizeProfileScope(scope);
     return (propertyPortfolio || []).filter((p) => (
@@ -1781,12 +1824,12 @@ export function Dashboard({ page, nuggets, setModal, setPage, onOpenOnboardingTa
     };
   };
 
-  const primaryRatingDetails = computeScopeRatingDetails(primaryModalKey);
   const emptyRatingDetails = { label: '-', interactionScore: 0, publishedScore: 0, reliabilityScore: 0, closedDealsBonus: 0, total: 0 };
+  const primaryRatingDetails = primaryModalKey ? computeScopeRatingDetails(primaryModalKey) : emptyRatingDetails;
   const secondaryRatingDetails = hasSecondaryProfile ? computeScopeRatingDetails(secondaryModalKey) : emptyRatingDetails;
 
   const matchedCount = activeUnlockedMatchesCount;
-  const dealsCount = countClosedDealsForScope(primaryVisibleScope);
+  const dealsCount = primaryVisibleScope ? countClosedDealsForScope(primaryVisibleScope) : 0;
   const ratingLabel = primaryRatingDetails.label;
 
   // Secondary (profile B) derived display values — keep in parity with primary profile
@@ -1851,7 +1894,7 @@ export function Dashboard({ page, nuggets, setModal, setPage, onOpenOnboardingTa
         const contentKey = [
           fallbackPrefix,
           ownerKey,
-          normalizeProfileScope(record?.primaryProfile || 'personal'),
+          getRecordProfileScope(record),
           String(record?.address || record?.title || '').trim().toLowerCase(),
           String(record?.city || '').trim().toLowerCase(),
           String(record?.state || record?.loc || '').trim().toLowerCase(),
@@ -1881,7 +1924,7 @@ export function Dashboard({ page, nuggets, setModal, setPage, onOpenOnboardingTa
       scopeKey,
       scopeLabel: scopeKey === 'secondary' ? 'Operations' : (scopeKey === 'fsbo' ? 'FSBO' : 'Personal'),
     };
-  }, [myCardModal.scope, buildLocalProfileCard, getMyCardScopedRecords, getOwnerIdForKey]);
+  }, [myCardModal.scope, buildLocalProfileCard, getMyCardScopedRecords, getOwnerIdForKey, getRecordProfileScope]);
 
   const toggleMyCardModal = (scope) => {
     setMyCardModal((prev) => {
@@ -1891,6 +1934,15 @@ export function Dashboard({ page, nuggets, setModal, setPage, onOpenOnboardingTa
     setMyCardShowcaseIdx(0);
     // Em mobile, fecha a sidebar para não sobrepor o modal MyCard
     if (isMobileViewport) setMobileFeedSidebarOpen(false);
+  };
+
+  const handlePrimaryMyCardClick = (event) => {
+    event?.stopPropagation?.();
+    if (primaryModalKey) {
+      toggleMyCardModal(primaryModalKey);
+      return;
+    }
+    openOnboardingForScope('personal');
   };
 
   const settleMyCardShowcaseIndex = useCallback((container) => {
@@ -1968,34 +2020,16 @@ export function Dashboard({ page, nuggets, setModal, setPage, onOpenOnboardingTa
     setPage('onboarding');
   };
 
-  // Quick registration is based on onboarding data only (not system settings/login profile).
-  const quickRegistered = (() => {
-    const hasProfileA = hasValue(professionalProfile?.fullNameA)
-      || hasValue(professionalProfile?.primaryPhoneA)
-      || hasValue(professionalProfile?.emailA);
-    const hasProfileB = hasValue(professionalProfile?.fullName)
-      || hasValue(professionalProfile?.categoryB)
-      || hasValue(professionalProfile?.primaryCategoryB)
-      || hasValue(professionalProfile?.primaryPhoneB)
-      || hasValue(professionalProfile?.emailB)
-      || hasValue(professionalProfile?.photoB)
-      || hasValue(professionalProfile?.photoBUrl);
-    const hasProfileC = hasValue(personalProfile?.fullName)
-      || hasValue(personalProfile?.primaryPhone)
-      || hasValue(personalProfile?.email)
-      || hasValue(personalProfile?.photo);
-    const hasPortfolio = (showcaseProperties || []).some((p) => (
-      String(p.ownerId) === String(getOwnerIdForKey('personal'))
-      || String(p.ownerId) === String(getOwnerIdForKey('secondary'))
-      || String(p.ownerId) === String(getOwnerIdForKey('fsbo'))
-    ))
-      || (servicePortfolio || []).some((s) => (
-        String(s.ownerId) === String(getOwnerIdForKey('personal'))
-        || String(s.ownerId) === String(getOwnerIdForKey('secondary'))
-        || String(s.ownerId) === String(getOwnerIdForKey('fsbo'))
-      ));
-    return hasProfileA || hasProfileB || hasProfileC || hasPortfolio;
-  })();
+  // Quick registration is based on a real primary profile plus published linked cards.
+  const quickRegistered = isInitialDashboardHydrating
+    ? true
+    : Boolean(
+      primaryModalKey
+      && primaryCardData
+      && hasPublishableLocalProfileCard(primaryCardData)
+      && primaryLinkedCardsCount > 0
+    );
+  const showRegistrationNeeded = !isInitialDashboardHydrating && !quickRegistered;
 
   // Persist active category and selected states across navigation/login
   useEffect(() => {
@@ -2027,10 +2061,12 @@ export function Dashboard({ page, nuggets, setModal, setPage, onOpenOnboardingTa
   }, [page]);
 
   useEffect(() => {
+    if (isSupabaseConfigured) return;
     try { localStorage.setItem('ds_matched', JSON.stringify(matched || [])); } catch (e) { void e; }
   }, [matched]);
 
   useEffect(() => {
+    if (isSupabaseConfigured) return;
     try { localStorage.setItem('ds_interested', JSON.stringify(interested || [])); } catch (e) { void e; }
   }, [interested]);
 
@@ -2395,25 +2431,27 @@ export function Dashboard({ page, nuggets, setModal, setPage, onOpenOnboardingTa
   };
 
   const ownOwnerIds = useMemo(() => {
-    const ids = new Set();
+    const ids = [];
     ['personal', 'secondary', 'fsbo'].forEach((key) => {
       const id = getOwnerIdForKey(key);
-      if (id !== undefined && id !== null && String(id).trim() !== '') ids.add(String(id));
+      const normalizedId = String(id ?? '').trim();
+      if (normalizedId && !ids.includes(normalizedId)) ids.push(normalizedId);
     });
     return ids;
   }, [getOwnerIdForKey]);
+  const ownOwnerIdsKey = useMemo(() => ownOwnerIds.join('|'), [ownOwnerIds]);
 
   const isOwnConnectionCard = useCallback((card) => {
     if (!card) return false;
     if (String(card?.id || '').startsWith('local:')) return true;
     const ownerId = String(card?.ownerId ?? card?.id ?? '').trim();
-    return ownerId !== '' && ownOwnerIds.has(ownerId);
+    return ownerId !== '' && ownOwnerIds.includes(ownerId);
   }, [ownOwnerIds]);
 
   const isOwnPropertyCard = useCallback((property) => {
     if (!property) return false;
     const ownerId = String(property?.ownerId || '').trim();
-    return ownerId !== '' && ownOwnerIds.has(ownerId);
+    return ownerId !== '' && ownOwnerIds.includes(ownerId);
   }, [ownOwnerIds]);
 
   const openUnlockFromTopProperty = () => {
@@ -2453,7 +2491,9 @@ export function Dashboard({ page, nuggets, setModal, setPage, onOpenOnboardingTa
       addToast?.({ type: 'warning', message: 'No contact card available to unlock.' });
       return false;
     }
-    if (isOwnConnectionCard(targetCard)) {
+    const ownIds = ownOwnerIdsKey ? ownOwnerIdsKey.split('|').filter(Boolean) : [];
+    const targetOwnerId = String(targetCard?.ownerId ?? targetCard?.id ?? '').trim();
+    if (String(targetCard?.id || '').startsWith('local:') || (targetOwnerId && ownIds.includes(targetOwnerId))) {
       addToast?.({ type: 'info', message: 'Own card, not selectionable' });
       return false;
     }
@@ -2480,7 +2520,7 @@ export function Dashboard({ page, nuggets, setModal, setPage, onOpenOnboardingTa
       return true;
     }
     return false;
-  }, [addToast, canStartPlanAction, findConnectionById, isContactUnlocked, isOwnConnectionCard, openUnlock]);
+  }, [addToast, canStartPlanAction, findConnectionById, openUnlock, ownOwnerIdsKey, unlocked]);
 
   const handleMobileUnlockAction = () => {
     if (view === 'connections') {
@@ -2520,7 +2560,8 @@ export function Dashboard({ page, nuggets, setModal, setPage, onOpenOnboardingTa
   const isConnectionSpotlight = useCallback((card) => {
     if (!card) return false;
     const ownerId = String(card.ownerId || card.id || '').trim();
-    const scope = normalizeProfileScope(card.primaryProfile || card.scopeKey || 'personal');
+    const scope = normalizeProfileScope(card.primaryProfile || card.scopeKey);
+    if (!scope) return false;
     const ownerCandidates = Array.from(new Set([
       ownerId,
     ].filter(Boolean)));
@@ -3125,7 +3166,7 @@ export function Dashboard({ page, nuggets, setModal, setPage, onOpenOnboardingTa
                 <div style={{ display: 'grid', gridTemplateColumns: hasSecondaryProfile ? '1fr 1fr' : '1fr', gap: 8 }}>
                   <button
                     type="button"
-                    onClick={() => toggleMyCardModal(primaryModalKey)}
+                    onClick={handlePrimaryMyCardClick}
                     aria-pressed={myCardModal.open && myCardModal.scope === primaryModalKey}
                     style={{
                       display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: 5,
@@ -3139,9 +3180,9 @@ export function Dashboard({ page, nuggets, setModal, setPage, onOpenOnboardingTa
                   >
                     <span style={{ width: 8, height: 8, borderRadius: 999, background: (myCardModal.open && myCardModal.scope === primaryModalKey) ? C.accent : C.t3 }} />
                     My Card
-                    {primaryLinkedCardsCount > 0 ? (
+                    {displayPrimaryLinkedCardsCount > 0 ? (
                       <span style={{ background: C.danger, color: '#fff', fontSize: 9, fontWeight: 900, borderRadius: 99, padding: '1px 5px', lineHeight: 1.4 }}>
-                        {primaryLinkedCardsCount}
+                        {displayPrimaryLinkedCardsCount}
                       </span>
                     ) : null}
                   </button>
@@ -3242,11 +3283,11 @@ export function Dashboard({ page, nuggets, setModal, setPage, onOpenOnboardingTa
           <div
             style={{
               background: C.card,
-              border: `${quickRegistered ? '1px' : '2px'} solid ${quickRegistered ? C.border : C.danger}`,
+              border: `${showRegistrationNeeded ? '2px' : '1px'} solid ${showRegistrationNeeded ? C.danger : C.border}`,
               borderRadius: 14,
               padding: 10,
               marginBottom: 6,
-              boxShadow: quickRegistered ? 'none' : `0 0 0 4px ${C.alpha(C.danger, 0.06)}`,
+              boxShadow: showRegistrationNeeded ? `0 0 0 4px ${C.alpha(C.danger, 0.06)}` : 'none',
               cursor: 'default'
             }}
           >
@@ -3299,7 +3340,7 @@ export function Dashboard({ page, nuggets, setModal, setPage, onOpenOnboardingTa
               </div>
               <button
                 type="button"
-                onClick={(e) => { e.stopPropagation(); toggleMyCardModal(primaryModalKey); }}
+                onClick={handlePrimaryMyCardClick}
                 aria-pressed={myCardModal.open && myCardModal.scope === primaryModalKey}
                 style={{
                   display: 'inline-flex', alignItems: 'center', gap: 5,
@@ -3313,12 +3354,12 @@ export function Dashboard({ page, nuggets, setModal, setPage, onOpenOnboardingTa
                 <span style={{ width: 8, height: 8, borderRadius: 999, background: (myCardModal.open && myCardModal.scope === primaryModalKey) ? C.accent : C.t3, boxShadow: (myCardModal.open && myCardModal.scope === primaryModalKey) ? `0 0 8px ${C.alpha(C.accent, 0.75)}` : 'none' }} />
                 My Card
                 {/* Mostra a contagem sempre que houver cards publicados */}
-                {primaryLinkedCardsCount > 0 && (
+                {displayPrimaryLinkedCardsCount > 0 && (
                   <span style={{
                     background: C.danger, color: '#fff',
                     fontSize: 8, fontWeight: 900, borderRadius: 99,
                     padding: '1px 4px', lineHeight: 1.4, minWidth: 13, textAlign: 'center',
-                  }}>{primaryLinkedCardsCount}</span>
+                  }}>{displayPrimaryLinkedCardsCount}</span>
                 )}
               </button>
             </div>
@@ -3342,7 +3383,7 @@ export function Dashboard({ page, nuggets, setModal, setPage, onOpenOnboardingTa
               </div>
             </div>
             {/* Full-width Registro button below stats */}
-            {!quickRegistered && (
+            {showRegistrationNeeded && (
               <div style={{ marginTop: 10 }}>
                 <button
                   onClick={(e) => { e.stopPropagation(); setPage('onboarding'); }}
@@ -3699,11 +3740,11 @@ export function Dashboard({ page, nuggets, setModal, setPage, onOpenOnboardingTa
                   <span style={{ display: 'inline-flex', alignItems: 'center', padding: '3px 7px', border: `1px solid ${C.border}`, borderRadius: 999, color: C.t2, fontSize: 9, fontWeight: 800, maxWidth: isTabletPortraitWideViewport ? 96 : 86, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{primaryProfileBadgeLabel}</span>
                   <button
                     type="button"
-                    onClick={(e) => { e.stopPropagation(); toggleMyCardModal(primaryModalKey); }}
+                    onClick={handlePrimaryMyCardClick}
                     style={{ display: 'inline-flex', alignItems: 'center', gap: 4, border: `1px solid ${(myCardModal.open && myCardModal.scope === primaryModalKey) ? C.accent : C.border}`, background: (myCardModal.open && myCardModal.scope === primaryModalKey) ? C.alpha(C.accent, 0.12) : 'transparent', color: C.t2, borderRadius: 999, padding: '3px 7px', fontSize: 9, fontWeight: 900, cursor: 'pointer' }}
                   >
                     <span>My Card</span>
-                    {primaryLinkedCardsCount > 0 && <span style={{ background: C.danger, color: '#fff', borderRadius: 99, padding: '0 4px', fontSize: 7 }}>{primaryLinkedCardsCount}</span>}
+                    {displayPrimaryLinkedCardsCount > 0 && <span style={{ background: C.danger, color: '#fff', borderRadius: 99, padding: '0 4px', fontSize: 7 }}>{displayPrimaryLinkedCardsCount}</span>}
                   </button>
                 </div>
 

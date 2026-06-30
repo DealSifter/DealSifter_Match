@@ -1,7 +1,7 @@
 import React, { useState, useRef, useEffect, useMemo, useCallback } from 'react';
 import { C } from '../theme/colors';
 import { useT } from '../i18n/translations';
-import { PROPERTIES, CARDS, CATEGORIES, SERVICE_PORTFOLIO } from '../data/mockData';
+import { PROPERTIES as _MOCK_PROPERTIES, CARDS as _MOCK_CARDS, CATEGORIES, SERVICE_PORTFOLIO as _MOCK_SERVICE_PORTFOLIO } from '../data/mockData';
 import { Icon } from '../components/ui/Icon';
 import { Modal } from '../components/ui/Modal';
 import { PlanGateModal } from '../components/modals/PlanGateModal';
@@ -13,7 +13,7 @@ import { CardStatusIcon } from '../components/ui/CardStatusIndicators';
 import { CARD_STATUS } from '../components/ui/cardStatusTokens';
 import { catIcon } from '../lib/catIcon';
 import { buildDisplayContacts, normalizeContactMethod } from '../lib/contactPriority';
-import { resolveScopedProfile, normalizeProfileScope } from '../lib/profileScopeResolver';
+import { inferRecordProfileScope, normalizeProfileScope, resolveScopedProfile } from '../lib/profileScopeResolver';
 import { formatPropertyLocation } from '../lib/formatPropertyLocation';
 import { translateChatText, getSafeLang } from '../services/chatTranslation';
 import { getPlanGateCopy, isFeatureAllowed } from '../lib/planAccess';
@@ -21,6 +21,10 @@ import { trackAppEvent } from '../lib/adminEventTracking';
 import { getPortfolioUnlockCost, getPropertyExclusivityStatus } from '../lib/unlockRules';
 import { isSupabaseConfigured } from '../lib/supabaseClient';
 import appLogo from '../assets/logo-dark-theme.png';
+
+const PROPERTIES = import.meta.env.DEV ? (_MOCK_PROPERTIES || []) : [];
+const CARDS = import.meta.env.DEV ? (_MOCK_CARDS || []) : [];
+const SERVICE_PORTFOLIO = import.meta.env.DEV ? (_MOCK_SERVICE_PORTFOLIO || []) : [];
 
 function readLocalStringSet(key) {
   try {
@@ -38,6 +42,14 @@ function writeLocalStringSet(key, value) {
   } catch (e) {
     void e;
   }
+}
+
+function getUserScopedStorageKey(baseKey, userId) {
+  const normalizedUserId = String(userId || '').trim();
+  if (isSupabaseConfigured && normalizedUserId && normalizedUserId !== 'local-user') {
+    return `${baseKey}:${normalizedUserId}`;
+  }
+  return baseKey;
 }
 
 // Move chat templates and defaults to module scope so they are stable references
@@ -232,9 +244,10 @@ function ContactButtons({ item, variant = 'default', isMobile = false, desktopRi
 
   // If the contact fields are not present on the `item`, fall back to the
   // locally saved personal registration (localStorage.personalProfile).
-  const shouldUseSavedProfile = !item?.id || item?.id === 999999 || item?.ownerId === 999999 || item?.id === 'preview-personal';
+  const shouldUseSavedProfile = !isSupabaseConfigured
+    && (!item?.id || item?.id === 999999 || item?.ownerId === 999999 || item?.id === 'preview-personal');
   let savedProfile = null;
-  if (shouldUseSavedProfile) savedProfile = readScopedProfileFallback(normalizeProfileScope(item?.primaryProfile || 'personal'));
+  if (shouldUseSavedProfile) savedProfile = readScopedProfileFallback(normalizeProfileScope(item?.primaryProfile || ''));
 
   const contacts = buildDisplayContacts(item, savedProfile, {
     call: modalsT.contactPhone,
@@ -349,11 +362,12 @@ function ContactButtons({ item, variant = 'default', isMobile = false, desktopRi
 }
 
 function getLocalOwnerId(scopeKey) {
+  if (isSupabaseConfigured && !import.meta.env.DEV) return '';
   try {
     const map = JSON.parse(localStorage.getItem('profileOwnerMap') || 'null');
     if (map && typeof map[scopeKey] !== 'undefined') return map[scopeKey];
   } catch (e) { void e; }
-  return 999999;
+  return '';
 }
 
 function PortfolioDetail({ item, owner, ownerDesc, onBack, autoplayMedia = false, onBlockedExport = null, imageSources = [], onStartChat = null, canUseChat = true, chatInterestLabel = CHAT_INTEREST_PREFIX.en, exclusiveStatus = null }) {
@@ -476,9 +490,10 @@ function PortfolioDetail({ item, owner, ownerDesc, onBack, autoplayMedia = false
     const city = normalizeExportText(item?.city || '-');
     const state = normalizeExportText(item?.state || '-');
     const zip = normalizeExportText(item?.zip || '-');
-    const shouldUseSavedProfile = !owner?.id || owner?.id === 999999 || owner?.ownerId === 999999 || owner?.id === 'preview-personal';
+    const shouldUseSavedProfile = !isSupabaseConfigured
+      && (!owner?.id || owner?.id === 999999 || owner?.ownerId === 999999 || owner?.id === 'preview-personal');
     let savedProfile = null;
-    if (shouldUseSavedProfile) savedProfile = readScopedProfileFallback(normalizeProfileScope(owner?.primaryProfile || item?.primaryProfile || 'personal'));
+    if (shouldUseSavedProfile) savedProfile = readScopedProfileFallback(normalizeProfileScope(owner?.primaryProfile || item?.primaryProfile || ''));
     const ownerContacts = buildDisplayContacts(owner || {}, savedProfile, {
       call: modalsT.contactPhone,
       sms: modalsT.contactSms,
@@ -949,9 +964,10 @@ function PortfolioDetail({ item, owner, ownerDesc, onBack, autoplayMedia = false
     };
     const pdfLabel = (key, fallback) => matchesT[key] || fallback;
 
-    const shouldUseSavedProfile = !owner?.id || owner?.id === 999999 || owner?.ownerId === 999999 || owner?.id === 'preview-personal';
+    const shouldUseSavedProfile = !isSupabaseConfigured
+      && (!owner?.id || owner?.id === 999999 || owner?.ownerId === 999999 || owner?.id === 'preview-personal');
     let savedProfile = null;
-    if (shouldUseSavedProfile) savedProfile = readScopedProfileFallback(normalizeProfileScope(owner?.primaryProfile || item?.primaryProfile || 'personal'));
+    if (shouldUseSavedProfile) savedProfile = readScopedProfileFallback(normalizeProfileScope(owner?.primaryProfile || item?.primaryProfile || ''));
 
     const ownerName = safe(owner?.name);
     const ownerType = safe(owner?.type);
@@ -1801,11 +1817,15 @@ export function MatchesPage({ nuggets, setModal, openUnlock, unlocked, initialCh
   const getOwnerIdForScope = useCallback((scopeKey) => {
     const liveUserId = String(currentUserId || '').trim();
     if (isSupabaseConfigured && liveUserId && liveUserId !== 'local-user') return liveUserId;
-    return getLocalOwnerId(scopeKey);
+    if (!isSupabaseConfigured || import.meta.env.DEV) return getLocalOwnerId(scopeKey);
+    return '';
   }, [currentUserId]);
   const personalOwnerId = useMemo(() => getOwnerIdForScope('personal'), [getOwnerIdForScope]);
   const secondaryOwnerId = useMemo(() => getOwnerIdForScope('secondary'), [getOwnerIdForScope]);
   const fsboOwnerId = useMemo(() => getOwnerIdForScope('fsbo'), [getOwnerIdForScope]);
+  const getRecordProfileScope = useCallback((record, fallbackScope = '') => {
+    return inferRecordProfileScope(record, fallbackScope);
+  }, []);
   // Use module-scope CHAT_REPLY_TEMPLATES, CHAT_INTEREST_PREFIX and DEFAULT_PEER_LANGS
   // (defined at top of file) to keep references stable for hook dependencies.
   const [peopleFilter, setPeopleFilter] = useState("all");
@@ -1814,11 +1834,27 @@ export function MatchesPage({ nuggets, setModal, openUnlock, unlocked, initialCh
   const [interestsStateDropdownOpen, setInterestsStateDropdownOpen] = useState(false);
   const [selectedPeopleCategories, setSelectedPeopleCategories] = useState([]);
   const [selectedInterestStates, setSelectedInterestStates] = useState([]);
-  const [archivedContacts, setArchivedContacts] = useState(() => readLocalStringSet('ds_matches_archived_contacts'));
-  const [archivedInterests, setArchivedInterests] = useState(() => readLocalStringSet('ds_matches_archived_interests'));
-  const [deletedContacts, setDeletedContacts] = useState(() => readLocalStringSet('ds_matches_deleted_contacts'));
-  const [deletedInterests, setDeletedInterests] = useState(() => readLocalStringSet('ds_matches_deleted_interests'));
+  const matchesStorageKeys = useMemo(() => ({
+    archivedContacts: getUserScopedStorageKey('ds_matches_archived_contacts', currentUserId),
+    archivedInterests: getUserScopedStorageKey('ds_matches_archived_interests', currentUserId),
+    deletedContacts: getUserScopedStorageKey('ds_matches_deleted_contacts', currentUserId),
+    deletedInterests: getUserScopedStorageKey('ds_matches_deleted_interests', currentUserId),
+  }), [currentUserId]);
+  const [archivedContacts, setArchivedContacts] = useState(() => readLocalStringSet(getUserScopedStorageKey('ds_matches_archived_contacts', currentUserId)));
+  const [archivedInterests, setArchivedInterests] = useState(() => readLocalStringSet(getUserScopedStorageKey('ds_matches_archived_interests', currentUserId)));
+  const [deletedContacts, setDeletedContacts] = useState(() => readLocalStringSet(getUserScopedStorageKey('ds_matches_deleted_contacts', currentUserId)));
+  const [deletedInterests, setDeletedInterests] = useState(() => readLocalStringSet(getUserScopedStorageKey('ds_matches_deleted_interests', currentUserId)));
   const [paidContactPrompt, setPaidContactPrompt] = useState(null);
+
+  useEffect(() => {
+    const timer = window.setTimeout(() => {
+      setArchivedContacts(readLocalStringSet(matchesStorageKeys.archivedContacts));
+      setArchivedInterests(readLocalStringSet(matchesStorageKeys.archivedInterests));
+      setDeletedContacts(readLocalStringSet(matchesStorageKeys.deletedContacts));
+      setDeletedInterests(readLocalStringSet(matchesStorageKeys.deletedInterests));
+    }, 0);
+    return () => window.clearTimeout(timer);
+  }, [matchesStorageKeys]);
 
   // Combined sources: user data merged with mock seed data for mock card owners.
   // Uses String() comparison and deduplication by id so user's own records always win.
@@ -1844,6 +1880,7 @@ export function MatchesPage({ nuggets, setModal, openUnlock, unlocked, initialCh
 
   const buildLocalOwnerCard = useCallback((scope = 'personal') => {
     const normalizedScope = normalizeProfileScope(scope);
+    if (!normalizedScope) return null;
     const ownerKey = normalizedScope === 'professional'
       ? 'secondary'
       : (normalizedScope === 'fsbo' ? 'fsbo' : 'personal');
@@ -1856,11 +1893,11 @@ export function MatchesPage({ nuggets, setModal, openUnlock, unlocked, initialCh
     });
     const scopedProperties = allPropertiesSource.filter((p) => (
       String(p.ownerId) === String(ownerId)
-      && normalizeProfileScope(p.primaryProfile || 'personal') === normalizedScope
+      && getRecordProfileScope(p) === normalizedScope
     ));
     const scopedServices = allServicesSource.filter((s) => (
       String(s.ownerId) === String(ownerId)
-      && normalizeProfileScope(s.primaryProfile || 'personal') === normalizedScope
+      && getRecordProfileScope(s) === normalizedScope
       && (s.publishToConnections !== false)
     ));
     const descriptions = scopedServices
@@ -1894,17 +1931,19 @@ export function MatchesPage({ nuggets, setModal, openUnlock, unlocked, initialCh
       tertiaryPhone: scopedIdentity?.tertiaryPhone || '',
       email: scopedIdentity?.email || '',
     };
-  }, [allPropertiesSource, allServicesSource, personalProfile, professionalProfile, userProfile]);
+  }, [allPropertiesSource, allServicesSource, personalProfile, professionalProfile, userProfile, getRecordProfileScope, getOwnerIdForScope]);
 
   const resolveContactCard = useCallback((cardLike, scopeHint = null) => {
     if (!cardLike) return null;
-    const resolvedScope = normalizeProfileScope(scopeHint || cardLike.primaryProfile || (
+    const localScopeFallback = (
       String(cardLike.id) === String(secondaryOwnerId) || String(cardLike.ownerId) === String(secondaryOwnerId)
         ? 'professional'
         : (String(cardLike.id) === String(fsboOwnerId) || String(cardLike.ownerId) === String(fsboOwnerId)
           ? 'fsbo'
-          : 'personal')
-    ));
+          : ((String(cardLike.id) === String(personalOwnerId) || String(cardLike.ownerId) === String(personalOwnerId)) ? 'personal' : ''))
+    );
+    const resolvedScope = normalizeProfileScope(scopeHint || cardLike.primaryProfile || localScopeFallback);
+    if (!resolvedScope) return null;
     const isLocalCard =
       String(cardLike.id) === String(personalOwnerId) ||
       String(cardLike.id) === String(secondaryOwnerId) ||
@@ -1913,9 +1952,11 @@ export function MatchesPage({ nuggets, setModal, openUnlock, unlocked, initialCh
       String(cardLike.ownerId) === String(secondaryOwnerId) ||
       String(cardLike.ownerId) === String(fsboOwnerId);
     if (!isLocalCard) return cardLike;
+    const localOwnerCard = buildLocalOwnerCard(resolvedScope);
+    if (!localOwnerCard) return cardLike;
     return {
       ...cardLike,
-      ...buildLocalOwnerCard(resolvedScope),
+      ...localOwnerCard,
       primaryProfile: resolvedScope,
     };
   }, [buildLocalOwnerCard, fsboOwnerId, personalOwnerId, secondaryOwnerId]);
@@ -1978,7 +2019,7 @@ export function MatchesPage({ nuggets, setModal, openUnlock, unlocked, initialCh
       whatsapp: pick(contactLike.whatsapp, linkedProperty?.whatsapp, linkedProperty?.ownerWhatsapp, linkedService?.whatsapp),
       email: pick(contactLike.email, linkedProperty?.email, linkedProperty?.ownerEmail, linkedProperty?.contactEmail, linkedService?.email, linkedService?.ownerEmail),
     };
-  }, [allPropertiesSource, allServicesSource, getOwnerIdForScope, personalProfile, professionalProfile, userProfile]);
+  }, [allPropertiesSource, allServicesSource]);
 
   const getPropertyExclusiveStatus = useCallback((propertyOrId) => {
     const candidates = propertyOrId && typeof propertyOrId === 'object'
@@ -2037,21 +2078,21 @@ export function MatchesPage({ nuggets, setModal, openUnlock, unlocked, initialCh
     setArchivedContacts((prev) => {
       const next = new Set(prev);
       keys.forEach((key) => next.add(key));
-      writeLocalStringSet('ds_matches_archived_contacts', next);
+      writeLocalStringSet(matchesStorageKeys.archivedContacts, next);
       return next;
     });
     setActive((prev) => (getContactUnlockKeys(prev).some((key) => keys.includes(key)) ? null : prev));
-  }, [getContactUnlockKeys, getOwnerExclusiveStatus, isContactUnlockedByState, warnExclusiveLocked]);
+  }, [getContactUnlockKeys, getOwnerExclusiveStatus, isContactUnlockedByState, matchesStorageKeys.archivedContacts, warnExclusiveLocked]);
 
   const restoreContact = useCallback((contact) => {
     const keys = getContactUnlockKeys(contact);
     setArchivedContacts((prev) => {
       const next = new Set(prev);
       keys.forEach((key) => next.delete(key));
-      writeLocalStringSet('ds_matches_archived_contacts', next);
+      writeLocalStringSet(matchesStorageKeys.archivedContacts, next);
       return next;
     });
-  }, [getContactUnlockKeys]);
+  }, [getContactUnlockKeys, matchesStorageKeys.archivedContacts]);
 
   const deleteContactFromMatches = useCallback((contact, options = {}) => {
     const keys = getContactUnlockKeys(contact);
@@ -2067,19 +2108,19 @@ export function MatchesPage({ nuggets, setModal, openUnlock, unlocked, initialCh
     setDeletedContacts((prev) => {
       const next = new Set(prev);
       keys.forEach((key) => next.add(key));
-      writeLocalStringSet('ds_matches_deleted_contacts', next);
+      writeLocalStringSet(matchesStorageKeys.deletedContacts, next);
       return next;
     });
     setArchivedContacts((prev) => {
       const next = new Set(prev);
       keys.forEach((key) => next.delete(key));
-      writeLocalStringSet('ds_matches_archived_contacts', next);
+      writeLocalStringSet(matchesStorageKeys.archivedContacts, next);
       return next;
     });
     setMatched((prev) => prev.filter((item) => !getContactUnlockKeys(item).some((key) => keys.includes(key))));
     setInterested((prev) => prev.filter((item) => !keys.includes(String(item?.ownerId || '').trim())));
     setActive((prev) => (getContactUnlockKeys(prev).some((key) => keys.includes(key)) ? null : prev));
-  }, [getContactUnlockKeys, getOwnerExclusiveStatus, isContactUnlockedByState, setInterested, setMatched, warnExclusiveLocked]);
+  }, [getContactUnlockKeys, getOwnerExclusiveStatus, isContactUnlockedByState, matchesStorageKeys.archivedContacts, matchesStorageKeys.deletedContacts, setInterested, setMatched, warnExclusiveLocked]);
 
   const archiveInterest = useCallback((interest) => {
     const key = getInterestKey(interest);
@@ -2091,21 +2132,21 @@ export function MatchesPage({ nuggets, setModal, openUnlock, unlocked, initialCh
     setArchivedInterests((prev) => {
       const next = new Set(prev);
       next.add(key);
-      writeLocalStringSet('ds_matches_archived_interests', next);
+      writeLocalStringSet(matchesStorageKeys.archivedInterests, next);
       return next;
     });
     setActive((prev) => (getInterestKey(prev) === key ? null : prev));
-  }, [getInterestKey, getPropertyExclusiveStatus, warnExclusiveLocked]);
+  }, [getInterestKey, getPropertyExclusiveStatus, matchesStorageKeys.archivedInterests, warnExclusiveLocked]);
 
   const restoreInterest = useCallback((interest) => {
     const key = getInterestKey(interest);
     setArchivedInterests((prev) => {
       const next = new Set(prev);
       next.delete(key);
-      writeLocalStringSet('ds_matches_archived_interests', next);
+      writeLocalStringSet(matchesStorageKeys.archivedInterests, next);
       return next;
     });
-  }, [getInterestKey]);
+  }, [getInterestKey, matchesStorageKeys.archivedInterests]);
 
   const deleteInterestFromMatches = useCallback((interest) => {
     const key = getInterestKey(interest);
@@ -2117,18 +2158,18 @@ export function MatchesPage({ nuggets, setModal, openUnlock, unlocked, initialCh
     setDeletedInterests((prev) => {
       const next = new Set(prev);
       next.add(key);
-      writeLocalStringSet('ds_matches_deleted_interests', next);
+      writeLocalStringSet(matchesStorageKeys.deletedInterests, next);
       return next;
     });
     setArchivedInterests((prev) => {
       const next = new Set(prev);
       next.delete(key);
-      writeLocalStringSet('ds_matches_archived_interests', next);
+      writeLocalStringSet(matchesStorageKeys.archivedInterests, next);
       return next;
     });
     setInterested((prev) => prev.filter((item) => getInterestKey(item) !== key));
     setActive((prev) => (getInterestKey(prev) === key ? null : prev));
-  }, [getInterestKey, getPropertyExclusiveStatus, setInterested, warnExclusiveLocked]);
+  }, [getInterestKey, getPropertyExclusiveStatus, matchesStorageKeys.archivedInterests, matchesStorageKeys.deletedInterests, setInterested, warnExclusiveLocked]);
 
   const formatTemplate = useCallback((template, values) => {
     let out = String(template || '');
@@ -2322,8 +2363,8 @@ export function MatchesPage({ nuggets, setModal, openUnlock, unlocked, initialCh
   const activeOwner = useMemo(() => {
     if (!active) return null;
     if (!isActiveProperty) return enrichContactFromPortfolio(resolveContactCard(active));
-    if (active.ownerPreview) return enrichContactFromPortfolio(resolveContactCard(active.ownerPreview, normalizeProfileScope(active.primaryProfile || active.ownerPreview?.primaryProfile || null)));
-    const activeScope = normalizeProfileScope(active.primaryProfile || (
+    if (active.ownerPreview) return enrichContactFromPortfolio(resolveContactCard(active.ownerPreview, getRecordProfileScope(active)));
+    const activeScope = getRecordProfileScope(active, (
       String(active.ownerId) === String(secondaryOwnerId)
         ? 'professional'
         : (String(active.ownerId) === String(fsboOwnerId) ? 'fsbo' : 'personal')
@@ -2340,7 +2381,7 @@ export function MatchesPage({ nuggets, setModal, openUnlock, unlocked, initialCh
     return import.meta.env.DEV
       ? enrichContactFromPortfolio(CARDS.find(c => String(c.id) === String(active.ownerId)))
       : null;
-  }, [active, isActiveProperty, resolveContactCard, secondaryOwnerId, fsboOwnerId, personalOwnerId, buildLocalOwnerCard, enrichContactFromPortfolio, allMatched, getContactUnlockKeys]);
+  }, [active, isActiveProperty, resolveContactCard, secondaryOwnerId, fsboOwnerId, personalOwnerId, buildLocalOwnerCard, enrichContactFromPortfolio, allMatched, getContactUnlockKeys, getRecordProfileScope]);
 
   const handleOpenActiveCardPreview = useCallback(() => {
     if (!activeOwner && !active) return;
@@ -2979,10 +3020,10 @@ export function MatchesPage({ nuggets, setModal, openUnlock, unlocked, initialCh
                   const propertyExclusiveStatus = getPropertyExclusiveStatus(p);
                   const isArchivedInterestRow = archivedInterests.has(getInterestKey(p));
                   const owner = p.ownerPreview
-                    ? resolveContactCard(p.ownerPreview, p.primaryProfile || p.ownerPreview?.primaryProfile || null)
+                    ? resolveContactCard(p.ownerPreview, getRecordProfileScope(p))
                     : (
                       String(p.ownerId) === String(personalOwnerId) || String(p.ownerId) === String(secondaryOwnerId) || String(p.ownerId) === String(fsboOwnerId)
-                        ? buildLocalOwnerCard(p.primaryProfile || (String(p.ownerId) === String(secondaryOwnerId) ? 'professional' : (String(p.ownerId) === String(fsboOwnerId) ? 'fsbo' : 'personal')))
+                        ? buildLocalOwnerCard(getRecordProfileScope(p, String(p.ownerId) === String(secondaryOwnerId) ? 'professional' : (String(p.ownerId) === String(fsboOwnerId) ? 'fsbo' : 'personal')))
                         : (import.meta.env.DEV ? CARDS.find(c => c.id === p.ownerId) : null)
                     );
                   return (

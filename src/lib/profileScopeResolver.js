@@ -55,7 +55,7 @@ const toProfessionalProfileShape = (resolved = {}, fallback = {}) => ({
   pitchB: pickString(resolved?.pitch, fallback.pitchB, fallback.pitch),
 });
 
-export const normalizeProfileScope = (scope) => {
+export const normalizeProfileScope = (scope, fallback = '') => {
   const normalized = String(scope || '').trim().toLowerCase();
   if (
     normalized === 'professional'
@@ -63,10 +63,56 @@ export const normalizeProfileScope = (scope) => {
     || normalized === 'business'
     || normalized === 'operation'
     || normalized === 'operations'
+    || normalized === 'b'
   ) return 'professional';
-  if (normalized === 'fsbo') return 'fsbo';
-  if (normalized === 'personal') return 'personal';
-  return 'personal';
+  if (normalized === 'fsbo' || normalized === 'c') return 'fsbo';
+  if (normalized === 'personal' || normalized === 'primary' || normalized === 'a') return 'personal';
+  return fallback ? normalizeProfileScope(fallback, '') : '';
+};
+
+export const profileScopeToOwnerKey = (scope) => {
+  const normalizedScope = normalizeProfileScope(scope);
+  if (normalizedScope === 'professional') return 'secondary';
+  if (normalizedScope === 'fsbo') return 'fsbo';
+  if (normalizedScope === 'personal') return 'personal';
+  return '';
+};
+
+export const isLikelyNonIdentityName = (value) => {
+  const normalized = String(value || '').trim().toLowerCase();
+  if (!normalized) return false;
+  return normalized === 'd4$'
+    || normalized === 'drive4$'
+    || normalized === 'new user'
+    || normalized === 'owner'
+    || normalized === 'select';
+};
+
+export const pickIdentityName = (...values) => {
+  for (const value of values) {
+    const normalized = String(value || '').trim();
+    if (normalized && !isLikelyNonIdentityName(normalized)) return normalized;
+  }
+  return '';
+};
+
+export const inferRecordProfileScope = (record, fallbackScope = '') => {
+  const ownerAccountType = String(record?.ownerAccountType || record?.owner_account_type || '').trim().toLowerCase();
+  const dealTag = String(record?.dealTag || record?.deal_tag || '').trim().toUpperCase();
+  const source = String(record?.source || '').trim().toLowerCase();
+  if (ownerAccountType === 'fsbo_owner' || source === 'fsbo') return 'fsbo';
+
+  const explicitScope = String(
+    record?.primaryProfile
+    || record?.primary_profile
+    || record?.ownerPreview?.primaryProfile
+    || record?.owner_preview?.primaryProfile
+    || ''
+  ).trim();
+  if (explicitScope) return normalizeProfileScope(explicitScope);
+
+  if (dealTag === 'FSBO') return 'fsbo';
+  return normalizeProfileScope(fallbackScope);
 };
 
 export function resolveScopedProfile(scope, {
@@ -88,7 +134,7 @@ export function resolveScopedProfile(scope, {
   if (isProfessionalScope) {
     return {
       scope: normalizedScope,
-      name: pickString(
+      name: pickIdentityName(
         professional.fullNameB,
         professional.fullName
       ),
@@ -131,8 +177,8 @@ export function resolveScopedProfile(scope, {
   return {
     scope: normalizedScope,
     name: isFsboScope
-      ? pickString(personal.fullName)
-      : pickString(professional.fullNameA),
+      ? pickIdentityName(personal.fullName)
+      : pickIdentityName(professional.fullNameA),
     loc: isFsboScope
       ? pickString(personal.loc)
       : pickString(professional.locA),

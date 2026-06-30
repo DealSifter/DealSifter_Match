@@ -85,7 +85,8 @@ const CookieBanner = lazyWithRetry(() => import('./components/ui/CookieBanner').
 import { getT } from './i18n/translations';
 import { CATEGORIES, CARDS as _MOCK_CARDS, PLANS, PROPERTIES as _MOCK_PROPERTIES, SERVICE_PORTFOLIO as _MOCK_SERVICES } from './data/mockData';
 import { supabase, isSupabaseConfigured, supabaseConfigHint } from './lib/supabaseClient';
-import { buildScopedProfilePayload, extractScopedProfileLegacy, normalizeProfileScope } from './lib/profileScopeResolver';
+import { buildScopedProfilePayload, extractScopedProfileLegacy, inferRecordProfileScope, normalizeProfileScope } from './lib/profileScopeResolver';
+import { buildDataIntegrityAudit } from './lib/dataIntegrityAudit';
 import { getPortfolioFull, setPortfolioFull, clearAllUserData, uploadDataUrlToStorage } from './lib/localforageHelper';
 import { useAuthSession, mapSupabaseUserToSession } from './hooks/useAuthSession';
 import { useProfileSync } from './hooks/useProfileSync';
@@ -512,6 +513,9 @@ const stripInlineMediaFromObject = (value) => {
 
   return Object.entries(value).reduce((next, [key, raw]) => {
     const normalizedKey = String(key || '').toLowerCase();
+    if (normalizedKey.includes('clearrequested')) {
+      return next;
+    }
     if (normalizedKey === 'video' && isInlineMediaUrl(raw)) {
       next[key] = '';
       return next;
@@ -587,6 +591,9 @@ const USER_DATA_KEYS = [
   'userProfile',
   'accountType',
   'ds_matched', 'ds_interested', 'ds_unlocked', 'ds_purchases',
+  'ds_feed_hidden_contacts', 'ds_feed_hidden_interests',
+  'ds_matches_archived_contacts', 'ds_matches_archived_interests',
+  'ds_matches_deleted_contacts', 'ds_matches_deleted_interests',
   'ds_nuggets', 'ds_subscription_mock', 'ds_system_notifications',
   'profileOwnerMap', 'publishingProfileKey',
   'ds_last_page', 'categoryOrder',
@@ -683,6 +690,12 @@ const isUserOwnedServiceRecord = (service, currentUserId = '') => {
   );
 };
 
+const isRecentLocalDraftRecord = (record) => {
+  if (!record || record._localDraft !== true) return false;
+  const createdAt = Number(record._localDraftAt || 0);
+  return Number.isFinite(createdAt) && createdAt > 0 && (Date.now() - createdAt) < (10 * 60 * 1000);
+};
+
 const mapLocalPropertyToDb = (property, userId) => {
   const markets = normalizeStringArray(property?.markets);
   const lat = toNumberOrNull(property?.lat);
@@ -717,7 +730,7 @@ const mapLocalPropertyToDb = (property, userId) => {
     include_in_preview: isTruthyFlag(property?.includeInPreview, true),
     source: String(property?.source || 'portfolio').trim() || 'portfolio',
     owner_account_type: String(property?.ownerAccountType || '').trim() || null,
-    primary_profile: String(property?.primaryProfile || 'personal').trim() || 'personal',
+    primary_profile: inferRecordProfileScope(property, ''),
     video: isInlineMediaUrl(property?.video) ? null : (String(property?.video || '').trim() || null),
     lat,
     lng,
@@ -761,7 +774,7 @@ const mapDbPropertyToLocal = (row, images = [], options = {}) => ({
   includeInPreview: isTruthyFlag(row.include_in_preview, true),
   source: 'supabase',
   ownerAccountType: row.owner_account_type || '',
-  primaryProfile: options.primaryProfile || row.primary_profile || 'personal',
+  primaryProfile: options.primaryProfile || inferRecordProfileScope(row, ''),
   ownerPreview: options.ownerPreview || null,
   images: normalizePortfolioImages(images),
   video: row.video || '',
@@ -786,7 +799,7 @@ const mapLocalServiceToDb = (service, userId) => ({
   media_images: normalizePersistableMediaUrls(getLocalServiceMediaImages(service)),
   publish_to_connections: isTruthyFlag(service?.publishToConnections, true),
   markets: normalizeStringArray(service?.markets),
-  primary_profile: String(service?.primaryProfile || 'personal').trim() || 'personal',
+  primary_profile: inferRecordProfileScope(service, ''),
 });
 
 const getLocalServiceMediaImages = (service) => normalizePortfolioImages([
@@ -807,7 +820,7 @@ const mapDbServiceToLocal = (row, options = {}) => ({
   includeInPreview: true,
   dealClosed: false,
   markets: normalizeStringArray(row.markets),
-  primaryProfile: row.primary_profile || 'personal',
+  primaryProfile: options.primaryProfile || inferRecordProfileScope(row, ''),
   ownerPreview: options.ownerPreview || null,
   source: 'supabase',
   createdAt: row.created_at || null,
@@ -825,7 +838,11 @@ const pickFirstString = (...values) => {
 const isLikelyNonIdentityName = (value) => {
   const normalized = String(value || '').trim().toLowerCase();
   if (!normalized) return false;
-  return normalized === 'd4$' || normalized === 'drive4$';
+  return normalized === 'd4$'
+    || normalized === 'drive4$'
+    || normalized === 'new user'
+    || normalized === 'owner'
+    || normalized === 'select';
 };
 
 const pickIdentityName = (...values) => {
@@ -847,22 +864,15 @@ const getProfilePayloadScope = (profilePayload, scope) => {
 };
 
 const inferDbPropertyProfileScope = (row) => {
-  const explicitScope = normalizeProfileScope(row?.primary_profile || row?.primaryProfile || '');
-  if (explicitScope === 'personal' || explicitScope === 'professional' || explicitScope === 'fsbo') {
-    return explicitScope;
-  }
-  const ownerAccountType = String(row?.owner_account_type || row?.ownerAccountType || '').trim().toLowerCase();
-  const dealTag = String(row?.deal_tag || row?.dealTag || '').trim().toUpperCase();
-  const source = String(row?.source || '').trim().toLowerCase();
-  if (ownerAccountType === 'fsbo_owner' || dealTag === 'FSBO' || source === 'fsbo') return 'fsbo';
-  return 'personal';
+  return inferRecordProfileScope(row, '');
 };
 
 const buildDbOwnerPreview = ({ ownerId, scope, userRow, personalRow, professionalRow }) => {
   const id = String(ownerId || '').trim();
   if (!id) return null;
 
-  const normalizedScope = normalizeProfileScope(scope || 'personal');
+  const normalizedScope = normalizeProfileScope(scope);
+  if (!normalizedScope) return null;
   const profilePayload = professionalRow?.profile_payload && typeof professionalRow.profile_payload === 'object'
     ? professionalRow.profile_payload
     : null;
@@ -886,8 +896,9 @@ const buildDbOwnerPreview = ({ ownerId, scope, userRow, personalRow, professiona
     )
     : isFsbo
       ? pickIdentityName(
-        payloadProfile?.fullName,
         payloadScope?.name,
+        payloadScope?.fullName,
+        payloadProfile?.fullName,
         personalRow?.full_name
       )
       : pickIdentityName(
@@ -898,12 +909,12 @@ const buildDbOwnerPreview = ({ ownerId, scope, userRow, personalRow, professiona
   if (!name) return null;
 
   const photo = pickFirstString(
-    payloadProfile?.photo,
-    payloadScope?.photo,
-    payloadProfile?.photoB,
-    payloadProfile?.photoBUrl,
+    isFsbo ? payloadScope?.photo : payloadScope?.photo,
+    isFsbo ? payloadProfile?.photo : payloadProfile?.photo,
+    isFsbo ? personalRow?.photo_url : '',
+    isFsbo ? '' : payloadProfile?.photoB,
+    isFsbo ? '' : payloadProfile?.photoBUrl,
     isProfessional ? professionalRow?.photo_b_url : '',
-    isFsbo ? personalRow?.photo_url : ''
   );
 
   const type = isFsbo
@@ -929,13 +940,13 @@ const buildDbOwnerPreview = ({ ownerId, scope, userRow, personalRow, professiona
   );
 
   const loc = isFsbo
-    ? pickFirstString(payloadProfile?.loc, payloadScope?.loc)
+    ? pickFirstString(payloadScope?.loc, payloadProfile?.loc)
     : pickFirstString(payloadScope?.loc, payloadProfile?.loc, payloadProfile?.locB);
   const email = isFsbo
-    ? pickFirstString(payloadProfile?.email, payloadScope?.email)
+    ? pickFirstString(payloadScope?.email, payloadProfile?.email, userEmail)
     : pickFirstString(payloadScope?.email, payloadProfile?.email, payloadProfile?.emailB, userEmail);
   const primaryPhone = isFsbo
-    ? pickFirstString(payloadProfile?.primaryPhone, payloadScope?.primaryPhone)
+    ? pickFirstString(payloadScope?.primaryPhone, payloadProfile?.primaryPhone, userRow?.phone)
     : pickFirstString(payloadScope?.primaryPhone, payloadProfile?.primaryPhone, payloadProfile?.primaryPhoneB, userRow?.phone);
 
   return {
@@ -950,11 +961,37 @@ const buildDbOwnerPreview = ({ ownerId, scope, userRow, personalRow, professiona
     desc: isFsbo ? '' : pickFirstString(payloadScope?.pitch, payloadProfile?.pitchB, payloadProfile?.pitch, professionalRow?.pitch),
     email,
     primaryPhone,
-    contactMethods: Array.isArray(payloadScope?.contactMethods) ? payloadScope.contactMethods : [],
+    contactMethods: Array.isArray(payloadScope?.contactMethods)
+      ? payloadScope.contactMethods
+      : [],
     primaryProfile: normalizedScope,
     verified: payloadScope?.verified === true || payloadProfile?.verified === true,
   };
 };
+
+const hasResolvedOwnerPreview = (item) => {
+  const ownerId = String(item?.ownerId || item?.owner_id || '').trim();
+  const scope = inferRecordProfileScope(item, '');
+  const ownerPreview = item?.ownerPreview || item?.owner_preview || null;
+  const ownerName = String(ownerPreview?.name || '').trim();
+  return Boolean(ownerId && scope && ownerName && !isLikelyNonIdentityName(ownerName));
+};
+
+const isValidGlobalShowcaseProperty = (property) => (
+  Boolean(property)
+  && isTruthyFlag(property?.isActive, true)
+  && isTruthyFlag(property?.publishToShowcase, true)
+  && property?.dealClosed !== true
+  && !isDemoSeedMockRecord(property)
+  && hasResolvedOwnerPreview(property)
+);
+
+const isValidGlobalConnectionService = (service) => (
+  Boolean(service)
+  && isTruthyFlag(service?.publishToConnections, true)
+  && !isDemoSeedMockRecord(service)
+  && hasResolvedOwnerPreview(service)
+);
 
 const sanitizeLegacyName = (value) => {
   const normalized = String(value || '').trim();
@@ -1152,6 +1189,12 @@ export default function App() {
   const feedActionLoadedUserRef = useRef(null);
   const feedActionSyncTimerRef = useRef(null);
   const feedActionLastSignatureRef = useRef('');
+  const globalFeedIdentityRef = useRef({
+    loaded: false,
+    contactsByOwnerId: new Map(),
+    contactsByOwnerScope: new Map(),
+    propertiesById: new Map(),
+  });
   const hydrationBlockShownUserRef = useRef(null);
   const [isHydratingProfiles, setIsHydratingProfiles] = useState(false);
   const [showHydrationBlocking, setShowHydrationBlocking] = useState(false);
@@ -2132,22 +2175,13 @@ export default function App() {
     supabaseUserId,
   });
 
-  // Keep profileOwnerMap in localStorage so Dashboard/MatchesPage can resolve
-  // which ownerId belongs to each profile scope (personal / secondary / fsbo).
-  // For a single-user MVP all three scopes share the same Supabase user id.
-  useEffect(() => {
-    if (!supabaseUserId) return;
-    try {
-      const ownerMap = {
-        personal: supabaseUserId,
-        secondary: supabaseUserId,
-        fsbo: supabaseUserId,
-      };
-      localStorage.setItem('profileOwnerMap', JSON.stringify(ownerMap));
-    } catch (e) { void e; }
-  }, [supabaseUserId]);
-
-  const applyRemoteFeedActions = useCallback((rows = []) => {
+  const applyRemoteFeedActions = useCallback((rows = [], options = {}) => {
+    const replace = options?.replace === true;
+    const identityIndex = globalFeedIdentityRef.current || {};
+    const validateAgainstGlobal = identityIndex.loaded === true;
+    const contactsByOwnerId = identityIndex.contactsByOwnerId || new Map();
+    const contactsByOwnerScope = identityIndex.contactsByOwnerScope || new Map();
+    const propertiesById = identityIndex.propertiesById || new Map();
     const matchedItems = [];
     const interestedItems = [];
     const unlockedIds = [];
@@ -2159,29 +2193,48 @@ export default function App() {
 
       if (row.action === 'matched') {
         const ownerKey = String(payload?.ownerId || payload?.unlockOwnerId || payload?.sellerId || payload?.contactId || entityId || payload?.id || '').trim();
+        const payloadScope = normalizeProfileScope(payload?.primaryProfile || payload?.scopeKey || '');
+        const canonicalContact = contactsByOwnerScope.get(`${ownerKey}::${payloadScope}`)
+          || contactsByOwnerId.get(ownerKey)
+          || null;
+        if (validateAgainstGlobal && !canonicalContact && isLikelyNonIdentityName(payload?.name)) return;
+        const resolvedPayload = canonicalContact
+          ? {
+              ...payload,
+              ...canonicalContact,
+              source: 'supabase',
+            }
+          : payload;
         const sourceCardId = payload?.id && String(payload.id) !== ownerKey
           ? (payload.sourceCardId || payload.id)
           : payload?.sourceCardId;
         matchedItems.push({
-          ...payload,
-          id: ownerKey || payload?.id || entityId,
-          ownerId: ownerKey || payload?.ownerId || entityId,
-          unlockOwnerId: ownerKey || payload?.unlockOwnerId || entityId,
+          ...resolvedPayload,
+          id: resolvedPayload?.id || ownerKey || payload?.id || entityId,
+          ownerId: ownerKey || resolvedPayload?.ownerId || entityId,
+          unlockOwnerId: ownerKey || resolvedPayload?.unlockOwnerId || entityId,
           ...(sourceCardId ? { sourceCardId } : {}),
         });
       } else if (row.action === 'interested') {
-        interestedItems.push({ ...payload, id: payload?.id || entityId });
+        const canonicalProperty = propertiesById.get(entityId) || null;
+        if (validateAgainstGlobal && !canonicalProperty) return;
+        interestedItems.push(canonicalProperty ? { ...canonicalProperty, source: 'supabase' } : { ...payload, id: payload?.id || entityId });
       } else if (row.action === 'unlocked') {
         unlockedIds.push(entityId);
       }
     });
 
     feedActionHydratingRef.current = true;
-    if (matchedItems.length) setMatched((prev) => mergeFeedActionItems(prev, matchedItems));
-    if (interestedItems.length) setInterested((prev) => mergeFeedActionItems(prev, interestedItems));
+    if (replace) {
+      setMatched(matchedItems);
+      setInterested(interestedItems);
+    } else {
+      if (matchedItems.length) setMatched((prev) => mergeFeedActionItems(prev, matchedItems));
+      if (interestedItems.length) setInterested((prev) => mergeFeedActionItems(prev, interestedItems));
+    }
     if (unlockedIds.length) {
       setUnlocked((prev) => {
-        const next = Array.isArray(prev) ? [...prev] : [];
+        const next = replace ? [] : (Array.isArray(prev) ? [...prev] : []);
         const seen = new Set(next.map((id) => String(id)));
         unlockedIds.forEach((id) => {
           if (!seen.has(String(id))) {
@@ -2191,6 +2244,8 @@ export default function App() {
         });
         return next;
       });
+    } else if (replace) {
+      setUnlocked([]);
     }
     window.setTimeout(() => { feedActionHydratingRef.current = false; }, 0);
   }, [setInterested, setMatched, setUnlocked]);
@@ -2221,7 +2276,7 @@ export default function App() {
       feedActionLoadedUserRef.current = supabaseUserId;
       return;
     }
-    applyRemoteFeedActions(rows);
+    applyRemoteFeedActions(rows, { replace: true });
     feedActionLoadedUserRef.current = supabaseUserId;
   }, [applyRemoteFeedActions, supabaseUserId, setInterested, setMatched, setUnlocked]);
 
@@ -2439,6 +2494,52 @@ export default function App() {
   const [isSpotlightProcessing, setIsSpotlightProcessing] = useState(false);
 
   useEffect(() => {
+    const contactsByOwnerId = new Map();
+    const contactsByOwnerScope = new Map();
+    const propertiesById = new Map();
+
+    const putContact = (ownerId, scope, ownerPreview, sourceRecord) => {
+      const normalizedOwnerId = String(ownerId || '').trim();
+      const normalizedScope = normalizeProfileScope(scope || ownerPreview?.primaryProfile || sourceRecord?.primaryProfile);
+      const ownerName = pickIdentityName(ownerPreview?.name);
+      if (!normalizedOwnerId || !normalizedScope || !ownerName) return;
+      const canonical = {
+        ...(ownerPreview || {}),
+        id: `${normalizedOwnerId}:${normalizedScope}`,
+        ownerId: normalizedOwnerId,
+        unlockOwnerId: normalizedOwnerId,
+        name: ownerName,
+        primaryProfile: normalizedScope,
+      };
+      contactsByOwnerScope.set(`${normalizedOwnerId}::${normalizedScope}`, canonical);
+      if (!contactsByOwnerId.has(normalizedOwnerId)) contactsByOwnerId.set(normalizedOwnerId, canonical);
+    };
+
+    (globalConnectionServices || []).forEach((service) => {
+      putContact(service?.ownerId, service?.primaryProfile, service?.ownerPreview, service);
+    });
+    (globalShowcaseProperties || []).forEach((property) => {
+      const propertyId = String(property?.id || '').trim();
+      if (propertyId) propertiesById.set(propertyId, property);
+      putContact(property?.ownerId, property?.primaryProfile, property?.ownerPreview, property);
+    });
+
+    globalFeedIdentityRef.current = {
+      loaded: (globalConnectionServices || []).length > 0 || (globalShowcaseProperties || []).length > 0,
+      contactsByOwnerId,
+      contactsByOwnerScope,
+      propertiesById,
+    };
+  }, [globalConnectionServices, globalShowcaseProperties]);
+
+  useEffect(() => {
+    const inventoryLoaded = globalFeedIdentityRef.current?.loaded === true;
+    if (!isSupabaseConfigured || !supabaseUserId || !inventoryLoaded) return undefined;
+    const timer = window.setTimeout(fetchRemoteFeedActions, 0);
+    return () => window.clearTimeout(timer);
+  }, [fetchRemoteFeedActions, globalConnectionServices.length, globalShowcaseProperties.length, supabaseUserId]);
+
+  useEffect(() => {
     if (!isSupabaseConfigured || !supabase || !supabaseUserId) {
       const timer = window.setTimeout(() => {
         setGlobalShowcaseProperties([]);
@@ -2471,10 +2572,7 @@ export default function App() {
           const getOwnerPreviewForRow = (row) => {
             const ownerId = String(row?.owner_id || row?.ownerId || '').trim();
             if (!ownerId) return null;
-            const resolvedScope = Object.prototype.hasOwnProperty.call(row || {}, 'deal_tag')
-              || Object.prototype.hasOwnProperty.call(row || {}, 'owner_account_type')
-              ? inferDbPropertyProfileScope(row)
-              : normalizeProfileScope(row?.primary_profile || 'personal');
+            const resolvedScope = inferRecordProfileScope(row, '');
             return buildDbOwnerPreview({
               ownerId,
               scope: resolvedScope,
@@ -2492,15 +2590,26 @@ export default function App() {
             return acc;
           }, {});
 
-          setGlobalShowcaseProperties(propertyRows.map((row) => mapDbPropertyToLocal(row, imagesByProperty[row.id] || [], {
-            ownerId: row.owner_id || row.ownerId || '',
-            ownerPreview: getOwnerPreviewForRow(row),
-            primaryProfile: inferDbPropertyProfileScope(row),
-          })));
-          setGlobalConnectionServices(serviceRows.map((row) => mapDbServiceToLocal(row, {
-            ownerId: row.owner_id || row.ownerId || '',
-            ownerPreview: getOwnerPreviewForRow(row),
-          })));
+          const nextGlobalProperties = propertyRows
+            .map((row) => mapDbPropertyToLocal(row, imagesByProperty[row.id] || [], {
+              ownerId: row.owner_id || row.ownerId || '',
+              ownerPreview: getOwnerPreviewForRow(row),
+              primaryProfile: inferDbPropertyProfileScope(row),
+            }))
+            .filter(isValidGlobalShowcaseProperty);
+          const nextGlobalServices = serviceRows
+            .map((row) => {
+              const primaryProfile = inferRecordProfileScope(row, '');
+              return mapDbServiceToLocal(row, {
+                ownerId: row.owner_id || row.ownerId || '',
+                ownerPreview: getOwnerPreviewForRow(row),
+                primaryProfile,
+              });
+            })
+            .filter(isValidGlobalConnectionService);
+
+          setGlobalShowcaseProperties(nextGlobalProperties);
+          setGlobalConnectionServices(nextGlobalServices);
           setActiveSpotlights(spotlightRows.map((row) => ({
             id: row.id,
             userId: row.user_id,
@@ -2563,7 +2672,8 @@ export default function App() {
           spotlightsResult = { data: [] };
         }
 
-        const propertyRows = Array.isArray(propertiesResult.data) ? propertiesResult.data : [];
+        const propertyRows = (Array.isArray(propertiesResult.data) ? propertiesResult.data : [])
+          .filter((row) => !isDemoSeedMockRecord(row));
         const serviceRows = Array.isArray(servicesResult.data) ? servicesResult.data : [];
         const spotlightRows = Array.isArray(spotlightsResult.data) ? spotlightsResult.data : [];
         const ownerIds = Array.from(new Set([
@@ -2605,10 +2715,7 @@ export default function App() {
         const getOwnerPreviewForRow = (row) => {
           const ownerId = String(row?.owner_id || row?.ownerId || '').trim();
           if (!ownerId) return null;
-          const resolvedScope = Object.prototype.hasOwnProperty.call(row || {}, 'deal_tag')
-            || Object.prototype.hasOwnProperty.call(row || {}, 'owner_account_type')
-            ? inferDbPropertyProfileScope(row)
-            : normalizeProfileScope(row?.primary_profile || 'personal');
+          const resolvedScope = inferRecordProfileScope(row, '');
           return buildDbOwnerPreview({
             ownerId,
             scope: resolvedScope,
@@ -2643,15 +2750,28 @@ export default function App() {
           return acc;
         }, {});
 
-        setGlobalShowcaseProperties(propertiesResult.error ? [] : propertyRows.map((row) => mapDbPropertyToLocal(row, imagesByProperty[row.id] || [], {
-          ownerId: row.owner_id || row.ownerId || '',
-          ownerPreview: getOwnerPreviewForRow(row),
-          primaryProfile: inferDbPropertyProfileScope(row),
-        })));
-        setGlobalConnectionServices(serviceRows.map((row) => mapDbServiceToLocal(row, {
-          ownerId: row.owner_id || row.ownerId || '',
-          ownerPreview: getOwnerPreviewForRow(row),
-        })));
+        const nextGlobalProperties = propertiesResult.error
+          ? []
+          : propertyRows
+            .map((row) => mapDbPropertyToLocal(row, imagesByProperty[row.id] || [], {
+              ownerId: row.owner_id || row.ownerId || '',
+              ownerPreview: getOwnerPreviewForRow(row),
+              primaryProfile: inferDbPropertyProfileScope(row),
+            }))
+            .filter(isValidGlobalShowcaseProperty);
+        const nextGlobalServices = serviceRows
+          .map((row) => {
+            const primaryProfile = inferRecordProfileScope(row, '');
+            return mapDbServiceToLocal(row, {
+              ownerId: row.owner_id || row.ownerId || '',
+              ownerPreview: getOwnerPreviewForRow(row),
+              primaryProfile,
+            });
+          })
+          .filter(isValidGlobalConnectionService);
+
+        setGlobalShowcaseProperties(nextGlobalProperties);
+        setGlobalConnectionServices(nextGlobalServices);
         setActiveSpotlights(spotlightRows.map((row) => ({
           id: row.id,
           userId: row.user_id,
@@ -2676,19 +2796,26 @@ export default function App() {
     return () => {
       cancelled = true;
     };
-  }, [supabaseUserId]);
+  }, [supabaseUserId, globalFeedRefreshTick]);
 
   const globalServicePortfolio = useMemo(() => {
     const byId = new Map();
     [...(globalConnectionServices || []), ...(servicePortfolio || [])]
-      .filter((service) => isTruthyFlag(service?.publishToConnections, true))
+      .filter((service) => {
+        if (!isTruthyFlag(service?.publishToConnections, true)) return false;
+        const scope = inferRecordProfileScope(service, '');
+        if (!scope) return false;
+        const isCurrentUserService = String(service?.ownerId || '') === String(supabaseUserId || '');
+        if (service?.source === 'supabase' && !isCurrentUserService && !hasResolvedOwnerPreview(service)) return false;
+        return true;
+      })
       .forEach((service, idx) => {
         const id = service?.id || `${service?.ownerId || 'service'}:${idx}`;
         if (!id) return;
         byId.set(String(id), { ...service, id });
       });
     return [...byId.values()];
-  }, [globalConnectionServices, servicePortfolio]);
+  }, [globalConnectionServices, servicePortfolio, supabaseUserId]);
 
   const [spotlightNow, setSpotlightNow] = useState(() => Date.now());
 
@@ -2807,13 +2934,13 @@ export default function App() {
       });
     };
 
-    const hasPersonalName = Boolean(String(professionalProfile?.fullNameA || personalProfile?.fullName || userProfile?.name || '').trim());
+    const hasPersonalName = Boolean(String(professionalProfile?.fullNameA || '').trim());
     const hasBusinessName = Boolean(String(professionalProfile?.fullNameB || '').trim());
     const hasFsbo = accountType === 'fsbo_owner'
       || Boolean((propertyPortfolio || []).some((p) => String(p?.primaryProfile || '').toLowerCase() === 'fsbo'));
-    addProfile('personal', professionalProfile?.fullNameA || personalProfile?.fullName || userProfile?.name || 'Personal profile', hasPersonalName);
+    addProfile('personal', professionalProfile?.fullNameA || 'Personal profile', hasPersonalName);
     addProfile('professional', professionalProfile?.fullNameB || 'Business profile', hasBusinessName);
-    addProfile('fsbo', personalProfile?.fullName || userProfile?.name || 'FSBO profile', hasFsbo);
+    addProfile('fsbo', personalProfile?.fullName || 'FSBO profile', hasFsbo);
     candidates.push(...spotlightDbCandidates);
 
     const byKey = new Map();
@@ -2823,7 +2950,7 @@ export default function App() {
       byKey.set(`${item.cardKind}:${item.cardId}`, item);
     });
     return [...byKey.values()];
-  }, [accountType, activeSpotlightKeys, personalProfile, professionalProfile, propertyPortfolio, spotlightDbCandidates, supabaseUserId, userProfile]);
+  }, [accountType, activeSpotlightKeys, personalProfile, professionalProfile, propertyPortfolio, spotlightDbCandidates, supabaseUserId]);
 
   const showcaseProperties = useMemo(() => {
     const byId = new Map();
@@ -2831,8 +2958,10 @@ export default function App() {
       .filter((p) => (
         isTruthyFlag(p?.isActive, true)
         && isTruthyFlag(p?.publishToShowcase, true)
+        && Boolean(inferRecordProfileScope(p, ''))
         && p?.dealClosed !== true
         && (import.meta.env.DEV || !isDemoSeedMockRecord(p))
+        && (p?.source !== 'supabase' || String(p?.ownerId || '') === String(supabaseUserId || '') || hasResolvedOwnerPreview(p))
         && !isPendingDealExpired(p)
       ))
       .forEach((p, idx) => {
@@ -2841,7 +2970,7 @@ export default function App() {
         byId.set(String(id), { ...p, id });
       });
     return [...byId.values()];
-  }, [globalShowcaseProperties, propertyPortfolio]);
+  }, [globalShowcaseProperties, propertyPortfolio, supabaseUserId]);
 
   const unlockPortfolioProperties = useMemo(() => {
     const byId = new Map();
@@ -2862,6 +2991,41 @@ export default function App() {
     });
     return [...byId.values()];
   }, [globalServicePortfolio]);
+
+  const dataIntegrityAudit = useMemo(() => buildDataIntegrityAudit({
+    currentUserId: supabaseUserId,
+    accountType,
+    userProfile,
+    personalProfile,
+    professionalProfile,
+    propertyPortfolio,
+    servicePortfolio,
+    globalShowcaseProperties,
+    globalConnectionServices,
+  }), [
+    supabaseUserId,
+    accountType,
+    userProfile,
+    personalProfile,
+    professionalProfile,
+    propertyPortfolio,
+    servicePortfolio,
+    globalShowcaseProperties,
+    globalConnectionServices,
+  ]);
+
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+    window.__DS_DATA_AUDIT = dataIntegrityAudit;
+    window.__DS_PRINT_DATA_AUDIT = () => {
+      console.log('[DealSifter data audit]', dataIntegrityAudit);
+      console.table(dataIntegrityAudit?.warnings || []);
+      return dataIntegrityAudit;
+    };
+    if (import.meta.env.DEV && dataIntegrityAudit?.warnings?.length) {
+      console.warn('[DealSifter data audit warnings]', dataIntegrityAudit.warnings);
+    }
+  }, [dataIntegrityAudit]);
 
   const buildUnlockedContactSnapshot = useCallback((ownerId) => {
     const rawOwnerId = String(ownerId || '').trim();
@@ -2896,7 +3060,7 @@ export default function App() {
       email: ownerPreview?.email || '',
       primaryPhone: ownerPreview?.primaryPhone || '',
       contactMethods: Array.isArray(ownerPreview?.contactMethods) ? ownerPreview.contactMethods : [],
-      primaryProfile: ownerPreview?.primaryProfile || linkedService?.primaryProfile || linkedProperty?.primaryProfile || 'personal',
+      primaryProfile: inferRecordProfileScope(linkedService || linkedProperty || ownerPreview, ownerPreview?.primaryProfile || ''),
       portfolioCount: [linkedService, linkedProperty].filter(Boolean).length,
       verified: ownerPreview?.verified === true,
       source: 'remote-unlock',
@@ -3160,10 +3324,12 @@ export default function App() {
   }, [categoryOrder]);
 
   useEffect(() => {
+    if (isSupabaseConfigured) return;
     persistJsonSafely('userProfile', userProfile);
   }, [userProfile]);
 
   useEffect(() => {
+    if (isSupabaseConfigured) return;
     try {
       localStorage.setItem('accountType', accountType);
     } catch (error) {
@@ -3172,18 +3338,22 @@ export default function App() {
   }, [accountType]);
 
   useEffect(() => {
+    if (isSupabaseConfigured) return;
     persistJsonSafely('personalProfile', personalProfile, _stripPersonalProfileMedia(personalProfile));
   }, [personalProfile]);
 
   useEffect(() => {
+    if (isSupabaseConfigured) return;
     persistJsonSafely('professionalProfile', professionalProfile);
   }, [professionalProfile]);
 
   useEffect(() => {
+    if (isSupabaseConfigured) return;
     persistJsonSafely('servicePortfolio', servicePortfolio, stripServicePortfolioMedia(servicePortfolio));
   }, [servicePortfolio]);
 
   useEffect(() => {
+    if (isSupabaseConfigured) return;
     persistJsonSafely('propertyPortfolio', propertyPortfolio, stripPropertyPortfolioMedia(propertyPortfolio));
   }, [propertyPortfolio]);
 
@@ -3257,6 +3427,7 @@ export default function App() {
   }, [pendingFlushRef, profileSaveDebounceRef]);
 
   useEffect(() => {
+    if (isSupabaseConfigured) return;
     try {
       localStorage.setItem('ds_unlocked', JSON.stringify(unlocked || []));
     } catch (error) {
@@ -3265,6 +3436,7 @@ export default function App() {
   }, [unlocked]);
 
   useEffect(() => {
+    if (isSupabaseConfigured) return;
     try {
       const now = Date.now();
       const cleaned = (propertyUnlocks || []).filter((row) => (
@@ -3280,6 +3452,7 @@ export default function App() {
   }, [propertyUnlocks]);
 
   useEffect(() => {
+    if (isSupabaseConfigured) return;
     try {
       localStorage.setItem('ds_purchases', JSON.stringify(purchases || []));
     } catch (error) {
@@ -3500,10 +3673,7 @@ export default function App() {
             bio: personalResult.data.bio,
             visibility: personalResult.data.visibility,
           });
-          setPersonalProfile((prev) => normalizePersonalProfile({
-            ...(prev || {}),
-            ...pruneEmptyProfileFields(hydratedPersonal),
-          }));
+          setPersonalProfile(hydratedPersonal);
 
           if (hydratedPersonal.fullName) {
             setUserProfile((prev) => ({
@@ -3523,7 +3693,6 @@ export default function App() {
           }
 
           const {
-            personalFromPayload,
             professionalFromPayload,
             professionalProfileFromPayload,
             fsboProfileFromPayload,
@@ -3535,21 +3704,32 @@ export default function App() {
           // lives inside professionalProfile (fullNameA/photoA/locA/etc.).
           // Never hydrate profiles.personal into personalProfile, or A and C
           // identities bleed into each other across account modes.
+          const canonicalFsboProfile = personalResult.data
+            ? pruneEmptyProfileFields({
+              fullName: personalResult.data.full_name,
+              photo: personalResult.data.photo_url,
+              bio: personalResult.data.bio,
+              visibility: personalResult.data.visibility,
+            })
+            : {};
+          const normalizedFsboPayload = pruneEmptyProfileFields(fsboProfileFromPayload || {});
+          // FSBO must not read the Professional/Personal payload. It can use
+          // the generic user_profiles row as a final fallback, but the scoped
+          // fsbo payload owns the card identity whenever it exists.
           const effectivePersonalPayload = mergeProfilePayloadNonEmpty(
-            personalFromPayload,
-            fsboProfileFromPayload
+            canonicalFsboProfile,
+            normalizedFsboPayload
           );
 
           if (Object.keys(effectivePersonalPayload).length > 0) {
-            setPersonalProfile((prev) => normalizePersonalProfile({
-              ...(prev || {}),
-              ...effectivePersonalPayload,
-            }));
+            setPersonalProfile(normalizePersonalProfile(effectivePersonalPayload));
+          } else if (personalResult.data) {
+            setPersonalProfile(normalizePersonalProfile(canonicalFsboProfile));
           }
 
           const mergedProfessionalPayload = mergeProfilePayloadNonEmpty(
-            professionalProfileFromPayload,
-            professionalFromPayload
+            professionalFromPayload,
+            professionalProfileFromPayload
           );
 
           const hydratedProfessional = normalizeProfessionalProfile({
@@ -3566,10 +3746,7 @@ export default function App() {
             photoBUrl: professionalResult.data.photo_b_url,
             photoB: professionalResult.data.photo_b_url,
           }, activeUserCategory);
-          setProfessionalProfile((prev) => normalizeProfessionalProfile({
-            ...(prev || {}),
-            ...pruneEmptyProfileFields(hydratedProfessional),
-          }, activeUserCategory));
+          setProfessionalProfile(normalizeProfessionalProfile(hydratedProfessional, activeUserCategory));
 
           if (hydratedProfessional.category) {
             setUserProfile((prev) => ({
@@ -3746,6 +3923,7 @@ export default function App() {
       // Do not wipe a persisted avatar when the current form state is empty.
       // Production identity must prefer DB/Storage records over transient gaps.
       if (photoUrl) payload.photo_url = photoUrl;
+      else if (normalized.photoClearRequested === true) payload.photo_url = null;
 
       beginProfileSync();
       try {
@@ -3816,6 +3994,7 @@ export default function App() {
       // Same rule for the secondary/professional avatar: never replace a real
       // stored URL with null just because the local draft did not carry media.
       if (photoBUrl) payload.photo_b_url = photoBUrl;
+      else if (normalized.photoBClearRequested === true) payload.photo_b_url = null;
 
       let writePayload = {
         ...payload,
@@ -3972,7 +4151,11 @@ export default function App() {
           // Inclui registros locais ainda não sincronizados
           const hydratedIds = new Set(hydratedProperties.map((h) => String(h.id)));
           const additionalLocal = prior
-            .filter((item) => isUserOwnedPropertyRecord(item, supabaseUserId) && !hydratedIds.has(String(item.id)))
+            .filter((item) => (
+              isRecentLocalDraftRecord(item)
+              && isUserOwnedPropertyRecord(item, supabaseUserId)
+              && !hydratedIds.has(String(item.id))
+            ))
             .map((item) => ({
               ...item,
               ownerId: String(item?.ownerId || '') === String(LOCAL_OWNER_ID) ? supabaseUserId : item.ownerId,
@@ -4003,7 +4186,11 @@ export default function App() {
           // Include any local user-owned items that don't exist on server yet (newly created)
           const hydratedIds = new Set(hydratedServices.map((h) => String(h.id)));
           const additionalLocal = prior
-            .filter((item) => isUserOwnedServiceRecord(item, supabaseUserId) && !hydratedIds.has(String(item.id)))
+            .filter((item) => (
+              isRecentLocalDraftRecord(item)
+              && isUserOwnedServiceRecord(item, supabaseUserId)
+              && !hydratedIds.has(String(item.id))
+            ))
             .map((item) => ({
               ...item,
               ownerId: String(item?.ownerId || '') === String(LOCAL_OWNER_ID) ? supabaseUserId : item.ownerId,
@@ -4407,7 +4594,7 @@ export default function App() {
         [peerId]: [...current, mapped].sort((a, b) => new Date(a.createdAt || 0) - new Date(b.createdAt || 0)),
       };
     });
-  }, [supabaseUserId, globalFeedRefreshTick]);
+  }, [setConvos, supabaseUserId]);
 
   useEffect(() => {
     if (!isSupabaseConfigured || !supabase || !supabaseUserId) return undefined;
@@ -4487,7 +4674,7 @@ export default function App() {
       };
     });
     appendChatMessageToState(data);
-  }, [addToast, appendChatMessageToState, supabase, supabaseUserId]);
+  }, [addToast, appendChatMessageToState, setConvos, supabaseUserId]);
 
   useEffect(() => {
     if (!isSupabaseConfigured || !supabase || !supabaseUserId) {
@@ -4543,7 +4730,7 @@ export default function App() {
       cancelled = true;
       supabase.removeChannel(channel);
     };
-  }, [appendChatMessageToState, supabase, supabaseUserId]);
+  }, [appendChatMessageToState, supabaseUserId]);
 
   const openSettingsTab = (tab = 'profile') => {
     setSettingsInitialTab(tab);
@@ -5253,6 +5440,8 @@ export default function App() {
     if (!isSupabaseConfigured || !supabaseUserId) return 'idle';
     if (isHydratingPortfolio) return 'syncing';
     const state = portfolioSyncSnapshot || {};
+    const belongsToCurrentUser = String(state.userId || '') === String(supabaseUserId || '');
+    if (!belongsToCurrentUser) return 'syncing';
     if (!state.loaded) return 'syncing';
     if (state.servicesLoadedFromRemote && state.propertiesLoadedFromRemote && state.propertyImagesLoadedFromRemote) {
       return 'synced';
@@ -5263,6 +5452,8 @@ export default function App() {
   const profileHydrationReady = useMemo(() => {
     if (!isSupabaseConfigured || !supabaseUserId) return true;
     const state = profileSyncSnapshot || {};
+    const belongsToCurrentUser = String(state.userId || '') === String(supabaseUserId || '');
+    if (!belongsToCurrentUser) return false;
     const loaded = Boolean(state.loaded && state.personalLoadedFromRemote && state.professionalLoadedFromRemote);
     if (loaded) return true;
     if (!isHydratingProfiles && profileHydrationAttempts >= 6) return true;
@@ -5272,6 +5463,8 @@ export default function App() {
   const portfolioHydrationReady = useMemo(() => {
     if (!isSupabaseConfigured || !supabaseUserId) return true;
     const state = portfolioSyncSnapshot || {};
+    const belongsToCurrentUser = String(state.userId || '') === String(supabaseUserId || '');
+    if (!belongsToCurrentUser) return false;
     const loaded = Boolean(state.loaded && state.servicesLoadedFromRemote && state.propertiesLoadedFromRemote && state.propertyImagesLoadedFromRemote);
     if (loaded) return true;
     if (!isHydratingPortfolio && portfolioHydrationAttempts >= 6) return true;
@@ -5462,7 +5655,9 @@ export default function App() {
   const isPublicPricingPage = page === 'pricing' && (!authSession || prevPage === 'landing');
   const orientationGuardCopy = getT().orientationGuard;
   const isAppShellBooting = Boolean(isAuthBootstrapping || isAuthCallbackSettling);
-  const shellForcedTheme = isAppShellBooting ? null : ((page === 'landing' || isPublicPricingPage) ? 'light' : null);
+  const shellForcedTheme = !isAuthCallbackSettling && !authSession && (page === 'landing' || isPublicPricingPage || isAuthBootstrapping)
+    ? 'light'
+    : null;
 
   return (
     <ThemeProvider forcedTheme={shellForcedTheme}>

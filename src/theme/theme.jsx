@@ -7,10 +7,12 @@ export function ThemeProvider({ children, forcedTheme = null }) {
     try {
       const saved = localStorage.getItem('theme');
       if (saved === 'light' || saved === 'dark') return saved;
+      const current = document.documentElement.getAttribute('data-theme');
+      if (current === 'light' || current === 'dark') return current;
     } catch (e) { void e; }
     // Keep the app deterministic across devices. The OS preference can change
     // between tablet/browser sessions and was causing unsolicited theme flips.
-    return 'dark';
+    return 'light';
   });
 
   const effectiveTheme = forcedTheme === 'light' || forcedTheme === 'dark' ? forcedTheme : theme;
@@ -21,8 +23,9 @@ export function ThemeProvider({ children, forcedTheme = null }) {
   }, [effectiveTheme]);
 
   useEffect(() => {
+    if (forcedTheme === 'light' || forcedTheme === 'dark') return;
     try { localStorage.setItem('theme', theme); } catch (e) { void e; }
-  }, [theme]);
+  }, [forcedTheme, theme]);
 
   const toggleTheme = () => setTheme((prev) => (prev === 'light' ? 'dark' : 'light'));
 

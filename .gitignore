@@ -33,3 +33,4 @@ supabase/.temp
 *.sln
 *.sw?
 .vercel
+.tmp-codex/
