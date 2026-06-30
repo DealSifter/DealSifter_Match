@@ -118,14 +118,6 @@ export function isFeatureAllowed(subscriptionOrPlan, feature) {
   return true;
 }
 
-function dateKey(date = new Date()) {
-  return date.toISOString().slice(0, 10);
-}
-
-function monthKey(date = new Date()) {
-  return date.toISOString().slice(0, 7);
-}
-
 function safeReadJson(key, fallback) {
   try {
     const raw = localStorage.getItem(key);
