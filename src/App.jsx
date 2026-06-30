@@ -4935,12 +4935,23 @@ export default function App() {
       unlockPortfolioProperties || [],
       unlockPortfolioServices || []
     );
+    const displayedUnlockCost = getPortfolioUnlockCost(
+      { ...(card || {}), ownerId: unlockOwnerId, unlockOwnerId },
+      unlockPortfolioProperties || [],
+      unlockPortfolioServices || []
+    );
     const nextTarget = {
       ...(card || {}),
       unlockOwnerId,
       unlockScope: context.unlockScope || card?.unlockScope || 'contact',
       propertyId: context.propertyId || context.property?.id || card?.propertyId || null,
       propertyAddress: context.propertyAddress || context.property?.address || card?.propertyAddress || '',
+      displayedUnlockCost,
+      unlockCostSnapshot: {
+        baseCost: displayedUnlockCost,
+        capturedAt: Date.now(),
+        ownerId: unlockOwnerId,
+      },
     };
     setUnlockQuote(null);
     setUnlockTarget(nextTarget);
@@ -4963,6 +4974,8 @@ export default function App() {
 
   const getUnlockCost = (card) => {
     if (!card?.id && !card?.ownerId && !card?.unlockOwnerId) return 1;
+    const displayedCost = Number(card?.displayedUnlockCost || card?.unlockCostSnapshot?.baseCost || 0);
+    if (Number.isFinite(displayedCost) && displayedCost > 0) return displayedCost;
     const localPortfolioCost = getPortfolioUnlockCost(card, unlockPortfolioProperties || [], unlockPortfolioServices || []);
     if (
       card?.unlockScope === 'property'
@@ -5017,7 +5030,10 @@ export default function App() {
     const unlockOwnerId = resolveUnlockOwnerId(card, unlockPortfolioProperties || [], unlockPortfolioServices || []);
     if (!unlockOwnerId) return null;
 
-    const baseCost = getPortfolioUnlockCost(card, unlockPortfolioProperties || [], unlockPortfolioServices || []);
+    const snapshotBaseCost = Number(card?.displayedUnlockCost || card?.unlockCostSnapshot?.baseCost || 0);
+    const baseCost = Number.isFinite(snapshotBaseCost) && snapshotBaseCost > 0
+      ? snapshotBaseCost
+      : getPortfolioUnlockCost(card, unlockPortfolioProperties || [], unlockPortfolioServices || []);
     const candidates = (unlockPortfolioProperties || [])
       .filter((property) => (
         (isUuid(property?.id) || (isAdmin && isMockPropertyId(property?.id)))
@@ -5101,11 +5117,7 @@ export default function App() {
       quoteForUnlock = await fetchPropertyUnlockQuote(card.propertyId);
     }
     const baseUnlockCost = quoteForUnlock?.baseCost
-      ? Math.max(
-        1,
-        Number(quoteForUnlock.baseCost),
-        getPortfolioUnlockCost(card, unlockPortfolioProperties || [], unlockPortfolioServices || [])
-      )
+      ? Math.max(1, Number(card?.displayedUnlockCost || card?.unlockCostSnapshot?.baseCost || quoteForUnlock.baseCost))
       : getUnlockCost(card);
     const quoteExclusiveCost = quoteForUnlock?.exclusivityCost != null
       ? Math.max(0, Number(quoteForUnlock.exclusivityCost || 0))
@@ -5146,6 +5158,10 @@ export default function App() {
       const message = String(error?.message || '');
       const details = String(error?.details || error?.detail || '');
       return message.includes('plan_limit_reached') || details.includes('plan_limit_reached');
+    };
+    const isUnlockCostChangedError = (error) => {
+      const message = String(error?.message || error?.details || error?.detail || '').toLowerCase();
+      return message.includes('unlock cost changed') || message.includes('refresh required');
     };
     const showUnlockPlanGate = () => {
       const copy = getPlanGateCopy('unlock');
@@ -5201,7 +5217,9 @@ export default function App() {
               contactId: String(contactUnlockId || ''),
               displayedBaseCost: baseUnlockCost,
               displayedCost: unlockCost,
+              snapshotCapturedAt: card?.unlockCostSnapshot?.capturedAt || null,
             },
+            p_expected_total_cost: unlockCost,
           });
           if (error) throw error;
           remoteUnlockRow = Array.isArray(data) ? data[0] : data;
@@ -5239,6 +5257,17 @@ export default function App() {
             showUnlockPlanGate();
             return;
           }
+          if (isUnlockCostChangedError(error)) {
+            addToast({
+              type: 'warning',
+              title: 'Unlock price changed',
+              message: 'This contact portfolio changed after the modal opened. Please open it again to confirm the updated cost.',
+              duration: 6500,
+            });
+            setModal(null);
+            setUnlockQuote(null);
+            return;
+          }
           addToast({
             type: 'warning',
             title: 'Unlock unavailable',
@@ -5262,6 +5291,7 @@ export default function App() {
           }
           const { data, error } = await supabase.rpc('ds_purchase_contact_unlock', {
             p_seller_id: unlockOwnerId,
+            p_expected_cost: unlockCost,
           });
           if (error) throw error;
           const remoteContactUnlock = Array.isArray(data) ? data[0] : data;
@@ -5283,6 +5313,17 @@ export default function App() {
         } catch (error) {
           if (isPlanLimitError(error)) {
             showUnlockPlanGate();
+            return;
+          }
+          if (isUnlockCostChangedError(error)) {
+            addToast({
+              type: 'warning',
+              title: 'Unlock price changed',
+              message: 'This contact portfolio changed after the modal opened. Please open it again to confirm the updated cost.',
+              duration: 6500,
+            });
+            setModal(null);
+            setUnlockQuote(null);
             return;
           }
           addToast({
