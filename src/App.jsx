@@ -4929,7 +4929,60 @@ export default function App() {
     }
   }, [supabaseUserId]);
 
-  const openUnlock = (card, context = {}) => {
+  const normalizeUnlockIntent = (row) => {
+    if (!row) return null;
+    return {
+      token: row.intent_token || row.intentToken || row.id || null,
+      sellerId: row.seller_id || row.sellerId || null,
+      propertyId: row.property_id || row.propertyId || null,
+      scope: row.scope || 'contact',
+      mode: row.mode || 'normal',
+      baseCost: Math.max(1, Number(row.base_cost || row.baseCost || 1)),
+      exclusivityCost: Math.max(0, Number(row.exclusivity_cost || row.exclusivityCost || 0)),
+      totalCost: Math.max(1, Number(row.total_cost || row.totalCost || 1)),
+      normalUnlockCount: Number(row.normal_unlock_count || row.normalUnlockCount || 0),
+      expiresAt: row.expires_at || row.expiresAt || null,
+      blocked: row.blocked === true,
+    };
+  };
+
+  const createUnlockIntent = useCallback(async ({ sellerId, propertyId = null, mode = 'normal', metadata = {} } = {}) => {
+    if (!isSupabaseConfigured || !supabase || !supabaseUserId) return null;
+    const cleanSellerId = String(sellerId || '').trim();
+    const cleanPropertyId = String(propertyId || '').trim();
+    if (!cleanSellerId && !cleanPropertyId) return null;
+    if (cleanSellerId && !isUuid(cleanSellerId)) return null;
+    if (cleanPropertyId && !isUuid(cleanPropertyId)) return null;
+
+    const { data, error } = await supabase.rpc('ds_create_unlock_intent', {
+      p_seller_id: cleanSellerId || null,
+      p_property_id: cleanPropertyId || null,
+      p_mode: mode || 'normal',
+      p_metadata: metadata || {},
+    });
+    if (error) throw error;
+    return normalizeUnlockIntent(Array.isArray(data) ? data[0] : data);
+  }, [supabaseUserId]);
+
+  const applyUnlockIntentToTarget = (target, intent) => {
+    if (!intent?.token) return target;
+    return {
+      ...(target || {}),
+      unlockOwnerId: intent.sellerId || target?.unlockOwnerId,
+      displayedUnlockCost: intent.baseCost,
+      unlockIntent: intent,
+      unlockCostSnapshot: {
+        baseCost: intent.baseCost,
+        totalCost: intent.totalCost,
+        token: intent.token,
+        expiresAt: intent.expiresAt,
+        capturedAt: Date.now(),
+        ownerId: intent.sellerId || target?.unlockOwnerId,
+      },
+    };
+  };
+
+  const openUnlock = async (card, context = {}) => {
     const unlockOwnerId = resolveUnlockOwnerId(
       context.owner || context.ownerId || context.property || card,
       unlockPortfolioProperties || [],
@@ -4954,12 +5007,51 @@ export default function App() {
       },
     };
     setUnlockQuote(null);
-    setUnlockTarget(nextTarget);
+
+    let targetWithIntent = nextTarget;
+    if (isSupabaseConfigured && supabase && supabaseUserId && isUuid(unlockOwnerId)) {
+      try {
+        const intent = await createUnlockIntent({
+          sellerId: unlockOwnerId,
+          propertyId: nextTarget.unlockScope === 'property' ? nextTarget.propertyId : null,
+          mode: 'normal',
+          metadata: {
+            source: 'unlock_modal_open',
+            contactId: String(card?.id || ''),
+          },
+        });
+        if (intent?.token) {
+          targetWithIntent = applyUnlockIntentToTarget(nextTarget, intent);
+          if (intent.scope === 'property') {
+            setUnlockQuote({
+              propertyId: intent.propertyId || nextTarget.propertyId,
+              ownerId: intent.sellerId || unlockOwnerId,
+              baseCost: intent.baseCost,
+              normalUnlockCount: intent.normalUnlockCount,
+              exclusivityKind: 'regular',
+              exclusivityCost: intent.exclusivityCost,
+              blocked: intent.blocked,
+              expiresAt: null,
+            });
+          }
+        }
+      } catch (error) {
+        addToast({
+          type: 'warning',
+          title: 'Unlock unavailable',
+          message: String(error?.message || 'Could not calculate a secure unlock price right now. Please try again.'),
+          duration: 6500,
+        });
+        return;
+      }
+    }
+
+    setUnlockTarget(targetWithIntent);
     setModal('unlock');
-    if (nextTarget.unlockScope === 'property' && nextTarget.propertyId) {
-      void fetchPropertyUnlockQuote(nextTarget.propertyId);
+    if (targetWithIntent.unlockScope === 'property' && targetWithIntent.propertyId) {
+      void fetchPropertyUnlockQuote(targetWithIntent.propertyId);
     } else {
-      const linkedOwnerId = resolveUnlockOwnerId(nextTarget, unlockPortfolioProperties || [], unlockPortfolioServices || []);
+      const linkedOwnerId = resolveUnlockOwnerId(targetWithIntent, unlockPortfolioProperties || [], unlockPortfolioServices || []);
       const linkedProperty = (unlockPortfolioProperties || []).find((property) => (
         String(property?.ownerId || '') === String(linkedOwnerId)
         && isTruthyFlag(property?.isActive, true)
@@ -5180,6 +5272,90 @@ export default function App() {
       setUnlockQuote(null);
       openPricingHub();
     };
+    const ensureCurrentUnlockIntent = async ({ targetCard, mode, totalCost, propertyId = null }) => {
+      if (!isSupabaseConfigured || !supabase || !supabaseUserId) return { intent: null, changed: false };
+      if (!targetCard || !isUuid(unlockOwnerId)) return { intent: null, changed: false };
+
+      const scope = propertyId ? 'property' : 'contact';
+      const existingIntent = targetCard.unlockIntent || null;
+      const existingExpiresAt = existingIntent?.expiresAt ? Date.parse(String(existingIntent.expiresAt)) : 0;
+      const existingUsable = (
+        existingIntent?.token
+        && existingIntent.mode === mode
+        && existingIntent.scope === scope
+        && String(existingIntent.sellerId || '') === String(unlockOwnerId)
+        && String(existingIntent.propertyId || '') === String(propertyId || '')
+        && Number(existingIntent.totalCost) === Number(totalCost)
+        && (!existingExpiresAt || existingExpiresAt > Date.now())
+      );
+      if (existingUsable) return { intent: existingIntent, changed: false };
+
+      const nextIntent = await createUnlockIntent({
+        sellerId: unlockOwnerId,
+        propertyId,
+        mode,
+        metadata: {
+          source: 'unlock_confirm_refresh',
+          contactId: String(contactUnlockId || ''),
+          displayedCost: totalCost,
+        },
+      });
+      if (!nextIntent?.token) return { intent: null, changed: false };
+
+      const nextTarget = applyUnlockIntentToTarget(targetCard, nextIntent);
+      setUnlockTarget(nextTarget);
+      if (scope === 'property') {
+        setUnlockQuote((prev) => ({
+          ...(prev || {}),
+          propertyId: nextIntent.propertyId || propertyId,
+          ownerId: nextIntent.sellerId || unlockOwnerId,
+          baseCost: nextIntent.baseCost,
+          normalUnlockCount: nextIntent.normalUnlockCount,
+          exclusivityKind: mode === 'total' ? 'new' : mode === 'partial' ? 'partial' : (prev?.exclusivityKind || 'regular'),
+          exclusivityCost: nextIntent.exclusivityCost,
+          blocked: false,
+          expiresAt: prev?.expiresAt || null,
+        }));
+      }
+
+      return {
+        intent: nextIntent,
+        changed: Number(nextIntent.totalCost) !== Number(totalCost),
+      };
+    };
+    const refreshUnlockIntentAfterChange = async ({ targetCard, mode, propertyId = null }) => {
+      try {
+        const nextIntent = await createUnlockIntent({
+          sellerId: unlockOwnerId,
+          propertyId,
+          mode,
+          metadata: {
+            source: 'unlock_cost_changed_refresh',
+            contactId: String(contactUnlockId || ''),
+          },
+        });
+        if (nextIntent?.token) {
+          setUnlockTarget(applyUnlockIntentToTarget(targetCard, nextIntent));
+          if (propertyId) {
+            setUnlockQuote((prev) => ({
+              ...(prev || {}),
+              propertyId: nextIntent.propertyId || propertyId,
+              ownerId: nextIntent.sellerId || unlockOwnerId,
+              baseCost: nextIntent.baseCost,
+              normalUnlockCount: nextIntent.normalUnlockCount,
+              exclusivityKind: mode === 'total' ? 'new' : mode === 'partial' ? 'partial' : (prev?.exclusivityKind || 'regular'),
+              exclusivityCost: nextIntent.exclusivityCost,
+              blocked: false,
+              expiresAt: prev?.expiresAt || null,
+            }));
+          }
+          return nextIntent;
+        }
+      } catch (e) {
+        if (import.meta.env.DEV) console.warn('[Unlock] Failed to refresh unlock intent.', e);
+      }
+      return null;
+    };
     if ((isSupabaseConfigured || nuggets >= unlockCost) && card) {
         // Snapshot local state so we can rollback if a later step fails
         const prevStateSnapshot = {
@@ -5208,6 +5384,21 @@ export default function App() {
         && !isMockSandboxPropertyUnlock
       ) {
         try {
+          const { intent, changed } = await ensureCurrentUnlockIntent({
+            targetCard: card,
+            mode: unlockMode,
+            totalCost: unlockCost,
+            propertyId: card.propertyId,
+          });
+          if (changed) {
+            addToast({
+              type: 'warning',
+              title: 'Unlock price updated',
+              message: `The current secure price is ${intent.totalCost} nuggets. Please confirm again.`,
+              duration: 6500,
+            });
+            return;
+          }
           const { data, error } = await supabase.rpc('ds_purchase_property_unlock', {
             p_property_id: card.propertyId,
             p_mode: unlockMode,
@@ -5219,7 +5410,7 @@ export default function App() {
               displayedCost: unlockCost,
               snapshotCapturedAt: card?.unlockCostSnapshot?.capturedAt || null,
             },
-            p_expected_total_cost: unlockCost,
+            p_intent_token: intent?.token || card?.unlockIntent?.token || null,
           });
           if (error) throw error;
           remoteUnlockRow = Array.isArray(data) ? data[0] : data;
@@ -5258,14 +5449,19 @@ export default function App() {
             return;
           }
           if (isUnlockCostChangedError(error)) {
+            const nextIntent = await refreshUnlockIntentAfterChange({
+              targetCard: card,
+              mode: unlockMode,
+              propertyId: card.propertyId,
+            });
             addToast({
               type: 'warning',
-              title: 'Unlock price changed',
-              message: 'This contact portfolio changed after the modal opened. Please open it again to confirm the updated cost.',
+              title: 'Unlock price updated',
+              message: nextIntent?.totalCost
+                ? `The current secure price is ${nextIntent.totalCost} nuggets. Please confirm again.`
+                : 'This contact portfolio changed after the modal opened. Please open it again to confirm the updated cost.',
               duration: 6500,
             });
-            setModal(null);
-            setUnlockQuote(null);
             return;
           }
           addToast({
@@ -5289,9 +5485,24 @@ export default function App() {
           if (!unlockOwnerId || !isUuid(unlockOwnerId)) {
             throw new Error('Contact is not linked to a saved database user.');
           }
+          const { intent, changed } = await ensureCurrentUnlockIntent({
+            targetCard: card,
+            mode: 'normal',
+            totalCost: unlockCost,
+            propertyId: null,
+          });
+          if (changed) {
+            addToast({
+              type: 'warning',
+              title: 'Unlock price updated',
+              message: `The current secure price is ${intent.totalCost} nuggets. Please confirm again.`,
+              duration: 6500,
+            });
+            return;
+          }
           const { data, error } = await supabase.rpc('ds_purchase_contact_unlock', {
             p_seller_id: unlockOwnerId,
-            p_expected_cost: unlockCost,
+            p_intent_token: intent?.token || card?.unlockIntent?.token || null,
           });
           if (error) throw error;
           const remoteContactUnlock = Array.isArray(data) ? data[0] : data;
@@ -5316,14 +5527,19 @@ export default function App() {
             return;
           }
           if (isUnlockCostChangedError(error)) {
+            const nextIntent = await refreshUnlockIntentAfterChange({
+              targetCard: card,
+              mode: 'normal',
+              propertyId: null,
+            });
             addToast({
               type: 'warning',
-              title: 'Unlock price changed',
-              message: 'This contact portfolio changed after the modal opened. Please open it again to confirm the updated cost.',
+              title: 'Unlock price updated',
+              message: nextIntent?.totalCost
+                ? `The current secure price is ${nextIntent.totalCost} nuggets. Please confirm again.`
+                : 'This contact portfolio changed after the modal opened. Please open it again to confirm the updated cost.',
               duration: 6500,
             });
-            setModal(null);
-            setUnlockQuote(null);
             return;
           }
           addToast({
