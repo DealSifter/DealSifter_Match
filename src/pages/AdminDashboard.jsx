@@ -432,7 +432,7 @@ function KpiSection({ title, hint, tiles, order, group, draggingId, viewModes, e
 
 export function AdminDashboard({ setPage, prevPage, logoutAdmin }) {
   const allT = useT('global');
-  const t = allT.admin || {};
+  const t = useMemo(() => allT.admin || {}, [allT.admin]);
   const [metrics, setMetrics] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
@@ -460,7 +460,8 @@ export function AdminDashboard({ setPage, prevPage, logoutAdmin }) {
   };
 
   useEffect(() => {
-    loadMetrics();
+    const timer = window.setTimeout(() => { void loadMetrics(); }, 0);
+    return () => window.clearTimeout(timer);
   }, []);
 
   const tiles = useMemo(() => {
@@ -501,6 +502,7 @@ export function AdminDashboard({ setPage, prevPage, logoutAdmin }) {
       system: [
         { id: 'db-storage-guardrail', label: k.dbGuardrail || 'DB guardrail', value: fmtPct(m.dbUsagePct), sub: `${fmtMb(m.dbSizeBytes)} / ${fmtMb(m.dbLimitBytes)}`, series: series['db-storage-guardrail'], seriesStatus: seriesStatus['db-storage-guardrail'], chartFormatter: (value) => `${Number(value || 0).toLocaleString('en-US', { maximumFractionDigits: 1 })} MB`, chartType: 'donut' },
         { id: 'stripe-issues', label: k.stripeIssues || 'Stripe issues', value: fmtInt(m.stripeIssuesDay), sub: k.last10Days || 'last 10 days', series: series['stripe-issues'], chartType: 'bar' },
+        { id: 'stripe-webhook-skips', label: k.stripeWebhookSkips || 'Stripe webhook skips', value: fmtInt(m.stripeWebhookSkippedDay), sub: k.last24h || 'last 24h', series: series['stripe-webhook-skips'], chartType: 'bar' },
         { id: 'supabase-issues', label: k.supabaseIssues || 'Supabase issues', value: fmtInt(m.supabaseIssuesDay), sub: k.last10Days || 'last 10 days', series: series['supabase-issues'], chartType: 'bar' },
         { id: 'admin-accounts', label: k.adminAccounts || 'Admin accounts', value: fmtInt(m.adminAccounts), sub: k.restricted || 'restricted', series: series['admin-accounts'], chartType: 'donut' },
       ],
@@ -605,6 +607,24 @@ export function AdminDashboard({ setPage, prevPage, logoutAdmin }) {
         {error ? (
           <div style={{ marginBottom: 12, border: `1px solid ${C.alpha(C.danger, 0.45)}`, borderRadius: 12, padding: 12, color: C.danger, background: C.alpha(C.danger, 0.06), fontSize: 12 }}>
             {error}
+          </div>
+        ) : null}
+
+        {Array.isArray(metrics?.stripeWebhookAlerts) && metrics.stripeWebhookAlerts.length ? (
+          <div style={{ marginBottom: 12, border: `1px solid ${C.alpha(C.warning || '#f59e0b', 0.5)}`, borderRadius: 12, padding: 12, background: C.alpha(C.warning || '#f59e0b', 0.08), display: 'grid', gap: 8 }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', gap: 10, alignItems: 'center' }}>
+              <strong style={{ color: C.t1, fontSize: 13 }}>{t.stripeWebhookAlerts || 'Stripe webhook alerts'}</strong>
+              <span style={{ color: C.warning || '#f59e0b', fontSize: 11, fontWeight: 900 }}>{fmtInt(metrics.stripeWebhookSkippedDay)} {t.last24h || 'last 24h'}</span>
+            </div>
+            <div style={{ display: 'grid', gap: 6 }}>
+              {metrics.stripeWebhookAlerts.slice(0, 4).map((alert) => (
+                <div key={`${alert.eventId}-${alert.receivedAt}`} style={{ display: 'grid', gridTemplateColumns: 'minmax(130px, 220px) minmax(0, 1fr) auto', gap: 8, alignItems: 'center', fontSize: 11, color: C.t2 }}>
+                  <span style={{ fontWeight: 900, color: C.t1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{alert.eventType || 'stripe.event'}</span>
+                  <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{alert.skipReason || 'skipped'}</span>
+                  <span style={{ color: C.t3, fontVariantNumeric: 'tabular-nums' }}>{alert.receivedAt ? new Date(alert.receivedAt).toLocaleString() : ''}</span>
+                </div>
+              ))}
+            </div>
           </div>
         ) : null}
 

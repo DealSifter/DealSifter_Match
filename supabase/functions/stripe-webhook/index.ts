@@ -51,6 +51,13 @@ const PLAN_FIRST_MONTH_BONUS: Record<string, number> = {
 };
 
 const WEBHOOK_PROCESSING_STALE_MS = 5 * 60 * 1000;
+const DELETE_REPROCESS_DELAY_SECONDS = 30;
+const MAX_QUEUE_DRAIN = 5;
+
+type ProcessingResult = {
+  processed: boolean;
+  skipReason?: string | null;
+};
 
 function toIso(tsSeconds?: number | null) {
   return tsSeconds ? new Date(tsSeconds * 1000).toISOString() : null;
@@ -79,30 +86,17 @@ Deno.serve(async (req) => {
   }
 
   try {
-    const shouldProcess = await claimStripeEvent(event);
+    const logId = await logStripeEventReceived(event);
+    const shouldProcess = await claimStripeEventForProcessing(event);
     if (!shouldProcess) {
+      await finishStripeEventLog(logId, false, 'duplicate_event');
       return new Response('ok', { status: 200 });
     }
 
-    switch (event.type) {
-      case 'checkout.session.completed':
-        await handleCheckoutCompleted(event.data.object as Stripe.Checkout.Session);
-        break;
-
-      case 'customer.subscription.created':
-      case 'customer.subscription.updated':
-        await syncSubscription(event.data.object as Stripe.Subscription);
-        break;
-
-      case 'customer.subscription.deleted':
-        await markSubscriptionCanceled(event.data.object as Stripe.Subscription);
-        break;
-
-      default:
-        break;
-    }
-
-    await markStripeEventProcessed(event.id);
+    await drainQueuedStripeEvents();
+    const result = await processStripeEvent(event);
+    await finishStripeEventLog(logId, result.processed, result.skipReason ?? null);
+    await markStripeEventProcessed(event.id, result);
     return new Response('ok', { status: 200 });
   } catch (err) {
     console.error('stripe-webhook processing failed:', err);
@@ -111,7 +105,58 @@ Deno.serve(async (req) => {
   }
 });
 
-async function claimStripeEvent(event: Stripe.Event) {
+async function logStripeEventReceived(event: Stripe.Event) {
+  const { data, error } = await supabaseAdmin
+    .from('stripe_events_log')
+    .insert({
+      event_id: event.id,
+      event_type: event.type,
+      received_at: new Date().toISOString(),
+      processed: false,
+    })
+    .select('id')
+    .maybeSingle();
+
+  if (error) throw error;
+  return data?.id ?? null;
+}
+
+async function finishStripeEventLog(logId: number | null, processed: boolean, skipReason?: string | null) {
+  if (!logId) return;
+  const { error } = await supabaseAdmin
+    .from('stripe_events_log')
+    .update({
+      processed,
+      skip_reason: skipReason ?? null,
+    })
+    .eq('id', logId);
+  if (error) throw error;
+}
+
+async function claimStripeEventForProcessing(event: Stripe.Event) {
+  const { data, error } = await supabaseAdmin
+    .from('stripe_events_processed')
+    .insert({
+      stripe_event_id: event.id,
+      event_type: event.type,
+      first_received_at: new Date().toISOString(),
+      status: 'claimed',
+      updated_at: new Date().toISOString(),
+    })
+    .select('stripe_event_id')
+    .maybeSingle();
+
+  if (!error && data?.stripe_event_id) {
+    await claimLegacyStripeEvent(event);
+    return true;
+  }
+
+  if (error?.code === '23505') return false;
+  if (error) throw error;
+  return false;
+}
+
+async function claimLegacyStripeEvent(event: Stripe.Event) {
   const now = new Date();
   const staleBefore = new Date(now.getTime() - WEBHOOK_PROCESSING_STALE_MS).toISOString();
 
@@ -169,14 +214,26 @@ async function claimStripeEvent(event: Stripe.Event) {
   return true;
 }
 
-async function markStripeEventProcessed(eventId: string) {
+async function markStripeEventProcessed(eventId: string, result: ProcessingResult = { processed: true }) {
+  const status = result.processed ? 'processed' : (result.skipReason === 'subscription_delete_queued' ? 'queued' : 'skipped');
+  const { error: processedError } = await supabaseAdmin
+    .from('stripe_events_processed')
+    .update({
+      status,
+      processed_at: result.processed ? new Date().toISOString() : null,
+      skip_reason: result.skipReason ?? null,
+      updated_at: new Date().toISOString(),
+    })
+    .eq('stripe_event_id', eventId);
+  if (processedError) throw processedError;
+
   const { error } = await supabaseAdmin
     .from('stripe_webhook_events')
     .update({
-      status: 'processed',
-      processed_at: new Date().toISOString(),
+      status: result.processed ? 'processed' : 'processed',
+      processed_at: result.processed ? new Date().toISOString() : null,
       updated_at: new Date().toISOString(),
-      last_error: null,
+      last_error: result.skipReason ?? null,
     })
     .eq('event_id', eventId);
   if (error) throw error;
@@ -185,11 +242,128 @@ async function markStripeEventProcessed(eventId: string) {
 async function markStripeEventFailed(eventId: string, message: string) {
   if (!eventId) return;
   await supabaseAdmin
+    .from('stripe_events_processed')
+    .update({
+      status: 'failed',
+      skip_reason: message.slice(0, 2000),
+      updated_at: new Date().toISOString(),
+    })
+    .eq('stripe_event_id', eventId);
+
+  await supabaseAdmin
     .from('stripe_webhook_events')
     .update({
       status: 'failed',
       last_error: message.slice(0, 2000),
       updated_at: new Date().toISOString(),
+    })
+    .eq('event_id', eventId);
+}
+
+async function processStripeEvent(event: Stripe.Event): Promise<ProcessingResult> {
+  switch (event.type) {
+    case 'checkout.session.completed':
+      await handleCheckoutCompleted(event.data.object as Stripe.Checkout.Session);
+      return { processed: true };
+
+    case 'customer.subscription.created':
+    case 'customer.subscription.updated':
+      return await syncSubscription(event.data.object as Stripe.Subscription);
+
+    case 'customer.subscription.deleted':
+      return await markSubscriptionCanceled(event.data.object as Stripe.Subscription, event);
+
+    default:
+      return { processed: false, skipReason: 'unsupported_event_type' };
+  }
+}
+
+async function queueSubscriptionDelete(event: Stripe.Event) {
+  const { error } = await supabaseAdmin
+    .from('stripe_event_reprocess_queue')
+    .upsert({
+      stripe_event_id: event.id,
+      event_type: event.type,
+      raw_event: event,
+      available_at: new Date(Date.now() + DELETE_REPROCESS_DELAY_SECONDS * 1000).toISOString(),
+      status: 'pending',
+      updated_at: new Date().toISOString(),
+    }, { onConflict: 'stripe_event_id' });
+
+  if (error) throw error;
+}
+
+async function drainQueuedStripeEvents() {
+  const { data: queuedRows, error } = await supabaseAdmin
+    .from('stripe_event_reprocess_queue')
+    .select('stripe_event_id, raw_event, attempts')
+    .eq('status', 'pending')
+    .lte('available_at', new Date().toISOString())
+    .order('available_at', { ascending: true })
+    .limit(MAX_QUEUE_DRAIN);
+
+  if (error) throw error;
+  for (const row of queuedRows ?? []) {
+    const event = row.raw_event as Stripe.Event | null;
+    try {
+      if (!event || event.type !== 'customer.subscription.deleted') {
+        await markQueuedEventDone(row.stripe_event_id, 'skipped', 'unsupported_queued_event');
+        continue;
+      }
+      await supabaseAdmin
+        .from('stripe_event_reprocess_queue')
+        .update({
+          attempts: Number(row.attempts || 0) + 1,
+          updated_at: new Date().toISOString(),
+        })
+        .eq('stripe_event_id', row.stripe_event_id);
+
+      const result = await markSubscriptionCanceled(event.data.object as Stripe.Subscription, event, true);
+      await markQueuedEventDone(
+        row.stripe_event_id,
+        result.processed ? 'processed' : 'skipped',
+        result.skipReason ?? null,
+      );
+    } catch (err) {
+      await supabaseAdmin
+        .from('stripe_event_reprocess_queue')
+        .update({
+          attempts: Number(row.attempts || 0) + 1,
+          status: 'failed',
+          last_error: String(err?.message ?? err ?? 'Queued Stripe event failed').slice(0, 2000),
+          updated_at: new Date().toISOString(),
+        })
+        .eq('stripe_event_id', row.stripe_event_id);
+    }
+  }
+}
+
+async function markQueuedEventDone(eventId: string, status: 'processed' | 'skipped', reason?: string | null) {
+  const { error } = await supabaseAdmin
+    .from('stripe_event_reprocess_queue')
+    .update({
+      status,
+      last_error: reason ?? null,
+      updated_at: new Date().toISOString(),
+    })
+    .eq('stripe_event_id', eventId);
+  if (error) throw error;
+
+  await supabaseAdmin
+    .from('stripe_events_processed')
+    .update({
+      status,
+      processed_at: status === 'processed' ? new Date().toISOString() : null,
+      skip_reason: reason ?? null,
+      updated_at: new Date().toISOString(),
+    })
+    .eq('stripe_event_id', eventId);
+
+  await supabaseAdmin
+    .from('stripe_events_log')
+    .update({
+      processed: status === 'processed',
+      skip_reason: status === 'processed' ? null : reason ?? null,
     })
     .eq('event_id', eventId);
 }
@@ -219,6 +393,7 @@ async function handleCheckoutCompleted(session: Stripe.Checkout.Session) {
       planName: planNameWithCycle(planId, billingCycle),
       priceCents: session.amount_total ?? 0,
       status: normalizeSubscriptionStatus(subscription?.status ?? 'active'),
+      currentPeriodStart: toIso(subscription?.current_period_start),
       currentPeriodEnd: toIso(subscription?.current_period_end),
     });
 
@@ -267,9 +442,10 @@ async function recordNuggetPurchase(session: Stripe.Checkout.Session, userId: st
   if (creditErr) throw creditErr;
 }
 
-async function syncSubscription(subscription: Stripe.Subscription) {
+async function syncSubscription(subscription: Stripe.Subscription): Promise<ProcessingResult> {
   const userId = subscription.metadata?.user_id;
   const planId = subscription.metadata?.plan_id;
+  const currentPeriodStart = toIso(subscription.current_period_start);
   const billingCycle = normalizeBillingCycle(
     subscription.metadata?.billing_cycle
       ?? (subscription.items.data[0]?.price?.recurring?.interval === 'year' ? 'annual' : 'monthly'),
@@ -277,7 +453,12 @@ async function syncSubscription(subscription: Stripe.Subscription) {
 
   if (!userId || !planId) {
     console.warn('Subscription missing app metadata:', subscription.id);
-    return;
+    return { processed: false, skipReason: 'subscription_missing_metadata' };
+  }
+
+  const ordering = await getSubscriptionOrderingState(subscription.id, userId);
+  if (isOlderSubscriptionEvent(currentPeriodStart, ordering.currentPeriodStart)) {
+    return { processed: false, skipReason: 'out_of_order_subscription_event' };
   }
 
   await upsertSubscription({
@@ -288,26 +469,81 @@ async function syncSubscription(subscription: Stripe.Subscription) {
     planName: planNameWithCycle(planId, billingCycle),
     priceCents: subscription.items.data[0]?.price?.unit_amount ?? 0,
     status: normalizeSubscriptionStatus(subscription.status),
+    currentPeriodStart,
     currentPeriodEnd: toIso(subscription.current_period_end),
   });
 
   await updateUserPlan(userId, subscription.status === 'canceled' ? 'free' : planId);
+  return { processed: true };
 }
 
-async function markSubscriptionCanceled(subscription: Stripe.Subscription) {
+async function markSubscriptionCanceled(
+  subscription: Stripe.Subscription,
+  event?: Stripe.Event,
+  fromQueue = false,
+): Promise<ProcessingResult> {
   const userId = subscription.metadata?.user_id;
+  const currentPeriodStart = toIso(subscription.current_period_start);
+  const ordering = await getSubscriptionOrderingState(subscription.id, userId ?? null);
+
+  if (isOlderSubscriptionEvent(currentPeriodStart, ordering.currentPeriodStart)) {
+    return { processed: false, skipReason: 'out_of_order_subscription_delete' };
+  }
+
+  if (!ordering.hasActiveSubscription) {
+    if (!fromQueue && event) {
+      await queueSubscriptionDelete(event);
+      return { processed: false, skipReason: 'subscription_delete_queued' };
+    }
+    return { processed: false, skipReason: 'subscription_delete_without_created' };
+  }
+
   const { error } = await supabaseAdmin
     .from('subscriptions')
     .update({
       status: 'canceled',
       plan_id: 'free',
       plan_name: 'Free',
+      current_period_start: currentPeriodStart,
+      current_period_end: toIso(subscription.current_period_end),
       updated_at: new Date().toISOString(),
     })
     .eq('stripe_sub_id', subscription.id);
 
   if (error) throw error;
   if (userId) await updateUserPlan(userId, 'free');
+  return { processed: true };
+}
+
+async function getSubscriptionOrderingState(stripeSubId: string, userId?: string | null) {
+  let query = supabaseAdmin
+    .from('subscriptions')
+    .select('id, status, current_period_start')
+    .eq('stripe_sub_id', stripeSubId)
+    .maybeSingle();
+
+  let { data, error } = await query;
+  if (error) throw error;
+
+  if (!data && userId) {
+    const fallback = await supabaseAdmin
+      .from('subscriptions')
+      .select('id, status, current_period_start')
+      .eq('user_id', userId)
+      .maybeSingle();
+    if (fallback.error) throw fallback.error;
+    data = fallback.data;
+  }
+
+  return {
+    currentPeriodStart: data?.current_period_start ?? null,
+    hasActiveSubscription: ['active', 'trialing', 'past_due', 'incomplete', 'unpaid', 'paused'].includes(String(data?.status || '')),
+  };
+}
+
+function isOlderSubscriptionEvent(incomingStart: string | null, savedStart: string | null) {
+  if (!incomingStart || !savedStart) return false;
+  return new Date(incomingStart).getTime() < new Date(savedStart).getTime();
 }
 
 async function upsertSubscription(input: {
@@ -318,6 +554,7 @@ async function upsertSubscription(input: {
   planName: string;
   priceCents: number;
   status: string;
+  currentPeriodStart: string | null;
   currentPeriodEnd: string | null;
 }) {
   const { data: existingSub, error: readError } = await supabaseAdmin
@@ -338,6 +575,7 @@ async function upsertSubscription(input: {
         plan_name: input.planName,
         price_cents: input.priceCents,
         status: input.status,
+        current_period_start: input.currentPeriodStart,
         current_period_end: input.currentPeriodEnd,
         updated_at: new Date().toISOString(),
       })
@@ -357,6 +595,7 @@ async function upsertSubscription(input: {
       plan_name: input.planName,
       price_cents: input.priceCents,
       status: input.status,
+      current_period_start: input.currentPeriodStart,
       current_period_end: input.currentPeriodEnd,
       updated_at: new Date().toISOString(),
     });
