@@ -3688,6 +3688,9 @@ export default function App() {
           if (['professional', 'fsbo_owner'].includes(persistedAccountType)) {
             setAccountType(persistedAccountType);
           }
+          const effectiveAccountType = ['professional', 'fsbo_owner'].includes(persistedAccountType)
+            ? persistedAccountType
+            : accountType;
 
           const {
             professionalFromPayload,
@@ -3728,8 +3731,20 @@ export default function App() {
             professionalFromPayload,
             professionalProfileFromPayload
           );
+          const legacyPersonalAsProfileA = (
+            effectiveAccountType !== 'fsbo_owner'
+            && personalResult.data
+            && !String(mergedProfessionalPayload.fullNameA || '').trim()
+            && !String(mergedProfessionalPayload.photoA || '').trim()
+          )
+            ? pruneEmptyProfileFields({
+              fullNameA: personalResult.data.full_name,
+              photoA: personalResult.data.photo_url,
+            })
+            : {};
 
           const hydratedProfessional = normalizeProfessionalProfile({
+            ...legacyPersonalAsProfileA,
             ...mergedProfessionalPayload,
             category: professionalResult.data.category,
             subcategory: professionalResult.data.subcategory,
@@ -5572,15 +5587,26 @@ export default function App() {
 
   const dashboardHydrationReady = profileHydrationReady && portfolioHydrationReady;
   const dashboardHydrationSyncing = isHydratingProfiles || isHydratingPortfolio;
-  const hasPrimaryProfileRegistered = useMemo(() => {
+  const hasAnyProfileRegistered = useMemo(() => {
     const hasValue = (value) => String(value ?? '').trim().length > 0;
     return (
       hasValue(personalProfile?.fullName)
       || hasValue(personalProfile?.primaryPhone)
       || hasValue(personalProfile?.email)
+      || hasValue(personalProfile?.photo)
       || hasValue(professionalProfile?.fullNameA)
       || hasValue(professionalProfile?.primaryPhoneA)
       || hasValue(professionalProfile?.emailA)
+      || hasValue(professionalProfile?.photoA)
+      || hasValue(professionalProfile?.category)
+      || hasValue(professionalProfile?.primaryCategory)
+      || hasValue(professionalProfile?.fullNameB)
+      || hasValue(professionalProfile?.primaryPhoneB)
+      || hasValue(professionalProfile?.emailB)
+      || hasValue(professionalProfile?.photoB)
+      || hasValue(professionalProfile?.photoBUrl)
+      || hasValue(professionalProfile?.categoryB)
+      || hasValue(professionalProfile?.primaryCategoryB)
     );
   }, [personalProfile, professionalProfile]);
 
@@ -5838,7 +5864,7 @@ export default function App() {
               setPage={setPage}
               collapsed={mobileBottomNavCollapsed}
               onCollapsedChange={setMobileBottomNavCollapsed}
-              needsPrimaryProfileAttention={!hasPrimaryProfileRegistered}
+              needsPrimaryProfileAttention={!hasAnyProfileRegistered}
             />
           </>
         )}

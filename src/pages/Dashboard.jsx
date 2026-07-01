@@ -1530,10 +1530,29 @@ export function Dashboard({ page, nuggets, setModal, setPage, onOpenOnboardingTa
   const primaryVisibleScope = profileKeyToScope(primaryProfileKey);
   const secondaryVisibleScope = secondaryProfileKey ? profileKeyToScope(secondaryProfileKey) : null;
 
-  const primaryModalKey = scopeToModalKey(primaryVisibleScope);
   const secondaryModalKey = secondaryVisibleScope ? scopeToModalKey(secondaryVisibleScope) : null;
   const primaryCardData = primaryProfileKey ? buildLocalProfileCard(primaryProfileKey) : null;
   const secondaryCardData = secondaryProfileKey ? buildLocalProfileCard(secondaryProfileKey) : null;
+  const hasRegisteredLocalProfileCard = (card) => {
+    if (!card) return false;
+    return Boolean(
+      String(card.name || '').trim()
+      || String(card.photo || '').trim()
+      || String(card.primaryPhone || '').trim()
+      || String(card.email || '').trim()
+      || String(card.type || '').trim()
+      || String(card.cat || '').trim()
+      || String(card.desc || '').trim()
+    );
+  };
+  const fallbackRegisteredProfileKey = useMemo(() => {
+    const keys = ['personal', 'secondary', 'fsbo'];
+    return keys.find((key) => hasRegisteredLocalProfileCard(buildLocalProfileCard(key))) || null;
+  }, [buildLocalProfileCard]);
+  const visiblePrimaryProfileKey = primaryProfileKey || fallbackRegisteredProfileKey;
+  const visiblePrimaryScope = profileKeyToScope(visiblePrimaryProfileKey);
+  const visiblePrimaryModalKey = scopeToModalKey(visiblePrimaryScope);
+  const visiblePrimaryCardData = primaryCardData || (fallbackRegisteredProfileKey ? buildLocalProfileCard(fallbackRegisteredProfileKey) : null);
   const countByScope = (scope) => {
     const key = scopeToProfileKey(scope);
     const ownerId = getOwnerIdForKey(key);
@@ -1642,8 +1661,8 @@ export function Dashboard({ page, nuggets, setModal, setPage, onOpenOnboardingTa
     return Math.max(0, scoped.properties.length + scoped.services.length);
   };
 
-  const primaryLinkedCardsCount = primaryModalKey
-    ? countMyCardLinkedCardsForScope(primaryModalKey)
+  const primaryLinkedCardsCount = visiblePrimaryModalKey
+    ? countMyCardLinkedCardsForScope(visiblePrimaryModalKey)
     : 0;
   const secondaryScopedRecords = secondaryModalKey
     ? getScopedPublishedRecords(secondaryModalKey)
@@ -1663,15 +1682,15 @@ export function Dashboard({ page, nuggets, setModal, setPage, onOpenOnboardingTa
     : 0;
 
   const displayPrimaryLinkedCardsCount = isInitialDashboardHydrating ? 0 : primaryLinkedCardsCount;
-  const profileName = isInitialDashboardHydrating ? 'Syncing profile...' : (primaryCardData?.name || 'New User');
+  const profileName = isInitialDashboardHydrating ? 'Syncing profile...' : (visiblePrimaryCardData?.name || 'New User');
   const profileLocation = isInitialDashboardHydrating
     ? (isHydrationSyncing ? 'Syncing saved data' : 'Loading saved data')
-    : (primaryCardData?.loc || 'Location not set');
-  const primaryProfileBadgeLabel = !primaryVisibleScope
+    : (visiblePrimaryCardData?.loc || 'Location not set');
+  const primaryProfileBadgeLabel = !visiblePrimaryScope
     ? 'Profile'
-    : primaryVisibleScope === 'professional'
+    : visiblePrimaryScope === 'professional'
     ? 'Business'
-    : (primaryVisibleScope === 'fsbo' ? 'FSBO' : 'Personal');
+    : (visiblePrimaryScope === 'fsbo' ? 'FSBO' : 'Personal');
   const secondaryProfileBadgeLabel = secondaryVisibleScope === 'professional'
     ? 'Business'
     : (secondaryVisibleScope === 'fsbo' ? 'FSBO' : 'Personal');
@@ -1679,7 +1698,7 @@ export function Dashboard({ page, nuggets, setModal, setPage, onOpenOnboardingTa
     ? (professionalProfile?.primaryCategoryB || professionalProfile?.categoryB || '')
     : (professionalProfile?.primaryCategory || professionalProfile?.category || '');
   void _activePrimaryCategoryId;
-  const activePrimaryCategoryLabel = isInitialDashboardHydrating ? 'Syncing...' : (String(primaryCardData?.type || '').trim() || 'Not set');
+  const activePrimaryCategoryLabel = isInitialDashboardHydrating ? 'Syncing...' : (String(visiblePrimaryCardData?.type || '').trim() || 'Not set');
   const countClosedDealsForScope = (scope) => {
     const normalizedScope = normalizeProfileScope(scope);
     return (propertyPortfolio || []).filter((p) => (
@@ -1763,11 +1782,11 @@ export function Dashboard({ page, nuggets, setModal, setPage, onOpenOnboardingTa
   };
 
   const emptyRatingDetails = { label: '-', interactionScore: 0, publishedScore: 0, reliabilityScore: 0, closedDealsBonus: 0, total: 0 };
-  const primaryRatingDetails = primaryModalKey ? computeScopeRatingDetails(primaryModalKey) : emptyRatingDetails;
+  const primaryRatingDetails = visiblePrimaryModalKey ? computeScopeRatingDetails(visiblePrimaryModalKey) : emptyRatingDetails;
   const secondaryRatingDetails = hasSecondaryProfile ? computeScopeRatingDetails(secondaryModalKey) : emptyRatingDetails;
 
   const matchedCount = activeUnlockedMatchesCount;
-  const dealsCount = primaryVisibleScope ? countClosedDealsForScope(primaryVisibleScope) : 0;
+  const dealsCount = visiblePrimaryScope ? countClosedDealsForScope(visiblePrimaryScope) : 0;
   const ratingLabel = primaryRatingDetails.label;
 
   // Secondary (profile B) derived display values — keep in parity with primary profile
@@ -1876,8 +1895,8 @@ export function Dashboard({ page, nuggets, setModal, setPage, onOpenOnboardingTa
 
   const handlePrimaryMyCardClick = (event) => {
     event?.stopPropagation?.();
-    if (primaryModalKey) {
-      toggleMyCardModal(primaryModalKey);
+    if (visiblePrimaryModalKey) {
+      toggleMyCardModal(visiblePrimaryModalKey);
       return;
     }
     openOnboardingForScope('personal');
@@ -1958,15 +1977,12 @@ export function Dashboard({ page, nuggets, setModal, setPage, onOpenOnboardingTa
     setPage('onboarding');
   };
 
-  // Quick registration is based on a real primary profile plus published linked cards.
+  // Registration status is based on any saved profile identity, not on card
+  // priority or published portfolio. Existing users must not be prompted as
+  // first-access users just because they have no primary deck card yet.
   const quickRegistered = isInitialDashboardHydrating
     ? true
-    : Boolean(
-      primaryModalKey
-      && primaryCardData
-      && hasPublishableLocalProfileCard(primaryCardData)
-      && primaryLinkedCardsCount > 0
-    );
+    : hasRegisteredLocalProfileCard(visiblePrimaryCardData);
   const showRegistrationNeeded = !isInitialDashboardHydrating && !quickRegistered;
 
   // Persist active category and selected states across navigation/login
@@ -3098,18 +3114,18 @@ export function Dashboard({ page, nuggets, setModal, setPage, onOpenOnboardingTa
                   <button
                     type="button"
                     onClick={handlePrimaryMyCardClick}
-                    aria-pressed={myCardModal.open && myCardModal.scope === primaryModalKey}
+                    aria-pressed={myCardModal.open && myCardModal.scope === visiblePrimaryModalKey}
                     style={{
                       display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: 5,
                       minHeight: 36,
                       padding: '7px 9px', borderRadius: 999,
-                      border: `1px solid ${(myCardModal.open && myCardModal.scope === primaryModalKey) ? C.accent : C.border}`,
-                      background: (myCardModal.open && myCardModal.scope === primaryModalKey) ? C.alpha(C.accent, 0.12) : 'transparent',
-                      color: (myCardModal.open && myCardModal.scope === primaryModalKey) ? C.accent : C.t2,
+                      border: `1px solid ${(myCardModal.open && myCardModal.scope === visiblePrimaryModalKey) ? C.accent : C.border}`,
+                      background: (myCardModal.open && myCardModal.scope === visiblePrimaryModalKey) ? C.alpha(C.accent, 0.12) : 'transparent',
+                      color: (myCardModal.open && myCardModal.scope === visiblePrimaryModalKey) ? C.accent : C.t2,
                       fontSize: 11, fontWeight: 700, cursor: 'pointer',
                     }}
                   >
-                    <span style={{ width: 8, height: 8, borderRadius: 999, background: (myCardModal.open && myCardModal.scope === primaryModalKey) ? C.accent : C.t3 }} />
+                    <span style={{ width: 8, height: 8, borderRadius: 999, background: (myCardModal.open && myCardModal.scope === visiblePrimaryModalKey) ? C.accent : C.t3 }} />
                     My Card
                     {displayPrimaryLinkedCardsCount > 0 ? (
                       <span style={{ background: C.danger, color: '#fff', fontSize: 9, fontWeight: 900, borderRadius: 99, padding: '1px 5px', lineHeight: 1.4 }}>
@@ -3226,7 +3242,7 @@ export function Dashboard({ page, nuggets, setModal, setPage, onOpenOnboardingTa
               <div style={{ width:36, height:36, borderRadius:"50%", position:'relative', flexShrink:0 }}>
                 {/* Avatar com click para onboarding */}
                 <SmartImage
-                  src={quickRegistered && typeof primaryCardData?.photo === 'string' && primaryCardData.photo.length > 8 ? primaryCardData.photo : undefined}
+                  src={quickRegistered && typeof visiblePrimaryCardData?.photo === 'string' && visiblePrimaryCardData.photo.length > 8 ? visiblePrimaryCardData.photo : undefined}
                   alt={userProfile?.name ? `${userProfile.name} profile` : 'profile'}
                   fallback={(
                     <div
@@ -3239,8 +3255,8 @@ export function Dashboard({ page, nuggets, setModal, setPage, onOpenOnboardingTa
                       }}
                       role={quickRegistered ? 'button' : undefined}
                       tabIndex={quickRegistered ? 0 : undefined}
-                      onClick={quickRegistered ? (e) => { e.stopPropagation(); openOnboardingForScope(primaryVisibleScope); } : undefined}
-                      onKeyDown={quickRegistered ? (e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); e.stopPropagation(); openOnboardingForScope(primaryVisibleScope); } } : undefined}
+                      onClick={quickRegistered ? (e) => { e.stopPropagation(); openOnboardingForScope(visiblePrimaryScope); } : undefined}
+                      onKeyDown={quickRegistered ? (e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); e.stopPropagation(); openOnboardingForScope(visiblePrimaryScope); } } : undefined}
                     >
                       <Icon name="user" size={17} color={C.accent} strokeWidth={1.4} />
                     </div>
@@ -3248,8 +3264,8 @@ export function Dashboard({ page, nuggets, setModal, setPage, onOpenOnboardingTa
                   style={{ position:'absolute', inset:0, width:'100%', height:'100%', objectFit:'cover', borderRadius:'50%', zIndex: 1, cursor: quickRegistered ? 'pointer' : undefined }}
                   role={quickRegistered ? 'button' : undefined}
                   tabIndex={quickRegistered ? 0 : undefined}
-                  onClick={quickRegistered ? (e) => { e.stopPropagation(); openOnboardingForScope(primaryVisibleScope); } : undefined}
-                  onKeyDown={quickRegistered ? (e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); e.stopPropagation(); openOnboardingForScope(primaryVisibleScope); } } : undefined}
+                  onClick={quickRegistered ? (e) => { e.stopPropagation(); openOnboardingForScope(visiblePrimaryScope); } : undefined}
+                  onKeyDown={quickRegistered ? (e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); e.stopPropagation(); openOnboardingForScope(visiblePrimaryScope); } } : undefined}
                 />
               </div>
               <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
@@ -3272,17 +3288,17 @@ export function Dashboard({ page, nuggets, setModal, setPage, onOpenOnboardingTa
               <button
                 type="button"
                 onClick={handlePrimaryMyCardClick}
-                aria-pressed={myCardModal.open && myCardModal.scope === primaryModalKey}
+                aria-pressed={myCardModal.open && myCardModal.scope === visiblePrimaryModalKey}
                 style={{
                   display: 'inline-flex', alignItems: 'center', gap: 5,
                   padding: '2px 8px', borderRadius: 999,
-                  border: `1px solid ${(myCardModal.open && myCardModal.scope === primaryModalKey) ? C.accent : C.border}`,
-                  background: (myCardModal.open && myCardModal.scope === primaryModalKey) ? C.alpha(C.accent, 0.12) : 'transparent',
-                  color: (myCardModal.open && myCardModal.scope === primaryModalKey) ? C.accent : C.t2,
+                  border: `1px solid ${(myCardModal.open && myCardModal.scope === visiblePrimaryModalKey) ? C.accent : C.border}`,
+                  background: (myCardModal.open && myCardModal.scope === visiblePrimaryModalKey) ? C.alpha(C.accent, 0.12) : 'transparent',
+                  color: (myCardModal.open && myCardModal.scope === visiblePrimaryModalKey) ? C.accent : C.t2,
                   fontSize: 10, fontWeight: 700, cursor: 'pointer', flexShrink: 0
                 }}
               >
-                <span style={{ width: 8, height: 8, borderRadius: 999, background: (myCardModal.open && myCardModal.scope === primaryModalKey) ? C.accent : C.t3, boxShadow: (myCardModal.open && myCardModal.scope === primaryModalKey) ? `0 0 8px ${C.alpha(C.accent, 0.75)}` : 'none' }} />
+                <span style={{ width: 8, height: 8, borderRadius: 999, background: (myCardModal.open && myCardModal.scope === visiblePrimaryModalKey) ? C.accent : C.t3, boxShadow: (myCardModal.open && myCardModal.scope === visiblePrimaryModalKey) ? `0 0 8px ${C.alpha(C.accent, 0.75)}` : 'none' }} />
                 My Card
                 {/* Mostra a contagem sempre que houver cards publicados */}
                 {displayPrimaryLinkedCardsCount > 0 && (
@@ -3651,7 +3667,7 @@ export function Dashboard({ page, nuggets, setModal, setPage, onOpenOnboardingTa
                 <div style={{ display: 'flex', alignItems: 'flex-start', gap: 9, marginBottom: 8 }}>
                   <div style={{ width: isTabletPortraitWideViewport ? 42 : 38, height: isTabletPortraitWideViewport ? 42 : 38, borderRadius: '50%', position: 'relative', flexShrink: 0, background: C.alpha(C.accent, 0.08), overflow: 'hidden' }}>
                     <SmartImage
-                      src={quickRegistered && typeof primaryCardData?.photo === 'string' && primaryCardData.photo.length > 8 ? primaryCardData.photo : undefined}
+                      src={quickRegistered && typeof visiblePrimaryCardData?.photo === 'string' && visiblePrimaryCardData.photo.length > 8 ? visiblePrimaryCardData.photo : undefined}
                       alt={profileName}
                       fallback={<Icon name="user" size={16} color={C.accent} strokeWidth={1.5} />}
                       style={{ width: '100%', height: '100%', objectFit: 'cover', borderRadius: '50%' }}
@@ -3672,7 +3688,7 @@ export function Dashboard({ page, nuggets, setModal, setPage, onOpenOnboardingTa
                   <button
                     type="button"
                     onClick={handlePrimaryMyCardClick}
-                    style={{ display: 'inline-flex', alignItems: 'center', gap: 4, border: `1px solid ${(myCardModal.open && myCardModal.scope === primaryModalKey) ? C.accent : C.border}`, background: (myCardModal.open && myCardModal.scope === primaryModalKey) ? C.alpha(C.accent, 0.12) : 'transparent', color: C.t2, borderRadius: 999, padding: '3px 7px', fontSize: 9, fontWeight: 900, cursor: 'pointer' }}
+                    style={{ display: 'inline-flex', alignItems: 'center', gap: 4, border: `1px solid ${(myCardModal.open && myCardModal.scope === visiblePrimaryModalKey) ? C.accent : C.border}`, background: (myCardModal.open && myCardModal.scope === visiblePrimaryModalKey) ? C.alpha(C.accent, 0.12) : 'transparent', color: C.t2, borderRadius: 999, padding: '3px 7px', fontSize: 9, fontWeight: 900, cursor: 'pointer' }}
                   >
                     <span>My Card</span>
                     {displayPrimaryLinkedCardsCount > 0 && <span style={{ background: C.danger, color: '#fff', borderRadius: 99, padding: '0 4px', fontSize: 7 }}>{displayPrimaryLinkedCardsCount}</span>}
