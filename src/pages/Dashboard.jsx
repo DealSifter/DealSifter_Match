@@ -24,6 +24,7 @@ import { isUuid, mapPropertyHotMetrics } from '../lib/propertyHotMetrics';
 import { isPendingDealExpired } from '../lib/pendingDeal';
 import { placeOwnFeedIds, sortFeedRecords } from '../lib/feedOrdering';
 import { normalizeCard } from '../lib/normalizeFeedCard';
+import { checkIsUnlocked } from '../services/unlockService';
 import feedMatchIcon from '../assets/feed-match-icon.png';
 import spotlightIcon from '../assets/spotlight-icon.png';
 
@@ -2406,7 +2407,7 @@ export function Dashboard({ page, nuggets, setModal, setPage, onOpenOnboardingTa
     }
   };
 
-  const openUnlockFromConnectionCard = useCallback((rawCard) => {
+  const openUnlockFromConnectionCard = useCallback(async (rawCard) => {
     const targetCard = rawCard
       ? (findConnectionById(rawCard.id) || findConnectionById(rawCard.ownerId) || rawCard)
       : null;
@@ -2431,6 +2432,14 @@ export function Dashboard({ page, nuggets, setModal, setPage, onOpenOnboardingTa
       return (contactId && value === contactId) || (ownerId && value === ownerId);
     });
     if (alreadyUnlocked) return false;
+    if (ownerId && currentUserId && ownerId !== currentUserId) {
+      try {
+        const remoteState = await checkIsUnlocked(ownerId, currentUserId);
+        if (remoteState?.isUnlocked) return false;
+      } catch {
+        // Local state remains the fallback; unlock modal will validate again server-side.
+      }
+    }
     if (typeof openUnlock === 'function') {
       openUnlock({
         ...targetCard,
@@ -2442,7 +2451,7 @@ export function Dashboard({ page, nuggets, setModal, setPage, onOpenOnboardingTa
       return true;
     }
     return false;
-  }, [addToast, findConnectionById, openUnlock, ownOwnerIdsKey, unlocked]);
+  }, [addToast, currentUserId, findConnectionById, openUnlock, ownOwnerIdsKey, unlocked]);
 
   const handleMobileUnlockAction = () => {
     if (view === 'connections') {

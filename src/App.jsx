@@ -98,6 +98,17 @@ import { getPlanGateCopy } from './lib/planAccess';
 import { trackAppEvent } from './lib/adminEventTracking';
 import { createPropertyUnlockRecord, getPortfolioUnlockCost, getPropertyExclusivityStatus, resolveUnlockOwnerId } from './lib/unlockRules';
 import { isPendingDealExpired } from './lib/pendingDeal';
+import {
+  createUnlockIntent as createUnlockIntentRpc,
+  getPropertyUnlockQuote as getPropertyUnlockQuoteRpc,
+  getUserUnlockState,
+  InvalidToken,
+  PlanLimitReached,
+  purchaseExclusivity,
+  unlockContact as unlockContactRpc,
+  UnlockCostChanged,
+  unlockProperty as unlockPropertyRpc,
+} from './services/unlockService';
 
 // Safe error logger — strips Supabase error details that may contain personal data
 const safeLogError = (label, error) => {
@@ -3070,37 +3081,10 @@ export default function App() {
   const fetchRemoteUnlockState = useCallback(async () => {
     if (!isSupabaseConfigured || !supabase || !supabaseUserId) return;
     try {
-      const [contactSnapshotsResult, unlocksResult, propertyUnlocksResult] = await Promise.all([
-        supabase.rpc('ds_get_unlocked_contact_snapshots'),
-        supabase
-          .from('unlocks')
-          .select('seller_id, nuggets_spent, created_at')
-          .eq('buyer_id', supabaseUserId)
-          .order('created_at', { ascending: false })
-          .limit(500),
-        supabase
-          .from('property_unlocks')
-          .select('id, property_id, owner_id, buyer_id, mode, total_cost, created_at, expires_at, status')
-          .or(`buyer_id.eq.${supabaseUserId},owner_id.eq.${supabaseUserId}`)
-          .order('created_at', { ascending: false })
-          .limit(500),
-      ]);
-
-      const snapshotMissing = contactSnapshotsResult.error
-        && String(contactSnapshotsResult.error?.message || '').toLowerCase().includes('ds_get_unlocked_contact_snapshots');
-      if (contactSnapshotsResult.error && !snapshotMissing) {
-        safeLogError('Failed to hydrate unlocked contact snapshots.', contactSnapshotsResult.error);
-      }
-      if (unlocksResult.error) {
-        safeLogError('Failed to hydrate remote unlocks.', unlocksResult.error);
-      }
-      if (propertyUnlocksResult.error) {
-        safeLogError('Failed to hydrate remote property unlocks.', propertyUnlocksResult.error);
-      }
-
-      const unlockRows = Array.isArray(unlocksResult.data) ? unlocksResult.data : [];
-      const propertyUnlockRows = Array.isArray(propertyUnlocksResult.data) ? propertyUnlocksResult.data : [];
-      const snapshotRows = Array.isArray(contactSnapshotsResult.data) ? contactSnapshotsResult.data : [];
+      const remoteState = await getUserUnlockState(supabaseUserId);
+      const unlockRows = Array.isArray(remoteState.unlocks) ? remoteState.unlocks : [];
+      const propertyUnlockRows = Array.isArray(remoteState.propertyUnlocks) ? remoteState.propertyUnlocks : [];
+      const snapshotRows = Array.isArray(remoteState.contactSnapshots) ? remoteState.contactSnapshots : [];
       const buyerPropertyUnlockRows = propertyUnlockRows.filter((row) => (
         String(row?.buyer_id || '').trim() === String(supabaseUserId || '').trim()
       ));
@@ -4911,23 +4895,9 @@ export default function App() {
     if (!propertyId || !isUuid(propertyId) || !isSupabaseConfigured || !supabase || !supabaseUserId) return null;
     const requestId = ++unlockQuoteRequestRef.current;
     try {
-      const { data, error } = await supabase.rpc('ds_get_property_unlock_quote', {
-        p_property_id: propertyId,
-      });
-      if (error) throw error;
+      const quote = await getPropertyUnlockQuoteRpc(propertyId);
       if (requestId !== unlockQuoteRequestRef.current) return null;
-      const row = Array.isArray(data) ? data[0] : data;
-      if (!row) return null;
-      const quote = {
-        propertyId: row.property_id || propertyId,
-        ownerId: row.owner_id || null,
-        baseCost: Math.max(1, Number(row.base_cost || 1)),
-        normalUnlockCount: Number(row.normal_unlock_count || 0),
-        exclusivityKind: String(row.exclusivity_kind || 'regular'),
-        exclusivityCost: Math.max(0, Number(row.exclusivity_cost || 0)),
-        blocked: row.blocked === true,
-        expiresAt: row.expires_at || null,
-      };
+      if (!quote) return null;
       setUnlockQuote(quote);
       return quote;
     } catch (error) {
@@ -4935,23 +4905,6 @@ export default function App() {
       return null;
     }
   }, [supabaseUserId]);
-
-  const normalizeUnlockIntent = (row) => {
-    if (!row) return null;
-    return {
-      token: row.intent_token || row.intentToken || row.id || null,
-      sellerId: row.seller_id || row.sellerId || null,
-      propertyId: row.property_id || row.propertyId || null,
-      scope: row.scope || 'contact',
-      mode: row.mode || 'normal',
-      baseCost: Math.max(1, Number(row.base_cost || row.baseCost || 1)),
-      exclusivityCost: Math.max(0, Number(row.exclusivity_cost || row.exclusivityCost || 0)),
-      totalCost: Math.max(1, Number(row.total_cost || row.totalCost || 1)),
-      normalUnlockCount: Number(row.normal_unlock_count || row.normalUnlockCount || 0),
-      expiresAt: row.expires_at || row.expiresAt || null,
-      blocked: row.blocked === true,
-    };
-  };
 
   const createUnlockIntent = useCallback(async ({ sellerId, propertyId = null, mode = 'normal', metadata = {} } = {}) => {
     if (!isSupabaseConfigured || !supabase || !supabaseUserId) return null;
@@ -4961,14 +4914,12 @@ export default function App() {
     if (cleanSellerId && !isUuid(cleanSellerId)) return null;
     if (cleanPropertyId && !isUuid(cleanPropertyId)) return null;
 
-    const { data, error } = await supabase.rpc('ds_create_unlock_intent', {
-      p_seller_id: cleanSellerId || null,
-      p_property_id: cleanPropertyId || null,
-      p_mode: mode || 'normal',
-      p_metadata: metadata || {},
+    return createUnlockIntentRpc({
+      contactId: cleanSellerId || null,
+      propertyId: cleanPropertyId || null,
+      mode,
+      metadata,
     });
-    if (error) throw error;
-    return normalizeUnlockIntent(Array.isArray(data) ? data[0] : data);
   }, [supabaseUserId]);
 
   const applyUnlockIntentToTarget = (target, intent) => {
@@ -5254,11 +5205,13 @@ export default function App() {
       }
     }
     const isPlanLimitError = (error) => {
+      if (error instanceof PlanLimitReached) return true;
       const message = String(error?.message || '');
       const details = String(error?.details || error?.detail || '');
       return message.includes('plan_limit_reached') || details.includes('plan_limit_reached');
     };
     const isUnlockCostChangedError = (error) => {
+      if (error instanceof UnlockCostChanged || error instanceof InvalidToken) return true;
       const message = String(error?.message || error?.details || error?.detail || '').toLowerCase();
       return message.includes('unlock cost changed') || message.includes('refresh required');
     };
@@ -5406,39 +5359,36 @@ export default function App() {
             });
             return;
           }
-          const { data, error } = await supabase.rpc('ds_purchase_property_unlock', {
-            p_property_id: card.propertyId,
-            p_mode: unlockMode,
-            p_metadata: {
+          remoteUnlockRow = unlockMode === 'normal'
+            ? await unlockPropertyRpc(card.propertyId, intent?.token || card?.unlockIntent?.token || null, {
+              mode: unlockMode,
+              metadata: {
+                source: 'unlock_modal',
+                ownerId: String(unlockOwnerId || ''),
+                contactId: String(contactUnlockId || ''),
+                displayedBaseCost: baseUnlockCost,
+                displayedCost: unlockCost,
+                snapshotCapturedAt: card?.unlockCostSnapshot?.capturedAt || null,
+              },
+            })
+            : await purchaseExclusivity(card.propertyId, unlockOwnerId, intent?.token || card?.unlockIntent?.token || null);
+          remoteUnlockRow = {
+            ...remoteUnlockRow,
+            ...(unlockMode !== 'normal' ? {
               source: 'unlock_modal',
               ownerId: String(unlockOwnerId || ''),
               contactId: String(contactUnlockId || ''),
               displayedBaseCost: baseUnlockCost,
               displayedCost: unlockCost,
               snapshotCapturedAt: card?.unlockCostSnapshot?.capturedAt || null,
-            },
-            p_intent_token: intent?.token || card?.unlockIntent?.token || null,
-          });
-          if (error) throw error;
-          remoteUnlockRow = Array.isArray(data) ? data[0] : data;
+            } : {}),
+          };
           if (!remoteUnlockRow?.unlock_id && !remoteUnlockRow?.id) {
             throw new Error('Property unlock did not return a persisted record.');
           }
-          const persistedUnlockId = remoteUnlockRow.unlock_id || remoteUnlockRow.id;
-          const { data: confirmedUnlock, error: confirmError } = await supabase
-            .from('property_unlocks')
-            .select('id, property_id, owner_id, buyer_id, mode, base_cost, exclusivity_cost, total_cost, created_at, expires_at, status')
-            .eq('id', persistedUnlockId)
-            .eq('buyer_id', supabaseUserId)
-            .maybeSingle();
-          if (confirmError) throw confirmError;
-          if (!confirmedUnlock?.id) {
-            throw new Error('Property unlock was not confirmed in the database.');
-          }
           remoteUnlockRow = {
             ...remoteUnlockRow,
-            ...confirmedUnlock,
-            unlock_id: confirmedUnlock.id,
+            unlock_id: remoteUnlockRow.unlock_id || remoteUnlockRow.id,
           };
           const remoteTotalCost = Number(remoteUnlockRow?.total_cost);
           if (
@@ -5507,12 +5457,11 @@ export default function App() {
             });
             return;
           }
-          const { data, error } = await supabase.rpc('ds_purchase_contact_unlock', {
-            p_seller_id: unlockOwnerId,
-            p_intent_token: intent?.token || card?.unlockIntent?.token || null,
-          });
-          if (error) throw error;
-          const remoteContactUnlock = Array.isArray(data) ? data[0] : data;
+          const remoteContactUnlock = await unlockContactRpc(
+            unlockOwnerId,
+            intent?.token || card?.unlockIntent?.token || null,
+            unlockCost
+          );
           if (!remoteContactUnlock?.unlock_id) {
             throw new Error('Contact unlock did not return a persisted record.');
           }

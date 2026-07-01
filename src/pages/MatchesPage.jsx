@@ -21,6 +21,7 @@ import { trackAppEvent } from '../lib/adminEventTracking';
 import { getPortfolioUnlockCost, getPropertyExclusivityStatus } from '../lib/unlockRules';
 import { isSupabaseConfigured } from '../lib/supabaseClient';
 import { normalizeCard } from '../lib/normalizeFeedCard';
+import { getActiveExclusivities } from '../services/unlockService';
 import appLogo from '../assets/logo-dark-theme.png';
 
 const PROPERTIES = import.meta.env.DEV ? (_MOCK_PROPERTIES || []) : [];
@@ -1846,6 +1847,7 @@ export function MatchesPage({ nuggets, setModal, openUnlock, unlocked, initialCh
   const [deletedContacts, setDeletedContacts] = useState(() => readLocalStringSet(getUserScopedStorageKey('ds_matches_deleted_contacts', currentUserId)));
   const [deletedInterests, setDeletedInterests] = useState(() => readLocalStringSet(getUserScopedStorageKey('ds_matches_deleted_interests', currentUserId)));
   const [paidContactPrompt, setPaidContactPrompt] = useState(null);
+  const [remoteActiveExclusivities, setRemoteActiveExclusivities] = useState([]);
 
   useEffect(() => {
     const timer = window.setTimeout(() => {
@@ -1856,6 +1858,22 @@ export function MatchesPage({ nuggets, setModal, openUnlock, unlocked, initialCh
     }, 0);
     return () => window.clearTimeout(timer);
   }, [matchesStorageKeys]);
+
+  useEffect(() => {
+    if (!isSupabaseConfigured || !currentUserId || currentUserId === 'local-user') {
+      const timer = window.setTimeout(() => setRemoteActiveExclusivities([]), 0);
+      return () => window.clearTimeout(timer);
+    }
+    let cancelled = false;
+    getActiveExclusivities(currentUserId)
+      .then((rows) => {
+        if (!cancelled) setRemoteActiveExclusivities(Array.isArray(rows) ? rows : []);
+      })
+      .catch(() => {
+        if (!cancelled) setRemoteActiveExclusivities([]);
+      });
+    return () => { cancelled = true; };
+  }, [currentUserId]);
 
   // Combined sources: user data merged with mock seed data for mock card owners.
   // Uses String() comparison and deduplication by id so user's own records always win.
@@ -2044,11 +2062,11 @@ export function MatchesPage({ nuggets, setModal, openUnlock, unlocked, initialCh
     for (const candidate of candidates) {
       const propertyId = String(candidate || '').trim();
       if (!propertyId) continue;
-      const status = getPropertyExclusivityStatus(propertyUnlocks, propertyId, currentUserId);
+      const status = getPropertyExclusivityStatus([...remoteActiveExclusivities, ...propertyUnlocks], propertyId, currentUserId);
       if ((status?.kind === 'owned' || status?.kind === 'blocked') && status?.expiresAt) return status;
     }
     return null;
-  }, [currentUserId, propertyUnlocks]);
+  }, [currentUserId, propertyUnlocks, remoteActiveExclusivities]);
 
   const getOwnerExclusiveStatus = useCallback((ownerId) => {
     const ownerKey = String(ownerId || '').trim();
