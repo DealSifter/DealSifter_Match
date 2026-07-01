@@ -1,7 +1,12 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { C } from '../theme/colors';
 import { useT } from '../i18n/translations';
-import { supabase, isSupabaseConfigured } from '../lib/supabaseClient';
+import {
+  getSupabaseFunctionUrl,
+  isSupabaseConfigured,
+  supabase,
+  supabaseAnonKey,
+} from '../lib/supabaseClient';
 
 const fmtInt = (value) => Number(value || 0).toLocaleString('en-US');
 const fmtUsd = (cents) => `$${(Number(cents || 0) / 100).toLocaleString('en-US', { maximumFractionDigits: 0 })}`;
@@ -436,6 +441,8 @@ export function AdminDashboard({ setPage, prevPage, logoutAdmin }) {
   const [metrics, setMetrics] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
+  const [reprocessLoading, setReprocessLoading] = useState(false);
+  const [reprocessMessage, setReprocessMessage] = useState('');
   const [draggingTile, setDraggingTile] = useState(null);
   const [kpiOrder, setKpiOrder] = useState(() => readAdminKpiOrder());
   const [kpiView, setKpiView] = useState(() => readAdminKpiView());
@@ -562,6 +569,47 @@ export function AdminDashboard({ setPage, prevPage, logoutAdmin }) {
     });
   };
 
+  const handleStripeQueueReprocess = async () => {
+    if (!isSupabaseConfigured || !supabase) {
+      setReprocessMessage(t.supabaseNotConfigured || 'Supabase is not configured.');
+      return;
+    }
+    setReprocessLoading(true);
+    setReprocessMessage('');
+    try {
+      const { data: sessionData, error: sessionError } = await supabase.auth.getSession();
+      if (sessionError) throw sessionError;
+      const accessToken = sessionData?.session?.access_token;
+      if (!accessToken) throw new Error(t.adminSessionRequired || 'Admin session required.');
+      const functionUrl = getSupabaseFunctionUrl('stripe-reprocess-queue');
+      if (!functionUrl) throw new Error(t.supabaseNotConfigured || 'Supabase is not configured.');
+
+      const response = await fetch(functionUrl, {
+        method: 'POST',
+        headers: {
+          Authorization: `Bearer ${accessToken}`,
+          apikey: supabaseAnonKey,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ source: 'admin_dashboard' }),
+      });
+      const payload = await response.json().catch(() => ({}));
+      if (!response.ok) throw new Error(payload?.error || t.stripeReprocessFailed || 'Stripe queue reprocess failed.');
+
+      setReprocessMessage(
+        (t.stripeReprocessSummary || 'Stripe queue processed: {processed} processed, {retried} retried, {failed} failed.')
+          .replace('{processed}', fmtInt(payload.processed))
+          .replace('{retried}', fmtInt(payload.retried))
+          .replace('{failed}', fmtInt(payload.failed))
+      );
+      await loadMetrics();
+    } catch (err) {
+      setReprocessMessage(err?.message || t.stripeReprocessFailed || 'Stripe queue reprocess failed.');
+    } finally {
+      setReprocessLoading(false);
+    }
+  };
+
   return (
     <div style={{ paddingTop: 58, minHeight: 'calc(var(--app-vh, 1vh) * 100)', background: C.bg }}>
       <style>{`
@@ -591,7 +639,15 @@ export function AdminDashboard({ setPage, prevPage, logoutAdmin }) {
             <h2 style={{ margin: 0, fontSize: 22, fontWeight: 900, color: C.t1 }}>{t.title || 'Adm.System Dashboard'}</h2>
             <p style={{ margin: '5px 0 0', fontSize: 12, color: C.t3 }}>{t.subtitle || 'Control center for system management.'}</p>
           </div>
-          <div style={{ display: 'flex', gap: 8 }}>
+          <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', justifyContent: 'flex-end' }}>
+            <button onClick={handleStripeQueueReprocess} disabled={reprocessLoading} style={{ border: `1px solid ${Number(metrics?.stripeReprocessPending || 0) > 0 ? C.warning || '#f59e0b' : C.border}`, background: Number(metrics?.stripeReprocessPending || 0) > 0 ? C.alpha(C.warning || '#f59e0b', 0.1) : 'transparent', color: Number(metrics?.stripeReprocessPending || 0) > 0 ? C.warning || '#f59e0b' : C.t2, borderRadius: 8, padding: '8px 10px', cursor: reprocessLoading ? 'wait' : 'pointer', fontSize: 12, fontWeight: 800, display: 'inline-flex', alignItems: 'center', gap: 8, opacity: reprocessLoading ? 0.75 : 1 }}>
+              {reprocessLoading ? (t.reprocessingStripeQueue || 'Reprocessing...') : (t.reprocessStripeQueue || 'Reprocessar fila Stripe')}
+              {Number(metrics?.stripeReprocessPending || 0) > 0 ? (
+                <span style={{ minWidth: 18, height: 18, borderRadius: 999, display: 'inline-grid', placeItems: 'center', background: C.warning || '#f59e0b', color: C.bg, fontSize: 10, fontWeight: 950 }}>
+                  {fmtInt(metrics.stripeReprocessPending)}
+                </span>
+              ) : null}
+            </button>
             <button onClick={loadMetrics} style={{ border: `1px solid ${C.border}`, background: 'transparent', color: C.t2, borderRadius: 8, padding: '8px 10px', cursor: 'pointer', fontSize: 12, fontWeight: 700 }}>
               {t.refresh || 'Refresh'}
             </button>
@@ -607,6 +663,24 @@ export function AdminDashboard({ setPage, prevPage, logoutAdmin }) {
         {error ? (
           <div style={{ marginBottom: 12, border: `1px solid ${C.alpha(C.danger, 0.45)}`, borderRadius: 12, padding: 12, color: C.danger, background: C.alpha(C.danger, 0.06), fontSize: 12 }}>
             {error}
+          </div>
+        ) : null}
+
+        {reprocessMessage ? (
+          <div style={{ marginBottom: 12, border: `1px solid ${C.alpha(reprocessMessage.toLowerCase().includes('fail') || reprocessMessage.toLowerCase().includes('erro') ? C.danger : C.accent, 0.45)}`, borderRadius: 12, padding: 12, color: C.t1, background: C.alpha(reprocessMessage.toLowerCase().includes('fail') || reprocessMessage.toLowerCase().includes('erro') ? C.danger : C.accent, 0.07), fontSize: 12, fontWeight: 700 }}>
+            {reprocessMessage}
+          </div>
+        ) : null}
+
+        {Number(metrics?.stripeReprocessPending || 0) > 0 ? (
+          <div style={{ marginBottom: 12, border: `1px solid ${C.alpha(C.warning || '#f59e0b', 0.5)}`, borderRadius: 12, padding: 12, background: C.alpha(C.warning || '#f59e0b', 0.08), color: C.t1, display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 10, flexWrap: 'wrap' }}>
+            <div style={{ display: 'grid', gap: 3 }}>
+              <strong style={{ fontSize: 13 }}>{t.stripeReprocessPendingTitle || 'Stripe reprocess queue pending'}</strong>
+              <span style={{ fontSize: 11, color: C.t2 }}>{t.stripeReprocessPendingHint || 'Run the manual reprocessor or check the Stripe runbook if the count does not clear.'}</span>
+            </div>
+            <span style={{ borderRadius: 999, padding: '5px 9px', background: C.warning || '#f59e0b', color: C.bg, fontSize: 11, fontWeight: 950 }}>
+              {fmtInt(metrics.stripeReprocessPending)}
+            </span>
           </div>
         ) : null}
 

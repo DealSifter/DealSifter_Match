@@ -29,8 +29,8 @@ const readFirstEnv = (...keys) => {
   return '';
 };
 
-const supabaseUrl = canonicalizeSupabaseUrl(readFirstEnv('VITE_SUPABASE_URL', 'SUPABASE_URL', 'NEXT_PUBLIC_SUPABASE_URL'));
-const supabaseAnonKey = readFirstEnv('VITE_SUPABASE_ANON_KEY', 'SUPABASE_ANON_KEY', 'NEXT_PUBLIC_SUPABASE_ANON_KEY');
+export const supabaseUrl = canonicalizeSupabaseUrl(readFirstEnv('VITE_SUPABASE_URL', 'SUPABASE_URL', 'NEXT_PUBLIC_SUPABASE_URL'));
+export const supabaseAnonKey = readFirstEnv('VITE_SUPABASE_ANON_KEY', 'SUPABASE_ANON_KEY', 'NEXT_PUBLIC_SUPABASE_ANON_KEY');
 const hasValidSupabaseUrl = isValidHttpUrl(supabaseUrl);
 const nativeFetch = (...args) => fetch(...args);
 const pendingReadRequests = new Map();
@@ -102,3 +102,9 @@ if (isSupabaseConfigured) {
 }
 
 export { supabase };
+
+export const getSupabaseFunctionUrl = (functionName) => (
+  supabaseUrl && functionName
+    ? `${supabaseUrl.replace(/\/+$/, '')}/functions/v1/${String(functionName).replace(/^\/+/, '')}`
+    : ''
+);
