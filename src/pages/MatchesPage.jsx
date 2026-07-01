@@ -20,6 +20,7 @@ import { getPlanGateCopy, isFeatureAllowed } from '../lib/planAccess';
 import { trackAppEvent } from '../lib/adminEventTracking';
 import { getPortfolioUnlockCost, getPropertyExclusivityStatus } from '../lib/unlockRules';
 import { isSupabaseConfigured } from '../lib/supabaseClient';
+import { normalizeCard } from '../lib/normalizeFeedCard';
 import appLogo from '../assets/logo-dark-theme.png';
 
 const PROPERTIES = import.meta.env.DEV ? (_MOCK_PROPERTIES || []) : [];
@@ -1951,15 +1952,30 @@ export function MatchesPage({ nuggets, setModal, openUnlock, unlocked, initialCh
       String(cardLike.ownerId) === String(personalOwnerId) ||
       String(cardLike.ownerId) === String(secondaryOwnerId) ||
       String(cardLike.ownerId) === String(fsboOwnerId);
-    if (!isLocalCard) return cardLike;
+    if (!isLocalCard) return normalizeCard({ ...cardLike, cardKind: 'person' }, currentUserId) || cardLike;
     const localOwnerCard = buildLocalOwnerCard(resolvedScope);
     if (!localOwnerCard) return cardLike;
-    return {
+    return normalizeCard({
+      ...cardLike,
+      ...localOwnerCard,
+      primaryProfile: resolvedScope,
+      cardKind: 'person',
+      ownerPreview: { ...localOwnerCard, primaryProfile: resolvedScope },
+      linkedProperties: allPropertiesSource.filter((p) => (
+        String(p.ownerId) === String(localOwnerCard.ownerId)
+        && getRecordProfileScope(p) === resolvedScope
+      )),
+      linkedServices: allServicesSource.filter((s) => (
+        String(s.ownerId) === String(localOwnerCard.ownerId)
+        && getRecordProfileScope(s) === resolvedScope
+        && (s.publishToConnections !== false)
+      )),
+    }, currentUserId) || {
       ...cardLike,
       ...localOwnerCard,
       primaryProfile: resolvedScope,
     };
-  }, [buildLocalOwnerCard, fsboOwnerId, personalOwnerId, secondaryOwnerId]);
+  }, [allPropertiesSource, allServicesSource, buildLocalOwnerCard, currentUserId, fsboOwnerId, getRecordProfileScope, personalOwnerId, secondaryOwnerId]);
 
   const getContactUnlockKeys = useCallback((itemOrId) => {
     if (itemOrId == null) return [];

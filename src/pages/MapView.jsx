@@ -13,6 +13,7 @@ import { CARD_STATUS, pickPriorityStatus } from '../components/ui/cardStatusToke
 import { useMediaQuery } from '../hooks/useMediaQuery';
 import { getPortfolioItemCount, getPortfolioUnlockCost, getPropertyExclusivityStatus } from '../lib/unlockRules';
 import { inferRecordProfileScope, normalizeProfileScope, resolveScopedProfile } from '../lib/profileScopeResolver';
+import { normalizeCard } from '../lib/normalizeFeedCard';
 
 const DEFAULT_CENTER = [39.5, -98.35];
 const DEFAULT_ZOOM = 4;
@@ -1894,6 +1895,25 @@ export function MapView({
       byOwner.forEach(({ ownerId, normalizedScope, ownerPreview, coords, property }) => {
         const key = `person-${ownerId}-${normalizedScope}`;
         if (mapById.has(key)) return;
+        const payload = normalizeCard({
+          cardKind: 'person',
+          ...ownerPreview,
+          id: ownerId,
+          ownerId,
+          primaryProfile: normalizedScope,
+          lat: coords.lat,
+          lng: coords.lng,
+          portfolioCount: (showcaseProperties || []).filter((p) => (
+            String(p?.ownerId || '') === ownerId
+            && getRecordProfileScope(p) === normalizedScope
+          )).length,
+          ownerPreview: { ...ownerPreview, primaryProfile: normalizedScope },
+          linkedProperties: (showcaseProperties || []).filter((p) => (
+            String(p?.ownerId || '') === ownerId
+            && getRecordProfileScope(p) === normalizedScope
+          )),
+        }, currentUserId);
+        if (!payload) return;
         mapById.set(key, {
           type: 'Feature',
           geometry: { type: 'Point', coordinates: [coords.lng, coords.lat] },
@@ -1905,18 +1925,7 @@ export function MapView({
             locked: !isUnlockedId(ownerId),
             isUnlocked: isUnlockedId(ownerId),
           },
-          payload: {
-            ...ownerPreview,
-            id: ownerId,
-            ownerId,
-            primaryProfile: normalizedScope,
-            lat: coords.lat,
-            lng: coords.lng,
-            portfolioCount: (showcaseProperties || []).filter((p) => (
-              String(p?.ownerId || '') === ownerId
-              && getRecordProfileScope(p) === normalizedScope
-            )).length,
-          },
+          payload,
         });
       });
     };
@@ -1949,6 +1958,24 @@ export function MapView({
       byOwner.forEach(({ ownerId, normalizedScope, ownerPreview, coords, stateCode, service }) => {
         const key = `person-${ownerId}-${normalizedScope}`;
         if (mapById.has(key)) return;
+        const linkedServices = (servicePortfolio || []).filter((s) => (
+          String(s?.ownerId || '') === ownerId
+          && getRecordProfileScope(s) === normalizedScope
+        ));
+        const payload = normalizeCard({
+          cardKind: 'person',
+          ...ownerPreview,
+          id: ownerId,
+          ownerId,
+          primaryProfile: normalizedScope,
+          lat: coords.lat,
+          lng: coords.lng,
+          loc: ownerPreview.loc || stateCode,
+          portfolioCount: linkedServices.length,
+          ownerPreview: { ...ownerPreview, primaryProfile: normalizedScope },
+          linkedServices,
+        }, currentUserId);
+        if (!payload) return;
         mapById.set(key, {
           type: 'Feature',
           geometry: { type: 'Point', coordinates: [coords.lng, coords.lat] },
@@ -1960,19 +1987,7 @@ export function MapView({
             locked: !isUnlockedId(ownerId),
             isUnlocked: isUnlockedId(ownerId),
           },
-          payload: {
-            ...ownerPreview,
-            id: ownerId,
-            ownerId,
-            primaryProfile: normalizedScope,
-            lat: coords.lat,
-            lng: coords.lng,
-            loc: ownerPreview.loc || stateCode,
-            portfolioCount: (servicePortfolio || []).filter((s) => (
-              String(s?.ownerId || '') === ownerId
-              && getRecordProfileScope(s) === normalizedScope
-            )).length,
-          },
+          payload,
         });
       });
     };
@@ -2008,6 +2023,29 @@ export function MapView({
         if (!name || !coords) return;
         const key = `person-${ownerId}-${normalizedScope}`;
         if (mapById.has(key)) return;
+        const payload = normalizeCard({
+          cardKind: 'person',
+          ...ownerPreview,
+          id: ownerId,
+          ownerId,
+          primaryProfile: normalizedScope,
+          loc: stateCode,
+          lat: coords.lat,
+          lng: coords.lng,
+          portfolioCount: linkedPropertyCount + linkedServiceCount,
+          ownerPreview: { ...ownerPreview, primaryProfile: normalizedScope },
+          linkedProperties: (showcaseProperties || []).filter((property) => (
+            String(property?.ownerId || '') === ownerId
+            && getRecordProfileScope(property) === normalizedScope
+            && isTruthyFlag(property?.publishToShowcase, true)
+          )),
+          linkedServices: (servicePortfolio || []).filter((service) => (
+            String(service?.ownerId || '') === ownerId
+            && getRecordProfileScope(service) === normalizedScope
+            && isTruthyFlag(service?.publishToConnections, true)
+          )),
+        }, currentUserId);
+        if (!payload) return;
         mapById.set(key, {
           type: 'Feature',
           geometry: { type: 'Point', coordinates: [coords.lng, coords.lat] },
@@ -2019,16 +2057,7 @@ export function MapView({
             locked: !isUnlockedId(ownerId),
             isUnlocked: isUnlockedId(ownerId),
           },
-          payload: {
-            ...ownerPreview,
-            id: ownerId,
-            ownerId,
-            primaryProfile: normalizedScope,
-            loc: stateCode,
-            lat: coords.lat,
-            lng: coords.lng,
-            portfolioCount: linkedPropertyCount + linkedServiceCount,
-          },
+          payload,
         });
       });
     };
@@ -2067,6 +2096,8 @@ export function MapView({
         if (onlyMine && !isOwnProperty) return;
         const coords = resolvePropertyCoords(property, geocodeCache, pinOverrides);
         if (!coords) return;
+        const payload = normalizeCard({ ...property, cardKind: 'property', lat: coords.lat, lng: coords.lng }, currentUserId);
+        if (!payload) return;
         const key = `user-property-${property.id}`;
         if (mapById.has(key)) return;
         mapById.set(key, {
@@ -2080,7 +2111,7 @@ export function MapView({
             isUnlocked: isOwnProperty || isUnlockedId(property.ownerId),
             isOwn: isOwnProperty,
           },
-          payload: { ...property, lat: coords.lat, lng: coords.lng },
+          payload,
         });
       });
     };

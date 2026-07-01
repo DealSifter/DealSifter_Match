@@ -23,6 +23,7 @@ import { isSupabaseConfigured, supabase } from '../lib/supabaseClient';
 import { isUuid, mapPropertyHotMetrics } from '../lib/propertyHotMetrics';
 import { isPendingDealExpired } from '../lib/pendingDeal';
 import { placeOwnFeedIds, sortFeedRecords } from '../lib/feedOrdering';
+import { normalizeCard } from '../lib/normalizeFeedCard';
 import feedMatchIcon from '../assets/feed-match-icon.png';
 import spotlightIcon from '../assets/spotlight-icon.png';
 
@@ -802,10 +803,12 @@ export function Dashboard({ page, nuggets, setModal, setPage, onOpenOnboardingTa
       const type = String(ownerPreview?.type || firstService?.category || '').trim();
       const isFsboOwner = normalizedScope === 'fsbo';
       const desc = isFsboOwner ? '' : String(firstService?.description || '').trim();
-      return {
+      return normalizeCard({
+        cardKind: 'person',
         id: `${ownerId}:${normalizedScope}`,
         ownerId,
         scopeKey: normalizedScope === 'professional' ? 'secondary' : normalizedScope,
+        primaryProfile: normalizedScope,
         name,
         type,
         badge: ownerPreview?.badge || '',
@@ -820,12 +823,14 @@ export function Dashboard({ page, nuggets, setModal, setPage, onOpenOnboardingTa
         email: ownerPreview?.email || '',
         primaryPhone: ownerPreview?.primaryPhone || '',
         portfolioCount: props.length + services.length,
-        primaryProfile: normalizedScope,
         markets,
         contactMethods: ownerPreview?.contactMethods || [],
         verified: ownerPreview?.verified === true,
+        ownerPreview: { ...ownerPreview, primaryProfile: normalizedScope },
+        linkedProperties: props,
+        linkedServices: services,
         _priority: 'tertiary',
-      };
+      }, currentUserId);
     }).filter(Boolean);
     const enriched = staticCards.map((c) => {
       try {
@@ -896,12 +901,13 @@ export function Dashboard({ page, nuggets, setModal, setPage, onOpenOnboardingTa
           const scopeKey = normalizedScope === 'professional'
             ? 'secondary'
             : (normalizedScope === 'fsbo' ? 'fsbo' : 'personal');
-          return {
+          return normalizeCard({
             ...p,
+            cardKind: 'property',
             _source: 'property',
             markets: collectRecordStates(p),
             ownerPreview: localOwnerIds.includes(String(p.ownerId || '')) ? buildLocalProfileCard(scopeKey) : (p.ownerPreview || null),
-          };
+          }, currentUserId);
         }).filter(Boolean),
         ...mockProperties.map((p) => {
           // ownerId permanece do card fake

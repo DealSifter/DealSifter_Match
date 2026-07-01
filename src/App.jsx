@@ -86,6 +86,7 @@ import { getT } from './i18n/translations';
 import { CATEGORIES, CARDS as _MOCK_CARDS, PLANS, PROPERTIES as _MOCK_PROPERTIES, SERVICE_PORTFOLIO as _MOCK_SERVICES } from './data/mockData';
 import { supabase, isSupabaseConfigured, supabaseConfigHint } from './lib/supabaseClient';
 import { buildScopedProfilePayload, extractScopedProfileLegacy, inferRecordProfileScope, normalizeProfileScope } from './lib/profileScopeResolver';
+import { normalizeCard } from './lib/normalizeFeedCard';
 import { buildDataIntegrityAudit } from './lib/dataIntegrityAudit';
 import { getPortfolioFull, setPortfolioFull, clearAllUserData, uploadDataUrlToStorage } from './lib/localforageHelper';
 import { useAuthSession, mapSupabaseUserToSession } from './hooks/useAuthSession';
@@ -2591,6 +2592,7 @@ export default function App() {
               ownerPreview: getOwnerPreviewForRow(row),
               primaryProfile: inferDbPropertyProfileScope(row),
             }))
+            .map((property) => normalizeCard({ ...property, cardKind: 'property' }, supabaseUserId))
             .filter(isValidGlobalShowcaseProperty);
           const nextGlobalServices = serviceRows
             .map((row) => {
@@ -2601,6 +2603,7 @@ export default function App() {
                 primaryProfile,
               });
             })
+            .map((service) => normalizeCard({ ...service, cardKind: 'service' }, supabaseUserId))
             .filter(isValidGlobalConnectionService);
 
           setGlobalShowcaseProperties(nextGlobalProperties);
@@ -2753,6 +2756,7 @@ export default function App() {
               ownerPreview: getOwnerPreviewForRow(row),
               primaryProfile: inferDbPropertyProfileScope(row),
             }))
+            .map((property) => normalizeCard({ ...property, cardKind: 'property' }, supabaseUserId))
             .filter(isValidGlobalShowcaseProperty);
         const nextGlobalServices = serviceRows
           .map((row) => {
@@ -2763,6 +2767,7 @@ export default function App() {
               primaryProfile,
             });
           })
+          .map((service) => normalizeCard({ ...service, cardKind: 'service' }, supabaseUserId))
           .filter(isValidGlobalConnectionService);
 
         setGlobalShowcaseProperties(nextGlobalProperties);
