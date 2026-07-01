@@ -103,7 +103,7 @@ const resolveOwnerIdentity = (rawCard, scope) => {
     photo: pickString(
       payloadScope.photo,
       payloadProfile.photo,
-      isFsbo ? personalRow.photo_url : '',
+      !isProfessional ? personalRow.photo_url : '',
       isProfessional ? pickString(payloadProfile.photoB, payloadProfile.photoBUrl, professionalRow.photo_b_url) : ''
     ),
     type: isFsbo

@@ -917,9 +917,9 @@ const buildDbOwnerPreview = ({ ownerId, scope, userRow, personalRow, professiona
   if (!name) return null;
 
   const photo = pickFirstString(
-    isFsbo ? payloadScope?.photo : payloadScope?.photo,
-    isFsbo ? payloadProfile?.photo : payloadProfile?.photo,
-    isFsbo ? personalRow?.photo_url : '',
+    payloadScope?.photo,
+    payloadProfile?.photo,
+    !isProfessional ? personalRow?.photo_url : '',
     isFsbo ? '' : payloadProfile?.photoB,
     isFsbo ? '' : payloadProfile?.photoBUrl,
     isProfessional ? professionalRow?.photo_b_url : '',
