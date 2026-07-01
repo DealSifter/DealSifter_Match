@@ -94,6 +94,7 @@ import { useProfileSync } from './hooks/useProfileSync';
 import { usePortfolioSync } from './hooks/usePortfolioSync';
 import { useCheckoutFlow } from './hooks/useCheckoutFlow';
 import { useMediaQuery } from './hooks/useMediaQuery';
+import { useChatRealtime } from './hooks/useChatRealtime';
 import { getPlanGateCopy } from './lib/planAccess';
 import { trackAppEvent } from './lib/adminEventTracking';
 import { createPropertyUnlockRecord, getPortfolioUnlockCost, getPropertyExclusivityStatus, resolveUnlockOwnerId } from './lib/unlockRules';
@@ -1440,6 +1441,19 @@ export default function App() {
     const id = ++toastIdRef.current;
     setToasts((prev) => [...prev.slice(-4), { id, type, title, message, duration }]);
   }, []);
+  const handleChatSendError = useCallback(() => {
+    addToast({ type: 'error', message: 'Chat message could not be sent.' });
+  }, [addToast]);
+  const {
+    conversations: convos,
+    setConversations: setConvos,
+    sendMessage: sendChatMessage,
+  } = useChatRealtime({
+    currentUserId: authSession?.userId,
+    enabled: Boolean(authSession?.userId),
+    onError: safeLogError,
+    onSendError: handleChatSendError,
+  });
 
   useEffect(() => {
     if (!isSupabaseConfigured || !supabase || !authSession?.userId) return undefined;
@@ -1979,7 +1993,6 @@ export default function App() {
       return [];
     }
   }); // Track {buyerId, sellerId} for bought contacts
-  const [convos, setConvos] = useState({});
   const [chatSeenVersion, setChatSeenVersion] = useState(0);
   void chatSeenVersion;
   const [chatFocusTarget, setChatFocusTarget] = useState(null);
@@ -3300,7 +3313,7 @@ export default function App() {
       setPropertyPortfolio([]);
       clearAllUserData(); // clears IndexedDB portfolioStore + tempUploads
     }
-  }, [supabaseUserId]);
+  }, [setConvos, supabaseUserId]);
 
   // Persist category order to localStorage
   useEffect(() => {
@@ -4551,35 +4564,6 @@ export default function App() {
     setPage('matches');
   };
 
-  const appendChatMessageToState = useCallback((messageRow) => {
-    if (!messageRow || !supabaseUserId) return;
-    const senderId = String(messageRow.sender_id || '').trim();
-    const recipientId = String(messageRow.recipient_id || '').trim();
-    if (!senderId || !recipientId) return;
-    const peerId = senderId === String(supabaseUserId) ? recipientId : senderId;
-    const metadata = messageRow.metadata && typeof messageRow.metadata === 'object' ? messageRow.metadata : {};
-    const mapped = {
-      id: messageRow.id,
-      from: senderId === String(supabaseUserId) ? 'me' : 'them',
-      text: messageRow.body || '',
-      type: messageRow.message_type || metadata.type || 'text',
-      refData: metadata.refData || null,
-      originalText: metadata.originalText || messageRow.body || '',
-      originalLang: metadata.originalLang || '',
-      translatedText: messageRow.body || '',
-      translatedLang: metadata.translatedLang || '',
-      createdAt: messageRow.created_at || null,
-    };
-    setConvos((prev) => {
-      const current = Array.isArray(prev?.[peerId]) ? prev[peerId] : [];
-      if (mapped.id && current.some((msg) => String(msg?.id || '') === String(mapped.id))) return prev;
-      return {
-        ...(prev || {}),
-        [peerId]: [...current, mapped].sort((a, b) => new Date(a.createdAt || 0) - new Date(b.createdAt || 0)),
-      };
-    });
-  }, [setConvos, supabaseUserId]);
-
   useEffect(() => {
     if (!isSupabaseConfigured || !supabase || !supabaseUserId) return undefined;
     let timer = null;
@@ -4606,115 +4590,6 @@ export default function App() {
       supabase.removeChannel(channel);
     };
   }, [supabaseUserId]);
-
-  const sendChatMessage = useCallback(async (payload = {}) => {
-    if (!isSupabaseConfigured || !supabase || !supabaseUserId) return;
-    const recipientId = String(payload.recipientId || '').trim();
-    const text = String(payload.text || '').trim();
-    if (!recipientId || !text) return;
-
-    const optimisticId = `pending:${Date.now()}:${Math.random().toString(36).slice(2)}`;
-    const optimistic = {
-      id: optimisticId,
-      sender_id: supabaseUserId,
-      recipient_id: recipientId,
-      contact_owner_id: payload.contactOwnerId || recipientId,
-      body: text,
-      message_type: payload.type || 'text',
-      metadata: {
-        refData: payload.refData || null,
-        originalText: payload.originalText || text,
-        originalLang: payload.originalLang || '',
-        translatedLang: payload.translatedLang || '',
-      },
-      created_at: new Date().toISOString(),
-    };
-    appendChatMessageToState(optimistic);
-
-    const { data, error } = await supabase
-      .from('chat_messages')
-      .insert({
-        sender_id: supabaseUserId,
-        recipient_id: recipientId,
-        contact_owner_id: payload.contactOwnerId || recipientId,
-        body: text,
-        message_type: payload.type || 'text',
-        metadata: optimistic.metadata,
-      })
-      .select('id, sender_id, recipient_id, contact_owner_id, body, message_type, metadata, created_at')
-      .single();
-
-    if (error) {
-      safeLogError('Chat message persistence failed.', error);
-      addToast({ type: 'error', message: 'Chat message could not be sent.' });
-      return;
-    }
-
-    setConvos((prev) => {
-      const current = Array.isArray(prev?.[recipientId]) ? prev[recipientId] : [];
-      return {
-        ...(prev || {}),
-        [recipientId]: current.filter((msg) => String(msg?.id || '') !== optimisticId),
-      };
-    });
-    appendChatMessageToState(data);
-  }, [addToast, appendChatMessageToState, setConvos, supabaseUserId]);
-
-  useEffect(() => {
-    if (!isSupabaseConfigured || !supabase || !supabaseUserId) {
-      window.setTimeout(() => setConvos({}), 0);
-      return undefined;
-    }
-
-    let cancelled = false;
-    const hydrateChatMessages = async () => {
-      const { data, error } = await supabase
-        .from('chat_messages')
-        .select('id, sender_id, recipient_id, contact_owner_id, body, message_type, metadata, created_at')
-        .or(`sender_id.eq.${supabaseUserId},recipient_id.eq.${supabaseUserId}`)
-        .order('created_at', { ascending: true })
-        .limit(500);
-      if (cancelled) return;
-      if (error) {
-        safeLogError('Chat message hydration failed.', error);
-        return;
-      }
-      const grouped = {};
-      (Array.isArray(data) ? data : []).forEach((row) => {
-        const senderId = String(row.sender_id || '').trim();
-        const recipientId = String(row.recipient_id || '').trim();
-        const peerId = senderId === String(supabaseUserId) ? recipientId : senderId;
-        if (!peerId) return;
-        const metadata = row.metadata && typeof row.metadata === 'object' ? row.metadata : {};
-        if (!grouped[peerId]) grouped[peerId] = [];
-        grouped[peerId].push({
-          id: row.id,
-          from: senderId === String(supabaseUserId) ? 'me' : 'them',
-          text: row.body || '',
-          type: row.message_type || metadata.type || 'text',
-          refData: metadata.refData || null,
-          originalText: metadata.originalText || row.body || '',
-          originalLang: metadata.originalLang || '',
-          translatedText: row.body || '',
-          translatedLang: metadata.translatedLang || '',
-          createdAt: row.created_at || null,
-        });
-      });
-      setConvos(grouped);
-    };
-
-    hydrateChatMessages();
-    const channel = supabase
-      .channel(`chat-messages-${supabaseUserId}`)
-      .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'chat_messages', filter: `recipient_id=eq.${supabaseUserId}` }, (payload) => appendChatMessageToState(payload.new))
-      .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'chat_messages', filter: `sender_id=eq.${supabaseUserId}` }, (payload) => appendChatMessageToState(payload.new))
-      .subscribe();
-
-    return () => {
-      cancelled = true;
-      supabase.removeChannel(channel);
-    };
-  }, [appendChatMessageToState, supabaseUserId]);
 
   const openSettingsTab = (tab = 'profile') => {
     setSettingsInitialTab(tab);

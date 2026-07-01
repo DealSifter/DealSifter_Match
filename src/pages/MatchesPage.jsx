@@ -22,6 +22,7 @@ import { getPortfolioUnlockCost, getPropertyExclusivityStatus } from '../lib/unl
 import { isSupabaseConfigured } from '../lib/supabaseClient';
 import { normalizeCard } from '../lib/normalizeFeedCard';
 import { getActiveExclusivities } from '../services/unlockService';
+import { useUnlockNotifications } from '../hooks/useUnlockNotifications';
 import appLogo from '../assets/logo-dark-theme.png';
 
 const PROPERTIES = import.meta.env.DEV ? (_MOCK_PROPERTIES || []) : [];
@@ -1814,6 +1815,25 @@ export function MatchesPage({ nuggets, setModal, openUnlock, unlocked, initialCh
   void setCategoryOrder;
   const cardsT = allT.cards;
   const modalsT = allT.modals;
+  const handleUnlockRealtimeNotify = useCallback((notification) => {
+    const isPropertyUnlock = notification?.table === 'property_unlocks';
+    addToast?.({
+      type: 'info',
+      title: t.unlockRealtimeTitle || 'New unlock',
+      message: isPropertyUnlock
+        ? (t.unlockRealtimePropertyMessage || 'Someone unlocked one of your properties.')
+        : (t.unlockRealtimeContactMessage || 'Someone unlocked your contact.'),
+      duration: 6500,
+    });
+  }, [addToast, t]);
+  const {
+    unreadCount: unlockNotificationCount,
+    markAllRead: markUnlockNotificationsRead,
+  } = useUnlockNotifications({
+    currentUserId,
+    enabled: Boolean(currentUserId && currentUserId !== 'local-user'),
+    onNotify: handleUnlockRealtimeNotify,
+  });
   const CONTACT_SIGNAL = C.accent;
   const PROPERTY_SIGNAL = "#4381bc";
   const getOwnerIdForScope = useCallback((scopeKey) => {
@@ -2840,6 +2860,29 @@ export function MatchesPage({ nuggets, setModal, openUnlock, unlocked, initialCh
           <div style={{ padding:16, borderBottom:`1px solid ${C.border}` }}>
             <h2 style={{ fontWeight:800, fontSize:16, display:"flex", alignItems:"center", gap:8 }}>
               <Icon name="chat" size={16} color={C.accent} /> {t.allMatches}
+              {unlockNotificationCount > 0 ? (
+                <button
+                  type="button"
+                  onClick={markUnlockNotificationsRead}
+                  title={t.unlockRealtimeMarkRead || 'Mark unlock notifications as read'}
+                  style={{
+                    minWidth: 20,
+                    height: 20,
+                    padding: '0 6px',
+                    borderRadius: 999,
+                    border: `1px solid ${C.alpha(C.accent, 0.48)}`,
+                    background: C.alpha(C.accent, 0.16),
+                    color: C.accent,
+                    fontSize: 10,
+                    fontWeight: 900,
+                    lineHeight: 1,
+                    cursor: 'pointer',
+                    boxShadow: `0 0 12px ${C.alpha(C.accent, 0.22)}`,
+                  }}
+                >
+                  {unlockNotificationCount > 99 ? '99+' : unlockNotificationCount}
+                </button>
+              ) : null}
             </h2>
           </div>
 
