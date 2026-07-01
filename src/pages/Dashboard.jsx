@@ -1937,7 +1937,7 @@ export function Dashboard({ page, nuggets, setModal, setPage, onOpenOnboardingTa
 
   const openOnboardingForScope = (scope) => {
     if (isMobileViewport) {
-      addToast?.({ type: 'info', title: 'Use o desktop', message: 'A edição de perfil e portfólio está disponível na versão desktop do app.' });
+      addToast?.({ type: 'info', title: t.desktopOnlyTitle || 'Use desktop', message: t.desktopOnlyProfileEdit || 'Profile and portfolio editing is available on the desktop version of the app.' });
       return;
     }
     const normalizedScope = String(scope || '').trim().toLowerCase();
@@ -2129,7 +2129,7 @@ export function Dashboard({ page, nuggets, setModal, setPage, onOpenOnboardingTa
     if (focusCard) setFocusCard(null);
     const topCard = connDisplay[0];
     if (isOwnConnectionCard(topCard) && (type === 'match' || type === 'unlock')) {
-      addToast?.({ type: 'info', message: 'Own card, not selectionable' });
+      addToast?.({ type: 'info', message: t.ownCardNotSelectable || 'Own card, not selectionable' });
       return;
     }
     if (type === 'unlock') {
@@ -2249,7 +2249,7 @@ export function Dashboard({ page, nuggets, setModal, setPage, onOpenOnboardingTa
     if (focusCard) setFocusCard(null);
     const topProp = propDisplay[0];
     if (isOwnPropertyCard(topProp) && type === "interest") {
-      addToast?.({ type: 'info', message: 'Own card, not selectionable' });
+      addToast?.({ type: 'info', message: t.ownCardNotSelectable || 'Own card, not selectionable' });
       return;
     }
     const limitedActions = type === 'interest' ? ['match', 'swipe', 'like'] : ['swipe'];
@@ -2382,13 +2382,13 @@ export function Dashboard({ page, nuggets, setModal, setPage, onOpenOnboardingTa
     if (propDisplay.length === 0) return;
     const topProp = propDisplay[0];
     if (isOwnPropertyCard(topProp)) {
-      addToast?.({ type: 'info', message: 'Own card, not selectionable' });
+      addToast?.({ type: 'info', message: t.ownCardNotSelectable || 'Own card, not selectionable' });
       return;
     }
     const ownerCard = resolvePropertyOwnerCard(topProp);
 
     if (!ownerCard?.id && !ownerCard?.ownerId) {
-      addToast?.({ type: 'warning', message: 'Contato responsável por este card não encontrado.' });
+      addToast?.({ type: 'warning', message: t.contactOwnerNotFound || 'Contact owner for this card was not found.' });
       return;
     }
 
@@ -2418,7 +2418,7 @@ export function Dashboard({ page, nuggets, setModal, setPage, onOpenOnboardingTa
     const ownIds = ownOwnerIdsKey ? ownOwnerIdsKey.split('|').filter(Boolean) : [];
     const targetOwnerId = String(targetCard?.ownerId ?? targetCard?.id ?? '').trim();
     if (String(targetCard?.id || '').startsWith('local:') || (targetOwnerId && ownIds.includes(targetOwnerId))) {
-      addToast?.({ type: 'info', message: 'Own card, not selectionable' });
+      addToast?.({ type: 'info', message: t.ownCardNotSelectable || 'Own card, not selectionable' });
       return false;
     }
     const contactId = String(targetCard?.id || '').trim();
@@ -3335,9 +3335,9 @@ export function Dashboard({ page, nuggets, setModal, setPage, onOpenOnboardingTa
                     justifyContent: 'center',
                     boxShadow: `0 4px 10px ${C.alpha(C.danger, 0.12)}`
                   }}
-                  title="Registro rápido"
+                  title={t.quickRegistrationTitle || 'Quick Registration'}
                 >
-                  Registro
+                  {t.quickRegistrationButton || 'Register'}
                 </button>
               </div>
             )}
@@ -3506,7 +3506,7 @@ export function Dashboard({ page, nuggets, setModal, setPage, onOpenOnboardingTa
                           style={{ border: 'none', background: 'transparent', cursor: myCardShowcaseIdx === 0 ? 'not-allowed' : 'pointer', padding: 4, borderRadius: 999, display: 'flex', alignItems: 'center', justifyContent: 'center' }}
                           disabled={myCardShowcaseIdx === 0}
                           onClick={() => setMyCardShowcaseIdx(i => Math.max(0, i - 1))}
-                          aria-label="Anterior"
+                          aria-label={t.previous || 'Previous'}
                         >
                           <Icon name="chevronLeft" size={22} color={myCardShowcaseIdx === 0 ? C.t3 : C.t1} />
                         </button>
@@ -3515,7 +3515,7 @@ export function Dashboard({ page, nuggets, setModal, setPage, onOpenOnboardingTa
                           style={{ border: 'none', background: 'transparent', cursor: myCardShowcaseIdx === myCardShowcaseCount - 1 ? 'not-allowed' : 'pointer', padding: 4, borderRadius: 999, display: 'flex', alignItems: 'center', justifyContent: 'center' }}
                           disabled={myCardShowcaseIdx === myCardShowcaseCount - 1}
                           onClick={() => setMyCardShowcaseIdx(i => Math.min(myCardShowcaseCount - 1, i + 1))}
-                          aria-label="Próximo"
+                          aria-label={t.next || 'Next'}
                         >
                           <Icon name="chevronRight" size={22} color={myCardShowcaseIdx === myCardShowcaseCount - 1 ? C.t3 : C.t1} />
                         </button>

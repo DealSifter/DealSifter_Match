@@ -3147,7 +3147,7 @@ export function MapView({
                       }}>
                         {tMap.femaUnavailableNotice || 'FEMA layer unavailable on this network/region. Keeping imagery + streets only.'}
                         <div style={{ marginTop: 6, display: 'flex', gap: 6, flexWrap: 'wrap' }}>
-                          <button className="map-chip" onClick={retryFemaOverlay}>Tentar novamente</button>
+                          <button className="map-chip" onClick={retryFemaOverlay}>{tMap.retry || 'Try again'}</button>
                         </div>
                       </div>
                     )}
@@ -3242,15 +3242,16 @@ export function MapView({
                   fontSize: 12,
                   lineHeight: 1.45,
                 }}>
-                  <div style={{ fontWeight: 700, marginBottom: 6 }}>Modo de fixacao manual ativo</div>
+                  <div style={{ fontWeight: 700, marginBottom: 6 }}>{tMap.manualPinTitle || 'Manual pin placement active'}</div>
                   <div style={{ marginBottom: 8 }}>
-                    Clique no mapa para salvar o pin correto de: {manualPinTarget.address || 'Imovel sem endereco'}
+                    {(tMap.manualPinHint || 'Click the map to save the correct pin for: {address}')
+                      .replace('{address}', manualPinTarget.address || tMap.propertyWithoutAddress || 'Property without address')}
                   </div>
                   <button
                     className="map-chip"
                     onClick={() => setManualPinTargetId(null)}
                   >
-                    Cancelar
+                    {tMap.cancel || 'Cancel'}
                   </button>
                 </div>
               )}

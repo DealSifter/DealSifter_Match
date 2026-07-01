@@ -140,9 +140,9 @@ export function Pricing({ setPage, setModal, prevPage, addToast, onRequestChecko
         await onRequestCheckoutIntent({ kind: 'subscription', planId: p.id, billingCycle, source: 'pricing' });
         return;
       }
-      addToast?.({ type: 'warning', message: 'Fluxo de checkout indisponível no momento.' });
+      addToast?.({ type: 'warning', message: t.checkoutUnavailable || 'Checkout flow is unavailable right now.' });
     } catch (err) {
-      addToast?.({ type: 'error', message: String(err?.message || 'Falha ao iniciar assinatura.') });
+      addToast?.({ type: 'error', message: String(err?.message || t.subscriptionStartError || 'Failed to start subscription.') });
     } finally {
       setCheckoutLoading(null);
     }
@@ -159,9 +159,9 @@ export function Pricing({ setPage, setModal, prevPage, addToast, onRequestChecko
         setModal('store');
         return;
       }
-      addToast?.({ type: 'warning', message: 'Fluxo de checkout indisponível no momento.' });
+      addToast?.({ type: 'warning', message: t.checkoutUnavailable || 'Checkout flow is unavailable right now.' });
     } catch (err) {
-      addToast?.({ type: 'error', message: String(err?.message || 'Falha ao iniciar compra de nuggets.') });
+      addToast?.({ type: 'error', message: String(err?.message || t.nuggetPurchaseStartError || 'Failed to start nugget purchase.') });
     } finally {
       setCheckoutLoading(null);
     }

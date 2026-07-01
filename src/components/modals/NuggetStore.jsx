@@ -17,7 +17,7 @@ export function NuggetStore({ nuggets, onBuy, onClose }) {
       setBought(p);
       setTimeout(() => { setBought(null); onClose(); }, 1400);
     } catch (err) {
-      setError(String(err?.message || 'Falha ao processar compra. Tente novamente.'));
+      setError(String(err?.message || t.purchaseError || 'Unable to process purchase. Please try again.'));
     }
   };
   return (

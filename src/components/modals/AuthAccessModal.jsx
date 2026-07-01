@@ -51,7 +51,7 @@ export function AuthAccessModal({ initialTab = 'signup', onClose, onSubmit, onFo
     }
     if (!canSubmit) {
       setError(tab === 'signup' && String(password).length < 8
-        ? (t.passwordTooShort || 'A senha deve ter pelo menos 8 caracteres.')
+        ? (t.passwordTooShort || 'Password must be at least 8 characters.')
         : (t.invalidForm || 'Please complete the required fields.'));
       return;
     }

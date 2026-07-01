@@ -443,7 +443,7 @@ export function AdminDashboard({ setPage, prevPage, logoutAdmin }) {
   const loadMetrics = async () => {
     if (!isSupabaseConfigured || !supabase) {
       setLoading(false);
-      setError('Supabase is not configured.');
+      setError(t.supabaseNotConfigured || 'Supabase is not configured.');
       return;
     }
     setLoading(true);
@@ -453,7 +453,7 @@ export function AdminDashboard({ setPage, prevPage, logoutAdmin }) {
       if (rpcError) throw rpcError;
       setMetrics(data || {});
     } catch (err) {
-      setError(err?.message || 'Admin metrics unavailable. Run the latest Supabase migration.');
+      setError(err?.message || t.metricsUnavailable || 'Admin metrics unavailable. Run the latest Supabase migration.');
     } finally {
       setLoading(false);
     }

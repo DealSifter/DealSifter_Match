@@ -279,25 +279,25 @@ export function Onboarding({
     const allSynced = profileSyncStatus === 'synced' && portfolioSyncStatus === 'synced';
 
     if (allSynced) {
-      return { ring: '#2f8f4e', dot: '#35c201', title: 'Perfis e portfolio sincronizados com o banco' };
+      return { ring: '#2f8f4e', dot: '#35c201', title: t.profileSyncAllSynced || 'Profiles and portfolio synced with database' };
     }
     if (isSyncing) {
-      return { ring: C.accent, dot: C.accent, title: 'Sincronizando perfis e portfolio com o banco' };
+      return { ring: C.accent, dot: C.accent, title: t.profileSyncAllSyncing || 'Syncing profiles and portfolio with database' };
     }
     if (hasError) {
-      return { ring: C.danger, dot: C.danger, title: 'Falha na sincronizacao de perfis/portfolio' };
+      return { ring: C.danger, dot: C.danger, title: t.profileSyncAllError || 'Profile and portfolio sync failed' };
     }
     if (profileSyncStatus === 'synced') {
-      return { ring: '#2f8f4e', dot: '#35c201', title: 'Perfil sincronizado com o banco' };
+      return { ring: '#2f8f4e', dot: '#35c201', title: t.profileSyncOneSynced || 'Profile synced with database' };
     }
     if (profileSyncStatus === 'syncing') {
-      return { ring: C.accent, dot: C.accent, title: 'Sincronizando perfil com o banco' };
+      return { ring: C.accent, dot: C.accent, title: t.profileSyncOneSyncing || 'Syncing profile with database' };
     }
     if (profileSyncStatus === 'error') {
-      return { ring: C.danger, dot: C.danger, title: 'Falha na sincronizacao de perfil' };
+      return { ring: C.danger, dot: C.danger, title: t.profileSyncOneError || 'Profile sync failed' };
     }
-    return { ring: C.border, dot: C.t3, title: 'Sem sincronizacao de perfil ativa' };
-  }, [profileSyncStatus, portfolioSyncStatus]);
+    return { ring: C.border, dot: C.t3, title: t.profileSyncIdle || 'No active profile sync' };
+  }, [profileSyncStatus, portfolioSyncStatus, t]);
 
   const personalTabRef = useRef(null);
   const skillsTabRef = useRef(null);
@@ -4053,8 +4053,10 @@ export function Onboarding({
                                   <button
                                     type="button"
                                     onClick={() => togglePropertyDealClosed(p.id)}
-                                    title={isClosed ? 'Deal fechado â€” clique para reabrir' : `${pressure}% de usuÃ¡rios acessaram â€” marcar deal como fechado`}
-                                    aria-label={isClosed ? 'Deal fechado' : 'Fechar deal'}
+                                    title={isClosed
+                                      ? (t.dealClosedReopen || 'Deal closed - click to reopen')
+                                      : (t.dealCloseWithPressure || '{pressure}% of users accessed - mark deal as closed').replace('{pressure}', pressure)}
+                                    aria-label={isClosed ? (t.dealClosed || 'Deal closed') : (t.closeDeal || 'Close deal')}
                                     className={isActive ? 'deal-blink' : undefined}
                                     style={{
                                       background: isClosed ? 'rgba(39,174,96,0.12)' : isActive ? 'rgba(213,38,20,0.10)' : 'none',
@@ -4385,8 +4387,8 @@ export function Onboarding({
                               <button
                                 type="button"
                                 onClick={() => toggleServiceDealClosed(svc.id)}
-                                title={svc.dealClosed ? 'Deal fechado - clique para reabrir' : 'Marcar deal como fechado'}
-                                aria-label={svc.dealClosed ? 'Deal fechado' : 'Fechar deal'}
+                                title={svc.dealClosed ? (t.dealClosedReopen || 'Deal closed - click to reopen') : (t.markDealClosed || 'Mark deal as closed')}
+                                aria-label={svc.dealClosed ? (t.dealClosed || 'Deal closed') : (t.closeDeal || 'Close deal')}
                                 style={{
                                   background: svc.dealClosed ? 'rgba(39,174,96,0.12)' : 'none',
                                   border: svc.dealClosed ? '1px solid rgba(39,174,96,0.4)' : '1px solid transparent',
@@ -4726,7 +4728,7 @@ export function Onboarding({
 
       {editingPropertyRecord ? (
         <Modal onClose={() => setEditingPropertyId(null)} maxWidth={1080}>
-          <h3 style={{ margin: '0 0 6px', color: C.t1, fontSize: 20, fontWeight: 800 }}>Editar ImÃ³vel</h3>
+          <h3 style={{ margin: '0 0 6px', color: C.t1, fontSize: 20, fontWeight: 800 }}>{t.editProperty || 'Edit Property'}</h3>
           <p style={{ margin: '0 0 14px', color: C.t3, fontSize: 12 }}>{editingPropertyRecord.address} Â· {editingPropertyRecord.city}</p>
           <div style={{ display: 'grid', gridTemplateColumns: isMobileViewport ? 'repeat(2, minmax(0, 1fr))' : 'minmax(0, 1.5fr) minmax(0, 1.15fr) minmax(96px, 0.7fr) minmax(112px, 0.8fr)', gap: 10, marginBottom: 10 }}>
             <div style={{ position: 'relative', minWidth: 0 }}>

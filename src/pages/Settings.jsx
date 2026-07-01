@@ -474,12 +474,12 @@ export function Settings({ setPage, prevPage, initialTab = 'profile', systemAcco
     if (!pendingCheckoutIntent) return '';
     if (pendingCheckoutIntent.kind === 'subscription') {
       const planName = String(pendingCheckoutIntent.planId || '').toUpperCase();
-      return `Upgrade de plano${planName ? ` (${planName})` : ''}`;
+      return (t.pendingCheckoutSubscription || 'Plan upgrade{plan}').replace('{plan}', planName ? ` (${planName})` : '');
     }
     if (pendingCheckoutIntent.kind === 'nuggets') {
-      return 'Compra de pacote extra de nuggets';
+      return t.pendingCheckoutNuggets || 'Extra nugget pack purchase';
     }
-    return 'Checkout pendente';
+    return t.pendingCheckoutGeneric || 'Pending checkout';
   })();
 
   const logout = async () => {
@@ -698,11 +698,11 @@ export function Settings({ setPage, prevPage, initialTab = 'profile', systemAcco
             <p style={{ margin: '0 0 20px', fontSize: 14, color: C.t1, lineHeight: '1.5' }}>{confirmPayload.message}</p>
             <div style={{ display: 'flex', gap: 10, justifyContent: 'flex-end' }}>
               <button onClick={() => setConfirmPayload(null)} style={{ border: `1px solid ${C.border}`, background: 'transparent', color: C.t2, borderRadius: 8, padding: '9px 18px', fontSize: 13, fontWeight: 700, cursor: 'pointer' }}>
-                Cancelar
+                {t.cancel || 'Cancel'}
               </button>
               <button onClick={() => { confirmPayload.onConfirm?.(); setConfirmPayload(null); }}
                 style={{ border: 'none', borderRadius: 8, padding: '9px 18px', fontSize: 13, fontWeight: 800, cursor: 'pointer', background: confirmPayload.variant === 'danger' ? C.danger : (C.warning || '#f59e0b'), color: '#fff' }}>
-                Confirmar
+                {t.confirm || 'Confirm'}
               </button>
             </div>
           </div>
@@ -888,7 +888,7 @@ export function Settings({ setPage, prevPage, initialTab = 'profile', systemAcco
                         try {
                           await redirectToPortal();
                         } catch (err) {
-                          addToast?.({ type: 'error', message: String(err?.message || 'Portal de cobrança indisponível no momento.') });
+                          addToast?.({ type: 'error', message: String(err?.message || t.billingPortalUnavailable || 'Billing portal is unavailable right now.') });
                         }
                       }}
                       style={{ width: '100%', boxSizing: 'border-box', border: 'none', background: C.accent, color: '#fff', borderRadius: 8, padding: '9px 10px', fontSize: 12, fontWeight: 800, cursor: 'pointer' }}
@@ -977,7 +977,7 @@ export function Settings({ setPage, prevPage, initialTab = 'profile', systemAcco
                   </button>
                   <div style={{ border: `1px solid ${C.border}`, borderRadius: 10, padding: 10, display: 'grid', gap: 8, width: '100%', minWidth: 0, boxSizing: 'border-box' }}>
                     <label style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8, fontSize: 12, color: C.t2 }}>
-                      <span>Email alerts</span>
+                      <span>{t.commEmailAlerts || 'Email alerts'}</span>
                       <input type="checkbox" checked={Boolean(commPrefs?.email)} onChange={() => toggleComm('email')} />
                     </label>
                     <label style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8, fontSize: 12, color: C.t2 }}>
@@ -1161,45 +1161,45 @@ export function Settings({ setPage, prevPage, initialTab = 'profile', systemAcco
                 </div>
 
                 <div style={{ border: `1px solid ${C.border}`, borderRadius: 10, padding: 10, display: 'grid', gap: 8 }}>
-                  <div style={{ fontSize: 12, fontWeight: 800, color: C.t1 }}>2) Feed & Matches</div>
+                  <div style={{ fontSize: 12, fontWeight: 800, color: C.t1 }}>{t.prefFeedMatchesTitle || '2) Feed & Matches'}</div>
                   <label style={{ display: 'grid', gap: 5 }}>
-                    <span style={{ fontSize: 11, color: C.t2, fontWeight: 700 }}>Default ordering</span>
+                    <span style={{ fontSize: 11, color: C.t2, fontWeight: 700 }}>{t.prefDefaultOrdering || 'Default ordering'}</span>
                     <select
                       value={String(prefs?.feedMatches?.sortOrder || 'random')}
                       onChange={(e) => {
                         const nextSortOrder = e.target.value;
                         if (nextSortOrder === 'my_cards_first' && !hasPaidPlan) {
-                          addToast?.({ type: 'warning', message: 'My cards first is available for paid plans.' });
+                          addToast?.({ type: 'warning', message: t.prefMyCardsPaidOnly || 'My cards first is available for paid plans.' });
                           return;
                         }
                         updatePreferences((prev) => ({ ...prev, feedMatches: { ...(prev?.feedMatches || {}), sortOrder: nextSortOrder } }));
                       }}
                       style={controlStyle}
                     >
-                      <option value="random">Random on first login</option>
-                      <option value="recent">Most recent</option>
-                      <option value="name_asc">Name (A-Z)</option>
-                      <option value="price_asc">Price (low to high)</option>
-                      <option value="price_desc">Price (high to low)</option>
-                      <option value="my_cards_first" disabled={!hasPaidPlan}>My cards first (paid plans)</option>
+                      <option value="random">{t.prefSortRandom || 'Random on first login'}</option>
+                      <option value="recent">{t.prefSortRecent || 'Most recent'}</option>
+                      <option value="name_asc">{t.prefSortNameAsc || 'Name (A-Z)'}</option>
+                      <option value="price_asc">{t.prefSortPriceAsc || 'Price (low to high)'}</option>
+                      <option value="price_desc">{t.prefSortPriceDesc || 'Price (high to low)'}</option>
+                      <option value="my_cards_first" disabled={!hasPaidPlan}>{t.prefSortMyCardsFirst || 'My cards first (paid plans)'}</option>
                     </select>
                   </label>
                   <label style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8, fontSize: 12, color: C.t2 }}>
-                    <span>Autoplay media</span>
+                    <span>{t.prefAutoplayMedia || 'Autoplay media'}</span>
                     <input type="checkbox" checked={Boolean(prefs?.feedMatches?.autoplayMedia)} onChange={() => updatePreferences((prev) => ({ ...prev, feedMatches: { ...(prev?.feedMatches || {}), autoplayMedia: !prev?.feedMatches?.autoplayMedia } }))} />
                   </label>
                 </div>
 
                 <div style={{ border: `1px solid ${C.border}`, borderRadius: 10, padding: 10, display: 'grid', gap: 8 }}>
-                  <div style={{ fontSize: 12, fontWeight: 800, color: C.t1 }}>3) Chat language config</div>
+                  <div style={{ fontSize: 12, fontWeight: 800, color: C.t1 }}>{t.prefChatLanguageTitle || '3) Chat language config'}</div>
                   <label style={{ display: 'grid', gap: 5 }}>
-                    <span style={{ fontSize: 11, color: C.t2, fontWeight: 700 }}>I type in</span>
+                    <span style={{ fontSize: 11, color: C.t2, fontWeight: 700 }}>{t.prefChatInputLang || 'I type in'}</span>
                     <select value={chatInputLang} onChange={(e) => updatePreferences((prev) => ({ ...prev, chatLanguage: { ...(prev?.chatLanguage || {}), input: e.target.value } }))} style={controlStyle}>
                       {CHAT_LANGUAGE_OPTIONS.map((opt) => <option key={`pref-chat-in-${opt.code}`} value={opt.code}>{opt.label}</option>)}
                     </select>
                   </label>
                   <label style={{ display: 'grid', gap: 5 }}>
-                    <span style={{ fontSize: 11, color: C.t2, fontWeight: 700 }}>I receive in</span>
+                    <span style={{ fontSize: 11, color: C.t2, fontWeight: 700 }}>{t.prefChatOutputLang || 'I receive in'}</span>
                     <select value={chatOutputLang} onChange={(e) => updatePreferences((prev) => ({ ...prev, chatLanguage: { ...(prev?.chatLanguage || {}), output: e.target.value } }))} style={controlStyle}>
                       {CHAT_LANGUAGE_OPTIONS.map((opt) => <option key={`pref-chat-out-${opt.code}`} value={opt.code}>{opt.label}</option>)}
                     </select>
@@ -1207,27 +1207,27 @@ export function Settings({ setPage, prevPage, initialTab = 'profile', systemAcco
                 </div>
 
                 <div style={{ border: `1px solid ${C.border}`, borderRadius: 10, padding: 10, display: 'grid', gap: 8 }}>
-                  <div style={{ fontSize: 12, fontWeight: 800, color: C.t1 }}>4) Privacy</div>
+                  <div style={{ fontSize: 12, fontWeight: 800, color: C.t1 }}>{t.prefPrivacyTitle || '4) Privacy'}</div>
                   <label style={{ display: 'grid', gap: 5 }}>
-                    <span style={{ fontSize: 11, color: C.t2, fontWeight: 700 }}>Presence status</span>
+                    <span style={{ fontSize: 11, color: C.t2, fontWeight: 700 }}>{t.prefPresenceStatus || 'Presence status'}</span>
                     <select value={String(prefs?.privacy?.presenceStatus || 'online')} onChange={(e) => updatePreferences((prev) => ({ ...prev, privacy: { ...(prev?.privacy || {}), presenceStatus: e.target.value } }))} style={controlStyle}>
-                      <option value="online">Online (green)</option>
-                      <option value="standby">Stand by (yellow)</option>
-                      <option value="offline">Offline (red)</option>
+                      <option value="online">{t.prefPresenceOnline || 'Online (green)'}</option>
+                      <option value="standby">{t.prefPresenceStandby || 'Stand by (yellow)'}</option>
+                      <option value="offline">{t.prefPresenceOffline || 'Offline (red)'}</option>
                     </select>
                   </label>
                   <label style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8, fontSize: 12, color: C.t2 }}>
-                    <span>Read receipts</span>
+                    <span>{t.prefReadReceipts || 'Read receipts'}</span>
                     <input type="checkbox" checked={Boolean(prefs?.privacy?.readReceipts)} onChange={() => updatePreferences((prev) => ({ ...prev, privacy: { ...(prev?.privacy || {}), readReceipts: !prev?.privacy?.readReceipts } }))} />
                   </label>
                   <label style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8, fontSize: 12, color: C.t2 }}>
-                    <span>Message preview</span>
+                    <span>{t.prefMessagePreview || 'Message preview'}</span>
                     <input type="checkbox" checked={Boolean(prefs?.privacy?.messagePreview)} onChange={() => updatePreferences((prev) => ({ ...prev, privacy: { ...(prev?.privacy || {}), messagePreview: !prev?.privacy?.messagePreview } }))} />
                   </label>
                 </div>
 
                 <div style={{ border: `1px solid ${C.border}`, borderRadius: 10, padding: 10, display: 'grid', gap: 8 }}>
-                  <div style={{ fontSize: 12, fontWeight: 800, color: C.t1 }}>5) Local Storage</div>
+                  <div style={{ fontSize: 12, fontWeight: 800, color: C.t1 }}>{t.prefLocalStorageTitle || '5) Local Storage'}</div>
                   <button
                     onClick={() => {
                       try {
@@ -1240,14 +1240,14 @@ export function Settings({ setPage, prevPage, initialTab = 'profile', systemAcco
                         localStorage.removeItem('ds_notif_deferred_chat');
                         localStorage.removeItem('ds_notif_deferred_system');
                         localStorage.removeItem('chatSeenIncomingByContact');
-                        addToast?.({ type: 'success', message: 'Local cache cleared.' });
+                        addToast?.({ type: 'success', message: t.prefLocalCacheCleared || 'Local cache cleared.' });
                       } catch {
-                        addToast?.({ type: 'error', message: 'Failed to clear local cache.' });
+                        addToast?.({ type: 'error', message: t.prefLocalCacheClearError || 'Failed to clear local cache.' });
                       }
                     }}
                     style={{ border: `1px solid ${C.border}`, background: 'transparent', color: C.t2, borderRadius: 8, padding: '9px 10px', fontSize: 12, fontWeight: 700, cursor: 'pointer' }}
                   >
-                    Clear local cache
+                    {t.prefClearLocalCache || 'Clear local cache'}
                   </button>
                   <button
                     onClick={() => {
@@ -1258,11 +1258,11 @@ export function Settings({ setPage, prevPage, initialTab = 'profile', systemAcco
                         privacy: { presenceStatus: 'online', readReceipts: true, messagePreview: true },
                       };
                       updatePreferences(resetPrefs);
-                      addToast?.({ type: 'success', message: 'Preferences reset to default.' });
+                      addToast?.({ type: 'success', message: t.prefResetSuccess || 'Preferences reset to default.' });
                     }}
                     style={{ border: `1px solid ${C.warning || '#f59e0b'}`, background: C.alpha(C.warning || '#f59e0b', 0.08), color: C.warning || '#f59e0b', borderRadius: 8, padding: '9px 10px', fontSize: 12, fontWeight: 800, cursor: 'pointer' }}
                   >
-                    Reset preferences
+                    {t.prefResetPreferences || 'Reset preferences'}
                   </button>
                 </div>
               </div>

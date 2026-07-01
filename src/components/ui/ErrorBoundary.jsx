@@ -1,4 +1,5 @@
 import React from 'react';
+import { getT } from '../../i18n/translations';
 
 // Global error reporter — sends to Sentry/external service when configured.
 // Replace this stub with a real integration (e.g. Sentry.captureException).
@@ -41,6 +42,7 @@ export default class ErrorBoundary extends React.Component {
   render() {
     if (this.state.hasError) {
       const isDev = import.meta.env.DEV;
+      const t = getT().errorBoundary || {};
       return (
         <div style={{
           padding: '40px 24px',
@@ -55,7 +57,7 @@ export default class ErrorBoundary extends React.Component {
           gap: 16,
         }}>
           <div style={{ fontSize: 48, marginBottom: 8 }}>⚠️</div>
-          <h2 style={{ margin: 0, fontSize: 20, fontWeight: 800 }}>Algo deu errado</h2>
+          <h2 style={{ margin: 0, fontSize: 20, fontWeight: 800 }}>{t.title || 'Something went wrong'}</h2>
           <p style={{
             color: 'var(--t2, #999)',
             fontSize: 14,
@@ -63,7 +65,7 @@ export default class ErrorBoundary extends React.Component {
             lineHeight: '1.5',
             margin: 0,
           }}>
-            Ocorreu um erro inesperado. Você pode tentar recarregar a página ou voltar ao início.
+            {t.body || 'An unexpected error occurred. You can try again or reload the page.'}
           </p>
           {isDev && this.state.error && (
             <details style={{
@@ -78,7 +80,7 @@ export default class ErrorBoundary extends React.Component {
               padding: 12,
               background: 'var(--card, #1a1a2e)',
             }}>
-              <summary style={{ cursor: 'pointer', fontWeight: 700, marginBottom: 8 }}>Detalhes do erro (dev)</summary>
+              <summary style={{ cursor: 'pointer', fontWeight: 700, marginBottom: 8 }}>{t.devDetails || 'Error details (dev)'}</summary>
               <div>{String(this.state.error)}</div>
               {this.state.errorInfo?.componentStack && (
                 <div style={{ marginTop: 8, fontSize: 11, opacity: 0.7 }}>{this.state.errorInfo.componentStack}</div>
@@ -99,7 +101,7 @@ export default class ErrorBoundary extends React.Component {
                 cursor: 'pointer',
               }}
             >
-              Tentar novamente
+              {t.tryAgain || 'Try again'}
             </button>
             <button
               onClick={() => window.location.reload()}
@@ -114,7 +116,7 @@ export default class ErrorBoundary extends React.Component {
                 cursor: 'pointer',
               }}
             >
-              Recarregar página
+              {t.reload || 'Reload page'}
             </button>
           </div>
         </div>
