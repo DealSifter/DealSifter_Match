@@ -4829,7 +4829,9 @@ export default function App() {
     }
     setIsAccountProcessing(true);
     try {
-      const { error } = await supabase.rpc('delete_user_account', { target_user_id: supabaseUserId });
+      const { error } = await supabase.functions.invoke('delete-account', {
+        body: { reason: 'user_requested' },
+      });
       if (error) throw error;
       // Sign out and clear all local data
       try { await supabase.auth.signOut(); } catch { /* no-op */ }
