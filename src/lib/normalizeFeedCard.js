@@ -21,6 +21,20 @@ const pickIdentityName = (...values) => {
   return '';
 };
 
+const getStorageOwnerFromUrl = (value) => {
+  const normalized = String(value || '').trim();
+  const match = normalized.match(/\/profile-images\/([^/?#]+)\//i);
+  return match?.[1] || '';
+};
+
+const sanitizeOwnerPhoto = (value, ownerId) => {
+  const photo = String(value || '').trim();
+  if (!photo) return '';
+  const storageOwnerId = getStorageOwnerFromUrl(photo);
+  if (storageOwnerId && String(storageOwnerId) !== String(ownerId || '')) return '';
+  return photo;
+};
+
 const asArray = (value) => (
   Array.isArray(value)
     ? value.map((item) => String(item || '').trim()).filter(Boolean)
@@ -60,7 +74,33 @@ const getPayloadScope = (profilePayload, scope) => {
   return {};
 };
 
+const getScopedProfilePhoto = ({ payloadScope, payloadProfile, personalRow, professionalRow, scope }) => {
+  const normalizedScope = normalizeProfileScope(scope);
+  void personalRow;
+  void professionalRow;
+  if (normalizedScope === 'professional') {
+    return pickString(
+      payloadScope.photo,
+      payloadProfile.photo,
+      payloadProfile.photoB,
+      payloadProfile.photoBUrl
+    );
+  }
+  if (normalizedScope === 'fsbo') {
+    return pickString(
+      payloadScope.photo,
+      payloadProfile.photo
+    );
+  }
+  return pickString(
+    payloadScope.photo,
+    payloadProfile.photo,
+    payloadProfile.photoA
+  );
+};
+
 const resolveOwnerIdentity = (rawCard, scope) => {
+  const ownerId = pickString(rawCard?.ownerId, rawCard?.owner_id, rawCard?.unlockOwnerId, rawCard?.sellerId, rawCard?.id);
   const ownerPreview = rawCard?.ownerPreview || rawCard?.owner_preview || null;
   const userRow = rawCard?.userRow || rawCard?.user || rawCard?.ownerUser || {};
   const personalRow = rawCard?.personalRow || rawCard?.personalProfile || rawCard?.personal_profile || {};
@@ -77,7 +117,7 @@ const resolveOwnerIdentity = (rawCard, scope) => {
   if (ownerPreview && typeof ownerPreview === 'object' && normalizeProfileScope(ownerPreview.primaryProfile || ownerPreview.scope) === scope) {
     return {
       name: pickIdentityName(ownerPreview.name),
-      photo: pickString(ownerPreview.photo, ownerPreview.avatar),
+      photo: sanitizeOwnerPhoto(pickString(ownerPreview.photo, ownerPreview.avatar), ownerId),
       type: pickString(ownerPreview.type, ownerPreview.categoryLabelFallback, ownerPreview.cat),
       badge: pickString(ownerPreview.badge),
       loc: pickString(ownerPreview.loc, ownerPreview.location),
@@ -100,12 +140,13 @@ const resolveOwnerIdentity = (rawCard, scope) => {
 
   return {
     name,
-    photo: pickString(
-      payloadScope.photo,
-      payloadProfile.photo,
-      !isProfessional ? personalRow.photo_url : '',
-      isProfessional ? pickString(payloadProfile.photoB, payloadProfile.photoBUrl, professionalRow.photo_b_url) : ''
-    ),
+    photo: sanitizeOwnerPhoto(getScopedProfilePhoto({
+      payloadScope,
+      payloadProfile,
+      personalRow,
+      professionalRow,
+      scope,
+    }), ownerId),
     type: isFsbo
       ? 'FSBO'
       : pickString(

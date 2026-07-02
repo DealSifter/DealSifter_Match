@@ -861,6 +861,20 @@ const pickIdentityName = (...values) => {
   return '';
 };
 
+const getProfileStorageOwnerFromUrl = (value) => {
+  const normalized = String(value || '').trim();
+  const match = normalized.match(/\/profile-images\/([^/?#]+)\//i);
+  return match?.[1] || '';
+};
+
+const sanitizeOwnerProfilePhoto = (value, ownerId) => {
+  const photo = String(value || '').trim();
+  if (!photo) return '';
+  const storageOwnerId = getProfileStorageOwnerFromUrl(photo);
+  if (storageOwnerId && String(storageOwnerId) !== String(ownerId || '')) return '';
+  return photo;
+};
+
 const getProfilePayloadScope = (profilePayload, scope) => {
   const payload = profilePayload && typeof profilePayload === 'object' ? profilePayload : {};
   const normalizedScope = normalizeProfileScope(scope);
@@ -869,6 +883,31 @@ const getProfilePayloadScope = (profilePayload, scope) => {
   if (profiles[normalizedScope] && typeof profiles[normalizedScope] === 'object') return profiles[normalizedScope];
   if (resolved[normalizedScope] && typeof resolved[normalizedScope] === 'object') return resolved[normalizedScope];
   return {};
+};
+
+const getScopedProfilePhoto = ({ payloadScope, payloadProfile, personalRow, professionalRow, scope }) => {
+  const normalizedScope = normalizeProfileScope(scope);
+  void personalRow;
+  void professionalRow;
+  if (normalizedScope === 'professional') {
+    return pickFirstString(
+      payloadScope?.photo,
+      payloadProfile?.photo,
+      payloadProfile?.photoB,
+      payloadProfile?.photoBUrl
+    );
+  }
+  if (normalizedScope === 'fsbo') {
+    return pickFirstString(
+      payloadScope?.photo,
+      payloadProfile?.photo
+    );
+  }
+  return pickFirstString(
+    payloadScope?.photo,
+    payloadProfile?.photo,
+    payloadProfile?.photoA
+  );
 };
 
 const inferDbPropertyProfileScope = (row) => {
@@ -916,14 +955,13 @@ const buildDbOwnerPreview = ({ ownerId, scope, userRow, personalRow, professiona
 
   if (!name) return null;
 
-  const photo = pickFirstString(
-    payloadScope?.photo,
-    payloadProfile?.photo,
-    !isProfessional ? personalRow?.photo_url : '',
-    isFsbo ? '' : payloadProfile?.photoB,
-    isFsbo ? '' : payloadProfile?.photoBUrl,
-    isProfessional ? professionalRow?.photo_b_url : '',
-  );
+  const photo = sanitizeOwnerProfilePhoto(getScopedProfilePhoto({
+    payloadScope,
+    payloadProfile,
+    personalRow,
+    professionalRow,
+    scope: normalizedScope,
+  }), id);
 
   const type = isFsbo
     ? 'FSBO'
@@ -3971,14 +4009,35 @@ export default function App() {
     const syncProfessional = async () => {
       pendingFlushRef.current.professional = null;
       const normalized = normalizeProfessionalProfile(professionalProfile, userProfile.category || '');
-      const profilePayload = normalizePersistableProfilePayload(buildScopedProfilePayload({
-        accountType,
-        userProfile: stripInlineMediaFromObject(userProfile),
-        personalProfile: stripInlineMediaFromObject(personalProfile),
-        professionalProfile: stripInlineMediaFromObject(normalized),
-      }));
 
-      // Upload professional photo to Supabase Storage if it's a local data URL
+      // Upload scoped professional/account photos before building profile_payload.
+      // The public feed must hydrate from DB/Storage URLs tied to the exact
+      // profile scope, not from temporary inline data or broad fallbacks.
+      const normalizedPersonalForPayload = normalizePersonalProfile(personalProfile);
+      let personalPhotoUrl = normalizedPersonalForPayload.photo || null;
+      if (personalPhotoUrl && personalPhotoUrl.startsWith('data:image')) {
+        try {
+          personalPhotoUrl = await uploadDataUrlToStorage(
+            personalPhotoUrl, 'profile-images', `${supabaseUserId}/avatar.jpg`, supabase
+          );
+        } catch (uploadErr) {
+          safeLogError('Personal/FSBO photo upload to Storage failed; skipping inline media persistence.', uploadErr);
+          personalPhotoUrl = null;
+        }
+      }
+
+      let photoAUrl = normalized.photoA || null;
+      if (photoAUrl && photoAUrl.startsWith('data:image')) {
+        try {
+          photoAUrl = await uploadDataUrlToStorage(
+            photoAUrl, 'profile-images', `${supabaseUserId}/photo-a.jpg`, supabase
+          );
+        } catch (uploadErr) {
+          safeLogError('Profile A photo upload to Storage failed; skipping inline media persistence.', uploadErr);
+          photoAUrl = null;
+        }
+      }
+
       let photoBUrl = normalized.photoBUrl || normalized.photoB || null;
       if (photoBUrl && photoBUrl.startsWith('data:image')) {
         try {
@@ -3991,17 +4050,34 @@ export default function App() {
         }
       }
 
+      const normalizedWithUploadedPhotos = {
+        ...normalized,
+        photoA: photoAUrl || '',
+        photoB: photoBUrl || '',
+        photoBUrl: photoBUrl || '',
+      };
+      const personalProfileWithUploadedPhoto = {
+        ...normalizedPersonalForPayload,
+        photo: personalPhotoUrl || '',
+      };
+      const profilePayload = normalizePersistableProfilePayload(buildScopedProfilePayload({
+        accountType,
+        userProfile: stripInlineMediaFromObject(userProfile),
+        personalProfile: stripInlineMediaFromObject(personalProfileWithUploadedPhoto),
+        professionalProfile: stripInlineMediaFromObject(normalizedWithUploadedPhotos),
+      }));
+
       const payload = {
         user_id: supabaseUserId,
-        category: normalized.category || null,
-        subcategory: normalized.subcategory || null,
-        markets: normalizeStringArray(normalized.markets),
-        skills: normalizeStringArray(normalized.skills),
-        services: normalizeStringArray(normalized.services),
-        pitch: normalized.pitch || null,
-        primary_category: normalized.primaryCategory || null,
-        category_b: normalized.categoryB || null,
-        primary_category_b: normalized.primaryCategoryB || null,
+        category: normalizedWithUploadedPhotos.category || null,
+        subcategory: normalizedWithUploadedPhotos.subcategory || null,
+        markets: normalizeStringArray(normalizedWithUploadedPhotos.markets),
+        skills: normalizeStringArray(normalizedWithUploadedPhotos.skills),
+        services: normalizeStringArray(normalizedWithUploadedPhotos.services),
+        pitch: normalizedWithUploadedPhotos.pitch || null,
+        primary_category: normalizedWithUploadedPhotos.primaryCategory || null,
+        category_b: normalizedWithUploadedPhotos.categoryB || null,
+        primary_category_b: normalizedWithUploadedPhotos.primaryCategoryB || null,
       };
       // Same rule for the secondary/professional avatar: never replace a real
       // stored URL with null just because the local draft did not carry media.
