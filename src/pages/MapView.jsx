@@ -1889,6 +1889,32 @@ export function MapView({
 
   const points = useMemo(() => {
     const mapById = new Map();
+    const seenPersonVisualKeys = new Set();
+
+    const addMapFeature = (key, feature) => {
+      if (!key || !feature?.geometry?.coordinates || !feature?.properties || !feature?.payload) return;
+      const [lng, lat] = feature.geometry.coordinates;
+      if (!Number.isFinite(Number(lat)) || !Number.isFinite(Number(lng))) return;
+      mapById.set(key, {
+        ...feature,
+        properties: {
+          ...feature.properties,
+          featureKey: key,
+        },
+      });
+    };
+
+    const addPersonFeature = (key, feature) => {
+      const payload = feature?.payload || {};
+      const ownerId = String(payload.ownerId || payload.unlockOwnerId || payload.id || feature?.properties?.itemId || '').trim();
+      const name = normalizeText(payload.name || feature?.properties?.title || '');
+      const loc = normalizeText(payload.loc || '');
+      const type = normalizeText(payload.type || payload.cat || '');
+      const visualKey = [ownerId, name, loc, type].filter(Boolean).join('|');
+      if (visualKey && seenPersonVisualKeys.has(visualKey)) return;
+      if (visualKey) seenPersonVisualKeys.add(visualKey);
+      addMapFeature(key, feature);
+    };
 
     const addPeople = (onlyUnlocked = false) => {
       (enableMockMapData ? CARDS : [])
@@ -1900,7 +1926,7 @@ export function MapView({
         ))
         .forEach((card) => {
           const key = `person-${card.id}`;
-          mapById.set(key, {
+          addPersonFeature(key, {
             type: 'Feature',
             geometry: { type: 'Point', coordinates: [card.lng, card.lat] },
             properties: {
@@ -1955,7 +1981,7 @@ export function MapView({
           linkedServices: linkedPortfolio.services,
         }, currentUserId);
         if (!payload) return;
-        mapById.set(key, {
+        addPersonFeature(key, {
           type: 'Feature',
           geometry: { type: 'Point', coordinates: [coords.lng, coords.lat] },
           properties: {
@@ -2015,7 +2041,7 @@ export function MapView({
           linkedServices: linkedPortfolio.services,
         }, currentUserId);
         if (!payload) return;
-        mapById.set(key, {
+        addPersonFeature(key, {
           type: 'Feature',
           geometry: { type: 'Point', coordinates: [coords.lng, coords.lat] },
           properties: {
@@ -2085,7 +2111,7 @@ export function MapView({
           )),
         }, currentUserId);
         if (!payload) return;
-        mapById.set(key, {
+        addPersonFeature(key, {
           type: 'Feature',
           geometry: { type: 'Point', coordinates: [coords.lng, coords.lat] },
           properties: {
@@ -2110,7 +2136,7 @@ export function MapView({
         ))
         .forEach((property) => {
           const key = `property-${property.id}`;
-          mapById.set(key, {
+          addMapFeature(key, {
             type: 'Feature',
             geometry: { type: 'Point', coordinates: [property.lng, property.lat] },
             properties: {
@@ -2145,7 +2171,7 @@ export function MapView({
         if (!payload) return;
         const key = `user-property-${property.id}`;
         if (mapById.has(key)) return;
-        mapById.set(key, {
+        addMapFeature(key, {
           type: 'Feature',
           geometry: { type: 'Point', coordinates: [coords.lng, coords.lat] },
           properties: {
@@ -2374,6 +2400,18 @@ export function MapView({
     if (preferredClusterBehavior === 'pins_city' && roundedZoom >= CLUSTER_BREAKOUT_ZOOM) return unclusteredSpreadPoints;
     return clusters;
   }, [selectedClusterFeatures, selectedCardId, unclusteredSpreadPoints, clusters, viewport?.zoom, preferredClusterBehavior]);
+
+  const safeRenderedFeatures = useMemo(() => (
+    (Array.isArray(renderedFeatures) ? renderedFeatures : []).filter((feature) => {
+      const coords = feature?.geometry?.coordinates;
+      const props = feature?.properties || {};
+      if (!Array.isArray(coords) || coords.length < 2) return false;
+      const [lng, lat] = coords;
+      if (!Number.isFinite(Number(lat)) || !Number.isFinite(Number(lng))) return false;
+      if (props.cluster) return props.cluster_id != null || props.point_count > 0;
+      return Boolean(props.itemType && props.itemId != null && feature?.payload);
+    })
+  ), [renderedFeatures]);
 
   const safeViewportCenter = sanitizeLatLngPair(viewport?.center) || DEFAULT_CENTER;
   const safeViewportZoomRaw = Number(viewport?.zoom);
@@ -3605,7 +3643,7 @@ export function MapView({
               />
             )}
 
-            {renderedFeatures.map((feature) => {
+            {safeRenderedFeatures.map((feature) => {
               const [lng, lat] = feature.geometry.coordinates;
               const isCluster = feature.properties.cluster;
 
@@ -3618,7 +3656,7 @@ export function MapView({
                 const isUnlockedPropertiesOnlyCluster = showOnlyUnlocked && isAllUnlocked && peopleCount === 0 && propertiesCount > 0;
                 return (
                   <Marker
-                    key={`cluster-${feature.properties.cluster_id}`}
+                    key={`cluster-${feature.properties.cluster_id ?? `${lat}-${lng}-${total}`}`}
                     position={[lat, lng]}
                     icon={getClusterIcon(total, peopleCount, propertiesCount, isUnlockedPropertiesOnlyCluster)}
                     eventHandlers={{
@@ -3631,10 +3669,12 @@ export function MapView({
               const isPerson = feature.properties.itemType === 'person';
               const payload = feature.payload;
               const isOwnProperty = !isPerson && feature.properties.isOwn === true;
+              const markerKey = feature.properties.featureKey
+                || `${feature.properties.itemType}-${feature.properties.itemId}-${payload?.primaryProfile || payload?.scope || ''}-${lat}-${lng}`;
 
               return (
                 <Marker
-                  key={`${feature.properties.itemType}-${feature.properties.itemId}`}
+                  key={markerKey}
                   position={[lat, lng]}
                   icon={
                     isPerson
