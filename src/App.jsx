@@ -97,7 +97,7 @@ import { useMediaQuery } from './hooks/useMediaQuery';
 import { useChatRealtime } from './hooks/useChatRealtime';
 import { getPlanGateCopy } from './lib/planAccess';
 import { trackAppEvent } from './lib/adminEventTracking';
-import { createPropertyUnlockRecord, getPortfolioUnlockCost, getPropertyExclusivityStatus, resolveUnlockOwnerId } from './lib/unlockRules';
+import { createPropertyUnlockRecord, getOwnerExclusivityStatus, getPortfolioUnlockCost, getPropertyExclusivityStatus, resolveUnlockOwnerId } from './lib/unlockRules';
 import { isPendingDealExpired } from './lib/pendingDeal';
 import {
   createUnlockIntent as createUnlockIntentRpc,
@@ -4947,6 +4947,19 @@ export default function App() {
       setModal(null);
       return;
     }
+    const ownerExclusiveStatus = getOwnerExclusivityStatus(propertyUnlocks, unlockOwnerId, supabaseUserId || 'local-user');
+    if (ownerExclusiveStatus?.blocked) {
+      addToast({
+        type: 'warning',
+        title: 'Exclusive contact locked',
+        message: 'This contact is under temporary exclusivity. You can favorite and check again when the timer ends.',
+        duration: 6500,
+      });
+      setUnlockTarget(null);
+      setUnlockQuote(null);
+      setModal(null);
+      return;
+    }
     const displayedUnlockCost = getPortfolioUnlockCost(
       { ...(card || {}), ownerId: unlockOwnerId, unlockOwnerId },
       unlockPortfolioProperties || [],
@@ -5041,6 +5054,18 @@ export default function App() {
   const getUnlockExclusivityStatus = (card) => {
     if (!card?.propertyId || card?.unlockScope !== 'property') return null;
     if (!isUuid(card.propertyId) && !(isAdmin && isMockPropertyId(card.propertyId))) return null;
+    const ownerId = card?.unlockOwnerId || card?.ownerId || '';
+    const ownerExclusiveStatus = getOwnerExclusivityStatus(propertyUnlocks, ownerId, supabaseUserId || 'local-user');
+    if (ownerExclusiveStatus?.blocked) {
+      return {
+        kind: 'blocked',
+        badge: ownerExclusiveStatus.badge || 'Exclusive',
+        unlockCount: 0,
+        canBuyExclusivity: false,
+        exclusiveCost: 0,
+        expiresAt: ownerExclusiveStatus.expiresAt,
+      };
+    }
     if (unlockQuote?.propertyId && String(unlockQuote.propertyId) === String(card.propertyId)) {
       if (unlockQuote.blocked) {
         return {
@@ -5080,6 +5105,8 @@ export default function App() {
     if (!card || card.unlockScope === 'property') return null;
     const unlockOwnerId = resolveUnlockOwnerId(card, unlockPortfolioProperties || [], unlockPortfolioServices || []);
     if (!unlockOwnerId) return null;
+    const ownerExclusiveStatus = getOwnerExclusivityStatus(propertyUnlocks, unlockOwnerId, supabaseUserId || 'local-user');
+    if (ownerExclusiveStatus?.blocked) return null;
 
     const snapshotBaseCost = Number(card?.displayedUnlockCost || card?.unlockCostSnapshot?.baseCost || 0);
     const baseCost = Number.isFinite(snapshotBaseCost) && snapshotBaseCost > 0

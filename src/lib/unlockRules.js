@@ -128,6 +128,29 @@ export function getPropertyExclusivityStatus(records = [], propertyId, currentUs
   };
 }
 
+export function getOwnerExclusivityStatus(records = [], ownerId, currentUserId = 'local-user', now = Date.now()) {
+  if (!ownerId) return { kind: 'none', blocked: false, expiresAt: null };
+  const activeExclusive = (records || []).find((row) => (
+    sameId(row?.ownerId ?? row?.owner_id, ownerId)
+    && (row?.mode === 'total' || row?.mode === 'partial')
+    && Number(toEpochMs(row?.expiresAt ?? row?.expires_at) || 0) > now
+  ));
+
+  if (!activeExclusive) return { kind: 'none', blocked: false, expiresAt: null };
+
+  const owned = sameId(activeExclusive.buyerId ?? activeExclusive.buyer_id, currentUserId);
+  return {
+    kind: owned ? 'owned' : 'blocked',
+    blocked: !owned,
+    badge: activeExclusive.mode === 'partial' ? 'Partial exclusivity' : 'Exclusive',
+    expiresAt: toEpochMs(activeExclusive.expiresAt ?? activeExclusive.expires_at),
+    mode: activeExclusive.mode,
+    propertyId: activeExclusive.propertyId ?? activeExclusive.property_id ?? null,
+    ownerId: activeExclusive.ownerId ?? activeExclusive.owner_id ?? ownerId,
+    buyerId: activeExclusive.buyerId ?? activeExclusive.buyer_id ?? null,
+  };
+}
+
 export function createPropertyUnlockRecord({ propertyId, ownerId, buyerId = 'local-user', mode = 'normal', cost = 1 }) {
   const cleanMode = ['normal', 'total', 'partial'].includes(mode) ? mode : 'normal';
   const now = Date.now();
