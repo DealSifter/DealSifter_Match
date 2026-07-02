@@ -78,53 +78,57 @@ export function useCheckoutFlow({
 
     window.history.replaceState({}, '', window.location.pathname);
 
-    if (settingsTab === 'payments') {
-      setSystemAccount((prev) => ({
-        ...(prev || {}),
-        paymentSetupComplete: true,
-        paymentSetupCompletedAt: prev?.paymentSetupCompletedAt || Date.now(),
-      }));
-      setSettingsInitialTab('payments');
-      setPage('settings');
-    }
-
-    if (checkout === 'success') {
-      trackAppEvent('checkout_success', {
-        entityType: pendingCheckoutIntent?.kind || 'checkout',
-        entityId: pendingCheckoutIntent?.planId || pendingCheckoutIntent?.packId || '',
-        metadata: { source: pendingCheckoutIntent?.source || 'return' },
-      });
-      setPendingCheckoutIntent(null);
-      setCheckoutModalIntent(null);
-      setCheckoutSubmitting(false);
-      setCheckoutError('');
-      if (isSupabaseConfigured && supabaseUserId) {
-        refreshProfileHydration?.();
+    const timer = window.setTimeout(() => {
+      if (settingsTab === 'payments') {
+        setSystemAccount((prev) => ({
+          ...(prev || {}),
+          paymentSetupComplete: true,
+          paymentSetupCompletedAt: prev?.paymentSetupCompletedAt || Date.now(),
+        }));
+        setSettingsInitialTab('payments');
+        setPage('settings');
       }
-      addToast?.({
-        type: 'success',
-        title: 'Pagamento confirmado!',
-        message: 'Seus nuggets serao creditados em instantes via webhook.',
-        duration: 7000,
-      });
-    } else if (checkout === 'cancelled') {
-      trackAppEvent('checkout_cancelled', {
-        entityType: pendingCheckoutIntent?.kind || 'checkout',
-        entityId: pendingCheckoutIntent?.planId || pendingCheckoutIntent?.packId || '',
-        metadata: { source: pendingCheckoutIntent?.source || 'return' },
-      });
-      setPendingCheckoutIntent(null);
-      setCheckoutModalIntent(null);
-      setCheckoutSubmitting(false);
-      setCheckoutError('');
-      setModal(null);
-      setPage('pricing');
-      addToast?.({
-        type: 'info',
-        title: 'Compra cancelada',
-        message: 'O pagamento foi cancelado. Seus nuggets nao foram alterados.',
-      });
-    }
+
+      if (checkout === 'success') {
+        trackAppEvent('checkout_success', {
+          entityType: pendingCheckoutIntent?.kind || 'checkout',
+          entityId: pendingCheckoutIntent?.planId || pendingCheckoutIntent?.packId || '',
+          metadata: { source: pendingCheckoutIntent?.source || 'return' },
+        });
+        setPendingCheckoutIntent(null);
+        setCheckoutModalIntent(null);
+        setCheckoutSubmitting(false);
+        setCheckoutError('');
+        if (isSupabaseConfigured && supabaseUserId) {
+          refreshProfileHydration?.();
+        }
+        addToast?.({
+          type: 'success',
+          title: 'Pagamento confirmado!',
+          message: 'Seus nuggets serao creditados em instantes via webhook.',
+          duration: 7000,
+        });
+      } else if (checkout === 'cancelled') {
+        trackAppEvent('checkout_cancelled', {
+          entityType: pendingCheckoutIntent?.kind || 'checkout',
+          entityId: pendingCheckoutIntent?.planId || pendingCheckoutIntent?.packId || '',
+          metadata: { source: pendingCheckoutIntent?.source || 'return' },
+        });
+        setPendingCheckoutIntent(null);
+        setCheckoutModalIntent(null);
+        setCheckoutSubmitting(false);
+        setCheckoutError('');
+        setModal(null);
+        setPage('pricing');
+        addToast?.({
+          type: 'info',
+          title: 'Compra cancelada',
+          message: 'O pagamento foi cancelado. Seus nuggets nao foram alterados.',
+        });
+      }
+    }, 0);
+
+    return () => window.clearTimeout(timer);
   }, [addToast, pendingCheckoutIntent, refreshProfileHydration, setModal, setPage, setSettingsInitialTab, setSystemAccount, supabaseUserId]);
 
   const openPricingHub = useCallback(() => {
