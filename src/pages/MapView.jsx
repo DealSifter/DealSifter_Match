@@ -2570,6 +2570,17 @@ export function MapView({
 
   const navigateToFeed = (card, explicitType) => {
     const cardType = explicitType || (card?.loc ? 'person' : 'property');
+    const focusPayload = {
+      id: card?.id,
+      type: cardType,
+      ownerId: card?.ownerId || card?.unlockOwnerId || card?.sellerId || '',
+      unlockOwnerId: card?.unlockOwnerId || card?.ownerId || card?.sellerId || '',
+      propertyId: cardType === 'property' ? (card?.propertyId || card?.id || '') : (card?.propertyId || ''),
+      sourceCardId: card?.sourceCardId || card?.cardId || '',
+      primaryProfile: card?.primaryProfile || card?.scope || '',
+      scope: card?.scope || card?.primaryProfile || '',
+      fromMapPin: true,
+    };
     persistMapUiState();
     // Save a dedicated return-viewport key so the map restores the exact position on back-navigation,
     // independent of any geographic filters that may trigger fitToBounds on remount.
@@ -2577,12 +2588,12 @@ export function MapView({
       localStorage.setItem('ds_map_return_viewport', JSON.stringify({ ...viewport, fromNav: true }));
     } catch (e) { void e; }
     try {
-      localStorage.setItem('focusCard', JSON.stringify({ id: card.id, type: cardType, fromMapPin: true }));
+      localStorage.setItem('focusCard', JSON.stringify(focusPayload));
     } catch {
       // ignore
     }
     try {
-      const ev = new CustomEvent('dealsifter.focusCard', { detail: { id: card.id, type: cardType, fromMapPin: true } });
+      const ev = new CustomEvent('dealsifter.focusCard', { detail: focusPayload });
       window.dispatchEvent(ev);
     } catch {
       // ignore

@@ -928,8 +928,52 @@ export function Dashboard({ page, nuggets, setModal, setPage, onOpenOnboardingTa
 
   const findConnectionById = useCallback((id) => {
     const needle = String(id);
-    return connectionCards.find((c) => String(c.id) === needle || String(c.ownerId) === needle);
+    return connectionCards.find((c) => (
+      String(c.id) === needle
+      || String(c.ownerId) === needle
+      || String(c.unlockOwnerId) === needle
+      || String(c.contactId) === needle
+      || String(c.unlockContactId) === needle
+      || String(c.sourceCardId) === needle
+    ));
   }, [connectionCards]);
+
+  const getFocusCandidates = useCallback((focus) => {
+    if (!focus) return [];
+    return Array.from(new Set([
+      focus.id,
+      focus.ownerId,
+      focus.unlockOwnerId,
+      focus.sellerId,
+      focus.contactId,
+      focus.unlockContactId,
+      focus.propertyId,
+      focus.sourceCardId,
+      focus.cardId,
+    ].map((value) => String(value || '').trim()).filter(Boolean)));
+  }, []);
+
+  const matchesFocusTarget = useCallback((record, focus) => {
+    if (!record || !focus) return false;
+    const candidates = getFocusCandidates(focus);
+    if (!candidates.length) return false;
+    const recordIds = Array.from(new Set([
+      record.id,
+      record.ownerId,
+      record.unlockOwnerId,
+      record.sellerId,
+      record.contactId,
+      record.unlockContactId,
+      record.propertyId,
+      record.sourceCardId,
+      record.cardId,
+    ].map((value) => String(value || '').trim()).filter(Boolean)));
+    const hasIdMatch = recordIds.some((value) => candidates.includes(value));
+    if (!hasIdMatch) return false;
+    const focusScope = normalizeProfileScope(focus.primaryProfile || focus.scope || '');
+    const recordScope = normalizeProfileScope(record.primaryProfile || record.scope || record.profileScope || '');
+    return !focusScope || !recordScope || focusScope === recordScope;
+  }, [getFocusCandidates]);
 
   const resolvePropertyOwnerCard = useCallback((property) => {
     if (!property) return null;
@@ -1147,7 +1191,7 @@ export function Dashboard({ page, nuggets, setModal, setPage, onOpenOnboardingTa
       }).map(c => c.id);
       const baseConn = (connDeck && connDeck.length) ? connDeck : canonicalConn;
       let newConn = baseConn.filter(id => {
-        if (focusCard && focusCard.type === 'person' && String(focusCard.id) === String(id)) return true;
+        if (focusCard && focusCard.type === 'person' && matchesFocusTarget({ id }, focusCard)) return true;
         const card = connectionCards.find((c) => String(c.id) === String(id));
         if (!card || !isAllowedByState(card) || !isAllowedByCategory(card)) return false;
         if (matchedIds.has(id)) return false;
@@ -1159,7 +1203,7 @@ export function Dashboard({ page, nuggets, setModal, setPage, onOpenOnboardingTa
       // Append any canonical items that pass filters but aren't in baseConn (new items)
       for (const id of canonicalConn) {
         if (!newConn.find(x => String(x) === String(id))) {
-          if (focusCard && focusCard.type === 'person' && String(focusCard.id) === String(id)) {
+          if (focusCard && focusCard.type === 'person' && matchesFocusTarget({ id }, focusCard)) {
             newConn.push(id);
             continue;
           }
@@ -1175,15 +1219,15 @@ export function Dashboard({ page, nuggets, setModal, setPage, onOpenOnboardingTa
 
       // If there's a focusCard for a person, move it to the front
       if (focusCard && focusCard.type === 'person' && focusCard.id) {
-        const fidRaw = focusCard.id;
+        const focusCandidates = getFocusCandidates(focusCard);
         // Try to find the existing id in the newConn (preserve original type)
-        const match = newConn.find(x => String(x) === String(fidRaw));
+        const match = newConn.find(x => focusCandidates.includes(String(x)));
         if (typeof match !== 'undefined') {
           newConn = [match, ...newConn.filter(x => String(x) !== String(match))];
         } else {
           // If not found, try to resolve from connectionCards (preserve type), otherwise insert raw
-          const fromCards = connectionCards.find(c => String(c.id) === String(fidRaw));
-          const idToInsert = fromCards ? fromCards.id : fidRaw;
+          const fromCards = connectionCards.find(c => matchesFocusTarget(c, focusCard));
+          const idToInsert = fromCards ? fromCards.id : focusCard.id;
           // remove existing occurrence then insert at front
           newConn = [idToInsert, ...newConn.filter(x => String(x) !== String(idToInsert))];
         }
@@ -1229,7 +1273,7 @@ export function Dashboard({ page, nuggets, setModal, setPage, onOpenOnboardingTa
       };
 
       let newProp = baseProp.filter(id => {
-        if (focusCard && focusCard.type === 'property' && String(focusCard.id) === String(id)) return true;
+        if (focusCard && focusCard.type === 'property' && matchesFocusTarget({ id }, focusCard)) return true;
         const prop = (showcaseItems || []).find(p => p.id === id);
         return shouldKeepPropertyVisible(prop);
       });
@@ -1241,7 +1285,7 @@ export function Dashboard({ page, nuggets, setModal, setPage, onOpenOnboardingTa
             newProp.push(id);
             continue;
           }
-          if (focusCard && focusCard.type === 'property' && String(focusCard.id) === String(id)) {
+          if (focusCard && focusCard.type === 'property' && matchesFocusTarget({ id }, focusCard)) {
             newProp.push(id);
             continue;
           }
@@ -1251,19 +1295,19 @@ export function Dashboard({ page, nuggets, setModal, setPage, onOpenOnboardingTa
 
       // If focusCard targets a property, move it to front (inject if needed)
       if (focusCard && focusCard.type === 'property' && focusCard.id) {
-        const fidRaw = focusCard.id;
+        const focusCandidates = getFocusCandidates(focusCard);
         // preserve original id types when moving
-        const match = newProp.find(x => String(x) === String(fidRaw));
+        const match = newProp.find(x => focusCandidates.includes(String(x)));
         if (typeof match !== 'undefined') {
           newProp = [match, ...newProp.filter(x => String(x) !== String(match))];
         } else {
           // Dev-only: try to inject mock properties for local sandbox focus tests.
-          const found = import.meta.env.DEV ? PROPERTIES.find(p => String(p.id) === String(fidRaw) || p.id === fidRaw) : null;
+          const found = import.meta.env.DEV ? PROPERTIES.find(p => matchesFocusTarget(p, focusCard)) : null;
           if (found) {
             setInjectedProps(prev => (prev && prev[found.id] ? prev : ({ ...prev, [found.id]: found })));
             newProp = [found.id, ...newProp];
           } else {
-            newProp = [fidRaw, ...newProp];
+            newProp = [focusCard.id, ...newProp];
           }
         }
       }
@@ -1288,7 +1332,7 @@ export function Dashboard({ page, nuggets, setModal, setPage, onOpenOnboardingTa
     });
 
     return () => { if (typeof unsub === 'function') unsub(); };
-  }, [connectionCards, showcaseItems, matched, interested, unlocked, view, publishingProfileKey, hiddenSet, focusCard, selectedStates, activeCat, isSwipingConn, isSwipingProp, collectRecordStates, connDeck, propDeck, getOwnerIdForKey, matchesCat, currentUserId, userProfile, personalProfile, professionalProfile, propertyHotMetrics, userPreferences, subscription]);
+  }, [connectionCards, showcaseItems, matched, interested, unlocked, view, publishingProfileKey, hiddenSet, focusCard, selectedStates, activeCat, isSwipingConn, isSwipingProp, collectRecordStates, connDeck, propDeck, getOwnerIdForKey, matchesCat, currentUserId, userProfile, personalProfile, professionalProfile, propertyHotMetrics, userPreferences, subscription, getFocusCandidates, matchesFocusTarget]);
 
   const [planGate, setPlanGate] = useState(null);
 
@@ -2056,14 +2100,13 @@ export function Dashboard({ page, nuggets, setModal, setPage, onOpenOnboardingTa
 
     if (!focusCard || focusCard.type !== 'person' || !focusCard.id) return base;
 
-    const fid = String(focusCard.id);
-    const index = base.findIndex((card) => String(card.id) === fid);
+    const index = base.findIndex((card) => matchesFocusTarget(card, focusCard));
     if (index === 0) return base;
     if (index > 0) return [base[index], ...base.slice(0, index), ...base.slice(index + 1)];
 
-    const injected = connectionCards.find((card) => String(card.id) === fid);
+    const injected = connectionCards.find((card) => matchesFocusTarget(card, focusCard));
     return injected ? [injected, ...base] : base;
-  }, [connDeck, connectionCards, focusCard, findConnectionById]);
+  }, [connDeck, connectionCards, focusCard, findConnectionById, matchesFocusTarget]);
 
   const propDisplay = useMemo(() => {
     const base = propDeck
@@ -2076,24 +2119,23 @@ export function Dashboard({ page, nuggets, setModal, setPage, onOpenOnboardingTa
 
     if (!focusCard || focusCard.type !== 'property' || !focusCard.id) return base;
 
-    const fid = String(focusCard.id);
-    const index = base.findIndex((prop) => String(prop.id) === fid);
+    const index = base.findIndex((prop) => matchesFocusTarget(prop, focusCard));
     if (index === 0) return base;
     if (index > 0) return [base[index], ...base.slice(0, index), ...base.slice(index + 1)];
 
-    const fromShowcase = (showcaseItems || []).find((p) => String(p.id) === fid);
+    const fromShowcase = (showcaseItems || []).find((p) => matchesFocusTarget(p, focusCard));
     if (fromShowcase) return [fromShowcase, ...base];
 
-    const fromMock = import.meta.env.DEV ? PROPERTIES.find((p) => String(p.id) === fid) : null;
+    const fromMock = import.meta.env.DEV ? PROPERTIES.find((p) => matchesFocusTarget(p, focusCard)) : null;
     if (fromMock) return [fromMock, ...base];
 
     // Fallback: look in the full property portfolio (real user property not in showcaseItems)
-    const fromPortfolio = (propertyPortfolio || []).find((p) => String(p.id) === fid);
+    const fromPortfolio = (propertyPortfolio || []).find((p) => matchesFocusTarget(p, focusCard));
     if (fromPortfolio) return [fromPortfolio, ...base];
 
-    const fromShowcaseProps = (showcaseProperties || []).find((p) => String(p.id) === fid);
+    const fromShowcaseProps = (showcaseProperties || []).find((p) => matchesFocusTarget(p, focusCard));
     return fromShowcaseProps ? [fromShowcaseProps, ...base] : base;
-  }, [propDeck, showcaseItems, injectedProps, focusCard, propertyPortfolio, showcaseProperties]);
+  }, [propDeck, showcaseItems, injectedProps, focusCard, propertyPortfolio, showcaseProperties, matchesFocusTarget]);
 
   // Listen for external focus requests (from MapView popups). When received,
   // bring the requested card to the front of the appropriate deck and switch
