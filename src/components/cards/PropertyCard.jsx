@@ -327,7 +327,15 @@ export function PropertyCard({ property, action, statusAction, onInterest, owner
           </span>
         ) : null}
 
-        {primaryBadgeStatus ? (
+        {showActiveExclusivityLock ? (
+          <div style={{ position: 'absolute', top: 8, left: 8, zIndex: 15, pointerEvents: 'none', maxWidth: 'calc(100% - 70px)' }}>
+            <ExclusivityBadge
+              expiresAt={exclusivityStatus.expiresAt}
+              label={activeExclusivityLabel}
+              title={activeExclusivityStripText}
+            />
+          </div>
+        ) : primaryBadgeStatus ? (
           <div style={{ position: 'absolute', top: 8, left: 8, zIndex: 15, pointerEvents: 'none', maxWidth: 'calc(100% - 70px)' }}>
             <CardStatusBadge type={primaryBadgeStatus} pulse={showExclusivityAlert || showActiveExclusivityLock || showHotAlert}>
               {primaryBadgeLabel}

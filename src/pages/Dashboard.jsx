@@ -18,7 +18,7 @@ import { formatPropertyLocation } from '../lib/formatPropertyLocation';
 import { useMediaQuery } from '../hooks/useMediaQuery';
 import { consumePlanActions, getPlanGateCopy } from '../lib/planAccess';
 import { trackAppEvent } from '../lib/adminEventTracking';
-import { getPortfolioItemCount, getPortfolioUnlockCost, getPropertyExclusivityStatus } from '../lib/unlockRules';
+import { getOwnerExclusivityStatus, getPortfolioItemCount, getPortfolioUnlockCost, getPropertyExclusivityStatus } from '../lib/unlockRules';
 import { isSupabaseConfigured, supabase } from '../lib/supabaseClient';
 import { isUuid, mapPropertyHotMetrics } from '../lib/propertyHotMetrics';
 import { isPendingDealExpired } from '../lib/pendingDeal';
@@ -247,6 +247,27 @@ export function Dashboard({ page, nuggets, setModal, setPage, onOpenOnboardingTa
       .slice(0, 150)
   ), [showcaseProperties]);
 
+  const getEffectivePropertyExclusivityStatus = useCallback((property) => {
+    const propertyStatus = getPropertyExclusivityStatus(propertyUnlocks, property?.id, currentUserId);
+    if (propertyStatus?.kind === 'blocked' || propertyStatus?.kind === 'owned') return propertyStatus;
+
+    const ownerStatus = getOwnerExclusivityStatus(propertyUnlocks, property?.ownerId, currentUserId);
+    if (ownerStatus?.blocked) {
+      return {
+        kind: 'blocked',
+        badge: ownerStatus.badge || 'Exclusive',
+        unlockCount: propertyStatus?.unlockCount || 0,
+        canBuyExclusivity: false,
+        exclusiveCost: 0,
+        expiresAt: ownerStatus.expiresAt,
+        mode: ownerStatus.mode,
+        ownerWide: true,
+      };
+    }
+
+    return propertyStatus;
+  }, [currentUserId, propertyUnlocks]);
+
   useEffect(() => {
     if (!isSupabaseConfigured || !supabase || propertyMetricIds.length === 0) {
       const timer = window.setTimeout(() => setPropertyHotMetrics({}), 0);
@@ -317,7 +338,7 @@ export function Dashboard({ page, nuggets, setModal, setPage, onOpenOnboardingTa
       const matchCount = Number(metrics?.matchCount || 0);
       const isOwned = ownedIds.has(propertyId) || String(property?.ownerId || '') === String(currentUserId || '');
       const isFavoritedByCurrentUser = interestedIds.has(propertyId);
-      const exclusivityStatus = getPropertyExclusivityStatus(propertyUnlocks, propertyId, currentUserId);
+      const exclusivityStatus = getEffectivePropertyExclusivityStatus(property);
 
       if (isOwned) {
         const noticeId = `property-trending-owner-${propertyId}-${milestone}`;
@@ -381,7 +402,7 @@ export function Dashboard({ page, nuggets, setModal, setPage, onOpenOnboardingTa
         });
       }
     });
-  }, [addToast, cardsT, currentUserId, interested, propertyHotMetrics, propertyPortfolio, propertyUnlocks, setSystemNotifications, showcaseProperties]);
+  }, [addToast, cardsT, currentUserId, getEffectivePropertyExclusivityStatus, interested, propertyHotMetrics, propertyPortfolio, setSystemNotifications, showcaseProperties]);
 
   useEffect(() => {
     if (!isMobileViewport) {
@@ -2610,7 +2631,7 @@ export function Dashboard({ page, nuggets, setModal, setPage, onOpenOnboardingTa
     .filter((p) => isTruthyFlag(p.publishToShowcase, true) && !p?.dealClosed && isPropertySpotlight(p))
     .map(p => {
       const hotPressure = p?.dealClosed ? 0 : Number(propertyHotMetrics[String(p.id)]?.hotScore || 0);
-      const exclusivityStatus = getPropertyExclusivityStatus(propertyUnlocks, p.id, currentUserId);
+      const exclusivityStatus = getEffectivePropertyExclusivityStatus(p);
       const ownerVerified = isTruthyVerified(p?.verified) || verifiedOwnerIds.has(String(p.ownerId));
       let safeThumb = p.images?.[0] || p.image;
       if (!safeThumb || typeof safeThumb !== 'string' || (safeThumb.length < 8) || (safeThumb.startsWith('data:') && safeThumb.length < 32)) {
@@ -2636,7 +2657,7 @@ export function Dashboard({ page, nuggets, setModal, setPage, onOpenOnboardingTa
         exclusiveExpiresAt: exclusivityStatus?.expiresAt || null,
       };
     })
-), [showcaseProperties, verifiedOwnerIds, propertyHotMetrics, isPropertySpotlight, propertyUnlocks, currentUserId]);
+), [showcaseProperties, verifiedOwnerIds, propertyHotMetrics, isPropertySpotlight, getEffectivePropertyExclusivityStatus]);
 
   const hashStringToSeed = (value) => {
     const input = String(value || '');
@@ -4107,7 +4128,10 @@ export function Dashboard({ page, nuggets, setModal, setPage, onOpenOnboardingTa
                       const isTop    = reverseI === 0;
                       const pOwner = resolvePropertyOwnerCard(p);
                       const hotMetrics = propertyHotMetrics[String(p.id)] || null;
-                      const exclusivityStatus = hotMetrics?.exclusivityStatus || getPropertyExclusivityStatus(propertyUnlocks, p.id, currentUserId);
+                      const ownerWideExclusivityStatus = getEffectivePropertyExclusivityStatus(p);
+                      const exclusivityStatus = ownerWideExclusivityStatus?.kind === 'blocked'
+                        ? ownerWideExclusivityStatus
+                        : (hotMetrics?.exclusivityStatus || ownerWideExclusivityStatus);
                       const shiftLeft    = reverseI * FEED_STACK_SHIFT_X;
                       const shiftDown    = reverseI * FEED_STACK_SHIFT_Y;
                       const stackScale   = 1 - reverseI * 0.035;
