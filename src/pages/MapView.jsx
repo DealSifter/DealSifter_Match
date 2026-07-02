@@ -837,6 +837,18 @@ const STATE_CENTER_COORDS = {
   WI:{ lat:43.7844,lng:-88.7879 }, WY:{ lat:43.0760,lng:-107.2903 }, DC:{ lat:38.9072,lng:-77.0369 },
 };
 
+function resolvePropertyDisplayCoords(property, geocodeCache, pinOverrides) {
+  const resolved = resolvePropertyCoords(property, geocodeCache, pinOverrides);
+  if (resolved) return { ...resolved, isApproximate: false };
+
+  const parts = _normalizePropertyLocation(property);
+  const stateCode = String(parts?.stateCode || '').trim().toUpperCase();
+  const approx = stateCode ? STATE_CENTER_COORDS[stateCode] : null;
+  if (!approx) return null;
+
+  return { ...approx, isApproximate: true, geocodeStatus: 'pending' };
+}
+
 function getStateCodeFromMarket(value) {
   const raw = String(value || '').trim();
   if (!raw) return '';
@@ -1919,7 +1931,7 @@ export function MapView({
         if (onlyUnlocked && !isUnlockedId(ownerId)) return;
         const ownerKey = `${ownerId}:${normalizedScope}`;
         if (byOwner.has(ownerKey)) return;
-        const coords = resolvePropertyCoords(property, geocodeCache, pinOverrides);
+        const coords = resolvePropertyDisplayCoords(property, geocodeCache, pinOverrides);
         if (!coords) return;
         byOwner.set(ownerKey, { ownerId, normalizedScope, ownerPreview, coords, property });
       });
@@ -1936,6 +1948,7 @@ export function MapView({
           primaryProfile: normalizedScope,
           lat: coords.lat,
           lng: coords.lng,
+          geocodePending: Boolean(coords.isApproximate),
           portfolioCount: linkedPortfolio.properties.length + linkedPortfolio.services.length,
           ownerPreview: { ...ownerPreview, primaryProfile: normalizedScope },
           linkedProperties: linkedPortfolio.properties,
@@ -2120,9 +2133,15 @@ export function MapView({
         const isOwnProperty = String(property?.ownerId || '') === String(currentUserId || '')
           || String(property?.ownerId || '') === '999999';
         if (onlyMine && !isOwnProperty) return;
-        const coords = resolvePropertyCoords(property, geocodeCache, pinOverrides);
+        const coords = resolvePropertyDisplayCoords(property, geocodeCache, pinOverrides);
         if (!coords) return;
-        const payload = normalizeCard({ ...property, cardKind: 'property', lat: coords.lat, lng: coords.lng }, currentUserId);
+        const payload = normalizeCard({
+          ...property,
+          cardKind: 'property',
+          lat: coords.lat,
+          lng: coords.lng,
+          geocodePending: Boolean(coords.isApproximate),
+        }, currentUserId);
         if (!payload) return;
         const key = `user-property-${property.id}`;
         if (mapById.has(key)) return;
@@ -2165,7 +2184,7 @@ export function MapView({
       .filter((property) => isTruthyFlag(property?.publishToShowcase, true))
       .filter(isLocalPublishedRecord)
       .map((property) => {
-        const coords = resolvePropertyCoords(property, geocodeCache, pinOverrides);
+        const coords = resolvePropertyDisplayCoords(property, geocodeCache, pinOverrides);
         if (!hasValidCoords(coords)) return null;
         return {
           type: 'Feature',
@@ -2176,7 +2195,7 @@ export function MapView({
             isOwn: String(property?.ownerId || '') === String(currentUserId || '') || String(property?.ownerId || '') === '999999',
             isUnlocked: isUnlockedId(property.ownerId),
           },
-          payload: property,
+          payload: { ...property, geocodePending: Boolean(coords.isApproximate) },
         };
       })
       .filter(Boolean);

@@ -599,6 +599,7 @@ const USER_DATA_KEYS = [
   'accountType',
   'ds_matched', 'ds_interested', 'ds_unlocked', 'ds_purchases',
   'ds_feed_hidden_contacts', 'ds_feed_hidden_interests',
+  'dealsifter.hiddenCardIds',
   'ds_matches_archived_contacts', 'ds_matches_archived_interests',
   'ds_matches_deleted_contacts', 'ds_matches_deleted_interests',
   'ds_nuggets', 'ds_subscription_mock', 'ds_system_notifications',
