@@ -3,6 +3,7 @@ import { NUGGET_PACKS } from '../data/mockData';
 import { redirectToCheckout, redirectToSubscription } from '../lib/stripeClient';
 import { isSupabaseConfigured } from '../lib/supabaseClient';
 import { trackAppEvent } from '../lib/adminEventTracking';
+import { recordTermsAcceptance, TERMS_CONSENT_VERSION } from '../services/consentService';
 
 export const normalizeCheckoutIntent = (intent) => {
   if (!intent || typeof intent !== 'object') return null;
@@ -230,6 +231,11 @@ export function useCheckoutFlow({
       entityId: intent.planId || intent.packId || '',
       metadata: { source: intent.source || 'pricing' },
     });
+    try {
+      await recordTermsAcceptance(supabaseUserId, TERMS_CONSENT_VERSION);
+    } catch (error) {
+      if (import.meta.env.DEV) console.warn('[Checkout] Failed to persist terms acceptance.', error);
+    }
     const completed = await executeCheckoutIntent(intent, { termsAccepted: true });
     if (completed) {
       setCheckoutModalIntent(null);
@@ -237,7 +243,7 @@ export function useCheckoutFlow({
       setCheckoutSubmitting(false);
     }
     return completed;
-  }, [addToast, checkoutModalIntent, checkoutSubmitting, executeCheckoutIntent, pendingCheckoutIntent]);
+  }, [addToast, checkoutModalIntent, checkoutSubmitting, executeCheckoutIntent, pendingCheckoutIntent, supabaseUserId]);
 
   const handleEmbeddedCheckoutComplete = useCallback(() => {
     setPendingCheckoutIntent(null);

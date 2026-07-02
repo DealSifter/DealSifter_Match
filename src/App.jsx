@@ -110,6 +110,18 @@ import {
   UnlockCostChanged,
   unlockProperty as unlockPropertyRpc,
 } from './services/unlockService';
+import {
+  acceptCookies,
+  backfillLocalPrivacyConsent,
+  clearLocalPrivacyConsent,
+  getConsentStatus,
+  hasAcceptedCookies,
+  linkAnonymousPrivacyConsent,
+  recordPrivacyAcceptance,
+  recordTermsAcceptance,
+  revokePrivacyConsent,
+  TERMS_CONSENT_VERSION,
+} from './services/consentService';
 
 // Safe error logger — strips Supabase error details that may contain personal data
 const safeLogError = (label, error) => {
@@ -188,11 +200,6 @@ const APP_SESSION_TOKEN_KEY = 'ds_app_session_token';
 const APP_LAST_ACTIVITY_KEY = 'ds_app_last_activity_at';
 const APP_IDLE_SIGNOUT_MS = 60 * 60 * 1000;
 const USER_PREFERENCES_KEY = 'ds_user_preferences';
-const COOKIE_CONSENT_KEY = 'ds_cookie_consent';
-const COOKIE_CONSENT_VERSION = '2026-06';
-const COOKIE_CONSENT_TTL_MS = 365 * 24 * 60 * 60 * 1000;
-const LGPD_CONSENT_KEY = 'ds_lgpd_consent';
-const LGPD_CONSENT_VERSION = '1.0';
 
 const appendSecurityAuditEvent = (event) => {
   try {
@@ -252,83 +259,6 @@ const getDeviceLabel = () => {
   } catch {
     return 'Unknown device';
   }
-};
-
-const readCookieConsent = () => {
-  const isValidPayload = (raw) => {
-    if (raw === '1') return true; // legacy acceptance
-    if (!raw) return false;
-    const parsed = JSON.parse(raw);
-    if (!parsed || typeof parsed !== 'object') return false;
-    if (parsed.version !== COOKIE_CONSENT_VERSION) return false;
-    if (!['accepted', 'essential'].includes(String(parsed.choice || ''))) return false;
-    const expiresAt = Number(parsed.expiresAt || 0);
-    return Number.isFinite(expiresAt) && expiresAt > Date.now();
-  };
-  try {
-    const raw = localStorage.getItem(COOKIE_CONSENT_KEY);
-    if (isValidPayload(raw)) return true;
-  } catch { /* no-op */ }
-  try {
-    const cookie = document.cookie
-      .split(';')
-      .map((item) => item.trim())
-      .find((item) => item.startsWith(`${COOKIE_CONSENT_KEY}=`));
-    if (!cookie) return false;
-    return isValidPayload(decodeURIComponent(cookie.split('=').slice(1).join('=')));
-  } catch { /* no-op */ }
-  return false;
-};
-
-const writeCookieConsent = (choice = 'accepted') => {
-  const payload = JSON.stringify({
-    version: COOKIE_CONSENT_VERSION,
-    choice: choice === 'essential' ? 'essential' : 'accepted',
-    acceptedAt: Date.now(),
-    expiresAt: Date.now() + COOKIE_CONSENT_TTL_MS,
-  });
-  try {
-    localStorage.setItem(COOKIE_CONSENT_KEY, payload);
-  } catch { /* no-op */ }
-  try {
-    document.cookie = `${COOKIE_CONSENT_KEY}=${encodeURIComponent(payload)}; Max-Age=${Math.floor(COOKIE_CONSENT_TTL_MS / 1000)}; Path=/; SameSite=Lax; Secure`;
-  } catch { /* no-op */ }
-};
-
-const readLgpdConsent = (userId = '') => {
-  const keys = userId
-    ? [`${LGPD_CONSENT_KEY}:${userId}`]
-    : [LGPD_CONSENT_KEY];
-  try {
-    return keys.some((key) => {
-      const raw = localStorage.getItem(key);
-      if (raw === '1') return true;
-      if (!raw) return false;
-      const parsed = JSON.parse(raw);
-      return parsed?.accepted === true && String(parsed?.version || '') === LGPD_CONSENT_VERSION;
-    });
-  } catch {
-    return false;
-  }
-};
-
-const writeLgpdConsent = (userId = '') => {
-  const payload = JSON.stringify({
-    accepted: true,
-    version: LGPD_CONSENT_VERSION,
-    acceptedAt: Date.now(),
-  });
-  try {
-    localStorage.setItem(LGPD_CONSENT_KEY, payload);
-    if (userId) localStorage.setItem(`${LGPD_CONSENT_KEY}:${userId}`, payload);
-  } catch { /* no-op */ }
-};
-
-const clearLgpdConsent = (userId = '') => {
-  try {
-    localStorage.removeItem(LGPD_CONSENT_KEY);
-    if (userId) localStorage.removeItem(`${LGPD_CONSENT_KEY}:${userId}`);
-  } catch { /* no-op */ }
 };
 
 const DEFAULT_USER_PREFERENCES = {
@@ -1778,39 +1708,26 @@ export default function App() {
 
   // Cookie consent state (landing page banner)
   const [cookieConsent, setCookieConsent] = useState(() => {
-    return readCookieConsent();
+    return hasAcceptedCookies();
   });
-  const handleCookieAccept = (choice = 'accepted') => {
+  const handleCookieAccept = async (choice = 'accepted') => {
     setCookieConsent(true);
-    writeCookieConsent(choice);
+    await acceptCookies(choice);
   };
 
   const handleLgpdAccept = async () => {
     setIsConsentProcessing(true);
     try {
-      // Record consent server-side FIRST as proof (Art. 8) before updating local state
-      const anonId = `anon-${Date.now()}`;
-      if (isSupabaseConfigured && supabase) {
-        try {
-          const userId = authSession?.userId || null;
-          await supabase.from('consent_records').insert({
-            user_id: userId,
-            anonymous_id: userId ? null : anonId,
-            consent_type: 'data_processing',
-            version: LGPD_CONSENT_VERSION,
-            user_agent: navigator.userAgent?.slice(0, 200) || null,
-          });
-          // Persist anonymous_id so we can link it after login
-          if (!userId) {
-            try { localStorage.setItem('ds_lgpd_consent_anon_id', anonId); } catch { /* no-op */ }
-          }
-        } catch { /* best-effort */ }
+      const userId = authSession?.userId || '';
+      try {
+        await recordPrivacyAcceptance(userId);
+        await recordTermsAcceptance(userId, TERMS_CONSENT_VERSION);
+      } catch (error) {
+        safeLogError('Failed to record consent acceptance.', error);
       }
-      // Update local state only after server-side record attempt
       setLgpdConsent(true);
       setLgpdConsentChecked(true);
       setModal(null);
-      writeLgpdConsent(authSession?.userId || '');
       if (authSession && ['landing', 'terms', 'privacy'].includes(page)) {
         _setPage('dashboard');
         try { localStorage.setItem('ds_last_page', 'dashboard'); } catch { /* no-op */ }
@@ -1840,48 +1757,32 @@ export default function App() {
 
     const timer = window.setTimeout(() => {
       if (cancelled) return;
-      const localAccepted = readLgpdConsent(userId);
-      setLgpdConsent(localAccepted);
+      setLgpdConsent(false);
       setLgpdConsentChecked(false);
 
       if (!isSupabaseConfigured || !supabase) {
-        setLgpdConsent(localAccepted);
-        setLgpdConsentChecked(true);
+        getConsentStatus(userId)
+          .then((status) => {
+            if (!cancelled) setLgpdConsent(Boolean(status?.privacy && status?.terms));
+          })
+          .finally(() => {
+            if (!cancelled) setLgpdConsentChecked(true);
+          });
         return;
       }
 
       (async () => {
         try {
-          const { data, error } = await supabase
-            .from('consent_records')
-            .select('id, accepted_at')
-            .eq('user_id', userId)
-            .eq('consent_type', 'data_processing')
-            .is('revoked_at', null)
-            .order('accepted_at', { ascending: false })
-            .limit(1);
-          if (error) throw error;
+          const status = await getConsentStatus(userId);
           if (cancelled) return;
-
-          const hasRemoteConsent = Array.isArray(data) && data.length > 0;
-          if (hasRemoteConsent) {
-            writeLgpdConsent(userId);
+          if (status?.privacy && status?.terms) {
             setLgpdConsent(true);
             return;
           }
 
-          if (localAccepted) {
+          if (status?.privacy) {
             try {
-              await supabase.from('consent_records').insert({
-                user_id: userId,
-                anonymous_id: null,
-                consent_type: 'data_processing',
-                version: LGPD_CONSENT_VERSION,
-                user_agent: navigator.userAgent?.slice(0, 200) || null,
-              });
-              writeLgpdConsent(userId);
-              setLgpdConsent(true);
-              return;
+              await backfillLocalPrivacyConsent(userId);
             } catch (insertError) {
               safeLogError('Failed to backfill local consent record.', insertError);
             }
@@ -1890,7 +1791,7 @@ export default function App() {
           setLgpdConsent(false);
         } catch (error) {
           safeLogError('Failed to verify data-processing consent.', error);
-          setLgpdConsent(localAccepted);
+          if (!cancelled) setLgpdConsent(false);
         } finally {
           if (!cancelled) setLgpdConsentChecked(true);
         }
@@ -1909,31 +1810,7 @@ export default function App() {
     consentLinkedRef.current = true;
     (async () => {
       try {
-        // Check if user already has a linked consent record
-        const { data: existing } = await supabase
-          .from('consent_records')
-          .select('id')
-          .eq('user_id', authSession.userId)
-          .eq('consent_type', 'data_processing')
-          .limit(1);
-        if (existing?.length) return; // already linked
-        // Try to find and claim the anonymous record using the stored anon_id
-        const storedAnonId = (() => { try { return localStorage.getItem('ds_lgpd_consent_anon_id'); } catch { return null; } })();
-        if (!storedAnonId) return;
-        const { data: anon } = await supabase
-          .from('consent_records')
-          .select('id')
-          .is('user_id', null)
-          .eq('anonymous_id', storedAnonId)
-          .eq('consent_type', 'data_processing')
-          .limit(1);
-        if (anon?.[0]) {
-          await supabase
-            .from('consent_records')
-            .update({ user_id: authSession.userId, anonymous_id: null })
-            .eq('id', anon[0].id);
-          try { localStorage.removeItem('ds_lgpd_consent_anon_id'); } catch { /* no-op */ }
-        }
+        await linkAnonymousPrivacyConsent(authSession.userId);
       } catch { /* best-effort */ }
     })();
   }, [authSession?.userId, lgpdConsent]);
@@ -1942,14 +1819,9 @@ export default function App() {
     if (!isSupabaseConfigured || !supabase || !authSession?.userId) return;
     setIsConsentProcessing(true);
     try {
-      await supabase
-        .from('consent_records')
-        .update({ revoked_at: new Date().toISOString() })
-        .eq('user_id', authSession.userId)
-        .eq('consent_type', 'data_processing')
-        .is('revoked_at', null);
+      await revokePrivacyConsent(authSession.userId);
       setLgpdConsent(false);
-      clearLgpdConsent(authSession.userId);
+      clearLocalPrivacyConsent(authSession.userId);
       consentLinkedRef.current = false;
       addToast({ type: 'success', title: 'Consentimento revogado', message: 'Seu consentimento foi revogado. Você será redirecionado.' });
       setPage('landing');
