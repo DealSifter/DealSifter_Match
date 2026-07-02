@@ -945,8 +945,8 @@ export function Dashboard({ page, nuggets, setModal, setPage, onOpenOnboardingTa
       : null;
     const mockOwnerCard = import.meta.env.DEV ? (CARDS || []).find((c) => String(c.id) === String(property.ownerId)) : null;
 
-    return ownerByScope
-      || ownerPreview
+    return ownerPreview
+      || ownerByScope
       || ownerById
       || (mockOwnerCard ? { ...mockOwnerCard, ownerId: mockOwnerCard.ownerId || mockOwnerCard.id } : null);
   }, [connectionCards, findConnectionById, getRecordProfileScope]);

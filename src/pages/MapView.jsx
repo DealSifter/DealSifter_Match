@@ -11,7 +11,7 @@ import { Icon } from '../components/ui/Icon';
 import { CardStatusBadge, CardStatusIcon } from '../components/ui/CardStatusIndicators';
 import { CARD_STATUS, pickPriorityStatus } from '../components/ui/cardStatusTokens';
 import { useMediaQuery } from '../hooks/useMediaQuery';
-import { getPortfolioItemCount, getPortfolioUnlockCost, getPropertyExclusivityStatus } from '../lib/unlockRules';
+import { getPortfolioUnlockCost, getPropertyExclusivityStatus } from '../lib/unlockRules';
 import { inferRecordProfileScope, normalizeProfileScope, resolveScopedProfile } from '../lib/profileScopeResolver';
 import { normalizeCard } from '../lib/normalizeFeedCard';
 
@@ -1388,6 +1388,38 @@ export function MapView({
     const profileScope = getRecordProfileScope(record);
     return Boolean(profileScope) && publishedLocalProfileScopes.has(profileScope);
   }, [currentUserId, publishedLocalProfileScopes, getRecordProfileScope]);
+  const getPortfolioPartsForOwner = useCallback((ownerId, scope) => {
+    const normalizedOwnerId = String(ownerId || '').trim();
+    const normalizedScope = normalizeProfileScope(scope);
+    if (!normalizedOwnerId || !normalizedScope) return { properties: [], services: [] };
+    const properties = (showcaseProperties || []).filter((property) => (
+      String(property?.ownerId || '') === normalizedOwnerId
+      && getRecordProfileScope(property) === normalizedScope
+      && isTruthyFlag(property?.publishToShowcase, true)
+      && property?.dealClosed !== true
+    ));
+    const services = (servicePortfolio || []).filter((service) => (
+      String(service?.ownerId || '') === normalizedOwnerId
+      && getRecordProfileScope(service) === normalizedScope
+      && isTruthyFlag(service?.publishToConnections, true)
+    ));
+    return { properties, services };
+  }, [getRecordProfileScope, servicePortfolio, showcaseProperties]);
+  const getPortfolioSummaryLabel = useCallback((item) => {
+    const properties = Array.isArray(item?.linkedProperties) ? item.linkedProperties : [];
+    const services = Array.isArray(item?.linkedServices) ? item.linkedServices : [];
+    const propertyCount = properties.length;
+    const serviceCount = services.length;
+    if (propertyCount > 0 && serviceCount > 0) {
+      return `Portfolio: ${propertyCount} ${propertyCount === 1 ? 'property' : 'properties'} + ${serviceCount} ${serviceCount === 1 ? 'service' : 'services'}`;
+    }
+    if (serviceCount > 0) {
+      return `Portfolio: ${serviceCount} ${serviceCount === 1 ? 'service' : 'services'}`;
+    }
+    return tMatches.portfolioCountLabel
+      .replace('{count}', String(propertyCount))
+      .replace('{item}', propertyCount === 1 ? tMatches.portfolioItemOne : tMatches.portfolioItemOther);
+  }, [tMatches.portfolioCountLabel, tMatches.portfolioItemOne, tMatches.portfolioItemOther]);
   const [showPeople, setShowPeople] = useState(() => initialMapUiState.showPeople ?? Boolean(preferredDefaultFilters.showPeople ?? true));
   const [showProperties, setShowProperties] = useState(() => initialMapUiState.showProperties ?? Boolean(preferredDefaultFilters.showProperties ?? true));
   const [showOnlyUnlocked, setShowOnlyUnlocked] = useState(() => initialMapUiState.showOnlyUnlocked ?? Boolean(preferredDefaultFilters.showOnlyUnlocked ?? false));
@@ -1895,6 +1927,7 @@ export function MapView({
       byOwner.forEach(({ ownerId, normalizedScope, ownerPreview, coords, property }) => {
         const key = `person-${ownerId}-${normalizedScope}`;
         if (mapById.has(key)) return;
+        const linkedPortfolio = getPortfolioPartsForOwner(ownerId, normalizedScope);
         const payload = normalizeCard({
           cardKind: 'person',
           ...ownerPreview,
@@ -1903,15 +1936,10 @@ export function MapView({
           primaryProfile: normalizedScope,
           lat: coords.lat,
           lng: coords.lng,
-          portfolioCount: (showcaseProperties || []).filter((p) => (
-            String(p?.ownerId || '') === ownerId
-            && getRecordProfileScope(p) === normalizedScope
-          )).length,
+          portfolioCount: linkedPortfolio.properties.length + linkedPortfolio.services.length,
           ownerPreview: { ...ownerPreview, primaryProfile: normalizedScope },
-          linkedProperties: (showcaseProperties || []).filter((p) => (
-            String(p?.ownerId || '') === ownerId
-            && getRecordProfileScope(p) === normalizedScope
-          )),
+          linkedProperties: linkedPortfolio.properties,
+          linkedServices: linkedPortfolio.services,
         }, currentUserId);
         if (!payload) return;
         mapById.set(key, {
@@ -1958,10 +1986,7 @@ export function MapView({
       byOwner.forEach(({ ownerId, normalizedScope, ownerPreview, coords, stateCode, service }) => {
         const key = `person-${ownerId}-${normalizedScope}`;
         if (mapById.has(key)) return;
-        const linkedServices = (servicePortfolio || []).filter((s) => (
-          String(s?.ownerId || '') === ownerId
-          && getRecordProfileScope(s) === normalizedScope
-        ));
+        const linkedPortfolio = getPortfolioPartsForOwner(ownerId, normalizedScope);
         const payload = normalizeCard({
           cardKind: 'person',
           ...ownerPreview,
@@ -1971,9 +1996,10 @@ export function MapView({
           lat: coords.lat,
           lng: coords.lng,
           loc: ownerPreview.loc || stateCode,
-          portfolioCount: linkedServices.length,
+          portfolioCount: linkedPortfolio.properties.length + linkedPortfolio.services.length,
           ownerPreview: { ...ownerPreview, primaryProfile: normalizedScope },
-          linkedServices,
+          linkedProperties: linkedPortfolio.properties,
+          linkedServices: linkedPortfolio.services,
         }, currentUserId);
         if (!payload) return;
         mapById.set(key, {
@@ -2132,7 +2158,7 @@ export function MapView({
     }
 
     return Array.from(mapById.values());
-  }, [enableMockMapData, showPeople, showProperties, showOnlyMyPins, showcaseProperties, servicePortfolio, geocodeCache, pinOverrides, isUnlockedId, currentUserId, isLocalPublishedRecord, publishedLocalProfileScopes, accountType, userProfile, personalProfile, professionalProfile, getRecordProfileScope]);
+  }, [enableMockMapData, showPeople, showProperties, showOnlyMyPins, showcaseProperties, servicePortfolio, geocodeCache, pinOverrides, isUnlockedId, currentUserId, isLocalPublishedRecord, publishedLocalProfileScopes, accountType, userProfile, personalProfile, professionalProfile, getRecordProfileScope, getPortfolioPartsForOwner]);
 
   const realUserPoints = useMemo(() => {
     return (showcaseProperties || [])
@@ -2558,10 +2584,6 @@ export function MapView({
 
   const getUnlockCost = (personId) => {
     return getPortfolioUnlockCost(personId, unlockPropertySource, servicePortfolio || []);
-  };
-
-  const getPortfolioCount = (personId) => {
-    return getPortfolioItemCount(personId, unlockPropertySource, servicePortfolio || []);
   };
 
   const activeMapStyle = useMemo(() => {
@@ -3286,7 +3308,6 @@ export function MapView({
                 : (isUnlockedCard ? UNLOCKED_PERSON_PIN : (isPerson ? C.accent : '#4381bc'));
               const isLocked = isPerson ? !isUnlockedId(item.id) : (exclusivityStatus?.kind === 'blocked' || !isUnlockedId(item.ownerId));
               const unlockCost = isPerson ? getUnlockCost(item.id) : 0;
-              const portfolioCount = isPerson ? getPortfolioCount(item.id) : 0;
               return (
                 <div 
                   key={`${isPerson ? 'person' : 'property'}-${item.id}`} 
@@ -3351,13 +3372,7 @@ export function MapView({
                   {isPerson ? (
                     <div style={{ marginTop: 8, display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8 }}>
                       <div style={{ minWidth: 0, color: C.t3, fontSize: 11, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
-                        {portfolioCount > 0
-                          ? tMatches.portfolioCountLabel
-                              .replace('{count}', String(portfolioCount))
-                              .replace('{item}', portfolioCount === 1 ? tMatches.portfolioItemOne : tMatches.portfolioItemOther)
-                          : tMatches.portfolioCountLabel
-                              .replace('{count}', '0')
-                              .replace('{item}', tMatches.portfolioItemOther)}
+                        {getPortfolioSummaryLabel(item)}
                         {!isLocked && <span style={{ color: C.success, marginLeft: 8, fontWeight: 400 }}>{tMatches.unlockedLabel}</span>}
                       </div>
                       {isLocked ? (
@@ -3637,9 +3652,7 @@ export function MapView({
                           </div>
                         </div>
                         <div style={{ marginTop: 2, fontSize: 12, color: C.gold, fontWeight: 700 }}>
-                          {tMatches.portfolioCountLabel
-                            .replace('{count}', String(getPortfolioCount(payload.id)))
-                            .replace('{item}', getPortfolioCount(payload.id) === 1 ? tMatches.portfolioItemOne : tMatches.portfolioItemOther)}
+                          {getPortfolioSummaryLabel(payload)}
                         </div>
                         <div style={{ marginTop: 1, fontSize: 12, display: 'flex', alignItems: 'center', gap: 6, color: C.t2 }}>
                           <span>{payload.deals} {tMap.deals || 'deals'}</span>

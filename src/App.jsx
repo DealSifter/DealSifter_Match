@@ -3138,16 +3138,19 @@ export default function App() {
       const snapshotRows = Array.isArray(remoteState.contactSnapshots) ? remoteState.contactSnapshots : [];
       const buyerPropertyUnlockRows = propertyUnlockRows.filter((row) => (
         String(row?.buyer_id || '').trim() === String(supabaseUserId || '').trim()
+        && String(row?.owner_id || '').trim() !== String(supabaseUserId || '').trim()
       ));
       const unlockedOwnerIds = unlockRows
         .map((row) => String(row?.seller_id || '').trim())
-        .filter(Boolean);
+        .filter((ownerId) => Boolean(ownerId) && ownerId !== String(supabaseUserId || '').trim());
       snapshotRows.forEach((row) => {
         const ownerId = String(row?.seller_id || row?.contact?.ownerId || row?.contact?.id || '').trim();
+        if (ownerId === String(supabaseUserId || '').trim()) return;
         if (ownerId && !unlockedOwnerIds.includes(ownerId)) unlockedOwnerIds.push(ownerId);
       });
       buyerPropertyUnlockRows.forEach((row) => {
         const ownerId = String(row?.owner_id || '').trim();
+        if (ownerId === String(supabaseUserId || '').trim()) return;
         if (ownerId && !unlockedOwnerIds.includes(ownerId)) unlockedOwnerIds.push(ownerId);
       });
 
@@ -3179,7 +3182,11 @@ export default function App() {
         const hydratedContacts = [
           ...snapshotRows
             .map((row) => row?.contact)
-            .filter((contact) => contact && typeof contact === 'object'),
+            .filter((contact) => (
+              contact
+              && typeof contact === 'object'
+              && String(contact.ownerId || contact.unlockOwnerId || contact.id || '').trim() !== String(supabaseUserId || '').trim()
+            )),
           ...unlockedOwnerIds
             .map((ownerId) => buildUnlockedContactSnapshot(ownerId))
             .filter(Boolean),
@@ -3243,6 +3250,22 @@ export default function App() {
     const timer = window.setTimeout(() => { void fetchRemoteUnlockState(); }, 0);
     return () => clearTimeout(timer);
   }, [fetchRemoteUnlockState, supabaseUserId]);
+
+  useEffect(() => {
+    if (!supabaseUserId) return;
+    const selfId = String(supabaseUserId);
+    const timer = window.setTimeout(() => {
+      setUnlocked((prev) => (Array.isArray(prev) ? prev.filter((id) => String(id) !== selfId) : prev));
+      setPurchases((prev) => (Array.isArray(prev) ? prev.filter((row) => String(row?.sellerId || '') !== selfId) : prev));
+      setMatched((prev) => (Array.isArray(prev)
+        ? prev.filter((item) => String(item?.ownerId || item?.unlockOwnerId || item?.sellerId || item?.id || '') !== selfId)
+        : prev));
+      setPropertyUnlocks((prev) => (Array.isArray(prev)
+        ? prev.filter((row) => String(row?.ownerId || row?.owner_id || '') !== selfId || String(row?.buyerId || row?.buyer_id || '') !== selfId)
+        : prev));
+    }, 0);
+    return () => window.clearTimeout(timer);
+  }, [supabaseUserId, setMatched, setPropertyUnlocks, setPurchases, setUnlocked]);
 
   const handleMapPropertyCoordsUpdate = useCallback((propertyId, coordsMeta = {}) => {
     if (!propertyId) return;
@@ -4912,6 +4935,17 @@ export default function App() {
       unlockPortfolioProperties || [],
       unlockPortfolioServices || []
     );
+    if (unlockOwnerId && supabaseUserId && String(unlockOwnerId) === String(supabaseUserId)) {
+      addToast({
+        type: 'info',
+        message: 'Own card, not selectionable',
+        duration: 4500,
+      });
+      setUnlockTarget(null);
+      setUnlockQuote(null);
+      setModal(null);
+      return;
+    }
     const displayedUnlockCost = getPortfolioUnlockCost(
       { ...(card || {}), ownerId: unlockOwnerId, unlockOwnerId },
       unlockPortfolioProperties || [],
@@ -5124,6 +5158,17 @@ export default function App() {
     const unlockMode = options?.mode || 'normal';
     const unlockOwnerId = card?.unlockOwnerId || card?.ownerId || card?.id;
     const contactUnlockId = card?.unlockContactId || card?.contactId || card?.id || unlockOwnerId;
+    if (unlockOwnerId && supabaseUserId && String(unlockOwnerId) === String(supabaseUserId)) {
+      addToast({
+        type: 'info',
+        message: 'Own card, not selectionable',
+        duration: 4500,
+      });
+      setModal(null);
+      setUnlockTarget(null);
+      setUnlockQuote(null);
+      return;
+    }
     let quoteForUnlock = (
       card?.unlockScope === 'property'
       && unlockQuote?.propertyId
