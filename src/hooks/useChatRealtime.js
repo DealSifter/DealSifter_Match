@@ -4,6 +4,9 @@ import { isSupabaseConfigured, supabase } from '../lib/supabaseClient';
 const CHAT_MESSAGES_TABLE = 'chat_messages';
 const CHAT_PAGE_SIZE = 30;
 const CHAT_MESSAGE_SELECT = 'id, sender_id, recipient_id, contact_owner_id, body, message_type, metadata, read_at, created_at';
+const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+
+const isValidUuid = (value) => UUID_RE.test(String(value || '').trim());
 
 const sortMessages = (messages) => [...messages].sort((a, b) => {
   const at = new Date(a.createdAt || 0).getTime();
@@ -119,7 +122,7 @@ export function useChatRealtime({
   const [hasMoreByPeer, setHasMoreByPeer] = useState({});
   const [loadingMoreByPeer, setLoadingMoreByPeer] = useState({});
   const userId = String(currentUserId || '').trim();
-  const canUseRealtime = Boolean(enabled && isSupabaseConfigured && supabase && userId && userId !== 'local-user');
+  const canUseRealtime = Boolean(enabled && isSupabaseConfigured && supabase && isValidUuid(userId));
 
   const reportError = useCallback((label, error) => {
     if (typeof onError === 'function') onError(label, error);
@@ -190,7 +193,7 @@ export function useChatRealtime({
 
   const loadMore = useCallback(async (peerIdInput, cursorInput = null) => {
     const peerId = String(peerIdInput || '').trim();
-    if (!canUseRealtime || !peerId || loadingMoreByPeer[peerId]) return [];
+    if (!canUseRealtime || !isValidUuid(peerId) || loadingMoreByPeer[peerId]) return [];
 
     const cursor = cursorInput || getPeerCursor(conversations?.[peerId]);
 
@@ -228,7 +231,7 @@ export function useChatRealtime({
 
   const markConversationRead = useCallback(async (peerIdInput) => {
     const peerId = String(peerIdInput || '').trim();
-    if (!canUseRealtime || !peerId) return;
+    if (!canUseRealtime || !isValidUuid(peerId)) return;
 
     const readAt = new Date().toISOString();
     const { error } = await supabase
@@ -258,7 +261,7 @@ export function useChatRealtime({
     if (!canUseRealtime) return null;
     const recipientId = String(payload.recipientId || '').trim();
     const text = String(payload.text || '').trim();
-    if (!recipientId || !text) return null;
+    if (!isValidUuid(recipientId) || !text) return null;
 
     const clientMessageId = payload.clientMessageId || `client:${Date.now()}:${Math.random().toString(36).slice(2)}`;
     const metadata = {
@@ -304,6 +307,7 @@ export function useChatRealtime({
 
   const retryMessage = useCallback(async (peerIdInput, messageIdInput) => {
     const peerId = String(peerIdInput || '').trim();
+    if (!isValidUuid(peerId)) return null;
     const current = Array.isArray(conversations?.[peerId]) ? conversations[peerId] : [];
     const failed = current.find((msg) => String(msg?.id || '') === String(messageIdInput || ''));
     const retryPayload = failed?.retryPayload;

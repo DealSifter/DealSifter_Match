@@ -2577,9 +2577,10 @@ export function MatchesPage({ nuggets, setModal, openUnlock, unlocked, initialCh
     return getPortfolioUnlockCost(ownerId, allPropertiesSource, allServicesSource);
   }, [allPropertiesSource, allServicesSource]);
   
-  const currentMsgs = useMemo(() => 
-    (activeOwner && convos) ? (convos[activeOwner.id] || []) : [],
-  [activeOwner, convos]);
+  const currentMsgs = useMemo(() => {
+    if (!activeOwner || !convos) return [];
+    return (Array.isArray(convos[activeOwner.id]) ? convos[activeOwner.id] : []).filter(Boolean);
+  }, [activeOwner, convos]);
   const activePeerId = String(activeOwner?.id || '').trim();
   const activeChatHasMore = Boolean(activePeerId && chatHasMore?.[activePeerId]);
   const activeChatLoadingMore = Boolean(activePeerId && chatLoadingMore?.[activePeerId]);
@@ -3595,6 +3596,9 @@ export function MatchesPage({ nuggets, setModal, openUnlock, unlocked, initialCh
                       const isMine = m.from === 'me';
                       const statusColor = m.status === 'failed' ? C.danger : (m.status === 'sending' ? C.t3 : C.success);
                       const statusIcon = m.status === 'failed' ? 'x' : (m.status === 'sending' ? 'hourglass' : 'check');
+                      const refData = m.refData && typeof m.refData === 'object' ? m.refData : {};
+                      const refTitle = refData.address || refData.name || refData.title || 'Shared reference';
+                      const refImage = refData.images?.[0] || refData.image || refData.media?.images?.[0] || '';
                       const receiptLabel = m.status === 'failed'
                         ? 'failed'
                         : (m.status === 'sending' ? 'sending' : (m.readStatus === 'read' ? 'lida' : 'nao lida'));
@@ -3603,8 +3607,8 @@ export function MatchesPage({ nuggets, setModal, openUnlock, unlocked, initialCh
                         <div style={{ maxWidth:"80%", padding:m.type==="reference"?8:12, borderRadius:12, background:isMine?C.alpha(C.accent, 0.5):C.bg, border:`1px solid ${isMine?C.alpha(C.accent, 0.7):C.border}`, color:isMine?C.t1:C.t1 }}>
                           {m.type === "reference" ? (
                              <div style={{ width:200 }}>
-                               <SmartImage src={m.refData.images?.[0] || m.refData.image || m.refData.media?.images?.[0]} alt={m.refData.address || m.refData.name || m.refData.title} style={{ width:"100%", height:100, borderRadius:8, objectFit:"cover" }} fallback={<div style={{ width:"100%", height:100, borderRadius:8, display:"flex", alignItems:"center", justifyContent:"center", background:C.alpha(C.t1,0.05) }}><Icon name="home" size={18} color={C.t3} /></div>} />
-                               <div style={{ padding:8, fontSize:12 }}>{m.refData.address || m.refData.name || m.refData.title}</div>
+                               <SmartImage src={refImage} alt={refTitle} style={{ width:"100%", height:100, borderRadius:8, objectFit:"cover" }} fallback={<div style={{ width:"100%", height:100, borderRadius:8, display:"flex", alignItems:"center", justifyContent:"center", background:C.alpha(C.t1,0.05) }}><Icon name="home" size={18} color={C.t3} /></div>} />
+                               <div style={{ padding:8, fontSize:12 }}>{refTitle}</div>
                              </div>
                           ) : (
                             <>
