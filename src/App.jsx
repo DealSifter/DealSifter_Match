@@ -83,7 +83,7 @@ import { ToastContainer } from './components/ui/Toast';
 const ConsentBanner = lazyWithRetry(() => import('./components/ui/ConsentBanner').then((m) => ({ default: m.ConsentBanner })), 'consent');
 const CookieBanner = lazyWithRetry(() => import('./components/ui/CookieBanner').then((m) => ({ default: m.CookieBanner })), 'cookie');
 import { getT } from './i18n/translations';
-import { CATEGORIES, CARDS as _MOCK_CARDS, PLANS, PROPERTIES as _MOCK_PROPERTIES, SERVICE_PORTFOLIO as _MOCK_SERVICES } from './data/mockData';
+import { CATEGORIES, CARDS as _MOCK_CARDS, PROPERTIES as _MOCK_PROPERTIES, SERVICE_PORTFOLIO as _MOCK_SERVICES } from './data/mockData';
 import { supabase, isSupabaseConfigured, supabaseConfigHint } from './lib/supabaseClient';
 import { buildScopedProfilePayload, extractScopedProfileLegacy, inferRecordProfileScope, normalizeProfileScope } from './lib/profileScopeResolver';
 import { normalizeCard } from './lib/normalizeFeedCard';
@@ -95,7 +95,7 @@ import { usePortfolioSync } from './hooks/usePortfolioSync';
 import { useCheckoutFlow } from './hooks/useCheckoutFlow';
 import { useMediaQuery } from './hooks/useMediaQuery';
 import { useChatRealtime } from './hooks/useChatRealtime';
-import { getPlanGateCopy } from './lib/planAccess';
+import { getPlanGateCopy, getCurrentPlan, isPlanLimitError } from './services/planUsageService';
 import { trackAppEvent } from './lib/adminEventTracking';
 import { createPropertyUnlockRecord, getOwnerExclusivityStatus, getPortfolioUnlockCost, getPropertyExclusivityStatus, resolveUnlockOwnerId } from './lib/unlockRules';
 import { isPendingDealExpired } from './lib/pendingDeal';
@@ -104,7 +104,6 @@ import {
   getPropertyUnlockQuote as getPropertyUnlockQuoteRpc,
   getUserUnlockState,
   InvalidToken,
-  PlanLimitReached,
   purchaseExclusivity,
   unlockContact as unlockContactRpc,
   UnlockCostChanged,
@@ -3458,7 +3457,7 @@ export default function App() {
       let personalLoadedFromRemote = false;
       let professionalLoadedFromRemote = false;
       try {
-        const [personalResult, professionalResultInitial, userRowInitial, subscriptionRow] = await Promise.all([
+        const [personalResult, professionalResultInitial, userRowInitial, planSnapshotResult] = await Promise.all([
           supabase
             .from('user_profiles')
             .select('full_name, photo_url, bio, visibility')
@@ -3474,11 +3473,7 @@ export default function App() {
             .select('nuggets, plan_id, full_name, phone, settings_payload')
             .eq('id', supabaseUserId)
             .maybeSingle(),
-          supabase
-            .from('subscriptions')
-            .select('plan_id, plan_name, price_cents, status, current_period_end')
-            .eq('user_id', supabaseUserId)
-            .maybeSingle(),
+          getCurrentPlan(supabaseUserId).catch((error) => ({ error })),
         ]);
 
         let userRow = userRowInitial;
@@ -3490,9 +3485,11 @@ export default function App() {
             .maybeSingle();
         }
 
-        // Sync nuggets from Supabase (source of truth after webhook credits)
-        if (!cancelled && userRow?.data?.nuggets != null) {
-          setNuggets(userRow.data.nuggets);
+        if (!cancelled && planSnapshotResult && !planSnapshotResult.error) {
+          setNuggets(Number(planSnapshotResult.nuggets || 0));
+          setSubscription(planSnapshotResult.plan);
+        } else if (planSnapshotResult?.error) {
+          safeLogError('Plan usage hydration failed.', planSnapshotResult.error);
         }
         if (!cancelled && userRow?.data) {
           const settingsPayload = userRow.data.settings_payload && typeof userRow.data.settings_payload === 'object'
@@ -3530,18 +3527,6 @@ export default function App() {
             try { localStorage.setItem('ds_billing_history_mock', JSON.stringify(settingsPayload.billingHistory)); } catch { /* no-op */ }
           }
         }
-        if (!cancelled) {
-          const planId = String(subscriptionRow?.data?.plan_id || userRow?.data?.plan_id || 'free').toLowerCase();
-          const planDef = PLANS.find((plan) => String(plan.id).toLowerCase() === planId);
-          setSubscription({
-            planId,
-            planName: subscriptionRow?.data?.plan_name || planDef?.name || (planId === 'free' ? 'Free' : planId),
-            price: Number(subscriptionRow?.data?.price_cents || 0) / 100,
-            status: subscriptionRow?.data?.status || (planId === 'free' ? 'active' : 'active'),
-            nextBillingAt: subscriptionRow?.data?.current_period_end || null,
-          });
-        }
-
         let professionalResult = professionalResultInitial;
 
         if (professionalResult?.error && isMissingColumnError(professionalResult.error, 'professional_profiles.profile_payload')) {
@@ -5115,12 +5100,6 @@ export default function App() {
         return;
       }
     }
-    const isPlanLimitError = (error) => {
-      if (error instanceof PlanLimitReached) return true;
-      const message = String(error?.message || '');
-      const details = String(error?.details || error?.detail || '');
-      return message.includes('plan_limit_reached') || details.includes('plan_limit_reached');
-    };
     const isUnlockCostChangedError = (error) => {
       if (error instanceof UnlockCostChanged || error instanceof InvalidToken) return true;
       const message = String(error?.message || error?.details || error?.detail || '').toLowerCase();
@@ -5546,11 +5525,10 @@ export default function App() {
       if (error) throw error;
       const rows = Array.isArray(data) ? data : [];
       const firstRow = rows[0] || null;
-      if (Number.isFinite(Number(firstRow?.remaining_nuggets))) {
-        setNuggets(Number(firstRow.remaining_nuggets));
-      } else {
-        setNuggets((current) => current - totalCost);
+      if (!Number.isFinite(Number(firstRow?.remaining_nuggets))) {
+        throw new Error('Spotlight purchase did not return the confirmed server balance.');
       }
+      setNuggets(Number(firstRow.remaining_nuggets));
       const nextRows = rows.map((row) => ({
         id: row.spotlight_id || `${row.card_kind}:${row.card_id}:${Date.now()}`,
         userId: supabaseUserId,

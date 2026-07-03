@@ -16,7 +16,7 @@ import { getHiddenSet, subscribe as subscribeHidden } from '../lib/hiddenCards';
 import { inferRecordProfileScope, normalizeProfileScope, resolveScopedProfile } from '../lib/profileScopeResolver';
 import { formatPropertyLocation } from '../lib/formatPropertyLocation';
 import { useMediaQuery } from '../hooks/useMediaQuery';
-import { consumePlanActions, getPlanGateCopy } from '../lib/planAccess';
+import { consumePlanActions, getPlanGateCopy } from '../services/planUsageService';
 import { trackAppEvent } from '../lib/adminEventTracking';
 import { getOwnerExclusivityStatus, getPortfolioItemCount, getPortfolioUnlockCost, getPropertyExclusivityStatus } from '../lib/unlockRules';
 import { isSupabaseConfigured, supabase } from '../lib/supabaseClient';
@@ -1486,7 +1486,7 @@ export function Dashboard({ page, nuggets, setModal, setPage, onOpenOnboardingTa
     try {
       const result = await consumePlanActions(supabase, actions);
       if (!result?.allowed) {
-        openPlanGate(result.failedAction || result.feature || actions[0]);
+        openPlanGate(result.failedAction || result.feature || result.action || actions[0]);
         return false;
       }
       return true;

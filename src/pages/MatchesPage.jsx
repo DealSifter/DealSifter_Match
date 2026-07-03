@@ -16,7 +16,7 @@ import { buildDisplayContacts, normalizeContactMethod } from '../lib/contactPrio
 import { inferRecordProfileScope, normalizeProfileScope, resolveScopedProfile } from '../lib/profileScopeResolver';
 import { formatPropertyLocation } from '../lib/formatPropertyLocation';
 import { translateChatText, getSafeLang } from '../services/chatTranslation';
-import { getPlanGateCopy, isFeatureAllowed } from '../lib/planAccess';
+import { getPlanGateCopy, isFeatureAllowed } from '../services/planUsageService';
 import { trackAppEvent } from '../lib/adminEventTracking';
 import { getPortfolioUnlockCost, getPropertyExclusivityStatus } from '../lib/unlockRules';
 import { isSupabaseConfigured, supabase } from '../lib/supabaseClient';
