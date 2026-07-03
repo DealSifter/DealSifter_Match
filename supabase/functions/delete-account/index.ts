@@ -14,6 +14,7 @@ if (!supabaseServiceRoleKey) throw new Error('Missing SUPABASE_SERVICE_ROLE_KEY'
 
 const stripe = new Stripe(stripeSecretKey, { apiVersion: '2024-04-10' });
 const supabaseAdmin = createClient(supabaseUrl, supabaseServiceRoleKey);
+const USER_STORAGE_BUCKETS = ['profile-images', 'property-images'] as const;
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -25,6 +26,151 @@ function jsonResponse(body: Record<string, unknown>, status = 200) {
     status,
     headers: { ...corsHeaders, 'Content-Type': 'application/json' },
   });
+}
+
+function chunkArray<T>(values: T[], size: number): T[][] {
+  const chunks: T[][] = [];
+  for (let index = 0; index < values.length; index += size) {
+    chunks.push(values.slice(index, index + size));
+  }
+  return chunks;
+}
+
+function normalizeStoragePath(...parts: string[]) {
+  return parts
+    .map((part) => String(part || '').trim().replace(/^\/+|\/+$/g, ''))
+    .filter(Boolean)
+    .join('/');
+}
+
+async function listStorageFilesRecursive(bucket: string, prefix: string): Promise<string[]> {
+  const files: string[] = [];
+  const stack = [prefix];
+
+  while (stack.length > 0) {
+    const currentPrefix = stack.pop() || '';
+    let offset = 0;
+
+    for (;;) {
+      const { data, error } = await supabaseAdmin.storage
+        .from(bucket)
+        .list(currentPrefix, {
+          limit: 1000,
+          offset,
+          sortBy: { column: 'name', order: 'asc' },
+        });
+
+      if (error) throw error;
+      const entries = Array.isArray(data) ? data : [];
+      if (!entries.length) break;
+
+      for (const entry of entries) {
+        const name = String(entry?.name || '').trim();
+        if (!name) continue;
+        const fullPath = normalizeStoragePath(currentPrefix, name);
+        const isFile = Boolean(entry?.id) || Boolean(entry?.metadata?.mimetype) || Boolean(entry?.metadata?.size);
+        if (isFile) files.push(fullPath);
+        else stack.push(fullPath);
+      }
+
+      if (entries.length < 1000) break;
+      offset += entries.length;
+    }
+  }
+
+  return files;
+}
+
+async function cleanupUserStorage(userId: string) {
+  const deleted: Array<{ bucket: string; path: string }> = [];
+  const failed: Array<{ bucket: string; path: string; error: string }> = [];
+  const listingFailures: Array<{ bucket: string; prefix: string; error: string }> = [];
+  const prefix = String(userId || '').trim();
+
+  if (!prefix) {
+    return { deleted, failed, listingFailures };
+  }
+
+  for (const bucket of USER_STORAGE_BUCKETS) {
+    let paths: string[] = [];
+    try {
+      paths = await listStorageFilesRecursive(bucket, prefix);
+    } catch (err) {
+      listingFailures.push({
+        bucket,
+        prefix,
+        error: String((err as Error)?.message || err || 'Storage listing failed'),
+      });
+      continue;
+    }
+
+    for (const chunk of chunkArray(paths, 100)) {
+      const { data, error } = await supabaseAdmin.storage.from(bucket).remove(chunk);
+      const removedPaths = new Set((Array.isArray(data) ? data : [])
+        .map((item) => String(item?.name || '').trim())
+        .filter(Boolean));
+
+      if (error) {
+        chunk.forEach((path) => failed.push({
+          bucket,
+          path,
+          error: String(error.message || 'Storage remove failed'),
+        }));
+        continue;
+      }
+
+      chunk.forEach((path) => {
+        if (!removedPaths.size || removedPaths.has(path)) deleted.push({ bucket, path });
+        else failed.push({ bucket, path, error: 'Storage remove did not confirm deletion' });
+      });
+    }
+  }
+
+  return { deleted, failed, listingFailures };
+}
+
+function getDeletionId(deletionResult: unknown) {
+  if (!deletionResult || typeof deletionResult !== 'object') return '';
+  const candidate = (deletionResult as Record<string, unknown>).deletionId
+    || (deletionResult as Record<string, unknown>).deletion_id;
+  return String(candidate || '').trim();
+}
+
+async function updateDeletionStorageAudit(deletionId: string, storageCleanup: Awaited<ReturnType<typeof cleanupUserStorage>>) {
+  if (!deletionId) return;
+
+  const { data: deletionRow } = await supabaseAdmin
+    .from('account_deletions')
+    .select('metadata')
+    .eq('id', deletionId)
+    .single();
+
+  const metadata = deletionRow?.metadata && typeof deletionRow.metadata === 'object'
+    ? deletionRow.metadata as Record<string, unknown>
+    : {};
+
+  const cleanupMetadata = {
+    policy: 'delete-public-storage-immediately',
+    buckets: [...USER_STORAGE_BUCKETS],
+    deleted: storageCleanup.deleted,
+    failed: storageCleanup.failed,
+    listingFailures: storageCleanup.listingFailures,
+  };
+
+  const { error } = await supabaseAdmin
+    .from('account_deletions')
+    .update({
+      files_deleted: storageCleanup.deleted.length,
+      files_failed: storageCleanup.failed.length + storageCleanup.listingFailures.length,
+      storage_cleanup_completed_at: new Date().toISOString(),
+      metadata: {
+        ...metadata,
+        storageCleanup: cleanupMetadata,
+      },
+    })
+    .eq('id', deletionId);
+
+  if (error) console.warn('Account deletion Storage audit update failed:', error);
 }
 
 async function getAuthenticatedUser(authHeader: string) {
@@ -83,6 +229,10 @@ Deno.serve(async (req) => {
     });
     if (deletionError) throw deletionError;
 
+    const deletionId = getDeletionId(deletionResult);
+    const storageCleanup = await cleanupUserStorage(user.id);
+    await updateDeletionStorageAudit(deletionId, storageCleanup);
+
     const anonymizedAuthEmail = `deleted+${user.id}@deleted.dealsifter.local`;
     const { error: authUpdateError } = await supabaseAdmin.auth.admin.updateUserById(user.id, {
       email: anonymizedAuthEmail,
@@ -104,6 +254,10 @@ Deno.serve(async (req) => {
         authAnonymized: false,
         canceledStripeSubscriptions,
         deletion: deletionResult,
+        storageCleanup: {
+          filesDeleted: storageCleanup.deleted.length,
+          filesFailed: storageCleanup.failed.length + storageCleanup.listingFailures.length,
+        },
         warning: authUpdateError.message,
       }, 202);
     }
@@ -113,6 +267,10 @@ Deno.serve(async (req) => {
       authAnonymized: true,
       canceledStripeSubscriptions,
       deletion: deletionResult,
+      storageCleanup: {
+        filesDeleted: storageCleanup.deleted.length,
+        filesFailed: storageCleanup.failed.length + storageCleanup.listingFailures.length,
+      },
     });
   } catch (err) {
     console.error('delete-account failed:', err);
