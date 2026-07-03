@@ -1707,7 +1707,7 @@ function PortfolioDetail({ item, owner, ownerDesc, onBack, autoplayMedia = false
   );
 }
 
-export function MatchesPage({ nuggets, setModal, openUnlock, unlocked, initialChat, chatFocusToken = 0, interested, matched, setInterested, setMatched, convos, setConvos, categoryOrder, setCategoryOrder, showcaseProperties, propertyPortfolio, servicePortfolio, userProfile, personalProfile, professionalProfile, mobileBottomNavCollapsed = false, userPreferences = null, subscription = null, setPage = null, addToast = null, onOpenChatLanguageConfig = null, onSendChatMessage = null, propertyUnlocks = [], currentUserId = 'local-user' }) {
+export function MatchesPage({ nuggets, setModal, openUnlock, unlocked, initialChat, chatFocusToken = 0, interested, matched, setInterested, setMatched, convos, setConvos, categoryOrder, setCategoryOrder, showcaseProperties, propertyPortfolio, servicePortfolio, userProfile, personalProfile, professionalProfile, mobileBottomNavCollapsed = false, userPreferences = null, subscription = null, setPage = null, addToast = null, onOpenChatLanguageConfig = null, onSendChatMessage = null, propertyUnlocks = [], currentUserId = 'local-user', isActive = true }) {
   const PORTFOLIO_PANEL_PADDING = 40;
   const PORTFOLIO_GRID_GAP = 12;
   const PORTFOLIO_CARD_MIN_WIDTH = 132;
@@ -1862,6 +1862,19 @@ export function MatchesPage({ nuggets, setModal, openUnlock, unlocked, initialCh
     enabled: Boolean(currentUserId && currentUserId !== 'local-user'),
     onNotify: handleUnlockRealtimeNotify,
   });
+
+  useEffect(() => {
+    if (!isActive) return;
+    if (unlockNotificationCount <= 0) return;
+    markUnlockNotificationsRead?.().catch?.((error) => {
+      addToast?.({
+        type: 'warning',
+        title: t.unlockRealtimeTitle || 'New unlock',
+        message: String(error?.message || 'Could not mark unlock notifications as read.'),
+        duration: 5000,
+      });
+    });
+  }, [addToast, isActive, markUnlockNotificationsRead, t.unlockRealtimeTitle, unlockNotificationCount]);
   const CONTACT_SIGNAL = C.accent;
   const PROPERTY_SIGNAL = "#4381bc";
   const getOwnerIdForScope = useCallback((scopeKey) => {

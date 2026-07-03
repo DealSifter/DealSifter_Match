@@ -95,6 +95,7 @@ import { usePortfolioSync } from './hooks/usePortfolioSync';
 import { useCheckoutFlow } from './hooks/useCheckoutFlow';
 import { useMediaQuery } from './hooks/useMediaQuery';
 import { useChatRealtime } from './hooks/useChatRealtime';
+import { useUnlockNotifications } from './hooks/useUnlockNotifications';
 import { getPlanGateCopy, getCurrentPlan, isPlanLimitError } from './services/planUsageService';
 import { clearSensitiveCache, REMOTE_CACHE_LOCAL_STORAGE_KEYS } from './lib/localStoragePolicy';
 import { trackAppEvent } from './lib/adminEventTracking';
@@ -4474,6 +4475,15 @@ export default function App() {
       : subscription
   ), [isAdmin, subscription]);
 
+  const {
+    notifications: ownerUnlockNotifications,
+    markAsRead: markOwnerUnlockNotificationAsRead,
+  } = useUnlockNotifications({
+    currentUserId: authSession?.userId,
+    enabled: Boolean(authSession?.userId),
+    onError: safeLogError,
+  });
+
   const chatNotifications = useMemo(() => {
     const entries = Object.entries(convos || {});
     let seenIncomingByContact = {};
@@ -4485,7 +4495,22 @@ export default function App() {
       seenIncomingByContact = {};
     }
 
-    return entries
+    const unreadUnlockNotifications = (ownerUnlockNotifications || [])
+      .filter((notification) => !notification.read)
+      .map((notification) => ({
+        id: `unlock-notification-${notification.id}`,
+        ownerId: notification.unlockerId || notification.payload?.unlocker_id || notification.id,
+        target: null,
+        title: notification.type === 'exclusive' ? 'Exclusive unlock' : 'New unlock',
+        message: notification.propertyId
+          ? 'Someone unlocked one of your property opportunities.'
+          : 'Someone unlocked one of your contact cards.',
+        count: 1,
+        source: 'unlock_notification',
+        notificationId: notification.id,
+      }));
+
+    const chatItems = entries
       .filter(([ownerId, msgs]) => {
         if (!Array.isArray(msgs) || msgs.length === 0) return false;
         const isUnlocked = (unlocked || []).some((id) => String(id) === String(ownerId));
@@ -4516,9 +4541,17 @@ export default function App() {
         };
       })
       .sort((a, b) => (b.count || 0) - (a.count || 0));
-  }, [convos, unlocked, matched]);
+
+    return [...unreadUnlockNotifications, ...chatItems];
+  }, [convos, unlocked, matched, ownerUnlockNotifications]);
 
   const markChatNotificationAsRead = (notification) => {
+    if (notification?.source === 'unlock_notification' && notification?.notificationId) {
+      markOwnerUnlockNotificationAsRead(notification.notificationId).catch((error) => {
+        console.error('Failed to mark unlock notification as read.', error);
+      });
+      return;
+    }
     const ownerIdRaw = notification?.ownerId;
     if (ownerIdRaw == null) return;
     const ownerId = String(ownerIdRaw);
@@ -5702,6 +5735,7 @@ export default function App() {
             propertyUnlocks={propertyUnlocks}
             currentUserId={supabaseUserId || 'local-user'}
             activeSpotlightKeys={activeSpotlightKeys}
+            isActive={page === 'matches'}
           />
         );
       case 'mapview':
