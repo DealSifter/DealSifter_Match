@@ -2,7 +2,7 @@ import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { C } from '../theme/colors';
 import { useT } from '../i18n/translations';
 import { Icon } from '../components/ui/Icon';
-import { supabase, isSupabaseConfigured } from '../lib/supabaseClient';
+import { getSupabaseFunctionUrl, supabase, isSupabaseConfigured, supabaseAnonKey } from '../lib/supabaseClient';
 import { redirectToPortal } from '../lib/stripeClient';
 import { CHAT_LANGUAGE_OPTIONS, translateChatText, getSafeLang } from '../services/chatTranslation';
 
@@ -75,6 +75,7 @@ const createSecuritySessionTerminatedAudit = (sessionId) => {
 
 const SHOW_SUPPORT_CHAT_PLACEHOLDER = !import.meta.env.PROD;
 const SHOW_DEV_BILLING_PLACEHOLDER = !import.meta.env.PROD;
+const SUPPORT_EMAIL = 'contato.dealsifter@gmail.com';
 
 export function Settings({ setPage, prevPage, initialTab = 'profile', systemAccount, setSystemAccount, authSession, setAuthSession, subscription, addToast, supabaseUserId, onDeleteAccount, onRevokeConsent, pendingCheckoutIntent = null, onContinuePendingCheckout = null, userPreferences = null, onChangeUserPreferences = null }) {
   const allT = useT('settings');
@@ -100,6 +101,9 @@ export function Settings({ setPage, prevPage, initialTab = 'profile', systemAcco
   });
   const [commView, setCommView] = useState('menu');
   const [supportInput, setSupportInput] = useState('');
+  const [supportTicket, setSupportTicket] = useState(null);
+  const [supportLoading, setSupportLoading] = useState(false);
+  const [supportSending, setSupportSending] = useState(false);
   const [securityOtpCode, setSecurityOtpCode] = useState('');
   const [securityOtpPendingAction, setSecurityOtpPendingAction] = useState('');
   const [securityOtpSending, setSecurityOtpSending] = useState(false);
@@ -107,7 +111,6 @@ export function Settings({ setPage, prevPage, initialTab = 'profile', systemAcco
   const [securityAudit, setSecurityAudit] = useState([]);
   const [securitySessions, setSecuritySessions] = useState([]);
   const [supportMessages, setSupportMessages] = useState(() => {
-    // TODO: implementar backend de suporte/tickets antes de habilitar chat de suporte em producao.
     if (isSupabaseConfigured || import.meta.env.PROD) return [];
     try {
       const raw = JSON.parse(localStorage.getItem('ds_support_chat_thread') || '[]');
@@ -501,30 +504,45 @@ export function Settings({ setPage, prevPage, initialTab = 'profile', systemAcco
     return () => clearInterval(timer);
   }, [tab, authSession?.id]);
   useEffect(() => {
-    if (!SHOW_SUPPORT_CHAT_PLACEHOLDER) return;
     if (tab !== 'communication' || commView !== 'support') return;
-    const timer = window.setTimeout(() => {
-      setSupportMessages((prev) => {
-        const list = Array.isArray(prev) ? prev : [];
-        if (!list.length) return list;
-        const first = list[0];
-        if (!first || first.from !== 'admin') return list;
-        const firstId = String(first.id || '');
-        if (!firstId.startsWith('support-')) return list;
-        if (String(first.text || '') === String(t.supportWelcome || '')) return list;
-        const next = [...list];
-        next[0] = { ...first, text: t.supportWelcome || 'Hello! This is DealSifter Admin/Support. How can we help?' };
-        return next;
-      });
-    }, 0);
-    return () => window.clearTimeout(timer);
-  }, [tab, commView, t.supportWelcome]);
-
-  useEffect(() => {
-    if (!SHOW_SUPPORT_CHAT_PLACEHOLDER && commView === 'support') {
-      setCommView('menu');
+    if (!isSupabaseConfigured || !supabase || !supabaseUserId) {
+      if (SHOW_SUPPORT_CHAT_PLACEHOLDER) {
+        setSupportMessages((prev) => {
+          if ((prev || []).length) return prev;
+          return [{
+            id: `support-${Date.now()}`,
+            from: 'admin',
+            text: t.supportWelcome || 'Hello! This is DealSifter Admin/Support. How can we help?',
+            createdAt: Date.now(),
+          }];
+        });
+      }
+      return;
     }
-  }, [commView]);
+    let cancelled = false;
+    const loadSupportThread = async () => {
+      setSupportLoading(true);
+      try {
+        const { data, error } = await supabase.rpc('ds_get_my_support_thread');
+        if (error) throw error;
+        if (cancelled) return;
+        setSupportTicket(data?.ticket || null);
+        setSupportMessages((Array.isArray(data?.messages) ? data.messages : []).map((message) => ({
+          id: message.id,
+          from: message.senderRole === 'user' ? 'user' : 'admin',
+          text: String(message.body || ''),
+          createdAt: message.createdAt,
+          channel: message.deliveryChannel || 'chat',
+        })));
+      } catch (err) {
+        if (!cancelled) addToast?.({ type: 'error', message: String(err?.message || 'Could not load support chat.') });
+      } finally {
+        if (!cancelled) setSupportLoading(false);
+      }
+    };
+    loadSupportThread();
+    return () => { cancelled = true; };
+  }, [addToast, commView, supabaseUserId, t.supportWelcome, tab]);
 
   const pendingCheckoutLabel = (() => {
     if (!pendingCheckoutIntent) return '';
@@ -568,6 +586,82 @@ export function Settings({ setPage, prevPage, initialTab = 'profile', systemAcco
       return next;
     });
   };
+
+  const openSupportChat = useCallback(() => {
+    setCommView('support');
+  }, []);
+
+  const handleSendSupportMessage = useCallback(async (channel = 'chat') => {
+    const text = String(supportInput || '').trim();
+    if (!text || supportSending) return;
+
+    if (!isSupabaseConfigured || !supabase || !supabaseUserId) {
+      const now = Date.now();
+      const outToSupport = await translateChatText({ text, fromLang: chatInputLang, toLang: 'en' });
+      setSupportMessages((prev) => ([...(prev || []), { id: `user-${now}`, from: 'user', text: outToSupport.text, createdAt: now }]));
+      setSupportInput('');
+      return;
+    }
+
+    setSupportSending(true);
+    try {
+      const outToSupport = await translateChatText({ text, fromLang: chatInputLang, toLang: 'en' });
+      const { data, error } = await supabase.rpc('ds_send_support_message', {
+        p_body: outToSupport.text,
+        p_subject: 'Support request',
+        p_channel: channel,
+      });
+      if (error) throw error;
+      setSupportTicket(data?.ticket || null);
+      setSupportMessages((Array.isArray(data?.messages) ? data.messages : []).map((message) => ({
+        id: message.id,
+        from: message.senderRole === 'user' ? 'user' : 'admin',
+        text: String(message.body || ''),
+        createdAt: message.createdAt,
+        channel: message.deliveryChannel || 'chat',
+      })));
+      if (channel === 'email' && data?.ticket?.id) {
+        const { data: sessionData, error: sessionError } = await supabase.auth.getSession();
+        if (sessionError) throw sessionError;
+        const accessToken = sessionData?.session?.access_token;
+        const functionUrl = getSupabaseFunctionUrl('send-support-email');
+        if (!accessToken || !functionUrl) throw new Error(t.supportEmailUnavailable || 'Support email service unavailable.');
+        const emailResponse = await fetch(functionUrl, {
+          method: 'POST',
+          headers: {
+            Authorization: `Bearer ${accessToken}`,
+            apikey: supabaseAnonKey,
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            ticketId: data.ticket.id,
+            direction: 'user_to_support',
+            message: outToSupport.text,
+          }),
+        });
+        const emailPayload = await emailResponse.json().catch(() => ({}));
+        if (!emailResponse.ok) {
+          addToast?.({ type: 'warning', message: String(emailPayload?.error || t.supportEmailNotSent || 'Ticket saved, but email delivery is not configured.') });
+        }
+      }
+      setSupportInput('');
+      addToast?.({ type: 'success', message: t.supportSent || 'Support message sent.' });
+    } catch (err) {
+      addToast?.({ type: 'error', message: String(err?.message || t.supportSendError || 'Could not send support message.') });
+    } finally {
+      setSupportSending(false);
+    }
+  }, [
+    addToast,
+    chatInputLang,
+    supportInput,
+    supportSending,
+    supabaseUserId,
+    t.supportEmailNotSent,
+    t.supportEmailUnavailable,
+    t.supportSendError,
+    t.supportSent,
+  ]);
 
   const updateProfileVisibility = useCallback(async (visibility) => {
     const nextVisibility = ['hidden', 'public', 'network'].includes(String(visibility || ''))
@@ -761,7 +855,7 @@ export function Settings({ setPage, prevPage, initialTab = 'profile', systemAcco
       addToast?.({ type: 'error', message: t.securitySessionTerminateError || 'Failed to terminate session.' });
     }
   };
-  const isSupportFullscreen = SHOW_SUPPORT_CHAT_PLACEHOLDER && tab === 'communication' && commView === 'support';
+  const isSupportFullscreen = tab === 'communication' && commView === 'support';
 
   return (
     <div style={{ paddingTop: 58, minHeight: 'calc(var(--app-vh, 1vh) * 100)', background: C.bg, boxSizing: 'border-box', width: '100%', maxWidth: '100%', overflowX: 'hidden' }}>
@@ -1032,7 +1126,7 @@ export function Settings({ setPage, prevPage, initialTab = 'profile', systemAcco
                   <button
                     onClick={() => {
                       const subject = encodeURIComponent('Suport solicitation');
-                      const mailtoUrl = `mailto:contato.dealsifter@gmail.com?subject=${subject}`;
+                      const mailtoUrl = `mailto:${SUPPORT_EMAIL}?subject=${subject}`;
                       try {
                         const opened = window.open(mailtoUrl, '_self');
                         if (!opened) window.location.href = mailtoUrl;
@@ -1043,25 +1137,14 @@ export function Settings({ setPage, prevPage, initialTab = 'profile', systemAcco
                     style={{ width: '100%', boxSizing: 'border-box', border: `1px solid ${C.border}`, background: 'transparent', color: C.t2, borderRadius: 8, padding: '9px 10px', fontSize: 12, fontWeight: 700, cursor: 'pointer', display: 'inline-flex', gap: 7, alignItems: 'center', justifyContent: 'center' }}>
                     <Icon name="email" size={13} color={C.t2} /> {t.contactEmail || 'Contact by email'}
                   </button>
-                  {SHOW_SUPPORT_CHAT_PLACEHOLDER ? (
-                    // TODO: implementar backend de suporte/tickets antes de habilitar chat de suporte em producao.
-                    <button
-                      onClick={() => {
-                        setCommView('support');
-                        setSupportMessages((prev) => {
-                          if ((prev || []).length) return prev;
-                          return [{
-                            id: `support-${Date.now()}`,
-                            from: 'admin',
-                            text: t.supportWelcome || 'Hello! This is DealSifter Admin/Support. How can we help?',
-                            createdAt: Date.now(),
-                          }];
-                        });
-                      }}
-                      style={{ width: '100%', boxSizing: 'border-box', border: `1px solid ${C.border}`, background: 'transparent', color: C.t2, borderRadius: 8, padding: '9px 10px', fontSize: 12, fontWeight: 700, cursor: 'pointer', display: 'inline-flex', gap: 7, alignItems: 'center', justifyContent: 'center' }}>
-                      <Icon name="chat" size={13} color={C.t2} /> {t.contactChat || 'Open support chat'}
-                    </button>
-                  ) : null}
+                  <button
+                    onClick={openSupportChat}
+                    style={{ width: '100%', boxSizing: 'border-box', border: `1px solid ${C.border}`, background: 'transparent', color: C.t2, borderRadius: 8, padding: '9px 10px', fontSize: 12, fontWeight: 700, cursor: 'pointer', display: 'inline-flex', gap: 7, alignItems: 'center', justifyContent: 'center' }}>
+                    <Icon name="chat" size={13} color={C.t2} /> {t.contactChat || 'Open support chat'}
+                    {supportTicket?.contactId ? (
+                      <span style={{ color: C.accent, fontSize: 10, fontWeight: 900 }}>#{supportTicket.contactId}</span>
+                    ) : null}
+                  </button>
                   <div style={{ border: `1px solid ${C.border}`, borderRadius: 10, padding: 10, display: 'grid', gap: 8, width: '100%', minWidth: 0, boxSizing: 'border-box' }}>
                     <label style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8, fontSize: 12, color: C.t2 }}>
                       <span>{t.commEmailAlerts || 'Email alerts'}</span>
@@ -1590,16 +1673,34 @@ export function Settings({ setPage, prevPage, initialTab = 'profile', systemAcco
                 <Icon name="back" size={13} color={C.t2} />
                 {t.back || 'Back'}
               </button>
-              <div style={{ fontSize: 12, fontWeight: 800, color: C.t1 }}>{t.supportHeader || 'DealSifter Admin/Support'}</div>
+              <div style={{ fontSize: 12, fontWeight: 800, color: C.t1, textAlign: 'right' }}>
+                <div>{t.supportHeader || 'DealSifter Admin/Support'}</div>
+                <div style={{ fontSize: 10, color: C.t3, fontWeight: 700 }}>
+                  {supportTicket?.contactId
+                    ? `${t.supportContactId || 'Contact ID'}: ${supportTicket.contactId} · #${supportTicket.ticketNumber || '-'}`
+                    : (supportLoading ? (t.loading || 'Loading...') : (t.supportNewTicket || 'New support ticket'))}
+                </div>
+              </div>
             </div>
 
             <div style={{ padding: 12, overflowY: 'auto', display: 'grid', gap: 8, background: C.alpha(C.bg, 0.35) }}>
+              {supportLoading ? (
+                <div style={{ justifySelf: 'center', color: C.t3, fontSize: 12 }}>{t.loading || 'Loading...'}</div>
+              ) : null}
+              {!supportLoading && !(supportMessages || []).length ? (
+                <div style={{ justifySelf: 'center', color: C.t3, fontSize: 12, textAlign: 'center', maxWidth: 320 }}>
+                  {t.supportWelcome || 'Hello! This is DealSifter Admin/Support. How can we help?'}
+                </div>
+              ) : null}
               {(supportMessages || []).map((item) => (
                 <div key={item.id} style={{ justifySelf: item.from === 'user' ? 'end' : 'start', maxWidth: '86%', border: `1px solid ${item.from === 'user' ? C.accent : C.border}`, background: item.from === 'user' ? C.alpha(C.accent, 0.12) : 'transparent', borderRadius: 10, padding: '8px 10px', fontSize: 12, color: C.t1 }}>
                   <div style={{ fontSize: 10, fontWeight: 700, color: item.from === 'user' ? C.accent : C.t3, marginBottom: 2 }}>
                     {item.from === 'user' ? (t.supportYou || 'You') : (t.supportHeader || 'DealSifter Admin/Support')}
                   </div>
                   <div style={{ overflowWrap: 'anywhere', wordBreak: 'break-word' }}>{item.text}</div>
+                  <div style={{ marginTop: 4, fontSize: 9, color: C.t3 }}>
+                    {item.createdAt ? new Date(item.createdAt).toLocaleString() : ''}
+                  </div>
                 </div>
               ))}
             </div>
@@ -1611,56 +1712,26 @@ export function Settings({ setPage, prevPage, initialTab = 'profile', systemAcco
                 onKeyDown={(e) => {
                   if (e.key !== 'Enter') return;
                   e.preventDefault();
-                  const text = String(supportInput || '').trim();
-                  if (!text) return;
-                  const now = Date.now();
-                  (async () => {
-                    const outToSupport = await translateChatText({ text, fromLang: chatInputLang, toLang: 'en' });
-                    setSupportMessages((prev) => ([...(prev || []), { id: `user-${now}`, from: 'user', text: outToSupport.text, createdAt: now }]));
-                    setSupportInput('');
-                    if (isSupabaseConfigured && supabase) {
-                      void (async () => {
-                        try {
-                          await supabase.rpc('track_app_event', { p_event_type: 'support_message_sent', p_entity_type: 'support_chat', p_entity_id: 'admin_support' });
-                        } catch { /* no-op */ }
-                      })();
-                    }
-                    setTimeout(async () => {
-                      const adminReplyBase = t.supportAutoReply || 'Message received. Admin/Support will reply soon.';
-                      const backToUser = await translateChatText({ text: adminReplyBase, fromLang: 'en', toLang: chatOutputLang });
-                      setSupportMessages((prev) => ([...(prev || []), { id: `admin-${Date.now()}`, from: 'admin', text: backToUser.text, createdAt: Date.now() }]));
-                    }, 450);
-                  })();
+                  handleSendSupportMessage('chat');
                 }}
                 placeholder={t.supportInputPlaceholder || 'Write your message...'}
+                disabled={supportSending}
                 style={{ flex: 1, minWidth: 0, boxSizing: 'border-box', border: `1px solid ${C.border}`, borderRadius: 8, padding: '9px 10px', background: C.bg, color: C.t1, fontSize: 12 }}
               />
               <button
-                onClick={() => {
-                  const text = String(supportInput || '').trim();
-                  if (!text) return;
-                  const now = Date.now();
-                  (async () => {
-                    const outToSupport = await translateChatText({ text, fromLang: chatInputLang, toLang: 'en' });
-                    setSupportMessages((prev) => ([...(prev || []), { id: `user-${now}`, from: 'user', text: outToSupport.text, createdAt: now }]));
-                    setSupportInput('');
-                    if (isSupabaseConfigured && supabase) {
-                      void (async () => {
-                        try {
-                          await supabase.rpc('track_app_event', { p_event_type: 'support_message_sent', p_entity_type: 'support_chat', p_entity_id: 'admin_support' });
-                        } catch { /* no-op */ }
-                      })();
-                    }
-                    setTimeout(async () => {
-                      const adminReplyBase = t.supportAutoReply || 'Message received. Admin/Support will reply soon.';
-                      const backToUser = await translateChatText({ text: adminReplyBase, fromLang: 'en', toLang: chatOutputLang });
-                      setSupportMessages((prev) => ([...(prev || []), { id: `admin-${Date.now()}`, from: 'admin', text: backToUser.text, createdAt: Date.now() }]));
-                    }, 450);
-                  })();
-                }}
-                style={{ border: 'none', background: C.accent, color: '#fff', borderRadius: 8, padding: '9px 12px', fontSize: 12, fontWeight: 800, cursor: 'pointer' }}
+                onClick={() => handleSendSupportMessage('chat')}
+                disabled={supportSending || !String(supportInput || '').trim()}
+                style={{ border: 'none', background: C.accent, color: '#fff', borderRadius: 8, padding: '9px 12px', fontSize: 12, fontWeight: 800, cursor: supportSending ? 'wait' : 'pointer', opacity: supportSending || !String(supportInput || '').trim() ? 0.7 : 1 }}
               >
-                {t.send || 'Send'}
+                {supportSending ? (t.sending || 'Sending...') : (t.send || 'Send')}
+              </button>
+              <button
+                onClick={() => handleSendSupportMessage('email')}
+                disabled={supportSending || !String(supportInput || '').trim()}
+                title={t.supportSendEmail || 'Send by email'}
+                style={{ border: `1px solid ${C.border}`, background: 'transparent', color: C.t2, borderRadius: 8, padding: '9px 10px', fontSize: 12, fontWeight: 800, cursor: supportSending ? 'wait' : 'pointer', opacity: supportSending || !String(supportInput || '').trim() ? 0.7 : 1 }}
+              >
+                <Icon name="email" size={13} color={C.t2} />
               </button>
             </div>
           </section>

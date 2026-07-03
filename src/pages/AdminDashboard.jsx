@@ -379,6 +379,200 @@ function GrantNuggetsPanel({ onGranted, t = {} }) {
   );
 }
 
+function SupportDeskPanel({ onChanged, t = {} }) {
+  const [tickets, setTickets] = useState([]);
+  const [selectedTicket, setSelectedTicket] = useState(null);
+  const [messages, setMessages] = useState([]);
+  const [reply, setReply] = useState('');
+  const [loading, setLoading] = useState(false);
+  const [replying, setReplying] = useState(false);
+  const [status, setStatus] = useState('');
+  const [statusKind, setStatusKind] = useState('info');
+
+  const loadTickets = async () => {
+    if (!isSupabaseConfigured || !supabase) return;
+    setLoading(true);
+    setStatus('');
+    try {
+      const { data, error } = await supabase.rpc('admin_get_support_tickets', { p_status: 'all', p_limit: 30 });
+      if (error) throw error;
+      const list = Array.isArray(data?.tickets) ? data.tickets : [];
+      setTickets(list);
+      if (!selectedTicket && list.length) setSelectedTicket(list[0]);
+      if (selectedTicket && !list.some((ticket) => String(ticket.id) === String(selectedTicket.id))) {
+        setSelectedTicket(list[0] || null);
+        setMessages([]);
+      }
+    } catch (error) {
+      setStatusKind('error');
+      setStatus(`${t.supportLoadFailed || 'Support load failed'}: ${error?.message || 'RPC unavailable'}`);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const loadThread = async (ticket) => {
+    if (!ticket?.id || !isSupabaseConfigured || !supabase) return;
+    setSelectedTicket(ticket);
+    setStatus('');
+    try {
+      const { data, error } = await supabase.rpc('admin_get_support_thread', { p_ticket_id: ticket.id });
+      if (error) throw error;
+      setSelectedTicket(data?.ticket || ticket);
+      setMessages(Array.isArray(data?.messages) ? data.messages : []);
+      await loadTickets();
+    } catch (error) {
+      setStatusKind('error');
+      setStatus(`${t.supportThreadFailed || 'Thread failed'}: ${error?.message || 'RPC unavailable'}`);
+    }
+  };
+
+  const sendReply = async (closeAfter = false, sendEmail = false) => {
+    const body = String(reply || '').trim();
+    if (!body || !selectedTicket?.id || !isSupabaseConfigured || !supabase) return;
+    setReplying(true);
+    setStatus('');
+    try {
+      const { data, error } = await supabase.rpc('admin_reply_support_ticket', {
+        p_ticket_id: selectedTicket.id,
+        p_body: body,
+        p_close: closeAfter,
+      });
+      if (error) throw error;
+      setReply('');
+      setSelectedTicket(data?.ticket || selectedTicket);
+      setMessages(Array.isArray(data?.messages) ? data.messages : []);
+      if (sendEmail) {
+        const { data: sessionData, error: sessionError } = await supabase.auth.getSession();
+        if (sessionError) throw sessionError;
+        const accessToken = sessionData?.session?.access_token;
+        const functionUrl = getSupabaseFunctionUrl('send-support-email');
+        if (!accessToken || !functionUrl) throw new Error(t.supportEmailUnavailable || 'Support email service unavailable.');
+        const response = await fetch(functionUrl, {
+          method: 'POST',
+          headers: {
+            Authorization: `Bearer ${accessToken}`,
+            apikey: supabaseAnonKey,
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            ticketId: selectedTicket.id,
+            direction: 'admin_to_user',
+            message: body,
+          }),
+        });
+        const payload = await response.json().catch(() => ({}));
+        if (!response.ok) throw new Error(payload?.error || t.supportEmailFailed || 'Support email failed.');
+      }
+      setStatusKind('success');
+      setStatus(sendEmail
+        ? (t.supportReplyEmailSent || 'Reply sent and email delivered.')
+        : (closeAfter ? (t.supportClosed || 'Ticket closed.') : (t.supportReplySent || 'Reply sent.')));
+      await loadTickets();
+      await onChanged?.();
+    } catch (error) {
+      setStatusKind('error');
+      setStatus(`${t.supportReplyFailed || 'Reply failed'}: ${error?.message || 'RPC unavailable'}`);
+    } finally {
+      setReplying(false);
+    }
+  };
+
+  useEffect(() => {
+    const timer = window.setTimeout(() => { void loadTickets(); }, 0);
+    return () => window.clearTimeout(timer);
+  }, []);
+
+  const unreadTotal = tickets.reduce((sum, ticket) => sum + Number(ticket?.unreadForAdmin || 0), 0);
+
+  return (
+    <Block title={t.supportDesk || 'Support desk'}>
+      <div style={{ display: 'grid', gap: 10 }}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 8 }}>
+          <div style={{ fontSize: 11, color: C.t2, fontWeight: 800 }}>
+            {fmtInt(tickets.length)} {t.supportTickets || 'tickets'}
+            {unreadTotal > 0 ? <span style={{ marginLeft: 6, color: C.warning || '#f59e0b' }}>{fmtInt(unreadTotal)} unread</span> : null}
+          </div>
+          <button onClick={loadTickets} disabled={loading} style={{ border: `1px solid ${C.border}`, background: 'transparent', color: C.t2, borderRadius: 8, padding: '6px 8px', cursor: loading ? 'wait' : 'pointer', fontSize: 11, fontWeight: 800 }}>
+            {loading ? (t.loading || 'Loading...') : (t.refresh || 'Refresh')}
+          </button>
+        </div>
+
+        {status ? (
+          <div style={{ border: `1px solid ${statusKind === 'error' ? C.alpha(C.danger, 0.45) : C.alpha(C.accent, 0.45)}`, background: statusKind === 'error' ? C.alpha(C.danger, 0.06) : C.alpha(C.accent, 0.08), color: statusKind === 'error' ? C.danger : C.t1, borderRadius: 9, padding: 8, fontSize: 11, fontWeight: 700 }}>
+            {status}
+          </div>
+        ) : null}
+
+        <div style={{ display: 'grid', gap: 8, maxHeight: 210, overflowY: 'auto' }}>
+          {(tickets.length ? tickets : [{ id: 'empty', contactId: 'No tickets', subject: 'No support tickets yet', status: 'none' }]).map((ticket) => {
+            const active = String(ticket.id) === String(selectedTicket?.id);
+            return (
+              <button
+                key={ticket.id}
+                type="button"
+                disabled={ticket.id === 'empty'}
+                onClick={() => loadThread(ticket)}
+                style={{ border: `1px solid ${active ? C.accent : C.border}`, background: active ? C.alpha(C.accent, 0.1) : 'transparent', color: C.t1, borderRadius: 10, padding: 9, display: 'grid', gap: 4, textAlign: 'left', cursor: ticket.id === 'empty' ? 'default' : 'pointer' }}
+              >
+                <div style={{ display: 'flex', justifyContent: 'space-between', gap: 8, fontSize: 11, fontWeight: 900 }}>
+                  <span>{ticket.contactId || ticket.id}</span>
+                  <span style={{ color: ticket.status === 'closed' ? C.t3 : C.accent }}>{ticket.status}</span>
+                </div>
+                <div style={{ fontSize: 11, color: C.t2, overflowWrap: 'anywhere' }}>{ticket.userEmail || ticket.userId || '-'}</div>
+                <div style={{ fontSize: 10, color: C.t3 }}>{ticket.lastMessageAt ? new Date(ticket.lastMessageAt).toLocaleString() : ''}</div>
+                {Number(ticket.unreadForAdmin || 0) > 0 ? (
+                  <span style={{ justifySelf: 'start', borderRadius: 999, padding: '2px 6px', background: C.warning || '#f59e0b', color: C.bg, fontSize: 9, fontWeight: 950 }}>
+                    {fmtInt(ticket.unreadForAdmin)} unread
+                  </span>
+                ) : null}
+              </button>
+            );
+          })}
+        </div>
+
+        {selectedTicket?.id ? (
+          <div style={{ border: `1px solid ${C.border}`, borderRadius: 12, overflow: 'hidden' }}>
+            <div style={{ padding: 9, borderBottom: `1px solid ${C.border}`, display: 'grid', gap: 2 }}>
+              <div style={{ fontSize: 12, fontWeight: 900, color: C.t1 }}>{selectedTicket.contactId} · #{selectedTicket.ticketNumber}</div>
+              <div style={{ fontSize: 10, color: C.t3, overflowWrap: 'anywhere' }}>{selectedTicket.userEmail || selectedTicket.userId}</div>
+            </div>
+            <div style={{ padding: 9, display: 'grid', gap: 7, maxHeight: 240, overflowY: 'auto', background: C.alpha(C.bg, 0.35) }}>
+              {(messages.length ? messages : [{ id: 'none', senderRole: 'system', body: 'Open a ticket to load messages.' }]).map((message) => (
+                <div key={message.id} style={{ justifySelf: message.senderRole === 'admin' ? 'end' : 'start', maxWidth: '92%', border: `1px solid ${message.senderRole === 'admin' ? C.accent : C.border}`, borderRadius: 9, padding: '7px 8px', color: C.t1, background: message.senderRole === 'admin' ? C.alpha(C.accent, 0.12) : 'transparent', fontSize: 11 }}>
+                  <div style={{ color: message.senderRole === 'admin' ? C.accent : C.t3, fontSize: 9, fontWeight: 900, marginBottom: 2 }}>{message.senderRole || 'system'}</div>
+                  <div style={{ overflowWrap: 'anywhere', whiteSpace: 'pre-wrap' }}>{message.body}</div>
+                  <div style={{ marginTop: 4, color: C.t3, fontSize: 9 }}>{message.createdAt ? new Date(message.createdAt).toLocaleString() : ''}</div>
+                </div>
+              ))}
+            </div>
+            <div style={{ padding: 9, borderTop: `1px solid ${C.border}`, display: 'grid', gap: 7 }}>
+              <textarea
+                value={reply}
+                onChange={(event) => setReply(event.target.value)}
+                placeholder={t.supportReplyPlaceholder || 'Write admin/support reply...'}
+                rows={3}
+                style={{ width: '100%', minWidth: 0, boxSizing: 'border-box', resize: 'vertical', border: `1px solid ${C.border}`, borderRadius: 9, padding: 9, background: C.bg, color: C.t1, fontSize: 12 }}
+              />
+              <div style={{ display: 'flex', gap: 7 }}>
+                <button onClick={() => sendReply(false)} disabled={replying || !reply.trim()} style={{ flex: 1, border: 'none', background: C.accent, color: '#fff', borderRadius: 8, padding: '8px 9px', cursor: replying ? 'wait' : 'pointer', opacity: replying || !reply.trim() ? 0.7 : 1, fontSize: 11, fontWeight: 900 }}>
+                  {replying ? (t.sending || 'Sending...') : (t.send || 'Send')}
+                </button>
+                <button onClick={() => sendReply(false, true)} disabled={replying || !reply.trim()} style={{ flex: 1, border: `1px solid ${C.border}`, background: 'transparent', color: C.t2, borderRadius: 8, padding: '8px 9px', cursor: replying ? 'wait' : 'pointer', opacity: replying || !reply.trim() ? 0.7 : 1, fontSize: 11, fontWeight: 900 }}>
+                  {t.replyEmail || 'Reply email'}
+                </button>
+                <button onClick={() => sendReply(true)} disabled={replying || !reply.trim()} style={{ flex: 1, border: `1px solid ${C.border}`, background: 'transparent', color: C.t2, borderRadius: 8, padding: '8px 9px', cursor: replying ? 'wait' : 'pointer', opacity: replying || !reply.trim() ? 0.7 : 1, fontSize: 11, fontWeight: 900 }}>
+                  {t.replyAndClose || 'Reply + close'}
+                </button>
+              </div>
+            </div>
+          </div>
+        ) : null}
+      </div>
+    </Block>
+  );
+}
+
 function SectionDivider({ title, hint }) {
   return (
     <div style={{ display: 'flex', alignItems: 'center', gap: 10, margin: '6px 0 10px' }}>
@@ -741,6 +935,7 @@ export function AdminDashboard({ setPage, prevPage, logoutAdmin }) {
             </div>
           </Block>
           <div style={{ display: 'grid', gap: 12 }}>
+            <SupportDeskPanel onChanged={loadMetrics} t={t} />
             <GrantNuggetsPanel onGranted={loadMetrics} t={t} />
           </div>
         </div>

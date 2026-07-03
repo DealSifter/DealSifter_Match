@@ -4512,7 +4512,7 @@ export default function App() {
     }
 
     const unreadUnlockNotifications = (ownerUnlockNotifications || [])
-      .filter((notification) => !notification.read)
+      .filter((notification) => !notification.read && ['unlock', 'exclusive'].includes(String(notification.type || '')))
       .map((notification) => ({
         id: `unlock-notification-${notification.id}`,
         ownerId: notification.unlockerId || notification.payload?.unlocker_id || notification.id,
@@ -4560,6 +4560,36 @@ export default function App() {
 
     return [...unreadUnlockNotifications, ...chatItems];
   }, [convos, unlocked, matched, ownerUnlockNotifications]);
+
+  useEffect(() => {
+    const supportNotifications = (ownerUnlockNotifications || [])
+      .filter((notification) => !notification.read && String(notification.type || '') === 'support');
+    if (!supportNotifications.length) return;
+
+    setSystemNotifications((prev) => {
+      const current = Array.isArray(prev) ? prev : [];
+      const existingIds = new Set(current.map((item) => String(item.id || '')));
+      const nextItems = supportNotifications
+        .filter((notification) => !existingIds.has(`support-notification-${notification.id}`))
+        .map((notification) => ({
+          id: `support-notification-${notification.id}`,
+          title: 'Support reply',
+          message: String(notification.payload?.message || 'DealSifter Admin/Support replied to your ticket.'),
+          read: false,
+          createdAt: notification.createdAt || new Date().toISOString(),
+          source: 'support_notification',
+          notificationId: notification.id,
+          contactId: notification.payload?.contact_id || '',
+        }));
+      return nextItems.length ? [...nextItems, ...current].slice(0, 100) : current;
+    });
+
+    supportNotifications.forEach((notification) => {
+      markOwnerUnlockNotificationAsRead(notification.id).catch((error) => {
+        console.error('Failed to mark support notification as read.', error);
+      });
+    });
+  }, [markOwnerUnlockNotificationAsRead, ownerUnlockNotifications]);
 
   const markChatNotificationAsRead = (notification) => {
     if (notification?.source === 'unlock_notification' && notification?.notificationId) {
