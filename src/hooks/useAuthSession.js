@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { supabase, isSupabaseConfigured, supabaseConfigHint } from '../lib/supabaseClient';
+import { clearSensitiveCache } from '../lib/localStoragePolicy';
 
 export const mapSupabaseUserToSession = (user, mode = 'login', provider = 'supabase') => ({
   id: user?.id || null,
@@ -106,6 +107,7 @@ export function useAuthSession({
       if (await forceLoginAfterEmailConfirmation(session)) return;
 
       const next = mapSupabaseUserToSession(user, 'login', 'supabase');
+      clearSensitiveCache(user.id);
       lastKnownAuthSessionRef.current = next;
       setAuthSession(next);
       applySystemAccountFromSession(next);
@@ -195,6 +197,7 @@ export function useAuthSession({
 
           if (data?.session?.user) {
             const next = mapSupabaseUserToSession(data.session.user, 'signup', 'credentials');
+            clearSensitiveCache(data.session.user.id);
             setAuthSession(next);
             applySystemAccountFromSession(next);
             onAuthenticated?.(next);
@@ -213,6 +216,7 @@ export function useAuthSession({
 
         if (data?.session?.user) {
           const next = mapSupabaseUserToSession(data.session.user, 'login', 'credentials');
+          clearSensitiveCache(data.session.user.id);
           setAuthSession(next);
           applySystemAccountFromSession(next);
           onAuthenticated?.(next);
@@ -296,6 +300,7 @@ export function useAuthSession({
       }
 
       const next = mapSupabaseUserToSession(user, 'login', 'supabase');
+      clearSensitiveCache(user.id);
       setAuthSession(next);
       return { ok: true, session: next };
     } catch (err) {

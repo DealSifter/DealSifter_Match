@@ -3,8 +3,6 @@ import { getLang } from '../i18n/translations';
 import { isSupabaseConfigured, supabase } from '../lib/supabaseClient';
 
 const PLAN_USAGE_CACHE_KEY = 'ds_plan_usage_cache';
-const PLAN_SNAPSHOT_CACHE_KEY = 'ds_plan_snapshot_cache';
-
 const FEATURE_COPY = {
   en: {
     chat: {
@@ -192,7 +190,6 @@ function mapCurrentPlanPayload({ userRow = {}, subscriptionRow = {}, usage = {} 
     limits,
     usage,
   };
-  safeWriteJson(PLAN_SNAPSHOT_CACHE_KEY, payload);
   return payload;
 }
 
@@ -277,11 +274,6 @@ export async function deductNuggets(userId, amount, reason = 'manual') {
   });
   if (error) throw error;
   const newBalance = Number(data?.newBalance ?? data?.new_balance ?? 0);
-  try {
-    localStorage.setItem('ds_nuggets', String(newBalance));
-  } catch {
-    // no-op
-  }
   return { newBalance };
 }
 

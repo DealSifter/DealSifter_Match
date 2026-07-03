@@ -96,6 +96,7 @@ import { useCheckoutFlow } from './hooks/useCheckoutFlow';
 import { useMediaQuery } from './hooks/useMediaQuery';
 import { useChatRealtime } from './hooks/useChatRealtime';
 import { getPlanGateCopy, getCurrentPlan, isPlanLimitError } from './services/planUsageService';
+import { clearSensitiveCache, REMOTE_CACHE_LOCAL_STORAGE_KEYS } from './lib/localStoragePolicy';
 import { trackAppEvent } from './lib/adminEventTracking';
 import { createPropertyUnlockRecord, getOwnerExclusivityStatus, getPortfolioUnlockCost, getPropertyExclusivityStatus, resolveUnlockOwnerId } from './lib/unlockRules';
 import { isPendingDealExpired } from './lib/pendingDeal';
@@ -516,9 +517,6 @@ const mergeProfilePayloadNonEmpty = (...sources) => {
 
 const LOCAL_OWNER_ID = 999999;
 
-// All localStorage keys that are scoped to a specific authenticated user.
-// These must be wiped whenever the authenticated user changes (logout, session
-// expiry, or account switch) so that the next user never reads stale data.
 const USER_DATA_KEYS = [
   'propertyPortfolio', 'propertyPortfolio_full',
   'servicePortfolio', 'servicePortfolio_full',
@@ -537,10 +535,11 @@ const USER_DATA_KEYS = [
   'ds_last_page', 'categoryOrder',
 ];
 
-const clearUserSpecificLocalStorage = () => {
-  USER_DATA_KEYS.forEach((key) => {
+const clearUserSpecificLocalStorage = (userId = null) => {
+  [...new Set([...USER_DATA_KEYS, ...REMOTE_CACHE_LOCAL_STORAGE_KEYS])].forEach((key) => {
     try { localStorage.removeItem(key); } catch (e) { void e; }
   });
+  clearSensitiveCache(userId);
 };
 
 const isUuid = (value) => /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(String(value || '').trim());
@@ -3228,7 +3227,7 @@ export default function App() {
 
     if (!(isSwitchingToDifferentUser || isInAppAccountSwitch)) return;
 
-    clearUserSpecificLocalStorage();
+    clearUserSpecificLocalStorage(supabaseUserId || previousUserId);
 
     if (previousUserId !== null || isSwitchingToDifferentUser) {
       setMatched([]);
@@ -3357,7 +3356,10 @@ export default function App() {
   }, [pendingFlushRef, profileSaveDebounceRef]);
 
   useEffect(() => {
-    if (isSupabaseConfigured) return;
+    if (isSupabaseConfigured) {
+      try { localStorage.removeItem('ds_unlocked'); } catch { /* no-op */ }
+      return;
+    }
     try {
       localStorage.setItem('ds_unlocked', JSON.stringify(unlocked || []));
     } catch (error) {
@@ -3366,7 +3368,10 @@ export default function App() {
   }, [unlocked]);
 
   useEffect(() => {
-    if (isSupabaseConfigured) return;
+    if (isSupabaseConfigured) {
+      try { localStorage.removeItem('ds_property_unlocks'); } catch { /* no-op */ }
+      return;
+    }
     try {
       const now = Date.now();
       const cleaned = (propertyUnlocks || []).filter((row) => (
@@ -3382,7 +3387,10 @@ export default function App() {
   }, [propertyUnlocks]);
 
   useEffect(() => {
-    if (isSupabaseConfigured) return;
+    if (isSupabaseConfigured) {
+      try { localStorage.removeItem('ds_purchases'); } catch { /* no-op */ }
+      return;
+    }
     try {
       localStorage.setItem('ds_purchases', JSON.stringify(purchases || []));
     } catch (error) {
@@ -4437,6 +4445,10 @@ export default function App() {
   }, [systemAccount]);
 
   useEffect(() => {
+    if (isSupabaseConfigured) {
+      try { localStorage.removeItem('ds_nuggets'); } catch { /* no-op */ }
+      return;
+    }
     try {
       localStorage.setItem('ds_nuggets', String(nuggets));
     } catch (error) {
@@ -4445,6 +4457,10 @@ export default function App() {
   }, [nuggets]);
 
   useEffect(() => {
+    if (isSupabaseConfigured) {
+      try { localStorage.removeItem('ds_subscription_mock'); } catch { /* no-op */ }
+      return;
+    }
     try {
       localStorage.setItem('ds_subscription_mock', JSON.stringify(subscription || {}));
     } catch (error) {

@@ -2080,12 +2080,18 @@ export function Dashboard({ page, nuggets, setModal, setPage, onOpenOnboardingTa
   }, [page]);
 
   useEffect(() => {
-    if (isSupabaseConfigured) return;
+    if (isSupabaseConfigured) {
+      try { localStorage.removeItem('ds_matched'); } catch { /* no-op */ }
+      return;
+    }
     try { localStorage.setItem('ds_matched', JSON.stringify(matched || [])); } catch (e) { void e; }
   }, [matched]);
 
   useEffect(() => {
-    if (isSupabaseConfigured) return;
+    if (isSupabaseConfigured) {
+      try { localStorage.removeItem('ds_interested'); } catch { /* no-op */ }
+      return;
+    }
     try { localStorage.setItem('ds_interested', JSON.stringify(interested || [])); } catch (e) { void e; }
   }, [interested]);
 
