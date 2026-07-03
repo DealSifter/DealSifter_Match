@@ -19,7 +19,7 @@ import { translateChatText, getSafeLang } from '../services/chatTranslation';
 import { getPlanGateCopy, isFeatureAllowed } from '../lib/planAccess';
 import { trackAppEvent } from '../lib/adminEventTracking';
 import { getPortfolioUnlockCost, getPropertyExclusivityStatus } from '../lib/unlockRules';
-import { isSupabaseConfigured } from '../lib/supabaseClient';
+import { isSupabaseConfigured, supabase } from '../lib/supabaseClient';
 import { normalizeCard } from '../lib/normalizeFeedCard';
 import { getActiveExclusivities } from '../services/unlockService';
 import { useUnlockNotifications } from '../hooks/useUnlockNotifications';
@@ -93,6 +93,34 @@ const CHAT_INTEREST_SERVICE_PREFIX = {
 };
 
 const DEFAULT_PEER_LANGS = { input: 'en', output: 'en' };
+const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+
+function methodAllowsDealSifterChat(method) {
+  const normalized = String(method || '').trim().toLowerCase().replace(/[^a-z0-9]+/g, '');
+  return ['chat', 'dealsifterchat', 'dealsifter'].includes(normalized);
+}
+
+function contactAllowsDealSifterChat(contact) {
+  return Array.isArray(contact?.contactMethods) && contact.contactMethods.some(methodAllowsDealSifterChat);
+}
+
+function compactChatPreview(card) {
+  if (!card) return null;
+  return {
+    id: card.id || card.ownerId || '',
+    ownerId: card.ownerId || card.id || '',
+    unlockOwnerId: card.unlockOwnerId || card.ownerId || card.id || '',
+    name: card.name || '',
+    title: card.title || card.name || '',
+    type: card.type || '',
+    badge: card.badge || '',
+    cat: card.cat || '',
+    loc: card.loc || '',
+    photo: card.photo || card.avatar || '',
+    primaryProfile: card.primaryProfile || '',
+    contactMethods: Array.isArray(card.contactMethods) ? card.contactMethods : [],
+  };
+}
 
 function readScopedProfileFallback(scope = 'personal') {
   if (isSupabaseConfigured && !import.meta.env.DEV) return null;
@@ -2044,7 +2072,8 @@ export function MatchesPage({ nuggets, setModal, openUnlock, unlocked, initialCh
   ), [unlocked]);
 
   const isContactUnlockedByState = useCallback((itemOrId) => (
-    getContactUnlockKeys(itemOrId).some((key) => unlockedIdSet.has(key))
+    Boolean(itemOrId && typeof itemOrId === 'object' && itemOrId.chatLinked)
+    || getContactUnlockKeys(itemOrId).some((key) => unlockedIdSet.has(key))
   ), [getContactUnlockKeys, unlockedIdSet]);
 
   const enrichContactFromPortfolio = useCallback((contactLike) => {
@@ -2233,10 +2262,55 @@ export function MatchesPage({ nuggets, setModal, openUnlock, unlocked, initialCh
     return out;
   }, []);
 
+  const currentUserChatPreview = useMemo(() => {
+    const preferredScope = normalizeProfileScope(
+      userProfile?.accountType === 'professional' ? 'professional' : (userProfile?.accountType === 'fsbo_owner' ? 'fsbo' : 'personal')
+    ) || 'personal';
+    return compactChatPreview(
+      buildLocalOwnerCard(preferredScope)
+        || buildLocalOwnerCard('personal')
+        || buildLocalOwnerCard('professional')
+        || buildLocalOwnerCard('fsbo')
+    );
+  }, [buildLocalOwnerCard, userProfile?.accountType]);
+
+  const reciprocalChatContacts = useMemo(() => {
+    const rows = [];
+    Object.entries(convos || {}).forEach(([peerId, messages]) => {
+      const incoming = (Array.isArray(messages) ? messages : []).filter((message) => message?.from !== 'me');
+      if (!incoming.length) return;
+      const lastIncoming = incoming[incoming.length - 1] || {};
+      const preview = lastIncoming.senderPreview && typeof lastIncoming.senderPreview === 'object'
+        ? lastIncoming.senderPreview
+        : {};
+      rows.push({
+        id: String(preview.id || preview.ownerId || peerId),
+        ownerId: String(preview.ownerId || preview.id || peerId),
+        unlockOwnerId: String(preview.unlockOwnerId || preview.ownerId || preview.id || peerId),
+        sourceCardId: preview.sourceCardId || `chat:${peerId}`,
+        name: preview.name || preview.title || 'Chat contact',
+        title: preview.title || preview.name || 'Chat contact',
+        type: preview.type || 'Contact',
+        badge: preview.badge || '',
+        cat: preview.cat || '',
+        loc: preview.loc || '',
+        photo: preview.photo || '',
+        primaryProfile: preview.primaryProfile || 'personal',
+        contactMethods: Array.isArray(preview.contactMethods) ? preview.contactMethods : ['DealSifter chat'],
+        chatLinked: true,
+        chatUnreadSource: true,
+      });
+    });
+    return rows;
+  }, [convos]);
+
   const allMatched = useMemo(() => {
     const byKey = new Map();
-    (Array.isArray(matched) ? matched : [])
-      .map((m) => enrichContactFromPortfolio(resolveContactCard(m)))
+    [...(Array.isArray(matched) ? matched : []), ...reciprocalChatContacts]
+      .map((m) => {
+        const resolved = enrichContactFromPortfolio(resolveContactCard(m));
+        return resolved ? { ...m, ...resolved, chatLinked: Boolean(m?.chatLinked || resolved?.chatLinked) } : null;
+      })
       .filter(Boolean)
       .forEach((contact) => {
         const key = getContactUnlockKeys(contact)[0] || String(contact?.id || '');
@@ -2244,7 +2318,7 @@ export function MatchesPage({ nuggets, setModal, openUnlock, unlocked, initialCh
         byKey.set(key, { ...(byKey.get(key) || {}), ...contact });
       });
     return [...byKey.values()];
-  }, [matched, enrichContactFromPortfolio, resolveContactCard, getContactUnlockKeys]);
+  }, [matched, reciprocalChatContacts, enrichContactFromPortfolio, resolveContactCard, getContactUnlockKeys]);
 
   const parseStateCode = useCallback((value) => {
     const raw = String(value || '').trim();
@@ -2625,6 +2699,89 @@ export function MatchesPage({ nuggets, setModal, openUnlock, unlocked, initialCh
     resizeComposerInput();
   }, [msg, isMobile, resizeComposerInput]);
 
+  const writeChatSystemNotice = useCallback((owner, message, reason = 'chat_unavailable') => {
+    const oid = String(owner?.id || owner?.ownerId || owner?.unlockOwnerId || '').trim();
+    if (!oid || !message) return;
+    if (typeof onSendChatMessage === 'function') {
+      onSendChatMessage({
+        recipientId: oid,
+        contactOwnerId: oid,
+        text: message,
+        type: 'system',
+        originalText: message,
+        originalLang: myInputLang,
+        translatedLang: myInputLang,
+        contactPrimaryProfile: owner?.primaryProfile || '',
+        senderPreview: currentUserChatPreview,
+        metadata: { reason },
+      });
+      return;
+    }
+    setConvos((prev) => ({
+      ...(prev || {}),
+      [oid]: [
+        ...((prev || {})[oid] || []),
+        {
+          from: 'me',
+          text: message,
+          type: 'system',
+          originalText: message,
+          originalLang: myInputLang,
+          translatedText: message,
+          translatedLang: myInputLang,
+          senderPreview: currentUserChatPreview,
+          createdAt: new Date().toISOString(),
+        },
+      ],
+    }));
+  }, [currentUserChatPreview, myInputLang, onSendChatMessage, setConvos]);
+
+  const getActiveChatAccessStatus = useCallback(async () => {
+    if (!activeOwner) return { canChat: false, reason: 'missing_contact' };
+    if (!canUseChat) return { canChat: false, reason: 'sender_plan' };
+
+    const ownerId = String(activeOwner.id || activeOwner.ownerId || activeOwner.unlockOwnerId || '').trim();
+    if (isSupabaseConfigured && supabase && UUID_RE.test(ownerId)) {
+      const { data, error } = await supabase.rpc('ds_get_chat_contact_status', {
+        p_contact_owner_id: ownerId,
+        p_primary_profile: activeOwner.primaryProfile || null,
+      });
+      if (error) throw error;
+      const status = data && typeof data === 'object' ? data : {};
+      if (status.canChat === false) {
+        return {
+          canChat: false,
+          reason: status.acceptsChat === false
+            ? 'contact_method'
+            : (status.senderCanChat === false ? 'sender_plan' : 'recipient_plan'),
+          ...status,
+        };
+      }
+      return { canChat: true, reason: null, ...status };
+    }
+
+    const localAcceptsChat = contactAllowsDealSifterChat(activeOwner);
+    if (!localAcceptsChat) {
+      return { canChat: false, reason: 'contact_method', acceptsChat: false };
+    }
+
+    return { canChat: true, reason: null };
+  }, [activeOwner, canUseChat]);
+
+  const blockChatForActiveContact = useCallback((reason) => {
+    const title = reason === 'recipient_plan'
+      ? 'DealSifter Chat unavailable for this contact'
+      : 'DealSifter Chat not selected';
+    const message = reason === 'recipient_plan'
+      ? 'Both users must have a plan with DealSifter Chat to use this channel.'
+      : 'This profile did not select DealSifter Chat as a desired contact method.';
+    const systemMessage = reason === 'recipient_plan'
+      ? 'System notice: a connection tried to use DealSifter Chat, but this channel requires both users to have an eligible plan. Review your plan if you want to receive chats here.'
+      : 'System notice: a connection tried to contact this profile through DealSifter Chat, but this profile has not selected chat as a desired contact method. Update your profile contact options if you want to receive chats here.';
+    addToast?.({ type: 'warning', title, message, duration: 7000 });
+    writeChatSystemNotice(activeOwner, systemMessage, reason);
+  }, [activeOwner, addToast, writeChatSystemNotice]);
+
   const handleSend = useCallback(async (customMsg, type = "text", refData = null) => {
     if (!activeOwner) return;
     if (!canUseChat) {
@@ -2633,6 +2790,22 @@ export function MatchesPage({ nuggets, setModal, openUnlock, unlocked, initialCh
     }
     const content = (typeof customMsg === 'string' ? customMsg : "") || msg;
     if (!content.trim() && !refData) return;
+
+    try {
+      const chatStatus = await getActiveChatAccessStatus();
+      if (!chatStatus.canChat) {
+        blockChatForActiveContact(chatStatus.reason);
+        return;
+      }
+    } catch (error) {
+      addToast?.({
+        type: 'error',
+        title: 'Chat unavailable',
+        message: String(error?.message || 'Could not validate this chat channel right now.'),
+        duration: 6500,
+      });
+      return;
+    }
 
     const oid = activeOwner.id;
     const sourceLang = getSafeLang(myInputLang);
@@ -2663,6 +2836,8 @@ export function MatchesPage({ nuggets, setModal, openUnlock, unlocked, initialCh
         originalText: content,
         originalLang: sourceLang,
         translatedLang: type === 'text' ? toPeerLang : sourceLang,
+        contactPrimaryProfile: activeOwner.primaryProfile || '',
+        senderPreview: currentUserChatPreview,
       });
     } else {
       setConvos(prev => ({
@@ -2731,6 +2906,10 @@ export function MatchesPage({ nuggets, setModal, openUnlock, unlocked, initialCh
     activePeerLangs,
     canUseChat,
     blockFeature,
+    getActiveChatAccessStatus,
+    blockChatForActiveContact,
+    addToast,
+    currentUserChatPreview,
     onSendChatMessage,
   ]);
 

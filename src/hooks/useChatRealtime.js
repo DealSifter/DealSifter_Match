@@ -25,6 +25,7 @@ function mapChatRowToMessage(row, currentUserId) {
       originalLang: metadata.originalLang || '',
       translatedText: row.body || '',
       translatedLang: metadata.translatedLang || '',
+      senderPreview: metadata.senderPreview || null,
       createdAt: row.created_at || null,
     },
   };
@@ -132,6 +133,8 @@ export function useChatRealtime({
         originalText: payload.originalText || text,
         originalLang: payload.originalLang || '',
         translatedLang: payload.translatedLang || '',
+        contactPrimaryProfile: payload.contactPrimaryProfile || payload.primaryProfile || '',
+        senderPreview: payload.senderPreview || null,
       },
       created_at: new Date().toISOString(),
     };
@@ -153,6 +156,13 @@ export function useChatRealtime({
 
     if (error) {
       reportError('Chat message persistence failed.', error);
+      setConversations((prev) => {
+        const current = Array.isArray(prev?.[recipientId]) ? prev[recipientId] : [];
+        return {
+          ...(prev || {}),
+          [recipientId]: current.filter((msg) => String(msg?.id || '') !== optimisticId),
+        };
+      });
       if (typeof onSendError === 'function') onSendError(error);
       return;
     }
@@ -175,4 +185,3 @@ export function useChatRealtime({
     realtimeEnabled: canUseRealtime,
   };
 }
-
