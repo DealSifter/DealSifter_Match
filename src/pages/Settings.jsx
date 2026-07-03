@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useRef, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { C } from '../theme/colors';
 import { useT } from '../i18n/translations';
 import { Icon } from '../components/ui/Icon';
@@ -73,6 +73,9 @@ const createSecuritySessionTerminatedAudit = (sessionId) => {
   };
 };
 
+const SHOW_SUPPORT_CHAT_PLACEHOLDER = !import.meta.env.PROD;
+const SHOW_DEV_BILLING_PLACEHOLDER = !import.meta.env.PROD;
+
 export function Settings({ setPage, prevPage, initialTab = 'profile', systemAccount, setSystemAccount, authSession, setAuthSession, subscription, addToast, supabaseUserId, onDeleteAccount, onRevokeConsent, pendingCheckoutIntent = null, onContinuePendingCheckout = null, userPreferences = null, onChangeUserPreferences = null }) {
   const allT = useT('settings');
   const t = allT.settings || {};
@@ -80,13 +83,13 @@ export function Settings({ setPage, prevPage, initialTab = 'profile', systemAcco
   const [confirmPayload, setConfirmPayload] = useState(null); // { message, onConfirm, variant }
   const [profileSaveState, setProfileSaveState] = useState('saved');
   const [billingHistory, setBillingHistory] = useState(() => {
-    if (isSupabaseConfigured) return [];
+    if (isSupabaseConfigured || import.meta.env.PROD) return [];
     try {
       const raw = JSON.parse(localStorage.getItem('ds_billing_history_mock') || '[]');
       return Array.isArray(raw) ? raw : [];
     } catch { return []; }
   });
-  void setBillingHistory;
+  const [billingHistoryLoading, setBillingHistoryLoading] = useState(false);
   const [commPrefs, setCommPrefs] = useState(() => {
     if (isSupabaseConfigured) return { email: true, chat: true, marketing: false };
     try {
@@ -104,14 +107,15 @@ export function Settings({ setPage, prevPage, initialTab = 'profile', systemAcco
   const [securityAudit, setSecurityAudit] = useState([]);
   const [securitySessions, setSecuritySessions] = useState([]);
   const [supportMessages, setSupportMessages] = useState(() => {
-    if (isSupabaseConfigured) return [];
+    // TODO: implementar backend de suporte/tickets antes de habilitar chat de suporte em producao.
+    if (isSupabaseConfigured || import.meta.env.PROD) return [];
     try {
       const raw = JSON.parse(localStorage.getItem('ds_support_chat_thread') || '[]');
       return Array.isArray(raw) ? raw : [];
     } catch { return []; }
   });
   const [privacyControls, setPrivacyControls] = useState(() => {
-    if (isSupabaseConfigured) {
+    if (isSupabaseConfigured || import.meta.env.PROD) {
       return {
         doNotSellShare: false,
         targetedAdsOptOut: false,
@@ -140,6 +144,8 @@ export function Settings({ setPage, prevPage, initialTab = 'profile', systemAcco
       dataProcessingConsent: true,
     };
   });
+  const [profileVisibility, setProfileVisibility] = useState('hidden');
+  const [profileVisibilitySaving, setProfileVisibilitySaving] = useState(false);
   const [prefs, setPrefs] = useState(() => (userPreferences && typeof userPreferences === 'object' ? userPreferences : null));
   const settingsHydratedFromRemoteRef = useRef(false);
   const settingsSaveDebounceRef = useRef(null);
@@ -229,14 +235,8 @@ export function Settings({ setPage, prevPage, initialTab = 'profile', systemAcco
         const payloadCommPrefs = payload.commPrefs && typeof payload.commPrefs === 'object'
           ? payload.commPrefs
           : null;
-        const payloadSupportMessages = Array.isArray(payload.supportMessages)
-          ? payload.supportMessages
-          : null;
         const payloadPrivacyControls = payload.privacyControls && typeof payload.privacyControls === 'object'
           ? payload.privacyControls
-          : null;
-        const payloadBillingHistory = Array.isArray(payload.billingHistory)
-          ? payload.billingHistory
           : null;
 
         setSystemAccount?.((prev) => ({
@@ -256,9 +256,6 @@ export function Settings({ setPage, prevPage, initialTab = 'profile', systemAcco
         if (payloadCommPrefs) {
           setCommPrefs((prev) => ({ email: true, chat: true, marketing: false, ...(prev || {}), ...payloadCommPrefs }));
         }
-        if (payloadSupportMessages) {
-          setSupportMessages(payloadSupportMessages);
-        }
         if (payloadPrivacyControls) {
           setPrivacyControls((prev) => ({
             ...(prev || {}),
@@ -269,8 +266,15 @@ export function Settings({ setPage, prevPage, initialTab = 'profile', systemAcco
             dataProcessingConsent: Boolean(payloadPrivacyControls.dataProcessingConsent ?? true),
           }));
         }
-        if (payloadBillingHistory) {
-          setBillingHistory(payloadBillingHistory);
+        const { data: profileRow, error: profileError } = await supabase
+          .from('user_profiles')
+          .select('visibility')
+          .eq('user_id', supabaseUserId)
+          .maybeSingle();
+        if (!profileError && profileRow?.visibility) {
+          setProfileVisibility(['hidden', 'public', 'network'].includes(String(profileRow.visibility))
+            ? String(profileRow.visibility)
+            : 'hidden');
         }
       } catch {
         // Best effort hydration only.
@@ -281,7 +285,53 @@ export function Settings({ setPage, prevPage, initialTab = 'profile', systemAcco
 
     hydrateFromSupabase();
     return () => { cancelled = true; };
-  }, [supabaseUserId, onChangeUserPreferences, setSystemAccount, setBillingHistory]);
+  }, [supabaseUserId, onChangeUserPreferences, setSystemAccount]);
+
+  useEffect(() => {
+    if (!isSupabaseConfigured || !supabase || !supabaseUserId) return;
+    let cancelled = false;
+    const loadBillingHistory = async () => {
+      setBillingHistoryLoading(true);
+      try {
+        let result = await supabase
+          .from('nugget_purchases')
+          .select('id, stripe_payment_id, stripe_checkout_session_id, pack_id, qty, bonus, price_cents, status, created_at')
+          .eq('user_id', supabaseUserId)
+          .order('created_at', { ascending: false })
+          .limit(25);
+
+        if (result?.error && isMissingColumnError(result.error, 'stripe_checkout_session_id')) {
+          result = await supabase
+            .from('nugget_purchases')
+            .select('id, stripe_payment_id, pack_id, qty, bonus, price_cents, status, created_at')
+            .eq('user_id', supabaseUserId)
+            .order('created_at', { ascending: false })
+            .limit(25);
+        }
+
+        if (cancelled) return;
+        if (result?.error) throw result.error;
+        const rows = Array.isArray(result?.data) ? result.data : [];
+        setBillingHistory(rows.map((row) => ({
+          id: row.stripe_checkout_session_id || row.stripe_payment_id || row.id,
+          createdAt: row.created_at,
+          amount: Number(row.price_cents || 0) / 100,
+          status: row.status === 'completed' ? 'paid' : String(row.status || 'pending'),
+          planName: String(row.pack_id || 'nuggets').toUpperCase(),
+          source: 'nugget_purchases',
+        })));
+      } catch (err) {
+        if (!cancelled) {
+          setBillingHistory([]);
+          addToast?.({ type: 'error', message: String(err?.message || 'Could not load billing history.') });
+        }
+      } finally {
+        if (!cancelled) setBillingHistoryLoading(false);
+      }
+    };
+    loadBillingHistory();
+    return () => { cancelled = true; };
+  }, [addToast, supabaseUserId]);
   useEffect(() => {
     if (tab === 'communication') return undefined;
     const timer = window.setTimeout(() => setCommView('menu'), 0);
@@ -364,9 +414,7 @@ export function Settings({ setPage, prevPage, initialTab = 'profile', systemAcco
       },
       userPreferences: prefs && typeof prefs === 'object' ? prefs : {},
       commPrefs: commPrefs && typeof commPrefs === 'object' ? commPrefs : { email: true, chat: true, marketing: false },
-      supportMessages: Array.isArray(supportMessages) ? supportMessages : [],
       privacyControls: privacyControls && typeof privacyControls === 'object' ? privacyControls : {},
-      billingHistory: Array.isArray(billingHistory) ? billingHistory : [],
     };
     const serializedPayload = JSON.stringify(payload);
     if (serializedPayload === settingsSaveLastSerializedRef.current) return;
@@ -413,9 +461,7 @@ export function Settings({ setPage, prevPage, initialTab = 'profile', systemAcco
     systemAccount,
     prefs,
     commPrefs,
-    supportMessages,
     privacyControls,
-    billingHistory,
   ]);
 
   useEffect(() => {
@@ -425,12 +471,15 @@ export function Settings({ setPage, prevPage, initialTab = 'profile', systemAcco
   }, [tab, profileSaveState, systemAccount]);
 
   useEffect(() => {
+    if (!SHOW_DEV_BILLING_PLACEHOLDER) return;
     try { localStorage.setItem('ds_billing_history_mock', JSON.stringify(billingHistory || [])); } catch { /* no-op */ }
   }, [billingHistory]);
   useEffect(() => {
+    if (!SHOW_SUPPORT_CHAT_PLACEHOLDER) return;
     try { localStorage.setItem('ds_support_chat_thread', JSON.stringify(supportMessages || [])); } catch { /* no-op */ }
   }, [supportMessages]);
   useEffect(() => {
+    if (import.meta.env.PROD) return;
     try { localStorage.setItem('ds_privacy_controls', JSON.stringify(privacyControls || {})); } catch { /* no-op */ }
   }, [privacyControls]);
   useEffect(() => {
@@ -452,6 +501,7 @@ export function Settings({ setPage, prevPage, initialTab = 'profile', systemAcco
     return () => clearInterval(timer);
   }, [tab, authSession?.id]);
   useEffect(() => {
+    if (!SHOW_SUPPORT_CHAT_PLACEHOLDER) return;
     if (tab !== 'communication' || commView !== 'support') return;
     const timer = window.setTimeout(() => {
       setSupportMessages((prev) => {
@@ -469,6 +519,12 @@ export function Settings({ setPage, prevPage, initialTab = 'profile', systemAcco
     }, 0);
     return () => window.clearTimeout(timer);
   }, [tab, commView, t.supportWelcome]);
+
+  useEffect(() => {
+    if (!SHOW_SUPPORT_CHAT_PLACEHOLDER && commView === 'support') {
+      setCommView('menu');
+    }
+  }, [commView]);
 
   const pendingCheckoutLabel = (() => {
     if (!pendingCheckoutIntent) return '';
@@ -512,6 +568,31 @@ export function Settings({ setPage, prevPage, initialTab = 'profile', systemAcco
       return next;
     });
   };
+
+  const updateProfileVisibility = useCallback(async (visibility) => {
+    const nextVisibility = ['hidden', 'public', 'network'].includes(String(visibility || ''))
+      ? String(visibility)
+      : 'hidden';
+    setProfileVisibility(nextVisibility);
+    if (!isSupabaseConfigured || !supabase || !supabaseUserId) return;
+    setProfileVisibilitySaving(true);
+    try {
+      const { error } = await supabase
+        .from('user_profiles')
+        .upsert({
+          user_id: supabaseUserId,
+          visibility: nextVisibility,
+          updated_at: new Date().toISOString(),
+        }, { onConflict: 'user_id' });
+      if (error) throw error;
+      addToast?.({ type: 'success', message: t.privacyVisibilitySaved || 'Profile visibility updated.' });
+    } catch (err) {
+      addToast?.({ type: 'error', message: String(err?.message || t.privacyVisibilityError || 'Failed to update profile visibility.') });
+    } finally {
+      setProfileVisibilitySaving(false);
+    }
+  }, [addToast, supabaseUserId, t.privacyVisibilityError, t.privacyVisibilitySaved]);
+
   const performPasswordReset = async () => {
     const email = String(authSession?.email || systemAccount?.email || '').trim();
     if (!email) {
@@ -680,7 +761,7 @@ export function Settings({ setPage, prevPage, initialTab = 'profile', systemAcco
       addToast?.({ type: 'error', message: t.securitySessionTerminateError || 'Failed to terminate session.' });
     }
   };
-  const isSupportFullscreen = tab === 'communication' && commView === 'support';
+  const isSupportFullscreen = SHOW_SUPPORT_CHAT_PLACEHOLDER && tab === 'communication' && commView === 'support';
 
   return (
     <div style={{ paddingTop: 58, minHeight: 'calc(var(--app-vh, 1vh) * 100)', background: C.bg, boxSizing: 'border-box', width: '100%', maxWidth: '100%', overflowX: 'hidden' }}>
@@ -871,7 +952,10 @@ export function Settings({ setPage, prevPage, initialTab = 'profile', systemAcco
                     </div>
                   ) : null}
                   <div style={{ border: `1px solid ${C.border}`, borderRadius: 10, padding: 10, width: '100%', minWidth: 0, boxSizing: 'border-box', display: 'grid', gap: 4 }}>
-                    <div style={{ fontSize: 11, color: C.t3 }}>{t.billingOverview || 'Billing overview'}</div>
+                  <div style={{ fontSize: 11, color: C.t3 }}>{t.billingOverview || 'Billing overview'}</div>
+                    {billingHistoryLoading ? (
+                      <div style={{ fontSize: 12, color: C.t2 }}>{t.loading || 'Loading...'}</div>
+                    ) : null}
                     <div style={{ fontSize: 12, color: C.t2 }}>
                       {t.totalInvoices || 'Total invoices'}: <strong style={{ color: C.t1 }}>{billingSummary.invoices}</strong>
                     </div>
@@ -922,12 +1006,12 @@ export function Settings({ setPage, prevPage, initialTab = 'profile', systemAcco
                 <div style={{ marginTop: 10, border: `1px solid ${C.border}`, borderRadius: 10, padding: 10, width: '100%', minWidth: 0, boxSizing: 'border-box', display: 'grid', gap: 8 }}>
                   <div style={{ fontSize: 12, fontWeight: 700, color: C.t1 }}>{t.invoiceHistory || 'Invoice history'}</div>
                   <div style={{ display: 'grid', gap: 6, maxHeight: 220, overflowY: 'auto' }}>
-                    {(billingHistory?.length ? billingHistory : [{ id: 'empty', createdAt: null, amount: 0, status: 'none', planName: t.notApplicable || 'N/A' }]).map((row) => (
+                    {(billingHistoryLoading ? [{ id: 'loading', createdAt: null, amount: 0, status: 'loading', planName: t.loading || 'Loading...' }] : (billingHistory?.length ? billingHistory : [{ id: 'empty', createdAt: null, amount: 0, status: 'none', planName: t.notApplicable || 'N/A' }])).map((row) => (
                       <div key={row.id} style={{ border: `1px solid ${C.border}`, borderRadius: 8, padding: 8, display: 'grid', gap: 2 }}>
                         <div style={{ fontSize: 11, color: C.t2, overflowWrap: 'anywhere', wordBreak: 'break-word' }}>
-                          <strong style={{ color: C.t1 }}>{row.id === 'empty' ? (t.noInvoices || 'No invoices yet') : row.id}</strong>
+                          <strong style={{ color: C.t1 }}>{row.id === 'empty' ? (t.noInvoices || 'No invoices yet') : (row.id === 'loading' ? (t.loading || 'Loading...') : row.id)}</strong>
                         </div>
-                        {row.id !== 'empty' ? (
+                        {row.id !== 'empty' && row.id !== 'loading' ? (
                           <>
                             <div style={{ fontSize: 11, color: C.t2 }}>{new Date(row.createdAt).toLocaleDateString('en-US')} • {row.planName}</div>
                             <div style={{ fontSize: 11, color: C.t2 }}>${Number(row.amount || 0).toFixed(2)} • <strong style={{ color: row.status === 'paid' ? C.accent : C.warning || '#f59e0b' }}>{row.status}</strong></div>
@@ -959,22 +1043,25 @@ export function Settings({ setPage, prevPage, initialTab = 'profile', systemAcco
                     style={{ width: '100%', boxSizing: 'border-box', border: `1px solid ${C.border}`, background: 'transparent', color: C.t2, borderRadius: 8, padding: '9px 10px', fontSize: 12, fontWeight: 700, cursor: 'pointer', display: 'inline-flex', gap: 7, alignItems: 'center', justifyContent: 'center' }}>
                     <Icon name="email" size={13} color={C.t2} /> {t.contactEmail || 'Contact by email'}
                   </button>
-                  <button
-                    onClick={() => {
-                      setCommView('support');
-                      setSupportMessages((prev) => {
-                        if ((prev || []).length) return prev;
-                        return [{
-                          id: `support-${Date.now()}`,
-                          from: 'admin',
-                          text: t.supportWelcome || 'Hello! This is DealSifter Admin/Support. How can we help?',
-                          createdAt: Date.now(),
-                        }];
-                      });
-                    }}
-                    style={{ width: '100%', boxSizing: 'border-box', border: `1px solid ${C.border}`, background: 'transparent', color: C.t2, borderRadius: 8, padding: '9px 10px', fontSize: 12, fontWeight: 700, cursor: 'pointer', display: 'inline-flex', gap: 7, alignItems: 'center', justifyContent: 'center' }}>
-                    <Icon name="chat" size={13} color={C.t2} /> {t.contactChat || 'Open support chat'}
-                  </button>
+                  {SHOW_SUPPORT_CHAT_PLACEHOLDER ? (
+                    // TODO: implementar backend de suporte/tickets antes de habilitar chat de suporte em producao.
+                    <button
+                      onClick={() => {
+                        setCommView('support');
+                        setSupportMessages((prev) => {
+                          if ((prev || []).length) return prev;
+                          return [{
+                            id: `support-${Date.now()}`,
+                            from: 'admin',
+                            text: t.supportWelcome || 'Hello! This is DealSifter Admin/Support. How can we help?',
+                            createdAt: Date.now(),
+                          }];
+                        });
+                      }}
+                      style={{ width: '100%', boxSizing: 'border-box', border: `1px solid ${C.border}`, background: 'transparent', color: C.t2, borderRadius: 8, padding: '9px 10px', fontSize: 12, fontWeight: 700, cursor: 'pointer', display: 'inline-flex', gap: 7, alignItems: 'center', justifyContent: 'center' }}>
+                      <Icon name="chat" size={13} color={C.t2} /> {t.contactChat || 'Open support chat'}
+                    </button>
+                  ) : null}
                   <div style={{ border: `1px solid ${C.border}`, borderRadius: 10, padding: 10, display: 'grid', gap: 8, width: '100%', minWidth: 0, boxSizing: 'border-box' }}>
                     <label style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8, fontSize: 12, color: C.t2 }}>
                       <span>{t.commEmailAlerts || 'Email alerts'}</span>
@@ -1418,6 +1505,19 @@ export function Settings({ setPage, prevPage, initialTab = 'profile', systemAcco
 
                   <div style={{ border: `1px solid ${C.border}`, borderRadius: 10, padding: 10, display: 'grid', gap: 8 }}>
                     <div style={{ fontSize: 12, fontWeight: 700, color: C.t1 }}>{t.privacyControlsTitle || 'US privacy controls (CCPA/CPRA style)'}</div>
+                    <label style={{ display: 'grid', gap: 5 }}>
+                      <span style={{ fontSize: 11, color: C.t2, fontWeight: 700 }}>{t.profileVisibility || 'Profile visibility'}</span>
+                      <select
+                        value={profileVisibility}
+                        disabled={profileVisibilitySaving}
+                        onChange={(e) => updateProfileVisibility(e.target.value)}
+                        style={controlStyle}
+                      >
+                        <option value="hidden">{t.profileVisibilityHidden || 'Hidden'}</option>
+                        <option value="network">{t.profileVisibilityNetwork || 'Network only'}</option>
+                        <option value="public">{t.profileVisibilityPublic || 'Public'}</option>
+                      </select>
+                    </label>
                     <label style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8, fontSize: 12, color: C.t2 }}>
                       <span>{t.privacyDoNotSell || 'Do not sell/share my personal information'}</span>
                       <input type="checkbox" checked={Boolean(privacyControls.doNotSellShare)} onChange={() => setPrivacyControls((prev) => ({ ...prev, doNotSellShare: !prev.doNotSellShare }))} />
