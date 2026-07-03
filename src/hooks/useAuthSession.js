@@ -13,6 +13,14 @@ export const mapSupabaseUserToSession = (user, mode = 'login', provider = 'supab
   emailVerified: !!user?.email_confirmed_at,
 });
 
+const getSupabaseSessionProvider = (user) => {
+  const fromMetadata = String(user?.app_metadata?.provider || '').trim().toLowerCase();
+  if (fromMetadata) return fromMetadata;
+  const fromIdentity = String(user?.identities?.[0]?.provider || '').trim().toLowerCase();
+  if (fromIdentity) return fromIdentity;
+  return 'supabase';
+};
+
 const getAuthCallbackType = () => {
   if (typeof window === 'undefined') return '';
   try {
@@ -106,8 +114,12 @@ export function useAuthSession({
       }
       if (await forceLoginAfterEmailConfirmation(session)) return;
 
-      const next = mapSupabaseUserToSession(user, 'login', 'supabase');
-      clearSensitiveCache(user.id);
+      const provider = getSupabaseSessionProvider(user);
+      const next = mapSupabaseUserToSession(user, 'login', provider);
+      const previousUserId = lastKnownAuthSessionRef.current?.userId || lastKnownAuthSessionRef.current?.id || null;
+      if (String(previousUserId || '') !== String(user.id || '')) {
+        clearSensitiveCache(user.id);
+      }
       lastKnownAuthSessionRef.current = next;
       setAuthSession(next);
       applySystemAccountFromSession(next);

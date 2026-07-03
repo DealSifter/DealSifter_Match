@@ -1059,6 +1059,8 @@ export function Dashboard({ page, nuggets, setModal, setPage, onOpenOnboardingTa
   const myCardShowcaseScrollEndTimerRef = useRef(null);
   const myCardShowcaseTouchStartIdxRef = useRef(null);
   const myCardShowcaseTouchActiveRef = useRef(false);
+  const connDeckOrderSignatureRef = useRef('');
+  const propDeckOrderSignatureRef = useRef('');
   const [ratingTooltipScope, setRatingTooltipScope] = useState(null);
   const [isSwipingConn, setIsSwipingConn] = useState(false);
   const [isSwipingProp, setIsSwipingProp] = useState(false);
@@ -1266,7 +1268,17 @@ export function Dashboard({ page, nuggets, setModal, setPage, onOpenOnboardingTa
           newConn = [idToInsert, ...newConn.filter(x => String(x) !== String(idToInsert))];
         }
       }
-      if (!focusCard) {
+      const connOrderSignature = JSON.stringify({
+        sort: effectiveSortOrder,
+        seed: `connections:${feedSortSeed}`,
+        ids: canonicalConn.map((id) => String(id)),
+      });
+      const shouldReorderConn = !focusCard && (
+        !connDeckOrderSignatureRef.current
+        || connDeckOrderSignatureRef.current !== connOrderSignature
+        || !(connDeck && connDeck.length)
+      );
+      if (shouldReorderConn) {
         const orderedIds = orderDeck(newConn
           .map((id) => connectionCards.find((c) => String(c.id) === String(id)))
           .filter(Boolean)
@@ -1281,6 +1293,7 @@ export function Dashboard({ page, nuggets, setModal, setPage, onOpenOnboardingTa
           sessionSeed: `connections:${feedSortSeed}`,
         }).map((card) => card.id);
         if (orderedIds.length === newConn.length) newConn = orderedIds;
+        connDeckOrderSignatureRef.current = connOrderSignature;
       }
 
       // Only update state if the deck actually changed (avoid triggering re-renders)
@@ -1353,7 +1366,17 @@ export function Dashboard({ page, nuggets, setModal, setPage, onOpenOnboardingTa
           }
         }
       }
-      if (!focusCard) {
+      const propOrderSignature = JSON.stringify({
+        sort: effectiveSortOrder,
+        seed: `showcase:${feedSortSeed}`,
+        ids: canonicalProp.map((id) => String(id)),
+      });
+      const shouldReorderProp = !focusCard && (
+        !propDeckOrderSignatureRef.current
+        || propDeckOrderSignatureRef.current !== propOrderSignature
+        || !(propDeck && propDeck.length)
+      );
+      if (shouldReorderProp) {
         const orderedIds = orderDeck(newProp
           .map((id) => (showcaseItems || []).find((p) => String(p.id) === String(id)))
           .filter(Boolean)
@@ -1366,6 +1389,7 @@ export function Dashboard({ page, nuggets, setModal, setPage, onOpenOnboardingTa
           sessionSeed: `showcase:${feedSortSeed}`,
         }).map((prop) => prop.id);
         if (orderedIds.length === newProp.length) newProp = orderedIds;
+        propDeckOrderSignatureRef.current = propOrderSignature;
       }
 
       if (!arraysEqual(newProp, propDeck)) setPropDeck(newProp);
