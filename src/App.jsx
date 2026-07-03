@@ -6,6 +6,7 @@ import { Navbar } from './components/layout/Navbar';
 import { AppMobileBottomNav } from './components/layout/AppMobileBottomNav';
 import { GuideTipsProvider } from './components/guidetips/GuideTipsProvider';
 import { GuideTipOverlay } from './components/guidetips/GuideTipOverlay';
+import ErrorBoundary from './components/ui/ErrorBoundary';
 const safeSessionGet = (key) => {
   try { return typeof window !== 'undefined' ? window.sessionStorage.getItem(key) : null; } catch { return null; }
 };
@@ -1228,6 +1229,8 @@ export default function App() {
     }
   });
   const [prevPage, setPrevPage] = useState('landing');
+  const keepAlivePageIds = useMemo(() => new Set(['dashboard', 'mapview', 'matches', 'onboarding']), []);
+  const [visitedKeepAlivePages, setVisitedKeepAlivePages] = useState(() => new Set(['dashboard']));
   const [nuggets, setNuggets] = useState(() => {
     if (isSupabaseConfigured) return 0;
     try {
@@ -1301,6 +1304,16 @@ export default function App() {
   const [isAdmin, setIsAdmin] = useState(false);
   const handleUserLogoutRef = useRef(null);
   void sessionVersion;
+
+  useEffect(() => {
+    if (!keepAlivePageIds.has(page)) return;
+    setVisitedKeepAlivePages((prev) => {
+      if (prev.has(page)) return prev;
+      const next = new Set(prev);
+      next.add(page);
+      return next;
+    });
+  }, [keepAlivePageIds, page]);
 
   useEffect(() => {
     try {
@@ -5931,8 +5944,7 @@ export default function App() {
             <GuideTipOverlay key={page} page={page} />
             <Suspense fallback={<div style={{ minHeight: '60vh' }} />}>
               {(() => {
-                const keepAlivePages = new Set(['dashboard', 'mapview', 'matches', 'onboarding']);
-                if (!keepAlivePages.has(page)) return renderPageContent(page);
+                if (!keepAlivePageIds.has(page)) return renderPageContent(page);
                 const shouldHoldDataHydration = Boolean(
                   authSession
                   && isSupabaseConfigured
@@ -5950,20 +5962,18 @@ export default function App() {
                   );
                 }
 
+                const mountedKeepAlivePages = ['dashboard', 'mapview', 'matches', 'onboarding']
+                  .filter((pageId) => pageId === page || visitedKeepAlivePages.has(pageId));
+
                 return (
                   <>
-                    <Activity mode={page === 'dashboard' ? 'visible' : 'hidden'}>
-                      {renderPageContent('dashboard')}
-                    </Activity>
-                    <Activity mode={page === 'mapview' ? 'visible' : 'hidden'}>
-                      {renderPageContent('mapview')}
-                    </Activity>
-                    <Activity mode={page === 'matches' ? 'visible' : 'hidden'}>
-                      {renderPageContent('matches')}
-                    </Activity>
-                    <Activity mode={page === 'onboarding' ? 'visible' : 'hidden'}>
-                      {renderPageContent('onboarding')}
-                    </Activity>
+                    {mountedKeepAlivePages.map((pageId) => (
+                      <Activity key={pageId} mode={page === pageId ? 'visible' : 'hidden'}>
+                        <ErrorBoundary scope={pageId} compact resetKey={page === pageId ? `${pageId}:${sessionVersion}` : pageId}>
+                          {renderPageContent(pageId)}
+                        </ErrorBoundary>
+                      </Activity>
+                    ))}
                   </>
                 );
               })()}
