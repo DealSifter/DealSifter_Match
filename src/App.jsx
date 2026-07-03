@@ -1423,6 +1423,11 @@ export default function App() {
     conversations: convos,
     setConversations: setConvos,
     sendMessage: sendChatMessage,
+    retryMessage: retryChatMessage,
+    markConversationRead: markChatConversationRead,
+    loadMore: loadMoreChatMessages,
+    hasMore: chatHasMore,
+    loadingMore: chatLoadingMore,
   } = useChatRealtime({
     currentUserId: authSession?.userId,
     enabled: Boolean(authSession?.userId),
@@ -5752,6 +5757,11 @@ export default function App() {
             addToast={addToast}
             onOpenChatLanguageConfig={() => openSettingsTab('preferences')}
             onSendChatMessage={sendChatMessage}
+            onRetryChatMessage={retryChatMessage}
+            onMarkChatRead={markChatConversationRead}
+            onLoadMoreChatMessages={loadMoreChatMessages}
+            chatHasMore={chatHasMore}
+            chatLoadingMore={chatLoadingMore}
             propertyUnlocks={propertyUnlocks}
             currentUserId={supabaseUserId || 'local-user'}
             activeSpotlightKeys={activeSpotlightKeys}

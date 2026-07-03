@@ -1707,7 +1707,7 @@ function PortfolioDetail({ item, owner, ownerDesc, onBack, autoplayMedia = false
   );
 }
 
-export function MatchesPage({ nuggets, setModal, openUnlock, unlocked, initialChat, chatFocusToken = 0, interested, matched, setInterested, setMatched, convos, setConvos, categoryOrder, setCategoryOrder, showcaseProperties, propertyPortfolio, servicePortfolio, userProfile, personalProfile, professionalProfile, mobileBottomNavCollapsed = false, userPreferences = null, subscription = null, setPage = null, addToast = null, onOpenChatLanguageConfig = null, onSendChatMessage = null, propertyUnlocks = [], currentUserId = 'local-user', isActive = true }) {
+export function MatchesPage({ nuggets, setModal, openUnlock, unlocked, initialChat, chatFocusToken = 0, interested, matched, setInterested, setMatched, convos, setConvos, categoryOrder, setCategoryOrder, showcaseProperties, propertyPortfolio, servicePortfolio, userProfile, personalProfile, professionalProfile, mobileBottomNavCollapsed = false, userPreferences = null, subscription = null, setPage = null, addToast = null, onOpenChatLanguageConfig = null, onSendChatMessage = null, onRetryChatMessage = null, onMarkChatRead = null, onLoadMoreChatMessages = null, chatHasMore = {}, chatLoadingMore = {}, propertyUnlocks = [], currentUserId = 'local-user', isActive = true }) {
   const PORTFOLIO_PANEL_PADDING = 40;
   const PORTFOLIO_GRID_GAP = 12;
   const PORTFOLIO_CARD_MIN_WIDTH = 132;
@@ -1722,6 +1722,8 @@ export function MatchesPage({ nuggets, setModal, openUnlock, unlocked, initialCh
   const [msg, setMsg] = useState("");
   const [isTyping, setIsTyping] = useState(false);
   const scrollRef = useRef(null);
+  const chatHistoryLoadRef = useRef({ peerId: '', beforeHeight: 0, beforeTop: 0 });
+  const chatInitialLoadRequestedRef = useRef(new Set());
   const msgInputRef = useRef(null);
   const splitPaneRef = useRef(null);
   const [isDragging, setIsDragging] = useState(false);
@@ -2578,6 +2580,9 @@ export function MatchesPage({ nuggets, setModal, openUnlock, unlocked, initialCh
   const currentMsgs = useMemo(() => 
     (activeOwner && convos) ? (convos[activeOwner.id] || []) : [],
   [activeOwner, convos]);
+  const activePeerId = String(activeOwner?.id || '').trim();
+  const activeChatHasMore = Boolean(activePeerId && chatHasMore?.[activePeerId]);
+  const activeChatLoadingMore = Boolean(activePeerId && chatLoadingMore?.[activePeerId]);
 
   const portfolioItems = useMemo(() => {
     if (!activeOwner) return [];
@@ -2692,10 +2697,43 @@ export function MatchesPage({ nuggets, setModal, openUnlock, unlocked, initialCh
   }, []);
 
   useEffect(() => {
-    if (scrollRef.current) {
-      scrollRef.current.scrollTop = scrollRef.current.scrollHeight;
+    const el = scrollRef.current;
+    if (!el) return;
+    const loadState = chatHistoryLoadRef.current;
+    if (loadState.peerId && loadState.peerId === activePeerId) {
+      const delta = el.scrollHeight - loadState.beforeHeight;
+      el.scrollTop = Math.max(0, loadState.beforeTop + delta);
+      chatHistoryLoadRef.current = { peerId: '', beforeHeight: 0, beforeTop: 0 };
+      return;
     }
-  }, [currentMsgs.length, isTyping]);
+    el.scrollTop = el.scrollHeight;
+  }, [activePeerId, currentMsgs.length, isTyping]);
+
+  useEffect(() => {
+    if (activePeerId && typeof onMarkChatRead === 'function') {
+      onMarkChatRead(activePeerId);
+    }
+  }, [activePeerId, currentMsgs.length, onMarkChatRead]);
+
+  useEffect(() => {
+    if (!activePeerId || currentMsgs.length > 0 || activeChatLoadingMore) return;
+    if (typeof onLoadMoreChatMessages !== 'function') return;
+    if (chatInitialLoadRequestedRef.current.has(activePeerId)) return;
+    chatInitialLoadRequestedRef.current.add(activePeerId);
+    onLoadMoreChatMessages(activePeerId);
+  }, [activeChatLoadingMore, activePeerId, currentMsgs.length, onLoadMoreChatMessages]);
+
+  const handleChatScroll = useCallback(async (event) => {
+    const el = event.currentTarget;
+    if (!activePeerId || !activeChatHasMore || activeChatLoadingMore || el.scrollTop > 24) return;
+    if (typeof onLoadMoreChatMessages !== 'function') return;
+    chatHistoryLoadRef.current = {
+      peerId: activePeerId,
+      beforeHeight: el.scrollHeight,
+      beforeTop: el.scrollTop,
+    };
+    await onLoadMoreChatMessages(activePeerId);
+  }, [activeChatHasMore, activeChatLoadingMore, activePeerId, onLoadMoreChatMessages]);
 
   const resizeComposerInput = useCallback(() => {
     const el = msgInputRef.current;
@@ -3523,6 +3561,7 @@ export function MatchesPage({ nuggets, setModal, openUnlock, unlocked, initialCh
                     </button>
                   </div>
                   <div ref={scrollRef} className="matches-chat-scroll" style={{ flex:1, overflowY:"auto", padding:"46px 20px 20px", display:"flex", flexDirection:"column", gap:12 }}
+                    onScroll={handleChatScroll}
                     onDragOver={e => { e.preventDefault(); setIsDragging(true); }}
                     onDragLeave={() => setIsDragging(false)}
                     onDrop={e => {
@@ -3531,9 +3570,37 @@ export function MatchesPage({ nuggets, setModal, openUnlock, unlocked, initialCh
                       handleSend("", "reference", data);
                     }}
                   >
-                    {currentMsgs.map((m, i) => (
-                      <div key={i} style={{ display:"flex", justifyContent:m.from==="me"?"flex-end":"flex-start" }}>
-                        <div style={{ maxWidth:"80%", padding:m.type==="reference"?8:12, borderRadius:12, background:m.from==="me"?C.alpha(C.accent, 0.5):C.bg, border:`1px solid ${m.from==="me"?C.alpha(C.accent, 0.7):C.border}`, color:m.from==="me"?C.t1:C.t1 }}>
+                    {activeChatHasMore || activeChatLoadingMore ? (
+                      <button
+                        type="button"
+                        disabled={activeChatLoadingMore}
+                        onClick={() => {
+                          const el = scrollRef.current;
+                          if (el) {
+                            chatHistoryLoadRef.current = {
+                              peerId: activePeerId,
+                              beforeHeight: el.scrollHeight,
+                              beforeTop: el.scrollTop,
+                            };
+                          }
+                          onLoadMoreChatMessages?.(activePeerId);
+                        }}
+                        style={{ alignSelf:'center', border:`1px solid ${C.border}`, background:C.card, color:C.t2, borderRadius:999, padding:'6px 10px', fontSize:11, fontWeight:800, cursor:activeChatLoadingMore?'wait':'pointer' }}
+                      >
+                        {activeChatLoadingMore ? 'Loading messages...' : 'Load older messages'}
+                      </button>
+                    ) : null}
+                    {currentMsgs.map((m, i) => {
+                      const messageKey = m.id || m.clientMessageId || `${m.createdAt || 'msg'}:${i}`;
+                      const isMine = m.from === 'me';
+                      const statusColor = m.status === 'failed' ? C.danger : (m.status === 'sending' ? C.t3 : C.success);
+                      const statusIcon = m.status === 'failed' ? 'x' : (m.status === 'sending' ? 'hourglass' : 'check');
+                      const receiptLabel = m.status === 'failed'
+                        ? 'failed'
+                        : (m.status === 'sending' ? 'sending' : (m.readStatus === 'read' ? 'lida' : 'nao lida'));
+                      return (
+                      <div key={messageKey} style={{ display:"flex", justifyContent:isMine?"flex-end":"flex-start" }}>
+                        <div style={{ maxWidth:"80%", padding:m.type==="reference"?8:12, borderRadius:12, background:isMine?C.alpha(C.accent, 0.5):C.bg, border:`1px solid ${isMine?C.alpha(C.accent, 0.7):C.border}`, color:isMine?C.t1:C.t1 }}>
                           {m.type === "reference" ? (
                              <div style={{ width:200 }}>
                                <SmartImage src={m.refData.images?.[0] || m.refData.image || m.refData.media?.images?.[0]} alt={m.refData.address || m.refData.name || m.refData.title} style={{ width:"100%", height:100, borderRadius:8, objectFit:"cover" }} fallback={<div style={{ width:"100%", height:100, borderRadius:8, display:"flex", alignItems:"center", justifyContent:"center", background:C.alpha(C.t1,0.05) }}><Icon name="home" size={18} color={C.t3} /></div>} />
@@ -3549,9 +3616,24 @@ export function MatchesPage({ nuggets, setModal, openUnlock, unlocked, initialCh
                               )}
                             </>
                           )}
+                          {isMine ? (
+                            <div style={{ marginTop:6, display:'flex', alignItems:'center', justifyContent:'flex-end', gap:6, fontSize:10, color:statusColor, fontWeight:800 }}>
+                              <Icon name={statusIcon} size={12} color={statusColor} strokeWidth={2} />
+                              <span>{receiptLabel}</span>
+                              {m.status === 'failed' ? (
+                                <button
+                                  type="button"
+                                  onClick={() => onRetryChatMessage?.(activePeerId, m.id)}
+                                  style={{ border:`1px solid ${C.alpha(C.danger, 0.45)}`, background:C.alpha(C.danger, 0.08), color:C.danger, borderRadius:999, padding:'3px 7px', fontSize:10, fontWeight:900, cursor:'pointer' }}
+                                >
+                                  Tentar novamente
+                                </button>
+                              ) : null}
+                            </div>
+                          ) : null}
                         </div>
                       </div>
-                    ))}
+                    )})}
                     {isTyping && <div style={{ fontSize:12, color:C.t3 }}>{t.typing}</div>}
                     {isDragging && <div style={{ padding:20, border:`2px dashed ${C.accent}`, borderRadius:12, textAlign:"center", color:C.accent }}>{t.dropPropertyHere}</div>}
                   </div>
