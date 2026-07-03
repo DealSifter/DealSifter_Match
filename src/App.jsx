@@ -52,6 +52,7 @@ const lazyWithRetry = (importer, key) => lazy(async () => {
       || msg.includes('importing a module script failed')
       || msg.includes('chunkloaderror');
     if (recoverable && typeof window !== 'undefined') {
+      captureAppException(error, { area: 'chunk_loading', chunk: key });
       const retryKey = `ds_lazy_retry_${key}`;
       if (!safeSessionGet(retryKey)) {
         safeSessionSet(retryKey, '1');
@@ -99,6 +100,7 @@ import { useUnlockNotifications } from './hooks/useUnlockNotifications';
 import { getPlanGateCopy, getCurrentPlan, isPlanLimitError } from './services/planUsageService';
 import { clearSensitiveCache, REMOTE_CACHE_LOCAL_STORAGE_KEYS } from './lib/localStoragePolicy';
 import { trackAppEvent } from './lib/adminEventTracking';
+import { captureAppException, captureUnlockError, setObservabilityUser } from './lib/observability';
 import { createPropertyUnlockRecord, getOwnerExclusivityStatus, getPortfolioUnlockCost, getPropertyExclusivityStatus, resolveUnlockOwnerId } from './lib/unlockRules';
 import { isPendingDealExpired } from './lib/pendingDeal';
 import {
@@ -126,6 +128,11 @@ import {
 
 // Safe error logger — strips Supabase error details that may contain personal data
 const safeLogError = (label, error) => {
+  captureAppException(error, {
+    area: 'app',
+    label,
+    code: error?.code || error?.status || '',
+  });
   if (import.meta.env.DEV) {
     console.error(label, error);
     return;
@@ -2021,6 +2028,10 @@ export default function App() {
   }, [userProfile]);
 
   const supabaseUserId = authSession?.userId || null;
+
+  useEffect(() => {
+    setObservabilityUser(supabaseUserId);
+  }, [supabaseUserId]);
 
   useEffect(() => {
     if (!isSupabaseConfigured || !supabase || !supabaseUserId) return;
@@ -5154,6 +5165,13 @@ export default function App() {
       const message = String(error?.message || error?.details || error?.detail || '').toLowerCase();
       return message.includes('unlock cost changed') || message.includes('refresh required');
     };
+    const reportUnlockFailure = (error, action) => {
+      captureUnlockError(error, {
+        user_id: supabaseUserId,
+        action,
+        nugget_cost: unlockCost,
+      });
+    };
     const showUnlockPlanGate = () => {
       const copy = getPlanGateCopy('unlock');
       trackAppEvent('plan_gate_shown', {
@@ -5340,6 +5358,7 @@ export default function App() {
             throw new Error('Property unlock did not return a confirmed balance.');
           }
         } catch (error) {
+          reportUnlockFailure(error, unlockMode === 'normal' ? 'unlock_property' : 'purchase_exclusivity');
           if (isPlanLimitError(error)) {
             showUnlockPlanGate();
             return;
@@ -5417,6 +5436,7 @@ export default function App() {
             throw new Error('Contact unlock did not return a confirmed balance.');
           }
         } catch (error) {
+          reportUnlockFailure(error, 'unlock_contact');
           if (isPlanLimitError(error)) {
             showUnlockPlanGate();
             return;

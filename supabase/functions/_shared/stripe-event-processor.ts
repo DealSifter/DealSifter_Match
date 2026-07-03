@@ -75,6 +75,11 @@ function safeMessage(err: unknown) {
   return String((err as Error)?.message ?? err ?? 'Unknown Stripe processing error').slice(0, 2000);
 }
 
+function safeStack(err: unknown) {
+  const stack = String((err as Error)?.stack || (err as Error)?.message || err || 'Unknown Stripe processing error');
+  return stack.slice(0, 8000);
+}
+
 async function logStripeEventReceived(event: Stripe.Event) {
   const { data, error } = await supabaseAdmin
     .from('stripe_events_log')
@@ -216,6 +221,20 @@ export async function markStripeEventFailed(eventId: string, message: string) {
       updated_at: new Date().toISOString(),
     })
     .eq('event_id', eventId);
+}
+
+export async function logStripeEventFailure(event: Stripe.Event, err: unknown, durationMs?: number) {
+  const stack = safeStack(err);
+  const { error } = await supabaseAdmin
+    .from('stripe_events_log')
+    .insert({
+      event_id: event.id,
+      event_type: event.type,
+      received_at: new Date().toISOString(),
+      processed: false,
+      skip_reason: `failed duration_ms=${durationMs ?? 'unknown'} stack=${stack}`,
+    });
+  if (error) throw error;
 }
 
 async function markStripeEventProcessed(eventId: string, result: ProcessingResult = { processed: true }) {

@@ -3,6 +3,7 @@ import { NUGGET_PACKS } from '../data/mockData';
 import { redirectToCheckout, redirectToSubscription } from '../lib/stripeClient';
 import { isSupabaseConfigured } from '../lib/supabaseClient';
 import { trackAppEvent } from '../lib/adminEventTracking';
+import { captureCheckoutError } from '../lib/observability';
 import { recordTermsAcceptance, TERMS_CONSENT_VERSION } from '../services/consentService';
 
 export const normalizeCheckoutIntent = (intent) => {
@@ -159,6 +160,13 @@ export function useCheckoutFlow({
       setPendingCheckoutIntent(null);
       return true;
     } catch (error) {
+      captureCheckoutError(error, {
+        user_id: supabaseUserId,
+        kind: intent.kind,
+        plan_id: intent.planId || undefined,
+        pack_id: intent.packId || undefined,
+        source: intent.source || 'pricing',
+      });
       const message = String(error?.message || 'Nao foi possivel iniciar o checkout no Stripe.');
       setCheckoutError(message);
       addToast?.({
@@ -168,7 +176,7 @@ export function useCheckoutFlow({
       });
       return false;
     }
-  }, [addToast]);
+  }, [addToast, supabaseUserId]);
 
   const handlePricingCheckoutSelection = useCallback(async (intentInput) => {
     const intent = normalizeCheckoutIntent(intentInput);

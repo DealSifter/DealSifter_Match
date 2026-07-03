@@ -4,6 +4,7 @@ import './index.css'
 import 'leaflet/dist/leaflet.css'
 import App from './App.jsx'
 import ErrorBoundary from './components/ui/ErrorBoundary'
+import { initObservability } from './lib/observability'
 
 const applyInitialTheme = () => {
   try {
@@ -32,6 +33,7 @@ const applyInitialTheme = () => {
 }
 
 applyInitialTheme()
+initObservability()
 
 createRoot(document.getElementById('root')).render(
   <StrictMode>

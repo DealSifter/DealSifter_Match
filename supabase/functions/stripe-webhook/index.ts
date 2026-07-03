@@ -1,4 +1,5 @@
 import {
+  logStripeEventFailure,
   markStripeEventFailed,
   processVerifiedStripeWebhookEvent,
   stripe,
@@ -12,6 +13,7 @@ const webhookSecret =
 if (!webhookSecret) throw new Error('Missing STRIPE_WEBHOOK_SECRET');
 
 Deno.serve(async (req) => {
+  const startedAt = Date.now();
   if (req.method !== 'POST') {
     return new Response('Method not allowed', { status: 405 });
   }
@@ -28,11 +30,32 @@ Deno.serve(async (req) => {
   }
 
   try {
-    await processVerifiedStripeWebhookEvent(event);
+    const result = await processVerifiedStripeWebhookEvent(event);
+    console.log(JSON.stringify({
+      component: 'stripe-webhook',
+      event_id: event.id,
+      event_type: event.type,
+      status: result.processed ? 'processed' : 'skipped',
+      skip_reason: result.skipReason ?? null,
+      duration_ms: Date.now() - startedAt,
+    }));
     return new Response('ok', { status: 200 });
   } catch (err) {
-    console.error('stripe-webhook processing failed:', err);
-    await markStripeEventFailed(event.id, String(err?.message ?? err ?? 'Unknown webhook processing error'));
+    const durationMs = Date.now() - startedAt;
+    console.error(JSON.stringify({
+      component: 'stripe-webhook',
+      event_id: event.id,
+      event_type: event.type,
+      status: 'failed',
+      duration_ms: durationMs,
+      error: String((err as Error)?.message ?? err ?? 'Unknown webhook processing error'),
+    }));
+    await markStripeEventFailed(event.id, String((err as Error)?.message ?? err ?? 'Unknown webhook processing error'));
+    try {
+      await logStripeEventFailure(event, err, durationMs);
+    } catch (logErr) {
+      console.error('stripe-webhook failure log insert failed:', logErr);
+    }
     return new Response('Webhook processing failed', { status: 500 });
   }
 });
