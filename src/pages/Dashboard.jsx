@@ -22,7 +22,7 @@ import { getOwnerExclusivityStatus, getPortfolioItemCount, getPortfolioUnlockCos
 import { isSupabaseConfigured, supabase } from '../lib/supabaseClient';
 import { isUuid, mapPropertyHotMetrics } from '../lib/propertyHotMetrics';
 import { isPendingDealExpired } from '../lib/pendingDeal';
-import { placeOwnFeedIds, sortFeedRecords } from '../lib/feedOrdering';
+import { orderDeck } from '../lib/orderFeedDeck';
 import { normalizeCard } from '../lib/normalizeFeedCard';
 import { checkIsUnlocked } from '../services/unlockService';
 import feedMatchIcon from '../assets/feed-match-icon.png';
@@ -1134,12 +1134,24 @@ export function Dashboard({ page, nuggets, setModal, setPage, onOpenOnboardingTa
       const rawSortOrder = String(userPreferences?.feedMatches?.sortOrder || 'random').trim();
       const paidPlanId = String(subscription?.planId || subscription?.id || 'free').trim().toLowerCase();
       const hasPaidFeedOrdering = paidPlanId !== 'free' && paidPlanId !== 'basic';
-      const allowedSortOrders = new Set(['random', 'recent', 'name_asc', 'price_asc', 'price_desc']);
+      const sortPreferenceByLegacyOrder = {
+        random: 'default',
+        recent: 'newest',
+        newest: 'newest',
+        hot: 'hot',
+        trending: 'trending',
+        my_cards_first: 'my_cards_first',
+      };
       const effectiveSortOrder = rawSortOrder === 'my_cards_first'
-        ? (hasPaidFeedOrdering ? 'my_cards_first' : 'random')
-        : (allowedSortOrders.has(rawSortOrder) ? rawSortOrder : 'random');
-      const ownPlacement = effectiveSortOrder === 'my_cards_first' ? 'first' : 'last';
+        ? (hasPaidFeedOrdering ? 'my_cards_first' : 'default')
+        : (sortPreferenceByLegacyOrder[rawSortOrder] || 'default');
       const feedSortSeed = `${String(currentUserId || 'anon')}:${String(activeCat || 'all')}:${(selectedStates || []).join(',') || 'all'}`;
+      const deckContext = {
+        currentUserId,
+        activeFilters: {},
+        sessionSeed: feedSortSeed,
+        sortPreference: effectiveSortOrder,
+      };
       const isAllowedByState = (record) => {
         if (!stateFilterActive) return true;
         const recordStates = collectRecordStates(record);
@@ -1199,16 +1211,17 @@ export function Dashboard({ page, nuggets, setModal, setPage, onOpenOnboardingTa
         return ownPenalty + hotScore + pendingPenalty + priceScore + scoreByStateAffinity(prop) + scoreByFreshness(prop);
       };
 
-      // Build new connection deck respecting filters
-      // Start from the current connDeck (preserve rotations) and fall back to canonical order
-      const canonicalConn = sortFeedRecords(connectionCards || [], {
-        sortOrder: effectiveSortOrder,
-        seed: `connections:${feedSortSeed}`,
-        selfOwnerIds,
-        ownPlacement,
-        getId: (card) => card?.id,
-        getOwnerId: (card) => card?.ownerId || card?.id,
-        fallbackRank: getConnectionRank,
+      // Build new connection deck respecting filters.
+      // Start from the current connDeck (preserve rotations) and fall back to canonical order.
+      const canonicalConn = orderDeck((connectionCards || []).map((card) => ({
+        ...card,
+        isOwnCard: card?.isOwnCard === true
+          || selfOwnerIds.has(String(card?.ownerId || ''))
+          || selfOwnerIds.has(String(card?.id || '')),
+        hotScore: getConnectionRank(card),
+      })), {
+        ...deckContext,
+        sessionSeed: `connections:${feedSortSeed}`,
       }).map(c => c.id);
       const baseConn = (connDeck && connDeck.length) ? connDeck : canonicalConn;
       let newConn = baseConn.filter(id => {
@@ -1253,13 +1266,22 @@ export function Dashboard({ page, nuggets, setModal, setPage, onOpenOnboardingTa
           newConn = [idToInsert, ...newConn.filter(x => String(x) !== String(idToInsert))];
         }
       }
-      newConn = placeOwnFeedIds(newConn, {
-        findRecord: (id) => connectionCards.find((c) => String(c.id) === String(id)),
-        getOwnerId: (card) => card?.ownerId || card?.id,
-        selfOwnerIds,
-        ownPlacement,
-        skip: Boolean(focusCard),
-      });
+      if (!focusCard) {
+        const orderedIds = orderDeck(newConn
+          .map((id) => connectionCards.find((c) => String(c.id) === String(id)))
+          .filter(Boolean)
+          .map((card) => ({
+            ...card,
+            isOwnCard: card?.isOwnCard === true
+              || selfOwnerIds.has(String(card?.ownerId || ''))
+              || selfOwnerIds.has(String(card?.id || '')),
+            hotScore: getConnectionRank(card),
+          })), {
+          ...deckContext,
+          sessionSeed: `connections:${feedSortSeed}`,
+        }).map((card) => card.id);
+        if (orderedIds.length === newConn.length) newConn = orderedIds;
+      }
 
       // Only update state if the deck actually changed (avoid triggering re-renders)
       const arraysEqual = (a, b) => {
@@ -1273,14 +1295,13 @@ export function Dashboard({ page, nuggets, setModal, setPage, onOpenOnboardingTa
 
       const selfOwnerId = getOwnerIdForKey(publishingProfileKey);
       // Preserve propDeck rotations similarly
-      const canonicalProp = sortFeedRecords(showcaseItems || [], {
-        sortOrder: effectiveSortOrder,
-        seed: `showcase:${feedSortSeed}`,
-        selfOwnerIds,
-        ownPlacement,
-        getId: (prop) => prop?.id,
-        getOwnerId: (prop) => prop?.ownerId,
-        fallbackRank: getPropertyRank,
+      const canonicalProp = orderDeck((showcaseItems || []).map((prop) => ({
+        ...prop,
+        isOwnCard: prop?.isOwnCard === true || selfOwnerIds.has(String(prop?.ownerId || '')),
+        hotScore: getPropertyRank(prop),
+      })), {
+        ...deckContext,
+        sessionSeed: `showcase:${feedSortSeed}`,
       }).map(p => p.id);
       const baseProp = (propDeck && propDeck.length) ? propDeck : canonicalProp;
       const shouldKeepPropertyVisible = (prop) => {
@@ -1332,13 +1353,20 @@ export function Dashboard({ page, nuggets, setModal, setPage, onOpenOnboardingTa
           }
         }
       }
-      newProp = placeOwnFeedIds(newProp, {
-        findRecord: (id) => (showcaseItems || []).find((p) => String(p.id) === String(id)),
-        getOwnerId: (prop) => prop?.ownerId,
-        selfOwnerIds,
-        ownPlacement,
-        skip: Boolean(focusCard),
-      });
+      if (!focusCard) {
+        const orderedIds = orderDeck(newProp
+          .map((id) => (showcaseItems || []).find((p) => String(p.id) === String(id)))
+          .filter(Boolean)
+          .map((prop) => ({
+            ...prop,
+            isOwnCard: prop?.isOwnCard === true || selfOwnerIds.has(String(prop?.ownerId || '')),
+            hotScore: getPropertyRank(prop),
+          })), {
+          ...deckContext,
+          sessionSeed: `showcase:${feedSortSeed}`,
+        }).map((prop) => prop.id);
+        if (orderedIds.length === newProp.length) newProp = orderedIds;
+      }
 
       if (!arraysEqual(newProp, propDeck)) setPropDeck(newProp);
 

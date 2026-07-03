@@ -14,6 +14,7 @@ import { useMediaQuery } from '../hooks/useMediaQuery';
 import { getPortfolioUnlockCost, getPropertyExclusivityStatus } from '../lib/unlockRules';
 import { inferRecordProfileScope, normalizeProfileScope, resolveScopedProfile } from '../lib/profileScopeResolver';
 import { normalizeCard } from '../lib/normalizeFeedCard';
+import { orderDeck } from '../lib/orderFeedDeck';
 
 const DEFAULT_CENTER = [39.5, -98.35];
 const DEFAULT_ZOOM = 4;
@@ -1890,6 +1891,53 @@ export function MapView({
   const points = useMemo(() => {
     const mapById = new Map();
     const seenPersonVisualKeys = new Set();
+    const hasActiveSpotlightKey = (key) => {
+      if (!key) return false;
+      if (activeSpotlightKeys instanceof Set) return activeSpotlightKeys.has(key);
+      if (Array.isArray(activeSpotlightKeys)) return activeSpotlightKeys.includes(key);
+      return false;
+    };
+
+    const isPayloadSpotlight = (payload, itemType) => {
+      if (!payload) return false;
+      if (itemType === 'property') return Boolean(payload?.id) && hasActiveSpotlightKey(`property:${payload.id}`);
+      const ownerId = String(payload.ownerId || payload.id || '').trim();
+      const scope = getRecordProfileScope(payload);
+      if (!ownerId || !scope) return false;
+      return hasActiveSpotlightKey(`profile:${scope}:${ownerId}`)
+        || (servicePortfolio || []).some((service) => (
+          String(service?.ownerId || '') === ownerId
+          && getRecordProfileScope(service) === scope
+          && hasActiveSpotlightKey(`service:${service.id}`)
+        ));
+    };
+
+    const orderMapFeatures = (features) => {
+      const byPayloadId = new Map();
+      const payloads = features.map((feature, index) => {
+        const id = String(feature?.payload?.id ?? feature?.properties?.featureKey ?? index);
+        const itemType = feature?.properties?.itemType || feature?.payload?.cardKind;
+        const payload = {
+          ...(feature?.payload || {}),
+          id,
+          cardKind: itemType,
+          isOwnCard: feature?.payload?.isOwnCard === true
+            || feature?.properties?.isOwn === true
+            || String(feature?.payload?.ownerId || '') === String(currentUserId || ''),
+          isSpotlight: feature?.payload?.isSpotlight === true || isPayloadSpotlight(feature?.payload, itemType),
+        };
+        byPayloadId.set(id, { ...feature, payload });
+        return payload;
+      });
+      return orderDeck(payloads, {
+        currentUserId,
+        activeFilters: {
+          type: showPeople && !showProperties ? 'people' : (!showPeople && showProperties ? 'properties' : 'all'),
+        },
+        sessionSeed: `${String(currentUserId || 'anon')}:map:${showPeople ? 'people' : ''}:${showProperties ? 'properties' : ''}`,
+        sortPreference: 'default',
+      }).map((payload) => byPayloadId.get(String(payload.id))).filter(Boolean);
+    };
 
     const addMapFeature = (key, feature) => {
       if (!key || !feature?.geometry?.coordinates || !feature?.properties || !feature?.payload) return;
@@ -2188,7 +2236,7 @@ export function MapView({
     };
     if (showOnlyMyPins) {
       addPublishedProperties(true);
-      return Array.from(mapById.values());
+      return orderMapFeatures(Array.from(mapById.values()));
     }
 
     if (showPeople) {
@@ -2202,8 +2250,8 @@ export function MapView({
       addPublishedProperties(false);
     }
 
-    return Array.from(mapById.values());
-  }, [enableMockMapData, showPeople, showProperties, showOnlyMyPins, showcaseProperties, servicePortfolio, geocodeCache, pinOverrides, isUnlockedId, currentUserId, isLocalPublishedRecord, publishedLocalProfileScopes, accountType, userProfile, personalProfile, professionalProfile, getRecordProfileScope, getPortfolioPartsForOwner]);
+    return orderMapFeatures(Array.from(mapById.values()));
+  }, [enableMockMapData, showPeople, showProperties, showOnlyMyPins, showcaseProperties, servicePortfolio, geocodeCache, pinOverrides, isUnlockedId, currentUserId, isLocalPublishedRecord, publishedLocalProfileScopes, accountType, userProfile, personalProfile, professionalProfile, getRecordProfileScope, getPortfolioPartsForOwner, activeSpotlightKeys]);
 
   const realUserPoints = useMemo(() => {
     return (showcaseProperties || [])
