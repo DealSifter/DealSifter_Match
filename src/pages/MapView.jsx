@@ -2479,16 +2479,6 @@ export function MapView({
     return undefined;
   }, [selectedClusterFeatures.length, viewport?.zoom]);
 
-  const visibleItems = useMemo(() => {
-    // Se há uma seleção de cluster, mostra apenas os leaves desse cluster
-    if (selectedClusterLeaves.length > 0) {
-      return selectedClusterLeaves;
-    }
-    
-    // Caso contrário, mostra todos os pontos filtrados (independente de estarem clusterizados)
-    return filteredPoints.map(p => p.payload).filter(Boolean);
-  }, [filteredPoints, selectedClusterLeaves]);
-
   const hasSpotlightKey = React.useCallback((key) => {
     if (!key) return false;
     if (activeSpotlightKeys instanceof Set) return activeSpotlightKeys.has(key);
@@ -2496,10 +2486,28 @@ export function MapView({
     return false;
   }, [activeSpotlightKeys]);
 
+  const getMapItemType = React.useCallback((item) => {
+    const kind = String(item?.cardKind || item?.itemType || item?.typeKind || '').trim().toLowerCase();
+    if (kind === 'person' || kind === 'profile' || kind === 'contact') return 'person';
+    if (kind === 'property' || kind === 'deal') return 'property';
+    if (kind === 'service') return 'service';
+    if (Array.isArray(item?.linkedProperties) || Array.isArray(item?.linkedServices) || item?.ownerPreview) return 'person';
+    if (item?.address || item?.price != null || Array.isArray(item?.images)) return 'property';
+    return item?.loc ? 'person' : 'property';
+  }, []);
+
   const isSpotlightItem = React.useCallback((item) => {
     if (!item) return false;
-    const isPerson = Boolean(item?.loc);
-    if (!isPerson) return Boolean(item?.id) && hasSpotlightKey(`property:${item.id}`);
+    if (item?.isSpotlight === true || item?.activeSpotlight === true) return true;
+    const itemType = getMapItemType(item);
+    if (itemType === 'property') {
+      const propertyId = String(item?.id || item?.propertyId || item?.cardId || '').trim();
+      return Boolean(propertyId) && hasSpotlightKey(`property:${propertyId}`);
+    }
+    if (itemType === 'service') {
+      const serviceId = String(item?.id || item?.serviceId || item?.cardId || '').trim();
+      if (serviceId && hasSpotlightKey(`service:${serviceId}`)) return true;
+    }
     const ownerId = String(item.ownerId || item.id || '').trim();
     const scope = getRecordProfileScope(item);
     if (!ownerId || !scope) return false;
@@ -2509,10 +2517,22 @@ export function MapView({
         && getRecordProfileScope(service) === scope
         && hasSpotlightKey(`service:${service.id}`)
       ));
-  }, [getRecordProfileScope, hasSpotlightKey, servicePortfolio]);
+  }, [getMapItemType, getRecordProfileScope, hasSpotlightKey, servicePortfolio]);
 
-  const spotlightVisibleItems = useMemo(() => visibleItems.filter(isSpotlightItem), [visibleItems, isSpotlightItem]);
+  const spotlightVisibleItems = useMemo(() => {
+    const byKey = new Map();
+    points
+      .map((point) => point?.payload)
+      .filter(isSpotlightItem)
+      .forEach((item) => {
+        const itemType = getMapItemType(item);
+        const key = `${itemType}:${item?.id || item?.ownerId || item?.cardId || item?.propertyId || item?.serviceId || byKey.size}`;
+        if (!byKey.has(key)) byKey.set(key, item);
+      });
+    return [...byKey.values()];
+  }, [getMapItemType, isSpotlightItem, points]);
   const spotlightNoPinProperties = useMemo(() => noPinProperties.filter(isSpotlightItem), [noPinProperties, isSpotlightItem]);
+  const spotlightPanelCount = spotlightVisibleItems.length + spotlightNoPinProperties.length;
 
   const openCluster = (clusterFeature) => {
     const clusterId = clusterFeature.properties.cluster_id;
@@ -2615,7 +2635,7 @@ export function MapView({
       return { lat: card.lat, lng: card.lng };
     }
 
-    const isPerson = Boolean(card?.loc);
+    const isPerson = getMapItemType(card) === 'person';
     const match = filteredPoints.find((point) => (
       point?.properties?.itemType === (isPerson ? 'person' : 'property')
       && point?.properties?.itemId === card?.id
@@ -2655,7 +2675,7 @@ export function MapView({
   };
 
   const navigateToFeed = (card, explicitType) => {
-    const cardType = explicitType || (card?.loc ? 'person' : 'property');
+    const cardType = explicitType || getMapItemType(card);
     const focusPayload = {
       id: card?.id,
       type: cardType,
@@ -3174,7 +3194,7 @@ export function MapView({
               aria-selected={panelTab === 'cards'}
               onClick={() => setPanelTab('cards')}
             >
-              {(tMap.spotlightCards || 'Spotlight Cards')} ({spotlightVisibleItems.length})
+              {(tMap.spotlightCards || 'Spotlight Cards')} ({spotlightPanelCount})
             </button>
           </div>
 
@@ -3406,11 +3426,11 @@ export function MapView({
                   </button>
                 </div>
               )}
-              {spotlightVisibleItems.length === 0 && (
+              {spotlightPanelCount === 0 && (
                 <div style={{ color: C.t3, fontSize: 13 }}>No paid spotlight cards are active in this view.</div>
               )}
               {spotlightVisibleItems.map((item) => {
-              const isPerson = Boolean(item?.loc);
+              const isPerson = getMapItemType(item) === 'person';
               const isOwnCard = !isPerson && String(item?.ownerId || '') === 'self';
               const exclusivityStatus = !isPerson ? getPropertyExclusivityStatus(propertyUnlocks, item.id, currentUserId) : null;
               const mapCardStatuses = [
