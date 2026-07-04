@@ -967,7 +967,6 @@ const isValidGlobalShowcaseProperty = (property) => (
   && isTruthyFlag(property?.publishToShowcase, true)
   && property?.dealClosed !== true
   && !isDemoSeedMockRecord(property)
-  && hasResolvedOwnerPreview(property)
 );
 
 const isValidGlobalConnectionService = (service) => (
@@ -2568,7 +2567,14 @@ export default function App() {
               ownerPreview: getOwnerPreviewForRow(row),
               primaryProfile: inferDbPropertyProfileScope(row),
             }))
-            .map((property) => normalizeCard({ ...property, cardKind: 'property' }, supabaseUserId))
+            .map((property) => normalizeCard({ ...property, cardKind: 'property' }, supabaseUserId) || {
+              ...property,
+              cardKind: 'property',
+              unlockOwnerId: property.ownerId,
+              primaryProfile: inferRecordProfileScope(property, ''),
+              publishToShowcase: true,
+              isActive: true,
+            })
             .filter(isValidGlobalShowcaseProperty);
           const nextGlobalServices = serviceRows
             .map((row) => {
@@ -2732,7 +2738,14 @@ export default function App() {
               ownerPreview: getOwnerPreviewForRow(row),
               primaryProfile: inferDbPropertyProfileScope(row),
             }))
-            .map((property) => normalizeCard({ ...property, cardKind: 'property' }, supabaseUserId))
+            .map((property) => normalizeCard({ ...property, cardKind: 'property' }, supabaseUserId) || {
+              ...property,
+              cardKind: 'property',
+              unlockOwnerId: property.ownerId,
+              primaryProfile: inferRecordProfileScope(property, ''),
+              publishToShowcase: true,
+              isActive: true,
+            })
             .filter(isValidGlobalShowcaseProperty);
         const nextGlobalServices = serviceRows
           .map((row) => {
@@ -2937,7 +2950,6 @@ export default function App() {
         && Boolean(inferRecordProfileScope(p, ''))
         && p?.dealClosed !== true
         && (import.meta.env.DEV || !isDemoSeedMockRecord(p))
-        && (p?.source !== 'supabase' || String(p?.ownerId || '') === String(supabaseUserId || '') || hasResolvedOwnerPreview(p))
         && !isPendingDealExpired(p)
       ))
       .forEach((p, idx) => {

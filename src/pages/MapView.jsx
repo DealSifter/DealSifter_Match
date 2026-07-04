@@ -2264,13 +2264,37 @@ export function MapView({
         if (onlyMine && !isOwnProperty) return;
         const coords = resolvePropertyDisplayCoords(property, geocodeCache, pinOverrides);
         if (!coords) return;
-        const payload = normalizeCard({
+        let payload = normalizeCard({
           ...property,
           cardKind: 'property',
           lat: coords.lat,
           lng: coords.lng,
           geocodePending: Boolean(coords.isApproximate),
         }, currentUserId);
+        if (!payload) {
+          const ownerId = String(property?.ownerId || property?.owner_id || '').trim();
+          payload = {
+            ...property,
+            id: property.id ?? property.portfolioId,
+            portfolioId: property.portfolioId || property.id,
+            cardKind: 'property',
+            ownerId,
+            unlockOwnerId: ownerId,
+            primaryProfile: getRecordProfileScope(property),
+            type: property.type || 'Property',
+            address: property.address || 'Property',
+            city: property.city || '',
+            state: property.state || '',
+            zip: property.zip || '',
+            images: Array.isArray(property.images) ? property.images : [],
+            lat: coords.lat,
+            lng: coords.lng,
+            geocodePending: Boolean(coords.isApproximate),
+            publishToShowcase: true,
+            isActive: true,
+            isOwnCard: String(ownerId) === String(currentUserId || ''),
+          };
+        }
         if (!payload) return;
         const key = `user-property-${property.id}`;
         if (mapById.has(key)) return;
@@ -2738,6 +2762,31 @@ export function MapView({
             geocodePending: false,
             isSpotlight: true,
           }, currentUserId);
+          if (!item) {
+            const ownerId = String(property?.ownerId || property?.owner_id || '').trim();
+            item = {
+              ...property,
+              id: property.id ?? property.portfolioId,
+              portfolioId: property.portfolioId || property.id,
+              cardKind: 'property',
+              ownerId,
+              unlockOwnerId: ownerId,
+              primaryProfile: getRecordProfileScope(property),
+              type: property.type || 'Property',
+              address: property.address || 'Property',
+              city: property.city || '',
+              state: property.state || '',
+              zip: property.zip || '',
+              images: Array.isArray(property.images) ? property.images : [],
+              lat: coords?.lat,
+              lng: coords?.lng,
+              geocodePending: false,
+              publishToShowcase: true,
+              isActive: true,
+              isSpotlight: true,
+              isOwnCard: String(ownerId) === String(currentUserId || ''),
+            };
+          }
         }
       } else if (cardKind === 'service') {
         const service = (servicePortfolio || []).find((candidate) => String(candidate?.id || '') === cardId);
@@ -2782,7 +2831,7 @@ export function MapView({
       .map((property) => {
         const coords = resolvePropertyCoords(property, geocodeCache, pinOverrides);
         if (!coords) return null;
-        return normalizeCard({
+        let item = normalizeCard({
           ...property,
           cardKind: 'property',
           lat: coords?.lat,
@@ -2790,9 +2839,35 @@ export function MapView({
           geocodePending: false,
           isSpotlight: true,
         }, currentUserId);
+        if (!item) {
+          const ownerId = String(property?.ownerId || property?.owner_id || '').trim();
+          item = {
+            ...property,
+            id: property.id ?? property.portfolioId,
+            portfolioId: property.portfolioId || property.id,
+            cardKind: 'property',
+            ownerId,
+            unlockOwnerId: ownerId,
+            primaryProfile: getRecordProfileScope(property),
+            type: property.type || 'Property',
+            address: property.address || 'Property',
+            city: property.city || '',
+            state: property.state || '',
+            zip: property.zip || '',
+            images: Array.isArray(property.images) ? property.images : [],
+            lat: coords?.lat,
+            lng: coords?.lng,
+            geocodePending: false,
+            publishToShowcase: true,
+            isActive: true,
+            isSpotlight: true,
+            isOwnCard: String(ownerId) === String(currentUserId || ''),
+          };
+        }
+        return item;
       })
       .filter(Boolean);
-  }, [currentUserId, geocodeCache, isLocalPublishedRecord, isSpotlightItem, pinOverrides, showcaseProperties]);
+  }, [currentUserId, geocodeCache, getRecordProfileScope, isLocalPublishedRecord, isSpotlightItem, pinOverrides, showcaseProperties]);
 
   const spotlightVisibleItems = useMemo(() => {
     const byKey = new Map();
