@@ -104,6 +104,8 @@ export function Settings({ setPage, prevPage, initialTab = 'profile', initialCom
   const [supportTicket, setSupportTicket] = useState(null);
   const [supportLoading, setSupportLoading] = useState(false);
   const [supportSending, setSupportSending] = useState(false);
+  const [supportRealtimeTick, setSupportRealtimeTick] = useState(0);
+  const [supportSettingsOpen, setSupportSettingsOpen] = useState(false);
   const [securityOtpCode, setSecurityOtpCode] = useState('');
   const [securityOtpPendingAction, setSecurityOtpPendingAction] = useState('');
   const [securityOtpSending, setSecurityOtpSending] = useState(false);
@@ -547,7 +549,33 @@ export function Settings({ setPage, prevPage, initialTab = 'profile', initialCom
     };
     loadSupportThread();
     return () => { cancelled = true; };
-  }, [addToast, commView, supabaseUserId, t.supportWelcome, tab]);
+  }, [addToast, commView, supabaseUserId, supportRealtimeTick, t.supportWelcome, tab]);
+
+  useEffect(() => {
+    if (tab !== 'communication' || commView !== 'support') return undefined;
+    if (!isSupabaseConfigured || !supabase || !supabaseUserId) return undefined;
+
+    const ticketId = supportTicket?.id ? String(supportTicket.id) : '';
+    const channel = supabase.channel(`support-chat-user-${supabaseUserId}-${ticketId || 'pending'}`);
+    if (!ticketId) {
+      channel.on(
+        'postgres_changes',
+        { event: 'INSERT', schema: 'public', table: 'support_tickets', filter: `user_id=eq.${supabaseUserId}` },
+        () => setSupportRealtimeTick((value) => value + 1)
+      );
+    }
+    if (ticketId) {
+      channel.on(
+        'postgres_changes',
+        { event: 'INSERT', schema: 'public', table: 'support_messages', filter: `ticket_id=eq.${ticketId}` },
+        () => setSupportRealtimeTick((value) => value + 1)
+      );
+    }
+    channel.subscribe();
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [commView, supabaseUserId, supportTicket?.id, tab]);
 
   const pendingCheckoutLabel = (() => {
     if (!pendingCheckoutIntent) return '';
@@ -596,6 +624,10 @@ export function Settings({ setPage, prevPage, initialTab = 'profile', initialCom
     setCommView('support');
   }, []);
 
+  const refreshSupportChat = useCallback(() => {
+    setSupportRealtimeTick((value) => value + 1);
+  }, []);
+
   const handleSendSupportMessage = useCallback(async (channel = 'chat') => {
     const text = String(supportInput || '').trim();
     if (!text || supportSending) return;
@@ -609,8 +641,21 @@ export function Settings({ setPage, prevPage, initialTab = 'profile', initialCom
     }
 
     setSupportSending(true);
+    const tempId = `support-temp-${Date.now()}`;
     try {
       const outToSupport = await translateChatText({ text, fromLang: chatInputLang, toLang: 'en' });
+      setSupportMessages((prev) => ([
+        ...(prev || []),
+        {
+          id: tempId,
+          from: 'user',
+          text: outToSupport.text,
+          createdAt: new Date().toISOString(),
+          channel,
+          pending: true,
+        },
+      ]));
+      setSupportInput('');
       const { data, error } = await supabase.rpc('ds_send_support_message', {
         p_body: outToSupport.text,
         p_subject: 'Support request',
@@ -649,9 +694,9 @@ export function Settings({ setPage, prevPage, initialTab = 'profile', initialCom
           addToast?.({ type: 'warning', message: String(emailPayload?.error || t.supportEmailNotSent || 'Ticket saved, but email delivery is not configured.') });
         }
       }
-      setSupportInput('');
       addToast?.({ type: 'success', message: t.supportSent || 'Support message sent.' });
     } catch (err) {
+      setSupportMessages((prev) => (prev || []).filter((message) => String(message.id) !== tempId));
       addToast?.({ type: 'error', message: String(err?.message || t.supportSendError || 'Could not send support message.') });
     } finally {
       setSupportSending(false);
@@ -1678,14 +1723,25 @@ export function Settings({ setPage, prevPage, initialTab = 'profile', initialCom
                 <Icon name="back" size={13} color={C.t2} />
                 {t.back || 'Back'}
               </button>
-              <button
-                onClick={() => setTab('preferences')}
-                title={t.prefChatLanguageTitle || 'Chat language settings'}
-                style={{ border: `1px solid ${C.border}`, background: 'transparent', color: C.t2, borderRadius: 8, padding: '8px 10px', fontSize: 12, fontWeight: 700, cursor: 'pointer', display: 'inline-flex', alignItems: 'center', gap: 8 }}
-              >
-                <Icon name="globe" size={13} color={C.t2} />
-                {t.chatSettings || 'Chat settings'}
-              </button>
+              <div style={{ display: 'grid', gap: 6, justifyItems: 'stretch' }}>
+                <button
+                  onClick={() => setSupportSettingsOpen((value) => !value)}
+                  title={t.prefChatLanguageTitle || 'Chat language settings'}
+                  style={{ border: `1px solid ${supportSettingsOpen ? C.accent : C.border}`, background: supportSettingsOpen ? C.alpha(C.accent, 0.1) : 'transparent', color: supportSettingsOpen ? C.accent : C.t2, borderRadius: 8, padding: '8px 10px', fontSize: 12, fontWeight: 700, cursor: 'pointer', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: 8 }}
+                >
+                  <Icon name="globe" size={13} color={supportSettingsOpen ? C.accent : C.t2} />
+                  {t.chatSettings || 'Chat settings'}
+                </button>
+                <button
+                  onClick={refreshSupportChat}
+                  disabled={supportLoading}
+                  title={t.refresh || 'Refresh'}
+                  style={{ border: `1px solid ${C.border}`, background: 'transparent', color: C.t2, borderRadius: 8, padding: '7px 10px', fontSize: 11, fontWeight: 700, cursor: supportLoading ? 'wait' : 'pointer', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: 8, opacity: supportLoading ? 0.7 : 1 }}
+                >
+                  <Icon name="rotateCw" size={12} color={C.t2} />
+                  {supportLoading ? (t.loading || 'Loading...') : (t.refresh || 'Refresh')}
+                </button>
+              </div>
               <div style={{ fontSize: 12, fontWeight: 800, color: C.t1, textAlign: 'right' }}>
                 <div>{t.supportHeader || 'DealSifter Admin/Support'}</div>
                 <div style={{ fontSize: 10, color: C.t3, fontWeight: 700 }}>
@@ -1695,6 +1751,46 @@ export function Settings({ setPage, prevPage, initialTab = 'profile', initialCom
                 </div>
               </div>
             </div>
+
+            {supportSettingsOpen ? (
+              <div style={{ borderBottom: `1px solid ${C.border}`, background: C.bg2 || C.bg, padding: 12 }}>
+                <div style={{ maxWidth: 420, marginLeft: 'auto', border: `1px solid ${C.border}`, borderRadius: 12, background: C.card, padding: 12, display: 'grid', gap: 10, boxShadow: '0 10px 28px rgba(0,0,0,0.12)' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8 }}>
+                    <strong style={{ color: C.t1, fontSize: 13 }}>{t.prefChatLanguageTitle || 'Chat language config'}</strong>
+                    <button
+                      type="button"
+                      onClick={() => setSupportSettingsOpen(false)}
+                      style={{ border: `1px solid ${C.border}`, background: 'transparent', color: C.t2, borderRadius: 8, width: 30, height: 30, display: 'grid', placeItems: 'center', cursor: 'pointer' }}
+                      title={t.close || 'Close'}
+                    >
+                      <Icon name="close" size={13} color={C.t2} />
+                    </button>
+                  </div>
+                  <label style={{ display: 'grid', gap: 5 }}>
+                    <span style={{ fontSize: 11, color: C.t2, fontWeight: 700 }}>{t.prefChatInputLang || 'I type in'}</span>
+                    <select value={chatInputLang} onChange={(e) => updatePreferences((prev) => ({ ...prev, chatLanguage: { ...(prev?.chatLanguage || {}), input: e.target.value } }))} style={controlStyle}>
+                      {CHAT_LANGUAGE_OPTIONS.map((opt) => <option key={`support-chat-in-${opt.code}`} value={opt.code}>{opt.label}</option>)}
+                    </select>
+                  </label>
+                  <label style={{ display: 'grid', gap: 5 }}>
+                    <span style={{ fontSize: 11, color: C.t2, fontWeight: 700 }}>{t.prefChatOutputLang || 'I receive in'}</span>
+                    <select value={chatOutputLang} onChange={(e) => updatePreferences((prev) => ({ ...prev, chatLanguage: { ...(prev?.chatLanguage || {}), output: e.target.value } }))} style={controlStyle}>
+                      {CHAT_LANGUAGE_OPTIONS.map((opt) => <option key={`support-chat-out-${opt.code}`} value={opt.code}>{opt.label}</option>)}
+                    </select>
+                  </label>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setSupportSettingsOpen(false);
+                      setTab('preferences');
+                    }}
+                    style={{ border: `1px solid ${C.border}`, background: 'transparent', color: C.t2, borderRadius: 8, padding: '8px 10px', fontSize: 11, fontWeight: 800, cursor: 'pointer' }}
+                  >
+                    {t.openFullPreferences || 'Open full preferences'}
+                  </button>
+                </div>
+              </div>
+            ) : null}
 
             <div style={{ padding: 12, overflowY: 'auto', display: 'grid', gap: 8, background: C.alpha(C.bg, 0.35) }}>
               {supportLoading ? (

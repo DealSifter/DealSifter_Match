@@ -596,6 +596,32 @@ const SUPPORT_REPLY_PRESETS = [
     body: 'I am closing this ticket for now. If the issue returns, please reply here and we will reopen the investigation.',
   },
 ];
+const ADMIN_SUPPORT_CUSTOM_PRESETS_KEY = 'ds_admin_support_custom_presets_v1';
+
+function readSupportCustomPresets() {
+  try {
+    const parsed = JSON.parse(localStorage.getItem(ADMIN_SUPPORT_CUSTOM_PRESETS_KEY) || '[]');
+    return Array.isArray(parsed)
+      ? parsed
+          .map((preset) => ({
+            id: String(preset?.id || ''),
+            label: String(preset?.label || '').trim(),
+            body: String(preset?.body || '').trim(),
+          }))
+          .filter((preset) => preset.id && preset.body)
+      : [];
+  } catch {
+    return [];
+  }
+}
+
+function writeSupportCustomPresets(presets) {
+  try {
+    localStorage.setItem(ADMIN_SUPPORT_CUSTOM_PRESETS_KEY, JSON.stringify(presets || []));
+  } catch {
+    // Quick reply persistence is best-effort only.
+  }
+}
 
 function SupportDeskWorkspace({ onChanged, onSummaryChange, t = {} }) {
   const [tickets, setTickets] = useState([]);
@@ -603,6 +629,7 @@ function SupportDeskWorkspace({ onChanged, onSummaryChange, t = {} }) {
   const [messages, setMessages] = useState([]);
   const [reply, setReply] = useState('');
   const [customPreset, setCustomPreset] = useState('');
+  const [customPresets, setCustomPresets] = useState(() => readSupportCustomPresets());
   const [replyInputLang, setReplyInputLang] = useState('en');
   const [replyOutputLang, setReplyOutputLang] = useState('en');
   const [textSize, setTextSize] = useState(12);
@@ -681,6 +708,33 @@ function SupportDeskWorkspace({ onChanged, onSummaryChange, t = {} }) {
     return String(translated?.text || body).trim();
   };
 
+  const addCustomPreset = () => {
+    const body = String(customPreset || '').trim();
+    if (!body) return;
+    const label = body.length > 34 ? `${body.slice(0, 31)}...` : body;
+    const nextPreset = {
+      id: `custom-${Date.now()}`,
+      label,
+      body,
+      custom: true,
+    };
+    setCustomPresets((prev) => {
+      const next = [...(prev || []), nextPreset].slice(-24);
+      writeSupportCustomPresets(next);
+      return next;
+    });
+    setReply(body);
+    setCustomPreset('');
+  };
+
+  const removeCustomPreset = (presetId) => {
+    setCustomPresets((prev) => {
+      const next = (prev || []).filter((preset) => String(preset.id) !== String(presetId));
+      writeSupportCustomPresets(next);
+      return next;
+    });
+  };
+
   const sendReply = async (closeAfter = false, sendEmail = false) => {
     const body = await buildReplyBody();
     if (!body || !selectedTicket?.id || !isSupabaseConfigured || !supabase) return;
@@ -737,6 +791,36 @@ function SupportDeskWorkspace({ onChanged, onSummaryChange, t = {} }) {
     return () => window.clearTimeout(timer);
   }, []);
 
+  useEffect(() => {
+    if (!isSupabaseConfigured || !supabase) return undefined;
+    let refreshTimer = null;
+    const scheduleRefresh = (includeThread = false) => {
+      if (refreshTimer) window.clearTimeout(refreshTimer);
+      refreshTimer = window.setTimeout(() => {
+        refreshTimer = null;
+        void loadTickets();
+        if (includeThread && selectedTicket?.id) {
+          void loadThread(selectedTicket, { refreshList: false });
+        }
+      }, 350);
+    };
+
+    const selectedTicketId = selectedTicket?.id ? String(selectedTicket.id) : '';
+    const channel = supabase
+      .channel(`admin-support-realtime-${selectedTicketId || 'all'}`)
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'support_tickets' }, () => scheduleRefresh(false))
+      .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'support_messages' }, (payload) => {
+        const incomingTicketId = String(payload?.new?.ticket_id || '');
+        scheduleRefresh(Boolean(selectedTicketId && incomingTicketId === selectedTicketId));
+      })
+      .subscribe();
+
+    return () => {
+      if (refreshTimer) window.clearTimeout(refreshTimer);
+      supabase.removeChannel(channel);
+    };
+  }, [selectedTicket?.id]);
+
   const openTickets = tickets.filter((ticket) => String(ticket?.status || '').toLowerCase() !== 'closed');
   const closedTickets = tickets.filter((ticket) => String(ticket?.status || '').toLowerCase() === 'closed');
   const closedTicketGroups = closedTickets.reduce((groups, ticket) => {
@@ -769,6 +853,7 @@ function SupportDeskWorkspace({ onChanged, onSummaryChange, t = {} }) {
     }))
     .sort((a, b) => (Date.parse(b.lastMessageAt || '') || 0) - (Date.parse(a.lastMessageAt || '') || 0));
   const unreadTotal = tickets.reduce((sum, ticket) => sum + Number(ticket?.unreadForAdmin || 0), 0);
+  const quickReplyPresets = [...SUPPORT_REPLY_PRESETS, ...(customPresets || [])];
 
   const renderTicketCard = (ticket) => {
     const isEmpty = String(ticket.id || '').startsWith('empty-');
@@ -921,14 +1006,29 @@ function SupportDeskWorkspace({ onChanged, onSummaryChange, t = {} }) {
                   </div>
 
                   <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
-                    {SUPPORT_REPLY_PRESETS.map((preset) => (
-                      <button key={preset.id} type="button" onClick={() => setReply(preset.body)} style={{ border: `1px solid ${C.border}`, background: C.bg2 || 'transparent', color: C.t2, borderRadius: 999, padding: '6px 8px', fontSize: 10, fontWeight: 850, cursor: 'pointer' }}>
-                        {preset.label}
-                      </button>
-                    ))}
+                    {quickReplyPresets.map((preset) => {
+                      const isCustom = Boolean(preset.custom);
+                      return (
+                        <span key={preset.id} style={{ display: 'inline-flex', alignItems: 'center', border: `1px solid ${isCustom ? C.accent : C.border}`, background: isCustom ? C.alpha(C.accent, 0.08) : C.bg2 || 'transparent', color: isCustom ? C.accent : C.t2, borderRadius: 999, overflow: 'hidden' }}>
+                          <button type="button" onClick={() => setReply(preset.body)} style={{ border: 'none', background: 'transparent', color: 'inherit', padding: '6px 8px', fontSize: 10, fontWeight: 850, cursor: 'pointer' }}>
+                            {preset.label}
+                          </button>
+                          {isCustom ? (
+                            <button
+                              type="button"
+                              onClick={() => removeCustomPreset(preset.id)}
+                              title={t.removePreset || 'Remove preset'}
+                              style={{ border: 'none', borderLeft: `1px solid ${C.alpha(C.accent, 0.25)}`, background: 'transparent', color: C.accent, width: 24, alignSelf: 'stretch', cursor: 'pointer', fontSize: 12, fontWeight: 900 }}
+                            >
+                              x
+                            </button>
+                          ) : null}
+                        </span>
+                      );
+                    })}
                   </div>
 
-                  <div style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 1fr) auto', gap: 7 }}>
+                  <div style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 1fr) auto auto', gap: 7 }}>
                     <input
                       value={customPreset}
                       onChange={(event) => setCustomPreset(event.target.value)}
@@ -937,6 +1037,9 @@ function SupportDeskWorkspace({ onChanged, onSummaryChange, t = {} }) {
                     />
                     <button type="button" onClick={() => setReply(customPreset)} disabled={!customPreset.trim()} style={{ border: `1px solid ${C.border}`, background: 'transparent', color: C.t2, borderRadius: 9, padding: '8px 10px', fontSize: 11, fontWeight: 850, cursor: customPreset.trim() ? 'pointer' : 'not-allowed', opacity: customPreset.trim() ? 1 : 0.55 }}>
                       {t.usePreset || 'Use'}
+                    </button>
+                    <button type="button" onClick={addCustomPreset} disabled={!customPreset.trim()} style={{ border: 'none', background: C.accent, color: '#fff', borderRadius: 9, padding: '8px 10px', fontSize: 11, fontWeight: 900, cursor: customPreset.trim() ? 'pointer' : 'not-allowed', opacity: customPreset.trim() ? 1 : 0.6 }}>
+                      {t.addPreset || 'Add'}
                     </button>
                   </div>
 
