@@ -1390,6 +1390,7 @@ export function MapView({
   onUpdatePropertyCoords,
   userPreferences = null,
   activeSpotlightKeys = new Set(),
+  activeSpotlights = [],
   propertyUnlocks = [],
   isActive = true,
 }) {
@@ -2529,6 +2530,16 @@ export function MapView({
     return false;
   }, [activeSpotlightKeys]);
 
+  const activeSpotlightRows = useMemo(() => {
+    const now = Date.now();
+    return (Array.isArray(activeSpotlights) ? activeSpotlights : [])
+      .filter((row) => {
+        if (!row?.cardKind || !row?.cardId) return false;
+        if (row.expiresAt && Date.parse(row.expiresAt) <= now) return false;
+        return true;
+      });
+  }, [activeSpotlights]);
+
   const getMapItemType = React.useCallback((item) => {
     const kind = String(item?.cardKind || item?.itemType || item?.typeKind || '').trim().toLowerCase();
     if (kind === 'person' || kind === 'profile' || kind === 'contact') return 'person';
@@ -2637,6 +2648,138 @@ export function MapView({
     showcaseProperties,
   ]);
 
+  const getSpotlightProfileFromPortfolio = React.useCallback((ownerId, scope, source = null) => {
+    const normalizedOwnerId = String(ownerId || '').trim();
+    const normalizedScope = normalizeProfileScope(scope);
+    if (!normalizedOwnerId || !normalizedScope) return null;
+
+    const portfolioParts = getPortfolioPartsForOwner(normalizedOwnerId, normalizedScope);
+    const ownerPreview = source?.ownerPreview && typeof source.ownerPreview === 'object'
+      ? source.ownerPreview
+      : (
+        normalizedOwnerId === String(currentUserId || '').trim()
+          ? resolveScopedProfile(normalizedScope, {
+            accountType,
+            userProfile,
+            personalProfile,
+            professionalProfile,
+          })
+          : (
+            [...portfolioParts.properties, ...portfolioParts.services]
+              .map((item) => item?.ownerPreview)
+              .find((preview) => preview && typeof preview === 'object' && String(preview?.name || '').trim())
+          )
+      );
+
+    const name = String(ownerPreview?.name || ownerPreview?.fullName || '').trim();
+    if (!name) return null;
+
+    const pointMatch = points.find((point) => (
+      point?.properties?.itemType === 'person'
+      && String(point?.payload?.ownerId || point?.payload?.id || '') === normalizedOwnerId
+      && getRecordProfileScope(point?.payload) === normalizedScope
+    ));
+    const propertyWithCoords = portfolioParts.properties
+      .map((property) => resolvePropertyDisplayCoords(property, geocodeCache, pinOverrides))
+      .find(Boolean);
+    const stateCode = [
+      pointMatch?.payload?.loc,
+      ownerPreview?.loc,
+      source?.state,
+      ...(Array.isArray(source?.markets) ? source.markets : []),
+      ...portfolioParts.properties.map((property) => property?.state),
+      ...portfolioParts.services.flatMap((service) => Array.isArray(service?.markets) ? service.markets : [service?.state]),
+    ].map(getStateCodeFromMarket).find(Boolean);
+    const fallbackCoords = stateCode ? STATE_CENTER_COORDS[stateCode] : null;
+    const [pointLng, pointLat] = pointMatch?.geometry?.coordinates || [];
+    const coords = Number.isFinite(pointLat) && Number.isFinite(pointLng)
+      ? { lat: pointLat, lng: pointLng }
+      : (propertyWithCoords || fallbackCoords || null);
+
+    return normalizeCard({
+      cardKind: 'person',
+      ...ownerPreview,
+      name,
+      id: normalizedOwnerId,
+      ownerId: normalizedOwnerId,
+      primaryProfile: normalizedScope,
+      loc: ownerPreview?.loc || stateCode || '',
+      lat: coords?.lat,
+      lng: coords?.lng,
+      portfolioCount: portfolioParts.properties.length + portfolioParts.services.length,
+      ownerPreview: { ...ownerPreview, name, primaryProfile: normalizedScope },
+      linkedProperties: portfolioParts.properties,
+      linkedServices: portfolioParts.services,
+      isSpotlight: true,
+    }, currentUserId);
+  }, [
+    accountType,
+    currentUserId,
+    geocodeCache,
+    getPortfolioPartsForOwner,
+    getRecordProfileScope,
+    personalProfile,
+    pinOverrides,
+    points,
+    professionalProfile,
+    userProfile,
+  ]);
+
+  const spotlightPaidItems = useMemo(() => {
+    const byKey = new Map();
+    activeSpotlightRows.forEach((row) => {
+      const cardKind = String(row?.cardKind || '').trim();
+      const cardId = String(row?.cardId || '').trim();
+      if (!cardKind || !cardId) return;
+
+      let item = null;
+      if (cardKind === 'property') {
+        const property = (showcaseProperties || []).find((candidate) => String(candidate?.id || '') === cardId);
+        if (property && isTruthyFlag(property?.publishToShowcase, true)) {
+          const coords = resolvePropertyCoords(property, geocodeCache, pinOverrides);
+          if (!coords) return;
+          item = normalizeCard({
+            ...property,
+            cardKind: 'property',
+            lat: coords?.lat,
+            lng: coords?.lng,
+            geocodePending: false,
+            isSpotlight: true,
+          }, currentUserId);
+        }
+      } else if (cardKind === 'service') {
+        const service = (servicePortfolio || []).find((candidate) => String(candidate?.id || '') === cardId);
+        if (service && isTruthyFlag(service?.publishToConnections, true)) {
+          const ownerId = String(service?.ownerId || row?.ownerId || '').trim();
+          const scope = getRecordProfileScope(service, row?.scope || '');
+          item = getSpotlightProfileFromPortfolio(ownerId, scope, service);
+        }
+      } else if (cardKind === 'profile') {
+        const [prefix, scope, ownerId] = cardId.split(':');
+        const resolvedScope = row?.scope || (prefix === 'profile' ? scope : '');
+        const resolvedOwnerId = row?.ownerId || (prefix === 'profile' ? ownerId : '');
+        item = getSpotlightProfileFromPortfolio(resolvedOwnerId, resolvedScope);
+      }
+
+      if (!item) return;
+      const itemType = getMapItemType(item);
+      const scope = getRecordProfileScope(item);
+      const key = `${cardKind}:${cardId}:${itemType}:${scope || 'any'}`;
+      if (!byKey.has(key)) byKey.set(key, item);
+    });
+    return [...byKey.values()];
+  }, [
+    activeSpotlightRows,
+    currentUserId,
+    geocodeCache,
+    getMapItemType,
+    getRecordProfileScope,
+    getSpotlightProfileFromPortfolio,
+    pinOverrides,
+    servicePortfolio,
+    showcaseProperties,
+  ]);
+
   const spotlightPropertyItems = useMemo(() => {
     return (showcaseProperties || [])
       .filter((property) => (
@@ -2662,6 +2805,7 @@ export function MapView({
   const spotlightVisibleItems = useMemo(() => {
     const byKey = new Map();
     [
+      ...spotlightPaidItems,
       ...points.map((point) => point?.payload),
       ...spotlightPropertyItems,
       ...spotlightProfileItems,
@@ -2674,15 +2818,24 @@ export function MapView({
         if (!byKey.has(key)) byKey.set(key, item);
       });
     return [...byKey.values()];
-  }, [getMapItemType, getRecordProfileScope, isSpotlightItem, points, spotlightProfileItems, spotlightPropertyItems]);
+  }, [getMapItemType, getRecordProfileScope, isSpotlightItem, points, spotlightPaidItems, spotlightProfileItems, spotlightPropertyItems]);
   const spotlightNoPinProperties = useMemo(() => {
-    return (showcaseProperties || []).filter((prop) => (
-      isTruthyFlag(prop?.publishToShowcase, true)
-      && isLocalPublishedRecord(prop)
-      && isSpotlightItem(prop)
-      && !resolvePropertyCoords(prop, geocodeCache, pinOverrides)
-    ));
-  }, [geocodeCache, isLocalPublishedRecord, isSpotlightItem, pinOverrides, showcaseProperties]);
+    const byId = new Map();
+    (showcaseProperties || []).forEach((prop) => {
+      if (!isTruthyFlag(prop?.publishToShowcase, true)) return;
+      if (!isSpotlightItem(prop)) return;
+      if (resolvePropertyCoords(prop, geocodeCache, pinOverrides)) return;
+      if (prop?.id) byId.set(String(prop.id), prop);
+    });
+    activeSpotlightRows.forEach((row) => {
+      if (String(row?.cardKind || '') !== 'property') return;
+      const property = (showcaseProperties || []).find((prop) => String(prop?.id || '') === String(row?.cardId || ''));
+      if (!property || !isTruthyFlag(property?.publishToShowcase, true)) return;
+      if (resolvePropertyCoords(property, geocodeCache, pinOverrides)) return;
+      byId.set(String(property.id), property);
+    });
+    return [...byId.values()];
+  }, [activeSpotlightRows, geocodeCache, isSpotlightItem, pinOverrides, showcaseProperties]);
   const spotlightPanelCount = spotlightVisibleItems.length + spotlightNoPinProperties.length;
 
   const openCluster = (clusterFeature) => {

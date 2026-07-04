@@ -1229,7 +1229,7 @@ export default function App() {
     }
   });
   const [prevPage, setPrevPage] = useState('landing');
-  const keepAlivePageIds = useMemo(() => new Set(['dashboard', 'mapview', 'matches', 'onboarding']), []);
+  const keepAlivePageIds = useMemo(() => new Set(['dashboard', 'matches', 'onboarding']), []);
   const [visitedKeepAlivePages, setVisitedKeepAlivePages] = useState(() => new Set(['dashboard']));
   const [nuggets, setNuggets] = useState(() => {
     if (isSupabaseConfigured) return 0;
@@ -5843,6 +5843,7 @@ export default function App() {
             onUpdatePropertyCoords={handleMapPropertyCoordsUpdate}
             userPreferences={userPreferences}
             activeSpotlightKeys={activeSpotlightKeys}
+            activeSpotlights={activeSpotlights}
             isActive={page === 'mapview'}
           />
         );
@@ -5976,7 +5977,7 @@ export default function App() {
                   );
                 }
 
-                const mountedKeepAlivePages = ['dashboard', 'mapview', 'matches', 'onboarding']
+                const mountedKeepAlivePages = ['dashboard', 'matches', 'onboarding']
                   .filter((pageId) => pageId === page || visitedKeepAlivePages.has(pageId));
 
                 return (
