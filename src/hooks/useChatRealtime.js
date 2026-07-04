@@ -6,6 +6,13 @@ const CHAT_PAGE_SIZE = 30;
 const CHAT_MESSAGE_SELECT = 'id, sender_id, recipient_id, contact_owner_id, body, message_type, metadata, read_at, created_at';
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
 
+function createRealtimeTopic(prefix, userId) {
+  const suffix = typeof crypto !== 'undefined' && crypto.randomUUID
+    ? crypto.randomUUID()
+    : `${Date.now()}-${Math.random().toString(16).slice(2)}`;
+  return `${prefix}-${userId}-${suffix}`;
+}
+
 const isValidUuid = (value) => UUID_RE.test(String(value || '').trim());
 
 const sortMessages = (messages) => [...messages].sort((a, b) => {
@@ -177,17 +184,25 @@ export function useChatRealtime({
     };
 
     hydrateMessages();
-    const channel = supabase
-      .channel(`chat-messages-${userId}`)
-      .on('postgres_changes', { event: 'INSERT', schema: 'public', table: CHAT_MESSAGES_TABLE, filter: `recipient_id=eq.${userId}` }, (payload) => appendMessageRow(payload.new))
-      .on('postgres_changes', { event: 'INSERT', schema: 'public', table: CHAT_MESSAGES_TABLE, filter: `sender_id=eq.${userId}` }, (payload) => appendMessageRow(payload.new))
-      .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: CHAT_MESSAGES_TABLE, filter: `recipient_id=eq.${userId}` }, (payload) => appendMessageRow(payload.new))
-      .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: CHAT_MESSAGES_TABLE, filter: `sender_id=eq.${userId}` }, (payload) => appendMessageRow(payload.new))
-      .subscribe();
+    let channel = null;
+    try {
+      channel = supabase
+        .channel(createRealtimeTopic('chat-messages', userId))
+        .on('postgres_changes', { event: 'INSERT', schema: 'public', table: CHAT_MESSAGES_TABLE, filter: `recipient_id=eq.${userId}` }, (payload) => appendMessageRow(payload.new))
+        .on('postgres_changes', { event: 'INSERT', schema: 'public', table: CHAT_MESSAGES_TABLE, filter: `sender_id=eq.${userId}` }, (payload) => appendMessageRow(payload.new))
+        .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: CHAT_MESSAGES_TABLE, filter: `recipient_id=eq.${userId}` }, (payload) => appendMessageRow(payload.new))
+        .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: CHAT_MESSAGES_TABLE, filter: `sender_id=eq.${userId}` }, (payload) => appendMessageRow(payload.new))
+        .subscribe((status, error) => {
+          if (error) reportError('Chat realtime subscription failed.', error);
+          if (status === 'CHANNEL_ERROR') reportError('Chat realtime channel error.', new Error(status));
+        });
+    } catch (error) {
+      reportError('Chat realtime setup failed.', error);
+    }
 
     return () => {
       cancelled = true;
-      supabase.removeChannel(channel);
+      if (channel) supabase.removeChannel(channel);
     };
   }, [appendMessageRow, canUseRealtime, reportError, userId]);
 

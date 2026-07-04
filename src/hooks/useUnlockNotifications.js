@@ -20,6 +20,13 @@ function mapNotification(row) {
   };
 }
 
+function createRealtimeTopic(prefix, userId) {
+  const suffix = typeof crypto !== 'undefined' && crypto.randomUUID
+    ? crypto.randomUUID()
+    : `${Date.now()}-${Math.random().toString(16).slice(2)}`;
+  return `${prefix}-${userId}-${suffix}`;
+}
+
 /**
  * Persistent owner notifications for unlock/exclusive events.
  *
@@ -91,34 +98,39 @@ export function useUnlockNotifications({
       reportError('Unlock notification backlog load failed.', error);
     });
 
-    const channel = supabase
-      .channel(`owner-notifications-${userId}`)
-      .on('postgres_changes', {
-        event: 'INSERT',
-        schema: 'public',
-        table: NOTIFICATIONS_TABLE,
-        filter: `user_id=eq.${userId}`,
-      }, (payload) => mergeNotification(payload.new, true))
-      .on('postgres_changes', {
-        event: 'UPDATE',
-        schema: 'public',
-        table: NOTIFICATIONS_TABLE,
-        filter: `user_id=eq.${userId}`,
-      }, (payload) => {
-        const updated = mapNotification(payload.new);
-        if (!updated) return;
-        setNotifications((prev) => (Array.isArray(prev) ? prev : []).map((item) => (
-          item.id === updated.id ? { ...item, ...updated } : item
-        )));
-      })
-      .subscribe((status, error) => {
-        if (error) reportError('Unlock notification realtime subscription failed.', error);
-        if (status === 'CHANNEL_ERROR') reportError('Unlock notification realtime channel error.', new Error(status));
-      });
+    let channel = null;
+    try {
+      channel = supabase
+        .channel(createRealtimeTopic('owner-notifications', userId))
+        .on('postgres_changes', {
+          event: 'INSERT',
+          schema: 'public',
+          table: NOTIFICATIONS_TABLE,
+          filter: `user_id=eq.${userId}`,
+        }, (payload) => mergeNotification(payload.new, true))
+        .on('postgres_changes', {
+          event: 'UPDATE',
+          schema: 'public',
+          table: NOTIFICATIONS_TABLE,
+          filter: `user_id=eq.${userId}`,
+        }, (payload) => {
+          const updated = mapNotification(payload.new);
+          if (!updated) return;
+          setNotifications((prev) => (Array.isArray(prev) ? prev : []).map((item) => (
+            item.id === updated.id ? { ...item, ...updated } : item
+          )));
+        })
+        .subscribe((status, error) => {
+          if (error) reportError('Unlock notification realtime subscription failed.', error);
+          if (status === 'CHANNEL_ERROR') reportError('Unlock notification realtime channel error.', new Error(status));
+        });
+    } catch (error) {
+      reportError('Unlock notification realtime setup failed.', error);
+    }
 
     return () => {
       cancelled = true;
-      supabase.removeChannel(channel);
+      if (channel) supabase.removeChannel(channel);
     };
   }, [canUseNotifications, mergeNotification, reportError, userId]);
 
