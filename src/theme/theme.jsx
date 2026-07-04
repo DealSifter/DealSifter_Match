@@ -6,7 +6,9 @@ export function ThemeProvider({ children, forcedTheme = null }) {
   const [theme, setTheme] = useState(() => {
     try {
       const saved = localStorage.getItem('theme');
-      if (saved === 'light' || saved === 'dark') return saved;
+      const hasExplicitThemeChoice = localStorage.getItem('ds_theme_user_choice') === '1';
+      if (saved === 'light') return saved;
+      if (saved === 'dark') return hasExplicitThemeChoice ? saved : 'light';
       const current = document.documentElement.getAttribute('data-theme');
       if (current === 'light' || current === 'dark') return current;
     } catch (e) { void e; }
@@ -27,7 +29,10 @@ export function ThemeProvider({ children, forcedTheme = null }) {
     try { localStorage.setItem('theme', theme); } catch (e) { void e; }
   }, [forcedTheme, theme]);
 
-  const toggleTheme = () => setTheme((prev) => (prev === 'light' ? 'dark' : 'light'));
+  const toggleTheme = () => {
+    try { localStorage.setItem('ds_theme_user_choice', '1'); } catch (e) { void e; }
+    setTheme((prev) => (prev === 'light' ? 'dark' : 'light'));
+  };
 
   const value = useMemo(() => ({ theme, effectiveTheme, toggleTheme }), [theme, effectiveTheme]);
 
