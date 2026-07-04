@@ -243,10 +243,21 @@ export function useCheckoutFlow({
       entityId: intent.planId || intent.packId || '',
       metadata: { source: intent.source || 'pricing' },
     });
-    try {
-      await recordTermsAcceptance(supabaseUserId, TERMS_CONSENT_VERSION);
-    } catch (error) {
-      if (import.meta.env.DEV) console.warn('[Checkout] Failed to persist terms acceptance.', error);
+    if (supabaseUserId) {
+      try {
+        await recordTermsAcceptance(supabaseUserId, TERMS_CONSENT_VERSION);
+      } catch (error) {
+        const message = 'Could not save your terms acceptance. Please try again before checkout.';
+        setCheckoutError(message);
+        setCheckoutSubmitting(false);
+        addToast?.({
+          type: 'error',
+          title: 'Terms not saved',
+          message,
+        });
+        if (import.meta.env.DEV) console.warn('[Checkout] Failed to persist terms acceptance.', error);
+        return false;
+      }
     }
     const completed = await executeCheckoutIntent(intent, { termsAccepted: true });
     if (completed) {

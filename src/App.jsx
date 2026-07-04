@@ -1528,12 +1528,14 @@ export default function App() {
   const handleAuthenticatedNavigation = useCallback((_session, options = {}) => {
     setModal(null);
     if (options?.closeOnly) return;
+    setRequireSignupConsent(_session?.mode === 'signup');
     _setPage('dashboard');
     try { localStorage.setItem('ds_last_page', 'dashboard'); } catch { /* no-op */ }
   }, []);
 
   const handleSessionRestored = useCallback(() => {
     setModal(null);
+    setRequireSignupConsent(false);
     _setPage((prev) => prev === 'landing' || !prev ? 'dashboard' : prev);
   }, []);
 
@@ -1541,6 +1543,7 @@ export default function App() {
     setModal(null);
     setAuthSession(null);
     setIsAdmin(false);
+    setRequireSignupConsent(false);
     _setPage('landing');
     try {
       localStorage.removeItem('authSession');
@@ -1729,6 +1732,7 @@ export default function App() {
   // LGPD consent state
   const [lgpdConsent, setLgpdConsent] = useState(false);
   const [lgpdConsentChecked, setLgpdConsentChecked] = useState(false);
+  const [requireSignupConsent, setRequireSignupConsent] = useState(false);
 
   // Cookie consent state (landing page banner)
   const [cookieConsent, setCookieConsent] = useState(() => {
@@ -1748,9 +1752,16 @@ export default function App() {
         await recordTermsAcceptance(userId, TERMS_CONSENT_VERSION);
       } catch (error) {
         safeLogError('Failed to record consent acceptance.', error);
+        addToast({
+          type: 'error',
+          title: 'Consent not saved',
+          message: 'Could not save your acceptance in the audit database. Please try again.',
+        });
+        return;
       }
       setLgpdConsent(true);
       setLgpdConsentChecked(true);
+      setRequireSignupConsent(false);
       setModal(null);
       if (authSession && ['landing', 'terms', 'privacy'].includes(page)) {
         _setPage('dashboard');
@@ -1768,6 +1779,7 @@ export default function App() {
     const userId = authSession?.userId || '';
     consentLinkedRef.current = false;
     if (!userId) {
+      setRequireSignupConsent(false);
       const timer = window.setTimeout(() => {
         if (cancelled) return;
         setLgpdConsent(false);
@@ -6015,8 +6027,8 @@ export default function App() {
           </Suspense>
         )}
 
-        {/* LGPD consent — after login only */}
-        {lgpdConsentChecked && !lgpdConsent && authSession && !['terms', 'privacy'].includes(page) && (
+        {/* Signup consent only; checkout has its own terms gate. */}
+        {requireSignupConsent && lgpdConsentChecked && !lgpdConsent && authSession && !['terms', 'privacy'].includes(page) && (
           <Suspense fallback={null}>
             <ConsentBanner processing={isConsentProcessing} onAccept={handleLgpdAccept} onReject={() => { const t = getT(); setPage('landing'); addToast({ type: 'info', title: t.consent.requiredTitle, message: t.consent.requiredMessage }); }} onOpenTerms={() => setPage('terms')} onOpenPrivacy={() => setPage('privacy')} />
           </Suspense>
