@@ -1251,6 +1251,7 @@ export default function App() {
   const [unlockQuote, setUnlockQuote] = useState(null);
   const unlockQuoteRequestRef = useRef(0);
   const [settingsInitialTab, setSettingsInitialTab] = useState('profile');
+  const [settingsInitialView, setSettingsInitialView] = useState('menu');
   const [onboardingInitialTab, setOnboardingInitialTab] = useState('personal');
   const [authSession, setAuthSession] = useState(() => {
     try {
@@ -4641,6 +4642,12 @@ export default function App() {
   };
 
   const openChatFromNotification = (notification) => {
+    if (notification?.source === 'support_notification') {
+      setSettingsInitialTab('communication');
+      setSettingsInitialView('support');
+      setPage('settings');
+      return;
+    }
     const ownerIdRaw = notification?.ownerId;
     if (ownerIdRaw == null) return;
     const ownerId = String(ownerIdRaw);
@@ -4683,8 +4690,9 @@ export default function App() {
     };
   }, [supabaseUserId]);
 
-  const openSettingsTab = (tab = 'profile') => {
+  const openSettingsTab = (tab = 'profile', view = 'menu') => {
     setSettingsInitialTab(tab);
+    setSettingsInitialView(view);
     setPage('settings');
   };
 
@@ -5887,6 +5895,7 @@ export default function App() {
             setPage={setPage}
             prevPage={prevPage}
             initialTab={settingsInitialTab}
+            initialCommView={settingsInitialView}
             systemAccount={systemAccount}
             setSystemAccount={setSystemAccount}
             authSession={authSession}

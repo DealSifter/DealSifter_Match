@@ -77,7 +77,7 @@ const SHOW_SUPPORT_CHAT_PLACEHOLDER = !import.meta.env.PROD;
 const SHOW_DEV_BILLING_PLACEHOLDER = !import.meta.env.PROD;
 const SUPPORT_EMAIL = 'contato.dealsifter@gmail.com';
 
-export function Settings({ setPage, prevPage, initialTab = 'profile', systemAccount, setSystemAccount, authSession, setAuthSession, subscription, addToast, supabaseUserId, onDeleteAccount, onRevokeConsent, pendingCheckoutIntent = null, onContinuePendingCheckout = null, userPreferences = null, onChangeUserPreferences = null }) {
+export function Settings({ setPage, prevPage, initialTab = 'profile', initialCommView = 'menu', systemAccount, setSystemAccount, authSession, setAuthSession, subscription, addToast, supabaseUserId, onDeleteAccount, onRevokeConsent, pendingCheckoutIntent = null, onContinuePendingCheckout = null, userPreferences = null, onChangeUserPreferences = null }) {
   const allT = useT('settings');
   const t = allT.settings || {};
   const [tab, setTab] = useState(initialTab);
@@ -99,7 +99,7 @@ export function Settings({ setPage, prevPage, initialTab = 'profile', systemAcco
     } catch { /* no-op */ }
     return { email: true, chat: true, marketing: false };
   });
-  const [commView, setCommView] = useState('menu');
+  const [commView, setCommView] = useState(initialTab === 'communication' ? initialCommView || 'menu' : 'menu');
   const [supportInput, setSupportInput] = useState('');
   const [supportTicket, setSupportTicket] = useState(null);
   const [supportLoading, setSupportLoading] = useState(false);
@@ -182,6 +182,11 @@ export function Settings({ setPage, prevPage, initialTab = 'profile', systemAcco
     const timer = window.setTimeout(() => setTab(initialTab || 'profile'), 0);
     return () => window.clearTimeout(timer);
   }, [initialTab]);
+  useEffect(() => {
+    if (initialTab !== 'communication') return undefined;
+    const timer = window.setTimeout(() => setCommView(initialCommView || 'menu'), 0);
+    return () => window.clearTimeout(timer);
+  }, [initialCommView, initialTab]);
   useEffect(() => {
     if (!userPreferences || typeof userPreferences !== 'object') return;
     const timer = window.setTimeout(() => setPrefs(userPreferences), 0);
@@ -1673,6 +1678,14 @@ export function Settings({ setPage, prevPage, initialTab = 'profile', systemAcco
                 <Icon name="back" size={13} color={C.t2} />
                 {t.back || 'Back'}
               </button>
+              <button
+                onClick={() => setTab('preferences')}
+                title={t.prefChatLanguageTitle || 'Chat language settings'}
+                style={{ border: `1px solid ${C.border}`, background: 'transparent', color: C.t2, borderRadius: 8, padding: '8px 10px', fontSize: 12, fontWeight: 700, cursor: 'pointer', display: 'inline-flex', alignItems: 'center', gap: 8 }}
+              >
+                <Icon name="globe" size={13} color={C.t2} />
+                {t.chatSettings || 'Chat settings'}
+              </button>
               <div style={{ fontSize: 12, fontWeight: 800, color: C.t1, textAlign: 'right' }}>
                 <div>{t.supportHeader || 'DealSifter Admin/Support'}</div>
                 <div style={{ fontSize: 10, color: C.t3, fontWeight: 700 }}>
@@ -1693,12 +1706,12 @@ export function Settings({ setPage, prevPage, initialTab = 'profile', systemAcco
                 </div>
               ) : null}
               {(supportMessages || []).map((item) => (
-                <div key={item.id} style={{ justifySelf: item.from === 'user' ? 'end' : 'start', maxWidth: '86%', border: `1px solid ${item.from === 'user' ? C.accent : C.border}`, background: item.from === 'user' ? C.alpha(C.accent, 0.12) : 'transparent', borderRadius: 10, padding: '8px 10px', fontSize: 12, color: C.t1 }}>
+                <div key={item.id} style={{ justifySelf: item.from === 'user' ? 'end' : 'start', width: 'fit-content', minWidth: 0, maxWidth: 'min(620px, 86%)', border: `1px solid ${item.from === 'user' ? C.accent : C.border}`, background: item.from === 'user' ? C.alpha(C.accent, 0.12) : 'transparent', borderRadius: 10, padding: '6px 8px', fontSize: 12, color: C.t1 }}>
                   <div style={{ fontSize: 10, fontWeight: 700, color: item.from === 'user' ? C.accent : C.t3, marginBottom: 2 }}>
                     {item.from === 'user' ? (t.supportYou || 'You') : (t.supportHeader || 'DealSifter Admin/Support')}
                   </div>
-                  <div style={{ overflowWrap: 'anywhere', wordBreak: 'break-word' }}>{item.text}</div>
-                  <div style={{ marginTop: 4, fontSize: 9, color: C.t3 }}>
+                  <div style={{ overflowWrap: 'anywhere', wordBreak: 'break-word', whiteSpace: 'pre-wrap' }}>{item.text}</div>
+                  <div style={{ marginTop: 3, fontSize: 9, color: C.t3 }}>
                     {item.createdAt ? new Date(item.createdAt).toLocaleString() : ''}
                   </div>
                 </div>

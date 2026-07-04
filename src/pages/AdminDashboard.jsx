@@ -739,6 +739,35 @@ function SupportDeskWorkspace({ onChanged, onSummaryChange, t = {} }) {
 
   const openTickets = tickets.filter((ticket) => String(ticket?.status || '').toLowerCase() !== 'closed');
   const closedTickets = tickets.filter((ticket) => String(ticket?.status || '').toLowerCase() === 'closed');
+  const closedTicketGroups = closedTickets.reduce((groups, ticket) => {
+    const key = String(ticket?.userId || ticket?.userEmail || 'unknown').trim() || 'unknown';
+    const current = groups.get(key) || {
+      key,
+      userEmail: ticket?.userEmail || '',
+      userId: ticket?.userId || '',
+      tickets: [],
+      lastMessageAt: ticket?.lastMessageAt || ticket?.updatedAt || ticket?.createdAt || '',
+      unread: 0,
+    };
+    current.tickets.push(ticket);
+    current.unread += Number(ticket?.unreadForAdmin || 0);
+    const currentLast = Date.parse(current.lastMessageAt || '') || 0;
+    const ticketLast = Date.parse(ticket?.lastMessageAt || ticket?.updatedAt || ticket?.createdAt || '') || 0;
+    if (ticketLast > currentLast) current.lastMessageAt = ticket?.lastMessageAt || ticket?.updatedAt || ticket?.createdAt || current.lastMessageAt;
+    if (!current.userEmail && ticket?.userEmail) current.userEmail = ticket.userEmail;
+    if (!current.userId && ticket?.userId) current.userId = ticket.userId;
+    groups.set(key, current);
+    return groups;
+  }, new Map());
+  const solvedUserClusters = [...closedTicketGroups.values()]
+    .map((group) => ({
+      ...group,
+      tickets: [...group.tickets].sort((a, b) => (
+        (Date.parse(b?.lastMessageAt || b?.updatedAt || b?.createdAt || '') || 0)
+        - (Date.parse(a?.lastMessageAt || a?.updatedAt || a?.createdAt || '') || 0)
+      )),
+    }))
+    .sort((a, b) => (Date.parse(b.lastMessageAt || '') || 0) - (Date.parse(a.lastMessageAt || '') || 0));
   const unreadTotal = tickets.reduce((sum, ticket) => sum + Number(ticket?.unreadForAdmin || 0), 0);
 
   const renderTicketCard = (ticket) => {
@@ -789,6 +818,36 @@ function SupportDeskWorkspace({ onChanged, onSummaryChange, t = {} }) {
     );
   };
 
+  const renderSolvedCluster = (group) => {
+    const initials = String(group.userEmail || group.userId || '?').slice(0, 2).toUpperCase();
+    return (
+      <div key={group.key} style={{ border: `1px solid ${C.border}`, borderRadius: 14, background: C.bg2 || 'transparent', overflow: 'hidden' }}>
+        <div style={{ padding: 10, borderBottom: `1px solid ${C.border}`, display: 'grid', gridTemplateColumns: '34px minmax(0, 1fr) auto', gap: 9, alignItems: 'center' }}>
+          <span style={{ width: 34, height: 34, borderRadius: 999, display: 'grid', placeItems: 'center', background: C.alpha(C.accent, 0.12), color: C.accent, fontSize: 11, fontWeight: 950 }}>
+            {initials}
+          </span>
+          <span style={{ minWidth: 0, display: 'grid', gap: 2 }}>
+            <strong style={{ color: C.t1, fontSize: 12, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+              {group.userEmail || group.userId || 'Unknown user'}
+            </strong>
+            <span style={{ color: C.t3, fontSize: 9 }}>
+              {fmtInt(group.tickets.length)} {group.tickets.length === 1 ? 'closed ticket' : 'closed tickets'}
+              {group.lastMessageAt ? ` · ${new Date(group.lastMessageAt).toLocaleDateString()}` : ''}
+            </span>
+          </span>
+          {group.unread > 0 ? (
+            <span style={{ minWidth: 20, height: 20, borderRadius: 999, display: 'inline-grid', placeItems: 'center', background: C.warning || '#f59e0b', color: C.bg, fontSize: 10, fontWeight: 950 }}>
+              {fmtInt(group.unread)}
+            </span>
+          ) : null}
+        </div>
+        <div style={{ display: 'grid', gap: 7, padding: 8 }}>
+          {group.tickets.map(renderTicketCard)}
+        </div>
+      </div>
+    );
+  };
+
   return (
     <Block title={t.supportDesk || 'Support desk'}>
       <div style={{ display: 'grid', gap: 12 }}>
@@ -819,7 +878,7 @@ function SupportDeskWorkspace({ onChanged, onSummaryChange, t = {} }) {
           <div style={{ display: 'grid', gap: 8, alignContent: 'start' }}>
             <div style={{ color: C.t1, fontSize: 12, fontWeight: 950 }}>{t.solvedSupportChats || 'Solved chats'}</div>
             <div style={{ display: 'grid', gap: 8, maxHeight: 'calc(var(--app-vh, 1vh) * 62)', overflowY: 'auto' }}>
-              {(closedTickets.length ? closedTickets : [{ id: 'empty-closed', subject: 'No solved tickets', status: 'none' }]).map(renderTicketCard)}
+              {solvedUserClusters.length ? solvedUserClusters.map(renderSolvedCluster) : renderTicketCard({ id: 'empty-closed', subject: 'No solved tickets', status: 'none' })}
             </div>
           </div>
 

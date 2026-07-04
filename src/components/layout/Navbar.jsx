@@ -301,6 +301,17 @@ export function Navbar({ page, prevPage, setPage, nuggets = 0, setModal = () => 
     setDeferredSystemIds((prev) => prev.filter((x) => x !== id));
   };
 
+  const openSystemNotification = (item) => {
+    if (!item || item.id === 'empty-system') return;
+    markSystemNotificationRead(item);
+    if (item.source === 'support_notification') {
+      onOpenChatNotification(item);
+      setAppMenuOpen(false);
+      setAppNotifOpen(false);
+      setNotifOpen(false);
+    }
+  };
+
   const openLandingAuth = (tab) => {
     setLandingMenuOpen(false);
     onOpenAuthModal(tab);
@@ -509,20 +520,35 @@ export function Navbar({ page, prevPage, setPage, nuggets = 0, setModal = () => 
                                 );
                               })
                             ) : (
-                              (visibleSystemNotifications?.length ? visibleSystemNotifications : [{ id: 'empty-system', title: t.emptySystemTitle || 'No alerts', message: t.emptySystemBody || 'No system messages right now.', read: true }]).map((item) => (
-                                <SwipeableNotificationItem
-                                  key={item.id}
-                                  item={item}
-                                  disabled={item.id === 'empty-system'}
-                                  onSwipeRight={() => item.id !== 'empty-system' && markSystemNotificationRead(item)}
-                                  onSwipeLeft={() => item.id !== 'empty-system' && deferSystemNotification(item)}
-                                >
-                                  <div style={{ border: `1px solid ${item.read ? C.border : C.accent}`, borderRadius: 8, padding: 10, background: item.read ? 'transparent' : C.alpha(C.accent, 0.06) }}>
-                                    <div style={{ fontSize: 12, fontWeight: 700, color: C.t1 }}>{item.title}</div>
-                                    <div style={{ fontSize: 11, color: C.t3, marginTop: 2 }}>{item.message}</div>
-                                  </div>
-                                </SwipeableNotificationItem>
-                              ))
+                              (visibleSystemNotifications?.length ? visibleSystemNotifications : [{ id: 'empty-system', title: t.emptySystemTitle || 'No alerts', message: t.emptySystemBody || 'No system messages right now.', read: true }]).map((item) => {
+                                const clickable = item.source === 'support_notification';
+                                return (
+                                  <SwipeableNotificationItem
+                                    key={item.id}
+                                    item={item}
+                                    disabled={item.id === 'empty-system'}
+                                    onSwipeRight={() => item.id !== 'empty-system' && markSystemNotificationRead(item)}
+                                    onSwipeLeft={() => item.id !== 'empty-system' && deferSystemNotification(item)}
+                                  >
+                                    <div
+                                      role={clickable ? 'button' : undefined}
+                                      tabIndex={clickable ? 0 : undefined}
+                                      onClick={() => clickable && openSystemNotification(item)}
+                                      onKeyDown={(e) => {
+                                        if (!clickable) return;
+                                        if (e.key === 'Enter' || e.key === ' ') {
+                                          e.preventDefault();
+                                          openSystemNotification(item);
+                                        }
+                                      }}
+                                      style={{ border: `1px solid ${item.read ? C.border : C.accent}`, borderRadius: 8, padding: 10, background: item.read ? 'transparent' : C.alpha(C.accent, 0.06), cursor: clickable ? 'pointer' : 'default' }}
+                                    >
+                                      <div style={{ fontSize: 12, fontWeight: 700, color: C.t1 }}>{item.title}</div>
+                                      <div style={{ fontSize: 11, color: C.t3, marginTop: 2 }}>{item.message}</div>
+                                    </div>
+                                  </SwipeableNotificationItem>
+                                );
+                              })
                             )}
                             {notifTab === 'system' && systemUnreadCount > 0 ? (
                               <button onClick={markSystemAsRead} style={{ border: `1px solid ${C.border}`, background: 'transparent', color: C.t2, borderRadius: 8, padding: '8px 10px', fontSize: 12, fontWeight: 700, cursor: 'pointer', marginTop: 4 }}>
@@ -699,7 +725,19 @@ export function Navbar({ page, prevPage, setPage, nuggets = 0, setModal = () => 
                                 onSwipeRight={() => item.id !== 'empty-system' && markSystemNotificationRead(item)}
                                 onSwipeLeft={() => item.id !== 'empty-system' && deferSystemNotification(item)}
                               >
-                                <div style={{ border: `1px solid ${item.read ? C.border : C.accent}`, borderRadius: 8, padding: 8, background: item.read ? 'transparent' : C.alpha(C.accent, 0.06) }}>
+                                <div
+                                  role={item.source === 'support_notification' ? 'button' : undefined}
+                                  tabIndex={item.source === 'support_notification' ? 0 : undefined}
+                                  onClick={() => item.source === 'support_notification' && openSystemNotification(item)}
+                                  onKeyDown={(e) => {
+                                    if (item.source !== 'support_notification') return;
+                                    if (e.key === 'Enter' || e.key === ' ') {
+                                      e.preventDefault();
+                                      openSystemNotification(item);
+                                    }
+                                  }}
+                                  style={{ border: `1px solid ${item.read ? C.border : C.accent}`, borderRadius: 8, padding: 8, background: item.read ? 'transparent' : C.alpha(C.accent, 0.06), cursor: item.source === 'support_notification' ? 'pointer' : 'default' }}
+                                >
                                   <div style={{ fontSize: 11, fontWeight: 700, color: C.t1 }}>{item.title}</div>
                                   <div style={{ fontSize: 10, color: C.t3, marginTop: 2 }}>{allowMessagePreview ? item.message : '•••'}</div>
                                 </div>
