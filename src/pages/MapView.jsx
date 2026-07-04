@@ -2256,9 +2256,9 @@ export function MapView({
     const addPublishedProperties = (onlyMine = false) => {
       (showcaseProperties || []).forEach((property) => {
         if (!isTruthyFlag(property?.publishToShowcase, true)) return;
-        if (!isLocalPublishedRecord(property)) return;
         const isOwnProperty = String(property?.ownerId || '') === String(currentUserId || '')
           || String(property?.ownerId || '') === '999999';
+        if (!onlyMine && !isLocalPublishedRecord(property)) return;
         if (onlyMine && !isOwnProperty) return;
         const coords = resolvePropertyDisplayCoords(property, geocodeCache, pinOverrides);
         if (!coords) return;
@@ -3226,11 +3226,25 @@ export function MapView({
         .map-cluster-unlocked { background: linear-gradient(145deg, ${C.success}, #75ba75); }
         .map-cluster-total { font-size: var(--cluster-total-size, 14px); font-weight: 700; letter-spacing: -0.2px; line-height: 1; max-width: 100%; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
         .map-cluster-breakdown { font-size: var(--cluster-breakdown-size, 8px); opacity: .95; margin-top: 2px; line-height: 1; max-width: calc(100% - 8px); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-        .map-chip, .map-filter-mode { border: 1px solid var(--ui-border); border-radius: 999px; padding: 6px 10px; background: var(--ui-surface); color: ${C.t2}; cursor: pointer; font-size: 12px; font-weight: 400; transition: all .15s ease; min-height: 30px; line-height: 1.15; }
+        .map-chip, .map-filter-mode { --chip-active: var(--ui-active); --chip-active-text: var(--ui-active-text); border: 1px solid var(--ui-border); border-radius: 999px; padding: 6px 10px; background: var(--ui-surface); color: ${C.t2}; cursor: pointer; font-size: 12px; font-weight: 400; transition: all .15s ease; min-height: 30px; line-height: 1.15; }
         .map-chip:hover, .map-filter-mode:hover { border-color: var(--ui-border); color: ${C.t1}; background: var(--ui-hover); }
         .map-panel-tab:hover { color: ${C.t1}; background: var(--ui-hover); }
-        .map-chip-active, .map-filter-mode-active { background: var(--ui-surface); border-color: var(--ui-active); color: var(--ui-active); font-weight: 600; }
-        .map-chip-active:hover, .map-filter-mode-active:hover { background: var(--ui-hover); }
+        .map-chip-active, .map-filter-mode-active { background: var(--chip-active); border-color: var(--chip-active); color: var(--chip-active-text); font-weight: 700; }
+        .map-chip-active:hover, .map-filter-mode-active:hover { background: var(--chip-active); color: var(--chip-active-text); filter: brightness(0.96); }
+        [data-theme="dark"] .map-chip-active,
+        [data-theme="dark"] .map-filter-mode-active {
+          background: var(--ui-surface);
+          border-color: var(--chip-active);
+          color: var(--chip-active);
+          box-shadow: 0 0 0 1px rgba(255,255,255,.03), 0 0 10px color-mix(in srgb, var(--chip-active) 55%, transparent), 0 0 22px color-mix(in srgb, var(--chip-active) 28%, transparent);
+          text-shadow: 0 0 8px color-mix(in srgb, var(--chip-active) 70%, transparent);
+        }
+        [data-theme="dark"] .map-chip-active:hover,
+        [data-theme="dark"] .map-filter-mode-active:hover {
+          background: color-mix(in srgb, var(--chip-active) 10%, var(--ui-surface));
+          color: var(--chip-active);
+          filter: none;
+        }
         .map-panel-tab.active:hover { background: var(--ui-surface); }
         .map-chip-row-main {
           display: grid;
@@ -3510,14 +3524,14 @@ export function MapView({
                   <button
                     className={`map-chip ${showPeople ? 'map-chip-active' : ''}`}
                     onClick={() => setShowPeople((v) => !v)}
-                    style={showPeople ? { borderColor: 'var(--ui-active)', color: 'var(--ui-active)', fontWeight: 600 } : undefined}
+                    style={{ '--chip-active': 'var(--ui-active)', '--chip-active-text': 'var(--ui-active-text)' }}
                   >
                     {tMap.people}
                   </button>
                   <button
                     className={`map-chip ${showProperties ? 'map-chip-active' : ''}`}
                     onClick={() => setShowProperties((v) => !v)}
-                    style={showProperties ? { borderColor: '#4381bc', color: '#4381bc', fontWeight: 600 } : undefined}
+                    style={{ '--chip-active': '#4381bc', '--chip-active-text': '#ffffff' }}
                   >
                     {tMap.deals}
                   </button>
@@ -3530,7 +3544,7 @@ export function MapView({
                         return next;
                       });
                     }}
-                    style={showOnlyUnlocked ? { borderColor: UNLOCKED_PERSON_PIN, color: UNLOCKED_PERSON_PIN, fontWeight: 600 } : undefined}
+                    style={{ '--chip-active': UNLOCKED_PERSON_PIN, '--chip-active-text': '#101614' }}
                   >
                     {tMap.unlocked}
                   </button>
@@ -3543,7 +3557,7 @@ export function MapView({
                         return next;
                       });
                     }}
-                    style={showOnlyMyPins ? { borderColor: MY_PINS_COLOR, color: MY_PINS_COLOR, fontWeight: 600 } : undefined}
+                    style={{ '--chip-active': MY_PINS_COLOR, '--chip-active-text': '#101614' }}
                   >
                     {tMap.myPins}
                   </button>
