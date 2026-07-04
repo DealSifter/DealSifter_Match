@@ -381,6 +381,8 @@ const NOMINATIM_SEARCH_URL = 'https://nominatim.openstreetmap.org/search';
 const PHOTON_SEARCH_URL = 'https://photon.komoot.io/api/';
 const ARCGIS_GEOCODE_URL = 'https://geocode.arcgis.com/arcgis/rest/services/World/GeocodeServer/findAddressCandidates';
 const CENSUS_GEOCODE_URL = 'https://geocoding.geo.census.gov/geocoder/locations/address';
+const ENABLE_CLIENT_GEOCODING = import.meta.env.DEV
+  && String(import.meta.env.VITE_ENABLE_CLIENT_GEOCODING || '').toLowerCase() === 'true';
 
 async function fetchRealBoundary({ mode, query }) {
   const cleaned = String(query || '').trim();
@@ -443,22 +445,26 @@ async function fetchRealBoundary({ mode, query }) {
   }
 
   for (const params of attemptParams) {
-    const response = await fetch(`https://nominatim.openstreetmap.org/search?${params.toString()}`, {
-      headers: NOMINATIM_HEADERS,
-    });
+    try {
+      const response = await fetch(`https://nominatim.openstreetmap.org/search?${params.toString()}`, {
+        headers: NOMINATIM_HEADERS,
+      });
 
-    if (!response.ok) continue;
-    const data = await response.json();
-    if (!Array.isArray(data) || !data.length) continue;
+      if (!response.ok) continue;
+      const data = await response.json();
+      if (!Array.isArray(data) || !data.length) continue;
 
-    const best = data[0];
-    const bounds = bboxToLeafletBounds(best.boundingbox);
-    if (!bounds) continue;
+      const best = data[0];
+      const bounds = bboxToLeafletBounds(best.boundingbox);
+      if (!bounds) continue;
 
-    return {
-      bounds,
-      geojson: best.geojson || null,
-    };
+      return {
+        bounds,
+        geojson: best.geojson || null,
+      };
+    } catch (err) {
+      if (import.meta.env.DEV) console.warn('[MapView] Boundary lookup failed:', err.message);
+    }
   }
 
   return null;
@@ -1810,6 +1816,7 @@ export function MapView({
 
   // Retry scheduling for geocoding pending properties (strict mode has no fake fallback).
   React.useEffect(() => {
+    if (!ENABLE_CLIENT_GEOCODING) return;
     if (!showcaseProperties?.length) return;
     const cache = _loadGeocodeCache();
     const hasPending = showcaseProperties.some((property) => {
@@ -1829,6 +1836,7 @@ export function MapView({
 
   // Async geocode user properties that are not yet in the cache
   React.useEffect(() => {
+    if (!ENABLE_CLIENT_GEOCODING) return;
     if (!showcaseProperties || !showcaseProperties.length) return;
     let cancelled = false;
     const cache = _loadGeocodeCache();
@@ -1848,40 +1856,44 @@ export function MapView({
 
     (async () => {
       let updated = false;
-      for (let index = 0; index < toGeocode.length; index += 1) {
-        const prop = toGeocode[index];
-        const cacheKey = _geocodeCacheKey(prop);
-        if (cacheKey) geocodeAttemptRef.current[cacheKey] = Date.now();
-        if (cancelled) break;
-        const geocodeResult = await _nominatimGeocode(prop);
-        if (cancelled) break;
-        if (geocodeResult) {
-          const coords = {
-            lat: geocodeResult.lat,
-            lng: geocodeResult.lng,
-            geocodeSource: geocodeResult.geocodeSource,
-            geocodeConfidence: geocodeResult.geocodeConfidence,
-          };
-          if (cacheKey) {
-            cache[cacheKey] = coords;
-            delete geocodeAttemptRef.current[cacheKey];
+      try {
+        for (let index = 0; index < toGeocode.length; index += 1) {
+          const prop = toGeocode[index];
+          const cacheKey = _geocodeCacheKey(prop);
+          if (cacheKey) geocodeAttemptRef.current[cacheKey] = Date.now();
+          if (cancelled) break;
+          const geocodeResult = await _nominatimGeocode(prop);
+          if (cancelled) break;
+          if (geocodeResult) {
+            const coords = {
+              lat: geocodeResult.lat,
+              lng: geocodeResult.lng,
+              geocodeSource: geocodeResult.geocodeSource,
+              geocodeConfidence: geocodeResult.geocodeConfidence,
+            };
+            if (cacheKey) {
+              cache[cacheKey] = coords;
+              delete geocodeAttemptRef.current[cacheKey];
+            }
+            commitCoordsToPortfolio(prop, coords, {
+              geocodeStatus: 'resolved',
+              geocodeSource: geocodeResult.geocodeSource,
+              geocodeConfidence: geocodeResult.geocodeConfidence,
+              geocodeInput: cacheKey,
+            });
+            updated = true;
           }
-          commitCoordsToPortfolio(prop, coords, {
-            geocodeStatus: 'resolved',
-            geocodeSource: geocodeResult.geocodeSource,
-            geocodeConfidence: geocodeResult.geocodeConfidence,
-            geocodeInput: cacheKey,
-          });
-          updated = true;
+          // Brief pause between requests to avoid throttling.
+          if (index < toGeocode.length - 1) {
+            await new Promise(r => setTimeout(r, 300));
+          }
         }
-        // Brief pause between requests to avoid throttling.
-        if (index < toGeocode.length - 1) {
-          await new Promise(r => setTimeout(r, 300));
+        if (updated && !cancelled) {
+          _saveGeocodeCache(cache);
+          setGeocodeCache({ ...cache });
         }
-      }
-      if (updated && !cancelled) {
-        _saveGeocodeCache(cache);
-        setGeocodeCache({ ...cache });
+      } catch (err) {
+        if (import.meta.env.DEV) console.warn('[MapView] Client geocode batch failed:', err.message);
       }
     })();
 
@@ -2302,15 +2314,6 @@ export function MapView({
     });
   }, [points, locationMode, appliedLocationQuery, showOnlyUnlocked, showOnlyMyPins]);
 
-  // Showcase properties without resolved coordinates (pin pending geocoding)
-  const noPinProperties = useMemo(() => {
-    if (showOnlyUnlocked && !showOnlyMyPins) return [];
-    if (!showcaseProperties?.length) return [];
-    return showcaseProperties.filter(
-      (prop) => isTruthyFlag(prop?.publishToShowcase, true) && isLocalPublishedRecord(prop) && !resolvePropertyCoords(prop, geocodeCache, pinOverrides)
-    );
-  }, [showcaseProperties, geocodeCache, pinOverrides, showOnlyUnlocked, showOnlyMyPins, isLocalPublishedRecord]);
-
   React.useEffect(() => {
     if (showOnlyMyPins) return;
     if (showOnlyUnlocked && realUserPoints.length > 0 && filteredPoints.length === 0) {
@@ -2519,19 +2522,127 @@ export function MapView({
       ));
   }, [getMapItemType, getRecordProfileScope, hasSpotlightKey, servicePortfolio]);
 
+  const spotlightProfileItems = useMemo(() => {
+    const byProfile = new Map();
+    const addProfileCandidate = (source) => {
+      if (!source || !isLocalPublishedRecord(source)) return;
+      const ownerId = String(source?.ownerId || '').trim();
+      const scope = getRecordProfileScope(source);
+      const ownerPreview = source?.ownerPreview && typeof source.ownerPreview === 'object'
+        ? source.ownerPreview
+        : null;
+      if (!ownerId || !scope || !ownerPreview?.name) return;
+
+      const sourceIsService = getMapItemType(source) === 'service' || Boolean(source?.serviceId || source?.category);
+      const hasProfileSpotlight = hasSpotlightKey(`profile:${scope}:${ownerId}`);
+      const hasServiceSpotlight = sourceIsService && Boolean(source?.id) && hasSpotlightKey(`service:${source.id}`);
+      if (!hasProfileSpotlight && !hasServiceSpotlight) return;
+
+      const key = `${ownerId}:${scope}`;
+      if (byProfile.has(key)) return;
+
+      const linkedPortfolio = getPortfolioPartsForOwner(ownerId, scope);
+      const pointMatch = points.find((point) => (
+        point?.properties?.itemType === 'person'
+        && String(point?.payload?.ownerId || point?.payload?.id || '') === ownerId
+        && getRecordProfileScope(point?.payload) === scope
+      ));
+      const propertyWithCoords = linkedPortfolio.properties
+        .map((property) => resolvePropertyDisplayCoords(property, geocodeCache, pinOverrides))
+        .find(Boolean);
+      const stateCode = [
+        pointMatch?.payload?.loc,
+        ownerPreview?.loc,
+        source?.state,
+        ...(Array.isArray(source?.markets) ? source.markets : []),
+      ].map(getStateCodeFromMarket).find(Boolean);
+      const fallbackCoords = stateCode ? STATE_CENTER_COORDS[stateCode] : null;
+      const [pointLng, pointLat] = pointMatch?.geometry?.coordinates || [];
+      const coords = Number.isFinite(pointLat) && Number.isFinite(pointLng)
+        ? { lat: pointLat, lng: pointLng }
+        : (propertyWithCoords || fallbackCoords || null);
+
+      const item = normalizeCard({
+        cardKind: 'person',
+        ...ownerPreview,
+        id: ownerId,
+        ownerId,
+        primaryProfile: scope,
+        loc: ownerPreview.loc || stateCode || '',
+        lat: coords?.lat,
+        lng: coords?.lng,
+        portfolioCount: linkedPortfolio.properties.length + linkedPortfolio.services.length,
+        ownerPreview: { ...ownerPreview, primaryProfile: scope },
+        linkedProperties: linkedPortfolio.properties,
+        linkedServices: linkedPortfolio.services,
+        isSpotlight: true,
+      }, currentUserId);
+      if (item) byProfile.set(key, item);
+    };
+
+    (showcaseProperties || []).forEach(addProfileCandidate);
+    (servicePortfolio || []).forEach(addProfileCandidate);
+    return [...byProfile.values()];
+  }, [
+    currentUserId,
+    geocodeCache,
+    getMapItemType,
+    getPortfolioPartsForOwner,
+    getRecordProfileScope,
+    hasSpotlightKey,
+    isLocalPublishedRecord,
+    pinOverrides,
+    points,
+    servicePortfolio,
+    showcaseProperties,
+  ]);
+
+  const spotlightPropertyItems = useMemo(() => {
+    return (showcaseProperties || [])
+      .filter((property) => (
+        isTruthyFlag(property?.publishToShowcase, true)
+        && isLocalPublishedRecord(property)
+        && isSpotlightItem(property)
+      ))
+      .map((property) => {
+        const coords = resolvePropertyCoords(property, geocodeCache, pinOverrides);
+        if (!coords) return null;
+        return normalizeCard({
+          ...property,
+          cardKind: 'property',
+          lat: coords?.lat,
+          lng: coords?.lng,
+          geocodePending: false,
+          isSpotlight: true,
+        }, currentUserId);
+      })
+      .filter(Boolean);
+  }, [currentUserId, geocodeCache, isLocalPublishedRecord, isSpotlightItem, pinOverrides, showcaseProperties]);
+
   const spotlightVisibleItems = useMemo(() => {
     const byKey = new Map();
-    points
-      .map((point) => point?.payload)
+    [
+      ...points.map((point) => point?.payload),
+      ...spotlightPropertyItems,
+      ...spotlightProfileItems,
+    ]
       .filter(isSpotlightItem)
       .forEach((item) => {
         const itemType = getMapItemType(item);
-        const key = `${itemType}:${item?.id || item?.ownerId || item?.cardId || item?.propertyId || item?.serviceId || byKey.size}`;
+        const scope = getRecordProfileScope(item);
+        const key = `${itemType}:${scope || 'any'}:${item?.id || item?.ownerId || item?.cardId || item?.propertyId || item?.serviceId || byKey.size}`;
         if (!byKey.has(key)) byKey.set(key, item);
       });
     return [...byKey.values()];
-  }, [getMapItemType, isSpotlightItem, points]);
-  const spotlightNoPinProperties = useMemo(() => noPinProperties.filter(isSpotlightItem), [noPinProperties, isSpotlightItem]);
+  }, [getMapItemType, getRecordProfileScope, isSpotlightItem, points, spotlightProfileItems, spotlightPropertyItems]);
+  const spotlightNoPinProperties = useMemo(() => {
+    return (showcaseProperties || []).filter((prop) => (
+      isTruthyFlag(prop?.publishToShowcase, true)
+      && isLocalPublishedRecord(prop)
+      && isSpotlightItem(prop)
+      && !resolvePropertyCoords(prop, geocodeCache, pinOverrides)
+    ));
+  }, [geocodeCache, isLocalPublishedRecord, isSpotlightItem, pinOverrides, showcaseProperties]);
   const spotlightPanelCount = spotlightVisibleItems.length + spotlightNoPinProperties.length;
 
   const openCluster = (clusterFeature) => {
