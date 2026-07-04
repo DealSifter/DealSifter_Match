@@ -5842,6 +5842,7 @@ export default function App() {
             currentUserId={supabaseUserId || 'local-user'}
             onUpdatePropertyCoords={handleMapPropertyCoordsUpdate}
             userPreferences={userPreferences}
+            activeSpotlightKeys={activeSpotlightKeys}
           />
         );
       case 'onboarding':

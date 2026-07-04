@@ -988,6 +988,7 @@ function _pickBestArcGisCandidate(candidates, context) {
 }
 
 async function _arcGisGeocode(property) {
+  if (!ENABLE_CLIENT_GEOCODING) return null;
   const parts = _normalizePropertyLocation(property);
   const stateToken = parts.stateCode || parts.stateFull;
   const query = [parts.address, parts.city, stateToken, parts.zip, 'USA'].filter(Boolean).join(', ');
@@ -1087,6 +1088,7 @@ function _pickBestNominatimResult(results, context) {
 }
 
 async function _nominatimDirectGeocode(property) {
+  if (!ENABLE_CLIENT_GEOCODING) return null;
   const parts = _normalizePropertyLocation(property);
   const address = parts.address;
   const city = parts.city;
@@ -1134,6 +1136,7 @@ async function _nominatimDirectGeocode(property) {
 }
 
 async function _nominatimStructuredGeocode(property) {
+  if (!ENABLE_CLIENT_GEOCODING) return null;
   const parts = _normalizePropertyLocation(property);
   if (!parts.address && !parts.city && !parts.stateCode && !parts.zip) return null;
 
@@ -1191,6 +1194,7 @@ async function _nominatimStructuredGeocode(property) {
 // Async: geocode a single property using real providers only and return
 // { lat, lng, geocodeSource, geocodeConfidence } or null.
 async function _censusGeocode(property) {
+  if (!ENABLE_CLIENT_GEOCODING) return null;
   const parts = _normalizePropertyLocation(property);
   if (!parts.address) return null; // Census requires a street address
 
@@ -1255,6 +1259,7 @@ async function _censusGeocode(property) {
 }
 
 async function _nominatimGeocode(property) {
+  if (!ENABLE_CLIENT_GEOCODING) return null;
   const parts = _normalizePropertyLocation(property);
   const address = parts.address;
   const city = parts.city;
