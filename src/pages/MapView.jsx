@@ -2058,12 +2058,13 @@ export function MapView({
         if (onlyUnlocked && !isUnlockedId(ownerId)) return;
         const ownerKey = `${ownerId}:${normalizedScope}`;
         if (byOwner.has(ownerKey)) return;
-        const coords = resolvePropertyDisplayCoords(property, geocodeCache, pinOverrides);
+        const stateCode = getStateCodeFromMarket(ownerPreview?.loc);
+        const coords = stateCode ? STATE_CENTER_COORDS[stateCode] : null;
         if (!coords) return;
-        byOwner.set(ownerKey, { ownerId, normalizedScope, ownerPreview, coords, property });
+        byOwner.set(ownerKey, { ownerId, normalizedScope, ownerPreview, coords, stateCode, property });
       });
 
-      byOwner.forEach(({ ownerId, normalizedScope, ownerPreview, coords, property }) => {
+      byOwner.forEach(({ ownerId, normalizedScope, ownerPreview, coords, stateCode }) => {
         const key = `person-${ownerId}-${normalizedScope}`;
         if (mapById.has(key)) return;
         const linkedPortfolio = getPortfolioPartsForOwner(ownerId, normalizedScope);
@@ -2075,7 +2076,8 @@ export function MapView({
           primaryProfile: normalizedScope,
           lat: coords.lat,
           lng: coords.lng,
-          geocodePending: Boolean(coords.isApproximate),
+          geocodePending: false,
+          loc: stateCode || ownerPreview.loc || '',
           portfolioCount: linkedPortfolio.properties.length + linkedPortfolio.services.length,
           ownerPreview: { ...ownerPreview, primaryProfile: normalizedScope },
           linkedProperties: linkedPortfolio.properties,
@@ -2089,7 +2091,7 @@ export function MapView({
             itemType: 'person',
             itemId: ownerId,
             title: ownerPreview.name,
-            subtitle: `${ownerPreview.type || ownerPreview.cat || 'Contact'} - ${ownerPreview.loc || property?.state || ''}`,
+            subtitle: `${ownerPreview.type || ownerPreview.cat || 'Contact'} - ${stateCode || ownerPreview.loc || ''}`,
             locked: !isUnlockedId(ownerId),
             isUnlocked: isUnlockedId(ownerId),
           },
@@ -2114,9 +2116,9 @@ export function MapView({
         const ownerKey = `${ownerId}:${normalizedScope}`;
         if (mapById.has(`person-${ownerId}-${normalizedScope}`) || byOwner.has(ownerKey)) return;
         const stateCode = [
-          ...(Array.isArray(service?.markets) ? service.markets : []),
           ownerPreview?.loc,
           service?.state,
+          ...(Array.isArray(service?.markets) ? service.markets : []),
         ].map(getStateCodeFromMarket).find(Boolean);
         const coords = STATE_CENTER_COORDS[stateCode];
         if (!coords) return;
@@ -2599,9 +2601,6 @@ export function MapView({
         && String(point?.payload?.ownerId || point?.payload?.id || '') === ownerId
         && getRecordProfileScope(point?.payload) === scope
       ));
-      const propertyWithCoords = linkedPortfolio.properties
-        .map((property) => resolvePropertyDisplayCoords(property, geocodeCache, pinOverrides))
-        .find(Boolean);
       const stateCode = [
         pointMatch?.payload?.loc,
         ownerPreview?.loc,
@@ -2612,7 +2611,7 @@ export function MapView({
       const [pointLng, pointLat] = pointMatch?.geometry?.coordinates || [];
       const coords = Number.isFinite(pointLat) && Number.isFinite(pointLng)
         ? { lat: pointLat, lng: pointLng }
-        : (propertyWithCoords || fallbackCoords || null);
+        : (fallbackCoords || null);
 
       const item = normalizeCard({
         cardKind: 'person',
@@ -2637,13 +2636,11 @@ export function MapView({
     return [...byProfile.values()];
   }, [
     currentUserId,
-    geocodeCache,
     getMapItemType,
     getPortfolioPartsForOwner,
     getRecordProfileScope,
     hasSpotlightKey,
     isLocalPublishedRecord,
-    pinOverrides,
     points,
     servicePortfolio,
     showcaseProperties,
@@ -2680,22 +2677,18 @@ export function MapView({
       && String(point?.payload?.ownerId || point?.payload?.id || '') === normalizedOwnerId
       && getRecordProfileScope(point?.payload) === normalizedScope
     ));
-    const propertyWithCoords = portfolioParts.properties
-      .map((property) => resolvePropertyDisplayCoords(property, geocodeCache, pinOverrides))
-      .find(Boolean);
     const stateCode = [
       pointMatch?.payload?.loc,
       ownerPreview?.loc,
       source?.state,
       ...(Array.isArray(source?.markets) ? source.markets : []),
-      ...portfolioParts.properties.map((property) => property?.state),
       ...portfolioParts.services.flatMap((service) => Array.isArray(service?.markets) ? service.markets : [service?.state]),
     ].map(getStateCodeFromMarket).find(Boolean);
     const fallbackCoords = stateCode ? STATE_CENTER_COORDS[stateCode] : null;
     const [pointLng, pointLat] = pointMatch?.geometry?.coordinates || [];
     const coords = Number.isFinite(pointLat) && Number.isFinite(pointLng)
       ? { lat: pointLat, lng: pointLng }
-      : (propertyWithCoords || fallbackCoords || null);
+      : (fallbackCoords || null);
 
     return normalizeCard({
       cardKind: 'person',
@@ -2716,11 +2709,9 @@ export function MapView({
   }, [
     accountType,
     currentUserId,
-    geocodeCache,
     getPortfolioPartsForOwner,
     getRecordProfileScope,
     personalProfile,
-    pinOverrides,
     points,
     professionalProfile,
     userProfile,
