@@ -5843,6 +5843,7 @@ export default function App() {
             onUpdatePropertyCoords={handleMapPropertyCoordsUpdate}
             userPreferences={userPreferences}
             activeSpotlightKeys={activeSpotlightKeys}
+            isActive={page === 'mapview'}
           />
         );
       case 'onboarding':

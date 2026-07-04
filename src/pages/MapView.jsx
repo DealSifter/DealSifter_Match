@@ -559,28 +559,53 @@ function getClusterIcon(total, peopleCount, propertiesCount, useUnlockedProperty
 function MapEvents({ onViewportChange }) {
   useMapEvents({
     moveend(event) {
-      const map = event.target;
-      const bounds = map.getBounds();
-      const zoom = map.getZoom();
-      const center = map.getCenter();
-      onViewportChange({
-        zoom,
-        center: [center.lat, center.lng],
-        bounds: [bounds.getWest(), bounds.getSouth(), bounds.getEast(), bounds.getNorth()],
-      });
+      try {
+        const map = event.target;
+        const bounds = map.getBounds();
+        const zoom = map.getZoom();
+        const center = map.getCenter();
+        onViewportChange({
+          zoom,
+          center: [center.lat, center.lng],
+          bounds: [bounds.getWest(), bounds.getSouth(), bounds.getEast(), bounds.getNorth()],
+        });
+      } catch {
+        // Leaflet can emit a final event while React Activity is hiding the map.
+      }
     },
     zoomend(event) {
-      const map = event.target;
-      const bounds = map.getBounds();
-      const zoom = map.getZoom();
-      const center = map.getCenter();
-      onViewportChange({
-        zoom,
-        center: [center.lat, center.lng],
-        bounds: [bounds.getWest(), bounds.getSouth(), bounds.getEast(), bounds.getNorth()],
-      });
+      try {
+        const map = event.target;
+        const bounds = map.getBounds();
+        const zoom = map.getZoom();
+        const center = map.getCenter();
+        onViewportChange({
+          zoom,
+          center: [center.lat, center.lng],
+          bounds: [bounds.getWest(), bounds.getSouth(), bounds.getEast(), bounds.getNorth()],
+        });
+      } catch {
+        // Leaflet can emit a final event while React Activity is hiding the map.
+      }
     },
   });
+  return null;
+}
+
+function MapVisibilityController({ active }) {
+  const map = useMap();
+
+  React.useEffect(() => {
+    if (!active) {
+      try { map.stop(); } catch { /* noop */ }
+      return undefined;
+    }
+    const timers = [0, 80, 240].map((delay) => window.setTimeout(() => {
+      try { map.invalidateSize({ animate: false, pan: false }); } catch { /* noop */ }
+    }, delay));
+    return () => timers.forEach((timer) => window.clearTimeout(timer));
+  }, [active, map]);
+
   return null;
 }
 
@@ -1366,6 +1391,7 @@ export function MapView({
   userPreferences = null,
   activeSpotlightKeys = new Set(),
   propertyUnlocks = [],
+  isActive = true,
 }) {
   const enableMockMapData = import.meta.env.DEV && String(import.meta.env.VITE_ENABLE_MOCK_DATA || '').toLowerCase() === 'true';
   const allT = useT('mapview');
@@ -1540,9 +1566,18 @@ export function MapView({
   const [baseTileFallbackIndex, setBaseTileFallbackIndex] = useState(0);
   const [disabledOverlayUrls, setDisabledOverlayUrls] = useState({});
   const [femaOverlayUnavailable, setFemaOverlayUnavailable] = useState(false);
+  const [mapActivationKey, setMapActivationKey] = useState(0);
+  const wasActiveRef = React.useRef(isActive);
   const geocodeAttemptRef = React.useRef({});
   const lastBaseFallbackSwitchAtRef = React.useRef(0);
   const femaTileErrorStreakRef = React.useRef(0);
+
+  React.useEffect(() => {
+    if (isActive && !wasActiveRef.current) {
+      setMapActivationKey((prev) => prev + 1);
+    }
+    wasActiveRef.current = isActive;
+  }, [isActive]);
 
   const commitCoordsToPortfolio = React.useCallback((property, coords, metadata = {}) => {
     if (!property?.id || typeof onUpdatePropertyCoords !== 'function') return;
@@ -3736,8 +3771,9 @@ export function MapView({
         </aside>
 
         <section className="map-canvas-card">
-          <MapContainer center={safeViewportCenter} zoom={safeViewportZoom} className="map-canvas" zoomControl={false}>
+          <MapContainer key={`mapview-${mapActivationKey}`} center={safeViewportCenter} zoom={safeViewportZoom} className="map-canvas" zoomControl={false}>
             <MapEvents onViewportChange={setViewport} />
+            <MapVisibilityController active={isActive} />
             <ManualPinPlacementController
               active={Boolean(manualPinTarget)}
               onPlace={applyManualPinPlacement}
