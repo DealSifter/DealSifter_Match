@@ -7,6 +7,7 @@ import {
   supabase,
   supabaseAnonKey,
 } from '../lib/supabaseClient';
+import { CHAT_LANGUAGE_OPTIONS, getSafeLang, translateChatText } from '../services/chatTranslation';
 
 const fmtInt = (value) => Number(value || 0).toLocaleString('en-US');
 const fmtUsd = (cents) => `$${(Number(cents || 0) / 100).toLocaleString('en-US', { maximumFractionDigits: 0 })}`;
@@ -573,6 +574,341 @@ function SupportDeskPanel({ onChanged, t = {} }) {
   );
 }
 
+const SUPPORT_REPLY_PRESETS = [
+  {
+    id: 'greeting',
+    label: 'Greeting',
+    body: 'Hello! Thanks for contacting DealSifter Support. I am checking your request now and will help you get this resolved.',
+  },
+  {
+    id: 'details',
+    label: 'Ask details',
+    body: 'Could you please send more details about what happened, including the page/module, the action you clicked, and any error message shown?',
+  },
+  {
+    id: 'resolution',
+    label: 'Resolution check',
+    body: 'I applied the adjustment on our side. Could you please try again and confirm whether the issue is now resolved?',
+  },
+  {
+    id: 'closing',
+    label: 'Close ticket',
+    body: 'I am closing this ticket for now. If the issue returns, please reply here and we will reopen the investigation.',
+  },
+];
+
+function SupportDeskWorkspace({ onChanged, onSummaryChange, t = {} }) {
+  const [tickets, setTickets] = useState([]);
+  const [selectedTicket, setSelectedTicket] = useState(null);
+  const [messages, setMessages] = useState([]);
+  const [reply, setReply] = useState('');
+  const [customPreset, setCustomPreset] = useState('');
+  const [replyInputLang, setReplyInputLang] = useState('en');
+  const [replyOutputLang, setReplyOutputLang] = useState('en');
+  const [textSize, setTextSize] = useState(12);
+  const [loading, setLoading] = useState(false);
+  const [replying, setReplying] = useState(false);
+  const [status, setStatus] = useState('');
+  const [statusKind, setStatusKind] = useState('info');
+
+  const publishSummary = (list) => {
+    const rows = Array.isArray(list) ? list : [];
+    onSummaryChange?.({
+      total: rows.length,
+      unread: rows.reduce((sum, ticket) => sum + Number(ticket?.unreadForAdmin || 0), 0),
+      open: rows.filter((ticket) => String(ticket?.status || '').toLowerCase() !== 'closed').length,
+      closed: rows.filter((ticket) => String(ticket?.status || '').toLowerCase() === 'closed').length,
+    });
+  };
+
+  const loadTickets = async ({ keepSelection = true } = {}) => {
+    if (!isSupabaseConfigured || !supabase) return [];
+    setLoading(true);
+    setStatus('');
+    try {
+      const { data, error } = await supabase.rpc('admin_get_support_tickets', { p_status: 'all', p_limit: 80 });
+      if (error) throw error;
+      const list = Array.isArray(data?.tickets) ? data.tickets : [];
+      setTickets(list);
+      publishSummary(list);
+      if (!keepSelection || !selectedTicket || !list.some((ticket) => String(ticket.id) === String(selectedTicket.id))) {
+        const first = list.find((ticket) => String(ticket?.status || '').toLowerCase() !== 'closed') || list[0] || null;
+        setSelectedTicket(first);
+        if (first?.id) void loadThread(first, { refreshList: false });
+      }
+      return list;
+    } catch (error) {
+      setStatusKind('error');
+      setStatus(`${t.supportLoadFailed || 'Support load failed'}: ${error?.message || 'RPC unavailable'}`);
+      return [];
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const loadThread = async (ticket, options = {}) => {
+    if (!ticket?.id || !isSupabaseConfigured || !supabase) return;
+    setSelectedTicket(ticket);
+    setStatus('');
+    try {
+      const { data, error } = await supabase.rpc('admin_get_support_thread', { p_ticket_id: ticket.id });
+      if (error) throw error;
+      const nextTicket = data?.ticket || ticket;
+      setSelectedTicket(nextTicket);
+      setMessages(Array.isArray(data?.messages) ? data.messages : []);
+      setTickets((prev) => {
+        const next = prev.map((item) => (
+          String(item.id) === String(ticket.id) ? { ...item, ...nextTicket, unreadForAdmin: 0 } : item
+        ));
+        publishSummary(next);
+        return next;
+      });
+      if (options.refreshList !== false) await loadTickets();
+    } catch (error) {
+      setStatusKind('error');
+      setStatus(`${t.supportThreadFailed || 'Thread failed'}: ${error?.message || 'RPC unavailable'}`);
+    }
+  };
+
+  const buildReplyBody = async () => {
+    const body = String(reply || '').trim();
+    if (!body) return '';
+    const translated = await translateChatText({
+      text: body,
+      fromLang: getSafeLang(replyInputLang, 'en'),
+      toLang: getSafeLang(replyOutputLang, 'en'),
+    });
+    return String(translated?.text || body).trim();
+  };
+
+  const sendReply = async (closeAfter = false, sendEmail = false) => {
+    const body = await buildReplyBody();
+    if (!body || !selectedTicket?.id || !isSupabaseConfigured || !supabase) return;
+    setReplying(true);
+    setStatus('');
+    try {
+      const { data, error } = await supabase.rpc('admin_reply_support_ticket', {
+        p_ticket_id: selectedTicket.id,
+        p_body: body,
+        p_close: closeAfter,
+      });
+      if (error) throw error;
+      setReply('');
+      setSelectedTicket(data?.ticket || selectedTicket);
+      setMessages(Array.isArray(data?.messages) ? data.messages : []);
+      if (sendEmail) {
+        const { data: sessionData, error: sessionError } = await supabase.auth.getSession();
+        if (sessionError) throw sessionError;
+        const accessToken = sessionData?.session?.access_token;
+        const functionUrl = getSupabaseFunctionUrl('send-support-email');
+        if (!accessToken || !functionUrl) throw new Error(t.supportEmailUnavailable || 'Support email service unavailable.');
+        const response = await fetch(functionUrl, {
+          method: 'POST',
+          headers: {
+            Authorization: `Bearer ${accessToken}`,
+            apikey: supabaseAnonKey,
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            ticketId: selectedTicket.id,
+            direction: 'admin_to_user',
+            message: body,
+          }),
+        });
+        const payload = await response.json().catch(() => ({}));
+        if (!response.ok) throw new Error(payload?.error || t.supportEmailFailed || 'Support email failed.');
+      }
+      setStatusKind('success');
+      setStatus(sendEmail
+        ? (t.supportReplyEmailSent || 'Reply sent and email delivered.')
+        : (closeAfter ? (t.supportClosed || 'Ticket closed.') : (t.supportReplySent || 'Reply sent.')));
+      await loadTickets();
+      await onChanged?.();
+    } catch (error) {
+      setStatusKind('error');
+      setStatus(`${t.supportReplyFailed || 'Reply failed'}: ${error?.message || 'RPC unavailable'}`);
+    } finally {
+      setReplying(false);
+    }
+  };
+
+  useEffect(() => {
+    const timer = window.setTimeout(() => { void loadTickets({ keepSelection: false }); }, 0);
+    return () => window.clearTimeout(timer);
+  }, []);
+
+  const openTickets = tickets.filter((ticket) => String(ticket?.status || '').toLowerCase() !== 'closed');
+  const closedTickets = tickets.filter((ticket) => String(ticket?.status || '').toLowerCase() === 'closed');
+  const unreadTotal = tickets.reduce((sum, ticket) => sum + Number(ticket?.unreadForAdmin || 0), 0);
+
+  const renderTicketCard = (ticket) => {
+    const isEmpty = String(ticket.id || '').startsWith('empty-');
+    const active = String(ticket.id) === String(selectedTicket?.id);
+    const unread = Number(ticket?.unreadForAdmin || 0);
+    const initials = String(ticket.userEmail || ticket.userId || '?').slice(0, 2).toUpperCase();
+    return (
+      <button
+        key={ticket.id}
+        type="button"
+        disabled={isEmpty}
+        onClick={() => loadThread(ticket)}
+        style={{
+          border: `1px solid ${active ? C.accent : C.border}`,
+          background: active ? C.alpha(C.accent, 0.13) : C.bg2 || 'transparent',
+          color: C.t1,
+          borderRadius: 12,
+          padding: 10,
+          display: 'grid',
+          gridTemplateColumns: '34px minmax(0, 1fr) auto',
+          gap: 9,
+          alignItems: 'center',
+          textAlign: 'left',
+          cursor: isEmpty ? 'default' : 'pointer',
+          opacity: isEmpty ? 0.7 : 1,
+        }}
+      >
+        <span style={{ width: 34, height: 34, borderRadius: 999, display: 'grid', placeItems: 'center', background: C.alpha(C.accent, 0.14), color: C.accent, fontSize: 11, fontWeight: 950 }}>
+          {isEmpty ? '-' : initials}
+        </span>
+        <span style={{ minWidth: 0, display: 'grid', gap: 2 }}>
+          <strong style={{ fontSize: 12, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{ticket.userEmail || ticket.subject || ticket.userId || '-'}</strong>
+          <span style={{ color: C.t2, fontSize: 10, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+            {ticket.contactId || ticket.id} {ticket.ticketNumber ? `· #${ticket.ticketNumber}` : ''}
+          </span>
+          <span style={{ color: C.t3, fontSize: 9 }}>{ticket.lastMessageAt ? new Date(ticket.lastMessageAt).toLocaleString() : ''}</span>
+        </span>
+        <span style={{ display: 'grid', justifyItems: 'end', gap: 5 }}>
+          <span style={{ color: ticket.status === 'closed' ? C.t3 : C.accent, fontSize: 10, fontWeight: 900 }}>{ticket.status}</span>
+          {unread > 0 ? (
+            <span style={{ minWidth: 20, height: 20, borderRadius: 999, display: 'inline-grid', placeItems: 'center', background: C.warning || '#f59e0b', color: C.bg, fontSize: 10, fontWeight: 950 }}>
+              {fmtInt(unread)}
+            </span>
+          ) : null}
+        </span>
+      </button>
+    );
+  };
+
+  return (
+    <Block title={t.supportDesk || 'Support desk'}>
+      <div style={{ display: 'grid', gap: 12 }}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
+          <div style={{ fontSize: 12, color: C.t2, fontWeight: 850 }}>
+            {fmtInt(tickets.length)} {t.supportTickets || 'tickets'}
+            {unreadTotal > 0 ? <span style={{ marginLeft: 7, color: C.warning || '#f59e0b' }}>{fmtInt(unreadTotal)} unread</span> : null}
+          </div>
+          <button onClick={() => loadTickets()} disabled={loading} style={{ border: `1px solid ${C.border}`, background: 'transparent', color: C.t2, borderRadius: 8, padding: '7px 9px', cursor: loading ? 'wait' : 'pointer', fontSize: 11, fontWeight: 800 }}>
+            {loading ? (t.loading || 'Loading...') : (t.refresh || 'Refresh')}
+          </button>
+        </div>
+
+        {status ? (
+          <div style={{ border: `1px solid ${statusKind === 'error' ? C.alpha(C.danger, 0.45) : C.alpha(C.accent, 0.45)}`, background: statusKind === 'error' ? C.alpha(C.danger, 0.06) : C.alpha(C.accent, 0.08), color: statusKind === 'error' ? C.danger : C.t1, borderRadius: 9, padding: 8, fontSize: 11, fontWeight: 700 }}>
+            {status}
+          </div>
+        ) : null}
+
+        <div className="admin-support-grid">
+          <div style={{ display: 'grid', gap: 8, alignContent: 'start' }}>
+            <div style={{ color: C.t1, fontSize: 12, fontWeight: 950 }}>{t.newSupportChats || 'New chats'}</div>
+            <div style={{ display: 'grid', gap: 8, maxHeight: 'calc(var(--app-vh, 1vh) * 62)', overflowY: 'auto' }}>
+              {(openTickets.length ? openTickets : [{ id: 'empty-open', subject: 'No open tickets', status: 'none' }]).map(renderTicketCard)}
+            </div>
+          </div>
+
+          <div style={{ display: 'grid', gap: 8, alignContent: 'start' }}>
+            <div style={{ color: C.t1, fontSize: 12, fontWeight: 950 }}>{t.solvedSupportChats || 'Solved chats'}</div>
+            <div style={{ display: 'grid', gap: 8, maxHeight: 'calc(var(--app-vh, 1vh) * 62)', overflowY: 'auto' }}>
+              {(closedTickets.length ? closedTickets : [{ id: 'empty-closed', subject: 'No solved tickets', status: 'none' }]).map(renderTicketCard)}
+            </div>
+          </div>
+
+          <div style={{ minWidth: 0 }}>
+            {selectedTicket?.id ? (
+              <div style={{ border: `1px solid ${C.border}`, borderRadius: 12, overflow: 'hidden' }}>
+                <div style={{ padding: 11, borderBottom: `1px solid ${C.border}`, display: 'grid', gap: 2 }}>
+                  <div style={{ fontSize: 13, fontWeight: 900, color: C.t1 }}>{selectedTicket.contactId} · #{selectedTicket.ticketNumber}</div>
+                  <div style={{ fontSize: 10, color: C.t3, overflowWrap: 'anywhere' }}>{selectedTicket.userEmail || selectedTicket.userId}</div>
+                </div>
+                <div style={{ padding: 10, display: 'grid', gap: 7, maxHeight: 'calc(var(--app-vh, 1vh) * 43)', overflowY: 'auto', background: C.alpha(C.bg, 0.35) }}>
+                  {(messages.length ? messages : [{ id: 'none', senderRole: 'system', body: 'Open a ticket to load messages.' }]).map((message) => (
+                    <div key={message.id} style={{ justifySelf: message.senderRole === 'admin' ? 'end' : 'start', maxWidth: '92%', border: `1px solid ${message.senderRole === 'admin' ? C.accent : C.border}`, borderRadius: 10, padding: '8px 9px', color: C.t1, background: message.senderRole === 'admin' ? C.alpha(C.accent, 0.12) : 'transparent', fontSize: textSize }}>
+                      <div style={{ color: message.senderRole === 'admin' ? C.accent : C.t3, fontSize: Math.max(9, textSize - 3), fontWeight: 900, marginBottom: 2 }}>{message.senderRole || 'system'}</div>
+                      <div style={{ overflowWrap: 'anywhere', whiteSpace: 'pre-wrap' }}>{message.body}</div>
+                      <div style={{ marginTop: 4, color: C.t3, fontSize: Math.max(9, textSize - 3) }}>{message.createdAt ? new Date(message.createdAt).toLocaleString() : ''}</div>
+                    </div>
+                  ))}
+                </div>
+                <div style={{ padding: 10, borderTop: `1px solid ${C.border}`, display: 'grid', gap: 8 }}>
+                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, minmax(0, 1fr))', gap: 7 }}>
+                    <label style={{ display: 'grid', gap: 3, fontSize: 9, color: C.t3, fontWeight: 800 }}>
+                      Input
+                      <select value={replyInputLang} onChange={(event) => setReplyInputLang(event.target.value)} style={{ border: `1px solid ${C.border}`, borderRadius: 8, background: C.bg, color: C.t1, padding: '7px 8px', fontSize: 11 }}>
+                        {CHAT_LANGUAGE_OPTIONS.map((opt) => <option key={`support-in-${opt.code}`} value={opt.code}>{opt.label}</option>)}
+                      </select>
+                    </label>
+                    <label style={{ display: 'grid', gap: 3, fontSize: 9, color: C.t3, fontWeight: 800 }}>
+                      Output
+                      <select value={replyOutputLang} onChange={(event) => setReplyOutputLang(event.target.value)} style={{ border: `1px solid ${C.border}`, borderRadius: 8, background: C.bg, color: C.t1, padding: '7px 8px', fontSize: 11 }}>
+                        {CHAT_LANGUAGE_OPTIONS.map((opt) => <option key={`support-out-${opt.code}`} value={opt.code}>{opt.label}</option>)}
+                      </select>
+                    </label>
+                    <label style={{ display: 'grid', gap: 3, fontSize: 9, color: C.t3, fontWeight: 800 }}>
+                      Text size
+                      <select value={textSize} onChange={(event) => setTextSize(Number(event.target.value))} style={{ border: `1px solid ${C.border}`, borderRadius: 8, background: C.bg, color: C.t1, padding: '7px 8px', fontSize: 11 }}>
+                        {[11, 12, 14, 16].map((size) => <option key={size} value={size}>{size}px</option>)}
+                      </select>
+                    </label>
+                  </div>
+
+                  <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
+                    {SUPPORT_REPLY_PRESETS.map((preset) => (
+                      <button key={preset.id} type="button" onClick={() => setReply(preset.body)} style={{ border: `1px solid ${C.border}`, background: C.bg2 || 'transparent', color: C.t2, borderRadius: 999, padding: '6px 8px', fontSize: 10, fontWeight: 850, cursor: 'pointer' }}>
+                        {preset.label}
+                      </button>
+                    ))}
+                  </div>
+
+                  <div style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 1fr) auto', gap: 7 }}>
+                    <input
+                      value={customPreset}
+                      onChange={(event) => setCustomPreset(event.target.value)}
+                      placeholder={t.customSupportPreset || 'Custom quick message'}
+                      style={{ minWidth: 0, border: `1px solid ${C.border}`, borderRadius: 9, padding: '8px 9px', background: C.bg, color: C.t1, fontSize: 11 }}
+                    />
+                    <button type="button" onClick={() => setReply(customPreset)} disabled={!customPreset.trim()} style={{ border: `1px solid ${C.border}`, background: 'transparent', color: C.t2, borderRadius: 9, padding: '8px 10px', fontSize: 11, fontWeight: 850, cursor: customPreset.trim() ? 'pointer' : 'not-allowed', opacity: customPreset.trim() ? 1 : 0.55 }}>
+                      {t.usePreset || 'Use'}
+                    </button>
+                  </div>
+
+                  <textarea
+                    value={reply}
+                    onChange={(event) => setReply(event.target.value)}
+                    placeholder={t.supportReplyPlaceholder || 'Write admin/support reply...'}
+                    rows={4}
+                    style={{ width: '100%', minWidth: 0, boxSizing: 'border-box', resize: 'vertical', border: `1px solid ${C.border}`, borderRadius: 9, padding: 9, background: C.bg, color: C.t1, fontSize: textSize }}
+                  />
+                  <div style={{ display: 'flex', gap: 7, flexWrap: 'wrap' }}>
+                    <button onClick={() => sendReply(false)} disabled={replying || !reply.trim()} style={{ flex: '1 1 120px', border: 'none', background: C.accent, color: '#fff', borderRadius: 8, padding: '9px 10px', cursor: replying ? 'wait' : 'pointer', opacity: replying || !reply.trim() ? 0.7 : 1, fontSize: 11, fontWeight: 900 }}>
+                      {replying ? (t.sending || 'Sending...') : (t.send || 'Send')}
+                    </button>
+                    <button onClick={() => sendReply(false, true)} disabled={replying || !reply.trim()} style={{ flex: '1 1 120px', border: `1px solid ${C.border}`, background: 'transparent', color: C.t2, borderRadius: 8, padding: '9px 10px', cursor: replying ? 'wait' : 'pointer', opacity: replying || !reply.trim() ? 0.7 : 1, fontSize: 11, fontWeight: 900 }}>
+                      {t.replyEmail || 'Reply email'}
+                    </button>
+                    <button onClick={() => sendReply(true)} disabled={replying || !reply.trim()} style={{ flex: '1 1 120px', border: `1px solid ${C.border}`, background: 'transparent', color: C.t2, borderRadius: 8, padding: '9px 10px', cursor: replying ? 'wait' : 'pointer', opacity: replying || !reply.trim() ? 0.7 : 1, fontSize: 11, fontWeight: 900 }}>
+                      {t.replyAndClose || 'Reply + close'}
+                    </button>
+                  </div>
+                </div>
+              </div>
+            ) : null}
+          </div>
+        </div>
+      </div>
+    </Block>
+  );
+}
+
 function SectionDivider({ title, hint }) {
   return (
     <div style={{ display: 'flex', alignItems: 'center', gap: 10, margin: '6px 0 10px' }}>
@@ -640,6 +976,8 @@ export function AdminDashboard({ setPage, prevPage, logoutAdmin }) {
   const [draggingTile, setDraggingTile] = useState(null);
   const [kpiOrder, setKpiOrder] = useState(() => readAdminKpiOrder());
   const [kpiView, setKpiView] = useState(() => readAdminKpiView());
+  const [adminView, setAdminView] = useState('kpis');
+  const [supportSummary, setSupportSummary] = useState({ total: 0, unread: 0, open: 0, closed: 0 });
 
   const loadMetrics = async () => {
     if (!isSupabaseConfigured || !supabase) {
@@ -660,8 +998,28 @@ export function AdminDashboard({ setPage, prevPage, logoutAdmin }) {
     }
   };
 
+  const loadSupportSummary = async () => {
+    if (!isSupabaseConfigured || !supabase) return;
+    try {
+      const { data, error: supportError } = await supabase.rpc('admin_get_support_tickets', { p_status: 'all', p_limit: 80 });
+      if (supportError) throw supportError;
+      const list = Array.isArray(data?.tickets) ? data.tickets : [];
+      setSupportSummary({
+        total: list.length,
+        unread: list.reduce((sum, ticket) => sum + Number(ticket?.unreadForAdmin || 0), 0),
+        open: list.filter((ticket) => String(ticket?.status || '').toLowerCase() !== 'closed').length,
+        closed: list.filter((ticket) => String(ticket?.status || '').toLowerCase() === 'closed').length,
+      });
+    } catch {
+      // KPI loading should not fail because support summary is unavailable.
+    }
+  };
+
   useEffect(() => {
-    const timer = window.setTimeout(() => { void loadMetrics(); }, 0);
+    const timer = window.setTimeout(() => {
+      void loadMetrics();
+      void loadSupportSummary();
+    }, 0);
     return () => window.clearTimeout(timer);
   }, []);
 
@@ -821,8 +1179,24 @@ export function AdminDashboard({ setPage, prevPage, logoutAdmin }) {
         .admin-kpi-panel {
           min-width: 0;
         }
+        .admin-support-grid {
+          display: grid;
+          grid-template-columns: minmax(240px, 320px) minmax(240px, 320px) minmax(0, 1fr);
+          gap: 12px;
+          align-items: start;
+        }
+        @keyframes adminSupportPulse {
+          0%, 100% { box-shadow: 0 0 0 0 ${C.alpha(C.accent, 0.45)}; }
+          50% { box-shadow: 0 0 0 7px ${C.alpha(C.accent, 0)}; }
+        }
+        .admin-support-alert {
+          animation: adminSupportPulse 1.4s ease-in-out infinite;
+        }
         @media (max-width: 1100px) {
           .admin-workspace {
+            grid-template-columns: 1fr;
+          }
+          .admin-support-grid {
             grid-template-columns: 1fr;
           }
         }
@@ -834,6 +1208,32 @@ export function AdminDashboard({ setPage, prevPage, logoutAdmin }) {
             <p style={{ margin: '5px 0 0', fontSize: 12, color: C.t3 }}>{t.subtitle || 'Control center for system management.'}</p>
           </div>
           <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', justifyContent: 'flex-end' }}>
+            <button
+              onClick={() => setAdminView((view) => (view === 'support' ? 'kpis' : 'support'))}
+              className={Number(supportSummary.unread || 0) > 0 ? 'admin-support-alert' : ''}
+              style={{
+                border: `1px solid ${adminView === 'support' || Number(supportSummary.unread || 0) > 0 ? C.accent : C.border}`,
+                background: adminView === 'support' || Number(supportSummary.unread || 0) > 0 ? C.accent : 'transparent',
+                color: adminView === 'support' || Number(supportSummary.unread || 0) > 0 ? '#fff' : C.t2,
+                borderRadius: 8,
+                padding: '8px 10px',
+                cursor: 'pointer',
+                fontSize: 12,
+                fontWeight: 900,
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: 8,
+              }}
+            >
+              {t.supportChatButton || 'Chat Sup.'}
+              {Number(supportSummary.unread || 0) > 0 ? (
+                <span style={{ minWidth: 18, height: 18, borderRadius: 999, display: 'inline-grid', placeItems: 'center', background: '#fff', color: C.accent, fontSize: 10, fontWeight: 950 }}>
+                  {fmtInt(supportSummary.unread)}
+                </span>
+              ) : (
+                <span style={{ color: 'inherit', opacity: 0.82, fontSize: 10 }}>{fmtInt(supportSummary.open || 0)}</span>
+              )}
+            </button>
             <button onClick={handleStripeQueueReprocess} disabled={reprocessLoading} style={{ border: `1px solid ${Number(metrics?.stripeReprocessPending || 0) > 0 ? C.warning || '#f59e0b' : C.border}`, background: Number(metrics?.stripeReprocessPending || 0) > 0 ? C.alpha(C.warning || '#f59e0b', 0.1) : 'transparent', color: Number(metrics?.stripeReprocessPending || 0) > 0 ? C.warning || '#f59e0b' : C.t2, borderRadius: 8, padding: '8px 10px', cursor: reprocessLoading ? 'wait' : 'pointer', fontSize: 12, fontWeight: 800, display: 'inline-flex', alignItems: 'center', gap: 8, opacity: reprocessLoading ? 0.75 : 1 }}>
               {reprocessLoading ? (t.reprocessingStripeQueue || 'Reprocessing...') : (t.reprocessStripeQueue || 'Reprocessar fila Stripe')}
               {Number(metrics?.stripeReprocessPending || 0) > 0 ? (
@@ -896,49 +1296,59 @@ export function AdminDashboard({ setPage, prevPage, logoutAdmin }) {
           </div>
         ) : null}
 
-        <div className="admin-workspace">
-          <Block title={loading ? (t.loadingKpis || 'Loading KPIs...') : (t.kpiWorkspace || 'KPI workspace')}>
-            <div className="admin-kpi-panel" style={{ display: 'grid', gap: 16 }}>
-              <KpiSection
-                title={t.userKpis || 'User KPIs'}
-                hint={t.dragCardsHint || 'Drag cards to customize your view'}
-                tiles={tiles.users}
-                order={kpiOrder.users}
-                group="users"
-                draggingId={draggingTile}
-                viewModes={kpiView}
-                emptyChartMessage={t.noRealHistory || 'No real history yet'}
-                onToggleView={handleToggleKpiView}
-                onDragStart={handleDragStart}
-                onDragOverTile={handleDragOverTile}
-                onDropTile={handleDropTile}
-                onDragEnd={handleDragEnd}
-              />
-              <KpiSection
-                title={t.systemKpis || 'System KPIs'}
-                hint={t.systemKpisHint || 'Stripe, Supabase and admin controls'}
-                tiles={tiles.system}
-                order={kpiOrder.system}
-                group="system"
-                draggingId={draggingTile}
-                viewModes={kpiView}
-                emptyChartMessage={t.noRealHistory || 'No real history yet'}
-                onToggleView={handleToggleKpiView}
-                onDragStart={handleDragStart}
-                onDragOverTile={handleDragOverTile}
-                onDropTile={handleDropTile}
-                onDragEnd={handleDragEnd}
-              />
+        {adminView === 'support' ? (
+          <SupportDeskWorkspace
+            onChanged={async () => {
+              await loadMetrics();
+              await loadSupportSummary();
+            }}
+            onSummaryChange={setSupportSummary}
+            t={t}
+          />
+        ) : (
+          <div className="admin-workspace">
+            <Block title={loading ? (t.loadingKpis || 'Loading KPIs...') : (t.kpiWorkspace || 'KPI workspace')}>
+              <div className="admin-kpi-panel" style={{ display: 'grid', gap: 16 }}>
+                <KpiSection
+                  title={t.userKpis || 'User KPIs'}
+                  hint={t.dragCardsHint || 'Drag cards to customize your view'}
+                  tiles={tiles.users}
+                  order={kpiOrder.users}
+                  group="users"
+                  draggingId={draggingTile}
+                  viewModes={kpiView}
+                  emptyChartMessage={t.noRealHistory || 'No real history yet'}
+                  onToggleView={handleToggleKpiView}
+                  onDragStart={handleDragStart}
+                  onDragOverTile={handleDragOverTile}
+                  onDropTile={handleDropTile}
+                  onDragEnd={handleDragEnd}
+                />
+                <KpiSection
+                  title={t.systemKpis || 'System KPIs'}
+                  hint={t.systemKpisHint || 'Stripe, Supabase and admin controls'}
+                  tiles={tiles.system}
+                  order={kpiOrder.system}
+                  group="system"
+                  draggingId={draggingTile}
+                  viewModes={kpiView}
+                  emptyChartMessage={t.noRealHistory || 'No real history yet'}
+                  onToggleView={handleToggleKpiView}
+                  onDragStart={handleDragStart}
+                  onDragOverTile={handleDragOverTile}
+                  onDropTile={handleDropTile}
+                  onDragEnd={handleDragEnd}
+                />
+              </div>
+              <div style={{ marginTop: 10, fontSize: 10, color: C.t3 }}>
+                {t.kpiHelp || 'Click a card to alternate between number and compact chart. Drag/drop works inside each KPI section and is saved locally.'}
+              </div>
+            </Block>
+            <div style={{ display: 'grid', gap: 12 }}>
+              <GrantNuggetsPanel onGranted={loadMetrics} t={t} />
             </div>
-            <div style={{ marginTop: 10, fontSize: 10, color: C.t3 }}>
-              {t.kpiHelp || 'Click a card to alternate between number and compact chart. Drag/drop works inside each KPI section and is saved locally.'}
-            </div>
-          </Block>
-          <div style={{ display: 'grid', gap: 12 }}>
-            <SupportDeskPanel onChanged={loadMetrics} t={t} />
-            <GrantNuggetsPanel onGranted={loadMetrics} t={t} />
           </div>
-        </div>
+        )}
       </div>
     </div>
   );
