@@ -2288,7 +2288,8 @@ export function MapView({
       });
     };
     if (showOnlyMyPins) {
-      addPublishedProperties(true);
+      if (showPeople) addLocalProfilePeople(false);
+      if (showProperties) addPublishedProperties(true);
       return orderMapFeatures(Array.from(mapById.values()));
     }
 
@@ -2813,13 +2814,16 @@ export function MapView({
       .filter(isSpotlightItem)
       .forEach((item) => {
         const itemType = getMapItemType(item);
+        if (itemType === 'person' && !showPeople) return;
+        if (itemType !== 'person' && !showProperties) return;
         const scope = getRecordProfileScope(item);
         const key = `${itemType}:${scope || 'any'}:${item?.id || item?.ownerId || item?.cardId || item?.propertyId || item?.serviceId || byKey.size}`;
         if (!byKey.has(key)) byKey.set(key, item);
       });
     return [...byKey.values()];
-  }, [getMapItemType, getRecordProfileScope, isSpotlightItem, points, spotlightPaidItems, spotlightProfileItems, spotlightPropertyItems]);
+  }, [getMapItemType, getRecordProfileScope, isSpotlightItem, points, showPeople, showProperties, spotlightPaidItems, spotlightProfileItems, spotlightPropertyItems]);
   const spotlightNoPinProperties = useMemo(() => {
+    if (!showProperties) return [];
     const byId = new Map();
     (showcaseProperties || []).forEach((prop) => {
       if (!isTruthyFlag(prop?.publishToShowcase, true)) return;
@@ -2835,7 +2839,7 @@ export function MapView({
       byId.set(String(property.id), property);
     });
     return [...byId.values()];
-  }, [activeSpotlightRows, geocodeCache, isSpotlightItem, pinOverrides, showcaseProperties]);
+  }, [activeSpotlightRows, geocodeCache, isSpotlightItem, pinOverrides, showcaseProperties, showProperties]);
   const spotlightPanelCount = spotlightVisibleItems.length + spotlightNoPinProperties.length;
 
   const openCluster = (clusterFeature) => {
