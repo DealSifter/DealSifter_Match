@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { C } from '../theme/colors';
 import { useT } from '../i18n/translations';
 import {
@@ -239,6 +239,8 @@ function GrantNuggetsPanel({ onGranted, t = {} }) {
   const [selected, setSelected] = useState(null);
   const [amount, setAmount] = useState('25');
   const [reason, setReason] = useState(t.defaultGrantReason || 'Admin test credit');
+  const [planGrant, setPlanGrant] = useState('pro');
+  const [planReason, setPlanReason] = useState(t.defaultPlanGrantReason || 'Manual admin plan privilege');
   const [status, setStatus] = useState('');
   const [statusKind, setStatusKind] = useState('info');
   const [loading, setLoading] = useState(false);
@@ -295,6 +297,43 @@ function GrantNuggetsPanel({ onGranted, t = {} }) {
     } catch (error) {
       setStatusKind('error');
       setStatus(`${t.grantFailed || 'Grant failed'}: ${error?.message || t.adminRpcUnavailable || 'admin RPC unavailable'}`);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const grantPlan = async () => {
+    if (!selected?.id) {
+      setStatus(t.selectUserFirst || 'Select a user first.');
+      setStatusKind('error');
+      return;
+    }
+    setLoading(true);
+    setStatus('');
+    setStatusKind('info');
+    try {
+      const { data, error } = await supabase.rpc('admin_set_user_plan_override', {
+        p_target_user_id: selected.id,
+        p_plan_id: planGrant,
+        p_reason: planReason || t.defaultPlanGrantReason || 'Manual admin plan privilege',
+        p_expires_at: null,
+      });
+      if (error) throw error;
+      const row = Array.isArray(data) ? data[0] : data;
+      const newPlan = row?.plan_id || planGrant;
+      const nextUserPatch = {
+        plan_id: newPlan,
+        plan_override_source: row?.plan_override_source || (newPlan === 'free' ? null : 'admin_manual'),
+      };
+      setSelected((prev) => prev ? { ...prev, ...nextUserPatch } : prev);
+      setUsers((prev) => prev.map((u) => u.id === selected.id ? { ...u, ...nextUserPatch } : u));
+      setStatusKind('success');
+      setStatus((t.planGrantSuccess || 'Plan privileges updated to {plan}.')
+        .replace('{plan}', String(newPlan).toUpperCase()));
+      onGranted?.();
+    } catch (error) {
+      setStatusKind('error');
+      setStatus(`${t.planGrantFailed || 'Plan grant failed'}: ${error?.message || t.adminRpcUnavailable || 'admin RPC unavailable'}`);
     } finally {
       setLoading(false);
     }
@@ -374,6 +413,45 @@ function GrantNuggetsPanel({ onGranted, t = {} }) {
         >
           {t.grantButton || 'Grant nuggets without Stripe'}
         </button>
+        <div style={{ borderTop: `1px solid ${C.border}`, marginTop: 2, paddingTop: 12, display: 'grid', gap: 8 }}>
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8 }}>
+            <div>
+              <strong style={{ display: 'block', fontSize: 12, color: C.t1 }}>{t.manualPlanTitle || 'Manual plan privileges'}</strong>
+              <span style={{ display: 'block', fontSize: 10, color: C.t3 }}>{t.manualPlanHint || 'Grant PRO or Enterprise privileges without Stripe billing.'}</span>
+            </div>
+            {selected ? (
+              <span style={{ border: `1px solid ${C.alpha(C.accent, 0.45)}`, background: C.alpha(C.accent, 0.1), color: C.accent, borderRadius: 999, padding: '4px 8px', fontSize: 10, fontWeight: 900 }}>
+                {(selected.plan_id || 'free').toUpperCase()}
+              </span>
+            ) : null}
+          </div>
+          <div style={{ display: 'grid', gridTemplateColumns: '135px minmax(0, 1fr)', gap: 8 }}>
+            <select
+              value={planGrant}
+              onChange={(e) => setPlanGrant(e.target.value)}
+              style={{ border: `1px solid ${C.border}`, borderRadius: 10, background: C.bg, color: C.t1, padding: '9px 10px', fontSize: 12 }}
+            >
+              <option value="pro">PRO</option>
+              <option value="enterprise">Enterprise</option>
+              <option value="free">{t.removeManualPlan || 'Free / remove'}</option>
+            </select>
+            <input
+              value={planReason}
+              onChange={(e) => setPlanReason(e.target.value)}
+              placeholder={t.reason || 'Reason'}
+              maxLength={280}
+              style={{ minWidth: 0, border: `1px solid ${C.border}`, borderRadius: 10, background: C.bg, color: C.t1, padding: '9px 10px', fontSize: 12 }}
+            />
+          </div>
+          <button
+            type="button"
+            onClick={grantPlan}
+            disabled={loading || !selected}
+            style={{ border: `1px solid ${C.accent}`, borderRadius: 11, background: C.alpha(C.accent, 0.14), color: C.accent, padding: '10px 12px', fontSize: 12, fontWeight: 900, cursor: loading || !selected ? 'not-allowed' : 'pointer', opacity: loading || !selected ? 0.55 : 1 }}
+          >
+            {t.grantPlanButton || 'Grant plan privileges'}
+          </button>
+        </div>
         {status ? <div style={{ fontSize: 11, color: statusKind === 'error' ? C.danger : C.t2 }}>{status}</div> : null}
       </div>
     </Block>
@@ -627,6 +705,7 @@ function SupportDeskWorkspace({ onChanged, onSummaryChange, t = {} }) {
   const [tickets, setTickets] = useState([]);
   const [selectedTicket, setSelectedTicket] = useState(null);
   const [messages, setMessages] = useState([]);
+  const [visibleMessages, setVisibleMessages] = useState([]);
   const [reply, setReply] = useState('');
   const [customPreset, setCustomPreset] = useState('');
   const [customPresets, setCustomPresets] = useState(() => readSupportCustomPresets());
@@ -637,6 +716,7 @@ function SupportDeskWorkspace({ onChanged, onSummaryChange, t = {} }) {
   const [replying, setReplying] = useState(false);
   const [status, setStatus] = useState('');
   const [statusKind, setStatusKind] = useState('info');
+  const supportTranslationCacheRef = useRef(new Map());
 
   const publishSummary = (list) => {
     const rows = Array.isArray(list) ? list : [];
@@ -707,6 +787,42 @@ function SupportDeskWorkspace({ onChanged, onSummaryChange, t = {} }) {
     });
     return String(translated?.text || body).trim();
   };
+
+  useEffect(() => {
+    let cancelled = false;
+    const rows = Array.isArray(messages) ? messages : [];
+    if (!rows.length) {
+      setVisibleMessages([]);
+      return undefined;
+    }
+
+    const translateRows = async () => {
+      const targetLang = getSafeLang(replyOutputLang, 'en');
+      const translatedRows = await Promise.all(rows.map(async (message) => {
+        const sourceText = String(message?.body || message?.text || '').trim();
+        if (!sourceText) return { ...message, displayBody: '' };
+        const cacheKey = `${message?.id || ''}|${targetLang}|${sourceText}`;
+        const cached = supportTranslationCacheRef.current.get(cacheKey);
+        if (cached) return { ...message, displayBody: cached };
+        try {
+          const translated = await translateChatText({
+            text: sourceText,
+            fromLang: 'auto',
+            toLang: targetLang,
+          });
+          const displayBody = String(translated?.text || sourceText);
+          supportTranslationCacheRef.current.set(cacheKey, displayBody);
+          return { ...message, displayBody };
+        } catch {
+          return { ...message, displayBody: sourceText };
+        }
+      }));
+      if (!cancelled) setVisibleMessages(translatedRows);
+    };
+
+    void translateRows();
+    return () => { cancelled = true; };
+  }, [messages, replyOutputLang]);
 
   const addCustomPreset = () => {
     const body = String(customPreset || '').trim();
@@ -975,10 +1091,10 @@ function SupportDeskWorkspace({ onChanged, onSummaryChange, t = {} }) {
                   <div style={{ fontSize: 10, color: C.t3, overflowWrap: 'anywhere' }}>{selectedTicket.userEmail || selectedTicket.userId}</div>
                 </div>
                 <div style={{ padding: 10, display: 'grid', gap: 7, maxHeight: 'calc(var(--app-vh, 1vh) * 43)', overflowY: 'auto', background: C.alpha(C.bg, 0.35) }}>
-                  {(messages.length ? messages : [{ id: 'none', senderRole: 'system', body: 'Open a ticket to load messages.' }]).map((message) => (
+                  {((visibleMessages || []).length ? visibleMessages : ((messages || []).length ? messages : [{ id: 'none', senderRole: 'system', body: 'Open a ticket to load messages.', displayBody: 'Open a ticket to load messages.' }])).map((message) => (
                     <div key={message.id} style={{ justifySelf: message.senderRole === 'admin' ? 'end' : 'start', maxWidth: '92%', border: `1px solid ${message.senderRole === 'admin' ? C.accent : C.border}`, borderRadius: 10, padding: '8px 9px', color: C.t1, background: message.senderRole === 'admin' ? C.alpha(C.accent, 0.12) : 'transparent', fontSize: textSize }}>
                       <div style={{ color: message.senderRole === 'admin' ? C.accent : C.t3, fontSize: Math.max(9, textSize - 3), fontWeight: 900, marginBottom: 2 }}>{message.senderRole || 'system'}</div>
-                      <div style={{ overflowWrap: 'anywhere', whiteSpace: 'pre-wrap' }}>{message.body}</div>
+                      <div style={{ overflowWrap: 'anywhere', whiteSpace: 'pre-wrap' }}>{message.displayBody || message.body}</div>
                       <div style={{ marginTop: 4, color: C.t3, fontSize: Math.max(9, textSize - 3) }}>{message.createdAt ? new Date(message.createdAt).toLocaleString() : ''}</div>
                     </div>
                   ))}

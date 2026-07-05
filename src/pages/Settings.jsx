@@ -119,6 +119,8 @@ export function Settings({ setPage, prevPage, initialTab = 'profile', initialCom
       return Array.isArray(raw) ? raw : [];
     } catch { return []; }
   });
+  const [visibleSupportMessages, setVisibleSupportMessages] = useState([]);
+  const supportTranslationCacheRef = useRef(new Map());
   const [privacyControls, setPrivacyControls] = useState(() => {
     if (isSupabaseConfigured || import.meta.env.PROD) {
       return {
@@ -170,7 +172,7 @@ export function Settings({ setPage, prevPage, initialTab = 'profile', initialCom
       : initialZoomValue <= 10
         ? (t.prefZoomLevelCity || 'City')
         : (t.prefZoomLevelPin || 'PIN');
-  const chatInputLang = getSafeLang(prefs?.chatLanguage?.input || 'pt');
+  const chatInputLang = getSafeLang(prefs?.chatLanguage?.input || 'en');
   const chatOutputLang = getSafeLang(prefs?.chatLanguage?.output || 'en');
   const activeSubscription = subscription || {
     planId: 'free',
@@ -488,6 +490,41 @@ export function Settings({ setPage, prevPage, initialTab = 'profile', initialCom
     if (!SHOW_SUPPORT_CHAT_PLACEHOLDER) return;
     try { localStorage.setItem('ds_support_chat_thread', JSON.stringify(supportMessages || [])); } catch { /* no-op */ }
   }, [supportMessages]);
+  useEffect(() => {
+    let cancelled = false;
+    const rows = Array.isArray(supportMessages) ? supportMessages : [];
+    if (!rows.length) {
+      setVisibleSupportMessages([]);
+      return undefined;
+    }
+
+    const translateRows = async () => {
+      const targetLang = getSafeLang(chatOutputLang, 'en');
+      const translatedRows = await Promise.all(rows.map(async (message) => {
+        const sourceText = String(message?.text || message?.body || '').trim();
+        if (!sourceText) return { ...message, displayText: '' };
+        const cacheKey = `${message?.id || ''}|${targetLang}|${sourceText}`;
+        const cached = supportTranslationCacheRef.current.get(cacheKey);
+        if (cached) return { ...message, displayText: cached };
+        try {
+          const translated = await translateChatText({
+            text: sourceText,
+            fromLang: 'auto',
+            toLang: targetLang,
+          });
+          const displayText = String(translated?.text || sourceText);
+          supportTranslationCacheRef.current.set(cacheKey, displayText);
+          return { ...message, displayText };
+        } catch {
+          return { ...message, displayText: sourceText };
+        }
+      }));
+      if (!cancelled) setVisibleSupportMessages(translatedRows);
+    };
+
+    void translateRows();
+    return () => { cancelled = true; };
+  }, [chatOutputLang, supportMessages]);
   useEffect(() => {
     if (import.meta.env.PROD) return;
     try { localStorage.setItem('ds_privacy_controls', JSON.stringify(privacyControls || {})); } catch { /* no-op */ }
@@ -1474,7 +1511,7 @@ export function Settings({ setPage, prevPage, initialTab = 'profile', initialCom
                       const resetPrefs = {
                         map: { initialZoom: 4, defaultStyle: 'simple', clusterBehavior: 'pins_city', defaultFilters: { showPeople: true, showProperties: true, showOnlyUnlocked: false, showOnlyMyPins: false } },
                         feedMatches: { sortOrder: 'random', autoplayMedia: false },
-                        chatLanguage: { input: 'pt', output: 'en' },
+                        chatLanguage: { input: 'en', output: 'en' },
                         privacy: { presenceStatus: 'online', readReceipts: true, messagePreview: true },
                       };
                       updatePreferences(resetPrefs);
@@ -1801,12 +1838,12 @@ export function Settings({ setPage, prevPage, initialTab = 'profile', initialCom
                   {t.supportWelcome || 'Hello! This is DealSifter Admin/Support. How can we help?'}
                 </div>
               ) : null}
-              {(supportMessages || []).map((item) => (
+              {((visibleSupportMessages || []).length ? visibleSupportMessages : (supportMessages || [])).map((item) => (
                 <div key={item.id} style={{ justifySelf: item.from === 'user' ? 'end' : 'start', width: 'fit-content', minWidth: 0, maxWidth: 'min(620px, 86%)', border: `1px solid ${item.from === 'user' ? C.accent : C.border}`, background: item.from === 'user' ? C.alpha(C.accent, 0.12) : 'transparent', borderRadius: 10, padding: '6px 8px', fontSize: 12, color: C.t1 }}>
                   <div style={{ fontSize: 10, fontWeight: 700, color: item.from === 'user' ? C.accent : C.t3, marginBottom: 2 }}>
                     {item.from === 'user' ? (t.supportYou || 'You') : (t.supportHeader || 'DealSifter Admin/Support')}
                   </div>
-                  <div style={{ overflowWrap: 'anywhere', wordBreak: 'break-word', whiteSpace: 'pre-wrap' }}>{item.text}</div>
+                  <div style={{ overflowWrap: 'anywhere', wordBreak: 'break-word', whiteSpace: 'pre-wrap' }}>{item.displayText || item.text}</div>
                   <div style={{ marginTop: 3, fontSize: 9, color: C.t3 }}>
                     {item.createdAt ? new Date(item.createdAt).toLocaleString() : ''}
                   </div>
