@@ -173,18 +173,23 @@ function normalizeUsageSnapshot(row = {}) {
 }
 
 function mapCurrentPlanPayload({ userRow = {}, subscriptionRow = {}, usage = {} } = {}) {
-  const planId = getPlanId(subscriptionRow?.plan_id || userRow?.plan_id || usage?.planId || 'free');
+  const planId = getPlanId(userRow?.plan_id || usage?.planId || subscriptionRow?.plan_id || 'free');
+  const subscriptionPlanId = subscriptionRow?.plan_id ? getPlanId(subscriptionRow.plan_id) : '';
+  const usesSubscriptionBilling = Boolean(subscriptionPlanId && subscriptionPlanId === planId && !userRow?.plan_override_source);
   const plan = getPlan(planId);
   const limits = plan?.limits || {};
   const payload = {
     plan: {
       id: planId,
       planId,
-      name: subscriptionRow?.plan_name || plan?.name || planId,
-      planName: subscriptionRow?.plan_name || plan?.name || planId,
-      status: subscriptionRow?.status || (planId === 'free' ? 'active' : 'active'),
-      price: Number(subscriptionRow?.price_cents || 0) / 100,
-      nextBillingAt: subscriptionRow?.current_period_end || null,
+      name: usesSubscriptionBilling ? (subscriptionRow?.plan_name || plan?.name || planId) : (plan?.name || planId),
+      planName: usesSubscriptionBilling ? (subscriptionRow?.plan_name || plan?.name || planId) : (plan?.name || planId),
+      status: userRow?.plan_override_source ? 'admin_granted' : (subscriptionRow?.status || 'active'),
+      price: usesSubscriptionBilling ? Number(subscriptionRow?.price_cents || 0) / 100 : 0,
+      nextBillingAt: usesSubscriptionBilling ? (subscriptionRow?.current_period_end || null) : null,
+      source: userRow?.plan_override_source || (usesSubscriptionBilling ? 'stripe' : 'user_plan'),
+      overrideReason: userRow?.plan_override_reason || null,
+      overrideExpiresAt: userRow?.plan_override_expires_at || null,
     },
     nuggets: Number(userRow?.nuggets ?? 0),
     limits,
@@ -212,7 +217,7 @@ export async function getCurrentPlan(userId) {
   const [userResult, subscriptionResult, usage] = await Promise.all([
     supabase
       .from('users')
-      .select('nuggets, plan_id, is_admin')
+      .select('nuggets, plan_id, is_admin, plan_override_source, plan_override_reason, plan_override_expires_at')
       .eq('id', userId)
       .maybeSingle(),
     supabase

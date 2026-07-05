@@ -2349,6 +2349,26 @@ export function MatchesPage({ nuggets, setModal, openUnlock, unlocked, initialCh
     return m ? m[1].toUpperCase() : null;
   }, []);
 
+  const getInterestStateCode = useCallback((property) => {
+    if (!property) return null;
+    const directState = parseStateCode(
+      property.state
+      || property.stateCode
+      || property.state_code
+      || property.propertyState
+      || property.property_state
+    );
+    if (directState) return directState;
+    return parseStateCode(
+      property.loc
+      || property.location
+      || property.fullAddress
+      || property.full_address
+      || property.address
+      || ''
+    );
+  }, [parseStateCode]);
+
   const categoryLookup = useMemo(() => {
     const labelByKey = new Map();
     const aliasToKeys = new Map();
@@ -2416,12 +2436,12 @@ export function MatchesPage({ nuggets, setModal, openUnlock, unlocked, initialCh
   const interestStateOptions = useMemo(() => {
     const states = Array.from(new Set(
       interested
-        .map((p) => parseStateCode(p?.city || p?.loc || p?.address || ''))
+        .map((p) => getInterestStateCode(p))
         .filter(Boolean)
     ));
     states.sort();
     return states;
-  }, [interested, parseStateCode]);
+  }, [interested, getInterestStateCode]);
 
   const filteredMatched = useMemo(() => {
     const list = allMatched.filter(m => {
@@ -2489,7 +2509,7 @@ export function MatchesPage({ nuggets, setModal, openUnlock, unlocked, initialCh
       if (interestsFilter === "paid" && !paid) return false;
       if (interestsFilter === "locked" && paid) return false;
       if (selectedInterestStates.length > 0) {
-        const state = parseStateCode(p?.city || p?.loc || p?.address || '');
+        const state = getInterestStateCode(p);
         if (!state || !selectedInterestStates.includes(state)) return false;
       }
       return true;
@@ -2507,7 +2527,7 @@ export function MatchesPage({ nuggets, setModal, openUnlock, unlocked, initialCh
       else others.push(property);
     });
     return [...sortList(linked), ...sortList(others)];
-  }, [activeContactKey, interestBaseList, interestsFilter, isContactUnlockedByState, selectedInterestStates, parseStateCode, sortOrder, isLinkedToActiveContact, getInterestKey, getContactUnlockKeys, archivedInterests, archivedContacts, deletedInterests, deletedContacts]);
+  }, [activeContactKey, interestBaseList, interestsFilter, isContactUnlockedByState, selectedInterestStates, getInterestStateCode, sortOrder, isLinkedToActiveContact, getInterestKey, getContactUnlockKeys, archivedInterests, archivedContacts, deletedInterests, deletedContacts]);
 
   const activeOwner = useMemo(() => {
     if (!active) return null;
@@ -2757,7 +2777,7 @@ export function MatchesPage({ nuggets, setModal, openUnlock, unlocked, initialCh
     resizeComposerInput();
   }, [msg, isMobile, resizeComposerInput]);
 
-  const writeChatSystemNotice = useCallback((owner, message, reason = 'chat_unavailable') => {
+  const writeChatSystemNotice = useCallback((owner, message, reason = 'chat_unavailable', options = {}) => {
     const oid = String(owner?.id || owner?.ownerId || owner?.unlockOwnerId || '').trim();
     if (!oid || !message) return;
     if (typeof onSendChatMessage === 'function') {
@@ -2771,7 +2791,12 @@ export function MatchesPage({ nuggets, setModal, openUnlock, unlocked, initialCh
         translatedLang: myInputLang,
         contactPrimaryProfile: owner?.primaryProfile || '',
         senderPreview: currentUserChatPreview,
-        metadata: { reason },
+        suppressLocal: options.hideForSender === true,
+        metadata: {
+          reason,
+          hideForSender: options.hideForSender === true,
+          systemAudience: options.systemAudience || 'recipient',
+        },
       });
       return;
     }
@@ -2831,13 +2856,16 @@ export function MatchesPage({ nuggets, setModal, openUnlock, unlocked, initialCh
       ? 'DealSifter Chat unavailable for this contact'
       : 'DealSifter Chat not selected';
     const message = reason === 'recipient_plan'
-      ? 'Both users must have a plan with DealSifter Chat to use this channel.'
+      ? 'This unlocked contact does not currently have access to DealSifter Chat because of plan limits. Continue through another contact channel available on this profile.'
       : 'This profile did not select DealSifter Chat as a desired contact method.';
     const systemMessage = reason === 'recipient_plan'
-      ? 'System notice: a connection tried to use DealSifter Chat, but this channel requires both users to have an eligible plan. Review your plan if you want to receive chats here.'
+      ? 'System notice: a connection who unlocked your contact is trying to reach you through DealSifter Chat. Your current Basic plan does not include chat. Upgrade your plan to receive chat messages and speed up negotiations.'
       : 'System notice: a connection tried to contact this profile through DealSifter Chat, but this profile has not selected chat as a desired contact method. Update your profile contact options if you want to receive chats here.';
     addToast?.({ type: 'warning', title, message, duration: 7000 });
-    writeChatSystemNotice(activeOwner, systemMessage, reason);
+    writeChatSystemNotice(activeOwner, systemMessage, reason, {
+      hideForSender: reason === 'recipient_plan',
+      systemAudience: reason === 'recipient_plan' ? 'recipient_plan_upgrade' : 'recipient_contact_method',
+    });
   }, [activeOwner, addToast, writeChatSystemNotice]);
 
   const handleSend = useCallback(async (customMsg, type = "text", refData = null) => {

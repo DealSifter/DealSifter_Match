@@ -32,6 +32,7 @@ function mapChatRowToMessage(row, currentUserId) {
   if (!peerId) return null;
 
   const metadata = row.metadata && typeof row.metadata === 'object' ? row.metadata : {};
+  if (isMine && metadata.hideForSender === true) return null;
   return {
     peerId,
     message: {
@@ -290,11 +291,13 @@ export function useChatRealtime({
       senderPreview: payload.senderPreview || null,
     };
 
-    const optimistic = makeOptimisticMessage({ payload, userId, clientMessageId, text });
-    setConversations((prev) => ({
-      ...(prev || {}),
-      [recipientId]: mergeMessage(prev?.[recipientId], optimistic),
-    }));
+    if (payload.suppressLocal !== true) {
+      const optimistic = makeOptimisticMessage({ payload, userId, clientMessageId, text });
+      setConversations((prev) => ({
+        ...(prev || {}),
+        [recipientId]: mergeMessage(prev?.[recipientId], optimistic),
+      }));
+    }
 
     const { data, error } = await supabase
       .from(CHAT_MESSAGES_TABLE)
@@ -311,7 +314,9 @@ export function useChatRealtime({
 
     if (error) {
       reportError('Chat message persistence failed.', error);
-      replaceMessageStatus(recipientId, clientMessageId, { status: 'failed', retryPayload: { ...payload, clientMessageId } });
+      if (payload.suppressLocal !== true) {
+        replaceMessageStatus(recipientId, clientMessageId, { status: 'failed', retryPayload: { ...payload, clientMessageId } });
+      }
       if (typeof onSendError === 'function') onSendError(error);
       return null;
     }

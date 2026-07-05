@@ -2050,9 +2050,75 @@ export default function App() {
 
   const supabaseUserId = authSession?.userId || null;
 
+  const refreshCurrentPlanAccess = useCallback(async ({ notify = false } = {}) => {
+    if (!isSupabaseConfigured || !supabase || !supabaseUserId) return null;
+    try {
+      const currentPlan = await getCurrentPlan(supabaseUserId);
+      setNuggets(Number(currentPlan?.nuggets || 0));
+      setSubscription((prev) => {
+        const previousPlanId = String(prev?.planId || prev?.id || 'free').toLowerCase();
+        const nextPlan = currentPlan?.plan || null;
+        const nextPlanId = String(nextPlan?.planId || nextPlan?.id || 'free').toLowerCase();
+        if (notify && previousPlanId && nextPlanId && previousPlanId !== nextPlanId) {
+          addToast({
+            type: 'success',
+            title: 'Plan updated',
+            message: `Your ${nextPlan?.planName || nextPlanId.toUpperCase()} privileges are active now.`,
+            duration: 6500,
+          });
+        }
+        return nextPlan || prev;
+      });
+      return currentPlan;
+    } catch (error) {
+      safeLogError('Plan access refresh failed.', error);
+      return null;
+    }
+  }, [addToast, supabaseUserId]);
+
   useEffect(() => {
     setObservabilityUser(supabaseUserId);
   }, [supabaseUserId]);
+
+  useEffect(() => {
+    if (!isSupabaseConfigured || !supabase || !supabaseUserId) return undefined;
+
+    const handleFocusRefresh = () => {
+      void refreshCurrentPlanAccess({ notify: false });
+    };
+    const handleVisibilityRefresh = () => {
+      if (document.visibilityState === 'visible') handleFocusRefresh();
+    };
+
+    let channel = null;
+    try {
+      channel = supabase
+        .channel(`user-plan-access-${supabaseUserId}`)
+        .on('postgres_changes', {
+          event: 'UPDATE',
+          schema: 'public',
+          table: 'users',
+          filter: `id=eq.${supabaseUserId}`,
+        }, () => {
+          void refreshCurrentPlanAccess({ notify: true });
+        })
+        .subscribe((status, error) => {
+          if (error) safeLogError('User plan realtime subscription failed.', error);
+          if (status === 'CHANNEL_ERROR') safeLogError('User plan realtime channel error.', new Error(status));
+        });
+    } catch (error) {
+      safeLogError('User plan realtime setup failed.', error);
+    }
+
+    window.addEventListener('focus', handleFocusRefresh);
+    document.addEventListener('visibilitychange', handleVisibilityRefresh);
+    return () => {
+      window.removeEventListener('focus', handleFocusRefresh);
+      document.removeEventListener('visibilitychange', handleVisibilityRefresh);
+      if (channel) supabase.removeChannel(channel);
+    };
+  }, [refreshCurrentPlanAccess, supabaseUserId]);
+
 
   useEffect(() => {
     if (!isSupabaseConfigured || !supabase || !supabaseUserId) return;
