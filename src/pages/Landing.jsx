@@ -112,8 +112,8 @@ function LandingPropCard({ onClick }) {
             <span>Orlando, FL</span>
           </div>
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '4px 8px', marginBottom: 10 }}>
-            <div><div style={{ fontSize: 10, color: '#64748B' }}>{t.previewPrice || 'Price'}</div><div style={{ fontSize: 13, fontWeight: 800, color: '#16a34a' }}>$180,000</div></div>
-            <div><div style={{ fontSize: 10, color: '#64748B' }}>{t.previewArv || 'ARV'}</div><div style={{ fontSize: 13, fontWeight: 700, color: '#1e2d4d' }}>$280,000</div></div>
+            <div><div style={{ fontSize: 10, color: '#64748B' }}>{t.previewPrice || 'Price'}</div><div style={{ fontSize: 13, fontWeight: 800, color: '#16a34a' }}>$180K</div></div>
+            <div><div style={{ fontSize: 10, color: '#64748B' }}>{t.previewArv || 'ARV'}</div><div style={{ fontSize: 13, fontWeight: 700, color: '#1e2d4d' }}>$280K</div></div>
           </div>
           <p style={{ fontSize: 11, color: '#64748B', lineHeight: 1.5, margin: '0 0 8px', display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', overflow: 'hidden' }}>
             {t.previewPropertyBio || 'Great investment opportunity in growing neighborhood. Needs cosmetic updates.'}

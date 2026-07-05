@@ -540,6 +540,11 @@ function PortfolioDetail({ item, owner, ownerDesc, onBack, autoplayMedia = false
     if (typeof v !== "number") return "-";
     return `$${Number(v || 0).toLocaleString('en-US')}`;
   };
+  const fmtCompactMoney = (v) => {
+    const n = Number(v || 0);
+    if (!Number.isFinite(n)) return "-";
+    return formatCompactUsd(n);
+  };
 
   const normalizeExportText = (value) => {
     const raw = String(value ?? '');
@@ -1436,7 +1441,7 @@ function PortfolioDetail({ item, owner, ownerDesc, onBack, autoplayMedia = false
       [matchesT.size, item.sqft || "-"],
     ],
     [
-      [matchesT.rehab, fmtMoney(item.rehab || 0)],
+      [matchesT.rehab, fmtCompactMoney(item.rehab || 0)],
       [matchesT.zip, item.zip || "-"],
       [matchesT.lot, item.lot || "-"],
     ],
@@ -1520,7 +1525,7 @@ function PortfolioDetail({ item, owner, ownerDesc, onBack, autoplayMedia = false
           <div style={{ display:"grid", gridTemplateColumns:"repeat(3, minmax(0, 1fr))", gap:8 }}>
             <div style={{ border:`1px solid ${C.border}`, borderRadius:10, padding:"8px 10px", background:C.alpha(C.gold, 0.08) }}>
               <div style={{ fontSize:9, color:C.t3, textTransform:"uppercase", letterSpacing:"0.45px" }}>{matchesT.price}</div>
-              <div style={{ fontSize:19, color:C.t1, fontWeight:900, lineHeight:1.1, marginTop:2 }}>{fmtMoney(item.price)}</div>
+              <div style={{ fontSize:19, color:C.t1, fontWeight:900, lineHeight:1.1, marginTop:2 }}>{fmtCompactMoney(item.price)}</div>
             </div>
             <div style={{ border:`1px solid ${C.border}`, borderRadius:10, padding:"8px 10px", background:C.alpha(C.success, 0.08) }}>
               <div style={{ fontSize:9, color:C.t3, textTransform:"uppercase", letterSpacing:"0.45px" }}>{matchesT.capRate}</div>
@@ -1528,7 +1533,7 @@ function PortfolioDetail({ item, owner, ownerDesc, onBack, autoplayMedia = false
             </div>
             <div style={{ border:`1px solid ${C.border}`, borderRadius:10, padding:"8px 10px", background:C.alpha(C.accent, 0.08) }}>
               <div style={{ fontSize:9, color:C.t3, textTransform:"uppercase", letterSpacing:"0.45px" }}>{matchesT.rehab}</div>
-              <div style={{ fontSize:19, color:C.t1, fontWeight:900, lineHeight:1.1, marginTop:2 }}>{fmtMoney(item.rehab || 0)}</div>
+              <div style={{ fontSize:19, color:C.t1, fontWeight:900, lineHeight:1.1, marginTop:2 }}>{fmtCompactMoney(item.rehab || 0)}</div>
             </div>
           </div>
 

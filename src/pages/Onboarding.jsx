@@ -17,6 +17,7 @@ import { createProfessionalProperty } from '../lib/propertyFactory';
 import { validateProfessionalPropertyDraft } from '../lib/propertyValidation';
 import { getPortfolioVideoBlob, setPortfolioVideoBlob, clearPortfolioVideoBlob } from '../lib/localforageHelper';
 import { getMatchPressure } from '../lib/matchPressure';
+import { formatCompactUsd } from '../lib/formatMoney';
 import { INVESTMENT_TRIGGER_CATEGORY_IDS, computeInvestmentProfileStrength, normalizeInvestmentDraft } from '../lib/investmentProfile';
 import { readAndCompressFiles } from '../lib/onboardingMedia';
 import { clearPendingDeal, getPendingDealRemainingDays, isPendingDealActive, isPendingDealExpired, markPendingDeal } from '../lib/pendingDeal';
@@ -3995,7 +3996,7 @@ export function Onboarding({
                               WebkitLineClamp: (isPhoneViewport && (p.dealClosed || !isTruthyFlag(p.publishToShowcase, true))) ? 2 : 1,
                               WebkitBoxOrient: 'vertical',
                             }}>
-                              {p.address} Â· {p.city} Â· ${Number(p.price || 0).toLocaleString('en-US')} Â· {p.images?.length || 0} img
+                              {p.address} Â· {p.city} Â· {formatCompactUsd(p.price || 0)} Â· {p.images?.length || 0} img
                             </div>
                             <div style={{ display:'flex', alignItems:'center', justifyContent: isPhoneViewport ? 'flex-start' : 'flex-end', gap:6, width: isPhoneViewport ? '100%' : 'auto', flex: isPhoneViewport ? '0 0 100%' : '1 1 0', flexWrap: 'nowrap', marginLeft: isPhoneViewport ? 0 : 'auto', minWidth: 0 }}>
                               {!p.dealClosed ? (
