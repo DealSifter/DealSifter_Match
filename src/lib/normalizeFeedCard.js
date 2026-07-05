@@ -123,8 +123,8 @@ const resolveOwnerIdentity = (rawCard, scope) => {
       loc: pickString(ownerPreview.loc, ownerPreview.location),
       cat: pickString(ownerPreview.cat, ownerPreview.categoryId),
       desc: scope === 'fsbo' ? '' : pickString(ownerPreview.desc, ownerPreview.pitch),
-      email: pickString(ownerPreview.email),
-      primaryPhone: pickString(ownerPreview.primaryPhone, ownerPreview.phone),
+      email: '',
+      primaryPhone: '',
       contactMethods: asArray(ownerPreview.contactMethods),
       verified: ownerPreview.verified === true,
     };
@@ -168,12 +168,8 @@ const resolveOwnerIdentity = (rawCard, scope) => {
       : pickString(payloadScope.loc, payloadProfile.loc, payloadProfile.locB),
     cat: pickString(professionalRow.primary_category_b, professionalRow.primary_category, professionalRow.category),
     desc: isFsbo ? '' : pickString(payloadScope.pitch, payloadProfile.pitchB, payloadProfile.pitch, professionalRow.pitch),
-    email: isFsbo
-      ? pickString(payloadScope.email, payloadProfile.email, userRow.email)
-      : pickString(payloadScope.email, payloadProfile.email, payloadProfile.emailB, userRow.email),
-    primaryPhone: isFsbo
-      ? pickString(payloadScope.primaryPhone, payloadProfile.primaryPhone, userRow.phone)
-      : pickString(payloadScope.primaryPhone, payloadProfile.primaryPhone, payloadProfile.primaryPhoneB, userRow.phone),
+    email: '',
+    primaryPhone: '',
     contactMethods: asArray(payloadScope.contactMethods),
     verified: payloadScope.verified === true || payloadProfile.verified === true,
   };
@@ -239,8 +235,9 @@ export function normalizeCard(rawCard, currentUserId = '') {
     loc: pickString(identity.loc, rawCard.loc, rawCard.location, rawCard.state),
     cat: pickString(identity.cat, rawCard.cat, rawCard.category),
     desc: scope === 'fsbo' ? '' : pickString(identity.desc, rawCard.desc, rawCard.description),
-    email: pickString(identity.email, rawCard.email),
-    primaryPhone: pickString(identity.primaryPhone, rawCard.primaryPhone, rawCard.phone),
+    email: '',
+    primaryPhone: '',
+    phone: '',
     contactMethods: asArray(identity.contactMethods).length ? asArray(identity.contactMethods) : asArray(rawCard.contactMethods),
     portfolioCount: kind === 'person' ? portfolioCount : Number(rawCard.portfolioCount || 0),
     isOwnCard,
@@ -295,8 +292,8 @@ export function normalizeCard(rawCard, currentUserId = '') {
         loc: common.loc,
         cat: common.cat,
         desc: common.desc,
-        email: common.email,
-        primaryPhone: common.primaryPhone,
+        email: '',
+        primaryPhone: '',
         primaryProfile: scope,
         verified: common.verified,
       },

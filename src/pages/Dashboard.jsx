@@ -1043,6 +1043,28 @@ export function Dashboard({ page, nuggets, setModal, setPage, onOpenOnboardingTa
     getUnlockKeys(itemOrId).some((key) => unlockedIdSet.has(key))
   ), [getUnlockKeys, unlockedIdSet]);
 
+  const getFeedDisplayCard = useCallback((card, unlockedForCurrentUser = false) => {
+    if (unlockedForCurrentUser) return card;
+    const ownerPreview = card?.ownerPreview && typeof card.ownerPreview === 'object'
+      ? {
+        ...card.ownerPreview,
+        email: '',
+        primaryPhone: '',
+        phone: '',
+      }
+      : card?.ownerPreview;
+    return {
+      ...card,
+      email: '',
+      phone: '',
+      primaryPhone: '',
+      secondaryPhone: '',
+      tertiaryPhone: '',
+      whatsapp: '',
+      ownerPreview,
+    };
+  }, []);
+
   // Circular deck: skip → rotate to back; match → remove permanently
   const feedDeckSessionPrefix = `ds_feed_deck_v1:${String(currentUserId || 'local-user')}`;
   const connDeckSessionKey = `${feedDeckSessionPrefix}:connections`;
@@ -4153,7 +4175,7 @@ export function Dashboard({ page, nuggets, setModal, setPage, onOpenOnboardingTa
                             boxShadow: isSponsored ? `0 0 0 2px ${C.alpha(C.accent, 0.85)}, 0 0 22px ${C.alpha(C.accent, 0.62)}` : 'none',
                           }}>
                             <SwipeCard card={{
-                              ...c,
+                              ...getFeedDisplayCard(c, isContactUnlocked(c)),
                               portfolioCount: getPortfolioCount(c.ownerId ?? c.id),
                               isVerified: isTruthyVerified(c?.verified) || verifiedOwnerIds.has(String(c.ownerId ?? c.id)),
                             }} action={isTop ? action : null} isUnlocked={isContactUnlocked(c)} isSkipped={skippedSet.has(c.id)} onSwipe={act} onUndo={lastConnOp && isTop ? undo : null} onUnlock={openUnlockFromConnectionCard} showActions={!isMobileViewport} />

@@ -869,8 +869,6 @@ const buildDbOwnerPreview = ({ ownerId, scope, userRow, personalRow, professiona
   const payloadProfessional = extracted.professionalProfileFromPayload || {};
   const payloadProfile = normalizedScope === 'professional' ? payloadProfessional : payloadPersonal;
   const isProfessional = normalizedScope === 'professional';
-  const userEmail = pickFirstString(userRow?.email);
-
   const isFsbo = normalizedScope === 'fsbo';
   const name = isProfessional
     ? pickIdentityName(
@@ -926,13 +924,6 @@ const buildDbOwnerPreview = ({ ownerId, scope, userRow, personalRow, professiona
   const loc = isFsbo
     ? pickFirstString(payloadScope?.loc, payloadProfile?.loc)
     : pickFirstString(payloadScope?.loc, payloadProfile?.loc, payloadProfile?.locB);
-  const email = isFsbo
-    ? pickFirstString(payloadScope?.email, payloadProfile?.email, userEmail)
-    : pickFirstString(payloadScope?.email, payloadProfile?.email, payloadProfile?.emailB, userEmail);
-  const primaryPhone = isFsbo
-    ? pickFirstString(payloadScope?.primaryPhone, payloadProfile?.primaryPhone, userRow?.phone)
-    : pickFirstString(payloadScope?.primaryPhone, payloadProfile?.primaryPhone, payloadProfile?.primaryPhoneB, userRow?.phone);
-
   return {
     id,
     ownerId: id,
@@ -943,8 +934,8 @@ const buildDbOwnerPreview = ({ ownerId, scope, userRow, personalRow, professiona
     photo,
     cat: pickFirstString(professionalRow?.primary_category_b, professionalRow?.primary_category, professionalRow?.category),
     desc: isFsbo ? '' : pickFirstString(payloadScope?.pitch, payloadProfile?.pitchB, payloadProfile?.pitch, professionalRow?.pitch),
-    email,
-    primaryPhone,
+    email: '',
+    primaryPhone: '',
     contactMethods: Array.isArray(payloadScope?.contactMethods)
       ? payloadScope.contactMethods
       : [],

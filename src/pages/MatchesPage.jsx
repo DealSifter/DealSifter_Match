@@ -2033,7 +2033,13 @@ export function MatchesPage({ nuggets, setModal, openUnlock, unlocked, initialCh
       String(cardLike.ownerId) === String(personalOwnerId) ||
       String(cardLike.ownerId) === String(secondaryOwnerId) ||
       String(cardLike.ownerId) === String(fsboOwnerId);
-    if (!isLocalCard) return normalizeCard({ ...cardLike, cardKind: 'person' }, currentUserId) || cardLike;
+    if (!isLocalCard) {
+      const isUnlockedSnapshot = String(cardLike?.source || '').trim() === 'remote-unlock'
+        || cardLike?.chatLinked === true
+        || String(cardLike?.unlockId || cardLike?.unlock_id || '').trim();
+      if (isUnlockedSnapshot) return cardLike;
+      return normalizeCard({ ...cardLike, cardKind: 'person' }, currentUserId) || cardLike;
+    }
     const localOwnerCard = buildLocalOwnerCard(resolvedScope);
     if (!localOwnerCard) return cardLike;
     return normalizeCard({
