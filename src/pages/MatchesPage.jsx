@@ -92,6 +92,43 @@ const CHAT_INTEREST_SERVICE_PREFIX = {
   es: 'Tengo interés en este Servicio',
 };
 
+const CHAT_SYSTEM_ALERT_COPY = {
+  en: {
+    recipientPlanTitle: 'DealSifter Chat unavailable for this contact',
+    recipientPlanToast: 'This unlocked contact does not currently have access to DealSifter Chat because of plan limits. Continue through another contact channel available on this profile.',
+    recipientPlanRecipient: 'System alert: a connection who unlocked your contact is trying to reach you through DealSifter Chat. Your current Basic plan does not include chat. Upgrade your plan to receive chat messages and speed up negotiations.',
+    recipientPlanSender: 'System alert: this unlocked contact does not currently have access to DealSifter Chat because their plan does not include this feature. Continue through another available contact channel on this profile.',
+    contactMethodTitle: 'DealSifter Chat not selected',
+    contactMethodToast: 'This profile did not select DealSifter Chat as a desired contact method.',
+    contactMethodRecipient: 'System alert: a connection tried to contact this profile through DealSifter Chat, but this profile has not selected chat as a desired contact method. Update your profile contact options if you want to receive chats here.',
+    contactMethodSender: 'System alert: this profile did not select DealSifter Chat as a desired contact method. Continue through another available contact channel on this profile.',
+  },
+  pt: {
+    recipientPlanTitle: 'Chat DealSifter indisponivel para este contato',
+    recipientPlanToast: 'Este contato desbloqueado ainda nao tem acesso ao Chat DealSifter por limitacao do plano dele. Continue por outro canal de contato disponivel neste perfil.',
+    recipientPlanRecipient: 'Alerta do sistema: uma conexao que desbloqueou seu contato esta tentando falar com voce pelo Chat DealSifter. Seu plano Basic atual nao inclui chat. Faca upgrade para receber mensagens pelo chat e agilizar negociacoes.',
+    recipientPlanSender: 'Alerta do sistema: este contato desbloqueado ainda nao tem acesso ao Chat DealSifter porque o plano dele nao inclui este recurso. Continue por outro canal de contato disponivel neste perfil.',
+    contactMethodTitle: 'Chat DealSifter nao selecionado',
+    contactMethodToast: 'Este perfil nao selecionou o Chat DealSifter como forma desejada de contato.',
+    contactMethodRecipient: 'Alerta do sistema: uma conexao tentou falar com este perfil pelo Chat DealSifter, mas este perfil nao selecionou chat como forma desejada de contato. Atualize as opcoes de contato do perfil se quiser receber chats aqui.',
+    contactMethodSender: 'Alerta do sistema: este perfil nao selecionou o Chat DealSifter como forma desejada de contato. Continue por outro canal de contato disponivel neste perfil.',
+  },
+  es: {
+    recipientPlanTitle: 'Chat DealSifter no disponible para este contacto',
+    recipientPlanToast: 'Este contacto desbloqueado todavia no tiene acceso al Chat DealSifter por limites de su plan. Continua por otro canal de contacto disponible en este perfil.',
+    recipientPlanRecipient: 'Alerta del sistema: una conexion que desbloqueo tu contacto esta intentando hablar contigo por Chat DealSifter. Tu plan Basic actual no incluye chat. Haz upgrade para recibir mensajes por chat y agilizar negociaciones.',
+    recipientPlanSender: 'Alerta del sistema: este contacto desbloqueado todavia no tiene acceso al Chat DealSifter porque su plan no incluye esta funcion. Continua por otro canal de contacto disponible en este perfil.',
+    contactMethodTitle: 'Chat DealSifter no seleccionado',
+    contactMethodToast: 'Este perfil no selecciono Chat DealSifter como forma deseada de contacto.',
+    contactMethodRecipient: 'Alerta del sistema: una conexion intento contactar este perfil por Chat DealSifter, pero este perfil no selecciono chat como forma deseada de contacto. Actualiza las opciones de contacto del perfil si quieres recibir chats aqui.',
+    contactMethodSender: 'Alerta del sistema: este perfil no selecciono Chat DealSifter como forma deseada de contacto. Continua por otro canal de contacto disponible en este perfil.',
+  },
+};
+
+function getChatSystemAlertCopy(lang) {
+  return CHAT_SYSTEM_ALERT_COPY[getSafeLang(lang || 'en')] || CHAT_SYSTEM_ALERT_COPY.en;
+}
+
 const DEFAULT_PEER_LANGS = { input: 'en', output: 'en' };
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
 
@@ -2795,7 +2832,10 @@ export function MatchesPage({ nuggets, setModal, openUnlock, unlocked, initialCh
         metadata: {
           reason,
           hideForSender: options.hideForSender === true,
+          hideForRecipient: options.hideForRecipient === true,
+          systemAlert: options.systemAlert === true,
           systemAudience: options.systemAudience || 'recipient',
+          localizedText: options.localizedText || null,
         },
       });
       return;
@@ -2813,6 +2853,14 @@ export function MatchesPage({ nuggets, setModal, openUnlock, unlocked, initialCh
           translatedText: message,
           translatedLang: myInputLang,
           senderPreview: currentUserChatPreview,
+          metadata: {
+            reason,
+            hideForSender: options.hideForSender === true,
+            hideForRecipient: options.hideForRecipient === true,
+            systemAlert: options.systemAlert === true,
+            systemAudience: options.systemAudience || 'local',
+            localizedText: options.localizedText || null,
+          },
           createdAt: new Date().toISOString(),
         },
       ],
@@ -2852,21 +2900,44 @@ export function MatchesPage({ nuggets, setModal, openUnlock, unlocked, initialCh
   }, [activeOwner, canUseChat]);
 
   const blockChatForActiveContact = useCallback((reason) => {
+    const senderCopy = getChatSystemAlertCopy(myOutputLang);
+    const recipientCopy = getChatSystemAlertCopy(myInputLang);
     const title = reason === 'recipient_plan'
-      ? 'DealSifter Chat unavailable for this contact'
-      : 'DealSifter Chat not selected';
+      ? senderCopy.recipientPlanTitle
+      : senderCopy.contactMethodTitle;
     const message = reason === 'recipient_plan'
-      ? 'This unlocked contact does not currently have access to DealSifter Chat because of plan limits. Continue through another contact channel available on this profile.'
-      : 'This profile did not select DealSifter Chat as a desired contact method.';
+      ? senderCopy.recipientPlanToast
+      : senderCopy.contactMethodToast;
     const systemMessage = reason === 'recipient_plan'
-      ? 'System notice: a connection who unlocked your contact is trying to reach you through DealSifter Chat. Your current Basic plan does not include chat. Upgrade your plan to receive chat messages and speed up negotiations.'
-      : 'System notice: a connection tried to contact this profile through DealSifter Chat, but this profile has not selected chat as a desired contact method. Update your profile contact options if you want to receive chats here.';
+      ? recipientCopy.recipientPlanRecipient
+      : recipientCopy.contactMethodRecipient;
+    const senderSystemMessage = reason === 'recipient_plan'
+      ? senderCopy.recipientPlanSender
+      : senderCopy.contactMethodSender;
+    const recipientLocalizedText = {
+      en: reason === 'recipient_plan' ? CHAT_SYSTEM_ALERT_COPY.en.recipientPlanRecipient : CHAT_SYSTEM_ALERT_COPY.en.contactMethodRecipient,
+      pt: reason === 'recipient_plan' ? CHAT_SYSTEM_ALERT_COPY.pt.recipientPlanRecipient : CHAT_SYSTEM_ALERT_COPY.pt.contactMethodRecipient,
+      es: reason === 'recipient_plan' ? CHAT_SYSTEM_ALERT_COPY.es.recipientPlanRecipient : CHAT_SYSTEM_ALERT_COPY.es.contactMethodRecipient,
+    };
+    const senderLocalizedText = {
+      en: reason === 'recipient_plan' ? CHAT_SYSTEM_ALERT_COPY.en.recipientPlanSender : CHAT_SYSTEM_ALERT_COPY.en.contactMethodSender,
+      pt: reason === 'recipient_plan' ? CHAT_SYSTEM_ALERT_COPY.pt.recipientPlanSender : CHAT_SYSTEM_ALERT_COPY.pt.contactMethodSender,
+      es: reason === 'recipient_plan' ? CHAT_SYSTEM_ALERT_COPY.es.recipientPlanSender : CHAT_SYSTEM_ALERT_COPY.es.contactMethodSender,
+    };
     addToast?.({ type: 'warning', title, message, duration: 7000 });
     writeChatSystemNotice(activeOwner, systemMessage, reason, {
-      hideForSender: reason === 'recipient_plan',
+      hideForSender: true,
+      systemAlert: true,
+      localizedText: recipientLocalizedText,
       systemAudience: reason === 'recipient_plan' ? 'recipient_plan_upgrade' : 'recipient_contact_method',
     });
-  }, [activeOwner, addToast, writeChatSystemNotice]);
+    writeChatSystemNotice(activeOwner, senderSystemMessage, reason, {
+      hideForRecipient: true,
+      systemAlert: true,
+      localizedText: senderLocalizedText,
+      systemAudience: reason === 'recipient_plan' ? 'sender_recipient_plan' : 'sender_contact_method',
+    });
+  }, [activeOwner, addToast, myInputLang, myOutputLang, writeChatSystemNotice]);
 
   const handleSend = useCallback(async (customMsg, type = "text", refData = null) => {
     if (!activeOwner) return;
@@ -3633,12 +3704,24 @@ export function MatchesPage({ nuggets, setModal, openUnlock, unlocked, initialCh
                       const refData = m.refData && typeof m.refData === 'object' ? m.refData : {};
                       const refTitle = refData.address || refData.name || refData.title || 'Shared reference';
                       const refImage = refData.images?.[0] || refData.image || refData.media?.images?.[0] || '';
+                      const isSystemAlert = m.type === 'system' && m.metadata?.systemAlert === true;
+                      const localizedSystemText = isSystemAlert && m.metadata?.localizedText && typeof m.metadata.localizedText === 'object'
+                        ? (m.metadata.localizedText[myOutputLang] || m.metadata.localizedText.en || m.text)
+                        : m.text;
                       const receiptLabel = m.status === 'failed'
                         ? 'failed'
                         : (m.status === 'sending' ? 'sending' : (m.readStatus === 'read' ? 'lida' : 'nao lida'));
                       return (
-                      <div key={messageKey} style={{ display:"flex", justifyContent:isMine?"flex-end":"flex-start" }}>
-                        <div style={{ maxWidth:"80%", padding:m.type==="reference"?8:12, borderRadius:12, background:isMine?C.alpha(C.accent, 0.5):C.bg, border:`1px solid ${isMine?C.alpha(C.accent, 0.7):C.border}`, color:isMine?C.t1:C.t1 }}>
+                      <div key={messageKey} style={{ display:"flex", justifyContent:isSystemAlert?"center":(isMine?"flex-end":"flex-start") }}>
+                        <div style={{
+                          maxWidth: isSystemAlert ? '92%' : '80%',
+                          padding: m.type==="reference"?8:12,
+                          borderRadius:12,
+                          background: isSystemAlert ? C.alpha(C.danger, 0.08) : (isMine?C.alpha(C.accent, 0.5):C.bg),
+                          border:`1px solid ${isSystemAlert ? C.alpha(C.danger, 0.45) : (isMine?C.alpha(C.accent, 0.7):C.border)}`,
+                          color: isSystemAlert ? C.danger : C.t1,
+                          boxShadow: isSystemAlert ? `0 0 0 1px ${C.alpha(C.danger, 0.08)}` : 'none',
+                        }}>
                           {m.type === "reference" ? (
                              <div style={{ width:200 }}>
                                <SmartImage src={refImage} alt={refTitle} style={{ width:"100%", height:100, borderRadius:8, objectFit:"cover" }} fallback={<div style={{ width:"100%", height:100, borderRadius:8, display:"flex", alignItems:"center", justifyContent:"center", background:C.alpha(C.t1,0.05) }}><Icon name="home" size={18} color={C.t3} /></div>} />
@@ -3646,8 +3729,8 @@ export function MatchesPage({ nuggets, setModal, openUnlock, unlocked, initialCh
                              </div>
                           ) : (
                             <>
-                              <div style={{ fontSize:chatMainTextSize }}>{m.text}</div>
-                              {m.originalText && m.originalText !== m.text && (
+                              <div style={{ fontSize:chatMainTextSize, fontWeight: isSystemAlert ? 850 : 400, lineHeight: 1.42 }}>{localizedSystemText}</div>
+                              {m.originalText && m.originalText !== localizedSystemText && (
                                 <div style={{ marginTop:6, paddingTop:6, borderTop:`1px dashed ${C.alpha(C.t1, 0.2)}`, fontSize:10, opacity:0.9 }}>
                                   {t.originalTextLabel} ({String(m.originalLang || '').toUpperCase()}): {m.originalText}
                                 </div>

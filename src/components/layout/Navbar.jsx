@@ -7,6 +7,7 @@ import { NuggetBadge } from '../ui/NuggetBadge';
 import { Icon } from '../ui/Icon';
 import { useMediaQuery } from '../../hooks/useMediaQuery';
 import appLogo from '../../assets/logo.png';
+import { getMobileHeaderLogo, getThemeToggleTarget } from '../../lib/brandAssets';
 import feedMatchIcon from '../../assets/feed-match-icon.png';
 import mapViewTaskbarIcon from '../../assets/taskbar-mapview-icon.png';
 import matchesTaskbarIcon from '../../assets/taskbar-matches-icon.png';
@@ -179,7 +180,7 @@ export function Navbar({ page, prevPage, setPage, nuggets = 0, setModal = () => 
   const t = allT.nav;
   const guideT = allT.guideTips || {};
   const { enabled: guideTipsEnabled, toggle: toggleGuideTips } = useGuideTips();
-  const { theme, toggleTheme } = useTheme();
+  const { theme, effectiveTheme, toggleTheme } = useTheme();
   const [notifOpen, setNotifOpen] = useState(false);
   const [notifTab, setNotifTab] = useState('matches');
   const isMobile = useMediaQuery('(max-width: 767px)');
@@ -208,8 +209,12 @@ export function Navbar({ page, prevPage, setPage, nuggets = 0, setModal = () => 
   const presenceColor = presenceStatus === 'standby' ? '#facc15' : (presenceStatus === 'offline' ? '#ef4444' : '#22c55e');
   const allowMessagePreview = Boolean(userPreferences?.privacy?.messagePreview ?? true);
   const useImageLogoInHeader = isMobile;
-  const compactDarkLogoSrc = '/logo%20tema%20preto.png';
-  const compactLightLogoSrc = '/logo%20tema%20branco.png';
+  const visualTheme = effectiveTheme || theme || 'light';
+  const themeToggleTarget = getThemeToggleTarget(visualTheme);
+  const themeToggleLabel = themeToggleTarget === 'light'
+    ? (t.themeToLight || 'Enable light mode')
+    : (t.themeToDark || 'Enable dark mode');
+  const themeToggleIcon = themeToggleTarget === 'light' ? 'sun' : 'moon';
   const headerIconButtonStyle = {
     width: 34,
     height: 34,
@@ -367,7 +372,7 @@ export function Navbar({ page, prevPage, setPage, nuggets = 0, setModal = () => 
           <div className="logo-general" data-logo="general" style={{ display: 'flex', alignItems: 'center', cursor: 'pointer' }} onClick={() => setPage && setPage('landing')}>
             {useImageLogoInHeader ? (
               <img
-                src={isLanding ? compactLightLogoSrc : (theme === 'dark' ? compactDarkLogoSrc : compactLightLogoSrc)}
+                src={getMobileHeaderLogo(isLanding ? 'light' : visualTheme)}
                 alt="DealSifter Match"
                 style={{ height: 44, width: 'auto', display: 'block' }}
                 onError={(e) => {
@@ -604,8 +609,8 @@ export function Navbar({ page, prevPage, setPage, nuggets = 0, setModal = () => 
                           </div>
 
                           <button onClick={toggleTheme} style={{ width: '100%', display: 'flex', alignItems: 'center', gap: 10, borderRadius: 10, border: `1px solid ${C.border}`, background: 'transparent', color: C.t2, fontWeight: 700, fontSize: 14, padding: '10px 12px', cursor: 'pointer' }}>
-                            <Icon name={theme === 'dark' ? 'sun' : 'moon'} size={15} color={C.t2} />
-                            <span>{theme === 'dark' ? (t.themeToLight || 'Enable light mode') : (t.themeToDark || 'Enable dark mode')}</span>
+                            <Icon name={themeToggleIcon} size={15} color={C.t2} />
+                            <span>{themeToggleLabel}</span>
                           </button>
 
                           {showInstallAppButton ? (
@@ -755,8 +760,8 @@ export function Navbar({ page, prevPage, setPage, nuggets = 0, setModal = () => 
                   ) : null}
                 </div>
                 <LangPicker />
-                <button onClick={toggleTheme} title={theme === 'dark' ? (t.themeToLight || 'Enable light mode') : (t.themeToDark || 'Enable dark mode')} style={headerIconButtonStyle}>
-                  <Icon name={theme === 'dark' ? 'sun' : 'moon'} size={18} color={C.t2} strokeWidth={1.9} />
+                <button onClick={toggleTheme} title={themeToggleLabel} style={headerIconButtonStyle}>
+                  <Icon name={themeToggleIcon} size={18} color={C.t2} strokeWidth={1.9} />
                 </button>
                 <button
                   onClick={onOpenSettings}

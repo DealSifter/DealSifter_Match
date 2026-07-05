@@ -1,4 +1,4 @@
-import React, { useEffect, useLayoutEffect, useMemo, useState } from 'react';
+import React, { useCallback, useEffect, useLayoutEffect, useMemo, useState } from 'react';
 import { C } from './colors';
 import ThemeContext from './context';
 
@@ -29,12 +29,12 @@ export function ThemeProvider({ children, forcedTheme = null }) {
     try { localStorage.setItem('theme', theme); } catch (e) { void e; }
   }, [forcedTheme, theme]);
 
-  const toggleTheme = () => {
+  const toggleTheme = useCallback(() => {
     try { localStorage.setItem('ds_theme_user_choice', '1'); } catch (e) { void e; }
-    setTheme((prev) => (prev === 'light' ? 'dark' : 'light'));
-  };
+    setTheme(effectiveTheme === 'dark' ? 'light' : 'dark');
+  }, [effectiveTheme]);
 
-  const value = useMemo(() => ({ theme, effectiveTheme, toggleTheme }), [theme, effectiveTheme]);
+  const value = useMemo(() => ({ theme, effectiveTheme, toggleTheme }), [theme, effectiveTheme, toggleTheme]);
 
   return <ThemeContext.Provider value={value}>{children}</ThemeContext.Provider>;
 }

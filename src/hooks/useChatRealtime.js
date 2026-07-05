@@ -2,7 +2,7 @@ import { useCallback, useEffect, useState } from 'react';
 import { isSupabaseConfigured, supabase } from '../lib/supabaseClient';
 
 const CHAT_MESSAGES_TABLE = 'chat_messages';
-const CHAT_PAGE_SIZE = 30;
+const CHAT_PAGE_SIZE = 50;
 const CHAT_MESSAGE_SELECT = 'id, sender_id, recipient_id, contact_owner_id, body, message_type, metadata, read_at, created_at';
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
 
@@ -33,6 +33,7 @@ function mapChatRowToMessage(row, currentUserId) {
 
   const metadata = row.metadata && typeof row.metadata === 'object' ? row.metadata : {};
   if (isMine && metadata.hideForSender === true) return null;
+  if (!isMine && metadata.hideForRecipient === true) return null;
   return {
     peerId,
     message: {
@@ -47,6 +48,7 @@ function mapChatRowToMessage(row, currentUserId) {
       translatedText: row.body || '',
       translatedLang: metadata.translatedLang || '',
       senderPreview: metadata.senderPreview || null,
+      metadata,
       createdAt: row.created_at || null,
       readAt: row.read_at || null,
       readStatus: isMine ? (row.read_at ? 'read' : 'unread') : 'read',

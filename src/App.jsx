@@ -4639,7 +4639,12 @@ export default function App() {
       .filter(([ownerId, msgs]) => {
         if (!Array.isArray(msgs) || msgs.length === 0) return false;
         const isUnlocked = (unlocked || []).some((id) => String(id) === String(ownerId));
-        if (!isUnlocked) return false;
+        const hasSystemAlert = msgs.some((m) => (
+          m?.from !== 'me'
+          && m?.type === 'system'
+          && m?.metadata?.systemAlert === true
+        ));
+        if (!isUnlocked && !hasSystemAlert) return false;
         const incomingCount = msgs.filter((m) => m?.from !== 'me').length;
         const seenCount = Number(seenIncomingByContact?.[ownerId] || 0);
         const unreadCount = Math.max(0, incomingCount - seenCount);
@@ -4648,10 +4653,28 @@ export default function App() {
       .map(([ownerId, msgs]) => {
         const incomingMessages = msgs.filter((m) => m?.from !== 'me');
         const lastIncoming = incomingMessages[incomingMessages.length - 1] || msgs[msgs.length - 1];
+        const localizedIncomingText = lastIncoming?.metadata?.localizedText && typeof lastIncoming.metadata.localizedText === 'object'
+          ? (
+            lastIncoming.metadata.localizedText[userPreferences?.chatLanguage?.output || 'en']
+            || lastIncoming.metadata.localizedText.en
+            || lastIncoming.text
+          )
+          : lastIncoming?.text;
+        const senderPreview = lastIncoming?.senderPreview && typeof lastIncoming.senderPreview === 'object'
+          ? lastIncoming.senderPreview
+          : null;
         const ownerIdStr = String(ownerId);
         const target =
           (matched || []).find((m) => String(m.id) === ownerIdStr)
           || (CARDS || []).find((c) => String(c.id) === ownerIdStr)
+          || (senderPreview ? {
+            id: ownerId,
+            ownerId,
+            name: senderPreview.name || senderPreview.title || senderPreview.fullName || `Chat ${ownerId}`,
+            avatar: senderPreview.avatar || senderPreview.avatarUrl || senderPreview.image || senderPreview.photo || '',
+            image: senderPreview.avatar || senderPreview.avatarUrl || senderPreview.image || senderPreview.photo || '',
+            chatLinked: true,
+          } : null)
           || null;
         const incomingCount = incomingMessages.length;
         const seenCount = Number(seenIncomingByContact?.[ownerId] || 0);
@@ -4661,14 +4684,14 @@ export default function App() {
           ownerId,
           target,
           title: target?.name ? `Chat ${target.name}` : `Chat ${ownerId}`,
-          message: String(lastIncoming?.text || '').slice(0, 90) || 'Nova atividade no chat',
+          message: String(localizedIncomingText || '').slice(0, 120) || 'Nova atividade no chat',
           count: unreadCount,
         };
       })
       .sort((a, b) => (b.count || 0) - (a.count || 0));
 
     return [...unreadUnlockNotifications, ...chatItems];
-  }, [convos, unlocked, matched, ownerUnlockNotifications]);
+  }, [convos, unlocked, matched, ownerUnlockNotifications, userPreferences?.chatLanguage?.output]);
 
   useEffect(() => {
     const supportNotifications = (ownerUnlockNotifications || [])
@@ -6044,7 +6067,7 @@ export default function App() {
               userPreferences={userPreferences}
             />
             <GuideTipOverlay key={page} page={page} />
-            <Suspense fallback={<AppLoadingScreen message="Loading DealSifter..." label="Loading DealSifter module" />}>
+            <Suspense fallback={null}>
               {(() => {
                 if (!keepAlivePageIds.has(page)) return renderPageContent(page);
                 const shouldHoldDataHydration = Boolean(
@@ -6053,7 +6076,7 @@ export default function App() {
                   && supabaseUserId
                   && !dashboardHydrationReady
                 );
-                if (shouldHoldDataHydration) {
+                if (shouldHoldDataHydration && !visitedKeepAlivePages.has(page)) {
                   return (
                     <AppLoadingScreen message="Loading your DealSifter data..." label="Loading DealSifter data" />
                   );
