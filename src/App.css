@@ -27,7 +27,9 @@
   z-index: 10080;
   width: 100vw;
   height: 100dvh;
-  background: rgba(237, 237, 237, 0.82);
+  background:
+    radial-gradient(circle at 50% 40%, rgba(53, 202, 201, 0.28), transparent 34%),
+    linear-gradient(145deg, #f6fbfb, #eaf9f8);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -36,7 +38,9 @@
 }
 
 [data-theme="dark"] .ds-processing-overlay {
-  background: rgba(7, 11, 17, 0.78);
+  background:
+    radial-gradient(circle at 50% 40%, rgba(53, 202, 201, 0.36), transparent 34%),
+    linear-gradient(145deg, #0b1514, #12231f);
 }
 
 .ds-app-boot-screen {
@@ -47,31 +51,35 @@
   padding: 24px;
   box-sizing: border-box;
   background:
-    radial-gradient(circle at 50% 28%, rgba(53, 202, 201, 0.18), transparent 34%),
-    var(--bg);
+    radial-gradient(circle at 50% 40%, rgba(53, 202, 201, 0.28), transparent 34%),
+    linear-gradient(145deg, #f6fbfb, #eaf9f8);
   color: var(--t1);
   overflow: hidden;
   contain: paint;
 }
 
+[data-theme="dark"] .ds-app-boot-screen {
+  background:
+    radial-gradient(circle at 50% 40%, rgba(53, 202, 201, 0.36), transparent 34%),
+    linear-gradient(145deg, #0b1514, #12231f);
+}
+
 .ds-processing-card {
-  min-width: 240px;
+  min-width: 0;
   max-width: min(90vw, 380px);
-  border-radius: 16px;
-  border: 1px solid rgba(184, 190, 200, 0.74);
-  background: rgba(255, 255, 255, 0.96);
-  box-shadow: 0 14px 42px rgba(15, 23, 42, 0.16);
-  padding: 18px 20px;
+  border: 0;
+  background: transparent;
+  box-shadow: none;
+  padding: 0 18px;
   display: grid;
   justify-items: center;
-  gap: 12px;
-  animation: ds-loader-card-float 1.8s ease-in-out infinite;
+  gap: 14px;
+  animation: none;
 }
 
 [data-theme="dark"] .ds-processing-card {
-  border-color: rgba(42, 56, 51, 0.9);
-  background: rgba(22, 30, 42, 0.96);
-  box-shadow: 0 14px 42px rgba(0, 0, 0, 0.42);
+  background: transparent;
+  box-shadow: none;
 }
 
 .ds-processing-logo {

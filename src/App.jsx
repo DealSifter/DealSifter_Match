@@ -1088,6 +1088,20 @@ const mergeFeedActionItems = (prev, incoming) => {
   return next;
 };
 
+const AppLoadingScreen = ({ message = 'Loading DealSifter...', overlay = false, label }) => (
+  <div
+    className={overlay ? 'ds-processing-overlay' : 'ds-app-boot-screen'}
+    role="status"
+    aria-live="polite"
+    aria-label={label || message}
+  >
+    <div className="ds-processing-card">
+      <img src={loaderMark} alt="DealSifter" className="ds-processing-logo" />
+      <div className="ds-processing-text">{message}</div>
+    </div>
+  </div>
+);
+
 const MobilePortraitGuard = ({ copy }) => (
   <div
     role="dialog"
@@ -6003,12 +6017,7 @@ export default function App() {
       <GuideTipsProvider>
       <div style={{ minHeight: '100vh', background: 'var(--bg)', color: 'var(--t1)' }}>
         {isAppShellBooting ? (
-          <div className="ds-app-boot-screen" role="status" aria-live="polite" aria-label="Loading DealSifter">
-            <div className="ds-processing-card">
-              <img src={loaderMark} alt="DealSifter" className="ds-processing-logo" />
-              <div className="ds-processing-text">Loading DealSifter...</div>
-            </div>
-          </div>
+          <AppLoadingScreen message="Loading DealSifter..." label="Loading DealSifter" />
         ) : (
           <>
             <Navbar
@@ -6035,7 +6044,7 @@ export default function App() {
               userPreferences={userPreferences}
             />
             <GuideTipOverlay key={page} page={page} />
-            <Suspense fallback={<div style={{ minHeight: '60vh' }} />}>
+            <Suspense fallback={<AppLoadingScreen message="Loading DealSifter..." label="Loading DealSifter module" />}>
               {(() => {
                 if (!keepAlivePageIds.has(page)) return renderPageContent(page);
                 const shouldHoldDataHydration = Boolean(
@@ -6046,12 +6055,7 @@ export default function App() {
                 );
                 if (shouldHoldDataHydration) {
                   return (
-                    <div className="ds-app-boot-screen" role="status" aria-live="polite" aria-label="Loading DealSifter data">
-                      <div className="ds-processing-card">
-                        <img src={loaderMark} alt="DealSifter" className="ds-processing-logo" />
-                        <div className="ds-processing-text">Loading your DealSifter data...</div>
-                      </div>
-                    </div>
+                    <AppLoadingScreen message="Loading your DealSifter data..." label="Loading DealSifter data" />
                   );
                 }
 
@@ -6089,12 +6093,7 @@ export default function App() {
         )}
 
         {showBlockingProcessing && (
-          <div className="ds-processing-overlay" role="status" aria-live="polite" aria-label={blockingProcessingMessage}>
-            <div className="ds-processing-card">
-              <img src={loaderMark} alt="DealSifter" className="ds-processing-logo" />
-              <div className="ds-processing-text">{blockingProcessingMessage}</div>
-            </div>
-          </div>
+          <AppLoadingScreen message={blockingProcessingMessage} overlay label={blockingProcessingMessage} />
         )}
 
         {/* Cookie banner — landing page only, before login */}

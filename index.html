@@ -12,14 +12,122 @@
     <meta http-equiv="X-Content-Type-Options" content="nosniff" />
     <meta name="referrer" content="strict-origin-when-cross-origin" />
     <meta name="description" content="DealSifter – Connect with real estate professionals, discover deals, and grow your network." />
-    <meta name="theme-color" content="#6366f1" />
+    <meta name="theme-color" content="#f6fbfb" />
     <meta property="og:title" content="DealSifter" />
     <meta property="og:description" content="Real estate networking & deal discovery platform." />
     <meta property="og:type" content="website" />
+    <script>
+      (function () {
+        try {
+          var url = new URL(window.location.href);
+          var hash = String(window.location.hash || '');
+          var isAuthCallback = url.searchParams.has('code')
+            || url.searchParams.has('error')
+            || hash.indexOf('access_token=') !== -1;
+          var saved = window.localStorage.getItem('theme');
+          var hasExplicitThemeChoice = window.localStorage.getItem('ds_theme_user_choice') === '1';
+          var theme = (!isAuthCallback && saved === 'dark' && hasExplicitThemeChoice) ? 'dark' : 'light';
+          document.documentElement.setAttribute('data-theme', theme);
+          document.documentElement.style.colorScheme = theme;
+          var meta = document.querySelector('meta[name="theme-color"]');
+          if (meta) meta.setAttribute('content', theme === 'dark' ? '#0b1514' : '#f6fbfb');
+        } catch (error) {
+          document.documentElement.setAttribute('data-theme', 'light');
+          document.documentElement.style.colorScheme = 'light';
+        }
+      })();
+    </script>
+    <style>
+      :root {
+        --ds-splash-bg: #f6fbfb;
+        --ds-splash-bg-soft: #eaf9f8;
+        --ds-splash-text: #10213f;
+        --ds-splash-accent: #35cac9;
+        --ds-splash-glow: rgba(53, 202, 201, 0.28);
+      }
+
+      [data-theme="dark"] {
+        --ds-splash-bg: #0b1514;
+        --ds-splash-bg-soft: #12231f;
+        --ds-splash-text: #f1f8f7;
+        --ds-splash-glow: rgba(53, 202, 201, 0.36);
+      }
+
+      html,
+      body,
+      #root {
+        min-height: 100%;
+        margin: 0;
+        background:
+          radial-gradient(circle at 50% 40%, var(--ds-splash-glow), transparent 34%),
+          linear-gradient(145deg, var(--ds-splash-bg), var(--ds-splash-bg-soft));
+        color: var(--ds-splash-text);
+      }
+
+      body {
+        min-width: 320px;
+        overflow-x: hidden;
+      }
+
+      .ds-initial-loader {
+        position: fixed;
+        inset: 0;
+        z-index: 2147482000;
+        display: grid;
+        place-items: center;
+        padding: 24px;
+        box-sizing: border-box;
+        background:
+          radial-gradient(circle at 50% 40%, var(--ds-splash-glow), transparent 34%),
+          linear-gradient(145deg, var(--ds-splash-bg), var(--ds-splash-bg-soft));
+      }
+
+      .ds-initial-loader-inner {
+        display: grid;
+        justify-items: center;
+        gap: 14px;
+        background: transparent;
+        border: 0;
+        box-shadow: none;
+      }
+
+      .ds-initial-logo {
+        width: 66px;
+        height: 66px;
+        object-fit: contain;
+        filter: drop-shadow(0 0 14px var(--ds-splash-glow));
+        animation: ds-splash-spin 1.15s linear infinite;
+      }
+
+      .ds-initial-text {
+        color: var(--ds-splash-accent);
+        font: 800 13px/1.35 system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+        text-align: center;
+        text-shadow: 0 0 12px var(--ds-splash-glow);
+        animation: ds-splash-text 1.35s ease-in-out infinite;
+      }
+
+      @keyframes ds-splash-spin {
+        from { transform: rotate(0deg); }
+        to { transform: rotate(360deg); }
+      }
+
+      @keyframes ds-splash-text {
+        0%, 100% { opacity: 0.84; }
+        50% { opacity: 1; }
+      }
+    </style>
     <title>DealSifter</title>
   </head>
   <body>
-    <div id="root"></div>
+    <div id="root">
+      <div class="ds-initial-loader" role="status" aria-live="polite" aria-label="Loading DealSifter">
+        <div class="ds-initial-loader-inner">
+          <img class="ds-initial-logo" src="/logo.png" alt="DealSifter" />
+          <div class="ds-initial-text">Loading DealSifter...</div>
+        </div>
+      </div>
+    </div>
     <script type="module" src="/src/main.jsx"></script>
   </body>
 </html>
