@@ -25,6 +25,7 @@ import { isPendingDealExpired } from '../lib/pendingDeal';
 import { orderDeck } from '../lib/orderFeedDeck';
 import { normalizeCard } from '../lib/normalizeFeedCard';
 import { checkIsUnlocked } from '../services/unlockService';
+import { formatCompactUsd } from '../lib/formatMoney';
 import feedMatchIcon from '../assets/feed-match-icon.png';
 import spotlightIcon from '../assets/spotlight-icon.png';
 
@@ -2496,7 +2497,7 @@ export function Dashboard({ page, nuggets, setModal, setPage, onOpenOnboardingTa
     })
   ), []);
 
-  const fmtPrice = (p) => `$${Number(p || 0).toLocaleString('en-US')}`;
+  const fmtPrice = formatCompactUsd;
   const isTruthyVerified = (value) => {
     if (value === true || value === 1) return true;
     const normalized = String(value || '').trim().toLowerCase();
@@ -4554,7 +4555,7 @@ export function Dashboard({ page, nuggets, setModal, setPage, onOpenOnboardingTa
                   />
                   <div style={{ flex:1, minWidth:0 }}>
                     <div style={{ fontWeight:700, color:C.t1, fontSize:11, whiteSpace:"nowrap", overflow:"hidden", textOverflow:"ellipsis" }}>{m.address}</div>
-                    <div style={{ fontWeight:600, color:C.gold, fontSize:11 }}>${Number(m.price || 0).toLocaleString('en-US')}</div>
+                    <div style={{ fontWeight:600, color:C.gold, fontSize:11 }}>{formatCompactUsd(m.price || 0)}</div>
                     <div style={{ 
                       fontSize:10, 
                       color:C.t3, 

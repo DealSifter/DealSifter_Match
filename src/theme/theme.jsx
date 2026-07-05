@@ -31,7 +31,10 @@ export function ThemeProvider({ children, forcedTheme = null }) {
 
   const toggleTheme = useCallback(() => {
     try { localStorage.setItem('ds_theme_user_choice', '1'); } catch (e) { void e; }
-    setTheme(effectiveTheme === 'dark' ? 'light' : 'dark');
+    const appliedTheme = typeof document !== 'undefined'
+      ? (document.documentElement.getAttribute('data-theme') || effectiveTheme)
+      : effectiveTheme;
+    setTheme(appliedTheme === 'dark' ? 'light' : 'dark');
   }, [effectiveTheme]);
 
   const value = useMemo(() => ({ theme, effectiveTheme, toggleTheme }), [theme, effectiveTheme, toggleTheme]);

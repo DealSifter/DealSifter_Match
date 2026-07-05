@@ -15,6 +15,7 @@ import { getPortfolioUnlockCost, getPropertyExclusivityStatus } from '../lib/unl
 import { inferRecordProfileScope, normalizeProfileScope, resolveScopedProfile } from '../lib/profileScopeResolver';
 import { normalizeCard } from '../lib/normalizeFeedCard';
 import { orderDeck } from '../lib/orderFeedDeck';
+import { formatCompactUsd } from '../lib/formatMoney';
 
 const DEFAULT_CENTER = [39.5, -98.35];
 const DEFAULT_ZOOM = 4;
@@ -3930,7 +3931,7 @@ export function MapView({
                     </div>
                   ) : (
                     <div style={{ marginTop: 8, color: C.t2, fontSize: 12 }}>
-                      ${item.price?.toLocaleString()} · Cap {item.capRate}%
+                      {formatCompactUsd(item.price || 0)} · Cap {item.capRate}%
                     </div>
                   )}
                 </div>
@@ -4209,7 +4210,7 @@ export function MapView({
                           <div style={{ minWidth: 0, flex: 1 }}>
                             <div className="ds-map-popup-title">{payload.address}</div>
                             <div className="ds-map-popup-subtitle">{payload.type} · {payload.city}</div>
-                            <div className="ds-map-popup-meta">${payload.price?.toLocaleString()} · Cap {payload.capRate}%</div>
+                            <div className="ds-map-popup-meta">{formatCompactUsd(payload.price || 0)} · Cap {payload.capRate}%</div>
                             <div className="ds-map-popup-cta">{`${tMatches.viewInFeed} ->`}</div>
                           </div>
                         </div>
@@ -4230,6 +4231,7 @@ export function MapView({
     </div>
   );
 }
+
 
 
 

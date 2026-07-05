@@ -21,6 +21,7 @@ import { trackAppEvent } from '../lib/adminEventTracking';
 import { getPortfolioUnlockCost, getPropertyExclusivityStatus } from '../lib/unlockRules';
 import { isSupabaseConfigured, supabase } from '../lib/supabaseClient';
 import { normalizeCard } from '../lib/normalizeFeedCard';
+import { formatCompactUsd } from '../lib/formatMoney';
 import { getActiveExclusivities } from '../services/unlockService';
 import { useUnlockNotifications } from '../hooks/useUnlockNotifications';
 import appLogo from '../assets/logo-dark-theme.png';
@@ -250,7 +251,7 @@ const PortfolioItem = ({ p, onOpen, exclusivityStatus = null, ownerVerified = fa
             Stand By
           </div>
         ) : null}
-        <div style={{ fontSize:10, color:C.gold, fontWeight:700 }}>${Number(p.price || 0).toLocaleString('en-US')}</div>
+        <div style={{ fontSize:10, color:C.gold, fontWeight:700 }}>{formatCompactUsd(p.price || 0)}</div>
       </div>
     </div>
   );

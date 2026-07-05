@@ -1,8 +1,6 @@
-import mobileLightLogo from '../assets/logo-light-theme.jpg';
-import mobileDarkLogo from '../assets/logo-dark-theme.jpg';
-
 export function getMobileHeaderLogo(theme) {
-  return theme === 'dark' ? mobileDarkLogo : mobileLightLogo;
+  void theme;
+  return '/logo%20tema%20branco.png';
 }
 
 export function getThemeToggleTarget(theme) {

@@ -9,6 +9,7 @@ import { CARD_STATUS } from '../ui/cardStatusTokens';
 import { useMediaQuery } from '../../hooks/useMediaQuery';
 import { formatPropertyLocation } from '../../lib/formatPropertyLocation';
 import { getPendingDealRemainingDays, isPendingDealActive } from '../../lib/pendingDeal';
+import { formatCompactUsd } from '../../lib/formatMoney';
 
 export function PropertyCard({ property, action, statusAction, onInterest, owner, isSkipped = false, previewOnly = false, hotMetrics = null, exclusivityStatus = null, onAvatarClick, onUnlock = null, showActions = true }) {
   const t = useT('dashboard').cards;
@@ -44,7 +45,7 @@ export function PropertyCard({ property, action, statusAction, onInterest, owner
     `
     : C.shadow;
 
-  const fmtPrice = (p) => `$${Number(p || 0).toLocaleString('en-US')}`;
+  const fmtPrice = formatCompactUsd;
 
   // strategyColor mapping omitted (not currently used)
 
