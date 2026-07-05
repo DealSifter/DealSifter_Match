@@ -1,6 +1,5 @@
 export function getMobileHeaderLogo(theme) {
-  void theme;
-  return '/logo%20tema%20branco.png';
+  return theme === 'dark' ? '/logo%20tema%20preto.png' : '/logo%20tema%20branco.png';
 }
 
 export function getThemeToggleTarget(theme) {
