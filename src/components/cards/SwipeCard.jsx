@@ -15,6 +15,10 @@ function SwipeCard({ card, action, isUnlocked, isSkipped, onSwipe, onUndo, onUnl
   const [dragX, setDragX] = React.useState(0);
   const [dragY, setDragY] = React.useState(0);
   const [isDragging, setIsDragging] = React.useState(false);
+  const phoneValue = String(card?.phone || card?.primaryPhone || '').trim();
+  const emailValue = String(card?.email || '').trim();
+  const revealPhone = Boolean(isUnlocked && phoneValue);
+  const revealEmail = Boolean(isUnlocked && emailValue);
 
   const dragAbs = Math.abs(dragX);
   const dragProgress = Math.min(1, dragAbs / 130);
@@ -339,17 +343,17 @@ function SwipeCard({ card, action, isUnlocked, isSkipped, onSwipe, onUndo, onUnl
           <div
             style={{
               padding: '4px 9px', borderRadius: 8,
-              background: isUnlocked
+              background: revealPhone
                 ? C.alpha(C.success, 0.08)
                 : C.alpha(C.t1, 0.04),
-              border: `1px solid ${isUnlocked ? C.alpha(C.success, 0.2) : C.border}`,
+              border: `1px solid ${revealPhone ? C.alpha(C.success, 0.2) : C.border}`,
               display: 'flex', alignItems: 'center', gap: 5,
             }}
           >
-            <Icon name="phone" size={11} color={isUnlocked ? C.success : C.t2} strokeWidth={1.6} />
-            {isUnlocked ? (
+            <Icon name="phone" size={11} color={revealPhone ? C.success : C.t2} strokeWidth={1.6} />
+            {revealPhone ? (
               <span style={{ fontSize: 11, color: C.success, fontWeight: 700 }}>
-                {card.phone}
+                {phoneValue}
               </span>
             ) : (
               <>
@@ -369,19 +373,19 @@ function SwipeCard({ card, action, isUnlocked, isSkipped, onSwipe, onUndo, onUnl
           <div
             style={{
               padding: '4px 9px', borderRadius: 8,
-              background: isUnlocked
+              background: revealEmail
                 ? C.alpha(C.success, 0.08)
                 : C.alpha(C.t1, 0.04),
-              border: `1px solid ${isUnlocked ? C.alpha(C.success, 0.2) : C.border}`,
+              border: `1px solid ${revealEmail ? C.alpha(C.success, 0.2) : C.border}`,
               display: 'flex', alignItems: 'center', gap: 5,
               flex: 1,
               minWidth: 0,
             }}
           >
-            <Icon name="email" size={11} color={isUnlocked ? C.success : C.t2} strokeWidth={1.6} />
-            {isUnlocked ? (
+            <Icon name="email" size={11} color={revealEmail ? C.success : C.t2} strokeWidth={1.6} />
+            {revealEmail ? (
               <span style={{ fontSize: 11, color: C.success, fontWeight: 700, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
-                {card.email}
+                {emailValue}
               </span>
             ) : (
               <>
@@ -451,7 +455,7 @@ function SwipeCard({ card, action, isUnlocked, isSkipped, onSwipe, onUndo, onUnl
 
             <button
               onPointerDown={(e) => {
-                try { e.preventDefault(); e.stopPropagation(); } catch (err) { /* best-effort */ }
+                try { e.preventDefault(); e.stopPropagation(); } catch { /* best-effort */ }
                 if (isUnlocked) return;
                 if (typeof onUnlock === 'function') onUnlock(card);
                 else onSwipe('unlock');
