@@ -96,33 +96,33 @@ const CHAT_INTEREST_SERVICE_PREFIX = {
 const CHAT_SYSTEM_ALERT_COPY = {
   en: {
     recipientPlanTitle: 'DealSifter Chat unavailable for this contact',
-    recipientPlanToast: 'This unlocked contact does not currently have access to DealSifter Chat because of plan limits. Continue through another contact channel available on this profile.',
-    recipientPlanRecipient: 'System alert: a connection who unlocked your contact is trying to reach you through DealSifter Chat. Your current Basic plan does not include chat. Upgrade your plan to receive chat messages and speed up negotiations.',
-    recipientPlanSender: 'System alert: this unlocked contact does not currently have access to DealSifter Chat because their plan does not include this feature. Continue through another available contact channel on this profile.',
+    recipientPlanToast: 'This selected profile does not have chat available. Continue through another contact channel listed on this profile.',
+    recipientPlanRecipient: 'An interested connection in your properties and/or services tried to contact you on this profile through chat, but your plan is Basic/Free and does not include this feature. Do not miss the opportunity to do business: upgrade to a plan with more resources and close deals faster.',
+    recipientPlanSender: 'This selected profile has not activated CHAT as a priority contact channel or has a plan that does not provide access to this feature, so contact them through the channels chosen by this user and linked to this profile.',
     contactMethodTitle: 'DealSifter Chat not selected',
     contactMethodToast: 'This profile did not select DealSifter Chat as a desired contact method.',
     contactMethodRecipient: 'System alert: a connection tried to contact this profile through DealSifter Chat, but this profile has not selected chat as a desired contact method. Update your profile contact options if you want to receive chats here.',
-    contactMethodSender: 'System alert: this profile did not select DealSifter Chat as a desired contact method. Continue through another available contact channel on this profile.',
+    contactMethodSender: 'This selected profile has not activated CHAT as a priority contact channel or has a plan that does not provide access to this feature, so contact them through the channels chosen by this user and linked to this profile.',
   },
   pt: {
     recipientPlanTitle: 'Chat DealSifter indisponivel para este contato',
-    recipientPlanToast: 'Este contato desbloqueado ainda nao tem acesso ao Chat DealSifter por limitacao do plano dele. Continue por outro canal de contato disponivel neste perfil.',
-    recipientPlanRecipient: 'Alerta do sistema: uma conexao que desbloqueou seu contato esta tentando falar com voce pelo Chat DealSifter. Seu plano Basic atual nao inclui chat. Faca upgrade para receber mensagens pelo chat e agilizar negociacoes.',
-    recipientPlanSender: 'Alerta do sistema: este contato desbloqueado ainda nao tem acesso ao Chat DealSifter porque o plano dele nao inclui este recurso. Continue por outro canal de contato disponivel neste perfil.',
+    recipientPlanToast: 'Este perfil selecionado nao esta com chat disponivel. Continue pelos outros canais de contato deste perfil.',
+    recipientPlanRecipient: 'Uma conexao interessada em suas propriedade e/ou servicos tentou falar com voce neste perfil atraves do chat, entretanto seu plano e Basico/Free e nao da direito ao uso deste recurso. Nao perca a oportunidade de fazer negocios, faca o upgrade para um plano que tenha mais recursos e realize negocios mais rapidamente.',
+    recipientPlanSender: 'Este perfil selecionado nao ativou o CHAT como forma de canal de comunicacao prioritario ou possui um plano que nao da acesso a esse recurso, portanto realize seu contato com ele atraves dos canais escolhidos por este usuario e que constam atrelados a esse perfil.',
     contactMethodTitle: 'Chat DealSifter nao selecionado',
     contactMethodToast: 'Este perfil nao selecionou o Chat DealSifter como forma desejada de contato.',
     contactMethodRecipient: 'Alerta do sistema: uma conexao tentou falar com este perfil pelo Chat DealSifter, mas este perfil nao selecionou chat como forma desejada de contato. Atualize as opcoes de contato do perfil se quiser receber chats aqui.',
-    contactMethodSender: 'Alerta do sistema: este perfil nao selecionou o Chat DealSifter como forma desejada de contato. Continue por outro canal de contato disponivel neste perfil.',
+    contactMethodSender: 'Este perfil selecionado nao ativou o CHAT como forma de canal de comunicacao prioritario ou possui um plano que nao da acesso a esse recurso, portanto realize seu contato com ele atraves dos canais escolhidos por este usuario e que constam atrelados a esse perfil.',
   },
   es: {
     recipientPlanTitle: 'Chat DealSifter no disponible para este contacto',
-    recipientPlanToast: 'Este contacto desbloqueado todavia no tiene acceso al Chat DealSifter por limites de su plan. Continua por otro canal de contacto disponible en este perfil.',
-    recipientPlanRecipient: 'Alerta del sistema: una conexion que desbloqueo tu contacto esta intentando hablar contigo por Chat DealSifter. Tu plan Basic actual no incluye chat. Haz upgrade para recibir mensajes por chat y agilizar negociaciones.',
-    recipientPlanSender: 'Alerta del sistema: este contacto desbloqueado todavia no tiene acceso al Chat DealSifter porque su plan no incluye esta funcion. Continua por otro canal de contacto disponible en este perfil.',
+    recipientPlanToast: 'Este perfil seleccionado no tiene chat disponible. Continua por otro canal de contacto listado en este perfil.',
+    recipientPlanRecipient: 'Una conexion interesada en tus propiedades y/o servicios intento hablar contigo en este perfil a traves del chat, pero tu plan es Basico/Free y no incluye este recurso. No pierdas la oportunidad de hacer negocios: actualiza tu plan para tener mas recursos y cerrar operaciones mas rapido.',
+    recipientPlanSender: 'Este perfil seleccionado no activo CHAT como canal de comunicacion prioritario o tiene un plan sin acceso a este recurso; por lo tanto, contactalo por los canales elegidos por este usuario y vinculados a este perfil.',
     contactMethodTitle: 'Chat DealSifter no seleccionado',
     contactMethodToast: 'Este perfil no selecciono Chat DealSifter como forma deseada de contacto.',
     contactMethodRecipient: 'Alerta del sistema: una conexion intento contactar este perfil por Chat DealSifter, pero este perfil no selecciono chat como forma deseada de contacto. Actualiza las opciones de contacto del perfil si quieres recibir chats aqui.',
-    contactMethodSender: 'Alerta del sistema: este perfil no selecciono Chat DealSifter como forma deseada de contacto. Continua por otro canal de contacto disponible en este perfil.',
+    contactMethodSender: 'Este perfil seleccionado no activo CHAT como canal de comunicacion prioritario o tiene un plan sin acceso a este recurso; por lo tanto, contactalo por los canales elegidos por este usuario y vinculados a este perfil.',
   },
 };
 
@@ -2119,6 +2119,10 @@ export function MatchesPage({ nuggets, setModal, openUnlock, unlocked, initialCh
       itemOrId.sellerId,
       itemOrId.contactId,
       itemOrId.unlockContactId,
+      itemOrId.ownerPreview?.ownerId,
+      itemOrId.ownerPreview?.unlockOwnerId,
+      itemOrId.ownerPreview?.contactId,
+      itemOrId.ownerPreview?.id,
       itemOrId.id,
       itemOrId.sourceCardId,
     ];
@@ -2621,9 +2625,13 @@ export function MatchesPage({ nuggets, setModal, openUnlock, unlocked, initialCh
     };
   }, [activeOwner, peerLangPrefs]);
 
-  const isUnlocked = useMemo(() => 
-    activeOwner && isContactUnlockedByState(activeOwner),
-  [activeOwner, isContactUnlockedByState]);
+  const isUnlocked = useMemo(() => {
+    if (!activeOwner) return false;
+    if (isContactUnlockedByState(activeOwner)) return true;
+    if (!isActiveProperty) return false;
+    return isContactUnlockedByState(active)
+      || isContactUnlockedByState({ ownerId: active?.ownerId, ownerPreview: active?.ownerPreview });
+  }, [active, activeOwner, isActiveProperty, isContactUnlockedByState]);
 
   const activeUnlockCost = useMemo(() => {
     if (!activeOwner?.id) return 1;
@@ -3433,20 +3441,30 @@ export function MatchesPage({ nuggets, setModal, openUnlock, unlocked, initialCh
               </div>
               <div style={{ flex:1, overflowY:"auto" }}>
                 {filteredInterested.map(p => {
-                  const isLinkedProperty = isLinkedToActiveContact(p.ownerId);
-                  const isOwnerUnlocked = isContactUnlockedByState({ ownerId: p.ownerId });
-                  const ownerUnlockCost = getUnlockCost(p.ownerId);
+                  const propertyKey = getInterestKey(p);
+                  const canonicalLinkedProperty = (allPropertiesSource || []).find((property) => (
+                    getInterestKey(property) === propertyKey
+                    && isLinkedToActiveContact(property?.ownerId)
+                  ));
+                  const linkedOwnerId = canonicalLinkedProperty?.ownerId || p.ownerId;
+                  const isLinkedProperty = isLinkedToActiveContact(p.ownerId) || Boolean(canonicalLinkedProperty);
+                  const effectiveOwner = isLinkedProperty && activeOwner ? activeOwner : null;
+                  const effectiveProperty = effectiveOwner
+                    ? { ...p, ...(canonicalLinkedProperty || {}), ownerId: effectiveOwner.id, ownerPreview: effectiveOwner }
+                    : p;
+                  const isOwnerUnlocked = isLinkedProperty || isContactUnlockedByState(effectiveProperty) || isContactUnlockedByState({ ownerId: p.ownerId });
+                  const ownerUnlockCost = getUnlockCost(linkedOwnerId);
                   const propertyExclusiveStatus = getPropertyExclusiveStatus(p);
                   const isArchivedInterestRow = archivedInterests.has(getInterestKey(p));
-                  const owner = p.ownerPreview
+                  const owner = effectiveOwner || (p.ownerPreview
                     ? resolveContactCard(p.ownerPreview, getRecordProfileScope(p))
                     : (
                       String(p.ownerId) === String(personalOwnerId) || String(p.ownerId) === String(secondaryOwnerId) || String(p.ownerId) === String(fsboOwnerId)
                         ? buildLocalOwnerCard(getRecordProfileScope(p, String(p.ownerId) === String(secondaryOwnerId) ? 'professional' : (String(p.ownerId) === String(fsboOwnerId) ? 'fsbo' : 'personal')))
                         : (import.meta.env.DEV ? CARDS.find(c => c.id === p.ownerId) : null)
-                    );
+                    ));
                   return (
-                    <div key={p.id} onClick={() => setActive(p)} style={{ display:"flex", alignItems:"center", gap:10, padding:12, borderBottom:`1px solid ${C.border}`, borderLeft:isLinkedProperty?`3px solid ${C.alpha(PROPERTY_SIGNAL, 0.7)}`:'3px solid transparent', cursor:"pointer", background:isLinkedProperty?C.alpha(PROPERTY_SIGNAL, 0.14):"transparent" }}>
+                    <div key={p.id} onClick={() => setActive(effectiveProperty)} style={{ display:"flex", alignItems:"center", gap:10, padding:12, borderBottom:`1px solid ${C.border}`, borderLeft:isLinkedProperty?`3px solid ${C.alpha(PROPERTY_SIGNAL, 0.7)}`:'3px solid transparent', cursor:"pointer", background:isLinkedProperty?C.alpha(PROPERTY_SIGNAL, 0.14):"transparent" }}>
                       <div style={{ width:32, height:32, borderRadius:6, overflow:"hidden", border:`1px solid ${isLinkedProperty?PROPERTY_SIGNAL:C.border}` }}>
                         <SmartImage src={p.images?.[0] || p.image} alt={p.address} style={{ width:"100%", height:"100%", objectFit:"cover" }} fallback={<div style={{ width:"100%", height:"100%", display:"flex", alignItems:"center", justifyContent:"center", background:C.alpha(C.t1, 0.05) }}><Icon name="home" size={14} color={C.t3} /></div>} />
                       </div>
@@ -3711,6 +3729,7 @@ export function MatchesPage({ nuggets, setModal, openUnlock, unlocked, initialCh
                       const refTitle = refData.address || refData.name || refData.title || 'Shared reference';
                       const refImage = refData.images?.[0] || refData.image || refData.media?.images?.[0] || '';
                       const isSystemAlert = m.type === 'system' && m.metadata?.systemAlert === true;
+                      const isRecipientPlanUpgradeAlert = isSystemAlert && m.metadata?.systemAudience === 'recipient_plan_upgrade';
                       const localizedSystemText = isSystemAlert && m.metadata?.localizedText && typeof m.metadata.localizedText === 'object'
                         ? (m.metadata.localizedText[myOutputLang] || m.metadata.localizedText.en || m.text)
                         : m.text;
@@ -3736,6 +3755,25 @@ export function MatchesPage({ nuggets, setModal, openUnlock, unlocked, initialCh
                           ) : (
                             <>
                               <div style={{ fontSize:chatMainTextSize, fontWeight: isSystemAlert ? 850 : 400, lineHeight: 1.42 }}>{localizedSystemText}</div>
+                              {isRecipientPlanUpgradeAlert ? (
+                                <button
+                                  type="button"
+                                  onClick={goToPricingFromGate}
+                                  style={{
+                                    marginTop: 8,
+                                    border: 'none',
+                                    background: C.danger,
+                                    color: '#fff',
+                                    borderRadius: 999,
+                                    padding: '7px 12px',
+                                    fontSize: 11,
+                                    fontWeight: 900,
+                                    cursor: 'pointer',
+                                  }}
+                                >
+                                  {myOutputLang === 'pt' ? 'Clique aqui e escolha sua assinatura' : (myOutputLang === 'es' ? 'Haz clic aqui y elige tu plan' : 'Click here and choose your plan')}
+                                </button>
+                              ) : null}
                               {m.originalText && m.originalText !== localizedSystemText && (
                                 <div style={{ marginTop:6, paddingTop:6, borderTop:`1px dashed ${C.alpha(C.t1, 0.2)}`, fontSize:10, opacity:0.9 }}>
                                   {t.originalTextLabel} ({String(m.originalLang || '').toUpperCase()}): {m.originalText}
