@@ -1029,6 +1029,10 @@ export function Dashboard({ page, nuggets, setModal, setPage, onOpenOnboardingTa
       itemOrId.sellerId,
       itemOrId.contactId,
       itemOrId.unlockContactId,
+      itemOrId.ownerPreview?.ownerId,
+      itemOrId.ownerPreview?.unlockOwnerId,
+      itemOrId.ownerPreview?.contactId,
+      itemOrId.ownerPreview?.id,
       itemOrId.id,
       itemOrId.sourceCardId,
     ].map((value) => String(value || '').trim()).filter(Boolean)));
@@ -1103,9 +1107,13 @@ export function Dashboard({ page, nuggets, setModal, setPage, onOpenOnboardingTa
     if (isSwipingConn || isSwipingProp) return;
     const blockedContactIds = new Set([...(unlocked || [])].map((id) => String(id)));
     if (blockedContactIds.size === 0) return;
+    const isBlockedContact = (record) => getUnlockKeys(record).some((key) => blockedContactIds.has(key));
     const timer = window.setTimeout(() => {
       // Always remove blocked contacts from the connections deck.
-      setConnDeck(prevDeck => prevDeck.filter(id => !blockedContactIds.has(String(id))));
+      setConnDeck(prevDeck => prevDeck.filter((id) => {
+        const card = (connectionCards || []).find((c) => String(c.id) === String(id));
+        return card ? !isBlockedContact(card) : !blockedContactIds.has(String(id));
+      }));
 
       // Only remove properties owned by blocked contacts from the properties *discover* when
       // the view is showing connections. When the user switches to the Showcase view,
@@ -1118,13 +1126,13 @@ export function Dashboard({ page, nuggets, setModal, setPage, onOpenOnboardingTa
             const prop = (showcaseItems || []).find(p => p.id === id);
             if (!prop) return true;
             if (prop.ownerId === selfOwnerId) return true;
-            return !blockedContactIds.has(String(prop.ownerId));
+            return !isBlockedContact(prop);
           })
         );
       }
     }, 0);
     return () => window.clearTimeout(timer);
-  }, [unlocked, showcaseProperties, showcaseItems, view, publishingProfileKey, isSwipingConn, isSwipingProp, getOwnerIdForKey]);
+  }, [unlocked, showcaseProperties, showcaseItems, view, publishingProfileKey, isSwipingConn, isSwipingProp, getOwnerIdForKey, connectionCards, getUnlockKeys]);
 
   const matchesCat = useCallback((catVal, cat) => {
     if (cat === "all") return true;
@@ -1138,7 +1146,6 @@ export function Dashboard({ page, nuggets, setModal, setPage, onOpenOnboardingTa
     const updateDecks = () => {
       const matchedIds = new Set((matched || []).map(m => m.id));
       const interestedIds = new Set((interested || []).map(p => p.id));
-      const blockedContactIds = new Set([...(unlocked || [])].map((id) => String(id)));
       const selectedStateSet = new Set((selectedStates || []).filter((s) => s && s !== 'all'));
       const stateFilterActive = selectedStateSet.size > 0;
       const categoryFilterActive = activeCat !== 'all';
@@ -1255,7 +1262,7 @@ export function Dashboard({ page, nuggets, setModal, setPage, onOpenOnboardingTa
         if (!card || !isAllowedByState(card) || !isAllowedByCategory(card)) return false;
         if (matchedIds.has(id)) return false;
         if (interestedIds.has(id)) return false;
-        if (blockedContactIds.has(String(id))) return false;
+        if (isContactUnlocked(card)) return false;
         if (hiddenSet && hiddenSet.has && hiddenSet.has(String(id))) return false;
         return true;
       });
@@ -1270,7 +1277,7 @@ export function Dashboard({ page, nuggets, setModal, setPage, onOpenOnboardingTa
           if (!card || !isAllowedByState(card) || !isAllowedByCategory(card)) continue;
           if (matchedIds.has(id)) continue;
           if (interestedIds.has(id)) continue;
-          if (blockedContactIds.has(String(id))) continue;
+          if (isContactUnlocked(card)) continue;
           if (hiddenSet && hiddenSet.has && hiddenSet.has(String(id))) continue;
           newConn.push(id);
         }
@@ -1347,7 +1354,7 @@ export function Dashboard({ page, nuggets, setModal, setPage, onOpenOnboardingTa
         if (interestedIds.has(prop.id)) return false;
         if (String(prop.ownerId) === String(selfOwnerId)) return true;
         if (view !== 'connections') return true;
-        return !blockedContactIds.has(String(prop.ownerId));
+        return !isContactUnlocked(prop);
       };
 
       let newProp = baseProp.filter(id => {
@@ -1428,7 +1435,7 @@ export function Dashboard({ page, nuggets, setModal, setPage, onOpenOnboardingTa
     });
 
     return () => { if (typeof unsub === 'function') unsub(); };
-  }, [connectionCards, showcaseItems, matched, interested, unlocked, view, publishingProfileKey, hiddenSet, focusCard, selectedStates, activeCat, isSwipingConn, isSwipingProp, collectRecordStates, connDeck, propDeck, getOwnerIdForKey, matchesCat, currentUserId, userProfile, personalProfile, professionalProfile, propertyHotMetrics, userPreferences, subscription, getFocusCandidates, matchesFocusTarget]);
+  }, [connectionCards, showcaseItems, matched, interested, unlocked, view, publishingProfileKey, hiddenSet, focusCard, selectedStates, activeCat, isSwipingConn, isSwipingProp, collectRecordStates, connDeck, propDeck, getOwnerIdForKey, matchesCat, currentUserId, userProfile, personalProfile, professionalProfile, propertyHotMetrics, userPreferences, subscription, getFocusCandidates, matchesFocusTarget, isContactUnlocked]);
 
   const [planGate, setPlanGate] = useState(null);
 

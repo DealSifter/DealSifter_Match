@@ -1568,7 +1568,7 @@ function PortfolioDetail({ item, owner, ownerDesc, onBack, autoplayMedia = false
       ) : null}
 
       <div style={{ padding: '0 10px 10px' }}>
-        <ContactButtons item={item} />
+        <ContactButtons item={owner || item} />
       </div>
 
       {typeof onStartChat === 'function' ? (
@@ -3992,7 +3992,7 @@ export function MatchesPage({ nuggets, setModal, openUnlock, unlocked, initialCh
                             Stand By
                           </div>
                         ) : null}
-                        <ContactButtons item={selectedPortfolioItem} />
+                        <ContactButtons item={activeOwner || selectedPortfolioItem} />
                       </div>
                     )
                   ) : (
@@ -4150,7 +4150,7 @@ export function MatchesPage({ nuggets, setModal, openUnlock, unlocked, initialCh
                   <SmartImage src={mobileCardSheet.media.images[0]} alt={mobileCardSheet.name} style={{ width:'100%', borderRadius:12, marginBottom:12, objectFit:'cover', maxHeight:200 }} />
                 )}
                 {mobileCardSheet.description && <div style={{ color:C.t2, fontSize:13, marginBottom:12 }}>{mobileCardSheet.description}</div>}
-                <ContactButtons item={mobileCardSheet} />
+                <ContactButtons item={activeOwner || mobileCardSheet} />
                 <button
                   type="button"
                   onClick={() => {
