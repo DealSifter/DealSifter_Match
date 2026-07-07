@@ -6055,6 +6055,7 @@ export default function App() {
             chatHasMore={chatHasMore}
             chatLoadingMore={chatLoadingMore}
             propertyUnlocks={propertyUnlocks}
+            unlockedContactMap={unlockedContactsByOwnerId}
             currentUserId={supabaseUserId || 'local-user'}
             activeSpotlightKeys={activeSpotlightKeys}
             isActive={page === 'matches'}

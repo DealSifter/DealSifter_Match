@@ -1,7 +1,7 @@
 import React, { useState, useRef, useEffect, useMemo, useCallback } from 'react';
 import { C } from '../theme/colors';
 import { useT } from '../i18n/translations';
-import { PROPERTIES as _MOCK_PROPERTIES, CARDS as _MOCK_CARDS, CATEGORIES, SERVICE_PORTFOLIO as _MOCK_SERVICE_PORTFOLIO } from '../data/mockData';
+import { PROPERTIES as _MOCK_PROPERTIES, CATEGORIES, SERVICE_PORTFOLIO as _MOCK_SERVICE_PORTFOLIO } from '../data/mockData';
 import { Icon } from '../components/ui/Icon';
 import { Modal } from '../components/ui/Modal';
 import { PlanGateModal } from '../components/modals/PlanGateModal';
@@ -23,11 +23,15 @@ import { isSupabaseConfigured, supabase } from '../lib/supabaseClient';
 import { normalizeCard } from '../lib/normalizeFeedCard';
 import { formatCompactUsd } from '../lib/formatMoney';
 import { getActiveExclusivities } from '../services/unlockService';
+import {
+  getContactByOwnerId,
+  isOwnerUnlocked as isCanonicalOwnerUnlocked,
+  isPropertyUnlocked as isCanonicalPropertyUnlocked,
+} from '../services/unlockedContactService';
 import { useUnlockNotifications } from '../hooks/useUnlockNotifications';
 import appLogo from '../assets/logo-dark-theme.png';
 
 const PROPERTIES = import.meta.env.DEV ? (_MOCK_PROPERTIES || []) : [];
-const CARDS = import.meta.env.DEV ? (_MOCK_CARDS || []) : [];
 const SERVICE_PORTFOLIO = import.meta.env.DEV ? (_MOCK_SERVICE_PORTFOLIO || []) : [];
 
 function readLocalStringSet(key) {
@@ -258,7 +262,7 @@ const PortfolioItem = ({ p, onOpen, exclusivityStatus = null, ownerVerified = fa
 };
 
 // ── Always-visible contact chips ───────────────────────────────────────────
-function ContactButtons({ item, variant = 'default', isMobile = false, desktopRightToLeft = false }) {
+function ContactButtons({ item, contact = null, variant = 'default', isMobile = false, desktopRightToLeft = false }) {
   const modalsT = useT('matches').modals;
   const [copied, setCopied] = useState(null);
   const [copyNotice, setCopyNotice] = useState('');
@@ -311,14 +315,17 @@ function ContactButtons({ item, variant = 'default', isMobile = false, desktopRi
     copyNoticeResetRef.current = window.setTimeout(() => setCopyNotice(''), 1200);
   };
 
-  // If the contact fields are not present on the `item`, fall back to the
-  // locally saved personal registration (localStorage.personalProfile).
-  const shouldUseSavedProfile = !isSupabaseConfigured
-    && (!item?.id || item?.id === 999999 || item?.ownerId === 999999 || item?.id === 'preview-personal');
-  let savedProfile = null;
-  if (shouldUseSavedProfile) savedProfile = readScopedProfileFallback(normalizeProfileScope(item?.primaryProfile || ''));
+  const canonicalItem = canonicalContactToDisplayCard(contact);
+  const effectiveItem = canonicalItem || (!isSupabaseConfigured ? item : null);
+  if (!effectiveItem) return null;
 
-  const contacts = buildDisplayContacts(item, savedProfile, {
+  // Local fallback is allowed only outside Supabase-backed production data.
+  const shouldUseSavedProfile = !isSupabaseConfigured
+    && (!effectiveItem?.id || effectiveItem?.id === 999999 || effectiveItem?.ownerId === 999999 || effectiveItem?.id === 'preview-personal');
+  let savedProfile = null;
+  if (shouldUseSavedProfile) savedProfile = readScopedProfileFallback(normalizeProfileScope(effectiveItem?.primaryProfile || ''));
+
+  const contacts = buildDisplayContacts(effectiveItem, savedProfile, {
     call: modalsT.contactPhone,
     sms: modalsT.contactSms,
     whatsapp: modalsT.contactWhatsApp,
@@ -331,8 +338,8 @@ function ContactButtons({ item, variant = 'default', isMobile = false, desktopRi
   });
 
   const selectedMethods = (
-    (Array.isArray(item?.contactMethods) && item.contactMethods.length
-      ? item.contactMethods
+    (Array.isArray(effectiveItem?.contactMethods) && effectiveItem.contactMethods.length
+      ? effectiveItem.contactMethods
       : (Array.isArray(savedProfile?.contactMethods) ? savedProfile.contactMethods : []))
   )
     .map((method) => normalizeContactMethod(method))
@@ -345,8 +352,8 @@ function ContactButtons({ item, variant = 'default', isMobile = false, desktopRi
 
   const priority2Contact = contacts.find((contact) => contact.priority === 2) || contacts[1] || null;
   const emailContact = contacts.find((contact) => String(contact?.icon || '').toLowerCase() === 'email') || null;
-  const p2Value = String(item?.secondaryPhone || savedProfile?.secondaryPhone || priority2Contact?.val || '').trim();
-  const emailValue = String(item?.email || savedProfile?.email || emailContact?.val || '').trim();
+  const p2Value = String(effectiveItem?.secondaryPhone || savedProfile?.secondaryPhone || priority2Contact?.val || '').trim();
+  const emailValue = String(effectiveItem?.email || savedProfile?.email || emailContact?.val || '').trim();
 
   const unlockedHeaderContacts = [
     {
@@ -364,11 +371,11 @@ function ContactButtons({ item, variant = 'default', isMobile = false, desktopRi
   ].filter((contact) => contact.val);
 
   const primaryContact = contacts.find((contact) => contact.priority === 1)
-    || (String(item?.primaryPhone || item?.phone || savedProfile?.primaryPhone || savedProfile?.phone || '').trim()
+    || (String(effectiveItem?.primaryPhone || effectiveItem?.phone || savedProfile?.primaryPhone || savedProfile?.phone || '').trim()
       ? {
           key: 'contact-priority-1',
           icon: 'phone',
-          val: String(item?.primaryPhone || item?.phone || savedProfile?.primaryPhone || savedProfile?.phone || '').trim(),
+          val: String(effectiveItem?.primaryPhone || effectiveItem?.phone || savedProfile?.primaryPhone || savedProfile?.phone || '').trim(),
           priority: 1,
         }
       : null);
@@ -453,6 +460,47 @@ const mergeContactForDisplay = (base, incoming) => {
   return merged;
 };
 
+const canonicalContactToDisplayCard = (entry) => {
+  if (!entry || typeof entry !== 'object') return null;
+  const ownerId = String(entry.ownerId || entry.owner_id || '').trim();
+  if (!ownerId) return null;
+  const contact = entry.contact && typeof entry.contact === 'object' ? entry.contact : {};
+  const contactMethods = Array.isArray(contact.contactMethods)
+    ? contact.contactMethods
+    : (Array.isArray(contact.contact_methods) ? contact.contact_methods : []);
+  const unlockedPropertyIds = Array.isArray(entry.unlockedPropertyIds)
+    ? entry.unlockedPropertyIds
+    : (Array.isArray(entry.unlocked_property_ids) ? entry.unlocked_property_ids : []);
+  return {
+    id: ownerId,
+    ownerId,
+    unlockOwnerId: ownerId,
+    source: 'remote-unlock',
+    primaryProfile: entry.primaryProfile || entry.primary_profile || 'personal',
+    unlockScope: entry.unlockScope || entry.unlock_scope || 'contact',
+    name: contact.name || 'Unlocked contact',
+    title: contact.name || 'Unlocked contact',
+    type: contact.category || 'Contact',
+    category: contact.category || '',
+    cat: contact.category || '',
+    loc: contact.location || '',
+    photo: contact.avatarUrl || contact.avatar_url || '',
+    avatar: contact.avatarUrl || contact.avatar_url || '',
+    email: contact.email || '',
+    primaryPhone: contact.phonePrimary || contact.phone_primary || '',
+    phone: contact.phonePrimary || contact.phone_primary || '',
+    secondaryPhone: contact.phoneSecondary || contact.phone_secondary || '',
+    whatsapp: contact.whatsapp || '',
+    contactMethods,
+    portfolioCount: Array.isArray(entry.portfolio) ? entry.portfolio.length : 0,
+    unlockedPropertyIds: unlockedPropertyIds.map((id) => String(id || '').trim()).filter(Boolean),
+    exclusiveStatus: entry.exclusiveStatus || entry.exclusive_status || 'none',
+    exclusiveExpiresAt: entry.exclusiveExpiresAt || entry.exclusive_expires_at || null,
+    unlockedAt: entry.unlockedAt || entry.unlocked_at || null,
+    canonicalContact: entry,
+  };
+};
+
 function getLocalOwnerId(scopeKey) {
   if (isSupabaseConfigured && !import.meta.env.DEV) return '';
   try {
@@ -462,7 +510,7 @@ function getLocalOwnerId(scopeKey) {
   return '';
 }
 
-function PortfolioDetail({ item, owner, ownerDesc, onBack, autoplayMedia = false, onBlockedExport = null, imageSources = [], onStartChat = null, canUseChat = true, chatInterestLabel = CHAT_INTEREST_PREFIX.en, exclusiveStatus = null }) {
+function PortfolioDetail({ item, owner, ownerContact = null, ownerDesc, onBack, autoplayMedia = false, onBlockedExport = null, imageSources = [], onStartChat = null, canUseChat = true, chatInterestLabel = CHAT_INTEREST_PREFIX.en, exclusiveStatus = null }) {
   const allT = useT('matches');
   const matchesT = allT.matches;
   const modalsT = allT.modals;
@@ -1591,7 +1639,7 @@ function PortfolioDetail({ item, owner, ownerDesc, onBack, autoplayMedia = false
       ) : null}
 
       <div style={{ padding: '0 10px 10px' }}>
-        <ContactButtons item={owner || item} />
+        <ContactButtons item={owner || item} contact={ownerContact} />
       </div>
 
       {typeof onStartChat === 'function' ? (
@@ -1773,7 +1821,7 @@ function PortfolioDetail({ item, owner, ownerDesc, onBack, autoplayMedia = false
   );
 }
 
-export function MatchesPage({ nuggets, setModal, openUnlock, unlocked, initialChat, chatFocusToken = 0, interested, matched, setInterested, setMatched, convos, setConvos, categoryOrder, setCategoryOrder, showcaseProperties, propertyPortfolio, servicePortfolio, userProfile, personalProfile, professionalProfile, mobileBottomNavCollapsed = false, userPreferences = null, subscription = null, setPage = null, addToast = null, onOpenChatLanguageConfig = null, onSendChatMessage = null, onRetryChatMessage = null, onMarkChatRead = null, onLoadMoreChatMessages = null, chatHasMore = {}, chatLoadingMore = {}, propertyUnlocks = [], currentUserId = 'local-user', isActive = true }) {
+export function MatchesPage({ nuggets, setModal, openUnlock, unlocked, initialChat, chatFocusToken = 0, interested, matched, setInterested, setMatched, convos, setConvos, categoryOrder, setCategoryOrder, showcaseProperties, propertyPortfolio, servicePortfolio, userProfile, personalProfile, professionalProfile, mobileBottomNavCollapsed = false, userPreferences = null, subscription = null, setPage = null, addToast = null, onOpenChatLanguageConfig = null, onSendChatMessage = null, onRetryChatMessage = null, onMarkChatRead = null, onLoadMoreChatMessages = null, chatHasMore = {}, chatLoadingMore = {}, propertyUnlocks = [], unlockedContactMap = new Map(), currentUserId = 'local-user', isActive = true }) {
   const PORTFOLIO_PANEL_PADDING = 40;
   const PORTFOLIO_GRID_GAP = 12;
   const PORTFOLIO_CARD_MIN_WIDTH = 132;
@@ -2162,38 +2210,44 @@ export function MatchesPage({ nuggets, setModal, openUnlock, unlocked, initialCh
       .filter(Boolean)
   ), [unlocked]);
 
+  const getCanonicalContact = useCallback((ownerId) => (
+    getContactByOwnerId(unlockedContactMap, ownerId)
+  ), [unlockedContactMap]);
+
   const isContactUnlockedByState = useCallback((itemOrId) => (
-    Boolean(itemOrId && typeof itemOrId === 'object' && itemOrId.chatLinked)
-    || getContactUnlockKeys(itemOrId).some((key) => unlockedIdSet.has(key))
-  ), [getContactUnlockKeys, unlockedIdSet]);
+    getContactUnlockKeys(itemOrId).some((key) => (
+      isCanonicalOwnerUnlocked(unlockedContactMap, key) || unlockedIdSet.has(key)
+    ))
+  ), [getContactUnlockKeys, unlockedContactMap, unlockedIdSet]);
 
-  const enrichContactFromPortfolio = useCallback((contactLike) => {
+  const isPropertyUnlockedByCanonicalState = useCallback((property) => {
+    if (!property) return false;
+    const ownerId = String(property.ownerId || property.owner_id || '').trim();
+    const propertyId = String(property.id || property.propertyId || property.property_id || property.portfolioId || '').trim();
+    if (!ownerId || !propertyId) return false;
+    return isCanonicalPropertyUnlocked(unlockedContactMap, ownerId, propertyId);
+  }, [unlockedContactMap]);
+
+  const resolveCanonicalContactCard = useCallback((contactLike) => {
     if (!contactLike) return null;
-    const ownerId = contactLike.ownerId || contactLike.unlockOwnerId || contactLike.id;
-    if (!ownerId) return contactLike;
-    const linkedProperty = allPropertiesSource.find((property) => String(property?.ownerId || '') === String(ownerId));
-    const linkedService = allServicesSource.find((service) => String(service?.ownerId || '') === String(ownerId));
-    const pick = (...values) => values.find((value) => String(value || '').trim().length) || '';
-    const mergedContactMethods = Array.isArray(contactLike.contactMethods) && contactLike.contactMethods.length
-      ? contactLike.contactMethods
-      : (Array.isArray(linkedProperty?.contactMethods) && linkedProperty.contactMethods.length
-        ? linkedProperty.contactMethods
-        : (Array.isArray(linkedService?.contactMethods) ? linkedService.contactMethods : []));
-
+    const ownerId = String(contactLike.ownerId || contactLike.unlockOwnerId || contactLike.id || '').trim();
+    if (!ownerId) return null;
+    const canonical = canonicalContactToDisplayCard(getCanonicalContact(ownerId));
+    if (canonical) return canonical;
     return {
       ...contactLike,
-      id: String(ownerId),
-      ownerId: String(ownerId),
-      unlockOwnerId: String(ownerId),
-      sourceCardId: String(contactLike.id || '') !== String(ownerId) ? contactLike.id : contactLike.sourceCardId,
-      contactMethods: mergedContactMethods,
-      primaryPhone: pick(contactLike.primaryPhone, linkedProperty?.primaryPhone, linkedProperty?.phone, linkedProperty?.ownerPhone, linkedService?.primaryPhone, linkedService?.phone),
-      secondaryPhone: pick(contactLike.secondaryPhone, linkedProperty?.secondaryPhone, linkedService?.secondaryPhone),
-      tertiaryPhone: pick(contactLike.tertiaryPhone, linkedProperty?.tertiaryPhone, linkedService?.tertiaryPhone),
-      whatsapp: pick(contactLike.whatsapp, linkedProperty?.whatsapp, linkedProperty?.ownerWhatsapp, linkedService?.whatsapp),
-      email: pick(contactLike.email, linkedProperty?.email, linkedProperty?.ownerEmail, linkedProperty?.contactEmail, linkedService?.email, linkedService?.ownerEmail),
+      id: ownerId,
+      ownerId,
+      unlockOwnerId: ownerId,
+      email: '',
+      phone: '',
+      primaryPhone: '',
+      secondaryPhone: '',
+      tertiaryPhone: '',
+      whatsapp: '',
+      contactMethods: [],
     };
-  }, [allPropertiesSource, allServicesSource]);
+  }, [getCanonicalContact]);
 
   const getPropertyExclusiveStatus = useCallback((propertyOrId) => {
     const candidates = propertyOrId && typeof propertyOrId === 'object'
@@ -2397,9 +2451,18 @@ export function MatchesPage({ nuggets, setModal, openUnlock, unlocked, initialCh
 
   const allMatched = useMemo(() => {
     const byKey = new Map();
+    if (unlockedContactMap instanceof Map) {
+      Array.from(unlockedContactMap.values())
+        .map(canonicalContactToDisplayCard)
+        .filter(Boolean)
+        .forEach((contact) => {
+          const key = getContactUnlockKeys(contact)[0] || String(contact?.id || '');
+          if (key) byKey.set(key, contact);
+        });
+    }
     [...(Array.isArray(matched) ? matched : []), ...reciprocalChatContacts]
       .map((m) => {
-        const resolved = enrichContactFromPortfolio(resolveContactCard(m));
+        const resolved = resolveCanonicalContactCard(resolveContactCard(m));
         return resolved ? { ...m, ...resolved, chatLinked: Boolean(m?.chatLinked || resolved?.chatLinked) } : null;
       })
       .filter(Boolean)
@@ -2409,7 +2472,7 @@ export function MatchesPage({ nuggets, setModal, openUnlock, unlocked, initialCh
         byKey.set(key, mergeContactForDisplay(byKey.get(key) || {}, contact));
       });
     return [...byKey.values()];
-  }, [matched, reciprocalChatContacts, enrichContactFromPortfolio, resolveContactCard, getContactUnlockKeys]);
+  }, [matched, reciprocalChatContacts, resolveCanonicalContactCard, resolveContactCard, getContactUnlockKeys, unlockedContactMap]);
 
   const parseStateCode = useCallback((value) => {
     const raw = String(value || '').trim();
@@ -2575,7 +2638,7 @@ export function MatchesPage({ nuggets, setModal, openUnlock, unlocked, initialCh
       if (isDeleted) return false;
       if (interestsFilter === "archived") return isArchived;
       if (isArchived) return false;
-      const paid = isContactUnlockedByState({ ownerId: p.ownerId });
+      const paid = isPropertyUnlockedByCanonicalState(p) || isContactUnlockedByState({ ownerId: p.ownerId });
       if (interestsFilter === "paid" && !paid) return false;
       if (interestsFilter === "locked" && paid) return false;
       if (selectedInterestStates.length > 0) {
@@ -2597,18 +2660,25 @@ export function MatchesPage({ nuggets, setModal, openUnlock, unlocked, initialCh
       else others.push(property);
     });
     return [...sortList(linked), ...sortList(others)];
-  }, [activeContactKey, interestBaseList, interestsFilter, isContactUnlockedByState, selectedInterestStates, getInterestStateCode, sortOrder, isLinkedToActiveContact, getInterestKey, getContactUnlockKeys, archivedInterests, archivedContacts, deletedInterests, deletedContacts]);
+  }, [activeContactKey, interestBaseList, interestsFilter, isContactUnlockedByState, isPropertyUnlockedByCanonicalState, selectedInterestStates, getInterestStateCode, sortOrder, isLinkedToActiveContact, getInterestKey, getContactUnlockKeys, archivedInterests, archivedContacts, deletedInterests, deletedContacts]);
 
   const activeOwner = useMemo(() => {
     if (!active) return null;
+    const activeOwnerId = String(
+      isActiveProperty
+        ? active.ownerId
+        : (active.ownerId || active.unlockOwnerId || active.id)
+    || '').trim();
+    const canonical = canonicalContactToDisplayCard(getCanonicalContact(activeOwnerId));
+    if (canonical) return canonical;
     if (!isActiveProperty) {
-      const resolved = enrichContactFromPortfolio(resolveContactCard(active));
+      const resolved = resolveCanonicalContactCard(resolveContactCard(active));
       const hydrated = allMatched.find((contact) => getContactUnlockKeys(contact).some((key) => getContactUnlockKeys(resolved || active).includes(key)));
-      return hydrated ? mergeContactForDisplay(resolved, enrichContactFromPortfolio(hydrated)) : resolved;
+      return hydrated ? mergeContactForDisplay(resolved, resolveCanonicalContactCard(hydrated)) : resolved;
     }
     const hydratedOwner = allMatched.find((contact) => getContactUnlockKeys(contact).includes(String(active.ownerId || '')));
-    if (hydratedOwner) return enrichContactFromPortfolio(hydratedOwner);
-    if (active.ownerPreview) return enrichContactFromPortfolio(resolveContactCard(active.ownerPreview, getRecordProfileScope(active)));
+    if (hydratedOwner) return resolveCanonicalContactCard(hydratedOwner);
+    if (active.ownerPreview) return resolveCanonicalContactCard(resolveContactCard(active.ownerPreview, getRecordProfileScope(active)));
     const activeScope = getRecordProfileScope(active, (
       String(active.ownerId) === String(secondaryOwnerId)
         ? 'professional'
@@ -2619,12 +2689,10 @@ export function MatchesPage({ nuggets, setModal, openUnlock, unlocked, initialCh
       || String(active.ownerId) === String(secondaryOwnerId)
       || String(active.ownerId) === String(fsboOwnerId)
     ) {
-      return enrichContactFromPortfolio(buildLocalOwnerCard(activeScope));
+      return resolveCanonicalContactCard(buildLocalOwnerCard(activeScope));
     }
-    return import.meta.env.DEV
-      ? enrichContactFromPortfolio(CARDS.find(c => String(c.id) === String(active.ownerId)))
-      : null;
-  }, [active, isActiveProperty, resolveContactCard, secondaryOwnerId, fsboOwnerId, personalOwnerId, buildLocalOwnerCard, enrichContactFromPortfolio, allMatched, getContactUnlockKeys, getRecordProfileScope]);
+    return null;
+  }, [active, isActiveProperty, getCanonicalContact, resolveContactCard, secondaryOwnerId, fsboOwnerId, personalOwnerId, buildLocalOwnerCard, resolveCanonicalContactCard, allMatched, getContactUnlockKeys, getRecordProfileScope]);
 
   const handleOpenActiveCardPreview = useCallback(() => {
     if (!activeOwner && !active) return;
@@ -2656,9 +2724,10 @@ export function MatchesPage({ nuggets, setModal, openUnlock, unlocked, initialCh
     if (!activeOwner) return false;
     if (isContactUnlockedByState(activeOwner)) return true;
     if (!isActiveProperty) return false;
-    return isContactUnlockedByState(active)
+    return isPropertyUnlockedByCanonicalState(active)
+      || isContactUnlockedByState(active)
       || isContactUnlockedByState({ ownerId: active?.ownerId, ownerPreview: active?.ownerPreview });
-  }, [active, activeOwner, isActiveProperty, isContactUnlockedByState]);
+  }, [active, activeOwner, isActiveProperty, isContactUnlockedByState, isPropertyUnlockedByCanonicalState]);
 
   const activeUnlockCost = useMemo(() => {
     if (!activeOwner?.id) return 1;
@@ -3479,17 +3548,18 @@ export function MatchesPage({ nuggets, setModal, openUnlock, unlocked, initialCh
                   const effectiveProperty = effectiveOwner
                     ? { ...p, ...(canonicalLinkedProperty || {}), ownerId: effectiveOwner.id, ownerPreview: effectiveOwner }
                     : p;
-                  const isOwnerUnlocked = isLinkedProperty || isContactUnlockedByState(effectiveProperty) || isContactUnlockedByState({ ownerId: p.ownerId });
+                  const canonicalPropertyUnlocked = isPropertyUnlockedByCanonicalState(effectiveProperty);
+                  const isOwnerUnlocked = isLinkedProperty || canonicalPropertyUnlocked || isContactUnlockedByState({ ownerId: p.ownerId });
                   const ownerUnlockCost = getUnlockCost(linkedOwnerId);
                   const propertyExclusiveStatus = getPropertyExclusiveStatus(p);
                   const isArchivedInterestRow = archivedInterests.has(getInterestKey(p));
-                  const owner = effectiveOwner || (p.ownerPreview
-                    ? resolveContactCard(p.ownerPreview, getRecordProfileScope(p))
-                    : (
-                      String(p.ownerId) === String(personalOwnerId) || String(p.ownerId) === String(secondaryOwnerId) || String(p.ownerId) === String(fsboOwnerId)
-                        ? buildLocalOwnerCard(getRecordProfileScope(p, String(p.ownerId) === String(secondaryOwnerId) ? 'professional' : (String(p.ownerId) === String(fsboOwnerId) ? 'fsbo' : 'personal')))
-                        : (import.meta.env.DEV ? CARDS.find(c => c.id === p.ownerId) : null)
-                    ));
+                  const owner = effectiveOwner
+                    || canonicalContactToDisplayCard(getCanonicalContact(linkedOwnerId))
+                    || {
+                      id: linkedOwnerId,
+                      ownerId: linkedOwnerId,
+                      name: p.ownerPreview?.name || 'Locked contact',
+                    };
                   return (
                     <div key={p.id} onClick={() => setActive(effectiveProperty)} style={{ display:"flex", alignItems:"center", gap:10, padding:12, borderBottom:`1px solid ${C.border}`, borderLeft:isLinkedProperty?`3px solid ${C.alpha(PROPERTY_SIGNAL, 0.7)}`:'3px solid transparent', cursor:"pointer", background:isLinkedProperty?C.alpha(PROPERTY_SIGNAL, 0.14):"transparent" }}>
                       <div style={{ width:32, height:32, borderRadius:6, overflow:"hidden", border:`1px solid ${isLinkedProperty?PROPERTY_SIGNAL:C.border}` }}>
@@ -3644,14 +3714,14 @@ export function MatchesPage({ nuggets, setModal, openUnlock, unlocked, initialCh
                     </div>
                     {!isMobile && !isTabletPortrait ? (
                       <div style={{ minWidth:0, maxWidth:'64%', display:'flex', justifyContent:'flex-end', alignSelf:'flex-start' }}>
-                        <ContactButtons item={activeOwner} variant="unlocked-header" isMobile={false} desktopRightToLeft />
+                        <ContactButtons item={activeOwner} contact={activeOwner?.canonicalContact} variant="unlocked-header" isMobile={false} desktopRightToLeft />
                       </div>
                     ) : null}
                   </div>
                 </div>
                 {(isMobile || isTabletPortrait) ? (
                   <div style={{ marginTop:10, paddingLeft: isTabletPortrait ? 52 : 0 }}>
-                        <ContactButtons item={activeOwner} variant="unlocked-header" isMobile={isMobile} />
+                        <ContactButtons item={activeOwner} contact={activeOwner?.canonicalContact} variant="unlocked-header" isMobile={isMobile} />
                   </div>
                 ) : null}
               </div>
@@ -3963,6 +4033,7 @@ export function MatchesPage({ nuggets, setModal, openUnlock, unlocked, initialCh
                       <PortfolioDetail
                         item={selectedPortfolioItem}
                         owner={activeOwner}
+                        ownerContact={activeOwner?.canonicalContact || null}
                         ownerDesc={ownerDesc}
                         onBack={() => setSelectedPortfolioItem(null)}
                         autoplayMedia={autoplayMedia}
@@ -4019,7 +4090,7 @@ export function MatchesPage({ nuggets, setModal, openUnlock, unlocked, initialCh
                             Stand By
                           </div>
                         ) : null}
-                        <ContactButtons item={activeOwner || selectedPortfolioItem} />
+                        <ContactButtons item={activeOwner || selectedPortfolioItem} contact={activeOwner?.canonicalContact || null} />
                       </div>
                     )
                   ) : (
@@ -4030,9 +4101,9 @@ export function MatchesPage({ nuggets, setModal, openUnlock, unlocked, initialCh
                             {(portfolioShowAll ? portfolioItems : portfolioItems.slice(0, 4)).map(p => {
                               const exclusivityStatus = (typeof getPropertyExclusiveStatus === 'function') ? getPropertyExclusiveStatus(p) : null;
                               const ownerCard = (allMatched || []).find(c => String(c.ownerId || c.id) === String(p.ownerId))
-                                || p.ownerPreview
                                 || activeOwner
-                                || (import.meta.env.DEV ? CARDS.find(c => String(c.id) === String(p.ownerId)) : null);
+                                || canonicalContactToDisplayCard(getCanonicalContact(p.ownerId))
+                                || { id: p.ownerId, ownerId: p.ownerId, name: p.ownerPreview?.name || 'Locked contact' };
                               const ownerVerified = Boolean(ownerCard && (ownerCard.verified === true || String(ownerCard.verified).toLowerCase() === 'verified'));
                               const isHot = false;
                               return (
@@ -4137,6 +4208,7 @@ export function MatchesPage({ nuggets, setModal, openUnlock, unlocked, initialCh
                 <PortfolioDetail
                   item={mobileCardSheet}
                   owner={activeOwner}
+                  ownerContact={activeOwner?.canonicalContact || null}
                   ownerDesc={ownerDesc}
                   onBack={() => setMobileCardSheet(null)}
                   autoplayMedia={autoplayMedia}
@@ -4177,7 +4249,7 @@ export function MatchesPage({ nuggets, setModal, openUnlock, unlocked, initialCh
                   <SmartImage src={mobileCardSheet.media.images[0]} alt={mobileCardSheet.name} style={{ width:'100%', borderRadius:12, marginBottom:12, objectFit:'cover', maxHeight:200 }} />
                 )}
                 {mobileCardSheet.description && <div style={{ color:C.t2, fontSize:13, marginBottom:12 }}>{mobileCardSheet.description}</div>}
-                <ContactButtons item={activeOwner || mobileCardSheet} />
+                <ContactButtons item={activeOwner || mobileCardSheet} contact={activeOwner?.canonicalContact || null} />
                 <button
                   type="button"
                   onClick={() => {
