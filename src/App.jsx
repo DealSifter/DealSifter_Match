@@ -1064,6 +1064,29 @@ const scoreContactPayloadRichness = (item) => {
   ), 0);
 };
 
+const isFilledContactValue = (value) => {
+  if (Array.isArray(value)) return value.length > 0;
+  return String(value || '').trim().length > 0;
+};
+
+const mergeFeedActionPayload = (existing, incoming) => {
+  const merged = { ...(existing || {}), ...(incoming || {}) };
+  [
+    'email',
+    'phone',
+    'primaryPhone',
+    'secondaryPhone',
+    'tertiaryPhone',
+    'whatsapp',
+    'contactMethods',
+  ].forEach((key) => {
+    if (!isFilledContactValue(incoming?.[key]) && isFilledContactValue(existing?.[key])) {
+      merged[key] = existing[key];
+    }
+  });
+  return merged;
+};
+
 const mergeFeedActionItems = (prev, incoming) => {
   const next = Array.isArray(prev) ? [...prev] : [];
   const indexById = new Map(next.map((item, index) => [getFeedActionMergeKey(item), index]).filter(([key]) => key && !key.endsWith(':')));
@@ -1080,9 +1103,9 @@ const mergeFeedActionItems = (prev, incoming) => {
     const incomingCanonical = ['remote-unlock', 'supabase'].includes(String(item?.source || '').trim());
     const existingCanonical = ['remote-unlock', 'supabase'].includes(String(existing?.source || '').trim());
     if (incomingCanonical && !existingCanonical) {
-      next[existingIndex] = { ...(existing || {}), ...(item || {}) };
+      next[existingIndex] = mergeFeedActionPayload(existing, item);
     } else if (scoreContactPayloadRichness(item) >= scoreContactPayloadRichness(existing)) {
-      next[existingIndex] = { ...(existing || {}), ...(item || {}) };
+      next[existingIndex] = mergeFeedActionPayload(existing, item);
     }
   });
   return next;
@@ -3176,17 +3199,23 @@ export default function App() {
           return current;
         });
 
+        const snapshotContacts = snapshotRows
+          .map((row) => row?.contact)
+          .filter((contact) => (
+            contact
+            && typeof contact === 'object'
+            && String(contact.ownerId || contact.unlockOwnerId || contact.id || '').trim() !== String(supabaseUserId || '').trim()
+          ));
+        const snapshotOwnerIds = new Set(snapshotContacts
+          .map((contact) => String(contact.ownerId || contact.unlockOwnerId || contact.id || '').trim())
+          .filter(Boolean));
+        const fallbackContacts = unlockedOwnerIds
+          .filter((ownerId) => !snapshotOwnerIds.has(String(ownerId || '').trim()))
+          .map((ownerId) => buildUnlockedContactSnapshot(ownerId))
+          .filter(Boolean);
         const hydratedContacts = [
-          ...snapshotRows
-            .map((row) => row?.contact)
-            .filter((contact) => (
-              contact
-              && typeof contact === 'object'
-              && String(contact.ownerId || contact.unlockOwnerId || contact.id || '').trim() !== String(supabaseUserId || '').trim()
-            )),
-          ...unlockedOwnerIds
-            .map((ownerId) => buildUnlockedContactSnapshot(ownerId))
-            .filter(Boolean),
+          ...fallbackContacts,
+          ...snapshotContacts,
         ];
 
         if (hydratedContacts.length) {
@@ -4603,6 +4632,7 @@ export default function App() {
   const {
     notifications: ownerUnlockNotifications,
     markAsRead: markOwnerUnlockNotificationAsRead,
+    deleteNotification: deleteOwnerUnlockNotification,
   } = useUnlockNotifications({
     currentUserId: authSession?.userId,
     enabled: Boolean(authSession?.userId),
@@ -4621,7 +4651,7 @@ export default function App() {
     }
 
     const unreadUnlockNotifications = (ownerUnlockNotifications || [])
-      .filter((notification) => !notification.read && ['unlock', 'exclusive'].includes(String(notification.type || '')))
+      .filter((notification) => ['unlock', 'exclusive'].includes(String(notification.type || '')))
       .map((notification) => ({
         id: `unlock-notification-${notification.id}`,
         ownerId: notification.unlockerId || notification.payload?.unlocker_id || notification.id,
@@ -4631,6 +4661,7 @@ export default function App() {
           ? 'Someone unlocked one of your property opportunities.'
           : 'Someone unlocked one of your contact cards.',
         count: 1,
+        read: Boolean(notification.read),
         source: 'unlock_notification',
         notificationId: notification.id,
       }));
@@ -4686,6 +4717,7 @@ export default function App() {
           title: target?.name ? `Chat ${target.name}` : `Chat ${ownerId}`,
           message: String(localizedIncomingText || '').slice(0, 120) || 'Nova atividade no chat',
           count: unreadCount,
+          read: unreadCount <= 0,
         };
       })
       .sort((a, b) => (b.count || 0) - (a.count || 0));
@@ -4723,6 +4755,49 @@ export default function App() {
     });
   }, [markOwnerUnlockNotificationAsRead, ownerUnlockNotifications]);
 
+  useEffect(() => {
+    const reciprocalOwnerIds = (ownerUnlockNotifications || [])
+      .filter((notification) => ['unlock', 'exclusive'].includes(String(notification.type || '')))
+      .map((notification) => String(notification.unlockerId || notification.payload?.unlocker_id || '').trim())
+      .filter((ownerId) => ownerId && ownerId !== String(supabaseUserId || '').trim());
+    if (!reciprocalOwnerIds.length) return;
+
+    setUnlocked((prev) => {
+      const current = Array.isArray(prev) ? [...prev] : [];
+      const seen = new Set(current.map((id) => String(id || '').trim()).filter(Boolean));
+      let changed = false;
+      reciprocalOwnerIds.forEach((ownerId) => {
+        if (!seen.has(ownerId)) {
+          seen.add(ownerId);
+          current.push(ownerId);
+          changed = true;
+        }
+      });
+      return changed ? [...current] : prev;
+    });
+
+    setPurchases((prev) => {
+      const current = Array.isArray(prev) ? [...prev] : [];
+      const seen = new Set(current.map((row) => String(row?.sellerId || '').trim()).filter(Boolean));
+      let changed = false;
+      reciprocalOwnerIds.forEach((ownerId) => {
+        if (!seen.has(ownerId)) {
+          seen.add(ownerId);
+          current.push({ sellerId: ownerId, source: 'reciprocal_unlock_notification' });
+          changed = true;
+        }
+      });
+      return changed ? [...current] : prev;
+    });
+
+    const reciprocalContacts = reciprocalOwnerIds
+      .map((ownerId) => buildUnlockedContactSnapshot(ownerId) || { id: ownerId, ownerId, unlockOwnerId: ownerId, name: `Chat ${ownerId}`, source: 'remote-unlock' })
+      .filter(Boolean);
+    if (reciprocalContacts.length) {
+      setMatched((prev) => mergeFeedActionItems(prev, reciprocalContacts));
+    }
+  }, [buildUnlockedContactSnapshot, ownerUnlockNotifications, setMatched, setPurchases, setUnlocked, supabaseUserId]);
+
   const markChatNotificationAsRead = (notification) => {
     if (notification?.source === 'unlock_notification' && notification?.notificationId) {
       markOwnerUnlockNotificationAsRead(notification.notificationId).catch((error) => {
@@ -4747,6 +4822,39 @@ export default function App() {
     }
   };
 
+  const deleteChatNotification = (notification) => {
+    if (notification?.source === 'unlock_notification' && notification?.notificationId) {
+      deleteOwnerUnlockNotification(notification.notificationId).catch((error) => {
+        console.error('Failed to delete unlock notification.', error);
+      });
+      return;
+    }
+    markChatNotificationAsRead(notification);
+    const id = String(notification?.id || '');
+    if (id) {
+      try {
+        const saved = localStorage.getItem('ds_notif_deferred_chat');
+        const parsed = saved ? JSON.parse(saved) : [];
+        const next = Array.isArray(parsed) ? [...new Set([...parsed, id])] : [id];
+        localStorage.setItem('ds_notif_deferred_chat', JSON.stringify(next));
+      } catch { /* noop */ }
+    }
+  };
+
+  const deleteAllChatNotifications = () => {
+    (chatNotifications || []).forEach((notification) => deleteChatNotification(notification));
+  };
+
+  const deleteSystemNotification = (notification) => {
+    const id = String(notification?.id || '');
+    if (!id || id === 'empty-system') return;
+    setSystemNotifications((prev) => (Array.isArray(prev) ? prev : []).filter((item) => String(item?.id || '') !== id));
+  };
+
+  const deleteAllSystemNotifications = () => {
+    setSystemNotifications([]);
+  };
+
   const openChatFromNotification = (notification) => {
     if (notification?.source === 'support_notification') {
       setSettingsInitialTab('communication');
@@ -4760,9 +4868,18 @@ export default function App() {
     const target =
       notification?.target
       || (matched || []).find((m) => String(m.id) === ownerId)
+      || buildUnlockedContactSnapshot(ownerId)
       || (CARDS || []).find((c) => String(c.id) === ownerId)
       || { id: ownerIdRaw, ownerId: ownerIdRaw, name: `Chat ${ownerId}` };
 
+    setUnlocked((prev) => {
+      const current = Array.isArray(prev) ? prev : [];
+      return current.some((id) => String(id) === ownerId) ? current : [...current, ownerId];
+    });
+    setPurchases((prev) => {
+      const current = Array.isArray(prev) ? prev : [];
+      return current.some((row) => String(row?.sellerId || '') === ownerId) ? current : [...current, { sellerId: ownerId, source: 'reciprocal_unlock_notification' }];
+    });
     setMatched((prev) => (prev.some((m) => String(m.id) === ownerId) ? prev : [...prev, target]));
     setChatFocusTarget(target);
     setChatFocusToken((v) => v + 1);
@@ -5685,7 +5802,15 @@ export default function App() {
         }
 
         // Ensure unlocked contact stays available in Matches module.
-        const matchedCard = { ...card, id: contactUnlockId, ownerId: unlockOwnerId || card.ownerId || contactUnlockId };
+        const matchedFallback = buildUnlockedContactSnapshot(unlockOwnerId);
+        const matchedCard = {
+          ...card,
+          ...(matchedFallback || {}),
+          id: unlockOwnerId || contactUnlockId,
+          ownerId: unlockOwnerId || card.ownerId || contactUnlockId,
+          unlockOwnerId: unlockOwnerId || card.unlockOwnerId || card.ownerId || contactUnlockId,
+          source: matchedFallback?.source || card.source || 'remote-unlock',
+        };
         setMatched((prev) => {
           const current = Array.isArray(prev) ? prev : [];
           const filtered = current.filter((item) => {
@@ -6054,6 +6179,10 @@ export default function App() {
               setSystemNotifications={setSystemNotifications}
               onOpenChatNotification={openChatFromNotification}
               onMarkChatNotificationRead={markChatNotificationAsRead}
+              onDeleteChatNotification={deleteChatNotification}
+              onDeleteAllChatNotifications={deleteAllChatNotifications}
+              onDeleteSystemNotification={deleteSystemNotification}
+              onDeleteAllSystemNotifications={deleteAllSystemNotifications}
               onOpenAuthModal={openAuthModal}
               onOpenSettings={() => openSettingsTab('profile')}
               onOpenAdmin={() => setPage('admin')}

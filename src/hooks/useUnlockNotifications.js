@@ -34,8 +34,8 @@ function createRealtimeTopic(prefix, userId) {
  * - INSERT on public.notifications filtered by user_id = current user.
  *
  * Backlog:
- * - On mount, unread rows are fetched from public.notifications so events that
- *   arrived while the user was offline still produce a badge on the next login.
+ * - On mount, recent rows are fetched from public.notifications so events that
+ *   arrived while the user was offline remain available as history.
  *
  * Polling/non-realtime stays elsewhere:
  * - Admin KPIs and nugget counters should continue using periodic refresh or
@@ -81,12 +81,11 @@ export function useUnlockNotifications({
     }
 
     let cancelled = false;
-    const loadUnreadNotifications = async () => {
+    const loadRecentNotifications = async () => {
       const { data, error } = await supabase
         .from(NOTIFICATIONS_TABLE)
         .select('id, user_id, type, payload, read_at, created_at')
         .eq('user_id', userId)
-        .is('read_at', null)
         .order('created_at', { ascending: false })
         .limit(100);
       if (error) throw error;
@@ -94,7 +93,7 @@ export function useUnlockNotifications({
       setNotifications((data || []).map(mapNotification).filter(Boolean));
     };
 
-    loadUnreadNotifications().catch((error) => {
+    loadRecentNotifications().catch((error) => {
       reportError('Unlock notification backlog load failed.', error);
     });
 
@@ -173,12 +172,46 @@ export function useUnlockNotifications({
     setNotifications([]);
   }, []);
 
+  const deleteNotification = useCallback(async (id) => {
+    const notificationId = String(id || '').trim();
+    if (!notificationId || !canUseNotifications) return;
+    const previous = notifications;
+    setNotifications((prev) => (Array.isArray(prev) ? prev : []).filter((item) => item.id !== notificationId));
+    const { error } = await supabase
+      .from(NOTIFICATIONS_TABLE)
+      .delete()
+      .eq('id', notificationId)
+      .eq('user_id', userId);
+    if (error) {
+      setNotifications(previous);
+      reportError('Unlock notification delete failed.', error);
+      throw error;
+    }
+  }, [canUseNotifications, notifications, reportError, userId]);
+
+  const deleteAll = useCallback(async () => {
+    if (!canUseNotifications) return;
+    const previous = notifications;
+    setNotifications([]);
+    const { error } = await supabase
+      .from(NOTIFICATIONS_TABLE)
+      .delete()
+      .eq('user_id', userId);
+    if (error) {
+      setNotifications(previous);
+      reportError('Unlock notification delete all failed.', error);
+      throw error;
+    }
+  }, [canUseNotifications, notifications, reportError, userId]);
+
   return {
     notifications,
     unreadCount,
     markAsRead,
     markAllAsRead,
     markAllRead: markAllAsRead,
+    deleteNotification,
+    deleteAll,
     clear,
     realtimeEnabled: canUseNotifications,
   };

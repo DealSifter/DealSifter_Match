@@ -172,7 +172,7 @@ function SwipeableNotificationItem({
   );
 }
 
-export function Navbar({ page, prevPage, setPage, nuggets = 0, setModal = () => {}, chatNotifications = [], systemNotifications = [], setSystemNotifications = () => {}, onOpenChatNotification = () => {}, onMarkChatNotificationRead = () => {}, onOpenAuthModal = () => {}, onOpenSettings = () => {}, onOpenAdmin = () => {}, onLogoutUser = () => {}, isAdmin = false, showInstallAppButton = false, onInstallApp = () => {}, userPreferences = null }) {
+export function Navbar({ page, prevPage, setPage, nuggets = 0, setModal = () => {}, chatNotifications = [], systemNotifications = [], setSystemNotifications = () => {}, onOpenChatNotification = () => {}, onMarkChatNotificationRead = () => {}, onDeleteChatNotification = () => {}, onDeleteAllChatNotifications = () => {}, onDeleteSystemNotification = () => {}, onDeleteAllSystemNotifications = () => {}, onOpenAuthModal = () => {}, onOpenSettings = () => {}, onOpenAdmin = () => {}, onLogoutUser = () => {}, isAdmin = false, showInstallAppButton = false, onInstallApp = () => {}, userPreferences = null }) {
   const TABLET_PORTRAIT_QUERY = '(min-width: 768px) and (max-width: 1080px) and (orientation: portrait)';
   const isApp = page !== 'landing';
   const isLanding = page === 'landing';
@@ -247,13 +247,17 @@ export function Navbar({ page, prevPage, setPage, nuggets = 0, setModal = () => 
     () => (systemNotifications || []).filter((n) => !n.read).length,
     [systemNotifications],
   );
-  const consolidatedCount = (chatNotifications?.length || 0) + systemUnreadCount;
+  const chatUnreadCount = useMemo(
+    () => (chatNotifications || []).filter((n) => !n.read).reduce((sum, n) => sum + Math.max(1, Number(n?.count || 0)), 0),
+    [chatNotifications],
+  );
+  const consolidatedCount = chatUnreadCount + systemUnreadCount;
   const visibleChatNotifications = useMemo(
     () => (chatNotifications || []).filter((n) => !deferredChatIds.includes(String(n.id))),
     [chatNotifications, deferredChatIds],
   );
   const visibleSystemNotifications = useMemo(
-    () => (systemNotifications || []).filter((n) => !n.read && !deferredSystemIds.includes(String(n.id))),
+    () => (systemNotifications || []).filter((n) => !deferredSystemIds.includes(String(n.id))),
     [systemNotifications, deferredSystemIds],
   );
 
@@ -309,6 +313,30 @@ export function Navbar({ page, prevPage, setPage, nuggets = 0, setModal = () => 
     onMarkChatNotificationRead(item);
     const id = String(item?.id || '');
     if (id) setDeferredChatIds((prev) => prev.filter((x) => x !== id));
+  };
+
+  const deleteChatNotification = (item) => {
+    if (!item || item.id === 'empty-matches') return;
+    onDeleteChatNotification(item);
+    const id = String(item?.id || '');
+    if (id) setDeferredChatIds((prev) => prev.filter((x) => x !== id));
+  };
+
+  const deleteSystemNotification = (item) => {
+    if (!item || item.id === 'empty-system') return;
+    onDeleteSystemNotification(item);
+    const id = String(item?.id || '');
+    if (id) setDeferredSystemIds((prev) => prev.filter((x) => x !== id));
+  };
+
+  const deleteAllVisibleNotifications = () => {
+    if (notifTab === 'matches') {
+      onDeleteAllChatNotifications();
+      setDeferredChatIds([]);
+    } else {
+      onDeleteAllSystemNotifications();
+      setDeferredSystemIds([]);
+    }
   };
 
   const markSystemNotificationRead = (item) => {
@@ -503,9 +531,15 @@ export function Navbar({ page, prevPage, setPage, nuggets = 0, setModal = () => 
                               {(t.matchesMessagesTab || 'Matches Msgs')} ({chatNotifications?.length || 0})
                             </button>
                             <button onClick={() => setNotifTab('system')} style={{ flex: 1, border: `1px solid ${notifTab === 'system' ? C.accent : C.border}`, background: notifTab === 'system' ? C.alpha(C.accent, 0.1) : 'transparent', color: notifTab === 'system' ? C.accent : C.t2, borderRadius: 8, padding: '8px 8px', fontSize: 11, fontWeight: 700, cursor: 'pointer' }}>
-                              {(t.systemMessagesTab || 'System Msgs')} ({systemUnreadCount})
+                              {(t.systemMessagesTab || 'System Msgs')} ({systemNotifications?.length || 0})
                             </button>
                           </div>
+
+                          {((notifTab === 'matches' && visibleChatNotifications?.length) || (notifTab === 'system' && visibleSystemNotifications?.length)) ? (
+                            <button onClick={deleteAllVisibleNotifications} style={{ border: `1px solid ${C.border}`, background: 'transparent', color: C.danger || '#ef4444', borderRadius: 8, padding: '7px 10px', fontSize: 12, fontWeight: 800, cursor: 'pointer' }}>
+                              {t.deleteAll || 'Excluir todas'}
+                            </button>
+                          ) : null}
 
                           <div style={{ border: `1px solid ${C.border}`, borderRadius: 10, background: C.alpha(C.bg, 0.3), padding: 8, display: 'grid', gap: 6, maxHeight: 'calc(100vh - 220px)', overflowY: 'auto' }}>
                             {notifTab === 'matches' ? (
@@ -530,8 +564,18 @@ export function Navbar({ page, prevPage, setPage, nuggets = 0, setModal = () => 
                                           openChatNotificationFromMenu(item);
                                         }
                                       }}
-                                      style={{ border: `1px solid ${C.border}`, borderRadius: 8, padding: 10, cursor: clickable ? 'pointer' : 'default', background: clickable ? C.alpha(C.accent, 0.03) : 'transparent' }}
+                                      style={{ border: `1px solid ${item.read ? C.border : C.accent}`, borderRadius: 8, padding: 10, cursor: clickable ? 'pointer' : 'default', background: item.read ? 'transparent' : C.alpha(C.accent, 0.06), position: 'relative' }}
                                     >
+                                      {item.id !== 'empty-matches' ? (
+                                        <button
+                                          type="button"
+                                          aria-label={t.delete || 'Delete'}
+                                          onClick={(event) => { event.stopPropagation(); deleteChatNotification(item); }}
+                                          style={{ position: 'absolute', top: 6, right: 6, border: 'none', background: 'transparent', color: C.t3, cursor: 'pointer', fontSize: 14, fontWeight: 900, lineHeight: 1 }}
+                                        >
+                                          x
+                                        </button>
+                                      ) : null}
                                       <div style={{ fontSize: 12, fontWeight: 700, color: C.t1 }}>{item.title}</div>
                                       <div style={{ fontSize: 11, color: C.t3, marginTop: 2 }}>{item.message}</div>
                                     </div>
@@ -560,8 +604,18 @@ export function Navbar({ page, prevPage, setPage, nuggets = 0, setModal = () => 
                                           openSystemNotification(item);
                                         }
                                       }}
-                                      style={{ border: `1px solid ${item.read ? C.border : C.accent}`, borderRadius: 8, padding: 10, background: item.read ? 'transparent' : C.alpha(C.accent, 0.06), cursor: clickable ? 'pointer' : 'default' }}
+                                      style={{ border: `1px solid ${item.read ? C.border : C.accent}`, borderRadius: 8, padding: 10, background: item.read ? 'transparent' : C.alpha(C.accent, 0.06), cursor: clickable ? 'pointer' : 'default', position: 'relative' }}
                                     >
+                                      {item.id !== 'empty-system' ? (
+                                        <button
+                                          type="button"
+                                          aria-label={t.delete || 'Delete'}
+                                          onClick={(event) => { event.stopPropagation(); deleteSystemNotification(item); }}
+                                          style={{ position: 'absolute', top: 6, right: 6, border: 'none', background: 'transparent', color: C.t3, cursor: 'pointer', fontSize: 14, fontWeight: 900, lineHeight: 1 }}
+                                        >
+                                          x
+                                        </button>
+                                      ) : null}
                                       <div style={{ fontSize: 12, fontWeight: 700, color: C.t1 }}>{item.title}</div>
                                       <div style={{ fontSize: 11, color: C.t3, marginTop: 2 }}>{item.message}</div>
                                     </div>
@@ -690,11 +744,16 @@ export function Navbar({ page, prevPage, setPage, nuggets = 0, setModal = () => 
                           {(t.matchesMessagesTab || 'Matches Msgs')} ({chatNotifications?.length || 0})
                         </button>
                         <button onClick={() => setNotifTab('system')} style={{ flex: 1, border: `1px solid ${notifTab === 'system' ? C.accent : C.border}`, background: notifTab === 'system' ? C.alpha(C.accent, 0.1) : 'transparent', color: notifTab === 'system' ? C.accent : C.t2, borderRadius: 8, padding: '6px 8px', fontSize: 11, fontWeight: 700, cursor: 'pointer' }}>
-                          {(t.systemMessagesTab || 'System Msgs')} ({systemUnreadCount})
+                          {(t.systemMessagesTab || 'System Msgs')} ({systemNotifications?.length || 0})
                         </button>
                       </div>
 
                       <div style={{ padding: 8, display: 'grid', gap: 6, maxHeight: 260, overflowY: 'auto' }}>
+                        {((notifTab === 'matches' && visibleChatNotifications?.length) || (notifTab === 'system' && visibleSystemNotifications?.length)) ? (
+                          <button onClick={deleteAllVisibleNotifications} style={{ border: `1px solid ${C.border}`, background: 'transparent', color: C.danger || '#ef4444', borderRadius: 8, padding: '6px 8px', fontSize: 11, fontWeight: 800, cursor: 'pointer' }}>
+                            {t.deleteAll || 'Excluir todas'}
+                          </button>
+                        ) : null}
                         {notifTab === 'matches' ? (
                           (visibleChatNotifications?.length ? visibleChatNotifications : [{ id: 'empty-matches', title: t.emptyMessagesTitle || 'No messages', message: t.emptyMessagesBody || 'No chat activity right now.' }]).map((item) => {
                             const clickable = Boolean(item?.ownerId);
@@ -726,8 +785,18 @@ export function Navbar({ page, prevPage, setPage, nuggets = 0, setModal = () => 
                                       setNotifOpen(false);
                                     }
                                   }}
-                                  style={{ border: `1px solid ${C.border}`, borderRadius: 8, padding: 8, cursor: clickable ? 'pointer' : 'default', background: clickable ? C.alpha(C.accent, 0.03) : 'transparent' }}
+                                  style={{ border: `1px solid ${item.read ? C.border : C.accent}`, borderRadius: 8, padding: 8, cursor: clickable ? 'pointer' : 'default', background: item.read ? 'transparent' : C.alpha(C.accent, 0.06), position: 'relative' }}
                                 >
+                                  {item.id !== 'empty-matches' ? (
+                                    <button
+                                      type="button"
+                                      aria-label={t.delete || 'Delete'}
+                                      onClick={(event) => { event.stopPropagation(); deleteChatNotification(item); }}
+                                      style={{ position: 'absolute', top: 5, right: 5, border: 'none', background: 'transparent', color: C.t3, cursor: 'pointer', fontSize: 13, fontWeight: 900, lineHeight: 1 }}
+                                    >
+                                      x
+                                    </button>
+                                  ) : null}
                                   <div style={{ fontSize: 11, fontWeight: 700, color: C.t1 }}>{item.title}</div>
                                   <div style={{ fontSize: 10, color: C.t3, marginTop: 2 }}>{allowMessagePreview ? item.message : '•••'}</div>
                                 </div>
@@ -755,8 +824,18 @@ export function Navbar({ page, prevPage, setPage, nuggets = 0, setModal = () => 
                                       openSystemNotification(item);
                                     }
                                   }}
-                                  style={{ border: `1px solid ${item.read ? C.border : C.accent}`, borderRadius: 8, padding: 8, background: item.read ? 'transparent' : C.alpha(C.accent, 0.06), cursor: item.source === 'support_notification' ? 'pointer' : 'default' }}
+                                  style={{ border: `1px solid ${item.read ? C.border : C.accent}`, borderRadius: 8, padding: 8, background: item.read ? 'transparent' : C.alpha(C.accent, 0.06), cursor: item.source === 'support_notification' ? 'pointer' : 'default', position: 'relative' }}
                                 >
+                                  {item.id !== 'empty-system' ? (
+                                    <button
+                                      type="button"
+                                      aria-label={t.delete || 'Delete'}
+                                      onClick={(event) => { event.stopPropagation(); deleteSystemNotification(item); }}
+                                      style={{ position: 'absolute', top: 5, right: 5, border: 'none', background: 'transparent', color: C.t3, cursor: 'pointer', fontSize: 13, fontWeight: 900, lineHeight: 1 }}
+                                    >
+                                      x
+                                    </button>
+                                  ) : null}
                                   <div style={{ fontSize: 11, fontWeight: 700, color: C.t1 }}>{item.title}</div>
                                   <div style={{ fontSize: 10, color: C.t3, marginTop: 2 }}>{allowMessagePreview ? item.message : '•••'}</div>
                                 </div>
