@@ -96,11 +96,23 @@ export function isOwnerUnlocked(map, ownerId) {
   return Boolean(getContactByOwnerId(map, ownerId));
 }
 
+export function hasOwnerPortfolioEntitlement(map, ownerId) {
+  const contact = getContactByOwnerId(map, ownerId);
+  if (!contact) return false;
+  return ['contact', 'reciprocal'].includes(toStringId(contact.unlockScope || contact.unlock_scope).toLowerCase());
+}
+
 export function isPropertyUnlocked(map, ownerId, propertyId) {
   const contact = getContactByOwnerId(map, ownerId);
   const cleanPropertyId = toStringId(propertyId);
   if (!contact || !cleanPropertyId) return false;
-  return (contact.unlockedPropertyIds || []).some((id) => id === cleanPropertyId);
+  if (hasOwnerPortfolioEntitlement(map, ownerId)) return true;
+  if ((contact.unlockedPropertyIds || []).some((id) => id === cleanPropertyId)) return true;
+  return (contact.portfolio || []).some((item) => (
+    toStringId(item.itemId || item.item_id) === cleanPropertyId
+    && item.itemType === 'property'
+    && item.isUnlocked === true
+  ));
 }
 
 export function invalidateCache(userId) {

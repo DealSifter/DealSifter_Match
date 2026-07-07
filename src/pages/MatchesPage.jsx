@@ -1,4 +1,4 @@
-import React, { useState, useRef, useEffect, useMemo, useCallback } from 'react';
+﻿import React, { useState, useRef, useEffect, useMemo, useCallback } from 'react';
 import { C } from '../theme/colors';
 import { useT } from '../i18n/translations';
 import { PROPERTIES as _MOCK_PROPERTIES, CATEGORIES, SERVICE_PORTFOLIO as _MOCK_SERVICE_PORTFOLIO } from '../data/mockData';
@@ -26,6 +26,7 @@ import { formatCompactUsd } from '../lib/formatMoney';
 import { getActiveExclusivities } from '../services/unlockService';
 import {
   getContactByOwnerId,
+  hasOwnerPortfolioEntitlement,
   isOwnerUnlocked as isCanonicalOwnerUnlocked,
   isPropertyUnlocked as isCanonicalPropertyUnlocked,
 } from '../services/unlockedContactService';
@@ -65,10 +66,10 @@ function getUserScopedStorageKey(baseKey, userId) {
 const CHAT_REPLY_TEMPLATES = {
   pt: [
     'Perfeito. Vou verificar e te retornar em breve.',
-    'Obrigado pelas informações. Quer fechar em breve?',
+    'Obrigado pelas informaÃ§Ãµes. Quer fechar em breve?',
     'Excelente. Vamos conversar com mais detalhes.',
-    'Recebi sua solicitação. Vou enviar o material agora.',
-    'Interessante. Vou revisar os números por aqui.',
+    'Recebi sua solicitaÃ§Ã£o. Vou enviar o material agora.',
+    'Interessante. Vou revisar os nÃºmeros por aqui.',
   ],
   en: [
     "Got it! I'll check and get back to you!",
@@ -79,23 +80,23 @@ const CHAT_REPLY_TEMPLATES = {
   ],
   es: [
     'Entendido. Lo reviso y te respondo en breve.',
-    'Gracias por la info. ¿Buscas cerrar pronto?',
-    'Suena bien. Hablemos de más detalles.',
-    'Recibí tu consulta. Te envío el paquete ahora.',
-    'Interesante. Voy a revisar los números de mi lado.',
+    'Gracias por la info. Â¿Buscas cerrar pronto?',
+    'Suena bien. Hablemos de mÃ¡s detalles.',
+    'RecibÃ­ tu consulta. Te envÃ­o el paquete ahora.',
+    'Interesante. Voy a revisar los nÃºmeros de mi lado.',
   ],
 };
 
 const CHAT_INTEREST_PREFIX = {
-  pt: 'Tenho interesse neste imóvel',
+  pt: 'Tenho interesse neste imÃ³vel',
   en: 'I am interested in this property',
-  es: 'Tengo interés en esta propiedad',
+  es: 'Tengo interÃ©s en esta propiedad',
 };
 
 const CHAT_INTEREST_SERVICE_PREFIX = {
-  pt: 'Tenho interesse neste Serviço',
+  pt: 'Tenho interesse neste ServiÃ§o',
   en: 'I am interested in this Service',
-  es: 'Tengo interés en este Servicio',
+  es: 'Tengo interÃ©s en este Servicio',
 };
 
 const CHAT_SYSTEM_ALERT_COPY = {
@@ -262,7 +263,7 @@ const PortfolioItem = ({ p, onOpen, exclusivityStatus = null, ownerVerified = fa
   );
 };
 
-// ── Always-visible contact chips ───────────────────────────────────────────
+// â”€â”€ Always-visible contact chips â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 const hasContactDisplayValue = (value) => {
   if (Array.isArray(value)) return value.length > 0;
   return String(value || '').trim().length > 0;
@@ -334,6 +335,63 @@ function getLocalOwnerId(scopeKey) {
     if (map && typeof map[scopeKey] !== 'undefined') return map[scopeKey];
   } catch (e) { void e; }
   return '';
+}
+
+function ExclusiveBlockedBadge({ status, onUnlockOwner = null }) {
+  const allT = useT('matches');
+  const t = allT.matches || {};
+  const expiresAt = status?.expiresAt || null;
+  const [nowMs, setNowMs] = useState(null);
+
+  useEffect(() => {
+    if (!expiresAt) return undefined;
+    const tick = () => setNowMs(Date.now());
+    const start = window.setTimeout(tick, 0);
+    const interval = window.setInterval(tick, 60000);
+    return () => {
+      window.clearTimeout(start);
+      window.clearInterval(interval);
+    };
+  }, [expiresAt]);
+
+  const daysLeft = (() => {
+    if (!expiresAt || !nowMs) return null;
+    const diff = new Date(expiresAt).getTime() - nowMs;
+    if (!Number.isFinite(diff)) return null;
+    return Math.max(1, Math.ceil(diff / 86400000));
+  })();
+
+  return (
+    <div style={{ flex:1, display:'flex', alignItems:'center', justifyContent:'center', padding:32, textAlign:'center' }}>
+      <div style={{ maxWidth:460, border:`1px solid ${C.alpha(C.gold, 0.42)}`, background:C.alpha(C.gold, 0.1), borderRadius:18, padding:'22px 24px', boxShadow:`0 16px 42px ${C.alpha(C.gold, 0.16)}` }}>
+        <div style={{ display:'inline-flex', alignItems:'center', justifyContent:'center', width:54, height:54, borderRadius:'50%', background:C.alpha(C.gold, 0.16), marginBottom:14 }}>
+          <Icon name="lock" size={26} color={C.gold} />
+        </div>
+        <div style={{ fontSize:20, fontWeight:950, color:C.t1, marginBottom:8 }}>
+          {t.exclusiveBlockedTitle || 'Exclusive property'}
+        </div>
+        <div style={{ fontSize:14, lineHeight:1.55, color:C.t2, fontWeight:700, marginBottom:14 }}>
+          {String(t.exclusiveBlockedMessage || 'Exclusive - available in {count} {unit}.')
+            .replace('{count}', String(daysLeft || '-'))
+            .replace('{unit}', daysLeft === 1 ? (t.dayOne || 'day') : (t.dayOther || 'days'))}
+        </div>
+        {expiresAt ? (
+          <div style={{ display:'flex', justifyContent:'center', marginBottom:14 }}>
+            <ExclusivityBadge expiresAt={expiresAt} />
+          </div>
+        ) : null}
+        {typeof onUnlockOwner === 'function' ? (
+          <button
+            type="button"
+            onClick={onUnlockOwner}
+            style={{ padding:'11px 16px', borderRadius:12, border:`1px solid ${C.accent}`, background:C.alpha(C.accent, 0.12), color:C.accent, fontWeight:900, cursor:'pointer' }}
+          >
+            {t.unlockOwnerContactOnly || 'Unlock owner contact only'}
+          </button>
+        ) : null}
+      </div>
+    </div>
+  );
 }
 
 function PortfolioDetail({ item, owner, ownerContact = null, isOwnerUnlocked = false, onUnlockRequest = null, contactPanelVariant = 'desktop', ownerDesc, onBack, autoplayMedia = false, onBlockedExport = null, imageSources = [], onStartChat = null, canUseChat = true, chatInterestLabel = CHAT_INTEREST_PREFIX.en, exclusiveStatus = null }) {
@@ -646,7 +704,7 @@ function PortfolioDetail({ item, owner, ownerContact = null, isOwnerUnlocked = f
       ctx.fillStyle = '#4f5f6f';
       ctx.font = '12px Arial, sans-serif';
       ctx.textAlign = 'left';
-      ctx.fillText('© OpenStreetMap contributors', 16, height - 15);
+      ctx.fillText('Â© OpenStreetMap contributors', 16, height - 15);
       return canvas.toDataURL('image/jpeg', 0.88);
     } catch (e) {
       void e;
@@ -1404,10 +1462,10 @@ function PortfolioDetail({ item, owner, ownerContact = null, isOwnerUnlocked = f
         {imgs.length > 1 && (
           <>
             <button onClick={() => setImgIdx(i => i > 0 ? i - 1 : imgs.length - 1)} style={{ position:"absolute", top:"50%", left:8, transform:"translateY(-50%)", width:26, height:26, borderRadius:"50%", border:"none", background:"rgba(0,0,0,0.45)", color:"#fff", cursor:"pointer" }}>
-              ‹
+              â€¹
             </button>
             <button onClick={() => setImgIdx(i => i < imgs.length - 1 ? i + 1 : 0)} style={{ position:"absolute", top:"50%", right:8, transform:"translateY(-50%)", width:26, height:26, borderRadius:"50%", border:"none", background:"rgba(0,0,0,0.45)", color:"#fff", cursor:"pointer" }}>
-              ›
+              â€º
             </button>
             <div style={{ position:"absolute", left:0, right:0, bottom:8, display:"flex", justifyContent:"center", gap:4 }}>
               {imgs.map((_, i) => (
@@ -1950,7 +2008,7 @@ export function MatchesPage({ nuggets, setModal, openUnlock, unlocked, initialCh
       loc: scopedIdentity?.loc || userProfile?.location || '',
       photo: scopedIdentity?.photo || '',
       desc: descriptions.length
-        ? descriptions.join(' • ')
+        ? descriptions.join(' â€¢ ')
         : (firstProperty?.description || scopedIdentity?.pitch || ''),
       contactMethods: scopedIdentity?.contactMethods || [],
       primaryPhone: scopedIdentity?.primaryPhone || '',
@@ -2058,6 +2116,10 @@ export function MatchesPage({ nuggets, setModal, openUnlock, unlocked, initialCh
     if (!ownerId || !propertyId) return false;
     return isCanonicalPropertyUnlocked(unlockedContactMap, ownerId, propertyId);
   }, [unlockedContactMap]);
+
+  const hasOwnerPortfolioAccessByState = useCallback((ownerId) => (
+    hasOwnerPortfolioEntitlement(unlockedContactMap, ownerId)
+  ), [unlockedContactMap]);
 
   const resolveCanonicalContactCard = useCallback((contactLike) => {
     if (!contactLike) return null;
@@ -2469,7 +2531,7 @@ export function MatchesPage({ nuggets, setModal, openUnlock, unlocked, initialCh
       if (isDeleted) return false;
       if (interestsFilter === "archived") return isArchived;
       if (isArchived) return false;
-      const paid = isPropertyUnlockedByCanonicalState(p) || isContactUnlockedByState({ ownerId: p.ownerId });
+      const paid = isPropertyUnlockedByCanonicalState(p);
       if (interestsFilter === "paid" && !paid) return false;
       if (interestsFilter === "locked" && paid) return false;
       if (selectedInterestStates.length > 0) {
@@ -2491,7 +2553,7 @@ export function MatchesPage({ nuggets, setModal, openUnlock, unlocked, initialCh
       else others.push(property);
     });
     return [...sortList(linked), ...sortList(others)];
-  }, [activeContactKey, interestBaseList, interestsFilter, isContactUnlockedByState, isPropertyUnlockedByCanonicalState, selectedInterestStates, getInterestStateCode, sortOrder, isLinkedToActiveContact, getInterestKey, getContactUnlockKeys, archivedInterests, archivedContacts, deletedInterests, deletedContacts]);
+  }, [activeContactKey, interestBaseList, interestsFilter, isPropertyUnlockedByCanonicalState, selectedInterestStates, getInterestStateCode, sortOrder, isLinkedToActiveContact, getInterestKey, getContactUnlockKeys, archivedInterests, archivedContacts, deletedInterests, deletedContacts]);
 
   const activeOwner = useMemo(() => {
     if (!active) return null;
@@ -2535,7 +2597,7 @@ export function MatchesPage({ nuggets, setModal, openUnlock, unlocked, initialCh
     if (!activeOwner) return null;
     try {
       const svcs = allServicesSource.filter(s => String(s.ownerId) === String(activeOwner.id) && (s.publishToConnections !== false) && s.description && String(s.description).trim().length);
-      if (svcs && svcs.length) return svcs.map(s => String(s.description).trim()).join(' • ');
+      if (svcs && svcs.length) return svcs.map(s => String(s.description).trim()).join(' â€¢ ');
       const firstProp = allPropertiesSource.find(p => String(p.ownerId) === String(activeOwner.id) && p.description && String(p.description).trim().length);
       if (firstProp) return firstProp.description;
       return activeOwner.desc || null;
@@ -2553,12 +2615,10 @@ export function MatchesPage({ nuggets, setModal, openUnlock, unlocked, initialCh
 
   const isUnlocked = useMemo(() => {
     if (!activeOwner) return false;
-    if (isContactUnlockedByState(activeOwner)) return true;
-    if (!isActiveProperty) return false;
+    if (!isActiveProperty) return isContactUnlockedByState(activeOwner);
     return isPropertyUnlockedByCanonicalState(active)
-      || isContactUnlockedByState(active)
-      || isContactUnlockedByState({ ownerId: active?.ownerId, ownerPreview: active?.ownerPreview });
-  }, [active, activeOwner, isActiveProperty, isContactUnlockedByState, isPropertyUnlockedByCanonicalState]);
+      || hasOwnerPortfolioAccessByState(active?.ownerId || activeOwner?.ownerId || activeOwner?.id);
+  }, [active, activeOwner, hasOwnerPortfolioAccessByState, isActiveProperty, isContactUnlockedByState, isPropertyUnlockedByCanonicalState]);
 
   const activeUnlockCost = useMemo(() => {
     if (!activeOwner?.id) return 1;
@@ -2569,6 +2629,8 @@ export function MatchesPage({ nuggets, setModal, openUnlock, unlocked, initialCh
     if (!active || !isActiveProperty) return null;
     return getPropertyExclusiveStatus(active);
   }, [active, getPropertyExclusiveStatus, isActiveProperty]);
+
+  const activePropertyBlockedByOther = isActiveProperty && activeExclusiveStatus?.kind === 'blocked';
 
   const activeOwnerExclusiveStatus = useMemo(() => {
     if (!activeOwner?.id || isActiveProperty) return null;
@@ -3253,7 +3315,7 @@ export function MatchesPage({ nuggets, setModal, openUnlock, unlocked, initialCh
                       <div style={{ flex:1, minWidth:0 }}>
                         <div style={{ fontWeight:700, fontSize:12, color:isLinkedContact?CONTACT_SIGNAL:C.t1, textOverflow:"ellipsis", overflow:"hidden", whiteSpace:"nowrap" }}>{m.name}</div>
                         <div style={{ fontSize:10, color:C.t3, display:"flex", alignItems:"center", gap:4 }}>
-                          <span style={{ color:rowContactUnlocked ? C.success : C.gold, fontWeight:700 }}>{rowContactUnlocked ? cardsT.unlocked : `${cardsT.locked} · ${contactUnlockCost}★`}</span>
+                          <span style={{ color:rowContactUnlocked ? C.success : C.gold, fontWeight:700 }}>{rowContactUnlocked ? cardsT.unlocked : `${cardsT.locked} Â· ${contactUnlockCost}â˜…`}</span>
                           <span>{m.type}</span>
                           {rowContactUnlocked && contactUnreadCount > 0 ? (
                             <span style={{ display:'inline-flex', alignItems:'center', justifyContent:'center', minWidth:16, height:16, padding:'0 4px', borderRadius:999, background:C.alpha(C.danger, 0.2), border:`1px solid ${C.alpha(C.danger, 0.55)}`, color:C.danger, fontSize:9, fontWeight:800 }}>
@@ -3380,7 +3442,7 @@ export function MatchesPage({ nuggets, setModal, openUnlock, unlocked, initialCh
                     ? { ...p, ...(canonicalLinkedProperty || {}), ownerId: effectiveOwner.id, ownerPreview: effectiveOwner }
                     : p;
                   const canonicalPropertyUnlocked = isPropertyUnlockedByCanonicalState(effectiveProperty);
-                  const isOwnerUnlocked = isLinkedProperty || canonicalPropertyUnlocked || isContactUnlockedByState({ ownerId: p.ownerId });
+                  const isPropertyEntitled = canonicalPropertyUnlocked || hasOwnerPortfolioAccessByState(linkedOwnerId);
                   const ownerUnlockCost = getUnlockCost(linkedOwnerId);
                   const propertyExclusiveStatus = getPropertyExclusiveStatus(p);
                   const isArchivedInterestRow = archivedInterests.has(getInterestKey(p));
@@ -3405,7 +3467,7 @@ export function MatchesPage({ nuggets, setModal, openUnlock, unlocked, initialCh
                         </div>
                         <div style={{ fontSize:9, color:C.gold }}>${(p.price/1000).toFixed(0)}K</div>
                         <div style={{ fontSize:10, color:C.t3, display:"flex", alignItems:"center", gap:4, whiteSpace:"nowrap", overflow:"hidden", textOverflow:"ellipsis" }}>
-                          <span style={{ color:isOwnerUnlocked ? C.success : C.gold, fontWeight:700 }}>{isOwnerUnlocked ? cardsT.unlocked : `${cardsT.locked} · ${ownerUnlockCost}★`}</span>
+                          <span style={{ color:isPropertyEntitled ? C.success : C.gold, fontWeight:700 }}>{isPropertyEntitled ? cardsT.unlocked : `${cardsT.locked} · ${ownerUnlockCost}★`}</span>
                           <span>{t.by} {owner?.name || "..."}</span>
                         </div>
                       </div>
@@ -3466,6 +3528,11 @@ export function MatchesPage({ nuggets, setModal, openUnlock, unlocked, initialCh
               <Icon name="chat" size={48} color={C.t3} strokeWidth={1} />
               <div>{t.selectConversation}</div>
             </div>
+          ) : activePropertyBlockedByOther ? (
+            <ExclusiveBlockedBadge
+              status={activeExclusiveStatus}
+              onUnlockOwner={!isContactUnlockedByState(activeOwner) ? () => openUnlock(activeOwner, {}) : null}
+            />
           ) : !isUnlocked ? (
             <div style={{ flex:1, display:"flex", flexDirection:"column", alignItems:"center", justifyContent:"center", padding: isMobile ? '54px 22px 30px' : 40, textAlign:"center", position:'relative' }}>
               {isMobile ? (
@@ -3541,7 +3608,7 @@ export function MatchesPage({ nuggets, setModal, openUnlock, unlocked, initialCh
                           <CardStatusIcon type={CARD_STATUS.exclusive} size={20} iconSize={12} />
                         ) : null}
                       </div>
-                      <div style={{ fontSize:11, color:C.success }}>{t.onlineBy} · {activeOwner.name}</div>
+                      <div style={{ fontSize:11, color:C.success }}>{t.onlineBy} Â· {activeOwner.name}</div>
                     </div>
                     {!isMobile && !isTabletPortrait ? (
                       <div style={{ minWidth:0, maxWidth:'64%', display:'flex', justifyContent:'flex-end', alignSelf:'flex-start' }}>
@@ -3979,7 +4046,7 @@ export function MatchesPage({ nuggets, setModal, openUnlock, unlocked, initialCh
                               onMouseEnter={e => e.currentTarget.style.background = C.alpha(C.accent, 0.08)}
                               onMouseLeave={e => e.currentTarget.style.background = C.alpha(C.t1, 0.04)}
                             >
-                              {portfolioShowAll ? `▲ Ver menos` : `▼ Ver mais (${portfolioItems.length - 4})`}
+                              {portfolioShowAll ? `â–² Ver menos` : `â–¼ Ver mais (${portfolioItems.length - 4})`}
                             </button>
                           )}
                         </>
@@ -4009,7 +4076,7 @@ export function MatchesPage({ nuggets, setModal, openUnlock, unlocked, initialCh
                               onMouseEnter={e => e.currentTarget.style.background = C.alpha(C.accent, 0.08)}
                               onMouseLeave={e => e.currentTarget.style.background = C.alpha(C.t1, 0.04)}
                             >
-                              {portfolioShowAll ? `▲ Ver menos` : `▼ Ver mais (${serviceItems.length - 4})`}
+                              {portfolioShowAll ? `â–² Ver menos` : `â–¼ Ver mais (${serviceItems.length - 4})`}
                             </button>
                           )}
                         </>
@@ -4081,7 +4148,7 @@ export function MatchesPage({ nuggets, setModal, openUnlock, unlocked, initialCh
                   }}
                   style={{ width:'100%', marginTop:16, padding:'14px', borderRadius:12, background:C.accent, color:'#fff', border:'none', fontWeight:800, fontSize:14, cursor:canUseChat ? 'pointer' : 'not-allowed', opacity:canUseChat ? 1 : 0.62 }}
                 >
-                  💬 {CHAT_INTEREST_PREFIX[myInputLang] || CHAT_INTEREST_PREFIX.pt}
+                  ðŸ’¬ {CHAT_INTEREST_PREFIX[myInputLang] || CHAT_INTEREST_PREFIX.pt}
                 </button>
               </>
             ) : (
@@ -4120,7 +4187,7 @@ export function MatchesPage({ nuggets, setModal, openUnlock, unlocked, initialCh
                   }}
                   style={{ width:'100%', marginTop:16, padding:'14px', borderRadius:12, background:C.accent, color:'#fff', border:'none', fontWeight:800, fontSize:14, cursor:canUseChat ? 'pointer' : 'not-allowed', opacity:canUseChat ? 1 : 0.62 }}
                 >
-                  💬 {CHAT_INTEREST_SERVICE_PREFIX[myInputLang] || CHAT_INTEREST_SERVICE_PREFIX.pt}
+                  ðŸ’¬ {CHAT_INTEREST_SERVICE_PREFIX[myInputLang] || CHAT_INTEREST_SERVICE_PREFIX.pt}
                 </button>
               </div>
             )}
