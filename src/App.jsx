@@ -107,13 +107,17 @@ import { isPendingDealExpired } from './lib/pendingDeal';
 import {
   createUnlockIntent as createUnlockIntentRpc,
   getPropertyUnlockQuote as getPropertyUnlockQuoteRpc,
-  getUserUnlockState,
   InvalidToken,
   purchaseExclusivity,
   unlockContact as unlockContactRpc,
   UnlockCostChanged,
   unlockProperty as unlockPropertyRpc,
 } from './services/unlockService';
+import {
+  fetchUnlockedContacts,
+  getContactByOwnerId,
+  invalidateCache as invalidateUnlockedContactCache,
+} from './services/unlockedContactService';
 import {
   acceptCookies,
   backfillLocalPrivacyConsent,
@@ -1111,6 +1115,75 @@ const mergeFeedActionItems = (prev, incoming) => {
   return next;
 };
 
+const canonicalUnlockedContactToFeedCard = (entry) => {
+  if (!entry || typeof entry !== 'object') return null;
+  const ownerId = String(entry.ownerId || entry.owner_id || '').trim();
+  if (!ownerId) return null;
+  const contact = entry.contact && typeof entry.contact === 'object' ? entry.contact : {};
+  const primaryProfile = entry.primaryProfile || entry.primary_profile || 'personal';
+  const portfolio = Array.isArray(entry.portfolio) ? entry.portfolio : [];
+  const unlockedPropertyIds = Array.isArray(entry.unlockedPropertyIds)
+    ? entry.unlockedPropertyIds
+    : (Array.isArray(entry.unlocked_property_ids) ? entry.unlocked_property_ids : []);
+  return {
+    id: ownerId,
+    ownerId,
+    unlockOwnerId: ownerId,
+    sourceCardId: ownerId,
+    source: 'remote-unlock',
+    unlockScope: entry.unlockScope || entry.unlock_scope || 'contact',
+    primaryProfile,
+    name: contact.name || 'Unlocked contact',
+    title: contact.name || 'Unlocked contact',
+    type: contact.category || 'Contact',
+    category: contact.category || '',
+    cat: contact.category || '',
+    loc: contact.location || '',
+    photo: contact.avatarUrl || contact.avatar_url || '',
+    avatar: contact.avatarUrl || contact.avatar_url || '',
+    email: contact.email || '',
+    primaryPhone: contact.phonePrimary || contact.phone_primary || '',
+    phone: contact.phonePrimary || contact.phone_primary || '',
+    secondaryPhone: contact.phoneSecondary || contact.phone_secondary || '',
+    whatsapp: contact.whatsapp || '',
+    contactMethods: Array.isArray(contact.contactMethods)
+      ? contact.contactMethods
+      : (Array.isArray(contact.contact_methods) ? contact.contact_methods : []),
+    portfolioCount: portfolio.length,
+    portfolioSize: portfolio.length,
+    unlockedPropertyIds: unlockedPropertyIds.map((id) => String(id || '').trim()).filter(Boolean),
+    exclusiveStatus: entry.exclusiveStatus || entry.exclusive_status || 'none',
+    exclusiveExpiresAt: entry.exclusiveExpiresAt || entry.exclusive_expires_at || null,
+    unlockedAt: entry.unlockedAt || entry.unlocked_at || null,
+  };
+};
+
+const canonicalUnlockedContactToPropertyUnlocks = (entry, buyerId) => {
+  if (!entry || typeof entry !== 'object') return [];
+  const ownerId = String(entry.ownerId || entry.owner_id || '').trim();
+  if (!ownerId) return [];
+  const unlockedPropertyIds = Array.isArray(entry.unlockedPropertyIds)
+    ? entry.unlockedPropertyIds
+    : (Array.isArray(entry.unlocked_property_ids) ? entry.unlocked_property_ids : []);
+  const scope = String(entry.unlockScope || entry.unlock_scope || '').trim();
+  const exclusive = scope === 'exclusive';
+  return unlockedPropertyIds
+    .map((propertyId) => String(propertyId || '').trim())
+    .filter(Boolean)
+    .map((propertyId) => ({
+      id: `canonical:${buyerId}:${ownerId}:${propertyId}`,
+      propertyId,
+      ownerId,
+      buyerId,
+      mode: exclusive ? 'total' : 'normal',
+      cost: 0,
+      createdAt: entry.unlockedAt || entry.unlocked_at || null,
+      expiresAt: entry.exclusiveExpiresAt || entry.exclusive_expires_at || null,
+      status: 'active',
+      source: 'canonical_unlocked_contact_cards',
+    }));
+};
+
 const AppLoadingScreen = ({ message = 'Loading DealSifter...', overlay = false, label }) => (
   <div
     className={overlay ? 'ds-processing-overlay' : 'ds-app-boot-screen'}
@@ -1949,6 +2022,7 @@ export default function App() {
       return [];
     }
   });
+  const [unlockedContactsByOwnerId, setUnlockedContactsByOwnerId] = useState(() => new Map());
   const [propertyUnlocks, setPropertyUnlocks] = useState(() => {
     if (isSupabaseConfigured) return [];
     try {
@@ -3109,71 +3183,16 @@ export default function App() {
     }
   }, [dataIntegrityAudit]);
 
-  const buildUnlockedContactSnapshot = useCallback((ownerId) => {
-    const rawOwnerId = String(ownerId || '').trim();
-    if (!rawOwnerId) return null;
-
-    const exactMock = import.meta.env.DEV ? (CARDS || []).find((card) => String(card?.id || '') === rawOwnerId) : null;
-    if (exactMock) {
-      return {
-        ...exactMock,
-        id: rawOwnerId,
-        ownerId: rawOwnerId,
-      };
-    }
-
-    const linkedService = (unlockPortfolioServices || []).find((service) => String(service?.ownerId || '') === rawOwnerId);
-    const linkedProperty = (unlockPortfolioProperties || []).find((property) => String(property?.ownerId || '') === rawOwnerId);
-    const ownerPreview = linkedService?.ownerPreview || linkedProperty?.ownerPreview || null;
-    const ownerName = String(ownerPreview?.name || '').trim();
-    if (!ownerName) return null;
-
-    return {
-      id: rawOwnerId,
-      ownerId: rawOwnerId,
-      unlockOwnerId: rawOwnerId,
-      name: ownerName,
-      title: ownerName,
-      type: String(ownerPreview?.type || ownerPreview?.cat || '').trim(),
-      category: String(ownerPreview?.cat || linkedService?.category || '').trim(),
-      badge: ownerPreview?.badge || '',
-      loc: ownerPreview?.loc || '',
-      photo: String(ownerPreview?.photo || '').trim(),
-      email: ownerPreview?.email || '',
-      primaryPhone: ownerPreview?.primaryPhone || '',
-      contactMethods: Array.isArray(ownerPreview?.contactMethods) ? ownerPreview.contactMethods : [],
-      primaryProfile: inferRecordProfileScope(linkedService || linkedProperty || ownerPreview, ownerPreview?.primaryProfile || ''),
-      portfolioCount: [linkedService, linkedProperty].filter(Boolean).length,
-      verified: ownerPreview?.verified === true,
-      source: 'remote-unlock',
-    };
-  }, [unlockPortfolioProperties, unlockPortfolioServices]);
-
   const fetchRemoteUnlockState = useCallback(async () => {
     if (!isSupabaseConfigured || !supabase || !supabaseUserId) return;
     try {
-      const remoteState = await getUserUnlockState(supabaseUserId);
-      const unlockRows = Array.isArray(remoteState.unlocks) ? remoteState.unlocks : [];
-      const propertyUnlockRows = Array.isArray(remoteState.propertyUnlocks) ? remoteState.propertyUnlocks : [];
-      const snapshotRows = Array.isArray(remoteState.contactSnapshots) ? remoteState.contactSnapshots : [];
-      const buyerPropertyUnlockRows = propertyUnlockRows.filter((row) => (
-        String(row?.buyer_id || '').trim() === String(supabaseUserId || '').trim()
-        && String(row?.owner_id || '').trim() !== String(supabaseUserId || '').trim()
-      ));
-      const unlockedOwnerIds = unlockRows
-        .map((row) => String(row?.seller_id || '').trim())
-        .filter((ownerId) => Boolean(ownerId) && ownerId !== String(supabaseUserId || '').trim());
-      snapshotRows.forEach((row) => {
-        const ownerId = String(row?.seller_id || row?.contact?.ownerId || row?.contact?.id || '').trim();
-        if (ownerId === String(supabaseUserId || '').trim()) return;
-        if (ownerId && !unlockedOwnerIds.includes(ownerId)) unlockedOwnerIds.push(ownerId);
-      });
-      buyerPropertyUnlockRows.forEach((row) => {
-        const ownerId = String(row?.owner_id || '').trim();
-        if (ownerId === String(supabaseUserId || '').trim()) return;
-        if (ownerId && !unlockedOwnerIds.includes(ownerId)) unlockedOwnerIds.push(ownerId);
-      });
+      const unlockedMap = await fetchUnlockedContacts(supabaseUserId);
+      setUnlockedContactsByOwnerId(unlockedMap);
 
+      const canonicalContacts = Array.from(unlockedMap.values());
+      const unlockedOwnerIds = canonicalContacts
+        .map((entry) => String(entry?.ownerId || entry?.owner_id || '').trim())
+        .filter((ownerId) => Boolean(ownerId) && ownerId !== String(supabaseUserId || '').trim());
       if (unlockedOwnerIds.length) {
         setUnlocked((prev) => {
           const next = Array.isArray(prev) ? [...prev] : [];
@@ -3199,34 +3218,23 @@ export default function App() {
           return current;
         });
 
-        const snapshotContacts = snapshotRows
-          .map((row) => row?.contact)
-          .filter((contact) => (
-            contact
-            && typeof contact === 'object'
-            && String(contact.ownerId || contact.unlockOwnerId || contact.id || '').trim() !== String(supabaseUserId || '').trim()
-          ));
-        const snapshotOwnerIds = new Set(snapshotContacts
-          .map((contact) => String(contact.ownerId || contact.unlockOwnerId || contact.id || '').trim())
-          .filter(Boolean));
-        const fallbackContacts = unlockedOwnerIds
-          .filter((ownerId) => !snapshotOwnerIds.has(String(ownerId || '').trim()))
-          .map((ownerId) => buildUnlockedContactSnapshot(ownerId))
+        const hydratedContacts = canonicalContacts
+          .map(canonicalUnlockedContactToFeedCard)
           .filter(Boolean);
-        const hydratedContacts = [
-          ...fallbackContacts,
-          ...snapshotContacts,
-        ];
 
         if (hydratedContacts.length) {
           setMatched((prev) => mergeFeedActionItems(prev, hydratedContacts));
         }
       }
 
-      if (buyerPropertyUnlockRows.length) {
+      const canonicalPropertyUnlockRows = canonicalContacts.flatMap((entry) => (
+        canonicalUnlockedContactToPropertyUnlocks(entry, supabaseUserId)
+      ));
+
+      if (canonicalPropertyUnlockRows.length) {
         const unlockedPropertyIds = new Set(
-          buyerPropertyUnlockRows
-            .map((row) => String(row?.property_id || '').trim())
+          canonicalPropertyUnlockRows
+            .map((row) => String(row?.propertyId || '').trim())
             .filter(Boolean)
         );
         const hydratedUnlockedProperties = (unlockPortfolioProperties || []).filter((property) => {
@@ -3243,24 +3251,25 @@ export default function App() {
         }
       }
 
-      if (propertyUnlockRows.length) {
+      if (canonicalPropertyUnlockRows.length) {
         setPropertyUnlocks((prev) => {
           const current = Array.isArray(prev) ? [...prev] : [];
           const byId = new Map(current.map((row) => [String(row?.id || ''), row]));
-          propertyUnlockRows.forEach((row) => {
+          canonicalPropertyUnlockRows.forEach((row) => {
             const key = String(row?.id || '').trim();
             if (!key) return;
             byId.set(key, {
               ...(byId.get(key) || {}),
               id: key,
-              propertyId: row.property_id,
-              ownerId: row.owner_id,
-              buyerId: row.buyer_id,
+              propertyId: row.propertyId,
+              ownerId: row.ownerId,
+              buyerId: row.buyerId,
               mode: row.mode || 'normal',
-              cost: Number(row.total_cost || 0),
-              createdAt: row.created_at || null,
-              expiresAt: row.expires_at || null,
+              cost: Number(row.cost || 0),
+              createdAt: row.createdAt || null,
+              expiresAt: row.expiresAt || null,
               status: row.status || 'active',
+              source: row.source || 'canonical_unlocked_contact_cards',
             });
           });
           return [...byId.values()];
@@ -3269,7 +3278,7 @@ export default function App() {
     } catch (error) {
       safeLogError('Remote unlock hydration failed.', error);
     }
-  }, [buildUnlockedContactSnapshot, setInterested, setMatched, setPropertyUnlocks, setPurchases, setUnlocked, supabaseUserId, unlockPortfolioProperties]);
+  }, [setInterested, setMatched, setPropertyUnlocks, setPurchases, setUnlocked, supabaseUserId, unlockPortfolioProperties]);
 
   useEffect(() => {
     if (!supabaseUserId) return;
@@ -4790,13 +4799,14 @@ export default function App() {
       return changed ? [...current] : prev;
     });
 
+    void fetchRemoteUnlockState();
     const reciprocalContacts = reciprocalOwnerIds
-      .map((ownerId) => buildUnlockedContactSnapshot(ownerId) || { id: ownerId, ownerId, unlockOwnerId: ownerId, name: `Chat ${ownerId}`, source: 'remote-unlock' })
+      .map((ownerId) => canonicalUnlockedContactToFeedCard(getContactByOwnerId(unlockedContactsByOwnerId, ownerId)))
       .filter(Boolean);
     if (reciprocalContacts.length) {
       setMatched((prev) => mergeFeedActionItems(prev, reciprocalContacts));
     }
-  }, [buildUnlockedContactSnapshot, ownerUnlockNotifications, setMatched, setPurchases, setUnlocked, supabaseUserId]);
+  }, [fetchRemoteUnlockState, ownerUnlockNotifications, setMatched, setPurchases, setUnlocked, supabaseUserId, unlockedContactsByOwnerId]);
 
   const markChatNotificationAsRead = (notification) => {
     if (notification?.source === 'unlock_notification' && notification?.notificationId) {
@@ -4868,7 +4878,7 @@ export default function App() {
     const target =
       notification?.target
       || (matched || []).find((m) => String(m.id) === ownerId)
-      || buildUnlockedContactSnapshot(ownerId)
+      || canonicalUnlockedContactToFeedCard(getContactByOwnerId(unlockedContactsByOwnerId, ownerId))
       || (CARDS || []).find((c) => String(c.id) === ownerId)
       || { id: ownerIdRaw, ownerId: ownerIdRaw, name: `Chat ${ownerId}` };
 
@@ -5801,15 +5811,25 @@ export default function App() {
           });
         }
 
-        // Ensure unlocked contact stays available in Matches module.
-        const matchedFallback = buildUnlockedContactSnapshot(unlockOwnerId);
-        const matchedCard = {
-          ...card,
-          ...(matchedFallback || {}),
+        if (supabaseUserId) invalidateUnlockedContactCache(supabaseUserId);
+        const refreshedUnlockedMap = supabaseUserId
+          ? await fetchUnlockedContacts(supabaseUserId)
+          : new Map();
+        if (refreshedUnlockedMap.size) setUnlockedContactsByOwnerId(refreshedUnlockedMap);
+        const canonicalMatchedCard = canonicalUnlockedContactToFeedCard(
+          getContactByOwnerId(refreshedUnlockedMap, unlockOwnerId)
+        );
+        // Ensure unlocked contact stays available in Matches module. The
+        // canonical RPC is the source; the clicked card is only a temporary
+        // navigation shell if the backend is still catching up.
+        const matchedCard = canonicalMatchedCard || {
           id: unlockOwnerId || contactUnlockId,
           ownerId: unlockOwnerId || card.ownerId || contactUnlockId,
           unlockOwnerId: unlockOwnerId || card.unlockOwnerId || card.ownerId || contactUnlockId,
-          source: matchedFallback?.source || card.source || 'remote-unlock',
+          name: card.name || card.title || 'Unlocked contact',
+          title: card.title || card.name || 'Unlocked contact',
+          primaryProfile: card.primaryProfile || '',
+          source: 'pending-canonical-unlock',
         };
         setMatched((prev) => {
           const current = Array.isArray(prev) ? prev : [];
