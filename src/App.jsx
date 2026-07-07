@@ -1007,11 +1007,28 @@ const stripFeedActionValue = (value) => {
 const buildFeedActionPayload = (item) => {
   if (!item || typeof item !== 'object') return {};
   const allowedKeys = [
-    'id', 'ownerId', 'unlockOwnerId', 'name', 'title', 'category', 'sub', 'role', 'badge',
-    'avatar', 'photo', 'photoUrl', 'image', 'img', 'address', 'street', 'city', 'state',
-    'zip', 'zipcode', 'price', 'type', 'beds', 'baths', 'cap', 'portfolioCount',
-    'portfolioSize', 'createdAt', 'source', 'primaryProfile', 'contactMethods',
-    'phone', 'primaryPhone', 'secondaryPhone', 'tertiaryPhone', 'whatsapp', 'email',
+    'id',
+    'ownerId',
+    'owner_id',
+    'unlockOwnerId',
+    'sellerId',
+    'contactId',
+    'sourceCardId',
+    'source_card_id',
+    'propertyId',
+    'property_id',
+    'portfolioId',
+    'source',
+    'primaryProfile',
+    'primary_profile',
+    'createdAt',
+    'created_at',
+    'updatedAt',
+    'updated_at',
+    'matchedAt',
+    'matched_at',
+    'interestedAt',
+    'interested_at',
   ];
   const compact = {};
   allowedKeys.forEach((key) => {
@@ -1048,47 +1065,12 @@ const makeFeedActionRows = ({ matched = [], interested = [], unlocked = [] }) =>
 
 const getFeedActionMergeKey = (item) => {
   if (!item || typeof item !== 'object') return '';
-  const hasContactIdentity = Boolean(item.name || item.cat || item.role || item.primaryProfile || item.contactMethods || item.phone || item.primaryPhone || item.email);
+  const hasContactIdentity = Boolean(item.ownerId || item.unlockOwnerId || item.sellerId || item.contactId);
   const hasPropertyIdentity = Boolean(item.propertyId || item.property_id || item.portfolioId || ((item.address || item.street) && (item.price != null || !hasContactIdentity)));
   if (hasPropertyIdentity) {
     return `property:${String(item.id || item.propertyId || item.property_id || item.portfolioId || '').trim()}`;
   }
   return `person:${String(item.ownerId || item.unlockOwnerId || item.sellerId || item.contactId || item.id || '').trim()}`;
-};
-
-const scoreContactPayloadRichness = (item) => {
-  if (!item || typeof item !== 'object') return 0;
-  const keys = [
-    'name', 'title', 'type', 'category', 'sub', 'badge', 'photo', 'avatar',
-    'email', 'phone', 'primaryPhone', 'secondaryPhone', 'whatsapp', 'loc',
-    'address', 'city', 'state', 'zip',
-  ];
-  return keys.reduce((score, key) => (
-    String(item?.[key] || '').trim() ? score + 1 : score
-  ), 0);
-};
-
-const isFilledContactValue = (value) => {
-  if (Array.isArray(value)) return value.length > 0;
-  return String(value || '').trim().length > 0;
-};
-
-const mergeFeedActionPayload = (existing, incoming) => {
-  const merged = { ...(existing || {}), ...(incoming || {}) };
-  [
-    'email',
-    'phone',
-    'primaryPhone',
-    'secondaryPhone',
-    'tertiaryPhone',
-    'whatsapp',
-    'contactMethods',
-  ].forEach((key) => {
-    if (!isFilledContactValue(incoming?.[key]) && isFilledContactValue(existing?.[key])) {
-      merged[key] = existing[key];
-    }
-  });
-  return merged;
 };
 
 const mergeFeedActionItems = (prev, incoming) => {
@@ -1106,11 +1088,7 @@ const mergeFeedActionItems = (prev, incoming) => {
     const existing = next[existingIndex];
     const incomingCanonical = ['remote-unlock', 'supabase'].includes(String(item?.source || '').trim());
     const existingCanonical = ['remote-unlock', 'supabase'].includes(String(existing?.source || '').trim());
-    if (incomingCanonical && !existingCanonical) {
-      next[existingIndex] = mergeFeedActionPayload(existing, item);
-    } else if (scoreContactPayloadRichness(item) >= scoreContactPayloadRichness(existing)) {
-      next[existingIndex] = mergeFeedActionPayload(existing, item);
-    }
+    if (incomingCanonical || !existingCanonical) next[existingIndex] = { ...(existing || {}), ...(item || {}) };
   });
   return next;
 };
