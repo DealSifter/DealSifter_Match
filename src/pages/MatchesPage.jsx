@@ -10,9 +10,10 @@ import { SwipeCard } from '../components/cards/SwipeCard';
 import { SmartImage } from '../components/ui/SmartImage';
 import { ExclusivityBadge } from '../components/ui/ExclusivityBadge';
 import { CardStatusIcon } from '../components/ui/CardStatusIndicators';
+import { PortfolioContactPanel } from '../components/matches/PortfolioContactPanel';
 import { CARD_STATUS } from '../components/ui/cardStatusTokens';
 import { catIcon } from '../lib/catIcon';
-import { buildDisplayContacts, normalizeContactMethod } from '../lib/contactPriority';
+import { buildDisplayContacts } from '../lib/contactPriority';
 import { inferRecordProfileScope, normalizeProfileScope, resolveScopedProfile } from '../lib/profileScopeResolver';
 import { formatPropertyLocation } from '../lib/formatPropertyLocation';
 import { translateChatText, getSafeLang } from '../services/chatTranslation';
@@ -262,181 +263,6 @@ const PortfolioItem = ({ p, onOpen, exclusivityStatus = null, ownerVerified = fa
 };
 
 // ── Always-visible contact chips ───────────────────────────────────────────
-function ContactButtons({ item, contact = null, variant = 'default', isMobile = false, desktopRightToLeft = false }) {
-  const modalsT = useT('matches').modals;
-  const [copied, setCopied] = useState(null);
-  const [copyNotice, setCopyNotice] = useState('');
-  const copyResetRef = useRef(null);
-  const copyNoticeResetRef = useRef(null);
-
-  useEffect(() => () => {
-    if (copyResetRef.current) window.clearTimeout(copyResetRef.current);
-    if (copyNoticeResetRef.current) window.clearTimeout(copyNoticeResetRef.current);
-  }, []);
-
-  const copy = async (key, val) => {
-    const text = String(val || '').trim();
-    if (!text) return;
-
-    let copiedOk = false;
-    try {
-      if (navigator.clipboard?.writeText) {
-        await navigator.clipboard.writeText(text);
-        copiedOk = true;
-      }
-    } catch (e) {
-      void e;
-    }
-
-    if (!copiedOk) {
-      try {
-        const ta = document.createElement('textarea');
-        ta.value = text;
-        ta.setAttribute('readonly', 'true');
-        ta.style.position = 'fixed';
-        ta.style.top = '-9999px';
-        ta.style.opacity = '0';
-        document.body.appendChild(ta);
-        ta.focus();
-        ta.select();
-        copiedOk = document.execCommand('copy');
-        ta.remove();
-      } catch (e) {
-        void e;
-      }
-    }
-
-    if (!copiedOk) return;
-    setCopied(key);
-    if (copyResetRef.current) window.clearTimeout(copyResetRef.current);
-    copyResetRef.current = window.setTimeout(() => setCopied(null), 1500);
-    setCopyNotice(`${modalsT.copy} ✓`);
-    if (copyNoticeResetRef.current) window.clearTimeout(copyNoticeResetRef.current);
-    copyNoticeResetRef.current = window.setTimeout(() => setCopyNotice(''), 1200);
-  };
-
-  const canonicalItem = canonicalContactToDisplayCard(contact);
-  const effectiveItem = canonicalItem || (!isSupabaseConfigured ? item : null);
-  if (!effectiveItem) return null;
-
-  // Local fallback is allowed only outside Supabase-backed production data.
-  const shouldUseSavedProfile = !isSupabaseConfigured
-    && (!effectiveItem?.id || effectiveItem?.id === 999999 || effectiveItem?.ownerId === 999999 || effectiveItem?.id === 'preview-personal');
-  let savedProfile = null;
-  if (shouldUseSavedProfile) savedProfile = readScopedProfileFallback(normalizeProfileScope(effectiveItem?.primaryProfile || ''));
-
-  const contacts = buildDisplayContacts(effectiveItem, savedProfile, {
-    call: modalsT.contactPhone,
-    sms: modalsT.contactSms,
-    whatsapp: modalsT.contactWhatsApp,
-    telegram: modalsT.contactTelegram,
-    email: modalsT.contactEmail,
-  }).sort((a, b) => {
-    const aPriority = a.priority || 99;
-    const bPriority = b.priority || 99;
-    return aPriority - bPriority;
-  });
-
-  const selectedMethods = (
-    (Array.isArray(effectiveItem?.contactMethods) && effectiveItem.contactMethods.length
-      ? effectiveItem.contactMethods
-      : (Array.isArray(savedProfile?.contactMethods) ? savedProfile.contactMethods : []))
-  )
-    .map((method) => normalizeContactMethod(method))
-    .filter(Boolean);
-
-  const priority2Method = selectedMethods[1] || null;
-  const priority2Channel = ['sms', 'whatsapp', 'telegram'].includes(priority2Method)
-    ? priority2Method
-    : (selectedMethods.find((method) => ['sms', 'whatsapp', 'telegram'].includes(method)) || null);
-
-  const priority2Contact = contacts.find((contact) => contact.priority === 2) || contacts[1] || null;
-  const emailContact = contacts.find((contact) => String(contact?.icon || '').toLowerCase() === 'email') || null;
-  const p2Value = String(effectiveItem?.secondaryPhone || savedProfile?.secondaryPhone || priority2Contact?.val || '').trim();
-  const emailValue = String(effectiveItem?.email || savedProfile?.email || emailContact?.val || '').trim();
-
-  const unlockedHeaderContacts = [
-    {
-      key: 'contact-priority-2',
-      icon: priority2Channel || priority2Contact?.icon || 'sms',
-      val: p2Value,
-      priority: 2,
-    },
-    {
-      key: 'contact-email-inline',
-      icon: 'email',
-      val: emailValue,
-      priority: null,
-    },
-  ].filter((contact) => contact.val);
-
-  const primaryContact = contacts.find((contact) => contact.priority === 1)
-    || (String(effectiveItem?.primaryPhone || effectiveItem?.phone || savedProfile?.primaryPhone || savedProfile?.phone || '').trim()
-      ? {
-          key: 'contact-priority-1',
-          icon: 'phone',
-          val: String(effectiveItem?.primaryPhone || effectiveItem?.phone || savedProfile?.primaryPhone || savedProfile?.phone || '').trim(),
-          priority: 1,
-        }
-      : null);
-
-  const headerContacts = [primaryContact, ...unlockedHeaderContacts].filter((contact) => contact?.val);
-
-  const isUnlockedHeader = variant === 'unlocked-header';
-  const isUnlockedHeaderMobile = isUnlockedHeader && isMobile;
-  const isUnlockedHeaderDesktop = isUnlockedHeader && !isMobile;
-  const useDesktopRightAlignedFlow = isUnlockedHeaderDesktop && desktopRightToLeft;
-  const contactsToRender = isUnlockedHeader
-    ? (headerContacts.length ? headerContacts : contacts)
-    : contacts;
-
-  return (
-    <div style={{ display:"flex", flexDirection:"column", gap:4 }}>
-      <div style={{ display:"flex", flexDirection:isUnlockedHeaderMobile ? "column" : "row", flexWrap:isUnlockedHeaderDesktop ? "nowrap" : (isUnlockedHeader ? "nowrap" : "wrap"), gap:6, marginTop:6, justifyContent:isUnlockedHeaderMobile ? "center" : (useDesktopRightAlignedFlow ? "flex-end" : "flex-start"), alignItems:isUnlockedHeaderMobile ? "center" : "stretch", overflowX:isUnlockedHeaderDesktop ? "auto" : "visible" }}>
-        {contactsToRender.map(({ key, icon, val, priority }) => (
-          <button key={key} onClick={() => copy(key, val)}
-            title={modalsT.copy}
-            style={{
-              display:"flex",
-              alignItems:"center",
-              justifyContent:isUnlockedHeaderMobile ? "center" : "flex-start",
-              gap:6,
-              width:isUnlockedHeaderMobile ? "100%" : "auto",
-              flexShrink:isUnlockedHeaderDesktop ? 0 : 1,
-              padding:isUnlockedHeader ? "7px 10px" : "5px 10px",
-              borderRadius:8,
-              background:copied===key?C.alpha(C.success, 0.15):(priority===1 ? C.alpha(C.accent, 0.12) : C.alpha(C.t1, 0.05)),
-              border:`1px solid ${copied===key?C.success:(priority===1 ? C.accent : C.border)}`,
-              boxShadow: priority===1 ? `0 0 0 1px ${C.alpha(C.accent, 0.12)}` : 'none',
-              color:copied===key?C.success:C.t1,
-              cursor:"pointer",
-              fontSize:isUnlockedHeader ? 12 : 11,
-              fontWeight:600,
-              transition:"all .2s",
-              whiteSpace:isUnlockedHeaderDesktop ? "nowrap" : "normal",
-              textAlign:isUnlockedHeaderMobile ? "center" : "left",
-              overflow:"hidden",
-              textOverflow:"ellipsis",
-            }}>
-            <Icon name={copied===key?"check":icon} size={13} color={copied===key?C.success:C.t1} />
-            <span>{val || "---"}</span>
-            {priority ? (
-              <span style={{ padding:"2px 6px", borderRadius:999, background:priority===1 ? C.accent : C.alpha(C.t1, 0.07), color:priority===1 ? '#fff' : C.t2, fontSize:9, fontWeight:800, letterSpacing:"0.2px" }}>
-                {priority===1 ? modalsT.contactPriorityFirst : `P${priority}`}
-              </span>
-            ) : null}
-          </button>
-        ))}
-      </div>
-      {copyNotice ? (
-        <div style={{ fontSize:10, color:C.success, textAlign:isUnlockedHeaderMobile ? "center" : (useDesktopRightAlignedFlow ? "right" : "left"), fontWeight:700 }}>
-          {copyNotice}
-        </div>
-      ) : null}
-    </div>
-  );
-}
-
 const hasContactDisplayValue = (value) => {
   if (Array.isArray(value)) return value.length > 0;
   return String(value || '').trim().length > 0;
@@ -510,7 +336,7 @@ function getLocalOwnerId(scopeKey) {
   return '';
 }
 
-function PortfolioDetail({ item, owner, ownerContact = null, ownerDesc, onBack, autoplayMedia = false, onBlockedExport = null, imageSources = [], onStartChat = null, canUseChat = true, chatInterestLabel = CHAT_INTEREST_PREFIX.en, exclusiveStatus = null }) {
+function PortfolioDetail({ item, owner, ownerContact = null, isOwnerUnlocked = false, onUnlockRequest = null, contactPanelVariant = 'desktop', ownerDesc, onBack, autoplayMedia = false, onBlockedExport = null, imageSources = [], onStartChat = null, canUseChat = true, chatInterestLabel = CHAT_INTEREST_PREFIX.en, exclusiveStatus = null }) {
   const allT = useT('matches');
   const matchesT = allT.matches;
   const modalsT = allT.modals;
@@ -1639,7 +1465,12 @@ function PortfolioDetail({ item, owner, ownerContact = null, ownerDesc, onBack, 
       ) : null}
 
       <div style={{ padding: '0 10px 10px' }}>
-        <ContactButtons item={owner || item} contact={ownerContact} />
+        <PortfolioContactPanel
+          canonicalContact={ownerContact}
+          isUnlocked={isOwnerUnlocked}
+          variant={contactPanelVariant}
+          onUnlockRequest={onUnlockRequest}
+        />
       </div>
 
       {typeof onStartChat === 'function' ? (
@@ -3714,14 +3545,24 @@ export function MatchesPage({ nuggets, setModal, openUnlock, unlocked, initialCh
                     </div>
                     {!isMobile && !isTabletPortrait ? (
                       <div style={{ minWidth:0, maxWidth:'64%', display:'flex', justifyContent:'flex-end', alignSelf:'flex-start' }}>
-                        <ContactButtons item={activeOwner} contact={activeOwner?.canonicalContact} variant="unlocked-header" isMobile={false} desktopRightToLeft />
+                        <PortfolioContactPanel
+                          canonicalContact={activeOwner?.canonicalContact || null}
+                          isUnlocked={isUnlocked}
+                          variant="desktop"
+                          onUnlockRequest={() => openUnlock(activeOwner, isActiveProperty ? { unlockScope: 'property', property: active, propertyId: active.id, propertyAddress: active.address } : {})}
+                        />
                       </div>
                     ) : null}
                   </div>
                 </div>
                 {(isMobile || isTabletPortrait) ? (
                   <div style={{ marginTop:10, paddingLeft: isTabletPortrait ? 52 : 0 }}>
-                        <ContactButtons item={activeOwner} contact={activeOwner?.canonicalContact} variant="unlocked-header" isMobile={isMobile} />
+                    <PortfolioContactPanel
+                      canonicalContact={activeOwner?.canonicalContact || null}
+                      isUnlocked={isUnlocked}
+                      variant="mobile"
+                      onUnlockRequest={() => openUnlock(activeOwner, isActiveProperty ? { unlockScope: 'property', property: active, propertyId: active.id, propertyAddress: active.address } : {})}
+                    />
                   </div>
                 ) : null}
               </div>
@@ -4034,6 +3875,9 @@ export function MatchesPage({ nuggets, setModal, openUnlock, unlocked, initialCh
                         item={selectedPortfolioItem}
                         owner={activeOwner}
                         ownerContact={activeOwner?.canonicalContact || null}
+                        isOwnerUnlocked={isUnlocked}
+                        onUnlockRequest={() => openUnlock(activeOwner, { unlockScope: 'property', property: selectedPortfolioItem, propertyId: selectedPortfolioItem.id, propertyAddress: selectedPortfolioItem.address })}
+                        contactPanelVariant={isMobile ? 'mobile' : 'desktop'}
                         ownerDesc={ownerDesc}
                         onBack={() => setSelectedPortfolioItem(null)}
                         autoplayMedia={autoplayMedia}
@@ -4090,7 +3934,12 @@ export function MatchesPage({ nuggets, setModal, openUnlock, unlocked, initialCh
                             Stand By
                           </div>
                         ) : null}
-                        <ContactButtons item={activeOwner || selectedPortfolioItem} contact={activeOwner?.canonicalContact || null} />
+                        <PortfolioContactPanel
+                          canonicalContact={activeOwner?.canonicalContact || null}
+                          isUnlocked={isUnlocked}
+                          variant={isMobile ? 'mobile' : 'desktop'}
+                          onUnlockRequest={() => openUnlock(activeOwner || selectedPortfolioItem, {})}
+                        />
                       </div>
                     )
                   ) : (
@@ -4209,6 +4058,9 @@ export function MatchesPage({ nuggets, setModal, openUnlock, unlocked, initialCh
                   item={mobileCardSheet}
                   owner={activeOwner}
                   ownerContact={activeOwner?.canonicalContact || null}
+                  isOwnerUnlocked={isUnlocked}
+                  onUnlockRequest={() => openUnlock(activeOwner, { unlockScope: 'property', property: mobileCardSheet, propertyId: mobileCardSheet.id, propertyAddress: mobileCardSheet.address })}
+                  contactPanelVariant="mobile"
                   ownerDesc={ownerDesc}
                   onBack={() => setMobileCardSheet(null)}
                   autoplayMedia={autoplayMedia}
@@ -4249,7 +4101,12 @@ export function MatchesPage({ nuggets, setModal, openUnlock, unlocked, initialCh
                   <SmartImage src={mobileCardSheet.media.images[0]} alt={mobileCardSheet.name} style={{ width:'100%', borderRadius:12, marginBottom:12, objectFit:'cover', maxHeight:200 }} />
                 )}
                 {mobileCardSheet.description && <div style={{ color:C.t2, fontSize:13, marginBottom:12 }}>{mobileCardSheet.description}</div>}
-                <ContactButtons item={activeOwner || mobileCardSheet} contact={activeOwner?.canonicalContact || null} />
+                <PortfolioContactPanel
+                  canonicalContact={activeOwner?.canonicalContact || null}
+                  isUnlocked={isUnlocked}
+                  variant="mobile"
+                  onUnlockRequest={() => openUnlock(activeOwner || mobileCardSheet, {})}
+                />
                 <button
                   type="button"
                   onClick={() => {
@@ -4278,6 +4135,14 @@ export function MatchesPage({ nuggets, setModal, openUnlock, unlocked, initialCh
             <div style={{ marginTop:4, display:'inline-flex', alignItems:'center', gap:6, padding:'4.2px 9.8px', borderRadius:999, background:C.alpha(C.success, 0.12), border:`1px solid ${C.alpha(C.success, 0.28)}`, color:C.success, fontSize:10, fontWeight:800 }}>
               <Icon name="unlock" size={11} color={C.success} />
               {cardsT.unlocked}
+            </div>
+            <div style={{ marginTop:10 }}>
+              <PortfolioContactPanel
+                canonicalContact={activeOwner?.canonicalContact || null}
+                isUnlocked={isUnlocked}
+                variant="modal"
+                onUnlockRequest={() => openUnlock(activeOwner, {})}
+              />
             </div>
           </div>
           <div style={{ width:'100%', display:'flex', justifyContent:'center' }}>
