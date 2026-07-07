@@ -14,13 +14,16 @@ const applyInitialTheme = () => {
       || url.searchParams.has('error')
       || hash.includes('access_token=')
     const saved = window.localStorage.getItem('theme')
-    const hasExplicitThemeChoice = window.localStorage.getItem('ds_theme_user_choice') === '1'
+    const explicitTheme = window.localStorage.getItem('ds_theme_user_choice')
     const savedTheme = saved === 'light' || saved === 'dark' ? saved : ''
+    const userTheme = explicitTheme === savedTheme ? savedTheme : ''
     const initialTheme = isAuthCallback
       ? 'light'
-      : (savedTheme === 'dark' && !hasExplicitThemeChoice ? 'light' : (savedTheme || 'light'))
+      : (userTheme || 'light')
     document.documentElement.setAttribute('data-theme', initialTheme)
     document.documentElement.style.colorScheme = initialTheme
+    const meta = document.querySelector('meta[name="theme-color"]')
+    if (meta) meta.setAttribute('content', initialTheme === 'dark' ? '#0b1514' : '#f6fbfb')
   } catch {
     document.documentElement.setAttribute('data-theme', 'light')
     document.documentElement.style.colorScheme = 'light'

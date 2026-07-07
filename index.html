@@ -25,8 +25,9 @@
             || url.searchParams.has('error')
             || hash.indexOf('access_token=') !== -1;
           var saved = window.localStorage.getItem('theme');
-          var hasExplicitThemeChoice = window.localStorage.getItem('ds_theme_user_choice') === '1';
-          var theme = (!isAuthCallback && saved === 'dark' && hasExplicitThemeChoice) ? 'dark' : 'light';
+          var explicitTheme = window.localStorage.getItem('ds_theme_user_choice');
+          var hasExplicitThemeChoice = explicitTheme === 'light' || explicitTheme === 'dark';
+          var theme = (!isAuthCallback && hasExplicitThemeChoice && saved === explicitTheme) ? explicitTheme : 'light';
           document.documentElement.setAttribute('data-theme', theme);
           document.documentElement.style.colorScheme = theme;
           var meta = document.querySelector('meta[name="theme-color"]');

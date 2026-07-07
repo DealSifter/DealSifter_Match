@@ -430,6 +430,29 @@ function ContactButtons({ item, variant = 'default', isMobile = false, desktopRi
   );
 }
 
+const hasContactDisplayValue = (value) => {
+  if (Array.isArray(value)) return value.length > 0;
+  return String(value || '').trim().length > 0;
+};
+
+const mergeContactForDisplay = (base, incoming) => {
+  const merged = { ...(base || {}), ...(incoming || {}) };
+  [
+    'email',
+    'phone',
+    'primaryPhone',
+    'secondaryPhone',
+    'tertiaryPhone',
+    'whatsapp',
+    'contactMethods',
+  ].forEach((key) => {
+    if (!hasContactDisplayValue(incoming?.[key]) && hasContactDisplayValue(base?.[key])) {
+      merged[key] = base[key];
+    }
+  });
+  return merged;
+};
+
 function getLocalOwnerId(scopeKey) {
   if (isSupabaseConfigured && !import.meta.env.DEV) return '';
   try {
@@ -2383,7 +2406,7 @@ export function MatchesPage({ nuggets, setModal, openUnlock, unlocked, initialCh
       .forEach((contact) => {
         const key = getContactUnlockKeys(contact)[0] || String(contact?.id || '');
         if (!key) return;
-        byKey.set(key, { ...(byKey.get(key) || {}), ...contact });
+        byKey.set(key, mergeContactForDisplay(byKey.get(key) || {}, contact));
       });
     return [...byKey.values()];
   }, [matched, reciprocalChatContacts, enrichContactFromPortfolio, resolveContactCard, getContactUnlockKeys]);
@@ -2578,7 +2601,13 @@ export function MatchesPage({ nuggets, setModal, openUnlock, unlocked, initialCh
 
   const activeOwner = useMemo(() => {
     if (!active) return null;
-    if (!isActiveProperty) return enrichContactFromPortfolio(resolveContactCard(active));
+    if (!isActiveProperty) {
+      const resolved = enrichContactFromPortfolio(resolveContactCard(active));
+      const hydrated = allMatched.find((contact) => getContactUnlockKeys(contact).some((key) => getContactUnlockKeys(resolved || active).includes(key)));
+      return hydrated ? mergeContactForDisplay(resolved, enrichContactFromPortfolio(hydrated)) : resolved;
+    }
+    const hydratedOwner = allMatched.find((contact) => getContactUnlockKeys(contact).includes(String(active.ownerId || '')));
+    if (hydratedOwner) return enrichContactFromPortfolio(hydratedOwner);
     if (active.ownerPreview) return enrichContactFromPortfolio(resolveContactCard(active.ownerPreview, getRecordProfileScope(active)));
     const activeScope = getRecordProfileScope(active, (
       String(active.ownerId) === String(secondaryOwnerId)
@@ -2592,8 +2621,6 @@ export function MatchesPage({ nuggets, setModal, openUnlock, unlocked, initialCh
     ) {
       return enrichContactFromPortfolio(buildLocalOwnerCard(activeScope));
     }
-    const hydratedOwner = allMatched.find((contact) => getContactUnlockKeys(contact).includes(String(active.ownerId || '')));
-    if (hydratedOwner) return enrichContactFromPortfolio(hydratedOwner);
     return import.meta.env.DEV
       ? enrichContactFromPortfolio(CARDS.find(c => String(c.id) === String(active.ownerId)))
       : null;
