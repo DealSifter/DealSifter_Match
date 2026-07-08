@@ -17,26 +17,7 @@
     <meta property="og:description" content="Real estate networking & deal discovery platform." />
     <meta property="og:type" content="website" />
     <script>
-      (function () {
-        try {
-          var url = new URL(window.location.href);
-          var hash = String(window.location.hash || '');
-          var isAuthCallback = url.searchParams.has('code')
-            || url.searchParams.has('error')
-            || hash.indexOf('access_token=') !== -1;
-          var saved = window.localStorage.getItem('theme');
-          var explicitTheme = window.localStorage.getItem('ds_theme_user_choice');
-          var hasExplicitThemeChoice = explicitTheme === 'light' || explicitTheme === 'dark';
-          var theme = (!isAuthCallback && hasExplicitThemeChoice && saved === explicitTheme) ? explicitTheme : 'light';
-          document.documentElement.setAttribute('data-theme', theme);
-          document.documentElement.style.colorScheme = theme;
-          var meta = document.querySelector('meta[name="theme-color"]');
-          if (meta) meta.setAttribute('content', theme === 'dark' ? '#0b1514' : '#f6fbfb');
-        } catch (error) {
-          document.documentElement.setAttribute('data-theme', 'light');
-          document.documentElement.style.colorScheme = 'light';
-        }
-      })();
+      (function(){ var t = localStorage.getItem('ds_theme') || 'light'; document.documentElement.dataset.theme = t; })()
     </script>
     <style>
       :root {

@@ -1,4 +1,4 @@
-import React, { useEffect } from 'react';
+import React from 'react';
 import { C } from '../theme/colors';
 import { useLang, useT } from '../i18n/translations';
 import { CATEGORIES } from '../data/mockData';
@@ -414,16 +414,6 @@ export function Landing({ onOpenAuthModal = () => {} }) {
   const [activeService, setActiveService] = React.useState(null);
   const [footerInfoKey, setFooterInfoKey] = React.useState(null);
   const isMobile = useMediaQuery('(max-width: 767px)');
-  useEffect(() => {
-    try {
-      const prev = document.documentElement.getAttribute('data-theme');
-      document.documentElement.setAttribute('data-theme', 'light');
-      return () => {
-        if (prev) document.documentElement.setAttribute('data-theme', prev);
-        else document.documentElement.removeAttribute('data-theme');
-      };
-    } catch (e) { void e; }
-  }, []);
   const t = useT('landing').landing;
   const lang = String(useLang('global') || 'en').slice(0, 2);
   const footerInfo = (FOOTER_INFO[lang] || FOOTER_INFO.en)?.[footerInfoKey] || null;

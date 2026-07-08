@@ -7,7 +7,7 @@ import { NuggetBadge } from '../ui/NuggetBadge';
 import { Icon } from '../ui/Icon';
 import { useMediaQuery } from '../../hooks/useMediaQuery';
 import appLogo from '../../assets/logo.png';
-import { getMobileHeaderLogo, getThemeToggleTarget } from '../../lib/brandAssets';
+import { getLogoSrc, getThemeToggleTarget } from '../../services/themeService';
 import feedMatchIcon from '../../assets/feed-match-icon.png';
 import mapViewTaskbarIcon from '../../assets/taskbar-mapview-icon.png';
 import matchesTaskbarIcon from '../../assets/taskbar-matches-icon.png';
@@ -181,11 +181,6 @@ export function Navbar({ page, prevPage, setPage, nuggets = 0, setModal = () => 
   const guideT = allT.guideTips || {};
   const { enabled: guideTipsEnabled, toggle: toggleGuideTips } = useGuideTips();
   const { theme, effectiveTheme, toggleTheme } = useTheme();
-  const [domTheme, setDomTheme] = useState(() => (
-    typeof document !== 'undefined'
-      ? (document.documentElement.getAttribute('data-theme') || effectiveTheme || theme || 'light')
-      : (effectiveTheme || theme || 'light')
-  ));
   const [notifOpen, setNotifOpen] = useState(false);
   const [notifTab, setNotifTab] = useState('matches');
   const isMobile = useMediaQuery('(max-width: 767px)');
@@ -214,16 +209,7 @@ export function Navbar({ page, prevPage, setPage, nuggets = 0, setModal = () => 
   const presenceColor = presenceStatus === 'standby' ? '#facc15' : (presenceStatus === 'offline' ? '#ef4444' : '#22c55e');
   const allowMessagePreview = Boolean(userPreferences?.privacy?.messagePreview ?? true);
   const useImageLogoInHeader = isMobile;
-  useEffect(() => {
-    if (typeof document === 'undefined') return undefined;
-    const readTheme = () => setDomTheme(document.documentElement.getAttribute('data-theme') || effectiveTheme || theme || 'light');
-    readTheme();
-    const observer = new MutationObserver(readTheme);
-    observer.observe(document.documentElement, { attributes: true, attributeFilter: ['data-theme'] });
-    return () => observer.disconnect();
-  }, [effectiveTheme, theme]);
-
-  const visualTheme = domTheme || effectiveTheme || theme || 'light';
+  const visualTheme = effectiveTheme || theme || 'light';
   const themeToggleTarget = getThemeToggleTarget(visualTheme);
   const themeToggleLabel = themeToggleTarget === 'light'
     ? (t.themeToLight || 'Enable light mode')
@@ -414,7 +400,7 @@ export function Navbar({ page, prevPage, setPage, nuggets = 0, setModal = () => 
           <div className="logo-general" data-logo="general" style={{ display: 'flex', alignItems: 'center', cursor: 'pointer' }} onClick={() => setPage && setPage('landing')}>
             {useImageLogoInHeader ? (
               <img
-                src={getMobileHeaderLogo(isLanding ? 'light' : visualTheme)}
+                src={getLogoSrc(isLanding ? 'light' : visualTheme, 'mobile')}
                 alt="DealSifter Match"
                 style={{ height: 44, width: 'auto', display: 'block' }}
                 onError={(e) => {
