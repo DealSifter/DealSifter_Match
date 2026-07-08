@@ -35,12 +35,6 @@ const sanitizeOwnerPhoto = (value, ownerId) => {
   return photo;
 };
 
-const asArray = (value) => (
-  Array.isArray(value)
-    ? value.map((item) => String(item || '').trim()).filter(Boolean)
-    : []
-);
-
 const truthyFlag = (value, fallback = true) => {
   if (value == null) return fallback;
   if (typeof value === 'boolean') return value;
@@ -55,6 +49,18 @@ const toNumberOrNull = (value) => {
   const number = Number(value);
   return Number.isFinite(number) ? number : null;
 };
+
+const SENSITIVE_FIELDS = [
+  'email',
+  'phone',
+  'phone_primary',
+  'phone_secondary',
+  'primaryPhone',
+  'secondaryPhone',
+  'whatsapp',
+  'contactMethods',
+  'contact_methods',
+];
 
 const normalizeImages = (...values) => Array.from(new Set(
   values.flatMap((value) => {
@@ -123,9 +129,6 @@ const resolveOwnerIdentity = (rawCard, scope) => {
       loc: pickString(ownerPreview.loc, ownerPreview.location),
       cat: pickString(ownerPreview.cat, ownerPreview.categoryId),
       desc: scope === 'fsbo' ? '' : pickString(ownerPreview.desc, ownerPreview.pitch),
-      email: '',
-      primaryPhone: '',
-      contactMethods: asArray(ownerPreview.contactMethods),
       verified: ownerPreview.verified === true,
     };
   }
@@ -168,9 +171,6 @@ const resolveOwnerIdentity = (rawCard, scope) => {
       : pickString(payloadScope.loc, payloadProfile.loc, payloadProfile.locB),
     cat: pickString(professionalRow.primary_category_b, professionalRow.primary_category, professionalRow.category),
     desc: isFsbo ? '' : pickString(payloadScope.pitch, payloadProfile.pitchB, payloadProfile.pitch, professionalRow.pitch),
-    email: '',
-    primaryPhone: '',
-    contactMethods: asArray(payloadScope.contactMethods),
     verified: payloadScope.verified === true || payloadProfile.verified === true,
   };
 };
@@ -185,7 +185,31 @@ const getCardKind = (rawCard) => {
   return 'person';
 };
 
+const sanitizePublicCard = (card) => {
+  if (!card || typeof card !== 'object') return card;
+  const sanitized = { ...card };
+  SENSITIVE_FIELDS.forEach((field) => {
+    if (Object.prototype.hasOwnProperty.call(sanitized, field)) {
+      if (import.meta.env.DEV) console.warn(`[normalizeCard] removed sensitive public field: ${field}`);
+      delete sanitized[field];
+    }
+  });
+  if (sanitized.ownerPreview && typeof sanitized.ownerPreview === 'object') {
+    const ownerPreview = { ...sanitized.ownerPreview };
+    SENSITIVE_FIELDS.forEach((field) => {
+      if (Object.prototype.hasOwnProperty.call(ownerPreview, field)) {
+        if (import.meta.env.DEV) console.warn(`[normalizeCard] removed sensitive ownerPreview field: ${field}`);
+        delete ownerPreview[field];
+      }
+    });
+    sanitized.ownerPreview = ownerPreview;
+  }
+  return sanitized;
+};
+
 export function normalizeCard(rawCard, currentUserId = '') {
+  // INVARIANTE DE SEGURANÇA: este objeto é público e não deve conter email, telefone ou qualquer canal de contato pessoal.
+  // Dados de contato só são entregues por unlockedContactService após verificação de direito de acesso.
   if (!rawCard || typeof rawCard !== 'object') return null;
 
   const kind = getCardKind(rawCard);
@@ -235,10 +259,6 @@ export function normalizeCard(rawCard, currentUserId = '') {
     loc: pickString(identity.loc, rawCard.loc, rawCard.location, rawCard.state),
     cat: pickString(identity.cat, rawCard.cat, rawCard.category),
     desc: scope === 'fsbo' ? '' : pickString(identity.desc, rawCard.desc, rawCard.description),
-    email: '',
-    primaryPhone: '',
-    phone: '',
-    contactMethods: asArray(identity.contactMethods).length ? asArray(identity.contactMethods) : asArray(rawCard.contactMethods),
     portfolioCount: kind === 'person' ? portfolioCount : Number(rawCard.portfolioCount || 0),
     isOwnCard,
     isNew: rawCard.isNew === true,
@@ -251,7 +271,7 @@ export function normalizeCard(rawCard, currentUserId = '') {
   };
 
   if (kind === 'service') {
-    return {
+    return sanitizePublicCard({
       ...common,
       id: rawCard.id,
       title: pickString(rawCard.title, rawCard.name, identity.type, 'Service'),
@@ -259,11 +279,11 @@ export function normalizeCard(rawCard, currentUserId = '') {
       media: rawCard.media || { images: normalizeImages(rawCard.media_images, rawCard.media?.images), archivedImages: [] },
       publishToConnections: true,
       source: rawCard.source || 'supabase',
-    };
+    });
   }
 
   if (kind === 'property') {
-    return {
+    return sanitizePublicCard({
       ...common,
       id: rawCard.id,
       portfolioId: rawCard.portfolioId || rawCard.id,
@@ -292,13 +312,11 @@ export function normalizeCard(rawCard, currentUserId = '') {
         loc: common.loc,
         cat: common.cat,
         desc: common.desc,
-        email: '',
-        primaryPhone: '',
         primaryProfile: scope,
         verified: common.verified,
       },
-    };
+    });
   }
 
-  return common;
+  return sanitizePublicCard(common);
 }
