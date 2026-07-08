@@ -3,7 +3,8 @@ import { isSupabaseConfigured, supabase } from '../lib/supabaseClient';
 
 const CHAT_MESSAGES_TABLE = 'chat_messages';
 const CHAT_PAGE_SIZE = 50;
-const CHAT_MESSAGE_SELECT = 'id, sender_id, recipient_id, contact_owner_id, body, message_type, metadata, read_at, created_at';
+const CHAT_MESSAGE_SELECT_BASE = 'id, sender_id, recipient_id, contact_owner_id, body, message_type, metadata, read_at, created_at';
+const CHAT_MESSAGE_SELECT_WITH_CODES = 'id, sender_id, recipient_id, contact_owner_id, body, message_type, message_code, message_params, metadata, read_at, created_at';
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
 
 function createRealtimeTopic(prefix, userId) {
@@ -14,6 +15,11 @@ function createRealtimeTopic(prefix, userId) {
 }
 
 const isValidUuid = (value) => UUID_RE.test(String(value || '').trim());
+
+function isMissingMessageCodeColumnError(error) {
+  const text = `${error?.message || ''} ${error?.details || ''} ${error?.hint || ''}`;
+  return /message_code|message_params/i.test(text) && /column|schema cache|does not exist|not found/i.test(text);
+}
 
 const sortMessages = (messages) => [...messages].sort((a, b) => {
   const at = new Date(a.createdAt || 0).getTime();
@@ -32,6 +38,12 @@ function mapChatRowToMessage(row, currentUserId) {
   if (!peerId) return null;
 
   const metadata = row.metadata && typeof row.metadata === 'object' ? row.metadata : {};
+  const messageCode = row.message_code || metadata.messageCode || metadata.message_code || '';
+  const messageParams = row.message_params && typeof row.message_params === 'object'
+    ? row.message_params
+    : (metadata.messageParams && typeof metadata.messageParams === 'object'
+      ? metadata.messageParams
+      : (metadata.message_params && typeof metadata.message_params === 'object' ? metadata.message_params : {}));
   if (isMine && metadata.hideForSender === true) return null;
   if (!isMine && metadata.hideForRecipient === true) return null;
   return {
@@ -48,7 +60,9 @@ function mapChatRowToMessage(row, currentUserId) {
       translatedText: row.body || '',
       translatedLang: metadata.translatedLang || '',
       senderPreview: metadata.senderPreview || null,
-      metadata,
+      messageCode,
+      messageParams,
+      metadata: { ...metadata, messageCode, messageParams },
       createdAt: row.created_at || null,
       readAt: row.read_at || null,
       readStatus: isMine ? (row.read_at ? 'read' : 'unread') : 'read',
@@ -114,6 +128,8 @@ function makeOptimisticMessage({ payload, userId, clientMessageId, text }) {
     translatedText: text,
     translatedLang: payload.translatedLang || '',
     senderPreview: payload.senderPreview || null,
+    messageCode: payload.messageCode || payload.message_code || payload.metadata?.messageCode || payload.metadata?.message_code || '',
+    messageParams: payload.messageParams || payload.message_params || payload.metadata?.messageParams || payload.metadata?.message_params || {},
     createdAt: new Date().toISOString(),
     readAt: null,
     readStatus: 'unread',
@@ -169,12 +185,21 @@ export function useChatRealtime({
 
     let cancelled = false;
     const hydrateMessages = async () => {
-      const { data, error } = await supabase
+      let response = await supabase
         .from(CHAT_MESSAGES_TABLE)
-        .select(CHAT_MESSAGE_SELECT)
+        .select(CHAT_MESSAGE_SELECT_WITH_CODES)
         .or(`sender_id.eq.${userId},recipient_id.eq.${userId}`)
         .order('created_at', { ascending: false })
         .limit(CHAT_PAGE_SIZE);
+      if (isMissingMessageCodeColumnError(response.error)) {
+        response = await supabase
+          .from(CHAT_MESSAGES_TABLE)
+          .select(CHAT_MESSAGE_SELECT_BASE)
+          .or(`sender_id.eq.${userId},recipient_id.eq.${userId}`)
+          .order('created_at', { ascending: false })
+          .limit(CHAT_PAGE_SIZE);
+      }
+      const { data, error } = response;
 
       if (cancelled) return;
       if (error) {
@@ -218,12 +243,23 @@ export function useChatRealtime({
     setLoadingMoreByPeer((prev) => ({ ...prev, [peerId]: true }));
     let query = supabase
       .from(CHAT_MESSAGES_TABLE)
-      .select(CHAT_MESSAGE_SELECT)
+      .select(CHAT_MESSAGE_SELECT_WITH_CODES)
       .or(`and(sender_id.eq.${userId},recipient_id.eq.${peerId}),and(sender_id.eq.${peerId},recipient_id.eq.${userId})`)
       .order('created_at', { ascending: false })
       .limit(CHAT_PAGE_SIZE);
     if (cursor) query = query.lt('created_at', cursor);
-    const { data, error } = await query;
+    let response = await query;
+    if (isMissingMessageCodeColumnError(response.error)) {
+      let fallbackQuery = supabase
+        .from(CHAT_MESSAGES_TABLE)
+        .select(CHAT_MESSAGE_SELECT_BASE)
+        .or(`and(sender_id.eq.${userId},recipient_id.eq.${peerId}),and(sender_id.eq.${peerId},recipient_id.eq.${userId})`)
+        .order('created_at', { ascending: false })
+        .limit(CHAT_PAGE_SIZE);
+      if (cursor) fallbackQuery = fallbackQuery.lt('created_at', cursor);
+      response = await fallbackQuery;
+    }
+    const { data, error } = response;
 
     setLoadingMoreByPeer((prev) => ({ ...prev, [peerId]: false }));
 
@@ -291,6 +327,8 @@ export function useChatRealtime({
       translatedLang: payload.translatedLang || '',
       contactPrimaryProfile: payload.contactPrimaryProfile || payload.primaryProfile || '',
       senderPreview: payload.senderPreview || null,
+      messageCode: payload.messageCode || payload.message_code || '',
+      messageParams: payload.messageParams || payload.message_params || {},
     };
 
     if (payload.suppressLocal !== true) {
@@ -301,18 +339,31 @@ export function useChatRealtime({
       }));
     }
 
-    const { data, error } = await supabase
+    const insertPayload = {
+      sender_id: userId,
+      recipient_id: recipientId,
+      contact_owner_id: payload.contactOwnerId || recipientId,
+      body: text,
+      message_type: payload.type || 'text',
+      message_code: metadata.messageCode || null,
+      message_params: metadata.messageParams || {},
+      metadata,
+    };
+
+    let response = await supabase
       .from(CHAT_MESSAGES_TABLE)
-      .insert({
-        sender_id: userId,
-        recipient_id: recipientId,
-        contact_owner_id: payload.contactOwnerId || recipientId,
-        body: text,
-        message_type: payload.type || 'text',
-        metadata,
-      })
-      .select(CHAT_MESSAGE_SELECT)
+      .insert(insertPayload)
+      .select(CHAT_MESSAGE_SELECT_WITH_CODES)
       .single();
+    if (isMissingMessageCodeColumnError(response.error)) {
+      const { message_code: _messageCode, message_params: _messageParams, ...legacyPayload } = insertPayload;
+      response = await supabase
+        .from(CHAT_MESSAGES_TABLE)
+        .insert(legacyPayload)
+        .select(CHAT_MESSAGE_SELECT_BASE)
+        .single();
+    }
+    const { data, error } = response;
 
     if (error) {
       reportError('Chat message persistence failed.', error);

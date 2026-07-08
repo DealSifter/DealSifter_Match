@@ -1,6 +1,6 @@
 ﻿import React, { useState, useRef, useEffect, useMemo, useCallback } from 'react';
 import { C } from '../theme/colors';
-import { useT } from '../i18n/translations';
+import { translations, useT } from '../i18n/translations';
 import { PROPERTIES as _MOCK_PROPERTIES, CATEGORIES, SERVICE_PORTFOLIO as _MOCK_SERVICE_PORTFOLIO } from '../data/mockData';
 import { Icon } from '../components/ui/Icon';
 import { Modal } from '../components/ui/Modal';
@@ -99,41 +99,27 @@ const CHAT_INTEREST_SERVICE_PREFIX = {
   es: 'Tengo interÃ©s en este Servicio',
 };
 
-const CHAT_SYSTEM_ALERT_COPY = {
-  en: {
-    recipientPlanTitle: 'DealSifter Chat unavailable for this contact',
-    recipientPlanToast: 'This selected profile does not have chat available. Continue through another contact channel listed on this profile.',
-    recipientPlanRecipient: 'An interested connection in your properties and/or services tried to contact you on this profile through chat, but your plan is Basic/Free and does not include this feature. Do not miss the opportunity to do business: upgrade to a plan with more resources and close deals faster.',
-    recipientPlanSender: 'This selected profile has not activated CHAT as a priority contact channel or has a plan that does not provide access to this feature, so contact them through the channels chosen by this user and linked to this profile.',
-    contactMethodTitle: 'DealSifter Chat not selected',
-    contactMethodToast: 'This profile did not select DealSifter Chat as a desired contact method.',
-    contactMethodRecipient: 'System alert: a connection tried to contact this profile through DealSifter Chat, but this profile has not selected chat as a desired contact method. Update your profile contact options if you want to receive chats here.',
-    contactMethodSender: 'This selected profile has not activated CHAT as a priority contact channel or has a plan that does not provide access to this feature, so contact them through the channels chosen by this user and linked to this profile.',
-  },
-  pt: {
-    recipientPlanTitle: 'Chat DealSifter indisponivel para este contato',
-    recipientPlanToast: 'Este perfil selecionado nao esta com chat disponivel. Continue pelos outros canais de contato deste perfil.',
-    recipientPlanRecipient: 'Uma conexao interessada em suas propriedade e/ou servicos tentou falar com voce neste perfil atraves do chat, entretanto seu plano e Basico/Free e nao da direito ao uso deste recurso. Nao perca a oportunidade de fazer negocios, faca o upgrade para um plano que tenha mais recursos e realize negocios mais rapidamente.',
-    recipientPlanSender: 'Este perfil selecionado nao ativou o CHAT como forma de canal de comunicacao prioritario ou possui um plano que nao da acesso a esse recurso, portanto realize seu contato com ele atraves dos canais escolhidos por este usuario e que constam atrelados a esse perfil.',
-    contactMethodTitle: 'Chat DealSifter nao selecionado',
-    contactMethodToast: 'Este perfil nao selecionou o Chat DealSifter como forma desejada de contato.',
-    contactMethodRecipient: 'Alerta do sistema: uma conexao tentou falar com este perfil pelo Chat DealSifter, mas este perfil nao selecionou chat como forma desejada de contato. Atualize as opcoes de contato do perfil se quiser receber chats aqui.',
-    contactMethodSender: 'Este perfil selecionado nao ativou o CHAT como forma de canal de comunicacao prioritario ou possui um plano que nao da acesso a esse recurso, portanto realize seu contato com ele atraves dos canais escolhidos por este usuario e que constam atrelados a esse perfil.',
-  },
-  es: {
-    recipientPlanTitle: 'Chat DealSifter no disponible para este contacto',
-    recipientPlanToast: 'Este perfil seleccionado no tiene chat disponible. Continua por otro canal de contacto listado en este perfil.',
-    recipientPlanRecipient: 'Una conexion interesada en tus propiedades y/o servicios intento hablar contigo en este perfil a traves del chat, pero tu plan es Basico/Free y no incluye este recurso. No pierdas la oportunidad de hacer negocios: actualiza tu plan para tener mas recursos y cerrar operaciones mas rapido.',
-    recipientPlanSender: 'Este perfil seleccionado no activo CHAT como canal de comunicacion prioritario o tiene un plan sin acceso a este recurso; por lo tanto, contactalo por los canales elegidos por este usuario y vinculados a este perfil.',
-    contactMethodTitle: 'Chat DealSifter no seleccionado',
-    contactMethodToast: 'Este perfil no selecciono Chat DealSifter como forma deseada de contacto.',
-    contactMethodRecipient: 'Alerta del sistema: una conexion intento contactar este perfil por Chat DealSifter, pero este perfil no selecciono chat como forma deseada de contacto. Actualiza las opciones de contacto del perfil si quieres recibir chats aqui.',
-    contactMethodSender: 'Este perfil seleccionado no activo CHAT como canal de comunicacion prioritario o tiene un plan sin acceso a este recurso; por lo tanto, contactalo por los canales elegidos por este usuario y vinculados a este perfil.',
-  },
+const CHAT_SYSTEM_MESSAGE_KEYS = {
+  recipient_plan_recipient: 'chatSystemRecipientPlanRecipient',
+  recipient_plan_sender: 'chatSystemRecipientPlanSender',
+  contact_method_recipient: 'chatSystemContactMethodRecipient',
+  contact_method_sender: 'chatSystemContactMethodSender',
 };
 
-function getChatSystemAlertCopy(lang) {
-  return CHAT_SYSTEM_ALERT_COPY[getSafeLang(lang || 'en')] || CHAT_SYSTEM_ALERT_COPY.en;
+function interpolateText(template, params = {}) {
+  return String(template || '').replace(/\{(\w+)\}/g, (_, key) => String(params?.[key] ?? ''));
+}
+
+function getMatchesTranslation(lang, key, params = {}) {
+  const normalizedLang = getSafeLang(lang || 'en');
+  const matches = translations?.[normalizedLang]?.matches || translations.en.matches || {};
+  const fallback = translations.en.matches || {};
+  return interpolateText(matches[key] || fallback[key] || '', params);
+}
+
+function getChatSystemTextByCode(messageCode, lang, params = {}) {
+  const key = CHAT_SYSTEM_MESSAGE_KEYS[messageCode];
+  return key ? getMatchesTranslation(lang, key, params) : '';
 }
 
 const DEFAULT_PEER_LANGS = { input: 'en', output: 'en' };
@@ -2817,18 +2803,22 @@ export function MatchesPage({ nuggets, setModal, openUnlock, unlocked, initialCh
     resizeComposerInput();
   }, [msg, isMobile, resizeComposerInput]);
 
-  const writeChatSystemNotice = useCallback((owner, message, reason = 'chat_unavailable', options = {}) => {
+  const writeChatSystemNotice = useCallback((owner, messageCode, reason = 'chat_unavailable', options = {}) => {
     const oid = String(owner?.id || owner?.ownerId || owner?.unlockOwnerId || '').trim();
-    if (!oid || !message) return;
+    const messageParams = options.messageParams && typeof options.messageParams === 'object' ? options.messageParams : {};
+    const fallbackText = getChatSystemTextByCode(messageCode, myInputLang, messageParams);
+    if (!oid || !messageCode || !fallbackText) return;
     if (typeof onSendChatMessage === 'function') {
       onSendChatMessage({
         recipientId: oid,
         contactOwnerId: oid,
-        text: message,
+        text: fallbackText,
         type: 'system',
-        originalText: message,
+        originalText: fallbackText,
         originalLang: myInputLang,
         translatedLang: myInputLang,
+        messageCode,
+        messageParams,
         contactPrimaryProfile: owner?.primaryProfile || '',
         senderPreview: currentUserChatPreview,
         suppressLocal: options.hideForSender === true,
@@ -2838,7 +2828,8 @@ export function MatchesPage({ nuggets, setModal, openUnlock, unlocked, initialCh
           hideForRecipient: options.hideForRecipient === true,
           systemAlert: options.systemAlert === true,
           systemAudience: options.systemAudience || 'recipient',
-          localizedText: options.localizedText || null,
+          messageCode,
+          messageParams,
         },
       });
       return;
@@ -2849,11 +2840,11 @@ export function MatchesPage({ nuggets, setModal, openUnlock, unlocked, initialCh
         ...((prev || {})[oid] || []),
         {
           from: 'me',
-          text: message,
+          text: fallbackText,
           type: 'system',
-          originalText: message,
+          originalText: fallbackText,
           originalLang: myInputLang,
-          translatedText: message,
+          translatedText: fallbackText,
           translatedLang: myInputLang,
           senderPreview: currentUserChatPreview,
           metadata: {
@@ -2862,7 +2853,8 @@ export function MatchesPage({ nuggets, setModal, openUnlock, unlocked, initialCh
             hideForRecipient: options.hideForRecipient === true,
             systemAlert: options.systemAlert === true,
             systemAudience: options.systemAudience || 'local',
-            localizedText: options.localizedText || null,
+            messageCode,
+            messageParams,
           },
           createdAt: new Date().toISOString(),
         },
@@ -2903,44 +2895,25 @@ export function MatchesPage({ nuggets, setModal, openUnlock, unlocked, initialCh
   }, [activeOwner, canUseChat]);
 
   const blockChatForActiveContact = useCallback((reason) => {
-    const senderCopy = getChatSystemAlertCopy(myOutputLang);
-    const recipientCopy = getChatSystemAlertCopy(myInputLang);
-    const title = reason === 'recipient_plan'
-      ? senderCopy.recipientPlanTitle
-      : senderCopy.contactMethodTitle;
-    const message = reason === 'recipient_plan'
-      ? senderCopy.recipientPlanToast
-      : senderCopy.contactMethodToast;
-    const systemMessage = reason === 'recipient_plan'
-      ? recipientCopy.recipientPlanRecipient
-      : recipientCopy.contactMethodRecipient;
-    const senderSystemMessage = reason === 'recipient_plan'
-      ? senderCopy.recipientPlanSender
-      : senderCopy.contactMethodSender;
-    const recipientLocalizedText = {
-      en: reason === 'recipient_plan' ? CHAT_SYSTEM_ALERT_COPY.en.recipientPlanRecipient : CHAT_SYSTEM_ALERT_COPY.en.contactMethodRecipient,
-      pt: reason === 'recipient_plan' ? CHAT_SYSTEM_ALERT_COPY.pt.recipientPlanRecipient : CHAT_SYSTEM_ALERT_COPY.pt.contactMethodRecipient,
-      es: reason === 'recipient_plan' ? CHAT_SYSTEM_ALERT_COPY.es.recipientPlanRecipient : CHAT_SYSTEM_ALERT_COPY.es.contactMethodRecipient,
-    };
-    const senderLocalizedText = {
-      en: reason === 'recipient_plan' ? CHAT_SYSTEM_ALERT_COPY.en.recipientPlanSender : CHAT_SYSTEM_ALERT_COPY.en.contactMethodSender,
-      pt: reason === 'recipient_plan' ? CHAT_SYSTEM_ALERT_COPY.pt.recipientPlanSender : CHAT_SYSTEM_ALERT_COPY.pt.contactMethodSender,
-      es: reason === 'recipient_plan' ? CHAT_SYSTEM_ALERT_COPY.es.recipientPlanSender : CHAT_SYSTEM_ALERT_COPY.es.contactMethodSender,
-    };
+    const isRecipientPlan = reason === 'recipient_plan';
+    const titleKey = isRecipientPlan ? 'chatSystemRecipientPlanTitle' : 'chatSystemContactMethodTitle';
+    const toastKey = isRecipientPlan ? 'chatSystemRecipientPlanToast' : 'chatSystemContactMethodToast';
+    const recipientMessageCode = isRecipientPlan ? 'recipient_plan_recipient' : 'contact_method_recipient';
+    const senderMessageCode = isRecipientPlan ? 'recipient_plan_sender' : 'contact_method_sender';
+    const title = t[titleKey] || getMatchesTranslation(myOutputLang, titleKey);
+    const message = t[toastKey] || getMatchesTranslation(myOutputLang, toastKey);
     addToast?.({ type: 'warning', title, message, duration: 7000 });
-    writeChatSystemNotice(activeOwner, systemMessage, reason, {
+    writeChatSystemNotice(activeOwner, recipientMessageCode, reason, {
       hideForSender: true,
       systemAlert: true,
-      localizedText: recipientLocalizedText,
-      systemAudience: reason === 'recipient_plan' ? 'recipient_plan_upgrade' : 'recipient_contact_method',
+      systemAudience: isRecipientPlan ? 'recipient_plan_upgrade' : 'recipient_contact_method',
     });
-    writeChatSystemNotice(activeOwner, senderSystemMessage, reason, {
+    writeChatSystemNotice(activeOwner, senderMessageCode, reason, {
       hideForRecipient: true,
       systemAlert: true,
-      localizedText: senderLocalizedText,
-      systemAudience: reason === 'recipient_plan' ? 'sender_recipient_plan' : 'sender_contact_method',
+      systemAudience: isRecipientPlan ? 'sender_recipient_plan' : 'sender_contact_method',
     });
-  }, [activeOwner, addToast, myInputLang, myOutputLang, writeChatSystemNotice]);
+  }, [activeOwner, addToast, myOutputLang, t, writeChatSystemNotice]);
 
   const handleSend = useCallback(async (customMsg, type = "text", refData = null) => {
     if (!activeOwner) return;
@@ -2960,8 +2933,8 @@ export function MatchesPage({ nuggets, setModal, openUnlock, unlocked, initialCh
     } catch (error) {
       addToast?.({
         type: 'error',
-        title: 'Chat unavailable',
-        message: String(error?.message || 'Could not validate this chat channel right now.'),
+        title: t.chatUnavailableTitle || getMatchesTranslation(myOutputLang, 'chatUnavailableTitle'),
+        message: String(error?.message || t.chatValidateError || getMatchesTranslation(myOutputLang, 'chatValidateError')),
         duration: 6500,
       });
       return;
@@ -3069,6 +3042,7 @@ export function MatchesPage({ nuggets, setModal, openUnlock, unlocked, initialCh
     getActiveChatAccessStatus,
     blockChatForActiveContact,
     addToast,
+    t,
     currentUserChatPreview,
     onSendChatMessage,
   ]);
@@ -3687,12 +3661,12 @@ export function MatchesPage({ nuggets, setModal, openUnlock, unlocked, initialCh
                     </div>
                     <button
                       onClick={() => onOpenChatLanguageConfig?.()}
-                      title="Configuration"
-                      aria-label="Configuration"
+                      title={t.chatConfig || getMatchesTranslation(myOutputLang, 'chatConfig')}
+                      aria-label={t.chatConfig || getMatchesTranslation(myOutputLang, 'chatConfig')}
                       style={{ height:24, borderRadius:6, border:`1px solid ${C.border}`, background:C.card, display:'inline-flex', alignItems:'center', justifyContent:'center', gap:6, cursor:'pointer', padding:'0 8px', color:C.t2, fontSize:10, fontWeight:700 }}
                     >
                       <Icon name="globe" size={12} color={C.t2} />
-                      <span>Configuration</span>
+                      <span>{t.chatConfig || getMatchesTranslation(myOutputLang, 'chatConfig')}</span>
                     </button>
                   </div>
                   <div ref={scrollRef} className="matches-chat-scroll" style={{ flex:1, overflowY:"auto", padding:"46px 20px 20px", display:"flex", flexDirection:"column", gap:12 }}
@@ -3722,7 +3696,9 @@ export function MatchesPage({ nuggets, setModal, openUnlock, unlocked, initialCh
                         }}
                         style={{ alignSelf:'center', border:`1px solid ${C.border}`, background:C.card, color:C.t2, borderRadius:999, padding:'6px 10px', fontSize:11, fontWeight:800, cursor:activeChatLoadingMore?'wait':'pointer' }}
                       >
-                        {activeChatLoadingMore ? 'Loading messages...' : 'Load older messages'}
+                        {activeChatLoadingMore
+                          ? (t.chatLoadingMessages || getMatchesTranslation(myOutputLang, 'chatLoadingMessages'))
+                          : (t.chatLoadOlder || getMatchesTranslation(myOutputLang, 'chatLoadOlder'))}
                       </button>
                     ) : null}
                     {currentMsgs.map((m, i) => {
@@ -3731,16 +3707,24 @@ export function MatchesPage({ nuggets, setModal, openUnlock, unlocked, initialCh
                       const statusColor = m.status === 'failed' ? C.danger : (m.status === 'sending' ? C.t3 : C.success);
                       const statusIcon = m.status === 'failed' ? 'x' : (m.status === 'sending' ? 'hourglass' : 'check');
                       const refData = m.refData && typeof m.refData === 'object' ? m.refData : {};
-                      const refTitle = refData.address || refData.name || refData.title || 'Shared reference';
+                      const refTitle = refData.address || refData.name || refData.title || (t.chatSharedReference || getMatchesTranslation(myOutputLang, 'chatSharedReference'));
                       const refImage = refData.images?.[0] || refData.image || refData.media?.images?.[0] || '';
                       const isSystemAlert = m.type === 'system' && m.metadata?.systemAlert === true;
                       const isRecipientPlanUpgradeAlert = isSystemAlert && m.metadata?.systemAudience === 'recipient_plan_upgrade';
-                      const localizedSystemText = isSystemAlert && m.metadata?.localizedText && typeof m.metadata.localizedText === 'object'
-                        ? (m.metadata.localizedText[myOutputLang] || m.metadata.localizedText.en || m.text)
-                        : m.text;
+                      const messageCode = m.messageCode || m.metadata?.messageCode || m.metadata?.message_code || '';
+                      const messageParams = m.messageParams || m.metadata?.messageParams || m.metadata?.message_params || {};
+                      const codedSystemText = messageCode ? getChatSystemTextByCode(messageCode, myOutputLang, messageParams) : '';
+                      const legacyLocalizedText = isSystemAlert && m.metadata?.localizedText && typeof m.metadata.localizedText === 'object'
+                        ? (m.metadata.localizedText[myOutputLang] || m.metadata.localizedText.en || '')
+                        : '';
+                      const localizedSystemText = isSystemAlert ? (codedSystemText || legacyLocalizedText || m.text) : m.text;
                       const receiptLabel = m.status === 'failed'
-                        ? 'failed'
-                        : (m.status === 'sending' ? 'sending' : (m.readStatus === 'read' ? 'lida' : 'nao lida'));
+                        ? (t.chatStatusFailed || getMatchesTranslation(myOutputLang, 'chatStatusFailed'))
+                        : (m.status === 'sending'
+                          ? (t.chatStatusSending || getMatchesTranslation(myOutputLang, 'chatStatusSending'))
+                          : (m.readStatus === 'read'
+                            ? (t.chatStatusRead || getMatchesTranslation(myOutputLang, 'chatStatusRead'))
+                            : (t.chatStatusUnread || getMatchesTranslation(myOutputLang, 'chatStatusUnread'))));
                       return (
                       <div key={messageKey} style={{ display:"flex", justifyContent:isSystemAlert?"center":(isMine?"flex-end":"flex-start") }}>
                         <div style={{
@@ -3776,7 +3760,7 @@ export function MatchesPage({ nuggets, setModal, openUnlock, unlocked, initialCh
                                     cursor: 'pointer',
                                   }}
                                 >
-                                  {myOutputLang === 'pt' ? 'Clique aqui e escolha sua assinatura' : (myOutputLang === 'es' ? 'Haz clic aqui y elige tu plan' : 'Click here and choose your plan')}
+                                  {t.chatSystemUpgradeCta || getMatchesTranslation(myOutputLang, 'chatSystemUpgradeCta')}
                                 </button>
                               ) : null}
                               {m.originalText && m.originalText !== localizedSystemText && (
@@ -3796,7 +3780,7 @@ export function MatchesPage({ nuggets, setModal, openUnlock, unlocked, initialCh
                                   onClick={() => onRetryChatMessage?.(activePeerId, m.id)}
                                   style={{ border:`1px solid ${C.alpha(C.danger, 0.45)}`, background:C.alpha(C.danger, 0.08), color:C.danger, borderRadius:999, padding:'3px 7px', fontSize:10, fontWeight:900, cursor:'pointer' }}
                                 >
-                                  Tentar novamente
+                                  {t.chatRetry || getMatchesTranslation(myOutputLang, 'chatRetry')}
                                 </button>
                               ) : null}
                             </div>
