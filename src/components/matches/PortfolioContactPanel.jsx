@@ -1,6 +1,7 @@
-import React, { useEffect, useMemo, useRef, useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import { C } from '../../theme/colors';
 import { useT } from '../../i18n/translations';
+import { ContactButtons } from '../ContactButtons';
 import { Icon } from '../ui/Icon';
 import { SmartImage } from '../ui/SmartImage';
 
@@ -36,39 +37,18 @@ export function PortfolioContactPanel({
   isUnlocked,
   variant = 'desktop',
   onUnlockRequest,
+  onChatClick,
 }) {
   const allT = useT('matches');
   const t = allT.matches || {};
-  const modalsT = allT.modals || {};
   const contact = useMemo(() => normalizeContact(canonicalContact), [canonicalContact]);
   const [showUnavailable, setShowUnavailable] = useState(false);
-  const [copied, setCopied] = useState('');
-  const copyTimerRef = useRef(null);
 
   useEffect(() => {
     if (!isUnlocked || contact || showUnavailable) return undefined;
     const timer = window.setTimeout(() => setShowUnavailable(true), 350);
     return () => window.clearTimeout(timer);
   }, [contact, isUnlocked, showUnavailable]);
-
-  useEffect(() => () => {
-    if (copyTimerRef.current) window.clearTimeout(copyTimerRef.current);
-  }, []);
-
-  const copyValue = async (key, value) => {
-    const text = normalizeText(value);
-    if (!text) return;
-    try {
-      if (navigator.clipboard?.writeText) {
-        await navigator.clipboard.writeText(text);
-        setCopied(key);
-        if (copyTimerRef.current) window.clearTimeout(copyTimerRef.current);
-        copyTimerRef.current = window.setTimeout(() => setCopied(''), 1200);
-      }
-    } catch (error) {
-      void error;
-    }
-  };
 
   if (!isUnlocked) {
     return (
@@ -120,20 +100,12 @@ export function PortfolioContactPanel({
     );
   }
 
-  const channels = [
-    { key: 'phone-primary', icon: 'phone', label: modalsT.contactPhone || 'Phone', value: contact.phonePrimary },
-    { key: 'phone-secondary', icon: 'sms', label: modalsT.contactSms || 'Phone 2', value: contact.phoneSecondary },
-    { key: 'whatsapp', icon: 'whatsapp', label: modalsT.contactWhatsApp || 'WhatsApp', value: contact.whatsapp },
-    { key: 'email', icon: 'email', label: modalsT.contactEmail || 'Email', value: contact.email },
-  ].filter((channel) => channel.value);
-
-  if (contact.contactMethods.includes('chat')) {
-    channels.push({ key: 'chat', icon: 'chat', label: 'DealSifter Chat', value: t.chatAvailable || 'Available' });
-  }
-
   const compact = variant === 'modal';
   const isMobile = variant === 'mobile';
   const direction = isMobile ? 'column' : 'row';
+  const phoneForDisplay = contact.phonePrimary || contact.phoneSecondary || null;
+  const chatEnabled = contact.contactMethods.includes('chat');
+  const hasAnyContact = Boolean(contact.email || phoneForDisplay || contact.whatsapp || chatEnabled);
 
   return (
     <div
@@ -169,35 +141,16 @@ export function PortfolioContactPanel({
         </div>
       </div>
 
-      <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, justifyContent: isMobile ? 'stretch' : 'flex-start', minWidth: 0 }}>
-        {channels.length ? channels.map((channel) => (
-          <button
-            key={channel.key}
-            type="button"
-            onClick={() => copyValue(channel.key, channel.value)}
-            title={channel.label}
-            style={{
-              minWidth: isMobile ? '100%' : 0,
-              maxWidth: isMobile ? '100%' : 230,
-              display: 'inline-flex',
-              alignItems: 'center',
-              justifyContent: isMobile ? 'center' : 'flex-start',
-              gap: 6,
-              padding: compact ? '5px 8px' : '7px 10px',
-              borderRadius: 8,
-              border: `1px solid ${copied === channel.key ? C.success : C.border}`,
-              background: copied === channel.key ? C.alpha(C.success, 0.14) : C.alpha(C.t1, 0.05),
-              color: copied === channel.key ? C.success : C.t1,
-              fontSize: compact ? 10 : 11,
-              fontWeight: 750,
-              cursor: 'pointer',
-              overflow: 'hidden',
-            }}
-          >
-            <Icon name={copied === channel.key ? 'check' : channel.icon} size={12} color={copied === channel.key ? C.success : C.t1} />
-            <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{channel.value}</span>
-          </button>
-        )) : (
+      <div style={{ minWidth: 0 }}>
+        {hasAnyContact ? (
+          <ContactButtons
+            email={contact.email || null}
+            phone={phoneForDisplay}
+            whatsapp={contact.whatsapp || null}
+            chatEnabled={chatEnabled}
+            onChatClick={onChatClick}
+          />
+        ) : (
           <div style={{ color: C.t3, fontSize: 11, fontWeight: 800 }}>
             {t.contactUnavailable || 'Contato não disponível'}
           </div>
