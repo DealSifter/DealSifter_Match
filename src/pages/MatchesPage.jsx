@@ -23,6 +23,7 @@ import { getPortfolioUnlockCost, getPropertyExclusivityStatus } from '../lib/unl
 import { isSupabaseConfigured, supabase } from '../lib/supabaseClient';
 import { normalizeCard } from '../lib/normalizeFeedCard';
 import { formatCompactUsd } from '../lib/formatMoney';
+import { captureEntitlementAlert, hashForTelemetry } from '../lib/observability';
 import { getActiveExclusivities } from '../services/unlockService';
 import {
   getContactByOwnerId,
@@ -1713,6 +1714,7 @@ export function MatchesPage({ nuggets, setModal, openUnlock, unlocked, initialCh
   const scrollRef = useRef(null);
   const chatHistoryLoadRef = useRef({ peerId: '', beforeHeight: 0, beforeTop: 0 });
   const chatInitialLoadRequestedRef = useRef(new Set());
+  const entitlementAlertLogRef = useRef(new Set());
   const msgInputRef = useRef(null);
   const splitPaneRef = useRef(null);
   const [isDragging, setIsDragging] = useState(false);
@@ -2102,6 +2104,14 @@ export function MatchesPage({ nuggets, setModal, openUnlock, unlocked, initialCh
     if (!ownerId || !propertyId) return false;
     return isCanonicalPropertyUnlocked(unlockedContactMap, ownerId, propertyId);
   }, [unlockedContactMap]);
+
+  const logEntitlementAlertOnce = useCallback(async (level, event, key, payloadBuilder, error = null) => {
+    const dedupeKey = `${event}:${key}`;
+    if (entitlementAlertLogRef.current.has(dedupeKey)) return;
+    entitlementAlertLogRef.current.add(dedupeKey);
+    const payload = typeof payloadBuilder === 'function' ? await payloadBuilder() : (payloadBuilder || {});
+    captureEntitlementAlert(level, event, payload, error);
+  }, []);
 
   const hasOwnerPortfolioAccessByState = useCallback((ownerId) => (
     hasOwnerPortfolioEntitlement(unlockedContactMap, ownerId)
@@ -2617,6 +2627,39 @@ export function MatchesPage({ nuggets, setModal, openUnlock, unlocked, initialCh
   }, [active, getPropertyExclusiveStatus, isActiveProperty]);
 
   const activePropertyBlockedByOther = isActiveProperty && activeExclusiveStatus?.kind === 'blocked';
+
+  useEffect(() => {
+    if (!(unlockedContactMap instanceof Map) || unlockedContactMap.size === 0) return;
+    unlockedContactMap.forEach((canonicalContact, ownerId) => {
+      const contact = canonicalContact?.contact && typeof canonicalContact.contact === 'object'
+        ? canonicalContact.contact
+        : {};
+      const hasEmail = Boolean(String(contact.email || '').trim());
+      const hasPhone = Boolean(
+        String(contact.phone_primary || contact.phonePrimary || contact.phone_secondary || contact.phoneSecondary || contact.whatsapp || '').trim()
+      );
+      if (hasEmail || hasPhone) return;
+      void logEntitlementAlertOnce('warning', 'unlocked_contact_missing_data', ownerId, async () => ({
+        owner_id_hash: await hashForTelemetry(ownerId),
+        has_email: false,
+        has_phone: false,
+      }));
+    });
+  }, [logEntitlementAlertOnce, unlockedContactMap]);
+
+  useEffect(() => {
+    if (!active || !isActiveProperty) return;
+    const ownerId = String(active.ownerId || active.owner_id || activeOwner?.ownerId || activeOwner?.id || '').trim();
+    const propertyId = String(active.id || active.propertyId || active.property_id || active.portfolioId || '').trim();
+    if (!ownerId || !propertyId) return;
+    const ownerUnlocked = isCanonicalOwnerUnlocked(unlockedContactMap, ownerId);
+    const propertyUnlocked = isCanonicalPropertyUnlocked(unlockedContactMap, ownerId, propertyId);
+    if (!ownerUnlocked || propertyUnlocked || activePropertyBlockedByOther) return;
+    void logEntitlementAlertOnce('error', 'property_paywall_on_unlocked_owner', `${ownerId}:${propertyId}`, async () => ({
+      owner_id_hash: await hashForTelemetry(ownerId),
+      property_id_hash: await hashForTelemetry(propertyId),
+    }));
+  }, [active, activeOwner, activePropertyBlockedByOther, isActiveProperty, logEntitlementAlertOnce, unlockedContactMap]);
 
   const activeOwnerExclusiveStatus = useMemo(() => {
     if (!activeOwner?.id || isActiveProperty) return null;

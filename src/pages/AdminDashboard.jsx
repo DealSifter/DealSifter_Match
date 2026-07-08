@@ -1310,6 +1310,7 @@ export function AdminDashboard({ setPage, prevPage, logoutAdmin }) {
     const checkoutClicked = Number(m.checkoutClicked30d || 0);
     const checkoutCompleted = Number(m.checkoutCompleted30d || 0);
     const checkoutAbandoned = Math.max(0, checkoutClicked - checkoutCompleted);
+    const entitlementAlerts = m.entitlementAlerts24h && typeof m.entitlementAlerts24h === 'object' ? m.entitlementAlerts24h : {};
     const checkoutAbandonedSeries = [
       { label: k.started || 'Started', value: checkoutClicked },
       { label: k.abandoned || 'Abandoned', value: checkoutAbandoned },
@@ -1340,6 +1341,7 @@ export function AdminDashboard({ setPage, prevPage, logoutAdmin }) {
         { id: 'db-storage-guardrail', label: k.dbGuardrail || 'DB guardrail', value: fmtPct(m.dbUsagePct), sub: `${fmtMb(m.dbSizeBytes)} / ${fmtMb(m.dbLimitBytes)}`, series: series['db-storage-guardrail'], seriesStatus: seriesStatus['db-storage-guardrail'], chartFormatter: (value) => `${Number(value || 0).toLocaleString('en-US', { maximumFractionDigits: 1 })} MB`, chartType: 'donut' },
         { id: 'stripe-issues', label: k.stripeIssues || 'Stripe issues', value: fmtInt(m.stripeIssuesDay), sub: k.last10Days || 'last 10 days', series: series['stripe-issues'], chartType: 'bar' },
         { id: 'stripe-webhook-skips', label: k.stripeWebhookSkips || 'Stripe webhook skips', value: fmtInt(m.stripeWebhookSkippedDay), sub: k.last24h || 'last 24h', series: series['stripe-webhook-skips'], chartType: 'bar' },
+        { id: 'entitlement-alerts', label: k.entitlementAlerts || 'Entitlement Alerts', value: fmtInt(entitlementAlerts.total), sub: k.last24h || 'last 24h', series: series['entitlement-alerts'], chartType: 'bar' },
         { id: 'supabase-issues', label: k.supabaseIssues || 'Supabase issues', value: fmtInt(m.supabaseIssuesDay), sub: k.last10Days || 'last 10 days', series: series['supabase-issues'], chartType: 'bar' },
         { id: 'admin-accounts', label: k.adminAccounts || 'Admin accounts', value: fmtInt(m.adminAccounts), sub: k.restricted || 'restricted', series: series['admin-accounts'], chartType: 'donut' },
       ],
@@ -1553,6 +1555,28 @@ export function AdminDashboard({ setPage, prevPage, logoutAdmin }) {
             <span style={{ borderRadius: 999, padding: '5px 9px', background: C.warning || '#f59e0b', color: C.bg, fontSize: 11, fontWeight: 950 }}>
               {fmtInt(metrics.stripeReprocessPending)}
             </span>
+          </div>
+        ) : null}
+
+        {metrics?.entitlementAlerts24h && Number(metrics.entitlementAlerts24h.total || 0) > 0 ? (
+          <div style={{ marginBottom: 12, border: `1px solid ${C.alpha(C.danger, 0.42)}`, borderRadius: 12, padding: 12, background: C.alpha(C.danger, 0.07), display: 'grid', gap: 10 }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', gap: 10, alignItems: 'center', flexWrap: 'wrap' }}>
+              <strong style={{ color: C.t1, fontSize: 13 }}>{t.entitlementAlerts || 'Entitlement Alerts'} ({t.last24h || 'last 24h'})</strong>
+              <span style={{ color: C.danger, fontSize: 11, fontWeight: 950 }}>{fmtInt(metrics.entitlementAlerts24h.total)}</span>
+            </div>
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: 8 }}>
+              {[
+                ['unlocked_contacts_empty', 'RPC empty with unlocks'],
+                ['unlocked_contacts_rpc_failed', 'RPC failed'],
+                ['unlocked_contact_missing_data', 'Unlocked contact missing data'],
+                ['property_paywall_on_unlocked_owner', 'Property paywall on unlocked owner'],
+              ].map(([key, label]) => (
+                <div key={key} style={{ border: `1px solid ${C.alpha(C.danger, 0.2)}`, borderRadius: 10, padding: '8px 9px', background: C.card, display: 'flex', justifyContent: 'space-between', gap: 8, alignItems: 'center' }}>
+                  <span style={{ color: C.t2, fontSize: 11, fontWeight: 800 }}>{label}</span>
+                  <span style={{ color: Number(metrics.entitlementAlerts24h[key] || 0) > 0 ? C.danger : C.t3, fontSize: 13, fontWeight: 950 }}>{fmtInt(metrics.entitlementAlerts24h[key])}</span>
+                </div>
+              ))}
+            </div>
           </div>
         ) : null}
 

@@ -1,4 +1,5 @@
 import { isSupabaseConfigured, supabase } from '../lib/supabaseClient';
+import { captureEntitlementAlert, hashForTelemetry } from '../lib/observability';
 
 const CACHE_PREFIX = 'ds_unlocked_contact_cards:';
 
@@ -68,6 +69,24 @@ const writeCache = (userId, contacts) => {
   }
 };
 
+async function countUserUnlockRows(userId) {
+  try {
+    const [contactUnlocks, propertyUnlocks] = await Promise.all([
+      supabase
+        .from('unlocks')
+        .select('id', { count: 'exact', head: true })
+        .eq('buyer_id', userId),
+      supabase
+        .from('property_unlocks')
+        .select('id', { count: 'exact', head: true })
+        .eq('buyer_id', userId),
+    ]);
+    return Number(contactUnlocks?.count || 0) + Number(propertyUnlocks?.count || 0);
+  } catch {
+    return 0;
+  }
+}
+
 export async function fetchUnlockedContacts(userId) {
   const cleanUserId = toStringId(userId);
   const empty = new Map();
@@ -78,9 +97,23 @@ export async function fetchUnlockedContacts(userId) {
     const contacts = (Array.isArray(data) ? data : [])
       .map(normalizeCanonicalContact)
       .filter(Boolean);
+    if (!contacts.length) {
+      const unlockCount = await countUserUnlockRows(cleanUserId);
+      if (unlockCount > 0) {
+        captureEntitlementAlert('warning', 'unlocked_contacts_empty', {
+          userId: await hashForTelemetry(cleanUserId),
+          unlock_count: unlockCount,
+          source: 'rpc',
+        });
+      }
+    }
     writeCache(cleanUserId, contacts);
     return new Map(contacts.map((contact) => [contact.ownerId, contact]));
   } catch (error) {
+    captureEntitlementAlert('error', 'unlocked_contacts_rpc_failed', {
+      error_code: error?.code || error?.status || 'unknown',
+      userId: await hashForTelemetry(cleanUserId),
+    }, error);
     console.error('Failed to fetch unlocked contacts.', error);
     return empty;
   }

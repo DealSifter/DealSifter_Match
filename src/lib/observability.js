@@ -1,4 +1,5 @@
 import * as Sentry from '@sentry/react';
+import { trackAppEvent } from './adminEventTracking';
 
 const SENSITIVE_KEY_RE = /(password|passwd|secret|token|authorization|apikey|api_key|cookie|email|phone|whatsapp|name|full_name|avatar|photo|image|address)/i;
 const MAX_CONTEXT_DEPTH = 4;
@@ -22,7 +23,7 @@ const scrubValue = (value, depth = 0) => {
         .slice(0, 50)
         .map(([key, item]) => [
           key,
-          SENSITIVE_KEY_RE.test(key) ? '[Redacted]' : scrubValue(item, depth + 1),
+          SENSITIVE_KEY_RE.test(key) && !/^has_(email|phone|whatsapp)$/i.test(key) ? '[Redacted]' : scrubValue(item, depth + 1),
         ]),
     );
   }
@@ -109,5 +110,55 @@ export function captureUnlockError(error, context = {}) {
     user_id: context.user_id || null,
     action: context.action || 'unlock',
     nugget_cost: Number.isFinite(Number(context.nugget_cost)) ? Number(context.nugget_cost) : null,
+  });
+}
+
+export async function hashForTelemetry(value) {
+  const raw = String(value || '').trim();
+  if (!raw) return '';
+  try {
+    if (typeof crypto !== 'undefined' && crypto.subtle && typeof TextEncoder !== 'undefined') {
+      const data = new TextEncoder().encode(raw);
+      const digest = await crypto.subtle.digest('SHA-256', data);
+      return Array.from(new Uint8Array(digest))
+        .map((byte) => byte.toString(16).padStart(2, '0'))
+        .join('')
+        .slice(0, 8);
+    }
+  } catch {
+    // Fallback below keeps observability available on older browsers.
+  }
+
+  let hash = 0;
+  for (let i = 0; i < raw.length; i += 1) {
+    hash = ((hash << 5) - hash) + raw.charCodeAt(i);
+    hash |= 0;
+  }
+  return Math.abs(hash).toString(16).padStart(8, '0').slice(0, 8);
+}
+
+export function captureEntitlementAlert(level, event, payload = {}, error = null) {
+  const cleanEvent = String(event || '').trim();
+  if (!cleanEvent) return;
+  const safePayload = scrubValue({
+    event: cleanEvent,
+    ...payload,
+  });
+
+  trackAppEvent(`entitlement_${cleanEvent}`, {
+    entityType: 'entitlement',
+    entityId: cleanEvent,
+    metadata: safePayload,
+  });
+
+  if (!isEnabled()) return;
+
+  Sentry.withScope((scope) => {
+    scope.setContext('deal_sifter_entitlement', safePayload);
+    if (level === 'error') {
+      Sentry.captureException(error instanceof Error ? error : new Error(cleanEvent));
+      return;
+    }
+    Sentry.captureMessage(cleanEvent, 'warning');
   });
 }
