@@ -70,10 +70,10 @@ function getUserScopedStorageKey(baseKey, userId) {
 const CHAT_REPLY_TEMPLATES = {
   pt: [
     'Perfeito. Vou verificar e te retornar em breve.',
-    'Obrigado pelas informaÃ§Ãµes. Quer fechar em breve?',
+    'Obrigado pelas informações. Quer fechar em breve?',
     'Excelente. Vamos conversar com mais detalhes.',
-    'Recebi sua solicitaÃ§Ã£o. Vou enviar o material agora.',
-    'Interessante. Vou revisar os nÃºmeros por aqui.',
+    'Recebi sua solicitação. Vou enviar o material agora.',
+    'Interessante. Vou revisar os números por aqui.',
   ],
   en: [
     "Got it! I'll check and get back to you!",
@@ -84,23 +84,23 @@ const CHAT_REPLY_TEMPLATES = {
   ],
   es: [
     'Entendido. Lo reviso y te respondo en breve.',
-    'Gracias por la info. Â¿Buscas cerrar pronto?',
-    'Suena bien. Hablemos de mÃ¡s detalles.',
-    'RecibÃ­ tu consulta. Te envÃ­o el paquete ahora.',
-    'Interesante. Voy a revisar los nÃºmeros de mi lado.',
+    'Gracias por la info. ¿Buscas cerrar pronto?',
+    'Suena bien. Hablemos de más detalles.',
+    'Recibí tu consulta. Te envío el paquete ahora.',
+    'Interesante. Voy a revisar los números de mi lado.',
   ],
 };
 
 const CHAT_INTEREST_PREFIX = {
-  pt: 'Tenho interesse neste imÃ³vel',
+  pt: 'Tenho interesse neste imóvel',
   en: 'I am interested in this property',
-  es: 'Tengo interÃ©s en esta propiedad',
+  es: 'Tengo interés en esta propiedad',
 };
 
 const CHAT_INTEREST_SERVICE_PREFIX = {
-  pt: 'Tenho interesse neste ServiÃ§o',
+  pt: 'Tenho interesse neste serviço',
   en: 'I am interested in this Service',
-  es: 'Tengo interÃ©s en este Servicio',
+  es: 'Tengo interés en este servicio',
 };
 
 const CHAT_SYSTEM_MESSAGE_KEYS = {
@@ -653,7 +653,7 @@ function PortfolioDetail({ item, owner, ownerContact = null, isOwnerUnlocked = f
       ctx.fillStyle = '#4f5f6f';
       ctx.font = '12px Arial, sans-serif';
       ctx.textAlign = 'left';
-      ctx.fillText('Â© OpenStreetMap contributors', 16, height - 15);
+      ctx.fillText('© OpenStreetMap contributors', 16, height - 15);
       return canvas.toDataURL('image/jpeg', 0.88);
     } catch (e) {
       void e;
@@ -1411,10 +1411,10 @@ function PortfolioDetail({ item, owner, ownerContact = null, isOwnerUnlocked = f
         {imgs.length > 1 && (
           <>
             <button onClick={() => setImgIdx(i => i > 0 ? i - 1 : imgs.length - 1)} style={{ position:"absolute", top:"50%", left:8, transform:"translateY(-50%)", width:26, height:26, borderRadius:"50%", border:"none", background:"rgba(0,0,0,0.45)", color:"#fff", cursor:"pointer" }}>
-              â€¹
+              ‹
             </button>
             <button onClick={() => setImgIdx(i => i < imgs.length - 1 ? i + 1 : 0)} style={{ position:"absolute", top:"50%", right:8, transform:"translateY(-50%)", width:26, height:26, borderRadius:"50%", border:"none", background:"rgba(0,0,0,0.45)", color:"#fff", cursor:"pointer" }}>
-              â€º
+              ›
             </button>
             <div style={{ position:"absolute", left:0, right:0, bottom:8, display:"flex", justifyContent:"center", gap:4 }}>
               {imgs.map((_, i) => (
@@ -1958,7 +1958,7 @@ export function MatchesPage({ nuggets, setModal, openUnlock, unlocked, initialCh
       loc: scopedIdentity?.loc || userProfile?.location || '',
       photo: scopedIdentity?.photo || '',
       desc: descriptions.length
-        ? descriptions.join(' â€¢ ')
+        ? descriptions.join(' • ')
         : (firstProperty?.description || scopedIdentity?.pitch || ''),
       contactMethods: scopedIdentity?.contactMethods || [],
       primaryPhone: scopedIdentity?.primaryPhone || '',
@@ -2536,7 +2536,7 @@ export function MatchesPage({ nuggets, setModal, openUnlock, unlocked, initialCh
     if (!activeOwner) return null;
     try {
       const svcs = allServicesSource.filter(s => String(s.ownerId) === String(activeOwner.id) && (s.publishToConnections !== false) && s.description && String(s.description).trim().length);
-      if (svcs && svcs.length) return svcs.map(s => String(s.description).trim()).join(' â€¢ ');
+      if (svcs && svcs.length) return svcs.map(s => String(s.description).trim()).join(' • ');
       const firstProp = allPropertiesSource.find(p => String(p.ownerId) === String(activeOwner.id) && p.description && String(p.description).trim().length);
       if (firstProp) return firstProp.description;
       return activeOwner.desc || null;
@@ -3275,7 +3275,7 @@ export function MatchesPage({ nuggets, setModal, openUnlock, unlocked, initialCh
                       <div style={{ flex:1, minWidth:0 }}>
                         <div style={{ fontWeight:700, fontSize:12, color:isLinkedContact?CONTACT_SIGNAL:C.t1, textOverflow:"ellipsis", overflow:"hidden", whiteSpace:"nowrap" }}>{m.name}</div>
                         <div style={{ fontSize:10, color:C.t3, display:"flex", alignItems:"center", gap:4 }}>
-                          <span style={{ color:rowContactUnlocked ? C.success : C.gold, fontWeight:700 }}>{rowContactUnlocked ? cardsT.unlocked : `${cardsT.locked} Â· ${contactUnlockCost}â˜…`}</span>
+                          <span style={{ color:rowContactUnlocked ? C.success : C.gold, fontWeight:700 }}>{rowContactUnlocked ? cardsT.unlocked : `${cardsT.locked} · ${contactUnlockCost}★`}</span>
                           <span>{m.type}</span>
                           {rowContactUnlocked && contactUnreadCount > 0 ? (
                             <span style={{ display:'inline-flex', alignItems:'center', justifyContent:'center', minWidth:16, height:16, padding:'0 4px', borderRadius:999, background:C.alpha(C.danger, 0.2), border:`1px solid ${C.alpha(C.danger, 0.55)}`, color:C.danger, fontSize:9, fontWeight:800 }}>
@@ -3564,7 +3564,7 @@ export function MatchesPage({ nuggets, setModal, openUnlock, unlocked, initialCh
                           <CardStatusIcon type={CARD_STATUS.exclusive} size={20} iconSize={12} />
                         ) : null}
                       </div>
-                      <div style={{ fontSize:11, color:C.success }}>{t.onlineBy} Â· {activeOwner.name}</div>
+                      <div style={{ fontSize:11, color:C.success }}>{t.onlineBy} · {activeOwner.name}</div>
                     </div>
                     {!isMobile && !isTabletPortrait ? (
                       <div style={{ minWidth:0, maxWidth:'64%', display:'flex', justifyContent:'flex-end', alignSelf:'flex-start' }}>
@@ -4012,7 +4012,7 @@ export function MatchesPage({ nuggets, setModal, openUnlock, unlocked, initialCh
                               onMouseEnter={e => e.currentTarget.style.background = C.alpha(C.accent, 0.08)}
                               onMouseLeave={e => e.currentTarget.style.background = C.alpha(C.t1, 0.04)}
                             >
-                              {portfolioShowAll ? `â–² Ver menos` : `â–¼ Ver mais (${portfolioItems.length - 4})`}
+                              {portfolioShowAll ? `▲ Ver menos` : `▼ Ver mais (${portfolioItems.length - 4})`}
                             </button>
                           )}
                         </>
@@ -4042,7 +4042,7 @@ export function MatchesPage({ nuggets, setModal, openUnlock, unlocked, initialCh
                               onMouseEnter={e => e.currentTarget.style.background = C.alpha(C.accent, 0.08)}
                               onMouseLeave={e => e.currentTarget.style.background = C.alpha(C.t1, 0.04)}
                             >
-                              {portfolioShowAll ? `â–² Ver menos` : `â–¼ Ver mais (${serviceItems.length - 4})`}
+                              {portfolioShowAll ? `▲ Ver menos` : `▼ Ver mais (${serviceItems.length - 4})`}
                             </button>
                           )}
                         </>

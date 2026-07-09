@@ -1172,7 +1172,7 @@ export function Onboarding({
                 </span>
                 <button
                   type="button"
-                  aria-label="PrÃ³ximo"
+                  aria-label="Próximo"
                   disabled={previewUnifiedIndex >= previewShowcaseCount - 1}
                   onClick={handlePreviewNext}
                   style={{ border: 'none', background: 'transparent', cursor: previewUnifiedIndex >= previewShowcaseCount - 1 ? 'not-allowed' : 'pointer', padding: 4, borderRadius: 999, display: 'flex', alignItems: 'center', justifyContent: 'center' }}
@@ -1952,7 +1952,7 @@ export function Onboarding({
           publishToShowcase: nextShowIn,
         };
       });
-      // Garante nova referÃªncia mesmo se nada mudar (edge case)
+      // Garante nova referência mesmo se nada mudar (edge case)
       return changed ? next : [...prev];
     });
   };
@@ -2038,7 +2038,7 @@ export function Onboarding({
           if (scopePitch && String(scopePitch).trim().length) parts.push(String(scopePitch).trim());
           if (scopedServiceDescriptions.length) parts.push(...scopedServiceDescriptions);
         } catch (e) { void e; }
-        return parts.length ? parts.join(' â€¢ ') : '';
+        return parts.length ? parts.join(' • ') : '';
       })(),
       tags: previewTags,
     };
@@ -2292,7 +2292,7 @@ export function Onboarding({
       };
     }
 
-    // Neither path fully ready â€” guide user based on their active tab
+    // Neither path fully ready - guide user based on their active tab
     if (preferProfessionalPath) {
       if (!profileBComplete) {
         const hintMessage = t.errorCompleteBusinessProfile || 'Complete the Business profile: full name, priority phone, email and contact methods.';
@@ -2443,7 +2443,7 @@ export function Onboarding({
       : validateMinimumProfileCompletion();
     if (!validation.valid) return;
 
-    // Permite qualquer perfil ser neutro/nÃ£o ativo, apenas impede duplicidade
+    // Permite qualquer perfil ser neutro/não ativo, apenas impede duplicidade
     const safeCardPriorities = normalizeUniqueCardPriorities(
       {
         A: cardPriorityA,
@@ -2815,7 +2815,7 @@ export function Onboarding({
     // Services are only created explicitly through the service form.
 
     // Se houver um rascunho de propriedade preenchido, publique-o antes de navegar
-    // para o dashboard para garantir que apareÃ§a no Showcase/feed.
+    // para o dashboard para garantir que apareça no Showcase/feed.
     let autoAddedPropertyId = null;
     if (portfolioEntryType === 'property' && portfolioAddress && portfolioCity && portfolioPrice) {
       autoAddedPropertyId = addProfessionalPortfolioProperty();
@@ -2859,7 +2859,7 @@ export function Onboarding({
       const msgParts = [];
       if (propsCount > 0) msgParts.push(`${propsCount} ${propsCount === 1 ? t.toastPropertyPublishedOne : t.toastPropertyPublishedOther}`);
       if (servicesCount > 0) msgParts.push(`${servicesCount} ${servicesCount === 1 ? t.toastServicePublishedOne : t.toastServicePublishedOther}`);
-      const toastMsg = msgParts.length ? `${t.published}: ${msgParts.join(' Â· ')}` : t.nothingPublished;
+      const toastMsg = msgParts.length ? `${t.published}: ${msgParts.join(' · ')}` : t.nothingPublished;
       setPublishToast(toastMsg);
       setTimeout(() => setPublishToast(''), 2800);
       setSaveProfilesBaseline(saveProfilesFingerprint);
@@ -3448,7 +3448,7 @@ export function Onboarding({
                     <div style={{ fontSize: 11, fontWeight: 800, color: C.t1 }}>{t.investmentProfileTitle || 'Investor Profile'}</div>
                     <div style={{ fontSize: 10, color: C.t3 }}>
                       {(t.investmentProfileStrength || 'Profile strength')}: <strong style={{ color: investmentProfileStrength >= 70 ? C.accent : C.warning }}>{investmentProfileStrength}%</strong>
-                      {requiresInvestmentProfile && !investmentProfileRequiredComplete ? ` Â· ${t.investmentProfileRequiredHint || 'Required for selected categories'}` : ''}
+                      {requiresInvestmentProfile && !investmentProfileRequiredComplete ? ` · ${t.investmentProfileRequiredHint || 'Required for selected categories'}` : ''}
                     </div>
                   </div>
                   <button
@@ -3996,7 +3996,7 @@ export function Onboarding({
                               WebkitLineClamp: (isPhoneViewport && (p.dealClosed || !isTruthyFlag(p.publishToShowcase, true))) ? 2 : 1,
                               WebkitBoxOrient: 'vertical',
                             }}>
-                              {p.address} Â· {p.city} Â· {formatCompactUsd(p.price || 0)} Â· {p.images?.length || 0} img
+                              {p.address} · {p.city} · {formatCompactUsd(p.price || 0)} · {p.images?.length || 0} img
                             </div>
                             <div style={{ display:'flex', alignItems:'center', justifyContent: isPhoneViewport ? 'flex-start' : 'flex-end', gap:6, width: isPhoneViewport ? '100%' : 'auto', flex: isPhoneViewport ? '0 0 100%' : '1 1 0', flexWrap: 'nowrap', marginLeft: isPhoneViewport ? 0 : 'auto', minWidth: 0 }}>
                               {!p.dealClosed ? (
@@ -4348,7 +4348,7 @@ export function Onboarding({
                               WebkitLineClamp: (isPhoneViewport && (svc.dealClosed || !isTruthyFlag(svc.publishToConnections, true))) ? 2 : 1,
                               WebkitBoxOrient: 'vertical',
                             }}>
-                              {svc.title || t.serviceFallbackName}{svc.category ? ` Â· ${svc.category}` : ''} Â· {svc.media?.images?.length || 0} img
+                              {svc.title || t.serviceFallbackName}{svc.category ? ` · ${svc.category}` : ''} · {svc.media?.images?.length || 0} img
                             </div>
                             <div style={{ display:'flex', alignItems:'center', justifyContent: isPhoneViewport ? 'flex-start' : 'flex-end', gap:6, width: isPhoneViewport ? '100%' : 'auto', flex: isPhoneViewport ? '0 0 100%' : '1 1 0', flexWrap: 'nowrap', marginLeft: isPhoneViewport ? 0 : 'auto', minWidth: 0 }}>
                               {!svc.dealClosed ? (
@@ -4730,7 +4730,7 @@ export function Onboarding({
       {editingPropertyRecord ? (
         <Modal onClose={() => setEditingPropertyId(null)} maxWidth={1080}>
           <h3 style={{ margin: '0 0 6px', color: C.t1, fontSize: 20, fontWeight: 800 }}>{t.editProperty || 'Edit Property'}</h3>
-          <p style={{ margin: '0 0 14px', color: C.t3, fontSize: 12 }}>{editingPropertyRecord.address} Â· {editingPropertyRecord.city}</p>
+          <p style={{ margin: '0 0 14px', color: C.t3, fontSize: 12 }}>{editingPropertyRecord.address} · {editingPropertyRecord.city}</p>
           <div style={{ display: 'grid', gridTemplateColumns: isMobileViewport ? 'repeat(2, minmax(0, 1fr))' : 'minmax(0, 1.5fr) minmax(0, 1.15fr) minmax(96px, 0.7fr) minmax(112px, 0.8fr)', gap: 10, marginBottom: 10 }}>
             <div style={{ position: 'relative', minWidth: 0 }}>
               <span style={portfolioFieldLabelStyle}>{t.labelAddrShort}</span>
