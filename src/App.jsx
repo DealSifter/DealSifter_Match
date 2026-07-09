@@ -548,12 +548,10 @@ const USER_DATA_KEYS = [
   'professionalProfile',
   'userProfile',
   'accountType',
-  'ds_matched', 'ds_interested', 'ds_unlocked', 'ds_purchases',
   'ds_feed_hidden_contacts', 'ds_feed_hidden_interests',
   'dealsifter.hiddenCardIds',
   'ds_matches_archived_contacts', 'ds_matches_archived_interests',
   'ds_matches_deleted_contacts', 'ds_matches_deleted_interests',
-  'ds_nuggets', 'ds_subscription_mock', 'ds_system_notifications',
   'ds_plan_usage_cache',
   'profileOwnerMap', 'publishingProfileKey',
   'ds_last_page', 'categoryOrder',
@@ -1045,13 +1043,7 @@ export default function App() {
   const [visitedKeepAlivePages, setVisitedKeepAlivePages] = useState(() => new Set(['dashboard']));
   const [nuggets, setNuggets] = useState(() => {
     if (isSupabaseConfigured) return 0;
-    try {
-      const raw = localStorage.getItem('ds_nuggets');
-      const parsed = raw ? Number(raw) : 5;
-      return Number.isFinite(parsed) ? parsed : 5;
-    } catch {
-      return 5;
-    }
+    return 5;
   });
   const [modal, setModal] = useState(null);
   const [authModalTab, setAuthModalTab] = useState('signup');
@@ -1682,22 +1674,6 @@ export default function App() {
   };
 
   const [subscription, setSubscription] = useState(() => {
-    if (isSupabaseConfigured) {
-      return {
-        planId: 'free',
-        planName: 'Free',
-        price: 0,
-        status: 'active',
-        nextBillingAt: null,
-      };
-    }
-    try {
-      const raw = localStorage.getItem('ds_subscription_mock');
-      const parsed = raw ? JSON.parse(raw) : null;
-      if (parsed && typeof parsed === 'object' && parsed.planId) return parsed;
-    } catch {
-      // no-op
-    }
     return {
       planId: 'free',
       planName: 'Free',
@@ -1707,52 +1683,20 @@ export default function App() {
     };
   });
   const [matched, setMatched] = useState(() => {
-    if (isSupabaseConfigured) return [];
-    try {
-      const saved = localStorage.getItem('ds_matched');
-      return saved ? JSON.parse(saved) : [];
-    } catch {
-      return [];
-    }
+    return [];
   });
   const [interested, setInterested] = useState(() => {
-    if (isSupabaseConfigured) return [];
-    try {
-      const saved = localStorage.getItem('ds_interested');
-      return saved ? JSON.parse(saved) : [];
-    } catch {
-      return [];
-    }
+    return [];
   });
   const [unlocked, setUnlocked] = useState(() => {
-    if (isSupabaseConfigured) return [];
-    try {
-      const saved = localStorage.getItem('ds_unlocked');
-      const parsed = saved ? JSON.parse(saved) : [];
-      return Array.isArray(parsed) ? parsed : [];
-    } catch {
-      return [];
-    }
+    return [];
   });
   const [unlockedContactsByOwnerId, setUnlockedContactsByOwnerId] = useState(() => new Map());
   const [propertyUnlocks, setPropertyUnlocks] = useState(() => {
-    if (isSupabaseConfigured) return [];
-    try {
-      const saved = localStorage.getItem('ds_property_unlocks');
-      return saved ? JSON.parse(saved) : [];
-    } catch {
-      return [];
-    }
+    return [];
   });
   const [purchases, setPurchases] = useState(() => {
-    if (isSupabaseConfigured) return [];
-    try {
-      const saved = localStorage.getItem('ds_purchases');
-      const parsed = saved ? JSON.parse(saved) : [];
-      return Array.isArray(parsed) ? parsed : [];
-    } catch {
-      return [];
-    }
+    return [];
   }); // Track {buyerId, sellerId} for bought contacts
   const [chatSeenVersion, setChatSeenVersion] = useState(0);
   void chatSeenVersion;
@@ -1760,15 +1704,6 @@ export default function App() {
   const [chatFocusToken, setChatFocusToken] = useState(0);
   const lastActivityRef = useRef(0);
   const [systemNotifications, setSystemNotifications] = useState(() => {
-    try {
-      const saved = localStorage.getItem('ds_system_notifications');
-      if (saved) {
-        const parsed = JSON.parse(saved);
-        if (Array.isArray(parsed)) return parsed;
-      }
-    } catch {
-      // ignore parsing errors and use default
-    }
     return [];
   });
   const [editMode, setEditMode] = useState(false);
@@ -2096,8 +2031,7 @@ export default function App() {
       feedActionHydratingRef.current = true;
       setMatched([]);
       setInterested([]);
-      try { localStorage.removeItem('ds_matched'); } catch { /* no-op */ }
-      try { localStorage.removeItem('ds_interested'); } catch { /* no-op */ }
+      clearSensitiveCache(supabaseUserId);
       feedActionLastSignatureRef.current = '[]';
       window.setTimeout(() => { feedActionHydratingRef.current = false; }, 0);
       feedActionLoadedUserRef.current = supabaseUserId;
@@ -2895,28 +2829,11 @@ export default function App() {
   }, [pendingFlushRef, profileSaveDebounceRef]);
 
   useEffect(() => {
-    if (isSupabaseConfigured) {
-      try { localStorage.removeItem('ds_unlocked'); } catch { /* no-op */ }
-      return;
-    }
-    try {
-      localStorage.setItem('ds_unlocked', JSON.stringify(unlocked || []));
-    } catch (error) {
-      console.error('Failed to persist unlocked contacts.', error);
-    }
-  }, [unlocked]);
-
-  useEffect(() => {
-    if (isSupabaseConfigured) {
-      try { localStorage.removeItem('ds_property_unlocks'); } catch { /* no-op */ }
-      return;
-    }
     try {
       const now = Date.now();
       const cleaned = (propertyUnlocks || []).filter((row) => (
         !row?.expiresAt || Number(new Date(row.expiresAt).getTime()) > now
       )).slice(-500);
-      localStorage.setItem('ds_property_unlocks', JSON.stringify(cleaned));
       if (cleaned.length !== (propertyUnlocks || []).length) {
         window.setTimeout(() => setPropertyUnlocks(cleaned), 0);
       }
@@ -2924,26 +2841,6 @@ export default function App() {
       // Local exclusivity cache is best-effort.
     }
   }, [propertyUnlocks]);
-
-  useEffect(() => {
-    if (isSupabaseConfigured) {
-      try { localStorage.removeItem('ds_purchases'); } catch { /* no-op */ }
-      return;
-    }
-    try {
-      localStorage.setItem('ds_purchases', JSON.stringify(purchases || []));
-    } catch (error) {
-      console.error('Failed to persist purchases.', error);
-    }
-  }, [purchases]);
-
-  useEffect(() => {
-    try {
-      localStorage.setItem('ds_system_notifications', JSON.stringify(systemNotifications || []));
-    } catch (error) {
-      console.error('Failed to persist system notifications.', error);
-    }
-  }, [systemNotifications]);
 
   useEffect(() => {
     try {
@@ -3112,9 +3009,7 @@ export default function App() {
           }));
           setPersonalProfile(DEFAULT_PERSONAL_PROFILE);
           setProfessionalProfile(DEFAULT_PROFESSIONAL_PROFILE(''));
-          try { localStorage.removeItem('ds_matched'); } catch { /* no-op */ }
-          try { localStorage.removeItem('ds_interested'); } catch { /* no-op */ }
-          try { localStorage.removeItem('ds_unlocked'); } catch { /* no-op */ }
+          clearSensitiveCache(supabaseUserId);
           feedActionLastSignatureRef.current = '[]';
           feedActionLoadedUserRef.current = supabaseUserId;
           try {
@@ -3980,30 +3875,6 @@ export default function App() {
     }
   }, [systemAccount]);
 
-  useEffect(() => {
-    if (isSupabaseConfigured) {
-      try { localStorage.removeItem('ds_nuggets'); } catch { /* no-op */ }
-      return;
-    }
-    try {
-      localStorage.setItem('ds_nuggets', String(nuggets));
-    } catch (error) {
-      console.error('Failed to persist nuggets.', error);
-    }
-  }, [nuggets]);
-
-  useEffect(() => {
-    if (isSupabaseConfigured) {
-      try { localStorage.removeItem('ds_subscription_mock'); } catch { /* no-op */ }
-      return;
-    }
-    try {
-      localStorage.setItem('ds_subscription_mock', JSON.stringify(subscription || {}));
-    } catch (error) {
-      console.error('Failed to persist subscription.', error);
-    }
-  }, [subscription]);
-
   const accessSubscription = useMemo(() => (
     isAdmin
       ? { planId: 'admin', id: 'admin', planName: 'Admin', status: 'active' }
@@ -4108,7 +3979,7 @@ export default function App() {
 
   useEffect(() => {
     const supportNotifications = (ownerUnlockNotifications || [])
-      .filter((notification) => !notification.read && String(notification.type || '') === 'support');
+      .filter((notification) => String(notification.type || '') === 'support');
     if (!supportNotifications.length) return;
 
     setSystemNotifications((prev) => {
@@ -4120,7 +3991,7 @@ export default function App() {
           id: `support-notification-${notification.id}`,
           title: 'Support reply',
           message: String(notification.payload?.message || 'DealSifter Admin/Support replied to your ticket.'),
-          read: false,
+          read: Boolean(notification.read),
           createdAt: notification.createdAt || new Date().toISOString(),
           source: 'support_notification',
           notificationId: notification.id,
@@ -4128,13 +3999,7 @@ export default function App() {
         }));
       return nextItems.length ? [...nextItems, ...current].slice(0, 100) : current;
     });
-
-    supportNotifications.forEach((notification) => {
-      markOwnerUnlockNotificationAsRead(notification.id).catch((error) => {
-        console.error('Failed to mark support notification as read.', error);
-      });
-    });
-  }, [markOwnerUnlockNotificationAsRead, ownerUnlockNotifications]);
+  }, [ownerUnlockNotifications]);
 
   useEffect(() => {
     const reciprocalOwnerIds = (ownerUnlockNotifications || [])
@@ -4230,10 +4095,22 @@ export default function App() {
   const deleteSystemNotification = (notification) => {
     const id = String(notification?.id || '');
     if (!id || id === 'empty-system') return;
+    if (notification?.source === 'support_notification' && notification?.notificationId) {
+      deleteOwnerUnlockNotification(notification.notificationId).catch((error) => {
+        console.error('Failed to delete support notification.', error);
+      });
+    }
     setSystemNotifications((prev) => (Array.isArray(prev) ? prev : []).filter((item) => String(item?.id || '') !== id));
   };
 
   const deleteAllSystemNotifications = () => {
+    (systemNotifications || []).forEach((notification) => {
+      if (notification?.source === 'support_notification' && notification?.notificationId) {
+        deleteOwnerUnlockNotification(notification.notificationId).catch((error) => {
+          console.error('Failed to delete support notification.', error);
+        });
+      }
+    });
     setSystemNotifications([]);
   };
 
@@ -5183,7 +5060,10 @@ export default function App() {
           });
         }
 
-        if (supabaseUserId) invalidateUnlockedContactCache(supabaseUserId);
+        if (supabaseUserId) {
+          clearSensitiveCache(supabaseUserId);
+          invalidateUnlockedContactCache(supabaseUserId);
+        }
         const refreshedUnlockedMap = supabaseUserId
           ? await fetchUnlockedContacts(supabaseUserId)
           : new Map();
@@ -5289,6 +5169,7 @@ export default function App() {
         throw new Error('Spotlight purchase did not return the confirmed server balance.');
       }
       setNuggets(Number(firstRow.remaining_nuggets));
+      clearSensitiveCache(supabaseUserId);
       const nextRows = rows.map((row) => ({
         id: row.spotlight_id || `${row.card_kind}:${row.card_id}:${Date.now()}`,
         userId: supabaseUserId,

@@ -113,6 +113,7 @@ const SENSITIVE_PREFIXES = Object.freeze([
   'ds_property_unlocks:',
   'ds_purchases:',
   'ds_plan_snapshot_cache:',
+  'ds_unlocked_contact_cards:',
 ]);
 
 function removeLocalStorageKey(key) {

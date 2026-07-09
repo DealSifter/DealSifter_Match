@@ -1,7 +1,7 @@
 import { isSupabaseConfigured, supabase } from '../lib/supabaseClient';
 import { captureEntitlementAlert, hashForTelemetry } from '../lib/observability';
 
-const CACHE_PREFIX = 'ds_unlocked_contact_cards:';
+const CACHE_PREFIX = 'ds_canonical_contact_cards:';
 
 const toStringId = (value) => String(value || '').trim();
 

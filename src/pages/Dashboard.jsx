@@ -2135,22 +2135,6 @@ export function Dashboard({ page, nuggets, setModal, setPage, onOpenOnboardingTa
     } catch (e) { void e; }
   }, [page]);
 
-  useEffect(() => {
-    if (isSupabaseConfigured) {
-      try { localStorage.removeItem('ds_matched'); } catch { /* no-op */ }
-      return;
-    }
-    try { localStorage.setItem('ds_matched', JSON.stringify(matched || [])); } catch (e) { void e; }
-  }, [matched]);
-
-  useEffect(() => {
-    if (isSupabaseConfigured) {
-      try { localStorage.removeItem('ds_interested'); } catch { /* no-op */ }
-      return;
-    }
-    try { localStorage.setItem('ds_interested', JSON.stringify(interested || [])); } catch (e) { void e; }
-  }, [interested]);
-
   const addMatchedCapped = (card) => {
     setMatched(prev => {
       if (!card || prev.find(x => x.id === card.id)) return prev;
