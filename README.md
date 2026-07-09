@@ -6,6 +6,8 @@ This template provides a minimal setup to get React working in Vite with HMR and
 
 Toda PR com mudanca em componentes visuais deve incluir o resultado de `docs/QA_DEPLOY_MOBILE.md` no body da PR antes de merge em `main`.
 
+Toda PR deve passar por `npm run lint && npm run test && npm run build` antes do merge.
+
 Currently, two official plugins are available:
 
 - [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Babel](https://babeljs.io/) (or [oxc](https://oxc.rs) when used in [rolldown-vite](https://vite.dev/guide/rolldown)) for Fast Refresh

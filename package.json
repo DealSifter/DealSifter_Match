@@ -7,6 +7,7 @@
     "dev": "vite --host 0.0.0.0 --port 5174 --strictPort",
     "dev:poll": "cross-env CHOKIDAR_USEPOLLING=true vite --host 0.0.0.0 --port 5174 --strictPort",
     "build": "node scripts/check-build-env.mjs && vite build",
+    "test": "vitest run",
     "prepare": "husky",
     "lint": "eslint src/",
     "preview": "vite preview --host 0.0.0.0 --port 4173 --strictPort"
@@ -39,7 +40,9 @@
     "globals": "^16.5.0",
     "husky": "^9.1.7",
     "lint-staged": "^15.5.2",
-    "vite": "^7.3.1"
+    "terser": "^5.49.0",
+    "vite": "^7.3.1",
+    "vitest": "^4.1.10"
   },
   "optionalDependencies": {
     "cross-env": "^7.0.3"
