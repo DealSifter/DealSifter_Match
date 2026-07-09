@@ -118,6 +118,13 @@ import {
   invalidateCache as invalidateUnlockedContactCache,
 } from './services/unlockedContactService';
 import {
+  clearFeedActions,
+  makeFeedActionRows as makeVisualFeedActionRows,
+  readFeedActions,
+  recordFeedActions,
+} from './services/feedActionService';
+import { hydrateUnlockState } from './services/unlockHydrationService';
+import {
   buildGlobalFeedState,
   fetchGlobalInventory,
   getSessionSeed,
@@ -815,89 +822,6 @@ const sanitizeLegacyName = (value) => {
 };
 
 const FEED_ACTION_SYNC_DEBOUNCE_MS = 700;
-const FEED_ACTION_MAX_ROWS = 240;
-
-const stripFeedActionValue = (value) => {
-  if (value == null) return value;
-  if (typeof value === 'string') {
-    if (value.startsWith('data:')) return '';
-    return value.length > 420 ? `${value.slice(0, 420)}...` : value;
-  }
-  if (typeof value === 'number' || typeof value === 'boolean') return value;
-  if (Array.isArray(value)) return value.slice(0, 8).map(stripFeedActionValue).filter((item) => item !== '');
-  if (typeof value === 'object') {
-    const next = {};
-    Object.entries(value).forEach(([key, raw]) => {
-      const lower = key.toLowerCase();
-      if (lower.includes('base64') || lower.includes('file') || lower.includes('blob')) return;
-      if (lower.includes('archived')) return;
-      const cleaned = stripFeedActionValue(raw);
-      if (cleaned == null || cleaned === '') return;
-      next[key] = cleaned;
-    });
-    return next;
-  }
-  return null;
-};
-
-const buildFeedActionPayload = (item) => {
-  if (!item || typeof item !== 'object') return {};
-  const allowedKeys = [
-    'id',
-    'ownerId',
-    'owner_id',
-    'unlockOwnerId',
-    'sellerId',
-    'contactId',
-    'sourceCardId',
-    'source_card_id',
-    'propertyId',
-    'property_id',
-    'portfolioId',
-    'source',
-    'primaryProfile',
-    'primary_profile',
-    'createdAt',
-    'created_at',
-    'updatedAt',
-    'updated_at',
-    'matchedAt',
-    'matched_at',
-    'interestedAt',
-    'interested_at',
-  ];
-  const compact = {};
-  allowedKeys.forEach((key) => {
-    if (item[key] != null) compact[key] = item[key];
-  });
-  return stripFeedActionValue(compact) || {};
-};
-
-const makeFeedActionRows = ({ matched = [], interested = [], unlocked = [] }) => {
-  const rows = [];
-  const pushRow = (action, entityType, entityId, payload = {}) => {
-    const id = String(entityId || '').trim();
-    if (!id) return;
-    rows.push({
-      action,
-      entity_type: entityType,
-      entity_id: id,
-      payload,
-    });
-  };
-
-  (Array.isArray(matched) ? matched : []).slice(-FEED_ACTION_MAX_ROWS).forEach((item) => {
-    pushRow('matched', 'person', item?.ownerId || item?.unlockOwnerId || item?.sellerId || item?.contactId || item?.id, buildFeedActionPayload(item));
-  });
-  (Array.isArray(interested) ? interested : []).slice(-FEED_ACTION_MAX_ROWS).forEach((item) => {
-    pushRow('interested', 'property', item?.id, buildFeedActionPayload(item));
-  });
-  (Array.isArray(unlocked) ? unlocked : []).slice(-FEED_ACTION_MAX_ROWS).forEach((id) => {
-    pushRow('unlocked', 'person', id, { id: String(id) });
-  });
-
-  return rows;
-};
 
 const getFeedActionMergeKey = (item) => {
   if (!item || typeof item !== 'object') return '';
@@ -970,32 +894,6 @@ const canonicalUnlockedContactToFeedCard = (entry) => {
     exclusiveExpiresAt: entry.exclusiveExpiresAt || entry.exclusive_expires_at || null,
     unlockedAt: entry.unlockedAt || entry.unlocked_at || null,
   };
-};
-
-const canonicalUnlockedContactToPropertyUnlocks = (entry, buyerId) => {
-  if (!entry || typeof entry !== 'object') return [];
-  const ownerId = String(entry.ownerId || entry.owner_id || '').trim();
-  if (!ownerId) return [];
-  const unlockedPropertyIds = Array.isArray(entry.unlockedPropertyIds)
-    ? entry.unlockedPropertyIds
-    : (Array.isArray(entry.unlocked_property_ids) ? entry.unlocked_property_ids : []);
-  const scope = String(entry.unlockScope || entry.unlock_scope || '').trim();
-  const exclusive = scope === 'exclusive';
-  return unlockedPropertyIds
-    .map((propertyId) => String(propertyId || '').trim())
-    .filter(Boolean)
-    .map((propertyId) => ({
-      id: `canonical:${buyerId}:${ownerId}:${propertyId}`,
-      propertyId,
-      ownerId,
-      buyerId,
-      mode: exclusive ? 'total' : 'normal',
-      cost: 0,
-      createdAt: entry.unlockedAt || entry.unlocked_at || null,
-      expiresAt: entry.exclusiveExpiresAt || entry.exclusive_expires_at || null,
-      status: 'active',
-      source: 'canonical_unlocked_contact_cards',
-    }));
 };
 
 const AppLoadingScreen = ({ message = 'Loading DealSifter...', overlay = false, label }) => (
@@ -2137,7 +2035,6 @@ export default function App() {
     const propertiesById = identityIndex.propertiesById || new Map();
     const matchedItems = [];
     const interestedItems = [];
-    const unlockedIds = [];
 
     (Array.isArray(rows) ? rows : []).forEach((row) => {
       const payload = row?.payload && typeof row.payload === 'object' ? row.payload : {};
@@ -2172,8 +2069,6 @@ export default function App() {
         const canonicalProperty = propertiesById.get(entityId) || null;
         if (validateAgainstGlobal && !canonicalProperty) return;
         interestedItems.push(canonicalProperty ? { ...canonicalProperty, source: 'supabase' } : { ...payload, id: payload?.id || entityId });
-      } else if (row.action === 'unlocked') {
-        unlockedIds.push(entityId);
       }
     });
 
@@ -2185,45 +2080,24 @@ export default function App() {
       if (matchedItems.length) setMatched((prev) => mergeFeedActionItems(prev, matchedItems));
       if (interestedItems.length) setInterested((prev) => mergeFeedActionItems(prev, interestedItems));
     }
-    if (unlockedIds.length) {
-      setUnlocked((prev) => {
-        const next = replace ? [] : (Array.isArray(prev) ? [...prev] : []);
-        const seen = new Set(next.map((id) => String(id)));
-        unlockedIds.forEach((id) => {
-          if (!seen.has(String(id))) {
-            seen.add(String(id));
-            next.push(id);
-          }
-        });
-        return next;
-      });
-    } else if (replace) {
-      setUnlocked([]);
-    }
     window.setTimeout(() => { feedActionHydratingRef.current = false; }, 0);
-  }, [setInterested, setMatched, setUnlocked]);
+  }, [setInterested, setMatched]);
 
   const fetchRemoteFeedActions = useCallback(async () => {
     if (!isSupabaseConfigured || !supabase || !supabaseUserId) return;
-    const { data, error } = await supabase
-      .from('user_feed_actions')
-      .select('action, entity_type, entity_id, payload, updated_at')
-      .eq('user_id', supabaseUserId)
-      .order('updated_at', { ascending: false })
-      .limit(FEED_ACTION_MAX_ROWS * 3);
-    if (error) {
+    let rows = [];
+    try {
+      rows = await readFeedActions(supabaseUserId);
+    } catch (error) {
       safeLogError('Failed to hydrate feed actions', error);
       return;
     }
-    const rows = Array.isArray(data) ? data : [];
     if (!rows.length) {
       feedActionHydratingRef.current = true;
       setMatched([]);
       setInterested([]);
-      setUnlocked([]);
       try { localStorage.removeItem('ds_matched'); } catch { /* no-op */ }
       try { localStorage.removeItem('ds_interested'); } catch { /* no-op */ }
-      try { localStorage.removeItem('ds_unlocked'); } catch { /* no-op */ }
       feedActionLastSignatureRef.current = '[]';
       window.setTimeout(() => { feedActionHydratingRef.current = false; }, 0);
       feedActionLoadedUserRef.current = supabaseUserId;
@@ -2231,7 +2105,7 @@ export default function App() {
     }
     applyRemoteFeedActions(rows, { replace: true });
     feedActionLoadedUserRef.current = supabaseUserId;
-  }, [applyRemoteFeedActions, supabaseUserId, setInterested, setMatched, setUnlocked]);
+  }, [applyRemoteFeedActions, supabaseUserId, setInterested, setMatched]);
 
   useEffect(() => {
     feedActionLoadedUserRef.current = null;
@@ -2278,7 +2152,7 @@ export default function App() {
     if (feedActionLoadedUserRef.current !== supabaseUserId) return;
     if (feedActionHydratingRef.current) return;
 
-    const rows = makeFeedActionRows({ matched, interested, unlocked });
+    const rows = makeVisualFeedActionRows({ matched, interested });
     if (!rows.length) return;
     const signature = JSON.stringify(rows.map((row) => [
       row.action,
@@ -2292,13 +2166,12 @@ export default function App() {
     feedActionSyncTimerRef.current = window.setTimeout(async () => {
       feedActionLastSignatureRef.current = signature;
       try {
-        const { error } = await supabase.rpc('ds_upsert_user_feed_actions', { p_actions: rows });
-        if (error) safeLogError('Failed to sync feed actions', error);
+        await recordFeedActions(supabaseUserId, rows);
       } catch (error) {
         safeLogError('Failed to sync feed actions', error);
       }
     }, FEED_ACTION_SYNC_DEBOUNCE_MS);
-  }, [interested, matched, supabaseUserId, unlocked]);
+  }, [interested, matched, supabaseUserId]);
 
   const [servicePortfolio, setServicePortfolio] = useState(() => {
     if (isSupabaseConfigured) return [];
@@ -2765,99 +2638,22 @@ export default function App() {
   const fetchRemoteUnlockState = useCallback(async () => {
     if (!isSupabaseConfigured || !supabase || !supabaseUserId) return;
     try {
-      const unlockedMap = await fetchUnlockedContacts(supabaseUserId);
-      setUnlockedContactsByOwnerId(unlockedMap);
-
-      const canonicalContacts = Array.from(unlockedMap.values());
-      const unlockedOwnerIds = canonicalContacts
-        .map((entry) => String(entry?.ownerId || entry?.owner_id || '').trim())
-        .filter((ownerId) => Boolean(ownerId) && ownerId !== String(supabaseUserId || '').trim());
-      if (unlockedOwnerIds.length) {
-        setUnlocked((prev) => {
-          const next = Array.isArray(prev) ? [...prev] : [];
-          const seen = new Set(next.map((value) => String(value || '').trim()).filter(Boolean));
-          unlockedOwnerIds.forEach((ownerId) => {
-            if (!seen.has(ownerId)) {
-              seen.add(ownerId);
-              next.push(ownerId);
-            }
-          });
-          return next;
-        });
-
-        setPurchases((prev) => {
-          const current = Array.isArray(prev) ? [...prev] : [];
-          const seen = new Set(current.map((row) => String(row?.sellerId || '').trim()).filter(Boolean));
-          unlockedOwnerIds.forEach((ownerId) => {
-            if (!seen.has(ownerId)) {
-              seen.add(ownerId);
-              current.push({ sellerId: ownerId });
-            }
-          });
-          return current;
-        });
-
-        const hydratedContacts = canonicalContacts
-          .map(canonicalUnlockedContactToFeedCard)
-          .filter(Boolean);
-
-        if (hydratedContacts.length) {
-          setMatched((prev) => mergeFeedActionItems(prev, hydratedContacts));
-        }
-      }
-
-      const canonicalPropertyUnlockRows = canonicalContacts.flatMap((entry) => (
-        canonicalUnlockedContactToPropertyUnlocks(entry, supabaseUserId)
-      ));
-
-      if (canonicalPropertyUnlockRows.length) {
-        const unlockedPropertyIds = new Set(
-          canonicalPropertyUnlockRows
-            .map((row) => String(row?.propertyId || '').trim())
-            .filter(Boolean)
-        );
-        const hydratedUnlockedProperties = (unlockPortfolioProperties || []).filter((property) => {
-          const ids = [
-            property?.id,
-            property?.propertyId,
-            property?.property_id,
-            property?.portfolioId,
-          ].map((value) => String(value || '').trim()).filter(Boolean);
-          return ids.some((id) => unlockedPropertyIds.has(id));
-        });
-        if (hydratedUnlockedProperties.length) {
-          setInterested((prev) => mergeFeedActionItems(prev, hydratedUnlockedProperties));
-        }
-      }
-
-      if (canonicalPropertyUnlockRows.length) {
-        setPropertyUnlocks((prev) => {
-          const current = Array.isArray(prev) ? [...prev] : [];
-          const byId = new Map(current.map((row) => [String(row?.id || ''), row]));
-          canonicalPropertyUnlockRows.forEach((row) => {
-            const key = String(row?.id || '').trim();
-            if (!key) return;
-            byId.set(key, {
-              ...(byId.get(key) || {}),
-              id: key,
-              propertyId: row.propertyId,
-              ownerId: row.ownerId,
-              buyerId: row.buyerId,
-              mode: row.mode || 'normal',
-              cost: Number(row.cost || 0),
-              createdAt: row.createdAt || null,
-              expiresAt: row.expiresAt || null,
-              status: row.status || 'active',
-              source: row.source || 'canonical_unlocked_contact_cards',
-            });
-          });
-          return [...byId.values()];
-        });
-      }
+      const unlockState = await hydrateUnlockState(supabaseUserId);
+      setUnlockedContactsByOwnerId(unlockState.unlockedContactMap);
+      setUnlocked([...unlockState.unlockedOwnerIds]);
+      setPurchases(unlockState.purchaseRows);
+      setPropertyUnlocks((prev) => {
+        const current = Array.isArray(prev) ? [...prev] : [];
+        const canonicalRows = Array.isArray(unlockState.propertyUnlockRows) ? unlockState.propertyUnlockRows : [];
+        const nonCanonicalRows = current.filter((row) => (
+          String(row?.source || '') !== 'canonical_unlocked_contact_cards'
+        ));
+        return [...nonCanonicalRows, ...canonicalRows];
+      });
     } catch (error) {
       safeLogError('Remote unlock hydration failed.', error);
     }
-  }, [setInterested, setMatched, setPropertyUnlocks, setPurchases, setUnlocked, supabaseUserId, unlockPortfolioProperties]);
+  }, [setPropertyUnlocks, setPurchases, setUnlocked, supabaseUserId]);
 
   useEffect(() => {
     if (!supabaseUserId) return;
@@ -3322,10 +3118,7 @@ export default function App() {
           feedActionLastSignatureRef.current = '[]';
           feedActionLoadedUserRef.current = supabaseUserId;
           try {
-            await supabase
-              .from('user_feed_actions')
-              .delete()
-              .eq('user_id', supabaseUserId);
+            await clearFeedActions(supabaseUserId);
           } catch (deleteError) {
             safeLogError('Failed to clear stale feed actions for empty profile.', deleteError);
           }
