@@ -24,11 +24,13 @@ import { isUuid, mapPropertyHotMetrics } from '../lib/propertyHotMetrics';
 import { isPendingDealExpired } from '../lib/pendingDeal';
 import { orderDeck } from '../lib/orderFeedDeck';
 import { normalizeCard } from '../lib/normalizeFeedCard';
+import { sanitizePublicCardInput } from '../lib/sanitizePublicCardInput';
 import { checkIsUnlocked } from '../services/unlockService';
 import { formatCompactUsd } from '../lib/formatMoney';
 import feedMatchIcon from '../assets/feed-match-icon.png';
 import spotlightIcon from '../assets/spotlight-icon.png';
 
+// INVARIANTE: nenhum card público pode conter dados de contato pessoal. Ver sanitizePublicCardInput().
 const CARDS = import.meta.env.DEV ? (_MOCK_CARDS || []) : [];
 const PROPERTIES = import.meta.env.DEV ? (_MOCK_PROPERTIES || []) : [];
 
@@ -662,7 +664,7 @@ export function Dashboard({ page, nuggets, setModal, setPage, onOpenOnboardingTa
     const rawReviews = Number(scopedIdentity?.reviews);
     const rawDeals = Number(scopedIdentity?.deals);
 
-    return {
+    return sanitizePublicCardInput({
       id: `local:${scopeKey}:${ownerId}`,
       ownerId,
       scopeKey,
@@ -682,13 +684,8 @@ export function Dashboard({ page, nuggets, setModal, setPage, onOpenOnboardingTa
       portfolioCount: scopedProperties.length + scopedServices.length,
       primaryProfile: profileScope,
       markets: scopedMarkets,
-      contactMethods: scopedIdentity?.contactMethods || [],
-      primaryPhone: scopedIdentity?.primaryPhone || '',
-      secondaryPhone: scopedIdentity?.secondaryPhone || '',
-      tertiaryPhone: scopedIdentity?.tertiaryPhone || '',
-      email: scopedIdentity?.email || '',
       verified: scopedIdentity?.verified === true,
-    };
+    });
   }, [accountType, currentUserId, userProfile, personalProfile, professionalProfile, showcaseProperties, servicePortfolio, getOwnerIdForKey, collectRecordStates, parseStateCode, getRecordProfileScope]);
   const normalizeCardPriority = (value) => {
     const normalized = String(value || '').trim().toLowerCase();
@@ -706,8 +703,6 @@ export function Dashboard({ page, nuggets, setModal, setPage, onOpenOnboardingTa
       String(card.type || '').trim()
       || String(card.badge || '').trim()
       || String(card.photo || '').trim()
-      || String(card.primaryPhone || '').trim()
-      || String(card.email || '').trim()
       || String(card.desc || '').trim()
       || Number(card.portfolioCount || 0) > 0
     );
@@ -813,17 +808,18 @@ export function Dashboard({ page, nuggets, setModal, setPage, onOpenOnboardingTa
       const firstProperty = props[0] || null;
       const ownerPreview = firstService?.ownerPreview || firstProperty?.ownerPreview || null;
       if (!ownerPreview?.name) return null;
+      const publicOwnerPreview = sanitizePublicCardInput(ownerPreview);
       const serviceImages = services.flatMap(s => (s.media && s.media.images) ? s.media.images : []);
       const propertyImages = props.flatMap((p) => Array.isArray(p.images) ? p.images : []);
       const markets = Array.from(new Set([
         ...props.flatMap((p) => collectRecordStates(p)),
         ...services.flatMap((s) => collectRecordStates(s)),
       ].filter(Boolean)));
-      const profileLocation = String(ownerPreview?.loc || '').trim();
+      const profileLocation = String(publicOwnerPreview?.loc || '').trim();
       const location = profileLocation || markets[0] || [firstProperty?.city, firstProperty?.state].filter(Boolean).join(', ') || '';
-      const name = String(ownerPreview?.name || '').trim();
+      const name = String(publicOwnerPreview?.name || '').trim();
       if (!name) return null;
-      const type = String(ownerPreview?.type || firstService?.category || '').trim();
+      const type = String(publicOwnerPreview?.type || firstService?.category || '').trim();
       const isFsboOwner = normalizedScope === 'fsbo';
       const desc = isFsboOwner ? '' : String(firstService?.description || '').trim();
       return normalizeCard({
@@ -834,22 +830,19 @@ export function Dashboard({ page, nuggets, setModal, setPage, onOpenOnboardingTa
         primaryProfile: normalizedScope,
         name,
         type,
-        badge: ownerPreview?.badge || '',
+        badge: publicOwnerPreview?.badge || '',
         loc: location,
-        photo: ownerPreview?.photo || '',
+        photo: publicOwnerPreview?.photo || '',
         images: serviceImages.length ? serviceImages : propertyImages,
         rating: 0,
         reviews: 0,
         deals: 0,
-        cat: ownerPreview?.cat || firstService?.category || '',
-        desc: isFsboOwner ? '' : (ownerPreview?.desc || desc),
-        email: ownerPreview?.email || '',
-        primaryPhone: ownerPreview?.primaryPhone || '',
+        cat: publicOwnerPreview?.cat || firstService?.category || '',
+        desc: isFsboOwner ? '' : (publicOwnerPreview?.desc || desc),
         portfolioCount: props.length + services.length,
         markets,
-        contactMethods: ownerPreview?.contactMethods || [],
-        verified: ownerPreview?.verified === true,
-        ownerPreview: { ...ownerPreview, primaryProfile: normalizedScope },
+        verified: publicOwnerPreview?.verified === true,
+        ownerPreview: { ...publicOwnerPreview, primaryProfile: normalizedScope },
         linkedProperties: props,
         linkedServices: services,
         _priority: 'tertiary',
@@ -1049,25 +1042,8 @@ export function Dashboard({ page, nuggets, setModal, setPage, onOpenOnboardingTa
   ), [getUnlockKeys, unlockedIdSet]);
 
   const getFeedDisplayCard = useCallback((card, unlockedForCurrentUser = false) => {
-    if (unlockedForCurrentUser) return card;
-    const ownerPreview = card?.ownerPreview && typeof card.ownerPreview === 'object'
-      ? {
-        ...card.ownerPreview,
-        email: '',
-        primaryPhone: '',
-        phone: '',
-      }
-      : card?.ownerPreview;
-    return {
-      ...card,
-      email: '',
-      phone: '',
-      primaryPhone: '',
-      secondaryPhone: '',
-      tertiaryPhone: '',
-      whatsapp: '',
-      ownerPreview,
-    };
+    void unlockedForCurrentUser;
+    return sanitizePublicCardInput(card);
   }, []);
 
   // Circular deck: skip → rotate to back; match → remove permanently
@@ -1685,8 +1661,6 @@ export function Dashboard({ page, nuggets, setModal, setPage, onOpenOnboardingTa
     return Boolean(
       String(card.name || '').trim()
       || String(card.photo || '').trim()
-      || String(card.primaryPhone || '').trim()
-      || String(card.email || '').trim()
       || String(card.type || '').trim()
       || String(card.cat || '').trim()
       || String(card.desc || '').trim()

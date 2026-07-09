@@ -4,6 +4,7 @@ import {
   isLikelyNonIdentityName,
   normalizeProfileScope,
 } from './profileScopeResolver';
+import { SENSITIVE_FIELDS } from './sensitiveFields';
 
 const pickString = (...values) => {
   for (const value of values) {
@@ -49,18 +50,6 @@ const toNumberOrNull = (value) => {
   const number = Number(value);
   return Number.isFinite(number) ? number : null;
 };
-
-const SENSITIVE_FIELDS = [
-  'email',
-  'phone',
-  'phone_primary',
-  'phone_secondary',
-  'primaryPhone',
-  'secondaryPhone',
-  'whatsapp',
-  'contactMethods',
-  'contact_methods',
-];
 
 const normalizeImages = (...values) => Array.from(new Set(
   values.flatMap((value) => {
