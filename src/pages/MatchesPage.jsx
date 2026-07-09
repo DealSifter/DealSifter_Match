@@ -11,6 +11,8 @@ import { SmartImage } from '../components/ui/SmartImage';
 import { ExclusivityBadge } from '../components/ui/ExclusivityBadge';
 import { CardStatusIcon } from '../components/ui/CardStatusIndicators';
 import { PortfolioContactPanel } from '../components/matches/PortfolioContactPanel';
+import { MatchesPeopleList } from '../components/matches/MatchesPeopleList';
+import { MatchesInterestsList } from '../components/matches/MatchesInterestsList';
 import { CARD_STATUS } from '../components/ui/cardStatusTokens';
 import { catIcon } from '../lib/catIcon';
 import { buildDisplayContacts } from '../lib/contactPriority';
@@ -24,6 +26,7 @@ import { isSupabaseConfigured, supabase } from '../lib/supabaseClient';
 import { normalizeCard } from '../lib/normalizeFeedCard';
 import { formatCompactUsd } from '../lib/formatMoney';
 import { captureEntitlementAlert, hashForTelemetry } from '../lib/observability';
+import { canonicalContactToDisplayCard, resolveCanonicalContactCardFromMap } from '../lib/matchesEntitlement';
 import { getActiveExclusivities } from '../services/unlockService';
 import {
   getContactByOwnerId,
@@ -272,47 +275,6 @@ const mergeContactForDisplay = (base, incoming) => {
     }
   });
   return merged;
-};
-
-const canonicalContactToDisplayCard = (entry) => {
-  if (!entry || typeof entry !== 'object') return null;
-  const ownerId = String(entry.ownerId || entry.owner_id || '').trim();
-  if (!ownerId) return null;
-  const contact = entry.contact && typeof entry.contact === 'object' ? entry.contact : {};
-  const contactMethods = Array.isArray(contact.contactMethods)
-    ? contact.contactMethods
-    : (Array.isArray(contact.contact_methods) ? contact.contact_methods : []);
-  const unlockedPropertyIds = Array.isArray(entry.unlockedPropertyIds)
-    ? entry.unlockedPropertyIds
-    : (Array.isArray(entry.unlocked_property_ids) ? entry.unlocked_property_ids : []);
-  return {
-    id: ownerId,
-    ownerId,
-    unlockOwnerId: ownerId,
-    source: 'remote-unlock',
-    primaryProfile: entry.primaryProfile || entry.primary_profile || 'personal',
-    unlockScope: entry.unlockScope || entry.unlock_scope || 'contact',
-    name: contact.name || 'Unlocked contact',
-    title: contact.name || 'Unlocked contact',
-    type: contact.category || 'Contact',
-    category: contact.category || '',
-    cat: contact.category || '',
-    loc: contact.location || '',
-    photo: contact.avatarUrl || contact.avatar_url || '',
-    avatar: contact.avatarUrl || contact.avatar_url || '',
-    email: contact.email || '',
-    primaryPhone: contact.phonePrimary || contact.phone_primary || '',
-    phone: contact.phonePrimary || contact.phone_primary || '',
-    secondaryPhone: contact.phoneSecondary || contact.phone_secondary || '',
-    whatsapp: contact.whatsapp || '',
-    contactMethods,
-    portfolioCount: Array.isArray(entry.portfolio) ? entry.portfolio.length : 0,
-    unlockedPropertyIds: unlockedPropertyIds.map((id) => String(id || '').trim()).filter(Boolean),
-    exclusiveStatus: entry.exclusiveStatus || entry.exclusive_status || 'none',
-    exclusiveExpiresAt: entry.exclusiveExpiresAt || entry.exclusive_expires_at || null,
-    unlockedAt: entry.unlockedAt || entry.unlocked_at || null,
-    canonicalContact: entry,
-  };
 };
 
 function getLocalOwnerId(scopeKey) {
@@ -2067,10 +2029,6 @@ export function MatchesPage({ nuggets, setModal, openUnlock, unlocked, initialCh
       itemOrId.sellerId,
       itemOrId.contactId,
       itemOrId.unlockContactId,
-      itemOrId.ownerPreview?.ownerId,
-      itemOrId.ownerPreview?.unlockOwnerId,
-      itemOrId.ownerPreview?.contactId,
-      itemOrId.ownerPreview?.id,
       itemOrId.id,
       itemOrId.sourceCardId,
     ];
@@ -2118,25 +2076,8 @@ export function MatchesPage({ nuggets, setModal, openUnlock, unlocked, initialCh
   ), [unlockedContactMap]);
 
   const resolveCanonicalContactCard = useCallback((contactLike) => {
-    if (!contactLike) return null;
-    const ownerId = String(contactLike.ownerId || contactLike.unlockOwnerId || contactLike.id || '').trim();
-    if (!ownerId) return null;
-    const canonical = canonicalContactToDisplayCard(getCanonicalContact(ownerId));
-    if (canonical) return canonical;
-    return {
-      ...contactLike,
-      id: ownerId,
-      ownerId,
-      unlockOwnerId: ownerId,
-      email: '',
-      phone: '',
-      primaryPhone: '',
-      secondaryPhone: '',
-      tertiaryPhone: '',
-      whatsapp: '',
-      contactMethods: [],
-    };
-  }, [getCanonicalContact]);
+    return resolveCanonicalContactCardFromMap(unlockedContactMap, contactLike);
+  }, [unlockedContactMap]);
 
   const getPropertyExclusiveStatus = useCallback((propertyOrId) => {
     const candidates = propertyOrId && typeof propertyOrId === 'object'
@@ -2562,12 +2503,14 @@ export function MatchesPage({ nuggets, setModal, openUnlock, unlocked, initialCh
     if (canonical) return canonical;
     if (!isActiveProperty) {
       const resolved = resolveCanonicalContactCard(resolveContactCard(active));
-      const hydrated = allMatched.find((contact) => getContactUnlockKeys(contact).some((key) => getContactUnlockKeys(resolved || active).includes(key)));
-      return hydrated ? mergeContactForDisplay(resolved, resolveCanonicalContactCard(hydrated)) : resolved;
+      if (resolved) return resolved;
+      const activeKeys = getContactUnlockKeys(active);
+      const hydrated = allMatched.find((contact) => getContactUnlockKeys(contact).some((key) => activeKeys.includes(key)));
+      return hydrated ? resolveCanonicalContactCard(hydrated) : null;
     }
     const hydratedOwner = allMatched.find((contact) => getContactUnlockKeys(contact).includes(String(active.ownerId || '')));
     if (hydratedOwner) return resolveCanonicalContactCard(hydratedOwner);
-    if (active.ownerPreview) return resolveCanonicalContactCard(resolveContactCard(active.ownerPreview, getRecordProfileScope(active)));
+    if (active.ownerPreview) return resolveCanonicalContactCard(active);
     const activeScope = getRecordProfileScope(active, (
       String(active.ownerId) === String(secondaryOwnerId)
         ? 'professional'
@@ -3310,7 +3253,7 @@ export function MatchesPage({ nuggets, setModal, openUnlock, unlocked, initialCh
                 ) : null}
               </div>
               <div style={{ flex:1, overflowY:"auto" }}>
-                {filteredMatched.map(m => {
+                <MatchesPeopleList contacts={filteredMatched} activeOwnerId={activeContactKey} renderContact={(m) => {
                   const contactKeys = getContactUnlockKeys(m);
                   const contactRowKey = contactKeys[0] || String(m?.id || '');
                   const isLinkedContact = Boolean(activeContactKey && contactKeys.includes(activeContactKey));
@@ -3394,7 +3337,7 @@ export function MatchesPage({ nuggets, setModal, openUnlock, unlocked, initialCh
                       </button>
                     </div>
                   );
-                })}
+                }} />
               </div>
             </div>
             <div style={{ flex:1, display:"flex", flexDirection:"column" }} className="matches-col-interests">
@@ -3446,7 +3389,7 @@ export function MatchesPage({ nuggets, setModal, openUnlock, unlocked, initialCh
                 ) : null}
               </div>
               <div style={{ flex:1, overflowY:"auto" }}>
-                {filteredInterested.map(p => {
+                <MatchesInterestsList interests={filteredInterested} activePropertyId={active?.id || ''} renderInterest={(p) => {
                   const propertyKey = getInterestKey(p);
                   const canonicalLinkedProperty = (allPropertiesSource || []).find((property) => (
                     getInterestKey(property) === propertyKey
@@ -3456,7 +3399,7 @@ export function MatchesPage({ nuggets, setModal, openUnlock, unlocked, initialCh
                   const isLinkedProperty = isLinkedToActiveContact(p.ownerId) || Boolean(canonicalLinkedProperty);
                   const effectiveOwner = isLinkedProperty && activeOwner ? activeOwner : null;
                   const effectiveProperty = effectiveOwner
-                    ? { ...p, ...(canonicalLinkedProperty || {}), ownerId: effectiveOwner.id, ownerPreview: effectiveOwner }
+                    ? { ...p, ...(canonicalLinkedProperty || {}), ownerId: effectiveOwner.id }
                     : p;
                   const canonicalPropertyUnlocked = isPropertyUnlockedByCanonicalState(effectiveProperty);
                   const isPropertyEntitled = canonicalPropertyUnlocked || hasOwnerPortfolioAccessByState(linkedOwnerId);
@@ -3465,11 +3408,7 @@ export function MatchesPage({ nuggets, setModal, openUnlock, unlocked, initialCh
                   const isArchivedInterestRow = archivedInterests.has(getInterestKey(p));
                   const owner = effectiveOwner
                     || canonicalContactToDisplayCard(getCanonicalContact(linkedOwnerId))
-                    || {
-                      id: linkedOwnerId,
-                      ownerId: linkedOwnerId,
-                      name: p.ownerPreview?.name || 'Locked contact',
-                    };
+                    || { id: linkedOwnerId, ownerId: linkedOwnerId, name: 'Locked contact' };
                   return (
                     <div key={p.id} onClick={() => setActive(effectiveProperty)} style={{ display:"flex", alignItems:"center", gap:10, padding:12, borderBottom:`1px solid ${C.border}`, borderLeft:isLinkedProperty?`3px solid ${C.alpha(PROPERTY_SIGNAL, 0.7)}`:'3px solid transparent', cursor:"pointer", background:isLinkedProperty?C.alpha(PROPERTY_SIGNAL, 0.14):"transparent" }}>
                       <div style={{ width:32, height:32, borderRadius:6, overflow:"hidden", border:`1px solid ${isLinkedProperty?PROPERTY_SIGNAL:C.border}` }}>
@@ -3533,7 +3472,7 @@ export function MatchesPage({ nuggets, setModal, openUnlock, unlocked, initialCh
                       </button>
                     </div>
                   );
-                })}
+                }} />
               </div>
             </div>
           </div>
@@ -4046,7 +3985,7 @@ export function MatchesPage({ nuggets, setModal, openUnlock, unlocked, initialCh
                               const ownerCard = (allMatched || []).find(c => String(c.ownerId || c.id) === String(p.ownerId))
                                 || activeOwner
                                 || canonicalContactToDisplayCard(getCanonicalContact(p.ownerId))
-                                || { id: p.ownerId, ownerId: p.ownerId, name: p.ownerPreview?.name || 'Locked contact' };
+                                || { id: p.ownerId, ownerId: p.ownerId, name: 'Locked contact' };
                               const ownerVerified = Boolean(ownerCard && (ownerCard.verified === true || String(ownerCard.verified).toLowerCase() === 'verified'));
                               const isHot = false;
                               return (
