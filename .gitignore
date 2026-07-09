@@ -22,6 +22,9 @@ supabase/.temp
 .env.backup
 .env.*.backup
 
+# Nunca commitar backups gerados dentro do codigo-fonte
+src/**/*.bak
+
 # Editor directories and files
 .vscode/*
 !.vscode/extensions.json
