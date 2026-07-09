@@ -1,6 +1,6 @@
 import React, { useCallback, useMemo, useState } from 'react';
 import { genId } from '../lib/id';
-import { GeoJSON, MapContainer, Marker, Popup, Rectangle, TileLayer, WMSTileLayer, ZoomControl, useMap, useMapEvents } from 'react-leaflet';
+import { MapContainer, Marker, Popup, Rectangle, TileLayer, WMSTileLayer, ZoomControl, useMap, useMapEvents } from 'react-leaflet';
 import L from 'leaflet';
 import Supercluster from 'supercluster';
 import { C } from '../theme/colors';
@@ -286,38 +286,6 @@ function spreadCoincidentFeatures(features, offsetDegrees = 0.00045) {
   return expanded;
 }
 
-function normalizeStreetText(value) {
-  return String(value || '')
-    .toLowerCase()
-    .replace(/\b(street|st)\b/g, 'st')
-    .replace(/\b(avenue|ave)\b/g, 'ave')
-    .replace(/\b(road|rd)\b/g, 'rd')
-    .replace(/\b(boulevard|blvd)\b/g, 'blvd')
-    .replace(/\b(drive|dr)\b/g, 'dr')
-    .replace(/\b(lane|ln)\b/g, 'ln')
-    .replace(/\b(court|ct)\b/g, 'ct')
-    .replace(/\b(circle|cir)\b/g, 'cir')
-    .replace(/\b(terrace|ter)\b/g, 'ter')
-    .replace(/\b(place|pl)\b/g, 'pl')
-    .replace(/[^a-z0-9\s]/g, ' ')
-    .replace(/\s+/g, ' ')
-    .trim();
-}
-
-function extractStreetName(address) {
-  return normalizeStreetText(String(address || '').replace(/^\s*\d+[a-zA-Z]?\s+/, ''));
-}
-
-function tokenIntersectionCount(a, b) {
-  const aa = new Set(normalizeStreetText(a).split(' ').filter((tok) => tok.length > 2));
-  const bb = new Set(normalizeStreetText(b).split(' ').filter((tok) => tok.length > 2));
-  let count = 0;
-  aa.forEach((tok) => {
-    if (bb.has(tok)) count += 1;
-  });
-  return count;
-}
-
 function getStateVariants(value) {
   const raw = String(value || '').trim();
   if (!raw) return [];
@@ -364,110 +332,6 @@ function buildBoundsFromPoints(points, mode) {
     [minLat - padLat, minLng - padLng],
     [maxLat + padLat, maxLng + padLng],
   ];
-}
-
-function bboxToLeafletBounds(bbox) {
-  if (!Array.isArray(bbox) || bbox.length !== 4) return null;
-  const [south, north, west, east] = bbox.map((part) => Number(part));
-  if (![south, north, west, east].every(Number.isFinite)) return null;
-  return [[south, west], [north, east]];
-}
-
-const NOMINATIM_HEADERS = {
-  Accept: 'application/json',
-  'User-Agent': 'DealSifter/1.0 (https://dealsifter.com)',
-};
-const NOMINATIM_SEARCH_URL = 'https://nominatim.openstreetmap.org/search';
-const PHOTON_SEARCH_URL = 'https://photon.komoot.io/api/';
-const ARCGIS_GEOCODE_URL = 'https://geocode.arcgis.com/arcgis/rest/services/World/GeocodeServer/findAddressCandidates';
-const CENSUS_GEOCODE_URL = 'https://geocoding.geo.census.gov/geocoder/locations/address';
-const ENABLE_CLIENT_GEOCODING = import.meta.env.DEV
-  && String(import.meta.env.VITE_ENABLE_CLIENT_GEOCODING || '').toLowerCase() === 'true';
-
-async function fetchRealBoundary({ mode, query }) {
-  const cleaned = String(query || '').trim();
-  if (!cleaned) return null;
-
-  const attemptParams = [];
-
-  if (mode === 'zip') {
-    const zip = normalizeZip(cleaned);
-    if (!zip) return null;
-
-    // ZIP works better with structured `postalcode` queries than generic free text.
-    attemptParams.push(
-      new URLSearchParams({
-        format: 'jsonv2',
-        limit: '1',
-        polygon_geojson: '1',
-        addressdetails: '1',
-        countrycodes: 'us',
-        postalcode: zip,
-        country: 'United States',
-      }),
-    );
-
-    // Fallback text queries if structured search returns no geometry.
-    attemptParams.push(
-      new URLSearchParams({
-        format: 'jsonv2',
-        limit: '1',
-        polygon_geojson: '1',
-        addressdetails: '1',
-        countrycodes: 'us',
-        q: `${zip}, USA`,
-      }),
-    );
-
-    attemptParams.push(
-      new URLSearchParams({
-        format: 'jsonv2',
-        limit: '1',
-        polygon_geojson: '1',
-        addressdetails: '1',
-        countrycodes: 'us',
-        q: `postal code ${zip}, USA`,
-      }),
-    );
-  } else {
-    const params = new URLSearchParams({
-      format: 'jsonv2',
-      limit: '1',
-      polygon_geojson: '1',
-      addressdetails: '1',
-      countrycodes: 'us',
-      q: cleaned,
-    });
-
-    if (mode === 'state') params.set('featuretype', 'state');
-    if (mode === 'city') params.set('featuretype', 'city');
-    attemptParams.push(params);
-  }
-
-  for (const params of attemptParams) {
-    try {
-      const response = await fetch(`https://nominatim.openstreetmap.org/search?${params.toString()}`, {
-        headers: NOMINATIM_HEADERS,
-      });
-
-      if (!response.ok) continue;
-      const data = await response.json();
-      if (!Array.isArray(data) || !data.length) continue;
-
-      const best = data[0];
-      const bounds = bboxToLeafletBounds(best.boundingbox);
-      if (!bounds) continue;
-
-      return {
-        bounds,
-        geojson: best.geojson || null,
-      };
-    } catch (err) {
-      if (import.meta.env.DEV) console.warn('[MapView] Boundary lookup failed:', err.message);
-    }
-  }
-
-  return null;
 }
 
 // SVG para pin de pessoa, formato mais compacto
@@ -667,19 +531,6 @@ function MapController({ mapRef, fitToBounds }) {
   return null;
 }
 
-// ---------------------------------------------------------------------------
-// Geocoding helpers for user properties
-// ---------------------------------------------------------------------------
-
-// Read/write a localStorage-backed geocode cache: { "address|city|state|zip": { lat, lng } }
-const GEOCODE_CACHE_KEY = 'ds_geocode_cache';
-function _loadGeocodeCache() {
-  try { return JSON.parse(localStorage.getItem(GEOCODE_CACHE_KEY) || '{}'); } catch { return {}; }
-}
-function _saveGeocodeCache(cache) {
-  try { localStorage.setItem(GEOCODE_CACHE_KEY, JSON.stringify(cache)); } catch { /* noop */ }
-}
-
 const PIN_OVERRIDES_KEY = 'ds_pin_overrides';
 const PIN_OVERRIDES_STORAGE_KEY = 'ds_pin_overrides_by_user';
 const MAP_UI_STATE_KEY = 'ds_mapview_ui_state_v1';
@@ -790,11 +641,6 @@ function _normalizePropertyLocation(property) {
   return { address, city, stateCode, stateFull, zip };
 }
 
-function _hasGeocodeableLocation(property) {
-  const parts = _normalizePropertyLocation(property);
-  return Boolean(parts.address || parts.city || parts.stateCode || parts.stateFull || parts.zip);
-}
-
 function _geocodeCacheKey(property) {
   const parts = _normalizePropertyLocation(property);
   const stateKey = parts.stateCode || String(parts.stateFull || '').trim().toUpperCase();
@@ -811,16 +657,13 @@ function shouldTrustExplicitCoords(property) {
   return Number.isFinite(lat) && Number.isFinite(lng) && lat !== 0 && lng !== 0;
 }
 
-// Synchronous: resolve from manual override, geocode cache, or explicit property coords.
-// Strict mode: no approximate fallbacks (no fake city/state centers).
-function resolvePropertyCoords(property, geocodeCache, pinOverrides) {
+// Synchronous: resolve from manual override or authoritative persisted coords.
+// Strict mode: no client geocoding and no fake pin rendering.
+function resolvePropertyCoords(property, pinOverrides) {
   // 1) Manual pin repositioning takes highest priority
   const propId = String(property?.id ?? '');
   if (propId && pinOverrides?.[propId]) return pinOverrides[propId];
-  // 2) Geocode cache (ArcGIS/Photon async result)
-  const cacheKey = _geocodeCacheKey(property);
-  if (geocodeCache?.[cacheKey]) return geocodeCache[cacheKey];
-  // 3) Explicit lat/lng on the property record
+  // 2) Explicit lat/lng on the property record
   const explicitLat = Number(property?.lat);
   const explicitLng = Number(property?.lng);
   if (
@@ -863,16 +706,10 @@ const STATE_CENTER_COORDS = {
   WI:{ lat:43.7844,lng:-88.7879 }, WY:{ lat:43.0760,lng:-107.2903 }, DC:{ lat:38.9072,lng:-77.0369 },
 };
 
-function resolvePropertyDisplayCoords(property, geocodeCache, pinOverrides) {
-  const resolved = resolvePropertyCoords(property, geocodeCache, pinOverrides);
+function resolvePropertyDisplayCoords(property, pinOverrides) {
+  const resolved = resolvePropertyCoords(property, pinOverrides);
   if (resolved) return { ...resolved, isApproximate: false };
-
-  const parts = _normalizePropertyLocation(property);
-  const stateCode = String(parts?.stateCode || '').trim().toUpperCase();
-  const approx = stateCode ? STATE_CENTER_COORDS[stateCode] : null;
-  if (!approx) return null;
-
-  return { ...approx, isApproximate: true, geocodeStatus: 'pending' };
+  return null;
 }
 
 function getStateCodeFromMarket(value) {
@@ -882,489 +719,6 @@ function getStateCodeFromMarket(value) {
   if (STATE_FULL_NAME[direct]) return direct;
   const matched = Object.entries(STATE_FULL_NAME).find(([, name]) => name.toLowerCase() === raw.toLowerCase());
   return matched ? matched[0] : '';
-}
-
-function _pickBestPhotonFeature(features, context) {
-  if (!Array.isArray(features) || !features.length) return null;
-
-  const zip = String(context?.zip || '').trim();
-  const stateCode = String(context?.stateCode || '').trim().toUpperCase();
-  const city = normalizeText(context?.city || '');
-  const houseMatch = String(context?.address || '').match(/\b\d+[A-Za-z]?\b/);
-  const houseNumber = houseMatch ? String(houseMatch[0]).toUpperCase() : '';
-  const expectedStreet = extractStreetName(context?.address || '');
-
-  let best = null;
-  let bestScore = -1;
-
-  for (const feature of features) {
-    const coords = feature?.geometry?.coordinates;
-    const props = feature?.properties || {};
-    if (!Array.isArray(coords) || coords.length < 2) continue;
-
-    const [lng, lat] = coords;
-    if (!Number.isFinite(lat) || !Number.isFinite(lng)) continue;
-
-    let score = 0;
-    const featureType = normalizeText(props?.type || '');
-    const featureCity = normalizeText(props?.city || props?.district || '');
-    const featureState = String(props?.state || '').trim().toUpperCase();
-    const featurePostCode = String(props?.postcode || '').trim();
-    const featureHouseNumber = String(props?.housenumber || '').trim().toUpperCase();
-    const featureStreet = normalizeStreetText(props?.street || props?.name || '');
-    const streetOverlap = tokenIntersectionCount(expectedStreet, featureStreet);
-    const zipMatched = Boolean(zip && featurePostCode && featurePostCode.startsWith(zip.slice(0, 5)));
-    const houseNumberMatched = Boolean(houseNumber && featureHouseNumber && houseNumber === featureHouseNumber);
-
-    if (featureType === 'house') score += 12;
-    if (houseNumberMatched) score += 25;
-    if (zipMatched) score += 20;
-    if (stateCode && featureState && featureState === stateCode) score += 14;
-    if (city && featureCity && featureCity.includes(city)) score += 10;
-    if (expectedStreet && featureStreet) {
-      if (featureStreet.includes(expectedStreet) || expectedStreet.includes(featureStreet)) score += 26;
-      else if (streetOverlap >= 2) score += 15;
-      else if (houseNumber && streetOverlap === 0) score -= 22;
-    }
-
-    if (score > bestScore) {
-      bestScore = score;
-      const normalized = score / 81;
-      best = {
-        lat,
-        lng,
-        geocodeSource: 'photon',
-        geocodeConfidence: Number(clamp(normalized, 0.28, 0.94).toFixed(2)),
-        streetOverlap,
-        zipMatched,
-        houseNumberMatched,
-      };
-    }
-  }
-
-  return best;
-}
-
-function _pickBestArcGisCandidate(candidates, context) {
-  if (!Array.isArray(candidates) || !candidates.length) return null;
-
-  const zip = String(context?.zip || '').trim();
-  const stateCode = String(context?.stateCode || '').trim().toUpperCase();
-  const city = normalizeText(context?.city || '');
-  const houseMatch = String(context?.address || '').match(/\b\d+[A-Za-z]?\b/);
-  const houseNumber = houseMatch ? String(houseMatch[0]).toUpperCase() : '';
-  const expectedStreet = extractStreetName(context?.address || '');
-
-  let best = null;
-  let bestScore = -1;
-
-  for (const candidate of candidates) {
-    const location = candidate?.location || {};
-    const attrs = candidate?.attributes || {};
-    const lng = Number(location.x);
-    const lat = Number(location.y);
-    if (!Number.isFinite(lat) || !Number.isFinite(lng)) continue;
-
-    let score = Number(candidate?.score || 0);
-    const addrType = normalizeText(attrs?.Addr_type || attrs?.Type || '');
-    const addNum = String(attrs?.AddNum || '').trim().toUpperCase();
-    const postal = String(attrs?.Postal || '').trim();
-    const cityName = normalizeText(attrs?.City || '');
-    const region = String(attrs?.RegionAbbr || '').trim().toUpperCase();
-    const streetLine = normalizeStreetText(attrs?.StAddr || attrs?.ShortLabel || attrs?.Match_addr || '');
-    const streetOverlap = tokenIntersectionCount(expectedStreet, streetLine);
-    const zipMatched = Boolean(zip && postal && postal.startsWith(zip.slice(0, 5)));
-    const houseNumberMatched = Boolean(houseNumber && addNum && houseNumber === addNum);
-
-    if (addrType === 'pointaddress') score += 30;
-    else if (addrType === 'streetaddress') score += 18;
-    if (houseNumberMatched) score += 25;
-    if (zipMatched) score += 20;
-    if (stateCode && region && stateCode === region) score += 12;
-    if (city && cityName && cityName.includes(city)) score += 10;
-    if (expectedStreet && streetLine) {
-      if (streetLine.includes(expectedStreet) || expectedStreet.includes(streetLine)) score += 28;
-      else if (streetOverlap >= 2) score += 16;
-      else if (houseNumber && streetOverlap === 0) score -= 26;
-    }
-
-    if (score > bestScore) {
-      bestScore = score;
-      const normalized = score / 150;
-      best = {
-        lat,
-        lng,
-        geocodeSource: 'arcgis',
-        geocodeConfidence: Number(clamp(normalized, 0.34, 0.99).toFixed(2)),
-        streetOverlap,
-        zipMatched,
-        houseNumberMatched,
-      };
-    }
-  }
-
-  return best;
-}
-
-async function _arcGisGeocode(property) {
-  if (!ENABLE_CLIENT_GEOCODING) return null;
-  const parts = _normalizePropertyLocation(property);
-  const stateToken = parts.stateCode || parts.stateFull;
-  const query = [parts.address, parts.city, stateToken, parts.zip, 'USA'].filter(Boolean).join(', ');
-  if (!query) return null;
-
-  const params = new URLSearchParams({
-    f: 'pjson',
-    outFields: '*',
-    maxLocations: '5',
-    countryCode: 'USA',
-  });
-
-  if (parts.address) {
-    params.set('Address', parts.address);
-    if (parts.city) params.set('City', parts.city);
-    if (parts.stateCode) params.set('Region', parts.stateCode);
-    if (parts.zip) params.set('Postal', parts.zip);
-  } else {
-    params.set('SingleLine', query);
-  }
-
-  try {
-    const response = await fetch(`${ARCGIS_GEOCODE_URL}?${params.toString()}`);
-    if (!response.ok) {
-      if (import.meta.env.DEV) console.warn('[MapView] ArcGIS HTTP', response.status, query);
-      return null;
-    }
-    const data = await response.json();
-    return _pickBestArcGisCandidate(data?.candidates || [], {
-      address: parts.address,
-      city: parts.city,
-      stateCode: parts.stateCode,
-      zip: parts.zip,
-    });
-  } catch (err) {
-    if (import.meta.env.DEV) console.warn('[MapView] ArcGIS error:', err.message);
-    return null;
-  }
-}
-
-function _pickBestNominatimResult(results, context) {
-  if (!Array.isArray(results) || !results.length) return null;
-
-  const zip = String(context?.zip || '').trim();
-  const stateCode = String(context?.stateCode || '').trim().toUpperCase();
-  const city = normalizeText(context?.city || '');
-  const houseMatch = String(context?.address || '').match(/\b\d+[A-Za-z]?\b/);
-  const houseNumber = houseMatch ? String(houseMatch[0]).toUpperCase() : '';
-  const expectedStreet = extractStreetName(context?.address || '');
-
-  let best = null;
-  let bestScore = -1;
-
-  for (const item of results) {
-    const lat = Number(item?.lat);
-    const lng = Number(item?.lon);
-    if (!Number.isFinite(lat) || !Number.isFinite(lng)) continue;
-
-    const address = item?.address || {};
-    const candidateCity = normalizeText(address.city || address.town || address.village || address.municipality || '');
-    const candidateZip = String(address.postcode || '').trim();
-    const candidateState = String(address.state_code || address.state || '').trim().toUpperCase();
-    const candidateStreet = normalizeStreetText(address.road || address.pedestrian || address.neighbourhood || '');
-    const candidateHouseNumber = String(address.house_number || '').trim().toUpperCase();
-    const streetOverlap = tokenIntersectionCount(expectedStreet, candidateStreet);
-    const zipMatched = Boolean(zip && candidateZip && candidateZip.startsWith(zip.slice(0, 5)));
-    const houseNumberMatched = Boolean(houseNumber && candidateHouseNumber && houseNumber === candidateHouseNumber);
-    const classType = `${normalizeText(item?.class || '')}:${normalizeText(item?.type || '')}`;
-
-    let score = Number(item?.importance || 0) * 100;
-    if (zipMatched) score += 30;
-    if (stateCode && candidateState && candidateState.includes(stateCode)) score += 16;
-    if (city && candidateCity && candidateCity.includes(city)) score += 18;
-    if (classType.includes('building') || classType.includes('house')) score += 10;
-    if (houseNumberMatched) score += 24;
-    if (expectedStreet && candidateStreet) {
-      if (candidateStreet.includes(expectedStreet) || expectedStreet.includes(candidateStreet)) score += 26;
-      else if (streetOverlap >= 2) score += 14;
-      else if (houseNumber && streetOverlap === 0) score -= 22;
-    }
-
-    if (score > bestScore) {
-      bestScore = score;
-      best = {
-        lat,
-        lng,
-        geocodeSource: 'nominatim',
-        geocodeConfidence: Number(clamp(score / 160, 0.26, 0.93).toFixed(2)),
-        streetOverlap,
-        zipMatched,
-        houseNumberMatched,
-      };
-    }
-  }
-
-  return best;
-}
-
-async function _nominatimDirectGeocode(property) {
-  if (!ENABLE_CLIENT_GEOCODING) return null;
-  const parts = _normalizePropertyLocation(property);
-  const address = parts.address;
-  const city = parts.city;
-  const stateAb = parts.stateCode;
-  const stateFull = parts.stateFull;
-  const zip = parts.zip;
-
-  const attempts = [
-    [address, city, stateAb, zip, 'USA'].filter(Boolean).join(', '),
-    [address, city, stateFull, zip, 'USA'].filter(Boolean).join(', '),
-    [address, city, stateAb, 'USA'].filter(Boolean).join(', '),
-    [city, stateAb, zip, 'USA'].filter(Boolean).join(', '),
-  ].filter(Boolean);
-
-  for (const query of attempts) {
-    try {
-      const params = new URLSearchParams({
-        format: 'jsonv2',
-        addressdetails: '1',
-        limit: '6',
-        countrycodes: 'us',
-        q: query,
-      });
-      const response = await fetch(`${NOMINATIM_SEARCH_URL}?${params.toString()}`);
-      if (!response.ok) {
-        if (import.meta.env.DEV) console.warn('[MapView] Nominatim HTTP', response.status, query);
-        continue;
-      }
-      const data = await response.json();
-      const best = _pickBestNominatimResult(data, {
-        city,
-        stateCode: stateAb,
-        zip,
-      });
-      if (best) {
-        if (import.meta.env.DEV) console.info('[MapView] Geocoded (Nominatim):', query, '→', best.lat, best.lng);
-        return best;
-      }
-    } catch (err) {
-      if (import.meta.env.DEV) console.warn('[MapView] Nominatim error:', err.message);
-    }
-  }
-
-  return null;
-}
-
-async function _nominatimStructuredGeocode(property) {
-  if (!ENABLE_CLIENT_GEOCODING) return null;
-  const parts = _normalizePropertyLocation(property);
-  if (!parts.address && !parts.city && !parts.stateCode && !parts.zip) return null;
-
-  const attempts = [];
-  if (parts.address || parts.city || parts.stateCode || parts.zip) {
-    attempts.push({
-      street: parts.address || undefined,
-      city: parts.city || undefined,
-      state: parts.stateCode || parts.stateFull || undefined,
-      postalcode: parts.zip || undefined,
-    });
-  }
-  if (parts.address || parts.city || parts.stateFull || parts.zip) {
-    attempts.push({
-      street: parts.address || undefined,
-      city: parts.city || undefined,
-      state: parts.stateFull || undefined,
-      postalcode: parts.zip || undefined,
-    });
-  }
-
-  for (const attempt of attempts) {
-    try {
-      const params = new URLSearchParams({
-        format: 'jsonv2',
-        addressdetails: '1',
-        limit: '8',
-        countrycodes: 'us',
-      });
-      if (attempt.street) params.set('street', attempt.street);
-      if (attempt.city) params.set('city', attempt.city);
-      if (attempt.state) params.set('state', attempt.state);
-      if (attempt.postalcode) params.set('postalcode', attempt.postalcode);
-
-      const response = await fetch(`${NOMINATIM_SEARCH_URL}?${params.toString()}`, {
-        headers: NOMINATIM_HEADERS,
-      });
-      if (!response.ok) continue;
-      const data = await response.json();
-      const best = _pickBestNominatimResult(data, {
-        address: parts.address,
-        city: parts.city,
-        stateCode: parts.stateCode,
-        zip: parts.zip,
-      });
-      if (best) return best;
-    } catch {
-      // noop
-    }
-  }
-
-  return null;
-}
-
-// Async: geocode a single property using real providers only and return
-// { lat, lng, geocodeSource, geocodeConfidence } or null.
-async function _censusGeocode(property) {
-  if (!ENABLE_CLIENT_GEOCODING) return null;
-  const parts = _normalizePropertyLocation(property);
-  if (!parts.address) return null; // Census requires a street address
-
-  try {
-    const params = new URLSearchParams({
-      format: 'json',
-      benchmark: 'Public_AR_Current',
-      street: parts.address,
-    });
-    if (parts.city) params.set('city', parts.city);
-    if (parts.stateCode) params.set('state', parts.stateCode);
-    else if (parts.stateFull) params.set('state', parts.stateFull);
-    if (parts.zip) params.set('zip', parts.zip);
-
-    const response = await fetch(`${CENSUS_GEOCODE_URL}?${params.toString()}`);
-    if (!response.ok) return null;
-    const data = await response.json();
-    const matches = data?.result?.addressMatches;
-    if (!Array.isArray(matches) || !matches.length) return null;
-
-    const match = matches[0];
-    const lat = Number(match?.coordinates?.y);
-    const lng = Number(match?.coordinates?.x);
-    if (!Number.isFinite(lat) || !Number.isFinite(lng)) return null;
-    // Sanity check: must be within US bounding box
-    if (lat < 18 || lat > 72 || lng < -180 || lng > -65) return null;
-
-    const comp = match?.addressComponents || {};
-    const streetNumber = String(comp.streetNumber || '').trim().toUpperCase();
-    const streetName = normalizeStreetText(
-      [comp.preDirection, comp.streetName, comp.suffixType, comp.suffixDirection].filter(Boolean).join(' ')
-    );
-    const matchedZip = String(comp.zip || '').trim();
-
-    const houseMatch = String(parts.address || '').match(/\b\d+[A-Za-z]?\b/);
-    const houseNumber = houseMatch ? String(houseMatch[0]).toUpperCase() : '';
-    const expectedStreet = extractStreetName(parts.address || '');
-
-    const houseNumberMatched = Boolean(houseNumber && streetNumber && houseNumber === streetNumber);
-    const zipMatched = Boolean(parts.zip && matchedZip && matchedZip.startsWith(parts.zip.slice(0, 5)));
-    const streetOverlap = tokenIntersectionCount(expectedStreet, streetName);
-
-    // Census Bureau is authoritative for US addresses — base confidence is high
-    let confidence = 0.90;
-    if (!houseNumberMatched && houseNumber) confidence -= 0.12;
-    if (zipMatched) confidence = Math.min(0.99, confidence + 0.04);
-    if (streetOverlap >= 1) confidence = Math.min(0.99, confidence + 0.03);
-
-    return {
-      lat,
-      lng,
-      geocodeSource: 'census',
-      geocodeConfidence: Number(confidence.toFixed(2)),
-      streetOverlap,
-      zipMatched,
-      houseNumberMatched,
-    };
-  } catch (err) {
-    if (import.meta.env.DEV) console.warn('[MapView] Census geocode error:', err.message);
-    return null;
-  }
-}
-
-async function _nominatimGeocode(property) {
-  if (!ENABLE_CLIENT_GEOCODING) return null;
-  const parts = _normalizePropertyLocation(property);
-  const address = parts.address;
-  const city = parts.city;
-  const stateAb = parts.stateCode;
-  const zip = parts.zip;
-
-  if (!address && !city && !stateAb && !zip) return null;
-
-  const stateFull = parts.stateFull;
-  const fullAddress = [address, city, stateFull, zip, 'USA'].filter(Boolean).join(', ');
-
-  let bestResult = null;
-  const chooseBetter = (candidate) => {
-    if (!candidate) return;
-    if (!bestResult || Number(candidate.geocodeConfidence || 0) > Number(bestResult.geocodeConfidence || 0)) {
-      bestResult = candidate;
-    }
-  };
-
-  // 0) US Census Bureau – authoritative rooftop geocoding for US addresses, free, no key required.
-  const census = await _censusGeocode(property);
-  if (census) {
-    if (import.meta.env.DEV) console.info('[MapView] Geocoded (Census Bureau):', fullAddress, '→', census.lat, census.lng, census.geocodeConfidence);
-    return census; // Census is authoritative — accept immediately without strict gate
-  }
-
-  const nominatimStructured = await _nominatimStructuredGeocode(property);
-  chooseBetter(nominatimStructured);
-  if (
-    nominatimStructured
-    && Number(nominatimStructured.geocodeConfidence || 0) >= 0.78
-    && (Number(nominatimStructured.streetOverlap || 0) >= 1 || nominatimStructured.houseNumberMatched)
-  ) {
-    if (import.meta.env.DEV) console.info('[MapView] Geocoded (Nominatim structured):', fullAddress, '→', nominatimStructured.lat, nominatimStructured.lng);
-    return nominatimStructured;
-  }
-
-  const arcgis = await _arcGisGeocode(property);
-  chooseBetter(arcgis);
-  if (arcgis && Number(arcgis.geocodeConfidence || 0) >= 0.8 && Number(arcgis.streetOverlap || 0) >= 1) {
-    if (import.meta.env.DEV) console.info('[MapView] Geocoded (ArcGIS high confidence):', fullAddress, '→', arcgis.lat, arcgis.lng);
-    return arcgis;
-  }
-
-  // 2) Photon fallback.
-  const attempts = [
-    fullAddress,
-    [address, city, stateAb, zip, 'USA'].filter(Boolean).join(', '),
-    [address, city, stateFull, 'USA'].filter(Boolean).join(', '),
-    [city, stateFull, zip, 'USA'].filter(Boolean).join(', '),
-  ].filter(Boolean);
-
-  for (const query of attempts) {
-    try {
-      const params = new URLSearchParams({ q: query, limit: '8' });
-      const res = await fetch(`${PHOTON_SEARCH_URL}?${params.toString()}`);
-      if (!res.ok) {
-        if (import.meta.env.DEV) console.warn('[MapView] Photon HTTP', res.status, query);
-        continue;
-      }
-      const data = await res.json();
-      const best = _pickBestPhotonFeature(data?.features || [], {
-        address,
-        city,
-        stateCode: stateAb,
-        zip,
-      });
-      if (best) {
-        chooseBetter(best);
-      }
-    } catch (err) {
-      if (import.meta.env.DEV) console.warn('[MapView] Photon error:', err.message);
-    }
-  }
-
-  // 3) Nominatim fallback (best-effort when ArcGIS/Photon fail).
-  const nominatim = await _nominatimDirectGeocode(property);
-  chooseBetter(nominatim);
-
-  if (bestResult && Number(bestResult.geocodeConfidence || 0) >= 0.55) {
-    if (import.meta.env.DEV) console.info('[MapView] Geocoded (best provider):', fullAddress, '→', bestResult.lat, bestResult.lng, bestResult.geocodeSource, bestResult.geocodeConfidence);
-    return bestResult;
-  }
-
-  if (import.meta.env.DEV) console.warn('[MapView] Geocode failed for:', fullAddress);
-  return null;
 }
 
 export function MapView({
@@ -1472,17 +826,6 @@ export function MapView({
   const [mapStyle, setMapStyle] = useState(() => normalizeVisibleMapStyle(initialMapUiState.mapStyle || preferredMapStyle));
   const [locationQuery, setLocationQuery] = useState(() => initialMapUiState.locationQuery || '');
   const [appliedLocationQuery, setAppliedLocationQuery] = useState(() => initialMapUiState.appliedLocationQuery || '');
-  // Geocode cache: persisted { cacheKey → { lat, lng, geocodeSource, geocodeConfidence } }
-  // Clear stale cache on mount (v11 enforces strict ZIP/house-number acceptance).
-  const [geocodeCache, setGeocodeCache] = useState(() => {
-    const version = localStorage.getItem('ds_geocode_cache_v');
-    if (version !== '12') {
-      localStorage.removeItem(GEOCODE_CACHE_KEY);
-      localStorage.setItem('ds_geocode_cache_v', '12');
-      return {};
-    }
-    return _loadGeocodeCache();
-  });
   const [pinOverrides, setPinOverrides] = useState(() => _loadPinOverrides(userProfile));
   const [panelCollapsed, setPanelCollapsed] = useState(() => {
     if (typeof initialMapUiState.panelCollapsed === 'boolean') return initialMapUiState.panelCollapsed;
@@ -1546,15 +889,12 @@ export function MapView({
   const [filterBounds, setFilterBounds] = useState(() => {
     return sanitizeLeafletBounds(initialMapUiState.filterBounds);
   });
-  const [boundaryGeoJson, setBoundaryGeoJson] = useState(null);
-  const [isBoundaryLoading, setIsBoundaryLoading] = useState(false);
   const [selectedCardId, setSelectedCardId] = useState(null);
   const [panelTab, setPanelTab] = useState(() => (initialMapUiState.panelTab === 'filters' ? 'filters' : 'cards'));
   const [floodOverlayOpacity, setFloodOverlayOpacity] = useState(() => {
     const val = Number(initialMapUiState.floodOverlayOpacity);
     return Number.isFinite(val) ? val : 0.65;
   });
-  const [geocodeRetryTick, setGeocodeRetryTick] = useState(0);
   const [manualPinTargetId, setManualPinTargetId] = useState(null);
   const [forceSimpleBaseTiles, setForceSimpleBaseTiles] = useState(false);
   const [baseTileFallbackIndex, setBaseTileFallbackIndex] = useState(0);
@@ -1562,7 +902,6 @@ export function MapView({
   const [femaOverlayUnavailable, setFemaOverlayUnavailable] = useState(false);
   const [mapActivationKey, setMapActivationKey] = useState(0);
   const wasActiveRef = React.useRef(isActive);
-  const geocodeAttemptRef = React.useRef({});
   const lastBaseFallbackSwitchAtRef = React.useRef(0);
   const femaTileErrorStreakRef = React.useRef(0);
 
@@ -1847,93 +1186,6 @@ export function MapView({
       document.removeEventListener('mouseup', handleMouseUp);
     };
   }, [isResizing, panelWidth, panelCollapsed]);
-
-  // Retry scheduling for geocoding pending properties (strict mode has no fake fallback).
-  React.useEffect(() => {
-    if (!ENABLE_CLIENT_GEOCODING) return;
-    if (!showcaseProperties?.length) return;
-    const cache = _loadGeocodeCache();
-    const hasPending = showcaseProperties.some((property) => {
-      if (!_hasGeocodeableLocation(property)) return false;
-      const key = _geocodeCacheKey(property);
-      if (!key) return false;
-      return !cache[key];
-    });
-    if (!hasPending) return;
-
-    const timer = setTimeout(() => {
-      setGeocodeRetryTick((prev) => prev + 1);
-    }, 6000);
-
-    return () => clearTimeout(timer);
-  }, [showcaseProperties, geocodeCache, geocodeRetryTick]);
-
-  // Async geocode user properties that are not yet in the cache
-  React.useEffect(() => {
-    if (!ENABLE_CLIENT_GEOCODING) return;
-    if (!showcaseProperties || !showcaseProperties.length) return;
-    let cancelled = false;
-    const cache = _loadGeocodeCache();
-    const seenKeys = new Set();
-    const now = Date.now();
-    const toGeocode = showcaseProperties.filter((property) => {
-      if (!_hasGeocodeableLocation(property)) return false;
-      const key = _geocodeCacheKey(property);
-      if (!key || seenKeys.has(key)) return false;
-      if (cache[key]) return false;
-      const lastAttempt = Number(geocodeAttemptRef.current[key] || 0);
-      if (now - lastAttempt < 5000) return false;
-      seenKeys.add(key);
-      return true;
-    });
-    if (!toGeocode.length) return;
-
-    (async () => {
-      let updated = false;
-      try {
-        for (let index = 0; index < toGeocode.length; index += 1) {
-          const prop = toGeocode[index];
-          const cacheKey = _geocodeCacheKey(prop);
-          if (cacheKey) geocodeAttemptRef.current[cacheKey] = Date.now();
-          if (cancelled) break;
-          const geocodeResult = await _nominatimGeocode(prop);
-          if (cancelled) break;
-          if (geocodeResult) {
-            const coords = {
-              lat: geocodeResult.lat,
-              lng: geocodeResult.lng,
-              geocodeSource: geocodeResult.geocodeSource,
-              geocodeConfidence: geocodeResult.geocodeConfidence,
-            };
-            if (cacheKey) {
-              cache[cacheKey] = coords;
-              delete geocodeAttemptRef.current[cacheKey];
-            }
-            commitCoordsToPortfolio(prop, coords, {
-              geocodeStatus: 'resolved',
-              geocodeSource: geocodeResult.geocodeSource,
-              geocodeConfidence: geocodeResult.geocodeConfidence,
-              geocodeInput: cacheKey,
-            });
-            updated = true;
-          }
-          // Brief pause between requests to avoid throttling.
-          if (index < toGeocode.length - 1) {
-            await new Promise(r => setTimeout(r, 300));
-          }
-        }
-        if (updated && !cancelled) {
-          _saveGeocodeCache(cache);
-          setGeocodeCache({ ...cache });
-        }
-      } catch (err) {
-        if (import.meta.env.DEV) console.warn('[MapView] Client geocode batch failed:', err.message);
-      }
-    })();
-
-    return () => { cancelled = true; };
-  }, [showcaseProperties, geocodeRetryTick, commitCoordsToPortfolio]);
-
   const mapInventory = useMemo(() => {
     return buildMapInventory({
       mockCards: CARDS,
@@ -1952,7 +1204,7 @@ export function MapView({
       isLocalPublishedRecord,
       getPortfolioPartsForOwner,
       getStateCodeFromMarket,
-      resolvePropertyDisplayCoords: (property) => resolvePropertyDisplayCoords(property, geocodeCache, pinOverrides),
+      resolvePropertyDisplayCoords: (property) => resolvePropertyDisplayCoords(property, pinOverrides),
       resolveScopedProfile,
       isUnlockedId,
     }, currentUserId, {
@@ -1960,7 +1212,7 @@ export function MapView({
       showDeals: showProperties,
       showOnlyMyPins,
     });
-  }, [accountType, activeSpotlightKeys, currentUserId, enableMockMapData, geocodeCache, getPortfolioPartsForOwner, getRecordProfileScope, isLocalPublishedRecord, isUnlockedId, personalProfile, pinOverrides, professionalProfile, publishedLocalProfileScopes, servicePortfolio, showcaseProperties, showOnlyMyPins, showPeople, showProperties, userProfile]);
+  }, [accountType, activeSpotlightKeys, currentUserId, enableMockMapData, getPortfolioPartsForOwner, getRecordProfileScope, isLocalPublishedRecord, isUnlockedId, personalProfile, pinOverrides, professionalProfile, publishedLocalProfileScopes, servicePortfolio, showcaseProperties, showOnlyMyPins, showPeople, showProperties, userProfile]);
   const mapInventoryPoints = useMemo(() => {
     const toFeature = (pin) => {
       if (pin?.sourceFeature) {
@@ -2070,32 +1322,12 @@ export function MapView({
 
     if (!nextQuery) {
       setFilterBounds(null);
-      setBoundaryGeoJson(null);
       setFitToBounds(null);
       return;
     }
 
-    setIsBoundaryLoading(true);
     const queryNormalized = normalizeText(nextQuery);
     const maxZoomByMode = locationMode === 'zip' ? 14 : locationMode === 'city' ? 10 : 7;
-
-    try {
-      const realBoundary = await fetchRealBoundary({ mode: locationMode, query: nextQuery });
-      if (realBoundary?.bounds) {
-        setFilterBounds(realBoundary.bounds);
-        setBoundaryGeoJson(realBoundary.geojson || null);
-        setFitToBounds({
-          bounds: realBoundary.bounds,
-          maxZoom: maxZoomByMode,
-          key: `real-${locationMode}-${queryNormalized}`,
-        });
-        return;
-      }
-    } catch {
-      // Fallback below handles offline/API failures.
-    } finally {
-      setIsBoundaryLoading(false);
-    }
 
     const fallbackPoints = mapInventoryPoints.filter((point) => {
       if (!queryNormalized) return true;
@@ -2106,7 +1338,6 @@ export function MapView({
 
     if (!fallbackPoints.length) {
       setFilterBounds(null);
-      setBoundaryGeoJson(null);
       setFitToBounds(null);
       return;
     }
@@ -2114,7 +1345,6 @@ export function MapView({
     const fallbackBounds = buildBoundsFromPoints(fallbackPoints, locationMode);
     if (!fallbackBounds) return;
     setFilterBounds(fallbackBounds);
-    setBoundaryGeoJson(null);
     setFitToBounds({
       bounds: fallbackBounds,
       maxZoom: maxZoomByMode,
@@ -3068,14 +2298,13 @@ export function MapView({
                     }
                   />
                   <div style={{ display: 'flex', gap: 6 }}>
-                    <button className="map-chip" onClick={applyLocationFilter}>{isBoundaryLoading ? tMap.searching : tMap.go}</button>
+                    <button className="map-chip" onClick={applyLocationFilter}>{tMap.go}</button>
                     <button
                       className="map-chip"
                       onClick={() => {
                         setLocationQuery('');
                         setAppliedLocationQuery('');
                         setFilterBounds(null);
-                        setBoundaryGeoJson(null);
                         setFitToBounds(null);
                       }}
                     >
@@ -3390,20 +2619,7 @@ export function MapView({
               )
             ))}
 
-            {boundaryGeoJson && (
-              <GeoJSON
-                data={boundaryGeoJson}
-                style={{
-                  color: GRAPHITE_DARK,
-                  weight: 2,
-                  fillColor: GRAPHITE_DARK,
-                  fillOpacity: 0.06,
-                  dashArray: '8 6',
-                }}
-              />
-            )}
-
-            {!boundaryGeoJson && filterBounds && (
+            {filterBounds && (
               <Rectangle
                 bounds={filterBounds}
                 pathOptions={{

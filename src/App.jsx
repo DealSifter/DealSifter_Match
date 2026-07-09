@@ -124,6 +124,7 @@ import {
   recordFeedActions,
 } from './services/feedActionService';
 import { hydrateUnlockState } from './services/unlockHydrationService';
+import { geocodePropertyAddress } from './services/geocodeAddressService';
 import {
   buildGlobalFeedState,
   fetchGlobalInventory,
@@ -3754,7 +3755,16 @@ export default function App() {
       try {
         if (userOwnedProperties.length === 0) return;
 
-        const payload = userOwnedProperties.map((property) => mapLocalPropertyToDb(property, supabaseUserId));
+        const payload = await Promise.all(userOwnedProperties.map(async (property) => {
+          const geocodeResult = await geocodePropertyAddress(property).catch((error) => {
+            safeLogError('Backend property geocode failed.', error);
+            return null;
+          });
+          return mapLocalPropertyToDb(
+            geocodeResult ? { ...property, ...geocodeResult } : property,
+            supabaseUserId
+          );
+        }));
         lastLocalSupabaseWriteAtRef.current = Date.now();
         let { error: upsertError } = await supabase
           .from('properties')
