@@ -194,10 +194,6 @@ export function Onboarding({
   const [previewPropertyIndex, setPreviewPropertyIndex] = useState(0);
   const [previewGroupIndex, setPreviewGroupIndex] = useState(0);
   const [previewMode, setPreviewMode] = useState('properties');
-  const previewShowcaseScrollRef = useRef(null);
-  const previewShowcaseScrollEndTimerRef = useRef(null);
-  const previewShowcaseTouchStartIdxRef = useRef(null);
-  const previewShowcaseTouchActiveRef = useRef(false);
   const onboardingGridRef = useRef(null);
 
   const [previewDragIndex, setPreviewDragIndex] = useState(null);
@@ -582,75 +578,6 @@ export function Onboarding({
     setPreviewByUnifiedIndex(previewUnifiedIndex + 1);
   };
 
-  const settlePreviewShowcaseIndex = useCallback((container) => {
-    if (!container) return;
-    const width = container.clientWidth || 0;
-    if (!width || previewShowcaseCount <= 1) return;
-
-    let nextUnifiedIdx = Math.round(container.scrollLeft / width);
-    nextUnifiedIdx = Math.max(0, Math.min(previewShowcaseCount - 1, nextUnifiedIdx));
-
-    if (previewShowcaseTouchActiveRef.current && Number.isFinite(previewShowcaseTouchStartIdxRef.current)) {
-      const startIdx = Number(previewShowcaseTouchStartIdxRef.current);
-      const minIdx = Math.max(0, startIdx - 1);
-      const maxIdx = Math.min(previewShowcaseCount - 1, startIdx + 1);
-      nextUnifiedIdx = Math.max(minIdx, Math.min(maxIdx, nextUnifiedIdx));
-
-      const targetLeft = width * nextUnifiedIdx;
-      if (Math.abs(container.scrollLeft - targetLeft) > 1) {
-        container.scrollTo({ left: targetLeft, behavior: 'smooth' });
-      }
-    }
-
-    setPreviewByUnifiedIndex(nextUnifiedIdx);
-    previewShowcaseTouchActiveRef.current = false;
-    previewShowcaseTouchStartIdxRef.current = null;
-  }, [previewShowcaseCount, setPreviewByUnifiedIndex]);
-
-  const queuePreviewShowcaseSettle = useCallback((container, delay = 90) => {
-    if (previewShowcaseScrollEndTimerRef.current) {
-      window.clearTimeout(previewShowcaseScrollEndTimerRef.current);
-    }
-    previewShowcaseScrollEndTimerRef.current = window.setTimeout(() => {
-      settlePreviewShowcaseIndex(container);
-      previewShowcaseScrollEndTimerRef.current = null;
-    }, delay);
-  }, [settlePreviewShowcaseIndex]);
-
-  const handlePreviewShowcaseScroll = (event) => {
-    if (previewShowcaseTouchActiveRef.current) return;
-    const container = event.currentTarget;
-    queuePreviewShowcaseSettle(container, 90);
-  };
-
-  const handlePreviewShowcaseTouchStart = () => {
-    previewShowcaseTouchActiveRef.current = true;
-    previewShowcaseTouchStartIdxRef.current = previewUnifiedIndex;
-  };
-
-  const handlePreviewShowcaseTouchEnd = (event) => {
-    const container = event.currentTarget;
-    queuePreviewShowcaseSettle(container, 80);
-  };
-
-  useEffect(() => {
-    return () => {
-      if (previewShowcaseScrollEndTimerRef.current) {
-        window.clearTimeout(previewShowcaseScrollEndTimerRef.current);
-        previewShowcaseScrollEndTimerRef.current = null;
-      }
-    };
-  }, []);
-
-  useEffect(() => {
-    if (!previewOpen) return;
-    if (previewShowcaseCount <= 1) return;
-    const container = previewShowcaseScrollRef.current;
-    if (!container) return;
-    const width = container.clientWidth || 0;
-    if (!width) return;
-    container.scrollTo({ left: width * previewUnifiedIndex, behavior: isMobileViewport ? 'auto' : 'smooth' });
-  }, [previewOpen, previewUnifiedIndex, previewShowcaseCount, isMobileViewport]);
   const registeredServiceSkills = useMemo(() => {
     const raw = myServicePortfolio.flatMap((svc) => [svc?.category, svc?.title]);
     return Array.from(new Set(raw.map((x) => String(x || '').trim()).filter(Boolean)));
@@ -1144,9 +1071,34 @@ export function Onboarding({
     return (
       <div style={{ display: 'grid', gridTemplateColumns: isMobileViewport ? '1fr' : `minmax(${previewCardWidth}px, 1fr) minmax(${previewCardWidth}px, 1fr)`, gap: isMobileViewport ? 14 : 18, alignItems: 'stretch' }}>
         {/* â”€â”€ Left: Feed / Connection Card â”€â”€ */}
-        <section style={{ border: `1px solid ${C.border}`, borderRadius: 14, background: C.card, overflow: 'hidden', display: 'grid', gridTemplateRows: 'auto 1fr' }}>
-          <div style={{ minHeight: 44, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '8px 10px', borderBottom: `1px solid ${C.border}`, fontSize: 11, color: C.t3, textTransform: 'uppercase', fontWeight: 700 }}>
-            {personalPreviewTitle}
+        <section style={{ border: `1px solid ${C.border}`, borderRadius: 14, background: C.card, overflow: 'hidden', display: 'grid', gridTemplateRows: 'auto 1fr auto' }}>
+          <div style={{ minHeight: 44, display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 10, padding: '8px 10px', borderBottom: `1px solid ${C.border}`, fontSize: 11, color: C.t3, textTransform: 'uppercase', fontWeight: 700 }}>
+            <span>{personalPreviewTitle}</span>
+            {previewShowcaseCount > 1 ? (
+              <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                <button
+                  type="button"
+                  aria-label="Previous profile"
+                  disabled={previewUnifiedIndex <= 0}
+                  onClick={handlePreviewPrev}
+                  style={{ border: 'none', background: 'transparent', cursor: previewUnifiedIndex <= 0 ? 'not-allowed' : 'pointer', padding: 4, borderRadius: 999, display: 'flex', alignItems: 'center', justifyContent: 'center' }}
+                >
+                  <Icon name="chevronLeft" size={22} color={previewUnifiedIndex <= 0 ? C.t3 : C.t1} />
+                </button>
+                <span style={{ fontSize: 11, color: C.t2, minWidth: 48, textAlign: 'center', display: 'inline-block' }}>
+                  {previewUnifiedIndex + 1} / {previewShowcaseCount}
+                </span>
+                <button
+                  type="button"
+                  aria-label="Next profile"
+                  disabled={previewUnifiedIndex >= previewShowcaseCount - 1}
+                  onClick={handlePreviewNext}
+                  style={{ border: 'none', background: 'transparent', cursor: previewUnifiedIndex >= previewShowcaseCount - 1 ? 'not-allowed' : 'pointer', padding: 4, borderRadius: 999, display: 'flex', alignItems: 'center', justifyContent: 'center' }}
+                >
+                  <Icon name="chevronRight" size={22} color={previewUnifiedIndex >= previewShowcaseCount - 1 ? C.t3 : C.t1} />
+                </button>
+              </div>
+            ) : null}
           </div>
           <div style={{
             padding: 12,
@@ -1170,153 +1122,112 @@ export function Onboarding({
               />
             </div>
           </div>
-        </section>
-
-        {/* â”€â”€ Right: Showcase / Portfolio Cards â”€â”€ */}
-
-        <section style={{ border: `1px solid ${C.border}`, borderRadius: 14, background: C.card, overflow: 'hidden', display: 'grid', gridTemplateRows: 'auto 1fr auto' }}>
-          <div style={{ minHeight: 44, display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '8px 10px', borderBottom: `1px solid ${C.border}`, fontSize: 11, color: C.t3, textTransform: 'uppercase', fontWeight: 700 }}>
-            <span>{t.previewShowcaseCardTitle}</span>
-            {previewShowcaseCount > 1 ? (
-              <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                <button
-                  type="button"
-                  aria-label="Anterior"
-                  disabled={previewUnifiedIndex <= 0}
-                  onClick={handlePreviewPrev}
-                  style={{ border: 'none', background: 'transparent', cursor: previewUnifiedIndex <= 0 ? 'not-allowed' : 'pointer', padding: 4, borderRadius: 999, display: 'flex', alignItems: 'center', justifyContent: 'center' }}
-                >
-                  <Icon name="chevronLeft" size={22} color={previewUnifiedIndex <= 0 ? C.t3 : C.t1} />
-                </button>
-                <span style={{ fontSize: 11, color: C.t2, minWidth: 48, textAlign: 'center', display: 'inline-block' }}>
-                  {previewUnifiedIndex + 1} / {previewShowcaseCount}
-                </span>
-                <button
-                  type="button"
-                  aria-label="Próximo"
-                  disabled={previewUnifiedIndex >= previewShowcaseCount - 1}
-                  onClick={handlePreviewNext}
-                  style={{ border: 'none', background: 'transparent', cursor: previewUnifiedIndex >= previewShowcaseCount - 1 ? 'not-allowed' : 'pointer', padding: 4, borderRadius: 999, display: 'flex', alignItems: 'center', justifyContent: 'center' }}
-                >
-                  <Icon name="chevronRight" size={22} color={previewUnifiedIndex >= previewShowcaseCount - 1 ? C.t3 : C.t1} />
-                </button>
-              </div>
-            ) : null}
-          </div>
-          {hasPreviewItems ? (
-            <div
-              ref={previewShowcaseScrollRef}
-              className="onb-preview-showcase-scroll"
-              onScroll={handlePreviewShowcaseScroll}
-              onTouchStart={handlePreviewShowcaseTouchStart}
-              onTouchEnd={handlePreviewShowcaseTouchEnd}
-              onTouchCancel={handlePreviewShowcaseTouchEnd}
-              style={{
-                display: 'flex',
-                overflowX: 'auto',
-                overflowY: 'hidden',
-                scrollSnapType: 'x mandatory',
-                WebkitOverflowScrolling: 'touch',
-                touchAction: 'pan-x',
-                minHeight: previewDeckHeight,
-              }}
-            >
-              {previewShowcaseItems.map((item, idx) => {
-                const groupScope = item.profileScope;
-                const groupProfileCard = groupScope === 'professional'
-                  ? previewProfessionalFeedCard
-                  : (groupScope === 'fsbo' ? previewFsboFeedCard : previewPersonalFeedCard);
-                const groupItems = [
-                  ...(item.properties || []).map((property) => ({ kind: 'property', data: property })),
-                  ...(item.services || []).map((service) => ({ kind: 'service', data: service })),
-                ];
-                return (
-                  <div key={`preview-showcase-item-${item.kind}-${item.data?.id || idx}`} style={{ flex: '0 0 100%', width: '100%', scrollSnapAlign: 'start', scrollSnapStop: 'always' }}>
-                    <div style={{ padding: 12, minHeight: previewDeckHeight, maxHeight: previewDeckHeight, overflowY: 'auto', boxSizing: 'border-box', WebkitOverflowScrolling: 'touch' }}>
-                      <div style={{ width: `min(${previewCardWidth}px, 100%)`, margin: '0 auto 12px', boxSizing: 'border-box' }}>
-                        <div style={{ height: Math.min(previewCardHeight, isMobileViewport ? 420 : 310), marginBottom: 12 }}>
-                          <SwipeCard
-                            card={groupProfileCard}
-                            action={null}
-                            isUnlocked
-                            isSkipped={false}
-                            previewOnly
-                            showActions={false}
-                            onSwipe={() => {}}
-                            onUndo={() => {}}
-                          />
-                        </div>
-                        <div style={{ display: 'grid', gap: 12 }}>
-                          {groupItems.map((entry, entryIdx) => {
-                            if (entry.kind === 'property') {
-                              return (
-                                <div key={`preview-group-property-${entry.data?.id || entryIdx}`} style={{ height: previewCardHeight }}>
-                                  <PropertyCard
-                                    property={entry.data}
-                                    action={null}
-                                    statusAction={null}
-                                    previewOnly
-                                    onInterest={(act) => {
-                                      try { if (act === 'next' || act === 'pass') handlePreviewNext(); } catch (e) { void e; }
-                                    }}
-                                    owner={groupProfileCard}
-                                  />
-                                </div>
-                              );
-                            }
-                            const svc = entry.data;
-                            const svcImages = (svc?.media?.images || []).filter(Boolean);
-                            return (
-                              <div key={`preview-group-service-${svc?.id || entryIdx}`} style={{ padding: 12, border: `1px solid ${C.border}`, borderRadius: 16, boxSizing: 'border-box' }}>
-                                <div style={{ marginBottom: 8 }}>
-                                  <div style={{ fontSize: 14, fontWeight: 700, color: C.t1 }}>{svc?.title || t.serviceFallbackName}</div>
-                                  {svc?.description && <div style={{ fontSize: 12, color: C.t2, marginTop: 2 }}>{svc.description}</div>}
-                                  {svc?.category && <div style={{ display: 'inline-block', marginTop: 4, padding: '2px 8px', borderRadius: 12, background: C.alpha(C.accent, 0.08), border: `1px solid ${C.alpha(C.accent, 0.15)}`, fontSize: 10, color: C.accent, fontWeight: 700 }}>{svc.category}</div>}
-                                </div>
-                                {svcImages.length > 0 ? (
-                                  <div style={{ display: 'grid', gridTemplateColumns: svcImages.length === 1 ? '1fr' : 'repeat(auto-fill, minmax(120px, 1fr))', gap: 8 }}>
-                                    {svcImages.map((src, imageIdx) => (
-                                      <div key={`svc-prev-img-${idx}-${entryIdx}-${imageIdx}`} style={{ position: 'relative', aspectRatio: svcImages.length === 1 ? '16/9' : '1', borderRadius: 8, overflow: 'hidden', background: C.alpha(C.t1, 0.06), border: `1px solid ${C.border}` }}>
-                                        <SmartImage src={src} alt={svc?.title || ''} style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }} />
-                                      </div>
-                                    ))}
-                                  </div>
-                                ) : (
-                                  <div style={{ height: 160, border: `1px dashed ${C.border}`, borderRadius: 12, display: 'flex', alignItems: 'center', justifyContent: 'center', color: C.t3, fontSize: 12 }}>
-                                    {t.uploadedImagesEmpty}
-                                  </div>
-                                )}
-                              </div>
-                            );
-                          })}
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-                );
-              })}
-            </div>
-          ) : (
-            <div style={{ margin: 12, height: isMobileViewport ? 260 : previewDeckHeight, border: `1px dashed ${C.border}`, borderRadius: 12, display: 'flex', alignItems: 'center', justifyContent: 'center', color: C.t3, fontSize: 12 }}>
-              {t.recordsNoProperty}
-            </div>
-          )}
           {previewShowcaseCount > 1 ? (
             <div style={{ padding: '0 12px 12px', display: 'flex', justifyContent: 'center', alignItems: 'center', gap: 6 }}>
               {previewShowcaseItems.map((entry, dotIdx) => {
                 const isActive = dotIdx === previewUnifiedIndex;
                 return (
                   <button
-                    key={`preview-dot-${entry.kind}-${entry.data?.id || dotIdx}`}
+                    key={`preview-profile-dot-${entry.profileScope || dotIdx}`}
                     type="button"
                     onClick={() => setPreviewByUnifiedIndex(dotIdx)}
-                    aria-label={`Ir para card ${dotIdx + 1}`}
+                    aria-label={`Profile card ${dotIdx + 1}`}
                     style={{ width: isActive ? 16 : 8, height: 8, borderRadius: 999, border: 'none', background: isActive ? C.accent : C.alpha(C.t1, 0.2), cursor: 'pointer', transition: 'all .15s ease' }}
                   />
                 );
               })}
             </div>
           ) : null}
+        </section>
+
+        {/* â”€â”€ Right: Showcase / Portfolio Cards â”€â”€ */}
+
+        <section style={{ border: `1px solid ${C.border}`, borderRadius: 14, background: C.card, overflow: 'hidden', display: 'grid', gridTemplateRows: 'auto 1fr' }}>
+          <div style={{ minHeight: 44, display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '8px 10px', borderBottom: `1px solid ${C.border}`, fontSize: 11, color: C.t3, textTransform: 'uppercase', fontWeight: 700 }}>
+            <span>{t.previewShowcaseCardTitle}</span>
+          </div>
+          {hasPreviewItems ? (
+            <div
+              className="onb-preview-showcase-scroll"
+              style={{
+                overflowY: 'auto',
+                overflowX: 'hidden',
+                WebkitOverflowScrolling: 'touch',
+                touchAction: 'pan-y',
+                minHeight: previewDeckHeight,
+                maxHeight: previewDeckHeight,
+                padding: 12,
+                boxSizing: 'border-box',
+              }}
+            >
+              {(() => {
+                const item = activePreviewGroup;
+                const groupScope = item?.profileScope;
+                const groupProfileCard = activePreviewFeedCard;
+                const groupItems = [
+                  ...(item?.properties || []).map((property) => ({ kind: 'property', data: property })),
+                  ...(item?.services || []).map((service) => ({ kind: 'service', data: service })),
+                ];
+                if (!item || groupItems.length === 0) {
+                  return (
+                    <div style={{ height: isMobileViewport ? 260 : previewDeckHeight - 24, border: `1px dashed ${C.border}`, borderRadius: 12, display: 'flex', alignItems: 'center', justifyContent: 'center', color: C.t3, fontSize: 12 }}>
+                      {t.recordsNoProperty}
+                    </div>
+                  );
+                }
+                return (
+                  <div key={`preview-linked-items-${groupScope || previewUnifiedIndex}`} style={{ width: `min(${previewCardWidth}px, 100%)`, margin: '0 auto', display: 'grid', gap: 12, boxSizing: 'border-box' }}>
+                    {groupItems.map((entry, entryIdx) => {
+                      if (entry.kind === 'property') {
+                        return (
+                          <div key={`preview-group-property-${entry.data?.id || entryIdx}`} style={{ height: previewCardHeight }}>
+                            <PropertyCard
+                              property={entry.data}
+                              action={null}
+                              statusAction={null}
+                              previewOnly
+                              onInterest={(act) => {
+                                try { if (act === 'next' || act === 'pass') handlePreviewNext(); } catch (e) { void e; }
+                              }}
+                              owner={groupProfileCard}
+                            />
+                          </div>
+                        );
+                      }
+                      const svc = entry.data;
+                      const svcImages = (svc?.media?.images || []).filter(Boolean);
+                      return (
+                        <div key={`preview-group-service-${svc?.id || entryIdx}`} style={{ padding: 12, border: `1px solid ${C.border}`, borderRadius: 16, boxSizing: 'border-box' }}>
+                          <div style={{ marginBottom: 8 }}>
+                            <div style={{ fontSize: 14, fontWeight: 700, color: C.t1 }}>{svc?.title || t.serviceFallbackName}</div>
+                            {svc?.description && <div style={{ fontSize: 12, color: C.t2, marginTop: 2 }}>{svc.description}</div>}
+                            {svc?.category && <div style={{ display: 'inline-block', marginTop: 4, padding: '2px 8px', borderRadius: 12, background: C.alpha(C.accent, 0.08), border: `1px solid ${C.alpha(C.accent, 0.15)}`, fontSize: 10, color: C.accent, fontWeight: 700 }}>{svc.category}</div>}
+                          </div>
+                          {svcImages.length > 0 ? (
+                            <div style={{ display: 'grid', gridTemplateColumns: svcImages.length === 1 ? '1fr' : 'repeat(auto-fill, minmax(120px, 1fr))', gap: 8 }}>
+                              {svcImages.map((src, imageIdx) => (
+                                <div key={`svc-prev-img-${previewUnifiedIndex}-${entryIdx}-${imageIdx}`} style={{ position: 'relative', aspectRatio: svcImages.length === 1 ? '16/9' : '1', borderRadius: 8, overflow: 'hidden', background: C.alpha(C.t1, 0.06), border: `1px solid ${C.border}` }}>
+                                  <SmartImage src={src} alt={svc?.title || ''} style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }} />
+                                </div>
+                              ))}
+                            </div>
+                          ) : (
+                            <div style={{ height: 160, border: `1px dashed ${C.border}`, borderRadius: 12, display: 'flex', alignItems: 'center', justifyContent: 'center', color: C.t3, fontSize: 12 }}>
+                              {t.uploadedImagesEmpty}
+                            </div>
+                          )}
+                        </div>
+                      );
+                    })}
+                  </div>
+                );
+              })()}
+            </div>
+          ) : (
+            <div style={{ margin: 12, height: isMobileViewport ? 260 : previewDeckHeight, border: `1px dashed ${C.border}`, borderRadius: 12, display: 'flex', alignItems: 'center', justifyContent: 'center', color: C.t3, fontSize: 12 }}>
+              {t.recordsNoProperty}
+            </div>
+          )}
         </section>
       </div>
     );
