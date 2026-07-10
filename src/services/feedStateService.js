@@ -104,7 +104,7 @@ const getScopedProfilePhoto = ({ payloadScope, payloadProfile, scope }) => {
   if (normalizedScope === 'professional') {
     return pickFirstString(payloadScope?.photo, payloadProfile?.photo, payloadProfile?.photoB, payloadProfile?.photoBUrl);
   }
-  if (normalizedScope === 'fsbo') return pickFirstString(payloadScope?.photo, payloadProfile?.photo);
+  if (normalizedScope === 'fsbo') return pickFirstString(payloadScope?.photo, payloadProfile?.photoFsbo, payloadProfile?.fsboPhoto, payloadProfile?.photo);
   return pickFirstString(payloadScope?.photo, payloadProfile?.photo, payloadProfile?.photoA);
 };
 
@@ -129,7 +129,7 @@ const buildOwnerPreview = ({ ownerId, scope, userRow, personalRow, professionalR
   const name = isProfessional
     ? pickIdentityName(payloadScope?.name, payloadProfile?.fullName, payloadProfile?.fullNameB, professionalRow?.full_name)
     : isFsbo
-      ? pickIdentityName(payloadScope?.name, payloadScope?.fullName, payloadProfile?.fullName, personalRow?.full_name)
+      ? pickIdentityName(payloadScope?.name, payloadScope?.fullName, payloadProfile?.fullNameFsbo, payloadProfile?.fsboFullName, payloadProfile?.fullName, personalRow?.full_name)
       : pickIdentityName(payloadProfile?.fullName, payloadScope?.name);
   if (!name || isLikelyNonIdentityName(name)) return null;
 

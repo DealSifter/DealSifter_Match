@@ -101,21 +101,41 @@ export function Onboarding({
   })();
   const savedThumbA = Object.prototype.hasOwnProperty.call(_savedTemp, 'profileThumb')
     ? (_savedTemp.profileThumb || '')
-    : (accountType === 'professional' ? (professionalProfile?.photoA || '') : (personalProfile?.photo || ''));
+    : (accountType === 'professional'
+      ? (professionalProfile?.photoA || '')
+      : (accountType === 'fsbo_owner'
+        ? (personalProfile?.photoFsbo || personalProfile?.fsboPhoto || personalProfile?.photo || '')
+        : (personalProfile?.photo || '')));
   const savedThumbB = Object.prototype.hasOwnProperty.call(_savedTemp, 'profileThumbB')
     ? (_savedTemp.profileThumbB || '')
     : (professionalProfile?.photoB || '');
-  const [name, setName] = useState(accountType === 'professional' ? (professionalProfile?.fullNameA || '') : (personalProfile?.fullName || ''));
-  const [loc, setLoc] = useState(normalizeUsStateCode(accountType === 'professional' ? professionalProfile?.locA : personalProfile?.loc));
+  const [name, setName] = useState(accountType === 'professional'
+    ? (professionalProfile?.fullNameA || '')
+    : (accountType === 'fsbo_owner'
+      ? (personalProfile?.fullNameFsbo || personalProfile?.fsboFullName || personalProfile?.fullName || '')
+      : (personalProfile?.fullName || '')));
+  const [loc, setLoc] = useState(normalizeUsStateCode(accountType === 'professional'
+    ? professionalProfile?.locA
+    : (accountType === 'fsbo_owner' ? (personalProfile?.locFsbo || personalProfile?.fsboLoc || personalProfile?.loc) : personalProfile?.loc)));
   const [selectedCategories, setSelectedCategories] = useState(professionalProfile?.categories || []);
   const [primaryCategory, setPrimaryCategory] = useState(professionalProfile?.primaryCategory || (professionalProfile?.categories || [])[0] || '');
   const [profileThumb, setProfileThumb] = useState(savedThumbA);
   const [profileThumbClearRequested, setProfileThumbClearRequested] = useState(false);
-  const [contactMethods, setContactMethods] = useState(accountType === 'professional' ? (professionalProfile?.contactMethodsA || []) : (personalProfile?.contactMethods || []));
-  const [personalPrimaryPhone, setPersonalPrimaryPhone] = useState(accountType === 'professional' ? (professionalProfile?.primaryPhoneA || professionalProfile?.phoneA || '') : (personalProfile?.primaryPhone || personalProfile?.phone || ''));
-  const [personalSecondaryPhone, setPersonalSecondaryPhone] = useState(accountType === 'professional' ? (professionalProfile?.secondaryPhoneA || '') : (personalProfile?.secondaryPhone || ''));
-  const [personalTertiaryPhone, setPersonalTertiaryPhone] = useState(accountType === 'professional' ? (professionalProfile?.tertiaryPhoneA || '') : (personalProfile?.tertiaryPhone || ''));
-  const [personalEmail, setPersonalEmail] = useState(accountType === 'professional' ? (professionalProfile?.emailA || '') : (personalProfile?.email || ''));
+  const [contactMethods, setContactMethods] = useState(accountType === 'professional'
+    ? (professionalProfile?.contactMethodsA || [])
+    : (accountType === 'fsbo_owner' ? (personalProfile?.contactMethodsFsbo || personalProfile?.fsboContactMethods || personalProfile?.contactMethods || []) : (personalProfile?.contactMethods || [])));
+  const [personalPrimaryPhone, setPersonalPrimaryPhone] = useState(accountType === 'professional'
+    ? (professionalProfile?.primaryPhoneA || professionalProfile?.phoneA || '')
+    : (accountType === 'fsbo_owner' ? (personalProfile?.primaryPhoneFsbo || personalProfile?.phoneFsbo || personalProfile?.primaryPhone || personalProfile?.phone || '') : (personalProfile?.primaryPhone || personalProfile?.phone || '')));
+  const [personalSecondaryPhone, setPersonalSecondaryPhone] = useState(accountType === 'professional'
+    ? (professionalProfile?.secondaryPhoneA || '')
+    : (accountType === 'fsbo_owner' ? (personalProfile?.secondaryPhoneFsbo || personalProfile?.secondaryPhone || '') : (personalProfile?.secondaryPhone || '')));
+  const [personalTertiaryPhone, setPersonalTertiaryPhone] = useState(accountType === 'professional'
+    ? (professionalProfile?.tertiaryPhoneA || '')
+    : (accountType === 'fsbo_owner' ? (personalProfile?.tertiaryPhoneFsbo || personalProfile?.tertiaryPhone || '') : (personalProfile?.tertiaryPhone || '')));
+  const [personalEmail, setPersonalEmail] = useState(accountType === 'professional'
+    ? (professionalProfile?.emailA || '')
+    : (accountType === 'fsbo_owner' ? (personalProfile?.emailFsbo || personalProfile?.fsboEmail || personalProfile?.email || '') : (personalProfile?.email || '')));
   const hasExplicitPriorityA = accountType === 'professional'
     ? professionalProfile?.cardPriorityAExplicit === true
     : (professionalProfile?.cardPriorityAExplicit === true || personalProfile?.cardPriorityAExplicit === true);
@@ -193,8 +213,10 @@ export function Onboarding({
   const [previewServiceIndex, setPreviewServiceIndex] = useState(0);
   const [previewPropertyIndex, setPreviewPropertyIndex] = useState(0);
   const [previewGroupIndex, setPreviewGroupIndex] = useState(0);
+  const [previewLinkedItemIndex, setPreviewLinkedItemIndex] = useState(0);
   const [previewMode, setPreviewMode] = useState('properties');
   const onboardingGridRef = useRef(null);
+  const previewShowcaseScrollRef = useRef(null);
 
   const [previewDragIndex, setPreviewDragIndex] = useState(null);
   const [previewDragOverIndex, setPreviewDragOverIndex] = useState(null);
@@ -553,6 +575,7 @@ export function Onboarding({
     const normalized = Math.max(0, Math.min(total - 1, Number(nextUnifiedIndex) || 0));
     const group = previewShowcaseItems[normalized];
     setPreviewGroupIndex(normalized);
+    setPreviewLinkedItemIndex(0);
     if ((group?.properties || []).length > 0) {
       setPreviewMode('properties');
       setPreviewPropertyIndex(0);
@@ -577,6 +600,37 @@ export function Onboarding({
     if (!previewShowcaseCount) return;
     setPreviewByUnifiedIndex(previewUnifiedIndex + 1);
   };
+
+  useEffect(() => {
+    setPreviewLinkedItemIndex(0);
+  }, [previewUnifiedIndex]);
+
+  useEffect(() => {
+    const group = previewShowcaseItems[previewUnifiedIndex] || null;
+    const linkedCount = (group?.properties || []).length + (group?.services || []).length;
+    if (!linkedCount && previewLinkedItemIndex !== 0) {
+      setPreviewLinkedItemIndex(0);
+      return;
+    }
+    if (linkedCount > 0 && previewLinkedItemIndex >= linkedCount) {
+      setPreviewLinkedItemIndex(linkedCount - 1);
+    }
+  }, [previewLinkedItemIndex, previewShowcaseItems, previewUnifiedIndex]);
+
+  useEffect(() => {
+    if (!previewOpen) return;
+    const timer = window.setTimeout(() => {
+      const container = previewShowcaseScrollRef.current;
+      const target = container?.querySelector?.(`[data-preview-linked-index="${previewLinkedItemIndex}"]`);
+      if (!container || !target) return;
+      try {
+        target.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
+      } catch {
+        target.scrollIntoView();
+      }
+    }, 0);
+    return () => window.clearTimeout(timer);
+  }, [previewLinkedItemIndex, previewOpen, previewUnifiedIndex]);
 
   const registeredServiceSkills = useMemo(() => {
     const raw = myServicePortfolio.flatMap((svc) => [svc?.category, svc?.title]);
@@ -1049,6 +1103,11 @@ export function Onboarding({
     const hasPreviewService = servicesForPreview.length > 0;
     const hasPreviewItems = hasPreviewProperty || hasPreviewService;
     const activePreviewGroup = previewShowcaseItems[previewUnifiedIndex] || previewShowcaseItems[0] || null;
+    const activePreviewLinkedItems = [
+      ...(activePreviewGroup?.properties || []).map((property) => ({ kind: 'property', data: property })),
+      ...(activePreviewGroup?.services || []).map((service) => ({ kind: 'service', data: service })),
+    ];
+    const activePreviewLinkedCount = activePreviewLinkedItems.length;
     const activePreviewProfileScope = (() => {
       if (activePreviewGroup?.profileScope) return activePreviewGroup.profileScope;
       if (previewMode === 'properties') {
@@ -1143,11 +1202,37 @@ export function Onboarding({
         {/* â”€â”€ Right: Showcase / Portfolio Cards â”€â”€ */}
 
         <section style={{ border: `1px solid ${C.border}`, borderRadius: 14, background: C.card, overflow: 'hidden', display: 'grid', gridTemplateRows: 'auto 1fr' }}>
-          <div style={{ minHeight: 44, display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '8px 10px', borderBottom: `1px solid ${C.border}`, fontSize: 11, color: C.t3, textTransform: 'uppercase', fontWeight: 700 }}>
+          <div style={{ minHeight: 44, display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 10, padding: '8px 10px', borderBottom: `1px solid ${C.border}`, fontSize: 11, color: C.t3, textTransform: 'uppercase', fontWeight: 700 }}>
             <span>{t.previewShowcaseCardTitle}</span>
+            {activePreviewLinkedCount > 1 ? (
+              <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                <button
+                  type="button"
+                  aria-label="Previous linked card"
+                  disabled={previewLinkedItemIndex <= 0}
+                  onClick={() => setPreviewLinkedItemIndex((idx) => Math.max(0, idx - 1))}
+                  style={{ border: 'none', background: 'transparent', cursor: previewLinkedItemIndex <= 0 ? 'not-allowed' : 'pointer', padding: 4, borderRadius: 999, display: 'flex', alignItems: 'center', justifyContent: 'center' }}
+                >
+                  <Icon name="chevronLeft" size={22} color={previewLinkedItemIndex <= 0 ? C.t3 : C.t1} />
+                </button>
+                <span style={{ fontSize: 11, color: C.t2, minWidth: 48, textAlign: 'center', display: 'inline-block' }}>
+                  {Math.min(previewLinkedItemIndex + 1, activePreviewLinkedCount)} / {activePreviewLinkedCount}
+                </span>
+                <button
+                  type="button"
+                  aria-label="Next linked card"
+                  disabled={previewLinkedItemIndex >= activePreviewLinkedCount - 1}
+                  onClick={() => setPreviewLinkedItemIndex((idx) => Math.min(activePreviewLinkedCount - 1, idx + 1))}
+                  style={{ border: 'none', background: 'transparent', cursor: previewLinkedItemIndex >= activePreviewLinkedCount - 1 ? 'not-allowed' : 'pointer', padding: 4, borderRadius: 999, display: 'flex', alignItems: 'center', justifyContent: 'center' }}
+                >
+                  <Icon name="chevronRight" size={22} color={previewLinkedItemIndex >= activePreviewLinkedCount - 1 ? C.t3 : C.t1} />
+                </button>
+              </div>
+            ) : null}
           </div>
           {hasPreviewItems ? (
             <div
+              ref={previewShowcaseScrollRef}
               className="onb-preview-showcase-scroll"
               style={{
                 overflowY: 'auto',
@@ -1164,10 +1249,7 @@ export function Onboarding({
                 const item = activePreviewGroup;
                 const groupScope = item?.profileScope;
                 const groupProfileCard = activePreviewFeedCard;
-                const groupItems = [
-                  ...(item?.properties || []).map((property) => ({ kind: 'property', data: property })),
-                  ...(item?.services || []).map((service) => ({ kind: 'service', data: service })),
-                ];
+                const groupItems = activePreviewLinkedItems;
                 if (!item || groupItems.length === 0) {
                   return (
                     <div style={{ height: isMobileViewport ? 260 : previewDeckHeight - 24, border: `1px dashed ${C.border}`, borderRadius: 12, display: 'flex', alignItems: 'center', justifyContent: 'center', color: C.t3, fontSize: 12 }}>
@@ -1180,7 +1262,7 @@ export function Onboarding({
                     {groupItems.map((entry, entryIdx) => {
                       if (entry.kind === 'property') {
                         return (
-                          <div key={`preview-group-property-${entry.data?.id || entryIdx}`} style={{ height: isMobileViewport ? 'auto' : previewCardHeight, minHeight: isMobileViewport ? previewCardHeight : undefined }}>
+                          <div data-preview-linked-index={entryIdx} key={`preview-group-property-${entry.data?.id || entryIdx}`} style={{ height: isMobileViewport ? 'auto' : previewCardHeight, minHeight: isMobileViewport ? previewCardHeight : undefined }}>
                             <PropertyCard
                               property={entry.data}
                               action={null}
@@ -1197,7 +1279,7 @@ export function Onboarding({
                       const svc = entry.data;
                       const svcImages = (svc?.media?.images || []).filter(Boolean);
                       return (
-                        <div key={`preview-group-service-${svc?.id || entryIdx}`} style={{ padding: 12, border: `1px solid ${C.border}`, borderRadius: 16, boxSizing: 'border-box' }}>
+                        <div data-preview-linked-index={entryIdx} key={`preview-group-service-${svc?.id || entryIdx}`} style={{ padding: 12, border: `1px solid ${C.border}`, borderRadius: 16, boxSizing: 'border-box' }}>
                           <div style={{ marginBottom: 8 }}>
                             <div style={{ fontSize: 14, fontWeight: 700, color: C.t1 }}>{svc?.title || t.serviceFallbackName}</div>
                             {svc?.description && <div style={{ fontSize: 12, color: C.t2, marginTop: 2 }}>{svc.description}</div>}
@@ -1414,13 +1496,13 @@ export function Onboarding({
     if (pendingProfileClearScope) return undefined;
     const timer = window.setTimeout(() => {
       if (accountType === 'fsbo_owner') {
-        setName(personalProfile?.fullName || '');
-        setLoc(normalizeUsStateCode(personalProfile?.loc));
-        setContactMethods(personalProfile?.contactMethods || []);
-        setPersonalPrimaryPhone(personalProfile?.primaryPhone || personalProfile?.phone || '');
-        setPersonalSecondaryPhone(personalProfile?.secondaryPhone || '');
-        setPersonalTertiaryPhone(personalProfile?.tertiaryPhone || '');
-        setPersonalEmail(personalProfile?.email || '');
+        setName(personalProfile?.fullNameFsbo || personalProfile?.fsboFullName || personalProfile?.fullName || '');
+        setLoc(normalizeUsStateCode(personalProfile?.locFsbo || personalProfile?.fsboLoc || personalProfile?.loc));
+        setContactMethods(personalProfile?.contactMethodsFsbo || personalProfile?.fsboContactMethods || personalProfile?.contactMethods || []);
+        setPersonalPrimaryPhone(personalProfile?.primaryPhoneFsbo || personalProfile?.phoneFsbo || personalProfile?.primaryPhone || personalProfile?.phone || '');
+        setPersonalSecondaryPhone(personalProfile?.secondaryPhoneFsbo || personalProfile?.secondaryPhone || '');
+        setPersonalTertiaryPhone(personalProfile?.tertiaryPhoneFsbo || personalProfile?.tertiaryPhone || '');
+        setPersonalEmail(personalProfile?.emailFsbo || personalProfile?.fsboEmail || personalProfile?.email || '');
         const priorityBExplicit = professionalProfile?.cardPriorityBExplicit === true;
         const priorityCExplicit = personalProfile?.cardPriorityCExplicit === true || professionalProfile?.cardPriorityCExplicit === true;
         applyCardPrioritySet({
@@ -1430,7 +1512,7 @@ export function Onboarding({
             ? (readStoredPriority(personalProfile, 'cardPriorityC') || readStoredPriority(professionalProfile, 'cardPriorityC'))
             : '',
         }, 'C');
-        setProfileThumb(personalProfile?.photo || '');
+        setProfileThumb(personalProfile?.photoFsbo || personalProfile?.fsboPhoto || personalProfile?.photo || '');
         setProfileThumbB(professionalProfile?.photoB || '');
         setSelectedCategories([]);
         setPrimaryCategory('');
@@ -2458,20 +2540,25 @@ export function Onboarding({
       if (accountType === 'fsbo_owner') {
         const nextPersonalProfile = {
           ...(personalProfile || {}),
-          fullName: name || '',
-          loc: normalizeUsStateCode(loc),
-          photo: profileThumb || '',
-          photoClearRequested: profileThumbClearRequested === true,
-          phone: personalPrimaryPhone,
-          primaryPhone: personalPrimaryPhone,
-          secondaryPhone: personalSecondaryPhone,
-          tertiaryPhone: personalTertiaryPhone,
-          email: personalEmail,
+          fullNameFsbo: name || '',
+          fsboFullName: name || '',
+          locFsbo: normalizeUsStateCode(loc),
+          fsboLoc: normalizeUsStateCode(loc),
+          photoFsbo: profileThumb || '',
+          fsboPhoto: profileThumb || '',
+          photoFsboClearRequested: profileThumbClearRequested === true,
+          phoneFsbo: personalPrimaryPhone,
+          primaryPhoneFsbo: personalPrimaryPhone,
+          secondaryPhoneFsbo: personalSecondaryPhone,
+          tertiaryPhoneFsbo: personalTertiaryPhone,
+          emailFsbo: personalEmail,
+          fsboEmail: personalEmail,
           cardPriorityC: safeCardPriorities.C,
           cardPriorityA: '',
           cardPriorityAExplicit: false,
           cardPriorityCExplicit: Boolean(safeCardPriorities.C),
-          contactMethods,
+          contactMethodsFsbo: contactMethods,
+          fsboContactMethods: contactMethods,
           visibility: 'profile_only',
         };
         const nextProfessionalProfile = {
@@ -2717,20 +2804,25 @@ export function Onboarding({
     if (accountType === 'fsbo_owner') {
       setPersonalProfile((prev) => ({
         ...prev,
-        fullName: finalName,
-        loc: effectiveLoc || normalizeUsStateCode(prev.loc) || '',
-        photo: profileThumb || '',
-        photoClearRequested: profileThumbClearRequested === true,
-        phone: effectivePrimaryPhone,
-        primaryPhone: effectivePrimaryPhone,
-        secondaryPhone: effectiveSecondaryPhone,
-        tertiaryPhone: effectiveTertiaryPhone,
-        email: effectiveEmail,
+        fullNameFsbo: finalName,
+        fsboFullName: finalName,
+        locFsbo: effectiveLoc || normalizeUsStateCode(prev.locFsbo || prev.fsboLoc || '') || '',
+        fsboLoc: effectiveLoc || normalizeUsStateCode(prev.locFsbo || prev.fsboLoc || '') || '',
+        photoFsbo: profileThumb || '',
+        fsboPhoto: profileThumb || '',
+        photoFsboClearRequested: profileThumbClearRequested === true,
+        phoneFsbo: effectivePrimaryPhone,
+        primaryPhoneFsbo: effectivePrimaryPhone,
+        secondaryPhoneFsbo: effectiveSecondaryPhone,
+        tertiaryPhoneFsbo: effectiveTertiaryPhone,
+        emailFsbo: effectiveEmail,
+        fsboEmail: effectiveEmail,
         cardPriorityC: safeCardPriorities.C,
         cardPriorityA: '',
         cardPriorityAExplicit: false,
         cardPriorityCExplicit: Boolean(safeCardPriorities.C),
-        contactMethods: effectiveContactMethods,
+        contactMethodsFsbo: effectiveContactMethods,
+        fsboContactMethods: effectiveContactMethods,
         visibility: 'profile_only',
       }));
       setProfessionalProfile((prev) => ({

@@ -177,13 +177,13 @@ export function resolveScopedProfile(scope, {
   return {
     scope: normalizedScope,
     name: isFsboScope
-      ? pickIdentityName(personal.fullName)
+      ? pickIdentityName(personal.fullNameFsbo, personal.fsboFullName, personal.fullName)
       : pickIdentityName(professional.fullNameA),
     loc: isFsboScope
-      ? pickString(personal.loc)
+      ? pickString(personal.locFsbo, personal.fsboLoc, personal.loc)
       : pickString(professional.locA),
     photo: isFsboScope
-      ? pickString(personal.photo)
+      ? pickString(personal.photoFsbo, personal.fsboPhoto, personal.photo)
       : pickString(professional.photoA),
     categoryId: isFsboScope
       ? 'fsbo'
@@ -193,22 +193,22 @@ export function resolveScopedProfile(scope, {
       : pickString(professional.category),
     badge: isFsboScope ? 'FSBO' : pickString(user.badge),
     pitch: isFsboScope
-      ? pickString(personal.bio, personal.pitch)
+      ? pickString(personal.bioFsbo, personal.pitchFsbo, personal.bio, personal.pitch)
       : pickString(professional.pitch),
     contactMethods: isFsboScope
-      ? pickArray(personal.contactMethods)
+      ? pickArray(personal.contactMethodsFsbo, personal.fsboContactMethods, personal.contactMethods)
       : pickArray(professional.contactMethodsA),
     primaryPhone: isFsboScope
-      ? pickString(personal.primaryPhone, personal.phone)
+      ? pickString(personal.primaryPhoneFsbo, personal.phoneFsbo, personal.primaryPhone, personal.phone)
       : pickString(professional.primaryPhoneA, professional.phoneA),
     secondaryPhone: isFsboScope
-      ? pickString(personal.secondaryPhone)
+      ? pickString(personal.secondaryPhoneFsbo, personal.secondaryPhone)
       : pickString(professional.secondaryPhoneA),
     tertiaryPhone: isFsboScope
-      ? pickString(personal.tertiaryPhone)
+      ? pickString(personal.tertiaryPhoneFsbo, personal.tertiaryPhone)
       : pickString(professional.tertiaryPhoneA),
     email: isFsboScope
-      ? pickString(personal.email)
+      ? pickString(personal.emailFsbo, personal.fsboEmail, personal.email)
       : pickString(professional.emailA),
     cardPriority: isFsboScope
       ? pickString(personal.cardPriorityC)
