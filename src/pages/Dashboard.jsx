@@ -13,7 +13,7 @@ import { PropertyCard } from '../components/cards/PropertyCard';
 import { CardStatusBadge, CardStatusIcon } from '../components/ui/CardStatusIndicators';
 import { CARD_STATUS, pickPriorityStatus } from '../components/ui/cardStatusTokens';
 import { getHiddenSet, subscribe as subscribeHidden } from '../lib/hiddenCards';
-import { inferRecordProfileScope, normalizeProfileScope, resolveScopedProfile } from '../lib/profileScopeResolver';
+import { inferRecordProfileScope, isLikelyNonIdentityName, normalizeProfileScope, pickIdentityName, resolveScopedProfile } from '../lib/profileScopeResolver';
 import { formatPropertyLocation } from '../lib/formatPropertyLocation';
 import { useMediaQuery } from '../hooks/useMediaQuery';
 import { consumePlanActions, getPlanGateCopy } from '../services/planUsageService';
@@ -1554,6 +1554,12 @@ export function Dashboard({ page, nuggets, setModal, setPage, onOpenOnboardingTa
     [matched],
   );
 
+  const isRenderableMatchedContact = useCallback((contact) => {
+    const name = pickIdentityName(contact?.name, contact?.title, contact?.fullName, contact?.displayName);
+    if (!name || isLikelyNonIdentityName(name)) return false;
+    return true;
+  }, []);
+
   const consumeLimitedFeedActions = useCallback(async (actions = []) => {
     if (!actions.length) return true;
     if (!isSupabaseConfigured || !supabase || !currentUserId || currentUserId === 'local-user') {
@@ -1594,13 +1600,14 @@ export function Dashboard({ page, nuggets, setModal, setPage, onOpenOnboardingTa
   const filteredMatched = useMemo(() => {
     const chosen = new Set(selectedMatchCategories.map((cat) => String(cat || '').trim().toLowerCase()).filter(Boolean));
     return dedupedMatched.filter((m) => {
+      if (!isRenderableMatchedContact(m)) return false;
       const contactKeys = getFeedContactKeys(m);
       if (contactKeys.some((key) => feedHiddenContacts.has(key) || matchArchivedContacts.has(key) || matchDeletedContacts.has(key))) return false;
       if (!chosen.size) return true;
       const categoryKeys = getContactCategoryKeys(m);
       return [...chosen].some((cat) => categoryKeys.has(cat));
     });
-  }, [dedupedMatched, selectedMatchCategories, getContactCategoryKeys, getFeedContactKeys, feedHiddenContacts, matchArchivedContacts, matchDeletedContacts]);
+  }, [dedupedMatched, selectedMatchCategories, getContactCategoryKeys, getFeedContactKeys, feedHiddenContacts, matchArchivedContacts, matchDeletedContacts, isRenderableMatchedContact]);
 
   const interestStateOptions = useMemo(() => {
     const states = Array.from(new Set(

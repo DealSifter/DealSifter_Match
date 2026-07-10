@@ -1983,14 +1983,16 @@ export default function App() {
         const canonicalContact = contactsByOwnerScope.get(`${ownerKey}::${payloadScope}`)
           || contactsByOwnerId.get(ownerKey)
           || null;
-        if (validateAgainstGlobal && !canonicalContact && isLikelyNonIdentityName(payload?.name)) return;
+        const payloadIdentityName = pickIdentityName(payload?.name, payload?.title, payload?.fullName, payload?.displayName);
+        if (!canonicalContact && !payloadIdentityName) return;
+        if (validateAgainstGlobal && !canonicalContact && isLikelyNonIdentityName(payloadIdentityName)) return;
         const resolvedPayload = canonicalContact
           ? {
               ...payload,
               ...canonicalContact,
               source: 'supabase',
             }
-          : payload;
+          : { ...payload, name: payloadIdentityName, title: payloadIdentityName };
         const sourceCardId = payload?.id && String(payload.id) !== ownerKey
           ? (payload.sourceCardId || payload.id)
           : payload?.sourceCardId;
