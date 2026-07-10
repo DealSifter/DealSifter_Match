@@ -3104,7 +3104,7 @@ export function MatchesPage({ nuggets, setModal, openUnlock, unlocked, initialCh
   const mobileBottomNavOffset = isMobile ? (mobileBottomNavCollapsed ? 4 : 88) : 0;
   const tabletBottomNavOffset = isTabletPortrait ? (mobileBottomNavCollapsed ? 4 : 88) : 0;
   const bottomNavOffset = Math.max(mobileBottomNavOffset, tabletBottomNavOffset);
-  const previewFeedCardWidth = isMobile ? 360 : 654;
+  const previewFeedCardWidth = isMobile ? 340 : 654;
   const previewFeedCardHeight = isMobile ? 576 : 400;
   const previewModalMaxWidth = isMobile ? 420 : 730;
 
@@ -4239,7 +4239,7 @@ export function MatchesPage({ nuggets, setModal, openUnlock, unlocked, initialCh
             </div>
           </div>
           <div style={{ width:'100%', display:'flex', justifyContent:'center' }}>
-            <div style={{ pointerEvents:'none', width:`min(100%, ${previewFeedCardWidth}px)`, height:previewFeedCardHeight }}>
+            <div style={{ pointerEvents:'none', width:`min(100%, ${previewFeedCardWidth}px)`, height:isMobile ? 'auto' : previewFeedCardHeight, minHeight:isMobile ? previewFeedCardHeight : undefined }}>
               <SwipeCard
                 card={activeOwner}
                 action="match"

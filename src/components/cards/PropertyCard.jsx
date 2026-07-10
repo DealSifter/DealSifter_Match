@@ -14,6 +14,7 @@ import { formatCompactUsd } from '../../lib/formatMoney';
 export function PropertyCard({ property, action, statusAction, onInterest, owner, isSkipped = false, previewOnly = false, hotMetrics = null, exclusivityStatus = null, onAvatarClick, onUnlock = null, showActions = true }) {
   const t = useT('dashboard').cards;
   const isMobileLayout = useMediaQuery('(max-width: 767px)');
+  const isNarrowMobileLayout = useMediaQuery('(max-width: 430px)');
   // Card do perfil está em stand by (esmaecido)?
   const isDimmed = owner?._isDimmed;
   const [currentIdx, setCurrentIdx] = React.useState(0);
@@ -132,7 +133,11 @@ export function PropertyCard({ property, action, statusAction, onInterest, owner
     display: 'flex',
     flexDirection: isMobileLayout ? 'column' : 'row',
     width: '100%',
-    height: '100%',
+    maxWidth: '100%',
+    minWidth: 0,
+    height: isMobileLayout && previewOnly ? 'auto' : '100%',
+    minHeight: isMobileLayout && previewOnly ? 560 : undefined,
+    boxSizing: 'border-box',
     willChange: 'transform, opacity',
     userSelect: 'none',
     WebkitUserSelect: 'none',
@@ -221,8 +226,12 @@ export function PropertyCard({ property, action, statusAction, onInterest, owner
     display: 'flex',
     flexDirection: isMobileLayout ? 'column' : 'row',
     width: '100%',
-    height: '100%'
-  }), [borderWidth, isMobileLayout]);
+    maxWidth: '100%',
+    minWidth: 0,
+    height: isMobileLayout && previewOnly ? 'auto' : '100%',
+    minHeight: isMobileLayout && previewOnly ? 560 : undefined,
+    boxSizing: 'border-box',
+  }), [borderWidth, isMobileLayout, previewOnly]);
 
   return (
     <div
@@ -274,7 +283,7 @@ export function PropertyCard({ property, action, statusAction, onInterest, owner
       ) : null}
 
       {/* ── LEFT: photo carousel ── */}
-      <div style={{ position: 'relative', width: isMobileLayout ? '100%' : '42%', flexShrink: 0, height: isMobileLayout ? '38%' : '100%' }}>
+      <div style={{ position: 'relative', width: isMobileLayout ? '100%' : '42%', flexShrink: 0, height: isMobileLayout ? (previewOnly ? 226 : '38%') : '100%', minHeight: isMobileLayout && previewOnly ? 210 : undefined }}>
         <SmartImage
           src={images[currentIdx]}
           alt={property.address}
@@ -561,10 +570,10 @@ export function PropertyCard({ property, action, statusAction, onInterest, owner
       }}>
 
         {/* price + type + action status */}
-        <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 6, marginBottom: 3 }}>
+        <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 6, marginBottom: 3, flexWrap: isMobileLayout ? 'wrap' : 'nowrap' }}>
           <div style={{ flex: 1, minWidth: 0 }}>
-            <div style={{ display: 'flex', alignItems: 'baseline', gap: 8 }}>
-              <div style={{ fontSize: 22, fontWeight: 900, color: C.t1, lineHeight: 1 }}>
+            <div style={{ display: 'flex', alignItems: 'baseline', gap: 8, minWidth: 0, flexWrap: isNarrowMobileLayout ? 'wrap' : 'nowrap' }}>
+              <div style={{ fontSize: isNarrowMobileLayout ? 20 : 22, fontWeight: 900, color: C.t1, lineHeight: 1, minWidth: 0, overflowWrap: 'anywhere' }}>
                 {fmtPrice(property.price)}
               </div>
               {(effectiveAction === 'pass' || isSkipped) && (
@@ -588,6 +597,7 @@ export function PropertyCard({ property, action, statusAction, onInterest, owner
               textAlign: 'center',
               padding: '5px 9px', borderRadius: 10,
               background: C.alpha(C.success, 0.1), border: `1px solid ${C.alpha(C.success, 0.25)}`,
+              flex: isMobileLayout ? '1 1 auto' : undefined,
             }}>
               <div style={{ fontSize: 15, fontWeight: 900, color: C.success, lineHeight: 1 }}>
                 {displayCapRate}%
@@ -598,7 +608,7 @@ export function PropertyCard({ property, action, statusAction, onInterest, owner
         </div>
 
         {/* address */}
-        <div style={{ display: 'flex', alignItems: 'center', gap: 3, fontSize: 12, color: C.t2, marginBottom: 6 }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 3, fontSize: 12, color: C.t2, marginBottom: 6, minWidth: 0 }}>
           <Icon name="mapPin" size={12} color={C.t3} />
           <span style={{ whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
             {[property.address, propertyLocation].filter(Boolean).join(', ')}
@@ -607,7 +617,7 @@ export function PropertyCard({ property, action, statusAction, onInterest, owner
 
         {/* objective + deal tag badges */}
         {(property.objective || displayDealTag) && (
-          <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 6, flexWrap: 'nowrap' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 6, flexWrap: isMobileLayout ? 'wrap' : 'nowrap' }}>
             {property.objective ? (
               <div style={{
                 display: 'inline-flex',
@@ -615,7 +625,7 @@ export function PropertyCard({ property, action, statusAction, onInterest, owner
                 justifyContent: 'center',
                 gap: 4,
                 minWidth: 0,
-                flex: 1,
+                flex: isMobileLayout ? '1 1 100%' : 1,
                 padding: '4px 8px',
                 borderRadius: 20,
                 background: 'rgba(67, 129, 188, 0.1)',
@@ -634,7 +644,7 @@ export function PropertyCard({ property, action, statusAction, onInterest, owner
                 justifyContent: 'center',
                 gap: 4,
                 minWidth: 0,
-                flex: 1,
+                flex: isMobileLayout ? '1 1 100%' : 1,
                 padding: '4px 8px',
                 borderRadius: 20,
                 background: C.alpha('#e74c3c', 0.08),
@@ -651,7 +661,7 @@ export function PropertyCard({ property, action, statusAction, onInterest, owner
 
         {/* specs grid */}
         <div style={{
-          display: 'grid', gridTemplateColumns: isMobileLayout ? 'repeat(2, 1fr)' : 'repeat(4, 1fr)', gap: 4, marginBottom: 8,
+          display: 'grid', gridTemplateColumns: isMobileLayout ? 'repeat(2, minmax(0, 1fr))' : 'repeat(4, minmax(0, 1fr))', gap: 4, marginBottom: 8,
         }}>
           {[
             { icon: 'home',     label: property.beds > 0 || property.baths > 0 ? `${property.beds || 0} bd / ${property.baths || 0} ba` : '—',      sub: t.bdba  },
@@ -662,8 +672,9 @@ export function PropertyCard({ property, action, statusAction, onInterest, owner
             <div key={sub} style={{
               padding: '3px 4px', borderRadius: 8, textAlign: 'center',
               background: C.alpha(C.t1, 0.04), border: `1px solid ${C.border}`,
+              minWidth: 0,
             }}>
-              <div style={{ fontSize: 12, fontWeight: 800, color: C.t1, wordBreak: 'keep-all', whiteSpace: 'normal', lineHeight: 1.2 }}>
+              <div style={{ fontSize: isNarrowMobileLayout ? 11 : 12, fontWeight: 800, color: C.t1, wordBreak: 'keep-all', whiteSpace: 'normal', lineHeight: 1.2, overflowWrap: 'anywhere' }}>
                 {sub === t.bdba && label !== '—' 
                   ? label.split(' / ').map((part, idx, arr) => (
                       <span key={idx}>{part}{idx < arr.length - 1 ? <> / <wbr /></> : ''}</span>

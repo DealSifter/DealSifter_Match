@@ -3620,7 +3620,7 @@ export function Dashboard({ page, nuggets, setModal, setPage, onOpenOnboardingTa
               <div data-guide="feed-view-switch" style={{
                     padding: 12,
                     minHeight: myCardPreviewDeckHeight,
-                    height: myCardPreviewDeckHeight,
+                    height: isTouchModalViewport ? 'auto' : myCardPreviewDeckHeight,
                     display: 'flex',
                     justifyContent: 'center',
                     alignItems: 'center',
@@ -3628,7 +3628,8 @@ export function Dashboard({ page, nuggets, setModal, setPage, onOpenOnboardingTa
                   }}>
                     <div style={{
                       width: `min(${myCardPreviewCardWidth}px, 100%)`,
-                      height: myCardPreviewCardHeight,
+                      height: isTouchModalViewport ? 'auto' : myCardPreviewCardHeight,
+                      minHeight: isTouchModalViewport ? myCardPreviewCardHeight : undefined,
                       margin: '0 auto',
                       boxSizing: 'border-box',
                     }}>
@@ -3689,7 +3690,7 @@ export function Dashboard({ page, nuggets, setModal, setPage, onOpenOnboardingTa
                           return (
                             <div key={`${item.id || 'property'}-${idx}`} style={{ flex: '0 0 100%', width: '100%', scrollSnapAlign: 'start', scrollSnapStop: 'always' }}>
                             <div style={{ padding: 12, minHeight: myCardPreviewDeckHeight, boxSizing: 'border-box' }}>
-                                <div style={{ width: `min(${myCardPreviewCardWidth}px, 100%)`, height: myCardPreviewCardHeight, margin: '0 auto', boxSizing: 'border-box' }}>
+                                <div style={{ width: `min(${myCardPreviewCardWidth}px, 100%)`, height: isTouchModalViewport ? 'auto' : myCardPreviewCardHeight, minHeight: isTouchModalViewport ? myCardPreviewCardHeight : undefined, margin: '0 auto', boxSizing: 'border-box' }}>
                                   <PropertyCard
                                     property={item}
                                     owner={myCardPreviewData.profileCard}

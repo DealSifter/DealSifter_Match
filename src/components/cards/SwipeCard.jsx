@@ -9,6 +9,7 @@ function SwipeCard({ card, action, isUnlocked, isSkipped, onSwipe, onUndo, onUnl
   const t = useT('dashboard').cards;
   const mt = useT('dashboard').matches;
   const isMobileLayout = useMediaQuery('(max-width: 767px)');
+  const isNarrowMobileLayout = useMediaQuery('(max-width: 430px)');
   const dragRef = React.useRef({ active: false, pointerId: null, startX: 0, startY: 0 });
   const dragFrameRef = React.useRef(null);
   const queuedDragRef = React.useRef({ x: 0, y: 0 });
@@ -56,7 +57,11 @@ function SwipeCard({ card, action, isUnlocked, isSkipped, onSwipe, onUndo, onUnl
     display: 'flex',
     flexDirection: isMobileLayout ? 'column' : 'row',
     width: '100%',
-    height: '100%',
+    maxWidth: '100%',
+    minWidth: 0,
+    height: isMobileLayout && previewOnly ? 'auto' : '100%',
+    minHeight: isMobileLayout && previewOnly ? 520 : undefined,
+    boxSizing: 'border-box',
     willChange: 'transform, opacity',
     touchAction: previewOnly ? 'auto' : 'none',
     userSelect: 'none',
@@ -143,8 +148,12 @@ function SwipeCard({ card, action, isUnlocked, isSkipped, onSwipe, onUndo, onUnl
     display: 'flex',
     flexDirection: isMobileLayout ? 'column' : 'row',
     width: '100%',
-    height: '100%'
-  }), [borderWidth, isMobileLayout]);
+    maxWidth: '100%',
+    minWidth: 0,
+    height: isMobileLayout && previewOnly ? 'auto' : '100%',
+    minHeight: isMobileLayout && previewOnly ? 520 : undefined,
+    boxSizing: 'border-box',
+  }), [borderWidth, isMobileLayout, previewOnly]);
 
   return (
     <div
@@ -189,7 +198,7 @@ function SwipeCard({ card, action, isUnlocked, isSkipped, onSwipe, onUndo, onUnl
       ) : null}
 
       {/* ── LEFT: photo column ── */}
-      <div style={{ position: 'relative', width: isMobileLayout ? '100%' : '42%', flexShrink: 0, height: isMobileLayout ? '44%' : '100%' }}>
+      <div style={{ position: 'relative', width: isMobileLayout ? '100%' : '42%', flexShrink: 0, height: isMobileLayout ? (previewOnly ? 244 : '44%') : '100%', minHeight: isMobileLayout && previewOnly ? 220 : undefined }}>
         <SmartImage
           src={card.photo}
           alt={card.name}
@@ -267,13 +276,13 @@ function SwipeCard({ card, action, isUnlocked, isSkipped, onSwipe, onUndo, onUnl
         ) : null}
       </div>
       {/* ── RIGHT: info column ── */}
-      <div style={{ position: 'relative', padding: isMobileLayout ? '11px 11px 12px' : '13px', flex: 1, display: 'flex', flexDirection: 'column', boxSizing: 'border-box' }}>
+      <div style={{ position: 'relative', padding: isMobileLayout ? '11px 11px 12px' : '13px', flex: 1, minWidth: 0, display: 'flex', flexDirection: 'column', boxSizing: 'border-box' }}>
         {/* ...existing code... */}
 
         {/* Row 1: name + badge */}
-        <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 8, marginBottom: 4 }}>
+        <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 8, marginBottom: 4, flexWrap: isMobileLayout ? 'wrap' : 'nowrap' }}>
           <div style={{ minWidth: 0 }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 5, fontSize: 16, fontWeight: 800, color: C.t1, lineHeight: 1.2 }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 5, fontSize: 16, fontWeight: 800, color: C.t1, lineHeight: 1.2, minWidth: 0 }}>
               <span style={{ whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{card.name}</span>
               {isSkipped && <Icon name="slash" size={18} color={C.danger} strokeWidth={2.5} />}
             </div>
@@ -294,6 +303,7 @@ function SwipeCard({ card, action, isUnlocked, isSkipped, onSwipe, onUndo, onUnl
           {card.badge && (
             <div style={{
               flexShrink: 0,
+              maxWidth: isMobileLayout ? '100%' : undefined,
               padding: '3px 8px', borderRadius: 20,
               background: C.alpha(C.gold, 0.12), border: `1px solid ${C.alpha(C.gold, 0.3)}`,
               color: C.gold, fontSize: 10, fontWeight: 800, whiteSpace: 'nowrap',
@@ -306,10 +316,10 @@ function SwipeCard({ card, action, isUnlocked, isSkipped, onSwipe, onUndo, onUnl
         </div>
 
         {/* Row 2: location + rating */}
-        <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 7 }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 3, fontSize: 11, color: C.t3 }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 7, flexWrap: isMobileLayout ? 'wrap' : 'nowrap' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 3, fontSize: 11, color: C.t3, minWidth: 0, maxWidth: '100%' }}>
             <Icon name="mapPin" size={11} color={C.t3} />
-            <span>{card.loc}</span>
+            <span style={{ minWidth: 0, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{card.loc}</span>
           </div>
           <div style={{ display: 'flex', alignItems: 'center', gap: 3, fontSize: 11, color: C.t2, fontWeight: 700 }}>
             <Icon name="star" size={11} color={C.t2} />
@@ -334,6 +344,8 @@ function SwipeCard({ card, action, isUnlocked, isSkipped, onSwipe, onUndo, onUnl
             background: C.alpha(C.accent, 0.08), border: `1px solid ${C.alpha(C.accent, 0.15)}`,
             fontSize: 11, color: C.accent, fontWeight: 700,
             display: 'flex', alignItems: 'center', gap: 4,
+            minWidth: 0,
+            flex: isNarrowMobileLayout ? '1 1 100%' : undefined,
           }}>
             <Icon name="layers" size={11} color={C.accent} />
             {card.deals > 0 ? card.deals : '–'} {t.deals}
@@ -348,11 +360,13 @@ function SwipeCard({ card, action, isUnlocked, isSkipped, onSwipe, onUndo, onUnl
                 : C.alpha(C.t1, 0.04),
               border: `1px solid ${revealPhone ? C.alpha(C.success, 0.2) : C.border}`,
               display: 'flex', alignItems: 'center', gap: 5,
+              minWidth: 0,
+              flex: isMobileLayout ? '1 1 100%' : undefined,
             }}
           >
             <Icon name="phone" size={11} color={revealPhone ? C.success : C.t2} strokeWidth={1.6} />
             {revealPhone ? (
-              <span style={{ fontSize: 11, color: C.success, fontWeight: 700 }}>
+              <span style={{ fontSize: 11, color: C.success, fontWeight: 700, minWidth: 0, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
                 {phoneValue}
               </span>
             ) : (
@@ -378,7 +392,7 @@ function SwipeCard({ card, action, isUnlocked, isSkipped, onSwipe, onUndo, onUnl
                 : C.alpha(C.t1, 0.04),
               border: `1px solid ${revealEmail ? C.alpha(C.success, 0.2) : C.border}`,
               display: 'flex', alignItems: 'center', gap: 5,
-              flex: 1,
+              flex: isMobileLayout ? '1 1 100%' : 1,
               minWidth: 0,
             }}
           >

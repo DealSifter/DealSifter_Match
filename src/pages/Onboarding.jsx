@@ -1064,7 +1064,7 @@ export function Onboarding({
     const personalPreviewTitle = accountType === 'fsbo_owner'
       ? (t.previewBasicCardTitle || t.previewPersonalCardTitle)
       : t.previewPersonalCardTitle;
-    const previewCardWidth = isMobileViewport ? 360 : 654;
+    const previewCardWidth = isMobileViewport ? 340 : 654;
     const previewCardHeight = isMobileViewport ? 576 : 400;
     const previewDeckHeight = previewCardHeight + 24;
 
@@ -1103,13 +1103,13 @@ export function Onboarding({
           <div style={{
             padding: 12,
             minHeight: previewDeckHeight,
-            height: previewDeckHeight,
+            height: isMobileViewport ? 'auto' : previewDeckHeight,
             display: 'flex',
             justifyContent: 'center',
             alignItems: 'center',
             boxSizing: 'border-box',
           }}>
-            <div style={{ width: `min(${previewCardWidth}px, 100%)`, height: previewCardHeight, margin: '0 auto', boxSizing: 'border-box' }}>
+            <div style={{ width: `min(${previewCardWidth}px, 100%)`, height: isMobileViewport ? 'auto' : previewCardHeight, minHeight: isMobileViewport ? previewCardHeight : undefined, margin: '0 auto', boxSizing: 'border-box' }}>
               <SwipeCard
                 card={activePreviewFeedCard}
                 action={null}
@@ -1155,7 +1155,7 @@ export function Onboarding({
                 WebkitOverflowScrolling: 'touch',
                 touchAction: 'pan-y',
                 minHeight: previewDeckHeight,
-                maxHeight: previewDeckHeight,
+                maxHeight: isMobileViewport ? 'min(72vh, 680px)' : previewDeckHeight,
                 padding: 12,
                 boxSizing: 'border-box',
               }}
@@ -1180,7 +1180,7 @@ export function Onboarding({
                     {groupItems.map((entry, entryIdx) => {
                       if (entry.kind === 'property') {
                         return (
-                          <div key={`preview-group-property-${entry.data?.id || entryIdx}`} style={{ height: previewCardHeight }}>
+                          <div key={`preview-group-property-${entry.data?.id || entryIdx}`} style={{ height: isMobileViewport ? 'auto' : previewCardHeight, minHeight: isMobileViewport ? previewCardHeight : undefined }}>
                             <PropertyCard
                               property={entry.data}
                               action={null}
