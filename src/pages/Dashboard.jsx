@@ -917,13 +917,32 @@ export function Dashboard({ page, nuggets, setModal, setPage, onOpenOnboardingTa
           const scopeKey = normalizedScope === 'professional'
             ? 'secondary'
             : (normalizedScope === 'fsbo' ? 'fsbo' : 'personal');
-          return normalizeCard({
+          const ownerPreview = localOwnerIds.includes(String(p.ownerId || '')) ? buildLocalProfileCard(scopeKey) : (p.ownerPreview || null);
+          const normalizedProperty = normalizeCard({
             ...p,
             cardKind: 'property',
             _source: 'property',
             markets: collectRecordStates(p),
-            ownerPreview: localOwnerIds.includes(String(p.ownerId || '')) ? buildLocalProfileCard(scopeKey) : (p.ownerPreview || null),
+            ownerPreview,
           }, currentUserId);
+          if (normalizedProperty) return normalizedProperty;
+          const publicOwnerPreview = sanitizePublicCardInput(ownerPreview || {});
+          return sanitizePublicCardInput({
+            ...p,
+            id: p.id ?? p.portfolioId,
+            portfolioId: p.portfolioId || p.id,
+            cardKind: 'property',
+            _source: 'property',
+            ownerId: p.ownerId,
+            unlockOwnerId: p.ownerId,
+            ownerPreview: publicOwnerPreview,
+            primaryProfile: normalizedScope,
+            scopeKey,
+            markets: collectRecordStates(p),
+            publishToShowcase: true,
+            isActive: true,
+            isOwnCard: String(p.ownerId || '') === String(currentUserId || ''),
+          });
         }).filter(Boolean),
         ...mockProperties.map((p) => {
           // ownerId permanece do card fake

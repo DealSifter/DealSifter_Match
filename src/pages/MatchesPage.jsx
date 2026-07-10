@@ -66,6 +66,74 @@ function getUserScopedStorageKey(baseKey, userId) {
   return baseKey;
 }
 
+function ServiceImageCarousel({ images = [], title = '', compact = false }) {
+  const safeImages = useMemo(() => (Array.isArray(images) ? images.filter(Boolean) : []), [images]);
+  const [index, setIndex] = useState(0);
+
+  if (!safeImages.length) {
+    return (
+      <div style={{ width: '100%', padding: compact ? 28 : 40, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+        <Icon name="chat" size={28} color={C.t3} />
+      </div>
+    );
+  }
+
+  const safeIndex = Math.max(0, Math.min(index, safeImages.length - 1));
+  const showControls = safeImages.length > 1;
+  const goPrev = (event) => {
+    event.stopPropagation();
+    setIndex((prev) => (prev <= 0 ? safeImages.length - 1 : prev - 1));
+  };
+  const goNext = (event) => {
+    event.stopPropagation();
+    setIndex((prev) => (prev >= safeImages.length - 1 ? 0 : prev + 1));
+  };
+
+  return (
+    <div style={{ width: '100%', position: 'relative', display: 'flex', alignItems: 'center', justifyContent: 'center', background: C.alpha(C.t1, 0.02), borderRadius: compact ? 12 : 8, overflow: 'hidden', marginBottom: compact ? 12 : 8 }}>
+      <SmartImage
+        src={safeImages[safeIndex]}
+        alt={title}
+        style={{ width: '100%', height: 'auto', maxHeight: compact ? 220 : '60vh', objectFit: 'contain', display: 'block' }}
+      />
+      {showControls ? (
+        <>
+          <button
+            type="button"
+            onClick={goPrev}
+            aria-label="Previous image"
+            style={{ position: 'absolute', left: 8, top: '50%', transform: 'translateY(-50%)', width: 34, height: 34, borderRadius: 999, border: 'none', background: C.alpha(C.bg, 0.72), display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer' }}
+          >
+            <Icon name="chevronLeft" size={18} color={C.t1} />
+          </button>
+          <button
+            type="button"
+            onClick={goNext}
+            aria-label="Next image"
+            style={{ position: 'absolute', right: 8, top: '50%', transform: 'translateY(-50%)', width: 34, height: 34, borderRadius: 999, border: 'none', background: C.alpha(C.bg, 0.72), display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer' }}
+          >
+            <Icon name="chevronRight" size={18} color={C.t1} />
+          </button>
+          <div style={{ position: 'absolute', left: '50%', bottom: 8, transform: 'translateX(-50%)', display: 'flex', gap: 5 }}>
+            {safeImages.map((_, dotIdx) => (
+              <button
+                key={`service-image-dot-${dotIdx}`}
+                type="button"
+                onClick={(event) => {
+                  event.stopPropagation();
+                  setIndex(dotIdx);
+                }}
+                aria-label={`Image ${dotIdx + 1}`}
+                style={{ width: dotIdx === safeIndex ? 16 : 7, height: 7, borderRadius: 999, border: 'none', background: dotIdx === safeIndex ? C.accent : C.alpha(C.t1, 0.22), cursor: 'pointer', padding: 0 }}
+              />
+            ))}
+          </div>
+        </>
+      ) : null}
+    </div>
+  );
+}
+
 // Move chat templates and defaults to module scope so they are stable references
 const CHAT_REPLY_TEMPLATES = {
   pt: [
@@ -3953,13 +4021,7 @@ export function MatchesPage({ nuggets, setModal, openUnlock, unlocked, initialCh
                             {t.backToList}
                           </button>
                         </div>
-                        <div style={{ width: '100%', marginBottom: 8, display: 'flex', alignItems: 'center', justifyContent: 'center', background: C.alpha(C.t1,0.02), borderRadius: 8, overflow: 'hidden' }}>
-                          {(selectedPortfolioItem.media?.images || []).length > 0 ? (
-                            <SmartImage src={selectedPortfolioItem.media.images[0]} alt={selectedPortfolioItem.name} style={{ width: '100%', height: 'auto', maxHeight: '60vh', objectFit: 'contain', display: 'block' }} />
-                          ) : (
-                            <div style={{ width: '100%', padding: 40, display: 'flex', alignItems: 'center', justifyContent: 'center' }}><Icon name="chat" size={28} color={C.t3} /></div>
-                          )}
-                        </div>
+                        <ServiceImageCarousel images={selectedPortfolioItem.media?.images || []} title={selectedPortfolioItem.name || selectedPortfolioItem.title || ''} />
                         {selectedPortfolioItem.description && <div style={{ marginBottom:8, color:C.t2 }}>{selectedPortfolioItem.description}</div>}
                         {(selectedPortfolioItem.publishToShowcase === false || selectedPortfolioItem.publishToConnections === false) ? (
                           <div style={{ marginBottom:8, display:'inline-flex', alignItems:'center', gap:6, padding:'5px 9px', borderRadius:999, border:`1px solid ${C.alpha(C.danger, 0.28)}`, background:C.alpha(C.danger, 0.08), color:C.danger, fontSize:10, fontWeight:800 }}>
@@ -4114,7 +4176,7 @@ export function MatchesPage({ nuggets, setModal, openUnlock, unlocked, initialCh
                   }}
                   style={{ width:'100%', marginTop:16, padding:'14px', borderRadius:12, background:C.accent, color:'#fff', border:'none', fontWeight:800, fontSize:14, cursor:canUseChat ? 'pointer' : 'not-allowed', opacity:canUseChat ? 1 : 0.62 }}
                 >
-                  ðŸ’¬ {CHAT_INTEREST_PREFIX[myInputLang] || CHAT_INTEREST_PREFIX.pt}
+                  <Icon name="chat" size={16} color="#fff" /> {CHAT_INTEREST_PREFIX[myInputLang] || CHAT_INTEREST_PREFIX.pt}
                 </button>
               </>
             ) : (
@@ -4130,9 +4192,7 @@ export function MatchesPage({ nuggets, setModal, openUnlock, unlocked, initialCh
                     {t.backToList}
                   </button>
                 </div>
-                {(mobileCardSheet.media?.images || []).length > 0 && (
-                  <SmartImage src={mobileCardSheet.media.images[0]} alt={mobileCardSheet.name} style={{ width:'100%', borderRadius:12, marginBottom:12, objectFit:'cover', maxHeight:200 }} />
-                )}
+                <ServiceImageCarousel images={mobileCardSheet.media?.images || []} title={mobileCardSheet.name || mobileCardSheet.title || ''} compact />
                 {mobileCardSheet.description && <div style={{ color:C.t2, fontSize:13, marginBottom:12 }}>{mobileCardSheet.description}</div>}
                 <PortfolioContactPanel
                   canonicalContact={activeOwner?.canonicalContact || null}
@@ -4153,7 +4213,7 @@ export function MatchesPage({ nuggets, setModal, openUnlock, unlocked, initialCh
                   }}
                   style={{ width:'100%', marginTop:16, padding:'14px', borderRadius:12, background:C.accent, color:'#fff', border:'none', fontWeight:800, fontSize:14, cursor:canUseChat ? 'pointer' : 'not-allowed', opacity:canUseChat ? 1 : 0.62 }}
                 >
-                  ðŸ’¬ {CHAT_INTEREST_SERVICE_PREFIX[myInputLang] || CHAT_INTEREST_SERVICE_PREFIX.pt}
+                  <Icon name="chat" size={16} color="#fff" /> {CHAT_INTEREST_SERVICE_PREFIX[myInputLang] || CHAT_INTEREST_SERVICE_PREFIX.pt}
                 </button>
               </div>
             )}

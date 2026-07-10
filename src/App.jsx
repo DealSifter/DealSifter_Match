@@ -3877,6 +3877,51 @@ export default function App() {
     };
   }, [supabaseUserId, propertyPortfolio, pendingFlushRef, profileSaveDebounceRef, portfolioSyncStateRef]);
 
+  const handleDeletePropertyRecord = useCallback(async (propertyId) => {
+    const id = String(propertyId || '').trim();
+    if (!id) return;
+    setPropertyPortfolio((prev) => (prev || []).filter((item) => String(item?.id) !== id));
+    if (!isSupabaseConfigured || !supabase || !supabaseUserId || !isUuid(id)) return;
+    try {
+      lastLocalSupabaseWriteAtRef.current = Date.now();
+      const { error: imagesError } = await supabase
+        .from('property_images')
+        .delete()
+        .eq('property_id', id);
+      if (imagesError) safeLogError('Supabase property images delete failed.', imagesError);
+
+      lastLocalSupabaseWriteAtRef.current = Date.now();
+      const { error } = await supabase
+        .from('properties')
+        .delete()
+        .eq('id', id)
+        .eq('owner_id', supabaseUserId);
+      if (error) throw error;
+    } catch (error) {
+      safeLogError('Supabase property delete failed.', error);
+      throw error;
+    }
+  }, [supabaseUserId]);
+
+  const handleDeleteServiceRecord = useCallback(async (serviceId) => {
+    const id = String(serviceId || '').trim();
+    if (!id) return;
+    setServicePortfolio((prev) => (prev || []).filter((item) => String(item?.id) !== id));
+    if (!isSupabaseConfigured || !supabase || !supabaseUserId || !isUuid(id)) return;
+    try {
+      lastLocalSupabaseWriteAtRef.current = Date.now();
+      const { error } = await supabase
+        .from('services')
+        .delete()
+        .eq('id', id)
+        .eq('owner_id', supabaseUserId);
+      if (error) throw error;
+    } catch (error) {
+      safeLogError('Supabase service delete failed.', error);
+      throw error;
+    }
+  }, [supabaseUserId]);
+
   useEffect(() => {
     try {
       localStorage.setItem('systemAccount', JSON.stringify(systemAccount || {}));
@@ -5393,6 +5438,8 @@ export default function App() {
             setServicePortfolio={setServicePortfolio}
             propertyPortfolio={propertyPortfolio}
             setPropertyPortfolio={setPropertyPortfolio}
+            onDeletePropertyRecord={handleDeletePropertyRecord}
+            onDeleteServiceRecord={handleDeleteServiceRecord}
           />
         );
       case 'pricing':

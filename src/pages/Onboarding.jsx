@@ -58,6 +58,8 @@ export function Onboarding({
   setServicePortfolio,
   propertyPortfolio,
   setPropertyPortfolio,
+  onDeletePropertyRecord,
+  onDeleteServiceRecord,
   initialProfileTab = 'personal',
 }) {
   const t = useT('onboarding').onboarding;
@@ -190,6 +192,7 @@ export function Onboarding({
   const [previewOpen, setPreviewOpen] = useState(false);
   const [previewServiceIndex, setPreviewServiceIndex] = useState(0);
   const [previewPropertyIndex, setPreviewPropertyIndex] = useState(0);
+  const [previewGroupIndex, setPreviewGroupIndex] = useState(0);
   const [previewMode, setPreviewMode] = useState('properties');
   const previewShowcaseScrollRef = useRef(null);
   const previewShowcaseScrollEndTimerRef = useRef(null);
@@ -208,6 +211,7 @@ export function Onboarding({
   const [saveProfilesBaseline, setSaveProfilesBaseline] = useState('');
   const [isSaveProfilesDirty, setIsSaveProfilesDirty] = useState(false);
   const [pendingProfileClearScope, setPendingProfileClearScope] = useState('');
+  const [deleteConfirm, setDeleteConfirm] = useState(null);
   const [isPreviewToFeedDirty, setIsPreviewToFeedDirty] = useState(false);
   const [investmentProfileDraft, setInvestmentProfileDraft] = useState(() => normalizeInvestmentDraft(professionalProfile?.investmentProfile));
   const [investmentModalOpen, setInvestmentModalOpen] = useState(false);
@@ -525,33 +529,48 @@ export function Onboarding({
     }
     return undefined;
   }, [previewMode, servicesForPreview.length, propertiesForPreview.length]);
-  const previewShowcaseItems = useMemo(() => ([
-    ...(propertiesForPreview || []).map((property) => ({ kind: 'property', data: property })),
-    ...(servicesForPreview || []).map((service) => ({ kind: 'service', data: service })),
-  ]), [propertiesForPreview, servicesForPreview]);
+  const previewShowcaseItems = useMemo(() => {
+    const scopes = ['personal', 'professional', 'fsbo'];
+    return scopes.map((scope) => {
+      const properties = (propertiesForPreview || []).filter((property) => normalizePortfolioProfileScope(property?.primaryProfile) === scope);
+      const services = (servicesForPreview || []).filter((service) => normalizePortfolioProfileScope(service?.primaryProfile) === scope);
+      if (!properties.length && !services.length) return null;
+      return {
+        kind: 'profile-group',
+        profileScope: scope,
+        data: { id: `profile-group-${scope}` },
+        properties,
+        services,
+      };
+    }).filter(Boolean);
+  }, [normalizePortfolioProfileScope, propertiesForPreview, servicesForPreview]);
 
   const previewShowcaseCount = previewShowcaseItems.length;
   const previewUnifiedIndex = useMemo(() => {
-    const propLen = propertiesForPreview.length;
-    if (previewMode === 'properties') {
-      return Math.max(0, Math.min(propLen - 1, previewPropertyIndex || 0));
-    }
-    return Math.max(0, propLen + Math.min(Math.max(previewServiceIndex || 0, 0), Math.max(servicesForPreview.length - 1, 0)));
-  }, [previewMode, previewPropertyIndex, previewServiceIndex, propertiesForPreview.length, servicesForPreview.length]);
+    if (!previewShowcaseCount) return 0;
+    return Math.max(0, Math.min(previewShowcaseCount - 1, previewGroupIndex || 0));
+  }, [previewGroupIndex, previewShowcaseCount]);
 
   const setPreviewByUnifiedIndex = useCallback((nextUnifiedIndex) => {
     const total = previewShowcaseCount;
     if (!total) return;
     const normalized = Math.max(0, Math.min(total - 1, Number(nextUnifiedIndex) || 0));
-    const propLen = propertiesForPreview.length;
-    if (normalized < propLen) {
+    const group = previewShowcaseItems[normalized];
+    setPreviewGroupIndex(normalized);
+    if ((group?.properties || []).length > 0) {
       setPreviewMode('properties');
-      setPreviewPropertyIndex(normalized);
-      return;
+      setPreviewPropertyIndex(0);
+    } else {
+      setPreviewMode('services');
+      setPreviewServiceIndex(0);
     }
-    setPreviewMode('services');
-    setPreviewServiceIndex(normalized - propLen);
-  }, [previewShowcaseCount, propertiesForPreview.length]);
+  }, [previewShowcaseCount, previewShowcaseItems]);
+
+  useEffect(() => {
+    if (previewGroupIndex < previewShowcaseCount) return;
+    const timer = window.setTimeout(() => setPreviewGroupIndex(0), 0);
+    return () => window.clearTimeout(timer);
+  }, [previewGroupIndex, previewShowcaseCount]);
 
   const handlePreviewPrev = () => {
     if (!previewShowcaseCount) return;
@@ -1102,7 +1121,9 @@ export function Onboarding({
     const hasPreviewProperty = propertiesForPreview.length > 0;
     const hasPreviewService = servicesForPreview.length > 0;
     const hasPreviewItems = hasPreviewProperty || hasPreviewService;
+    const activePreviewGroup = previewShowcaseItems[previewUnifiedIndex] || previewShowcaseItems[0] || null;
     const activePreviewProfileScope = (() => {
+      if (activePreviewGroup?.profileScope) return activePreviewGroup.profileScope;
       if (previewMode === 'properties') {
         const activeProperty = previewShowcaseCard || propertiesForPreview[previewPropertyIndex] || propertiesForPreview[0];
         return normalizePrimaryProfileScope(activeProperty?.primaryProfile);
@@ -1200,59 +1221,80 @@ export function Onboarding({
                 minHeight: previewDeckHeight,
               }}
             >
-              {previewShowcaseItems.map((item, idx) => (
-                <div key={`preview-showcase-item-${item.kind}-${item.data?.id || idx}`} style={{ flex: '0 0 100%', width: '100%', scrollSnapAlign: 'start', scrollSnapStop: 'always' }}>
-                  {item.kind === 'property' ? (
-                    <div style={{ padding: 12, minHeight: previewDeckHeight, boxSizing: 'border-box' }}>
-                      <div style={{ width: `min(${previewCardWidth}px, 100%)`, height: previewCardHeight, margin: '0 auto', boxSizing: 'border-box' }}>
-                        <PropertyCard
-                          property={item.data}
-                          action={null}
-                          statusAction={null}
-                          previewOnly
-                          onInterest={(act) => {
-                            try { if (act === 'next' || act === 'pass') handlePreviewNext(); } catch (e) { void e; }
-                          }}
-                          owner={
-                            normalizePrimaryProfileScope(item.data?.primaryProfile) === 'professional'
-                              ? previewProfessionalFeedCard
-                              : (normalizePrimaryProfileScope(item.data?.primaryProfile) === 'fsbo'
-                                  ? previewFsboFeedCard
-                                  : previewPersonalFeedCard)
-                          }
-                        />
-                      </div>
-                    </div>
-                  ) : (() => {
-                    const svc = item.data;
-                    const svcImages = (svc?.media?.images || []).filter(Boolean);
-                    return (
-                      <div style={{ padding: 12, minHeight: previewDeckHeight, boxSizing: 'border-box' }}>
-                        <div style={{ width: `min(${previewCardWidth}px, 100%)`, height: previewCardHeight, overflowY: 'auto', padding: 12, margin: '0 auto', border: `1px solid ${C.border}`, borderRadius: 16, boxSizing: 'border-box', WebkitOverflowScrolling: 'touch' }}>
-                          <div style={{ marginBottom: 8 }}>
-                            <div style={{ fontSize: 14, fontWeight: 700, color: C.t1 }}>{svc?.title || t.serviceFallbackName}</div>
-                            {svc?.description && <div style={{ fontSize: 12, color: C.t2, marginTop: 2 }}>{svc.description}</div>}
-                            {svc?.category && <div style={{ display: 'inline-block', marginTop: 4, padding: '2px 8px', borderRadius: 12, background: C.alpha(C.accent, 0.08), border: `1px solid ${C.alpha(C.accent, 0.15)}`, fontSize: 10, color: C.accent, fontWeight: 700 }}>{svc.category}</div>}
-                          </div>
-                          {svcImages.length > 0 ? (
-                            <div style={{ display: 'grid', gridTemplateColumns: svcImages.length === 1 ? '1fr' : 'repeat(auto-fill, minmax(120px, 1fr))', gap: 8 }}>
-                              {svcImages.map((src, imageIdx) => (
-                                <div key={`svc-prev-img-${idx}-${imageIdx}`} style={{ position: 'relative', aspectRatio: svcImages.length === 1 ? '16/9' : '1', borderRadius: 8, overflow: 'hidden', background: C.alpha(C.t1, 0.06), border: `1px solid ${C.border}` }}>
-                                  <SmartImage src={src} alt={svc?.title || ''} style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }} />
+              {previewShowcaseItems.map((item, idx) => {
+                const groupScope = item.profileScope;
+                const groupProfileCard = groupScope === 'professional'
+                  ? previewProfessionalFeedCard
+                  : (groupScope === 'fsbo' ? previewFsboFeedCard : previewPersonalFeedCard);
+                const groupItems = [
+                  ...(item.properties || []).map((property) => ({ kind: 'property', data: property })),
+                  ...(item.services || []).map((service) => ({ kind: 'service', data: service })),
+                ];
+                return (
+                  <div key={`preview-showcase-item-${item.kind}-${item.data?.id || idx}`} style={{ flex: '0 0 100%', width: '100%', scrollSnapAlign: 'start', scrollSnapStop: 'always' }}>
+                    <div style={{ padding: 12, minHeight: previewDeckHeight, maxHeight: previewDeckHeight, overflowY: 'auto', boxSizing: 'border-box', WebkitOverflowScrolling: 'touch' }}>
+                      <div style={{ width: `min(${previewCardWidth}px, 100%)`, margin: '0 auto 12px', boxSizing: 'border-box' }}>
+                        <div style={{ height: Math.min(previewCardHeight, isMobileViewport ? 420 : 310), marginBottom: 12 }}>
+                          <SwipeCard
+                            card={groupProfileCard}
+                            action={null}
+                            isUnlocked
+                            isSkipped={false}
+                            previewOnly
+                            showActions={false}
+                            onSwipe={() => {}}
+                            onUndo={() => {}}
+                          />
+                        </div>
+                        <div style={{ display: 'grid', gap: 12 }}>
+                          {groupItems.map((entry, entryIdx) => {
+                            if (entry.kind === 'property') {
+                              return (
+                                <div key={`preview-group-property-${entry.data?.id || entryIdx}`} style={{ height: previewCardHeight }}>
+                                  <PropertyCard
+                                    property={entry.data}
+                                    action={null}
+                                    statusAction={null}
+                                    previewOnly
+                                    onInterest={(act) => {
+                                      try { if (act === 'next' || act === 'pass') handlePreviewNext(); } catch (e) { void e; }
+                                    }}
+                                    owner={groupProfileCard}
+                                  />
                                 </div>
-                              ))}
-                            </div>
-                          ) : (
-                            <div style={{ height: 200, border: `1px dashed ${C.border}`, borderRadius: 12, display: 'flex', alignItems: 'center', justifyContent: 'center', color: C.t3, fontSize: 12 }}>
-                              {t.uploadedImagesEmpty}
-                            </div>
-                          )}
+                              );
+                            }
+                            const svc = entry.data;
+                            const svcImages = (svc?.media?.images || []).filter(Boolean);
+                            return (
+                              <div key={`preview-group-service-${svc?.id || entryIdx}`} style={{ padding: 12, border: `1px solid ${C.border}`, borderRadius: 16, boxSizing: 'border-box' }}>
+                                <div style={{ marginBottom: 8 }}>
+                                  <div style={{ fontSize: 14, fontWeight: 700, color: C.t1 }}>{svc?.title || t.serviceFallbackName}</div>
+                                  {svc?.description && <div style={{ fontSize: 12, color: C.t2, marginTop: 2 }}>{svc.description}</div>}
+                                  {svc?.category && <div style={{ display: 'inline-block', marginTop: 4, padding: '2px 8px', borderRadius: 12, background: C.alpha(C.accent, 0.08), border: `1px solid ${C.alpha(C.accent, 0.15)}`, fontSize: 10, color: C.accent, fontWeight: 700 }}>{svc.category}</div>}
+                                </div>
+                                {svcImages.length > 0 ? (
+                                  <div style={{ display: 'grid', gridTemplateColumns: svcImages.length === 1 ? '1fr' : 'repeat(auto-fill, minmax(120px, 1fr))', gap: 8 }}>
+                                    {svcImages.map((src, imageIdx) => (
+                                      <div key={`svc-prev-img-${idx}-${entryIdx}-${imageIdx}`} style={{ position: 'relative', aspectRatio: svcImages.length === 1 ? '16/9' : '1', borderRadius: 8, overflow: 'hidden', background: C.alpha(C.t1, 0.06), border: `1px solid ${C.border}` }}>
+                                        <SmartImage src={src} alt={svc?.title || ''} style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }} />
+                                      </div>
+                                    ))}
+                                  </div>
+                                ) : (
+                                  <div style={{ height: 160, border: `1px dashed ${C.border}`, borderRadius: 12, display: 'flex', alignItems: 'center', justifyContent: 'center', color: C.t3, fontSize: 12 }}>
+                                    {t.uploadedImagesEmpty}
+                                  </div>
+                                )}
+                              </div>
+                            );
+                          })}
                         </div>
                       </div>
-                    );
-                  })()}
-                </div>
-              ))}
+                    </div>
+                  </div>
+                );
+              })}
             </div>
           ) : (
             <div style={{ margin: 12, height: isMobileViewport ? 260 : previewDeckHeight, border: `1px dashed ${C.border}`, borderRadius: 12, display: 'flex', alignItems: 'center', justifyContent: 'center', color: C.t3, fontSize: 12 }}>
@@ -1977,6 +2019,40 @@ export function Onboarding({
       return '';
     }
     return ownerId;
+  };
+
+  const requestDeletePortfolioRecord = (type, record) => {
+    if (!record) return;
+    setDeleteConfirm({
+      type,
+      id: record.id,
+      title: type === 'property'
+        ? (record.address || record.title || t.recordsPropertiesTab || 'Property')
+        : (record.title || record.name || t.recordsServicesTab || 'Service'),
+    });
+  };
+
+  const confirmDeletePortfolioRecord = async () => {
+    const pending = deleteConfirm;
+    if (!pending?.id) {
+      setDeleteConfirm(null);
+      return;
+    }
+    try {
+      if (pending.type === 'property') {
+        setPropertyPortfolio((prev) => (prev || []).filter((item) => String(item?.id) !== String(pending.id)));
+        if (typeof onDeletePropertyRecord === 'function') await onDeletePropertyRecord(pending.id);
+      } else {
+        setServicePortfolio((prev) => (prev || []).filter((item) => String(item?.id) !== String(pending.id)));
+        if (typeof onDeleteServiceRecord === 'function') await onDeleteServiceRecord(pending.id);
+      }
+      setPortfolioMsg(t.recordDeleted || 'Record deleted.');
+    } catch (error) {
+      setPortfolioMsg(t.recordDeleteFailed || 'Could not delete this record. Try again.');
+      if (import.meta.env.DEV) console.warn('Portfolio record delete failed', error);
+    } finally {
+      setDeleteConfirm(null);
+    }
   };
 
   const buildPreviewFeedCard = (scope = 'personal') => {
@@ -4096,7 +4172,7 @@ export function Onboarding({
                                 })} title={t.moveDown} aria-label={t.moveDown} style={{ background: 'none', border: 'none', cursor: 'pointer', padding: '0 6px', flexShrink: 0 }}>
                                   <Icon name="chevDown" size={14} color={C.t3} />
                                 </button>
-                                <button type="button" onClick={() => setPropertyPortfolio(prev => prev.filter(x => x.id !== p.id))} title={t.actionRemove} aria-label={t.actionRemove} style={{ background: 'none', border: 'none', cursor: 'pointer', padding: '0 6px', flexShrink: 0 }}>
+                                <button type="button" onClick={() => requestDeletePortfolioRecord('property', p)} title={t.actionRemove} aria-label={t.actionRemove} style={{ background: 'none', border: 'none', cursor: 'pointer', padding: '0 6px', flexShrink: 0 }}>
                                   <Icon name="trash" size={14} color={C.danger} />
                                 </button>
                               </div>
@@ -4426,7 +4502,7 @@ export function Onboarding({
                                 })} title={t.moveDown} aria-label={t.moveDown} style={{ background: 'none', border: 'none', cursor: 'pointer', padding: '0 6px', flexShrink: 0 }}>
                                   <Icon name="chevDown" size={14} color={C.t3} />
                                 </button>
-                                <button type="button" onClick={() => setServicePortfolio(prev => prev.filter(x => x.id !== svc.id))} title={t.actionRemove} aria-label={t.actionRemove} style={{ background: 'none', border: 'none', cursor: 'pointer', padding: '0 6px', flexShrink: 0 }}>
+                                <button type="button" onClick={() => requestDeletePortfolioRecord('service', svc)} title={t.actionRemove} aria-label={t.actionRemove} style={{ background: 'none', border: 'none', cursor: 'pointer', padding: '0 6px', flexShrink: 0 }}>
                                   <Icon name="trash" size={14} color={C.danger} />
                                 </button>
                               </div>
@@ -4947,6 +5023,36 @@ export function Onboarding({
           <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 8 }}>
             <button onClick={() => setEditingServiceId(null)} style={{ padding: '8px 12px', borderRadius: 9, border: `1px solid ${C.border}`, background: 'transparent', color: C.t2, fontWeight: 700, cursor: 'pointer', fontSize: 12 }}>{t.actionCancel}</button>
             <button onClick={() => saveEditService(editingServiceRecord.id)} style={{ padding: '8px 12px', borderRadius: 9, border: 'none', background: C.accent, color: '#fff', fontWeight: 700, cursor: 'pointer', fontSize: 12 }}>{t.actionSave}</button>
+          </div>
+        </Modal>
+      ) : null}
+
+      {deleteConfirm ? (
+        <Modal onClose={() => setDeleteConfirm(null)} maxWidth={460}>
+          <div style={{ padding: 4, color: C.t1 }}>
+            <h3 style={{ margin: '0 0 8px', fontSize: 18, fontWeight: 900 }}>
+              {t.deleteRecordTitle || 'Delete record?'}
+            </h3>
+            <p style={{ margin: '0 0 16px', color: C.t2, fontSize: 13, lineHeight: 1.45 }}>
+              {(t.deleteRecordMessage || 'Are you sure you want to delete "{title}"? This action removes the record from your portfolio.')
+                .replace('{title}', deleteConfirm.title || '')}
+            </p>
+            <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 10, flexWrap: 'wrap' }}>
+              <button
+                type="button"
+                onClick={() => setDeleteConfirm(null)}
+                style={{ padding: '10px 14px', borderRadius: 10, border: `1px solid ${C.border}`, background: 'transparent', color: C.t1, fontWeight: 800, cursor: 'pointer' }}
+              >
+                {t.actionCancel || 'Cancel'}
+              </button>
+              <button
+                type="button"
+                onClick={confirmDeletePortfolioRecord}
+                style={{ padding: '10px 14px', borderRadius: 10, border: 'none', background: C.danger, color: '#fff', fontWeight: 900, cursor: 'pointer' }}
+              >
+                {t.deleteAnyway || 'Delete anyway'}
+              </button>
+            </div>
           </div>
         </Modal>
       ) : null}
