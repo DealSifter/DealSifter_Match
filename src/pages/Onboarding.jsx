@@ -104,7 +104,7 @@ export function Onboarding({
     : (accountType === 'professional'
       ? (professionalProfile?.photoA || '')
       : (accountType === 'fsbo_owner'
-        ? (personalProfile?.photoFsbo || personalProfile?.fsboPhoto || personalProfile?.photo || '')
+        ? (personalProfile?.photoFsbo || personalProfile?.fsboPhoto || '')
         : (personalProfile?.photo || '')));
   const savedThumbB = Object.prototype.hasOwnProperty.call(_savedTemp, 'profileThumbB')
     ? (_savedTemp.profileThumbB || '')
@@ -112,30 +112,30 @@ export function Onboarding({
   const [name, setName] = useState(accountType === 'professional'
     ? (professionalProfile?.fullNameA || '')
     : (accountType === 'fsbo_owner'
-      ? (personalProfile?.fullNameFsbo || personalProfile?.fsboFullName || personalProfile?.fullName || '')
+      ? (personalProfile?.fullNameFsbo || personalProfile?.fsboFullName || '')
       : (personalProfile?.fullName || '')));
   const [loc, setLoc] = useState(normalizeUsStateCode(accountType === 'professional'
     ? professionalProfile?.locA
-    : (accountType === 'fsbo_owner' ? (personalProfile?.locFsbo || personalProfile?.fsboLoc || personalProfile?.loc) : personalProfile?.loc)));
+    : (accountType === 'fsbo_owner' ? (personalProfile?.locFsbo || personalProfile?.fsboLoc) : personalProfile?.loc)));
   const [selectedCategories, setSelectedCategories] = useState(professionalProfile?.categories || []);
   const [primaryCategory, setPrimaryCategory] = useState(professionalProfile?.primaryCategory || (professionalProfile?.categories || [])[0] || '');
   const [profileThumb, setProfileThumb] = useState(savedThumbA);
   const [profileThumbClearRequested, setProfileThumbClearRequested] = useState(false);
   const [contactMethods, setContactMethods] = useState(accountType === 'professional'
     ? (professionalProfile?.contactMethodsA || [])
-    : (accountType === 'fsbo_owner' ? (personalProfile?.contactMethodsFsbo || personalProfile?.fsboContactMethods || personalProfile?.contactMethods || []) : (personalProfile?.contactMethods || [])));
+    : (accountType === 'fsbo_owner' ? (personalProfile?.contactMethodsFsbo || personalProfile?.fsboContactMethods || []) : (personalProfile?.contactMethods || [])));
   const [personalPrimaryPhone, setPersonalPrimaryPhone] = useState(accountType === 'professional'
     ? (professionalProfile?.primaryPhoneA || professionalProfile?.phoneA || '')
-    : (accountType === 'fsbo_owner' ? (personalProfile?.primaryPhoneFsbo || personalProfile?.phoneFsbo || personalProfile?.primaryPhone || personalProfile?.phone || '') : (personalProfile?.primaryPhone || personalProfile?.phone || '')));
+    : (accountType === 'fsbo_owner' ? (personalProfile?.primaryPhoneFsbo || personalProfile?.phoneFsbo || '') : (personalProfile?.primaryPhone || personalProfile?.phone || '')));
   const [personalSecondaryPhone, setPersonalSecondaryPhone] = useState(accountType === 'professional'
     ? (professionalProfile?.secondaryPhoneA || '')
-    : (accountType === 'fsbo_owner' ? (personalProfile?.secondaryPhoneFsbo || personalProfile?.secondaryPhone || '') : (personalProfile?.secondaryPhone || '')));
+    : (accountType === 'fsbo_owner' ? (personalProfile?.secondaryPhoneFsbo || '') : (personalProfile?.secondaryPhone || '')));
   const [personalTertiaryPhone, setPersonalTertiaryPhone] = useState(accountType === 'professional'
     ? (professionalProfile?.tertiaryPhoneA || '')
-    : (accountType === 'fsbo_owner' ? (personalProfile?.tertiaryPhoneFsbo || personalProfile?.tertiaryPhone || '') : (personalProfile?.tertiaryPhone || '')));
+    : (accountType === 'fsbo_owner' ? (personalProfile?.tertiaryPhoneFsbo || '') : (personalProfile?.tertiaryPhone || '')));
   const [personalEmail, setPersonalEmail] = useState(accountType === 'professional'
     ? (professionalProfile?.emailA || '')
-    : (accountType === 'fsbo_owner' ? (personalProfile?.emailFsbo || personalProfile?.fsboEmail || personalProfile?.email || '') : (personalProfile?.email || '')));
+    : (accountType === 'fsbo_owner' ? (personalProfile?.emailFsbo || personalProfile?.fsboEmail || '') : (personalProfile?.email || '')));
   const hasExplicitPriorityA = accountType === 'professional'
     ? professionalProfile?.cardPriorityAExplicit === true
     : (professionalProfile?.cardPriorityAExplicit === true || personalProfile?.cardPriorityAExplicit === true);
@@ -1496,13 +1496,13 @@ export function Onboarding({
     if (pendingProfileClearScope) return undefined;
     const timer = window.setTimeout(() => {
       if (accountType === 'fsbo_owner') {
-        setName(personalProfile?.fullNameFsbo || personalProfile?.fsboFullName || personalProfile?.fullName || '');
-        setLoc(normalizeUsStateCode(personalProfile?.locFsbo || personalProfile?.fsboLoc || personalProfile?.loc));
-        setContactMethods(personalProfile?.contactMethodsFsbo || personalProfile?.fsboContactMethods || personalProfile?.contactMethods || []);
-        setPersonalPrimaryPhone(personalProfile?.primaryPhoneFsbo || personalProfile?.phoneFsbo || personalProfile?.primaryPhone || personalProfile?.phone || '');
-        setPersonalSecondaryPhone(personalProfile?.secondaryPhoneFsbo || personalProfile?.secondaryPhone || '');
-        setPersonalTertiaryPhone(personalProfile?.tertiaryPhoneFsbo || personalProfile?.tertiaryPhone || '');
-        setPersonalEmail(personalProfile?.emailFsbo || personalProfile?.fsboEmail || personalProfile?.email || '');
+        setName(personalProfile?.fullNameFsbo || personalProfile?.fsboFullName || '');
+        setLoc(normalizeUsStateCode(personalProfile?.locFsbo || personalProfile?.fsboLoc));
+        setContactMethods(personalProfile?.contactMethodsFsbo || personalProfile?.fsboContactMethods || []);
+        setPersonalPrimaryPhone(personalProfile?.primaryPhoneFsbo || personalProfile?.phoneFsbo || '');
+        setPersonalSecondaryPhone(personalProfile?.secondaryPhoneFsbo || '');
+        setPersonalTertiaryPhone(personalProfile?.tertiaryPhoneFsbo || '');
+        setPersonalEmail(personalProfile?.emailFsbo || personalProfile?.fsboEmail || '');
         const priorityBExplicit = professionalProfile?.cardPriorityBExplicit === true;
         const priorityCExplicit = personalProfile?.cardPriorityCExplicit === true || professionalProfile?.cardPriorityCExplicit === true;
         applyCardPrioritySet({
@@ -1512,7 +1512,7 @@ export function Onboarding({
             ? (readStoredPriority(personalProfile, 'cardPriorityC') || readStoredPriority(professionalProfile, 'cardPriorityC'))
             : '',
         }, 'C');
-        setProfileThumb(personalProfile?.photoFsbo || personalProfile?.fsboPhoto || personalProfile?.photo || '');
+        setProfileThumb(personalProfile?.photoFsbo || personalProfile?.fsboPhoto || '');
         setProfileThumbB(professionalProfile?.photoB || '');
         setSelectedCategories([]);
         setPrimaryCategory('');
@@ -2343,7 +2343,7 @@ export function Onboarding({
       }
       setBasicRequiredMsg('');
       clearInlineValidationHint();
-      return { valid: true, primaryProfile: 'A', profileAComplete, profileBComplete };
+      return { valid: true, primaryProfile: 'C', profileAComplete, profileBComplete };
     }
 
     // Professional path: AT LEAST ONE complete path suffices:
@@ -2997,9 +2997,9 @@ export function Onboarding({
       return normalizeEmail(personalEmailB || professionalProfile?.emailB || '');
     }
     if (scope === 'fsbo') {
-      return normalizeEmail(personalEmail || personalProfile?.email || '');
+      return normalizeEmail(personalEmail || personalProfile?.emailFsbo || personalProfile?.fsboEmail || '');
     }
-    return normalizeEmail(personalEmail || professionalProfile?.emailA || personalProfile?.email || '');
+    return normalizeEmail(personalEmail || professionalProfile?.emailA || '');
   };
 
   const getAuthEmailSnapshot = (sessionLike = authSession) => normalizeEmail(sessionLike?.email || '');

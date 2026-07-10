@@ -104,11 +104,11 @@ const getScopedProfilePhoto = ({ payloadScope, payloadProfile, scope }) => {
   if (normalizedScope === 'professional') {
     return pickFirstString(payloadScope?.photo, payloadProfile?.photo, payloadProfile?.photoB, payloadProfile?.photoBUrl);
   }
-  if (normalizedScope === 'fsbo') return pickFirstString(payloadScope?.photo, payloadProfile?.photoFsbo, payloadProfile?.fsboPhoto, payloadProfile?.photo);
+  if (normalizedScope === 'fsbo') return pickFirstString(payloadScope?.photo, payloadProfile?.photoFsbo, payloadProfile?.fsboPhoto);
   return pickFirstString(payloadScope?.photo, payloadProfile?.photo, payloadProfile?.photoA);
 };
 
-const buildOwnerPreview = ({ ownerId, scope, userRow, personalRow, professionalRow }) => {
+const buildOwnerPreview = ({ ownerId, scope, userRow, professionalRow }) => {
   const id = String(ownerId || '').trim();
   const normalizedScope = normalizeProfileScope(scope);
   if (!id || !normalizedScope) return null;
@@ -129,7 +129,7 @@ const buildOwnerPreview = ({ ownerId, scope, userRow, personalRow, professionalR
   const name = isProfessional
     ? pickIdentityName(payloadScope?.name, payloadProfile?.fullName, payloadProfile?.fullNameB, professionalRow?.full_name)
     : isFsbo
-      ? pickIdentityName(payloadScope?.name, payloadScope?.fullName, payloadProfile?.fullNameFsbo, payloadProfile?.fsboFullName, payloadProfile?.fullName, personalRow?.full_name)
+      ? pickIdentityName(payloadScope?.name, payloadScope?.fullName, payloadProfile?.fullNameFsbo, payloadProfile?.fsboFullName)
       : pickIdentityName(payloadProfile?.fullName, payloadScope?.name);
   if (!name || isLikelyNonIdentityName(name)) return null;
 
@@ -397,12 +397,10 @@ export function buildGlobalFeedState(rawInventory, currentUserId = '', filters =
   const serviceRows = Array.isArray(inventory.services) ? inventory.services : [];
   const spotlightRows = Array.isArray(inventory.spotlights) ? inventory.spotlights : [];
   const userRows = Array.isArray(inventory.users) ? inventory.users : [];
-  const personalRows = Array.isArray(inventory.personalProfiles) ? inventory.personalProfiles : [];
   const professionalRows = Array.isArray(inventory.professionalProfiles) ? inventory.professionalProfiles : [];
   const imageRows = Array.isArray(inventory.propertyImages) ? inventory.propertyImages : [];
 
   const usersById = new Map(userRows.map((row) => [String(row.id), row]));
-  const personalByOwnerId = new Map(personalRows.map((row) => [String(row.user_id), row]));
   const professionalByOwnerId = new Map(professionalRows.map((row) => [String(row.user_id), row]));
   const imagesByProperty = imageRows.reduce((acc, row) => {
     const key = String(row.property_id || '');
@@ -419,7 +417,6 @@ export function buildGlobalFeedState(rawInventory, currentUserId = '', filters =
       ownerId,
       scope: inferRecordProfileScope(row, ''),
       userRow: usersById.get(ownerId),
-      personalRow: personalByOwnerId.get(ownerId),
       professionalRow: professionalByOwnerId.get(ownerId),
     });
   };

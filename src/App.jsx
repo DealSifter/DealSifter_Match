@@ -2482,11 +2482,12 @@ export default function App() {
 
     const hasPersonalName = Boolean(String(professionalProfile?.fullNameA || '').trim());
     const hasBusinessName = Boolean(String(professionalProfile?.fullNameB || '').trim());
-    const hasFsbo = accountType === 'fsbo_owner'
+    const fsboTitle = personalProfile?.fullNameFsbo || personalProfile?.fsboFullName || '';
+    const hasFsbo = Boolean(String(fsboTitle || '').trim())
       || Boolean((propertyPortfolio || []).some((p) => String(p?.primaryProfile || '').toLowerCase() === 'fsbo'));
     addProfile('personal', professionalProfile?.fullNameA || 'Personal profile', hasPersonalName);
     addProfile('professional', professionalProfile?.fullNameB || 'Business profile', hasBusinessName);
-    addProfile('fsbo', personalProfile?.fullName || 'FSBO profile', hasFsbo);
+    addProfile('fsbo', fsboTitle || 'FSBO profile', hasFsbo);
     candidates.push(...spotlightDbCandidates);
 
     const byKey = new Map();
@@ -3026,17 +3027,19 @@ export default function App() {
 
         if (personalResult.data) {
           const hydratedPersonal = normalizePersonalProfile({
-            fullName: personalResult.data.full_name,
-            photo: personalResult.data.photo_url,
-            bio: personalResult.data.bio,
+            fullNameFsbo: personalResult.data.full_name,
+            fsboFullName: personalResult.data.full_name,
+            photoFsbo: personalResult.data.photo_url,
+            fsboPhoto: personalResult.data.photo_url,
+            bioFsbo: personalResult.data.bio,
             visibility: personalResult.data.visibility,
           });
           setPersonalProfile(hydratedPersonal);
 
-          if (hydratedPersonal.fullName) {
+          if (hydratedPersonal.fullNameFsbo || hydratedPersonal.fsboFullName) {
             setUserProfile((prev) => ({
               ...(prev || {}),
-              name: hydratedPersonal.fullName,
+              name: hydratedPersonal.fullNameFsbo || hydratedPersonal.fsboFullName,
             }));
           }
         }
@@ -3049,10 +3052,6 @@ export default function App() {
           if (['professional', 'fsbo_owner'].includes(persistedAccountType)) {
             setAccountType(persistedAccountType);
           }
-          const effectiveAccountType = ['professional', 'fsbo_owner'].includes(persistedAccountType)
-            ? persistedAccountType
-            : accountType;
-
           const {
             professionalFromPayload,
             professionalProfileFromPayload,
@@ -3067,9 +3066,11 @@ export default function App() {
           // identities bleed into each other across account modes.
           const canonicalFsboProfile = personalResult.data
             ? pruneEmptyProfileFields({
-              fullName: personalResult.data.full_name,
-              photo: personalResult.data.photo_url,
-              bio: personalResult.data.bio,
+              fullNameFsbo: personalResult.data.full_name,
+              fsboFullName: personalResult.data.full_name,
+              photoFsbo: personalResult.data.photo_url,
+              fsboPhoto: personalResult.data.photo_url,
+              bioFsbo: personalResult.data.bio,
               visibility: personalResult.data.visibility,
             })
             : {};
@@ -3092,20 +3093,7 @@ export default function App() {
             professionalFromPayload,
             professionalProfileFromPayload
           );
-          const legacyPersonalAsProfileA = (
-            effectiveAccountType !== 'fsbo_owner'
-            && personalResult.data
-            && !String(mergedProfessionalPayload.fullNameA || '').trim()
-            && !String(mergedProfessionalPayload.photoA || '').trim()
-          )
-            ? pruneEmptyProfileFields({
-              fullNameA: personalResult.data.full_name,
-              photoA: personalResult.data.photo_url,
-            })
-            : {};
-
           const hydratedProfessional = normalizeProfessionalProfile({
-            ...legacyPersonalAsProfileA,
             ...mergedProfessionalPayload,
             category: professionalResult.data.category,
             subcategory: professionalResult.data.subcategory,
@@ -3273,13 +3261,16 @@ export default function App() {
     const syncPersonal = async () => {
       pendingFlushRef.current.personal = null;
       const normalized = normalizePersonalProfile(personalProfile);
+      const fsboName = String(normalized.fullNameFsbo || normalized.fsboFullName || '').trim();
+      const fsboBio = String(normalized.bioFsbo || normalized.pitchFsbo || '').trim();
+      const fsboPhoto = String(normalized.photoFsbo || normalized.fsboPhoto || '').trim();
 
       // Upload avatar to Supabase Storage if it's a local data URL
-      let photoUrl = normalized.photo || null;
+      let photoUrl = fsboPhoto || null;
       if (photoUrl && photoUrl.startsWith('data:image')) {
         try {
           photoUrl = await uploadDataUrlToStorage(
-            photoUrl, 'profile-images', `${supabaseUserId}/avatar.jpg`, supabase
+            photoUrl, 'profile-images', `${supabaseUserId}/fsbo-avatar.jpg`, supabase
           );
         } catch (uploadErr) {
           safeLogError('Avatar upload to Storage failed; skipping inline media persistence.', uploadErr);
@@ -3289,14 +3280,14 @@ export default function App() {
 
       const payload = {
         user_id: supabaseUserId,
-        full_name: normalized.fullName || null,
-        bio: normalized.bio || null,
+        full_name: fsboName || null,
+        bio: fsboBio || null,
         visibility: normalized.visibility || 'hidden',
       };
       // Do not wipe a persisted avatar when the current form state is empty.
       // Production identity must prefer DB/Storage records over transient gaps.
       if (photoUrl) payload.photo_url = photoUrl;
-      else if (normalized.photoClearRequested === true) payload.photo_url = null;
+      else if (normalized.photoFsboClearRequested === true || normalized.fsboPhotoClearRequested === true) payload.photo_url = null;
 
       beginProfileSync();
       try {
@@ -3337,11 +3328,11 @@ export default function App() {
       // The public feed must hydrate from DB/Storage URLs tied to the exact
       // profile scope, not from temporary inline data or broad fallbacks.
       const normalizedPersonalForPayload = normalizePersonalProfile(personalProfile);
-      let personalPhotoUrl = normalizedPersonalForPayload.photo || null;
+      let personalPhotoUrl = normalizedPersonalForPayload.photoFsbo || normalizedPersonalForPayload.fsboPhoto || null;
       if (personalPhotoUrl && personalPhotoUrl.startsWith('data:image')) {
         try {
           personalPhotoUrl = await uploadDataUrlToStorage(
-            personalPhotoUrl, 'profile-images', `${supabaseUserId}/avatar.jpg`, supabase
+            personalPhotoUrl, 'profile-images', `${supabaseUserId}/fsbo-avatar.jpg`, supabase
           );
         } catch (uploadErr) {
           safeLogError('Personal/FSBO photo upload to Storage failed; skipping inline media persistence.', uploadErr);
@@ -3381,7 +3372,9 @@ export default function App() {
       };
       const personalProfileWithUploadedPhoto = {
         ...normalizedPersonalForPayload,
-        photo: personalPhotoUrl || '',
+        photoFsbo: personalPhotoUrl || normalizedPersonalForPayload.photoFsbo || '',
+        fsboPhoto: personalPhotoUrl || normalizedPersonalForPayload.fsboPhoto || '',
+        photo: '',
       };
       const profilePayload = normalizePersistableProfilePayload(buildScopedProfilePayload({
         accountType,
@@ -5287,10 +5280,14 @@ export default function App() {
   const hasAnyProfileRegistered = useMemo(() => {
     const hasValue = (value) => String(value ?? '').trim().length > 0;
     return (
-      hasValue(personalProfile?.fullName)
-      || hasValue(personalProfile?.primaryPhone)
-      || hasValue(personalProfile?.email)
-      || hasValue(personalProfile?.photo)
+      hasValue(personalProfile?.fullNameFsbo)
+      || hasValue(personalProfile?.fsboFullName)
+      || hasValue(personalProfile?.primaryPhoneFsbo)
+      || hasValue(personalProfile?.phoneFsbo)
+      || hasValue(personalProfile?.emailFsbo)
+      || hasValue(personalProfile?.fsboEmail)
+      || hasValue(personalProfile?.photoFsbo)
+      || hasValue(personalProfile?.fsboPhoto)
       || hasValue(professionalProfile?.fullNameA)
       || hasValue(professionalProfile?.primaryPhoneA)
       || hasValue(professionalProfile?.emailA)

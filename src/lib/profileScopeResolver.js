@@ -40,6 +40,28 @@ const toPersonalProfileShape = (resolved = {}, fallback = {}) => ({
     : pickString(fallback.cardPriorityC),
 });
 
+const toFsboProfileShape = (resolved = {}, fallback = {}) => ({
+  ...fallback,
+  fullNameFsbo: pickString(resolved?.name, fallback.fullNameFsbo, fallback.fsboFullName),
+  fsboFullName: pickString(resolved?.name, fallback.fsboFullName, fallback.fullNameFsbo),
+  photoFsbo: pickString(resolved?.photo, fallback.photoFsbo, fallback.fsboPhoto),
+  fsboPhoto: pickString(resolved?.photo, fallback.fsboPhoto, fallback.photoFsbo),
+  bioFsbo: pickString(resolved?.pitch, fallback.bioFsbo, fallback.pitchFsbo),
+  pitchFsbo: pickString(resolved?.pitch, fallback.pitchFsbo, fallback.bioFsbo),
+  visibility: pickString(fallback.visibility, 'hidden'),
+  locFsbo: pickString(resolved?.loc, fallback.locFsbo, fallback.fsboLoc),
+  fsboLoc: pickString(resolved?.loc, fallback.fsboLoc, fallback.locFsbo),
+  contactMethodsFsbo: pickArray(resolved?.contactMethods, fallback.contactMethodsFsbo, fallback.fsboContactMethods),
+  fsboContactMethods: pickArray(resolved?.contactMethods, fallback.fsboContactMethods, fallback.contactMethodsFsbo),
+  primaryPhoneFsbo: pickString(resolved?.primaryPhone, fallback.primaryPhoneFsbo, fallback.phoneFsbo),
+  phoneFsbo: pickString(resolved?.primaryPhone, fallback.phoneFsbo, fallback.primaryPhoneFsbo),
+  secondaryPhoneFsbo: pickString(resolved?.secondaryPhone, fallback.secondaryPhoneFsbo),
+  tertiaryPhoneFsbo: pickString(resolved?.tertiaryPhone, fallback.tertiaryPhoneFsbo),
+  emailFsbo: pickString(resolved?.email, fallback.emailFsbo, fallback.fsboEmail),
+  fsboEmail: pickString(resolved?.email, fallback.fsboEmail, fallback.emailFsbo),
+  cardPriorityC: pickString(resolved?.cardPriority, fallback.cardPriorityC),
+});
+
 const toProfessionalProfileShape = (resolved = {}, fallback = {}) => ({
   ...fallback,
   fullName: pickString(resolved?.name, fallback.fullName),
@@ -177,13 +199,13 @@ export function resolveScopedProfile(scope, {
   return {
     scope: normalizedScope,
     name: isFsboScope
-      ? pickIdentityName(personal.fullNameFsbo, personal.fsboFullName, personal.fullName)
+      ? pickIdentityName(personal.fullNameFsbo, personal.fsboFullName)
       : pickIdentityName(professional.fullNameA),
     loc: isFsboScope
-      ? pickString(personal.locFsbo, personal.fsboLoc, personal.loc)
+      ? pickString(personal.locFsbo, personal.fsboLoc)
       : pickString(professional.locA),
     photo: isFsboScope
-      ? pickString(personal.photoFsbo, personal.fsboPhoto, personal.photo)
+      ? pickString(personal.photoFsbo, personal.fsboPhoto)
       : pickString(professional.photoA),
     categoryId: isFsboScope
       ? 'fsbo'
@@ -193,22 +215,22 @@ export function resolveScopedProfile(scope, {
       : pickString(professional.category),
     badge: isFsboScope ? 'FSBO' : pickString(user.badge),
     pitch: isFsboScope
-      ? pickString(personal.bioFsbo, personal.pitchFsbo, personal.bio, personal.pitch)
+      ? pickString(personal.bioFsbo, personal.pitchFsbo)
       : pickString(professional.pitch),
     contactMethods: isFsboScope
-      ? pickArray(personal.contactMethodsFsbo, personal.fsboContactMethods, personal.contactMethods)
+      ? pickArray(personal.contactMethodsFsbo, personal.fsboContactMethods)
       : pickArray(professional.contactMethodsA),
     primaryPhone: isFsboScope
-      ? pickString(personal.primaryPhoneFsbo, personal.phoneFsbo, personal.primaryPhone, personal.phone)
+      ? pickString(personal.primaryPhoneFsbo, personal.phoneFsbo)
       : pickString(professional.primaryPhoneA, professional.phoneA),
     secondaryPhone: isFsboScope
-      ? pickString(personal.secondaryPhoneFsbo, personal.secondaryPhone)
+      ? pickString(personal.secondaryPhoneFsbo)
       : pickString(professional.secondaryPhoneA),
     tertiaryPhone: isFsboScope
-      ? pickString(personal.tertiaryPhoneFsbo, personal.tertiaryPhone)
+      ? pickString(personal.tertiaryPhoneFsbo)
       : pickString(professional.tertiaryPhoneA),
     email: isFsboScope
-      ? pickString(personal.emailFsbo, personal.fsboEmail, personal.email)
+      ? pickString(personal.emailFsbo, personal.fsboEmail)
       : pickString(professional.emailA),
     cardPriority: isFsboScope
       ? pickString(personal.cardPriorityC)
@@ -237,7 +259,7 @@ export function buildScopedProfilePayload({
     profiles: {
       personal: toPersonalProfileShape(resolveScopedProfile('personal', { accountType, userProfile, personalProfile, professionalProfile }), {}),
       professional: toProfessionalProfileShape(resolveScopedProfile('professional', { accountType, userProfile, personalProfile, professionalProfile }), professionalProfile || {}),
-      fsbo: toPersonalProfileShape(resolveScopedProfile('fsbo', { accountType, userProfile, personalProfile, professionalProfile }), personalProfile || {}),
+      fsbo: toFsboProfileShape(resolveScopedProfile('fsbo', { accountType, userProfile, personalProfile, professionalProfile }), personalProfile || {}),
     },
     legacy: {
       personalProfile: personalProfile || {},
@@ -270,7 +292,7 @@ export function extractScopedProfileLegacy(profilePayload) {
   const fsboProfileFromPayload = profiles.fsbo && typeof profiles.fsbo === 'object'
     ? profiles.fsbo
     : (resolved.fsbo && typeof resolved.fsbo === 'object'
-      ? toPersonalProfileShape(resolved.fsbo, personalFromPayload || {})
+      ? toFsboProfileShape(resolved.fsbo, personalFromPayload || {})
       : null);
   return {
     personalFromPayload,
