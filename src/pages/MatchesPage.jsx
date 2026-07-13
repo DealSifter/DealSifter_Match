@@ -996,13 +996,18 @@ function PortfolioDetail({ item, owner, ownerContact = null, isOwnerUnlocked = f
     const doc = new jsPDF({ unit: 'pt', format: 'a4' });
     const pageWidth = doc.internal.pageSize.getWidth();
     const pageHeight = doc.internal.pageSize.getHeight();
-    const margin = 24;
+    const margin = 20;
     const maxTextWidth = pageWidth - margin * 2;
     let y = margin;
 
     const logo = await fetchImageData(appLogo);
     const normalizedImageUrls = Array.isArray(imageUrls) && imageUrls.length ? imageUrls : getExportImageUrls();
     const mainImage = await fetchImageData(normalizedImageUrls?.[0]);
+    const galleryImages = (await Promise.all(
+      normalizedImageUrls
+        .slice(1, 11)
+        .map((url) => fetchImageData(url))
+    )).filter(Boolean);
 
     const safe = (v, fallback = '-') => {
       const s = normalizeExportText(v);
@@ -1119,22 +1124,22 @@ function PortfolioDetail({ item, owner, ownerContact = null, isOwnerUnlocked = f
 
     // Branded header using the same complete logo image used in the app header.
     doc.setFillColor(13, 24, 21);
-    doc.roundedRect(margin, y, maxTextWidth, 54, 10, 10, 'F');
+    doc.roundedRect(margin, y, maxTextWidth, 42, 8, 8, 'F');
     if (logo) {
-      drawImageContain(doc, logo.dataUrl, logo.format, margin + 12, y + 7, 170, 40);
+      drawImageContain(doc, logo.dataUrl, logo.format, margin + 10, y + 6, 145, 30);
     }
     doc.setFont('helvetica', 'bold');
     doc.setTextColor(53, 202, 201);
-    doc.setFontSize(12);
-    doc.text(matchesT.exportPdfHeader || 'Investor-ready property release', pageWidth - margin - 10, y + 22, { align: 'right' });
+    doc.setFontSize(11);
+    doc.text(matchesT.exportPdfHeader || 'Investor-ready property release', pageWidth - margin - 10, y + 17, { align: 'right' });
     doc.setFont('helvetica', 'normal');
     doc.setTextColor(187, 202, 214);
-    doc.setFontSize(8.5);
-    doc.text(`${matchesT.generated || 'Generated'}: ${new Date().toLocaleString()}`, pageWidth - margin - 10, y + 38, { align: 'right' });
-    y += 68;
+    doc.setFontSize(7.8);
+    doc.text(`${matchesT.generated || 'Generated'}: ${new Date().toLocaleString()}`, pageWidth - margin - 10, y + 31, { align: 'right' });
+    y += 52;
 
-    const heroH = 138;
-    const heroGap = 14;
+    const heroH = 118;
+    const heroGap = 12;
     const heroLeftW = Math.floor((maxTextWidth - heroGap) * 0.52);
     const heroRightW = maxTextWidth - heroLeftW - heroGap;
     const heroRightX = margin + heroLeftW + heroGap;
@@ -1144,22 +1149,22 @@ function PortfolioDetail({ item, owner, ownerContact = null, isOwnerUnlocked = f
 
     doc.setFont('helvetica', 'bold');
     doc.setTextColor(8, 18, 34);
-    doc.setFontSize(18);
+    doc.setFontSize(16);
     const heroTitle = doc.splitTextToSize(safe(item?.address || title), heroLeftW - 16);
     doc.text(heroTitle[0] || '-', margin + 8, y + 26);
     doc.setFont('helvetica', 'bold');
     doc.setTextColor(73, 86, 105);
-    doc.setFontSize(11.5);
-    doc.text(`${safe(item?.city)}, ${safe(item?.state)} ${safe(item?.zip, '')}`.trim(), margin + 8, y + 44);
+    doc.setFontSize(10.5);
+    doc.text(`${safe(item?.city)}, ${safe(item?.state)} ${safe(item?.zip, '')}`.trim(), margin + 8, y + 42);
 
     doc.setFont('helvetica', 'bold');
     doc.setTextColor(245, 166, 35);
-    doc.setFontSize(22);
-    doc.text(fmtMoney(item?.price), margin + 8, y + 70);
+    doc.setFontSize(20);
+    doc.text(fmtMoney(item?.price), margin + 8, y + 64);
 
     doc.setDrawColor(120, 130, 142);
     doc.setLineDashPattern([2, 2], 0);
-    doc.line(margin + 8, y + 55, margin + heroLeftW - 8, y + 55);
+    doc.line(margin + 8, y + 50, margin + heroLeftW - 8, y + 50);
     doc.setLineDashPattern([], 0);
 
     const chips = [
@@ -1173,21 +1178,21 @@ function PortfolioDetail({ item, owner, ownerContact = null, isOwnerUnlocked = f
       const chipW = Math.min(116, doc.getTextWidth(chip) + 12);
       doc.setFillColor(255, 255, 255);
       doc.setDrawColor(187, 229, 229);
-      doc.roundedRect(chipX, y + 86, chipW, 18, 6, 6, 'FD');
+      doc.roundedRect(chipX, y + 78, chipW, 17, 6, 6, 'FD');
       doc.setFont('helvetica', 'bold');
       doc.setTextColor(43, 68, 88);
       doc.setFontSize(8.5);
-      doc.text(chip, chipX + 6, y + 98);
+      doc.text(chip, chipX + 6, y + 89);
       chipX += chipW + 6;
       if (chipX > margin + heroLeftW - 80) break;
     }
 
     doc.setFont('helvetica', 'normal');
-    doc.setFontSize(9);
+    doc.setFontSize(8.4);
     doc.setTextColor(72, 84, 102);
     const noteSnippet = safe(item?.description || ownerNotes || '-', '-');
     const noteLines = doc.splitTextToSize(noteSnippet, heroLeftW - 16);
-    doc.text((noteLines[0] || '-') + (noteLines[1] ? '...' : ''), margin + 8, y + 124);
+    doc.text((noteLines[0] || '-') + (noteLines[1] ? '...' : ''), margin + 8, y + 108);
 
     doc.setFillColor(244, 247, 250);
     doc.setDrawColor(205, 216, 232);
@@ -1219,16 +1224,16 @@ function PortfolioDetail({ item, owner, ownerContact = null, isOwnerUnlocked = f
     }
     y += heroH + 12;
 
-    const panelGap = 10;
+    const panelGap = 8;
     const panelW = Math.floor((maxTextWidth - panelGap * 2) / 3);
-    const panelH = 198;
+    const panelH = 168;
     drawPanel(pdfLabel('exportOwnerInfo', 'Owner Information'), panelRowsOwner, margin, y, panelW, panelH);
     drawPanel(pdfLabel('exportPropertyInfo', 'Property Characteristics'), panelRowsProperty, margin + panelW + panelGap, y, panelW, panelH);
     drawPanel(pdfLabel('exportLandInfo', 'Land Information'), panelRowsLand, margin + (panelW + panelGap) * 2, y, panelW, panelH);
     y += panelH + 10;
 
     // Full-width intermediate Notes block between the 3 columns and the map section.
-    const notesBlockH = 72;
+    const notesBlockH = 56;
     doc.setFillColor(249, 250, 252);
     doc.setDrawColor(208, 216, 229);
     doc.roundedRect(margin, y, maxTextWidth, notesBlockH, 6, 6, 'FD');
@@ -1238,13 +1243,53 @@ function PortfolioDetail({ item, owner, ownerContact = null, isOwnerUnlocked = f
     doc.text(pdfLabel('notes', 'Notes'), margin + 8, y + 16);
     doc.setFont('helvetica', 'normal');
     doc.setTextColor(74, 84, 96);
-    doc.setFontSize(8.8);
+    doc.setFontSize(8.2);
     const notesLines = doc.splitTextToSize(ownerNotes || '-', maxTextWidth - 16);
-    const maxNotesLines = 4;
+    const maxNotesLines = 3;
     for (let i = 0; i < Math.min(maxNotesLines, notesLines.length); i += 1) {
-      doc.text(notesLines[i], margin + 8, y + 30 + (i * 10));
+      doc.text(notesLines[i], margin + 8, y + 29 + (i * 9));
     }
     y += notesBlockH + 10;
+
+    if (galleryImages.length > 0) {
+      const galleryRows = galleryImages.length > 5 ? 2 : 1;
+      const galleryGap = 6;
+      const galleryTitleH = 18;
+      const galleryInnerW = maxTextWidth - 16;
+      const galleryCellW = (galleryInnerW - galleryGap * 4) / 5;
+      const galleryCellH = galleryRows === 2 ? 42 : 54;
+      const galleryH = galleryTitleH + (galleryRows * galleryCellH) + ((galleryRows - 1) * galleryGap) + 10;
+      doc.setFillColor(249, 250, 252);
+      doc.setDrawColor(208, 216, 229);
+      doc.roundedRect(margin, y, maxTextWidth, galleryH, 6, 6, 'FD');
+      doc.setFont('helvetica', 'bold');
+      doc.setTextColor(46, 56, 72);
+      doc.setFontSize(10.2);
+      doc.text(pdfLabel('photos', 'Additional Photos'), margin + 8, y + 15);
+
+      for (let i = 0; i < Math.min(10, galleryImages.length); i += 1) {
+        const row = Math.floor(i / 5);
+        const col = i % 5;
+        const imgX = margin + 8 + (col * (galleryCellW + galleryGap));
+        const imgY = y + galleryTitleH + (row * (galleryCellH + galleryGap));
+        doc.setDrawColor(205, 216, 232);
+        doc.roundedRect(imgX, imgY, galleryCellW, galleryCellH, 5, 5);
+        const fitted = await renderFittedImageDataUrl({
+          sourceDataUrl: galleryImages[i].dataUrl,
+          targetW: galleryCellW,
+          targetH: galleryCellH,
+          mode: 'cover',
+          radius: 5,
+          background: '#ffffff',
+        });
+        if (fitted) {
+          doc.addImage(fitted, 'JPEG', imgX, imgY, galleryCellW, galleryCellH, undefined, 'FAST');
+        } else {
+          drawImageCover(doc, galleryImages[i].dataUrl, galleryImages[i].format, imgX, imgY, galleryCellW, galleryCellH);
+        }
+      }
+      y += galleryH + 10;
+    }
 
     // Map snapshot replaces old Additional Notes block.
     const mapH = pageHeight - y - margin;
