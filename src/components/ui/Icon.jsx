@@ -17,13 +17,14 @@ export const Icon = ({ name, size=18, color="currentColor", strokeWidth=1.5, sec
     copy:       <svg style={s} viewBox="0 0 24 24"><rect {...p} x="9" y="9" width="13" height="13" rx="2"/><path {...p} d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>,
     check:      <svg style={s} viewBox="0 0 24 24"><polyline {...p} points="20 6 9 17 4 12"/></svg>,
     installDevice: <svg style={s} viewBox="0 0 64 64">
-                  <path {...p} d="M8 51h48"/>
-                  <path {...p} d="M13 49h38l-3 5H16l-3-5Z"/>
-                  <path {...p} d="M12 47V20c0-3.3 2.7-6 6-6h24"/>
-                  <path {...p} d="M16 45h32V31"/>
-                  <rect {...p} x="39" y="8" width="15" height="27" rx="3"/>
-                  <path {...p} d="M43 12h7"/>
-                  <circle {...p} cx="46.5" cy="31" r="1.7"/>
+                  <path {...p} d="M6 49h52"/>
+                  <path {...p} d="M10 49c1.2 4.2 4.6 6.8 9 6.8h26c4.4 0 7.8-2.6 9-6.8"/>
+                  <path {...p} d="M24.5 49h15"/>
+                  <path {...p} d="M12 47V24c0-3.8 3.1-6.9 6.9-6.9h24.6"/>
+                  <path {...p} d="M16.5 43.5h31V34"/>
+                  <rect {...p} x="39" y="6" width="17" height="27" rx="4.2"/>
+                  <path {...p} d="M43 9.8h9"/>
+                  <circle {...p} cx="47.5" cy="28.6" r="1.9"/>
                 </svg>,
     // Locks
     lock:       <svg style={s} viewBox="0 0 24 24">
