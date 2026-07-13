@@ -6,10 +6,12 @@ const geminiApiKey = Deno.env.get('GEMINI_API_KEY') ?? Deno.env.get('GOOGLE_GENE
 const configuredGeminiModel = Deno.env.get('MAXXIS_GEMINI_MODEL') ?? '';
 const geminiModels = [
   configuredGeminiModel,
-  'gemini-2.5-flash',
+  'gemini-flash-lite-latest',
+  'gemini-flash-latest',
+  'gemini-3.1-flash-lite-preview',
+  'gemini-2.0-flash-lite-001',
   'gemini-2.0-flash',
   'gemini-2.0-flash-lite',
-  'gemini-1.5-flash',
 ].filter(Boolean);
 
 if (!supabaseUrl) throw new Error('Missing SUPABASE_URL');
