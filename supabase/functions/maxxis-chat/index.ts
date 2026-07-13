@@ -3,7 +3,13 @@ import { createClient } from 'npm:@supabase/supabase-js@2';
 const supabaseUrl = Deno.env.get('SUPABASE_URL') ?? '';
 const supabaseAnonKey = Deno.env.get('ANON_KEY') ?? Deno.env.get('SUPABASE_ANON_KEY') ?? '';
 const geminiApiKey = Deno.env.get('GEMINI_API_KEY') ?? Deno.env.get('GOOGLE_GENERATIVE_AI_API_KEY') ?? '';
-const geminiModel = Deno.env.get('MAXXIS_GEMINI_MODEL') ?? 'gemini-1.5-flash';
+const configuredGeminiModel = Deno.env.get('MAXXIS_GEMINI_MODEL') ?? '';
+const geminiModels = [
+  configuredGeminiModel,
+  'gemini-2.5-flash',
+  'gemini-2.0-flash',
+  'gemini-2.0-flash-lite',
+].filter(Boolean);
 
 if (!supabaseUrl) throw new Error('Missing SUPABASE_URL');
 if (!supabaseAnonKey) throw new Error('Missing SUPABASE_ANON_KEY');
@@ -40,6 +46,25 @@ function sanitizeText(value: unknown, maxLength = 2400) {
     .slice(0, maxLength);
 }
 
+function detectLanguage(text: string, preferredLanguage = 'auto') {
+  const normalized = ` ${String(text || '').toLowerCase()} `;
+  const ptHits = [
+    ' voce ', ' você ', ' por onde ', ' começar ', ' consegue ', ' responder ', ' portugues ',
+    ' português ', ' ajuda ', ' obrigado ', ' duvida ', ' dúvida ', ' imovel ', ' imóvel ',
+    ' negocio ', ' negócio ', ' desbloquear ', ' tela ', ' usuario ', ' usuário ',
+  ].filter((word) => normalized.includes(word)).length;
+  const esHits = [
+    ' usted ', ' puedes ', ' puedo ', ' empezar ', ' español ', ' gracias ', ' ayuda ',
+    ' inmueble ', ' desbloquear ', ' pantalla ', ' usuario ', ' negocio ', ' propiedad ',
+  ].filter((word) => normalized.includes(word)).length;
+
+  if (ptHits > esHits && ptHits > 0) return 'pt';
+  if (esHits > ptHits && esHits > 0) return 'es';
+
+  const preferred = String(preferredLanguage || '').slice(0, 2).toLowerCase();
+  return ['en', 'pt', 'es'].includes(preferred) ? preferred : 'en';
+}
+
 function buildSystemPrompt(language: string, page: string) {
   return `
 You are Maxxis, the AI guide for DealSifter Match.
@@ -64,8 +89,8 @@ Strict boundaries:
 
 Current app context:
 - Current page: ${page || 'unknown'}
-- Preferred response language: ${language || 'en'}
-- Use the user's language when possible. If uncertain, default to English.
+- Detected user language: ${language || 'en'}
+- Answer directly in the detected user language. If the user writes in Portuguese, answer in Portuguese. If Spanish, answer in Spanish. If English, answer in English.
 
 DealSifter summary:
 - Feed is for card discovery, swipes, favorites, unlocks, spotlight, and showcase opportunities.
@@ -87,6 +112,19 @@ function toGeminiRole(role: unknown) {
   return String(role || '').toLowerCase() === 'assistant' ? 'model' : 'user';
 }
 
+async function callGemini(model: string, body: Record<string, unknown>) {
+  const response = await fetch(
+    `https://generativelanguage.googleapis.com/v1beta/models/${encodeURIComponent(model)}:generateContent?key=${encodeURIComponent(geminiApiKey)}`,
+    {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(body),
+    },
+  );
+  const payload = await response.json().catch(() => ({}));
+  return { response, payload };
+}
+
 Deno.serve(async (req) => {
   if (req.method === 'OPTIONS') return new Response('ok', { headers: corsHeaders });
   if (req.method !== 'POST') return jsonResponse({ error: 'Method not allowed' }, 405);
@@ -105,7 +143,7 @@ Deno.serve(async (req) => {
 
     const body = await req.json().catch(() => ({}));
     const message = sanitizeText(body.message, 1800);
-    const language = sanitizeText(body.language || 'en', 8);
+    const language = detectLanguage(message, sanitizeText(body.language || 'auto', 8));
     const page = sanitizeText(body.page || 'unknown', 60);
     const history = Array.isArray(body.history) ? body.history.slice(-10) : [];
 
@@ -124,38 +162,36 @@ Deno.serve(async (req) => {
       },
     ];
 
-    const response = await fetch(
-      `https://generativelanguage.googleapis.com/v1beta/models/${encodeURIComponent(geminiModel)}:generateContent?key=${encodeURIComponent(geminiApiKey)}`,
-      {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          systemInstruction: {
-            role: 'system',
-            parts: [{ text: buildSystemPrompt(language, page) }],
-          },
-          contents,
-          generationConfig: {
-            temperature: 0.45,
-            topP: 0.9,
-            maxOutputTokens: 900,
-          },
-          safetySettings: [
-            { category: 'HARM_CATEGORY_HARASSMENT', threshold: 'BLOCK_MEDIUM_AND_ABOVE' },
-            { category: 'HARM_CATEGORY_HATE_SPEECH', threshold: 'BLOCK_MEDIUM_AND_ABOVE' },
-            { category: 'HARM_CATEGORY_SEXUALLY_EXPLICIT', threshold: 'BLOCK_MEDIUM_AND_ABOVE' },
-            { category: 'HARM_CATEGORY_DANGEROUS_CONTENT', threshold: 'BLOCK_MEDIUM_AND_ABOVE' },
-          ],
-        }),
+    const geminiRequest = {
+      systemInstruction: {
+        parts: [{ text: buildSystemPrompt(language, page) }],
       },
-    );
+      contents,
+      generationConfig: {
+        temperature: 0.45,
+        topP: 0.9,
+        maxOutputTokens: 900,
+      },
+    };
 
-    const payload = await response.json().catch(() => ({}));
-    if (!response.ok) {
-      console.error('maxxis-chat provider failed:', {
-        status: response.status,
+    let payload: Record<string, unknown> = {};
+    const providerErrors: Array<Record<string, unknown>> = [];
+    for (const model of geminiModels) {
+      const result = await callGemini(model, geminiRequest);
+      payload = result.payload;
+      if (result.response.ok) {
+        providerErrors.length = 0;
+        break;
+      }
+      providerErrors.push({
+        model,
+        status: result.response.status,
         reason: payload?.error?.status || payload?.error?.message || 'provider_error',
       });
+    }
+
+    if (providerErrors.length) {
+      console.error('maxxis-chat provider failed:', providerErrors);
       return jsonResponse({
         error: 'MAXXIS_PROVIDER_FAILED',
         message: 'Maxxis is temporarily unavailable. Please try again or contact support.',
@@ -170,7 +206,7 @@ Deno.serve(async (req) => {
       }, 502);
     }
 
-    return jsonResponse({ ok: true, answer: text });
+    return jsonResponse({ ok: true, answer: text, language });
   } catch (err) {
     console.error('maxxis-chat failed:', err);
     return jsonResponse({ error: 'MAXXIS_FAILED', message: String((err as Error)?.message || err || 'Maxxis failed') }, 500);

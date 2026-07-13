@@ -228,6 +228,7 @@ export function MaxxisAssistant({ page = 'dashboard', onOpenSupport = null, enab
             />
             <button type="submit" disabled={!canSend} aria-label={t.send} title={t.send}>
               <Icon name="send" size={16} color="#fff" strokeWidth={2} />
+              <span>{t.send}</span>
             </button>
           </form>
 

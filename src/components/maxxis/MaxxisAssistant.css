@@ -256,14 +256,24 @@
 }
 
 .maxxis-input-row button {
-  width: 42px;
+  min-width: 42px;
   height: 42px;
+  padding: 0 13px;
   display: grid;
+  grid-auto-flow: column;
   place-items: center;
+  gap: 7px;
   border: none;
   border-radius: 13px;
   background: var(--accent);
+  color: #fff;
+  font-size: 12px;
+  font-weight: 900;
   cursor: pointer;
+}
+
+.maxxis-input-row button span {
+  display: none;
 }
 
 .maxxis-input-row button:disabled {
@@ -348,14 +358,100 @@
   }
 
   .maxxis-panel {
-    left: 10px;
-    right: 10px;
-    top: 12px;
-    bottom: calc(82px + env(safe-area-inset-bottom));
+    left: 8px;
+    right: 8px;
+    top: max(8px, env(safe-area-inset-top));
+    bottom: calc(74px + env(safe-area-inset-bottom));
     width: auto;
     height: auto;
+    max-height: none;
     transform: none;
-    border-radius: 17px;
+    border-radius: 16px;
+  }
+
+  .maxxis-header {
+    padding: 10px 11px;
+    gap: 9px;
+  }
+
+  .maxxis-avatar {
+    width: 36px;
+    height: 36px;
+    border-radius: 12px;
+  }
+
+  .maxxis-heading strong {
+    font-size: 14px;
+  }
+
+  .maxxis-heading span {
+    font-size: 11px;
+  }
+
+  .maxxis-actions {
+    gap: 5px;
+  }
+
+  .maxxis-actions button {
+    width: 32px;
+    height: 32px;
+    border-radius: 9px;
+  }
+
+  .maxxis-scope {
+    margin: 8px 10px 0;
+    padding: 8px 9px;
+    font-size: 11px;
+  }
+
+  .maxxis-messages {
+    padding: 10px;
+    gap: 9px;
+  }
+
+  .maxxis-message {
+    max-width: 92%;
+  }
+
+  .maxxis-message-body {
+    padding: 10px 11px;
+    border-radius: 13px;
+    font-size: 12px;
+    line-height: 1.38;
+  }
+
+  .maxxis-input-row {
+    align-items: stretch;
+    gap: 7px;
+    padding: 9px 10px;
+  }
+
+  .maxxis-input-row textarea {
+    min-height: 40px;
+    max-height: 88px;
+    padding: 10px 11px;
+    font-size: 12px;
+    resize: none;
+  }
+
+  .maxxis-input-row button {
+    min-width: 78px;
+    height: auto;
+    min-height: 40px;
+    border-radius: 12px;
+  }
+
+  .maxxis-input-row button span {
+    display: inline;
+  }
+
+  .maxxis-footer {
+    padding: 0 10px 10px;
+  }
+
+  .maxxis-footer button {
+    padding: 9px 10px;
+    font-size: 11px;
   }
 
   .maxxis-fab {
