@@ -79,6 +79,6 @@ export async function sendMaxxisMessage({ message, history = [], page = 'dashboa
 
   return {
     answer: String(data?.answer || '').trim() || (FALLBACK_MESSAGES[language] || FALLBACK_MESSAGES.en),
-    unavailable: false,
+    unavailable: Boolean(data?.unavailable),
   };
 }

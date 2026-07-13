@@ -2,6 +2,7 @@ import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { Icon } from '../ui/Icon';
 import { getLang } from '../../i18n/translations';
 import { C } from '../../theme/colors';
+import { MAXXIS_WIDGET_POSITION_KEY } from '../../lib/localStoragePolicy';
 import { getMaxxisGreeting, sendMaxxisMessage } from '../../services/maxxisService';
 import { captureAppException } from '../../lib/observability';
 import maxxisLogo from '../../assets/logo.png';
@@ -62,6 +63,36 @@ function formatTime(date) {
   }
 }
 
+function getViewportBounds() {
+  if (typeof window === 'undefined') return { width: 0, height: 0 };
+  return {
+    width: window.innerWidth || document.documentElement?.clientWidth || 0,
+    height: window.innerHeight || document.documentElement?.clientHeight || 0,
+  };
+}
+
+function clampWidgetPosition(position) {
+  const { width, height } = getViewportBounds();
+  if (!width || !height || !position) return null;
+  const size = width <= 767 ? 58 : 62;
+  const margin = 8;
+  return {
+    x: Math.min(Math.max(Number(position.x) || margin, margin), Math.max(margin, width - size - margin)),
+    y: Math.min(Math.max(Number(position.y) || margin, margin), Math.max(margin, height - size - margin)),
+  };
+}
+
+function readStoredWidgetPosition() {
+  if (typeof window === 'undefined') return null;
+  try {
+    const raw = window.localStorage.getItem(MAXXIS_WIDGET_POSITION_KEY);
+    if (!raw) return null;
+    return clampWidgetPosition(JSON.parse(raw));
+  } catch {
+    return null;
+  }
+}
+
 function MessageBubble({ message }) {
   const isUser = message.role === 'user';
   return (
@@ -85,6 +116,8 @@ export function MaxxisAssistant({ page = 'dashboard', onOpenSupport = null, enab
   const [open, setOpen] = useState(false);
   const [input, setInput] = useState('');
   const [loading, setLoading] = useState(false);
+  const [widgetPosition, setWidgetPosition] = useState(readStoredWidgetPosition);
+  const [dragging, setDragging] = useState(false);
   const [messages, setMessages] = useState(() => [{
     id: 'maxxis-greeting',
     role: 'assistant',
@@ -92,6 +125,15 @@ export function MaxxisAssistant({ page = 'dashboard', onOpenSupport = null, enab
     createdAt: new Date(),
   }]);
   const endRef = useRef(null);
+  const dragRef = useRef({
+    active: false,
+    moved: false,
+    pointerId: null,
+    offsetX: 0,
+    offsetY: 0,
+    startX: 0,
+    startY: 0,
+  });
 
   useEffect(() => {
     if (!open) return;
@@ -104,6 +146,23 @@ export function MaxxisAssistant({ page = 'dashboard', onOpenSupport = null, enab
       return [{ ...prev[0], content: getMaxxisGreeting(language) }, ...prev.slice(1)];
     });
   }, [language]);
+
+  useEffect(() => {
+    const handleResize = () => {
+      setWidgetPosition((prev) => {
+        const next = clampWidgetPosition(prev);
+        if (!next) return prev;
+        try {
+          window.localStorage.setItem(MAXXIS_WIDGET_POSITION_KEY, JSON.stringify(next));
+        } catch {
+          // UI preference persistence is best-effort.
+        }
+        return next;
+      });
+    };
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
+  }, []);
 
   const trimmedInput = input.trim();
   const canSend = Boolean(trimmedInput && !loading);
@@ -123,6 +182,57 @@ export function MaxxisAssistant({ page = 'dashboard', onOpenSupport = null, enab
       createdAt: new Date(),
     }]);
     setInput('');
+  };
+
+  const persistWidgetPosition = (position) => {
+    const next = clampWidgetPosition(position);
+    if (!next) return;
+    setWidgetPosition(next);
+    try {
+      window.localStorage.setItem(MAXXIS_WIDGET_POSITION_KEY, JSON.stringify(next));
+    } catch {
+      // UI preference persistence is best-effort.
+    }
+  };
+
+  const handleFabPointerDown = (event) => {
+    if (open || event.button > 0) return;
+    const rect = event.currentTarget.getBoundingClientRect();
+    dragRef.current = {
+      active: true,
+      moved: false,
+      pointerId: event.pointerId,
+      offsetX: event.clientX - rect.left,
+      offsetY: event.clientY - rect.top,
+      startX: event.clientX,
+      startY: event.clientY,
+    };
+    event.currentTarget.setPointerCapture?.(event.pointerId);
+  };
+
+  const handleFabPointerMove = (event) => {
+    const drag = dragRef.current;
+    if (!drag.active || drag.pointerId !== event.pointerId) return;
+    const deltaX = Math.abs(event.clientX - drag.startX);
+    const deltaY = Math.abs(event.clientY - drag.startY);
+    if (deltaX > 4 || deltaY > 4) {
+      drag.moved = true;
+      setDragging(true);
+    }
+    if (!drag.moved) return;
+    event.preventDefault();
+    persistWidgetPosition({
+      x: event.clientX - drag.offsetX,
+      y: event.clientY - drag.offsetY,
+    });
+  };
+
+  const finishFabDrag = (event) => {
+    const drag = dragRef.current;
+    if (!drag.active || drag.pointerId !== event.pointerId) return;
+    event.currentTarget.releasePointerCapture?.(event.pointerId);
+    dragRef.current = { ...drag, active: false };
+    window.setTimeout(() => setDragging(false), 0);
   };
 
   const submit = async () => {
@@ -248,11 +358,30 @@ export function MaxxisAssistant({ page = 'dashboard', onOpenSupport = null, enab
 
       <button
         type="button"
-        className="maxxis-fab"
-        onClick={() => setOpen((value) => !value)}
+        className={`maxxis-fab ${dragging ? 'maxxis-fab-dragging' : ''}`}
+        onPointerDown={handleFabPointerDown}
+        onPointerMove={handleFabPointerMove}
+        onPointerUp={finishFabDrag}
+        onPointerCancel={finishFabDrag}
+        onClick={(event) => {
+          if (dragRef.current.moved) {
+            event.preventDefault();
+            dragRef.current = { ...dragRef.current, moved: false };
+            return;
+          }
+          setOpen((value) => !value);
+        }}
         aria-label={t.open}
         title={t.open}
-        style={{ '--maxxis-accent': C.accent }}
+        style={{
+          '--maxxis-accent': C.accent,
+          ...(widgetPosition && !open ? {
+            left: `${widgetPosition.x}px`,
+            top: `${widgetPosition.y}px`,
+            right: 'auto',
+            bottom: 'auto',
+          } : {}),
+        }}
       >
         {open ? (
           <Icon name="close" size={22} color="#fff" strokeWidth={2.2} />

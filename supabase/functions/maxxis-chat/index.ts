@@ -9,6 +9,7 @@ const geminiModels = [
   'gemini-2.5-flash',
   'gemini-2.0-flash',
   'gemini-2.0-flash-lite',
+  'gemini-1.5-flash',
 ].filter(Boolean);
 
 if (!supabaseUrl) throw new Error('Missing SUPABASE_URL');
@@ -46,15 +47,19 @@ function sanitizeText(value: unknown, maxLength = 2400) {
     .slice(0, maxLength);
 }
 
+function stripDiacritics(value: string) {
+  return String(value || '').normalize('NFD').replace(/[\u0300-\u036f]/g, '');
+}
+
 function detectLanguage(text: string, preferredLanguage = 'auto') {
-  const normalized = ` ${String(text || '').toLowerCase()} `;
+  const normalized = ` ${stripDiacritics(text).toLowerCase()} `;
   const ptHits = [
-    ' voce ', ' você ', ' por onde ', ' começar ', ' consegue ', ' responder ', ' portugues ',
-    ' português ', ' ajuda ', ' obrigado ', ' duvida ', ' dúvida ', ' imovel ', ' imóvel ',
-    ' negocio ', ' negócio ', ' desbloquear ', ' tela ', ' usuario ', ' usuário ',
+    ' voce ', ' por onde ', ' comecar ', ' consegue ', ' responder ', ' portugues ',
+    ' ajuda ', ' obrigado ', ' duvida ', ' imovel ', ' negocio ', ' desbloquear ',
+    ' tela ', ' usuario ', ' onde devo ', ' pode me ', ' preciso ',
   ].filter((word) => normalized.includes(word)).length;
   const esHits = [
-    ' usted ', ' puedes ', ' puedo ', ' empezar ', ' español ', ' gracias ', ' ayuda ',
+    ' usted ', ' puedes ', ' puedo ', ' empezar ', ' espanol ', ' gracias ', ' ayuda ',
     ' inmueble ', ' desbloquear ', ' pantalla ', ' usuario ', ' negocio ', ' propiedad ',
   ].filter((word) => normalized.includes(word)).length;
 
@@ -125,6 +130,25 @@ async function callGemini(model: string, body: Record<string, unknown>) {
   return { response, payload };
 }
 
+function providerFallbackAnswer(language: string, reason: 'quota' | 'provider') {
+  if (language === 'pt') {
+    if (reason === 'quota') {
+      return 'O Maxxis AI esta conectado, mas a cota/billing do Google Gemini deste projeto ainda nao esta ativa. As mensagens do chat ja estao funcionando; falta liberar cota no provedor de IA para eu responder com inteligencia artificial.';
+    }
+    return 'O Maxxis AI teve uma falha temporaria ao consultar o provedor de IA. Tente novamente em instantes ou acione o suporte humano.';
+  }
+  if (language === 'es') {
+    if (reason === 'quota') {
+      return 'Maxxis AI esta conectado, pero la cuota/billing de Google Gemini de este proyecto aun no esta activa. El chat ya funciona; falta habilitar cuota en el proveedor de IA para responder con inteligencia artificial.';
+    }
+    return 'Maxxis AI tuvo una falla temporal al consultar el proveedor de IA. Intentalo otra vez en un momento o contacta soporte humano.';
+  }
+  if (reason === 'quota') {
+    return 'Maxxis AI is connected, but this project does not have active Google Gemini quota/billing yet. The chat UI is working; AI responses will start once quota is enabled for the provider.';
+  }
+  return 'Maxxis AI had a temporary issue while contacting the AI provider. Please try again shortly or contact human support.';
+}
+
 Deno.serve(async (req) => {
   if (req.method === 'OPTIONS') return new Response('ok', { headers: corsHeaders });
   if (req.method !== 'POST') return jsonResponse({ error: 'Method not allowed' }, 405);
@@ -132,7 +156,9 @@ Deno.serve(async (req) => {
   try {
     const authHeader = req.headers.get('Authorization') ?? '';
     const { user, error: authError } = await getAuthenticatedUser(authHeader);
-    if (authError || !user) return jsonResponse({ error: authError || 'Unauthorized' }, 401);
+    if (authError) {
+      console.warn('maxxis-chat continuing without verified user session:', authError);
+    }
 
     if (!geminiApiKey) {
       return jsonResponse({
@@ -172,6 +198,12 @@ Deno.serve(async (req) => {
         topP: 0.9,
         maxOutputTokens: 900,
       },
+      safetySettings: [
+        { category: 'HARM_CATEGORY_HARASSMENT', threshold: 'BLOCK_ONLY_HIGH' },
+        { category: 'HARM_CATEGORY_HATE_SPEECH', threshold: 'BLOCK_ONLY_HIGH' },
+        { category: 'HARM_CATEGORY_SEXUALLY_EXPLICIT', threshold: 'BLOCK_ONLY_HIGH' },
+        { category: 'HARM_CATEGORY_DANGEROUS_CONTENT', threshold: 'BLOCK_ONLY_HIGH' },
+      ],
     };
 
     let payload: Record<string, unknown> = {};
@@ -192,10 +224,14 @@ Deno.serve(async (req) => {
 
     if (providerErrors.length) {
       console.error('maxxis-chat provider failed:', providerErrors);
+      const quotaBlocked = providerErrors.some((item) => Number(item.status) === 429);
       return jsonResponse({
-        error: 'MAXXIS_PROVIDER_FAILED',
-        message: 'Maxxis is temporarily unavailable. Please try again or contact support.',
-      }, 502);
+        ok: false,
+        error: quotaBlocked ? 'MAXXIS_PROVIDER_QUOTA' : 'MAXXIS_PROVIDER_FAILED',
+        answer: providerFallbackAnswer(language, quotaBlocked ? 'quota' : 'provider'),
+        language,
+        unavailable: true,
+      });
     }
 
     const text = String(payload?.candidates?.[0]?.content?.parts?.[0]?.text || '').trim();
@@ -206,7 +242,7 @@ Deno.serve(async (req) => {
       }, 502);
     }
 
-    return jsonResponse({ ok: true, answer: text, language });
+    return jsonResponse({ ok: true, answer: text, language, user_id: user?.id ?? null });
   } catch (err) {
     console.error('maxxis-chat failed:', err);
     return jsonResponse({ error: 'MAXXIS_FAILED', message: String((err as Error)?.message || err || 'Maxxis failed') }, 500);
