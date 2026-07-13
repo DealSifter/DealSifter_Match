@@ -164,6 +164,41 @@ export function MaxxisAssistant({ page = 'dashboard', onOpenSupport = null, enab
     return () => window.removeEventListener('resize', handleResize);
   }, []);
 
+  useEffect(() => {
+    const handlePointerMove = (event) => {
+      const drag = dragRef.current;
+      if (!drag.active || drag.pointerId !== event.pointerId) return;
+      const deltaX = Math.abs(event.clientX - drag.startX);
+      const deltaY = Math.abs(event.clientY - drag.startY);
+      if (deltaX > 4 || deltaY > 4) {
+        drag.moved = true;
+        setDragging(true);
+      }
+      if (!drag.moved) return;
+      event.preventDefault();
+      persistWidgetPosition({
+        x: event.clientX - drag.offsetX,
+        y: event.clientY - drag.offsetY,
+      });
+    };
+
+    const handlePointerUp = (event) => {
+      const drag = dragRef.current;
+      if (!drag.active || drag.pointerId !== event.pointerId) return;
+      dragRef.current = { ...drag, active: false };
+      window.setTimeout(() => setDragging(false), 0);
+    };
+
+    window.addEventListener('pointermove', handlePointerMove, { passive: false });
+    window.addEventListener('pointerup', handlePointerUp);
+    window.addEventListener('pointercancel', handlePointerUp);
+    return () => {
+      window.removeEventListener('pointermove', handlePointerMove);
+      window.removeEventListener('pointerup', handlePointerUp);
+      window.removeEventListener('pointercancel', handlePointerUp);
+    };
+  }, []);
+
   const trimmedInput = input.trim();
   const canSend = Boolean(trimmedInput && !loading);
 
@@ -207,32 +242,6 @@ export function MaxxisAssistant({ page = 'dashboard', onOpenSupport = null, enab
       startX: event.clientX,
       startY: event.clientY,
     };
-    event.currentTarget.setPointerCapture?.(event.pointerId);
-  };
-
-  const handleFabPointerMove = (event) => {
-    const drag = dragRef.current;
-    if (!drag.active || drag.pointerId !== event.pointerId) return;
-    const deltaX = Math.abs(event.clientX - drag.startX);
-    const deltaY = Math.abs(event.clientY - drag.startY);
-    if (deltaX > 4 || deltaY > 4) {
-      drag.moved = true;
-      setDragging(true);
-    }
-    if (!drag.moved) return;
-    event.preventDefault();
-    persistWidgetPosition({
-      x: event.clientX - drag.offsetX,
-      y: event.clientY - drag.offsetY,
-    });
-  };
-
-  const finishFabDrag = (event) => {
-    const drag = dragRef.current;
-    if (!drag.active || drag.pointerId !== event.pointerId) return;
-    event.currentTarget.releasePointerCapture?.(event.pointerId);
-    dragRef.current = { ...drag, active: false };
-    window.setTimeout(() => setDragging(false), 0);
   };
 
   const submit = async () => {
@@ -356,40 +365,35 @@ export function MaxxisAssistant({ page = 'dashboard', onOpenSupport = null, enab
         </section>
       ) : null}
 
-      <button
-        type="button"
-        className={`maxxis-fab ${dragging ? 'maxxis-fab-dragging' : ''}`}
-        onPointerDown={handleFabPointerDown}
-        onPointerMove={handleFabPointerMove}
-        onPointerUp={finishFabDrag}
-        onPointerCancel={finishFabDrag}
-        onClick={(event) => {
-          if (dragRef.current.moved) {
-            event.preventDefault();
-            dragRef.current = { ...dragRef.current, moved: false };
-            return;
-          }
-          setOpen((value) => !value);
-        }}
-        aria-label={t.open}
-        title={t.open}
-        style={{
-          '--maxxis-accent': C.accent,
-          ...(widgetPosition && !open ? {
-            left: `${widgetPosition.x}px`,
-            top: `${widgetPosition.y}px`,
-            right: 'auto',
-            bottom: 'auto',
-          } : {}),
-        }}
-      >
-        {open ? (
-          <Icon name="close" size={22} color="#fff" strokeWidth={2.2} />
-        ) : (
-          <img className="maxxis-fab-logo" src={maxxisLogo} alt="" aria-hidden="true" />
-        )}
-        {!open ? <span>AI</span> : null}
-      </button>
+      {!open ? (
+        <button
+          type="button"
+          className={`maxxis-fab ${dragging ? 'maxxis-fab-dragging' : ''}`}
+          onPointerDown={handleFabPointerDown}
+          onClick={(event) => {
+            if (dragRef.current.moved) {
+              event.preventDefault();
+              dragRef.current = { ...dragRef.current, moved: false };
+              return;
+            }
+            setOpen(true);
+          }}
+          aria-label={t.open}
+          title={t.open}
+          style={{
+            '--maxxis-accent': C.accent,
+            ...(widgetPosition ? {
+              left: `${widgetPosition.x}px`,
+              top: `${widgetPosition.y}px`,
+              right: 'auto',
+              bottom: 'auto',
+            } : {}),
+          }}
+        >
+          <img className="maxxis-fab-logo" src={maxxisLogo} alt="" aria-hidden="true" draggable="false" />
+          <span>AI</span>
+        </button>
+      ) : null}
     </div>
   );
 }

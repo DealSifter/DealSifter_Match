@@ -258,24 +258,25 @@
 }
 
 .maxxis-input-row button {
-  min-width: 42px;
+  min-width: 96px;
   height: 42px;
-  padding: 0 13px;
+  padding: 0 16px;
   display: grid;
   grid-auto-flow: column;
   place-items: center;
   gap: 7px;
   border: none;
   border-radius: 13px;
-  background: var(--accent);
+  background: #35cac9;
   color: #fff;
   font-size: 12px;
   font-weight: 900;
   cursor: pointer;
+  box-shadow: 0 8px 20px rgba(53, 202, 201, 0.28);
 }
 
 .maxxis-input-row button span {
-  display: none;
+  display: inline;
 }
 
 .maxxis-input-row button:disabled {
@@ -302,10 +303,10 @@
   height: 62px;
   border: 1px solid color-mix(in srgb, var(--accent) 46%, transparent);
   border-radius: 50%;
-  background: var(--card);
+  background: #fff;
   color: #fff;
   box-shadow: 0 14px 38px rgba(8, 18, 25, 0.28), 0 0 20px color-mix(in srgb, var(--accent) 32%, transparent);
-  cursor: pointer;
+  cursor: grab;
   pointer-events: auto;
   display: grid;
   place-items: center;
@@ -353,12 +354,40 @@
   border-radius: 999px;
   display: grid;
   place-items: center;
-  border: 2px solid var(--card);
-  background: var(--gold);
-  color: #18211f;
+  border: 2px solid #fff;
+  background: #0f1720;
+  color: #fff;
   font-size: 10px;
   font-weight: 950;
   line-height: 1;
+}
+
+[data-theme="dark"] .maxxis-input-row button {
+  border: 1px solid rgba(53, 202, 201, 0.92);
+  background: rgba(6, 18, 18, 0.9);
+  color: #fff;
+  box-shadow: 0 0 14px rgba(53, 202, 201, 0.48), inset 0 0 12px rgba(53, 202, 201, 0.13);
+}
+
+[data-theme="dark"] .maxxis-input-row button:hover:not(:disabled) {
+  box-shadow: 0 0 22px rgba(53, 202, 201, 0.72), inset 0 0 14px rgba(53, 202, 201, 0.18);
+}
+
+[data-theme="dark"] .maxxis-fab {
+  border-color: rgba(53, 202, 201, 0.86);
+  background: #fff;
+  box-shadow: 0 12px 36px rgba(0, 0, 0, 0.38), 0 0 22px rgba(53, 202, 201, 0.5);
+}
+
+[data-theme="dark"] .maxxis-fab-logo {
+  filter: drop-shadow(0 0 8px rgba(53, 202, 201, 0.64));
+}
+
+[data-theme="dark"] .maxxis-fab span {
+  border-color: #fff;
+  background: #0b1516;
+  color: #fff;
+  box-shadow: 0 0 10px rgba(53, 202, 201, 0.58);
 }
 
 @media (max-width: 767px) {
@@ -449,10 +478,6 @@
     height: auto;
     min-height: 40px;
     border-radius: 12px;
-  }
-
-  .maxxis-input-row button span {
-    display: inline;
   }
 
   .maxxis-footer {
