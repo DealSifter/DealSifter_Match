@@ -4,6 +4,7 @@ import loaderMark from './assets/logo.png';
 import { ThemeProvider } from './theme/theme';
 import { Navbar } from './components/layout/Navbar';
 import { AppMobileBottomNav } from './components/layout/AppMobileBottomNav';
+import { MaxxisAssistant } from './components/maxxis/MaxxisAssistant';
 import { GuideTipsProvider } from './components/guidetips/GuideTipsProvider';
 import { GuideTipOverlay } from './components/guidetips/GuideTipOverlay';
 import ErrorBoundary from './components/ui/ErrorBoundary';
@@ -5612,6 +5613,11 @@ export default function App() {
               collapsed={mobileBottomNavCollapsed}
               onCollapsedChange={setMobileBottomNavCollapsed}
               needsPrimaryProfileAttention={!hasAnyProfileRegistered}
+            />
+            <MaxxisAssistant
+              page={page}
+              enabled={Boolean(authSession)}
+              onOpenSupport={() => openSettingsTab('communication', 'support')}
             />
           </>
         )}
