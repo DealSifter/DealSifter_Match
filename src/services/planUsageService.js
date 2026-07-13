@@ -106,6 +106,7 @@ const normalizeAction = (action) => {
   const raw = String(action || '').trim().toLowerCase();
   if (raw === 'export_pdf' || raw === 'export-pdf' || raw === 'exportpdf') return 'exportPdf';
   if (raw === 'favorite') return 'like';
+  if (raw === 'exclusive') return 'exclusivity';
   return raw;
 };
 
@@ -157,6 +158,7 @@ export function isFeatureAllowed(subscriptionOrPlan, feature) {
   if (feature === 'chat') return Boolean(limits.hasDealSifterChat);
   if (feature === 'exportPdf' || feature === 'export_pdf') return Boolean(limits.canExportUnlockedPdf);
   if (feature === 'spotlight') return planId !== 'free';
+  if (feature === 'exclusivity') return true;
   return true;
 }
 
@@ -268,6 +270,48 @@ export async function canPerformAction(userId, action) {
   };
 }
 
+export async function getPlanActionAccess(userId, actions = ['swipe', 'unlock', 'spotlight', 'export_pdf', 'chat', 'exclusivity']) {
+  if (!userId || !isSupabaseConfigured || !supabase) {
+    const entries = (actions || []).map((action) => {
+      const normalizedAction = normalizeAction(action);
+      return [action, { allowed: false, reason: 'db_required', remaining: 0, action: normalizedAction }];
+    });
+    const access = Object.fromEntries(entries);
+    if (access.export_pdf && !access.exportPdf) access.exportPdf = access.export_pdf;
+    return access;
+  }
+
+  const current = await getCurrentPlan(userId);
+  const entries = (actions || []).map((action) => {
+    const normalizedAction = normalizeAction(action);
+    const dbAction = dbActionFor(normalizedAction);
+    if (dbAction) {
+      const gate = canUsePlanAction(current.plan, dbAction, current.usage);
+      const remaining = gate.limit == null
+        ? null
+        : Math.max(0, Number(gate.limit || 0) - Number(gate.used || 0));
+      return [action, {
+        allowed: Boolean(gate.allowed),
+        reason: gate.allowed ? null : 'plan_limit_reached',
+        remaining,
+        action: gate.feature || dbAction,
+        usages: current.usage,
+      }];
+    }
+    const allowed = isFeatureAllowed(current.plan, normalizedAction);
+    return [action, {
+      allowed,
+      reason: allowed ? null : 'feature_not_in_plan',
+      remaining: allowed ? null : 0,
+      action: normalizedAction,
+      usages: current.usage,
+    }];
+  });
+  const access = Object.fromEntries(entries);
+  if (access.export_pdf && !access.exportPdf) access.exportPdf = access.export_pdf;
+  return access;
+}
+
 export async function deductNuggets(userId, amount, reason = 'manual') {
   if (!userId || !isSupabaseConfigured || !supabase) {
     throw new Error('Supabase session required to deduct nuggets.');
@@ -350,7 +394,7 @@ export function canUsePlanAction(subscriptionOrPlan, action, usage = {}) {
   const plan = getPlan(subscriptionOrPlan);
   const limits = plan?.limits || {};
 
-  if (normalizedAction === 'chat' || normalizedAction === 'exportPdf' || normalizedAction === 'spotlight') {
+  if (normalizedAction === 'chat' || normalizedAction === 'exportPdf' || normalizedAction === 'spotlight' || normalizedAction === 'exclusivity') {
     return { allowed: isFeatureAllowed(plan, normalizedAction), feature: normalizedAction };
   }
 

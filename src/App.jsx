@@ -97,7 +97,7 @@ import { useCheckoutFlow } from './hooks/useCheckoutFlow';
 import { useMediaQuery } from './hooks/useMediaQuery';
 import { useChatRealtime } from './hooks/useChatRealtime';
 import { useUnlockNotifications } from './hooks/useUnlockNotifications';
-import { getPlanGateCopy, getCurrentPlan, isPlanLimitError } from './services/planUsageService';
+import { canPerformAction, getPlanActionAccess, getPlanGateCopy, getCurrentPlan, isPlanLimitError, refreshUsageFromDB } from './services/planUsageService';
 import { clearSensitiveCache, REMOTE_CACHE_LOCAL_STORAGE_KEYS } from './lib/localStoragePolicy';
 import { trackAppEvent } from './lib/adminEventTracking';
 import { captureAppException, captureUnlockError, setObservabilityUser } from './lib/observability';
@@ -1683,6 +1683,7 @@ export default function App() {
       nextBillingAt: null,
     };
   });
+  const [planActionAccess, setPlanActionAccess] = useState({});
   const [matched, setMatched] = useState(() => {
     return [];
   });
@@ -1809,9 +1810,25 @@ export default function App() {
 
   const supabaseUserId = authSession?.userId || null;
 
+  const refreshPlanActionAccess = useCallback(async () => {
+    if (!isSupabaseConfigured || !supabase || !supabaseUserId) {
+      setPlanActionAccess({});
+      return {};
+    }
+    try {
+      const nextAccess = await getPlanActionAccess(supabaseUserId);
+      setPlanActionAccess(nextAccess);
+      return nextAccess;
+    } catch (error) {
+      safeLogError('Plan action access refresh failed.', error);
+      return {};
+    }
+  }, [supabaseUserId]);
+
   const refreshCurrentPlanAccess = useCallback(async ({ notify = false } = {}) => {
     if (!isSupabaseConfigured || !supabase || !supabaseUserId) return null;
     try {
+      await refreshUsageFromDB(supabaseUserId);
       const currentPlan = await getCurrentPlan(supabaseUserId);
       setNuggets(Number(currentPlan?.nuggets || 0));
       setSubscription((prev) => {
@@ -1828,19 +1845,23 @@ export default function App() {
         }
         return nextPlan || prev;
       });
+      await refreshPlanActionAccess();
       return currentPlan;
     } catch (error) {
       safeLogError('Plan access refresh failed.', error);
       return null;
     }
-  }, [addToast, supabaseUserId]);
+  }, [addToast, refreshPlanActionAccess, supabaseUserId]);
 
   useEffect(() => {
     setObservabilityUser(supabaseUserId);
   }, [supabaseUserId]);
 
   useEffect(() => {
-    if (!isSupabaseConfigured || !supabase || !supabaseUserId) return undefined;
+    if (!isSupabaseConfigured || !supabase || !supabaseUserId) {
+      setPlanActionAccess({});
+      return undefined;
+    }
 
     const handleFocusRefresh = () => {
       void refreshCurrentPlanAccess({ notify: false });
@@ -1849,15 +1870,25 @@ export default function App() {
       if (document.visibilityState === 'visible') handleFocusRefresh();
     };
 
+    void refreshCurrentPlanAccess({ notify: false });
+
     let channel = null;
     try {
       channel = supabase
         .channel(`user-plan-access-${supabaseUserId}`)
         .on('postgres_changes', {
-          event: 'UPDATE',
+          event: '*',
           schema: 'public',
           table: 'users',
           filter: `id=eq.${supabaseUserId}`,
+        }, () => {
+          void refreshCurrentPlanAccess({ notify: true });
+        })
+        .on('postgres_changes', {
+          event: '*',
+          schema: 'public',
+          table: 'subscriptions',
+          filter: `user_id=eq.${supabaseUserId}`,
         }, () => {
           void refreshCurrentPlanAccess({ notify: true });
         })
@@ -4873,6 +4904,14 @@ export default function App() {
       }
       return null;
     };
+    if (isSupabaseConfigured && supabaseUserId) {
+      const actionName = unlockMode === 'normal' ? 'unlock' : 'exclusivity';
+      const gate = await canPerformAction(supabaseUserId, actionName);
+      if (!gate.allowed) {
+        showUnlockPlanGate();
+        return;
+      }
+    }
     if ((isSupabaseConfigured || nuggets >= unlockCost) && card) {
         // Snapshot local state so we can rollback if a later step fails
         const prevStateSnapshot = {
@@ -5192,6 +5231,15 @@ export default function App() {
     const selected = (items || []).filter((item) => item?.cardKind && item?.cardId);
     const totalCost = selected.length * 10;
     if (!selected.length) return;
+    if (isSupabaseConfigured && supabaseUserId) {
+      const gate = await canPerformAction(supabaseUserId, 'spotlight');
+      if (!gate.allowed) {
+        const copy = getPlanGateCopy('spotlight');
+        addToast({ type: 'warning', title: copy.title, message: copy.message });
+        openPricingHub();
+        return;
+      }
+    }
     if (nuggets < totalCost) {
       addToast({ type: 'warning', title: 'Not enough nuggets', message: `You need ${totalCost} nuggets to activate these spotlights.` });
       openPricingHub();
@@ -5342,7 +5390,7 @@ export default function App() {
             isHydrationReady={dashboardHydrationReady}
             isHydrationSyncing={dashboardHydrationSyncing}
             userPreferences={userPreferences}
-            subscription={accessSubscription}
+            planActionAccess={planActionAccess}
             propertyUnlocks={propertyUnlocks}
             currentUserId={supabaseUserId || 'local-user'}
             activeSpotlightKeys={activeSpotlightKeys}
@@ -5374,7 +5422,7 @@ export default function App() {
             professionalProfile={professionalProfile}
             mobileBottomNavCollapsed={mobileBottomNavCollapsed}
             userPreferences={userPreferences}
-            subscription={accessSubscription}
+            planActionAccess={planActionAccess}
             setPage={setPage}
             addToast={addToast}
             onOpenChatLanguageConfig={() => openSettingsTab('preferences')}

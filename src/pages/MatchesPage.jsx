@@ -19,7 +19,7 @@ import { buildDisplayContacts } from '../lib/contactPriority';
 import { inferRecordProfileScope, normalizeProfileScope, resolveScopedProfile } from '../lib/profileScopeResolver';
 import { formatPropertyLocation } from '../lib/formatPropertyLocation';
 import { translateChatText, getSafeLang } from '../services/chatTranslation';
-import { getPlanGateCopy, isFeatureAllowed } from '../services/planUsageService';
+import { getPlanGateCopy } from '../services/planUsageService';
 import { trackAppEvent } from '../lib/adminEventTracking';
 import { getPortfolioUnlockCost, getPropertyExclusivityStatus } from '../lib/unlockRules';
 import { isSupabaseConfigured, supabase } from '../lib/supabaseClient';
@@ -1772,7 +1772,7 @@ function PortfolioDetail({ item, owner, ownerContact = null, isOwnerUnlocked = f
   );
 }
 
-export function MatchesPage({ nuggets, setModal, openUnlock, unlocked, initialChat, chatFocusToken = 0, interested, matched, setInterested, setMatched, convos, setConvos, categoryOrder, setCategoryOrder, showcaseProperties, propertyPortfolio, servicePortfolio, userProfile, personalProfile, professionalProfile, mobileBottomNavCollapsed = false, userPreferences = null, subscription = null, setPage = null, addToast = null, onOpenChatLanguageConfig = null, onSendChatMessage = null, onRetryChatMessage = null, onMarkChatRead = null, onLoadMoreChatMessages = null, chatHasMore = {}, chatLoadingMore = {}, propertyUnlocks = [], unlockedContactMap = new Map(), currentUserId = 'local-user', isActive = true }) {
+export function MatchesPage({ nuggets, setModal, openUnlock, unlocked, initialChat, chatFocusToken = 0, interested, matched, setInterested, setMatched, convos, setConvos, categoryOrder, setCategoryOrder, showcaseProperties, propertyPortfolio, servicePortfolio, userProfile, personalProfile, professionalProfile, mobileBottomNavCollapsed = false, userPreferences = null, planActionAccess = {}, setPage = null, addToast = null, onOpenChatLanguageConfig = null, onSendChatMessage = null, onRetryChatMessage = null, onMarkChatRead = null, onLoadMoreChatMessages = null, chatHasMore = {}, chatLoadingMore = {}, propertyUnlocks = [], unlockedContactMap = new Map(), currentUserId = 'local-user', isActive = true }) {
   const PORTFOLIO_PANEL_PADDING = 40;
   const PORTFOLIO_GRID_GAP = 12;
   const PORTFOLIO_CARD_MIN_WIDTH = 132;
@@ -1870,8 +1870,8 @@ export function MatchesPage({ nuggets, setModal, openUnlock, unlocked, initialCh
   const allT = useT('matches');
   const t = allT.matches;
   const [planGate, setPlanGate] = useState(null);
-  const canUseChat = isFeatureAllowed(subscription, 'chat');
-  const canExportPdf = isFeatureAllowed(subscription, 'exportPdf');
+  const canUseChat = Boolean(planActionAccess?.chat?.allowed);
+  const canExportPdf = Boolean(planActionAccess?.export_pdf?.allowed ?? planActionAccess?.exportPdf?.allowed);
   const goToPricingFromGate = useCallback(() => {
     if (planGate?.feature) {
       trackAppEvent('plan_gate_upgrade_clicked', {

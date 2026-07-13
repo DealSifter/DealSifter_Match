@@ -131,7 +131,7 @@ function writeFeedDeckSession(key, ids = []) {
   }
 }
 
-export function Dashboard({ page, nuggets, setModal, setPage, onOpenOnboardingTab, openUnlock, unlocked, matched, setMatched, interested, setInterested, purchases, setPurchases, userProfile, personalProfile, professionalProfile, propertyPortfolio, servicePortfolio, accountType, showcaseProperties, categoryOrder, setCategoryOrder, editMode, setEditMode, mobileBottomNavCollapsed = false, addToast, setSystemNotifications = null, isHydrationReady = true, isHydrationSyncing = false, subscription, propertyUnlocks = [], currentUserId = 'local-user', activeSpotlightKeys = new Set(), onOpenSpotlight = null, userPreferences = null }) {
+export function Dashboard({ page, nuggets, setModal, setPage, onOpenOnboardingTab, openUnlock, unlocked, matched, setMatched, interested, setInterested, purchases, setPurchases, userProfile, personalProfile, professionalProfile, propertyPortfolio, servicePortfolio, accountType, showcaseProperties, categoryOrder, setCategoryOrder, editMode, setEditMode, mobileBottomNavCollapsed = false, addToast, setSystemNotifications = null, isHydrationReady = true, isHydrationSyncing = false, planActionAccess = {}, propertyUnlocks = [], currentUserId = 'local-user', activeSpotlightKeys = new Set(), onOpenSpotlight = null, userPreferences = null }) {
   const isMobileViewport = useMediaQuery('(max-width: 767px)');
   const isTabletPortraitViewport = useMediaQuery('(min-width: 768px) and (max-width: 1080px) and (orientation: portrait)');
   const isTabletLandscapeViewport = useMediaQuery('(min-width: 768px) and (max-width: 1180px) and (orientation: landscape)');
@@ -1159,8 +1159,12 @@ export function Dashboard({ page, nuggets, setModal, setPage, onOpenOnboardingTa
         String(getOwnerIdForKey('fsbo')),
       ].filter(Boolean));
       const rawSortOrder = String(userPreferences?.feedMatches?.sortOrder || 'random').trim();
-      const paidPlanId = String(subscription?.planId || subscription?.id || 'free').trim().toLowerCase();
-      const hasPaidFeedOrdering = paidPlanId !== 'free' && paidPlanId !== 'basic';
+      const hasPaidFeedOrdering = Boolean(
+        planActionAccess?.spotlight?.allowed
+        || planActionAccess?.chat?.allowed
+        || planActionAccess?.exportPdf?.allowed
+        || planActionAccess?.export_pdf?.allowed
+      );
       const sortPreferenceByLegacyOrder = {
         random: 'default',
         recent: 'newest',
@@ -1430,7 +1434,7 @@ export function Dashboard({ page, nuggets, setModal, setPage, onOpenOnboardingTa
     });
 
     return () => { if (typeof unsub === 'function') unsub(); };
-  }, [connectionCards, showcaseItems, matched, interested, unlocked, view, publishingProfileKey, hiddenSet, focusCard, selectedStates, activeCat, isSwipingConn, isSwipingProp, collectRecordStates, connDeck, propDeck, getOwnerIdForKey, matchesCat, currentUserId, userProfile, personalProfile, professionalProfile, propertyHotMetrics, userPreferences, subscription, getFocusCandidates, matchesFocusTarget, isContactUnlocked]);
+  }, [connectionCards, showcaseItems, matched, interested, unlocked, view, publishingProfileKey, hiddenSet, focusCard, selectedStates, activeCat, isSwipingConn, isSwipingProp, collectRecordStates, connDeck, propDeck, getOwnerIdForKey, matchesCat, currentUserId, userProfile, personalProfile, professionalProfile, propertyHotMetrics, userPreferences, planActionAccess, getFocusCandidates, matchesFocusTarget, isContactUnlocked]);
 
   const [planGate, setPlanGate] = useState(null);
 
