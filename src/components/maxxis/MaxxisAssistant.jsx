@@ -50,9 +50,106 @@ const COPY = {
   },
 };
 
+const ACTION_DEFINITIONS = {
+  feed: {
+    en: 'Open Feed',
+    pt: 'Abrir Feed',
+    es: 'Abrir Feed',
+  },
+  mapview: {
+    en: 'Open MapView',
+    pt: 'Abrir MapView',
+    es: 'Abrir MapView',
+  },
+  matches: {
+    en: 'Open Matches',
+    pt: 'Abrir Matches',
+    es: 'Abrir Matches',
+  },
+  pricing: {
+    en: 'Open Pricing',
+    pt: 'Abrir Pricing',
+    es: 'Abrir Pricing',
+  },
+  onboarding: {
+    en: 'Create or edit cards',
+    pt: 'Criar ou editar cards',
+    es: 'Crear o editar cards',
+  },
+  settings: {
+    en: 'Open Settings',
+    pt: 'Abrir Configuracoes',
+    es: 'Abrir Configuracion',
+  },
+  profile: {
+    en: 'Open Profile',
+    pt: 'Abrir Perfil',
+    es: 'Abrir Perfil',
+  },
+  notifications: {
+    en: 'Open Notifications',
+    pt: 'Abrir Notificacoes',
+    es: 'Abrir Notificaciones',
+  },
+  support: {
+    en: 'Open Support Chat',
+    pt: 'Abrir Suporte',
+    es: 'Abrir Soporte',
+  },
+  admin: {
+    en: 'Open Admin System',
+    pt: 'Abrir Adm.System',
+    es: 'Abrir Adm.System',
+  },
+};
+
+const ACTION_TOKEN_RE = /\[\[action:([a-z0-9_-]+)\|([^\]]{1,90})\]\]/gi;
+
 function getUiLang() {
   const lang = String(getLang?.() || 'en').slice(0, 2).toLowerCase();
   return ['en', 'pt', 'es'].includes(lang) ? lang : 'en';
+}
+
+function normalizeActionId(value) {
+  const normalized = String(value || '').trim().toLowerCase().replace(/_/g, '-');
+  if (normalized === 'map' || normalized === 'map-view') return 'mapview';
+  if (normalized === 'new-card' || normalized === 'cards' || normalized === 'onboard') return 'onboarding';
+  if (normalized === 'preferences' || normalized === 'privacy' || normalized === 'payments') return 'settings';
+  return ACTION_DEFINITIONS[normalized] ? normalized : null;
+}
+
+function getActionLabel(actionId, label, language) {
+  const cleanLabel = String(label || '').replace(/\s+/g, ' ').trim();
+  if (cleanLabel) return cleanLabel.slice(0, 90);
+  return ACTION_DEFINITIONS[actionId]?.[language] || ACTION_DEFINITIONS[actionId]?.en || 'Open';
+}
+
+function parseActionContent(content, language) {
+  const actions = [];
+  const text = String(content || '').replace(ACTION_TOKEN_RE, (_match, rawAction, rawLabel) => {
+    const actionId = normalizeActionId(rawAction);
+    if (actionId) {
+      actions.push({
+        id: actionId,
+        label: getActionLabel(actionId, rawLabel, language),
+      });
+    }
+    return '';
+  }).replace(/\n{3,}/g, '\n\n').trim();
+
+  const dedupedActions = [];
+  const seen = new Set();
+  actions.forEach((action) => {
+    if (!action?.id || seen.has(action.id)) return;
+    seen.add(action.id);
+    dedupedActions.push(action);
+  });
+
+  return { text, actions: dedupedActions.slice(0, 3) };
+}
+
+function stripActionTokens(content) {
+  return String(content || '').replace(ACTION_TOKEN_RE, '').replace(/\s+/g, ' ').trim();
 }
 
 function formatTime(date) {
@@ -93,24 +190,44 @@ function readStoredWidgetPosition() {
   }
 }
 
-function MessageBubble({ message }) {
+function MessageBubble({ message, language, onAction }) {
   const isUser = message.role === 'user';
+  const { text, actions } = isUser
+    ? { text: String(message.content || ''), actions: [] }
+    : parseActionContent(message.content, language);
   return (
     <div className={`maxxis-message ${isUser ? 'maxxis-message-user' : 'maxxis-message-assistant'} ${message.error ? 'maxxis-message-error' : ''}`}>
-      <div className="maxxis-message-body">
-        {String(message.content || '').split('\n').map((line, index, arr) => (
-          <React.Fragment key={`${message.id}-line-${index}`}>
-            {line}
-            {index < arr.length - 1 ? <br /> : null}
-          </React.Fragment>
-        ))}
-      </div>
+      {text ? (
+        <div className="maxxis-message-body">
+          {String(text || '').split('\n').map((line, index, arr) => (
+            <React.Fragment key={`${message.id}-line-${index}`}>
+              {line}
+              {index < arr.length - 1 ? <br /> : null}
+            </React.Fragment>
+          ))}
+        </div>
+      ) : null}
+      {actions.length ? (
+        <div className="maxxis-action-links" aria-label="Maxxis navigation actions">
+          {actions.map((action) => (
+            <button
+              type="button"
+              key={`${message.id}-${action.id}`}
+              className="maxxis-action-link"
+              onClick={() => onAction?.(action.id)}
+            >
+              <span>{action.label}</span>
+              <Icon name="arrowRight" size={13} color="currentColor" strokeWidth={2.1} />
+            </button>
+          ))}
+        </div>
+      ) : null}
       <div className="maxxis-message-meta">{formatTime(message.createdAt)}</div>
     </div>
   );
 }
 
-export function MaxxisAssistant({ page = 'dashboard', onOpenSupport = null, enabled = true }) {
+export function MaxxisAssistant({ page = 'dashboard', onOpenSupport = null, onNavigateAction = null, enabled = true }) {
   const language = getUiLang();
   const t = COPY[language] || COPY.en;
   const [open, setOpen] = useState(false);
@@ -205,7 +322,7 @@ export function MaxxisAssistant({ page = 'dashboard', onOpenSupport = null, enab
   const historyForRequest = useMemo(
     () => messages
       .filter((item) => item.id !== 'maxxis-greeting' && !item.error)
-      .map((item) => ({ role: item.role, content: item.content })),
+      .map((item) => ({ role: item.role, content: stripActionTokens(item.content) })),
     [messages],
   );
 
@@ -242,6 +359,17 @@ export function MaxxisAssistant({ page = 'dashboard', onOpenSupport = null, enab
       startX: event.clientX,
       startY: event.clientY,
     };
+  };
+
+  const handleAction = (actionId) => {
+    const normalized = normalizeActionId(actionId);
+    if (!normalized) return;
+    setOpen(false);
+    if (normalized === 'support') {
+      onOpenSupport?.();
+      return;
+    }
+    onNavigateAction?.(normalized);
   };
 
   const submit = async () => {
@@ -311,7 +439,14 @@ export function MaxxisAssistant({ page = 'dashboard', onOpenSupport = null, enab
           <div className="maxxis-scope">{t.scope}</div>
 
           <div className="maxxis-messages">
-            {messages.map((message) => <MessageBubble key={message.id} message={message} />)}
+            {messages.map((message) => (
+              <MessageBubble
+                key={message.id}
+                message={message}
+                language={language}
+                onAction={handleAction}
+              />
+            ))}
             {loading ? (
               <div className="maxxis-message maxxis-message-assistant">
                 <div className="maxxis-typing" aria-label={t.typing}>

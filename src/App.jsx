@@ -4279,6 +4279,49 @@ export default function App() {
     setPage('onboarding');
   };
 
+  const handleMaxxisNavigateAction = useCallback((actionId) => {
+    const action = String(actionId || '').trim().toLowerCase().replace(/_/g, '-');
+    switch (action) {
+      case 'feed':
+        setPage('dashboard');
+        break;
+      case 'map':
+      case 'mapview':
+      case 'map-view':
+        setPage('mapview');
+        break;
+      case 'matches':
+        setPage('matches');
+        break;
+      case 'pricing':
+        openPricingHub();
+        break;
+      case 'new-card':
+      case 'cards':
+      case 'onboarding':
+        openOnboardingTab('personal');
+        break;
+      case 'settings':
+        openSettingsTab('profile');
+        break;
+      case 'profile':
+        openSettingsTab('profile');
+        break;
+      case 'notifications':
+        setPage('matches');
+        break;
+      case 'support':
+        openSettingsTab('communication', 'support');
+        break;
+      case 'admin':
+        setPage('admin');
+        break;
+      default:
+        setPage('dashboard');
+        break;
+    }
+  }, [openOnboardingTab, openPricingHub, openSettingsTab, setPage]);
+
   const logoutAdmin = () => {
     setIsAdmin(false);
     if (page === 'admin') setPage('dashboard');
@@ -5618,6 +5661,7 @@ export default function App() {
               page={page}
               enabled={Boolean(authSession)}
               onOpenSupport={() => openSettingsTab('communication', 'support')}
+              onNavigateAction={handleMaxxisNavigateAction}
             />
           </>
         )}
