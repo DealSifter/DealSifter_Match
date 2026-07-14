@@ -52,10 +52,19 @@
   height: 42px;
   display: grid;
   place-items: center;
-  border-radius: 14px;
-  background: var(--accent);
+  border-radius: 50%;
+  background: #fff;
   box-shadow: 0 0 18px rgba(53, 202, 201, 0.32);
   flex: 0 0 auto;
+  overflow: hidden;
+}
+
+.maxxis-avatar img {
+  width: 36px;
+  height: 36px;
+  object-fit: contain;
+  border-radius: 50%;
+  filter: drop-shadow(0 0 8px rgba(53, 202, 201, 0.38));
 }
 
 .maxxis-heading {
@@ -160,11 +169,15 @@
 }
 
 .maxxis-message-user .maxxis-message-body {
-  background: linear-gradient(135deg, #35cac9, #26a8d6);
-  color: #062225;
-  border: 1px solid rgba(6, 34, 37, 0.12);
+  background:
+    linear-gradient(135deg, rgba(53, 202, 201, 0.56), rgba(38, 168, 214, 0.36)),
+    color-mix(in srgb, var(--card) 58%, transparent);
+  color: var(--t1);
+  border: 1px solid color-mix(in srgb, var(--accent) 68%, transparent);
   border-bottom-right-radius: 5px;
   font-weight: 750;
+  box-shadow: 0 10px 24px color-mix(in srgb, var(--accent) 14%, transparent);
+  backdrop-filter: blur(7px);
 }
 
 .maxxis-message-assistant .maxxis-message-body {
@@ -278,9 +291,11 @@
 
 .maxxis-input-row textarea {
   flex: 1;
-  min-height: 42px;
-  max-height: 112px;
-  resize: vertical;
+  min-height: 70px;
+  height: 70px;
+  max-height: 118px;
+  resize: none;
+  overflow-y: auto;
   border: 1px solid var(--border);
   border-radius: 13px;
   background: var(--bg);
@@ -326,13 +341,19 @@
 
 .maxxis-footer {
   padding: 0 14px 14px;
+  display: flex;
+  justify-content: flex-end;
 }
 
 .maxxis-footer button {
-  width: 100%;
-  border-radius: 12px;
-  padding: 10px 12px;
+  min-width: 96px;
+  height: 42px;
+  width: auto;
+  border-radius: 13px;
+  padding: 0 16px;
   font-size: 12px;
+  line-height: 1;
+  white-space: nowrap;
 }
 
 .maxxis-fab {
@@ -413,6 +434,20 @@
   box-shadow: 0 0 22px rgba(53, 202, 201, 0.72), inset 0 0 14px rgba(53, 202, 201, 0.18);
 }
 
+[data-theme="dark"] .maxxis-avatar {
+  background: #fff;
+  box-shadow: 0 0 18px rgba(53, 202, 201, 0.54);
+}
+
+[data-theme="dark"] .maxxis-message-user .maxxis-message-body {
+  background:
+    linear-gradient(135deg, rgba(53, 202, 201, 0.34), rgba(38, 168, 214, 0.2)),
+    rgba(6, 18, 18, 0.54);
+  color: #e9fffe;
+  border-color: rgba(53, 202, 201, 0.62);
+  box-shadow: 0 0 18px rgba(53, 202, 201, 0.2), inset 0 0 12px rgba(53, 202, 201, 0.08);
+}
+
 [data-theme="dark"] .maxxis-action-link {
   border-color: rgba(53, 202, 201, 0.82);
   background: rgba(6, 18, 18, 0.86);
@@ -467,7 +502,11 @@
   .maxxis-avatar {
     width: 36px;
     height: 36px;
-    border-radius: 12px;
+  }
+
+  .maxxis-avatar img {
+    width: 31px;
+    height: 31px;
   }
 
   .maxxis-heading strong {
@@ -529,11 +568,13 @@
   }
 
   .maxxis-input-row textarea {
-    min-height: 40px;
-    max-height: 88px;
+    min-height: 68px;
+    height: 68px;
+    max-height: 104px;
     padding: 10px 11px;
     font-size: 12px;
     resize: none;
+    overflow-y: auto;
   }
 
   .maxxis-input-row button {
@@ -545,10 +586,13 @@
 
   .maxxis-footer {
     padding: 0 10px 10px;
+    justify-content: flex-end;
   }
 
   .maxxis-footer button {
-    padding: 9px 10px;
+    min-width: 78px;
+    height: 40px;
+    padding: 0 12px;
     font-size: 11px;
   }
 

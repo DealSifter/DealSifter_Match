@@ -420,7 +420,7 @@ export function MaxxisAssistant({ page = 'dashboard', onOpenSupport = null, onNa
         <section className="maxxis-panel" aria-label={t.title}>
           <header className="maxxis-header">
             <div className="maxxis-avatar" aria-hidden="true">
-              <Icon name="chat" size={18} color="#fff" strokeWidth={2.1} />
+              <img src={maxxisLogo} alt="" draggable="false" />
             </div>
             <div className="maxxis-heading">
               <strong>{t.title}</strong>
@@ -476,7 +476,7 @@ export function MaxxisAssistant({ page = 'dashboard', onOpenSupport = null, onNa
                 }
               }}
               placeholder={t.placeholder}
-              rows={1}
+              rows={2}
               disabled={loading}
               maxLength={1800}
             />
