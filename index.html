@@ -19,6 +19,17 @@
     <script>
       (function(){ var t = localStorage.getItem('ds_theme') || 'light'; document.documentElement.dataset.theme = t; })()
     </script>
+    <script>
+      (function(){
+        var ua = navigator.userAgent || '';
+        var isIOS = /iPad|iPhone|iPod/.test(ua);
+        var match = ua.match(/OS ([0-9]+)_/);
+        var major = match && match[1] ? parseInt(match[1], 10) : null;
+        if (isIOS && major && major < 12) {
+          document.documentElement.className += ' ds-unsupported-ios';
+        }
+      })()
+    </script>
     <style>
       :root {
         --ds-splash-bg: #f6fbfb;
@@ -40,9 +51,11 @@
       #root {
         min-height: 100%;
         margin: 0;
+        background: #f6fbfb;
         background:
           radial-gradient(circle at 50% 40%, var(--ds-splash-glow), transparent 34%),
           linear-gradient(145deg, var(--ds-splash-bg), var(--ds-splash-bg-soft));
+        color: #10213f;
         color: var(--ds-splash-text);
       }
 
@@ -53,20 +66,40 @@
 
       .ds-initial-loader {
         position: fixed;
+        top: 0;
+        right: 0;
+        bottom: 0;
+        left: 0;
         inset: 0;
         z-index: 2147482000;
-        display: grid;
-        place-items: center;
+        display: -webkit-box;
+        display: -ms-flexbox;
+        display: flex;
+        -webkit-box-align: center;
+        -ms-flex-align: center;
+        align-items: center;
+        -webkit-box-pack: center;
+        -ms-flex-pack: center;
+        justify-content: center;
         padding: 24px;
         box-sizing: border-box;
+        background: #f6fbfb;
         background:
           radial-gradient(circle at 50% 40%, var(--ds-splash-glow), transparent 34%),
           linear-gradient(145deg, var(--ds-splash-bg), var(--ds-splash-bg-soft));
       }
 
       .ds-initial-loader-inner {
-        display: grid;
-        justify-items: center;
+        display: -webkit-box;
+        display: -ms-flexbox;
+        display: flex;
+        -webkit-box-orient: vertical;
+        -webkit-box-direction: normal;
+        -ms-flex-direction: column;
+        flex-direction: column;
+        -webkit-box-align: center;
+        -ms-flex-align: center;
+        align-items: center;
         gap: 14px;
         background: transparent;
         border: 0;
@@ -82,11 +115,55 @@
       }
 
       .ds-initial-text {
+        color: #35cac9;
         color: var(--ds-splash-accent);
         font: 800 13px/1.35 system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
         text-align: center;
         text-shadow: 0 0 12px var(--ds-splash-glow);
         animation: ds-splash-text 1.35s ease-in-out infinite;
+      }
+
+      .ds-ios-unsupported {
+        display: none;
+        max-width: 520px;
+        margin: 0 auto;
+        padding: 44px 24px;
+        color: #10213f;
+        font: 700 15px/1.55 system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+        text-align: center;
+      }
+
+      .ds-ios-unsupported img {
+        width: 86px;
+        height: 86px;
+        object-fit: contain;
+        margin-bottom: 14px;
+      }
+
+      .ds-ios-unsupported strong {
+        display: block;
+        margin-bottom: 8px;
+        font-size: 20px;
+      }
+
+      .ds-ios-unsupported p {
+        margin: 8px 0;
+        font-weight: 600;
+        color: #38506b;
+      }
+
+      .ds-unsupported-ios,
+      .ds-unsupported-ios body,
+      .ds-unsupported-ios #root {
+        background: #f6fbfb;
+      }
+
+      .ds-unsupported-ios .ds-initial-loader {
+        display: none;
+      }
+
+      .ds-unsupported-ios .ds-ios-unsupported {
+        display: block;
       }
 
       @keyframes ds-splash-spin {
@@ -103,6 +180,12 @@
   </head>
   <body>
     <div id="root">
+      <div class="ds-ios-unsupported" role="alert">
+        <img src="/logo.png" alt="DealSifter" />
+        <strong>Safari/iOS update required</strong>
+        <p>DealSifter Match needs iOS/iPadOS 12 or newer to run correctly.</p>
+        <p>Atualize o iPad ou acesse por um dispositivo mais recente para usar o app.</p>
+      </div>
       <div class="ds-initial-loader" role="status" aria-live="polite" aria-label="Loading DealSifter">
         <div class="ds-initial-loader-inner">
           <img class="ds-initial-logo" src="/logo.png" alt="DealSifter" />

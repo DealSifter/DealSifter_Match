@@ -4,9 +4,9 @@ import { useLang, useT } from '../i18n/translations';
 import { CATEGORIES } from '../data/mockData';
 import { Icon } from '../components/ui/Icon';
 import { catIcon } from '../lib/catIcon';
-import { DealSifterLogo } from '../components/ui/DealSifterLogo';
 import { FOOTER_INFO } from '../content/footerInfoContent';
 import { useMediaQuery } from '../hooks/useMediaQuery';
+import { getLogoSrc } from '../services/themeService';
 
 /* ─── Preview cards used inside the "Most Requested Services" section ─── */
 function LandingProfCard({ onClick }) {
@@ -1004,17 +1004,18 @@ export function Landing({ onOpenAuthModal = () => {} }) {
         }}>
           {/* Brand column */}
           <div>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 5, marginBottom: 10 }}>
-              <DealSifterLogo size={42} />
-              <div style={{ display: 'flex', flexDirection: 'column', lineHeight: 1 }}>
-                <span style={{
-                  fontFamily: "'Eras Bold ITC', 'Eras ITC', sans-serif",
-                  fontWeight: 800, fontSize: 28.71, letterSpacing: '-0.5px',
-                  color: '#000',
-                }}>
-                  <span>Deal</span><span style={{ color: '#14B8A6' }}>Sifter</span>
-                </span>
-              </div>
+            <div style={{ display: 'flex', alignItems: 'center', marginBottom: 10 }}>
+              <img
+                src={getLogoSrc('light', isMobile ? 'mobile' : 'desktop')}
+                alt="DealSifter Match"
+                style={{
+                  display: 'block',
+                  width: 'auto',
+                  height: isMobile ? 50 : 54,
+                  maxWidth: isMobile ? 168 : 190,
+                  objectFit: 'contain',
+                }}
+              />
             </div>
             <div style={{ fontSize: 12, color: '#222c48', marginBottom: 14, fontWeight: 500 }}>Swipe. Match. Close Deals.</div>
             <p style={{ fontSize: 13, color: '#222c48', lineHeight: 1.65, maxWidth: 220, margin: 0 }}>
