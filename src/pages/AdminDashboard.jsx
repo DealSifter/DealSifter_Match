@@ -189,8 +189,9 @@ function MiniChart({ series = [], formatter = fmtInt, emptyMessage = 'No history
   );
 }
 
-function KpiTile({ id, label, value, sub, series, seriesStatus, chartFormatter = fmtInt, chartType = 'bar', viewMode, onToggleView, draggable = false, dragging = false, emptyChartMessage = 'No real history yet', onDragStart, onDragOver, onDrop, onDragEnd }) {
+function KpiTile({ id, label, value, sub, description, series, seriesStatus, chartFormatter = fmtInt, chartType = 'bar', viewMode, onToggleView, draggable = false, dragging = false, emptyChartMessage = 'No real history yet', infoFallback = 'This metric explains what is being measured.', onDragStart, onDragOver, onDrop, onDragEnd }) {
   const showChart = viewMode === 'chart';
+  const showInfo = viewMode === 'info';
   return (
     <button
       type="button"
@@ -220,11 +221,30 @@ function KpiTile({ id, label, value, sub, series, seriesStatus, chartFormatter =
       <div>
         <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 8 }}>
           <div style={{ color: C.t2, fontSize: 11, fontWeight: 800, textTransform: 'uppercase', letterSpacing: 0.3 }}>{label}</div>
-          {draggable ? <span aria-hidden="true" style={{ color: C.t3, fontSize: 14, lineHeight: 1, letterSpacing: -1 }}>::</span> : null}
+          <span aria-hidden="true" style={{ color: showInfo ? C.accent : C.t3, fontSize: showInfo ? 14 : 13, lineHeight: 1, fontWeight: 950 }}>
+            {showInfo ? 'i' : showChart ? '~' : (draggable ? '::' : '')}
+          </span>
         </div>
         {sub ? <div style={{ color: C.t3, fontSize: 10, marginTop: 2 }}>{sub}</div> : null}
       </div>
-      {showChart ? (
+      {showInfo ? (
+        <div
+          style={{
+            color: C.t2,
+            fontSize: 11,
+            lineHeight: 1.42,
+            fontWeight: 650,
+            maxHeight: 82,
+            overflowY: 'auto',
+            padding: '8px 9px',
+            borderRadius: 10,
+            border: `1px solid ${C.alpha(C.accent, 0.22)}`,
+            background: C.alpha(C.accent, 0.06),
+          }}
+        >
+          {description || infoFallback}
+        </div>
+      ) : showChart ? (
         <MiniChart series={series} formatter={chartFormatter} emptyMessage={seriesStatus || emptyChartMessage} type={chartType} />
       ) : (
         <div style={{ color: C.t1, fontSize: 28, lineHeight: 1, fontWeight: 900 }}>{value}</div>
@@ -1200,7 +1220,7 @@ function SectionDivider({ title, hint }) {
   );
 }
 
-function KpiSection({ title, hint, tiles, order, group, draggingId, viewModes, emptyChartMessage, onToggleView, onDragStart, onDragOverTile, onDropTile, onDragEnd }) {
+function KpiSection({ title, hint, tiles, order, group, draggingId, viewModes, emptyChartMessage, infoFallback, onToggleView, onDragStart, onDragOverTile, onDropTile, onDragEnd }) {
   const ordered = [
     ...(order || []).map((id) => tiles.find((tile) => tile.id === id)).filter(Boolean),
     ...(tiles || []).filter((tile) => !(order || []).includes(tile.id)),
@@ -1223,6 +1243,7 @@ function KpiSection({ title, hint, tiles, order, group, draggingId, viewModes, e
             label={tile.label}
             value={tile.value}
             sub={tile.sub}
+            description={tile.description}
             series={tile.series}
             seriesStatus={tile.seriesStatus}
             chartFormatter={tile.chartFormatter}
@@ -1230,6 +1251,7 @@ function KpiSection({ title, hint, tiles, order, group, draggingId, viewModes, e
             viewMode={viewModes?.[tile.id] || 'number'}
             onToggleView={onToggleView}
             emptyChartMessage={tile.emptyChartMessage || emptyChartMessage}
+            infoFallback={infoFallback}
             draggable
             dragging={draggingId === tile.id}
             onDragStart={(event) => onDragStart(event, group, tile.id)}
@@ -1256,6 +1278,7 @@ export function AdminDashboard({ setPage, prevPage, logoutAdmin }) {
   const [kpiView, setKpiView] = useState(() => readAdminKpiView());
   const [adminView, setAdminView] = useState('kpis');
   const [supportSummary, setSupportSummary] = useState({ total: 0, unread: 0, open: 0, closed: 0 });
+  const [entitlementAlertInfoOpen, setEntitlementAlertInfoOpen] = useState(false);
 
   const loadMetrics = async () => {
     if (!isSupabaseConfigured || !supabase) {
@@ -1306,6 +1329,7 @@ export function AdminDashboard({ setPage, prevPage, logoutAdmin }) {
     const series = m.series || {};
     const seriesStatus = m.seriesStatus || {};
     const k = t.kpis || {};
+    const descriptions = t.kpiDescriptions || {};
     const noHistory = t.noRealHistory || 'No real history yet';
     const checkoutClicked = Number(m.checkoutClicked30d || 0);
     const checkoutCompleted = Number(m.checkoutCompleted30d || 0);
@@ -1316,8 +1340,12 @@ export function AdminDashboard({ setPage, prevPage, logoutAdmin }) {
       { label: k.abandoned || 'Abandoned', value: checkoutAbandoned },
       { label: k.paid || 'Paid', value: checkoutCompleted },
     ];
+    const describe = (items) => items.map((item) => ({
+      ...item,
+      description: descriptions[item.id] || item.description || '',
+    }));
     return {
-      users: [
+      users: describe([
         { id: 'active-now', label: k.activeNow || 'Active now', value: fmtInt(m.activeUsersNow), sub: k.last5Min || 'last 5 min', series: series['active-now'], seriesStatus: seriesStatus['active-now'], emptyChartMessage: noHistory, chartType: 'bar' },
         { id: 'total-users', label: k.totalUsers || 'Total users', value: fmtInt(m.totalUsers), sub: k.allTime || 'all time', series: series['total-users'], chartType: 'line' },
         { id: 'new-users', label: k.newUsers || 'New users', value: `${fmtInt(m.newUsersDay)} / ${fmtInt(m.newUsersWeek)} / ${fmtInt(m.newUsersMonth)}`, sub: k.dayWeekMonth || 'day / week / month', series: series['new-users'], chartType: 'bar' },
@@ -1336,15 +1364,15 @@ export function AdminDashboard({ setPage, prevPage, logoutAdmin }) {
         { id: 'highlights', label: k.highlights || 'Highlights', value: fmtNuggets(m.highlightsNuggetsSpent), sub: `${fmtInt(m.highlightsActive)} active · ${fmtInt(m.highlightsPurchasedToday)} ${k.today || 'today'}`, series: series.highlights, chartFormatter: fmtNuggets, chartType: 'bar' },
         { id: 'exclusive-contacts', label: k.exclusiveContacts || 'Exclusive contacts', value: fmtInt(m.exclusiveContactsTotal), sub: `${fmtInt(m.exclusiveContactsToday)} ${k.today || 'today'} · ${fmtNuggets(m.exclusiveContactsNuggetsSpent)}`, series: series['exclusive-contacts'], chartFormatter: fmtInt, chartType: 'bar' },
         { id: 'properties', label: k.properties || 'Properties', value: fmtInt(m.totalProperties), sub: k.publishedSaved || 'published + saved', series: series.properties, chartType: 'line' },
-      ],
-      system: [
+      ]),
+      system: describe([
         { id: 'db-storage-guardrail', label: k.dbGuardrail || 'DB guardrail', value: fmtPct(m.dbUsagePct), sub: `${fmtMb(m.dbSizeBytes)} / ${fmtMb(m.dbLimitBytes)}`, series: series['db-storage-guardrail'], seriesStatus: seriesStatus['db-storage-guardrail'], chartFormatter: (value) => `${Number(value || 0).toLocaleString('en-US', { maximumFractionDigits: 1 })} MB`, chartType: 'donut' },
         { id: 'stripe-issues', label: k.stripeIssues || 'Stripe issues', value: fmtInt(m.stripeIssuesDay), sub: k.last10Days || 'last 10 days', series: series['stripe-issues'], chartType: 'bar' },
         { id: 'stripe-webhook-skips', label: k.stripeWebhookSkips || 'Stripe webhook skips', value: fmtInt(m.stripeWebhookSkippedDay), sub: k.last24h || 'last 24h', series: series['stripe-webhook-skips'], chartType: 'bar' },
         { id: 'entitlement-alerts', label: k.entitlementAlerts || 'Entitlement Alerts', value: fmtInt(entitlementAlerts.total), sub: k.last24h || 'last 24h', series: series['entitlement-alerts'], chartType: 'bar' },
         { id: 'supabase-issues', label: k.supabaseIssues || 'Supabase issues', value: fmtInt(m.supabaseIssuesDay), sub: k.last10Days || 'last 10 days', series: series['supabase-issues'], chartType: 'bar' },
         { id: 'admin-accounts', label: k.adminAccounts || 'Admin accounts', value: fmtInt(m.adminAccounts), sub: k.restricted || 'restricted', series: series['admin-accounts'], chartType: 'donut' },
-      ],
+      ]),
     };
   }, [metrics, t]);
 
@@ -1392,9 +1420,11 @@ export function AdminDashboard({ setPage, prevPage, logoutAdmin }) {
   const handleToggleKpiView = (id) => {
     if (!id) return;
     setKpiView((prev) => {
+      const current = prev?.[id] || 'number';
+      const nextMode = current === 'number' ? 'chart' : current === 'chart' ? 'info' : 'number';
       const next = {
         ...(prev || {}),
-        [id]: prev?.[id] === 'chart' ? 'number' : 'chart',
+        [id]: nextMode,
       };
       writeAdminKpiView(next);
       return next;
@@ -1441,6 +1471,10 @@ export function AdminDashboard({ setPage, prevPage, logoutAdmin }) {
       setReprocessLoading(false);
     }
   };
+
+  const adminKpisT = t.kpis || {};
+  const entitlementAlertTypeLabels = t.entitlementAlertTypes || {};
+  const entitlementAlertExplanation = t.entitlementAlertsExplanation || 'Entitlement alerts show inconsistencies between paid access rights and the contact/property data returned by the entitlement layer.';
 
   return (
     <div style={{ paddingTop: 58, minHeight: 'calc(var(--app-vh, 1vh) * 100)', background: C.bg }}>
@@ -1561,9 +1595,20 @@ export function AdminDashboard({ setPage, prevPage, logoutAdmin }) {
         {metrics?.entitlementAlerts24h && Number(metrics.entitlementAlerts24h.total || 0) > 0 ? (
           <div style={{ marginBottom: 12, border: `1px solid ${C.alpha(C.danger, 0.42)}`, borderRadius: 12, padding: 12, background: C.alpha(C.danger, 0.07), display: 'grid', gap: 10 }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', gap: 10, alignItems: 'center', flexWrap: 'wrap' }}>
-              <strong style={{ color: C.t1, fontSize: 13 }}>{t.entitlementAlerts || 'Entitlement Alerts'} ({t.last24h || 'last 24h'})</strong>
+              <button
+                type="button"
+                onClick={() => setEntitlementAlertInfoOpen((prev) => !prev)}
+                style={{ border: 'none', background: 'transparent', color: C.t1, fontSize: 13, fontWeight: 900, padding: 0, cursor: 'pointer', textAlign: 'left' }}
+              >
+                {adminKpisT.entitlementAlerts || 'Entitlement Alerts'} ({adminKpisT.last24h || 'last 24h'})
+              </button>
               <span style={{ color: C.danger, fontSize: 11, fontWeight: 950 }}>{fmtInt(metrics.entitlementAlerts24h.total)}</span>
             </div>
+            {entitlementAlertInfoOpen ? (
+              <div style={{ border: `1px solid ${C.alpha(C.danger, 0.18)}`, background: C.alpha(C.card, 0.72), color: C.t2, borderRadius: 10, padding: '8px 9px', fontSize: 11, lineHeight: 1.45, fontWeight: 650 }}>
+                {entitlementAlertExplanation}
+              </div>
+            ) : null}
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: 8 }}>
               {[
                 ['unlocked_contacts_empty', 'RPC empty with unlocks'],
@@ -1572,7 +1617,7 @@ export function AdminDashboard({ setPage, prevPage, logoutAdmin }) {
                 ['property_paywall_on_unlocked_owner', 'Property paywall on unlocked owner'],
               ].map(([key, label]) => (
                 <div key={key} style={{ border: `1px solid ${C.alpha(C.danger, 0.2)}`, borderRadius: 10, padding: '8px 9px', background: C.card, display: 'flex', justifyContent: 'space-between', gap: 8, alignItems: 'center' }}>
-                  <span style={{ color: C.t2, fontSize: 11, fontWeight: 800 }}>{label}</span>
+                  <span style={{ color: C.t2, fontSize: 11, fontWeight: 800 }}>{entitlementAlertTypeLabels[key] || label}</span>
                   <span style={{ color: Number(metrics.entitlementAlerts24h[key] || 0) > 0 ? C.danger : C.t3, fontSize: 13, fontWeight: 950 }}>{fmtInt(metrics.entitlementAlerts24h[key])}</span>
                 </div>
               ))}
@@ -1584,7 +1629,7 @@ export function AdminDashboard({ setPage, prevPage, logoutAdmin }) {
           <div style={{ marginBottom: 12, border: `1px solid ${C.alpha(C.warning || '#f59e0b', 0.5)}`, borderRadius: 12, padding: 12, background: C.alpha(C.warning || '#f59e0b', 0.08), display: 'grid', gap: 8 }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', gap: 10, alignItems: 'center' }}>
               <strong style={{ color: C.t1, fontSize: 13 }}>{t.stripeWebhookAlerts || 'Stripe webhook alerts'}</strong>
-              <span style={{ color: C.warning || '#f59e0b', fontSize: 11, fontWeight: 900 }}>{fmtInt(metrics.stripeWebhookSkippedDay)} {t.last24h || 'last 24h'}</span>
+              <span style={{ color: C.warning || '#f59e0b', fontSize: 11, fontWeight: 900 }}>{fmtInt(metrics.stripeWebhookSkippedDay)} {adminKpisT.last24h || 'last 24h'}</span>
             </div>
             <div style={{ display: 'grid', gap: 6 }}>
               {metrics.stripeWebhookAlerts.slice(0, 4).map((alert) => (
@@ -1620,6 +1665,7 @@ export function AdminDashboard({ setPage, prevPage, logoutAdmin }) {
                   draggingId={draggingTile}
                   viewModes={kpiView}
                   emptyChartMessage={t.noRealHistory || 'No real history yet'}
+                  infoFallback={t.kpiInfoFallback || 'This metric explains what is being measured.'}
                   onToggleView={handleToggleKpiView}
                   onDragStart={handleDragStart}
                   onDragOverTile={handleDragOverTile}
@@ -1635,6 +1681,7 @@ export function AdminDashboard({ setPage, prevPage, logoutAdmin }) {
                   draggingId={draggingTile}
                   viewModes={kpiView}
                   emptyChartMessage={t.noRealHistory || 'No real history yet'}
+                  infoFallback={t.kpiInfoFallback || 'This metric explains what is being measured.'}
                   onToggleView={handleToggleKpiView}
                   onDragStart={handleDragStart}
                   onDragOverTile={handleDragOverTile}
@@ -1643,7 +1690,7 @@ export function AdminDashboard({ setPage, prevPage, logoutAdmin }) {
                 />
               </div>
               <div style={{ marginTop: 10, fontSize: 10, color: C.t3 }}>
-                {t.kpiHelp || 'Click a card to alternate between number and compact chart. Drag/drop works inside each KPI section and is saved locally.'}
+                {t.kpiHelp || 'Tap a card once for its chart, tap again for the metric explanation, and tap once more to return to the number. Drag/drop works inside each KPI section and is saved locally.'}
               </div>
             </Block>
             <div style={{ display: 'grid', gap: 12 }}>
