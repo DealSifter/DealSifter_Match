@@ -1048,6 +1048,7 @@ export default function App() {
     return 5;
   });
   const [modal, setModal] = useState(null);
+  const [maxxisPropertyAnalysisRequest, setMaxxisPropertyAnalysisRequest] = useState(null);
   const [authModalTab, setAuthModalTab] = useState('signup');
   const openAuthModal = useCallback((tab = 'signup') => {
     setAuthModalTab(tab === 'login' ? 'login' : 'signup');
@@ -4322,6 +4323,28 @@ export default function App() {
     }
   }, [openOnboardingTab, openPricingHub, openSettingsTab, setPage]);
 
+  const handleAnalyzePropertyWithMaxxis = useCallback((request = {}) => {
+    const id = request.id || `property-analysis-${Date.now()}`;
+    setMaxxisPropertyAnalysisRequest({ ...request, id, createdAt: Date.now() });
+  }, []);
+
+  const handleExportMaxxisAnalysisPdf = useCallback(async (analysisExport, analysisText) => {
+    if (typeof analysisExport?.onExportPdf !== 'function') return;
+    try {
+      await analysisExport.onExportPdf(String(analysisText || ''));
+      addToast({
+        type: 'success',
+        message: 'Maxxis AI analysis PDF generated.',
+      });
+    } catch (error) {
+      safeLogError('Maxxis analysis PDF export failed.', error);
+      addToast({
+        type: 'error',
+        message: 'Could not generate the Maxxis AI analysis PDF.',
+      });
+    }
+  }, [addToast]);
+
   const logoutAdmin = () => {
     setIsAdmin(false);
     if (page === 'admin') setPage('dashboard');
@@ -5481,6 +5504,7 @@ export default function App() {
             unlockedContactMap={unlockedContactsByOwnerId}
             currentUserId={supabaseUserId || 'local-user'}
             activeSpotlightKeys={activeSpotlightKeys}
+            onAnalyzePropertyWithMaxxis={handleAnalyzePropertyWithMaxxis}
             isActive={page === 'matches'}
           />
         );
@@ -5664,6 +5688,8 @@ export default function App() {
               enabled={Boolean(authSession)}
               onOpenSupport={() => openSettingsTab('communication', 'support')}
               onNavigateAction={handleMaxxisNavigateAction}
+              propertyAnalysisRequest={maxxisPropertyAnalysisRequest}
+              onExportAnalysisPdf={handleExportMaxxisAnalysisPdf}
             />
           </>
         )}

@@ -3608,7 +3608,9 @@ export function Dashboard({ page, nuggets, setModal, setPage, onOpenOnboardingTa
           <Modal
             onClose={() => setMyCardModal((prev) => ({ ...prev, open: false }))}
             maxWidth={isTouchModalViewport ? 820 : 1480}
-            contentStyle={isTouchModalViewport ? { maxHeight: 'calc((var(--app-vh, 1vh) * 100) - 28px)', overflowY: 'auto', WebkitOverflowScrolling: 'touch', touchAction: 'pan-y' } : {}}
+            contentStyle={isTouchModalViewport
+              ? { maxHeight: 'calc((var(--app-vh, 1vh) * 100) - 28px)', overflowY: 'auto', overflowX: 'hidden', WebkitOverflowScrolling: 'touch', touchAction: 'pan-y' }
+              : { maxHeight: 'min(96dvh, 980px)', overflowY: 'auto', overflowX: 'visible' }}
           >
             <div style={{ display: 'grid', gap: 10, paddingRight: isTouchModalViewport ? 2 : 0 }}>
               <div style={{ display: 'flex', flexWrap: isTouchModalViewport ? 'wrap' : 'nowrap', alignItems: 'center', justifyContent: 'space-between', gap: 8, paddingRight: 30 }}>
@@ -3625,8 +3627,8 @@ export function Dashboard({ page, nuggets, setModal, setPage, onOpenOnboardingTa
                 </div>
               </div>
 
-              <div style={{ display: 'grid', gridTemplateColumns: isTouchModalViewport ? '1fr' : `minmax(${myCardPreviewCardWidth}px, 1fr) minmax(${myCardPreviewCardWidth}px, 1fr)`, gap: isTouchModalViewport ? 14 : 18, alignItems: 'stretch' }}>
-                <section style={{ border: `1px solid ${C.border}`, borderRadius: 14, background: C.card, overflow: 'hidden', display: 'grid', gridTemplateRows: 'auto 1fr' }}>
+              <div style={{ display: 'grid', gridTemplateColumns: isTouchModalViewport ? 'minmax(0, 1fr)' : 'minmax(0, 1fr) minmax(0, 1fr)', gap: isTouchModalViewport ? 14 : 18, alignItems: 'start', minWidth: 0 }}>
+                <section style={{ border: `1px solid ${C.border}`, borderRadius: 14, background: C.card, overflow: 'visible', display: 'grid', gridTemplateRows: 'auto 1fr', minWidth: 0 }}>
                   <div style={{ minHeight: 44, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '8px 10px', borderBottom: `1px solid ${C.border}`, fontSize: 11, color: C.t3, textTransform: 'uppercase', fontWeight: 700 }}>Feed Card (Connections)</div>
               <div data-guide="feed-view-switch" style={{
                     padding: 12,
@@ -3653,7 +3655,7 @@ export function Dashboard({ page, nuggets, setModal, setPage, onOpenOnboardingTa
                   </div>
                 </section>
 
-                <section style={{ border: `1px solid ${C.border}`, borderRadius: 14, background: C.card, overflow: 'hidden', display: 'grid', gridTemplateRows: 'auto 1fr' }}>
+                <section style={{ border: `1px solid ${C.border}`, borderRadius: 14, background: C.card, overflow: 'visible', display: 'grid', gridTemplateRows: 'auto 1fr auto', minWidth: 0 }}>
                   <div style={{ minHeight: 44, display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '8px 10px', borderBottom: `1px solid ${C.border}`, fontSize: 11, color: C.t3, textTransform: 'uppercase', fontWeight: 700 }}>
                     <span>Enabled Showcase Cards</span>
                     {myCardShowcaseCount > 1 && (
@@ -3664,7 +3666,7 @@ export function Dashboard({ page, nuggets, setModal, setPage, onOpenOnboardingTa
                           onClick={() => setMyCardShowcaseIdx(i => Math.max(0, i - 1))}
                           aria-label={t.previous || 'Previous'}
                         >
-                          <Icon name="chevronLeft" size={22} color={myCardShowcaseIdx === 0 ? C.t3 : C.t1} />
+                          <Icon name="back" size={22} color={myCardShowcaseIdx === 0 ? C.t3 : C.t1} />
                         </button>
                         <span style={{ fontSize: 11, color: C.t2, minWidth: 48, textAlign: 'center', display: 'inline-block' }}>{myCardShowcaseIdx + 1} / {myCardShowcaseCount}</span>
                         <button
@@ -3673,7 +3675,7 @@ export function Dashboard({ page, nuggets, setModal, setPage, onOpenOnboardingTa
                           onClick={() => setMyCardShowcaseIdx(i => Math.min(myCardShowcaseCount - 1, i + 1))}
                           aria-label={t.next || 'Next'}
                         >
-                          <Icon name="chevronRight" size={22} color={myCardShowcaseIdx === myCardShowcaseCount - 1 ? C.t3 : C.t1} />
+                          <Icon name="arrowRight" size={22} color={myCardShowcaseIdx === myCardShowcaseCount - 1 ? C.t3 : C.t1} />
                         </button>
                       </div>
                     )}
@@ -3701,7 +3703,7 @@ export function Dashboard({ page, nuggets, setModal, setPage, onOpenOnboardingTa
                           return (
                             <div key={`${item.id || 'property'}-${idx}`} style={{ flex: '0 0 100%', width: '100%', scrollSnapAlign: 'start', scrollSnapStop: 'always' }}>
                             <div style={{ padding: 12, minHeight: myCardPreviewDeckHeight, boxSizing: 'border-box' }}>
-                                <div style={{ width: `min(${myCardPreviewCardWidth}px, 100%)`, height: isTouchModalViewport ? 'auto' : myCardPreviewCardHeight, minHeight: isTouchModalViewport ? myCardPreviewCardHeight : undefined, margin: '0 auto', boxSizing: 'border-box' }}>
+                                <div style={{ width: `min(${myCardPreviewCardWidth}px, 100%)`, height: isTouchModalViewport ? 'auto' : myCardPreviewCardHeight, minHeight: myCardPreviewCardHeight, margin: '0 auto', boxSizing: 'border-box' }}>
                                   <PropertyCard
                                     property={item}
                                     owner={myCardPreviewData.profileCard}
@@ -3717,16 +3719,16 @@ export function Dashboard({ page, nuggets, setModal, setPage, onOpenOnboardingTa
                         return (
                           <div key={`${item.id || item.title || 'service'}-${idx}`} style={{ flex: '0 0 100%', width: '100%', scrollSnapAlign: 'start', scrollSnapStop: 'always' }}>
                             <div style={{ padding: 12, minHeight: myCardPreviewDeckHeight, boxSizing: 'border-box' }}>
-                              <div style={{ width: `min(${myCardPreviewCardWidth}px, 100%)`, height: myCardPreviewCardHeight, overflowY: 'auto', padding: 12, margin: '0 auto', border: `1px solid ${C.border}`, borderRadius: 16, boxSizing: 'border-box', WebkitOverflowScrolling: 'touch' }}>
+                              <div style={{ width: `min(${myCardPreviewCardWidth}px, 100%)`, minHeight: myCardPreviewCardHeight, overflow: 'visible', padding: 12, margin: '0 auto', border: `1px solid ${C.border}`, borderRadius: 16, boxSizing: 'border-box', WebkitOverflowScrolling: 'touch', background: C.card }}>
                                 <div style={{ marginBottom: 8 }}>
                                   <div style={{ fontSize: 14, fontWeight: 700, color: C.t1 }}>{item.title || 'Service'}</div>
                                   {item.description && <div style={{ fontSize: 12, color: C.t2, marginTop: 2 }}>{item.description}</div>}
                                   {item.category && <div style={{ display: 'inline-block', marginTop: 4, padding: '2px 8px', borderRadius: 12, background: C.alpha(C.accent, 0.08), border: `1px solid ${C.alpha(C.accent, 0.15)}`, fontSize: 10, color: C.accent, fontWeight: 700 }}>{item.category}</div>}
                                 </div>
                                 {svcImages.length > 0 ? (
-                                  <div style={{ display: 'grid', gridTemplateColumns: svcImages.length === 1 ? '1fr' : 'repeat(auto-fill, minmax(120px, 1fr))', gap: 8 }}>
+                                  <div className="ds-mycard-showcase-scroll" style={{ display: 'flex', gap: 8, overflowX: 'auto', overflowY: 'hidden', scrollSnapType: 'x mandatory', WebkitOverflowScrolling: 'touch', touchAction: 'pan-x', paddingBottom: 4 }}>
                                     {svcImages.map((src, imageIdx) => (
-                                      <div key={`svc-img-${idx}-${imageIdx}`} style={{ position: 'relative', aspectRatio: svcImages.length === 1 ? '16/9' : '1', borderRadius: 8, overflow: 'hidden', background: C.alpha(C.t1, 0.06), border: `1px solid ${C.border}` }}>
+                                      <div key={`svc-img-${idx}-${imageIdx}`} style={{ flex: svcImages.length === 1 ? '0 0 100%' : (isTouchModalViewport ? '0 0 84%' : '0 0 48%'), scrollSnapAlign: 'start', position: 'relative', aspectRatio: '16/9', borderRadius: 8, overflow: 'hidden', background: C.alpha(C.t1, 0.06), border: `1px solid ${C.border}` }}>
                                         <SmartImage src={src} alt={item.title || ''} style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }} />
                                       </div>
                                     ))}

@@ -597,6 +597,7 @@ export const translations = {
       exportOptions: "Export options",
       exportModeDownload: "Download to device",
       exportModeEmail: "Prepare by email",
+      exportAnalyzeWithMaxxis: "Analyze with Maxxis AI",
       exportDownloadPdf: "Download portfolio release PDF to device",
       exportDownloadPhotos: "Download property photos separately to device",
       exportEmailPdf: "Prepare PDF to include with email",
@@ -624,6 +625,7 @@ export const translations = {
       exportCoordinatesUnavailable: "Coordinates unavailable for this property.",
       exportPdfHeader: "Investor-ready property release",
       exportImageUnavailable: "PROPERTY IMAGE UNAVAILABLE",
+      maxxisAiAnalysis: "Maxxis AI Analysis",
       generated: "Generated",
     },
     // Pricing
@@ -1890,6 +1892,7 @@ export const translations = {
       exportOptions: "Opcoes de exportacao",
       exportModeDownload: "Baixar no device",
       exportModeEmail: "Preparar por email",
+      exportAnalyzeWithMaxxis: "Analisar com Maxxis AI",
       exportDownloadPdf: "Baixar PDF do release do portfolio no device",
       exportDownloadPhotos: "Baixar fotos do imovel separadamente no device",
       exportEmailPdf: "Preparar PDF para incluir no email",
@@ -1917,6 +1920,7 @@ export const translations = {
       exportCoordinatesUnavailable: "Coordenadas indisponiveis para este imovel.",
       exportPdfHeader: "Investor-ready property release",
       exportImageUnavailable: "PROPERTY IMAGE UNAVAILABLE",
+      maxxisAiAnalysis: "Analise do Maxxis AI",
       generated: "Gerado",
     },
     pricing: {
@@ -3180,6 +3184,7 @@ export const translations = {
       exportOptions: "Opciones de exportacion",
       exportModeDownload: "Descargar en el device",
       exportModeEmail: "Preparar por email",
+      exportAnalyzeWithMaxxis: "Analizar con Maxxis AI",
       exportDownloadPdf: "Descargar PDF del release del portafolio en el device",
       exportDownloadPhotos: "Descargar fotos de la propiedad por separado en el device",
       exportEmailPdf: "Preparar PDF para incluir en el email",
@@ -3207,6 +3212,7 @@ export const translations = {
       exportCoordinatesUnavailable: "Coordenadas no disponibles para esta propiedad.",
       exportPdfHeader: "Investor-ready property release",
       exportImageUnavailable: "PROPERTY IMAGE UNAVAILABLE",
+      maxxisAiAnalysis: "Analisis de Maxxis AI",
       generated: "Generado",
     },
     pricing: {

@@ -1266,6 +1266,11 @@ function KpiSection({ title, hint, tiles, order, group, draggingId, viewModes, e
 }
 
 export function AdminDashboard({ setPage, prevPage, logoutAdmin }) {
+  const goBackToApp = () => {
+    const candidate = String(prevPage || '').trim();
+    const blocked = new Set(['', 'admin', 'settings', 'terms', 'privacy']);
+    setPage?.(blocked.has(candidate) ? 'dashboard' : candidate);
+  };
   const allT = useT('global');
   const t = useMemo(() => allT.admin || {}, [allT.admin]);
   const [metrics, setMetrics] = useState(null);
@@ -1559,7 +1564,7 @@ export function AdminDashboard({ setPage, prevPage, logoutAdmin }) {
             <button onClick={loadMetrics} style={{ border: `1px solid ${C.border}`, background: 'transparent', color: C.t2, borderRadius: 8, padding: '8px 10px', cursor: 'pointer', fontSize: 12, fontWeight: 700 }}>
               {t.refresh || 'Refresh'}
             </button>
-            <button onClick={() => setPage?.(prevPage || 'dashboard')} style={{ border: `1px solid ${C.border}`, background: 'transparent', color: C.t2, borderRadius: 8, padding: '8px 10px', cursor: 'pointer', fontSize: 12, fontWeight: 700 }}>
+            <button onClick={goBackToApp} style={{ border: `1px solid ${C.border}`, background: 'transparent', color: C.t2, borderRadius: 8, padding: '8px 10px', cursor: 'pointer', fontSize: 12, fontWeight: 700 }}>
               {t.backToApp || 'Back to app'}
             </button>
             <button onClick={logoutAdmin} style={{ border: `1px solid ${C.border}`, background: 'transparent', color: C.t2, borderRadius: 8, padding: '8px 10px', cursor: 'pointer', fontSize: 12, fontWeight: 700 }}>

@@ -78,6 +78,11 @@ const SHOW_DEV_BILLING_PLACEHOLDER = !import.meta.env.PROD;
 const SUPPORT_EMAIL = 'contato.dealsifter@gmail.com';
 
 export function Settings({ setPage, prevPage, initialTab = 'profile', initialCommView = 'menu', systemAccount, setSystemAccount, authSession, setAuthSession, subscription, addToast, supabaseUserId, onDeleteAccount, onRevokeConsent, pendingCheckoutIntent = null, onContinuePendingCheckout = null, userPreferences = null, onChangeUserPreferences = null }) {
+  const goBackToApp = () => {
+    const candidate = String(prevPage || '').trim();
+    const blocked = new Set(['', 'settings', 'admin', 'terms', 'privacy']);
+    setPage?.(blocked.has(candidate) ? 'dashboard' : candidate);
+  };
   const allT = useT('settings');
   const t = allT.settings || {};
   const [tab, setTab] = useState(initialTab);
@@ -976,7 +981,7 @@ export function Settings({ setPage, prevPage, initialTab = 'profile', initialCom
             <h2 style={{ margin: 0, fontSize: 22, fontWeight: 900, color: C.t1 }}>{t.title || 'System Settings'}</h2>
             <p style={{ margin: '5px 0 0', fontSize: 12, color: C.t3 }}>{t.subtitle || 'Manage account, payments and support.'}</p>
           </div>
-          <button onClick={() => setPage?.(prevPage || 'dashboard')} style={{ border: `1px solid ${C.border}`, background: 'transparent', color: C.t2, borderRadius: 8, padding: '8px 10px', cursor: 'pointer', fontSize: 12, fontWeight: 700 }}>
+          <button onClick={goBackToApp} style={{ border: `1px solid ${C.border}`, background: 'transparent', color: C.t2, borderRadius: 8, padding: '8px 10px', cursor: 'pointer', fontSize: 12, fontWeight: 700 }}>
             {t.backToApp || 'Back to app'}
           </button>
         </div>

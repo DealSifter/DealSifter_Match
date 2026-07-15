@@ -621,12 +621,11 @@ export function Onboarding({
     if (!previewOpen) return;
     const timer = window.setTimeout(() => {
       const container = previewShowcaseScrollRef.current;
-      const target = container?.querySelector?.(`[data-preview-linked-index="${previewLinkedItemIndex}"]`);
-      if (!container || !target) return;
+      if (!container) return;
       try {
-        target.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
+        container.scrollTo({ left: container.clientWidth * previewLinkedItemIndex, behavior: 'smooth' });
       } catch {
-        target.scrollIntoView();
+        container.scrollLeft = container.clientWidth * previewLinkedItemIndex;
       }
     }, 0);
     return () => window.clearTimeout(timer);
@@ -1081,10 +1080,10 @@ export function Onboarding({
                 <SmartImage src={imgs[idx]} alt={`${prop?.address || ''} - ${idx + 1}`} style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }} />
               </div>
               <button onClick={prev} aria-label="Previous image" style={{ position: 'absolute', left: 8, top: '50%', transform: 'translateY(-50%)', background: C.alpha(C.bg, 0.6), border: 'none', borderRadius: 999, width: 36, height: 36, display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer' }}>
-                <Icon name="chevLeft" size={16} color={C.t1} />
+                <Icon name="back" size={16} color={C.t1} />
               </button>
               <button onClick={next} aria-label="Next image" style={{ position: 'absolute', right: 8, top: '50%', transform: 'translateY(-50%)', background: C.alpha(C.bg, 0.6), border: 'none', borderRadius: 999, width: 36, height: 36, display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer' }}>
-                <Icon name="chevDown" size={16} style={{ transform: 'rotate(-90deg)' }} color={C.t1} />
+                <Icon name="arrowRight" size={16} color={C.t1} />
               </button>
               <div style={{ position: 'absolute', left: '50%', transform: 'translateX(-50%)', bottom: 8, display: 'flex', gap: 6 }}>
                 {imgs.map((_, i) => (
@@ -1123,14 +1122,14 @@ export function Onboarding({
     const personalPreviewTitle = accountType === 'fsbo_owner'
       ? (t.previewBasicCardTitle || t.previewPersonalCardTitle)
       : t.previewPersonalCardTitle;
-    const previewCardWidth = isMobileViewport ? 340 : 654;
-    const previewCardHeight = isMobileViewport ? 576 : 400;
-    const previewDeckHeight = previewCardHeight + 24;
+    const previewCardWidth = isMobileViewport ? 360 : 654;
+    const previewCardHeight = isMobileViewport ? 610 : 420;
+    const previewDeckHeight = previewCardHeight + 36;
 
     return (
-      <div style={{ display: 'grid', gridTemplateColumns: isMobileViewport ? '1fr' : `minmax(${previewCardWidth}px, 1fr) minmax(${previewCardWidth}px, 1fr)`, gap: isMobileViewport ? 14 : 18, alignItems: 'stretch' }}>
+      <div style={{ display: 'grid', gridTemplateColumns: isMobileViewport ? 'minmax(0, 1fr)' : `minmax(0, 1fr) minmax(0, 1fr)`, gap: isMobileViewport ? 14 : 18, alignItems: 'start', minWidth: 0 }}>
         {/* â”€â”€ Left: Feed / Connection Card â”€â”€ */}
-        <section style={{ border: `1px solid ${C.border}`, borderRadius: 14, background: C.card, overflow: 'hidden', display: 'grid', gridTemplateRows: 'auto 1fr auto' }}>
+        <section style={{ border: `1px solid ${C.border}`, borderRadius: 14, background: C.card, overflow: 'visible', display: 'grid', gridTemplateRows: 'auto 1fr auto', minWidth: 0 }}>
           <div style={{ minHeight: 44, display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 10, padding: '8px 10px', borderBottom: `1px solid ${C.border}`, fontSize: 11, color: C.t3, textTransform: 'uppercase', fontWeight: 700 }}>
             <span>{personalPreviewTitle}</span>
             {previewShowcaseCount > 1 ? (
@@ -1142,7 +1141,7 @@ export function Onboarding({
                   onClick={handlePreviewPrev}
                   style={{ border: 'none', background: 'transparent', cursor: previewUnifiedIndex <= 0 ? 'not-allowed' : 'pointer', padding: 4, borderRadius: 999, display: 'flex', alignItems: 'center', justifyContent: 'center' }}
                 >
-                  <Icon name="chevronLeft" size={22} color={previewUnifiedIndex <= 0 ? C.t3 : C.t1} />
+                  <Icon name="back" size={22} color={previewUnifiedIndex <= 0 ? C.t3 : C.t1} />
                 </button>
                 <span style={{ fontSize: 11, color: C.t2, minWidth: 48, textAlign: 'center', display: 'inline-block' }}>
                   {previewUnifiedIndex + 1} / {previewShowcaseCount}
@@ -1154,7 +1153,7 @@ export function Onboarding({
                   onClick={handlePreviewNext}
                   style={{ border: 'none', background: 'transparent', cursor: previewUnifiedIndex >= previewShowcaseCount - 1 ? 'not-allowed' : 'pointer', padding: 4, borderRadius: 999, display: 'flex', alignItems: 'center', justifyContent: 'center' }}
                 >
-                  <Icon name="chevronRight" size={22} color={previewUnifiedIndex >= previewShowcaseCount - 1 ? C.t3 : C.t1} />
+                  <Icon name="arrowRight" size={22} color={previewUnifiedIndex >= previewShowcaseCount - 1 ? C.t3 : C.t1} />
                 </button>
               </div>
             ) : null}
@@ -1201,7 +1200,7 @@ export function Onboarding({
 
         {/* â”€â”€ Right: Showcase / Portfolio Cards â”€â”€ */}
 
-        <section style={{ border: `1px solid ${C.border}`, borderRadius: 14, background: C.card, overflow: 'hidden', display: 'grid', gridTemplateRows: 'auto 1fr' }}>
+        <section style={{ border: `1px solid ${C.border}`, borderRadius: 14, background: C.card, overflow: 'visible', display: 'grid', gridTemplateRows: 'auto 1fr auto', minWidth: 0 }}>
           <div style={{ minHeight: 44, display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 10, padding: '8px 10px', borderBottom: `1px solid ${C.border}`, fontSize: 11, color: C.t3, textTransform: 'uppercase', fontWeight: 700 }}>
             <span>{t.previewShowcaseCardTitle}</span>
             {activePreviewLinkedCount > 1 ? (
@@ -1213,7 +1212,7 @@ export function Onboarding({
                   onClick={() => setPreviewLinkedItemIndex((idx) => Math.max(0, idx - 1))}
                   style={{ border: 'none', background: 'transparent', cursor: previewLinkedItemIndex <= 0 ? 'not-allowed' : 'pointer', padding: 4, borderRadius: 999, display: 'flex', alignItems: 'center', justifyContent: 'center' }}
                 >
-                  <Icon name="chevronLeft" size={22} color={previewLinkedItemIndex <= 0 ? C.t3 : C.t1} />
+                  <Icon name="back" size={22} color={previewLinkedItemIndex <= 0 ? C.t3 : C.t1} />
                 </button>
                 <span style={{ fontSize: 11, color: C.t2, minWidth: 48, textAlign: 'center', display: 'inline-block' }}>
                   {Math.min(previewLinkedItemIndex + 1, activePreviewLinkedCount)} / {activePreviewLinkedCount}
@@ -1225,7 +1224,7 @@ export function Onboarding({
                   onClick={() => setPreviewLinkedItemIndex((idx) => Math.min(activePreviewLinkedCount - 1, idx + 1))}
                   style={{ border: 'none', background: 'transparent', cursor: previewLinkedItemIndex >= activePreviewLinkedCount - 1 ? 'not-allowed' : 'pointer', padding: 4, borderRadius: 999, display: 'flex', alignItems: 'center', justifyContent: 'center' }}
                 >
-                  <Icon name="chevronRight" size={22} color={previewLinkedItemIndex >= activePreviewLinkedCount - 1 ? C.t3 : C.t1} />
+                  <Icon name="arrowRight" size={22} color={previewLinkedItemIndex >= activePreviewLinkedCount - 1 ? C.t3 : C.t1} />
                 </button>
               </div>
             ) : null}
@@ -1235,12 +1234,13 @@ export function Onboarding({
               ref={previewShowcaseScrollRef}
               className="onb-preview-showcase-scroll"
               style={{
-                overflowY: 'auto',
-                overflowX: 'hidden',
+                display: 'flex',
+                overflowX: 'auto',
+                overflowY: 'visible',
+                scrollSnapType: 'x mandatory',
                 WebkitOverflowScrolling: 'touch',
-                touchAction: 'pan-y',
+                touchAction: 'pan-x',
                 minHeight: previewDeckHeight,
-                maxHeight: isMobileViewport ? 'min(72vh, 680px)' : previewDeckHeight,
                 padding: 12,
                 boxSizing: 'border-box',
               }}
@@ -1258,11 +1258,12 @@ export function Onboarding({
                   );
                 }
                 return (
-                  <div key={`preview-linked-items-${groupScope || previewUnifiedIndex}`} style={{ width: `min(${previewCardWidth}px, 100%)`, margin: '0 auto', display: 'grid', gap: 12, boxSizing: 'border-box' }}>
+                  <>
                     {groupItems.map((entry, entryIdx) => {
                       if (entry.kind === 'property') {
                         return (
-                          <div data-preview-linked-index={entryIdx} key={`preview-group-property-${entry.data?.id || entryIdx}`} style={{ height: isMobileViewport ? 'auto' : previewCardHeight, minHeight: isMobileViewport ? previewCardHeight : undefined }}>
+                          <div data-preview-linked-index={entryIdx} key={`preview-group-property-${entry.data?.id || entryIdx}`} style={{ flex: '0 0 100%', width: '100%', scrollSnapAlign: 'start', scrollSnapStop: 'always', padding: isMobileViewport ? '0 2px' : 0, boxSizing: 'border-box' }}>
+                            <div style={{ width: `min(${previewCardWidth}px, 100%)`, height: isMobileViewport ? 'auto' : previewCardHeight, minHeight: previewCardHeight, margin: '0 auto', boxSizing: 'border-box' }}>
                             <PropertyCard
                               property={entry.data}
                               action={null}
@@ -1273,22 +1274,24 @@ export function Onboarding({
                               }}
                               owner={groupProfileCard}
                             />
+                            </div>
                           </div>
                         );
                       }
                       const svc = entry.data;
                       const svcImages = (svc?.media?.images || []).filter(Boolean);
                       return (
-                        <div data-preview-linked-index={entryIdx} key={`preview-group-service-${svc?.id || entryIdx}`} style={{ padding: 12, border: `1px solid ${C.border}`, borderRadius: 16, boxSizing: 'border-box' }}>
+                        <div data-preview-linked-index={entryIdx} key={`preview-group-service-${svc?.id || entryIdx}`} style={{ flex: '0 0 100%', width: '100%', scrollSnapAlign: 'start', scrollSnapStop: 'always', padding: isMobileViewport ? '0 2px' : 0, boxSizing: 'border-box' }}>
+                        <div style={{ width: `min(${previewCardWidth}px, 100%)`, minHeight: previewCardHeight, margin: '0 auto', padding: 12, border: `1px solid ${C.border}`, borderRadius: 16, boxSizing: 'border-box', background: C.card }}>
                           <div style={{ marginBottom: 8 }}>
                             <div style={{ fontSize: 14, fontWeight: 700, color: C.t1 }}>{svc?.title || t.serviceFallbackName}</div>
                             {svc?.description && <div style={{ fontSize: 12, color: C.t2, marginTop: 2 }}>{svc.description}</div>}
                             {svc?.category && <div style={{ display: 'inline-block', marginTop: 4, padding: '2px 8px', borderRadius: 12, background: C.alpha(C.accent, 0.08), border: `1px solid ${C.alpha(C.accent, 0.15)}`, fontSize: 10, color: C.accent, fontWeight: 700 }}>{svc.category}</div>}
                           </div>
                           {svcImages.length > 0 ? (
-                            <div style={{ display: 'grid', gridTemplateColumns: svcImages.length === 1 ? '1fr' : 'repeat(auto-fill, minmax(120px, 1fr))', gap: 8 }}>
+                            <div className="onb-preview-image-strip" style={{ display: 'flex', gap: 8, overflowX: 'auto', overflowY: 'hidden', scrollSnapType: 'x mandatory', WebkitOverflowScrolling: 'touch', touchAction: 'pan-x', paddingBottom: 4 }}>
                               {svcImages.map((src, imageIdx) => (
-                                <div key={`svc-prev-img-${previewUnifiedIndex}-${entryIdx}-${imageIdx}`} style={{ position: 'relative', aspectRatio: svcImages.length === 1 ? '16/9' : '1', borderRadius: 8, overflow: 'hidden', background: C.alpha(C.t1, 0.06), border: `1px solid ${C.border}` }}>
+                                <div key={`svc-prev-img-${previewUnifiedIndex}-${entryIdx}-${imageIdx}`} style={{ flex: svcImages.length === 1 ? '0 0 100%' : (isMobileViewport ? '0 0 84%' : '0 0 48%'), scrollSnapAlign: 'start', position: 'relative', aspectRatio: '16/9', borderRadius: 8, overflow: 'hidden', background: C.alpha(C.t1, 0.06), border: `1px solid ${C.border}` }}>
                                   <SmartImage src={src} alt={svc?.title || ''} style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }} />
                                 </div>
                               ))}
@@ -1299,9 +1302,10 @@ export function Onboarding({
                             </div>
                           )}
                         </div>
+                        </div>
                       );
                     })}
-                  </div>
+                  </>
                 );
               })()}
             </div>
@@ -3350,6 +3354,14 @@ export function Onboarding({
         .onb-preview-showcase-scroll::-webkit-scrollbar {
           display: none;
         }
+        .onb-preview-image-strip {
+          scrollbar-width: none;
+          -ms-overflow-style: none;
+          overscroll-behavior-x: contain;
+        }
+        .onb-preview-image-strip::-webkit-scrollbar {
+          display: none;
+        }
         @media (hover: none), (pointer: coarse) {
           .onb-thumb-inline-remove { opacity: 1; transform: scale(1); pointer-events: auto; }
         }
@@ -5066,8 +5078,8 @@ export function Onboarding({
           maxWidth={isMobileViewport ? 820 : 1480}
           overlayStyle={isMobileViewport ? {} : { zIndex: 20000 }}
           contentStyle={isMobileViewport
-            ? { overflowY: 'auto', WebkitOverflowScrolling: 'touch', touchAction: 'pan-y' }
-            : { overflow: 'hidden', maxHeight: 'min(92dvh, 920px)' }}
+            ? { overflowY: 'auto', overflowX: 'hidden', WebkitOverflowScrolling: 'touch', touchAction: 'pan-y', maxHeight: 'calc((var(--app-vh, 1vh) * 100) - 24px)' }
+            : { overflowY: 'auto', overflowX: 'visible', maxHeight: 'min(96dvh, 980px)' }}
         >
           <div style={{ display: 'grid', gap: 10, paddingRight: isMobileViewport ? 2 : 0 }}>
             <div style={{ display: 'flex', flexWrap: isMobileViewport ? 'wrap' : 'nowrap', alignItems: 'center', justifyContent: 'space-between', gap: 10, paddingRight: 30 }}>

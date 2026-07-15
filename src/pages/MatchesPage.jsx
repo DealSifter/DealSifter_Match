@@ -412,7 +412,7 @@ function ExclusiveBlockedBadge({ status, onUnlockOwner = null }) {
   );
 }
 
-function PortfolioDetail({ item, owner, ownerContact = null, isOwnerUnlocked = false, onUnlockRequest = null, contactPanelVariant = 'desktop', ownerDesc, onBack, autoplayMedia = false, onBlockedExport = null, imageSources = [], onStartChat = null, canUseChat = true, chatInterestLabel = CHAT_INTEREST_PREFIX.en, exclusiveStatus = null }) {
+function PortfolioDetail({ item, owner, ownerContact = null, isOwnerUnlocked = false, onUnlockRequest = null, contactPanelVariant = 'desktop', ownerDesc, onBack, autoplayMedia = false, onBlockedExport = null, imageSources = [], onStartChat = null, canUseChat = true, chatInterestLabel = CHAT_INTEREST_PREFIX.en, exclusiveStatus = null, onAnalyzeWithMaxxis = null }) {
   const allT = useT('matches');
   const matchesT = allT.matches;
   const modalsT = allT.modals;
@@ -992,7 +992,7 @@ function PortfolioDetail({ item, owner, ownerContact = null, isOwnerUnlocked = f
     }
   };
 
-  const generateReleasePdf = async ({ title, imageUrls }) => {
+  const generateReleasePdf = async ({ title, imageUrls, maxxisAnalysis = '' }) => {
     const { jsPDF } = await import('jspdf');
     const doc = new jsPDF({ unit: 'pt', format: 'a4' });
     const pageWidth = doc.internal.pageSize.getWidth();
@@ -1000,6 +1000,11 @@ function PortfolioDetail({ item, owner, ownerContact = null, isOwnerUnlocked = f
     const margin = 20;
     const maxTextWidth = pageWidth - margin * 2;
     let y = margin;
+    const ensureSpace = (heightNeeded = 80) => {
+      if (y + heightNeeded <= pageHeight - margin) return;
+      doc.addPage();
+      y = margin;
+    };
 
     const logo = await fetchImageData(appLogo);
     const normalizedImageUrls = Array.isArray(imageUrls) && imageUrls.length ? imageUrls : getExportImageUrls();
@@ -1033,6 +1038,7 @@ function PortfolioDetail({ item, owner, ownerContact = null, isOwnerUnlocked = f
       email: modalsT.contactEmail,
     }).sort((a, b) => (a.priority || 99) - (b.priority || 99));
     const ownerNotes = safe(ownerDesc || owner?.desc || item?.description || '-');
+    const maxxisAnalysisText = safe(maxxisAnalysis, '');
     const labelSuggestions = [safe(item?.objective || 'General'), safe(item?.dealTag || 'No DealTag'), safe(item?.source || 'No Source')].join(' | ');
 
     const panelRowsOwner = [
@@ -1292,7 +1298,40 @@ function PortfolioDetail({ item, owner, ownerContact = null, isOwnerUnlocked = f
       y += galleryH + 10;
     }
 
+    if (maxxisAnalysisText) {
+      const titleH = 20;
+      const lines = doc.splitTextToSize(maxxisAnalysisText, maxTextWidth - 16);
+      const lineH = 9.4;
+      const maxLines = 18;
+      const visibleLines = lines.slice(0, maxLines);
+      const blockH = Math.min(196, Math.max(72, titleH + 16 + (visibleLines.length * lineH)));
+      ensureSpace(blockH + 10);
+      doc.setFillColor(248, 253, 253);
+      doc.setDrawColor(159, 231, 229);
+      doc.roundedRect(margin, y, maxTextWidth, blockH, 6, 6, 'FD');
+      doc.setFont('helvetica', 'bold');
+      doc.setTextColor(23, 139, 140);
+      doc.setFontSize(10.8);
+      doc.text(pdfLabel('maxxisAiAnalysis', 'Maxxis AI Analysis'), margin + 8, y + 16);
+      doc.setFont('helvetica', 'normal');
+      doc.setTextColor(52, 64, 82);
+      doc.setFontSize(8.2);
+      for (let i = 0; i < visibleLines.length; i += 1) {
+        doc.text(visibleLines[i], margin + 8, y + 31 + (i * lineH));
+      }
+      if (lines.length > visibleLines.length) {
+        doc.setFont('helvetica', 'bold');
+        doc.setTextColor(102, 116, 136);
+        doc.text('...', margin + 8, y + blockH - 8);
+      }
+      y += blockH + 10;
+    }
+
     // Map snapshot replaces old Additional Notes block.
+    if (y > pageHeight - margin - 92) {
+      doc.addPage();
+      y = margin;
+    }
     const mapH = pageHeight - y - margin;
     if (mapH > 90) {
       const coords = getPropertyCoordinates();
@@ -1384,6 +1423,53 @@ function PortfolioDetail({ item, owner, ownerContact = null, isOwnerUnlocked = f
     if (typeof onBlockedExport === 'function' && onBlockedExport() === false) return;
     if (!String(emailTo || '').trim()) setEmailTo(getProfileEmailFallback());
     setEmailComposeOpen(true);
+  };
+
+  const buildMaxxisAnalysisPrompt = () => {
+    const { title, cardsDescription } = buildExportPayload();
+    return [
+      'Analyze this unlocked DealSifter property opportunity for an investor.',
+      '',
+      'Use the property data, category/type, goal, rehab, cap rate, strategy, description and the business idea implied by the card.',
+      'Return a concise but useful analysis with: quick verdict, numbers check, main risks, questions to ask the owner, and next steps.',
+      'If information is missing, call it out instead of inventing values.',
+      '',
+      `PROPERTY: ${title}`,
+      cardsDescription,
+    ].join('\n');
+  };
+
+  const handleAnalyzeWithMaxxis = () => {
+    if (typeof onBlockedExport === 'function' && onBlockedExport() === false) return;
+    if (typeof onAnalyzeWithMaxxis !== 'function') return;
+    const source = buildExportPayload();
+    const imageUrls = getExportImageUrls();
+    onAnalyzeWithMaxxis({
+      id: `maxxis-property-analysis-${item?.id || item?.address || Date.now()}-${Date.now()}`,
+      title: source.title,
+      prompt: buildMaxxisAnalysisPrompt(),
+      property: {
+        id: item?.id,
+        title: source.title,
+        address: item?.address,
+        city: item?.city,
+        state: item?.state,
+        zip: item?.zip,
+        price: item?.price,
+        type: item?.type,
+        objective: item?.objective,
+        rehab: item?.rehab,
+        capRate: item?.capRate,
+        dealTag: item?.dealTag,
+      },
+      onExportPdf: (analysisText) => generateReleasePdf({
+        title: source.title,
+        cardsDescription: source.cardsDescription,
+        imageUrls,
+        maxxisAnalysis: analysisText,
+      }),
+    });
+    setEmailComposeOpen(false);
   };
 
   const handleConfirmEmailExport = async () => {
@@ -1638,7 +1724,7 @@ function PortfolioDetail({ item, owner, ownerContact = null, isOwnerUnlocked = f
 
             <div style={{ border: `1px solid ${C.border}`, borderRadius: 10, padding: 10, display: 'grid', gap: 8, background: C.alpha(C.accent, 0.04) }}>
               <div style={{ fontSize: 11, color: C.t2, fontWeight: 800 }}>{matchesT.exportOptions || 'Export options'}</div>
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8 }}>
+              <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : 'repeat(3, minmax(0, 1fr))', gap: 8 }}>
                 <button
                   type="button"
                   onClick={() => {
@@ -1680,6 +1766,22 @@ function PortfolioDetail({ item, owner, ownerContact = null, isOwnerUnlocked = f
                   }}
                 >
                   {matchesT.exportModeEmail || 'Prepare by email'}
+                </button>
+                <button
+                  type="button"
+                  onClick={handleAnalyzeWithMaxxis}
+                  style={{
+                    border: `1px solid ${C.accent}`,
+                    background: C.alpha(C.accent, 0.14),
+                    color: C.accent,
+                    borderRadius: 9,
+                    padding: '9px 8px',
+                    fontSize: 11,
+                    fontWeight: 900,
+                    cursor: 'pointer',
+                  }}
+                >
+                  {matchesT.exportAnalyzeWithMaxxis || 'Analyze with Maxxis AI'}
                 </button>
               </div>
 
@@ -1773,7 +1875,7 @@ function PortfolioDetail({ item, owner, ownerContact = null, isOwnerUnlocked = f
   );
 }
 
-export function MatchesPage({ nuggets, isAdmin = false, setModal, openUnlock, unlocked, initialChat, chatFocusToken = 0, interested, matched, setInterested, setMatched, convos, setConvos, categoryOrder, setCategoryOrder, showcaseProperties, propertyPortfolio, servicePortfolio, userProfile, personalProfile, professionalProfile, mobileBottomNavCollapsed = false, userPreferences = null, planActionAccess = {}, setPage = null, addToast = null, onOpenChatLanguageConfig = null, onSendChatMessage = null, onRetryChatMessage = null, onMarkChatRead = null, onLoadMoreChatMessages = null, chatHasMore = {}, chatLoadingMore = {}, propertyUnlocks = [], unlockedContactMap = new Map(), currentUserId = 'local-user', isActive = true }) {
+export function MatchesPage({ nuggets, isAdmin = false, setModal, openUnlock, unlocked, initialChat, chatFocusToken = 0, interested, matched, setInterested, setMatched, convos, setConvos, categoryOrder, setCategoryOrder, showcaseProperties, propertyPortfolio, servicePortfolio, userProfile, personalProfile, professionalProfile, mobileBottomNavCollapsed = false, userPreferences = null, planActionAccess = {}, setPage = null, addToast = null, onOpenChatLanguageConfig = null, onSendChatMessage = null, onRetryChatMessage = null, onMarkChatRead = null, onLoadMoreChatMessages = null, chatHasMore = {}, chatLoadingMore = {}, propertyUnlocks = [], unlockedContactMap = new Map(), currentUserId = 'local-user', onAnalyzePropertyWithMaxxis = null, isActive = true }) {
   const PORTFOLIO_PANEL_PADDING = 40;
   const PORTFOLIO_GRID_GAP = 12;
   const PORTFOLIO_CARD_MIN_WIDTH = 132;
@@ -4032,6 +4134,7 @@ export function MatchesPage({ nuggets, isAdmin = false, setModal, openUnlock, un
                         onBlockedExport={guardExportPdf}
                         imageSources={[...(propertyPortfolio || []), ...(showcaseProperties || []), ...(allPropertiesSource || [])]}
                         exclusiveStatus={getPropertyExclusiveStatus(selectedPortfolioItem)}
+                        onAnalyzeWithMaxxis={onAnalyzePropertyWithMaxxis}
                         canUseChat={canUseChat}
                         chatInterestLabel={CHAT_INTEREST_PREFIX[myInputLang] || CHAT_INTEREST_PREFIX.en}
                         onStartChat={(refItem) => {
@@ -4210,6 +4313,7 @@ export function MatchesPage({ nuggets, isAdmin = false, setModal, openUnlock, un
                   onBlockedExport={guardExportPdf}
                   imageSources={[...(propertyPortfolio || []), ...(showcaseProperties || []), ...(allPropertiesSource || [])]}
                   exclusiveStatus={getPropertyExclusiveStatus(mobileCardSheet)}
+                  onAnalyzeWithMaxxis={onAnalyzePropertyWithMaxxis}
                 />
                 <button
                   type="button"

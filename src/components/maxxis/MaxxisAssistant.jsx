@@ -20,6 +20,7 @@ const COPY = {
     support: 'Human support',
     typing: 'Maxxis is thinking...',
     unavailable: 'I had a temporary issue. Please try again or contact human support.',
+    exportAnalysisPdf: 'Export analysis PDF',
     scope: 'Maxxis can help with app usage, Tax Deeds, Wholesale and DealSifter workflows.',
   },
   pt: {
@@ -33,6 +34,7 @@ const COPY = {
     support: 'Suporte humano',
     typing: 'Maxxis esta pensando...',
     unavailable: 'Tive uma dificuldade temporaria. Tente novamente ou fale com o suporte humano.',
+    exportAnalysisPdf: 'Exportar PDF da analise',
     scope: 'Maxxis ajuda com uso do app, Tax Deeds, Wholesale e fluxos do DealSifter.',
   },
   es: {
@@ -46,6 +48,7 @@ const COPY = {
     support: 'Soporte humano',
     typing: 'Maxxis esta pensando...',
     unavailable: 'Tuve un problema temporal. Intentalo otra vez o contacta soporte humano.',
+    exportAnalysisPdf: 'Exportar PDF del analisis',
     scope: 'Maxxis ayuda con uso de la app, Tax Deeds, Wholesale y flujos de DealSifter.',
   },
 };
@@ -190,7 +193,7 @@ function readStoredWidgetPosition() {
   }
 }
 
-function MessageBubble({ message, language, onAction }) {
+function MessageBubble({ message, language, onAction, onExportAnalysisPdf, exportAnalysisLabel }) {
   const isUser = message.role === 'user';
   const { text, actions } = isUser
     ? { text: String(message.content || ''), actions: [] }
@@ -222,12 +225,24 @@ function MessageBubble({ message, language, onAction }) {
           ))}
         </div>
       ) : null}
+      {message.analysisExport ? (
+        <div className="maxxis-action-links" aria-label="Maxxis analysis export">
+          <button
+            type="button"
+            className="maxxis-action-link maxxis-analysis-export"
+            onClick={() => onExportAnalysisPdf?.(message.analysisExport, message.content)}
+          >
+            <span>{exportAnalysisLabel}</span>
+            <Icon name="doc" size={13} color="currentColor" strokeWidth={2.1} />
+          </button>
+        </div>
+      ) : null}
       <div className="maxxis-message-meta">{formatTime(message.createdAt)}</div>
     </div>
   );
 }
 
-export function MaxxisAssistant({ page = 'dashboard', onOpenSupport = null, onNavigateAction = null, enabled = true }) {
+export function MaxxisAssistant({ page = 'dashboard', onOpenSupport = null, onNavigateAction = null, propertyAnalysisRequest = null, onExportAnalysisPdf = null, enabled = true }) {
   const language = getUiLang();
   const t = COPY[language] || COPY.en;
   const [open, setOpen] = useState(false);
@@ -242,6 +257,7 @@ export function MaxxisAssistant({ page = 'dashboard', onOpenSupport = null, onNa
     createdAt: new Date(),
   }]);
   const endRef = useRef(null);
+  const handledAnalysisRequestsRef = useRef(new Set());
   const dragRef = useRef({
     active: false,
     moved: false,
@@ -372,12 +388,13 @@ export function MaxxisAssistant({ page = 'dashboard', onOpenSupport = null, onNa
     onNavigateAction?.(normalized);
   };
 
-  const submit = async () => {
-    if (!canSend) return;
+  const submitMessage = async (messageText, meta = {}) => {
+    const cleanMessage = String(messageText || '').trim();
+    if (!cleanMessage || loading) return;
     const userMessage = {
       id: `maxxis-user-${Date.now()}`,
       role: 'user',
-      content: trimmedInput,
+      content: cleanMessage,
       createdAt: new Date(),
     };
     setMessages((prev) => [...prev, userMessage]);
@@ -386,7 +403,7 @@ export function MaxxisAssistant({ page = 'dashboard', onOpenSupport = null, onNa
 
     try {
       const result = await sendMaxxisMessage({
-        message: trimmedInput,
+        message: cleanMessage,
         history: historyForRequest,
         page,
         language,
@@ -397,6 +414,7 @@ export function MaxxisAssistant({ page = 'dashboard', onOpenSupport = null, onNa
         content: result.answer,
         createdAt: new Date(),
         error: Boolean(result.unavailable),
+        analysisExport: result.unavailable ? null : (meta.analysisExport || null),
       }]);
     } catch (error) {
       captureAppException(error, { area: 'maxxis_assistant', page });
@@ -411,6 +429,28 @@ export function MaxxisAssistant({ page = 'dashboard', onOpenSupport = null, onNa
       setLoading(false);
     }
   };
+
+  const submit = async () => {
+    if (!canSend) return;
+    await submitMessage(trimmedInput);
+  };
+
+  useEffect(() => {
+    const requestId = String(propertyAnalysisRequest?.id || '').trim();
+    const prompt = String(propertyAnalysisRequest?.prompt || '').trim();
+    if (!requestId || !prompt || handledAnalysisRequestsRef.current.has(requestId)) return;
+    handledAnalysisRequestsRef.current.add(requestId);
+    setOpen(true);
+    setInput('');
+    void submitMessage(prompt, {
+      analysisExport: {
+        requestId,
+        title: propertyAnalysisRequest?.title || '',
+        property: propertyAnalysisRequest?.property || null,
+        onExportPdf: propertyAnalysisRequest?.onExportPdf || null,
+      },
+    });
+  }, [propertyAnalysisRequest?.id]);
 
   if (!enabled) return null;
 
@@ -445,6 +485,8 @@ export function MaxxisAssistant({ page = 'dashboard', onOpenSupport = null, onNa
                 message={message}
                 language={language}
                 onAction={handleAction}
+                onExportAnalysisPdf={onExportAnalysisPdf}
+                exportAnalysisLabel={t.exportAnalysisPdf}
               />
             ))}
             {loading ? (
