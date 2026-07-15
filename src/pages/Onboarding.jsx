@@ -1247,7 +1247,6 @@ export function Onboarding({
             >
               {(() => {
                 const item = activePreviewGroup;
-                const groupScope = item?.profileScope;
                 const groupProfileCard = activePreviewFeedCard;
                 const groupItems = activePreviewLinkedItems;
                 if (!item || groupItems.length === 0) {
