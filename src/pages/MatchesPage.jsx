@@ -1000,11 +1000,6 @@ function PortfolioDetail({ item, owner, ownerContact = null, isOwnerUnlocked = f
     const margin = 20;
     const maxTextWidth = pageWidth - margin * 2;
     let y = margin;
-    const ensureSpace = (heightNeeded = 80) => {
-      if (y + heightNeeded <= pageHeight - margin) return;
-      doc.addPage();
-      y = margin;
-    };
 
     const logo = await fetchImageData(appLogo);
     const normalizedImageUrls = Array.isArray(imageUrls) && imageUrls.length ? imageUrls : getExportImageUrls();
@@ -1020,6 +1015,21 @@ function PortfolioDetail({ item, owner, ownerContact = null, isOwnerUnlocked = f
       return s && s !== '-' ? s : fallback;
     };
     const pdfLabel = (key, fallback) => matchesT[key] || fallback;
+    const normalizeAnalysisText = (value) => {
+      const raw = String(value ?? '').replace(/\r\n/g, '\n').replace(/\r/g, '\n');
+      let decoded = raw;
+      try {
+        decoded = decodeURIComponent(raw.replace(/\+/g, ' '));
+      } catch {
+        decoded = raw.replace(/\+/g, ' ');
+      }
+      return decoded
+        .replace(/\[([^\]]+)\]\([^)]+\)/g, '$1')
+        .replace(/[`*_]/g, '')
+        .replace(/[ \t]+/g, ' ')
+        .replace(/\n{3,}/g, '\n\n')
+        .trim();
+    };
 
     const shouldUseSavedProfile = !isSupabaseConfigured
       && (!owner?.id || owner?.id === 999999 || owner?.ownerId === 999999 || owner?.id === 'preview-personal');
@@ -1038,7 +1048,7 @@ function PortfolioDetail({ item, owner, ownerContact = null, isOwnerUnlocked = f
       email: modalsT.contactEmail,
     }).sort((a, b) => (a.priority || 99) - (b.priority || 99));
     const ownerNotes = safe(ownerDesc || owner?.desc || item?.description || '-');
-    const maxxisAnalysisText = safe(maxxisAnalysis, '');
+    const maxxisAnalysisText = normalizeAnalysisText(maxxisAnalysis);
     const labelSuggestions = [safe(item?.objective || 'General'), safe(item?.dealTag || 'No DealTag'), safe(item?.source || 'No Source')].join(' | ');
 
     const panelRowsOwner = [
@@ -1127,6 +1137,206 @@ function PortfolioDetail({ item, owner, ownerContact = null, isOwnerUnlocked = f
         doc.line(x + 8, rowY + rowHeight - 3, x + w - 8, rowY + rowHeight - 3);
         rowY += rowHeight;
       }
+    };
+
+    const buildAnalysisSections = (text) => {
+      const lines = String(text || '').split('\n').map((line) => line.trim()).filter(Boolean);
+      const sections = [];
+      let current = { title: pdfLabel('maxxisAnalysisSummary', 'Opportunity Snapshot'), lines: [] };
+      const pushCurrent = () => {
+        if (current.lines.length || current.title) sections.push(current);
+      };
+      for (const rawLine of lines) {
+        const cleaned = rawLine
+          .replace(/^#{1,6}\s*/, '')
+          .replace(/^[-*]\s*/, '')
+          .replace(/^\d+[.)]\s*/, '')
+          .trim();
+        const isHeading = /^#{1,6}\s*/.test(rawLine)
+          || (/^[A-ZÁÉÍÓÚÂÊÔÃÕÇ][^.!?]{2,72}:$/.test(cleaned))
+          || (/^(Quick Verdict|Verdict|Numbers|Risks|Questions|Next Steps|Perguntas|Proximos|Próximos|Riscos|Consideracoes|Considerações|Acciones|Preguntas|Riesgos)/i.test(cleaned) && cleaned.length < 80);
+        if (isHeading) {
+          if (current.lines.length) pushCurrent();
+          current = { title: cleaned.replace(/:$/, ''), lines: [] };
+        } else {
+          current.lines.push(cleaned);
+        }
+      }
+      if (current.lines.length) pushCurrent();
+      if (!sections.length && text) {
+        sections.push({
+          title: pdfLabel('maxxisAnalysisSummary', 'Opportunity Snapshot'),
+          lines: String(text).replace(/([.!?])\s+/g, '$1\n').split('\n').filter(Boolean).slice(0, 8),
+        });
+      }
+      return sections;
+    };
+
+    const sectionMatches = (section, patterns) => {
+      const titleText = String(section?.title || '').toLowerCase();
+      return patterns.some((pattern) => titleText.includes(pattern));
+    };
+
+    const compactLines = (sections, fallbackSections, maxItems = 5) => {
+      const source = sections.length ? sections : fallbackSections;
+      return source
+        .flatMap((section) => section.lines || [])
+        .map((line) => String(line || '').replace(/^[-*]\s*/, '').trim())
+        .filter(Boolean)
+        .slice(0, maxItems);
+    };
+
+    const drawAnalysisBox = ({ titleText, lines, x, yy, w, h, fill, stroke, titleColor, maxItems = 5 }) => {
+      doc.setFillColor(...fill);
+      doc.setDrawColor(...stroke);
+      doc.roundedRect(x, yy, w, h, 6, 6, 'FD');
+      doc.setFont('helvetica', 'bold');
+      doc.setTextColor(...titleColor);
+      doc.setFontSize(10.2);
+      doc.text(titleText, x + 8, yy + 15);
+      doc.setFont('helvetica', 'normal');
+      doc.setTextColor(48, 61, 78);
+      doc.setFontSize(8.1);
+      let cursorY = yy + 30;
+      const usableW = w - 18;
+      const safeLines = lines.length ? lines : ['-'];
+      for (let i = 0; i < Math.min(maxItems, safeLines.length); i += 1) {
+        if (cursorY > yy + h - 12) break;
+        const prefix = safeLines.length > 1 ? `${i + 1}. ` : '';
+        const wrapped = doc.splitTextToSize(`${prefix}${safeLines[i]}`, usableW);
+        for (let j = 0; j < wrapped.length; j += 1) {
+          if (cursorY > yy + h - 10) break;
+          doc.text(wrapped[j], x + 8, cursorY);
+          cursorY += 8.4;
+        }
+        cursorY += 2;
+      }
+    };
+
+    const drawMaxxisAnalysisPage = () => {
+      if (!maxxisAnalysisText) return;
+      doc.addPage();
+      y = margin;
+
+      const sections = buildAnalysisSections(maxxisAnalysisText);
+      const questions = sections.filter((section) => sectionMatches(section, ['question', 'pergunta', 'duvida', 'dúvida', 'pregunta']));
+      const actions = sections.filter((section) => sectionMatches(section, ['next', 'step', 'action', 'acao', 'ação', 'proximo', 'próximo', 'accion']));
+      const considerations = sections.filter((section) => sectionMatches(section, ['risk', 'risco', 'consider', 'attention', 'atencao', 'atención']));
+      const topicSections = sections
+        .filter((section) => !questions.includes(section) && !actions.includes(section) && !considerations.includes(section))
+        .slice(0, 4);
+      const fallbackTopics = topicSections.length ? topicSections : sections.slice(0, 4);
+
+      doc.setFillColor(13, 24, 21);
+      doc.roundedRect(margin, y, maxTextWidth, 38, 8, 8, 'F');
+      if (logo) {
+        drawImageContain(doc, logo.dataUrl, logo.format, margin + 10, y + 6, 125, 26);
+      }
+      doc.setFont('helvetica', 'bold');
+      doc.setTextColor(53, 202, 201);
+      doc.setFontSize(13);
+      doc.text(pdfLabel('maxxisAiAnalysis', 'Maxxis AI Analysis'), pageWidth - margin - 10, y + 17, { align: 'right' });
+      doc.setFont('helvetica', 'normal');
+      doc.setTextColor(187, 202, 214);
+      doc.setFontSize(8);
+      doc.text(safe(item?.address || title), pageWidth - margin - 10, y + 30, { align: 'right' });
+      y += 50;
+
+      const summaryRows = [
+        [pdfLabel('price', 'Price'), fmtMoney(item?.price)],
+        [pdfLabel('strategy', 'Strategy'), safe(item?.objective)],
+        ['Cap Rate', item?.capRate ? `${item.capRate}%` : '-'],
+        ['Rehab', fmtMoney(item?.rehab || 0)],
+      ];
+      const summaryW = (maxTextWidth - 18) / 4;
+      for (let i = 0; i < summaryRows.length; i += 1) {
+        const x = margin + i * (summaryW + 6);
+        doc.setFillColor(247, 252, 252);
+        doc.setDrawColor(177, 230, 230);
+        doc.roundedRect(x, y, summaryW, 38, 5, 5, 'FD');
+        doc.setFont('helvetica', 'bold');
+        doc.setTextColor(140, 154, 174);
+        doc.setFontSize(7.6);
+        doc.text(summaryRows[i][0], x + 6, y + 12);
+        doc.setTextColor(20, 31, 48);
+        doc.setFontSize(10.6);
+        doc.text(String(summaryRows[i][1] || '-').slice(0, 28), x + 6, y + 27);
+      }
+      y += 50;
+
+      doc.setFont('helvetica', 'bold');
+      doc.setTextColor(20, 31, 48);
+      doc.setFontSize(12);
+      doc.text(pdfLabel('maxxisAnalysisTopics', 'Key Topics'), margin, y);
+      y += 10;
+
+      const colGap = 10;
+      const colW = (maxTextWidth - colGap) / 2;
+      const topicH = 110;
+      for (let i = 0; i < Math.min(4, fallbackTopics.length); i += 1) {
+        const col = i % 2;
+        const row = Math.floor(i / 2);
+        drawAnalysisBox({
+          titleText: fallbackTopics[i].title || pdfLabel('maxxisAnalysisSummary', 'Opportunity Snapshot'),
+          lines: fallbackTopics[i].lines || [],
+          x: margin + col * (colW + colGap),
+          yy: y + row * (topicH + 10),
+          w: colW,
+          h: topicH,
+          fill: [249, 250, 252],
+          stroke: [208, 216, 229],
+          titleColor: [23, 139, 140],
+          maxItems: 4,
+        });
+      }
+      y += (fallbackTopics.length > 2 ? 2 : 1) * (topicH + 10) + 2;
+
+      const conclusionY = Math.min(y, pageHeight - margin - 174);
+      doc.setFont('helvetica', 'bold');
+      doc.setTextColor(20, 31, 48);
+      doc.setFontSize(12);
+      doc.text(pdfLabel('maxxisAnalysisConclusion', 'Segmented Conclusion'), margin, conclusionY);
+
+      const segmentY = conclusionY + 12;
+      const segmentGap = 8;
+      const segmentW = (maxTextWidth - segmentGap * 2) / 3;
+      const segmentH = pageHeight - segmentY - margin;
+      drawAnalysisBox({
+        titleText: pdfLabel('maxxisAnalysisConsiderations', 'Considerations'),
+        lines: compactLines(considerations, sections, 5),
+        x: margin,
+        yy: segmentY,
+        w: segmentW,
+        h: segmentH,
+        fill: [255, 251, 244],
+        stroke: [247, 194, 116],
+        titleColor: [188, 113, 18],
+        maxItems: 5,
+      });
+      drawAnalysisBox({
+        titleText: pdfLabel('maxxisAnalysisQuestions', 'Questions'),
+        lines: compactLines(questions, sections, 5),
+        x: margin + segmentW + segmentGap,
+        yy: segmentY,
+        w: segmentW,
+        h: segmentH,
+        fill: [247, 250, 255],
+        stroke: [185, 205, 240],
+        titleColor: [58, 106, 173],
+        maxItems: 5,
+      });
+      drawAnalysisBox({
+        titleText: pdfLabel('maxxisAnalysisActions', 'Actions'),
+        lines: compactLines(actions, sections, 5),
+        x: margin + (segmentW + segmentGap) * 2,
+        yy: segmentY,
+        w: segmentW,
+        h: segmentH,
+        fill: [245, 253, 250],
+        stroke: [156, 221, 196],
+        titleColor: [31, 134, 93],
+        maxItems: 5,
+      });
     };
 
     // Branded header using the same complete logo image used in the app header.
@@ -1298,35 +1508,6 @@ function PortfolioDetail({ item, owner, ownerContact = null, isOwnerUnlocked = f
       y += galleryH + 10;
     }
 
-    if (maxxisAnalysisText) {
-      const titleH = 20;
-      const lines = doc.splitTextToSize(maxxisAnalysisText, maxTextWidth - 16);
-      const lineH = 9.4;
-      const maxLines = 18;
-      const visibleLines = lines.slice(0, maxLines);
-      const blockH = Math.min(196, Math.max(72, titleH + 16 + (visibleLines.length * lineH)));
-      ensureSpace(blockH + 10);
-      doc.setFillColor(248, 253, 253);
-      doc.setDrawColor(159, 231, 229);
-      doc.roundedRect(margin, y, maxTextWidth, blockH, 6, 6, 'FD');
-      doc.setFont('helvetica', 'bold');
-      doc.setTextColor(23, 139, 140);
-      doc.setFontSize(10.8);
-      doc.text(pdfLabel('maxxisAiAnalysis', 'Maxxis AI Analysis'), margin + 8, y + 16);
-      doc.setFont('helvetica', 'normal');
-      doc.setTextColor(52, 64, 82);
-      doc.setFontSize(8.2);
-      for (let i = 0; i < visibleLines.length; i += 1) {
-        doc.text(visibleLines[i], margin + 8, y + 31 + (i * lineH));
-      }
-      if (lines.length > visibleLines.length) {
-        doc.setFont('helvetica', 'bold');
-        doc.setTextColor(102, 116, 136);
-        doc.text('...', margin + 8, y + blockH - 8);
-      }
-      y += blockH + 10;
-    }
-
     // Map snapshot replaces old Additional Notes block.
     if (y > pageHeight - margin - 92) {
       doc.addPage();
@@ -1395,6 +1576,8 @@ function PortfolioDetail({ item, owner, ownerContact = null, isOwnerUnlocked = f
         doc.text(pdfLabel('exportCoordinatesUnavailable', 'Coordinates unavailable for this property.'), mapX + 10, mapY + 20);
       }
     }
+
+    drawMaxxisAnalysisPage();
 
     const safeName = String(title || 'portfolio-release').replace(/[^a-z0-9-_]+/gi, '_').slice(0, 64);
     const fileName = `${safeName || 'portfolio_release'}.pdf`;

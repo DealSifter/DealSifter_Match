@@ -281,19 +281,20 @@
 }
 
 .maxxis-input-row {
-  display: flex;
-  align-items: flex-end;
-  gap: 9px;
-  padding: 12px 14px;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 108px;
+  align-items: stretch;
+  gap: 10px;
+  padding: 12px 14px 8px;
   border-top: 1px solid var(--border);
   background: color-mix(in srgb, var(--card) 96%, transparent);
 }
 
 .maxxis-input-row textarea {
-  flex: 1;
-  min-height: 70px;
-  height: 70px;
-  max-height: 118px;
+  width: 100%;
+  min-height: 78px;
+  height: 78px;
+  max-height: 132px;
   resize: none;
   overflow-y: auto;
   border: 1px solid var(--border);
@@ -313,8 +314,9 @@
 }
 
 .maxxis-input-row button {
-  min-width: 96px;
-  height: 42px;
+  width: 100%;
+  min-width: 0;
+  height: 78px;
   padding: 0 16px;
   display: grid;
   grid-auto-flow: column;
@@ -341,16 +343,18 @@
 
 .maxxis-footer {
   padding: 0 14px 14px;
-  display: flex;
-  justify-content: flex-end;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 108px;
+  gap: 10px;
 }
 
 .maxxis-footer button {
-  min-width: 96px;
-  height: 42px;
-  width: auto;
+  grid-column: 2;
+  width: 100%;
+  min-width: 0;
+  height: 40px;
   border-radius: 13px;
-  padding: 0 16px;
+  padding: 0 10px;
   font-size: 12px;
   line-height: 1;
   white-space: nowrap;
@@ -562,14 +566,14 @@
   }
 
   .maxxis-input-row {
-    align-items: stretch;
-    gap: 7px;
-    padding: 9px 10px;
+    grid-template-columns: minmax(0, 1fr) 86px;
+    gap: 8px;
+    padding: 9px 10px 7px;
   }
 
   .maxxis-input-row textarea {
-    min-height: 68px;
-    height: 68px;
+    min-height: 82px;
+    height: 82px;
     max-height: 104px;
     padding: 10px 11px;
     font-size: 12px;
@@ -578,22 +582,23 @@
   }
 
   .maxxis-input-row button {
-    min-width: 78px;
-    height: auto;
-    min-height: 40px;
+    min-width: 0;
+    height: 82px;
     border-radius: 12px;
+    padding: 0 9px;
   }
 
   .maxxis-footer {
+    grid-template-columns: minmax(0, 1fr) 86px;
+    gap: 8px;
     padding: 0 10px 10px;
-    justify-content: flex-end;
   }
 
   .maxxis-footer button {
-    min-width: 78px;
+    min-width: 0;
     height: 40px;
-    padding: 0 12px;
-    font-size: 11px;
+    padding: 0 8px;
+    font-size: 10.5px;
   }
 
   .maxxis-fab {
