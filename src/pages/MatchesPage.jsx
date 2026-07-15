@@ -253,15 +253,16 @@ function readScopedProfileFallback(scope = 'personal') {
   }
 }
 
-const PortfolioItem = ({ p, onOpen, exclusivityStatus = null, ownerVerified = false, isHot = false, openUnlock = null, getUnlockCost = null, nuggets = 0, setModal = null }) => {
+const PortfolioItem = ({ p, onOpen, exclusivityStatus = null, ownerVerified = false, isHot = false, openUnlock = null, getUnlockCost = null, nuggets = 0, isAdmin = false, setModal = null }) => {
   const [idx, setIdx] = useState(0);
   const imgs = p.images || [p.image];
+  const hasAdminAccess = Boolean(isAdmin);
   const handleLockClick = (e) => {
     e.stopPropagation();
     try {
       const cost = (typeof getUnlockCost === 'function') ? getUnlockCost(p.ownerId) : 1;
       if (typeof openUnlock === 'function') {
-        if (Number.isFinite(nuggets) && Number(nuggets) < Number(cost)) {
+        if (!hasAdminAccess && Number.isFinite(nuggets) && Number(nuggets) < Number(cost)) {
           if (typeof setModal === 'function') setModal('store');
           return;
         }
@@ -1772,7 +1773,7 @@ function PortfolioDetail({ item, owner, ownerContact = null, isOwnerUnlocked = f
   );
 }
 
-export function MatchesPage({ nuggets, setModal, openUnlock, unlocked, initialChat, chatFocusToken = 0, interested, matched, setInterested, setMatched, convos, setConvos, categoryOrder, setCategoryOrder, showcaseProperties, propertyPortfolio, servicePortfolio, userProfile, personalProfile, professionalProfile, mobileBottomNavCollapsed = false, userPreferences = null, planActionAccess = {}, setPage = null, addToast = null, onOpenChatLanguageConfig = null, onSendChatMessage = null, onRetryChatMessage = null, onMarkChatRead = null, onLoadMoreChatMessages = null, chatHasMore = {}, chatLoadingMore = {}, propertyUnlocks = [], unlockedContactMap = new Map(), currentUserId = 'local-user', isActive = true }) {
+export function MatchesPage({ nuggets, isAdmin = false, setModal, openUnlock, unlocked, initialChat, chatFocusToken = 0, interested, matched, setInterested, setMatched, convos, setConvos, categoryOrder, setCategoryOrder, showcaseProperties, propertyPortfolio, servicePortfolio, userProfile, personalProfile, professionalProfile, mobileBottomNavCollapsed = false, userPreferences = null, planActionAccess = {}, setPage = null, addToast = null, onOpenChatLanguageConfig = null, onSendChatMessage = null, onRetryChatMessage = null, onMarkChatRead = null, onLoadMoreChatMessages = null, chatHasMore = {}, chatLoadingMore = {}, propertyUnlocks = [], unlockedContactMap = new Map(), currentUserId = 'local-user', isActive = true }) {
   const PORTFOLIO_PANEL_PADDING = 40;
   const PORTFOLIO_GRID_GAP = 12;
   const PORTFOLIO_CARD_MIN_WIDTH = 132;
@@ -1780,6 +1781,7 @@ export function MatchesPage({ nuggets, setModal, openUnlock, unlocked, initialCh
   const DESKTOP_PORTFOLIO_WIDTH = 4 * PORTFOLIO_CARD_MIN_WIDTH + 3 * PORTFOLIO_GRID_GAP + PORTFOLIO_PANEL_PADDING;
   const DESKTOP_PORTFOLIO_MAX_WIDTH = 5 * PORTFOLIO_CARD_MIN_WIDTH + 4 * PORTFOLIO_GRID_GAP + PORTFOLIO_PANEL_PADDING;
   const DESKTOP_CHAT_MIN_WIDTH = 300;
+  const hasAdminAccess = Boolean(isAdmin);
   // prevent eslint unused-var warnings for props forwarded from App
   void categoryOrder;
   void setCategoryOrder;
@@ -3638,7 +3640,7 @@ export function MatchesPage({ nuggets, setModal, openUnlock, unlocked, initialCh
                   unit: activeUnlockCost === 1 ? modalsT.nuggetOne : modalsT.nuggetOther,
                 })}
               </p>
-              {nuggets >= activeUnlockCost ? (
+              {(hasAdminAccess || nuggets >= activeUnlockCost) ? (
                 <button type="button" onClick={() => openUnlock(activeOwner, isActiveProperty ? { unlockScope: 'property', property: active, propertyId: active.id, propertyAddress: active.address } : {})} style={{ padding:"16px 32px", borderRadius:12, background:C.gold, color:C.bg, fontWeight:800, border:"none", cursor:"pointer" }}>
                   {formatTemplate(t.unlockCta, {
                     count: activeUnlockCost,
@@ -4106,6 +4108,7 @@ export function MatchesPage({ nuggets, setModal, openUnlock, unlocked, initialCh
                                   openUnlock={openUnlock}
                                   getUnlockCost={getUnlockCost}
                                   nuggets={nuggets}
+                                  isAdmin={hasAdminAccess}
                                   setModal={setModal}
                                 />
                               );

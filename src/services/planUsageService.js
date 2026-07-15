@@ -3,6 +3,24 @@ import { getLang } from '../i18n/translations';
 import { isSupabaseConfigured, supabase } from '../lib/supabaseClient';
 
 const PLAN_USAGE_CACHE_KEY = 'ds_plan_usage_cache';
+const ADMIN_PLAN = {
+  id: 'admin',
+  planId: 'admin',
+  name: 'Admin',
+  planName: 'Admin',
+  price: 0,
+  limits: {
+    swipesPerDay: null,
+    likesPerDay: null,
+    activeMatches: null,
+    unlockRequestsPerMonth: null,
+    canExportUnlockedPdf: true,
+    hasDealSifterChat: true,
+    featuredProfileDiscountPct: 100,
+    exclusiveContactsIncluded: null,
+    featuredProfileIncluded: true,
+  },
+};
 const FEATURE_COPY = {
   en: {
     chat: {
@@ -144,6 +162,7 @@ export function getPlanId(subscriptionOrPlan) {
 
 export function getPlan(subscriptionOrPlan) {
   const planId = getPlanId(subscriptionOrPlan);
+  if (planId === 'admin') return ADMIN_PLAN;
   return PLANS.find((plan) => plan.id === planId) || PLANS[0];
 }
 
@@ -163,9 +182,10 @@ export function isFeatureAllowed(subscriptionOrPlan, feature) {
 }
 
 function normalizeUsageSnapshot(row = {}) {
+  const isAdmin = Boolean(row.is_admin ?? row.isAdmin);
   return {
-    planId: getPlanId(row.plan_id || row.planId || 'free'),
-    isAdmin: Boolean(row.is_admin ?? row.isAdmin),
+    planId: isAdmin ? 'admin' : getPlanId(row.plan_id || row.planId || 'free'),
+    isAdmin,
     swipesToday: Number(row.swipes_today ?? row.swipesToday ?? 0),
     likesToday: Number(row.likes_today ?? row.likesToday ?? 0),
     unlocksThisMonth: Number(row.unlocks_this_month ?? row.unlocksThisMonth ?? 0),
@@ -175,21 +195,23 @@ function normalizeUsageSnapshot(row = {}) {
 }
 
 function mapCurrentPlanPayload({ userRow = {}, subscriptionRow = {}, usage = {} } = {}) {
-  const planId = getPlanId(userRow?.plan_id || usage?.planId || subscriptionRow?.plan_id || 'free');
+  const isAdmin = Boolean(userRow?.is_admin ?? userRow?.isAdmin ?? usage?.isAdmin ?? usage?.is_admin);
+  const planId = isAdmin ? 'admin' : getPlanId(userRow?.plan_id || usage?.planId || subscriptionRow?.plan_id || 'free');
   const subscriptionPlanId = subscriptionRow?.plan_id ? getPlanId(subscriptionRow.plan_id) : '';
-  const usesSubscriptionBilling = Boolean(subscriptionPlanId && subscriptionPlanId === planId && !userRow?.plan_override_source);
+  const usesSubscriptionBilling = Boolean(!isAdmin && subscriptionPlanId && subscriptionPlanId === planId && !userRow?.plan_override_source);
   const plan = getPlan(planId);
   const limits = plan?.limits || {};
   const payload = {
     plan: {
       id: planId,
       planId,
-      name: usesSubscriptionBilling ? (subscriptionRow?.plan_name || plan?.name || planId) : (plan?.name || planId),
-      planName: usesSubscriptionBilling ? (subscriptionRow?.plan_name || plan?.name || planId) : (plan?.name || planId),
-      status: userRow?.plan_override_source ? 'admin_granted' : (subscriptionRow?.status || 'active'),
+      name: isAdmin ? 'Admin' : (usesSubscriptionBilling ? (subscriptionRow?.plan_name || plan?.name || planId) : (plan?.name || planId)),
+      planName: isAdmin ? 'Admin' : (usesSubscriptionBilling ? (subscriptionRow?.plan_name || plan?.name || planId) : (plan?.name || planId)),
+      status: isAdmin ? 'admin' : (userRow?.plan_override_source ? 'admin_granted' : (subscriptionRow?.status || 'active')),
       price: usesSubscriptionBilling ? Number(subscriptionRow?.price_cents || 0) / 100 : 0,
       nextBillingAt: usesSubscriptionBilling ? (subscriptionRow?.current_period_end || null) : null,
-      source: userRow?.plan_override_source || (usesSubscriptionBilling ? 'stripe' : 'user_plan'),
+      source: isAdmin ? 'admin_account' : (userRow?.plan_override_source || (usesSubscriptionBilling ? 'stripe' : 'user_plan')),
+      isAdmin,
       overrideReason: userRow?.plan_override_reason || null,
       overrideExpiresAt: userRow?.plan_override_expires_at || null,
     },

@@ -723,6 +723,7 @@ function getStateCodeFromMarket(value) {
 
 export function MapView({
   nuggets,
+  isAdmin = false,
   setModal,
   openUnlock,
   unlocked,
@@ -746,6 +747,7 @@ export function MapView({
   const tMatches = allT.matches;
   const tCards = allT.cards;
   const tMap = allT.mapViewPage;
+  const hasAdminAccess = Boolean(isAdmin);
   const prefMap = userPreferences?.map || {};
   const preferredInitialZoom = normalizePreferredInitialZoom(prefMap.initialZoom, DEFAULT_ZOOM);
   const preferredMapStyle = normalizeVisibleMapStyle(prefMap.defaultStyle);
@@ -2446,7 +2448,7 @@ export function MapView({
                       </div>
                       {isLocked ? (
                         <button
-                          onClick={(e) => { e.stopPropagation(); nuggets >= unlockCost ? handleOpenUnlock(item) : handleSetModal('store'); }}
+                          onClick={(e) => { e.stopPropagation(); (hasAdminAccess || nuggets >= unlockCost) ? handleOpenUnlock(item) : handleSetModal('store'); }}
                           style={{
                             border: `1px solid ${C.gold}`,
                             background: 'var(--ui-surface)',
@@ -2461,7 +2463,7 @@ export function MapView({
                             cursor: 'pointer',
                           }}
                         >
-                          {nuggets >= unlockCost ? `${tCards.unlock} ${unlockCost}★` : tMatches.buyNuggets}
+                          {hasAdminAccess || nuggets >= unlockCost ? `${tCards.unlock} ${unlockCost}★` : tMatches.buyNuggets}
                         </button>
                       ) : (
                         <button

@@ -4,7 +4,7 @@ import { useT } from '../../i18n/translations';
 import { Icon } from '../ui/Icon';
 import { Modal } from '../ui/Modal';
 
-export function UnlockModal({ match, nuggets, unlockCost = 1, exclusivityStatus = null, contactExclusivityOption = null, onUnlock, onBuyMore, onClose }) {
+export function UnlockModal({ match, nuggets, isAdmin = false, unlockCost = 1, exclusivityStatus = null, contactExclusivityOption = null, onUnlock, onBuyMore, onClose }) {
   const t = useT().modals;
   const isPropertyUnlock = match?.unlockScope === 'property';
   const isBlockedByExclusive = isPropertyUnlock && exclusivityStatus?.kind === 'blocked';
@@ -13,9 +13,10 @@ export function UnlockModal({ match, nuggets, unlockCost = 1, exclusivityStatus 
   const exclusiveExtraCost = Number(exclusivityStatus?.exclusiveCost || 0);
   const exclusiveCost = unlockCost + exclusiveExtraCost;
   const linkedExclusiveCost = Number(contactExclusivityOption?.exclusiveCost || 0);
-  const can = nuggets >= unlockCost;
-  const canExclusive = nuggets >= exclusiveCost;
-  const canLinkedExclusive = linkedExclusiveCost > 0 && nuggets >= linkedExclusiveCost;
+  const hasAdminAccess = Boolean(isAdmin);
+  const can = hasAdminAccess || nuggets >= unlockCost;
+  const canExclusive = hasAdminAccess || nuggets >= exclusiveCost;
+  const canLinkedExclusive = linkedExclusiveCost > 0 && (hasAdminAccess || nuggets >= linkedExclusiveCost);
   const nuggetUnit = unlockCost === 1 ? t.nuggetOne : t.nuggetOther;
   const exclusiveUnit = exclusiveCost === 1 ? t.nuggetOne : t.nuggetOther;
   const linkedExclusiveUnit = linkedExclusiveCost === 1 ? t.nuggetOne : t.nuggetOther;
@@ -145,7 +146,7 @@ export function UnlockModal({ match, nuggets, unlockCost = 1, exclusivityStatus 
           </div>
           <div style={{ display:"flex", justifyContent:"space-between" }}>
             <span style={{ color:C.t2, fontSize:14 }}>{t.yourBalance}</span>
-            <div style={{ display:"flex", alignItems:"center", gap:6 }}><Icon name="nugget" size={14} color={can?C.gold:C.danger} /><span style={{ color:can?C.gold:C.danger, fontWeight:700 }}>{nuggets}</span></div>
+            <div style={{ display:"flex", alignItems:"center", gap:6 }}><Icon name="nugget" size={14} color={can?C.gold:C.danger} /><span style={{ color:can?C.gold:C.danger, fontWeight:700 }}>{hasAdminAccess ? 'Admin' : nuggets}</span></div>
           </div>
           {!can && <div style={{ marginTop:12, color:C.danger, fontSize:13, fontWeight:600, display:"flex", alignItems:"center", gap:6, justifyContent:"center" }}><Icon name="info" size={14} color={C.danger} /> {t.notEnough}</div>}
         </div>

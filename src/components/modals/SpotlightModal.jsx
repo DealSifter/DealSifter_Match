@@ -10,6 +10,7 @@ export function SpotlightModal({
   open = false,
   items = [],
   nuggets = 0,
+  isAdmin = false,
   onClose,
   onConfirm,
   isLoading = false,
@@ -24,7 +25,8 @@ export function SpotlightModal({
   const selectedItems = eligibleItems.filter((item) => selected.has(item.key));
   const totalCost = selectedItems.length * SPOTLIGHT_COST;
   const hasSelection = selectedItems.length > 0;
-  const hasEnoughBalance = nuggets >= totalCost;
+  const hasAdminAccess = Boolean(isAdmin);
+  const hasEnoughBalance = hasAdminAccess || nuggets >= totalCost;
   const canSubmit = hasSelection && !isLoading && !isProcessing;
 
   const toggle = (key) => {
@@ -101,7 +103,7 @@ export function SpotlightModal({
             {t.cost || 'Cost'}: <strong style={{ color: C.gold }}>{SPOTLIGHT_COST} {t.nuggetsPerCard || 'nuggets per card'}</strong>
           </div>
           <div style={{ color: C.gold, fontWeight: 900, fontSize: 13 }}>
-            {t.balance || 'Balance'}: {nuggets}
+            {t.balance || 'Balance'}: {hasAdminAccess ? 'Admin' : nuggets}
           </div>
         </div>
 
@@ -150,7 +152,7 @@ export function SpotlightModal({
         )}
 
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 12, borderTop: `1px solid ${C.border}`, paddingTop: 14, flexWrap: 'wrap' }}>
-          <div style={{ color: totalCost > nuggets ? C.danger : C.t2, fontSize: 13, fontWeight: 800 }}>
+          <div style={{ color: hasEnoughBalance ? C.t2 : C.danger, fontSize: 13, fontWeight: 800 }}>
             {t.total || 'Total'}: {totalCost} {t.nuggets || 'nuggets'}
           </div>
           <button

@@ -4956,7 +4956,7 @@ export default function App() {
         return;
       }
     }
-    if ((isSupabaseConfigured || nuggets >= unlockCost) && card) {
+    if ((isAdmin || isSupabaseConfigured || nuggets >= unlockCost) && card) {
         // Snapshot local state so we can rollback if a later step fails
         const prevStateSnapshot = {
           nuggets,
@@ -5284,7 +5284,7 @@ export default function App() {
         return;
       }
     }
-    if (nuggets < totalCost) {
+    if (!isAdmin && nuggets < totalCost) {
       addToast({ type: 'warning', title: 'Not enough nuggets', message: `You need ${totalCost} nuggets to activate these spotlights.` });
       openPricingHub();
       return;
@@ -5445,6 +5445,7 @@ export default function App() {
         return (
           <MatchesPage
             nuggets={nuggets}
+            isAdmin={isAdmin}
             setModal={handleOpenModal}
             openUnlock={openUnlock}
             unlocked={unlocked}
@@ -5487,6 +5488,7 @@ export default function App() {
         return (
           <MapView
             nuggets={nuggets}
+            isAdmin={isAdmin}
             setModal={handleOpenModal}
             openUnlock={openUnlock}
             unlocked={unlocked}
@@ -5700,6 +5702,7 @@ export default function App() {
             <UnlockModal
               match={unlockTarget}
               nuggets={nuggets}
+              isAdmin={isAdmin}
               unlockCost={getUnlockCost(unlockTarget)}
               exclusivityStatus={getUnlockExclusivityStatus(unlockTarget)}
               contactExclusivityOption={getContactExclusivityOption(unlockTarget)}
@@ -5715,6 +5718,7 @@ export default function App() {
             open
             items={spotlightCandidates}
             nuggets={nuggets}
+            isAdmin={isAdmin}
             isLoading={isSpotlightCandidatesLoading}
             isProcessing={isSpotlightProcessing}
             onConfirm={handlePurchaseSpotlights}
