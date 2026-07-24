@@ -52,9 +52,10 @@ export function GuideTipOverlay({ page, setPage, isFreePlan = true }) {
   const copy = useMemo(() => getGuideTourCopy(language), [language]);
   const steps = copy[activeTour] || [];
   const step = steps[stepIndex] || null;
-  const [rect, setRect] = useState(null);
+  const [targetSnapshot, setTargetSnapshot] = useState({ selector: null, rect: null });
   const [targetPending, setTargetPending] = useState(false);
   const overviewVideoUrl = String(import.meta.env.VITE_OVERVIEW_VIDEO_URL || '').trim();
+  const rect = targetSnapshot.selector === step?.target ? targetSnapshot.rect : null;
 
   useEffect(() => {
     if (!enabled || !step) return;
@@ -66,7 +67,7 @@ export function GuideTipOverlay({ page, setPage, isFreePlan = true }) {
   useEffect(() => {
     if (!enabled || !step?.target) {
       const resetTimer = window.setTimeout(() => {
-        setRect(null);
+        setTargetSnapshot({ selector: null, rect: null });
         setTargetPending(false);
       }, 0);
       return () => window.clearTimeout(resetTimer);
@@ -81,7 +82,11 @@ export function GuideTipOverlay({ page, setPage, isFreePlan = true }) {
         if (stopped) return;
         const target = getTarget(step.target);
         const next = target?.rect || null;
-        setRect((current) => (sameRect(current, next) ? current : next));
+        setTargetSnapshot((current) => (
+          current.selector === step.target && sameRect(current.rect, next)
+            ? current
+            : { selector: step.target, rect: next }
+        ));
         setTargetPending(!target);
         if (target) {
           const outside = next.top < 72 || next.bottom > window.innerHeight - 72;
@@ -197,8 +202,6 @@ export function GuideTipOverlay({ page, setPage, isFreePlan = true }) {
   const overlayPiece = {
     position: 'fixed',
     background: isDark ? 'rgba(2,8,7,0.72)' : 'rgba(2,6,23,0.38)',
-    backdropFilter: 'blur(5px)',
-    WebkitBackdropFilter: 'blur(5px)',
     transition: 'all .16s ease',
     pointerEvents: 'auto',
   };
