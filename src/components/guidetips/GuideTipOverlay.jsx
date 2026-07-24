@@ -164,7 +164,7 @@ export function GuideTipOverlay({ page, setPage, isFreePlan = true }) {
   const focusTop = rect ? Math.max(margin, rect.top - 7) : margin;
   const focusWidth = rect ? rect.width + 14 : 0;
   const focusHeight = rect ? rect.height + 14 : 0;
-  const targetReady = !step.target || Boolean(rect);
+  const targetReady = !step.target || Boolean(rect) || Boolean(step.optionalTarget);
   const canContinue = (!step.requiresOnboarding || onboardingComplete) && targetReady;
   const isLast = stepIndex + 1 >= steps.length;
 
@@ -284,7 +284,7 @@ export function GuideTipOverlay({ page, setPage, isFreePlan = true }) {
 
         <div style={{ fontSize: 17, fontWeight: 900, lineHeight: 1.2, marginBottom: 7 }}>{step.title}</div>
         <div style={{ fontSize: 13, lineHeight: 1.5, color: cardTextSoft, fontWeight: 600 }}>{step.body}</div>
-        {targetPending && step.target ? (
+        {targetPending && step.target && !step.optionalTarget ? (
           <div style={{ marginTop: 8, color: C.gold, fontSize: 11, fontWeight: 800 }}>
             {copy.common.waiting}
           </div>

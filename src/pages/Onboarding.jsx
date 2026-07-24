@@ -4624,7 +4624,11 @@ export function Onboarding({
           <div className="onb-col onb-col-right">
             {accountType === 'professional' ? (
               <>
-                <SectionCard title={t.sectionServicesComplement} subtitle={t.sectionServicesComplementSub}>
+                <SectionCard
+                  title={t.sectionServicesComplement}
+                  subtitle={t.sectionServicesComplementSub}
+                  dataGuide="onboarding-profile-pitch"
+                >
                   <div className="onb-scroll-chips" style={{ display: 'flex', flexWrap: 'wrap', gap: 6, marginBottom: 8 }}>
                     {registeredServiceSkills.length ? (
                       registeredServiceSkills.map((s) => <Chip key={s} active onClick={() => {}}>{s}</Chip>)
