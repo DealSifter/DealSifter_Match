@@ -630,7 +630,7 @@ function PortfolioDetail({ item, owner, ownerContact = null, isOwnerUnlocked = f
     window.requestAnimationFrame(() => window.setTimeout(resolve, 0));
   });
 
-  const compressImageBlob = async (blob, maxDimension = 960) => {
+  const compressImageBlob = async (blob, maxDimension = 960, { preserveAlpha = false } = {}) => {
     if (!blob || !String(blob.type || '').startsWith('image/') || typeof createImageBitmap !== 'function') {
       return blob;
     }
@@ -644,12 +644,19 @@ function PortfolioDetail({ item, owner, ownerContact = null, isOwnerUnlocked = f
       const canvas = document.createElement('canvas');
       canvas.width = Math.max(1, Math.round(sourceW * scale));
       canvas.height = Math.max(1, Math.round(sourceH * scale));
-      const ctx = canvas.getContext('2d', { alpha: false });
+      const keepTransparency = preserveAlpha && String(blob.type || '').includes('png');
+      const ctx = canvas.getContext('2d', { alpha: keepTransparency });
       if (!ctx) return blob;
-      ctx.fillStyle = '#ffffff';
-      ctx.fillRect(0, 0, canvas.width, canvas.height);
+      if (!keepTransparency) {
+        ctx.fillStyle = '#ffffff';
+        ctx.fillRect(0, 0, canvas.width, canvas.height);
+      }
       ctx.drawImage(bitmap, 0, 0, canvas.width, canvas.height);
-      const compressed = await new Promise((resolve) => canvas.toBlob(resolve, 'image/jpeg', 0.76));
+      const compressed = await new Promise((resolve) => canvas.toBlob(
+        resolve,
+        keepTransparency ? 'image/png' : 'image/jpeg',
+        keepTransparency ? undefined : 0.76,
+      ));
       return compressed || blob;
     } catch {
       return blob;
@@ -658,17 +665,17 @@ function PortfolioDetail({ item, owner, ownerContact = null, isOwnerUnlocked = f
     }
   };
 
-  const fetchImageData = async (url, timeoutMs = 2800, maxDimension = 960) => {
+  const fetchImageData = async (url, timeoutMs = 2800, maxDimension = 960, options = {}) => {
     if (!url) return null;
     try {
       if (url instanceof Blob || (typeof File !== 'undefined' && url instanceof File)) {
-        const optimizedBlob = await compressImageBlob(url, maxDimension);
+        const optimizedBlob = await compressImageBlob(url, maxDimension, options);
         const dataUrl = await blobToDataUrl(optimizedBlob);
         const format = String(optimizedBlob.type || '').includes('png') ? 'PNG' : 'JPEG';
         return { dataUrl, format };
       }
       if (typeof url === 'object' && url?.blob instanceof Blob) {
-        const optimizedBlob = await compressImageBlob(url.blob, maxDimension);
+        const optimizedBlob = await compressImageBlob(url.blob, maxDimension, options);
         const dataUrl = await blobToDataUrl(optimizedBlob);
         const format = String(optimizedBlob.type || '').includes('png') ? 'PNG' : 'JPEG';
         return { dataUrl, format };
@@ -689,7 +696,7 @@ function PortfolioDetail({ item, owner, ownerContact = null, isOwnerUnlocked = f
         if (timeoutId) window.clearTimeout(timeoutId);
       }
       if (!response.ok) return null;
-      const blob = await compressImageBlob(await response.blob(), maxDimension);
+      const blob = await compressImageBlob(await response.blob(), maxDimension, options);
       const dataUrl = await blobToDataUrl(blob);
       const format = String(blob.type || '').includes('png') ? 'PNG' : 'JPEG';
       return { dataUrl, format };
@@ -1105,7 +1112,7 @@ function PortfolioDetail({ item, owner, ownerContact = null, isOwnerUnlocked = f
     const maxTextWidth = pageWidth - margin * 2;
     let y = margin;
 
-    const logo = await fetchImageData(releaseDarkLogo, 1200, 420);
+    const logo = await fetchImageData(releaseDarkLogo, 1200, 420, { preserveAlpha: true });
     const normalizedImageUrls = Array.isArray(imageUrls) && imageUrls.length ? imageUrls : getExportImageUrls();
     const imageResults = await Promise.all([
       fetchImageData(normalizedImageUrls?.[0], 2600, 1000),
