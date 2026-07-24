@@ -7,16 +7,33 @@ import { useLang } from '../../i18n/translations';
 import { getGuideTourCopy } from './guideTourContent';
 import appLogo from '../../assets/logo.png';
 
-const getRect = (selector) => {
+const getTarget = (selector) => {
   if (!selector || typeof document === 'undefined') return null;
   const candidates = Array.from(document.querySelectorAll(selector));
   for (const el of candidates) {
     const rect = el.getBoundingClientRect();
     const style = window.getComputedStyle(el);
-    if (rect.width && rect.height && style.visibility !== 'hidden' && style.display !== 'none') return rect;
+    if (
+      rect.width
+      && rect.height
+      && style.visibility !== 'hidden'
+      && style.display !== 'none'
+      && Number(style.opacity || 1) > 0
+    ) {
+      return { element: el, rect };
+    }
   }
   return null;
 };
+
+const sameRect = (a, b) => Boolean(
+  a
+  && b
+  && Math.abs(a.left - b.left) < 0.5
+  && Math.abs(a.top - b.top) < 0.5
+  && Math.abs(a.width - b.width) < 0.5
+  && Math.abs(a.height - b.height) < 0.5
+);
 
 export function GuideTipOverlay({ page, setPage, isFreePlan = true }) {
   const {
@@ -55,31 +72,44 @@ export function GuideTipOverlay({ page, setPage, isFreePlan = true }) {
       return () => window.clearTimeout(resetTimer);
     }
     let frame = null;
-    let attempts = 0;
     let retryTimer = null;
+    let stopped = false;
+    let observer = null;
     const update = () => {
       window.cancelAnimationFrame(frame);
       frame = window.requestAnimationFrame(() => {
-        const next = getRect(step.target);
-        setRect(next);
-        setTargetPending(!next);
-        if (next) {
+        if (stopped) return;
+        const target = getTarget(step.target);
+        const next = target?.rect || null;
+        setRect((current) => (sameRect(current, next) ? current : next));
+        setTargetPending(!target);
+        if (target) {
           const outside = next.top < 72 || next.bottom > window.innerHeight - 72;
           if (outside) {
-            document.querySelector(step.target)?.scrollIntoView?.({ behavior: 'smooth', block: 'center', inline: 'nearest' });
+            target.element.scrollIntoView?.({ behavior: 'smooth', block: 'center', inline: 'nearest' });
           }
-        } else if (attempts < 12) {
-          attempts += 1;
-          retryTimer = window.setTimeout(update, 180);
+        } else {
+          retryTimer = window.setTimeout(update, 250);
         }
       });
     };
     update();
+    if (typeof MutationObserver !== 'undefined' && document.body) {
+      observer = new MutationObserver(update);
+      observer.observe(document.body, {
+        childList: true,
+        subtree: true,
+        attributes: true,
+        attributeFilter: ['class', 'style', 'data-guide', 'hidden'],
+      });
+    }
     window.addEventListener('resize', update);
     window.addEventListener('scroll', update, true);
     return () => {
+      stopped = true;
       window.cancelAnimationFrame(frame);
       window.clearTimeout(retryTimer);
+      observer?.disconnect();
       window.removeEventListener('resize', update);
       window.removeEventListener('scroll', update, true);
     };
@@ -114,7 +144,8 @@ export function GuideTipOverlay({ page, setPage, isFreePlan = true }) {
   const focusTop = rect ? Math.max(margin, rect.top - 7) : margin;
   const focusWidth = rect ? rect.width + 14 : 0;
   const focusHeight = rect ? rect.height + 14 : 0;
-  const canContinue = !step.requiresOnboarding || onboardingComplete;
+  const targetReady = !step.target || Boolean(rect);
+  const canContinue = (!step.requiresOnboarding || onboardingComplete) && targetReady;
   const isLast = stepIndex + 1 >= steps.length;
 
   const goBack = () => setStepIndex((current) => Math.max(0, current - 1));
