@@ -10,7 +10,7 @@ import matchesTaskbarIcon from '../../assets/taskbar-matches-icon.png';
 
 const HIDDEN_PAGES = new Set(['landing', 'pricing', 'terms', 'privacy', 'admin']);
 
-export function AppMobileBottomNav({ page, setPage, collapsed = false, onCollapsedChange, needsPrimaryProfileAttention = false }) {
+export function AppMobileBottomNav({ page, setPage, collapsed = false, onCollapsedChange, needsPrimaryProfileAttention = false, navigationLocked = false, onNavigationBlocked = () => {} }) {
   const TABLET_PORTRAIT_QUERY = '(min-width: 768px) and (max-width: 1080px) and (orientation: portrait)';
   const isMobile = useMediaQuery('(max-width: 767px)');
   const isTabletPortrait = useMediaQuery(TABLET_PORTRAIT_QUERY);
@@ -200,6 +200,7 @@ export function AppMobileBottomNav({ page, setPage, collapsed = false, onCollaps
           const isActive = page === item.id;
           const isPressed = pressedItemId === item.id;
           const isOnboardingAttention = item.id === 'onboarding' && needsPrimaryProfileAttention;
+          const isItemLocked = navigationLocked && item.id !== 'onboarding';
           const iconColor = isOnboardingAttention ? C.danger : (isActive ? C.accent : C.t2);
           const iconGlow = isOnboardingAttention
             ? 'drop-shadow(0 0 6px rgba(220,38,38,0.95)) drop-shadow(0 0 12px rgba(220,38,38,0.72))'
@@ -227,7 +228,8 @@ export function AppMobileBottomNav({ page, setPage, collapsed = false, onCollaps
             <button
               key={item.id}
               type="button"
-              onClick={() => setPage && setPage(item.id)}
+              data-guide={item.id === 'onboarding' ? 'onboarding-launcher' : undefined}
+              onClick={() => isItemLocked ? onNavigationBlocked() : setPage && setPage(item.id)}
               onPointerDown={() => setPressedItemId(item.id)}
               onPointerUp={() => setPressedItemId(null)}
               onPointerCancel={() => setPressedItemId(null)}
@@ -248,7 +250,7 @@ export function AppMobileBottomNav({ page, setPage, collapsed = false, onCollaps
                     ? C.alpha(C.t3, 0.1)
                     : 'transparent',
                 color: iconColor,
-                cursor: 'pointer',
+                cursor: isItemLocked ? 'not-allowed' : 'pointer',
                 display: 'flex',
                 flexDirection: 'column',
                 alignItems: 'center',
@@ -259,6 +261,7 @@ export function AppMobileBottomNav({ page, setPage, collapsed = false, onCollaps
                 transform: isPressed ? 'translateY(1px)' : 'translateY(0)',
                 transition: 'all .12s ease',
                 animation: isOnboardingAttention ? 'dsNavPulseRed 1.15s infinite' : 'none',
+                opacity: isItemLocked ? 0.34 : 1,
               }}
             >
               <span

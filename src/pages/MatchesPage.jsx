@@ -622,17 +622,55 @@ function PortfolioDetail({ item, owner, ownerContact = null, isOwnerUnlocked = f
     }
   });
 
-  const fetchImageData = async (url, timeoutMs = 6500) => {
+  const yieldToBrowser = () => new Promise((resolve) => {
+    if (typeof window === 'undefined') {
+      resolve();
+      return;
+    }
+    window.requestAnimationFrame(() => window.setTimeout(resolve, 0));
+  });
+
+  const compressImageBlob = async (blob, maxDimension = 960) => {
+    if (!blob || !String(blob.type || '').startsWith('image/') || typeof createImageBitmap !== 'function') {
+      return blob;
+    }
+    let bitmap = null;
+    try {
+      bitmap = await createImageBitmap(blob);
+      const sourceW = Number(bitmap.width || 1);
+      const sourceH = Number(bitmap.height || 1);
+      const scale = Math.min(1, maxDimension / Math.max(sourceW, sourceH));
+      if (scale >= 0.98) return blob;
+      const canvas = document.createElement('canvas');
+      canvas.width = Math.max(1, Math.round(sourceW * scale));
+      canvas.height = Math.max(1, Math.round(sourceH * scale));
+      const ctx = canvas.getContext('2d', { alpha: false });
+      if (!ctx) return blob;
+      ctx.fillStyle = '#ffffff';
+      ctx.fillRect(0, 0, canvas.width, canvas.height);
+      ctx.drawImage(bitmap, 0, 0, canvas.width, canvas.height);
+      const compressed = await new Promise((resolve) => canvas.toBlob(resolve, 'image/jpeg', 0.76));
+      return compressed || blob;
+    } catch {
+      return blob;
+    } finally {
+      bitmap?.close?.();
+    }
+  };
+
+  const fetchImageData = async (url, timeoutMs = 2800, maxDimension = 960) => {
     if (!url) return null;
     try {
       if (url instanceof Blob || (typeof File !== 'undefined' && url instanceof File)) {
-        const dataUrl = await blobToDataUrl(url);
-        const format = String(url.type || '').includes('png') ? 'PNG' : 'JPEG';
+        const optimizedBlob = await compressImageBlob(url, maxDimension);
+        const dataUrl = await blobToDataUrl(optimizedBlob);
+        const format = String(optimizedBlob.type || '').includes('png') ? 'PNG' : 'JPEG';
         return { dataUrl, format };
       }
       if (typeof url === 'object' && url?.blob instanceof Blob) {
-        const dataUrl = await blobToDataUrl(url.blob);
-        const format = String(url.blob.type || '').includes('png') ? 'PNG' : 'JPEG';
+        const optimizedBlob = await compressImageBlob(url.blob, maxDimension);
+        const dataUrl = await blobToDataUrl(optimizedBlob);
+        const format = String(optimizedBlob.type || '').includes('png') ? 'PNG' : 'JPEG';
         return { dataUrl, format };
       }
       if (String(url).startsWith('data:image/')) {
@@ -651,7 +689,7 @@ function PortfolioDetail({ item, owner, ownerContact = null, isOwnerUnlocked = f
         if (timeoutId) window.clearTimeout(timeoutId);
       }
       if (!response.ok) return null;
-      const blob = await response.blob();
+      const blob = await compressImageBlob(await response.blob(), maxDimension);
       const dataUrl = await blobToDataUrl(blob);
       const format = String(blob.type || '').includes('png') ? 'PNG' : 'JPEG';
       return { dataUrl, format };
@@ -688,7 +726,7 @@ function PortfolioDetail({ item, owner, ownerContact = null, isOwnerUnlocked = f
     img.src = src;
   });
 
-  const makeOsmTileMapImage = async ({ lat, lng, zoom = 12, width = 1200, height = 520 }) => {
+  const makeOsmTileMapImage = async ({ lat, lng, zoom = 12, width = 720, height = 320 }) => {
     try {
       const tileSize = 256;
       const scale = 2 ** zoom;
@@ -713,21 +751,30 @@ function PortfolioDetail({ item, owner, ownerContact = null, isOwnerUnlocked = f
       ctx.fillStyle = '#eef4f4';
       ctx.fillRect(0, 0, width, height);
 
+      const tileRequests = [];
       for (let tx = minTileX; tx <= maxTileX; tx += 1) {
         for (let ty = minTileY; ty <= maxTileY; ty += 1) {
           if (ty < 0 || ty > maxTileIndex) continue;
           const wrappedX = ((tx % scale) + scale) % scale;
-          const tileUrl = `https://tile.openstreetmap.org/${zoom}/${wrappedX}/${ty}.png`;
-          try {
-            const tile = await loadCanvasImage(tileUrl);
-            const dx = Math.round((tx * tileSize) - startX);
-            const dy = Math.round((ty * tileSize) - startY);
-            ctx.drawImage(tile, dx, dy, tileSize, tileSize);
-          } catch (e) {
-            void e;
-          }
+          tileRequests.push({
+            tx,
+            ty,
+            url: `https://tile.openstreetmap.org/${zoom}/${wrappedX}/${ty}.png`,
+          });
         }
       }
+      const loadedTiles = await Promise.all(tileRequests.map(async (request) => {
+        try {
+          return { ...request, image: await loadCanvasImage(request.url, 1200) };
+        } catch {
+          return null;
+        }
+      }));
+      loadedTiles.filter(Boolean).forEach(({ tx, ty, image }) => {
+        const dx = Math.round((tx * tileSize) - startX);
+        const dy = Math.round((ty * tileSize) - startY);
+        ctx.drawImage(image, dx, dy, tileSize, tileSize);
+      });
 
       const pinX = width / 2;
       const pinY = height / 2 - 22;
@@ -752,7 +799,7 @@ function PortfolioDetail({ item, owner, ownerContact = null, isOwnerUnlocked = f
       ctx.font = '12px Arial, sans-serif';
       ctx.textAlign = 'left';
       ctx.fillText('© OpenStreetMap contributors', 16, height - 15);
-      return canvas.toDataURL('image/jpeg', 0.88);
+      return canvas.toDataURL('image/jpeg', 0.76);
     } catch (e) {
       void e;
       return null;
@@ -1023,6 +1070,7 @@ function PortfolioDetail({ item, owner, ownerContact = null, isOwnerUnlocked = f
 
   const generateReleasePdf = async ({ title, imageUrls, maxxisAnalysis = '' }) => {
     const { jsPDF } = await import('jspdf');
+    await yieldToBrowser();
     const doc = new jsPDF({ unit: 'pt', format: 'a4' });
     const pageWidth = doc.internal.pageSize.getWidth();
     const pageHeight = doc.internal.pageSize.getHeight();
@@ -1030,14 +1078,19 @@ function PortfolioDetail({ item, owner, ownerContact = null, isOwnerUnlocked = f
     const maxTextWidth = pageWidth - margin * 2;
     let y = margin;
 
-    const logo = await fetchImageData(appLogo);
+    const logo = await fetchImageData(appLogo, 1200, 420);
     const normalizedImageUrls = Array.isArray(imageUrls) && imageUrls.length ? imageUrls : getExportImageUrls();
-    const mainImage = await fetchImageData(normalizedImageUrls?.[0]);
-    const galleryImages = (await Promise.all(
-      normalizedImageUrls
+    const imageResults = await Promise.all([
+      fetchImageData(normalizedImageUrls?.[0], 2600, 1000),
+      ...normalizedImageUrls
         .slice(1, 11)
-        .map((url) => fetchImageData(url))
-    )).filter(Boolean);
+        .map((url) => fetchImageData(url, 2600, 720)),
+    ]);
+    const mainImage = imageResults[0] || null;
+    const galleryImages = imageResults
+      .slice(1)
+      .filter(Boolean);
+    await yieldToBrowser();
 
     const safe = (v, fallback = '-') => {
       const s = normalizeExportText(v);
@@ -1460,6 +1513,7 @@ function PortfolioDetail({ item, owner, ownerContact = null, isOwnerUnlocked = f
         radius: 10,
         background: '#ffffff',
       });
+      await yieldToBrowser();
       if (fitted) {
         doc.addImage(fitted, 'JPEG', heroRightX, y, heroRightW, heroH, undefined, 'FAST');
       } else {
@@ -1538,6 +1592,7 @@ function PortfolioDetail({ item, owner, ownerContact = null, isOwnerUnlocked = f
         } else {
           drawImageCover(doc, galleryImages[i].dataUrl, galleryImages[i].format, imgX, imgY, galleryCellW, galleryCellH);
         }
+        if (i % 3 === 2) await yieldToBrowser();
       }
       y += galleryH + 10;
     }
@@ -1570,20 +1625,10 @@ function PortfolioDetail({ item, owner, ownerContact = null, isOwnerUnlocked = f
 
       if (canRenderMap) {
         const cityZoom = 12;
-        const mapUrls = [
-          `https://staticmap.openstreetmap.de/staticmap.php?center=${lat},${lng}&zoom=${cityZoom}&size=1200x520&markers=${lat},${lng},red-pushpin`,
-          `https://staticmap.openstreetmap.de/staticmap.php?center=${lat},${lng}&zoom=${cityZoom}&size=1200x520&maptype=mapnik&markers=${lat},${lng},red-pushpin`,
-          `https://staticmap.openstreetmap.de/staticmap.php?center=${lat},${lng}&zoom=13&size=1200x520&markers=${lat},${lng},red-pushpin`,
-          `https://staticmap.openstreetmap.de/staticmap.php?center=${lat},${lng}&zoom=12&size=1200x520`,
-          `https://staticmap.openstreetmap.de/staticmap.php?bbox=${lng - 0.09},${lat - 0.06},${lng + 0.09},${lat + 0.06}&size=1200x520&markers=${lat},${lng},red-pushpin`,
-        ];
-        let mapImage = null;
-        for (const mapUrl of mapUrls) {
-          mapImage = await fetchImageData(mapUrl, 2400);
-          if (mapImage) break;
-        }
+        const mapUrl = `https://staticmap.openstreetmap.de/staticmap.php?center=${lat},${lng}&zoom=${cityZoom}&size=720x320&markers=${lat},${lng},red-pushpin`;
+        let mapImage = await fetchImageData(mapUrl, 1500, 720);
         if (!mapImage) {
-          const tileSnapshot = await makeOsmTileMapImage({ lat, lng, zoom: cityZoom, width: 1200, height: 520 });
+          const tileSnapshot = await makeOsmTileMapImage({ lat, lng, zoom: cityZoom, width: 720, height: 320 });
           if (tileSnapshot) mapImage = { dataUrl: tileSnapshot, format: 'JPEG' };
         }
         if (mapImage) {
@@ -1612,10 +1657,20 @@ function PortfolioDetail({ item, owner, ownerContact = null, isOwnerUnlocked = f
     }
 
     drawMaxxisAnalysisPage();
+    await yieldToBrowser();
 
     const safeName = String(title || 'portfolio-release').replace(/[^a-z0-9-_]+/gi, '_').slice(0, 64);
     const fileName = `${safeName || 'portfolio_release'}.pdf`;
-    doc.save(fileName);
+    const pdfBlob = doc.output('blob');
+    await yieldToBrowser();
+    const pdfUrl = URL.createObjectURL(pdfBlob);
+    const link = document.createElement('a');
+    link.href = pdfUrl;
+    link.download = fileName;
+    document.body.appendChild(link);
+    link.click();
+    link.remove();
+    window.setTimeout(() => URL.revokeObjectURL(pdfUrl), 15000);
     return fileName;
   };
 
@@ -3071,6 +3126,18 @@ export function MatchesPage({ nuggets, isAdmin = false, setModal, openUnlock, un
   ));
   const [mobileTab, setMobileTab] = useState('connections');
   const [mobileChatTab, setMobileChatTab] = useState('chat');
+
+  useEffect(() => {
+    const handleGuideStep = (event) => {
+      const target = String(event?.detail?.target || '');
+      if (target.includes('matches-people')) setMobileTab('connections');
+      if (target.includes('matches-interests')) setMobileTab('interests');
+      if (target.includes('matches-conversation')) setMobileChatTab('chat');
+      if (target.includes('matches-portfolio')) setMobileChatTab('portfolio');
+    };
+    window.addEventListener('ds-guidetip-step', handleGuideStep);
+    return () => window.removeEventListener('ds-guidetip-step', handleGuideStep);
+  }, []);
   const [mobileCardSheet, setMobileCardSheet] = useState(null);
 
   useEffect(() => {
@@ -3638,7 +3705,7 @@ export function MatchesPage({ nuggets, isAdmin = false, setModal, openUnlock, un
             </div>
           )}
           <div style={{ flex:1, display:"flex", overflow:"hidden" }}>
-            <div style={{ flex:1, borderRight:`1px solid ${C.border}`, display:"flex", flexDirection:"column" }} className="matches-col-people">
+            <div data-guide="matches-people" style={{ flex:1, borderRight:`1px solid ${C.border}`, display:"flex", flexDirection:"column" }} className="matches-col-people">
               <div style={{ padding:"8px 10px", fontSize:10, fontWeight:700, color:C.t3, background:C.alpha(C.bg, 0.4), textTransform:"uppercase", display:"flex", flexDirection:"column", alignItems:"stretch", gap:6 }}>
                 <span style={{ color:C.t1 }}>{t.people} ({filteredMatched.length})</span>
                 <div style={{ display:"flex", gap:4, flexWrap:"wrap" }}>
@@ -3774,7 +3841,7 @@ export function MatchesPage({ nuggets, isAdmin = false, setModal, openUnlock, un
                 }} />
               </div>
             </div>
-            <div style={{ flex:1, display:"flex", flexDirection:"column" }} className="matches-col-interests">
+            <div data-guide="matches-interests" style={{ flex:1, display:"flex", flexDirection:"column" }} className="matches-col-interests">
               <div style={{ padding:"8px 10px", fontSize:10, fontWeight:700, color:C.gold, background:C.alpha(C.bg, 0.4), textTransform:"uppercase", display:"flex", flexDirection:"column", alignItems:"stretch", gap:6 }}>
                 <span style={{ color:C.t1 }}>{t.interests} ({filteredInterested.length})</span>
                 <div style={{ display:"flex", gap:4, flexWrap:"wrap" }}>
@@ -4036,6 +4103,7 @@ export function MatchesPage({ nuggets, isAdmin = false, setModal, openUnlock, un
                   </button>
                   <button
                     type="button"
+                    data-guide="matches-portfolio"
                     onClick={() => setMobileChatTab('portfolio')}
                     style={{ flex:1, padding:'10px 4px', border:'none', borderBottom:`2px solid ${mobileChatTab==='portfolio' ? C.accent : 'transparent'}`, background:'transparent', color:mobileChatTab==='portfolio' ? C.accent : C.t2, fontWeight:700, fontSize:12, cursor:'pointer', transition:'all .15s' }}
                   >
@@ -4055,7 +4123,7 @@ export function MatchesPage({ nuggets, isAdmin = false, setModal, openUnlock, un
                   '--matches-chat-pane': `${Math.max(20, 100 - tabletPortfolioPct)}%`,
                 }}
               >
-                <div style={{ flex:1, minWidth:0, display:"flex", flexDirection:"column", borderRight:`1px solid ${C.border}`, position:'relative' }} className="matches-chat-col">
+                <div data-guide="matches-conversation" style={{ flex:1, minWidth:0, display:"flex", flexDirection:"column", borderRight:`1px solid ${C.border}`, position:'relative' }} className="matches-chat-col">
                   <div className="matches-chat-tools" style={{ position:'absolute', top:10, left:10, zIndex:3, display:'inline-flex', flexDirection:'column', alignItems:'stretch', gap:6, background:C.alpha(C.bg, 0.92), border:`1px solid ${C.border}`, borderRadius:10, padding:'4px 6px' }}>
                     <div style={{ display:'inline-flex', alignItems:'center', gap:6 }}>
                     <button
@@ -4306,7 +4374,7 @@ export function MatchesPage({ nuggets, isAdmin = false, setModal, openUnlock, un
                   />
                 )}
                 
-                <div style={{ width:portfolioWidth, minWidth:0, maxWidth:DESKTOP_PORTFOLIO_MAX_WIDTH, overflowY:"auto", padding:20, flexShrink:0, boxSizing:"border-box" }} className="desktop-only matches-portfolio-col">
+                <div data-guide="matches-portfolio" style={{ width:portfolioWidth, minWidth:0, maxWidth:DESKTOP_PORTFOLIO_MAX_WIDTH, overflowY:"auto", padding:20, flexShrink:0, boxSizing:"border-box" }} className="desktop-only matches-portfolio-col">
                   <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', gap:10, marginBottom:12 }}>
                     <div style={{ display:'flex', alignItems:'center', gap:10, minWidth:0, flex:1 }}>
                       <div style={{ fontSize:12, fontWeight:800, color:C.t3, letterSpacing:"0.5px", flexShrink:0 }}>{t.portfolio.toUpperCase()}</div>

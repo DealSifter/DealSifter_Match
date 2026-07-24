@@ -24,7 +24,7 @@ function LangPicker({ compact = false }) {
   const currentLang = useLang('global');
   const cur = LANGS.find(l => l.code === currentLang) || LANGS[0];
   return (
-    <div style={{ position: 'relative' }}>
+    <div style={{ position: 'relative' }} data-guide="language-control">
       <button
         onClick={() => setOpen(!open)}
         style={{
@@ -62,6 +62,7 @@ function NavBtn({
   iconImageBold = false,
   labelWeight = 700,
   activeGlow = false,
+  disabled = false,
 }) {
   const iconColor = active
     ? (iconColorActive || iconColorOverride || C.accent)
@@ -69,13 +70,14 @@ function NavBtn({
   const base = {
     display: 'inline-flex', alignItems: 'center', gap: 8,
     padding: minimal ? '6px 8px' : '8px 12px', borderRadius: 8,
-    border: filled ? `1px solid ${C.border}` : 'none', cursor: 'pointer', fontWeight: labelWeight,
+    border: filled ? `1px solid ${C.border}` : 'none', cursor: disabled ? 'not-allowed' : 'pointer', fontWeight: labelWeight,
     background: filled ? C.gold : 'transparent', color: iconColor,
     textShadow: active && activeGlow ? `0 0 8px ${C.alpha(iconColor, 0.55)}` : 'none',
+    opacity: disabled ? 0.38 : 1,
   };
 
   return (
-    <button onClick={onClick} style={base}>
+    <button onClick={onClick} style={base} disabled={disabled} aria-disabled={disabled}>
       {iconImage ? (
         <span
           aria-hidden
@@ -172,7 +174,7 @@ function SwipeableNotificationItem({
   );
 }
 
-export function Navbar({ page, prevPage, setPage, nuggets = 0, setModal = () => {}, chatNotifications = [], systemNotifications = [], setSystemNotifications = () => {}, onOpenChatNotification = () => {}, onMarkChatNotificationRead = () => {}, onDeleteChatNotification = () => {}, onDeleteAllChatNotifications = () => {}, onDeleteSystemNotification = () => {}, onDeleteAllSystemNotifications = () => {}, onOpenAuthModal = () => {}, onOpenSettings = () => {}, onOpenAdmin = () => {}, onLogoutUser = () => {}, isAdmin = false, showInstallAppButton = false, onInstallApp = () => {}, userPreferences = null }) {
+export function Navbar({ page, prevPage, setPage, nuggets = 0, setModal = () => {}, chatNotifications = [], systemNotifications = [], setSystemNotifications = () => {}, onOpenChatNotification = () => {}, onMarkChatNotificationRead = () => {}, onDeleteChatNotification = () => {}, onDeleteAllChatNotifications = () => {}, onDeleteSystemNotification = () => {}, onDeleteAllSystemNotifications = () => {}, onOpenAuthModal = () => {}, onOpenSettings = () => {}, onOpenAdmin = () => {}, onLogoutUser = () => {}, isAdmin = false, showInstallAppButton = false, onInstallApp = () => {}, userPreferences = null, navigationLocked = false, onNavigationBlocked = () => {} }) {
   const TABLET_PORTRAIT_QUERY = '(min-width: 768px) and (max-width: 1080px) and (orientation: portrait)';
   const isApp = page !== 'landing';
   const isLanding = page === 'landing';
@@ -445,9 +447,9 @@ export function Navbar({ page, prevPage, setPage, nuggets = 0, setModal = () => 
         {/* Center: Main nav (desktop) */}
         {isCompactTopbar ? null : isApp ? (
           <div style={{ display: 'flex', gap: 8, alignItems: 'center', justifySelf: 'center' }}>
-            <NavBtn iconImage={mapViewTaskbarIcon} iconImageSize={18} iconImageBold iconColorOverride={C.t2} iconColorActive={C.accent} labelWeight={700} label={t.mapView} onClick={() => setPage && setPage('mapview')} active={page === 'mapview'} />
-            <NavBtn iconImage={feedMatchIcon} iconImageSize={18} iconImageBold iconColorOverride={C.t2} iconColorActive={C.accent} labelWeight={700} label={t.feed} onClick={() => setPage && setPage('dashboard')} active={page === 'dashboard'} />
-            <NavBtn iconImage={matchesTaskbarIcon} iconImageSize={18} iconImageBold iconColorOverride={C.t2} iconColorActive={C.accent} labelWeight={700} label={t.matches} onClick={() => setPage && setPage('matches')} active={page === 'matches'} />
+            <NavBtn disabled={navigationLocked} iconImage={mapViewTaskbarIcon} iconImageSize={18} iconImageBold iconColorOverride={C.t2} iconColorActive={C.accent} labelWeight={700} label={t.mapView} onClick={() => navigationLocked ? onNavigationBlocked() : setPage && setPage('mapview')} active={page === 'mapview'} />
+            <NavBtn disabled={navigationLocked} iconImage={feedMatchIcon} iconImageSize={18} iconImageBold iconColorOverride={C.t2} iconColorActive={C.accent} labelWeight={700} label={t.feed} onClick={() => navigationLocked ? onNavigationBlocked() : setPage && setPage('dashboard')} active={page === 'dashboard'} />
+            <NavBtn disabled={navigationLocked} iconImage={matchesTaskbarIcon} iconImageSize={18} iconImageBold iconColorOverride={C.t2} iconColorActive={C.accent} labelWeight={700} label={t.matches} onClick={() => navigationLocked ? onNavigationBlocked() : setPage && setPage('matches')} active={page === 'matches'} />
             <NavBtn icon="creditCard" label={t.pricing} onClick={() => setPage && setPage('pricing')} active={page === 'pricing'} />
             {isAdmin ? (
               <NavBtn icon="shield" label={t.adminSystem || 'Adm.System'} onClick={onOpenAdmin} active={page === 'admin'} />
@@ -464,6 +466,7 @@ export function Navbar({ page, prevPage, setPage, nuggets = 0, setModal = () => 
               <>
                 <NuggetBadge count={nuggets} onClick={() => setModal && setModal('store')} />
                 <button
+                  data-guide="app-menu"
                   onClick={() => setAppMenuOpen((value) => !value)}
                   title={t.menu || 'Menu'}
                   aria-label={t.menu || 'Menu'}

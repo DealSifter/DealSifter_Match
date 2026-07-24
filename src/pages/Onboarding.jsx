@@ -3453,7 +3453,7 @@ export function Onboarding({
 
         <div className="onb-grid" ref={onboardingGridRef}>
           <div className="onb-col onb-col-left">
-            <SectionCard title={t.sectionAccount} subtitle={t.sectionAccountSub}>
+            <SectionCard title={t.sectionAccount} subtitle={t.sectionAccountSub} dataGuide="onboarding-account">
               <div className="onb-mobile-single-grid onb-account-grid" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 6 }}>
                 <button className={`onb-account-btn ${accountType === 'professional' ? 'is-active' : ''}`} onClick={() => setAccountType('professional')} style={{ padding: 9, borderRadius: 9, border: `1px solid ${accountType === 'professional' ? C.accent : C.border}`, background: 'transparent', color: accountType === 'professional' ? C.accent : C.t2, fontWeight: 700, fontSize: 11, cursor: 'pointer' }}>{t.accountProfessional}</button>
                 <button className={`onb-account-btn ${accountType === 'fsbo_owner' ? 'is-active' : ''}`} onClick={() => setAccountType('fsbo_owner')} style={{ padding: 9, borderRadius: 9, border: `1px solid ${accountType === 'fsbo_owner' ? C.accent : C.border}`, background: 'transparent', color: accountType === 'fsbo_owner' ? C.accent : C.t2, fontWeight: 700, fontSize: 11, cursor: 'pointer' }}>{t.accountFsboOwner}</button>
@@ -3461,6 +3461,7 @@ export function Onboarding({
             </SectionCard>
 
             <SectionCard
+              dataGuide="onboarding-profile"
               title={(
                 <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}>
                   <span>{accountType === 'professional' ? t.sectionProfile : t.sectionBasicProfile}</span>
@@ -3601,7 +3602,7 @@ export function Onboarding({
 
               <div style={{ marginBottom: 8 }}>
                 <div style={{ fontSize: 10, color: C.t3, marginBottom: 4, textTransform: 'uppercase' }}>{t.labelBusinessContactOptions} <span style={{ color: C.danger }}>*</span></div>
-                <div data-mobile-step="profileAContact" className="onb-scroll-chips" style={{ display: 'flex', flexWrap: 'wrap', gap: 6, border: showValidationBorders && missingProfileAContactMethods ? `1px solid ${C.danger}` : 'none', borderRadius: 9, padding: showValidationBorders && missingProfileAContactMethods ? 6 : 0 }}>
+                <div data-guide="onboarding-contacts" data-mobile-step="profileAContact" className="onb-scroll-chips" style={{ display: 'flex', flexWrap: 'wrap', gap: 6, border: showValidationBorders && missingProfileAContactMethods ? `1px solid ${C.danger}` : 'none', borderRadius: 9, padding: showValidationBorders && missingProfileAContactMethods ? 6 : 0 }}>
                   {CONTACT_METHOD_PRESETS.map((method) => (
                     <Chip key={method} active={contactMethods.includes(method)} onClick={() => toggleMulti(setContactMethods, method)}>{method}</Chip>
                   ))}
@@ -3850,7 +3851,7 @@ export function Onboarding({
               ) : null}
 
               <div style={{ marginTop: 8 }}>
-                <button className={`onb-save-profiles ${isSaveProfilesDirty ? 'is-dirty' : ''}`} onClick={handleSaveProfiles} style={{ width: '100%', padding: '8px 0', background: 'rgb(53,202,201)', border: 'none', borderRadius: 9, color: '#081218', fontWeight: 700, fontSize: 11, cursor: 'pointer' }}>
+                <button data-guide="onboarding-save-profile" className={`onb-save-profiles ${isSaveProfilesDirty ? 'is-dirty' : ''}`} onClick={handleSaveProfiles} style={{ width: '100%', padding: '8px 0', background: 'rgb(53,202,201)', border: 'none', borderRadius: 9, color: '#081218', fontWeight: 700, fontSize: 11, cursor: 'pointer' }}>
                   {t.buttonSaveProfiles || 'Save profiles'}
                 </button>
               </div>
@@ -3858,7 +3859,7 @@ export function Onboarding({
           </div>
 
           <div className="onb-col onb-col-mid">
-              <SectionCard title={t.sectionPortfolio} subtitle={t.sectionPortfolioSub} grow={true}>
+              <SectionCard title={t.sectionPortfolio} subtitle={t.sectionPortfolioSub} grow={true} dataGuide="onboarding-portfolio">
                 {/* scrollable form area: tab1 + form + add-preview buttons */}
                 <div style={{ flex: isMobileViewport ? '0 0 auto' : 1, minHeight: isMobileViewport ? 'auto' : 0, overflowY: isMobileViewport ? 'visible' : 'auto', overflowX: 'hidden', display: 'flex', flexDirection: 'column', paddingBottom: isMobileViewport ? 8 : 14, paddingRight: isMobileViewport ? 0 : 4 }}>
                 <div style={{ display: 'flex', gap: 4, marginBottom: 10, paddingBottom: 2, borderBottom: `1px solid ${C.border}` }}>
@@ -4005,7 +4006,7 @@ export function Onboarding({
                   <button onClick={portfolioEntryType === 'property' ? addProfessionalPortfolioProperty : addProfessionalPortfolioService} style={{ flex: 1, padding: '8px 10px', borderRadius: 9, border: `1px solid ${C.accent}`, background: 'transparent', color: C.accent, fontWeight: 700, cursor: 'pointer', fontSize: 11 }}>
                     + Add to Portfolio
                   </button>
-                  <button className={`onb-preview-feed ${isPreviewToFeedDirty ? 'is-dirty' : ''}`} onClick={openPreviewToFeed} style={{ flex: 1, padding: '8px 10px', borderRadius: 9, border: 'none', background: C.accent, color: '#1a1a1a', fontWeight: 700, cursor: 'pointer', fontSize: 11, display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: 6 }}>
+                  <button data-guide="onboarding-publish" className={`onb-preview-feed ${isPreviewToFeedDirty ? 'is-dirty' : ''}`} onClick={openPreviewToFeed} style={{ flex: 1, padding: '8px 10px', borderRadius: 9, border: 'none', background: C.accent, color: '#1a1a1a', fontWeight: 700, cursor: 'pointer', fontSize: 11, display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: 6 }}>
                     <Icon name="eye" size={13} color="#1a1a1a" />
                     <span>{t.saveAndPreview}</span>
                   </button>
@@ -4057,7 +4058,7 @@ export function Onboarding({
                   </button>
                 </div>
 
-                <div className="onb-scroll-list" style={{ border: `1px solid ${C.border}`, borderRadius: 10, padding: 8, background: C.card, marginTop: 8, flex: isMobileViewport ? '1 1 auto' : '0 0 130px', height: isMobileViewport ? 'auto' : '130px', minHeight: isMobileViewport ? 0 : '130px', maxHeight: isMobileViewport ? 'none' : '130px', overflowY: 'auto', overflowX: 'hidden' }}>
+                <div data-guide="onboarding-records" className="onb-scroll-list" style={{ border: `1px solid ${C.border}`, borderRadius: 10, padding: 8, background: C.card, marginTop: 8, flex: isMobileViewport ? '1 1 auto' : '0 0 130px', height: isMobileViewport ? 'auto' : '130px', minHeight: isMobileViewport ? 0 : '130px', maxHeight: isMobileViewport ? 'none' : '130px', overflowY: 'auto', overflowX: 'hidden' }}>
                   {portfolioRecordsTab === 'properties' ? (
                     myPortfolio.length === 0 ? (
                       <div style={{ fontSize: 11, color: C.t3 }}>{t.recordsNoProperty}</div>
@@ -5092,7 +5093,7 @@ export function Onboarding({
                 <button onClick={() => setPreviewOpen(false)} style={{ padding: '8px 12px', borderRadius: 9, border: `1px solid ${C.border}`, background: 'transparent', color: C.t2, fontWeight: 700, cursor: 'pointer', fontSize: 12 }}>
                   {t.previewBackToEdit}
                 </button>
-                <button onClick={() => { setPreviewOpen(false); publishRegistration(); }} style={{ padding: '8px 12px', borderRadius: 9, border: 'none', background: C.accent, color: '#fff', fontWeight: 700, cursor: 'pointer', fontSize: 12 }}>
+                <button data-guide="onboarding-publish" onClick={() => { setPreviewOpen(false); publishRegistration(); }} style={{ padding: '8px 12px', borderRadius: 9, border: 'none', background: C.accent, color: '#fff', fontWeight: 700, cursor: 'pointer', fontSize: 12 }}>
                   {t.previewConfirmPublish}
                 </button>
               </div>

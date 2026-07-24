@@ -1,4 +1,4 @@
-import React, { useCallback, useMemo, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { genId } from '../lib/id';
 import { MapContainer, Marker, Popup, Rectangle, TileLayer, WMSTileLayer, ZoomControl, useMap, useMapEvents } from 'react-leaflet';
 import L from 'leaflet';
@@ -893,6 +893,18 @@ export function MapView({
   });
   const [selectedCardId, setSelectedCardId] = useState(null);
   const [panelTab, setPanelTab] = useState(() => (initialMapUiState.panelTab === 'filters' ? 'filters' : 'cards'));
+
+  useEffect(() => {
+    const handleGuideStep = (event) => {
+      const target = String(event?.detail?.target || '');
+      if (!target.startsWith('[data-guide="map-')) return;
+      setPanelCollapsed(false);
+      if (target.includes('map-spotlight')) setPanelTab('cards');
+      if (target.includes('map-filters')) setPanelTab('filters');
+    };
+    window.addEventListener('ds-guidetip-step', handleGuideStep);
+    return () => window.removeEventListener('ds-guidetip-step', handleGuideStep);
+  }, []);
   const [floodOverlayOpacity, setFloodOverlayOpacity] = useState(() => {
     const val = Number(initialMapUiState.floodOverlayOpacity);
     return Number.isFinite(val) ? val : 0.65;
@@ -2097,7 +2109,7 @@ export function MapView({
           }}
         />
         
-        <aside className="map-panel">
+        <aside className="map-panel" data-guide="map-filters">
           <div className="map-panel-header">
             <h2 style={{ fontSize: 18, color: C.t2, fontWeight: 400 }}>{tMap.title}</h2>
             <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
@@ -2115,7 +2127,7 @@ export function MapView({
             </div>
           </div>
 
-          <div className="map-panel-tabs" role="tablist" aria-label={tMap.panelSectionsLabel || 'Map panel sections'}>
+          <div className="map-panel-tabs" data-guide="map-spotlight" role="tablist" aria-label={tMap.panelSectionsLabel || 'Map panel sections'}>
             <button
               className={`map-panel-tab ${panelTab === 'filters' ? 'active' : ''}`}
               role="tab"
@@ -2554,7 +2566,7 @@ export function MapView({
           )}
         </aside>
 
-        <section className="map-canvas-card">
+        <section className="map-canvas-card" data-guide="map-canvas">
           <MapContainer key={`mapview-${mapActivationKey}`} center={safeViewportCenter} zoom={safeViewportZoom} className="map-canvas" zoomControl={false}>
             <MapEvents onViewportChange={setViewport} />
             <MapVisibilityController active={isActive} />

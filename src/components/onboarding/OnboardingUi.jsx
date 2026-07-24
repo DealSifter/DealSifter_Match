@@ -31,9 +31,10 @@ export function SectionCard({
   children,
   grow = false,
   style = {},
+  dataGuide,
 }) {
   return (
-    <section style={{ border: `1px solid ${C.border}`, borderRadius: 14, background: C.card, overflow: 'hidden', display: 'flex', flexDirection: 'column', ...(grow ? { flex: '1 1 auto' } : {}), ...style }}>
+    <section data-guide={dataGuide} style={{ border: `1px solid ${C.border}`, borderRadius: 14, background: C.card, overflow: 'hidden', display: 'flex', flexDirection: 'column', ...(grow ? { flex: '1 1 auto' } : {}), ...style }}>
       <div style={{ display: 'flex', gap: 8, alignItems: 'center', justifyContent: 'space-between', padding: '8px 10px', borderBottom: `1px solid ${C.border}`, flexShrink: 0 }}>
         <div style={{ minWidth: 0, marginRight: 12 }}>
           <h3 style={{ margin: 0, fontSize: 12, color: C.t1, fontWeight: 800, flexShrink: 0 }}>{title}</h3>

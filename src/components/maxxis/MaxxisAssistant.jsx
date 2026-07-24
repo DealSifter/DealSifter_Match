@@ -562,6 +562,7 @@ export function MaxxisAssistant({ page = 'dashboard', onOpenSupport = null, onNa
       {!open ? (
         <button
           type="button"
+          data-guide="maxxis-widget"
           className={`maxxis-fab ${dragging ? 'maxxis-fab-dragging' : ''}`}
           onPointerDown={handleFabPointerDown}
           onClick={(event) => {

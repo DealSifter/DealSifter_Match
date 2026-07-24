@@ -34,7 +34,7 @@ export function PrimaryProfileSelect({
   const showInvalid = invalid ?? (required && !value);
 
   return (
-    <div style={{ position: 'relative', minWidth: 0, ...(containerStyle || {}) }}>
+    <div data-guide="onboarding-link-profile" style={{ position: 'relative', minWidth: 0, ...(containerStyle || {}) }}>
       {showLabel ? <span style={labelStyle}>{resolvedLabel}</span> : null}
       <select
         data-mobile-step={dataMobileStep}

@@ -3472,6 +3472,7 @@ export function Dashboard({ page, nuggets, setModal, setPage, onOpenOnboardingTa
             {showRegistrationNeeded && (
               <div style={{ marginTop: 10 }}>
                 <button
+                  data-guide="onboarding-launcher"
                   onClick={(e) => { e.stopPropagation(); setPage('onboarding'); }}
                   className="blink"
                   style={{

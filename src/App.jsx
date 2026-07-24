@@ -947,6 +947,7 @@ const MobilePortraitGuard = ({ copy }) => (
 
 export default function App() {
   const blockMobileLandscape = useMediaQuery('(hover: none) and (pointer: coarse) and (orientation: landscape) and (max-height: 520px)');
+  const onboardingAccessCompleteRef = useRef(true);
   const profileSyncStateRef = useRef({ userId: null, loaded: false, hydrating: false, personalLoadedFromRemote: false, professionalLoadedFromRemote: false });
   const [profileSyncSnapshot, setProfileSyncSnapshot] = useState({ userId: null, loaded: false, hydrating: false, personalLoadedFromRemote: false, professionalLoadedFromRemote: false });
   const [profileHydrationAttempts, setProfileHydrationAttempts] = useState(0);
@@ -1733,6 +1734,16 @@ export default function App() {
       openAuthModal('login');
       return;
     }
+    if (authSession && !isAdmin && onboardingAccessCompleteRef.current === false && ['mapview', 'matches'].includes(newPage)) {
+      setPrevPage(page);
+      _setPage('onboarding');
+      addToast({
+        type: 'info',
+        title: 'Complete your first publication',
+        message: 'Create at least one profile and one linked property or service to unlock Feed, Map and Matches.',
+      });
+      return;
+    }
     setPrevPage(page);
     _setPage(newPage);
     if (typeof newPage === 'string') {
@@ -1743,7 +1754,7 @@ export default function App() {
         try { localStorage.removeItem('ds_last_page'); } catch { /* no-op */ }
       }
     }
-  }, [authSession, openAuthModal, page]);
+  }, [addToast, authSession, isAdmin, openAuthModal, page]);
 
   const [userProfile, setUserProfile] = useState(() => {
     if (isSupabaseConfigured) {
@@ -4321,6 +4332,15 @@ export default function App() {
         setPage('dashboard');
         break;
     }
+    const tourId = action === 'map' || action === 'map-view' ? 'mapview'
+      : action === 'new-card' || action === 'cards' || action === 'onboard' ? 'onboarding'
+        : action === 'feed' ? 'feed'
+          : action;
+    if (['feed', 'mapview', 'matches', 'onboarding'].includes(tourId)) {
+      window.setTimeout(() => {
+        window.dispatchEvent(new CustomEvent('ds-guidetips-start', { detail: { tourId } }));
+      }, 180);
+    }
   }, [openOnboardingTab, openPricingHub, openSettingsTab, setPage]);
 
   const handleAnalyzePropertyWithMaxxis = useCallback((request = {}) => {
@@ -5419,6 +5439,45 @@ export default function App() {
     );
   }, [personalProfile, professionalProfile]);
 
+  const hasLinkedPublishedPortfolio = useMemo(() => {
+    const validScope = (record) => ['personal', 'professional', 'fsbo'].includes(
+      String(record?.primaryProfile || record?.primary_profile || record?.profileScope || record?.profile_scope || record?.linkToProfile || '').trim().toLowerCase(),
+    );
+    const activeProperty = (propertyPortfolio || []).some((record) => (
+      record
+      && record.dealClosed !== true
+      && record.isActive !== false
+      && record.publishToShowcase !== false
+      && validScope(record)
+    ));
+    const activeService = (servicePortfolio || []).some((record) => (
+      record
+      && record.dealClosed !== true
+      && record.isActive !== false
+      && record.publishToConnections !== false
+      && validScope(record)
+    ));
+    return activeProperty || activeService;
+  }, [propertyPortfolio, servicePortfolio]);
+
+  const onboardingMinimumComplete = Boolean(hasAnyProfileRegistered && hasLinkedPublishedPortfolio);
+  onboardingAccessCompleteRef.current = onboardingMinimumComplete;
+  const onboardingNavigationLocked = Boolean(
+    authSession
+    && !isAdmin
+    && dashboardHydrationReady
+    && !onboardingMinimumComplete
+  );
+  const currentPlanId = String(accessSubscription?.planId || accessSubscription?.id || 'free').toLowerCase();
+  const isFreePlan = ['free', 'basic'].includes(currentPlanId);
+  const handleOnboardingNavigationBlocked = useCallback(() => {
+    addToast({
+      type: 'info',
+      title: 'Complete onboarding',
+      message: 'Publish at least one profile with one linked property or service to unlock the remaining modules.',
+    });
+  }, [addToast]);
+
   const renderPageContent = (pageKey = page) => {
     switch (pageKey) {
       case 'landing':
@@ -5611,7 +5670,12 @@ export default function App() {
 
   return (
     <ThemeProvider forcedTheme={shellForcedTheme}>
-      <GuideTipsProvider>
+      <GuideTipsProvider
+        userId={supabaseUserId || authSession?.userId || authSession?.id}
+        page={page}
+        canStart={Boolean(authSession && dashboardHydrationReady && lgpdConsentChecked && !requireSignupConsent)}
+        onboardingComplete={onboardingMinimumComplete}
+      >
       <div style={{ minHeight: '100vh', background: 'var(--bg)', color: 'var(--t1)' }}>
         {isAppShellBooting ? (
           <AppLoadingScreen message="Loading DealSifter..." label="Loading DealSifter" />
@@ -5643,8 +5707,10 @@ export default function App() {
               showInstallAppButton={showInstallAppButton}
               onInstallApp={handleInstallApp}
               userPreferences={userPreferences}
+              navigationLocked={onboardingNavigationLocked}
+              onNavigationBlocked={handleOnboardingNavigationBlocked}
             />
-            <GuideTipOverlay key={page} page={page} />
+            <GuideTipOverlay page={page} setPage={setPage} isFreePlan={isFreePlan} />
             <Suspense fallback={null}>
               {(() => {
                 if (!keepAlivePageIds.has(page)) return renderPageContent(page);
@@ -5682,6 +5748,8 @@ export default function App() {
               collapsed={mobileBottomNavCollapsed}
               onCollapsedChange={setMobileBottomNavCollapsed}
               needsPrimaryProfileAttention={!hasAnyProfileRegistered}
+              navigationLocked={onboardingNavigationLocked}
+              onNavigationBlocked={handleOnboardingNavigationBlocked}
             />
             <MaxxisAssistant
               page={page}
