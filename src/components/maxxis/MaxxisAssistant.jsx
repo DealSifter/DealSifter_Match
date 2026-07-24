@@ -21,6 +21,7 @@ const COPY = {
     typing: 'Maxxis is thinking...',
     unavailable: 'I had a temporary issue. Please try again or contact human support.',
     exportAnalysisPdf: 'Export analysis PDF',
+    exportingAnalysisPdf: 'Exporting...',
     scope: 'Maxxis can help with app usage, Tax Deeds, Wholesale and DealSifter workflows.',
   },
   pt: {
@@ -35,6 +36,7 @@ const COPY = {
     typing: 'Maxxis esta pensando...',
     unavailable: 'Tive uma dificuldade temporaria. Tente novamente ou fale com o suporte humano.',
     exportAnalysisPdf: 'Exportar PDF da analise',
+    exportingAnalysisPdf: 'Exportando...',
     scope: 'Maxxis ajuda com uso do app, Tax Deeds, Wholesale e fluxos do DealSifter.',
   },
   es: {
@@ -49,6 +51,7 @@ const COPY = {
     typing: 'Maxxis esta pensando...',
     unavailable: 'Tuve un problema temporal. Intentalo otra vez o contacta soporte humano.',
     exportAnalysisPdf: 'Exportar PDF del analisis',
+    exportingAnalysisPdf: 'Exportando...',
     scope: 'Maxxis ayuda con uso de la app, Tax Deeds, Wholesale y flujos de DealSifter.',
   },
 };
@@ -193,7 +196,7 @@ function readStoredWidgetPosition() {
   }
 }
 
-function MessageBubble({ message, language, onAction, onExportAnalysisPdf, exportAnalysisLabel }) {
+function MessageBubble({ message, language, onAction, onExportAnalysisPdf, exportAnalysisLabel, exportingAnalysisLabel, isExportingAnalysis }) {
   const isUser = message.role === 'user';
   const { text, actions } = isUser
     ? { text: String(message.content || ''), actions: [] }
@@ -230,9 +233,10 @@ function MessageBubble({ message, language, onAction, onExportAnalysisPdf, expor
           <button
             type="button"
             className="maxxis-action-link maxxis-analysis-export"
-            onClick={() => onExportAnalysisPdf?.(message.analysisExport, message.content)}
+            disabled={isExportingAnalysis}
+            onClick={() => onExportAnalysisPdf?.(message.analysisExport, message.content, message.id)}
           >
-            <span>{exportAnalysisLabel}</span>
+            <span>{isExportingAnalysis ? exportingAnalysisLabel : exportAnalysisLabel}</span>
             <Icon name="doc" size={13} color="currentColor" strokeWidth={2.1} />
           </button>
         </div>
@@ -248,6 +252,7 @@ export function MaxxisAssistant({ page = 'dashboard', onOpenSupport = null, onNa
   const [open, setOpen] = useState(false);
   const [input, setInput] = useState('');
   const [loading, setLoading] = useState(false);
+  const [exportingAnalysisId, setExportingAnalysisId] = useState(null);
   const [widgetPosition, setWidgetPosition] = useState(readStoredWidgetPosition);
   const [dragging, setDragging] = useState(false);
   const [messages, setMessages] = useState(() => [{
@@ -430,6 +435,16 @@ export function MaxxisAssistant({ page = 'dashboard', onOpenSupport = null, onNa
     }
   };
 
+  const handleExportAnalysisPdf = async (analysisExport, analysisText, messageId) => {
+    if (!analysisExport?.onExportPdf || !onExportAnalysisPdf || exportingAnalysisId) return;
+    setExportingAnalysisId(messageId || analysisExport.requestId || 'active');
+    try {
+      await onExportAnalysisPdf(analysisExport, analysisText);
+    } finally {
+      setExportingAnalysisId(null);
+    }
+  };
+
   const submit = async () => {
     if (!canSend) return;
     await submitMessage(trimmedInput);
@@ -485,8 +500,10 @@ export function MaxxisAssistant({ page = 'dashboard', onOpenSupport = null, onNa
                 message={message}
                 language={language}
                 onAction={handleAction}
-                onExportAnalysisPdf={onExportAnalysisPdf}
+                onExportAnalysisPdf={handleExportAnalysisPdf}
                 exportAnalysisLabel={t.exportAnalysisPdf}
+                exportingAnalysisLabel={t.exportingAnalysisPdf}
+                isExportingAnalysis={exportingAnalysisId === message.id}
               />
             ))}
             {loading ? (

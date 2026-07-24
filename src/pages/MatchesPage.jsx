@@ -622,7 +622,7 @@ function PortfolioDetail({ item, owner, ownerContact = null, isOwnerUnlocked = f
     }
   });
 
-  const fetchImageData = async (url) => {
+  const fetchImageData = async (url, timeoutMs = 6500) => {
     if (!url) return null;
     try {
       if (url instanceof Blob || (typeof File !== 'undefined' && url instanceof File)) {
@@ -639,7 +639,17 @@ function PortfolioDetail({ item, owner, ownerContact = null, isOwnerUnlocked = f
         const format = String(url).slice(0, 30).toLowerCase().includes('png') ? 'PNG' : 'JPEG';
         return { dataUrl: url, format };
       }
-      const response = await fetch(url);
+      let timeoutId = null;
+      const controller = typeof AbortController !== 'undefined' ? new AbortController() : null;
+      let response = null;
+      try {
+        if (controller && Number(timeoutMs) > 0) {
+          timeoutId = window.setTimeout(() => controller.abort(), timeoutMs);
+        }
+        response = await fetch(url, controller ? { signal: controller.signal } : undefined);
+      } finally {
+        if (timeoutId) window.clearTimeout(timeoutId);
+      }
       if (!response.ok) return null;
       const blob = await response.blob();
       const dataUrl = await blobToDataUrl(blob);
@@ -651,11 +661,30 @@ function PortfolioDetail({ item, owner, ownerContact = null, isOwnerUnlocked = f
     }
   };
 
-  const loadCanvasImage = (src) => new Promise((resolve, reject) => {
+  const loadCanvasImage = (src, timeoutMs = 2400) => new Promise((resolve, reject) => {
     const img = new Image();
+    let timeoutId = null;
+    const cleanup = () => {
+      if (timeoutId) window.clearTimeout(timeoutId);
+      img.onload = null;
+      img.onerror = null;
+    };
     img.crossOrigin = 'anonymous';
-    img.onload = () => resolve(img);
-    img.onerror = () => reject(new Error('Image load failed'));
+    img.onload = () => {
+      cleanup();
+      resolve(img);
+    };
+    img.onerror = () => {
+      cleanup();
+      reject(new Error('Image load failed'));
+    };
+    if (Number(timeoutMs) > 0) {
+      timeoutId = window.setTimeout(() => {
+        cleanup();
+        img.src = '';
+        reject(new Error('Image load timed out'));
+      }, timeoutMs);
+    }
     img.src = src;
   });
 
@@ -1179,11 +1208,16 @@ function PortfolioDetail({ item, owner, ownerContact = null, isOwnerUnlocked = f
 
     const compactLines = (sections, fallbackSections, maxItems = 5) => {
       const source = sections.length ? sections : fallbackSections;
-      return source
-        .flatMap((section) => section.lines || [])
-        .map((line) => String(line || '').replace(/^[-*]\s*/, '').trim())
-        .filter(Boolean)
-        .slice(0, maxItems);
+      const items = [];
+      for (let i = 0; i < source.length; i += 1) {
+        const sectionLines = source[i]?.lines || [];
+        for (let j = 0; j < sectionLines.length; j += 1) {
+          const line = String(sectionLines[j] || '').replace(/^[-*]\s*/, '').trim();
+          if (line) items.push(line);
+          if (items.length >= maxItems) return items;
+        }
+      }
+      return items;
     };
 
     const drawAnalysisBox = ({ titleText, lines, x, yy, w, h, fill, stroke, titleColor, maxItems = 5 }) => {
@@ -1545,7 +1579,7 @@ function PortfolioDetail({ item, owner, ownerContact = null, isOwnerUnlocked = f
         ];
         let mapImage = null;
         for (const mapUrl of mapUrls) {
-          mapImage = await fetchImageData(mapUrl);
+          mapImage = await fetchImageData(mapUrl, 2400);
           if (mapImage) break;
         }
         if (!mapImage) {
