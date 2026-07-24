@@ -3179,7 +3179,7 @@ export function Onboarding({
           50% { opacity: 0.25; transform: scale(0.88); }
         }
         .deal-blink { animation: blink-deal 0.9s ease-in-out infinite; }
-        .onb-shell { width: 100%; max-width: 1690px; height: 699px; min-height: 699px; max-height: 699px; box-sizing: border-box; display: flex; flex-direction: column; position: relative; z-index: 10; margin: 0 auto; }
+        .onb-shell { width: 100%; max-width: 1690px; height: 100%; min-height: 0; max-height: none; box-sizing: border-box; display: flex; flex-direction: column; position: relative; z-index: 10; margin: 0 auto; padding-bottom: 6px; }
           .onb-head { display:flex; align-items:center; justify-content:center; gap:6px; width: 100%; margin:0 auto 4px; }
           .onb-head > div { width: 100%; text-align: center; }
             .onb-grid {
@@ -3193,16 +3193,16 @@ export function Onboarding({
               overflow: hidden;
               justify-content: stretch;
             align-items: stretch; /* stretch columns to same height so footers align */
-            padding-right: 0;
+            padding: 0 0 2px;
             box-sizing: border-box;
           }
           .onb-col { display: grid; gap: 6px; min-height: 0; min-width: 0; padding: 0; }
-            .onb-col-left { width: 100%; min-width: 0; max-width: none; height: 600px; max-height: 600px; overflow: hidden; grid-template-rows: auto minmax(0, 1fr); padding-top: 0; padding-bottom: 0; }
+            .onb-col-left { width: 100%; min-width: 0; max-width: none; height: 100%; max-height: none; overflow: hidden; grid-template-rows: auto minmax(0, 1fr); padding-top: 0; padding-bottom: 0; }
           /* Make the middle column behave like the left FSBO column: keep sections compact
             and avoid excessive vertical length so the footer isn't cut off. */
-            .onb-col-mid { width: 100%; min-width: 0; max-width: none; height: 600px; max-height: 600px; overflow: hidden; padding: 0; grid-template-rows: auto minmax(0, 1fr); min-height: 600px; }
-            .onb-col-mid > section { width: 100%; min-width: 0; max-width: none; height: 600px; max-height: 600px; overflow: hidden; padding: 8px; box-sizing: border-box; }
-          .onb-col-right { width: 100%; min-width: 0; max-width: none; height: 600px; min-height: 600px; max-height: 600px; overflow: hidden; grid-template-rows: auto 1fr; }
+            .onb-col-mid { width: 100%; min-width: 0; max-width: none; height: 100%; max-height: none; overflow: hidden; padding: 0; grid-template-rows: minmax(0, 1fr); }
+            .onb-col-mid > section { width: 100%; min-width: 0; max-width: none; height: 100%; max-height: none; overflow: hidden; padding: 8px; box-sizing: border-box; }
+          .onb-col-right { width: 100%; min-width: 0; max-width: none; height: 100%; min-height: 0; max-height: none; overflow: hidden; grid-template-rows: auto 1fr auto; }
         .onb-col > section { min-height: 0; display: flex; flex-direction: column; }
         .onb-scroll-chips { max-height: 84px; overflow-y: auto; padding-right: 4px; }
         .onb-scroll-list { max-height: 170px; overflow-y: auto; padding-right: 4px; grid-auto-rows: minmax(28px, auto); grid-template-columns: repeat(auto-fill, minmax(160px, 1fr)); }
@@ -3419,11 +3419,11 @@ export function Onboarding({
 
         @media (min-width: 1200px) {
           .onb-grid { grid-template-columns: minmax(260px, 1fr) minmax(480px, 1.875fr) minmax(260px, 1fr); overflow: hidden; justify-content: stretch; align-items: stretch; padding-right: 0; box-sizing: border-box; }
-          .onb-col-left { grid-template-rows: auto minmax(0, 1fr); min-height: 600px; height: 600px; max-height: 600px; padding-top: 0; padding-bottom: 0; }
+          .onb-col-left { grid-template-rows: auto minmax(0, 1fr); min-height: 0; height: 100%; max-height: none; padding-top: 0; padding-bottom: 0; }
           .onb-col-left > section:last-child { min-height: 0; height: 100%; }
-          .onb-col-mid { width: 100%; min-width: 0; max-width: none; height: 600px; max-height: 600px; overflow: hidden; padding: 0; grid-template-rows: auto minmax(0, 1fr); min-height: 600px; }
-          .onb-col-mid > section { width: 100%; min-width: 0; max-width: none; height: 600px; max-height: 600px; overflow: hidden; padding: 8px; box-sizing: border-box; }
-          .onb-col-right { width: 100%; min-width: 0; max-width: none; height: 600px; min-height: 600px; max-height: 600px; overflow: hidden; grid-template-rows: auto 1fr; }
+          .onb-col-mid { width: 100%; min-width: 0; max-width: none; height: 100%; max-height: none; overflow: hidden; padding: 0; grid-template-rows: minmax(0, 1fr); min-height: 0; }
+          .onb-col-mid > section { width: 100%; min-width: 0; max-width: none; height: 100%; max-height: none; overflow: hidden; padding: 8px; box-sizing: border-box; }
+          .onb-col-right { width: 100%; min-width: 0; max-width: none; height: 100%; min-height: 0; max-height: none; overflow: hidden; grid-template-rows: auto 1fr auto; }
           .onb-col:not(.onb-col-mid) { overflow: hidden; padding: 0; }
           .onb-col > section { min-height: 0; display: flex; flex-direction: column; }
         }
