@@ -1912,7 +1912,7 @@ function PortfolioDetail({ item, owner, ownerContact = null, isOwnerUnlocked = f
   ].filter(Boolean);
 
   return (
-    <div style={{ background:C.card, border:`1px solid ${C.border}`, borderRadius:12, overflow:"hidden" }}>
+    <div data-guide="matches-property-detail" style={{ background:C.card, border:`1px solid ${C.border}`, borderRadius:12, overflow:"hidden" }}>
       <div style={{ padding:10, borderBottom:`1px solid ${C.border}`, display:"flex", alignItems:"center", justifyContent:"space-between", gap:8 }}>
         <div style={{ minWidth:0 }}>
           <div
@@ -1936,7 +1936,7 @@ function PortfolioDetail({ item, owner, ownerContact = null, isOwnerUnlocked = f
           <div style={{ fontSize:10, color:C.t3 }}>{formatPropertyLocation(item)}</div>
         </div>
         <div style={{ display:'flex', gap:8, alignItems:'center' }}>
-          <button type="button" onClick={handleOpenEmailCompose}
+          <button data-guide="matches-export" type="button" onClick={handleOpenEmailCompose}
             title={matchesT.exportEmailTrello || 'Export to email (Trello format)'}
             style={{ border:`1px solid ${C.border}`, background:"transparent", color:C.t2, borderRadius:8, padding:"5px 8px", fontSize:11, cursor:"pointer" }}>
             {matchesT.export || 'Export'}
@@ -3214,10 +3214,19 @@ export function MatchesPage({ nuggets, isAdmin = false, setModal, openUnlock, un
       if (target.includes('matches-interests')) setMobileTab('interests');
       if (target.includes('matches-conversation')) setMobileChatTab('chat');
       if (target.includes('matches-portfolio')) setMobileChatTab('portfolio');
+      if (target.includes('matches-property-detail') || target.includes('matches-export')) {
+        setMobileChatTab('portfolio');
+        setPortfolioTab('properties');
+        const firstProperty = portfolioItems[0] || null;
+        if (firstProperty) {
+          setSelectedPortfolioItem(firstProperty);
+          if (isMobile) setMobileCardSheet(firstProperty);
+        }
+      }
     };
     window.addEventListener('ds-guidetip-step', handleGuideStep);
     return () => window.removeEventListener('ds-guidetip-step', handleGuideStep);
-  }, []);
+  }, [isMobile, portfolioItems]);
   const [mobileCardSheet, setMobileCardSheet] = useState(null);
 
   useEffect(() => {

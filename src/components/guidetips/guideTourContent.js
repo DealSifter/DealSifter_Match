@@ -13,10 +13,7 @@ const COPY = {
       videoSoon: 'The overview video is being prepared. This space is ready to receive it without changing the first-access flow.',
     },
     initial: [
-      { id: 'overview', kind: 'video', title: 'Welcome to DealSifter Match', body: 'Start with this short overview of the full journey: create your presence, publish opportunities, discover cards and build connections.' },
-      { id: 'language', target: '[data-guide="language-control"], [data-guide="app-menu"]', title: 'Choose your communication language', body: 'Set English, Portuguese or Spanish now. The guide, Maxxis and system messages will follow this preference.' },
-      { id: 'maxxis', target: '[data-guide="maxxis-widget"]', title: 'Meet Maxxis AI', body: 'Maxxis answers questions, explains workflows and can take you directly to the module where an action must be completed.' },
-      { id: 'onboarding-launcher', target: '[data-guide="onboarding-launcher"]', title: 'Create your first card', body: 'On mobile use New Card. On desktop use the Register card. We will assist you through every required field.', nextTour: 'onboarding', nextPage: 'onboarding' },
+      { id: 'maxxis', target: '[data-guide="maxxis-widget"]', title: 'Meet Maxxis AI first', body: 'Maxxis is your app guide and question assistant. It follows your selected language and can take you directly to the module where an action must be completed.', nextTour: 'onboarding', nextPage: 'onboarding' },
     ],
     onboarding: [
       { id: 'account', target: '[data-guide="onboarding-account"]', title: 'Choose the account context', body: 'Select Professional or For Sale by Owner. You may maintain more than one independent profile.' },
@@ -48,7 +45,12 @@ const COPY = {
       { id: 'people', target: '[data-guide="matches-people"]', title: 'People and unlocked contacts', body: 'This column contains real matches and unlock entitlements. Select a profile to open its conversation and portfolio.' },
       { id: 'interests', target: '[data-guide="matches-interests"]', title: 'Property interests', body: 'Filter unlocked or saved properties by status and state. Entitlements remain consistent across devices.' },
       { id: 'conversation', target: '[data-guide="matches-conversation"]', title: 'Continue the conversation', body: 'Chat is available when plan and contact preferences allow it. System alerts explain any restriction.' },
-      { id: 'portfolio', target: '[data-guide="matches-portfolio"]', title: 'Review the portfolio', body: 'See unlocked contact channels, services and properties linked to the selected owner.', completesCycle: true },
+      { id: 'portfolio', target: '[data-guide="matches-portfolio"]', title: 'Review the portfolio', body: 'See unlocked contact channels, services and properties linked to the selected owner.' },
+      { id: 'property-detail', target: '[data-guide="matches-property-detail"]', optionalTarget: true, title: 'Open full property details', body: 'Select a linked property to expand its photos, description, numbers, strategy and complete opportunity data.' },
+      { id: 'export', target: '[data-guide="matches-export"]', optionalTarget: true, title: 'Export and analyze the opportunity', body: 'Use Export to generate the property release, prepare email data or send the opportunity to Maxxis AI for analysis.', nextTour: 'settings' },
+    ],
+    settings: [
+      { id: 'menu', target: '[data-guide="app-settings-menu"]', title: 'System settings', body: 'Use this menu to manage your profile, notifications, language, theme, plans, privacy and support communication.', completesCycle: true },
     ],
   },
   pt: {
@@ -65,10 +67,7 @@ const COPY = {
       videoSoon: 'O vídeo overview está em elaboração. Este espaço já está preparado para recebê-lo sem alterar o fluxo de primeiro acesso.',
     },
     initial: [
-      { id: 'overview', kind: 'video', title: 'Bem-vindo ao DealSifter Match', body: 'Comece com uma visão geral da jornada: crie sua presença, publique oportunidades, encontre cards e construa conexões.' },
-      { id: 'language', target: '[data-guide="language-control"], [data-guide="app-menu"]', title: 'Escolha o idioma de comunicação', body: 'Defina inglês, português ou espanhol agora. O guia, o Maxxis e as mensagens do sistema seguirão essa preferência.' },
-      { id: 'maxxis', target: '[data-guide="maxxis-widget"]', title: 'Conheça o Maxxis AI', body: 'O Maxxis tira dúvidas, explica fluxos e pode levar você diretamente ao módulo onde uma ação precisa ser feita.' },
-      { id: 'onboarding-launcher', target: '[data-guide="onboarding-launcher"]', title: 'Crie seu primeiro card', body: 'No celular use New Card. No desktop use o card Registre-se. Vamos acompanhar todos os campos obrigatórios.', nextTour: 'onboarding', nextPage: 'onboarding' },
+      { id: 'maxxis', target: '[data-guide="maxxis-widget"]', title: 'Conheça primeiro o Maxxis AI', body: 'O Maxxis é seu guia e tira-dúvidas do app. Ele segue o idioma selecionado e pode levar você diretamente ao módulo onde uma ação precisa ser feita.', nextTour: 'onboarding', nextPage: 'onboarding' },
     ],
     onboarding: [
       { id: 'account', target: '[data-guide="onboarding-account"]', title: 'Escolha o contexto da conta', body: 'Selecione Professional ou For Sale by Owner. Você pode manter mais de um perfil independente.' },
@@ -100,7 +99,12 @@ const COPY = {
       { id: 'people', target: '[data-guide="matches-people"]', title: 'Pessoas e contatos desbloqueados', body: 'Esta coluna contém matches e desbloqueios reais. Selecione um perfil para abrir conversa e portfólio.' },
       { id: 'interests', target: '[data-guide="matches-interests"]', title: 'Interesses em propriedades', body: 'Filtre propriedades salvas ou desbloqueadas por status e estado. Os direitos são iguais em todos os devices.' },
       { id: 'conversation', target: '[data-guide="matches-conversation"]', title: 'Continue a conversa', body: 'O chat funciona quando plano e preferência de contato permitem. Alertas do sistema explicam qualquer restrição.' },
-      { id: 'portfolio', target: '[data-guide="matches-portfolio"]', title: 'Confira o portfólio', body: 'Veja canais desbloqueados, serviços e propriedades vinculados ao responsável selecionado.', completesCycle: true },
+      { id: 'portfolio', target: '[data-guide="matches-portfolio"]', title: 'Confira o portfólio', body: 'Veja canais desbloqueados, serviços e propriedades vinculados ao responsável selecionado.' },
+      { id: 'property-detail', target: '[data-guide="matches-property-detail"]', optionalTarget: true, title: 'Abra os dados completos da propriedade', body: 'Selecione uma propriedade vinculada para expandir fotos, descrição, números, estratégia e todos os dados da oportunidade.' },
+      { id: 'export', target: '[data-guide="matches-export"]', optionalTarget: true, title: 'Exporte e analise a oportunidade', body: 'Use Exportar para gerar o release da propriedade, preparar dados por e-mail ou enviar a oportunidade ao Maxxis AI para análise.', nextTour: 'settings' },
+    ],
+    settings: [
+      { id: 'menu', target: '[data-guide="app-settings-menu"]', title: 'Configurações do sistema', body: 'Use este menu para gerenciar perfil, notificações, idioma, tema, planos, privacidade e comunicação com o suporte.', completesCycle: true },
     ],
   },
   es: {
@@ -117,10 +121,7 @@ const COPY = {
       videoSoon: 'El video general está en preparación. Este espacio ya está listo para recibirlo sin cambiar el flujo inicial.',
     },
     initial: [
-      { id: 'overview', kind: 'video', title: 'Bienvenido a DealSifter Match', body: 'Comienza con una visión general: crea tu presencia, publica oportunidades, descubre cards y construye conexiones.' },
-      { id: 'language', target: '[data-guide="language-control"], [data-guide="app-menu"]', title: 'Elige el idioma de comunicación', body: 'Configura inglés, portugués o español. La guía, Maxxis y los mensajes del sistema seguirán esta preferencia.' },
-      { id: 'maxxis', target: '[data-guide="maxxis-widget"]', title: 'Conoce a Maxxis AI', body: 'Maxxis responde dudas, explica flujos y puede llevarte al módulo donde debes completar una acción.' },
-      { id: 'onboarding-launcher', target: '[data-guide="onboarding-launcher"]', title: 'Crea tu primer card', body: 'En móvil usa New Card. En desktop usa el card de registro. Te guiaremos por todos los campos obligatorios.', nextTour: 'onboarding', nextPage: 'onboarding' },
+      { id: 'maxxis', target: '[data-guide="maxxis-widget"]', title: 'Conoce primero a Maxxis AI', body: 'Maxxis es tu guía y asistente de dudas del app. Sigue el idioma seleccionado y puede llevarte directamente al módulo donde debes completar una acción.', nextTour: 'onboarding', nextPage: 'onboarding' },
     ],
     onboarding: [
       { id: 'account', target: '[data-guide="onboarding-account"]', title: 'Elige el contexto de la cuenta', body: 'Selecciona Professional o For Sale by Owner. Puedes mantener perfiles independientes.' },
@@ -152,7 +153,12 @@ const COPY = {
       { id: 'people', target: '[data-guide="matches-people"]', title: 'Personas y contactos desbloqueados', body: 'Esta columna contiene matches y unlocks reales. Selecciona un perfil para abrir conversación y portafolio.' },
       { id: 'interests', target: '[data-guide="matches-interests"]', title: 'Intereses en propiedades', body: 'Filtra propiedades guardadas o desbloqueadas por estado y situación.' },
       { id: 'conversation', target: '[data-guide="matches-conversation"]', title: 'Continúa la conversación', body: 'El chat depende del plan y preferencias de contacto. Las alertas explican cualquier restricción.' },
-      { id: 'portfolio', target: '[data-guide="matches-portfolio"]', title: 'Revisa el portafolio', body: 'Consulta canales desbloqueados, servicios y propiedades del responsable.', completesCycle: true },
+      { id: 'portfolio', target: '[data-guide="matches-portfolio"]', title: 'Revisa el portafolio', body: 'Consulta canales desbloqueados, servicios y propiedades del responsable.' },
+      { id: 'property-detail', target: '[data-guide="matches-property-detail"]', optionalTarget: true, title: 'Abre los datos completos de la propiedad', body: 'Selecciona una propiedad vinculada para ampliar fotos, descripción, números, estrategia y todos los datos de la oportunidad.' },
+      { id: 'export', target: '[data-guide="matches-export"]', optionalTarget: true, title: 'Exporta y analiza la oportunidad', body: 'Usa Exportar para generar el release, preparar datos por email o enviar la oportunidad a Maxxis AI para análisis.', nextTour: 'settings' },
+    ],
+    settings: [
+      { id: 'menu', target: '[data-guide="app-settings-menu"]', title: 'Configuración del sistema', body: 'Usa este menú para administrar perfil, notificaciones, idioma, tema, planes, privacidad y comunicación con soporte.', completesCycle: true },
     ],
   },
 };

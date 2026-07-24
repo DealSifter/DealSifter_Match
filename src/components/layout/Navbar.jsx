@@ -288,6 +288,17 @@ export function Navbar({ page, prevPage, setPage, nuggets = 0, setModal = () => 
     return () => window.clearTimeout(closeTimer);
   }, [guideTipsEnabled, isAppCompact]);
 
+  useEffect(() => {
+    const handleGuideStep = (event) => {
+      const target = String(event?.detail?.target || '');
+      if (!target.includes('app-settings-menu') || !isAppCompact) return;
+      setAppNotifOpen(false);
+      setAppMenuOpen(true);
+    };
+    window.addEventListener('ds-guidetip-step', handleGuideStep);
+    return () => window.removeEventListener('ds-guidetip-step', handleGuideStep);
+  }, [isAppCompact]);
+
   const markSystemAsRead = () => {
     setSystemNotifications((prev) => (prev || []).map((n) => ({ ...n, read: true })));
     setDeferredSystemIds([]);
@@ -634,7 +645,7 @@ export function Navbar({ page, prevPage, setPage, nuggets = 0, setModal = () => 
                             {t.profile || 'Profile'}
                           </div>
 
-                          <button onClick={openAppSettings} style={{ width: '100%', display: 'flex', alignItems: 'center', gap: 10, borderRadius: 10, border: `1px solid ${C.border}`, background: 'transparent', color: C.t2, fontWeight: 700, fontSize: 14, padding: '10px 12px', cursor: 'pointer' }}>
+                          <button data-guide="app-settings-menu" onClick={openAppSettings} style={{ width: '100%', display: 'flex', alignItems: 'center', gap: 10, borderRadius: 10, border: `1px solid ${C.border}`, background: 'transparent', color: C.t2, fontWeight: 700, fontSize: 14, padding: '10px 12px', cursor: 'pointer' }}>
                             <Icon name="user" size={15} color={C.t2} />
                             <span>{t.editProfile || 'Edit profile'}</span>
                           </button>
@@ -855,6 +866,7 @@ export function Navbar({ page, prevPage, setPage, nuggets = 0, setModal = () => 
                   <Icon name={themeToggleIcon} size={18} color={C.t2} strokeWidth={1.9} />
                 </button>
                 <button
+                  data-guide="app-settings-menu"
                   onClick={onOpenSettings}
                   title={t.editProfile || 'Edit profile'}
                   style={headerIconButtonStyle}
