@@ -35,7 +35,7 @@ import {
   isPropertyUnlocked as isCanonicalPropertyUnlocked,
 } from '../services/unlockedContactService';
 import { useUnlockNotifications } from '../hooks/useUnlockNotifications';
-import appLogo from '../assets/logo-dark-theme.png';
+const releaseDarkLogo = '/logo%20tema%20preto.png';
 
 const PROPERTIES = import.meta.env.DEV ? (_MOCK_PROPERTIES || []) : [];
 const SERVICE_PORTFOLIO = import.meta.env.DEV ? (_MOCK_SERVICE_PORTFOLIO || []) : [];
@@ -860,6 +860,29 @@ function PortfolioDetail({ item, owner, ownerContact = null, isOwnerUnlocked = f
 
   const getExportImageUrls = () => {
     const fullItem = resolveFullExportItem();
+    const imageIdentity = (value) => {
+      const normalized = normalizeExportImageUrl(value);
+      if (!normalized || typeof normalized !== 'string') return '';
+      if (normalized.startsWith('data:')) return normalized;
+      try {
+        const parsed = new URL(normalized, window.location.origin);
+        return decodeURIComponent(parsed.pathname).toLowerCase();
+      } catch {
+        return String(normalized).split(/[?#]/)[0].toLowerCase();
+      }
+    };
+    const ownerAvatarKeys = new Set([
+      owner?.photo,
+      owner?.avatar,
+      owner?.avatarUrl,
+      owner?.avatar_url,
+      owner?.image,
+      owner?.imageUrl,
+      owner?.image_url,
+      owner?.thumbnail,
+      owner?.thumbnailUrl,
+      owner?.thumbnail_url,
+    ].map(imageIdentity).filter(Boolean));
     const raw = [
       fullItem?.coverImage,
       fullItem?.cover_image,
@@ -894,6 +917,10 @@ function PortfolioDetail({ item, owner, ownerContact = null, isOwnerUnlocked = f
     ];
     const seen = new Set();
     return raw.map(normalizeExportImageUrl).filter(Boolean).filter((entry) => {
+      const identity = imageIdentity(entry);
+      const isProfileAsset = identity.includes('/profile-images/')
+        || /(^|[/_-])(avatar|profile-avatar)([./_-]|$)/i.test(identity);
+      if (isProfileAsset || ownerAvatarKeys.has(identity)) return false;
       const key = typeof entry === 'string' ? entry : `${entry?.type || 'blob'}:${entry?.size || ''}:${entry?.name || ''}`;
       if (seen.has(key)) return false;
       seen.add(key);
@@ -1078,7 +1105,7 @@ function PortfolioDetail({ item, owner, ownerContact = null, isOwnerUnlocked = f
     const maxTextWidth = pageWidth - margin * 2;
     let y = margin;
 
-    const logo = await fetchImageData(appLogo, 1200, 420);
+    const logo = await fetchImageData(releaseDarkLogo, 1200, 420);
     const normalizedImageUrls = Array.isArray(imageUrls) && imageUrls.length ? imageUrls : getExportImageUrls();
     const imageResults = await Promise.all([
       fetchImageData(normalizedImageUrls?.[0], 2600, 1000),
@@ -1172,10 +1199,10 @@ function PortfolioDetail({ item, owner, ownerContact = null, isOwnerUnlocked = f
       doc.setDrawColor(208, 216, 229);
       doc.roundedRect(x, yy, w, h, 6, 6, 'FD');
 
-      doc.setFillColor(234, 238, 244);
+      doc.setFillColor(19, 19, 19);
       doc.roundedRect(x + 1, yy + 1, w - 2, 22, 5, 5, 'F');
       doc.setFont('helvetica', 'bold');
-      doc.setTextColor(46, 56, 72);
+      doc.setTextColor(255, 255, 255);
       doc.setFontSize(10.5);
       doc.text(titleText, x + 8, yy + 15);
 
@@ -1314,10 +1341,10 @@ function PortfolioDetail({ item, owner, ownerContact = null, isOwnerUnlocked = f
         .slice(0, 4);
       const fallbackTopics = topicSections.length ? topicSections : sections.slice(0, 4);
 
-      doc.setFillColor(13, 24, 21);
+      doc.setFillColor(19, 19, 19);
       doc.roundedRect(margin, y, maxTextWidth, 38, 8, 8, 'F');
       if (logo) {
-        drawImageContain(doc, logo.dataUrl, logo.format, margin + 10, y + 6, 125, 26);
+        drawImageContain(doc, logo.dataUrl, logo.format, margin + 10, y + 3, 164, 32);
       }
       doc.setFont('helvetica', 'bold');
       doc.setTextColor(53, 202, 201);
@@ -1427,10 +1454,10 @@ function PortfolioDetail({ item, owner, ownerContact = null, isOwnerUnlocked = f
     };
 
     // Branded header using the same complete logo image used in the app header.
-    doc.setFillColor(13, 24, 21);
+    doc.setFillColor(19, 19, 19);
     doc.roundedRect(margin, y, maxTextWidth, 42, 8, 8, 'F');
     if (logo) {
-      drawImageContain(doc, logo.dataUrl, logo.format, margin + 10, y + 6, 145, 30);
+      drawImageContain(doc, logo.dataUrl, logo.format, margin + 10, y + 4, 190, 34);
     }
     doc.setFont('helvetica', 'bold');
     doc.setTextColor(53, 202, 201);
@@ -1442,7 +1469,7 @@ function PortfolioDetail({ item, owner, ownerContact = null, isOwnerUnlocked = f
     doc.text(`${matchesT.generated || 'Generated'}: ${new Date().toLocaleString()}`, pageWidth - margin - 10, y + 31, { align: 'right' });
     y += 52;
 
-    const heroH = 118;
+    const heroH = 102;
     const heroGap = 12;
     const heroLeftW = Math.floor((maxTextWidth - heroGap) * 0.52);
     const heroRightW = maxTextWidth - heroLeftW - heroGap;
@@ -1491,13 +1518,6 @@ function PortfolioDetail({ item, owner, ownerContact = null, isOwnerUnlocked = f
       if (chipX > margin + heroLeftW - 80) break;
     }
 
-    doc.setFont('helvetica', 'normal');
-    doc.setFontSize(8.4);
-    doc.setTextColor(72, 84, 102);
-    const noteSnippet = safe(item?.description || ownerNotes || '-', '-');
-    const noteLines = doc.splitTextToSize(noteSnippet, heroLeftW - 16);
-    doc.text((noteLines[0] || '-') + (noteLines[1] ? '...' : ''), margin + 8, y + 108);
-
     doc.setFillColor(244, 247, 250);
     doc.setDrawColor(205, 216, 232);
     doc.roundedRect(heroRightX, y, heroRightW, heroH, 10, 10, 'FD');
@@ -1542,8 +1562,10 @@ function PortfolioDetail({ item, owner, ownerContact = null, isOwnerUnlocked = f
     doc.setFillColor(249, 250, 252);
     doc.setDrawColor(208, 216, 229);
     doc.roundedRect(margin, y, maxTextWidth, notesBlockH, 6, 6, 'FD');
+    doc.setFillColor(19, 19, 19);
+    doc.roundedRect(margin + 1, y + 1, maxTextWidth - 2, 22, 5, 5, 'F');
     doc.setFont('helvetica', 'bold');
-    doc.setTextColor(46, 56, 72);
+    doc.setTextColor(255, 255, 255);
     doc.setFontSize(10.5);
     doc.text(pdfLabel('notes', 'Notes'), margin + 8, y + 16);
     doc.setFont('helvetica', 'normal');
@@ -1552,7 +1574,7 @@ function PortfolioDetail({ item, owner, ownerContact = null, isOwnerUnlocked = f
     const notesLines = doc.splitTextToSize(ownerNotes || '-', maxTextWidth - 16);
     const maxNotesLines = 3;
     for (let i = 0; i < Math.min(maxNotesLines, notesLines.length); i += 1) {
-      doc.text(notesLines[i], margin + 8, y + 29 + (i * 9));
+      doc.text(notesLines[i], margin + 8, y + 34 + (i * 8));
     }
     y += notesBlockH + 10;
 
@@ -1567,8 +1589,10 @@ function PortfolioDetail({ item, owner, ownerContact = null, isOwnerUnlocked = f
       doc.setFillColor(249, 250, 252);
       doc.setDrawColor(208, 216, 229);
       doc.roundedRect(margin, y, maxTextWidth, galleryH, 6, 6, 'FD');
+      doc.setFillColor(19, 19, 19);
+      doc.roundedRect(margin + 1, y + 1, maxTextWidth - 2, galleryTitleH, 5, 5, 'F');
       doc.setFont('helvetica', 'bold');
-      doc.setTextColor(46, 56, 72);
+      doc.setTextColor(255, 255, 255);
       doc.setFontSize(10.2);
       doc.text(pdfLabel('photos', 'Additional Photos'), margin + 8, y + 15);
 
@@ -1611,8 +1635,10 @@ function PortfolioDetail({ item, owner, ownerContact = null, isOwnerUnlocked = f
       doc.setFillColor(249, 250, 252);
       doc.setDrawColor(208, 216, 229);
       doc.roundedRect(margin, y, maxTextWidth, mapH, 6, 6, 'FD');
+      doc.setFillColor(19, 19, 19);
+      doc.roundedRect(margin + 1, y + 1, maxTextWidth - 2, 22, 5, 5, 'F');
       doc.setFont('helvetica', 'bold');
-      doc.setTextColor(46, 56, 72);
+      doc.setTextColor(255, 255, 255);
       doc.setFontSize(10.5);
       doc.text(pdfLabel('exportMapSnapshot', 'Property Map Snapshot'), margin + 8, y + 16);
 
