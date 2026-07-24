@@ -279,6 +279,15 @@ export function Navbar({ page, prevPage, setPage, nuggets = 0, setModal = () => 
     return () => document.removeEventListener('keydown', onKeyDown);
   }, [landingMenuOpen, appMenuOpen]);
 
+  useEffect(() => {
+    if (!guideTipsEnabled || !isAppCompact) return;
+    const closeTimer = window.setTimeout(() => {
+      setAppMenuOpen(false);
+      setAppNotifOpen(false);
+    }, 0);
+    return () => window.clearTimeout(closeTimer);
+  }, [guideTipsEnabled, isAppCompact]);
+
   const markSystemAsRead = () => {
     setSystemNotifications((prev) => (prev || []).map((n) => ({ ...n, read: true })));
     setDeferredSystemIds([]);

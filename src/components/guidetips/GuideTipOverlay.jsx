@@ -169,8 +169,12 @@ export function GuideTipOverlay({ page, setPage, isFreePlan = true }) {
   const focusTop = rect ? Math.max(margin, rect.top - 7) : margin;
   const focusWidth = rect ? rect.width + 14 : 0;
   const focusHeight = rect ? rect.height + 14 : 0;
-  const targetReady = !step.target || Boolean(rect) || Boolean(step.optionalTarget);
-  const canContinue = (!step.requiresOnboarding || onboardingComplete) && targetReady;
+  const blockedByOnboarding = Boolean(
+    !onboardingComplete
+    && activeTour !== 'initial'
+    && activeTour !== 'onboarding'
+  );
+  const canContinue = !blockedByOnboarding && (!step.requiresOnboarding || onboardingComplete);
   const isLast = stepIndex + 1 >= steps.length;
 
   const goBack = () => setStepIndex((current) => Math.max(0, current - 1));
@@ -197,6 +201,11 @@ export function GuideTipOverlay({ page, setPage, isFreePlan = true }) {
       return;
     }
     setStepIndex((current) => current + 1);
+  };
+  const goToOnboarding = () => {
+    setActiveTour('onboarding');
+    setStepIndex(0);
+    if (page !== 'onboarding') setPage?.('onboarding');
   };
 
   const overlayPiece = {
@@ -289,12 +298,21 @@ export function GuideTipOverlay({ page, setPage, isFreePlan = true }) {
         <div style={{ fontSize: 13, lineHeight: 1.5, color: cardTextSoft, fontWeight: 600 }}>{step.body}</div>
         {targetPending && step.target && !step.optionalTarget ? (
           <div style={{ marginTop: 8, color: C.gold, fontSize: 11, fontWeight: 800 }}>
-            {copy.common.waiting}
+            {copy.common.locating || copy.common.waiting}
           </div>
         ) : null}
-        {step.requiresOnboarding && !onboardingComplete ? (
+        {(blockedByOnboarding || (step.requiresOnboarding && !onboardingComplete)) ? (
           <div style={{ marginTop: 10, borderRadius: 9, border: '1px solid #efb6b6', background: '#fff4f4', color: '#b42318', padding: '8px 10px', fontSize: 11, fontWeight: 800 }}>
             {copy.common.profileRequired}
+            {blockedByOnboarding ? (
+              <button
+                type="button"
+                onClick={goToOnboarding}
+                style={{ width: '100%', marginTop: 8, border: '1px solid #b42318', background: '#fff', color: '#b42318', borderRadius: 8, padding: '8px 10px', fontSize: 11, fontWeight: 900, cursor: 'pointer' }}
+              >
+                {copy.common.openOnboarding}
+              </button>
+            ) : null}
           </div>
         ) : null}
         <div style={{ display: 'flex', gap: 8, marginTop: 15 }}>

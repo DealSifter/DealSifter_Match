@@ -1109,8 +1109,9 @@ function PortfolioDetail({ item, owner, ownerContact = null, isOwnerUnlocked = f
     const pageWidth = doc.internal.pageSize.getWidth();
     const pageHeight = doc.internal.pageSize.getHeight();
     const margin = 20;
+    const topMargin = 28;
     const maxTextWidth = pageWidth - margin * 2;
-    let y = margin;
+    let y = topMargin;
 
     const logo = await fetchImageData(releaseDarkLogo, 1200, 420, { preserveAlpha: true });
     const normalizedImageUrls = Array.isArray(imageUrls) && imageUrls.length ? imageUrls : getExportImageUrls();
@@ -1337,7 +1338,7 @@ function PortfolioDetail({ item, owner, ownerContact = null, isOwnerUnlocked = f
     const drawMaxxisAnalysisPage = () => {
       if (!maxxisAnalysisText) return;
       doc.addPage();
-      y = margin;
+      y = topMargin;
 
       const sections = buildAnalysisSections(maxxisAnalysisText);
       const questions = sections.filter((section) => sectionMatches(section, ['question', 'pergunta', 'duvida', 'dúvida', 'pregunta']));
@@ -1585,74 +1586,26 @@ function PortfolioDetail({ item, owner, ownerContact = null, isOwnerUnlocked = f
     }
     y += notesBlockH + 10;
 
-    if (galleryImages.length > 0) {
-      const galleryRows = galleryImages.length > 5 ? 2 : 1;
-      const galleryGap = 6;
-      const galleryTitleH = 18;
-      const galleryInnerW = maxTextWidth - 16;
-      const galleryCellW = (galleryInnerW - galleryGap * 4) / 5;
-      const galleryCellH = galleryRows === 2 ? 42 : 54;
-      const galleryH = galleryTitleH + (galleryRows * galleryCellH) + ((galleryRows - 1) * galleryGap) + 10;
-      doc.setFillColor(249, 250, 252);
-      doc.setDrawColor(208, 216, 229);
-      doc.roundedRect(margin, y, maxTextWidth, galleryH, 6, 6, 'FD');
-      doc.setFillColor(19, 19, 19);
-      doc.roundedRect(margin + 1, y + 1, maxTextWidth - 2, galleryTitleH, 5, 5, 'F');
-      doc.setFont('helvetica', 'bold');
-      doc.setTextColor(255, 255, 255);
-      doc.setFontSize(10.2);
-      doc.text(pdfLabel('photos', 'Additional Photos'), margin + 8, y + 15);
-
-      for (let i = 0; i < Math.min(10, galleryImages.length); i += 1) {
-        const row = Math.floor(i / 5);
-        const col = i % 5;
-        const imgX = margin + 8 + (col * (galleryCellW + galleryGap));
-        const imgY = y + galleryTitleH + (row * (galleryCellH + galleryGap));
-        doc.setDrawColor(205, 216, 232);
-        doc.roundedRect(imgX, imgY, galleryCellW, galleryCellH, 5, 5);
-        const fitted = await renderFittedImageDataUrl({
-          sourceDataUrl: galleryImages[i].dataUrl,
-          targetW: galleryCellW,
-          targetH: galleryCellH,
-          mode: 'cover',
-          radius: 5,
-          background: '#ffffff',
-        });
-        if (fitted) {
-          doc.addImage(fitted, 'JPEG', imgX, imgY, galleryCellW, galleryCellH, undefined, 'FAST');
-        } else {
-          drawImageCover(doc, galleryImages[i].dataUrl, galleryImages[i].format, imgX, imgY, galleryCellW, galleryCellH);
-        }
-        if (i % 3 === 2) await yieldToBrowser();
-      }
-      y += galleryH + 10;
-    }
-
-    // Map snapshot replaces old Additional Notes block.
-    if (y > pageHeight - margin - 92) {
-      doc.addPage();
-      y = margin;
-    }
-    const mapH = pageHeight - y - margin;
-    if (mapH > 90) {
+    const drawMapSection = async (x, sectionY, sectionW, sectionH) => {
+      if (sectionH <= 90) return;
       const coords = getPropertyCoordinates();
       const lat = coords.lat;
       const lng = coords.lng;
       const canRenderMap = Number.isFinite(lat) && Number.isFinite(lng);
       doc.setFillColor(249, 250, 252);
       doc.setDrawColor(208, 216, 229);
-      doc.roundedRect(margin, y, maxTextWidth, mapH, 6, 6, 'FD');
+      doc.roundedRect(x, sectionY, sectionW, sectionH, 6, 6, 'FD');
       doc.setFillColor(19, 19, 19);
-      doc.roundedRect(margin + 1, y + 1, maxTextWidth - 2, 22, 5, 5, 'F');
+      doc.roundedRect(x + 1, sectionY + 1, sectionW - 2, 22, 5, 5, 'F');
       doc.setFont('helvetica', 'bold');
       doc.setTextColor(255, 255, 255);
       doc.setFontSize(10.5);
-      doc.text(pdfLabel('exportMapSnapshot', 'Property Map Snapshot'), margin + 8, y + 16);
+      doc.text(pdfLabel('exportMapSnapshot', 'Property Map Snapshot'), x + 8, sectionY + 16);
 
-      const mapX = margin + 8;
-      const mapY = y + 24;
-      const mapW = maxTextWidth - 16;
-      const mapInnerH = mapH - 32;
+      const mapX = x + 8;
+      const mapY = sectionY + 29;
+      const mapW = sectionW - 16;
+      const mapInnerH = sectionH - 37;
       doc.setDrawColor(205, 216, 232);
       doc.roundedRect(mapX, mapY, mapW, mapInnerH, 5, 5);
 
@@ -1687,6 +1640,100 @@ function PortfolioDetail({ item, owner, ownerContact = null, isOwnerUnlocked = f
         doc.setTextColor(110, 120, 132);
         doc.text(pdfLabel('exportCoordinatesUnavailable', 'Coordinates unavailable for this property.'), mapX + 10, mapY + 20);
       }
+    };
+
+    const drawPhotoSection = async ({
+      x,
+      sectionY,
+      sectionW,
+      sectionH,
+      columns,
+    }) => {
+      const photos = galleryImages.slice(0, 10);
+      if (!photos.length || sectionH <= 70) return;
+      const titleH = 22;
+      const contentTop = sectionY + titleH + 7;
+      const gap = 6;
+      const rows = Math.ceil(photos.length / columns);
+      const innerW = sectionW - 16;
+      const availableH = sectionH - titleH - 17;
+      const cellW = (innerW - (gap * (columns - 1))) / columns;
+      const cellH = Math.max(34, (availableH - (gap * (rows - 1))) / rows);
+
+      doc.setFillColor(249, 250, 252);
+      doc.setDrawColor(208, 216, 229);
+      doc.roundedRect(x, sectionY, sectionW, sectionH, 6, 6, 'FD');
+      doc.setFillColor(19, 19, 19);
+      doc.roundedRect(x + 1, sectionY + 1, sectionW - 2, titleH, 5, 5, 'F');
+      doc.setFont('helvetica', 'bold');
+      doc.setTextColor(255, 255, 255);
+      doc.setFontSize(10.2);
+      doc.text(pdfLabel('photos', 'Additional Photos'), x + 8, sectionY + 16);
+
+      for (let i = 0; i < photos.length; i += 1) {
+        const row = Math.floor(i / columns);
+        const col = i % columns;
+        const imgX = x + 8 + (col * (cellW + gap));
+        const imgY = contentTop + (row * (cellH + gap));
+        doc.setDrawColor(205, 216, 232);
+        doc.roundedRect(imgX, imgY, cellW, cellH, 5, 5);
+        const fitted = await renderFittedImageDataUrl({
+          sourceDataUrl: photos[i].dataUrl,
+          targetW: cellW,
+          targetH: cellH,
+          mode: 'cover',
+          radius: 5,
+          background: '#ffffff',
+        });
+        if (fitted) {
+          doc.addImage(fitted, 'JPEG', imgX, imgY, cellW, cellH, undefined, 'FAST');
+        } else {
+          drawImageCover(doc, photos[i].dataUrl, photos[i].format, imgX, imgY, cellW, cellH);
+        }
+        if (i % 3 === 2) await yieldToBrowser();
+      }
+    };
+
+    const mediaBottom = pageHeight - margin;
+    const mediaAvailableH = mediaBottom - y;
+    if (galleryImages.length > 5 && mediaAvailableH > 150) {
+      const mediaGap = 10;
+      const photosW = Math.floor(maxTextWidth * 0.42);
+      const mapW = maxTextWidth - photosW - mediaGap;
+      await drawPhotoSection({
+        x: margin,
+        sectionY: y,
+        sectionW: photosW,
+        sectionH: mediaAvailableH,
+        columns: 2,
+      });
+      await drawMapSection(
+        margin + photosW + mediaGap,
+        y,
+        mapW,
+        mediaAvailableH,
+      );
+      y += mediaAvailableH;
+    } else {
+      if (galleryImages.length > 0) {
+        const galleryH = 94;
+        await drawPhotoSection({
+          x: margin,
+          sectionY: y,
+          sectionW: maxTextWidth,
+          sectionH: galleryH,
+          columns: 5,
+        });
+        y += galleryH + 10;
+      }
+
+      // Keep the map on the first page whenever the content leaves usable space.
+      if (y > pageHeight - margin - 92) {
+        doc.addPage();
+        y = topMargin;
+      }
+      const mapH = pageHeight - y - margin;
+      await drawMapSection(margin, y, maxTextWidth, mapH);
     }
 
     drawMaxxisAnalysisPage();

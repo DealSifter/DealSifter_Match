@@ -3378,7 +3378,7 @@ export function Dashboard({ page, nuggets, setModal, setPage, onOpenOnboardingTa
             }}
           >
             <div style={{ display:"flex", alignItems:"flex-start", gap:10, marginBottom:8 }}>
-              <div style={{ width:36, height:36, borderRadius:"50%", position:'relative', flexShrink:0 }}>
+              <div data-guide="feed-profile-avatar" style={{ width:36, height:36, borderRadius:"50%", position:'relative', flexShrink:0 }}>
                 {/* Avatar com click para onboarding */}
                 <SmartImage
                   src={quickRegistered && typeof visiblePrimaryCardData?.photo === 'string' && visiblePrimaryCardData.photo.length > 8 ? visiblePrimaryCardData.photo : undefined}

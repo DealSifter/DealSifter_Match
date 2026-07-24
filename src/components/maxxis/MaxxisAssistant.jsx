@@ -539,23 +539,23 @@ export function MaxxisAssistant({ page = 'dashboard', onOpenSupport = null, onNa
               disabled={loading}
               maxLength={1800}
             />
-            <button type="submit" disabled={!canSend} aria-label={t.send} title={t.send}>
-              <Icon name="send" size={16} color="#fff" strokeWidth={2} />
-              <span>{t.send}</span>
-            </button>
+            <div className="maxxis-input-actions">
+              <button className="maxxis-send-button" type="submit" disabled={!canSend} aria-label={t.send} title={t.send}>
+                <Icon name="send" size={16} color="#fff" strokeWidth={2} />
+                <span>{t.send}</span>
+              </button>
+              <button
+                className="maxxis-support-button"
+                type="button"
+                onClick={() => {
+                  setOpen(false);
+                  onOpenSupport?.();
+                }}
+              >
+                {t.support}
+              </button>
+            </div>
           </form>
-
-          <footer className="maxxis-footer">
-            <button
-              type="button"
-              onClick={() => {
-                setOpen(false);
-                onOpenSupport?.();
-              }}
-            >
-              {t.support}
-            </button>
-          </footer>
         </section>
       ) : null}
 

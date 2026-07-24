@@ -5412,9 +5412,9 @@ export default function App() {
 
   const dashboardHydrationReady = profileHydrationReady && portfolioHydrationReady;
   const dashboardHydrationSyncing = isHydratingProfiles || isHydratingPortfolio;
-  const hasAnyProfileRegistered = useMemo(() => {
+  const registeredProfileScopes = useMemo(() => {
     const hasText = (value) => String(value ?? '').trim().length > 0;
-    const hasItems = (value) => Array.isArray(value) && value.some(hasText);
+    const scopes = new Set();
 
     const fsboValid = (
       hasText(personalProfile?.fullNameFsbo || personalProfile?.fsboFullName)
@@ -5425,27 +5425,53 @@ export default function App() {
     );
     const personalValid = (
       hasText(professionalProfile?.fullNameA)
-      && hasText(professionalProfile?.primaryPhoneA || professionalProfile?.phoneA)
-      && hasText(professionalProfile?.emailA)
-      && hasItems(professionalProfile?.contactMethodsA)
-      && hasItems(professionalProfile?.categories)
-      && hasItems(professionalProfile?.markets)
-      && hasText(professionalProfile?.primaryCategory)
+      && (
+        hasText(professionalProfile?.primaryPhoneA || professionalProfile?.phoneA)
+        || hasText(professionalProfile?.emailA)
+      )
     );
     const businessValid = (
       hasText(professionalProfile?.fullNameB)
-      && hasText(professionalProfile?.primaryPhoneB || professionalProfile?.phoneB)
-      && hasText(professionalProfile?.emailB)
-      && hasItems(professionalProfile?.contactMethodsB)
-      && hasItems(professionalProfile?.categoriesB)
-      && hasItems(professionalProfile?.marketsB)
-      && hasText(professionalProfile?.primaryCategoryB)
+      && (
+        hasText(professionalProfile?.primaryPhoneB || professionalProfile?.phoneB)
+        || hasText(professionalProfile?.emailB)
+      )
     );
 
-    return fsboValid || personalValid || businessValid;
+    if (personalValid) scopes.add('personal');
+    if (businessValid) scopes.add('professional');
+    if (fsboValid) scopes.add('fsbo');
+    return scopes;
   }, [personalProfile, professionalProfile]);
 
-  const onboardingMinimumComplete = Boolean(hasAnyProfileRegistered);
+  const hasLinkedPublishedPortfolio = useMemo(() => {
+    if (!registeredProfileScopes.size) return false;
+    const validLinkedRecord = (record, kind) => {
+      const scope = inferRecordProfileScope(record, '');
+      if (!scope || !registeredProfileScopes.has(scope)) return false;
+      if (kind === 'property') {
+        return (
+          isUserOwnedPropertyRecord(record, supabaseUserId)
+          && isTruthyFlag(record?.isActive, true)
+          && isTruthyFlag(record?.publishToShowcase, true)
+          && record?.dealClosed !== true
+        );
+      }
+      return (
+        isUserOwnedServiceRecord(record, supabaseUserId)
+        && isTruthyFlag(record?.publishToConnections, true)
+      );
+    };
+    return (
+      (propertyPortfolio || []).some((record) => validLinkedRecord(record, 'property'))
+      || (servicePortfolio || []).some((record) => validLinkedRecord(record, 'service'))
+    );
+  }, [propertyPortfolio, registeredProfileScopes, servicePortfolio, supabaseUserId]);
+
+  const onboardingMinimumComplete = Boolean(
+    registeredProfileScopes.size > 0
+    && hasLinkedPublishedPortfolio
+  );
   onboardingAccessCompleteRef.current = onboardingMinimumComplete;
   const onboardingNavigationLocked = Boolean(
     authSession
@@ -5459,7 +5485,7 @@ export default function App() {
     addToast({
       type: 'info',
       title: 'Complete onboarding',
-      message: 'Complete and save at least one valid profile to unlock the remaining modules.',
+      message: 'Complete and save at least one valid profile plus one linked property or service to unlock the remaining modules.',
     });
   }, [addToast]);
 
@@ -5732,7 +5758,7 @@ export default function App() {
               setPage={setPage}
               collapsed={mobileBottomNavCollapsed}
               onCollapsedChange={setMobileBottomNavCollapsed}
-              needsPrimaryProfileAttention={!hasAnyProfileRegistered}
+              needsPrimaryProfileAttention={registeredProfileScopes.size === 0}
               navigationLocked={onboardingNavigationLocked}
               onNavigationBlocked={handleOnboardingNavigationBlocked}
             />

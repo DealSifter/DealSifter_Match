@@ -42,11 +42,15 @@ export function GuideTipsProvider({
   useEffect(() => {
     const becameOperational = onboardingComplete && !previousOnboardingCompleteRef.current;
     previousOnboardingCompleteRef.current = onboardingComplete;
-    if (!becameOperational) return;
-    const timer = window.setTimeout(() => setEnabledState(false), 0);
-    try { localStorage.setItem(ENABLED_KEY, '0'); } catch { /* noop */ }
+    if (!becameOperational || progress.cycleCompleted) return;
+    const timer = window.setTimeout(() => {
+      setActiveTour('feed');
+      setStepIndex(0);
+      setEnabledState(true);
+    }, 0);
+    try { localStorage.setItem(ENABLED_KEY, '1'); } catch { /* noop */ }
     return () => window.clearTimeout(timer);
-  }, [onboardingComplete]);
+  }, [onboardingComplete, progress.cycleCompleted]);
 
   const persistProgress = useCallback((next) => {
     setProgress(next);
@@ -64,8 +68,8 @@ export function GuideTipsProvider({
     const storedEnabled = (() => {
       try { return localStorage.getItem(ENABLED_KEY) === '1'; } catch { return false; }
     })();
-    const manuallyEnabled = Boolean(isOperational && next.cycleCompleted && storedEnabled);
-    const mustRun = Boolean(canStart && !isOperational);
+    const manuallyEnabled = Boolean(next.cycleCompleted && storedEnabled);
+    const mustRun = Boolean(canStart && !next.cycleCompleted);
     const timer = window.setTimeout(() => {
       setProgress(next);
       setEnabledState(mustRun || manuallyEnabled);
@@ -80,17 +84,17 @@ export function GuideTipsProvider({
 
   const setEnabled = useCallback((value) => {
     const next = Boolean(value);
-    const mandatory = Boolean(canStart && !onboardingComplete);
+    const mandatory = Boolean(canStart && !progress.cycleCompleted);
     setEnabledState(mandatory || next);
     if (next) {
       setActiveTour(tourForPage(page));
       setStepIndex(0);
     }
     try { localStorage.setItem(ENABLED_KEY, mandatory || next ? '1' : '0'); } catch { /* noop */ }
-  }, [canStart, onboardingComplete, page]);
+  }, [canStart, page, progress.cycleCompleted]);
 
   const toggle = useCallback(() => {
-    const mandatory = Boolean(canStart && !onboardingComplete);
+    const mandatory = Boolean(canStart && !progress.cycleCompleted);
     if (mandatory) {
       setEnabledState(true);
       return;
@@ -104,7 +108,7 @@ export function GuideTipsProvider({
       try { localStorage.setItem(ENABLED_KEY, next ? '1' : '0'); } catch { /* noop */ }
       return next;
     });
-  }, [canStart, onboardingComplete, page]);
+  }, [canStart, page, progress.cycleCompleted]);
 
   const startTour = useCallback((tourId, options = {}) => {
     const normalized = tourForPage(tourId === 'feed' ? 'dashboard' : tourId);
@@ -138,7 +142,7 @@ export function GuideTipsProvider({
     return () => window.removeEventListener('ds-guidetips-start', onStartTour);
   }, [page, startTour]);
 
-  const mandatory = Boolean(canStart && !onboardingComplete);
+  const mandatory = Boolean(canStart && !progress.cycleCompleted);
   const value = useMemo(() => ({
     enabled,
     setEnabled,
