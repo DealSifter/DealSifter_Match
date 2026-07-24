@@ -128,12 +128,32 @@ export function GuideTipOverlay({ page, setPage, isFreePlan = true }) {
   const margin = 12;
   const cardW = Math.min(380, Math.max(280, window.innerWidth - 28));
   const cardHGuess = step.kind === 'video' ? 390 : 230;
+  const wideViewport = window.innerWidth >= 768;
+  const roomOnLeft = rect ? rect.left - margin * 2 : 0;
+  const roomOnRight = rect ? window.innerWidth - rect.right - margin * 2 : 0;
+  const placeBesideTarget = Boolean(
+    rect
+    && wideViewport
+    && Math.max(roomOnLeft, roomOnRight) >= cardW
+  );
+  const placeOnRight = placeBesideTarget && roomOnRight >= cardW && roomOnRight >= roomOnLeft;
   const below = rect ? rect.bottom + 14 + cardHGuess < window.innerHeight : false;
   const left = rect
-    ? Math.min(Math.max(14, rect.left + rect.width / 2 - cardW / 2), window.innerWidth - cardW - 14)
+    ? (
+      placeBesideTarget
+        ? (placeOnRight ? rect.right + margin : rect.left - cardW - margin)
+        : Math.min(Math.max(14, rect.left + rect.width / 2 - cardW / 2), window.innerWidth - cardW - 14)
+    )
     : Math.max(14, (window.innerWidth - cardW) / 2);
   const top = rect
-    ? (below ? rect.bottom + 12 : Math.max(70, rect.top - cardHGuess - 12))
+    ? (
+      placeBesideTarget
+        ? Math.min(
+          Math.max(70, rect.top + rect.height / 2 - cardHGuess / 2),
+          Math.max(70, window.innerHeight - cardHGuess - 18),
+        )
+        : (below ? rect.bottom + 12 : Math.max(70, rect.top - cardHGuess - 12))
+    )
     : Math.max(72, (window.innerHeight - cardHGuess) / 2);
   const progress = `${stepIndex + 1}/${steps.length}`;
   const isDark = theme === 'dark';
@@ -269,9 +289,9 @@ export function GuideTipOverlay({ page, setPage, isFreePlan = true }) {
             {copy.common.waiting}
           </div>
         ) : null}
-        {!canContinue ? (
+        {step.requiresOnboarding && !onboardingComplete ? (
           <div style={{ marginTop: 10, borderRadius: 9, border: '1px solid #efb6b6', background: '#fff4f4', color: '#b42318', padding: '8px 10px', fontSize: 11, fontWeight: 800 }}>
-            {copy.common.waiting}: 1 profile + 1 linked property or service.
+            {copy.common.profileRequired}
           </div>
         ) : null}
         <div style={{ display: 'flex', gap: 8, marginTop: 15 }}>

@@ -5413,54 +5413,39 @@ export default function App() {
   const dashboardHydrationReady = profileHydrationReady && portfolioHydrationReady;
   const dashboardHydrationSyncing = isHydratingProfiles || isHydratingPortfolio;
   const hasAnyProfileRegistered = useMemo(() => {
-    const hasValue = (value) => String(value ?? '').trim().length > 0;
-    return (
-      hasValue(personalProfile?.fullNameFsbo)
-      || hasValue(personalProfile?.fsboFullName)
-      || hasValue(personalProfile?.primaryPhoneFsbo)
-      || hasValue(personalProfile?.phoneFsbo)
-      || hasValue(personalProfile?.emailFsbo)
-      || hasValue(personalProfile?.fsboEmail)
-      || hasValue(personalProfile?.photoFsbo)
-      || hasValue(personalProfile?.fsboPhoto)
-      || hasValue(professionalProfile?.fullNameA)
-      || hasValue(professionalProfile?.primaryPhoneA)
-      || hasValue(professionalProfile?.emailA)
-      || hasValue(professionalProfile?.photoA)
-      || hasValue(professionalProfile?.category)
-      || hasValue(professionalProfile?.primaryCategory)
-      || hasValue(professionalProfile?.fullNameB)
-      || hasValue(professionalProfile?.primaryPhoneB)
-      || hasValue(professionalProfile?.emailB)
-      || hasValue(professionalProfile?.photoB)
-      || hasValue(professionalProfile?.photoBUrl)
-      || hasValue(professionalProfile?.categoryB)
-      || hasValue(professionalProfile?.primaryCategoryB)
+    const hasText = (value) => String(value ?? '').trim().length > 0;
+    const hasItems = (value) => Array.isArray(value) && value.some(hasText);
+
+    const fsboValid = (
+      hasText(personalProfile?.fullNameFsbo || personalProfile?.fsboFullName)
+      && (
+        hasText(personalProfile?.primaryPhoneFsbo || personalProfile?.phoneFsbo)
+        || hasText(personalProfile?.emailFsbo || personalProfile?.fsboEmail)
+      )
     );
+    const personalValid = (
+      hasText(professionalProfile?.fullNameA)
+      && hasText(professionalProfile?.primaryPhoneA || professionalProfile?.phoneA)
+      && hasText(professionalProfile?.emailA)
+      && hasItems(professionalProfile?.contactMethodsA)
+      && hasItems(professionalProfile?.categories)
+      && hasItems(professionalProfile?.markets)
+      && hasText(professionalProfile?.primaryCategory)
+    );
+    const businessValid = (
+      hasText(professionalProfile?.fullNameB)
+      && hasText(professionalProfile?.primaryPhoneB || professionalProfile?.phoneB)
+      && hasText(professionalProfile?.emailB)
+      && hasItems(professionalProfile?.contactMethodsB)
+      && hasItems(professionalProfile?.categoriesB)
+      && hasItems(professionalProfile?.marketsB)
+      && hasText(professionalProfile?.primaryCategoryB)
+    );
+
+    return fsboValid || personalValid || businessValid;
   }, [personalProfile, professionalProfile]);
 
-  const hasLinkedPublishedPortfolio = useMemo(() => {
-    const validScope = (record) => ['personal', 'professional', 'fsbo'].includes(
-      String(record?.primaryProfile || record?.primary_profile || record?.profileScope || record?.profile_scope || record?.linkToProfile || '').trim().toLowerCase(),
-    );
-    const activeProperty = (propertyPortfolio || []).some((record) => (
-      record
-      && record.dealClosed !== true
-      && record.isActive !== false
-      && record.publishToShowcase !== false
-      && validScope(record)
-    ));
-    const activeService = (servicePortfolio || []).some((record) => (
-      record
-      && record.dealClosed !== true
-      && record.isActive !== false
-      && record.publishToConnections !== false
-      && validScope(record)
-    ));
-    return activeProperty || activeService;
-  }, [propertyPortfolio, servicePortfolio]);
-
-  const onboardingMinimumComplete = Boolean(hasAnyProfileRegistered && hasLinkedPublishedPortfolio);
+  const onboardingMinimumComplete = Boolean(hasAnyProfileRegistered);
   onboardingAccessCompleteRef.current = onboardingMinimumComplete;
   const onboardingNavigationLocked = Boolean(
     authSession
@@ -5474,7 +5459,7 @@ export default function App() {
     addToast({
       type: 'info',
       title: 'Complete onboarding',
-      message: 'Publish at least one profile with one linked property or service to unlock the remaining modules.',
+      message: 'Complete and save at least one valid profile to unlock the remaining modules.',
     });
   }, [addToast]);
 

@@ -6,6 +6,7 @@ const COPY = {
       back: 'Back',
       finish: 'Finish tour',
       waiting: 'Complete this step to continue',
+      profileRequired: 'Complete and save at least one valid profile to continue.',
       skip: 'Close guide',
       videoSoon: 'The overview video is being prepared. This space is ready to receive it without changing the first-access flow.',
     },
@@ -53,6 +54,7 @@ const COPY = {
       back: 'Voltar',
       finish: 'Concluir tour',
       waiting: 'Conclua esta etapa para continuar',
+      profileRequired: 'Preencha e salve pelo menos um perfil valido para continuar.',
       skip: 'Fechar guia',
       videoSoon: 'O vídeo overview está em elaboração. Este espaço já está preparado para recebê-lo sem alterar o fluxo de primeiro acesso.',
     },
@@ -100,6 +102,7 @@ const COPY = {
       back: 'Volver',
       finish: 'Finalizar tour',
       waiting: 'Completa este paso para continuar',
+      profileRequired: 'Completa y guarda al menos un perfil valido para continuar.',
       skip: 'Cerrar guía',
       videoSoon: 'El video general está en preparación. Este espacio ya está listo para recibirlo sin cambiar el flujo inicial.',
     },
@@ -146,4 +149,3 @@ export function getGuideTourCopy(language) {
   const lang = String(language || 'en').slice(0, 2).toLowerCase();
   return COPY[lang] || COPY.en;
 }
-
