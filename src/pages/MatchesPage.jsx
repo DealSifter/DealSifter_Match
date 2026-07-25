@@ -3212,6 +3212,15 @@ export function MatchesPage({ nuggets, isAdmin = false, setModal, openUnlock, un
       const target = String(event?.detail?.target || '');
       if (target.includes('matches-people')) setMobileTab('connections');
       if (target.includes('matches-interests')) setMobileTab('interests');
+      const needsActiveContact = (
+        target.includes('matches-conversation')
+        || target.includes('matches-portfolio')
+        || target.includes('matches-property-detail')
+        || target.includes('matches-export')
+      );
+      if (needsActiveContact && !active) {
+        setActive(filteredMatched[0] || filteredInterested[0] || null);
+      }
       if (target.includes('matches-conversation')) setMobileChatTab('chat');
       if (target.includes('matches-portfolio')) setMobileChatTab('portfolio');
       if (target.includes('matches-property-detail') || target.includes('matches-export')) {
@@ -3226,7 +3235,7 @@ export function MatchesPage({ nuggets, isAdmin = false, setModal, openUnlock, un
     };
     window.addEventListener('ds-guidetip-step', handleGuideStep);
     return () => window.removeEventListener('ds-guidetip-step', handleGuideStep);
-  }, [isMobile, portfolioItems]);
+  }, [active, filteredInterested, filteredMatched, isMobile, portfolioItems]);
   const [mobileCardSheet, setMobileCardSheet] = useState(null);
 
   useEffect(() => {
@@ -4192,7 +4201,6 @@ export function MatchesPage({ nuggets, isAdmin = false, setModal, openUnlock, un
                   </button>
                   <button
                     type="button"
-                    data-guide="matches-portfolio"
                     onClick={() => setMobileChatTab('portfolio')}
                     style={{ flex:1, padding:'10px 4px', border:'none', borderBottom:`2px solid ${mobileChatTab==='portfolio' ? C.accent : 'transparent'}`, background:'transparent', color:mobileChatTab==='portfolio' ? C.accent : C.t2, fontWeight:700, fontSize:12, cursor:'pointer', transition:'all .15s' }}
                   >

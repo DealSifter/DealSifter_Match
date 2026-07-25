@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { C } from '../../theme/colors';
 import { useTheme } from '../../theme/hooks';
 import { Icon } from '../ui/Icon';
@@ -54,15 +54,28 @@ export function GuideTipOverlay({ page, setPage, isFreePlan = true }) {
   const step = steps[stepIndex] || null;
   const [targetSnapshot, setTargetSnapshot] = useState({ selector: null, rect: null });
   const [targetPending, setTargetPending] = useState(false);
+  const [mobileDragOffset, setMobileDragOffset] = useState({ x: 0, y: 0 });
+  const mobileDragRef = useRef(null);
   const overviewVideoUrl = String(import.meta.env.VITE_OVERVIEW_VIDEO_URL || '').trim();
   const rect = targetSnapshot.selector === step?.target ? targetSnapshot.rect : null;
 
   useEffect(() => {
     if (!enabled || !step) return;
-    window.dispatchEvent(new CustomEvent('ds-guidetip-step', {
+    const dispatchStep = () => window.dispatchEvent(new CustomEvent('ds-guidetip-step', {
       detail: { page, tour: activeTour, index: stepIndex, target: step.target, stepId: step.id },
     }));
+    dispatchStep();
+    const retryTimers = [80, 280].map((delay) => window.setTimeout(dispatchStep, delay));
+    return () => retryTimers.forEach((timer) => window.clearTimeout(timer));
   }, [activeTour, enabled, page, step, stepIndex]);
+
+  useEffect(() => {
+    const resetTimer = window.setTimeout(() => {
+      setMobileDragOffset({ x: 0, y: 0 });
+      mobileDragRef.current = null;
+    }, 0);
+    return () => window.clearTimeout(resetTimer);
+  }, [activeTour, stepIndex]);
 
   useEffect(() => {
     if (!enabled || !step?.target) {
@@ -132,6 +145,7 @@ export function GuideTipOverlay({ page, setPage, isFreePlan = true }) {
   const isModalStep = !step.target || !rect;
   const margin = 12;
   const cardW = Math.min(380, Math.max(280, window.innerWidth - 28));
+  const mobileViewport = window.innerWidth < 768;
   const cardHGuess = step.kind === 'video' ? 390 : 230;
   const wideViewport = window.innerWidth >= 768;
   const roomOnLeft = rect ? rect.left - margin * 2 : 0;
@@ -160,6 +174,12 @@ export function GuideTipOverlay({ page, setPage, isFreePlan = true }) {
         : (below ? rect.bottom + 12 : Math.max(70, rect.top - cardHGuess - 12))
     )
     : Math.max(72, (window.innerHeight - cardHGuess) / 2);
+  const positionedLeft = mobileViewport
+    ? Math.min(Math.max(8, left + mobileDragOffset.x), Math.max(8, window.innerWidth - cardW - 8))
+    : left;
+  const positionedTop = mobileViewport
+    ? Math.min(Math.max(56, top + mobileDragOffset.y), Math.max(56, window.innerHeight - 150))
+    : top;
   const progress = `${stepIndex + 1}/${steps.length}`;
   const isDark = theme === 'dark';
   const cardText = '#101827';
@@ -207,6 +227,30 @@ export function GuideTipOverlay({ page, setPage, isFreePlan = true }) {
     setStepIndex(0);
     if (page !== 'onboarding') setPage?.('onboarding');
   };
+  const beginMobileDrag = (event) => {
+    if (!mobileViewport || event.button > 0) return;
+    mobileDragRef.current = {
+      pointerId: event.pointerId,
+      clientX: event.clientX,
+      clientY: event.clientY,
+      offsetX: mobileDragOffset.x,
+      offsetY: mobileDragOffset.y,
+    };
+    event.currentTarget.setPointerCapture?.(event.pointerId);
+  };
+  const moveMobileDrag = (event) => {
+    const drag = mobileDragRef.current;
+    if (!drag || drag.pointerId !== event.pointerId) return;
+    setMobileDragOffset({
+      x: drag.offsetX + event.clientX - drag.clientX,
+      y: drag.offsetY + event.clientY - drag.clientY,
+    });
+  };
+  const endMobileDrag = (event) => {
+    if (mobileDragRef.current?.pointerId !== event.pointerId) return;
+    mobileDragRef.current = null;
+    event.currentTarget.releasePointerCapture?.(event.pointerId);
+  };
 
   const overlayPiece = {
     position: 'fixed',
@@ -217,6 +261,37 @@ export function GuideTipOverlay({ page, setPage, isFreePlan = true }) {
 
   return (
     <div aria-live="polite" style={{ position: 'fixed', inset: 0, zIndex: 2147482500, pointerEvents: 'none' }}>
+      {mobileViewport ? (
+        <button
+          type="button"
+          onClick={() => setEnabled(false)}
+          aria-label={copy.common.skip}
+          title={copy.common.skip}
+          style={{
+            position: 'fixed',
+            top: 'max(10px, env(safe-area-inset-top))',
+            left: '50%',
+            transform: 'translateX(-50%)',
+            width: 38,
+            height: 38,
+            borderRadius: '50%',
+            border: `2px solid ${C.gold}`,
+            background: 'rgba(255,255,255,0.08)',
+            color: C.gold,
+            display: 'inline-flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            boxShadow: `0 0 18px ${C.alpha(C.gold, 0.46)}`,
+            backdropFilter: 'blur(8px)',
+            WebkitBackdropFilter: 'blur(8px)',
+            zIndex: 4,
+            pointerEvents: 'auto',
+            cursor: 'pointer',
+          }}
+        >
+          <Icon name="x" size={20} color={C.gold} strokeWidth={2.2} />
+        </button>
+      ) : null}
       {isModalStep ? (
         <div style={{ ...overlayPiece, inset: 0 }} />
       ) : (
@@ -246,8 +321,8 @@ export function GuideTipOverlay({ page, setPage, isFreePlan = true }) {
         aria-label={copy.common.title}
         style={{
           position: 'fixed',
-          left,
-          top,
+          left: positionedLeft,
+          top: positionedTop,
           width: cardW,
           maxHeight: 'calc(100dvh - 88px)',
           overflowY: 'auto',
@@ -263,12 +338,50 @@ export function GuideTipOverlay({ page, setPage, isFreePlan = true }) {
           boxSizing: 'border-box',
         }}
       >
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12, marginBottom: 10 }}>
+        <div
+          onPointerDown={beginMobileDrag}
+          onPointerMove={moveMobileDrag}
+          onPointerUp={endMobileDrag}
+          onPointerCancel={endMobileDrag}
+          style={{
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'space-between',
+            gap: 12,
+            marginBottom: 10,
+            cursor: mobileViewport ? 'grab' : 'default',
+            touchAction: mobileViewport ? 'none' : 'auto',
+            userSelect: 'none',
+          }}
+        >
           <span style={{ display: 'inline-flex', alignItems: 'center', gap: 8, color: C.gold, fontSize: 11, fontWeight: 900, textTransform: 'uppercase' }}>
             <Icon name="lightbulb" size={16} color={C.gold} strokeWidth={2} />
             {copy.common.title}
           </span>
-          <span style={{ color: cardTextMuted, fontSize: 11, fontWeight: 800 }}>{progress}</span>
+          <span style={{ display: 'inline-flex', alignItems: 'center', gap: 8 }}>
+            <span style={{ color: cardTextMuted, fontSize: 11, fontWeight: 800 }}>{progress}</span>
+            {!mobileViewport ? (
+              <button
+                type="button"
+                onClick={() => setEnabled(false)}
+                aria-label={copy.common.skip}
+                title={copy.common.skip}
+                style={{
+                  width: 27,
+                  height: 27,
+                  borderRadius: '50%',
+                  border: `1.5px solid ${C.gold}`,
+                  background: 'transparent',
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  cursor: 'pointer',
+                }}
+              >
+                <Icon name="x" size={15} color={C.gold} strokeWidth={2.1} />
+              </button>
+            ) : null}
+          </span>
         </div>
 
         {step.kind === 'video' ? (

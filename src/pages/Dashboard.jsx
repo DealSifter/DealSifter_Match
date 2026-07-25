@@ -147,7 +147,7 @@ export function Dashboard({ page, nuggets, setModal, setPage, onOpenOnboardingTa
   const FEED_CARD_HEIGHT = Math.round(FEED_CARD_BASE_HEIGHT * FEED_CARD_SCALE);
   const FEED_STACK_SHIFT_X = Math.round(20 * FEED_CARD_SCALE);
   const FEED_STACK_SHIFT_Y = Math.round(24 * FEED_CARD_SCALE);
-  const feedStackBottomGap = isMobileViewport ? 72 : (isTabletPortraitViewport ? 58 : 160);
+  const feedStackBottomGap = isMobileViewport ? 32 : 56;
   const FEED_STACK_CONTAINER_HEIGHT = FEED_CARD_HEIGHT + feedStackBottomGap;
   const tabletFeedSideWidth = isTabletPortraitWideViewport ? 210 : 184;
   const tabletFeedGap = isTabletPortraitWideViewport ? 76 : 58;
@@ -3631,7 +3631,7 @@ export function Dashboard({ page, nuggets, setModal, setPage, onOpenOnboardingTa
               <div style={{ display: 'grid', gridTemplateColumns: isTouchModalViewport ? 'minmax(0, 1fr)' : 'minmax(0, 1fr) minmax(0, 1fr)', gap: isTouchModalViewport ? 14 : 18, alignItems: 'start', minWidth: 0 }}>
                 <section style={{ border: `1px solid ${C.border}`, borderRadius: 14, background: C.card, overflow: 'visible', display: 'grid', gridTemplateRows: 'auto 1fr', minWidth: 0 }}>
                   <div style={{ minHeight: 44, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '8px 10px', borderBottom: `1px solid ${C.border}`, fontSize: 11, color: C.t3, textTransform: 'uppercase', fontWeight: 700 }}>Feed Card (Connections)</div>
-              <div data-guide="feed-view-switch" style={{
+              <div style={{
                     padding: 12,
                     minHeight: myCardPreviewDeckHeight,
                     height: isTouchModalViewport ? 'auto' : myCardPreviewDeckHeight,
@@ -4005,7 +4005,7 @@ export function Dashboard({ page, nuggets, setModal, setPage, onOpenOnboardingTa
             position: 'relative',
             minHeight: isTabletPortraitViewport ? 82 : 38
           }}>
-            <div style={{
+            <div data-guide="feed-view-switch" style={{
               display: 'inline-flex',
               alignItems: 'center',
               gap: 4,
@@ -4140,8 +4140,8 @@ export function Dashboard({ page, nuggets, setModal, setPage, onOpenOnboardingTa
             )}
           </div>
 
-          <div ref={mobileFeedStackRef} data-guide="feed-stack" style={{ position:"relative", width:"100%", minHeight:FEED_STACK_CONTAINER_HEIGHT, overflow:"visible", display:"flex", justifyContent:"center", alignItems:"flex-start", boxSizing:"border-box" }}>
-            <div style={{ position:"relative", width:`min(${FEED_CARD_WIDTH}px, 100%)`, height:FEED_STACK_CONTAINER_HEIGHT, boxShadow: 'none', borderRadius: 0, overflow: 'visible' }}>
+          <div ref={mobileFeedStackRef} style={{ position:"relative", width:"100%", minHeight:FEED_STACK_CONTAINER_HEIGHT, overflow:"visible", display:"flex", justifyContent:"center", alignItems:"flex-start", boxSizing:"border-box" }}>
+            <div data-guide="feed-stack" style={{ position:"relative", width:`min(${FEED_CARD_WIDTH}px, 100%)`, height:FEED_STACK_CONTAINER_HEIGHT, boxShadow: 'none', borderRadius: 18, overflow: 'visible' }}>
               {view==="connections" && (
                 connDisplay.length > 0
                   ? connDisplay.slice(0, 5).reverse().map((c, i) => {

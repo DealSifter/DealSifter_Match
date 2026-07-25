@@ -85,11 +85,13 @@ export function GuideTipsProvider({
   const setEnabled = useCallback((value) => {
     const next = Boolean(value);
     const mandatory = Boolean(canStart && !progress.cycleCompleted);
-    setEnabledState(mandatory || next);
+    setEnabledState(next);
     if (next) {
       setActiveTour(tourForPage(page));
       setStepIndex(0);
     }
+    // Closing only suspends a mandatory tour for the current view. Its enabled
+    // preference remains persisted so the unfinished journey is offered again.
     try { localStorage.setItem(ENABLED_KEY, mandatory || next ? '1' : '0'); } catch { /* noop */ }
   }, [canStart, page, progress.cycleCompleted]);
 
