@@ -131,7 +131,7 @@ function writeFeedDeckSession(key, ids = []) {
   }
 }
 
-export function Dashboard({ page, nuggets, setModal, setPage, onOpenOnboardingTab, openUnlock, unlocked, matched, setMatched, interested, setInterested, purchases, setPurchases, userProfile, personalProfile, professionalProfile, propertyPortfolio, servicePortfolio, accountType, showcaseProperties, categoryOrder, setCategoryOrder, editMode, setEditMode, mobileBottomNavCollapsed = false, addToast, setSystemNotifications = null, isHydrationReady = true, isHydrationSyncing = false, planActionAccess = {}, propertyUnlocks = [], currentUserId = 'local-user', activeSpotlightKeys = new Set(), onOpenSpotlight = null, userPreferences = null }) {
+export function Dashboard({ page, nuggets, setModal, setPage, onOpenOnboardingTab, openUnlock, unlocked, matched, setMatched, interested, setInterested, purchases, setPurchases, userProfile, personalProfile, professionalProfile, propertyPortfolio, servicePortfolio, accountType, showcaseProperties, categoryOrder, setCategoryOrder, editMode, setEditMode, mobileBottomNavCollapsed = false, addToast, setSystemNotifications = null, isHydrationReady = true, isHydrationSyncing = false, planActionAccess = {}, propertyUnlocks = [], currentUserId = 'local-user', activeSpotlightKeys = new Set(), onOpenSpotlight = null, userPreferences = null, onboardingRequired = false }) {
   const isMobileViewport = useMediaQuery('(max-width: 767px)');
   const isTabletPortraitViewport = useMediaQuery('(min-width: 768px) and (max-width: 1080px) and (orientation: portrait)');
   const isTabletLandscapeViewport = useMediaQuery('(min-width: 768px) and (max-width: 1180px) and (orientation: landscape)');
@@ -2135,6 +2135,7 @@ export function Dashboard({ page, nuggets, setModal, setPage, onOpenOnboardingTa
     ? true
     : hasRegisteredLocalProfileCard(visiblePrimaryCardData);
   const showRegistrationNeeded = !isInitialDashboardHydrating && !quickRegistered;
+  const showOnboardingAttention = !isInitialDashboardHydrating && (showRegistrationNeeded || onboardingRequired);
 
   // Persist active category and selected states across navigation/login
   useEffect(() => {
@@ -3367,13 +3368,15 @@ export function Dashboard({ page, nuggets, setModal, setPage, onOpenOnboardingTa
         {/* Left sidebar */}
         <div className="desktop-only dashboard-sidebar">
           <div
+            data-guide={showOnboardingAttention ? 'onboarding-launcher' : undefined}
+            className={showOnboardingAttention ? 'blink' : undefined}
             style={{
               background: C.card,
-              border: `${showRegistrationNeeded ? '2px' : '1px'} solid ${showRegistrationNeeded ? C.danger : C.border}`,
+              border: `${showOnboardingAttention ? '2px' : '1px'} solid ${showOnboardingAttention ? C.danger : C.border}`,
               borderRadius: 14,
               padding: 10,
               marginBottom: 6,
-              boxShadow: showRegistrationNeeded ? `0 0 0 4px ${C.alpha(C.danger, 0.06)}` : 'none',
+              boxShadow: showOnboardingAttention ? `0 0 0 4px ${C.alpha(C.danger, 0.06)}` : 'none',
               cursor: 'default'
             }}
           >
@@ -3469,10 +3472,9 @@ export function Dashboard({ page, nuggets, setModal, setPage, onOpenOnboardingTa
               </div>
             </div>
             {/* Full-width Registro button below stats */}
-            {showRegistrationNeeded && (
+            {showOnboardingAttention && (
               <div style={{ marginTop: 10 }}>
                 <button
-                  data-guide="onboarding-launcher"
                   onClick={(e) => { e.stopPropagation(); setPage('onboarding'); }}
                   className="blink"
                   style={{
@@ -3806,7 +3808,19 @@ export function Dashboard({ page, nuggets, setModal, setPage, onOpenOnboardingTa
                 alignContent: 'start',
               }}
             >
-              <div style={{ background: C.card, border: `1px solid ${C.border}`, borderRadius: 16, padding: isTabletPortraitWideViewport ? 12 : 10, boxShadow: `0 12px 28px ${C.alpha(C.shadow, 0.07)}` }}>
+              <div
+                data-guide={showOnboardingAttention ? 'onboarding-launcher' : undefined}
+                className={showOnboardingAttention ? 'blink' : undefined}
+                style={{
+                  background: C.card,
+                  border: `${showOnboardingAttention ? '2px' : '1px'} solid ${showOnboardingAttention ? C.danger : C.border}`,
+                  borderRadius: 16,
+                  padding: isTabletPortraitWideViewport ? 12 : 10,
+                  boxShadow: showOnboardingAttention
+                    ? `0 0 0 4px ${C.alpha(C.danger, 0.08)}, 0 12px 28px ${C.alpha(C.shadow, 0.07)}`
+                    : `0 12px 28px ${C.alpha(C.shadow, 0.07)}`,
+                }}
+              >
                 <div style={{ display: 'flex', alignItems: 'flex-start', gap: 9, marginBottom: 8 }}>
                   <div style={{ width: isTabletPortraitWideViewport ? 42 : 38, height: isTabletPortraitWideViewport ? 42 : 38, borderRadius: '50%', position: 'relative', flexShrink: 0, background: C.alpha(C.accent, 0.08), overflow: 'hidden' }}>
                     <SmartImage
@@ -3852,6 +3866,30 @@ export function Dashboard({ page, nuggets, setModal, setPage, onOpenOnboardingTa
                     <div style={{ fontSize: 8, color: C.t3 }}>{t.rating}</div>
                   </div>
                 </div>
+                {showOnboardingAttention ? (
+                  <button
+                    type="button"
+                    onClick={(event) => {
+                      event.stopPropagation();
+                      setPage('onboarding');
+                    }}
+                    className="blink"
+                    style={{
+                      width: '100%',
+                      minHeight: 30,
+                      marginTop: 9,
+                      border: 0,
+                      borderRadius: 8,
+                      background: C.danger,
+                      color: '#fff',
+                      fontSize: 10,
+                      fontWeight: 900,
+                      cursor: 'pointer',
+                    }}
+                  >
+                    {t.register || 'Register'}
+                  </button>
+                ) : null}
               </div>
 
               {hasSecondaryProfile && (

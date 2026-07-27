@@ -63,6 +63,7 @@ function NavBtn({
   labelWeight = 700,
   activeGlow = false,
   disabled = false,
+  dataGuideEntry,
 }) {
   const iconColor = active
     ? (iconColorActive || iconColorOverride || C.accent)
@@ -77,7 +78,7 @@ function NavBtn({
   };
 
   return (
-    <button onClick={onClick} style={base} disabled={disabled} aria-disabled={disabled}>
+    <button data-guide-entry={dataGuideEntry} onClick={onClick} style={base} disabled={disabled} aria-disabled={disabled}>
       {iconImage ? (
         <span
           aria-hidden
@@ -468,7 +469,7 @@ export function Navbar({ page, prevPage, setPage, nuggets = 0, setModal = () => 
         {isCompactTopbar ? null : isApp ? (
           <div style={{ display: 'flex', gap: 8, alignItems: 'center', justifySelf: 'center' }}>
             <NavBtn disabled={navigationLocked} iconImage={mapViewTaskbarIcon} iconImageSize={18} iconImageBold iconColorOverride={C.t2} iconColorActive={C.accent} labelWeight={700} label={t.mapView} onClick={() => navigationLocked ? onNavigationBlocked() : setPage && setPage('mapview')} active={page === 'mapview'} />
-            <NavBtn disabled={navigationLocked} iconImage={feedMatchIcon} iconImageSize={18} iconImageBold iconColorOverride={C.t2} iconColorActive={C.accent} labelWeight={700} label={t.feed} onClick={() => navigationLocked ? onNavigationBlocked() : setPage && setPage('dashboard')} active={page === 'dashboard'} />
+            <NavBtn dataGuideEntry="onboarding-entry-module" disabled={navigationLocked} iconImage={feedMatchIcon} iconImageSize={18} iconImageBold iconColorOverride={C.t2} iconColorActive={C.accent} labelWeight={700} label={t.feed} onClick={() => navigationLocked ? onNavigationBlocked() : setPage && setPage('dashboard')} active={page === 'dashboard'} />
             <NavBtn disabled={navigationLocked} iconImage={matchesTaskbarIcon} iconImageSize={18} iconImageBold iconColorOverride={C.t2} iconColorActive={C.accent} labelWeight={700} label={t.matches} onClick={() => navigationLocked ? onNavigationBlocked() : setPage && setPage('matches')} active={page === 'matches'} />
             <NavBtn icon="creditCard" label={t.pricing} onClick={() => setPage && setPage('pricing')} active={page === 'pricing'} />
             {isAdmin ? (

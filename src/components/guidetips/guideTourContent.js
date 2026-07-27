@@ -9,11 +9,18 @@ const COPY = {
       locating: 'Locating the highlighted item...',
       profileRequired: 'Complete and save at least one valid profile plus one linked property or service to continue.',
       openOnboarding: 'Open onboarding',
+      profileRegistration: 'Profile registration',
       skip: 'Close guide',
       videoSoon: 'The overview video is being prepared. This space is ready to receive it without changing the first-access flow.',
     },
     initial: [
-      { id: 'maxxis', target: '[data-guide="maxxis-widget"]', title: 'Meet Maxxis AI first', body: 'Maxxis is your app guide and question assistant. It follows your selected language and can take you directly to the module where an action must be completed.', nextTour: 'onboarding', nextPage: 'onboarding' },
+      { id: 'language', target: '[data-guide="language-control"]', title: 'Choose your language', body: 'Select English, Portuguese or Spanish first. The app, guide and Maxxis will use this preference throughout your journey.' },
+      { id: 'overview', kind: 'video', title: 'See how DealSifter works', body: 'This overview introduces the main journey before you begin your registration.' },
+      { id: 'maxxis', target: '[data-guide="maxxis-widget"]', title: 'Meet Maxxis AI', body: 'Maxxis is your app guide and question assistant. It follows your selected language and can take you directly to the module where an action must be completed.', nextTour: 'onboarding-entry', nextPage: 'dashboard' },
+    ],
+    'onboarding-entry': [
+      { id: 'module-entry', target: '[data-guide-entry="onboarding-entry-module"]', title: 'Start from the registration access', body: 'On desktop and tablet, Feed opens the dashboard where the flashing registration card is located. On mobile, + New Card is the direct access to Onboarding.' },
+      { id: 'registration-entry', target: '[data-guide="onboarding-launcher"]', title: 'Create your first profile', body: 'Use this highlighted access to register at least one profile and link a property or service. The other operating modules remain locked until this minimum is complete.', actionLabel: 'Profile registration', nextTour: 'onboarding', nextPage: 'onboarding' },
     ],
     onboarding: [
       { id: 'account', target: '[data-guide="onboarding-account"]', title: 'Choose the account context', body: 'Select Professional or For Sale by Owner. You may maintain more than one independent profile.' },
@@ -63,11 +70,18 @@ const COPY = {
       locating: 'Localizando o elemento em destaque...',
       profileRequired: 'Preencha e salve pelo menos um perfil válido e uma propriedade ou serviço vinculado para continuar.',
       openOnboarding: 'Abrir cadastro',
+      profileRegistration: 'Cadastro de Perfil',
       skip: 'Fechar guia',
       videoSoon: 'O vídeo overview está em elaboração. Este espaço já está preparado para recebê-lo sem alterar o fluxo de primeiro acesso.',
     },
     initial: [
-      { id: 'maxxis', target: '[data-guide="maxxis-widget"]', title: 'Conheça primeiro o Maxxis AI', body: 'O Maxxis é seu guia e tira-dúvidas do app. Ele segue o idioma selecionado e pode levar você diretamente ao módulo onde uma ação precisa ser feita.', nextTour: 'onboarding', nextPage: 'onboarding' },
+      { id: 'language', target: '[data-guide="language-control"]', title: 'Escolha o idioma do app', body: 'Selecione primeiro inglês, português ou espanhol. O app, o guia e o Maxxis usarão essa preferência durante toda a jornada.' },
+      { id: 'overview', kind: 'video', title: 'Veja como o DealSifter funciona', body: 'Este panorama apresenta a jornada principal antes de você iniciar seu cadastro.' },
+      { id: 'maxxis', target: '[data-guide="maxxis-widget"]', title: 'Conheça o Maxxis AI', body: 'O Maxxis é seu guia e tira-dúvidas do app. Ele segue o idioma selecionado e pode levar você diretamente ao módulo onde uma ação precisa ser feita.', nextTour: 'onboarding-entry', nextPage: 'dashboard' },
+    ],
+    'onboarding-entry': [
+      { id: 'module-entry', target: '[data-guide-entry="onboarding-entry-module"]', title: 'Comece pelo acesso ao cadastro', body: 'No desktop e tablet, o Feed abre o dashboard onde fica o card piscante de registro. No mobile, + New Card é o acesso direto ao Onboarding.' },
+      { id: 'registration-entry', target: '[data-guide="onboarding-launcher"]', title: 'Cadastre seu primeiro perfil', body: 'Use o acesso destacado para cadastrar pelo menos um perfil e vincular uma propriedade ou serviço. Os demais módulos operacionais permanecem bloqueados até concluir esse mínimo.', actionLabel: 'Cadastro de Perfil', nextTour: 'onboarding', nextPage: 'onboarding' },
     ],
     onboarding: [
       { id: 'account', target: '[data-guide="onboarding-account"]', title: 'Escolha o contexto da conta', body: 'Selecione Professional ou For Sale by Owner. Você pode manter mais de um perfil independente.' },
@@ -117,11 +131,18 @@ const COPY = {
       locating: 'Buscando el elemento destacado...',
       profileRequired: 'Completa y guarda al menos un perfil válido y una propiedad o servicio vinculado para continuar.',
       openOnboarding: 'Abrir registro',
+      profileRegistration: 'Registro de Perfil',
       skip: 'Cerrar guía',
       videoSoon: 'El video general está en preparación. Este espacio ya está listo para recibirlo sin cambiar el flujo inicial.',
     },
     initial: [
-      { id: 'maxxis', target: '[data-guide="maxxis-widget"]', title: 'Conoce primero a Maxxis AI', body: 'Maxxis es tu guía y asistente de dudas del app. Sigue el idioma seleccionado y puede llevarte directamente al módulo donde debes completar una acción.', nextTour: 'onboarding', nextPage: 'onboarding' },
+      { id: 'language', target: '[data-guide="language-control"]', title: 'Elige el idioma de la app', body: 'Selecciona primero inglés, portugués o español. La app, la guía y Maxxis usarán esta preferencia durante todo el recorrido.' },
+      { id: 'overview', kind: 'video', title: 'Descubre cómo funciona DealSifter', body: 'Este panorama presenta el recorrido principal antes de comenzar tu registro.' },
+      { id: 'maxxis', target: '[data-guide="maxxis-widget"]', title: 'Conoce a Maxxis AI', body: 'Maxxis es tu guía y asistente de dudas del app. Sigue el idioma seleccionado y puede llevarte directamente al módulo donde debes completar una acción.', nextTour: 'onboarding-entry', nextPage: 'dashboard' },
+    ],
+    'onboarding-entry': [
+      { id: 'module-entry', target: '[data-guide-entry="onboarding-entry-module"]', title: 'Comienza por el acceso al registro', body: 'En desktop y tablet, Feed abre el dashboard donde está la tarjeta parpadeante de registro. En mobile, + New Card es el acceso directo al Onboarding.' },
+      { id: 'registration-entry', target: '[data-guide="onboarding-launcher"]', title: 'Registra tu primer perfil', body: 'Usa el acceso destacado para registrar al menos un perfil y vincular una propiedad o servicio. Los demás módulos permanecen bloqueados hasta completar este mínimo.', actionLabel: 'Registro de Perfil', nextTour: 'onboarding', nextPage: 'onboarding' },
     ],
     onboarding: [
       { id: 'account', target: '[data-guide="onboarding-account"]', title: 'Elige el contexto de la cuenta', body: 'Selecciona Professional o For Sale by Owner. Puedes mantener perfiles independientes.' },

@@ -229,6 +229,7 @@ export function AppMobileBottomNav({ page, setPage, collapsed = false, onCollaps
               key={item.id}
               type="button"
               data-guide={item.id === 'onboarding' ? 'onboarding-launcher' : undefined}
+              data-guide-entry={item.id === 'onboarding' ? 'onboarding-entry-module' : undefined}
               onClick={() => isItemLocked ? onNavigationBlocked() : setPage && setPage(item.id)}
               onPointerDown={() => setPressedItemId(item.id)}
               onPointerUp={() => setPressedItemId(null)}

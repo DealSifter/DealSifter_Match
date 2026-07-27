@@ -10,7 +10,7 @@ import {
 } from '../data/mockData';
 import { Icon } from '../components/ui/Icon';
 
-export function Pricing({ setPage, setModal, prevPage, addToast, onRequestCheckoutIntent }) {
+export function Pricing({ setPage, setModal, prevPage, addToast, onRequestCheckoutIntent, guideReturnRequired = false, onReturnToGuide }) {
   const allT = useT('pricing');
   const t = allT.pricing;
   const [checkoutLoading, setCheckoutLoading] = useState(null);
@@ -171,6 +171,18 @@ export function Pricing({ setPage, setModal, prevPage, addToast, onRequestChecko
     <div style={{ maxWidth:1000, margin:"0 auto", padding:`${topPadding} 20px 60px`, textAlign:"center" }}>
       <style>{`
         .pricing-mobile-back-app { display: none; }
+        .pricing-guide-return {
+          position: fixed;
+          top: calc(72px + env(safe-area-inset-top, 0px));
+          left: 18px;
+          z-index: 2147482600;
+          display: inline-flex;
+          align-items: center;
+          gap: 7px;
+          padding: 9px 13px;
+          border-radius: 999px;
+          box-shadow: 0 10px 24px rgba(0,0,0,.16);
+        }
         @media (max-width: 900px), (hover: none) and (pointer: coarse) {
           .pricing-mobile-back-spacer {
             display: block !important;
@@ -190,7 +202,25 @@ export function Pricing({ setPage, setModal, prevPage, addToast, onRequestChecko
           }
         }
       `}</style>
-      {showMobileBackToApp && (
+      {guideReturnRequired ? (
+        <button
+          type="button"
+          className="pricing-guide-return"
+          onClick={onReturnToGuide}
+          style={{
+            background: C.card,
+            border: `1px solid ${C.accent}`,
+            color: C.accent,
+            fontSize: 12,
+            fontWeight: 900,
+            cursor: 'pointer',
+          }}
+        >
+          <Icon name="back" size={14} color={C.accent} />
+          {t.returnToGuide || 'Return to onboarding guide'}
+        </button>
+      ) : null}
+      {showMobileBackToApp && !guideReturnRequired && (
         <button
           type="button"
           className="pricing-mobile-back-app"
@@ -209,7 +239,7 @@ export function Pricing({ setPage, setModal, prevPage, addToast, onRequestChecko
           {t.backToApp || 'Back to app'}
         </button>
       )}
-      {showMobileBackToApp && <div className="pricing-mobile-back-spacer" style={{ display: 'none' }} />}
+      {showMobileBackToApp && !guideReturnRequired && <div className="pricing-mobile-back-spacer" style={{ display: 'none' }} />}
       {showBackButton && (
         <button
           onClick={() => setPage("landing")}

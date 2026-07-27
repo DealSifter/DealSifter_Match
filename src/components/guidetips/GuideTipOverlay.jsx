@@ -192,9 +192,14 @@ export function GuideTipOverlay({ page, setPage, isFreePlan = true }) {
   const blockedByOnboarding = Boolean(
     !onboardingComplete
     && activeTour !== 'initial'
+    && activeTour !== 'onboarding-entry'
     && activeTour !== 'onboarding'
   );
   const canContinue = !blockedByOnboarding && (!step.requiresOnboarding || onboardingComplete);
+  const needsProfileRegistration = Boolean(
+    !onboardingComplete
+    && (blockedByOnboarding || step.requiresOnboarding)
+  );
   const isLast = stepIndex + 1 >= steps.length;
 
   const goBack = () => setStepIndex((current) => Math.max(0, current - 1));
@@ -261,6 +266,12 @@ export function GuideTipOverlay({ page, setPage, isFreePlan = true }) {
 
   return (
     <div aria-live="polite" style={{ position: 'fixed', inset: 0, zIndex: 2147482500, pointerEvents: 'none' }}>
+      <style>{`
+        @keyframes dsGuideRequiredPulse {
+          0%, 100% { box-shadow: 0 0 0 rgba(220, 38, 38, 0); transform: scale(1); }
+          50% { box-shadow: 0 0 18px rgba(220, 38, 38, 0.42); transform: scale(1.012); }
+        }
+      `}</style>
       {mobileViewport ? (
         <button
           type="button"
@@ -414,18 +425,9 @@ export function GuideTipOverlay({ page, setPage, isFreePlan = true }) {
             {copy.common.locating || copy.common.waiting}
           </div>
         ) : null}
-        {(blockedByOnboarding || (step.requiresOnboarding && !onboardingComplete)) ? (
-          <div style={{ marginTop: 10, borderRadius: 9, border: '1px solid #efb6b6', background: '#fff4f4', color: '#b42318', padding: '8px 10px', fontSize: 11, fontWeight: 800 }}>
+        {needsProfileRegistration ? (
+          <div style={{ marginTop: 10, borderRadius: 9, border: '1px solid #dc2626', background: '#fff1f2', color: '#b42318', padding: '8px 10px', fontSize: 11, fontWeight: 900, animation: 'dsGuideRequiredPulse 1.25s ease-in-out infinite' }}>
             {copy.common.profileRequired}
-            {blockedByOnboarding ? (
-              <button
-                type="button"
-                onClick={goToOnboarding}
-                style={{ width: '100%', marginTop: 8, border: '1px solid #b42318', background: '#fff', color: '#b42318', borderRadius: 8, padding: '8px 10px', fontSize: 11, fontWeight: 900, cursor: 'pointer' }}
-              >
-                {copy.common.openOnboarding}
-              </button>
-            ) : null}
           </div>
         ) : null}
         <div style={{ display: 'flex', gap: 8, marginTop: 15 }}>
@@ -441,11 +443,13 @@ export function GuideTipOverlay({ page, setPage, isFreePlan = true }) {
           ) : null}
           <button
             type="button"
-            onClick={goNext}
-            disabled={!canContinue}
-            style={{ flex: 1.2, border: `1px solid ${canContinue ? C.accent : '#d4d9df'}`, background: canContinue ? C.accent : '#e5e7eb', color: canContinue ? '#fff' : '#8b95a3', borderRadius: 9, padding: '9px 10px', fontSize: 12, fontWeight: 900, cursor: canContinue ? 'pointer' : 'not-allowed' }}
+            onClick={needsProfileRegistration ? goToOnboarding : goNext}
+            disabled={!canContinue && !needsProfileRegistration}
+            style={{ flex: 1.2, border: `1px solid ${(canContinue || needsProfileRegistration) ? C.accent : '#d4d9df'}`, background: (canContinue || needsProfileRegistration) ? C.accent : '#e5e7eb', color: (canContinue || needsProfileRegistration) ? '#fff' : '#8b95a3', borderRadius: 9, padding: '9px 10px', fontSize: 12, fontWeight: 900, cursor: (canContinue || needsProfileRegistration) ? 'pointer' : 'not-allowed' }}
           >
-            {step.completesCycle ? copy.common.finish : copy.common.next}
+            {needsProfileRegistration
+              ? copy.common.profileRegistration
+              : (step.actionLabel || (step.completesCycle ? copy.common.finish : copy.common.next))}
           </button>
         </div>
       </div>

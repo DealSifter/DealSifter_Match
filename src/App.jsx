@@ -5488,6 +5488,12 @@ export default function App() {
       message: 'Complete and save at least one valid profile plus one linked property or service to unlock the remaining modules.',
     });
   }, [addToast]);
+  const handleReturnToRequiredGuide = useCallback(() => {
+    setPage('onboarding');
+    window.setTimeout(() => {
+      window.dispatchEvent(new CustomEvent('ds-guidetips-resume'));
+    }, 120);
+  }, [setPage]);
 
   const renderPageContent = (pageKey = page) => {
     switch (pageKey) {
@@ -5532,6 +5538,7 @@ export default function App() {
             currentUserId={supabaseUserId || 'local-user'}
             activeSpotlightKeys={activeSpotlightKeys}
             onOpenSpotlight={() => setModal('spotlight')}
+            onboardingRequired={onboardingNavigationLocked}
           />
         );
       case 'matches':
@@ -5637,6 +5644,8 @@ export default function App() {
             prevPage={prevPage}
             addToast={addToast}
             onRequestCheckoutIntent={handlePricingCheckoutSelection}
+            guideReturnRequired={onboardingNavigationLocked}
+            onReturnToGuide={handleReturnToRequiredGuide}
           />
         );
       case 'settings':

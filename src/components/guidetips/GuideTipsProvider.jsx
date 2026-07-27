@@ -3,6 +3,7 @@ import { GuideTipsContext } from './GuideTipsContext';
 
 const ENABLED_KEY = 'ds_guidetips_enabled';
 const progressKey = (userId) => `ds_guidetips_progress:${String(userId || 'guest')}`;
+const TOUR_IDS = new Set(['initial', 'onboarding-entry', 'onboarding', 'feed', 'mapview', 'matches', 'settings']);
 
 const readJson = (key, fallback) => {
   try {
@@ -113,7 +114,10 @@ export function GuideTipsProvider({
   }, [canStart, page, progress.cycleCompleted]);
 
   const startTour = useCallback((tourId, options = {}) => {
-    const normalized = tourForPage(tourId === 'feed' ? 'dashboard' : tourId);
+    const requested = String(tourId || '').trim();
+    const normalized = TOUR_IDS.has(requested)
+      ? requested
+      : tourForPage(requested === 'feed' ? 'dashboard' : requested);
     setActiveTour(normalized);
     setStepIndex(Number(options.stepIndex || 0));
     setEnabledState(true);
@@ -141,7 +145,12 @@ export function GuideTipsProvider({
       startTour(tourId);
     };
     window.addEventListener('ds-guidetips-start', onStartTour);
-    return () => window.removeEventListener('ds-guidetips-start', onStartTour);
+    const onResumeTour = () => setEnabledState(true);
+    window.addEventListener('ds-guidetips-resume', onResumeTour);
+    return () => {
+      window.removeEventListener('ds-guidetips-start', onStartTour);
+      window.removeEventListener('ds-guidetips-resume', onResumeTour);
+    };
   }, [page, startTour]);
 
   const mandatory = Boolean(canStart && !progress.cycleCompleted);
