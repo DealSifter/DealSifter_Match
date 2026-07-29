@@ -46,8 +46,9 @@ const ChunkRecoveryScreen = () => (
 
 const lazyWithRetry = (importer, key) => lazy(async () => {
   try {
+    const loadedModule = await importer();
     safeSessionRemove(`ds_lazy_retry_${key}`);
-    return await importer();
+    return loadedModule;
   } catch (error) {
     const msg = String(error?.message || '').toLowerCase();
     const recoverable = msg.includes('failed to fetch dynamically imported module')
@@ -224,7 +225,7 @@ const SECURITY_SESSIONS_KEY = 'ds_security_sessions';
 const SECURITY_ACTIVE_SESSION_KEY = 'ds_security_active_session_id';
 const APP_SESSION_TOKEN_KEY = 'ds_app_session_token';
 const APP_LAST_ACTIVITY_KEY = 'ds_app_last_activity_at';
-const APP_IDLE_SIGNOUT_MS = 60 * 60 * 1000;
+const APP_IDLE_SIGNOUT_MS = 4 * 60 * 60 * 1000;
 const USER_PREFERENCES_KEY = 'ds_user_preferences';
 
 const appendSecurityAuditEvent = (event) => {
@@ -261,29 +262,6 @@ const consumeRateLimit = (key, maxAttempts, windowMs, lockMs = windowMs) => {
     return { allowed: true, retryAfterMs: 0 };
   } catch {
     return { allowed: true, retryAfterMs: 0 };
-  }
-};
-
-const getAppSessionToken = (userId = '') => {
-  try {
-    const normalizedUserId = String(userId || '').trim();
-    const tokenKey = normalizedUserId ? `${APP_SESSION_TOKEN_KEY}:${normalizedUserId}` : APP_SESSION_TOKEN_KEY;
-    let token = safeSessionGet(tokenKey);
-    if (!token) {
-      token = (crypto?.randomUUID?.() || `tab-${Date.now()}-${Math.random().toString(16).slice(2)}`);
-      safeSessionSet(tokenKey, token);
-    }
-    return token;
-  } catch {
-    return `tab-${Date.now()}-${Math.random().toString(16).slice(2)}`;
-  }
-};
-
-const getDeviceLabel = () => {
-  try {
-    return String(navigator.userAgent || 'Unknown device').slice(0, 180);
-  } catch {
-    return 'Unknown device';
   }
 };
 
@@ -1208,12 +1186,12 @@ export default function App() {
     const checkIdleTimeout = () => {
       const inactiveMs = Date.now() - getLastActivityAt();
       if (inactiveMs > APP_IDLE_SIGNOUT_MS) {
-        appendSecurityAuditEvent({ type: 'session', status: 'timeout', message: 'Session ended after 1 hour without activity.' });
+        appendSecurityAuditEvent({ type: 'session', status: 'timeout', message: 'Session ended after 4 hours without activity.' });
         handleUserLogoutRef.current?.();
       }
     };
     updateActivity();
-    const events = ['pointerdown', 'keydown', 'mousemove', 'touchstart'];
+    const events = ['pointerdown', 'keydown', 'mousemove', 'touchstart', 'input', 'change', 'scroll'];
     events.forEach((evt) => window.addEventListener(evt, updateActivity, { passive: true }));
     const visibilityHandler = () => {
       if (document.visibilityState === 'visible') checkIdleTimeout();
@@ -1256,83 +1234,6 @@ export default function App() {
     onError: safeLogError,
     onSendError: handleChatSendError,
   });
-
-  useEffect(() => {
-    if (!isSupabaseConfigured || !supabase || !authSession?.userId) return undefined;
-
-    let cancelled = false;
-    const token = getAppSessionToken(authSession.userId);
-    const pageLabel = String(page || 'app').slice(0, 64);
-
-    const endReplacedSession = async () => {
-      if (cancelled) return;
-      appendSecurityAuditEvent({ type: 'session', status: 'replaced', message: 'Session replaced by another device or browser tab.' });
-      addToast({
-        type: 'warning',
-        title: 'Session ended',
-        message: 'This account was opened in another device or tab. Please sign in again to continue here.',
-        duration: 8000,
-      });
-      try { await supabase.auth.signOut(); } catch { /* no-op */ }
-      setAuthSession(null);
-      safeSessionRemove(APP_SESSION_TOKEN_KEY);
-      safeSessionRemove(`${APP_SESSION_TOKEN_KEY}:${authSession.userId}`);
-      setModal(null);
-      _setPage('landing');
-      try { localStorage.removeItem('ds_last_page'); } catch { /* no-op */ }
-    };
-
-    const register = async () => {
-      try {
-        const { data, error } = await supabase.rpc('ds_register_app_session', {
-          p_session_token: token,
-          p_device_label: getDeviceLabel(),
-          p_page: pageLabel,
-        });
-        if (error) {
-          if (isMissingFunctionError(error, 'ds_register_app_session')) return;
-          throw error;
-        }
-        if (data && data.ok === false && data.reason === 'session_replaced') {
-          await endReplacedSession();
-        }
-      } catch (error) {
-        safeLogError('App session registration failed.', error);
-      }
-    };
-
-    const touch = async () => {
-      if (cancelled) return;
-      try {
-        const { data, error } = await supabase.rpc('ds_touch_app_session', {
-          p_session_token: token,
-          p_page: String(page || 'app').slice(0, 64),
-        });
-        if (error) {
-          if (isMissingFunctionError(error, 'ds_touch_app_session')) return;
-          throw error;
-        }
-        if (data && data.ok === false && data.reason === 'session_replaced') {
-          await endReplacedSession();
-        }
-      } catch (error) {
-        safeLogError('App session heartbeat failed.', error);
-      }
-    };
-
-    register();
-    const timer = window.setInterval(touch, 30000);
-    const visibilityHandler = () => {
-      if (document.visibilityState === 'visible') touch();
-    };
-    document.addEventListener('visibilitychange', visibilityHandler);
-
-    return () => {
-      cancelled = true;
-      window.clearInterval(timer);
-      document.removeEventListener('visibilitychange', visibilityHandler);
-    };
-  }, [addToast, authSession?.userId, page]);
 
   const handleAuthenticatedNavigation = useCallback((_session, options = {}) => {
     setModal(null);

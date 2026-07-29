@@ -106,7 +106,7 @@ export function useAuthSession({
       return true;
     };
 
-    const applySession = async (session) => {
+    const applySession = async (session, { restoreNavigation = false } = {}) => {
       if (!active) return;
       const user = session?.user;
       if (!user) {
@@ -115,31 +115,51 @@ export function useAuthSession({
       if (await forceLoginAfterEmailConfirmation(session)) return;
 
       const provider = getSupabaseSessionProvider(user);
-      const next = mapSupabaseUserToSession(user, 'login', provider);
-      const previousUserId = lastKnownAuthSessionRef.current?.userId || lastKnownAuthSessionRef.current?.id || null;
+      const previous = lastKnownAuthSessionRef.current;
+      const previousUserId = previous?.userId || previous?.id || null;
+      const mapped = mapSupabaseUserToSession(user, 'login', provider);
+      const sameUser = String(previousUserId || '') === String(user.id || '');
+      const next = sameUser
+        ? { ...mapped, loginAt: previous?.loginAt || mapped.loginAt }
+        : mapped;
       if (String(previousUserId || '') !== String(user.id || '')) {
         clearSensitiveCache(user.id);
       }
       lastKnownAuthSessionRef.current = next;
-      setAuthSession(next);
+      setAuthSession((current) => {
+        if (
+          String(current?.userId || current?.id || '') === String(next.userId || '')
+          && current?.email === next.email
+          && current?.fullName === next.fullName
+          && current?.provider === next.provider
+          && current?.emailVerified === next.emailVerified
+        ) {
+          return current;
+        }
+        return next;
+      });
       applySystemAccountFromSession(next);
 
-      try {
-        const { data: userRow } = await supabase
-          .from('users')
-          .select('is_admin')
-          .eq('id', user.id)
-          .single();
-        setIsAdmin?.(!!userRow?.is_admin);
-      } catch {
-        setIsAdmin?.(false);
+      if (!sameUser || restoreNavigation) {
+        try {
+          const { data: userRow } = await supabase
+            .from('users')
+            .select('is_admin')
+            .eq('id', user.id)
+            .single();
+          setIsAdmin?.(!!userRow?.is_admin);
+        } catch {
+          setIsAdmin?.(false);
+        }
       }
 
-      onSessionRestored?.(next);
+      if (!sameUser || restoreNavigation) {
+        onSessionRestored?.(next);
+      }
     };
 
     supabase.auth.getSession().then(async ({ data }) => {
-      if (data?.session) await applySession(data.session);
+      if (data?.session) await applySession(data.session, { restoreNavigation: true });
       else if (!lastKnownAuthSessionRef.current) clearSession();
     }).catch((error) => {
       safeLogError?.('Supabase session bootstrap failed.', error);
@@ -149,7 +169,9 @@ export function useAuthSession({
 
     const { data } = supabase.auth.onAuthStateChange((event, session) => {
       if (session?.user) {
-        applySession(session);
+        applySession(session, {
+          restoreNavigation: event === 'SIGNED_IN' || event === 'INITIAL_SESSION',
+        });
         return;
       }
       if (event === 'SIGNED_OUT' || event === 'USER_DELETED') {

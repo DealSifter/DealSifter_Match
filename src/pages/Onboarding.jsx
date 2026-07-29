@@ -23,6 +23,11 @@ import { readAndCompressFiles } from '../lib/onboardingMedia';
 import { clearPendingDeal, getPendingDealRemainingDays, isPendingDealActive, isPendingDealExpired, markPendingDeal } from '../lib/pendingDeal';
 import { useMediaQuery } from '../hooks/useMediaQuery';
 import {
+  clearOnboardingDraft,
+  readOnboardingDraft,
+  writeOnboardingDraft,
+} from '../services/onboardingDraftService';
+import {
   CARD_PRIORITY_OPTIONS,
   CONTACT_METHOD_PRESETS,
   FEED_TASKBAR_CATEGORY_OPTIONS,
@@ -217,6 +222,11 @@ export function Onboarding({
   const [previewMode, setPreviewMode] = useState('properties');
   const onboardingGridRef = useRef(null);
   const previewShowcaseScrollRef = useRef(null);
+  const portfolioBranchHydrationRef = useRef('');
+  const profileHydrationRef = useRef('');
+  const draftHydrationRef = useRef('');
+  const draftReadyRef = useRef('');
+  const draftUserId = authSession?.userId || authSession?.id || 'guest';
 
   const [previewDragIndex, setPreviewDragIndex] = useState(null);
   const [previewDragOverIndex, setPreviewDragOverIndex] = useState(null);
@@ -1442,6 +1452,9 @@ export function Onboarding({
   };
 
   useEffect(() => {
+    const branchKey = `${draftUserId}:${accountType || 'professional'}`;
+    if (portfolioBranchHydrationRef.current === branchKey) return undefined;
+    portfolioBranchHydrationRef.current = branchKey;
     const timer = window.setTimeout(() => {
       if (!shouldUseTempStorage || !activeTempStorageKey) {
         try { localStorage.removeItem('tempUploads_fsbo'); } catch (e) { void e; }
@@ -1493,10 +1506,13 @@ export function Onboarding({
       }
     }, 0);
     return () => window.clearTimeout(timer);
-  }, [accountType, activeTempStorageKey, shouldUseTempStorage, getPrimaryProfileScope]);
+  }, [accountType, activeTempStorageKey, shouldUseTempStorage, getPrimaryProfileScope, draftUserId]);
 
   useEffect(() => {
     if (pendingProfileClearScope) return undefined;
+    const profileKey = `${draftUserId}:${accountType || 'professional'}`;
+    if (profileHydrationRef.current === profileKey) return undefined;
+    profileHydrationRef.current = profileKey;
     const timer = window.setTimeout(() => {
       if (accountType === 'fsbo_owner') {
         setName(personalProfile?.fullNameFsbo || personalProfile?.fsboFullName || '');
@@ -1576,7 +1592,162 @@ export function Onboarding({
       setSaveProfilesBaseline('');
     }, 0);
     return () => window.clearTimeout(timer);
-  }, [accountType, personalProfile, professionalProfile, pendingProfileClearScope]);
+  }, [accountType, personalProfile, professionalProfile, pendingProfileClearScope, draftUserId]);
+
+  const onboardingDraftSnapshot = useMemo(() => ({
+    profileTab,
+    name,
+    loc,
+    selectedCategories,
+    primaryCategory,
+    selectedMarkets,
+    selectedSkills,
+    selectedServices,
+    goal,
+    pitch,
+    contactMethods,
+    personalPrimaryPhone,
+    personalSecondaryPhone,
+    personalTertiaryPhone,
+    personalEmail,
+    cardPriorityA,
+    nameB,
+    locB,
+    selectedCategoriesB,
+    primaryCategoryB,
+    selectedMarketsB,
+    selectedSkillsB,
+    selectedServicesB,
+    goalB,
+    pitchB,
+    contactMethodsB,
+    personalPrimaryPhoneB,
+    personalSecondaryPhoneB,
+    personalTertiaryPhoneB,
+    personalEmailB,
+    cardPriorityB,
+    cardPriorityC,
+    portfolioEntryType,
+    portfolioRecordsTab,
+    portfolioAddress,
+    portfolioCity,
+    portfolioZip,
+    portfolioType,
+    portfolioPrice,
+    portfolioBeds,
+    portfolioBaths,
+    portfolioSqft,
+    portfolioLot,
+    portfolioRehab,
+    portfolioCapRate,
+    portfolioObjective,
+    portfolioMarkets,
+    primaryProfileScope,
+    portfolioDescription,
+    serviceTitle,
+    serviceCategory,
+    serviceDescription,
+    servicePrice,
+    serviceMarkets,
+    servicePrimaryProfileScope,
+    investmentProfileDraft,
+  }), [
+    profileTab, name, loc, selectedCategories, primaryCategory, selectedMarkets,
+    selectedSkills, selectedServices, goal, pitch, contactMethods,
+    personalPrimaryPhone, personalSecondaryPhone, personalTertiaryPhone, personalEmail,
+    cardPriorityA, nameB, locB, selectedCategoriesB, primaryCategoryB, selectedMarketsB,
+    selectedSkillsB, selectedServicesB, goalB, pitchB, contactMethodsB,
+    personalPrimaryPhoneB, personalSecondaryPhoneB, personalTertiaryPhoneB, personalEmailB,
+    cardPriorityB, cardPriorityC, portfolioEntryType, portfolioRecordsTab, portfolioAddress,
+    portfolioCity, portfolioZip, portfolioType, portfolioPrice, portfolioBeds, portfolioBaths,
+    portfolioSqft, portfolioLot, portfolioRehab, portfolioCapRate, portfolioObjective,
+    portfolioMarkets, primaryProfileScope, portfolioDescription, serviceTitle, serviceCategory,
+    serviceDescription, servicePrice, serviceMarkets, servicePrimaryProfileScope,
+    investmentProfileDraft,
+  ]);
+
+  useEffect(() => {
+    const draftKey = `${draftUserId}:${accountType || 'professional'}`;
+    if (draftHydrationRef.current === draftKey) return undefined;
+    draftHydrationRef.current = draftKey;
+    draftReadyRef.current = '';
+
+    const timer = window.setTimeout(() => {
+      const draft = readOnboardingDraft(draftUserId, accountType);
+      if (draft) {
+        if (typeof draft.profileTab === 'string') setProfileTab(draft.profileTab);
+        if (typeof draft.name === 'string') setName(draft.name);
+        if (typeof draft.loc === 'string') setLoc(draft.loc);
+        if (Array.isArray(draft.selectedCategories)) setSelectedCategories(draft.selectedCategories);
+        if (typeof draft.primaryCategory === 'string') setPrimaryCategory(draft.primaryCategory);
+        if (Array.isArray(draft.selectedMarkets)) setSelectedMarkets(draft.selectedMarkets);
+        if (Array.isArray(draft.selectedSkills)) setSelectedSkills(draft.selectedSkills);
+        if (Array.isArray(draft.selectedServices)) setSelectedServices(draft.selectedServices);
+        if (typeof draft.goal === 'string') setGoal(draft.goal);
+        if (typeof draft.pitch === 'string') setPitch(draft.pitch);
+        if (Array.isArray(draft.contactMethods)) setContactMethods(draft.contactMethods);
+        if (typeof draft.personalPrimaryPhone === 'string') setPersonalPrimaryPhone(draft.personalPrimaryPhone);
+        if (typeof draft.personalSecondaryPhone === 'string') setPersonalSecondaryPhone(draft.personalSecondaryPhone);
+        if (typeof draft.personalTertiaryPhone === 'string') setPersonalTertiaryPhone(draft.personalTertiaryPhone);
+        if (typeof draft.personalEmail === 'string') setPersonalEmail(draft.personalEmail);
+        if (typeof draft.cardPriorityA === 'string') setCardPriorityA(draft.cardPriorityA);
+        if (typeof draft.nameB === 'string') setNameB(draft.nameB);
+        if (typeof draft.locB === 'string') setLocB(draft.locB);
+        if (Array.isArray(draft.selectedCategoriesB)) setSelectedCategoriesB(draft.selectedCategoriesB);
+        if (typeof draft.primaryCategoryB === 'string') setPrimaryCategoryB(draft.primaryCategoryB);
+        if (Array.isArray(draft.selectedMarketsB)) setSelectedMarketsB(draft.selectedMarketsB);
+        if (Array.isArray(draft.selectedSkillsB)) setSelectedSkillsB(draft.selectedSkillsB);
+        if (Array.isArray(draft.selectedServicesB)) setSelectedServicesB(draft.selectedServicesB);
+        if (typeof draft.goalB === 'string') setGoalB(draft.goalB);
+        if (typeof draft.pitchB === 'string') _setPitchB(draft.pitchB);
+        if (Array.isArray(draft.contactMethodsB)) setContactMethodsB(draft.contactMethodsB);
+        if (typeof draft.personalPrimaryPhoneB === 'string') setPersonalPrimaryPhoneB(draft.personalPrimaryPhoneB);
+        if (typeof draft.personalSecondaryPhoneB === 'string') setPersonalSecondaryPhoneB(draft.personalSecondaryPhoneB);
+        if (typeof draft.personalTertiaryPhoneB === 'string') setPersonalTertiaryPhoneB(draft.personalTertiaryPhoneB);
+        if (typeof draft.personalEmailB === 'string') setPersonalEmailB(draft.personalEmailB);
+        if (typeof draft.cardPriorityB === 'string') setCardPriorityB(draft.cardPriorityB);
+        if (typeof draft.cardPriorityC === 'string') setCardPriorityC(draft.cardPriorityC);
+        if (typeof draft.portfolioEntryType === 'string') setPortfolioEntryType(draft.portfolioEntryType);
+        if (typeof draft.portfolioRecordsTab === 'string') setPortfolioRecordsTab(draft.portfolioRecordsTab);
+        if (typeof draft.portfolioAddress === 'string') setPortfolioAddress(draft.portfolioAddress);
+        if (typeof draft.portfolioCity === 'string') setPortfolioCity(draft.portfolioCity);
+        if (typeof draft.portfolioZip === 'string') setPortfolioZip(draft.portfolioZip);
+        if (typeof draft.portfolioType === 'string') setPortfolioType(draft.portfolioType);
+        if (typeof draft.portfolioPrice === 'string') setPortfolioPrice(draft.portfolioPrice);
+        if (typeof draft.portfolioBeds === 'string') setPortfolioBeds(draft.portfolioBeds);
+        if (typeof draft.portfolioBaths === 'string') setPortfolioBaths(draft.portfolioBaths);
+        if (typeof draft.portfolioSqft === 'string') setPortfolioSqft(draft.portfolioSqft);
+        if (typeof draft.portfolioLot === 'string') setPortfolioLot(draft.portfolioLot);
+        if (typeof draft.portfolioRehab === 'string') setPortfolioRehab(draft.portfolioRehab);
+        if (typeof draft.portfolioCapRate === 'string') setPortfolioCapRate(draft.portfolioCapRate);
+        if (typeof draft.portfolioObjective === 'string') setPortfolioObjective(draft.portfolioObjective);
+        if (Array.isArray(draft.portfolioMarkets)) setPortfolioMarkets(draft.portfolioMarkets);
+        if (typeof draft.primaryProfileScope === 'string') setPrimaryProfileScope(draft.primaryProfileScope);
+        if (typeof draft.portfolioDescription === 'string') setPortfolioDescription(draft.portfolioDescription);
+        if (typeof draft.serviceTitle === 'string') setServiceTitle(draft.serviceTitle);
+        if (typeof draft.serviceCategory === 'string') setServiceCategory(draft.serviceCategory);
+        if (typeof draft.serviceDescription === 'string') setServiceDescription(draft.serviceDescription);
+        if (typeof draft.servicePrice === 'string') setServicePrice(draft.servicePrice);
+        if (Array.isArray(draft.serviceMarkets)) setServiceMarkets(draft.serviceMarkets);
+        if (typeof draft.servicePrimaryProfileScope === 'string') setServicePrimaryProfileScope(draft.servicePrimaryProfileScope);
+        if (draft.investmentProfileDraft && typeof draft.investmentProfileDraft === 'object') {
+          setInvestmentProfileDraft(normalizeInvestmentDraft(draft.investmentProfileDraft));
+        }
+      }
+      draftReadyRef.current = draftKey;
+    }, 0);
+
+    return () => window.clearTimeout(timer);
+  }, [accountType, draftUserId]);
+
+  useEffect(() => {
+    const draftKey = `${draftUserId}:${accountType || 'professional'}`;
+    if (draftReadyRef.current !== draftKey) return undefined;
+    const timer = window.setTimeout(() => {
+      writeOnboardingDraft(draftUserId, accountType, onboardingDraftSnapshot);
+    }, 500);
+    return () => window.clearTimeout(timer);
+  }, [accountType, draftUserId, onboardingDraftSnapshot]);
 
   // persist temporary uploads so the user doesn't need to re-upload on dev reload
   useEffect(() => {
@@ -2952,6 +3123,7 @@ export function Onboarding({
       if (import.meta.env.DEV) console.warn('Publish step failed during registration publish.', e);
     }
 
+    clearOnboardingDraft(draftUserId, accountType);
     setPage('dashboard');
   };
 
