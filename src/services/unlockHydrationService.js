@@ -1,4 +1,5 @@
 import { fetchUnlockedContacts } from './unlockedContactService';
+import { buildProfileEntitlementKey, getRecordProfileScope } from '../lib/profileScope';
 
 const normalizeText = (value) => String(value || '').trim();
 
@@ -13,11 +14,13 @@ const toPropertyUnlockRows = (entry, buyerId) => {
   const ownerId = normalizeText(entry?.ownerId || entry?.owner_id);
   if (!ownerId) return [];
   const scope = normalizeText(entry?.unlockScope || entry?.unlock_scope);
+  const profileScope = getRecordProfileScope(entry);
   const exclusive = scope === 'exclusive';
   return getUnlockedPropertyIds(entry).map((propertyId) => ({
     id: `canonical:${buyerId}:${ownerId}:${propertyId}`,
     propertyId,
     ownerId,
+    primaryProfile: profileScope,
     buyerId,
     mode: exclusive ? 'total' : 'normal',
     cost: 0,
@@ -52,10 +55,11 @@ export async function hydrateUnlockState(userId) {
   entries.forEach((entry) => {
     const ownerId = normalizeText(entry?.ownerId || entry?.owner_id);
     if (!ownerId || ownerId === cleanUserId) return;
-    unlockedOwnerIds.add(ownerId);
-    purchaseRows.push({ sellerId: ownerId });
+    const entitlementKey = buildProfileEntitlementKey(ownerId, getRecordProfileScope(entry));
+    unlockedOwnerIds.add(entitlementKey);
+    purchaseRows.push({ sellerId: ownerId, primaryProfile: getRecordProfileScope(entry) });
     const exclusiveStatus = entry?.exclusiveStatus || entry?.exclusive_status || 'none';
-    exclusiveStatusByOwner.set(ownerId, {
+    exclusiveStatusByOwner.set(entitlementKey, {
       status: exclusiveStatus,
       expiresAt: entry?.exclusiveExpiresAt || entry?.exclusive_expires_at || null,
     });

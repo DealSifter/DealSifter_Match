@@ -1,5 +1,6 @@
 import { isSupabaseConfigured, supabase } from '../lib/supabaseClient';
 import { captureEntitlementAlert, hashForTelemetry } from '../lib/observability';
+import { buildProfileEntitlementKey, normalizeProfileScope } from '../lib/profileScope';
 
 const CACHE_PREFIX = 'ds_canonical_contact_cards:';
 
@@ -19,14 +20,17 @@ const normalizeCanonicalContact = (row = {}) => {
   const ownerId = toStringId(row.owner_id || row.ownerId);
   if (!ownerId) return null;
   const contact = row.contact && typeof row.contact === 'object' ? row.contact : {};
+  const primaryProfile = normalizeProfileScope(row.primary_profile || row.primaryProfile);
   const unlockedPropertyIds = Array.isArray(row.unlocked_property_ids)
     ? row.unlocked_property_ids.map(toStringId).filter(Boolean)
     : (Array.isArray(row.unlockedPropertyIds) ? row.unlockedPropertyIds.map(toStringId).filter(Boolean) : []);
   return {
     ownerId,
     owner_id: ownerId,
-    primaryProfile: row.primary_profile || row.primaryProfile || 'personal',
-    primary_profile: row.primary_profile || row.primaryProfile || 'personal',
+    entitlementKey: buildProfileEntitlementKey(ownerId, primaryProfile),
+    entitlement_key: buildProfileEntitlementKey(ownerId, primaryProfile),
+    primaryProfile,
+    primary_profile: primaryProfile,
     unlockScope: row.unlock_scope || row.unlockScope || 'contact',
     unlock_scope: row.unlock_scope || row.unlockScope || 'contact',
     unlockedAt: row.unlocked_at || row.unlockedAt || null,
@@ -108,7 +112,7 @@ export async function fetchUnlockedContacts(userId) {
       }
     }
     writeCache(cleanUserId, contacts);
-    return new Map(contacts.map((contact) => [contact.ownerId, contact]));
+    return new Map(contacts.map((contact) => [contact.entitlementKey, contact]));
   } catch (error) {
     captureEntitlementAlert('error', 'unlocked_contacts_rpc_failed', {
       error_code: error?.code || error?.status || 'unknown',
@@ -119,27 +123,37 @@ export async function fetchUnlockedContacts(userId) {
   }
 }
 
-export function getContactByOwnerId(map, ownerId) {
+export function getContactByOwnerId(map, ownerId, profileScope = null) {
   if (!(map instanceof Map)) return null;
-  const key = toStringId(ownerId);
-  return key ? (map.get(key) || null) : null;
+  const cleanOwnerId = toStringId(ownerId);
+  if (!cleanOwnerId) return null;
+  if (profileScope) {
+    const exact = map.get(buildProfileEntitlementKey(cleanOwnerId, profileScope));
+    if (exact) return exact;
+    const legacyEntry = map.get(cleanOwnerId);
+    return legacyEntry && normalizeProfileScope(legacyEntry.primaryProfile || legacyEntry.primary_profile) === normalizeProfileScope(profileScope)
+      ? legacyEntry
+      : null;
+  }
+  const matches = [...map.values()].filter((contact) => toStringId(contact?.ownerId) === cleanOwnerId);
+  return matches.length === 1 ? matches[0] : null;
 }
 
-export function isOwnerUnlocked(map, ownerId) {
-  return Boolean(getContactByOwnerId(map, ownerId));
+export function isOwnerUnlocked(map, ownerId, profileScope = null) {
+  return Boolean(getContactByOwnerId(map, ownerId, profileScope));
 }
 
-export function hasOwnerPortfolioEntitlement(map, ownerId) {
-  const contact = getContactByOwnerId(map, ownerId);
+export function hasOwnerPortfolioEntitlement(map, ownerId, profileScope = null) {
+  const contact = getContactByOwnerId(map, ownerId, profileScope);
   if (!contact) return false;
   return ['contact', 'reciprocal'].includes(toStringId(contact.unlockScope || contact.unlock_scope).toLowerCase());
 }
 
-export function isPropertyUnlocked(map, ownerId, propertyId) {
-  const contact = getContactByOwnerId(map, ownerId);
+export function isPropertyUnlocked(map, ownerId, propertyId, profileScope = null) {
+  const contact = getContactByOwnerId(map, ownerId, profileScope);
   const cleanPropertyId = toStringId(propertyId);
   if (!contact || !cleanPropertyId) return false;
-  if (hasOwnerPortfolioEntitlement(map, ownerId)) return true;
+  if (hasOwnerPortfolioEntitlement(map, ownerId, profileScope)) return true;
   if ((contact.unlockedPropertyIds || []).some((id) => id === cleanPropertyId)) return true;
   return (contact.portfolio || []).some((item) => (
     toStringId(item.itemId || item.item_id) === cleanPropertyId

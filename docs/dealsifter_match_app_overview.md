@@ -93,6 +93,16 @@ Regra central:
 - Propriedades e servicos devem ser vinculados ao perfil correto por `primary_profile`, `profile_scope`, `owner_id` ou campo equivalente.
 - Cards no Feed, MapView e Matches devem usar a identidade do perfil vinculado ao item, nao outro perfil do mesmo usuario.
 
+#### Escopo Canonico Do Perfil
+
+O `owner_id` identifica a conta, mas nao e a unidade de comercializacao nem de entitlement. A unidade canonica e o par `(owner_id, profile_scope)`, em que `profile_scope` e `personal`, `professional` ou `fsbo`.
+
+- Um usuario pode manter perfis paralelos, cada um com identidade, avatar, contatos, localizacao, categoria e portfolio proprios.
+- Cada propriedade ou servico deve apontar para exatamente um perfil por `primary_profile`/`profile_scope`.
+- Alterar ou apagar um perfil nao pode preencher, limpar ou substituir dados dos outros perfis da mesma conta.
+- O campo de prioridade organiza a apresentacao, mas nao altera o vinculo comercial dos itens nem funde perfis.
+- Feed, MapView, Preview to Feed e Matches devem resolver a identidade pelo perfil vinculado ao item, nunca pelo primeiro perfil encontrado na conta.
+
 ### 5.3 Feed
 
 O Feed apresenta cards de pessoas/servicos, spotlight e showcase/propriedades.
@@ -153,8 +163,9 @@ Regras:
 - `ContactButtons` deve ser apresentacional.
 - `PortfolioContactPanel` deve ser o unico ponto de renderizacao de contato desbloqueado em Matches.
 - Mobile, desktop e modal preview devem mostrar os mesmos dados para o mesmo entitlement.
-- Se o owner foi desbloqueado, o portfolio completo desse owner fica visivel sem paywall adicional.
-- Se apenas uma propriedade foi desbloqueada, o contato do owner fica visivel naquele contexto, mas outras propriedades podem continuar bloqueadas.
+- Se um perfil foi desbloqueado, o portfolio completo daquele perfil fica visivel sem paywall adicional.
+- Perfis paralelos do mesmo owner continuam bloqueados, com custo e historico independentes.
+- Se apenas uma propriedade foi desbloqueada, o contato do perfil vinculado a ela fica visivel naquele contexto, mas outras propriedades e outros perfis podem continuar bloqueados.
 
 ```mermaid
 flowchart LR
@@ -169,12 +180,22 @@ flowchart LR
 
 ## 6. Regras De Unlock E Exclusividade
 
+### 6.0 Unidade De Compra E Entitlement
+
+Toda compra, unlock, exclusividade e notificacao de acesso deve carregar `profile_scope`. A chave logica do entitlement e `owner_id:profile_scope`.
+
+- O custo snapshot soma somente propriedades e servicos publicados vinculados ao perfil selecionado.
+- Um unlock de `fsbo` nao libera `personal` ou `professional` da mesma conta, e vice-versa.
+- Um unlock do perfil libera os canais de contato e o portfolio daquele perfil; nao libera contatos de perfis paralelos.
+- A RPC `ds_get_unlocked_contact_cards(p_user_id)` retorna uma entrada por `(owner_id, primary_profile)`, nunca uma entrada agregada apenas por owner.
+- `unlockedContactService` e a unica fonte de dados de contato desbloqueado no frontend. Dados publicos continuam sanitizados.
+
 ### 6.1 Unlock De Contato
 
 Unlock simples de owner:
 
-- Libera email/telefone/canais do owner.
-- Libera portfolio completo do owner para visualizacao.
+- Libera email/telefone/canais do perfil selecionado.
+- Libera portfolio completo do perfil selecionado para visualizacao.
 - Debita nuggets conforme snapshot de custo.
 - Cria historico e notificacao persistente.
 
@@ -191,7 +212,8 @@ Unlock de propriedade:
 Exclusividade:
 
 - Bloqueia a propriedade para novos unlocks por terceiros durante a janela ativa.
-- Se uma propriedade de um owner entra em exclusividade, cards associados ao mesmo contato devem respeitar o bloqueio temporario para nao vazar canais exclusivos por outro caminho.
+- Se uma propriedade entra em exclusividade, cards associados ao mesmo perfil devem respeitar o bloqueio temporario para nao vazar canais exclusivos por outro caminho.
+- Perfis paralelos da mesma conta nao entram no bloqueio e nao sao liberados por consequencia.
 - O comprador da exclusividade ve normalmente o contato e item exclusivo.
 - Terceiros veem badge de exclusividade com timer, nao paywall generico.
 
@@ -215,7 +237,7 @@ O custo de desbloqueio e calculado no servidor para evitar divergencia entre o v
 Fluxo:
 
 1. Usuario clica para desbloquear.
-2. RPC calcula custo no momento e cria token de intencao com TTL.
+2. RPC calcula o custo somente do `profile_scope` selecionado e cria token de intencao com TTL.
 3. Frontend exibe o custo snapshot.
 4. Usuario confirma com token.
 5. RPC valida token, saldo e custo.
@@ -491,7 +513,26 @@ journey
 - Componentes visuais nao devem reconstruir contato por fallback.
 - Dados mock devem ficar fora de producao ou ocultos quando nao houver backend real.
 
-## 20. Checklist Antes De Alterar Areas Criticas
+## 20. Guia Inicial E Maxxis AI
+
+O primeiro acesso guiado deve seguir esta ordem, sempre no idioma selecionado pelo usuario:
+
+1. Selecao de idioma.
+2. Video/overview geral (estrutura preparada para o video definitivo).
+3. Apresentacao do Maxxis AI como assistente e guia contextual.
+4. Entrada no onboarding: no desktop/tablet pelo card Dashboard/Cadastrar; no mobile por `+ New Card`.
+5. Onboarding assistido ate existir pelo menos um perfil valido e uma propriedade ou servico vinculado a ele.
+6. Tour do Feed, MapView, Matches (incluindo portfolio, chat e exportacao) e menu de configuracoes.
+
+Regras do guia:
+
+- Enquanto o requisito minimo de onboarding nao for atendido, os modulos comerciais ficam bloqueados e a explicacao deve direcionar explicitamente ao cadastro, sem encerrar o tour silenciosamente.
+- Para usuarios que ja possuem perfil e portfolio validos, o Dashboard e acesso de edicao/publicacao, nao um bloqueio de primeiro cadastro.
+- Os passos devem localizar e destacar o elemento real; no mobile, o guia abre o hamburger antes de apontar o seletor de idioma.
+- O modal do guia pode ser reposicionado pelo usuario para nao esconder o elemento destacado.
+- Maxxis pode iniciar um passo contextual do guia quando orientar o usuario a uma area do app.
+
+## 21. Checklist Antes De Alterar Areas Criticas
 
 Antes de mexer em Feed, Matches, MapView, Unlock, Stripe, Chat ou Plano:
 
@@ -506,7 +547,7 @@ Antes de mexer em Feed, Matches, MapView, Unlock, Stripe, Chat ou Plano:
 9. Se for contatos desbloqueados, executar `docs/QA_UNLOCKED_CONTACTS_E2E.md`.
 10. Se for MapView, executar `docs/QA_MAPVIEW_V2.md`.
 
-## 21. Principios De Manutencao
+## 22. Principios De Manutencao
 
 - Um dado canonico deve ter uma unica fonte.
 - Services encapsulam regra de negocio; paginas orquestram estado e renderizacao.

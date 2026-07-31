@@ -769,6 +769,21 @@ export function Landing({ onOpenAuthModal = () => {} }) {
         </div>
       </section>
 
+      <section style={{ background: '#ffffff', padding: isMobile ? '34px 14px' : '52px 24px' }}>
+        <img
+          src="/maxxis-deal-prospector.jpg"
+          alt="Maxxis, your Deal Prospector"
+          style={{
+            display: 'block',
+            width: '100%',
+            maxWidth: 1180,
+            height: 'auto',
+            margin: '0 auto',
+            borderRadius: 8,
+          }}
+        />
+      </section>
+
       <section style={{ maxWidth:"100%", margin:"0 auto", padding:isMobile ? '56px 14px' : '72px 20px', background:"#fff" }}>
         <div style={{ maxWidth:980, margin:"0 auto" }}>
           <h2 style={{ textAlign:"center", fontSize:"clamp(22px,4vw,32px)", fontWeight:800, color:'#1e2d4d', marginBottom:10 }}>{t.onePlatform}</h2>

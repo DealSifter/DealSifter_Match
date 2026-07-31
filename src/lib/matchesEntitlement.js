@@ -1,4 +1,5 @@
 import { getContactByOwnerId } from '../services/unlockedContactService';
+import { buildProfileEntitlementKey, getRecordProfileScope } from './profileScope';
 
 const normalizeId = (value) => String(value || '').trim();
 
@@ -7,6 +8,8 @@ export const canonicalContactToDisplayCard = (entry) => {
   const ownerId = normalizeId(entry.ownerId || entry.owner_id);
   if (!ownerId) return null;
   const contact = entry.contact && typeof entry.contact === 'object' ? entry.contact : {};
+  const primaryProfile = getRecordProfileScope(entry);
+  const entitlementKey = buildProfileEntitlementKey(ownerId, primaryProfile);
   const contactMethods = Array.isArray(contact.contactMethods)
     ? contact.contactMethods
     : (Array.isArray(contact.contact_methods) ? contact.contact_methods : []);
@@ -14,11 +17,11 @@ export const canonicalContactToDisplayCard = (entry) => {
     ? entry.unlockedPropertyIds
     : (Array.isArray(entry.unlocked_property_ids) ? entry.unlocked_property_ids : []);
   return {
-    id: ownerId,
+    id: entitlementKey,
     ownerId,
     unlockOwnerId: ownerId,
     source: 'remote-unlock',
-    primaryProfile: entry.primaryProfile || entry.primary_profile || 'personal',
+    primaryProfile,
     unlockScope: entry.unlockScope || entry.unlock_scope || 'contact',
     name: contact.name || 'Unlocked contact',
     title: contact.name || 'Unlocked contact',
@@ -47,6 +50,6 @@ export const resolveCanonicalContactCardFromMap = (unlockedContactMap, contactLi
   if (!contactLike) return null;
   const ownerId = normalizeId(contactLike.ownerId || contactLike.unlockOwnerId || contactLike.id);
   if (!ownerId) return null;
-  const canonicalEntry = getContactByOwnerId(unlockedContactMap, ownerId);
+  const canonicalEntry = getContactByOwnerId(unlockedContactMap, ownerId, getRecordProfileScope(contactLike));
   return canonicalEntry ? canonicalContactToDisplayCard(canonicalEntry) : null;
 };

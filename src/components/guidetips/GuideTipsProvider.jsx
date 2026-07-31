@@ -70,7 +70,10 @@ export function GuideTipsProvider({
       try { return localStorage.getItem(ENABLED_KEY) === '1'; } catch { return false; }
     })();
     const manuallyEnabled = Boolean(next.cycleCompleted && storedEnabled);
-    const mustRun = Boolean(canStart && !next.cycleCompleted);
+    // The initial guide is mandatory only while the account cannot operate yet.
+    // Once onboarding has the minimum valid profile + linked portfolio record,
+    // keep the tour available on demand without reopening it on every login.
+    const mustRun = Boolean(canStart && !isOperational && !next.cycleCompleted);
     const timer = window.setTimeout(() => {
       setProgress(next);
       setEnabledState(mustRun || manuallyEnabled);
@@ -85,7 +88,7 @@ export function GuideTipsProvider({
 
   const setEnabled = useCallback((value) => {
     const next = Boolean(value);
-    const mandatory = Boolean(canStart && !progress.cycleCompleted);
+    const mandatory = Boolean(canStart && !onboardingCompleteRef.current && !progress.cycleCompleted);
     setEnabledState(next);
     if (next) {
       setActiveTour(tourForPage(page));
@@ -97,7 +100,7 @@ export function GuideTipsProvider({
   }, [canStart, page, progress.cycleCompleted]);
 
   const toggle = useCallback(() => {
-    const mandatory = Boolean(canStart && !progress.cycleCompleted);
+    const mandatory = Boolean(canStart && !onboardingCompleteRef.current && !progress.cycleCompleted);
     if (mandatory) {
       setEnabledState(true);
       return;
@@ -153,7 +156,7 @@ export function GuideTipsProvider({
     };
   }, [page, startTour]);
 
-  const mandatory = Boolean(canStart && !progress.cycleCompleted);
+  const mandatory = Boolean(canStart && !onboardingComplete && !progress.cycleCompleted);
   const value = useMemo(() => ({
     enabled,
     setEnabled,

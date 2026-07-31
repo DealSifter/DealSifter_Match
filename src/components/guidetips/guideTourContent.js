@@ -14,6 +14,7 @@ const COPY = {
       videoSoon: 'The overview video is being prepared. This space is ready to receive it without changing the first-access flow.',
     },
     initial: [
+      { id: 'language-menu', mobileOnly: true, target: '[data-guide="app-menu"]', title: 'Open the app menu', body: 'Start by opening the hamburger menu. The language selector is inside this sidebar.' },
       { id: 'language', target: '[data-guide="language-control"]', title: 'Choose your language', body: 'Select English, Portuguese or Spanish first. The app, guide and Maxxis will use this preference throughout your journey.' },
       { id: 'overview', kind: 'video', title: 'See how DealSifter works', body: 'This overview introduces the main journey before you begin your registration.' },
       { id: 'maxxis', target: '[data-guide="maxxis-widget"]', title: 'Meet Maxxis AI', body: 'Maxxis is your app guide and question assistant. It follows your selected language and can take you directly to the module where an action must be completed.', nextTour: 'onboarding-entry', nextPage: 'dashboard' },
@@ -75,6 +76,7 @@ const COPY = {
       videoSoon: 'O vídeo overview está em elaboração. Este espaço já está preparado para recebê-lo sem alterar o fluxo de primeiro acesso.',
     },
     initial: [
+      { id: 'language-menu', mobileOnly: true, target: '[data-guide="app-menu"]', title: 'Abra o menu do app', body: 'Comece abrindo o menu hamburger. O seletor de idioma fica dentro desta barra lateral.' },
       { id: 'language', target: '[data-guide="language-control"]', title: 'Escolha o idioma do app', body: 'Selecione primeiro inglês, português ou espanhol. O app, o guia e o Maxxis usarão essa preferência durante toda a jornada.' },
       { id: 'overview', kind: 'video', title: 'Veja como o DealSifter funciona', body: 'Este panorama apresenta a jornada principal antes de você iniciar seu cadastro.' },
       { id: 'maxxis', target: '[data-guide="maxxis-widget"]', title: 'Conheça o Maxxis AI', body: 'O Maxxis é seu guia e tira-dúvidas do app. Ele segue o idioma selecionado e pode levar você diretamente ao módulo onde uma ação precisa ser feita.', nextTour: 'onboarding-entry', nextPage: 'dashboard' },
@@ -136,6 +138,7 @@ const COPY = {
       videoSoon: 'El video general está en preparación. Este espacio ya está listo para recibirlo sin cambiar el flujo inicial.',
     },
     initial: [
+      { id: 'language-menu', mobileOnly: true, target: '[data-guide="app-menu"]', title: 'Abre el menú de la app', body: 'Empieza abriendo el menú hamburguesa. El selector de idioma está dentro de esta barra lateral.' },
       { id: 'language', target: '[data-guide="language-control"]', title: 'Elige el idioma de la app', body: 'Selecciona primero inglés, portugués o español. La app, la guía y Maxxis usarán esta preferencia durante todo el recorrido.' },
       { id: 'overview', kind: 'video', title: 'Descubre cómo funciona DealSifter', body: 'Este panorama presenta el recorrido principal antes de comenzar tu registro.' },
       { id: 'maxxis', target: '[data-guide="maxxis-widget"]', title: 'Conoce a Maxxis AI', body: 'Maxxis es tu guía y asistente de dudas del app. Sigue el idioma seleccionado y puede llevarte directamente al módulo donde debes completar una acción.', nextTour: 'onboarding-entry', nextPage: 'dashboard' },

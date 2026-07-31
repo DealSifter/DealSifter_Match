@@ -135,6 +135,12 @@ export function GuideTipOverlay({ page, setPage, isFreePlan = true }) {
 
   useEffect(() => {
     if (!enabled || !step) return;
+    if ((step.mobileOnly && window.innerWidth >= 768) || (step.desktopOnly && window.innerWidth < 768)) {
+      const skipTimer = window.setTimeout(() => {
+        setStepIndex((current) => Math.min(current + 1, steps.length - 1));
+      }, 0);
+      return () => window.clearTimeout(skipTimer);
+    }
     if (step.kind === 'free-plan' && !isFreePlan) {
       setStepIndex((current) => Math.min(current + 1, steps.length - 1));
     }
@@ -174,12 +180,14 @@ export function GuideTipOverlay({ page, setPage, isFreePlan = true }) {
         : (below ? rect.bottom + 12 : Math.max(70, rect.top - cardHGuess - 12))
     )
     : Math.max(72, (window.innerHeight - cardHGuess) / 2);
-  const positionedLeft = mobileViewport
-    ? Math.min(Math.max(8, left + mobileDragOffset.x), Math.max(8, window.innerWidth - cardW - 8))
-    : left;
-  const positionedTop = mobileViewport
-    ? Math.min(Math.max(56, top + mobileDragOffset.y), Math.max(56, window.innerHeight - 150))
-    : top;
+  const positionedLeft = Math.min(
+    Math.max(8, left + mobileDragOffset.x),
+    Math.max(8, window.innerWidth - cardW - 8),
+  );
+  const positionedTop = Math.min(
+    Math.max(56, top + mobileDragOffset.y),
+    Math.max(56, window.innerHeight - 150),
+  );
   const progress = `${stepIndex + 1}/${steps.length}`;
   const isDark = theme === 'dark';
   const cardText = '#101827';
@@ -233,7 +241,7 @@ export function GuideTipOverlay({ page, setPage, isFreePlan = true }) {
     if (page !== 'onboarding') setPage?.('onboarding');
   };
   const beginMobileDrag = (event) => {
-    if (!mobileViewport || event.button > 0) return;
+    if (event.button > 0) return;
     mobileDragRef.current = {
       pointerId: event.pointerId,
       clientX: event.clientX,
@@ -360,8 +368,8 @@ export function GuideTipOverlay({ page, setPage, isFreePlan = true }) {
             justifyContent: 'space-between',
             gap: 12,
             marginBottom: 10,
-            cursor: mobileViewport ? 'grab' : 'default',
-            touchAction: mobileViewport ? 'none' : 'auto',
+            cursor: 'grab',
+            touchAction: 'none',
             userSelect: 'none',
           }}
         >

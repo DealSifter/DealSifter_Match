@@ -25,8 +25,8 @@ import { isPendingDealExpired } from '../lib/pendingDeal';
 import { orderDeck } from '../lib/orderFeedDeck';
 import { normalizeCard } from '../lib/normalizeFeedCard';
 import { sanitizePublicCardInput } from '../lib/sanitizePublicCardInput';
-import { checkIsUnlocked } from '../services/unlockService';
 import { formatCompactUsd } from '../lib/formatMoney';
+import { buildProfileEntitlementKey } from '../lib/profileScope';
 import feedMatchIcon from '../assets/feed-match-icon.png';
 import spotlightIcon from '../assets/spotlight-icon.png';
 
@@ -1036,6 +1036,10 @@ export function Dashboard({ page, nuggets, setModal, setPage, onOpenOnboardingTa
       return key ? [key] : [];
     }
     return Array.from(new Set([
+      buildProfileEntitlementKey(
+        itemOrId.ownerId || itemOrId.unlockOwnerId || itemOrId.sellerId || itemOrId.id,
+        getRecordProfileScope(itemOrId),
+      ),
       itemOrId.ownerId,
       itemOrId.unlockOwnerId,
       itemOrId.sellerId,
@@ -1048,7 +1052,7 @@ export function Dashboard({ page, nuggets, setModal, setPage, onOpenOnboardingTa
       itemOrId.id,
       itemOrId.sourceCardId,
     ].map((value) => String(value || '').trim()).filter(Boolean)));
-  }, []);
+  }, [getRecordProfileScope]);
 
   const unlockedIdSet = useMemo(() => new Set(
     (Array.isArray(unlocked) ? unlocked : [])
@@ -2500,14 +2504,14 @@ export function Dashboard({ page, nuggets, setModal, setPage, onOpenOnboardingTa
     return normalized === 'true' || normalized === '1' || normalized === 'yes' || normalized === 'verified';
   };
 
-  const getUnlockCost = (personId) => {
+  const getUnlockCost = (personOrCard) => {
     const devMockProperties = import.meta.env.DEV ? (PROPERTIES || []) : [];
-    return getPortfolioUnlockCost(personId, [...(propertyPortfolio || []), ...(showcaseItems || []), ...devMockProperties], servicePortfolio || []);
+    return getPortfolioUnlockCost(personOrCard, [...(propertyPortfolio || []), ...(showcaseItems || []), ...devMockProperties], servicePortfolio || []);
   };
 
-  const getPortfolioCount = (personId) => {
+  const getPortfolioCount = (personOrCard) => {
     const devMockProperties = import.meta.env.DEV ? (PROPERTIES || []) : [];
-    return getPortfolioItemCount(personId, [...(propertyPortfolio || []), ...(showcaseItems || []), ...devMockProperties], servicePortfolio || []);
+    return getPortfolioItemCount(personOrCard, [...(propertyPortfolio || []), ...(showcaseItems || []), ...devMockProperties], servicePortfolio || []);
   };
 
   const ownOwnerIds = useMemo(() => {
@@ -2588,14 +2592,6 @@ export function Dashboard({ page, nuggets, setModal, setPage, onOpenOnboardingTa
       return (contactId && value === contactId) || (ownerId && value === ownerId);
     });
     if (alreadyUnlocked) return false;
-    if (ownerId && currentUserId && ownerId !== currentUserId) {
-      try {
-        const remoteState = await checkIsUnlocked(ownerId, currentUserId);
-        if (remoteState?.isUnlocked) return false;
-      } catch {
-        // Local state remains the fallback; unlock modal will validate again server-side.
-      }
-    }
     if (typeof openUnlock === 'function') {
       openUnlock({
         ...targetCard,
@@ -4214,7 +4210,7 @@ export function Dashboard({ page, nuggets, setModal, setPage, onOpenOnboardingTa
                           }}>
                             <SwipeCard card={{
                               ...getFeedDisplayCard(c, isContactUnlocked(c)),
-                              portfolioCount: getPortfolioCount(c.ownerId ?? c.id),
+                              portfolioCount: getPortfolioCount(c),
                               isVerified: isTruthyVerified(c?.verified) || verifiedOwnerIds.has(String(c.ownerId ?? c.id)),
                             }} action={isTop ? action : null} isUnlocked={isContactUnlocked(c)} isSkipped={skippedSet.has(c.id)} onSwipe={act} onUndo={lastConnOp && isTop ? undo : null} onUnlock={openUnlockFromConnectionCard} showActions={!isMobileViewport} />
                           </div>
@@ -4463,8 +4459,8 @@ export function Dashboard({ page, nuggets, setModal, setPage, onOpenOnboardingTa
             {filteredMatched.map((m, i, filteredArr) => (
               (() => {
                 const isUnlockedMatch = isContactUnlocked(m);
-                const unlockCost = getUnlockCost(m.id);
-                const portfolioCount = getPortfolioCount(m.id);
+                const unlockCost = getUnlockCost(m);
+                const portfolioCount = getPortfolioCount(m);
                 return (
               <div key={i} style={{ display:"flex", alignItems:"center", gap:8, padding:"8px 0", borderBottom:i < filteredArr.length-1 ? `1px solid ${C.border}` : "none" }}>
                   <SmartImage
@@ -4581,7 +4577,7 @@ export function Dashboard({ page, nuggets, setModal, setPage, onOpenOnboardingTa
             {filteredInterested.map((m, i) => {
               const propOwner = resolvePropertyOwnerCard(m);
               const isOwnerUnlocked = propOwner && isContactUnlocked(propOwner);
-              const ownerUnlockCost = propOwner ? getUnlockCost(propOwner.id) : 1;
+              const ownerUnlockCost = propOwner ? getUnlockCost(propOwner) : 1;
               return (
                 <div key={i} style={{ display:"flex", alignItems:"center", gap:8, padding:"8px 0", borderBottom:i < interested.length-1 ? `1px solid ${C.border}` : "none" }}>
                   <SmartImage

@@ -26,6 +26,8 @@ Use quando a mudanca for refatoracao, layout responsivo, otimizacao, nova featur
 Depois de editar:
 
 ```powershell
+npm run lint
+npm run test
 npm run build
 git add <arquivos>
 git commit -m "Descricao curta da mudanca"
@@ -45,6 +47,8 @@ Use somente para correcao pequena e urgente que precisa ir para usuarios reais.
 Depois de editar:
 
 ```powershell
+npm run lint
+npm run test
 npm run build
 git add <arquivos>
 git commit -m "Descricao curta do hotfix"
@@ -87,7 +91,7 @@ Adicionar variavel somente em Producao:
 "valor" | npx -y vercel env add NOME_DA_VARIAVEL production
 ```
 
-## Supabase
+## Supabase E Mudancas De Contrato
 
 Por seguranca, nao rode migracoes no Supabase automaticamente durante refatoracoes visuais.
 
@@ -109,10 +113,33 @@ Aplicar migracoes no projeto vinculado:
 supabase db push --password "SUA_SENHA_POSTGRES"
 ```
 
+### Ordem Obrigatoria Para Mudancas De RPC/Entitlement
+
+Quando o frontend passa a enviar um novo parametro de RPC ou depende de nova coluna/funcao, a ordem nao pode ser invertida:
+
+1. Revisar a migration e o impacto de RLS.
+2. Aplicar a migration no Supabase de producao.
+3. Confirmar a RPC diretamente no SQL/Supabase Studio com dados de teste.
+4. Rodar `npm run lint`, `npm run test` e `npm run build` no frontend.
+5. Publicar a branch no Vercel.
+6. Executar o QA funcional correspondente apos o deploy.
+
+Regra especial de perfis e unlocks: a migration `20260729000001_profile_scoped_unlock_entitlements.sql` deve estar aplicada antes de publicar codigo que chama `ds_create_unlock_intent` ou `ds_purchase_contact_unlock` com `p_profile_scope`. Publicar o frontend primeiro quebra o fluxo de unlock por incompatibilidade de contrato.
+
+### Validacao Minima Pos-Migration
+
+Para uma conta com mais de um perfil, confirmar que:
+
+- `ds_get_unlocked_contact_cards(p_user_id)` devolve registros separados por `owner_id` e `primary_profile`.
+- O custo de unlock considera somente o portfolio do perfil selecionado.
+- Um unlock de um perfil nao libera os outros perfis da mesma conta.
+- Desktop e mobile mostram o mesmo entitlement apos refresh.
+
 ## Regra de seguranca
 
 - Mudanca visual/codigo comum: `dev`.
 - Hotfix pequeno aprovado: `safe-push -> main`.
 - Migracao Supabase: somente quando a mudanca depender de DB e apos confirmar impacto.
+- Mudanca de RPC: migracao primeiro, frontend depois; nunca fazer deploy parcial de contrato.
 - Novo Supabase separado para dev: recomendado no futuro, mas nao criado automaticamente para evitar custo e risco de limite.
 

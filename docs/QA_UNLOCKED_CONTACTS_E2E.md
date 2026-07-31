@@ -26,6 +26,7 @@ Usuarios necessarios:
 - Usuario B: comprador/desbloqueador.
 - Usuario C: usuario sem unlock.
 - Usuario D: comprador de exclusividade.
+- Usuario E: mesma conta do Usuario A, mas com um segundo perfil independente.
 
 Dados minimos do Usuario A:
 
@@ -35,13 +36,20 @@ Dados minimos do Usuario A:
 - Pelo menos 2 propriedades publicadas.
 - Pelo menos 1 propriedade elegivel para exclusividade.
 
+Dados adicionais do Usuario E:
+
+- Perfil em outro escopo (`personal`, `professional` ou `fsbo`) diferente do perfil usado por A.
+- Avatar, email/telefone e pelo menos uma propriedade ou servico diferentes.
+- Registros publicados e corretamente vinculados ao seu proprio `primary_profile`.
+
 ## Criterios Globais De Aprovacao
 
 - Email, telefone e WhatsApp nunca aparecem para usuario sem unlock valido.
 - Desktop, mobile, outra aba e modal preview exibem exatamente os mesmos dados para o mesmo usuario desbloqueado.
 - Refresh ou nova sessao nao remove entitlement ja pago.
-- Unlock de contato libera portfolio completo do owner sem paywall adicional.
-- Unlock de propriedade libera contato do owner apenas no contexto daquela propriedade.
+- Unlock de contato libera somente o portfolio completo do perfil selecionado, sem paywall adicional para seus itens.
+- Unlock de propriedade libera contato do perfil vinculado apenas no contexto daquela propriedade.
+- Um unlock nunca libera outro perfil paralelo da mesma conta.
 - Exclusividade ativa de terceiro mostra badge/timer especifico, nunca paywall generico.
 
 ---
@@ -80,7 +88,7 @@ Resultado esperado:
 - B ve email e telefone de A em `Matches > People` no desktop.
 - B ve os mesmos dados em mobile/outra aba.
 - B ve os mesmos dados no modal preview.
-- B acessa propriedades de A sem novo paywall.
+- B acessa propriedades do mesmo perfil de A sem novo paywall.
 - C nao ve email nem telefone de A em nenhum ponto.
 
 Criterio de aprovacao:
@@ -117,7 +125,7 @@ Resultado esperado:
 
 - B ve os dados de A no contexto da propriedade desbloqueada.
 - Outras propriedades de A continuam bloqueadas para B.
-- O sistema nao transforma unlock de propriedade em unlock completo de contato.
+- O sistema nao transforma unlock de propriedade em unlock completo de outros perfis.
 
 Criterio de aprovacao:
 
@@ -235,6 +243,48 @@ Resultado:
 
 ---
 
+## CENARIO 6 - Conta Com Perfis Paralelos
+
+Pre-condicoes:
+
+- Usuario A e Usuario E pertencem a mesma conta (`owner_id` igual), mas representam perfis diferentes.
+- A possui, por exemplo, perfil `fsbo` com propriedades A1 e A2.
+- E possui, por exemplo, perfil `professional` com servico E1 e propriedade E2.
+- Os dois perfis possuem dados de contato e avatar diferentes.
+- Usuario B possui saldo suficiente e ainda nao desbloqueou nenhum dos dois perfis.
+
+Passos:
+
+1. Com B, abrir o card do perfil A no Feed.
+2. Confirmar que o custo exibido corresponde somente aos itens A1/A2 vinculados ao perfil A.
+3. Desbloquear A e abrir `Matches > People`.
+4. Verificar email, telefone, avatar e portfolio de A.
+5. Abrir A1 e A2: os dois devem estar acessiveis sem novo paywall.
+6. Localizar o card E no Feed ou MapView.
+7. Confirmar que E continua bloqueado e apresenta custo proprio, calculado apenas sobre E1/E2.
+8. Confirmar que B nao ve email, telefone, avatar privado ou portfolio detalhado de E antes de um segundo unlock.
+9. Dar refresh no desktop e repetir a verificacao no mobile.
+10. Repetir o teste invertendo a ordem: desbloquear E primeiro e confirmar que A permanece bloqueado.
+
+Resultado esperado:
+
+- A chave de entitlement se comporta como `owner_id:profile_scope`, nao apenas `owner_id`.
+- O unlock de A nao libera E, mesmo que os dois perfis pertençam ao mesmo login.
+- O custo, os contatos, o portfolio e a exclusividade ficam isolados por perfil.
+- O comportamento e identico em desktop, mobile, modal preview e nova sessao.
+
+Criterio de aprovacao:
+
+- Passa somente se nenhum dado ou item de E for liberado pelo unlock de A, e vice-versa.
+
+Resultado:
+
+- Status: Passou / Falhou
+- Evidencias:
+- Observacoes:
+
+---
+
 ## Checklist Final
 
 - Cenario 1: Passou / Falhou
@@ -242,6 +292,7 @@ Resultado:
 - Cenario 3: Passou / Falhou
 - Cenario 4: Passou / Falhou
 - Cenario 5: Passou / Falhou
+- Cenario 6: Passou / Falhou
 
 Resultado final:
 

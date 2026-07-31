@@ -2614,23 +2614,25 @@ export function MatchesPage({ nuggets, isAdmin = false, setModal, openUnlock, un
       .filter(Boolean)
   ), [unlocked]);
 
-  const getCanonicalContact = useCallback((ownerId) => (
-    getContactByOwnerId(unlockedContactMap, ownerId)
+  const getCanonicalContact = useCallback((ownerId, profileScope = null) => (
+    getContactByOwnerId(unlockedContactMap, ownerId, profileScope)
   ), [unlockedContactMap]);
 
-  const isContactUnlockedByState = useCallback((itemOrId) => (
-    getContactUnlockKeys(itemOrId).some((key) => (
-      isCanonicalOwnerUnlocked(unlockedContactMap, key) || unlockedIdSet.has(key)
-    ))
-  ), [getContactUnlockKeys, unlockedContactMap, unlockedIdSet]);
+  const isContactUnlockedByState = useCallback((itemOrId) => {
+    if (itemOrId && typeof itemOrId === 'object') {
+      const ownerId = itemOrId.ownerId || itemOrId.unlockOwnerId || itemOrId.sellerId || itemOrId.id;
+      if (isCanonicalOwnerUnlocked(unlockedContactMap, ownerId, getRecordProfileScope(itemOrId))) return true;
+    }
+    return getContactUnlockKeys(itemOrId).some((key) => unlockedIdSet.has(key));
+  }, [getContactUnlockKeys, getRecordProfileScope, unlockedContactMap, unlockedIdSet]);
 
   const isPropertyUnlockedByCanonicalState = useCallback((property) => {
     if (!property) return false;
     const ownerId = String(property.ownerId || property.owner_id || '').trim();
     const propertyId = String(property.id || property.propertyId || property.property_id || property.portfolioId || '').trim();
     if (!ownerId || !propertyId) return false;
-    return isCanonicalPropertyUnlocked(unlockedContactMap, ownerId, propertyId);
-  }, [unlockedContactMap]);
+    return isCanonicalPropertyUnlocked(unlockedContactMap, ownerId, propertyId, getRecordProfileScope(property));
+  }, [getRecordProfileScope, unlockedContactMap]);
 
   const logEntitlementAlertOnce = useCallback(async (level, event, key, payloadBuilder, error = null) => {
     const dedupeKey = `${event}:${key}`;
@@ -2640,9 +2642,13 @@ export function MatchesPage({ nuggets, isAdmin = false, setModal, openUnlock, un
     captureEntitlementAlert(level, event, payload, error);
   }, []);
 
-  const hasOwnerPortfolioAccessByState = useCallback((ownerId) => (
-    hasOwnerPortfolioEntitlement(unlockedContactMap, ownerId)
-  ), [unlockedContactMap]);
+  const hasOwnerPortfolioAccessByState = useCallback((ownerOrCard) => {
+    const ownerId = typeof ownerOrCard === 'object'
+      ? (ownerOrCard?.ownerId || ownerOrCard?.id)
+      : ownerOrCard;
+    const profileScope = typeof ownerOrCard === 'object' ? getRecordProfileScope(ownerOrCard) : null;
+    return hasOwnerPortfolioEntitlement(unlockedContactMap, ownerId, profileScope);
+  }, [getRecordProfileScope, unlockedContactMap]);
 
   const resolveCanonicalContactCard = useCallback((contactLike) => {
     return resolveCanonicalContactCardFromMap(unlockedContactMap, contactLike);
@@ -3125,7 +3131,7 @@ export function MatchesPage({ nuggets, isAdmin = false, setModal, openUnlock, un
     if (!activeOwner) return false;
     if (!isActiveProperty) return isContactUnlockedByState(activeOwner);
     return isPropertyUnlockedByCanonicalState(active)
-      || hasOwnerPortfolioAccessByState(active?.ownerId || activeOwner?.ownerId || activeOwner?.id);
+      || hasOwnerPortfolioAccessByState(activeOwner);
   }, [active, activeOwner, hasOwnerPortfolioAccessByState, isActiveProperty, isContactUnlockedByState, isPropertyUnlockedByCanonicalState]);
 
   const activeUnlockCost = useMemo(() => {
@@ -3142,7 +3148,8 @@ export function MatchesPage({ nuggets, isAdmin = false, setModal, openUnlock, un
 
   useEffect(() => {
     if (!(unlockedContactMap instanceof Map) || unlockedContactMap.size === 0) return;
-    unlockedContactMap.forEach((canonicalContact, ownerId) => {
+    unlockedContactMap.forEach((canonicalContact, entitlementKey) => {
+      const ownerId = canonicalContact?.ownerId || canonicalContact?.owner_id || entitlementKey;
       const contact = canonicalContact?.contact && typeof canonicalContact.contact === 'object'
         ? canonicalContact.contact
         : {};
@@ -3164,14 +3171,15 @@ export function MatchesPage({ nuggets, isAdmin = false, setModal, openUnlock, un
     const ownerId = String(active.ownerId || active.owner_id || activeOwner?.ownerId || activeOwner?.id || '').trim();
     const propertyId = String(active.id || active.propertyId || active.property_id || active.portfolioId || '').trim();
     if (!ownerId || !propertyId) return;
-    const ownerUnlocked = isCanonicalOwnerUnlocked(unlockedContactMap, ownerId);
-    const propertyUnlocked = isCanonicalPropertyUnlocked(unlockedContactMap, ownerId, propertyId);
+    const profileScope = getRecordProfileScope(active);
+    const ownerUnlocked = isCanonicalOwnerUnlocked(unlockedContactMap, ownerId, profileScope);
+    const propertyUnlocked = isCanonicalPropertyUnlocked(unlockedContactMap, ownerId, propertyId, profileScope);
     if (!ownerUnlocked || propertyUnlocked || activePropertyBlockedByOther) return;
     void logEntitlementAlertOnce('error', 'property_paywall_on_unlocked_owner', `${ownerId}:${propertyId}`, async () => ({
       owner_id_hash: await hashForTelemetry(ownerId),
       property_id_hash: await hashForTelemetry(propertyId),
     }));
-  }, [active, activeOwner, activePropertyBlockedByOther, isActiveProperty, logEntitlementAlertOnce, unlockedContactMap]);
+  }, [active, activeOwner, activePropertyBlockedByOther, getRecordProfileScope, isActiveProperty, logEntitlementAlertOnce, unlockedContactMap]);
 
   const activeOwnerExclusiveStatus = useMemo(() => {
     if (!activeOwner?.id || isActiveProperty) return null;
@@ -3179,9 +3187,9 @@ export function MatchesPage({ nuggets, isAdmin = false, setModal, openUnlock, un
     return status?.kind === 'owned' ? status : null;
   }, [activeOwner?.id, getOwnerExclusiveStatus, isActiveProperty]);
 
-  const getUnlockCost = useCallback((ownerId) => {
-    if (!ownerId) return 1;
-    return getPortfolioUnlockCost(ownerId, allPropertiesSource, allServicesSource);
+  const getUnlockCost = useCallback((ownerOrCard) => {
+    if (!ownerOrCard) return 1;
+    return getPortfolioUnlockCost(ownerOrCard, allPropertiesSource, allServicesSource);
   }, [allPropertiesSource, allServicesSource]);
   
   const currentMsgs = useMemo(() => {
@@ -3194,8 +3202,12 @@ export function MatchesPage({ nuggets, isAdmin = false, setModal, openUnlock, un
 
   const portfolioItems = useMemo(() => {
     if (!activeOwner) return [];
-    return allPropertiesSource.filter((p) => String(p.ownerId) === String(activeOwner.id));
-  }, [activeOwner, allPropertiesSource]);
+    const activeScope = getRecordProfileScope(activeOwner);
+    return allPropertiesSource.filter((p) => (
+      String(p.ownerId) === String(activeOwner.ownerId || activeOwner.id)
+      && getRecordProfileScope(p) === activeScope
+    ));
+  }, [activeOwner, allPropertiesSource, getRecordProfileScope]);
 
   const [portfolioTab, setPortfolioTab] = useState('properties');
   const [portfolioShowAll, setPortfolioShowAll] = useState(false);

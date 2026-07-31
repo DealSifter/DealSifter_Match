@@ -292,7 +292,13 @@ export function Navbar({ page, prevPage, setPage, nuggets = 0, setModal = () => 
   useEffect(() => {
     const handleGuideStep = (event) => {
       const target = String(event?.detail?.target || '');
-      if (!target.includes('app-settings-menu') || !isAppCompact) return;
+      if (!isAppCompact) return;
+      if (target.includes('app-menu')) {
+        setAppNotifOpen(false);
+        setAppMenuOpen(false);
+        return;
+      }
+      if (!target.includes('language-control') && !target.includes('app-settings-menu')) return;
       setAppNotifOpen(false);
       setAppMenuOpen(true);
     };

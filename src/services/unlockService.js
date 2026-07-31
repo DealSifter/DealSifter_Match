@@ -1,4 +1,5 @@
 import { isSupabaseConfigured, supabase } from '../lib/supabaseClient';
+import { normalizeProfileScope } from '../lib/profileScope';
 
 export class UnlockServiceError extends Error {
   constructor(message, options = {}) {
@@ -69,6 +70,7 @@ export function normalizeUnlockIntent(row) {
     sellerId: row.seller_id || row.sellerId || null,
     propertyId: row.property_id || row.propertyId || null,
     scope: row.scope || 'contact',
+    profileScope: normalizeProfileScope(row.profile_scope || row.profileScope),
     mode: row.mode || 'normal',
     baseCost: Math.max(1, Number(row.base_cost || row.baseCost || 1)),
     exclusivityCost: Math.max(0, Number(row.exclusivity_cost || row.exclusivityCost || 0)),
@@ -132,7 +134,13 @@ async function rpc(name, args = {}) {
   return data;
 }
 
-export async function createUnlockIntent({ contactId, propertyId = null, mode = 'normal', metadata = {} } = {}) {
+export async function createUnlockIntent({
+  contactId,
+  propertyId = null,
+  profileScope = 'personal',
+  mode = 'normal',
+  metadata = {},
+} = {}) {
   const sellerId = asUuidOrNull(contactId);
   const cleanPropertyId = asUuidOrNull(propertyId);
   if (!sellerId && !cleanPropertyId) {
@@ -141,6 +149,7 @@ export async function createUnlockIntent({ contactId, propertyId = null, mode = 
   const data = await rpc('ds_create_unlock_intent', {
     p_seller_id: sellerId,
     p_property_id: cleanPropertyId,
+    p_profile_scope: normalizeProfileScope(profileScope),
     p_mode: mode || 'normal',
     p_metadata: metadata || {},
   });
@@ -149,8 +158,8 @@ export async function createUnlockIntent({ contactId, propertyId = null, mode = 
   return intent;
 }
 
-export async function getUnlockCost(contactId) {
-  return createUnlockIntent({ contactId, mode: 'normal', metadata: { source: 'unlock_service_get_cost' } });
+export async function getUnlockCost(contactId, profileScope = 'personal') {
+  return createUnlockIntent({ contactId, profileScope, mode: 'normal', metadata: { source: 'unlock_service_get_cost' } });
 }
 
 export async function getPropertyUnlockQuote(propertyId) {
@@ -160,7 +169,7 @@ export async function getPropertyUnlockQuote(propertyId) {
   return normalizePropertyUnlockQuote(pickRow(data), cleanPropertyId);
 }
 
-export async function unlockContact(contactId, intentToken, nuggetCost) {
+export async function unlockContact(contactId, intentToken, nuggetCost, profileScope = 'personal') {
   const sellerId = asUuidOrNull(contactId);
   const token = asUuidOrNull(intentToken);
   if (!sellerId) throw new UnlockServiceError('Valid contactId is required', { code: 'invalid_contact_id' });
@@ -168,6 +177,7 @@ export async function unlockContact(contactId, intentToken, nuggetCost) {
   const data = await rpc('ds_purchase_contact_unlock', {
     p_seller_id: sellerId,
     p_intent_token: token,
+    p_profile_scope: normalizeProfileScope(profileScope),
   });
   const row = pickRow(data);
   if (!row?.unlock_id) throw new UnlockServiceError('Contact unlock did not return a persisted record');

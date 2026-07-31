@@ -104,6 +104,7 @@ import { clearSensitiveCache, REMOTE_CACHE_LOCAL_STORAGE_KEYS } from './lib/loca
 import { trackAppEvent } from './lib/adminEventTracking';
 import { captureAppException, captureUnlockError, setObservabilityUser } from './lib/observability';
 import { createPropertyUnlockRecord, getOwnerExclusivityStatus, getPortfolioUnlockCost, getPropertyExclusivityStatus, resolveUnlockOwnerId } from './lib/unlockRules';
+import { buildProfileEntitlementKey, getRecordProfileScope as getEntitlementProfileScope } from './lib/profileScope';
 import { isPendingDealExpired } from './lib/pendingDeal';
 import {
   createUnlockIntent as createUnlockIntentRpc,
@@ -808,7 +809,8 @@ const getFeedActionMergeKey = (item) => {
   if (hasPropertyIdentity) {
     return `property:${String(item.id || item.propertyId || item.property_id || item.portfolioId || '').trim()}`;
   }
-  return `person:${String(item.ownerId || item.unlockOwnerId || item.sellerId || item.contactId || item.id || '').trim()}`;
+  const ownerId = String(item.ownerId || item.unlockOwnerId || item.sellerId || item.contactId || item.id || '').trim();
+  return `person:${buildProfileEntitlementKey(ownerId, getEntitlementProfileScope(item))}`;
 };
 
 const mergeFeedActionItems = (prev, incoming) => {
@@ -837,15 +839,16 @@ const canonicalUnlockedContactToFeedCard = (entry) => {
   if (!ownerId) return null;
   const contact = entry.contact && typeof entry.contact === 'object' ? entry.contact : {};
   const primaryProfile = entry.primaryProfile || entry.primary_profile || 'personal';
+  const entitlementKey = buildProfileEntitlementKey(ownerId, primaryProfile);
   const portfolio = Array.isArray(entry.portfolio) ? entry.portfolio : [];
   const unlockedPropertyIds = Array.isArray(entry.unlockedPropertyIds)
     ? entry.unlockedPropertyIds
     : (Array.isArray(entry.unlocked_property_ids) ? entry.unlocked_property_ids : []);
   return {
-    id: ownerId,
+    id: entitlementKey,
     ownerId,
     unlockOwnerId: ownerId,
-    sourceCardId: ownerId,
+    sourceCardId: entitlementKey,
     source: 'remote-unlock',
     unlockScope: entry.unlockScope || entry.unlock_scope || 'contact',
     primaryProfile,
@@ -4432,7 +4435,13 @@ export default function App() {
     }
   }, [supabaseUserId]);
 
-  const createUnlockIntent = useCallback(async ({ sellerId, propertyId = null, mode = 'normal', metadata = {} } = {}) => {
+  const createUnlockIntent = useCallback(async ({
+    sellerId,
+    propertyId = null,
+    profileScope = 'personal',
+    mode = 'normal',
+    metadata = {},
+  } = {}) => {
     if (!isSupabaseConfigured || !supabase || !supabaseUserId) return null;
     const cleanSellerId = String(sellerId || '').trim();
     const cleanPropertyId = String(propertyId || '').trim();
@@ -4443,6 +4452,7 @@ export default function App() {
     return createUnlockIntentRpc({
       contactId: cleanSellerId || null,
       propertyId: cleanPropertyId || null,
+      profileScope,
       mode,
       metadata,
     });
@@ -4453,6 +4463,7 @@ export default function App() {
     return {
       ...(target || {}),
       unlockOwnerId: intent.sellerId || target?.unlockOwnerId,
+      primaryProfile: intent.profileScope || getEntitlementProfileScope(target),
       displayedUnlockCost: intent.baseCost,
       unlockIntent: intent,
       unlockCostSnapshot: {
@@ -4462,6 +4473,7 @@ export default function App() {
         expiresAt: intent.expiresAt,
         capturedAt: Date.now(),
         ownerId: intent.sellerId || target?.unlockOwnerId,
+        profileScope: intent.profileScope || getEntitlementProfileScope(target),
       },
     };
   };
@@ -4472,6 +4484,7 @@ export default function App() {
       unlockPortfolioProperties || [],
       unlockPortfolioServices || []
     );
+    const profileScope = getEntitlementProfileScope(context.property || context.owner || card);
     if (unlockOwnerId && supabaseUserId && String(unlockOwnerId) === String(supabaseUserId)) {
       addToast({
         type: 'info',
@@ -4483,7 +4496,13 @@ export default function App() {
       setModal(null);
       return;
     }
-    const ownerExclusiveStatus = getOwnerExclusivityStatus(propertyUnlocks, unlockOwnerId, supabaseUserId || 'local-user');
+    const ownerExclusiveStatus = getOwnerExclusivityStatus(
+      propertyUnlocks,
+      unlockOwnerId,
+      supabaseUserId || 'local-user',
+      Date.now(),
+      profileScope,
+    );
     if (ownerExclusiveStatus?.blocked) {
       addToast({
         type: 'warning',
@@ -4504,6 +4523,7 @@ export default function App() {
     const nextTarget = {
       ...(card || {}),
       unlockOwnerId,
+      primaryProfile: profileScope,
       unlockScope: context.unlockScope || card?.unlockScope || 'contact',
       propertyId: context.propertyId || context.property?.id || card?.propertyId || null,
       propertyAddress: context.propertyAddress || context.property?.address || card?.propertyAddress || '',
@@ -4522,10 +4542,12 @@ export default function App() {
         const intent = await createUnlockIntent({
           sellerId: unlockOwnerId,
           propertyId: nextTarget.unlockScope === 'property' ? nextTarget.propertyId : null,
+          profileScope,
           mode: 'normal',
           metadata: {
             source: 'unlock_modal_open',
             contactId: String(card?.id || ''),
+            profileScope,
           },
         });
         if (intent?.token) {
@@ -4591,7 +4613,13 @@ export default function App() {
     if (!card?.propertyId || card?.unlockScope !== 'property') return null;
     if (!isUuid(card.propertyId) && !(isAdmin && isMockPropertyId(card.propertyId))) return null;
     const ownerId = card?.unlockOwnerId || card?.ownerId || '';
-    const ownerExclusiveStatus = getOwnerExclusivityStatus(propertyUnlocks, ownerId, supabaseUserId || 'local-user');
+    const ownerExclusiveStatus = getOwnerExclusivityStatus(
+      propertyUnlocks,
+      ownerId,
+      supabaseUserId || 'local-user',
+      Date.now(),
+      getEntitlementProfileScope(card),
+    );
     if (ownerExclusiveStatus?.blocked) {
       return {
         kind: 'blocked',
@@ -4641,7 +4669,13 @@ export default function App() {
     if (!card || card.unlockScope === 'property') return null;
     const unlockOwnerId = resolveUnlockOwnerId(card, unlockPortfolioProperties || [], unlockPortfolioServices || []);
     if (!unlockOwnerId) return null;
-    const ownerExclusiveStatus = getOwnerExclusivityStatus(propertyUnlocks, unlockOwnerId, supabaseUserId || 'local-user');
+    const ownerExclusiveStatus = getOwnerExclusivityStatus(
+      propertyUnlocks,
+      unlockOwnerId,
+      supabaseUserId || 'local-user',
+      Date.now(),
+      getEntitlementProfileScope(card),
+    );
     if (ownerExclusiveStatus?.blocked) return null;
 
     const snapshotBaseCost = Number(card?.displayedUnlockCost || card?.unlockCostSnapshot?.baseCost || 0);
@@ -4813,12 +4847,14 @@ export default function App() {
       if (!targetCard || !isUuid(unlockOwnerId)) return { intent: null, changed: false };
 
       const scope = propertyId ? 'property' : 'contact';
+      const profileScope = getEntitlementProfileScope(targetCard);
       const existingIntent = targetCard.unlockIntent || null;
       const existingExpiresAt = existingIntent?.expiresAt ? Date.parse(String(existingIntent.expiresAt)) : 0;
       const existingUsable = (
         existingIntent?.token
         && existingIntent.mode === mode
         && existingIntent.scope === scope
+        && existingIntent.profileScope === profileScope
         && String(existingIntent.sellerId || '') === String(unlockOwnerId)
         && String(existingIntent.propertyId || '') === String(propertyId || '')
         && Number(existingIntent.totalCost) === Number(totalCost)
@@ -4829,11 +4865,13 @@ export default function App() {
       const nextIntent = await createUnlockIntent({
         sellerId: unlockOwnerId,
         propertyId,
+        profileScope,
         mode,
         metadata: {
           source: 'unlock_confirm_refresh',
           contactId: String(contactUnlockId || ''),
           displayedCost: totalCost,
+          profileScope,
         },
       });
       if (!nextIntent?.token) return { intent: null, changed: false };
@@ -4861,13 +4899,16 @@ export default function App() {
     };
     const refreshUnlockIntentAfterChange = async ({ targetCard, mode, propertyId = null }) => {
       try {
+        const profileScope = getEntitlementProfileScope(targetCard);
         const nextIntent = await createUnlockIntent({
           sellerId: unlockOwnerId,
           propertyId,
+          profileScope,
           mode,
           metadata: {
             source: 'unlock_cost_changed_refresh',
             contactId: String(contactUnlockId || ''),
+            profileScope,
           },
         });
         if (nextIntent?.token) {
@@ -5045,7 +5086,8 @@ export default function App() {
           const remoteContactUnlock = await unlockContactRpc(
             unlockOwnerId,
             intent?.token || card?.unlockIntent?.token || null,
-            unlockCost
+            unlockCost,
+            getEntitlementProfileScope(card),
           );
           if (!remoteContactUnlock?.unlock_id) {
             throw new Error('Contact unlock did not return a persisted record.');
@@ -5097,7 +5139,11 @@ export default function App() {
       try {
         setUnlocked((prev) => {
           const next = Array.isArray(prev) ? [...prev] : [];
-          const candidates = [contactUnlockId, unlockOwnerId]
+          const entitlementKey = buildProfileEntitlementKey(
+            unlockOwnerId,
+            getEntitlementProfileScope(card),
+          );
+          const candidates = [contactUnlockId, entitlementKey]
             .map((value) => String(value || '').trim())
             .filter(Boolean);
           candidates.forEach((candidate) => {
@@ -5116,6 +5162,7 @@ export default function App() {
             const baseRecord = createPropertyUnlockRecord({
               propertyId: card.propertyId,
               ownerId: unlockOwnerId,
+              profileScope: getEntitlementProfileScope(card),
               buyerId: supabaseUserId || 'local-user',
               mode: unlockMode,
               cost: Number(remoteUnlockRow?.total_cost || unlockCost),
@@ -5146,7 +5193,7 @@ export default function App() {
           : new Map();
         if (refreshedUnlockedMap.size) setUnlockedContactsByOwnerId(refreshedUnlockedMap);
         const canonicalMatchedCard = canonicalUnlockedContactToFeedCard(
-          getContactByOwnerId(refreshedUnlockedMap, unlockOwnerId)
+          getContactByOwnerId(refreshedUnlockedMap, unlockOwnerId, getEntitlementProfileScope(card))
         );
         // Ensure unlocked contact stays available in Matches module. The
         // canonical RPC is the source; the clicked card is only a temporary
@@ -5165,15 +5212,20 @@ export default function App() {
           const filtered = current.filter((item) => {
             const itemId = String(item?.id || '');
             const itemOwnerId = String(item?.ownerId || '');
-            return itemId !== String(contactUnlockId) && itemOwnerId !== String(unlockOwnerId || '');
+            const sameProfile = getEntitlementProfileScope(item) === getEntitlementProfileScope(card);
+            return itemId !== String(contactUnlockId)
+              && !(itemOwnerId === String(unlockOwnerId || '') && sameProfile);
           });
           return [...filtered, matchedCard];
         });
-        // Auto-add ALL active properties of this contact to `interested` so the
-        // full portfolio appears in the Interests column immediately after unlock.
+        // Add only properties linked to the purchased profile.
         const allProps = unlockPortfolioProperties || [];
         const contactProps = allProps.filter(
-          (p) => String(p.ownerId) === String(unlockOwnerId) && isTruthyFlag(p?.isActive, true)
+          (p) => (
+            String(p.ownerId) === String(unlockOwnerId)
+            && getEntitlementProfileScope(p) === getEntitlementProfileScope(card)
+            && isTruthyFlag(p?.isActive, true)
+          )
         );
         if (contactProps.length > 0) {
           setInterested(prev => {
@@ -5184,9 +5236,12 @@ export default function App() {
         }
         // Record purchase: current user buys this contact
         setPurchases(prev => 
-          prev.some(p => String(p.sellerId) === String(unlockOwnerId))
+          prev.some(p => (
+            String(p.sellerId) === String(unlockOwnerId)
+            && getEntitlementProfileScope(p) === getEntitlementProfileScope(card)
+          ))
             ? prev 
-            : [...prev, { sellerId: unlockOwnerId }]
+            : [...prev, { sellerId: unlockOwnerId, primaryProfile: getEntitlementProfileScope(card) }]
         );
         setModal(null);
         setUnlockQuote(null);

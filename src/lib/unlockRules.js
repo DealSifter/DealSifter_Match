@@ -1,3 +1,5 @@
+import { getRecordProfileScope } from './profileScope';
+
 export const EXCLUSIVITY_TOTAL_COST = 20;
 export const EXCLUSIVITY_PARTIAL_DISCOUNT = 0.1;
 export const EXCLUSIVITY_PARTIAL_COST = Math.round(EXCLUSIVITY_TOTAL_COST * (1 - EXCLUSIVITY_PARTIAL_DISCOUNT));
@@ -60,15 +62,21 @@ export function getPortfolioUnlockCost(ownerOrCard, properties = [], services = 
 export function getPortfolioItemCount(ownerOrCard, properties = [], services = []) {
   const ownerCandidates = getUnlockOwnerCandidates(ownerOrCard);
   if (!ownerCandidates.length) return 0;
+  const requestedScope = ownerOrCard && typeof ownerOrCard === 'object'
+    ? getRecordProfileScope(ownerOrCard)
+    : null;
+  const matchesScope = (record) => !requestedScope || getRecordProfileScope(record) === requestedScope;
   const propertyIds = new Set();
   (properties || []).forEach((property, idx) => {
     if (!ownerCandidates.some((ownerId) => sameId(property?.ownerId, ownerId))) return;
+    if (!matchesScope(property)) return;
     if (!isTruthyFlag(property?.isActive, true) || property?.dealClosed === true) return;
     propertyIds.add(String(property?.id || property?.portfolioId || `property:${property?.ownerId || 'owner'}:${idx}`));
   });
   const serviceIds = new Set();
   (services || []).forEach((service, idx) => {
     if (!ownerCandidates.some((ownerId) => sameId(service?.ownerId, ownerId))) return;
+    if (!matchesScope(service)) return;
     if (!isTruthyFlag(service?.publishToConnections, true)) return;
     serviceIds.add(String(service?.id || `service:${service?.ownerId || 'owner'}:${idx}`));
   });
@@ -128,10 +136,17 @@ export function getPropertyExclusivityStatus(records = [], propertyId, currentUs
   };
 }
 
-export function getOwnerExclusivityStatus(records = [], ownerId, currentUserId = 'local-user', now = Date.now()) {
+export function getOwnerExclusivityStatus(
+  records = [],
+  ownerId,
+  currentUserId = 'local-user',
+  now = Date.now(),
+  profileScope = null,
+) {
   if (!ownerId) return { kind: 'none', blocked: false, expiresAt: null };
   const activeExclusive = (records || []).find((row) => (
     sameId(row?.ownerId ?? row?.owner_id, ownerId)
+    && (!profileScope || getRecordProfileScope(row) === getRecordProfileScope({ primaryProfile: profileScope }))
     && (row?.mode === 'total' || row?.mode === 'partial')
     && Number(toEpochMs(row?.expiresAt ?? row?.expires_at) || 0) > now
   ));
@@ -151,13 +166,21 @@ export function getOwnerExclusivityStatus(records = [], ownerId, currentUserId =
   };
 }
 
-export function createPropertyUnlockRecord({ propertyId, ownerId, buyerId = 'local-user', mode = 'normal', cost = 1 }) {
+export function createPropertyUnlockRecord({
+  propertyId,
+  ownerId,
+  profileScope = 'personal',
+  buyerId = 'local-user',
+  mode = 'normal',
+  cost = 1,
+}) {
   const cleanMode = ['normal', 'total', 'partial'].includes(mode) ? mode : 'normal';
   const now = Date.now();
   return {
     id: `${propertyId || 'property'}:${buyerId}:${cleanMode}:${now}`,
     propertyId,
     ownerId,
+    primaryProfile: getRecordProfileScope({ primaryProfile: profileScope }),
     buyerId,
     mode: cleanMode,
     cost,
