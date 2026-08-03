@@ -525,14 +525,7 @@ function SwipeCard({ card, action, isUnlocked, isSkipped, onSwipe, onUndo, onUnl
         )}
 
         {showLockPanel ? (
-          <button
-            type="button"
-            onPointerDown={(e) => {
-              try { e.preventDefault(); e.stopPropagation(); } catch { /* best-effort */ }
-              if (card?.isOwnCard) return;
-              if (typeof onUnlock === 'function') onUnlock(card);
-              else onSwipe('unlock');
-            }}
+          <div
             style={{
               width: '100%',
               marginTop: 'auto',
@@ -545,9 +538,10 @@ function SwipeCard({ card, action, isUnlocked, isSkipped, onSwipe, onUndo, onUnl
               alignItems: 'center',
               justifyContent: 'space-between',
               gap: 10,
-              cursor: card?.isOwnCard ? 'default' : 'pointer',
+              cursor: 'default',
               textAlign: 'left',
               boxSizing: 'border-box',
+              pointerEvents: 'none',
             }}
           >
             <span style={{ display: 'flex', alignItems: 'center', gap: 8, minWidth: 0 }}>
@@ -576,7 +570,7 @@ function SwipeCard({ card, action, isUnlocked, isSkipped, onSwipe, onUndo, onUnl
               </span>
             </span>
             {!card?.isOwnCard ? <Icon name="star" size={14} color={C.gold} strokeWidth={2} /> : null}
-          </button>
+          </div>
         ) : null}
 
         {/* Row 6: actions — pushed to bottom */}
