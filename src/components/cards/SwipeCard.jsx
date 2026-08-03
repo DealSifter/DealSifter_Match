@@ -5,6 +5,82 @@ import { Icon } from '../ui/Icon';
 import { SmartImage } from '../ui/SmartImage';
 import { useMediaQuery } from '../../hooks/useMediaQuery';
 
+const cleanText = (value) => String(value ?? '').trim();
+
+const addUniqueTag = (list, seen, value) => {
+  const text = cleanText(value);
+  if (!text || text.length > 34) return;
+  const key = text.toLowerCase();
+  if (seen.has(key)) return;
+  seen.add(key);
+  list.push(text);
+};
+
+const addTagValues = (list, seen, value) => {
+  if (Array.isArray(value)) {
+    value.forEach((item) => addTagValues(list, seen, item));
+    return;
+  }
+  if (value && typeof value === 'object') {
+    addTagValues(list, seen, value.label || value.name || value.title || value.category || value.type);
+    return;
+  }
+  addUniqueTag(list, seen, value);
+};
+
+const getCardSubtitle = (card) => {
+  const description = cleanText(card?.desc || card?.description);
+  const candidates = [
+    card?.type,
+    card?.cat,
+    card?.category,
+    card?.badge,
+  ];
+  const picked = candidates
+    .map(cleanText)
+    .find((item) => item && item.toLowerCase() !== description.toLowerCase() && item.toLowerCase() !== cleanText(card?.name).toLowerCase());
+  return picked || description;
+};
+
+const getFeedCardTags = (card) => {
+  const tags = [];
+  const seen = new Set();
+  addTagValues(tags, seen, card?.tags);
+  addTagValues(tags, seen, card?.markets);
+  addTagValues(tags, seen, card?.selectedMarkets);
+  addTagValues(tags, seen, card?.investorRoles);
+  addTagValues(tags, seen, card?.strategies);
+  addTagValues(tags, seen, card?.interests);
+  addTagValues(tags, seen, card?.segmentations);
+  addTagValues(tags, seen, card?.investmentProfile?.investorRoles);
+  addTagValues(tags, seen, card?.investmentProfile?.strategies);
+  addTagValues(tags, seen, card?.investmentProfile?.markets);
+  addTagValues(tags, seen, card?.cat);
+  addTagValues(tags, seen, card?.category);
+  addTagValues(tags, seen, card?.type);
+  (Array.isArray(card?.linkedServices) ? card.linkedServices : []).forEach((service) => {
+    addTagValues(tags, seen, service?.category);
+    addTagValues(tags, seen, service?.title);
+    addTagValues(tags, seen, service?.markets);
+    addTagValues(tags, seen, service?.tags);
+  });
+  (Array.isArray(card?.linkedProperties) ? card.linkedProperties : []).forEach((property) => {
+    addTagValues(tags, seen, property?.type);
+    addTagValues(tags, seen, property?.objective);
+    addTagValues(tags, seen, property?.strategy);
+    addTagValues(tags, seen, property?.dealTag);
+    addTagValues(tags, seen, property?.markets);
+    addTagValues(tags, seen, property?.state);
+  });
+  if (card?.isHot) addUniqueTag(tags, seen, 'Hot');
+  if (card?.isTrending) addUniqueTag(tags, seen, 'Trending');
+  if (card?.isNew) addUniqueTag(tags, seen, 'New');
+  if (card?.isExclusive) addUniqueTag(tags, seen, 'Exclusive');
+  if (card?.isSpotlight) addUniqueTag(tags, seen, 'Spotlight');
+  if (card?.isVerified || card?.verified) addUniqueTag(tags, seen, 'Verified');
+  return tags.slice(0, 7);
+};
+
 function SwipeCard({ card, action, isUnlocked, isSkipped, onSwipe, onUndo, onUnlock, previewOnly = false, showActions = true }) {
   const t = useT('dashboard').cards;
   const mt = useT('dashboard').matches;
@@ -20,6 +96,18 @@ function SwipeCard({ card, action, isUnlocked, isSkipped, onSwipe, onUndo, onUnl
   const emailValue = String(card?.email || '').trim();
   const revealPhone = Boolean(isUnlocked && phoneValue);
   const revealEmail = Boolean(isUnlocked && emailValue);
+  const subtitleValue = React.useMemo(() => getCardSubtitle(card), [card]);
+  const bodyDescription = React.useMemo(() => {
+    const desc = cleanText(card?.desc || card?.description);
+    if (!desc) return '';
+    return desc.toLowerCase() === cleanText(subtitleValue).toLowerCase() ? '' : desc;
+  }, [card, subtitleValue]);
+  const feedTags = React.useMemo(() => getFeedCardTags(card), [card]);
+  const unlockCost = Math.max(
+    1,
+    Number(card?.unlockCost || card?.nuggetCost || card?.nuggets || card?.portfolioCount || 1) || 1
+  );
+  const showLockPanel = !previewOnly && showActions && !isUnlocked;
 
   const dragAbs = Math.abs(dragX);
   const dragProgress = Math.min(1, dragAbs / 130);
@@ -286,18 +374,8 @@ function SwipeCard({ card, action, isUnlocked, isSkipped, onSwipe, onUndo, onUnl
               <span style={{ whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{card.name}</span>
               {isSkipped && <Icon name="slash" size={18} color={C.danger} strokeWidth={2.5} />}
             </div>
-            {/* If a description is available (e.g. from a published preview/service), show a short description here; otherwise fall back to type */}
             <div style={{ fontSize: 12, color: C.accent, fontWeight: 700, marginTop: 1 }}>
-              {(() => {
-                try {
-                  const d = card?.desc && String(card.desc).trim();
-                  if (d && d.length > 0) {
-                    // keep it concise to fit the small label area
-                    return d.length > 56 ? d.slice(0, 56) + '…' : d;
-                  }
-                } catch (e) { void e; }
-                return card.type;
-              })()}
+              {subtitleValue && subtitleValue.length > 56 ? `${subtitleValue.slice(0, 56)}...` : subtitleValue}
             </div>
           </div>
           {card.badge && (
@@ -416,23 +494,29 @@ function SwipeCard({ card, action, isUnlocked, isSkipped, onSwipe, onUndo, onUnl
           </div>
         </div>
 
-        {/* Row 4: bio */}
-        <p style={{
-          fontSize: 12, color: C.t2, lineHeight: 1.5, margin: '0 0 8px 0',
-          display: '-webkit-box', WebkitLineClamp: isMobileLayout ? 3 : 9,
-          WebkitBoxOrient: 'vertical', overflow: 'hidden',
-        }}>
-          {card.desc}
-        </p>
+        {/* Row 4: concise match hook */}
+        {bodyDescription ? (
+          <p style={{
+            fontSize: 12, color: C.t2, lineHeight: 1.5, margin: '0 0 8px 0',
+            display: '-webkit-box', WebkitLineClamp: isMobileLayout ? 3 : 6,
+            WebkitBoxOrient: 'vertical', overflow: 'hidden',
+          }}>
+            {bodyDescription}
+          </p>
+        ) : null}
 
         {/* Row 5: tags */}
-        {card.tags?.length > 0 && (
+        {feedTags.length > 0 && (
           <div style={{ display: 'flex', flexWrap: 'wrap', gap: 4, marginBottom: 10 }}>
-            {card.tags.map(tag => (
+            {feedTags.map(tag => (
               <span key={tag} style={{
                 padding: '2px 8px', borderRadius: 20,
-                background: C.alpha(C.t1, 0.06), border: `1px solid ${C.border}`,
-                fontSize: 10, color: C.t2, fontWeight: 600,
+                background: C.alpha(C.accent, 0.07), border: `1px solid ${C.alpha(C.accent, 0.22)}`,
+                fontSize: 10, color: C.t2, fontWeight: 700,
+                maxWidth: '100%',
+                whiteSpace: 'nowrap',
+                overflow: 'hidden',
+                textOverflow: 'ellipsis',
               }}>
                 {tag}
               </span>
@@ -440,8 +524,63 @@ function SwipeCard({ card, action, isUnlocked, isSkipped, onSwipe, onUndo, onUnl
           </div>
         )}
 
+        {showLockPanel ? (
+          <button
+            type="button"
+            onPointerDown={(e) => {
+              try { e.preventDefault(); e.stopPropagation(); } catch { /* best-effort */ }
+              if (card?.isOwnCard) return;
+              if (typeof onUnlock === 'function') onUnlock(card);
+              else onSwipe('unlock');
+            }}
+            style={{
+              width: '100%',
+              marginTop: 'auto',
+              marginBottom: 8,
+              padding: isMobileLayout ? '8px 10px' : '9px 12px',
+              borderRadius: 12,
+              border: `1px solid ${C.alpha(C.gold, 0.45)}`,
+              background: C.alpha(C.gold, 0.1),
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'space-between',
+              gap: 10,
+              cursor: card?.isOwnCard ? 'default' : 'pointer',
+              textAlign: 'left',
+              boxSizing: 'border-box',
+            }}
+          >
+            <span style={{ display: 'flex', alignItems: 'center', gap: 8, minWidth: 0 }}>
+              <span style={{
+                width: 24,
+                height: 24,
+                borderRadius: 999,
+                background: C.alpha(C.success, 0.1),
+                border: `1px solid ${C.alpha(C.success, 0.2)}`,
+                display: 'inline-flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                flexShrink: 0,
+              }}>
+                <Icon name={card?.isOwnCard ? 'shieldCheck' : 'lock'} size={12} color={card?.isOwnCard ? C.accent : C.success} strokeWidth={2} secondaryColor={C.gold} />
+              </span>
+              <span style={{ minWidth: 0 }}>
+                <span style={{ display: 'block', fontSize: 11, fontWeight: 900, color: C.t1, lineHeight: 1.15 }}>
+                  {card?.isOwnCard ? (mt.ownCardNotSelectable || 'Own card, not selectable') : (t.previewContactLocked || 'Contact locked')}
+                </span>
+                <span style={{ display: 'block', fontSize: 10, fontWeight: 700, color: C.t3, lineHeight: 1.2, marginTop: 2 }}>
+                  {card?.isOwnCard
+                    ? (mt.ownCardHint || 'Visible for review only')
+                    : `${t.previewUnlockWith || 'Unlock with'} ${unlockCost} ${t.previewNuggets || 'nuggets'}`}
+                </span>
+              </span>
+            </span>
+            {!card?.isOwnCard ? <Icon name="star" size={14} color={C.gold} strokeWidth={2} /> : null}
+          </button>
+        ) : null}
+
         {/* Row 6: actions — pushed to bottom */}
-        {!previewOnly && showActions ? <div style={{ marginTop: 'auto', display: 'flex', gap: 6, alignItems: 'center' }}>
+        {!previewOnly && showActions ? <div style={{ marginTop: showLockPanel ? 0 : 'auto', display: 'flex', gap: 6, alignItems: 'center' }}>
 
           {/* Next — Neutral rotate (LEFT) */}
           <button onClick={() => onSwipe('next')} style={{
