@@ -770,8 +770,20 @@ export function Landing({ onOpenAuthModal = () => {} }) {
       </section>
 
       <section style={{ background: '#ffffff', padding: isMobile ? '34px 14px' : '52px 24px' }}>
+        <h2
+          style={{
+            color: '#071426',
+            fontSize: isMobile ? 26 : 38,
+            fontWeight: 900,
+            margin: '0 auto 24px',
+            maxWidth: 1180,
+            textAlign: 'center',
+          }}
+        >
+          AI Engineering for Real Estate
+        </h2>
         <img
-          src="/maxxis-deal-prospector.jpg"
+          src="/maxxis-deal-prospector.png"
           alt="Maxxis, your Deal Prospector"
           style={{
             display: 'block',
