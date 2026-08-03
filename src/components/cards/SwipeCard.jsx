@@ -42,22 +42,64 @@ const getCardSubtitle = (card) => {
   return picked || description;
 };
 
-const getFeedCardTags = (card) => {
+const buildTagGroup = (labelKey, values, limit = 3) => {
   const tags = [];
   const seen = new Set();
-  addTagValues(tags, seen, card?.tags);
-  addTagValues(tags, seen, card?.markets);
-  addTagValues(tags, seen, card?.selectedMarkets);
-  addTagValues(tags, seen, card?.investorRoles);
-  addTagValues(tags, seen, card?.strategies);
-  addTagValues(tags, seen, card?.interests);
-  addTagValues(tags, seen, card?.segmentations);
-  addTagValues(tags, seen, card?.investmentProfile?.investorRoles);
-  addTagValues(tags, seen, card?.investmentProfile?.strategies);
-  addTagValues(tags, seen, card?.investmentProfile?.markets);
-  addTagValues(tags, seen, card?.cat);
-  addTagValues(tags, seen, card?.category);
-  addTagValues(tags, seen, card?.type);
+  values.forEach((value) => addTagValues(tags, seen, value));
+  return { labelKey, tags: tags.slice(0, limit) };
+};
+
+const getFeedCardTagGroups = (card) => {
+  const linkedServices = Array.isArray(card?.linkedServices) ? card.linkedServices : [];
+  const linkedProperties = Array.isArray(card?.linkedProperties) ? card.linkedProperties : [];
+  const marketGroup = buildTagGroup('feedBadgeGroupMarket', [
+    card?.loc,
+    card?.markets,
+    card?.selectedMarkets,
+    card?.investmentProfile?.markets,
+    linkedServices.map((service) => service?.markets),
+    linkedProperties.map((property) => property?.markets || property?.state),
+  ], 3);
+
+  const profileGroup = buildTagGroup('feedBadgeGroupProfile', [
+    card?.cat,
+    card?.category,
+    card?.type,
+    card?.badge,
+    card?.investorRoles,
+    card?.investmentProfile?.investorRoles,
+  ], 3);
+
+  const dealGroup = buildTagGroup('feedBadgeGroupDeal', [
+    card?.tags,
+    card?.strategies,
+    card?.interests,
+    card?.segmentations,
+    card?.investmentProfile?.strategies,
+    linkedServices.map((service) => [service?.category, service?.title, service?.tags]),
+    linkedProperties.map((property) => [
+      property?.type,
+      property?.objective,
+      property?.strategy,
+      property?.dealTag,
+    ]),
+  ], 4);
+
+  const signalValues = [];
+  if (card?.isHot) signalValues.push('Hot');
+  if (card?.isTrending) signalValues.push('Trending');
+  if (card?.isNew) signalValues.push('New');
+  if (card?.isExclusive) signalValues.push('Exclusive');
+  if (card?.isSpotlight) signalValues.push('Spotlight');
+  if (card?.isVerified || card?.verified) signalValues.push('Verified');
+  const signalGroup = buildTagGroup('feedBadgeGroupSignals', signalValues, 3);
+
+  return [marketGroup, profileGroup, dealGroup, signalGroup].filter((group) => group.tags.length > 0).slice(0, 4);
+};
+
+const getCompactFallbackTags = (card) => {
+  const tags = [];
+  const seen = new Set();
   (Array.isArray(card?.linkedServices) ? card.linkedServices : []).forEach((service) => {
     addTagValues(tags, seen, service?.category);
     addTagValues(tags, seen, service?.title);
@@ -78,7 +120,7 @@ const getFeedCardTags = (card) => {
   if (card?.isExclusive) addUniqueTag(tags, seen, 'Exclusive');
   if (card?.isSpotlight) addUniqueTag(tags, seen, 'Spotlight');
   if (card?.isVerified || card?.verified) addUniqueTag(tags, seen, 'Verified');
-  return tags.slice(0, 7);
+  return tags.slice(0, 5);
 };
 
 function SwipeCard({ card, action, isUnlocked, isSkipped, onSwipe, onUndo, onUnlock, previewOnly = false, showActions = true }) {
@@ -102,7 +144,8 @@ function SwipeCard({ card, action, isUnlocked, isSkipped, onSwipe, onUndo, onUnl
     if (!desc) return '';
     return desc.toLowerCase() === cleanText(subtitleValue).toLowerCase() ? '' : desc;
   }, [card, subtitleValue]);
-  const feedTags = React.useMemo(() => getFeedCardTags(card), [card]);
+  const feedTagGroups = React.useMemo(() => getFeedCardTagGroups(card), [card]);
+  const fallbackTags = React.useMemo(() => getCompactFallbackTags(card), [card]);
   const unlockCost = Math.max(
     1,
     Number(card?.unlockCost || card?.nuggetCost || card?.nuggets || card?.portfolioCount || 1) || 1
@@ -505,14 +548,81 @@ function SwipeCard({ card, action, isUnlocked, isSkipped, onSwipe, onUndo, onUnl
           </p>
         ) : null}
 
-        {/* Row 5: tags */}
-        {feedTags.length > 0 && (
+        {/* Row 5: grouped match signals */}
+        {feedTagGroups.length > 0 ? (
+          <div
+            style={{
+              display: 'grid',
+              gridTemplateColumns: isNarrowMobileLayout ? '1fr' : 'repeat(2, minmax(0, 1fr))',
+              gap: 6,
+              marginBottom: 10,
+            }}
+          >
+            {feedTagGroups.map((group) => (
+              <div
+                key={group.labelKey}
+                style={{
+                  minWidth: 0,
+                  padding: '5px 6px',
+                  borderRadius: 10,
+                  border: `1px solid ${C.alpha(C.accent, 0.16)}`,
+                  background: C.alpha(C.accent, 0.045),
+                }}
+              >
+                <div
+                  style={{
+                    marginBottom: 4,
+                    fontSize: 8,
+                    lineHeight: 1,
+                    fontWeight: 900,
+                    letterSpacing: '0.04em',
+                    textTransform: 'uppercase',
+                    color: C.t3,
+                    whiteSpace: 'nowrap',
+                    overflow: 'hidden',
+                    textOverflow: 'ellipsis',
+                  }}
+                >
+                  {t[group.labelKey] || group.labelKey.replace('feedBadgeGroup', '')}
+                </div>
+                <div style={{ display: 'flex', flexWrap: 'wrap', gap: 4 }}>
+                  {group.tags.map((tag) => (
+                    <span
+                      key={`${group.labelKey}:${tag}`}
+                      title={tag}
+                      style={{
+                        padding: '2px 6px',
+                        borderRadius: 20,
+                        background: C.alpha(C.card, 0.78),
+                        border: `1px solid ${C.alpha(C.accent, 0.28)}`,
+                        fontSize: 9,
+                        lineHeight: 1.15,
+                        color: C.t2,
+                        fontWeight: 800,
+                        maxWidth: '100%',
+                        whiteSpace: 'nowrap',
+                        overflow: 'hidden',
+                        textOverflow: 'ellipsis',
+                      }}
+                    >
+                      {tag}
+                    </span>
+                  ))}
+                </div>
+              </div>
+            ))}
+          </div>
+        ) : fallbackTags.length > 0 ? (
           <div style={{ display: 'flex', flexWrap: 'wrap', gap: 4, marginBottom: 10 }}>
-            {feedTags.map(tag => (
+            {fallbackTags.map((tag) => (
               <span key={tag} style={{
-                padding: '2px 8px', borderRadius: 20,
-                background: C.alpha(C.accent, 0.07), border: `1px solid ${C.alpha(C.accent, 0.22)}`,
-                fontSize: 10, color: C.t2, fontWeight: 700,
+                padding: '2px 8px',
+                borderRadius: 20,
+                background: C.alpha(C.accent, 0.07),
+                border: `1px solid ${C.alpha(C.accent, 0.22)}`,
+                fontSize: 10,
+                color: C.t2,
+                fontWeight: 700,
                 maxWidth: '100%',
                 whiteSpace: 'nowrap',
                 overflow: 'hidden',
@@ -522,7 +632,7 @@ function SwipeCard({ card, action, isUnlocked, isSkipped, onSwipe, onUndo, onUnl
               </span>
             ))}
           </div>
-        )}
+        ) : null}
 
         {showLockPanel ? (
           <div
