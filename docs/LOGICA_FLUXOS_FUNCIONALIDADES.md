@@ -1,30 +1,46 @@
 # DealSifter - Logica, Fluxos e Funcionalidades
 
-Ultima atualizacao: 2026-06-29
+Ultima atualizacao: 2026-07-14
 
-Este documento registra como o app esta estruturado hoje, quais sao as principais fontes de dados, como os fluxos funcionais se conectam e quais pontos ainda merecem atencao antes de consolidar uma operacao em producao com usuarios reais.
+Este documento registra o funcionamento atual do DealSifter Match: dominios de produto, fontes de verdade, fluxos operacionais, regras de negocio, dependencias criticas e pontos de atencao para producao. Ele deve ser lido junto com:
+
+- `docs/dealsifter_match_app_overview.md`
+- `docs/MAXXIS_AI_DOCUMENTACAO.md`
+- `docs/RUNBOOK_STRIPE.md`
+- `docs/RUNBOOK_INCIDENTES.md`
+- `docs/QA_DEPLOY_MOBILE.md`
+- `docs/QA_UNLOCKED_CONTACTS_E2E.md`
+- `docs/QA_MAPVIEW_V2.md`
 
 ## 1. Resumo Executivo
 
-O DealSifter e um app de matchmaking imobiliario com tres vitrines centrais:
+O DealSifter Match e um app de matchmaking imobiliario para investidores, wholesalers, FSBO owners, lenders, compradores, prestadores de servico e administradores. A experiencia principal e organizada em quatro pilares:
 
-- Feed: vitrine principal de pessoas, servicos, propriedades e oportunidades.
-- Map View: visualizacao geografica de cards ativos e oportunidades.
-- Matches: area de organizacao, desbloqueio, portfolio, contatos e chat.
+- Feed: descoberta por cards, swipes, favoritos, matches, unlocks, showcase e spotlight.
+- MapView: descoberta geografica por pins, clusters, filtros, My PINs e Spotlight Cards.
+- Matches: area de contatos desbloqueados, interesses, portfolio, chat, notificacoes e historico.
+- Maxxis AI: assistente flutuante dentro do app para guiar uso da plataforma e contextualizar duvidas de Real Estate.
 
-O app tambem possui:
+O modelo comercial combina:
 
-- Onboarding/cadastro: cria perfis, propriedades, servicos e preferencias.
-- Pricing/checkout: controla assinaturas, packs de nuggets e pagamentos via Stripe.
-- Admin System: acompanha KPIs, suporte e operacoes administrativas.
-- Profile/Edit Profile: preferencias, comunicacao, pagamentos, seguranca, privacidade e dados.
-- GuideTips: sistema inicial de guias e dicas para orientar o usuario.
+- saldo de nuggets;
+- packs de nuggets;
+- planos Basic, Pro e Enterprise;
+- desbloqueio de contatos;
+- exclusividade temporaria;
+- spotlight/destaque pago;
+- suporte operacional e KPIs administrativos.
 
-O maior ponto estrutural atual e que o app evoluiu muito rapido e ainda possui trechos legados em `App.jsx`, `Onboarding.jsx` e em caches locais. A direcao correta ja iniciada e transformar o Supabase/DB na fonte de verdade para dados reais e deixar `localStorage` apenas como cache, UX temporaria ou fallback nao autoritativo.
+Principio central de producao:
+
+- Supabase/Postgres/RPCs/Edge Functions sao a fonte de verdade.
+- Stripe Webhook e a fonte de verdade financeira.
+- `localStorage` nunca deve decidir direito pago, nuggets, plano, unlock, match pago ou contato desbloqueado.
+- Cards publicos nunca podem carregar email, telefone, WhatsApp ou canais privados.
 
 ## 2. Arquitetura Atual
 
-### Frontend
+### 2.1 Frontend
 
 Stack principal:
 
@@ -32,698 +48,636 @@ Stack principal:
 - Vite 7.
 - Supabase JS.
 - Stripe JS.
-- Leaflet, React Leaflet e Supercluster para mapas.
-- Framer Motion para animacoes.
-- jsPDF para exportacao PDF.
-- localForage/localStorage para cache e estado local.
+- Leaflet / React Leaflet / Supercluster.
+- Framer Motion.
+- jsPDF/html2canvas para PDF.
+- Vitest para testes.
+- Sentry/logs estruturados quando configurado.
 
-Arquivos principais:
+Arquivos/pastas principais:
 
-- `src/App.jsx`: orquestracao central, rotas internas, hidratacao, modais, feed global e conexao entre modulos.
+- `src/App.jsx`: orquestracao de sessao, rotas internas, modais e distribuicao de estado.
 - `src/pages/Dashboard.jsx`: modulo Feed.
-- `src/pages/MapView.jsx`: modulo Map View.
+- `src/pages/MapView.jsx`: modulo MapView.
 - `src/pages/MatchesPage.jsx`: modulo Matches.
-- `src/pages/Onboarding.jsx`: cadastro rapido, perfis, portfolio, preview e publicacao.
-- `src/pages/Pricing.jsx`: planos, packs, FAQ, comparativo e checkout.
-- `src/pages/AdminDashboard.jsx`: KPIs administrativos.
+- `src/pages/Onboarding.jsx`: cadastro de perfis, propriedades, servicos e preview.
+- `src/pages/Pricing.jsx`: planos, packs, checkout e Billing Portal.
+- `src/pages/AdminDashboard.jsx`: KPIs, suporte, doacoes de nuggets, concessao de plano e operacao.
+- `src/components/maxxis/MaxxisAssistant.jsx`: widget e modal do Maxxis AI.
+- `src/services/`: camada runtime de regras, Supabase, plano, unlock, suporte, mapa, feed, consentimento e tema.
+- `src/lib/`: funcoes puras, normalizacao, sanitizacao, formatadores, ordenacao e politicas locais.
 
-Hooks ja extraidos:
+### 2.2 Backend e Banco
 
-- `src/hooks/useAuthSession.js`: login, signup, OAuth Google, sessao Supabase e recuperacao de senha.
-- `src/hooks/useProfileSync.js`: controle de salvamento/sincronizacao de perfil.
-- `src/hooks/usePortfolioSync.js`: hidratacao e refresh de portfolio.
-- `src/hooks/useCheckoutFlow.js`: fluxo de checkout, retorno Stripe, termos e intencao pendente.
+Supabase concentra:
 
-### Backend e Banco de Dados
+- Auth e OAuth Google.
+- Postgres com RLS.
+- RPCs de negocio.
+- Edge Functions.
+- Storage de imagens.
+- Realtime para chat, notificacoes e eventos operacionais.
 
-O backend operacional esta no Supabase:
+Edge Functions relevantes:
 
-- Auth: cadastro, login, OAuth Google, confirmacao de email.
-- Postgres: perfis, portfolio, propriedades, servicos, desbloqueios, spotlights, eventos administrativos, consentimentos.
-- RPCs: funcoes para feed global, eventos, KPIs, desbloqueios e guardrails.
-- Edge Functions: checkout Stripe, portal Stripe e webhooks.
-- Storage: imagens e midias dos cards.
+- checkout Stripe.
+- portal Stripe.
+- stripe-webhook.
+- stripe-reprocess-queue.
+- delete-account.
+- send-support-email.
+- Maxxis AI / assistente.
+- geocode-address, quando usado para geocoding backend.
 
-### Stripe
+### 2.3 Stripe
 
-O Stripe e usado para:
+Stripe controla:
 
-- Assinaturas mensais e anuais.
-- Packs de nuggets.
-- Checkout externo/hospedado.
-- Webhook para refletir pagamento, plano, nuggets e eventos financeiros.
+- assinaturas;
+- Billing Portal;
+- checkout de packs;
+- eventos financeiros;
+- renovacao/cancelamento de planos;
+- idempotencia de webhooks;
+- reprocessamento de eventos fora de ordem.
 
-### LocalStorage e Cache
+Regra: saldo de nuggets e plano so devem mudar depois de confirmacao server-side/webhook, nunca apenas por retorno visual do frontend.
 
-Uso valido:
+### 2.4 Services e Camadas Canonicas
 
-- Preferencias visuais temporarias.
-- Estado de UI.
-- Ultima aba/modulo.
-- Deck atual do feed durante a sessao.
-- Cache temporario de formulario antes de persistir.
+Services importantes:
 
-Uso que exige cautela:
+- `planUsageService`: plano, nuggets, limites e features.
+- `unlockedContactService`: contatos desbloqueados canonicos via RPC.
+- `unlockHydrationService`: transforma unlock canonico em estado visual.
+- `feedActionService`: acoes visuais de feed sem dados sensiveis.
+- `mapInventoryService`: inventario unico de pins e spotlight.
+- `themeService`: tema, logo e bootstrap visual.
+- `consentService`: cookies, termos e privacy/data.
+- `supportService`/fluxos de suporte: tickets, mensagens e historico.
 
-- Regras de plano.
-- Historico de unlock.
-- Cards publicados.
-- Portfolio real.
-- Dados de identidade.
+Regra de arquitetura:
 
-Para producao, essas informacoes devem vir do DB. O localStorage nao deve ser fonte final de verdade para aquilo que impacta cobranca, matching, desbloqueio, feed global ou visibilidade entre usuarios.
+- Paginas orquestram estado.
+- Services chamam Supabase/RPCs.
+- Libs fazem funcoes puras.
+- Componentes exibem dados recebidos.
+- Componentes nao devem decidir entitlement pago.
 
-## 3. Fontes de Verdade por Dominio
+## 3. Fontes De Verdade Por Dominio
 
-### Autenticacao
+### 3.1 Autenticacao
 
 Fonte primaria:
 
 - Supabase Auth.
 
-Fluxo:
+Fluxos:
 
-- Signup por email cria usuario e pode exigir confirmacao por email.
-- Login por email/senha usa `supabase.auth.signInWithPassword`.
-- Google OAuth usa `supabase.auth.signInWithOAuth`.
-- Confirmacao por email deve retornar o usuario para fluxo de login correto, evitando entrada direta indevida se a regra de produto exigir login manual apos confirmacao.
+- signup email/senha;
+- confirmacao por email;
+- login email/senha;
+- OAuth Google;
+- reset de senha;
+- callback de auth;
+- sessao persistida e hidratacao segura.
 
-Observacoes:
+Regras:
 
-- A sessao e preservada durante estados transitorios nulos para evitar logout falso ao navegar entre modulos.
-- O app diferencia logout real de falhas temporarias de hidratacao.
-- Admin pode ter privilegio de multipla sessao para testes.
-- Usuarios comuns devem ter uma unica sessao ativa, com timeout por inatividade.
+- Usuario recorrente nao deve ser tratado como primeiro acesso se ja possui perfil valido.
+- Confirmacao de email deve retornar para rota valida do app, sem 404.
+- Recriacao de conta com mesmo email nao deve reidratar historico antigo indevidamente.
 
-### Perfil do Usuario
-
-Fonte primaria:
-
-- Tabelas Supabase ligadas ao usuario autenticado.
+### 3.2 Perfis
 
 Perfis logicos:
 
-- `personal`: perfil profissional pessoal.
+- `personal`: perfil pessoal/profissional individual.
 - `professional`: perfil business/operacional.
 - `fsbo`: perfil For Sale By Owner.
 
-O arquivo `src/lib/profileScopeResolver.js` centraliza parte da regra:
+Regras:
 
-- Normalizacao de escopo.
-- Resolucao de campos por escopo.
-- Montagem de `profile_payload`.
-- Filtro contra nomes suspeitos como `D4$`, `Drive4$`, `New User`, `Owner` e `Select`.
+- Pelo menos um perfil valido deve existir para publicacao.
+- Qualquer perfil pode ser o principal, secundario ou terciario.
+- Personal nao e obrigatoriamente a referencia principal.
+- Cada perfil tem nome, avatar, estado, categoria, email, telefone e canais de contato proprios.
+- Nenhum perfil pode hidratar nome/avatar/dados de outro perfil do mesmo usuario.
+- Cards devem usar a identidade do perfil vinculado ao item por `primary_profile`/escopo equivalente.
 
-Regra de produto:
-
-- O usuario precisa ter ao menos um perfil valido.
-- Um perfil pode ser `Primary`, `Secondary`, `Tertiary` ou `Select`.
-- Apenas perfis com prioridade publica valida e portfolio publicado devem gerar cards de dashboard/feed.
-- Campos de skills, preferencias ou categorias nao podem substituir nome real do perfil.
-
-### Portfolio
-
-Fonte primaria:
-
-- Propriedades e servicos persistidos no DB.
+### 3.3 Portfolio
 
 Entidades:
 
-- Propriedades: aparecem no Showcase quando publicadas.
-- Servicos: aparecem em Connections quando publicados.
-- Cards de pessoa/perfil: aparecem em Connections quando o perfil esta valido e possui conteudo publicado atrelado.
+- propriedades;
+- servicos;
+- cards de perfil/pessoa.
 
-Regra de vinculo:
+Regras:
 
-- Cada item de portfolio precisa ter `owner_id`.
-- Cada item precisa ter `primary_profile`/escopo efetivo: `personal`, `professional` ou `fsbo`.
-- O card de feed deve puxar identidade do perfil vinculado ao item, nao de outro perfil do mesmo usuario.
-- Mudar prioridade do perfil altera exposicao do card, mas nao deve misturar identidade entre perfis.
+- Todo item precisa de `owner_id`.
+- Todo item precisa de escopo de perfil vinculado.
+- Propriedades aparecem em Showcase/Interests/MapView.
+- Servicos e perfis aparecem em Connections/People/MapView.
+- Imagens de propriedade/servico/perfil devem vir do DB/Storage, sem fallback ficticio em producao.
+- Excluir item deve pedir confirmacao e persistir a exclusao/retirada de publicacao no banco.
 
-### Feed Global
-
-Fonte primaria:
-
-- RPC `ds_get_global_feed_inventory()`.
-
-Regra:
-
-- O feed global deve trazer cards reais, publicados, ativos e vinculados corretamente.
-- Cards do proprio usuario podem aparecer, mas devem ficar por ultimo por padrao.
-- Cards mock/demo nao devem entrar em producao real.
-- Se um usuario de teste cria card, outro usuario deve conseguir ver esse card no feed e no MapView, salvo filtros aplicados.
-
-### Desbloqueios e Exclusividade
+### 3.4 Feed Global
 
 Fonte primaria:
 
-- Tabelas de unlock/exclusividade no Supabase.
-- Eventos administrativos para KPI.
+- RPC de inventario global, normalizada por `normalizeCard`.
 
-Regra de custo:
+Regras:
 
-- Desbloqueio normal custa a soma do portfolio ativo do contato/proprietario.
-- Custo minimo: 1 nugget.
-- Exemplo: se o contato possui 9 itens ativos, desbloqueio custa 9 nuggets.
-- Exclusividade total custa 20 nuggets adicionais quando elegivel.
-- Exclusividade parcial custa 18 nuggets, aplicando 10% de desconto sobre 20.
+- Cards publicos devem ser sanitizados.
+- Email, telefone, WhatsApp e contact methods privados nao podem existir no objeto publico.
+- Cards ja desbloqueados pelo usuario nao devem continuar consumindo swipes como se fossem novos.
+- Cards proprios podem ser visualizados, mas nao selecionados como match/unlock.
+- Cards proprios devem ir ao final da pilha por padrao.
+- Randomizacao da primeira sessao deve ser deterministica por seed de sessao.
 
-Regra de exclusividade:
+### 3.5 Contatos Desbloqueados
 
-- Exclusividade se aplica a propriedades, nao ao card pessoal em si.
-- Se o usuario desbloqueia um card de pessoa que possui propriedade elegivel, o modal pode oferecer exclusividade vinculada a essa propriedade.
-- O contato pessoal continua desbloqueavel por outros usuarios, salvo se outra regra especifica for criada.
-- A propriedade exclusiva fica bloqueada para novos desbloqueios durante 7 dias.
-- Ao expirar, se nao foi marcada como vendida/fechada/pausada, volta a ser elegivel.
+Fonte canonica:
 
-### Spotlight/Destaque
+- RPC `ds_get_unlocked_contact_cards(p_user_id)`.
+- `src/services/unlockedContactService.js`.
+
+Estrutura esperada:
+
+- owner desbloqueado;
+- perfil primario;
+- escopo de unlock;
+- contato;
+- portfolio;
+- propriedades desbloqueadas;
+- status de exclusividade.
+
+Regras:
+
+- Se nao ha entitlement, contato deve ser `null`/bloqueado.
+- Se ha unlock de owner, contato e portfolio completo devem aparecer sem paywall adicional.
+- Se ha unlock de propriedade, contato do owner aparece no contexto daquela propriedade.
+- Mobile, desktop, modal e refresh devem mostrar o mesmo resultado.
+- `ContactButtons` deve ser apresentacional.
+- `PortfolioContactPanel` centraliza exibicao de contato em Matches.
+
+### 3.6 Planos, Nuggets e Features
 
 Fonte primaria:
 
-- Tabela de spotlights/destaques no Supabase.
-- Eventos administrativos para KPI.
+- DB/RPCs via `planUsageService`.
 
-Regra:
+Actions controladas:
 
-- 10 nuggets por card destacado.
-- Duracao: 1 mes.
-- O usuario escolhe quais cards ativos deseja destacar.
-- Cards destacados aparecem:
-  - Barra de minicards/anuncios no Feed.
-  - Sidebar do MapView em `Spotlight Cards`.
-  - Halo visual no card da pilha.
+- `swipe`;
+- `unlock`;
+- `spotlight`;
+- `export_pdf`;
+- `chat`;
+- `exclusivity`.
 
-### Planos e Limites
+Regras:
 
-Fonte primaria desejada:
+- Nenhum componente deve decidir por `plan === 'pro'`, mock local ou `ds_subscription_mock`.
+- Upgrade pago ou concedido por admin deve refletir imediatamente via DB/Realtime/refresh de service.
+- Nuggets so podem ser debitados/creditados por servidor.
 
-- DB e plano do usuario sincronizado via Stripe/Webhook.
+### 3.7 Notificacoes
 
-Estado atual:
+Fonte primaria:
 
-- Parte das regras esta em `src/lib/planAccess.js`.
-- Alguns contadores ainda usam localStorage, o que e aceitavel para UX temporaria, mas nao para controle final de producao.
+- tabela `notifications` e realtime.
 
-Planos atuais:
+Tipos:
 
-- Basic/Free:
-  - 3 nuggets por mes.
-  - 20 swipes por dia.
-  - 5 matches favoritados por dia.
-  - 3 matches desbloqueados ativos.
-  - Perfil padrao com verificacao opcional.
-- Pro:
-  - US$ 49/mes.
-  - 20 nuggets + 3 no primeiro mes.
-  - Likes ilimitados.
-  - 10 desbloqueios por mes.
-  - 15 matches ativos.
-  - Exportacao PDF.
-  - Chat DealSifter.
-  - 20% de desconto em destaque.
-- Enterprise:
-  - US$ 129/mes.
-  - 60 nuggets + 20 no primeiro mes.
-  - Tudo do Pro.
-  - Desbloqueios e matches ativos ilimitados.
-  - 2 contatos exclusivos gratis por mes.
-  - Perfil em destaque gratis.
+- unlock;
+- exclusive;
+- spotlight_expired;
+- chat;
+- support;
+- system.
+
+Regras:
+
+- Notificacoes devem persistir entre sessoes.
+- Clicar nao deve apagar historico automaticamente.
+- Usuario deve poder excluir item individualmente e, quando existir UI, excluir todas.
+- Notificacoes clicaveis devem levar ao modulo correto.
 
 ## 4. Fluxos Principais
 
 ### 4.1 Primeiro Acesso
 
-Fluxo esperado:
+Fluxo:
 
 1. Usuario acessa homepage.
-2. Ve aviso de cookies apenas se ainda nao aceitou.
-3. Abre login/signup.
-4. Aceita termos e privacidade se ainda nao aceitou.
-5. Entra no app.
-6. Feed abre como modulo inicial.
-7. Se nao possui perfil valido, dashboard mostra chamada de cadastro.
+2. Aceita cookies, se necessario.
+3. Faz signup/login.
+4. Aceita termos/privacidade se ainda nao aceitou a versao vigente.
+5. App hidrata sessao.
+6. Feed ou onboarding abre conforme existencia de perfil valido.
 
-Pontos sensiveis:
+Regras:
 
-- Nao deve piscar homepage apos login.
-- Nao deve alternar tema claro/escuro durante hidratacao.
-- Termos/cookies devem ter memoria por usuario ou por device, conforme regra juridica.
+- Nao deve haver flash de tema errado.
+- O loader deve respeitar tema ativo.
+- Usuario ja cadastrado nao deve ver botao de registro como primeiro acesso se possui perfil publicado/valido.
 
-### 4.2 Cadastro de Perfil e Portfolio
+### 4.2 Onboarding, Edicao e Preview
 
-Fluxo esperado:
+Fluxo:
 
-1. Usuario abre New Card/Onboarding.
-2. Escolhe perfil Professional ou FSBO.
-3. Preenche ao menos um perfil.
-4. Define prioridade de dashboard/feed.
-5. Registra propriedades ou servicos no portfolio unificado.
-6. Vincula cada item ao perfil correto por `primary_profile`.
-7. Escolhe se o item aparece em Showcase/Connections.
-8. Salva.
-9. DB atualiza.
-10. Feed, MapView, MyCard e Matches hidratam a partir do DB.
+1. Usuario cria ou edita perfis.
+2. Define prioridade de cada perfil.
+3. Cria propriedades e servicos.
+4. Vincula cada item ao perfil correto.
+5. Visualiza Preview to Feed.
+6. Publica.
+7. Feed, MapView, Matches e My Cards devem refletir DB.
 
-Direcao arquitetural atual:
+Preview to Feed:
 
-- Unificar propriedades/servicos em um unico portfolio.
-- Eliminar o formulario FSBO paralelo como fonte separada de propriedades.
-- FSBO passa a ser um perfil/escopo, nao uma area isolada de cadastro de propriedade.
+- coluna esquerda deve alternar cards de perfil/pessoa;
+- coluna direita deve mostrar somente propriedades/servicos vinculados ao perfil selecionado;
+- nao deve repetir card pessoal na coluna de propriedades/servicos;
+- em mobile, cards verticais nao podem estourar viewport nem comprimir dados.
 
 ### 4.3 Feed
 
 Abas:
 
-- Connections: pessoas e servicos.
-- Spotlight: cards destacados.
-- Showcase: propriedades e oportunidades.
+- Connections / Pessoas e Servicos.
+- Spotlight / Destaques.
+- Showcase / Vitrine de Negocios.
 
 Fluxo:
 
-1. App carrega inventario global.
-2. Normaliza cards e escopos.
-3. Aplica filtros de categoria e estado.
-4. Aplica ordenacao de preferencias.
-5. Se nao houver preferencia, primeira abertura pos-login randomiza.
-6. Durante a mesma sessao, preserva posicao do deck ao trocar modulos.
-7. Cards do proprio usuario ficam por ultimo, salvo preferencia paga `my cards first`.
+1. Busca inventario global.
+2. Normaliza e sanitiza.
+3. Aplica filtros.
+4. Ordena com `orderDeck`.
+5. Mantem memoria da posicao ao trocar modulos.
+6. Renderiza cards.
 
-Botao estrela:
+Interacoes:
 
-- Em Showcase deve abrir fluxo de desbloqueio quando for intencao de unlock.
-- Em Connections deve desbloquear card pessoal/contato ou oferecer exclusividade de propriedade vinculada quando aplicavel.
-- Favoritar e desbloquear nao podem ser confundidos.
+- X rejeita.
+- estrela favorita/desbloqueia conforme contexto.
+- check/match seleciona interesse quando permitido.
+- cards proprios geram toast "Own card, not selectionable".
 
-Status visuais:
+### 4.4 MapView
 
-- `New`: card novo/elegivel.
-- `Hot`: baseado em desempenho real de desbloqueios ou metrica definida.
-- `Trending/Em Alta`: baseado em favoritos/interesses quando regra existir.
-- `Exclusive`: propriedade bloqueada por exclusividade ativa.
-- `Spotlight`: card com destaque pago.
-- `Verified`: perfil verificado.
+Fonte:
 
-### 4.4 Map View
+- `mapInventoryService.buildMapInventory(normalizedCards, currentUserId, filters)`.
 
-Fluxo:
+Inventario:
 
-1. Carrega pins de cards ativos globais.
-2. Mostra pessoas e propriedades conforme filtros.
-3. Usa clusters em zoom baixo.
-4. Em zoom de cidade/pin, clusters devem explodir em pins.
-5. Ao dar zoom out, clusters devem se recompor.
-6. Sidebar mostra filtros e cards destacados pagos.
+- `allPins`: todos os pins validos e publicados.
+- `spotlightCards`: subconjunto pago de `allPins`.
+- `myPins`: subconjunto proprio de `allPins`.
+- `clusterablePins`: pins clusterizaveis.
 
 Regras:
 
-- O mapa deve mostrar todos os pins globais ativos.
-- A sidebar `Spotlight Cards` deve mostrar somente cards com destaque pago.
-- Flood + Street esta oculto ate a camada de flood funcionar corretamente.
+- Todos os usuarios/perfis publicados devem aparecer no mapa conforme filtros.
+- Todos os pins devem derivar da mesma lista base.
+- `Spotlight Cards` mostra apenas cards com destaque pago.
+- O mapa principal mostra todos os pins elegiveis, nao apenas spotlight.
+- My PINs + Deals mostra propriedades do usuario logado.
+- My PINs + People mostra perfis/servicos do usuario logado.
+- Clusters devem expandir com contagem correta.
+- Geocoding client-side por Nominatim/Census/Photon/ArcGIS deve ser evitado; lat/lng deve estar persistido ou resolvido por Edge Function/backfill.
 
 ### 4.5 Matches
 
 Colunas:
 
-- People: contatos/perfis.
-- Interests: propriedades/interesses.
-- Area principal: chat, portfolio e dados de contato.
-
-Fluxo:
-
-1. Usuario favorita ou desbloqueia um card.
-2. Card entra em Matches.
-3. Se desbloqueado, contatos aparecem.
-4. Portfolio vinculado aparece conforme perfil/owner.
-5. Propriedades atreladas ao contato devem ser destacadas quando o contato e selecionado.
-6. O inverso tambem deve ocorrer: selecionar propriedade destaca contato dono.
-7. Chat deve funcionar entre usuarios reais com persistencia no DB.
+- People.
+- Interests.
+- painel de conversa/portfolio.
 
 Estados:
 
-- Locked: favoritado, mas ainda nao desbloqueado.
-- Unlocked/Paid: contato desbloqueado.
-- Archived: oculto sem perda de direito.
-- Deleted: removido pelo usuario, sem reembolso.
-
-Regra de exclusao:
-
-- Arquivar e preferivel a deletar.
-- Contato pago/desbloqueado deve alertar que o usuario tem direito ao contato.
-- Se deletar em Matches, tambem deve sumir do acompanhamento no Feed.
-- Durante exclusividade ativa, exclusao deve ser bloqueada ou fortemente restringida conforme regra definida.
-
-### 4.6 Chat
-
-Tipos de chat:
-
-- Chat entre usuarios dentro do modulo Matches.
-- Chat de suporte DealSifter dentro de Communication, separado do Matches.
+- Locked.
+- Unlocked/Paid.
+- Archived.
+- Exclusive.
 
 Regras:
 
-- Free pode visualizar algumas areas, mas chat pode ser bloqueado por plano.
-- Plano Pro/Enterprise habilita chat conforme regra.
-- Chat real deve persistir em DB.
-- Mensagens devem sincronizar entre devices do mesmo usuario quando permitido.
+- Contatos desbloqueados aparecem em Matches.
+- Entitlement vem de `unlockedContactService`.
+- Propriedades de owner desbloqueado nao devem pedir paywall adicional.
+- Propriedade exclusiva de terceiro mostra badge/timer, nao paywall generico.
+- Liberação cruzada/reciproca deve aparecer quando prevista pela regra de unlock/exclusividade.
+- Filtros de estado em Interests devem operar sobre estado da propriedade.
 
-### 4.7 Pricing e Checkout
+### 4.6 Chat Usuario-Usuario
+
+Regras para chat:
+
+1. O contato desbloqueado deve ter DealSifter Chat como canal desejado ou regra de aviso deve ser aplicada.
+2. Ambos os lados precisam ter plano com chat liberado para conversa plena.
+3. Se o remetente tem chat e o recebedor nao:
+   - recebedor recebe aviso de tentativa de contato e sugestao de upgrade;
+   - remetente recebe aviso para usar canais alternativos disponiveis no perfil.
+4. Mensagens sistemicas devem respeitar idioma do usuario.
+5. Mensagens importantes devem gerar notificacao clicavel.
+6. Historico minimo deve ser preservado e paginado.
+
+### 4.7 Suporte Humano
+
+O suporte dentro do app possui:
+
+- chat/ticket real;
+- historico por usuario;
+- tickets abertos e resolvidos;
+- agrupamento de tickets fechados por usuario;
+- badges de nao lidas no Admin;
+- quick messages/presets editaveis;
+- configuracao de linguagem/tamanho quando aplicavel;
+- opcao de email transacional quando provider esta configurado.
+
+Admin:
+
+- botao "Chat Sup." no painel;
+- lista de novos chats;
+- lista de solucionados;
+- abertura de conversa estilo Matches;
+- quick replies e mensagens personalizadas.
+
+Usuario:
+
+- acessa suporte por Settings/Communications ou Maxxis AI;
+- notificacoes clicaveis levam ao chat de suporte.
+
+### 4.8 Maxxis AI
+
+Maxxis AI e o assistente integrado ao DealSifter Match. Ele substitui gradualmente o antigo GuideTips como guia principal do usuario.
+
+Interface:
+
+- widget flutuante em todas as telas;
+- icone baseado na logomarca/gif do app;
+- suporte a drag/drop do widget;
+- modal sobreposto ao app;
+- minimizacao sem perder contexto de conversa;
+- botao de reset;
+- botao de suporte humano;
+- campo de digitacao com botao Send;
+- mensagens do usuario com gradiente/transparencia no padrao visual dos chats;
+- tema claro/escuro com contraste correto.
+
+Conhecimento primario:
+
+- documentacao `.md` do DealSifter Match;
+- funcionalidades reais do app;
+- workflows de Feed, MapView, Matches, Pricing, Onboarding, Settings, Admin, suporte, PWA/mobile, nuggets, unlock, spotlight e exclusividade.
+
+Conhecimento secundario:
+
+- Tax Deed Investing nos EUA;
+- Wholesale Real Estate nos EUA;
+- mercado imobiliario americano;
+- REITs, flipping, wholetail, buy-and-hold, seller financing e outros topicos correlatos quando ajudarem o uso do app.
+
+Limitacoes:
+
+- nao deve inventar funcionalidades inexistentes;
+- nao deve dar consultoria juridica/fiscal/financeira personalizada;
+- nao deve expor chaves, tokens, SQL sensivel, logs privados ou dados confidenciais;
+- deve sugerir suporte humano para casos de conta, pagamento, bug critico ou informacao sensivel.
+
+Navegacao interna:
+
+- Maxxis pode gerar botoes internos para levar o usuario ao modulo certo.
+- Actions permitidas incluem: Feed, MapView, Matches, Pricing, Onboarding, Settings, Profile, Notifications, Support e Admin quando aplicavel.
+- Usar no maximo 2 botoes de navegacao por resposta.
+- Texto dos botoes deve acompanhar idioma detectado.
+
+Protocolo de resposta:
+
+- cumprimentar de forma calorosa quando apropriado, preferencialmente na primeira interacao diaria;
+- confirmar entendimento quando util;
+- responder de forma clara e sucinta primeiro;
+- ampliar se o usuario pedir;
+- usar exemplos praticos;
+- sugerir proximos passos;
+- manter tom profissional, didatico e nao condescendente.
+
+### 4.9 Pricing e Checkout
 
 Fluxo:
 
-1. Usuario escolhe plano ou pack.
-2. Modal interno apresenta resumo e termos.
-3. Usuario aceita termos.
-4. App chama Edge Function de checkout.
-5. Stripe abre checkout hospedado.
-6. Retorno `success` ou `cancelled` atualiza app.
-7. Webhook atualiza plano/nuggets/eventos.
+1. Usuario escolhe pack ou plano.
+2. App mostra resumo e termos.
+3. Checkout Stripe abre.
+4. Webhook confirma pagamento.
+5. DB atualiza plano/nuggets.
+6. UI atualiza via refresh de services/realtime.
 
-Eventos importantes:
+Regras:
 
-- Checkout aberto.
-- Checkout cancelado.
-- Checkout concluido.
-- Carrinho abandonado.
-- Compra de pack.
-- Assinatura criada/alterada/cancelada.
+- saldo nao sobe antes do webhook;
+- fechar aba antes do retorno nao deve conceder saldo indevido;
+- eventos Stripe duplicados devem ser ignorados por idempotencia;
+- eventos fora de ordem devem ser logados/reprocessados quando necessario.
 
-### 4.8 Admin System
+### 4.10 Admin System
 
 Funcoes:
 
-- KPIs operacionais.
-- Nuggets manuais para testes/admin.
-- Monitoramento de eventos.
-- Suporte.
-- Metricas de checkout, unlock, exclusividade, spotlight, assinaturas e usuarios.
-
-KPIs desejados/atuais:
-
-- Usuarios ativos.
-- Novos usuarios por dia, semana e mes.
-- Contatos desbloqueados.
-- Exclusividades compradas.
-- Highlights/spotlights ativos e comprados.
-- Nuggets comprados em packs.
-- Receita em US$.
-- Assinaturas por plano.
-- Conversoes Free para Pro/Enterprise.
-- Carrinho abandonado.
-- Mensagens de suporte.
-- Status Supabase/Stripe.
-
-Risco atual:
-
-- KPI so e confiavel se todos os fluxos registrarem eventos no DB.
-- Compras mock/sandbox nao devem alimentar KPI real.
-
-## 5. Onboarding e Regra de Escopo
-
-### Escopos
-
-O app trabalha com tres escopos funcionais:
-
-- `personal`: perfil profissional pessoal.
-- `professional`: perfil business/operacoes.
-- `fsbo`: perfil de proprietario vendedor.
-
-### Campos Chave
-
-Cada perfil deve manter identidade propria:
-
-- Nome.
-- Avatar.
-- Estado/localidade.
-- Email.
-- Telefones.
-- Categoria/skills.
-- Prioridade de dashboard.
-- Status de verificacao.
-
-### Regra de Publicacao
-
-Um card so deve aparecer publicamente se:
-
-- O perfil existe.
-- O perfil possui prioridade publica valida.
-- Ha pelo menos um item de portfolio ativo vinculado ao perfil.
-- O item esta marcado para aparecer em Showcase ou Connections.
-- O owner_id e o escopo batem com o usuario e perfil corretos.
-
-### Problema que a unificacao busca resolver
-
-Antes havia risco de:
-
-- FSBO ter formulario paralelo.
-- Propriedade puxar nome de propriedade como nome de perfil.
-- Skill virar nome do contato.
-- Um item de um perfil aparecer no card de outro perfil.
-- Avatar ser replicado entre perfis.
-- Cards fantasmas permanecerem apos delete/recriar conta.
-
-A solucao correta e:
-
-- Portfolio unico.
-- Escopo explicito por item.
-- Owner preview derivado do perfil correto.
-- DB como fonte de verdade.
-- Sem fallback ficticio em producao.
-
-## 6. Regras de Badges, Icones e Tarjas
-
-### Feed
-
-Cards principais:
-
-- Tarjas ficam sobre a imagem/avatar, quando aplicavel.
-- Badges principais ficam no canto superior esquerdo.
-- Icones de status ficam no canto superior direito.
-
-Minicards:
-
-- Icones no canto superior direito.
-- Badges no canto inferior direito.
-- Prioridade visual para status mais importante.
-
-### Matches
-
-Colunas:
-
-- Usar apenas icones compactos lado a lado.
-
-Portfolio:
-
-- Icones no canto superior direito da imagem do card.
-- Badges completos acima do endereco no mobile.
-- Badges ao lado do endereco nas telas maiores.
-
-### MapView Sidebar
-
-Cards da sidebar devem seguir a mesma hierarquia visual de informacao dos minicards.
-
-### Hierarquia sugerida
-
-1. Exclusividade ativa.
-2. Spotlight.
-3. Verificado.
-4. Hot.
-5. Trending/Em Alta.
-6. New.
-
-## 7. PDF de Exportacao
-
-Fluxo:
-
-1. Usuario desbloqueia portfolio.
-2. Se plano permite, pode exportar PDF.
-3. Modal oferece download ou envio por email.
-4. PDF deve conter dados objetivos da propriedade.
-5. Imagem principal e mapa com pin devem aparecer.
-
-Pontos desejados:
-
-- Usar logo oficial completa.
-- Layout profissional para investidores.
-- Sem paginas extras em branco.
-- Imagem principal deve vir do DB/Storage, nao de fallback ficticio.
-- Snapshot de mapa deve ser estavel e visualmente util.
-
-## 8. Consentimento, Cookies e Legal
-
-Itens:
-
-- Banner de cookies na homepage.
-- Modal de Privacy & Data no primeiro login.
-- Termos de uso.
-- Politica de privacidade.
-- Aceite para checkout.
+- KPIs operacionais;
+- receita e eventos financeiros;
+- nuggets manuais;
+- concessao gratuita de Pro/Enterprise;
+- Chat Sup.;
+- tickets e historico;
+- Stripe reprocess queue;
+- Entitlement Alerts;
+- monitoramento de eventos criticos;
+- suporte a incidentes.
 
 Regras:
 
-- Nao pedir aceite repetidamente se ja foi aceito.
-- Se termo for atualizado com nova versao, pedir novo aceite.
-- Consentimentos devem ser persistidos no DB para usuario logado.
-- LocalStorage pode ajudar no device, mas DB deve ser fonte principal para usuario autenticado.
+- Toda acao admin que altera plano/nuggets deve gravar evento/auditoria.
+- Upgrades concedidos devem afetar imediatamente chat, swipes, unlocks, PDF e demais features.
 
-## 9. Internacionalizacao
+## 5. Regras De Negocio Criticas
+
+### 5.1 Custo Snapshot De Unlock
+
+Regra:
+
+- custo = soma do portfolio ativo do contato no momento da intencao;
+- custo minimo = 1 nugget;
+- custo deve ser calculado no servidor;
+- token de intencao possui TTL;
+- se portfolio mudar antes da confirmacao, RPC retorna erro `UnlockCostChanged` com novo valor.
+
+### 5.2 Entitlement Owner vs Propriedade
+
+Unlock de owner:
+
+- libera contato do owner;
+- libera portfolio completo do owner sem paywall adicional;
+- nao concede exclusividade.
+
+Unlock de propriedade:
+
+- libera detalhes da propriedade especifica;
+- libera contato do owner no contexto daquela propriedade;
+- demais propriedades podem continuar bloqueadas.
+
+Exclusividade:
+
+- bloqueia propriedade para terceiros;
+- deve impedir acesso indireto aos canais exclusivos por outro card do mesmo contato durante vigencia;
+- comprador exclusivo ve normalmente;
+- terceiros veem badge/timer.
+
+### 5.3 Spotlight
+
+Regra:
+
+- usuario escolhe card ativo para destacar;
+- destaque aparece em Feed, barra de anuncios, halo visual e sidebar `Spotlight Cards` no MapView;
+- cards destacados proprios tambem devem aparecer nos pontos de destaque para todos os usuarios, inclusive para o usuario logado.
+
+### 5.4 Dados Publicos vs Dados Pagos
+
+Publico:
+
+- nome publico;
+- avatar publico;
+- categoria;
+- localizacao publica;
+- badges;
+- resumo;
+- portfolio sem canais privados.
+
+Pago/desbloqueado:
+
+- email;
+- telefone;
+- WhatsApp;
+- canais de contato;
+- detalhes permitidos pela regra de entitlement.
+
+Regra: nenhum builder publico pode carregar contato privado, mesmo que a UI esteja borrando visualmente.
+
+### 5.5 Soft-Delete e LGPD
+
+Ao deletar conta:
+
+- registrar auditoria;
+- anonimizar dados pessoais;
+- preservar trilha financeira/KPI sem PII;
+- cancelar assinatura ativa;
+- desativar cards/portfolio;
+- tratar arquivos em Storage conforme politica;
+- impedir reidratacao indevida em nova conta com mesmo email.
+
+### 5.6 Consentimento e Termos
+
+Regras:
+
+- aceitar termos/privacidade uma vez por versao;
+- persistir aceite no DB;
+- manter historico mesmo apos cancelamento/delecao, para auditoria;
+- nao exibir modal repetidamente para usuario ja aceito;
+- checkout pode exigir aceite especifico de termos comerciais.
+
+## 6. Internacionalizacao
 
 Idiomas:
 
-- Ingles como padrao.
-- Portugues.
-- Espanhol.
+- ingles como padrao;
+- portugues;
+- espanhol.
 
 Regras:
 
-- Nomes de pessoas e empresas nao devem ser traduzidos.
-- Termos tecnicos podem permanecer em ingles quando fizer sentido comercial.
-- Homepage e primeira experiencia podem usar ingles como base.
-- Modais, botoes, labels, badges e tooltips devem usar o seletor global de idioma.
-- Linguagem de chat e configuracao separada da linguagem geral do app.
+- UI deve usar `translations.js` ou camada equivalente.
+- Mensagens sistemicas devem preferir `message_code` + `params`.
+- Chat e suporte devem respeitar preferencia de linguagem.
+- Maxxis deve detectar idioma e responder no idioma do usuario.
+- Nomes proprios, marcas e enderecos nao devem ser traduzidos.
 
-Risco atual:
+## 7. Tema, Logo, Mobile e PWA
 
-- Trechos implementados recentemente podem ainda conter strings fixas.
-- O ideal e continuar centralizando em `src/i18n/translations.js` ou camada equivalente.
+Tema:
 
-## 10. GuideTips
+- `themeService` controla tema, logo e meta theme-color.
+- `index.html` aplica `data-theme` cedo para evitar flash.
+- Toggle deve mostrar a acao oposta correta.
 
-Conceito:
+Logo:
 
-- Sistema hibrido de guia e dica.
-- Acionado por icone de lampada.
-- Deve poder ser ligado/desligado.
-- Deve orientar o usuario sem bloquear fluxo normal.
+- tema claro usa asset claro;
+- tema escuro usa asset escuro;
+- mobile usa imagem unica correta do conjunto logo+nome+Match.
 
-Fase atual:
+PWA:
 
-- Primeira implementacao no Feed.
-- Overlay com foco em elementos.
-- Precisa ser expandido para MapView, Matches, New Card e Pricing.
+- manifest com icons 192/512;
+- apple-touch-icon;
+- display standalone;
+- botao "Adicionar a tela principal" no hamburger;
+- iOS mostra instrucao manual;
+- Android usa prompt nativo quando disponivel.
 
-Regras de UX:
+Mobile/iOS:
 
-- Tema claro e escuro devem ter overlays diferentes.
-- No tema escuro, camada de destaque precisa ser clara o suficiente para contraste.
-- No mobile, se a dica depende de sidebar, a sidebar deve abrir automaticamente.
+- iPhone SE 2 e Safari iOS sao referencia de menor viewport suportado.
+- Modais nao podem extrapolar viewport.
+- Teclado nao pode cobrir input de chat.
+- Cards verticais precisam quebrar badges/linhas sem cortar informacao.
+- Build deve preservar polyfills/legacy quando necessario.
 
-## 11. Performance e Estabilidade
+## 8. PDF De Exportacao
 
-Medidas ja presentes:
+Fluxo:
 
-- `quotaFriendlyFetch` deduplica leituras GET/HEAD para Supabase.
-- Lazy loading de paginas.
-- Hooks separados para auth, profile sync, portfolio sync e checkout.
-- Build com Vite.
-- Alguns mocks desativados em producao por `import.meta.env.DEV`.
+1. Usuario acessa portfolio/propriedade liberada.
+2. Se plano permite, usa Export PDF.
+3. PDF deve seguir layout A4.
+4. Deve incluir cabecalho, dados do owner/propriedade, imagens, notas e mapa.
 
-Pontos que ainda exigem cuidado:
+Regras:
 
-- `App.jsx` continua muito grande.
-- `Onboarding.jsx` ainda concentra muita regra.
-- Alguns modulos ainda dependem de estado local extenso.
-- Hydration precisa evitar tela piscando, troca de tema e homepage temporaria.
-- Preferencias devem vir do DB, com localStorage apenas como fallback.
+- Logo oficial no cabecalho.
+- Fotos adicionais podem aparecer em grid 2 linhas x 5 colunas quando houver.
+- Mapa deve ficar bem enquadrado.
+- Sem paginas em branco.
+- Valores monetarios devem usar formato compacto quando o espaco for pequeno: `$300K`, `$1,290K`, `$2M`.
 
-## 12. Integridade de Dados
+## 9. Observabilidade e Operacao
 
-Ferramenta atual:
+Eventos importantes:
 
-- `src/lib/dataIntegrityAudit.js`.
+- falha de checkout;
+- webhook stuck/out-of-order;
+- RPC de unlock falhando;
+- contato desbloqueado sem dados canonicos;
+- paywall em owner desbloqueado;
+- falha de Edge Function;
+- erro de MapView/geocode;
+- erro de Maxxis AI;
+- falha de suporte/email.
 
-Ela audita:
+Regras:
 
-- Perfis.
-- Records locais/globais.
-- Owner id.
-- Escopo.
-- Owner preview.
-- Nomes suspeitos.
-- Inconsistencia entre perfil e item.
+- nao logar PII;
+- usar hashes para IDs em observabilidade externa;
+- AdminDashboard deve concentrar alertas operacionais quando possivel;
+- runbooks devem orientar diagnostico antes de alterar codigo.
 
-Exposicao em runtime:
-
-- `window.__DS_DATA_AUDIT`
-- `window.__DS_PRINT_DATA_AUDIT`
-
-Uso recomendado:
-
-- Rodar depois de criar/editar perfil.
-- Rodar depois de adicionar propriedade/servico.
-- Rodar ao detectar card fantasma.
-- Rodar antes de release para producao.
-
-## 13. Guardrails de Producao
-
-Regras importantes:
-
-- Nao usar mock como dado real.
-- Nao usar fallback ficticio para contato, perfil, portfolio, unlock ou KPI.
-- Dados publicos do feed devem vir do DB.
-- Dados pagos devem ser rastreaveis.
-- Debito de nuggets deve ter evento correspondente.
-- KPI financeiro deve refletir evento real de Stripe ou evento interno autorizado.
-- Delete account deve apagar ou desvincular corretamente dados do usuario.
-- Recriar conta com mesmo email nao deve reidratar historico antigo indevido.
-
-## 14. Pontos de Risco Ainda Relevantes
-
-### 14.1 Refatoracao incompleta
-
-`App.jsx` ainda centraliza muita regra. Isso aumenta risco de efeito colateral quando uma correcao de Feed impacta Matches ou Onboarding.
-
-Recomendacao:
-
-- Continuar extraindo dominios:
-  - Global feed service.
-  - Profile/portfolio normalizer.
-  - Unlock/exclusivity service.
-  - Plan usage service.
-  - Consent service.
-
-### 14.2 Onboarding ainda sensivel
-
-Perfis, propriedades e servicos precisam obedecer uma regra unica de escopo.
-
-Recomendacao:
-
-- Finalizar unificacao do portfolio.
-- Eliminar formulario FSBO paralelo como fonte independente.
-- Garantir que todo item tenha `owner_id`, `primary_profile`, `profile_payload` e `ownerPreview` coerentes.
-
-### 14.3 Plan limits parcialmente locais
-
-Contadores locais podem ser burlados ou ficar inconsistentes entre devices.
-
-Recomendacao:
-
-- Mover limites diarios/mensais para DB/RPC.
-- LocalStorage apenas para UX imediata.
-
-### 14.4 Realtime e multi-device
-
-Admin pode usar multiplos devices. Usuario comum deve ter uma sessao ativa.
-
-Recomendacao:
-
-- Definir claramente quais eventos sincronizam realtime.
-- Chat, unlocks, matches e feed global precisam refletir atualizacoes rapidamente.
-
-### 14.5 KPI depende de eventos completos
-
-Se um fluxo desconta nuggets mas nao registra evento, KPI quebra.
-
-Recomendacao:
-
-- Toda compra/desbloqueio/destaque deve registrar:
-  - usuario.
-  - entidade.
-  - custo em nuggets.
-  - valor USD quando houver.
-  - origem do fluxo.
-  - status.
-
-## 15. Checklist Funcional por Modulo
+## 10. Checklist Funcional Por Modulo
 
 ### Auth
 
@@ -732,122 +686,169 @@ Recomendacao:
 - Login Google.
 - Confirmacao por email.
 - Reset de senha.
-- Sessao unica para usuario comum.
-- Multisessao para admin.
-- Timeout por inatividade.
-- Termos e cookies com memoria.
+- Callback correto.
+- Sessao preservada sem logout falso.
+- Termos e privacy com historico.
 
 ### Onboarding
 
-- Criar perfil personal/professional.
-- Criar perfil FSBO.
-- Definir prioridade.
-- Limpar perfil exigindo salvar.
-- Upload de avatar por perfil sem misturar imagens.
-- Criar propriedade.
-- Criar servico.
+- Criar/editar perfil personal.
+- Criar/editar perfil professional.
+- Criar/editar perfil fsbo.
+- Limpar perfil sem reidratar outro escopo.
+- Upload de avatar independente por perfil.
+- Criar propriedades.
+- Criar servicos.
 - Vincular item ao perfil correto.
-- Publicar/retirar de Showcase ou Connections.
-- Preview correto.
-- MyCard correto.
+- Preview to Feed por perfil selecionado.
+- Publicar e refletir em Feed/MapView/Matches.
 
 ### Feed
 
-- Connections mostra perfis/servicos globais corretos.
-- Showcase mostra propriedades globais corretas.
-- Spotlight mostra cards destacados.
-- Filtros funcionam.
-- Ordenacao respeita preferencias.
-- Proprios cards ficam por ultimo por padrao.
-- Botao estrela nao confunde favorito com unlock.
-- Badges e tarjas refletem estado real.
+- Connections mostra pessoas/servicos reais.
+- Showcase mostra propriedades reais.
+- Spotlight mostra destaques pagos.
+- Cards proprios nao selecionaveis.
+- Cards desbloqueados nao consomem swipe como novos.
+- Contatos privados permanecem ocultos ate unlock.
+- Ordenacao e filtros funcionam.
 
 ### MapView
 
-- Pins globais aparecem.
-- Pins do usuario logado aparecem quando publicados.
-- Pins de outros usuarios aparecem.
-- Clusters explodem e reagrupam.
-- Sidebar lista apenas spotlights pagos.
-- Sem pins mockados em producao.
+- Todos os pins publicados aparecem conforme filtros.
+- People/Deals/My PINs funcionam em combinacao.
+- Spotlight Cards lista somente destaques pagos.
+- Clusters contam e expandem corretamente.
+- Clique em pin leva ao card correto no Feed.
+- Sem geocoding client-side que gere CORS.
 
 ### Matches
 
-- Favoritos aparecem corretamente.
-- Desbloqueios aparecem corretamente.
-- Contatos pagos mostram email/telefone.
-- Card pessoal destaca propriedades atreladas.
-- Propriedade destaca card pessoal dono.
-- Chat real persiste.
-- Arquivar/deletar segue regra.
-- Exclusividade mostra icone/timer correto.
+- Contatos desbloqueados aparecem.
+- Emails/telefones aparecem somente quando ha entitlement.
+- Owner desbloqueado libera portfolio completo.
+- Propriedade desbloqueada libera contexto correto.
+- Exclusividade mostra timer/badge.
+- Filtro de estado em Interests funciona.
+- Chat e notificacoes persistem.
 
 ### Pricing
 
-- Planos mensal/anual.
-- Desconto anual.
 - Packs de nuggets.
-- Checkout Stripe abre.
-- Cancelamento retorna ao Pricing.
-- Sucesso atualiza plano/nuggets.
-- FAQ e comparativo multilanguage.
+- Planos Pro/Enterprise.
+- Checkout Stripe.
+- Portal Stripe.
+- Webhook atualiza saldo/plano.
+- Falhas exibem mensagem clara.
 
 ### Admin
 
 - KPIs reais.
-- Exclusividades compradas aparecem.
-- Spotlights aparecem.
-- Carrinho abandonado aparece.
-- Receita em US$ aparece quando houver evento financeiro real.
-- Graficos mostram dados reais e periodo correto.
+- Doacao de nuggets.
+- Concessao de plano.
+- Chat Sup.
+- Tickets abertos/resolvidos.
+- Reprocessamento Stripe.
+- Entitlement Alerts.
 
-## 16. Recomendacao de Proximo Caminho
+### Maxxis AI
 
-Para estabilizar o app sem quebrar o que ja funciona, a melhor sequencia e:
+- Widget flutuante aparece.
+- Drag/drop funciona.
+- Modal abre e minimiza sem perder contexto.
+- Envia mensagem real.
+- Responde no idioma do usuario.
+- Sugere navegacao interna quando util.
+- Suporte humano acessivel.
+- Nao inventa funcionalidades.
 
-1. Congelar a regra de dominio:
-   - DB e fonte de verdade.
-   - Fallback local nunca vira dado real em producao.
-   - Portfolio unico.
-   - Escopo obrigatorio por item.
+## 11. Riscos Persistentes
 
-2. Criar uma camada unica de normalizacao:
-   - `normalizeProfile`.
-   - `normalizePortfolioItem`.
-   - `normalizeFeedCard`.
-   - `normalizeMatchRecord`.
+### 11.1 App.jsx Ainda Sensivel
 
-3. Fazer auditoria automatica por usuario:
-   - Listar perfis.
-   - Listar itens.
-   - Conferir owner_id.
-   - Conferir escopo.
-   - Conferir ownerPreview.
-   - Conferir publicacao.
+Mesmo com services extraidos, `App.jsx` ainda concentra orquestracao ampla. Risco: ajuste em feed afetar matches, plano ou onboarding.
 
-4. Corrigir Feed e MapView primeiro:
-   - Sao as vitrines globais.
-   - Tudo que aparece ali impacta confianca do usuario.
+Direcao:
 
-5. Corrigir Matches depois:
-   - Precisa refletir unlocks, contatos, portfolio e chat com fidelidade.
+- continuar extraindo feed state;
+- reduzir acoplamento de hydrations;
+- manter services como unica entrada de dados canonicos.
 
-6. So depois expandir ToolTips e verificacao:
-   - GuideTips ajudam UX.
-   - Verificacao de email/telefone aumenta credibilidade.
-   - Mas ambas dependem de base de dados confiavel.
+### 11.2 Onboarding e Escopo
 
-## 17. Conclusao
+Risco: perfis personal/professional/fsbo misturarem nome/avatar/dados quando usuario limpa ou alterna escopo.
 
-O app ja possui uma base funcional ampla: auth, onboarding, feed, mapa, matches, pricing, checkout, admin, badges, exclusividade, spotlight, i18n e guias. O problema principal nao e falta de funcionalidades. O problema principal e consolidacao de fonte de verdade e consistencia entre perfis, portfolio, feed global e historico de interacoes.
+Direcao:
 
-A prioridade tecnica deve ser estabilizar o nucleo:
+- reforcar que cada perfil e independente;
+- salvar limpezas explicitamente;
+- eliminar qualquer fallback cruzado entre perfis.
 
-- Perfil correto.
-- Portfolio correto.
-- Feed global correto.
-- MapView correto.
-- Matches correto.
-- Debito e historico rastreaveis.
+### 11.3 Entitlement De Contatos
 
-Depois disso, as proximas funcionalidades podem ser implementadas com muito menos risco de regressao.
+Risco: Matches, modal ou mobile exibirem contatos de forma divergente se algum caminho fugir do service canonico.
+
+Direcao:
+
+- `unlockedContactService` como unica fonte;
+- `PortfolioContactPanel` como render unico;
+- testes E2E de contatos desbloqueados antes de deploy.
+
+### 11.4 MapView
+
+Risco: filtros/pins/spotlight divergirem se surgir fonte paralela.
+
+Direcao:
+
+- todos os pins via `mapInventoryService`;
+- geocoding backend/backfill;
+- QA MapView V2 obrigatorio apos ajustes.
+
+### 11.5 Maxxis AI
+
+Risco: assistente responder fora do escopo, inventar feature ou falhar silenciosamente por chave/API.
+
+Direcao:
+
+- manter documentacao operacional atualizada;
+- logs claros para falha de AI;
+- fallback para suporte humano;
+- atualizar prompt/documentacao quando novos modulos forem adicionados.
+
+### 11.6 i18n
+
+Risco: strings hardcoded em portugues/ingles aparecerem no idioma errado.
+
+Direcao:
+
+- auditoria continua em componentes novos;
+- mensagens sistemicas por codigo;
+- Maxxis e chat respeitando idioma ativo.
+
+## 12. Recomendacao De Proximo Caminho
+
+Sequencia tecnica sugerida:
+
+1. Consolidar de vez o isolamento de perfis no Onboarding.
+2. Revalidar entitlement de contatos desbloqueados em desktop, mobile e modal.
+3. Finalizar MapView como consumidor puro de `mapInventoryService`.
+4. Remover qualquer dependencia runtime de localStorage proibido.
+5. Expandir testes unitarios para services canonicos.
+6. Executar QA mobile/iOS antes de cada deploy visual.
+7. Usar Maxxis AI como guia principal e reduzir dependencia de GuideTips.
+
+## 13. Conclusao
+
+O DealSifter Match ja possui uma base ampla: auth, onboarding, feed, mapa, matches, pricing, checkout, admin, suporte, chat, spotlight, exclusividade, i18n, PWA/mobile, PDF e Maxxis AI.
+
+O desafio principal nao e falta de funcionalidade. O desafio e garantir consistencia entre:
+
+- perfil correto;
+- portfolio correto;
+- card publico sanitizado;
+- contato desbloqueado canonico;
+- mapa derivado do mesmo inventario;
+- plano/nuggets validados por servidor;
+- experiencia mobile sem regressao visual.
+
+Maxxis AI passa a ser parte central da experiencia: orienta o usuario, reduz dependencia de tooltips estaticos, leva o usuario ao modulo correto e apoia com conhecimento de Real Estate sem ultrapassar limites de produto, privacidade ou consultoria profissional.
