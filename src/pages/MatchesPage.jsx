@@ -2867,8 +2867,15 @@ export function MatchesPage({ nuggets, isAdmin = false, setModal, openUnlock, un
     }
     [...(Array.isArray(matched) ? matched : []), ...reciprocalChatContacts]
       .map((m) => {
-        const resolved = resolveCanonicalContactCard(resolveContactCard(m));
-        return resolved ? { ...m, ...resolved, chatLinked: Boolean(m?.chatLinked || resolved?.chatLinked) } : null;
+        const publicContact = resolveContactCard(m);
+        if (!publicContact) return null;
+        const canonicalContact = resolveCanonicalContactCard(publicContact);
+        const resolved = canonicalContact || publicContact;
+        return {
+          ...m,
+          ...resolved,
+          chatLinked: Boolean(m?.chatLinked || resolved?.chatLinked),
+        };
       })
       .filter(Boolean)
       .forEach((contact) => {
