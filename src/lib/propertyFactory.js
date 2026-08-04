@@ -60,5 +60,6 @@ export function createProfessionalProperty(input) {
     source: 'portfolio',
     ownerAccountType: '',
     includeInPreview: true,
+    hideStreetAddressOnCard: input.hideStreetAddressOnCard === true,
   };
 }

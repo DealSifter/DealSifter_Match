@@ -928,6 +928,7 @@ export function MapView({
   const [femaOverlayUnavailable, setFemaOverlayUnavailable] = useState(false);
   const [mapActivationKey, setMapActivationKey] = useState(0);
   const wasActiveRef = React.useRef(isActive);
+  const hasNormalizedMobileMapFiltersRef = React.useRef(false);
   const lastBaseFallbackSwitchAtRef = React.useRef(0);
   const femaTileErrorStreakRef = React.useRef(0);
 
@@ -1055,6 +1056,19 @@ export function MapView({
     }
     return undefined;
   }, [mapUiHydrated, showPeople, showProperties]);
+
+  React.useEffect(() => {
+    if (!mapUiHydrated || !isMobileViewport || hasNormalizedMobileMapFiltersRef.current) return;
+    hasNormalizedMobileMapFiltersRef.current = true;
+    if (showOnlyUnlocked || showOnlyMyPins) return;
+    if (showPeople && showProperties) return;
+    const timer = window.setTimeout(() => {
+      setShowPeople(true);
+      setShowProperties(true);
+      persistMapUiState({ showPeople: true, showProperties: true });
+    }, 0);
+    return () => window.clearTimeout(timer);
+  }, [isMobileViewport, mapUiHydrated, persistMapUiState, showOnlyMyPins, showOnlyUnlocked, showPeople, showProperties]);
 
   React.useEffect(() => {
     try { localStorage.setItem('ds_map_panel_toggle_offset_y', String(panelToggleOffsetY)); } catch (e) { void e; }
@@ -1246,19 +1260,21 @@ export function MapView({
       if (pin?.sourceFeature) {
         return {
           ...pin.sourceFeature,
-          properties: {
-            ...(pin.sourceFeature.properties || {}),
-            itemType: pin.itemType,
-            itemId: pin.cardId,
-            isOwn: pin.isOwnCard,
-          },
-          payload: {
-            ...(pin.sourceFeature.payload || {}),
-            isOwnCard: pin.isOwnCard,
-            isSpotlight: pin.isSpotlight,
-          },
-        };
-      }
+            properties: {
+              ...(pin.sourceFeature.properties || {}),
+              itemType: pin.itemType,
+              itemId: pin.cardId,
+              isOwn: pin.isOwnCard,
+              isUnlocked: pin.isUnlocked,
+            },
+            payload: {
+              ...(pin.sourceFeature.payload || {}),
+              isOwnCard: pin.isOwnCard,
+              isSpotlight: pin.isSpotlight,
+              isUnlocked: pin.isUnlocked,
+            },
+          };
+        }
       return {
         type: 'Feature',
         geometry: { type: 'Point', coordinates: [pin.lng, pin.lat] },
@@ -1266,8 +1282,12 @@ export function MapView({
           itemType: pin.itemType,
           itemId: pin.cardId,
           isOwn: pin.isOwnCard,
+          isUnlocked: pin.isUnlocked,
         },
-        payload: pin.sourceCard,
+        payload: {
+          ...(pin.sourceCard || {}),
+          isUnlocked: pin.isUnlocked,
+        },
       };
     };
 
@@ -2691,6 +2711,7 @@ export function MapView({
               const isPerson = feature.properties.itemType === 'person';
               const payload = feature.payload;
               const isOwnProperty = !isPerson && feature.properties.isOwn === true;
+              const isUnlockedMarker = feature.properties.isUnlocked === true;
               const markerKey = feature.properties.featureKey
                 || `${feature.properties.itemType}-${feature.properties.itemId}-${payload?.primaryProfile || payload?.scope || ''}-${lat}-${lng}`;
 
@@ -2700,8 +2721,8 @@ export function MapView({
                   position={[lat, lng]}
                   icon={
                     isPerson
-                      ? (isUnlockedId(payload.id) ? unlockedPersonIcon : personIcon)
-                      : (isOwnProperty ? myPropertyIcon : (isUnlockedId(payload.ownerId) ? unlockedPropertyIcon : propertyIcon))
+                      ? (isUnlockedMarker ? unlockedPersonIcon : personIcon)
+                      : (isOwnProperty ? myPropertyIcon : (isUnlockedMarker ? unlockedPropertyIcon : propertyIcon))
                   }
                   draggable={isOwnProperty}
                   eventHandlers={isOwnProperty ? {

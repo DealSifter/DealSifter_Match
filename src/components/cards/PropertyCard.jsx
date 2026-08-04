@@ -10,6 +10,7 @@ import { useMediaQuery } from '../../hooks/useMediaQuery';
 import { formatPropertyLocation } from '../../lib/formatPropertyLocation';
 import { getPendingDealRemainingDays, isPendingDealActive } from '../../lib/pendingDeal';
 import { formatCompactUsd } from '../../lib/formatMoney';
+import { getPublicPropertyAddressLine } from '../../lib/propertyAddressPrivacy';
 
 export function PropertyCard({ property, action, statusAction, onInterest, owner, isSkipped = false, previewOnly = false, hotMetrics = null, exclusivityStatus = null, onAvatarClick, onUnlock = null, showActions = true }) {
   const t = useT('dashboard').cards;
@@ -35,6 +36,7 @@ export function PropertyCard({ property, action, statusAction, onInterest, owner
     : property.dealTag;
   const displayDealTagLabel = displayDealTag === 'FSBO' ? (t.fsbo || 'FSBO') : displayDealTag;
   const propertyLocation = formatPropertyLocation(property);
+  const publicAddressLine = getPublicPropertyAddressLine(property);
 
   const effectiveAction = action || statusAction;
   // In pop-up previews, add a stronger theme-aware glow to emphasize card boundaries.
@@ -286,7 +288,7 @@ export function PropertyCard({ property, action, statusAction, onInterest, owner
       <div style={{ position: 'relative', width: isMobileLayout ? '100%' : '42%', flexShrink: 0, height: isMobileLayout ? (previewOnly ? 226 : '38%') : '100%', minHeight: isMobileLayout && previewOnly ? 210 : undefined }}>
         <SmartImage
           src={images[currentIdx]}
-          alt={property.address}
+          alt={publicAddressLine || property.address || 'Property'}
           style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }}
         />
 
@@ -611,7 +613,7 @@ export function PropertyCard({ property, action, statusAction, onInterest, owner
         <div style={{ display: 'flex', alignItems: 'center', gap: 3, fontSize: 12, color: C.t2, marginBottom: 6, minWidth: 0 }}>
           <Icon name="mapPin" size={12} color={C.t3} />
           <span style={{ whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
-            {[property.address, propertyLocation].filter(Boolean).join(', ')}
+            {[publicAddressLine, propertyLocation].filter(Boolean).join(', ')}
           </span>
         </div>
 

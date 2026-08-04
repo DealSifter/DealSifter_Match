@@ -136,6 +136,29 @@ describe('mapInventoryService', () => {
     expect(ids).not.toContain('property-no-coords');
   });
 
+  it('excludes properties with hidden street address from every map subset', () => {
+    const privateProperty = {
+      ...baseCards[2],
+      id: 'property-private',
+      address: '999 Hidden St',
+      hideStreetAddressOnCard: true,
+      isSpotlight: true,
+    };
+    const inventory = buildMapInventory([...baseCards, privateProperty], CURRENT_USER_ID, {
+      showPeople: true,
+      showDeals: true,
+    });
+
+    const ids = [
+      ...inventory.allPins,
+      ...inventory.spotlightCards,
+      ...inventory.myPins,
+      ...inventory.clusterablePins,
+    ].map((pin) => pin.cardId);
+
+    expect(ids).not.toContain('property-private');
+  });
+
   it('deduplicates the same item in allPins', () => {
     const duplicate = { ...baseCards[2] };
     const inventory = buildMapInventory([...baseCards, duplicate], CURRENT_USER_ID, {

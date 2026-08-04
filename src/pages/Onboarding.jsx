@@ -93,6 +93,7 @@ export function Onboarding({
   const [portfolioMarkets, setPortfolioMarkets] = useState([]);
   const [primaryProfileScope, setPrimaryProfileScope] = useState(''); // property scope only
   const [portfolioDescription, setPortfolioDescription] = useState('');
+  const [portfolioHideStreetAddressOnCard, setPortfolioHideStreetAddressOnCard] = useState(false);
   // Keep temporary uploads separated by onboarding branch to avoid cross-reflection.
   const shouldUseTempStorage = true;
   const activeTempStorageKey = accountType === 'fsbo_owner' ? 'tempUploads_fsbo' : 'tempUploads_professional';
@@ -188,8 +189,9 @@ export function Onboarding({
   const [portfolioVideo, setPortfolioVideo] = useState('');
   const [editingImagesId, setEditingImagesId] = useState(null);
   const [editingPropertyId, setEditingPropertyId] = useState(null);
-  const [propertyEditDraft, setPropertyEditDraft] = useState({ address: '', city: '', zip: '', price: '', capRate: '', rehab: '', beds: '', baths: '', sqft: '', lot: '', type: '', objective: '', description: '', primaryProfile: 'personal', markets: [] });
+  const [propertyEditDraft, setPropertyEditDraft] = useState({ address: '', city: '', zip: '', price: '', capRate: '', rehab: '', beds: '', baths: '', sqft: '', lot: '', type: '', objective: '', description: '', primaryProfile: 'personal', markets: [], hideStreetAddressOnCard: false });
   const [portfolioMsg, setPortfolioMsg] = useState('');
+  const [streetPrivacyPrompt, setStreetPrivacyPrompt] = useState(null);
   const [portfolioEntryType, setPortfolioEntryType] = useState('property');
   const [portfolioRecordsTab, setPortfolioRecordsTab] = useState('properties');
 
@@ -1644,6 +1646,7 @@ export function Onboarding({
     portfolioMarkets,
     primaryProfileScope,
     portfolioDescription,
+    portfolioHideStreetAddressOnCard,
     serviceTitle,
     serviceCategory,
     serviceDescription,
@@ -1661,7 +1664,7 @@ export function Onboarding({
     cardPriorityB, cardPriorityC, portfolioEntryType, portfolioRecordsTab, portfolioAddress,
     portfolioCity, portfolioZip, portfolioType, portfolioPrice, portfolioBeds, portfolioBaths,
     portfolioSqft, portfolioLot, portfolioRehab, portfolioCapRate, portfolioObjective,
-    portfolioMarkets, primaryProfileScope, portfolioDescription, serviceTitle, serviceCategory,
+    portfolioMarkets, primaryProfileScope, portfolioDescription, portfolioHideStreetAddressOnCard, serviceTitle, serviceCategory,
     serviceDescription, servicePrice, serviceMarkets, servicePrimaryProfileScope,
     investmentProfileDraft,
   ]);
@@ -1724,6 +1727,7 @@ export function Onboarding({
         if (Array.isArray(draft.portfolioMarkets)) setPortfolioMarkets(draft.portfolioMarkets);
         if (typeof draft.primaryProfileScope === 'string') setPrimaryProfileScope(draft.primaryProfileScope);
         if (typeof draft.portfolioDescription === 'string') setPortfolioDescription(draft.portfolioDescription);
+        if (typeof draft.portfolioHideStreetAddressOnCard === 'boolean') setPortfolioHideStreetAddressOnCard(draft.portfolioHideStreetAddressOnCard);
         if (typeof draft.serviceTitle === 'string') setServiceTitle(draft.serviceTitle);
         if (typeof draft.serviceCategory === 'string') setServiceCategory(draft.serviceCategory);
         if (typeof draft.serviceDescription === 'string') setServiceDescription(draft.serviceDescription);
@@ -1922,6 +1926,7 @@ export function Onboarding({
       description: p.description || '',
       primaryProfile: p.primaryProfile || '',
       markets: normalizeMarkets(p.markets),
+      hideStreetAddressOnCard: isTruthyFlag(p.hideStreetAddressOnCard ?? p.hide_street_address_on_card, false),
     });
   };
 
@@ -1959,6 +1964,7 @@ export function Onboarding({
             primaryProfileId: getPrimaryProfileId(propertyEditDraft.primaryProfile || prop.primaryProfile),
             markets: nextMarkets,
             state: nextMarkets[0] || prop.state || '',
+            hideStreetAddressOnCard: propertyEditDraft.hideStreetAddressOnCard === true,
           }
         : prop
     )));
@@ -2053,6 +2059,7 @@ export function Onboarding({
       images: portfolioImages,
       video: portfolioVideo,
       primaryProfileScope,
+      hideStreetAddressOnCard: portfolioHideStreetAddressOnCard,
     });
     setPropertyPortfolio((prev) => [
       ...prev,
@@ -2081,11 +2088,26 @@ export function Onboarding({
     setPortfolioDescription('');
     setPortfolioImages([]);
     setPortfolioVideo('');
+    setPortfolioHideStreetAddressOnCard(false);
     clearPortfolioVideoBlob(`portfolioVideo_${accountType}`).catch(() => {});
     setPortfolioMsg('');
     setIsPreviewToFeedDirty(true);
+    setStreetPrivacyPrompt({ propertyId: newItem.id });
 
     return newItem.id;
+  };
+
+  const resolveStreetPrivacyPrompt = (hideStreetAddressOnCard) => {
+    const propertyId = streetPrivacyPrompt?.propertyId;
+    if (propertyId) {
+      setPropertyPortfolio((prev) => prev.map((item) => (
+        item.id === propertyId
+          ? { ...item, hideStreetAddressOnCard: hideStreetAddressOnCard === true }
+          : item
+      )));
+    }
+    setStreetPrivacyPrompt(null);
+    setIsPreviewToFeedDirty(true);
   };
 
 
@@ -2393,6 +2415,7 @@ export function Onboarding({
     primaryProfileScope,
     portfolioDescription,
     portfolioImages,
+    portfolioHideStreetAddressOnCard,
     portfolioMsg,
   };
 
@@ -2414,6 +2437,7 @@ export function Onboarding({
       case 'primaryProfileScope': setPrimaryProfileScope(value); break;
       case 'portfolioDescription': setPortfolioDescription(value); break;
       case 'portfolioImages': setPortfolioImages(Array.isArray(value) ? value : []); break;
+      case 'portfolioHideStreetAddressOnCard': setPortfolioHideStreetAddressOnCard(value === true); break;
       default: break;
     }
   };
@@ -4994,6 +5018,33 @@ export function Onboarding({
         </Modal>
       ) : null}
 
+      {streetPrivacyPrompt ? (
+        <Modal onClose={() => resolveStreetPrivacyPrompt(false)} maxWidth={460}>
+          <h3 style={{ margin: '0 0 8px', color: C.t1, fontSize: 18, fontWeight: 900 }}>
+            {t.addressPrivacyTitle || 'Address privacy'}
+          </h3>
+          <p style={{ margin: '0 0 16px', color: C.t2, fontSize: 13, lineHeight: 1.45 }}>
+            {t.addressPrivacyPrompt || 'Você deseja manter oculto no card do feed o endereço do imovel registrado?'}
+          </p>
+          <div style={{ display: 'flex', gap: 8, justifyContent: 'flex-end', flexWrap: 'wrap' }}>
+            <button
+              type="button"
+              onClick={() => resolveStreetPrivacyPrompt(false)}
+              style={{ padding: '9px 12px', borderRadius: 10, border: `1px solid ${C.border}`, background: 'transparent', color: C.t2, fontWeight: 800, cursor: 'pointer', fontSize: 12 }}
+            >
+              {t.addressPrivacyShow || 'Não, mostrar endereço'}
+            </button>
+            <button
+              type="button"
+              onClick={() => resolveStreetPrivacyPrompt(true)}
+              style={{ padding: '9px 12px', borderRadius: 10, border: 'none', background: C.accent, color: '#fff', fontWeight: 900, cursor: 'pointer', fontSize: 12 }}
+            >
+              {t.addressPrivacyHide || 'Sim, ocultar endereço'}
+            </button>
+          </div>
+        </Modal>
+      ) : null}
+
       {editingPropertyRecord ? (
         <Modal onClose={() => setEditingPropertyId(null)} maxWidth={1080}>
           <h3 style={{ margin: '0 0 6px', color: C.t1, fontSize: 20, fontWeight: 800 }}>{t.editProperty || 'Edit Property'}</h3>
@@ -5079,6 +5130,29 @@ export function Onboarding({
             <div style={{ position: 'relative' }}>
               {renderMarketsSelector(propertyEditDraft.markets, (code) => setPropertyEditDraft((prev) => ({ ...prev, markets: toggleArrayValue(prev.markets || [], code) })), { showSummary: false, inlineLabel: 'States' })}
             </div>
+          </div>
+          <div style={{ marginBottom: 10, display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 10, padding: '9px 10px', borderRadius: 10, border: `1px solid ${C.border}`, background: C.alpha(C.t1, 0.03) }}>
+            <div style={{ minWidth: 0 }}>
+              <div style={{ color: C.t1, fontSize: 12, fontWeight: 900 }}>{t.showAddressOnCard || 'Show address on card?'}</div>
+              <div style={{ color: C.t3, fontSize: 11, lineHeight: 1.35 }}>{t.showAddressOnCardHint || 'Y shows street number/name in feed. N hides the exact street and removes the map pin.'}</div>
+            </div>
+            <button
+              type="button"
+              onClick={() => setPropertyEditDraft((prev) => ({ ...prev, hideStreetAddressOnCard: prev.hideStreetAddressOnCard !== true }))}
+              aria-pressed={propertyEditDraft.hideStreetAddressOnCard !== true}
+              style={{
+                minWidth: 54,
+                padding: '7px 10px',
+                borderRadius: 999,
+                border: `1px solid ${propertyEditDraft.hideStreetAddressOnCard ? C.gold : C.accent}`,
+                background: propertyEditDraft.hideStreetAddressOnCard ? C.alpha(C.gold, 0.1) : C.accent,
+                color: propertyEditDraft.hideStreetAddressOnCard ? C.gold : '#fff',
+                fontWeight: 900,
+                cursor: 'pointer',
+              }}
+            >
+              {propertyEditDraft.hideStreetAddressOnCard ? 'N' : 'Y'}
+            </button>
           </div>
           <div style={{ position: 'relative', marginBottom: 10 }}>
             <span style={portfolioTextareaLabelStyle}>{t.labelDescShort || 'Description'}</span>

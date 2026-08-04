@@ -107,6 +107,9 @@ const toPin = (card, currentUserId) => {
 
   const kind = getPinKind(card);
   if (!isPublished(card, kind)) return null;
+  if (kind === 'property' && truthyFlag(card?.hideStreetAddressOnCard ?? card?.hide_street_address_on_card, false)) {
+    return null;
+  }
 
   const ownerId = pickString(card.ownerId, card.owner_id, card.unlockOwnerId, card.sellerId, kind === 'person' ? card.id : '');
   const id = pickString(card.id, card.propertyId, card.serviceId, card.cardId, ownerId);
@@ -115,6 +118,9 @@ const toPin = (card, currentUserId) => {
   const isOwnCard = card?.isOwnCard === true
     || card?.__mapFeature?.properties?.isOwn === true
     || String(ownerId) === String(currentUserId || '');
+  const isUnlocked = card?.isUnlocked === true
+    || card?.__mapFeature?.properties?.isUnlocked === true
+    || isOwnCard;
 
   return {
     id,
@@ -129,6 +135,7 @@ const toPin = (card, currentUserId) => {
     category: pickString(card.category, card.cat, card.type),
     isSpotlight: card?.isSpotlight === true,
     isOwnCard,
+    isUnlocked,
     sourceCard: card,
     sourceFeature: card.__mapFeature || null,
   };

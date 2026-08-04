@@ -287,6 +287,7 @@ export function normalizeCard(rawCard, currentUserId = '') {
       images: normalizeImages(rawCard.images, rawCard.media_images),
       lat: toNumberOrNull(rawCard.lat),
       lng: toNumberOrNull(rawCard.lng),
+      hideStreetAddressOnCard: truthyFlag(rawCard.hideStreetAddressOnCard ?? rawCard.hide_street_address_on_card, false),
       publishToShowcase: true,
       includeInPreview: truthyFlag(rawCard.includeInPreview ?? rawCard.include_in_preview, true),
       isActive: true,

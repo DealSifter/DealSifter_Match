@@ -73,6 +73,7 @@ const isPropertiesOptionalColumnMissingError = (error) => [
   'properties.pending_deal',
   'properties.pending_deal_started_at',
   'properties.pending_deal_expires_at',
+  'properties.hide_street_address_on_card',
 ].some((column) => isMissingColumnError(error, column));
 
 const getProfilePayloadScope = (profilePayload, scope) => {
@@ -217,6 +218,7 @@ const mapDbPropertyToLocal = (row, images = [], options = {}) => ({
   geocodeConfidence: toNumberOrNull(row.geocode_confidence),
   geocodeInput: row.geocode_input || '',
   geocodedAt: row.geocoded_at || null,
+  hideStreetAddressOnCard: truthyFlag(row.hide_street_address_on_card, false),
   createdAt: row.created_at || null,
   updatedAt: row.updated_at || null,
 });
@@ -278,7 +280,7 @@ const mapSpotlights = (spotlightRows = []) => spotlightRows.map((row) => ({
 const queryGlobalFeedTables = async (supabaseClient) => {
   let propertiesResult = await supabaseClient
     .from('properties')
-    .select('id, owner_id, type, address, city, state, zip, price, beds, baths, sqft, improvement, lot, deal_tag, objective, rehab, cap_rate, description, markets, is_active, deal_closed, pending_deal, pending_deal_started_at, pending_deal_expires_at, publish_to_showcase, include_in_preview, source, owner_account_type, primary_profile, video, lat, lng, geocode_status, geocode_source, geocode_confidence, geocode_input, geocoded_at, created_at, updated_at')
+    .select('id, owner_id, type, address, city, state, zip, price, beds, baths, sqft, improvement, lot, deal_tag, objective, rehab, cap_rate, description, markets, is_active, deal_closed, pending_deal, pending_deal_started_at, pending_deal_expires_at, publish_to_showcase, include_in_preview, source, owner_account_type, primary_profile, video, lat, lng, geocode_status, geocode_source, geocode_confidence, geocode_input, geocoded_at, hide_street_address_on_card, created_at, updated_at')
     .eq('is_active', true)
     .eq('publish_to_showcase', true)
     .order('created_at', { ascending: false })
