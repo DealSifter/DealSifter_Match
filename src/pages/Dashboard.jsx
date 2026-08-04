@@ -26,6 +26,7 @@ import { orderDeck } from '../lib/orderFeedDeck';
 import { normalizeCard } from '../lib/normalizeFeedCard';
 import { sanitizePublicCardInput } from '../lib/sanitizePublicCardInput';
 import { formatCompactUsd } from '../lib/formatMoney';
+import { getPublicPropertyAddressLine } from '../lib/propertyAddressPrivacy';
 import { buildProfileEntitlementKey } from '../lib/profileScope';
 import feedMatchIcon from '../assets/feed-match-icon.png';
 import spotlightIcon from '../assets/spotlight-icon.png';
@@ -335,7 +336,7 @@ export function Dashboard({ page, nuggets, setModal, setPage, onOpenOnboardingTa
       const milestone = getTrendingMilestone(metrics?.favoriteCount);
       if (!milestone) return;
 
-      const shortAddress = String(property?.address || cardsT?.property || 'Property').split(',')[0].trim();
+      const shortAddress = String(getPublicPropertyAddressLine(property) || cardsT?.property || 'Property').split(',')[0].trim();
       const unlockCount = Number(metrics?.unlockCount || 0);
       const favoriteCount = Number(metrics?.favoriteCount || 0);
       const matchCount = Number(metrics?.matchCount || 0);
@@ -2717,7 +2718,7 @@ export function Dashboard({ page, nuggets, setModal, setPage, onOpenOnboardingTa
         key: `p-${p.id}`,
         source: 'properties',
         id: p.id,
-        title: p.address,
+        title: getPublicPropertyAddressLine(p) || p.address,
         subtitle: `${p.type} · ${formatPropertyLocation(p)}`,
         meta: `${fmtPrice(p.price)} · ${p.capRate ? `${p.capRate}% Cap` : 'Cap N/A'}`,
         tone: C.gold,
@@ -4582,12 +4583,12 @@ export function Dashboard({ page, nuggets, setModal, setPage, onOpenOnboardingTa
                 <div key={i} style={{ display:"flex", alignItems:"center", gap:8, padding:"8px 0", borderBottom:i < interested.length-1 ? `1px solid ${C.border}` : "none" }}>
                   <SmartImage
                     src={typeof (m.images?.[0] || m.image) === 'string' && (m.images?.[0] || m.image)?.length > 8 ? (m.images?.[0] || m.image) : undefined}
-                    alt={m.address}
+                    alt={getPublicPropertyAddressLine(m) || m.address}
                     style={{ width:38, height:38, borderRadius:7, objectFit:"cover", flexShrink:0 }}
                     fallback={<Icon name="home" size={16} color={C.t3} />}
                   />
                   <div style={{ flex:1, minWidth:0 }}>
-                    <div style={{ fontWeight:700, color:C.t1, fontSize:11, whiteSpace:"nowrap", overflow:"hidden", textOverflow:"ellipsis" }}>{m.address}</div>
+                    <div style={{ fontWeight:700, color:C.t1, fontSize:11, whiteSpace:"nowrap", overflow:"hidden", textOverflow:"ellipsis" }}>{getPublicPropertyAddressLine(m) || m.address}</div>
                     <div style={{ fontWeight:600, color:C.gold, fontSize:11 }}>{formatCompactUsd(m.price || 0)}</div>
                     <div style={{ 
                       fontSize:10, 
