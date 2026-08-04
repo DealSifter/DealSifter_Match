@@ -617,7 +617,7 @@ export function PropertyCard({ property, action, statusAction, onInterest, owner
 
         {/* objective + deal tag badges */}
         {(property.objective || displayDealTag) && (
-          <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 6, flexWrap: isMobileLayout ? 'wrap' : 'nowrap' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 6, flexWrap: 'nowrap', minWidth: 0 }}>
             {property.objective ? (
               <div style={{
                 display: 'inline-flex',
@@ -625,14 +625,14 @@ export function PropertyCard({ property, action, statusAction, onInterest, owner
                 justifyContent: 'center',
                 gap: 4,
                 minWidth: 0,
-                flex: isMobileLayout ? '1 1 100%' : 1,
-                padding: '4px 8px',
+                flex: '1 1 0',
+                padding: isMobileLayout ? '4px 5px' : '4px 8px',
                 borderRadius: 20,
                 background: 'rgba(67, 129, 188, 0.1)',
                 border: '1px solid rgba(67, 129, 188, 0.3)',
               }}>
-                <Icon name="zap" size={11} color="#4381bc" strokeWidth={2} />
-                <span style={{ fontSize: 11, fontWeight: 700, color: '#4381bc', textTransform: 'uppercase', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                <Icon name="zap" size={isMobileLayout ? 10 : 11} color="#4381bc" strokeWidth={2} />
+                <span style={{ fontSize: isMobileLayout ? 10 : 11, fontWeight: 700, color: '#4381bc', textTransform: 'uppercase', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', minWidth: 0 }}>
                   {property.objective}
                 </span>
               </div>
@@ -644,14 +644,14 @@ export function PropertyCard({ property, action, statusAction, onInterest, owner
                 justifyContent: 'center',
                 gap: 4,
                 minWidth: 0,
-                flex: isMobileLayout ? '1 1 100%' : 1,
-                padding: '4px 8px',
+                flex: '1 1 0',
+                padding: isMobileLayout ? '4px 5px' : '4px 8px',
                 borderRadius: 20,
                 background: C.alpha('#e74c3c', 0.08),
                 border: '1px solid rgba(231, 76, 60, 0.35)',
               }}>
-                <Icon name="tag" size={11} color="#e74c3c" strokeWidth={2} />
-                <span style={{ fontSize: 11, fontWeight: 700, color: '#e74c3c', textTransform: 'uppercase', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                <Icon name="tag" size={isMobileLayout ? 10 : 11} color="#e74c3c" strokeWidth={2} />
+                <span style={{ fontSize: isMobileLayout ? 10 : 11, fontWeight: 700, color: '#e74c3c', textTransform: 'uppercase', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', minWidth: 0 }}>
                   {displayDealTagLabel}
                 </span>
               </div>

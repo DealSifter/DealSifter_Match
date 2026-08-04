@@ -167,7 +167,8 @@ function SwipeCard({ card, action, isUnlocked, isSkipped, onSwipe, onUndo, onUnl
     1,
     Number(card?.unlockCost || card?.nuggetCost || card?.nuggets || card?.portfolioCount || 1) || 1
   );
-  const showLockPanel = !previewOnly && showActions && !isUnlocked;
+  const hasVisibleContactDetails = revealPhone || revealEmail;
+  const showLockPanel = !previewOnly && showActions && (card?.isOwnCard || !hasVisibleContactDetails);
   const profileCategoryBadge = React.useMemo(() => getProfileCategoryBadge(card), [card]);
 
   const dragAbs = Math.abs(dragX);
