@@ -337,7 +337,7 @@ function SwipeCard({ card, action, isUnlocked, isSkipped, onSwipe, onUndo, onUnl
       ) : null}
 
       {/* ── LEFT: photo column ── */}
-      <div style={{ position: 'relative', width: isMobileLayout ? '100%' : '42%', flexShrink: 0, height: isMobileLayout ? (previewOnly ? 244 : '34%') : '100%', minHeight: isMobileLayout && previewOnly ? 220 : undefined }}>
+      <div style={{ position: 'relative', width: isMobileLayout ? '100%' : '42%', flexShrink: 0, height: isMobileLayout ? (previewOnly ? 244 : '44%') : '100%', minHeight: isMobileLayout && previewOnly ? 220 : undefined }}>
         <SmartImage
           src={card.photo}
           alt={card.name}
@@ -590,7 +590,6 @@ function SwipeCard({ card, action, isUnlocked, isSkipped, onSwipe, onUndo, onUnl
               gridTemplateColumns: 'repeat(2, minmax(0, 1fr))',
               gap: isMobileLayout ? 4 : 6,
               marginBottom: isMobileLayout ? 7 : 10,
-              order: isMobileLayout ? 7 : undefined,
             }}
           >
             {visibleFeedTagGroups.map((group) => (
@@ -648,7 +647,7 @@ function SwipeCard({ card, action, isUnlocked, isSkipped, onSwipe, onUndo, onUnl
             ))}
           </div>
         ) : fallbackTags.length > 0 ? (
-          <div style={{ display: 'flex', flexWrap: 'wrap', gap: 4, marginBottom: 10, order: isMobileLayout ? 7 : undefined }}>
+          <div style={{ display: 'flex', flexWrap: 'wrap', gap: 4, marginBottom: 10 }}>
             {fallbackTags.map((tag) => (
               <span key={tag} style={{
                 padding: '2px 8px',
@@ -687,7 +686,6 @@ function SwipeCard({ card, action, isUnlocked, isSkipped, onSwipe, onUndo, onUnl
               textAlign: 'left',
               boxSizing: 'border-box',
               pointerEvents: 'none',
-              order: isMobileLayout ? 6 : undefined,
             }}
           >
             <span style={{ display: 'flex', alignItems: 'center', gap: isMobileLayout ? 6 : 8, minWidth: 0 }}>
@@ -720,7 +718,7 @@ function SwipeCard({ card, action, isUnlocked, isSkipped, onSwipe, onUndo, onUnl
         ) : null}
 
         {/* Row 6: actions — pushed to bottom */}
-        {!previewOnly && showActions ? <div style={{ marginTop: showLockPanel ? 0 : 'auto', display: 'flex', gap: 6, alignItems: 'center', order: isMobileLayout ? 8 : undefined }}>
+        {!previewOnly && showActions ? <div style={{ marginTop: showLockPanel ? 0 : 'auto', display: 'flex', gap: 6, alignItems: 'center' }}>
 
           {/* Next — Neutral rotate (LEFT) */}
           <button onClick={() => onSwipe('next')} style={{
