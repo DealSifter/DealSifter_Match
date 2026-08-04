@@ -464,10 +464,21 @@ function MapVisibilityController({ active }) {
       try { map.stop(); } catch { /* noop */ }
       return undefined;
     }
-    const timers = [0, 80, 240].map((delay) => window.setTimeout(() => {
+    const invalidate = () => {
       try { map.invalidateSize({ animate: false, pan: false }); } catch { /* noop */ }
-    }, delay));
-    return () => timers.forEach((timer) => window.clearTimeout(timer));
+    };
+    const timers = [0, 80, 240, 520].map((delay) => window.setTimeout(invalidate, delay));
+    const container = map.getContainer();
+    const observer = typeof ResizeObserver === 'undefined' || !container
+      ? null
+      : new ResizeObserver(() => {
+        window.requestAnimationFrame(invalidate);
+      });
+    observer?.observe(container);
+    return () => {
+      observer?.disconnect();
+      timers.forEach((timer) => window.clearTimeout(timer));
+    };
   }, [active, map]);
 
   return null;
@@ -510,7 +521,7 @@ const FLY_OPTIONS_SNAP = {
   noMoveStart: true,   // skip the movestart event on the old position (perf)
 };
 
-function MapController({ mapRef, fitToBounds }) {
+function MapController({ mapRef, fitToBounds, fitPaddingTopLeft }) {
   const map = useMap();
 
   // Expose the Leaflet map instance to the parent via ref so parent can call
@@ -522,11 +533,12 @@ function MapController({ mapRef, fitToBounds }) {
   React.useEffect(() => {
     if (!fitToBounds?.bounds) return;
     map.flyToBounds(fitToBounds.bounds, {
-      padding: [36, 36],
+      paddingTopLeft: fitPaddingTopLeft || [36, 36],
+      paddingBottomRight: [36, 36],
       maxZoom: fitToBounds.maxZoom,
       ...FLY_OPTIONS,
     });
-  }, [fitToBounds, map]);
+  }, [fitToBounds, fitPaddingTopLeft, map]);
 
   return null;
 }
@@ -949,7 +961,9 @@ export function MapView({
     if (Number.isFinite(savedUiWidth)) return Math.max(250, Math.min(600, savedUiWidth));
     const saved = Number(localStorage.getItem('mapViewPanelWidth'));
     if (Number.isFinite(saved)) return Math.max(250, Math.min(600, saved));
-    return 320;
+    // Give the first desktop visit enough room to scan the filters and Spotlight cards.
+    // Users can still resize it and that choice remains persisted.
+    return 480;
   });
   const [isResizing, setIsResizing] = useState(false);
   const [mapUiHydrated, setMapUiHydrated] = useState(false);
@@ -1693,6 +1707,10 @@ export function MapView({
   ), []);
 
   const panelOpenWidth = isMobileViewport ? 'min(92vw, 390px)' : `${panelWidth}px`;
+  const mapFitPaddingTopLeft = useMemo(
+    () => (isMobileViewport ? [24, 24] : [panelWidth + 36, 36]),
+    [isMobileViewport, panelWidth],
+  );
   const panelToggleLeft = panelCollapsed
     ? '0px'
     : (isMobileViewport ? '0px' : `${panelWidth}px`);
@@ -1841,10 +1859,11 @@ export function MapView({
         ${panelCollapsed ? '.map-resize-handle { display: none; }' : ''}
         .map-canvas-card {
           overflow: hidden;
-          position: relative;
+          position: absolute;
+          inset: 0;
           z-index: 1;
           width: 100%;
-          height: 100%;
+          height: auto;
           border: none;
           border-radius: 0;
           background: transparent;
@@ -2574,7 +2593,7 @@ export function MapView({
               active={Boolean(manualPinTarget)}
               onPlace={applyManualPinPlacement}
             />
-            <MapController mapRef={mapRef} fitToBounds={fitToBounds} />
+            <MapController mapRef={mapRef} fitToBounds={fitToBounds} fitPaddingTopLeft={mapFitPaddingTopLeft} />
             <ZoomControl position="topright" />
             <TileLayer
               key={`base-${mapStyle}-${forceSimpleBaseTiles ? `fallback-${baseTileFallbackIndex}` : 'native'}`}
