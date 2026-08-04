@@ -337,7 +337,7 @@ function SwipeCard({ card, action, isUnlocked, isSkipped, onSwipe, onUndo, onUnl
       ) : null}
 
       {/* ── LEFT: photo column ── */}
-      <div style={{ position: 'relative', width: isMobileLayout ? '100%' : '42%', flexShrink: 0, height: isMobileLayout ? (previewOnly ? 244 : '44%') : '100%', minHeight: isMobileLayout && previewOnly ? 220 : undefined }}>
+      <div style={{ position: 'relative', width: isMobileLayout ? '100%' : '42%', flexShrink: 0, height: isMobileLayout ? (previewOnly ? 244 : '34%') : '100%', minHeight: isMobileLayout && previewOnly ? 220 : undefined }}>
         <SmartImage
           src={card.photo}
           alt={card.name}
@@ -415,7 +415,7 @@ function SwipeCard({ card, action, isUnlocked, isSkipped, onSwipe, onUndo, onUnl
         ) : null}
       </div>
       {/* ── RIGHT: info column ── */}
-      <div style={{ position: 'relative', padding: isMobileLayout ? '11px 11px 12px' : '13px', flex: 1, minWidth: 0, display: 'flex', flexDirection: 'column', boxSizing: 'border-box' }}>
+      <div style={{ position: 'relative', padding: isMobileLayout ? '9px 10px 10px' : '13px', flex: 1, minWidth: 0, display: 'flex', flexDirection: 'column', boxSizing: 'border-box' }}>
         {/* ...existing code... */}
 
         {/* Row 1: name + badge */}
@@ -490,7 +490,7 @@ function SwipeCard({ card, action, isUnlocked, isSkipped, onSwipe, onUndo, onUnl
             padding: '4px 8px', borderRadius: 8,
             background: C.alpha(C.accent, 0.08), border: `1px solid ${C.alpha(C.accent, 0.15)}`,
             fontSize: 11, color: C.accent, fontWeight: 700,
-            display: isMobileLayout ? 'none' : 'flex', alignItems: 'center', gap: 4,
+            display: 'none', alignItems: 'center', gap: 4,
             minWidth: 0,
             flex: undefined,
           }}>
@@ -590,6 +590,7 @@ function SwipeCard({ card, action, isUnlocked, isSkipped, onSwipe, onUndo, onUnl
               gridTemplateColumns: 'repeat(2, minmax(0, 1fr))',
               gap: isMobileLayout ? 4 : 6,
               marginBottom: isMobileLayout ? 7 : 10,
+              order: isMobileLayout ? 7 : undefined,
             }}
           >
             {visibleFeedTagGroups.map((group) => (
@@ -647,7 +648,7 @@ function SwipeCard({ card, action, isUnlocked, isSkipped, onSwipe, onUndo, onUnl
             ))}
           </div>
         ) : fallbackTags.length > 0 ? (
-          <div style={{ display: 'flex', flexWrap: 'wrap', gap: 4, marginBottom: 10 }}>
+          <div style={{ display: 'flex', flexWrap: 'wrap', gap: 4, marginBottom: 10, order: isMobileLayout ? 7 : undefined }}>
             {fallbackTags.map((tag) => (
               <span key={tag} style={{
                 padding: '2px 8px',
@@ -672,7 +673,7 @@ function SwipeCard({ card, action, isUnlocked, isSkipped, onSwipe, onUndo, onUnl
           <div
             style={{
               width: '100%',
-              marginTop: 'auto',
+              marginTop: isMobileLayout ? 0 : 'auto',
               marginBottom: isMobileLayout ? 6 : 8,
               padding: isMobileLayout ? '7px 9px' : '9px 12px',
               borderRadius: 12,
@@ -686,6 +687,7 @@ function SwipeCard({ card, action, isUnlocked, isSkipped, onSwipe, onUndo, onUnl
               textAlign: 'left',
               boxSizing: 'border-box',
               pointerEvents: 'none',
+              order: isMobileLayout ? 6 : undefined,
             }}
           >
             <span style={{ display: 'flex', alignItems: 'center', gap: isMobileLayout ? 6 : 8, minWidth: 0 }}>
@@ -718,7 +720,7 @@ function SwipeCard({ card, action, isUnlocked, isSkipped, onSwipe, onUndo, onUnl
         ) : null}
 
         {/* Row 6: actions — pushed to bottom */}
-        {!previewOnly && showActions ? <div style={{ marginTop: showLockPanel ? 0 : 'auto', display: 'flex', gap: 6, alignItems: 'center' }}>
+        {!previewOnly && showActions ? <div style={{ marginTop: showLockPanel ? 0 : 'auto', display: 'flex', gap: 6, alignItems: 'center', order: isMobileLayout ? 8 : undefined }}>
 
           {/* Next — Neutral rotate (LEFT) */}
           <button onClick={() => onSwipe('next')} style={{
