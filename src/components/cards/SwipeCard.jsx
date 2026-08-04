@@ -127,7 +127,6 @@ function SwipeCard({ card, action, isUnlocked, isSkipped, onSwipe, onUndo, onUnl
   const t = useT('dashboard').cards;
   const mt = useT('dashboard').matches;
   const isMobileLayout = useMediaQuery('(max-width: 767px)');
-  const isNarrowMobileLayout = useMediaQuery('(max-width: 430px)');
   const dragRef = React.useRef({ active: false, pointerId: null, startX: 0, startY: 0 });
   const dragFrameRef = React.useRef(null);
   const queuedDragRef = React.useRef({ x: 0, y: 0 });
@@ -146,6 +145,15 @@ function SwipeCard({ card, action, isUnlocked, isSkipped, onSwipe, onUndo, onUnl
   }, [card, subtitleValue]);
   const feedTagGroups = React.useMemo(() => getFeedCardTagGroups(card), [card]);
   const fallbackTags = React.useMemo(() => getCompactFallbackTags(card), [card]);
+  const visibleFeedTagGroups = React.useMemo(() => {
+    const groups = isMobileLayout ? feedTagGroups.slice(0, 4) : feedTagGroups;
+    return groups
+      .map((group) => ({
+        ...group,
+        tags: isMobileLayout ? group.tags.slice(0, 2) : group.tags,
+      }))
+      .filter((group) => group.tags.length > 0);
+  }, [feedTagGroups, isMobileLayout]);
   const unlockCost = Math.max(
     1,
     Number(card?.unlockCost || card?.nuggetCost || card?.nuggets || card?.portfolioCount || 1) || 1
@@ -450,23 +458,41 @@ function SwipeCard({ card, action, isUnlocked, isSkipped, onSwipe, onUndo, onUnl
         </div>
 
         {card.portfolioCount > 0 && (
-          <div style={{ marginTop: -3, marginBottom: 8, fontSize: 10, color: C.t3, fontWeight: 600 }}>
-            {mt.portfolioCountLabel
-              .replace('{count}', String(card.portfolioCount))
-              .replace('{item}', card.portfolioCount === 1 ? mt.portfolioItemOne : mt.portfolioItemOther)}
+          <div style={{ marginTop: -3, marginBottom: 7, fontSize: isMobileLayout ? 9 : 10, color: C.t3, fontWeight: 700, display: 'flex', alignItems: 'center', gap: 6, minWidth: 0, whiteSpace: 'nowrap', overflow: 'hidden' }}>
+            <span style={{ minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis' }}>
+              {mt.portfolioCountLabel
+                .replace('{count}', String(card.portfolioCount))
+                .replace('{item}', card.portfolioCount === 1 ? mt.portfolioItemOne : mt.portfolioItemOther)}
+            </span>
+            <span style={{
+              padding: isMobileLayout ? '2px 6px' : '3px 7px',
+              borderRadius: 8,
+              background: C.alpha(C.accent, 0.08),
+              border: `1px solid ${C.alpha(C.accent, 0.15)}`,
+              fontSize: isMobileLayout ? 9 : 10,
+              color: C.accent,
+              fontWeight: 800,
+              display: 'inline-flex',
+              alignItems: 'center',
+              gap: 4,
+              flexShrink: 0,
+            }}>
+              <Icon name="layers" size={10} color={C.accent} />
+              {card.deals > 0 ? card.deals : '-'} {t.deals}
+            </span>
           </div>
         )}
 
         {/* Row 3: stats pills */}
-        <div style={{ display: 'flex', gap: 6, marginBottom: 8, flexWrap: isMobileLayout ? 'wrap' : 'nowrap' }}>
+        <div style={{ display: 'flex', gap: 6, marginBottom: isMobileLayout ? 6 : 8, flexWrap: 'nowrap' }}>
           {/* deals pill */}
           <div style={{
             padding: '4px 8px', borderRadius: 8,
             background: C.alpha(C.accent, 0.08), border: `1px solid ${C.alpha(C.accent, 0.15)}`,
             fontSize: 11, color: C.accent, fontWeight: 700,
-            display: 'flex', alignItems: 'center', gap: 4,
+            display: isMobileLayout ? 'none' : 'flex', alignItems: 'center', gap: 4,
             minWidth: 0,
-            flex: isNarrowMobileLayout ? '1 1 100%' : undefined,
+            flex: undefined,
           }}>
             <Icon name="layers" size={11} color={C.accent} />
             {card.deals > 0 ? card.deals : '–'} {t.deals}
@@ -475,14 +501,14 @@ function SwipeCard({ card, action, isUnlocked, isSkipped, onSwipe, onUndo, onUnl
           {/* phone pill — locked here; unlock only in Matches flow */}
           <div
             style={{
-              padding: '4px 9px', borderRadius: 8,
+              padding: isMobileLayout ? '4px 7px' : '4px 9px', borderRadius: 8,
               background: revealPhone
                 ? C.alpha(C.success, 0.08)
                 : C.alpha(C.t1, 0.04),
               border: `1px solid ${revealPhone ? C.alpha(C.success, 0.2) : C.border}`,
               display: 'flex', alignItems: 'center', gap: 5,
               minWidth: 0,
-              flex: isMobileLayout ? '1 1 100%' : undefined,
+              flex: '1 1 0',
             }}
           >
             <Icon name="phone" size={11} color={revealPhone ? C.success : C.t2} strokeWidth={1.6} />
@@ -493,9 +519,13 @@ function SwipeCard({ card, action, isUnlocked, isSkipped, onSwipe, onUndo, onUnl
             ) : (
               <>
                 <span style={{
-                  fontSize: 11, color: C.t2, fontWeight: 600,
+                  fontSize: isMobileLayout ? 9 : 11, color: C.t2, fontWeight: 600,
                   filter: 'blur(3.5px)', userSelect: 'none',
-                  letterSpacing: 1,
+                  letterSpacing: isMobileLayout ? 0.3 : 1,
+                  minWidth: 0,
+                  overflow: 'hidden',
+                  textOverflow: 'ellipsis',
+                  whiteSpace: 'nowrap',
                 }}>
                   ••• •••••••
                 </span>
@@ -507,13 +537,13 @@ function SwipeCard({ card, action, isUnlocked, isSkipped, onSwipe, onUndo, onUnl
           {/* email pill — locked here; unlock only in Matches flow */}
           <div
             style={{
-              padding: '4px 9px', borderRadius: 8,
+              padding: isMobileLayout ? '4px 7px' : '4px 9px', borderRadius: 8,
               background: revealEmail
                 ? C.alpha(C.success, 0.08)
                 : C.alpha(C.t1, 0.04),
               border: `1px solid ${revealEmail ? C.alpha(C.success, 0.2) : C.border}`,
               display: 'flex', alignItems: 'center', gap: 5,
-              flex: isMobileLayout ? '1 1 100%' : 1,
+              flex: '1 1 0',
               minWidth: 0,
             }}
           >
@@ -525,9 +555,13 @@ function SwipeCard({ card, action, isUnlocked, isSkipped, onSwipe, onUndo, onUnl
             ) : (
               <>
                 <span style={{
-                  fontSize: 11, color: C.t2, fontWeight: 600,
+                  fontSize: isMobileLayout ? 9 : 11, color: C.t2, fontWeight: 600,
                   filter: 'blur(3.5px)', userSelect: 'none',
-                  letterSpacing: 1,
+                  letterSpacing: isMobileLayout ? 0.3 : 1,
+                  minWidth: 0,
+                  overflow: 'hidden',
+                  textOverflow: 'ellipsis',
+                  whiteSpace: 'nowrap',
                 }}>
                   ••• •••••••
                 </span>
@@ -540,8 +574,8 @@ function SwipeCard({ card, action, isUnlocked, isSkipped, onSwipe, onUndo, onUnl
         {/* Row 4: concise match hook */}
         {bodyDescription ? (
           <p style={{
-            fontSize: 12, color: C.t2, lineHeight: 1.5, margin: '0 0 8px 0',
-            display: '-webkit-box', WebkitLineClamp: isMobileLayout ? 3 : 6,
+            fontSize: isMobileLayout ? 11 : 12, color: C.t2, lineHeight: isMobileLayout ? 1.35 : 1.5, margin: '0 0 8px 0',
+            display: '-webkit-box', WebkitLineClamp: isMobileLayout ? 2 : 6,
             WebkitBoxOrient: 'vertical', overflow: 'hidden',
           }}>
             {bodyDescription}
@@ -549,29 +583,29 @@ function SwipeCard({ card, action, isUnlocked, isSkipped, onSwipe, onUndo, onUnl
         ) : null}
 
         {/* Row 5: grouped match signals */}
-        {feedTagGroups.length > 0 ? (
+        {visibleFeedTagGroups.length > 0 ? (
           <div
             style={{
               display: 'grid',
-              gridTemplateColumns: isNarrowMobileLayout ? '1fr' : 'repeat(2, minmax(0, 1fr))',
-              gap: 6,
-              marginBottom: 10,
+              gridTemplateColumns: 'repeat(2, minmax(0, 1fr))',
+              gap: isMobileLayout ? 4 : 6,
+              marginBottom: isMobileLayout ? 7 : 10,
             }}
           >
-            {feedTagGroups.map((group) => (
+            {visibleFeedTagGroups.map((group) => (
               <div
                 key={group.labelKey}
                 style={{
                   minWidth: 0,
-                  padding: '5px 6px',
-                  borderRadius: 10,
+                  padding: isMobileLayout ? '4px 5px' : '5px 6px',
+                  borderRadius: isMobileLayout ? 8 : 10,
                   border: `1px solid ${C.alpha(C.accent, 0.16)}`,
                   background: C.alpha(C.accent, 0.045),
                 }}
               >
                 <div
                   style={{
-                    marginBottom: 4,
+                    marginBottom: isMobileLayout ? 3 : 4,
                     fontSize: 8,
                     lineHeight: 1,
                     fontWeight: 900,
@@ -585,21 +619,21 @@ function SwipeCard({ card, action, isUnlocked, isSkipped, onSwipe, onUndo, onUnl
                 >
                   {t[group.labelKey] || group.labelKey.replace('feedBadgeGroup', '')}
                 </div>
-                <div style={{ display: 'flex', flexWrap: 'wrap', gap: 4 }}>
+                <div style={{ display: 'flex', flexWrap: 'nowrap', gap: 3, minWidth: 0 }}>
                   {group.tags.map((tag) => (
                     <span
                       key={`${group.labelKey}:${tag}`}
                       title={tag}
                       style={{
-                        padding: '2px 6px',
+                        padding: isMobileLayout ? '2px 5px' : '2px 6px',
                         borderRadius: 20,
                         background: C.alpha(C.card, 0.78),
                         border: `1px solid ${C.alpha(C.accent, 0.28)}`,
-                        fontSize: 9,
+                        fontSize: isMobileLayout ? 8 : 9,
                         lineHeight: 1.15,
                         color: C.t2,
                         fontWeight: 800,
-                        maxWidth: '100%',
+                        maxWidth: '50%',
                         whiteSpace: 'nowrap',
                         overflow: 'hidden',
                         textOverflow: 'ellipsis',
@@ -639,8 +673,8 @@ function SwipeCard({ card, action, isUnlocked, isSkipped, onSwipe, onUndo, onUnl
             style={{
               width: '100%',
               marginTop: 'auto',
-              marginBottom: 8,
-              padding: isMobileLayout ? '8px 10px' : '9px 12px',
+              marginBottom: isMobileLayout ? 6 : 8,
+              padding: isMobileLayout ? '7px 9px' : '9px 12px',
               borderRadius: 12,
               border: `1px solid ${C.alpha(C.gold, 0.45)}`,
               background: C.alpha(C.gold, 0.1),
@@ -654,10 +688,10 @@ function SwipeCard({ card, action, isUnlocked, isSkipped, onSwipe, onUndo, onUnl
               pointerEvents: 'none',
             }}
           >
-            <span style={{ display: 'flex', alignItems: 'center', gap: 8, minWidth: 0 }}>
+            <span style={{ display: 'flex', alignItems: 'center', gap: isMobileLayout ? 6 : 8, minWidth: 0 }}>
               <span style={{
-                width: 24,
-                height: 24,
+                width: isMobileLayout ? 22 : 24,
+                height: isMobileLayout ? 22 : 24,
                 borderRadius: 999,
                 background: C.alpha(C.success, 0.1),
                 border: `1px solid ${C.alpha(C.success, 0.2)}`,
@@ -672,7 +706,7 @@ function SwipeCard({ card, action, isUnlocked, isSkipped, onSwipe, onUndo, onUnl
                 <span style={{ display: 'block', fontSize: 11, fontWeight: 900, color: C.t1, lineHeight: 1.15 }}>
                   {card?.isOwnCard ? (mt.ownCardNotSelectable || 'Own card, not selectable') : (t.previewContactLocked || 'Contact locked')}
                 </span>
-                <span style={{ display: 'block', fontSize: 10, fontWeight: 700, color: C.t3, lineHeight: 1.2, marginTop: 2 }}>
+                <span style={{ display: 'block', fontSize: isMobileLayout ? 9 : 10, fontWeight: 700, color: C.t3, lineHeight: 1.2, marginTop: 2 }}>
                   {card?.isOwnCard
                     ? (mt.ownCardHint || 'Visible for review only')
                     : `${t.previewUnlockWith || 'Unlock with'} ${unlockCost} ${t.previewNuggets || 'nuggets'}`}
