@@ -168,7 +168,9 @@ function SwipeCard({ card, action, isUnlocked, isSkipped, onSwipe, onUndo, onUnl
     Number(card?.unlockCost || card?.nuggetCost || card?.nuggets || card?.portfolioCount || 1) || 1
   );
   const hasVisibleContactDetails = revealPhone || revealEmail;
-  const showLockPanel = !previewOnly && showActions && (card?.isOwnCard || !hasVisibleContactDetails);
+  // Mobile uses Dashboard's external action dock, so showActions is false there.
+  // The entitlement notice is informational and must remain visible independently.
+  const showLockPanel = !previewOnly && (card?.isOwnCard || !hasVisibleContactDetails);
   const profileCategoryBadge = React.useMemo(() => getProfileCategoryBadge(card), [card]);
 
   const dragAbs = Math.abs(dragX);
@@ -429,7 +431,7 @@ function SwipeCard({ card, action, isUnlocked, isSkipped, onSwipe, onUndo, onUnl
       <div style={{
         position: 'relative',
         padding: isMobileLayout
-          ? `9px 10px ${showActions ? (showLockPanel ? 92 : 52) : 10}px`
+          ? `9px 10px ${showLockPanel ? 92 : (showActions ? 52 : 10)}px`
           : '13px',
         flex: 1,
         minWidth: 0,
