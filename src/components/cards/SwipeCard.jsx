@@ -123,6 +123,15 @@ const getCompactFallbackTags = (card) => {
   return tags.slice(0, 5);
 };
 
+const getProfileCategoryBadge = (card) => {
+  const explicitBadge = cleanText(card?.badge || card?.profileBadge || card?.profileTypeBadge);
+  if (explicitBadge) return explicitBadge;
+  const scope = cleanText(card?.primaryProfile || card?.primary_profile || card?.profileScope || card?.scope).toLowerCase();
+  if (scope === 'fsbo') return 'FSBO';
+  if (scope === 'professional' || scope === 'business') return 'Business';
+  return 'Professional';
+};
+
 function SwipeCard({ card, action, isUnlocked, isSkipped, onSwipe, onUndo, onUnlock, previewOnly = false, showActions = true }) {
   const t = useT('dashboard').cards;
   const mt = useT('dashboard').matches;
@@ -159,6 +168,7 @@ function SwipeCard({ card, action, isUnlocked, isSkipped, onSwipe, onUndo, onUnl
     Number(card?.unlockCost || card?.nuggetCost || card?.nuggets || card?.portfolioCount || 1) || 1
   );
   const showLockPanel = !previewOnly && showActions && !isUnlocked;
+  const profileCategoryBadge = React.useMemo(() => getProfileCategoryBadge(card), [card]);
 
   const dragAbs = Math.abs(dragX);
   const dragProgress = Math.min(1, dragAbs / 130);
@@ -415,7 +425,17 @@ function SwipeCard({ card, action, isUnlocked, isSkipped, onSwipe, onUndo, onUnl
         ) : null}
       </div>
       {/* ── RIGHT: info column ── */}
-      <div style={{ position: 'relative', padding: isMobileLayout ? '9px 10px 10px' : '13px', flex: 1, minWidth: 0, display: 'flex', flexDirection: 'column', boxSizing: 'border-box' }}>
+      <div style={{
+        position: 'relative',
+        padding: isMobileLayout
+          ? `9px 10px ${showActions ? (showLockPanel ? 92 : 52) : 10}px`
+          : '13px',
+        flex: 1,
+        minWidth: 0,
+        display: 'flex',
+        flexDirection: 'column',
+        boxSizing: 'border-box',
+      }}>
         {/* ...existing code... */}
 
         {/* Row 1: name + badge */}
@@ -429,7 +449,7 @@ function SwipeCard({ card, action, isUnlocked, isSkipped, onSwipe, onUndo, onUnl
               {subtitleValue && subtitleValue.length > 56 ? `${subtitleValue.slice(0, 56)}...` : subtitleValue}
             </div>
           </div>
-          {card.badge && (
+          {profileCategoryBadge && (
             <div style={{
               flexShrink: 0,
               maxWidth: isMobileLayout ? '100%' : undefined,
@@ -439,13 +459,13 @@ function SwipeCard({ card, action, isUnlocked, isSkipped, onSwipe, onUndo, onUnl
               display: 'flex', alignItems: 'center', gap: 4,
             }}>
               <Icon name="nugget" size={10} color={C.gold} strokeWidth={1.8} />
-              {card.badge}
+              {profileCategoryBadge}
             </div>
           )}
         </div>
 
-        {/* Row 2: location + rating */}
-        <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 7, flexWrap: isMobileLayout ? 'wrap' : 'nowrap' }}>
+        {/* Row 2: location + rating + portfolio signals */}
+        <div style={{ display: 'flex', alignItems: 'center', gap: isMobileLayout ? 6 : 10, marginBottom: 7, flexWrap: isMobileLayout ? 'wrap' : 'nowrap' }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 3, fontSize: 11, color: C.t3, minWidth: 0, maxWidth: '100%' }}>
             <Icon name="mapPin" size={11} color={C.t3} />
             <span style={{ minWidth: 0, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{card.loc}</span>
@@ -455,15 +475,14 @@ function SwipeCard({ card, action, isUnlocked, isSkipped, onSwipe, onUndo, onUnl
             <span>{card.rating > 0 ? card.rating : '–'}</span>
             <span style={{ color: C.t3, fontWeight: 400 }}>({card.reviews > 0 ? card.reviews : '–'})</span>
           </div>
-        </div>
-
-        {card.portfolioCount > 0 && (
-          <div style={{ marginTop: -3, marginBottom: 7, fontSize: isMobileLayout ? 9 : 10, color: C.t3, fontWeight: 700, display: 'flex', alignItems: 'center', gap: 6, minWidth: 0, whiteSpace: 'nowrap', overflow: 'hidden' }}>
-            <span style={{ minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis' }}>
+          {card.portfolioCount > 0 ? (
+            <span style={{ minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', fontSize: isMobileLayout ? 9 : 10, color: C.t3, fontWeight: 800 }}>
               {mt.portfolioCountLabel
                 .replace('{count}', String(card.portfolioCount))
                 .replace('{item}', card.portfolioCount === 1 ? mt.portfolioItemOne : mt.portfolioItemOther)}
             </span>
+          ) : null}
+          {card.portfolioCount > 0 ? (
             <span style={{
               padding: isMobileLayout ? '2px 6px' : '3px 7px',
               borderRadius: 8,
@@ -480,8 +499,8 @@ function SwipeCard({ card, action, isUnlocked, isSkipped, onSwipe, onUndo, onUnl
               <Icon name="layers" size={10} color={C.accent} />
               {card.deals > 0 ? card.deals : '-'} {t.deals}
             </span>
-          </div>
-        )}
+          ) : null}
+        </div>
 
         {/* Row 3: stats pills */}
         <div style={{ display: 'flex', gap: 6, marginBottom: isMobileLayout ? 6 : 8, flexWrap: 'nowrap' }}>
@@ -686,6 +705,14 @@ function SwipeCard({ card, action, isUnlocked, isSkipped, onSwipe, onUndo, onUnl
               textAlign: 'left',
               boxSizing: 'border-box',
               pointerEvents: 'none',
+              ...(isMobileLayout ? {
+                position: 'absolute',
+                left: 10,
+                right: 10,
+                bottom: 48,
+                width: 'auto',
+                zIndex: 3,
+              } : {}),
             }}
           >
             <span style={{ display: 'flex', alignItems: 'center', gap: isMobileLayout ? 6 : 8, minWidth: 0 }}>
@@ -718,7 +745,19 @@ function SwipeCard({ card, action, isUnlocked, isSkipped, onSwipe, onUndo, onUnl
         ) : null}
 
         {/* Row 6: actions — pushed to bottom */}
-        {!previewOnly && showActions ? <div style={{ marginTop: showLockPanel ? 0 : 'auto', display: 'flex', gap: 6, alignItems: 'center' }}>
+        {!previewOnly && showActions ? <div style={{
+          marginTop: showLockPanel ? 0 : 'auto',
+          display: 'flex',
+          gap: 6,
+          alignItems: 'center',
+          ...(isMobileLayout ? {
+            position: 'absolute',
+            left: 10,
+            right: 10,
+            bottom: 8,
+            zIndex: 4,
+          } : {}),
+        }}>
 
           {/* Next — Neutral rotate (LEFT) */}
           <button onClick={() => onSwipe('next')} style={{
