@@ -156,9 +156,6 @@ function SwipeCard({ card, action, isUnlocked, isSkipped, onSwipe, onUndo, onUnl
       ...(Array.isArray(card?.linkedServices)
         ? card.linkedServices.flatMap(collectRecordImages)
         : []),
-      ...(Array.isArray(card?.linkedProperties)
-        ? card.linkedProperties.flatMap(collectRecordImages)
-        : []),
     ];
     const seen = new Set();
     return rawImages

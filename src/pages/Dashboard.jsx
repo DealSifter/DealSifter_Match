@@ -48,6 +48,13 @@ function isTruthyFlag(value, defaultValue = false) {
   return Boolean(value);
 }
 
+function collectServiceImages(service) {
+  const mediaImages = Array.isArray(service?.media?.images) ? service.media.images : [];
+  const flatImages = Array.isArray(service?.media_images) ? service.media_images : [];
+  const directImages = Array.isArray(service?.images) ? service.images : [];
+  return [service?.image, ...mediaImages, ...flatImages, ...directImages].filter(Boolean);
+}
+
 function readLocalStringSet(key) {
   try {
     const parsed = JSON.parse(localStorage.getItem(key) || '[]');
@@ -664,15 +671,7 @@ export function Dashboard({ page, nuggets, setModal, setPage, onOpenOnboardingTa
     const rawRating = Number(scopedIdentity?.rating);
     const rawReviews = Number(scopedIdentity?.reviews);
     const rawDeals = Number(scopedIdentity?.deals);
-    const scopedServiceImages = scopedServices.flatMap((service) => {
-      const mediaImages = Array.isArray(service?.media?.images) ? service.media.images : [];
-      const flatImages = Array.isArray(service?.media_images) ? service.media_images : [];
-      const directImages = Array.isArray(service?.images) ? service.images : [];
-      return [service?.image, ...mediaImages, ...flatImages, ...directImages].filter(Boolean);
-    });
-    const scopedPropertyImages = scopedProperties.flatMap((property) => (
-      Array.isArray(property?.images) ? property.images : [property?.image].filter(Boolean)
-    ));
+    const scopedServiceImages = scopedServices.flatMap(collectServiceImages);
 
     return sanitizePublicCardInput({
       id: `local:${scopeKey}:${ownerId}`,
@@ -691,7 +690,7 @@ export function Dashboard({ page, nuggets, setModal, setPage, onOpenOnboardingTa
       desc: (!isFsbo && profileDescription && normalizedProfileDescription !== normalizedTypeLabel)
         ? profileDescription
         : '',
-      images: scopedServiceImages.length ? scopedServiceImages : scopedPropertyImages,
+      images: scopedServiceImages,
       portfolioCount: scopedProperties.length + scopedServices.length,
       primaryProfile: profileScope,
       markets: scopedMarkets,
@@ -822,8 +821,7 @@ export function Dashboard({ page, nuggets, setModal, setPage, onOpenOnboardingTa
       const ownerPreview = firstService?.ownerPreview || firstProperty?.ownerPreview || null;
       if (!ownerPreview?.name) return null;
       const publicOwnerPreview = sanitizePublicCardInput(ownerPreview);
-      const serviceImages = services.flatMap(s => (s.media && s.media.images) ? s.media.images : []);
-      const propertyImages = props.flatMap((p) => Array.isArray(p.images) ? p.images : []);
+      const serviceImages = services.flatMap(collectServiceImages);
       const markets = Array.from(new Set([
         ...props.flatMap((p) => collectRecordStates(p)),
         ...services.flatMap((s) => collectRecordStates(s)),
@@ -846,7 +844,7 @@ export function Dashboard({ page, nuggets, setModal, setPage, onOpenOnboardingTa
         badge: publicOwnerPreview?.badge || '',
         loc: location,
         photo: publicOwnerPreview?.photo || '',
-        images: serviceImages.length ? serviceImages : propertyImages,
+        images: serviceImages,
         rating: 0,
         reviews: 0,
         deals: 0,
@@ -864,17 +862,16 @@ export function Dashboard({ page, nuggets, setModal, setPage, onOpenOnboardingTa
     const enriched = staticCards.map((c) => {
       try {
         const props = (showcaseProperties || []).filter((p) => String(p.ownerId) === String(c.id));
-        const first = props && props.length ? props[0] : null;
         const services = (servicePortfolio || []).filter(s => String(s.ownerId) === String(c.id) && isTruthyFlag(s.publishToConnections, true));
         const serviceDescriptions = services.filter(s => s.description && String(s.description).trim().length).map(s => String(s.description).trim());
-        const serviceImages = services.flatMap(s => (s.media && s.media.images) ? s.media.images : []);
+        const serviceImages = services.flatMap(collectServiceImages);
         const descFromServices = serviceDescriptions.length ? serviceDescriptions.join(' • ') : null;
         return {
           ...c,
           ownerId: c.id,
           portfolioCount: props.length,
-          images: (c.images && c.images.length) ? c.images : (serviceImages && serviceImages.length) ? serviceImages : (first ? first.images || [] : []),
-          desc: (c.desc && String(c.desc).trim().length) ? c.desc : (descFromServices ? descFromServices : (first && first.description ? first.description : c.desc)),
+          images: (c.images && c.images.length) ? c.images : (serviceImages && serviceImages.length) ? serviceImages : [],
+          desc: (c.desc && String(c.desc).trim().length) ? c.desc : (descFromServices ? descFromServices : c.desc),
           markets: Array.from(new Set([
             ...props.flatMap((p) => collectRecordStates(p)),
             ...services.flatMap((s) => collectRecordStates(s)),

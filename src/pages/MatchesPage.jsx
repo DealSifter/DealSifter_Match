@@ -3076,12 +3076,13 @@ export function MatchesPage({ nuggets, isAdmin = false, setModal, openUnlock, un
 
   const activeOwner = useMemo(() => {
     if (!active) return null;
+    const activeLookupScope = getRecordProfileScope(active);
     const activeOwnerId = String(
       isActiveProperty
         ? active.ownerId
         : (active.ownerId || active.unlockOwnerId || active.id)
     || '').trim();
-    const canonical = canonicalContactToDisplayCard(getCanonicalContact(activeOwnerId));
+    const canonical = canonicalContactToDisplayCard(getCanonicalContact(activeOwnerId, activeLookupScope));
     if (canonical) return canonical;
     if (!isActiveProperty) {
       const resolved = resolveCanonicalContactCard(resolveContactCard(active));
@@ -3209,9 +3210,10 @@ export function MatchesPage({ nuggets, isAdmin = false, setModal, openUnlock, un
 
   const portfolioItems = useMemo(() => {
     if (!activeOwner) return [];
-    const activeScope = getRecordProfileScope(activeOwner);
+    const activeScope = normalizeProfileScope(activeOwner.primaryProfile || activeOwner.primary_profile || getRecordProfileScope(activeOwner));
+    const ownerKey = String(activeOwner.ownerId || activeOwner.owner_id || activeOwner.unlockOwnerId || activeOwner.id || '').trim();
     return allPropertiesSource.filter((p) => (
-      String(p.ownerId) === String(activeOwner.ownerId || activeOwner.id)
+      String(p.ownerId) === ownerKey
       && getRecordProfileScope(p) === activeScope
     ));
   }, [activeOwner, allPropertiesSource, getRecordProfileScope]);
@@ -3265,8 +3267,13 @@ export function MatchesPage({ nuggets, isAdmin = false, setModal, openUnlock, un
 
   const serviceItems = useMemo(() => {
     if (!activeOwner) return [];
-    return allServicesSource.filter((s) => String(s.ownerId) === String(activeOwner.id));
-  }, [activeOwner, allServicesSource]);
+    const activeScope = normalizeProfileScope(activeOwner.primaryProfile || activeOwner.primary_profile || getRecordProfileScope(activeOwner));
+    const ownerKey = String(activeOwner.ownerId || activeOwner.owner_id || activeOwner.unlockOwnerId || activeOwner.id || '').trim();
+    return allServicesSource.filter((s) => (
+      String(s.ownerId) === ownerKey
+      && getRecordProfileScope(s) === activeScope
+    ));
+  }, [activeOwner, allServicesSource, getRecordProfileScope]);
 
   const _previewShowcaseItems = useMemo(() => [
     ...portfolioItems.map(p => ({ ...p, _itemType: 'property' })),

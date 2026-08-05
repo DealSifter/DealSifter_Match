@@ -373,7 +373,7 @@ const personIcon = L.divIcon({
 
 const unlockedPersonIcon = L.divIcon({
   className: 'map-pin-wrapper',
-  html: getPersonPinSVG(UNLOCKED_PERSON_PIN),
+  html: getPersonPinSVG('#20CFC8'),
   iconSize: [36, 46],
   iconAnchor: [18, 46],
   popupAnchor: [0, -42],
@@ -389,7 +389,7 @@ const propertyIcon = L.divIcon({
 
 const unlockedPropertyIcon = L.divIcon({
   className: 'map-pin-wrapper',
-  html: getPropertyPinSVG(UNLOCKED_PERSON_PIN),
+  html: getPropertyPinSVG('#4381bc'),
   iconSize: [36, 46],
   iconAnchor: [18, 46],
   popupAnchor: [0, -42],
