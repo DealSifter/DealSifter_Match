@@ -1,4 +1,5 @@
 import React from 'react';
+import { createPortal } from 'react-dom';
 import { C } from '../../theme/colors';
 import { useT } from '../../i18n/translations';
 import { Icon } from '../ui/Icon';
@@ -10,9 +11,9 @@ import { useMediaQuery } from '../../hooks/useMediaQuery';
 import { formatPropertyLocation } from '../../lib/formatPropertyLocation';
 import { getPendingDealRemainingDays, isPendingDealActive } from '../../lib/pendingDeal';
 import { formatCompactUsd } from '../../lib/formatMoney';
-import { getPublicPropertyAddressLine } from '../../lib/propertyAddressPrivacy';
+import { getBlurredStreetAddressLine, getPublicPropertyAddressLine, shouldHideStreetAddressOnCard } from '../../lib/propertyAddressPrivacy';
 
-export function PropertyCard({ property, action, statusAction, onInterest, owner, isSkipped = false, previewOnly = false, hotMetrics = null, exclusivityStatus = null, onAvatarClick, onUnlock = null, showActions = true }) {
+export function PropertyCard({ property, action, statusAction, onInterest, owner, isSkipped = false, previewOnly = false, hotMetrics = null, exclusivityStatus = null, onAvatarClick, onUnlock = null, showActions = true, unlockCost = null }) {
   const t = useT('dashboard').cards;
   const isMobileLayout = useMediaQuery('(max-width: 767px)');
   const isNarrowMobileLayout = useMediaQuery('(max-width: 430px)');
@@ -25,6 +26,7 @@ export function PropertyCard({ property, action, statusAction, onInterest, owner
   const [dragX, setDragX] = React.useState(0);
   const [dragY, setDragY] = React.useState(0);
   const [isDragging, setIsDragging] = React.useState(false);
+  const [descriptionOpen, setDescriptionOpen] = React.useState(false);
   const images = property.images || [property.image];
   const rawCapRate = Number(property.capRate);
   const displayCapRate = Number.isFinite(rawCapRate) && rawCapRate > 0 && rawCapRate < 100
@@ -37,6 +39,8 @@ export function PropertyCard({ property, action, statusAction, onInterest, owner
   const displayDealTagLabel = displayDealTag === 'FSBO' ? (t.fsbo || 'FSBO') : displayDealTag;
   const propertyLocation = formatPropertyLocation(property);
   const publicAddressLine = getPublicPropertyAddressLine(property);
+  const hideStreetAddress = shouldHideStreetAddressOnCard(property);
+  const blurredStreetAddressLine = getBlurredStreetAddressLine(property);
 
   const effectiveAction = action || statusAction;
   // In pop-up previews, add a stronger theme-aware glow to emphasize card boundaries.
@@ -92,6 +96,10 @@ export function PropertyCard({ property, action, statusAction, onInterest, owner
     : 'linear-gradient(90deg, rgba(5,70,45,0.96) 0%, rgba(20,184,166,0.94) 100%)';
   const exclusivityIconColor = isPartialExclusivity ? '#ef4444' : '#facc15';
   const ownerVerified = owner?.verified === true || String(owner?.verified || '').toLowerCase() === 'verified';
+  const displayUnlockCost = Math.max(
+    1,
+    Number(unlockCost || property?.unlockCost || property?.nuggetCost || property?.portfolioCount || 1) || 1
+  );
   const primaryBadgeStatus = showActiveExclusivityLock
     ? CARD_STATUS.exclusive
     : (showExclusivityAlert
@@ -386,10 +394,26 @@ export function PropertyCard({ property, action, statusAction, onInterest, owner
                 />
               ))}
             </div>
-            <div onClick={() => setCurrentIdx(p => p > 0 ? p-1 : images.length-1)}
-              style={{ position: 'absolute', top:0, left:0, bottom:0, width:'50%', cursor:'pointer', zIndex: 5 }} />
-            <div onClick={() => setCurrentIdx(p => p < images.length-1 ? p+1 : 0)}
-              style={{ position: 'absolute', top:0, right:0, bottom:0, width:'50%', cursor:'pointer', zIndex: 5 }} />
+            <div
+              role="button"
+              tabIndex={0}
+              onPointerDown={(event) => event.stopPropagation()}
+              onClick={(event) => {
+                event.stopPropagation();
+                setCurrentIdx(p => p > 0 ? p - 1 : images.length - 1);
+              }}
+              style={{ position: 'absolute', top:0, left:0, bottom:0, width:'50%', cursor:'pointer', zIndex: 5 }}
+            />
+            <div
+              role="button"
+              tabIndex={0}
+              onPointerDown={(event) => event.stopPropagation()}
+              onClick={(event) => {
+                event.stopPropagation();
+                setCurrentIdx(p => p < images.length - 1 ? p + 1 : 0);
+              }}
+              style={{ position: 'absolute', top:0, right:0, bottom:0, width:'50%', cursor:'pointer', zIndex: 5 }}
+            />
           </>
         )}
 
@@ -612,8 +636,17 @@ export function PropertyCard({ property, action, statusAction, onInterest, owner
         {/* address */}
         <div style={{ display: 'flex', alignItems: 'center', gap: 3, fontSize: 12, color: C.t2, marginBottom: 6, minWidth: 0 }}>
           <Icon name="mapPin" size={12} color={C.t3} />
-          <span style={{ whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
-            {[publicAddressLine, propertyLocation].filter(Boolean).join(', ')}
+          <span style={{ whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', minWidth: 0 }}>
+            {hideStreetAddress && blurredStreetAddressLine ? (
+              <>
+                <span style={{ filter: 'blur(3.5px)', userSelect: 'none', WebkitUserSelect: 'none', letterSpacing: 0.3 }}>
+                  {blurredStreetAddressLine}
+                </span>
+                {propertyLocation ? `, ${propertyLocation}` : ''}
+              </>
+            ) : (
+              [publicAddressLine, propertyLocation].filter(Boolean).join(', ')
+            )}
           </span>
         </div>
 
@@ -691,13 +724,27 @@ export function PropertyCard({ property, action, statusAction, onInterest, owner
 
         {/* property description */}
         {property.description && (
-          <div style={{
-            padding: '8px 10px',
-            borderRadius: 8,
-            background: C.alpha(C.t1, 0.02),
-            border: `1px solid ${C.border}`,
-            marginBottom: 6,
-          }}>
+          <button
+            type="button"
+            onClick={(event) => {
+              event.stopPropagation();
+              setDescriptionOpen(true);
+            }}
+            onPointerDown={(event) => event.stopPropagation()}
+            style={{
+              appearance: 'none',
+              width: '100%',
+              textAlign: 'left',
+              cursor: 'pointer',
+              padding: '8px 10px',
+              borderRadius: 8,
+              background: C.alpha(C.t1, 0.02),
+              border: `1px solid ${C.border}`,
+              margin: '0 0 6px',
+              display: 'block',
+            }}
+            title={t.readFullDescription || 'Read full description'}
+          >
             <div style={{ 
               fontSize: 11, 
               lineHeight: 1.5, 
@@ -710,7 +757,84 @@ export function PropertyCard({ property, action, statusAction, onInterest, owner
             }}>
               {property.description}
             </div>
-          </div>
+          </button>
+        )}
+
+        {descriptionOpen && createPortal(
+          <div
+            role="dialog"
+            aria-modal="true"
+            onClick={() => setDescriptionOpen(false)}
+            style={{
+              position: 'fixed',
+              inset: 0,
+              zIndex: 99999,
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              padding: isMobileLayout ? 16 : 24,
+              background: C.alpha('#000', 0.58),
+              backdropFilter: 'blur(10px)',
+              WebkitBackdropFilter: 'blur(10px)',
+            }}
+          >
+            <div
+              onClick={(event) => event.stopPropagation()}
+              style={{
+                width: 'min(680px, 100%)',
+                maxHeight: 'min(72vh, 640px)',
+                overflowY: 'auto',
+                borderRadius: 18,
+                border: `1px solid ${C.alpha(C.accent, 0.28)}`,
+                background: C.card,
+                boxShadow: `0 24px 80px ${C.alpha('#000', 0.32)}`,
+                padding: isMobileLayout ? 18 : 22,
+                color: C.t1,
+              }}
+            >
+              <div style={{ display: 'flex', alignItems: 'flex-start', gap: 12, marginBottom: 12 }}>
+                <div style={{ minWidth: 0, flex: 1 }}>
+                  <div style={{ fontSize: 12, fontWeight: 900, color: C.accent, textTransform: 'uppercase', letterSpacing: 0 }}>
+                    {t.propertyDescription || 'Property description'}
+                  </div>
+                  <div style={{ fontSize: isMobileLayout ? 17 : 20, fontWeight: 900, color: C.t1, lineHeight: 1.15, marginTop: 4 }}>
+                    {hideStreetAddress && blurredStreetAddressLine ? (
+                      <>
+                        <span style={{ filter: 'blur(4px)', userSelect: 'none', WebkitUserSelect: 'none' }}>{blurredStreetAddressLine}</span>
+                        {propertyLocation ? `, ${propertyLocation}` : ''}
+                      </>
+                    ) : (
+                      publicAddressLine || property.title || property.address || 'Property'
+                    )}
+                  </div>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setDescriptionOpen(false)}
+                  style={{
+                    width: 34,
+                    height: 34,
+                    borderRadius: 999,
+                    border: `1px solid ${C.border}`,
+                    background: C.alpha(C.t1, 0.04),
+                    color: C.t1,
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    cursor: 'pointer',
+                    flexShrink: 0,
+                  }}
+                  aria-label={t.close || 'Close'}
+                >
+                  <Icon name="close" size={16} color={C.t1} />
+                </button>
+              </div>
+              <div style={{ whiteSpace: 'pre-wrap', fontSize: isMobileLayout ? 14 : 15, lineHeight: 1.68, color: C.t2 }}>
+                {property.description}
+              </div>
+            </div>
+          </div>,
+          document.body
         )}
 
         {/* owner info row */}
@@ -735,13 +859,38 @@ export function PropertyCard({ property, action, statusAction, onInterest, owner
               {(owner?.name || 'U').charAt(0).toUpperCase()}
             </div>
           )}
-          <div style={{ minWidth: 0 }}>
-            <div style={{ fontSize: 12, fontWeight: 700, color: C.t1, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{owner?.name || 'Owner'}</div>
+          <div style={{ minWidth: 0, flex: 1 }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 5, minWidth: 0 }}>
+              <div style={{ fontSize: 12, fontWeight: 700, color: C.t1, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{owner?.name || 'Owner'}</div>
+              <span style={{ display: 'inline-flex', alignItems: 'center', gap: 2, flexShrink: 0, fontSize: 10, fontWeight: 800, color: C.t2 }}>
+                <Icon name="star" size={9} color={C.t2} />
+                {owner?.rating || '5.0'}
+              </span>
+            </div>
             <div style={{ fontSize: 10, color: C.t2 }}>{owner?.type || owner?.badge || 'Profile'}{owner?.deals ? ` · ${owner.deals} deals` : ''}</div>
           </div>
-          <div style={{ marginLeft: 'auto', display: 'flex', alignItems: 'center', gap: 2, flexShrink: 0 }}>
-            <Icon name="star" size={10} color={C.t2} />
-            <span style={{ fontSize: 11, fontWeight: 700, color: C.t2 }}>{owner?.rating || '5.0'}</span>
+          <div style={{
+            marginLeft: 'auto',
+            minWidth: 92,
+            maxWidth: 132,
+            borderRadius: 10,
+            border: `1px solid ${C.alpha(C.gold, 0.35)}`,
+            background: C.alpha(C.gold, 0.09),
+            padding: '5px 7px',
+            display: 'flex',
+            flexDirection: 'column',
+            gap: 2,
+            alignItems: 'flex-start',
+            flexShrink: 0,
+          }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 4, fontSize: 10, fontWeight: 900, color: C.t1, lineHeight: 1.1 }}>
+              <Icon name="lock" size={12} color={C.gold} strokeWidth={1.8} />
+              <span style={{ whiteSpace: 'nowrap' }}>{t.assetLocked || 'Asset Locked'}</span>
+            </div>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 3, fontSize: 10, fontWeight: 800, color: C.gold, lineHeight: 1.1 }}>
+              <Icon name="star" size={10} color={C.gold} />
+              <span>{displayUnlockCost} {t.previewNuggets || 'nuggets'}</span>
+            </div>
           </div>
         </div>
 

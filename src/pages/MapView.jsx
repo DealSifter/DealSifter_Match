@@ -14,7 +14,7 @@ import { useMediaQuery } from '../hooks/useMediaQuery';
 import { getPortfolioUnlockCost, getPropertyExclusivityStatus } from '../lib/unlockRules';
 import { inferRecordProfileScope, normalizeProfileScope, resolveScopedProfile } from '../lib/profileScopeResolver';
 import { formatCompactUsd } from '../lib/formatMoney';
-import { getPublicPropertyAddressLine } from '../lib/propertyAddressPrivacy';
+import { getPublicPropertyAddressLine, shouldHideStreetAddressOnCard } from '../lib/propertyAddressPrivacy';
 import { buildMapInventory } from '../services/mapInventoryService';
 
 const DEFAULT_CENTER = [39.5, -98.35];
@@ -760,6 +760,14 @@ export function MapView({
   const tMatches = allT.matches;
   const tCards = allT.cards;
   const tMap = allT.mapViewPage;
+  const getSafePropertyLabel = React.useCallback((property, fallback = tMap.addressNotInformed || 'Address not provided') => {
+    const publicLine = getPublicPropertyAddressLine(property);
+    if (publicLine) return publicLine;
+    if (shouldHideStreetAddressOnCard(property)) {
+      return [property?.city, property?.state, property?.zip].filter(Boolean).join(', ') || fallback;
+    }
+    return String(property?.address || property?.title || fallback).trim() || fallback;
+  }, [tMap.addressNotInformed]);
   const hasAdminAccess = Boolean(isAdmin);
   const prefMap = userPreferences?.map || {};
   const preferredInitialZoom = normalizePreferredInitialZoom(prefMap.initialZoom, DEFAULT_ZOOM);
@@ -2475,7 +2483,7 @@ export function MapView({
                       />
                       <div style={{ minWidth: 0 }}>
                         <div style={{ color: C.t2, fontWeight: 700, fontSize: 13, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                          {isPerson ? item.name : (getPublicPropertyAddressLine(item) || item.address)}
+                          {isPerson ? item.name : getSafePropertyLabel(item)}
                         </div>
                         <div style={{ color: C.t2, fontSize: 12, marginTop: 4, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', display: 'flex', gap: 6, alignItems: 'center' }}>
                               <div style={{ minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
@@ -2577,7 +2585,7 @@ export function MapView({
                           />
                           <div style={{ minWidth: 0 }}>
                             <div style={{ color: C.t1, fontWeight: 700, fontSize: 13, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                              {getPublicPropertyAddressLine(prop) || prop.address || (tMap.addressNotInformed || 'Address not provided')}
+                              {getSafePropertyLabel(prop)}
                             </div>
                             <div style={{ color: C.t2, fontSize: 12, marginTop: 4, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
                               {`${prop.type || tMap.itemTypeDeal || 'Deal'} · ${prop.city || ''}`}
@@ -2789,12 +2797,12 @@ export function MapView({
                         <div className="ds-map-popup-head">
                           <SmartImage
                             src={(payload.images && payload.images[0]) || payload.image || ''}
-                            alt={getPublicPropertyAddressLine(payload) || payload.address}
+                            alt={getSafePropertyLabel(payload)}
                             style={{ width: 102, height: 74, objectFit: 'cover', borderRadius: 8, flex: '0 0 auto' }}
                             fallback={<div className="ds-map-popup-thumb" style={{ background:C.border, display:'flex', alignItems:'center', justifyContent:'center' }}><Icon name="home" size={18} color={C.t3} /></div>}
                           />
                           <div style={{ minWidth: 0, flex: 1 }}>
-                            <div className="ds-map-popup-title">{getPublicPropertyAddressLine(payload) || payload.address}</div>
+                            <div className="ds-map-popup-title">{getSafePropertyLabel(payload)}</div>
                             <div className="ds-map-popup-subtitle">{payload.type} · {payload.city}</div>
                             <div className="ds-map-popup-meta">{formatCompactUsd(payload.price || 0)} · Cap {payload.capRate}%</div>
                             <div className="ds-map-popup-cta">{`${tMatches.viewInFeed} ->`}</div>

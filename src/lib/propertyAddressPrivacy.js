@@ -16,10 +16,13 @@ export const shouldHideStreetAddressOnCard = (property) => truthyFlag(
 export const getPublicPropertyAddressLine = (property) => {
   const fullAddress = String(property?.address || '').trim();
   if (!shouldHideStreetAddressOnCard(property)) return fullAddress;
-  return 'Street address hidden';
+  return '';
 };
 
+export const getBlurredStreetAddressLine = (property) => String(property?.address || '').trim();
+
 export default {
+  getBlurredStreetAddressLine,
   getPublicPropertyAddressLine,
   shouldHideStreetAddressOnCard,
 };

@@ -26,7 +26,7 @@ import { orderDeck } from '../lib/orderFeedDeck';
 import { normalizeCard } from '../lib/normalizeFeedCard';
 import { sanitizePublicCardInput } from '../lib/sanitizePublicCardInput';
 import { formatCompactUsd } from '../lib/formatMoney';
-import { getPublicPropertyAddressLine } from '../lib/propertyAddressPrivacy';
+import { getPublicPropertyAddressLine, shouldHideStreetAddressOnCard } from '../lib/propertyAddressPrivacy';
 import { buildProfileEntitlementKey } from '../lib/profileScope';
 import feedMatchIcon from '../assets/feed-match-icon.png';
 import spotlightIcon from '../assets/spotlight-icon.png';
@@ -664,6 +664,15 @@ export function Dashboard({ page, nuggets, setModal, setPage, onOpenOnboardingTa
     const rawRating = Number(scopedIdentity?.rating);
     const rawReviews = Number(scopedIdentity?.reviews);
     const rawDeals = Number(scopedIdentity?.deals);
+    const scopedServiceImages = scopedServices.flatMap((service) => {
+      const mediaImages = Array.isArray(service?.media?.images) ? service.media.images : [];
+      const flatImages = Array.isArray(service?.media_images) ? service.media_images : [];
+      const directImages = Array.isArray(service?.images) ? service.images : [];
+      return [service?.image, ...mediaImages, ...flatImages, ...directImages].filter(Boolean);
+    });
+    const scopedPropertyImages = scopedProperties.flatMap((property) => (
+      Array.isArray(property?.images) ? property.images : [property?.image].filter(Boolean)
+    ));
 
     return sanitizePublicCardInput({
       id: `local:${scopeKey}:${ownerId}`,
@@ -682,10 +691,13 @@ export function Dashboard({ page, nuggets, setModal, setPage, onOpenOnboardingTa
       desc: (!isFsbo && profileDescription && normalizedProfileDescription !== normalizedTypeLabel)
         ? profileDescription
         : '',
+      images: scopedServiceImages.length ? scopedServiceImages : scopedPropertyImages,
       portfolioCount: scopedProperties.length + scopedServices.length,
       primaryProfile: profileScope,
       markets: scopedMarkets,
       verified: scopedIdentity?.verified === true,
+      linkedProperties: scopedProperties,
+      linkedServices: scopedServices,
     });
   }, [accountType, currentUserId, userProfile, personalProfile, professionalProfile, showcaseProperties, servicePortfolio, getOwnerIdForKey, collectRecordStates, parseStateCode, getRecordProfileScope]);
   const normalizeCardPriority = (value) => {
@@ -2499,6 +2511,14 @@ export function Dashboard({ page, nuggets, setModal, setPage, onOpenOnboardingTa
   ), []);
 
   const fmtPrice = formatCompactUsd;
+  const getSafePropertyLabel = (property, fallback = 'Property') => {
+    const publicLine = getPublicPropertyAddressLine(property);
+    if (publicLine) return publicLine;
+    if (shouldHideStreetAddressOnCard(property)) {
+      return [property?.city, property?.state, property?.zip].filter(Boolean).join(', ') || fallback;
+    }
+    return String(property?.address || property?.title || fallback).trim() || fallback;
+  };
   const isTruthyVerified = (value) => {
     if (value === true || value === 1) return true;
     const normalized = String(value || '').trim().toLowerCase();
@@ -2718,7 +2738,7 @@ export function Dashboard({ page, nuggets, setModal, setPage, onOpenOnboardingTa
         key: `p-${p.id}`,
         source: 'properties',
         id: p.id,
-        title: getPublicPropertyAddressLine(p) || p.address,
+        title: getSafePropertyLabel(p),
         subtitle: `${p.type} · ${formatPropertyLocation(p)}`,
         meta: `${fmtPrice(p.price)} · ${p.capRate ? `${p.capRate}% Cap` : 'Cap N/A'}`,
         tone: C.gold,
@@ -4242,6 +4262,16 @@ export function Dashboard({ page, nuggets, setModal, setPage, onOpenOnboardingTa
                       const reverseI = Math.min(propDisplay.length, 5) - 1 - i;
                       const isTop    = reverseI === 0;
                       const pOwner = resolvePropertyOwnerCard(p);
+                      const propertyUnlockCost = getUnlockCost({
+                        ...(pOwner || {}),
+                        id: p.ownerId || pOwner?.id,
+                        ownerId: p.ownerId || pOwner?.ownerId || pOwner?.id,
+                        unlockOwnerId: p.ownerId || pOwner?.unlockOwnerId || pOwner?.ownerId || pOwner?.id,
+                        primaryProfile: p.primaryProfile || p.profileScope || pOwner?.primaryProfile,
+                        profileScope: p.profileScope || p.primaryProfile || pOwner?.profileScope,
+                        ownerAccountType: p.ownerAccountType || pOwner?.ownerAccountType,
+                        source: p.source || pOwner?.source,
+                      });
                       const hotMetrics = propertyHotMetrics[String(p.id)] || null;
                       const ownerWideExclusivityStatus = getEffectivePropertyExclusivityStatus(p);
                       const exclusivityStatus = ownerWideExclusivityStatus?.kind === 'blocked'
@@ -4291,6 +4321,7 @@ export function Dashboard({ page, nuggets, setModal, setPage, onOpenOnboardingTa
                               statusAction={propStatusById[p.id] || null}
                               onInterest={actProperty}
                               owner={pOwner}
+                              unlockCost={propertyUnlockCost}
                               isSkipped={skippedSetProp.has(p.id)}
                               onUndo={lastPropOp && isTop ? undoProperty : null}
                               hotMetrics={hotMetrics}
@@ -4583,12 +4614,12 @@ export function Dashboard({ page, nuggets, setModal, setPage, onOpenOnboardingTa
                 <div key={i} style={{ display:"flex", alignItems:"center", gap:8, padding:"8px 0", borderBottom:i < interested.length-1 ? `1px solid ${C.border}` : "none" }}>
                   <SmartImage
                     src={typeof (m.images?.[0] || m.image) === 'string' && (m.images?.[0] || m.image)?.length > 8 ? (m.images?.[0] || m.image) : undefined}
-                    alt={getPublicPropertyAddressLine(m) || m.address}
+                    alt={getSafePropertyLabel(m, 'Property')}
                     style={{ width:38, height:38, borderRadius:7, objectFit:"cover", flexShrink:0 }}
                     fallback={<Icon name="home" size={16} color={C.t3} />}
                   />
                   <div style={{ flex:1, minWidth:0 }}>
-                    <div style={{ fontWeight:700, color:C.t1, fontSize:11, whiteSpace:"nowrap", overflow:"hidden", textOverflow:"ellipsis" }}>{getPublicPropertyAddressLine(m) || m.address}</div>
+                    <div style={{ fontWeight:700, color:C.t1, fontSize:11, whiteSpace:"nowrap", overflow:"hidden", textOverflow:"ellipsis" }}>{getSafePropertyLabel(m, 'Property')}</div>
                     <div style={{ fontWeight:600, color:C.gold, fontSize:11 }}>{formatCompactUsd(m.price || 0)}</div>
                     <div style={{ 
                       fontSize:10, 

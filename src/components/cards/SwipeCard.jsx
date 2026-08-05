@@ -142,6 +142,36 @@ function SwipeCard({ card, action, isUnlocked, isSkipped, onSwipe, onUndo, onUnl
   const [dragX, setDragX] = React.useState(0);
   const [dragY, setDragY] = React.useState(0);
   const [isDragging, setIsDragging] = React.useState(false);
+  const [currentImageIdx, setCurrentImageIdx] = React.useState(0);
+  const cardImages = React.useMemo(() => {
+    const collectRecordImages = (record) => {
+      const mediaImages = Array.isArray(record?.media?.images) ? record.media.images : [];
+      const flatImages = Array.isArray(record?.media_images) ? record.media_images : [];
+      const directImages = Array.isArray(record?.images) ? record.images : [];
+      return [record?.image, record?.photo, ...mediaImages, ...flatImages, ...directImages];
+    };
+    const rawImages = [
+      card?.photo,
+      ...(Array.isArray(card?.images) ? card.images : []),
+      ...(Array.isArray(card?.linkedServices)
+        ? card.linkedServices.flatMap(collectRecordImages)
+        : []),
+      ...(Array.isArray(card?.linkedProperties)
+        ? card.linkedProperties.flatMap(collectRecordImages)
+        : []),
+    ];
+    const seen = new Set();
+    return rawImages
+      .map((src) => String(src || '').trim())
+      .filter((src) => {
+        if (!src || seen.has(src)) return false;
+        seen.add(src);
+        return true;
+      });
+  }, [card]);
+  React.useEffect(() => {
+    if (currentImageIdx > Math.max(0, cardImages.length - 1)) setCurrentImageIdx(0);
+  }, [cardImages.length, currentImageIdx]);
   const phoneValue = String(card?.phone || card?.primaryPhone || '').trim();
   const emailValue = String(card?.email || '').trim();
   const revealPhone = Boolean(isUnlocked && phoneValue);
@@ -352,10 +382,59 @@ function SwipeCard({ card, action, isUnlocked, isSkipped, onSwipe, onUndo, onUnl
       {/* ── LEFT: photo column ── */}
       <div style={{ position: 'relative', width: isMobileLayout ? '100%' : '42%', flexShrink: 0, height: isMobileLayout ? (previewOnly ? 244 : '44%') : '100%', minHeight: isMobileLayout && previewOnly ? 220 : undefined }}>
         <SmartImage
-          src={card.photo}
+          src={cardImages[currentImageIdx] || card.photo}
           alt={card.name}
           style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }}
         />
+
+        {cardImages.length > 1 ? (
+          <>
+            <div style={{
+              position: 'absolute',
+              bottom: 8,
+              left: 0,
+              right: 0,
+              display: 'flex',
+              justifyContent: 'center',
+              gap: 3,
+              pointerEvents: 'none',
+              zIndex: 7,
+            }}>
+              {cardImages.map((_, idx) => (
+                <div
+                  key={`person-image-dot-${idx}`}
+                  style={{
+                    width: idx === currentImageIdx ? 14 : 5,
+                    height: 5,
+                    borderRadius: 3,
+                    background: idx === currentImageIdx ? '#fff' : 'rgba(255,255,255,0.45)',
+                    transition: 'all 0.2s',
+                  }}
+                />
+              ))}
+            </div>
+            <div
+              role="button"
+              tabIndex={0}
+              onPointerDown={(event) => event.stopPropagation()}
+              onClick={(event) => {
+                event.stopPropagation();
+                setCurrentImageIdx((idx) => (idx > 0 ? idx - 1 : cardImages.length - 1));
+              }}
+              style={{ position: 'absolute', top: 0, left: 0, bottom: 0, width: '50%', cursor: 'pointer', zIndex: 5 }}
+            />
+            <div
+              role="button"
+              tabIndex={0}
+              onPointerDown={(event) => event.stopPropagation()}
+              onClick={(event) => {
+                event.stopPropagation();
+                setCurrentImageIdx((idx) => (idx < cardImages.length - 1 ? idx + 1 : 0));
+              }}
+              style={{ position: 'absolute', top: 0, right: 0, bottom: 0, width: '50%', cursor: 'pointer', zIndex: 5 }}
+            />
+          </>
+        ) : null}
 
         {showPassBadge ? (
           <span
