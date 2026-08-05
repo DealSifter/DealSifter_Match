@@ -331,6 +331,19 @@ const hasContactDisplayValue = (value) => {
 const mergeContactForDisplay = (base, incoming) => {
   const merged = { ...(base || {}), ...(incoming || {}) };
   [
+    'name',
+    'title',
+    'type',
+    'category',
+    'cat',
+    'loc',
+    'photo',
+    'avatar',
+    'avatarUrl',
+    'avatar_url',
+    'primaryProfile',
+    'primary_profile',
+    'portfolioCount',
     'email',
     'phone',
     'primaryPhone',
@@ -3118,22 +3131,44 @@ export function MatchesPage({ nuggets, isAdmin = false, setModal, openUnlock, un
   const ownerDesc = useMemo(() => {
     if (!activeOwner) return null;
     try {
-      const svcs = allServicesSource.filter(s => String(s.ownerId) === String(activeOwner.id) && (s.publishToConnections !== false) && s.description && String(s.description).trim().length);
+      const ownerKey = String(activeOwner.ownerId || activeOwner.owner_id || activeOwner.unlockOwnerId || activeOwner.id || '').trim();
+      const ownerScope = normalizeProfileScope(activeOwner.primaryProfile || activeOwner.primary_profile || getRecordProfileScope(activeOwner));
+      const svcs = allServicesSource.filter(s => (
+        String(s.ownerId) === ownerKey
+        && getRecordProfileScope(s) === ownerScope
+        && (s.publishToConnections !== false)
+        && s.description
+        && String(s.description).trim().length
+      ));
       if (svcs && svcs.length) return svcs.map(s => String(s.description).trim()).join(' • ');
-      const firstProp = allPropertiesSource.find(p => String(p.ownerId) === String(activeOwner.id) && p.description && String(p.description).trim().length);
+      const firstProp = allPropertiesSource.find(p => (
+        String(p.ownerId) === ownerKey
+        && getRecordProfileScope(p) === ownerScope
+        && p.description
+        && String(p.description).trim().length
+      ));
       if (firstProp) return firstProp.description;
       return activeOwner.desc || null;
     } catch (e) { void e; return activeOwner.desc || null; }
-  }, [activeOwner, allServicesSource, allPropertiesSource]);
+  }, [activeOwner, allServicesSource, allPropertiesSource, getRecordProfileScope]);
+
+  const activeOwnerKey = useMemo(() => String(
+    activeOwner?.ownerId
+    || activeOwner?.owner_id
+    || activeOwner?.unlockOwnerId
+    || activeOwner?.unlock_owner_id
+    || activeOwner?.id
+    || ''
+  ).trim(), [activeOwner]);
 
   const activePeerLangs = useMemo(() => {
-    if (!activeOwner?.id) return DEFAULT_PEER_LANGS;
-    const saved = peerLangPrefs[activeOwner.id] || {};
+    if (!activeOwnerKey) return DEFAULT_PEER_LANGS;
+    const saved = peerLangPrefs[activeOwnerKey] || peerLangPrefs[activeOwner?.id] || {};
     return {
       input: getSafeLang(saved.input || DEFAULT_PEER_LANGS.input),
       output: getSafeLang(saved.output || DEFAULT_PEER_LANGS.output),
     };
-  }, [activeOwner, peerLangPrefs]);
+  }, [activeOwner?.id, activeOwnerKey, peerLangPrefs]);
 
   const isUnlocked = useMemo(() => {
     if (!activeOwner) return false;
@@ -3143,7 +3178,7 @@ export function MatchesPage({ nuggets, isAdmin = false, setModal, openUnlock, un
   }, [active, activeOwner, hasOwnerPortfolioAccessByState, isActiveProperty, isContactUnlockedByState, isPropertyUnlockedByCanonicalState]);
 
   const activeUnlockCost = useMemo(() => {
-    if (!activeOwner?.id) return 1;
+    if (!activeOwner?.id && !activeOwner?.ownerId) return 1;
     return getPortfolioUnlockCost(activeOwner, allPropertiesSource, allServicesSource);
   }, [activeOwner, allPropertiesSource, allServicesSource]);
 
@@ -3190,10 +3225,10 @@ export function MatchesPage({ nuggets, isAdmin = false, setModal, openUnlock, un
   }, [active, activeOwner, activePropertyBlockedByOther, getRecordProfileScope, isActiveProperty, logEntitlementAlertOnce, unlockedContactMap]);
 
   const activeOwnerExclusiveStatus = useMemo(() => {
-    if (!activeOwner?.id || isActiveProperty) return null;
-    const status = getOwnerExclusiveStatus(activeOwner.id);
+    if (!activeOwnerKey || isActiveProperty) return null;
+    const status = getOwnerExclusiveStatus(activeOwnerKey);
     return status?.kind === 'owned' ? status : null;
-  }, [activeOwner?.id, getOwnerExclusiveStatus, isActiveProperty]);
+  }, [activeOwnerKey, getOwnerExclusiveStatus, isActiveProperty]);
 
   const getUnlockCost = useCallback((ownerOrCard) => {
     if (!ownerOrCard) return 1;
@@ -3202,9 +3237,24 @@ export function MatchesPage({ nuggets, isAdmin = false, setModal, openUnlock, un
   
   const currentMsgs = useMemo(() => {
     if (!activeOwner || !convos) return [];
-    return (Array.isArray(convos[activeOwner.id]) ? convos[activeOwner.id] : []).filter(Boolean);
-  }, [activeOwner, convos]);
-  const activePeerId = String(activeOwner?.id || '').trim();
+    const candidatePeerIds = [
+      activeOwnerKey,
+      activeOwner.id,
+      activeOwner.ownerId,
+      activeOwner.unlockOwnerId,
+    ].map((value) => String(value || '').trim()).filter(Boolean);
+    const messages = candidatePeerIds.map((peerId) => convos[peerId]).find((list) => Array.isArray(list)) || [];
+    return messages.filter(Boolean);
+  }, [activeOwner, activeOwnerKey, convos]);
+  const activePeerId = useMemo(() => {
+    const candidatePeerIds = [
+      activeOwnerKey,
+      activeOwner?.id,
+      activeOwner?.ownerId,
+      activeOwner?.unlockOwnerId,
+    ].map((value) => String(value || '').trim()).filter(Boolean);
+    return candidatePeerIds.find((peerId) => Array.isArray(convos?.[peerId])) || activeOwnerKey || '';
+  }, [activeOwner, activeOwnerKey, convos]);
   const activeChatHasMore = Boolean(activePeerId && chatHasMore?.[activePeerId]);
   const activeChatLoadingMore = Boolean(activePeerId && chatLoadingMore?.[activePeerId]);
 
@@ -3883,13 +3933,15 @@ export function MatchesPage({ nuggets, isAdmin = false, setModal, openUnlock, un
                   const contactRowKey = contactKeys[0] || String(m?.id || '');
                   const isLinkedContact = Boolean(activeContactKey && contactKeys.includes(activeContactKey));
                   const rowContactUnlocked = isContactUnlockedByState(m);
-                  const contactUnlockCost = getUnlockCost(m.id);
-                  const contactIncomingCount = Array.isArray(convos?.[m.id])
-                    ? convos[m.id].filter((message) => message?.from !== 'me').length
+                  const contactPeerKey = String(m.ownerId || m.owner_id || m.unlockOwnerId || m.id || '').trim();
+                  const contactUnlockCost = getUnlockCost(m);
+                  const contactMessages = (Array.isArray(convos?.[contactPeerKey]) ? convos[contactPeerKey] : (Array.isArray(convos?.[m.id]) ? convos[m.id] : []));
+                  const contactIncomingCount = Array.isArray(contactMessages)
+                    ? contactMessages.filter((message) => message?.from !== 'me').length
                     : 0;
                   const ownerExclusiveStatus = getOwnerExclusiveStatus(m.ownerId || m.unlockOwnerId || m.id);
                   const showOwnedOwnerExclusiveStatus = ownerExclusiveStatus?.kind === 'owned' ? ownerExclusiveStatus : null;
-                  const seenIncomingCount = seenIncomingByContact[m.id] || 0;
+                  const seenIncomingCount = seenIncomingByContact[contactPeerKey] || seenIncomingByContact[m.id] || 0;
                   const contactUnreadCount = Math.max(0, contactIncomingCount - seenIncomingCount);
                   const isArchivedRow = contactKeys.some((key) => archivedContacts.has(key));
                   return (

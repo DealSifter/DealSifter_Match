@@ -1,4 +1,5 @@
 import React from 'react';
+import { createPortal } from 'react-dom';
 import { C } from '../../theme/colors';
 import { useT } from '../../i18n/translations';
 import { Icon } from '../ui/Icon';
@@ -143,6 +144,7 @@ function SwipeCard({ card, action, isUnlocked, isSkipped, onSwipe, onUndo, onUnl
   const [dragY, setDragY] = React.useState(0);
   const [isDragging, setIsDragging] = React.useState(false);
   const [currentImageIdx, setCurrentImageIdx] = React.useState(0);
+  const [descriptionOpen, setDescriptionOpen] = React.useState(false);
   const cardImages = React.useMemo(() => {
     const collectRecordImages = (record) => {
       const mediaImages = Array.isArray(record?.media?.images) ? record.media.images : [];
@@ -335,6 +337,7 @@ function SwipeCard({ card, action, isUnlocked, isSkipped, onSwipe, onUndo, onUnl
   }), [borderWidth, isMobileLayout, previewOnly]);
 
   return (
+    <>
     <div
       style={outerStyle}
       onDragStart={(e) => e.preventDefault()}
@@ -671,13 +674,34 @@ function SwipeCard({ card, action, isUnlocked, isSkipped, onSwipe, onUndo, onUnl
 
         {/* Row 4: concise match hook */}
         {bodyDescription ? (
-          <p style={{
-            fontSize: isMobileLayout ? 11 : 12, color: C.t2, lineHeight: isMobileLayout ? 1.35 : 1.5, margin: '0 0 8px 0',
-            display: '-webkit-box', WebkitLineClamp: isMobileLayout ? 2 : 6,
-            WebkitBoxOrient: 'vertical', overflow: 'hidden',
-          }}>
+          <button
+            type="button"
+            onPointerDown={(event) => event.stopPropagation()}
+            onClick={(event) => {
+              event.stopPropagation();
+              setDescriptionOpen(true);
+            }}
+            style={{
+              appearance: 'none',
+              width: '100%',
+              border: 'none',
+              background: 'transparent',
+              padding: 0,
+              cursor: 'pointer',
+              textAlign: 'left',
+              margin: '0 0 8px 0',
+              display: '-webkit-box',
+              WebkitLineClamp: isMobileLayout ? 2 : 6,
+              WebkitBoxOrient: 'vertical',
+              overflow: 'hidden',
+              fontSize: isMobileLayout ? 11 : 12,
+              color: C.t2,
+              lineHeight: isMobileLayout ? 1.35 : 1.5,
+            }}
+            title={t.readFullDescription || 'Read full description'}
+          >
             {bodyDescription}
-          </p>
+          </button>
         ) : null}
 
         {/* Row 5: grouped match signals */}
@@ -922,6 +946,81 @@ function SwipeCard({ card, action, isUnlocked, isSkipped, onSwipe, onUndo, onUnl
       </div>
       </div>
     </div>
+    {descriptionOpen && bodyDescription ? createPortal(
+      <div
+        role="dialog"
+        aria-modal="true"
+        onClick={() => setDescriptionOpen(false)}
+        style={{
+          position: 'fixed',
+          inset: 0,
+          zIndex: 99999,
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          padding: isMobileLayout ? 16 : 24,
+          background: C.alpha('#000', 0.58),
+          backdropFilter: 'blur(10px)',
+          WebkitBackdropFilter: 'blur(10px)',
+        }}
+      >
+        <div
+          onClick={(event) => event.stopPropagation()}
+          style={{
+            width: 'min(680px, 100%)',
+            maxHeight: 'min(72vh, 640px)',
+            overflowY: 'auto',
+            borderRadius: 18,
+            border: `1px solid ${C.alpha(C.accent, 0.28)}`,
+            background: C.card,
+            boxShadow: `0 24px 80px ${C.alpha('#000', 0.32)}`,
+            padding: isMobileLayout ? 18 : 22,
+            color: C.t1,
+          }}
+        >
+          <div style={{ display: 'flex', alignItems: 'flex-start', gap: 12, marginBottom: 12 }}>
+            <div style={{ minWidth: 0, flex: 1 }}>
+              <div style={{ fontSize: 12, fontWeight: 900, color: C.accent, textTransform: 'uppercase', letterSpacing: 0 }}>
+                {t.profileDescription || t.propertyDescription || 'Description'}
+              </div>
+              <div style={{ fontSize: isMobileLayout ? 17 : 20, fontWeight: 900, color: C.t1, lineHeight: 1.15, marginTop: 4 }}>
+                {card?.name || subtitleValue || 'Profile'}
+              </div>
+              {subtitleValue ? (
+                <div style={{ fontSize: 13, fontWeight: 800, color: C.accent, marginTop: 4 }}>
+                  {subtitleValue}
+                </div>
+              ) : null}
+            </div>
+            <button
+              type="button"
+              onClick={() => setDescriptionOpen(false)}
+              style={{
+                width: 34,
+                height: 34,
+                borderRadius: 999,
+                border: `1px solid ${C.border}`,
+                background: C.alpha(C.t1, 0.04),
+                color: C.t1,
+                display: 'inline-flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                cursor: 'pointer',
+                flexShrink: 0,
+              }}
+              aria-label={t.close || 'Close'}
+            >
+              <Icon name="close" size={16} color={C.t1} />
+            </button>
+          </div>
+          <div style={{ whiteSpace: 'pre-wrap', fontSize: isMobileLayout ? 14 : 15, lineHeight: 1.68, color: C.t2 }}>
+            {bodyDescription}
+          </div>
+        </div>
+      </div>,
+      document.body
+    ) : null}
+    </>
   );
 }
 
