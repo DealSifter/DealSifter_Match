@@ -684,9 +684,11 @@ function SwipeCard({ card, action, isUnlocked, isSkipped, onSwipe, onUndo, onUnl
             style={{
               appearance: 'none',
               width: '100%',
-              border: 'none',
-              background: 'transparent',
-              padding: 0,
+              boxSizing: 'border-box',
+              border: `1px solid ${C.alpha(C.accent, 0.18)}`,
+              borderRadius: isMobileLayout ? 9 : 10,
+              background: C.alpha(C.accent, isMobileLayout ? 0.055 : 0.065),
+              padding: isMobileLayout ? '7px 9px' : '8px 10px',
               cursor: 'pointer',
               textAlign: 'left',
               margin: '0 0 8px 0',
@@ -695,8 +697,9 @@ function SwipeCard({ card, action, isUnlocked, isSkipped, onSwipe, onUndo, onUnl
               WebkitBoxOrient: 'vertical',
               overflow: 'hidden',
               fontSize: isMobileLayout ? 11 : 12,
-              color: C.t2,
+              color: C.t1,
               lineHeight: isMobileLayout ? 1.35 : 1.5,
+              boxShadow: `inset 0 1px 0 ${C.alpha('#fff', 0.06)}`,
             }}
             title={t.readFullDescription || 'Read full description'}
           >

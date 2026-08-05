@@ -60,18 +60,88 @@ function Block({ title, children }) {
   );
 }
 
-function MiniChart({ series = [], formatter = fmtInt, emptyMessage = 'No history yet', type = 'bar' }) {
+function MiniChart({ series = [], formatter = fmtInt, emptyMessage = 'No history yet', type = 'bar', comboLabels = {} }) {
   const points = Array.isArray(series)
     ? series
         .map((point) => ({
           label: String(point?.label || ''),
           value: Number(point?.value || 0),
+          total: Number(point?.total || point?.done || point?.value || 0),
+          active: Number(point?.active || 0),
+          nuggets: Number(point?.nuggets || point?.nuggetsCumulative || 0),
         }))
         .filter((point) => Number.isFinite(point.value))
         .slice(-10)
     : [];
   const maxValue = Math.max(0, ...points.map((point) => point.value));
   const pointLabelFormatter = formatter === fmtNuggets ? fmtInt : formatter;
+
+  if (!points.length || maxValue <= 0) {
+    if (type !== 'combo-bars-line') {
+      return (
+        <div style={{ height: 74, display: 'grid', placeItems: 'center', paddingTop: 12, color: C.t3, fontSize: 11, textAlign: 'center', lineHeight: 1.35 }}>
+          {emptyMessage}
+        </div>
+      );
+    }
+  }
+
+  if (type === 'combo-bars-line') {
+    const comboPoints = points.filter((point) => (
+      Number.isFinite(point.total)
+      && Number.isFinite(point.active)
+      && Number.isFinite(point.nuggets)
+    ));
+    const maxCount = Math.max(1, ...comboPoints.flatMap((point) => [point.total, point.active]));
+    const maxNuggets = Math.max(1, ...comboPoints.map((point) => point.nuggets));
+    const width = 220;
+    const height = 72;
+    const lineCoords = comboPoints.map((point, idx) => {
+      const x = comboPoints.length <= 1 ? width / 2 : (idx / (comboPoints.length - 1)) * width;
+      const y = height - ((point.nuggets / maxNuggets) * (height - 24)) - 9;
+      return { ...point, x, y };
+    });
+    const linePath = lineCoords.map((point, idx) => `${idx === 0 ? 'M' : 'L'}${point.x.toFixed(1)},${point.y.toFixed(1)}`).join(' ');
+
+    if (!comboPoints.length || comboPoints.every((point) => point.total <= 0 && point.active <= 0 && point.nuggets <= 0)) {
+      return (
+        <div style={{ height: 74, display: 'grid', placeItems: 'center', paddingTop: 12, color: C.t3, fontSize: 11, textAlign: 'center', lineHeight: 1.35 }}>
+          {emptyMessage}
+        </div>
+      );
+    }
+
+    return (
+      <div style={{ height: 92, display: 'grid', gridTemplateRows: '1fr auto', gap: 3 }}>
+        <div style={{ position: 'relative', height: 72 }}>
+          <svg viewBox={`0 0 ${width} ${height}`} preserveAspectRatio="none" style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', overflow: 'visible', pointerEvents: 'none' }}>
+            <path d={`M0,${height - 4} L${width},${height - 4}`} stroke={C.alpha(C.t3, 0.16)} strokeWidth="1" />
+            {linePath ? <path d={linePath} fill="none" stroke={C.gold} strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" /> : null}
+            {lineCoords.map((point, idx) => (
+              <circle key={`line-${idx}`} cx={point.x} cy={point.y} r="3" fill={C.gold} stroke={C.bg2 || C.card} strokeWidth="1" />
+            ))}
+          </svg>
+          <div style={{ position: 'relative', zIndex: 1, height: '100%', display: 'flex', alignItems: 'flex-end', gap: 5, paddingTop: 11 }}>
+            {comboPoints.map((point, idx) => {
+              const totalHeight = Math.max(point.total > 0 ? 5 : 0, Math.round((point.total / maxCount) * 100));
+              const activeHeight = Math.max(point.active > 0 ? 5 : 0, Math.round((point.active / maxCount) * 100));
+              return (
+                <div key={idx} title={`${point.label}: ${fmtInt(point.total)} ${comboLabels.done || 'done'} · ${fmtInt(point.active)} ${comboLabels.active || 'active'} · ${fmtNuggets(point.nuggets)}`} style={{ flex: 1, minWidth: 12, height: '100%', display: 'flex', alignItems: 'flex-end', justifyContent: 'center', gap: 2 }}>
+                  <span style={{ width: '42%', height: `${totalHeight}%`, borderRadius: '5px 5px 2px 2px', background: C.alpha(C.accent, idx === comboPoints.length - 1 ? 0.9 : 0.45), boxShadow: idx === comboPoints.length - 1 ? `0 0 12px ${C.alpha(C.accent, 0.25)}` : 'none' }} />
+                  <span style={{ width: '42%', height: `${activeHeight}%`, borderRadius: '5px 5px 2px 2px', background: C.alpha(C.success, idx === comboPoints.length - 1 ? 0.9 : 0.45), boxShadow: idx === comboPoints.length - 1 ? `0 0 12px ${C.alpha(C.success, 0.25)}` : 'none' }} />
+                </div>
+              );
+            })}
+          </div>
+        </div>
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8, flexWrap: 'wrap', fontSize: 8.5, fontWeight: 900, color: C.t3 }}>
+          <span><i style={{ display: 'inline-block', width: 8, height: 8, borderRadius: 2, background: C.accent, marginRight: 3 }} />{comboLabels.done || 'Done'}</span>
+          <span><i style={{ display: 'inline-block', width: 8, height: 8, borderRadius: 2, background: C.success, marginRight: 3 }} />{comboLabels.active || 'Active'}</span>
+          <span><i style={{ display: 'inline-block', width: 13, height: 3, borderRadius: 999, background: C.gold, marginRight: 3, verticalAlign: 'middle' }} />{comboLabels.nuggets || 'Nuggets'}</span>
+        </div>
+      </div>
+    );
+  }
 
   if (!points.length || maxValue <= 0) {
     return (
@@ -189,7 +259,7 @@ function MiniChart({ series = [], formatter = fmtInt, emptyMessage = 'No history
   );
 }
 
-function KpiTile({ id, label, value, sub, description, series, seriesStatus, chartFormatter = fmtInt, chartType = 'bar', viewMode, onToggleView, draggable = false, dragging = false, emptyChartMessage = 'No real history yet', infoFallback = 'This metric explains what is being measured.', onDragStart, onDragOver, onDrop, onDragEnd }) {
+function KpiTile({ id, label, value, sub, description, series, seriesStatus, chartFormatter = fmtInt, chartType = 'bar', chartLabels = {}, viewMode, onToggleView, draggable = false, dragging = false, emptyChartMessage = 'No real history yet', infoFallback = 'This metric explains what is being measured.', onDragStart, onDragOver, onDrop, onDragEnd }) {
   const showChart = viewMode === 'chart';
   const showInfo = viewMode === 'info';
   return (
@@ -245,7 +315,7 @@ function KpiTile({ id, label, value, sub, description, series, seriesStatus, cha
           {description || infoFallback}
         </div>
       ) : showChart ? (
-        <MiniChart series={series} formatter={chartFormatter} emptyMessage={seriesStatus || emptyChartMessage} type={chartType} />
+        <MiniChart series={series} formatter={chartFormatter} emptyMessage={seriesStatus || emptyChartMessage} type={chartType} comboLabels={chartLabels} />
       ) : (
         <div style={{ color: C.t1, fontSize: 28, lineHeight: 1, fontWeight: 900 }}>{value}</div>
       )}
@@ -1248,6 +1318,7 @@ function KpiSection({ title, hint, tiles, order, group, draggingId, viewModes, e
             seriesStatus={tile.seriesStatus}
             chartFormatter={tile.chartFormatter}
             chartType={tile.chartType}
+            chartLabels={tile.chartLabels}
             viewMode={viewModes?.[tile.id] || 'number'}
             onToggleView={onToggleView}
             emptyChartMessage={tile.emptyChartMessage || emptyChartMessage}
@@ -1366,8 +1437,8 @@ export function AdminDashboard({ setPage, prevPage, logoutAdmin }) {
         { id: 'abandoned-cart', label: k.abandonedCart || 'Abandoned cart', value: fmtInt(checkoutAbandoned), sub: `${fmtInt(checkoutCompleted)} ${k.paid || 'paid'} / ${fmtInt(checkoutClicked)} ${k.started || 'started'}`, series: checkoutAbandonedSeries, chartType: 'donut' },
         { id: 'manual-grants', label: k.manualGrants || 'Manual grants', value: fmtNuggets(m.manualNuggetsGranted), sub: `${fmtInt(m.manualNuggetsGrantedToday)} ${k.today || 'today'}`, series: series['manual-grants'], chartFormatter: fmtNuggets, chartType: 'bar' },
         { id: 'support-msgs', label: k.supportMsgs || 'Support msgs', value: fmtInt(m.supportMessagesToday), sub: k.last10Days || 'last 10 days', series: series['support-msgs'], chartType: 'bar' },
-        { id: 'highlights', label: k.highlights || 'Highlights', value: fmtNuggets(m.highlightsNuggetsSpent), sub: `${fmtInt(m.highlightsActive)} active · ${fmtInt(m.highlightsPurchasedToday)} ${k.today || 'today'}`, series: series.highlights, chartFormatter: fmtNuggets, chartType: 'bar' },
-        { id: 'exclusive-contacts', label: k.exclusiveContacts || 'Exclusive contacts', value: fmtInt(m.exclusiveContactsTotal), sub: `${fmtInt(m.exclusiveContactsToday)} ${k.today || 'today'} · ${fmtNuggets(m.exclusiveContactsNuggetsSpent)}`, series: series['exclusive-contacts'], chartFormatter: fmtInt, chartType: 'bar' },
+        { id: 'highlights', label: k.highlights || 'Highlights', value: `${fmtInt(m.highlightsTotal)} / ${fmtInt(m.highlightsActive)}`, sub: `${k.totalActive || 'done / active'} · ${fmtNuggets(m.highlightsNuggetsSpent)}`, series: series.highlights, chartFormatter: fmtInt, chartType: 'combo-bars-line', chartLabels: { done: k.done || 'Done', active: k.active || 'Active', nuggets: k.nuggets || 'Nuggets' } },
+        { id: 'exclusive-contacts', label: k.exclusiveContacts || 'Exclusive contacts', value: `${fmtInt(m.exclusiveContactsTotal)} / ${fmtInt(m.exclusiveContactsActive)}`, sub: `${k.totalActive || 'done / active'} · ${fmtNuggets(m.exclusiveContactsNuggetsSpent)}`, series: series['exclusive-contacts'], chartFormatter: fmtInt, chartType: 'combo-bars-line', chartLabels: { done: k.done || 'Done', active: k.active || 'Active', nuggets: k.nuggets || 'Nuggets' } },
         { id: 'properties', label: k.properties || 'Properties', value: fmtInt(m.totalProperties), sub: k.publishedSaved || 'published + saved', series: series.properties, chartType: 'line' },
       ]),
       system: describe([
