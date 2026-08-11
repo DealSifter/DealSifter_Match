@@ -12,7 +12,8 @@ const rulesSource = readFileSync(new URL('./dealCopilotContextRules.ts', import.
 const registrySource = readFileSync(new URL('./toolRegistry.ts', import.meta.url), 'utf8');
 const typesSource = readFileSync(new URL('./types.ts', import.meta.url), 'utf8');
 const chatSource = readFileSync(new URL('../../maxxis-chat/index.ts', import.meta.url), 'utf8');
-const assistantSource = readFileSync(new URL('../../../../src/components/maxxis/MaxxisAssistant.jsx', import.meta.url), 'utf8');
+const assistantSource = readFileSync(new URL('../../../../src/components/maxxis/MaxxisAssistant.jsx', import.meta.url), 'utf8')
+  .replace(/\r\n?/g, '\n');
 const serviceSource = readFileSync(new URL('../../../../src/services/maxxisService.js', import.meta.url), 'utf8');
 
 const propertyId = '11111111-1111-4111-8111-111111111111';
@@ -103,10 +104,16 @@ describe('Phase 4C Maxxis Deal Copilot', () => {
 
   it('keeps the deterministic Next Best Action as the principal item in the overview', () => {
     const result = composeDealCopilotOverview(details());
-    expect(result?.nextBestAction).toBe(nextBestAction);
-    expect(assistantSource.indexOf('<NextBestActionCard result={data.nextBestAction}')).toBeLessThan(
-      assistantSource.indexOf('<DealProgressCard\n          workflow={data.workflow}'),
+    const nextBestActionCardIndex = assistantSource.search(
+      /<NextBestActionCard\b[^>]*\bresult=\{data\.nextBestAction\}[^>]*\/>/,
     );
+    const dealProgressCardIndex = assistantSource.search(
+      /<DealProgressCard\b[\s\S]*?\bworkflow=\{data\.workflow\}[\s\S]*?\/>/,
+    );
+    expect(result?.nextBestAction).toBe(nextBestAction);
+    expect(nextBestActionCardIndex).toBeGreaterThanOrEqual(0);
+    expect(dealProgressCardIndex).toBeGreaterThanOrEqual(0);
+    expect(nextBestActionCardIndex).toBeLessThan(dealProgressCardIndex);
   });
 
   it('does not invent providers when only service needs exist', () => {

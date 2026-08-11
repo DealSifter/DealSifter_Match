@@ -153,10 +153,10 @@ Não recebe o papel do usuário, perfil profissional, mercados, buy box, plano, 
 
 Eu priorizaria o Maxxis em três camadas:
 
-1. **Maxxis Guide**  
+1. **Maxxis Guide**<br>
    Respostas sobre uso do app, documentação versionada e navegação contextual. É a camada já existente, mas precisa de RAG/documentação indexada e actions mais específicas.
 
-2. **Maxxis Deal Analyst**  
+2. **Maxxis Deal Analyst**<br>
    Analisa uma oportunidade usando dados estruturados e o Investor Profile:
    - “Este imóvel encaixa no meu buy box?”
    - ARV, margem, preço, rehab, closing e risco;
@@ -164,7 +164,7 @@ Eu priorizaria o Maxxis em três camadas:
    - perguntas ao vendedor;
    - score explicável, nunca recomendação financeira definitiva.
 
-3. **Maxxis Workflow Copilot**  
+3. **Maxxis Workflow Copilot**<br>
    Preenche rascunhos, valida cadastros e executa ações seguras com confirmação:
    - completar Investor Profile;
    - sugerir melhorias de card;
