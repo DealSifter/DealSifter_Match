@@ -1,4 +1,4 @@
-﻿create or replace function public.ds_text_is_db_safe(value text, max_bytes integer default 4096)
+create or replace function public.ds_text_is_db_safe(value text, max_bytes integer default 4096)
 returns boolean
 language sql
 immutable
@@ -26,7 +26,7 @@ $$;
 create or replace function public.ds_redact_inline_media_jsonb(value jsonb)
 returns jsonb
 language plpgsql
-immutable
+stable
 as $$
 declare
   result jsonb;

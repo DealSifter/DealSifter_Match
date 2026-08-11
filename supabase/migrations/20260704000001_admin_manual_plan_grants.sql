@@ -55,7 +55,6 @@ declare
   v_admin_id uuid := auth.uid();
   v_plan text := lower(trim(coalesce(p_plan_id, '')));
   v_previous_plan text;
-  v_new_plan text;
 begin
   if not public.ds_is_current_user_admin() then
     raise exception 'admin access required' using errcode = '42501';
@@ -81,9 +80,7 @@ begin
       plan_override_expires_at = case when v_plan = 'free' then null else p_expires_at end,
       plan_override_updated_at = now(),
       updated_at = now()
-  where u.id = p_target_user_id
-  returning coalesce(nullif(lower(trim(u.plan_id)), ''), 'free')
-    into v_new_plan;
+  where u.id = p_target_user_id;
 
   insert into public.admin_plan_grants(
     admin_id,

@@ -73,7 +73,7 @@ create or replace function public.ds_validate_maxxis_profile_suggestion(
 )
 returns jsonb
 language plpgsql
-immutable
+stable
 set search_path = public
 as $$
 declare
@@ -141,9 +141,9 @@ begin
   end if;
 
   perform pg_advisory_xact_lock(hashtext('maxxis-profile-actions:' || v_user_id::text));
-  update public.maxxis_pending_actions
+  update public.maxxis_pending_actions as a
     set status = 'expired'
-    where user_id = v_user_id and status = 'pending' and expires_at <= now();
+    where a.user_id = v_user_id and a.status = 'pending' and a.expires_at <= now();
 
   for v_item in select value from jsonb_array_elements(p_suggestions)
   loop

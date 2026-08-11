@@ -102,9 +102,9 @@ begin
 
   v_investment_profile := case
     when jsonb_typeof(v_incoming_profiles->'professional'->'investmentProfile') = 'object'
-      then v_existing_investment_profile || v_incoming_profiles->'professional'->'investmentProfile'
+      then v_existing_investment_profile || (v_incoming_profiles->'professional'->'investmentProfile')
     when jsonb_typeof(v_incoming_legacy->'professionalProfile'->'investmentProfile') = 'object'
-      then v_existing_investment_profile || v_incoming_legacy->'professionalProfile'->'investmentProfile'
+      then v_existing_investment_profile || (v_incoming_legacy->'professionalProfile'->'investmentProfile')
     else null
   end;
   if v_investment_profile is not null then

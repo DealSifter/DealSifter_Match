@@ -21,7 +21,7 @@ as $$
   select exists (
     select 1
     from jsonb_array_elements_text(coalesce(p_methods, '[]'::jsonb)) as method(value)
-    where lower(regexp_replace(trim(method.value), '[^a-z0-9]+', '', 'g')) in (
+    where regexp_replace(lower(trim(method.value)), '[^a-z0-9]+', '', 'g') in (
       'chat',
       'dealsifterchat',
       'dealsifter'

@@ -1,4 +1,4 @@
-﻿create or replace function public.ds_enforce_db_soft_quota()
+create or replace function public.ds_enforce_db_soft_quota()
 returns trigger
 language plpgsql
 as $$

@@ -1,4 +1,4 @@
-﻿alter table public.user_profiles
+alter table public.user_profiles
   drop constraint if exists chk_user_profiles_photo_url_db_safe,
   add constraint chk_user_profiles_photo_url_db_safe
     check (public.ds_text_is_db_safe(photo_url, 4096));
