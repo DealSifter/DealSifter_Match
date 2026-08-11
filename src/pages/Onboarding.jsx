@@ -58,6 +58,7 @@ export function Onboarding({
   personalProfile,
   setPersonalProfile,
   professionalProfile,
+  professionalProfileVersion = 0,
   setProfessionalProfile,
   servicePortfolio,
   setServicePortfolio,
@@ -1512,10 +1513,11 @@ export function Onboarding({
 
   useEffect(() => {
     if (pendingProfileClearScope) return undefined;
-    const profileKey = `${draftUserId}:${accountType || 'professional'}`;
+    const profileKey = `${draftUserId}:${accountType || 'professional'}:${professionalProfileVersion}`;
     if (profileHydrationRef.current === profileKey) return undefined;
     profileHydrationRef.current = profileKey;
     const timer = window.setTimeout(() => {
+      setInvestmentProfileDraft(normalizeInvestmentDraft(professionalProfile?.investmentProfile));
       if (accountType === 'fsbo_owner') {
         setName(personalProfile?.fullNameFsbo || personalProfile?.fsboFullName || '');
         setLoc(normalizeUsStateCode(personalProfile?.locFsbo || personalProfile?.fsboLoc));
@@ -1594,7 +1596,7 @@ export function Onboarding({
       setSaveProfilesBaseline('');
     }, 0);
     return () => window.clearTimeout(timer);
-  }, [accountType, personalProfile, professionalProfile, pendingProfileClearScope, draftUserId]);
+  }, [accountType, personalProfile, professionalProfile, professionalProfileVersion, pendingProfileClearScope, draftUserId]);
 
   const onboardingDraftSnapshot = useMemo(() => ({
     profileTab,

@@ -100,6 +100,7 @@ import { useMediaQuery } from './hooks/useMediaQuery';
 import { useChatRealtime } from './hooks/useChatRealtime';
 import { useUnlockNotifications } from './hooks/useUnlockNotifications';
 import { canPerformAction, getPlanActionAccess, getPlanGateCopy, getCurrentPlan, isPlanLimitError, refreshUsageFromDB } from './services/planUsageService';
+import { isProfileConflictError, saveProfessionalProfileWithVersion } from './services/profileConcurrencyService';
 import { clearSensitiveCache, REMOTE_CACHE_LOCAL_STORAGE_KEYS } from './lib/localStoragePolicy';
 import { trackAppEvent } from './lib/adminEventTracking';
 import { captureAppException, captureUnlockError, setObservabilityUser } from './lib/observability';
@@ -933,6 +934,8 @@ export default function App() {
   const blockMobileLandscape = useMediaQuery('(hover: none) and (pointer: coarse) and (orientation: landscape) and (max-height: 520px)');
   const onboardingAccessCompleteRef = useRef(true);
   const profileSyncStateRef = useRef({ userId: null, loaded: false, hydrating: false, personalLoadedFromRemote: false, professionalLoadedFromRemote: false });
+  const professionalProfileVersionRef = useRef(0);
+  const [professionalProfileVersion, setProfessionalProfileVersion] = useState(0);
   const [profileSyncSnapshot, setProfileSyncSnapshot] = useState({ userId: null, loaded: false, hydrating: false, personalLoadedFromRemote: false, professionalLoadedFromRemote: false });
   const [profileHydrationAttempts, setProfileHydrationAttempts] = useState(0);
   const profileHydrationRetryRef = useRef({ timer: null, attempts: 0 });
@@ -1034,6 +1037,7 @@ export default function App() {
   });
   const [modal, setModal] = useState(null);
   const [maxxisPropertyAnalysisRequest, setMaxxisPropertyAnalysisRequest] = useState(null);
+  const [maxxisPropertyContextId, setMaxxisPropertyContextId] = useState('');
   const [authModalTab, setAuthModalTab] = useState('signup');
   const openAuthModal = useCallback((tab = 'signup') => {
     setAuthModalTab(tab === 'login' ? 'login' : 'signup');
@@ -1886,8 +1890,16 @@ export default function App() {
   }, [isHydratingProfiles, isHydratingPortfolio, supabaseUserId]);
 
   const refreshProfileHydration = useCallback(() => {
+    profileSyncStateRef.current = {
+      ...(profileSyncStateRef.current || {}),
+      loaded: false,
+      hydrating: false,
+      personalLoadedFromRemote: false,
+      professionalLoadedFromRemote: false,
+    };
+    scheduleProfileSyncSnapshot();
     setProfileHydrationCycle((prev) => prev + 1);
-  }, []);
+  }, [scheduleProfileSyncSnapshot]);
 
   const {
     checkoutError,
@@ -2823,6 +2835,8 @@ export default function App() {
   useEffect(() => {
     if (!isSupabaseConfigured || !supabase || !supabaseUserId) {
       profileSyncStateRef.current = { userId: null, loaded: false, hydrating: false, personalLoadedFromRemote: false, professionalLoadedFromRemote: false };
+      professionalProfileVersionRef.current = 0;
+      window.setTimeout(() => setProfessionalProfileVersion(0), 0);
       scheduleProfileSyncSnapshot();
       window.setTimeout(() => setIsHydratingProfiles(false), 0);
       resetProfileSync();
@@ -2864,7 +2878,7 @@ export default function App() {
             .maybeSingle(),
           supabase
             .from('professional_profiles')
-            .select('category, subcategory, markets, skills, services, pitch, primary_category, category_b, primary_category_b, photo_b_url, profile_payload')
+            .select('category, subcategory, markets, skills, services, pitch, primary_category, category_b, primary_category_b, photo_b_url, profile_payload, profile_version')
             .eq('user_id', supabaseUserId)
             .maybeSingle(),
           supabase
@@ -2928,6 +2942,13 @@ export default function App() {
         }
         let professionalResult = professionalResultInitial;
 
+        if (professionalResult?.error && isMissingColumnError(professionalResult.error, 'professional_profiles.profile_version')) {
+          professionalResult = await supabase
+            .from('professional_profiles')
+            .select('category, subcategory, markets, skills, services, pitch, primary_category, category_b, primary_category_b, photo_b_url, profile_payload')
+            .eq('user_id', supabaseUserId)
+            .maybeSingle();
+        }
         if (professionalResult?.error && isMissingColumnError(professionalResult.error, 'professional_profiles.profile_payload')) {
           professionalResult = await supabase
             .from('professional_profiles')
@@ -2947,6 +2968,12 @@ export default function App() {
         if (professionalResult.error) {
           safeLogError('Supabase professional profile hydration failed.', professionalResult.error);
         }
+
+        const hydratedProfileVersion = Number(professionalResult.data?.profile_version || 0);
+        professionalProfileVersionRef.current = Number.isSafeInteger(hydratedProfileVersion) && hydratedProfileVersion > 0
+          ? hydratedProfileVersion
+          : 0;
+        setProfessionalProfileVersion(professionalProfileVersionRef.current);
 
         const hasAnyInitialProfileRecord = Boolean(personalResult.data || professionalResult.data);
         if (!hasAnyInitialProfileRecord) {
@@ -3351,30 +3378,33 @@ export default function App() {
       if (photoBUrl) payload.photo_b_url = photoBUrl;
       else if (normalized.photoBClearRequested === true) payload.photo_b_url = null;
 
-      let writePayload = {
-        ...payload,
-        profile_payload: profilePayload,
-      };
+      const updatePhotoBUrl = Object.prototype.hasOwnProperty.call(payload, 'photo_b_url');
+      const expectedProfileVersion = professionalProfileVersionRef.current;
 
       beginProfileSync();
       try {
-        let result = await supabase
-          .from('professional_profiles')
-          .upsert(writePayload, { onConflict: 'user_id' });
-
-        if (result?.error && isMissingColumnError(result.error, 'professional_profiles.profile_payload')) {
-          result = await supabase
-            .from('professional_profiles')
-            .upsert(payload, { onConflict: 'user_id' });
-        }
-
-        if (result?.error) {
-          safeLogError('Supabase professional profile persistence failed.', result.error);
-          endProfileSync(true);
-          return;
-        }
+        const result = await saveProfessionalProfileWithVersion({
+          expectedVersion: expectedProfileVersion,
+          profilePayload,
+          fields: payload,
+          updatePhotoBUrl,
+          photoBUrl: updatePhotoBUrl ? payload.photo_b_url : null,
+        });
+        professionalProfileVersionRef.current = result.profileVersion;
+        setProfessionalProfileVersion(result.profileVersion);
         endProfileSync(false);
       } catch (error) {
+        if (isProfileConflictError(error)) {
+          endProfileSync(false);
+          addToast({
+            type: 'warning',
+            title: 'Perfil atualizado em outra ação',
+            message: 'Recarregamos os dados mais recentes para evitar perder alterações. Revise o formulário antes de salvar novamente.',
+            duration: 9000,
+          });
+          refreshProfileHydration();
+          return;
+        }
         safeLogError('Supabase professional profile persistence failed.', error);
         endProfileSync(true);
       }
@@ -3386,7 +3416,7 @@ export default function App() {
     return () => {
       if (professionalDebounceTimer) clearTimeout(professionalDebounceTimer);
     };
-  }, [supabaseUserId, accountType, professionalProfile, personalProfile, userProfile, beginProfileSync, endProfileSync, pendingFlushRef, profileSaveDebounceRef]);
+  }, [supabaseUserId, accountType, professionalProfile, personalProfile, userProfile, addToast, beginProfileSync, endProfileSync, pendingFlushRef, profileSaveDebounceRef, refreshProfileHydration]);
 
   useEffect(() => {
     if (!isSupabaseConfigured || !supabase || !supabaseUserId) {
@@ -4253,6 +4283,8 @@ export default function App() {
 
   const handleAnalyzePropertyWithMaxxis = useCallback((request = {}) => {
     const id = request.id || `property-analysis-${Date.now()}`;
+    const propertyId = String(request.propertyId || '').trim();
+    setMaxxisPropertyContextId(isUuid(propertyId) ? propertyId : '');
     setMaxxisPropertyAnalysisRequest({ ...request, id, createdAt: Date.now() });
   }, []);
 
@@ -5542,6 +5574,7 @@ export default function App() {
             currentUserId={supabaseUserId || 'local-user'}
             activeSpotlightKeys={activeSpotlightKeys}
             onAnalyzePropertyWithMaxxis={handleAnalyzePropertyWithMaxxis}
+            onPropertyContextChange={setMaxxisPropertyContextId}
             isActive={page === 'matches'}
           />
         );
@@ -5587,6 +5620,7 @@ export default function App() {
             personalProfile={personalProfile}
             setPersonalProfile={setPersonalProfile}
             professionalProfile={professionalProfile}
+            professionalProfileVersion={professionalProfileVersion}
             setProfessionalProfile={setProfessionalProfile}
             servicePortfolio={servicePortfolio}
             setServicePortfolio={setServicePortfolio}
@@ -5737,6 +5771,7 @@ export default function App() {
               onOpenSupport={() => openSettingsTab('communication', 'support')}
               onNavigateAction={handleMaxxisNavigateAction}
               propertyAnalysisRequest={maxxisPropertyAnalysisRequest}
+              propertyContextId={maxxisPropertyContextId}
               onExportAnalysisPdf={handleExportMaxxisAnalysisPdf}
             />
           </>

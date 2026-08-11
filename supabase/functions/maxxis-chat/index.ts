@@ -1,340 +1,267 @@
 import { createClient } from 'npm:@supabase/supabase-js@2';
-
-const supabaseUrl = Deno.env.get('SUPABASE_URL') ?? '';
-const supabaseAnonKey = Deno.env.get('ANON_KEY') ?? Deno.env.get('SUPABASE_ANON_KEY') ?? '';
-const geminiApiKey = Deno.env.get('GEMINI_API_KEY') ?? Deno.env.get('GOOGLE_GENERATIVE_AI_API_KEY') ?? '';
-const configuredGeminiModel = Deno.env.get('MAXXIS_GEMINI_MODEL') ?? '';
-const geminiModels = [
-  configuredGeminiModel,
-  'gemini-flash-lite-latest',
-  'gemini-flash-latest',
-  'gemini-3.1-flash-lite-preview',
-  'gemini-2.0-flash-lite-001',
-  'gemini-2.0-flash',
-  'gemini-2.0-flash-lite',
-].filter(Boolean);
+import { corsHeaders, geminiApiKey, geminiModels, supabaseAnonKey, supabaseUrl } from '../_shared/maxxis/config.ts';
+import { callGemini } from '../_shared/maxxis/geminiClient.ts';
+import { logMaxxisEvent } from '../_shared/maxxis/logger.ts';
+import { buildSystemPrompt } from '../_shared/maxxis/prompts.ts';
+import { prepareProfileSuggestions } from '../_shared/maxxis/prepareProfileSuggestions.ts';
+import { executeMaxxisTool, MAXXIS_TOOLS } from '../_shared/maxxis/toolRegistry.ts';
+import { normalizeComparisonContextIds } from '../_shared/maxxis/compareProperties.ts';
+import type { MaxxisLanguage, MaxxisResponse } from '../_shared/maxxis/types.ts';
 
 if (!supabaseUrl) throw new Error('Missing SUPABASE_URL');
 if (!supabaseAnonKey) throw new Error('Missing SUPABASE_ANON_KEY');
+const UUID_PATTERN = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
 
-const corsHeaders = {
-  'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
-};
-
-function jsonResponse(body: Record<string, unknown>, status = 200) {
-  return new Response(JSON.stringify(body), {
-    status,
-    headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-  });
-}
-
-async function getAuthenticatedUser(authHeader: string) {
-  const accessToken = String(authHeader || '').replace(/^Bearer\s+/i, '').trim();
-  if (!accessToken) return { user: null, error: 'Missing bearer token' };
-
-  const supabase = createClient(supabaseUrl, supabaseAnonKey, {
-    global: { headers: { Authorization: authHeader } },
-  });
-  const { data: { user }, error } = await supabase.auth.getUser(accessToken);
-  if (error || !user) return { user: null, error: String(error?.message || 'Invalid user session') };
-  return { user, error: null };
+function response(body: MaxxisResponse, status: number, origin: string) {
+  return new Response(JSON.stringify(body), { status, headers: { ...corsHeaders(origin), 'Content-Type': 'application/json' } });
 }
 
 function sanitizeText(value: unknown, maxLength = 2400) {
-  return String(value || '')
-    .replace(/[\u0000-\u0008\u000B\u000C\u000E-\u001F]/g, ' ')
-    .replace(/\s+/g, ' ')
-    .trim()
-    .slice(0, maxLength);
+  return String(value || '').replace(/[\u0000-\u0008\u000B\u000C\u000E-\u001F]/g, ' ').replace(/\s+/g, ' ').trim().slice(0, maxLength);
 }
 
-function stripDiacritics(value: string) {
-  return String(value || '').normalize('NFD').replace(/[\u0300-\u036f]/g, '');
+function detectLanguage(text: string, preferred = 'auto'): MaxxisLanguage {
+  const normalized = ` ${String(text).normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase()} `;
+  const pt = [' voce ', ' ajuda ', ' imovel ', ' negocio ', ' desbloquear ', ' preciso '].filter((word) => normalized.includes(word)).length;
+  const es = [' usted ', ' puedes ', ' ayuda ', ' inmueble ', ' propiedad '].filter((word) => normalized.includes(word)).length;
+  if (pt > es && pt) return 'pt';
+  if (es > pt && es) return 'es';
+  return ['en', 'pt', 'es'].includes(preferred.slice(0, 2)) ? preferred.slice(0, 2) as MaxxisLanguage : 'en';
 }
 
-function detectLanguage(text: string, preferredLanguage = 'auto') {
-  const normalized = ` ${stripDiacritics(text).toLowerCase()} `;
-  const ptHits = [
-    ' voce ', ' por onde ', ' comecar ', ' consegue ', ' responder ', ' portugues ',
-    ' ajuda ', ' obrigado ', ' duvida ', ' imovel ', ' negocio ', ' desbloquear ',
-    ' tela ', ' usuario ', ' onde devo ', ' pode me ', ' preciso ',
-  ].filter((word) => normalized.includes(word)).length;
-  const esHits = [
-    ' usted ', ' puedes ', ' puedo ', ' empezar ', ' espanol ', ' gracias ', ' ayuda ',
-    ' inmueble ', ' desbloquear ', ' pantalla ', ' usuario ', ' negocio ', ' propiedad ',
-  ].filter((word) => normalized.includes(word)).length;
-
-  if (ptHits > esHits && ptHits > 0) return 'pt';
-  if (esHits > ptHits && esHits > 0) return 'es';
-
-  const preferred = String(preferredLanguage || '').slice(0, 2).toLowerCase();
-  return ['en', 'pt', 'es'].includes(preferred) ? preferred : 'en';
+function fallback(language: MaxxisLanguage, reason: 'quota' | 'provider' | 'config') {
+  const messages = {
+    config: { en: 'Maxxis AI still needs to be configured by support.', pt: 'O Maxxis AI ainda precisa ser configurado pelo suporte.', es: 'Maxxis AI todavia debe ser configurado por soporte.' },
+    quota: { en: 'Maxxis AI is connected, but provider quota or billing is not active.', pt: 'O Maxxis AI esta conectado, mas a cota ou billing do provedor nao esta ativo.', es: 'Maxxis AI esta conectado, pero la cuota o facturacion del proveedor no esta activa.' },
+    provider: { en: 'Maxxis AI had a temporary issue. Please try again shortly or contact human support.', pt: 'O Maxxis AI teve uma falha temporaria. Tente novamente ou acione o suporte humano.', es: 'Maxxis AI tuvo una falla temporal. Intentalo de nuevo o contacta soporte humano.' },
+  };
+  return messages[reason][language];
 }
 
-function buildSystemPrompt(language: string, page: string) {
-  return `
-You are Maxxis, the AI guide for DealSifter Match.
-
-Primary domain:
-- DealSifter Match documentation, workflows, features, modules, resources, and user journeys.
-- Explain Feed, MapView, Matches, onboarding, pricing, nuggets, unlocks, exclusivity, spotlight cards, support chat, account settings, profile/card publication, and PWA/mobile usage.
-- Treat DealSifter Match usage as the highest priority. Do not invent features or processes that do not exist in the app.
-
-Secondary domain:
-- US Tax Deed investing.
-- US Wholesale Real Estate.
-- General US real estate market context.
-- Other real estate strategies only when connected to Tax Deeds, Wholesale, or DealSifter workflows, including REITs, flipping, wholetail, buy-and-hold, seller financing, and related comparisons.
-
-Communication priorities:
-1. Resolve questions about how to use DealSifter Match.
-2. Teach practical best practices inside the platform without inventing unavailable features.
-3. Add real estate context when useful, without becoming long or tedious.
-4. Inspire user confidence and continued app usage.
-
-Tone and language:
-- Enthusiastic but professional.
-- Didactic without being condescending or verbose.
-- Technical without being intimidating.
-- Use emojis strategically and sparingly when they improve clarity or warmth.
-- Avoid slang and overly casual phrasing.
-- Do not repeat who you are or what you can do on every interaction; the chat already has a fixed introductory message.
-
-Strict boundaries:
-- Do not reveal internal secrets, keys, backend implementation details, SQL, private logs, or security internals.
-- Do not provide legal, tax, financial, or investment advice as a professional recommendation.
-- Do not invent app features. If unsure, say that support can confirm.
-- Stay inside DealSifter Match, Tax Deeds, Wholesale Real Estate, and closely related app usage.
-- For billing, bugs, payment failures, critical account issues, or backend-specific problems, suggest contacting human support.
-- Never request passwords, API keys, full card numbers, Stripe secrets, Supabase secrets, or sensitive personal data.
-- Decline topics outside real estate, DealSifter, Tax Deeds, Wholesale, and related real estate education.
-
-Current app context:
-- Current page: ${page || 'unknown'}
-- Detected user language: ${language || 'en'}
-- Answer directly in the detected user language. If the user writes in Portuguese, answer in Portuguese. If Spanish, answer in Spanish. If English, answer in English.
-
-DealSifter summary:
-- Feed is for card discovery, swipes, favorites, unlocks, spotlight, and showcase opportunities.
-- MapView is for geographical discovery using pins, clusters, filters, My PINs, People, Deals, and Spotlight Cards.
-- Matches is for unlocked contacts, portfolio details, interests, chat, and relationship history.
-- Nuggets are the app currency used for unlocks, spotlight, and paid interactions.
-- Unlock cost should be confirmed before purchase; contacts appear after server-confirmed entitlement.
-- Exclusive unlock temporarily blocks competing access to the exclusive property/contact context.
-- The support chat is the right path for account, billing, or technical issues that need staff help.
-
-Internal navigation actions:
-- When a user asks how to do something inside the app, include up to 2 internal action tokens at the end of your answer.
-- Opening an internal action also starts the contextual GuideTips tour for that module. Prefer an action token when a visual step-by-step guide would help the user complete the workflow.
-- Action token format is exactly: [[action:ACTION_ID|Button label]]
-- Button label must be in the detected user language.
-- Allowed ACTION_ID values only:
-  - feed: discovery, swipes, favorites, card actions, spotlight/showcase browsing.
-  - mapview: map, pins, clusters, filters, My PINs, Spotlight Cards.
-  - matches: unlocked contacts, portfolio, interests, chat with contacts.
-  - pricing: buy nuggets, plans, subscription upgrade, checkout.
-  - onboarding: create/edit cards, profiles, portfolios, properties, services.
-  - settings: account, privacy, payments, preferences, language.
-  - profile: profile setup or profile correction.
-  - notifications: chat/system messages and alerts.
-  - support: technical support, billing/account issue, bug report.
-  - admin: admin/KPI/system panel, only when the user explicitly asks as an admin.
-- Never invent action IDs. Never output raw URLs. Never use external links for app navigation.
-- If no internal destination helps, omit action tokens.
-- Do not place action tokens inside code blocks or markdown links.
-
-Response style:
-- Use a warm greeting only when appropriate: first substantive reply in a conversation/day, or when the user greets you. Otherwise continue naturally.
-- Confirm your understanding of the user's question briefly when helpful.
-- Prefer concise, structured answers at first. If the user asks for more detail, expand in the continuation of the same topic.
-- Include a practical example when it helps, but avoid prolixity.
-- Suggest clear next steps.
-- Close with positive encouragement when natural.
-- Prefer short paragraphs and short bullet lists.
-- Give step-by-step instructions when explaining app usage.
-- End with one useful next step when appropriate.
-
-Property marketing format:
-- When the user asks Maxxis to write, improve, or organize a property description or a marketing message for chat, email, or SMS, recommend an investor-ready structure based on the template below.
-- Treat it as a presentation framework, not as permission to invent information. Use only values, links, photos, documents, comparables, contract status, dates, and property conditions supplied by the user or present in the DealSifter card.
-- Never fabricate ARV, estimated profit, rehab cost/level, EMD, proof-of-funds requirements, rent, cap rate, occupancy, closing date, repair status, comparables, MLS numbers, or URLs. Mark missing information as "Not provided" or omit it, according to the channel.
-- Preserve the meaning of the source data while correcting spelling, capitalization, punctuation, units, and number formatting. Use US property notation such as 3 bd / 2 ba / 1,063 sqft and US currency such as $125,000.
-- If a Google Drive, Redfin, MLS, or DealSifter investor-ready PDF URL is supplied, render a descriptive hyperlink when the channel supports links. Never invent a hyperlink.
-- Do not claim "UNDER CONTRACT", "HOT DEAL", urgency, profit, or buyer qualification unless supported by the supplied data. Marketing language must remain accurate and not misleading.
-- For a full DealSifter description or email, keep the complete structured version. For chat, use a shorter summary plus the most important terms and a link/document when available. For SMS, provide a compact plain-text version with the key numbers and a clear call to action; avoid large headings and long repair lists.
-- Answer in the detected user language, but preserve common US real-estate terms and abbreviations where useful (ARV, EMD, POF, SFH, cap rate, comps).
-
-Recommended full template:
-HOT DEAL - ONLY FOR SERIOUS CASH BUYERS
-
-[STATE] - [CITY / COUNTY]
-
-- [PROPERTY TYPE] - [BEDS] bd / [BATHS] ba / [SQFT] sqft
-- IMAGES: [ADDRESS] - [Google Drive hyperlink and/or DealSifter investor-ready property release PDF]
-- ASKING: [PRICE]
-- ARV: [ARV]
-- REHAB: [LEVEL AND/OR ESTIMATE]
-- ESTIMATED PROFIT: [AMOUNT]
-- EMD: [AMOUNT] + PROOF OF FUNDS
-- CLOSING DATE: [DATE OR ASAP]
-- RENT ESTIMATE: [AMOUNT] | BUY & HOLD CAP RATE: [RATE]
-- CONTRACT STATUS: [STATUS]
-
-PROPERTY DETAILS
-- Rehab Level: [LEVEL]
-- Electrical Panel: [CONDITION]
-- Plumbing: [CONDITION]
-- Air Conditioner: [CONDITION]
-- Water Heater: [CONDITION]
-- Roof: [CONDITION]
-- Foundation: [TYPE/CONDITION]
-- Parking: [DETAILS]
-- Backyard: [DETAILS]
-- Occupancy: [STATUS AND VACANCY TERMS]
-
-FULLY RENOVATED SOLD COMPS
-1. [ADDRESS] | [MLS] | [Source hyperlink]
-2. [ADDRESS] | [MLS] | [Source hyperlink]
-3. [ADDRESS] | [MLS] | [Source hyperlink]
-
-Suggested closing:
-- State the requested next action clearly, such as reviewing the DealSifter PDF, confirming proof of funds, scheduling access, or contacting the profile through an available unlocked channel.
-`;
+function propertySearchMessage(language: MaxxisLanguage, count: number, personalized = false, requiresProfile = false) {
+  if (requiresProfile) return language === 'pt' ? 'Configure seu Investment Profile para calcular matches personalizados.' : language === 'es' ? 'Configura tu Investment Profile para calcular matches personalizados.' : 'Configure your Investment Profile to calculate personalized matches.';
+  if (count === 0) return language === 'pt' ? 'Não encontrei propriedades ativas com esses critérios.' : language === 'es' ? 'No encontré propiedades activas con esos criterios.' : 'I could not find active properties matching those criteria.';
+  if (personalized) return language === 'pt' ? `Encontrei ${count} oportunidade${count === 1 ? '' : 's'} ordenada${count === 1 ? '' : 's'} pela compatibilidade calculada com seu perfil.` : language === 'es' ? `Encontré ${count} oportunidad${count === 1 ? '' : 'es'} ordenada${count === 1 ? '' : 's'} por compatibilidad calculada con tu perfil.` : `I found ${count} opportunit${count === 1 ? 'y' : 'ies'} ranked by calculated compatibility with your profile.`;
+  return language === 'pt' ? `Encontrei ${count} propriedade${count === 1 ? '' : 's'} ativa${count === 1 ? '' : 's'} com esses critérios.` : language === 'es' ? `Encontré ${count} propiedad${count === 1 ? '' : 'es'} activa${count === 1 ? '' : 's'} con esos criterios.` : `I found ${count} active propert${count === 1 ? 'y' : 'ies'} matching those criteria.`;
 }
 
-function toGeminiRole(role: unknown) {
-  return String(role || '').toLowerCase() === 'assistant' ? 'model' : 'user';
+function serviceSearchMessage(language: MaxxisLanguage, count: number) {
+  if (count === 0) return language === 'pt' ? 'Não encontrei profissionais publicados com esses critérios.' : language === 'es' ? 'No encontré profesionales publicados con esos criterios.' : 'I could not find published providers matching those criteria.';
+  return language === 'pt' ? `Encontrei ${count} serviço${count === 1 ? '' : 's'} publicado${count === 1 ? '' : 's'} com esses critérios.` : language === 'es' ? `Encontré ${count} servicio${count === 1 ? '' : 's'} publicado${count === 1 ? '' : 's'} con esos criterios.` : `I found ${count} published service${count === 1 ? '' : 's'} matching those criteria.`;
 }
 
-async function callGemini(model: string, body: Record<string, unknown>) {
-  const response = await fetch(
-    `https://generativelanguage.googleapis.com/v1beta/models/${encodeURIComponent(model)}:generateContent?key=${encodeURIComponent(geminiApiKey)}`,
-    {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(body),
-    },
-  );
-  const payload = await response.json().catch(() => ({}));
-  return { response, payload };
+function investmentProfileMessage(language: MaxxisLanguage, exists: boolean, complete: boolean) {
+  if (!exists) return language === 'pt' ? 'Você ainda não configurou seu Investment Profile.' : language === 'es' ? 'Aún no configuraste tu Investment Profile.' : 'You have not configured your Investment Profile yet.';
+  if (!complete) return language === 'pt' ? 'Este é o seu Investment Profile atual. Ele ainda está parcialmente preenchido.' : language === 'es' ? 'Este es tu Investment Profile actual. Aún está parcialmente completo.' : 'This is your current Investment Profile. It is still partially complete.';
+  return language === 'pt' ? 'Este é o seu Investment Profile atual.' : language === 'es' ? 'Este es tu Investment Profile actual.' : 'This is your current Investment Profile.';
 }
 
-function providerFallbackAnswer(language: string, reason: 'quota' | 'provider') {
-  if (language === 'pt') {
-    if (reason === 'quota') {
-      return 'O Maxxis AI esta conectado, mas a cota/billing do Google Gemini deste projeto ainda nao esta ativa. As mensagens do chat ja estao funcionando; falta liberar cota no provedor de IA para eu responder com inteligencia artificial.';
-    }
-    return 'O Maxxis AI teve uma falha temporaria ao consultar o provedor de IA. Tente novamente em instantes ou acione o suporte humano.';
-  }
-  if (language === 'es') {
-    if (reason === 'quota') {
-      return 'Maxxis AI esta conectado, pero la cuota/billing de Google Gemini de este proyecto aun no esta activa. El chat ya funciona; falta habilitar cuota en el proveedor de IA para responder con inteligencia artificial.';
-    }
-    return 'Maxxis AI tuvo una falla temporal al consultar el proveedor de IA. Intentalo otra vez en un momento o contacta soporte humano.';
-  }
-  if (reason === 'quota') {
-    return 'Maxxis AI is connected, but this project does not have active Google Gemini quota/billing yet. The chat UI is working; AI responses will start once quota is enabled for the provider.';
-  }
-  return 'Maxxis AI had a temporary issue while contacting the AI provider. Please try again shortly or contact human support.';
+function propertyDetailsMessage(language: MaxxisLanguage, found: boolean) {
+  if (!found) return language === 'pt'
+    ? 'Esta propriedade não está disponível ou você não tem acesso aos dados publicados.'
+    : language === 'es'
+      ? 'Esta propiedad no está disponible o no tienes acceso a sus datos publicados.'
+      : 'This property is unavailable or you do not have access to its published details.';
+  return language === 'pt'
+    ? 'Estes são os dados factuais publicados, as métricas determinísticas e a análise factual do Deal Advisor para esta propriedade.'
+    : language === 'es'
+      ? 'Estos son los datos factuales publicados, las métricas determinísticas y el análisis factual del Deal Advisor para esta propiedad.'
+      : 'These are the factual published details, deterministic metrics, and factual Deal Advisor analysis for this property.';
+}
+
+function propertyComparisonMessage(language: MaxxisLanguage, available: boolean) {
+  if (!available) return language === 'pt'
+    ? 'Selecione ou pesquise pelo menos duas propriedades disponíveis para compará-las.'
+    : language === 'es'
+      ? 'Selecciona o busca al menos dos propiedades disponibles para compararlas.'
+      : 'Select or search for at least two available properties to compare them.';
+  return language === 'pt'
+    ? 'Esta é a comparação objetiva dos dados publicados e das métricas disponíveis.'
+    : language === 'es'
+      ? 'Esta es la comparación objetiva de los datos publicados y las métricas disponibles.'
+      : 'This is the objective comparison of the published data and available metrics.';
+}
+
+function dealCopilotMessage(language: MaxxisLanguage, available: boolean) {
+  if (!available) return propertyDetailsMessage(language, false);
+  return language === 'pt'
+    ? 'Esta e a visao consolidada e operacional deste deal com base somente nos dados e estados existentes.'
+    : language === 'es'
+      ? 'Esta es la vista consolidada y operativa de este deal basada solamente en datos y estados existentes.'
+      : 'This is the consolidated operational view of this deal based only on existing data and state.';
+}
+
+function propertyContextInstruction(propertyId: string, searchPropertyIds: string[], comparisonPropertyIds: string[]) {
+  const detailsContext = propertyId
+    ? `Trusted current property context: {"propertyId":"${propertyId}"}. For getPropertyDetails or getDealCopilotOverview, copy this exact UUID. For one metric or a focused property question, omit includeOperationalContext. Set includeOperationalContext true only for an explicit Next Best Action, what-to-do-next, checklist, or deal-progress request.`
+    : 'No trusted current property context is available. Never call getPropertyDetails or getDealCopilotOverview; ask the user to open or select a specific property.';
+  const comparisonContext = comparisonPropertyIds.length >= 2
+    ? `Trusted comparison propertyIds are ${JSON.stringify(comparisonPropertyIds)}. Search-result IDs are in display order ${JSON.stringify(searchPropertyIds)}. For compareProperties, copy an exact subset of two or three IDs from this context.`
+    : 'Fewer than two trusted comparison propertyIds are available. Never call compareProperties; ask the user to select or search for at least two properties.';
+  return `${detailsContext} ${comparisonContext} Never substitute, infer, or invent a propertyId. Use getDealCopilotOverview only for an explicit overall deal status, summary, what happened, what remains, or current situation request. For one metric or a focused property question, use getPropertyDetails and do not load the overview. For an explicit request such as "show professionals for this property", "who can help with this deal", or "find the suggested services", call getPropertyDetails with includeServiceMatches true. Otherwise omit that flag. Never call searchServices separately to choose categories for a property; the backend derives them exclusively from serviceNeeds. If DealMetricsResult, DealAdvisorAnalysis, PropertyServiceNeed, PropertyServiceMatch, ServiceFitResult, ProviderContactAccess, ProviderMessageContext, Next Best Action, Deal Workflow, Deal Copilot Overview, provider_message_draft, provider_message_sent, provider_conversation_analysis, or a property comparison is supplied, explain only exact returned values, codes, reasons, and sources. Deal Copilot Overview only aggregates existing capability outputs. Gemini may route to it and explain it, but must never recalculate a score or metric, create advice, change workflow, create a Next Best Action, invent a provider or conversation, execute an action, consume Nuggets, or send a message. Next Best Action is a deterministic backend suggestion. Gemini must never choose, alter, reprioritize, invent, execute, or confirm it; create workflow, pipeline, checklist, deal, or negotiation statuses from it; consume Nuggets; send messages; or claim that its suggested step occurred. Gemini may only explain the returned code, priority, reason, actionable flag, confirmation requirement, target, and alternatives. Deal Workflow is deterministic backend state. Gemini must never define items, change status or source, complete items, fabricate evidence, interpret progress as deal quality or probability, create negotiation status, execute an action, send a message, consume Nuggets, or create reminders or deadlines. It may only explain the returned items and operational completed/total count. Service Fit is an objective backend compatibility calculation, not provider quality, reputation, endorsement, or a recommendation. Provider contact unlock is an entitlement flow controlled by backend RPCs and explicit UI confirmation. You may explain exact contactAccess status and cost returned by the backend, but you must never create an unlock intent, confirm an unlock, execute an RPC, consume Nuggets, reveal contact fields, invent a serviceId, or say contact is available before the backend confirms entitlement. Provider Message Draft is a backend/UI draft action for an already identified serviceId and propertyId; you must never choose the recipient, change the serviceId, send a message, create pending_message_send, negotiate price, promise hiring, make binding offers, or imply that the user has committed to payment or engagement. Confirmed Provider Message Send is executed only by backend/UI endpoints after explicit user confirmation and must use the user's final reviewed text; you must never send, confirm, modify text after confirmation, choose a recipient, call send endpoints, send follow-ups, initiate conversations automatically, or claim a message was sent unless the backend returns provider_message_sent. Provider Conversation Analysis is a read-only assistant view of already authorized chat_messages and may only summarize extracted facts, questions, requests, quoted amounts, availability, open items, and an editable suggested reply; you must never send the suggestedReply, auto-reply, choose or switch provider/conversation, alter past messages, create follow-up tasks, negotiate, update property data, update Service Fit, consume Nuggets, or infer contract, hiring, accepted price, accepted terms, or appointment confirmation unless the provider stated it explicitly. Never calculate, recalculate, estimate, modify, override, or invent a Service Fit score, classification, reason, or order. Never create, remove, or reclassify Deal Advisor signals, attention points, missing information, limitations, service needs, categories, or providers. Never add a service, remove a service, change service confidence, imply a service is mandatory, rank or choose a provider. Suggested services are contextual types that may be relevant, not legal or operational requirements. Never calculate comparison values or create missing numbers. Never choose a preferred property or describe any property as the best deal, winner, buy, or avoid. Match Score is unrelated and must not be used in financial comparison. Cap rate is user-reported stored data, not verified return. Never calculate, derive, estimate, verify, or judge any additional metric, including ROI, profit, MAO, ARV, rehab estimates, risk, deal quality, or recommendations.`;
+}
+
+async function authenticatedUser(authHeader: string) {
+  const token = String(authHeader || '').replace(/^Bearer\s+/i, '').trim();
+  if (!token) return null;
+  const client = createClient(supabaseUrl, supabaseAnonKey, { global: { headers: { Authorization: authHeader } } });
+  const { data: { user }, error } = await client.auth.getUser(token);
+  return error || !user ? null : user;
 }
 
 Deno.serve(async (req) => {
-  if (req.method === 'OPTIONS') return new Response('ok', { headers: corsHeaders });
-  if (req.method !== 'POST') return jsonResponse({ error: 'Method not allowed' }, 405);
+  const origin = req.headers.get('Origin') || '';
+  if (req.method === 'OPTIONS') return new Response('ok', { headers: corsHeaders(origin) });
+  if (req.method !== 'POST') return response({ message: 'Method not allowed', type: 'text', data: null, actions: [], error: 'METHOD_NOT_ALLOWED' }, 405, origin);
 
+  const requestId = crypto.randomUUID();
+  const startedAt = Date.now();
+  let userId = '';
+  let usedModel = '';
+  let fallbackCount = 0;
   try {
-    const authHeader = req.headers.get('Authorization') ?? '';
-    const { user, error: authError } = await getAuthenticatedUser(authHeader);
-    if (authError) {
-      console.warn('maxxis-chat continuing without verified user session:', authError);
+    const user = await authenticatedUser(req.headers.get('Authorization') || '');
+    if (!user) {
+      logMaxxisEvent('maxxis_chat', { request_id: requestId, duration_ms: Date.now() - startedAt, success: false, error_code: 'UNAUTHORIZED' });
+      return response({ message: 'Authentication required.', type: 'text', data: null, actions: [], error: 'UNAUTHORIZED' }, 401, origin);
     }
-
-    if (!geminiApiKey) {
-      return jsonResponse({
-        error: 'MAXXIS_NOT_CONFIGURED',
-        message: 'Maxxis AI is not configured. Add GEMINI_API_KEY as a Supabase Edge Function secret.',
-      }, 503);
-    }
-
+    userId = user.id;
     const body = await req.json().catch(() => ({}));
     const message = sanitizeText(body.message, 1800);
     const language = detectLanguage(message, sanitizeText(body.language || 'auto', 8));
-    const page = sanitizeText(body.page || 'unknown', 60);
+    const rawPropertyContextId = sanitizeText(body?.context?.propertyId, 50);
+    const propertyContextId = UUID_PATTERN.test(rawPropertyContextId) ? rawPropertyContextId : '';
+    const searchPropertyIds = normalizeComparisonContextIds(body?.context?.propertyIds);
+    const comparisonPropertyIds = normalizeComparisonContextIds([
+      ...searchPropertyIds,
+      ...(propertyContextId ? [propertyContextId] : []),
+    ]);
+    if (!message) return response({ message: 'Message is required.', type: 'text', data: null, actions: [], error: 'MESSAGE_REQUIRED' }, 400, origin);
+    if (!geminiApiKey) {
+      const text = fallback(language, 'config');
+      return response({ message: text, answer: text, type: 'text', data: null, actions: [], language, unavailable: true, error: 'MAXXIS_NOT_CONFIGURED' }, 503, origin);
+    }
     const history = Array.isArray(body.history) ? body.history.slice(-10) : [];
-
-    if (!message) return jsonResponse({ error: 'Message is required.' }, 400);
-
-    const contents = [
-      ...history
-        .map((item: Record<string, unknown>) => ({
-          role: toGeminiRole(item?.role),
-          parts: [{ text: sanitizeText(item?.content || item?.text, 1600) }],
-        }))
-        .filter((item) => item.parts[0].text),
-      {
-        role: 'user',
-        parts: [{ text: message }],
-      },
-    ];
-
-    const geminiRequest = {
-      systemInstruction: {
-        parts: [{ text: buildSystemPrompt(language, page) }],
-      },
-      contents,
-      generationConfig: {
-        temperature: 0.45,
-        topP: 0.9,
-        maxOutputTokens: 1400,
-      },
-      safetySettings: [
-        { category: 'HARM_CATEGORY_HARASSMENT', threshold: 'BLOCK_ONLY_HIGH' },
-        { category: 'HARM_CATEGORY_HATE_SPEECH', threshold: 'BLOCK_ONLY_HIGH' },
-        { category: 'HARM_CATEGORY_SEXUALLY_EXPLICIT', threshold: 'BLOCK_ONLY_HIGH' },
-        { category: 'HARM_CATEGORY_DANGEROUS_CONTENT', threshold: 'BLOCK_ONLY_HIGH' },
-      ],
-    };
-
+    const contents = [...history.map((item: Record<string, unknown>) => ({ role: item?.role === 'assistant' ? 'model' : 'user', parts: [{ text: sanitizeText(item?.content || item?.text, 1600) }] })).filter((item) => item.parts[0].text), { role: 'user', parts: [{ text: message }] }];
+    const systemPrompt = `${buildSystemPrompt(language, sanitizeText(body.page || 'unknown', 60))}\n\n${propertyContextInstruction(propertyContextId, searchPropertyIds, comparisonPropertyIds)}`;
+    const geminiRequest = { systemInstruction: { parts: [{ text: systemPrompt }] }, contents, tools: MAXXIS_TOOLS, generationConfig: { temperature: 0.45, topP: 0.9, maxOutputTokens: 1400 }, safetySettings: [{ category: 'HARM_CATEGORY_HARASSMENT', threshold: 'BLOCK_ONLY_HIGH' }, { category: 'HARM_CATEGORY_HATE_SPEECH', threshold: 'BLOCK_ONLY_HIGH' }, { category: 'HARM_CATEGORY_SEXUALLY_EXPLICIT', threshold: 'BLOCK_ONLY_HIGH' }, { category: 'HARM_CATEGORY_DANGEROUS_CONTENT', threshold: 'BLOCK_ONLY_HIGH' }] };
+    const providerErrors: Array<{ status: number }> = [];
     let payload: Record<string, unknown> = {};
-    const providerErrors: Array<Record<string, unknown>> = [];
     for (const model of geminiModels) {
       const result = await callGemini(model, geminiRequest);
       payload = result.payload;
-      if (result.response.ok) {
-        providerErrors.length = 0;
-        break;
+      if (result.response.ok) { usedModel = model; break; }
+      fallbackCount += 1;
+      providerErrors.push({ status: result.response.status });
+    }
+    if (!usedModel) {
+      const quota = providerErrors.some((item) => item.status === 429);
+      const text = fallback(language, quota ? 'quota' : 'provider');
+      logMaxxisEvent('maxxis_chat', { request_id: requestId, user_id: userId, duration_ms: Date.now() - startedAt, success: false, fallback_count: fallbackCount, error_code: quota ? 'MAXXIS_PROVIDER_QUOTA' : 'MAXXIS_PROVIDER_FAILED' });
+      return response({ message: text, answer: text, type: 'text', data: null, actions: [], language, unavailable: true, error: quota ? 'MAXXIS_PROVIDER_QUOTA' : 'MAXXIS_PROVIDER_FAILED' }, 502, origin);
+    }
+    const parts = ((payload as any)?.candidates?.[0]?.content?.parts || []) as Array<Record<string, any>>;
+    const functionCall = parts.find((part) => part?.functionCall)?.functionCall;
+    if (functionCall) {
+      const toolStartedAt = Date.now();
+      const toolName = String(functionCall.name || '');
+      let result;
+      try {
+        result = await executeMaxxisTool(
+          toolName,
+          functionCall.args || {},
+          req.headers.get('Authorization') || '',
+          { propertyId: propertyContextId, propertyIds: comparisonPropertyIds },
+        );
+      } catch (error) {
+        if (toolName === 'getPropertyDetails' || toolName === 'getDealCopilotOverview') {
+          logMaxxisEvent('maxxis_tool', { tool: toolName, duration_ms: Date.now() - toolStartedAt, success: false, property_found: false });
+          const code = error instanceof Error ? error.message : '';
+          if (code === 'PROPERTY_CONTEXT_REQUIRED' || code === 'PROPERTY_CONTEXT_MISMATCH' || code === 'INVALID_PROPERTY_ID' || code === 'INVALID_PROPERTY_DETAILS_INPUT') {
+            const text = toolName === 'getDealCopilotOverview' ? dealCopilotMessage(language, false) : propertyDetailsMessage(language, false);
+            return toolName === 'getDealCopilotOverview'
+              ? response({ message: text, answer: text, type: 'deal_copilot_overview', data: null, actions: [], language }, 200, origin)
+              : response({ message: text, answer: text, type: 'property_details', data: { property: null, missingFields: [], metrics: null, analysis: null, serviceNeeds: [], serviceMatches: null, nextBestAction: null, workflow: null }, actions: [], language }, 200, origin);
+          }
+        } else if (toolName === 'compareProperties') {
+          const propertyCount = Array.isArray(functionCall.args?.propertyIds) ? Math.min(functionCall.args.propertyIds.length, 3) : 0;
+          logMaxxisEvent('maxxis_compare_properties', { tool: toolName, duration_ms: Date.now() - toolStartedAt, success: false, property_count: propertyCount });
+          const text = propertyComparisonMessage(language, false);
+          return response({ message: text, answer: text, type: 'property_comparison', data: { properties: [], comparison: null }, actions: [], language }, 200, origin);
+        } else {
+          logMaxxisEvent('maxxis_tool', { request_id: requestId, user_id: userId, model: usedModel, duration_ms: Date.now() - toolStartedAt, success: false, fallback_count: fallbackCount, tool: toolName, error_code: error instanceof Error ? error.message : 'MAXXIS_TOOL_FAILED' });
+        }
+        throw error;
       }
-      providerErrors.push({
-        model,
-        status: result.response.status,
-        reason: payload?.error?.status || payload?.error?.message || 'provider_error',
-      });
+      if (result.type === 'property_details') {
+        logMaxxisEvent('maxxis_tool', { tool: toolName, duration_ms: Date.now() - toolStartedAt, success: true, property_found: result.found });
+        if (result.serviceMatchingSummary) {
+          logMaxxisEvent('maxxis_property_service_matching', {
+            service_needs_processed: result.serviceMatchingSummary.serviceNeedsProcessed,
+            searches_performed: result.serviceMatchingSummary.searchesPerformed,
+            result_count: result.serviceMatchingSummary.resultsReturned,
+            duration_ms: result.serviceMatchingSummary.durationMs,
+            city_to_state_fallback: result.serviceMatchingSummary.cityToStateFallbackUsed,
+          });
+        }
+        const text = propertyDetailsMessage(language, result.found);
+        return response({ message: text, answer: text, type: 'property_details', data: { property: result.property, missingFields: result.missingFields, metrics: result.metrics, analysis: result.analysis, serviceNeeds: result.serviceNeeds, serviceMatches: result.serviceMatches, nextBestAction: result.nextBestAction || null, workflow: result.workflow || null }, actions: [], language }, 200, origin);
+      }
+      if (result.type === 'deal_copilot_overview') {
+        const text = dealCopilotMessage(language, result.found);
+        return response({ message: text, answer: text, type: 'deal_copilot_overview', data: result.overview || null, actions: [], language }, 200, origin);
+      }
+      if (result.type === 'property_comparison') {
+        logMaxxisEvent('maxxis_compare_properties', { tool: toolName, duration_ms: Date.now() - toolStartedAt, success: true, property_count: result.properties.length });
+        const text = propertyComparisonMessage(language, true);
+        return response({ message: text, answer: text, type: 'property_comparison', data: { properties: result.properties, comparison: result.comparison }, actions: [], language }, 200, origin);
+      }
+      if (result.type === 'investment_profile') {
+        logMaxxisEvent('maxxis_tool', { request_id: requestId, user_id: userId, model: usedModel, duration_ms: Date.now() - toolStartedAt, success: true, fallback_count: fallbackCount, tool: toolName, profile_exists: result.exists });
+        const text = investmentProfileMessage(language, result.exists, result.complete);
+        return response({ message: text, answer: text, type: 'investment_profile', data: { profile: result.profile, complete: result.complete }, actions: [], language }, 200, origin);
+      }
+      if (result.type === 'services') {
+        const services = result.items;
+        logMaxxisEvent('maxxis_tool', { request_id: requestId, user_id: userId, model: usedModel, duration_ms: Date.now() - toolStartedAt, success: true, fallback_count: fallbackCount, tool: toolName, result_count: services.length });
+        const text = serviceSearchMessage(language, services.length);
+        return response({ message: text, answer: text, type: 'services', data: { services }, actions: [], language }, 200, origin);
+      }
+      const properties = result.items;
+      let profileSuggestions = result.profileSuggestions;
+      if (profileSuggestions.length) {
+        try {
+          profileSuggestions = await prepareProfileSuggestions(profileSuggestions, req.headers.get('Authorization') || '');
+          profileSuggestions.forEach((suggestion) => logMaxxisEvent('maxxis_action_created', {
+            request_id: requestId,
+            user_id: userId,
+            duration_ms: Date.now() - toolStartedAt,
+            success: true,
+            operation: suggestion.operation,
+            action_status: 'pending',
+          }));
+        } catch (error) {
+          logMaxxisEvent('maxxis_action_created', {
+            request_id: requestId,
+            user_id: userId,
+            duration_ms: Date.now() - toolStartedAt,
+            success: false,
+            error_code: error instanceof Error ? error.message : 'MAXXIS_ACTION_PREPARE_FAILED',
+          });
+        }
+      }
+      logMaxxisEvent('maxxis_tool', { request_id: requestId, user_id: userId, model: usedModel, duration_ms: Date.now() - toolStartedAt, success: true, fallback_count: fallbackCount, tool: toolName, result_count: properties.length, search_mode: result.personalized ? 'personalized' : 'explicit', evaluated_count: result.evaluatedProperties, scored_count: result.scoredProperties, ranking_duration_ms: result.rankingDurationMs, behavior_history_available: result.behaviorHistoryAvailable, behavior_action_count: result.behaviorActionCount, behavior_signal_applied: result.behaviorSignalApplied, behavior_duration_ms: result.behaviorDurationMs, profile_drift_detected: result.profileDriftDetected, profile_suggestion_count: result.profileSuggestions.length, profile_suggestion_dimensions: result.profileSuggestions.map((item) => item.dimension), profile_drift_duration_ms: result.profileDriftDurationMs });
+      const text = propertySearchMessage(language, properties.length, result.personalized, result.requiresProfile);
+      return response({ message: text, answer: text, type: 'properties', data: { properties, personalized: result.personalized, profileAvailable: result.profileAvailable, profileSuggestions }, actions: [], language }, 200, origin);
     }
-
-    if (providerErrors.length) {
-      console.error('maxxis-chat provider failed:', providerErrors);
-      const quotaBlocked = providerErrors.some((item) => Number(item.status) === 429);
-      return jsonResponse({
-        ok: false,
-        error: quotaBlocked ? 'MAXXIS_PROVIDER_QUOTA' : 'MAXXIS_PROVIDER_FAILED',
-        answer: providerFallbackAnswer(language, quotaBlocked ? 'quota' : 'provider'),
-        language,
-        unavailable: true,
-      });
-    }
-
-    const text = String(payload?.candidates?.[0]?.content?.parts?.[0]?.text || '').trim();
-    if (!text) {
-      return jsonResponse({
-        error: 'MAXXIS_EMPTY_RESPONSE',
-        message: 'Maxxis could not generate a response. Please try again.',
-      }, 502);
-    }
-
-    return jsonResponse({ ok: true, answer: text, language, user_id: user?.id ?? null });
-  } catch (err) {
-    console.error('maxxis-chat failed:', err);
-    return jsonResponse({ error: 'MAXXIS_FAILED', message: String((err as Error)?.message || err || 'Maxxis failed') }, 500);
+    const text = String(parts.find((part) => part?.text)?.text || '').trim();
+    if (!text) return response({ message: 'Maxxis could not generate a response. Please try again.', type: 'text', data: null, actions: [], error: 'MAXXIS_EMPTY_RESPONSE' }, 502, origin);
+    logMaxxisEvent('maxxis_chat', { request_id: requestId, user_id: userId, model: usedModel, duration_ms: Date.now() - startedAt, success: true, fallback_count: fallbackCount });
+    return response({ message: text, answer: text, type: 'text', data: null, actions: [], language }, 200, origin);
+  } catch (error) {
+    const timedOut = error instanceof DOMException && error.name === 'AbortError';
+    logMaxxisEvent('maxxis_chat', { request_id: requestId, user_id: userId, model: usedModel, duration_ms: Date.now() - startedAt, success: false, fallback_count: fallbackCount, error_code: timedOut ? 'MAXXIS_TIMEOUT' : 'MAXXIS_FAILED' });
+    const text = fallback('en', 'provider');
+    return response({ message: text, answer: text, type: 'text', data: null, actions: [], unavailable: true, error: timedOut ? 'MAXXIS_TIMEOUT' : 'MAXXIS_FAILED' }, 502, origin);
   }
 });

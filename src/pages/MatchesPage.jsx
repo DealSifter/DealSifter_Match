@@ -1791,17 +1791,7 @@ function PortfolioDetail({ item, owner, ownerContact = null, isOwnerUnlocked = f
   };
 
   const buildMaxxisAnalysisPrompt = () => {
-    const { title, cardsDescription } = buildExportPayload();
-    return [
-      'Analyze this unlocked DealSifter property opportunity for an investor.',
-      '',
-      'Use the property data, category/type, goal, rehab, cap rate, strategy, description and the business idea implied by the card.',
-      'Return a concise but useful analysis with: quick verdict, numbers check, main risks, questions to ask the owner, and next steps.',
-      'If information is missing, call it out instead of inventing values.',
-      '',
-      `PROPERTY: ${title}`,
-      cardsDescription,
-    ].join('\n');
+    return 'Show the factual published details for the property currently selected on screen. Identify missing fields, but do not calculate financial metrics, assess risk, judge deal quality, or make a recommendation.';
   };
 
   const handleAnalyzeWithMaxxis = () => {
@@ -1813,20 +1803,7 @@ function PortfolioDetail({ item, owner, ownerContact = null, isOwnerUnlocked = f
       id: `maxxis-property-analysis-${item?.id || item?.address || Date.now()}-${Date.now()}`,
       title: source.title,
       prompt: buildMaxxisAnalysisPrompt(),
-      property: {
-        id: item?.id,
-        title: source.title,
-        address: item?.address,
-        city: item?.city,
-        state: item?.state,
-        zip: item?.zip,
-        price: item?.price,
-        type: item?.type,
-        objective: item?.objective,
-        rehab: item?.rehab,
-        capRate: item?.capRate,
-        dealTag: item?.dealTag,
-      },
+      propertyId: item?.id,
       onExportPdf: (analysisText) => generateReleasePdf({
         title: source.title,
         cardsDescription: source.cardsDescription,
@@ -2240,7 +2217,7 @@ function PortfolioDetail({ item, owner, ownerContact = null, isOwnerUnlocked = f
   );
 }
 
-export function MatchesPage({ nuggets, isAdmin = false, setModal, openUnlock, unlocked, initialChat, chatFocusToken = 0, interested, matched, setInterested, setMatched, convos, setConvos, categoryOrder, setCategoryOrder, showcaseProperties, propertyPortfolio, servicePortfolio, userProfile, personalProfile, professionalProfile, mobileBottomNavCollapsed = false, userPreferences = null, planActionAccess = {}, setPage = null, addToast = null, onOpenChatLanguageConfig = null, onSendChatMessage = null, onRetryChatMessage = null, onMarkChatRead = null, onLoadMoreChatMessages = null, chatHasMore = {}, chatLoadingMore = {}, propertyUnlocks = [], unlockedContactMap = new Map(), currentUserId = 'local-user', onAnalyzePropertyWithMaxxis = null, isActive = true }) {
+export function MatchesPage({ nuggets, isAdmin = false, setModal, openUnlock, unlocked, initialChat, chatFocusToken = 0, interested, matched, setInterested, setMatched, convos, setConvos, categoryOrder, setCategoryOrder, showcaseProperties, propertyPortfolio, servicePortfolio, userProfile, personalProfile, professionalProfile, mobileBottomNavCollapsed = false, userPreferences = null, planActionAccess = {}, setPage = null, addToast = null, onOpenChatLanguageConfig = null, onSendChatMessage = null, onRetryChatMessage = null, onMarkChatRead = null, onLoadMoreChatMessages = null, chatHasMore = {}, chatLoadingMore = {}, propertyUnlocks = [], unlockedContactMap = new Map(), currentUserId = 'local-user', onAnalyzePropertyWithMaxxis = null, onPropertyContextChange = null, isActive = true }) {
   const PORTFOLIO_PANEL_PADDING = 40;
   const PORTFOLIO_GRID_GAP = 12;
   const PORTFOLIO_CARD_MIN_WIDTH = 132;
@@ -3308,6 +3285,22 @@ export function MatchesPage({ nuggets, isAdmin = false, setModal, openUnlock, un
     return () => window.removeEventListener('ds-guidetip-step', handleGuideStep);
   }, [active, filteredInterested, filteredMatched, isMobile, portfolioItems]);
   const [mobileCardSheet, setMobileCardSheet] = useState(null);
+
+  useEffect(() => {
+    if (typeof onPropertyContextChange !== 'function') return;
+    const isPropertyItem = (item) => Boolean(item && (
+      item.address
+      || item.propertyId
+      || item.property_id
+      || 'beds' in item
+      || 'baths' in item
+      || 'objective' in item
+    ));
+    const visibleProperty = isActive
+      ? (isPropertyItem(mobileCardSheet) ? mobileCardSheet : (isPropertyItem(selectedPortfolioItem) ? selectedPortfolioItem : null))
+      : null;
+    onPropertyContextChange(String(visibleProperty?.id || '').trim());
+  }, [isActive, mobileCardSheet, onPropertyContextChange, selectedPortfolioItem]);
 
   useEffect(() => {
     if (!initialChat) return;
