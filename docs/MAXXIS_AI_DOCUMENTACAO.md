@@ -111,3 +111,21 @@ Regras:
 
 O Maxxis deve tratar a documentacao do DealSifter Match e o comportamento real do app como fonte de verdade. Quando houver conflito entre conhecimento generico de Real Estate e regras da plataforma, as regras da plataforma prevalecem.
 
+## Arquitetura Do MVP E Deal Copilot
+
+O Maxxis usa Gemini somente para compreender intenção, selecionar tools registradas e explicar respostas estruturadas. Cálculos e estados permanecem determinísticos no backend Supabase:
+
+```text
+React / MaxxisAssistant
+  -> maxxisService
+  -> maxxis-chat
+  -> toolRegistry
+  -> módulos determinísticos + Supabase
+  -> resposta estruturada
+```
+
+O tipo `deal_copilot_overview` agrega, quando solicitado explicitamente, detalhes da property, métricas, Deal Advisor, Workflow, Next Best Action e contexto opcional de provider/conversa. O primeiro nível prioriza Next Best Action, progresso e pontos de atenção; métricas e contexto adicional ficam em "View details".
+
+Fontes de verdade: Match em `calculatePropertyMatch`; comportamento em `behaviorAffinity`; métricas em `dealMetrics`; Advisor em `analyzeDealFacts`; necessidades em `propertyServiceNeeds`; Service Fit em `calculateServiceFit`; Workflow em `dealWorkflow`; próxima ação em `nextBestAction`; conversa em `providerConversationAnalysis`. O Copilot apenas agrega esses resultados.
+
+Perguntas focais continuam usando a capability específica. O overview não executa unlock, atualização de perfil ou checklist manual, não consome Nuggets e não envia mensagens. Fluxos sensíveis permanecem no protocolo prepare/confirm/cancel com confirmação explícita do usuário.
