@@ -2510,7 +2510,6 @@ export function Dashboard({ page, nuggets, setModal, setPage, onOpenOnboardingTa
     })
   ), []);
 
-  const fmtPrice = formatCompactUsd;
   const getSafePropertyLabel = (property, fallback = 'Property') => {
     const publicLine = getPublicPropertyAddressLine(property);
     if (publicLine) return publicLine;
@@ -2624,7 +2623,7 @@ export function Dashboard({ page, nuggets, setModal, setPage, onOpenOnboardingTa
       return true;
     }
     return false;
-  }, [addToast, currentUserId, findConnectionById, openUnlock, ownOwnerIdsKey, unlocked]);
+  }, [addToast, findConnectionById, openUnlock, ownOwnerIdsKey, t.ownCardNotSelectable, unlocked]);
 
   const handleMobileUnlockAction = () => {
     if (view === 'connections') {
@@ -2740,7 +2739,7 @@ export function Dashboard({ page, nuggets, setModal, setPage, onOpenOnboardingTa
         id: p.id,
         title: getSafePropertyLabel(p),
         subtitle: `${p.type} · ${formatPropertyLocation(p)}`,
-        meta: `${fmtPrice(p.price)} · ${p.capRate ? `${p.capRate}% Cap` : 'Cap N/A'}`,
+        meta: `${formatCompactUsd(p.price)} · ${p.capRate ? `${p.capRate}% Cap` : 'Cap N/A'}`,
         tone: C.gold,
         icon: 'home',
         thumb: safeThumb,

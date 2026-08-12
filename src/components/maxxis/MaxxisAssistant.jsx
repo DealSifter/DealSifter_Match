@@ -1886,6 +1886,8 @@ export function MaxxisAssistant({ page = 'dashboard', onOpenSupport = null, onNa
   }]);
   const endRef = useRef(null);
   const handledAnalysisRequestsRef = useRef(new Set());
+  const propertyAnalysisRequestRef = useRef(propertyAnalysisRequest);
+  const submitMessageRef = useRef(null);
   const dragRef = useRef({
     active: false,
     moved: false,
@@ -1895,6 +1897,10 @@ export function MaxxisAssistant({ page = 'dashboard', onOpenSupport = null, onNa
     startX: 0,
     startY: 0,
   });
+
+  useEffect(() => {
+    propertyAnalysisRequestRef.current = propertyAnalysisRequest;
+  }, [propertyAnalysisRequest]);
 
   useEffect(() => {
     if (!open) return;
@@ -2104,6 +2110,9 @@ export function MaxxisAssistant({ page = 'dashboard', onOpenSupport = null, onNa
       setLoading(false);
     }
   };
+  useEffect(() => {
+    submitMessageRef.current = submitMessage;
+  });
 
   const updateProfileSuggestionMessage = (messageId, pendingActionId, feedback) => {
     setMessages((prev) => prev.map((message) => {
@@ -2436,17 +2445,18 @@ export function MaxxisAssistant({ page = 'dashboard', onOpenSupport = null, onNa
   };
 
   useEffect(() => {
-    const requestId = String(propertyAnalysisRequest?.id || '').trim();
-    const prompt = String(propertyAnalysisRequest?.prompt || '').trim();
+    const request = propertyAnalysisRequestRef.current;
+    const requestId = String(request?.id || '').trim();
+    const prompt = String(request?.prompt || '').trim();
     if (!requestId || !prompt || handledAnalysisRequestsRef.current.has(requestId)) return;
     handledAnalysisRequestsRef.current.add(requestId);
     setOpen(true);
     setInput('');
-    void submitMessage(prompt, {
+    void submitMessageRef.current?.(prompt, {
       analysisExport: {
         requestId,
-        title: propertyAnalysisRequest?.title || '',
-        onExportPdf: propertyAnalysisRequest?.onExportPdf || null,
+        title: request?.title || '',
+        onExportPdf: request?.onExportPdf || null,
       },
     });
   }, [propertyAnalysisRequest?.id]);

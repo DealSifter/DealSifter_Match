@@ -2459,7 +2459,7 @@ export default function App() {
       byKey.set(`${item.cardKind}:${item.cardId}`, item);
     });
     return [...byKey.values()];
-  }, [accountType, activeSpotlightKeys, personalProfile, professionalProfile, propertyPortfolio, spotlightDbCandidates, supabaseUserId]);
+  }, [activeSpotlightKeys, personalProfile, professionalProfile, propertyPortfolio, spotlightDbCandidates, supabaseUserId]);
 
   const showcaseProperties = useMemo(() => {
     const byId = new Map();
@@ -2478,7 +2478,7 @@ export default function App() {
         byId.set(String(id), { ...p, id });
       });
     return [...byId.values()];
-  }, [globalShowcaseProperties, propertyPortfolio, supabaseUserId]);
+  }, [globalShowcaseProperties, propertyPortfolio]);
 
   const unlockPortfolioProperties = useMemo(() => {
     const byId = new Map();
@@ -4212,13 +4212,13 @@ export default function App() {
     };
   }, [supabaseUserId]);
 
-  const openSettingsTab = (tab = 'profile', view = 'menu') => {
+  const openSettingsTab = useCallback((tab = 'profile', view = 'menu') => {
     setSettingsInitialTab(tab);
     setSettingsInitialView(view);
     setPage('settings');
-  };
+  }, [setPage]);
 
-  const openOnboardingTab = (tab = 'personal') => {
+  const openOnboardingTab = useCallback((tab = 'personal') => {
     const normalized = String(tab || '').trim().toLowerCase();
     const professionalTabs = new Set(['professional', 'business', 'secondary', 'operation', 'operations']);
     const fsboTabs = new Set(['fsbo', 'fsbo_owner']);
@@ -4235,7 +4235,7 @@ export default function App() {
 
     setOnboardingInitialTab(nextTab);
     setPage('onboarding');
-  };
+  }, [setPage]);
 
   const handleMaxxisNavigateAction = useCallback((actionId) => {
     const action = String(actionId || '').trim().toLowerCase().replace(/_/g, '-');

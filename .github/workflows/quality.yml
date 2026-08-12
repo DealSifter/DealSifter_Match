@@ -1,0 +1,44 @@
+name: Quality Gate
+
+on:
+  pull_request:
+  push:
+    branches:
+      - dev
+      - main
+      - release/**
+      - safe-push
+
+permissions:
+  contents: read
+
+concurrency:
+  group: quality-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  validate:
+    name: Clean install, audit, test and build
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    env:
+      CI: true
+      VITE_SUPABASE_URL: https://ci-placeholder.supabase.co
+      VITE_SUPABASE_ANON_KEY: ci-public-placeholder
+      VITE_APP_URL: https://ci.dealsifter.invalid
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Use Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version-file: .nvmrc
+          cache: npm
+
+      - name: Install from lockfile
+        run: npm ci
+
+      - name: Run complete local quality gate
+        run: npm run quality
