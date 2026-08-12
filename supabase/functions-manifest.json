@@ -20,6 +20,7 @@
     "SUPABASE_URL"
   ],
   "optionalSecrets": [
+    "APP_ALLOWED_ORIGINS",
     "MAXXIS_GEMINI_MODEL",
     "MAXXIS_GEMINI_TIMEOUT_MS",
     "SUPPORT_EMAIL_FROM",

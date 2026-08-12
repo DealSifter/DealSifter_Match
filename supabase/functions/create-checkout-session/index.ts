@@ -1,11 +1,23 @@
 import Stripe from 'npm:stripe@17';
 import { createClient } from 'npm:@supabase/supabase-js@2';
+import {
+  buildCorsHeaders,
+  isRequestOriginAllowed,
+  parseAllowedOrigins,
+  resolveTrustedReturnUrl,
+} from '../_shared/httpSecurity.ts';
 
 const stripeSecretKey = Deno.env.get('STRIPE_SECRET_KEY') ?? '';
 const supabaseUrl = Deno.env.get('SUPABASE_URL') ?? '';
 const supabaseAnonKey = Deno.env.get('ANON_KEY') ?? Deno.env.get('SUPABASE_ANON_KEY') ?? '';
 const supabaseServiceRoleKey =
   Deno.env.get('SERVICE_ROLE_KEY') ?? Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? '';
+const configuredAppUrl = Deno.env.get('APP_URL') ?? 'https://dealsifter.com';
+const appOrigin = parseAllowedOrigins('', [configuredAppUrl])[0] || 'https://dealsifter.com';
+const allowedOrigins = parseAllowedOrigins(
+  Deno.env.get('APP_ALLOWED_ORIGINS') ?? '',
+  [appOrigin, Deno.env.get('VITE_APP_URL') ?? ''],
+);
 
 if (!stripeSecretKey) throw new Error('Missing STRIPE_SECRET_KEY');
 if (!supabaseUrl) throw new Error('Missing SUPABASE_URL');
@@ -17,11 +29,6 @@ const stripe = new Stripe(stripeSecretKey, {
 });
 
 const supabaseAdmin = createClient(supabaseUrl, supabaseServiceRoleKey);
-
-const corsHeaders = {
-  'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
-};
 
 const PACK_PRICE_ENV: Record<string, string> = {
   p5: 'STRIPE_PRICE_P5',
@@ -101,6 +108,14 @@ async function ensureStripeCustomer(user: { id: string; email?: string | null })
 }
 
 Deno.serve(async (req) => {
+  const requestOrigin = req.headers.get('Origin') ?? '';
+  const corsHeaders = buildCorsHeaders(requestOrigin, allowedOrigins);
+  if (!isRequestOriginAllowed(requestOrigin, allowedOrigins)) {
+    return new Response(JSON.stringify({ error: 'Origin not allowed' }), {
+      status: 403,
+      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+    });
+  }
   if (req.method === 'OPTIONS') {
     return new Response('ok', { headers: corsHeaders });
   }
@@ -127,11 +142,12 @@ Deno.serve(async (req) => {
     const packId = String(body?.pack_id ?? '').trim();
     const planId = String(body?.plan_id ?? '').trim();
     const billingCycle = normalizeBillingCycle(body?.billing_cycle);
-    const appUrl = Deno.env.get('APP_URL') ?? 'https://dealsifter.com';
     const isEmbedded = body?.ui_mode === 'embedded' || body?.embedded === true;
-    const successUrl = String(body?.success_url ?? `${appUrl}/?checkout=success`).trim();
-    const cancelUrl = String(body?.cancel_url ?? `${appUrl}/?checkout=cancelled`).trim();
-    const returnUrl = String(body?.return_url ?? successUrl).trim();
+    const successFallback = `${appOrigin}/?checkout=success`;
+    const cancelFallback = `${appOrigin}/?checkout=cancelled`;
+    const successUrl = resolveTrustedReturnUrl(body?.success_url, successFallback, allowedOrigins);
+    const cancelUrl = resolveTrustedReturnUrl(body?.cancel_url, cancelFallback, allowedOrigins);
+    const returnUrl = resolveTrustedReturnUrl(body?.return_url, successUrl, allowedOrigins);
 
     const itemId = mode === 'subscription' ? planId : packId;
     const expectedPriceId = getAllowedPriceId(mode === 'subscription' ? 'plan' : 'pack', itemId, billingCycle);

@@ -26,6 +26,14 @@ jobs:
       VITE_SUPABASE_URL: https://ci-placeholder.supabase.co
       VITE_SUPABASE_ANON_KEY: ci-public-placeholder
       VITE_APP_URL: https://ci.dealsifter.invalid
+      VITE_STRIPE_PRICE_P5: price_ci_p5
+      VITE_STRIPE_PRICE_P15: price_ci_p15
+      VITE_STRIPE_PRICE_P40: price_ci_p40
+      VITE_STRIPE_PRICE_P100: price_ci_p100
+      VITE_STRIPE_PRICE_PLAN_PRO: price_ci_plan_pro
+      VITE_STRIPE_PRICE_PLAN_ENTERPRISE: price_ci_plan_enterprise
+      VITE_STRIPE_PRICE_PLAN_PRO_YEAR: price_ci_plan_pro_year
+      VITE_STRIPE_PRICE_PLAN_ENTERPRISE_YEAR: price_ci_plan_enterprise_year
 
     steps:
       - name: Checkout

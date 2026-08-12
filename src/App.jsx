@@ -4,7 +4,6 @@ import loaderMark from './assets/logo.png';
 import { ThemeProvider } from './theme/theme';
 import { Navbar } from './components/layout/Navbar';
 import { AppMobileBottomNav } from './components/layout/AppMobileBottomNav';
-import { MaxxisAssistant } from './components/maxxis/MaxxisAssistant';
 import { GuideTipsProvider } from './components/guidetips/GuideTipsProvider';
 import { GuideTipOverlay } from './components/guidetips/GuideTipOverlay';
 import ErrorBoundary from './components/ui/ErrorBoundary';
@@ -78,6 +77,7 @@ const Settings = lazyWithRetry(() => import('./pages/Settings').then((m) => ({ d
 const AdminDashboard = lazyWithRetry(() => import('./pages/AdminDashboard').then((m) => ({ default: m.AdminDashboard })), 'admin');
 const TermsPage = lazyWithRetry(() => import('./pages/TermsPage').then((m) => ({ default: m.TermsPage })), 'terms');
 const PrivacyPolicyPage = lazyWithRetry(() => import('./pages/PrivacyPolicyPage').then((m) => ({ default: m.PrivacyPolicyPage })), 'privacy');
+const MaxxisAssistant = lazyWithRetry(() => import('./components/maxxis/MaxxisAssistant').then((m) => ({ default: m.MaxxisAssistant })), 'maxxis-assistant');
 import { UnlockModal } from './components/modals/UnlockModal';
 import { SpotlightModal } from './components/modals/SpotlightModal';
 const AuthAccessModal = lazyWithRetry(() => import('./components/modals/AuthAccessModal').then((m) => ({ default: m.AuthAccessModal })), 'auth-access');
@@ -5766,15 +5766,17 @@ export default function App() {
               navigationLocked={onboardingNavigationLocked}
               onNavigationBlocked={handleOnboardingNavigationBlocked}
             />
-            <MaxxisAssistant
-              page={page}
-              enabled={Boolean(authSession)}
-              onOpenSupport={() => openSettingsTab('communication', 'support')}
-              onNavigateAction={handleMaxxisNavigateAction}
-              propertyAnalysisRequest={maxxisPropertyAnalysisRequest}
-              propertyContextId={maxxisPropertyContextId}
-              onExportAnalysisPdf={handleExportMaxxisAnalysisPdf}
-            />
+            <Suspense fallback={null}>
+              <MaxxisAssistant
+                page={page}
+                enabled={Boolean(authSession)}
+                onOpenSupport={() => openSettingsTab('communication', 'support')}
+                onNavigateAction={handleMaxxisNavigateAction}
+                propertyAnalysisRequest={maxxisPropertyAnalysisRequest}
+                propertyContextId={maxxisPropertyContextId}
+                onExportAnalysisPdf={handleExportMaxxisAnalysisPdf}
+              />
+            </Suspense>
           </>
         )}
 

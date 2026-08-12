@@ -41,17 +41,21 @@ export default defineConfig(({ mode }) => {
     'import.meta.env.VITE_APP_URL': JSON.stringify(publicEnv.VITE_APP_URL),
   },
   build: {
-    // Improves compatibility with older Safari/iPad WebKit builds that can render a blank page
-    // when served modern syntax from default targets.
-    target: 'es2019',
+    // The legacy plugin owns JavaScript targets; cssTarget retains old Safari CSS output.
     cssTarget: 'safari13',
+    manifest: true,
+    chunkSizeWarningLimit: 500,
     rollupOptions: {
       output: {
         manualChunks(id) {
+          if (id.includes('/src/i18n/translations.js')) return 'i18n-data';
+          if (id.includes('/src/data/mockData.js')) return 'catalog-data';
           if (!id.includes('node_modules')) return;
 
           if (id.includes('/react/') || id.includes('react-dom')) return 'react-vendor';
           if (id.includes('@supabase')) return 'supabase-vendor';
+          if (id.includes('@sentry')) return 'observability-vendor';
+          if (id.includes('lucide-react')) return 'icons-vendor';
           if (id.includes('leaflet') || id.includes('react-leaflet') || id.includes('supercluster')) return 'map-vendor';
           if (id.includes('jspdf')) return 'pdf-vendor';
           if (id.includes('localforage')) return 'storage-vendor';

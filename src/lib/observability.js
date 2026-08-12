@@ -3,58 +3,106 @@ import { trackAppEvent } from './adminEventTracking';
 
 const SENSITIVE_KEY_RE = /(password|passwd|secret|token|authorization|apikey|api_key|cookie|email|phone|whatsapp|name|full_name|avatar|photo|image|address)/i;
 const MAX_CONTEXT_DEPTH = 4;
+const REDACTED = '[Redacted]';
+let initialized = false;
 
 const isEnabled = () => Boolean(String(import.meta.env.VITE_SENTRY_DSN || '').trim());
 
-const scrubValue = (value, depth = 0) => {
+const scrubText = (value) => String(value || '')
+  .replace(/[a-z0-9.!#$%&'*+/=?^_`{|}~-]+@[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?(?:\.[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?)+/gi, REDACTED)
+  .replace(/bearer\s+[a-z0-9._~-]+/gi, REDACTED)
+  .replace(/\b(?:sk|pk)_(?:live|test)_[a-z0-9_-]+\b/gi, REDACTED)
+  .replace(/\bsb_(?:secret|publishable)_[a-z0-9_-]+\b/gi, REDACTED)
+  .replace(/\beyJ[a-z0-9_-]+\.[a-z0-9_-]+\.[a-z0-9_-]+\b/gi, REDACTED)
+  .replace(/(?:\+?\d[\d\s().-]{7,}\d)/g, REDACTED);
+
+const scrubUrl = (value) => {
+  const raw = String(value || '').trim();
+  if (!raw) return raw;
+  try {
+    const parsed = new URL(raw);
+    parsed.username = '';
+    parsed.password = '';
+    parsed.hash = '';
+    [...parsed.searchParams.keys()].forEach((key) => parsed.searchParams.set(key, REDACTED));
+    return parsed.toString();
+  } catch {
+    return scrubText(raw);
+  }
+};
+
+export const scrubTelemetryValue = (value, depth = 0) => {
   if (depth > MAX_CONTEXT_DEPTH) return '[Truncated]';
   if (value == null) return value;
   if (typeof value === 'string') {
-    if (value.includes('@')) return '[Redacted]';
-    if (/bearer\s+[a-z0-9._-]+/i.test(value)) return '[Redacted]';
-    if (/sk_live_|sk_test_|pk_live_|pk_test_|sb_secret_|sb_publishable_/i.test(value)) return '[Redacted]';
-    return value.length > 500 ? `${value.slice(0, 500)}...` : value;
+    const scrubbed = scrubText(value);
+    return scrubbed.length > 500 ? `${scrubbed.slice(0, 500)}...` : scrubbed;
   }
   if (typeof value === 'number' || typeof value === 'boolean') return value;
-  if (Array.isArray(value)) return value.slice(0, 20).map((item) => scrubValue(item, depth + 1));
+  if (Array.isArray(value)) return value.slice(0, 20).map((item) => scrubTelemetryValue(item, depth + 1));
   if (typeof value === 'object') {
     return Object.fromEntries(
       Object.entries(value)
         .slice(0, 50)
         .map(([key, item]) => [
           key,
-          SENSITIVE_KEY_RE.test(key) && !/^has_(email|phone|whatsapp)$/i.test(key) ? '[Redacted]' : scrubValue(item, depth + 1),
+          SENSITIVE_KEY_RE.test(key) && !/^has_(email|phone|whatsapp)$/i.test(key) ? REDACTED : scrubTelemetryValue(item, depth + 1),
         ]),
     );
   }
   return '[Unsupported]';
 };
 
-const scrubEvent = (event) => {
+export const scrubTelemetryEvent = (event) => {
   if (!event) return event;
+  if (event.message) event.message = scrubText(event.message);
   delete event.user?.email;
   delete event.user?.username;
   delete event.user?.ip_address;
   if (event.request) {
+    if (event.request.url) event.request.url = scrubUrl(event.request.url);
     delete event.request.cookies;
     delete event.request.headers;
     delete event.request.data;
+    delete event.request.query_string;
   }
-  if (event.extra) event.extra = scrubValue(event.extra);
-  if (event.contexts) event.contexts = scrubValue(event.contexts);
+  if (event.exception?.values) {
+    event.exception.values = event.exception.values.map((exception) => ({
+      ...exception,
+      value: exception?.value ? scrubText(exception.value) : exception?.value,
+    }));
+  }
+  if (event.breadcrumbs) {
+    event.breadcrumbs = event.breadcrumbs.slice(-50).map((breadcrumb) => ({
+      ...breadcrumb,
+      message: breadcrumb?.message ? scrubText(breadcrumb.message) : breadcrumb?.message,
+      data: breadcrumb?.data ? scrubTelemetryValue(breadcrumb.data) : breadcrumb?.data,
+    }));
+  }
+  if (event.extra) event.extra = scrubTelemetryValue(event.extra);
+  if (event.contexts) event.contexts = scrubTelemetryValue(event.contexts);
+  if (event.tags) event.tags = scrubTelemetryValue(event.tags);
+  if (event.fingerprint) event.fingerprint = scrubTelemetryValue(event.fingerprint);
   return event;
 };
 
 export function initObservability() {
   if (!isEnabled()) return false;
+  if (initialized) return true;
+  initialized = true;
+
+  const configuredSampleRate = Number(import.meta.env.VITE_SENTRY_TRACES_SAMPLE_RATE || 0.05);
+  const tracesSampleRate = Number.isFinite(configuredSampleRate)
+    ? Math.min(1, Math.max(0, configuredSampleRate))
+    : 0.05;
 
   Sentry.init({
     dsn: import.meta.env.VITE_SENTRY_DSN,
     environment: import.meta.env.MODE,
     release: import.meta.env.VITE_APP_VERSION || undefined,
     sendDefaultPii: false,
-    tracesSampleRate: Number(import.meta.env.VITE_SENTRY_TRACES_SAMPLE_RATE || 0.05),
-    beforeSend: scrubEvent,
+    tracesSampleRate,
+    beforeSend: scrubTelemetryEvent,
   });
 
   window.__DS_REPORT_ERROR = (error, info = {}) => {
@@ -91,7 +139,7 @@ export function setObservabilityUser(userId) {
 export function captureAppException(error, context = {}) {
   if (!isEnabled()) return;
   Sentry.withScope((scope) => {
-    scope.setContext('deal_sifter', scrubValue(context));
+    scope.setContext('deal_sifter', scrubTelemetryValue(context));
     Sentry.captureException(error instanceof Error ? error : new Error(String(error || 'Unknown error')));
   });
 }
@@ -140,7 +188,7 @@ export async function hashForTelemetry(value) {
 export function captureEntitlementAlert(level, event, payload = {}, error = null) {
   const cleanEvent = String(event || '').trim();
   if (!cleanEvent) return;
-  const safePayload = scrubValue({
+  const safePayload = scrubTelemetryValue({
     event: cleanEvent,
     ...payload,
   });
