@@ -3,6 +3,7 @@ import { C } from '../theme/colors';
 import { useT } from '../i18n/translations';
 import { Icon } from '../components/ui/Icon';
 import { getSupabaseFunctionUrl, supabase, isSupabaseConfigured, supabaseAnonKey } from '../lib/supabaseClient';
+import { createRealtimeLifecycle, createRealtimeTopic } from '../lib/realtimeLifecycle';
 import { redirectToPortal } from '../lib/stripeClient';
 import { CHAT_LANGUAGE_OPTIONS, translateChatText, getSafeLang } from '../services/chatTranslation';
 
@@ -598,24 +599,26 @@ export function Settings({ setPage, prevPage, initialTab = 'profile', initialCom
     if (!isSupabaseConfigured || !supabase || !supabaseUserId) return undefined;
 
     const ticketId = supportTicket?.id ? String(supportTicket.id) : '';
-    const channel = supabase.channel(`support-chat-user-${supabaseUserId}-${ticketId || 'pending'}`);
+    const realtime = createRealtimeLifecycle(supabase);
+    const refreshSupport = realtime.guard(() => setSupportRealtimeTick((value) => value + 1));
+    const channel = supabase.channel(createRealtimeTopic(`support-chat-user-${ticketId || 'pending'}`, supabaseUserId));
     if (!ticketId) {
       channel.on(
         'postgres_changes',
         { event: 'INSERT', schema: 'public', table: 'support_tickets', filter: `user_id=eq.${supabaseUserId}` },
-        () => setSupportRealtimeTick((value) => value + 1)
+        refreshSupport
       );
     }
     if (ticketId) {
       channel.on(
         'postgres_changes',
         { event: 'INSERT', schema: 'public', table: 'support_messages', filter: `ticket_id=eq.${ticketId}` },
-        () => setSupportRealtimeTick((value) => value + 1)
+        refreshSupport
       );
     }
-    channel.subscribe();
+    realtime.subscribe(channel);
     return () => {
-      supabase.removeChannel(channel);
+      realtime.dispose();
     };
   }, [commView, supabaseUserId, supportTicket?.id, tab]);
 

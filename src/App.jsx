@@ -91,7 +91,8 @@ import { CATEGORIES, CARDS as _MOCK_CARDS, PROPERTIES as _MOCK_PROPERTIES, SERVI
 import { supabase, isSupabaseConfigured, supabaseConfigHint } from './lib/supabaseClient';
 import { buildScopedProfilePayload, extractScopedProfileLegacy, inferRecordProfileScope, normalizeProfileScope } from './lib/profileScopeResolver';
 import { buildDataIntegrityAudit } from './lib/dataIntegrityAudit';
-import { getPortfolioFull, setPortfolioFull, clearAllUserData, uploadDataUrlToStorage } from './lib/localforageHelper';
+import { getPortfolioFull, setPortfolioFull, clearAllUserData, clearUserData, uploadDataUrlToStorage } from './lib/localforageHelper';
+import { createRealtimeLifecycle, createRealtimeTopic } from './lib/realtimeLifecycle';
 import { useAuthSession, mapSupabaseUserToSession } from './hooks/useAuthSession';
 import { useProfileSync } from './hooks/useProfileSync';
 import { usePortfolioSync } from './hooks/usePortfolioSync';
@@ -101,7 +102,7 @@ import { useChatRealtime } from './hooks/useChatRealtime';
 import { useUnlockNotifications } from './hooks/useUnlockNotifications';
 import { canPerformAction, getPlanActionAccess, getPlanGateCopy, getCurrentPlan, isPlanLimitError, refreshUsageFromDB } from './services/planUsageService';
 import { isProfileConflictError, saveProfessionalProfileWithVersion } from './services/profileConcurrencyService';
-import { clearSensitiveCache, REMOTE_CACHE_LOCAL_STORAGE_KEYS } from './lib/localStoragePolicy';
+import { clearSensitiveCache, clearUserScopedCache } from './lib/localStoragePolicy';
 import { trackAppEvent } from './lib/adminEventTracking';
 import { captureAppException, captureUnlockError, setObservabilityUser } from './lib/observability';
 import { createPropertyUnlockRecord, getOwnerExclusivityStatus, getPortfolioUnlockCost, getPropertyExclusivityStatus, resolveUnlockOwnerId } from './lib/unlockRules';
@@ -350,7 +351,7 @@ const normalizeUserPreferences = (value) => {
 // instead of localStorage to avoid the ~5MB quota limit.
 const LOCALFORAGE_FULL_KEYS = new Set(['propertyPortfolio', 'servicePortfolio']);
 
-const persistJsonSafely = (key, value, fallbackValue) => {
+const persistJsonSafely = (key, value, fallbackValue, storageOwnerId = 'guest') => {
   try {
     // Always persist a lightweight fallback to localStorage for fast sync reads.
     if (fallbackValue !== undefined) {
@@ -359,7 +360,7 @@ const persistJsonSafely = (key, value, fallbackValue) => {
 
     if (LOCALFORAGE_FULL_KEYS.has(key)) {
       // Store full payload (images included) in localforage (IndexedDB - no 5MB limit).
-      setPortfolioFull(key, value); // async, fire-and-forget
+      setPortfolioFull(key, value, storageOwnerId); // async, fire-and-forget
       if (fallbackValue === undefined) {
         try { localStorage.setItem(key, JSON.stringify(value)); } catch { /* ignore quota */ }
       }
@@ -524,27 +525,8 @@ const mergeProfilePayloadNonEmpty = (...sources) => {
 
 const LOCAL_OWNER_ID = 999999;
 
-const USER_DATA_KEYS = [
-  'propertyPortfolio', 'propertyPortfolio_full',
-  'servicePortfolio', 'servicePortfolio_full',
-  'personalProfile', 'personalProfile_full',
-  'professionalProfile',
-  'userProfile',
-  'accountType',
-  'ds_feed_hidden_contacts', 'ds_feed_hidden_interests',
-  'dealsifter.hiddenCardIds',
-  'ds_matches_archived_contacts', 'ds_matches_archived_interests',
-  'ds_matches_deleted_contacts', 'ds_matches_deleted_interests',
-  'ds_plan_usage_cache',
-  'profileOwnerMap', 'publishingProfileKey',
-  'ds_last_page', 'categoryOrder',
-];
-
 const clearUserSpecificLocalStorage = (userId = null) => {
-  [...new Set([...USER_DATA_KEYS, ...REMOTE_CACHE_LOCAL_STORAGE_KEYS])].forEach((key) => {
-    try { localStorage.removeItem(key); } catch (e) { void e; }
-  });
-  clearSensitiveCache(userId);
+  clearUserScopedCache(userId);
 };
 
 const isUuid = (value) => /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(String(value || '').trim());
@@ -1733,6 +1715,7 @@ export default function App() {
   }, [userProfile]);
 
   const supabaseUserId = authSession?.userId || null;
+  const localStorageOwnerId = supabaseUserId || authSession?.id || 'guest';
 
   const refreshPlanActionAccess = useCallback(async () => {
     if (!isSupabaseConfigured || !supabase || !supabaseUserId) {
@@ -1796,27 +1779,27 @@ export default function App() {
 
     void refreshCurrentPlanAccess({ notify: false });
 
-    let channel = null;
+    const realtime = createRealtimeLifecycle(supabase);
     try {
-      channel = supabase
-        .channel(`user-plan-access-${supabaseUserId}`)
+      const channel = supabase
+        .channel(createRealtimeTopic('user-plan-access', supabaseUserId))
         .on('postgres_changes', {
           event: '*',
           schema: 'public',
           table: 'users',
           filter: `id=eq.${supabaseUserId}`,
-        }, () => {
+        }, realtime.guard(() => {
           void refreshCurrentPlanAccess({ notify: true });
-        })
+        }))
         .on('postgres_changes', {
           event: '*',
           schema: 'public',
           table: 'subscriptions',
           filter: `user_id=eq.${supabaseUserId}`,
-        }, () => {
+        }, realtime.guard(() => {
           void refreshCurrentPlanAccess({ notify: true });
-        })
-        .subscribe((status, error) => {
+        }));
+      realtime.subscribe(channel, (status, error) => {
           if (error) safeLogError('User plan realtime subscription failed.', error);
           if (status === 'CHANNEL_ERROR') safeLogError('User plan realtime channel error.', new Error(status));
         });
@@ -1829,7 +1812,7 @@ export default function App() {
     return () => {
       window.removeEventListener('focus', handleFocusRefresh);
       document.removeEventListener('visibilitychange', handleVisibilityRefresh);
-      if (channel) supabase.removeChannel(channel);
+      realtime.dispose();
     };
   }, [refreshCurrentPlanAccess, supabaseUserId]);
 
@@ -2017,8 +2000,9 @@ export default function App() {
 
   useEffect(() => {
     if (!isSupabaseConfigured || !supabase || !supabaseUserId) return undefined;
+    const realtime = createRealtimeLifecycle(supabase);
     const channel = supabase
-      .channel(`user-feed-actions-${supabaseUserId}`)
+      .channel(createRealtimeTopic('user-feed-actions', supabaseUserId))
       .on(
         'postgres_changes',
         {
@@ -2027,12 +2011,12 @@ export default function App() {
           table: 'user_feed_actions',
           filter: `user_id=eq.${supabaseUserId}`,
         },
-        (payload) => {
+        realtime.guard((payload) => {
           if (payload?.eventType === 'DELETE') return;
           if (payload?.new) applyRemoteFeedActions([payload.new]);
-        }
-      )
-      .subscribe();
+        })
+      );
+    realtime.subscribe(channel);
 
     const refreshOnFocus = () => {
       if (document.visibilityState === 'visible') fetchRemoteFeedActions();
@@ -2043,7 +2027,7 @@ export default function App() {
     return () => {
       window.removeEventListener('focus', fetchRemoteFeedActions);
       document.removeEventListener('visibilitychange', refreshOnFocus);
-      supabase.removeChannel(channel);
+      realtime.dispose();
     };
   }, [applyRemoteFeedActions, fetchRemoteFeedActions, supabaseUserId]);
 
@@ -2659,16 +2643,19 @@ export default function App() {
       && supabaseUserId
       && String(previousUserId) !== String(supabaseUserId)
     );
+    const isLoggingOut = Boolean(previousUserId && !supabaseUserId);
 
     if (supabaseUserId) {
       try { localStorage.setItem('ds_last_auth_user_id', String(supabaseUserId)); } catch { /* no-op */ }
+    } else if (isLoggingOut) {
+      try { localStorage.removeItem('ds_last_auth_user_id'); } catch { /* no-op */ }
     }
 
-    if (!(isSwitchingToDifferentUser || isInAppAccountSwitch)) return;
+    if (!(isSwitchingToDifferentUser || isInAppAccountSwitch || isLoggingOut)) return;
 
-    clearUserSpecificLocalStorage(supabaseUserId || previousUserId);
+    clearUserSpecificLocalStorage(previousUserId || supabaseUserId);
 
-    if (previousUserId !== null || isSwitchingToDifferentUser) {
+    if (previousUserId !== null || isSwitchingToDifferentUser || isLoggingOut) {
       setMatched([]);
       setInterested([]);
       setUnlocked([]);
@@ -2682,7 +2669,7 @@ export default function App() {
       setProfessionalProfile(DEFAULT_PROFESSIONAL_PROFILE(''));
       setServicePortfolio([]);
       setPropertyPortfolio([]);
-      clearAllUserData(); // clears IndexedDB portfolioStore + tempUploads
+      clearUserData(previousUserId || lastStoredUserId || supabaseUserId || 'guest');
     }
   }, [setConvos, supabaseUserId]);
 
@@ -2717,20 +2704,20 @@ export default function App() {
 
   useEffect(() => {
     if (isSupabaseConfigured) return;
-    persistJsonSafely('servicePortfolio', servicePortfolio, stripServicePortfolioMedia(servicePortfolio));
-  }, [servicePortfolio]);
+    persistJsonSafely('servicePortfolio', servicePortfolio, stripServicePortfolioMedia(servicePortfolio), localStorageOwnerId);
+  }, [localStorageOwnerId, servicePortfolio]);
 
   useEffect(() => {
     if (isSupabaseConfigured) return;
-    persistJsonSafely('propertyPortfolio', propertyPortfolio, stripPropertyPortfolioMedia(propertyPortfolio));
-  }, [propertyPortfolio]);
+    persistJsonSafely('propertyPortfolio', propertyPortfolio, stripPropertyPortfolioMedia(propertyPortfolio), localStorageOwnerId);
+  }, [localStorageOwnerId, propertyPortfolio]);
 
   // ── Rehydrate portfolios from localforage (IndexedDB) on mount ─────────
   // The synchronous useState init above loads the lightweight localStorage version (no images).
   // These effects fire on mount and load the full version (with images) from localforage.
   useEffect(() => {
     if (isSupabaseConfigured) return;
-    getPortfolioFull('propertyPortfolio').then((full) => {
+    getPortfolioFull('propertyPortfolio', localStorageOwnerId).then((full) => {
       if (!Array.isArray(full) || !full.length) return;
       const filtered = full.filter((item) => isUserOwnedPropertyRecord(item) && !isSeededPropertyRecord(item));
       if (!filtered.length) return;
@@ -2745,11 +2732,11 @@ export default function App() {
         });
       });
     });
-  }, []);
+  }, [localStorageOwnerId]);
 
   useEffect(() => {
     if (isSupabaseConfigured) return;
-    getPortfolioFull('servicePortfolio').then((full) => {
+    getPortfolioFull('servicePortfolio', localStorageOwnerId).then((full) => {
       if (!Array.isArray(full) || !full.length) return;
       const filtered = full.filter((item) => isUserOwnedServiceRecord(item));
       if (!filtered.length) return;
@@ -2764,7 +2751,7 @@ export default function App() {
         });
       });
     });
-  }, []);
+  }, [localStorageOwnerId]);
 
   // ── Flush pending Supabase debounces on tab close / background ──
   useEffect(() => {
@@ -3178,55 +3165,56 @@ export default function App() {
   useEffect(() => {
     if (!isSupabaseConfigured || !supabase || !supabaseUserId) return undefined;
 
+    const realtime = createRealtimeLifecycle(supabase);
     const channel = supabase
-      .channel(`ds-live-sync:${supabaseUserId}`)
+      .channel(createRealtimeTopic('ds-live-sync', supabaseUserId))
       .on('postgres_changes', {
         event: '*',
         schema: 'public',
         table: 'user_profiles',
         filter: `user_id=eq.${supabaseUserId}`,
-      }, () => {
+      }, realtime.guard(() => {
         scheduleProfileRealtimeRefresh();
-      })
+      }))
       .on('postgres_changes', {
         event: '*',
         schema: 'public',
         table: 'professional_profiles',
         filter: `user_id=eq.${supabaseUserId}`,
-      }, () => {
+      }, realtime.guard(() => {
         scheduleProfileRealtimeRefresh();
-      })
+      }))
       .on('postgres_changes', {
         event: '*',
         schema: 'public',
         table: 'users',
         filter: `id=eq.${supabaseUserId}`,
-      }, () => {
+      }, realtime.guard(() => {
         scheduleProfileRealtimeRefresh();
-      })
+      }))
       .on('postgres_changes', {
         event: '*',
         schema: 'public',
         table: 'properties',
         filter: `owner_id=eq.${supabaseUserId}`,
-      }, () => {
+      }, realtime.guard(() => {
         schedulePortfolioRealtimeRefresh();
-      })
+      }))
       .on('postgres_changes', {
         event: '*',
         schema: 'public',
         table: 'services',
         filter: `owner_id=eq.${supabaseUserId}`,
-      }, () => {
+      }, realtime.guard(() => {
         schedulePortfolioRealtimeRefresh();
-      });
+      }));
     // property_images cannot be filtered by owner_id, so listening to it here
     // causes unrelated image edits to rehydrate every user's portfolio.
 
-    channel.subscribe();
+    realtime.subscribe(channel);
 
     return () => {
-      supabase.removeChannel(channel);
+      realtime.dispose();
     };
   }, [supabaseUserId, scheduleProfileRealtimeRefresh, schedulePortfolioRealtimeRefresh]);
 
@@ -4195,20 +4183,22 @@ export default function App() {
       setGlobalFeedRefreshTick((value) => value + 1);
     }, 30 * 1000);
 
+    const realtime = createRealtimeLifecycle(supabase);
+    const guardedRefresh = realtime.guard(scheduleGlobalRefresh);
     const channel = supabase
-      .channel(`global-feed-refresh-${supabaseUserId}`)
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'properties' }, scheduleGlobalRefresh)
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'property_images' }, scheduleGlobalRefresh)
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'services' }, scheduleGlobalRefresh)
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'user_profiles' }, scheduleGlobalRefresh)
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'professional_profiles' }, scheduleGlobalRefresh)
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'card_spotlights' }, scheduleGlobalRefresh)
-      .subscribe();
+      .channel(createRealtimeTopic('global-feed-refresh', supabaseUserId))
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'properties' }, guardedRefresh)
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'property_images' }, guardedRefresh)
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'services' }, guardedRefresh)
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'user_profiles' }, guardedRefresh)
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'professional_profiles' }, guardedRefresh)
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'card_spotlights' }, guardedRefresh);
+    realtime.subscribe(channel);
 
     return () => {
       if (timer) window.clearTimeout(timer);
       window.clearInterval(pollTimer);
-      supabase.removeChannel(channel);
+      realtime.dispose();
     };
   }, [supabaseUserId]);
 
@@ -4319,6 +4309,7 @@ export default function App() {
   };
 
   const handleUserLogout = useCallback(async () => {
+    const userIdAtLogout = supabaseUserId;
     if (isSupabaseConfigured && supabase) {
       try {
         await supabase.auth.signOut();
@@ -4327,13 +4318,15 @@ export default function App() {
       }
     }
 
+    clearUserSpecificLocalStorage(userIdAtLogout);
+    try { await clearUserData(userIdAtLogout || 'guest'); } catch { /* best-effort IndexedDB cleanup */ }
     setAuthSession(null);
     try { localStorage.removeItem('authSession'); } catch { /* no-op */ }
     safeSessionRemove(APP_SESSION_TOKEN_KEY);
     appendSecurityAuditEvent({ type: 'logout', status: 'success', message: 'User signed out from current device.' });
     setModal(null);
     setPage('landing');
-  }, [setPage]);
+  }, [setPage, supabaseUserId]);
 
   useEffect(() => {
     handleUserLogoutRef.current = handleUserLogout;

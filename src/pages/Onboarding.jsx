@@ -1495,7 +1495,7 @@ export function Onboarding({
       setPortfolioCapRate('');
       setPortfolioDescription('');
       setPortfolioVideo('');
-      clearPortfolioVideoBlob(`portfolioVideo_${accountType}`).catch(() => {});
+      clearPortfolioVideoBlob(`portfolioVideo_${accountType}`, draftUserId).catch(() => {});
       setPortfolioMsg('');
       setPortfolioMarkets([]);
       setPreviewOpen(false);
@@ -1788,7 +1788,7 @@ export function Onboarding({
   useEffect(() => {
     let cancelled = false;
     let blobUrl = '';
-    getPortfolioVideoBlob(`portfolioVideo_${accountType}`).then((blob) => {
+    getPortfolioVideoBlob(`portfolioVideo_${accountType}`, draftUserId).then((blob) => {
       if (cancelled || !blob) return;
       blobUrl = URL.createObjectURL(blob);
       setPortfolioVideo(blobUrl);
@@ -1797,7 +1797,7 @@ export function Onboarding({
       cancelled = true;
       if (blobUrl) URL.revokeObjectURL(blobUrl);
     };
-  }, [accountType]);
+  }, [accountType, draftUserId]);
 
   const MAX_FILE_SIZE_BYTES = 15 * 1024 * 1024; // 15 MB
 
@@ -1878,7 +1878,7 @@ export function Onboarding({
       }
       setPortfolioVideo(videoUrl);
       setPortfolioMsg('');
-      setPortfolioVideoBlob(`portfolioVideo_${accountType}`, file).catch(() => {});
+      setPortfolioVideoBlob(`portfolioVideo_${accountType}`, file, draftUserId).catch(() => {});
       if (e?.target) e.target.value = '';
     };
     v.onerror = () => {
@@ -2091,7 +2091,7 @@ export function Onboarding({
     setPortfolioImages([]);
     setPortfolioVideo('');
     setPortfolioHideStreetAddressOnCard(false);
-    clearPortfolioVideoBlob(`portfolioVideo_${accountType}`).catch(() => {});
+    clearPortfolioVideoBlob(`portfolioVideo_${accountType}`, draftUserId).catch(() => {});
     setPortfolioMsg('');
     setIsPreviewToFeedDirty(true);
     setStreetPrivacyPrompt({ propertyId: newItem.id });

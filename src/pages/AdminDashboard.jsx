@@ -7,6 +7,7 @@ import {
   supabase,
   supabaseAnonKey,
 } from '../lib/supabaseClient';
+import { createRealtimeLifecycle, createRealtimeTopic } from '../lib/realtimeLifecycle';
 import { CHAT_LANGUAGE_OPTIONS, getSafeLang, translateChatText } from '../services/chatTranslation';
 
 const fmtInt = (value) => Number(value || 0).toLocaleString('en-US');
@@ -1026,18 +1027,19 @@ function SupportDeskWorkspace({ onChanged, onSummaryChange, t = {} }) {
     };
 
     const selectedTicketId = selectedTicket?.id ? String(selectedTicket.id) : '';
+    const realtime = createRealtimeLifecycle(supabase);
     const channel = supabase
-      .channel(`admin-support-realtime-${selectedTicketId || 'all'}`)
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'support_tickets' }, () => scheduleRefresh(false))
-      .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'support_messages' }, (payload) => {
+      .channel(createRealtimeTopic(`admin-support-realtime-${selectedTicketId || 'all'}`, 'admin'))
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'support_tickets' }, realtime.guard(() => scheduleRefresh(false)))
+      .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'support_messages' }, realtime.guard((payload) => {
         const incomingTicketId = String(payload?.new?.ticket_id || '');
         scheduleRefresh(Boolean(selectedTicketId && incomingTicketId === selectedTicketId));
-      })
-      .subscribe();
+      }));
+    realtime.subscribe(channel);
 
     return () => {
       if (refreshTimer) window.clearTimeout(refreshTimer);
-      supabase.removeChannel(channel);
+      realtime.dispose();
     };
   }, [loadThread, loadTickets, selectedTicket]);
 

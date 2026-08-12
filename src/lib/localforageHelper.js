@@ -11,17 +11,33 @@ const portfolioStore = localforage.createInstance({
   storeName: 'portfolio_full',
 });
 
-export async function getPortfolioFull(key) {
-  try { return await portfolioStore.getItem(key) ?? null; } catch { return null; }
+const LOCAL_STORAGE_OWNER_FALLBACK = 'guest';
+
+function normalizeStorageOwnerId(ownerId) {
+  return String(ownerId || LOCAL_STORAGE_OWNER_FALLBACK).trim() || LOCAL_STORAGE_OWNER_FALLBACK;
 }
 
-export async function setPortfolioFull(key, value) {
-  try { await portfolioStore.setItem(key, value); return true; } catch { return false; }
+export function buildUserScopedStorageKey(ownerId, key) {
+  return `${normalizeStorageOwnerId(ownerId)}::${String(key || '').trim()}`;
 }
 
-export async function getTempUploads() {
+async function clearStoreForOwner(store, ownerId) {
+  const prefix = `${normalizeStorageOwnerId(ownerId)}::`;
+  const keys = await store.keys();
+  await Promise.all(keys.filter((key) => String(key).startsWith(prefix)).map((key) => store.removeItem(key)));
+}
+
+export async function getPortfolioFull(key, ownerId) {
+  try { return await portfolioStore.getItem(buildUserScopedStorageKey(ownerId, key)) ?? null; } catch { return null; }
+}
+
+export async function setPortfolioFull(key, value, ownerId) {
+  try { await portfolioStore.setItem(buildUserScopedStorageKey(ownerId, key), value); return true; } catch { return false; }
+}
+
+export async function getTempUploads(ownerId) {
   try {
-    const v = await localforage.getItem('tempUploads');
+    const v = await localforage.getItem(buildUserScopedStorageKey(ownerId, 'tempUploads'));
     return v || {};
   } catch (e) {
     void e;
@@ -29,11 +45,12 @@ export async function getTempUploads() {
   }
 }
 
-export async function setTempUploadsPartial(partial) {
+export async function setTempUploadsPartial(partial, ownerId) {
   try {
-    const cur = (await localforage.getItem('tempUploads')) || {};
+    const storageKey = buildUserScopedStorageKey(ownerId, 'tempUploads');
+    const cur = (await localforage.getItem(storageKey)) || {};
     const next = { ...cur, ...partial };
-    await localforage.setItem('tempUploads', next);
+    await localforage.setItem(storageKey, next);
     return next;
   } catch (e) {
     void e;
@@ -102,23 +119,34 @@ const videoStore = localforage.createInstance({
   storeName: 'portfolio_video',
 });
 
-export async function getPortfolioVideoBlob(key) {
-  try { return await videoStore.getItem(key) ?? null; } catch { return null; }
+export async function getPortfolioVideoBlob(key, ownerId) {
+  try { return await videoStore.getItem(buildUserScopedStorageKey(ownerId, key)) ?? null; } catch { return null; }
 }
 
-export async function setPortfolioVideoBlob(key, blob) {
-  try { await videoStore.setItem(key, blob); return true; } catch { return false; }
+export async function setPortfolioVideoBlob(key, blob, ownerId) {
+  try { await videoStore.setItem(buildUserScopedStorageKey(ownerId, key), blob); return true; } catch { return false; }
 }
 
-export async function clearPortfolioVideoBlob(key) {
-  try { await videoStore.removeItem(key); } catch { /* no-op */ }
+export async function clearPortfolioVideoBlob(key, ownerId) {
+  try { await videoStore.removeItem(buildUserScopedStorageKey(ownerId, key)); } catch { /* no-op */ }
 }
 
-// ── Clear all user-specific IndexedDB data (call on logout) ─────────────
+// ── Clear IndexedDB data for exactly one account (logout/account switch) ─
+export async function clearUserData(ownerId) {
+  try { await clearStoreForOwner(portfolioStore, ownerId); } catch { /* no-op */ }
+  try { await clearStoreForOwner(videoStore, ownerId); } catch { /* no-op */ }
+  try { await localforage.removeItem(buildUserScopedStorageKey(ownerId, 'tempUploads')); } catch { /* no-op */ }
+  // Legacy unscoped records have no trustworthy owner and must never be rehydrated.
+  try { await portfolioStore.removeItem('propertyPortfolio'); } catch { /* no-op */ }
+  try { await portfolioStore.removeItem('servicePortfolio'); } catch { /* no-op */ }
+  try { await localforage.removeItem('tempUploads'); } catch { /* no-op */ }
+}
+
+// ── Clear every account's IndexedDB data (account deletion/device reset) ─
 export async function clearAllUserData() {
   try { await portfolioStore.clear(); } catch { /* no-op */ }
   try { await videoStore.clear(); } catch { /* no-op */ }
-  try { await localforage.removeItem('tempUploads'); } catch { /* no-op */ }
+  try { await localforage.clear(); } catch { /* no-op */ }
 }
 
 export default localforage;
