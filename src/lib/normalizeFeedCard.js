@@ -116,7 +116,7 @@ const resolveOwnerIdentity = (rawCard, scope) => {
       type: pickString(ownerPreview.type, ownerPreview.categoryLabelFallback, ownerPreview.cat),
       badge: pickString(ownerPreview.badge),
       loc: pickString(ownerPreview.loc, ownerPreview.location),
-      cat: pickString(ownerPreview.cat, ownerPreview.categoryId),
+      cat: scope === 'fsbo' ? 'seller' : pickString(ownerPreview.cat, ownerPreview.categoryId),
       desc: scope === 'fsbo' ? '' : pickString(ownerPreview.desc, ownerPreview.pitch),
       verified: ownerPreview.verified === true,
     };
@@ -158,7 +158,7 @@ const resolveOwnerIdentity = (rawCard, scope) => {
     loc: isFsbo
       ? pickString(payloadScope.loc, payloadProfile.loc)
       : pickString(payloadScope.loc, payloadProfile.loc, payloadProfile.locB),
-    cat: pickString(professionalRow.primary_category_b, professionalRow.primary_category, professionalRow.category),
+    cat: isFsbo ? 'seller' : pickString(professionalRow.primary_category_b, professionalRow.primary_category, professionalRow.category),
     desc: isFsbo ? '' : pickString(payloadScope.pitch, payloadProfile.pitchB, payloadProfile.pitch, professionalRow.pitch),
     verified: payloadScope.verified === true || payloadProfile.verified === true,
   };

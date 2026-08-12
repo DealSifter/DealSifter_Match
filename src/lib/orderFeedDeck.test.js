@@ -52,4 +52,18 @@ describe('orderFeedDeck', () => {
 
     expect(ids(ordered)).toEqual(['other-2']);
   });
+
+  it('treats FSBO cards as owner/seller category in feed filters', () => {
+    const ordered = orderDeck([
+      { id: 'fsbo-1', ownerId: 'user-2', name: 'FSBO Owner', portfolioCount: 1, cat: 'fsbo', state: 'HI', cardKind: 'person' },
+      { id: 'buyer-1', ownerId: 'user-3', name: 'Buyer', portfolioCount: 1, cat: 'buyer', state: 'HI', cardKind: 'person' },
+    ], {
+      currentUserId: 'user-1',
+      activeFilters: { category: 'seller' },
+      sessionSeed: 3,
+      sortPreference: 'default',
+    });
+
+    expect(ids(ordered)).toEqual(['fsbo-1']);
+  });
 });

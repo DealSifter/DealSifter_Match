@@ -164,7 +164,9 @@ const buildOwnerPreview = ({ ownerId, scope, userRow, professionalRow }) => {
       ? pickFirstString(payloadScope?.loc, payloadProfile?.loc)
       : pickFirstString(payloadScope?.loc, payloadProfile?.loc, payloadProfile?.locB),
     photo,
-    cat: pickFirstString(professionalRow?.primary_category_b, professionalRow?.primary_category, professionalRow?.category),
+    cat: isFsbo
+      ? 'seller'
+      : pickFirstString(professionalRow?.primary_category_b, professionalRow?.primary_category, professionalRow?.category),
     desc: isFsbo ? '' : pickFirstString(payloadScope?.pitch, payloadProfile?.pitchB, payloadProfile?.pitch, professionalRow?.pitch),
     email: '',
     primaryPhone: '',

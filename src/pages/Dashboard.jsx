@@ -686,7 +686,7 @@ export function Dashboard({ page, nuggets, setModal, setPage, onOpenOnboardingTa
       rating: Number.isFinite(rawRating) && rawRating > 0 ? rawRating : 0,
       reviews: Number.isFinite(rawReviews) && rawReviews > 0 ? Math.round(rawReviews) : 0,
       deals: Number.isFinite(rawDeals) && rawDeals > 0 ? Math.round(rawDeals) : 0,
-      cat: hasScopedIdentity ? (scopedIdentity?.categoryId || scopedIdentity?.categoryLabelFallback || '') : '',
+      cat: hasScopedIdentity ? (isFsbo ? 'seller' : (scopedIdentity?.categoryId || scopedIdentity?.categoryLabelFallback || '')) : '',
       desc: (!isFsbo && profileDescription && normalizedProfileDescription !== normalizedTypeLabel)
         ? profileDescription
         : '',
@@ -1143,11 +1143,18 @@ export function Dashboard({ page, nuggets, setModal, setPage, onOpenOnboardingTa
     return () => window.clearTimeout(timer);
   }, [unlocked, showcaseProperties, showcaseItems, view, publishingProfileKey, isSwipingConn, isSwipingProp, getOwnerIdForKey, connectionCards, getUnlockKeys]);
 
-  const matchesCat = useCallback((catVal, cat) => {
-    if (cat === "all") return true;
-    const parent = CATEGORIES.find(x => x.sub && x.sub.some(s => s.id === cat));
-    return parent ? catVal === parent.id : catVal === cat;
+  const normalizeFeedCategory = useCallback((value) => {
+    const normalized = String(value || '').trim().toLowerCase();
+    return normalized === 'fsbo' ? 'seller' : normalized;
   }, []);
+
+  const matchesCat = useCallback((catVal, cat) => {
+    const normalizedCat = normalizeFeedCategory(cat);
+    if (normalizedCat === "all") return true;
+    const parent = CATEGORIES.find(x => x.sub && x.sub.some(s => s.id === cat));
+    const expected = normalizeFeedCategory(parent ? parent.id : normalizedCat);
+    return normalizeFeedCategory(catVal) === expected;
+  }, [normalizeFeedCategory]);
 
   useEffect(() => {
     if (isSwipingConn || isSwipingProp) return;
