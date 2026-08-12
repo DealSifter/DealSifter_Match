@@ -2293,10 +2293,9 @@ export default function App() {
       } catch (error) {
         if (!cancelled) {
           safeLogError('Global showcase hydration failed.', error);
-          setGlobalShowcaseProperties([]);
-          setGlobalConnectionServices([]);
-          setFeedDeck([]);
-          setActiveSpotlights([]);
+          // Fail closed without discarding the last known sanitized snapshot.
+          // On first load the state is already empty; on transient failures the
+          // previous safe inventory remains visible until the next refresh.
         }
       }
     };
@@ -4188,6 +4187,14 @@ export default function App() {
       }, 1400);
     };
 
+    // Some global feed base tables intentionally expose only owner rows under
+    // RLS. Polling keeps discovery fresh without reopening sensitive tables to
+    // realtime subscribers merely to obtain an invalidation signal.
+    const pollTimer = window.setInterval(() => {
+      if (typeof document !== 'undefined' && document.visibilityState === 'hidden') return;
+      setGlobalFeedRefreshTick((value) => value + 1);
+    }, 30 * 1000);
+
     const channel = supabase
       .channel(`global-feed-refresh-${supabaseUserId}`)
       .on('postgres_changes', { event: '*', schema: 'public', table: 'properties' }, scheduleGlobalRefresh)
@@ -4200,6 +4207,7 @@ export default function App() {
 
     return () => {
       if (timer) window.clearTimeout(timer);
+      window.clearInterval(pollTimer);
       supabase.removeChannel(channel);
     };
   }, [supabaseUserId]);
