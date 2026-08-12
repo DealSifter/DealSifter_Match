@@ -15,6 +15,13 @@ import { getPortfolioUnlockCost, getPropertyExclusivityStatus } from '../lib/unl
 import { inferRecordProfileScope, normalizeProfileScope, resolveScopedProfile } from '../lib/profileScopeResolver';
 import { formatCompactUsd } from '../lib/formatMoney';
 import { getPublicPropertyAddressLine, shouldHideStreetAddressOnCard } from '../lib/propertyAddressPrivacy';
+import {
+  MAP_PANEL_DEFAULT_WIDTH,
+  MAP_PANEL_MAX_WIDTH,
+  MAP_PANEL_MIN_WIDTH,
+  MAP_PANEL_MOBILE_MAX_WIDTH,
+  normalizeMapPanelWidth,
+} from '../lib/mapPanelWidth';
 import { buildMapInventory } from '../services/mapInventoryService';
 
 const DEFAULT_CENTER = [39.5, -98.35];
@@ -547,20 +554,10 @@ function MapController({ mapRef, fitToBounds, fitPaddingTopLeft }) {
 const PIN_OVERRIDES_KEY = 'ds_pin_overrides';
 const PIN_OVERRIDES_STORAGE_KEY = 'ds_pin_overrides_by_user';
 const MAP_UI_STATE_KEY = 'ds_mapview_ui_state_v1';
-const MAP_PANEL_MIN_WIDTH = 250;
-const MAP_PANEL_DEFAULT_WIDTH = 720;
-const MAP_PANEL_MAX_WIDTH = 900;
-const MAP_PANEL_MOBILE_MAX_WIDTH = 585;
-
-function normalizePanelWidth(value) {
-  const numeric = Number(value);
-  if (!Number.isFinite(numeric)) return null;
-  return clamp(numeric, MAP_PANEL_MIN_WIDTH, MAP_PANEL_MAX_WIDTH);
-}
 
 function loadCustomPanelWidth() {
   try {
-    return normalizePanelWidth(localStorage.getItem('mapViewPanelWidth'));
+    return normalizeMapPanelWidth(localStorage.getItem('mapViewPanelWidth'));
   } catch {
     return null;
   }
@@ -988,7 +985,7 @@ export function MapView({
     const customWidth = loadCustomPanelWidth();
     if (customWidth !== null) return customWidth;
     const savedUiWidth = initialMapUiState.panelWidthCustomized === true
-      ? normalizePanelWidth(initialMapUiState.panelWidth)
+      ? normalizeMapPanelWidth(initialMapUiState.panelWidth)
       : null;
     if (savedUiWidth !== null) return savedUiWidth;
     // Give the first desktop visit enough room to scan the filters and Spotlight cards.
@@ -1069,7 +1066,7 @@ export function MapView({
       if (sanitizedFilterBounds) setFilterBounds(sanitizedFilterBounds);
       if (typeof saved.panelCollapsed === 'boolean') setPanelCollapsed(saved.panelCollapsed);
       const customWidth = loadCustomPanelWidth();
-      const savedWidth = customWidth ?? (saved.panelWidthCustomized === true ? normalizePanelWidth(saved.panelWidth) : null);
+      const savedWidth = customWidth ?? (saved.panelWidthCustomized === true ? normalizeMapPanelWidth(saved.panelWidth) : null);
       if (savedWidth !== null) setPanelWidth(savedWidth);
       const sanitizedViewport = sanitizeViewport(saved.viewport, preferredInitialZoom);
       if (sanitizedViewport) setViewport(sanitizedViewport);

@@ -28,6 +28,7 @@ import { sanitizePublicCardInput } from '../lib/sanitizePublicCardInput';
 import { formatCompactUsd } from '../lib/formatMoney';
 import { getPublicPropertyAddressLine, shouldHideStreetAddressOnCard } from '../lib/propertyAddressPrivacy';
 import { buildProfileEntitlementKey } from '../lib/profileScope';
+import { resolveProfileCardSlots } from '../lib/profileCardSlots';
 import feedMatchIcon from '../assets/feed-match-icon.png';
 import spotlightIcon from '../assets/spotlight-icon.png';
 
@@ -1692,21 +1693,6 @@ export function Dashboard({ page, nuggets, setModal, setPage, onOpenOnboardingTa
     secondary: normalizePriorityValue(profilePriorityB),
     fsbo: normalizePriorityValue(profilePriorityC),
   };
-  const profileKeyByPriority = Object.entries(priorityByProfileKey).reduce((acc, [profileKey, priority]) => {
-    if (priority && !acc[priority]) acc[priority] = profileKey;
-    return acc;
-  }, {});
-
-  const primaryProfileKey = profileKeyByPriority.primary || null;
-  const secondaryProfileKey = primaryProfileKey && profileKeyByPriority.secondary && profileKeyByPriority.secondary !== primaryProfileKey
-    ? profileKeyByPriority.secondary
-    : null;
-  const primaryVisibleScope = profileKeyToScope(primaryProfileKey);
-  const secondaryVisibleScope = secondaryProfileKey ? profileKeyToScope(secondaryProfileKey) : null;
-
-  const secondaryModalKey = secondaryVisibleScope ? scopeToModalKey(secondaryVisibleScope) : null;
-  const primaryCardData = primaryProfileKey ? buildLocalProfileCard(primaryProfileKey) : null;
-  const secondaryCardData = secondaryProfileKey ? buildLocalProfileCard(secondaryProfileKey) : null;
   const hasRegisteredLocalProfileCard = (card) => {
     if (!card) return false;
     return Boolean(
@@ -1717,14 +1703,24 @@ export function Dashboard({ page, nuggets, setModal, setPage, onOpenOnboardingTa
       || String(card.desc || '').trim()
     );
   };
-  const fallbackRegisteredProfileKey = useMemo(() => {
-    const keys = ['personal', 'secondary', 'fsbo'];
-    return keys.find((key) => hasRegisteredLocalProfileCard(buildLocalProfileCard(key))) || null;
+  const registeredProfileKeys = useMemo(() => {
+    return ['personal', 'secondary', 'fsbo'].filter((key) => (
+      hasRegisteredLocalProfileCard(buildLocalProfileCard(key))
+    ));
   }, [buildLocalProfileCard]);
-  const visiblePrimaryProfileKey = primaryProfileKey || fallbackRegisteredProfileKey;
+  const {
+    explicitPrimaryProfileKey: primaryProfileKey,
+    primaryProfileKey: visiblePrimaryProfileKey,
+    secondaryProfileKey,
+  } = resolveProfileCardSlots(priorityByProfileKey, registeredProfileKeys);
+  const primaryCardData = primaryProfileKey ? buildLocalProfileCard(primaryProfileKey) : null;
   const visiblePrimaryScope = profileKeyToScope(visiblePrimaryProfileKey);
+  const primaryVisibleScope = visiblePrimaryScope;
   const visiblePrimaryModalKey = scopeToModalKey(visiblePrimaryScope);
-  const visiblePrimaryCardData = primaryCardData || (fallbackRegisteredProfileKey ? buildLocalProfileCard(fallbackRegisteredProfileKey) : null);
+  const visiblePrimaryCardData = primaryCardData || (visiblePrimaryProfileKey ? buildLocalProfileCard(visiblePrimaryProfileKey) : null);
+  const secondaryVisibleScope = secondaryProfileKey ? profileKeyToScope(secondaryProfileKey) : null;
+  const secondaryModalKey = secondaryVisibleScope ? scopeToModalKey(secondaryVisibleScope) : null;
+  const secondaryCardData = secondaryProfileKey ? buildLocalProfileCard(secondaryProfileKey) : null;
   const countByScope = (scope) => {
     const key = scopeToProfileKey(scope);
     const ownerId = getOwnerIdForKey(key);
