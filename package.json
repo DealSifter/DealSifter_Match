@@ -8,6 +8,9 @@
     "dev:poll": "cross-env CHOKIDAR_USEPOLLING=true vite --host 0.0.0.0 --port 5174 --strictPort",
     "build": "node scripts/check-build-env.mjs && vite build",
     "test": "vitest run",
+    "audit:functions": "node scripts/audit-edge-function-parity.mjs",
+    "audit:functions:remote": "node scripts/audit-edge-function-parity.mjs --remote",
+    "audit:secrets:remote": "node scripts/audit-edge-function-secrets.mjs",
     "prepare": "husky",
     "lint": "eslint src/",
     "preview": "vite preview --host 0.0.0.0 --port 4173 --strictPort"

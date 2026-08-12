@@ -1,3 +1,5 @@
+import { parseAllowedOrigins, resolveAllowedOrigin } from './corsPolicy.ts';
+
 export const supabaseUrl = Deno.env.get('SUPABASE_URL') ?? '';
 export const supabaseAnonKey = Deno.env.get('ANON_KEY') ?? Deno.env.get('SUPABASE_ANON_KEY') ?? '';
 export const supabaseServiceRoleKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? '';
@@ -16,17 +18,15 @@ export const geminiModels = [
 
 export const geminiTimeoutMs = Math.max(1_000, Number(Deno.env.get('MAXXIS_GEMINI_TIMEOUT_MS') || 20_000));
 
-const allowedOrigins = String(Deno.env.get('MAXXIS_ALLOWED_ORIGINS') || '')
-  .split(',')
-  .map((origin) => origin.trim())
-  .filter(Boolean);
+const allowedOrigins = parseAllowedOrigins(
+  Deno.env.get('MAXXIS_ALLOWED_ORIGINS') || '',
+  [Deno.env.get('APP_URL') || '', Deno.env.get('VITE_APP_URL') || ''],
+);
 
 export function corsHeaders(origin = '') {
-  const allowOrigin = allowedOrigins.length === 0
-    ? '*'
-    : (allowedOrigins.includes(origin) ? origin : allowedOrigins[0]);
+  const allowOrigin = resolveAllowedOrigin(origin, allowedOrigins);
   return {
-    'Access-Control-Allow-Origin': allowOrigin,
+    ...(allowOrigin ? { 'Access-Control-Allow-Origin': allowOrigin } : {}),
     'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
     'Vary': 'Origin',
   };

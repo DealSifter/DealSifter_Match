@@ -13,6 +13,15 @@ verify_jwt = false
 [functions.stripe-reprocess-queue]
 verify_jwt = false
 
+[functions.send-support-email]
+verify_jwt = true
+
+[functions.geocode-address]
+verify_jwt = true
+
+[functions.maxxis-chat]
+verify_jwt = true
+
 [functions.maxxis-action-confirm]
 verify_jwt = true
 
