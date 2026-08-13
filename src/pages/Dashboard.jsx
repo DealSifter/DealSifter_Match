@@ -29,6 +29,7 @@ import { formatCompactUsd } from '../lib/formatMoney';
 import { getPublicPropertyAddressLine, shouldHideStreetAddressOnCard } from '../lib/propertyAddressPrivacy';
 import { buildProfileEntitlementKey } from '../lib/profileScope';
 import { resolveProfileCardSlots } from '../lib/profileCardSlots';
+import { isOwnerUnlocked as isCanonicalOwnerUnlocked } from '../services/unlockedContactService';
 import feedMatchIcon from '../assets/feed-match-icon.png';
 import spotlightIcon from '../assets/spotlight-icon.png';
 
@@ -140,7 +141,33 @@ function writeFeedDeckSession(key, ids = []) {
   }
 }
 
-export function Dashboard({ page, nuggets, setModal, setPage, onOpenOnboardingTab, openUnlock, unlocked, matched, setMatched, interested, setInterested, purchases, setPurchases, userProfile, personalProfile, professionalProfile, propertyPortfolio, servicePortfolio, accountType, showcaseProperties, categoryOrder, setCategoryOrder, editMode, setEditMode, mobileBottomNavCollapsed = false, addToast, setSystemNotifications = null, isHydrationReady = true, isHydrationSyncing = false, planActionAccess = {}, propertyUnlocks = [], currentUserId = 'local-user', activeSpotlightKeys = new Set(), onOpenSpotlight = null, userPreferences = null, onboardingRequired = false }) {
+function getStableContactListKey(contact, fallbackIndex = 0) {
+  const scope = normalizeProfileScope(
+    contact?.primaryProfile || contact?.primary_profile || contact?.profileScope || contact?.profile_scope,
+    'personal',
+  );
+  return [
+    contact?.ownerId,
+    contact?.unlockOwnerId,
+    contact?.sellerId,
+    contact?.contactId,
+    contact?.id,
+    fallbackIndex,
+  ].map((value) => String(value || '').trim()).filter(Boolean).join(':') + `:${scope}`;
+}
+
+function getStableInterestListKey(interest, fallbackIndex = 0) {
+  return [
+    interest?.id,
+    interest?.propertyId,
+    interest?.property_id,
+    interest?.portfolioId,
+    interest?.ownerId,
+    fallbackIndex,
+  ].map((value) => String(value || '').trim()).filter(Boolean).join(':');
+}
+
+export function Dashboard({ page, nuggets, setModal, setPage, onOpenOnboardingTab, openUnlock, unlocked, matched, setMatched, interested, setInterested, purchases, setPurchases, userProfile, personalProfile, professionalProfile, propertyPortfolio, servicePortfolio, accountType, showcaseProperties, categoryOrder, setCategoryOrder, editMode, setEditMode, mobileBottomNavCollapsed = false, addToast, setSystemNotifications = null, isHydrationReady = true, isHydrationSyncing = false, planActionAccess = {}, propertyUnlocks = [], unlockedContactMap = new Map(), currentUserId = 'local-user', activeSpotlightKeys = new Set(), onOpenSpotlight = null, userPreferences = null, onboardingRequired = false }) {
   const isMobileViewport = useMediaQuery('(max-width: 767px)');
   const isTabletPortraitViewport = useMediaQuery('(min-width: 768px) and (max-width: 1080px) and (orientation: portrait)');
   const isTabletLandscapeViewport = useMediaQuery('(min-width: 768px) and (max-width: 1180px) and (orientation: landscape)');
@@ -1071,9 +1098,13 @@ export function Dashboard({ page, nuggets, setModal, setPage, onOpenOnboardingTa
       .filter(Boolean)
   ), [unlocked]);
 
-  const isContactUnlocked = useCallback((itemOrId) => (
-    getUnlockKeys(itemOrId).some((key) => unlockedIdSet.has(key))
-  ), [getUnlockKeys, unlockedIdSet]);
+  const isContactUnlocked = useCallback((itemOrId) => {
+    if (itemOrId && typeof itemOrId === 'object') {
+      const ownerId = itemOrId.ownerId || itemOrId.unlockOwnerId || itemOrId.sellerId || itemOrId.id;
+      if (isCanonicalOwnerUnlocked(unlockedContactMap, ownerId, getRecordProfileScope(itemOrId))) return true;
+    }
+    return getUnlockKeys(itemOrId).some((key) => unlockedIdSet.has(key));
+  }, [getRecordProfileScope, getUnlockKeys, unlockedContactMap, unlockedIdSet]);
 
   const getFeedDisplayCard = useCallback((card, unlockedForCurrentUser = false) => {
     void unlockedForCurrentUser;
@@ -2607,10 +2638,7 @@ export function Dashboard({ page, nuggets, setModal, setPage, onOpenOnboardingTa
       addToast?.({ type: 'warning', message: 'Contact owner could not be resolved for unlock.' });
       return false;
     }
-    const alreadyUnlocked = unlocked.some((id) => {
-      const value = String(id);
-      return (contactId && value === contactId) || (ownerId && value === ownerId);
-    });
+    const alreadyUnlocked = isContactUnlocked(targetCard);
     if (alreadyUnlocked) return false;
     if (typeof openUnlock === 'function') {
       openUnlock({
@@ -2623,7 +2651,7 @@ export function Dashboard({ page, nuggets, setModal, setPage, onOpenOnboardingTa
       return true;
     }
     return false;
-  }, [addToast, findConnectionById, openUnlock, ownOwnerIdsKey, t.ownCardNotSelectable, unlocked]);
+  }, [addToast, findConnectionById, isContactUnlocked, openUnlock, ownOwnerIdsKey, t.ownCardNotSelectable]);
 
   const handleMobileUnlockAction = () => {
     if (view === 'connections') {
@@ -4493,7 +4521,7 @@ export function Dashboard({ page, nuggets, setModal, setPage, onOpenOnboardingTa
                 const unlockCost = getUnlockCost(m);
                 const portfolioCount = getPortfolioCount(m);
                 return (
-              <div key={i} style={{ display:"flex", alignItems:"center", gap:8, padding:"8px 0", borderBottom:i < filteredArr.length-1 ? `1px solid ${C.border}` : "none" }}>
+              <div key={getStableContactListKey(m, i)} style={{ display:"flex", alignItems:"center", gap:8, padding:"8px 0", borderBottom:i < filteredArr.length-1 ? `1px solid ${C.border}` : "none" }}>
                   <SmartImage
                     src={typeof m.photo === 'string' && m.photo.length > 8 ? m.photo : undefined}
                     alt={m.name}
@@ -4610,7 +4638,7 @@ export function Dashboard({ page, nuggets, setModal, setPage, onOpenOnboardingTa
               const isOwnerUnlocked = propOwner && isContactUnlocked(propOwner);
               const ownerUnlockCost = propOwner ? getUnlockCost(propOwner) : 1;
               return (
-                <div key={i} style={{ display:"flex", alignItems:"center", gap:8, padding:"8px 0", borderBottom:i < interested.length-1 ? `1px solid ${C.border}` : "none" }}>
+                <div key={getStableInterestListKey(m, i)} style={{ display:"flex", alignItems:"center", gap:8, padding:"8px 0", borderBottom:i < filteredInterested.length-1 ? `1px solid ${C.border}` : "none" }}>
                   <SmartImage
                     src={typeof (m.images?.[0] || m.image) === 'string' && (m.images?.[0] || m.image)?.length > 8 ? (m.images?.[0] || m.image) : undefined}
                     alt={getSafePropertyLabel(m, 'Property')}

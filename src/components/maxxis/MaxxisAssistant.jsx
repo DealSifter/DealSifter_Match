@@ -1861,7 +1861,7 @@ function MessageBubble({
   );
 }
 
-export function MaxxisAssistant({ page = 'dashboard', onOpenSupport = null, onNavigateAction = null, propertyAnalysisRequest = null, propertyContextId = '', onExportAnalysisPdf = null, enabled = true }) {
+export function MaxxisAssistant({ page = 'dashboard', onOpenSupport = null, onNavigateAction = null, propertyAnalysisRequest = null, propertyContextId = '', onExportAnalysisPdf = null, onNuggetBalanceChange = null, onProviderUnlockConfirmed = null, enabled = true }) {
   const language = getUiLang();
   const t = COPY[language] || COPY.en;
   const [open, setOpen] = useState(false);
@@ -2218,6 +2218,11 @@ export function MaxxisAssistant({ page = 'dashboard', onOpenSupport = null, onNa
         result?.contactAccess || { status: 'already_unlocked', cost: 0, currency: 'nuggets' },
         result?.contact || null,
       );
+      const confirmedBalance = result?.remainingNuggets ?? result?.remaining_nuggets ?? null;
+      if (confirmedBalance !== null && typeof onNuggetBalanceChange === 'function') {
+        onNuggetBalanceChange(confirmedBalance);
+      }
+      if (typeof onProviderUnlockConfirmed === 'function') onProviderUnlockConfirmed(result);
       setPendingProviderUnlock(null);
     } catch (error) {
       captureAppException(error, { area: 'maxxis_provider_unlock_confirm', serviceId });

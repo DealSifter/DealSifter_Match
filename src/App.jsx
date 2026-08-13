@@ -100,7 +100,7 @@ import { useCheckoutFlow } from './hooks/useCheckoutFlow';
 import { useMediaQuery } from './hooks/useMediaQuery';
 import { useChatRealtime } from './hooks/useChatRealtime';
 import { useUnlockNotifications } from './hooks/useUnlockNotifications';
-import { canPerformAction, getPlanActionAccess, getPlanGateCopy, getCurrentPlan, isPlanLimitError, refreshUsageFromDB } from './services/planUsageService';
+import { canPerformAction, getPlanActionAccess, getPlanGateCopy, getCurrentPlan, isPlanLimitError, refreshUsageFromDB, resolveRemainingNuggets } from './services/planUsageService';
 import { isProfileConflictError, saveProfessionalProfileWithVersion } from './services/profileConcurrencyService';
 import { clearSensitiveCache, clearUserScopedCache } from './lib/localStoragePolicy';
 import { trackAppEvent } from './lib/adminEventTracking';
@@ -1760,6 +1760,34 @@ export default function App() {
     }
   }, [addToast, refreshPlanActionAccess, supabaseUserId]);
 
+  const applyConfirmedNuggetBalance = useCallback(async ({
+    serverRemainingNuggets = null,
+    fallbackCost = 0,
+    refresh = false,
+  } = {}) => {
+    const remote = Number(serverRemainingNuggets);
+    if (Number.isFinite(remote)) {
+      setNuggets(remote);
+      if (refresh) void refreshCurrentPlanAccess();
+      else void refreshPlanActionAccess();
+      return remote;
+    }
+    if (isSupabaseConfigured && supabase && supabaseUserId) {
+      const currentPlan = await refreshCurrentPlanAccess();
+      if (currentPlan) return Number(currentPlan?.nuggets || 0);
+    }
+    let nextBalance = 0;
+    setNuggets((current) => {
+      nextBalance = resolveRemainingNuggets({
+        currentNuggets: current,
+        serverRemainingNuggets,
+        fallbackCost,
+      });
+      return nextBalance;
+    });
+    return nextBalance;
+  }, [refreshCurrentPlanAccess, refreshPlanActionAccess, supabaseUserId]);
+
   useEffect(() => {
     setObservabilityUser(supabaseUserId);
   }, [supabaseUserId]);
@@ -2523,12 +2551,28 @@ export default function App() {
     if (!isSupabaseConfigured || !supabase || !supabaseUserId) return;
     try {
       const unlockState = await hydrateUnlockState(supabaseUserId);
-      setUnlockedContactsByOwnerId(unlockState.unlockedContactMap);
-      setUnlocked([...unlockState.unlockedOwnerIds]);
-      setPurchases(unlockState.purchaseRows);
+      const nextUnlockedMap = unlockState.unlockedContactMap instanceof Map
+        ? unlockState.unlockedContactMap
+        : new Map();
+      setUnlockedContactsByOwnerId((prev) => (
+        nextUnlockedMap.size > 0 || !(prev instanceof Map) || prev.size === 0
+          ? nextUnlockedMap
+          : prev
+      ));
+      setUnlocked((prev) => {
+        const nextIds = [...unlockState.unlockedOwnerIds];
+        return nextIds.length > 0 || !Array.isArray(prev) || prev.length === 0 ? nextIds : prev;
+      });
+      setPurchases((prev) => {
+        const nextRows = Array.isArray(unlockState.purchaseRows) ? unlockState.purchaseRows : [];
+        return nextRows.length > 0 || !Array.isArray(prev) || prev.length === 0 ? nextRows : prev;
+      });
       setPropertyUnlocks((prev) => {
         const current = Array.isArray(prev) ? [...prev] : [];
         const canonicalRows = Array.isArray(unlockState.propertyUnlockRows) ? unlockState.propertyUnlockRows : [];
+        if (canonicalRows.length === 0 && current.some((row) => String(row?.source || '') === 'canonical_unlocked_contact_cards')) {
+          return prev;
+        }
         const nonCanonicalRows = current.filter((row) => (
           String(row?.source || '') !== 'canonical_unlocked_contact_cards'
         ));
@@ -2659,6 +2703,7 @@ export default function App() {
       setMatched([]);
       setInterested([]);
       setUnlocked([]);
+      setUnlockedContactsByOwnerId(new Map());
       setPurchases([]);
       setConvos({});
       setNuggets(isSupabaseConfigured ? 0 : 5);
@@ -2967,6 +3012,7 @@ export default function App() {
           setMatched([]);
           setInterested([]);
           setUnlocked([]);
+          setUnlockedContactsByOwnerId(new Map());
           setUserProfile((prev) => ({
             ...(prev || {}),
             name: '',
@@ -5058,7 +5104,10 @@ export default function App() {
             && Number.isFinite(Number(remoteUnlockRow.remaining_nuggets))
             && Number.isFinite(remoteTotalCost)
           ) {
-            setNuggets(Number(remoteUnlockRow.remaining_nuggets));
+            await applyConfirmedNuggetBalance({
+              serverRemainingNuggets: remoteUnlockRow.remaining_nuggets,
+              fallbackCost: unlockCost,
+            });
           } else {
             throw new Error('Property unlock did not return a confirmed balance.');
           }
@@ -5137,7 +5186,10 @@ export default function App() {
             remaining_nuggets: Number(remoteContactUnlock.remaining_nuggets),
           };
           if (Number.isFinite(Number(remoteUnlockRow.remaining_nuggets))) {
-            setNuggets(Number(remoteUnlockRow.remaining_nuggets));
+            await applyConfirmedNuggetBalance({
+              serverRemainingNuggets: remoteUnlockRow.remaining_nuggets,
+              fallbackCost: unlockCost,
+            });
           } else {
             throw new Error('Contact unlock did not return a confirmed balance.');
           }
@@ -5346,7 +5398,10 @@ export default function App() {
       if (!Number.isFinite(Number(firstRow?.remaining_nuggets))) {
         throw new Error('Spotlight purchase did not return the confirmed server balance.');
       }
-      setNuggets(Number(firstRow.remaining_nuggets));
+      await applyConfirmedNuggetBalance({
+        serverRemainingNuggets: firstRow.remaining_nuggets,
+        fallbackCost: totalCost,
+      });
       clearSensitiveCache(supabaseUserId);
       const nextRows = rows.map((row) => ({
         id: row.spotlight_id || `${row.card_kind}:${row.card_id}:${Date.now()}`,
@@ -5528,6 +5583,7 @@ export default function App() {
             userPreferences={userPreferences}
             planActionAccess={planActionAccess}
             propertyUnlocks={propertyUnlocks}
+            unlockedContactMap={unlockedContactsByOwnerId}
             currentUserId={supabaseUserId || 'local-user'}
             activeSpotlightKeys={activeSpotlightKeys}
             onOpenSpotlight={() => setModal('spotlight')}
@@ -5775,6 +5831,12 @@ export default function App() {
                 propertyAnalysisRequest={maxxisPropertyAnalysisRequest}
                 propertyContextId={maxxisPropertyContextId}
                 onExportAnalysisPdf={handleExportMaxxisAnalysisPdf}
+                onNuggetBalanceChange={(value) => {
+                  void applyConfirmedNuggetBalance({ serverRemainingNuggets: value, refresh: true });
+                }}
+                onProviderUnlockConfirmed={() => {
+                  void fetchRemoteUnlockState();
+                }}
               />
             </Suspense>
           </>
