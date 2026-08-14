@@ -1,5 +1,6 @@
 import { getLang } from '../i18n/translations';
 import { isSupabaseConfigured, supabase } from '../lib/supabaseClient';
+import { captureOperationalMetric } from '../lib/observability';
 
 const MAX_HISTORY_ITEMS = 10;
 const UUID_PATTERN = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
@@ -62,18 +63,38 @@ export async function sendMaxxisMessage({ message, history = [], page = 'dashboa
     ...(trustedPropertyIds.length ? { propertyIds: trustedPropertyIds } : {}),
   };
 
-  const { data, error } = await supabase.functions.invoke('maxxis-chat', {
-    body: {
-      message: text,
-      history: normalizeHistory(history),
-      page,
-      language,
-      ...(Object.keys(context).length ? { context } : {}),
-    },
-  });
+  const startedAt = Date.now();
+  let data;
+  let error;
+  try {
+    ({ data, error } = await supabase.functions.invoke('maxxis-chat', {
+      body: {
+        message: text,
+        history: normalizeHistory(history),
+        page,
+        language,
+        ...(Object.keys(context).length ? { context } : {}),
+      },
+    }));
+  } catch (invokeError) {
+    captureOperationalMetric('maxxis.chat', {
+      success: false,
+      duration_ms: Date.now() - startedAt,
+      error_category: 'PROVIDER',
+      error_code: String(invokeError?.code || invokeError?.status || 'INVOKE_FAILED').slice(0, 64),
+    });
+    throw invokeError;
+  }
 
   if (error) {
     const status = Number(error?.context?.status || error?.status || 0);
+    captureOperationalMetric('maxxis.chat', {
+      success: false,
+      duration_ms: Date.now() - startedAt,
+      error_category: status === 401 || status === 403 ? 'AUTH' : status === 429 ? 'QUOTA' : 'PROVIDER',
+      error_code: String(status || error?.code || 'MAXXIS_REQUEST_FAILED').slice(0, 64),
+      provider_status: status || undefined,
+    });
     if (status === 503) {
       return {
         answer: CONFIG_MESSAGES[language] || CONFIG_MESSAGES.en,
@@ -84,11 +105,23 @@ export async function sendMaxxisMessage({ message, history = [], page = 'dashboa
   }
 
   if (data?.error === 'MAXXIS_NOT_CONFIGURED') {
+    captureOperationalMetric('maxxis.chat', {
+      success: false,
+      duration_ms: Date.now() - startedAt,
+      error_category: 'PROVIDER',
+      error_code: 'MAXXIS_NOT_CONFIGURED',
+    });
     return {
       answer: CONFIG_MESSAGES[language] || CONFIG_MESSAGES.en,
       unavailable: true,
     };
   }
+
+  captureOperationalMetric('maxxis.chat', {
+    success: true,
+    duration_ms: Date.now() - startedAt,
+    response_type: String(data?.type || 'text').slice(0, 40),
+  });
 
   return {
     answer: String(data?.message || data?.answer || '').trim() || (FALLBACK_MESSAGES[language] || FALLBACK_MESSAGES.en),

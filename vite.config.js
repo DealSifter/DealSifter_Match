@@ -2,9 +2,10 @@
 import { defineConfig, loadEnv } from 'vite'
 import react from '@vitejs/plugin-react'
 import legacy from '@vitejs/plugin-legacy'
+import { sentryVitePlugin } from '@sentry/vite-plugin'
 
 /** Vercel often sets SUPABASE_* without VITE_ — merge both for the client bundle. */
-function resolvePublicEnv(mode) {
+function resolveBuildEnv(mode) {
   const fileEnv = loadEnv(mode, process.cwd(), '')
   const pick = (viteKey, legacyKey) =>
     String(
@@ -19,31 +20,60 @@ function resolvePublicEnv(mode) {
     VITE_SUPABASE_URL: pick('VITE_SUPABASE_URL', 'SUPABASE_URL'),
     VITE_SUPABASE_ANON_KEY: pick('VITE_SUPABASE_ANON_KEY', 'SUPABASE_ANON_KEY'),
     VITE_APP_URL: pick('VITE_APP_URL', 'APP_URL'),
+    VITE_APP_ENVIRONMENT: pick('VITE_APP_ENVIRONMENT', 'VERCEL_ENV') || mode,
+    VITE_APP_RELEASE: pick('VITE_APP_RELEASE', 'VERCEL_GIT_COMMIT_SHA') || pick('GITHUB_SHA', '') || 'local',
+    SENTRY_AUTH_TOKEN: pick('SENTRY_AUTH_TOKEN', ''),
+    SENTRY_ORG: pick('SENTRY_ORG', ''),
+    SENTRY_PROJECT: pick('SENTRY_PROJECT', ''),
   }
 }
 
 // https://vite.dev/config/
 export default defineConfig(({ mode }) => {
-  const publicEnv = resolvePublicEnv(mode)
-
-  return {
-  plugins: [
+  const buildEnv = resolveBuildEnv(mode)
+  const sentryUploadEnabled = mode === 'production'
+    && Boolean(buildEnv.SENTRY_AUTH_TOKEN && buildEnv.SENTRY_ORG && buildEnv.SENTRY_PROJECT)
+    && buildEnv.VITE_APP_RELEASE !== 'local'
+  const plugins = [
     react(),
     legacy({
       // iOS/iPadOS Safari legacy fallback
       targets: ['defaults', 'safari >= 11', 'ios >= 11'],
       modernPolyfills: true,
     }),
-  ],
+  ]
+
+  if (sentryUploadEnabled) {
+    plugins.push(sentryVitePlugin({
+      authToken: buildEnv.SENTRY_AUTH_TOKEN,
+      org: buildEnv.SENTRY_ORG,
+      project: buildEnv.SENTRY_PROJECT,
+      telemetry: false,
+      release: {
+        name: buildEnv.VITE_APP_RELEASE,
+        deploy: { env: buildEnv.VITE_APP_ENVIRONMENT },
+      },
+      sourcemaps: {
+        assets: './dist/**',
+        filesToDeleteAfterUpload: './dist/**/*.map',
+      },
+    }))
+  }
+
+  return {
+  plugins,
   define: {
-    'import.meta.env.VITE_SUPABASE_URL': JSON.stringify(publicEnv.VITE_SUPABASE_URL),
-    'import.meta.env.VITE_SUPABASE_ANON_KEY': JSON.stringify(publicEnv.VITE_SUPABASE_ANON_KEY),
-    'import.meta.env.VITE_APP_URL': JSON.stringify(publicEnv.VITE_APP_URL),
+    'import.meta.env.VITE_SUPABASE_URL': JSON.stringify(buildEnv.VITE_SUPABASE_URL),
+    'import.meta.env.VITE_SUPABASE_ANON_KEY': JSON.stringify(buildEnv.VITE_SUPABASE_ANON_KEY),
+    'import.meta.env.VITE_APP_URL': JSON.stringify(buildEnv.VITE_APP_URL),
+    'import.meta.env.VITE_APP_ENVIRONMENT': JSON.stringify(buildEnv.VITE_APP_ENVIRONMENT),
+    'import.meta.env.VITE_APP_RELEASE': JSON.stringify(buildEnv.VITE_APP_RELEASE),
   },
   build: {
     // The legacy plugin owns JavaScript targets; cssTarget retains old Safari CSS output.
     cssTarget: 'safari13',
     manifest: true,
+    sourcemap: sentryUploadEnabled ? 'hidden' : false,
     chunkSizeWarningLimit: 500,
     rollupOptions: {
       output: {

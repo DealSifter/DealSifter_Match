@@ -198,21 +198,6 @@ const isMissingFunctionError = (error, functionName) => {
 const LOCAL_REALTIME_IGNORE_MS = 2200;
 const REALTIME_REFRESH_MIN_INTERVAL_MS = 2500;
 
-// Global unhandled error capture — hooks into window.__DS_REPORT_ERROR for Sentry/external service
-if (typeof window !== 'undefined') {
-  const report = (error, context) => {
-    if (typeof window.__DS_REPORT_ERROR === 'function') {
-      try { window.__DS_REPORT_ERROR(error, context); } catch { /* no-op */ }
-    }
-  };
-  window.addEventListener('error', (event) => {
-    report(event.error || event.message, { type: 'uncaught', filename: event.filename, lineno: event.lineno });
-  });
-  window.addEventListener('unhandledrejection', (event) => {
-    report(event.reason, { type: 'unhandledrejection' });
-  });
-}
-
 // Production must use real DB/user-owned records only. Mock metadata is dev-only
 // so portfolio counts, unlock pricing, and feeds cannot be polluted by test data.
 const CARDS = import.meta.env.DEV ? _MOCK_CARDS : [];

@@ -1,5 +1,6 @@
 import { normalizeCard } from '../lib/normalizeFeedCard';
 import { orderDeck } from '../lib/orderFeedDeck';
+import { captureOperationalMetric } from '../lib/observability';
 import {
   extractScopedProfileLegacy,
   inferRecordProfileScope,
@@ -261,13 +262,24 @@ const mapSpotlights = (spotlightRows = []) => spotlightRows.map((row) => ({
 
 export async function fetchGlobalInventory(supabaseClient) {
   if (!supabaseClient) throw new Error('Supabase client is required.');
+  const startedAt = Date.now();
   const result = await supabaseClient.rpc('ds_get_global_feed_inventory');
   if (result?.error) {
+    captureOperationalMetric('feed.global_inventory', {
+      success: false,
+      duration_ms: Date.now() - startedAt,
+      error_category: 'DATABASE',
+      error_code: String(result.error.code || result.error.status || 'GLOBAL_FEED_RPC_FAILED').slice(0, 64),
+    });
     const error = new Error('Global feed inventory is unavailable.');
     error.code = result.error.code || result.error.status || 'GLOBAL_FEED_RPC_FAILED';
     error.cause = result.error;
     throw error;
   }
+  captureOperationalMetric('feed.global_inventory', {
+    success: true,
+    duration_ms: Date.now() - startedAt,
+  });
   return result?.data && typeof result.data === 'object' ? result.data : {};
 }
 

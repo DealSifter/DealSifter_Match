@@ -1,5 +1,11 @@
 import { describe, expect, it } from 'vitest';
-import { scrubTelemetryEvent, scrubTelemetryValue } from './observability';
+import {
+  getObservabilityMetadata,
+  initObservability,
+  isObservabilityEnabled,
+  scrubTelemetryEvent,
+  scrubTelemetryValue,
+} from './observability';
 
 describe('observability privacy boundary', () => {
   it('redacts PII and credentials embedded in otherwise safe fields', () => {
@@ -30,5 +36,45 @@ describe('observability privacy boundary', () => {
     expect(event.exception.values[0].value).toBe('[Redacted] for [Redacted]');
     expect(event.breadcrumbs[0].message).not.toContain('555');
     expect(event.breadcrumbs[0].data.email).toBe('[Redacted]');
+  });
+
+  it('drops profile, conversation and private address payloads', () => {
+    const value = scrubTelemetryValue({
+      profile_payload: { full_name: 'Private User' },
+      chat_content: 'private negotiation',
+      private_address: '100 Private Street',
+      safe_counter: 3,
+    });
+
+    expect(value.profile_payload).toBe('[Redacted]');
+    expect(value.chat_content).toBe('[Redacted]');
+    expect(value.private_address).toBe('[Redacted]');
+    expect(value.safe_counter).toBe(3);
+  });
+
+  it('scrubs query data in stack frame URLs', () => {
+    const event = scrubTelemetryEvent({
+      exception: {
+        values: [{
+          value: 'failure',
+          stacktrace: {
+            frames: [{ filename: 'https://app.test/chunk.js?token=private', vars: { email: 'a@b.com' } }],
+          },
+        }],
+      },
+    });
+
+    expect(event.exception.values[0].stacktrace.frames[0].filename).not.toContain('private');
+    expect(event.exception.values[0].stacktrace.frames[0].vars).toBeUndefined();
+  });
+
+  it('keeps the application operational when no DSN is configured', () => {
+    expect(isObservabilityEnabled()).toBe(false);
+    expect(() => initObservability()).not.toThrow();
+    expect(initObservability()).toBe(false);
+    expect(getObservabilityMetadata()).toEqual(expect.objectContaining({
+      environment: expect.any(String),
+      release: expect.any(String),
+    }));
   });
 });

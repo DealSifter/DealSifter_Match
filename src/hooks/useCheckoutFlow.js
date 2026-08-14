@@ -3,7 +3,7 @@ import { NUGGET_PACKS } from '../data/mockData';
 import { redirectToCheckout, redirectToSubscription } from '../lib/stripeClient';
 import { isSupabaseConfigured } from '../lib/supabaseClient';
 import { trackAppEvent } from '../lib/adminEventTracking';
-import { captureCheckoutError } from '../lib/observability';
+import { captureCheckoutError, captureOperationalMetric } from '../lib/observability';
 import { recordTermsAcceptance, TERMS_CONSENT_VERSION } from '../services/consentService';
 
 export const normalizeCheckoutIntent = (intent) => {
@@ -140,6 +140,7 @@ export function useCheckoutFlow({
   const executeCheckoutIntent = useCallback(async (intentInput, checkoutOptions = {}) => {
     const intent = normalizeCheckoutIntent(intentInput);
     if (!intent) return false;
+    const startedAt = Date.now();
 
     setCheckoutError('');
     try {
@@ -157,9 +158,23 @@ export function useCheckoutFlow({
         }
         await redirectToCheckout(pack, checkoutOptions);
       }
+      captureOperationalMetric('stripe.checkout_start', {
+        success: true,
+        duration_ms: Date.now() - startedAt,
+        kind: intent.kind,
+        source: intent.source || 'pricing',
+      });
       setPendingCheckoutIntent(null);
       return true;
     } catch (error) {
+      captureOperationalMetric('stripe.checkout_start', {
+        success: false,
+        duration_ms: Date.now() - startedAt,
+        error_category: 'PAYMENT',
+        error_code: String(error?.code || error?.status || 'CHECKOUT_START_FAILED').slice(0, 64),
+        kind: intent.kind,
+        source: intent.source || 'pricing',
+      });
       captureCheckoutError(error, {
         user_id: supabaseUserId,
         kind: intent.kind,
