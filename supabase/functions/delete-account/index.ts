@@ -1,5 +1,6 @@
 import Stripe from 'npm:stripe@17';
 import { createClient } from 'npm:@supabase/supabase-js@2';
+import { createRequestId, logOperationalEvent } from '../_shared/observability.ts';
 
 const stripeSecretKey = Deno.env.get('STRIPE_SECRET_KEY') ?? '';
 const supabaseUrl = Deno.env.get('SUPABASE_URL') ?? '';
@@ -21,10 +22,10 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
 
-function jsonResponse(body: Record<string, unknown>, status = 200) {
+function jsonResponse(body: Record<string, unknown>, status = 200, requestId = '') {
   return new Response(JSON.stringify(body), {
     status,
-    headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+    headers: { ...corsHeaders, 'Content-Type': 'application/json', ...(requestId ? { 'x-request-id': requestId } : {}) },
   });
 }
 
@@ -136,7 +137,12 @@ function getDeletionId(deletionResult: unknown) {
   return String(candidate || '').trim();
 }
 
-async function updateDeletionStorageAudit(deletionId: string, storageCleanup: Awaited<ReturnType<typeof cleanupUserStorage>>) {
+async function updateDeletionStorageAudit(
+  deletionId: string,
+  storageCleanup: Awaited<ReturnType<typeof cleanupUserStorage>>,
+  requestId: string,
+  userId: string,
+) {
   if (!deletionId) return;
 
   const { data: deletionRow } = await supabaseAdmin
@@ -170,7 +176,19 @@ async function updateDeletionStorageAudit(deletionId: string, storageCleanup: Aw
     })
     .eq('id', deletionId);
 
-  if (error) console.warn('Account deletion Storage audit update failed:', error);
+  if (error) {
+    logOperationalEvent({
+      functionName: 'delete-account',
+      operation: 'storage_audit_update',
+      requestId,
+      userId,
+      success: false,
+      errorCode: error.code || 'STORAGE_AUDIT_UPDATE_FAILED',
+      status: 500,
+      provider: 'supabase',
+      severity: 'WARNING',
+    });
+  }
 }
 
 async function getAuthenticatedUser(authHeader: string) {
@@ -186,13 +204,20 @@ async function getAuthenticatedUser(authHeader: string) {
 }
 
 Deno.serve(async (req) => {
+  const requestId = createRequestId(req);
+  const startedAt = Date.now();
+  let userId = '';
   if (req.method === 'OPTIONS') return new Response('ok', { headers: corsHeaders });
-  if (req.method !== 'POST') return jsonResponse({ error: 'Method not allowed' }, 405);
+  if (req.method !== 'POST') return jsonResponse({ error: 'Method not allowed', requestId }, 405, requestId);
 
   try {
     const authHeader = req.headers.get('Authorization') ?? '';
     const { user, error: authError } = await getAuthenticatedUser(authHeader);
-    if (authError || !user) return jsonResponse({ error: authError || 'Unauthorized' }, 401);
+    if (authError || !user) {
+      logOperationalEvent({ functionName: 'delete-account', operation: 'authenticate', requestId, durationMs: Date.now() - startedAt, success: false, errorCode: 'UNAUTHORIZED', status: 401, provider: 'supabase' });
+      return jsonResponse({ error: 'Unauthorized', requestId }, 401, requestId);
+    }
+    userId = user.id;
 
     let body: Record<string, unknown> = {};
     try {
@@ -231,7 +256,7 @@ Deno.serve(async (req) => {
 
     const deletionId = getDeletionId(deletionResult);
     const storageCleanup = await cleanupUserStorage(user.id);
-    await updateDeletionStorageAudit(deletionId, storageCleanup);
+    await updateDeletionStorageAudit(deletionId, storageCleanup, requestId, userId);
 
     const anonymizedAuthEmail = `deleted+${user.id}@deleted.dealsifter.local`;
     const { error: authUpdateError } = await supabaseAdmin.auth.admin.updateUserById(user.id, {
@@ -248,7 +273,7 @@ Deno.serve(async (req) => {
     });
 
     if (authUpdateError) {
-      console.warn('Account soft-delete completed, but auth anonymization failed:', authUpdateError);
+      logOperationalEvent({ functionName: 'delete-account', operation: 'anonymize_auth', requestId, userId, durationMs: Date.now() - startedAt, success: false, errorCode: 'AUTH_ANONYMIZATION_FAILED', status: 202, provider: 'supabase', severity: 'HIGH' });
       return jsonResponse({
         ok: true,
         authAnonymized: false,
@@ -258,10 +283,12 @@ Deno.serve(async (req) => {
           filesDeleted: storageCleanup.deleted.length,
           filesFailed: storageCleanup.failed.length + storageCleanup.listingFailures.length,
         },
-        warning: authUpdateError.message,
-      }, 202);
+        warning: 'Account data was deleted, but authentication anonymization requires support review.',
+        requestId,
+      }, 202, requestId);
     }
 
+    logOperationalEvent({ functionName: 'delete-account', operation: 'delete_account', requestId, userId, durationMs: Date.now() - startedAt, success: true, status: 200, provider: 'supabase', metrics: { files_deleted: storageCleanup.deleted.length, files_failed: storageCleanup.failed.length + storageCleanup.listingFailures.length } });
     return jsonResponse({
       ok: true,
       authAnonymized: true,
@@ -271,9 +298,10 @@ Deno.serve(async (req) => {
         filesDeleted: storageCleanup.deleted.length,
         filesFailed: storageCleanup.failed.length + storageCleanup.listingFailures.length,
       },
-    });
+      requestId,
+    }, 200, requestId);
   } catch (err) {
-    console.error('delete-account failed:', err);
-    return jsonResponse({ error: String((err as Error)?.message || err || 'Delete account failed') }, 500);
+    logOperationalEvent({ functionName: 'delete-account', operation: 'delete_account', requestId, userId, durationMs: Date.now() - startedAt, success: false, errorCode: 'ACCOUNT_DELETE_FAILED', status: 500, provider: 'supabase', severity: 'HIGH' });
+    return jsonResponse({ error: 'Delete account failed', requestId }, 500, requestId);
   }
 });

@@ -1,0 +1,41 @@
+name: Observability Smoke
+
+on:
+  schedule:
+    - cron: '17,47 * * * *'
+  workflow_dispatch:
+    inputs:
+      force_alert:
+        description: Emit a controlled GitHub Actions alert after safe health probes
+        required: false
+        default: false
+        type: boolean
+
+permissions:
+  contents: read
+
+concurrency:
+  group: observability-smoke
+  cancel-in-progress: true
+
+jobs:
+  health:
+    name: Production frontend and staging Edge health
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    env:
+      E2E_SUPABASE_URL: ${{ secrets.E2E_SUPABASE_URL }}
+      E2E_SUPABASE_ANON_KEY: ${{ secrets.E2E_SUPABASE_ANON_KEY }}
+      OBSERVABILITY_FORCE_ALERT: ${{ inputs.force_alert || false }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      - name: Use Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version-file: .nvmrc
+      - name: Run non-destructive health probes
+        run: node scripts/observability-smoke.mjs
+      - name: Emit actionable alert summary
+        if: failure()
+        run: echo "::error title=CRITICAL observability alert::Production frontend or staging Edge health regressed. Inspect this run and correlate with the latest release."

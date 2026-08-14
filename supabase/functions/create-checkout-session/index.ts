@@ -6,6 +6,7 @@ import {
   parseAllowedOrigins,
   resolveTrustedReturnUrl,
 } from '../_shared/httpSecurity.ts';
+import { createRequestId, logOperationalEvent, withRequestId } from '../_shared/observability.ts';
 
 const stripeSecretKey = Deno.env.get('STRIPE_SECRET_KEY') ?? '';
 const supabaseUrl = Deno.env.get('SUPABASE_URL') ?? '';
@@ -70,7 +71,7 @@ async function getAuthenticatedUser(authHeader: string) {
   return { user, error: null };
 }
 
-async function ensureStripeCustomer(user: { id: string; email?: string | null }) {
+async function ensureStripeCustomer(user: { id: string; email?: string | null }, requestId: string) {
   const { data: existingSub, error: readError } = await supabaseAdmin
     .from('subscriptions')
     .select('id, stripe_customer_id')
@@ -78,7 +79,7 @@ async function ensureStripeCustomer(user: { id: string; email?: string | null })
     .maybeSingle();
 
   if (readError) {
-    console.warn('Could not read existing subscription row; continuing without local customer cache.', readError);
+    logOperationalEvent({ functionName: 'create-checkout-session', operation: 'customer_cache_read', requestId, userId: user.id, success: false, errorCode: readError.code || 'CUSTOMER_CACHE_READ_FAILED', status: 500, provider: 'supabase', severity: 'WARNING' });
   }
   if (existingSub?.stripe_customer_id) return existingSub.stripe_customer_id;
 
@@ -93,14 +94,14 @@ async function ensureStripeCustomer(user: { id: string; email?: string | null })
       .update({ stripe_customer_id: customer.id, updated_at: new Date().toISOString() })
       .eq('id', existingSub.id);
     if (error) {
-      console.warn('Could not update subscription customer cache; checkout will continue.', error);
+      logOperationalEvent({ functionName: 'create-checkout-session', operation: 'customer_cache_update', requestId, userId: user.id, success: false, errorCode: error.code || 'CUSTOMER_CACHE_UPDATE_FAILED', status: 500, provider: 'supabase', severity: 'WARNING' });
     }
   } else {
     const { error } = await supabaseAdmin
       .from('subscriptions')
       .insert({ user_id: user.id, stripe_customer_id: customer.id });
     if (error) {
-      console.warn('Could not insert subscription customer cache; checkout will continue.', error);
+      logOperationalEvent({ functionName: 'create-checkout-session', operation: 'customer_cache_insert', requestId, userId: user.id, success: false, errorCode: error.code || 'CUSTOMER_CACHE_INSERT_FAILED', status: 500, provider: 'supabase', severity: 'WARNING' });
     }
   }
 
@@ -108,13 +109,18 @@ async function ensureStripeCustomer(user: { id: string; email?: string | null })
 }
 
 Deno.serve(async (req) => {
+  const requestId = createRequestId(req);
+  const startedAt = Date.now();
+  let userId = '';
   const requestOrigin = req.headers.get('Origin') ?? '';
   const corsHeaders = buildCorsHeaders(requestOrigin, allowedOrigins);
+  const respond = (body: Record<string, unknown>, status: number) => withRequestId(new Response(JSON.stringify(body), {
+    status,
+    headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+  }), requestId);
   if (!isRequestOriginAllowed(requestOrigin, allowedOrigins)) {
-    return new Response(JSON.stringify({ error: 'Origin not allowed' }), {
-      status: 403,
-      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-    });
+    logOperationalEvent({ functionName: 'create-checkout-session', operation: 'origin_check', requestId, durationMs: Date.now() - startedAt, success: false, errorCode: 'ORIGIN_NOT_ALLOWED', status: 403, provider: 'stripe' });
+    return respond({ error: 'Origin not allowed', requestId }, 403);
   }
   if (req.method === 'OPTIONS') {
     return new Response('ok', { headers: corsHeaders });
@@ -123,19 +129,16 @@ Deno.serve(async (req) => {
   try {
     const authHeader = req.headers.get('Authorization');
     if (!authHeader) {
-      return new Response(JSON.stringify({ error: 'Unauthorized' }), {
-        status: 401,
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-      });
+      logOperationalEvent({ functionName: 'create-checkout-session', operation: 'authenticate', requestId, durationMs: Date.now() - startedAt, success: false, errorCode: 'UNAUTHORIZED', status: 401, provider: 'supabase' });
+      return respond({ error: 'Unauthorized', requestId }, 401);
     }
 
-    const { user, error: authReason } = await getAuthenticatedUser(authHeader);
+    const { user } = await getAuthenticatedUser(authHeader);
     if (!user) {
-      return new Response(JSON.stringify({ error: `Unauthorized: ${authReason || 'invalid session'}` }), {
-        status: 401,
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-      });
+      logOperationalEvent({ functionName: 'create-checkout-session', operation: 'authenticate', requestId, durationMs: Date.now() - startedAt, success: false, errorCode: 'UNAUTHORIZED', status: 401, provider: 'supabase' });
+      return respond({ error: 'Unauthorized', requestId }, 401);
     }
+    userId = user.id;
 
     const body = await req.json().catch(() => ({}));
     const mode = body?.mode === 'subscription' ? 'subscription' : 'payment';
@@ -153,10 +156,8 @@ Deno.serve(async (req) => {
     const expectedPriceId = getAllowedPriceId(mode === 'subscription' ? 'plan' : 'pack', itemId, billingCycle);
 
     if (!itemId || !expectedPriceId) {
-      return new Response(JSON.stringify({ error: 'Stripe price is not configured for this item.' }), {
-        status: 400,
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-      });
+      logOperationalEvent({ functionName: 'create-checkout-session', operation: 'validate_price', requestId, userId, durationMs: Date.now() - startedAt, success: false, errorCode: 'STRIPE_PRICE_NOT_CONFIGURED', status: 400, provider: 'stripe' });
+      return respond({ error: 'Stripe price is not configured for this item.', requestId }, 400);
     }
 
     // Ignore any client-supplied price id and trust server-side mapping only.
@@ -176,7 +177,7 @@ Deno.serve(async (req) => {
       metadata.terms_version = String(body?.terms_version ?? 'checkout-v1');
     }
 
-    const customerId = await ensureStripeCustomer(user);
+    const customerId = await ensureStripeCustomer(user, requestId);
 
     const session = await stripe.checkout.sessions.create({
       mode,
@@ -191,17 +192,12 @@ Deno.serve(async (req) => {
       payment_intent_data: mode === 'payment' ? { metadata, setup_future_usage: 'off_session' } : undefined,
     });
 
-    return new Response(JSON.stringify(isEmbedded
+    logOperationalEvent({ functionName: 'create-checkout-session', operation: 'create_session', requestId, userId, durationMs: Date.now() - startedAt, success: true, status: 200, provider: 'stripe', metrics: { mode, billing_cycle: billingCycle, embedded: isEmbedded } });
+    return respond(isEmbedded
       ? { id: session.id, client_secret: session.client_secret }
-      : { id: session.id, url: session.url }), {
-      status: 200,
-      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-    });
+      : { id: session.id, url: session.url }, 200);
   } catch (err) {
-    console.error('create-checkout-session error:', err);
-    return new Response(JSON.stringify({ error: String(err?.message ?? 'Internal error') }), {
-      status: 500,
-      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-    });
+    logOperationalEvent({ functionName: 'create-checkout-session', operation: 'create_session', requestId, userId, durationMs: Date.now() - startedAt, success: false, errorCode: 'STRIPE_CHECKOUT_FAILED', status: 500, provider: 'stripe' });
+    return respond({ error: 'Internal error', requestId }, 500);
   }
 });

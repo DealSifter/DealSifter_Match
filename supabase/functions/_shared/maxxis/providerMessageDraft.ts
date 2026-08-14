@@ -1,4 +1,5 @@
 import { createClient } from 'npm:@supabase/supabase-js@2';
+import { logOperationalEvent } from '../observability.ts';
 import { corsHeaders, supabaseAnonKey, supabaseUrl } from './config.ts';
 import { getPropertyDetailsWithClient } from './propertyDetails.ts';
 import {
@@ -30,18 +31,20 @@ function pickRow<T>(data: T | T[] | null): T | null {
 }
 
 function logProviderMessageDraft(details: Record<string, unknown>) {
-  console.log(JSON.stringify({
-    event: 'provider_message_draft_request',
-    request_id: String(details.request_id || ''),
-    user_id: String(details.user_id || ''),
-    service_id: String(details.service_id || ''),
-    property_id: String(details.property_id || ''),
-    provider_valid: Boolean(details.provider_valid),
-    property_context_present: Boolean(details.property_context_present),
-    duration_ms: Number(details.duration_ms || 0),
-    success: Boolean(details.success),
-    error_code: details.error_code ? String(details.error_code) : undefined,
-  }));
+  return logOperationalEvent({
+    functionName: 'maxxis-provider-message-draft',
+    operation: 'provider_message_draft_request',
+    requestId: String(details.request_id || ''),
+    userId: String(details.user_id || ''),
+    durationMs: Number(details.duration_ms || 0),
+    success: details.success === true,
+    errorCode: details.error_code,
+    provider: 'supabase',
+    metrics: {
+      provider_valid: Boolean(details.provider_valid),
+      property_context_present: Boolean(details.property_context_present),
+    },
+  });
 }
 
 async function authenticatedClient(req: Request) {

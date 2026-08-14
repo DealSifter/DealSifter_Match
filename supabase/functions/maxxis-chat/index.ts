@@ -7,6 +7,7 @@ import { prepareProfileSuggestions } from '../_shared/maxxis/prepareProfileSugge
 import { executeMaxxisTool, MAXXIS_TOOLS } from '../_shared/maxxis/toolRegistry.ts';
 import { normalizeComparisonContextIds } from '../_shared/maxxis/compareProperties.ts';
 import type { MaxxisLanguage, MaxxisResponse } from '../_shared/maxxis/types.ts';
+import { createRequestId, getEdgeRelease } from '../_shared/observability.ts';
 
 if (!supabaseUrl) throw new Error('Missing SUPABASE_URL');
 if (!supabaseAnonKey) throw new Error('Missing SUPABASE_ANON_KEY');
@@ -152,14 +153,22 @@ async function authenticatedUser(authHeader: string) {
 
 Deno.serve(async (req) => {
   const origin = req.headers.get('Origin') || '';
+  const requestId = createRequestId(req);
   if (req.method === 'OPTIONS') return new Response('ok', { headers: corsHeaders(origin) });
+  if (req.method === 'GET' && new URL(req.url).searchParams.get('health') === '1') {
+    logMaxxisEvent('health', { request_id: requestId, duration_ms: 0, success: true });
+    return new Response(JSON.stringify({ status: 'ok', function: 'maxxis-chat', release: getEdgeRelease() }), {
+      status: 200,
+      headers: { ...corsHeaders(origin), 'Content-Type': 'application/json', 'x-request-id': requestId, 'Cache-Control': 'no-store' },
+    });
+  }
   if (req.method !== 'POST') return response({ message: 'Method not allowed', type: 'text', data: null, actions: [], error: 'METHOD_NOT_ALLOWED' }, 405, origin);
 
-  const requestId = crypto.randomUUID();
   const startedAt = Date.now();
   let userId = '';
   let usedModel = '';
   let fallbackCount = 0;
+  let providerDurationMs = 0;
   try {
     const user = await authenticatedUser(req.headers.get('Authorization') || '');
     if (!user) {
@@ -193,7 +202,9 @@ Deno.serve(async (req) => {
       usedModel = 'e2e-llm-stub';
     } else {
       for (const model of geminiModels) {
+        const providerStartedAt = Date.now();
         const result = await callGemini(model, geminiRequest);
+        providerDurationMs += Date.now() - providerStartedAt;
         payload = result.payload;
         if (result.response.ok) { usedModel = model; break; }
         fallbackCount += 1;
@@ -203,7 +214,7 @@ Deno.serve(async (req) => {
     if (!usedModel) {
       const quota = providerErrors.some((item) => item.status === 429);
       const text = fallback(language, quota ? 'quota' : 'provider');
-      logMaxxisEvent('maxxis_chat', { request_id: requestId, user_id: userId, duration_ms: Date.now() - startedAt, success: false, fallback_count: fallbackCount, error_code: quota ? 'MAXXIS_PROVIDER_QUOTA' : 'MAXXIS_PROVIDER_FAILED' });
+      logMaxxisEvent('maxxis_chat', { request_id: requestId, user_id: userId, duration_ms: Date.now() - startedAt, provider_duration_ms: providerDurationMs, success: false, fallback_count: fallbackCount, error_code: quota ? 'MAXXIS_PROVIDER_QUOTA' : 'MAXXIS_PROVIDER_FAILED' });
       return response({ message: text, answer: text, type: 'text', data: null, actions: [], language, unavailable: true, error: quota ? 'MAXXIS_PROVIDER_QUOTA' : 'MAXXIS_PROVIDER_FAILED' }, 502, origin);
     }
     const parts = ((payload as any)?.candidates?.[0]?.content?.parts || []) as Array<Record<string, any>>;
@@ -302,11 +313,11 @@ Deno.serve(async (req) => {
     }
     const text = String(parts.find((part) => part?.text)?.text || '').trim();
     if (!text) return response({ message: 'Maxxis could not generate a response. Please try again.', type: 'text', data: null, actions: [], error: 'MAXXIS_EMPTY_RESPONSE' }, 502, origin);
-    logMaxxisEvent('maxxis_chat', { request_id: requestId, user_id: userId, model: usedModel, duration_ms: Date.now() - startedAt, success: true, fallback_count: fallbackCount });
+    logMaxxisEvent('maxxis_chat', { request_id: requestId, user_id: userId, model: usedModel, duration_ms: Date.now() - startedAt, provider_duration_ms: providerDurationMs, success: true, fallback_count: fallbackCount });
     return response({ message: text, answer: text, type: 'text', data: null, actions: [], language }, 200, origin);
   } catch (error) {
     const timedOut = error instanceof DOMException && error.name === 'AbortError';
-    logMaxxisEvent('maxxis_chat', { request_id: requestId, user_id: userId, model: usedModel, duration_ms: Date.now() - startedAt, success: false, fallback_count: fallbackCount, error_code: timedOut ? 'MAXXIS_TIMEOUT' : 'MAXXIS_FAILED' });
+    logMaxxisEvent('maxxis_chat', { request_id: requestId, user_id: userId, model: usedModel, duration_ms: Date.now() - startedAt, provider_duration_ms: providerDurationMs, success: false, fallback_count: fallbackCount, error_code: timedOut ? 'MAXXIS_TIMEOUT' : 'MAXXIS_FAILED' });
     const text = fallback('en', 'provider');
     return response({ message: text, answer: text, type: 'text', data: null, actions: [], unavailable: true, error: timedOut ? 'MAXXIS_TIMEOUT' : 'MAXXIS_FAILED' }, 502, origin);
   }

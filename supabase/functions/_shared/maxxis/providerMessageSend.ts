@@ -1,4 +1,5 @@
 import { createClient } from 'npm:@supabase/supabase-js@2';
+import { logOperationalEvent } from '../observability.ts';
 import { corsHeaders, supabaseAnonKey, supabaseUrl } from './config.ts';
 
 type ProviderMessageMode = 'prepare' | 'confirm' | 'cancel';
@@ -62,18 +63,17 @@ async function authenticatedClient(req: Request) {
 }
 
 function logProviderMessageSend(event: string, details: Record<string, unknown>) {
-  console.log(JSON.stringify({
-    event,
-    request_id: String(details.request_id || ''),
-    user_id: String(details.user_id || ''),
-    action_id: String(details.action_id || ''),
-    service_id: String(details.service_id || ''),
-    property_id: String(details.property_id || ''),
-    duration_ms: Number(details.duration_ms || 0),
-    success: Boolean(details.success),
-    status: details.status ? String(details.status) : undefined,
-    error_code: details.error_code ? String(details.error_code) : undefined,
-  }));
+  return logOperationalEvent({
+    functionName: `maxxis-provider-message-${event.replace('provider_message_send_', '')}`,
+    operation: event,
+    requestId: String(details.request_id || ''),
+    userId: String(details.user_id || ''),
+    durationMs: Number(details.duration_ms || 0),
+    success: details.success === true,
+    status: details.status,
+    errorCode: details.error_code,
+    provider: 'supabase',
+  });
 }
 
 async function prepareProviderMessage(req: Request, origin: string, body: Record<string, unknown>) {

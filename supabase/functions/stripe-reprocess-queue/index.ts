@@ -1,5 +1,6 @@
 import { createClient } from "npm:@supabase/supabase-js@2";
 import { processQueuedStripeEvents } from "../_shared/stripe-event-processor.ts";
+import { createRequestId, logOperationalEvent, withRequestId } from '../_shared/observability.ts';
 
 const supabaseUrl = Deno.env.get('SUPABASE_URL') ?? '';
 const supabaseAnonKey = Deno.env.get('ANON_KEY') ?? Deno.env.get('SUPABASE_ANON_KEY') ?? '';
@@ -13,11 +14,11 @@ const corsHeaders = {
   'Access-Control-Allow-Methods': 'POST, OPTIONS',
 };
 
-function jsonResponse(body: Record<string, unknown>, status = 200) {
-  return new Response(JSON.stringify(body), {
+function jsonResponse(body: Record<string, unknown>, status = 200, requestId = '') {
+  return withRequestId(new Response(JSON.stringify(body), {
     status,
     headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-  });
+  }), requestId);
 }
 
 async function assertAdmin(authHeader: string) {
@@ -37,21 +38,30 @@ async function assertAdmin(authHeader: string) {
   if (adminError) return { ok: false, status: 500, error: adminError.message };
   if (isAdmin !== true) return { ok: false, status: 403, error: 'Admin access required' };
 
-  return { ok: true, status: 200, error: null };
+  return { ok: true, status: 200, error: null, userId: user.id };
 }
 
 Deno.serve(async (req) => {
+  const requestId = createRequestId(req);
+  const startedAt = Date.now();
   if (req.method === 'OPTIONS') return new Response('ok', { headers: corsHeaders });
-  if (req.method !== 'POST') return jsonResponse({ error: 'Method not allowed' }, 405);
+  if (req.method !== 'POST') {
+    logOperationalEvent({ functionName: 'stripe-reprocess-queue', operation: 'validate_method', requestId, durationMs: Date.now() - startedAt, success: false, errorCode: 'METHOD_NOT_ALLOWED', status: 405, provider: 'stripe' });
+    return jsonResponse({ error: 'Method not allowed', requestId }, 405, requestId);
+  }
 
   const auth = await assertAdmin(req.headers.get('Authorization') ?? '');
-  if (!auth.ok) return jsonResponse({ error: auth.error }, auth.status);
+  if (!auth.ok) {
+    logOperationalEvent({ functionName: 'stripe-reprocess-queue', operation: 'authorize_admin', requestId, durationMs: Date.now() - startedAt, success: false, errorCode: auth.status === 403 ? 'ADMIN_ACCESS_REQUIRED' : 'UNAUTHORIZED', status: auth.status, provider: 'supabase' });
+    return jsonResponse({ error: auth.status === 403 ? 'Admin access required' : 'Unauthorized', requestId }, auth.status, requestId);
+  }
 
   try {
     const summary = await processQueuedStripeEvents(10);
-    return jsonResponse({ ok: true, ...summary });
-  } catch (err) {
-    console.error('stripe-reprocess-queue failed:', err);
-    return jsonResponse({ error: String((err as Error)?.message || err || 'Stripe reprocess failed') }, 500);
+    logOperationalEvent({ functionName: 'stripe-reprocess-queue', operation: 'process_queue', requestId, userId: auth.userId, durationMs: Date.now() - startedAt, success: true, status: 200, provider: 'stripe', metrics: summary });
+    return jsonResponse({ ok: true, ...summary }, 200, requestId);
+  } catch {
+    logOperationalEvent({ functionName: 'stripe-reprocess-queue', operation: 'process_queue', requestId, userId: auth.userId, durationMs: Date.now() - startedAt, success: false, errorCode: 'STRIPE_REPROCESS_FAILED', status: 500, provider: 'stripe', severity: 'CRITICAL' });
+    return jsonResponse({ error: 'Internal error', requestId }, 500, requestId);
   }
 });

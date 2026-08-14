@@ -1,4 +1,5 @@
 import { createClient } from 'npm:@supabase/supabase-js@2';
+import { logOperationalEvent } from '../observability.ts';
 import { corsHeaders, supabaseAnonKey, supabaseUrl } from './config.ts';
 import {
   analyzeProviderConversation,
@@ -39,18 +40,20 @@ async function authenticatedClient(req: Request) {
 }
 
 function logConversationAnalysis(details: Record<string, unknown>) {
-  console.log(JSON.stringify({
-    event: 'provider_conversation_analysis',
-    request_id: String(details.request_id || ''),
-    user_id: String(details.user_id || ''),
-    service_id: String(details.service_id || ''),
-    property_id: String(details.property_id || ''),
-    provider_valid: Boolean(details.provider_valid),
-    message_count: Number(details.message_count || 0),
-    duration_ms: Number(details.duration_ms || 0),
-    success: Boolean(details.success),
-    error_code: details.error_code ? String(details.error_code) : undefined,
-  }));
+  return logOperationalEvent({
+    functionName: 'maxxis-provider-conversation-analysis',
+    operation: 'provider_conversation_analysis',
+    requestId: String(details.request_id || ''),
+    userId: String(details.user_id || ''),
+    durationMs: Number(details.duration_ms || 0),
+    success: details.success === true,
+    errorCode: details.error_code,
+    provider: 'supabase',
+    metrics: {
+      provider_valid: Boolean(details.provider_valid),
+      message_count: Number(details.message_count || 0),
+    },
+  });
 }
 
 async function resolveServiceTarget(client: ReturnType<typeof createClient>, serviceId: string, userId: string) {
