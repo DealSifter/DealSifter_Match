@@ -360,8 +360,9 @@ async function invokeFunction({ token, name, body = {} }) {
 }
 
 export const test = base.extend({
-  realBackend: [async (fixtures, applyFixture) => {
-    void fixtures;
+  // Playwright requires fixture callbacks to destructure their first argument.
+  // eslint-disable-next-line no-empty-pattern
+  realBackend: [async ({}, applyFixture) => {
     const fixture = await setupRealBackendFixture();
     try {
       await applyFixture({

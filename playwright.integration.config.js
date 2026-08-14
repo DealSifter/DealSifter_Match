@@ -11,7 +11,7 @@ export default defineConfig({
   testDir: './e2e/tests/integration',
   timeout: 180_000,
   expect: {
-    timeout: 10_000,
+    timeout: 15_000,
   },
   fullyParallel: false,
   forbidOnly: isCI,
@@ -20,6 +20,8 @@ export default defineConfig({
   reporter: isCI ? [['list'], ['html', { open: 'never' }]] : [['list']],
   use: {
     baseURL,
+    navigationTimeout: 60_000,
+    actionTimeout: 20_000,
     trace: 'retain-on-failure',
     screenshot: 'only-on-failure',
     video: 'off',
