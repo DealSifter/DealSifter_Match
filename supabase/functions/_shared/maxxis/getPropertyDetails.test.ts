@@ -34,27 +34,15 @@ const completeRow = {
 };
 
 function clientWith(property: Record<string, unknown> | null, images: Array<Record<string, unknown>> = []) {
-  const propertyEq = vi.fn();
-  const imageEq = vi.fn();
-  const propertyQuery: any = {
-    select: vi.fn(() => propertyQuery),
-    eq: propertyEq.mockImplementation(() => propertyQuery),
-    or: vi.fn(() => propertyQuery),
-    maybeSingle: vi.fn(async () => ({ data: property, error: null })),
-  };
-  const imageQuery: any = {
-    select: vi.fn(() => imageQuery),
-    eq: imageEq.mockImplementation(() => imageQuery),
-    order: vi.fn(() => imageQuery),
-    limit: vi.fn(async () => ({ data: images, error: null })),
-  };
-  const from = vi.fn((table: string) => table === 'properties' ? propertyQuery : imageQuery);
-  return { client: { from }, from, propertyEq, imageEq };
+  const row = property ? { ...property, images: images.map((image) => image.image_url) } : null;
+  const query: any = { maybeSingle: vi.fn(async () => ({ data: row, error: null })) };
+  const rpc = vi.fn(() => query);
+  return { client: { rpc }, rpc };
 }
 
 describe('getPropertyDetails', () => {
   it('returns normalized details for a valid visible property', async () => {
-    const { client, propertyEq } = clientWith(completeRow, [
+    const { client, rpc } = clientWith(completeRow, [
       { image_url: 'https://cdn.example.com/property.jpg', sort_order: 0 },
     ]);
     const result = await getPropertyDetailsWithClient({ propertyId: PROPERTY_ID }, client);
@@ -90,12 +78,11 @@ describe('getPropertyDetails', () => {
       ]),
       serviceMatches: null,
     });
-    expect(propertyEq).toHaveBeenCalledWith('is_active', true);
-    expect(propertyEq).toHaveBeenCalledWith('publish_to_showcase', true);
+    expect(rpc).toHaveBeenCalledWith('ds_get_public_property_details', { p_property_id: PROPERTY_ID });
   });
 
   it('returns the same safe empty result for a nonexistent property', async () => {
-    const { client, from } = clientWith(null);
+    const { client, rpc } = clientWith(null);
     await expect(getPropertyDetailsWithClient({ propertyId: PROPERTY_ID }, client)).resolves.toEqual({
       found: false,
       property: null,
@@ -105,16 +92,15 @@ describe('getPropertyDetails', () => {
       serviceNeeds: [],
       serviceMatches: null,
     });
-    expect(from).toHaveBeenCalledTimes(1);
+    expect(rpc).toHaveBeenCalledTimes(1);
   });
 
   it('does not distinguish a row hidden by RLS from a nonexistent row', async () => {
     const rlsVisibleRow = null;
-    const { client, from } = clientWith(rlsVisibleRow);
+    const { client, rpc } = clientWith(rlsVisibleRow);
     const result = await getPropertyDetailsWithClient({ propertyId: PROPERTY_ID }, client);
     expect(result).toEqual({ found: false, property: null, missingFields: [], metrics: null, analysis: null, serviceNeeds: [], serviceMatches: null });
-    expect(from).not.toHaveBeenCalledWith('users');
-    expect(from).not.toHaveBeenCalledWith('property_unlocks');
+    expect(rpc).toHaveBeenCalledWith('ds_get_public_property_details', { p_property_id: PROPERTY_ID });
   });
 
   it('reports only relevant real schema fields as missing', () => {

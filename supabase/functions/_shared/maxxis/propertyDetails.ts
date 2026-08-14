@@ -10,7 +10,6 @@ import type {
 } from './types.ts';
 
 const UUID_PATTERN = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
-const PROPERTY_SELECT = 'id, type, city, state, zip, price, beds, baths, sqft, improvement, lot, deal_tag, objective, rehab, cap_rate, description, markets, is_active, publish_to_showcase, deal_closed';
 const MAX_IMAGES = 12;
 
 export type GetPropertyDetailsInput = {
@@ -33,7 +32,7 @@ export type PropertyDetailsLookupResult = NormalizedPropertyDetailsResult & {
 };
 
 type SupabaseLikeClient = {
-  from: (table: string) => any;
+  rpc: (name: string, args: Record<string, unknown>) => any;
 };
 
 const cleanText = (value: unknown, max = 500) => String(value || '')
@@ -147,25 +146,16 @@ export async function getPropertyDetailsWithClient(
   input: GetPropertyDetailsInput,
   client: SupabaseLikeClient,
 ): Promise<PropertyDetailsLookupResult> {
-  const { data: row, error } = await client.from('properties')
-    .select(PROPERTY_SELECT)
-    .eq('id', input.propertyId)
-    .eq('is_active', true)
-    .eq('publish_to_showcase', true)
-    .or('deal_closed.is.null,deal_closed.eq.false')
+  const { data: row, error } = await client
+    .rpc('ds_get_public_property_details', { p_property_id: input.propertyId })
     .maybeSingle();
 
   if (error) throw new Error('PROPERTY_DETAILS_FAILED');
   if (!row) return { found: false, property: null, missingFields: [], metrics: null, analysis: null, serviceNeeds: [], serviceMatches: null };
-
-  const { data: images, error: imagesError } = await client.from('property_images')
-    .select('image_url, sort_order')
-    .eq('property_id', input.propertyId)
-    .order('sort_order', { ascending: true })
-    .limit(MAX_IMAGES);
-  if (imagesError) throw new Error('PROPERTY_DETAILS_FAILED');
-
-  const normalized = normalizePropertyDetails(row, Array.isArray(images) ? images : []);
+  const normalized = normalizePropertyDetails(
+    row,
+    (Array.isArray(row.images) ? row.images : []).map((image_url: unknown) => ({ image_url })),
+  );
   const property = normalized.property;
   const metrics = property ? calculateDealMetrics({
     price: property.price,

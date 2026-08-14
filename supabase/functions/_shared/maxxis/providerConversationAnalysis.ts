@@ -75,12 +75,7 @@ async function resolveServiceTarget(client: ReturnType<typeof createClient>, ser
 async function validatePropertyContext(client: ReturnType<typeof createClient>, propertyId: string) {
   if (!propertyId) return null;
   const { data, error } = await client
-    .from('properties')
-    .select('id, city, state, type, is_active, publish_to_showcase, deal_closed')
-    .eq('id', propertyId)
-    .eq('is_active', true)
-    .eq('publish_to_showcase', true)
-    .or('deal_closed.is.null,deal_closed.eq.false')
+    .rpc('ds_get_public_property_details', { p_property_id: propertyId })
     .maybeSingle();
   if (error) throw new Error('PROPERTY_LOOKUP_FAILED');
   return data?.id

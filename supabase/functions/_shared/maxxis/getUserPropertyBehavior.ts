@@ -39,9 +39,10 @@ export async function getUserPropertyBehavior(authHeader: string): Promise<UserP
   if (!propertyIds.length) return emptyBehavior(rows.length);
 
   const { data: propertyRows, error: propertyError } = await client
-    .from('properties')
-    .select('id, type, city, state, price, objective')
-    .in('id', propertyIds);
+    .rpc('ds_search_public_properties', {
+      p_property_ids: propertyIds,
+      p_limit: Math.min(propertyIds.length, BEHAVIOR_ACTION_LIMIT),
+    });
   if (propertyError) throw new Error('PROPERTY_BEHAVIOR_PROPERTIES_FAILED');
 
   const propertiesById = new Map((Array.isArray(propertyRows) ? propertyRows : []).map((property) => [String(property.id), property]));

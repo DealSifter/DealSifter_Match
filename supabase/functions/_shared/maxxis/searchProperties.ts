@@ -51,31 +51,20 @@ export function validateSearchPropertiesInput(value: unknown): SearchPropertiesI
 export async function searchProperties(input: unknown, authHeader: string): Promise<MaxxisPropertyResult[]> {
   const filters = validateSearchPropertiesInput(input);
   const client = createClient(supabaseUrl, supabaseAnonKey, { global: { headers: { Authorization: authHeader } } });
-  let query = client.from('properties')
-    .select('id, type, city, state, zip, price, beds, baths, sqft, objective, is_active, publish_to_showcase, deal_closed, created_at')
-    .eq('is_active', true)
-    .eq('publish_to_showcase', true)
-    .or('deal_closed.is.null,deal_closed.eq.false')
-    .order('created_at', { ascending: false })
-    .limit(filters.limit || DEFAULT_LIMIT);
-  if (filters.state?.length) query = query.in('state', filters.state);
-  if (filters.city) query = query.ilike('city', `%${filters.city}%`);
-  if (filters.zipCode) query = query.ilike('zip', `${filters.zipCode}%`);
-  if (filters.propertyType) query = query.ilike('type', `%${filters.propertyType}%`);
-  if (filters.minPrice !== undefined) query = query.gte('price', filters.minPrice);
-  if (filters.maxPrice !== undefined) query = query.lte('price', filters.maxPrice);
-  if (filters.bedrooms !== undefined) query = query.gte('beds', filters.bedrooms);
-  if (filters.bathrooms !== undefined) query = query.gte('baths', filters.bathrooms);
-  if (filters.objective) query = query.ilike('objective', `%${filters.objective}%`);
-  const { data, error } = await query;
+  const rpcArgs = {
+    ...(filters.state?.length ? { p_state: filters.state } : {}),
+    ...(filters.city ? { p_city: filters.city } : {}),
+    ...(filters.zipCode ? { p_zip_code: filters.zipCode } : {}),
+    ...(filters.propertyType ? { p_property_type: filters.propertyType } : {}),
+    ...(filters.minPrice !== undefined ? { p_min_price: filters.minPrice } : {}),
+    ...(filters.maxPrice !== undefined ? { p_max_price: filters.maxPrice } : {}),
+    ...(filters.bedrooms !== undefined ? { p_bedrooms: filters.bedrooms } : {}),
+    ...(filters.bathrooms !== undefined ? { p_bathrooms: filters.bathrooms } : {}),
+    ...(filters.objective ? { p_objective: filters.objective } : {}),
+    p_limit: filters.limit || DEFAULT_LIMIT,
+  };
+  const { data, error } = await client.rpc('ds_search_public_properties', rpcArgs);
   if (error) throw new Error('PROPERTY_SEARCH_FAILED');
   const rows = Array.isArray(data) ? data : [];
-  const { data: images } = rows.length
-    ? await client.from('property_images').select('property_id, image_url, sort_order').in('property_id', rows.map((row) => row.id)).order('sort_order', { ascending: true })
-    : { data: [] };
-  const firstImage = new Map<string, string>();
-  (Array.isArray(images) ? images : []).forEach((image) => {
-    if (!firstImage.has(String(image.property_id))) firstImage.set(String(image.property_id), cleanText(image.image_url, 2_000));
-  });
-  return rows.map((row) => ({ id: String(row.id), title: cleanText(row.type || 'Property'), city: cleanText(row.city), state: cleanText(row.state, 2).toUpperCase(), zip: cleanText(row.zip, 10), price: Number(row.price || 0), propertyType: cleanText(row.type), bedrooms: Number(row.beds || 0), bathrooms: Number(row.baths || 0), sqft: cleanText(row.sqft), objective: cleanText(row.objective), image: firstImage.get(String(row.id)) || '', status: 'active' }));
+  return rows.map((row) => ({ id: String(row.id), title: cleanText(row.type || 'Property'), city: cleanText(row.city), state: cleanText(row.state, 2).toUpperCase(), zip: cleanText(row.zip, 10), price: Number(row.price || 0), propertyType: cleanText(row.type), bedrooms: Number(row.beds || 0), bathrooms: Number(row.baths || 0), sqft: cleanText(row.sqft), objective: cleanText(row.objective), image: cleanText(row.image, 2_000), status: 'active' }));
 }
