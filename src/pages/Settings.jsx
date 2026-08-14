@@ -1096,7 +1096,7 @@ export function Settings({ setPage, prevPage, initialTab = 'profile', initialCom
                   <div style={{ border: `1px solid ${C.border}`, borderRadius: 10, padding: 10, fontSize: 12, color: C.t2, width: '100%', minWidth: 0, boxSizing: 'border-box', overflowWrap: 'anywhere', wordBreak: 'break-word' }}>
                     {t.loggedAs || 'Logged as'}: <strong style={{ color: C.t1, overflowWrap: 'anywhere', wordBreak: 'break-word' }}>{authSession?.email || '-'}</strong>
                   </div>
-                  <button onClick={logout} style={{ width: '100%', boxSizing: 'border-box', border: `1px solid ${C.border}`, background: 'transparent', color: C.t2, borderRadius: 8, padding: '8px 10px', cursor: 'pointer', fontSize: 12, fontWeight: 700 }}>
+                  <button data-testid="settings-logout" onClick={logout} style={{ width: '100%', boxSizing: 'border-box', border: `1px solid ${C.border}`, background: 'transparent', color: C.t2, borderRadius: 8, padding: '8px 10px', cursor: 'pointer', fontSize: 12, fontWeight: 700 }}>
                     {t.logout || 'Sign out'}
                   </button>
                 </div>

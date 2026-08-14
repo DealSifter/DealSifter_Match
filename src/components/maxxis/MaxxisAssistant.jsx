@@ -1108,8 +1108,8 @@ function ProviderUnlockControls({
     ? pendingProviderUnlock
     : null;
   return (
-    <div style={{ display: 'grid', gap: 5, paddingTop: 3 }}>
-      <span style={{ whiteSpace: 'normal' }}>{contactStatusLabel(access, copy)}</span>
+    <div data-testid="maxxis-provider-unlock-controls" style={{ display: 'grid', gap: 5, paddingTop: 3 }}>
+      <span data-testid="maxxis-provider-contact-status" style={{ whiteSpace: 'normal' }}>{contactStatusLabel(access, copy)}</span>
       {access.contact ? <UnlockedProviderContact contact={access.contact} copy={copy} /> : null}
       {pending ? (
         <div className="maxxis-action-link" style={{ cursor: 'default', display: 'grid', gap: 6, width: '100%' }}>
@@ -1119,6 +1119,7 @@ function ProviderUnlockControls({
           <span>{`${copy.cost}: ${pending.cost} ${pending.currency || 'nuggets'}`}</span>
           <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
             <button
+              data-testid="maxxis-provider-unlock-confirm"
               type="button"
               className="maxxis-action-link"
               disabled={active}
@@ -1128,6 +1129,7 @@ function ProviderUnlockControls({
               <span>{active ? copy.unlocking : copy.unlockContact}</span>
             </button>
             <button
+              data-testid="maxxis-provider-unlock-cancel"
               type="button"
               className="maxxis-action-link"
               disabled={active}
@@ -1141,6 +1143,7 @@ function ProviderUnlockControls({
       ) : null}
       {!pending && access.status === 'locked' ? (
         <button
+          data-testid="maxxis-provider-unlock-prepare"
           type="button"
           className="maxxis-action-link"
           disabled={active}
@@ -2471,7 +2474,7 @@ export function MaxxisAssistant({ page = 'dashboard', onOpenSupport = null, onNa
   return (
     <div className={`maxxis-shell ${open ? 'maxxis-shell-open' : ''}`}>
       {open ? (
-        <section className="maxxis-panel" aria-label={t.title}>
+        <section className="maxxis-panel" data-testid="maxxis-panel" aria-label={t.title}>
           <header className="maxxis-header">
             <div className="maxxis-avatar" aria-hidden="true">
               <img src={maxxisLogo} alt="" draggable="false" />
@@ -2492,7 +2495,7 @@ export function MaxxisAssistant({ page = 'dashboard', onOpenSupport = null, onNa
 
           <div className="maxxis-scope">{t.scope}</div>
 
-          <div className="maxxis-messages">
+          <div className="maxxis-messages" data-testid="maxxis-messages">
             {messages.map((message) => (
               <MessageBubble
                 key={message.id}
@@ -2546,6 +2549,7 @@ export function MaxxisAssistant({ page = 'dashboard', onOpenSupport = null, onNa
             }}
           >
             <textarea
+              data-testid="maxxis-input"
               value={input}
               onChange={(event) => setInput(event.target.value)}
               onKeyDown={(event) => {
@@ -2560,7 +2564,7 @@ export function MaxxisAssistant({ page = 'dashboard', onOpenSupport = null, onNa
               maxLength={1800}
             />
             <div className="maxxis-input-actions">
-              <button className="maxxis-send-button" type="submit" disabled={!canSend} aria-label={t.send} title={t.send}>
+              <button data-testid="maxxis-send" className="maxxis-send-button" type="submit" disabled={!canSend} aria-label={t.send} title={t.send}>
                 <Icon name="send" size={16} color="#fff" strokeWidth={2} />
                 <span>{t.send}</span>
               </button>
@@ -2583,6 +2587,7 @@ export function MaxxisAssistant({ page = 'dashboard', onOpenSupport = null, onNa
         <button
           type="button"
           data-guide="maxxis-widget"
+          data-testid="maxxis-fab"
           className={`maxxis-fab ${dragging ? 'maxxis-fab-dragging' : ''}`}
           onPointerDown={handleFabPointerDown}
           onClick={(event) => {

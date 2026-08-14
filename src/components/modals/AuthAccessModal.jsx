@@ -77,7 +77,7 @@ export function AuthAccessModal({ initialTab = 'signup', onClose, onSubmit, onFo
 
   return (
     <Modal onClose={onClose} maxWidth={460}>
-      <div style={{ display: 'grid', gap: 16 }}>
+      <div data-testid="auth-modal" style={{ display: 'grid', gap: 16 }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
           <DealSifterLogo size={38} />
           <div>
@@ -88,6 +88,7 @@ export function AuthAccessModal({ initialTab = 'signup', onClose, onSubmit, onFo
 
         <div style={{ display: 'flex', gap: 6, borderBottom: `1px solid ${C.border}`, paddingBottom: 8 }}>
           <button
+            data-testid="auth-tab-signup"
             onClick={() => setTab('signup')}
             style={{
               flex: 1,
@@ -104,6 +105,7 @@ export function AuthAccessModal({ initialTab = 'signup', onClose, onSubmit, onFo
             {t.tabSignUp || 'Sign Up'}
           </button>
           <button
+            data-testid="auth-tab-login"
             onClick={() => setTab('login')}
             style={{
               flex: 1,
@@ -125,6 +127,7 @@ export function AuthAccessModal({ initialTab = 'signup', onClose, onSubmit, onFo
           <label style={{ display: 'grid', gap: 7 }}>
             <span style={{ fontSize: 12, color: C.t2, fontWeight: 700, letterSpacing: '0.01em' }}>{t.fullName || 'Full name'}</span>
             <input
+              data-testid="auth-full-name"
               value={fullName}
               onChange={(e) => setFullName(e.target.value)}
               placeholder={t.fullNamePlaceholder || 'Enter your name'}
@@ -136,6 +139,7 @@ export function AuthAccessModal({ initialTab = 'signup', onClose, onSubmit, onFo
         <label style={{ display: 'grid', gap: 7 }}>
           <span style={{ fontSize: 12, color: C.t2, fontWeight: 700, letterSpacing: '0.01em' }}>{t.email || 'Email'}</span>
           <input
+            data-testid="auth-email"
             value={email}
             onChange={(e) => setEmail(e.target.value)}
             placeholder={t.emailPlaceholder || 'you@email.com'}
@@ -146,6 +150,7 @@ export function AuthAccessModal({ initialTab = 'signup', onClose, onSubmit, onFo
         <label style={{ display: 'grid', gap: 7 }}>
           <span style={{ fontSize: 12, color: C.t2, fontWeight: 700, letterSpacing: '0.01em' }}>{t.password || 'Password'}</span>
           <input
+            data-testid="auth-password"
             value={password}
             onChange={(e) => setPassword(e.target.value)}
             placeholder={t.passwordPlaceholder || 'Enter your password'}
@@ -154,7 +159,7 @@ export function AuthAccessModal({ initialTab = 'signup', onClose, onSubmit, onFo
           />
         </label>
 
-        {error ? <div style={{ color: C.danger, fontSize: 12, fontWeight: 600 }}>{error}</div> : null}
+        {error ? <div data-testid="auth-inline-error" style={{ color: C.danger, fontSize: 12, fontWeight: 600 }}>{error}</div> : null}
 
         {tab === 'login' ? (
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 10, flexWrap: 'wrap' }}>
@@ -189,6 +194,7 @@ export function AuthAccessModal({ initialTab = 'signup', onClose, onSubmit, onFo
         ) : null}
 
         <button
+          data-testid="auth-submit"
           disabled={isSubmitting}
           onClick={() => submit('credentials')}
           style={{

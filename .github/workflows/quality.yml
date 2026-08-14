@@ -50,3 +50,56 @@ jobs:
 
       - name: Run complete local quality gate
         run: npm run quality
+
+  e2e:
+    name: Browser E2E quality gate
+    runs-on: ubuntu-latest
+    needs: validate
+    timeout-minutes: 20
+    env:
+      CI: true
+      E2E_RUN_ID: ci-${{ github.run_id }}-${{ github.run_attempt }}
+      E2E_BASE_URL: http://127.0.0.1:4180
+      E2E_SUPABASE_URL: http://127.0.0.1:54321
+      E2E_SUPABASE_ANON_KEY: ci-e2e-public-placeholder
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Use Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version-file: .nvmrc
+          cache: npm
+
+      - name: Install from lockfile
+        run: npm ci
+
+      - name: Install Chromium browser
+        run: npx playwright install --with-deps chromium
+
+      - name: Start E2E app server
+        env:
+          VITE_APP_URL: http://127.0.0.1:4180
+          VITE_SUPABASE_URL: http://127.0.0.1:54321
+          VITE_SUPABASE_ANON_KEY: ci-e2e-public-placeholder
+          VITE_STRIPE_PRICE_P5: price_e2e_p5
+          VITE_STRIPE_PRICE_P15: price_e2e_p15
+          VITE_STRIPE_PRICE_P40: price_e2e_p40
+          VITE_STRIPE_PRICE_P100: price_e2e_p100
+          VITE_STRIPE_PRICE_PLAN_PRO: price_e2e_plan_pro
+          VITE_STRIPE_PRICE_PLAN_ENTERPRISE: price_e2e_plan_enterprise
+        run: |
+          npm run dev:e2e > /tmp/dealsifter-e2e-vite.log 2>&1 &
+          for i in {1..60}; do
+            if curl -fsS http://127.0.0.1:4180 >/dev/null; then
+              exit 0
+            fi
+            sleep 2
+          done
+          cat /tmp/dealsifter-e2e-vite.log
+          exit 1
+
+      - name: Run safe browser E2E suite
+        run: npm run test:e2e:ci

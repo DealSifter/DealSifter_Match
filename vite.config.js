@@ -81,5 +81,8 @@ export default defineConfig(({ mode }) => {
     port: 4173,
     strictPort: true,
   },
+  test: {
+    include: ['src/**/*.{test,spec}.{js,jsx,ts,tsx}'],
+  },
   }
 })

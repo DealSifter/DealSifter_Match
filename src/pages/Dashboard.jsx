@@ -3407,7 +3407,7 @@ export function Dashboard({ page, nuggets, setModal, setPage, onOpenOnboardingTa
       {/* Quick registration detection: consider completed when personalProfile.fullName exists in localStorage */}
       {/* Note: accessing localStorage synchronously here is acceptable in this SPA context */}
       {null}
-      <div style={{ maxWidth:"100%", margin:"0 auto", padding: isTabletPortraitViewport ? "8px 14px 0 14px" : "12px 12px 0 12px", display:"grid", alignItems:"stretch", height:"100%", boxSizing:'border-box' }} className="dashboard-grid">
+      <div data-testid="dashboard-root" style={{ maxWidth:"100%", margin:"0 auto", padding: isTabletPortraitViewport ? "8px 14px 0 14px" : "12px 12px 0 12px", display:"grid", alignItems:"stretch", height:"100%", boxSizing:'border-box' }} className="dashboard-grid">
 
         {/* Left sidebar */}
         <div className="desktop-only dashboard-sidebar">
@@ -4102,6 +4102,7 @@ export function Dashboard({ page, nuggets, setModal, setPage, onOpenOnboardingTa
               <button
                 type="button"
                 className="ds-feed-view-btn"
+                data-testid="feed-view-connections"
                 onClick={() => setView('connections')}
                 style={{
                   border: 'none',
@@ -4155,6 +4156,7 @@ export function Dashboard({ page, nuggets, setModal, setPage, onOpenOnboardingTa
               <button
                 type="button"
                 className="ds-feed-view-btn"
+                data-testid="feed-view-showcase"
                 onClick={() => setView('properties')}
                 style={{
                   border: 'none',
@@ -4223,7 +4225,7 @@ export function Dashboard({ page, nuggets, setModal, setPage, onOpenOnboardingTa
           </div>
 
           <div ref={mobileFeedStackRef} style={{ position:"relative", width:"100%", minHeight:FEED_STACK_CONTAINER_HEIGHT, overflow:"visible", display:"flex", justifyContent:"center", alignItems:"flex-start", boxSizing:"border-box" }}>
-            <div data-guide="feed-stack" style={{ position:"relative", width:`min(${FEED_CARD_WIDTH}px, 100%)`, height:FEED_STACK_CONTAINER_HEIGHT, boxShadow: 'none', borderRadius: 18, overflow: 'visible' }}>
+            <div data-guide="feed-stack" data-testid="feed-stack" style={{ position:"relative", width:`min(${FEED_CARD_WIDTH}px, 100%)`, height:FEED_STACK_CONTAINER_HEIGHT, boxShadow: 'none', borderRadius: 18, overflow: 'visible' }}>
               {view==="connections" && (
                 connDisplay.length > 0
                   ? connDisplay.slice(0, 5).reverse().map((c, i) => {
