@@ -82,7 +82,11 @@ export default defineConfig(({ mode }) => {
     strictPort: true,
   },
   test: {
-    include: ['src/**/*.{test,spec}.{js,jsx,ts,tsx}'],
+    include: [
+      'src/**/*.{test,spec}.{js,jsx,ts,tsx}',
+      'supabase/functions/_shared/**/*.{test,spec}.{js,jsx,ts,tsx}',
+    ],
+    exclude: ['node_modules/**', 'dist/**', 'e2e/**'],
   },
   }
 })

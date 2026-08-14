@@ -11,6 +11,7 @@ import type { MaxxisLanguage, MaxxisResponse } from '../_shared/maxxis/types.ts'
 if (!supabaseUrl) throw new Error('Missing SUPABASE_URL');
 if (!supabaseAnonKey) throw new Error('Missing SUPABASE_ANON_KEY');
 const UUID_PATTERN = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+const E2E_LLM_STUB_PROJECT_REFS = new Set(['oqdcnjupquhybwdbeeew']);
 
 function response(body: MaxxisResponse, status: number, origin: string) {
   return new Response(JSON.stringify(body), { status, headers: { ...corsHeaders(origin), 'Content-Type': 'application/json' } });
@@ -18,6 +19,46 @@ function response(body: MaxxisResponse, status: number, origin: string) {
 
 function sanitizeText(value: unknown, maxLength = 2400) {
   return String(value || '').replace(/[\u0000-\u0008\u000B\u000C\u000E-\u001F]/g, ' ').replace(/\s+/g, ' ').trim().slice(0, maxLength);
+}
+
+function supabaseProjectRef() {
+  try {
+    return new URL(supabaseUrl).hostname.split('.')[0].toLowerCase();
+  } catch {
+    return '';
+  }
+}
+
+function isE2ELlmStubEnabled() {
+  return Deno.env.get('MAXXIS_E2E_LLM_STUB') === '1'
+    && E2E_LLM_STUB_PROJECT_REFS.has(supabaseProjectRef());
+}
+
+function e2eStubFunctionCall(message: string, propertyContextId: string) {
+  const normalized = ` ${message.toLowerCase()} `;
+  if (normalized.includes('investment profile') || normalized.includes('perfil de investimento')) {
+    return { name: 'getMyInvestmentProfile', args: {} };
+  }
+  if (propertyContextId && (normalized.includes('copilot') || normalized.includes('overall situation') || normalized.includes('deal status') || normalized.includes('deal summary'))) {
+    return { name: 'getDealCopilotOverview', args: { propertyId: propertyContextId } };
+  }
+  if (propertyContextId && (normalized.includes('detail') || normalized.includes('property') || normalized.includes('deal') || normalized.includes('professionals') || normalized.includes('services'))) {
+    return {
+      name: 'getPropertyDetails',
+      args: {
+        propertyId: propertyContextId,
+        includeServiceMatches: normalized.includes('professional') || normalized.includes('service') || normalized.includes('provider'),
+        includeOperationalContext: normalized.includes('next') || normalized.includes('workflow') || normalized.includes('checklist'),
+      },
+    };
+  }
+  if (normalized.includes('contractor') || normalized.includes('provider') || normalized.includes('service')) {
+    return { name: 'searchServices', args: { category: 'General Contractor', state: 'TX', city: 'Dallas', limit: 5 } };
+  }
+  if (normalized.includes('property') || normalized.includes('properties') || normalized.includes('dallas') || normalized.includes('texas')) {
+    return { name: 'searchProperties', args: { state: ['TX'], city: 'Dallas', limit: 5 } };
+  }
+  return null;
 }
 
 function detectLanguage(text: string, preferred = 'auto'): MaxxisLanguage {
@@ -137,7 +178,8 @@ Deno.serve(async (req) => {
       ...(propertyContextId ? [propertyContextId] : []),
     ]);
     if (!message) return response({ message: 'Message is required.', type: 'text', data: null, actions: [], error: 'MESSAGE_REQUIRED' }, 400, origin);
-    if (!geminiApiKey) {
+    const stubFunctionCall = isE2ELlmStubEnabled() ? e2eStubFunctionCall(message, propertyContextId) : null;
+    if (!geminiApiKey && !stubFunctionCall) {
       const text = fallback(language, 'config');
       return response({ message: text, answer: text, type: 'text', data: null, actions: [], language, unavailable: true, error: 'MAXXIS_NOT_CONFIGURED' }, 503, origin);
     }
@@ -147,12 +189,16 @@ Deno.serve(async (req) => {
     const geminiRequest = { systemInstruction: { parts: [{ text: systemPrompt }] }, contents, tools: MAXXIS_TOOLS, generationConfig: { temperature: 0.45, topP: 0.9, maxOutputTokens: 1400 }, safetySettings: [{ category: 'HARM_CATEGORY_HARASSMENT', threshold: 'BLOCK_ONLY_HIGH' }, { category: 'HARM_CATEGORY_HATE_SPEECH', threshold: 'BLOCK_ONLY_HIGH' }, { category: 'HARM_CATEGORY_SEXUALLY_EXPLICIT', threshold: 'BLOCK_ONLY_HIGH' }, { category: 'HARM_CATEGORY_DANGEROUS_CONTENT', threshold: 'BLOCK_ONLY_HIGH' }] };
     const providerErrors: Array<{ status: number }> = [];
     let payload: Record<string, unknown> = {};
-    for (const model of geminiModels) {
-      const result = await callGemini(model, geminiRequest);
-      payload = result.payload;
-      if (result.response.ok) { usedModel = model; break; }
-      fallbackCount += 1;
-      providerErrors.push({ status: result.response.status });
+    if (stubFunctionCall) {
+      usedModel = 'e2e-llm-stub';
+    } else {
+      for (const model of geminiModels) {
+        const result = await callGemini(model, geminiRequest);
+        payload = result.payload;
+        if (result.response.ok) { usedModel = model; break; }
+        fallbackCount += 1;
+        providerErrors.push({ status: result.response.status });
+      }
     }
     if (!usedModel) {
       const quota = providerErrors.some((item) => item.status === 429);
@@ -161,7 +207,7 @@ Deno.serve(async (req) => {
       return response({ message: text, answer: text, type: 'text', data: null, actions: [], language, unavailable: true, error: quota ? 'MAXXIS_PROVIDER_QUOTA' : 'MAXXIS_PROVIDER_FAILED' }, 502, origin);
     }
     const parts = ((payload as any)?.candidates?.[0]?.content?.parts || []) as Array<Record<string, any>>;
-    const functionCall = parts.find((part) => part?.functionCall)?.functionCall;
+    const functionCall = stubFunctionCall || parts.find((part) => part?.functionCall)?.functionCall;
     if (functionCall) {
       const toolStartedAt = Date.now();
       const toolName = String(functionCall.name || '');

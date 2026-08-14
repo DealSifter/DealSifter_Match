@@ -1,6 +1,6 @@
 /* global process */
-import { test, expect, E2E_USERS } from '../fixtures/appFixture.js';
-import { loginAs, logout, openLogin } from '../support/appActions.js';
+import { test, expect, E2E_USERS } from '../../fixtures/appFixture.js';
+import { loginAs, logout, openLogin } from '../../support/appActions.js';
 
 const SUPABASE_URL = process.env.E2E_SUPABASE_URL || 'http://127.0.0.1:54321';
 

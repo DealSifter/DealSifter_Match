@@ -1,22 +1,22 @@
 /* global process */
 import { defineConfig, devices } from '@playwright/test';
-import { assertSafeE2EEnvironment } from './e2e/support/environment.js';
+import { assertSafeRealBackendEnvironment } from './e2e/support/environment.js';
 
-const baseURL = process.env.E2E_BASE_URL || 'http://127.0.0.1:4180';
+const baseURL = process.env.E2E_BASE_URL || 'http://127.0.0.1:4181';
 const isCI = Boolean(process.env.CI);
 
-assertSafeE2EEnvironment({ baseURL, destructive: true });
+assertSafeRealBackendEnvironment({ baseURL });
 
 export default defineConfig({
-  testDir: './e2e/tests/mocked',
-  timeout: 150_000,
+  testDir: './e2e/tests/integration',
+  timeout: 180_000,
   expect: {
-    timeout: 7_500,
+    timeout: 10_000,
   },
   fullyParallel: false,
   forbidOnly: isCI,
-  retries: isCI ? 1 : 0,
-  workers: isCI ? 1 : 1,
+  retries: 0,
+  workers: 1,
   reporter: isCI ? [['list'], ['html', { open: 'never' }]] : [['list']],
   use: {
     baseURL,
@@ -26,7 +26,7 @@ export default defineConfig({
   },
   projects: [
     {
-      name: 'chromium',
+      name: 'chromium-real-backend',
       use: {
         ...devices['Desktop Chrome'],
       },

@@ -1,6 +1,6 @@
 /* global process */
-import { test, expect, E2E_IDS } from '../fixtures/appFixture.js';
-import { loginAs, openMaxxis } from '../support/appActions.js';
+import { test, expect, E2E_IDS } from '../../fixtures/appFixture.js';
+import { loginAs, openMaxxis } from '../../support/appActions.js';
 
 test.describe('property, Maxxis and provider flow', () => {
   test('investor can inspect property through Maxxis and cancel provider unlock without nugget debit', async ({ page, mockBackend }) => {
