@@ -28,8 +28,14 @@ await probe('frontend', config.health.frontend_url, {
 });
 
 if (stagingUrl && stagingAnonKey) {
+  const edgeHeaders = {
+    apikey: stagingAnonKey,
+    ...(stagingAnonKey.split('.').length === 3
+      ? { Authorization: `Bearer ${stagingAnonKey}` }
+      : {}),
+  };
   await probe('maxxis_edge', `${stagingUrl}/functions/v1/${config.health.edge_function}?health=1`, {
-    headers: { apikey: stagingAnonKey },
+    headers: edgeHeaders,
     timeoutMs: config.health.edge_timeout_ms,
     maxLatencyMs: config.health.edge_max_latency_ms,
     validate: (body, response) => body?.status === 'ok'
