@@ -371,6 +371,13 @@ export const test = base.extend({
           const { payload } = await adminFetch(`/rest/v1/${table}?${query}`);
           return payload;
         },
+        adminRpc: async (fn, body = {}) => {
+          const { payload } = await adminFetch(`/rest/v1/rpc/${fn}`, { method: 'POST', body });
+          return payload;
+        },
+        adminDelete: async (table, query) => {
+          await adminFetch(`/rest/v1/${table}?${query}`, { method: 'DELETE' });
+        },
         signIn,
         browserRpc,
         browserRestSelect,
