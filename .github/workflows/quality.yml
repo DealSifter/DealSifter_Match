@@ -55,6 +55,9 @@ jobs:
       - name: Enforce deterministic performance budgets
         run: node scripts/audit-performance.mjs
 
+      - name: Enforce architecture boundaries
+        run: npm run audit:architecture
+
   e2e:
     name: Browser E2E quality gate
     runs-on: ubuntu-latest

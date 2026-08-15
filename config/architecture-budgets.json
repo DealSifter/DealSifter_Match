@@ -1,0 +1,11 @@
+{
+  "baseline": "phase-5f-2026-08-15",
+  "majorFiles": {
+    "src/App.jsx": { "baseline": 5963, "warning": 5900, "fail": 6013 },
+    "src/pages/MatchesPage.jsx": { "baseline": 4912, "warning": 4700, "fail": 4962 },
+    "src/pages/Onboarding.jsx": { "baseline": 5363, "warning": 5320, "fail": 5413 },
+    "src/components/maxxis/MaxxisAssistant.jsx": { "baseline": 2622, "warning": 2450, "fail": 2672 },
+    "src/pages/Dashboard.jsx": { "baseline": 4821, "warning": 4821, "fail": 4871 }
+  },
+  "maxDirectSupabaseModules": 15
+}
