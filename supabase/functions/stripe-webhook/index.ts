@@ -20,8 +20,18 @@ Deno.serve(async (req) => {
     return withRequestId(new Response('Method not allowed', { status: 405 }), requestId);
   }
 
+  const contentLength = Number(req.headers.get('content-length') || 0);
+  if (Number.isFinite(contentLength) && contentLength > 1024 * 1024) {
+    logOperationalEvent({ functionName: 'stripe-webhook', operation: 'validate_payload', requestId, durationMs: Date.now() - startedAt, success: false, errorCode: 'REQUEST_TOO_LARGE', status: 413, provider: 'stripe', severity: 'INFO' });
+    return withRequestId(new Response('Payload too large', { status: 413 }), requestId);
+  }
+
   const signature = req.headers.get('stripe-signature');
   const body = await req.text();
+  if (new TextEncoder().encode(body).byteLength > 1024 * 1024) {
+    logOperationalEvent({ functionName: 'stripe-webhook', operation: 'validate_payload', requestId, durationMs: Date.now() - startedAt, success: false, errorCode: 'REQUEST_TOO_LARGE', status: 413, provider: 'stripe', severity: 'INFO' });
+    return withRequestId(new Response('Payload too large', { status: 413 }), requestId);
+  }
 
   let event;
   try {

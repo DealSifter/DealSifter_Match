@@ -7,6 +7,8 @@ if (!stripeSecretKey) throw new Error('Missing STRIPE_SECRET_KEY');
 
 export const stripe = new Stripe(stripeSecretKey, {
   apiVersion: '2024-04-10',
+  maxNetworkRetries: 0,
+  timeout: 12_000,
 });
 
 const supabaseAdmin = createClient(

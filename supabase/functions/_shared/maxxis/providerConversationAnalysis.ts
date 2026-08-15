@@ -1,6 +1,7 @@
 import { createClient } from 'npm:@supabase/supabase-js@2';
 import { logOperationalEvent } from '../observability.ts';
 import { corsHeaders, supabaseAnonKey, supabaseUrl } from './config.ts';
+import { checkRateLimit, logAbuseGuard, rateLimitResponse } from '../abuseProtection.ts';
 import {
   analyzeProviderConversation,
   type ProviderConversationMessage,
@@ -135,6 +136,11 @@ export async function handleProviderConversationAnalysisRequest(req: Request) {
       return json({ success: false, error: auth.error }, auth.status, origin);
     }
     userId = auth.user.id;
+    const rateLimit = await checkRateLimit(userId, 'provider_analysis');
+    if (!rateLimit.allowed) {
+      logAbuseGuard({ functionName: 'maxxis-provider-conversation-analysis', operation: 'provider_analysis', requestId, userId, category: 'RATE_LIMIT', status: rateLimit.unavailable ? 503 : 429, limitType: 'provider_analysis' });
+      return rateLimitResponse(rateLimit, requestId, corsHeaders(origin));
+    }
     const body = await req.json().catch(() => ({}));
     serviceId = cleanUuid(body.serviceId);
     propertyId = cleanUuid(body.propertyId);

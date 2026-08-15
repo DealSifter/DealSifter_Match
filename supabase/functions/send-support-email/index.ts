@@ -1,5 +1,6 @@
 import { createClient } from 'npm:@supabase/supabase-js@2';
 import { createRequestId, logOperationalEvent, withRequestId } from '../_shared/observability.ts';
+import { checkRateLimit, logAbuseGuard, rateLimitResponse } from '../_shared/abuseProtection.ts';
 
 const supabaseUrl = Deno.env.get('SUPABASE_URL') ?? '';
 const supabaseAnonKey = Deno.env.get('ANON_KEY') ?? Deno.env.get('SUPABASE_ANON_KEY') ?? '';
@@ -68,6 +69,11 @@ Deno.serve(async (req) => {
       return jsonResponse({ error: 'Unauthorized', requestId }, 401, requestId);
     }
     userId = user.id;
+    const rateLimit = await checkRateLimit(userId, 'support_email');
+    if (!rateLimit.allowed) {
+      logAbuseGuard({ functionName: 'send-support-email', operation: 'support_email', requestId, userId, category: 'MESSAGE_THROTTLED', status: rateLimit.unavailable ? 503 : 429, limitType: 'support_email' });
+      return rateLimitResponse(rateLimit, requestId, corsHeaders);
+    }
 
     const body = await req.json().catch(() => ({}));
     const ticketId = String(body.ticketId || body.ticket_id || '').trim();
@@ -104,6 +110,8 @@ Deno.serve(async (req) => {
       ? 'DealSifter Admin/Support'
       : `${callerRow?.full_name || 'DealSifter user'} <${callerRow?.email || ticket.user_email || 'unknown'}>`;
 
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), 12_000);
     const response = await fetch('https://api.resend.com/emails', {
       method: 'POST',
       headers: {
@@ -124,7 +132,9 @@ Deno.serve(async (req) => {
           </div>
         `,
       }),
+      signal: controller.signal,
     });
+    clearTimeout(timeout);
 
     const payload = await response.json().catch(() => ({}));
     if (!response.ok) {

@@ -1,6 +1,7 @@
 import { createClient } from 'npm:@supabase/supabase-js@2';
 import { corsHeaders, supabaseAnonKey, supabaseUrl } from './config.ts';
 import { logMaxxisEvent } from './logger.ts';
+import { checkRateLimit, isOperationalFeatureEnabled, logAbuseGuard, rateLimitResponse, type RateLimitOperation } from '../abuseProtection.ts';
 
 type ProviderUnlockMode = 'prepare' | 'confirm' | 'cancel';
 
@@ -44,6 +45,18 @@ async function authenticatedClient(req: Request) {
   const { data: { user }, error } = await client.auth.getUser(token);
   if (error || !user) return { error: 'UNAUTHORIZED' as const, status: 401 as const };
   return { client, user, authHeader };
+}
+
+async function unlockGuard(userId: string, mode: ProviderUnlockMode, requestId: string, origin: string) {
+  if (!isOperationalFeatureEnabled('CONTACT_UNLOCK_ENABLED')) {
+    logAbuseGuard({ functionName: `maxxis-provider-unlock-${mode}`, operation: 'contact_unlock_disabled', requestId, userId, category: 'ABUSE_GUARD', status: 503 });
+    return json({ success: false, error: 'CONTACT_UNLOCK_DISABLED', requestId }, 503, origin);
+  }
+  const operation = `provider_unlock_${mode}` as RateLimitOperation;
+  const decision = await checkRateLimit(userId, operation);
+  if (decision.allowed) return null;
+  logAbuseGuard({ functionName: `maxxis-provider-unlock-${mode}`, operation, requestId, userId, category: 'RATE_LIMIT', status: decision.unavailable ? 503 : 429, limitType: operation });
+  return rateLimitResponse(decision, requestId, corsHeaders(origin));
 }
 
 async function resolveServiceTarget(client: ReturnType<typeof createClient>, serviceId: string, userId: string) {
@@ -120,6 +133,8 @@ async function prepareProviderUnlock(req: Request, origin: string, body: Record<
   if ('error' in auth) return json({ success: false, error: auth.error }, auth.status, origin);
   const startedAt = Date.now();
   const requestId = crypto.randomUUID();
+  const guarded = await unlockGuard(auth.user.id, 'prepare', requestId, origin);
+  if (guarded) return guarded;
   const serviceId = cleanUuid(body.serviceId);
   if (!serviceId) return json({ success: false, error: 'INVALID_SERVICE_ID' }, 400, origin);
 
@@ -205,6 +220,8 @@ async function confirmProviderUnlock(req: Request, origin: string, body: Record<
   if ('error' in auth) return json({ success: false, error: auth.error }, auth.status, origin);
   const startedAt = Date.now();
   const requestId = crypto.randomUUID();
+  const guarded = await unlockGuard(auth.user.id, 'confirm', requestId, origin);
+  if (guarded) return guarded;
   const serviceId = cleanUuid(body.serviceId);
   const intentToken = cleanUuid(body.intentToken);
   if (!serviceId) return json({ success: false, error: 'INVALID_SERVICE_ID' }, 400, origin);
@@ -270,6 +287,8 @@ async function cancelProviderUnlock(req: Request, origin: string, body: Record<s
   if ('error' in auth) return json({ success: false, error: auth.error }, auth.status, origin);
   const startedAt = Date.now();
   const requestId = crypto.randomUUID();
+  const guarded = await unlockGuard(auth.user.id, 'cancel', requestId, origin);
+  if (guarded) return guarded;
   const intentToken = cleanUuid(body.intentToken);
   if (!intentToken) return json({ success: false, error: 'INVALID_INTENT_TOKEN' }, 400, origin);
 

@@ -1,6 +1,7 @@
 import { createClient } from 'npm:@supabase/supabase-js@2';
 import { corsHeaders, supabaseAnonKey, supabaseServiceRoleKey, supabaseUrl } from './config.ts';
 import { logMaxxisEvent } from './logger.ts';
+import { checkRateLimit, logAbuseGuard, rateLimitResponse } from '../abuseProtection.ts';
 import type { MaxxisPropertyDetails, PropertyServiceMatch, PropertyServiceNeed } from './types.ts';
 import {
   buildDealWorkflowDefinition,
@@ -184,6 +185,7 @@ export async function handleDealWorkflowRequest(req: Request) {
   if (req.method === 'OPTIONS') return new Response('ok', { headers: corsHeaders(origin) });
   if (req.method !== 'POST') return json({ success: false, error: 'METHOD_NOT_ALLOWED' }, 405, origin);
   const startedAt = Date.now();
+  const requestId = crypto.randomUUID();
   try {
     const authHeader = req.headers.get('Authorization') || '';
     const token = authHeader.replace(/^Bearer\s+/i, '').trim();
@@ -191,6 +193,11 @@ export async function handleDealWorkflowRequest(req: Request) {
     const client = createClient(supabaseUrl, supabaseAnonKey, { global: { headers: { Authorization: authHeader } } });
     const { data: { user }, error: authError } = await client.auth.getUser(token);
     if (authError || !user) return json({ success: false, error: 'UNAUTHORIZED' }, 401, origin);
+    const rateLimit = await checkRateLimit(user.id, 'deal_workflow_update');
+    if (!rateLimit.allowed) {
+      logAbuseGuard({ functionName: 'maxxis-deal-workflow', operation: 'deal_workflow_update', requestId, userId: user.id, category: 'RATE_LIMIT', status: rateLimit.unavailable ? 503 : 429, limitType: 'deal_workflow_update' });
+      return rateLimitResponse(rateLimit, requestId, corsHeaders(origin));
+    }
     const body = await req.json().catch(() => ({}));
     const propertyId = cleanUuid(body.propertyId);
     const code = String(body.code || '').trim() as DealWorkflowCode;
@@ -212,6 +219,7 @@ export async function handleDealWorkflowRequest(req: Request) {
     if (rowsError) throw new Error('WORKFLOW_RESULT_FAILED');
     const workflow = summarizeDealWorkflow((rows || []).map((row: WorkflowRow) => rowToItem(row)).sort((left, right) => WORKFLOW_ORDER.indexOf(left.code) - WORKFLOW_ORDER.indexOf(right.code)));
     logMaxxisEvent('maxxis_deal_workflow_manual_change', {
+      request_id: requestId,
       user_id: user.id,
       success: true,
       duration_ms: Date.now() - startedAt,
@@ -223,6 +231,7 @@ export async function handleDealWorkflowRequest(req: Request) {
     return json({ success: true, workflow }, 200, origin);
   } catch (error) {
     logMaxxisEvent('maxxis_deal_workflow_manual_change', {
+      request_id: requestId,
       success: false,
       duration_ms: Date.now() - startedAt,
       error_code: error instanceof Error ? error.message : 'WORKFLOW_FAILED',

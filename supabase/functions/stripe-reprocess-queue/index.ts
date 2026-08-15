@@ -1,6 +1,7 @@
 import { createClient } from "npm:@supabase/supabase-js@2";
 import { processQueuedStripeEvents } from "../_shared/stripe-event-processor.ts";
 import { createRequestId, logOperationalEvent, withRequestId } from '../_shared/observability.ts';
+import { checkRateLimit, logAbuseGuard, rateLimitResponse } from '../_shared/abuseProtection.ts';
 
 const supabaseUrl = Deno.env.get('SUPABASE_URL') ?? '';
 const supabaseAnonKey = Deno.env.get('ANON_KEY') ?? Deno.env.get('SUPABASE_ANON_KEY') ?? '';
@@ -54,6 +55,12 @@ Deno.serve(async (req) => {
   if (!auth.ok) {
     logOperationalEvent({ functionName: 'stripe-reprocess-queue', operation: 'authorize_admin', requestId, durationMs: Date.now() - startedAt, success: false, errorCode: auth.status === 403 ? 'ADMIN_ACCESS_REQUIRED' : 'UNAUTHORIZED', status: auth.status, provider: 'supabase' });
     return jsonResponse({ error: auth.status === 403 ? 'Admin access required' : 'Unauthorized', requestId }, auth.status, requestId);
+  }
+
+  const rateLimit = await checkRateLimit(String(auth.userId || ''), 'stripe_reprocess');
+  if (!rateLimit.allowed) {
+    logAbuseGuard({ functionName: 'stripe-reprocess-queue', operation: 'stripe_reprocess', requestId, userId: auth.userId, category: 'RATE_LIMIT', status: rateLimit.unavailable ? 503 : 429, limitType: 'stripe_reprocess' });
+    return rateLimitResponse(rateLimit, requestId, corsHeaders);
   }
 
   try {

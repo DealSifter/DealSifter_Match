@@ -8,14 +8,23 @@ import { executeMaxxisTool, MAXXIS_TOOLS } from '../_shared/maxxis/toolRegistry.
 import { normalizeComparisonContextIds } from '../_shared/maxxis/compareProperties.ts';
 import type { MaxxisLanguage, MaxxisResponse } from '../_shared/maxxis/types.ts';
 import { createRequestId, getEdgeRelease } from '../_shared/observability.ts';
+import {
+  checkRateLimit,
+  isOperationalFeatureEnabled,
+  logAbuseGuard,
+  MAXXIS_EXECUTION_LIMITS,
+  MaxxisExecutionBudget,
+  rateLimitResponse,
+  readJsonWithLimit,
+} from '../_shared/abuseProtection.ts';
 
 if (!supabaseUrl) throw new Error('Missing SUPABASE_URL');
 if (!supabaseAnonKey) throw new Error('Missing SUPABASE_ANON_KEY');
 const UUID_PATTERN = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
 const E2E_LLM_STUB_PROJECT_REFS = new Set(['oqdcnjupquhybwdbeeew']);
 
-function response(body: MaxxisResponse, status: number, origin: string) {
-  return new Response(JSON.stringify(body), { status, headers: { ...corsHeaders(origin), 'Content-Type': 'application/json' } });
+function response(body: MaxxisResponse, status: number, origin: string, requestId = '') {
+  return new Response(JSON.stringify(body), { status, headers: { ...corsHeaders(origin), 'Content-Type': 'application/json', ...(requestId ? { 'x-request-id': requestId } : {}) } });
 }
 
 function sanitizeText(value: unknown, maxLength = 2400) {
@@ -169,6 +178,7 @@ Deno.serve(async (req) => {
   let usedModel = '';
   let fallbackCount = 0;
   let providerDurationMs = 0;
+  const budget = new MaxxisExecutionBudget();
   try {
     const user = await authenticatedUser(req.headers.get('Authorization') || '');
     if (!user) {
@@ -176,8 +186,28 @@ Deno.serve(async (req) => {
       return response({ message: 'Authentication required.', type: 'text', data: null, actions: [], error: 'UNAUTHORIZED' }, 401, origin);
     }
     userId = user.id;
-    const body = await req.json().catch(() => ({}));
-    const message = sanitizeText(body.message, 1800);
+    if (!isOperationalFeatureEnabled('MAXXIS_ENABLED')) {
+      logAbuseGuard({ functionName: 'maxxis-chat', operation: 'maxxis_disabled', requestId, userId, category: 'ABUSE_GUARD', status: 503 });
+      return response({ message: 'Maxxis is temporarily unavailable.', type: 'text', data: null, actions: [], unavailable: true, error: 'MAXXIS_DISABLED' }, 503, origin, requestId);
+    }
+    const rateLimit = await checkRateLimit(userId, 'maxxis_chat');
+    if (!rateLimit.allowed) {
+      logAbuseGuard({ functionName: 'maxxis-chat', operation: 'maxxis_chat', requestId, userId, category: 'RATE_LIMIT', status: rateLimit.unavailable ? 503 : 429, limitType: 'maxxis_chat' });
+      return rateLimitResponse(rateLimit, requestId, corsHeaders(origin));
+    }
+    const parsed = await readJsonWithLimit(req, MAXXIS_EXECUTION_LIMITS.maxRequestBytes);
+    if (!parsed.ok) {
+      const status = parsed.error === 'REQUEST_TOO_LARGE' ? 413 : 400;
+      logAbuseGuard({ functionName: 'maxxis-chat', operation: 'maxxis_chat', requestId, userId, category: parsed.error === 'REQUEST_TOO_LARGE' ? 'REQUEST_TOO_LARGE' : 'ABUSE_GUARD', status, limitType: 'request_body' });
+      return response({ message: 'Invalid request.', type: 'text', data: null, actions: [], error: parsed.error }, status, origin, requestId);
+    }
+    const body = parsed.body as Record<string, any>;
+    const rawMessage = String(body.message || '');
+    if (rawMessage.length > MAXXIS_EXECUTION_LIMITS.maxMessageChars) {
+      logAbuseGuard({ functionName: 'maxxis-chat', operation: 'maxxis_chat', requestId, userId, category: 'REQUEST_TOO_LARGE', status: 413, limitType: 'message' });
+      return response({ message: 'Message is too large.', type: 'text', data: null, actions: [], error: 'REQUEST_TOO_LARGE' }, 413, origin, requestId);
+    }
+    const message = sanitizeText(rawMessage, MAXXIS_EXECUTION_LIMITS.maxMessageChars);
     const language = detectLanguage(message, sanitizeText(body.language || 'auto', 8));
     const rawPropertyContextId = sanitizeText(body?.context?.propertyId, 50);
     const propertyContextId = UUID_PATTERN.test(rawPropertyContextId) ? rawPropertyContextId : '';
@@ -192,18 +222,20 @@ Deno.serve(async (req) => {
       const text = fallback(language, 'config');
       return response({ message: text, answer: text, type: 'text', data: null, actions: [], language, unavailable: true, error: 'MAXXIS_NOT_CONFIGURED' }, 503, origin);
     }
-    const history = Array.isArray(body.history) ? body.history.slice(-10) : [];
+    const history = Array.isArray(body.history) ? body.history : [];
+    budget.validateHistory(history);
     const contents = [...history.map((item: Record<string, unknown>) => ({ role: item?.role === 'assistant' ? 'model' : 'user', parts: [{ text: sanitizeText(item?.content || item?.text, 1600) }] })).filter((item) => item.parts[0].text), { role: 'user', parts: [{ text: message }] }];
     const systemPrompt = `${buildSystemPrompt(language, sanitizeText(body.page || 'unknown', 60))}\n\n${propertyContextInstruction(propertyContextId, searchPropertyIds, comparisonPropertyIds)}`;
-    const geminiRequest = { systemInstruction: { parts: [{ text: systemPrompt }] }, contents, tools: MAXXIS_TOOLS, generationConfig: { temperature: 0.45, topP: 0.9, maxOutputTokens: 1400 }, safetySettings: [{ category: 'HARM_CATEGORY_HARASSMENT', threshold: 'BLOCK_ONLY_HIGH' }, { category: 'HARM_CATEGORY_HATE_SPEECH', threshold: 'BLOCK_ONLY_HIGH' }, { category: 'HARM_CATEGORY_SEXUALLY_EXPLICIT', threshold: 'BLOCK_ONLY_HIGH' }, { category: 'HARM_CATEGORY_DANGEROUS_CONTENT', threshold: 'BLOCK_ONLY_HIGH' }] };
+    const geminiRequest = { systemInstruction: { parts: [{ text: systemPrompt }] }, contents, tools: MAXXIS_TOOLS, generationConfig: { temperature: 0.45, topP: 0.9, maxOutputTokens: MAXXIS_EXECUTION_LIMITS.maxOutputTokens }, safetySettings: [{ category: 'HARM_CATEGORY_HARASSMENT', threshold: 'BLOCK_ONLY_HIGH' }, { category: 'HARM_CATEGORY_HATE_SPEECH', threshold: 'BLOCK_ONLY_HIGH' }, { category: 'HARM_CATEGORY_SEXUALLY_EXPLICIT', threshold: 'BLOCK_ONLY_HIGH' }, { category: 'HARM_CATEGORY_DANGEROUS_CONTENT', threshold: 'BLOCK_ONLY_HIGH' }] };
     const providerErrors: Array<{ status: number }> = [];
     let payload: Record<string, unknown> = {};
     if (stubFunctionCall) {
       usedModel = 'e2e-llm-stub';
     } else {
       for (const model of geminiModels) {
+        budget.consumeGeminiCall();
         const providerStartedAt = Date.now();
-        const result = await callGemini(model, geminiRequest);
+        const result = await callGemini(model, geminiRequest, budget.remainingMs());
         providerDurationMs += Date.now() - providerStartedAt;
         payload = result.payload;
         if (result.response.ok) { usedModel = model; break; }
@@ -220,6 +252,7 @@ Deno.serve(async (req) => {
     const parts = ((payload as any)?.candidates?.[0]?.content?.parts || []) as Array<Record<string, any>>;
     const functionCall = stubFunctionCall || parts.find((part) => part?.functionCall)?.functionCall;
     if (functionCall) {
+      budget.consumeToolRound();
       const toolStartedAt = Date.now();
       const toolName = String(functionCall.name || '');
       let result;
@@ -250,6 +283,7 @@ Deno.serve(async (req) => {
         }
         throw error;
       }
+      budget.validateToolPayload(result);
       if (result.type === 'property_details') {
         logMaxxisEvent('maxxis_tool', { tool: toolName, duration_ms: Date.now() - toolStartedAt, success: true, property_found: result.found });
         if (result.serviceMatchingSummary) {
@@ -313,12 +347,18 @@ Deno.serve(async (req) => {
     }
     const text = String(parts.find((part) => part?.text)?.text || '').trim();
     if (!text) return response({ message: 'Maxxis could not generate a response. Please try again.', type: 'text', data: null, actions: [], error: 'MAXXIS_EMPTY_RESPONSE' }, 502, origin);
-    logMaxxisEvent('maxxis_chat', { request_id: requestId, user_id: userId, model: usedModel, duration_ms: Date.now() - startedAt, provider_duration_ms: providerDurationMs, success: true, fallback_count: fallbackCount });
+    logMaxxisEvent('maxxis_chat', { request_id: requestId, user_id: userId, model: usedModel, duration_ms: Date.now() - startedAt, provider_duration_ms: providerDurationMs, success: true, fallback_count: fallbackCount, llm_call_count: budget.geminiCalls, tool_call_count: budget.toolCalls, tool_rounds: budget.toolRounds });
     return response({ message: text, answer: text, type: 'text', data: null, actions: [], language }, 200, origin);
   } catch (error) {
     const timedOut = error instanceof DOMException && error.name === 'AbortError';
-    logMaxxisEvent('maxxis_chat', { request_id: requestId, user_id: userId, model: usedModel, duration_ms: Date.now() - startedAt, provider_duration_ms: providerDurationMs, success: false, fallback_count: fallbackCount, error_code: timedOut ? 'MAXXIS_TIMEOUT' : 'MAXXIS_FAILED' });
+    const errorCode = error instanceof Error ? error.message : 'MAXXIS_FAILED';
+    const budgetExhausted = errorCode === 'MAXXIS_BUDGET_EXHAUSTED';
+    const requestTooLarge = errorCode === 'MAXXIS_CONTEXT_TOO_LARGE' || errorCode === 'MAXXIS_TOOL_PAYLOAD_TOO_LARGE';
+    if (budgetExhausted || requestTooLarge) {
+      logAbuseGuard({ functionName: 'maxxis-chat', operation: 'maxxis_chat', requestId, userId, category: budgetExhausted ? 'BUDGET_EXHAUSTED' : 'REQUEST_TOO_LARGE', status: requestTooLarge ? 413 : 503, durationMs: Date.now() - startedAt, limitType: budgetExhausted ? 'execution_budget' : 'context' });
+    }
+    logMaxxisEvent('maxxis_chat', { request_id: requestId, user_id: userId, model: usedModel, duration_ms: Date.now() - startedAt, provider_duration_ms: providerDurationMs, success: false, fallback_count: fallbackCount, error_code: timedOut ? 'MAXXIS_TIMEOUT' : errorCode, llm_call_count: budget.geminiCalls, tool_call_count: budget.toolCalls, tool_rounds: budget.toolRounds, timeout: timedOut, budget_exhausted: budgetExhausted });
     const text = fallback('en', 'provider');
-    return response({ message: text, answer: text, type: 'text', data: null, actions: [], unavailable: true, error: timedOut ? 'MAXXIS_TIMEOUT' : 'MAXXIS_FAILED' }, 502, origin);
+    return response({ message: requestTooLarge ? 'Request context is too large.' : text, answer: requestTooLarge ? 'Request context is too large.' : text, type: 'text', data: null, actions: [], unavailable: true, error: timedOut ? 'MAXXIS_TIMEOUT' : errorCode }, requestTooLarge ? 413 : budgetExhausted ? 503 : 502, origin, requestId);
   }
 });

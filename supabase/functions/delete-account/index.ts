@@ -1,6 +1,7 @@
 import Stripe from 'npm:stripe@17';
 import { createClient } from 'npm:@supabase/supabase-js@2';
 import { createRequestId, logOperationalEvent } from '../_shared/observability.ts';
+import { checkRateLimit, logAbuseGuard, rateLimitResponse } from '../_shared/abuseProtection.ts';
 
 const stripeSecretKey = Deno.env.get('STRIPE_SECRET_KEY') ?? '';
 const supabaseUrl = Deno.env.get('SUPABASE_URL') ?? '';
@@ -13,7 +14,7 @@ if (!supabaseUrl) throw new Error('Missing SUPABASE_URL');
 if (!supabaseAnonKey) throw new Error('Missing SUPABASE_ANON_KEY');
 if (!supabaseServiceRoleKey) throw new Error('Missing SUPABASE_SERVICE_ROLE_KEY');
 
-const stripe = new Stripe(stripeSecretKey, { apiVersion: '2024-04-10' });
+const stripe = new Stripe(stripeSecretKey, { apiVersion: '2024-04-10', maxNetworkRetries: 0, timeout: 12_000 });
 const supabaseAdmin = createClient(supabaseUrl, supabaseServiceRoleKey);
 const USER_STORAGE_BUCKETS = ['profile-images', 'property-images'] as const;
 
@@ -218,6 +219,11 @@ Deno.serve(async (req) => {
       return jsonResponse({ error: 'Unauthorized', requestId }, 401, requestId);
     }
     userId = user.id;
+    const rateLimit = await checkRateLimit(userId, 'account_delete');
+    if (!rateLimit.allowed) {
+      logAbuseGuard({ functionName: 'delete-account', operation: 'account_delete', requestId, userId, category: 'RATE_LIMIT', status: rateLimit.unavailable ? 503 : 429, limitType: 'account_delete' });
+      return rateLimitResponse(rateLimit, requestId, corsHeaders);
+    }
 
     let body: Record<string, unknown> = {};
     try {

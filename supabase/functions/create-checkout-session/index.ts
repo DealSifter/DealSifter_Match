@@ -7,6 +7,7 @@ import {
   resolveTrustedReturnUrl,
 } from '../_shared/httpSecurity.ts';
 import { createRequestId, logOperationalEvent, withRequestId } from '../_shared/observability.ts';
+import { checkRateLimit, logAbuseGuard, rateLimitResponse } from '../_shared/abuseProtection.ts';
 
 const stripeSecretKey = Deno.env.get('STRIPE_SECRET_KEY') ?? '';
 const supabaseUrl = Deno.env.get('SUPABASE_URL') ?? '';
@@ -27,6 +28,8 @@ if (!supabaseServiceRoleKey) throw new Error('Missing SUPABASE_SERVICE_ROLE_KEY'
 
 const stripe = new Stripe(stripeSecretKey, {
   apiVersion: '2024-04-10',
+  maxNetworkRetries: 0,
+  timeout: 12_000,
 });
 
 const supabaseAdmin = createClient(supabaseUrl, supabaseServiceRoleKey);
@@ -139,6 +142,11 @@ Deno.serve(async (req) => {
       return respond({ error: 'Unauthorized', requestId }, 401);
     }
     userId = user.id;
+    const rateLimit = await checkRateLimit(userId, 'checkout_create');
+    if (!rateLimit.allowed) {
+      logAbuseGuard({ functionName: 'create-checkout-session', operation: 'checkout_create', requestId, userId, category: 'RATE_LIMIT', status: rateLimit.unavailable ? 503 : 429, limitType: 'checkout_create' });
+      return rateLimitResponse(rateLimit, requestId, corsHeaders);
+    }
 
     const body = await req.json().catch(() => ({}));
     const mode = body?.mode === 'subscription' ? 'subscription' : 'payment';
@@ -151,6 +159,9 @@ Deno.serve(async (req) => {
     const successUrl = resolveTrustedReturnUrl(body?.success_url, successFallback, allowedOrigins);
     const cancelUrl = resolveTrustedReturnUrl(body?.cancel_url, cancelFallback, allowedOrigins);
     const returnUrl = resolveTrustedReturnUrl(body?.return_url, successUrl, allowedOrigins);
+    const clientIdempotencyKey = String(req.headers.get('Idempotency-Key') || body?.idempotency_key || '')
+      .replace(/[^a-zA-Z0-9:_-]/g, '')
+      .slice(0, 96);
 
     const itemId = mode === 'subscription' ? planId : packId;
     const expectedPriceId = getAllowedPriceId(mode === 'subscription' ? 'plan' : 'pack', itemId, billingCycle);
@@ -190,7 +201,7 @@ Deno.serve(async (req) => {
       metadata,
       subscription_data: mode === 'subscription' ? { metadata } : undefined,
       payment_intent_data: mode === 'payment' ? { metadata, setup_future_usage: 'off_session' } : undefined,
-    });
+    }, clientIdempotencyKey ? { idempotencyKey: `checkout:${user.id}:${clientIdempotencyKey}` } : undefined);
 
     logOperationalEvent({ functionName: 'create-checkout-session', operation: 'create_session', requestId, userId, durationMs: Date.now() - startedAt, success: true, status: 200, provider: 'stripe', metrics: { mode, billing_cycle: billingCycle, embedded: isEmbedded } });
     return respond(isEmbedded

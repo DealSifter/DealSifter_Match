@@ -49,6 +49,11 @@ export function logMaxxisEvent(event: string, details: Record<string, unknown>) 
       capabilities_unavailable: details.capabilities_unavailable,
       query_count: Number(details.query_count || 0),
       tool: details.tool,
+      llm_call_count: Number(details.llm_call_count || 0),
+      tool_call_count: Number(details.tool_call_count || 0),
+      tool_rounds: Number(details.tool_rounds || 0),
+      timeout: Boolean(details.timeout),
+      budget_exhausted: Boolean(details.budget_exhausted),
     },
   });
 }

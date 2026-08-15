@@ -1,6 +1,7 @@
 import { createClient } from 'npm:@supabase/supabase-js@2';
 import { logOperationalEvent } from '../observability.ts';
 import { corsHeaders, supabaseAnonKey, supabaseUrl } from './config.ts';
+import { checkRateLimit, isOperationalFeatureEnabled, logAbuseGuard, rateLimitResponse, type RateLimitOperation } from '../abuseProtection.ts';
 
 type ProviderMessageMode = 'prepare' | 'confirm' | 'cancel';
 
@@ -76,28 +77,51 @@ function logProviderMessageSend(event: string, details: Record<string, unknown>)
   });
 }
 
+async function stableMessageKey(serviceId: string, propertyId: string, message: string) {
+  const bytes = new TextEncoder().encode(`${serviceId}:${propertyId}:${message}`);
+  const digest = await crypto.subtle.digest('SHA-256', bytes);
+  return `msg:${Array.from(new Uint8Array(digest)).map((value) => value.toString(16).padStart(2, '0')).join('').slice(0, 48)}`;
+}
+
+async function messagingGuard(userId: string, mode: ProviderMessageMode, requestId: string, origin: string) {
+  if (!isOperationalFeatureEnabled('PROVIDER_MESSAGING_ENABLED')) {
+    logAbuseGuard({ functionName: `maxxis-provider-message-${mode}`, operation: 'provider_messaging_disabled', requestId, userId, category: 'ABUSE_GUARD', status: 503 });
+    return json({ success: false, error: 'PROVIDER_MESSAGING_DISABLED', requestId }, 503, origin);
+  }
+  const operation = `provider_message_${mode}` as RateLimitOperation;
+  const decision = await checkRateLimit(userId, operation);
+  if (decision.allowed) return null;
+  logAbuseGuard({ functionName: `maxxis-provider-message-${mode}`, operation, requestId, userId, category: mode === 'prepare' ? 'MESSAGE_THROTTLED' : 'RATE_LIMIT', status: decision.unavailable ? 503 : 429, limitType: operation });
+  return rateLimitResponse(decision, requestId, corsHeaders(origin));
+}
+
 async function prepareProviderMessage(req: Request, origin: string, body: Record<string, unknown>) {
   const requestId = crypto.randomUUID();
   const startedAt = Date.now();
   const auth = await authenticatedClient(req);
   if ('error' in auth) return json({ success: false, error: auth.error }, auth.status, origin);
+  const guarded = await messagingGuard(auth.user.id, 'prepare', requestId, origin);
+  if (guarded) return guarded;
 
   const serviceId = cleanUuid(body.serviceId);
   const propertyId = cleanUuid(body.propertyId);
   const message = cleanMessage(body.message);
-  const idempotencyKey = cleanIdempotencyKey(body.idempotencyKey);
+  let idempotencyKey = cleanIdempotencyKey(body.idempotencyKey);
   if (!serviceId) return json({ success: false, error: 'INVALID_SERVICE_ID' }, 400, origin);
   if (!propertyId) return json({ success: false, error: 'INVALID_PROPERTY_ID' }, 400, origin);
   if (!message) return json({ success: false, error: 'MESSAGE_REQUIRED' }, 400, origin);
   if (message.length > 1800) return json({ success: false, error: 'MESSAGE_TOO_LONG' }, 400, origin);
+  if (!idempotencyKey) idempotencyKey = await stableMessageKey(serviceId, propertyId, message);
 
   try {
-    const { data, error } = await auth.client.rpc('ds_prepare_maxxis_provider_message', {
+    const rpcArgs = {
       p_service_id: serviceId,
       p_property_id: propertyId,
       p_message: message,
       p_idempotency_key: idempotencyKey || null,
-    });
+    };
+    let { data, error } = await auth.client.rpc('ds_prepare_maxxis_provider_message', rpcArgs);
+    if (error?.code === '23505') ({ data, error } = await auth.client.rpc('ds_prepare_maxxis_provider_message', rpcArgs));
     if (error) throw error;
     const result = data && typeof data === 'object' ? data as Record<string, unknown> : {};
     logProviderMessageSend('provider_message_send_prepare', {
@@ -145,6 +169,8 @@ async function confirmProviderMessage(req: Request, origin: string, body: Record
   const startedAt = Date.now();
   const auth = await authenticatedClient(req);
   if ('error' in auth) return json({ success: false, error: auth.error }, auth.status, origin);
+  const guarded = await messagingGuard(auth.user.id, 'confirm', requestId, origin);
+  if (guarded) return guarded;
 
   const actionId = cleanUuid(body.actionId);
   if (!actionId) return json({ success: false, error: 'INVALID_ACTION_ID' }, 400, origin);
@@ -194,6 +220,8 @@ async function cancelProviderMessage(req: Request, origin: string, body: Record<
   const startedAt = Date.now();
   const auth = await authenticatedClient(req);
   if ('error' in auth) return json({ success: false, error: auth.error }, auth.status, origin);
+  const guarded = await messagingGuard(auth.user.id, 'cancel', requestId, origin);
+  if (guarded) return guarded;
 
   const actionId = cleanUuid(body.actionId);
   if (!actionId) return json({ success: false, error: 'INVALID_ACTION_ID' }, 400, origin);

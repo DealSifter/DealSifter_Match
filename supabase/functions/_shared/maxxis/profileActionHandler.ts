@@ -1,6 +1,7 @@
 import { createClient } from 'npm:@supabase/supabase-js@2';
 import { corsHeaders, supabaseAnonKey, supabaseUrl } from './config.ts';
 import { logMaxxisEvent } from './logger.ts';
+import { checkRateLimit, logAbuseGuard, rateLimitResponse } from '../abuseProtection.ts';
 
 type ProfileActionMode = 'confirm' | 'cancel';
 const UUID_PATTERN = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
@@ -33,6 +34,13 @@ export async function handleProfileActionRequest(req: Request, mode: ProfileActi
   const client = createClient(supabaseUrl, supabaseAnonKey, { global: { headers: { Authorization: authHeader } } });
   const { data: { user }, error: authError } = await client.auth.getUser(token);
   if (authError || !user) return json({ success: false, error: 'UNAUTHORIZED' }, 401, origin);
+
+  const operation = mode === 'confirm' ? 'profile_action_confirm' : 'profile_action_cancel';
+  const rateLimit = await checkRateLimit(user.id, operation);
+  if (!rateLimit.allowed) {
+    logAbuseGuard({ functionName: `maxxis-action-${mode}`, operation, requestId, userId: user.id, category: 'RATE_LIMIT', status: rateLimit.unavailable ? 503 : 429, limitType: operation });
+    return rateLimitResponse(rateLimit, requestId, corsHeaders(origin));
+  }
 
   const body = await req.json().catch(() => ({}));
   const actionId = String(body?.actionId || '').trim();

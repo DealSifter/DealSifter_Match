@@ -1,6 +1,7 @@
 import { createClient } from 'npm:@supabase/supabase-js@2';
 import { logOperationalEvent } from '../observability.ts';
 import { corsHeaders, supabaseAnonKey, supabaseUrl } from './config.ts';
+import { checkRateLimit, isOperationalFeatureEnabled, logAbuseGuard, rateLimitResponse } from '../abuseProtection.ts';
 import { getPropertyDetailsWithClient } from './propertyDetails.ts';
 import {
   buildProviderMessageDraft,
@@ -113,6 +114,15 @@ export async function handleProviderMessageDraftRequest(req: Request) {
       return json({ success: false, error: auth.error }, auth.status, origin);
     }
     userId = auth.user.id;
+    if (!isOperationalFeatureEnabled('PROVIDER_MESSAGING_ENABLED')) {
+      logAbuseGuard({ functionName: 'maxxis-provider-message-draft', operation: 'provider_messaging_disabled', requestId, userId, category: 'ABUSE_GUARD', status: 503 });
+      return json({ success: false, error: 'PROVIDER_MESSAGING_DISABLED', requestId }, 503, origin);
+    }
+    const rateLimit = await checkRateLimit(userId, 'provider_message_draft');
+    if (!rateLimit.allowed) {
+      logAbuseGuard({ functionName: 'maxxis-provider-message-draft', operation: 'provider_message_draft', requestId, userId, category: 'RATE_LIMIT', status: rateLimit.unavailable ? 503 : 429, limitType: 'provider_message_draft' });
+      return rateLimitResponse(rateLimit, requestId, corsHeaders(origin));
+    }
     const body = await req.json().catch(() => ({}));
     serviceId = cleanUuid(body.serviceId);
     propertyId = cleanUuid(body.propertyId);

@@ -7,6 +7,7 @@ import {
   resolveTrustedReturnUrl,
 } from '../_shared/httpSecurity.ts';
 import { createRequestId, logOperationalEvent, withRequestId } from '../_shared/observability.ts';
+import { checkRateLimit, logAbuseGuard, rateLimitResponse } from '../_shared/abuseProtection.ts';
 
 const stripeSecretKey = Deno.env.get('STRIPE_SECRET_KEY') ?? '';
 const supabaseUrl = Deno.env.get('SUPABASE_URL') ?? '';
@@ -27,6 +28,8 @@ if (!supabaseServiceRoleKey) throw new Error('Missing SUPABASE_SERVICE_ROLE_KEY'
 
 const stripe = new Stripe(stripeSecretKey, {
   apiVersion: '2024-04-10',
+  maxNetworkRetries: 0,
+  timeout: 12_000,
 });
 
 const supabaseAdmin = createClient(supabaseUrl, supabaseServiceRoleKey);
@@ -112,6 +115,11 @@ Deno.serve(async (req) => {
       return respond({ error: 'Unauthorized', requestId }, 401);
     }
     userId = user.id;
+    const rateLimit = await checkRateLimit(userId, 'portal_create');
+    if (!rateLimit.allowed) {
+      logAbuseGuard({ functionName: 'create-portal-session', operation: 'portal_create', requestId, userId, category: 'RATE_LIMIT', status: rateLimit.unavailable ? 503 : 429, limitType: 'portal_create' });
+      return rateLimitResponse(rateLimit, requestId, corsHeaders);
+    }
 
     const { return_url } = await req.json().catch(() => ({}));
     const customerId = await ensureStripeCustomer(user, requestId);
