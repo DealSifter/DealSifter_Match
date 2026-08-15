@@ -1,4 +1,4 @@
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
 import {
   getObservabilityMetadata,
   initObservability,
@@ -69,6 +69,7 @@ describe('observability privacy boundary', () => {
   });
 
   it('keeps the application operational when no DSN is configured', () => {
+    vi.stubEnv('VITE_SENTRY_DSN', '');
     expect(isObservabilityEnabled()).toBe(false);
     expect(() => initObservability()).not.toThrow();
     expect(initObservability()).toBe(false);
@@ -76,5 +77,6 @@ describe('observability privacy boundary', () => {
       environment: expect.any(String),
       release: expect.any(String),
     }));
+    vi.unstubAllEnvs();
   });
 });

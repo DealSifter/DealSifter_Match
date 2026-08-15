@@ -2,6 +2,7 @@ import { readFileSync } from 'node:fs';
 import { resolve } from 'node:path';
 
 const config = JSON.parse(readFileSync(resolve(process.cwd(), 'vercel.json'), 'utf8'));
+const indexHtml = readFileSync(resolve(process.cwd(), 'index.html'), 'utf8');
 const failures = [];
 const fail = (message) => failures.push(message);
 
@@ -23,6 +24,9 @@ requiredHeaders.forEach((name) => {
 });
 if (!String(globalHeaders.get('content-security-policy') || '').includes("frame-ancestors 'none'")) {
   fail('Content-Security-Policy must prevent framing');
+}
+if (!/connect-src[^;]*https:\/\/[^\s;]*ingest(?:\.[a-z]{2})?\.sentry\.io/i.test(indexHtml)) {
+  fail('Browser Content-Security-Policy must allow the configured Sentry ingest host');
 }
 
 const assetsRule = (config.headers || []).find((rule) => rule.source === '/assets/(.*)');
