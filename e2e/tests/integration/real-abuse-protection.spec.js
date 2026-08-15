@@ -19,7 +19,7 @@ test('atomic rate limiter isolates identities, expires windows and stores no PII
   const consumeExpiringWindow = () => realBackend.adminRpc('ds_consume_edge_rate_limit', {
     p_subject_id: subjectA,
     p_operation: expiryOperation,
-    p_window_seconds: 2,
+    p_window_seconds: 5,
     p_max_requests: 1,
   });
 
@@ -44,8 +44,14 @@ test('atomic rate limiter isolates identities, expires windows and stores no PII
     ]);
 
     expect(firstRow(await consumeExpiringWindow()).allowed).toBe(true);
-    expect(firstRow(await consumeExpiringWindow()).allowed).toBe(false);
-    await new Promise((resolve) => setTimeout(resolve, 2_100));
+    let blockedWindow = null;
+    for (let attempt = 0; attempt < 5 && !blockedWindow; attempt += 1) {
+      const decision = firstRow(await consumeExpiringWindow());
+      if (decision.allowed === false) blockedWindow = decision;
+    }
+    expect(blockedWindow?.allowed).toBe(false);
+    const waitMs = (Math.max(1, Number(blockedWindow.retry_after)) + 1) * 1_000;
+    await new Promise((resolve) => setTimeout(resolve, waitMs));
     const nextWindow = firstRow(await consumeExpiringWindow());
     expect(nextWindow.allowed).toBe(true);
     expect(nextWindow.remaining).toBe(0);

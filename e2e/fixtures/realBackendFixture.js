@@ -378,6 +378,22 @@ export const test = base.extend({
         adminDelete: async (table, query) => {
           await adminFetch(`/rest/v1/${table}?${query}`, { method: 'DELETE' });
         },
+        adminRequest: async (path, { method = 'GET', body, headers = {} } = {}) => {
+          const response = await fetch(`${supabaseUrl}${path}`, {
+            method,
+            headers: {
+              apikey: serviceRoleKey,
+              Authorization: `Bearer ${serviceRoleKey}`,
+              ...(body === undefined ? {} : { 'Content-Type': 'application/json' }),
+              ...headers,
+            },
+            ...(body === undefined ? {} : { body: JSON.stringify(body) }),
+          });
+          const text = await response.text();
+          let payload = null;
+          try { payload = text ? JSON.parse(text) : null; } catch { payload = null; }
+          return { ok: response.ok, status: response.status, payload };
+        },
         signIn,
         browserRpc,
         browserRestSelect,
