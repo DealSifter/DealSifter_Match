@@ -12,9 +12,15 @@ const rulesSource = readFileSync(new URL('./dealCopilotContextRules.ts', import.
 const registrySource = readFileSync(new URL('./toolRegistry.ts', import.meta.url), 'utf8');
 const typesSource = readFileSync(new URL('./types.ts', import.meta.url), 'utf8');
 const chatSource = readFileSync(new URL('../../maxxis-chat/index.ts', import.meta.url), 'utf8');
-const assistantSource = readFileSync(new URL('../../../../src/components/maxxis/MaxxisAssistant.jsx', import.meta.url), 'utf8')
+const assistantSource = [
+  readFileSync(new URL('../../../../src/components/maxxis/MaxxisAssistant.jsx', import.meta.url), 'utf8'),
+  readFileSync(new URL('../../../../src/components/maxxis/MaxxisCapabilities.jsx', import.meta.url), 'utf8'),
+].join('\n')
   .replace(/\r\n?/g, '\n');
-const serviceSource = readFileSync(new URL('../../../../src/services/maxxisService.js', import.meta.url), 'utf8');
+const serviceSource = [
+  readFileSync(new URL('../../../../src/services/maxxisService.js', import.meta.url), 'utf8'),
+  readFileSync(new URL('../../../../src/domain/maxxis/responseTypes.js', import.meta.url), 'utf8'),
+].join('\n');
 
 const propertyId = '11111111-1111-4111-8111-111111111111';
 const property = {

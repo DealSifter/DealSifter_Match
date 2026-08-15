@@ -4,7 +4,10 @@ import { determineNextBestAction, type NextBestActionInput } from './nextBestAct
 
 const nextBestActionSource = readFileSync(new URL('./nextBestAction.ts', import.meta.url), 'utf8');
 const chatSource = readFileSync(new URL('../../maxxis-chat/index.ts', import.meta.url), 'utf8');
-const assistantSource = readFileSync(new URL('../../../../src/components/maxxis/MaxxisAssistant.jsx', import.meta.url), 'utf8');
+const assistantSource = [
+  readFileSync(new URL('../../../../src/components/maxxis/MaxxisAssistant.jsx', import.meta.url), 'utf8'),
+  readFileSync(new URL('../../../../src/components/maxxis/MaxxisCapabilities.jsx', import.meta.url), 'utf8'),
+].join('\n');
 
 const baseProperty = {
   id: '11111111-1111-4111-8111-111111111111',

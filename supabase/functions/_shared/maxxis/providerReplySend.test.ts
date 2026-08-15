@@ -6,7 +6,10 @@ const handlerSource = readFileSync(new URL('./providerMessageSend.ts', import.me
 const analyzerSource = readFileSync(new URL('./providerConversationAnalyzer.ts', import.meta.url), 'utf8');
 const analysisHandlerSource = readFileSync(new URL('./providerConversationAnalysis.ts', import.meta.url), 'utf8');
 const cancelIndexSource = readFileSync(new URL('../../maxxis-provider-message-cancel/index.ts', import.meta.url), 'utf8');
-const assistantSource = readFileSync(new URL('../../../../src/components/maxxis/MaxxisAssistant.jsx', import.meta.url), 'utf8');
+const assistantSource = [
+  readFileSync(new URL('../../../../src/components/maxxis/MaxxisAssistant.jsx', import.meta.url), 'utf8'),
+  readFileSync(new URL('../../../../src/components/maxxis/MaxxisCapabilities.jsx', import.meta.url), 'utf8'),
+].join('\n');
 const serviceSource = readFileSync(new URL('../../../../src/services/maxxisService.js', import.meta.url), 'utf8');
 const chatHookSource = readFileSync(new URL('../../../../src/hooks/useChatRealtime.js', import.meta.url), 'utf8');
 const chatSource = readFileSync(new URL('../../maxxis-chat/index.ts', import.meta.url), 'utf8');

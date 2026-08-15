@@ -5,7 +5,10 @@ import { analyzeProviderConversation } from './providerConversationAnalyzer.ts';
 const analyzerSource = readFileSync(new URL('./providerConversationAnalyzer.ts', import.meta.url), 'utf8');
 const handlerSource = readFileSync(new URL('./providerConversationAnalysis.ts', import.meta.url), 'utf8');
 const indexSource = readFileSync(new URL('../../maxxis-provider-conversation-analysis/index.ts', import.meta.url), 'utf8');
-const assistantSource = readFileSync(new URL('../../../../src/components/maxxis/MaxxisAssistant.jsx', import.meta.url), 'utf8');
+const assistantSource = [
+  readFileSync(new URL('../../../../src/components/maxxis/MaxxisAssistant.jsx', import.meta.url), 'utf8'),
+  readFileSync(new URL('../../../../src/components/maxxis/MaxxisCapabilities.jsx', import.meta.url), 'utf8'),
+].join('\n');
 const serviceSource = readFileSync(new URL('../../../../src/services/maxxisService.js', import.meta.url), 'utf8');
 const chatSource = readFileSync(new URL('../../maxxis-chat/index.ts', import.meta.url), 'utf8');
 const configSource = readFileSync(new URL('../../../config.toml', import.meta.url), 'utf8');

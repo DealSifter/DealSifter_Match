@@ -1,6 +1,7 @@
 import { getLang } from '../i18n/translations';
 import { isSupabaseConfigured, supabase } from '../lib/supabaseClient';
 import { captureOperationalMetric } from '../lib/observability';
+import { normalizeMaxxisResponsePayload } from '../domain/maxxis/responseTypes';
 
 const MAX_HISTORY_ITEMS = 10;
 const UUID_PATTERN = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
@@ -123,23 +124,11 @@ export async function sendMaxxisMessage({ message, history = [], page = 'dashboa
     response_type: String(data?.type || 'text').slice(0, 40),
   });
 
+  const normalizedResponse = normalizeMaxxisResponsePayload(data?.type, data?.data);
   return {
     answer: String(data?.message || data?.answer || '').trim() || (FALLBACK_MESSAGES[language] || FALLBACK_MESSAGES.en),
     unavailable: Boolean(data?.unavailable),
-    type: ['properties', 'services', 'investment_profile', 'property_details', 'property_comparison', 'deal_copilot_overview'].includes(data?.type) ? data.type : 'text',
-    data: data?.type === 'properties' && Array.isArray(data?.data?.properties)
-      ? data.data
-      : data?.type === 'services' && Array.isArray(data?.data?.services)
-        ? data.data
-      : data?.type === 'investment_profile' && data?.data && typeof data.data.complete === 'boolean'
-          ? data.data
-        : data?.type === 'property_details' && data?.data && Object.prototype.hasOwnProperty.call(data.data, 'property')
-          ? data.data
-        : data?.type === 'property_comparison' && data?.data && Array.isArray(data.data.properties)
-          ? data.data
-        : data?.type === 'deal_copilot_overview' && data?.data?.propertySummary
-          ? data.data
-          : null,
+    ...normalizedResponse,
   };
 }
 

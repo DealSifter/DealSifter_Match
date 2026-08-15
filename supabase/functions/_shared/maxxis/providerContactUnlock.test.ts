@@ -7,7 +7,10 @@ const providerSource = readFileSync(new URL('./providerContactUnlock.ts', import
 const confirmIndexSource = readFileSync(new URL('../../maxxis-provider-unlock-confirm/index.ts', import.meta.url), 'utf8');
 const searchServicesSource = readFileSync(new URL('./searchServices.ts', import.meta.url), 'utf8');
 const typesSource = readFileSync(new URL('./types.ts', import.meta.url), 'utf8');
-const assistantSource = readFileSync(new URL('../../../../src/components/maxxis/MaxxisAssistant.jsx', import.meta.url), 'utf8');
+const assistantSource = [
+  readFileSync(new URL('../../../../src/components/maxxis/MaxxisAssistant.jsx', import.meta.url), 'utf8'),
+  readFileSync(new URL('../../../../src/components/maxxis/MaxxisCapabilities.jsx', import.meta.url), 'utf8'),
+].join('\n');
 const serviceSource = readFileSync(new URL('../../../../src/services/maxxisService.js', import.meta.url), 'utf8');
 const chatSource = readFileSync(new URL('../../maxxis-chat/index.ts', import.meta.url), 'utf8');
 const configSource = readFileSync(new URL('../../../config.toml', import.meta.url), 'utf8');
