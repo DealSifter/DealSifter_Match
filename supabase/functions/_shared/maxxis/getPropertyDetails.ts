@@ -21,14 +21,13 @@ export type GetPropertyDetailsResult = PropertyDetailsLookupResult & {
   workflow: DealWorkflowView | null;
 };
 
-export async function getPropertyDetails(input: unknown, authHeader: string): Promise<GetPropertyDetailsResult> {
+export async function getPropertyDetailsForAuthenticatedUser(
+  input: unknown,
+  authHeader: string,
+  client: ReturnType<typeof createClient>,
+  userId: string,
+): Promise<GetPropertyDetailsResult> {
   const validated = validateGetPropertyDetailsInput(input);
-  const client = createClient(supabaseUrl, supabaseAnonKey, {
-    global: { headers: { Authorization: authHeader } },
-  });
-  const token = String(authHeader || '').replace(/^Bearer\s+/i, '').trim();
-  const { data: { user }, error: authError } = await client.auth.getUser(token);
-  if (authError || !user) throw new Error('UNAUTHORIZED');
   const details = await getPropertyDetailsWithClient(validated, client);
   if (!validated.includeServiceMatches || !details.found || !details.property) {
     if (!validated.includeOperationalContext || !details.found || !details.property) {
@@ -42,7 +41,7 @@ export async function getPropertyDetails(input: unknown, authHeader: string): Pr
     const operational = details.found && details.property
       ? await reconcileDealWorkflowForProperty({
         client,
-        userId: user.id,
+        userId,
         property: details.property,
         serviceNeeds: details.serviceNeeds,
         serviceMatches: null,
@@ -75,7 +74,7 @@ export async function getPropertyDetails(input: unknown, authHeader: string): Pr
   });
   const operational = await reconcileDealWorkflowForProperty({
     client,
-    userId: user.id,
+    userId,
     property: details.property,
     serviceNeeds: details.serviceNeeds,
     serviceMatches: matching.serviceMatches,
@@ -97,4 +96,14 @@ export async function getPropertyDetails(input: unknown, authHeader: string): Pr
       providerReplyFound: operational.providerReplyFound,
     }),
   };
+}
+
+export async function getPropertyDetails(input: unknown, authHeader: string): Promise<GetPropertyDetailsResult> {
+  const client = createClient(supabaseUrl, supabaseAnonKey, {
+    global: { headers: { Authorization: authHeader } },
+  });
+  const token = String(authHeader || '').replace(/^Bearer\s+/i, '').trim();
+  const { data: { user }, error: authError } = await client.auth.getUser(token);
+  if (authError || !user) throw new Error('UNAUTHORIZED');
+  return getPropertyDetailsForAuthenticatedUser(input, authHeader, client, user.id);
 }

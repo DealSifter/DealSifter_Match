@@ -58,9 +58,10 @@ export type OptionalCopilotContext = {
 };
 
 const UUID_PATTERN = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
-// Existing property/workflow orchestration performs: property, images, pending actions,
-// workflow lookup, workflow upsert, and final workflow read. Auth checks are not DB queries.
-const CORE_OVERVIEW_QUERY_COUNT = 6;
+// Property/workflow orchestration performs: property (including bounded images),
+// pending actions, workflow lookup and workflow upsert returning the final rows.
+// Auth checks are not DB queries.
+const CORE_OVERVIEW_QUERY_COUNT = 4;
 
 function uniqueStrings(values: unknown[]) {
   return Array.from(new Set(values.map((value) => String(value || '').trim()).filter(Boolean)));

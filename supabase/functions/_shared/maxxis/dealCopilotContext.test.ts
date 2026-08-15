@@ -129,7 +129,7 @@ describe('Phase 4C Maxxis Deal Copilot', () => {
     const result = composeDealCopilotOverview(details(), { conversationSummary: conversation, providers, queryCount: 2 });
     expect(result?.serviceSummary?.providers).toBe(providers);
     expect(result?.conversationSummary).toBe(conversation);
-    expect(result?.queryCount).toBe(8);
+    expect(result?.queryCount).toBe(6);
   });
 
   it('returns a partial overview when optional conversation context fails', async () => {
@@ -206,6 +206,6 @@ describe('Phase 4C Maxxis Deal Copilot', () => {
     const result = await orchestrateDealCopilotOverview({ propertyId, loadDetails, loadOptionalContext });
     expect(loadDetails).toHaveBeenCalledOnce();
     expect(loadOptionalContext).toHaveBeenCalledOnce();
-    expect(result?.queryCount).toBe(7);
+    expect(result?.queryCount).toBe(5);
   });
 });

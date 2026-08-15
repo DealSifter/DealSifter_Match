@@ -132,16 +132,15 @@ async function persistReconciledWorkflow(userId: string, propertyId: string, def
     metadata: entry.metadata,
     completed_at: entry.status === 'completed' ? (entry.completedAt || now) : null,
   }));
+  let finalRows = existingRows || [];
   if (rows.length) {
-    const { error: upsertError } = await admin.from('deal_workflow_items').upsert(rows, { onConflict: 'user_id,property_id,code' });
+    const { data: upsertedRows, error: upsertError } = await admin
+      .from('deal_workflow_items')
+      .upsert(rows, { onConflict: 'user_id,property_id,code' })
+      .select('id, property_id, code, status, source, metadata, created_at, updated_at, completed_at');
     if (upsertError) throw new Error('WORKFLOW_RECONCILE_FAILED');
+    finalRows = upsertedRows || [];
   }
-  const { data: finalRows, error: finalError } = await admin
-    .from('deal_workflow_items')
-    .select('id, property_id, code, status, source, metadata, created_at, updated_at, completed_at')
-    .eq('user_id', userId)
-    .eq('property_id', propertyId);
-  if (finalError) throw new Error('WORKFLOW_RESULT_FAILED');
   return summarizeDealWorkflow((finalRows || []).map((row: WorkflowRow) => rowToItem(row)).sort((left, right) => WORKFLOW_ORDER.indexOf(left.code) - WORKFLOW_ORDER.indexOf(right.code)));
 }
 

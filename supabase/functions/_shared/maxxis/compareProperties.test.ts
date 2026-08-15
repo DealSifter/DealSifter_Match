@@ -168,7 +168,7 @@ describe('Phase 3D compareProperties', () => {
     const compareSource = readFileSync(new URL('./compareProperties.ts', import.meta.url), 'utf8');
     const chatSource = readFileSync(new URL('../../maxxis-chat/index.ts', import.meta.url), 'utf8');
     const registrySource = readFileSync(new URL('./toolRegistry.ts', import.meta.url), 'utf8');
-    expect(registrySource).toContain('(propertyId) => getPropertyDetails({ propertyId }, authHeader)');
+    expect(registrySource).toContain('(propertyId) => getPropertyDetailsForAuthenticatedUser({ propertyId }, authHeader, authenticated.client, authenticated.userId)');
     expect(compareSource).not.toContain('calculateDealMetrics');
     expect(chatSource).toContain('Never calculate comparison values');
     expect(chatSource).toContain('Never choose a preferred property');

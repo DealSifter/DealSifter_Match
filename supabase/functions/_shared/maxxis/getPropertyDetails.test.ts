@@ -177,9 +177,9 @@ describe('Phase 3A integration contracts', () => {
     const names = Array.from(registrySource.matchAll(/\n\s+name: '([^']+)'/g), (match) => match[1]);
     expect(names).toEqual(['searchProperties', 'searchServices', 'getMyInvestmentProfile', 'getPropertyDetails', 'getDealCopilotOverview', 'compareProperties']);
     expect(registrySource).toContain("if (name === 'searchProperties')");
-    expect(registrySource).toContain('searchMatchedProperties(args, authHeader)');
+    expect(registrySource).toContain('searchMatchedProperties(args, authHeader, authenticatedContext() || undefined)');
     expect(registrySource).toContain("if (name === 'searchServices')");
-    expect(registrySource).toContain('searchServices(filters, authHeader)');
+    expect(registrySource).toContain('searchServicesWithMetrics(filters, authHeader)');
     expect(registrySource).toContain("if (name === 'compareProperties')");
     expect(registrySource).toContain('resolveComparePropertiesInput(args, context.propertyIds)');
   });

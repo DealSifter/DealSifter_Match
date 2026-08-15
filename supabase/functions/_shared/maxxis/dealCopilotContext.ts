@@ -1,6 +1,6 @@
 import { createClient } from 'npm:@supabase/supabase-js@2';
 import { supabaseAnonKey, supabaseUrl } from './config.ts';
-import { getPropertyDetails } from './getPropertyDetails.ts';
+import { getPropertyDetailsForAuthenticatedUser } from './getPropertyDetails.ts';
 import { logMaxxisEvent } from './logger.ts';
 import { analyzeProviderConversation } from './providerConversationAnalyzer.ts';
 import {
@@ -87,19 +87,26 @@ async function loadOptionalPropertyContext(
   };
 }
 
-export async function getDealCopilotOverview(propertyId: string, authHeader: string) {
+export async function getDealCopilotOverviewForAuthenticatedUser(
+  propertyId: string,
+  authHeader: string,
+  client: ReturnType<typeof createClient>,
+  userId: string,
+) {
   const startedAt = Date.now();
-  const token = String(authHeader || '').replace(/^Bearer\s+/i, '').trim();
-  const client = createClient(supabaseUrl, supabaseAnonKey, { global: { headers: { Authorization: authHeader } } });
-  const { data: { user }, error: authError } = await client.auth.getUser(token);
-  if (authError || !user) throw new Error('UNAUTHORIZED');
+  if (!userId) throw new Error('UNAUTHORIZED');
   const overview = await orchestrateDealCopilotOverview({
     propertyId,
-    loadDetails: (trustedPropertyId) => getPropertyDetails({ propertyId: trustedPropertyId, includeOperationalContext: true }, authHeader),
-    loadOptionalContext: (trustedPropertyId) => loadOptionalPropertyContext(client, user.id, trustedPropertyId),
+    loadDetails: (trustedPropertyId) => getPropertyDetailsForAuthenticatedUser(
+      { propertyId: trustedPropertyId, includeOperationalContext: true },
+      authHeader,
+      client,
+      userId,
+    ),
+    loadOptionalContext: (trustedPropertyId) => loadOptionalPropertyContext(client, userId, trustedPropertyId),
   });
   logMaxxisEvent('maxxis_deal_copilot_overview', {
-    user_id: user.id,
+    user_id: userId,
     success: Boolean(overview),
     duration_ms: Date.now() - startedAt,
     capabilities_loaded: overview?.capabilitiesLoaded || [],
@@ -107,4 +114,12 @@ export async function getDealCopilotOverview(propertyId: string, authHeader: str
     query_count: overview?.queryCount || 0,
   });
   return overview;
+}
+
+export async function getDealCopilotOverview(propertyId: string, authHeader: string) {
+  const token = String(authHeader || '').replace(/^Bearer\s+/i, '').trim();
+  const client = createClient(supabaseUrl, supabaseAnonKey, { global: { headers: { Authorization: authHeader } } });
+  const { data: { user }, error: authError } = await client.auth.getUser(token);
+  if (authError || !user) throw new Error('UNAUTHORIZED');
+  return getDealCopilotOverviewForAuthenticatedUser(propertyId, authHeader, client, user.id);
 }

@@ -15,18 +15,16 @@ const emptyBehavior = (actionCount = 0): UserPropertyBehavior => ({
   limit: BEHAVIOR_ACTION_LIMIT,
 });
 
-export async function getUserPropertyBehavior(authHeader: string): Promise<UserPropertyBehavior> {
-  const token = String(authHeader || '').replace(/^Bearer\s+/i, '').trim();
-  if (!token) throw new Error('AUTH_REQUIRED');
-  const client = createClient(supabaseUrl, supabaseAnonKey, { global: { headers: { Authorization: authHeader } } });
-  const { data: { user }, error: authError } = await client.auth.getUser(token);
-  if (authError || !user) throw new Error('AUTH_REQUIRED');
-
+export async function getUserPropertyBehaviorWithClient(
+  userId: string,
+  client: ReturnType<typeof createClient>,
+): Promise<UserPropertyBehavior> {
+  if (!userId) throw new Error('AUTH_REQUIRED');
   const cutoff = new Date(Date.now() - BEHAVIOR_WINDOW_DAYS * 24 * 60 * 60 * 1000).toISOString();
   const { data: actionRows, error: actionError } = await client
     .from('user_feed_actions')
     .select('action, entity_type, entity_id, updated_at')
-    .eq('user_id', user.id)
+    .eq('user_id', userId)
     .eq('action', 'interested')
     .eq('entity_type', 'property')
     .gte('updated_at', cutoff)
@@ -73,4 +71,13 @@ export async function getUserPropertyBehavior(authHeader: string): Promise<UserP
     windowDays: BEHAVIOR_WINDOW_DAYS,
     limit: BEHAVIOR_ACTION_LIMIT,
   };
+}
+
+export async function getUserPropertyBehavior(authHeader: string): Promise<UserPropertyBehavior> {
+  const token = String(authHeader || '').replace(/^Bearer\s+/i, '').trim();
+  if (!token) throw new Error('AUTH_REQUIRED');
+  const client = createClient(supabaseUrl, supabaseAnonKey, { global: { headers: { Authorization: authHeader } } });
+  const { data: { user }, error: authError } = await client.auth.getUser(token);
+  if (authError || !user) throw new Error('AUTH_REQUIRED');
+  return getUserPropertyBehaviorWithClient(user.id, client);
 }

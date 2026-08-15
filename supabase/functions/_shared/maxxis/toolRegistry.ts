@@ -1,10 +1,12 @@
-import { searchServices, validateSearchServicesInput } from './searchServices.ts';
-import { getMyInvestmentProfile } from './getMyInvestmentProfile.ts';
-import { getPropertyDetails } from './getPropertyDetails.ts';
+import { createClient } from 'npm:@supabase/supabase-js@2';
+import { searchServicesWithMetrics, validateSearchServicesInput } from './searchServices.ts';
+import { getMyInvestmentProfile, getMyInvestmentProfileWithClient } from './getMyInvestmentProfile.ts';
+import { getPropertyDetails, getPropertyDetailsForAuthenticatedUser } from './getPropertyDetails.ts';
 import { resolvePropertyDetailsInput } from './propertyDetails.ts';
 import { searchMatchedProperties } from './searchMatchedProperties.ts';
 import { comparePropertiesWithLookup, resolveComparePropertiesInput } from './compareProperties.ts';
-import { getDealCopilotOverview } from './dealCopilotContext.ts';
+import { getDealCopilotOverview, getDealCopilotOverviewForAuthenticatedUser } from './dealCopilotContext.ts';
+import { supabaseAnonKey, supabaseUrl } from './config.ts';
 
 export const MAXXIS_TOOLS = [{
   functionDeclarations: [
@@ -65,35 +67,54 @@ export const MAXXIS_TOOLS = [{
   ],
 }];
 
-export async function executeMaxxisTool(name: string, args: unknown, authHeader: string, context: { propertyId?: string; propertyIds?: string[] } = {}) {
+export async function executeMaxxisTool(name: string, args: unknown, authHeader: string, context: { propertyId?: string; propertyIds?: string[]; userId?: string } = {}) {
+  const authenticatedContext = () => {
+    const userId = String(context.userId || '').trim();
+    if (!userId) return null;
+    return {
+      userId,
+      client: createClient(supabaseUrl, supabaseAnonKey, { global: { headers: { Authorization: authHeader } } }),
+    };
+  };
   if (name === 'searchProperties') {
-    const result = await searchMatchedProperties(args, authHeader);
+    const result = await searchMatchedProperties(args, authHeader, authenticatedContext() || undefined);
     return { type: 'properties' as const, filters: result.filters, items: result.properties, ...result };
   }
   if (name === 'searchServices') {
     const filters = validateSearchServicesInput(args);
-    const services = await searchServices(filters, authHeader);
-    return { type: 'services' as const, filters, items: services };
+    const result = await searchServicesWithMetrics(filters, authHeader);
+    return { type: 'services' as const, filters, items: result.items, performance: result.metrics };
   }
   if (name === 'getMyInvestmentProfile') {
-    const result = await getMyInvestmentProfile(authHeader);
+    const authenticated = authenticatedContext();
+    const result = authenticated
+      ? await getMyInvestmentProfileWithClient(authenticated.userId, authenticated.client)
+      : await getMyInvestmentProfile(authHeader);
     return { type: 'investment_profile' as const, ...result };
   }
   if (name === 'getPropertyDetails') {
     const input = resolvePropertyDetailsInput(args, context.propertyId);
-    const result = await getPropertyDetails(input, authHeader);
+    const authenticated = authenticatedContext();
+    const result = authenticated
+      ? await getPropertyDetailsForAuthenticatedUser(input, authHeader, authenticated.client, authenticated.userId)
+      : await getPropertyDetails(input, authHeader);
     return { type: 'property_details' as const, ...result };
   }
   if (name === 'getDealCopilotOverview') {
     const input = resolvePropertyDetailsInput({ propertyId: (args as Record<string, unknown>)?.propertyId }, context.propertyId);
-    const overview = await getDealCopilotOverview(input.propertyId, authHeader);
+    const authenticated = authenticatedContext();
+    const overview = authenticated
+      ? await getDealCopilotOverviewForAuthenticatedUser(input.propertyId, authHeader, authenticated.client, authenticated.userId)
+      : await getDealCopilotOverview(input.propertyId, authHeader);
     return { type: 'deal_copilot_overview' as const, found: Boolean(overview), overview };
   }
   if (name === 'compareProperties') {
     const input = resolveComparePropertiesInput(args, context.propertyIds);
+    const authenticated = authenticatedContext();
+    if (!authenticated) throw new Error('UNAUTHORIZED');
     const result = await comparePropertiesWithLookup(
       input,
-      (propertyId) => getPropertyDetails({ propertyId }, authHeader),
+      (propertyId) => getPropertyDetailsForAuthenticatedUser({ propertyId }, authHeader, authenticated.client, authenticated.userId),
     );
     return { type: 'property_comparison' as const, ...result };
   }
