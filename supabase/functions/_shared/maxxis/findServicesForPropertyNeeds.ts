@@ -1,4 +1,4 @@
-import { searchServices } from './searchServices.ts';
+import { searchServices, searchServicesBatch, type SearchServicesBatchResult } from './searchServices.ts';
 import { calculateServiceFit, rankServicesByFit } from './calculateServiceFit.ts';
 import type { SearchServicesInput } from './searchServices.ts';
 import type {
@@ -28,6 +28,9 @@ export type PropertyServiceMatchingSummary = {
   resultsReturned: number;
   durationMs: number;
   cityToStateFallbackUsed: boolean;
+  dbQueryCount?: number;
+  dbDurationMs?: number;
+  payloadBytes?: number;
 };
 
 export type PropertyServiceMatchingResult = {
@@ -78,6 +81,60 @@ export async function findServicesForPropertyNeeds(
   const serviceMatches: PropertyServiceMatch[] = [];
   let searchesPerformed = 0;
   let cityToStateFallbackUsed = false;
+
+  if (serviceSearch === searchServices && typeof searchServicesBatch === 'function' && selectedNeeds.length) {
+    const primaryFilters = selectedNeeds.map((need): SearchServicesInput => ({
+      category: need.serviceType,
+      ...(state ? { state } : {}),
+      ...(city ? { city } : {}),
+      limit: MAX_SERVICES_PER_NEED,
+    }));
+    searchesPerformed = 1;
+    const primary = await searchServicesBatch(primaryFilters, input.authHeader);
+    const missingNeeds = city && state
+      ? selectedNeeds.filter((need) => !(primary.itemsByCategory.get(need.serviceType.toLowerCase()) || []).length)
+      : [];
+    let fallback: SearchServicesBatchResult | null = null;
+    if (missingNeeds.length) {
+      cityToStateFallbackUsed = true;
+      searchesPerformed += 1;
+      fallback = await searchServicesBatch(missingNeeds.map((need): SearchServicesInput => ({
+        category: need.serviceType,
+        state,
+        limit: MAX_SERVICES_PER_NEED,
+      })), input.authHeader);
+    }
+
+    selectedNeeds.forEach((need) => {
+      const key = need.serviceType.toLowerCase();
+      const primaryServices = primary.itemsByCategory.get(key) || [];
+      const services = primaryServices.length ? primaryServices : (fallback?.itemsByCategory.get(key) || []);
+      const rankedServices = rankServicesByFit(
+        services.map(safeService).map((service) => ({
+          ...service,
+          fit: calculateServiceFit({ serviceNeed: need, propertyContext: input.property, service }),
+        })),
+      );
+      serviceMatches.push({
+        serviceType: need.serviceType,
+        confidence: need.confidence,
+        services: rankedServices.slice(0, MAX_SERVICES_PER_NEED),
+      });
+    });
+    return {
+      serviceMatches,
+      summary: {
+        serviceNeedsProcessed: selectedNeeds.length,
+        searchesPerformed,
+        resultsReturned: serviceMatches.reduce((total, match) => total + match.services.length, 0),
+        durationMs: Date.now() - startedAt,
+        cityToStateFallbackUsed,
+        dbQueryCount: primary.metrics.queryCount + (fallback?.metrics.queryCount || 0),
+        dbDurationMs: primary.metrics.dbDurationMs + (fallback?.metrics.dbDurationMs || 0),
+        payloadBytes: primary.metrics.payloadBytes + (fallback?.metrics.payloadBytes || 0),
+      },
+    };
+  }
 
   for (const need of selectedNeeds) {
     const primaryFilters: SearchServicesInput = {

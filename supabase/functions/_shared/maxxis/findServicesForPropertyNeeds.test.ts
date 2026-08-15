@@ -11,7 +11,7 @@ import type {
   PropertyServiceType,
 } from './types.ts';
 
-vi.mock('./searchServices.ts', () => ({ searchServices: vi.fn() }));
+vi.mock('./searchServices.ts', () => ({ searchServices: vi.fn(), searchServicesBatch: vi.fn() }));
 
 function serviceNeed(
   serviceType: PropertyServiceType,
@@ -163,9 +163,10 @@ describe('Phase 3G findServicesForPropertyNeeds', () => {
     expect(registrySource).toContain('the backend alone derives the categories from serviceNeeds');
   });
 
-  it('uses searchServices as the sole real provider source without a duplicate query', () => {
+  it('uses the batched search service as the sole real provider source without a table query', () => {
     const source = readFileSync(new URL('./findServicesForPropertyNeeds.ts', import.meta.url), 'utf8');
-    expect(source).toContain("import { searchServices } from './searchServices.ts'");
+    expect(source).toContain('searchServicesBatch');
+    expect(source).toContain('searchServicesBatch(primaryFilters');
     expect(source).toContain('serviceSearch(primaryFilters, input.authHeader)');
     expect(source).not.toContain(".from('services')");
     expect(source).not.toContain('.from("services")');

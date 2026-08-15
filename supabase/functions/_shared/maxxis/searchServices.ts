@@ -4,7 +4,6 @@ import type { MaxxisServiceResult, ProviderContactAccess } from './types.ts';
 
 const MAX_LIMIT = 20;
 const DEFAULT_LIMIT = 10;
-const FETCH_LIMIT = 250;
 const STATE_NAMES: Record<string, string> = {
   alabama: 'AL', alaska: 'AK', arizona: 'AZ', arkansas: 'AR', california: 'CA', colorado: 'CO', connecticut: 'CT', delaware: 'DE', florida: 'FL', georgia: 'GA', hawaii: 'HI', idaho: 'ID', illinois: 'IL', indiana: 'IN', iowa: 'IA', kansas: 'KS', kentucky: 'KY', louisiana: 'LA', maine: 'ME', maryland: 'MD', massachusetts: 'MA', michigan: 'MI', minnesota: 'MN', mississippi: 'MS', missouri: 'MO', montana: 'MT', nebraska: 'NE', nevada: 'NV', 'new hampshire': 'NH', 'new jersey': 'NJ', 'new mexico': 'NM', 'new york': 'NY', 'north carolina': 'NC', 'north dakota': 'ND', ohio: 'OH', oklahoma: 'OK', oregon: 'OR', pennsylvania: 'PA', 'rhode island': 'RI', 'south carolina': 'SC', 'south dakota': 'SD', tennessee: 'TN', texas: 'TX', utah: 'UT', vermont: 'VT', virginia: 'VA', washington: 'WA', 'west virginia': 'WV', wisconsin: 'WI', wyoming: 'WY', 'district of columbia': 'DC',
 };
@@ -50,7 +49,7 @@ export function validateSearchServicesInput(value: unknown): SearchServicesInput
   };
 }
 
-const includesNormalized = (value: unknown, search: string) => String(value || '').toLowerCase().includes(search.toLowerCase());
+const categoryKey = (value: unknown) => cleanText(value).toLowerCase();
 
 function normalizeContactAccess(row: Record<string, unknown> | null): ProviderContactAccess {
   const status = String(row?.status || 'unavailable');
@@ -84,35 +83,42 @@ async function getProviderContactAccess(
   }
 }
 
-export async function searchServices(input: unknown, authHeader: string): Promise<MaxxisServiceResult[]> {
-  const filters = validateSearchServicesInput(input);
-  const client = createClient(supabaseUrl, supabaseAnonKey, { global: { headers: { Authorization: authHeader } } });
-  const { data, error } = await client.from('services')
-    .select('id, title, category, description, price, media_images, markets, publish_to_connections, created_at')
-    .eq('publish_to_connections', true)
-    .order('created_at', { ascending: false })
-    .limit(FETCH_LIMIT);
-  if (error) throw new Error('SERVICE_SEARCH_FAILED');
+export type SearchServicesMetrics = {
+  dbDurationMs: number;
+  queryCount: number;
+  rowsReturned: number;
+  payloadBytes: number;
+};
 
-  const services = (Array.isArray(data) ? data : [])
-    .filter((row) => {
-      const markets = Array.isArray(row.markets) ? row.markets.map((market) => cleanText(market, 120)) : [];
-      const categoryMatches = !filters.category || includesNormalized(row.category, filters.category);
-      const stateMatches = !filters.state || markets.some((market) => {
-        const normalized = market.toLowerCase();
-        const stateName = Object.entries(STATE_NAMES).find(([, code]) => code === filters.state)?.[0] || '';
-        const tokens = normalized.split(/[^a-z]+/).filter(Boolean);
-        return normalized === filters.state!.toLowerCase() || normalized === stateName || tokens.includes(filters.state!.toLowerCase());
-      });
-      const cityMatches = !filters.city || markets.some((market) => includesNormalized(market, filters.city!));
-      const keywordMatches = !filters.keyword || [row.title, row.category, row.description].some((field) => includesNormalized(field, filters.keyword!));
-      const price = row.price === null || row.price === undefined ? null : Number(row.price);
-      return categoryMatches && stateMatches && cityMatches && keywordMatches
-        && (filters.minPrice === undefined || (price !== null && Number.isFinite(price) && price >= filters.minPrice))
-        && (filters.maxPrice === undefined || (price !== null && Number.isFinite(price) && price <= filters.maxPrice));
-    })
-    .slice(0, filters.limit || DEFAULT_LIMIT)
-    .map((row) => ({
+export type SearchServicesBatchResult = {
+  items: MaxxisServiceResult[];
+  itemsByCategory: Map<string, MaxxisServiceResult[]>;
+  metrics: SearchServicesMetrics;
+};
+
+export async function searchServicesBatch(inputs: unknown[], authHeader: string): Promise<SearchServicesBatchResult> {
+  const filtersList = (Array.isArray(inputs) && inputs.length ? inputs : [{}])
+    .slice(0, 10)
+    .map(validateSearchServicesInput);
+  const sharedFilters = filtersList[0];
+  const categories = Array.from(new Set(filtersList.map((filters) => filters.category).filter(Boolean)));
+  const limit = Math.max(...filtersList.map((filters) => filters.limit || DEFAULT_LIMIT));
+  const client = createClient(supabaseUrl, supabaseAnonKey, { global: { headers: { Authorization: authHeader } } });
+  const dbStartedAt = Date.now();
+  const { data, error } = await client.rpc('ds_search_public_services', {
+    p_categories: categories.length ? categories : null,
+    p_state: sharedFilters.state || null,
+    p_city: sharedFilters.city || null,
+    p_keyword: sharedFilters.keyword || null,
+    p_min_price: sharedFilters.minPrice ?? null,
+    p_max_price: sharedFilters.maxPrice ?? null,
+    p_limit_per_category: limit,
+  });
+  if (error) throw new Error('SERVICE_SEARCH_FAILED');
+  const rows = Array.isArray(data) ? data : [];
+  const mappedRows = rows.map((row) => ({
+    matchedCategory: cleanText(row.matched_category),
+    service: {
       id: String(row.id),
       title: cleanText(row.title),
       serviceType: cleanText(row.category),
@@ -120,10 +126,42 @@ export async function searchServices(input: unknown, authHeader: string): Promis
       price: row.price === null || row.price === undefined || !Number.isFinite(Number(row.price)) ? null : Number(row.price),
       markets: Array.isArray(row.markets) ? row.markets.map((market) => cleanText(market, 120)).filter(Boolean).slice(0, 12) : [],
       image: Array.isArray(row.media_images) ? cleanText(row.media_images[0], 2_000) : '',
-    }));
-  const accessByServiceId = await getProviderContactAccess(client, services.map((service) => service.id));
-  return services.map((service) => ({
-    ...service,
-    contactAccess: accessByServiceId.get(service.id) || { status: 'unavailable', cost: null, currency: 'nuggets', reason: 'access_quote_missing' },
+    } as MaxxisServiceResult,
   }));
+  const serviceIds = Array.from(new Set(mappedRows.map(({ service }) => service.id)));
+  const accessByServiceId = await getProviderContactAccess(client, serviceIds);
+  const itemsByCategory = new Map<string, MaxxisServiceResult[]>();
+  const items: MaxxisServiceResult[] = [];
+  const seenItems = new Set<string>();
+  mappedRows.forEach(({ matchedCategory, service }) => {
+    const item = {
+      ...service,
+      contactAccess: accessByServiceId.get(service.id) || { status: 'unavailable', cost: null, currency: 'nuggets', reason: 'access_quote_missing' },
+    } as MaxxisServiceResult;
+    const key = categoryKey(matchedCategory);
+    itemsByCategory.set(key, [...(itemsByCategory.get(key) || []), item]);
+    if (!seenItems.has(item.id)) {
+      seenItems.add(item.id);
+      items.push(item);
+    }
+  });
+  const dbDurationMs = Date.now() - dbStartedAt;
+  return {
+    items,
+    itemsByCategory,
+    metrics: {
+      dbDurationMs,
+      queryCount: 1 + Number(serviceIds.length > 0),
+      rowsReturned: rows.length,
+      payloadBytes: new TextEncoder().encode(JSON.stringify(rows)).byteLength,
+    },
+  };
+}
+
+export async function searchServicesWithMetrics(input: unknown, authHeader: string): Promise<SearchServicesBatchResult> {
+  return searchServicesBatch([input], authHeader);
+}
+
+export async function searchServices(input: unknown, authHeader: string): Promise<MaxxisServiceResult[]> {
+  return (await searchServicesWithMetrics(input, authHeader)).items;
 }
