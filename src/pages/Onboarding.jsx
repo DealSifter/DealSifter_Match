@@ -43,6 +43,11 @@ import {
   normalizeUniqueCardPriorities,
   normalizeUsStateCode,
 } from '../lib/onboardingHelpers';
+import {
+  buildMobileStepCompletion,
+  evaluateMinimumProfileCompletion,
+  getMissingRequiredProfile,
+} from '../domain/profile/onboardingProfileValidation';
 
 
 export function Onboarding({
@@ -2444,23 +2449,20 @@ export function Onboarding({
     }
   };
 
-  const getMissingRequiredForProfileA = () => {
-    const missing = [];
-    if (!String(name || '').trim()) missing.push(t.requiredFullName);
-    if (!String(personalPrimaryPhone || '').trim()) missing.push(t.requiredPriorityPhone);
-    if (!String(personalEmail || '').trim()) missing.push(t.requiredEmail);
-    if (!contactMethods.length) missing.push(t.requiredBusinessContactOptions);
-    return missing;
-  };
-
-  const getMissingRequiredForProfileB = () => {
-    const missing = [];
-    if (!String(nameB || '').trim()) missing.push(t.requiredFullName);
-    if (!String(personalPrimaryPhoneB || '').trim()) missing.push(t.requiredPriorityPhone);
-    if (!String(personalEmailB || '').trim()) missing.push(t.requiredEmail);
-    if (!contactMethodsB.length) missing.push(t.requiredBusinessContactOptions);
-    return missing;
-  };
+  const missingRequiredForProfileA = getMissingRequiredProfile({
+    name,
+    phone: personalPrimaryPhone,
+    email: personalEmail,
+    contactMethods,
+    copy: t,
+  });
+  const missingRequiredForProfileB = getMissingRequiredProfile({
+    name: nameB,
+    phone: personalPrimaryPhoneB,
+    email: personalEmailB,
+    contactMethods: contactMethodsB,
+    copy: t,
+  });
 
   const _hasAnyValue = (...values) => values.some((value) => {
     if (Array.isArray(value)) return value.length > 0;
@@ -2480,10 +2482,10 @@ export function Onboarding({
     && String(primaryCategoryB || '').trim().length > 0
   );
 
-  const profileAComplete = getMissingRequiredForProfileA().length === 0;
-  const profileBComplete = getMissingRequiredForProfileB().length === 0;
-  const profileAReady = getMissingRequiredForProfileA().length === 0 && profileASkillsComplete;
-  const profileBReady = getMissingRequiredForProfileB().length === 0 && profileBOpsComplete;
+  const profileAComplete = missingRequiredForProfileA.length === 0;
+  const profileBComplete = missingRequiredForProfileB.length === 0;
+  const profileAReady = profileAComplete && profileASkillsComplete;
+  const profileBReady = profileBComplete && profileBOpsComplete;
   const preferProfessionalPath = profileTab === 'professional' || profileTab === 'operation';
 
   const showValidationBorders = Boolean(basicRequiredMsg);
@@ -2522,70 +2524,26 @@ export function Onboarding({
   const requiresOperationsTab = accountType === 'professional' && !profileAReady && !profileBReady && profileBComplete && !profileBOpsComplete;
 
   const validateMinimumProfileCompletion = () => {
-    const missingA = getMissingRequiredForProfileA();
-    const missingB = getMissingRequiredForProfileB();
-    const profileAComplete = missingA.length === 0;
-    const profileBComplete = missingB.length === 0;
-
-    // FSBO path: only needs name + (phone OR email)
-    if (accountType === 'fsbo_owner') {
-      const fsboMissing = [];
-      if (!String(name || '').trim()) fsboMissing.push(t.requiredFullName || 'Full name');
-      if (!String(personalPrimaryPhone || '').trim() && !String(personalEmail || '').trim()) {
-        fsboMissing.push(t.requiredPriorityPhone || 'Priority phone');
-      }
-
-      if (fsboMissing.length > 0) {
-        const hintMessage = `${t.requiredPrefix}: ${fsboMissing.join(' | ')}`;
-        setBasicRequiredMsg(hintMessage);
-        showInlineValidationHint('profile-a-fields', hintMessage);
-        return { valid: false, primaryProfile: null, profileAComplete, profileBComplete };
-      }
+    const result = evaluateMinimumProfileCompletion({
+      accountType,
+      name,
+      phone: personalPrimaryPhone,
+      email: personalEmail,
+      profileAComplete,
+      profileBComplete,
+      profileAReady,
+      profileBReady,
+      preferProfessionalPath,
+      copy: t,
+    });
+    if (result.valid) {
       setBasicRequiredMsg('');
       clearInlineValidationHint();
-      return { valid: true, primaryProfile: 'C', profileAComplete, profileBComplete };
+    } else {
+      setBasicRequiredMsg(result.message);
+      showInlineValidationHint(result.target, result.message);
     }
-
-    // Professional path: AT LEAST ONE complete path suffices:
-    //   Path 1: Personal (A) + Skills  OR  Path 2: Business (B) + Operations
-    if (profileAReady || profileBReady) {
-      setBasicRequiredMsg('');
-      clearInlineValidationHint();
-      return {
-        valid: true,
-        primaryProfile: profileBReady && !profileAReady
-          ? 'B'
-          : (profileAReady && !profileBReady ? 'A' : (preferProfessionalPath ? 'B' : 'A')),
-        profileAComplete,
-        profileBComplete,
-      };
-    }
-
-    // Neither path fully ready - guide user based on their active tab
-    if (preferProfessionalPath) {
-      if (!profileBComplete) {
-        const hintMessage = t.errorCompleteBusinessProfile || 'Complete the Business profile: full name, priority phone, email and contact methods.';
-        setBasicRequiredMsg(hintMessage);
-        showInlineValidationHint('tab-business', hintMessage);
-        return { valid: false, primaryProfile: null, profileAComplete, profileBComplete };
-      }
-      const hintMessage = t.errorCompleteOperationsTab || 'Complete Operations tab for Business: category, primary category and at least one state.';
-      setBasicRequiredMsg(hintMessage);
-      showInlineValidationHint('tab-operation', hintMessage);
-      return { valid: false, primaryProfile: null, profileAComplete, profileBComplete };
-    }
-
-    if (!profileAComplete) {
-      const hintMessage = t.errorCompletePersonalProfile || 'Complete the Personal profile: full name, priority phone, email and contact methods.';
-      setBasicRequiredMsg(hintMessage);
-      showInlineValidationHint('tab-personal', hintMessage);
-      return { valid: false, primaryProfile: null, profileAComplete, profileBComplete };
-    }
-
-    const hintMessage = t.errorCompleteSkillsTab || 'Complete Skills tab for Personal: category, primary category and at least one state.';
-    setBasicRequiredMsg(hintMessage);
-    showInlineValidationHint('tab-skills', hintMessage);
-    return { valid: false, primaryProfile: null, profileAComplete, profileBComplete };
+    return result;
   };
 
   const openPreviewToFeed = () => {
@@ -2594,32 +2552,31 @@ export function Onboarding({
     setPreviewOpen(true);
   };
 
-  const mobileStepCompletionMap = useMemo(() => ({
-    profileAName: !missingProfileAFullName,
-    profileAPhone: !missingProfileAPhone,
-    profileAEmail: !missingProfileAEmail,
-    profileAEmailOrPhone: !missingProfileAPhone || !missingProfileAEmail,
-    profileAContact: !missingProfileAContactMethods,
-    skillsCategories: !missingSkillsCategories,
-    skillsMarkets: !missingSkillsMarkets,
-    skillsPrimaryCategory: !missingSkillsPrimaryCategory,
-    profileBName: !missingProfileBFullName,
-    profileBPhone: !missingProfileBPhone,
-    profileBEmail: !missingProfileBEmail,
-    profileBContact: !missingProfileBContactMethods,
-    opsCategories: !missingOpsCategories,
-    opsMarkets: !missingOpsMarkets,
-    opsPrimaryCategory: !missingOpsPrimaryCategory,
-    portfolioAddress: !missingPortfolioAddress,
-    portfolioCity: !missingPortfolioCity,
-    portfolioZip: !missingPortfolioZip,
-    portfolioPrice: !missingPortfolioPrice,
-    portfolioType: !missingPortfolioType,
-    portfolioPrimaryProfile: !missingPortfolioPrimaryProfile,
-    serviceTitle: !missingServiceTitle,
-    serviceCategory: !missingServiceCategory,
-    servicePrice: !missingServicePrice,
-    servicePrimaryProfile: !missingServicePrimaryProfile,
+  const mobileStepCompletionMap = useMemo(() => buildMobileStepCompletion({
+    profileAFullName: missingProfileAFullName,
+    profileAPhone: missingProfileAPhone,
+    profileAEmail: missingProfileAEmail,
+    profileAContactMethods: missingProfileAContactMethods,
+    skillsCategories: missingSkillsCategories,
+    skillsMarkets: missingSkillsMarkets,
+    skillsPrimaryCategory: missingSkillsPrimaryCategory,
+    profileBFullName: missingProfileBFullName,
+    profileBPhone: missingProfileBPhone,
+    profileBEmail: missingProfileBEmail,
+    profileBContactMethods: missingProfileBContactMethods,
+    opsCategories: missingOpsCategories,
+    opsMarkets: missingOpsMarkets,
+    opsPrimaryCategory: missingOpsPrimaryCategory,
+    portfolioAddress: missingPortfolioAddress,
+    portfolioCity: missingPortfolioCity,
+    portfolioZip: missingPortfolioZip,
+    portfolioPrice: missingPortfolioPrice,
+    portfolioType: missingPortfolioType,
+    portfolioPrimaryProfile: missingPortfolioPrimaryProfile,
+    serviceTitle: missingServiceTitle,
+    serviceCategory: missingServiceCategory,
+    servicePrice: missingServicePrice,
+    servicePrimaryProfile: missingServicePrimaryProfile,
   }), [
     missingProfileAFullName,
     missingProfileAPhone,
