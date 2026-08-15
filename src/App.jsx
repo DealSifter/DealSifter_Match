@@ -100,6 +100,8 @@ import { useCheckoutFlow } from './hooks/useCheckoutFlow';
 import { useMediaQuery } from './hooks/useMediaQuery';
 import { useChatRealtime } from './hooks/useChatRealtime';
 import { useUnlockNotifications } from './hooks/useUnlockNotifications';
+import { useAppSessionLifecycle } from './hooks/useAppSessionLifecycle';
+import { useUserPreferences } from './hooks/useUserPreferences';
 import { canPerformAction, getPlanActionAccess, getPlanGateCopy, getCurrentPlan, isPlanLimitError, refreshUsageFromDB, resolveRemainingNuggets } from './services/planUsageService';
 import { isProfileConflictError, saveProfessionalProfileWithVersion } from './services/profileConcurrencyService';
 import { clearSensitiveCache, clearUserScopedCache } from './lib/localStoragePolicy';
@@ -209,128 +211,14 @@ const DevInspector = import.meta.env.DEV
   ? lazy(() => import('./components/dev/DevInspector').then((m) => ({ default: m.DevInspector })))
   : () => null;
 
-const SECURITY_AUDIT_KEY = 'ds_security_audit';
-const SECURITY_SESSIONS_KEY = 'ds_security_sessions';
-const SECURITY_ACTIVE_SESSION_KEY = 'ds_security_active_session_id';
-const APP_SESSION_TOKEN_KEY = 'ds_app_session_token';
-const APP_LAST_ACTIVITY_KEY = 'ds_app_last_activity_at';
-const APP_IDLE_SIGNOUT_MS = 4 * 60 * 60 * 1000;
-const USER_PREFERENCES_KEY = 'ds_user_preferences';
+import {
+  APP_SESSION_TOKEN_KEY,
+  SECURITY_AUDIT_KEY,
+  appendSecurityAuditEvent,
+  consumeRateLimit,
+} from './lib/appSessionSecurity';
 
-const appendSecurityAuditEvent = (event) => {
-  try {
-    const current = JSON.parse(localStorage.getItem(SECURITY_AUDIT_KEY) || '[]');
-    const next = Array.isArray(current) ? current : [];
-    next.unshift({
-      id: `sec-${Date.now()}-${Math.random().toString(16).slice(2, 7)}`,
-      at: Date.now(),
-      ...event,
-    });
-    localStorage.setItem(SECURITY_AUDIT_KEY, JSON.stringify(next.slice(0, 200)));
-  } catch { /* no-op */ }
-};
-
-const consumeRateLimit = (key, maxAttempts, windowMs, lockMs = windowMs) => {
-  try {
-    const now = Date.now();
-    const store = JSON.parse(localStorage.getItem('ds_security_rate_limits') || '{}');
-    const entry = store?.[key] || { attempts: [], lockedUntil: 0 };
-    if (Number(entry.lockedUntil || 0) > now) {
-      return { allowed: false, retryAfterMs: Number(entry.lockedUntil) - now };
-    }
-    const attempts = (Array.isArray(entry.attempts) ? entry.attempts : []).filter((ts) => now - Number(ts) <= windowMs);
-    attempts.push(now);
-    if (attempts.length > maxAttempts) {
-      const lockedUntil = now + lockMs;
-      store[key] = { attempts, lockedUntil };
-      localStorage.setItem('ds_security_rate_limits', JSON.stringify(store));
-      return { allowed: false, retryAfterMs: lockMs };
-    }
-    store[key] = { attempts, lockedUntil: 0 };
-    localStorage.setItem('ds_security_rate_limits', JSON.stringify(store));
-    return { allowed: true, retryAfterMs: 0 };
-  } catch {
-    return { allowed: true, retryAfterMs: 0 };
-  }
-};
-
-const DEFAULT_USER_PREFERENCES = {
-  map: {
-    initialZoom: 4,
-    defaultStyle: 'simple',
-    clusterBehavior: 'pins_city',
-    defaultFilters: {
-      showPeople: true,
-      showProperties: true,
-      showOnlyUnlocked: false,
-      showOnlyMyPins: false,
-    },
-  },
-  feedMatches: {
-    sortOrder: 'random',
-    autoplayMedia: false,
-  },
-  chatLanguage: {
-    input: 'pt',
-    output: 'en',
-  },
-  privacy: {
-    presenceStatus: 'online',
-    readReceipts: true,
-    messagePreview: true,
-  },
-};
-
-const normalizeUserPreferences = (value) => {
-  const input = value && typeof value === 'object' ? value : {};
-  const map = input.map && typeof input.map === 'object' ? input.map : {};
-  const defaultFilters = map.defaultFilters && typeof map.defaultFilters === 'object' ? map.defaultFilters : {};
-  const feedMatches = input.feedMatches && typeof input.feedMatches === 'object' ? input.feedMatches : {};
-  const chatLanguage = input.chatLanguage && typeof input.chatLanguage === 'object' ? input.chatLanguage : {};
-  const privacy = input.privacy && typeof input.privacy === 'object' ? input.privacy : {};
-  const initialZoomRaw = Number(map.initialZoom);
-  const initialZoom = Number.isFinite(initialZoomRaw) ? Math.max(3, Math.min(13, initialZoomRaw)) : DEFAULT_USER_PREFERENCES.map.initialZoom;
-  const rawDefaultStyle = String(map.defaultStyle || '').trim();
-  const defaultStyle = ['simple', 'satellite_streets', 'topo'].includes(rawDefaultStyle)
-    ? rawDefaultStyle
-    : (rawDefaultStyle === 'flood' ? 'satellite_streets' : DEFAULT_USER_PREFERENCES.map.defaultStyle);
-  const clusterBehavior = ['pins_city', 'mixed'].includes(String(map.clusterBehavior || '').trim())
-    ? String(map.clusterBehavior).trim()
-    : DEFAULT_USER_PREFERENCES.map.clusterBehavior;
-  const sortOrder = ['random', 'recent', 'name_asc', 'price_asc', 'price_desc', 'my_cards_first'].includes(String(feedMatches.sortOrder || '').trim())
-    ? String(feedMatches.sortOrder).trim()
-    : DEFAULT_USER_PREFERENCES.feedMatches.sortOrder;
-  const presenceStatus = ['online', 'standby', 'offline'].includes(String(privacy.presenceStatus || '').trim())
-    ? String(privacy.presenceStatus).trim()
-    : DEFAULT_USER_PREFERENCES.privacy.presenceStatus;
-
-  return {
-    map: {
-      initialZoom,
-      defaultStyle,
-      clusterBehavior,
-      defaultFilters: {
-        showPeople: Boolean(defaultFilters.showPeople ?? DEFAULT_USER_PREFERENCES.map.defaultFilters.showPeople),
-        showProperties: Boolean(defaultFilters.showProperties ?? DEFAULT_USER_PREFERENCES.map.defaultFilters.showProperties),
-        showOnlyUnlocked: Boolean(defaultFilters.showOnlyUnlocked ?? DEFAULT_USER_PREFERENCES.map.defaultFilters.showOnlyUnlocked),
-        showOnlyMyPins: Boolean(defaultFilters.showOnlyMyPins ?? DEFAULT_USER_PREFERENCES.map.defaultFilters.showOnlyMyPins),
-      },
-    },
-    feedMatches: {
-      sortOrder,
-      autoplayMedia: Boolean(feedMatches.autoplayMedia ?? DEFAULT_USER_PREFERENCES.feedMatches.autoplayMedia),
-    },
-    chatLanguage: {
-      input: ['pt', 'en', 'es'].includes(String(chatLanguage.input || '').trim()) ? String(chatLanguage.input).trim() : DEFAULT_USER_PREFERENCES.chatLanguage.input,
-      output: ['pt', 'en', 'es'].includes(String(chatLanguage.output || '').trim()) ? String(chatLanguage.output).trim() : DEFAULT_USER_PREFERENCES.chatLanguage.output,
-    },
-    privacy: {
-      presenceStatus,
-      readReceipts: Boolean(privacy.readReceipts ?? DEFAULT_USER_PREFERENCES.privacy.readReceipts),
-      messagePreview: Boolean(privacy.messagePreview ?? DEFAULT_USER_PREFERENCES.privacy.messagePreview),
-    },
-  };
-};
+import { DEFAULT_USER_PREFERENCES, normalizeUserPreferences } from './domain/profile/userPreferences';
 
 // Keys whose full (media-inclusive) version is stored in localforage (IndexedDB)
 // instead of localStorage to avoid the ~5MB quota limit.
@@ -1038,7 +926,6 @@ export default function App() {
     }
   });
   const authBootstrappingRef = useRef(Boolean(isSupabaseConfigured && supabase));
-  const [sessionVersion, setSessionVersion] = useState(0);
   const [systemAccount, setSystemAccount] = useState(() => {
     if (isSupabaseConfigured) {
       return { fullName: '', email: '', phone: '', phoneCountryCode: '+1', marketAreas: '', accountType: 'individual', paymentSetupComplete: false };
@@ -1052,25 +939,14 @@ export default function App() {
       return { fullName: '', email: '', phone: '', paymentSetupComplete: false };
     }
   });
-  const [userPreferences, setUserPreferences] = useState(() => {
-    if (isSupabaseConfigured) return normalizeUserPreferences(null);
-    try {
-      const raw = localStorage.getItem(USER_PREFERENCES_KEY);
-      return normalizeUserPreferences(raw ? JSON.parse(raw) : null);
-    } catch {
-      return normalizeUserPreferences(null);
-    }
-  });
-  const handleChangeUserPreferences = useCallback((updater) => {
-    setUserPreferences((prev) => {
-      const base = normalizeUserPreferences(prev);
-      const nextRaw = typeof updater === 'function' ? updater(base) : updater;
-      return normalizeUserPreferences(nextRaw);
-    });
-  }, []);
+  const {
+    userPreferences,
+    setUserPreferences,
+    changeUserPreferences: handleChangeUserPreferences,
+  } = useUserPreferences();
   const [isAdmin, setIsAdmin] = useState(false);
   const handleUserLogoutRef = useRef(null);
-  void sessionVersion;
+  const lastActivityRef = useRef(0);
 
   useEffect(() => {
     if (!keepAlivePageIds.has(page)) return;
@@ -1082,110 +958,14 @@ export default function App() {
     });
   }, [keepAlivePageIds, page]);
 
-  useEffect(() => {
-    try {
-      localStorage.setItem(USER_PREFERENCES_KEY, JSON.stringify(normalizeUserPreferences(userPreferences)));
-    } catch { /* no-op */ }
-  }, [userPreferences]);
-
-  useEffect(() => {
-    if (!authSession?.id) return;
-    try {
-      const now = Date.now();
-      const currentId = localStorage.getItem(SECURITY_ACTIVE_SESSION_KEY) || `sess-${now}-${Math.random().toString(16).slice(2, 7)}`;
-      localStorage.setItem(SECURITY_ACTIVE_SESSION_KEY, currentId);
-      const all = JSON.parse(localStorage.getItem(SECURITY_SESSIONS_KEY) || '[]');
-      const rows = Array.isArray(all) ? all : [];
-      const nextRows = rows
-        .filter((row) => row && String(row.userId || '') === String(authSession.id))
-        .map((row) => ({ ...row, current: String(row.id) === String(currentId) }));
-      const hasCurrent = nextRows.some((row) => String(row.id) === String(currentId));
-      if (!hasCurrent) {
-        nextRows.unshift({
-          id: currentId,
-          userId: authSession.id,
-          email: authSession.email || '',
-          createdAt: now,
-          lastSeenAt: now,
-          current: true,
-          device: String(navigator.userAgent || 'Unknown device').slice(0, 120),
-        });
-        appendSecurityAuditEvent({ type: 'session', status: 'created', message: 'New active session started.' });
-      }
-      localStorage.setItem(SECURITY_SESSIONS_KEY, JSON.stringify(nextRows.slice(0, 20)));
-      window.setTimeout(() => setSessionVersion((v) => v + 1), 0);
-    } catch { /* no-op */ }
-  }, [authSession?.id, authSession?.email]);
-
-  useEffect(() => {
-    if (!isSupabaseConfigured || !supabase || !authSession?.userId) return undefined;
-    let cancelled = false;
-    const sendHeartbeat = async () => {
-      if (cancelled) return;
-      try {
-        await supabase.rpc('track_user_heartbeat', { p_page: String(page || 'app').slice(0, 48) });
-      } catch {
-        // Analytics must never interrupt app navigation.
-      }
-    };
-    sendHeartbeat();
-    const timer = window.setInterval(sendHeartbeat, 60000);
-    return () => {
-      cancelled = true;
-      window.clearInterval(timer);
-    };
-  }, [authSession?.userId, page]);
-
-  useEffect(() => {
-    if (!authSession?.id) return undefined;
-    const updateActivity = () => {
-      const now = Date.now();
-      lastActivityRef.current = now;
-      try { localStorage.setItem(APP_LAST_ACTIVITY_KEY, String(now)); } catch { /* no-op */ }
-      try {
-        const currentId = localStorage.getItem(SECURITY_ACTIVE_SESSION_KEY);
-        if (!currentId) return;
-        const all = JSON.parse(localStorage.getItem(SECURITY_SESSIONS_KEY) || '[]');
-        const rows = Array.isArray(all) ? all : [];
-        let changed = false;
-        const next = rows.map((row) => {
-          if (String(row?.id || '') !== String(currentId)) return row;
-          changed = true;
-          return { ...row, lastSeenAt: now };
-        });
-        if (changed) localStorage.setItem(SECURITY_SESSIONS_KEY, JSON.stringify(next));
-      } catch { /* no-op */ }
-    };
-    const getLastActivityAt = () => {
-      try {
-        const stored = Number(localStorage.getItem(APP_LAST_ACTIVITY_KEY) || '0');
-        if (Number.isFinite(stored) && stored > 0) return stored;
-      } catch { /* no-op */ }
-      return Number(lastActivityRef.current || Date.now());
-    };
-    const checkIdleTimeout = () => {
-      const inactiveMs = Date.now() - getLastActivityAt();
-      if (inactiveMs > APP_IDLE_SIGNOUT_MS) {
-        appendSecurityAuditEvent({ type: 'session', status: 'timeout', message: 'Session ended after 4 hours without activity.' });
-        handleUserLogoutRef.current?.();
-      }
-    };
-    updateActivity();
-    const events = ['pointerdown', 'keydown', 'mousemove', 'touchstart', 'input', 'change', 'scroll'];
-    events.forEach((evt) => window.addEventListener(evt, updateActivity, { passive: true }));
-    const visibilityHandler = () => {
-      if (document.visibilityState === 'visible') checkIdleTimeout();
-    };
-    window.addEventListener('focus', checkIdleTimeout);
-    document.addEventListener('visibilitychange', visibilityHandler);
-    const timer = window.setInterval(checkIdleTimeout, 60 * 1000);
-    return () => {
-      events.forEach((evt) => window.removeEventListener(evt, updateActivity));
-      window.removeEventListener('focus', checkIdleTimeout);
-      document.removeEventListener('visibilitychange', visibilityHandler);
-      window.clearInterval(timer);
-    };
-  }, [authSession?.id]);
+  const sessionVersion = useAppSessionLifecycle({
+    authSession,
+    page,
+    lastActivityRef,
+    logoutRef: handleUserLogoutRef,
+    supabaseClient: supabase,
+    isConfigured: isSupabaseConfigured,
+  });
 
   // Toast notification system
   const [toasts, setToasts] = useState([]);
@@ -1588,7 +1368,6 @@ export default function App() {
   void chatSeenVersion;
   const [chatFocusTarget, setChatFocusTarget] = useState(null);
   const [chatFocusToken, setChatFocusToken] = useState(0);
-  const lastActivityRef = useRef(0);
   const [systemNotifications, setSystemNotifications] = useState(() => {
     return [];
   });
@@ -3184,7 +2963,7 @@ export default function App() {
       }
       setIsHydratingProfiles(false);
     };
-  }, [supabaseUserId, profileHydrationCycle, resetProfileSync, resetPortfolioSync, scheduleProfileSyncSnapshot]);
+  }, [supabaseUserId, profileHydrationCycle, resetProfileSync, resetPortfolioSync, scheduleProfileSyncSnapshot, setUserPreferences]);
 
   const scheduleProfileRealtimeRefresh = useCallback((delayMs = 350) => {
     if (!isSupabaseConfigured || !supabase || !supabaseUserId) return;
