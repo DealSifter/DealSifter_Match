@@ -14,8 +14,19 @@ export function createRealtimeLifecycle(supabaseClient) {
     return handler(...args);
   };
 
+  const remove = (target) => {
+    if (!target || typeof supabaseClient?.removeChannel !== 'function') return;
+    try {
+      const removal = supabaseClient.removeChannel(target);
+      if (removal && typeof removal.catch === 'function') removal.catch(() => {});
+    } catch {
+      // Realtime cleanup is best-effort and must never block navigation/logout.
+    }
+  };
+
   const subscribe = (nextChannel, statusHandler) => {
     if (!active || !nextChannel) return null;
+    if (channel && channel !== nextChannel) remove(channel);
     channel = nextChannel;
     channel.subscribe(guard(statusHandler));
     return channel;
@@ -26,14 +37,7 @@ export function createRealtimeLifecycle(supabaseClient) {
     active = false;
     const currentChannel = channel;
     channel = null;
-    if (currentChannel && typeof supabaseClient?.removeChannel === 'function') {
-      try {
-        const removal = supabaseClient.removeChannel(currentChannel);
-        if (removal && typeof removal.catch === 'function') removal.catch(() => {});
-      } catch {
-        // Realtime cleanup is best-effort and must never block navigation/logout.
-      }
-    }
+    remove(currentChannel);
   };
 
   return { guard, subscribe, dispose, isActive: () => active };

@@ -30,4 +30,21 @@ describe('realtimeLifecycle', () => {
     expect(removeChannel).toHaveBeenCalledWith(channel);
     expect(lifecycle.isActive()).toBe(false);
   });
+
+  it('replaces an earlier channel without leaking a duplicate subscription', () => {
+    const removeChannel = vi.fn();
+    const lifecycle = createRealtimeLifecycle({ removeChannel });
+    const first = { subscribe: vi.fn() };
+    const second = { subscribe: vi.fn() };
+
+    lifecycle.subscribe(first);
+    lifecycle.subscribe(second);
+
+    expect(removeChannel).toHaveBeenNthCalledWith(1, first);
+    expect(first.subscribe).toHaveBeenCalledOnce();
+    expect(second.subscribe).toHaveBeenCalledOnce();
+
+    lifecycle.dispose();
+    expect(removeChannel).toHaveBeenNthCalledWith(2, second);
+  });
 });

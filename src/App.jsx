@@ -938,6 +938,9 @@ export default function App() {
   const prevUserIdRef = useRef(null); // tracks userId across renders to detect user change
   const feedActionHydratingRef = useRef(false);
   const feedActionLoadedUserRef = useRef(null);
+  const feedActionRowsRef = useRef([]);
+  const feedActionFetchRef = useRef(null);
+  const feedActionActiveUserRef = useRef(null);
   const feedActionSyncTimerRef = useRef(null);
   const feedActionLastSignatureRef = useRef('');
   const globalFeedIdentityRef = useRef({
@@ -1982,6 +1985,9 @@ export default function App() {
 
   const fetchRemoteFeedActions = useCallback(async () => {
     if (!isSupabaseConfigured || !supabase || !supabaseUserId) return;
+    if (feedActionFetchRef.current) return feedActionFetchRef.current;
+    const requestUserId = supabaseUserId;
+    const request = (async () => {
     let rows = [];
     try {
       rows = await readFeedActions(supabaseUserId);
@@ -1989,6 +1995,8 @@ export default function App() {
       safeLogError('Failed to hydrate feed actions', error);
       return;
     }
+    if (feedActionActiveUserRef.current !== requestUserId) return;
+    feedActionRowsRef.current = rows;
     if (!rows.length) {
       feedActionHydratingRef.current = true;
       setMatched([]);
@@ -2001,10 +2009,20 @@ export default function App() {
     }
     applyRemoteFeedActions(rows, { replace: true });
     feedActionLoadedUserRef.current = supabaseUserId;
+    })();
+    feedActionFetchRef.current = request;
+    try {
+      return await request;
+    } finally {
+      if (feedActionFetchRef.current === request) feedActionFetchRef.current = null;
+    }
   }, [applyRemoteFeedActions, supabaseUserId, setInterested, setMatched]);
 
   useEffect(() => {
     feedActionLoadedUserRef.current = null;
+    feedActionRowsRef.current = [];
+    feedActionFetchRef.current = null;
+    feedActionActiveUserRef.current = supabaseUserId || null;
     feedActionLastSignatureRef.current = '';
     if (!supabaseUserId) return;
     const timer = window.setTimeout(fetchRemoteFeedActions, 0);
@@ -2261,9 +2279,16 @@ export default function App() {
   useEffect(() => {
     const inventoryLoaded = globalFeedIdentityRef.current?.loaded === true;
     if (!isSupabaseConfigured || !supabaseUserId || !inventoryLoaded) return undefined;
-    const timer = window.setTimeout(fetchRemoteFeedActions, 0);
+    const rehydrateFromSnapshot = () => {
+      if (feedActionLoadedUserRef.current === supabaseUserId) {
+        applyRemoteFeedActions(feedActionRowsRef.current, { replace: true });
+        return;
+      }
+      void fetchRemoteFeedActions();
+    };
+    const timer = window.setTimeout(rehydrateFromSnapshot, 0);
     return () => window.clearTimeout(timer);
-  }, [fetchRemoteFeedActions, globalConnectionServices.length, globalShowcaseProperties.length, supabaseUserId]);
+  }, [applyRemoteFeedActions, fetchRemoteFeedActions, globalConnectionServices.length, globalShowcaseProperties.length, supabaseUserId]);
 
   useEffect(() => {
     if (!isSupabaseConfigured || !supabase || !supabaseUserId) {
