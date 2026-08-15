@@ -65,16 +65,29 @@ test('atomic rate limiter isolates identities, expires windows and stores no PII
 
 test('Maxxis Edge Function emits structured 429 under a controlled concurrent burst', async ({ realBackend }) => {
   const providerSession = await realBackend.signIn(realBackend.provider.email, realBackend.provider.password);
-  const responses = await Promise.all(Array.from({ length: 21 }, () => realBackend.invokeFunction({
-    token: providerSession.access_token,
-    name: 'maxxis-chat',
-    body: { message: 'Controlled phase 5C rate limit probe', page: 'e2e', language: 'en' },
-  })));
-  const throttled = responses.filter((response) => response.status === 429);
-  expect(throttled.length).toBeGreaterThanOrEqual(1);
-  throttled.forEach(({ payload }) => {
-    expect(payload.error).toBe('rate_limit_exceeded');
-    expect(payload.retryAfter).toBeGreaterThanOrEqual(1);
-    expect(payload.requestId).toMatch(/^[0-9a-f-]{36}$/i);
-  });
+  const rateLimitQuery = `subject_id=eq.${realBackend.provider.id}&operation=eq.maxxis_chat`;
+  try {
+    const seeded = await Promise.all(Array.from({ length: 20 }, () => realBackend.adminRpc(
+      'ds_consume_edge_rate_limit',
+      {
+        p_subject_id: realBackend.provider.id,
+        p_operation: 'maxxis_chat',
+        p_window_seconds: 60,
+        p_max_requests: 20,
+      },
+    )));
+    expect(seeded.map(firstRow).filter((row) => row.allowed === true)).toHaveLength(20);
+
+    const throttled = await realBackend.invokeFunction({
+      token: providerSession.access_token,
+      name: 'maxxis-chat',
+      body: { message: 'Controlled phase 5C rate limit probe', page: 'e2e', language: 'en' },
+    });
+    expect(throttled.status).toBe(429);
+    expect(throttled.payload.error).toBe('rate_limit_exceeded');
+    expect(throttled.payload.retryAfter).toBeGreaterThanOrEqual(1);
+    expect(throttled.payload.requestId).toMatch(/^[0-9a-f-]{36}$/i);
+  } finally {
+    await realBackend.adminDelete('edge_rate_limits', rateLimitQuery).catch(() => {});
+  }
 });

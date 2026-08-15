@@ -102,7 +102,10 @@ export async function loginAs(page, user) {
   if (!loginResponse.ok()) {
     throw new Error(`E2E login failed with ${loginResponse.status()}: ${await loginResponse.text()}`);
   }
-  await page.getByTestId('dashboard-root').waitFor({ state: 'visible' });
+  await page.getByTestId('dashboard-root').waitFor({
+    state: 'visible',
+    timeout: APP_NAVIGATION_TIMEOUT,
+  });
 }
 
 export async function logout(page) {

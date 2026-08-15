@@ -52,6 +52,9 @@ jobs:
       - name: Run complete local quality gate
         run: npm run quality
 
+      - name: Enforce deterministic performance budgets
+        run: node scripts/audit-performance.mjs
+
   e2e:
     name: Browser E2E quality gate
     runs-on: ubuntu-latest

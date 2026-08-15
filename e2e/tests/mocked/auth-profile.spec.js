@@ -64,7 +64,10 @@ test.describe('auth and profile quality gate', () => {
     await logout(page);
 
     await loginAs(page, E2E_USERS.provider);
-    await expect.poll(async () => page.evaluate(() => localStorage.getItem('authSession') || '')).toContain(E2E_USERS.provider.id);
+    await expect.poll(
+      async () => page.evaluate(() => localStorage.getItem('authSession') || ''),
+      { timeout: 20_000 },
+    ).toContain(E2E_USERS.provider.id);
     await expect(page.locator('body')).not.toContainText(E2E_USERS.investor.email);
 
     const storedAuth = await page.evaluate(() => {

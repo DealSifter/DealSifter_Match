@@ -1,4 +1,4 @@
-/* global process */
+/* global process, Buffer */
 import { test as base, expect } from '@playwright/test';
 import { getE2ERunId } from '../support/environment.js';
 import { loginAs, logout } from '../support/appActions.js';
@@ -312,6 +312,7 @@ async function signIn(email, password) {
 
 async function browserRpc(page, { token, fn, body = {} }) {
   return page.evaluate(async ({ supabaseUrl: url, anonKey: key, tokenValue, fnName, rpcBody }) => {
+    const startedAt = performance.now();
     const response = await fetch(`${url}/rest/v1/rpc/${fnName}`, {
       method: 'POST',
       headers: {
@@ -324,7 +325,7 @@ async function browserRpc(page, { token, fn, body = {} }) {
     const text = await response.text();
     let payload = null;
     try { payload = text ? JSON.parse(text) : null; } catch { payload = text; }
-    return { ok: response.ok, status: response.status, payload };
+    return { ok: response.ok, status: response.status, payload, durationMs: performance.now() - startedAt, payloadBytes: new TextEncoder().encode(text).byteLength };
   }, { ...publicEnv, tokenValue: token, fnName: fn, rpcBody: body });
 }
 
@@ -344,6 +345,7 @@ async function browserRestSelect(page, { token, table, query }) {
 }
 
 async function invokeFunction({ token, name, body = {} }) {
+  const startedAt = performance.now();
   const response = await fetch(`${supabaseUrl}/functions/v1/${name}`, {
     method: 'POST',
     headers: {
@@ -356,7 +358,7 @@ async function invokeFunction({ token, name, body = {} }) {
   const text = await response.text();
   let payload = null;
   try { payload = text ? JSON.parse(text) : null; } catch { payload = text; }
-  return { ok: response.ok, status: response.status, payload };
+  return { ok: response.ok, status: response.status, payload, durationMs: performance.now() - startedAt, payloadBytes: Buffer.byteLength(text) };
 }
 
 export const test = base.extend({

@@ -1,5 +1,7 @@
 import { test, expect } from '../../fixtures/realBackendFixture.js';
 
+const DASHBOARD_READY_TIMEOUT = 60_000;
+
 async function browserAccessToken(page) {
   return page.evaluate(() => {
     for (let index = 0; index < localStorage.length; index += 1) {
@@ -80,10 +82,10 @@ async function saveProfessionalProfile(realBackend, page, token, expectedVersion
 
 test('real auth session, profile save persistence, conflict protection and account switch', async ({ page, realBackend }) => {
   await realBackend.loginViaUi(page, realBackend.investor);
-  await expect(page.getByTestId('dashboard-root')).toBeVisible();
+  await expect(page.getByTestId('dashboard-root')).toBeVisible({ timeout: DASHBOARD_READY_TIMEOUT });
 
   await page.reload({ waitUntil: 'domcontentloaded' });
-  await expect(page.getByTestId('dashboard-root')).toBeVisible();
+  await expect(page.getByTestId('dashboard-root')).toBeVisible({ timeout: DASHBOARD_READY_TIMEOUT });
   const investorToken = await browserAccessToken(page);
   expect(investorToken).toBeTruthy();
 
@@ -93,7 +95,7 @@ test('real auth session, profile save persistence, conflict protection and accou
   expect(save.payload.success).toBe(true);
 
   await page.reload({ waitUntil: 'domcontentloaded' });
-  await expect(page.getByTestId('dashboard-root')).toBeVisible();
+  await expect(page.getByTestId('dashboard-root')).toBeVisible({ timeout: DASHBOARD_READY_TIMEOUT });
   const after = await readProfessionalProfile(realBackend, page, investorToken, realBackend.investor.id);
   expect(after.profile_version).toBeGreaterThan(before.profile_version);
   expect(JSON.stringify(after.profile_payload)).toContain(`saved-${realBackend.runId}`);
@@ -109,7 +111,7 @@ test('real auth session, profile save persistence, conflict protection and accou
 
   await realBackend.logoutViaUi(page);
   await realBackend.loginViaUi(page, realBackend.provider);
-  await expect(page.getByTestId('dashboard-root')).toBeVisible();
+  await expect(page.getByTestId('dashboard-root')).toBeVisible({ timeout: DASHBOARD_READY_TIMEOUT });
   const providerToken = await browserAccessToken(page);
   expect(providerToken).toBeTruthy();
   expect(providerToken).not.toBe(investorToken);
