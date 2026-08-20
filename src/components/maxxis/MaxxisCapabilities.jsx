@@ -4,6 +4,7 @@ import { Icon } from '../ui/Icon';
 import { getLang } from '../../i18n/translations';
 import { C } from '../../theme/colors';
 import { MAXXIS_WIDGET_POSITION_KEY } from '../../lib/localStoragePolicy';
+import { trackProductEvent } from '../../lib/productAnalytics';
 
 export const UUID_PATTERN = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
 
@@ -978,7 +979,13 @@ function NextBestActionCard({ result, language, onAction }) {
           <button
             type="button"
             className="maxxis-action-link"
-            onClick={() => onAction?.('matches')}
+            onClick={() => {
+              void trackProductEvent('next_best_action_clicked', {
+                dedupeKey: `next-action-clicked:${action.code}`,
+                properties: { source: 'maxxis', workflow_code: action.code },
+              });
+              onAction?.('matches');
+            }}
           >
             <span>{copy.review}</span>
             <Icon name="arrowRight" size={13} color="currentColor" strokeWidth={2.1} />

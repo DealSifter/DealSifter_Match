@@ -18,6 +18,7 @@ import {
   sendMaxxisMessage,
 } from '../../services/maxxisService';
 import { captureAppException } from '../../lib/observability';
+import { trackProductEvent } from '../../lib/productAnalytics';
 import maxxisLogo from '../../assets/logo.png';
 import './MaxxisAssistant.css';
 
@@ -59,6 +60,7 @@ export function MaxxisAssistant({ page = 'dashboard', onOpenSupport = null, onNa
     createdAt: new Date(),
   }]);
   const endRef = useRef(null);
+  const inputRef = useRef(null);
   const handledAnalysisRequestsRef = useRef(new Set());
   const propertyAnalysisRequestRef = useRef(propertyAnalysisRequest);
   const submitMessageRef = useRef(null);
@@ -80,6 +82,19 @@ export function MaxxisAssistant({ page = 'dashboard', onOpenSupport = null, onNa
     if (!open) return;
     endRef.current?.scrollIntoView({ behavior: 'smooth', block: 'end' });
   }, [messages, loading, open]);
+
+  useEffect(() => {
+    if (!open) return undefined;
+    const focusTimer = window.setTimeout(() => inputRef.current?.focus(), 0);
+    const closeOnEscape = (event) => {
+      if (event.key === 'Escape') setOpen(false);
+    };
+    document.addEventListener('keydown', closeOnEscape);
+    return () => {
+      window.clearTimeout(focusTimer);
+      document.removeEventListener('keydown', closeOnEscape);
+    };
+  }, [open]);
 
   useEffect(() => {
     setMessages((prev) => {
@@ -261,6 +276,23 @@ export function MaxxisAssistant({ page = 'dashboard', onOpenSupport = null, onNa
         propertyId: propertyContextId,
         propertyIds: comparisonPropertyIds,
       });
+      const responseType = String(result?.type || 'text');
+      if (responseType === 'properties') {
+        void trackProductEvent('maxxis_property_search', { dedupeKey: `maxxis-search:${userMessage.id}`, properties: { source: 'maxxis', response_type: responseType } });
+      }
+      if (responseType === 'deal_copilot_overview') {
+        const propertyId = String(result?.data?.property?.id || propertyContextId || '');
+        void trackProductEvent('deal_copilot_opened', { entityType: 'property', entityId: propertyId, dedupeKey: `deal-copilot:${userMessage.id}`, properties: { source: 'maxxis', response_type: responseType } });
+      }
+      const providerCount = Array.isArray(result?.data?.services)
+        ? result.data.services.length
+        : (Array.isArray(result?.data?.serviceMatches) ? result.data.serviceMatches.reduce((total, match) => total + (Array.isArray(match?.services) ? match.services.length : 0), 0) : 0);
+      if (providerCount > 0) {
+        void trackProductEvent('provider_suggested', { dedupeKey: `provider-suggested:${userMessage.id}`, properties: { source: 'maxxis', provider_count: providerCount, response_type: responseType } });
+      }
+      if (result?.data?.nextBestAction?.code) {
+        void trackProductEvent('next_best_action_seen', { entityType: 'property', entityId: result?.data?.property?.id || propertyContextId, dedupeKey: `next-action-seen:${userMessage.id}`, properties: { source: 'maxxis', workflow_code: result.data.nextBestAction.code } });
+      }
       setMessages((prev) => [...prev, {
         id: `maxxis-assistant-${Date.now()}`,
         role: 'assistant',
@@ -371,6 +403,7 @@ export function MaxxisAssistant({ page = 'dashboard', onOpenSupport = null, onNa
       setPendingProviderUnlock(result?.action?.intentToken
         ? { ...result.action, messageId, serviceId }
         : null);
+      void trackProductEvent('provider_unlock_started', { entityType: 'service', entityId: serviceId, dedupeKey: `provider-unlock-started:${result?.action?.intentToken || serviceId}`, properties: { source: 'maxxis' } });
     } catch (error) {
       captureAppException(error, { area: 'maxxis_provider_unlock_prepare', serviceId });
       if (error?.contactAccess) updateProviderContactAccess(messageId, serviceId, error.contactAccess);
@@ -397,6 +430,7 @@ export function MaxxisAssistant({ page = 'dashboard', onOpenSupport = null, onNa
         onNuggetBalanceChange(confirmedBalance);
       }
       if (typeof onProviderUnlockConfirmed === 'function') onProviderUnlockConfirmed(result);
+      void trackProductEvent('provider_unlocked', { entityType: 'service', entityId: serviceId, dedupeKey: `provider-unlocked:${intentToken}`, properties: { source: 'maxxis', status: result?.contactAccess?.status || 'unlocked' } });
       setPendingProviderUnlock(null);
     } catch (error) {
       captureAppException(error, { area: 'maxxis_provider_unlock_confirm', serviceId });
@@ -429,6 +463,7 @@ export function MaxxisAssistant({ page = 'dashboard', onOpenSupport = null, onNa
     try {
       const result = await prepareMaxxisProviderMessageDraft({ serviceId, propertyId: cleanPropertyId, language });
       if (result?.data?.draft) {
+        void trackProductEvent('provider_message_drafted', { entityType: 'service', entityId: serviceId, dedupeKey: `provider-message-drafted:${serviceId}:${cleanPropertyId}`, properties: { source: 'maxxis' } });
         setMessages((prev) => [...prev, {
           id: `maxxis-provider-message-draft-${Date.now()}`,
           role: 'assistant',
@@ -512,6 +547,7 @@ export function MaxxisAssistant({ page = 'dashboard', onOpenSupport = null, onNa
         sendError: null,
       });
       setPendingProviderMessageSend(null);
+      void trackProductEvent('provider_message_sent', { entityType: 'service', entityId: pending?.serviceId, dedupeKey: `provider-message-sent:${result?.data?.messageId || actionId}`, properties: { source: 'maxxis', status: result?.data?.status || 'sent' } });
       const sendCopy = PROPERTY_SERVICE_NEEDS_COPY[language] || PROPERTY_SERVICE_NEEDS_COPY.en;
       setMessages((prev) => [...prev, {
         id: `maxxis-provider-message-sent-${Date.now()}`,
@@ -595,6 +631,9 @@ export function MaxxisAssistant({ page = 'dashboard', onOpenSupport = null, onNa
       : item)));
     try {
       const workflow = await setMaxxisDealWorkflowManualItem({ propertyId, code, status });
+      if (status === 'completed') {
+        void trackProductEvent('workflow_item_completed', { entityType: 'property', entityId: propertyId, dedupeKey: `workflow-completed:${propertyId}:${code}`, properties: { source: 'maxxis', workflow_code: code, status } });
+      }
       setMessages((prev) => prev.map((item) => (item.id === messageId
         ? { ...item, data: { ...(item.data || {}), workflow, workflowError: null } }
         : item)));
@@ -645,7 +684,7 @@ export function MaxxisAssistant({ page = 'dashboard', onOpenSupport = null, onNa
   return (
     <div className={`maxxis-shell ${open ? 'maxxis-shell-open' : ''}`}>
       {open ? (
-        <section className="maxxis-panel" data-testid="maxxis-panel" aria-label={t.title}>
+        <section className="maxxis-panel" data-testid="maxxis-panel" role="dialog" aria-modal="true" aria-label={t.title}>
           <header className="maxxis-header">
             <div className="maxxis-avatar" aria-hidden="true">
               <img src={maxxisLogo} alt="" draggable="false" />
@@ -720,6 +759,7 @@ export function MaxxisAssistant({ page = 'dashboard', onOpenSupport = null, onNa
             }}
           >
             <textarea
+              ref={inputRef}
               data-testid="maxxis-input"
               value={input}
               onChange={(event) => setInput(event.target.value)}
@@ -767,6 +807,7 @@ export function MaxxisAssistant({ page = 'dashboard', onOpenSupport = null, onNa
               dragRef.current = { ...dragRef.current, moved: false };
               return;
             }
+            void trackProductEvent('maxxis_opened', { dedupeKey: `maxxis-opened:${page}`, properties: { source: page } });
             setOpen(true);
           }}
           aria-label={t.open}

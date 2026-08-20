@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useState } from 'react';
 import { isSupabaseConfigured, supabase } from '../lib/supabaseClient';
 import { createRealtimeLifecycle, createRealtimeTopic } from '../lib/realtimeLifecycle';
+import { trackProductEvent } from '../lib/productAnalytics';
 
 const CHAT_MESSAGES_TABLE = 'chat_messages';
 const CHAT_PAGE_SIZE = 50;
@@ -150,6 +151,14 @@ export function useChatRealtime({
   }, [onError]);
 
   const appendMessageRow = useCallback((row) => {
+    if (String(row?.recipient_id || '') === userId && String(row?.sender_id || '') !== userId) {
+      void trackProductEvent('provider_reply_received', {
+        entityType: 'chat_message',
+        entityId: row?.id,
+        dedupeKey: `provider-reply-received:${row?.id}`,
+        properties: { source: 'chat_realtime' },
+      });
+    }
     setConversations((prev) => appendChatRow(prev, row, userId));
   }, [userId]);
 

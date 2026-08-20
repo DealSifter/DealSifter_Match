@@ -48,6 +48,7 @@ import {
   evaluateMinimumProfileCompletion,
   getMissingRequiredProfile,
 } from '../domain/profile/onboardingProfileValidation';
+import { trackProductEvent } from '../lib/productAnalytics';
 
 
 export function Onboarding({
@@ -3107,6 +3108,12 @@ export function Onboarding({
     }
 
     clearOnboardingDraft(draftUserId, accountType);
+    void trackProductEvent('profile_completed', {
+      entityType: 'profile',
+      entityId: draftUserId,
+      dedupeKey: `profile-completed:${draftUserId}:${accountType}`,
+      properties: { source: 'onboarding' },
+    });
     setPage('dashboard');
   };
 
@@ -3327,7 +3334,7 @@ export function Onboarding({
     : removeProfileThumb;
 
   return (
-    <div style={{ height: isMobileViewport ? 'auto' : 'calc(var(--app-vh, 1vh) * 100)', minHeight: isMobileViewport ? 'calc(var(--app-vh, 1vh) * 100)' : 0, padding: '66px 12px 4px', boxSizing: 'border-box', overflowX: 'hidden', overflowY: isMobileViewport ? 'auto' : 'hidden', WebkitOverflowScrolling: 'touch', position: 'relative', zIndex: 10 }}>
+    <div data-testid="onboarding-root" style={{ height: isMobileViewport ? 'auto' : 'calc(var(--app-vh, 1vh) * 100)', minHeight: isMobileViewport ? 'calc(var(--app-vh, 1vh) * 100)' : 0, padding: '66px 12px 4px', boxSizing: 'border-box', overflowX: 'hidden', overflowY: isMobileViewport ? 'auto' : 'hidden', WebkitOverflowScrolling: 'touch', position: 'relative', zIndex: 10 }}>
       <style>{`
         @keyframes blink-deal {
           0%, 100% { opacity: 1; transform: scale(1); }
@@ -3620,7 +3627,7 @@ export function Onboarding({
               title={(
                 <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}>
                   <span>{accountType === 'professional' ? t.sectionProfile : t.sectionBasicProfile}</span>
-                  <span title={profileSyncVisual.title} aria-label={profileSyncVisual.title} style={{ width: 11, height: 11, borderRadius: '50%', border: `1px solid ${profileSyncVisual.ring}`, display: 'inline-flex', alignItems: 'center', justifyContent: 'center' }}>
+                  <span role="img" title={profileSyncVisual.title} aria-label={profileSyncVisual.title} style={{ width: 11, height: 11, borderRadius: '50%', border: `1px solid ${profileSyncVisual.ring}`, display: 'inline-flex', alignItems: 'center', justifyContent: 'center' }}>
                     <span style={{ width: 5, height: 5, borderRadius: '50%', background: profileSyncVisual.dot }} />
                   </span>
                 </span>
@@ -4161,8 +4168,8 @@ export function Onboarding({
                   <button onClick={portfolioEntryType === 'property' ? addProfessionalPortfolioProperty : addProfessionalPortfolioService} style={{ flex: 1, padding: '8px 10px', borderRadius: 9, border: `1px solid ${C.accent}`, background: 'transparent', color: C.accent, fontWeight: 700, cursor: 'pointer', fontSize: 11 }}>
                     + Add to Portfolio
                   </button>
-                  <button data-guide="onboarding-publish" className={`onb-preview-feed ${isPreviewToFeedDirty ? 'is-dirty' : ''}`} onClick={openPreviewToFeed} style={{ flex: 1, padding: '8px 10px', borderRadius: 9, border: 'none', background: C.accent, color: '#1a1a1a', fontWeight: 700, cursor: 'pointer', fontSize: 11, display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: 6 }}>
-                    <Icon name="eye" size={13} color="#1a1a1a" />
+                  <button data-guide="onboarding-publish" className={`onb-preview-feed ${isPreviewToFeedDirty ? 'is-dirty' : ''}`} onClick={openPreviewToFeed} style={{ flex: 1, padding: '8px 10px', borderRadius: 9, border: 'none', background: C.accent, color: '#ffffff', fontWeight: 700, cursor: 'pointer', fontSize: 11, display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: 6 }}>
+                    <Icon name="eye" size={13} color="#ffffff" />
                     <span>{t.saveAndPreview}</span>
                   </button>
                 </div>

@@ -2,6 +2,7 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import { supabase, isSupabaseConfigured, supabaseConfigHint } from '../lib/supabaseClient';
 import { clearSensitiveCache } from '../lib/localStoragePolicy';
 import { captureOperationalMetric } from '../lib/observability';
+import { trackProductEvent } from '../lib/productAnalytics';
 
 export const mapSupabaseUserToSession = (user, mode = 'login', provider = 'supabase') => ({
   id: user?.id || null,
@@ -140,6 +141,12 @@ export function useAuthSession({
         return next;
       });
       applySystemAccountFromSession(next);
+      void trackProductEvent('session_started', {
+        entityType: 'session',
+        entityId: user.id,
+        dedupeKey: `session-started:${user.id}:${next.loginAt}`,
+        properties: { source: restoreNavigation ? 'restored' : 'auth_state' },
+      });
 
       if (!sameUser || restoreNavigation) {
         try {
@@ -250,6 +257,12 @@ export function useAuthSession({
             applySystemAccountFromSession(next);
             onAuthenticated?.(next);
             appendSecurityAuditEvent?.({ type: 'signup', status: 'success', message: 'New account created and signed in.', email });
+            void trackProductEvent('auth_signed_in', {
+              entityType: 'user',
+              entityId: data.session.user.id,
+              dedupeKey: `auth-signed-in:${data.session.user.id}:${next.loginAt}`,
+              properties: { source: 'signup', auth_provider: 'credentials' },
+            });
             captureOperationalMetric('auth.credentials', {
               success: true,
               duration_ms: Date.now() - startedAt,
@@ -281,6 +294,12 @@ export function useAuthSession({
           applySystemAccountFromSession(next);
           onAuthenticated?.(next);
           appendSecurityAuditEvent?.({ type: 'login', status: 'success', message: 'User signed in with credentials.', email });
+          void trackProductEvent('auth_signed_in', {
+            entityType: 'user',
+            entityId: data.session.user.id,
+            dedupeKey: `auth-signed-in:${data.session.user.id}:${next.loginAt}`,
+            properties: { source: 'login', auth_provider: 'credentials' },
+          });
         }
         captureOperationalMetric('auth.credentials', {
           success: Boolean(data?.session?.user),
