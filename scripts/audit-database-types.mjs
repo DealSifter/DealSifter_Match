@@ -62,7 +62,7 @@ if (process.argv.includes('--remote')) {
     maxBuffer: 5 * 1024 * 1024,
   });
   if (generated.status !== 0) {
-    console.error(generated.stderr || '[database-types] Supabase generation failed.');
+    console.error(generated.stderr || generated.error?.message || '[database-types] Supabase generation failed.');
     process.exit(generated.status || 1);
   }
   if (normalize(generated.stdout) !== committed) {
