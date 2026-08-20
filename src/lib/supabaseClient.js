@@ -1,5 +1,8 @@
 import { createClient } from '@supabase/supabase-js';
 
+/** @typedef {import('../types/database.types').Database} Database */
+/** @typedef {import('@supabase/supabase-js').SupabaseClient<Database>} TypedSupabaseClient */
+
 const normalizeEnvValue = (value) => String(value || '')
   .trim()
   .replace(/^['"]|['"]$/g, '')
@@ -83,6 +86,7 @@ export const supabaseConfigHint = isSupabaseConfigured
   ? null
   : `Defina VITE_SUPABASE_URL e VITE_SUPABASE_ANON_KEY na Vercel e faca Redeploy. (${supabaseConfigReason})`;
 
+/** @type {TypedSupabaseClient | null} */
 let supabase = null;
 if (isSupabaseConfigured) {
   try {
@@ -102,6 +106,11 @@ if (isSupabaseConfigured) {
 }
 
 export { supabase };
+
+export const invokeSupabaseFunction = async (functionName, options = {}) => {
+  if (!supabase) return { data: null, error: new Error('Supabase is not configured.') };
+  return supabase.functions.invoke(functionName, options);
+};
 
 export const getSupabaseFunctionUrl = (functionName) => (
   supabaseUrl && functionName

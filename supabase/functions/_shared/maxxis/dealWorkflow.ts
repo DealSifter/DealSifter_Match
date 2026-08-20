@@ -53,10 +53,18 @@ function rowToItem(row: WorkflowRow): DealWorkflowItem {
 }
 
 function propertyIdFromMetadata(metadata: unknown) {
-  const value = metadata && typeof metadata === 'object' ? metadata as Record<string, any> : {};
-  const refData = value.refData && typeof value.refData === 'object' ? value.refData : {};
+  const value = metadata && typeof metadata === 'object' ? metadata as Record<string, unknown> : {};
+  const refData = value.refData && typeof value.refData === 'object' ? value.refData as Record<string, unknown> : {};
   return cleanUuid(value.propertyId || value.property_id || refData.propertyId || refData.property_id);
 }
+
+type PendingActionRow = {
+  action_type?: unknown;
+  payload?: Record<string, unknown> | null;
+  status?: unknown;
+};
+
+type ProviderOwnerRow = { owner_id?: unknown };
 
 async function collectWorkflowEvidence(
   client: ReturnType<typeof createClient>,
@@ -72,9 +80,9 @@ async function collectWorkflowEvidence(
     .gt('expires_at', new Date().toISOString())
     .limit(20);
   if (actionsError) throw new Error('WORKFLOW_PENDING_ACTIONS_FAILED');
-  const pendingActions = (actions || [])
-    .filter((action: any) => cleanUuid(action?.payload?.propertyId) === propertyId)
-    .map((action: any) => ({
+  const pendingActions = ((actions || []) as PendingActionRow[])
+    .filter((action) => cleanUuid(action?.payload?.propertyId) === propertyId)
+    .map((action) => ({
       actionType: action.action_type,
       serviceId: cleanUuid(action?.payload?.serviceId) || null,
       propertyId,
@@ -84,7 +92,7 @@ async function collectWorkflowEvidence(
   const serviceIds = providers.map((provider) => provider.serviceId);
   const { data: serviceRows, error: serviceError } = await client.from('services').select('id, owner_id').in('id', serviceIds);
   if (serviceError) throw new Error('WORKFLOW_SERVICE_EVIDENCE_FAILED');
-  const providerIds = new Set((serviceRows || []).map((row: any) => cleanUuid(row.owner_id)).filter(Boolean));
+  const providerIds = new Set(((serviceRows || []) as ProviderOwnerRow[]).map((row) => cleanUuid(row.owner_id)).filter(Boolean));
 
   const { data: messages, error: messagesError } = await client
     .from('chat_messages')

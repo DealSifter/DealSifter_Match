@@ -57,7 +57,8 @@ for (const file of files) {
     }
   }
   graph.set(file, [...new Set(dependencies)]);
-  if (/\bsupabase\.(?:from|rpc|channel|auth|functions)\b/.test(source)) directSupabase.push(sourcePath);
+  const isCentralSupabaseGateway = sourcePath === 'src/lib/supabaseClient.js';
+  if (!isCentralSupabaseGateway && /\bsupabase\.(?:from|rpc|channel|auth|functions)\b/.test(source)) directSupabase.push(sourcePath);
 }
 
 const cycles = new Set();

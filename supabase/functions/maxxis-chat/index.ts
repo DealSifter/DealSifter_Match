@@ -205,7 +205,10 @@ Deno.serve(async (req) => {
       logAbuseGuard({ functionName: 'maxxis-chat', operation: 'maxxis_chat', requestId, userId, category: parsed.error === 'REQUEST_TOO_LARGE' ? 'REQUEST_TOO_LARGE' : 'ABUSE_GUARD', status, limitType: 'request_body' });
       return response({ message: 'Invalid request.', type: 'text', data: null, actions: [], error: parsed.error }, status, origin, requestId);
     }
-    const body = parsed.body as Record<string, any>;
+    const body = parsed.body as Record<string, unknown>;
+    const bodyContext = body.context && typeof body.context === 'object'
+      ? body.context as Record<string, unknown>
+      : {};
     requestPayloadBytes = new TextEncoder().encode(JSON.stringify(body)).byteLength;
     const rawMessage = String(body.message || '');
     if (rawMessage.length > MAXXIS_EXECUTION_LIMITS.maxMessageChars) {
@@ -214,9 +217,9 @@ Deno.serve(async (req) => {
     }
     const message = sanitizeText(rawMessage, MAXXIS_EXECUTION_LIMITS.maxMessageChars);
     const language = detectLanguage(message, sanitizeText(body.language || 'auto', 8));
-    const rawPropertyContextId = sanitizeText(body?.context?.propertyId, 50);
+    const rawPropertyContextId = sanitizeText(bodyContext.propertyId, 50);
     const propertyContextId = UUID_PATTERN.test(rawPropertyContextId) ? rawPropertyContextId : '';
-    const searchPropertyIds = normalizeComparisonContextIds(body?.context?.propertyIds);
+    const searchPropertyIds = normalizeComparisonContextIds(bodyContext.propertyIds);
     const comparisonPropertyIds = normalizeComparisonContextIds([
       ...searchPropertyIds,
       ...(propertyContextId ? [propertyContextId] : []),
@@ -257,8 +260,19 @@ Deno.serve(async (req) => {
       logMaxxisEvent('maxxis_chat', { request_id: requestId, user_id: userId, duration_ms: Date.now() - startedAt, provider_duration_ms: providerDurationMs, success: false, fallback_count: fallbackCount, error_code: quota ? 'MAXXIS_PROVIDER_QUOTA' : 'MAXXIS_PROVIDER_FAILED' });
       return response({ message: text, answer: text, type: 'text', data: null, actions: [], language, unavailable: true, error: quota ? 'MAXXIS_PROVIDER_QUOTA' : 'MAXXIS_PROVIDER_FAILED' }, 502, origin);
     }
-    const parts = ((payload as any)?.candidates?.[0]?.content?.parts || []) as Array<Record<string, any>>;
-    const functionCall = stubFunctionCall || parts.find((part) => part?.functionCall)?.functionCall;
+    const candidateList = Array.isArray(payload.candidates) ? payload.candidates : [];
+    const firstCandidate = candidateList[0] && typeof candidateList[0] === 'object'
+      ? candidateList[0] as Record<string, unknown>
+      : {};
+    const candidateContent = firstCandidate.content && typeof firstCandidate.content === 'object'
+      ? firstCandidate.content as Record<string, unknown>
+      : {};
+    const parts = Array.isArray(candidateContent.parts)
+      ? candidateContent.parts.filter((part): part is Record<string, unknown> => Boolean(part && typeof part === 'object'))
+      : [];
+    const functionCallPart = parts.find((part) => part.functionCall && typeof part.functionCall === 'object');
+    const parsedFunctionCall = functionCallPart?.functionCall as Record<string, unknown> | undefined;
+    const functionCall = stubFunctionCall || parsedFunctionCall;
     if (functionCall) {
       budget.consumeToolRound();
       const toolStartedAt = Date.now();
@@ -267,7 +281,7 @@ Deno.serve(async (req) => {
       try {
         result = await executeMaxxisTool(
           toolName,
-          functionCall.args || {},
+          functionCall.args && typeof functionCall.args === 'object' ? functionCall.args as Record<string, unknown> : {},
           req.headers.get('Authorization') || '',
           { propertyId: propertyContextId, propertyIds: comparisonPropertyIds, userId },
         );

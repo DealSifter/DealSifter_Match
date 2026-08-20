@@ -17,8 +17,18 @@ function cleanUuid(value: unknown) {
 }
 
 function metadataRecord(value: unknown) {
-  return value && typeof value === 'object' ? value as Record<string, any> : {};
+  return value && typeof value === 'object' ? value as Record<string, unknown> : {};
 }
+
+type ConversationRow = {
+  sender_id?: unknown;
+  recipient_id?: unknown;
+  body?: unknown;
+  metadata?: unknown;
+  created_at?: string | null;
+};
+
+type ProviderServiceRow = { id?: unknown; title?: unknown; category?: unknown };
 
 function linkedPropertyId(metadata: unknown) {
   const value = metadataRecord(metadata);
@@ -44,14 +54,14 @@ async function loadOptionalPropertyContext(
     .order('created_at', { ascending: true })
     .limit(250);
   if (error) throw new Error('COPILOT_CONVERSATION_LOOKUP_FAILED');
-  const linkedRows = (rows || []).filter((row: any) => linkedPropertyId(row.metadata) === propertyId);
+  const linkedRows = ((rows || []) as ConversationRow[]).filter((row) => linkedPropertyId(row.metadata) === propertyId);
   if (!linkedRows.length) return { conversationSummary: null, providers: [], queryCount: 1 };
-  const analysis = analyzeProviderConversation(linkedRows.map((row: any) => ({
+  const analysis = analyzeProviderConversation(linkedRows.map((row) => ({
     sender: cleanUuid(row.sender_id) === userId ? 'user' as const : 'provider' as const,
     text: String(row.body || ''),
     createdAt: row.created_at || null,
   })));
-  const serviceIds = Array.from(new Set(linkedRows.map((row: any) => linkedServiceId(row.metadata)).filter(Boolean))).slice(0, 10);
+  const serviceIds = Array.from(new Set(linkedRows.map((row) => linkedServiceId(row.metadata)).filter(Boolean))).slice(0, 10);
   let providers: DealCopilotProviderSummary[] = [];
   const capabilitiesUnavailable: string[] = [];
   let queryCount = 1;
@@ -65,7 +75,7 @@ async function loadOptionalPropertyContext(
     if (servicesError) {
       capabilitiesUnavailable.push('provider_summary');
     } else {
-      providers = (services || []).map((service: any) => ({
+      providers = ((services || []) as ProviderServiceRow[]).map((service) => ({
         serviceId: cleanUuid(service.id),
         title: String(service.title || service.category || 'Provider').trim().slice(0, 140),
         serviceType: String(service.category || '').trim().slice(0, 100),
