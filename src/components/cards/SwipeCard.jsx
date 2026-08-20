@@ -866,7 +866,7 @@ function SwipeCard({ card, action, isUnlocked, isSkipped, onSwipe, onUndo, onUnl
         }}>
 
           {/* Next — Neutral rotate (LEFT) */}
-          <button onClick={() => onSwipe('next')} style={{
+          <button onClick={() => onSwipe('next')} aria-label={t.next || 'Next card'} style={{
             width: 36, height: 36, borderRadius: '50%',
             border: 'none', background: 'transparent',
             display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer',
@@ -879,7 +879,7 @@ function SwipeCard({ card, action, isUnlocked, isSkipped, onSwipe, onUndo, onUnl
           </button>
 
           <div style={{ flex: 1, display: 'flex', justifyContent: 'center', gap: 10 }}>
-            <button onClick={() => onSwipe('pass')} title={t.skip} style={{
+            <button onClick={() => onSwipe('pass')} title={t.skip} aria-label={t.skip || 'Skip'} style={{
               width: 38, height: 38, borderRadius: '50%',
               border: `1.5px solid ${C.danger}`,
               background: C.alpha(C.danger, 0.06),
@@ -897,6 +897,7 @@ function SwipeCard({ card, action, isUnlocked, isSkipped, onSwipe, onUndo, onUnl
                 else onSwipe('unlock');
               }}
               title={isUnlocked ? mt.unlocked : mt.unlock}
+              aria-label={(isUnlocked ? mt.unlocked : mt.unlock) || (isUnlocked ? 'Unlocked' : 'Unlock')}
               style={{
                 width: 38, height: 38, borderRadius: '50%',
                 border: `1.5px solid ${C.gold}`,
@@ -910,7 +911,7 @@ function SwipeCard({ card, action, isUnlocked, isSkipped, onSwipe, onUndo, onUnl
               <Icon name="star" size={16} color={C.gold} strokeWidth={2} />
             </button>
 
-            <button onClick={() => onSwipe('match')} title={t.match} style={{
+            <button onClick={() => onSwipe('match')} title={t.match} aria-label={t.match || 'Match'} style={{
               width: 38, height: 38, borderRadius: '50%',
               border: `1.5px solid ${C.success}`,
               background: C.alpha(C.success, 0.08),
@@ -925,6 +926,7 @@ function SwipeCard({ card, action, isUnlocked, isSkipped, onSwipe, onUndo, onUnl
             <button
               onClick={(e) => { e.stopPropagation(); onUndo(); }}
               title={t.undo || 'Undo'}
+              aria-label={t.undo || 'Undo'}
               style={{
                 width: 36,
                 height: 36,

@@ -228,6 +228,7 @@ export function AppMobileBottomNav({ page, setPage, collapsed = false, onCollaps
             <button
               key={item.id}
               type="button"
+              data-testid={`mobile-nav-${item.id}`}
               data-guide={item.id === 'onboarding' ? 'onboarding-launcher' : undefined}
               data-guide-entry={item.id === 'onboarding' ? 'onboarding-entry-module' : undefined}
               onClick={() => isItemLocked ? onNavigationBlocked() : setPage && setPage(item.id)}

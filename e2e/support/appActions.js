@@ -31,6 +31,7 @@ export async function waitForAppReady(page) {
   return Promise.any([
     page.getByTestId('nav-login').waitFor({ state: 'visible', timeout: APP_READY_TIMEOUT }).then(() => 'landing-desktop'),
     page.getByTestId('nav-app-menu').waitFor({ state: 'visible', timeout: APP_READY_TIMEOUT }).then(() => 'landing-mobile'),
+    page.getByTestId('nav-landing-menu').waitFor({ state: 'visible', timeout: APP_READY_TIMEOUT }).then(() => 'landing-mobile'),
     page.getByTestId('dashboard-root').waitFor({ state: 'visible', timeout: APP_READY_TIMEOUT }).then(() => 'authenticated'),
     page.getByTestId('auth-modal').waitFor({ state: 'visible', timeout: APP_READY_TIMEOUT }).then(() => 'auth-modal'),
   ]);
@@ -87,7 +88,7 @@ export async function openLogin(page) {
     await desktopLogin.click();
     return;
   }
-  await page.getByTestId('nav-app-menu').click();
+  await page.getByTestId('nav-landing-menu').click();
   await page.getByTestId('nav-login-mobile').click();
 }
 

@@ -890,6 +890,7 @@ export function Navbar({ page, prevPage, setPage, nuggets = 0, setModal = () => 
               <>
                 <LangPicker compact />
                 <button
+                  data-testid="nav-landing-menu"
                   onClick={() => setLandingMenuOpen((value) => !value)}
                   title={t.menu || 'Menu'}
                   aria-label={t.menu || 'Menu'}

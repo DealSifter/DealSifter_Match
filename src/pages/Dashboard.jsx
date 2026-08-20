@@ -2929,9 +2929,8 @@ export function Dashboard({ page, nuggets, setModal, setPage, onOpenOnboardingTa
           }
         }
         @keyframes blink {
-          0% { opacity: 1; }
-          50% { opacity: 0.08; }
-          100% { opacity: 1; }
+          0%, 100% { opacity: 1; transform: scale(1); }
+          50% { opacity: 1; transform: scale(0.99); }
         }
         .blink {
           animation: blink 1s linear infinite;
@@ -2952,7 +2951,7 @@ export function Dashboard({ page, nuggets, setModal, setPage, onOpenOnboardingTa
           0%, 100% {
             border-color: ${C.alpha(C.gold, 0.58)};
             box-shadow: 0 0 0 0 rgba(245, 169, 30, 0), 0 0 10px ${C.alpha(C.gold, 0.16)};
-            background: #ffffff;
+            background: ${C.gold};
           }
           50% {
             border-color: ${C.alpha(C.gold, 0.96)};
@@ -4129,7 +4128,7 @@ export function Dashboard({ page, nuggets, setModal, setPage, onOpenOnboardingTa
                   border: `1px solid ${C.alpha(C.gold, 0.58)}`,
                   borderRadius: 999,
                   background: C.gold,
-                  color: '#3f3a42',
+                  color: '#ffffff',
                   fontWeight: 900,
                   fontSize: 12,
                   padding: isMobileViewport ? '6px 10px' : '6px 13px',

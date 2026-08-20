@@ -252,7 +252,7 @@ export function MatchesPage({ nuggets, isAdmin = false, setModal, openUnlock, un
     });
   }, [addToast, isActive, markUnlockNotificationsRead, t.unlockRealtimeTitle, unlockNotificationCount]);
   const CONTACT_SIGNAL = C.accent;
-  const PROPERTY_SIGNAL = "#4381bc";
+  const PROPERTY_SIGNAL = "#245b8f";
   const getOwnerIdForScope = useCallback((scopeKey) => {
     const liveUserId = String(currentUserId || '').trim();
     if (isSupabaseConfigured && liveUserId && liveUserId !== 'local-user') return liveUserId;
@@ -1547,7 +1547,7 @@ export function MatchesPage({ nuggets, isAdmin = false, setModal, openUnlock, un
   const previewModalMaxWidth = isMobile ? 420 : 730;
 
   return (
-    <div style={{ paddingTop:58, paddingBottom:bottomNavOffset, height:"calc(var(--app-vh, 1vh) * 100)", boxSizing:"border-box", display:"flex", flexDirection:"column", background:C.bg }}>
+    <div data-testid="matches-root" style={{ paddingTop:58, paddingBottom:bottomNavOffset, height:"calc(var(--app-vh, 1vh) * 100)", boxSizing:"border-box", display:"flex", flexDirection:"column", background:C.bg }}>
       <style>{`
         .map-panel-tabs { display: flex; gap: 4px; margin-bottom: 12px; padding-bottom: 2px; border-bottom: 1px solid var(--ui-border); }
         .map-panel-tab { flex: none; white-space: nowrap; padding: 8px 14px 7px; border-top-left-radius: 10px; border-top-right-radius: 10px; border-bottom-left-radius: 0; border-bottom-right-radius: 0; border: 1px solid transparent; border-bottom: 1px solid transparent; background: var(--ui-hover); color: ${C.t2}; font-size: 12px; font-weight: 600; cursor: pointer; margin-bottom: -3px; transition: all .15s ease; }

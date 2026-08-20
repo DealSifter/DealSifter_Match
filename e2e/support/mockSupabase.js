@@ -99,6 +99,22 @@ const providerService = {
   updated_at: '2026-01-02T00:00:00.000Z',
 };
 
+const investorService = {
+  id: '99999999-9999-4999-8999-999999999999',
+  owner_id: E2E_USERS.investor.id,
+  card_kind: 'service',
+  title: `E2E Cash Buyer ${E2E_RUN_ID}`,
+  category: 'Cash Buyer',
+  service_type: 'cash_buyer',
+  markets: ['TX', 'Dallas'],
+  description: 'Completed owned portfolio fixture used to unlock authenticated navigation.',
+  publish_to_connections: true,
+  is_active: true,
+  primary_profile: 'personal',
+  created_at: '2026-01-01T00:00:00.000Z',
+  updated_at: '2026-01-02T00:00:00.000Z',
+};
+
 function userRow(user) {
   return {
     id: user.id,
@@ -153,6 +169,24 @@ function professionalProfileRow(user) {
     primary_category_b: '',
     photo_b_url: '',
     profile_payload: {
+      version: 1,
+      accountType: 'professional',
+      profiles: {
+        personal: {
+          fullNameA: user.fullName,
+          emailA: user.email,
+          primaryPhoneA: '+1 555 0100',
+          locA: 'Dallas, TX',
+        },
+      },
+      legacy: {
+        professionalProfile: {
+          fullNameA: user.fullName,
+          emailA: user.email,
+          primaryPhoneA: '+1 555 0100',
+          locA: 'Dallas, TX',
+        },
+      },
       testRunId: E2E_RUN_ID,
       buyerCriteria: {
         markets: ['Texas', 'Dallas'],
@@ -174,7 +208,11 @@ function tablePayload(table, userId, wantsObject, state = {}) {
     user_profiles: [personalProfileRow(user, state)].filter(Boolean),
     professional_profiles: [professionalProfileRow(user)].filter(Boolean),
     properties: user.id === E2E_USERS.provider.id ? [property] : [],
-    services: user.id === E2E_USERS.provider.id ? [providerService] : [],
+    services: user.id === E2E_USERS.provider.id
+      ? [providerService]
+      : user.id === E2E_USERS.investor.id
+        ? [investorService]
+        : [],
     property_images: [
       {
         id: 'img-e2e-1',
