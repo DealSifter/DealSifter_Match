@@ -21,6 +21,7 @@
   ],
   "optionalSecrets": [
     "APP_ALLOWED_ORIGINS",
+    "FEATURE_FLAGS_JSON",
     "MAXXIS_GEMINI_MODEL",
     "MAXXIS_GEMINI_TIMEOUT_MS",
     "SUPPORT_EMAIL_FROM",
@@ -39,6 +40,7 @@
     { "name": "create-checkout-session", "verifyJwt": false },
     { "name": "create-portal-session", "verifyJwt": false },
     { "name": "delete-account", "verifyJwt": false },
+    { "name": "feature-flags", "verifyJwt": true },
     { "name": "geocode-address", "verifyJwt": true },
     { "name": "maxxis-action-cancel", "verifyJwt": true },
     { "name": "maxxis-action-confirm", "verifyJwt": true },

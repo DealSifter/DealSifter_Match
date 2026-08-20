@@ -54,3 +54,6 @@ verify_jwt = true
 
 [functions.maxxis-deal-workflow]
 verify_jwt = true
+
+[functions.feature-flags]
+verify_jwt = true
