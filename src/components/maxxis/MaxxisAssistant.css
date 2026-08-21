@@ -240,6 +240,36 @@
   background: color-mix(in srgb, var(--accent) 18%, var(--card));
 }
 
+.maxxis-followups {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  padding: 2px 4px 0;
+  max-width: 100%;
+}
+
+.maxxis-followup-chip {
+  max-width: 100%;
+  min-height: 30px;
+  border: 1px solid color-mix(in srgb, var(--accent) 38%, var(--border));
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--card) 78%, var(--accent));
+  color: var(--accent);
+  padding: 6px 10px;
+  font: inherit;
+  font-size: 10.5px;
+  font-weight: 900;
+  line-height: 1.1;
+  cursor: pointer;
+}
+
+.maxxis-followup-chip:hover,
+.maxxis-followup-chip:focus-visible {
+  border-color: var(--accent);
+  background: color-mix(in srgb, var(--accent) 16%, var(--card));
+  outline: none;
+}
+
 .maxxis-message-user .maxxis-message-meta {
   text-align: right;
 }
@@ -561,6 +591,12 @@
     min-height: 31px;
     padding: 7px 10px;
     font-size: 10.5px;
+  }
+
+  .maxxis-followup-chip {
+    min-height: 30px;
+    padding: 6px 9px;
+    font-size: 10px;
   }
 
   .maxxis-input-row {

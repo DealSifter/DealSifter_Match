@@ -1559,6 +1559,7 @@ export function MessageBubble({
   onUpdateProviderMessageDraft,
   onUpdateProviderConversationSuggestedReply,
   onToggleWorkflowManualItem,
+  onDealFollowUp,
   onExportAnalysisPdf,
   exportAnalysisLabel,
   exportingAnalysisLabel,
@@ -1831,6 +1832,21 @@ export function MessageBubble({
       ) : null}
       {message.type === 'property_comparison' ? (
         <PropertyComparison data={message.data} language={language} />
+      ) : null}
+      {!isUser && Array.isArray(message.followUps) && message.followUps.length ? (
+        <div className="maxxis-followups" aria-label="Maxxis follow-up options">
+          {message.followUps.map((followUp) => (
+            <button
+              type="button"
+              key={`${message.id}-followup-${followUp.code}`}
+              className="maxxis-followup-chip"
+              data-testid={`maxxis-followup-${followUp.code}`}
+              onClick={() => onDealFollowUp?.(followUp, message)}
+            >
+              {followUp.label}
+            </button>
+          ))}
+        </div>
       ) : null}
       {message.analysisExport ? (
         <div className="maxxis-action-links" aria-label="Maxxis analysis export">

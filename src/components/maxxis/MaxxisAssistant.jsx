@@ -27,6 +27,11 @@ import {
   selectMaxxisContextForMessage,
   shouldResetMaxxisContextSession,
 } from '../../features/maxxis/context/maxxisContextSnapshot';
+import {
+  buildLocalDealIntelligenceReply,
+  enhanceMaxxisAssistantResponse,
+  promptForMaxxisFollowUp,
+} from '../../features/maxxis/intelligence/maxxisDealIntelligence';
 import maxxisLogo from '../../assets/logo.png';
 import './MaxxisAssistant.css';
 
@@ -334,6 +339,31 @@ export function MaxxisAssistant({ page = 'dashboard', onOpenSupport = null, onNa
         }]);
         return;
       }
+      const localDealIntelligence = buildLocalDealIntelligenceReply({
+        message: cleanMessage,
+        language,
+        messages,
+        sourceMessageId: meta.sourceMessageId || '',
+        forcedIntent: meta.controlledIntent || '',
+      });
+      if (localDealIntelligence) {
+        if (localDealIntelligence.eventName) {
+          void trackProductEvent(localDealIntelligence.eventName, {
+            dedupeKey: `${localDealIntelligence.eventName}:${userMessage.id}`,
+            properties: { source: 'maxxis', response_type: localDealIntelligence.type },
+          });
+        }
+        setMessages((prev) => [...prev, {
+          id: `maxxis-intelligence-${Date.now()}`,
+          role: 'assistant',
+          content: localDealIntelligence.content,
+          createdAt: new Date(),
+          type: localDealIntelligence.type,
+          data: localDealIntelligence.data,
+          followUps: localDealIntelligence.followUps,
+        }]);
+        return;
+      }
       const referenceResolution = resolveMaxxisNaturalReference(cleanMessage, maxxisContextSnapshot);
       if (referenceResolution.status === 'ambiguous') {
         const entityLabel = String(referenceResolution.entityType || 'item').toLowerCase();
@@ -380,14 +410,29 @@ export function MaxxisAssistant({ page = 'dashboard', onOpenSupport = null, onNa
       if (result?.data?.nextBestAction?.code) {
         void trackProductEvent('next_best_action_seen', { entityType: 'property', entityId: result?.data?.property?.id || propertyContextId, dedupeKey: `next-action-seen:${userMessage.id}`, properties: { source: 'maxxis', workflow_code: result.data.nextBestAction.code } });
       }
+      const intelligence = enhanceMaxxisAssistantResponse({
+        message: cleanMessage,
+        result,
+        language,
+        forcedIntent: meta.controlledIntent || '',
+      });
+      if (intelligence.eventName) {
+        void trackProductEvent(intelligence.eventName, {
+          entityType: 'property',
+          entityId: result?.data?.property?.id || result?.data?.propertySummary?.id || propertyContextId || '',
+          dedupeKey: `${intelligence.eventName}:${userMessage.id}`,
+          properties: { source: 'maxxis', response_type: intelligence.type || responseType },
+        });
+      }
       setMessages((prev) => [...prev, {
         id: `maxxis-assistant-${Date.now()}`,
         role: 'assistant',
-        content: result.answer,
+        content: intelligence.content || result.answer,
         createdAt: new Date(),
         error: Boolean(result.unavailable),
-        type: result.type,
-        data: result.data,
+        type: intelligence.type || result.type,
+        data: intelligence.data || result.data,
+        followUps: intelligence.followUps,
         analysisExport: result.unavailable ? null : (meta.analysisExport || null),
       }]);
     } catch (error) {
@@ -744,6 +789,20 @@ export function MaxxisAssistant({ page = 'dashboard', onOpenSupport = null, onNa
     }
   };
 
+  const handleDealFollowUp = (followUp, sourceMessage) => {
+    const intent = String(followUp?.intent || '');
+    const code = String(followUp?.code || intent || '');
+    if (!intent || loading) return;
+    void trackProductEvent('followup_clicked', {
+      dedupeKey: `maxxis-followup:${sourceMessage?.id || 'message'}:${code}`,
+      properties: { source: 'maxxis', followup_code: code, intent },
+    });
+    void submitMessage(promptForMaxxisFollowUp(followUp, language), {
+      controlledIntent: intent,
+      sourceMessageId: sourceMessage?.id || '',
+    });
+  };
+
   const submit = async () => {
     if (!canSend) return;
     await submitMessage(trimmedInput);
@@ -820,6 +879,7 @@ export function MaxxisAssistant({ page = 'dashboard', onOpenSupport = null, onNa
                 onUpdateProviderMessageDraft={handleUpdateProviderMessageDraft}
                 onUpdateProviderConversationSuggestedReply={handleUpdateProviderConversationSuggestedReply}
                 onToggleWorkflowManualItem={handleToggleWorkflowManualItem}
+                onDealFollowUp={handleDealFollowUp}
                 onExportAnalysisPdf={handleExportAnalysisPdf}
                 exportAnalysisLabel={t.exportAnalysisPdf}
                 exportingAnalysisLabel={t.exportingAnalysisPdf}
