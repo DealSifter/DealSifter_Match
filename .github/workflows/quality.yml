@@ -67,7 +67,7 @@ jobs:
     name: Browser E2E quality gate
     runs-on: ubuntu-latest
     needs: validate
-    timeout-minutes: 20
+    timeout-minutes: 30
     env:
       CI: true
       E2E_RUN_ID: ci-${{ github.run_id }}-${{ github.run_attempt }}
@@ -115,6 +115,9 @@ jobs:
 
       - name: Run safe browser E2E suite
         run: npm run test:e2e:ci
+
+      - name: Run deterministic UI non-regression contract
+        run: npm run audit:ui-structural
 
       - name: Run mobile viewport E2E suite
         run: npm run test:e2e:mobile

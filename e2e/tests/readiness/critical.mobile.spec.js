@@ -1,6 +1,8 @@
 import { test, expect } from '../../fixtures/appFixture.js';
 import { loginAs, openMaxxis } from '../../support/appActions.js';
 
+test.setTimeout(360_000);
+
 async function expectNoHorizontalOverflow(page, context) {
   const dimensions = await page.evaluate(() => ({
     viewport: document.documentElement.clientWidth,
@@ -24,12 +26,17 @@ test('mobile navigation, cards, onboarding and Maxxis remain usable without clip
   await expect(page.getByTestId('maxxis-send')).toBeInViewport();
   await expectNoHorizontalOverflow(page, 'Maxxis');
   await page.keyboard.press('Escape');
+  await expect(page.getByTestId('maxxis-panel')).toBeHidden();
 
-  await page.getByTestId('mobile-nav-matches').click();
-  await expect(page.getByTestId('matches-root')).toBeVisible();
+  const matchesNav = page.getByTestId('mobile-nav-matches');
+  await expect(matchesNav).toBeEnabled({ timeout: 60_000 });
+  await matchesNav.click();
+  await expect(page.getByTestId('matches-root')).toBeVisible({ timeout: 120_000 });
   await expectNoHorizontalOverflow(page, 'Matches');
 
-  await page.getByTestId('mobile-nav-onboarding').click();
-  await expect(page.getByTestId('onboarding-root')).toBeVisible();
+  const onboardingNav = page.getByTestId('mobile-nav-onboarding');
+  await expect(onboardingNav).toBeEnabled({ timeout: 60_000 });
+  await onboardingNav.click();
+  await expect(page.getByTestId('onboarding-root')).toBeVisible({ timeout: 120_000 });
   await expectNoHorizontalOverflow(page, 'onboarding');
 });

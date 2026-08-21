@@ -10,6 +10,8 @@ const JSON_HEADERS = {
   'content-type': 'application/json; charset=utf-8',
 };
 
+const BASELINE_PROPERTY_IMAGE = 'data:image/svg+xml;charset=utf-8,%3Csvg xmlns=%22http://www.w3.org/2000/svg%22 width=%221200%22 height=%22800%22 viewBox=%220 0 1200 800%22%3E%3Crect width=%221200%22 height=%22800%22 fill=%22%23d9f5f4%22/%3E%3Cpath d=%22M100 610 390 320l180 180 150-150 380 380H100Z%22 fill=%22%2335cac9%22 opacity=%22.55%22/%3E%3Ccircle cx=%22920%22 cy=%22200%22 r=%2280%22 fill=%22%23f5a623%22 opacity=%22.8%22/%3E%3C/svg%3E';
+
 function json(route, body, status = 200, extraHeaders = {}) {
   return route.fulfill({
     status,
@@ -77,6 +79,7 @@ const property = {
   is_active: true,
   deal_closed: false,
   hide_street_address_on_card: true,
+  primary_profile: 'personal',
   estimated_rehab: 25000,
   cap_rate: 6.5,
   created_at: '2026-01-01T00:00:00.000Z',
@@ -95,6 +98,7 @@ const providerService = {
   description: 'Public provider service fixture for safe browser E2E.',
   publish_to_connections: true,
   is_active: true,
+  primary_profile: 'personal',
   created_at: '2026-01-01T00:00:00.000Z',
   updated_at: '2026-01-02T00:00:00.000Z',
 };
@@ -217,7 +221,7 @@ function tablePayload(table, userId, wantsObject, state = {}) {
       {
         id: 'img-e2e-1',
         property_id: E2E_IDS.property,
-        image_url: 'https://images.unsplash.com/photo-1564013799919-ab600027ffc6?w=1200&auto=format&fit=crop',
+        image_url: BASELINE_PROPERTY_IMAGE,
         sort_order: 0,
       },
     ],
@@ -231,9 +235,59 @@ function tablePayload(table, userId, wantsObject, state = {}) {
         current_period_end: '2026-12-31T00:00:00.000Z',
       },
     ],
-    user_feed_actions: [],
+    user_feed_actions: state.baseline ? [
+      {
+        user_id: user.id,
+        action: 'matched',
+        entity_type: 'person',
+        entity_id: E2E_USERS.provider.id,
+        owner_id: E2E_USERS.provider.id,
+        payload: {
+          ownerId: E2E_USERS.provider.id,
+          primaryProfile: 'personal',
+        },
+        updated_at: '2026-01-03T00:00:00.000Z',
+      },
+      {
+        user_id: user.id,
+        action: 'interested',
+        entity_type: 'property',
+        entity_id: E2E_IDS.property,
+        owner_id: E2E_USERS.provider.id,
+        payload: { ownerId: E2E_USERS.provider.id },
+        updated_at: '2026-01-02T00:00:00.000Z',
+      },
+    ] : [],
     unlocks: [],
     property_unlocks: [],
+    chat_messages: state.baseline ? [
+      {
+        id: 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaa1',
+        sender_id: E2E_USERS.provider.id,
+        recipient_id: user.id,
+        contact_owner_id: E2E_USERS.provider.id,
+        body: 'The inspection window is available tomorrow morning.',
+        message_type: 'text',
+        message_code: null,
+        message_params: {},
+        metadata: { originalLang: 'en', translatedLang: 'en' },
+        read_at: '2026-01-04T12:05:00.000Z',
+        created_at: '2026-01-04T12:00:00.000Z',
+      },
+      {
+        id: 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaa2',
+        sender_id: user.id,
+        recipient_id: E2E_USERS.provider.id,
+        contact_owner_id: E2E_USERS.provider.id,
+        body: 'Great, please reserve the 9 AM slot.',
+        message_type: 'text',
+        message_code: null,
+        message_params: {},
+        metadata: { originalLang: 'en', translatedLang: 'en' },
+        read_at: '2026-01-04T12:06:00.000Z',
+        created_at: '2026-01-04T12:05:00.000Z',
+      },
+    ] : [],
     consent_records: [],
     nugget_purchases: [],
   };
@@ -269,7 +323,7 @@ function publicInventory() {
       {
         id: 'img-e2e-1',
         property_id: E2E_IDS.property,
-        image_url: 'https://images.unsplash.com/photo-1564013799919-ab600027ffc6?w=1200&auto=format&fit=crop',
+        image_url: BASELINE_PROPERTY_IMAGE,
         sort_order: 0,
       },
     ],
@@ -320,30 +374,44 @@ function maxxisPropertyData() {
       missing: [],
       limitations: ['analysis_depends_on_submitted_data'],
     },
+    workflow: {
+      propertyId: E2E_IDS.property,
+      status: 'active',
+      items: [
+        { code: 'inspection_completed', status: 'pending', label: 'Inspection', manual: true },
+        { code: 'rehab_quote_received', status: 'pending', label: 'Rehab quote', manual: true },
+      ],
+    },
     serviceNeeds: [
       {
-        serviceType: 'roofing',
-        title: 'Roof inspection and repair quote',
+        serviceType: 'General Contractor',
+        title: 'General contractor rehab review',
         priority: 'high',
-        reason: 'Roof review before closing improves deal certainty.',
+        reasonCode: 'rehab_reported',
+        confidence: 'high',
       },
     ],
     serviceMatches: [
       {
-        id: E2E_IDS.providerService,
-        serviceId: E2E_IDS.providerService,
-        serviceType: 'roofing',
-        title: providerService.title,
-        markets: ['TX', 'Dallas'],
+        serviceType: 'General Contractor',
         fit: { calculable: true, score: 86, classification: 'good', reasons: ['market_match', 'service_type_match'] },
-        contactAccess: { status: 'locked', cost: 1, currency: 'nuggets' },
+        services: [{
+          id: E2E_IDS.providerService,
+          serviceId: E2E_IDS.providerService,
+          serviceType: 'General Contractor',
+          title: providerService.title,
+          markets: ['TX', 'Dallas'],
+          fit: { calculable: true, score: 86, classification: 'good', reasons: ['market_match', 'service_type_match'] },
+          contactAccess: { status: 'locked', cost: 1, currency: 'nuggets' },
+        }],
       },
     ],
   };
 }
 
-export async function setupMockSupabase(context) {
+export async function setupMockSupabase(context, options = {}) {
   const state = {
+    baseline: options.baseline === true,
     currentUserId: '',
     profileBioByUserId: {},
     unlockPrepares: 0,
@@ -407,12 +475,14 @@ export async function setupMockSupabase(context) {
         const data = type === 'deal_copilot_overview'
           ? {
               propertySummary: maxxisPropertyData().property,
-              serviceNeeds: maxxisPropertyData().serviceNeeds,
-              serviceMatches: maxxisPropertyData().serviceMatches,
-              workflow: [
-                { code: 'inspection_completed', status: 'pending', label: 'Inspection' },
-                { code: 'rehab_quote_received', status: 'pending', label: 'Rehab quote' },
-              ],
+              metricsSummary: { metrics: maxxisPropertyData().metrics },
+              advisorSummary: { attentionPoints: [] },
+              serviceSummary: {
+                needs: maxxisPropertyData().serviceNeeds,
+                providers: [maxxisPropertyData().serviceMatches[0].services[0]],
+              },
+              workflow: maxxisPropertyData().workflow,
+              capabilitiesUnavailable: [],
             }
           : maxxisPropertyData();
         return json(route, {
@@ -473,8 +543,33 @@ export async function setupMockSupabase(context) {
       if (!byUserId(userId)) return json(route, { code: '401', message: 'JWT required' }, 401);
       if (rpc === 'ds_get_global_feed_inventory') return json(route, publicInventory());
       if (rpc === 'ds_get_plan_usage_snapshot') return json(route, planSnapshot(userId));
-      if (rpc === 'ds_get_unlocked_contact_cards') return json(route, []);
-      if (rpc === 'ds_get_chat_contact_status') return json(route, { status: 'locked', unlocked: false });
+      if (rpc === 'ds_get_unlocked_contact_cards') {
+        return json(route, state.baseline ? [{
+          owner_id: E2E_USERS.provider.id,
+          primary_profile: 'personal',
+          unlock_scope: 'contact',
+          unlocked_at: '2026-01-04T00:00:00.000Z',
+          unlocked_property_ids: [E2E_IDS.property],
+          contact: {
+            name: E2E_USERS.provider.fullName,
+            category: 'Contractor',
+            location: 'Dallas, TX',
+            email: null,
+            phone_primary: null,
+            contact_methods: ['DealSifter chat'],
+          },
+          portfolio: [{
+            item_id: E2E_IDS.property,
+            item_type: 'property',
+            title: 'Dallas, TX',
+            is_unlocked: true,
+            is_exclusive: false,
+          }],
+        }] : []);
+      }
+      if (rpc === 'ds_get_chat_contact_status') return json(route, state.baseline
+        ? { status: 'unlocked', unlocked: true, canChat: true, acceptsChat: true, senderCanChat: true }
+        : { status: 'locked', unlocked: false });
       if (rpc === 'ds_get_provider_contact_access') return json(route, { status: 'locked', cost: 1, currency: 'nuggets' });
       if (rpc === 'ds_consume_plan_actions') return json(route, { allowed: true, remaining: 99 });
       if (rpc === 'track_user_heartbeat' || rpc === 'track_app_event') return json(route, { ok: true });

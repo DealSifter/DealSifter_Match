@@ -1,0 +1,74 @@
+name: Visual Regression Baseline
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: visual-regression-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  visual-regression:
+    name: Windows Chromium screenshot comparison
+    runs-on: windows-latest
+    timeout-minutes: 30
+    env:
+      CI: true
+      E2E_RUN_ID: phase-6-baseline
+      E2E_BASE_URL: http://127.0.0.1:4180
+      E2E_SUPABASE_URL: http://127.0.0.1:54321
+      E2E_SUPABASE_ANON_KEY: e2e-local-anon-key
+      VITE_APP_URL: http://127.0.0.1:4180
+      VITE_SUPABASE_URL: http://127.0.0.1:54321
+      VITE_SUPABASE_ANON_KEY: e2e-local-anon-key
+      VITE_STRIPE_PRICE_P5: price_e2e_p5
+      VITE_STRIPE_PRICE_P15: price_e2e_p15
+      VITE_STRIPE_PRICE_P40: price_e2e_p40
+      VITE_STRIPE_PRICE_P100: price_e2e_p100
+      VITE_STRIPE_PRICE_PLAN_PRO: price_e2e_plan_pro
+      VITE_STRIPE_PRICE_PLAN_ENTERPRISE: price_e2e_plan_enterprise
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Use Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version-file: .nvmrc
+          cache: npm
+
+      - name: Install from lockfile
+        run: npm ci
+
+      - name: Install pinned Chromium
+        run: npx playwright install chromium
+
+      - name: Start isolated E2E server
+        shell: pwsh
+        run: |
+          $process = Start-Process -FilePath "npm.cmd" -ArgumentList @("run", "dev:e2e") -WindowStyle Hidden -PassThru
+          for ($attempt = 0; $attempt -lt 60; $attempt += 1) {
+            try {
+              $response = Invoke-WebRequest -Uri $env:E2E_BASE_URL -UseBasicParsing -TimeoutSec 2
+              if ($response.StatusCode -eq 200) { exit 0 }
+            } catch {
+              Start-Sleep -Seconds 2
+            }
+          }
+          Stop-Process -Id $process.Id -Force -ErrorAction SilentlyContinue
+          throw "E2E server did not become ready"
+
+      - name: Compare structural, desktop and mobile baselines
+        run: npm run audit:ui-regression
+
+      - name: Upload visual diff artifacts
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: visual-regression-diff
+          path: test-results/
+          if-no-files-found: ignore

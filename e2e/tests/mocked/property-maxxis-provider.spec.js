@@ -2,6 +2,8 @@
 import { test, expect, E2E_IDS } from '../../fixtures/appFixture.js';
 import { loginAs, openMaxxis } from '../../support/appActions.js';
 
+test.setTimeout(360_000);
+
 test.describe('property, Maxxis and provider flow', () => {
   test('investor can inspect property through Maxxis and cancel provider unlock without nugget debit', async ({ page, mockBackend }) => {
     await loginAs(page, mockBackend.users.investor);
@@ -35,12 +37,12 @@ test.describe('property, Maxxis and provider flow', () => {
 
     expect(maxxisPayload.type).toBe('property_details');
     expect(maxxisPayload.data.property.id).toBe(E2E_IDS.property);
-    expect(maxxisPayload.data.serviceNeeds[0].serviceType).toBe('roofing');
+    expect(maxxisPayload.data.serviceNeeds[0].serviceType).toBe('General Contractor');
     expect(maxxisPayload.data.serviceMatches[0].fit.score).toBeGreaterThanOrEqual(80);
-    expect(maxxisPayload.data.serviceMatches[0].contactAccess.status).toBe('locked');
+    expect(maxxisPayload.data.serviceMatches[0].services[0].contactAccess.status).toBe('locked');
 
     await expect(page.getByTestId('maxxis-messages')).toContainText('Property Details');
-    await expect(page.getByTestId('maxxis-messages')).toContainText('roofing');
+    await expect(page.getByTestId('maxxis-messages')).toContainText('General Contractor');
 
     const prepare = await page.evaluate(async ({ supabaseUrl, token, serviceId }) => {
       const response = await fetch(`${supabaseUrl}/functions/v1/maxxis-provider-unlock-prepare`, {

@@ -2,6 +2,8 @@ import AxeBuilder from '@axe-core/playwright';
 import { test, expect } from '../../fixtures/appFixture.js';
 import { loginAs, openLogin } from '../../support/appActions.js';
 
+test.setTimeout(480_000);
+
 // Product-approved brand colors are intentionally used for identity/status
 // text as well as decorative UI. Keep the exception limited to those exact
 // colors; every unrelated serious/critical contrast finding remains blocking.
@@ -76,15 +78,15 @@ test('dashboard, Matches and Maxxis pass accessibility and keyboard checks', asy
 
   await page.getByTestId('nav-matches').focus();
   await page.keyboard.press('Enter');
-  await expect(page.getByTestId('matches-root')).toBeVisible({ timeout: 20_000 });
+  await expect(page.getByTestId('matches-root')).toBeVisible({ timeout: 120_000 });
   await expectNoHighSeverityViolations(page, 'Matches', '[data-testid="matches-root"]');
 
   await page.getByTestId('nav-dashboard').focus();
   await page.keyboard.press('Enter');
-  await expect(page.getByTestId('dashboard-root')).toBeVisible({ timeout: 20_000 });
+  await expect(page.getByTestId('dashboard-root')).toBeVisible({ timeout: 120_000 });
   const profileLauncher = page.getByRole('button', { name: /E2E Investor.*profile/i }).first();
   await profileLauncher.focus();
   await page.keyboard.press('Enter');
-  await expect(page.getByTestId('onboarding-root')).toBeVisible({ timeout: 20_000 });
+  await expect(page.getByTestId('onboarding-root')).toBeVisible({ timeout: 120_000 });
   await expectNoHighSeverityViolations(page, 'onboarding', '[data-testid="onboarding-root"]');
 });

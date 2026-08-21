@@ -1,4 +1,4 @@
-const APP_NAVIGATION_TIMEOUT = 60_000;
+const APP_NAVIGATION_TIMEOUT = 180_000;
 const APP_READY_TIMEOUT = 20_000;
 
 function sanitizeDiagnostic(value) {

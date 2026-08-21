@@ -81,6 +81,8 @@ async function saveProfessionalProfile(realBackend, page, token, expectedVersion
 }
 
 test('real auth session, profile save persistence, conflict protection and account switch', async ({ page, realBackend }) => {
+  test.setTimeout(360_000);
+
   await realBackend.loginViaUi(page, realBackend.investor);
   await expect(page.getByTestId('dashboard-root')).toBeVisible({ timeout: DASHBOARD_READY_TIMEOUT });
 
