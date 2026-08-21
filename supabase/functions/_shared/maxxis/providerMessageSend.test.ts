@@ -11,8 +11,14 @@ const serviceSource = readFileSync(new URL('../../../../src/services/maxxisServi
 const chatHookSource = readFileSync(new URL('../../../../src/hooks/useChatRealtime.js', import.meta.url), 'utf8');
 const chatSource = readFileSync(new URL('../../maxxis-chat/index.ts', import.meta.url), 'utf8');
 const configSource = readFileSync(new URL('../../../config.toml', import.meta.url), 'utf8');
+const identifiersSource = readFileSync(new URL('./providerIdentifiers.ts', import.meta.url), 'utf8');
 
 describe('Phase 3K Confirmed Provider Message Send', () => {
+  it('uses the same strict UUID parser as provider unlock and draft', () => {
+    expect(handlerSource).toContain("import { cleanProviderUuid } from './providerIdentifiers.ts'");
+    expect(identifiersSource).toContain('[89ab][0-9a-f]{3}-[0-9a-f]{12}');
+  });
+
   it('prepares a pending action for an unlocked provider and valid message without inserting chat', () => {
     expect(migration).toContain("'send_provider_message'");
     expect(migration).toContain('ds_prepare_maxxis_provider_message');

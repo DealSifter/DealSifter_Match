@@ -14,8 +14,14 @@ const assistantSource = [
 const serviceSource = readFileSync(new URL('../../../../src/services/maxxisService.js', import.meta.url), 'utf8');
 const chatSource = readFileSync(new URL('../../maxxis-chat/index.ts', import.meta.url), 'utf8');
 const configSource = readFileSync(new URL('../../../config.toml', import.meta.url), 'utf8');
+const identifiersSource = readFileSync(new URL('./providerIdentifiers.ts', import.meta.url), 'utf8');
 
 describe('Phase 3I Provider Contact Unlock', () => {
+  it('shares the strict provider UUID parser with draft and message send', () => {
+    expect(providerSource).toContain("import { cleanProviderUuid } from './providerIdentifiers.ts'");
+    expect(identifiersSource).toContain('[89ab][0-9a-f]{3}-[0-9a-f]{12}');
+  });
+
   it('prepares locked provider unlock with an intent and does not consume Nuggets yet', () => {
     const prepareOnly = providerSource.split('async function confirmProviderUnlock')[0];
     expect(providerSource).toContain("p_metadata: { source: 'maxxis_provider_contact_unlock', serviceId }");
@@ -56,7 +62,7 @@ describe('Phase 3I Provider Contact Unlock', () => {
   });
 
   it('uses existing idempotency for double click or retry', () => {
-    expect(unlockMigration).toContain("pg_advisory_xact_lock(hashtext(\n    'profile-unlock:'");
+    expect(unlockMigration).toMatch(/pg_advisory_xact_lock\(hashtext\(\r?\n\s*'profile-unlock:/);
     expect(unlockMigration).toContain('where u.buyer_id = v_buyer_id');
     expect(unlockMigration).toContain('and u.seller_id = p_seller_id');
     expect(providerSource).toContain("before.status === 'already_unlocked'");

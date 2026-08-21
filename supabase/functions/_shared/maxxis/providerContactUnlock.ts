@@ -2,21 +2,15 @@ import { createClient } from 'npm:@supabase/supabase-js@2';
 import { corsHeaders, supabaseAnonKey, supabaseUrl } from './config.ts';
 import { logMaxxisEvent } from './logger.ts';
 import { checkRateLimit, isOperationalFeatureEnabled, logAbuseGuard, rateLimitResponse, type RateLimitOperation } from '../abuseProtection.ts';
+import { cleanProviderUuid } from './providerIdentifiers.ts';
 
 type ProviderUnlockMode = 'prepare' | 'confirm' | 'cancel';
-
-const UUID_PATTERN = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
 
 function json(body: Record<string, unknown>, status: number, origin: string) {
   return new Response(JSON.stringify(body), {
     status,
     headers: { ...corsHeaders(origin), 'Content-Type': 'application/json' },
   });
-}
-
-function cleanUuid(value: unknown) {
-  const text = String(value || '').trim();
-  return UUID_PATTERN.test(text) ? text : '';
 }
 
 function pickRow<T>(data: T | T[] | null): T | null {
@@ -135,7 +129,7 @@ async function prepareProviderUnlock(req: Request, origin: string, body: Record<
   const requestId = crypto.randomUUID();
   const guarded = await unlockGuard(auth.user.id, 'prepare', requestId, origin);
   if (guarded) return guarded;
-  const serviceId = cleanUuid(body.serviceId);
+  const serviceId = cleanProviderUuid(body.serviceId);
   if (!serviceId) return json({ success: false, error: 'INVALID_SERVICE_ID' }, 400, origin);
 
   try {
@@ -174,7 +168,7 @@ async function prepareProviderUnlock(req: Request, origin: string, body: Record<
     });
     if (error) throw error;
     const intent = pickRow(data) as Record<string, unknown> | null;
-    const intentToken = cleanUuid(intent?.intent_token);
+    const intentToken = cleanProviderUuid(intent?.intent_token);
     if (!intentToken) throw new Error('INTENT_NOT_CREATED');
 
     logMaxxisEvent('provider_contact_unlock_prepare', {
@@ -222,8 +216,8 @@ async function confirmProviderUnlock(req: Request, origin: string, body: Record<
   const requestId = crypto.randomUUID();
   const guarded = await unlockGuard(auth.user.id, 'confirm', requestId, origin);
   if (guarded) return guarded;
-  const serviceId = cleanUuid(body.serviceId);
-  const intentToken = cleanUuid(body.intentToken);
+  const serviceId = cleanProviderUuid(body.serviceId);
+  const intentToken = cleanProviderUuid(body.intentToken);
   if (!serviceId) return json({ success: false, error: 'INVALID_SERVICE_ID' }, 400, origin);
   if (!intentToken) return json({ success: false, error: 'INVALID_INTENT_TOKEN' }, 400, origin);
 
@@ -289,7 +283,7 @@ async function cancelProviderUnlock(req: Request, origin: string, body: Record<s
   const requestId = crypto.randomUUID();
   const guarded = await unlockGuard(auth.user.id, 'cancel', requestId, origin);
   if (guarded) return guarded;
-  const intentToken = cleanUuid(body.intentToken);
+  const intentToken = cleanProviderUuid(body.intentToken);
   if (!intentToken) return json({ success: false, error: 'INVALID_INTENT_TOKEN' }, 400, origin);
 
   try {

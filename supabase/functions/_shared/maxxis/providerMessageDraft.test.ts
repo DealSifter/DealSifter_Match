@@ -8,6 +8,7 @@ const assistantSource = readFileSync(new URL('../../../../src/components/maxxis/
 const serviceSource = readFileSync(new URL('../../../../src/services/maxxisService.js', import.meta.url), 'utf8');
 const chatSource = readFileSync(new URL('../../maxxis-chat/index.ts', import.meta.url), 'utf8');
 const configSource = readFileSync(new URL('../../../config.toml', import.meta.url), 'utf8');
+const identifiersSource = readFileSync(new URL('./providerIdentifiers.ts', import.meta.url), 'utf8');
 
 const validContext: ProviderMessageContext = {
   serviceId: '11111111-1111-4111-8111-111111111111',
@@ -29,6 +30,12 @@ const validContext: ProviderMessageContext = {
 };
 
 describe('Phase 3J Provider Message Draft', () => {
+  it('shares the strict provider UUID parser with unlock and message send', () => {
+    expect(providerDraftSource).toContain("import { cleanProviderUuid } from './providerIdentifiers.ts'");
+    expect(identifiersSource).toContain('[89ab][0-9a-f]{3}-[0-9a-f]{12}');
+    expect(identifiersSource).not.toContain('[89ab][0-9a-f]{12}');
+  });
+
   it('creates a contextual draft for a valid provider and valid property', () => {
     const draft = buildProviderMessageDraft(validContext, 'en');
     expect(draft).toContain('Single Family');
@@ -44,6 +51,12 @@ describe('Phase 3J Provider Message Draft', () => {
     expect(providerDraftSource).toContain("eq('publish_to_connections', true)");
     expect(providerDraftSource).toContain('if (!target)');
     expect(providerDraftSource).not.toMatch(/body\.providerId|body\.provider_id|ownerId:\s*body/);
+    expect(providerDraftSource).toContain('String(data.owner_id) === userId');
+  });
+
+  it('returns a draft only after published-service lookup and unlocked entitlement succeed', () => {
+    expect(providerDraftSource).toContain("access.status !== 'already_unlocked'");
+    expect(providerDraftSource).toMatch(/success: true,[\s\S]*type: 'provider_message_draft'/);
   });
 
   it('requires property context before preparing an actionable draft', () => {
