@@ -43,6 +43,12 @@ import {
   normalizeUniqueCardPriorities,
   normalizeUsStateCode,
 } from '../lib/onboardingHelpers';
+import {
+  buildMobileStepCompletion,
+  evaluateMinimumProfileCompletion,
+  getMissingRequiredProfile,
+} from '../domain/profile/onboardingProfileValidation';
+import { trackProductEvent } from '../lib/productAnalytics';
 
 
 export function Onboarding({
@@ -58,6 +64,7 @@ export function Onboarding({
   personalProfile,
   setPersonalProfile,
   professionalProfile,
+  professionalProfileVersion = 0,
   setProfessionalProfile,
   servicePortfolio,
   setServicePortfolio,
@@ -1494,7 +1501,7 @@ export function Onboarding({
       setPortfolioCapRate('');
       setPortfolioDescription('');
       setPortfolioVideo('');
-      clearPortfolioVideoBlob(`portfolioVideo_${accountType}`).catch(() => {});
+      clearPortfolioVideoBlob(`portfolioVideo_${accountType}`, draftUserId).catch(() => {});
       setPortfolioMsg('');
       setPortfolioMarkets([]);
       setPreviewOpen(false);
@@ -1512,10 +1519,11 @@ export function Onboarding({
 
   useEffect(() => {
     if (pendingProfileClearScope) return undefined;
-    const profileKey = `${draftUserId}:${accountType || 'professional'}`;
+    const profileKey = `${draftUserId}:${accountType || 'professional'}:${professionalProfileVersion}`;
     if (profileHydrationRef.current === profileKey) return undefined;
     profileHydrationRef.current = profileKey;
     const timer = window.setTimeout(() => {
+      setInvestmentProfileDraft(normalizeInvestmentDraft(professionalProfile?.investmentProfile));
       if (accountType === 'fsbo_owner') {
         setName(personalProfile?.fullNameFsbo || personalProfile?.fsboFullName || '');
         setLoc(normalizeUsStateCode(personalProfile?.locFsbo || personalProfile?.fsboLoc));
@@ -1594,7 +1602,7 @@ export function Onboarding({
       setSaveProfilesBaseline('');
     }, 0);
     return () => window.clearTimeout(timer);
-  }, [accountType, personalProfile, professionalProfile, pendingProfileClearScope, draftUserId]);
+  }, [accountType, personalProfile, professionalProfile, professionalProfileVersion, pendingProfileClearScope, draftUserId]);
 
   const onboardingDraftSnapshot = useMemo(() => ({
     profileTab,
@@ -1786,7 +1794,7 @@ export function Onboarding({
   useEffect(() => {
     let cancelled = false;
     let blobUrl = '';
-    getPortfolioVideoBlob(`portfolioVideo_${accountType}`).then((blob) => {
+    getPortfolioVideoBlob(`portfolioVideo_${accountType}`, draftUserId).then((blob) => {
       if (cancelled || !blob) return;
       blobUrl = URL.createObjectURL(blob);
       setPortfolioVideo(blobUrl);
@@ -1795,7 +1803,7 @@ export function Onboarding({
       cancelled = true;
       if (blobUrl) URL.revokeObjectURL(blobUrl);
     };
-  }, [accountType]);
+  }, [accountType, draftUserId]);
 
   const MAX_FILE_SIZE_BYTES = 15 * 1024 * 1024; // 15 MB
 
@@ -1876,7 +1884,7 @@ export function Onboarding({
       }
       setPortfolioVideo(videoUrl);
       setPortfolioMsg('');
-      setPortfolioVideoBlob(`portfolioVideo_${accountType}`, file).catch(() => {});
+      setPortfolioVideoBlob(`portfolioVideo_${accountType}`, file, draftUserId).catch(() => {});
       if (e?.target) e.target.value = '';
     };
     v.onerror = () => {
@@ -2089,7 +2097,7 @@ export function Onboarding({
     setPortfolioImages([]);
     setPortfolioVideo('');
     setPortfolioHideStreetAddressOnCard(false);
-    clearPortfolioVideoBlob(`portfolioVideo_${accountType}`).catch(() => {});
+    clearPortfolioVideoBlob(`portfolioVideo_${accountType}`, draftUserId).catch(() => {});
     setPortfolioMsg('');
     setIsPreviewToFeedDirty(true);
     setStreetPrivacyPrompt({ propertyId: newItem.id });
@@ -2442,23 +2450,20 @@ export function Onboarding({
     }
   };
 
-  const getMissingRequiredForProfileA = () => {
-    const missing = [];
-    if (!String(name || '').trim()) missing.push(t.requiredFullName);
-    if (!String(personalPrimaryPhone || '').trim()) missing.push(t.requiredPriorityPhone);
-    if (!String(personalEmail || '').trim()) missing.push(t.requiredEmail);
-    if (!contactMethods.length) missing.push(t.requiredBusinessContactOptions);
-    return missing;
-  };
-
-  const getMissingRequiredForProfileB = () => {
-    const missing = [];
-    if (!String(nameB || '').trim()) missing.push(t.requiredFullName);
-    if (!String(personalPrimaryPhoneB || '').trim()) missing.push(t.requiredPriorityPhone);
-    if (!String(personalEmailB || '').trim()) missing.push(t.requiredEmail);
-    if (!contactMethodsB.length) missing.push(t.requiredBusinessContactOptions);
-    return missing;
-  };
+  const missingRequiredForProfileA = getMissingRequiredProfile({
+    name,
+    phone: personalPrimaryPhone,
+    email: personalEmail,
+    contactMethods,
+    copy: t,
+  });
+  const missingRequiredForProfileB = getMissingRequiredProfile({
+    name: nameB,
+    phone: personalPrimaryPhoneB,
+    email: personalEmailB,
+    contactMethods: contactMethodsB,
+    copy: t,
+  });
 
   const _hasAnyValue = (...values) => values.some((value) => {
     if (Array.isArray(value)) return value.length > 0;
@@ -2478,10 +2483,10 @@ export function Onboarding({
     && String(primaryCategoryB || '').trim().length > 0
   );
 
-  const profileAComplete = getMissingRequiredForProfileA().length === 0;
-  const profileBComplete = getMissingRequiredForProfileB().length === 0;
-  const profileAReady = getMissingRequiredForProfileA().length === 0 && profileASkillsComplete;
-  const profileBReady = getMissingRequiredForProfileB().length === 0 && profileBOpsComplete;
+  const profileAComplete = missingRequiredForProfileA.length === 0;
+  const profileBComplete = missingRequiredForProfileB.length === 0;
+  const profileAReady = profileAComplete && profileASkillsComplete;
+  const profileBReady = profileBComplete && profileBOpsComplete;
   const preferProfessionalPath = profileTab === 'professional' || profileTab === 'operation';
 
   const showValidationBorders = Boolean(basicRequiredMsg);
@@ -2520,70 +2525,26 @@ export function Onboarding({
   const requiresOperationsTab = accountType === 'professional' && !profileAReady && !profileBReady && profileBComplete && !profileBOpsComplete;
 
   const validateMinimumProfileCompletion = () => {
-    const missingA = getMissingRequiredForProfileA();
-    const missingB = getMissingRequiredForProfileB();
-    const profileAComplete = missingA.length === 0;
-    const profileBComplete = missingB.length === 0;
-
-    // FSBO path: only needs name + (phone OR email)
-    if (accountType === 'fsbo_owner') {
-      const fsboMissing = [];
-      if (!String(name || '').trim()) fsboMissing.push(t.requiredFullName || 'Full name');
-      if (!String(personalPrimaryPhone || '').trim() && !String(personalEmail || '').trim()) {
-        fsboMissing.push(t.requiredPriorityPhone || 'Priority phone');
-      }
-
-      if (fsboMissing.length > 0) {
-        const hintMessage = `${t.requiredPrefix}: ${fsboMissing.join(' | ')}`;
-        setBasicRequiredMsg(hintMessage);
-        showInlineValidationHint('profile-a-fields', hintMessage);
-        return { valid: false, primaryProfile: null, profileAComplete, profileBComplete };
-      }
+    const result = evaluateMinimumProfileCompletion({
+      accountType,
+      name,
+      phone: personalPrimaryPhone,
+      email: personalEmail,
+      profileAComplete,
+      profileBComplete,
+      profileAReady,
+      profileBReady,
+      preferProfessionalPath,
+      copy: t,
+    });
+    if (result.valid) {
       setBasicRequiredMsg('');
       clearInlineValidationHint();
-      return { valid: true, primaryProfile: 'C', profileAComplete, profileBComplete };
+    } else {
+      setBasicRequiredMsg(result.message);
+      showInlineValidationHint(result.target, result.message);
     }
-
-    // Professional path: AT LEAST ONE complete path suffices:
-    //   Path 1: Personal (A) + Skills  OR  Path 2: Business (B) + Operations
-    if (profileAReady || profileBReady) {
-      setBasicRequiredMsg('');
-      clearInlineValidationHint();
-      return {
-        valid: true,
-        primaryProfile: profileBReady && !profileAReady
-          ? 'B'
-          : (profileAReady && !profileBReady ? 'A' : (preferProfessionalPath ? 'B' : 'A')),
-        profileAComplete,
-        profileBComplete,
-      };
-    }
-
-    // Neither path fully ready - guide user based on their active tab
-    if (preferProfessionalPath) {
-      if (!profileBComplete) {
-        const hintMessage = t.errorCompleteBusinessProfile || 'Complete the Business profile: full name, priority phone, email and contact methods.';
-        setBasicRequiredMsg(hintMessage);
-        showInlineValidationHint('tab-business', hintMessage);
-        return { valid: false, primaryProfile: null, profileAComplete, profileBComplete };
-      }
-      const hintMessage = t.errorCompleteOperationsTab || 'Complete Operations tab for Business: category, primary category and at least one state.';
-      setBasicRequiredMsg(hintMessage);
-      showInlineValidationHint('tab-operation', hintMessage);
-      return { valid: false, primaryProfile: null, profileAComplete, profileBComplete };
-    }
-
-    if (!profileAComplete) {
-      const hintMessage = t.errorCompletePersonalProfile || 'Complete the Personal profile: full name, priority phone, email and contact methods.';
-      setBasicRequiredMsg(hintMessage);
-      showInlineValidationHint('tab-personal', hintMessage);
-      return { valid: false, primaryProfile: null, profileAComplete, profileBComplete };
-    }
-
-    const hintMessage = t.errorCompleteSkillsTab || 'Complete Skills tab for Personal: category, primary category and at least one state.';
-    setBasicRequiredMsg(hintMessage);
-    showInlineValidationHint('tab-skills', hintMessage);
-    return { valid: false, primaryProfile: null, profileAComplete, profileBComplete };
+    return result;
   };
 
   const openPreviewToFeed = () => {
@@ -2592,32 +2553,31 @@ export function Onboarding({
     setPreviewOpen(true);
   };
 
-  const mobileStepCompletionMap = useMemo(() => ({
-    profileAName: !missingProfileAFullName,
-    profileAPhone: !missingProfileAPhone,
-    profileAEmail: !missingProfileAEmail,
-    profileAEmailOrPhone: !missingProfileAPhone || !missingProfileAEmail,
-    profileAContact: !missingProfileAContactMethods,
-    skillsCategories: !missingSkillsCategories,
-    skillsMarkets: !missingSkillsMarkets,
-    skillsPrimaryCategory: !missingSkillsPrimaryCategory,
-    profileBName: !missingProfileBFullName,
-    profileBPhone: !missingProfileBPhone,
-    profileBEmail: !missingProfileBEmail,
-    profileBContact: !missingProfileBContactMethods,
-    opsCategories: !missingOpsCategories,
-    opsMarkets: !missingOpsMarkets,
-    opsPrimaryCategory: !missingOpsPrimaryCategory,
-    portfolioAddress: !missingPortfolioAddress,
-    portfolioCity: !missingPortfolioCity,
-    portfolioZip: !missingPortfolioZip,
-    portfolioPrice: !missingPortfolioPrice,
-    portfolioType: !missingPortfolioType,
-    portfolioPrimaryProfile: !missingPortfolioPrimaryProfile,
-    serviceTitle: !missingServiceTitle,
-    serviceCategory: !missingServiceCategory,
-    servicePrice: !missingServicePrice,
-    servicePrimaryProfile: !missingServicePrimaryProfile,
+  const mobileStepCompletionMap = useMemo(() => buildMobileStepCompletion({
+    profileAFullName: missingProfileAFullName,
+    profileAPhone: missingProfileAPhone,
+    profileAEmail: missingProfileAEmail,
+    profileAContactMethods: missingProfileAContactMethods,
+    skillsCategories: missingSkillsCategories,
+    skillsMarkets: missingSkillsMarkets,
+    skillsPrimaryCategory: missingSkillsPrimaryCategory,
+    profileBFullName: missingProfileBFullName,
+    profileBPhone: missingProfileBPhone,
+    profileBEmail: missingProfileBEmail,
+    profileBContactMethods: missingProfileBContactMethods,
+    opsCategories: missingOpsCategories,
+    opsMarkets: missingOpsMarkets,
+    opsPrimaryCategory: missingOpsPrimaryCategory,
+    portfolioAddress: missingPortfolioAddress,
+    portfolioCity: missingPortfolioCity,
+    portfolioZip: missingPortfolioZip,
+    portfolioPrice: missingPortfolioPrice,
+    portfolioType: missingPortfolioType,
+    portfolioPrimaryProfile: missingPortfolioPrimaryProfile,
+    serviceTitle: missingServiceTitle,
+    serviceCategory: missingServiceCategory,
+    servicePrice: missingServicePrice,
+    servicePrimaryProfile: missingServicePrimaryProfile,
   }), [
     missingProfileAFullName,
     missingProfileAPhone,
@@ -3148,6 +3108,12 @@ export function Onboarding({
     }
 
     clearOnboardingDraft(draftUserId, accountType);
+    void trackProductEvent('profile_completed', {
+      entityType: 'profile',
+      entityId: draftUserId,
+      dedupeKey: `profile-completed:${draftUserId}:${accountType}`,
+      properties: { source: 'onboarding' },
+    });
     setPage('dashboard');
   };
 
@@ -3368,7 +3334,7 @@ export function Onboarding({
     : removeProfileThumb;
 
   return (
-    <div style={{ height: isMobileViewport ? 'auto' : 'calc(var(--app-vh, 1vh) * 100)', minHeight: isMobileViewport ? 'calc(var(--app-vh, 1vh) * 100)' : 0, padding: '66px 12px 4px', boxSizing: 'border-box', overflowX: 'hidden', overflowY: isMobileViewport ? 'auto' : 'hidden', WebkitOverflowScrolling: 'touch', position: 'relative', zIndex: 10 }}>
+    <div data-testid="onboarding-root" style={{ height: isMobileViewport ? 'auto' : 'calc(var(--app-vh, 1vh) * 100)', minHeight: isMobileViewport ? 'calc(var(--app-vh, 1vh) * 100)' : 0, padding: '66px 12px 4px', boxSizing: 'border-box', overflowX: 'hidden', overflowY: isMobileViewport ? 'auto' : 'hidden', WebkitOverflowScrolling: 'touch', position: 'relative', zIndex: 10 }}>
       <style>{`
         @keyframes blink-deal {
           0%, 100% { opacity: 1; transform: scale(1); }
@@ -3661,7 +3627,7 @@ export function Onboarding({
               title={(
                 <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}>
                   <span>{accountType === 'professional' ? t.sectionProfile : t.sectionBasicProfile}</span>
-                  <span title={profileSyncVisual.title} aria-label={profileSyncVisual.title} style={{ width: 11, height: 11, borderRadius: '50%', border: `1px solid ${profileSyncVisual.ring}`, display: 'inline-flex', alignItems: 'center', justifyContent: 'center' }}>
+                  <span role="img" title={profileSyncVisual.title} aria-label={profileSyncVisual.title} style={{ width: 11, height: 11, borderRadius: '50%', border: `1px solid ${profileSyncVisual.ring}`, display: 'inline-flex', alignItems: 'center', justifyContent: 'center' }}>
                     <span style={{ width: 5, height: 5, borderRadius: '50%', background: profileSyncVisual.dot }} />
                   </span>
                 </span>
@@ -4202,8 +4168,8 @@ export function Onboarding({
                   <button onClick={portfolioEntryType === 'property' ? addProfessionalPortfolioProperty : addProfessionalPortfolioService} style={{ flex: 1, padding: '8px 10px', borderRadius: 9, border: `1px solid ${C.accent}`, background: 'transparent', color: C.accent, fontWeight: 700, cursor: 'pointer', fontSize: 11 }}>
                     + Add to Portfolio
                   </button>
-                  <button data-guide="onboarding-publish" className={`onb-preview-feed ${isPreviewToFeedDirty ? 'is-dirty' : ''}`} onClick={openPreviewToFeed} style={{ flex: 1, padding: '8px 10px', borderRadius: 9, border: 'none', background: C.accent, color: '#1a1a1a', fontWeight: 700, cursor: 'pointer', fontSize: 11, display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: 6 }}>
-                    <Icon name="eye" size={13} color="#1a1a1a" />
+                  <button data-guide="onboarding-publish" className={`onb-preview-feed ${isPreviewToFeedDirty ? 'is-dirty' : ''}`} onClick={openPreviewToFeed} style={{ flex: 1, padding: '8px 10px', borderRadius: 9, border: 'none', background: C.accent, color: '#ffffff', fontWeight: 700, cursor: 'pointer', fontSize: 11, display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: 6 }}>
+                    <Icon name="eye" size={13} color="#ffffff" />
                     <span>{t.saveAndPreview}</span>
                   </button>
                 </div>

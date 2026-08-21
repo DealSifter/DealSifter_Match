@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useRef, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { C } from '../theme/colors';
 import { useT } from '../i18n/translations';
 import {
@@ -7,6 +7,7 @@ import {
   supabase,
   supabaseAnonKey,
 } from '../lib/supabaseClient';
+import { createRealtimeLifecycle, createRealtimeTopic } from '../lib/realtimeLifecycle';
 import { CHAT_LANGUAGE_OPTIONS, getSafeLang, translateChatText } from '../services/chatTranslation';
 
 const fmtInt = (value) => Number(value || 0).toLocaleString('en-US');
@@ -558,7 +559,7 @@ function SupportDeskPanel({ onChanged, t = {} }) {
   const [status, setStatus] = useState('');
   const [statusKind, setStatusKind] = useState('info');
 
-  const loadTickets = async () => {
+  const loadTickets = useCallback(async () => {
     if (!isSupabaseConfigured || !supabase) return;
     setLoading(true);
     setStatus('');
@@ -567,20 +568,23 @@ function SupportDeskPanel({ onChanged, t = {} }) {
       if (error) throw error;
       const list = Array.isArray(data?.tickets) ? data.tickets : [];
       setTickets(list);
-      if (!selectedTicket && list.length) setSelectedTicket(list[0]);
-      if (selectedTicket && !list.some((ticket) => String(ticket.id) === String(selectedTicket.id))) {
-        setSelectedTicket(list[0] || null);
-        setMessages([]);
-      }
+      setSelectedTicket((current) => {
+        if (!current && list.length) return list[0];
+        if (current && !list.some((ticket) => String(ticket.id) === String(current.id))) {
+          setMessages([]);
+          return list[0] || null;
+        }
+        return current;
+      });
     } catch (error) {
       setStatusKind('error');
       setStatus(`${t.supportLoadFailed || 'Support load failed'}: ${error?.message || 'RPC unavailable'}`);
     } finally {
       setLoading(false);
     }
-  };
+  }, [t]);
 
-  const loadThread = async (ticket) => {
+  const loadThread = useCallback(async (ticket) => {
     if (!ticket?.id || !isSupabaseConfigured || !supabase) return;
     setSelectedTicket(ticket);
     setStatus('');
@@ -594,7 +598,7 @@ function SupportDeskPanel({ onChanged, t = {} }) {
       setStatusKind('error');
       setStatus(`${t.supportThreadFailed || 'Thread failed'}: ${error?.message || 'RPC unavailable'}`);
     }
-  };
+  }, [loadTickets, t]);
 
   const sendReply = async (closeAfter = false, sendEmail = false) => {
     const body = String(reply || '').trim();
@@ -650,7 +654,7 @@ function SupportDeskPanel({ onChanged, t = {} }) {
   useEffect(() => {
     const timer = window.setTimeout(() => { void loadTickets(); }, 0);
     return () => window.clearTimeout(timer);
-  }, []);
+  }, [loadTickets]);
 
   const unreadTotal = tickets.reduce((sum, ticket) => sum + Number(ticket?.unreadForAdmin || 0), 0);
 
@@ -807,8 +811,14 @@ function SupportDeskWorkspace({ onChanged, onSummaryChange, t = {} }) {
   const [status, setStatus] = useState('');
   const [statusKind, setStatusKind] = useState('info');
   const supportTranslationCacheRef = useRef(new Map());
+  const selectedTicketRef = useRef(selectedTicket);
+  const loadTicketsRef = useRef(null);
 
-  const publishSummary = (list) => {
+  useEffect(() => {
+    selectedTicketRef.current = selectedTicket;
+  }, [selectedTicket]);
+
+  const publishSummary = useCallback((list) => {
     const rows = Array.isArray(list) ? list : [];
     onSummaryChange?.({
       total: rows.length,
@@ -816,34 +826,9 @@ function SupportDeskWorkspace({ onChanged, onSummaryChange, t = {} }) {
       open: rows.filter((ticket) => String(ticket?.status || '').toLowerCase() !== 'closed').length,
       closed: rows.filter((ticket) => String(ticket?.status || '').toLowerCase() === 'closed').length,
     });
-  };
+  }, [onSummaryChange]);
 
-  const loadTickets = async ({ keepSelection = true } = {}) => {
-    if (!isSupabaseConfigured || !supabase) return [];
-    setLoading(true);
-    setStatus('');
-    try {
-      const { data, error } = await supabase.rpc('admin_get_support_tickets', { p_status: 'all', p_limit: 80 });
-      if (error) throw error;
-      const list = Array.isArray(data?.tickets) ? data.tickets : [];
-      setTickets(list);
-      publishSummary(list);
-      if (!keepSelection || !selectedTicket || !list.some((ticket) => String(ticket.id) === String(selectedTicket.id))) {
-        const first = list.find((ticket) => String(ticket?.status || '').toLowerCase() !== 'closed') || list[0] || null;
-        setSelectedTicket(first);
-        if (first?.id) void loadThread(first, { refreshList: false });
-      }
-      return list;
-    } catch (error) {
-      setStatusKind('error');
-      setStatus(`${t.supportLoadFailed || 'Support load failed'}: ${error?.message || 'RPC unavailable'}`);
-      return [];
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const loadThread = async (ticket, options = {}) => {
+  const loadThread = useCallback(async (ticket, options = {}) => {
     if (!ticket?.id || !isSupabaseConfigured || !supabase) return;
     setSelectedTicket(ticket);
     setStatus('');
@@ -860,12 +845,42 @@ function SupportDeskWorkspace({ onChanged, onSummaryChange, t = {} }) {
         publishSummary(next);
         return next;
       });
-      if (options.refreshList !== false) await loadTickets();
+      if (options.refreshList !== false) await loadTicketsRef.current?.();
     } catch (error) {
       setStatusKind('error');
       setStatus(`${t.supportThreadFailed || 'Thread failed'}: ${error?.message || 'RPC unavailable'}`);
     }
-  };
+  }, [publishSummary, t]);
+
+  const loadTickets = useCallback(async ({ keepSelection = true } = {}) => {
+    if (!isSupabaseConfigured || !supabase) return [];
+    setLoading(true);
+    setStatus('');
+    try {
+      const { data, error } = await supabase.rpc('admin_get_support_tickets', { p_status: 'all', p_limit: 80 });
+      if (error) throw error;
+      const list = Array.isArray(data?.tickets) ? data.tickets : [];
+      setTickets(list);
+      publishSummary(list);
+      const currentTicket = selectedTicketRef.current;
+      if (!keepSelection || !currentTicket || !list.some((ticket) => String(ticket.id) === String(currentTicket.id))) {
+        const first = list.find((ticket) => String(ticket?.status || '').toLowerCase() !== 'closed') || list[0] || null;
+        setSelectedTicket(first);
+        if (first?.id) void loadThread(first, { refreshList: false });
+      }
+      return list;
+    } catch (error) {
+      setStatusKind('error');
+      setStatus(`${t.supportLoadFailed || 'Support load failed'}: ${error?.message || 'RPC unavailable'}`);
+      return [];
+    } finally {
+      setLoading(false);
+    }
+  }, [loadThread, publishSummary, t]);
+
+  useEffect(() => {
+    loadTicketsRef.current = loadTickets;
+  }, [loadTickets]);
 
   const buildReplyBody = async () => {
     const body = String(reply || '').trim();
@@ -995,7 +1010,7 @@ function SupportDeskWorkspace({ onChanged, onSummaryChange, t = {} }) {
   useEffect(() => {
     const timer = window.setTimeout(() => { void loadTickets({ keepSelection: false }); }, 0);
     return () => window.clearTimeout(timer);
-  }, []);
+  }, [loadTickets]);
 
   useEffect(() => {
     if (!isSupabaseConfigured || !supabase) return undefined;
@@ -1012,20 +1027,21 @@ function SupportDeskWorkspace({ onChanged, onSummaryChange, t = {} }) {
     };
 
     const selectedTicketId = selectedTicket?.id ? String(selectedTicket.id) : '';
+    const realtime = createRealtimeLifecycle(supabase);
     const channel = supabase
-      .channel(`admin-support-realtime-${selectedTicketId || 'all'}`)
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'support_tickets' }, () => scheduleRefresh(false))
-      .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'support_messages' }, (payload) => {
+      .channel(createRealtimeTopic(`admin-support-realtime-${selectedTicketId || 'all'}`, 'admin'))
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'support_tickets' }, realtime.guard(() => scheduleRefresh(false)))
+      .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'support_messages' }, realtime.guard((payload) => {
         const incomingTicketId = String(payload?.new?.ticket_id || '');
         scheduleRefresh(Boolean(selectedTicketId && incomingTicketId === selectedTicketId));
-      })
-      .subscribe();
+      }));
+    realtime.subscribe(channel);
 
     return () => {
       if (refreshTimer) window.clearTimeout(refreshTimer);
-      supabase.removeChannel(channel);
+      realtime.dispose();
     };
-  }, [selectedTicket?.id]);
+  }, [loadThread, loadTickets, selectedTicket]);
 
   const openTickets = tickets.filter((ticket) => String(ticket?.status || '').toLowerCase() !== 'closed');
   const closedTickets = tickets.filter((ticket) => String(ticket?.status || '').toLowerCase() === 'closed');
@@ -1356,7 +1372,7 @@ export function AdminDashboard({ setPage, prevPage, logoutAdmin }) {
   const [supportSummary, setSupportSummary] = useState({ total: 0, unread: 0, open: 0, closed: 0 });
   const [entitlementAlertInfoOpen, setEntitlementAlertInfoOpen] = useState(false);
 
-  const loadMetrics = async () => {
+  const loadMetrics = useCallback(async () => {
     if (!isSupabaseConfigured || !supabase) {
       setLoading(false);
       setError(t.supabaseNotConfigured || 'Supabase is not configured.');
@@ -1373,9 +1389,9 @@ export function AdminDashboard({ setPage, prevPage, logoutAdmin }) {
     } finally {
       setLoading(false);
     }
-  };
+  }, [t]);
 
-  const loadSupportSummary = async () => {
+  const loadSupportSummary = useCallback(async () => {
     if (!isSupabaseConfigured || !supabase) return;
     try {
       const { data, error: supportError } = await supabase.rpc('admin_get_support_tickets', { p_status: 'all', p_limit: 80 });
@@ -1390,7 +1406,7 @@ export function AdminDashboard({ setPage, prevPage, logoutAdmin }) {
     } catch {
       // KPI loading should not fail because support summary is unavailable.
     }
-  };
+  }, []);
 
   useEffect(() => {
     const timer = window.setTimeout(() => {
@@ -1398,7 +1414,7 @@ export function AdminDashboard({ setPage, prevPage, logoutAdmin }) {
       void loadSupportSummary();
     }, 0);
     return () => window.clearTimeout(timer);
-  }, []);
+  }, [loadMetrics, loadSupportSummary]);
 
   const tiles = useMemo(() => {
     const m = metrics || {};

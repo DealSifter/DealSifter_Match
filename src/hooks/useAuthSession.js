@@ -1,6 +1,8 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { supabase, isSupabaseConfigured, supabaseConfigHint } from '../lib/supabaseClient';
 import { clearSensitiveCache } from '../lib/localStoragePolicy';
+import { captureOperationalMetric } from '../lib/observability';
+import { trackProductEvent } from '../lib/productAnalytics';
 
 export const mapSupabaseUserToSession = (user, mode = 'login', provider = 'supabase') => ({
   id: user?.id || null,
@@ -139,6 +141,12 @@ export function useAuthSession({
         return next;
       });
       applySystemAccountFromSession(next);
+      void trackProductEvent('session_started', {
+        entityType: 'session',
+        entityId: user.id,
+        dedupeKey: `session-started:${user.id}:${next.loginAt}`,
+        properties: { source: restoreNavigation ? 'restored' : 'auth_state' },
+      });
 
       if (!sameUser || restoreNavigation) {
         try {
@@ -193,6 +201,7 @@ export function useAuthSession({
   const handleAuthSubmit = useCallback(async (payload) => {
     if (isSupabaseConfigured && supabase) {
       setIsAuthProcessing(true);
+      const startedAt = Date.now();
       const mode = payload?.mode === 'signup' ? 'signup' : 'login';
       const email = String(payload?.email || '').trim();
       const password = String(payload?.password || '');
@@ -203,6 +212,13 @@ export function useAuthSession({
         if (provider === 'credentials' && mode === 'login') {
           const guard = consumeRateLimit?.(`login:${email.toLowerCase()}`, 7, 10 * 60 * 1000, 15 * 60 * 1000);
           if (guard && !guard.allowed) {
+            captureOperationalMetric('auth.credentials', {
+              success: false,
+              duration_ms: Date.now() - startedAt,
+              error_category: 'AUTH',
+              error_code: 'RATE_LIMITED',
+              mode,
+            });
             addToast?.({ type: 'warning', message: 'Too many attempts. Try again in a few minutes.' });
             appendSecurityAuditEvent?.({ type: 'login', status: 'blocked', message: 'Login temporarily rate-limited.', email });
             return;
@@ -215,6 +231,11 @@ export function useAuthSession({
             options: { redirectTo: authRedirectUrl },
           });
           if (error) throw error;
+          captureOperationalMetric('auth.oauth_start', {
+            success: true,
+            duration_ms: Date.now() - startedAt,
+            provider: 'google',
+          });
           return;
         }
 
@@ -236,11 +257,29 @@ export function useAuthSession({
             applySystemAccountFromSession(next);
             onAuthenticated?.(next);
             appendSecurityAuditEvent?.({ type: 'signup', status: 'success', message: 'New account created and signed in.', email });
+            void trackProductEvent('auth_signed_in', {
+              entityType: 'user',
+              entityId: data.session.user.id,
+              dedupeKey: `auth-signed-in:${data.session.user.id}:${next.loginAt}`,
+              properties: { source: 'signup', auth_provider: 'credentials' },
+            });
+            captureOperationalMetric('auth.credentials', {
+              success: true,
+              duration_ms: Date.now() - startedAt,
+              mode,
+              session_created: true,
+            });
             return;
           }
 
           addToast?.({ type: 'success', title: 'Conta criada', message: 'Confira seu email para confirmar o acesso.' });
           appendSecurityAuditEvent?.({ type: 'signup', status: 'pending_verification', message: 'Account created awaiting email verification.', email });
+          captureOperationalMetric('auth.credentials', {
+            success: true,
+            duration_ms: Date.now() - startedAt,
+            mode,
+            session_created: false,
+          });
           onAuthenticated?.(null, { closeOnly: true });
           return;
         }
@@ -255,9 +294,30 @@ export function useAuthSession({
           applySystemAccountFromSession(next);
           onAuthenticated?.(next);
           appendSecurityAuditEvent?.({ type: 'login', status: 'success', message: 'User signed in with credentials.', email });
+          void trackProductEvent('auth_signed_in', {
+            entityType: 'user',
+            entityId: data.session.user.id,
+            dedupeKey: `auth-signed-in:${data.session.user.id}:${next.loginAt}`,
+            properties: { source: 'login', auth_provider: 'credentials' },
+          });
         }
+        captureOperationalMetric('auth.credentials', {
+          success: Boolean(data?.session?.user),
+          duration_ms: Date.now() - startedAt,
+          error_category: data?.session?.user ? undefined : 'AUTH',
+          error_code: data?.session?.user ? undefined : 'SESSION_MISSING',
+          mode,
+        });
         return;
       } catch (error) {
+        captureOperationalMetric('auth.submit', {
+          success: false,
+          duration_ms: Date.now() - startedAt,
+          error_category: 'AUTH',
+          error_code: String(error?.code || error?.status || 'AUTH_FAILED').slice(0, 64),
+          mode,
+          provider,
+        });
         safeLogError?.('Supabase auth submit failed.', error);
         appendSecurityAuditEvent?.({ type: 'login', status: 'failed', message: String(error?.message || 'Authentication failed.'), email });
         addToast?.({ type: 'error', title: 'Erro de autenticacao', message: String(error?.message || 'Falha na autenticacao com Supabase.') });

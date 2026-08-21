@@ -1,258 +1,56 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { Icon } from '../ui/Icon';
-import { getLang } from '../../i18n/translations';
 import { C } from '../../theme/colors';
 import { MAXXIS_WIDGET_POSITION_KEY } from '../../lib/localStoragePolicy';
-import { getMaxxisGreeting, sendMaxxisMessage } from '../../services/maxxisService';
+import {
+  analyzeMaxxisProviderConversation,
+  cancelMaxxisProfileAction,
+  cancelMaxxisProviderContactUnlock,
+  confirmMaxxisProfileAction,
+  cancelMaxxisProviderMessageSend,
+  confirmMaxxisProviderContactUnlock,
+  confirmMaxxisProviderMessageSend,
+  getMaxxisGreeting,
+  prepareMaxxisProviderMessageSend,
+  prepareMaxxisProviderMessageDraft,
+  prepareMaxxisProviderContactUnlock,
+  setMaxxisDealWorkflowManualItem,
+  sendMaxxisMessage,
+} from '../../services/maxxisService';
 import { captureAppException } from '../../lib/observability';
+import { trackProductEvent } from '../../lib/productAnalytics';
 import maxxisLogo from '../../assets/logo.png';
 import './MaxxisAssistant.css';
 
-const COPY = {
-  en: {
-    title: 'Maxxis Assistant',
-    status: 'DealSifter guide',
-    placeholder: 'Ask about DealSifter, Tax Deeds or Wholesale...',
-    send: 'Send',
-    reset: 'New conversation',
-    close: 'Close',
-    open: 'Open Maxxis Assistant',
-    support: 'Human support',
-    typing: 'Maxxis is thinking...',
-    unavailable: 'I had a temporary issue. Please try again or contact human support.',
-    exportAnalysisPdf: 'Export analysis PDF',
-    exportingAnalysisPdf: 'Exporting...',
-    scope: 'Maxxis can help with app usage, Tax Deeds, Wholesale and DealSifter workflows.',
-  },
-  pt: {
-    title: 'Assistente Maxxis',
-    status: 'Guia do DealSifter',
-    placeholder: 'Pergunte sobre DealSifter, Tax Deeds ou Wholesale...',
-    send: 'Enviar',
-    reset: 'Nova conversa',
-    close: 'Fechar',
-    open: 'Abrir Assistente Maxxis',
-    support: 'Suporte humano',
-    typing: 'Maxxis esta pensando...',
-    unavailable: 'Tive uma dificuldade temporaria. Tente novamente ou fale com o suporte humano.',
-    exportAnalysisPdf: 'Exportar PDF da analise',
-    exportingAnalysisPdf: 'Exportando...',
-    scope: 'Maxxis ajuda com uso do app, Tax Deeds, Wholesale e fluxos do DealSifter.',
-  },
-  es: {
-    title: 'Asistente Maxxis',
-    status: 'Guia de DealSifter',
-    placeholder: 'Pregunta sobre DealSifter, Tax Deeds o Wholesale...',
-    send: 'Enviar',
-    reset: 'Nueva conversacion',
-    close: 'Cerrar',
-    open: 'Abrir Asistente Maxxis',
-    support: 'Soporte humano',
-    typing: 'Maxxis esta pensando...',
-    unavailable: 'Tuve un problema temporal. Intentalo otra vez o contacta soporte humano.',
-    exportAnalysisPdf: 'Exportar PDF del analisis',
-    exportingAnalysisPdf: 'Exportando...',
-    scope: 'Maxxis ayuda con uso de la app, Tax Deeds, Wholesale y flujos de DealSifter.',
-  },
-};
+import {
+  COPY,
+  MessageBubble,
+  PROPERTY_SERVICE_NEEDS_COPY,
+  UUID_PATTERN,
+  clampWidgetPosition,
+  findLatestProviderConversationContext,
+  getUiLang,
+  isProviderConversationIntent,
+  normalizeActionId,
+  readStoredWidgetPosition,
+  stripActionTokens,
+} from './MaxxisCapabilities';
 
-const ACTION_DEFINITIONS = {
-  feed: {
-    en: 'Open Feed',
-    pt: 'Abrir Feed',
-    es: 'Abrir Feed',
-  },
-  mapview: {
-    en: 'Open MapView',
-    pt: 'Abrir MapView',
-    es: 'Abrir MapView',
-  },
-  matches: {
-    en: 'Open Matches',
-    pt: 'Abrir Matches',
-    es: 'Abrir Matches',
-  },
-  pricing: {
-    en: 'Open Pricing',
-    pt: 'Abrir Pricing',
-    es: 'Abrir Pricing',
-  },
-  onboarding: {
-    en: 'Create or edit cards',
-    pt: 'Criar ou editar cards',
-    es: 'Crear o editar cards',
-  },
-  settings: {
-    en: 'Open Settings',
-    pt: 'Abrir Configuracoes',
-    es: 'Abrir Configuracion',
-  },
-  profile: {
-    en: 'Open Profile',
-    pt: 'Abrir Perfil',
-    es: 'Abrir Perfil',
-  },
-  notifications: {
-    en: 'Open Notifications',
-    pt: 'Abrir Notificacoes',
-    es: 'Abrir Notificaciones',
-  },
-  support: {
-    en: 'Open Support Chat',
-    pt: 'Abrir Suporte',
-    es: 'Abrir Soporte',
-  },
-  admin: {
-    en: 'Open Admin System',
-    pt: 'Abrir Adm.System',
-    es: 'Abrir Adm.System',
-  },
-};
-
-const ACTION_TOKEN_RE = /\[\[action:([a-z0-9_-]+)\|([^\]]{1,90})\]\]/gi;
-
-function getUiLang() {
-  const lang = String(getLang?.() || 'en').slice(0, 2).toLowerCase();
-  return ['en', 'pt', 'es'].includes(lang) ? lang : 'en';
-}
-
-function normalizeActionId(value) {
-  const normalized = String(value || '').trim().toLowerCase().replace(/_/g, '-');
-  if (normalized === 'map' || normalized === 'map-view') return 'mapview';
-  if (normalized === 'new-card' || normalized === 'cards' || normalized === 'onboard') return 'onboarding';
-  if (normalized === 'preferences' || normalized === 'privacy' || normalized === 'payments') return 'settings';
-  return ACTION_DEFINITIONS[normalized] ? normalized : null;
-}
-
-function getActionLabel(actionId, label, language) {
-  const cleanLabel = String(label || '').replace(/\s+/g, ' ').trim();
-  if (cleanLabel) return cleanLabel.slice(0, 90);
-  return ACTION_DEFINITIONS[actionId]?.[language] || ACTION_DEFINITIONS[actionId]?.en || 'Open';
-}
-
-function parseActionContent(content, language) {
-  const actions = [];
-  const text = String(content || '').replace(ACTION_TOKEN_RE, (_match, rawAction, rawLabel) => {
-    const actionId = normalizeActionId(rawAction);
-    if (actionId) {
-      actions.push({
-        id: actionId,
-        label: getActionLabel(actionId, rawLabel, language),
-      });
-    }
-    return '';
-  }).replace(/\n{3,}/g, '\n\n').trim();
-
-  const dedupedActions = [];
-  const seen = new Set();
-  actions.forEach((action) => {
-    if (!action?.id || seen.has(action.id)) return;
-    seen.add(action.id);
-    dedupedActions.push(action);
-  });
-
-  return { text, actions: dedupedActions.slice(0, 3) };
-}
-
-function stripActionTokens(content) {
-  return String(content || '').replace(ACTION_TOKEN_RE, '').replace(/\s+/g, ' ').trim();
-}
-
-function formatTime(date) {
-  try {
-    return new Intl.DateTimeFormat(undefined, { hour: '2-digit', minute: '2-digit' }).format(date);
-  } catch {
-    return '';
-  }
-}
-
-function getViewportBounds() {
-  if (typeof window === 'undefined') return { width: 0, height: 0 };
-  return {
-    width: window.innerWidth || document.documentElement?.clientWidth || 0,
-    height: window.innerHeight || document.documentElement?.clientHeight || 0,
-  };
-}
-
-function clampWidgetPosition(position) {
-  const { width, height } = getViewportBounds();
-  if (!width || !height || !position) return null;
-  const size = width <= 767 ? 58 : 62;
-  const margin = 8;
-  return {
-    x: Math.min(Math.max(Number(position.x) || margin, margin), Math.max(margin, width - size - margin)),
-    y: Math.min(Math.max(Number(position.y) || margin, margin), Math.max(margin, height - size - margin)),
-  };
-}
-
-function readStoredWidgetPosition() {
-  if (typeof window === 'undefined') return null;
-  try {
-    const raw = window.localStorage.getItem(MAXXIS_WIDGET_POSITION_KEY);
-    if (!raw) return null;
-    return clampWidgetPosition(JSON.parse(raw));
-  } catch {
-    return null;
-  }
-}
-
-function MessageBubble({ message, language, onAction, onExportAnalysisPdf, exportAnalysisLabel, exportingAnalysisLabel, isExportingAnalysis }) {
-  const isUser = message.role === 'user';
-  const { text, actions } = isUser
-    ? { text: String(message.content || ''), actions: [] }
-    : parseActionContent(message.content, language);
-  return (
-    <div className={`maxxis-message ${isUser ? 'maxxis-message-user' : 'maxxis-message-assistant'} ${message.error ? 'maxxis-message-error' : ''}`}>
-      {text ? (
-        <div className="maxxis-message-body">
-          {String(text || '').split('\n').map((line, index, arr) => (
-            <React.Fragment key={`${message.id}-line-${index}`}>
-              {line}
-              {index < arr.length - 1 ? <br /> : null}
-            </React.Fragment>
-          ))}
-        </div>
-      ) : null}
-      {actions.length ? (
-        <div className="maxxis-action-links" aria-label="Maxxis navigation actions">
-          {actions.map((action) => (
-            <button
-              type="button"
-              key={`${message.id}-${action.id}`}
-              className="maxxis-action-link"
-              onClick={() => onAction?.(action.id)}
-            >
-              <span>{action.label}</span>
-              <Icon name="arrowRight" size={13} color="currentColor" strokeWidth={2.1} />
-            </button>
-          ))}
-        </div>
-      ) : null}
-      {message.analysisExport ? (
-        <div className="maxxis-action-links" aria-label="Maxxis analysis export">
-          <button
-            type="button"
-            className="maxxis-action-link maxxis-analysis-export"
-            disabled={isExportingAnalysis}
-            onClick={() => onExportAnalysisPdf?.(message.analysisExport, message.content, message.id)}
-          >
-            <span>{isExportingAnalysis ? exportingAnalysisLabel : exportAnalysisLabel}</span>
-            <Icon name="doc" size={13} color="currentColor" strokeWidth={2.1} />
-          </button>
-        </div>
-      ) : null}
-      <div className="maxxis-message-meta">{formatTime(message.createdAt)}</div>
-    </div>
-  );
-}
-
-export function MaxxisAssistant({ page = 'dashboard', onOpenSupport = null, onNavigateAction = null, propertyAnalysisRequest = null, onExportAnalysisPdf = null, enabled = true }) {
+export function MaxxisAssistant({ page = 'dashboard', onOpenSupport = null, onNavigateAction = null, propertyAnalysisRequest = null, propertyContextId = '', onExportAnalysisPdf = null, onNuggetBalanceChange = null, onProviderUnlockConfirmed = null, enabled = true }) {
   const language = getUiLang();
   const t = COPY[language] || COPY.en;
   const [open, setOpen] = useState(false);
   const [input, setInput] = useState('');
   const [loading, setLoading] = useState(false);
   const [exportingAnalysisId, setExportingAnalysisId] = useState(null);
+  const [activeProfileActionId, setActiveProfileActionId] = useState('');
+  const [activeProviderUnlockId, setActiveProviderUnlockId] = useState('');
+  const [activeProviderDraftId, setActiveProviderDraftId] = useState('');
+  const [activeProviderMessageSendId, setActiveProviderMessageSendId] = useState('');
+  const [activeProviderConversationAnalysisId, setActiveProviderConversationAnalysisId] = useState('');
+  const [activeWorkflowItemCode, setActiveWorkflowItemCode] = useState('');
+  const [pendingProviderUnlock, setPendingProviderUnlock] = useState(null);
+  const [pendingProviderMessageSend, setPendingProviderMessageSend] = useState(null);
   const [widgetPosition, setWidgetPosition] = useState(readStoredWidgetPosition);
   const [dragging, setDragging] = useState(false);
   const [messages, setMessages] = useState(() => [{
@@ -262,7 +60,10 @@ export function MaxxisAssistant({ page = 'dashboard', onOpenSupport = null, onNa
     createdAt: new Date(),
   }]);
   const endRef = useRef(null);
+  const inputRef = useRef(null);
   const handledAnalysisRequestsRef = useRef(new Set());
+  const propertyAnalysisRequestRef = useRef(propertyAnalysisRequest);
+  const submitMessageRef = useRef(null);
   const dragRef = useRef({
     active: false,
     moved: false,
@@ -274,9 +75,26 @@ export function MaxxisAssistant({ page = 'dashboard', onOpenSupport = null, onNa
   });
 
   useEffect(() => {
+    propertyAnalysisRequestRef.current = propertyAnalysisRequest;
+  }, [propertyAnalysisRequest]);
+
+  useEffect(() => {
     if (!open) return;
     endRef.current?.scrollIntoView({ behavior: 'smooth', block: 'end' });
   }, [messages, loading, open]);
+
+  useEffect(() => {
+    if (!open) return undefined;
+    const focusTimer = window.setTimeout(() => inputRef.current?.focus(), 0);
+    const closeOnEscape = (event) => {
+      if (event.key === 'Escape') setOpen(false);
+    };
+    document.addEventListener('keydown', closeOnEscape);
+    return () => {
+      window.clearTimeout(focusTimer);
+      document.removeEventListener('keydown', closeOnEscape);
+    };
+  }, [open]);
 
   useEffect(() => {
     setMessages((prev) => {
@@ -347,6 +165,19 @@ export function MaxxisAssistant({ page = 'dashboard', onOpenSupport = null, onNa
     [messages],
   );
 
+  const comparisonPropertyIds = useMemo(() => {
+    for (let index = messages.length - 1; index >= 0; index -= 1) {
+      const message = messages[index];
+      if (message.type !== 'properties' || !Array.isArray(message.data?.properties)) continue;
+      return Array.from(new Set(
+        message.data.properties
+          .map((property) => String(property?.id || '').trim())
+          .filter((id) => UUID_PATTERN.test(id)),
+      )).slice(0, 20);
+    }
+    return [];
+  }, [messages]);
+
   const resetConversation = () => {
     setMessages([{
       id: `maxxis-greeting-${Date.now()}`,
@@ -355,6 +186,11 @@ export function MaxxisAssistant({ page = 'dashboard', onOpenSupport = null, onNa
       createdAt: new Date(),
     }]);
     setInput('');
+    setPendingProviderUnlock(null);
+    setPendingProviderMessageSend(null);
+    setActiveProviderDraftId('');
+    setActiveProviderMessageSendId('');
+    setActiveProviderConversationAnalysisId('');
   };
 
   const persistWidgetPosition = (position) => {
@@ -407,18 +243,64 @@ export function MaxxisAssistant({ page = 'dashboard', onOpenSupport = null, onNa
     setLoading(true);
 
     try {
+      if (isProviderConversationIntent(cleanMessage)) {
+        const providerConversationContext = findLatestProviderConversationContext(messages);
+        if (!providerConversationContext) {
+          setMessages((prev) => [...prev, {
+            id: `maxxis-provider-conversation-context-missing-${Date.now()}`,
+            role: 'assistant',
+            content: t.providerConversationContextMissing,
+            createdAt: new Date(),
+          }]);
+          return;
+        }
+        const result = await analyzeMaxxisProviderConversation({
+          ...providerConversationContext,
+          question: cleanMessage,
+        });
+        setMessages((prev) => [...prev, {
+          id: `maxxis-provider-conversation-analysis-${Date.now()}`,
+          role: 'assistant',
+          content: result?.data?.summary || t.unavailable,
+          createdAt: new Date(),
+          type: 'provider_conversation_analysis',
+          data: result?.data || null,
+        }]);
+        return;
+      }
       const result = await sendMaxxisMessage({
         message: cleanMessage,
         history: historyForRequest,
         page,
         language,
+        propertyId: propertyContextId,
+        propertyIds: comparisonPropertyIds,
       });
+      const responseType = String(result?.type || 'text');
+      if (responseType === 'properties') {
+        void trackProductEvent('maxxis_property_search', { dedupeKey: `maxxis-search:${userMessage.id}`, properties: { source: 'maxxis', response_type: responseType } });
+      }
+      if (responseType === 'deal_copilot_overview') {
+        const propertyId = String(result?.data?.property?.id || propertyContextId || '');
+        void trackProductEvent('deal_copilot_opened', { entityType: 'property', entityId: propertyId, dedupeKey: `deal-copilot:${userMessage.id}`, properties: { source: 'maxxis', response_type: responseType } });
+      }
+      const providerCount = Array.isArray(result?.data?.services)
+        ? result.data.services.length
+        : (Array.isArray(result?.data?.serviceMatches) ? result.data.serviceMatches.reduce((total, match) => total + (Array.isArray(match?.services) ? match.services.length : 0), 0) : 0);
+      if (providerCount > 0) {
+        void trackProductEvent('provider_suggested', { dedupeKey: `provider-suggested:${userMessage.id}`, properties: { source: 'maxxis', provider_count: providerCount, response_type: responseType } });
+      }
+      if (result?.data?.nextBestAction?.code) {
+        void trackProductEvent('next_best_action_seen', { entityType: 'property', entityId: result?.data?.property?.id || propertyContextId, dedupeKey: `next-action-seen:${userMessage.id}`, properties: { source: 'maxxis', workflow_code: result.data.nextBestAction.code } });
+      }
       setMessages((prev) => [...prev, {
         id: `maxxis-assistant-${Date.now()}`,
         role: 'assistant',
         content: result.answer,
         createdAt: new Date(),
         error: Boolean(result.unavailable),
+        type: result.type,
+        data: result.data,
         analysisExport: result.unavailable ? null : (meta.analysisExport || null),
       }]);
     } catch (error) {
@@ -432,6 +314,336 @@ export function MaxxisAssistant({ page = 'dashboard', onOpenSupport = null, onNa
       }]);
     } finally {
       setLoading(false);
+    }
+  };
+  useEffect(() => {
+    submitMessageRef.current = submitMessage;
+  });
+
+  const updateProfileSuggestionMessage = (messageId, pendingActionId, feedback) => {
+    setMessages((prev) => prev.map((message) => {
+      if (message.id !== messageId) return message;
+      const suggestions = Array.isArray(message.data?.profileSuggestions)
+        ? message.data.profileSuggestions.filter((item) => String(item.pendingActionId || '') !== pendingActionId)
+        : [];
+      return { ...message, data: { ...(message.data || {}), profileSuggestions: suggestions, profileActionFeedback: feedback } };
+    }));
+  };
+
+  const handleConfirmProfileSuggestion = async (messageId, suggestion) => {
+    const actionId = String(suggestion?.pendingActionId || '');
+    if (!actionId || activeProfileActionId) return;
+    setActiveProfileActionId(actionId);
+    try {
+      await confirmMaxxisProfileAction(actionId);
+      updateProfileSuggestionMessage(messageId, actionId, { status: 'success', value: suggestion.suggestedValue });
+    } catch (error) {
+      captureAppException(error, { area: 'maxxis_profile_action_confirm', operation: suggestion?.operation });
+      setMessages((prev) => prev.map((message) => message.id === messageId
+        ? { ...message, data: { ...(message.data || {}), profileActionFeedback: { status: 'error' } } }
+        : message));
+    } finally {
+      setActiveProfileActionId('');
+    }
+  };
+
+  const handleCancelProfileSuggestion = async (messageId, suggestion) => {
+    const actionId = String(suggestion?.pendingActionId || '');
+    if (!actionId || activeProfileActionId) return;
+    setActiveProfileActionId(actionId);
+    try {
+      await cancelMaxxisProfileAction(actionId);
+      updateProfileSuggestionMessage(messageId, actionId, null);
+    } catch (error) {
+      captureAppException(error, { area: 'maxxis_profile_action_cancel', operation: suggestion?.operation });
+      setMessages((prev) => prev.map((message) => message.id === messageId
+        ? { ...message, data: { ...(message.data || {}), profileActionFeedback: { status: 'error' } } }
+        : message));
+    } finally {
+      setActiveProfileActionId('');
+    }
+  };
+
+  const updateProviderContactAccess = (messageId, serviceId, contactAccess, contact = null) => {
+    const cleanServiceId = String(serviceId || '');
+    setMessages((prev) => prev.map((message) => {
+      if (message.id !== messageId) return message;
+      const updateService = (service) => {
+        if (String(service?.id || '') !== cleanServiceId) return service;
+        return {
+          ...service,
+          contactAccess: {
+            ...(service.contactAccess || {}),
+            ...(contactAccess || {}),
+            ...(contact ? { contact } : {}),
+          },
+        };
+      };
+      const data = { ...(message.data || {}) };
+      if (Array.isArray(data.services)) data.services = data.services.map(updateService);
+      if (Array.isArray(data.serviceMatches)) {
+        data.serviceMatches = data.serviceMatches.map((match) => ({
+          ...match,
+          services: Array.isArray(match.services) ? match.services.map(updateService) : match.services,
+        }));
+      }
+      return { ...message, data };
+    }));
+  };
+
+  const handlePrepareProviderUnlock = async (messageId, service) => {
+    const serviceId = String(service?.id || '');
+    if (!serviceId || activeProviderUnlockId) return;
+    setActiveProviderUnlockId(serviceId);
+    try {
+      const result = await prepareMaxxisProviderContactUnlock(serviceId);
+      if (result?.contactAccess) {
+        updateProviderContactAccess(messageId, serviceId, result.contactAccess, result.contact || null);
+      }
+      setPendingProviderUnlock(result?.action?.intentToken
+        ? { ...result.action, messageId, serviceId }
+        : null);
+      void trackProductEvent('provider_unlock_started', { entityType: 'service', entityId: serviceId, dedupeKey: `provider-unlock-started:${result?.action?.intentToken || serviceId}`, properties: { source: 'maxxis' } });
+    } catch (error) {
+      captureAppException(error, { area: 'maxxis_provider_unlock_prepare', serviceId });
+      if (error?.contactAccess) updateProviderContactAccess(messageId, serviceId, error.contactAccess);
+    } finally {
+      setActiveProviderUnlockId('');
+    }
+  };
+
+  const handleConfirmProviderUnlock = async (pending) => {
+    const serviceId = String(pending?.serviceId || '');
+    const intentToken = String(pending?.intentToken || '');
+    if (!serviceId || !intentToken || activeProviderUnlockId) return;
+    setActiveProviderUnlockId(serviceId);
+    try {
+      const result = await confirmMaxxisProviderContactUnlock({ serviceId, intentToken });
+      updateProviderContactAccess(
+        pending.messageId,
+        serviceId,
+        result?.contactAccess || { status: 'already_unlocked', cost: 0, currency: 'nuggets' },
+        result?.contact || null,
+      );
+      const confirmedBalance = result?.remainingNuggets ?? result?.remaining_nuggets ?? null;
+      if (confirmedBalance !== null && typeof onNuggetBalanceChange === 'function') {
+        onNuggetBalanceChange(confirmedBalance);
+      }
+      if (typeof onProviderUnlockConfirmed === 'function') onProviderUnlockConfirmed(result);
+      void trackProductEvent('provider_unlocked', { entityType: 'service', entityId: serviceId, dedupeKey: `provider-unlocked:${intentToken}`, properties: { source: 'maxxis', status: result?.contactAccess?.status || 'unlocked' } });
+      setPendingProviderUnlock(null);
+    } catch (error) {
+      captureAppException(error, { area: 'maxxis_provider_unlock_confirm', serviceId });
+      if (error?.contactAccess) updateProviderContactAccess(pending.messageId, serviceId, error.contactAccess);
+    } finally {
+      setActiveProviderUnlockId('');
+    }
+  };
+
+  const handleCancelProviderUnlock = async (pending) => {
+    const serviceId = String(pending?.serviceId || '');
+    const intentToken = String(pending?.intentToken || '');
+    if (!serviceId || !intentToken || activeProviderUnlockId) return;
+    setActiveProviderUnlockId(serviceId);
+    try {
+      await cancelMaxxisProviderContactUnlock(intentToken);
+      setPendingProviderUnlock(null);
+    } catch (error) {
+      captureAppException(error, { area: 'maxxis_provider_unlock_cancel', serviceId });
+    } finally {
+      setActiveProviderUnlockId('');
+    }
+  };
+
+  const handlePrepareProviderMessageDraft = async (messageId, service, propertyId) => {
+    const serviceId = String(service?.id || '');
+    const cleanPropertyId = String(propertyId || '');
+    if (!serviceId || !cleanPropertyId || activeProviderDraftId) return;
+    setActiveProviderDraftId(serviceId);
+    try {
+      const result = await prepareMaxxisProviderMessageDraft({ serviceId, propertyId: cleanPropertyId, language });
+      if (result?.data?.draft) {
+        void trackProductEvent('provider_message_drafted', { entityType: 'service', entityId: serviceId, dedupeKey: `provider-message-drafted:${serviceId}:${cleanPropertyId}`, properties: { source: 'maxxis' } });
+        setMessages((prev) => [...prev, {
+          id: `maxxis-provider-message-draft-${Date.now()}`,
+          role: 'assistant',
+          content: result.message || 'Provider message draft prepared.',
+          createdAt: new Date(),
+          type: 'provider_message_draft',
+          data: result.data,
+        }]);
+      }
+    } catch (error) {
+      captureAppException(error, { area: 'maxxis_provider_message_draft', serviceId, propertyId: cleanPropertyId });
+      if (error?.contactAccess) updateProviderContactAccess(messageId, serviceId, error.contactAccess);
+      const copy = PROPERTY_SERVICE_NEEDS_COPY[language] || PROPERTY_SERVICE_NEEDS_COPY.en;
+      setMessages((prev) => [...prev, {
+        id: `maxxis-provider-message-draft-error-${Date.now()}`,
+        role: 'assistant',
+        content: copy.draftUnavailable,
+        createdAt: new Date(),
+        error: true,
+      }]);
+    } finally {
+      setActiveProviderDraftId('');
+    }
+  };
+
+  const handleUpdateProviderMessageDraft = (messageId, draft) => {
+    setMessages((prev) => prev.map((message) => (message.id === messageId
+      ? { ...message, data: { ...(message.data || {}), draft: String(draft || '').slice(0, 1800), sendError: null, sendIdempotencyKey: null } }
+      : message)));
+    setPendingProviderMessageSend((current) => (current?.messageId === messageId ? null : current));
+  };
+
+  const updateProviderMessageDraftSendState = (messageId, patch) => {
+    setMessages((prev) => prev.map((message) => (message.id === messageId
+      ? { ...message, data: { ...(message.data || {}), ...(patch || {}) } }
+      : message)));
+  };
+
+  const handlePrepareProviderMessageSend = async (message) => {
+    const messageId = String(message?.id || '');
+    const serviceId = String(message?.data?.serviceId || '');
+    const propertyId = String(message?.data?.propertyId || '');
+    const messageText = String(message?.data?.draft || message?.data?.suggestedReply || '').trim();
+    if (!messageId || !serviceId || !propertyId || !messageText || activeProviderMessageSendId) return;
+    const idempotencyKey = String(message?.data?.sendIdempotencyKey || `maxxis-send:${messageId}:${Date.now()}`).slice(0, 120);
+    updateProviderMessageDraftSendState(messageId, { sendIdempotencyKey: idempotencyKey, sendError: null });
+    setActiveProviderMessageSendId(messageId);
+    try {
+      const result = await prepareMaxxisProviderMessageSend({
+        serviceId,
+        propertyId,
+        message: messageText,
+        idempotencyKey,
+      });
+      if (result?.data?.actionId) {
+        setPendingProviderMessageSend({
+          ...result.data,
+          messageId,
+          draftSnapshot: messageText,
+          sourceType: message.type || '',
+        });
+      }
+    } catch (error) {
+      captureAppException(error, { area: 'maxxis_provider_message_prepare', serviceId, propertyId });
+      updateProviderMessageDraftSendState(messageId, { sendError: String(error?.code || error?.message || 'send_prepare_failed') });
+    } finally {
+      setActiveProviderMessageSendId('');
+    }
+  };
+
+  const handleConfirmProviderMessageSend = async (pending) => {
+    const actionId = String(pending?.actionId || '');
+    const messageId = String(pending?.messageId || '');
+    if (!actionId || !messageId || activeProviderMessageSendId) return;
+    setActiveProviderMessageSendId(actionId);
+    try {
+      const result = await confirmMaxxisProviderMessageSend(actionId);
+      updateProviderMessageDraftSendState(messageId, {
+        sentStatus: result?.data?.status || 'sent',
+        sentMessageId: result?.data?.messageId || null,
+        sendError: null,
+      });
+      setPendingProviderMessageSend(null);
+      void trackProductEvent('provider_message_sent', { entityType: 'service', entityId: pending?.serviceId, dedupeKey: `provider-message-sent:${result?.data?.messageId || actionId}`, properties: { source: 'maxxis', status: result?.data?.status || 'sent' } });
+      const sendCopy = PROPERTY_SERVICE_NEEDS_COPY[language] || PROPERTY_SERVICE_NEEDS_COPY.en;
+      setMessages((prev) => [...prev, {
+        id: `maxxis-provider-message-sent-${Date.now()}`,
+        role: 'assistant',
+        content: pending?.sourceType === 'provider_conversation_analysis' ? sendCopy.replySent : sendCopy.messageSent,
+        createdAt: new Date(),
+        type: 'provider_message_sent',
+        data: result?.data || { serviceId: pending.serviceId, propertyId: pending.propertyId, status: 'sent' },
+      }]);
+    } catch (error) {
+      captureAppException(error, { area: 'maxxis_provider_message_confirm', actionId });
+      updateProviderMessageDraftSendState(messageId, { sendError: String(error?.code || error?.message || 'send_confirm_failed') });
+    } finally {
+      setActiveProviderMessageSendId('');
+    }
+  };
+
+  const handleCancelProviderMessageSend = async (pending) => {
+    const actionId = String(pending?.actionId || '');
+    const messageId = String(pending?.messageId || '');
+    if (!actionId || activeProviderMessageSendId) return;
+    setActiveProviderMessageSendId(actionId);
+    try {
+      await cancelMaxxisProviderMessageSend(actionId);
+      setPendingProviderMessageSend(null);
+      if (messageId) updateProviderMessageDraftSendState(messageId, { sendError: null });
+    } catch (error) {
+      captureAppException(error, { area: 'maxxis_provider_message_cancel', actionId });
+      if (messageId) updateProviderMessageDraftSendState(messageId, { sendError: String(error?.code || error?.message || 'send_cancel_failed') });
+    } finally {
+      setActiveProviderMessageSendId('');
+    }
+  };
+
+  const handleAnalyzeProviderConversation = async (message) => {
+    const messageId = String(message?.id || '');
+    const serviceId = String(message?.data?.serviceId || '');
+    const propertyId = String(message?.data?.propertyId || '');
+    if (!messageId || !serviceId || activeProviderConversationAnalysisId) return;
+    setActiveProviderConversationAnalysisId(messageId);
+    try {
+      const result = await analyzeMaxxisProviderConversation({ serviceId, propertyId });
+      setMessages((prev) => [...prev, {
+        id: `maxxis-provider-conversation-analysis-${Date.now()}`,
+        role: 'assistant',
+        content: result?.data?.summary || 'Conversation analysis prepared.',
+        createdAt: new Date(),
+        type: 'provider_conversation_analysis',
+        data: result?.data || null,
+      }]);
+    } catch (error) {
+      captureAppException(error, { area: 'maxxis_provider_conversation_analysis', serviceId, propertyId });
+      const copy = PROPERTY_SERVICE_NEEDS_COPY[language] || PROPERTY_SERVICE_NEEDS_COPY.en;
+      setMessages((prev) => [...prev, {
+        id: `maxxis-provider-conversation-analysis-error-${Date.now()}`,
+        role: 'assistant',
+        content: copy.analysisUnavailable,
+        createdAt: new Date(),
+        error: true,
+      }]);
+    } finally {
+      setActiveProviderConversationAnalysisId('');
+    }
+  };
+
+  const handleUpdateProviderConversationSuggestedReply = (messageId, suggestedReply) => {
+    setMessages((prev) => prev.map((message) => (message.id === messageId
+      ? { ...message, data: { ...(message.data || {}), suggestedReply: String(suggestedReply || '').slice(0, 1800), sendError: null, sendIdempotencyKey: null } }
+      : message)));
+    setPendingProviderMessageSend((current) => (current?.messageId === messageId ? null : current));
+  };
+
+  const handleToggleWorkflowManualItem = async (message, entry, status) => {
+    const messageId = String(message?.id || '');
+    const propertyId = String(message?.data?.property?.id || entry?.propertyId || '');
+    const code = String(entry?.code || '');
+    if (!messageId || !UUID_PATTERN.test(propertyId) || !code || activeWorkflowItemCode) return;
+    setActiveWorkflowItemCode(code);
+    setMessages((prev) => prev.map((item) => (item.id === messageId
+      ? { ...item, data: { ...(item.data || {}), workflowError: null } }
+      : item)));
+    try {
+      const workflow = await setMaxxisDealWorkflowManualItem({ propertyId, code, status });
+      if (status === 'completed') {
+        void trackProductEvent('workflow_item_completed', { entityType: 'property', entityId: propertyId, dedupeKey: `workflow-completed:${propertyId}:${code}`, properties: { source: 'maxxis', workflow_code: code, status } });
+      }
+      setMessages((prev) => prev.map((item) => (item.id === messageId
+        ? { ...item, data: { ...(item.data || {}), workflow, workflowError: null } }
+        : item)));
+    } catch (error) {
+      captureAppException(error, { area: 'maxxis_deal_workflow_manual_item', propertyId, code, status });
+      setMessages((prev) => prev.map((item) => (item.id === messageId
+        ? { ...item, data: { ...(item.data || {}), workflowError: String(error?.code || error?.message || 'workflow_update_failed') } }
+        : item)));
+    } finally {
+      setActiveWorkflowItemCode('');
     }
   };
 
@@ -451,18 +663,18 @@ export function MaxxisAssistant({ page = 'dashboard', onOpenSupport = null, onNa
   };
 
   useEffect(() => {
-    const requestId = String(propertyAnalysisRequest?.id || '').trim();
-    const prompt = String(propertyAnalysisRequest?.prompt || '').trim();
+    const request = propertyAnalysisRequestRef.current;
+    const requestId = String(request?.id || '').trim();
+    const prompt = String(request?.prompt || '').trim();
     if (!requestId || !prompt || handledAnalysisRequestsRef.current.has(requestId)) return;
     handledAnalysisRequestsRef.current.add(requestId);
     setOpen(true);
     setInput('');
-    void submitMessage(prompt, {
+    void submitMessageRef.current?.(prompt, {
       analysisExport: {
         requestId,
-        title: propertyAnalysisRequest?.title || '',
-        property: propertyAnalysisRequest?.property || null,
-        onExportPdf: propertyAnalysisRequest?.onExportPdf || null,
+        title: request?.title || '',
+        onExportPdf: request?.onExportPdf || null,
       },
     });
   }, [propertyAnalysisRequest?.id]);
@@ -472,7 +684,7 @@ export function MaxxisAssistant({ page = 'dashboard', onOpenSupport = null, onNa
   return (
     <div className={`maxxis-shell ${open ? 'maxxis-shell-open' : ''}`}>
       {open ? (
-        <section className="maxxis-panel" aria-label={t.title}>
+        <section className="maxxis-panel" data-testid="maxxis-panel" role="dialog" aria-modal="true" aria-label={t.title}>
           <header className="maxxis-header">
             <div className="maxxis-avatar" aria-hidden="true">
               <img src={maxxisLogo} alt="" draggable="false" />
@@ -493,13 +705,34 @@ export function MaxxisAssistant({ page = 'dashboard', onOpenSupport = null, onNa
 
           <div className="maxxis-scope">{t.scope}</div>
 
-          <div className="maxxis-messages">
+          <div className="maxxis-messages" data-testid="maxxis-messages">
             {messages.map((message) => (
               <MessageBubble
                 key={message.id}
                 message={message}
                 language={language}
                 onAction={handleAction}
+                onConfirmProfileSuggestion={handleConfirmProfileSuggestion}
+                onCancelProfileSuggestion={handleCancelProfileSuggestion}
+                activeProfileActionId={activeProfileActionId}
+                activeProviderUnlockId={activeProviderUnlockId}
+                activeProviderDraftId={activeProviderDraftId}
+                activeProviderMessageSendId={activeProviderMessageSendId}
+                activeProviderConversationAnalysisId={activeProviderConversationAnalysisId}
+                activeWorkflowItemCode={activeWorkflowItemCode}
+                pendingProviderUnlock={pendingProviderUnlock}
+                pendingProviderMessageSend={pendingProviderMessageSend}
+                onPrepareProviderUnlock={handlePrepareProviderUnlock}
+                onConfirmProviderUnlock={handleConfirmProviderUnlock}
+                onCancelProviderUnlock={handleCancelProviderUnlock}
+                onPrepareProviderMessageDraft={handlePrepareProviderMessageDraft}
+                onPrepareProviderMessageSend={handlePrepareProviderMessageSend}
+                onConfirmProviderMessageSend={handleConfirmProviderMessageSend}
+                onCancelProviderMessageSend={handleCancelProviderMessageSend}
+                onAnalyzeProviderConversation={handleAnalyzeProviderConversation}
+                onUpdateProviderMessageDraft={handleUpdateProviderMessageDraft}
+                onUpdateProviderConversationSuggestedReply={handleUpdateProviderConversationSuggestedReply}
+                onToggleWorkflowManualItem={handleToggleWorkflowManualItem}
                 onExportAnalysisPdf={handleExportAnalysisPdf}
                 exportAnalysisLabel={t.exportAnalysisPdf}
                 exportingAnalysisLabel={t.exportingAnalysisPdf}
@@ -526,6 +759,8 @@ export function MaxxisAssistant({ page = 'dashboard', onOpenSupport = null, onNa
             }}
           >
             <textarea
+              ref={inputRef}
+              data-testid="maxxis-input"
               value={input}
               onChange={(event) => setInput(event.target.value)}
               onKeyDown={(event) => {
@@ -540,7 +775,7 @@ export function MaxxisAssistant({ page = 'dashboard', onOpenSupport = null, onNa
               maxLength={1800}
             />
             <div className="maxxis-input-actions">
-              <button className="maxxis-send-button" type="submit" disabled={!canSend} aria-label={t.send} title={t.send}>
+              <button data-testid="maxxis-send" className="maxxis-send-button" type="submit" disabled={!canSend} aria-label={t.send} title={t.send}>
                 <Icon name="send" size={16} color="#fff" strokeWidth={2} />
                 <span>{t.send}</span>
               </button>
@@ -563,6 +798,7 @@ export function MaxxisAssistant({ page = 'dashboard', onOpenSupport = null, onNa
         <button
           type="button"
           data-guide="maxxis-widget"
+          data-testid="maxxis-fab"
           className={`maxxis-fab ${dragging ? 'maxxis-fab-dragging' : ''}`}
           onPointerDown={handleFabPointerDown}
           onClick={(event) => {
@@ -571,6 +807,7 @@ export function MaxxisAssistant({ page = 'dashboard', onOpenSupport = null, onNa
               dragRef.current = { ...dragRef.current, moved: false };
               return;
             }
+            void trackProductEvent('maxxis_opened', { dedupeKey: `maxxis-opened:${page}`, properties: { source: page } });
             setOpen(true);
           }}
           aria-label={t.open}

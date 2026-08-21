@@ -1,0 +1,61 @@
+{
+  "version": 1,
+  "requiredSecrets": [
+    "ANON_KEY",
+    "APP_URL",
+    "GEMINI_API_KEY",
+    "MAXXIS_ALLOWED_ORIGINS",
+    "RESEND_API_KEY",
+    "SERVICE_ROLE_KEY",
+    "STRIPE_PRICE_P5",
+    "STRIPE_PRICE_P15",
+    "STRIPE_PRICE_P40",
+    "STRIPE_PRICE_P100",
+    "STRIPE_PRICE_PLAN_PRO",
+    "STRIPE_PRICE_PLAN_PRO_YEAR",
+    "STRIPE_PRICE_PLAN_ENTERPRISE",
+    "STRIPE_PRICE_PLAN_ENTERPRISE_YEAR",
+    "STRIPE_SECRET_KEY",
+    "STRIPE_WEBHOOK_SECRET",
+    "SUPABASE_URL"
+  ],
+  "optionalSecrets": [
+    "APP_ALLOWED_ORIGINS",
+    "FEATURE_FLAGS_JSON",
+    "MAXXIS_GEMINI_MODEL",
+    "MAXXIS_GEMINI_TIMEOUT_MS",
+    "SUPPORT_EMAIL_FROM",
+    "SUPPORT_EMAIL_TO",
+    "VITE_APP_URL"
+  ],
+  "platformSecrets": [
+    "SUPABASE_ANON_KEY",
+    "SUPABASE_DB_URL",
+    "SUPABASE_JWKS",
+    "SUPABASE_PUBLISHABLE_KEYS",
+    "SUPABASE_SECRET_KEYS",
+    "SUPABASE_SERVICE_ROLE_KEY"
+  ],
+  "functions": [
+    { "name": "create-checkout-session", "verifyJwt": false },
+    { "name": "create-portal-session", "verifyJwt": false },
+    { "name": "delete-account", "verifyJwt": false },
+    { "name": "feature-flags", "verifyJwt": true },
+    { "name": "geocode-address", "verifyJwt": true },
+    { "name": "maxxis-action-cancel", "verifyJwt": true },
+    { "name": "maxxis-action-confirm", "verifyJwt": true },
+    { "name": "maxxis-chat", "verifyJwt": true },
+    { "name": "maxxis-deal-workflow", "verifyJwt": true },
+    { "name": "maxxis-provider-conversation-analysis", "verifyJwt": true },
+    { "name": "maxxis-provider-message-cancel", "verifyJwt": true },
+    { "name": "maxxis-provider-message-confirm", "verifyJwt": true },
+    { "name": "maxxis-provider-message-draft", "verifyJwt": true },
+    { "name": "maxxis-provider-message-prepare", "verifyJwt": true },
+    { "name": "maxxis-provider-unlock-cancel", "verifyJwt": true },
+    { "name": "maxxis-provider-unlock-confirm", "verifyJwt": true },
+    { "name": "maxxis-provider-unlock-prepare", "verifyJwt": true },
+    { "name": "send-support-email", "verifyJwt": true },
+    { "name": "stripe-reprocess-queue", "verifyJwt": false },
+    { "name": "stripe-webhook", "verifyJwt": false }
+  ]
+}

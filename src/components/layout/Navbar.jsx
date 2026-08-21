@@ -64,6 +64,7 @@ function NavBtn({
   activeGlow = false,
   disabled = false,
   dataGuideEntry,
+  dataTestId,
 }) {
   const iconColor = active
     ? (iconColorActive || iconColorOverride || C.accent)
@@ -78,7 +79,7 @@ function NavBtn({
   };
 
   return (
-    <button data-guide-entry={dataGuideEntry} onClick={onClick} style={base} disabled={disabled} aria-disabled={disabled}>
+    <button data-guide-entry={dataGuideEntry} data-testid={dataTestId} onClick={onClick} style={base} disabled={disabled} aria-disabled={disabled}>
       {iconImage ? (
         <span
           aria-hidden
@@ -474,10 +475,10 @@ export function Navbar({ page, prevPage, setPage, nuggets = 0, setModal = () => 
         {/* Center: Main nav (desktop) */}
         {isCompactTopbar ? null : isApp ? (
           <div style={{ display: 'flex', gap: 8, alignItems: 'center', justifySelf: 'center' }}>
-            <NavBtn disabled={navigationLocked} iconImage={mapViewTaskbarIcon} iconImageSize={18} iconImageBold iconColorOverride={C.t2} iconColorActive={C.accent} labelWeight={700} label={t.mapView} onClick={() => navigationLocked ? onNavigationBlocked() : setPage && setPage('mapview')} active={page === 'mapview'} />
-            <NavBtn dataGuideEntry="onboarding-entry-module" disabled={navigationLocked} iconImage={feedMatchIcon} iconImageSize={18} iconImageBold iconColorOverride={C.t2} iconColorActive={C.accent} labelWeight={700} label={t.feed} onClick={() => navigationLocked ? onNavigationBlocked() : setPage && setPage('dashboard')} active={page === 'dashboard'} />
-            <NavBtn disabled={navigationLocked} iconImage={matchesTaskbarIcon} iconImageSize={18} iconImageBold iconColorOverride={C.t2} iconColorActive={C.accent} labelWeight={700} label={t.matches} onClick={() => navigationLocked ? onNavigationBlocked() : setPage && setPage('matches')} active={page === 'matches'} />
-            <NavBtn icon="creditCard" label={t.pricing} onClick={() => setPage && setPage('pricing')} active={page === 'pricing'} />
+            <NavBtn dataTestId="nav-mapview" disabled={navigationLocked} iconImage={mapViewTaskbarIcon} iconImageSize={18} iconImageBold iconColorOverride={C.t2} iconColorActive={C.accent} labelWeight={700} label={t.mapView} onClick={() => navigationLocked ? onNavigationBlocked() : setPage && setPage('mapview')} active={page === 'mapview'} />
+            <NavBtn dataTestId="nav-dashboard" dataGuideEntry="onboarding-entry-module" disabled={navigationLocked} iconImage={feedMatchIcon} iconImageSize={18} iconImageBold iconColorOverride={C.t2} iconColorActive={C.accent} labelWeight={700} label={t.feed} onClick={() => navigationLocked ? onNavigationBlocked() : setPage && setPage('dashboard')} active={page === 'dashboard'} />
+            <NavBtn dataTestId="nav-matches" disabled={navigationLocked} iconImage={matchesTaskbarIcon} iconImageSize={18} iconImageBold iconColorOverride={C.t2} iconColorActive={C.accent} labelWeight={700} label={t.matches} onClick={() => navigationLocked ? onNavigationBlocked() : setPage && setPage('matches')} active={page === 'matches'} />
+            <NavBtn dataTestId="nav-pricing" icon="creditCard" label={t.pricing} onClick={() => setPage && setPage('pricing')} active={page === 'pricing'} />
             {isAdmin ? (
               <NavBtn icon="shield" label={t.adminSystem || 'Adm.System'} onClick={onOpenAdmin} active={page === 'admin'} />
             ) : null}
@@ -494,6 +495,7 @@ export function Navbar({ page, prevPage, setPage, nuggets = 0, setModal = () => 
                 <NuggetBadge count={nuggets} onClick={() => setModal && setModal('store')} />
                 <button
                   data-guide="app-menu"
+                  data-testid="nav-app-menu"
                   onClick={() => setAppMenuOpen((value) => !value)}
                   title={t.menu || 'Menu'}
                   aria-label={t.menu || 'Menu'}
@@ -652,7 +654,7 @@ export function Navbar({ page, prevPage, setPage, nuggets = 0, setModal = () => 
                             {t.profile || 'Profile'}
                           </div>
 
-                          <button data-guide="app-settings-menu" onClick={openAppSettings} style={{ width: '100%', display: 'flex', alignItems: 'center', gap: 10, borderRadius: 10, border: `1px solid ${C.border}`, background: 'transparent', color: C.t2, fontWeight: 700, fontSize: 14, padding: '10px 12px', cursor: 'pointer' }}>
+                          <button data-guide="app-settings-menu" data-testid="nav-settings-mobile" onClick={openAppSettings} style={{ width: '100%', display: 'flex', alignItems: 'center', gap: 10, borderRadius: 10, border: `1px solid ${C.border}`, background: 'transparent', color: C.t2, fontWeight: 700, fontSize: 14, padding: '10px 12px', cursor: 'pointer' }}>
                             <Icon name="user" size={15} color={C.t2} />
                             <span>{t.editProfile || 'Edit profile'}</span>
                           </button>
@@ -709,7 +711,7 @@ export function Navbar({ page, prevPage, setPage, nuggets = 0, setModal = () => 
                             <span>{t.pricing}</span>
                           </button>
 
-                          <button onClick={logoutUserFromMenu} style={{ width: '100%', display: 'flex', alignItems: 'center', gap: 10, borderRadius: 10, border: `1px solid ${C.border}`, background: 'transparent', color: C.t2, fontWeight: 700, fontSize: 14, padding: '10px 12px', cursor: 'pointer' }}>
+                          <button data-testid="nav-logout-mobile" onClick={logoutUserFromMenu} style={{ width: '100%', display: 'flex', alignItems: 'center', gap: 10, borderRadius: 10, border: `1px solid ${C.border}`, background: 'transparent', color: C.t2, fontWeight: 700, fontSize: 14, padding: '10px 12px', cursor: 'pointer' }}>
                             <Icon name="logOut" size={15} color={C.t2} />
                             <span>{t.logout || 'Sign out'}</span>
                           </button>
@@ -874,6 +876,7 @@ export function Navbar({ page, prevPage, setPage, nuggets = 0, setModal = () => 
                 </button>
                 <button
                   data-guide="app-settings-menu"
+                  data-testid="nav-settings"
                   onClick={onOpenSettings}
                   title={t.editProfile || 'Edit profile'}
                   style={headerIconButtonStyle}
@@ -887,6 +890,7 @@ export function Navbar({ page, prevPage, setPage, nuggets = 0, setModal = () => 
               <>
                 <LangPicker compact />
                 <button
+                  data-testid="nav-landing-menu"
                   onClick={() => setLandingMenuOpen((value) => !value)}
                   title={t.menu || 'Menu'}
                   aria-label={t.menu || 'Menu'}
@@ -925,7 +929,7 @@ export function Navbar({ page, prevPage, setPage, nuggets = 0, setModal = () => 
                           <span>{t.installToHome || 'Add to Home Screen'}</span>
                         </button>
                       ) : null}
-                      <button onClick={() => openLandingAuth('login')} style={{ width: '100%', display: 'flex', alignItems: 'center', gap: 10, borderRadius: 10, border: `1px solid ${C.border}`, background: 'transparent', color: C.t2, fontWeight: 700, fontSize: 14, padding: '10px 12px', cursor: 'pointer' }}>
+                      <button data-testid="nav-login-mobile" onClick={() => openLandingAuth('login')} style={{ width: '100%', display: 'flex', alignItems: 'center', gap: 10, borderRadius: 10, border: `1px solid ${C.border}`, background: 'transparent', color: C.t2, fontWeight: 700, fontSize: 14, padding: '10px 12px', cursor: 'pointer' }}>
                         <Icon name="user" size={15} color={C.t2} />
                         <span>{t.signIn}</span>
                       </button>
@@ -941,8 +945,8 @@ export function Navbar({ page, prevPage, setPage, nuggets = 0, setModal = () => 
               <>
                 <LangPicker />
                 <NavBtn label={t.pricing} onClick={() => setPage && setPage('pricing')} />
-                <NavBtn label={t.signIn} onClick={() => onOpenAuthModal('login')} />
-                <NavBtn label={t.getStarted} onClick={() => onOpenAuthModal('signup')} />
+                <NavBtn dataTestId="nav-login" label={t.signIn} onClick={() => onOpenAuthModal('login')} />
+                <NavBtn dataTestId="nav-signup" label={t.getStarted} onClick={() => onOpenAuthModal('signup')} />
               </>
             )
           )}

@@ -1,4 +1,6 @@
 import { createClient } from 'npm:@supabase/supabase-js@2';
+import { createRequestId } from '../_shared/observability.ts';
+import { checkRateLimit, logAbuseGuard, rateLimitResponse } from '../_shared/abuseProtection.ts';
 
 const supabaseUrl = Deno.env.get('SUPABASE_URL') ?? '';
 const supabaseAnonKey = Deno.env.get('ANON_KEY') ?? Deno.env.get('SUPABASE_ANON_KEY') ?? '';
@@ -310,6 +312,7 @@ async function backfillProperties(userId: string, limit: number) {
 }
 
 Deno.serve(async (req) => {
+  const requestId = createRequestId(req);
   if (req.method === 'OPTIONS') return new Response('ok', { headers: corsHeaders });
   if (req.method !== 'POST') return jsonResponse({ error: 'Method not allowed' }, 405);
 
@@ -317,6 +320,12 @@ Deno.serve(async (req) => {
     const authHeader = req.headers.get('Authorization') ?? '';
     const { user, error: authError } = await getAuthenticatedUser(authHeader);
     if (authError || !user) return jsonResponse({ error: authError || 'Unauthorized' }, 401);
+
+    const rateLimit = await checkRateLimit(user.id, 'geocode');
+    if (!rateLimit.allowed) {
+      logAbuseGuard({ functionName: 'geocode-address', operation: 'geocode', requestId, userId: user.id, category: 'RATE_LIMIT', status: rateLimit.unavailable ? 503 : 429, limitType: 'geocode' });
+      return rateLimitResponse(rateLimit, requestId, corsHeaders);
+    }
 
     const body = await req.json().catch(() => ({}));
     if (body?.backfill === true) {

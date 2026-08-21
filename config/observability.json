@@ -1,0 +1,36 @@
+{
+  "version": "baseline-2026-08-14",
+  "status": "initial_baseline_without_historical_claims",
+  "sampling": {
+    "errors": 1,
+    "traces": 0.05,
+    "operational_metrics": 0.1,
+    "web_vitals": 0.1,
+    "session_replay": 0
+  },
+  "slis": [
+    { "id": "AUTH", "success_rate_percent": 99.5, "p95_latency_ms": 2000, "max_error_rate_percent": 0.5, "signals": ["frontend:auth", "edge:AUTH"] },
+    { "id": "FEED", "success_rate_percent": 99.0, "p95_latency_ms": 2000, "max_error_rate_percent": 1.0, "signals": ["frontend:feed", "web_vitals:LCP"] },
+    { "id": "MAXXIS", "success_rate_percent": 98.0, "p95_latency_ms": 8000, "max_error_rate_percent": 2.0, "signals": ["edge:maxxis_chat", "edge:maxxis_tool", "metric:provider_duration_ms"] },
+    { "id": "STRIPE", "success_rate_percent": 99.9, "p95_latency_ms": 3000, "max_error_rate_percent": 0.1, "signals": ["edge:create_session", "edge:process_event", "invariant:idempotent"] },
+    { "id": "UNLOCK", "success_rate_percent": 99.9, "p95_latency_ms": 2000, "max_error_rate_percent": 0.1, "signals": ["edge:provider_contact_unlock", "invariant:no_duplicate_charge"] },
+    { "id": "MESSAGING", "success_rate_percent": 99.5, "p95_latency_ms": 2000, "max_error_rate_percent": 0.5, "signals": ["edge:provider_message_send", "edge:provider_conversation_analysis"] }
+  ],
+  "alerts": [
+    { "id": "elevated_5xx", "severity": "HIGH", "threshold": 5, "window_minutes": 5, "frequency_minutes": 5, "channel": "sentry", "signal": "error_count_5xx" },
+    { "id": "maxxis_failure_rate", "severity": "HIGH", "threshold_percent": 10, "minimum_events": 10, "window_minutes": 10, "frequency_minutes": 10, "channel": "sentry", "signal": "MAXXIS_error_rate" },
+    { "id": "gemini_timeout_quota", "severity": "WARNING", "threshold": 5, "window_minutes": 10, "frequency_minutes": 10, "channel": "sentry", "signal": "PROVIDER_TIMEOUT_QUOTA" },
+    { "id": "stripe_webhook_failure", "severity": "CRITICAL", "threshold": 1, "window_minutes": 5, "frequency_minutes": 5, "channel": "sentry", "signal": "STRIPE_WEBHOOK_FAILED" },
+    { "id": "unlock_transaction_failure", "severity": "CRITICAL", "threshold": 2, "window_minutes": 5, "frequency_minutes": 5, "channel": "sentry", "signal": "UNLOCK_PAYMENT_failure" },
+    { "id": "auth_failure_anomaly", "severity": "HIGH", "threshold_percent": 10, "minimum_events": 20, "window_minutes": 10, "frequency_minutes": 10, "channel": "sentry", "signal": "AUTH_error_rate" },
+    { "id": "deployment_health_regression", "severity": "CRITICAL", "threshold": 1, "window_minutes": 5, "frequency_minutes": 30, "channel": "github_actions", "signal": "uptime_or_release_health" }
+  ],
+  "health": {
+    "frontend_url": "https://dealsiftermatch.vercel.app",
+    "frontend_timeout_ms": 10000,
+    "frontend_max_latency_ms": 5000,
+    "edge_function": "maxxis-chat",
+    "edge_timeout_ms": 10000,
+    "edge_max_latency_ms": 5000
+  }
+}

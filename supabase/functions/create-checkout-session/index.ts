@@ -1,11 +1,25 @@
 import Stripe from 'npm:stripe@17';
 import { createClient } from 'npm:@supabase/supabase-js@2';
+import {
+  buildCorsHeaders,
+  isRequestOriginAllowed,
+  parseAllowedOrigins,
+  resolveTrustedReturnUrl,
+} from '../_shared/httpSecurity.ts';
+import { createRequestId, logOperationalEvent, withRequestId } from '../_shared/observability.ts';
+import { checkRateLimit, logAbuseGuard, rateLimitResponse } from '../_shared/abuseProtection.ts';
 
 const stripeSecretKey = Deno.env.get('STRIPE_SECRET_KEY') ?? '';
 const supabaseUrl = Deno.env.get('SUPABASE_URL') ?? '';
 const supabaseAnonKey = Deno.env.get('ANON_KEY') ?? Deno.env.get('SUPABASE_ANON_KEY') ?? '';
 const supabaseServiceRoleKey =
   Deno.env.get('SERVICE_ROLE_KEY') ?? Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? '';
+const configuredAppUrl = Deno.env.get('APP_URL') ?? 'https://dealsifter.com';
+const appOrigin = parseAllowedOrigins('', [configuredAppUrl])[0] || 'https://dealsifter.com';
+const allowedOrigins = parseAllowedOrigins(
+  Deno.env.get('APP_ALLOWED_ORIGINS') ?? '',
+  [appOrigin, Deno.env.get('VITE_APP_URL') ?? ''],
+);
 
 if (!stripeSecretKey) throw new Error('Missing STRIPE_SECRET_KEY');
 if (!supabaseUrl) throw new Error('Missing SUPABASE_URL');
@@ -14,14 +28,11 @@ if (!supabaseServiceRoleKey) throw new Error('Missing SUPABASE_SERVICE_ROLE_KEY'
 
 const stripe = new Stripe(stripeSecretKey, {
   apiVersion: '2024-04-10',
+  maxNetworkRetries: 0,
+  timeout: 12_000,
 });
 
 const supabaseAdmin = createClient(supabaseUrl, supabaseServiceRoleKey);
-
-const corsHeaders = {
-  'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
-};
 
 const PACK_PRICE_ENV: Record<string, string> = {
   p5: 'STRIPE_PRICE_P5',
@@ -63,7 +74,7 @@ async function getAuthenticatedUser(authHeader: string) {
   return { user, error: null };
 }
 
-async function ensureStripeCustomer(user: { id: string; email?: string | null }) {
+async function ensureStripeCustomer(user: { id: string; email?: string | null }, requestId: string) {
   const { data: existingSub, error: readError } = await supabaseAdmin
     .from('subscriptions')
     .select('id, stripe_customer_id')
@@ -71,7 +82,7 @@ async function ensureStripeCustomer(user: { id: string; email?: string | null })
     .maybeSingle();
 
   if (readError) {
-    console.warn('Could not read existing subscription row; continuing without local customer cache.', readError);
+    logOperationalEvent({ functionName: 'create-checkout-session', operation: 'customer_cache_read', requestId, userId: user.id, success: false, errorCode: readError.code || 'CUSTOMER_CACHE_READ_FAILED', status: 500, provider: 'supabase', severity: 'WARNING' });
   }
   if (existingSub?.stripe_customer_id) return existingSub.stripe_customer_id;
 
@@ -86,14 +97,14 @@ async function ensureStripeCustomer(user: { id: string; email?: string | null })
       .update({ stripe_customer_id: customer.id, updated_at: new Date().toISOString() })
       .eq('id', existingSub.id);
     if (error) {
-      console.warn('Could not update subscription customer cache; checkout will continue.', error);
+      logOperationalEvent({ functionName: 'create-checkout-session', operation: 'customer_cache_update', requestId, userId: user.id, success: false, errorCode: error.code || 'CUSTOMER_CACHE_UPDATE_FAILED', status: 500, provider: 'supabase', severity: 'WARNING' });
     }
   } else {
     const { error } = await supabaseAdmin
       .from('subscriptions')
       .insert({ user_id: user.id, stripe_customer_id: customer.id });
     if (error) {
-      console.warn('Could not insert subscription customer cache; checkout will continue.', error);
+      logOperationalEvent({ functionName: 'create-checkout-session', operation: 'customer_cache_insert', requestId, userId: user.id, success: false, errorCode: error.code || 'CUSTOMER_CACHE_INSERT_FAILED', status: 500, provider: 'supabase', severity: 'WARNING' });
     }
   }
 
@@ -101,6 +112,19 @@ async function ensureStripeCustomer(user: { id: string; email?: string | null })
 }
 
 Deno.serve(async (req) => {
+  const requestId = createRequestId(req);
+  const startedAt = Date.now();
+  let userId = '';
+  const requestOrigin = req.headers.get('Origin') ?? '';
+  const corsHeaders = buildCorsHeaders(requestOrigin, allowedOrigins);
+  const respond = (body: Record<string, unknown>, status: number) => withRequestId(new Response(JSON.stringify(body), {
+    status,
+    headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+  }), requestId);
+  if (!isRequestOriginAllowed(requestOrigin, allowedOrigins)) {
+    logOperationalEvent({ functionName: 'create-checkout-session', operation: 'origin_check', requestId, durationMs: Date.now() - startedAt, success: false, errorCode: 'ORIGIN_NOT_ALLOWED', status: 403, provider: 'stripe' });
+    return respond({ error: 'Origin not allowed', requestId }, 403);
+  }
   if (req.method === 'OPTIONS') {
     return new Response('ok', { headers: corsHeaders });
   }
@@ -108,18 +132,20 @@ Deno.serve(async (req) => {
   try {
     const authHeader = req.headers.get('Authorization');
     if (!authHeader) {
-      return new Response(JSON.stringify({ error: 'Unauthorized' }), {
-        status: 401,
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-      });
+      logOperationalEvent({ functionName: 'create-checkout-session', operation: 'authenticate', requestId, durationMs: Date.now() - startedAt, success: false, errorCode: 'UNAUTHORIZED', status: 401, provider: 'supabase' });
+      return respond({ error: 'Unauthorized', requestId }, 401);
     }
 
-    const { user, error: authReason } = await getAuthenticatedUser(authHeader);
+    const { user } = await getAuthenticatedUser(authHeader);
     if (!user) {
-      return new Response(JSON.stringify({ error: `Unauthorized: ${authReason || 'invalid session'}` }), {
-        status: 401,
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-      });
+      logOperationalEvent({ functionName: 'create-checkout-session', operation: 'authenticate', requestId, durationMs: Date.now() - startedAt, success: false, errorCode: 'UNAUTHORIZED', status: 401, provider: 'supabase' });
+      return respond({ error: 'Unauthorized', requestId }, 401);
+    }
+    userId = user.id;
+    const rateLimit = await checkRateLimit(userId, 'checkout_create');
+    if (!rateLimit.allowed) {
+      logAbuseGuard({ functionName: 'create-checkout-session', operation: 'checkout_create', requestId, userId, category: 'RATE_LIMIT', status: rateLimit.unavailable ? 503 : 429, limitType: 'checkout_create' });
+      return rateLimitResponse(rateLimit, requestId, corsHeaders);
     }
 
     const body = await req.json().catch(() => ({}));
@@ -127,20 +153,22 @@ Deno.serve(async (req) => {
     const packId = String(body?.pack_id ?? '').trim();
     const planId = String(body?.plan_id ?? '').trim();
     const billingCycle = normalizeBillingCycle(body?.billing_cycle);
-    const appUrl = Deno.env.get('APP_URL') ?? 'https://dealsifter.com';
     const isEmbedded = body?.ui_mode === 'embedded' || body?.embedded === true;
-    const successUrl = String(body?.success_url ?? `${appUrl}/?checkout=success`).trim();
-    const cancelUrl = String(body?.cancel_url ?? `${appUrl}/?checkout=cancelled`).trim();
-    const returnUrl = String(body?.return_url ?? successUrl).trim();
+    const successFallback = `${appOrigin}/?checkout=success`;
+    const cancelFallback = `${appOrigin}/?checkout=cancelled`;
+    const successUrl = resolveTrustedReturnUrl(body?.success_url, successFallback, allowedOrigins);
+    const cancelUrl = resolveTrustedReturnUrl(body?.cancel_url, cancelFallback, allowedOrigins);
+    const returnUrl = resolveTrustedReturnUrl(body?.return_url, successUrl, allowedOrigins);
+    const clientIdempotencyKey = String(req.headers.get('Idempotency-Key') || body?.idempotency_key || '')
+      .replace(/[^a-zA-Z0-9:_-]/g, '')
+      .slice(0, 96);
 
     const itemId = mode === 'subscription' ? planId : packId;
     const expectedPriceId = getAllowedPriceId(mode === 'subscription' ? 'plan' : 'pack', itemId, billingCycle);
 
     if (!itemId || !expectedPriceId) {
-      return new Response(JSON.stringify({ error: 'Stripe price is not configured for this item.' }), {
-        status: 400,
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-      });
+      logOperationalEvent({ functionName: 'create-checkout-session', operation: 'validate_price', requestId, userId, durationMs: Date.now() - startedAt, success: false, errorCode: 'STRIPE_PRICE_NOT_CONFIGURED', status: 400, provider: 'stripe' });
+      return respond({ error: 'Stripe price is not configured for this item.', requestId }, 400);
     }
 
     // Ignore any client-supplied price id and trust server-side mapping only.
@@ -160,7 +188,7 @@ Deno.serve(async (req) => {
       metadata.terms_version = String(body?.terms_version ?? 'checkout-v1');
     }
 
-    const customerId = await ensureStripeCustomer(user);
+    const customerId = await ensureStripeCustomer(user, requestId);
 
     const session = await stripe.checkout.sessions.create({
       mode,
@@ -173,19 +201,14 @@ Deno.serve(async (req) => {
       metadata,
       subscription_data: mode === 'subscription' ? { metadata } : undefined,
       payment_intent_data: mode === 'payment' ? { metadata, setup_future_usage: 'off_session' } : undefined,
-    });
+    }, clientIdempotencyKey ? { idempotencyKey: `checkout:${user.id}:${clientIdempotencyKey}` } : undefined);
 
-    return new Response(JSON.stringify(isEmbedded
+    logOperationalEvent({ functionName: 'create-checkout-session', operation: 'create_session', requestId, userId, durationMs: Date.now() - startedAt, success: true, status: 200, provider: 'stripe', metrics: { mode, billing_cycle: billingCycle, embedded: isEmbedded } });
+    return respond(isEmbedded
       ? { id: session.id, client_secret: session.client_secret }
-      : { id: session.id, url: session.url }), {
-      status: 200,
-      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-    });
+      : { id: session.id, url: session.url }, 200);
   } catch (err) {
-    console.error('create-checkout-session error:', err);
-    return new Response(JSON.stringify({ error: String(err?.message ?? 'Internal error') }), {
-      status: 500,
-      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-    });
+    logOperationalEvent({ functionName: 'create-checkout-session', operation: 'create_session', requestId, userId, durationMs: Date.now() - startedAt, success: false, errorCode: 'STRIPE_CHECKOUT_FAILED', status: 500, provider: 'stripe' });
+    return respond({ error: 'Internal error', requestId }, 500);
   }
 });

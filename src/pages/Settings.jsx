@@ -3,6 +3,7 @@ import { C } from '../theme/colors';
 import { useT } from '../i18n/translations';
 import { Icon } from '../components/ui/Icon';
 import { getSupabaseFunctionUrl, supabase, isSupabaseConfigured, supabaseAnonKey } from '../lib/supabaseClient';
+import { createRealtimeLifecycle, createRealtimeTopic } from '../lib/realtimeLifecycle';
 import { redirectToPortal } from '../lib/stripeClient';
 import { CHAT_LANGUAGE_OPTIONS, translateChatText, getSafeLang } from '../services/chatTranslation';
 
@@ -598,24 +599,26 @@ export function Settings({ setPage, prevPage, initialTab = 'profile', initialCom
     if (!isSupabaseConfigured || !supabase || !supabaseUserId) return undefined;
 
     const ticketId = supportTicket?.id ? String(supportTicket.id) : '';
-    const channel = supabase.channel(`support-chat-user-${supabaseUserId}-${ticketId || 'pending'}`);
+    const realtime = createRealtimeLifecycle(supabase);
+    const refreshSupport = realtime.guard(() => setSupportRealtimeTick((value) => value + 1));
+    const channel = supabase.channel(createRealtimeTopic(`support-chat-user-${ticketId || 'pending'}`, supabaseUserId));
     if (!ticketId) {
       channel.on(
         'postgres_changes',
         { event: 'INSERT', schema: 'public', table: 'support_tickets', filter: `user_id=eq.${supabaseUserId}` },
-        () => setSupportRealtimeTick((value) => value + 1)
+        refreshSupport
       );
     }
     if (ticketId) {
       channel.on(
         'postgres_changes',
         { event: 'INSERT', schema: 'public', table: 'support_messages', filter: `ticket_id=eq.${ticketId}` },
-        () => setSupportRealtimeTick((value) => value + 1)
+        refreshSupport
       );
     }
-    channel.subscribe();
+    realtime.subscribe(channel);
     return () => {
-      supabase.removeChannel(channel);
+      realtime.dispose();
     };
   }, [commView, supabaseUserId, supportTicket?.id, tab]);
 
@@ -1093,7 +1096,7 @@ export function Settings({ setPage, prevPage, initialTab = 'profile', initialCom
                   <div style={{ border: `1px solid ${C.border}`, borderRadius: 10, padding: 10, fontSize: 12, color: C.t2, width: '100%', minWidth: 0, boxSizing: 'border-box', overflowWrap: 'anywhere', wordBreak: 'break-word' }}>
                     {t.loggedAs || 'Logged as'}: <strong style={{ color: C.t1, overflowWrap: 'anywhere', wordBreak: 'break-word' }}>{authSession?.email || '-'}</strong>
                   </div>
-                  <button onClick={logout} style={{ width: '100%', boxSizing: 'border-box', border: `1px solid ${C.border}`, background: 'transparent', color: C.t2, borderRadius: 8, padding: '8px 10px', cursor: 'pointer', fontSize: 12, fontWeight: 700 }}>
+                  <button data-testid="settings-logout" onClick={logout} style={{ width: '100%', boxSizing: 'border-box', border: `1px solid ${C.border}`, background: 'transparent', color: C.t2, borderRadius: 8, padding: '8px 10px', cursor: 'pointer', fontSize: 12, fontWeight: 700 }}>
                     {t.logout || 'Sign out'}
                   </button>
                 </div>

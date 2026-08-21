@@ -80,4 +80,21 @@ describe('normalizeCard public security invariant', () => {
 
     expect(card.isOwnCard).toBe(true);
   });
+
+  it('keeps FSBO visual type while mapping its feed category to seller', () => {
+    const card = normalizeCard(baseCard({
+      primary_profile: 'fsbo',
+      ownerPreview: {
+        primaryProfile: 'fsbo',
+        name: 'FSBO Seller',
+        type: 'FSBO',
+        cat: 'ff',
+        loc: 'HI',
+      },
+    }), 'viewer-1');
+
+    expect(card.type).toBe('FSBO');
+    expect(card.primaryProfile).toBe('fsbo');
+    expect(card.cat).toBe('seller');
+  });
 });

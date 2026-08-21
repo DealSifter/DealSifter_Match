@@ -1,4 +1,4 @@
-import React, { useEffect } from 'react';
+import React, { useEffect, useRef } from 'react';
 import { C } from '../../theme/colors';
 
 export function Modal({
@@ -10,6 +10,8 @@ export function Modal({
   contentStyle = {},
   contentClassName = '',
 }) {
+  const dialogRef = useRef(null);
+
   // Prevent scrolling on body when modal is open; restore previous overflow on unmount
   useEffect(() => {
     const prev = document.body.style.overflow;
@@ -23,6 +25,34 @@ export function Modal({
     document.addEventListener('keydown', handleKey);
     return () => document.removeEventListener('keydown', handleKey);
   }, [onClose]);
+
+  useEffect(() => {
+    const previousFocus = document.activeElement;
+    const dialog = dialogRef.current;
+    const focusableSelector = 'button:not([disabled]), input:not([disabled]), select:not([disabled]), textarea:not([disabled]), [href], [tabindex]:not([tabindex="-1"])';
+    const focusFirst = () => dialog?.querySelector(focusableSelector)?.focus();
+    const focusTimer = window.setTimeout(focusFirst, 0);
+    const trapFocus = (event) => {
+      if (event.key !== 'Tab' || !dialog) return;
+      const focusable = [...dialog.querySelectorAll(focusableSelector)];
+      if (!focusable.length) return;
+      const first = focusable[0];
+      const last = focusable[focusable.length - 1];
+      if (event.shiftKey && document.activeElement === first) {
+        event.preventDefault();
+        last.focus();
+      } else if (!event.shiftKey && document.activeElement === last) {
+        event.preventDefault();
+        first.focus();
+      }
+    };
+    document.addEventListener('keydown', trapFocus);
+    return () => {
+      window.clearTimeout(focusTimer);
+      document.removeEventListener('keydown', trapFocus);
+      if (previousFocus instanceof HTMLElement) previousFocus.focus();
+    };
+  }, []);
 
   return (
     <div
@@ -81,6 +111,7 @@ export function Modal({
         }
       `}</style>
       <div
+        ref={dialogRef}
         className={`ds-modal-content ${contentClassName}`.trim()}
         role="dialog"
         aria-modal="true"
@@ -108,6 +139,8 @@ export function Modal({
         {/* Close button top right */}
         <button 
           onClick={onClose}
+          type="button"
+          aria-label="Close dialog"
           className="modal-close-btn"
           style={{
             position: "absolute",

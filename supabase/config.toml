@@ -12,3 +12,48 @@ verify_jwt = false
 
 [functions.stripe-reprocess-queue]
 verify_jwt = false
+
+[functions.send-support-email]
+verify_jwt = true
+
+[functions.geocode-address]
+verify_jwt = true
+
+[functions.maxxis-chat]
+verify_jwt = true
+
+[functions.maxxis-action-confirm]
+verify_jwt = true
+
+[functions.maxxis-action-cancel]
+verify_jwt = true
+
+[functions.maxxis-provider-unlock-prepare]
+verify_jwt = true
+
+[functions.maxxis-provider-unlock-confirm]
+verify_jwt = true
+
+[functions.maxxis-provider-unlock-cancel]
+verify_jwt = true
+
+[functions.maxxis-provider-message-draft]
+verify_jwt = true
+
+[functions.maxxis-provider-message-prepare]
+verify_jwt = true
+
+[functions.maxxis-provider-message-confirm]
+verify_jwt = true
+
+[functions.maxxis-provider-message-cancel]
+verify_jwt = true
+
+[functions.maxxis-provider-conversation-analysis]
+verify_jwt = true
+
+[functions.maxxis-deal-workflow]
+verify_jwt = true
+
+[functions.feature-flags]
+verify_jwt = true

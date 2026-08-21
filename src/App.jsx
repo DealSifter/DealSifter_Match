@@ -4,7 +4,6 @@ import loaderMark from './assets/logo.png';
 import { ThemeProvider } from './theme/theme';
 import { Navbar } from './components/layout/Navbar';
 import { AppMobileBottomNav } from './components/layout/AppMobileBottomNav';
-import { MaxxisAssistant } from './components/maxxis/MaxxisAssistant';
 import { GuideTipsProvider } from './components/guidetips/GuideTipsProvider';
 import { GuideTipOverlay } from './components/guidetips/GuideTipOverlay';
 import ErrorBoundary from './components/ui/ErrorBoundary';
@@ -78,6 +77,7 @@ const Settings = lazyWithRetry(() => import('./pages/Settings').then((m) => ({ d
 const AdminDashboard = lazyWithRetry(() => import('./pages/AdminDashboard').then((m) => ({ default: m.AdminDashboard })), 'admin');
 const TermsPage = lazyWithRetry(() => import('./pages/TermsPage').then((m) => ({ default: m.TermsPage })), 'terms');
 const PrivacyPolicyPage = lazyWithRetry(() => import('./pages/PrivacyPolicyPage').then((m) => ({ default: m.PrivacyPolicyPage })), 'privacy');
+const MaxxisAssistant = lazyWithRetry(() => import('./components/maxxis/MaxxisAssistant').then((m) => ({ default: m.MaxxisAssistant })), 'maxxis-assistant');
 import { UnlockModal } from './components/modals/UnlockModal';
 import { SpotlightModal } from './components/modals/SpotlightModal';
 const AuthAccessModal = lazyWithRetry(() => import('./components/modals/AuthAccessModal').then((m) => ({ default: m.AuthAccessModal })), 'auth-access');
@@ -91,7 +91,8 @@ import { CATEGORIES, CARDS as _MOCK_CARDS, PROPERTIES as _MOCK_PROPERTIES, SERVI
 import { supabase, isSupabaseConfigured, supabaseConfigHint } from './lib/supabaseClient';
 import { buildScopedProfilePayload, extractScopedProfileLegacy, inferRecordProfileScope, normalizeProfileScope } from './lib/profileScopeResolver';
 import { buildDataIntegrityAudit } from './lib/dataIntegrityAudit';
-import { getPortfolioFull, setPortfolioFull, clearAllUserData, uploadDataUrlToStorage } from './lib/localforageHelper';
+import { getPortfolioFull, setPortfolioFull, clearAllUserData, clearUserData, uploadDataUrlToStorage } from './lib/localforageHelper';
+import { createRealtimeLifecycle, createRealtimeTopic } from './lib/realtimeLifecycle';
 import { useAuthSession, mapSupabaseUserToSession } from './hooks/useAuthSession';
 import { useProfileSync } from './hooks/useProfileSync';
 import { usePortfolioSync } from './hooks/usePortfolioSync';
@@ -99,8 +100,11 @@ import { useCheckoutFlow } from './hooks/useCheckoutFlow';
 import { useMediaQuery } from './hooks/useMediaQuery';
 import { useChatRealtime } from './hooks/useChatRealtime';
 import { useUnlockNotifications } from './hooks/useUnlockNotifications';
-import { canPerformAction, getPlanActionAccess, getPlanGateCopy, getCurrentPlan, isPlanLimitError, refreshUsageFromDB } from './services/planUsageService';
-import { clearSensitiveCache, REMOTE_CACHE_LOCAL_STORAGE_KEYS } from './lib/localStoragePolicy';
+import { useAppSessionLifecycle } from './hooks/useAppSessionLifecycle';
+import { useUserPreferences } from './hooks/useUserPreferences';
+import { canPerformAction, getPlanActionAccess, getPlanGateCopy, getCurrentPlan, isPlanLimitError, refreshUsageFromDB, resolveRemainingNuggets } from './services/planUsageService';
+import { isProfileConflictError, saveProfessionalProfileWithVersion } from './services/profileConcurrencyService';
+import { clearSensitiveCache, clearUserScopedCache } from './lib/localStoragePolicy';
 import { trackAppEvent } from './lib/adminEventTracking';
 import { captureAppException, captureUnlockError, setObservabilityUser } from './lib/observability';
 import { createPropertyUnlockRecord, getOwnerExclusivityStatus, getPortfolioUnlockCost, getPropertyExclusivityStatus, resolveUnlockOwnerId } from './lib/unlockRules';
@@ -196,21 +200,6 @@ const isMissingFunctionError = (error, functionName) => {
 const LOCAL_REALTIME_IGNORE_MS = 2200;
 const REALTIME_REFRESH_MIN_INTERVAL_MS = 2500;
 
-// Global unhandled error capture — hooks into window.__DS_REPORT_ERROR for Sentry/external service
-if (typeof window !== 'undefined') {
-  const report = (error, context) => {
-    if (typeof window.__DS_REPORT_ERROR === 'function') {
-      try { window.__DS_REPORT_ERROR(error, context); } catch { /* no-op */ }
-    }
-  };
-  window.addEventListener('error', (event) => {
-    report(event.error || event.message, { type: 'uncaught', filename: event.filename, lineno: event.lineno });
-  });
-  window.addEventListener('unhandledrejection', (event) => {
-    report(event.reason, { type: 'unhandledrejection' });
-  });
-}
-
 // Production must use real DB/user-owned records only. Mock metadata is dev-only
 // so portfolio counts, unlock pricing, and feeds cannot be polluted by test data.
 const CARDS = import.meta.env.DEV ? _MOCK_CARDS : [];
@@ -222,134 +211,20 @@ const DevInspector = import.meta.env.DEV
   ? lazy(() => import('./components/dev/DevInspector').then((m) => ({ default: m.DevInspector })))
   : () => null;
 
-const SECURITY_AUDIT_KEY = 'ds_security_audit';
-const SECURITY_SESSIONS_KEY = 'ds_security_sessions';
-const SECURITY_ACTIVE_SESSION_KEY = 'ds_security_active_session_id';
-const APP_SESSION_TOKEN_KEY = 'ds_app_session_token';
-const APP_LAST_ACTIVITY_KEY = 'ds_app_last_activity_at';
-const APP_IDLE_SIGNOUT_MS = 4 * 60 * 60 * 1000;
-const USER_PREFERENCES_KEY = 'ds_user_preferences';
+import {
+  APP_SESSION_TOKEN_KEY,
+  SECURITY_AUDIT_KEY,
+  appendSecurityAuditEvent,
+  consumeRateLimit,
+} from './lib/appSessionSecurity';
 
-const appendSecurityAuditEvent = (event) => {
-  try {
-    const current = JSON.parse(localStorage.getItem(SECURITY_AUDIT_KEY) || '[]');
-    const next = Array.isArray(current) ? current : [];
-    next.unshift({
-      id: `sec-${Date.now()}-${Math.random().toString(16).slice(2, 7)}`,
-      at: Date.now(),
-      ...event,
-    });
-    localStorage.setItem(SECURITY_AUDIT_KEY, JSON.stringify(next.slice(0, 200)));
-  } catch { /* no-op */ }
-};
-
-const consumeRateLimit = (key, maxAttempts, windowMs, lockMs = windowMs) => {
-  try {
-    const now = Date.now();
-    const store = JSON.parse(localStorage.getItem('ds_security_rate_limits') || '{}');
-    const entry = store?.[key] || { attempts: [], lockedUntil: 0 };
-    if (Number(entry.lockedUntil || 0) > now) {
-      return { allowed: false, retryAfterMs: Number(entry.lockedUntil) - now };
-    }
-    const attempts = (Array.isArray(entry.attempts) ? entry.attempts : []).filter((ts) => now - Number(ts) <= windowMs);
-    attempts.push(now);
-    if (attempts.length > maxAttempts) {
-      const lockedUntil = now + lockMs;
-      store[key] = { attempts, lockedUntil };
-      localStorage.setItem('ds_security_rate_limits', JSON.stringify(store));
-      return { allowed: false, retryAfterMs: lockMs };
-    }
-    store[key] = { attempts, lockedUntil: 0 };
-    localStorage.setItem('ds_security_rate_limits', JSON.stringify(store));
-    return { allowed: true, retryAfterMs: 0 };
-  } catch {
-    return { allowed: true, retryAfterMs: 0 };
-  }
-};
-
-const DEFAULT_USER_PREFERENCES = {
-  map: {
-    initialZoom: 4,
-    defaultStyle: 'simple',
-    clusterBehavior: 'pins_city',
-    defaultFilters: {
-      showPeople: true,
-      showProperties: true,
-      showOnlyUnlocked: false,
-      showOnlyMyPins: false,
-    },
-  },
-  feedMatches: {
-    sortOrder: 'random',
-    autoplayMedia: false,
-  },
-  chatLanguage: {
-    input: 'pt',
-    output: 'en',
-  },
-  privacy: {
-    presenceStatus: 'online',
-    readReceipts: true,
-    messagePreview: true,
-  },
-};
-
-const normalizeUserPreferences = (value) => {
-  const input = value && typeof value === 'object' ? value : {};
-  const map = input.map && typeof input.map === 'object' ? input.map : {};
-  const defaultFilters = map.defaultFilters && typeof map.defaultFilters === 'object' ? map.defaultFilters : {};
-  const feedMatches = input.feedMatches && typeof input.feedMatches === 'object' ? input.feedMatches : {};
-  const chatLanguage = input.chatLanguage && typeof input.chatLanguage === 'object' ? input.chatLanguage : {};
-  const privacy = input.privacy && typeof input.privacy === 'object' ? input.privacy : {};
-  const initialZoomRaw = Number(map.initialZoom);
-  const initialZoom = Number.isFinite(initialZoomRaw) ? Math.max(3, Math.min(13, initialZoomRaw)) : DEFAULT_USER_PREFERENCES.map.initialZoom;
-  const rawDefaultStyle = String(map.defaultStyle || '').trim();
-  const defaultStyle = ['simple', 'satellite_streets', 'topo'].includes(rawDefaultStyle)
-    ? rawDefaultStyle
-    : (rawDefaultStyle === 'flood' ? 'satellite_streets' : DEFAULT_USER_PREFERENCES.map.defaultStyle);
-  const clusterBehavior = ['pins_city', 'mixed'].includes(String(map.clusterBehavior || '').trim())
-    ? String(map.clusterBehavior).trim()
-    : DEFAULT_USER_PREFERENCES.map.clusterBehavior;
-  const sortOrder = ['random', 'recent', 'name_asc', 'price_asc', 'price_desc', 'my_cards_first'].includes(String(feedMatches.sortOrder || '').trim())
-    ? String(feedMatches.sortOrder).trim()
-    : DEFAULT_USER_PREFERENCES.feedMatches.sortOrder;
-  const presenceStatus = ['online', 'standby', 'offline'].includes(String(privacy.presenceStatus || '').trim())
-    ? String(privacy.presenceStatus).trim()
-    : DEFAULT_USER_PREFERENCES.privacy.presenceStatus;
-
-  return {
-    map: {
-      initialZoom,
-      defaultStyle,
-      clusterBehavior,
-      defaultFilters: {
-        showPeople: Boolean(defaultFilters.showPeople ?? DEFAULT_USER_PREFERENCES.map.defaultFilters.showPeople),
-        showProperties: Boolean(defaultFilters.showProperties ?? DEFAULT_USER_PREFERENCES.map.defaultFilters.showProperties),
-        showOnlyUnlocked: Boolean(defaultFilters.showOnlyUnlocked ?? DEFAULT_USER_PREFERENCES.map.defaultFilters.showOnlyUnlocked),
-        showOnlyMyPins: Boolean(defaultFilters.showOnlyMyPins ?? DEFAULT_USER_PREFERENCES.map.defaultFilters.showOnlyMyPins),
-      },
-    },
-    feedMatches: {
-      sortOrder,
-      autoplayMedia: Boolean(feedMatches.autoplayMedia ?? DEFAULT_USER_PREFERENCES.feedMatches.autoplayMedia),
-    },
-    chatLanguage: {
-      input: ['pt', 'en', 'es'].includes(String(chatLanguage.input || '').trim()) ? String(chatLanguage.input).trim() : DEFAULT_USER_PREFERENCES.chatLanguage.input,
-      output: ['pt', 'en', 'es'].includes(String(chatLanguage.output || '').trim()) ? String(chatLanguage.output).trim() : DEFAULT_USER_PREFERENCES.chatLanguage.output,
-    },
-    privacy: {
-      presenceStatus,
-      readReceipts: Boolean(privacy.readReceipts ?? DEFAULT_USER_PREFERENCES.privacy.readReceipts),
-      messagePreview: Boolean(privacy.messagePreview ?? DEFAULT_USER_PREFERENCES.privacy.messagePreview),
-    },
-  };
-};
+import { DEFAULT_USER_PREFERENCES, normalizeUserPreferences } from './domain/profile/userPreferences';
 
 // Keys whose full (media-inclusive) version is stored in localforage (IndexedDB)
 // instead of localStorage to avoid the ~5MB quota limit.
 const LOCALFORAGE_FULL_KEYS = new Set(['propertyPortfolio', 'servicePortfolio']);
 
-const persistJsonSafely = (key, value, fallbackValue) => {
+const persistJsonSafely = (key, value, fallbackValue, storageOwnerId = 'guest') => {
   try {
     // Always persist a lightweight fallback to localStorage for fast sync reads.
     if (fallbackValue !== undefined) {
@@ -358,7 +233,7 @@ const persistJsonSafely = (key, value, fallbackValue) => {
 
     if (LOCALFORAGE_FULL_KEYS.has(key)) {
       // Store full payload (images included) in localforage (IndexedDB - no 5MB limit).
-      setPortfolioFull(key, value); // async, fire-and-forget
+      setPortfolioFull(key, value, storageOwnerId); // async, fire-and-forget
       if (fallbackValue === undefined) {
         try { localStorage.setItem(key, JSON.stringify(value)); } catch { /* ignore quota */ }
       }
@@ -523,27 +398,8 @@ const mergeProfilePayloadNonEmpty = (...sources) => {
 
 const LOCAL_OWNER_ID = 999999;
 
-const USER_DATA_KEYS = [
-  'propertyPortfolio', 'propertyPortfolio_full',
-  'servicePortfolio', 'servicePortfolio_full',
-  'personalProfile', 'personalProfile_full',
-  'professionalProfile',
-  'userProfile',
-  'accountType',
-  'ds_feed_hidden_contacts', 'ds_feed_hidden_interests',
-  'dealsifter.hiddenCardIds',
-  'ds_matches_archived_contacts', 'ds_matches_archived_interests',
-  'ds_matches_deleted_contacts', 'ds_matches_deleted_interests',
-  'ds_plan_usage_cache',
-  'profileOwnerMap', 'publishingProfileKey',
-  'ds_last_page', 'categoryOrder',
-];
-
 const clearUserSpecificLocalStorage = (userId = null) => {
-  [...new Set([...USER_DATA_KEYS, ...REMOTE_CACHE_LOCAL_STORAGE_KEYS])].forEach((key) => {
-    try { localStorage.removeItem(key); } catch (e) { void e; }
-  });
-  clearSensitiveCache(userId);
+  clearUserScopedCache(userId);
 };
 
 const isUuid = (value) => /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(String(value || '').trim());
@@ -933,6 +789,8 @@ export default function App() {
   const blockMobileLandscape = useMediaQuery('(hover: none) and (pointer: coarse) and (orientation: landscape) and (max-height: 520px)');
   const onboardingAccessCompleteRef = useRef(true);
   const profileSyncStateRef = useRef({ userId: null, loaded: false, hydrating: false, personalLoadedFromRemote: false, professionalLoadedFromRemote: false });
+  const professionalProfileVersionRef = useRef(0);
+  const [professionalProfileVersion, setProfessionalProfileVersion] = useState(0);
   const [profileSyncSnapshot, setProfileSyncSnapshot] = useState({ userId: null, loaded: false, hydrating: false, personalLoadedFromRemote: false, professionalLoadedFromRemote: false });
   const [profileHydrationAttempts, setProfileHydrationAttempts] = useState(0);
   const profileHydrationRetryRef = useRef({ timer: null, attempts: 0 });
@@ -968,6 +826,9 @@ export default function App() {
   const prevUserIdRef = useRef(null); // tracks userId across renders to detect user change
   const feedActionHydratingRef = useRef(false);
   const feedActionLoadedUserRef = useRef(null);
+  const feedActionRowsRef = useRef([]);
+  const feedActionFetchRef = useRef(null);
+  const feedActionActiveUserRef = useRef(null);
   const feedActionSyncTimerRef = useRef(null);
   const feedActionLastSignatureRef = useRef('');
   const globalFeedIdentityRef = useRef({
@@ -1034,6 +895,7 @@ export default function App() {
   });
   const [modal, setModal] = useState(null);
   const [maxxisPropertyAnalysisRequest, setMaxxisPropertyAnalysisRequest] = useState(null);
+  const [maxxisPropertyContextId, setMaxxisPropertyContextId] = useState('');
   const [authModalTab, setAuthModalTab] = useState('signup');
   const openAuthModal = useCallback((tab = 'signup') => {
     setAuthModalTab(tab === 'login' ? 'login' : 'signup');
@@ -1064,7 +926,6 @@ export default function App() {
     }
   });
   const authBootstrappingRef = useRef(Boolean(isSupabaseConfigured && supabase));
-  const [sessionVersion, setSessionVersion] = useState(0);
   const [systemAccount, setSystemAccount] = useState(() => {
     if (isSupabaseConfigured) {
       return { fullName: '', email: '', phone: '', phoneCountryCode: '+1', marketAreas: '', accountType: 'individual', paymentSetupComplete: false };
@@ -1078,25 +939,14 @@ export default function App() {
       return { fullName: '', email: '', phone: '', paymentSetupComplete: false };
     }
   });
-  const [userPreferences, setUserPreferences] = useState(() => {
-    if (isSupabaseConfigured) return normalizeUserPreferences(null);
-    try {
-      const raw = localStorage.getItem(USER_PREFERENCES_KEY);
-      return normalizeUserPreferences(raw ? JSON.parse(raw) : null);
-    } catch {
-      return normalizeUserPreferences(null);
-    }
-  });
-  const handleChangeUserPreferences = useCallback((updater) => {
-    setUserPreferences((prev) => {
-      const base = normalizeUserPreferences(prev);
-      const nextRaw = typeof updater === 'function' ? updater(base) : updater;
-      return normalizeUserPreferences(nextRaw);
-    });
-  }, []);
+  const {
+    userPreferences,
+    setUserPreferences,
+    changeUserPreferences: handleChangeUserPreferences,
+  } = useUserPreferences();
   const [isAdmin, setIsAdmin] = useState(false);
   const handleUserLogoutRef = useRef(null);
-  void sessionVersion;
+  const lastActivityRef = useRef(0);
 
   useEffect(() => {
     if (!keepAlivePageIds.has(page)) return;
@@ -1108,110 +958,14 @@ export default function App() {
     });
   }, [keepAlivePageIds, page]);
 
-  useEffect(() => {
-    try {
-      localStorage.setItem(USER_PREFERENCES_KEY, JSON.stringify(normalizeUserPreferences(userPreferences)));
-    } catch { /* no-op */ }
-  }, [userPreferences]);
-
-  useEffect(() => {
-    if (!authSession?.id) return;
-    try {
-      const now = Date.now();
-      const currentId = localStorage.getItem(SECURITY_ACTIVE_SESSION_KEY) || `sess-${now}-${Math.random().toString(16).slice(2, 7)}`;
-      localStorage.setItem(SECURITY_ACTIVE_SESSION_KEY, currentId);
-      const all = JSON.parse(localStorage.getItem(SECURITY_SESSIONS_KEY) || '[]');
-      const rows = Array.isArray(all) ? all : [];
-      const nextRows = rows
-        .filter((row) => row && String(row.userId || '') === String(authSession.id))
-        .map((row) => ({ ...row, current: String(row.id) === String(currentId) }));
-      const hasCurrent = nextRows.some((row) => String(row.id) === String(currentId));
-      if (!hasCurrent) {
-        nextRows.unshift({
-          id: currentId,
-          userId: authSession.id,
-          email: authSession.email || '',
-          createdAt: now,
-          lastSeenAt: now,
-          current: true,
-          device: String(navigator.userAgent || 'Unknown device').slice(0, 120),
-        });
-        appendSecurityAuditEvent({ type: 'session', status: 'created', message: 'New active session started.' });
-      }
-      localStorage.setItem(SECURITY_SESSIONS_KEY, JSON.stringify(nextRows.slice(0, 20)));
-      window.setTimeout(() => setSessionVersion((v) => v + 1), 0);
-    } catch { /* no-op */ }
-  }, [authSession?.id, authSession?.email]);
-
-  useEffect(() => {
-    if (!isSupabaseConfigured || !supabase || !authSession?.userId) return undefined;
-    let cancelled = false;
-    const sendHeartbeat = async () => {
-      if (cancelled) return;
-      try {
-        await supabase.rpc('track_user_heartbeat', { p_page: String(page || 'app').slice(0, 48) });
-      } catch {
-        // Analytics must never interrupt app navigation.
-      }
-    };
-    sendHeartbeat();
-    const timer = window.setInterval(sendHeartbeat, 60000);
-    return () => {
-      cancelled = true;
-      window.clearInterval(timer);
-    };
-  }, [authSession?.userId, page]);
-
-  useEffect(() => {
-    if (!authSession?.id) return undefined;
-    const updateActivity = () => {
-      const now = Date.now();
-      lastActivityRef.current = now;
-      try { localStorage.setItem(APP_LAST_ACTIVITY_KEY, String(now)); } catch { /* no-op */ }
-      try {
-        const currentId = localStorage.getItem(SECURITY_ACTIVE_SESSION_KEY);
-        if (!currentId) return;
-        const all = JSON.parse(localStorage.getItem(SECURITY_SESSIONS_KEY) || '[]');
-        const rows = Array.isArray(all) ? all : [];
-        let changed = false;
-        const next = rows.map((row) => {
-          if (String(row?.id || '') !== String(currentId)) return row;
-          changed = true;
-          return { ...row, lastSeenAt: now };
-        });
-        if (changed) localStorage.setItem(SECURITY_SESSIONS_KEY, JSON.stringify(next));
-      } catch { /* no-op */ }
-    };
-    const getLastActivityAt = () => {
-      try {
-        const stored = Number(localStorage.getItem(APP_LAST_ACTIVITY_KEY) || '0');
-        if (Number.isFinite(stored) && stored > 0) return stored;
-      } catch { /* no-op */ }
-      return Number(lastActivityRef.current || Date.now());
-    };
-    const checkIdleTimeout = () => {
-      const inactiveMs = Date.now() - getLastActivityAt();
-      if (inactiveMs > APP_IDLE_SIGNOUT_MS) {
-        appendSecurityAuditEvent({ type: 'session', status: 'timeout', message: 'Session ended after 4 hours without activity.' });
-        handleUserLogoutRef.current?.();
-      }
-    };
-    updateActivity();
-    const events = ['pointerdown', 'keydown', 'mousemove', 'touchstart', 'input', 'change', 'scroll'];
-    events.forEach((evt) => window.addEventListener(evt, updateActivity, { passive: true }));
-    const visibilityHandler = () => {
-      if (document.visibilityState === 'visible') checkIdleTimeout();
-    };
-    window.addEventListener('focus', checkIdleTimeout);
-    document.addEventListener('visibilitychange', visibilityHandler);
-    const timer = window.setInterval(checkIdleTimeout, 60 * 1000);
-    return () => {
-      events.forEach((evt) => window.removeEventListener(evt, updateActivity));
-      window.removeEventListener('focus', checkIdleTimeout);
-      document.removeEventListener('visibilitychange', visibilityHandler);
-      window.clearInterval(timer);
-    };
-  }, [authSession?.id]);
+  const sessionVersion = useAppSessionLifecycle({
+    authSession,
+    page,
+    lastActivityRef,
+    logoutRef: handleUserLogoutRef,
+    supabaseClient: supabase,
+    isConfigured: isSupabaseConfigured,
+  });
 
   // Toast notification system
   const [toasts, setToasts] = useState([]);
@@ -1614,7 +1368,6 @@ export default function App() {
   void chatSeenVersion;
   const [chatFocusTarget, setChatFocusTarget] = useState(null);
   const [chatFocusToken, setChatFocusToken] = useState(0);
-  const lastActivityRef = useRef(0);
   const [systemNotifications, setSystemNotifications] = useState(() => {
     return [];
   });
@@ -1729,6 +1482,7 @@ export default function App() {
   }, [userProfile]);
 
   const supabaseUserId = authSession?.userId || null;
+  const localStorageOwnerId = supabaseUserId || authSession?.id || 'guest';
 
   const refreshPlanActionAccess = useCallback(async () => {
     if (!isSupabaseConfigured || !supabase || !supabaseUserId) {
@@ -1773,6 +1527,34 @@ export default function App() {
     }
   }, [addToast, refreshPlanActionAccess, supabaseUserId]);
 
+  const applyConfirmedNuggetBalance = useCallback(async ({
+    serverRemainingNuggets = null,
+    fallbackCost = 0,
+    refresh = false,
+  } = {}) => {
+    const remote = Number(serverRemainingNuggets);
+    if (Number.isFinite(remote)) {
+      setNuggets(remote);
+      if (refresh) void refreshCurrentPlanAccess();
+      else void refreshPlanActionAccess();
+      return remote;
+    }
+    if (isSupabaseConfigured && supabase && supabaseUserId) {
+      const currentPlan = await refreshCurrentPlanAccess();
+      if (currentPlan) return Number(currentPlan?.nuggets || 0);
+    }
+    let nextBalance = 0;
+    setNuggets((current) => {
+      nextBalance = resolveRemainingNuggets({
+        currentNuggets: current,
+        serverRemainingNuggets,
+        fallbackCost,
+      });
+      return nextBalance;
+    });
+    return nextBalance;
+  }, [refreshCurrentPlanAccess, refreshPlanActionAccess, supabaseUserId]);
+
   useEffect(() => {
     setObservabilityUser(supabaseUserId);
   }, [supabaseUserId]);
@@ -1792,27 +1574,27 @@ export default function App() {
 
     void refreshCurrentPlanAccess({ notify: false });
 
-    let channel = null;
+    const realtime = createRealtimeLifecycle(supabase);
     try {
-      channel = supabase
-        .channel(`user-plan-access-${supabaseUserId}`)
+      const channel = supabase
+        .channel(createRealtimeTopic('user-plan-access', supabaseUserId))
         .on('postgres_changes', {
           event: '*',
           schema: 'public',
           table: 'users',
           filter: `id=eq.${supabaseUserId}`,
-        }, () => {
+        }, realtime.guard(() => {
           void refreshCurrentPlanAccess({ notify: true });
-        })
+        }))
         .on('postgres_changes', {
           event: '*',
           schema: 'public',
           table: 'subscriptions',
           filter: `user_id=eq.${supabaseUserId}`,
-        }, () => {
+        }, realtime.guard(() => {
           void refreshCurrentPlanAccess({ notify: true });
-        })
-        .subscribe((status, error) => {
+        }));
+      realtime.subscribe(channel, (status, error) => {
           if (error) safeLogError('User plan realtime subscription failed.', error);
           if (status === 'CHANNEL_ERROR') safeLogError('User plan realtime channel error.', new Error(status));
         });
@@ -1825,7 +1607,7 @@ export default function App() {
     return () => {
       window.removeEventListener('focus', handleFocusRefresh);
       document.removeEventListener('visibilitychange', handleVisibilityRefresh);
-      if (channel) supabase.removeChannel(channel);
+      realtime.dispose();
     };
   }, [refreshCurrentPlanAccess, supabaseUserId]);
 
@@ -1886,8 +1668,16 @@ export default function App() {
   }, [isHydratingProfiles, isHydratingPortfolio, supabaseUserId]);
 
   const refreshProfileHydration = useCallback(() => {
+    profileSyncStateRef.current = {
+      ...(profileSyncStateRef.current || {}),
+      loaded: false,
+      hydrating: false,
+      personalLoadedFromRemote: false,
+      professionalLoadedFromRemote: false,
+    };
+    scheduleProfileSyncSnapshot();
     setProfileHydrationCycle((prev) => prev + 1);
-  }, []);
+  }, [scheduleProfileSyncSnapshot]);
 
   const {
     checkoutError,
@@ -1974,6 +1764,9 @@ export default function App() {
 
   const fetchRemoteFeedActions = useCallback(async () => {
     if (!isSupabaseConfigured || !supabase || !supabaseUserId) return;
+    if (feedActionFetchRef.current) return feedActionFetchRef.current;
+    const requestUserId = supabaseUserId;
+    const request = (async () => {
     let rows = [];
     try {
       rows = await readFeedActions(supabaseUserId);
@@ -1981,6 +1774,8 @@ export default function App() {
       safeLogError('Failed to hydrate feed actions', error);
       return;
     }
+    if (feedActionActiveUserRef.current !== requestUserId) return;
+    feedActionRowsRef.current = rows;
     if (!rows.length) {
       feedActionHydratingRef.current = true;
       setMatched([]);
@@ -1993,10 +1788,20 @@ export default function App() {
     }
     applyRemoteFeedActions(rows, { replace: true });
     feedActionLoadedUserRef.current = supabaseUserId;
+    })();
+    feedActionFetchRef.current = request;
+    try {
+      return await request;
+    } finally {
+      if (feedActionFetchRef.current === request) feedActionFetchRef.current = null;
+    }
   }, [applyRemoteFeedActions, supabaseUserId, setInterested, setMatched]);
 
   useEffect(() => {
     feedActionLoadedUserRef.current = null;
+    feedActionRowsRef.current = [];
+    feedActionFetchRef.current = null;
+    feedActionActiveUserRef.current = supabaseUserId || null;
     feedActionLastSignatureRef.current = '';
     if (!supabaseUserId) return;
     const timer = window.setTimeout(fetchRemoteFeedActions, 0);
@@ -2005,8 +1810,9 @@ export default function App() {
 
   useEffect(() => {
     if (!isSupabaseConfigured || !supabase || !supabaseUserId) return undefined;
+    const realtime = createRealtimeLifecycle(supabase);
     const channel = supabase
-      .channel(`user-feed-actions-${supabaseUserId}`)
+      .channel(createRealtimeTopic('user-feed-actions', supabaseUserId))
       .on(
         'postgres_changes',
         {
@@ -2015,12 +1821,12 @@ export default function App() {
           table: 'user_feed_actions',
           filter: `user_id=eq.${supabaseUserId}`,
         },
-        (payload) => {
+        realtime.guard((payload) => {
           if (payload?.eventType === 'DELETE') return;
           if (payload?.new) applyRemoteFeedActions([payload.new]);
-        }
-      )
-      .subscribe();
+        })
+      );
+    realtime.subscribe(channel);
 
     const refreshOnFocus = () => {
       if (document.visibilityState === 'visible') fetchRemoteFeedActions();
@@ -2031,7 +1837,7 @@ export default function App() {
     return () => {
       window.removeEventListener('focus', fetchRemoteFeedActions);
       document.removeEventListener('visibilitychange', refreshOnFocus);
-      supabase.removeChannel(channel);
+      realtime.dispose();
     };
   }, [applyRemoteFeedActions, fetchRemoteFeedActions, supabaseUserId]);
 
@@ -2252,9 +2058,16 @@ export default function App() {
   useEffect(() => {
     const inventoryLoaded = globalFeedIdentityRef.current?.loaded === true;
     if (!isSupabaseConfigured || !supabaseUserId || !inventoryLoaded) return undefined;
-    const timer = window.setTimeout(fetchRemoteFeedActions, 0);
+    const rehydrateFromSnapshot = () => {
+      if (feedActionLoadedUserRef.current === supabaseUserId) {
+        applyRemoteFeedActions(feedActionRowsRef.current, { replace: true });
+        return;
+      }
+      void fetchRemoteFeedActions();
+    };
+    const timer = window.setTimeout(rehydrateFromSnapshot, 0);
     return () => window.clearTimeout(timer);
-  }, [fetchRemoteFeedActions, globalConnectionServices.length, globalShowcaseProperties.length, supabaseUserId]);
+  }, [applyRemoteFeedActions, fetchRemoteFeedActions, globalConnectionServices.length, globalShowcaseProperties.length, supabaseUserId]);
 
   useEffect(() => {
     if (!isSupabaseConfigured || !supabase || !supabaseUserId) {
@@ -2281,10 +2094,9 @@ export default function App() {
       } catch (error) {
         if (!cancelled) {
           safeLogError('Global showcase hydration failed.', error);
-          setGlobalShowcaseProperties([]);
-          setGlobalConnectionServices([]);
-          setFeedDeck([]);
-          setActiveSpotlights([]);
+          // Fail closed without discarding the last known sanitized snapshot.
+          // On first load the state is already empty; on transient failures the
+          // previous safe inventory remains visible until the next refresh.
         }
       }
     };
@@ -2448,7 +2260,7 @@ export default function App() {
       byKey.set(`${item.cardKind}:${item.cardId}`, item);
     });
     return [...byKey.values()];
-  }, [accountType, activeSpotlightKeys, personalProfile, professionalProfile, propertyPortfolio, spotlightDbCandidates, supabaseUserId]);
+  }, [activeSpotlightKeys, personalProfile, professionalProfile, propertyPortfolio, spotlightDbCandidates, supabaseUserId]);
 
   const showcaseProperties = useMemo(() => {
     const byId = new Map();
@@ -2467,7 +2279,7 @@ export default function App() {
         byId.set(String(id), { ...p, id });
       });
     return [...byId.values()];
-  }, [globalShowcaseProperties, propertyPortfolio, supabaseUserId]);
+  }, [globalShowcaseProperties, propertyPortfolio]);
 
   const unlockPortfolioProperties = useMemo(() => {
     const byId = new Map();
@@ -2528,12 +2340,28 @@ export default function App() {
     if (!isSupabaseConfigured || !supabase || !supabaseUserId) return;
     try {
       const unlockState = await hydrateUnlockState(supabaseUserId);
-      setUnlockedContactsByOwnerId(unlockState.unlockedContactMap);
-      setUnlocked([...unlockState.unlockedOwnerIds]);
-      setPurchases(unlockState.purchaseRows);
+      const nextUnlockedMap = unlockState.unlockedContactMap instanceof Map
+        ? unlockState.unlockedContactMap
+        : new Map();
+      setUnlockedContactsByOwnerId((prev) => (
+        nextUnlockedMap.size > 0 || !(prev instanceof Map) || prev.size === 0
+          ? nextUnlockedMap
+          : prev
+      ));
+      setUnlocked((prev) => {
+        const nextIds = [...unlockState.unlockedOwnerIds];
+        return nextIds.length > 0 || !Array.isArray(prev) || prev.length === 0 ? nextIds : prev;
+      });
+      setPurchases((prev) => {
+        const nextRows = Array.isArray(unlockState.purchaseRows) ? unlockState.purchaseRows : [];
+        return nextRows.length > 0 || !Array.isArray(prev) || prev.length === 0 ? nextRows : prev;
+      });
       setPropertyUnlocks((prev) => {
         const current = Array.isArray(prev) ? [...prev] : [];
         const canonicalRows = Array.isArray(unlockState.propertyUnlockRows) ? unlockState.propertyUnlockRows : [];
+        if (canonicalRows.length === 0 && current.some((row) => String(row?.source || '') === 'canonical_unlocked_contact_cards')) {
+          return prev;
+        }
         const nonCanonicalRows = current.filter((row) => (
           String(row?.source || '') !== 'canonical_unlocked_contact_cards'
         ));
@@ -2648,19 +2476,23 @@ export default function App() {
       && supabaseUserId
       && String(previousUserId) !== String(supabaseUserId)
     );
+    const isLoggingOut = Boolean(previousUserId && !supabaseUserId);
 
     if (supabaseUserId) {
       try { localStorage.setItem('ds_last_auth_user_id', String(supabaseUserId)); } catch { /* no-op */ }
+    } else if (isLoggingOut) {
+      try { localStorage.removeItem('ds_last_auth_user_id'); } catch { /* no-op */ }
     }
 
-    if (!(isSwitchingToDifferentUser || isInAppAccountSwitch)) return;
+    if (!(isSwitchingToDifferentUser || isInAppAccountSwitch || isLoggingOut)) return;
 
-    clearUserSpecificLocalStorage(supabaseUserId || previousUserId);
+    clearUserSpecificLocalStorage(previousUserId || supabaseUserId);
 
-    if (previousUserId !== null || isSwitchingToDifferentUser) {
+    if (previousUserId !== null || isSwitchingToDifferentUser || isLoggingOut) {
       setMatched([]);
       setInterested([]);
       setUnlocked([]);
+      setUnlockedContactsByOwnerId(new Map());
       setPurchases([]);
       setConvos({});
       setNuggets(isSupabaseConfigured ? 0 : 5);
@@ -2671,7 +2503,7 @@ export default function App() {
       setProfessionalProfile(DEFAULT_PROFESSIONAL_PROFILE(''));
       setServicePortfolio([]);
       setPropertyPortfolio([]);
-      clearAllUserData(); // clears IndexedDB portfolioStore + tempUploads
+      clearUserData(previousUserId || lastStoredUserId || supabaseUserId || 'guest');
     }
   }, [setConvos, supabaseUserId]);
 
@@ -2706,20 +2538,20 @@ export default function App() {
 
   useEffect(() => {
     if (isSupabaseConfigured) return;
-    persistJsonSafely('servicePortfolio', servicePortfolio, stripServicePortfolioMedia(servicePortfolio));
-  }, [servicePortfolio]);
+    persistJsonSafely('servicePortfolio', servicePortfolio, stripServicePortfolioMedia(servicePortfolio), localStorageOwnerId);
+  }, [localStorageOwnerId, servicePortfolio]);
 
   useEffect(() => {
     if (isSupabaseConfigured) return;
-    persistJsonSafely('propertyPortfolio', propertyPortfolio, stripPropertyPortfolioMedia(propertyPortfolio));
-  }, [propertyPortfolio]);
+    persistJsonSafely('propertyPortfolio', propertyPortfolio, stripPropertyPortfolioMedia(propertyPortfolio), localStorageOwnerId);
+  }, [localStorageOwnerId, propertyPortfolio]);
 
   // ── Rehydrate portfolios from localforage (IndexedDB) on mount ─────────
   // The synchronous useState init above loads the lightweight localStorage version (no images).
   // These effects fire on mount and load the full version (with images) from localforage.
   useEffect(() => {
     if (isSupabaseConfigured) return;
-    getPortfolioFull('propertyPortfolio').then((full) => {
+    getPortfolioFull('propertyPortfolio', localStorageOwnerId).then((full) => {
       if (!Array.isArray(full) || !full.length) return;
       const filtered = full.filter((item) => isUserOwnedPropertyRecord(item) && !isSeededPropertyRecord(item));
       if (!filtered.length) return;
@@ -2734,11 +2566,11 @@ export default function App() {
         });
       });
     });
-  }, []);
+  }, [localStorageOwnerId]);
 
   useEffect(() => {
     if (isSupabaseConfigured) return;
-    getPortfolioFull('servicePortfolio').then((full) => {
+    getPortfolioFull('servicePortfolio', localStorageOwnerId).then((full) => {
       if (!Array.isArray(full) || !full.length) return;
       const filtered = full.filter((item) => isUserOwnedServiceRecord(item));
       if (!filtered.length) return;
@@ -2753,7 +2585,7 @@ export default function App() {
         });
       });
     });
-  }, []);
+  }, [localStorageOwnerId]);
 
   // ── Flush pending Supabase debounces on tab close / background ──
   useEffect(() => {
@@ -2823,6 +2655,8 @@ export default function App() {
   useEffect(() => {
     if (!isSupabaseConfigured || !supabase || !supabaseUserId) {
       profileSyncStateRef.current = { userId: null, loaded: false, hydrating: false, personalLoadedFromRemote: false, professionalLoadedFromRemote: false };
+      professionalProfileVersionRef.current = 0;
+      window.setTimeout(() => setProfessionalProfileVersion(0), 0);
       scheduleProfileSyncSnapshot();
       window.setTimeout(() => setIsHydratingProfiles(false), 0);
       resetProfileSync();
@@ -2864,7 +2698,7 @@ export default function App() {
             .maybeSingle(),
           supabase
             .from('professional_profiles')
-            .select('category, subcategory, markets, skills, services, pitch, primary_category, category_b, primary_category_b, photo_b_url, profile_payload')
+            .select('category, subcategory, markets, skills, services, pitch, primary_category, category_b, primary_category_b, photo_b_url, profile_payload, profile_version')
             .eq('user_id', supabaseUserId)
             .maybeSingle(),
           supabase
@@ -2928,6 +2762,13 @@ export default function App() {
         }
         let professionalResult = professionalResultInitial;
 
+        if (professionalResult?.error && isMissingColumnError(professionalResult.error, 'professional_profiles.profile_version')) {
+          professionalResult = await supabase
+            .from('professional_profiles')
+            .select('category, subcategory, markets, skills, services, pitch, primary_category, category_b, primary_category_b, photo_b_url, profile_payload')
+            .eq('user_id', supabaseUserId)
+            .maybeSingle();
+        }
         if (professionalResult?.error && isMissingColumnError(professionalResult.error, 'professional_profiles.profile_payload')) {
           professionalResult = await supabase
             .from('professional_profiles')
@@ -2948,12 +2789,19 @@ export default function App() {
           safeLogError('Supabase professional profile hydration failed.', professionalResult.error);
         }
 
+        const hydratedProfileVersion = Number(professionalResult.data?.profile_version || 0);
+        professionalProfileVersionRef.current = Number.isSafeInteger(hydratedProfileVersion) && hydratedProfileVersion > 0
+          ? hydratedProfileVersion
+          : 0;
+        setProfessionalProfileVersion(professionalProfileVersionRef.current);
+
         const hasAnyInitialProfileRecord = Boolean(personalResult.data || professionalResult.data);
         if (!hasAnyInitialProfileRecord) {
           feedActionHydratingRef.current = true;
           setMatched([]);
           setInterested([]);
           setUnlocked([]);
+          setUnlockedContactsByOwnerId(new Map());
           setUserProfile((prev) => ({
             ...(prev || {}),
             name: '',
@@ -3115,7 +2963,7 @@ export default function App() {
       }
       setIsHydratingProfiles(false);
     };
-  }, [supabaseUserId, profileHydrationCycle, resetProfileSync, resetPortfolioSync, scheduleProfileSyncSnapshot]);
+  }, [supabaseUserId, profileHydrationCycle, resetProfileSync, resetPortfolioSync, scheduleProfileSyncSnapshot, setUserPreferences]);
 
   const scheduleProfileRealtimeRefresh = useCallback((delayMs = 350) => {
     if (!isSupabaseConfigured || !supabase || !supabaseUserId) return;
@@ -3152,55 +3000,56 @@ export default function App() {
   useEffect(() => {
     if (!isSupabaseConfigured || !supabase || !supabaseUserId) return undefined;
 
+    const realtime = createRealtimeLifecycle(supabase);
     const channel = supabase
-      .channel(`ds-live-sync:${supabaseUserId}`)
+      .channel(createRealtimeTopic('ds-live-sync', supabaseUserId))
       .on('postgres_changes', {
         event: '*',
         schema: 'public',
         table: 'user_profiles',
         filter: `user_id=eq.${supabaseUserId}`,
-      }, () => {
+      }, realtime.guard(() => {
         scheduleProfileRealtimeRefresh();
-      })
+      }))
       .on('postgres_changes', {
         event: '*',
         schema: 'public',
         table: 'professional_profiles',
         filter: `user_id=eq.${supabaseUserId}`,
-      }, () => {
+      }, realtime.guard(() => {
         scheduleProfileRealtimeRefresh();
-      })
+      }))
       .on('postgres_changes', {
         event: '*',
         schema: 'public',
         table: 'users',
         filter: `id=eq.${supabaseUserId}`,
-      }, () => {
+      }, realtime.guard(() => {
         scheduleProfileRealtimeRefresh();
-      })
+      }))
       .on('postgres_changes', {
         event: '*',
         schema: 'public',
         table: 'properties',
         filter: `owner_id=eq.${supabaseUserId}`,
-      }, () => {
+      }, realtime.guard(() => {
         schedulePortfolioRealtimeRefresh();
-      })
+      }))
       .on('postgres_changes', {
         event: '*',
         schema: 'public',
         table: 'services',
         filter: `owner_id=eq.${supabaseUserId}`,
-      }, () => {
+      }, realtime.guard(() => {
         schedulePortfolioRealtimeRefresh();
-      });
+      }));
     // property_images cannot be filtered by owner_id, so listening to it here
     // causes unrelated image edits to rehydrate every user's portfolio.
 
-    channel.subscribe();
+    realtime.subscribe(channel);
 
     return () => {
-      supabase.removeChannel(channel);
+      realtime.dispose();
     };
   }, [supabaseUserId, scheduleProfileRealtimeRefresh, schedulePortfolioRealtimeRefresh]);
 
@@ -3351,30 +3200,33 @@ export default function App() {
       if (photoBUrl) payload.photo_b_url = photoBUrl;
       else if (normalized.photoBClearRequested === true) payload.photo_b_url = null;
 
-      let writePayload = {
-        ...payload,
-        profile_payload: profilePayload,
-      };
+      const updatePhotoBUrl = Object.prototype.hasOwnProperty.call(payload, 'photo_b_url');
+      const expectedProfileVersion = professionalProfileVersionRef.current;
 
       beginProfileSync();
       try {
-        let result = await supabase
-          .from('professional_profiles')
-          .upsert(writePayload, { onConflict: 'user_id' });
-
-        if (result?.error && isMissingColumnError(result.error, 'professional_profiles.profile_payload')) {
-          result = await supabase
-            .from('professional_profiles')
-            .upsert(payload, { onConflict: 'user_id' });
-        }
-
-        if (result?.error) {
-          safeLogError('Supabase professional profile persistence failed.', result.error);
-          endProfileSync(true);
-          return;
-        }
+        const result = await saveProfessionalProfileWithVersion({
+          expectedVersion: expectedProfileVersion,
+          profilePayload,
+          fields: payload,
+          updatePhotoBUrl,
+          photoBUrl: updatePhotoBUrl ? payload.photo_b_url : null,
+        });
+        professionalProfileVersionRef.current = result.profileVersion;
+        setProfessionalProfileVersion(result.profileVersion);
         endProfileSync(false);
       } catch (error) {
+        if (isProfileConflictError(error)) {
+          endProfileSync(false);
+          addToast({
+            type: 'warning',
+            title: 'Perfil atualizado em outra ação',
+            message: 'Recarregamos os dados mais recentes para evitar perder alterações. Revise o formulário antes de salvar novamente.',
+            duration: 9000,
+          });
+          refreshProfileHydration();
+          return;
+        }
         safeLogError('Supabase professional profile persistence failed.', error);
         endProfileSync(true);
       }
@@ -3386,7 +3238,7 @@ export default function App() {
     return () => {
       if (professionalDebounceTimer) clearTimeout(professionalDebounceTimer);
     };
-  }, [supabaseUserId, accountType, professionalProfile, personalProfile, userProfile, beginProfileSync, endProfileSync, pendingFlushRef, profileSaveDebounceRef]);
+  }, [supabaseUserId, accountType, professionalProfile, personalProfile, userProfile, addToast, beginProfileSync, endProfileSync, pendingFlushRef, profileSaveDebounceRef, refreshProfileHydration]);
 
   useEffect(() => {
     if (!isSupabaseConfigured || !supabase || !supabaseUserId) {
@@ -4158,29 +4010,40 @@ export default function App() {
       }, 1400);
     };
 
+    // Some global feed base tables intentionally expose only owner rows under
+    // RLS. Polling keeps discovery fresh without reopening sensitive tables to
+    // realtime subscribers merely to obtain an invalidation signal.
+    const pollTimer = window.setInterval(() => {
+      if (typeof document !== 'undefined' && document.visibilityState === 'hidden') return;
+      setGlobalFeedRefreshTick((value) => value + 1);
+    }, 30 * 1000);
+
+    const realtime = createRealtimeLifecycle(supabase);
+    const guardedRefresh = realtime.guard(scheduleGlobalRefresh);
     const channel = supabase
-      .channel(`global-feed-refresh-${supabaseUserId}`)
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'properties' }, scheduleGlobalRefresh)
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'property_images' }, scheduleGlobalRefresh)
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'services' }, scheduleGlobalRefresh)
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'user_profiles' }, scheduleGlobalRefresh)
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'professional_profiles' }, scheduleGlobalRefresh)
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'card_spotlights' }, scheduleGlobalRefresh)
-      .subscribe();
+      .channel(createRealtimeTopic('global-feed-refresh', supabaseUserId))
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'properties' }, guardedRefresh)
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'property_images' }, guardedRefresh)
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'services' }, guardedRefresh)
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'user_profiles' }, guardedRefresh)
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'professional_profiles' }, guardedRefresh)
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'card_spotlights' }, guardedRefresh);
+    realtime.subscribe(channel);
 
     return () => {
       if (timer) window.clearTimeout(timer);
-      supabase.removeChannel(channel);
+      window.clearInterval(pollTimer);
+      realtime.dispose();
     };
   }, [supabaseUserId]);
 
-  const openSettingsTab = (tab = 'profile', view = 'menu') => {
+  const openSettingsTab = useCallback((tab = 'profile', view = 'menu') => {
     setSettingsInitialTab(tab);
     setSettingsInitialView(view);
     setPage('settings');
-  };
+  }, [setPage]);
 
-  const openOnboardingTab = (tab = 'personal') => {
+  const openOnboardingTab = useCallback((tab = 'personal') => {
     const normalized = String(tab || '').trim().toLowerCase();
     const professionalTabs = new Set(['professional', 'business', 'secondary', 'operation', 'operations']);
     const fsboTabs = new Set(['fsbo', 'fsbo_owner']);
@@ -4197,7 +4060,7 @@ export default function App() {
 
     setOnboardingInitialTab(nextTab);
     setPage('onboarding');
-  };
+  }, [setPage]);
 
   const handleMaxxisNavigateAction = useCallback((actionId) => {
     const action = String(actionId || '').trim().toLowerCase().replace(/_/g, '-');
@@ -4253,6 +4116,8 @@ export default function App() {
 
   const handleAnalyzePropertyWithMaxxis = useCallback((request = {}) => {
     const id = request.id || `property-analysis-${Date.now()}`;
+    const propertyId = String(request.propertyId || '').trim();
+    setMaxxisPropertyContextId(isUuid(propertyId) ? propertyId : '');
     setMaxxisPropertyAnalysisRequest({ ...request, id, createdAt: Date.now() });
   }, []);
 
@@ -4279,6 +4144,7 @@ export default function App() {
   };
 
   const handleUserLogout = useCallback(async () => {
+    const userIdAtLogout = supabaseUserId;
     if (isSupabaseConfigured && supabase) {
       try {
         await supabase.auth.signOut();
@@ -4287,13 +4153,15 @@ export default function App() {
       }
     }
 
+    clearUserSpecificLocalStorage(userIdAtLogout);
+    try { await clearUserData(userIdAtLogout || 'guest'); } catch { /* best-effort IndexedDB cleanup */ }
     setAuthSession(null);
     try { localStorage.removeItem('authSession'); } catch { /* no-op */ }
     safeSessionRemove(APP_SESSION_TOKEN_KEY);
     appendSecurityAuditEvent({ type: 'logout', status: 'success', message: 'User signed out from current device.' });
     setModal(null);
     setPage('landing');
-  }, [setPage]);
+  }, [setPage, supabaseUserId]);
 
   useEffect(() => {
     handleUserLogoutRef.current = handleUserLogout;
@@ -5025,7 +4893,10 @@ export default function App() {
             && Number.isFinite(Number(remoteUnlockRow.remaining_nuggets))
             && Number.isFinite(remoteTotalCost)
           ) {
-            setNuggets(Number(remoteUnlockRow.remaining_nuggets));
+            await applyConfirmedNuggetBalance({
+              serverRemainingNuggets: remoteUnlockRow.remaining_nuggets,
+              fallbackCost: unlockCost,
+            });
           } else {
             throw new Error('Property unlock did not return a confirmed balance.');
           }
@@ -5104,7 +4975,10 @@ export default function App() {
             remaining_nuggets: Number(remoteContactUnlock.remaining_nuggets),
           };
           if (Number.isFinite(Number(remoteUnlockRow.remaining_nuggets))) {
-            setNuggets(Number(remoteUnlockRow.remaining_nuggets));
+            await applyConfirmedNuggetBalance({
+              serverRemainingNuggets: remoteUnlockRow.remaining_nuggets,
+              fallbackCost: unlockCost,
+            });
           } else {
             throw new Error('Contact unlock did not return a confirmed balance.');
           }
@@ -5313,7 +5187,10 @@ export default function App() {
       if (!Number.isFinite(Number(firstRow?.remaining_nuggets))) {
         throw new Error('Spotlight purchase did not return the confirmed server balance.');
       }
-      setNuggets(Number(firstRow.remaining_nuggets));
+      await applyConfirmedNuggetBalance({
+        serverRemainingNuggets: firstRow.remaining_nuggets,
+        fallbackCost: totalCost,
+      });
       clearSensitiveCache(supabaseUserId);
       const nextRows = rows.map((row) => ({
         id: row.spotlight_id || `${row.card_kind}:${row.card_id}:${Date.now()}`,
@@ -5495,6 +5372,7 @@ export default function App() {
             userPreferences={userPreferences}
             planActionAccess={planActionAccess}
             propertyUnlocks={propertyUnlocks}
+            unlockedContactMap={unlockedContactsByOwnerId}
             currentUserId={supabaseUserId || 'local-user'}
             activeSpotlightKeys={activeSpotlightKeys}
             onOpenSpotlight={() => setModal('spotlight')}
@@ -5542,6 +5420,7 @@ export default function App() {
             currentUserId={supabaseUserId || 'local-user'}
             activeSpotlightKeys={activeSpotlightKeys}
             onAnalyzePropertyWithMaxxis={handleAnalyzePropertyWithMaxxis}
+            onPropertyContextChange={setMaxxisPropertyContextId}
             isActive={page === 'matches'}
           />
         );
@@ -5587,6 +5466,7 @@ export default function App() {
             personalProfile={personalProfile}
             setPersonalProfile={setPersonalProfile}
             professionalProfile={professionalProfile}
+            professionalProfileVersion={professionalProfileVersion}
             setProfessionalProfile={setProfessionalProfile}
             servicePortfolio={servicePortfolio}
             setServicePortfolio={setServicePortfolio}
@@ -5731,14 +5611,23 @@ export default function App() {
               navigationLocked={onboardingNavigationLocked}
               onNavigationBlocked={handleOnboardingNavigationBlocked}
             />
-            <MaxxisAssistant
-              page={page}
-              enabled={Boolean(authSession)}
-              onOpenSupport={() => openSettingsTab('communication', 'support')}
-              onNavigateAction={handleMaxxisNavigateAction}
-              propertyAnalysisRequest={maxxisPropertyAnalysisRequest}
-              onExportAnalysisPdf={handleExportMaxxisAnalysisPdf}
-            />
+            <Suspense fallback={null}>
+              <MaxxisAssistant
+                page={page}
+                enabled={Boolean(authSession)}
+                onOpenSupport={() => openSettingsTab('communication', 'support')}
+                onNavigateAction={handleMaxxisNavigateAction}
+                propertyAnalysisRequest={maxxisPropertyAnalysisRequest}
+                propertyContextId={maxxisPropertyContextId}
+                onExportAnalysisPdf={handleExportMaxxisAnalysisPdf}
+                onNuggetBalanceChange={(value) => {
+                  void applyConfirmedNuggetBalance({ serverRemainingNuggets: value, refresh: true });
+                }}
+                onProviderUnlockConfirmed={() => {
+                  void fetchRemoteUnlockState();
+                }}
+              />
+            </Suspense>
           </>
         )}
 

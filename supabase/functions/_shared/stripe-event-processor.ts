@@ -1,11 +1,14 @@
 import Stripe from "npm:stripe@17";
 import { createClient } from "npm:@supabase/supabase-js@2";
+import { logOperationalEvent, sanitizeOperationalText } from './observability.ts';
 
 const stripeSecretKey = Deno.env.get('STRIPE_SECRET_KEY') ?? '';
 if (!stripeSecretKey) throw new Error('Missing STRIPE_SECRET_KEY');
 
 export const stripe = new Stripe(stripeSecretKey, {
   apiVersion: '2024-04-10',
+  maxNetworkRetries: 0,
+  timeout: 12_000,
 });
 
 const supabaseAdmin = createClient(
@@ -72,12 +75,12 @@ function normalizeSubscriptionStatus(status?: string | null) {
 }
 
 function safeMessage(err: unknown) {
-  return String((err as Error)?.message ?? err ?? 'Unknown Stripe processing error').slice(0, 2000);
+  return sanitizeOperationalText((err as Error)?.message ?? err ?? 'Unknown Stripe processing error', 2000);
 }
 
 function safeStack(err: unknown) {
   const stack = String((err as Error)?.stack || (err as Error)?.message || err || 'Unknown Stripe processing error');
-  return stack.slice(0, 8000);
+  return sanitizeOperationalText(stack, 2000);
 }
 
 async function logStripeEventReceived(event: Stripe.Event) {
@@ -426,7 +429,7 @@ async function handleCheckoutCompleted(session: Stripe.Checkout.Session) {
   const planId = session.metadata?.plan_id;
 
   if (!userId) {
-    console.warn('Missing user_id metadata in checkout session:', session.id);
+    logOperationalEvent({ functionName: 'stripe-event-processor', operation: 'checkout_metadata', requestId: crypto.randomUUID(), success: false, errorCode: 'CHECKOUT_USER_METADATA_MISSING', status: 422, provider: 'stripe', severity: 'HIGH' });
     return;
   }
 
@@ -462,7 +465,7 @@ async function handleCheckoutCompleted(session: Stripe.Checkout.Session) {
 async function recordNuggetPurchase(session: Stripe.Checkout.Session, userId: string, packId: string) {
   const pack = PACK_CREDITS[packId];
   if (!pack) {
-    console.warn('Unknown pack_id:', packId);
+    logOperationalEvent({ functionName: 'stripe-event-processor', operation: 'resolve_nugget_pack', requestId: crypto.randomUUID(), userId, success: false, errorCode: 'UNKNOWN_NUGGET_PACK', status: 422, provider: 'stripe', severity: 'HIGH' });
     return;
   }
 
@@ -504,7 +507,7 @@ async function syncSubscription(subscription: Stripe.Subscription): Promise<Proc
   );
 
   if (!userId || !planId) {
-    console.warn('Subscription missing app metadata:', subscription.id);
+    logOperationalEvent({ functionName: 'stripe-event-processor', operation: 'subscription_metadata', requestId: crypto.randomUUID(), userId, success: false, errorCode: 'SUBSCRIPTION_METADATA_MISSING', status: 422, provider: 'stripe', severity: 'HIGH' });
     return { processed: false, skipReason: 'subscription_missing_metadata' };
   }
 

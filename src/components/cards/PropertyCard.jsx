@@ -12,6 +12,7 @@ import { formatPropertyLocation } from '../../lib/formatPropertyLocation';
 import { getPendingDealRemainingDays, isPendingDealActive } from '../../lib/pendingDeal';
 import { formatCompactUsd } from '../../lib/formatMoney';
 import { getBlurredStreetAddressLine, getPublicPropertyAddressLine, shouldHideStreetAddressOnCard } from '../../lib/propertyAddressPrivacy';
+import { trackProductEvent } from '../../lib/productAnalytics';
 
 export function PropertyCard({ property, action, statusAction, onInterest, owner, isSkipped = false, previewOnly = false, hotMetrics = null, exclusivityStatus = null, onAvatarClick, onUnlock = null, showActions = true, unlockCost = null }) {
   const t = useT('dashboard').cards;
@@ -728,6 +729,12 @@ export function PropertyCard({ property, action, statusAction, onInterest, owner
             type="button"
             onClick={(event) => {
               event.stopPropagation();
+              void trackProductEvent('property_viewed', {
+                entityType: 'property',
+                entityId: property.id,
+                dedupeKey: `property-viewed:${property.id}`,
+                properties: { source: 'feed_card' },
+              });
               setDescriptionOpen(true);
             }}
             onPointerDown={(event) => event.stopPropagation()}
@@ -898,7 +905,7 @@ export function PropertyCard({ property, action, statusAction, onInterest, owner
         {!previewOnly && showActions ? <>
           <div style={{ marginTop: 'auto', display: 'flex', gap: 6, alignItems: 'center' }}>
             {/* Next — Neutral rotate (LEFT) */}
-            <button onClick={() => onInterest('next')} style={{
+            <button onClick={() => onInterest('next')} aria-label={t.next || 'Next card'} style={{
               width: 36, height: 36, borderRadius: '50%',
               border: 'none', background: 'transparent',
               display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer',
@@ -911,7 +918,7 @@ export function PropertyCard({ property, action, statusAction, onInterest, owner
             </button>
 
             <div style={{ flex: 1, display: 'flex', justifyContent: 'center', gap: 10 }}>
-              <button onClick={() => onInterest('pass')} title={t.skip} style={{
+              <button onClick={() => onInterest('pass')} title={t.skip} aria-label={t.skip || 'Skip'} style={{
                 width: 38, height: 38, borderRadius: '50%',
                 border: `1.5px solid ${C.danger}`,
                 background: C.alpha(C.danger, 0.06),
@@ -925,7 +932,7 @@ export function PropertyCard({ property, action, statusAction, onInterest, owner
                   e.stopPropagation();
                   if (typeof onUnlock === 'function') onUnlock(property);
                   else if (typeof onInterest === 'function') onInterest('interest');
-                }} title={t.unlock || 'Unlock'} style={{
+                }} title={t.unlock || 'Unlock'} aria-label={t.unlock || 'Unlock'} style={{
                 width: 38, height: 38, borderRadius: '50%',
                 border: `1.5px solid ${C.gold}`,
                 background: C.alpha(C.gold, 0.08),
@@ -935,7 +942,15 @@ export function PropertyCard({ property, action, statusAction, onInterest, owner
                 <Icon name="star" size={16} color={C.gold} strokeWidth={2} />
               </button>
 
-              <button onClick={() => onInterest('interest')} title={t.interested} style={{
+              <button onClick={() => {
+                void trackProductEvent('property_interested', {
+                  entityType: 'property',
+                  entityId: property.id,
+                  dedupeKey: `property-interested:${property.id}`,
+                  properties: { source: 'feed_card' },
+                });
+                onInterest('interest');
+              }} title={t.interested} aria-label={t.interested || 'Interested'} style={{
                 width: 38, height: 38, borderRadius: '50%',
                 border: `1.5px solid ${C.success}`,
                 background: C.alpha(C.success, 0.08),

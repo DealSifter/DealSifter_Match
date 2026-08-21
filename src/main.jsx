@@ -5,8 +5,9 @@ import 'leaflet/dist/leaflet.css'
 import App from './App.jsx'
 import ErrorBoundary from './components/ui/ErrorBoundary'
 import { initObservability } from './lib/observability'
+import { startWebVitals } from './lib/webVitals'
 
-initObservability()
+if (initObservability()) startWebVitals()
 
 createRoot(document.getElementById('root')).render(
   <StrictMode>

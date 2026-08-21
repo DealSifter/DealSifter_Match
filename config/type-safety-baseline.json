@@ -1,0 +1,13 @@
+{
+  "baseline": "phase-5g-item-31",
+  "measuredAt": "2026-08-20",
+  "scope": [
+    "supabase/functions/maxxis-chat/index.ts",
+    "supabase/functions/_shared/maxxis/dealCopilotContext.ts",
+    "supabase/functions/_shared/maxxis/dealWorkflow.ts",
+    "supabase/functions/_shared/maxxis/propertyDetails.ts"
+  ],
+  "dangerousAnyBefore": 15,
+  "dangerousAnyMaximum": 3,
+  "remainingRationale": "The remaining entries are narrow legacy Supabase-like query interfaces in propertyDetails.ts; generated database contracts cover the application client and critical RPC witnesses."
+}

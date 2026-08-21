@@ -27,23 +27,23 @@ img, .SmartImage img {
   --border: #c9ced6;
 
   /* Accent - Turquoise */
-  --accent-hex: #35cac9;
-  --accent-l: #5dd6d5;
-  --accent-d: #1fa8a7;
+  --accent-hex: #0b6b64;
+  --accent-l: #115e59;
+  --accent-d: #115e59;
 
   /* Gold - Nuggets */
-  --gold-hex: #F5A623;
-  --gold-l: #FFD166;
-  --gold-d: #C47D0E;
+  --gold-hex: #8a4f00;
+  --gold-l: #a86100;
+  --gold-d: #713f12;
 
   /* Status */
-  --success-hex: #75ba75;
+  --success-hex: #2f7d32;
   --danger-hex: #dc2626;
 
   /* Text hierarchy */
   --t1: #0f172a;
   --t2: #475569;
-  --t3: #94a3b8;
+  --t3: #475569;
 
   /* Shadow */
   --shadow: 0 4px 6px -1px rgb(0 0 0 / 0.08), 0 2px 4px -2px rgb(0 0 0 / 0.05);
@@ -55,7 +55,7 @@ img, .SmartImage img {
   --ui-btn-text: #1f7d89;
   --ui-btn-text-strong: #136a74;
   --ui-hover: #f0f2f6;
-  --ui-active: #20cfc8;
+  --ui-active: #0f766e;
   --ui-active-text: #ffffff;
 }
 
@@ -100,6 +100,15 @@ html {
   margin: 0;
   padding: 0;
   box-sizing: border-box;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    scroll-behavior: auto !important;
+    transition-duration: 0.01ms !important;
+  }
 }
 
 input, textarea, select, button {

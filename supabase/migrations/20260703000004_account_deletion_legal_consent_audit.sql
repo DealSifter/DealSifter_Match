@@ -116,7 +116,7 @@ begin
   limit 1;
 
   if nullif(trim(coalesce(v_email, '')), '') is not null then
-    v_email_hash := encode(digest(lower(trim(v_email)), 'sha256'), 'hex');
+    v_email_hash := encode(extensions.digest(lower(trim(v_email)), 'sha256'), 'hex');
   end if;
 
   select cr.accepted_at, cr.version

@@ -1,5 +1,6 @@
 import React from 'react';
 import { getT } from '../../i18n/translations';
+import { scrubTelemetryValue } from '../../lib/observability';
 
 const reportError = (error, info) => {
   if (typeof window.__DS_REPORT_ERROR === 'function') {
@@ -25,7 +26,7 @@ export default class ErrorBoundary extends React.Component {
     try {
       window.localStorage.setItem('ds_last_error_boundary', JSON.stringify({
         scope,
-        message: String(error?.message || 'Unknown error').slice(0, 240),
+        message: scrubTelemetryValue(String(error?.message || 'Unknown error').slice(0, 240)),
         at: new Date().toISOString(),
       }));
     } catch {

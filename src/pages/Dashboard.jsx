@@ -28,6 +28,8 @@ import { sanitizePublicCardInput } from '../lib/sanitizePublicCardInput';
 import { formatCompactUsd } from '../lib/formatMoney';
 import { getPublicPropertyAddressLine, shouldHideStreetAddressOnCard } from '../lib/propertyAddressPrivacy';
 import { buildProfileEntitlementKey } from '../lib/profileScope';
+import { resolveProfileCardSlots } from '../lib/profileCardSlots';
+import { isOwnerUnlocked as isCanonicalOwnerUnlocked } from '../services/unlockedContactService';
 import feedMatchIcon from '../assets/feed-match-icon.png';
 import spotlightIcon from '../assets/spotlight-icon.png';
 
@@ -139,7 +141,33 @@ function writeFeedDeckSession(key, ids = []) {
   }
 }
 
-export function Dashboard({ page, nuggets, setModal, setPage, onOpenOnboardingTab, openUnlock, unlocked, matched, setMatched, interested, setInterested, purchases, setPurchases, userProfile, personalProfile, professionalProfile, propertyPortfolio, servicePortfolio, accountType, showcaseProperties, categoryOrder, setCategoryOrder, editMode, setEditMode, mobileBottomNavCollapsed = false, addToast, setSystemNotifications = null, isHydrationReady = true, isHydrationSyncing = false, planActionAccess = {}, propertyUnlocks = [], currentUserId = 'local-user', activeSpotlightKeys = new Set(), onOpenSpotlight = null, userPreferences = null, onboardingRequired = false }) {
+function getStableContactListKey(contact, fallbackIndex = 0) {
+  const scope = normalizeProfileScope(
+    contact?.primaryProfile || contact?.primary_profile || contact?.profileScope || contact?.profile_scope,
+    'personal',
+  );
+  return [
+    contact?.ownerId,
+    contact?.unlockOwnerId,
+    contact?.sellerId,
+    contact?.contactId,
+    contact?.id,
+    fallbackIndex,
+  ].map((value) => String(value || '').trim()).filter(Boolean).join(':') + `:${scope}`;
+}
+
+function getStableInterestListKey(interest, fallbackIndex = 0) {
+  return [
+    interest?.id,
+    interest?.propertyId,
+    interest?.property_id,
+    interest?.portfolioId,
+    interest?.ownerId,
+    fallbackIndex,
+  ].map((value) => String(value || '').trim()).filter(Boolean).join(':');
+}
+
+export function Dashboard({ page, nuggets, setModal, setPage, onOpenOnboardingTab, openUnlock, unlocked, matched, setMatched, interested, setInterested, purchases, setPurchases, userProfile, personalProfile, professionalProfile, propertyPortfolio, servicePortfolio, accountType, showcaseProperties, categoryOrder, setCategoryOrder, editMode, setEditMode, mobileBottomNavCollapsed = false, addToast, setSystemNotifications = null, isHydrationReady = true, isHydrationSyncing = false, planActionAccess = {}, propertyUnlocks = [], unlockedContactMap = new Map(), currentUserId = 'local-user', activeSpotlightKeys = new Set(), onOpenSpotlight = null, userPreferences = null, onboardingRequired = false }) {
   const isMobileViewport = useMediaQuery('(max-width: 767px)');
   const isTabletPortraitViewport = useMediaQuery('(min-width: 768px) and (max-width: 1080px) and (orientation: portrait)');
   const isTabletLandscapeViewport = useMediaQuery('(min-width: 768px) and (max-width: 1180px) and (orientation: landscape)');
@@ -686,7 +714,7 @@ export function Dashboard({ page, nuggets, setModal, setPage, onOpenOnboardingTa
       rating: Number.isFinite(rawRating) && rawRating > 0 ? rawRating : 0,
       reviews: Number.isFinite(rawReviews) && rawReviews > 0 ? Math.round(rawReviews) : 0,
       deals: Number.isFinite(rawDeals) && rawDeals > 0 ? Math.round(rawDeals) : 0,
-      cat: hasScopedIdentity ? (scopedIdentity?.categoryId || scopedIdentity?.categoryLabelFallback || '') : '',
+      cat: hasScopedIdentity ? (isFsbo ? 'seller' : (scopedIdentity?.categoryId || scopedIdentity?.categoryLabelFallback || '')) : '',
       desc: (!isFsbo && profileDescription && normalizedProfileDescription !== normalizedTypeLabel)
         ? profileDescription
         : '',
@@ -1070,9 +1098,13 @@ export function Dashboard({ page, nuggets, setModal, setPage, onOpenOnboardingTa
       .filter(Boolean)
   ), [unlocked]);
 
-  const isContactUnlocked = useCallback((itemOrId) => (
-    getUnlockKeys(itemOrId).some((key) => unlockedIdSet.has(key))
-  ), [getUnlockKeys, unlockedIdSet]);
+  const isContactUnlocked = useCallback((itemOrId) => {
+    if (itemOrId && typeof itemOrId === 'object') {
+      const ownerId = itemOrId.ownerId || itemOrId.unlockOwnerId || itemOrId.sellerId || itemOrId.id;
+      if (isCanonicalOwnerUnlocked(unlockedContactMap, ownerId, getRecordProfileScope(itemOrId))) return true;
+    }
+    return getUnlockKeys(itemOrId).some((key) => unlockedIdSet.has(key));
+  }, [getRecordProfileScope, getUnlockKeys, unlockedContactMap, unlockedIdSet]);
 
   const getFeedDisplayCard = useCallback((card, unlockedForCurrentUser = false) => {
     void unlockedForCurrentUser;
@@ -1143,11 +1175,18 @@ export function Dashboard({ page, nuggets, setModal, setPage, onOpenOnboardingTa
     return () => window.clearTimeout(timer);
   }, [unlocked, showcaseProperties, showcaseItems, view, publishingProfileKey, isSwipingConn, isSwipingProp, getOwnerIdForKey, connectionCards, getUnlockKeys]);
 
-  const matchesCat = useCallback((catVal, cat) => {
-    if (cat === "all") return true;
-    const parent = CATEGORIES.find(x => x.sub && x.sub.some(s => s.id === cat));
-    return parent ? catVal === parent.id : catVal === cat;
+  const normalizeFeedCategory = useCallback((value) => {
+    const normalized = String(value || '').trim().toLowerCase();
+    return normalized === 'fsbo' ? 'seller' : normalized;
   }, []);
+
+  const matchesCat = useCallback((catVal, cat) => {
+    const normalizedCat = normalizeFeedCategory(cat);
+    if (normalizedCat === "all") return true;
+    const parent = CATEGORIES.find(x => x.sub && x.sub.some(s => s.id === cat));
+    const expected = normalizeFeedCategory(parent ? parent.id : normalizedCat);
+    return normalizeFeedCategory(catVal) === expected;
+  }, [normalizeFeedCategory]);
 
   useEffect(() => {
     if (isSwipingConn || isSwipingProp) return;
@@ -1685,21 +1724,6 @@ export function Dashboard({ page, nuggets, setModal, setPage, onOpenOnboardingTa
     secondary: normalizePriorityValue(profilePriorityB),
     fsbo: normalizePriorityValue(profilePriorityC),
   };
-  const profileKeyByPriority = Object.entries(priorityByProfileKey).reduce((acc, [profileKey, priority]) => {
-    if (priority && !acc[priority]) acc[priority] = profileKey;
-    return acc;
-  }, {});
-
-  const primaryProfileKey = profileKeyByPriority.primary || null;
-  const secondaryProfileKey = primaryProfileKey && profileKeyByPriority.secondary && profileKeyByPriority.secondary !== primaryProfileKey
-    ? profileKeyByPriority.secondary
-    : null;
-  const primaryVisibleScope = profileKeyToScope(primaryProfileKey);
-  const secondaryVisibleScope = secondaryProfileKey ? profileKeyToScope(secondaryProfileKey) : null;
-
-  const secondaryModalKey = secondaryVisibleScope ? scopeToModalKey(secondaryVisibleScope) : null;
-  const primaryCardData = primaryProfileKey ? buildLocalProfileCard(primaryProfileKey) : null;
-  const secondaryCardData = secondaryProfileKey ? buildLocalProfileCard(secondaryProfileKey) : null;
   const hasRegisteredLocalProfileCard = (card) => {
     if (!card) return false;
     return Boolean(
@@ -1710,14 +1734,24 @@ export function Dashboard({ page, nuggets, setModal, setPage, onOpenOnboardingTa
       || String(card.desc || '').trim()
     );
   };
-  const fallbackRegisteredProfileKey = useMemo(() => {
-    const keys = ['personal', 'secondary', 'fsbo'];
-    return keys.find((key) => hasRegisteredLocalProfileCard(buildLocalProfileCard(key))) || null;
+  const registeredProfileKeys = useMemo(() => {
+    return ['personal', 'secondary', 'fsbo'].filter((key) => (
+      hasRegisteredLocalProfileCard(buildLocalProfileCard(key))
+    ));
   }, [buildLocalProfileCard]);
-  const visiblePrimaryProfileKey = primaryProfileKey || fallbackRegisteredProfileKey;
+  const {
+    explicitPrimaryProfileKey: primaryProfileKey,
+    primaryProfileKey: visiblePrimaryProfileKey,
+    secondaryProfileKey,
+  } = resolveProfileCardSlots(priorityByProfileKey, registeredProfileKeys);
+  const primaryCardData = primaryProfileKey ? buildLocalProfileCard(primaryProfileKey) : null;
   const visiblePrimaryScope = profileKeyToScope(visiblePrimaryProfileKey);
+  const primaryVisibleScope = visiblePrimaryScope;
   const visiblePrimaryModalKey = scopeToModalKey(visiblePrimaryScope);
-  const visiblePrimaryCardData = primaryCardData || (fallbackRegisteredProfileKey ? buildLocalProfileCard(fallbackRegisteredProfileKey) : null);
+  const visiblePrimaryCardData = primaryCardData || (visiblePrimaryProfileKey ? buildLocalProfileCard(visiblePrimaryProfileKey) : null);
+  const secondaryVisibleScope = secondaryProfileKey ? profileKeyToScope(secondaryProfileKey) : null;
+  const secondaryModalKey = secondaryVisibleScope ? scopeToModalKey(secondaryVisibleScope) : null;
+  const secondaryCardData = secondaryProfileKey ? buildLocalProfileCard(secondaryProfileKey) : null;
   const countByScope = (scope) => {
     const key = scopeToProfileKey(scope);
     const ownerId = getOwnerIdForKey(key);
@@ -2507,7 +2541,6 @@ export function Dashboard({ page, nuggets, setModal, setPage, onOpenOnboardingTa
     })
   ), []);
 
-  const fmtPrice = formatCompactUsd;
   const getSafePropertyLabel = (property, fallback = 'Property') => {
     const publicLine = getPublicPropertyAddressLine(property);
     if (publicLine) return publicLine;
@@ -2605,10 +2638,7 @@ export function Dashboard({ page, nuggets, setModal, setPage, onOpenOnboardingTa
       addToast?.({ type: 'warning', message: 'Contact owner could not be resolved for unlock.' });
       return false;
     }
-    const alreadyUnlocked = unlocked.some((id) => {
-      const value = String(id);
-      return (contactId && value === contactId) || (ownerId && value === ownerId);
-    });
+    const alreadyUnlocked = isContactUnlocked(targetCard);
     if (alreadyUnlocked) return false;
     if (typeof openUnlock === 'function') {
       openUnlock({
@@ -2621,7 +2651,7 @@ export function Dashboard({ page, nuggets, setModal, setPage, onOpenOnboardingTa
       return true;
     }
     return false;
-  }, [addToast, currentUserId, findConnectionById, openUnlock, ownOwnerIdsKey, unlocked]);
+  }, [addToast, findConnectionById, isContactUnlocked, openUnlock, ownOwnerIdsKey, t.ownCardNotSelectable]);
 
   const handleMobileUnlockAction = () => {
     if (view === 'connections') {
@@ -2737,7 +2767,7 @@ export function Dashboard({ page, nuggets, setModal, setPage, onOpenOnboardingTa
         id: p.id,
         title: getSafePropertyLabel(p),
         subtitle: `${p.type} · ${formatPropertyLocation(p)}`,
-        meta: `${fmtPrice(p.price)} · ${p.capRate ? `${p.capRate}% Cap` : 'Cap N/A'}`,
+        meta: `${formatCompactUsd(p.price)} · ${p.capRate ? `${p.capRate}% Cap` : 'Cap N/A'}`,
         tone: C.gold,
         icon: 'home',
         thumb: safeThumb,
@@ -2899,9 +2929,8 @@ export function Dashboard({ page, nuggets, setModal, setPage, onOpenOnboardingTa
           }
         }
         @keyframes blink {
-          0% { opacity: 1; }
-          50% { opacity: 0.08; }
-          100% { opacity: 1; }
+          0%, 100% { opacity: 1; transform: scale(1); }
+          50% { opacity: 1; transform: scale(0.99); }
         }
         .blink {
           animation: blink 1s linear infinite;
@@ -2922,7 +2951,7 @@ export function Dashboard({ page, nuggets, setModal, setPage, onOpenOnboardingTa
           0%, 100% {
             border-color: ${C.alpha(C.gold, 0.58)};
             box-shadow: 0 0 0 0 rgba(245, 169, 30, 0), 0 0 10px ${C.alpha(C.gold, 0.16)};
-            background: #ffffff;
+            background: ${C.gold};
           }
           50% {
             border-color: ${C.alpha(C.gold, 0.96)};
@@ -3377,7 +3406,7 @@ export function Dashboard({ page, nuggets, setModal, setPage, onOpenOnboardingTa
       {/* Quick registration detection: consider completed when personalProfile.fullName exists in localStorage */}
       {/* Note: accessing localStorage synchronously here is acceptable in this SPA context */}
       {null}
-      <div style={{ maxWidth:"100%", margin:"0 auto", padding: isTabletPortraitViewport ? "8px 14px 0 14px" : "12px 12px 0 12px", display:"grid", alignItems:"stretch", height:"100%", boxSizing:'border-box' }} className="dashboard-grid">
+      <div data-testid="dashboard-root" style={{ maxWidth:"100%", margin:"0 auto", padding: isTabletPortraitViewport ? "8px 14px 0 14px" : "12px 12px 0 12px", display:"grid", alignItems:"stretch", height:"100%", boxSizing:'border-box' }} className="dashboard-grid">
 
         {/* Left sidebar */}
         <div className="desktop-only dashboard-sidebar">
@@ -4072,6 +4101,7 @@ export function Dashboard({ page, nuggets, setModal, setPage, onOpenOnboardingTa
               <button
                 type="button"
                 className="ds-feed-view-btn"
+                data-testid="feed-view-connections"
                 onClick={() => setView('connections')}
                 style={{
                   border: 'none',
@@ -4098,7 +4128,7 @@ export function Dashboard({ page, nuggets, setModal, setPage, onOpenOnboardingTa
                   border: `1px solid ${C.alpha(C.gold, 0.58)}`,
                   borderRadius: 999,
                   background: C.gold,
-                  color: '#3f3a42',
+                  color: '#ffffff',
                   fontWeight: 900,
                   fontSize: 12,
                   padding: isMobileViewport ? '6px 10px' : '6px 13px',
@@ -4125,6 +4155,7 @@ export function Dashboard({ page, nuggets, setModal, setPage, onOpenOnboardingTa
               <button
                 type="button"
                 className="ds-feed-view-btn"
+                data-testid="feed-view-showcase"
                 onClick={() => setView('properties')}
                 style={{
                   border: 'none',
@@ -4193,7 +4224,7 @@ export function Dashboard({ page, nuggets, setModal, setPage, onOpenOnboardingTa
           </div>
 
           <div ref={mobileFeedStackRef} style={{ position:"relative", width:"100%", minHeight:FEED_STACK_CONTAINER_HEIGHT, overflow:"visible", display:"flex", justifyContent:"center", alignItems:"flex-start", boxSizing:"border-box" }}>
-            <div data-guide="feed-stack" style={{ position:"relative", width:`min(${FEED_CARD_WIDTH}px, 100%)`, height:FEED_STACK_CONTAINER_HEIGHT, boxShadow: 'none', borderRadius: 18, overflow: 'visible' }}>
+            <div data-guide="feed-stack" data-testid="feed-stack" style={{ position:"relative", width:`min(${FEED_CARD_WIDTH}px, 100%)`, height:FEED_STACK_CONTAINER_HEIGHT, boxShadow: 'none', borderRadius: 18, overflow: 'visible' }}>
               {view==="connections" && (
                 connDisplay.length > 0
                   ? connDisplay.slice(0, 5).reverse().map((c, i) => {
@@ -4491,7 +4522,7 @@ export function Dashboard({ page, nuggets, setModal, setPage, onOpenOnboardingTa
                 const unlockCost = getUnlockCost(m);
                 const portfolioCount = getPortfolioCount(m);
                 return (
-              <div key={i} style={{ display:"flex", alignItems:"center", gap:8, padding:"8px 0", borderBottom:i < filteredArr.length-1 ? `1px solid ${C.border}` : "none" }}>
+              <div key={getStableContactListKey(m, i)} style={{ display:"flex", alignItems:"center", gap:8, padding:"8px 0", borderBottom:i < filteredArr.length-1 ? `1px solid ${C.border}` : "none" }}>
                   <SmartImage
                     src={typeof m.photo === 'string' && m.photo.length > 8 ? m.photo : undefined}
                     alt={m.name}
@@ -4608,7 +4639,7 @@ export function Dashboard({ page, nuggets, setModal, setPage, onOpenOnboardingTa
               const isOwnerUnlocked = propOwner && isContactUnlocked(propOwner);
               const ownerUnlockCost = propOwner ? getUnlockCost(propOwner) : 1;
               return (
-                <div key={i} style={{ display:"flex", alignItems:"center", gap:8, padding:"8px 0", borderBottom:i < interested.length-1 ? `1px solid ${C.border}` : "none" }}>
+                <div key={getStableInterestListKey(m, i)} style={{ display:"flex", alignItems:"center", gap:8, padding:"8px 0", borderBottom:i < filteredInterested.length-1 ? `1px solid ${C.border}` : "none" }}>
                   <SmartImage
                     src={typeof (m.images?.[0] || m.image) === 'string' && (m.images?.[0] || m.image)?.length > 8 ? (m.images?.[0] || m.image) : undefined}
                     alt={getSafePropertyLabel(m, 'Property')}

@@ -25,11 +25,11 @@ export function ProfessionalPropertyForm({
       <div style={{ display: 'grid', gridTemplateColumns: isMobileViewport ? 'repeat(2, minmax(0, 1fr))' : 'minmax(0, 1.5fr) minmax(0, 1.2fr) minmax(170px, 1.35fr) minmax(84px, 0.75fr)', gap: 8, marginBottom: 8, width: '100%', minWidth: 0 }}>
         <div style={{ position: 'relative', minWidth: 0 }}>
           <span style={portfolioFieldLabelStyle}>{t.labelAddrShort}</span>
-          <input data-mobile-step="portfolioAddress" value={values.portfolioAddress} onChange={(e) => onChange('portfolioAddress', e.target.value)} placeholder="" style={portfolioFieldInputStyle({ paddingLeft: 44, paddingRight: 12 })} />
+          <input aria-label={t.labelAddrShort || 'Address'} data-mobile-step="portfolioAddress" value={values.portfolioAddress} onChange={(e) => onChange('portfolioAddress', e.target.value)} placeholder="" style={portfolioFieldInputStyle({ paddingLeft: 44, paddingRight: 12 })} />
         </div>
         <div style={{ position: 'relative', minWidth: 0 }}>
           <span style={portfolioFieldLabelStyle}>{t.labelCityShort}</span>
-          <input data-mobile-step="portfolioCity" value={values.portfolioCity} onChange={(e) => onChange('portfolioCity', e.target.value)} placeholder="" style={portfolioFieldInputStyle({ paddingLeft: 54, paddingRight: 12 })} />
+          <input aria-label={t.labelCityShort || 'City'} data-mobile-step="portfolioCity" value={values.portfolioCity} onChange={(e) => onChange('portfolioCity', e.target.value)} placeholder="" style={portfolioFieldInputStyle({ paddingLeft: 54, paddingRight: 12 })} />
         </div>
         <div style={{ position: 'relative', minWidth: 0 }}>
           <span style={portfolioFieldLabelStyle}>States</span>
@@ -37,48 +37,48 @@ export function ProfessionalPropertyForm({
         </div>
         <div style={{ position: 'relative', minWidth: 0 }}>
           <span style={portfolioFieldLabelStyle}>{t.labelZipShort}</span>
-          <input data-mobile-step="portfolioZip" value={values.portfolioZip} onChange={(e) => onChange('portfolioZip', e.target.value)} inputMode="numeric" maxLength={5} placeholder="" style={portfolioFieldInputStyle({ paddingLeft: 36, paddingRight: 12 })} />
+          <input aria-label={t.labelZipShort || 'ZIP code'} data-mobile-step="portfolioZip" value={values.portfolioZip} onChange={(e) => onChange('portfolioZip', e.target.value)} inputMode="numeric" maxLength={5} placeholder="" style={portfolioFieldInputStyle({ paddingLeft: 36, paddingRight: 12 })} />
         </div>
       </div>
 
       <div style={{ display: 'grid', gridTemplateColumns: isMobileViewport ? 'repeat(2, minmax(0, 1fr))' : 'minmax(110px, 1.2fr) minmax(110px, 1.2fr) minmax(68px, 0.7fr) minmax(68px, 0.7fr)', gap: 8, marginBottom: 8, width: '100%', minWidth: 0 }}>
         <div style={{ position: 'relative', minWidth: 0 }}>
           <span style={portfolioFieldLabelStyle}>{t.labelUsdPriceShort}</span>
-          <input data-mobile-step="portfolioPrice" value={values.portfolioPrice} onChange={(e) => onChange('portfolioPrice', formatCurrencyInput(e.target.value))} inputMode="decimal" placeholder="" style={portfolioFieldInputStyle({ paddingLeft: 72, paddingRight: 12 })} />
+          <input aria-label={t.labelUsdPriceShort || 'Price'} data-mobile-step="portfolioPrice" value={values.portfolioPrice} onChange={(e) => onChange('portfolioPrice', formatCurrencyInput(e.target.value))} inputMode="decimal" placeholder="" style={portfolioFieldInputStyle({ paddingLeft: 72, paddingRight: 12 })} />
         </div>
         <div style={{ position: 'relative', minWidth: 0 }}>
           <span style={portfolioFieldLabelStyle}>{t.labelUsdRehabShort}</span>
-          <input value={values.portfolioRehab} onChange={(e) => onChange('portfolioRehab', formatCurrencyInput(e.target.value))} inputMode="decimal" placeholder="" style={portfolioFieldInputStyle({ paddingLeft: 80, paddingRight: 12 })} />
+          <input aria-label={t.labelUsdRehabShort || 'Rehab cost'} value={values.portfolioRehab} onChange={(e) => onChange('portfolioRehab', formatCurrencyInput(e.target.value))} inputMode="decimal" placeholder="" style={portfolioFieldInputStyle({ paddingLeft: 80, paddingRight: 12 })} />
         </div>
         <div style={{ position: 'relative', minWidth: 0 }}>
           <span style={portfolioFieldLabelStyle}>{t.labelBedsShort}</span>
-          <input value={values.portfolioBeds} onChange={(e) => onChange('portfolioBeds', e.target.value)} inputMode="numeric" maxLength={2} placeholder="" style={portfolioFieldInputStyle({ paddingLeft: 28, paddingRight: 12 })} />
+          <input aria-label={t.labelBedsShort || 'Bedrooms'} value={values.portfolioBeds} onChange={(e) => onChange('portfolioBeds', e.target.value)} inputMode="numeric" maxLength={2} placeholder="" style={portfolioFieldInputStyle({ paddingLeft: 28, paddingRight: 12 })} />
         </div>
         <div style={{ position: 'relative', minWidth: 0 }}>
           <span style={portfolioFieldLabelStyle}>{t.labelBathsShort}</span>
-          <input value={values.portfolioBaths} onChange={(e) => onChange('portfolioBaths', e.target.value)} inputMode="numeric" maxLength={2} placeholder="" style={portfolioFieldInputStyle({ paddingLeft: 28, paddingRight: 12 })} />
+          <input aria-label={t.labelBathsShort || 'Bathrooms'} value={values.portfolioBaths} onChange={(e) => onChange('portfolioBaths', e.target.value)} inputMode="numeric" maxLength={2} placeholder="" style={portfolioFieldInputStyle({ paddingLeft: 28, paddingRight: 12 })} />
         </div>
       </div>
 
       <div style={{ display: isTabletPortraitViewport ? 'none' : 'grid', gridTemplateColumns: isMobileViewport ? '1fr' : 'minmax(170px, 0.95fr) minmax(0, 2.75fr)', gap: 8, marginBottom: 8, width: '100%', minWidth: 0 }}>
         <div style={{ position: 'relative', minWidth: 0 }}>
           <span style={portfolioFieldLabelStyle}>{t.labelTypeShort}</span>
-          <select data-mobile-step="portfolioType" value={values.portfolioType} onChange={(e) => onChange('portfolioType', e.target.value)} style={portfolioFieldSelectStyle({ paddingRight: 32 })}>
+          <select aria-label={t.labelTypeShort || 'Property type'} data-mobile-step="portfolioType" value={values.portfolioType} onChange={(e) => onChange('portfolioType', e.target.value)} style={portfolioFieldSelectStyle({ paddingRight: 32 })}>
             <option value="" >Select</option><option value="SFR">SFR</option><option value="Commercial">{t.optionTypeCommercial}</option><option value="Multifamily">{t.optionTypeMultifamily}</option><option value="Land">{t.optionTypeLand}</option>
           </select>
         </div>
         <div style={{ position: 'relative', minWidth: 0, display: 'grid', gridTemplateColumns: isMobileViewport ? 'repeat(3, minmax(0, 1fr))' : 'minmax(78px, 0.82fr) minmax(95px, 0.95fr) minmax(78px, 0.82fr)', gap: 8, justifyContent: 'end', alignContent: 'start' }}>
           <div style={{ position: 'relative', minWidth: 0 }}>
             <span style={portfolioFieldLabelStyle}>{t.labelSqftShort}</span>
-          <input value={values.portfolioSqft} onChange={(e) => onChange('portfolioSqft', e.target.value)} inputMode="numeric" maxLength={7} placeholder="" style={portfolioFieldInputStyle({ paddingLeft: 36, paddingRight: 12 })} />
+          <input aria-label={t.labelSqftShort || 'Square feet'} value={values.portfolioSqft} onChange={(e) => onChange('portfolioSqft', e.target.value)} inputMode="numeric" maxLength={7} placeholder="" style={portfolioFieldInputStyle({ paddingLeft: 36, paddingRight: 12 })} />
           </div>
           <div style={{ position: 'relative', minWidth: 0 }}>
             <span style={portfolioFieldLabelStyle}>{t.labelLotShort}</span>
-          <input value={values.portfolioLot} onChange={(e) => onChange('portfolioLot', e.target.value)} placeholder="" style={portfolioFieldInputStyle({ paddingLeft: 34, paddingRight: 12 })} />
+          <input aria-label={t.labelLotShort || 'Lot size'} value={values.portfolioLot} onChange={(e) => onChange('portfolioLot', e.target.value)} placeholder="" style={portfolioFieldInputStyle({ paddingLeft: 34, paddingRight: 12 })} />
           </div>
           <div style={{ position: 'relative', minWidth: 0 }}>
             <span style={portfolioFieldLabelStyle}>{t.labelCapShort}</span>
-          <input value={values.portfolioCapRate} onChange={(e) => onChange('portfolioCapRate', formatRateInput(e.target.value))} inputMode="decimal" maxLength={5} placeholder="" style={portfolioFieldInputStyle({ paddingLeft: 46, paddingRight: 12 })} />
+          <input aria-label={t.labelCapShort || 'Cap rate'} value={values.portfolioCapRate} onChange={(e) => onChange('portfolioCapRate', formatRateInput(e.target.value))} inputMode="decimal" maxLength={5} placeholder="" style={portfolioFieldInputStyle({ paddingLeft: 46, paddingRight: 12 })} />
           </div>
         </div>
       </div>
@@ -88,14 +88,14 @@ export function ProfessionalPropertyForm({
           {isTabletPortraitViewport ? (
             <div style={{ position: 'relative', minWidth: 0 }}>
               <span style={portfolioFieldLabelStyle}>{t.labelTypeShort}</span>
-              <select data-mobile-step="portfolioType" value={values.portfolioType} onChange={(e) => onChange('portfolioType', e.target.value)} style={portfolioFieldSelectStyle({ paddingRight: 32 })}>
+              <select aria-label={t.labelTypeShort || 'Property type'} data-mobile-step="portfolioType" value={values.portfolioType} onChange={(e) => onChange('portfolioType', e.target.value)} style={portfolioFieldSelectStyle({ paddingRight: 32 })}>
                 <option value="" >Select</option><option value="SFR">SFR</option><option value="Commercial">{t.optionTypeCommercial}</option><option value="Multifamily">{t.optionTypeMultifamily}</option><option value="Land">{t.optionTypeLand}</option>
               </select>
             </div>
           ) : null}
           <div style={{ position: 'relative', minWidth: 0 }}>
             <span style={portfolioFieldLabelStyle}>{t.labelGoalShort}</span>
-            <select value={values.portfolioObjective} onChange={(e) => onChange('portfolioObjective', e.target.value)} style={portfolioFieldSelectStyle({ paddingRight: 32 })}>
+            <select aria-label={t.labelGoalShort || 'Property goal'} value={values.portfolioObjective} onChange={(e) => onChange('portfolioObjective', e.target.value)} style={portfolioFieldSelectStyle({ paddingRight: 32 })}>
               <option value="" >Select</option>
               <option value="Sell">{t.optionGoalSell}</option>
               <option value="Rent">{t.optionGoalRent}</option>
@@ -123,7 +123,7 @@ export function ProfessionalPropertyForm({
         </div>
         <div style={{ position: 'relative', minWidth: 0 }}>
           <span style={portfolioTextareaLabelStyle}>{t.labelDescShort || 'Description'}</span>
-          <textarea value={values.portfolioDescription} onChange={(e) => onChange('portfolioDescription', e.target.value)} placeholder="" style={portfolioFieldTextareaStyle({ minHeight: 72, resize: 'vertical' })} />
+          <textarea aria-label={t.labelDescShort || 'Property description'} value={values.portfolioDescription} onChange={(e) => onChange('portfolioDescription', e.target.value)} placeholder="" style={portfolioFieldTextareaStyle({ minHeight: 72, resize: 'vertical' })} />
         </div>
       </div>
 

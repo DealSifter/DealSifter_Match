@@ -15,6 +15,13 @@ import { getPortfolioUnlockCost, getPropertyExclusivityStatus } from '../lib/unl
 import { inferRecordProfileScope, normalizeProfileScope, resolveScopedProfile } from '../lib/profileScopeResolver';
 import { formatCompactUsd } from '../lib/formatMoney';
 import { getPublicPropertyAddressLine, shouldHideStreetAddressOnCard } from '../lib/propertyAddressPrivacy';
+import {
+  MAP_PANEL_DEFAULT_WIDTH,
+  MAP_PANEL_MAX_WIDTH,
+  MAP_PANEL_MIN_WIDTH,
+  MAP_PANEL_MOBILE_MAX_WIDTH,
+  normalizeMapPanelWidth,
+} from '../lib/mapPanelWidth';
 import { buildMapInventory } from '../services/mapInventoryService';
 
 const DEFAULT_CENTER = [39.5, -98.35];
@@ -548,6 +555,14 @@ const PIN_OVERRIDES_KEY = 'ds_pin_overrides';
 const PIN_OVERRIDES_STORAGE_KEY = 'ds_pin_overrides_by_user';
 const MAP_UI_STATE_KEY = 'ds_mapview_ui_state_v1';
 
+function loadCustomPanelWidth() {
+  try {
+    return normalizeMapPanelWidth(localStorage.getItem('mapViewPanelWidth'));
+  } catch {
+    return null;
+  }
+}
+
 function _pinOverridesUserKey(userProfile) {
   const candidates = [
     userProfile?.id,
@@ -967,13 +982,15 @@ export function MapView({
   
   // Resizable panel state
   const [panelWidth, setPanelWidth] = useState(() => {
-    const savedUiWidth = Number(initialMapUiState.panelWidth);
-    if (Number.isFinite(savedUiWidth)) return Math.max(250, Math.min(600, savedUiWidth));
-    const saved = Number(localStorage.getItem('mapViewPanelWidth'));
-    if (Number.isFinite(saved)) return Math.max(250, Math.min(600, saved));
+    const customWidth = loadCustomPanelWidth();
+    if (customWidth !== null) return customWidth;
+    const savedUiWidth = initialMapUiState.panelWidthCustomized === true
+      ? normalizeMapPanelWidth(initialMapUiState.panelWidth)
+      : null;
+    if (savedUiWidth !== null) return savedUiWidth;
     // Give the first desktop visit enough room to scan the filters and Spotlight cards.
     // Users can still resize it and that choice remains persisted.
-    return 480;
+    return MAP_PANEL_DEFAULT_WIDTH;
   });
   const [isResizing, setIsResizing] = useState(false);
   const [mapUiHydrated, setMapUiHydrated] = useState(false);
@@ -998,6 +1015,7 @@ export function MapView({
       filterBounds,
       panelCollapsed,
       panelWidth,
+      panelWidthCustomized: mapUiStateRef.current?.panelWidthCustomized === true,
       viewport,
       ...overrides,
     };
@@ -1047,8 +1065,9 @@ export function MapView({
       const sanitizedFilterBounds = sanitizeLeafletBounds(saved.filterBounds);
       if (sanitizedFilterBounds) setFilterBounds(sanitizedFilterBounds);
       if (typeof saved.panelCollapsed === 'boolean') setPanelCollapsed(saved.panelCollapsed);
-      const savedWidth = Number(saved.panelWidth);
-      if (Number.isFinite(savedWidth)) setPanelWidth(Math.max(250, Math.min(600, savedWidth)));
+      const customWidth = loadCustomPanelWidth();
+      const savedWidth = customWidth ?? (saved.panelWidthCustomized === true ? normalizeMapPanelWidth(saved.panelWidth) : null);
+      if (savedWidth !== null) setPanelWidth(savedWidth);
       const sanitizedViewport = sanitizeViewport(saved.viewport, preferredInitialZoom);
       if (sanitizedViewport) setViewport(sanitizedViewport);
       mapUiStateRef.current = saved;
@@ -1220,13 +1239,14 @@ export function MapView({
     if (!isResizing || panelCollapsed) return;
 
     const handleMouseMove = (e) => {
-      const newWidth = Math.max(250, Math.min(600, e.clientX - 12));
+      const newWidth = clamp(e.clientX - 12, MAP_PANEL_MIN_WIDTH, MAP_PANEL_MAX_WIDTH);
       setPanelWidth(newWidth);
     };
 
     const handleMouseUp = () => {
       setIsResizing(false);
       localStorage.setItem('mapViewPanelWidth', panelWidth.toString());
+      persistMapUiState({ panelWidth, panelWidthCustomized: true });
     };
 
     document.addEventListener('mousemove', handleMouseMove);
@@ -1236,7 +1256,7 @@ export function MapView({
       document.removeEventListener('mousemove', handleMouseMove);
       document.removeEventListener('mouseup', handleMouseUp);
     };
-  }, [isResizing, panelWidth, panelCollapsed]);
+  }, [isResizing, panelWidth, panelCollapsed, persistMapUiState]);
   const mapInventory = useMemo(() => {
     return buildMapInventory({
       mockCards: CARDS,
@@ -1735,7 +1755,7 @@ export function MapView({
     PUBLIC_MAP_STYLE_KEYS.map((styleKey) => [styleKey, MAP_STYLE_OPTIONS[styleKey]]).filter(([, cfg]) => Boolean(cfg))
   ), []);
 
-  const panelOpenWidth = isMobileViewport ? 'min(92vw, 390px)' : `${panelWidth}px`;
+  const panelOpenWidth = isMobileViewport ? `min(92vw, ${MAP_PANEL_MOBILE_MAX_WIDTH}px)` : `${panelWidth}px`;
   const mapFitPaddingTopLeft = useMemo(
     () => (isMobileViewport ? [24, 24] : [panelWidth + 36, 36]),
     [isMobileViewport, panelWidth],

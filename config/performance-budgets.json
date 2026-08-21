@@ -1,0 +1,25 @@
+{
+  "version": "baseline-2026-08-15",
+  "deterministic": {
+    "largest_javascript_chunk_bytes": 512000,
+    "maxxis_tool_rounds": 1,
+    "maxxis_history_items": 10,
+    "maxxis_tool_payload_chars": 64000,
+    "deal_copilot_query_count": 6,
+    "service_result_limit": 20,
+    "service_batch_categories": 10,
+    "chat_page_size": 50,
+    "feed_action_row_limit": 720
+  },
+  "staging_slo": {
+    "database_query_p95_ms": 50,
+    "edge_non_provider_p95_ms": 2000,
+    "maxxis_total_p95_ms": 8000,
+    "frontend_lcp_p75_ms": 2500
+  },
+  "notes": [
+    "Deterministic limits fail CI.",
+    "Latency targets are monitored in staging/observability and do not fail CI on millisecond variance.",
+    "The pooler baseline includes approximately 200 ms of network round-trip from the audit runner."
+  ]
+}

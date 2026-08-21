@@ -1,4 +1,4 @@
-﻿update public.user_profiles
+update public.user_profiles
 set photo_url = null
 where not public.ds_text_is_db_safe(photo_url, 4096);
 

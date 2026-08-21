@@ -168,7 +168,7 @@ declare
   v_plan_id text;
   v_is_admin boolean;
   v_action text;
-  v_actions text[] := '{}';
+  v_actions text[] := '{}'::text[];
   v_limit integer;
   v_used integer;
   v_today date := (now() at time zone 'utc')::date;

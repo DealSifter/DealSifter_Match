@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { isSupabaseConfigured, supabase } from '../lib/supabaseClient';
+import { createRealtimeLifecycle, createRealtimeTopic } from '../lib/realtimeLifecycle';
 
 const NOTIFICATIONS_TABLE = 'notifications';
 
@@ -18,13 +19,6 @@ function mapNotification(row) {
     read: Boolean(row.read_at),
     createdAt: row.created_at || new Date().toISOString(),
   };
-}
-
-function createRealtimeTopic(prefix, userId) {
-  const suffix = typeof crypto !== 'undefined' && crypto.randomUUID
-    ? crypto.randomUUID()
-    : `${Date.now()}-${Math.random().toString(16).slice(2)}`;
-  return `${prefix}-${userId}-${suffix}`;
 }
 
 /**
@@ -97,29 +91,29 @@ export function useUnlockNotifications({
       reportError('Unlock notification backlog load failed.', error);
     });
 
-    let channel = null;
+    const realtime = createRealtimeLifecycle(supabase);
     try {
-      channel = supabase
+      const channel = supabase
         .channel(createRealtimeTopic('owner-notifications', userId))
         .on('postgres_changes', {
           event: 'INSERT',
           schema: 'public',
           table: NOTIFICATIONS_TABLE,
           filter: `user_id=eq.${userId}`,
-        }, (payload) => mergeNotification(payload.new, true))
+        }, realtime.guard((payload) => mergeNotification(payload.new, true)))
         .on('postgres_changes', {
           event: 'UPDATE',
           schema: 'public',
           table: NOTIFICATIONS_TABLE,
           filter: `user_id=eq.${userId}`,
-        }, (payload) => {
+        }, realtime.guard((payload) => {
           const updated = mapNotification(payload.new);
           if (!updated) return;
           setNotifications((prev) => (Array.isArray(prev) ? prev : []).map((item) => (
             item.id === updated.id ? { ...item, ...updated } : item
           )));
-        })
-        .subscribe((status, error) => {
+        }));
+      realtime.subscribe(channel, (status, error) => {
           if (error) reportError('Unlock notification realtime subscription failed.', error);
           if (status === 'CHANNEL_ERROR') reportError('Unlock notification realtime channel error.', new Error(status));
         });
@@ -129,7 +123,7 @@ export function useUnlockNotifications({
 
     return () => {
       cancelled = true;
-      if (channel) supabase.removeChannel(channel);
+      realtime.dispose();
     };
   }, [canUseNotifications, mergeNotification, reportError, userId]);
 

@@ -1,18 +1,13 @@
 import { useCallback, useEffect, useState } from 'react';
 import { isSupabaseConfigured, supabase } from '../lib/supabaseClient';
+import { createRealtimeLifecycle, createRealtimeTopic } from '../lib/realtimeLifecycle';
+import { trackProductEvent } from '../lib/productAnalytics';
 
 const CHAT_MESSAGES_TABLE = 'chat_messages';
 const CHAT_PAGE_SIZE = 50;
 const CHAT_MESSAGE_SELECT_BASE = 'id, sender_id, recipient_id, contact_owner_id, body, message_type, metadata, read_at, created_at';
 const CHAT_MESSAGE_SELECT_WITH_CODES = 'id, sender_id, recipient_id, contact_owner_id, body, message_type, message_code, message_params, metadata, read_at, created_at';
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
-
-function createRealtimeTopic(prefix, userId) {
-  const suffix = typeof crypto !== 'undefined' && crypto.randomUUID
-    ? crypto.randomUUID()
-    : `${Date.now()}-${Math.random().toString(16).slice(2)}`;
-  return `${prefix}-${userId}-${suffix}`;
-}
 
 const isValidUuid = (value) => UUID_RE.test(String(value || '').trim());
 
@@ -156,6 +151,14 @@ export function useChatRealtime({
   }, [onError]);
 
   const appendMessageRow = useCallback((row) => {
+    if (String(row?.recipient_id || '') === userId && String(row?.sender_id || '') !== userId) {
+      void trackProductEvent('provider_reply_received', {
+        entityType: 'chat_message',
+        entityId: row?.id,
+        dedupeKey: `provider-reply-received:${row?.id}`,
+        properties: { source: 'chat_realtime' },
+      });
+    }
     setConversations((prev) => appendChatRow(prev, row, userId));
   }, [userId]);
 
@@ -212,15 +215,15 @@ export function useChatRealtime({
     };
 
     hydrateMessages();
-    let channel = null;
+    const realtime = createRealtimeLifecycle(supabase);
     try {
-      channel = supabase
+      const channel = supabase
         .channel(createRealtimeTopic('chat-messages', userId))
-        .on('postgres_changes', { event: 'INSERT', schema: 'public', table: CHAT_MESSAGES_TABLE, filter: `recipient_id=eq.${userId}` }, (payload) => appendMessageRow(payload.new))
-        .on('postgres_changes', { event: 'INSERT', schema: 'public', table: CHAT_MESSAGES_TABLE, filter: `sender_id=eq.${userId}` }, (payload) => appendMessageRow(payload.new))
-        .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: CHAT_MESSAGES_TABLE, filter: `recipient_id=eq.${userId}` }, (payload) => appendMessageRow(payload.new))
-        .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: CHAT_MESSAGES_TABLE, filter: `sender_id=eq.${userId}` }, (payload) => appendMessageRow(payload.new))
-        .subscribe((status, error) => {
+        .on('postgres_changes', { event: 'INSERT', schema: 'public', table: CHAT_MESSAGES_TABLE, filter: `recipient_id=eq.${userId}` }, realtime.guard((payload) => appendMessageRow(payload.new)))
+        .on('postgres_changes', { event: 'INSERT', schema: 'public', table: CHAT_MESSAGES_TABLE, filter: `sender_id=eq.${userId}` }, realtime.guard((payload) => appendMessageRow(payload.new)))
+        .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: CHAT_MESSAGES_TABLE, filter: `recipient_id=eq.${userId}` }, realtime.guard((payload) => appendMessageRow(payload.new)))
+        .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: CHAT_MESSAGES_TABLE, filter: `sender_id=eq.${userId}` }, realtime.guard((payload) => appendMessageRow(payload.new)));
+      realtime.subscribe(channel, (status, error) => {
           if (error) reportError('Chat realtime subscription failed.', error);
           if (status === 'CHANNEL_ERROR') reportError('Chat realtime channel error.', new Error(status));
         });
@@ -230,7 +233,7 @@ export function useChatRealtime({
 
     return () => {
       cancelled = true;
-      if (channel) supabase.removeChannel(channel);
+      realtime.dispose();
     };
   }, [appendMessageRow, canUseRealtime, reportError, userId]);
 

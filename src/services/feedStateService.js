@@ -1,5 +1,6 @@
 import { normalizeCard } from '../lib/normalizeFeedCard';
 import { orderDeck } from '../lib/orderFeedDeck';
+import { captureOperationalMetric } from '../lib/observability';
 import {
   extractScopedProfileLegacy,
   inferRecordProfileScope,
@@ -20,6 +21,7 @@ const truthyFlag = (value, defaultValue = true) => {
 };
 
 const toNumberOrNull = (value) => {
+  if (value === null || value === undefined || value === '') return null;
   const number = Number(value);
   return Number.isFinite(number) ? number : null;
 };
@@ -54,27 +56,6 @@ const isLikelyNonIdentityName = (value) => {
 };
 
 const isDemoSeedMockRecord = (record) => String(record?.source || '').trim() === 'demo_seed_mock';
-
-const isMissingColumnError = (error, columnName) => {
-  const msg = String(error?.message || error?.details || '').toLowerCase();
-  return msg.includes(`column ${String(columnName || '').toLowerCase()} does not exist`);
-};
-
-const isPropertiesOptionalColumnMissingError = (error) => [
-  'properties.video',
-  'properties.lat',
-  'properties.lng',
-  'properties.geocode_status',
-  'properties.geocode_source',
-  'properties.geocode_confidence',
-  'properties.geocode_input',
-  'properties.geocoded_at',
-  'properties.deal_closed',
-  'properties.pending_deal',
-  'properties.pending_deal_started_at',
-  'properties.pending_deal_expires_at',
-  'properties.hide_street_address_on_card',
-].some((column) => isMissingColumnError(error, column));
 
 const getProfilePayloadScope = (profilePayload, scope) => {
   const payload = profilePayload && typeof profilePayload === 'object' ? profilePayload : {};
@@ -164,7 +145,9 @@ const buildOwnerPreview = ({ ownerId, scope, userRow, professionalRow }) => {
       ? pickFirstString(payloadScope?.loc, payloadProfile?.loc)
       : pickFirstString(payloadScope?.loc, payloadProfile?.loc, payloadProfile?.locB),
     photo,
-    cat: pickFirstString(professionalRow?.primary_category_b, professionalRow?.primary_category, professionalRow?.category),
+    cat: isFsbo
+      ? 'seller'
+      : pickFirstString(professionalRow?.primary_category_b, professionalRow?.primary_category, professionalRow?.category),
     desc: isFsbo ? '' : pickFirstString(payloadScope?.pitch, payloadProfile?.pitchB, payloadProfile?.pitch, professionalRow?.pitch),
     email: '',
     primaryPhone: '',
@@ -277,99 +260,26 @@ const mapSpotlights = (spotlightRows = []) => spotlightRows.map((row) => ({
   nuggetsSpent: row.nuggets_spent,
 }));
 
-const queryGlobalFeedTables = async (supabaseClient) => {
-  let propertiesResult = await supabaseClient
-    .from('properties')
-    .select('id, owner_id, type, address, city, state, zip, price, beds, baths, sqft, improvement, lot, deal_tag, objective, rehab, cap_rate, description, markets, is_active, deal_closed, pending_deal, pending_deal_started_at, pending_deal_expires_at, publish_to_showcase, include_in_preview, source, owner_account_type, primary_profile, video, lat, lng, geocode_status, geocode_source, geocode_confidence, geocode_input, geocoded_at, hide_street_address_on_card, created_at, updated_at')
-    .eq('is_active', true)
-    .eq('publish_to_showcase', true)
-    .order('created_at', { ascending: false })
-    .limit(250);
-
-  if (propertiesResult?.error && isPropertiesOptionalColumnMissingError(propertiesResult.error)) {
-    propertiesResult = await supabaseClient
-      .from('properties')
-      .select('id, owner_id, type, address, city, state, zip, price, beds, baths, sqft, improvement, lot, deal_tag, objective, rehab, cap_rate, description, markets, is_active, publish_to_showcase, include_in_preview, source, owner_account_type, primary_profile, created_at, updated_at')
-      .eq('is_active', true)
-      .eq('publish_to_showcase', true)
-      .order('created_at', { ascending: false })
-      .limit(250);
-  }
-
-  const servicesResult = await supabaseClient
-    .from('services')
-    .select('id, owner_id, title, category, description, price, media_images, publish_to_connections, markets, primary_profile, created_at, updated_at')
-    .eq('publish_to_connections', true)
-    .order('created_at', { ascending: false })
-    .limit(250);
-
-  const spotlightsResult = await supabaseClient
-    .from('card_spotlights')
-    .select('id, user_id, owner_id, card_kind, card_id, scope, starts_at, expires_at, nuggets_spent')
-    .gt('expires_at', new Date().toISOString())
-    .order('expires_at', { ascending: false })
-    .limit(500);
-
-  if (propertiesResult.error) throw propertiesResult.error;
-  if (servicesResult.error) throw servicesResult.error;
-
-  const properties = (Array.isArray(propertiesResult.data) ? propertiesResult.data : [])
-    .filter((row) => !isDemoSeedMockRecord(row));
-  const services = Array.isArray(servicesResult.data) ? servicesResult.data : [];
-  const spotlights = spotlightsResult.error ? [] : (Array.isArray(spotlightsResult.data) ? spotlightsResult.data : []);
-  const ownerIds = Array.from(new Set([
-    ...properties.map((row) => String(row.owner_id || '').trim()),
-    ...services.map((row) => String(row.owner_id || '').trim()),
-  ].filter(Boolean)));
-
-  let users = [];
-  let personalProfiles = [];
-  let professionalProfiles = [];
-  if (ownerIds.length > 0) {
-    const [usersResult, personalResult, professionalResult] = await Promise.all([
-      supabaseClient
-        .from('users')
-        .select('id, email, full_name, phone, account_type, is_admin')
-        .in('id', ownerIds),
-      supabaseClient
-        .from('user_profiles')
-        .select('user_id, full_name, photo_url, bio, visibility')
-        .in('user_id', ownerIds),
-      supabaseClient
-        .from('professional_profiles')
-        .select('user_id, category, subcategory, markets, skills, services, pitch, primary_category, category_b, primary_category_b, photo_b_url, profile_payload')
-        .in('user_id', ownerIds),
-    ]);
-    users = usersResult.error ? [] : (Array.isArray(usersResult.data) ? usersResult.data : []);
-    personalProfiles = personalResult.error ? [] : (Array.isArray(personalResult.data) ? personalResult.data : []);
-    professionalProfiles = professionalResult.error ? [] : (Array.isArray(professionalResult.data) ? professionalResult.data : []);
-  }
-
-  let propertyImages = [];
-  if (properties.length > 0) {
-    const imageResult = await supabaseClient
-      .from('property_images')
-      .select('property_id, image_url, sort_order')
-      .in('property_id', properties.map((row) => row.id))
-      .order('sort_order', { ascending: true });
-    propertyImages = imageResult.error ? [] : (Array.isArray(imageResult.data) ? imageResult.data : []);
-  }
-
-  return {
-    properties,
-    services,
-    spotlights,
-    users,
-    personalProfiles,
-    professionalProfiles,
-    propertyImages,
-  };
-};
-
 export async function fetchGlobalInventory(supabaseClient) {
   if (!supabaseClient) throw new Error('Supabase client is required.');
+  const startedAt = Date.now();
   const result = await supabaseClient.rpc('ds_get_global_feed_inventory');
-  if (result?.error) return queryGlobalFeedTables(supabaseClient);
+  if (result?.error) {
+    captureOperationalMetric('feed.global_inventory', {
+      success: false,
+      duration_ms: Date.now() - startedAt,
+      error_category: 'DATABASE',
+      error_code: String(result.error.code || result.error.status || 'GLOBAL_FEED_RPC_FAILED').slice(0, 64),
+    });
+    const error = new Error('Global feed inventory is unavailable.');
+    error.code = result.error.code || result.error.status || 'GLOBAL_FEED_RPC_FAILED';
+    error.cause = result.error;
+    throw error;
+  }
+  captureOperationalMetric('feed.global_inventory', {
+    success: true,
+    duration_ms: Date.now() - startedAt,
+  });
   return result?.data && typeof result.data === 'object' ? result.data : {};
 }
 

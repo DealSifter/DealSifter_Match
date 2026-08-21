@@ -1,4 +1,6 @@
 import { createClient } from 'npm:@supabase/supabase-js@2';
+import { createRequestId, logOperationalEvent, withRequestId } from '../_shared/observability.ts';
+import { checkRateLimit, logAbuseGuard, rateLimitResponse } from '../_shared/abuseProtection.ts';
 
 const supabaseUrl = Deno.env.get('SUPABASE_URL') ?? '';
 const supabaseAnonKey = Deno.env.get('ANON_KEY') ?? Deno.env.get('SUPABASE_ANON_KEY') ?? '';
@@ -19,11 +21,11 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
 
-function jsonResponse(body: Record<string, unknown>, status = 200) {
-  return new Response(JSON.stringify(body), {
+function jsonResponse(body: Record<string, unknown>, status = 200, requestId = '') {
+  return withRequestId(new Response(JSON.stringify(body), {
     status,
     headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-  });
+  }), requestId);
 }
 
 async function getAuthenticatedUser(authHeader: string) {
@@ -48,30 +50,43 @@ function escapeHtml(value: string) {
 }
 
 Deno.serve(async (req) => {
+  const requestId = createRequestId(req);
+  const startedAt = Date.now();
+  let userId = '';
   if (req.method === 'OPTIONS') return new Response('ok', { headers: corsHeaders });
-  if (req.method !== 'POST') return jsonResponse({ error: 'Method not allowed' }, 405);
+  if (req.method !== 'POST') return jsonResponse({ error: 'Method not allowed', requestId }, 405, requestId);
 
   try {
     if (!resendApiKey) {
-      return jsonResponse({ error: 'RESEND_API_KEY is not configured for support email delivery.' }, 503);
+      logOperationalEvent({ functionName: 'send-support-email', operation: 'provider_configuration', requestId, durationMs: Date.now() - startedAt, success: false, errorCode: 'RESEND_NOT_CONFIGURED', status: 503, provider: 'resend' });
+      return jsonResponse({ error: 'Support email is unavailable.', requestId }, 503, requestId);
     }
 
     const authHeader = req.headers.get('Authorization') ?? '';
     const { user, error: authError } = await getAuthenticatedUser(authHeader);
-    if (authError || !user) return jsonResponse({ error: authError || 'Unauthorized' }, 401);
+    if (authError || !user) {
+      logOperationalEvent({ functionName: 'send-support-email', operation: 'authenticate', requestId, durationMs: Date.now() - startedAt, success: false, errorCode: 'UNAUTHORIZED', status: 401, provider: 'supabase' });
+      return jsonResponse({ error: 'Unauthorized', requestId }, 401, requestId);
+    }
+    userId = user.id;
+    const rateLimit = await checkRateLimit(userId, 'support_email');
+    if (!rateLimit.allowed) {
+      logAbuseGuard({ functionName: 'send-support-email', operation: 'support_email', requestId, userId, category: 'MESSAGE_THROTTLED', status: rateLimit.unavailable ? 503 : 429, limitType: 'support_email' });
+      return rateLimitResponse(rateLimit, requestId, corsHeaders);
+    }
 
     const body = await req.json().catch(() => ({}));
     const ticketId = String(body.ticketId || body.ticket_id || '').trim();
     const message = String(body.message || '').trim().slice(0, 4000);
     const direction = String(body.direction || 'user_to_support').trim();
-    if (!ticketId || !message) return jsonResponse({ error: 'ticketId and message are required.' }, 400);
+    if (!ticketId || !message) return jsonResponse({ error: 'ticketId and message are required.', requestId }, 400, requestId);
 
     const { data: ticket, error: ticketError } = await supabaseAdmin
       .from('support_tickets')
       .select('id, contact_id, ticket_number, user_id, user_email, subject')
       .eq('id', ticketId)
       .single();
-    if (ticketError || !ticket) return jsonResponse({ error: 'Support ticket not found.' }, 404);
+    if (ticketError || !ticket) return jsonResponse({ error: 'Support ticket not found.', requestId }, 404, requestId);
 
     const { data: callerRow } = await supabaseAdmin
       .from('users')
@@ -81,12 +96,12 @@ Deno.serve(async (req) => {
 
     const isAdmin = Boolean(callerRow?.is_admin);
     const isOwner = String(ticket.user_id) === String(user.id);
-    if (!isOwner && !isAdmin) return jsonResponse({ error: 'Forbidden' }, 403);
+    if (!isOwner && !isAdmin) return jsonResponse({ error: 'Forbidden', requestId }, 403, requestId);
 
     const to = direction === 'admin_to_user'
       ? String(ticket.user_email || '').trim()
       : supportEmailTo;
-    if (!to || !to.includes('@')) return jsonResponse({ error: 'No valid email recipient for this support ticket.' }, 422);
+    if (!to || !to.includes('@')) return jsonResponse({ error: 'No valid email recipient for this support ticket.', requestId }, 422, requestId);
 
     const subject = direction === 'admin_to_user'
       ? `DealSifter Support ${ticket.contact_id}`
@@ -95,6 +110,8 @@ Deno.serve(async (req) => {
       ? 'DealSifter Admin/Support'
       : `${callerRow?.full_name || 'DealSifter user'} <${callerRow?.email || ticket.user_email || 'unknown'}>`;
 
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), 12_000);
     const response = await fetch('https://api.resend.com/emails', {
       method: 'POST',
       headers: {
@@ -115,16 +132,20 @@ Deno.serve(async (req) => {
           </div>
         `,
       }),
+      signal: controller.signal,
     });
+    clearTimeout(timeout);
 
     const payload = await response.json().catch(() => ({}));
     if (!response.ok) {
-      return jsonResponse({ error: payload?.message || 'Support email delivery failed.', details: payload }, response.status);
+      logOperationalEvent({ functionName: 'send-support-email', operation: 'send_message', requestId, userId, durationMs: Date.now() - startedAt, success: false, errorCode: 'RESEND_DELIVERY_FAILED', status: response.status, provider: 'resend' });
+      return jsonResponse({ error: 'Support email delivery failed.', requestId }, response.status, requestId);
     }
 
-    return jsonResponse({ ok: true, provider: 'resend', id: payload?.id || null });
-  } catch (err) {
-    console.error('send-support-email failed:', err);
-    return jsonResponse({ error: String((err as Error)?.message || err || 'Support email failed') }, 500);
+    logOperationalEvent({ functionName: 'send-support-email', operation: 'send_message', requestId, userId, durationMs: Date.now() - startedAt, success: true, status: response.status, provider: 'resend' });
+    return jsonResponse({ ok: true, provider: 'resend', id: payload?.id || null }, 200, requestId);
+  } catch {
+    logOperationalEvent({ functionName: 'send-support-email', operation: 'send_message', requestId, userId, durationMs: Date.now() - startedAt, success: false, errorCode: 'SUPPORT_EMAIL_INTERNAL_ERROR', status: 500, provider: 'resend' });
+    return jsonResponse({ error: 'Internal error', requestId }, 500, requestId);
   }
 });

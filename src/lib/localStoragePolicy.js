@@ -117,6 +117,52 @@ const SENSITIVE_PREFIXES = Object.freeze([
   'ds_purchases:',
   'ds_plan_snapshot_cache:',
   'ds_unlocked_contact_cards:',
+  'ds_canonical_contact_cards:',
+]);
+
+// User-scoped caches must never survive logout or an account transition. Device
+// preferences (theme, language, map layout) and anonymous legal consent are
+// deliberately excluded.
+export const USER_SCOPED_LOCAL_STORAGE_KEYS = Object.freeze([
+  'userProfile',
+  'personalProfile',
+  'personalProfile_full',
+  'professionalProfile',
+  'propertyPortfolio',
+  'propertyPortfolio_full',
+  'servicePortfolio',
+  'servicePortfolio_full',
+  'systemAccount',
+  'profileOwnerMap',
+  'publishingProfileKey',
+  'ds_feed_hidden_contacts',
+  'ds_feed_hidden_interests',
+  'dealsifter.hiddenCardIds',
+  'ds_matches_archived_contacts',
+  'ds_matches_archived_interests',
+  'ds_matches_deleted_contacts',
+  'ds_matches_deleted_interests',
+  'ds_system_notifications',
+  'ds_user_preferences',
+  'ds_plan_usage_cache',
+  'ds_notif_deferred_chat',
+  'ds_notif_deferred_system',
+  'ds_unlock_notifications_seen',
+  'ds_trending_notification_seen',
+  'ds_pending_checkout_intent',
+  'ds_export_mail_defaults',
+  'ds_comm_prefs',
+  'ds_support_chat_thread',
+  'ds_privacy_controls',
+  'ds_billing_history_mock',
+  'ds_security_audit',
+  'ds_security_sessions',
+  'ds_security_active_session_id',
+  'ds_security_rate_limits',
+  'ds_security_otp_fail_count',
+  'ds_security_otp_lock_until',
+  'chatSeenIncomingByContact',
+  'chatPeerLangPrefs',
 ]);
 
 function removeLocalStorageKey(key) {
@@ -150,4 +196,24 @@ export function clearSensitiveCache(userId) {
     return;
   }
   keys.forEach(removeLocalStorageKey);
+}
+
+export function clearUserScopedCache(userId = null) {
+  if (typeof window === 'undefined' || !window.localStorage) return;
+  USER_SCOPED_LOCAL_STORAGE_KEYS.forEach(removeLocalStorageKey);
+  clearSensitiveCache(userId);
+
+  const cleanUserId = String(userId || '').trim();
+  if (!cleanUserId) return;
+  const dynamicKeys = [];
+  try {
+    for (let index = 0; index < window.localStorage.length; index += 1) {
+      const key = window.localStorage.key(index);
+      if (!key) continue;
+      if (key.includes(`:${cleanUserId}`) || key.includes(`_${cleanUserId}`)) dynamicKeys.push(key);
+    }
+  } catch {
+    return;
+  }
+  dynamicKeys.forEach(removeLocalStorageKey);
 }

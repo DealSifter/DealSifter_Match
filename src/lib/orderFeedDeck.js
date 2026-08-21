@@ -2,6 +2,11 @@ const toArray = (value) => (Array.isArray(value) ? value : []);
 
 const normalizeString = (value) => String(value || '').trim().toLowerCase();
 
+const normalizeCategory = (value) => {
+  const normalized = normalizeString(value);
+  return normalized === 'fsbo' ? 'seller' : normalized;
+};
+
 const getCardId = (card) => String(card?.id ?? card?.cardId ?? card?.propertyId ?? '');
 
 const getCardKind = (card) => {
@@ -46,7 +51,7 @@ const getCategories = (card) => [
   card?.type,
   card?.primaryCategory,
   card?.primary_category,
-].map(normalizeString).filter(Boolean);
+].map(normalizeCategory).filter(Boolean);
 
 const hasPublishedPortfolio = (card) => {
   if (!card) return false;
@@ -111,7 +116,7 @@ const sortByPreference = (cards, preference, seed) => {
 };
 
 const matchesCategory = (card, category) => {
-  const filter = normalizeString(category);
+  const filter = normalizeCategory(category);
   if (!filter || filter === 'all') return true;
   return getCategories(card).includes(filter);
 };
