@@ -5547,6 +5547,54 @@ export default function App() {
   const shellForcedTheme = !isAuthCallbackSettling && !authSession && (page === 'landing' || isPublicPricingPage || isAuthBootstrapping)
     ? 'light'
     : null;
+  const maxxisAppContext = useMemo(() => {
+    const routeByPage = {
+      dashboard: '/dashboard',
+      landing: '/',
+      mapview: '/map',
+      matches: '/matches',
+      onboarding: '/onboarding',
+      pricing: '/pricing',
+      settings: '/settings',
+    };
+    const subviewByPage = {
+      dashboard: 'feed_deck',
+      mapview: 'map_canvas',
+      matches: chatFocusTarget ? 'human_chat' : 'matches_overview',
+      onboarding: onboardingInitialTab || 'personal',
+      pricing: 'plans',
+      settings: settingsInitialTab || 'profile',
+    };
+    return {
+      surface: {
+        page,
+        route: routeByPage[page] || `/${page || 'unknown'}`,
+        subview: subviewByPage[page] || page || 'unknown',
+      },
+      entity: {
+        propertyId: maxxisPropertyContextId,
+        conversationId: '',
+        serviceId: '',
+        workflowVisible: false,
+        profileScope: page === 'settings' || page === 'onboarding' ? accountType : '',
+      },
+      operational: {
+        profileReady: Boolean(profileHydrationReady),
+        portfolioReady: Boolean(portfolioHydrationReady),
+        pendingActionExists: Boolean(pendingCheckoutIntent),
+      },
+    };
+  }, [
+    accountType,
+    chatFocusTarget,
+    maxxisPropertyContextId,
+    onboardingInitialTab,
+    page,
+    pendingCheckoutIntent,
+    portfolioHydrationReady,
+    profileHydrationReady,
+    settingsInitialTab,
+  ]);
 
   return (
     <ThemeProvider forcedTheme={shellForcedTheme}>
@@ -5639,6 +5687,8 @@ export default function App() {
                 onNavigateAction={handleMaxxisNavigateAction}
                 propertyAnalysisRequest={maxxisPropertyAnalysisRequest}
                 propertyContextId={maxxisPropertyContextId}
+                appContext={maxxisAppContext}
+                sessionKey={supabaseUserId || authSession?.userId || authSession?.id || ''}
                 onExportAnalysisPdf={handleExportMaxxisAnalysisPdf}
                 onNuggetBalanceChange={(value) => {
                   void applyConfirmedNuggetBalance({ serverRemainingNuggets: value, refresh: true });

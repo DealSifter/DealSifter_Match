@@ -152,6 +152,112 @@ function propertyContextInstruction(propertyId: string, searchPropertyIds: strin
   return `${detailsContext} ${comparisonContext} Never substitute, infer, or invent a propertyId. Use getDealCopilotOverview only for an explicit overall deal status, summary, what happened, what remains, or current situation request. For one metric or a focused property question, use getPropertyDetails and do not load the overview. For an explicit request such as "show professionals for this property", "who can help with this deal", or "find the suggested services", call getPropertyDetails with includeServiceMatches true. Otherwise omit that flag. Never call searchServices separately to choose categories for a property; the backend derives them exclusively from serviceNeeds. If DealMetricsResult, DealAdvisorAnalysis, PropertyServiceNeed, PropertyServiceMatch, ServiceFitResult, ProviderContactAccess, ProviderMessageContext, Next Best Action, Deal Workflow, Deal Copilot Overview, provider_message_draft, provider_message_sent, provider_conversation_analysis, or a property comparison is supplied, explain only exact returned values, codes, reasons, and sources. Deal Copilot Overview only aggregates existing capability outputs. Gemini may route to it and explain it, but must never recalculate a score or metric, create advice, change workflow, create a Next Best Action, invent a provider or conversation, execute an action, consume Nuggets, or send a message. Next Best Action is a deterministic backend suggestion. Gemini must never choose, alter, reprioritize, invent, execute, or confirm it; create workflow, pipeline, checklist, deal, or negotiation statuses from it; consume Nuggets; send messages; or claim that its suggested step occurred. Gemini may only explain the returned code, priority, reason, actionable flag, confirmation requirement, target, and alternatives. Deal Workflow is deterministic backend state. Gemini must never define items, change status or source, complete items, fabricate evidence, interpret progress as deal quality or probability, create negotiation status, execute an action, send a message, consume Nuggets, or create reminders or deadlines. It may only explain the returned items and operational completed/total count. Service Fit is an objective backend compatibility calculation, not provider quality, reputation, endorsement, or a recommendation. Provider contact unlock is an entitlement flow controlled by backend RPCs and explicit UI confirmation. You may explain exact contactAccess status and cost returned by the backend, but you must never create an unlock intent, confirm an unlock, execute an RPC, consume Nuggets, reveal contact fields, invent a serviceId, or say contact is available before the backend confirms entitlement. Provider Message Draft is a backend/UI draft action for an already identified serviceId and propertyId; you must never choose the recipient, change the serviceId, send a message, create pending_message_send, negotiate price, promise hiring, make binding offers, or imply that the user has committed to payment or engagement. Confirmed Provider Message Send is executed only by backend/UI endpoints after explicit user confirmation and must use the user's final reviewed text; you must never send, confirm, modify text after confirmation, choose a recipient, call send endpoints, send follow-ups, initiate conversations automatically, or claim a message was sent unless the backend returns provider_message_sent. Provider Conversation Analysis is a read-only assistant view of already authorized chat_messages and may only summarize extracted facts, questions, requests, quoted amounts, availability, open items, and an editable suggested reply; you must never send the suggestedReply, auto-reply, choose or switch provider/conversation, alter past messages, create follow-up tasks, negotiate, update property data, update Service Fit, consume Nuggets, or infer contract, hiring, accepted price, accepted terms, or appointment confirmation unless the provider stated it explicitly. Never calculate, recalculate, estimate, modify, override, or invent a Service Fit score, classification, reason, or order. Never create, remove, or reclassify Deal Advisor signals, attention points, missing information, limitations, service needs, categories, or providers. Never add a service, remove a service, change service confidence, imply a service is mandatory, rank or choose a provider. Suggested services are contextual types that may be relevant, not legal or operational requirements. Never calculate comparison values or create missing numbers. Never choose a preferred property or describe any property as the best deal, winner, buy, or avoid. Match Score is unrelated and must not be used in financial comparison. Cap rate is user-reported stored data, not verified return. Never calculate, derive, estimate, verify, or judge any additional metric, including ROI, profit, MAO, ARV, rehab estimates, risk, deal quality, or recommendations.`;
 }
 
+function booleanRecord(value: unknown, allowedKeys: string[]) {
+  const source = value && typeof value === 'object' ? value as Record<string, unknown> : {};
+  return Object.fromEntries(allowedKeys.map((key) => [key, Boolean(source[key])]));
+}
+
+function sanitizeContextIds(values: unknown) {
+  if (!Array.isArray(values)) return [];
+  return Array.from(new Set(values.map((value) => sanitizeText(value, 80)).filter((id) => UUID_PATTERN.test(id)))).slice(0, 10);
+}
+
+function sanitizeMaxxisContext(value: unknown) {
+  if (!value || typeof value !== 'object') return null;
+  const raw = value as Record<string, unknown>;
+  const rawSurface = raw.surface && typeof raw.surface === 'object' ? raw.surface as Record<string, unknown> : {};
+  const rawEntity = raw.entity && typeof raw.entity === 'object' ? raw.entity as Record<string, unknown> : {};
+  const rawOperational = raw.operational && typeof raw.operational === 'object' ? raw.operational as Record<string, unknown> : {};
+  const rawSessionMemory = raw.sessionMemory && typeof raw.sessionMemory === 'object' ? raw.sessionMemory as Record<string, unknown> : {};
+  const rawFreshness = raw.freshness && typeof raw.freshness === 'object' ? raw.freshness as Record<string, unknown> : {};
+  const rawProvider = raw.provider && typeof raw.provider === 'object' ? raw.provider as Record<string, unknown> : {};
+  const rawProperty = raw.property && typeof raw.property === 'object' ? raw.property as Record<string, unknown> : {};
+  const rawCapabilities = rawOperational.capabilities && typeof rawOperational.capabilities === 'object' ? rawOperational.capabilities : {};
+  const rawState = rawOperational.state && typeof rawOperational.state === 'object' ? rawOperational.state as Record<string, unknown> : {};
+  const rawFocusedEntity = rawSessionMemory.lastFocusedEntity && typeof rawSessionMemory.lastFocusedEntity === 'object'
+    ? rawSessionMemory.lastFocusedEntity as Record<string, unknown>
+    : null;
+  const propertyId = sanitizeText(rawProperty.id, 80);
+  const serviceId = sanitizeText(rawProvider.serviceId, 80);
+
+  return {
+    contextVersion: Number(raw.contextVersion) === 1 ? 1 : 1,
+    surface: {
+      name: sanitizeText(rawSurface.name || 'unknown', 40),
+      route: sanitizeText(rawSurface.route || '/unknown', 80),
+      subview: sanitizeText(rawSurface.subview || 'unknown', 80),
+    },
+    entity: {
+      type: sanitizeText(rawEntity.type || 'NONE', 40),
+      ...(sanitizeText(rawEntity.id, 80) ? { id: sanitizeText(rawEntity.id, 80) } : {}),
+    },
+    ...(UUID_PATTERN.test(propertyId) ? { property: { id: propertyId } } : {}),
+    ...(UUID_PATTERN.test(serviceId) ? { provider: { serviceId } } : {}),
+    operational: {
+      capabilities: booleanRecord(rawCapabilities, ['propertyDetails', 'matchScore', 'serviceNeeds', 'providerMatches', 'dealAdvisor', 'workflow']),
+      state: {
+        contactAccessState: sanitizeText(rawState.contactAccessState || 'unknown', 30),
+        providerReplyAvailable: Boolean(rawState.providerReplyAvailable),
+        pendingActionExists: Boolean(rawState.pendingActionExists),
+      },
+    },
+    sessionMemory: {
+      lastPropertyIds: sanitizeContextIds(rawSessionMemory.lastPropertyIds),
+      lastServiceIds: sanitizeContextIds(rawSessionMemory.lastServiceIds),
+      lastComparedPropertyIds: sanitizeContextIds(rawSessionMemory.lastComparedPropertyIds).slice(0, 6),
+      lastProviderServiceIds: sanitizeContextIds(rawSessionMemory.lastProviderServiceIds).slice(0, 6),
+      lastToolResultType: sanitizeText(rawSessionMemory.lastToolResultType || 'none', 60),
+      ...(rawFocusedEntity ? {
+        lastFocusedEntity: {
+          type: sanitizeText(rawFocusedEntity.type || 'NONE', 40),
+          ...(sanitizeText(rawFocusedEntity.id, 80) ? { id: sanitizeText(rawFocusedEntity.id, 80) } : {}),
+        },
+      } : {}),
+    },
+    freshness: {
+      surface: sanitizeText(rawFreshness.surface || 'unknown', 20),
+      entity: sanitizeText(rawFreshness.entity || 'unknown', 20),
+      operational: sanitizeText(rawFreshness.operational || 'unknown', 20),
+      conversation: sanitizeText(rawFreshness.conversation || 'unknown', 20),
+      workflow: sanitizeText(rawFreshness.workflow || 'unknown', 20),
+    },
+  };
+}
+
+function contextSizeBytes(value: unknown) {
+  return new TextEncoder().encode(JSON.stringify(value || {})).byteLength;
+}
+
+function isSurfaceContextQuestion(message: string) {
+  return /(what am i seeing|what page|where am i|current screen|current page|o que estou vendo|qual tela|onde estou|que pagina|que estoy viendo|pantalla actual|pagina actual)/i.test(message);
+}
+
+function shouldUseStructuredContext(message: string, context: unknown) {
+  if (!context) return false;
+  if (isSurfaceContextQuestion(message)) return true;
+  return /\b(this|that|these|those|it|them|last|second|third|provider|contractor|property|deal|workflow|unlock|contact|conversation|chat|esse|essa|este|esta|esses|essas|eles|elas|ultimo|ultima|segundo|terceiro|imovel|provedor|prestador|contratista|propiedad)\b/i.test(message);
+}
+
+function structuredContextInstruction(context: ReturnType<typeof sanitizeMaxxisContext>) {
+  if (!context) return '';
+  return `Structured Maxxis runtime context is available and sanitized: ${JSON.stringify(context)}. Use it only to resolve the user's current surface, focused entity, safe short-lived references, freshness, and already-computed operational signals. Treat IDs as intent/allowlist hints only; backend tools and RLS remain authoritative. Never reveal the full context object, private identifiers unless necessary to explain a safe action, or any contact data. If a natural reference is ambiguous, ask the user to clarify.`;
+}
+
+function contextAwarenessMessage(language: MaxxisLanguage, context: ReturnType<typeof sanitizeMaxxisContext>) {
+  const surfaceName = context?.surface?.name || 'unknown';
+  const subview = context?.surface?.subview || 'unknown';
+  const entityType = context?.entity?.type && context.entity.type !== 'NONE' ? context.entity.type.toLowerCase() : '';
+  const capabilities = context?.operational?.capabilities || {};
+  const activeCapabilities = Object.entries(capabilities).filter(([, enabled]) => Boolean(enabled)).map(([name]) => name);
+  if (language === 'pt') {
+    return `Voce esta em ${surfaceName}${subview && subview !== surfaceName ? ` (${subview})` : ''}. ${entityType ? `O foco atual e ${entityType}.` : 'Nao ha entidade especifica em foco.'} ${activeCapabilities.length ? `Contexto operacional disponivel: ${activeCapabilities.join(', ')}.` : 'Ainda nao ha contexto operacional carregado para este ponto.'}`;
+  }
+  if (language === 'es') {
+    return `Estas en ${surfaceName}${subview && subview !== surfaceName ? ` (${subview})` : ''}. ${entityType ? `El foco actual es ${entityType}.` : 'No hay una entidad especifica en foco.'} ${activeCapabilities.length ? `Contexto operativo disponible: ${activeCapabilities.join(', ')}.` : 'Aun no hay contexto operativo cargado para este punto.'}`;
+  }
+  return `You are on ${surfaceName}${subview && subview !== surfaceName ? ` (${subview})` : ''}. ${entityType ? `The current focus is ${entityType}.` : 'There is no specific entity in focus.'} ${activeCapabilities.length ? `Available operational context: ${activeCapabilities.join(', ')}.` : 'No operational context is loaded for this point yet.'}`;
+}
+
 async function authenticatedUser(authHeader: string) {
   const token = String(authHeader || '').replace(/^Bearer\s+/i, '').trim();
   if (!token) return null;
@@ -225,6 +331,27 @@ Deno.serve(async (req) => {
       ...(propertyContextId ? [propertyContextId] : []),
     ]);
     if (!message) return response({ message: 'Message is required.', type: 'text', data: null, actions: [], error: 'MESSAGE_REQUIRED' }, 400, origin);
+    const structuredContext = sanitizeMaxxisContext(bodyContext.maxxisContext);
+    const structuredContextBytes = structuredContext ? contextSizeBytes(structuredContext) : 0;
+    if (structuredContextBytes > 4096) {
+      logAbuseGuard({ functionName: 'maxxis-chat', operation: 'maxxis_context', requestId, userId, category: 'REQUEST_TOO_LARGE', status: 413, limitType: 'maxxis_context' });
+      return response({ message: 'Request context is too large.', type: 'text', data: null, actions: [], error: 'MAXXIS_CONTEXT_TOO_LARGE' }, 413, origin, requestId);
+    }
+    if (structuredContext && isSurfaceContextQuestion(message)) {
+      const text = contextAwarenessMessage(language, structuredContext);
+      logMaxxisEvent('maxxis_context', {
+        request_id: requestId,
+        user_id: userId,
+        duration_ms: Date.now() - startedAt,
+        success: true,
+        surface: structuredContext.surface.name,
+        entity_type: structuredContext.entity.type,
+        context_version: structuredContext.contextVersion,
+        context_size: structuredContextBytes,
+        freshness_summary: Object.values(structuredContext.freshness).includes('stale') ? 'stale' : Object.values(structuredContext.freshness).includes('fresh') ? 'fresh' : 'unknown',
+      });
+      return response({ message: text, answer: text, type: 'context_snapshot', data: { surface: structuredContext.surface, entity: structuredContext.entity, operational: structuredContext.operational, freshness: structuredContext.freshness }, actions: [], language }, 200, origin, requestId);
+    }
     const stubFunctionCall = isE2ELlmStubEnabled() ? e2eStubFunctionCall(message, propertyContextId) : null;
     if (!geminiApiKey && !stubFunctionCall) {
       const text = fallback(language, 'config');
@@ -234,7 +361,8 @@ Deno.serve(async (req) => {
     historyCount = history.length;
     budget.validateHistory(history);
     const contents = [...history.map((item: Record<string, unknown>) => ({ role: item?.role === 'assistant' ? 'model' : 'user', parts: [{ text: sanitizeText(item?.content || item?.text, 1600) }] })).filter((item) => item.parts[0].text), { role: 'user', parts: [{ text: message }] }];
-    const systemPrompt = `${buildSystemPrompt(language, sanitizeText(body.page || 'unknown', 60))}\n\n${propertyContextInstruction(propertyContextId, searchPropertyIds, comparisonPropertyIds)}`;
+    const contextInstruction = shouldUseStructuredContext(message, structuredContext) ? `\n\n${structuredContextInstruction(structuredContext)}` : '';
+    const systemPrompt = `${buildSystemPrompt(language, sanitizeText(body.page || 'unknown', 60))}\n\n${propertyContextInstruction(propertyContextId, searchPropertyIds, comparisonPropertyIds)}${contextInstruction}`;
     systemPromptBytes = new TextEncoder().encode(systemPrompt).byteLength;
     toolDeclarationBytes = new TextEncoder().encode(JSON.stringify(MAXXIS_TOOLS)).byteLength;
     const geminiRequest = { systemInstruction: { parts: [{ text: systemPrompt }] }, contents, tools: MAXXIS_TOOLS, generationConfig: { temperature: 0.45, topP: 0.9, maxOutputTokens: MAXXIS_EXECUTION_LIMITS.maxOutputTokens }, safetySettings: [{ category: 'HARM_CATEGORY_HARASSMENT', threshold: 'BLOCK_ONLY_HIGH' }, { category: 'HARM_CATEGORY_HATE_SPEECH', threshold: 'BLOCK_ONLY_HIGH' }, { category: 'HARM_CATEGORY_SEXUALLY_EXPLICIT', threshold: 'BLOCK_ONLY_HIGH' }, { category: 'HARM_CATEGORY_DANGEROUS_CONTENT', threshold: 'BLOCK_ONLY_HIGH' }] };

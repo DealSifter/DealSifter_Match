@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useRef, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Icon } from '../ui/Icon';
 import { C } from '../../theme/colors';
 import { MAXXIS_WIDGET_POSITION_KEY } from '../../lib/localStoragePolicy';
@@ -19,6 +19,14 @@ import {
 } from '../../services/maxxisService';
 import { captureAppException } from '../../lib/observability';
 import { trackProductEvent } from '../../lib/productAnalytics';
+import {
+  buildMaxxisContextSnapshot,
+  describeMaxxisContext,
+  isSurfaceContextQuestion,
+  resolveMaxxisNaturalReference,
+  selectMaxxisContextForMessage,
+  shouldResetMaxxisContextSession,
+} from '../../features/maxxis/context/maxxisContextSnapshot';
 import maxxisLogo from '../../assets/logo.png';
 import './MaxxisAssistant.css';
 
@@ -36,7 +44,7 @@ import {
   stripActionTokens,
 } from './MaxxisCapabilities';
 
-export function MaxxisAssistant({ page = 'dashboard', onOpenSupport = null, onNavigateAction = null, propertyAnalysisRequest = null, propertyContextId = '', onExportAnalysisPdf = null, onNuggetBalanceChange = null, onProviderUnlockConfirmed = null, enabled = true }) {
+export function MaxxisAssistant({ page = 'dashboard', onOpenSupport = null, onNavigateAction = null, propertyAnalysisRequest = null, propertyContextId = '', appContext = null, sessionKey = '', onExportAnalysisPdf = null, onNuggetBalanceChange = null, onProviderUnlockConfirmed = null, enabled = true }) {
   const language = getUiLang();
   const t = COPY[language] || COPY.en;
   const [open, setOpen] = useState(false);
@@ -63,6 +71,7 @@ export function MaxxisAssistant({ page = 'dashboard', onOpenSupport = null, onNa
   const inputRef = useRef(null);
   const handledAnalysisRequestsRef = useRef(new Set());
   const propertyAnalysisRequestRef = useRef(propertyAnalysisRequest);
+  const sessionKeyRef = useRef(String(sessionKey || ''));
   const submitMessageRef = useRef(null);
   const dragRef = useRef({
     active: false,
@@ -178,7 +187,38 @@ export function MaxxisAssistant({ page = 'dashboard', onOpenSupport = null, onNa
     return [];
   }, [messages]);
 
-  const resetConversation = () => {
+  const maxxisContextSnapshot = useMemo(() => buildMaxxisContextSnapshot({
+    page,
+    propertyId: propertyContextId,
+    surface: appContext?.surface || { page },
+    serviceId: appContext?.entity?.serviceId || '',
+    conversationId: appContext?.entity?.conversationId || '',
+    workflowVisible: Boolean(appContext?.entity?.workflowVisible),
+    profileScope: appContext?.entity?.profileScope || '',
+    appSignals: appContext?.operational || {},
+    messages,
+    pendingProviderUnlock,
+    pendingProviderMessageSend,
+    activeProviderUnlockId,
+    activeProviderDraftId,
+    activeProviderMessageSendId,
+    activeProviderConversationAnalysisId,
+    activeWorkflowItemCode,
+  }), [
+    activeProviderConversationAnalysisId,
+    activeProviderDraftId,
+    activeProviderMessageSendId,
+    activeProviderUnlockId,
+    activeWorkflowItemCode,
+    appContext,
+    messages,
+    page,
+    pendingProviderMessageSend,
+    pendingProviderUnlock,
+    propertyContextId,
+  ]);
+
+  const resetConversation = useCallback(() => {
     setMessages([{
       id: `maxxis-greeting-${Date.now()}`,
       role: 'assistant',
@@ -191,7 +231,16 @@ export function MaxxisAssistant({ page = 'dashboard', onOpenSupport = null, onNa
     setActiveProviderDraftId('');
     setActiveProviderMessageSendId('');
     setActiveProviderConversationAnalysisId('');
-  };
+  }, [language]);
+
+  useEffect(() => {
+    const nextSessionKey = String(sessionKey || '');
+    if (!shouldResetMaxxisContextSession(sessionKeyRef.current, nextSessionKey)) return;
+    sessionKeyRef.current = nextSessionKey;
+    handledAnalysisRequestsRef.current.clear();
+    setOpen(false);
+    resetConversation();
+  }, [resetConversation, sessionKey]);
 
   const persistWidgetPosition = (position) => {
     const next = clampWidgetPosition(position);
@@ -268,13 +317,51 @@ export function MaxxisAssistant({ page = 'dashboard', onOpenSupport = null, onNa
         }]);
         return;
       }
+      if (isSurfaceContextQuestion(cleanMessage)) {
+        setMessages((prev) => [...prev, {
+          id: `maxxis-context-${Date.now()}`,
+          role: 'assistant',
+          content: describeMaxxisContext(maxxisContextSnapshot, language),
+          createdAt: new Date(),
+          type: 'context_snapshot',
+          data: {
+            contextVersion: maxxisContextSnapshot.contextVersion,
+            surface: maxxisContextSnapshot.surface,
+            entity: maxxisContextSnapshot.entity,
+            operational: maxxisContextSnapshot.operational,
+            freshness: maxxisContextSnapshot.freshness,
+          },
+        }]);
+        return;
+      }
+      const referenceResolution = resolveMaxxisNaturalReference(cleanMessage, maxxisContextSnapshot);
+      if (referenceResolution.status === 'ambiguous') {
+        const entityLabel = String(referenceResolution.entityType || 'item').toLowerCase();
+        setMessages((prev) => [...prev, {
+          id: `maxxis-context-ambiguous-${Date.now()}`,
+          role: 'assistant',
+          content: language === 'pt'
+            ? `Encontrei ${referenceResolution.count || 'varias'} opcoes de ${entityLabel}. Qual delas voce quer usar?`
+            : language === 'es'
+              ? `Encontre ${referenceResolution.count || 'varias'} opciones de ${entityLabel}. Cual quieres usar?`
+              : `I found ${referenceResolution.count || 'multiple'} ${entityLabel} options. Which one do you want to use?`,
+          createdAt: new Date(),
+          type: 'context_clarification',
+          data: { entityType: referenceResolution.entityType || 'UNKNOWN', count: referenceResolution.count || 0 },
+        }]);
+        return;
+      }
+      const resolvedPropertyId = referenceResolution.status === 'resolved' && referenceResolution.entity?.type === 'PROPERTY'
+        ? referenceResolution.entity.id
+        : '';
       const result = await sendMaxxisMessage({
         message: cleanMessage,
         history: historyForRequest,
         page,
         language,
-        propertyId: propertyContextId,
+        propertyId: propertyContextId || resolvedPropertyId,
         propertyIds: comparisonPropertyIds,
+        maxxisContext: selectMaxxisContextForMessage(maxxisContextSnapshot, cleanMessage),
       });
       const responseType = String(result?.type || 'text');
       if (responseType === 'properties') {

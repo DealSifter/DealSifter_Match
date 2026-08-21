@@ -2,6 +2,10 @@ import { getLang } from '../i18n/translations';
 import { isSupabaseConfigured, supabase } from '../lib/supabaseClient';
 import { captureOperationalMetric } from '../lib/observability';
 import { normalizeMaxxisResponsePayload } from '../domain/maxxis/responseTypes';
+import {
+  maxxisContextTelemetry,
+  sanitizeMaxxisContextSnapshot,
+} from '../features/maxxis/context/maxxisContextSnapshot';
 
 const MAX_HISTORY_ITEMS = 10;
 const UUID_PATTERN = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
@@ -43,7 +47,7 @@ export function getMaxxisGreeting(language = currentLanguage()) {
   return 'Hi, I am Maxxis, your DealSifter Match assistant. I can help you with Feed, MapView, Matches, unlocks, plans, nuggets, spotlight, and general US Tax Deed or Wholesale concepts. How can I help?';
 }
 
-export async function sendMaxxisMessage({ message, history = [], page = 'dashboard', language = currentLanguage(), propertyId = '', propertyIds = [] }) {
+export async function sendMaxxisMessage({ message, history = [], page = 'dashboard', language = currentLanguage(), propertyId = '', propertyIds = [], maxxisContext = null }) {
   const text = String(message || '').trim();
   if (!text) throw new Error('Message is required.');
   if (!isSupabaseConfigured || !supabase) {
@@ -59,10 +63,22 @@ export async function sendMaxxisMessage({ message, history = [], page = 'dashboa
       .filter((id) => UUID_PATTERN.test(id)),
   )).slice(0, 20);
   const trustedPropertyId = String(propertyId || '').trim();
+  const cleanMaxxisContext = maxxisContext ? sanitizeMaxxisContextSnapshot(maxxisContext) : null;
   const context = {
     ...(UUID_PATTERN.test(trustedPropertyId) ? { propertyId: trustedPropertyId } : {}),
     ...(trustedPropertyIds.length ? { propertyIds: trustedPropertyIds } : {}),
+    ...(cleanMaxxisContext ? { maxxisContext: cleanMaxxisContext } : {}),
   };
+  const contextTelemetry = cleanMaxxisContext ? maxxisContextTelemetry(cleanMaxxisContext) : null;
+  if (contextTelemetry) {
+    captureOperationalMetric('maxxis.context', {
+      surface: contextTelemetry.surface,
+      entity_type: contextTelemetry.entityType,
+      context_version: contextTelemetry.contextVersion,
+      context_size: contextTelemetry.contextSize,
+      freshness_summary: contextTelemetry.freshnessSummary,
+    });
+  }
 
   const startedAt = Date.now();
   let data;
@@ -122,6 +138,13 @@ export async function sendMaxxisMessage({ message, history = [], page = 'dashboa
     success: true,
     duration_ms: Date.now() - startedAt,
     response_type: String(data?.type || 'text').slice(0, 40),
+    ...(contextTelemetry ? {
+      context_version: contextTelemetry.contextVersion,
+      context_size: contextTelemetry.contextSize,
+      context_surface: contextTelemetry.surface,
+      context_entity_type: contextTelemetry.entityType,
+      context_freshness: contextTelemetry.freshnessSummary,
+    } : {}),
   });
 
   const normalizedResponse = normalizeMaxxisResponsePayload(data?.type, data?.data);
