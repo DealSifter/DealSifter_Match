@@ -91,6 +91,7 @@ import { CATEGORIES, CARDS as _MOCK_CARDS, PROPERTIES as _MOCK_PROPERTIES, SERVI
 import { supabase, isSupabaseConfigured, supabaseConfigHint } from './lib/supabaseClient';
 import { buildScopedProfilePayload, extractScopedProfileLegacy, inferRecordProfileScope, normalizeProfileScope } from './lib/profileScopeResolver';
 import { buildDataIntegrityAudit } from './lib/dataIntegrityAudit';
+import { preserveEquivalentState } from './lib/stateStability';
 import { getPortfolioFull, setPortfolioFull, clearAllUserData, clearUserData, uploadDataUrlToStorage } from './lib/localforageHelper';
 import { createRealtimeLifecycle, createRealtimeTopic } from './lib/realtimeLifecycle';
 import { useAuthSession, mapSupabaseUserToSession } from './hooks/useAuthSession';
@@ -2087,10 +2088,10 @@ export default function App() {
         const rawInventory = await fetchGlobalInventory(supabase);
         if (cancelled) return;
         const nextFeedState = buildGlobalFeedState(rawInventory, supabaseUserId, feedFilters, feedSessionSeed);
-        setGlobalShowcaseProperties(nextFeedState.showcaseProperties);
-        setGlobalConnectionServices(nextFeedState.connectionServices);
-        setActiveSpotlights(nextFeedState.activeSpotlights);
-        setFeedDeck(nextFeedState.deck);
+        setGlobalShowcaseProperties((previous) => preserveEquivalentState(previous, nextFeedState.showcaseProperties));
+        setGlobalConnectionServices((previous) => preserveEquivalentState(previous, nextFeedState.connectionServices));
+        setActiveSpotlights((previous) => preserveEquivalentState(previous, nextFeedState.activeSpotlights));
+        setFeedDeck((previous) => preserveEquivalentState(previous, nextFeedState.deck));
       } catch (error) {
         if (!cancelled) {
           safeLogError('Global showcase hydration failed.', error);
@@ -2343,18 +2344,19 @@ export default function App() {
       const nextUnlockedMap = unlockState.unlockedContactMap instanceof Map
         ? unlockState.unlockedContactMap
         : new Map();
-      setUnlockedContactsByOwnerId((prev) => (
-        nextUnlockedMap.size > 0 || !(prev instanceof Map) || prev.size === 0
-          ? nextUnlockedMap
-          : prev
-      ));
+      setUnlockedContactsByOwnerId((prev) => {
+        if (nextUnlockedMap.size === 0 && prev instanceof Map && prev.size > 0) return prev;
+        return preserveEquivalentState(prev, nextUnlockedMap);
+      });
       setUnlocked((prev) => {
         const nextIds = [...unlockState.unlockedOwnerIds];
-        return nextIds.length > 0 || !Array.isArray(prev) || prev.length === 0 ? nextIds : prev;
+        if (nextIds.length === 0 && Array.isArray(prev) && prev.length > 0) return prev;
+        return preserveEquivalentState(prev, nextIds);
       });
       setPurchases((prev) => {
         const nextRows = Array.isArray(unlockState.purchaseRows) ? unlockState.purchaseRows : [];
-        return nextRows.length > 0 || !Array.isArray(prev) || prev.length === 0 ? nextRows : prev;
+        if (nextRows.length === 0 && Array.isArray(prev) && prev.length > 0) return prev;
+        return preserveEquivalentState(prev, nextRows);
       });
       setPropertyUnlocks((prev) => {
         const current = Array.isArray(prev) ? [...prev] : [];
@@ -2365,7 +2367,7 @@ export default function App() {
         const nonCanonicalRows = current.filter((row) => (
           String(row?.source || '') !== 'canonical_unlocked_contact_cards'
         ));
-        return [...nonCanonicalRows, ...canonicalRows];
+        return preserveEquivalentState(prev, [...nonCanonicalRows, ...canonicalRows]);
       });
     } catch (error) {
       safeLogError('Remote unlock hydration failed.', error);
@@ -3855,11 +3857,22 @@ export default function App() {
     });
   }, [ownerUnlockNotifications]);
 
-  useEffect(() => {
-    const reciprocalOwnerIds = (ownerUnlockNotifications || [])
+  const reciprocalUnlockSignal = useMemo(() => {
+    const entries = (ownerUnlockNotifications || [])
       .filter((notification) => ['unlock', 'exclusive'].includes(String(notification.type || '')))
-      .map((notification) => String(notification.unlockerId || notification.payload?.unlocker_id || '').trim())
-      .filter((ownerId) => ownerId && ownerId !== String(supabaseUserId || '').trim());
+      .map((notification) => ({
+        notificationId: String(notification.id || '').trim(),
+        ownerId: String(notification.unlockerId || notification.payload?.unlocker_id || '').trim(),
+      }))
+      .filter((entry) => entry.ownerId && entry.ownerId !== String(supabaseUserId || '').trim());
+    return {
+      key: entries.map((entry) => `${entry.notificationId}:${entry.ownerId}`).sort().join('|'),
+      ownerIds: [...new Set(entries.map((entry) => entry.ownerId))],
+    };
+  }, [ownerUnlockNotifications, supabaseUserId]);
+
+  useEffect(() => {
+    const reciprocalOwnerIds = reciprocalUnlockSignal.ownerIds;
     if (!reciprocalOwnerIds.length) return;
 
     setUnlocked((prev) => {
@@ -3891,13 +3904,18 @@ export default function App() {
     });
 
     void fetchRemoteUnlockState();
+  }, [fetchRemoteUnlockState, reciprocalUnlockSignal.key, reciprocalUnlockSignal.ownerIds, setPurchases, setUnlocked]);
+
+  useEffect(() => {
+    const reciprocalOwnerIds = reciprocalUnlockSignal.ownerIds;
+    if (!reciprocalOwnerIds.length) return;
     const reciprocalContacts = reciprocalOwnerIds
       .map((ownerId) => canonicalUnlockedContactToFeedCard(getContactByOwnerId(unlockedContactsByOwnerId, ownerId)))
       .filter(Boolean);
     if (reciprocalContacts.length) {
       setMatched((prev) => mergeFeedActionItems(prev, reciprocalContacts));
     }
-  }, [fetchRemoteUnlockState, ownerUnlockNotifications, setMatched, setPurchases, setUnlocked, supabaseUserId, unlockedContactsByOwnerId]);
+  }, [reciprocalUnlockSignal.key, reciprocalUnlockSignal.ownerIds, setMatched, unlockedContactsByOwnerId]);
 
   const markChatNotificationAsRead = (notification) => {
     if (notification?.source === 'unlock_notification' && notification?.notificationId) {
@@ -5069,7 +5087,9 @@ export default function App() {
         const refreshedUnlockedMap = supabaseUserId
           ? await fetchUnlockedContacts(supabaseUserId)
           : new Map();
-        if (refreshedUnlockedMap.size) setUnlockedContactsByOwnerId(refreshedUnlockedMap);
+        if (refreshedUnlockedMap.size) {
+          setUnlockedContactsByOwnerId((previous) => preserveEquivalentState(previous, refreshedUnlockedMap));
+        }
         const canonicalMatchedCard = canonicalUnlockedContactToFeedCard(
           getContactByOwnerId(refreshedUnlockedMap, unlockOwnerId, getEntitlementProfileScope(card))
         );

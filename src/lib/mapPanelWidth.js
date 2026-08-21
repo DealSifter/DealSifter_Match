@@ -1,5 +1,8 @@
 export const MAP_PANEL_MIN_WIDTH = 250;
-export const MAP_PANEL_DEFAULT_WIDTH = 720;
+// Previous defaults were 720px on desktop/landscape and 585px on portrait
+// tablet. Keep the requested reductions explicit and mobile unchanged.
+export const MAP_PANEL_DEFAULT_WIDTH = 360;
+export const MAP_PANEL_TABLET_PORTRAIT_DEFAULT_WIDTH = 410;
 export const MAP_PANEL_MAX_WIDTH = 900;
 export const MAP_PANEL_MOBILE_MAX_WIDTH = 585;
 
