@@ -2,21 +2,15 @@ import { createClient } from 'npm:@supabase/supabase-js@2';
 import { logOperationalEvent } from '../observability.ts';
 import { corsHeaders, supabaseAnonKey, supabaseUrl } from './config.ts';
 import { checkRateLimit, isOperationalFeatureEnabled, logAbuseGuard, rateLimitResponse, type RateLimitOperation } from '../abuseProtection.ts';
+import { cleanProviderUuid } from './providerIdentifiers.ts';
 
 type ProviderMessageMode = 'prepare' | 'confirm' | 'cancel';
-
-const UUID_PATTERN = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{12}$/i;
 
 function json(body: Record<string, unknown>, status: number, origin: string) {
   return new Response(JSON.stringify(body), {
     status,
     headers: { ...corsHeaders(origin), 'Content-Type': 'application/json' },
   });
-}
-
-function cleanUuid(value: unknown) {
-  const text = String(value || '').trim();
-  return UUID_PATTERN.test(text) ? text : '';
 }
 
 function cleanMessage(value: unknown) {
@@ -103,8 +97,8 @@ async function prepareProviderMessage(req: Request, origin: string, body: Record
   const guarded = await messagingGuard(auth.user.id, 'prepare', requestId, origin);
   if (guarded) return guarded;
 
-  const serviceId = cleanUuid(body.serviceId);
-  const propertyId = cleanUuid(body.propertyId);
+  const serviceId = cleanProviderUuid(body.serviceId);
+  const propertyId = cleanProviderUuid(body.propertyId);
   const message = cleanMessage(body.message);
   let idempotencyKey = cleanIdempotencyKey(body.idempotencyKey);
   if (!serviceId) return json({ success: false, error: 'INVALID_SERVICE_ID' }, 400, origin);
@@ -172,7 +166,7 @@ async function confirmProviderMessage(req: Request, origin: string, body: Record
   const guarded = await messagingGuard(auth.user.id, 'confirm', requestId, origin);
   if (guarded) return guarded;
 
-  const actionId = cleanUuid(body.actionId);
+  const actionId = cleanProviderUuid(body.actionId);
   if (!actionId) return json({ success: false, error: 'INVALID_ACTION_ID' }, 400, origin);
 
   try {
@@ -223,7 +217,7 @@ async function cancelProviderMessage(req: Request, origin: string, body: Record<
   const guarded = await messagingGuard(auth.user.id, 'cancel', requestId, origin);
   if (guarded) return guarded;
 
-  const actionId = cleanUuid(body.actionId);
+  const actionId = cleanProviderUuid(body.actionId);
   if (!actionId) return json({ success: false, error: 'INVALID_ACTION_ID' }, 400, origin);
 
   try {

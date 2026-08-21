@@ -3,23 +3,17 @@ import { logOperationalEvent } from '../observability.ts';
 import { corsHeaders, supabaseAnonKey, supabaseUrl } from './config.ts';
 import { checkRateLimit, isOperationalFeatureEnabled, logAbuseGuard, rateLimitResponse } from '../abuseProtection.ts';
 import { getPropertyDetailsWithClient } from './propertyDetails.ts';
+import { cleanProviderUuid } from './providerIdentifiers.ts';
 import {
   buildProviderMessageDraft,
   type ProviderMessageContext,
 } from './providerMessageDraftBuilder.ts';
-
-const UUID_PATTERN = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{12}$/i;
 
 function json(body: Record<string, unknown>, status: number, origin: string) {
   return new Response(JSON.stringify(body), {
     status,
     headers: { ...corsHeaders(origin), 'Content-Type': 'application/json' },
   });
-}
-
-function cleanUuid(value: unknown) {
-  const text = String(value || '').trim();
-  return UUID_PATTERN.test(text) ? text : '';
 }
 
 function cleanLanguage(value: unknown) {
@@ -124,8 +118,8 @@ export async function handleProviderMessageDraftRequest(req: Request) {
       return rateLimitResponse(rateLimit, requestId, corsHeaders(origin));
     }
     const body = await req.json().catch(() => ({}));
-    serviceId = cleanUuid(body.serviceId);
-    propertyId = cleanUuid(body.propertyId);
+    serviceId = cleanProviderUuid(body.serviceId);
+    propertyId = cleanProviderUuid(body.propertyId);
     const language = cleanLanguage(body.language);
     if (!serviceId) {
       logProviderMessageDraft({
