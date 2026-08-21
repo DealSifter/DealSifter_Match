@@ -141,6 +141,11 @@ function writeFeedDeckSession(key, ids = []) {
   }
 }
 
+function areDeckIdsEqual(left, right) {
+  if (!Array.isArray(left) || !Array.isArray(right) || left.length !== right.length) return false;
+  return left.every((id, index) => String(id) === String(right[index]));
+}
+
 function getStableContactListKey(contact, fallbackIndex = 0) {
   const scope = normalizeProfileScope(
     contact?.primaryProfile || contact?.primary_profile || contact?.profileScope || contact?.profile_scope,
@@ -1151,10 +1156,13 @@ export function Dashboard({ page, nuggets, setModal, setPage, onOpenOnboardingTa
     const isBlockedContact = (record) => getUnlockKeys(record).some((key) => blockedContactIds.has(key));
     const timer = window.setTimeout(() => {
       // Always remove blocked contacts from the connections deck.
-      setConnDeck(prevDeck => prevDeck.filter((id) => {
-        const card = (connectionCards || []).find((c) => String(c.id) === String(id));
-        return card ? !isBlockedContact(card) : !blockedContactIds.has(String(id));
-      }));
+      setConnDeck((prevDeck) => {
+        const nextDeck = prevDeck.filter((id) => {
+          const card = (connectionCards || []).find((c) => String(c.id) === String(id));
+          return card ? !isBlockedContact(card) : !blockedContactIds.has(String(id));
+        });
+        return areDeckIdsEqual(prevDeck, nextDeck) ? prevDeck : nextDeck;
+      });
 
       // Only remove properties owned by blocked contacts from the properties *discover* when
       // the view is showing connections. When the user switches to the Showcase view,
@@ -1162,14 +1170,15 @@ export function Dashboard({ page, nuggets, setModal, setPage, onOpenOnboardingTa
       if (view === 'connections') {
         // Never block the current user's own properties from the discover feed.
         const selfOwnerId = getOwnerIdForKey(publishingProfileKey);
-        setPropDeck(prevDeck =>
-          prevDeck.filter(id => {
+        setPropDeck((prevDeck) => {
+          const nextDeck = prevDeck.filter(id => {
             const prop = (showcaseItems || []).find(p => p.id === id);
             if (!prop) return true;
             if (prop.ownerId === selfOwnerId) return true;
             return !isBlockedContact(prop);
-          })
-        );
+          });
+          return areDeckIdsEqual(prevDeck, nextDeck) ? prevDeck : nextDeck;
+        });
       }
     }, 0);
     return () => window.clearTimeout(timer);
@@ -1379,14 +1388,7 @@ export function Dashboard({ page, nuggets, setModal, setPage, onOpenOnboardingTa
       }
 
       // Only update state if the deck actually changed (avoid triggering re-renders)
-      const arraysEqual = (a, b) => {
-        if (!Array.isArray(a) || !Array.isArray(b)) return false;
-        if (a.length !== b.length) return false;
-        for (let i = 0; i < a.length; i++) if (String(a[i]) !== String(b[i])) return false;
-        return true;
-      };
-
-      if (!arraysEqual(newConn, connDeck)) setConnDeck(newConn);
+      if (!areDeckIdsEqual(newConn, connDeck)) setConnDeck(newConn);
 
       const selfOwnerId = getOwnerIdForKey(publishingProfileKey);
       // Preserve propDeck rotations similarly
@@ -1474,7 +1476,7 @@ export function Dashboard({ page, nuggets, setModal, setPage, onOpenOnboardingTa
         propDeckOrderSignatureRef.current = propOrderSignature;
       }
 
-      if (!arraysEqual(newProp, propDeck)) setPropDeck(newProp);
+      if (!areDeckIdsEqual(newProp, propDeck)) setPropDeck(newProp);
 
       // Keep focus request active until the user performs an action in the feed.
     };

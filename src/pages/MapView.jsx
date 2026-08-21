@@ -20,6 +20,7 @@ import {
   MAP_PANEL_MAX_WIDTH,
   MAP_PANEL_MIN_WIDTH,
   MAP_PANEL_MOBILE_MAX_WIDTH,
+  MAP_PANEL_TABLET_PORTRAIT_DEFAULT_WIDTH,
   normalizeMapPanelWidth,
 } from '../lib/mapPanelWidth';
 import { buildMapInventory } from '../services/mapInventoryService';
@@ -870,6 +871,7 @@ export function MapView({
     return localStorage.getItem('mapViewPanelCollapsed') === '1';
   });
   const isMobileViewport = useMediaQuery('(max-width: 900px)');
+  const isTabletPortraitViewport = useMediaQuery('(min-width: 768px) and (max-width: 1080px) and (orientation: portrait)');
   const [panelToggleOffsetY, setPanelToggleOffsetY] = useState(() => {
     try {
       const raw = Number(localStorage.getItem('ds_map_panel_toggle_offset_y'));
@@ -990,7 +992,9 @@ export function MapView({
     if (savedUiWidth !== null) return savedUiWidth;
     // Give the first desktop visit enough room to scan the filters and Spotlight cards.
     // Users can still resize it and that choice remains persisted.
-    return MAP_PANEL_DEFAULT_WIDTH;
+    return isTabletPortraitViewport
+      ? MAP_PANEL_TABLET_PORTRAIT_DEFAULT_WIDTH
+      : MAP_PANEL_DEFAULT_WIDTH;
   });
   const [isResizing, setIsResizing] = useState(false);
   const [mapUiHydrated, setMapUiHydrated] = useState(false);
@@ -1755,7 +1759,9 @@ export function MapView({
     PUBLIC_MAP_STYLE_KEYS.map((styleKey) => [styleKey, MAP_STYLE_OPTIONS[styleKey]]).filter(([, cfg]) => Boolean(cfg))
   ), []);
 
-  const panelOpenWidth = isMobileViewport ? `min(92vw, ${MAP_PANEL_MOBILE_MAX_WIDTH}px)` : `${panelWidth}px`;
+  const panelOpenWidth = isMobileViewport
+    ? `min(92vw, ${isTabletPortraitViewport ? MAP_PANEL_TABLET_PORTRAIT_DEFAULT_WIDTH : MAP_PANEL_MOBILE_MAX_WIDTH}px)`
+    : `${panelWidth}px`;
   const mapFitPaddingTopLeft = useMemo(
     () => (isMobileViewport ? [24, 24] : [panelWidth + 36, 36]),
     [isMobileViewport, panelWidth],
