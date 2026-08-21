@@ -574,6 +574,7 @@ export async function setupMockSupabase(context, options = {}) {
       if (rpc === 'ds_consume_plan_actions') return json(route, { allowed: true, remaining: 99 });
       if (rpc === 'track_user_heartbeat' || rpc === 'track_app_event') return json(route, { ok: true });
       if (rpc === 'ds_save_professional_profile') {
+        if (state.baseline) return json(route, { success: true, profileVersion: 4 });
         const body = parseBody(request);
         if (Number(body.p_expected_profile_version || 0) < 3) {
           return json(route, { code: 'PROFILE_VERSION_CONFLICT', message: 'Profile changed by another session.' }, 409);
