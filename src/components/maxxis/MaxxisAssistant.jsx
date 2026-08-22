@@ -37,6 +37,19 @@ import {
   findSmartActionTargetService,
   safeSmartActionAnalytics,
 } from '../../features/maxxis/actions/maxxisSmartActions';
+import {
+  buildMaxxisProactiveSignals,
+  composeMaxxisProactiveMessage,
+  createMaxxisProactiveSessionMemory,
+  evaluateMaxxisProactiveAttention,
+  MAXXIS_PROACTIVE_DEFAULT_CONFIG,
+  markMaxxisProactiveSignalDismissed,
+  markMaxxisProactiveSignalSurfaced,
+  resetMaxxisProactiveSessionIfNeeded,
+  safeProactiveAnalytics,
+  selectMaxxisProactiveCandidate,
+} from '../../features/maxxis/proactive/maxxisProactiveIntelligence';
+import { fetchFeatureFlags, isFeatureEnabled } from '../../services/featureFlagService';
 import maxxisLogo from '../../assets/logo.png';
 import './MaxxisAssistant.css';
 
@@ -54,12 +67,46 @@ import {
   stripActionTokens,
 } from './MaxxisCapabilities';
 
+function readMaxxisProactiveFlagOverrides() {
+  if (!import.meta.env.DEV || typeof window === 'undefined') return null;
+  try {
+    if (window.localStorage.getItem('ds_e2e_maxxis_proactive') === '1') {
+      return { maxxis_proactive_insights: true };
+    }
+    const raw = window.localStorage.getItem('ds_feature_flag_overrides');
+    if (!raw) return null;
+    const parsed = JSON.parse(raw);
+    return parsed && typeof parsed === 'object' && !Array.isArray(parsed) ? parsed : null;
+  } catch {
+    return null;
+  }
+}
+
+function mergeDevMaxxisProactiveEvents(appContext) {
+  if (!import.meta.env.DEV || typeof window === 'undefined') return appContext;
+  try {
+    const raw = window.localStorage.getItem('ds_e2e_maxxis_proactive_events');
+    if (!raw) return appContext;
+    const parsed = JSON.parse(raw);
+    const events = Array.isArray(parsed) ? parsed : [parsed].filter(Boolean);
+    if (!events.length) return appContext;
+    return {
+      ...(appContext || {}),
+      proactiveEvents: [...(Array.isArray(appContext?.proactiveEvents) ? appContext.proactiveEvents : []), ...events],
+    };
+  } catch {
+    return appContext;
+  }
+}
+
 export function MaxxisAssistant({ page = 'dashboard', onOpenSupport = null, onNavigateAction = null, propertyAnalysisRequest = null, propertyContextId = '', appContext = null, sessionKey = '', onExportAnalysisPdf = null, onNuggetBalanceChange = null, onProviderUnlockConfirmed = null, enabled = true }) {
   const language = getUiLang();
   const t = COPY[language] || COPY.en;
   const [open, setOpen] = useState(false);
   const [input, setInput] = useState('');
   const [loading, setLoading] = useState(false);
+  const [proactiveEnabled, setProactiveEnabled] = useState(false);
+  const [proactiveBubble, setProactiveBubble] = useState(null);
   const [exportingAnalysisId, setExportingAnalysisId] = useState(null);
   const [activeProfileActionId, setActiveProfileActionId] = useState('');
   const [activeProviderUnlockId, setActiveProviderUnlockId] = useState('');
@@ -81,6 +128,9 @@ export function MaxxisAssistant({ page = 'dashboard', onOpenSupport = null, onNa
   const inputRef = useRef(null);
   const handledAnalysisRequestsRef = useRef(new Set());
   const seenSmartActionsRef = useRef(new Set());
+  const detectedProactiveSignalsRef = useRef(new Set());
+  const suppressedProactiveSignalsRef = useRef(new Set());
+  const proactiveSessionRef = useRef(createMaxxisProactiveSessionMemory(String(sessionKey || '')));
   const propertyAnalysisRequestRef = useRef(propertyAnalysisRequest);
   const sessionKeyRef = useRef(String(sessionKey || ''));
   const submitMessageRef = useRef(null);
@@ -97,6 +147,28 @@ export function MaxxisAssistant({ page = 'dashboard', onOpenSupport = null, onNa
   useEffect(() => {
     propertyAnalysisRequestRef.current = propertyAnalysisRequest;
   }, [propertyAnalysisRequest]);
+
+  useEffect(() => {
+    let cancelled = false;
+    if (!enabled) {
+      setProactiveEnabled(false);
+      setProactiveBubble(null);
+      return () => {
+        cancelled = true;
+      };
+    }
+    fetchFeatureFlags({ overrides: readMaxxisProactiveFlagOverrides() })
+      .then((snapshot) => {
+        if (cancelled) return;
+        setProactiveEnabled(isFeatureEnabled(snapshot, 'maxxis_proactive_insights'));
+      })
+      .catch(() => {
+        if (!cancelled) setProactiveEnabled(false);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [enabled, sessionKey]);
 
   useEffect(() => {
     if (!open) return;
@@ -246,9 +318,13 @@ export function MaxxisAssistant({ page = 'dashboard', onOpenSupport = null, onNa
 
   useEffect(() => {
     const nextSessionKey = String(sessionKey || '');
+    proactiveSessionRef.current = resetMaxxisProactiveSessionIfNeeded(proactiveSessionRef.current, nextSessionKey);
     if (!shouldResetMaxxisContextSession(sessionKeyRef.current, nextSessionKey)) return;
     sessionKeyRef.current = nextSessionKey;
     handledAnalysisRequestsRef.current.clear();
+    detectedProactiveSignalsRef.current.clear();
+    suppressedProactiveSignalsRef.current.clear();
+    setProactiveBubble(null);
     setOpen(false);
     resetConversation();
   }, [resetConversation, sessionKey]);
@@ -949,6 +1025,117 @@ export function MaxxisAssistant({ page = 'dashboard', onOpenSupport = null, onNa
     });
   }, [getMessageSmartActions, maxxisContextSnapshot.contextVersion, messages, page, propertyContextId]);
 
+  const latestStructuredDealMessage = useCallback(() => {
+    for (let index = messages.length - 1; index >= 0; index -= 1) {
+      const message = messages[index];
+      if (message?.role !== 'assistant' || message?.error) continue;
+      if (message.type === 'property_details' || message.type === 'deal_copilot_overview' || message.data?.property || message.data?.propertySummary) {
+        return message;
+      }
+    }
+    return null;
+  }, [messages]);
+
+  useEffect(() => {
+    if (!proactiveEnabled || open || proactiveBubble || loading) return;
+    const proactiveAppContext = mergeDevMaxxisProactiveEvents(appContext);
+    const signals = buildMaxxisProactiveSignals({
+      contextSnapshot: maxxisContextSnapshot,
+      appContext: proactiveAppContext,
+      messages,
+      now: Date.now(),
+      accountKey: sessionKeyRef.current,
+    });
+    signals.forEach((signal) => {
+      if (!detectedProactiveSignalsRef.current.has(signal.dedupeKey)) {
+        detectedProactiveSignalsRef.current.add(signal.dedupeKey);
+        void trackProductEvent('maxxis_proactive_signal_detected', {
+          entityType: signal.entityType?.toLowerCase?.() || 'product',
+          entityId: '',
+          dedupeKey: `proactive-detected:${signal.dedupeKey}`,
+          properties: safeProactiveAnalytics(signal, {}, {
+            surface: page,
+            contextVersion: maxxisContextSnapshot.contextVersion,
+          }),
+        });
+      }
+      const attention = evaluateMaxxisProactiveAttention(signal, {
+        config: { enabled: proactiveEnabled },
+        contextSnapshot: maxxisContextSnapshot,
+        sessionMemory: proactiveSessionRef.current,
+        now: Date.now(),
+        maxxisOpen: open,
+        userActivity: {
+          typing: Boolean(input.trim()),
+          modalOpen: Boolean(appContext?.surface?.modal),
+        },
+      });
+      if (!attention.shouldSurface) {
+        const suppressKey = `${signal.dedupeKey}:${attention.reasonCode}`;
+        if (!suppressedProactiveSignalsRef.current.has(suppressKey)) {
+          suppressedProactiveSignalsRef.current.add(suppressKey);
+          void trackProductEvent('maxxis_proactive_signal_suppressed', {
+            entityType: signal.entityType?.toLowerCase?.() || 'product',
+            entityId: '',
+            dedupeKey: `proactive-suppressed:${suppressKey}`,
+            properties: safeProactiveAnalytics(signal, attention, {
+              surface: page,
+              contextVersion: maxxisContextSnapshot.contextVersion,
+            }),
+          });
+        }
+      }
+    });
+    const candidate = selectMaxxisProactiveCandidate(signals, {
+      config: { enabled: proactiveEnabled },
+      contextSnapshot: maxxisContextSnapshot,
+      sessionMemory: proactiveSessionRef.current,
+      now: Date.now(),
+      maxxisOpen: open,
+      userActivity: {
+        typing: Boolean(input.trim()),
+        modalOpen: Boolean(appContext?.surface?.modal),
+      },
+    });
+    if (!candidate) return;
+    const message = composeMaxxisProactiveMessage(candidate.signal, language);
+    markMaxxisProactiveSignalSurfaced(proactiveSessionRef.current, candidate.signal, Date.now());
+    setProactiveBubble({
+      id: `maxxis-proactive-${candidate.signal.dedupeKey}`,
+      signal: candidate.signal,
+      attention: candidate.attention,
+      message,
+    });
+    void trackProductEvent('maxxis_proactive_signal_surfaced', {
+      entityType: candidate.signal.entityType?.toLowerCase?.() || 'product',
+      entityId: '',
+      dedupeKey: `proactive-surfaced:${candidate.signal.dedupeKey}`,
+      properties: safeProactiveAnalytics(candidate.signal, candidate.attention, {
+        surface: page,
+        contextVersion: maxxisContextSnapshot.contextVersion,
+      }),
+    });
+  }, [
+    appContext,
+    input,
+    language,
+    loading,
+    maxxisContextSnapshot,
+    messages,
+    open,
+    page,
+    proactiveBubble,
+    proactiveEnabled,
+  ]);
+
+  useEffect(() => {
+    if (!proactiveBubble) return undefined;
+    const timer = window.setTimeout(() => {
+      setProactiveBubble(null);
+    }, MAXXIS_PROACTIVE_DEFAULT_CONFIG.autoDismissMs);
+    return () => window.clearTimeout(timer);
+  }, [proactiveBubble]);
+
   const appendSmartProviderMessage = (sourceMessage) => {
     const payload = smartActionSourcePayload(sourceMessage);
     const data = payload?.data?.sourceData || payload?.data || null;
@@ -967,6 +1154,105 @@ export function MaxxisAssistant({ page = 'dashboard', onOpenSupport = null, onNa
       smartActionsEnabled: true,
       smartActionSurface: 'providers',
     }]);
+  };
+
+  const appendProactiveContextMessage = (bubble) => {
+    const signal = bubble?.signal || {};
+    const serviceId = signal.evidence?.serviceId || (signal.entityType === 'SERVICE' ? signal.entityId : '');
+    const propertyIdForSignal = signal.evidence?.propertyId || (signal.entityType === 'PROPERTY' ? signal.entityId : propertyContextId);
+    if (signal.code === 'PROVIDER_REPLIED' || signal.code === 'PROVIDER_QUOTE_DETECTED') {
+      setMessages((prev) => [...prev, {
+        id: `maxxis-proactive-context-${Date.now()}`,
+        role: 'assistant',
+        content: language === 'pt'
+          ? 'Contexto da resposta do provider carregado. Nada sera enviado sem sua confirmacao.'
+          : language === 'es'
+            ? 'Contexto de la respuesta del provider cargado. Nada se enviara sin tu confirmacion.'
+            : 'Provider reply context loaded. Nothing will be sent without your confirmation.',
+        createdAt: new Date(),
+        type: 'provider_message_sent',
+        data: {
+          serviceId,
+          propertyId: propertyIdForSignal,
+          status: 'reply_received',
+          sourceSignalCode: signal.code,
+        },
+        smartActionsEnabled: true,
+        smartActionSurface: 'conversation',
+      }]);
+      return;
+    }
+    const structuredMessage = latestStructuredDealMessage();
+    if (signal.code === 'SERVICE_MATCH_AVAILABLE' && structuredMessage) {
+      appendSmartProviderMessage(structuredMessage);
+      return;
+    }
+    if (structuredMessage?.data) {
+      setMessages((prev) => [...prev, {
+        id: `maxxis-proactive-deal-${Date.now()}`,
+        role: 'assistant',
+        content: signal.code === 'WORKFLOW_ITEM_CHANGED'
+          ? (language === 'pt'
+            ? 'Contexto do workflow carregado. Revise antes de marcar qualquer etapa.'
+            : language === 'es'
+              ? 'Contexto del workflow cargado. Revisa antes de marcar cualquier etapa.'
+              : 'Workflow context loaded. Review before marking any step.')
+          : (language === 'pt'
+            ? 'Contexto do deal carregado para revisao. Nada foi alterado.'
+            : language === 'es'
+              ? 'Contexto del deal cargado para revision. Nada fue cambiado.'
+              : 'Deal context loaded for review. Nothing was changed.'),
+        createdAt: new Date(),
+        type: structuredMessage.type || 'property_details',
+        data: structuredMessage.data,
+        followUps: structuredMessage.followUps,
+        smartActionsEnabled: true,
+        smartActionSurface: 'snapshot',
+      }]);
+      return;
+    }
+    setMessages((prev) => [...prev, {
+      id: `maxxis-proactive-fallback-${Date.now()}`,
+      role: 'assistant',
+      content: language === 'pt'
+        ? 'Tenho um sinal contextual para revisar, mas preciso que voce abra ou carregue o deal antes de mostrar detalhes.'
+        : language === 'es'
+          ? 'Tengo una senal contextual para revisar, pero necesito que abras o cargues el deal antes de mostrar detalles.'
+          : 'I have a contextual signal to review, but open or load the deal first before I show details.',
+      createdAt: new Date(),
+    }]);
+  };
+
+  const handleDismissProactiveBubble = () => {
+    if (!proactiveBubble) return;
+    markMaxxisProactiveSignalDismissed(proactiveSessionRef.current, proactiveBubble.signal);
+    void trackProductEvent('maxxis_proactive_bubble_dismissed', {
+      entityType: proactiveBubble.signal?.entityType?.toLowerCase?.() || 'product',
+      entityId: '',
+      dedupeKey: `proactive-dismissed:${proactiveBubble.signal?.dedupeKey || proactiveBubble.id}`,
+      properties: safeProactiveAnalytics(proactiveBubble.signal, proactiveBubble.attention, {
+        surface: page,
+        contextVersion: maxxisContextSnapshot.contextVersion,
+      }),
+    });
+    setProactiveBubble(null);
+  };
+
+  const handleClickProactiveBubble = () => {
+    if (!proactiveBubble) return;
+    const currentBubble = proactiveBubble;
+    setProactiveBubble(null);
+    void trackProductEvent('maxxis_proactive_bubble_clicked', {
+      entityType: currentBubble.signal?.entityType?.toLowerCase?.() || 'product',
+      entityId: '',
+      dedupeKey: `proactive-clicked:${currentBubble.signal?.dedupeKey || currentBubble.id}`,
+      properties: safeProactiveAnalytics(currentBubble.signal, currentBubble.attention, {
+        surface: page,
+        contextVersion: maxxisContextSnapshot.contextVersion,
+      }),
+    });
+    setOpen(true);
+    appendProactiveContextMessage(currentBubble);
   };
 
   const handleSmartAction = (action, sourceMessage) => {
@@ -1171,36 +1457,71 @@ export function MaxxisAssistant({ page = 'dashboard', onOpenSupport = null, onNa
       ) : null}
 
       {!open ? (
-        <button
-          type="button"
-          data-guide="maxxis-widget"
-          data-testid="maxxis-fab"
-          className={`maxxis-fab ${dragging ? 'maxxis-fab-dragging' : ''}`}
-          onPointerDown={handleFabPointerDown}
-          onClick={(event) => {
-            if (dragRef.current.moved) {
-              event.preventDefault();
-              dragRef.current = { ...dragRef.current, moved: false };
-              return;
-            }
-            void trackProductEvent('maxxis_opened', { dedupeKey: `maxxis-opened:${page}`, properties: { source: page } });
-            setOpen(true);
-          }}
-          aria-label={t.open}
-          title={t.open}
-          style={{
-            '--maxxis-accent': C.accent,
-            ...(widgetPosition ? {
-              left: `${widgetPosition.x}px`,
-              top: `${widgetPosition.y}px`,
-              right: 'auto',
-              bottom: 'auto',
-            } : {}),
-          }}
-        >
-          <img className="maxxis-fab-logo" src={maxxisLogo} alt="" aria-hidden="true" draggable="false" />
-          <span>AI</span>
-        </button>
+        <>
+          {proactiveBubble ? (
+            <div
+              className="maxxis-proactive-bubble"
+              data-testid="maxxis-proactive-bubble"
+              role="status"
+              aria-live="polite"
+              style={widgetPosition ? {
+                left: `${Math.max(12, widgetPosition.x - 260)}px`,
+                top: `${Math.max(12, widgetPosition.y - 82)}px`,
+                right: 'auto',
+                bottom: 'auto',
+              } : {}}
+            >
+              <span>{proactiveBubble.message?.text}</span>
+              <button
+                type="button"
+                className="maxxis-proactive-review"
+                data-testid="maxxis-proactive-review"
+                onClick={handleClickProactiveBubble}
+              >
+                {proactiveBubble.message?.ctaLabel}
+              </button>
+              <button
+                type="button"
+                className="maxxis-proactive-dismiss"
+                data-testid="maxxis-proactive-dismiss"
+                aria-label={language === 'pt' ? 'Fechar sugestao do Maxxis' : language === 'es' ? 'Cerrar sugerencia de Maxxis' : 'Dismiss Maxxis suggestion'}
+                onClick={handleDismissProactiveBubble}
+              >
+                ×
+              </button>
+            </div>
+          ) : null}
+          <button
+            type="button"
+            data-guide="maxxis-widget"
+            data-testid="maxxis-fab"
+            className={`maxxis-fab ${dragging ? 'maxxis-fab-dragging' : ''}`}
+            onPointerDown={handleFabPointerDown}
+            onClick={(event) => {
+              if (dragRef.current.moved) {
+                event.preventDefault();
+                dragRef.current = { ...dragRef.current, moved: false };
+                return;
+              }
+              void trackProductEvent('maxxis_opened', { dedupeKey: `maxxis-opened:${page}`, properties: { source: page } });
+              setOpen(true);
+            }}
+            aria-label={t.open}
+            title={t.open}
+            style={{
+              '--maxxis-accent': C.accent,
+              ...(widgetPosition ? {
+                left: `${widgetPosition.x}px`,
+                top: `${widgetPosition.y}px`,
+                right: 'auto',
+                bottom: 'auto',
+              } : {}),
+            }}
+          >
+            <img className="maxxis-fab-logo" src={maxxisLogo} alt="" aria-hidden="true" draggable="false" />
+            <span>AI</span>
+          </button>
+        </>
       ) : null}
     </div>
   );
