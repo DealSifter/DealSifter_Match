@@ -202,13 +202,13 @@ export function AuthAccessModal({ initialTab = 'signup', onClose, onSubmit, onFo
             border: 'none',
             borderRadius: 10,
             background: C.accent,
-            color: '#fff',
+            color: '#062f36',
             padding: '12px 12px',
             fontSize: 14,
             fontWeight: 800,
             letterSpacing: '0.01em',
             cursor: isSubmitting ? 'not-allowed' : 'pointer',
-            opacity: isSubmitting ? 0.6 : 1,
+            opacity: 1,
           }}
         >
           {tab === 'signup' ? (t.continueSignUp || 'Continue Sign Up') : (t.continueLogin || 'Continue Login')}
