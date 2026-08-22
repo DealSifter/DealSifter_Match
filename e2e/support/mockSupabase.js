@@ -410,6 +410,10 @@ function maxxisPropertyData() {
 }
 
 export async function setupMockSupabase(context, options = {}) {
+  E2E_USERS.investor.nuggets = 20;
+  E2E_USERS.provider.nuggets = 8;
+  E2E_USERS.incomplete.nuggets = 3;
+  E2E_USERS.noNuggets.nuggets = 0;
   const state = {
     baseline: options.baseline === true,
     currentUserId: '',
@@ -516,6 +520,29 @@ export async function setupMockSupabase(context, options = {}) {
       }
       if (fn === 'maxxis-provider-unlock-confirm') {
         state.unlockConfirms += 1;
+        const body = parseBody(request);
+        if (String(body.serviceId || '') === E2E_IDS.providerService) {
+          const user = byUserId(userId);
+          if (user) user.nuggets = Math.max(0, Number(user.nuggets || 0) - 1);
+          return json(route, {
+            success: true,
+            status: 'confirmed',
+            remainingNuggets: user?.nuggets ?? 19,
+            contactAccess: {
+              status: 'already_unlocked',
+              cost: 0,
+              currency: 'nuggets',
+              contact: {
+                email: 'provider@example.test',
+                phonePrimary: '+1 555 0200',
+              },
+            },
+            contact: {
+              email: 'provider@example.test',
+              phonePrimary: '+1 555 0200',
+            },
+          });
+        }
         return json(route, { success: false, status: 'E2E_CONFIRM_BLOCKED' }, 409);
       }
       if (fn === 'maxxis-provider-message-draft') {
@@ -523,8 +550,13 @@ export async function setupMockSupabase(context, options = {}) {
         return json(route, {
           success: true,
           message: 'Draft prepared, not sent.',
-          draft: 'Hello, can you provide a roof inspection estimate for this Dallas property?',
-          contactAccess: { status: 'locked', cost: 1, currency: 'nuggets' },
+          data: {
+            serviceId: E2E_IDS.providerService,
+            propertyId: E2E_IDS.property,
+            serviceTitle: providerService.title,
+            draft: 'Hello, can you provide a roof inspection estimate for this Dallas property?',
+          },
+          contactAccess: { status: 'already_unlocked', cost: 0, currency: 'nuggets' },
         });
       }
       if (fn === 'maxxis-provider-message-cancel') {

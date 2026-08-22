@@ -1,0 +1,57 @@
+import { test, expect } from '../../fixtures/appFixture.js';
+import { loginAs, openMaxxis } from '../../support/appActions.js';
+
+async function askMaxxis(page, text) {
+  if (!(await page.getByTestId('maxxis-panel').isVisible().catch(() => false))) {
+    await openMaxxis(page);
+  }
+  await page.getByTestId('maxxis-input').fill(text);
+  await page.getByTestId('maxxis-send').click({ force: true });
+}
+
+test.describe('Maxxis controlled smart actions', () => {
+  test('runs snapshot to providers to unlock confirmation to draft without automatic send', async ({ page, mockBackend }) => {
+    await loginAs(page, mockBackend.users.investor);
+    await openMaxxis(page);
+
+    await askMaxxis(page, 'How is this deal?');
+    await expect(page.getByTestId('maxxis-messages')).toContainText('Deal snapshot');
+    await expect(page.getByTestId('maxxis-smart-action-VIEW_PROVIDERS')).toBeVisible();
+
+    await page.getByTestId('maxxis-smart-action-VIEW_PROVIDERS').click();
+    await expect(page.getByTestId('maxxis-messages')).toContainText('Providers loaded for this deal');
+    await expect(page.getByTestId('maxxis-smart-action-UNLOCK_PROVIDER_CONTACT')).toBeVisible();
+
+    await page.getByTestId('maxxis-smart-action-UNLOCK_PROVIDER_CONTACT').click();
+    await expect(page.getByTestId('maxxis-provider-unlock-confirm')).toBeVisible();
+    await expect(page.getByTestId('maxxis-provider-contact-status').last()).toContainText(/locked/i);
+    await expect.poll(() => mockBackend.state.unlockPrepares).toBe(1);
+    expect(mockBackend.users.investor.nuggets).toBe(20);
+
+    await page.getByTestId('maxxis-provider-unlock-confirm').click();
+    await expect(page.getByTestId('maxxis-messages')).toContainText('Contact unlocked.');
+    await expect(page.getByTestId('maxxis-smart-action-DRAFT_PROVIDER_MESSAGE')).toBeVisible();
+    await expect.poll(() => mockBackend.state.unlockConfirms).toBe(1);
+    expect(mockBackend.users.investor.nuggets).toBe(19);
+
+    await page.getByTestId('maxxis-smart-action-DRAFT_PROVIDER_MESSAGE').click();
+    await expect(page.getByTestId('maxxis-messages')).toContainText('Draft prepared, not sent.');
+    await expect(page.getByTestId('maxxis-messages')).toContainText('Message Draft');
+    await expect(page.getByTestId('maxxis-messages')).toContainText('Send Message');
+    expect(mockBackend.state.messagesSent).toBe(0);
+  });
+
+  test('cancelled unlock leaves nuggets untouched and reports no change', async ({ page, mockBackend }) => {
+    await loginAs(page, mockBackend.users.investor);
+    await openMaxxis(page);
+
+    await askMaxxis(page, 'How is this deal?');
+    await page.getByTestId('maxxis-smart-action-VIEW_PROVIDERS').click();
+    await page.getByTestId('maxxis-smart-action-UNLOCK_PROVIDER_CONTACT').click();
+    await page.getByTestId('maxxis-provider-unlock-cancel').click();
+
+    await expect(page.getByTestId('maxxis-messages')).toContainText('Nothing was changed.');
+    await expect.poll(() => mockBackend.state.unlockCancels).toBe(1);
+    expect(mockBackend.users.investor.nuggets).toBe(20);
+  });
+});
