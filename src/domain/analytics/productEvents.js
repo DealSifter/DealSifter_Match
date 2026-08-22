@@ -18,6 +18,13 @@ export const PRODUCT_EVENTS = Object.freeze({
   next_best_action_seen: { stage: 'workflow' },
   next_best_action_clicked: { stage: 'workflow' },
   workflow_item_completed: { stage: 'workflow' },
+  maxxis_smart_action_seen: { stage: 'assistant' },
+  maxxis_smart_action_clicked: { stage: 'assistant' },
+  maxxis_action_prepared: { stage: 'assistant' },
+  maxxis_action_confirmed: { stage: 'assistant' },
+  maxxis_action_cancelled: { stage: 'assistant' },
+  maxxis_action_completed: { stage: 'assistant' },
+  maxxis_action_failed: { stage: 'assistant' },
 });
 
 export const MAXXIS_DEAL_FUNNEL = Object.freeze([
@@ -39,4 +46,11 @@ export const SAFE_PRODUCT_PROPERTY_KEYS = Object.freeze([
   'provider_count',
   'taxonomy_version',
   'auth_provider',
+  'action_code',
+  'action_state',
+  'action_capability',
+  'action_result',
+  'surface',
+  'context_version',
+  'duration_ms',
 ]);

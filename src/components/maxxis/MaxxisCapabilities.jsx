@@ -1560,6 +1560,8 @@ export function MessageBubble({
   onUpdateProviderConversationSuggestedReply,
   onToggleWorkflowManualItem,
   onDealFollowUp,
+  smartActions,
+  onSmartAction,
   onExportAnalysisPdf,
   exportAnalysisLabel,
   exportingAnalysisLabel,
@@ -1823,6 +1825,22 @@ export function MessageBubble({
           onPrepareProviderMessageDraft={onPrepareProviderMessageDraft}
         />
       ) : null}
+      {message.type === 'smart_provider_actions' && message.data?.serviceNeeds?.length ? (
+        <SuggestedPropertyServices
+          messageId={message.id}
+          serviceNeeds={message.data.serviceNeeds}
+          serviceMatches={message.data.serviceMatches}
+          propertyId={message.data.property?.id}
+          language={language}
+          activeProviderUnlockId={activeProviderUnlockId}
+          activeProviderDraftId={activeProviderDraftId}
+          pendingProviderUnlock={pendingProviderUnlock}
+          onPrepareProviderUnlock={onPrepareProviderUnlock}
+          onConfirmProviderUnlock={onConfirmProviderUnlock}
+          onCancelProviderUnlock={onCancelProviderUnlock}
+          onPrepareProviderMessageDraft={onPrepareProviderMessageDraft}
+        />
+      ) : null}
       {message.type === 'deal_copilot_overview' && message.data?.propertySummary ? (
         <DealCopilotOverviewCard
           data={message.data}
@@ -1844,6 +1862,21 @@ export function MessageBubble({
               onClick={() => onDealFollowUp?.(followUp, message)}
             >
               {followUp.label}
+            </button>
+          ))}
+        </div>
+      ) : null}
+      {!isUser && Array.isArray(smartActions) && smartActions.length ? (
+        <div className="maxxis-smart-actions" aria-label="Maxxis smart actions">
+          {smartActions.slice(0, 3).map((action) => (
+            <button
+              type="button"
+              key={`${message.id}-smart-${action.code}`}
+              className="maxxis-smart-action-chip"
+              data-testid={`maxxis-smart-action-${action.code}`}
+              onClick={() => onSmartAction?.(action, message)}
+            >
+              {action.label}
             </button>
           ))}
         </div>

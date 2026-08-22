@@ -32,6 +32,11 @@ import {
   enhanceMaxxisAssistantResponse,
   promptForMaxxisFollowUp,
 } from '../../features/maxxis/intelligence/maxxisDealIntelligence';
+import {
+  buildMaxxisSmartActions,
+  findSmartActionTargetService,
+  safeSmartActionAnalytics,
+} from '../../features/maxxis/actions/maxxisSmartActions';
 import maxxisLogo from '../../assets/logo.png';
 import './MaxxisAssistant.css';
 
@@ -75,6 +80,7 @@ export function MaxxisAssistant({ page = 'dashboard', onOpenSupport = null, onNa
   const endRef = useRef(null);
   const inputRef = useRef(null);
   const handledAnalysisRequestsRef = useRef(new Set());
+  const seenSmartActionsRef = useRef(new Set());
   const propertyAnalysisRequestRef = useRef(propertyAnalysisRequest);
   const sessionKeyRef = useRef(String(sessionKey || ''));
   const submitMessageRef = useRef(null);
@@ -361,6 +367,8 @@ export function MaxxisAssistant({ page = 'dashboard', onOpenSupport = null, onNa
           type: localDealIntelligence.type,
           data: localDealIntelligence.data,
           followUps: localDealIntelligence.followUps,
+          smartActionsEnabled: localDealIntelligence.type === 'deal_snapshot',
+          smartActionSurface: 'snapshot',
         }]);
         return;
       }
@@ -433,6 +441,8 @@ export function MaxxisAssistant({ page = 'dashboard', onOpenSupport = null, onNa
         type: intelligence.type || result.type,
         data: intelligence.data || result.data,
         followUps: intelligence.followUps,
+        smartActionsEnabled: intelligence.type === 'deal_snapshot',
+        smartActionSurface: 'snapshot',
         analysisExport: result.unavailable ? null : (meta.analysisExport || null),
       }]);
     } catch (error) {
@@ -526,6 +536,7 @@ export function MaxxisAssistant({ page = 'dashboard', onOpenSupport = null, onNa
   const handlePrepareProviderUnlock = async (messageId, service) => {
     const serviceId = String(service?.id || '');
     if (!serviceId || activeProviderUnlockId) return;
+    const startedAt = Date.now();
     setActiveProviderUnlockId(serviceId);
     try {
       const result = await prepareMaxxisProviderContactUnlock(serviceId);
@@ -536,9 +547,21 @@ export function MaxxisAssistant({ page = 'dashboard', onOpenSupport = null, onNa
         ? { ...result.action, messageId, serviceId }
         : null);
       void trackProductEvent('provider_unlock_started', { entityType: 'service', entityId: serviceId, dedupeKey: `provider-unlock-started:${result?.action?.intentToken || serviceId}`, properties: { source: 'maxxis' } });
+      void trackProductEvent('maxxis_action_prepared', {
+        entityType: 'service',
+        entityId: serviceId,
+        dedupeKey: `smart-action-prepared:UNLOCK_PROVIDER_CONTACT:${result?.action?.intentToken || serviceId}`,
+        properties: safeSmartActionAnalytics({ code: 'UNLOCK_PROVIDER_CONTACT', state: 'available', capability: 'provider_contact_unlock' }, { result: result?.action?.intentToken ? 'awaiting_confirmation' : 'prepared', duration: Date.now() - startedAt, surface: page, contextVersion: maxxisContextSnapshot.contextVersion }),
+      });
     } catch (error) {
       captureAppException(error, { area: 'maxxis_provider_unlock_prepare', serviceId });
       if (error?.contactAccess) updateProviderContactAccess(messageId, serviceId, error.contactAccess);
+      void trackProductEvent('maxxis_action_failed', {
+        entityType: 'service',
+        entityId: serviceId,
+        dedupeKey: `smart-action-failed:UNLOCK_PROVIDER_CONTACT:prepare:${serviceId}:${Date.now()}`,
+        properties: safeSmartActionAnalytics({ code: 'UNLOCK_PROVIDER_CONTACT', state: 'available', capability: 'provider_contact_unlock' }, { result: 'prepare_failed', duration: Date.now() - startedAt, surface: page, contextVersion: maxxisContextSnapshot.contextVersion }),
+      });
     } finally {
       setActiveProviderUnlockId('');
     }
@@ -548,6 +571,27 @@ export function MaxxisAssistant({ page = 'dashboard', onOpenSupport = null, onNa
     const serviceId = String(pending?.serviceId || '');
     const intentToken = String(pending?.intentToken || '');
     if (!serviceId || !intentToken || activeProviderUnlockId) return;
+    const preparedMessage = messages.find((message) => message.id === pending.messageId);
+    const stillValid = Boolean(preparedMessage) && JSON.stringify(preparedMessage?.data || {}).includes(serviceId);
+    if (!stillValid) {
+      setPendingProviderUnlock(null);
+      setMessages((prev) => [...prev, {
+        id: `maxxis-action-stale-${Date.now()}`,
+        role: 'assistant',
+        content: language === 'pt' ? 'O contexto mudou. Nada foi alterado.' : language === 'es' ? 'El contexto cambio. No se modifico nada.' : 'The context changed. Nothing was changed.',
+        createdAt: new Date(),
+        type: 'smart_action_feedback',
+        data: { status: 'STALE_CONTEXT', actionCode: 'UNLOCK_PROVIDER_CONTACT' },
+      }]);
+      void trackProductEvent('maxxis_action_failed', {
+        entityType: 'service',
+        entityId: serviceId,
+        dedupeKey: `smart-action-stale:UNLOCK_PROVIDER_CONTACT:${intentToken}`,
+        properties: safeSmartActionAnalytics({ code: 'UNLOCK_PROVIDER_CONTACT', state: 'blocked', capability: 'provider_contact_unlock' }, { result: 'stale_context', surface: page, contextVersion: maxxisContextSnapshot.contextVersion }),
+      });
+      return;
+    }
+    const startedAt = Date.now();
     setActiveProviderUnlockId(serviceId);
     try {
       const result = await confirmMaxxisProviderContactUnlock({ serviceId, intentToken });
@@ -563,10 +607,30 @@ export function MaxxisAssistant({ page = 'dashboard', onOpenSupport = null, onNa
       }
       if (typeof onProviderUnlockConfirmed === 'function') onProviderUnlockConfirmed(result);
       void trackProductEvent('provider_unlocked', { entityType: 'service', entityId: serviceId, dedupeKey: `provider-unlocked:${intentToken}`, properties: { source: 'maxxis', status: result?.contactAccess?.status || 'unlocked' } });
+      void trackProductEvent('maxxis_action_completed', {
+        entityType: 'service',
+        entityId: serviceId,
+        dedupeKey: `smart-action-completed:UNLOCK_PROVIDER_CONTACT:${intentToken}`,
+        properties: safeSmartActionAnalytics({ code: 'UNLOCK_PROVIDER_CONTACT', state: 'available', capability: 'provider_contact_unlock' }, { result: 'success', duration: Date.now() - startedAt, surface: page, contextVersion: maxxisContextSnapshot.contextVersion }),
+      });
       setPendingProviderUnlock(null);
+      setMessages((prev) => [...prev, {
+        id: `maxxis-action-unlock-success-${Date.now()}`,
+        role: 'assistant',
+        content: language === 'pt' ? 'Contato desbloqueado.' : language === 'es' ? 'Contacto desbloqueado.' : 'Contact unlocked.',
+        createdAt: new Date(),
+        type: 'smart_action_feedback',
+        data: { status: 'SUCCESS', actionCode: 'UNLOCK_PROVIDER_CONTACT', serviceId },
+      }]);
     } catch (error) {
       captureAppException(error, { area: 'maxxis_provider_unlock_confirm', serviceId });
       if (error?.contactAccess) updateProviderContactAccess(pending.messageId, serviceId, error.contactAccess);
+      void trackProductEvent('maxxis_action_failed', {
+        entityType: 'service',
+        entityId: serviceId,
+        dedupeKey: `smart-action-failed:UNLOCK_PROVIDER_CONTACT:confirm:${intentToken}`,
+        properties: safeSmartActionAnalytics({ code: 'UNLOCK_PROVIDER_CONTACT', state: 'available', capability: 'provider_contact_unlock' }, { result: 'confirm_failed', duration: Date.now() - startedAt, surface: page, contextVersion: maxxisContextSnapshot.contextVersion }),
+      });
     } finally {
       setActiveProviderUnlockId('');
     }
@@ -580,6 +644,20 @@ export function MaxxisAssistant({ page = 'dashboard', onOpenSupport = null, onNa
     try {
       await cancelMaxxisProviderContactUnlock(intentToken);
       setPendingProviderUnlock(null);
+      void trackProductEvent('maxxis_action_cancelled', {
+        entityType: 'service',
+        entityId: serviceId,
+        dedupeKey: `smart-action-cancelled:UNLOCK_PROVIDER_CONTACT:${intentToken}`,
+        properties: safeSmartActionAnalytics({ code: 'UNLOCK_PROVIDER_CONTACT', state: 'pending', capability: 'provider_contact_unlock' }, { result: 'cancelled', surface: page, contextVersion: maxxisContextSnapshot.contextVersion }),
+      });
+      setMessages((prev) => [...prev, {
+        id: `maxxis-action-cancelled-${Date.now()}`,
+        role: 'assistant',
+        content: language === 'pt' ? 'Nada foi alterado.' : language === 'es' ? 'No se modifico nada.' : 'Nothing was changed.',
+        createdAt: new Date(),
+        type: 'smart_action_feedback',
+        data: { status: 'CANCELLED', actionCode: 'UNLOCK_PROVIDER_CONTACT', serviceId },
+      }]);
     } catch (error) {
       captureAppException(error, { area: 'maxxis_provider_unlock_cancel', serviceId });
     } finally {
@@ -591,11 +669,18 @@ export function MaxxisAssistant({ page = 'dashboard', onOpenSupport = null, onNa
     const serviceId = String(service?.id || '');
     const cleanPropertyId = String(propertyId || '');
     if (!serviceId || !cleanPropertyId || activeProviderDraftId) return;
+    const startedAt = Date.now();
     setActiveProviderDraftId(serviceId);
     try {
       const result = await prepareMaxxisProviderMessageDraft({ serviceId, propertyId: cleanPropertyId, language });
       if (result?.data?.draft) {
         void trackProductEvent('provider_message_drafted', { entityType: 'service', entityId: serviceId, dedupeKey: `provider-message-drafted:${serviceId}:${cleanPropertyId}`, properties: { source: 'maxxis' } });
+        void trackProductEvent('maxxis_action_prepared', {
+          entityType: 'service',
+          entityId: serviceId,
+          dedupeKey: `smart-action-prepared:DRAFT_PROVIDER_MESSAGE:${serviceId}:${cleanPropertyId}`,
+          properties: safeSmartActionAnalytics({ code: 'DRAFT_PROVIDER_MESSAGE', state: 'available', capability: 'provider_message_draft' }, { result: 'draft_ready', duration: Date.now() - startedAt, surface: page, contextVersion: maxxisContextSnapshot.contextVersion }),
+        });
         setMessages((prev) => [...prev, {
           id: `maxxis-provider-message-draft-${Date.now()}`,
           role: 'assistant',
@@ -603,6 +688,8 @@ export function MaxxisAssistant({ page = 'dashboard', onOpenSupport = null, onNa
           createdAt: new Date(),
           type: 'provider_message_draft',
           data: result.data,
+          smartActionsEnabled: true,
+          smartActionSurface: 'message',
         }]);
       }
     } catch (error) {
@@ -616,6 +703,12 @@ export function MaxxisAssistant({ page = 'dashboard', onOpenSupport = null, onNa
         createdAt: new Date(),
         error: true,
       }]);
+      void trackProductEvent('maxxis_action_failed', {
+        entityType: 'service',
+        entityId: serviceId,
+        dedupeKey: `smart-action-failed:DRAFT_PROVIDER_MESSAGE:${serviceId}:${Date.now()}`,
+        properties: safeSmartActionAnalytics({ code: 'DRAFT_PROVIDER_MESSAGE', state: 'available', capability: 'provider_message_draft' }, { result: 'draft_failed', duration: Date.now() - startedAt, surface: page, contextVersion: maxxisContextSnapshot.contextVersion }),
+      });
     } finally {
       setActiveProviderDraftId('');
     }
@@ -680,6 +773,12 @@ export function MaxxisAssistant({ page = 'dashboard', onOpenSupport = null, onNa
       });
       setPendingProviderMessageSend(null);
       void trackProductEvent('provider_message_sent', { entityType: 'service', entityId: pending?.serviceId, dedupeKey: `provider-message-sent:${result?.data?.messageId || actionId}`, properties: { source: 'maxxis', status: result?.data?.status || 'sent' } });
+      void trackProductEvent('maxxis_action_completed', {
+        entityType: 'service',
+        entityId: pending?.serviceId,
+        dedupeKey: `smart-action-completed:PROVIDER_MESSAGE_SEND:${result?.data?.messageId || actionId}`,
+        properties: safeSmartActionAnalytics({ code: 'DRAFT_PROVIDER_MESSAGE', state: 'available', capability: 'provider_message_send' }, { result: 'message_sent', surface: page, contextVersion: maxxisContextSnapshot.contextVersion }),
+      });
       const sendCopy = PROPERTY_SERVICE_NEEDS_COPY[language] || PROPERTY_SERVICE_NEEDS_COPY.en;
       setMessages((prev) => [...prev, {
         id: `maxxis-provider-message-sent-${Date.now()}`,
@@ -688,6 +787,8 @@ export function MaxxisAssistant({ page = 'dashboard', onOpenSupport = null, onNa
         createdAt: new Date(),
         type: 'provider_message_sent',
         data: result?.data || { serviceId: pending.serviceId, propertyId: pending.propertyId, status: 'sent' },
+        smartActionsEnabled: true,
+        smartActionSurface: 'conversation',
       }]);
     } catch (error) {
       captureAppException(error, { area: 'maxxis_provider_message_confirm', actionId });
@@ -706,6 +807,12 @@ export function MaxxisAssistant({ page = 'dashboard', onOpenSupport = null, onNa
       await cancelMaxxisProviderMessageSend(actionId);
       setPendingProviderMessageSend(null);
       if (messageId) updateProviderMessageDraftSendState(messageId, { sendError: null });
+      void trackProductEvent('maxxis_action_cancelled', {
+        entityType: 'service',
+        entityId: pending?.serviceId,
+        dedupeKey: `smart-action-cancelled:PROVIDER_MESSAGE_SEND:${actionId}`,
+        properties: safeSmartActionAnalytics({ code: 'DRAFT_PROVIDER_MESSAGE', state: 'pending', capability: 'provider_message_send' }, { result: 'cancelled', surface: page, contextVersion: maxxisContextSnapshot.contextVersion }),
+      });
     } catch (error) {
       captureAppException(error, { area: 'maxxis_provider_message_cancel', actionId });
       if (messageId) updateProviderMessageDraftSendState(messageId, { sendError: String(error?.code || error?.message || 'send_cancel_failed') });
@@ -729,6 +836,8 @@ export function MaxxisAssistant({ page = 'dashboard', onOpenSupport = null, onNa
         createdAt: new Date(),
         type: 'provider_conversation_analysis',
         data: result?.data || null,
+        smartActionsEnabled: true,
+        smartActionSurface: 'conversation',
       }]);
     } catch (error) {
       captureAppException(error, { area: 'maxxis_provider_conversation_analysis', serviceId, propertyId });
@@ -801,6 +910,124 @@ export function MaxxisAssistant({ page = 'dashboard', onOpenSupport = null, onNa
       controlledIntent: intent,
       sourceMessageId: sourceMessage?.id || '',
     });
+  };
+
+  const smartActionSourcePayload = (message) => {
+    if (!message) return null;
+    if (message.data?.sourceData) return { type: message.data.sourceType || 'property_details', data: message.data.sourceData };
+    return { type: message.type, data: message.data };
+  };
+
+  const getMessageSmartActions = useCallback((message) => {
+    if (!message?.smartActionsEnabled) return [];
+    return buildMaxxisSmartActions(smartActionSourcePayload(message), {
+      language,
+      pendingProviderUnlock,
+      surface: message.smartActionSurface || (message.type === 'smart_provider_actions' ? 'providers' : 'snapshot'),
+      maxVisible: 3,
+    }).filter((action) => action.enabled);
+  }, [language, pendingProviderUnlock]);
+
+  useEffect(() => {
+    messages.forEach((message) => {
+      if (!message?.smartActionsEnabled) return;
+      getMessageSmartActions(message).forEach((action) => {
+        const key = `${message.id}:${action.code}:${action.state}`;
+        if (seenSmartActionsRef.current.has(key)) return;
+        seenSmartActionsRef.current.add(key);
+        void trackProductEvent('maxxis_smart_action_seen', {
+          entityType: action.target?.serviceId ? 'service' : 'property',
+          entityId: action.target?.serviceId || action.target?.propertyId || propertyContextId || '',
+          dedupeKey: `smart-action-seen:${key}`,
+          properties: safeSmartActionAnalytics(action, {
+            result: 'seen',
+            surface: message.smartActionSurface || page,
+            contextVersion: maxxisContextSnapshot.contextVersion,
+          }),
+        });
+      });
+    });
+  }, [getMessageSmartActions, maxxisContextSnapshot.contextVersion, messages, page, propertyContextId]);
+
+  const appendSmartProviderMessage = (sourceMessage) => {
+    const payload = smartActionSourcePayload(sourceMessage);
+    const data = payload?.data?.sourceData || payload?.data || null;
+    if (!data?.property || !Array.isArray(data?.serviceNeeds)) return;
+    setMessages((prev) => [...prev, {
+      id: `maxxis-smart-providers-${Date.now()}`,
+      role: 'assistant',
+      content: language === 'pt'
+        ? 'Providers carregados para este deal. Nada sera desbloqueado sem sua confirmacao.'
+        : language === 'es'
+          ? 'Providers cargados para este deal. Nada se desbloquea sin tu confirmacion.'
+          : 'Providers loaded for this deal. Nothing will be unlocked without your confirmation.',
+      createdAt: new Date(),
+      type: 'smart_provider_actions',
+      data,
+      smartActionsEnabled: true,
+      smartActionSurface: 'providers',
+    }]);
+  };
+
+  const handleSmartAction = (action, sourceMessage) => {
+    if (!action?.enabled || loading) return;
+    const sourcePayload = smartActionSourcePayload(sourceMessage);
+    void trackProductEvent('maxxis_smart_action_clicked', {
+      entityType: action.target?.serviceId ? 'service' : 'property',
+      entityId: action.target?.serviceId || action.target?.propertyId || propertyContextId || '',
+      dedupeKey: `smart-action-clicked:${sourceMessage?.id || 'message'}:${action.code}`,
+      properties: safeSmartActionAnalytics(action, {
+        result: 'clicked',
+        surface: sourceMessage?.smartActionSurface || page,
+        contextVersion: maxxisContextSnapshot.contextVersion,
+      }),
+    });
+    if (action.code === 'VIEW_DEAL_GAPS') {
+      void submitMessage(promptForMaxxisFollowUp({ code: 'deal_gaps', label: action.label }, language), {
+        controlledIntent: 'deal_gaps',
+        sourceMessageId: sourceMessage?.id || '',
+      });
+      return;
+    }
+    if (action.code === 'EXPLAIN_INSIGHT') {
+      void submitMessage(promptForMaxxisFollowUp({ code: 'why_current_signal', label: action.label }, language), {
+        controlledIntent: 'explain_current_insight',
+        sourceMessageId: sourceMessage?.id || '',
+      });
+      return;
+    }
+    if (action.code === 'REVIEW_NEXT_STEP' || action.code === 'REVIEW_WORKFLOW') {
+      void submitMessage(promptForMaxxisFollowUp({ code: 'review_next', label: action.label }, language), {
+        controlledIntent: 'review_next',
+        sourceMessageId: sourceMessage?.id || '',
+      });
+      return;
+    }
+    if (action.code === 'COMPARE_PROPERTIES') {
+      void submitMessage(promptForMaxxisFollowUp({ code: 'compare_these', label: action.label }, language), {
+        controlledIntent: 'compare_these',
+        sourceMessageId: sourceMessage?.id || '',
+      });
+      return;
+    }
+    if (action.code === 'VIEW_PROVIDERS') {
+      appendSmartProviderMessage(sourceMessage);
+      return;
+    }
+    if (action.code === 'UNLOCK_PROVIDER_CONTACT') {
+      const service = findSmartActionTargetService(sourcePayload, action);
+      if (service?.id) void handlePrepareProviderUnlock(sourceMessage.id, service);
+      return;
+    }
+    if (action.code === 'DRAFT_PROVIDER_MESSAGE') {
+      const service = findSmartActionTargetService(sourcePayload, action);
+      const propertyIdForDraft = action.target?.propertyId || sourcePayload?.data?.property?.id || sourcePayload?.data?.sourceData?.property?.id || '';
+      if (service?.id && propertyIdForDraft) void handlePrepareProviderMessageDraft(sourceMessage.id, service, propertyIdForDraft);
+      return;
+    }
+    if (action.code === 'REVIEW_PROVIDER_REPLY') {
+      void handleAnalyzeProviderConversation(sourceMessage);
+    }
   };
 
   const submit = async () => {
@@ -880,6 +1107,8 @@ export function MaxxisAssistant({ page = 'dashboard', onOpenSupport = null, onNa
                 onUpdateProviderConversationSuggestedReply={handleUpdateProviderConversationSuggestedReply}
                 onToggleWorkflowManualItem={handleToggleWorkflowManualItem}
                 onDealFollowUp={handleDealFollowUp}
+                smartActions={getMessageSmartActions(message)}
+                onSmartAction={handleSmartAction}
                 onExportAnalysisPdf={handleExportAnalysisPdf}
                 exportAnalysisLabel={t.exportAnalysisPdf}
                 exportingAnalysisLabel={t.exportingAnalysisPdf}

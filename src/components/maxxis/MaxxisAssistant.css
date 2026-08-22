@@ -270,6 +270,37 @@
   outline: none;
 }
 
+.maxxis-smart-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  padding: 2px 4px 0;
+  max-width: 100%;
+}
+
+.maxxis-smart-action-chip {
+  max-width: 100%;
+  min-height: 34px;
+  border: 1px solid color-mix(in srgb, var(--gold) 52%, var(--border));
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--gold) 14%, var(--card));
+  color: color-mix(in srgb, var(--gold) 72%, var(--t1));
+  padding: 7px 11px;
+  font: inherit;
+  font-size: 10.5px;
+  font-weight: 950;
+  line-height: 1.1;
+  cursor: pointer;
+  box-shadow: 0 8px 18px color-mix(in srgb, var(--gold) 10%, transparent);
+}
+
+.maxxis-smart-action-chip:hover,
+.maxxis-smart-action-chip:focus-visible {
+  border-color: var(--gold);
+  background: color-mix(in srgb, var(--gold) 20%, var(--card));
+  outline: none;
+}
+
 .maxxis-message-user .maxxis-message-meta {
   text-align: right;
 }
@@ -596,6 +627,12 @@
   .maxxis-followup-chip {
     min-height: 30px;
     padding: 6px 9px;
+    font-size: 10px;
+  }
+
+  .maxxis-smart-action-chip {
+    min-height: 34px;
+    padding: 7px 10px;
     font-size: 10px;
   }
 
