@@ -7,10 +7,12 @@ describe('controlled feature rollout', () => {
     const flags = resolveFeatureFlags({ userId: 'user-a', environment: 'staging' });
     expect(flags.platform_readiness_probe).toBe(true);
     expect(flags.maxxis_next_generation).toBe(false);
+    expect(flags.maxxis_proactive_insights).toBe(false);
   });
 
   it('supports server-approved staging overrides but ignores unapproved overrides', () => {
     expect(resolveFeatureFlags({ userId: 'user-a', environment: 'staging', overrides: { new_feed_experience: true }, allowOverride: true }).new_feed_experience).toBe(true);
+    expect(resolveFeatureFlags({ userId: 'user-a', environment: 'staging', overrides: { maxxis_proactive_insights: true }, allowOverride: true }).maxxis_proactive_insights).toBe(true);
     expect(resolveFeatureFlags({ userId: 'user-a', environment: 'production', overrides: { new_feed_experience: true }, allowOverride: false }).new_feed_experience).toBe(false);
   });
 

@@ -472,6 +472,23 @@ export async function setupMockSupabase(context, options = {}) {
         return json(route, { success: false, error: 'ORIGIN_NOT_ALLOWED' }, 403);
       }
 
+      if (fn === 'feature-flags') {
+        const body = parseBody(request);
+        return json(route, {
+          flags: {
+            platform_readiness_probe: true,
+            maxxis_next_generation: false,
+            maxxis_proactive_insights: body?.overrides?.maxxis_proactive_insights === true,
+            new_feed_experience: false,
+            advanced_deal_analysis: false,
+            experimental_provider_flow: false,
+          },
+          environment: 'development',
+          source: 'server',
+          overrideApplied: body?.overrides?.maxxis_proactive_insights === true,
+        });
+      }
+
       if (fn === 'maxxis-chat') {
         const body = parseBody(request);
         const message = String(body.message || '').toLowerCase();
@@ -566,6 +583,22 @@ export async function setupMockSupabase(context, options = {}) {
       if (fn === 'maxxis-provider-message-prepare') {
         state.messagesSent += 0;
         return json(route, { success: true, action: { actionId: E2E_IDS.messageAction, cost: 0 } });
+      }
+      if (fn === 'maxxis-provider-conversation-analysis') {
+        return json(route, {
+          success: true,
+          data: {
+            serviceId: E2E_IDS.providerService,
+            propertyId: E2E_IDS.property,
+            summary: 'Provider replied with availability for a rehab estimate.',
+            facts: ['Provider is available this week.'],
+            openItems: ['Confirm inspection window.'],
+            providerAsked: ['Share preferred access time.'],
+            amounts: [],
+            availability: ['This week'],
+            suggestedReply: 'Thanks. Please send your earliest inspection window.',
+          },
+        });
       }
       return json(route, { success: true });
     }
