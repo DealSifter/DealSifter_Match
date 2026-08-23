@@ -51,6 +51,7 @@ import {
 } from '../../features/maxxis/proactive/maxxisProactiveIntelligence';
 import { resolveMaxxisAvatarState } from '../../features/maxxis/avatar/maxxisAvatarStateMachine';
 import { MaxxisAvatarRenderer } from '../../features/maxxis/avatar/MaxxisAvatarRenderer';
+import { useMaxxisAvatarTimeline } from '../../features/maxxis/avatar/maxxisAvatarTimeline';
 import {
   MAXXIS_AVATAR_ANIMATION_INTENSITY,
   MAXXIS_AVATAR_STATES,
@@ -126,7 +127,6 @@ export function MaxxisAssistant({ page = 'dashboard', onOpenSupport = null, onNa
   const [input, setInput] = useState('');
   const [loading, setLoading] = useState(false);
   const [proactiveEnabled, setProactiveEnabled] = useState(false);
-  const [proactiveBubble, setProactiveBubble] = useState(null);
   const [exportingAnalysisId, setExportingAnalysisId] = useState(null);
   const [activeProfileActionId, setActiveProfileActionId] = useState('');
   const [activeProviderUnlockId, setActiveProviderUnlockId] = useState('');
@@ -136,7 +136,6 @@ export function MaxxisAssistant({ page = 'dashboard', onOpenSupport = null, onNa
   const [activeWorkflowItemCode, setActiveWorkflowItemCode] = useState('');
   const [pendingProviderUnlock, setPendingProviderUnlock] = useState(null);
   const [pendingProviderMessageSend, setPendingProviderMessageSend] = useState(null);
-  const [lastAvatarActionResult, setLastAvatarActionResult] = useState(null);
   const [devAvatarPresentation, setDevAvatarPresentation] = useState(readDevMaxxisAvatarPresentation);
   const [widgetPosition, setWidgetPosition] = useState(readStoredWidgetPosition);
   const [dragging, setDragging] = useState(false);
@@ -166,6 +165,26 @@ export function MaxxisAssistant({ page = 'dashboard', onOpenSupport = null, onNa
     startX: 0,
     startY: 0,
   });
+  const avatarTimelineIdentityKey = `${String(sessionKey || '')}:${String(
+    propertyContextId || appContext?.entity?.propertyId || 'global',
+  )}`;
+  const {
+    pendingProactiveBubble,
+    proactiveBubble,
+    proactiveSignalSurfaced,
+    lastActionResult: lastAvatarActionResult,
+    stageProactiveBubble,
+    dismissProactiveBubble,
+    consumeProactiveBubble,
+    clearProactiveBubble,
+    markSuccess: markAvatarTimelineSuccess,
+    clearSuccess: clearAvatarTimelineSuccess,
+    reset: resetAvatarTimeline,
+  } = useMaxxisAvatarTimeline({
+    identityKey: avatarTimelineIdentityKey,
+    enabled,
+    intensity: devAvatarPresentation?.intensity || MAXXIS_AVATAR_ANIMATION_INTENSITY.SUBTLE,
+  });
 
   useEffect(() => {
     propertyAnalysisRequestRef.current = propertyAnalysisRequest;
@@ -182,7 +201,7 @@ export function MaxxisAssistant({ page = 'dashboard', onOpenSupport = null, onNa
     let cancelled = false;
     if (!enabled) {
       setProactiveEnabled(false);
-      setProactiveBubble(null);
+      clearProactiveBubble();
       return () => {
         cancelled = true;
       };
@@ -198,12 +217,16 @@ export function MaxxisAssistant({ page = 'dashboard', onOpenSupport = null, onNa
     return () => {
       cancelled = true;
     };
-  }, [enabled, sessionKey]);
+  }, [clearProactiveBubble, enabled, sessionKey]);
 
   useEffect(() => {
     if (!open) return;
     endRef.current?.scrollIntoView({ behavior: 'smooth', block: 'end' });
   }, [messages, loading, open]);
+
+  useEffect(() => {
+    if (open) clearProactiveBubble();
+  }, [clearProactiveBubble, open]);
 
   useEffect(() => {
     if (!open) return undefined;
@@ -337,7 +360,9 @@ export function MaxxisAssistant({ page = 'dashboard', onOpenSupport = null, onNa
     enabled,
     open,
     loading,
+    timelineManaged: true,
     proactiveBubble,
+    proactiveSignalSurfaced,
     pendingProviderUnlock,
     pendingProviderMessageSend,
     activeProviderUnlockId,
@@ -368,6 +393,7 @@ export function MaxxisAssistant({ page = 'dashboard', onOpenSupport = null, onNa
     pendingProviderMessageSend,
     pendingProviderUnlock,
     proactiveBubble,
+    proactiveSignalSurfaced,
   ]);
 
   useEffect(() => {
@@ -402,12 +428,12 @@ export function MaxxisAssistant({ page = 'dashboard', onOpenSupport = null, onNa
     setActiveProviderDraftId('');
     setActiveProviderMessageSendId('');
     setActiveProviderConversationAnalysisId('');
-    setLastAvatarActionResult(null);
-  }, [language]);
+    clearAvatarTimelineSuccess();
+  }, [clearAvatarTimelineSuccess, language]);
 
   const markAvatarActionSuccess = useCallback((status = 'completed') => {
-    setLastAvatarActionResult({ status, at: Date.now() });
-  }, []);
+    markAvatarTimelineSuccess({ status });
+  }, [markAvatarTimelineSuccess]);
 
   useEffect(() => {
     const nextSessionKey = String(sessionKey || '');
@@ -417,10 +443,10 @@ export function MaxxisAssistant({ page = 'dashboard', onOpenSupport = null, onNa
     handledAnalysisRequestsRef.current.clear();
     detectedProactiveSignalsRef.current.clear();
     suppressedProactiveSignalsRef.current.clear();
-    setProactiveBubble(null);
+    resetAvatarTimeline();
     setOpen(false);
     resetConversation();
-  }, [resetConversation, sessionKey]);
+  }, [resetAvatarTimeline, resetConversation, sessionKey]);
 
   const persistWidgetPosition = (position) => {
     const next = clampWidgetPosition(position);
@@ -1134,7 +1160,12 @@ export function MaxxisAssistant({ page = 'dashboard', onOpenSupport = null, onNa
   }, [messages]);
 
   useEffect(() => {
-    if (!proactiveEnabled || open || proactiveBubble || loading) return;
+    const avatarBusy = [
+      MAXXIS_AVATAR_STATES.PROCESSING,
+      MAXXIS_AVATAR_STATES.WAITING,
+      MAXXIS_AVATAR_STATES.SUCCESS,
+    ].includes(maxxisAvatarState.state);
+    if (!proactiveEnabled || open || proactiveBubble || pendingProactiveBubble || loading || avatarBusy) return;
     const proactiveAppContext = mergeDevMaxxisProactiveEvents(appContext);
     const signals = buildMaxxisProactiveSignals({
       contextSnapshot: maxxisContextSnapshot,
@@ -1196,13 +1227,17 @@ export function MaxxisAssistant({ page = 'dashboard', onOpenSupport = null, onNa
     });
     if (!candidate) return;
     const message = composeMaxxisProactiveMessage(candidate.signal, language);
-    markMaxxisProactiveSignalSurfaced(proactiveSessionRef.current, candidate.signal, Date.now());
-    setProactiveBubble({
+    const bubble = {
       id: `maxxis-proactive-${candidate.signal.dedupeKey}`,
       signal: candidate.signal,
       attention: candidate.attention,
       message,
+    };
+    const staged = stageProactiveBubble(bubble, {
+      autoDismissMs: MAXXIS_PROACTIVE_DEFAULT_CONFIG.autoDismissMs,
     });
+    if (!staged) return;
+    markMaxxisProactiveSignalSurfaced(proactiveSessionRef.current, candidate.signal, Date.now());
     void trackProductEvent('maxxis_proactive_signal_surfaced', {
       entityType: candidate.signal.entityType?.toLowerCase?.() || 'product',
       entityId: '',
@@ -1218,20 +1253,15 @@ export function MaxxisAssistant({ page = 'dashboard', onOpenSupport = null, onNa
     language,
     loading,
     maxxisContextSnapshot,
+    maxxisAvatarState.state,
     messages,
     open,
     page,
+    pendingProactiveBubble,
     proactiveBubble,
     proactiveEnabled,
+    stageProactiveBubble,
   ]);
-
-  useEffect(() => {
-    if (!proactiveBubble) return undefined;
-    const timer = window.setTimeout(() => {
-      setProactiveBubble(null);
-    }, MAXXIS_PROACTIVE_DEFAULT_CONFIG.autoDismissMs);
-    return () => window.clearTimeout(timer);
-  }, [proactiveBubble]);
 
   const appendSmartProviderMessage = (sourceMessage) => {
     const payload = smartActionSourcePayload(sourceMessage);
@@ -1321,24 +1351,23 @@ export function MaxxisAssistant({ page = 'dashboard', onOpenSupport = null, onNa
   };
 
   const handleDismissProactiveBubble = () => {
-    if (!proactiveBubble) return;
-    markMaxxisProactiveSignalDismissed(proactiveSessionRef.current, proactiveBubble.signal);
+    const currentBubble = dismissProactiveBubble();
+    if (!currentBubble) return;
+    markMaxxisProactiveSignalDismissed(proactiveSessionRef.current, currentBubble.signal);
     void trackProductEvent('maxxis_proactive_bubble_dismissed', {
-      entityType: proactiveBubble.signal?.entityType?.toLowerCase?.() || 'product',
+      entityType: currentBubble.signal?.entityType?.toLowerCase?.() || 'product',
       entityId: '',
-      dedupeKey: `proactive-dismissed:${proactiveBubble.signal?.dedupeKey || proactiveBubble.id}`,
-      properties: safeProactiveAnalytics(proactiveBubble.signal, proactiveBubble.attention, {
+      dedupeKey: `proactive-dismissed:${currentBubble.signal?.dedupeKey || currentBubble.id}`,
+      properties: safeProactiveAnalytics(currentBubble.signal, currentBubble.attention, {
         surface: page,
         contextVersion: maxxisContextSnapshot.contextVersion,
       }),
     });
-    setProactiveBubble(null);
   };
 
   const handleClickProactiveBubble = () => {
-    if (!proactiveBubble) return;
-    const currentBubble = proactiveBubble;
-    setProactiveBubble(null);
+    const currentBubble = consumeProactiveBubble();
+    if (!currentBubble) return;
     void trackProductEvent('maxxis_proactive_bubble_clicked', {
       entityType: currentBubble.signal?.entityType?.toLowerCase?.() || 'product',
       entityId: '',

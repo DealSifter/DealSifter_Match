@@ -46,8 +46,8 @@ export const MAXXIS_AVATAR_ANIMATION_INTENSITY = Object.freeze({
 });
 
 export const MAXXIS_AVATAR_TRANSIENT_MS = Object.freeze({
-  [MAXXIS_AVATAR_STATES.NOTICED]: 1_500,
-  [MAXXIS_AVATAR_STATES.SUCCESS]: 2_200,
+  [MAXXIS_AVATAR_STATES.NOTICED]: 680,
+  [MAXXIS_AVATAR_STATES.SUCCESS]: 880,
 });
 
 export const MAXXIS_AVATAR_TRANSITIONS = Object.freeze({
@@ -94,4 +94,3 @@ export const MAXXIS_AVATAR_TRANSITIONS = Object.freeze({
 });
 
 export const isMaxxisAvatarState = (state) => Boolean(MAXXIS_AVATAR_STATES[String(state || '').toUpperCase()]);
-

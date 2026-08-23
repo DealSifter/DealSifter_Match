@@ -48,21 +48,23 @@ function hasActiveContext(context = {}) {
   );
 }
 
+export function countMaxxisAvatarProcessingSources(context = {}) {
+  const sources = [
+    context.loading || context.requestInProgress || context.isLoading || context.isExecuting || context.processing,
+    context.activeProviderUnlockId,
+    context.activeProviderDraftId,
+    context.activeProviderMessageSendId,
+    context.activeProviderConversationAnalysisId,
+    context.activeWorkflowItemCode,
+    context.activeProfileActionId,
+    context.exportingAnalysisId,
+  ];
+  const explicitCount = Math.max(0, Number(context.processingCount || context.activeOperationCount || 0));
+  return Math.max(explicitCount, sources.filter(Boolean).length);
+}
+
 function hasProcessing(context = {}) {
-  return Boolean(
-    context.loading
-    || context.requestInProgress
-    || context.isLoading
-    || context.isExecuting
-    || context.processing
-    || context.activeProviderUnlockId
-    || context.activeProviderDraftId
-    || context.activeProviderMessageSendId
-    || context.activeProviderConversationAnalysisId
-    || context.activeWorkflowItemCode
-    || context.activeProfileActionId
-    || context.exportingAnalysisId
-  );
+  return countMaxxisAvatarProcessingSources(context) > 0;
 }
 
 function hasWaiting(context = {}, processing = false) {
@@ -75,6 +77,8 @@ function hasWaiting(context = {}, processing = false) {
     || context.pendingProviderUnlock
     || context.pendingProviderMessageSend
     || context.pendingProfileSuggestion
+    || context.proactiveBubble
+    || context.proactiveBubbleActive
     || context.contextSnapshot?.operational?.state?.pendingActionExists
     || smartActions.some((action) => ['prepared', 'pending', 'waiting', 'confirmation'].includes(cleanText(action?.state, 30).toLowerCase()))
   );
@@ -83,10 +87,8 @@ function hasWaiting(context = {}, processing = false) {
 function hasNoticed(context = {}) {
   if (context.open || context.maxxisOpen || context.proactiveBubbleDismissed || context.bubbleDismissed) return false;
   return Boolean(
-    context.proactiveBubble
-    || context.proactiveBubbleActive
-    || context.proactiveSignalSurfaced
-    || context.proactiveCandidate
+    context.proactiveSignalSurfaced
+    || context.noticedSignal
   );
 }
 
@@ -198,7 +200,7 @@ export function resolveMaxxisAvatarState(context = {}) {
     || context.maxxisOpen
   );
 
-  if (!shouldClearTransient && previous.transient && Number(previous.transientUntil || 0) > now) {
+  if (!context.timelineManaged && !shouldClearTransient && previous.transient && Number(previous.transientUntil || 0) > now) {
     const selectedPriority = MAXXIS_AVATAR_STATE_PRECEDENCE[selectedState] || 0;
     const previousPriority = MAXXIS_AVATAR_STATE_PRECEDENCE[previousState] || 0;
     if (previousPriority >= selectedPriority && !hasSuccess(context)) {
