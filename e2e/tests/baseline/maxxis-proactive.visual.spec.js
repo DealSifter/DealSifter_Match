@@ -35,6 +35,24 @@ async function capture(page, name) {
   });
 }
 
+async function captureSynchronizedAvatar(page, name) {
+  await installVisualStability(page);
+  await expect(page).toHaveScreenshot(name, {
+    animations: 'disabled',
+    caret: 'hide',
+    mask: visualMasks(page),
+    maskColor: '#e4e5e6',
+  });
+}
+
+async function setAvatarPresentation(page, state) {
+  await page.evaluate((avatarState) => {
+    window.localStorage.setItem('ds_e2e_maxxis_avatar_state', avatarState);
+    window.localStorage.setItem('ds_e2e_maxxis_avatar_intensity', 'OFF');
+    window.dispatchEvent(new Event('ds:e2e:maxxis-avatar'));
+  }, state);
+}
+
 test('desktop Maxxis proactive bubble visual states', async ({ page, mockBackend }, testInfo) => {
   test.skip(testInfo.project.name !== 'desktop-baseline');
 
@@ -73,4 +91,45 @@ test('mobile Maxxis proactive bubble visual state', async ({ page, mockBackend }
   await loginBaseline(page, mockBackend.users.investor);
   await expect(page.getByTestId('maxxis-proactive-bubble')).toBeVisible();
   await capture(page, 'mobile-07-maxxis-proactive-bubble.png');
+});
+
+test('desktop synchronized bubble and avatar timeline', async ({ page, mockBackend }, testInfo) => {
+  test.skip(testInfo.project.name !== 'desktop-baseline');
+
+  await page.addInitScript(() => {
+    window.localStorage.setItem('ds_e2e_maxxis_avatar_state', 'NOTICED');
+    window.localStorage.setItem('ds_e2e_maxxis_avatar_intensity', 'OFF');
+  });
+  await loginBaseline(page, mockBackend.users.investor);
+  await expect(page.getByTestId('maxxis-proactive-bubble')).toBeHidden();
+  await expect(page.getByTestId('maxxis-avatar-fab')).toHaveAttribute('data-avatar-state', 'NOTICED');
+  await captureSynchronizedAvatar(page, 'desktop-20-maxxis-noticed-before-bubble.png');
+
+  await page.evaluate(({ ids }) => {
+    window.localStorage.setItem('ds_e2e_maxxis_proactive', '1');
+    window.localStorage.setItem('ds_e2e_maxxis_proactive_events', JSON.stringify([{
+      code: 'PROVIDER_REPLIED',
+      entityType: 'SERVICE',
+      entityId: ids.providerService,
+      propertyId: ids.property,
+      serviceId: ids.providerService,
+      source: 'conversation',
+      severity: 'RELEVANT',
+      occurredAt: Date.now(),
+      dedupeKey: 'visual-sync-provider-reply',
+    }]));
+  }, { ids: E2E_IDS });
+  await page.reload();
+  await page.getByTestId('dashboard-root').waitFor({ state: 'visible' });
+  await expect(page.getByTestId('maxxis-proactive-bubble')).toBeVisible();
+  await setAvatarPresentation(page, 'WAITING');
+  await captureSynchronizedAvatar(page, 'desktop-21-maxxis-waiting-with-bubble.png');
+
+  await page.getByTestId('maxxis-proactive-review').click();
+  await expect(page.getByTestId('maxxis-panel')).toBeVisible();
+  await setAvatarPresentation(page, 'PROCESSING');
+  await captureSynchronizedAvatar(page, 'desktop-22-maxxis-processing-after-bubble-click.png');
+
+  await setAvatarPresentation(page, 'SUCCESS');
+  await captureSynchronizedAvatar(page, 'desktop-23-maxxis-success-feedback.png');
 });

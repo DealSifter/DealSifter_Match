@@ -12,6 +12,22 @@ async function askMaxxis(page, text) {
 test.describe('Maxxis controlled smart actions', () => {
   test('runs snapshot to providers to unlock confirmation to draft without automatic send', async ({ page, mockBackend }) => {
     await loginAs(page, mockBackend.users.investor);
+    await page.evaluate(() => {
+      window.__dsMaxxisActionTimeline = [];
+      const recordAvatarState = () => {
+        const avatar = document.querySelector('[data-testid="maxxis-avatar-header"]');
+        const state = avatar?.getAttribute('data-avatar-state');
+        if (state && window.__dsMaxxisActionTimeline.at(-1) !== state) {
+          window.__dsMaxxisActionTimeline.push(state);
+        }
+      };
+      new MutationObserver(recordAvatarState).observe(document, {
+        subtree: true,
+        childList: true,
+        attributes: true,
+        attributeFilter: ['data-avatar-state'],
+      });
+    });
     await openMaxxis(page);
 
     await askMaxxis(page, 'How is this deal?');
@@ -27,9 +43,13 @@ test.describe('Maxxis controlled smart actions', () => {
     await expect(page.getByTestId('maxxis-provider-contact-status').last()).toContainText(/locked/i);
     await expect.poll(() => mockBackend.state.unlockPrepares).toBe(1);
     expect(mockBackend.users.investor.nuggets).toBe(20);
+    await expect(page.getByTestId('maxxis-avatar-header')).toHaveAttribute('data-avatar-state', 'WAITING');
 
     await page.getByTestId('maxxis-provider-unlock-confirm').click();
+    await expect.poll(() => page.evaluate(() => window.__dsMaxxisActionTimeline)).toContain('PROCESSING');
     await expect(page.getByTestId('maxxis-messages')).toContainText('Contact unlocked.');
+    await expect.poll(() => page.evaluate(() => window.__dsMaxxisActionTimeline)).toContain('SUCCESS');
+    await expect(page.getByTestId('maxxis-avatar-header')).toHaveAttribute('data-avatar-state', 'OBSERVING', { timeout: 3_000 });
     await expect(page.getByTestId('maxxis-smart-action-DRAFT_PROVIDER_MESSAGE')).toBeVisible();
     await expect.poll(() => mockBackend.state.unlockConfirms).toBe(1);
     expect(mockBackend.users.investor.nuggets).toBe(19);

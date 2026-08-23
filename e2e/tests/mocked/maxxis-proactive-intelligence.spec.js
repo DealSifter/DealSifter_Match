@@ -5,6 +5,25 @@ async function enableProactive(page, events = []) {
   await page.addInitScript(({ proactiveEvents }) => {
     window.localStorage.setItem('ds_e2e_maxxis_proactive', '1');
     window.localStorage.setItem('ds_e2e_maxxis_proactive_events', JSON.stringify(proactiveEvents));
+    window.__dsMaxxisAvatarTimeline = [];
+    const recordAvatarTimeline = () => {
+      const avatar = document.querySelector('[data-testid="maxxis-avatar-fab"]');
+      if (!avatar) return;
+      const entry = {
+        state: avatar.getAttribute('data-avatar-state'),
+        bubbleVisible: Boolean(document.querySelector('[data-testid="maxxis-proactive-bubble"]')),
+      };
+      const previous = window.__dsMaxxisAvatarTimeline.at(-1);
+      if (!previous || previous.state !== entry.state || previous.bubbleVisible !== entry.bubbleVisible) {
+        window.__dsMaxxisAvatarTimeline.push(entry);
+      }
+    };
+    new MutationObserver(recordAvatarTimeline).observe(document, {
+      subtree: true,
+      childList: true,
+      attributes: true,
+      attributeFilter: ['data-avatar-state'],
+    });
   }, { proactiveEvents: events });
 }
 
@@ -32,13 +51,25 @@ test.describe('Maxxis proactive intelligence', () => {
     await enableProactive(page, [providerReplyEvent()]);
     await loginAs(page, mockBackend.users.investor);
 
+    const avatar = page.getByTestId('maxxis-avatar-fab');
+    await expect.poll(() => page.evaluate(() => window.__dsMaxxisAvatarTimeline)).toContainEqual({
+      state: 'NOTICED',
+      bubbleVisible: false,
+    });
     await expect(page.getByTestId('maxxis-proactive-bubble')).toContainText('Your provider replied.');
+    await expect(avatar).toHaveAttribute('data-avatar-state', 'WAITING');
+    const functionRequests = [];
+    page.on('request', (request) => {
+      if (request.url().includes('/functions/v1/')) functionRequests.push(request.url());
+    });
     await page.getByTestId('maxxis-proactive-review').evaluate((element) => element.click());
 
     await expect(page.getByTestId('maxxis-panel')).toBeVisible();
+    await expect(page.getByTestId('maxxis-avatar-header')).toHaveAttribute('data-avatar-state', 'OBSERVING');
     await expect(page.getByTestId('maxxis-messages')).toContainText('Provider reply context loaded.');
     await expect(page.getByTestId('maxxis-smart-action-REVIEW_PROVIDER_REPLY')).toBeVisible();
     expect(mockBackend.state.messagesSent).toBe(0);
+    expect(functionRequests).toEqual([]);
 
     await page.getByTestId('maxxis-smart-action-REVIEW_PROVIDER_REPLY').click();
     await expect(page.getByTestId('maxxis-messages')).toContainText('Conversation Summary');

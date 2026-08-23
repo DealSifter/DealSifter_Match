@@ -60,6 +60,21 @@ test('login dialog is labelled, keyboard-contained and free of high-severity vio
 });
 
 test('dashboard, Matches and Maxxis pass accessibility and keyboard checks', async ({ page, mockBackend }) => {
+  await page.emulateMedia({ reducedMotion: 'reduce' });
+  await page.addInitScript(({ ids }) => {
+    window.localStorage.setItem('ds_e2e_maxxis_proactive', '1');
+    window.localStorage.setItem('ds_e2e_maxxis_proactive_events', JSON.stringify([{
+      code: 'PROVIDER_REPLIED',
+      entityType: 'SERVICE',
+      entityId: ids.providerService,
+      propertyId: ids.property,
+      serviceId: ids.providerService,
+      source: 'conversation',
+      severity: 'RELEVANT',
+      occurredAt: Date.now(),
+      dedupeKey: 'accessibility-avatar-sync',
+    }]));
+  }, { ids: mockBackend.ids });
   await loginAs(page, mockBackend.users.investor);
   const guideDialog = page.getByRole('dialog', { name: /DealSifter Guide/i });
   await guideDialog.waitFor({ state: 'visible', timeout: 5_000 }).catch(() => {});
@@ -68,7 +83,12 @@ test('dashboard, Matches and Maxxis pass accessibility and keyboard checks', asy
   }
   await expectNoHighSeverityViolations(page, 'dashboard', '[data-testid="dashboard-root"]');
 
-  await page.getByTestId('maxxis-fab').focus();
+  const proactiveBubble = page.getByTestId('maxxis-proactive-bubble');
+  await expect(proactiveBubble).toBeVisible();
+  await expect(proactiveBubble).toHaveAttribute('role', 'status');
+  await expect(page.getByTestId('maxxis-avatar-fab')).toHaveAttribute('data-reduced-motion', 'true');
+  await expectNoHighSeverityViolations(page, 'Maxxis proactive bubble', '[data-testid="maxxis-proactive-bubble"]');
+  await page.getByTestId('maxxis-proactive-review').focus();
   await page.keyboard.press('Enter');
   await expect(page.getByTestId('maxxis-panel')).toBeVisible();
   await expect(page.getByTestId('maxxis-input')).toBeFocused();

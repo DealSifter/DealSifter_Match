@@ -7,6 +7,7 @@ import {
 } from './maxxisAvatarStates';
 import {
   compareMaxxisAvatarStatePriority,
+  countMaxxisAvatarProcessingSources,
   deriveMaxxisAvatarStateContext,
   isValidMaxxisAvatarTransition,
   resolveMaxxisAvatarState,
@@ -56,8 +57,8 @@ describe('Maxxis avatar state machine', () => {
     expect(state).toMatchObject({ state: MAXXIS_AVATAR_STATES.PROCESSING, reason: 'request_in_progress' });
   });
 
-  it('resolves noticed for an approved proactive bubble while Maxxis is closed', () => {
-    const state = resolveMaxxisAvatarState(context({ proactiveBubble: { id: 'bubble-1' } }));
+  it('resolves noticed for an approved proactive signal before its bubble is visible', () => {
+    const state = resolveMaxxisAvatarState(context({ proactiveSignalSurfaced: { dedupeKey: 'signal-1' } }));
     expect(state).toMatchObject({
       state: MAXXIS_AVATAR_STATES.NOTICED,
       reason: 'proactive_signal_ready',
@@ -70,6 +71,7 @@ describe('Maxxis avatar state machine', () => {
   it('resolves waiting when Maxxis is awaiting an explicit user decision', () => {
     expect(resolveMaxxisAvatarState(context({ pendingProviderUnlock: { serviceId } })).state).toBe(MAXXIS_AVATAR_STATES.WAITING);
     expect(resolveMaxxisAvatarState(context({ smartActions: [{ code: 'SEND', state: 'confirmation' }] })).state).toBe(MAXXIS_AVATAR_STATES.WAITING);
+    expect(resolveMaxxisAvatarState(context({ proactiveBubble: { id: 'bubble-1' } })).state).toBe(MAXXIS_AVATAR_STATES.WAITING);
   });
 
   it('resolves success only from completed/confirmed action results', () => {
@@ -101,6 +103,16 @@ describe('Maxxis avatar state machine', () => {
     expect(state.state).toBe(MAXXIS_AVATAR_STATES.PROCESSING);
   });
 
+  it('tracks concurrent operation sources until all work has ended', () => {
+    expect(countMaxxisAvatarProcessingSources(context({
+      activeProviderUnlockId: serviceId,
+      activeWorkflowItemCode: 'INSPECTION',
+    }))).toBe(2);
+    expect(resolveMaxxisAvatarState(context({ processingCount: 2 })).state).toBe(MAXXIS_AVATAR_STATES.PROCESSING);
+    expect(resolveMaxxisAvatarState(context({ processingCount: 1 })).state).toBe(MAXXIS_AVATAR_STATES.PROCESSING);
+    expect(resolveMaxxisAvatarState(context({ processingCount: 0 })).state).toBe(MAXXIS_AVATAR_STATES.OBSERVING);
+  });
+
   it('keeps waiting above noticed when user confirmation is pending', () => {
     const state = resolveMaxxisAvatarState(context({
       proactiveBubble: { id: 'bubble-1' },
@@ -125,20 +137,20 @@ describe('Maxxis avatar state machine', () => {
   });
 
   it('clears noticed after bubble dismissal and when Maxxis opens', () => {
-    const noticed = resolveMaxxisAvatarState(context({ proactiveBubbleActive: true }));
+    const noticed = resolveMaxxisAvatarState(context({ proactiveSignalSurfaced: true }));
     expect(resolveMaxxisAvatarState(context({
       previousState: noticed,
-      proactiveBubbleActive: true,
+      proactiveSignalSurfaced: true,
       bubbleDismissed: true,
     })).state).toBe(MAXXIS_AVATAR_STATES.OBSERVING);
     expect(resolveMaxxisAvatarState(context({
-      proactiveBubbleActive: true,
+      proactiveSignalSurfaced: true,
       open: true,
     })).state).toBe(MAXXIS_AVATAR_STATES.OBSERVING);
   });
 
   it('resets safely on account switch and logout', () => {
-    const previous = resolveMaxxisAvatarState(context({ accountKey: 'acct-a', proactiveBubbleActive: true }));
+    const previous = resolveMaxxisAvatarState(context({ accountKey: 'acct-a', proactiveSignalSurfaced: true }));
     expect(resolveMaxxisAvatarState(context({
       previousState: previous,
       accountKey: 'acct-b',
@@ -210,4 +222,3 @@ describe('Maxxis avatar state machine', () => {
     fetchSpy.mockRestore();
   });
 });
-
