@@ -40,6 +40,23 @@ export async function installVisualStability(page) {
   });
 }
 
+export async function installLegacyMaxxisAvatarBaseline(page) {
+  await page.evaluate(() => {
+    if (document.getElementById('legacy-maxxis-avatar-baseline')) return;
+    const style = document.createElement('style');
+    style.id = 'legacy-maxxis-avatar-baseline';
+    style.textContent = `
+      .maxxis-avatar-renderer {
+        background: #fff url('/src/assets/logo.png') center / contain no-repeat !important;
+      }
+      .maxxis-avatar-renderer .maxxis-avatar-motion {
+        display: none !important;
+      }
+    `;
+    document.head.appendChild(style);
+  });
+}
+
 export async function openBaselineLogin(page, user) {
   await primeBaselineStorage(page, user.id);
   await openLogin(page);

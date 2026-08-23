@@ -2,6 +2,7 @@ import { test, expect } from '../../fixtures/baselineFixture.js';
 import { loginAs } from '../../support/appActions.js';
 import {
   installVisualStability,
+  installLegacyMaxxisAvatarBaseline,
   loginBaseline,
   openBaselineLogin,
   openMatches,
@@ -14,6 +15,7 @@ import {
 
 async function capture(page, name) {
   await installVisualStability(page);
+  await installLegacyMaxxisAvatarBaseline(page);
   await expect(page).toHaveScreenshot(name, {
     animations: 'disabled',
     caret: 'hide',

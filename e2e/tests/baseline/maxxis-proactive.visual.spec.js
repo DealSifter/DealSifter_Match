@@ -1,5 +1,10 @@
 import { test, expect } from '../../fixtures/baselineFixture.js';
-import { loginBaseline, installVisualStability, visualMasks } from '../../support/baselineActions.js';
+import {
+  installLegacyMaxxisAvatarBaseline,
+  installVisualStability,
+  loginBaseline,
+  visualMasks,
+} from '../../support/baselineActions.js';
 import { E2E_IDS } from '../../fixtures/e2eUsers.js';
 
 async function enableProactiveVisual(page, dedupeKey = 'visual-provider-reply') {
@@ -21,6 +26,7 @@ async function enableProactiveVisual(page, dedupeKey = 'visual-provider-reply') 
 
 async function capture(page, name) {
   await installVisualStability(page);
+  await installLegacyMaxxisAvatarBaseline(page);
   await expect(page).toHaveScreenshot(name, {
     animations: 'disabled',
     caret: 'hide',
@@ -68,4 +74,3 @@ test('mobile Maxxis proactive bubble visual state', async ({ page, mockBackend }
   await expect(page.getByTestId('maxxis-proactive-bubble')).toBeVisible();
   await capture(page, 'mobile-07-maxxis-proactive-bubble.png');
 });
-

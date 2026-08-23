@@ -50,8 +50,12 @@ import {
   selectMaxxisProactiveCandidate,
 } from '../../features/maxxis/proactive/maxxisProactiveIntelligence';
 import { resolveMaxxisAvatarState } from '../../features/maxxis/avatar/maxxisAvatarStateMachine';
+import { MaxxisAvatarRenderer } from '../../features/maxxis/avatar/MaxxisAvatarRenderer';
+import {
+  MAXXIS_AVATAR_ANIMATION_INTENSITY,
+  MAXXIS_AVATAR_STATES,
+} from '../../features/maxxis/avatar/maxxisAvatarStates';
 import { fetchFeatureFlags, isFeatureEnabled } from '../../services/featureFlagService';
-import maxxisLogo from '../../assets/logo.png';
 import './MaxxisAssistant.css';
 
 import {
@@ -100,6 +104,21 @@ function mergeDevMaxxisProactiveEvents(appContext) {
   }
 }
 
+function readDevMaxxisAvatarPresentation() {
+  if (!import.meta.env.DEV || typeof window === 'undefined') return null;
+  try {
+    const state = String(window.localStorage.getItem('ds_e2e_maxxis_avatar_state') || '').toUpperCase();
+    const intensity = String(window.localStorage.getItem('ds_e2e_maxxis_avatar_intensity') || '').toUpperCase();
+    const validState = Object.values(MAXXIS_AVATAR_STATES).includes(state) ? state : '';
+    const validIntensity = Object.values(MAXXIS_AVATAR_ANIMATION_INTENSITY).includes(intensity) ? intensity : '';
+    return validState || validIntensity
+      ? { state: validState, intensity: validIntensity, at: Date.now() }
+      : null;
+  } catch {
+    return null;
+  }
+}
+
 export function MaxxisAssistant({ page = 'dashboard', onOpenSupport = null, onNavigateAction = null, propertyAnalysisRequest = null, propertyContextId = '', appContext = null, sessionKey = '', onExportAnalysisPdf = null, onNuggetBalanceChange = null, onProviderUnlockConfirmed = null, enabled = true }) {
   const language = getUiLang();
   const t = COPY[language] || COPY.en;
@@ -118,6 +137,7 @@ export function MaxxisAssistant({ page = 'dashboard', onOpenSupport = null, onNa
   const [pendingProviderUnlock, setPendingProviderUnlock] = useState(null);
   const [pendingProviderMessageSend, setPendingProviderMessageSend] = useState(null);
   const [lastAvatarActionResult, setLastAvatarActionResult] = useState(null);
+  const [devAvatarPresentation, setDevAvatarPresentation] = useState(readDevMaxxisAvatarPresentation);
   const [widgetPosition, setWidgetPosition] = useState(readStoredWidgetPosition);
   const [dragging, setDragging] = useState(false);
   const [messages, setMessages] = useState(() => [{
@@ -150,6 +170,13 @@ export function MaxxisAssistant({ page = 'dashboard', onOpenSupport = null, onNa
   useEffect(() => {
     propertyAnalysisRequestRef.current = propertyAnalysisRequest;
   }, [propertyAnalysisRequest]);
+
+  useEffect(() => {
+    if (!import.meta.env.DEV || typeof window === 'undefined') return undefined;
+    const updatePresentation = () => setDevAvatarPresentation(readDevMaxxisAvatarPresentation());
+    window.addEventListener('ds:e2e:maxxis-avatar', updatePresentation);
+    return () => window.removeEventListener('ds:e2e:maxxis-avatar', updatePresentation);
+  }, []);
 
   useEffect(() => {
     let cancelled = false;
@@ -346,6 +373,21 @@ export function MaxxisAssistant({ page = 'dashboard', onOpenSupport = null, onNa
   useEffect(() => {
     maxxisAvatarStateRef.current = maxxisAvatarState;
   }, [maxxisAvatarState]);
+
+  const maxxisAvatarRenderState = useMemo(() => {
+    if (!devAvatarPresentation) return maxxisAvatarState;
+    const state = devAvatarPresentation.state || maxxisAvatarState.state;
+    return {
+      ...maxxisAvatarState,
+      state,
+      intensity: devAvatarPresentation.intensity || maxxisAvatarState.intensity,
+      transition: {
+        ...maxxisAvatarState.transition,
+        to: state,
+        at: devAvatarPresentation.at,
+      },
+    };
+  }, [devAvatarPresentation, maxxisAvatarState]);
 
   const resetConversation = useCallback(() => {
     setMessages([{
@@ -1401,7 +1443,10 @@ export function MaxxisAssistant({ page = 'dashboard', onOpenSupport = null, onNa
         <section className="maxxis-panel" data-testid="maxxis-panel" role="dialog" aria-modal="true" aria-label={t.title}>
           <header className="maxxis-header">
             <div className="maxxis-avatar" aria-hidden="true">
-              <img src={maxxisLogo} alt="" draggable="false" />
+              <MaxxisAvatarRenderer
+                avatarState={maxxisAvatarRenderState}
+                testId="maxxis-avatar-header"
+              />
             </div>
             <div className="maxxis-heading">
               <strong>{t.title}</strong>
@@ -1573,7 +1618,11 @@ export function MaxxisAssistant({ page = 'dashboard', onOpenSupport = null, onNa
               } : {}),
             }}
           >
-            <img className="maxxis-fab-logo" src={maxxisLogo} alt="" aria-hidden="true" draggable="false" />
+            <MaxxisAvatarRenderer
+              avatarState={maxxisAvatarRenderState}
+              className="maxxis-fab-logo"
+              testId="maxxis-avatar-fab"
+            />
             <span>AI</span>
           </button>
         </>
