@@ -49,6 +49,7 @@ import {
   safeProactiveAnalytics,
   selectMaxxisProactiveCandidate,
 } from '../../features/maxxis/proactive/maxxisProactiveIntelligence';
+import { resolveMaxxisAvatarState } from '../../features/maxxis/avatar/maxxisAvatarStateMachine';
 import { fetchFeatureFlags, isFeatureEnabled } from '../../services/featureFlagService';
 import maxxisLogo from '../../assets/logo.png';
 import './MaxxisAssistant.css';
@@ -116,6 +117,7 @@ export function MaxxisAssistant({ page = 'dashboard', onOpenSupport = null, onNa
   const [activeWorkflowItemCode, setActiveWorkflowItemCode] = useState('');
   const [pendingProviderUnlock, setPendingProviderUnlock] = useState(null);
   const [pendingProviderMessageSend, setPendingProviderMessageSend] = useState(null);
+  const [lastAvatarActionResult, setLastAvatarActionResult] = useState(null);
   const [widgetPosition, setWidgetPosition] = useState(readStoredWidgetPosition);
   const [dragging, setDragging] = useState(false);
   const [messages, setMessages] = useState(() => [{
@@ -131,6 +133,7 @@ export function MaxxisAssistant({ page = 'dashboard', onOpenSupport = null, onNa
   const detectedProactiveSignalsRef = useRef(new Set());
   const suppressedProactiveSignalsRef = useRef(new Set());
   const proactiveSessionRef = useRef(createMaxxisProactiveSessionMemory(String(sessionKey || '')));
+  const maxxisAvatarStateRef = useRef(null);
   const propertyAnalysisRequestRef = useRef(propertyAnalysisRequest);
   const sessionKeyRef = useRef(String(sessionKey || ''));
   const submitMessageRef = useRef(null);
@@ -301,6 +304,49 @@ export function MaxxisAssistant({ page = 'dashboard', onOpenSupport = null, onNa
     propertyContextId,
   ]);
 
+  const maxxisAvatarState = useMemo(() => resolveMaxxisAvatarState({
+    previousState: maxxisAvatarStateRef.current,
+    accountKey: sessionKeyRef.current,
+    enabled,
+    open,
+    loading,
+    proactiveBubble,
+    pendingProviderUnlock,
+    pendingProviderMessageSend,
+    activeProviderUnlockId,
+    activeProviderDraftId,
+    activeProviderMessageSendId,
+    activeProviderConversationAnalysisId,
+    activeWorkflowItemCode,
+    activeProfileActionId,
+    exportingAnalysisId,
+    contextSnapshot: maxxisContextSnapshot,
+    appContext,
+    lastActionResult: lastAvatarActionResult,
+    now: Date.now(),
+  }), [
+    activeProfileActionId,
+    activeProviderConversationAnalysisId,
+    activeProviderDraftId,
+    activeProviderMessageSendId,
+    activeProviderUnlockId,
+    activeWorkflowItemCode,
+    appContext,
+    enabled,
+    exportingAnalysisId,
+    lastAvatarActionResult,
+    loading,
+    maxxisContextSnapshot,
+    open,
+    pendingProviderMessageSend,
+    pendingProviderUnlock,
+    proactiveBubble,
+  ]);
+
+  useEffect(() => {
+    maxxisAvatarStateRef.current = maxxisAvatarState;
+  }, [maxxisAvatarState]);
+
   const resetConversation = useCallback(() => {
     setMessages([{
       id: `maxxis-greeting-${Date.now()}`,
@@ -314,7 +360,12 @@ export function MaxxisAssistant({ page = 'dashboard', onOpenSupport = null, onNa
     setActiveProviderDraftId('');
     setActiveProviderMessageSendId('');
     setActiveProviderConversationAnalysisId('');
+    setLastAvatarActionResult(null);
   }, [language]);
+
+  const markAvatarActionSuccess = useCallback((status = 'completed') => {
+    setLastAvatarActionResult({ status, at: Date.now() });
+  }, []);
 
   useEffect(() => {
     const nextSessionKey = String(sessionKey || '');
@@ -555,6 +606,7 @@ export function MaxxisAssistant({ page = 'dashboard', onOpenSupport = null, onNa
     try {
       await confirmMaxxisProfileAction(actionId);
       updateProfileSuggestionMessage(messageId, actionId, { status: 'success', value: suggestion.suggestedValue });
+      markAvatarActionSuccess('profile_updated');
     } catch (error) {
       captureAppException(error, { area: 'maxxis_profile_action_confirm', operation: suggestion?.operation });
       setMessages((prev) => prev.map((message) => message.id === messageId
@@ -682,6 +734,7 @@ export function MaxxisAssistant({ page = 'dashboard', onOpenSupport = null, onNa
         onNuggetBalanceChange(confirmedBalance);
       }
       if (typeof onProviderUnlockConfirmed === 'function') onProviderUnlockConfirmed(result);
+      markAvatarActionSuccess('unlocked');
       void trackProductEvent('provider_unlocked', { entityType: 'service', entityId: serviceId, dedupeKey: `provider-unlocked:${intentToken}`, properties: { source: 'maxxis', status: result?.contactAccess?.status || 'unlocked' } });
       void trackProductEvent('maxxis_action_completed', {
         entityType: 'service',
@@ -848,6 +901,7 @@ export function MaxxisAssistant({ page = 'dashboard', onOpenSupport = null, onNa
         sendError: null,
       });
       setPendingProviderMessageSend(null);
+      markAvatarActionSuccess('sent');
       void trackProductEvent('provider_message_sent', { entityType: 'service', entityId: pending?.serviceId, dedupeKey: `provider-message-sent:${result?.data?.messageId || actionId}`, properties: { source: 'maxxis', status: result?.data?.status || 'sent' } });
       void trackProductEvent('maxxis_action_completed', {
         entityType: 'service',
@@ -951,6 +1005,7 @@ export function MaxxisAssistant({ page = 'dashboard', onOpenSupport = null, onNa
       if (status === 'completed') {
         void trackProductEvent('workflow_item_completed', { entityType: 'property', entityId: propertyId, dedupeKey: `workflow-completed:${propertyId}:${code}`, properties: { source: 'maxxis', workflow_code: code, status } });
       }
+      markAvatarActionSuccess('workflow_updated');
       setMessages((prev) => prev.map((item) => (item.id === messageId
         ? { ...item, data: { ...(item.data || {}), workflow, workflowError: null } }
         : item)));
