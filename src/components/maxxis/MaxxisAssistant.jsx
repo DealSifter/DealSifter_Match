@@ -56,6 +56,11 @@ import {
   MAXXIS_AVATAR_ANIMATION_INTENSITY,
   MAXXIS_AVATAR_STATES,
 } from '../../features/maxxis/avatar/maxxisAvatarStates';
+import {
+  createMaxxisAttentionController,
+  safeMaxxisAttentionAnalytics,
+} from '../../features/maxxis/attention/maxxisAttentionController';
+import { useMaxxisAttentionEnvironment } from '../../features/maxxis/attention/useMaxxisAttentionEnvironment';
 import { fetchFeatureFlags, isFeatureEnabled } from '../../services/featureFlagService';
 import './MaxxisAssistant.css';
 
@@ -120,6 +125,18 @@ function readDevMaxxisAvatarPresentation() {
   }
 }
 
+function readDevMaxxisAttentionOverrides() {
+  if (!import.meta.env.DEV || typeof window === 'undefined') return null;
+  try {
+    const raw = window.localStorage.getItem('ds_e2e_maxxis_attention');
+    if (!raw) return null;
+    const parsed = JSON.parse(raw);
+    return parsed && typeof parsed === 'object' && !Array.isArray(parsed) ? parsed : null;
+  } catch {
+    return null;
+  }
+}
+
 export function MaxxisAssistant({ page = 'dashboard', onOpenSupport = null, onNavigateAction = null, propertyAnalysisRequest = null, propertyContextId = '', appContext = null, sessionKey = '', onExportAnalysisPdf = null, onNuggetBalanceChange = null, onProviderUnlockConfirmed = null, enabled = true }) {
   const language = getUiLang();
   const t = COPY[language] || COPY.en;
@@ -137,6 +154,8 @@ export function MaxxisAssistant({ page = 'dashboard', onOpenSupport = null, onNa
   const [pendingProviderUnlock, setPendingProviderUnlock] = useState(null);
   const [pendingProviderMessageSend, setPendingProviderMessageSend] = useState(null);
   const [devAvatarPresentation, setDevAvatarPresentation] = useState(readDevMaxxisAvatarPresentation);
+  const [devAttentionOverrides, setDevAttentionOverrides] = useState(readDevMaxxisAttentionOverrides);
+  const [attentionRevision, setAttentionRevision] = useState(0);
   const [widgetPosition, setWidgetPosition] = useState(readStoredWidgetPosition);
   const [dragging, setDragging] = useState(false);
   const [messages, setMessages] = useState(() => [{
@@ -151,8 +170,11 @@ export function MaxxisAssistant({ page = 'dashboard', onOpenSupport = null, onNa
   const seenSmartActionsRef = useRef(new Set());
   const detectedProactiveSignalsRef = useRef(new Set());
   const suppressedProactiveSignalsRef = useRef(new Set());
+  const attentionAnalyticsRef = useRef(new Set());
   const proactiveSessionRef = useRef(createMaxxisProactiveSessionMemory(String(sessionKey || '')));
+  const attentionControllerRef = useRef(createMaxxisAttentionController());
   const maxxisAvatarStateRef = useRef(null);
+  const previousAttentionAvatarStateRef = useRef('');
   const propertyAnalysisRequestRef = useRef(propertyAnalysisRequest);
   const sessionKeyRef = useRef(String(sessionKey || ''));
   const submitMessageRef = useRef(null);
@@ -180,10 +202,15 @@ export function MaxxisAssistant({ page = 'dashboard', onOpenSupport = null, onNa
     markSuccess: markAvatarTimelineSuccess,
     clearSuccess: clearAvatarTimelineSuccess,
     reset: resetAvatarTimeline,
+    reducedMotion,
   } = useMaxxisAvatarTimeline({
     identityKey: avatarTimelineIdentityKey,
     enabled,
     intensity: devAvatarPresentation?.intensity || MAXXIS_AVATAR_ANIMATION_INTENSITY.SUBTLE,
+  });
+  const attentionEnvironment = useMaxxisAttentionEnvironment({
+    routeKey: appContext?.surface?.route || page,
+    devOverrides: devAttentionOverrides,
   });
 
   useEffect(() => {
@@ -196,6 +223,15 @@ export function MaxxisAssistant({ page = 'dashboard', onOpenSupport = null, onNa
     window.addEventListener('ds:e2e:maxxis-avatar', updatePresentation);
     return () => window.removeEventListener('ds:e2e:maxxis-avatar', updatePresentation);
   }, []);
+
+  useEffect(() => {
+    if (!import.meta.env.DEV || typeof window === 'undefined') return undefined;
+    const updateAttention = () => setDevAttentionOverrides(readDevMaxxisAttentionOverrides());
+    window.addEventListener('ds:e2e:maxxis-attention', updateAttention);
+    return () => window.removeEventListener('ds:e2e:maxxis-attention', updateAttention);
+  }, []);
+
+  useEffect(() => () => attentionControllerRef.current.destroy(), []);
 
   useEffect(() => {
     let cancelled = false;
@@ -400,20 +436,83 @@ export function MaxxisAssistant({ page = 'dashboard', onOpenSupport = null, onNa
     maxxisAvatarStateRef.current = maxxisAvatarState;
   }, [maxxisAvatarState]);
 
+  const maxxisAttentionInputs = useMemo(() => ({
+    currentSurface: attentionEnvironment.currentSurface || appContext?.surface?.page || page,
+    currentSubview: attentionEnvironment.currentSubview || appContext?.surface?.subview || '',
+    activeModal: attentionEnvironment.activeModal || appContext?.surface?.modal || '',
+    criticalModalOpen: Boolean(
+      attentionEnvironment.criticalModalOpen
+      || attentionEnvironment.externalCriticalModalOpen
+      || appContext?.operational?.criticalModalOpen
+    ),
+    sensitiveTransactionActive: Boolean(appContext?.operational?.sensitiveTransactionActive),
+    confirmationActive: Boolean(
+      appContext?.operational?.confirmationActive
+      || pendingProviderUnlock
+      || pendingProviderMessageSend
+    ),
+    formSubmitting: Boolean(appContext?.operational?.formSubmitting),
+    onboardingSaving: Boolean(appContext?.operational?.onboardingSaving),
+    userTyping: Boolean(attentionEnvironment.userTyping),
+    navigationTransition: Boolean(attentionEnvironment.navigationTransition),
+    navigationRetryAfterMs: 180,
+    mobileKeyboardOpen: Boolean(attentionEnvironment.mobileKeyboardOpen),
+    mobileViewportCongested: Boolean(attentionEnvironment.mobileViewportCongested),
+    maxxisOpen: open,
+    avatarState: attentionEnvironment.avatarState || maxxisAvatarState.state,
+    bubbleActive: Boolean(attentionEnvironment.bubbleActive || proactiveBubble || pendingProactiveBubble),
+    proactiveEnabled,
+    reducedMotion,
+    animationIntensity: devAvatarPresentation?.intensity || MAXXIS_AVATAR_ANIMATION_INTENSITY.SUBTLE,
+  }), [
+    appContext,
+    attentionEnvironment,
+    devAvatarPresentation?.intensity,
+    maxxisAvatarState.state,
+    open,
+    page,
+    pendingProviderMessageSend,
+    pendingProviderUnlock,
+    pendingProactiveBubble,
+    proactiveBubble,
+    proactiveEnabled,
+    reducedMotion,
+  ]);
+
+  const avatarAttentionPolicy = useMemo(() => attentionControllerRef.current.evaluate({
+    ...maxxisAttentionInputs,
+    hasSignal: false,
+    attentionKind: [MAXXIS_AVATAR_STATES.NOTICED, MAXXIS_AVATAR_STATES.SUCCESS].includes(maxxisAvatarState.state)
+      ? maxxisAvatarState.state
+      : '',
+  }), [maxxisAttentionInputs, maxxisAvatarState.state]);
+
+  useEffect(() => {
+    const previousState = previousAttentionAvatarStateRef.current;
+    const currentState = maxxisAvatarState.state;
+    previousAttentionAvatarStateRef.current = currentState;
+    if (previousState === currentState || !avatarAttentionPolicy.allowAnimation) return;
+    if ([MAXXIS_AVATAR_STATES.NOTICED, MAXXIS_AVATAR_STATES.SUCCESS].includes(currentState)) {
+      attentionControllerRef.current.markPresented(currentState);
+    }
+  }, [avatarAttentionPolicy.allowAnimation, maxxisAvatarState.state]);
+
   const maxxisAvatarRenderState = useMemo(() => {
-    if (!devAvatarPresentation) return maxxisAvatarState;
-    const state = devAvatarPresentation.state || maxxisAvatarState.state;
+    const state = devAvatarPresentation?.state || maxxisAvatarState.state;
     return {
       ...maxxisAvatarState,
       state,
-      intensity: devAvatarPresentation.intensity || maxxisAvatarState.intensity,
+      intensity: avatarAttentionPolicy.allowAnimation
+        ? (devAvatarPresentation?.intensity || maxxisAvatarState.intensity)
+        : MAXXIS_AVATAR_ANIMATION_INTENSITY.OFF,
+      attentionReasonCode: avatarAttentionPolicy.reasonCode,
       transition: {
         ...maxxisAvatarState.transition,
         to: state,
-        at: devAvatarPresentation.at,
+        at: devAvatarPresentation?.at || maxxisAvatarState.transition?.at,
       },
     };
-  }, [devAvatarPresentation, maxxisAvatarState]);
+  }, [avatarAttentionPolicy, devAvatarPresentation, maxxisAvatarState]);
 
   const resetConversation = useCallback(() => {
     setMessages([{
@@ -443,10 +542,18 @@ export function MaxxisAssistant({ page = 'dashboard', onOpenSupport = null, onNa
     handledAnalysisRequestsRef.current.clear();
     detectedProactiveSignalsRef.current.clear();
     suppressedProactiveSignalsRef.current.clear();
+    attentionAnalyticsRef.current.clear();
+    attentionControllerRef.current.reset();
     resetAvatarTimeline();
     setOpen(false);
     resetConversation();
   }, [resetAvatarTimeline, resetConversation, sessionKey]);
+
+  useEffect(() => {
+    const entityKey = String(propertyContextId || appContext?.entity?.propertyId || 'global');
+    const changed = attentionControllerRef.current.setScope(String(sessionKey || ''), entityKey);
+    if (changed) setAttentionRevision((revision) => revision + 1);
+  }, [appContext?.entity?.propertyId, propertyContextId, sessionKey]);
 
   const persistWidgetPosition = (position) => {
     const next = clampWidgetPosition(position);
@@ -1160,20 +1267,28 @@ export function MaxxisAssistant({ page = 'dashboard', onOpenSupport = null, onNa
   }, [messages]);
 
   useEffect(() => {
-    const avatarBusy = [
-      MAXXIS_AVATAR_STATES.PROCESSING,
-      MAXXIS_AVATAR_STATES.WAITING,
-      MAXXIS_AVATAR_STATES.SUCCESS,
-    ].includes(maxxisAvatarState.state);
-    if (!proactiveEnabled || open || proactiveBubble || pendingProactiveBubble || loading || avatarBusy) return;
+    const attentionController = attentionControllerRef.current;
+    if (!proactiveEnabled) {
+      attentionController.discardDeferred();
+      return;
+    }
+    const now = Date.now();
     const proactiveAppContext = mergeDevMaxxisProactiveEvents(appContext);
     const signals = buildMaxxisProactiveSignals({
       contextSnapshot: maxxisContextSnapshot,
       appContext: proactiveAppContext,
       messages,
-      now: Date.now(),
+      now,
       accountKey: sessionKeyRef.current,
     });
+    const relevanceOptions = {
+      config: { enabled: proactiveEnabled, attentionSafetyManaged: true },
+      contextSnapshot: maxxisContextSnapshot,
+      sessionMemory: proactiveSessionRef.current,
+      now,
+      maxxisOpen: false,
+      userActivity: {},
+    };
     signals.forEach((signal) => {
       if (!detectedProactiveSignalsRef.current.has(signal.dedupeKey)) {
         detectedProactiveSignalsRef.current.add(signal.dedupeKey);
@@ -1188,15 +1303,7 @@ export function MaxxisAssistant({ page = 'dashboard', onOpenSupport = null, onNa
         });
       }
       const attention = evaluateMaxxisProactiveAttention(signal, {
-        config: { enabled: proactiveEnabled },
-        contextSnapshot: maxxisContextSnapshot,
-        sessionMemory: proactiveSessionRef.current,
-        now: Date.now(),
-        maxxisOpen: open,
-        userActivity: {
-          typing: Boolean(input.trim()),
-          modalOpen: Boolean(appContext?.surface?.modal),
-        },
+        ...relevanceOptions,
       });
       if (!attention.shouldSurface) {
         const suppressKey = `${signal.dedupeKey}:${attention.reasonCode}`;
@@ -1214,18 +1321,52 @@ export function MaxxisAssistant({ page = 'dashboard', onOpenSupport = null, onNa
         }
       }
     });
-    const candidate = selectMaxxisProactiveCandidate(signals, {
-      config: { enabled: proactiveEnabled },
-      contextSnapshot: maxxisContextSnapshot,
-      sessionMemory: proactiveSessionRef.current,
-      now: Date.now(),
-      maxxisOpen: open,
-      userActivity: {
-        typing: Boolean(input.trim()),
-        modalOpen: Boolean(appContext?.surface?.modal),
-      },
-    });
+    let candidate = selectMaxxisProactiveCandidate(signals, relevanceOptions);
+    const deferred = attentionController.peekDeferred(now);
+    if (deferred) {
+      const deferredAttention = evaluateMaxxisProactiveAttention(deferred.signal, relevanceOptions);
+      if (!deferredAttention.shouldSurface) {
+        attentionController.discardDeferred();
+      } else if (!candidate || Number(deferredAttention.priority || 0) >= Number(candidate.attention?.priority || 0)) {
+        candidate = { signal: deferred.signal, attention: deferredAttention };
+      }
+    }
     if (!candidate) return;
+    const attentionPolicy = attentionController.evaluate({
+      ...maxxisAttentionInputs,
+      hasSignal: true,
+      attentionKind: MAXXIS_AVATAR_STATES.NOTICED,
+      now,
+    });
+    const attentionEventKey = `${candidate.signal.dedupeKey}:${attentionPolicy.reasonCode}`;
+    const attentionEventProperties = safeMaxxisAttentionAnalytics(attentionPolicy, {
+      surface: page,
+      signalCode: candidate.signal.code,
+      animationIntensity: maxxisAttentionInputs.animationIntensity,
+    });
+    if (!attentionPolicy.allowBubble) {
+      if (attentionPolicy.deferAttention) attentionController.defer(candidate, now);
+      else attentionController.discardDeferred();
+      if (!attentionAnalyticsRef.current.has(attentionEventKey)) {
+        attentionAnalyticsRef.current.add(attentionEventKey);
+        void trackProductEvent(
+          attentionPolicy.deferAttention ? 'maxxis_attention_deferred' : 'maxxis_attention_suppressed',
+          {
+            entityType: candidate.signal.entityType?.toLowerCase?.() || 'product',
+            entityId: '',
+            dedupeKey: `attention:${attentionEventKey}`,
+            properties: attentionEventProperties,
+          },
+        );
+      }
+      if (attentionPolicy.retryAfterMs > 0) {
+        attentionController.scheduleRetry(
+          () => setAttentionRevision((revision) => revision + 1),
+          attentionPolicy.retryAfterMs,
+        );
+      }
+      return;
+    }
     const message = composeMaxxisProactiveMessage(candidate.signal, language);
     const bubble = {
       id: `maxxis-proactive-${candidate.signal.dedupeKey}`,
@@ -1237,7 +1378,14 @@ export function MaxxisAssistant({ page = 'dashboard', onOpenSupport = null, onNa
       autoDismissMs: MAXXIS_PROACTIVE_DEFAULT_CONFIG.autoDismissMs,
     });
     if (!staged) return;
-    markMaxxisProactiveSignalSurfaced(proactiveSessionRef.current, candidate.signal, Date.now());
+    attentionController.consumeDeferred();
+    markMaxxisProactiveSignalSurfaced(proactiveSessionRef.current, candidate.signal, now);
+    void trackProductEvent('maxxis_attention_allowed', {
+      entityType: candidate.signal.entityType?.toLowerCase?.() || 'product',
+      entityId: '',
+      dedupeKey: `attention-allowed:${candidate.signal.dedupeKey}`,
+      properties: attentionEventProperties,
+    });
     void trackProductEvent('maxxis_proactive_signal_surfaced', {
       entityType: candidate.signal.entityType?.toLowerCase?.() || 'product',
       entityId: '',
@@ -1249,16 +1397,12 @@ export function MaxxisAssistant({ page = 'dashboard', onOpenSupport = null, onNa
     });
   }, [
     appContext,
-    input,
+    attentionRevision,
     language,
-    loading,
+    maxxisAttentionInputs,
     maxxisContextSnapshot,
-    maxxisAvatarState.state,
     messages,
-    open,
     page,
-    pendingProactiveBubble,
-    proactiveBubble,
     proactiveEnabled,
     stageProactiveBubble,
   ]);
@@ -1467,7 +1611,11 @@ export function MaxxisAssistant({ page = 'dashboard', onOpenSupport = null, onNa
   if (!enabled) return null;
 
   return (
-    <div className={`maxxis-shell ${open ? 'maxxis-shell-open' : ''}`}>
+    <div
+      className={`maxxis-shell ${open ? 'maxxis-shell-open' : ''}`}
+      data-maxxis-attention-reason={avatarAttentionPolicy.reasonCode}
+      data-maxxis-attention-animation={avatarAttentionPolicy.allowAnimation ? 'allowed' : 'suppressed'}
+    >
       {open ? (
         <section className="maxxis-panel" data-testid="maxxis-panel" role="dialog" aria-modal="true" aria-label={t.title}>
           <header className="maxxis-header">

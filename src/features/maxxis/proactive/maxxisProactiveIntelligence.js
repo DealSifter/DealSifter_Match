@@ -349,11 +349,12 @@ export function evaluateMaxxisProactiveAttention(signal = {}, {
   const settings = { ...MAXXIS_PROACTIVE_DEFAULT_CONFIG, ...config };
   if (!settings.enabled || settings.proactiveEnabled === false) return { shouldSurface: false, priority: 0, reasonCode: 'FEATURE_DISABLED', expiresAt: 0 };
   if (!signal?.code || !signal?.dedupeKey) return { shouldSurface: false, priority: 0, reasonCode: 'INVALID_SIGNAL', expiresAt: 0 };
-  if (maxxisOpen) return { shouldSurface: false, priority: 0, reasonCode: 'MAXXIS_OPEN', expiresAt: 0 };
+  const visualSafetyManaged = settings.attentionSafetyManaged === true;
+  if (!visualSafetyManaged && maxxisOpen) return { shouldSurface: false, priority: 0, reasonCode: 'MAXXIS_OPEN', expiresAt: 0 };
   const surfaceName = cleanText(contextSnapshot.surface?.name || '', 40).toLowerCase();
   const modalName = cleanText(contextSnapshot.surface?.modal || userActivity.modal || '', 60).toLowerCase();
-  if (SENSITIVE_SURFACES.has(surfaceName) || modalName) return { shouldSurface: false, priority: 0, reasonCode: 'SENSITIVE_SURFACE', expiresAt: 0 };
-  if (userActivity.typing || userActivity.modalOpen || userActivity.criticalFlow || contextSnapshot.operational?.state?.pendingActionExists) {
+  if (!visualSafetyManaged && (SENSITIVE_SURFACES.has(surfaceName) || modalName)) return { shouldSurface: false, priority: 0, reasonCode: 'SENSITIVE_SURFACE', expiresAt: 0 };
+  if (!visualSafetyManaged && (userActivity.typing || userActivity.modalOpen || userActivity.criticalFlow || contextSnapshot.operational?.state?.pendingActionExists)) {
     return { shouldSurface: false, priority: 0, reasonCode: 'USER_BUSY', expiresAt: 0 };
   }
   const age = now - Number(signal.occurredAt || 0);

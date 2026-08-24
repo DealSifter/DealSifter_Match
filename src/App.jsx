@@ -5570,6 +5570,9 @@ export default function App() {
         page,
         route: routeByPage[page] || `/${page || 'unknown'}`,
         subview: subviewByPage[page] || page || 'unknown',
+        modal: checkoutModalIntent
+          ? 'checkout'
+          : (modal || (requireSignupConsent ? 'consent' : '')),
       },
       entity: {
         propertyId: maxxisPropertyContextId,
@@ -5582,18 +5585,46 @@ export default function App() {
         profileReady: Boolean(profileHydrationReady),
         portfolioReady: Boolean(portfolioHydrationReady),
         pendingActionExists: Boolean(pendingCheckoutIntent),
+        criticalModalOpen: Boolean(modal || checkoutModalIntent || requireSignupConsent || showBlockingProcessing),
+        sensitiveTransactionActive: Boolean(checkoutModalIntent || checkoutSubmitting),
+        confirmationActive: Boolean(modal === 'unlock' || modal === 'spotlight' || checkoutModalIntent),
+        formSubmitting: Boolean(
+          checkoutSubmitting
+          || isAuthProcessing
+          || isAdminAuthProcessing
+          || isConsentProcessing
+          || isAccountProcessing
+          || isSpotlightProcessing
+          || showBlockingProcessing
+        ),
+        onboardingSaving: Boolean(
+          page === 'onboarding'
+          && (profileSyncStatus === 'syncing' || portfolioSyncStatus === 'syncing')
+        ),
       },
     };
   }, [
     accountType,
     chatFocusTarget,
+    checkoutModalIntent,
+    checkoutSubmitting,
+    isAccountProcessing,
+    isAdminAuthProcessing,
+    isAuthProcessing,
+    isConsentProcessing,
+    isSpotlightProcessing,
     maxxisPropertyContextId,
+    modal,
     onboardingInitialTab,
     page,
     pendingCheckoutIntent,
     portfolioHydrationReady,
+    portfolioSyncStatus,
     profileHydrationReady,
+    profileSyncStatus,
+    requireSignupConsent,
     settingsInitialTab,
+    showBlockingProcessing,
   ]);
 
   return (
