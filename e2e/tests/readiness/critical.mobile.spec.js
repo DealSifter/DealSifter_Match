@@ -84,6 +84,13 @@ test('mobile navigation, cards, onboarding and Maxxis remain usable without clip
   await expect(page.getByTestId('maxxis-input')).toBeInViewport();
   await expect(page.getByTestId('maxxis-send')).toBeInViewport();
   await expectNoHorizontalOverflow(page, 'Maxxis');
+  await page.getByTestId('maxxis-preferences-button').click();
+  await expect(page.getByTestId('maxxis-preferences-popover')).toBeInViewport();
+  await expect(page.getByTestId('maxxis-proactive-toggle-header')).toBeInViewport();
+  await expect(page.getByTestId('maxxis-animation-toggle-header')).toBeInViewport();
+  await expectNoHorizontalOverflow(page, 'Maxxis preferences');
+  await page.keyboard.press('Escape');
+  await expect(page.getByTestId('maxxis-preferences-popover')).toBeHidden();
   await page.keyboard.press('Escape');
   await expect(page.getByTestId('maxxis-panel')).toBeHidden();
 

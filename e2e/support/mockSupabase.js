@@ -119,7 +119,8 @@ const investorService = {
   updated_at: '2026-01-02T00:00:00.000Z',
 };
 
-function userRow(user) {
+function userRow(user, state = {}) {
+  const storedSettings = state.settingsPayloadByUserId?.[user.id];
   return {
     id: user.id,
     full_name: user.fullName,
@@ -127,7 +128,7 @@ function userRow(user) {
     plan_id: user.nuggets > 0 ? 'pro' : 'free',
     phone: '+1 555 0100',
     is_admin: false,
-    settings_payload: {
+    settings_payload: storedSettings || {
       systemAccount: {
         fullName: user.fullName,
         email: user.email,
@@ -208,7 +209,7 @@ function professionalProfileRow(user) {
 function tablePayload(table, userId, wantsObject, state = {}) {
   const user = byUserId(userId) || E2E_USERS.investor;
   const arrays = {
-    users: [userRow(user)],
+    users: [userRow(user, state)],
     user_profiles: [personalProfileRow(user, state)].filter(Boolean),
     professional_profiles: [professionalProfileRow(user)].filter(Boolean),
     properties: user.id === E2E_USERS.provider.id ? [property] : [],
@@ -418,6 +419,9 @@ export async function setupMockSupabase(context, options = {}) {
     baseline: options.baseline === true,
     currentUserId: '',
     profileBioByUserId: {},
+    settingsPayloadByUserId: {},
+    userPreferenceWrites: 0,
+    failUserPreferenceWrites: false,
     unlockPrepares: 0,
     unlockCancels: 0,
     unlockConfirms: 0,
@@ -659,6 +663,13 @@ export async function setupMockSupabase(context, options = {}) {
         const body = parseBody(request);
         if (table === 'user_profiles' && typeof body.bio === 'string') {
           state.profileBioByUserId[userId] = body.bio;
+        }
+        if (table === 'users' && body.settings_payload && typeof body.settings_payload === 'object') {
+          if (state.failUserPreferenceWrites) {
+            return json(route, { code: 'E2E_PERSISTENCE_FAILURE', message: 'Controlled preference persistence failure.' }, 503);
+          }
+          state.settingsPayloadByUserId[userId] = body.settings_payload;
+          state.userPreferenceWrites += 1;
         }
         const row = tablePayload(table, userId, true, state);
         return json(route, wantsObject ? (row || {}) : [row].filter(Boolean));

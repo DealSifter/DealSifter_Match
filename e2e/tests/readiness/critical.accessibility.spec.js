@@ -93,6 +93,13 @@ test('dashboard, Matches and Maxxis pass accessibility and keyboard checks', asy
   await expect(page.getByTestId('maxxis-panel')).toBeVisible();
   await expect(page.getByTestId('maxxis-input')).toBeFocused();
   await expectNoHighSeverityViolations(page, 'Maxxis', '[data-testid="maxxis-panel"]');
+  await page.getByTestId('maxxis-preferences-button').focus();
+  await page.keyboard.press('Enter');
+  await expect(page.getByTestId('maxxis-preferences-popover')).toBeVisible();
+  await expectNoHighSeverityViolations(page, 'Maxxis preferences', '[data-testid="maxxis-preferences-popover"]');
+  await page.keyboard.press('Escape');
+  await expect(page.getByTestId('maxxis-preferences-popover')).toBeHidden();
+  await expect(page.getByTestId('maxxis-preferences-button')).toBeFocused();
   await page.keyboard.press('Escape');
   await expect(page.getByTestId('maxxis-panel')).toBeHidden();
 
