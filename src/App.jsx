@@ -977,20 +977,26 @@ export default function App() {
     persistPreferences: persistUserPreferences,
   });
   const [maxxisProactiveFeatureEnabled, setMaxxisProactiveFeatureEnabled] = useState(false);
+  const [maxxisDealMemoryFeatureEnabled, setMaxxisDealMemoryFeatureEnabled] = useState(false);
   useEffect(() => {
     let cancelled = false;
     if (!preferenceAccountKey) {
       setMaxxisProactiveFeatureEnabled(false);
+      setMaxxisDealMemoryFeatureEnabled(false);
       return undefined;
     }
     fetchFeatureFlags({ overrides: readMaxxisProactiveFlagOverrides() })
       .then((snapshot) => {
         if (!cancelled) {
           setMaxxisProactiveFeatureEnabled(isFeatureEnabled(snapshot, 'maxxis_proactive_insights'));
+          setMaxxisDealMemoryFeatureEnabled(isFeatureEnabled(snapshot, 'maxxis_deal_memory'));
         }
       })
       .catch(() => {
-        if (!cancelled) setMaxxisProactiveFeatureEnabled(false);
+        if (!cancelled) {
+          setMaxxisProactiveFeatureEnabled(false);
+          setMaxxisDealMemoryFeatureEnabled(false);
+        }
       });
     return () => { cancelled = true; };
   }, [preferenceAccountKey]);
@@ -5783,6 +5789,7 @@ export default function App() {
                 onChangeUserPreferences={handleChangeUserPreferences}
                 userPreferencesPersistenceStatus={userPreferencesPersistenceStatus}
                 proactiveFeatureEnabled={maxxisProactiveFeatureEnabled}
+                dealMemoryFeatureEnabled={maxxisDealMemoryFeatureEnabled}
                 onOpenPreferences={() => openSettingsTab('preferences')}
               />
             </Suspense>

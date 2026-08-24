@@ -10,6 +10,7 @@ export const FEATURE_FLAG_DEFINITIONS = {
   platform_readiness_probe: { enabled: true, environments: ['development', 'staging'], percentage: 100 },
   maxxis_next_generation: { enabled: false, environments: [], percentage: 0 },
   maxxis_proactive_insights: { enabled: false, environments: [], percentage: 0 },
+  maxxis_deal_memory: { enabled: true, environments: ['development', 'staging'], percentage: 100 },
   new_feed_experience: { enabled: false, environments: [], percentage: 0 },
   advanced_deal_analysis: { enabled: false, environments: [], percentage: 0 },
   experimental_provider_flow: { enabled: false, environments: [], percentage: 0 },

@@ -286,6 +286,75 @@
   max-width: 100%;
 }
 
+.maxxis-memory-card {
+  display: grid;
+  gap: 8px;
+  margin: 1px 4px 0;
+  padding: 10px;
+  border: 1px solid color-mix(in srgb, var(--accent) 42%, var(--border));
+  border-radius: 14px;
+  background: color-mix(in srgb, var(--card) 90%, var(--accent));
+  color: var(--t1);
+  font-size: 11px;
+  line-height: 1.35;
+}
+
+.maxxis-memory-card > div,
+.maxxis-memory-confirmation {
+  display: grid;
+  gap: 3px;
+}
+
+.maxxis-memory-card strong {
+  color: var(--accent);
+  font-size: 10.5px;
+  font-weight: 950;
+  text-transform: uppercase;
+  letter-spacing: 0.035em;
+}
+
+.maxxis-memory-card small {
+  color: var(--t3);
+  font-size: 9px;
+  font-weight: 800;
+}
+
+.maxxis-memory-list {
+  display: grid;
+  gap: 2px;
+  margin: 0;
+  padding-left: 16px;
+}
+
+.maxxis-memory-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 7px;
+  margin-top: 3px;
+}
+
+.maxxis-memory-actions button {
+  min-height: 32px;
+  border-radius: 999px;
+  padding: 7px 11px;
+  font: inherit;
+  font-size: 10.5px;
+  font-weight: 900;
+  cursor: pointer;
+}
+
+.maxxis-memory-forget {
+  border: 1px solid #ef4444;
+  background: color-mix(in srgb, #ef4444 10%, var(--card));
+  color: #dc2626;
+}
+
+.maxxis-memory-keep {
+  border: 1px solid color-mix(in srgb, var(--accent) 45%, var(--border));
+  background: var(--card);
+  color: var(--accent);
+}
+
 .maxxis-followup-chip {
   max-width: 100%;
   min-height: 30px;

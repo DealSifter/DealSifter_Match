@@ -31,6 +31,10 @@ export const PRODUCT_EVENTS = Object.freeze({
   maxxis_proactive_bubble_clicked: { stage: 'assistant' },
   maxxis_proactive_bubble_dismissed: { stage: 'assistant' },
   maxxis_preference_changed: { stage: 'assistant' },
+  maxxis_memory_created: { stage: 'assistant' },
+  maxxis_memory_recalled: { stage: 'assistant' },
+  maxxis_memory_updated: { stage: 'assistant' },
+  maxxis_memory_forgotten: { stage: 'assistant' },
 });
 
 export const MAXXIS_DEAL_FUNNEL = Object.freeze([
@@ -65,4 +69,7 @@ export const SAFE_PRODUCT_PROPERTY_KEYS = Object.freeze([
   'duration_ms',
   'preferenceKey',
   'newValueCategory',
+  'freshness',
+  'change_count',
+  'memory_version',
 ]);

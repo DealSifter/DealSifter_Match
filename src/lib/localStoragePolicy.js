@@ -5,6 +5,7 @@ export const LOCAL_STORAGE_CATEGORY = {
 };
 
 export const MAXXIS_WIDGET_POSITION_KEY = 'ds_maxxis_widget_position';
+export const MAXXIS_DEAL_MEMORY_STORAGE_PREFIX = 'ds_maxxis_deal_memory_v1:';
 
 // UI-only keys never authorize paid access and can safely persist per device.
 export const UI_ONLY_LOCAL_STORAGE_KEYS = Object.freeze([
@@ -86,6 +87,7 @@ export const REMOTE_CACHE_LOCAL_STORAGE_KEYS = Object.freeze([
   'ds_lgpd_consent',
   'ds_lgpd_consent_anon_id',
   'ds_terms_consent',
+  MAXXIS_DEAL_MEMORY_STORAGE_PREFIX,
 ]);
 
 // These keys must not be read as source of truth in production. They can grant
@@ -163,6 +165,7 @@ export const USER_SCOPED_LOCAL_STORAGE_KEYS = Object.freeze([
   'ds_security_otp_lock_until',
   'chatSeenIncomingByContact',
   'chatPeerLangPrefs',
+  MAXXIS_DEAL_MEMORY_STORAGE_PREFIX,
 ]);
 
 function removeLocalStorageKey(key) {

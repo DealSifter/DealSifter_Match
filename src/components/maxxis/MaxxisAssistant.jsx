@@ -67,6 +67,18 @@ import {
   normalizeMaxxisPreferences,
   resolveEffectiveMaxxisPreferences,
 } from '../../features/maxxis/preferences/maxxisPreferences';
+import {
+  buildMaxxisDealMemorySnapshot,
+  composeMaxxisDealMemoryRecall,
+  detectMaxxisDealMemoryChanges,
+  detectMaxxisDealMemoryIntent,
+  forgetMaxxisDealMemory,
+  maxxisDealMemoryCopy,
+  MAXXIS_DEAL_MEMORY_VERSION,
+  readMaxxisDealMemory,
+  resolveUnambiguousMaxxisDealMemoryPropertyId,
+  upsertMaxxisDealMemory,
+} from '../../features/maxxis/memory/maxxisDealMemory';
 import './MaxxisAssistant.css';
 
 import {
@@ -127,7 +139,7 @@ function readDevMaxxisAttentionOverrides() {
   }
 }
 
-export function MaxxisAssistant({ page = 'dashboard', onOpenSupport = null, onNavigateAction = null, propertyAnalysisRequest = null, propertyContextId = '', appContext = null, sessionKey = '', onExportAnalysisPdf = null, onNuggetBalanceChange = null, onProviderUnlockConfirmed = null, enabled = true, userPreferences = null, onChangeUserPreferences = null, userPreferencesPersistenceStatus = 'idle', proactiveFeatureEnabled = false, onOpenPreferences = null }) {
+export function MaxxisAssistant({ page = 'dashboard', onOpenSupport = null, onNavigateAction = null, propertyAnalysisRequest = null, propertyContextId = '', appContext = null, sessionKey = '', onExportAnalysisPdf = null, onNuggetBalanceChange = null, onProviderUnlockConfirmed = null, enabled = true, userPreferences = null, onChangeUserPreferences = null, userPreferencesPersistenceStatus = 'idle', proactiveFeatureEnabled = false, dealMemoryFeatureEnabled = false, onOpenPreferences = null }) {
   const language = getUiLang();
   const t = COPY[language] || COPY.en;
   const preferencesCopy = getMaxxisPreferencesCopy(language);
@@ -147,6 +159,7 @@ export function MaxxisAssistant({ page = 'dashboard', onOpenSupport = null, onNa
   const [devAvatarPresentation, setDevAvatarPresentation] = useState(readDevMaxxisAvatarPresentation);
   const [devAttentionOverrides, setDevAttentionOverrides] = useState(readDevMaxxisAttentionOverrides);
   const [attentionRevision, setAttentionRevision] = useState(0);
+  const [dealMemoryStatus, setDealMemoryStatus] = useState('idle');
   const [widgetPosition, setWidgetPosition] = useState(readStoredWidgetPosition);
   const [dragging, setDragging] = useState(false);
   const [messages, setMessages] = useState(() => [{
@@ -631,6 +644,142 @@ export function MaxxisAssistant({ page = 'dashboard', onOpenSupport = null, onNa
     onNavigateAction?.(normalized);
   };
 
+  const currentMemoryPropertyId = () => {
+    const candidate = String(propertyContextId || appContext?.entity?.propertyId || '').trim();
+    if (UUID_PATTERN.test(candidate)) return candidate;
+    return dealMemoryFeatureEnabled && sessionKeyRef.current
+      ? resolveUnambiguousMaxxisDealMemoryPropertyId(sessionKeyRef.current)
+      : '';
+  };
+
+  const trackMemoryWrite = (result, propertyId) => {
+    if (!result?.ok) return;
+    const eventName = result.created ? 'maxxis_memory_created' : (result.changes?.hasMeaningfulChanges ? 'maxxis_memory_updated' : '');
+    if (!eventName) return;
+    void trackProductEvent(eventName, {
+      entityType: 'property',
+      entityId: propertyId,
+      dedupeKey: `${eventName}:${propertyId}:${result.memory?.lastReviewedAt || Date.now()}`,
+      properties: {
+        source: 'maxxis',
+        change_count: result.changes?.changes?.length || 0,
+        memory_version: MAXXIS_DEAL_MEMORY_VERSION,
+      },
+    });
+  };
+
+  const persistStructuredDealMemory = (result, interactionType = 'DEAL_REVIEW') => {
+    if (!dealMemoryFeatureEnabled || !sessionKeyRef.current) {
+      setDealMemoryStatus('disabled');
+      return null;
+    }
+    const snapshot = buildMaxxisDealMemorySnapshot(result, { interactionType });
+    if (!snapshot) {
+      setDealMemoryStatus('invalid_snapshot');
+      return null;
+    }
+    const stored = upsertMaxxisDealMemory(sessionKeyRef.current, snapshot);
+    setDealMemoryStatus(stored.ok ? (stored.created ? 'created' : 'updated') : String(stored.reason || 'write_failed').toLowerCase());
+    trackMemoryWrite(stored, snapshot.propertyId);
+    return stored;
+  };
+
+  const appendMemoryContextRequired = () => {
+    const copy = maxxisDealMemoryCopy(language);
+    setMessages((prev) => [...prev, {
+      id: `maxxis-memory-context-required-${Date.now()}`,
+      role: 'assistant',
+      content: copy.currentContextRequired,
+      createdAt: new Date(),
+      type: 'deal_memory_unavailable',
+    }]);
+  };
+
+  const handleDealMemoryIntent = async (intent, userMessage) => {
+    if (!dealMemoryFeatureEnabled || !intent) return false;
+    const propertyId = currentMemoryPropertyId();
+    if (!propertyId || !sessionKeyRef.current) {
+      appendMemoryContextRequired();
+      return true;
+    }
+    const copy = maxxisDealMemoryCopy(language);
+    const stored = readMaxxisDealMemory(sessionKeyRef.current, propertyId);
+    if (intent === 'MEMORY_FORGET') {
+      setMessages((prev) => [...prev, {
+        id: `maxxis-memory-forget-confirmation-${Date.now()}`,
+        role: 'assistant',
+        content: '',
+        createdAt: new Date(),
+        type: 'deal_memory_forget_confirmation',
+        data: {
+          propertyId,
+          hasMemory: Boolean(stored.memory),
+          title: copy.forgetTitle,
+          body: copy.forgetBody,
+          confirmLabel: copy.confirm,
+          cancelLabel: copy.cancel,
+        },
+      }]);
+      return true;
+    }
+    const currentResult = await sendMaxxisMessage({
+      message: `Open Deal Copilot for ${propertyId}`,
+      history: [],
+      page,
+      language,
+      propertyId,
+      maxxisContext: selectMaxxisContextForMessage(maxxisContextSnapshot, 'deal continuity review'),
+    });
+    const current = buildMaxxisDealMemorySnapshot(currentResult, {
+      interactionType: intent === 'MEMORY_WHAT_CHANGED' ? 'WHAT_CHANGED' : intent === 'MEMORY_STILL_OPEN' ? 'STILL_OPEN' : 'MEMORY_RECALL',
+    });
+    if (!current || current.propertyId !== propertyId || currentResult?.unavailable) {
+      setMessages((prev) => [...prev, {
+        id: `maxxis-memory-unavailable-${Date.now()}`,
+        role: 'assistant',
+        content: copy.unavailable,
+        createdAt: new Date(),
+        type: 'deal_memory_unavailable',
+      }]);
+      return true;
+    }
+    const changes = stored.memory ? detectMaxxisDealMemoryChanges(stored.memory, current) : null;
+    const recall = composeMaxxisDealMemoryRecall({
+      previous: stored.memory,
+      current,
+      changes,
+      freshness: stored.freshness,
+      language,
+    });
+    const writeResult = upsertMaxxisDealMemory(sessionKeyRef.current, current);
+    trackMemoryWrite(writeResult, propertyId);
+    void trackProductEvent('maxxis_memory_recalled', {
+      entityType: 'property',
+      entityId: propertyId,
+      dedupeKey: `maxxis-memory-recalled:${userMessage.id}`,
+      properties: {
+        source: 'maxxis',
+        freshness: stored.freshness,
+        change_count: changes?.changes?.length || 0,
+        memory_version: MAXXIS_DEAL_MEMORY_VERSION,
+      },
+    });
+    setMessages((prev) => [...prev, {
+      id: `maxxis-memory-recall-${Date.now()}`,
+      role: 'assistant',
+      content: recall.content,
+      createdAt: new Date(),
+      type: recall.type,
+      data: {
+        ...recall.data,
+        sourceType: currentResult.type,
+        sourceData: currentResult.data,
+      },
+      followUps: recall.followUps,
+    }]);
+    return true;
+  };
+
   const submitMessage = async (messageText, meta = {}) => {
     const cleanMessage = String(messageText || '').trim();
     if (!cleanMessage || loading) return;
@@ -645,6 +794,8 @@ export function MaxxisAssistant({ page = 'dashboard', onOpenSupport = null, onNa
     setLoading(true);
 
     try {
+      const memoryIntent = detectMaxxisDealMemoryIntent(cleanMessage, meta.controlledIntent);
+      if (await handleDealMemoryIntent(memoryIntent, userMessage)) return;
       if (isProviderConversationIntent(cleanMessage)) {
         const providerConversationContext = findLatestProviderConversationContext(messages);
         if (!providerConversationContext) {
@@ -766,6 +917,7 @@ export function MaxxisAssistant({ page = 'dashboard', onOpenSupport = null, onNa
         language,
         forcedIntent: meta.controlledIntent || '',
       });
+      persistStructuredDealMemory(result, 'DEAL_REVIEW');
       if (intelligence.eventName) {
         void trackProductEvent(intelligence.eventName, {
           entityType: 'property',
@@ -1258,6 +1410,41 @@ export function MaxxisAssistant({ page = 'dashboard', onOpenSupport = null, onNa
     });
   };
 
+  const handleConfirmMemoryForget = (message) => {
+    const propertyId = String(message?.data?.propertyId || '');
+    const currentPropertyId = currentMemoryPropertyId();
+    if (!dealMemoryFeatureEnabled || !propertyId || propertyId !== currentPropertyId || !sessionKeyRef.current) return;
+    const copy = maxxisDealMemoryCopy(language);
+    const forgotten = forgetMaxxisDealMemory(sessionKeyRef.current, propertyId);
+    setMessages((prev) => prev.map((item) => (item.id === message.id
+      ? {
+          ...item,
+          content: forgotten ? copy.forgotten : copy.nothingToForget,
+          type: 'deal_memory_forgotten',
+          data: null,
+        }
+      : item)));
+    if (forgotten) {
+      void trackProductEvent('maxxis_memory_forgotten', {
+        entityType: 'property',
+        entityId: propertyId,
+        dedupeKey: `maxxis-memory-forgotten:${message.id}`,
+        properties: { source: 'maxxis', memory_version: MAXXIS_DEAL_MEMORY_VERSION },
+      });
+    }
+  };
+
+  const handleCancelMemoryForget = (message) => {
+    const keptCopy = language === 'pt'
+      ? 'A memoria de continuidade deste deal foi mantida.'
+      : language === 'es'
+        ? 'La memoria de continuidad de este deal se conservo.'
+        : 'The continuity memory for this deal was kept.';
+    setMessages((prev) => prev.map((item) => (item.id === message?.id
+      ? { ...item, content: keptCopy, type: 'deal_memory_forget_cancelled', data: null }
+      : item)));
+  };
+
   const smartActionSourcePayload = (message) => {
     if (!message) return null;
     if (message.data?.sourceData) return { type: message.data.sourceType || 'property_details', data: message.data.sourceData };
@@ -1656,6 +1843,8 @@ export function MaxxisAssistant({ page = 'dashboard', onOpenSupport = null, onNa
       data-maxxis-attention-reason={avatarAttentionPolicy.reasonCode}
       data-maxxis-attention-animation={avatarAttentionPolicy.allowAnimation ? 'allowed' : 'suppressed'}
       data-maxxis-proactive={proactiveEnabled ? 'enabled' : 'disabled'}
+      data-maxxis-deal-memory={dealMemoryFeatureEnabled ? 'enabled' : 'disabled'}
+      data-maxxis-deal-memory-status={dealMemoryStatus}
       data-maxxis-animation={effectiveMaxxisPreferences.animationEnabled ? 'enabled' : 'disabled'}
     >
       {open ? (
@@ -1766,6 +1955,8 @@ export function MaxxisAssistant({ page = 'dashboard', onOpenSupport = null, onNa
                 exportAnalysisLabel={t.exportAnalysisPdf}
                 exportingAnalysisLabel={t.exportingAnalysisPdf}
                 isExportingAnalysis={exportingAnalysisId === message.id}
+                onConfirmMemoryForget={handleConfirmMemoryForget}
+                onCancelMemoryForget={handleCancelMemoryForget}
               />
             ))}
             {loading ? (

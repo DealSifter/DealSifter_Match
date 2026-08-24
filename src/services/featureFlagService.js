@@ -4,6 +4,7 @@ export const FEATURE_FLAG_NAMES = Object.freeze([
   'platform_readiness_probe',
   'maxxis_next_generation',
   'maxxis_proactive_insights',
+  'maxxis_deal_memory',
   'new_feed_experience',
   'advanced_deal_analysis',
   'experimental_provider_flow',

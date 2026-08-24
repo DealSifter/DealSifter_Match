@@ -5,6 +5,7 @@ import { getLang } from '../../i18n/translations';
 import { C } from '../../theme/colors';
 import { MAXXIS_WIDGET_POSITION_KEY } from '../../lib/localStoragePolicy';
 import { trackProductEvent } from '../../lib/productAnalytics';
+import { MaxxisDealMemoryCard } from '../../features/maxxis/memory/MaxxisDealMemoryCard';
 
 export const UUID_PATTERN = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
 
@@ -1566,6 +1567,8 @@ export function MessageBubble({
   exportAnalysisLabel,
   exportingAnalysisLabel,
   isExportingAnalysis,
+  onConfirmMemoryForget,
+  onCancelMemoryForget,
 }) {
   const isUser = message.role === 'user';
   const { text, actions } = isUser
@@ -1850,6 +1853,14 @@ export function MessageBubble({
       ) : null}
       {message.type === 'property_comparison' ? (
         <PropertyComparison data={message.data} language={language} />
+      ) : null}
+      {(message.type === 'deal_memory_recall' || message.type === 'deal_memory_forget_confirmation') ? (
+        <MaxxisDealMemoryCard
+          message={message}
+          language={language}
+          onConfirmForget={onConfirmMemoryForget}
+          onCancelForget={onCancelMemoryForget}
+        />
       ) : null}
       {!isUser && Array.isArray(message.followUps) && message.followUps.length ? (
         <div className="maxxis-followups" aria-label="Maxxis follow-up options">
