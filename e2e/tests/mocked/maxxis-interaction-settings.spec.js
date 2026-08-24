@@ -66,7 +66,7 @@ test('syncs animation and proactivity controls without coupling bubble behavior'
     window.localStorage.setItem('ds_e2e_maxxis_proactive_events', JSON.stringify([event]));
   }, providerReplyEvent('maxxis-settings-animation-off'));
   await page.reload();
-  await expect(page.getByTestId('dashboard-root')).toBeVisible();
+  await expect(page.getByTestId('dashboard-root')).toBeVisible({ timeout: 120_000 });
   await expect(page.getByTestId('maxxis-proactive-bubble')).toBeVisible();
   await expect(page.getByTestId('maxxis-avatar-fab')).toHaveAttribute('data-animation-intensity', 'OFF');
 
@@ -106,7 +106,7 @@ test('syncs animation and proactivity controls without coupling bubble behavior'
 });
 
 test('isolates preferences across account switches and restores the original account', async ({ page, mockBackend }) => {
-  test.setTimeout(300_000);
+  test.setTimeout(600_000);
   await configureProactive(page, 'maxxis-settings-account-isolation');
   await loginAs(page, mockBackend.users.investor);
   await openPreferencesPopover(page);

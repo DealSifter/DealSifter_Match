@@ -8,6 +8,8 @@ describe('controlled feature rollout', () => {
     expect(flags.platform_readiness_probe).toBe(true);
     expect(flags.maxxis_next_generation).toBe(false);
     expect(flags.maxxis_proactive_insights).toBe(false);
+    expect(flags.maxxis_deal_memory).toBe(true);
+    expect(resolveFeatureFlags({ userId: 'user-a', environment: 'production' }).maxxis_deal_memory).toBe(false);
   });
 
   it('supports server-approved staging overrides but ignores unapproved overrides', () => {

@@ -86,10 +86,11 @@ export async function openLogin(page) {
   const desktopLogin = page.getByTestId('nav-login');
   if (await desktopLogin.isVisible().catch(() => false)) {
     await desktopLogin.click();
-    return;
+  } else {
+    await page.getByTestId('nav-landing-menu').click();
+    await page.getByTestId('nav-login-mobile').click();
   }
-  await page.getByTestId('nav-landing-menu').click();
-  await page.getByTestId('nav-login-mobile').click();
+  await page.getByTestId('auth-modal').waitFor({ state: 'visible', timeout: APP_NAVIGATION_TIMEOUT });
 }
 
 export async function loginAs(page, user) {

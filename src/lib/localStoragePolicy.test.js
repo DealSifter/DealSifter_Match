@@ -39,6 +39,7 @@ describe('local storage account isolation', () => {
     window.localStorage.setItem('professionalProfile', '{"name":"Account A"}');
     window.localStorage.setItem('chatSeenIncomingByContact', '{"owner":2}');
     window.localStorage.setItem('ds_guidetips_progress:user-a', '{}');
+    window.localStorage.setItem('ds_maxxis_deal_memory_v1:user-a', '{"version":1}');
     window.localStorage.setItem('authSession', '{"userId":"user-b"}');
     window.localStorage.setItem('theme', 'light');
     window.localStorage.setItem('mapViewPanelWidth', '480');
@@ -49,6 +50,7 @@ describe('local storage account isolation', () => {
     expect(window.localStorage.getItem('professionalProfile')).toBeNull();
     expect(window.localStorage.getItem('chatSeenIncomingByContact')).toBeNull();
     expect(window.localStorage.getItem('ds_guidetips_progress:user-a')).toBeNull();
+    expect(window.localStorage.getItem('ds_maxxis_deal_memory_v1:user-a')).toBeNull();
     expect(window.localStorage.getItem('authSession')).toBe('{"userId":"user-b"}');
     expect(window.localStorage.getItem('theme')).toBe('light');
     expect(window.localStorage.getItem('mapViewPanelWidth')).toBe('480');

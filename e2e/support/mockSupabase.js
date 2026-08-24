@@ -350,7 +350,8 @@ function planSnapshot(userId) {
   };
 }
 
-function maxxisPropertyData() {
+function maxxisPropertyData(state = {}) {
+  const providerReplied = state.maxxisProviderReplied === true;
   return {
     property: {
       id: E2E_IDS.property,
@@ -381,7 +382,21 @@ function maxxisPropertyData() {
       items: [
         { code: 'inspection_completed', status: 'pending', label: 'Inspection', manual: true },
         { code: 'rehab_quote_received', status: 'pending', label: 'Rehab quote', manual: true },
+        { code: 'provider_replied', status: providerReplied ? 'completed' : 'pending', label: 'Provider replied', manual: false },
       ],
+    },
+    conversationSummary: providerReplied ? {
+      providerReplyFound: true,
+      messageCount: 2,
+      summary: 'A provider reply is available for authorized review.',
+      facts: [],
+      openItems: ['Review provider reply'],
+    } : null,
+    nextBestAction: {
+      nextBestAction: {
+        code: providerReplied ? 'review_provider_reply' : 'review_workflow',
+        priority: providerReplied ? 'high' : 'medium',
+      },
     },
     serviceNeeds: [
       {
@@ -428,6 +443,7 @@ export async function setupMockSupabase(context, options = {}) {
     messageDrafts: 0,
     messageCancels: 0,
     messagesSent: 0,
+    maxxisProviderReplied: false,
   };
 
   await context.route('**/*', async (route) => {
@@ -483,13 +499,14 @@ export async function setupMockSupabase(context, options = {}) {
             platform_readiness_probe: true,
             maxxis_next_generation: false,
             maxxis_proactive_insights: body?.overrides?.maxxis_proactive_insights === true,
+            maxxis_deal_memory: body?.overrides?.maxxis_deal_memory === true,
             new_feed_experience: false,
             advanced_deal_analysis: false,
             experimental_provider_flow: false,
           },
           environment: 'development',
           source: 'server',
-          overrideApplied: body?.overrides?.maxxis_proactive_insights === true,
+          overrideApplied: body?.overrides?.maxxis_proactive_insights === true || body?.overrides?.maxxis_deal_memory === true,
         });
       }
 
@@ -499,17 +516,19 @@ export async function setupMockSupabase(context, options = {}) {
         const type = message.includes('copilot') ? 'deal_copilot_overview' : 'property_details';
         const data = type === 'deal_copilot_overview'
           ? {
-              propertySummary: maxxisPropertyData().property,
-              metricsSummary: { metrics: maxxisPropertyData().metrics },
+              propertySummary: maxxisPropertyData(state).property,
+              metricsSummary: { metrics: maxxisPropertyData(state).metrics },
               advisorSummary: { attentionPoints: [] },
               serviceSummary: {
-                needs: maxxisPropertyData().serviceNeeds,
-                providers: [maxxisPropertyData().serviceMatches[0].services[0]],
+                needs: maxxisPropertyData(state).serviceNeeds,
+                providers: [maxxisPropertyData(state).serviceMatches[0].services[0]],
               },
-              workflow: maxxisPropertyData().workflow,
+              workflow: maxxisPropertyData(state).workflow,
+              conversationSummary: maxxisPropertyData(state).conversationSummary,
+              nextBestAction: maxxisPropertyData(state).nextBestAction,
               capabilitiesUnavailable: [],
             }
-          : maxxisPropertyData();
+          : maxxisPropertyData(state);
         return json(route, {
           success: true,
           type,
