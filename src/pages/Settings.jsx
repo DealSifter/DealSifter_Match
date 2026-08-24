@@ -1,11 +1,13 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { C } from '../theme/colors';
-import { useT } from '../i18n/translations';
+import { getLang, useT } from '../i18n/translations';
 import { Icon } from '../components/ui/Icon';
 import { getSupabaseFunctionUrl, supabase, isSupabaseConfigured, supabaseAnonKey } from '../lib/supabaseClient';
 import { createRealtimeLifecycle, createRealtimeTopic } from '../lib/realtimeLifecycle';
 import { redirectToPortal } from '../lib/stripeClient';
 import { CHAT_LANGUAGE_OPTIONS, translateChatText, getSafeLang } from '../services/chatTranslation';
+import { DEFAULT_USER_PREFERENCES } from '../domain/profile/userPreferences';
+import { MaxxisPreferencesControls } from '../features/maxxis/preferences/MaxxisPreferencesControls';
 
 function TabButton({ active, onClick, label }) {
   return (
@@ -78,7 +80,7 @@ const SHOW_SUPPORT_CHAT_PLACEHOLDER = !import.meta.env.PROD;
 const SHOW_DEV_BILLING_PLACEHOLDER = !import.meta.env.PROD;
 const SUPPORT_EMAIL = 'contato.dealsifter@gmail.com';
 
-export function Settings({ setPage, prevPage, initialTab = 'profile', initialCommView = 'menu', systemAccount, setSystemAccount, authSession, setAuthSession, subscription, addToast, supabaseUserId, onDeleteAccount, onRevokeConsent, pendingCheckoutIntent = null, onContinuePendingCheckout = null, userPreferences = null, onChangeUserPreferences = null }) {
+export function Settings({ setPage, prevPage, initialTab = 'profile', initialCommView = 'menu', systemAccount, setSystemAccount, authSession, setAuthSession, subscription, addToast, supabaseUserId, onDeleteAccount, onRevokeConsent, pendingCheckoutIntent = null, onContinuePendingCheckout = null, userPreferences = null, onChangeUserPreferences = null, onHydrateUserPreferences = null, userPreferencesPersistenceStatus = 'idle', maxxisProactiveFeatureEnabled = false }) {
   const goBackToApp = () => {
     const candidate = String(prevPage || '').trim();
     const blocked = new Set(['', 'settings', 'admin', 'terms', 'privacy']);
@@ -160,6 +162,8 @@ export function Settings({ setPage, prevPage, initialTab = 'profile', initialCom
   const [profileVisibility, setProfileVisibility] = useState('hidden');
   const [profileVisibilitySaving, setProfileVisibilitySaving] = useState(false);
   const [prefs, setPrefs] = useState(() => (userPreferences && typeof userPreferences === 'object' ? userPreferences : null));
+  const prefsRef = useRef(prefs);
+  prefsRef.current = prefs;
   const settingsHydratedFromRemoteRef = useRef(false);
   const settingsSaveDebounceRef = useRef(null);
   const settingsSaveLastSerializedRef = useRef('');
@@ -269,7 +273,7 @@ export function Settings({ setPage, prevPage, initialTab = 'profile', initialCom
 
         if (payloadPrefs) {
           setPrefs(payloadPrefs);
-          onChangeUserPreferences?.(payloadPrefs);
+          onHydrateUserPreferences?.(payloadPrefs);
         }
         if (payloadCommPrefs) {
           setCommPrefs((prev) => ({ email: true, chat: true, marketing: false, ...(prev || {}), ...payloadCommPrefs }));
@@ -303,7 +307,7 @@ export function Settings({ setPage, prevPage, initialTab = 'profile', initialCom
 
     hydrateFromSupabase();
     return () => { cancelled = true; };
-  }, [supabaseUserId, onChangeUserPreferences, setSystemAccount]);
+  }, [supabaseUserId, onHydrateUserPreferences, setSystemAccount]);
 
   useEffect(() => {
     if (!isSupabaseConfigured || !supabase || !supabaseUserId) return;
@@ -364,6 +368,15 @@ export function Settings({ setPage, prevPage, initialTab = 'profile', initialCom
     const next = (nextRaw && typeof nextRaw === 'object') ? nextRaw : base;
     setPrefs(next);
     onChangeUserPreferences?.(next);
+  };
+  const updateMaxxisPreference = (preferenceKey, value) => {
+    updatePreferences((previous) => ({
+      ...previous,
+      maxxis: {
+        ...(previous?.maxxis || {}),
+        [preferenceKey]: value,
+      },
+    }));
   };
 
   const updateField = (field, value) => {
@@ -430,7 +443,7 @@ export function Settings({ setPage, prevPage, initialTab = 'profile', initialCom
         accountType: String(systemAccount?.accountType || 'individual'),
         marketAreas: String(systemAccount?.marketAreas || ''),
       },
-      userPreferences: prefs && typeof prefs === 'object' ? prefs : {},
+      userPreferences: prefsRef.current && typeof prefsRef.current === 'object' ? prefsRef.current : {},
       commPrefs: commPrefs && typeof commPrefs === 'object' ? commPrefs : { email: true, chat: true, marketing: false },
       privacyControls: privacyControls && typeof privacyControls === 'object' ? privacyControls : {},
     };
@@ -477,7 +490,6 @@ export function Settings({ setPage, prevPage, initialTab = 'profile', initialCom
   }, [
     supabaseUserId,
     systemAccount,
-    prefs,
     commPrefs,
     privacyControls,
   ]);
@@ -1399,6 +1411,27 @@ export function Settings({ setPage, prevPage, initialTab = 'profile', initialCom
           {tab === 'preferences' ? (
             <Panel title={t.preferencesTitle || 'Preferences'} subtitle={t.preferencesSub || 'Interface and notification preferences'}>
               <div style={{ display: 'grid', gap: 12 }}>
+                <div data-testid="settings-maxxis-preferences" style={{ border: `1px solid ${C.border}`, borderRadius: 10, padding: 10, display: 'grid', gap: 8 }}>
+                  <div>
+                    <div style={{ fontSize: 12, fontWeight: 800, color: C.t1 }}>MAXXIS</div>
+                    <div style={{ marginTop: 3, fontSize: 10.5, lineHeight: 1.4, color: C.t3 }}>
+                      {getLang() === 'pt'
+                        ? 'Escolha como o Maxxis avisa você e apresenta os movimentos do avatar.'
+                        : getLang() === 'es'
+                          ? 'Elige cómo Maxxis te avisa y presenta los movimientos del avatar.'
+                          : 'Choose how Maxxis notifies you and presents avatar motion.'}
+                    </div>
+                  </div>
+                  <MaxxisPreferencesControls
+                    preferences={prefs?.maxxis}
+                    onChange={updateMaxxisPreference}
+                    language={getLang()}
+                    proactiveFeatureEnabled={maxxisProactiveFeatureEnabled}
+                    persistenceStatus={userPreferencesPersistenceStatus}
+                    surface="settings"
+                  />
+                </div>
+
                 <div style={{ border: `1px solid ${C.border}`, borderRadius: 10, padding: 10, display: 'grid', gap: 8 }}>
                   <div style={{ fontSize: 12, fontWeight: 800, color: C.t1 }}>1) Map View</div>
                   <label style={{ display: 'grid', gap: 5 }}>
@@ -1516,13 +1549,7 @@ export function Settings({ setPage, prevPage, initialTab = 'profile', initialCom
                   </button>
                   <button
                     onClick={() => {
-                      const resetPrefs = {
-                        map: { initialZoom: 4, defaultStyle: 'simple', clusterBehavior: 'pins_city', defaultFilters: { showPeople: true, showProperties: true, showOnlyUnlocked: false, showOnlyMyPins: false } },
-                        feedMatches: { sortOrder: 'random', autoplayMedia: false },
-                        chatLanguage: { input: 'en', output: 'en' },
-                        privacy: { presenceStatus: 'online', readReceipts: true, messagePreview: true },
-                      };
-                      updatePreferences(resetPrefs);
+                      updatePreferences(DEFAULT_USER_PREFERENCES);
                       addToast?.({ type: 'success', message: t.prefResetSuccess || 'Preferences reset to default.' });
                     }}
                     style={{ border: `1px solid ${C.warning || '#f59e0b'}`, background: C.alpha(C.warning || '#f59e0b', 0.08), color: C.warning || '#f59e0b', borderRadius: 8, padding: '9px 10px', fontSize: 12, fontWeight: 800, cursor: 'pointer' }}

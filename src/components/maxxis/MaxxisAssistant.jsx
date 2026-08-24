@@ -61,7 +61,12 @@ import {
   safeMaxxisAttentionAnalytics,
 } from '../../features/maxxis/attention/maxxisAttentionController';
 import { useMaxxisAttentionEnvironment } from '../../features/maxxis/attention/useMaxxisAttentionEnvironment';
-import { fetchFeatureFlags, isFeatureEnabled } from '../../services/featureFlagService';
+import { MaxxisPreferencesControls } from '../../features/maxxis/preferences/MaxxisPreferencesControls';
+import {
+  getMaxxisPreferencesCopy,
+  normalizeMaxxisPreferences,
+  resolveEffectiveMaxxisPreferences,
+} from '../../features/maxxis/preferences/maxxisPreferences';
 import './MaxxisAssistant.css';
 
 import {
@@ -77,21 +82,6 @@ import {
   readStoredWidgetPosition,
   stripActionTokens,
 } from './MaxxisCapabilities';
-
-function readMaxxisProactiveFlagOverrides() {
-  if (!import.meta.env.DEV || typeof window === 'undefined') return null;
-  try {
-    if (window.localStorage.getItem('ds_e2e_maxxis_proactive') === '1') {
-      return { maxxis_proactive_insights: true };
-    }
-    const raw = window.localStorage.getItem('ds_feature_flag_overrides');
-    if (!raw) return null;
-    const parsed = JSON.parse(raw);
-    return parsed && typeof parsed === 'object' && !Array.isArray(parsed) ? parsed : null;
-  } catch {
-    return null;
-  }
-}
 
 function mergeDevMaxxisProactiveEvents(appContext) {
   if (!import.meta.env.DEV || typeof window === 'undefined') return appContext;
@@ -137,13 +127,14 @@ function readDevMaxxisAttentionOverrides() {
   }
 }
 
-export function MaxxisAssistant({ page = 'dashboard', onOpenSupport = null, onNavigateAction = null, propertyAnalysisRequest = null, propertyContextId = '', appContext = null, sessionKey = '', onExportAnalysisPdf = null, onNuggetBalanceChange = null, onProviderUnlockConfirmed = null, enabled = true }) {
+export function MaxxisAssistant({ page = 'dashboard', onOpenSupport = null, onNavigateAction = null, propertyAnalysisRequest = null, propertyContextId = '', appContext = null, sessionKey = '', onExportAnalysisPdf = null, onNuggetBalanceChange = null, onProviderUnlockConfirmed = null, enabled = true, userPreferences = null, onChangeUserPreferences = null, userPreferencesPersistenceStatus = 'idle', proactiveFeatureEnabled = false, onOpenPreferences = null }) {
   const language = getUiLang();
   const t = COPY[language] || COPY.en;
+  const preferencesCopy = getMaxxisPreferencesCopy(language);
   const [open, setOpen] = useState(false);
   const [input, setInput] = useState('');
   const [loading, setLoading] = useState(false);
-  const [proactiveEnabled, setProactiveEnabled] = useState(false);
+  const [preferencesOpen, setPreferencesOpen] = useState(false);
   const [exportingAnalysisId, setExportingAnalysisId] = useState(null);
   const [activeProfileActionId, setActiveProfileActionId] = useState('');
   const [activeProviderUnlockId, setActiveProviderUnlockId] = useState('');
@@ -166,6 +157,8 @@ export function MaxxisAssistant({ page = 'dashboard', onOpenSupport = null, onNa
   }]);
   const endRef = useRef(null);
   const inputRef = useRef(null);
+  const preferencesButtonRef = useRef(null);
+  const preferencesPanelRef = useRef(null);
   const handledAnalysisRequestsRef = useRef(new Set());
   const seenSmartActionsRef = useRef(new Set());
   const detectedProactiveSignalsRef = useRef(new Set());
@@ -190,6 +183,13 @@ export function MaxxisAssistant({ page = 'dashboard', onOpenSupport = null, onNa
   const avatarTimelineIdentityKey = `${String(sessionKey || '')}:${String(
     propertyContextId || appContext?.entity?.propertyId || 'global',
   )}`;
+  const maxxisPreferences = useMemo(
+    () => normalizeMaxxisPreferences(userPreferences?.maxxis),
+    [userPreferences?.maxxis],
+  );
+  const requestedAnimationIntensity = maxxisPreferences.animationEnabled
+    ? maxxisPreferences.animationIntensity
+    : MAXXIS_AVATAR_ANIMATION_INTENSITY.OFF;
   const {
     pendingProactiveBubble,
     proactiveBubble,
@@ -206,8 +206,14 @@ export function MaxxisAssistant({ page = 'dashboard', onOpenSupport = null, onNa
   } = useMaxxisAvatarTimeline({
     identityKey: avatarTimelineIdentityKey,
     enabled,
-    intensity: devAvatarPresentation?.intensity || MAXXIS_AVATAR_ANIMATION_INTENSITY.SUBTLE,
+    intensity: devAvatarPresentation?.intensity || requestedAnimationIntensity,
   });
+  const effectiveMaxxisPreferences = useMemo(() => resolveEffectiveMaxxisPreferences({
+    preferences: maxxisPreferences,
+    proactiveFeatureEnabled,
+    reducedMotion,
+  }), [maxxisPreferences, proactiveFeatureEnabled, reducedMotion]);
+  const proactiveEnabled = effectiveMaxxisPreferences.proactiveEnabled;
   const attentionEnvironment = useMaxxisAttentionEnvironment({
     routeKey: appContext?.surface?.route || page,
     devOverrides: devAttentionOverrides,
@@ -231,29 +237,19 @@ export function MaxxisAssistant({ page = 'dashboard', onOpenSupport = null, onNa
     return () => window.removeEventListener('ds:e2e:maxxis-attention', updateAttention);
   }, []);
 
+  useEffect(() => {
+    if (!import.meta.env.DEV || typeof window === 'undefined') return undefined;
+    const refreshProactiveFixture = () => setAttentionRevision((revision) => revision + 1);
+    window.addEventListener('ds:e2e:maxxis-proactive', refreshProactiveFixture);
+    return () => window.removeEventListener('ds:e2e:maxxis-proactive', refreshProactiveFixture);
+  }, []);
+
   useEffect(() => () => attentionControllerRef.current.destroy(), []);
 
   useEffect(() => {
-    let cancelled = false;
-    if (!enabled) {
-      setProactiveEnabled(false);
-      clearProactiveBubble();
-      return () => {
-        cancelled = true;
-      };
-    }
-    fetchFeatureFlags({ overrides: readMaxxisProactiveFlagOverrides() })
-      .then((snapshot) => {
-        if (cancelled) return;
-        setProactiveEnabled(isFeatureEnabled(snapshot, 'maxxis_proactive_insights'));
-      })
-      .catch(() => {
-        if (!cancelled) setProactiveEnabled(false);
-      });
-    return () => {
-      cancelled = true;
-    };
-  }, [clearProactiveBubble, enabled, sessionKey]);
+    if (enabled && proactiveEnabled) return;
+    clearProactiveBubble();
+  }, [clearProactiveBubble, enabled, proactiveEnabled]);
 
   useEffect(() => {
     if (!open) return;
@@ -275,6 +271,39 @@ export function MaxxisAssistant({ page = 'dashboard', onOpenSupport = null, onNa
       window.clearTimeout(focusTimer);
       document.removeEventListener('keydown', closeOnEscape);
     };
+  }, [open]);
+
+  useEffect(() => {
+    if (!preferencesOpen) return undefined;
+    const focusTimer = window.setTimeout(() => {
+      preferencesPanelRef.current?.querySelector('input:not(:disabled), button:not(:disabled)')?.focus();
+    }, 0);
+    const closePreferences = () => {
+      setPreferencesOpen(false);
+      window.setTimeout(() => preferencesButtonRef.current?.focus(), 0);
+    };
+    const onKeyDown = (event) => {
+      if (event.key !== 'Escape') return;
+      event.preventDefault();
+      event.stopImmediatePropagation();
+      closePreferences();
+    };
+    const onPointerDown = (event) => {
+      if (preferencesPanelRef.current?.contains(event.target) || preferencesButtonRef.current?.contains(event.target)) return;
+      closePreferences();
+    };
+    document.addEventListener('keydown', onKeyDown, true);
+    document.addEventListener('pointerdown', onPointerDown, true);
+    return () => {
+      window.clearTimeout(focusTimer);
+      document.removeEventListener('keydown', onKeyDown, true);
+      document.removeEventListener('pointerdown', onPointerDown, true);
+    };
+  }, [preferencesOpen]);
+
+  useEffect(() => {
+    if (open) return;
+    setPreferencesOpen(false);
   }, [open]);
 
   useEffect(() => {
@@ -463,11 +492,12 @@ export function MaxxisAssistant({ page = 'dashboard', onOpenSupport = null, onNa
     bubbleActive: Boolean(attentionEnvironment.bubbleActive || proactiveBubble || pendingProactiveBubble),
     proactiveEnabled,
     reducedMotion,
-    animationIntensity: devAvatarPresentation?.intensity || MAXXIS_AVATAR_ANIMATION_INTENSITY.SUBTLE,
+    animationIntensity: devAvatarPresentation?.intensity || effectiveMaxxisPreferences.animationIntensity,
   }), [
     appContext,
     attentionEnvironment,
     devAvatarPresentation?.intensity,
+    effectiveMaxxisPreferences.animationIntensity,
     maxxisAvatarState.state,
     open,
     page,
@@ -503,7 +533,7 @@ export function MaxxisAssistant({ page = 'dashboard', onOpenSupport = null, onNa
       ...maxxisAvatarState,
       state,
       intensity: avatarAttentionPolicy.allowAnimation
-        ? (devAvatarPresentation?.intensity || maxxisAvatarState.intensity)
+        ? (devAvatarPresentation?.intensity || effectiveMaxxisPreferences.animationIntensity)
         : MAXXIS_AVATAR_ANIMATION_INTENSITY.OFF,
       attentionReasonCode: avatarAttentionPolicy.reasonCode,
       transition: {
@@ -512,7 +542,17 @@ export function MaxxisAssistant({ page = 'dashboard', onOpenSupport = null, onNa
         at: devAvatarPresentation?.at || maxxisAvatarState.transition?.at,
       },
     };
-  }, [avatarAttentionPolicy, devAvatarPresentation, maxxisAvatarState]);
+  }, [avatarAttentionPolicy, devAvatarPresentation, effectiveMaxxisPreferences.animationIntensity, maxxisAvatarState]);
+
+  const handlePreferenceChange = useCallback((preferenceKey, value) => {
+    onChangeUserPreferences?.((previous) => ({
+      ...previous,
+      maxxis: {
+        ...(previous?.maxxis || {}),
+        [preferenceKey]: value,
+      },
+    }));
+  }, [onChangeUserPreferences]);
 
   const resetConversation = useCallback(() => {
     setMessages([{
@@ -1615,6 +1655,8 @@ export function MaxxisAssistant({ page = 'dashboard', onOpenSupport = null, onNa
       className={`maxxis-shell ${open ? 'maxxis-shell-open' : ''}`}
       data-maxxis-attention-reason={avatarAttentionPolicy.reasonCode}
       data-maxxis-attention-animation={avatarAttentionPolicy.allowAnimation ? 'allowed' : 'suppressed'}
+      data-maxxis-proactive={proactiveEnabled ? 'enabled' : 'disabled'}
+      data-maxxis-animation={effectiveMaxxisPreferences.animationEnabled ? 'enabled' : 'disabled'}
     >
       {open ? (
         <section className="maxxis-panel" data-testid="maxxis-panel" role="dialog" aria-modal="true" aria-label={t.title}>
@@ -1633,10 +1675,58 @@ export function MaxxisAssistant({ page = 'dashboard', onOpenSupport = null, onNa
               <button type="button" onClick={resetConversation} title={t.reset} aria-label={t.reset}>
                 <Icon name="rotateCcw" size={15} color="currentColor" strokeWidth={2} />
               </button>
+              <button
+                ref={preferencesButtonRef}
+                type="button"
+                data-testid="maxxis-preferences-button"
+                aria-label={preferencesCopy.openSettings}
+                aria-haspopup="dialog"
+                aria-expanded={preferencesOpen}
+                aria-controls="maxxis-preferences-popover"
+                title={preferencesCopy.openSettings}
+                onClick={() => setPreferencesOpen((current) => !current)}
+              >
+                <Icon name="tool" size={15} color="currentColor" strokeWidth={2} />
+              </button>
               <button type="button" onClick={() => setOpen(false)} title={t.close} aria-label={t.close}>
                 <Icon name="close" size={15} color="currentColor" strokeWidth={2} />
               </button>
             </div>
+            {preferencesOpen ? (
+              <div
+                ref={preferencesPanelRef}
+                id="maxxis-preferences-popover"
+                className="maxxis-preferences-popover"
+                data-testid="maxxis-preferences-popover"
+                role="dialog"
+                aria-modal="false"
+                aria-label={preferencesCopy.title}
+              >
+                <div className="maxxis-preferences-popover-title">{preferencesCopy.title}</div>
+                <MaxxisPreferencesControls
+                  preferences={maxxisPreferences}
+                  onChange={handlePreferenceChange}
+                  language={language}
+                  proactiveFeatureEnabled={proactiveFeatureEnabled}
+                  persistenceStatus={userPreferencesPersistenceStatus}
+                  surface="header"
+                  compact
+                />
+                {typeof onOpenPreferences === 'function' ? (
+                  <button
+                    type="button"
+                    className="maxxis-more-preferences"
+                    onClick={() => {
+                      setPreferencesOpen(false);
+                      setOpen(false);
+                      onOpenPreferences();
+                    }}
+                  >
+                    {preferencesCopy.moreSettings}
+                  </button>
+                ) : null}
+              </div>
+            ) : null}
           </header>
 
           <div className="maxxis-scope">{t.scope}</div>

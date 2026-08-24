@@ -1,7 +1,8 @@
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { isSupabaseConfigured } from '../lib/supabaseClient';
 import { USER_PREFERENCES_KEY } from '../lib/appSessionSecurity';
 import { normalizeUserPreferences } from '../domain/profile/userPreferences';
+import { captureAppException } from '../lib/observability';
 
 function readInitialPreferences() {
   if (isSupabaseConfigured) return normalizeUserPreferences(null);
@@ -13,15 +14,62 @@ function readInitialPreferences() {
   }
 }
 
-export function useUserPreferences() {
+export function useUserPreferences({ accountKey = '', persistPreferences = null } = {}) {
   const [userPreferences, setUserPreferences] = useState(readInitialPreferences);
+  const [persistenceStatus, setPersistenceStatus] = useState('idle');
+  const latestPreferencesRef = useRef(userPreferences);
+  const previousAccountKeyRef = useRef(String(accountKey || ''));
+  const persistPreferencesRef = useRef(persistPreferences);
+  const persistenceTimerRef = useRef(null);
+  persistPreferencesRef.current = persistPreferences;
+
+  useEffect(() => {
+    latestPreferencesRef.current = userPreferences;
+  }, [userPreferences]);
+
   const changeUserPreferences = useCallback((updater) => {
-    setUserPreferences((previous) => {
-      const base = normalizeUserPreferences(previous);
-      const next = typeof updater === 'function' ? updater(base) : updater;
-      return normalizeUserPreferences(next);
-    });
+    const base = normalizeUserPreferences(latestPreferencesRef.current);
+    const next = typeof updater === 'function' ? updater(base) : updater;
+    const normalized = normalizeUserPreferences(next);
+    latestPreferencesRef.current = normalized;
+    setUserPreferences(normalized);
+    setPersistenceStatus('saving');
+    if (persistenceTimerRef.current) window.clearTimeout(persistenceTimerRef.current);
+    persistenceTimerRef.current = window.setTimeout(async () => {
+      try {
+        if (typeof persistPreferencesRef.current === 'function') {
+          await persistPreferencesRef.current(normalized);
+        }
+        setPersistenceStatus('saved');
+      } catch (error) {
+        captureAppException(error, {
+          area: 'maxxis_preferences',
+          operation: 'persist_user_preferences',
+          preference_status: 'failed',
+        });
+        setPersistenceStatus('error');
+      } finally {
+        persistenceTimerRef.current = null;
+      }
+    }, 400);
   }, []);
+
+  useEffect(() => {
+    const nextAccountKey = String(accountKey || '');
+    if (previousAccountKeyRef.current === nextAccountKey) return;
+    previousAccountKeyRef.current = nextAccountKey;
+    const defaults = normalizeUserPreferences(null);
+    latestPreferencesRef.current = defaults;
+    if (persistenceTimerRef.current) {
+      window.clearTimeout(persistenceTimerRef.current);
+      persistenceTimerRef.current = null;
+    }
+    const resetId = window.setTimeout(() => {
+      setUserPreferences(defaults);
+      setPersistenceStatus('idle');
+    }, 0);
+    return () => window.clearTimeout(resetId);
+  }, [accountKey]);
 
   useEffect(() => {
     try {
@@ -31,5 +79,14 @@ export function useUserPreferences() {
     }
   }, [userPreferences]);
 
-  return { userPreferences, setUserPreferences, changeUserPreferences };
+  useEffect(() => () => {
+    if (persistenceTimerRef.current) window.clearTimeout(persistenceTimerRef.current);
+  }, []);
+
+  return {
+    userPreferences,
+    setUserPreferences,
+    changeUserPreferences,
+    persistenceStatus,
+  };
 }

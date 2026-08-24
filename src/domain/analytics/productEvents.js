@@ -30,6 +30,7 @@ export const PRODUCT_EVENTS = Object.freeze({
   maxxis_proactive_signal_suppressed: { stage: 'assistant' },
   maxxis_proactive_bubble_clicked: { stage: 'assistant' },
   maxxis_proactive_bubble_dismissed: { stage: 'assistant' },
+  maxxis_preference_changed: { stage: 'assistant' },
 });
 
 export const MAXXIS_DEAL_FUNNEL = Object.freeze([
@@ -62,4 +63,6 @@ export const SAFE_PRODUCT_PROPERTY_KEYS = Object.freeze([
   'reasonCode',
   'contextVersion',
   'duration_ms',
+  'preferenceKey',
+  'newValueCategory',
 ]);

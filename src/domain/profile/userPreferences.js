@@ -1,3 +1,8 @@
+import {
+  DEFAULT_MAXXIS_PREFERENCES,
+  normalizeMaxxisPreferences,
+} from '../../features/maxxis/preferences/maxxisPreferences';
+
 export const DEFAULT_USER_PREFERENCES = {
   map: {
     initialZoom: 4,
@@ -23,6 +28,7 @@ export const DEFAULT_USER_PREFERENCES = {
     readReceipts: true,
     messagePreview: true,
   },
+  maxxis: DEFAULT_MAXXIS_PREFERENCES,
 };
 
 export const normalizeUserPreferences = (value) => {
@@ -32,6 +38,7 @@ export const normalizeUserPreferences = (value) => {
   const feedMatches = input.feedMatches && typeof input.feedMatches === 'object' ? input.feedMatches : {};
   const chatLanguage = input.chatLanguage && typeof input.chatLanguage === 'object' ? input.chatLanguage : {};
   const privacy = input.privacy && typeof input.privacy === 'object' ? input.privacy : {};
+  const maxxis = normalizeMaxxisPreferences(input.maxxis);
   const initialZoomRaw = Number(map.initialZoom);
   const initialZoom = Number.isFinite(initialZoomRaw) ? Math.max(3, Math.min(13, initialZoomRaw)) : DEFAULT_USER_PREFERENCES.map.initialZoom;
   const rawDefaultStyle = String(map.defaultStyle || '').trim();
@@ -73,5 +80,6 @@ export const normalizeUserPreferences = (value) => {
       readReceipts: Boolean(privacy.readReceipts ?? DEFAULT_USER_PREFERENCES.privacy.readReceipts),
       messagePreview: Boolean(privacy.messagePreview ?? DEFAULT_USER_PREFERENCES.privacy.messagePreview),
     },
+    maxxis,
   };
 };

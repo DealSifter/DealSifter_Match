@@ -103,6 +103,7 @@ import { useChatRealtime } from './hooks/useChatRealtime';
 import { useUnlockNotifications } from './hooks/useUnlockNotifications';
 import { useAppSessionLifecycle } from './hooks/useAppSessionLifecycle';
 import { useUserPreferences } from './hooks/useUserPreferences';
+import { fetchFeatureFlags, isFeatureEnabled } from './services/featureFlagService';
 import { canPerformAction, getPlanActionAccess, getPlanGateCopy, getCurrentPlan, isPlanLimitError, refreshUsageFromDB, resolveRemainingNuggets } from './services/planUsageService';
 import { isProfileConflictError, saveProfessionalProfileWithVersion } from './services/profileConcurrencyService';
 import { clearSensitiveCache, clearUserScopedCache } from './lib/localStoragePolicy';
@@ -220,6 +221,7 @@ import {
 } from './lib/appSessionSecurity';
 
 import { DEFAULT_USER_PREFERENCES, normalizeUserPreferences } from './domain/profile/userPreferences';
+import { readMaxxisProactiveFlagOverrides } from './features/maxxis/preferences/maxxisPreferences';
 
 // Keys whose full (media-inclusive) version is stored in localforage (IndexedDB)
 // instead of localStorage to avoid the ~5MB quota limit.
@@ -940,11 +942,58 @@ export default function App() {
       return { fullName: '', email: '', phone: '', paymentSetupComplete: false };
     }
   });
+  const preferenceAccountKey = String(authSession?.userId || authSession?.id || '');
+  const persistUserPreferences = useCallback(async (nextPreferences) => {
+    if (!isSupabaseConfigured || !supabase || !preferenceAccountKey) return;
+    const { data: currentRow, error: readError } = await supabase
+      .from('users')
+      .select('settings_payload')
+      .eq('id', preferenceAccountKey)
+      .maybeSingle();
+    if (readError) throw readError;
+    const currentPayload = currentRow?.settings_payload && typeof currentRow.settings_payload === 'object'
+      ? currentRow.settings_payload
+      : {};
+    const { error: updateError } = await supabase
+      .from('users')
+      .update({
+        settings_payload: {
+          ...currentPayload,
+          version: Math.max(1, Number(currentPayload.version || 1)),
+          savedAt: new Date().toISOString(),
+          userPreferences: normalizeUserPreferences(nextPreferences),
+        },
+      })
+      .eq('id', preferenceAccountKey);
+    if (updateError) throw updateError;
+  }, [preferenceAccountKey]);
   const {
     userPreferences,
     setUserPreferences,
     changeUserPreferences: handleChangeUserPreferences,
-  } = useUserPreferences();
+    persistenceStatus: userPreferencesPersistenceStatus,
+  } = useUserPreferences({
+    accountKey: preferenceAccountKey,
+    persistPreferences: persistUserPreferences,
+  });
+  const [maxxisProactiveFeatureEnabled, setMaxxisProactiveFeatureEnabled] = useState(false);
+  useEffect(() => {
+    let cancelled = false;
+    if (!preferenceAccountKey) {
+      setMaxxisProactiveFeatureEnabled(false);
+      return undefined;
+    }
+    fetchFeatureFlags({ overrides: readMaxxisProactiveFlagOverrides() })
+      .then((snapshot) => {
+        if (!cancelled) {
+          setMaxxisProactiveFeatureEnabled(isFeatureEnabled(snapshot, 'maxxis_proactive_insights'));
+        }
+      })
+      .catch(() => {
+        if (!cancelled) setMaxxisProactiveFeatureEnabled(false);
+      });
+    return () => { cancelled = true; };
+  }, [preferenceAccountKey]);
   const [isAdmin, setIsAdmin] = useState(false);
   const handleUserLogoutRef = useRef(null);
   const lastActivityRef = useRef(0);
@@ -5528,6 +5577,9 @@ export default function App() {
             onContinuePendingCheckout={handleContinuePendingCheckout}
             userPreferences={userPreferences}
             onChangeUserPreferences={handleChangeUserPreferences}
+            onHydrateUserPreferences={setUserPreferences}
+            userPreferencesPersistenceStatus={userPreferencesPersistenceStatus}
+            maxxisProactiveFeatureEnabled={maxxisProactiveFeatureEnabled}
           />
         );
       case 'admin':
@@ -5727,6 +5779,11 @@ export default function App() {
                 onProviderUnlockConfirmed={() => {
                   void fetchRemoteUnlockState();
                 }}
+                userPreferences={userPreferences}
+                onChangeUserPreferences={handleChangeUserPreferences}
+                userPreferencesPersistenceStatus={userPreferencesPersistenceStatus}
+                proactiveFeatureEnabled={maxxisProactiveFeatureEnabled}
+                onOpenPreferences={() => openSettingsTab('preferences')}
               />
             </Suspense>
           </>
