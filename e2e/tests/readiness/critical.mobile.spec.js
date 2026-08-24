@@ -14,6 +14,10 @@ async function expectNoHorizontalOverflow(page, context) {
 test('mobile navigation, cards, onboarding and Maxxis remain usable without clipping', async ({ page, mockBackend }) => {
   await page.addInitScript(({ ids }) => {
     window.localStorage.setItem('ds_e2e_maxxis_proactive', '1');
+    window.localStorage.setItem('ds_e2e_maxxis_attention', JSON.stringify({
+      mobileKeyboardOpen: true,
+      mobileViewportCongested: true,
+    }));
     window.localStorage.setItem('ds_e2e_maxxis_proactive_events', JSON.stringify([{
       code: 'PROVIDER_REPLIED',
       entityType: 'SERVICE',
@@ -51,6 +55,11 @@ test('mobile navigation, cards, onboarding and Maxxis remain usable without clip
   if (await guideDialog.isVisible().catch(() => false)) {
     await guideDialog.getByRole('button', { name: /Close guide/i }).click();
   }
+  await expect(page.getByTestId('maxxis-proactive-bubble')).toBeHidden();
+  await page.evaluate(() => {
+    window.localStorage.removeItem('ds_e2e_maxxis_attention');
+    window.dispatchEvent(new Event('ds:e2e:maxxis-attention'));
+  });
   await expect(page.getByTestId('feed-stack')).toBeVisible();
   await expectNoHorizontalOverflow(page, 'dashboard');
 

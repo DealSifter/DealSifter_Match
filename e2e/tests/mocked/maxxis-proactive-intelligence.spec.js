@@ -27,6 +27,20 @@ async function enableProactive(page, events = []) {
   }, { proactiveEvents: events });
 }
 
+async function setAttentionOverride(page, value) {
+  await page.evaluate((override) => {
+    if (override) window.localStorage.setItem('ds_e2e_maxxis_attention', JSON.stringify(override));
+    else window.localStorage.removeItem('ds_e2e_maxxis_attention');
+    window.dispatchEvent(new Event('ds:e2e:maxxis-attention'));
+  }, value);
+}
+
+async function initializeAttentionOverride(page, value) {
+  await page.addInitScript((override) => {
+    window.localStorage.setItem('ds_e2e_maxxis_attention', JSON.stringify(override));
+  }, value);
+}
+
 function providerReplyEvent(dedupeKey = 'provider-reply-wow') {
   return {
     code: 'PROVIDER_REPLIED',
@@ -100,5 +114,38 @@ test.describe('Maxxis proactive intelligence', () => {
     await openMaxxis(page);
     await expect(page.getByTestId('maxxis-panel')).toBeVisible();
     await expect(page.getByTestId('maxxis-proactive-bubble')).toBeHidden();
+  });
+
+  test('defers a provider reply during a critical modal and re-evaluates it when the modal closes', async ({ page, mockBackend }) => {
+    await enableProactive(page, [providerReplyEvent('modal-deferred')]);
+    await initializeAttentionOverride(page, { activeModal: 'checkout', criticalModalOpen: true });
+    await loginAs(page, mockBackend.users.investor);
+
+    await expect(page.getByTestId('maxxis-proactive-bubble')).toBeHidden();
+    await setAttentionOverride(page, null);
+    await expect(page.getByTestId('maxxis-proactive-bubble')).toContainText('Your provider replied.');
+    expect(mockBackend.state.messagesSent).toBe(0);
+  });
+
+  test('keeps external attention quiet while the user types in human chat', async ({ page, mockBackend }) => {
+    await enableProactive(page, [providerReplyEvent('typing-deferred')]);
+    await initializeAttentionOverride(page, { userTyping: true, currentSubview: 'human_chat' });
+    await loginAs(page, mockBackend.users.investor);
+
+    await expect(page.getByTestId('maxxis-proactive-bubble')).toBeHidden();
+    await setAttentionOverride(page, null);
+    await expect(page.getByTestId('maxxis-proactive-bubble')).toBeVisible();
+    expect(mockBackend.state.messagesSent).toBe(0);
+  });
+
+  test('does not let a proactive bubble compete with SUCCESS feedback', async ({ page, mockBackend }) => {
+    await enableProactive(page, [providerReplyEvent('success-deferred')]);
+    await initializeAttentionOverride(page, { avatarState: 'SUCCESS' });
+    await loginAs(page, mockBackend.users.investor);
+
+    await expect(page.getByTestId('maxxis-proactive-bubble')).toBeHidden();
+    await setAttentionOverride(page, null);
+    await expect(page.getByTestId('maxxis-proactive-bubble')).toBeVisible();
+    expect(mockBackend.state.messagesSent).toBe(0);
   });
 });
