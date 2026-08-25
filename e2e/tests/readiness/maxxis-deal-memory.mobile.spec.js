@@ -13,7 +13,7 @@ test('Maxxis deal memory recall and explicit forget confirmation fit the mobile 
   await loginBaseline(page, mockBackend.users.investor);
   mockBackend.state.maxxisProviderReplied = true;
   await openDealAndRecallMemory(page, { selectDeal: false });
-  await expect(page.getByTestId('maxxis-memory-recall')).toBeInViewport();
+  await expect(page.getByTestId('maxxis-composed-memory_recall')).toBeInViewport();
   await expect(page.getByTestId('maxxis-followup-memory_what_changed')).toBeInViewport();
   await expect.poll(() => page.evaluate(() => document.documentElement.scrollWidth <= document.documentElement.clientWidth + 1)).toBe(true);
 

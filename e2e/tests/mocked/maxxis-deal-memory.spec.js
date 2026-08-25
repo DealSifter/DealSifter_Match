@@ -27,7 +27,7 @@ test('Maxxis recalls a deal in a later session, reports structured changes and f
   await selectBaselineProperty(page);
   await openMaxxis(page);
   await send(page, 'How is this deal?');
-  await expect(page.getByTestId('maxxis-messages')).toContainText('Deal snapshot');
+  await expect(page.getByTestId('maxxis-composed-analysis')).toContainText('Here is the current deal review.');
 
   const checkpointState = await page.evaluate(({ userId }) => {
     const raw = localStorage.getItem(`ds_maxxis_deal_memory_v1:${userId}`);
@@ -53,11 +53,11 @@ test('Maxxis recalls a deal in a later session, reports structured changes and f
   await openMaxxis(page);
   await send(page, 'Where were we?');
 
-  const recall = page.getByTestId('maxxis-memory-recall');
+  const recall = page.getByTestId('maxxis-composed-memory_recall');
   await expect(recall).toBeVisible();
   await expect(recall).toContainText('Provider Reply Detected');
-  await expect(page.getByTestId('maxxis-memory-current-open')).toContainText('Inspection Completed');
-  await expect(page.getByTestId('maxxis-memory-next-step')).toContainText('Review Provider Reply');
+  await expect(recall).toContainText('Inspection Completed');
+  await expect(recall).toContainText('Review Provider Reply');
   await expect(page.getByTestId('maxxis-followup-memory_what_changed')).toBeVisible();
   await expect(page.getByTestId('maxxis-followup-memory_still_open')).toBeVisible();
 

@@ -27,7 +27,7 @@ test('Maxxis memory recall and forget confirmation are labelled and keyboard ope
   await loginBaseline(page, mockBackend.users.investor);
   mockBackend.state.maxxisProviderReplied = true;
   await openDealAndRecallMemory(page, { selectDeal: false });
-  await expectNoSeriousStructuralViolations(page, '[data-testid="maxxis-memory-recall"]');
+  await expectNoSeriousStructuralViolations(page, '[data-testid="maxxis-composed-memory_recall"]');
   await page.getByTestId('maxxis-followup-memory_what_changed').focus();
   await expect(page.getByTestId('maxxis-followup-memory_what_changed')).toBeFocused();
 

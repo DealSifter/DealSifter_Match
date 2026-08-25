@@ -80,7 +80,7 @@ test.describe('Maxxis proactive intelligence', () => {
 
     await expect(page.getByTestId('maxxis-panel')).toBeVisible();
     await expect(page.getByTestId('maxxis-avatar-header')).toHaveAttribute('data-avatar-state', 'OBSERVING');
-    await expect(page.getByTestId('maxxis-messages')).toContainText('Provider reply context loaded.');
+    await expect(page.getByTestId('maxxis-composed-provider_review')).toContainText('Your provider replied.');
     await expect(page.getByTestId('maxxis-smart-action-REVIEW_PROVIDER_REPLY')).toBeVisible();
     expect(mockBackend.state.messagesSent).toBe(0);
     expect(functionRequests).toEqual([]);

@@ -28,8 +28,7 @@ test('desktop Maxxis deal memory recall, changes and forget confirmation', async
   await loginBaseline(page, mockBackend.users.investor);
   mockBackend.state.maxxisProviderReplied = true;
   await openDealAndRecallMemory(page, { selectDeal: false });
-  await capture(page, 'desktop-29-maxxis-memory-recall.png');
-  await expect(page.getByTestId('maxxis-memory-changes')).toHaveScreenshot('desktop-30-maxxis-memory-what-changed.png');
+  await expect(page.getByTestId('maxxis-composed-memory_recall')).toHaveScreenshot('desktop-maxxis-composed-memory.png');
 
   await page.getByTestId('maxxis-input').fill('Forget this deal memory');
   await page.getByTestId('maxxis-send').click({ force: true });
@@ -47,7 +46,7 @@ test('mobile Maxxis deal memory remains usable', async ({ page, mockBackend }, t
   await loginBaseline(page, mockBackend.users.investor);
   mockBackend.state.maxxisProviderReplied = true;
   await openDealAndRecallMemory(page, { selectDeal: false });
-  await expect(page.getByTestId('maxxis-memory-recall')).toBeInViewport();
+  await expect(page.getByTestId('maxxis-composed-memory_recall')).toBeInViewport();
   await expect(page.getByTestId('maxxis-followup-memory_what_changed')).toBeInViewport();
-  await capture(page, 'mobile-09-maxxis-memory-recall.png');
+  await expect(page.getByTestId('maxxis-composed-memory_recall')).toHaveScreenshot('mobile-maxxis-composed-memory.png');
 });

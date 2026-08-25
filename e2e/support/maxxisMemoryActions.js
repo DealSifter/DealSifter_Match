@@ -50,5 +50,5 @@ export async function openDealAndRecallMemory(page, { selectDeal = true } = {}) 
   const response = page.waitForResponse((item) => item.url().includes('/functions/v1/maxxis-chat'));
   await page.getByTestId('maxxis-send').click({ force: true });
   await response;
-  await expect(page.getByTestId('maxxis-memory-recall')).toBeVisible();
+  await expect(page.getByTestId('maxxis-composed-memory_recall')).toBeVisible();
 }

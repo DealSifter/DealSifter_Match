@@ -17,7 +17,7 @@ test('orchestrates analysis to provider reply review as one dominant experience'
   await openMaxxis(page);
   await page.getByTestId('maxxis-input').fill('How is this deal?');
   await page.getByTestId('maxxis-send').click({ force: true });
-  await expect(page.getByTestId('maxxis-messages')).toContainText('Deal snapshot');
+  await expect(page.getByTestId('maxxis-composed-analysis')).toContainText('Here is the current deal review.');
   await expect(page.getByTestId('maxxis-smart-action-REVIEW_NEXT_STEP')).toHaveCount(1);
 
   await page.evaluate(({ propertyId, serviceId }) => {
@@ -39,7 +39,9 @@ test('orchestrates analysis to provider reply review as one dominant experience'
   await expect(page.getByTestId('maxxis-proactive-bubble')).toHaveCount(1);
   await page.getByTestId('maxxis-proactive-review').evaluate((element) => element.click());
   await expect(page.getByTestId('maxxis-panel')).toBeVisible();
-  await expect(page.getByTestId('maxxis-messages')).toContainText('Provider reply context loaded.');
+  const providerExperience = page.getByTestId('maxxis-composed-provider_review');
+  await expect(providerExperience).toContainText('Your provider replied.');
+  await expect(providerExperience).not.toContainText('current deal review');
   await expect(page.getByTestId('maxxis-smart-action-REVIEW_PROVIDER_REPLY')).toHaveCount(1);
   await page.getByTestId('maxxis-smart-action-REVIEW_PROVIDER_REPLY').click();
   await expect(page.getByTestId('maxxis-messages')).toContainText('Conversation Summary');

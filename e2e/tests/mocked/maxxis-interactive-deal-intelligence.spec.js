@@ -22,13 +22,13 @@ test.describe('Maxxis interactive deal intelligence', () => {
     });
 
     await askMaxxis(page, 'How is this deal?');
-    await expect(page.getByTestId('maxxis-messages')).toContainText('Deal snapshot');
-    await expect(page.getByTestId('maxxis-followup-deal_gaps')).toBeVisible();
+    await expect(page.getByTestId('maxxis-composed-analysis')).toContainText('Here is the current deal review.');
+    await expect(page.getByTestId('maxxis-smart-action-VIEW_DEAL_GAPS')).toBeVisible();
     expect(maxxisChatRequests).toBe(1);
 
-    await page.getByTestId('maxxis-followup-deal_gaps').click();
-    await expect(page.getByTestId('maxxis-messages')).toContainText('What is missing');
-    await expect(page.getByTestId('maxxis-messages')).toContainText('Workflow');
+    await page.getByTestId('maxxis-smart-action-VIEW_DEAL_GAPS').click();
+    await expect(page.getByTestId('maxxis-composed-analysis').last()).toContainText('important details are still missing');
+    await expect(page.getByTestId('maxxis-composed-analysis').last().locator('.maxxis-composed-facts li')).toHaveCount(3);
     expect(maxxisChatRequests).toBe(1);
   });
 });
