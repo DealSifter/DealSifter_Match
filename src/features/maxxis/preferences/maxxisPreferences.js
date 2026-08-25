@@ -58,13 +58,13 @@ export function getMaxxisPreferenceValueCategory(key, value) {
 export function readMaxxisProactiveFlagOverrides() {
   if (!import.meta.env.DEV || typeof window === 'undefined') return null;
   try {
-    if (window.localStorage.getItem('ds_e2e_maxxis_proactive') === '1') {
-      return { maxxis_proactive_insights: true };
-    }
     const raw = window.localStorage.getItem('ds_feature_flag_overrides');
-    if (!raw) return null;
-    const parsed = JSON.parse(raw);
-    return parsed && typeof parsed === 'object' && !Array.isArray(parsed) ? parsed : null;
+    const parsed = raw ? JSON.parse(raw) : null;
+    const overrides = parsed && typeof parsed === 'object' && !Array.isArray(parsed) ? parsed : {};
+    if (window.localStorage.getItem('ds_e2e_maxxis_proactive') === '1') {
+      return { ...overrides, maxxis_proactive_insights: true };
+    }
+    return Object.keys(overrides).length ? overrides : null;
   } catch {
     return null;
   }

@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import {
   buildMaxxisSmartActions,
+  dedupeMaxxisSmartActionsByLatestMessage,
   findSmartActionTargetService,
   safeSmartActionAnalytics,
 } from './maxxisSmartActions';
@@ -116,5 +117,23 @@ describe('Maxxis smart actions eligibility', () => {
       duration_ms: 25,
     }));
     expect(JSON.stringify(safe)).not.toMatch(/secret|email|phone|body/i);
+  });
+
+  it('keeps only the latest equivalent action for the same target across messages', () => {
+    const review = {
+      code: 'REVIEW_PROVIDER_REPLY',
+      capability: 'provider_conversation_analysis',
+      target: { propertyId: PROPERTY_ID, serviceId: SERVICE_ID },
+    };
+    const otherProperty = '33333333-3333-4333-8333-333333333333';
+    const visible = dedupeMaxxisSmartActionsByLatestMessage([
+      { messageId: 'older', actions: [review] },
+      { messageId: 'newer', actions: [{ ...review }] },
+      { messageId: 'other-property', actions: [{ ...review, target: { ...review.target, propertyId: otherProperty } }] },
+    ]);
+
+    expect(visible.older).toEqual([]);
+    expect(visible.newer).toEqual([review]);
+    expect(visible['other-property']).toHaveLength(1);
   });
 });

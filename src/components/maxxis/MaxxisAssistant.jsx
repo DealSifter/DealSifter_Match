@@ -34,6 +34,7 @@ import {
 } from '../../features/maxxis/intelligence/maxxisDealIntelligence';
 import {
   buildMaxxisSmartActions,
+  dedupeMaxxisSmartActionsByLatestMessage,
   findSmartActionTargetService,
   safeSmartActionAnalytics,
 } from '../../features/maxxis/actions/maxxisSmartActions';
@@ -1648,7 +1649,11 @@ export function MaxxisAssistant({ page = 'dashboard', onOpenSupport = null, onNa
     return [decision.primaryAction, ...decision.secondaryActions].filter(Boolean);
   }, [effectiveMaxxisPreferences, enabled, language, maxxisContinuityResolution.context, open, pendingProviderUnlock]);
 
-  const getMessageComposedExperience = useCallback((message) => {
+  const visibleSmartActionsByMessageId = useMemo(() => dedupeMaxxisSmartActionsByLatestMessage(
+    messages.map((message) => ({ messageId: message.id, actions: getMessageSmartActions(message) })),
+  ), [getMessageSmartActions, messages]);
+
+  const getMessageComposedExperience = useCallback((message, smartActions = []) => {
     if (message?.analysisExport) return null;
     const unlockConfirmation = pendingProviderUnlock?.messageId === message?.id;
     const messageConfirmation = pendingProviderMessageSend?.messageId === message?.id;
@@ -1671,7 +1676,7 @@ export function MaxxisAssistant({ page = 'dashboard', onOpenSupport = null, onNa
       maxxisEnabled: enabled,
       maxxisOpen: open,
       ...bridge.orchestrationInput,
-      smartActions: getMessageSmartActions(message),
+      smartActions,
       preferences: effectiveMaxxisPreferences,
       continuityContext: maxxisContinuityResolution.context,
     });
@@ -1683,12 +1688,12 @@ export function MaxxisAssistant({ page = 'dashboard', onOpenSupport = null, onNa
       density: message.compositionDensity,
     });
     return composition.status === 'COMPOSED' ? composition : null;
-  }, [effectiveMaxxisPreferences, enabled, getMessageSmartActions, language, maxxisContinuityResolution.context, open, pendingProviderMessageSend, pendingProviderUnlock]);
+  }, [effectiveMaxxisPreferences, enabled, language, maxxisContinuityResolution.context, open, pendingProviderMessageSend, pendingProviderUnlock]);
 
   useEffect(() => {
     messages.forEach((message) => {
       if (!message?.smartActionsEnabled) return;
-      getMessageSmartActions(message).forEach((action) => {
+      (visibleSmartActionsByMessageId[message.id] || []).forEach((action) => {
         const key = `${message.id}:${action.code}:${action.state}`;
         if (seenSmartActionsRef.current.has(key)) return;
         seenSmartActionsRef.current.add(key);
@@ -1704,7 +1709,7 @@ export function MaxxisAssistant({ page = 'dashboard', onOpenSupport = null, onNa
         });
       });
     });
-  }, [getMessageSmartActions, maxxisContextSnapshot.contextVersion, messages, page, propertyContextId]);
+  }, [maxxisContextSnapshot.contextVersion, messages, page, propertyContextId, visibleSmartActionsByMessageId]);
 
   const latestStructuredDealMessage = useCallback(() => {
     for (let index = messages.length - 1; index >= 0; index -= 1) {
@@ -2196,45 +2201,48 @@ export function MaxxisAssistant({ page = 'dashboard', onOpenSupport = null, onNa
           <div className="maxxis-scope">{t.scope}</div>
 
           <div className="maxxis-messages" data-testid="maxxis-messages">
-            {messages.map((message) => (
-              <MessageBubble
-                key={message.id}
-                message={message}
-                language={language}
-                onAction={handleAction}
-                onConfirmProfileSuggestion={handleConfirmProfileSuggestion}
-                onCancelProfileSuggestion={handleCancelProfileSuggestion}
-                activeProfileActionId={activeProfileActionId}
-                activeProviderUnlockId={activeProviderUnlockId}
-                activeProviderDraftId={activeProviderDraftId}
-                activeProviderMessageSendId={activeProviderMessageSendId}
-                activeProviderConversationAnalysisId={activeProviderConversationAnalysisId}
-                activeWorkflowItemCode={activeWorkflowItemCode}
-                pendingProviderUnlock={pendingProviderUnlock}
-                pendingProviderMessageSend={pendingProviderMessageSend}
-                onPrepareProviderUnlock={handlePrepareProviderUnlock}
-                onConfirmProviderUnlock={handleConfirmProviderUnlock}
-                onCancelProviderUnlock={handleCancelProviderUnlock}
-                onPrepareProviderMessageDraft={handlePrepareProviderMessageDraft}
-                onPrepareProviderMessageSend={handlePrepareProviderMessageSend}
-                onConfirmProviderMessageSend={handleConfirmProviderMessageSend}
-                onCancelProviderMessageSend={handleCancelProviderMessageSend}
-                onAnalyzeProviderConversation={handleAnalyzeProviderConversation}
-                onUpdateProviderMessageDraft={handleUpdateProviderMessageDraft}
-                onUpdateProviderConversationSuggestedReply={handleUpdateProviderConversationSuggestedReply}
-                onToggleWorkflowManualItem={handleToggleWorkflowManualItem}
-                onDealFollowUp={handleDealFollowUp}
-                smartActions={getMessageSmartActions(message)}
-                onSmartAction={handleSmartAction}
-                onExportAnalysisPdf={handleExportAnalysisPdf}
-                exportAnalysisLabel={t.exportAnalysisPdf}
-                exportingAnalysisLabel={t.exportingAnalysisPdf}
-                isExportingAnalysis={exportingAnalysisId === message.id}
-                onConfirmMemoryForget={handleConfirmMemoryForget}
-                onCancelMemoryForget={handleCancelMemoryForget}
-                composedExperience={getMessageComposedExperience(message)}
-              />
-            ))}
+            {messages.map((message) => {
+              const smartActions = visibleSmartActionsByMessageId[message.id] || [];
+              return (
+                <MessageBubble
+                  key={message.id}
+                  message={message}
+                  language={language}
+                  onAction={handleAction}
+                  onConfirmProfileSuggestion={handleConfirmProfileSuggestion}
+                  onCancelProfileSuggestion={handleCancelProfileSuggestion}
+                  activeProfileActionId={activeProfileActionId}
+                  activeProviderUnlockId={activeProviderUnlockId}
+                  activeProviderDraftId={activeProviderDraftId}
+                  activeProviderMessageSendId={activeProviderMessageSendId}
+                  activeProviderConversationAnalysisId={activeProviderConversationAnalysisId}
+                  activeWorkflowItemCode={activeWorkflowItemCode}
+                  pendingProviderUnlock={pendingProviderUnlock}
+                  pendingProviderMessageSend={pendingProviderMessageSend}
+                  onPrepareProviderUnlock={handlePrepareProviderUnlock}
+                  onConfirmProviderUnlock={handleConfirmProviderUnlock}
+                  onCancelProviderUnlock={handleCancelProviderUnlock}
+                  onPrepareProviderMessageDraft={handlePrepareProviderMessageDraft}
+                  onPrepareProviderMessageSend={handlePrepareProviderMessageSend}
+                  onConfirmProviderMessageSend={handleConfirmProviderMessageSend}
+                  onCancelProviderMessageSend={handleCancelProviderMessageSend}
+                  onAnalyzeProviderConversation={handleAnalyzeProviderConversation}
+                  onUpdateProviderMessageDraft={handleUpdateProviderMessageDraft}
+                  onUpdateProviderConversationSuggestedReply={handleUpdateProviderConversationSuggestedReply}
+                  onToggleWorkflowManualItem={handleToggleWorkflowManualItem}
+                  onDealFollowUp={handleDealFollowUp}
+                  smartActions={smartActions}
+                  onSmartAction={handleSmartAction}
+                  onExportAnalysisPdf={handleExportAnalysisPdf}
+                  exportAnalysisLabel={t.exportAnalysisPdf}
+                  exportingAnalysisLabel={t.exportingAnalysisPdf}
+                  isExportingAnalysis={exportingAnalysisId === message.id}
+                  onConfirmMemoryForget={handleConfirmMemoryForget}
+                  onCancelMemoryForget={handleCancelMemoryForget}
+                  composedExperience={getMessageComposedExperience(message, smartActions)}
+                />
+              );
+            })}
             {loading ? (
               <div className="maxxis-message maxxis-message-assistant">
                 <div className="maxxis-typing" aria-label={t.typing}>

@@ -276,6 +276,33 @@ export function findSmartActionTargetService(sourceInput = {}, action = {}) {
   return firstLoadedService(source);
 }
 
+function smartActionVisibilityKey(action = {}) {
+  const target = action.target || {};
+  return [
+    String(action.capability || action.code || '').trim(),
+    String(target.propertyId || '').trim(),
+    String(target.serviceId || '').trim(),
+    String(target.conversationId || '').trim(),
+  ].join(':');
+}
+
+export function dedupeMaxxisSmartActionsByLatestMessage(entries = []) {
+  const visibleByMessageId = {};
+  const claimed = new Set();
+  for (let index = asArray(entries).length - 1; index >= 0; index -= 1) {
+    const entry = entries[index] || {};
+    const messageId = String(entry.messageId || '').trim();
+    if (!messageId) continue;
+    visibleByMessageId[messageId] = Object.freeze(asArray(entry.actions).filter((action) => {
+      const key = smartActionVisibilityKey(action);
+      if (!key || claimed.has(key)) return false;
+      claimed.add(key);
+      return true;
+    }));
+  }
+  return Object.freeze(visibleByMessageId);
+}
+
 export function safeSmartActionAnalytics(action = {}, extra = {}) {
   return {
     action_code: String(action?.code || '').slice(0, 80),
