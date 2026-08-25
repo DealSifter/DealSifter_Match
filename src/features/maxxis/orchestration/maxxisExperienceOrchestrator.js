@@ -1,4 +1,6 @@
 import { MAXXIS_AVATAR_STATES } from '../avatar/maxxisAvatarStates';
+import { selectMaxxisNextInteraction } from '../nextInteraction/maxxisNextInteractionEngine';
+import { MAXXIS_NEXT_INTERACTION_TYPES } from '../nextInteraction/maxxisNextInteractionRules';
 import {
   MAXXIS_EXPERIENCE_ACTION_PHASES,
   MAXXIS_EXPERIENCE_ATTENTION,
@@ -92,6 +94,14 @@ function derivedContents(input) {
       semanticKey: `ACTION:${token(input.actionState.code || input.actionState.actionCode || 'CURRENT')}`,
     });
   }
+  if (input.nextInteraction?.interactionType === MAXXIS_NEXT_INTERACTION_TYPES.REVIEW_PROVIDERS) {
+    append(input.nextInteraction, 'NEXT_BEST_ACTION', {
+      source: 'CURRENT',
+      priority: Number(input.nextInteraction.priority || 50),
+      requiredCapability: input.nextInteraction.suggestedAction?.capability || 'PROVIDER_MATCHES',
+      semanticKey: input.nextInteraction.semanticKey,
+    });
+  }
   return contents.filter(Boolean);
 }
 
@@ -126,6 +136,7 @@ function normalizeAction(action) {
 function selectActions(input, mode) {
   if ([MAXXIS_EXPERIENCE_MODES.PASSIVE, MAXXIS_EXPERIENCE_MODES.ACTION_CONFIRMATION].includes(mode)) return [];
   const switches = input.killSwitches || {};
+  const preferredCode = token(input.nextInteraction?.suggestedAction?.code, 60);
   const seen = new Set();
   return [...list(input.smartActions), ...(input.nextBestAction?.action ? [input.nextBestAction.action] : [])]
     .map(normalizeAction)
@@ -137,7 +148,8 @@ function selectActions(input, mode) {
       seen.add(action.semanticKey);
       return true;
     })
-    .sort((left, right) => right.priority - left.priority || left.code.localeCompare(right.code))
+    .sort((left, right) => Number(right.code === preferredCode) - Number(left.code === preferredCode)
+      || right.priority - left.priority || left.code.localeCompare(right.code))
     .slice(0, 1 + MAXXIS_EXPERIENCE_LIMITS.SECONDARY_ACTIONS);
 }
 
@@ -149,6 +161,21 @@ function explicitMode(intent = {}) {
   if (/COMPARE|COMPARISON/.test(code)) return MAXXIS_EXPERIENCE_MODES.COMPARISON;
   if (/STATUS|ANALYSIS|METRIC|CAP_RATE|DEAL_GAP|SNAPSHOT/.test(code)) return MAXXIS_EXPERIENCE_MODES.ANALYSIS;
   return MAXXIS_EXPERIENCE_MODES.CONTEXTUAL;
+}
+
+function nextInteractionMode(nextInteraction = {}, input = {}) {
+  const type = token(nextInteraction.interactionType, 60);
+  if (type === MAXXIS_NEXT_INTERACTION_TYPES.REVIEW_PROVIDER_REPLY) {
+    return input.maxxisOpen ? MAXXIS_EXPERIENCE_MODES.PROVIDER_REVIEW : MAXXIS_EXPERIENCE_MODES.CHANGE_REVIEW;
+  }
+  if ([MAXXIS_NEXT_INTERACTION_TYPES.REVIEW_CHANGE, MAXXIS_NEXT_INTERACTION_TYPES.REVIEW_DEAL_GAP].includes(type)) return MAXXIS_EXPERIENCE_MODES.CHANGE_REVIEW;
+  if (type === MAXXIS_NEXT_INTERACTION_TYPES.REVIEW_PENDING_ACTION) return MAXXIS_EXPERIENCE_MODES.ACTION_CONFIRMATION;
+  if (type === MAXXIS_NEXT_INTERACTION_TYPES.CONTINUE_WORKFLOW) return MAXXIS_EXPERIENCE_MODES.WORKFLOW_REVIEW;
+  if ([MAXXIS_NEXT_INTERACTION_TYPES.REVIEW_PROVIDERS, MAXXIS_NEXT_INTERACTION_TYPES.EXPLAIN_METRIC, MAXXIS_NEXT_INTERACTION_TYPES.REVIEW_UNLOCK].includes(type)) return MAXXIS_EXPERIENCE_MODES.ANALYSIS;
+  if (type === MAXXIS_NEXT_INTERACTION_TYPES.PREPARE_MESSAGE) return MAXXIS_EXPERIENCE_MODES.ACTION_PREPARATION;
+  if (type === MAXXIS_NEXT_INTERACTION_TYPES.RESUME_CONTEXT) return MAXXIS_EXPERIENCE_MODES.MEMORY_RECALL;
+  if (type === MAXXIS_NEXT_INTERACTION_TYPES.REVIEW_COMPARISON) return MAXXIS_EXPERIENCE_MODES.COMPARISON;
+  return MAXXIS_EXPERIENCE_MODES.PASSIVE;
 }
 
 function decisionMode(input, contents) {
@@ -168,6 +195,9 @@ function decisionMode(input, contents) {
     return [mode, mode === MAXXIS_EXPERIENCE_MODES.MEMORY_RECALL
       ? MAXXIS_EXPERIENCE_REASONS.MEMORY_REQUESTED
       : MAXXIS_EXPERIENCE_REASONS.EXPLICIT_USER_INTENT];
+  }
+  if (input.nextInteraction?.interactionType && input.nextInteraction.interactionType !== MAXXIS_NEXT_INTERACTION_TYPES.PASSIVE) {
+    return [nextInteractionMode(input.nextInteraction, input), MAXXIS_EXPERIENCE_REASONS.NEXT_INTERACTION_SELECTED];
   }
   if (input.proactiveSignal && input.attentionResult?.shouldSurface !== false) {
     const provider = /PROVIDER_(REPLIED|QUOTE)/.test(token(input.proactiveSignal.code));
@@ -229,6 +259,15 @@ function avatarHint(mode) {
 }
 
 export function orchestrateMaxxisExperience(input = {}) {
+  let nextInteraction = input.nextInteraction || null;
+  if (!nextInteraction) {
+    try {
+      nextInteraction = selectMaxxisNextInteraction(input);
+    } catch {
+      nextInteraction = null;
+    }
+  }
+  input = nextInteraction ? { ...input, nextInteraction } : input;
   const enabled = input.maxxisEnabled !== false && input.featureFlags?.maxxisEnabled !== false;
   if (!enabled) {
     return Object.freeze({
@@ -241,6 +280,7 @@ export function orchestrateMaxxisExperience(input = {}) {
       avatarStateHint: MAXXIS_AVATAR_STATES.IDLE,
       requiredCapabilities: Object.freeze([]),
       reasonCode: MAXXIS_EXPERIENCE_REASONS.DISABLED_SAFE,
+      nextInteraction,
     });
   }
   const status = token(input.currentState?.propertyStatus || input.contextSnapshot?.entity?.propertyStatus, 30);
@@ -280,6 +320,7 @@ export function orchestrateMaxxisExperience(input = {}) {
     avatarStateHint: avatarHint(mode),
     requiredCapabilities: Object.freeze(capabilities),
     reasonCode,
+    nextInteraction,
   });
 }
 
