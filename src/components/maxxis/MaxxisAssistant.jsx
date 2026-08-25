@@ -79,6 +79,11 @@ import {
   resolveUnambiguousMaxxisDealMemoryPropertyId,
   upsertMaxxisDealMemory,
 } from '../../features/maxxis/memory/maxxisDealMemory';
+import {
+  orchestrateMaxxisExperience,
+  safeMaxxisExperienceAnalytics,
+} from '../../features/maxxis/orchestration/maxxisExperienceOrchestrator';
+import { MAXXIS_EXPERIENCE_ATTENTION } from '../../features/maxxis/orchestration/maxxisExperienceTypes';
 import './MaxxisAssistant.css';
 
 import {
@@ -1453,13 +1458,22 @@ export function MaxxisAssistant({ page = 'dashboard', onOpenSupport = null, onNa
 
   const getMessageSmartActions = useCallback((message) => {
     if (!message?.smartActionsEnabled) return [];
-    return buildMaxxisSmartActions(smartActionSourcePayload(message), {
+    const eligibleActions = buildMaxxisSmartActions(smartActionSourcePayload(message), {
       language,
       pendingProviderUnlock,
       surface: message.smartActionSurface || (message.type === 'smart_provider_actions' ? 'providers' : 'snapshot'),
       maxVisible: 3,
     }).filter((action) => action.enabled);
-  }, [language, pendingProviderUnlock]);
+    const decision = orchestrateMaxxisExperience({
+      maxxisEnabled: enabled,
+      maxxisOpen: open,
+      explicitUserIntent: { code: 'STATUS', requested: true },
+      dealSnapshot: { freshness: 'FRESH' },
+      smartActions: eligibleActions,
+      preferences: effectiveMaxxisPreferences,
+    });
+    return [decision.primaryAction, ...decision.secondaryActions].filter(Boolean);
+  }, [effectiveMaxxisPreferences, enabled, language, open, pendingProviderUnlock]);
 
   useEffect(() => {
     messages.forEach((message) => {
@@ -1565,13 +1579,27 @@ export function MaxxisAssistant({ page = 'dashboard', onOpenSupport = null, onNa
       attentionKind: MAXXIS_AVATAR_STATES.NOTICED,
       now,
     });
+    const experienceDecision = orchestrateMaxxisExperience({
+      maxxisEnabled: enabled,
+      maxxisOpen: open,
+      proactiveSignal: candidate.signal,
+      attentionResult: {
+        ...candidate.attention,
+        allowBubble: attentionPolicy.allowBubble,
+      },
+      actionState: pendingProviderUnlock || pendingProviderMessageSend
+        ? { phase: 'CONFIRMATION', code: pendingProviderUnlock ? 'UNLOCK_PROVIDER_CONTACT' : 'SEND_PROVIDER_MESSAGE' }
+        : null,
+      preferences: effectiveMaxxisPreferences,
+      currentState: { propertyStatus: appContext?.operational?.propertyStatus },
+    });
     const attentionEventKey = `${candidate.signal.dedupeKey}:${attentionPolicy.reasonCode}`;
     const attentionEventProperties = safeMaxxisAttentionAnalytics(attentionPolicy, {
       surface: page,
       signalCode: candidate.signal.code,
       animationIntensity: maxxisAttentionInputs.animationIntensity,
     });
-    if (!attentionPolicy.allowBubble) {
+    if (!attentionPolicy.allowBubble || experienceDecision.attentionMode !== MAXXIS_EXPERIENCE_ATTENTION.BUBBLE) {
       if (attentionPolicy.deferAttention) attentionController.defer(candidate, now);
       else attentionController.discardDeferred();
       if (!attentionAnalyticsRef.current.has(attentionEventKey)) {
@@ -1622,14 +1650,25 @@ export function MaxxisAssistant({ page = 'dashboard', onOpenSupport = null, onNa
         contextVersion: maxxisContextSnapshot.contextVersion,
       }),
     });
+    void trackProductEvent('maxxis_experience_decision', {
+      entityType: 'product',
+      entityId: '',
+      dedupeKey: `experience-decision:${candidate.signal.dedupeKey}`,
+      properties: safeMaxxisExperienceAnalytics(experienceDecision),
+    });
   }, [
     appContext,
     attentionRevision,
     language,
+    effectiveMaxxisPreferences,
+    enabled,
     maxxisAttentionInputs,
     maxxisContextSnapshot,
     messages,
     page,
+    open,
+    pendingProviderMessageSend,
+    pendingProviderUnlock,
     proactiveEnabled,
     stageProactiveBubble,
   ]);
