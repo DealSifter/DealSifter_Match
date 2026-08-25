@@ -91,3 +91,33 @@ Primeira observação do Maxxis service search: 2,29 s. Estes números são base
 Nenhum arquivo em `src/`, `supabase/` ou lógica de produção foi modificado. As mudanças estão restritas a testes, fixtures sintéticas, tooling, CI e documentação.
 
 `PRODUCTION UX BEFORE = FASE 6.0 UX AFTER`.
+
+## Fase 6G — Acceptance Final Do Maxxis MVP+
+
+A aceitacao final reutiliza os contratos e snapshots desta baseline. O fluxo integrado e:
+
+```text
+Context -> Intelligence -> Next Interaction -> Orchestrator -> Composer
+-> Avatar/Bubble -> Smart Action -> Human Confirmation -> Result
+-> Memory -> Continuity
+```
+
+| Jornada | Evidencia principal | Criterio |
+|---|---|---|
+| A. Deal Review | `maxxis-interactive-deal-intelligence.spec.js` e acceptance final | Analise coerente e uma proxima interacao util. |
+| B. Provider Flow | `maxxis-smart-actions.spec.js` e acceptance final | Unlock e mensagem executam uma vez, somente apos confirmacao. |
+| C. Memory Flow | `maxxis-deal-memory.spec.js` e acceptance final | Recall resumido, mudancas atuais e next step sem claim stale. |
+| D. Proactive Flow | `maxxis-proactive-intelligence.spec.js` e acceptance final | NOTICED/bubble/contexto sem acao autonoma. |
+| E. Cross-Surface | `maxxis-cross-surface-continuity.spec.js` e acceptance final | Property/provider/conversa continuam sem misturar Human Chat. |
+
+O teste `maxxis-phase-6-acceptance.spec.js` atravessa as cinco jornadas em uma unica sessao mockada, incluindo reload para Memory. As suites especializadas permanecem autoridade para matrizes parametrizadas, estados impossiveis, account isolation, PII, settings, avatar, attention e idempotencia.
+
+Definition of Done: os dez criterios WOW devem passar juntos; nenhum engine isolado pode competir com a experiencia dominante do Maxxis; toda mutacao protegida preserva `PREPARE -> CONFIRM -> EXECUTE_USER_CONFIRMED`; UI global, Human Chat, Stripe/Nuggets, RLS/entitlements e assets oficiais permanecem sob o contrato de nao regressao.
+
+Inconsistencias residuais encontradas e corrigidas na acceptance:
+
+- a mesma Smart Action de review podia permanecer acionavel em duas mensagens historicas para o mesmo provider/property; somente a ocorrencia mais recente agora permanece visivel;
+- overrides DEV simultaneos de Proactivity e Deal Memory competiam entre si; agora sao mesclados somente em DEV/E2E, mantendo producao fail-closed;
+- o mock de provider message foi alinhado ao contrato real `data.actionId` e confirma cada action id no maximo uma vez.
+
+Evidencia local final: clean install com 0 vulnerabilidades; quality com 68 arquivos/616 testes; architecture, performance e feature-readiness PASS; acceptance A-E PASS; UI estrutural 2/2; visual 12/12 aplicaveis; mobile 2/2; accessibility 3/3. A suite mocked completa permanece agregada na Quality Gate da CI antes da promocao.

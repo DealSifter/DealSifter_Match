@@ -443,6 +443,7 @@ export async function setupMockSupabase(context, options = {}) {
     messageDrafts: 0,
     messageCancels: 0,
     messagesSent: 0,
+    confirmedMessageActionIds: [],
     maxxisProviderReplied: false,
   };
 
@@ -605,7 +606,36 @@ export async function setupMockSupabase(context, options = {}) {
       }
       if (fn === 'maxxis-provider-message-prepare') {
         state.messagesSent += 0;
-        return json(route, { success: true, action: { actionId: E2E_IDS.messageAction, cost: 0 } });
+        return json(route, {
+          success: true,
+          data: {
+            actionId: E2E_IDS.messageAction,
+            serviceId: E2E_IDS.providerService,
+            propertyId: E2E_IDS.property,
+            serviceTitle: providerService.title,
+            cost: 0,
+          },
+        });
+      }
+      if (fn === 'maxxis-provider-message-confirm') {
+        const body = parseBody(request);
+        const actionId = String(body.actionId || '');
+        if (actionId !== E2E_IDS.messageAction) {
+          return json(route, { success: false, status: 'E2E_CONFIRM_BLOCKED' }, 409);
+        }
+        if (!state.confirmedMessageActionIds.includes(actionId)) {
+          state.confirmedMessageActionIds.push(actionId);
+          state.messagesSent += 1;
+        }
+        return json(route, {
+          success: true,
+          data: {
+            status: 'sent',
+            messageId: E2E_IDS.messageAction,
+            serviceId: E2E_IDS.providerService,
+            propertyId: E2E_IDS.property,
+          },
+        });
       }
       if (fn === 'maxxis-provider-conversation-analysis') {
         return json(route, {

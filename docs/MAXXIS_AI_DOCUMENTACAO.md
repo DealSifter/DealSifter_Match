@@ -129,3 +129,55 @@ O tipo `deal_copilot_overview` agrega, quando solicitado explicitamente, detalhe
 Fontes de verdade: Match em `calculatePropertyMatch`; comportamento em `behaviorAffinity`; métricas em `dealMetrics`; Advisor em `analyzeDealFacts`; necessidades em `propertyServiceNeeds`; Service Fit em `calculateServiceFit`; Workflow em `dealWorkflow`; próxima ação em `nextBestAction`; conversa em `providerConversationAnalysis`. O Copilot apenas agrega esses resultados.
 
 Perguntas focais continuam usando a capability específica. O overview não executa unlock, atualização de perfil ou checklist manual, não consome Nuggets e não envia mensagens. Fluxos sensíveis permanecem no protocolo prepare/confirm/cancel com confirmação explícita do usuário.
+
+## Definicao Final Do Maxxis MVP+
+
+Maxxis MVP+ e um copiloto imobiliario contextual, com memoria resumida e proatividade moderada, que entende o deal e a superficie autorizados, apresenta insights relevantes, sugere e prepara acoes suportadas e executa somente depois da confirmacao explicita do usuario. Ele nao e autonomo e nao substitui o julgamento do usuario.
+
+## Pipeline Integrado Da Experiencia
+
+```text
+Context Awareness
+  -> Deal Intelligence / Snapshot / Gaps / Service Fit
+  -> Next Interaction
+  -> Experience Orchestrator
+  -> Contextual Composer
+  -> Attention Controller + Avatar/Bubble
+  -> Smart Action
+  -> Human Confirmation
+  -> Server-authorized Result
+  -> Deal Memory
+  -> Cross-Surface Continuity
+```
+
+O usuario ve apenas Maxxis. Os modulos internos sao deterministas e especializados: contexto limita a entidade; intelligence produz fatos; Next Interaction escolhe no maximo uma interacao principal; Orchestrator resolve precedencia e estado; Composer limita densidade; Attention/Avatar controlam apresentacao; Smart Actions preservam `SUGGEST -> PREPARE -> CONFIRM -> EXECUTE_USER_CONFIRMED`; Memory e Continuity nunca autorizam mutacao.
+
+Precedencia de contexto: estado atual confiavel, continuidade fresca e, por ultimo, Deal Memory. Uma continuidade rica de provider/conversa pode restaurar uma referencia; um pedido explicito de recall continua pertencendo ao Deal Memory quando existe apenas contexto generico. Contexto stale, entidade indisponivel, troca de property/conta ou logout invalidam referencias e confirmacoes antigas.
+
+## Capability Map E Limites
+
+O contrato normativo esta em `MAXXIS_AUTONOMY_LEVELS.md` e usa: `READ`, `EXPLAIN`, `COMPARE`, `SUGGEST`, `PREPARE`, `CONFIRM` e `EXECUTE_USER_CONFIRMED`. Nenhuma recomendacao, memory, continuity, bubble, avatar ou texto do Gemini equivale a consentimento.
+
+- Maxxis pode ler contexto autorizado, explicar, comparar, lembrar resumo allowlisted, detectar mudancas, sugerir proxima interacao e preparar acoes suportadas.
+- Unlock, envio de mensagem e mutacoes suportadas executam somente apos confirmacao fresca, validacao e idempotencia server-side.
+- Maxxis nao pode escolher investimento, comprar, aceitar quote, negociar, alterar profile/property/workflow sozinho, enviar follow-up automatico, criar agentes ou agir autonomamente em background.
+
+## Feature Flags, Kill Switches E Preferencias
+
+- `maxxis_next_generation`: rollout geral da experiencia futura; falha fechada.
+- `maxxis_proactive_insights`: controla proatividade; producao permanece OFF ate rollout aprovado.
+- `maxxis_deal_memory`: controla Deal Memory; producao permanece OFF ate rollout aprovado.
+- Kill switches de messaging e contact unlock removem as acoes correspondentes no Orchestrator, sem fallback autonomo.
+- Preferencias por conta sincronizam proatividade, animations e intensidade entre header e Settings. `SUBTLE` e o default; `prefers-reduced-motion` prevalece na apresentacao sem corromper a preferencia salva.
+
+## Avatar, Memoria E Continuidade
+
+Os seis assets oficiais mapeiam `IDLE`, `OBSERVING`, `PROCESSING`, `NOTICED`, `WAITING` e `SUCCESS`. Os PNGs em `src/assets/maxxis/avatar/` sao autoridade visual e nao devem ser modificados. Timeline, cooldown e Attention Controller impedem bubble concorrente, layout shift e animacao incompatível; reduced motion e respeitado.
+
+Deal Memory guarda somente snapshot allowlisted, por conta/property, com limites de tamanho, quantidade e retencao definidos em `FEATURE_FLAGS.md`. Cross-Surface Continuity e runtime/session-only, TTL curto, isolada por conta/property e sem queries, Gemini, polling ou persistencia. Nenhuma das duas guarda corpo de mensagem, contato, prompt ou payload protegido.
+
+## Deploy, Rollback E Backlog
+
+Promocao exige `npm ci`, quality, architecture, performance, feature-readiness, mocked E2E, contrato estrutural, mobile, accessibility e visual regression. Fluxo real e exigido apenas quando a mudanca toca persistencia/backend. Smoke publico deve ser nao destrutivo e confirmar bundle, headers, release/Sentry e flags aprovadas.
+
+Rollback do frontend: promover o ultimo deployment Vercel saudavel ou reverter o commit de integracao; nao alterar migration, dado, entitlement ou saldo. Kill switches e flags devem ser preferidos para conter proatividade, memory, messaging ou unlock quando aplicavel. Backlog conhecido: budgets de linhas legados, compatibilidade de search sinalizada pelo audit, latencia de staging e atualizacao futura das GitHub Actions; nenhum deles amplia autonomia.
