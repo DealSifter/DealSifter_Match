@@ -937,7 +937,9 @@ export function MaxxisAssistant({ page = 'dashboard', onOpenSupport = null, onNa
       });
       const continuityContextSnapshot = applyMaxxisContinuityToContextSnapshot(maxxisContextSnapshot, continuityResolution);
       const memoryIntent = detectMaxxisDealMemoryIntent(cleanMessage, meta.controlledIntent);
-      if (continuityReference.status !== 'resolved' && await handleDealMemoryIntent(memoryIntent, userMessage)) return;
+      const hasConversationContinuity = continuityReference.status === 'resolved'
+        && Boolean(continuityReference.context?.serviceId && continuityReference.context?.conversationRef);
+      if (!hasConversationContinuity && await handleDealMemoryIntent(memoryIntent, userMessage)) return;
       const latestProviderContext = findLatestProviderConversationContext(messages);
       const validatedLatestProviderContext = latestProviderContext
         && (!continuityPropertyId || latestProviderContext.propertyId === continuityPropertyId)
