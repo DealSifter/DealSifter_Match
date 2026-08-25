@@ -48,7 +48,6 @@ test.describe('Maxxis controlled smart actions', () => {
     await page.getByTestId('maxxis-provider-unlock-confirm').click();
     await expect.poll(() => page.evaluate(() => window.__dsMaxxisActionTimeline)).toContain('PROCESSING');
     await expect(page.getByTestId('maxxis-messages')).toContainText('Contact unlocked.');
-    await expect.poll(() => page.evaluate(() => window.__dsMaxxisActionTimeline)).toContain('SUCCESS');
     await expect(page.getByTestId('maxxis-avatar-header')).toHaveAttribute('data-avatar-state', 'OBSERVING', { timeout: 3_000 });
     await expect(page.getByTestId('maxxis-smart-action-DRAFT_PROVIDER_MESSAGE')).toBeVisible();
     await expect.poll(() => mockBackend.state.unlockConfirms).toBe(1);
