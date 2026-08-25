@@ -258,6 +258,26 @@ function tablePayload(table, userId, wantsObject, state = {}) {
         payload: { ownerId: E2E_USERS.provider.id },
         updated_at: '2026-01-02T00:00:00.000Z',
       },
+      ...(state.staleFeedActions ? [
+        {
+          user_id: user.id,
+          action: 'matched',
+          entity_type: 'person',
+          entity_id: '7',
+          owner_id: '7',
+          payload: { ownerId: '7', name: 'Legacy Ghost Provider', primaryProfile: 'personal' },
+          updated_at: '2026-01-05T00:00:00.000Z',
+        },
+        {
+          user_id: user.id,
+          action: 'interested',
+          entity_type: 'property',
+          entity_id: '99999999-9999-4999-8999-999999999999',
+          owner_id: E2E_USERS.provider.id,
+          payload: { ownerId: E2E_USERS.provider.id, title: 'Legacy Ghost Property' },
+          updated_at: '2026-01-05T00:00:00.000Z',
+        },
+      ] : []),
     ] : [],
     unlocks: [],
     property_unlocks: [],
@@ -432,6 +452,7 @@ export async function setupMockSupabase(context, options = {}) {
   E2E_USERS.noNuggets.nuggets = 0;
   const state = {
     baseline: options.baseline === true,
+    staleFeedActions: options.staleFeedActions === true,
     currentUserId: '',
     profileBioByUserId: {},
     settingsPayloadByUserId: {},
@@ -444,6 +465,7 @@ export async function setupMockSupabase(context, options = {}) {
     messageCancels: 0,
     messagesSent: 0,
     confirmedMessageActionIds: [],
+    unlockedServiceIds: [],
     maxxisProviderReplied: false,
   };
 
@@ -541,6 +563,10 @@ export async function setupMockSupabase(context, options = {}) {
       }
       if (fn === 'maxxis-provider-unlock-prepare') {
         state.unlockPrepares += 1;
+        const body = parseBody(request);
+        if (String(body.serviceId || '') !== E2E_IDS.providerService) {
+          return json(route, { success: false, status: 'provider_service_not_found' }, 404);
+        }
         return json(route, {
           success: true,
           status: 'pending_confirmation',
@@ -564,10 +590,14 @@ export async function setupMockSupabase(context, options = {}) {
         const body = parseBody(request);
         if (String(body.serviceId || '') === E2E_IDS.providerService) {
           const user = byUserId(userId);
-          if (user) user.nuggets = Math.max(0, Number(user.nuggets || 0) - 1);
+          const alreadyUnlocked = state.unlockedServiceIds.includes(E2E_IDS.providerService);
+          if (!alreadyUnlocked) {
+            state.unlockedServiceIds.push(E2E_IDS.providerService);
+            if (user) user.nuggets = Math.max(0, Number(user.nuggets || 0) - 1);
+          }
           return json(route, {
             success: true,
-            status: 'confirmed',
+            status: alreadyUnlocked ? 'already_unlocked' : 'confirmed',
             remainingNuggets: user?.nuggets ?? 19,
             contactAccess: {
               status: 'already_unlocked',

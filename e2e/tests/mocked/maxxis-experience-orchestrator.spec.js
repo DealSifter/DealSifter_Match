@@ -44,7 +44,9 @@ test('selects the next provider interaction once and keeps the experience domina
   await expect(providerExperience).toContainText('Your provider replied.');
   await expect(providerExperience).not.toContainText('current deal review');
   await expect(page.getByTestId('maxxis-smart-action-REVIEW_PROVIDER_REPLY')).toHaveCount(1);
+  const conversationAnalysis = page.waitForResponse((response) => response.url().includes('/functions/v1/maxxis-provider-conversation-analysis'));
   await page.getByTestId('maxxis-smart-action-REVIEW_PROVIDER_REPLY').click();
+  await conversationAnalysis;
   await expect(page.getByTestId('maxxis-messages')).toContainText('Conversation Summary');
   await expect(page.getByTestId('maxxis-smart-action-DRAFT_PROVIDER_REPLY')).toHaveCount(1);
   await expect(page.getByTestId('maxxis-proactive-bubble')).toHaveCount(0);

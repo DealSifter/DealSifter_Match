@@ -29,6 +29,7 @@
     "audit:observability": "node scripts/audit-observability.mjs",
     "audit:architecture": "node scripts/audit-architecture.mjs",
     "audit:performance": "node scripts/audit-performance.mjs",
+    "audit:card-integrity": "node scripts/audit-card-reference-integrity.mjs",
     "audit:types": "node scripts/audit-database-types.mjs && tsc -p tsconfig.contracts.json",
     "audit:types:remote": "node scripts/audit-database-types.mjs --remote && tsc -p tsconfig.contracts.json",
     "audit:feature-readiness": "node scripts/audit-feature-readiness.mjs",

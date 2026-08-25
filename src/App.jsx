@@ -130,7 +130,8 @@ import {
   clearFeedActions,
   makeFeedActionRows as makeVisualFeedActionRows,
   readFeedActions,
-  recordFeedActions,
+  resolveCanonicalFeedActions,
+  syncFeedActions,
 } from './services/feedActionService';
 import { hydrateUnlockState } from './services/unlockHydrationService';
 import { geocodePropertyAddress } from './services/geocodeAddressService';
@@ -1761,59 +1762,26 @@ export default function App() {
 
   const applyRemoteFeedActions = useCallback((rows = [], options = {}) => {
     const replace = options?.replace === true;
-    const identityIndex = globalFeedIdentityRef.current || {};
-    const validateAgainstGlobal = identityIndex.loaded === true;
-    const contactsByOwnerId = identityIndex.contactsByOwnerId || new Map();
-    const contactsByOwnerScope = identityIndex.contactsByOwnerScope || new Map();
-    const propertiesById = identityIndex.propertiesById || new Map();
-    const matchedItems = [];
-    const interestedItems = [];
-
-    (Array.isArray(rows) ? rows : []).forEach((row) => {
-      const payload = row?.payload && typeof row.payload === 'object' ? row.payload : {};
-      const entityId = String(row?.entity_id || payload?.id || '').trim();
-      if (!entityId) return;
-
-      if (row.action === 'matched') {
-        const ownerKey = String(payload?.ownerId || payload?.unlockOwnerId || payload?.sellerId || payload?.contactId || entityId || payload?.id || '').trim();
-        const payloadScope = normalizeProfileScope(payload?.primaryProfile || payload?.scopeKey || '');
-        const canonicalContact = contactsByOwnerScope.get(`${ownerKey}::${payloadScope}`)
-          || contactsByOwnerId.get(ownerKey)
-          || null;
-        const payloadIdentityName = pickIdentityName(payload?.name, payload?.title, payload?.fullName, payload?.displayName);
-        if (!canonicalContact && !payloadIdentityName) return;
-        if (validateAgainstGlobal && !canonicalContact && isLikelyNonIdentityName(payloadIdentityName)) return;
-        const resolvedPayload = canonicalContact
-          ? {
-              ...payload,
-              ...canonicalContact,
-              source: 'supabase',
-            }
-          : { ...payload, name: payloadIdentityName, title: payloadIdentityName };
-        const sourceCardId = payload?.id && String(payload.id) !== ownerKey
-          ? (payload.sourceCardId || payload.id)
-          : payload?.sourceCardId;
-        matchedItems.push({
-          ...resolvedPayload,
-          id: resolvedPayload?.id || ownerKey || payload?.id || entityId,
-          ownerId: ownerKey || resolvedPayload?.ownerId || entityId,
-          unlockOwnerId: ownerKey || resolvedPayload?.unlockOwnerId || entityId,
-          ...(sourceCardId ? { sourceCardId } : {}),
-        });
-      } else if (row.action === 'interested') {
-        const canonicalProperty = propertiesById.get(entityId) || null;
-        if (validateAgainstGlobal && !canonicalProperty) return;
-        interestedItems.push(canonicalProperty ? { ...canonicalProperty, source: 'supabase' } : { ...payload, id: payload?.id || entityId });
-      }
-    });
+    const resolved = resolveCanonicalFeedActions(rows, globalFeedIdentityRef.current || {});
+    if (!resolved.ready) return;
+    if (replace) {
+      feedActionRowsRef.current = resolved.canonicalRows;
+    } else if (resolved.canonicalRows.length) {
+      const mergedRows = new Map(feedActionRowsRef.current.map((row) => [
+        `${row.action}::${row.entity_type}::${row.entity_id}`,
+        row,
+      ]));
+      resolved.canonicalRows.forEach((row) => mergedRows.set(`${row.action}::${row.entity_type}::${row.entity_id}`, row));
+      feedActionRowsRef.current = [...mergedRows.values()];
+    }
 
     feedActionHydratingRef.current = true;
     if (replace) {
-      setMatched(matchedItems);
-      setInterested(interestedItems);
+      setMatched(resolved.matched);
+      setInterested(resolved.interested);
     } else {
-      if (matchedItems.length) setMatched((prev) => mergeFeedActionItems(prev, matchedItems));
-      if (interestedItems.length) setInterested((prev) => mergeFeedActionItems(prev, interestedItems));
+      if (resolved.matched.length) setMatched((prev) => mergeFeedActionItems(prev, resolved.matched));
+      if (resolved.interested.length) setInterested((prev) => mergeFeedActionItems(prev, resolved.interested));
     }
     window.setTimeout(() => { feedActionHydratingRef.current = false; }, 0);
   }, [setInterested, setMatched]);
@@ -1878,7 +1846,10 @@ export default function App() {
           filter: `user_id=eq.${supabaseUserId}`,
         },
         realtime.guard((payload) => {
-          if (payload?.eventType === 'DELETE') return;
+          if (payload?.eventType === 'DELETE') {
+            void fetchRemoteFeedActions();
+            return;
+          }
           if (payload?.new) applyRemoteFeedActions([payload.new]);
         })
       );
@@ -1903,20 +1874,20 @@ export default function App() {
     if (feedActionHydratingRef.current) return;
 
     const rows = makeVisualFeedActionRows({ matched, interested });
-    if (!rows.length) return;
     const signature = JSON.stringify(rows.map((row) => [
       row.action,
       row.entity_type,
       row.entity_id,
-      row.payload?.updatedAt || row.payload?.createdAt || '',
+      row.payload?.primaryProfile || '',
     ]));
     if (signature === feedActionLastSignatureRef.current) return;
 
     if (feedActionSyncTimerRef.current) clearTimeout(feedActionSyncTimerRef.current);
     feedActionSyncTimerRef.current = window.setTimeout(async () => {
-      feedActionLastSignatureRef.current = signature;
       try {
-        await recordFeedActions(supabaseUserId, rows);
+        await syncFeedActions(supabaseUserId, rows, feedActionRowsRef.current);
+        feedActionRowsRef.current = rows;
+        feedActionLastSignatureRef.current = signature;
       } catch (error) {
         safeLogError('Failed to sync feed actions', error);
       }
@@ -2068,6 +2039,7 @@ export default function App() {
   const [feedSessionSeed] = useState(() => getSessionSeed());
   const [activeSpotlights, setActiveSpotlights] = useState([]);
   const [globalFeedRefreshTick, setGlobalFeedRefreshTick] = useState(0);
+  const [globalFeedInventoryReadyUserId, setGlobalFeedInventoryReadyUserId] = useState('');
   const [spotlightDbCandidates, setSpotlightDbCandidates] = useState([]);
   const [isSpotlightCandidatesLoading, setIsSpotlightCandidatesLoading] = useState(false);
   const [isSpotlightProcessing, setIsSpotlightProcessing] = useState(false);
@@ -2104,12 +2076,12 @@ export default function App() {
     });
 
     globalFeedIdentityRef.current = {
-      loaded: (globalConnectionServices || []).length > 0 || (globalShowcaseProperties || []).length > 0,
+      loaded: Boolean(supabaseUserId && globalFeedInventoryReadyUserId === supabaseUserId),
       contactsByOwnerId,
       contactsByOwnerScope,
       propertiesById,
     };
-  }, [globalConnectionServices, globalShowcaseProperties]);
+  }, [globalConnectionServices, globalFeedInventoryReadyUserId, globalShowcaseProperties, supabaseUserId]);
 
   useEffect(() => {
     const inventoryLoaded = globalFeedIdentityRef.current?.loaded === true;
@@ -2123,11 +2095,12 @@ export default function App() {
     };
     const timer = window.setTimeout(rehydrateFromSnapshot, 0);
     return () => window.clearTimeout(timer);
-  }, [applyRemoteFeedActions, fetchRemoteFeedActions, globalConnectionServices.length, globalShowcaseProperties.length, supabaseUserId]);
+  }, [applyRemoteFeedActions, fetchRemoteFeedActions, globalConnectionServices.length, globalFeedInventoryReadyUserId, globalShowcaseProperties.length, supabaseUserId]);
 
   useEffect(() => {
     if (!isSupabaseConfigured || !supabase || !supabaseUserId) {
       const timer = window.setTimeout(() => {
+        setGlobalFeedInventoryReadyUserId('');
         setGlobalShowcaseProperties([]);
         setGlobalConnectionServices([]);
         setFeedDeck([]);
@@ -2147,6 +2120,7 @@ export default function App() {
         setGlobalConnectionServices((previous) => preserveEquivalentState(previous, nextFeedState.connectionServices));
         setActiveSpotlights((previous) => preserveEquivalentState(previous, nextFeedState.activeSpotlights));
         setFeedDeck((previous) => preserveEquivalentState(previous, nextFeedState.deck));
+        setGlobalFeedInventoryReadyUserId(supabaseUserId);
       } catch (error) {
         if (!cancelled) {
           safeLogError('Global showcase hydration failed.', error);
