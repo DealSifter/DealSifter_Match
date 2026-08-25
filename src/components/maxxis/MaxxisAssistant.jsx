@@ -88,6 +88,16 @@ import {
   buildMaxxisMessageCompositionBridge,
   composeMaxxisExperience,
 } from '../../features/maxxis/composition/maxxisExperienceComposer';
+import { buildMaxxisContinuityEvidence } from '../../features/maxxis/continuity/maxxisContinuityContext';
+import {
+  applyMaxxisContinuityToContextSnapshot,
+  captureMaxxisContinuity,
+  createMaxxisContinuitySession,
+  resetMaxxisContinuitySession,
+  resolveMaxxisContinuity,
+  resolveMaxxisContinuityReference,
+  shouldDiscardMaxxisPendingConfirmation,
+} from '../../features/maxxis/continuity/maxxisContinuityResolver';
 import './MaxxisAssistant.css';
 
 import {
@@ -168,6 +178,7 @@ export function MaxxisAssistant({ page = 'dashboard', onOpenSupport = null, onNa
   const [devAvatarPresentation, setDevAvatarPresentation] = useState(readDevMaxxisAvatarPresentation);
   const [devAttentionOverrides, setDevAttentionOverrides] = useState(readDevMaxxisAttentionOverrides);
   const [attentionRevision, setAttentionRevision] = useState(0);
+  const [continuityRevision, setContinuityRevision] = useState(0);
   const [dealMemoryStatus, setDealMemoryStatus] = useState('idle');
   const [widgetPosition, setWidgetPosition] = useState(readStoredWidgetPosition);
   const [dragging, setDragging] = useState(false);
@@ -192,6 +203,8 @@ export function MaxxisAssistant({ page = 'dashboard', onOpenSupport = null, onNa
   const previousAttentionAvatarStateRef = useRef('');
   const propertyAnalysisRequestRef = useRef(propertyAnalysisRequest);
   const sessionKeyRef = useRef(String(sessionKey || ''));
+  const continuitySessionRef = useRef(createMaxxisContinuitySession(String(sessionKey || '')));
+  const continuityAuthorityRef = useRef({ accountKey: String(sessionKey || ''), propertyId: String(propertyContextId || '') });
   const submitMessageRef = useRef(null);
   const dragRef = useRef({
     active: false,
@@ -441,6 +454,117 @@ export function MaxxisAssistant({ page = 'dashboard', onOpenSupport = null, onNa
     propertyContextId,
   ]);
 
+  const continuityPropertyId = String(propertyContextId || appContext?.entity?.propertyId || '').trim();
+  const continuityEvidence = useMemo(
+    () => buildMaxxisContinuityEvidence(messages, continuityPropertyId),
+    [continuityPropertyId, messages],
+  );
+  const latestContinuityMessage = useMemo(() => {
+    for (let index = messages.length - 1; index >= 0; index -= 1) {
+      if (messages[index]?.role === 'assistant' && !messages[index]?.error) return messages[index];
+    }
+    return null;
+  }, [messages]);
+
+  useEffect(() => {
+    if (!sessionKey || !UUID_PATTERN.test(continuityPropertyId)) return;
+    const providerContext = continuityEvidence.latestProviderContext;
+    continuitySessionRef.current = captureMaxxisContinuity(continuitySessionRef.current, {
+      propertyId: continuityPropertyId,
+      serviceId: providerContext?.serviceId || appContext?.entity?.serviceId || '',
+      conversationRef: providerContext?.conversationRef || appContext?.entity?.conversationId || '',
+      relatedPropertyIds: comparisonPropertyIds,
+      lastInteractionType: latestContinuityMessage?.type || 'CONTEXT_REVIEW',
+      lastActionCode: pendingProviderUnlock?.actionCode
+        || pendingProviderUnlock?.code
+        || pendingProviderMessageSend?.actionCode
+        || latestContinuityMessage?.data?.actionCode
+        || '',
+      lastExperienceMode: latestContinuityMessage?.compositionMode || '',
+      sourceSurface: open ? { page: 'maxxis' } : (appContext?.surface || { page }),
+    }, { accountKey: String(sessionKey), now: Date.now() });
+    setContinuityRevision((revision) => revision + 1);
+  }, [
+    appContext?.entity?.conversationId,
+    appContext?.entity?.serviceId,
+    appContext?.surface,
+    comparisonPropertyIds,
+    continuityEvidence.latestProviderContext,
+    continuityPropertyId,
+    latestContinuityMessage,
+    open,
+    page,
+    pendingProviderMessageSend,
+    pendingProviderUnlock,
+    sessionKey,
+  ]);
+
+  const resolveCurrentMaxxisContinuity = useCallback(() => {
+    const memoryPropertyId = continuityPropertyId || continuitySessionRef.current.activePropertyId;
+    const dealMemory = dealMemoryFeatureEnabled && sessionKey && memoryPropertyId
+      ? readMaxxisDealMemory(String(sessionKey), memoryPropertyId).memory
+      : null;
+    return resolveMaxxisContinuity(continuitySessionRef.current, {
+      accountKey: String(sessionKey || ''),
+      currentContext: {
+        propertyId: continuityPropertyId,
+        serviceId: appContext?.entity?.serviceId || '',
+        conversationRef: appContext?.entity?.conversationId || '',
+        propertyStatus: appContext?.operational?.propertyStatus || '',
+        available: appContext?.operational?.entityAvailable !== false,
+      },
+      dealMemory,
+      allowedServiceIds: continuityEvidence.serviceIds,
+      now: Date.now(),
+    });
+  }, [
+    appContext?.entity?.conversationId,
+    appContext?.entity?.serviceId,
+    appContext?.operational?.entityAvailable,
+    appContext?.operational?.propertyStatus,
+    continuityEvidence.serviceIds,
+    continuityPropertyId,
+    dealMemoryFeatureEnabled,
+    sessionKey,
+  ]);
+
+  const maxxisContinuityResolution = useMemo(() => {
+    void continuityRevision;
+    return resolveCurrentMaxxisContinuity();
+  }, [continuityRevision, resolveCurrentMaxxisContinuity]);
+
+  const captureMaxxisHandoff = useCallback((handoff = {}) => {
+    const propertyId = String(handoff.propertyId || continuityPropertyId || '').trim();
+    if (!sessionKey || !UUID_PATTERN.test(propertyId)) return;
+    continuitySessionRef.current = captureMaxxisContinuity(continuitySessionRef.current, {
+      propertyId,
+      serviceId: handoff.serviceId || '',
+      conversationRef: handoff.conversationRef || '',
+      relatedPropertyIds: comparisonPropertyIds,
+      lastInteractionType: handoff.lastInteractionType || 'SURFACE_HANDOFF',
+      lastActionCode: handoff.lastActionCode || '',
+      lastExperienceMode: handoff.lastExperienceMode || '',
+      sourceSurface: handoff.sourceSurface || appContext?.surface || { page },
+    }, { accountKey: String(sessionKey), now: Date.now() });
+    setContinuityRevision((revision) => revision + 1);
+  }, [appContext?.surface, comparisonPropertyIds, continuityPropertyId, page, sessionKey]);
+
+  useEffect(() => {
+    const previous = continuityAuthorityRef.current;
+    const authority = { accountKey: String(sessionKey || ''), propertyId: continuityPropertyId };
+    const common = {
+      previousAccountKey: previous.accountKey,
+      accountKey: authority.accountKey,
+      previousPropertyId: previous.propertyId,
+      propertyId: authority.propertyId,
+      allowedServiceIds: continuityEvidence.serviceIds,
+      now: Date.now(),
+    };
+    if (shouldDiscardMaxxisPendingConfirmation({ ...common, pending: pendingProviderUnlock })) setPendingProviderUnlock(null);
+    if (shouldDiscardMaxxisPendingConfirmation({ ...common, pending: pendingProviderMessageSend })) setPendingProviderMessageSend(null);
+    continuityAuthorityRef.current = authority;
+  }, [continuityEvidence.serviceIds, continuityPropertyId, pendingProviderMessageSend, pendingProviderUnlock, sessionKey]);
+
   const maxxisAvatarState = useMemo(() => resolveMaxxisAvatarState({
     previousState: maxxisAvatarStateRef.current,
     accountKey: sessionKeyRef.current,
@@ -600,6 +724,9 @@ export function MaxxisAssistant({ page = 'dashboard', onOpenSupport = null, onNa
     const nextSessionKey = String(sessionKey || '');
     proactiveSessionRef.current = resetMaxxisProactiveSessionIfNeeded(proactiveSessionRef.current, nextSessionKey);
     if (!shouldResetMaxxisContextSession(sessionKeyRef.current, nextSessionKey)) return;
+    continuitySessionRef.current = resetMaxxisContinuitySession(continuitySessionRef.current, nextSessionKey);
+    continuityAuthorityRef.current = { accountKey: nextSessionKey, propertyId: '' };
+    setContinuityRevision((revision) => revision + 1);
     sessionKeyRef.current = nextSessionKey;
     handledAnalysisRequestsRef.current.clear();
     detectedProactiveSignalsRef.current.clear();
@@ -804,10 +931,30 @@ export function MaxxisAssistant({ page = 'dashboard', onOpenSupport = null, onNa
     setLoading(true);
 
     try {
+      const continuityResolution = resolveCurrentMaxxisContinuity();
+      const continuityReference = resolveMaxxisContinuityReference(cleanMessage, continuityResolution, {
+        candidateServiceIds: continuityEvidence.serviceIds,
+      });
+      const continuityContextSnapshot = applyMaxxisContinuityToContextSnapshot(maxxisContextSnapshot, continuityResolution);
       const memoryIntent = detectMaxxisDealMemoryIntent(cleanMessage, meta.controlledIntent);
-      if (await handleDealMemoryIntent(memoryIntent, userMessage)) return;
-      if (isProviderConversationIntent(cleanMessage)) {
-        const providerConversationContext = findLatestProviderConversationContext(messages);
+      if (continuityReference.status !== 'resolved' && await handleDealMemoryIntent(memoryIntent, userMessage)) return;
+      const latestProviderContext = findLatestProviderConversationContext(messages);
+      const validatedLatestProviderContext = latestProviderContext
+        && (!continuityPropertyId || latestProviderContext.propertyId === continuityPropertyId)
+        ? latestProviderContext
+        : null;
+      const continuityProviderContext = continuityReference.status === 'resolved'
+        && continuityReference.context?.serviceId
+        && continuityReference.context?.conversationRef
+        ? {
+            serviceId: continuityReference.context.serviceId,
+            propertyId: continuityReference.context.propertyId,
+          }
+        : null;
+      const providerConversationRequested = isProviderConversationIntent(cleanMessage)
+        || Boolean(continuityProviderContext && ['CONTINUE', 'PROVIDER_REFERENCE'].includes(continuityReference.intent));
+      if (providerConversationRequested) {
+        const providerConversationContext = continuityProviderContext || validatedLatestProviderContext;
         if (!providerConversationContext) {
           setMessages((prev) => [...prev, {
             id: `maxxis-provider-conversation-context-missing-${Date.now()}`,
@@ -820,6 +967,14 @@ export function MaxxisAssistant({ page = 'dashboard', onOpenSupport = null, onNa
         const result = await analyzeMaxxisProviderConversation({
           ...providerConversationContext,
           question: cleanMessage,
+        });
+        captureMaxxisHandoff({
+          ...providerConversationContext,
+          conversationRef: continuityReference.context?.conversationRef || `SERVICE:${providerConversationContext.serviceId}`,
+          lastInteractionType: 'PROVIDER_CONVERSATION_ANALYSIS',
+          lastActionCode: 'REVIEW_PROVIDER_REPLY',
+          lastExperienceMode: 'PROVIDER_REVIEW',
+          sourceSurface: { page: 'maxxis' },
         });
         setMessages((prev) => [...prev, {
           id: `maxxis-provider-conversation-analysis-${Date.now()}`,
@@ -835,15 +990,15 @@ export function MaxxisAssistant({ page = 'dashboard', onOpenSupport = null, onNa
         setMessages((prev) => [...prev, {
           id: `maxxis-context-${Date.now()}`,
           role: 'assistant',
-          content: describeMaxxisContext(maxxisContextSnapshot, language),
+          content: describeMaxxisContext(continuityContextSnapshot, language),
           createdAt: new Date(),
           type: 'context_snapshot',
           data: {
-            contextVersion: maxxisContextSnapshot.contextVersion,
-            surface: maxxisContextSnapshot.surface,
-            entity: maxxisContextSnapshot.entity,
-            operational: maxxisContextSnapshot.operational,
-            freshness: maxxisContextSnapshot.freshness,
+            contextVersion: continuityContextSnapshot.contextVersion,
+            surface: continuityContextSnapshot.surface,
+            entity: continuityContextSnapshot.entity,
+            operational: continuityContextSnapshot.operational,
+            freshness: continuityContextSnapshot.freshness,
           },
         }]);
         return;
@@ -876,7 +1031,9 @@ export function MaxxisAssistant({ page = 'dashboard', onOpenSupport = null, onNa
         }]);
         return;
       }
-      const referenceResolution = resolveMaxxisNaturalReference(cleanMessage, maxxisContextSnapshot);
+      const referenceResolution = continuityReference.status !== 'unresolved'
+        ? continuityReference
+        : resolveMaxxisNaturalReference(cleanMessage, continuityContextSnapshot);
       if (referenceResolution.status === 'ambiguous') {
         const entityLabel = String(referenceResolution.entityType || 'item').toLowerCase();
         setMessages((prev) => [...prev, {
@@ -901,9 +1058,9 @@ export function MaxxisAssistant({ page = 'dashboard', onOpenSupport = null, onNa
         history: historyForRequest,
         page,
         language,
-        propertyId: propertyContextId || resolvedPropertyId,
+        propertyId: resolvedPropertyId || propertyContextId,
         propertyIds: comparisonPropertyIds,
-        maxxisContext: selectMaxxisContextForMessage(maxxisContextSnapshot, cleanMessage),
+        maxxisContext: selectMaxxisContextForMessage(continuityContextSnapshot, cleanMessage),
       });
       const responseType = String(result?.type || 'text');
       if (responseType === 'properties') {
@@ -1484,9 +1641,10 @@ export function MaxxisAssistant({ page = 'dashboard', onOpenSupport = null, onNa
       dealSnapshot: { freshness: 'FRESH' },
       smartActions: eligibleActions,
       preferences: effectiveMaxxisPreferences,
+      continuityContext: maxxisContinuityResolution.context,
     });
     return [decision.primaryAction, ...decision.secondaryActions].filter(Boolean);
-  }, [effectiveMaxxisPreferences, enabled, language, open, pendingProviderUnlock]);
+  }, [effectiveMaxxisPreferences, enabled, language, maxxisContinuityResolution.context, open, pendingProviderUnlock]);
 
   const getMessageComposedExperience = useCallback((message) => {
     if (message?.analysisExport) return null;
@@ -1513,6 +1671,7 @@ export function MaxxisAssistant({ page = 'dashboard', onOpenSupport = null, onNa
       ...bridge.orchestrationInput,
       smartActions: getMessageSmartActions(message),
       preferences: effectiveMaxxisPreferences,
+      continuityContext: maxxisContinuityResolution.context,
     });
     const composition = composeMaxxisExperience({
       decision,
@@ -1522,7 +1681,7 @@ export function MaxxisAssistant({ page = 'dashboard', onOpenSupport = null, onNa
       density: message.compositionDensity,
     });
     return composition.status === 'COMPOSED' ? composition : null;
-  }, [effectiveMaxxisPreferences, enabled, getMessageSmartActions, language, open, pendingProviderMessageSend, pendingProviderUnlock]);
+  }, [effectiveMaxxisPreferences, enabled, getMessageSmartActions, language, maxxisContinuityResolution.context, open, pendingProviderMessageSend, pendingProviderUnlock]);
 
   useEffect(() => {
     messages.forEach((message) => {
@@ -1641,6 +1800,7 @@ export function MaxxisAssistant({ page = 'dashboard', onOpenSupport = null, onNa
         : null,
       preferences: effectiveMaxxisPreferences,
       currentState: { propertyStatus: appContext?.operational?.propertyStatus },
+      continuityContext: maxxisContinuityResolution.context,
     });
     const attentionEventKey = `${candidate.signal.dedupeKey}:${attentionPolicy.reasonCode}`;
     const attentionEventProperties = safeMaxxisAttentionAnalytics(attentionPolicy, {
@@ -1713,6 +1873,7 @@ export function MaxxisAssistant({ page = 'dashboard', onOpenSupport = null, onNa
     enabled,
     maxxisAttentionInputs,
     maxxisContextSnapshot,
+    maxxisContinuityResolution.context,
     messages,
     page,
     open,
@@ -1747,6 +1908,15 @@ export function MaxxisAssistant({ page = 'dashboard', onOpenSupport = null, onNa
     const serviceId = signal.evidence?.serviceId || (signal.entityType === 'SERVICE' ? signal.entityId : '');
     const propertyIdForSignal = signal.evidence?.propertyId || (signal.entityType === 'PROPERTY' ? signal.entityId : propertyContextId);
     if (signal.code === 'PROVIDER_REPLIED' || signal.code === 'PROVIDER_QUOTE_DETECTED') {
+      captureMaxxisHandoff({
+        propertyId: propertyIdForSignal,
+        serviceId,
+        conversationRef: serviceId ? `SERVICE:${serviceId}` : '',
+        lastInteractionType: 'PROVIDER_REPLY_CONTEXT',
+        lastActionCode: 'REVIEW_PROVIDER_REPLY',
+        lastExperienceMode: 'PROVIDER_REVIEW',
+        sourceSurface: { page: 'maxxis' },
+      });
       setMessages((prev) => [...prev, {
         id: `maxxis-proactive-context-${Date.now()}`,
         role: 'assistant',
@@ -1854,6 +2024,18 @@ export function MaxxisAssistant({ page = 'dashboard', onOpenSupport = null, onNa
         contextVersion: maxxisContextSnapshot.contextVersion,
       }),
     });
+    captureMaxxisHandoff({
+      propertyId: action.target?.propertyId
+        || sourcePayload?.data?.property?.id
+        || sourcePayload?.data?.sourceData?.property?.id
+        || propertyContextId,
+      serviceId: action.target?.serviceId || '',
+      conversationRef: action.target?.serviceId ? `SERVICE:${action.target.serviceId}` : '',
+      lastInteractionType: 'SMART_ACTION_HANDOFF',
+      lastActionCode: action.code,
+      lastExperienceMode: sourceMessage?.compositionMode || '',
+      sourceSurface: { page: 'maxxis' },
+    });
     if (action.code === 'VIEW_DEAL_GAPS') {
       void submitMessage(promptForMaxxisFollowUp({ code: 'deal_gaps', label: action.label }, language), {
         controlledIntent: 'deal_gaps',
@@ -1934,6 +2116,8 @@ export function MaxxisAssistant({ page = 'dashboard', onOpenSupport = null, onNa
       data-maxxis-proactive={proactiveEnabled ? 'enabled' : 'disabled'}
       data-maxxis-deal-memory={dealMemoryFeatureEnabled ? 'enabled' : 'disabled'}
       data-maxxis-deal-memory-status={dealMemoryStatus}
+      data-maxxis-continuity-status={maxxisContinuityResolution.status.toLowerCase()}
+      data-maxxis-continuity-source={maxxisContinuityResolution.source.toLowerCase()}
       data-maxxis-animation={effectiveMaxxisPreferences.animationEnabled ? 'enabled' : 'disabled'}
     >
       {open ? (

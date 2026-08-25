@@ -101,6 +101,16 @@ function passive(reasonCode = MAXXIS_NEXT_INTERACTION_REASONS.NO_ACTIONABLE_CHAN
   );
 }
 
+function attachContinuityEntity(interaction, continuity = {}) {
+  if (!interaction || interaction.entityRef || interaction.interactionType === MAXXIS_NEXT_INTERACTION_TYPES.PASSIVE) return interaction;
+  const ref = entityRef({
+    serviceId: continuity.serviceId,
+    conversationId: continuity.conversationRef,
+    propertyId: continuity.propertyId,
+  });
+  return ref ? Object.freeze({ ...interaction, entityRef: ref }) : interaction;
+}
+
 function explicitInteraction(intent, actions) {
   const code = token(intent.code || intent.type, 60);
   let type = MAXXIS_NEXT_INTERACTION_TYPES.REVIEW_CHANGE;
@@ -149,7 +159,7 @@ export function selectMaxxisNextInteraction(input = {}) {
   if (CLOSED_PROPERTY_STATES.has(propertyStatus) && !requested && !input.pendingConfirmation && !input.actionState?.phase) {
     return passive(MAXXIS_NEXT_INTERACTION_REASONS.PROPERTY_UNAVAILABLE);
   }
-  if (requested) return explicitInteraction(intent, actions);
+  if (requested) return attachContinuityEntity(explicitInteraction(intent, actions), input.continuityContext);
 
   const candidates = [];
   const actionPhase = token(input.actionState?.phase, 30);
@@ -202,5 +212,5 @@ export function selectMaxxisNextInteraction(input = {}) {
   if (memory && isFresh(memory, now) && !['STALE', 'EXPIRED'].includes(freshness(input.memoryFreshness || memory.freshness))) {
     candidates.push(candidate(MAXXIS_NEXT_INTERACTION_TYPES.RESUME_CONTEXT, MAXXIS_NEXT_INTERACTION_REASONS.MEMORY_CONTINUATION, MAXXIS_NEXT_INTERACTION_PRIORITY.MEMORY, 'MEMORY', memory, actions.get('REVIEW_NEXT_STEP') || null, ['MEMORY_AVAILABLE']));
   }
-  return dedupeAndSelect(candidates);
+  return attachContinuityEntity(dedupeAndSelect(candidates), input.continuityContext);
 }
