@@ -1,7 +1,7 @@
 import { test, expect, E2E_IDS } from '../../fixtures/appFixture.js';
 import { loginAs, openMaxxis } from '../../support/appActions.js';
 
-test('orchestrates analysis to provider reply review as one dominant experience', async ({ page, mockBackend }) => {
+test('selects the next provider interaction once and keeps the experience dominant', async ({ page, mockBackend }) => {
   await page.addInitScript(() => {
     localStorage.setItem('lang', 'en');
     localStorage.setItem('ds_e2e_maxxis_proactive', '1');
@@ -40,12 +40,14 @@ test('orchestrates analysis to provider reply review as one dominant experience'
   await page.getByTestId('maxxis-proactive-review').evaluate((element) => element.click());
   await expect(page.getByTestId('maxxis-panel')).toBeVisible();
   const providerExperience = page.getByTestId('maxxis-composed-provider_review');
+  await expect(providerExperience).toHaveCount(1);
   await expect(providerExperience).toContainText('Your provider replied.');
   await expect(providerExperience).not.toContainText('current deal review');
   await expect(page.getByTestId('maxxis-smart-action-REVIEW_PROVIDER_REPLY')).toHaveCount(1);
   await page.getByTestId('maxxis-smart-action-REVIEW_PROVIDER_REPLY').click();
   await expect(page.getByTestId('maxxis-messages')).toContainText('Conversation Summary');
   await expect(page.getByTestId('maxxis-smart-action-DRAFT_PROVIDER_REPLY')).toHaveCount(1);
+  await expect(page.getByTestId('maxxis-proactive-bubble')).toHaveCount(0);
 
   expect(mockBackend.state.messagesSent).toBe(0);
   expect(protectedRequests).toEqual([]);
