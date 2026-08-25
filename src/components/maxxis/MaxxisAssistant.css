@@ -231,6 +231,31 @@
   color: #ef4444;
 }
 
+.maxxis-composed-experience {
+  display: grid;
+  gap: 8px;
+  min-width: 0;
+}
+
+.maxxis-composed-copy {
+  display: grid;
+  gap: 5px;
+}
+
+.maxxis-composed-facts {
+  display: grid;
+  gap: 4px;
+  margin: 0;
+  padding-inline-start: 20px;
+  color: var(--t2);
+  font-size: 12px;
+  line-height: 1.4;
+}
+
+.maxxis-composed-experience[data-density="COMPACT"] .maxxis-composed-facts {
+  margin-top: -2px;
+}
+
 .maxxis-message-meta {
   padding: 0 5px;
   color: var(--t3);

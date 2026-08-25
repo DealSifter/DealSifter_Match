@@ -84,6 +84,10 @@ import {
   safeMaxxisExperienceAnalytics,
 } from '../../features/maxxis/orchestration/maxxisExperienceOrchestrator';
 import { MAXXIS_EXPERIENCE_ATTENTION } from '../../features/maxxis/orchestration/maxxisExperienceTypes';
+import {
+  buildMaxxisMessageCompositionBridge,
+  composeMaxxisExperience,
+} from '../../features/maxxis/composition/maxxisExperienceComposer';
 import './MaxxisAssistant.css';
 
 import {
@@ -781,6 +785,7 @@ export function MaxxisAssistant({ page = 'dashboard', onOpenSupport = null, onNa
         sourceData: currentResult.data,
       },
       followUps: recall.followUps,
+      compositionMode: 'MEMORY_RECALL',
     }]);
     return true;
   };
@@ -867,6 +872,7 @@ export function MaxxisAssistant({ page = 'dashboard', onOpenSupport = null, onNa
           followUps: localDealIntelligence.followUps,
           smartActionsEnabled: localDealIntelligence.type === 'deal_snapshot',
           smartActionSurface: 'snapshot',
+          compositionMode: localDealIntelligence.type === 'property_tradeoffs' ? 'COMPARISON' : 'ANALYSIS',
         }]);
         return;
       }
@@ -943,6 +949,7 @@ export function MaxxisAssistant({ page = 'dashboard', onOpenSupport = null, onNa
         smartActionsEnabled: intelligence.type === 'deal_snapshot',
         smartActionSurface: 'snapshot',
         analysisExport: result.unavailable ? null : (meta.analysisExport || null),
+        compositionMode: intelligence.type === 'property_tradeoffs' ? 'COMPARISON' : (intelligence.type ? 'ANALYSIS' : undefined),
       }]);
     } catch (error) {
       captureAppException(error, { area: 'maxxis_assistant', page });
@@ -1122,6 +1129,7 @@ export function MaxxisAssistant({ page = 'dashboard', onOpenSupport = null, onNa
         createdAt: new Date(),
         type: 'smart_action_feedback',
         data: { status: 'SUCCESS', actionCode: 'UNLOCK_PROVIDER_CONTACT', serviceId },
+        compositionMode: 'ACTION_RESULT',
       }]);
     } catch (error) {
       captureAppException(error, { area: 'maxxis_provider_unlock_confirm', serviceId });
@@ -1191,6 +1199,7 @@ export function MaxxisAssistant({ page = 'dashboard', onOpenSupport = null, onNa
           data: result.data,
           smartActionsEnabled: true,
           smartActionSurface: 'message',
+          compositionMode: 'ACTION_PREPARATION',
         }]);
       }
     } catch (error) {
@@ -1288,9 +1297,13 @@ export function MaxxisAssistant({ page = 'dashboard', onOpenSupport = null, onNa
         content: pending?.sourceType === 'provider_conversation_analysis' ? sendCopy.replySent : sendCopy.messageSent,
         createdAt: new Date(),
         type: 'provider_message_sent',
-        data: result?.data || { serviceId: pending.serviceId, propertyId: pending.propertyId, status: 'sent' },
+        data: {
+          ...(result?.data || { serviceId: pending.serviceId, propertyId: pending.propertyId, status: 'sent' }),
+          actionCode: 'SEND_PROVIDER_MESSAGE',
+        },
         smartActionsEnabled: true,
         smartActionSurface: 'conversation',
+        compositionMode: 'ACTION_RESULT',
       }]);
     } catch (error) {
       captureAppException(error, { area: 'maxxis_provider_message_confirm', actionId });
@@ -1474,6 +1487,42 @@ export function MaxxisAssistant({ page = 'dashboard', onOpenSupport = null, onNa
     });
     return [decision.primaryAction, ...decision.secondaryActions].filter(Boolean);
   }, [effectiveMaxxisPreferences, enabled, language, open, pendingProviderUnlock]);
+
+  const getMessageComposedExperience = useCallback((message) => {
+    if (message?.analysisExport) return null;
+    const unlockConfirmation = pendingProviderUnlock?.messageId === message?.id;
+    const messageConfirmation = pendingProviderMessageSend?.messageId === message?.id;
+    const compositionMessage = unlockConfirmation || messageConfirmation
+      ? {
+          ...message,
+          compositionMode: 'ACTION_CONFIRMATION',
+          data: {
+            ...(message.data || {}),
+            actionCode: unlockConfirmation ? 'UNLOCK_PROVIDER_CONTACT' : 'SEND_PROVIDER_MESSAGE',
+            nuggetCost: unlockConfirmation ? pendingProviderUnlock?.cost : null,
+          },
+        }
+      : message?.compositionMode === 'ACTION_PREPARATION'
+        ? { ...message, data: { ...(message.data || {}), actionCode: 'SEND_PROVIDER_MESSAGE' } }
+        : message;
+    const bridge = buildMaxxisMessageCompositionBridge(compositionMessage);
+    if (!bridge) return null;
+    const decision = orchestrateMaxxisExperience({
+      maxxisEnabled: enabled,
+      maxxisOpen: open,
+      ...bridge.orchestrationInput,
+      smartActions: getMessageSmartActions(message),
+      preferences: effectiveMaxxisPreferences,
+    });
+    const composition = composeMaxxisExperience({
+      decision,
+      language,
+      facts: bridge.facts,
+      followUps: message.followUps,
+      density: message.compositionDensity,
+    });
+    return composition.status === 'COMPOSED' ? composition : null;
+  }, [effectiveMaxxisPreferences, enabled, getMessageSmartActions, language, open, pendingProviderMessageSend, pendingProviderUnlock]);
 
   useEffect(() => {
     messages.forEach((message) => {
@@ -1716,6 +1765,7 @@ export function MaxxisAssistant({ page = 'dashboard', onOpenSupport = null, onNa
         },
         smartActionsEnabled: true,
         smartActionSurface: 'conversation',
+        compositionMode: 'PROVIDER_REVIEW',
       }]);
       return;
     }
@@ -1996,6 +2046,7 @@ export function MaxxisAssistant({ page = 'dashboard', onOpenSupport = null, onNa
                 isExportingAnalysis={exportingAnalysisId === message.id}
                 onConfirmMemoryForget={handleConfirmMemoryForget}
                 onCancelMemoryForget={handleCancelMemoryForget}
+                composedExperience={getMessageComposedExperience(message)}
               />
             ))}
             {loading ? (

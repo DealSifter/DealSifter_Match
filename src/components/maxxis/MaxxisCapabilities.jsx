@@ -6,6 +6,7 @@ import { C } from '../../theme/colors';
 import { MAXXIS_WIDGET_POSITION_KEY } from '../../lib/localStoragePolicy';
 import { trackProductEvent } from '../../lib/productAnalytics';
 import { MaxxisDealMemoryCard } from '../../features/maxxis/memory/MaxxisDealMemoryCard';
+import { MaxxisComposedExperience } from '../../features/maxxis/composition/MaxxisComposedExperience';
 
 export const UUID_PATTERN = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
 
@@ -1569,14 +1570,36 @@ export function MessageBubble({
   isExportingAnalysis,
   onConfirmMemoryForget,
   onCancelMemoryForget,
+  composedExperience,
 }) {
   const isUser = message.role === 'user';
   const { text, actions } = isUser
     ? { text: String(message.content || ''), actions: [] }
     : parseActionContent(message.content, language);
+  const compositionKeepsControls = ['ACTION_PREPARATION', 'ACTION_CONFIRMATION'].includes(composedExperience?.mode);
+  if (!isUser && composedExperience?.status === 'COMPOSED' && composedExperience?.presentationHints?.render !== false && !compositionKeepsControls) {
+    return (
+      <div className={`maxxis-message maxxis-message-assistant ${message.error ? 'maxxis-message-error' : ''}`}>
+        <MaxxisComposedExperience
+          experience={composedExperience}
+          message={message}
+          onSmartAction={onSmartAction}
+          onFollowUp={onDealFollowUp}
+        />
+      </div>
+    );
+  }
   return (
     <div className={`maxxis-message ${isUser ? 'maxxis-message-user' : 'maxxis-message-assistant'} ${message.error ? 'maxxis-message-error' : ''}`}>
-      {text ? (
+      {compositionKeepsControls ? (
+        <MaxxisComposedExperience
+          experience={composedExperience}
+          message={message}
+          onSmartAction={onSmartAction}
+          onFollowUp={onDealFollowUp}
+        />
+      ) : null}
+      {text && !compositionKeepsControls ? (
         <div className="maxxis-message-body">
           {String(text || '').split('\n').map((line, index, arr) => (
             <React.Fragment key={`${message.id}-line-${index}`}>
@@ -1586,7 +1609,7 @@ export function MessageBubble({
           ))}
         </div>
       ) : null}
-      {actions.length ? (
+      {actions.length && !compositionKeepsControls ? (
         <div className="maxxis-action-links" aria-label="Maxxis navigation actions">
           {actions.map((action) => (
             <button
