@@ -153,10 +153,10 @@ Não recebe o papel do usuário, perfil profissional, mercados, buy box, plano, 
 
 Eu priorizaria o Maxxis em três camadas:
 
-1. **Maxxis Guide**<br>
+1. **Maxxis Guide**  
    Respostas sobre uso do app, documentação versionada e navegação contextual. É a camada já existente, mas precisa de RAG/documentação indexada e actions mais específicas.
 
-2. **Maxxis Deal Analyst**<br>
+2. **Maxxis Deal Analyst**  
    Analisa uma oportunidade usando dados estruturados e o Investor Profile:
    - “Este imóvel encaixa no meu buy box?”
    - ARV, margem, preço, rehab, closing e risco;
@@ -164,7 +164,7 @@ Eu priorizaria o Maxxis em três camadas:
    - perguntas ao vendedor;
    - score explicável, nunca recomendação financeira definitiva.
 
-3. **Maxxis Workflow Copilot**<br>
+3. **Maxxis Workflow Copilot**  
    Preenche rascunhos, valida cadastros e executa ações seguras com confirmação:
    - completar Investor Profile;
    - sugerir melhorias de card;
@@ -1827,7 +1827,7 @@ Os `.md` continuarão sendo o manual do Maxxis. Mas o verdadeiro salto acontecer
 
 # REGRAS PARA IMPLEMENTAÇÃO
 
-- Adaptar a solução à arquitetura atual.
+- Adaptar a solução à arquitetura atual. (Não adapte o projeto à força ao desenho teórico e quebrando o app e acarretando problemas de funcionamento.)
 - Não substituir bibliotecas sem necessidade.
 - Não criar um segundo backend se já existir um.
 - Não mover arquivos sem justificativa.
@@ -1841,105 +1841,3 @@ Os `.md` continuarão sendo o manual do Maxxis. Mas o verdadeiro salto acontecer
 - O score deve ser determinístico.
 - A IA interpreta e explica, mas não calcula regras financeiras.
 
----
-
-# MVP UPGRADE COMPLETED
-
-Status técnico em 11 de agosto de 2026: as fases 1A/1B, 2A-2G, 3A-3M e 4A-4C estão integradas na arquitetura atual. A Fase 4C encerra o upgrade do MVP com uma camada de orquestração contextual; ela não cria um novo score, advisor, matching engine ou motor de decisão.
-
-## MAXXIS MVP CAPABILITIES
-
-| Capability | Fonte de dados / source of truth | Função, tool ou Edge Function | Resposta / frontend |
-| --- | --- | --- | --- |
-| Property Search | `properties`, `property_images` e perfil autenticado | `searchProperties` / tool `searchProperties` / `searchMatchedProperties` | `properties`; cards no `MaxxisAssistant` |
-| Service Search | `services`, cards publicados e entitlement do usuário | `searchServices` / tool `searchServices` | `services`; cards de serviços e controles existentes |
-| Investment Profile | perfil do usuário autenticado | `getMyInvestmentProfile` / tool homônima | `investment_profile`; card de perfil |
-| Property Details | `properties` e `property_images` | `getPropertyDetails` / tool homônima | `property_details`; resumo factual da property |
-| Property Match | property + Investment Profile | `calculatePropertyMatch` | match determinístico exibido nos resultados; o Copilot apenas repassa match existente |
-| Behavioral Adjustment | `user_interactions` autorizadas | `calculateBehaviorAffinity` e `calculateBehaviorAdjustment` em `behaviorAffinity` | ajuste determinístico da busca, sem alterar o perfil |
-| Profile Drift | perfil + comportamento agregado | `detectInvestmentProfileDrift` e pending profile actions | sugestões confirmáveis no chat; nenhuma alteração automática |
-| Deal Metrics | campos factuais da property | `calculateDealMetrics` em `dealMetrics` | `DealMetricsResult`; rows reutilizadas no assistente |
-| Deal Advisor | property + métricas | `analyzeDealFacts` | `DealAdvisorAnalysis`; sinais factuais, atenção, ausências e limitações |
-| Property Comparison | duas ou três properties autorizadas | `compareProperties` / tool `compareProperties` | `property_comparison`; tabela factual |
-| Property Service Needs | property + métricas + advisor | `identifyPropertyServiceNeeds` em `propertyServiceNeeds` | `PropertyServiceNeed[]`; tipos sugeridos, nunca obrigatórios |
-| Property Service Matching | needs derivadas + `services` publicados | `findServicesForPropertyNeeds` | `PropertyServiceMatch[]`; seção de serviços sugeridos |
-| Service Fit | tipo de serviço + cobertura geográfica | `calculateServiceFit` | `ServiceFitResult`; compatibilidade objetiva, não reputação |
-| Provider Contact Unlock | entitlement, saldo e RPCs transacionais | Edge Functions `maxxis-provider-unlock-prepare/confirm/cancel` | confirmação explícita e contato somente após entitlement |
-| Provider Message Draft | provider já identificado + property autorizada | Edge Function `maxxis-provider-message-draft` | `provider_message_draft`; texto editável |
-| Provider Message Send | draft revisado + confirmação explícita | Edge Functions `maxxis-provider-message-prepare/confirm/cancel` | `provider_message_sent`; envio somente no backend confirmado |
-| Provider Conversation Analysis | `chat_messages` autorizadas | `analyzeProviderConversation` / `maxxis-provider-conversation-analysis` | `provider_conversation_analysis`; fatos, pendências e sugestão editável |
-| Provider Reply Send | resposta revisada + confirmação explícita | mesmo fluxo prepare/confirm/cancel de mensagem | mensagem enviada somente após confirmação |
-| Next Best Action | property, ausências, services, pending actions, conversa e workflow | `determineNextBestAction` em `nextBestAction` | card `NextBestActionCard`; sugestão determinística, sem execução |
-| Deal Workflow | evidências estruturadas + `deal_workflow_items` | `reconcileDealWorkflowForProperty` / `maxxis-deal-workflow` | `DealProgressCard`; itens manuais somente por ação explícita |
-| Deal Copilot Overview | composição dos resultados acima | `getDealCopilotOverview` em `dealCopilotContext` / tool `getDealCopilotOverview` | `deal_copilot_overview`; `DealCopilotOverviewCard` com progressive disclosure |
-
-## Fontes de verdade do MVP
-
-```text
-Match          -> calculatePropertyMatch
-Behavior       -> behaviorAffinity
-Metrics        -> dealMetrics
-Advisor        -> analyzeDealFacts
-Service Needs  -> propertyServiceNeeds
-Service Match  -> findServicesForPropertyNeeds
-Service Fit    -> calculateServiceFit
-Workflow       -> dealWorkflow
-Next Action    -> nextBestAction
-Conversation   -> providerConversationAnalyzer / providerConversationAnalysis
-Copilot        -> dealCopilotContext (agregação somente)
-```
-
-## Arquitetura final do Maxxis MVP
-
-```text
-MaxxisAssistant (React)
-  -> maxxisService
-    -> Edge Function maxxis-chat
-      -> autenticação Supabase
-      -> Gemini: classificação de intenção + escolha de tool + explicação
-      -> toolRegistry
-        -> searchProperties / searchServices / getMyInvestmentProfile
-        -> getPropertyDetails / compareProperties
-        -> getDealCopilotOverview
-             -> getPropertyDetails(includeOperationalContext=true)
-                  -> propertyDetails -> dealMetrics -> analyzeDealFacts
-                  -> propertyServiceNeeds -> dealWorkflow -> nextBestAction
-             -> chat_messages (consulta opcional e isolada)
-             -> services por IDs já vinculados (consulta opcional em lote)
-      -> resposta estruturada e segura
-  -> cards existentes + DealCopilotOverviewCard
-
-Fluxos sensíveis paralelos, fora do overview:
-  UI explícita -> prepare -> confirmação do usuário -> confirm/cancel Edge Function
-  (profile action, provider unlock, message send, checklist manual)
-```
-
-### Intent routing
-
-| Intenção | Capability carregada |
-| --- | --- |
-| busca de property | `searchProperties` |
-| busca geral de serviço | `searchServices` |
-| pergunta sobre perfil | `getMyInvestmentProfile` |
-| detalhe, análise ou métrica focal | `getPropertyDetails` sem contexto operacional |
-| comparação | `compareProperties` |
-| status/resumo geral do deal | `getDealCopilotOverview` |
-| próximo passo | `getPropertyDetails(includeOperationalContext=true)` -> Next Best Action |
-| progresso/checklist | `getPropertyDetails(includeOperationalContext=true)` -> Workflow |
-| ajuda de provider para a property | `getPropertyDetails(includeServiceMatches=true)` |
-| conversa com provider | fluxo existente de Provider Conversation Analysis |
-
-### Performance e isolamento de falhas
-
-- Overview com property encontrada: 6 queries centrais existentes (property, imagens, pending actions, leitura do workflow, upsert idempotente e leitura final).
-- Contexto de conversa: mais 1 query opcional em lote.
-- Identificação dos providers já vinculados à conversa: no máximo mais 1 query em lote com `IN`; não existe loop de queries por provider.
-- Total esperado do overview: 7 queries sem provider vinculado ou 8 com providers vinculados. As verificações de autenticação não entram nessa contagem de queries de banco.
-- Service Matching não é chamado automaticamente pelo overview.
-- Perguntas focais e comparações não reconciliam contexto operacional; `includeOperationalContext` é opt-in.
-- Falha no bloco opcional de conversa/provider gera overview parcial e registra a capability indisponível.
-- Logs registram duração, capabilities carregadas/indisponíveis e quantidade de queries, sem conteúdo completo de property ou chat.
-
-### Limites de segurança preservados
-
-O Deal Copilot não calcula score ou métrica, não cria advice, não muda workflow manual, não cria Next Best Action, não desbloqueia contato, não consome Nuggets, não altera perfil e não envia mensagens. Gemini somente entende a intenção, escolhe uma capability registrada e explica resultados estruturados. Todas as respostas anteriores continuam suportadas; `deal_copilot_overview` é aditivo.
