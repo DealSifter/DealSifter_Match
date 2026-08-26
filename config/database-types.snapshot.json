@@ -1,7 +1,7 @@
 {
   "projectRef": "oqdcnjupquhybwdbeeew",
   "schema": "public",
-  "sha256": "6e757d77b585745d9a44f76d92dcefb7ad8a78ad8ddf85431dab0d69faed5d09",
-  "generatedAt": "2026-08-20",
+  "sha256": "d0d2f9e9a5d04073d646c60ab145b469281a3b8d7c25946ed900bd2c85775c51",
+  "generatedAt": "2026-08-26",
   "generator": "supabase gen types typescript"
 }
