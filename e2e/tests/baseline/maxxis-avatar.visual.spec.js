@@ -19,7 +19,7 @@ async function setAvatar(page, state) {
   return avatar;
 }
 
-test('desktop official Maxxis avatar states', async ({ page, mockBackend }, testInfo) => {
+test('desktop official Maxxis Deal AI avatar states', async ({ page, mockBackend }, testInfo) => {
   test.skip(testInfo.project.name !== 'desktop-baseline');
   await primeAvatar(page);
   await loginBaseline(page, mockBackend.users.investor);
@@ -33,7 +33,7 @@ test('desktop official Maxxis avatar states', async ({ page, mockBackend }, test
   }
 });
 
-test('mobile official Maxxis avatar states stay inside the current hit target', async ({ page, mockBackend }, testInfo) => {
+test('mobile official Maxxis Deal AI avatar states stay inside the current hit target', async ({ page, mockBackend }, testInfo) => {
   test.skip(testInfo.project.name !== 'mobile-baseline');
   await primeAvatar(page);
   await loginBaseline(page, mockBackend.users.investor);

@@ -38,7 +38,7 @@ function sessionWithA(overrides = {}) {
   }, { accountKey: ACCOUNT_A, now: NOW });
 }
 
-describe('Maxxis cross-surface continuity', () => {
+describe('Maxxis Deal AI cross-surface continuity', () => {
   it('normalizes an allowlisted snapshot and discards PII payloads', () => {
     const snapshot = normalizeMaxxisContinuitySnapshot({ propertyId: PROPERTY_A, serviceId: SERVICE_X, email: 'private@example.com', messageBody: 'secret', stripePayload: { token: 'x' } }, { now: NOW });
     expect(snapshot).toMatchObject({ propertyId: PROPERTY_A, serviceId: SERVICE_X, freshness: 'FRESH' });
@@ -49,7 +49,7 @@ describe('Maxxis cross-surface continuity', () => {
     ['same property', { currentContext: { propertyId: PROPERTY_A }, allowedServiceIds: [SERVICE_X] }, 'CURRENT_WITH_CONTINUITY', PROPERTY_A, SERVICE_X],
     ['provider handoff', { currentContext: { propertyId: PROPERTY_A, serviceId: SERVICE_X }, allowedServiceIds: [SERVICE_X] }, 'CURRENT_WITH_CONTINUITY', PROPERTY_A, SERVICE_X],
     ['conversation handoff', { currentContext: { propertyId: PROPERTY_A, conversationRef: `SERVICE:${SERVICE_X}` }, allowedServiceIds: [SERVICE_X] }, 'CURRENT_WITH_CONTINUITY', PROPERTY_A, SERVICE_X],
-    ['reopen Maxxis', { currentContext: {}, allowedServiceIds: [SERVICE_X] }, 'FRESH_CONTINUITY', PROPERTY_A, SERVICE_X],
+    ['reopen Maxxis Deal AI', { currentContext: {}, allowedServiceIds: [SERVICE_X] }, 'FRESH_CONTINUITY', PROPERTY_A, SERVICE_X],
   ])('resolves %s without losing authority', (_label, input, reasonCode, propertyId, serviceId) => {
     const result = resolveMaxxisContinuity(sessionWithA(), { accountKey: ACCOUNT_A, now: NOW + 1_000, ...input });
     expect(result).toMatchObject({ status: 'RESOLVED', reasonCode, context: { propertyId, serviceId } });

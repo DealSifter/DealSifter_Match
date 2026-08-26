@@ -11,7 +11,7 @@ Describe the user/business need, constraints, data/RLS/PII, cost, performance an
 
 ## Decision
 
-State the chosen architecture, boundaries, contracts, feature flag/rollout and Maxxis autonomy level if applicable.
+State the chosen architecture, boundaries, contracts, feature flag/rollout and Maxxis Deal AI autonomy level if applicable.
 
 ## Alternatives considered
 

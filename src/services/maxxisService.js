@@ -11,15 +11,15 @@ const MAX_HISTORY_ITEMS = 10;
 const UUID_PATTERN = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
 
 const FALLBACK_MESSAGES = {
-  en: 'Maxxis is not available right now. Please try again in a moment or contact human support.',
-  pt: 'O Maxxis nao esta disponivel agora. Tente novamente em instantes ou fale com o suporte humano.',
-  es: 'Maxxis no esta disponible ahora. Intentalo de nuevo en un momento o contacta al soporte humano.',
+  en: 'Maxxis Deal AI is not available right now. Please try again in a moment or contact human support.',
+  pt: 'O Maxxis Deal AI nao esta disponivel agora. Tente novamente em instantes ou fale com o suporte humano.',
+  es: 'Maxxis Deal AI no esta disponible ahora. Intentalo de nuevo en un momento o contacta al soporte humano.',
 };
 
 const CONFIG_MESSAGES = {
-  en: 'Maxxis AI still needs to be configured by support. The conversation widget is ready, but the backend AI key is missing.',
-  pt: 'O Maxxis AI ainda precisa ser configurado pelo suporte. O chat ja esta pronto, mas falta a chave de IA no backend.',
-  es: 'Maxxis AI todavia debe ser configurado por soporte. El chat ya esta listo, pero falta la clave de IA en el backend.',
+  en: 'Maxxis Deal AI still needs to be configured by support. The conversation widget is ready, but the backend AI key is missing.',
+  pt: 'O Maxxis Deal AI ainda precisa ser configurado pelo suporte. O chat ja esta pronto, mas falta a chave de IA no backend.',
+  es: 'Maxxis Deal AI todavia debe ser configurado por soporte. El chat ya esta listo, pero falta la clave de IA en el backend.',
 };
 
 function currentLanguage() {
@@ -39,12 +39,12 @@ function normalizeHistory(history = []) {
 
 export function getMaxxisGreeting(language = currentLanguage()) {
   if (language === 'pt') {
-    return 'Ola, eu sou o Maxxis, seu assistente do DealSifter Match. Posso te ajudar a navegar pelo Feed, MapView, Matches, desbloqueios, planos, nuggets, spotlight e conceitos gerais de Tax Deed ou Wholesale nos EUA. Como posso ajudar agora?';
+    return 'Ola, eu sou o Maxxis Deal AI, seu assistente do DealSifter Match. Posso te ajudar a navegar pelo Feed, MapView, Matches, desbloqueios, planos, nuggets, spotlight e conceitos gerais de Tax Deed ou Wholesale nos EUA. Como posso ajudar agora?';
   }
   if (language === 'es') {
-    return 'Hola, soy Maxxis, tu asistente de DealSifter Match. Puedo ayudarte con Feed, MapView, Matches, desbloqueos, planes, nuggets, spotlight y conceptos generales de Tax Deed o Wholesale en EE. UU. Que necesitas ahora?';
+    return 'Hola, soy Maxxis Deal AI, tu asistente de DealSifter Match. Puedo ayudarte con Feed, MapView, Matches, desbloqueos, planes, nuggets, spotlight y conceptos generales de Tax Deed o Wholesale en EE. UU. Que necesitas ahora?';
   }
-  return 'Hi, I am Maxxis, your DealSifter Match assistant. I can help you with Feed, MapView, Matches, unlocks, plans, nuggets, spotlight, and general US Tax Deed or Wholesale concepts. How can I help?';
+  return 'Hi, I am Maxxis Deal AI, your DealSifter Match assistant. I can help you with Feed, MapView, Matches, unlocks, plans, nuggets, spotlight, and general US Tax Deed or Wholesale concepts. How can I help?';
 }
 
 export async function sendMaxxisMessage({ message, history = [], page = 'dashboard', language = currentLanguage(), propertyId = '', propertyIds = [], maxxisContext = null }) {
@@ -157,8 +157,8 @@ export async function sendMaxxisMessage({ message, history = [], page = 'dashboa
 
 async function invokeMaxxisProfileAction(functionName, actionId) {
   const id = String(actionId || '').trim();
-  if (!id) throw new Error('Maxxis action ID is required.');
-  if (!isSupabaseConfigured || !supabase) throw new Error('Maxxis action service is unavailable.');
+  if (!id) throw new Error('Maxxis Deal AI action ID is required.');
+  if (!isSupabaseConfigured || !supabase) throw new Error('Maxxis Deal AI action service is unavailable.');
   const { data, error } = await supabase.functions.invoke(functionName, { body: { actionId: id } });
   if (error) {
     const actionError = new Error(String(data?.status || data?.error || 'MAXXIS_ACTION_FAILED'));
@@ -182,7 +182,7 @@ export function cancelMaxxisProfileAction(actionId) {
 }
 
 async function invokeMaxxisProviderUnlock(functionName, body) {
-  if (!isSupabaseConfigured || !supabase) throw new Error('Maxxis provider unlock service is unavailable.');
+  if (!isSupabaseConfigured || !supabase) throw new Error('Maxxis Deal AI provider unlock service is unavailable.');
   const { data, error } = await supabase.functions.invoke(functionName, { body });
   if (error || data?.success === false) {
     const actionError = new Error(String(data?.status || data?.error || 'MAXXIS_PROVIDER_UNLOCK_FAILED'));
@@ -210,7 +210,7 @@ export async function prepareMaxxisProviderMessageDraft({ serviceId, propertyId,
   const cleanPropertyId = String(propertyId || '').trim();
   if (!UUID_PATTERN.test(cleanServiceId)) throw new Error('Valid provider service ID is required.');
   if (!UUID_PATTERN.test(cleanPropertyId)) throw new Error('Valid property context is required.');
-  if (!isSupabaseConfigured || !supabase) throw new Error('Maxxis provider message draft service is unavailable.');
+  if (!isSupabaseConfigured || !supabase) throw new Error('Maxxis Deal AI provider message draft service is unavailable.');
   const { data, error } = await supabase.functions.invoke('maxxis-provider-message-draft', {
     body: { serviceId: cleanServiceId, propertyId: cleanPropertyId, language },
   });
@@ -224,7 +224,7 @@ export async function prepareMaxxisProviderMessageDraft({ serviceId, propertyId,
 }
 
 async function invokeMaxxisProviderMessage(functionName, body) {
-  if (!isSupabaseConfigured || !supabase) throw new Error('Maxxis provider message service is unavailable.');
+  if (!isSupabaseConfigured || !supabase) throw new Error('Maxxis Deal AI provider message service is unavailable.');
   const { data, error } = await supabase.functions.invoke(functionName, { body });
   if (error || data?.success === false) {
     const actionError = new Error(String(data?.status || data?.error || 'MAXXIS_PROVIDER_MESSAGE_FAILED'));
@@ -253,13 +253,13 @@ export function prepareMaxxisProviderMessageSend({ serviceId, propertyId, messag
 
 export function confirmMaxxisProviderMessageSend(actionId) {
   const cleanActionId = String(actionId || '').trim();
-  if (!UUID_PATTERN.test(cleanActionId)) throw new Error('Valid Maxxis provider message action ID is required.');
+  if (!UUID_PATTERN.test(cleanActionId)) throw new Error('Valid Maxxis Deal AI provider message action ID is required.');
   return invokeMaxxisProviderMessage('maxxis-provider-message-confirm', { actionId: cleanActionId });
 }
 
 export function cancelMaxxisProviderMessageSend(actionId) {
   const cleanActionId = String(actionId || '').trim();
-  if (!UUID_PATTERN.test(cleanActionId)) throw new Error('Valid Maxxis provider message action ID is required.');
+  if (!UUID_PATTERN.test(cleanActionId)) throw new Error('Valid Maxxis Deal AI provider message action ID is required.');
   return invokeMaxxisProviderMessage('maxxis-provider-message-cancel', { actionId: cleanActionId });
 }
 
@@ -268,7 +268,7 @@ export async function analyzeMaxxisProviderConversation({ serviceId, propertyId 
   const cleanPropertyId = String(propertyId || '').trim();
   if (!UUID_PATTERN.test(cleanServiceId)) throw new Error('Valid provider service ID is required.');
   if (cleanPropertyId && !UUID_PATTERN.test(cleanPropertyId)) throw new Error('Valid property context is required.');
-  if (!isSupabaseConfigured || !supabase) throw new Error('Maxxis provider conversation analysis is unavailable.');
+  if (!isSupabaseConfigured || !supabase) throw new Error('Maxxis Deal AI provider conversation analysis is unavailable.');
   const { data, error } = await supabase.functions.invoke('maxxis-provider-conversation-analysis', {
     body: {
       serviceId: cleanServiceId,
@@ -294,7 +294,7 @@ export async function setMaxxisDealWorkflowManualItem({ propertyId, code, status
     throw new Error('Manual workflow item is not allowed.');
   }
   if (!['pending', 'completed'].includes(cleanStatus)) throw new Error('Manual workflow status is not allowed.');
-  if (!isSupabaseConfigured || !supabase) throw new Error('Maxxis Deal Progress service is unavailable.');
+  if (!isSupabaseConfigured || !supabase) throw new Error('Maxxis Deal AI Deal Progress service is unavailable.');
   const { data, error } = await supabase.functions.invoke('maxxis-deal-workflow', {
     body: { propertyId: cleanPropertyId, code: cleanCode, status: cleanStatus },
   });

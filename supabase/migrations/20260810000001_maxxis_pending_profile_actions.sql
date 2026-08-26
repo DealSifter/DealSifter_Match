@@ -1,4 +1,4 @@
--- Reusable Maxxis confirmation boundary. The first supported action type is a
+-- Reusable Maxxis Deal AI confirmation boundary. The first supported action type is a
 -- conservative Investment Profile addition; no profile mutation occurs while
 -- an action remains pending.
 

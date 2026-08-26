@@ -15,7 +15,7 @@ async function openMaxxisPreferences(page) {
   await expect(page.getByTestId('maxxis-preferences-popover')).toBeVisible();
 }
 
-test('real Maxxis interaction preference persists, reloads and restores safely', async ({ page, realBackend }) => {
+test('real Maxxis Deal AI interaction preference persists, reloads and restores safely', async ({ page, realBackend }) => {
   test.setTimeout(360_000);
 
   await realBackend.loginViaUi(page, realBackend.investor);

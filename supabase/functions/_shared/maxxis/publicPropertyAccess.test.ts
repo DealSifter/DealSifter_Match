@@ -10,7 +10,7 @@ const searchSource = readFileSync(new URL('./searchProperties.ts', import.meta.u
 const behaviorSource = readFileSync(new URL('./getUserPropertyBehavior.ts', import.meta.url), 'utf8');
 const conversationSource = readFileSync(new URL('./providerConversationAnalysis.ts', import.meta.url), 'utf8');
 
-describe('sanitized Maxxis property access boundary', () => {
+describe('sanitized Maxxis Deal AI property access boundary', () => {
   it('defines narrow SECURITY DEFINER RPCs without weakening base-table RLS', () => {
     expect(migration).toMatch(/create or replace function public\.ds_get_public_property_details\(p_property_id uuid\)/i);
     expect(migration).toMatch(/create or replace function public\.ds_search_public_properties\(/i);
@@ -38,7 +38,7 @@ describe('sanitized Maxxis property access boundary', () => {
     expect(migration).toMatch(/token\|signature\|sig\|expires\|x-amz-\|x-goog-/i);
   });
 
-  it('routes every affected Maxxis property reader through sanitized RPCs', () => {
+  it('routes every affected Maxxis Deal AI property reader through sanitized RPCs', () => {
     expect(detailsSource).toContain("rpc('ds_get_public_property_details'");
     expect(searchSource).toContain("rpc('ds_search_public_properties'");
     expect(behaviorSource).toContain("rpc('ds_search_public_properties'");

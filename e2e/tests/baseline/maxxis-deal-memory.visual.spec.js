@@ -18,7 +18,7 @@ async function capture(page, name) {
   });
 }
 
-test('desktop Maxxis deal memory recall, changes and forget confirmation', async ({ page, mockBackend }, testInfo) => {
+test('desktop Maxxis Deal AI deal memory recall, changes and forget confirmation', async ({ page, mockBackend }, testInfo) => {
   test.skip(testInfo.project.name !== 'desktop-baseline');
   await primeMaxxisDealMemory(page, {
     userId: mockBackend.users.investor.id,
@@ -36,7 +36,7 @@ test('desktop Maxxis deal memory recall, changes and forget confirmation', async
   await capture(page, 'desktop-31-maxxis-memory-forget-confirmation.png');
 });
 
-test('mobile Maxxis deal memory remains usable', async ({ page, mockBackend }, testInfo) => {
+test('mobile Maxxis Deal AI deal memory remains usable', async ({ page, mockBackend }, testInfo) => {
   test.skip(testInfo.project.name !== 'mobile-baseline');
   await primeMaxxisDealMemory(page, {
     userId: mockBackend.users.investor.id,

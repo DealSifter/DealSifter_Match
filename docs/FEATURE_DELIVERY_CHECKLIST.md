@@ -18,9 +18,9 @@ Use this checklist before implementation and again before release. Link the comp
 - [ ] A security kill switch exists when immediate operational shutdown is required; it is not a rollout flag.
 - [ ] Accessibility, keyboard, mobile and responsive behavior are specified.
 - [ ] Unit, integration, E2E, negative-security and performance tests are identified.
-- [ ] Maxxis capability declares its autonomy level from `MAXXIS_AUTONOMY_LEVELS.md`.
+- [ ] Maxxis Deal AI capability declares its autonomy level from `MAXXIS_AUTONOMY_LEVELS.md`.
 
 ## Definition of Done
 
-A feature is done only when code and generated contracts are current; tests and CI are green; security/RLS/privacy reviews are complete; observability and privacy-safe analytics are queryable; performance budgets and accessibility/mobile gates pass; rollout and rollback are rehearsed in staging; documentation and operational ownership are current. Product approval is explicit for pricing, payments, RLS or Maxxis `EXECUTE` behavior.
+A feature is done only when code and generated contracts are current; tests and CI are green; security/RLS/privacy reviews are complete; observability and privacy-safe analytics are queryable; performance budgets and accessibility/mobile gates pass; rollout and rollback are rehearsed in staging; documentation and operational ownership are current. Product approval is explicit for pricing, payments, RLS or Maxxis Deal AI `EXECUTE` behavior.
 

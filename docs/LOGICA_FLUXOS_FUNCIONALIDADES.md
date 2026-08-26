@@ -19,7 +19,7 @@ O DealSifter Match e um app de matchmaking imobiliario para investidores, wholes
 - Feed: descoberta por cards, swipes, favoritos, matches, unlocks, showcase e spotlight.
 - MapView: descoberta geografica por pins, clusters, filtros, My PINs e Spotlight Cards.
 - Matches: area de contatos desbloqueados, interesses, portfolio, chat, notificacoes e historico.
-- Maxxis AI: assistente flutuante dentro do app para guiar uso da plataforma e contextualizar duvidas de Real Estate.
+- Maxxis Deal AI: assistente flutuante dentro do app para guiar uso da plataforma e contextualizar duvidas de Real Estate.
 
 O modelo comercial combina:
 
@@ -63,7 +63,7 @@ Arquivos/pastas principais:
 - `src/pages/Onboarding.jsx`: cadastro de perfis, propriedades, servicos e preview.
 - `src/pages/Pricing.jsx`: planos, packs, checkout e Billing Portal.
 - `src/pages/AdminDashboard.jsx`: KPIs, suporte, doacoes de nuggets, concessao de plano e operacao.
-- `src/components/maxxis/MaxxisAssistant.jsx`: widget e modal do Maxxis AI.
+- `src/components/maxxis/MaxxisAssistant.jsx`: widget e modal do Maxxis Deal AI.
 - `src/services/`: camada runtime de regras, Supabase, plano, unlock, suporte, mapa, feed, consentimento e tema.
 - `src/lib/`: funcoes puras, normalizacao, sanitizacao, formatadores, ordenacao e politicas locais.
 
@@ -86,7 +86,7 @@ Edge Functions relevantes:
 - stripe-reprocess-queue.
 - delete-account.
 - send-support-email.
-- Maxxis AI / assistente.
+- Maxxis Deal AI / assistente.
 - geocode-address, quando usado para geocoding backend.
 
 ### 2.3 Stripe
@@ -412,12 +412,12 @@ Admin:
 
 Usuario:
 
-- acessa suporte por Settings/Communications ou Maxxis AI;
+- acessa suporte por Settings/Communications ou Maxxis Deal AI;
 - notificacoes clicaveis levam ao chat de suporte.
 
-### 4.8 Maxxis AI
+### 4.8 Maxxis Deal AI
 
-Maxxis AI e o assistente integrado ao DealSifter Match. Ele substitui gradualmente o antigo GuideTips como guia principal do usuario.
+Maxxis Deal AI e o assistente integrado ao DealSifter Match. Ele substitui gradualmente o antigo GuideTips como guia principal do usuario.
 
 Interface:
 
@@ -454,7 +454,7 @@ Limitacoes:
 
 Navegacao interna:
 
-- Maxxis pode gerar botoes internos para levar o usuario ao modulo certo.
+- Maxxis Deal AI pode gerar botoes internos para levar o usuario ao modulo certo.
 - Actions permitidas incluem: Feed, MapView, Matches, Pricing, Onboarding, Settings, Profile, Notifications, Support e Admin quando aplicavel.
 - Usar no maximo 2 botoes de navegacao por resposta.
 - Texto dos botoes deve acompanhar idioma detectado.
@@ -605,7 +605,7 @@ Regras:
 - UI deve usar `translations.js` ou camada equivalente.
 - Mensagens sistemicas devem preferir `message_code` + `params`.
 - Chat e suporte devem respeitar preferencia de linguagem.
-- Maxxis deve detectar idioma e responder no idioma do usuario.
+- Maxxis Deal AI deve detectar idioma e responder no idioma do usuario.
 - Nomes proprios, marcas e enderecos nao devem ser traduzidos.
 
 ## 7. Tema, Logo, Mobile e PWA
@@ -667,7 +667,7 @@ Eventos importantes:
 - paywall em owner desbloqueado;
 - falha de Edge Function;
 - erro de MapView/geocode;
-- erro de Maxxis AI;
+- erro de Maxxis Deal AI;
 - falha de suporte/email.
 
 Regras:
@@ -751,7 +751,7 @@ Regras:
 - Reprocessamento Stripe.
 - Entitlement Alerts.
 
-### Maxxis AI
+### Maxxis Deal AI
 
 - Widget flutuante aparece.
 - Drag/drop funciona.
@@ -804,7 +804,7 @@ Direcao:
 - geocoding backend/backfill;
 - QA MapView V2 obrigatorio apos ajustes.
 
-### 11.5 Maxxis AI
+### 11.5 Maxxis Deal AI
 
 Risco: assistente responder fora do escopo, inventar feature ou falhar silenciosamente por chave/API.
 
@@ -823,7 +823,7 @@ Direcao:
 
 - auditoria continua em componentes novos;
 - mensagens sistemicas por codigo;
-- Maxxis e chat respeitando idioma ativo.
+- Maxxis Deal AI e chat respeitando idioma ativo.
 
 ## 12. Recomendacao De Proximo Caminho
 
@@ -835,11 +835,11 @@ Sequencia tecnica sugerida:
 4. Remover qualquer dependencia runtime de localStorage proibido.
 5. Expandir testes unitarios para services canonicos.
 6. Executar QA mobile/iOS antes de cada deploy visual.
-7. Usar Maxxis AI como guia principal e reduzir dependencia de GuideTips.
+7. Usar Maxxis Deal AI como guia principal e reduzir dependencia de GuideTips.
 
 ## 13. Conclusao
 
-O DealSifter Match ja possui uma base ampla: auth, onboarding, feed, mapa, matches, pricing, checkout, admin, suporte, chat, spotlight, exclusividade, i18n, PWA/mobile, PDF e Maxxis AI.
+O DealSifter Match ja possui uma base ampla: auth, onboarding, feed, mapa, matches, pricing, checkout, admin, suporte, chat, spotlight, exclusividade, i18n, PWA/mobile, PDF e Maxxis Deal AI.
 
 O desafio principal nao e falta de funcionalidade. O desafio e garantir consistencia entre:
 
@@ -851,4 +851,4 @@ O desafio principal nao e falta de funcionalidade. O desafio e garantir consiste
 - plano/nuggets validados por servidor;
 - experiencia mobile sem regressao visual.
 
-Maxxis AI passa a ser parte central da experiencia: orienta o usuario, reduz dependencia de tooltips estaticos, leva o usuario ao modulo correto e apoia com conhecimento de Real Estate sem ultrapassar limites de produto, privacidade ou consultoria profissional.
+Maxxis Deal AI passa a ser parte central da experiencia: orienta o usuario, reduz dependencia de tooltips estaticos, leva o usuario ao modulo correto e apoia com conhecimento de Real Estate sem ultrapassar limites de produto, privacidade ou consultoria profissional.

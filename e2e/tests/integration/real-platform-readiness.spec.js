@@ -33,7 +33,7 @@ test('staging feature flags are authenticated, deterministic and fail closed', a
   expect(overridden.payload.flags.hidden_client_bypass).toBeUndefined();
 });
 
-test('privacy-safe Maxxis funnel events are observable in staging', async ({ page, realBackend }) => {
+test('privacy-safe Maxxis Deal AI funnel events are observable in staging', async ({ page, realBackend }) => {
   const session = await realBackend.signIn(realBackend.investor.email, realBackend.investor.password);
   const entityId = `readiness-${realBackend.runId}`.slice(0, 96);
   for (const eventName of FUNNEL) {

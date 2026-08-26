@@ -4,7 +4,7 @@ import { openDealAndRecallMemory, primeMaxxisDealMemory } from '../../support/ma
 
 test.setTimeout(360_000);
 
-test('Maxxis deal memory recall and explicit forget confirmation fit the mobile viewport', async ({ page, mockBackend }) => {
+test('Maxxis Deal AI deal memory recall and explicit forget confirmation fit the mobile viewport', async ({ page, mockBackend }) => {
   await primeMaxxisDealMemory(page, {
     userId: mockBackend.users.investor.id,
     propertyId: mockBackend.ids.property,

@@ -18,7 +18,7 @@ function action(code, overrides = {}) {
   };
 }
 
-describe('Maxxis Next Best Interaction Engine', () => {
+describe('Maxxis Deal AI Next Best Interaction Engine', () => {
   it('keeps explicit user intent sovereign over a provider reply', () => {
     const result = selectMaxxisNextInteraction({
       explicitUserIntent: { code: 'CAP_RATE', requested: true },

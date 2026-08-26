@@ -1413,13 +1413,13 @@ export function Settings({ setPage, prevPage, initialTab = 'profile', initialCom
               <div style={{ display: 'grid', gap: 12 }}>
                 <div data-testid="settings-maxxis-preferences" style={{ border: `1px solid ${C.border}`, borderRadius: 10, padding: 10, display: 'grid', gap: 8 }}>
                   <div>
-                    <div style={{ fontSize: 12, fontWeight: 800, color: C.t1 }}>MAXXIS</div>
+                    <div style={{ fontSize: 12, fontWeight: 800, color: C.t1 }}>MAXXIS DEAL AI</div>
                     <div style={{ marginTop: 3, fontSize: 10.5, lineHeight: 1.4, color: C.t3 }}>
                       {getLang() === 'pt'
-                        ? 'Escolha como o Maxxis avisa você e apresenta os movimentos do avatar.'
+                        ? 'Escolha como o Maxxis Deal AI avisa você e apresenta os movimentos do avatar.'
                         : getLang() === 'es'
-                          ? 'Elige cómo Maxxis te avisa y presenta los movimientos del avatar.'
-                          : 'Choose how Maxxis notifies you and presents avatar motion.'}
+                          ? 'Elige cómo Maxxis Deal AI te avisa y presenta los movimientos del avatar.'
+                          : 'Choose how Maxxis Deal AI notifies you and presents avatar motion.'}
                     </div>
                   </div>
                   <MaxxisPreferencesControls

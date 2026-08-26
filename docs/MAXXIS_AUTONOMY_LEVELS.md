@@ -1,6 +1,6 @@
-# Maxxis Capability And Autonomy Contract
+# Maxxis Deal AI Capability And Autonomy Contract
 
-Maxxis MVP+ is a context-aware, memory-enabled and proactively restrained real-estate copilot. It can understand an authorized active deal, explain relevant facts, suggest and prepare supported actions, and execute only the exact action explicitly confirmed by the user. It is not autonomous.
+Maxxis Deal AI MVP+ is a context-aware, memory-enabled and proactively restrained real-estate copilot. It can understand an authorized active deal, explain relevant facts, suggest and prepare supported actions, and execute only the exact action explicitly confirmed by the user. It is not autonomous.
 
 Every capability declares exactly one maximum level:
 
@@ -16,7 +16,7 @@ Every capability declares exactly one maximum level:
 
 `EXECUTE_USER_CONFIRMED` is technical execution after confirmation; it does not grant autonomy. Unlock, messaging, supported workflow updates and other protected mutations must retain their existing server validation, entitlement/RLS checks, idempotency, rate limiting, privacy-safe observability and rollback or compensation path.
 
-Maxxis may read, explain, compare, remember an allowlisted summary, detect meaningful changes, suggest the next interaction, prepare an action, await confirmation and execute a confirmed action. It may not choose an investment, buy, unlock or send without confirmation, accept a quote, negotiate, update workflow/profile/property by itself, dispatch automatic follow-ups, create agents or act autonomously in the background.
+Maxxis Deal AI may read, explain, compare, remember an allowlisted summary, detect meaningful changes, suggest the next interaction, prepare an action, await confirmation and execute a confirmed action. It may not choose an investment, buy, unlock or send without confirmation, accept a quote, negotiate, update workflow/profile/property by itself, dispatch automatic follow-ups, create agents or act autonomously in the background.
 
 Capabilities may not silently jump levels. Confirmation cannot be inferred from chat text, old consent, memory, continuity, proactive signals or a generated recommendation. Gemini may route or explain deterministic backend results but cannot invent authorization, targets, amounts or successful execution.
 

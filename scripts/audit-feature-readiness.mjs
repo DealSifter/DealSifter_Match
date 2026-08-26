@@ -35,9 +35,9 @@ const requirePattern = (file, pattern, label) => {
 requirePattern('supabase/functions/_shared/featureFlags.ts', /deterministicCohort/, 'deterministic rollout');
 requirePattern('supabase/functions/feature-flags/index.ts', /ds_is_current_user_admin/, 'server-authorized production override');
 requirePattern('src/lib/productAnalytics.js', /forbiddenKeyPattern/, 'analytics PII denylist');
-requirePattern('src/domain/analytics/productEvents.js', /MAXXIS_DEAL_FUNNEL/, 'Maxxis deal funnel');
+requirePattern('src/domain/analytics/productEvents.js', /MAXXIS_DEAL_FUNNEL/, 'Maxxis Deal AI deal funnel');
 requirePattern('docs/FEATURE_DELIVERY_CHECKLIST.md', /Definition of Done/i, 'Definition of Done');
-requirePattern('docs/MAXXIS_AUTONOMY_LEVELS.md', /READ[\s\S]*SUGGEST[\s\S]*PREPARE[\s\S]*CONFIRM[\s\S]*EXECUTE/, 'Maxxis autonomy levels');
+requirePattern('docs/MAXXIS_AUTONOMY_LEVELS.md', /READ[\s\S]*SUGGEST[\s\S]*PREPARE[\s\S]*CONFIRM[\s\S]*EXECUTE/, 'Maxxis Deal AI autonomy levels');
 requirePattern('.github/workflows/quality.yml', /audit:feature-readiness/, 'CI readiness gate');
 requirePattern('.github/workflows/quality.yml', /test:e2e:accessibility/, 'CI accessibility gate');
 requirePattern('playwright.config.js', /retries:\s*0/, 'zero Playwright retries');

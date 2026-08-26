@@ -1,4 +1,4 @@
--- Sanitized property access for authenticated discovery consumers such as Maxxis.
+-- Sanitized property access for authenticated discovery consumers such as Maxxis Deal AI.
 -- Base-table RLS remains owner-only; these narrowly scoped RPCs return public DTOs.
 
 create or replace function public.ds_sanitize_public_property_text(p_value text)
@@ -193,4 +193,4 @@ comment on function public.ds_get_public_property_details(uuid) is
   'Authenticated sanitized lookup for one active, published, open property. Omits ownership, contact, address, exact geolocation, entitlement, and administrative fields.';
 
 comment on function public.ds_search_public_properties(text[], text, text, text, numeric, numeric, integer, integer, text, uuid[], integer) is
-  'Authenticated filtered discovery for active, published, open properties. Returns only the minimal Maxxis search DTO and one public image.';
+  'Authenticated filtered discovery for active, published, open properties. Returns only the minimal Maxxis Deal AI search DTO and one public image.';

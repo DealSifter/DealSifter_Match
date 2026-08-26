@@ -4174,13 +4174,13 @@ export default function App() {
       await analysisExport.onExportPdf(String(analysisText || ''));
       addToast({
         type: 'success',
-        message: 'Maxxis AI analysis PDF generated.',
+        message: 'Maxxis Deal AI analysis PDF generated.',
       });
     } catch (error) {
-      safeLogError('Maxxis analysis PDF export failed.', error);
+      safeLogError('Maxxis Deal AI analysis PDF export failed.', error);
       addToast({
         type: 'error',
-        message: 'Could not generate the Maxxis AI analysis PDF.',
+        message: 'Could not generate the Maxxis Deal AI analysis PDF.',
       });
     }
   }, [addToast]);

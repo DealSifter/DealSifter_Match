@@ -1,4 +1,4 @@
--- Phase 3I: Maxxis provider contact unlock bridge.
+-- Phase 3I: Maxxis Deal AI provider contact unlock bridge.
 -- Reuses the existing unlock_intents/unlocks/Nuggets machinery. This migration
 -- only adds safe provider access quotes and a no-debit intent cancellation RPC.
 

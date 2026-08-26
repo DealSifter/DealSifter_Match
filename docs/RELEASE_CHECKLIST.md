@@ -19,7 +19,7 @@
 
 ## Post-deploy
 
-- [ ] Verify auth, feed, Matches, Maxxis, unlock/nugget, chat, payments and admin health.
+- [ ] Verify auth, feed, Matches, Maxxis Deal AI, unlock/nugget, chat, payments and admin health.
 - [ ] Check error rate, latency, cost/rate-limit metrics and product funnel events without PII.
 - [ ] Keep rollback window staffed; close only after the observation period and evidence are recorded.
 

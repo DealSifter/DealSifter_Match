@@ -14,7 +14,7 @@ import {
   MAXXIS_AVATAR_VISUAL_STATE_MODES,
 } from './maxxisAvatarStates';
 
-describe('Maxxis avatar asset mapping', () => {
+describe('Maxxis Deal AI avatar asset mapping', () => {
   it.each(Object.values(MAXXIS_AVATAR_STATES))('maps %s to its closed official asset', (state) => {
     const asset = resolveMaxxisAvatarAsset(state);
     expect(asset).toBe(MAXXIS_AVATAR_ASSETS[state]);
@@ -36,7 +36,7 @@ describe('Maxxis avatar asset mapping', () => {
   });
 });
 
-describe('Maxxis avatar animation presentation', () => {
+describe('Maxxis Deal AI avatar animation presentation', () => {
   it.each([
     ['IDLE', 'idle-loop'],
     ['OBSERVING', 'observing-once'],

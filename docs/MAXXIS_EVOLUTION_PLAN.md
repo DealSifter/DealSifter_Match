@@ -1,6 +1,6 @@
 ## Situação atual
 
-O Maxxis já existe como um assistente conversacional integrado, mas ainda é principalmente um chat com prompt estático — não um agente conectado aos dados e às operações do DealSifter.
+O Maxxis Deal AI já existe como um assistente conversacional integrado, mas ainda é principalmente um chat com prompt estático — não um agente conectado aos dados e às operações do DealSifter.
 
 Arquitetura atual:
 
@@ -13,7 +13,7 @@ MaxxisAssistant (React)
 
 O widget é montado globalmente no `App`, mas só aparece para usuários autenticados. Ele recebe a página atual, idioma e até 10 mensagens anteriores. O histórico existe apenas na memória do navegador: ao recarregar, minimiza sem perder, mas não persiste entre sessões.
 
-## Objetivo atual do Maxxis
+## Objetivo atual do Maxxis Deal AI
 
 Pelo código e documentação, ele deve:
 
@@ -41,7 +41,7 @@ A única função contextual de negócio realmente implementada é a análise de
 
 ### 1. Não há conhecimento real do sistema em tempo de execução
 
-A documentação diz que Maxxis usa os `.md` e o comportamento real do produto como fonte de verdade. Na prática, a Edge Function envia somente um prompt estático grande.
+A documentação diz que Maxxis Deal AI usa os `.md` e o comportamento real do produto como fonte de verdade. Na prática, a Edge Function envia somente um prompt estático grande.
 
 Ele não lê:
 
@@ -58,7 +58,7 @@ Consequência: responde genericamente e pode ficar desatualizado depois de qualq
 
 ### 2. Não há ferramentas/actions de negócio
 
-Os “actions” atuais apenas navegam para páginas. O Maxxis não pode:
+Os “actions” atuais apenas navegam para páginas. O Maxxis Deal AI não pode:
 
 - abrir um card específico;
 - iniciar um onboarding em uma aba/campo específico;
@@ -147,16 +147,16 @@ Não recebe o papel do usuário, perfil profissional, mercados, buy box, plano, 
 | Property analysis | Prompt manual vindo de Matches | Não calcula, valida ou compara dados |
 | PDF | Exporta a resposta de análise | Sem estrutura/qualidade verificável |
 | Suporte | Abre Settings/Communication | Não cria ticket contextualizado |
-| Investor Profile | Sem integração | Grande oportunidade para Maxxis |
+| Investor Profile | Sem integração | Grande oportunidade para Maxxis Deal AI |
 
 ## Melhor direção de evolução
 
-Eu priorizaria o Maxxis em três camadas:
+Eu priorizaria o Maxxis Deal AI em três camadas:
 
-1. **Maxxis Guide**<br>
+1. **Maxxis Deal AI Guide**<br>
    Respostas sobre uso do app, documentação versionada e navegação contextual. É a camada já existente, mas precisa de RAG/documentação indexada e actions mais específicas.
 
-2. **Maxxis Deal Analyst**<br>
+2. **Maxxis Deal AI Deal Analyst**<br>
    Analisa uma oportunidade usando dados estruturados e o Investor Profile:
    - “Este imóvel encaixa no meu buy box?”
    - ARV, margem, preço, rehab, closing e risco;
@@ -164,7 +164,7 @@ Eu priorizaria o Maxxis em três camadas:
    - perguntas ao vendedor;
    - score explicável, nunca recomendação financeira definitiva.
 
-3. **Maxxis Workflow Copilot**<br>
+3. **Maxxis Deal AI Workflow Copilot**<br>
    Preenche rascunhos, valida cadastros e executa ações seguras com confirmação:
    - completar Investor Profile;
    - sugerir melhorias de card;
@@ -173,13 +173,13 @@ Eu priorizaria o Maxxis em três camadas:
    - abrir suporte com contexto;
    - criar checklist de publicação.
 
-O melhor primeiro caso de uso é integrar o novo **Investor Profile / buy box** ao Maxxis. Ele pode identificar campos obrigatórios ausentes, explicar cada critério e comparar propriedades desbloqueadas com Texas/Dallas, Single Family, ARV, margem, cash-only e prazo de closing.
+O melhor primeiro caso de uso é integrar o novo **Investor Profile / buy box** ao Maxxis Deal AI. Ele pode identificar campos obrigatórios ausentes, explicar cada critério e comparar propriedades desbloqueadas com Texas/Dallas, Single Family, ARV, margem, cash-only e prazo de closing.
 
 Essa evolução exige uma camada de ferramentas server-side com permissões, dados mínimos e respostas estruturadas — não apenas ampliar o prompt atual.
 
 
 
-Você já tem o “cérebro verbal” do Maxxis nos dois arquivos `.md`. O que falta é dar a ele:
+Você já tem o “cérebro verbal” do Maxxis Deal AI nos dois arquivos `.md`. O que falta é dar a ele:
 
 1. **acesso controlado aos dados do app**;
 2. **funções que ele possa solicitar**;
@@ -202,15 +202,15 @@ O objetivo é chegar a:
 ```text
 Usuário faz um pedido
       ↓
-Maxxis identifica a intenção
+Maxxis Deal AI identifica a intenção
       ↓
-Maxxis escolhe uma ferramenta
+Maxxis Deal AI escolhe uma ferramenta
       ↓
 Backend consulta o banco
       ↓
 Algoritmo calcula o match
       ↓
-Maxxis explica o resultado
+Maxxis Deal AI explica o resultado
       ↓
 Usuário confirma uma ação
 ```
@@ -225,7 +225,7 @@ Faça a evolução nesta ordem:
 
 ```text
 Etapa 0 — Preparar a fundação
-Etapa 1 — Maxxis Search Assistant
+Etapa 1 — Maxxis Deal AI Search Assistant
 Etapa 2 — Match Score
 Etapa 3 — Deal Advisor
 Etapa 4 — Agente ativo
@@ -250,7 +250,7 @@ maxxis-app-knowledge.md
 
 Mantenha os dois, mas atribua funções claras.
 
-## Arquivo 1 — Comportamento do Maxxis
+## Arquivo 1 — Comportamento do Maxxis Deal AI
 
 Exemplo:
 
@@ -276,7 +276,7 @@ Exemplo de estrutura:
 ```md
 # IDENTIDADE
 
-Você é Maxxis, o assistente inteligente da plataforma.
+Você é Maxxis Deal AI, o assistente inteligente da plataforma.
 
 # OBJETIVO
 
@@ -404,7 +404,7 @@ Só pode executar após o usuário confirmar:
 
 ## Passo 3 — Confirmar que existe um backend
 
-O Maxxis não deve consultar o Supabase ou banco diretamente pelo navegador.
+O Maxxis Deal AI não deve consultar o Supabase ou banco diretamente pelo navegador.
 
 Arquitetura segura:
 
@@ -413,7 +413,7 @@ React
   ↓
 API do seu backend
   ↓
-Serviço do Maxxis
+Serviço do Maxxis Deal AI
   ↓
 Gemini
   ↓
@@ -507,7 +507,7 @@ Caso use Supabase Edge Functions, a pasta `server` pode ser substituída por fun
 
 ---
 
-# ETAPA 1 — Maxxis Search Assistant
+# ETAPA 1 — Maxxis Deal AI Search Assistant
 
 Nesta primeira fase, ele deve fazer somente quatro coisas:
 
@@ -524,7 +524,7 @@ Ainda não precisa “aprender sozinho”.
 
 ## Passo 1 — Padronizar os dados dos deals
 
-O Maxxis só consegue buscar bem se as oportunidades estiverem organizadas.
+O Maxxis Deal AI só consegue buscar bem se as oportunidades estiverem organizadas.
 
 Campos mínimos:
 
@@ -809,7 +809,7 @@ maximumPrice
 remoteAvailable
 ```
 
-Ao final da etapa 1, o Maxxis deve conseguir:
+Ao final da etapa 1, o Maxxis Deal AI deve conseguir:
 
 ```text
 “Mostre tax deeds no Alabama”
@@ -864,7 +864,7 @@ Preferência por imóvel ocupado ou vazio
 Objetivo: flip, rental, wholesale ou land
 ```
 
-O Maxxis pode ajudar a preencher, mas o usuário deve poder editar manualmente.
+O Maxxis Deal AI pode ajudar a preencher, mas o usuário deve poder editar manualmente.
 
 ---
 
@@ -1077,7 +1077,7 @@ Isso é melhor do que modificar silenciosamente o perfil.
 
 # ETAPA 3 — Deal Advisor
 
-Agora o Maxxis deixa de apenas mostrar matches e passa a orientar a análise.
+Agora o Maxxis Deal AI deixa de apenas mostrar matches e passa a orientar a análise.
 
 ## Passo 1 — Criar a ferramenta `getDealDetails`
 
@@ -1126,7 +1126,7 @@ export function getMissingDealData(deal: any): string[] {
 }
 ```
 
-O Maxxis pode responder:
+O Maxxis Deal AI pode responder:
 
 > Antes de classificar este deal como forte, ainda faltam ARV, situação de ocupação e impostos pendentes.
 
@@ -1167,7 +1167,7 @@ export function calculateDealMetrics(input: {
 }
 ```
 
-O Maxxis apenas explica:
+O Maxxis Deal AI apenas explica:
 
 > Considerando os valores cadastrados, o investimento total estimado é X, com lucro potencial de Y e ROI de Z%.
 
@@ -1210,7 +1210,7 @@ Deal B — Match 84 — ROI 29% — Título incerto
 Deal C — Match 77 — ROI 18% — Ocupado
 ```
 
-O Maxxis pode concluir:
+O Maxxis Deal AI pode concluir:
 
 > O Deal A é o mais equilibrado. O Deal B possui retorno potencial maior, mas apresenta risco documental superior.
 
@@ -1287,7 +1287,7 @@ const checklistTemplates = {
 };
 ```
 
-O Maxxis pode adaptar a explicação, mas não precisa criar todo checklist do zero.
+O Maxxis Deal AI pode adaptar a explicação, mas não precisa criar todo checklist do zero.
 
 ---
 
@@ -1494,7 +1494,7 @@ A IA tenta responder tudo
 
 ```text
 Arquivo de comportamento
-→ como o Maxxis deve agir
+→ como o Maxxis Deal AI deve agir
 
 Arquivo de conhecimento
 → como o app funciona
@@ -1503,7 +1503,7 @@ Banco de dados
 → o que existe agora
 
 Ferramentas
-→ o que o Maxxis pode consultar ou preparar
+→ o que o Maxxis Deal AI pode consultar ou preparar
 
 Algoritmo
 → como os matches são calculados
@@ -1629,7 +1629,7 @@ Identifique:
 1. Framework do frontend.
 2. Existência e tecnologia do backend.
 3. Forma atual de integração com a API Gemini.
-4. Local dos arquivos .md usados pelo Maxxis.
+4. Local dos arquivos .md usados pelo Maxxis Deal AI.
 5. Estrutura das tabelas ou modelos de dados.
 6. Fluxo atual do chat.
 7. Riscos de segurança, especialmente exposição de API keys.
@@ -1679,7 +1679,7 @@ Ela deve:
 - retornar JSON padronizado;
 - registrar erros sem expor dados sensíveis.
 
-Integre essa ferramenta ao Maxxis.
+Integre essa ferramenta ao Maxxis Deal AI.
 
 Não implemente ainda score de match.
 Forneça o código completo.
@@ -1745,7 +1745,7 @@ Forneça migrations, backend e frontend completos.
 
 ```text
 O usuário escreve uma busca em linguagem natural.
-O Maxxis encontra dados reais.
+O Maxxis Deal AI encontra dados reais.
 Os resultados aparecem como cards.
 Nenhum resultado é inventado.
 ```
@@ -1762,7 +1762,7 @@ Likes e descartes são registrados.
 ## Etapa 3 estará pronta quando:
 
 ```text
-O Maxxis compara deals.
+O Maxxis Deal AI compara deals.
 Aponta dados ausentes.
 Calcula métricas.
 Sugere serviços.
@@ -1772,7 +1772,7 @@ Cria checklist.
 ## Etapa 4 estará pronta quando:
 
 ```text
-O Maxxis prepara ações.
+O Maxxis Deal AI prepara ações.
 O usuário confirma.
 O backend executa.
 Tudo fica registrado.
@@ -1823,7 +1823,7 @@ Serviços
 Ações confirmadas
 ```
 
-Os `.md` continuarão sendo o manual do Maxxis. Mas o verdadeiro salto acontecerá quando ele ganhar **ferramentas, banco estruturado e algoritmo determinístico**. Aí ele deixa de ser um FAQ simpático e começa a se tornar o diferencial central do SaaS.
+Os `.md` continuarão sendo o manual do Maxxis Deal AI. Mas o verdadeiro salto acontecerá quando ele ganhar **ferramentas, banco estruturado e algoritmo determinístico**. Aí ele deixa de ser um FAQ simpático e começa a se tornar o diferencial central do SaaS.
 
 # REGRAS PARA IMPLEMENTAÇÃO
 
@@ -1847,7 +1847,7 @@ Os `.md` continuarão sendo o manual do Maxxis. Mas o verdadeiro salto acontecer
 
 Status técnico em 11 de agosto de 2026: as fases 1A/1B, 2A-2G, 3A-3M e 4A-4C estão integradas na arquitetura atual. A Fase 4C encerra o upgrade do MVP com uma camada de orquestração contextual; ela não cria um novo score, advisor, matching engine ou motor de decisão.
 
-## MAXXIS MVP CAPABILITIES
+## MAXXIS DEAL AI MVP CAPABILITIES
 
 | Capability | Fonte de dados / source of truth | Função, tool ou Edge Function | Resposta / frontend |
 | --- | --- | --- | --- |
@@ -1889,7 +1889,7 @@ Conversation   -> providerConversationAnalyzer / providerConversationAnalysis
 Copilot        -> dealCopilotContext (agregação somente)
 ```
 
-## Arquitetura final do Maxxis MVP
+## Arquitetura final do Maxxis Deal AI MVP
 
 ```text
 MaxxisAssistant (React)

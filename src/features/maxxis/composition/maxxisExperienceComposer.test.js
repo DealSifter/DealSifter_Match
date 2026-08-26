@@ -18,7 +18,7 @@ const decision = (mode, extra = {}) => ({
 });
 const compose = (mode, extra = {}) => composeMaxxisExperience({ decision: decision(mode, extra.decision), language: extra.language || 'en', facts: extra.facts, followUps: extra.followUps, density: extra.density });
 
-describe('Maxxis Contextual Experience Composer', () => {
+describe('Maxxis Deal AI Contextual Experience Composer', () => {
   it('1. PASSIVE renders nothing', () => {
     const result = compose('PASSIVE');
     expect(result).toMatchObject({ status: 'COMPOSED', headline: '', presentationHints: { render: false } });

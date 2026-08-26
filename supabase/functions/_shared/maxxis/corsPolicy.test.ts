@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { parseAllowedOrigins, resolveAllowedOrigin } from './corsPolicy.ts';
 
-describe('Maxxis CORS policy', () => {
+describe('Maxxis Deal AI CORS policy', () => {
   it('normalizes configured and fallback app origins', () => {
     expect(parseAllowedOrigins(
       'https://dealsifter.com/, https://app.dealsifter.com, *',

@@ -65,7 +65,7 @@ const propertyDetails = {
   },
 };
 
-describe('Maxxis interactive deal intelligence', () => {
+describe('Maxxis Deal AI interactive deal intelligence', () => {
   it('builds a contextual deal snapshot only from registered structured data', () => {
     const snapshot = buildDealSnapshot(propertyDetails, 'en');
 
@@ -102,7 +102,7 @@ describe('Maxxis interactive deal intelligence', () => {
     expect(buildDealGapsResponse(propertyDetails, 'pt').content).toContain('O que esta faltando');
   });
 
-  it('adds controlled follow-ups inside the existing Maxxis response context', () => {
+  it('adds controlled follow-ups inside the existing Maxxis Deal AI response context', () => {
     const followUps = buildMaxxisFollowUps(propertyDetails, 'en');
 
     expect(followUps.map((item) => item.code)).toEqual(expect.arrayContaining([

@@ -120,4 +120,4 @@ revoke all on function public.ds_search_public_properties(text[], text, text, te
 grant execute on function public.ds_search_public_properties(text[], text, text, text, numeric, numeric, integer, integer, text, uuid[], integer) to authenticated, service_role;
 
 comment on function public.ds_search_public_properties(text[], text, text, text, numeric, numeric, integer, integer, text, uuid[], integer) is
-  'Authenticated filtered discovery for active, published, open properties. Uses parameterized active predicates and returns only the minimal Maxxis search DTO plus one public image.';
+  'Authenticated filtered discovery for active, published, open properties. Uses parameterized active predicates and returns only the minimal Maxxis Deal AI search DTO plus one public image.';

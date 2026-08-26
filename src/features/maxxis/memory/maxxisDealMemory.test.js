@@ -78,7 +78,7 @@ function createStorage() {
   };
 }
 
-describe('Maxxis deal memory model and continuity', () => {
+describe('Maxxis Deal AI deal memory model and continuity', () => {
   let storage;
 
   beforeEach(() => { storage = createStorage(); });

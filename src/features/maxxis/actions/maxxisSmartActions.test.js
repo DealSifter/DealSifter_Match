@@ -34,7 +34,7 @@ function sourceWithService(contactAccess, overrides = {}) {
   };
 }
 
-describe('Maxxis smart actions eligibility', () => {
+describe('Maxxis Deal AI smart actions eligibility', () => {
   it('surfaces provider viewing from a snapshot without jumping to unlock', () => {
     const actions = buildMaxxisSmartActions(sourceWithService({ status: 'locked', cost: 1 }), { surface: 'snapshot', maxVisible: 3 });
 

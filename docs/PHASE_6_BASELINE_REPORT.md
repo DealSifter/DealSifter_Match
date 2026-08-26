@@ -17,9 +17,9 @@
 | Matches | overview, contacts/interests, chat e property | Coberta |
 | Property Details | fixture pública protegida e detail panel | Coberta |
 | Map | `ui-theme-map-panel.spec.js` e largura padrão responsiva | Coberta |
-| Services | inventory e provider fit do Maxxis | Coberta |
-| Chat humano | `chat_messages` determinístico e independência do Maxxis | Coberta |
-| Maxxis | abrir/fechar, preservar sessão, loading e respostas | Coberta |
+| Services | inventory e provider fit do Maxxis Deal AI | Coberta |
+| Chat humano | `chat_messages` determinístico e independência do Maxxis Deal AI | Coberta |
+| Maxxis Deal AI | abrir/fechar, preservar sessão, loading e respostas | Coberta |
 | Deal Copilot | overview estruturado com workflow/provider | Coberta |
 | Workflow | Deal Progress e itens controlados | Coberta |
 | Unlock | prepare/cancel sem débito e fluxo real de integração | Coberta |
@@ -31,16 +31,16 @@
 
 Foram congeladas 22 telas com fixtures namespaced `phase-6-baseline`, sem usuários reais:
 
-- Desktop (16): auth, dashboard light, feed, dashboard dark, settings, onboarding, map, matches, chat humano, property detail, Maxxis fechado, Maxxis aberto, property response, provider, workflow e Deal Copilot.
-- Mobile (6): home, matches, property, Maxxis, onboarding e menu/navigation.
+- Desktop (16): auth, dashboard light, feed, dashboard dark, settings, onboarding, map, matches, chat humano, property detail, Maxxis Deal AI fechado, Maxxis Deal AI aberto, property response, provider, workflow e Deal Copilot.
+- Mobile (6): home, matches, property, Maxxis Deal AI, onboarding e menu/navigation.
 
 Arquivos: `e2e/tests/baseline/__screenshots__/desktop-baseline` e `e2e/tests/baseline/__screenshots__/mobile-baseline`.
 
-Máscaras limitadas a tiles externos visíveis do mapa e timestamps de notificações. Timestamps Maxxis têm apenas o texto ocultado pelo harness, preservando sua geometria. Header, nav, cards, botões, containers, layout e FAB não são mascarados. Animações e caret são desativados somente pelo harness visual; `reducedMotion` é fixado.
+Máscaras limitadas a tiles externos visíveis do mapa e timestamps de notificações. Timestamps Maxxis Deal AI têm apenas o texto ocultado pelo harness, preservando sua geometria. Header, nav, cards, botões, containers, layout e FAB não são mascarados. Animações e caret são desativados somente pelo harness visual; `reducedMotion` é fixado.
 
 ## Guards
 
-- `npm run audit:ui-structural`: assertions determinísticas de estrutura, paleta, geometria, estado e coexistência Maxxis/chat humano.
+- `npm run audit:ui-structural`: assertions determinísticas de estrutura, paleta, geometria, estado e coexistência Maxxis Deal AI/chat humano.
 - `npm run audit:ui-regression`: guard completo (estrutural + 22 screenshots desktop/mobile).
 - `npm run test:e2e:visual`: comparação dos 22 snapshots.
 - `npm run test:e2e:visual:update`: atualização deliberada, condicionada à revisão e autorização.
@@ -73,9 +73,9 @@ O gate funcional permaneceu verde, mas classificou as leituras abaixo como `NEED
 | Property search | 6 | 10,32 s | 10,38 s |
 | Property details | 6 | 6,54 s | 7,52 s |
 | Global feed | 6 | 4,48 s | 6,11 s |
-| Maxxis service search (warm) | sequencial | 1,15 s | 2,52 s |
+| Maxxis Deal AI service search (warm) | sequencial | 1,15 s | 2,52 s |
 
-Primeira observação do Maxxis service search: 2,29 s. Estes números são baseline de staging, não SLO de produção, e não motivaram alteração funcional nesta fase.
+Primeira observação do Maxxis Deal AI service search: 2,29 s. Estes números são baseline de staging, não SLO de produção, e não motivaram alteração funcional nesta fase.
 
 ## Bugs existentes e backlog
 
@@ -92,7 +92,7 @@ Nenhum arquivo em `src/`, `supabase/` ou lógica de produção foi modificado. A
 
 `PRODUCTION UX BEFORE = FASE 6.0 UX AFTER`.
 
-## Fase 6G — Acceptance Final Do Maxxis MVP+
+## Fase 6G — Acceptance Final Do Maxxis Deal AI MVP+
 
 A aceitacao final reutiliza os contratos e snapshots desta baseline. O fluxo integrado e:
 
@@ -112,7 +112,7 @@ Context -> Intelligence -> Next Interaction -> Orchestrator -> Composer
 
 O teste `maxxis-phase-6-acceptance.spec.js` atravessa as cinco jornadas em uma unica sessao mockada, incluindo reload para Memory. As suites especializadas permanecem autoridade para matrizes parametrizadas, estados impossiveis, account isolation, PII, settings, avatar, attention e idempotencia.
 
-Definition of Done: os dez criterios WOW devem passar juntos; nenhum engine isolado pode competir com a experiencia dominante do Maxxis; toda mutacao protegida preserva `PREPARE -> CONFIRM -> EXECUTE_USER_CONFIRMED`; UI global, Human Chat, Stripe/Nuggets, RLS/entitlements e assets oficiais permanecem sob o contrato de nao regressao.
+Definition of Done: os dez criterios WOW devem passar juntos; nenhum engine isolado pode competir com a experiencia dominante do Maxxis Deal AI; toda mutacao protegida preserva `PREPARE -> CONFIRM -> EXECUTE_USER_CONFIRMED`; UI global, Human Chat, Stripe/Nuggets, RLS/entitlements e assets oficiais permanecem sob o contrato de nao regressao.
 
 Inconsistencias residuais encontradas e corrigidas na acceptance:
 

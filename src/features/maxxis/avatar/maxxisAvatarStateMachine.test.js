@@ -37,7 +37,7 @@ function context(overrides = {}) {
   };
 }
 
-describe('Maxxis avatar state machine', () => {
+describe('Maxxis Deal AI avatar state machine', () => {
   it('resolves idle when there is no active context or work', () => {
     const state = resolveMaxxisAvatarState({ now, accountKey: 'acct-a', enabled: true });
     expect(state).toMatchObject({
@@ -48,11 +48,11 @@ describe('Maxxis avatar state machine', () => {
     });
   });
 
-  it('resolves observing when Maxxis has active context but is not calling attention', () => {
+  it('resolves observing when Maxxis Deal AI has active context but is not calling attention', () => {
     expect(resolveMaxxisAvatarState(context()).state).toBe(MAXXIS_AVATAR_STATES.OBSERVING);
   });
 
-  it('resolves processing from existing Maxxis loading/execution flags', () => {
+  it('resolves processing from existing Maxxis Deal AI loading/execution flags', () => {
     const state = resolveMaxxisAvatarState(context({ loading: true }));
     expect(state).toMatchObject({ state: MAXXIS_AVATAR_STATES.PROCESSING, reason: 'request_in_progress' });
   });
@@ -68,7 +68,7 @@ describe('Maxxis avatar state machine', () => {
     expect(state.transientUntil).toBeGreaterThan(now);
   });
 
-  it('resolves waiting when Maxxis is awaiting an explicit user decision', () => {
+  it('resolves waiting when Maxxis Deal AI is awaiting an explicit user decision', () => {
     expect(resolveMaxxisAvatarState(context({ pendingProviderUnlock: { serviceId } })).state).toBe(MAXXIS_AVATAR_STATES.WAITING);
     expect(resolveMaxxisAvatarState(context({ smartActions: [{ code: 'SEND', state: 'confirmation' }] })).state).toBe(MAXXIS_AVATAR_STATES.WAITING);
     expect(resolveMaxxisAvatarState(context({ proactiveBubble: { id: 'bubble-1' } })).state).toBe(MAXXIS_AVATAR_STATES.WAITING);
@@ -136,7 +136,7 @@ describe('Maxxis avatar state machine', () => {
     expect(expired.state).toBe(MAXXIS_AVATAR_STATES.OBSERVING);
   });
 
-  it('clears noticed after bubble dismissal and when Maxxis opens', () => {
+  it('clears noticed after bubble dismissal and when Maxxis Deal AI opens', () => {
     const noticed = resolveMaxxisAvatarState(context({ proactiveSignalSurfaced: true }));
     expect(resolveMaxxisAvatarState(context({
       previousState: noticed,

@@ -100,7 +100,7 @@ function details(overrides: Partial<DealCopilotDetails> = {}): DealCopilotDetail
   };
 }
 
-describe('Phase 4C Maxxis Deal Copilot', () => {
+describe('Phase 4C Maxxis Deal AI Deal Copilot', () => {
   it('consolidates property details and workflow without replacing either source', () => {
     const result = composeDealCopilotOverview(details());
     expect(result?.propertySummary).toMatchObject({ id: propertyId, city: 'Dallas', price: 250000 });

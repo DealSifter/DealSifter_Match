@@ -32,7 +32,7 @@ function decide(overrides = {}) {
   });
 }
 
-describe('Maxxis Experience Orchestrator', () => {
+describe('Maxxis Deal AI Experience Orchestrator', () => {
   it('1. keeps a passively opened property silent', () => {
     const result = decide({ maxxisOpen: false, dealSnapshot: snapshot() });
     expect(result).toMatchObject({ mode: 'PASSIVE', primaryContent: null, primaryAction: null, attentionMode: 'NONE', avatarStateHint: 'OBSERVING' });
@@ -61,7 +61,7 @@ describe('Maxxis Experience Orchestrator', () => {
     expect(result.attentionMode).toBe('NONE');
   });
 
-  it('6. routes a provider reply into chat when Maxxis is open', () => {
+  it('6. routes a provider reply into chat when Maxxis Deal AI is open', () => {
     const result = decide({ proactiveSignal: { code: 'PROVIDER_REPLIED', serviceId: SERVICE_ID }, attentionResult: { shouldSurface: true, allowBubble: true } });
     expect(result).toMatchObject({ mode: 'PROVIDER_REVIEW', attentionMode: 'IN_CHAT' });
   });

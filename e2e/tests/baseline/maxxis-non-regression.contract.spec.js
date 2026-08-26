@@ -22,7 +22,7 @@ async function stableGeometry(locator, samples = 5) {
   }));
 }
 
-test('locks core surfaces, human chat and Maxxis coexistence', async ({ page, mockBackend }) => {
+test('locks core surfaces, human chat and Maxxis Deal AI coexistence', async ({ page, mockBackend }) => {
   await loginBaseline(page, mockBackend.users.investor);
 
   const palette = await page.evaluate(() => {

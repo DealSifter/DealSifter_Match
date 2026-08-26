@@ -55,12 +55,12 @@ else fail(`deal copilot maximum query count ${queryCount} exceeds ${deterministi
 
 const executionBudget = read('supabase/functions/_shared/maxxisExecutionBudget.ts');
 const valueOf = (name) => Number(executionBudget.match(new RegExp(`${name}:\\s*(\\d[\\d_]*)`))?.[1]?.replaceAll('_', '') || Infinity);
-if (valueOf('maxToolRounds') <= deterministic.maxxis_tool_rounds) pass('Maxxis tool rounds bounded');
-else fail('Maxxis tool rounds exceed budget');
-if (valueOf('maxHistoryItems') <= deterministic.maxxis_history_items) pass('Maxxis history count bounded');
-else fail('Maxxis history count exceeds budget');
-if (valueOf('maxToolPayloadChars') <= deterministic.maxxis_tool_payload_chars) pass('Maxxis tool payload bounded');
-else fail('Maxxis tool payload exceeds budget');
+if (valueOf('maxToolRounds') <= deterministic.maxxis_tool_rounds) pass('Maxxis Deal AI tool rounds bounded');
+else fail('Maxxis Deal AI tool rounds exceed budget');
+if (valueOf('maxHistoryItems') <= deterministic.maxxis_history_items) pass('Maxxis Deal AI history count bounded');
+else fail('Maxxis Deal AI history count exceeds budget');
+if (valueOf('maxToolPayloadChars') <= deterministic.maxxis_tool_payload_chars) pass('Maxxis Deal AI tool payload bounded');
+else fail('Maxxis Deal AI tool payload exceeds budget');
 
 const chat = read('src/hooks/useChatRealtime.js');
 const chatPageSize = Number(chat.match(/CHAT_PAGE_SIZE\s*=\s*(\d+)/)?.[1] || Infinity);
@@ -81,8 +81,8 @@ requireSource(realtime, /channel && channel !== nextChannel/, 'replacement realt
 const maxxisChat = read('supabase/functions/maxxis-chat/index.ts');
 const logger = read('supabase/functions/_shared/maxxis/logger.ts');
 for (const metric of ['provider_duration_ms', 'db_duration_ms', 'tool_duration_ms', 'system_prompt_bytes', 'tool_payload_bytes']) {
-  if (maxxisChat.includes(metric) && logger.includes(metric)) pass(`Maxxis metric=${metric}`);
-  else fail(`Maxxis metric missing: ${metric}`);
+  if (maxxisChat.includes(metric) && logger.includes(metric)) pass(`Maxxis Deal AI metric=${metric}`);
+  else fail(`Maxxis Deal AI metric missing: ${metric}`);
 }
 
 const workflow = read('.github/workflows/quality.yml');

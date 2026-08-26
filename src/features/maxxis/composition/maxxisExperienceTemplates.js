@@ -33,7 +33,7 @@ const COPY = Object.freeze({
     memory: 'This is the latest safe continuity context for this deal.',
     memoryChanged: (count) => count === 1 ? 'One item changed since your previous review.' : `${count} items changed since your previous review.`,
     workflow: (count) => count === 1 ? 'One workflow item is still open.' : `${count} workflow items are still open.`,
-    comparison: 'The available facts show trade-offs; Maxxis is not selecting a winner.',
+    comparison: 'The available facts show trade-offs; Maxxis Deal AI is not selecting a winner.',
     unknown: 'I do not have enough current information to compose a reliable answer.',
     actions: {
       REVIEW_PROVIDER_REPLY: 'Review reply',
@@ -75,7 +75,7 @@ const COPY = Object.freeze({
     memory: 'Este e o contexto seguro mais recente deste deal.',
     memoryChanged: (count) => count === 1 ? 'Um item mudou desde sua ultima revisao.' : `${count} itens mudaram desde sua ultima revisao.`,
     workflow: (count) => count === 1 ? 'Um item do workflow continua aberto.' : `${count} itens do workflow continuam abertos.`,
-    comparison: 'Os dados disponiveis mostram trade-offs; o Maxxis nao esta escolhendo um vencedor.',
+    comparison: 'Os dados disponiveis mostram trade-offs; o Maxxis Deal AI nao esta escolhendo um vencedor.',
     unknown: 'Nao tenho informacoes atuais suficientes para compor uma resposta confiavel.',
     actions: {
       REVIEW_PROVIDER_REPLY: 'Revisar resposta',
@@ -117,7 +117,7 @@ const COPY = Object.freeze({
     memory: 'Este es el contexto seguro mas reciente de este deal.',
     memoryChanged: (count) => count === 1 ? 'Un item cambio desde tu ultima revision.' : `${count} items cambiaron desde tu ultima revision.`,
     workflow: (count) => count === 1 ? 'Un item del workflow sigue abierto.' : `${count} items del workflow siguen abiertos.`,
-    comparison: 'Los datos disponibles muestran trade-offs; Maxxis no esta eligiendo un ganador.',
+    comparison: 'Los datos disponibles muestran trade-offs; Maxxis Deal AI no esta eligiendo un ganador.',
     unknown: 'No tengo suficiente informacion actual para componer una respuesta confiable.',
     actions: {
       REVIEW_PROVIDER_REPLY: 'Revisar respuesta',

@@ -1328,7 +1328,7 @@ export function PortfolioDetail({ item, owner, ownerContact = null, isOwnerUnloc
       doc.setFont('helvetica', 'bold');
       doc.setTextColor(53, 202, 201);
       doc.setFontSize(13);
-      doc.text(pdfLabel('maxxisAiAnalysis', 'Maxxis AI Analysis'), pageWidth - margin - 10, y + 17, { align: 'right' });
+      doc.text(pdfLabel('maxxisAiAnalysis', 'Maxxis Deal AI Analysis'), pageWidth - margin - 10, y + 17, { align: 'right' });
       doc.setFont('helvetica', 'normal');
       doc.setTextColor(187, 202, 214);
       doc.setFontSize(8);
@@ -2081,7 +2081,7 @@ export function PortfolioDetail({ item, owner, ownerContact = null, isOwnerUnloc
                     cursor: 'pointer',
                   }}
                 >
-                  {matchesT.exportAnalyzeWithMaxxis || 'Analyze with Maxxis AI'}
+                  {matchesT.exportAnalyzeWithMaxxis || 'Analyze with Maxxis Deal AI'}
                 </button>
               </div>
 

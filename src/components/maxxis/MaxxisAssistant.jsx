@@ -2326,7 +2326,7 @@ export function MaxxisAssistant({ page = 'dashboard', onOpenSupport = null, onNa
                 type="button"
                 className="maxxis-proactive-dismiss"
                 data-testid="maxxis-proactive-dismiss"
-                aria-label={language === 'pt' ? 'Fechar sugestao do Maxxis' : language === 'es' ? 'Cerrar sugerencia de Maxxis' : 'Dismiss Maxxis suggestion'}
+                aria-label={language === 'pt' ? 'Fechar sugestao do Maxxis Deal AI' : language === 'es' ? 'Cerrar sugerencia de Maxxis Deal AI' : 'Dismiss Maxxis Deal AI suggestion'}
                 onClick={handleDismissProactiveBubble}
               >
                 ×

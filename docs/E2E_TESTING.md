@@ -58,13 +58,13 @@ Real-backend integration adds:
 
 - `E2E_BACKEND_MODE=real`: required explicit opt-in.
 - `E2E_SUPABASE_SERVICE_ROLE_KEY`: required only in the Playwright Node worker to create and clean staging fixtures. It is never exposed to the browser bundle.
-- `MAXXIS_E2E_LLM_STUB=1`: optional Supabase Edge Function secret for the staging/test project when Gemini is not configured. This stubs only LLM routing; the Edge Function, JWT validation, Supabase queries, RLS and Maxxis tools remain real. The current guard allows this only on the staging project ref `oqdcnjupquhybwdbeeew`.
+- `MAXXIS_E2E_LLM_STUB=1`: optional Supabase Edge Function secret for the staging/test project when Gemini is not configured. This stubs only LLM routing; the Edge Function, JWT validation, Supabase queries, RLS and Maxxis Deal AI tools remain real. The current guard allows this only on the staging project ref `oqdcnjupquhybwdbeeew`.
 
 ## Current coverage
 
 - Auth: valid login, invalid login, logout, reload/session persistence and account switch without visible leakage.
 - Profile: profile loading, allowed profile update persistence and `profile_version` conflict rejection.
-- Feed/property/Maxxis: investor enters showcase, requests structured property/Deal Copilot data, receives service needs/provider fit, prepares provider unlock and cancels before any debit.
+- Feed/property/Maxxis Deal AI: investor enters showcase, requests structured property/Deal Copilot data, receives service needs/provider fit, prepares provider unlock and cancels before any debit.
 - Security negatives: public inventory omits protected fields, contact data stays hidden before unlock, protected functions reject missing JWT, invalid origin is rejected, message draft/cancel does not send.
 
 ## Real-backend integration coverage
@@ -72,8 +72,8 @@ Real-backend integration adds:
 - Auth: real login, session persistence after reload, logout/account switch, and no visible leakage from User A to User B.
 - Profile: real profile load, `ds_save_professional_profile` save, reload persistence and optimistic concurrency conflict.
 - Property/feed: real fixture property from Supabase through `ds_get_global_feed_inventory`, with private address/geolocation/contact fields hidden.
-- Maxxis: real staging/test Edge Function calls. Gemini is preferred; if `MAXXIS_E2E_LLM_STUB=1` is set, only LLM routing is stubbed and real Maxxis tools still execute against Supabase/RLS.
-- Provider: real service fixture, provider search/service fit through Maxxis, provider unlock prepare quote, then cancel.
+- Maxxis Deal AI: real staging/test Edge Function calls. Gemini is preferred; if `MAXXIS_E2E_LLM_STUB=1` is set, only LLM routing is stubbed and real Maxxis Deal AI tools still execute against Supabase/RLS.
+- Provider: real service fixture, provider search/service fit through Maxxis Deal AI, provider unlock prepare quote, then cancel.
 - Nuggets/unlock safety: prepare+cancel leaves user Nuggets unchanged and creates no `unlocks` row.
 - Privacy/RLS: browser-captured RPC/API payloads are checked for fixture emails/phones/WhatsApp/full address/exact coordinates/unlock data; cross-account base-table reads are empty; anonymous protected Edge Function calls reject.
 

@@ -1,7 +1,7 @@
 # DealSifter Disaster Recovery and Rollback Runbook
 
 Last validated: 2026-08-15. This runbook covers the frontend, Supabase database,
-Edge Functions, Stripe state, Nuggets, unlocks, messaging and Maxxis.
+Edge Functions, Stripe state, Nuggets, unlocks, messaging and Maxxis Deal AI.
 
 ## Safety boundary
 
@@ -45,7 +45,7 @@ read-only override. Its output contains counts/categories only, not row data or 
 
 ## 4. Kill switches
 
-Use the existing server-side controls when Maxxis cost, messaging or unlock integrity is at risk:
+Use the existing server-side controls when Maxxis Deal AI cost, messaging or unlock integrity is at risk:
 
 - `MAXXIS_ENABLED=false`
 - `PROVIDER_MESSAGING_ENABLED=false`
@@ -57,7 +57,7 @@ Re-enable only after the post-recovery checklist passes.
 
 ## 5. Preventing new writes
 
-Prefer narrow containment first: kill the affected Maxxis/messaging/unlock capability,
+Prefer narrow containment first: kill the affected Maxxis Deal AI/messaging/unlock capability,
 disable the affected Stripe webhook endpoint in Stripe when payments are unsafe, or
 roll the frontend back to a known-good deployment. A database-wide read-only change is
 not a routine action and requires Supabase support/database-owner approval.

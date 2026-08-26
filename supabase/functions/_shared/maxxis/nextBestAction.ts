@@ -271,7 +271,7 @@ export function determineNextBestAction(input: NextBestActionInput): NextBestAct
         code: 'draft_provider_message',
         priority: 'medium',
         reasonCode: 'provider_unlocked_no_conversation',
-        reason: 'A matched provider is already unlocked and no conversation is detectable in this Maxxis flow.',
+        reason: 'A matched provider is already unlocked and no conversation is detectable in this Maxxis Deal AI flow.',
         actionable: true,
         requiresConfirmation: false,
         target: { propertyId, serviceId: provider.serviceId, serviceTitle: provider.serviceTitle, serviceType: provider.serviceType },

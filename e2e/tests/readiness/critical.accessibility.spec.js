@@ -59,7 +59,7 @@ test('login dialog is labelled, keyboard-contained and free of high-severity vio
   await expect(dialog).toBeHidden();
 });
 
-test('dashboard, Matches and Maxxis pass accessibility and keyboard checks', async ({ page, mockBackend }) => {
+test('dashboard, Matches and Maxxis Deal AI pass accessibility and keyboard checks', async ({ page, mockBackend }) => {
   await page.emulateMedia({ reducedMotion: 'reduce' });
   await page.addInitScript(({ ids }) => {
     window.localStorage.setItem('ds_e2e_maxxis_proactive', '1');
@@ -87,16 +87,16 @@ test('dashboard, Matches and Maxxis pass accessibility and keyboard checks', asy
   await expect(proactiveBubble).toBeVisible();
   await expect(proactiveBubble).toHaveAttribute('role', 'status');
   await expect(page.getByTestId('maxxis-avatar-fab')).toHaveAttribute('data-reduced-motion', 'true');
-  await expectNoHighSeverityViolations(page, 'Maxxis proactive bubble', '[data-testid="maxxis-proactive-bubble"]');
+  await expectNoHighSeverityViolations(page, 'Maxxis Deal AI proactive bubble', '[data-testid="maxxis-proactive-bubble"]');
   await page.getByTestId('maxxis-proactive-review').focus();
   await page.keyboard.press('Enter');
   await expect(page.getByTestId('maxxis-panel')).toBeVisible();
   await expect(page.getByTestId('maxxis-input')).toBeFocused();
-  await expectNoHighSeverityViolations(page, 'Maxxis', '[data-testid="maxxis-panel"]');
+  await expectNoHighSeverityViolations(page, 'Maxxis Deal AI', '[data-testid="maxxis-panel"]');
   await page.getByTestId('maxxis-preferences-button').focus();
   await page.keyboard.press('Enter');
   await expect(page.getByTestId('maxxis-preferences-popover')).toBeVisible();
-  await expectNoHighSeverityViolations(page, 'Maxxis preferences', '[data-testid="maxxis-preferences-popover"]');
+  await expectNoHighSeverityViolations(page, 'Maxxis Deal AI preferences', '[data-testid="maxxis-preferences-popover"]');
   await page.keyboard.press('Escape');
   await expect(page.getByTestId('maxxis-preferences-popover')).toBeHidden();
   await expect(page.getByTestId('maxxis-preferences-button')).toBeFocused();

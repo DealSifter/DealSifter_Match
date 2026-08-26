@@ -38,7 +38,7 @@ afterEach(() => {
   vi.useRealTimers();
 });
 
-describe('Maxxis avatar presentation timeline', () => {
+describe('Maxxis Deal AI avatar presentation timeline', () => {
   it('synchronizes OBSERVING -> NOTICED -> WAITING without showing the bubble immediately', () => {
     vi.useFakeTimers();
     vi.setSystemTime(2_000_000);

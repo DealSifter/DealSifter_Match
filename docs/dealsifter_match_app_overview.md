@@ -513,13 +513,13 @@ journey
 - Componentes visuais nao devem reconstruir contato por fallback.
 - Dados mock devem ficar fora de producao ou ocultos quando nao houver backend real.
 
-## 20. Guia Inicial E Maxxis AI
+## 20. Guia Inicial E Maxxis Deal AI
 
 O primeiro acesso guiado deve seguir esta ordem, sempre no idioma selecionado pelo usuario:
 
 1. Selecao de idioma.
 2. Video/overview geral (estrutura preparada para o video definitivo).
-3. Apresentacao do Maxxis AI como assistente e guia contextual.
+3. Apresentacao do Maxxis Deal AI como assistente e guia contextual.
 4. Entrada no onboarding: no desktop/tablet pelo card Dashboard/Cadastrar; no mobile por `+ New Card`.
 5. Onboarding assistido ate existir pelo menos um perfil valido e uma propriedade ou servico vinculado a ele.
 6. Tour do Feed, MapView, Matches (incluindo portfolio, chat e exportacao) e menu de configuracoes.
@@ -530,7 +530,7 @@ Regras do guia:
 - Para usuarios que ja possuem perfil e portfolio validos, o Dashboard e acesso de edicao/publicacao, nao um bloqueio de primeiro cadastro.
 - Os passos devem localizar e destacar o elemento real; no mobile, o guia abre o hamburger antes de apontar o seletor de idioma.
 - O modal do guia pode ser reposicionado pelo usuario para nao esconder o elemento destacado.
-- Maxxis pode iniciar um passo contextual do guia quando orientar o usuario a uma area do app.
+- Maxxis Deal AI pode iniciar um passo contextual do guia quando orientar o usuario a uma area do app.
 
 ## 21. Checklist Antes De Alterar Areas Criticas
 

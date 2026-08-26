@@ -5,7 +5,7 @@ const chatSource = readFileSync(new URL('../../maxxis-chat/index.ts', import.met
 const serviceSource = readFileSync(new URL('../../../../src/services/maxxisService.js', import.meta.url), 'utf8');
 const contextSource = readFileSync(new URL('../../../../src/features/maxxis/context/maxxisContextSnapshot.js', import.meta.url), 'utf8');
 
-describe('Phase 6A Maxxis Context Awareness', () => {
+describe('Phase 6A Maxxis Deal AI Context Awareness', () => {
   it('passes a sanitized versioned context snapshot only through the existing maxxis-chat channel', () => {
     expect(contextSource).toContain('MAXXIS_CONTEXT_VERSION = 1');
     expect(contextSource).toContain('sanitizeMaxxisContextSnapshot');

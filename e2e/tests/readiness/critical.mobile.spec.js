@@ -11,7 +11,7 @@ async function expectNoHorizontalOverflow(page, context) {
   expect(dimensions.content, `${context} horizontal overflow`).toBeLessThanOrEqual(dimensions.viewport + 1);
 }
 
-test('mobile navigation, cards, onboarding and Maxxis remain usable without clipping', async ({ page, mockBackend }) => {
+test('mobile navigation, cards, onboarding and Maxxis Deal AI remain usable without clipping', async ({ page, mockBackend }) => {
   await page.addInitScript(({ ids }) => {
     window.localStorage.setItem('ds_e2e_maxxis_proactive', '1');
     window.localStorage.setItem('ds_e2e_maxxis_attention', JSON.stringify({
@@ -76,19 +76,19 @@ test('mobile navigation, cards, onboarding and Maxxis remain usable without clip
   });
   expect(anchoredPosition).not.toBeNull();
   expect(anchoredPosition.bubbleRight).toBeLessThanOrEqual(anchoredPosition.fabLeft + 8);
-  await expectNoHorizontalOverflow(page, 'Maxxis proactive bubble');
+  await expectNoHorizontalOverflow(page, 'Maxxis Deal AI proactive bubble');
 
   await page.getByTestId('maxxis-proactive-review').click();
   await expect(page.getByTestId('maxxis-panel')).toBeVisible();
   expect(mockBackend.state.messagesSent).toBe(0);
   await expect(page.getByTestId('maxxis-input')).toBeInViewport();
   await expect(page.getByTestId('maxxis-send')).toBeInViewport();
-  await expectNoHorizontalOverflow(page, 'Maxxis');
+  await expectNoHorizontalOverflow(page, 'Maxxis Deal AI');
   await page.getByTestId('maxxis-preferences-button').click();
   await expect(page.getByTestId('maxxis-preferences-popover')).toBeInViewport();
   await expect(page.getByTestId('maxxis-proactive-toggle-header')).toBeInViewport();
   await expect(page.getByTestId('maxxis-animation-toggle-header')).toBeInViewport();
-  await expectNoHorizontalOverflow(page, 'Maxxis preferences');
+  await expectNoHorizontalOverflow(page, 'Maxxis Deal AI preferences');
   await page.keyboard.press('Escape');
   await expect(page.getByTestId('maxxis-preferences-popover')).toBeHidden();
   await page.keyboard.press('Escape');

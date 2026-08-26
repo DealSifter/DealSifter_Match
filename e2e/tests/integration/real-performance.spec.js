@@ -51,7 +51,7 @@ test('controlled staging read load remains functionally safe and reports latency
   summarize('global_feed', feed);
 });
 
-test('Maxxis staging separates first-observed and warm tool latency', async ({ realBackend }) => {
+test('Maxxis Deal AI staging separates first-observed and warm tool latency', async ({ realBackend }) => {
   const session = await realBackend.signIn(realBackend.investor.email, realBackend.investor.password);
   const token = session.access_token;
   const responses = [];

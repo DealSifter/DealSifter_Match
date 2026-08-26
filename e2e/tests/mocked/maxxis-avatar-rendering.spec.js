@@ -16,7 +16,7 @@ async function setAvatar(page, state, intensity = 'SUBTLE') {
   }, { avatarState: state, avatarIntensity: intensity });
 }
 
-test.describe('Maxxis avatar rendering layer', () => {
+test.describe('Maxxis Deal AI avatar rendering layer', () => {
   test('maps all states, finishes crossfades, and keeps motion deterministic', async ({ page, mockBackend }) => {
     await primeAvatar(page);
     await loginAs(page, mockBackend.users.investor);

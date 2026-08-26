@@ -1,4 +1,4 @@
--- Phase 5E: measured search paths for Maxxis property and service discovery.
+-- Phase 5E: measured search paths for Maxxis Deal AI property and service discovery.
 -- Forward-only, non-destructive, and limited to authenticated sanitized DTOs.
 
 create index if not exists idx_services_public_created
@@ -153,4 +153,4 @@ revoke all on function public.ds_search_public_services(text[], text, text, text
 grant execute on function public.ds_search_public_services(text[], text, text, text, numeric, numeric, integer) to authenticated, service_role;
 
 comment on function public.ds_search_public_services(text[], text, text, text, numeric, numeric, integer) is
-  'Authenticated, bounded and batched published-service discovery for Maxxis. Returns only the existing public service DTO plus the requested category used for grouping.';
+  'Authenticated, bounded and batched published-service discovery for Maxxis Deal AI. Returns only the existing public service DTO plus the requested category used for grouping.';

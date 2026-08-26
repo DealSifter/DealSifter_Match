@@ -29,7 +29,7 @@ function assertNoFixtureSecrets(payload, realBackend) {
   expect(text).not.toContain('-96.797');
 }
 
-test('real feed/privacy, Maxxis property/provider tools and prepare+cancel unlock are safe', async ({ page, realBackend }) => {
+test('real feed/privacy, Maxxis Deal AI property/provider tools and prepare+cancel unlock are safe', async ({ page, realBackend }) => {
   await page.goto('/', { waitUntil: 'domcontentloaded' });
   const investorSession = await realBackend.signIn(realBackend.investor.email, realBackend.investor.password);
   const token = investorSession.access_token;

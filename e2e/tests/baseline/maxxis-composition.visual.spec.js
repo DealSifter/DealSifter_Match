@@ -2,7 +2,7 @@ import { test, expect, E2E_IDS } from '../../fixtures/baselineFixture.js';
 import { installLegacyMaxxisAvatarBaseline, installVisualStability, loginBaseline } from '../../support/baselineActions.js';
 import { openMaxxis } from '../../support/appActions.js';
 
-test('desktop composed Maxxis analysis, confirmation, success and provider response', async ({ page, mockBackend }, testInfo) => {
+test('desktop composed Maxxis Deal AI analysis, confirmation, success and provider response', async ({ page, mockBackend }, testInfo) => {
   test.skip(testInfo.project.name !== 'desktop-baseline');
   await page.addInitScript(() => {
     localStorage.setItem('lang', 'en');

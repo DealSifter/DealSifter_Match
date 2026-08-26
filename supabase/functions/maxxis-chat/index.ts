@@ -82,9 +82,9 @@ function detectLanguage(text: string, preferred = 'auto'): MaxxisLanguage {
 
 function fallback(language: MaxxisLanguage, reason: 'quota' | 'provider' | 'config') {
   const messages = {
-    config: { en: 'Maxxis AI still needs to be configured by support.', pt: 'O Maxxis AI ainda precisa ser configurado pelo suporte.', es: 'Maxxis AI todavia debe ser configurado por soporte.' },
-    quota: { en: 'Maxxis AI is connected, but provider quota or billing is not active.', pt: 'O Maxxis AI esta conectado, mas a cota ou billing do provedor nao esta ativo.', es: 'Maxxis AI esta conectado, pero la cuota o facturacion del proveedor no esta activa.' },
-    provider: { en: 'Maxxis AI had a temporary issue. Please try again shortly or contact human support.', pt: 'O Maxxis AI teve uma falha temporaria. Tente novamente ou acione o suporte humano.', es: 'Maxxis AI tuvo una falla temporal. Intentalo de nuevo o contacta soporte humano.' },
+    config: { en: 'Maxxis Deal AI still needs to be configured by support.', pt: 'O Maxxis Deal AI ainda precisa ser configurado pelo suporte.', es: 'Maxxis Deal AI todavia debe ser configurado por soporte.' },
+    quota: { en: 'Maxxis Deal AI is connected, but provider quota or billing is not active.', pt: 'O Maxxis Deal AI esta conectado, mas a cota ou billing do provedor nao esta ativo.', es: 'Maxxis Deal AI esta conectado, pero la cuota o facturacion del proveedor no esta activa.' },
+    provider: { en: 'Maxxis Deal AI had a temporary issue. Please try again shortly or contact human support.', pt: 'O Maxxis Deal AI teve uma falha temporaria. Tente novamente ou acione o suporte humano.', es: 'Maxxis Deal AI tuvo una falla temporal. Intentalo de nuevo o contacta soporte humano.' },
   };
   return messages[reason][language];
 }
@@ -240,7 +240,7 @@ function shouldUseStructuredContext(message: string, context: unknown) {
 
 function structuredContextInstruction(context: ReturnType<typeof sanitizeMaxxisContext>) {
   if (!context) return '';
-  return `Structured Maxxis runtime context is available and sanitized: ${JSON.stringify(context)}. Use it only to resolve the user's current surface, focused entity, safe short-lived references, freshness, and already-computed operational signals. Treat IDs as intent/allowlist hints only; backend tools and RLS remain authoritative. Never reveal the full context object, private identifiers unless necessary to explain a safe action, or any contact data. If a natural reference is ambiguous, ask the user to clarify.`;
+  return `Structured Maxxis Deal AI runtime context is available and sanitized: ${JSON.stringify(context)}. Use it only to resolve the user's current surface, focused entity, safe short-lived references, freshness, and already-computed operational signals. Treat IDs as intent/allowlist hints only; backend tools and RLS remain authoritative. Never reveal the full context object, private identifiers unless necessary to explain a safe action, or any contact data. If a natural reference is ambiguous, ask the user to clarify.`;
 }
 
 function contextAwarenessMessage(language: MaxxisLanguage, context: ReturnType<typeof sanitizeMaxxisContext>) {
@@ -298,7 +298,7 @@ Deno.serve(async (req) => {
     userId = user.id;
     if (!isOperationalFeatureEnabled('MAXXIS_ENABLED')) {
       logAbuseGuard({ functionName: 'maxxis-chat', operation: 'maxxis_disabled', requestId, userId, category: 'ABUSE_GUARD', status: 503 });
-      return response({ message: 'Maxxis is temporarily unavailable.', type: 'text', data: null, actions: [], unavailable: true, error: 'MAXXIS_DISABLED' }, 503, origin, requestId);
+      return response({ message: 'Maxxis Deal AI is temporarily unavailable.', type: 'text', data: null, actions: [], unavailable: true, error: 'MAXXIS_DISABLED' }, 503, origin, requestId);
     }
     const rateLimit = await checkRateLimit(userId, 'maxxis_chat');
     if (!rateLimit.allowed) {
@@ -524,7 +524,7 @@ Deno.serve(async (req) => {
       return response({ message: text, answer: text, type: 'properties', data: { properties, personalized: result.personalized, profileAvailable: result.profileAvailable, profileSuggestions }, actions: [], language }, 200, origin);
     }
     const text = String(parts.find((part) => part?.text)?.text || '').trim();
-    if (!text) return response({ message: 'Maxxis could not generate a response. Please try again.', type: 'text', data: null, actions: [], error: 'MAXXIS_EMPTY_RESPONSE' }, 502, origin);
+    if (!text) return response({ message: 'Maxxis Deal AI could not generate a response. Please try again.', type: 'text', data: null, actions: [], error: 'MAXXIS_EMPTY_RESPONSE' }, 502, origin);
     logMaxxisEvent('maxxis_chat', { request_id: requestId, user_id: userId, model: usedModel, duration_ms: Date.now() - startedAt, provider_duration_ms: providerDurationMs, request_payload_bytes: requestPayloadBytes, system_prompt_bytes: systemPromptBytes, tool_declaration_bytes: toolDeclarationBytes, history_count: historyCount, success: true, fallback_count: fallbackCount, llm_call_count: budget.geminiCalls, tool_call_count: budget.toolCalls, tool_rounds: budget.toolRounds });
     return response({ message: text, answer: text, type: 'text', data: null, actions: [], language }, 200, origin);
   } catch (error) {

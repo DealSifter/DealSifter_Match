@@ -2,7 +2,7 @@ import { test, expect, E2E_IDS } from '../../fixtures/baselineFixture.js';
 import { loginAs, openMaxxis } from '../../support/appActions.js';
 import { openMatches, selectBaselineContact, selectBaselineProperty } from '../../support/baselineActions.js';
 
-test('hands Property and Provider context through Human Chat back to Maxxis', async ({ page, mockBackend }) => {
+test('hands Property and Provider context through Human Chat back to Maxxis Deal AI', async ({ page, mockBackend }) => {
   await page.addInitScript(() => {
     localStorage.setItem('lang', 'en');
     localStorage.setItem('ds_e2e_maxxis_proactive', '1');

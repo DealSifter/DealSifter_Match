@@ -12,15 +12,15 @@ export const UUID_PATTERN = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-
 
 export const COPY = {
   en: {
-    title: 'Maxxis Assistant',
+    title: 'Maxxis Deal AI Assistant',
     status: 'DealSifter guide',
     placeholder: 'Ask about DealSifter, Tax Deeds or Wholesale...',
     send: 'Send',
     reset: 'New conversation',
     close: 'Close',
-    open: 'Open Maxxis Assistant',
+    open: 'Open Maxxis Deal AI Assistant',
     support: 'Human support',
-    typing: 'Maxxis is thinking...',
+    typing: 'Maxxis Deal AI is thinking...',
     unavailable: 'I had a temporary issue. Please try again or contact human support.',
     providerConversationContextMissing: 'Open a provider message flow first, then I can analyze that provider conversation safely.',
     exportAnalysisPdf: 'Export analysis PDF',
@@ -59,18 +59,18 @@ export const COPY = {
     comparisonLowestAcquisition: 'Lowest acquisition + rehab',
     comparisonHighestCapRate: 'Highest reported cap rate',
     comparisonLargestSqft: 'Largest sqft',
-    scope: 'Maxxis can help with app usage, Tax Deeds, Wholesale and DealSifter workflows.',
+    scope: 'Maxxis Deal AI can help with app usage, Tax Deeds, Wholesale and DealSifter workflows.',
   },
   pt: {
-    title: 'Assistente Maxxis',
+    title: 'Assistente Maxxis Deal AI',
     status: 'Guia do DealSifter',
     placeholder: 'Pergunte sobre DealSifter, Tax Deeds ou Wholesale...',
     send: 'Enviar',
     reset: 'Nova conversa',
     close: 'Fechar',
-    open: 'Abrir Assistente Maxxis',
+    open: 'Abrir Assistente Maxxis Deal AI',
     support: 'Suporte humano',
-    typing: 'Maxxis esta pensando...',
+    typing: 'Maxxis Deal AI esta pensando...',
     unavailable: 'Tive uma dificuldade temporaria. Tente novamente ou fale com o suporte humano.',
     providerConversationContextMissing: 'Abra primeiro um fluxo de mensagem com provider, entao eu consigo analisar essa conversa com seguranca.',
     exportAnalysisPdf: 'Exportar PDF da analise',
@@ -109,18 +109,18 @@ export const COPY = {
     comparisonLowestAcquisition: 'Menor aquisicao + rehab',
     comparisonHighestCapRate: 'Maior cap rate informado',
     comparisonLargestSqft: 'Maior metragem',
-    scope: 'Maxxis ajuda com uso do app, Tax Deeds, Wholesale e fluxos do DealSifter.',
+    scope: 'Maxxis Deal AI ajuda com uso do app, Tax Deeds, Wholesale e fluxos do DealSifter.',
   },
   es: {
-    title: 'Asistente Maxxis',
+    title: 'Asistente Maxxis Deal AI',
     status: 'Guia de DealSifter',
     placeholder: 'Pregunta sobre DealSifter, Tax Deeds o Wholesale...',
     send: 'Enviar',
     reset: 'Nueva conversacion',
     close: 'Cerrar',
-    open: 'Abrir Asistente Maxxis',
+    open: 'Abrir Asistente Maxxis Deal AI',
     support: 'Soporte humano',
-    typing: 'Maxxis esta pensando...',
+    typing: 'Maxxis Deal AI esta pensando...',
     unavailable: 'Tuve un problema temporal. Intentalo otra vez o contacta soporte humano.',
     providerConversationContextMissing: 'Abre primero un flujo de mensaje con provider, y entonces puedo analizar esa conversacion de forma segura.',
     exportAnalysisPdf: 'Exportar PDF del analisis',
@@ -159,7 +159,7 @@ export const COPY = {
     comparisonLowestAcquisition: 'Menor adquisicion + rehab',
     comparisonHighestCapRate: 'Mayor cap rate informado',
     comparisonLargestSqft: 'Mayor metraje',
-    scope: 'Maxxis ayuda con uso de la app, Tax Deeds, Wholesale y flujos de DealSifter.',
+    scope: 'Maxxis Deal AI ayuda con uso de la app, Tax Deeds, Wholesale y flujos de DealSifter.',
   },
 };
 
@@ -1610,7 +1610,7 @@ export function MessageBubble({
         </div>
       ) : null}
       {actions.length && !compositionKeepsControls ? (
-        <div className="maxxis-action-links" aria-label="Maxxis navigation actions">
+        <div className="maxxis-action-links" aria-label="Maxxis Deal AI navigation actions">
           {actions.map((action) => (
             <button
               type="button"
@@ -1886,7 +1886,7 @@ export function MessageBubble({
         />
       ) : null}
       {!isUser && Array.isArray(message.followUps) && message.followUps.length ? (
-        <div className="maxxis-followups" aria-label="Maxxis follow-up options">
+        <div className="maxxis-followups" aria-label="Maxxis Deal AI follow-up options">
           {message.followUps.map((followUp) => (
             <button
               type="button"
@@ -1901,7 +1901,7 @@ export function MessageBubble({
         </div>
       ) : null}
       {!isUser && Array.isArray(smartActions) && smartActions.length ? (
-        <div className="maxxis-smart-actions" aria-label="Maxxis smart actions">
+        <div className="maxxis-smart-actions" aria-label="Maxxis Deal AI smart actions">
           {smartActions.slice(0, 3).map((action) => (
             <button
               type="button"
@@ -1916,7 +1916,7 @@ export function MessageBubble({
         </div>
       ) : null}
       {message.analysisExport ? (
-        <div className="maxxis-action-links" aria-label="Maxxis analysis export">
+        <div className="maxxis-action-links" aria-label="Maxxis Deal AI analysis export">
           <button
             type="button"
             className="maxxis-action-link maxxis-analysis-export"

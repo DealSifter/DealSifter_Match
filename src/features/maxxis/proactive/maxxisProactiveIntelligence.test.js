@@ -60,7 +60,7 @@ function signal(overrides = {}) {
 
 const enabledConfig = { enabled: true, cooldownMs: 90_000, maxPerSession: 2, maxAgeMs: 15 * 60_000 };
 
-describe('Maxxis proactive intelligence', () => {
+describe('Maxxis Deal AI proactive intelligence', () => {
   it('builds structured provider reply, quote, workflow, service match and gap signals without duplicates', () => {
     const messages = [{
       id: 'deal-1',
@@ -125,7 +125,7 @@ describe('Maxxis proactive intelligence', () => {
     expect(memory.surfacedCount).toBe(0);
   });
 
-  it('surfaces relevant same-property signals when feature is enabled and Maxxis is closed', () => {
+  it('surfaces relevant same-property signals when feature is enabled and Maxxis Deal AI is closed', () => {
     const item = signal();
     const attention = evaluateMaxxisProactiveAttention(item, {
       config: enabledConfig,
@@ -138,7 +138,7 @@ describe('Maxxis proactive intelligence', () => {
     expect(attention.priority).toBeGreaterThan(60);
   });
 
-  it('suppresses when feature is off, Maxxis is open, signal is old, dismissed, duplicate, or on a different property', () => {
+  it('suppresses when feature is off, Maxxis Deal AI is open, signal is old, dismissed, duplicate, or on a different property', () => {
     const item = signal();
     const memory = createMaxxisProactiveSessionMemory('acct-a');
     expect(evaluateMaxxisProactiveAttention(item, { config: { ...enabledConfig, enabled: false }, contextSnapshot: context(), sessionMemory: memory, now }).reasonCode).toBe('FEATURE_DISABLED');

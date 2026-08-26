@@ -15,12 +15,12 @@ export function MaxxisComposedExperience({ experience, message, onSmartAction, o
         {experience.summary ? <span>{experience.summary}</span> : null}
       </div>
       {experience.evidence?.length || experience.statusItems?.length ? (
-        <ul className="maxxis-composed-facts" aria-label="Maxxis supporting facts">
+        <ul className="maxxis-composed-facts" aria-label="Maxxis Deal AI supporting facts">
           {[...(experience.evidence || []), ...(experience.statusItems || [])].map((item) => <li key={item}>{item}</li>)}
         </ul>
       ) : null}
       {actions.length ? (
-        <div className="maxxis-smart-actions" aria-label="Maxxis suggested actions">
+        <div className="maxxis-smart-actions" aria-label="Maxxis Deal AI suggested actions">
           {actions.map((action) => (
             <button type="button" key={`${message.id}-composed-${action.code}`} className="maxxis-smart-action-chip" data-testid={`maxxis-smart-action-${action.code}`} onClick={() => onSmartAction?.(action.sourceAction, message)}>
               {action.label}
@@ -29,7 +29,7 @@ export function MaxxisComposedExperience({ experience, message, onSmartAction, o
         </div>
       ) : null}
       {experience.followUps?.length ? (
-        <div className="maxxis-followups" aria-label="Maxxis follow-up options">
+        <div className="maxxis-followups" aria-label="Maxxis Deal AI follow-up options">
           {experience.followUps.map((followUp) => (
             <button type="button" key={`${message.id}-composed-followup-${followUp.code}`} className="maxxis-followup-chip" data-testid={`maxxis-followup-${followUp.code}`} onClick={() => onFollowUp?.(followUp, message)}>
               {followUp.label}

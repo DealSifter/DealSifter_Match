@@ -32,7 +32,7 @@ async function openMaxxisPreferences(page) {
   await expect(page.getByTestId('maxxis-preferences-popover')).toBeVisible();
 }
 
-test('desktop Maxxis interaction preference visual states', async ({ page, mockBackend }, testInfo) => {
+test('desktop Maxxis Deal AI interaction preference visual states', async ({ page, mockBackend }, testInfo) => {
   test.skip(testInfo.project.name !== 'desktop-baseline');
   test.setTimeout(300_000);
   await enableProactiveFlag(page);
@@ -57,7 +57,7 @@ test('desktop Maxxis interaction preference visual states', async ({ page, mockB
   await capture(page, 'desktop-28-maxxis-proactivity-off.png');
 });
 
-test('mobile Maxxis interaction preferences', async ({ page, mockBackend }, testInfo) => {
+test('mobile Maxxis Deal AI interaction preferences', async ({ page, mockBackend }, testInfo) => {
   test.skip(testInfo.project.name !== 'mobile-baseline');
   test.setTimeout(300_000);
   await enableProactiveFlag(page);

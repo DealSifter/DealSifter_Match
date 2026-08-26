@@ -15,7 +15,7 @@ async function send(page, text) {
   await response;
 }
 
-test('Maxxis recalls a deal in a later session, reports structured changes and forgets only after confirmation', async ({ page, mockBackend }) => {
+test('Maxxis Deal AI recalls a deal in a later session, reports structured changes and forgets only after confirmation', async ({ page, mockBackend }) => {
   await page.addInitScript(() => {
     localStorage.setItem('ds_feature_flag_overrides', JSON.stringify({ maxxis_deal_memory: true }));
     localStorage.setItem('lang', 'en');

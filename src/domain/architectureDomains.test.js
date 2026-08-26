@@ -11,12 +11,12 @@ describe('extracted architecture domains', () => {
     expect(DEFAULT_USER_PREFERENCES.map.initialZoom).toBe(4);
   });
 
-  it('accepts supported Maxxis capabilities', () => {
+  it('accepts supported Maxxis Deal AI capabilities', () => {
     expect(normalizeMaxxisResponsePayload('services', { services: [] }))
       .toEqual({ type: 'services', data: { services: [] } });
   });
 
-  it('fails closed for malformed or unknown Maxxis responses', () => {
+  it('fails closed for malformed or unknown Maxxis Deal AI responses', () => {
     expect(normalizeMaxxisResponsePayload('services', { services: null }))
       .toEqual({ type: 'text', data: null });
     expect(normalizeMaxxisResponsePayload('unknown', {}))

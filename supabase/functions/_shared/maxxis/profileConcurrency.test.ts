@@ -96,7 +96,7 @@ describe('Profile Concurrency Protection', () => {
     expect(result.record.version).toBe(2);
   });
 
-  it('2. returns PROFILE_CONFLICT after Maxxis advances version 1 to version 2 without losing its change', () => {
+  it('2. returns PROFILE_CONFLICT after Maxxis Deal AI advances version 1 to version 2 without losing its change', () => {
     const base: VersionedRecord = {
       version: 1,
       payload: { profiles: { professional: { investmentProfile: { targetMarkets: ['FL'] } } } },
@@ -123,7 +123,7 @@ describe('Profile Concurrency Protection', () => {
     expect(second.record.payload.profiles.professional.pitchB).toBe('tab-a');
   });
 
-  it('4. preserves edited professional fields when Maxxis adds a market', () => {
+  it('4. preserves edited professional fields when Maxxis Deal AI adds a market', () => {
     const payload = {
       profiles: { professional: { pitchB: 'edited pitch', customPreference: 'keep', investmentProfile: { targetMarkets: ['FL'] } } },
       legacy: { professionalProfile: { pitchB: 'edited pitch', investmentProfile: { targetMarkets: ['FL'] } } },

@@ -53,7 +53,7 @@ async function setAvatarPresentation(page, state) {
   }, state);
 }
 
-test('desktop Maxxis proactive bubble visual states', async ({ page, mockBackend }, testInfo) => {
+test('desktop Maxxis Deal AI proactive bubble visual states', async ({ page, mockBackend }, testInfo) => {
   test.skip(testInfo.project.name !== 'desktop-baseline');
 
   await enableProactiveVisual(page, 'visual-desktop-provider-reply');
@@ -84,7 +84,7 @@ test('desktop Maxxis proactive bubble visual states', async ({ page, mockBackend
   await capture(page, 'desktop-19-maxxis-proactive-maxxis-open.png');
 });
 
-test('mobile Maxxis proactive bubble visual state', async ({ page, mockBackend }, testInfo) => {
+test('mobile Maxxis Deal AI proactive bubble visual state', async ({ page, mockBackend }, testInfo) => {
   test.skip(testInfo.project.name !== 'mobile-baseline');
 
   await enableProactiveVisual(page, 'visual-mobile-provider-reply');

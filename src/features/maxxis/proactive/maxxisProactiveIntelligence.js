@@ -56,7 +56,7 @@ const MESSAGE_COPY = Object.freeze({
     cta: { en: 'View', pt: 'Ver', es: 'Ver' },
   },
   PENDING_ACTION_EXPIRING: {
-    text: { en: 'A pending Maxxis action needs your decision.', pt: 'Uma acao pendente do Maxxis precisa da sua decisao.', es: 'Una accion pendiente de Maxxis necesita tu decision.' },
+    text: { en: 'A pending Maxxis Deal AI action needs your decision.', pt: 'Uma acao pendente do Maxxis Deal AI precisa da sua decisao.', es: 'Una accion pendiente de Maxxis Deal AI necesita tu decision.' },
     cta: { en: 'Review', pt: 'Revisar', es: 'Revisar' },
   },
   DEAL_CONTEXT_UPDATED: {
@@ -68,7 +68,7 @@ const MESSAGE_COPY = Object.freeze({
     cta: { en: 'Review', pt: 'Revisar', es: 'Revisar' },
   },
   NEW_ACTION_AVAILABLE: {
-    text: { en: 'A Maxxis action is available.', pt: 'Uma acao do Maxxis esta disponivel.', es: 'Una accion de Maxxis esta disponible.' },
+    text: { en: 'A Maxxis Deal AI action is available.', pt: 'Uma acao do Maxxis Deal AI esta disponivel.', es: 'Una accion de Maxxis Deal AI esta disponible.' },
     cta: { en: 'View', pt: 'Ver', es: 'Ver' },
   },
 });

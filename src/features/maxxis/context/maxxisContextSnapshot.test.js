@@ -34,7 +34,7 @@ function assistantMessage(patch = {}) {
   };
 }
 
-describe('Maxxis context snapshot', () => {
+describe('Maxxis Deal AI context snapshot', () => {
   it('normalizes page and surface context without relying only on URL', () => {
     const snapshot = buildMaxxisContextSnapshot({
       page: 'matches',
@@ -55,7 +55,7 @@ describe('Maxxis context snapshot', () => {
     expect(buildMaxxisContextSnapshot({ page: 'mapview', surface: { page: 'mapview', route: '/map', subview: 'mobile_nav' } }).surface.name).toBe('map');
   });
 
-  it('derives operational context from existing Maxxis response data without recalculating engines', () => {
+  it('derives operational context from existing Maxxis Deal AI response data without recalculating engines', () => {
     const snapshot = buildMaxxisContextSnapshot({
       propertyId: PROPERTY_A,
       messages: [assistantMessage()],

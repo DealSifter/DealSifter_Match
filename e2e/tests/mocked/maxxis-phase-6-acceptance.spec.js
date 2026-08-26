@@ -81,7 +81,7 @@ test('accepts the integrated Phase 6 experience across deal, provider, memory, p
   await expect(page.getByTestId('maxxis-messages')).toContainText('Conversation Summary');
   expect(mockBackend.state.messagesSent).toBe(1);
 
-  // E. Cross-surface flow: Human Chat remains independent while Maxxis restores safe context.
+  // E. Cross-surface flow: Human Chat remains independent while Maxxis Deal AI restores safe context.
   await page.keyboard.press('Escape');
   await selectBaselineContact(page, mockBackend.users.provider.fullName);
   await expect(page.locator('[data-guide="matches-conversation"]')).toContainText('inspection window');

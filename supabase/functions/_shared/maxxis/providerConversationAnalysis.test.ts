@@ -107,7 +107,7 @@ describe('Phase 3L Provider Reply Assistant', () => {
     expect(analysis.suggestedReply).not.toMatch(/lockbox code is|gate code is/i);
   });
 
-  it('keeps Gemini and Maxxis chat away from automatic provider replies', () => {
+  it('keeps Gemini and Maxxis Deal AI chat away from automatic provider replies', () => {
     expect(analyzerSource).not.toMatch(/callGemini|gemini|model/i);
     expect(handlerSource).not.toMatch(/callGemini|gemini|model/i);
     expect(chatSource).toContain('Provider Conversation Analysis is a read-only assistant view');

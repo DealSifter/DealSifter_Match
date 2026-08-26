@@ -55,13 +55,13 @@ function providerReplyEvent(dedupeKey = 'provider-reply-wow') {
   };
 }
 
-test.describe('Maxxis proactive intelligence', () => {
+test.describe('Maxxis Deal AI proactive intelligence', () => {
   test('stays silent when the proactive feature flag is off', async ({ page, mockBackend }) => {
     await loginAs(page, mockBackend.users.investor);
     await expect(page.getByTestId('maxxis-proactive-bubble')).toBeHidden();
   });
 
-  test('surfaces provider reply bubble and opens Maxxis context without sending automatically', async ({ page, mockBackend }) => {
+  test('surfaces provider reply bubble and opens Maxxis Deal AI context without sending automatically', async ({ page, mockBackend }) => {
     await enableProactive(page, [providerReplyEvent()]);
     await loginAs(page, mockBackend.users.investor);
 
@@ -108,7 +108,7 @@ test.describe('Maxxis proactive intelligence', () => {
     await expect(page.getByTestId('maxxis-proactive-bubble')).toBeHidden();
   });
 
-  test('does not show the external bubble while Maxxis is already open', async ({ page, mockBackend }) => {
+  test('does not show the external bubble while Maxxis Deal AI is already open', async ({ page, mockBackend }) => {
     await enableProactive(page, [providerReplyEvent('maxxis-open')]);
     await loginAs(page, mockBackend.users.investor);
     await openMaxxis(page);

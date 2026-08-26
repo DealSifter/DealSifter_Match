@@ -4,8 +4,8 @@ import { loginAs, openMaxxis } from '../../support/appActions.js';
 
 test.setTimeout(360_000);
 
-test.describe('property, Maxxis and provider flow', () => {
-  test('investor can inspect property through Maxxis and cancel provider unlock without nugget debit', async ({ page, mockBackend }) => {
+test.describe('property, Maxxis Deal AI and provider flow', () => {
+  test('investor can inspect property through Maxxis Deal AI and cancel provider unlock without nugget debit', async ({ page, mockBackend }) => {
     await loginAs(page, mockBackend.users.investor);
 
     const inventory = await page.evaluate(async ({ supabaseUrl, token }) => {

@@ -9,7 +9,7 @@ async function askMaxxis(page, text) {
   await page.getByTestId('maxxis-send').click({ force: true });
 }
 
-test.describe('Maxxis interactive deal intelligence', () => {
+test.describe('Maxxis Deal AI interactive deal intelligence', () => {
   test('turns loaded deal data into snapshot, follow-ups and local gap explanation', async ({ page, mockBackend }) => {
     await loginAs(page, mockBackend.users.investor);
     await openMaxxis(page);

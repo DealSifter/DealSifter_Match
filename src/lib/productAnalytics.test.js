@@ -5,7 +5,7 @@ import { resetProductEventDedupeForTests, sanitizeProductProperties, trackProduc
 describe('privacy-safe product analytics', () => {
   beforeEach(() => resetProductEventDedupeForTests());
 
-  it('defines the Maxxis deal funnel and required taxonomy', () => {
+  it('defines the Maxxis Deal AI deal funnel and required taxonomy', () => {
     expect(MAXXIS_DEAL_FUNNEL).toEqual([
       'property_viewed', 'deal_copilot_opened', 'provider_suggested',
       'provider_unlock_started', 'provider_unlocked', 'provider_message_sent', 'provider_reply_received',

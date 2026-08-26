@@ -10,7 +10,7 @@ async function askMaxxis(page, text) {
   await page.getByTestId('maxxis-send').click({ force: true });
 }
 
-test.describe('Maxxis context awareness', () => {
+test.describe('Maxxis Deal AI context awareness', () => {
   test('tracks surface, focused property and sanitized context without visual UX changes', async ({ page, mockBackend }) => {
     await loginAs(page, mockBackend.users.investor);
 

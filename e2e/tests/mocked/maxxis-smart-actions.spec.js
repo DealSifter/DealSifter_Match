@@ -9,7 +9,7 @@ async function askMaxxis(page, text) {
   await page.getByTestId('maxxis-send').click({ force: true });
 }
 
-test.describe('Maxxis controlled smart actions', () => {
+test.describe('Maxxis Deal AI controlled smart actions', () => {
   test('runs snapshot to providers to unlock confirmation to draft without automatic send', async ({ page, mockBackend }) => {
     await loginAs(page, mockBackend.users.investor);
     await page.evaluate(() => {

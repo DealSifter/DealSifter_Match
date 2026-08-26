@@ -784,7 +784,7 @@ export function Landing({ onOpenAuthModal = () => {} }) {
         </h2>
         <img
           src="/maxxis-deal-prospector.png"
-          alt="Maxxis, your Deal Prospector"
+          alt="Maxxis Deal AI, your Deal Prospector"
           style={{
             display: 'block',
             width: '100%',

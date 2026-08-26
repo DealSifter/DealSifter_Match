@@ -2,7 +2,7 @@
 
 ## Scope and current baseline
 
-This runbook covers the launch-critical journeys `AUTH`, `FEED`, `MAXXIS`, `STRIPE`, `UNLOCK`, and `MESSAGING`. The checked-in baseline is intentionally marked `initial_baseline_without_historical_claims`: its targets are launch objectives, not claims derived from production history.
+This runbook covers the launch-critical journeys `AUTH`, `FEED`, `MAXXIS DEAL AI`, `STRIPE`, `UNLOCK`, and `MESSAGING`. The checked-in baseline is intentionally marked `initial_baseline_without_historical_claims`: its targets are launch objectives, not claims derived from production history.
 
 The canonical machine-readable configuration is `config/observability.json`. Session Replay is disabled. Error events are retained at 100%; traces, operational signals, and Web Vitals are sampled independently.
 
@@ -13,7 +13,7 @@ The canonical machine-readable configuration is `config/observability.json`. Ses
 - Frontend operational signals contain only operation names, booleans, durations, safe status/code values, counts, route path, environment, and release.
 - Critical Supabase Edge Functions write one-line JSON events through `_shared/observability.ts`. Responses carry `x-request-id` when a valid UUID is available.
 - The release is supplied at build/deploy time and is included in frontend Sentry events, Edge logs, health responses, and uploaded source maps.
-- The scheduled GitHub Actions smoke probes the production frontend and the staging Maxxis health endpoint. It does not authenticate, mutate records, call Gemini, charge nuggets, or invoke Stripe.
+- The scheduled GitHub Actions smoke probes the production frontend and the staging Maxxis Deal AI health endpoint. It does not authenticate, mutate records, call Gemini, charge nuggets, or invoke Stripe.
 
 ## Privacy boundary
 
@@ -83,7 +83,7 @@ Every critical operation emits the common schema:
 
 Allowed error categories are `AUTH`, `RLS`, `VALIDATION`, `PROVIDER`, `TIMEOUT`, `QUOTA`, `PAYMENT`, `CONFLICT`, `DATABASE`, and `INTERNAL`.
 
-Maxxis events distinguish total duration, Gemini provider duration, tool duration, and database duration where the layer owns that measurement. Stripe events distinguish signature validation, event processing, failure persistence, customer caching, and session creation. Unlock and messaging functions preserve their intent/action idempotency signals without logging message content.
+Maxxis Deal AI events distinguish total duration, Gemini provider duration, tool duration, and database duration where the layer owns that measurement. Stripe events distinguish signature validation, event processing, failure persistence, customer caching, and session creation. Unlock and messaging functions preserve their intent/action idempotency signals without logging message content.
 
 ## SLIs and launch SLOs
 
@@ -91,7 +91,7 @@ Maxxis events distinguish total duration, Gemini provider duration, tool duratio
 | --- | ---: | ---: | ---: |
 | AUTH | 99.5% | 2 s | 0.5% |
 | FEED | 99.0% | 2 s | 1.0% |
-| MAXXIS | 98.0% | 8 s | 2.0% |
+| MAXXIS DEAL AI | 98.0% | 8 s | 2.0% |
 | STRIPE | 99.9% | 3 s | 0.1% |
 | UNLOCK | 99.9% | 2 s | 0.1% |
 | MESSAGING | 99.5% | 2 s | 0.5% |
@@ -105,7 +105,7 @@ Frontend UX guardrails are LCP <= 2.5 s, INP <= 200 ms, and CLS <= 0.1 at p75. A
 Alert definitions and exact windows live in `config/observability.json`:
 
 - `CRITICAL`: Stripe webhook failure, repeated unlock transaction failure, or deployment health regression. Page the release/on-call owner immediately and suspend the affected money-moving path if integrity is uncertain.
-- `HIGH`: elevated 5xx, Maxxis failure-rate breach, or authentication anomaly. Investigate within 15 minutes and correlate by release/request ID.
+- `HIGH`: elevated 5xx, Maxxis Deal AI failure-rate breach, or authentication anomaly. Investigate within 15 minutes and correlate by release/request ID.
 - `WARNING`: Gemini timeout/quota burst. Check provider status, configured quota, latency, and fallback response.
 
 Sentry alert rules use the `sentry` channel entries. The health workflow uses `github_actions` and produces an actionable annotation on failure. Repository notification routing must send failed `Observability Smoke` workflow runs to the launch/on-call channel.
@@ -134,7 +134,7 @@ $env:E2E_SUPABASE_ANON_KEY='<staging-publishable-key>'
 npm run observability:smoke
 ```
 
-The Maxxis health endpoint is `GET /functions/v1/maxxis-chat?health=1`. It returns only status, function, and release plus `x-request-id`; it never calls Gemini or reads user data.
+The Maxxis Deal AI health endpoint is `GET /functions/v1/maxxis-chat?health=1`. It returns only status, function, and release plus `x-request-id`; it never calls Gemini or reads user data.
 
 For each release verify:
 
@@ -152,7 +152,7 @@ For each release verify:
 3. Compare the failing release with the previous release and inspect provider/status/error category.
 4. For Stripe or unlock integrity uncertainty, stop retries that could duplicate financial mutations and verify idempotency state first.
 5. For AUTH/RLS, do not weaken policies as mitigation. Reproduce with the least-privileged staging user.
-6. For Maxxis provider degradation, preserve the safe fallback and do not expose raw Gemini errors.
+6. For Maxxis Deal AI provider degradation, preserve the safe fallback and do not expose raw Gemini errors.
 7. Record mitigation, affected release, validation evidence, and recovery time.
 
 ## Readiness gate

@@ -1,5 +1,5 @@
 -- Phase 3K: Confirmed Provider Message Send.
--- Reuses public.chat_messages as the only human messaging system. Maxxis only
+-- Reuses public.chat_messages as the only human messaging system. Maxxis Deal AI only
 -- prepares a pending action; the real chat row is inserted after explicit
 -- confirmation and with the authenticated user as sender.
 

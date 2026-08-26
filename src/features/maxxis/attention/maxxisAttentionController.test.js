@@ -28,7 +28,7 @@ function candidate(id, priority = 50, expiresAt = 70_000) {
 
 afterEach(() => vi.useRealTimers());
 
-describe('Maxxis attention safety policy', () => {
+describe('Maxxis Deal AI attention safety policy', () => {
   it('allows one relevant bubble during normal property browsing', () => {
     expect(allowed()).toMatchObject({
       allowBubble: true,
@@ -66,7 +66,7 @@ describe('Maxxis attention safety policy', () => {
     expect(allowed({ avatarState })).toMatchObject({ allowBubble: false, deferAttention: true, reasonCode });
   });
 
-  it('suppresses external attention while Maxxis is open but preserves real internal animation', () => {
+  it('suppresses external attention while Maxxis Deal AI is open but preserves real internal animation', () => {
     expect(allowed({ maxxisOpen: true, avatarState: 'PROCESSING' })).toMatchObject({
       allowBubble: false,
       allowAnimation: true,
@@ -118,7 +118,7 @@ describe('Maxxis attention safety policy', () => {
   });
 });
 
-describe('Maxxis attention session controller', () => {
+describe('Maxxis Deal AI attention session controller', () => {
   it('keeps at most one deferred signal and retains the highest priority', () => {
     const controller = createMaxxisAttentionController({ nowFn: () => 10_000 });
     controller.setScope('account-a', 'property-a');

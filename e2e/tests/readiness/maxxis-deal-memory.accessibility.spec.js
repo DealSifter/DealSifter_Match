@@ -17,7 +17,7 @@ async function expectNoSeriousStructuralViolations(page, selector) {
   expect(violations).toEqual([]);
 }
 
-test('Maxxis memory recall and forget confirmation are labelled and keyboard operable', async ({ page, mockBackend }) => {
+test('Maxxis Deal AI memory recall and forget confirmation are labelled and keyboard operable', async ({ page, mockBackend }) => {
   await page.emulateMedia({ reducedMotion: 'reduce' });
   await primeMaxxisDealMemory(page, {
     userId: mockBackend.users.investor.id,

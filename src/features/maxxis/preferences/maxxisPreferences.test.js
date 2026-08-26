@@ -10,7 +10,7 @@ import {
 
 afterEach(() => vi.unstubAllGlobals());
 
-describe('Maxxis interaction preferences', () => {
+describe('Maxxis Deal AI interaction preferences', () => {
   it('uses safe product defaults and rejects invalid intensity values', () => {
     expect(normalizeMaxxisPreferences()).toEqual(DEFAULT_MAXXIS_PREFERENCES);
     expect(normalizeMaxxisPreferences({

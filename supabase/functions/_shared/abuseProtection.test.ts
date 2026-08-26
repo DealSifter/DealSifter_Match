@@ -58,7 +58,7 @@ describe('Phase 5C abuse protection', () => {
     vi.useRealTimers();
   });
 
-  it('applies kill switches and server-side rate limits to sensitive Maxxis flows', () => {
+  it('applies kill switches and server-side rate limits to sensitive Maxxis Deal AI flows', () => {
     expect(chatSource).toContain("isOperationalFeatureEnabled('MAXXIS_ENABLED')");
     expect(messageSource).toContain("isOperationalFeatureEnabled('PROVIDER_MESSAGING_ENABLED')");
     expect(unlockSource).toContain("isOperationalFeatureEnabled('CONTACT_UNLOCK_ENABLED')");

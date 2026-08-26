@@ -39,7 +39,7 @@ and `.rpc()` occurrences; direct Supabase accesses count `supabase.*` occurrence
 - Modules with direct Supabase API access: 15.
 - Existing direction is predominantly `pages -> components/hooks/services -> lib`; it was not
   previously enforced automatically.
-- High-risk coupling: page components contain domain normalization/storage logic, while Maxxis
+- High-risk coupling: page components contain domain normalization/storage logic, while Maxxis Deal AI
   response rendering and action state share one component.
 
 ## Domain map
@@ -50,7 +50,7 @@ and `.rpc()` occurrences; direct Supabase accesses count `supabase.*` occurrence
 | PROFILE | `App.jsx`, `Onboarding.jsx`, `useProfileSync`, profile services/libs |
 | FEED | `App.jsx`, `Dashboard.jsx`, feed services |
 | MATCHES / CHAT | `MatchesPage.jsx`, `useChatRealtime`, chat services |
-| MAXXIS / WORKFLOW | `MaxxisAssistant.jsx`, `maxxisService.js` |
+| MAXXIS DEAL AI / WORKFLOW | `MaxxisAssistant.jsx`, `maxxisService.js` |
 | NAVIGATION | `App.jsx`, navbar/bottom navigation |
 | REALTIME / CACHE | `App.jsx`, realtime lifecycle, storage helpers |
 | PAYMENTS | `App.jsx`, checkout/plan services |
@@ -84,6 +84,6 @@ Final gate: 0 dependency cycles, 0 forbidden boundaries, 15 modules with direct 
 0 budget warnings and 0 budget failures. Existing public component contracts, backend endpoints,
 database schema and RLS were preserved.
 
-The large Maxxis service remains a compatibility facade: response normalization moved to the
+The large Maxxis Deal AI service remains a compatibility facade: response normalization moved to the
 domain registry, while splitting every endpoint wrapper into tiny clients was intentionally
 deferred because it would add indirection without reducing coupling in this phase.

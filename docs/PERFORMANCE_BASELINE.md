@@ -42,10 +42,10 @@ parameters; they are not interpolated into dynamic SQL.
 
 | Flow | Before | After | Classification |
 | --- | ---: | ---: | --- |
-| Maxxis service matching for property needs | 6–12 service/contact queries as categories grew | 2–4 queries, including contact-access lookup and at most one fallback batch | `GOOD` |
+| Maxxis Deal AI service matching for property needs | 6–12 service/contact queries as categories grew | 2–4 queries, including contact-access lookup and at most one fallback batch | `GOOD` |
 | Deal Copilot overview | 7–8 core database round trips | 5–6, depending on provider summary availability | `GOOD` |
 | Deal workflow update | upsert plus redundant final read | upsert returns the authoritative row | `GOOD` |
-| Maxxis authenticated tools | repeated `auth.getUser()` inside profile/search/detail/Copilot tools | one top-level authentication reused by trusted internal calls | `GOOD` |
+| Maxxis Deal AI authenticated tools | repeated `auth.getUser()` inside profile/search/detail/Copilot tools | one top-level authentication reused by trusted internal calls | `GOOD` |
 | Feed action hydration | repeated request when identity/feed state converged | single-flight request with safe cached reapplication | `GOOD` |
 | Realtime channel lifecycle | replacement could leave a prior channel attached | replacement and dispose remove the exact current channel | `GOOD` |
 | Property search | behavior/profile plus bounded search calls | no per-result query; optional context reads remain bounded | `GOOD` |
@@ -57,9 +57,9 @@ The compatibility-only injected service matcher still supports a per-category lo
 tests. Production uses the batched RPC. The deterministic performance audit reports this as
 a `WARNING`, not a production failure.
 
-## Maxxis context and observability
+## Maxxis Deal AI context and observability
 
-Maxxis now records, in structured operational logs:
+Maxxis Deal AI now records, in structured operational logs:
 
 - request, system-prompt, tool-declaration and tool-result payload sizes;
 - bounded history count;
@@ -70,9 +70,9 @@ Deterministic budgets are stored in `config/performance-budgets.json`: maximum 1
 messages, one tool round, 64,000 bytes of tool payload, 512,000-byte chunk ceiling, six Deal
 Copilot database queries, 20 service results, 10 service categories, 50 chat messages and 720
 feed actions. The staging SLOs are 50 ms for a database plan, 2 s for a non-provider Edge
-request, 8 s for Maxxis and 2.5 s for LCP.
+request, 8 s for Maxxis Deal AI and 2.5 s for LCP.
 
-The Maxxis service-search load probe showed:
+The Maxxis Deal AI service-search load probe showed:
 
 | Run | First observed | Warm p50 | Warm p95 | Payload p95 |
 | --- | ---: | ---: | ---: | ---: |
@@ -103,7 +103,7 @@ incremental loading before data volume grows substantially.
 
 - deterministic performance audit: 29 `PASS`, 1 documented `WARNING`, 0 `FAIL`;
 - unit/integration tests: 47 files and 330 tests passed;
-- focused Maxxis/realtime tests: 245 passed;
+- focused Maxxis Deal AI/realtime tests: 245 passed;
 - mocked browser gate: 8 passed, zero retries;
 - real staging browser gate: two complete successful runs, 8 passed each, zero retries;
 - post-load data-integrity audit: 28 checks, 0 findings;
@@ -121,7 +121,7 @@ incremental loading before data volume grows substantially.
 3. `WATCH`: staging is small and can be noisy; repeat load tests with representative cardinality
    and a fixed client region before setting a contractual SLO.
 4. `WATCH`: operational metrics were added in this phase, so there is not yet enough historical
-   data for a stable production percentile. Keep the 8 s Maxxis alert and review after a full
+   data for a stable production percentile. Keep the 8 s Maxxis Deal AI alert and review after a full
    observation window.
 5. The production project must receive these migrations and functions only after release approval,
    a new readiness review and the established backup/rollback checks. Phase 5E did not deploy to

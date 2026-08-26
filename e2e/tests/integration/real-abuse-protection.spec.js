@@ -63,7 +63,7 @@ test('atomic rate limiter isolates identities, expires windows and stores no PII
   }
 });
 
-test('Maxxis Edge Function emits structured 429 under a controlled concurrent burst', async ({ realBackend }) => {
+test('Maxxis Deal AI Edge Function emits structured 429 under a controlled concurrent burst', async ({ realBackend }) => {
   const providerSession = await realBackend.signIn(realBackend.provider.email, realBackend.provider.password);
   const rateLimitQuery = `subject_id=eq.${realBackend.provider.id}&operation=eq.maxxis_chat`;
   try {

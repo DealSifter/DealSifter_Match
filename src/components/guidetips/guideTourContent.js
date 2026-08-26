@@ -15,9 +15,9 @@ const COPY = {
     },
     initial: [
       { id: 'language-menu', mobileOnly: true, target: '[data-guide="app-menu"]', title: 'Open the app menu', body: 'Start by opening the hamburger menu. The language selector is inside this sidebar.' },
-      { id: 'language', target: '[data-guide="language-control"]', title: 'Choose your language', body: 'Select English, Portuguese or Spanish first. The app, guide and Maxxis will use this preference throughout your journey.' },
+      { id: 'language', target: '[data-guide="language-control"]', title: 'Choose your language', body: 'Select English, Portuguese or Spanish first. The app, guide and Maxxis Deal AI will use this preference throughout your journey.' },
       { id: 'overview', kind: 'video', title: 'See how DealSifter works', body: 'This overview introduces the main journey before you begin your registration.' },
-      { id: 'maxxis', target: '[data-guide="maxxis-widget"]', title: 'Meet Maxxis AI', body: 'Maxxis is your app guide and question assistant. It follows your selected language and can take you directly to the module where an action must be completed.', nextTour: 'onboarding-entry', nextPage: 'dashboard' },
+      { id: 'maxxis', target: '[data-guide="maxxis-widget"]', title: 'Meet Maxxis Deal AI', body: 'Maxxis Deal AI is your app guide and question assistant. It follows your selected language and can take you directly to the module where an action must be completed.', nextTour: 'onboarding-entry', nextPage: 'dashboard' },
     ],
     'onboarding-entry': [
       { id: 'module-entry', target: '[data-guide-entry="onboarding-entry-module"]', title: 'Start from the registration access', body: 'On desktop and tablet, Feed opens the dashboard where the flashing registration card is located. On mobile, + New Card is the direct access to Onboarding.' },
@@ -55,7 +55,7 @@ const COPY = {
       { id: 'conversation', target: '[data-guide="matches-conversation"]', title: 'Continue the conversation', body: 'Chat is available when plan and contact preferences allow it. System alerts explain any restriction.' },
       { id: 'portfolio', target: '[data-guide="matches-portfolio"]', title: 'Review the portfolio', body: 'See unlocked contact channels, services and properties linked to the selected owner.' },
       { id: 'property-detail', target: '[data-guide="matches-property-detail"]', optionalTarget: true, title: 'Open full property details', body: 'Select a linked property to expand its photos, description, numbers, strategy and complete opportunity data.' },
-      { id: 'export', target: '[data-guide="matches-export"]', optionalTarget: true, title: 'Export and analyze the opportunity', body: 'Use Export to generate the property release, prepare email data or send the opportunity to Maxxis AI for analysis.', nextTour: 'settings' },
+      { id: 'export', target: '[data-guide="matches-export"]', optionalTarget: true, title: 'Export and analyze the opportunity', body: 'Use Export to generate the property release, prepare email data or send the opportunity to Maxxis Deal AI for analysis.', nextTour: 'settings' },
     ],
     settings: [
       { id: 'menu', target: '[data-guide="app-settings-menu"]', title: 'System settings', body: 'Use this menu to manage your profile, notifications, language, theme, plans, privacy and support communication.', completesCycle: true },
@@ -77,9 +77,9 @@ const COPY = {
     },
     initial: [
       { id: 'language-menu', mobileOnly: true, target: '[data-guide="app-menu"]', title: 'Abra o menu do app', body: 'Comece abrindo o menu hamburger. O seletor de idioma fica dentro desta barra lateral.' },
-      { id: 'language', target: '[data-guide="language-control"]', title: 'Escolha o idioma do app', body: 'Selecione primeiro inglês, português ou espanhol. O app, o guia e o Maxxis usarão essa preferência durante toda a jornada.' },
+      { id: 'language', target: '[data-guide="language-control"]', title: 'Escolha o idioma do app', body: 'Selecione primeiro inglês, português ou espanhol. O app, o guia e o Maxxis Deal AI usarão essa preferência durante toda a jornada.' },
       { id: 'overview', kind: 'video', title: 'Veja como o DealSifter funciona', body: 'Este panorama apresenta a jornada principal antes de você iniciar seu cadastro.' },
-      { id: 'maxxis', target: '[data-guide="maxxis-widget"]', title: 'Conheça o Maxxis AI', body: 'O Maxxis é seu guia e tira-dúvidas do app. Ele segue o idioma selecionado e pode levar você diretamente ao módulo onde uma ação precisa ser feita.', nextTour: 'onboarding-entry', nextPage: 'dashboard' },
+      { id: 'maxxis', target: '[data-guide="maxxis-widget"]', title: 'Conheça o Maxxis Deal AI', body: 'O Maxxis Deal AI é seu guia e tira-dúvidas do app. Ele segue o idioma selecionado e pode levar você diretamente ao módulo onde uma ação precisa ser feita.', nextTour: 'onboarding-entry', nextPage: 'dashboard' },
     ],
     'onboarding-entry': [
       { id: 'module-entry', target: '[data-guide-entry="onboarding-entry-module"]', title: 'Comece pelo acesso ao cadastro', body: 'No desktop e tablet, o Feed abre o dashboard onde fica o card piscante de registro. No mobile, + New Card é o acesso direto ao Onboarding.' },
@@ -117,7 +117,7 @@ const COPY = {
       { id: 'conversation', target: '[data-guide="matches-conversation"]', title: 'Continue a conversa', body: 'O chat funciona quando plano e preferência de contato permitem. Alertas do sistema explicam qualquer restrição.' },
       { id: 'portfolio', target: '[data-guide="matches-portfolio"]', title: 'Confira o portfólio', body: 'Veja canais desbloqueados, serviços e propriedades vinculados ao responsável selecionado.' },
       { id: 'property-detail', target: '[data-guide="matches-property-detail"]', optionalTarget: true, title: 'Abra os dados completos da propriedade', body: 'Selecione uma propriedade vinculada para expandir fotos, descrição, números, estratégia e todos os dados da oportunidade.' },
-      { id: 'export', target: '[data-guide="matches-export"]', optionalTarget: true, title: 'Exporte e analise a oportunidade', body: 'Use Exportar para gerar o release da propriedade, preparar dados por e-mail ou enviar a oportunidade ao Maxxis AI para análise.', nextTour: 'settings' },
+      { id: 'export', target: '[data-guide="matches-export"]', optionalTarget: true, title: 'Exporte e analise a oportunidade', body: 'Use Exportar para gerar o release da propriedade, preparar dados por e-mail ou enviar a oportunidade ao Maxxis Deal AI para análise.', nextTour: 'settings' },
     ],
     settings: [
       { id: 'menu', target: '[data-guide="app-settings-menu"]', title: 'Configurações do sistema', body: 'Use este menu para gerenciar perfil, notificações, idioma, tema, planos, privacidade e comunicação com o suporte.', completesCycle: true },
@@ -139,9 +139,9 @@ const COPY = {
     },
     initial: [
       { id: 'language-menu', mobileOnly: true, target: '[data-guide="app-menu"]', title: 'Abre el menú de la app', body: 'Empieza abriendo el menú hamburguesa. El selector de idioma está dentro de esta barra lateral.' },
-      { id: 'language', target: '[data-guide="language-control"]', title: 'Elige el idioma de la app', body: 'Selecciona primero inglés, portugués o español. La app, la guía y Maxxis usarán esta preferencia durante todo el recorrido.' },
+      { id: 'language', target: '[data-guide="language-control"]', title: 'Elige el idioma de la app', body: 'Selecciona primero inglés, portugués o español. La app, la guía y Maxxis Deal AI usarán esta preferencia durante todo el recorrido.' },
       { id: 'overview', kind: 'video', title: 'Descubre cómo funciona DealSifter', body: 'Este panorama presenta el recorrido principal antes de comenzar tu registro.' },
-      { id: 'maxxis', target: '[data-guide="maxxis-widget"]', title: 'Conoce a Maxxis AI', body: 'Maxxis es tu guía y asistente de dudas del app. Sigue el idioma seleccionado y puede llevarte directamente al módulo donde debes completar una acción.', nextTour: 'onboarding-entry', nextPage: 'dashboard' },
+      { id: 'maxxis', target: '[data-guide="maxxis-widget"]', title: 'Conoce a Maxxis Deal AI', body: 'Maxxis Deal AI es tu guía y asistente de dudas del app. Sigue el idioma seleccionado y puede llevarte directamente al módulo donde debes completar una acción.', nextTour: 'onboarding-entry', nextPage: 'dashboard' },
     ],
     'onboarding-entry': [
       { id: 'module-entry', target: '[data-guide-entry="onboarding-entry-module"]', title: 'Comienza por el acceso al registro', body: 'En desktop y tablet, Feed abre el dashboard donde está la tarjeta parpadeante de registro. En mobile, + New Card es el acceso directo al Onboarding.' },
@@ -179,7 +179,7 @@ const COPY = {
       { id: 'conversation', target: '[data-guide="matches-conversation"]', title: 'Continúa la conversación', body: 'El chat depende del plan y preferencias de contacto. Las alertas explican cualquier restricción.' },
       { id: 'portfolio', target: '[data-guide="matches-portfolio"]', title: 'Revisa el portafolio', body: 'Consulta canales desbloqueados, servicios y propiedades del responsable.' },
       { id: 'property-detail', target: '[data-guide="matches-property-detail"]', optionalTarget: true, title: 'Abre los datos completos de la propiedad', body: 'Selecciona una propiedad vinculada para ampliar fotos, descripción, números, estrategia y todos los datos de la oportunidad.' },
-      { id: 'export', target: '[data-guide="matches-export"]', optionalTarget: true, title: 'Exporta y analiza la oportunidad', body: 'Usa Exportar para generar el release, preparar datos por email o enviar la oportunidad a Maxxis AI para análisis.', nextTour: 'settings' },
+      { id: 'export', target: '[data-guide="matches-export"]', optionalTarget: true, title: 'Exporta y analiza la oportunidad', body: 'Usa Exportar para generar el release, preparar datos por email o enviar la oportunidad a Maxxis Deal AI para análisis.', nextTour: 'settings' },
     ],
     settings: [
       { id: 'menu', target: '[data-guide="app-settings-menu"]', title: 'Configuración del sistema', body: 'Usa este menú para administrar perfil, notificaciones, idioma, tema, planes, privacidad y comunicación con soporte.', completesCycle: true },
