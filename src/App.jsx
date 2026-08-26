@@ -5665,7 +5665,7 @@ export default function App() {
         userId={supabaseUserId || authSession?.userId || authSession?.id}
         page={page}
         canStart={Boolean(authSession && dashboardHydrationReady && lgpdConsentChecked && !requireSignupConsent)}
-        onboardingComplete={Boolean(isAdmin || onboardingMinimumComplete)}
+        onboardingComplete={Boolean(isAdmin || registeredProfileScopes.size > 0)}
       >
       <div style={{ minHeight: '100vh', background: 'var(--bg)', color: 'var(--t1)' }}>
         {isAppShellBooting ? (

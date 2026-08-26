@@ -1,7 +1,8 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { GuideTipsContext } from './GuideTipsContext';
+import { guideTipsEnabledKey, resolveGuideTipsActivation } from './guideTipsActivation';
 
-const ENABLED_KEY = 'ds_guidetips_enabled';
+const LEGACY_ENABLED_KEY = 'ds_guidetips_enabled';
 const progressKey = (userId) => `ds_guidetips_progress:${String(userId || 'guest')}`;
 const TOUR_IDS = new Set(['initial', 'onboarding-entry', 'onboarding', 'feed', 'mapview', 'matches', 'settings']);
 
@@ -33,25 +34,11 @@ export function GuideTipsProvider({
   const [progress, setProgress] = useState({ cycleCompleted: false, completedTours: [] });
   const pageRef = useRef(page);
   const onboardingCompleteRef = useRef(onboardingComplete);
-  const previousOnboardingCompleteRef = useRef(onboardingComplete);
 
   useEffect(() => {
     pageRef.current = page;
     onboardingCompleteRef.current = onboardingComplete;
   }, [onboardingComplete, page]);
-
-  useEffect(() => {
-    const becameOperational = onboardingComplete && !previousOnboardingCompleteRef.current;
-    previousOnboardingCompleteRef.current = onboardingComplete;
-    if (!becameOperational || progress.cycleCompleted) return;
-    const timer = window.setTimeout(() => {
-      setActiveTour('feed');
-      setStepIndex(0);
-      setEnabledState(true);
-    }, 0);
-    try { localStorage.setItem(ENABLED_KEY, '1'); } catch { /* noop */ }
-    return () => window.clearTimeout(timer);
-  }, [onboardingComplete, progress.cycleCompleted]);
 
   const persistProgress = useCallback((next) => {
     setProgress(next);
@@ -67,40 +54,47 @@ export function GuideTipsProvider({
       ? saved
       : { ...saved, cycleCompleted: false, completedTours: [] };
     const storedEnabled = (() => {
-      try { return localStorage.getItem(ENABLED_KEY) === '1'; } catch { return false; }
+      try {
+        const key = guideTipsEnabledKey(userId);
+        const scoped = localStorage.getItem(key);
+        if (scoped !== null) return scoped === '1';
+        const migrated = Boolean(saved.cycleCompleted && localStorage.getItem(LEGACY_ENABLED_KEY) === '1');
+        localStorage.setItem(key, migrated ? '1' : '0');
+        return migrated;
+      } catch { return false; }
     })();
-    const manuallyEnabled = Boolean(next.cycleCompleted && storedEnabled);
-    // The initial guide is mandatory only while the account cannot operate yet.
-    // Once onboarding has the minimum valid profile + linked portfolio record,
-    // keep the tour available on demand without reopening it on every login.
-    const mustRun = Boolean(canStart && !isOperational && !next.cycleCompleted);
+    const activation = resolveGuideTipsActivation({
+      canStart,
+      hasValidProfile: isOperational,
+      manuallyEnabled: storedEnabled,
+      pageTour: tourForPage(pageRef.current),
+    });
     const timer = window.setTimeout(() => {
       setProgress(next);
-      setEnabledState(mustRun || manuallyEnabled);
-      setActiveTour(mustRun ? (isOperational ? 'feed' : 'initial') : tourForPage(pageRef.current));
+      setEnabledState(activation.enabled);
+      setActiveTour(activation.activeTour);
       setStepIndex(0);
       if (!isOperational) {
         try { localStorage.setItem(progressKey(userId), JSON.stringify(next)); } catch { /* UI-only persistence */ }
       }
     }, 0);
     return () => window.clearTimeout(timer);
-  }, [canStart, userId]);
+  }, [canStart, onboardingComplete, userId]);
 
   const setEnabled = useCallback((value) => {
     const next = Boolean(value);
-    const mandatory = Boolean(canStart && !onboardingCompleteRef.current && !progress.cycleCompleted);
     setEnabledState(next);
     if (next) {
       setActiveTour(tourForPage(page));
       setStepIndex(0);
     }
-    // Closing only suspends a mandatory tour for the current view. Its enabled
-    // preference remains persisted so the unfinished journey is offered again.
-    try { localStorage.setItem(ENABLED_KEY, mandatory || next ? '1' : '0'); } catch { /* noop */ }
-  }, [canStart, page, progress.cycleCompleted]);
+    // Mandatory activation is derived from profile validity and is never stored
+    // as a manual preference. Closing suspends it only for the current session.
+    try { localStorage.setItem(guideTipsEnabledKey(userId), next ? '1' : '0'); } catch { /* noop */ }
+  }, [page, userId]);
 
   const toggle = useCallback(() => {
-    const mandatory = Boolean(canStart && !onboardingCompleteRef.current && !progress.cycleCompleted);
+    const mandatory = Boolean(canStart && !onboardingCompleteRef.current);
     if (mandatory) {
       setEnabledState(true);
       return;
@@ -111,10 +105,10 @@ export function GuideTipsProvider({
         setActiveTour(tourForPage(page));
         setStepIndex(0);
       }
-      try { localStorage.setItem(ENABLED_KEY, next ? '1' : '0'); } catch { /* noop */ }
+      try { localStorage.setItem(guideTipsEnabledKey(userId), next ? '1' : '0'); } catch { /* noop */ }
       return next;
     });
-  }, [canStart, page, progress.cycleCompleted]);
+  }, [canStart, page, userId]);
 
   const startTour = useCallback((tourId, options = {}) => {
     const requested = String(tourId || '').trim();
@@ -124,8 +118,8 @@ export function GuideTipsProvider({
     setActiveTour(normalized);
     setStepIndex(Number(options.stepIndex || 0));
     setEnabledState(true);
-    try { localStorage.setItem(ENABLED_KEY, '1'); } catch { /* noop */ }
-  }, []);
+    try { localStorage.setItem(guideTipsEnabledKey(userId), '1'); } catch { /* noop */ }
+  }, [userId]);
 
   const completeTour = useCallback((tourId, completesCycle = false) => {
     const completedTours = Array.from(new Set([...(progress.completedTours || []), tourId]));
@@ -138,9 +132,9 @@ export function GuideTipsProvider({
     persistProgress(next);
     if (completesCycle) {
       setEnabledState(false);
-      try { localStorage.setItem(ENABLED_KEY, '0'); } catch { /* noop */ }
+      try { localStorage.setItem(guideTipsEnabledKey(userId), '0'); } catch { /* noop */ }
     }
-  }, [persistProgress, progress]);
+  }, [persistProgress, progress, userId]);
 
   useEffect(() => {
     const onStartTour = (event) => {
@@ -156,7 +150,7 @@ export function GuideTipsProvider({
     };
   }, [page, startTour]);
 
-  const mandatory = Boolean(canStart && !onboardingComplete && !progress.cycleCompleted);
+  const mandatory = Boolean(canStart && !onboardingComplete);
   const value = useMemo(() => ({
     enabled,
     setEnabled,
