@@ -89,6 +89,58 @@ function fallback(language: MaxxisLanguage, reason: 'quota' | 'provider' | 'conf
   return messages[reason][language];
 }
 
+function localAssistantAnswer(message: string, language: MaxxisLanguage, page = 'dashboard') {
+  const normalized = String(message || '')
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .toLowerCase();
+  const catalog = {
+    greeting: {
+      en: 'Hi, I am here. I can guide you through Feed, MapView, Matches, unlocks, nuggets, plans and deal basics. Tell me what you want to do next.',
+      pt: 'Oi, estou aqui. Posso te orientar no Feed, MapView, Matches, desbloqueios, nuggets, planos e conceitos dos negocios. Me diga o que voce quer fazer agora.',
+      es: 'Hola, estoy aqui. Puedo orientarte en Feed, MapView, Matches, desbloqueos, nuggets, planes y conceptos de negocios. Dime que quieres hacer ahora.',
+    },
+    nuggets: {
+      en: 'Nuggets are used to unlock protected contacts, cards and selected premium actions. If your balance is not enough, go to Plans/Pricing to add more before trying the unlock again.',
+      pt: 'Nuggets sao usados para desbloquear contatos, cards protegidos e algumas acoes premium. Se o saldo nao for suficiente, va em Planos/Pricing para comprar mais antes de tentar o desbloqueio novamente.',
+      es: 'Los nuggets se usan para desbloquear contactos, cards protegidos y algunas acciones premium. Si el saldo no alcanza, ve a Planes/Pricing antes de intentar desbloquear otra vez.',
+    },
+    map: {
+      en: 'In MapView, use the sidebar to inspect deals or providers, filter by state and open cards. The sidebar can be resized and your custom size is remembered.',
+      pt: 'No MapView, use a sidebar para inspecionar negocios ou providers, filtrar por estado e abrir cards. A sidebar pode ser redimensionada e o app lembra o tamanho que voce ajustar.',
+      es: 'En MapView, usa la sidebar para revisar negocios o providers, filtrar por estado y abrir cards. La sidebar se puede redimensionar y el app recuerda tu ajuste.',
+    },
+    feed: {
+      en: 'In Feed, swipe or use the action buttons to pass, favorite or mark interest. Locked/unlocked status should stay stable after the latest synchronization fixes.',
+      pt: 'No Feed, deslize ou use os botoes de acao para recusar, favoritar ou marcar interesse. O status locked/unlocked deve permanecer estavel apos as correcoes de sincronizacao.',
+      es: 'En Feed, desliza o usa los botones para rechazar, guardar o marcar interes. El estado locked/unlocked debe mantenerse estable con las correcciones de sincronizacion.',
+    },
+    matches: {
+      en: 'Matches shows mutual or relevant interest signals. Open a match to continue the conversation, review unlocked contact status or decide the next action.',
+      pt: 'Matches mostra sinais de interesse mutuo ou relevante. Abra um match para continuar a conversa, verificar o status de contato desbloqueado ou decidir a proxima acao.',
+      es: 'Matches muestra senales de interes mutuo o relevante. Abre un match para continuar la conversacion, revisar contactos desbloqueados o decidir la proxima accion.',
+    },
+    pricing: {
+      en: 'Plans/Pricing is where you manage subscription and nugget packs. Use it when an unlock or premium action requires more balance.',
+      pt: 'Planos/Pricing e onde voce gerencia assinatura e pacotes de nuggets. Use quando um desbloqueio ou acao premium exigir mais saldo.',
+      es: 'Planes/Pricing es donde gestionas suscripcion y paquetes de nuggets. Usalo cuando un desbloqueo o accion premium requiera mas saldo.',
+    },
+    default: {
+      en: `I am in local guide mode right now, but I can still help with navigation, Feed, MapView, Matches, unlocks, nuggets, plans and next steps. Current page: ${page}.`,
+      pt: `Estou em modo guia local neste momento, mas ainda posso ajudar com navegacao, Feed, MapView, Matches, desbloqueios, nuggets, planos e proximos passos. Pagina atual: ${page}.`,
+      es: `Estoy en modo guia local en este momento, pero aun puedo ayudar con navegacion, Feed, MapView, Matches, desbloqueos, nuggets, planes y proximos pasos. Pagina actual: ${page}.`,
+    },
+  };
+  let key: keyof typeof catalog = 'default';
+  if (/\b(ola|oi|hello|hi|hey|hola)\b/.test(normalized)) key = 'greeting';
+  else if (/(nugget|saldo|balance|unlock|desbloq|destravar|bloquead|locked)/.test(normalized)) key = 'nuggets';
+  else if (/(map|mapview|mapa|pin|sidebar)/.test(normalized)) key = 'map';
+  else if (/(feed|card|swipe|favorit|interest|interesse)/.test(normalized)) key = 'feed';
+  else if (/(match|conex|mensagem|message|chat|interessado)/.test(normalized)) key = 'matches';
+  else if (/(plan|pricing|preco|price|assinatura|upgrade|comprar)/.test(normalized)) key = 'pricing';
+  return catalog[key][language] || catalog[key].en;
+}
+
 function propertySearchMessage(language: MaxxisLanguage, count: number, personalized = false, requiresProfile = false) {
   if (requiresProfile) return language === 'pt' ? 'Configure seu Investment Profile para calcular matches personalizados.' : language === 'es' ? 'Configura tu Investment Profile para calcular matches personalizados.' : 'Configure your Investment Profile to calculate personalized matches.';
   if (count === 0) return language === 'pt' ? 'Não encontrei propriedades ativas com esses critérios.' : language === 'es' ? 'No encontré propiedades activas con esos criterios.' : 'I could not find active properties matching those criteria.';
@@ -288,6 +340,9 @@ Deno.serve(async (req) => {
   let systemPromptBytes = 0;
   let toolDeclarationBytes = 0;
   let historyCount = 0;
+  let resolvedLanguage: MaxxisLanguage = 'en';
+  let resolvedMessage = '';
+  let resolvedPage = 'dashboard';
   const budget = new MaxxisExecutionBudget();
   try {
     const user = await authenticatedUser(req.headers.get('Authorization') || '');
@@ -323,6 +378,9 @@ Deno.serve(async (req) => {
     }
     const message = sanitizeText(rawMessage, MAXXIS_EXECUTION_LIMITS.maxMessageChars);
     const language = detectLanguage(message, sanitizeText(body.language || 'auto', 8));
+    resolvedMessage = message;
+    resolvedLanguage = language;
+    resolvedPage = sanitizeText(body.page || 'dashboard', 60) || 'dashboard';
     const rawPropertyContextId = sanitizeText(bodyContext.propertyId, 50);
     const propertyContextId = UUID_PATTERN.test(rawPropertyContextId) ? rawPropertyContextId : '';
     const searchPropertyIds = normalizeComparisonContextIds(bodyContext.propertyIds);
@@ -354,15 +412,16 @@ Deno.serve(async (req) => {
     }
     const stubFunctionCall = isE2ELlmStubEnabled() ? e2eStubFunctionCall(message, propertyContextId) : null;
     if (!geminiApiKey && !stubFunctionCall) {
-      const text = fallback(language, 'config');
-      return response({ message: text, answer: text, type: 'text', data: null, actions: [], language, unavailable: true, error: 'MAXXIS_NOT_CONFIGURED' }, 503, origin);
+      const text = localAssistantAnswer(message, language, resolvedPage);
+      logMaxxisEvent('maxxis_chat', { request_id: requestId, user_id: userId, duration_ms: Date.now() - startedAt, success: false, fallback_count: fallbackCount + 1, error_code: 'MAXXIS_NOT_CONFIGURED' });
+      return response({ message: text, answer: text, type: 'text', data: null, actions: [], language, degraded: true, error: 'MAXXIS_NOT_CONFIGURED' }, 200, origin, requestId);
     }
     const history = Array.isArray(body.history) ? body.history : [];
     historyCount = history.length;
     budget.validateHistory(history);
     const contents = [...history.map((item: Record<string, unknown>) => ({ role: item?.role === 'assistant' ? 'model' : 'user', parts: [{ text: sanitizeText(item?.content || item?.text, 1600) }] })).filter((item) => item.parts[0].text), { role: 'user', parts: [{ text: message }] }];
     const contextInstruction = shouldUseStructuredContext(message, structuredContext) ? `\n\n${structuredContextInstruction(structuredContext)}` : '';
-    const systemPrompt = `${buildSystemPrompt(language, sanitizeText(body.page || 'unknown', 60))}\n\n${propertyContextInstruction(propertyContextId, searchPropertyIds, comparisonPropertyIds)}${contextInstruction}`;
+    const systemPrompt = `${buildSystemPrompt(language, resolvedPage)}\n\n${propertyContextInstruction(propertyContextId, searchPropertyIds, comparisonPropertyIds)}${contextInstruction}`;
     systemPromptBytes = new TextEncoder().encode(systemPrompt).byteLength;
     toolDeclarationBytes = new TextEncoder().encode(JSON.stringify(MAXXIS_TOOLS)).byteLength;
     const geminiRequest = { systemInstruction: { parts: [{ text: systemPrompt }] }, contents, tools: MAXXIS_TOOLS, generationConfig: { temperature: 0.45, topP: 0.9, maxOutputTokens: MAXXIS_EXECUTION_LIMITS.maxOutputTokens }, safetySettings: [{ category: 'HARM_CATEGORY_HARASSMENT', threshold: 'BLOCK_ONLY_HIGH' }, { category: 'HARM_CATEGORY_HATE_SPEECH', threshold: 'BLOCK_ONLY_HIGH' }, { category: 'HARM_CATEGORY_SEXUALLY_EXPLICIT', threshold: 'BLOCK_ONLY_HIGH' }, { category: 'HARM_CATEGORY_DANGEROUS_CONTENT', threshold: 'BLOCK_ONLY_HIGH' }] };
@@ -384,9 +443,9 @@ Deno.serve(async (req) => {
     }
     if (!usedModel) {
       const quota = providerErrors.some((item) => item.status === 429);
-      const text = fallback(language, quota ? 'quota' : 'provider');
+      const text = localAssistantAnswer(message, language, resolvedPage);
       logMaxxisEvent('maxxis_chat', { request_id: requestId, user_id: userId, duration_ms: Date.now() - startedAt, provider_duration_ms: providerDurationMs, success: false, fallback_count: fallbackCount, error_code: quota ? 'MAXXIS_PROVIDER_QUOTA' : 'MAXXIS_PROVIDER_FAILED' });
-      return response({ message: text, answer: text, type: 'text', data: null, actions: [], language, unavailable: true, error: quota ? 'MAXXIS_PROVIDER_QUOTA' : 'MAXXIS_PROVIDER_FAILED' }, 502, origin);
+      return response({ message: text, answer: text, type: 'text', data: null, actions: [], language, degraded: true, error: quota ? 'MAXXIS_PROVIDER_QUOTA' : 'MAXXIS_PROVIDER_FAILED' }, 200, origin, requestId);
     }
     const candidateList = Array.isArray(payload.candidates) ? payload.candidates : [];
     const firstCandidate = candidateList[0] && typeof candidateList[0] === 'object'
@@ -524,7 +583,10 @@ Deno.serve(async (req) => {
       return response({ message: text, answer: text, type: 'properties', data: { properties, personalized: result.personalized, profileAvailable: result.profileAvailable, profileSuggestions }, actions: [], language }, 200, origin);
     }
     const text = String(parts.find((part) => part?.text)?.text || '').trim();
-    if (!text) return response({ message: 'Maxxis Deal AI could not generate a response. Please try again.', type: 'text', data: null, actions: [], error: 'MAXXIS_EMPTY_RESPONSE' }, 502, origin);
+    if (!text) {
+      const localText = localAssistantAnswer(message, language, resolvedPage);
+      return response({ message: localText, answer: localText, type: 'text', data: null, actions: [], language, degraded: true, error: 'MAXXIS_EMPTY_RESPONSE' }, 200, origin, requestId);
+    }
     logMaxxisEvent('maxxis_chat', { request_id: requestId, user_id: userId, model: usedModel, duration_ms: Date.now() - startedAt, provider_duration_ms: providerDurationMs, request_payload_bytes: requestPayloadBytes, system_prompt_bytes: systemPromptBytes, tool_declaration_bytes: toolDeclarationBytes, history_count: historyCount, success: true, fallback_count: fallbackCount, llm_call_count: budget.geminiCalls, tool_call_count: budget.toolCalls, tool_rounds: budget.toolRounds });
     return response({ message: text, answer: text, type: 'text', data: null, actions: [], language }, 200, origin);
   } catch (error) {
@@ -536,7 +598,10 @@ Deno.serve(async (req) => {
       logAbuseGuard({ functionName: 'maxxis-chat', operation: 'maxxis_chat', requestId, userId, category: budgetExhausted ? 'BUDGET_EXHAUSTED' : 'REQUEST_TOO_LARGE', status: requestTooLarge ? 413 : 503, durationMs: Date.now() - startedAt, limitType: budgetExhausted ? 'execution_budget' : 'context' });
     }
     logMaxxisEvent('maxxis_chat', { request_id: requestId, user_id: userId, model: usedModel, duration_ms: Date.now() - startedAt, provider_duration_ms: providerDurationMs, request_payload_bytes: requestPayloadBytes, system_prompt_bytes: systemPromptBytes, tool_declaration_bytes: toolDeclarationBytes, history_count: historyCount, success: false, fallback_count: fallbackCount, error_code: timedOut ? 'MAXXIS_TIMEOUT' : errorCode, llm_call_count: budget.geminiCalls, tool_call_count: budget.toolCalls, tool_rounds: budget.toolRounds, timeout: timedOut, budget_exhausted: budgetExhausted });
-    const text = fallback('en', 'provider');
-    return response({ message: requestTooLarge ? 'Request context is too large.' : text, answer: requestTooLarge ? 'Request context is too large.' : text, type: 'text', data: null, actions: [], unavailable: true, error: timedOut ? 'MAXXIS_TIMEOUT' : errorCode }, requestTooLarge ? 413 : budgetExhausted ? 503 : 502, origin, requestId);
+    if (requestTooLarge) {
+      return response({ message: 'Request context is too large.', answer: 'Request context is too large.', type: 'text', data: null, actions: [], unavailable: true, error: errorCode }, 413, origin, requestId);
+    }
+    const text = localAssistantAnswer(resolvedMessage, resolvedLanguage, resolvedPage);
+    return response({ message: text, answer: text, type: 'text', data: null, actions: [], language: resolvedLanguage, degraded: true, error: timedOut ? 'MAXXIS_TIMEOUT' : errorCode }, 200, origin, requestId);
   }
 });

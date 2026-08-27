@@ -9,6 +9,11 @@ import {
   resolveMaxxisAvatarPresentation,
 } from './maxxisAvatarAnimations';
 import {
+  MAXXIS_AVATAR_RENDERERS,
+  resolveMaxxisAvatarRenderAsset,
+} from './maxxisAvatarAssetResolver';
+import { resolveEffectiveMaxxisAvatarSize } from './maxxisAvatarSizing';
+import {
   MAXXIS_AVATAR_ANIMATION_INTENSITY,
   MAXXIS_AVATAR_STATES,
   MAXXIS_AVATAR_VISUAL_STATE_MODES,
@@ -39,7 +44,7 @@ describe('Maxxis Deal AI avatar asset mapping', () => {
 describe('Maxxis Deal AI avatar animation presentation', () => {
   it.each([
     ['IDLE', 'idle-loop'],
-    ['OBSERVING', 'observing-once'],
+    ['OBSERVING', 'observing-loop'],
     ['PROCESSING', 'processing-loop'],
     ['NOTICED', 'noticed-once'],
     ['WAITING', 'waiting-loop'],
@@ -115,5 +120,25 @@ describe('Maxxis Deal AI avatar animation presentation', () => {
     expect(mutateProperty).not.toHaveBeenCalled();
     fetchSpy.mockRestore();
   });
-});
 
+  it('keeps the official PNG + CSS fallback authoritative without an approved experimental asset', () => {
+    expect(resolveMaxxisAvatarRenderAsset({ state: 'PROCESSING' })).toMatchObject({
+      renderer: MAXXIS_AVATAR_RENDERERS.PNG_CSS,
+      experimental: false,
+      fallbackAsset: MAXXIS_AVATAR_ASSETS.PROCESSING,
+    });
+    expect(resolveMaxxisAvatarRenderAsset({
+      state: 'SUCCESS',
+      experimentalEnabled: true,
+      experimentalAssets: { SUCCESS: { renderer: 'LOTTIE', src: '' } },
+    }).renderer).toBe(MAXXIS_AVATAR_RENDERERS.PNG_CSS);
+  });
+
+  it('can cap only the effective visual size without mutating the stored preference', () => {
+    expect(resolveEffectiveMaxxisAvatarSize(2.5, { mobileSafetyLimit: 1.8 })).toEqual({
+      stored: 2.5,
+      effective: 1.8,
+    });
+    expect(resolveEffectiveMaxxisAvatarSize(1.43)).toEqual({ stored: 1.43, effective: 1.43 });
+  });
+});

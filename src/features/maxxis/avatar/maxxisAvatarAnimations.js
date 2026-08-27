@@ -7,7 +7,7 @@ import {
 
 export const MAXXIS_AVATAR_ANIMATION_TOKENS = Object.freeze({
   [MAXXIS_AVATAR_STATES.IDLE]: 'idle-loop',
-  [MAXXIS_AVATAR_STATES.OBSERVING]: 'observing-once',
+  [MAXXIS_AVATAR_STATES.OBSERVING]: 'observing-loop',
   [MAXXIS_AVATAR_STATES.PROCESSING]: 'processing-loop',
   [MAXXIS_AVATAR_STATES.NOTICED]: 'noticed-once',
   [MAXXIS_AVATAR_STATES.WAITING]: 'waiting-loop',
@@ -58,4 +58,3 @@ export function resolveMaxxisAvatarPresentation({
     ].join(' '),
   });
 }
-

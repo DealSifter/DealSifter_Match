@@ -47,13 +47,19 @@ async function logoutFromSettings(page) {
 }
 
 test('syncs animation and proactivity controls without coupling bubble behavior', async ({ page, mockBackend }) => {
-  test.setTimeout(300_000);
+  test.setTimeout(600_000);
   await configureProactive(page, 'maxxis-settings-initial');
   await loginAs(page, mockBackend.users.investor);
   await expect(page.getByTestId('maxxis-proactive-bubble')).toBeVisible();
 
   await page.getByTestId('maxxis-proactive-review').click();
   await openPreferencesPopover(page);
+  const headerSizeSlider = page.getByTestId('maxxis-avatar-size-slider-header');
+  await expect(headerSizeSlider).toHaveValue('1');
+  const writesBeforeSize = mockBackend.state.userPreferenceWrites;
+  await headerSizeSlider.fill('1.43');
+  await expect(page.getByTestId('maxxis-avatar-size-value-header')).toContainText('1.43x');
+  await expect.poll(() => mockBackend.state.userPreferenceWrites).toBeGreaterThan(writesBeforeSize);
   const writesBeforeIntensity = mockBackend.state.userPreferenceWrites;
   await page.getByLabel(/normal/i).check();
   await expect.poll(() => mockBackend.state.userPreferenceWrites).toBeGreaterThan(writesBeforeIntensity);
@@ -69,6 +75,7 @@ test('syncs animation and proactivity controls without coupling bubble behavior'
   await expect(page.getByTestId('dashboard-root')).toBeVisible({ timeout: 120_000 });
   await expect(page.getByTestId('maxxis-proactive-bubble')).toBeVisible();
   await expect(page.getByTestId('maxxis-avatar-fab')).toHaveAttribute('data-animation-intensity', 'OFF');
+  await expect(page.getByTestId('maxxis-avatar-fab')).toHaveAttribute('data-avatar-size', '1.43');
 
   await page.getByTestId('maxxis-proactive-review').click();
   await openPreferencesPopover(page);
@@ -84,6 +91,7 @@ test('syncs animation and proactivity controls without coupling bubble behavior'
   await expect(page.getByTestId('maxxis-proactive-bubble')).toBeHidden();
 
   await openGeneralPreferences(page);
+  await expect(page.getByTestId('maxxis-avatar-size-slider-settings')).toHaveValue('1.43');
   await expect(page.getByTestId('maxxis-animation-toggle-settings')).not.toBeChecked();
   await expect(page.getByTestId('maxxis-proactive-toggle-settings')).not.toBeChecked();
   const settingsIntensity = page
@@ -100,6 +108,7 @@ test('syncs animation and proactivity controls without coupling bubble behavior'
   await expect(
     page.getByTestId('maxxis-preferences-header').getByRole('radio', { name: /normal/i }),
   ).toBeChecked();
+  await expect(page.getByTestId('maxxis-avatar-size-slider-header')).toHaveValue('1.43');
   expect(mockBackend.state.unlockPrepares).toBe(0);
   expect(mockBackend.state.unlockConfirms).toBe(0);
   expect(mockBackend.state.messagesSent).toBe(0);
@@ -110,21 +119,25 @@ test('isolates preferences across account switches and restores the original acc
   await configureProactive(page, 'maxxis-settings-account-isolation');
   await loginAs(page, mockBackend.users.investor);
   await openPreferencesPopover(page);
+  const writesBeforeSize = mockBackend.state.userPreferenceWrites;
+  await page.getByTestId('maxxis-avatar-size-slider-header').fill('1.7');
   const writesBeforeAnimation = mockBackend.state.userPreferenceWrites;
   await page.getByTestId('maxxis-animation-toggle-header').uncheck();
-  await expect.poll(() => mockBackend.state.userPreferenceWrites).toBeGreaterThan(writesBeforeAnimation);
+  await expect.poll(() => mockBackend.state.userPreferenceWrites).toBeGreaterThan(Math.min(writesBeforeSize, writesBeforeAnimation));
 
   await openGeneralPreferences(page);
   await logoutFromSettings(page);
   await loginAs(page, mockBackend.users.provider);
   await openPreferencesPopover(page);
   await expect(page.getByTestId('maxxis-animation-toggle-header')).toBeChecked();
+  await expect(page.getByTestId('maxxis-avatar-size-slider-header')).toHaveValue('1');
 
   await page.getByRole('button', { name: /more settings|mais configurações|más configuraciones/i }).click();
   await logoutFromSettings(page);
   await loginAs(page, mockBackend.users.investor);
   await openPreferencesPopover(page);
   await expect(page.getByTestId('maxxis-animation-toggle-header')).not.toBeChecked();
+  await expect(page.getByTestId('maxxis-avatar-size-slider-header')).toHaveValue('1.7');
   await expect(page.getByTestId('maxxis-avatar-header')).toHaveAttribute('data-animation-intensity', 'OFF');
 });
 

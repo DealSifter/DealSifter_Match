@@ -1,9 +1,10 @@
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import {
   MAXXIS_AVATAR_ASSET_LIST,
-  resolveMaxxisAvatarAsset,
 } from './maxxisAvatarAssets';
+import { resolveMaxxisAvatarRenderAsset } from './maxxisAvatarAssetResolver';
 import { resolveMaxxisAvatarPresentation } from './maxxisAvatarAnimations';
+import { resolveEffectiveMaxxisAvatarSize } from './maxxisAvatarSizing';
 import './MaxxisAvatar.css';
 
 let avatarPreloadScheduled = false;
@@ -48,20 +49,20 @@ function usePrefersReducedMotion() {
   return reducedMotion;
 }
 
-export function MaxxisAvatarRenderer({ avatarState, className = '', testId = 'maxxis-avatar-renderer' }) {
+export function MaxxisAvatarRenderer({ avatarState, avatarSize = 1, className = '', testId = 'maxxis-avatar-renderer' }) {
   const prefersReducedMotion = usePrefersReducedMotion();
-  const targetAsset = resolveMaxxisAvatarAsset(avatarState?.state);
-  const presentation = useMemo(() => resolveMaxxisAvatarPresentation({
+  const renderAsset = resolveMaxxisAvatarRenderAsset({
+    state: avatarState?.state,
+    reducedMotion: prefersReducedMotion,
+  });
+  const targetAsset = renderAsset.fallbackAsset;
+  const avatarSizing = resolveEffectiveMaxxisAvatarSize(avatarSize);
+  const presentation = resolveMaxxisAvatarPresentation({
     state: targetAsset.state,
     intensity: avatarState?.intensity,
     visualStateMode: avatarState?.visualStateMode,
     prefersReducedMotion,
-  }), [
-    avatarState?.intensity,
-    avatarState?.visualStateMode,
-    prefersReducedMotion,
-    targetAsset.state,
-  ]);
+  });
   const [layers, setLayers] = useState(() => ({ active: targetAsset, outgoing: null }));
 
   useEffect(() => {
@@ -97,29 +98,37 @@ export function MaxxisAvatarRenderer({ avatarState, className = '', testId = 'ma
       data-testid={testId}
       data-avatar-state={presentation.state}
       data-avatar-asset={layers.active.key}
+      data-avatar-renderer={renderAsset.renderer.toLowerCase().replaceAll('_', '-')}
+      data-avatar-size={avatarSizing.stored.toFixed(2)}
+      data-avatar-effective-size={avatarSizing.effective.toFixed(2)}
       data-animation-token={presentation.animationToken}
       data-animation-intensity={presentation.intensity}
       data-reduced-motion={presentation.reducedMotion ? 'true' : 'false'}
       data-transitioning={layers.outgoing ? 'true' : 'false'}
+      style={{
+        '--maxxis-avatar-user-scale': avatarSizing.effective,
+      }}
       aria-hidden="true"
     >
       <span key={motionKey} className={`maxxis-avatar-motion ${presentation.className}`}>
-        {layers.outgoing ? (
+        <span className="maxxis-avatar-art">
+          {layers.outgoing ? (
+            <img
+              className="maxxis-avatar-layer maxxis-avatar-layer--outgoing"
+              src={layers.outgoing.src}
+              alt=""
+              draggable="false"
+              aria-hidden="true"
+            />
+          ) : null}
           <img
-            className="maxxis-avatar-layer maxxis-avatar-layer--outgoing"
-            src={layers.outgoing.src}
+            className="maxxis-avatar-layer maxxis-avatar-layer--active"
+            src={layers.active.src}
             alt=""
             draggable="false"
             aria-hidden="true"
           />
-        ) : null}
-        <img
-          className="maxxis-avatar-layer maxxis-avatar-layer--active"
-          src={layers.active.src}
-          alt=""
-          draggable="false"
-          aria-hidden="true"
-        />
+        </span>
       </span>
     </span>
   );

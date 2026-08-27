@@ -93,6 +93,55 @@
   accent-color: var(--accent);
 }
 
+.maxxis-avatar-size-control {
+  display: grid;
+  gap: 8px;
+  min-width: 0;
+}
+
+.maxxis-avatar-size-heading {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.maxxis-avatar-size-heading label {
+  color: var(--t1);
+  font-size: 12px;
+  font-weight: 800;
+}
+
+.maxxis-avatar-size-heading output {
+  color: var(--t3);
+  font-size: 10px;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+.maxxis-avatar-size-range {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 8px;
+  color: var(--t3);
+  font-size: 9.5px;
+  font-weight: 750;
+}
+
+.maxxis-avatar-size-range input[type="range"] {
+  width: 100%;
+  min-width: 0;
+  margin: 0;
+  accent-color: var(--accent);
+  cursor: pointer;
+}
+
+.maxxis-avatar-size-range input[type="range"]:focus-visible {
+  outline: 2px solid color-mix(in srgb, var(--accent) 72%, transparent);
+  outline-offset: 3px;
+}
+
 .maxxis-preference-status {
   color: var(--t3);
   font-size: 10px;

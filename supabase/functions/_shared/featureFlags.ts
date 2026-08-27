@@ -9,7 +9,7 @@ export type FeatureFlagDefinition = {
 export const FEATURE_FLAG_DEFINITIONS = {
   platform_readiness_probe: { enabled: true, environments: ['development', 'staging'], percentage: 100 },
   maxxis_next_generation: { enabled: false, environments: [], percentage: 0 },
-  maxxis_proactive_insights: { enabled: false, environments: [], percentage: 0 },
+  maxxis_proactive_insights: { enabled: true, environments: ['production'], percentage: 100 },
   maxxis_deal_memory: { enabled: true, environments: ['development', 'staging'], percentage: 100 },
   new_feed_experience: { enabled: false, environments: [], percentage: 0 },
   advanced_deal_analysis: { enabled: false, environments: [], percentage: 0 },
@@ -17,6 +17,29 @@ export const FEATURE_FLAG_DEFINITIONS = {
 } as const satisfies Record<string, FeatureFlagDefinition>;
 
 export type FeatureFlagName = keyof typeof FEATURE_FLAG_DEFINITIONS;
+
+function normalizeOrigin(value: unknown) {
+  try {
+    return new URL(String(value || '').trim()).origin;
+  } catch {
+    return '';
+  }
+}
+
+export function selectScopedFeatureFlagReviewOverrides({
+  requestOrigin,
+  reviewOrigin,
+  requestedOverrides = {},
+}: {
+  requestOrigin: string;
+  reviewOrigin: string;
+  requestedOverrides?: Record<string, unknown>;
+}) {
+  const expectedOrigin = normalizeOrigin(reviewOrigin);
+  if (!expectedOrigin || normalizeOrigin(requestOrigin) !== expectedOrigin) return null;
+  if (typeof requestedOverrides.maxxis_proactive_insights !== 'boolean') return {};
+  return { maxxis_proactive_insights: requestedOverrides.maxxis_proactive_insights };
+}
 
 const clampPercentage = (value: unknown) => Math.max(0, Math.min(100, Math.floor(Number(value) || 0)));
 

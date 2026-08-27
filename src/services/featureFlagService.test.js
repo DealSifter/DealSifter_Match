@@ -1,5 +1,9 @@
 import { describe, expect, it } from 'vitest';
-import { deterministicCohort, resolveFeatureFlags } from '../../supabase/functions/_shared/featureFlags';
+import {
+  deterministicCohort,
+  resolveFeatureFlags,
+  selectScopedFeatureFlagReviewOverrides,
+} from '../../supabase/functions/_shared/featureFlags';
 import { isFeatureEnabled, normalizeFeatureFlagResponse, OFF_FEATURE_FLAGS } from './featureFlagService';
 
 describe('controlled feature rollout', () => {
@@ -9,6 +13,7 @@ describe('controlled feature rollout', () => {
     expect(flags.maxxis_next_generation).toBe(false);
     expect(flags.maxxis_proactive_insights).toBe(false);
     expect(flags.maxxis_deal_memory).toBe(true);
+    expect(resolveFeatureFlags({ userId: 'user-a', environment: 'production' }).maxxis_proactive_insights).toBe(true);
     expect(resolveFeatureFlags({ userId: 'user-a', environment: 'production' }).maxxis_deal_memory).toBe(false);
   });
 
@@ -16,6 +21,20 @@ describe('controlled feature rollout', () => {
     expect(resolveFeatureFlags({ userId: 'user-a', environment: 'staging', overrides: { new_feed_experience: true }, allowOverride: true }).new_feed_experience).toBe(true);
     expect(resolveFeatureFlags({ userId: 'user-a', environment: 'staging', overrides: { maxxis_proactive_insights: true }, allowOverride: true }).maxxis_proactive_insights).toBe(true);
     expect(resolveFeatureFlags({ userId: 'user-a', environment: 'production', overrides: { new_feed_experience: true }, allowOverride: false }).new_feed_experience).toBe(false);
+  });
+
+  it('limits production review overrides to proactive insights on the exact review origin', () => {
+    const reviewOrigin = 'https://maxxis-avatar-review-dealsifter.vercel.app';
+    expect(selectScopedFeatureFlagReviewOverrides({
+      requestOrigin: reviewOrigin,
+      reviewOrigin,
+      requestedOverrides: { maxxis_proactive_insights: true, new_feed_experience: true },
+    })).toEqual({ maxxis_proactive_insights: true });
+    expect(selectScopedFeatureFlagReviewOverrides({
+      requestOrigin: 'https://dealsiftermatch.vercel.app',
+      reviewOrigin,
+      requestedOverrides: { maxxis_proactive_insights: true },
+    })).toBeNull();
   });
 
   it('assigns stable cohorts and distributes different users deterministically', () => {

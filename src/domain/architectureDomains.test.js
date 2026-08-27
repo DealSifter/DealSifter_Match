@@ -7,7 +7,12 @@ describe('extracted architecture domains', () => {
     const result = normalizeUserPreferences({ map: { initialZoom: 99 }, privacy: { readReceipts: false } });
     expect(result.map.initialZoom).toBe(13);
     expect(result.privacy.readReceipts).toBe(false);
-    expect(result.maxxis).toEqual({ proactiveEnabled: true, animationEnabled: true, animationIntensity: 'SUBTLE' });
+    expect(result.maxxis).toEqual({
+      proactiveEnabled: true,
+      animationEnabled: true,
+      animationIntensity: 'SUBTLE',
+      avatarSize: 1,
+    });
     expect(DEFAULT_USER_PREFERENCES.map.initialZoom).toBe(4);
   });
 

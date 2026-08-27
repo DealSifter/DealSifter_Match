@@ -4,6 +4,7 @@ import {
   getMaxxisPreferenceValueCategory,
   getMaxxisPreferencesCopy,
   MAXXIS_ANIMATION_INTENSITIES,
+  MAXXIS_AVATAR_SIZE,
   MAXXIS_PREFERENCE_KEYS,
   normalizeMaxxisPreferences,
 } from './maxxisPreferences';
@@ -98,6 +99,30 @@ export function MaxxisPreferencesControls({
           </label>
         </div>
       </fieldset>
+
+      <div className="maxxis-avatar-size-control">
+        <div className="maxxis-avatar-size-heading">
+          <label htmlFor={`maxxis-avatar-size-${surface}`}>{copy.avatarSizeLabel}</label>
+          <output htmlFor={`maxxis-avatar-size-${surface}`} data-testid={`maxxis-avatar-size-value-${surface}`}>
+            {copy.avatarSizeValue(normalized.avatarSize)}
+          </output>
+        </div>
+        <div className="maxxis-avatar-size-range">
+          <span aria-hidden="true">{MAXXIS_AVATAR_SIZE.MIN.toFixed(1)}x</span>
+          <input
+            id={`maxxis-avatar-size-${surface}`}
+            data-testid={`maxxis-avatar-size-slider-${surface}`}
+            type="range"
+            min={MAXXIS_AVATAR_SIZE.MIN}
+            max={MAXXIS_AVATAR_SIZE.MAX}
+            step={MAXXIS_AVATAR_SIZE.STEP}
+            value={normalized.avatarSize}
+            aria-valuetext={`${normalized.avatarSize.toFixed(2)}x`}
+            onChange={(event) => updatePreference(MAXXIS_PREFERENCE_KEYS.AVATAR_SIZE, Number(event.target.value))}
+          />
+          <span aria-hidden="true">{MAXXIS_AVATAR_SIZE.MAX.toFixed(1)}x</span>
+        </div>
+      </div>
 
       {persistenceStatus === 'saving' ? <div className="maxxis-preference-status" role="status">{copy.saving}</div> : null}
       {persistenceStatus === 'error' ? <div className="maxxis-preference-status maxxis-preference-status--error" role="status">{copy.saveFailed}</div> : null}

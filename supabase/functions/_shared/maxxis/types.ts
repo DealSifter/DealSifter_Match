@@ -450,5 +450,6 @@ export type MaxxisResponse = {
   answer?: string;
   language?: MaxxisLanguage;
   unavailable?: boolean;
+  degraded?: boolean;
   error?: string;
 };

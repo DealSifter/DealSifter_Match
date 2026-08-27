@@ -2,23 +2,31 @@
   --maxxis-art-scale: 1.3;
   --maxxis-art-x: 0%;
   --maxxis-art-y: 0%;
-  --maxxis-idle-scale: 1.01;
-  --maxxis-idle-y: -1px;
-  --maxxis-observing-rotate: 1.5deg;
-  --maxxis-processing-rotate: 1deg;
-  --maxxis-processing-x: 1px;
-  --maxxis-noticed-scale: 1.035;
-  --maxxis-noticed-y: -2px;
-  --maxxis-waiting-scale: 1.005;
-  --maxxis-success-scale: 1.04;
-  --maxxis-success-y: -2px;
+  --maxxis-idle-scale: 1.016;
+  --maxxis-idle-y: -1.8px;
+  --maxxis-idle-rotate: 0.18deg;
+  --maxxis-observing-rotate: 1.8deg;
+  --maxxis-observing-x: 1.5px;
+  --maxxis-observing-scale: 1.018;
+  --maxxis-processing-rotate: 1.8deg;
+  --maxxis-processing-x: 2.4px;
+  --maxxis-processing-y: -1px;
+  --maxxis-noticed-scale: 1.055;
+  --maxxis-noticed-y: -3.5px;
+  --maxxis-noticed-rotate: 1.2deg;
+  --maxxis-waiting-scale: 1.012;
+  --maxxis-waiting-y: -1.5px;
+  --maxxis-waiting-rotate: 0.35deg;
+  --maxxis-success-scale: 1.07;
+  --maxxis-success-y: -4px;
+  --maxxis-success-rotate: 1.4deg;
+  --maxxis-avatar-user-scale: 1;
   position: relative;
   display: block;
   width: 100%;
   height: 100%;
-  overflow: hidden;
-  border-radius: inherit;
-  contain: layout paint;
+  overflow: visible;
+  contain: layout size style;
   isolation: isolate;
   pointer-events: none;
 }
@@ -53,6 +61,7 @@
 }
 
 .maxxis-avatar-motion,
+.maxxis-avatar-art,
 .maxxis-avatar-layer {
   position: absolute;
   inset: 0;
@@ -61,6 +70,13 @@
 }
 
 .maxxis-avatar-motion {
+  transform-origin: center 58%;
+  will-change: transform;
+  backface-visibility: hidden;
+}
+
+.maxxis-avatar-art {
+  transform: scale(var(--maxxis-avatar-user-scale));
   transform-origin: center 58%;
   will-change: transform;
 }
@@ -93,41 +109,53 @@
 }
 
 .maxxis-avatar-motion--idle.maxxis-avatar-motion--enabled {
-  animation: maxxisAvatarIdle 5s ease-in-out infinite;
+  animation: maxxisAvatarIdle 5.8s ease-in-out infinite;
 }
 
 .maxxis-avatar-motion--observing.maxxis-avatar-motion--enabled {
-  animation: maxxisAvatarObserving 2s ease-in-out 1;
+  animation: maxxisAvatarObserving 5.2s ease-in-out infinite;
 }
 
 .maxxis-avatar-motion--processing.maxxis-avatar-motion--enabled {
-  animation: maxxisAvatarProcessing 2.4s ease-in-out infinite;
-  filter: drop-shadow(0 0 3px color-mix(in srgb, var(--accent) 24%, transparent));
+  animation: maxxisAvatarProcessing 2.65s ease-in-out infinite;
+  filter: drop-shadow(0 0 5px color-mix(in srgb, var(--accent) 32%, transparent));
 }
 
 .maxxis-avatar-motion--noticed.maxxis-avatar-motion--enabled {
-  animation: maxxisAvatarNoticed 680ms cubic-bezier(0.22, 0.72, 0.24, 1) 1;
+  animation: maxxisAvatarNoticed 640ms cubic-bezier(0.18, 0.76, 0.2, 1) 1;
+  filter: drop-shadow(0 0 7px color-mix(in srgb, var(--accent) 44%, transparent));
 }
 
 .maxxis-avatar-motion--waiting.maxxis-avatar-motion--enabled {
-  animation: maxxisAvatarWaiting 5.6s ease-in-out infinite;
+  animation: maxxisAvatarWaiting 6.4s ease-in-out infinite;
 }
 
 .maxxis-avatar-motion--success.maxxis-avatar-motion--enabled {
   animation: maxxisAvatarSuccess 880ms cubic-bezier(0.22, 0.72, 0.24, 1) 1;
+  filter:
+    drop-shadow(0 0 8px color-mix(in srgb, var(--accent) 40%, transparent))
+    drop-shadow(0 0 7px rgba(245, 166, 35, 0.36));
 }
 
 .maxxis-avatar-motion--normal {
-  --maxxis-idle-scale: 1.0125;
-  --maxxis-idle-y: -1.25px;
-  --maxxis-observing-rotate: 1.875deg;
-  --maxxis-processing-rotate: 1.25deg;
-  --maxxis-processing-x: 1.25px;
-  --maxxis-noticed-scale: 1.044;
-  --maxxis-noticed-y: -2.5px;
-  --maxxis-waiting-scale: 1.00625;
-  --maxxis-success-scale: 1.05;
-  --maxxis-success-y: -2.5px;
+  --maxxis-idle-scale: 1.026;
+  --maxxis-idle-y: -2.6px;
+  --maxxis-idle-rotate: 0.3deg;
+  --maxxis-observing-rotate: 2.8deg;
+  --maxxis-observing-x: 2.6px;
+  --maxxis-observing-scale: 1.03;
+  --maxxis-processing-rotate: 2.8deg;
+  --maxxis-processing-x: 4px;
+  --maxxis-processing-y: -1.8px;
+  --maxxis-noticed-scale: 1.085;
+  --maxxis-noticed-y: -5px;
+  --maxxis-noticed-rotate: 2deg;
+  --maxxis-waiting-scale: 1.02;
+  --maxxis-waiting-y: -2.4px;
+  --maxxis-waiting-rotate: 0.6deg;
+  --maxxis-success-scale: 1.105;
+  --maxxis-success-y: -6px;
+  --maxxis-success-rotate: 2.2deg;
 }
 
 .maxxis-avatar-motion--off,
@@ -147,69 +175,82 @@
 }
 
 @keyframes maxxisAvatarIdle {
-  0%, 100% { transform: translateY(0) scale(1); }
-  50% { transform: translateY(var(--maxxis-idle-y)) scale(var(--maxxis-idle-scale)); }
+  0%, 100% { transform: translate3d(0, 0, 0) rotate(0) scale(1); }
+  48% { transform: translate3d(0, var(--maxxis-idle-y), 0) rotate(var(--maxxis-idle-rotate)) scale(var(--maxxis-idle-scale)); }
 }
 
 @keyframes maxxisAvatarObserving {
-  0%, 100% { transform: rotate(0); }
-  30% { transform: rotate(calc(var(--maxxis-observing-rotate) * -1)); }
-  65% { transform: rotate(var(--maxxis-observing-rotate)); }
+  0%, 18%, 100% { transform: translate3d(0, 0, 0) rotate(0) scale(1); }
+  38% { transform: translate3d(calc(var(--maxxis-observing-x) * -1), -0.8px, 0) rotate(calc(var(--maxxis-observing-rotate) * -1)) scale(var(--maxxis-observing-scale)); }
+  58% { transform: translate3d(var(--maxxis-observing-x), 0, 0) rotate(var(--maxxis-observing-rotate)) scale(1.005); }
+  76% { transform: translate3d(0, 0, 0) rotate(0) scale(1); }
 }
 
 @keyframes maxxisAvatarProcessing {
-  0%, 100% { transform: translateX(calc(var(--maxxis-processing-x) * -1)) rotate(calc(var(--maxxis-processing-rotate) * -1)); }
-  50% { transform: translateX(var(--maxxis-processing-x)) rotate(var(--maxxis-processing-rotate)); }
+  0%, 100% { transform: translate3d(calc(var(--maxxis-processing-x) * -1), 0, 0) rotate(calc(var(--maxxis-processing-rotate) * -1)) scale(1); }
+  28% { transform: translate3d(0, var(--maxxis-processing-y), 0) rotate(0) scale(1.015); }
+  55% { transform: translate3d(var(--maxxis-processing-x), 0, 0) rotate(var(--maxxis-processing-rotate)) scale(1); }
+  78% { transform: translate3d(0, calc(var(--maxxis-processing-y) * -0.45), 0) rotate(calc(var(--maxxis-processing-rotate) * -0.35)) scale(1.008); }
 }
 
 @keyframes maxxisAvatarNoticed {
-  0%, 100% { transform: translateY(0) scale(1); }
-  45% { transform: translateY(var(--maxxis-noticed-y)) scale(var(--maxxis-noticed-scale)); }
+  0%, 100% { transform: translate3d(0, 0, 0) rotate(0) scale(1); }
+  42% { transform: translate3d(0, var(--maxxis-noticed-y), 0) rotate(var(--maxxis-noticed-rotate)) scale(var(--maxxis-noticed-scale)); }
+  72% { transform: translate3d(0, 0.8px, 0) rotate(calc(var(--maxxis-noticed-rotate) * -0.25)) scale(0.992); }
 }
 
 @keyframes maxxisAvatarWaiting {
-  0%, 100% { transform: scale(1); }
-  50% { transform: scale(var(--maxxis-waiting-scale)); }
+  0%, 100% { transform: translate3d(0, 0, 0) rotate(0) scale(1); }
+  45% { transform: translate3d(0, var(--maxxis-waiting-y), 0) rotate(var(--maxxis-waiting-rotate)) scale(var(--maxxis-waiting-scale)); }
+  72% { transform: translate3d(0, -0.4px, 0) rotate(calc(var(--maxxis-waiting-rotate) * -0.4)) scale(1.003); }
 }
 
 @keyframes maxxisAvatarSuccess {
-  0%, 100% { transform: translateY(0) scale(1); }
-  45% { transform: translateY(var(--maxxis-success-y)) scale(var(--maxxis-success-scale)); }
+  0%, 100% { transform: translate3d(0, 0, 0) rotate(0) scale(1); }
+  34% { transform: translate3d(0, var(--maxxis-success-y), 0) rotate(var(--maxxis-success-rotate)) scale(var(--maxxis-success-scale)); }
+  62% { transform: translate3d(0, 1.4px, 0) rotate(calc(var(--maxxis-success-rotate) * -0.35)) scale(0.985); }
+  82% { transform: translate3d(0, -1px, 0) rotate(0) scale(1.018); }
 }
 
 @media (max-width: 767px) {
   .maxxis-avatar-renderer {
-    --maxxis-idle-scale: 1.0075;
-    --maxxis-idle-y: -0.75px;
-    --maxxis-observing-rotate: 1.2deg;
-    --maxxis-processing-rotate: 0.8deg;
-    --maxxis-processing-x: 0.8px;
-    --maxxis-noticed-scale: 1.025;
-    --maxxis-noticed-y: -1.5px;
-    --maxxis-waiting-scale: 1.00375;
-    --maxxis-success-scale: 1.03;
-    --maxxis-success-y: -1.5px;
+    --maxxis-idle-scale: 1.012;
+    --maxxis-idle-y: -1.2px;
+    --maxxis-observing-rotate: 1.4deg;
+    --maxxis-observing-x: 1.1px;
+    --maxxis-processing-rotate: 1.5deg;
+    --maxxis-processing-x: 1.8px;
+    --maxxis-processing-y: -0.7px;
+    --maxxis-noticed-scale: 1.04;
+    --maxxis-noticed-y: -2.4px;
+    --maxxis-waiting-scale: 1.009;
+    --maxxis-waiting-y: -1px;
+    --maxxis-success-scale: 1.055;
+    --maxxis-success-y: -3px;
   }
 
   .maxxis-avatar-motion--normal {
-    --maxxis-idle-scale: 1.0095;
-    --maxxis-idle-y: -1px;
-    --maxxis-observing-rotate: 1.5deg;
-    --maxxis-processing-rotate: 1deg;
-    --maxxis-processing-x: 1px;
-    --maxxis-noticed-scale: 1.032;
-    --maxxis-noticed-y: -2px;
-    --maxxis-waiting-scale: 1.0045;
-    --maxxis-success-scale: 1.038;
-    --maxxis-success-y: -2px;
+    --maxxis-idle-scale: 1.019;
+    --maxxis-idle-y: -1.8px;
+    --maxxis-observing-rotate: 2.1deg;
+    --maxxis-observing-x: 1.8px;
+    --maxxis-processing-rotate: 2.2deg;
+    --maxxis-processing-x: 2.8px;
+    --maxxis-processing-y: -1.1px;
+    --maxxis-noticed-scale: 1.062;
+    --maxxis-noticed-y: -3.5px;
+    --maxxis-waiting-scale: 1.014;
+    --maxxis-waiting-y: -1.6px;
+    --maxxis-success-scale: 1.078;
+    --maxxis-success-y: -4.2px;
   }
 }
 
 @media (prefers-reduced-motion: reduce) {
   .maxxis-avatar-motion,
+  .maxxis-avatar-art,
   .maxxis-avatar-layer {
     animation: none !important;
     transition: none !important;
   }
 }
-

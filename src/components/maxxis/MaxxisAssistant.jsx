@@ -116,7 +116,8 @@ import {
 } from './MaxxisCapabilities';
 
 function mergeDevMaxxisProactiveEvents(appContext) {
-  if (!import.meta.env.DEV || typeof window === 'undefined') return appContext;
+  const adminReviewEnabled = import.meta.env.VITE_MAXXIS_PROACTIVE_REVIEW === 'true';
+  if ((!import.meta.env.DEV && !adminReviewEnabled) || typeof window === 'undefined') return appContext;
   try {
     const raw = window.localStorage.getItem('ds_e2e_maxxis_proactive_events');
     if (!raw) return appContext;
@@ -198,6 +199,7 @@ export function MaxxisAssistant({ page = 'dashboard', onOpenSupport = null, onNa
   const detectedProactiveSignalsRef = useRef(new Set());
   const suppressedProactiveSignalsRef = useRef(new Set());
   const attentionAnalyticsRef = useRef(new Set());
+  const insertedProactiveInsightsRef = useRef(new Set());
   const proactiveSessionRef = useRef(createMaxxisProactiveSessionMemory(String(sessionKey || '')));
   const attentionControllerRef = useRef(createMaxxisAttentionController());
   const maxxisAvatarStateRef = useRef(null);
@@ -223,6 +225,11 @@ export function MaxxisAssistant({ page = 'dashboard', onOpenSupport = null, onNa
     () => normalizeMaxxisPreferences(userPreferences?.maxxis),
     [userPreferences?.maxxis],
   );
+  const maxxisProactiveReviewEnabled = import.meta.env.VITE_MAXXIS_PROACTIVE_REVIEW === 'true';
+  const maxxisProactiveFeatureAvailable = Boolean(proactiveFeatureEnabled || maxxisProactiveReviewEnabled);
+  const maxxisAvatarEdgeOffset = Number(
+    (Math.max(0, maxxisPreferences.avatarSize - 1) * 25).toFixed(2),
+  );
   const requestedAnimationIntensity = maxxisPreferences.animationEnabled
     ? maxxisPreferences.animationIntensity
     : MAXXIS_AVATAR_ANIMATION_INTENSITY.OFF;
@@ -246,9 +253,9 @@ export function MaxxisAssistant({ page = 'dashboard', onOpenSupport = null, onNa
   });
   const effectiveMaxxisPreferences = useMemo(() => resolveEffectiveMaxxisPreferences({
     preferences: maxxisPreferences,
-    proactiveFeatureEnabled,
+    proactiveFeatureEnabled: maxxisProactiveFeatureAvailable,
     reducedMotion,
-  }), [maxxisPreferences, proactiveFeatureEnabled, reducedMotion]);
+  }), [maxxisPreferences, maxxisProactiveFeatureAvailable, reducedMotion]);
   const proactiveEnabled = effectiveMaxxisPreferences.proactiveEnabled;
   const attentionEnvironment = useMaxxisAttentionEnvironment({
     routeKey: appContext?.surface?.route || page,
@@ -733,6 +740,7 @@ export function MaxxisAssistant({ page = 'dashboard', onOpenSupport = null, onNa
     detectedProactiveSignalsRef.current.clear();
     suppressedProactiveSignalsRef.current.clear();
     attentionAnalyticsRef.current.clear();
+    insertedProactiveInsightsRef.current.clear();
     attentionControllerRef.current.reset();
     resetAvatarTimeline();
     setOpen(false);
@@ -1890,18 +1898,18 @@ export function MaxxisAssistant({ page = 'dashboard', onOpenSupport = null, onNa
     stageProactiveBubble,
   ]);
 
-  const appendSmartProviderMessage = (sourceMessage) => {
+  const appendSmartProviderMessage = (sourceMessage, introductoryText = '') => {
     const payload = smartActionSourcePayload(sourceMessage);
     const data = payload?.data?.sourceData || payload?.data || null;
     if (!data?.property || !Array.isArray(data?.serviceNeeds)) return;
     setMessages((prev) => [...prev, {
       id: `maxxis-smart-providers-${Date.now()}`,
       role: 'assistant',
-      content: language === 'pt'
+      content: introductoryText || (language === 'pt'
         ? 'Providers carregados para este deal. Nada sera desbloqueado sem sua confirmacao.'
         : language === 'es'
           ? 'Providers cargados para este deal. Nada se desbloquea sin tu confirmacion.'
-          : 'Providers loaded for this deal. Nothing will be unlocked without your confirmation.',
+          : 'Providers loaded for this deal. Nothing will be unlocked without your confirmation.'),
       createdAt: new Date(),
       type: 'smart_provider_actions',
       data,
@@ -1912,6 +1920,10 @@ export function MaxxisAssistant({ page = 'dashboard', onOpenSupport = null, onNa
 
   const appendProactiveContextMessage = (bubble) => {
     const signal = bubble?.signal || {};
+    const insightKey = String(signal.dedupeKey || bubble?.id || '').trim();
+    if (!insightKey || insertedProactiveInsightsRef.current.has(insightKey)) return false;
+    insertedProactiveInsightsRef.current.add(insightKey);
+    const continuationText = String(bubble?.message?.continuationText || bubble?.message?.text || '').trim();
     const serviceId = signal.evidence?.serviceId || (signal.entityType === 'SERVICE' ? signal.entityId : '');
     const propertyIdForSignal = signal.evidence?.propertyId || (signal.entityType === 'PROPERTY' ? signal.entityId : propertyContextId);
     if (signal.code === 'PROVIDER_REPLIED' || signal.code === 'PROVIDER_QUOTE_DETECTED') {
@@ -1927,11 +1939,7 @@ export function MaxxisAssistant({ page = 'dashboard', onOpenSupport = null, onNa
       setMessages((prev) => [...prev, {
         id: `maxxis-proactive-context-${Date.now()}`,
         role: 'assistant',
-        content: language === 'pt'
-          ? 'Contexto da resposta do provider carregado. Nada sera enviado sem sua confirmacao.'
-          : language === 'es'
-            ? 'Contexto de la respuesta del provider cargado. Nada se enviara sin tu confirmacion.'
-            : 'Provider reply context loaded. Nothing will be sent without your confirmation.',
+        content: continuationText,
         createdAt: new Date(),
         type: 'provider_message_sent',
         data: {
@@ -1944,28 +1952,18 @@ export function MaxxisAssistant({ page = 'dashboard', onOpenSupport = null, onNa
         smartActionSurface: 'conversation',
         compositionMode: 'PROVIDER_REVIEW',
       }]);
-      return;
+      return true;
     }
     const structuredMessage = latestStructuredDealMessage();
     if (signal.code === 'SERVICE_MATCH_AVAILABLE' && structuredMessage) {
-      appendSmartProviderMessage(structuredMessage);
-      return;
+      appendSmartProviderMessage(structuredMessage, continuationText);
+      return true;
     }
     if (structuredMessage?.data) {
       setMessages((prev) => [...prev, {
         id: `maxxis-proactive-deal-${Date.now()}`,
         role: 'assistant',
-        content: signal.code === 'WORKFLOW_ITEM_CHANGED'
-          ? (language === 'pt'
-            ? 'Contexto do workflow carregado. Revise antes de marcar qualquer etapa.'
-            : language === 'es'
-              ? 'Contexto del workflow cargado. Revisa antes de marcar cualquier etapa.'
-              : 'Workflow context loaded. Review before marking any step.')
-          : (language === 'pt'
-            ? 'Contexto do deal carregado para revisao. Nada foi alterado.'
-            : language === 'es'
-              ? 'Contexto del deal cargado para revision. Nada fue cambiado.'
-              : 'Deal context loaded for review. Nothing was changed.'),
+        content: continuationText,
         createdAt: new Date(),
         type: structuredMessage.type || 'property_details',
         data: structuredMessage.data,
@@ -1973,18 +1971,15 @@ export function MaxxisAssistant({ page = 'dashboard', onOpenSupport = null, onNa
         smartActionsEnabled: true,
         smartActionSurface: 'snapshot',
       }]);
-      return;
+      return true;
     }
     setMessages((prev) => [...prev, {
       id: `maxxis-proactive-fallback-${Date.now()}`,
       role: 'assistant',
-      content: language === 'pt'
-        ? 'Tenho um sinal contextual para revisar, mas preciso que voce abra ou carregue o deal antes de mostrar detalhes.'
-        : language === 'es'
-          ? 'Tengo una senal contextual para revisar, pero necesito que abras o cargues el deal antes de mostrar detalles.'
-          : 'I have a contextual signal to review, but open or load the deal first before I show details.',
+      content: continuationText,
       createdAt: new Date(),
     }]);
+    return true;
   };
 
   const handleDismissProactiveBubble = () => {
@@ -2118,6 +2113,7 @@ export function MaxxisAssistant({ page = 'dashboard', onOpenSupport = null, onNa
   return (
     <div
       className={`maxxis-shell ${open ? 'maxxis-shell-open' : ''}`}
+      style={{ '--maxxis-avatar-edge-offset': `${maxxisAvatarEdgeOffset}px` }}
       data-maxxis-attention-reason={avatarAttentionPolicy.reasonCode}
       data-maxxis-attention-animation={avatarAttentionPolicy.allowAnimation ? 'allowed' : 'suppressed'}
       data-maxxis-proactive={proactiveEnabled ? 'enabled' : 'disabled'}
@@ -2133,6 +2129,7 @@ export function MaxxisAssistant({ page = 'dashboard', onOpenSupport = null, onNa
             <div className="maxxis-avatar" aria-hidden="true">
               <MaxxisAvatarRenderer
                 avatarState={maxxisAvatarRenderState}
+                avatarSize={maxxisPreferences.avatarSize}
                 testId="maxxis-avatar-header"
               />
             </div>
@@ -2176,7 +2173,7 @@ export function MaxxisAssistant({ page = 'dashboard', onOpenSupport = null, onNa
                   preferences={maxxisPreferences}
                   onChange={handlePreferenceChange}
                   language={language}
-                  proactiveFeatureEnabled={proactiveFeatureEnabled}
+                  proactiveFeatureEnabled={maxxisProactiveFeatureAvailable}
                   persistenceStatus={userPreferencesPersistenceStatus}
                   surface="header"
                   compact
@@ -2313,20 +2310,20 @@ export function MaxxisAssistant({ page = 'dashboard', onOpenSupport = null, onNa
                 bottom: 'auto',
               } : {}}
             >
-              <span>{proactiveBubble.message?.text}</span>
               <button
                 type="button"
                 className="maxxis-proactive-review"
                 data-testid="maxxis-proactive-review"
                 onClick={handleClickProactiveBubble}
+                aria-label={proactiveBubble.message?.text}
               >
-                {proactiveBubble.message?.ctaLabel}
+                <span>{proactiveBubble.message?.text}</span>
               </button>
               <button
                 type="button"
                 className="maxxis-proactive-dismiss"
                 data-testid="maxxis-proactive-dismiss"
-                aria-label={language === 'pt' ? 'Fechar sugestao do Maxxis Deal AI' : language === 'es' ? 'Cerrar sugerencia de Maxxis Deal AI' : 'Dismiss Maxxis Deal AI suggestion'}
+                aria-label={language === 'pt' ? 'Descartar insight do Maxxis Deal AI' : language === 'es' ? 'Descartar insight de Maxxis Deal AI' : 'Dismiss Maxxis Deal AI insight'}
                 onClick={handleDismissProactiveBubble}
               >
                 ×
@@ -2346,7 +2343,8 @@ export function MaxxisAssistant({ page = 'dashboard', onOpenSupport = null, onNa
                 return;
               }
               void trackProductEvent('maxxis_opened', { dedupeKey: `maxxis-opened:${page}`, properties: { source: page } });
-              setOpen(true);
+              if (proactiveBubble) handleClickProactiveBubble();
+              else setOpen(true);
             }}
             aria-label={t.open}
             title={t.open}
@@ -2362,6 +2360,7 @@ export function MaxxisAssistant({ page = 'dashboard', onOpenSupport = null, onNa
           >
             <MaxxisAvatarRenderer
               avatarState={maxxisAvatarRenderState}
+              avatarSize={maxxisPreferences.avatarSize}
               className="maxxis-fab-logo"
               testId="maxxis-avatar-fab"
             />

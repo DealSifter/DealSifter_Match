@@ -78,6 +78,7 @@ const createSecuritySessionTerminatedAudit = (sessionId) => {
 
 const SHOW_SUPPORT_CHAT_PLACEHOLDER = !import.meta.env.PROD;
 const SHOW_DEV_BILLING_PLACEHOLDER = !import.meta.env.PROD;
+const MAXXIS_PROACTIVE_REVIEW_ENABLED = import.meta.env.VITE_MAXXIS_PROACTIVE_REVIEW === 'true';
 const SUPPORT_EMAIL = 'contato.dealsifter@gmail.com';
 
 export function Settings({ setPage, prevPage, initialTab = 'profile', initialCommView = 'menu', systemAccount, setSystemAccount, authSession, setAuthSession, subscription, addToast, supabaseUserId, onDeleteAccount, onRevokeConsent, pendingCheckoutIntent = null, onContinuePendingCheckout = null, userPreferences = null, onChangeUserPreferences = null, onHydrateUserPreferences = null, userPreferencesPersistenceStatus = 'idle', maxxisProactiveFeatureEnabled = false }) {
@@ -1426,7 +1427,7 @@ export function Settings({ setPage, prevPage, initialTab = 'profile', initialCom
                     preferences={prefs?.maxxis}
                     onChange={updateMaxxisPreference}
                     language={getLang()}
-                    proactiveFeatureEnabled={maxxisProactiveFeatureEnabled}
+                    proactiveFeatureEnabled={Boolean(maxxisProactiveFeatureEnabled || MAXXIS_PROACTIVE_REVIEW_ENABLED)}
                     persistenceStatus={userPreferencesPersistenceStatus}
                     surface="settings"
                   />

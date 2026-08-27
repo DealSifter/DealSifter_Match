@@ -223,6 +223,7 @@ import {
 
 import { DEFAULT_USER_PREFERENCES, normalizeUserPreferences } from './domain/profile/userPreferences';
 import { readMaxxisProactiveFlagOverrides } from './features/maxxis/preferences/maxxisPreferences';
+import { buildMaxxisProactiveEventsFromChatNotifications } from './features/maxxis/proactive/maxxisProactiveEventBridge';
 
 // Keys whose full (media-inclusive) version is stored in localforage (IndexedDB)
 // instead of localStorage to avoid the ~5MB quota limit.
@@ -3850,6 +3851,9 @@ export default function App() {
         return {
           id: `chat-${ownerId}`,
           ownerId,
+          source: 'chat_realtime',
+          latestMessageId: String(lastIncoming?.id || ''),
+          occurredAt: lastIncoming?.createdAt || '',
           target,
           title: target?.name ? `Chat ${target.name}` : `Chat ${ownerId}`,
           message: String(localizedIncomingText || '').slice(0, 120) || 'Nova atividade no chat',
@@ -5634,12 +5638,14 @@ export default function App() {
           && (profileSyncStatus === 'syncing' || portfolioSyncStatus === 'syncing')
         ),
       },
+      proactiveEvents: buildMaxxisProactiveEventsFromChatNotifications(chatNotifications),
     };
   }, [
     accountType,
     chatFocusTarget,
     checkoutModalIntent,
     checkoutSubmitting,
+    chatNotifications,
     isAccountProcessing,
     isAdminAuthProcessing,
     isAuthProcessing,

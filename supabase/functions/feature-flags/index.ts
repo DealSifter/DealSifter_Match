@@ -1,9 +1,14 @@
 import { createClient } from 'npm:@supabase/supabase-js@2';
 import { corsHeaders } from '../_shared/maxxis/config.ts';
-import { resolveFeatureFlags, type FeatureEnvironment } from '../_shared/featureFlags.ts';
+import {
+  resolveFeatureFlags,
+  selectScopedFeatureFlagReviewOverrides,
+  type FeatureEnvironment,
+} from '../_shared/featureFlags.ts';
 
 const supabaseUrl = Deno.env.get('SUPABASE_URL') ?? '';
 const supabaseAnonKey = Deno.env.get('SUPABASE_ANON_KEY') ?? '';
+const featureFlagReviewOrigin = Deno.env.get('FEATURE_FLAG_REVIEW_ORIGIN') ?? '';
 const productionRef = 'cyeipfskwwisbbayyaca';
 const stagingRef = 'oqdcnjupquhybwdbeeew';
 
@@ -47,8 +52,18 @@ Deno.serve(async (req) => {
     ? body.overrides as Record<string, unknown>
     : {};
   const environment = environmentFromUrl();
+  const reviewOverrides = environment === 'production'
+    ? selectScopedFeatureFlagReviewOverrides({
+        requestOrigin: origin,
+        reviewOrigin: featureFlagReviewOrigin,
+        requestedOverrides,
+      })
+    : null;
+  const effectiveOverrides = reviewOverrides ?? requestedOverrides;
   let allowOverride = environment !== 'production';
-  if (!allowOverride && Object.keys(requestedOverrides).length) {
+  if (!allowOverride && reviewOverrides !== null && Object.keys(reviewOverrides).length) {
+    allowOverride = true;
+  } else if (!allowOverride && Object.keys(effectiveOverrides).length) {
     const { data: isAdmin } = await client.rpc('ds_is_current_user_admin');
     allowOverride = isAdmin === true;
   }
@@ -57,8 +72,8 @@ Deno.serve(async (req) => {
     userId: user.id,
     environment,
     remoteConfig: remoteConfig(),
-    overrides: requestedOverrides,
+    overrides: effectiveOverrides,
     allowOverride,
   });
-  return json({ flags, environment, source: 'server', overrideApplied: allowOverride && Object.keys(requestedOverrides).length > 0 }, 200, origin);
+  return json({ flags, environment, source: 'server', overrideApplied: allowOverride && Object.keys(effectiveOverrides).length > 0 }, 200, origin);
 });

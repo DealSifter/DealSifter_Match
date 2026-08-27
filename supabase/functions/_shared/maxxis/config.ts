@@ -6,15 +6,14 @@ export const supabaseServiceRoleKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') 
 export const geminiApiKey = Deno.env.get('GEMINI_API_KEY') ?? Deno.env.get('GOOGLE_GENERATIVE_AI_API_KEY') ?? '';
 
 const configuredModel = Deno.env.get('MAXXIS_GEMINI_MODEL') ?? '';
-export const geminiModels = [
+export const geminiModels = Array.from(new Set([
   configuredModel,
-  'gemini-flash-lite-latest',
-  'gemini-flash-latest',
-  'gemini-3.1-flash-lite-preview',
-  'gemini-2.0-flash-lite-001',
+  'gemini-2.5-flash-lite',
+  'gemini-2.5-flash',
   'gemini-2.0-flash',
   'gemini-2.0-flash-lite',
-].filter(Boolean);
+  'gemini-2.0-flash-lite-001',
+].filter(Boolean)));
 
 export const geminiTimeoutMs = Math.max(1_000, Number(Deno.env.get('MAXXIS_GEMINI_TIMEOUT_MS') || 20_000));
 

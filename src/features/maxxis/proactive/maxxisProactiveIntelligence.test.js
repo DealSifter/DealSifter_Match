@@ -178,10 +178,16 @@ describe('Maxxis Deal AI proactive intelligence', () => {
         messageBody: 'Sensitive body',
       },
     };
-    expect(composeMaxxisProactiveMessage(item, 'en')).toEqual({ signalCode: 'PROVIDER_REPLIED', text: 'Your provider replied.', ctaLabel: 'Review reply' });
+    expect(composeMaxxisProactiveMessage(item, 'en')).toEqual({
+      signalCode: 'PROVIDER_REPLIED',
+      text: 'Your provider replied.',
+      ctaLabel: 'Review reply',
+      continuationText: 'Your provider replied about this deal. I can show what changed or help you review the response.',
+    });
     expect(composeMaxxisProactiveMessage({ code: 'SERVICE_MATCH_AVAILABLE' }, 'pt').text).toBe('Encontrei providers que combinam com esta propriedade.');
     const serialized = JSON.stringify(composeMaxxisProactiveMessage(item, 'es'));
     expect(serialized).not.toMatch(/999|provider@example|Sensitive|body/i);
+    expect(composeMaxxisProactiveMessage(item, 'pt').continuationText).toContain('Seu provider respondeu sobre este deal');
   });
 
   it('selects the highest priority candidate and returns safe analytics properties only', () => {
@@ -203,4 +209,3 @@ describe('Maxxis Deal AI proactive intelligence', () => {
     });
   });
 });
-

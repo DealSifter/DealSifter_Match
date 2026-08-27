@@ -73,6 +73,59 @@ const MESSAGE_COPY = Object.freeze({
   },
 });
 
+const CONTINUATION_COPY = Object.freeze({
+  PROVIDER_REPLIED: {
+    en: 'Your provider replied about this deal. I can show what changed or help you review the response.',
+    pt: 'Seu provider respondeu sobre este deal. Posso mostrar o que mudou ou ajudar voce a revisar a resposta.',
+    es: 'Tu provider respondio sobre este deal. Puedo mostrar que cambio o ayudarte a revisar la respuesta.',
+  },
+  PROVIDER_QUOTE_DETECTED: {
+    en: 'A provider sent a quote for this deal. I can help you review the available details.',
+    pt: 'Um provider enviou uma quote para este deal. Posso ajudar voce a revisar os detalhes disponiveis.',
+    es: 'Un provider envio una cotizacion para este deal. Puedo ayudarte a revisar los detalles disponibles.',
+  },
+  SERVICE_MATCH_AVAILABLE: {
+    en: 'I found providers that match this property. I can show the current matches without unlocking anything.',
+    pt: 'Encontrei providers que combinam com esta propriedade. Posso mostrar os matches atuais sem desbloquear nada.',
+    es: 'Encontre providers que encajan con esta propiedad. Puedo mostrar los matches actuales sin desbloquear nada.',
+  },
+  NEW_DEAL_GAP: {
+    en: 'I found a point in this deal that deserves attention. I can show the current gap and its context.',
+    pt: 'Encontrei um ponto deste deal que merece atencao. Posso mostrar o gap atual e seu contexto.',
+    es: 'Encontre un punto de este deal que merece atencion. Puedo mostrar el gap actual y su contexto.',
+  },
+  WORKFLOW_ITEM_CHANGED: {
+    en: 'Your deal workflow changed. I can show the current step without updating it automatically.',
+    pt: 'O workflow do seu deal mudou. Posso mostrar a etapa atual sem atualiza-la automaticamente.',
+    es: 'El workflow de tu deal cambio. Puedo mostrar la etapa actual sin actualizarla automaticamente.',
+  },
+  PROVIDER_UNLOCKED: {
+    en: 'A provider contact is ready. I can show the currently authorized context.',
+    pt: 'Um contato de provider esta pronto. Posso mostrar o contexto atualmente autorizado.',
+    es: 'Un contacto de provider esta listo. Puedo mostrar el contexto actualmente autorizado.',
+  },
+  PENDING_ACTION_EXPIRING: {
+    en: 'A pending action needs your decision. I can show it for review; nothing will execute without confirmation.',
+    pt: 'Uma acao pendente precisa da sua decisao. Posso mostra-la para revisao; nada sera executado sem confirmacao.',
+    es: 'Una accion pendiente necesita tu decision. Puedo mostrarla para revision; nada se ejecutara sin confirmacion.',
+  },
+  DEAL_CONTEXT_UPDATED: {
+    en: 'This deal context changed. I can show the latest safe context and what is available to review.',
+    pt: 'O contexto deste deal mudou. Posso mostrar o contexto seguro mais recente e o que esta disponivel para revisao.',
+    es: 'El contexto de este deal cambio. Puedo mostrar el contexto seguro mas reciente y lo disponible para revision.',
+  },
+  IMPORTANT_MISSING_INFORMATION: {
+    en: 'Important information is still missing from this deal. I can show which current fields need review.',
+    pt: 'Ainda faltam informacoes importantes neste deal. Posso mostrar quais campos atuais precisam de revisao.',
+    es: 'Aun falta informacion importante en este deal. Puedo mostrar que campos actuales necesitan revision.',
+  },
+  NEW_ACTION_AVAILABLE: {
+    en: 'A new action is available for review. Nothing will execute until you explicitly confirm it.',
+    pt: 'Uma nova acao esta disponivel para revisao. Nada sera executado ate voce confirmar explicitamente.',
+    es: 'Una nueva accion esta disponible para revision. Nada se ejecutara hasta que confirmes explicitamente.',
+  },
+});
+
 const SENSITIVE_SURFACES = new Set(['landing', 'onboarding', 'pricing', 'settings', 'admin', 'privacy', 'terms']);
 const ACTIONFUL_SIGNAL_CODES = new Set([
   'PROVIDER_REPLIED',
@@ -405,11 +458,14 @@ export function markMaxxisProactiveSignalDismissed(memory, signal) {
 
 export function composeMaxxisProactiveMessage(signal = {}, language = 'en') {
   const lang = ['en', 'pt', 'es'].includes(language) ? language : 'en';
-  const copy = MESSAGE_COPY[signal.code] || MESSAGE_COPY.NEW_ACTION_AVAILABLE;
+  const signalCode = MAXXIS_PROACTIVE_SIGNAL_CODES[signal.code] ? signal.code : 'NEW_ACTION_AVAILABLE';
+  const copy = MESSAGE_COPY[signalCode] || MESSAGE_COPY.NEW_ACTION_AVAILABLE;
+  const continuation = CONTINUATION_COPY[signalCode] || CONTINUATION_COPY.NEW_ACTION_AVAILABLE;
   return {
-    signalCode: MAXXIS_PROACTIVE_SIGNAL_CODES[signal.code] ? signal.code : 'NEW_ACTION_AVAILABLE',
+    signalCode,
     text: copy.text[lang] || copy.text.en,
     ctaLabel: copy.cta[lang] || copy.cta.en,
+    continuationText: continuation[lang] || continuation.en,
   };
 }
 

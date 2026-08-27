@@ -4,6 +4,7 @@ import {
   getMaxxisPreferenceValueCategory,
   getMaxxisPreferencesCopy,
   normalizeMaxxisPreferences,
+  normalizeMaxxisAvatarSize,
   readMaxxisProactiveFlagOverrides,
   resolveEffectiveMaxxisPreferences,
 } from './maxxisPreferences';
@@ -21,7 +22,17 @@ describe('Maxxis Deal AI interaction preferences', () => {
       proactiveEnabled: false,
       animationEnabled: false,
       animationIntensity: 'SUBTLE',
+      avatarSize: 1,
     });
+  });
+
+  it('accepts arbitrary continuous avatar sizes and safely clamps the persisted value', () => {
+    expect(normalizeMaxxisAvatarSize(1)).toBe(1);
+    expect(normalizeMaxxisAvatarSize(1.43)).toBe(1.43);
+    expect(normalizeMaxxisAvatarSize(2.5)).toBe(2.5);
+    expect(normalizeMaxxisAvatarSize(0.4)).toBe(1);
+    expect(normalizeMaxxisAvatarSize(8)).toBe(2.5);
+    expect(normalizeMaxxisPreferences({ avatarSize: 2.35 }).avatarSize).toBe(2.35);
   });
 
   it('applies global feature flag precedence over the user preference', () => {
@@ -78,9 +89,12 @@ describe('Maxxis Deal AI interaction preferences', () => {
       expect(copy.animationsLabel).toBeTruthy();
       expect(copy.subtle).toBeTruthy();
       expect(copy.normal).toBeTruthy();
+      expect(copy.avatarSizeLabel).toBeTruthy();
+      expect(copy.avatarSizeValue(1.43)).toContain('1.43x');
     }
     expect(getMaxxisPreferenceValueCategory('proactiveEnabled', false)).toBe('disabled');
     expect(getMaxxisPreferenceValueCategory('animationIntensity', 'NORMAL')).toBe('normal');
+    expect(getMaxxisPreferenceValueCategory('avatarSize', 2.5)).toBe('maximum');
   });
 
   it('merges simultaneous DEV-only proactivity and Deal Memory overrides', () => {

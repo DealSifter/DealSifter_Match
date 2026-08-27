@@ -24,7 +24,10 @@ export function normalizeFeatureFlagResponse(payload) {
 
 export async function fetchFeatureFlags({ overrides = null } = {}) {
   if (!isSupabaseConfigured) return normalizeFeatureFlagResponse(null);
-  const isSafeOverrideEnvironment = import.meta.env.DEV || supabaseUrl.includes('oqdcnjupquhybwdbeeew');
+  const isAdminReviewBuild = import.meta.env.VITE_MAXXIS_PROACTIVE_REVIEW === 'true';
+  const isSafeOverrideEnvironment = import.meta.env.DEV
+    || isAdminReviewBuild
+    || supabaseUrl.includes('oqdcnjupquhybwdbeeew');
   const body = isSafeOverrideEnvironment && overrides && typeof overrides === 'object' ? { overrides } : {};
   try {
     const { data, error } = await invokeSupabaseFunction('feature-flags', { body });
