@@ -216,6 +216,40 @@ async function upsertFixtureRows(fixture) {
   });
   fixture.property = { id: property.id };
 
+  const comparisonProperty = await restInsertReturning('properties', {
+    owner_id: fixture.owner.id,
+    type: 'Single Family',
+    address: `456 ${runId} Comparison Street`,
+    city: 'Dallas',
+    state: 'TX',
+    zip: '75204',
+    price: 215000,
+    beds: 3,
+    baths: 2,
+    sqft: '1500',
+    improvement: 'Moderate rehab',
+    lot: '0.16 acres',
+    deal_tag: 'FSBO',
+    objective: 'SELL',
+    rehab: 45000,
+    cap_rate: 4.5,
+    description: `${runId} comparison fixture property.`,
+    markets: ['Dallas, TX', 'Texas'],
+    is_active: true,
+    publish_to_showcase: true,
+    include_in_preview: true,
+    source: 'fsbo',
+    owner_account_type: 'fsbo_owner',
+    primary_profile: 'fsbo',
+    lat: 32.787,
+    lng: -96.8,
+    geocode_status: 'resolved',
+    geocode_source: 'e2e_fixture',
+    geocode_confidence: 1,
+    hide_street_address_on_card: true,
+  });
+  fixture.comparisonProperty = { id: comparisonProperty.id };
+
   await restInsertReturning('property_images', {
     property_id: fixture.property.id,
     image_url: 'https://images.unsplash.com/photo-1564013799919-ab600027ffc6?auto=format&fit=crop&w=1200&q=80',
@@ -283,6 +317,7 @@ async function setupRealBackendFixture() {
     owner: await createAuthUser('owner'),
     provider: await createAuthUser('provider'),
     property: null,
+    comparisonProperty: null,
     service: null,
   };
   await upsertFixtureRows(fixture);

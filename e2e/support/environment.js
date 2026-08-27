@@ -65,3 +65,16 @@ export function assertSafeRealBackendEnvironment({
     throw new Error('Blocked real backend E2E: E2E_SUPABASE_SERVICE_ROLE_KEY is required for fixture setup/cleanup.');
   }
 }
+
+export function assertRealGeminiEnvironment({
+  mode = process.env.E2E_LLM_MODE,
+  supabaseUrl = process.env.E2E_SUPABASE_URL || process.env.VITE_SUPABASE_URL,
+} = {}) {
+  if (mode !== 'real') {
+    throw new Error('Blocked real Gemini E2E: set E2E_LLM_MODE=real explicitly.');
+  }
+  const projectRef = getSupabaseProjectRef(supabaseUrl);
+  if (!projectRef || PRODUCTION_SUPABASE_PROJECT_REFS.has(projectRef)) {
+    throw new Error(`Blocked real Gemini E2E against unsafe Supabase project: ${projectRef || 'missing'}.`);
+  }
+}
