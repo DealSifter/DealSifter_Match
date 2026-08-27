@@ -16,9 +16,23 @@ function providerStatus(payload: unknown) {
   return String((error as Record<string, unknown>).status || '').toUpperCase();
 }
 
+function providerMessage(payload: unknown) {
+  if (!payload || typeof payload !== 'object') return '';
+  const error = (payload as Record<string, unknown>).error;
+  if (!error || typeof error !== 'object') return '';
+  return String((error as Record<string, unknown>).message || '').toUpperCase();
+}
+
 export function classifyGeminiHttpFailure(status: number, payload?: unknown): GeminiFailureCode {
   const upstreamStatus = providerStatus(payload);
-  if (status === 401 || status === 403 || upstreamStatus === 'PERMISSION_DENIED' || upstreamStatus === 'UNAUTHENTICATED') return 'GEMINI_AUTH_ERROR';
+  const upstreamMessage = providerMessage(payload);
+  if (
+    status === 401
+    || status === 403
+    || upstreamStatus === 'PERMISSION_DENIED'
+    || upstreamStatus === 'UNAUTHENTICATED'
+    || /API.KEY.*(INVALID|NOT VALID|EXPIRED|REVOKED)/.test(upstreamMessage)
+  ) return 'GEMINI_AUTH_ERROR';
   if (status === 429 || upstreamStatus === 'RESOURCE_EXHAUSTED') return 'GEMINI_QUOTA_EXCEEDED';
   if (status === 404 || upstreamStatus === 'NOT_FOUND' || upstreamStatus === 'UNAVAILABLE') return 'GEMINI_MODEL_UNAVAILABLE';
   return 'GEMINI_INTERNAL_ERROR';

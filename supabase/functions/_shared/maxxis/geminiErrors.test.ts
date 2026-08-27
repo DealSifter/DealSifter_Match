@@ -12,6 +12,8 @@ describe('Gemini failure classification', () => {
     expect(classifyGeminiHttpFailure(429)).toBe('GEMINI_QUOTA_EXCEEDED');
     expect(classifyGeminiHttpFailure(404)).toBe('GEMINI_MODEL_UNAVAILABLE');
     expect(classifyGeminiHttpFailure(500)).toBe('GEMINI_INTERNAL_ERROR');
+    expect(classifyGeminiHttpFailure(400, { error: { status: 'INVALID_ARGUMENT', message: 'API key not valid.' } }))
+      .toBe('GEMINI_AUTH_ERROR');
   });
 
   it('distinguishes timeouts, network failures and blocked responses', () => {

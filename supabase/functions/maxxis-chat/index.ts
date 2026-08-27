@@ -437,7 +437,8 @@ Deno.serve(async (req) => {
     if (stubFunctionCall) {
       usedModel = 'e2e-llm-stub';
     } else {
-      for (const model of geminiModels) {
+      const selectionAttemptLimit = Math.max(1, budget.limits.maxGeminiCalls - 1);
+      for (const model of geminiModels.slice(0, selectionAttemptLimit)) {
         budget.consumeGeminiCall();
         const providerStartedAt = Date.now();
         const result = await callGemini(model, geminiRequest, budget.remainingMs());
