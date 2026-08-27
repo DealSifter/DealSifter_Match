@@ -22,3 +22,14 @@ export function resolveAllowedOrigin(requestOrigin = '', allowedOrigins: string[
   if (!origin) return '';
   return allowedOrigins.includes(origin) ? origin : '';
 }
+
+export function buildCorsHeaders(requestOrigin = '', allowedOrigins: string[] = []) {
+  const allowOrigin = resolveAllowedOrigin(requestOrigin, allowedOrigins);
+  return {
+    ...(allowOrigin ? { 'Access-Control-Allow-Origin': allowOrigin } : {}),
+    'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
+    'Access-Control-Allow-Methods': 'GET, POST, OPTIONS',
+    'Access-Control-Max-Age': '86400',
+    'Vary': 'Origin',
+  };
+}

@@ -1609,6 +1609,13 @@ export function MessageBubble({
           ))}
         </div>
       ) : null}
+      {!isUser && message.degraded ? (
+        <div className="maxxis-degraded-notice" role="status">
+          {(language === 'pt' && 'Maxxis está temporariamente operando com recursos limitados.')
+            || (language === 'es' && 'Maxxis está operando temporalmente con recursos limitados.')
+            || 'Maxxis is temporarily operating with limited capabilities.'}
+        </div>
+      ) : null}
       {actions.length && !compositionKeepsControls ? (
         <div className="maxxis-action-links" aria-label="Maxxis Deal AI navigation actions">
           {actions.map((action) => (

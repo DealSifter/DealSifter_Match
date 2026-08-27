@@ -1,4 +1,4 @@
-import { parseAllowedOrigins, resolveAllowedOrigin } from './corsPolicy.ts';
+import { buildCorsHeaders, parseAllowedOrigins } from './corsPolicy.ts';
 
 export const supabaseUrl = Deno.env.get('SUPABASE_URL') ?? '';
 export const supabaseAnonKey = Deno.env.get('ANON_KEY') ?? Deno.env.get('SUPABASE_ANON_KEY') ?? '';
@@ -23,10 +23,5 @@ const allowedOrigins = parseAllowedOrigins(
 );
 
 export function corsHeaders(origin = '') {
-  const allowOrigin = resolveAllowedOrigin(origin, allowedOrigins);
-  return {
-    ...(allowOrigin ? { 'Access-Control-Allow-Origin': allowOrigin } : {}),
-    'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
-    'Vary': 'Origin',
-  };
+  return buildCorsHeaders(origin, allowedOrigins);
 }

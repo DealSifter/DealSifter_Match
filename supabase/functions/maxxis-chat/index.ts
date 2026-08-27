@@ -1,6 +1,13 @@
 import { createClient } from 'npm:@supabase/supabase-js@2';
 import { corsHeaders, geminiApiKey, geminiModels, supabaseAnonKey, supabaseUrl } from '../_shared/maxxis/config.ts';
 import { callGemini } from '../_shared/maxxis/geminiClient.ts';
+import {
+  classifyGeminiCandidateFailure,
+  classifyGeminiHttpFailure,
+  classifyGeminiThrownFailure,
+  selectGeminiFailure,
+  type GeminiFailureCode,
+} from '../_shared/maxxis/geminiErrors.ts';
 import { logMaxxisEvent } from '../_shared/maxxis/logger.ts';
 import { buildSystemPrompt } from '../_shared/maxxis/prompts.ts';
 import { prepareProfileSuggestions } from '../_shared/maxxis/prepareProfileSuggestions.ts';
@@ -24,7 +31,7 @@ const UUID_PATTERN = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3
 const E2E_LLM_STUB_PROJECT_REFS = new Set(['oqdcnjupquhybwdbeeew']);
 
 function response(body: MaxxisResponse, status: number, origin: string, requestId = '') {
-  return new Response(JSON.stringify(body), { status, headers: { ...corsHeaders(origin), 'Content-Type': 'application/json', ...(requestId ? { 'x-request-id': requestId } : {}) } });
+  return new Response(JSON.stringify({ ...body, ...(requestId ? { requestId } : {}) }), { status, headers: { ...corsHeaders(origin), 'Content-Type': 'application/json', ...(requestId ? { 'x-request-id': requestId } : {}) } });
 }
 
 function sanitizeText(value: unknown, maxLength = 2400) {
@@ -414,7 +421,7 @@ Deno.serve(async (req) => {
     if (!geminiApiKey && !stubFunctionCall) {
       const text = localAssistantAnswer(message, language, resolvedPage);
       logMaxxisEvent('maxxis_chat', { request_id: requestId, user_id: userId, duration_ms: Date.now() - startedAt, success: false, fallback_count: fallbackCount + 1, error_code: 'MAXXIS_NOT_CONFIGURED' });
-      return response({ message: text, answer: text, type: 'text', data: null, actions: [], language, degraded: true, error: 'MAXXIS_NOT_CONFIGURED' }, 200, origin, requestId);
+      return response({ message: text, answer: text, type: 'text', data: null, actions: [], language, degraded: true, degradedReason: 'MAXXIS_NOT_CONFIGURED', error: 'MAXXIS_NOT_CONFIGURED' }, 200, origin, requestId);
     }
     const history = Array.isArray(body.history) ? body.history : [];
     historyCount = history.length;
@@ -425,7 +432,7 @@ Deno.serve(async (req) => {
     systemPromptBytes = new TextEncoder().encode(systemPrompt).byteLength;
     toolDeclarationBytes = new TextEncoder().encode(JSON.stringify(MAXXIS_TOOLS)).byteLength;
     const geminiRequest = { systemInstruction: { parts: [{ text: systemPrompt }] }, contents, tools: MAXXIS_TOOLS, generationConfig: { temperature: 0.45, topP: 0.9, maxOutputTokens: MAXXIS_EXECUTION_LIMITS.maxOutputTokens }, safetySettings: [{ category: 'HARM_CATEGORY_HARASSMENT', threshold: 'BLOCK_ONLY_HIGH' }, { category: 'HARM_CATEGORY_HATE_SPEECH', threshold: 'BLOCK_ONLY_HIGH' }, { category: 'HARM_CATEGORY_SEXUALLY_EXPLICIT', threshold: 'BLOCK_ONLY_HIGH' }, { category: 'HARM_CATEGORY_DANGEROUS_CONTENT', threshold: 'BLOCK_ONLY_HIGH' }] };
-    const providerErrors: Array<{ status: number }> = [];
+    const providerErrors: Array<{ status: number; code: GeminiFailureCode }> = [];
     let payload: Record<string, unknown> = {};
     if (stubFunctionCall) {
       usedModel = 'e2e-llm-stub';
@@ -438,14 +445,15 @@ Deno.serve(async (req) => {
         payload = result.payload;
         if (result.response.ok) { usedModel = model; break; }
         fallbackCount += 1;
-        providerErrors.push({ status: result.response.status });
+        providerErrors.push({ status: result.response.status, code: classifyGeminiHttpFailure(result.response.status, result.payload) });
       }
     }
     if (!usedModel) {
-      const quota = providerErrors.some((item) => item.status === 429);
+      const degradedReason = selectGeminiFailure(providerErrors.map((item) => item.code));
+      const lastProviderStatus = providerErrors.at(-1)?.status || 0;
       const text = localAssistantAnswer(message, language, resolvedPage);
-      logMaxxisEvent('maxxis_chat', { request_id: requestId, user_id: userId, duration_ms: Date.now() - startedAt, provider_duration_ms: providerDurationMs, success: false, fallback_count: fallbackCount, error_code: quota ? 'MAXXIS_PROVIDER_QUOTA' : 'MAXXIS_PROVIDER_FAILED' });
-      return response({ message: text, answer: text, type: 'text', data: null, actions: [], language, degraded: true, error: quota ? 'MAXXIS_PROVIDER_QUOTA' : 'MAXXIS_PROVIDER_FAILED' }, 200, origin, requestId);
+      logMaxxisEvent('maxxis_chat', { request_id: requestId, user_id: userId, duration_ms: Date.now() - startedAt, provider_duration_ms: providerDurationMs, success: false, fallback_count: fallbackCount, error_code: degradedReason, degraded_reason: degradedReason, provider_status: lastProviderStatus, model_attempts: providerErrors.length });
+      return response({ message: text, answer: text, type: 'text', data: null, actions: [], language, degraded: true, degradedReason, error: degradedReason }, 200, origin, requestId);
     }
     const candidateList = Array.isArray(payload.candidates) ? payload.candidates : [];
     const firstCandidate = candidateList[0] && typeof candidateList[0] === 'object'
@@ -584,8 +592,10 @@ Deno.serve(async (req) => {
     }
     const text = String(parts.find((part) => part?.text)?.text || '').trim();
     if (!text) {
+      const degradedReason = classifyGeminiCandidateFailure(firstCandidate);
       const localText = localAssistantAnswer(message, language, resolvedPage);
-      return response({ message: localText, answer: localText, type: 'text', data: null, actions: [], language, degraded: true, error: 'MAXXIS_EMPTY_RESPONSE' }, 200, origin, requestId);
+      logMaxxisEvent('maxxis_chat', { request_id: requestId, user_id: userId, model: usedModel, duration_ms: Date.now() - startedAt, provider_duration_ms: providerDurationMs, success: false, fallback_count: fallbackCount + 1, error_code: degradedReason, degraded_reason: degradedReason, model_attempts: budget.geminiCalls });
+      return response({ message: localText, answer: localText, type: 'text', data: null, actions: [], language, degraded: true, degradedReason, error: degradedReason }, 200, origin, requestId);
     }
     logMaxxisEvent('maxxis_chat', { request_id: requestId, user_id: userId, model: usedModel, duration_ms: Date.now() - startedAt, provider_duration_ms: providerDurationMs, request_payload_bytes: requestPayloadBytes, system_prompt_bytes: systemPromptBytes, tool_declaration_bytes: toolDeclarationBytes, history_count: historyCount, success: true, fallback_count: fallbackCount, llm_call_count: budget.geminiCalls, tool_call_count: budget.toolCalls, tool_rounds: budget.toolRounds });
     return response({ message: text, answer: text, type: 'text', data: null, actions: [], language }, 200, origin);
@@ -597,11 +607,13 @@ Deno.serve(async (req) => {
     if (budgetExhausted || requestTooLarge) {
       logAbuseGuard({ functionName: 'maxxis-chat', operation: 'maxxis_chat', requestId, userId, category: budgetExhausted ? 'BUDGET_EXHAUSTED' : 'REQUEST_TOO_LARGE', status: requestTooLarge ? 413 : 503, durationMs: Date.now() - startedAt, limitType: budgetExhausted ? 'execution_budget' : 'context' });
     }
-    logMaxxisEvent('maxxis_chat', { request_id: requestId, user_id: userId, model: usedModel, duration_ms: Date.now() - startedAt, provider_duration_ms: providerDurationMs, request_payload_bytes: requestPayloadBytes, system_prompt_bytes: systemPromptBytes, tool_declaration_bytes: toolDeclarationBytes, history_count: historyCount, success: false, fallback_count: fallbackCount, error_code: timedOut ? 'MAXXIS_TIMEOUT' : errorCode, llm_call_count: budget.geminiCalls, tool_call_count: budget.toolCalls, tool_rounds: budget.toolRounds, timeout: timedOut, budget_exhausted: budgetExhausted });
+    const isToolFailure = budget.toolCalls > 0 && !budgetExhausted && !requestTooLarge;
+    const degradedReason = isToolFailure ? 'GEMINI_TOOL_ERROR' : classifyGeminiThrownFailure(error);
+    logMaxxisEvent('maxxis_chat', { request_id: requestId, user_id: userId, model: usedModel, duration_ms: Date.now() - startedAt, provider_duration_ms: providerDurationMs, request_payload_bytes: requestPayloadBytes, system_prompt_bytes: systemPromptBytes, tool_declaration_bytes: toolDeclarationBytes, history_count: historyCount, success: false, fallback_count: fallbackCount, error_code: budgetExhausted || requestTooLarge ? errorCode : degradedReason, degraded_reason: budgetExhausted || requestTooLarge ? undefined : degradedReason, llm_call_count: budget.geminiCalls, tool_call_count: budget.toolCalls, tool_rounds: budget.toolRounds, timeout: timedOut, budget_exhausted: budgetExhausted });
     if (requestTooLarge) {
       return response({ message: 'Request context is too large.', answer: 'Request context is too large.', type: 'text', data: null, actions: [], unavailable: true, error: errorCode }, 413, origin, requestId);
     }
     const text = localAssistantAnswer(resolvedMessage, resolvedLanguage, resolvedPage);
-    return response({ message: text, answer: text, type: 'text', data: null, actions: [], language: resolvedLanguage, degraded: true, error: timedOut ? 'MAXXIS_TIMEOUT' : errorCode }, 200, origin, requestId);
+    return response({ message: text, answer: text, type: 'text', data: null, actions: [], language: resolvedLanguage, degraded: true, degradedReason, error: degradedReason }, 200, origin, requestId);
   }
 });

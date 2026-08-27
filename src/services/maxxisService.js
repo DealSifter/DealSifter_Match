@@ -126,7 +126,12 @@ async function invokeMaxxisChatFunction(body) {
     body: JSON.stringify(body),
   });
   const payload = await response.json().catch(() => null);
-  return { ok: response.ok, status: response.status, data: payload };
+  return {
+    ok: response.ok,
+    status: response.status,
+    data: payload,
+    requestId: String(payload?.requestId || response.headers.get('x-request-id') || '').trim(),
+  };
 }
 
 export function getMaxxisGreeting(language = currentLanguage()) {
@@ -147,6 +152,8 @@ export async function sendMaxxisMessage({ message, history = [], page = 'dashboa
       answer: buildLocalMaxxisAnswer(text, language, page),
       unavailable: false,
       degraded: true,
+      degradedReason: 'MAXXIS_CLIENT_NOT_CONFIGURED',
+      requestId: '',
     };
   }
 
@@ -177,6 +184,7 @@ export async function sendMaxxisMessage({ message, history = [], page = 'dashboa
   let data;
   let status = 0;
   let ok = false;
+  let requestId = '';
   try {
     const result = await invokeMaxxisChatFunction({
       message: text,
@@ -188,6 +196,7 @@ export async function sendMaxxisMessage({ message, history = [], page = 'dashboa
     data = result.data;
     status = result.status;
     ok = result.ok;
+    requestId = result.requestId;
   } catch (invokeError) {
     captureOperationalMetric('maxxis.chat', {
       success: false,
@@ -199,6 +208,26 @@ export async function sendMaxxisMessage({ message, history = [], page = 'dashboa
       answer: buildLocalMaxxisAnswer(text, language, page),
       unavailable: false,
       degraded: true,
+      degradedReason: 'GEMINI_NETWORK_ERROR',
+      requestId: '',
+    };
+  }
+
+  if (data?.degraded) {
+    captureOperationalMetric('maxxis.chat', {
+      success: false,
+      duration_ms: Date.now() - startedAt,
+      error_category: String(data?.degradedReason || data?.error || '').includes('QUOTA') ? 'QUOTA' : 'PROVIDER',
+      error_code: String(data?.degradedReason || data?.error || 'MAXXIS_DEGRADED').slice(0, 64),
+      provider_status: status || undefined,
+      request_id: requestId || undefined,
+    });
+    return {
+      answer: String(data?.message || data?.answer || '').trim() || buildLocalMaxxisAnswer(text, language, page),
+      unavailable: false,
+      degraded: true,
+      degradedReason: String(data?.degradedReason || data?.error || 'MAXXIS_DEGRADED').slice(0, 64),
+      requestId,
     };
   }
 
@@ -209,51 +238,28 @@ export async function sendMaxxisMessage({ message, history = [], page = 'dashboa
       error_category: status === 401 || status === 403 ? 'AUTH' : status === 429 ? 'QUOTA' : 'PROVIDER',
       error_code: String(data?.error || status || 'MAXXIS_REQUEST_FAILED').slice(0, 64),
       provider_status: status || undefined,
+      request_id: requestId || undefined,
     });
     if (status === 401 || status === 403) {
       return {
         answer: AUTH_MESSAGES[language] || AUTH_MESSAGES.en,
         unavailable: true,
-      };
-    }
-    if (status === 503 || data?.error === 'MAXXIS_NOT_CONFIGURED') {
-      return {
-        answer: buildLocalMaxxisAnswer(text, language, page),
-        unavailable: false,
-        degraded: true,
-      };
-    }
-    if (['MAXXIS_PROVIDER_QUOTA', 'MAXXIS_PROVIDER_FAILED', 'MAXXIS_EMPTY_RESPONSE', 'MAXXIS_TIMEOUT'].includes(String(data?.error || ''))) {
-      return {
-        answer: buildLocalMaxxisAnswer(text, language, page),
-        unavailable: false,
-        degraded: true,
+        requestId,
       };
     }
     if (status >= 400 && data?.message) {
       return {
         answer: String(data.message || data.answer || '').trim() || (FALLBACK_MESSAGES[language] || FALLBACK_MESSAGES.en),
         unavailable: Boolean(data?.unavailable || status >= 500),
+        requestId,
       };
     }
     return {
       answer: buildLocalMaxxisAnswer(text, language, page),
       unavailable: false,
       degraded: true,
-    };
-  }
-
-  if (data?.error === 'MAXXIS_NOT_CONFIGURED') {
-    captureOperationalMetric('maxxis.chat', {
-      success: false,
-      duration_ms: Date.now() - startedAt,
-      error_category: 'PROVIDER',
-      error_code: 'MAXXIS_NOT_CONFIGURED',
-    });
-    return {
-      answer: buildLocalMaxxisAnswer(text, language, page),
-      unavailable: false,
-      degraded: true,
+      degradedReason: String(data?.error || 'MAXXIS_REQUEST_FAILED').slice(0, 64),
+      requestId,
     };
   }
 
@@ -261,6 +267,7 @@ export async function sendMaxxisMessage({ message, history = [], page = 'dashboa
     success: true,
     duration_ms: Date.now() - startedAt,
     response_type: String(data?.type || 'text').slice(0, 40),
+    request_id: requestId || undefined,
     ...(contextTelemetry ? {
       context_version: contextTelemetry.contextVersion,
       context_size: contextTelemetry.contextSize,
@@ -274,6 +281,9 @@ export async function sendMaxxisMessage({ message, history = [], page = 'dashboa
   return {
     answer: String(data?.message || data?.answer || '').trim() || (FALLBACK_MESSAGES[language] || FALLBACK_MESSAGES.en),
     unavailable: Boolean(data?.unavailable),
+    degraded: Boolean(data?.degraded),
+    degradedReason: String(data?.degradedReason || ''),
+    requestId,
     ...normalizedResponse,
   };
 }

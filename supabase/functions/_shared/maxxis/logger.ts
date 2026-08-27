@@ -60,6 +60,9 @@ export function logMaxxisEvent(event: string, details: Record<string, unknown>) 
       tool_rounds: Number(details.tool_rounds || 0),
       timeout: Boolean(details.timeout),
       budget_exhausted: Boolean(details.budget_exhausted),
+      degraded_reason: details.degraded_reason,
+      provider_status: Number(details.provider_status || 0),
+      model_attempts: Number(details.model_attempts || 0),
     },
   });
 }
