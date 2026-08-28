@@ -107,7 +107,7 @@ function fallback(language: MaxxisLanguage, reason: 'quota' | 'provider' | 'conf
   return messages[reason][language];
 }
 
-function localAssistantAnswer(message: string, language: MaxxisLanguage, page = 'dashboard') {
+function localAssistantAnswer(message: string, language: MaxxisLanguage) {
   const normalized = String(message || '')
     .normalize('NFD')
     .replace(/[\u0300-\u036f]/g, '')
@@ -143,20 +143,39 @@ function localAssistantAnswer(message: string, language: MaxxisLanguage, page = 
       pt: 'Planos/Pricing e onde voce gerencia assinatura e pacotes de nuggets. Use quando um desbloqueio ou acao premium exigir mais saldo.',
       es: 'Planes/Pricing es donde gestionas suscripcion y paquetes de nuggets. Usalo cuando un desbloqueo o accion premium requiera mas saldo.',
     },
-    default: {
-      en: `I am in local guide mode right now, but I can still help with navigation, Feed, MapView, Matches, unlocks, nuggets, plans and next steps. Current page: ${page}.`,
-      pt: `Estou em modo guia local neste momento, mas ainda posso ajudar com navegacao, Feed, MapView, Matches, desbloqueios, nuggets, planos e proximos passos. Pagina atual: ${page}.`,
-      es: `Estoy en modo guia local en este momento, pero aun puedo ayudar con navegacion, Feed, MapView, Matches, desbloqueos, nuggets, planes y proximos pasos. Pagina actual: ${page}.`,
-    },
   };
-  let key: keyof typeof catalog = 'default';
+  let key: keyof typeof catalog | '' = '';
   if (/\b(ola|oi|hello|hi|hey|hola)\b/.test(normalized)) key = 'greeting';
   else if (/(nugget|saldo|balance|unlock|desbloq|destravar|bloquead|locked)/.test(normalized)) key = 'nuggets';
   else if (/(map|mapview|mapa|pin|sidebar)/.test(normalized)) key = 'map';
   else if (/(feed|card|swipe|favorit|interest|interesse)/.test(normalized)) key = 'feed';
   else if (/(match|conex|mensagem|message|chat|interessado)/.test(normalized)) key = 'matches';
   else if (/(plan|pricing|preco|price|assinatura|upgrade|comprar)/.test(normalized)) key = 'pricing';
-  return catalog[key][language] || catalog[key].en;
+  return key ? catalog[key][language] || catalog[key].en : '';
+}
+
+function degradedFallbackPayload(message: string, language: MaxxisLanguage, reason: string) {
+  const localKnowledge = localAssistantAnswer(message, language);
+  if (localKnowledge) {
+    return {
+      message: localKnowledge,
+      answer: localKnowledge,
+      fallbackLevel: 2,
+      fallbackSource: 'edge_knowledge_catalog',
+    };
+  }
+  const category = reason === 'MAXXIS_NOT_CONFIGURED'
+    ? 'config'
+    : reason.includes('QUOTA')
+      ? 'quota'
+      : 'provider';
+  const safeMessage = fallback(language, category);
+  return {
+    message: safeMessage,
+    answer: safeMessage,
+    fallbackLevel: 3,
+    fallbackSource: 'edge_generic_guard',
+  };
 }
 
 function propertySearchMessage(language: MaxxisLanguage, count: number, personalized = false, requiresProfile = false) {
@@ -488,9 +507,9 @@ Deno.serve(async (req) => {
     }
     const stubFunctionCall = isE2ELlmStubEnabled() ? e2eStubFunctionCall(message, propertyContextId) : null;
     if (!geminiApiKey && !stubFunctionCall) {
-      const text = localAssistantAnswer(message, language, resolvedPage);
+      const degradedPayload = degradedFallbackPayload(message, language, 'MAXXIS_NOT_CONFIGURED');
       logMaxxisEvent('maxxis_chat', { request_id: requestId, user_id: userId, duration_ms: Date.now() - startedAt, success: false, fallback_count: fallbackCount + 1, error_code: 'MAXXIS_NOT_CONFIGURED' });
-      return response({ message: text, answer: text, type: 'text', data: null, actions: [], language, degraded: true, degradedReason: 'MAXXIS_NOT_CONFIGURED', error: 'MAXXIS_NOT_CONFIGURED' }, 200, origin, requestId);
+      return response({ ...degradedPayload, type: 'text', data: null, actions: [], language, degraded: true, degradedReason: 'MAXXIS_NOT_CONFIGURED', error: 'MAXXIS_NOT_CONFIGURED' }, 200, origin, requestId);
     }
     const history = Array.isArray(body.history) ? body.history : [];
     historyCount = history.length;
@@ -528,9 +547,9 @@ Deno.serve(async (req) => {
     if (!usedModel) {
       const degradedReason = selectGeminiFailure(providerErrors.map((item) => item.code));
       const lastProviderStatus = providerErrors.at(-1)?.status || 0;
-      const text = localAssistantAnswer(message, language, resolvedPage);
+      const degradedPayload = degradedFallbackPayload(message, language, degradedReason);
       logMaxxisEvent('maxxis_chat', { request_id: requestId, user_id: userId, duration_ms: Date.now() - startedAt, provider_duration_ms: providerDurationMs, success: false, fallback_count: fallbackCount, error_code: degradedReason, degraded_reason: degradedReason, provider_status: lastProviderStatus, model_attempts: providerErrors.length });
-      return response({ message: text, answer: text, type: 'text', data: null, actions: [], language, degraded: true, degradedReason, error: degradedReason }, 200, origin, requestId);
+      return response({ ...degradedPayload, type: 'text', data: null, actions: [], language, degraded: true, degradedReason, error: degradedReason }, 200, origin, requestId);
     }
     const candidateList = Array.isArray(payload.candidates) ? payload.candidates : [];
     const firstCandidate = candidateList[0] && typeof candidateList[0] === 'object'
@@ -658,7 +677,13 @@ Deno.serve(async (req) => {
         knowledgeTopics: selectedKnowledge.map((section) => section.topic),
       };
       const toolDegraded = secondPassFailure
-        ? { degraded: true as const, degradedReason: secondPassFailure, error: secondPassFailure }
+        ? {
+          degraded: true as const,
+          degradedReason: secondPassFailure,
+          error: secondPassFailure,
+          fallbackLevel: 1,
+          fallbackSource: 'structured_tool_result',
+        }
         : {};
       const toolDurationMs = Date.now() - toolStartedAt;
       const dbDurationMs = Number(result?.performance?.dbDurationMs || result?.serviceMatchingSummary?.dbDurationMs || 0);
@@ -754,9 +779,9 @@ Deno.serve(async (req) => {
     const text = String(parts.find((part) => part?.text)?.text || '').trim();
     if (!text) {
       const degradedReason = classifyGeminiCandidateFailure(firstCandidate);
-      const localText = localAssistantAnswer(message, language, resolvedPage);
+      const degradedPayload = degradedFallbackPayload(message, language, degradedReason);
       logMaxxisEvent('maxxis_chat', { request_id: requestId, user_id: userId, model: usedModel, duration_ms: Date.now() - startedAt, provider_duration_ms: providerDurationMs, success: false, fallback_count: fallbackCount + 1, error_code: degradedReason, degraded_reason: degradedReason, model_attempts: budget.geminiCalls });
-      return response({ message: localText, answer: localText, type: 'text', data: null, actions: [], language, degraded: true, degradedReason, error: degradedReason }, 200, origin, requestId);
+      return response({ ...degradedPayload, type: 'text', data: null, actions: [], language, degraded: true, degradedReason, error: degradedReason }, 200, origin, requestId);
     }
     logMaxxisEvent('maxxis_chat', { request_id: requestId, user_id: userId, model: usedModel, duration_ms: Date.now() - startedAt, provider_duration_ms: providerDurationMs, request_payload_bytes: requestPayloadBytes, system_prompt_bytes: systemPromptBytes, tool_declaration_bytes: toolDeclarationBytes, history_count: historyCount, success: true, fallback_count: fallbackCount, llm_call_count: budget.geminiCalls, tool_call_count: budget.toolCalls, tool_rounds: budget.toolRounds });
     return response({ message: text, answer: text, type: 'text', data: null, actions: [], language, runtime: { provider: 'gemini', model: usedModel, secondPass: false, knowledgeVersion: MAXXIS_KNOWLEDGE_VERSION, knowledgeTopics: selectedKnowledge.map((section) => section.topic) } }, 200, origin, requestId);
@@ -774,7 +799,7 @@ Deno.serve(async (req) => {
     if (requestTooLarge) {
       return response({ message: 'Request context is too large.', answer: 'Request context is too large.', type: 'text', data: null, actions: [], unavailable: true, error: errorCode }, 413, origin, requestId);
     }
-    const text = localAssistantAnswer(resolvedMessage, resolvedLanguage, resolvedPage);
-    return response({ message: text, answer: text, type: 'text', data: null, actions: [], language: resolvedLanguage, degraded: true, degradedReason, error: degradedReason }, 200, origin, requestId);
+    const degradedPayload = degradedFallbackPayload(resolvedMessage, resolvedLanguage, degradedReason);
+    return response({ ...degradedPayload, type: 'text', data: null, actions: [], language: resolvedLanguage, degraded: true, degradedReason, error: degradedReason }, 200, origin, requestId);
   }
 });

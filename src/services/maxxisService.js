@@ -33,63 +33,9 @@ const AUTH_MESSAGES = {
   es: 'Inicia sesion nuevamente para que Maxxis Deal AI responda con el contexto de DealSifter.',
 };
 
-const LOCAL_ANSWER_CATALOG = {
-  greeting: {
-    en: 'Hi, I am here. I can guide you through Feed, MapView, Matches, unlocks, nuggets, plans and deal basics. Tell me what you want to do next.',
-    pt: 'Oi, estou aqui. Posso te orientar no Feed, MapView, Matches, desbloqueios, nuggets, planos e conceitos dos negocios. Me diga o que voce quer fazer agora.',
-    es: 'Hola, estoy aqui. Puedo orientarte en Feed, MapView, Matches, desbloqueos, nuggets, planes y conceptos de negocios. Dime que quieres hacer ahora.',
-  },
-  nuggets: {
-    en: 'Nuggets are used to unlock protected contacts, cards and selected premium actions. If your balance is not enough, go to Plans/Pricing to add more before trying the unlock again.',
-    pt: 'Nuggets sao usados para desbloquear contatos, cards protegidos e algumas acoes premium. Se o saldo nao for suficiente, va em Planos/Pricing para comprar mais antes de tentar o desbloqueio novamente.',
-    es: 'Los nuggets se usan para desbloquear contactos, cards protegidos y algunas acciones premium. Si el saldo no alcanza, ve a Planes/Pricing antes de intentar desbloquear otra vez.',
-  },
-  map: {
-    en: 'In MapView, use the sidebar to inspect deals or providers, filter by state and open cards. The sidebar can be resized and your custom size is remembered.',
-    pt: 'No MapView, use a sidebar para inspecionar negocios ou providers, filtrar por estado e abrir cards. A sidebar pode ser redimensionada e o app lembra o tamanho que voce ajustar.',
-    es: 'En MapView, usa la sidebar para revisar negocios o providers, filtrar por estado y abrir cards. La sidebar se puede redimensionar y el app recuerda tu ajuste.',
-  },
-  feed: {
-    en: 'In Feed, swipe or use the action buttons to pass, favorite or mark interest. Locked/unlocked status should stay stable after the latest synchronization fixes.',
-    pt: 'No Feed, deslize ou use os botoes de acao para recusar, favoritar ou marcar interesse. O status locked/unlocked deve permanecer estavel apos as correcoes de sincronizacao.',
-    es: 'En Feed, desliza o usa los botones para rechazar, guardar o marcar interes. El estado locked/unlocked debe mantenerse estable con las correcciones de sincronizacion.',
-  },
-  matches: {
-    en: 'Matches shows mutual or relevant interest signals. Open a match to continue the conversation, review unlocked contact status or decide the next action.',
-    pt: 'Matches mostra sinais de interesse mutuo ou relevante. Abra um match para continuar a conversa, verificar o status de contato desbloqueado ou decidir a proxima acao.',
-    es: 'Matches muestra senales de interes mutuo o relevante. Abre un match para continuar la conversacion, revisar contactos desbloqueados o decidir la proxima accion.',
-  },
-  pricing: {
-    en: 'Plans/Pricing is where you manage subscription and nugget packs. Use it when an unlock or premium action requires more balance.',
-    pt: 'Planos/Pricing e onde voce gerencia assinatura e pacotes de nuggets. Use quando um desbloqueio ou acao premium exigir mais saldo.',
-    es: 'Planes/Pricing es donde gestionas suscripcion y paquetes de nuggets. Usalo cuando un desbloqueo o accion premium requiera mas saldo.',
-  },
-  default: {
-    en: 'I am in local guide mode right now, but I can still help with navigation, Feed, MapView, Matches, unlocks, nuggets, plans and next steps. Current page: {page}.',
-    pt: 'Estou em modo guia local neste momento, mas ainda posso ajudar com navegacao, Feed, MapView, Matches, desbloqueios, nuggets, planos e proximos passos. Pagina atual: {page}.',
-    es: 'Estoy en modo guia local en este momento, pero aun puedo ayudar con navegacion, Feed, MapView, Matches, desbloqueos, nuggets, planes y proximos pasos. Pagina actual: {page}.',
-  },
-};
-
 function currentLanguage() {
   const lang = String(getLang?.() || 'en').slice(0, 2).toLowerCase();
   return ['en', 'pt', 'es'].includes(lang) ? lang : 'en';
-}
-
-function buildLocalMaxxisAnswer(message, language = currentLanguage(), page = 'dashboard') {
-  const lang = ['en', 'pt', 'es'].includes(language) ? language : 'en';
-  const normalized = String(message || '')
-    .normalize('NFD')
-    .replace(/[\u0300-\u036f]/g, '')
-    .toLowerCase();
-  let key = 'default';
-  if (/\b(ola|oi|hello|hi|hey|hola)\b/.test(normalized)) key = 'greeting';
-  else if (/(nugget|saldo|balance|unlock|desbloq|destravar|bloquead|locked)/.test(normalized)) key = 'nuggets';
-  else if (/(map|mapview|mapa|pin|sidebar)/.test(normalized)) key = 'map';
-  else if (/(feed|card|swipe|favorit|interest|interesse)/.test(normalized)) key = 'feed';
-  else if (/(match|conex|mensagem|message|chat|interessado)/.test(normalized)) key = 'matches';
-  else if (/(plan|pricing|preco|price|assinatura|upgrade|comprar)/.test(normalized)) key = 'pricing';
-  return (LOCAL_ANSWER_CATALOG[key][lang] || LOCAL_ANSWER_CATALOG[key].en).replace('{page}', String(page || 'dashboard'));
 }
 
 function normalizeHistory(history = []) {
@@ -149,10 +95,12 @@ export async function sendMaxxisMessage({ message, history = [], page = 'dashboa
   if (!text) throw new Error('Message is required.');
   if (!isSupabaseConfigured || !supabase) {
     return {
-      answer: buildLocalMaxxisAnswer(text, language, page),
-      unavailable: false,
+      answer: CONFIG_MESSAGES[language] || CONFIG_MESSAGES.en,
+      unavailable: true,
       degraded: true,
       degradedReason: 'MAXXIS_CLIENT_NOT_CONFIGURED',
+      fallbackLevel: 3,
+      fallbackSource: 'client_config_guard',
       requestId: '',
     };
   }
@@ -205,10 +153,12 @@ export async function sendMaxxisMessage({ message, history = [], page = 'dashboa
       error_code: String(invokeError?.code || invokeError?.status || 'INVOKE_FAILED').slice(0, 64),
     });
     return {
-      answer: buildLocalMaxxisAnswer(text, language, page),
-      unavailable: false,
+      answer: FALLBACK_MESSAGES[language] || FALLBACK_MESSAGES.en,
+      unavailable: true,
       degraded: true,
       degradedReason: 'GEMINI_NETWORK_ERROR',
+      fallbackLevel: 3,
+      fallbackSource: 'client_network_guard',
       requestId: '',
     };
   }
@@ -223,10 +173,12 @@ export async function sendMaxxisMessage({ message, history = [], page = 'dashboa
       request_id: requestId || undefined,
     });
     return {
-      answer: String(data?.message || data?.answer || '').trim() || buildLocalMaxxisAnswer(text, language, page),
+      answer: String(data?.message || data?.answer || '').trim() || (FALLBACK_MESSAGES[language] || FALLBACK_MESSAGES.en),
       unavailable: false,
       degraded: true,
       degradedReason: String(data?.degradedReason || data?.error || 'MAXXIS_DEGRADED').slice(0, 64),
+      fallbackLevel: Number(data?.fallbackLevel || 3),
+      fallbackSource: String(data?.fallbackSource || 'edge_degraded_guard').slice(0, 64),
       requestId,
     };
   }
@@ -255,10 +207,12 @@ export async function sendMaxxisMessage({ message, history = [], page = 'dashboa
       };
     }
     return {
-      answer: buildLocalMaxxisAnswer(text, language, page),
-      unavailable: false,
+      answer: FALLBACK_MESSAGES[language] || FALLBACK_MESSAGES.en,
+      unavailable: true,
       degraded: true,
       degradedReason: String(data?.error || 'MAXXIS_REQUEST_FAILED').slice(0, 64),
+      fallbackLevel: 3,
+      fallbackSource: 'client_http_guard',
       requestId,
     };
   }
