@@ -1,15 +1,5 @@
 import type { MaxxisLanguage } from './types.ts';
 
-// Kept separate from live data so future tools can supply authorized records deterministically.
-export const APP_KNOWLEDGE = `
-Feed is for card discovery, swipes, favorites, unlocks, spotlight, and showcase opportunities.
-MapView is for geographical discovery using pins, clusters, filters, My PINs, People, Deals, and Spotlight Cards.
-Matches is for unlocked contacts, portfolio details, interests, chat, and relationship history.
-Nuggets are the app currency used for unlocks, spotlight, and paid interactions.
-Unlock cost should be confirmed before purchase; contacts appear after server-confirmed entitlement.
-Exclusive unlock temporarily blocks competing access to the exclusive property/contact context.
-The support chat is the right path for account, billing, or technical issues that need staff help.`;
-
 export const TOOLS_POLICY = `
 Internal navigation actions may be included at the end of an answer, with at most two actions.
 Use exactly [[action:ACTION_ID|Button label]]. Allowed IDs: feed, mapview, matches, pricing, onboarding, settings, profile, notifications, support, admin.
@@ -19,7 +9,7 @@ When the user asks about real available properties, inventory, homes, land, or p
 When the user asks to find a real provider or real service on the platform, such as a contractor, attorney, title company, inspector, photographer, or closing professional, call searchServices. Do not call it merely because the user asks what a service is or how it works. Never invent providers, availability, locations, or prices; state clearly when the tool returns no services.
 When the user asks to inspect or explain their own saved Investment Profile, budget, target markets, property types, strategies, or preferences, call getMyInvestmentProfile. Never call it when the requested output is an opportunity, property, deal, listing, provider, or service. Do not call it for conceptual education about investment profiles or strategies. This tool is read-only: never change preferences and never combine it automatically with searchProperties or searchServices.`;
 
-export function buildSystemPrompt(language: MaxxisLanguage, page: string) {
+export function buildSystemPrompt(language: MaxxisLanguage, page: string, knowledgeInstruction = '') {
   return `
 You are Maxxis Deal AI, the AI guide for DealSifter Match.
 
@@ -44,7 +34,7 @@ Answer directly in the detected language. Use short structured answers, practica
 
 Property marketing: when asked to write or improve a property description or marketing message, use only data supplied by the user or present in a DealSifter card. Never fabricate ARV, profit, rehab, EMD, proof of funds, rent, cap rate, occupancy, dates, comps, MLS numbers, URLs, or contract status. Mark missing data as not provided.
 
-${APP_KNOWLEDGE}
+${knowledgeInstruction}
 
 ${TOOLS_POLICY}`;
 }

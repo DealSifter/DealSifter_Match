@@ -17,6 +17,7 @@ import { executeMaxxisTool, MAXXIS_TOOLS } from '../_shared/maxxis/toolRegistry.
 import { normalizeComparisonContextIds } from '../_shared/maxxis/compareProperties.ts';
 import { buildToolInterpretationRequest } from '../_shared/maxxis/toolResultForGemini.ts';
 import { buildGeminiGenerationConfig } from '../_shared/maxxis/geminiGenerationConfig.ts';
+import { buildMaxxisKnowledgeInstruction, MAXXIS_KNOWLEDGE_VERSION, selectMaxxisKnowledge } from '../_shared/maxxis/maxxisKnowledge.ts';
 import type { MaxxisLanguage, MaxxisResponse } from '../_shared/maxxis/types.ts';
 import { createRequestId, getEdgeRelease } from '../_shared/observability.ts';
 import {
@@ -438,7 +439,9 @@ Deno.serve(async (req) => {
     budget.validateHistory(history);
     const contents = [...history.map((item: Record<string, unknown>) => ({ role: item?.role === 'assistant' ? 'model' : 'user', parts: [{ text: sanitizeText(item?.content || item?.text, 1600) }] })).filter((item) => item.parts[0].text), { role: 'user', parts: [{ text: message }] }];
     const contextInstruction = shouldUseStructuredContext(message, structuredContext) ? `\n\n${structuredContextInstruction(structuredContext)}` : '';
-    const systemPrompt = `${buildSystemPrompt(language, resolvedPage)}\n\n${propertyContextInstruction(propertyContextId, searchPropertyIds, comparisonPropertyIds)}${contextInstruction}`;
+    const selectedKnowledge = selectMaxxisKnowledge(message, resolvedPage);
+    const knowledgeInstruction = buildMaxxisKnowledgeInstruction(selectedKnowledge);
+    const systemPrompt = `${buildSystemPrompt(language, resolvedPage, knowledgeInstruction)}\n\n${propertyContextInstruction(propertyContextId, searchPropertyIds, comparisonPropertyIds)}${contextInstruction}`;
     systemPromptBytes = new TextEncoder().encode(systemPrompt).byteLength;
     toolDeclarationBytes = new TextEncoder().encode(JSON.stringify(MAXXIS_TOOLS)).byteLength;
     const providerErrors: Array<{ status: number; code: GeminiFailureCode }> = [];
@@ -593,6 +596,8 @@ Deno.serve(async (req) => {
         model: usedModel,
         toolName,
         secondPass,
+        knowledgeVersion: MAXXIS_KNOWLEDGE_VERSION,
+        knowledgeTopics: selectedKnowledge.map((section) => section.topic),
       };
       const toolDegraded = secondPassFailure
         ? { degraded: true as const, degradedReason: secondPassFailure, error: secondPassFailure }
@@ -696,7 +701,7 @@ Deno.serve(async (req) => {
       return response({ message: localText, answer: localText, type: 'text', data: null, actions: [], language, degraded: true, degradedReason, error: degradedReason }, 200, origin, requestId);
     }
     logMaxxisEvent('maxxis_chat', { request_id: requestId, user_id: userId, model: usedModel, duration_ms: Date.now() - startedAt, provider_duration_ms: providerDurationMs, request_payload_bytes: requestPayloadBytes, system_prompt_bytes: systemPromptBytes, tool_declaration_bytes: toolDeclarationBytes, history_count: historyCount, success: true, fallback_count: fallbackCount, llm_call_count: budget.geminiCalls, tool_call_count: budget.toolCalls, tool_rounds: budget.toolRounds });
-    return response({ message: text, answer: text, type: 'text', data: null, actions: [], language, runtime: { provider: 'gemini', model: usedModel, secondPass: false } }, 200, origin, requestId);
+    return response({ message: text, answer: text, type: 'text', data: null, actions: [], language, runtime: { provider: 'gemini', model: usedModel, secondPass: false, knowledgeVersion: MAXXIS_KNOWLEDGE_VERSION, knowledgeTopics: selectedKnowledge.map((section) => section.topic) } }, 200, origin, requestId);
   } catch (error) {
     const timedOut = error instanceof DOMException && error.name === 'AbortError';
     const errorCode = error instanceof Error ? error.message : 'MAXXIS_FAILED';

@@ -27,6 +27,8 @@ test('real Gemini answers a contextual Dashboard question without degraded fallb
   });
   expectHealthyGemini(result);
   expect(result.payload.runtime?.secondPass).toBe(false);
+  expect(result.payload.runtime?.knowledgeVersion).toMatch(/^\d{4}-\d{2}-\d{2}\./);
+  expect(result.payload.runtime?.knowledgeTopics).toContain('dashboard');
 });
 
 test('real Gemini selects tools and interprets their structured results in a second pass', async ({ realBackend }) => {

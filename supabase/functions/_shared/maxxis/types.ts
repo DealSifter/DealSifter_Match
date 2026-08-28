@@ -458,6 +458,8 @@ export type MaxxisResponse = {
     model?: string;
     toolName?: string;
     secondPass: boolean;
+    knowledgeVersion?: string;
+    knowledgeTopics?: string[];
   };
   error?: string;
 };
