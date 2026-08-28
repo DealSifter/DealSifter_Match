@@ -17,7 +17,7 @@ describe('Phase 6A Maxxis Deal AI Context Awareness', () => {
   it('answers current-surface questions from structured context before Gemini is called', () => {
     expect(chatSource).toContain('isSurfaceContextQuestion(message)');
     expect(chatSource).toContain("type: 'context_snapshot'");
-    expect(chatSource.indexOf('isSurfaceContextQuestion(message)')).toBeLessThan(chatSource.indexOf('callGemini(model, geminiRequest'));
+    expect(chatSource.indexOf('isSurfaceContextQuestion(message)')).toBeLessThan(chatSource.indexOf('const result = await callGemini('));
   });
 
   it('keeps backend authority and does not create a new Gemini tool for context lookup', () => {

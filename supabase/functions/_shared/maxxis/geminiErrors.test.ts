@@ -3,6 +3,8 @@ import {
   classifyGeminiCandidateFailure,
   classifyGeminiHttpFailure,
   classifyGeminiThrownFailure,
+  getGeminiProviderFailureMeta,
+  isRetryableGeminiFailure,
   selectGeminiFailure,
 } from './geminiErrors.ts';
 
@@ -26,5 +28,20 @@ describe('Gemini failure classification', () => {
   it('keeps the most actionable reason across model attempts', () => {
     expect(selectGeminiFailure(['GEMINI_INTERNAL_ERROR', 'GEMINI_QUOTA_EXCEEDED']))
       .toBe('GEMINI_QUOTA_EXCEEDED');
+  });
+
+  it('reduces provider messages to safe diagnostic reason codes', () => {
+    expect(getGeminiProviderFailureMeta(400, { error: { status: 'INVALID_ARGUMENT', message: 'Function response does not match function call.' } }))
+      .toEqual({ status: 400, upstreamStatus: 'INVALID_ARGUMENT', reason: 'FUNCTION_RESPONSE_INVALID' });
+    expect(getGeminiProviderFailureMeta(404, { error: { status: 'NOT_FOUND', message: 'Model was not found.' } }).reason)
+      .toBe('MODEL_NOT_FOUND');
+  });
+
+  it('retries only transient provider failures', () => {
+    expect(isRetryableGeminiFailure('GEMINI_TIMEOUT')).toBe(true);
+    expect(isRetryableGeminiFailure('GEMINI_MODEL_UNAVAILABLE')).toBe(true);
+    expect(isRetryableGeminiFailure('GEMINI_AUTH_ERROR')).toBe(false);
+    expect(isRetryableGeminiFailure('GEMINI_QUOTA_EXCEEDED')).toBe(false);
+    expect(isRetryableGeminiFailure('GEMINI_BLOCKED_RESPONSE')).toBe(false);
   });
 });

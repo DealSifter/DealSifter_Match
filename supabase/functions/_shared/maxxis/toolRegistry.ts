@@ -22,7 +22,7 @@ export const MAXXIS_TOOLS = [{
     },
     {
       name: 'getMyInvestmentProfile',
-      description: 'Read the authenticated user\'s own saved Investment Profile when they ask about their personal budget, target markets, property types, strategies, or other preferences. Never use for conceptual or educational questions, and never use it to search properties automatically.',
+      description: 'Read the authenticated user\'s own saved Investment Profile only when the requested output is the profile or its preferences. Never use when the user asks which opportunity, property, deal, listing, provider, or service fits the profile; those requests must use searchProperties with personalized=true or searchServices. Never use for conceptual or educational questions.',
       parameters: { type: 'OBJECT', properties: {} },
     },
     {

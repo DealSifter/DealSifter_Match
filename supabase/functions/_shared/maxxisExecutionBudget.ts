@@ -15,7 +15,7 @@ export const MAXXIS_EXECUTION_LIMITS: Readonly<MaxxisExecutionLimits> = {
   maxGeminiCalls: 3,
   maxToolCalls: 1,
   maxToolRounds: 1,
-  maxDurationMs: 25_000,
+  maxDurationMs: 75_000,
   maxRequestBytes: 64 * 1024,
   maxMessageChars: 1_800,
   maxHistoryItems: 10,

@@ -23,6 +23,19 @@ function providerMessage(payload: unknown) {
   return String((error as Record<string, unknown>).message || '').toUpperCase();
 }
 
+export function getGeminiProviderFailureMeta(status: number, payload?: unknown) {
+  const upstreamStatus = providerStatus(payload) || 'UNKNOWN';
+  const upstreamMessage = providerMessage(payload);
+  let reason = 'OTHER';
+  if (/FUNCTION.RESPONSE|FUNCTION.CALL/.test(upstreamMessage)) reason = 'FUNCTION_RESPONSE_INVALID';
+  else if (/THOUGHT.SIGNATURE/.test(upstreamMessage)) reason = 'THOUGHT_SIGNATURE_REQUIRED';
+  else if (/MODEL.*(NOT.FOUND|UNAVAILABLE)|NOT.FOUND.*MODEL/.test(upstreamMessage)) reason = 'MODEL_NOT_FOUND';
+  else if (/API.KEY.*(INVALID|NOT VALID|EXPIRED|REVOKED)/.test(upstreamMessage)) reason = 'API_KEY_INVALID';
+  else if (upstreamStatus === 'INVALID_ARGUMENT') reason = 'INVALID_ARGUMENT';
+  else if (upstreamStatus === 'NOT_FOUND') reason = 'NOT_FOUND';
+  return { status, upstreamStatus, reason };
+}
+
 export function classifyGeminiHttpFailure(status: number, payload?: unknown): GeminiFailureCode {
   const upstreamStatus = providerStatus(payload);
   const upstreamMessage = providerMessage(payload);
@@ -69,4 +82,14 @@ export function selectGeminiFailure(codes: GeminiFailureCode[]): GeminiFailureCo
     'GEMINI_INTERNAL_ERROR',
   ];
   return priority.find((code) => codes.includes(code)) || 'GEMINI_INTERNAL_ERROR';
+}
+
+export function isRetryableGeminiFailure(code: GeminiFailureCode | '') {
+  return [
+    'GEMINI_MODEL_UNAVAILABLE',
+    'GEMINI_TIMEOUT',
+    'GEMINI_EMPTY_RESPONSE',
+    'GEMINI_NETWORK_ERROR',
+    'GEMINI_INTERNAL_ERROR',
+  ].includes(code);
 }

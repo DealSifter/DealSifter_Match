@@ -5,6 +5,8 @@ import {
   classifyGeminiCandidateFailure,
   classifyGeminiHttpFailure,
   classifyGeminiThrownFailure,
+  getGeminiProviderFailureMeta,
+  isRetryableGeminiFailure,
   selectGeminiFailure,
   type GeminiFailureCode,
 } from '../_shared/maxxis/geminiErrors.ts';
@@ -13,6 +15,8 @@ import { buildSystemPrompt } from '../_shared/maxxis/prompts.ts';
 import { prepareProfileSuggestions } from '../_shared/maxxis/prepareProfileSuggestions.ts';
 import { executeMaxxisTool, MAXXIS_TOOLS } from '../_shared/maxxis/toolRegistry.ts';
 import { normalizeComparisonContextIds } from '../_shared/maxxis/compareProperties.ts';
+import { buildToolInterpretationRequest } from '../_shared/maxxis/toolResultForGemini.ts';
+import { buildGeminiGenerationConfig } from '../_shared/maxxis/geminiGenerationConfig.ts';
 import type { MaxxisLanguage, MaxxisResponse } from '../_shared/maxxis/types.ts';
 import { createRequestId, getEdgeRelease } from '../_shared/observability.ts';
 import {
@@ -29,6 +33,12 @@ if (!supabaseUrl) throw new Error('Missing SUPABASE_URL');
 if (!supabaseAnonKey) throw new Error('Missing SUPABASE_ANON_KEY');
 const UUID_PATTERN = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
 const E2E_LLM_STUB_PROJECT_REFS = new Set(['oqdcnjupquhybwdbeeew']);
+const GEMINI_SAFETY_SETTINGS = [
+  { category: 'HARM_CATEGORY_HARASSMENT', threshold: 'BLOCK_ONLY_HIGH' },
+  { category: 'HARM_CATEGORY_HATE_SPEECH', threshold: 'BLOCK_ONLY_HIGH' },
+  { category: 'HARM_CATEGORY_SEXUALLY_EXPLICIT', threshold: 'BLOCK_ONLY_HIGH' },
+  { category: 'HARM_CATEGORY_DANGEROUS_CONTENT', threshold: 'BLOCK_ONLY_HIGH' },
+];
 
 function response(body: MaxxisResponse, status: number, origin: string, requestId = '') {
   return new Response(JSON.stringify({ ...body, ...(requestId ? { requestId } : {}) }), { status, headers: { ...corsHeaders(origin), 'Content-Type': 'application/json', ...(requestId ? { 'x-request-id': requestId } : {}) } });
@@ -431,7 +441,6 @@ Deno.serve(async (req) => {
     const systemPrompt = `${buildSystemPrompt(language, resolvedPage)}\n\n${propertyContextInstruction(propertyContextId, searchPropertyIds, comparisonPropertyIds)}${contextInstruction}`;
     systemPromptBytes = new TextEncoder().encode(systemPrompt).byteLength;
     toolDeclarationBytes = new TextEncoder().encode(JSON.stringify(MAXXIS_TOOLS)).byteLength;
-    const geminiRequest = { systemInstruction: { parts: [{ text: systemPrompt }] }, contents, tools: MAXXIS_TOOLS, generationConfig: { temperature: 0.45, topP: 0.9, maxOutputTokens: MAXXIS_EXECUTION_LIMITS.maxOutputTokens }, safetySettings: [{ category: 'HARM_CATEGORY_HARASSMENT', threshold: 'BLOCK_ONLY_HIGH' }, { category: 'HARM_CATEGORY_HATE_SPEECH', threshold: 'BLOCK_ONLY_HIGH' }, { category: 'HARM_CATEGORY_SEXUALLY_EXPLICIT', threshold: 'BLOCK_ONLY_HIGH' }, { category: 'HARM_CATEGORY_DANGEROUS_CONTENT', threshold: 'BLOCK_ONLY_HIGH' }] };
     const providerErrors: Array<{ status: number; code: GeminiFailureCode }> = [];
     let payload: Record<string, unknown> = {};
     if (stubFunctionCall) {
@@ -441,7 +450,13 @@ Deno.serve(async (req) => {
       for (const model of geminiModels.slice(0, selectionAttemptLimit)) {
         budget.consumeGeminiCall();
         const providerStartedAt = Date.now();
-        const result = await callGemini(model, geminiRequest, budget.remainingMs());
+        const result = await callGemini(model, {
+          systemInstruction: { parts: [{ text: systemPrompt }] },
+          contents,
+          tools: MAXXIS_TOOLS,
+          generationConfig: buildGeminiGenerationConfig(model, MAXXIS_EXECUTION_LIMITS.maxOutputTokens),
+          safetySettings: GEMINI_SAFETY_SETTINGS,
+        }, budget.remainingMs());
         providerDurationMs += Date.now() - providerStartedAt;
         payload = result.payload;
         if (result.response.ok) { usedModel = model; break; }
@@ -488,20 +503,100 @@ Deno.serve(async (req) => {
           if (code === 'PROPERTY_CONTEXT_REQUIRED' || code === 'PROPERTY_CONTEXT_MISMATCH' || code === 'INVALID_PROPERTY_ID' || code === 'INVALID_PROPERTY_DETAILS_INPUT') {
             const text = toolName === 'getDealCopilotOverview' ? dealCopilotMessage(language, false) : propertyDetailsMessage(language, false);
             return toolName === 'getDealCopilotOverview'
-              ? response({ message: text, answer: text, type: 'deal_copilot_overview', data: null, actions: [], language }, 200, origin)
-              : response({ message: text, answer: text, type: 'property_details', data: { property: null, missingFields: [], metrics: null, analysis: null, serviceNeeds: [], serviceMatches: null, nextBestAction: null, workflow: null }, actions: [], language }, 200, origin);
+              ? response({ message: text, answer: text, type: 'deal_copilot_overview', data: null, actions: [], language }, 200, origin, requestId)
+              : response({ message: text, answer: text, type: 'property_details', data: { property: null, missingFields: [], metrics: null, analysis: null, serviceNeeds: [], serviceMatches: null, nextBestAction: null, workflow: null }, actions: [], language }, 200, origin, requestId);
           }
         } else if (toolName === 'compareProperties') {
           const propertyCount = Array.isArray(functionCall.args?.propertyIds) ? Math.min(functionCall.args.propertyIds.length, 3) : 0;
           logMaxxisEvent('maxxis_compare_properties', { tool: toolName, duration_ms: Date.now() - toolStartedAt, success: false, property_count: propertyCount });
           const text = propertyComparisonMessage(language, false);
-          return response({ message: text, answer: text, type: 'property_comparison', data: { properties: [], comparison: null }, actions: [], language }, 200, origin);
+          return response({ message: text, answer: text, type: 'property_comparison', data: { properties: [], comparison: null }, actions: [], language }, 200, origin, requestId);
         } else {
           logMaxxisEvent('maxxis_tool', { request_id: requestId, user_id: userId, model: usedModel, duration_ms: Date.now() - toolStartedAt, success: false, fallback_count: fallbackCount, tool: toolName, error_code: error instanceof Error ? error.message : 'MAXXIS_TOOL_FAILED' });
         }
         throw error;
       }
       budget.validateToolPayload(result);
+      let interpretedText = '';
+      let secondPass = false;
+      let secondPassFailure: GeminiFailureCode | '' = '';
+      let secondPassProviderMeta: ReturnType<typeof getGeminiProviderFailureMeta> | null = null;
+      let secondPassAttempts = 0;
+      if (!stubFunctionCall) {
+        const secondPassStartedAt = Date.now();
+        const interpretationRequest = buildToolInterpretationRequest({
+          contents,
+          modelParts: parts,
+          toolName,
+          functionCallId: String(parsedFunctionCall?.id || ''),
+          toolResult: result,
+          language,
+          generationConfig: buildGeminiGenerationConfig(
+            usedModel,
+            Math.min(MAXXIS_EXECUTION_LIMITS.maxOutputTokens, 420),
+          ),
+          safetySettings: GEMINI_SAFETY_SETTINGS,
+        });
+        const maxSecondPassAttempts = Math.max(1, budget.limits.maxGeminiCalls - budget.geminiCalls);
+        for (let attempt = 1; attempt <= maxSecondPassAttempts; attempt += 1) {
+          secondPassAttempts = attempt;
+          secondPassFailure = '';
+          secondPassProviderMeta = null;
+          try {
+            budget.consumeGeminiCall();
+            const providerStartedAt = Date.now();
+            const interpretation = await callGemini(usedModel, interpretationRequest, budget.remainingMs());
+            providerDurationMs += Date.now() - providerStartedAt;
+            if (!interpretation.response.ok) {
+              secondPassFailure = classifyGeminiHttpFailure(interpretation.response.status, interpretation.payload);
+              secondPassProviderMeta = getGeminiProviderFailureMeta(interpretation.response.status, interpretation.payload);
+            } else {
+              const interpretationCandidates = Array.isArray(interpretation.payload.candidates) ? interpretation.payload.candidates : [];
+              const interpretationCandidate = interpretationCandidates[0] && typeof interpretationCandidates[0] === 'object'
+                ? interpretationCandidates[0] as Record<string, unknown>
+                : {};
+              const interpretationContent = interpretationCandidate.content && typeof interpretationCandidate.content === 'object'
+                ? interpretationCandidate.content as Record<string, unknown>
+                : {};
+              const interpretationParts = Array.isArray(interpretationContent.parts)
+                ? interpretationContent.parts.filter((part): part is Record<string, unknown> => Boolean(part && typeof part === 'object'))
+                : [];
+              interpretedText = String(interpretationParts.find((part) => part.text)?.text || '').trim();
+              if (interpretedText) secondPass = true;
+              else secondPassFailure = classifyGeminiCandidateFailure(interpretationCandidate);
+            }
+          } catch (error) {
+            secondPassFailure = classifyGeminiThrownFailure(error);
+          }
+          if (secondPass || !isRetryableGeminiFailure(secondPassFailure)) break;
+        }
+        logMaxxisEvent('maxxis_second_pass', {
+          request_id: requestId,
+          user_id: userId,
+          model: usedModel,
+          duration_ms: Date.now() - secondPassStartedAt,
+          success: secondPass,
+          error_code: secondPassFailure || undefined,
+          degraded_reason: secondPassFailure || undefined,
+          provider_status: secondPassProviderMeta?.status,
+          provider_error_status: secondPassProviderMeta?.upstreamStatus,
+          provider_error_reason: secondPassProviderMeta?.reason,
+          second_pass_attempts: secondPassAttempts,
+          tool: toolName,
+          llm_call_count: budget.geminiCalls,
+          tool_call_count: budget.toolCalls,
+          tool_rounds: budget.toolRounds,
+        });
+      }
+      const toolRuntime: NonNullable<MaxxisResponse['runtime']> = {
+        provider: stubFunctionCall ? 'stub' : 'gemini',
+        model: usedModel,
+        toolName,
+        secondPass,
+      };
+      const toolDegraded = secondPassFailure
+        ? { degraded: true as const, degradedReason: secondPassFailure, error: secondPassFailure }
+        : {};
       const toolDurationMs = Date.now() - toolStartedAt;
       const dbDurationMs = Number(result?.performance?.dbDurationMs || result?.serviceMatchingSummary?.dbDurationMs || 0);
       const toolPayloadBytes = new TextEncoder().encode(JSON.stringify(result)).byteLength;
@@ -520,7 +615,9 @@ Deno.serve(async (req) => {
         tool_declaration_bytes: toolDeclarationBytes,
         tool_payload_bytes: toolPayloadBytes,
         history_count: historyCount,
-        success: true,
+        success: !secondPassFailure,
+        error_code: secondPassFailure || undefined,
+        degraded_reason: secondPassFailure || undefined,
         fallback_count: fallbackCount,
         tool: toolName,
         llm_call_count: budget.geminiCalls,
@@ -541,28 +638,28 @@ Deno.serve(async (req) => {
             city_to_state_fallback: result.serviceMatchingSummary.cityToStateFallbackUsed,
           });
         }
-        const text = propertyDetailsMessage(language, result.found);
-        return response({ message: text, answer: text, type: 'property_details', data: { property: result.property, missingFields: result.missingFields, metrics: result.metrics, analysis: result.analysis, serviceNeeds: result.serviceNeeds, serviceMatches: result.serviceMatches, nextBestAction: result.nextBestAction || null, workflow: result.workflow || null }, actions: [], language }, 200, origin);
+        const text = interpretedText || propertyDetailsMessage(language, result.found);
+        return response({ message: text, answer: text, type: 'property_details', data: { property: result.property, missingFields: result.missingFields, metrics: result.metrics, analysis: result.analysis, serviceNeeds: result.serviceNeeds, serviceMatches: result.serviceMatches, nextBestAction: result.nextBestAction || null, workflow: result.workflow || null }, actions: [], language, runtime: toolRuntime, ...toolDegraded }, 200, origin, requestId);
       }
       if (result.type === 'deal_copilot_overview') {
-        const text = dealCopilotMessage(language, result.found);
-        return response({ message: text, answer: text, type: 'deal_copilot_overview', data: result.overview || null, actions: [], language }, 200, origin);
+        const text = interpretedText || dealCopilotMessage(language, result.found);
+        return response({ message: text, answer: text, type: 'deal_copilot_overview', data: result.overview || null, actions: [], language, runtime: toolRuntime, ...toolDegraded }, 200, origin, requestId);
       }
       if (result.type === 'property_comparison') {
         logMaxxisEvent('maxxis_compare_properties', { tool: toolName, duration_ms: Date.now() - toolStartedAt, success: true, property_count: result.properties.length });
-        const text = propertyComparisonMessage(language, true);
-        return response({ message: text, answer: text, type: 'property_comparison', data: { properties: result.properties, comparison: result.comparison }, actions: [], language }, 200, origin);
+        const text = interpretedText || propertyComparisonMessage(language, true);
+        return response({ message: text, answer: text, type: 'property_comparison', data: { properties: result.properties, comparison: result.comparison }, actions: [], language, runtime: toolRuntime, ...toolDegraded }, 200, origin, requestId);
       }
       if (result.type === 'investment_profile') {
         logMaxxisEvent('maxxis_tool', { request_id: requestId, user_id: userId, model: usedModel, duration_ms: Date.now() - toolStartedAt, success: true, fallback_count: fallbackCount, tool: toolName, profile_exists: result.exists });
-        const text = investmentProfileMessage(language, result.exists, result.complete);
-        return response({ message: text, answer: text, type: 'investment_profile', data: { profile: result.profile, complete: result.complete }, actions: [], language }, 200, origin);
+        const text = interpretedText || investmentProfileMessage(language, result.exists, result.complete);
+        return response({ message: text, answer: text, type: 'investment_profile', data: { profile: result.profile, complete: result.complete }, actions: [], language, runtime: toolRuntime, ...toolDegraded }, 200, origin, requestId);
       }
       if (result.type === 'services') {
         const services = result.items;
         logMaxxisEvent('maxxis_tool', { request_id: requestId, user_id: userId, model: usedModel, duration_ms: Date.now() - toolStartedAt, success: true, fallback_count: fallbackCount, tool: toolName, result_count: services.length });
-        const text = serviceSearchMessage(language, services.length);
-        return response({ message: text, answer: text, type: 'services', data: { services }, actions: [], language }, 200, origin);
+        const text = interpretedText || serviceSearchMessage(language, services.length);
+        return response({ message: text, answer: text, type: 'services', data: { services }, actions: [], language, runtime: toolRuntime, ...toolDegraded }, 200, origin, requestId);
       }
       const properties = result.items;
       let profileSuggestions = result.profileSuggestions;
@@ -588,8 +685,8 @@ Deno.serve(async (req) => {
         }
       }
       logMaxxisEvent('maxxis_tool', { request_id: requestId, user_id: userId, model: usedModel, duration_ms: Date.now() - toolStartedAt, success: true, fallback_count: fallbackCount, tool: toolName, result_count: properties.length, search_mode: result.personalized ? 'personalized' : 'explicit', evaluated_count: result.evaluatedProperties, scored_count: result.scoredProperties, ranking_duration_ms: result.rankingDurationMs, behavior_history_available: result.behaviorHistoryAvailable, behavior_action_count: result.behaviorActionCount, behavior_signal_applied: result.behaviorSignalApplied, behavior_duration_ms: result.behaviorDurationMs, profile_drift_detected: result.profileDriftDetected, profile_suggestion_count: result.profileSuggestions.length, profile_suggestion_dimensions: result.profileSuggestions.map((item) => item.dimension), profile_drift_duration_ms: result.profileDriftDurationMs });
-      const text = propertySearchMessage(language, properties.length, result.personalized, result.requiresProfile);
-      return response({ message: text, answer: text, type: 'properties', data: { properties, personalized: result.personalized, profileAvailable: result.profileAvailable, profileSuggestions }, actions: [], language }, 200, origin);
+      const text = interpretedText || propertySearchMessage(language, properties.length, result.personalized, result.requiresProfile);
+      return response({ message: text, answer: text, type: 'properties', data: { properties, personalized: result.personalized, profileAvailable: result.profileAvailable, profileSuggestions }, actions: [], language, runtime: toolRuntime, ...toolDegraded }, 200, origin, requestId);
     }
     const text = String(parts.find((part) => part?.text)?.text || '').trim();
     if (!text) {
@@ -599,7 +696,7 @@ Deno.serve(async (req) => {
       return response({ message: localText, answer: localText, type: 'text', data: null, actions: [], language, degraded: true, degradedReason, error: degradedReason }, 200, origin, requestId);
     }
     logMaxxisEvent('maxxis_chat', { request_id: requestId, user_id: userId, model: usedModel, duration_ms: Date.now() - startedAt, provider_duration_ms: providerDurationMs, request_payload_bytes: requestPayloadBytes, system_prompt_bytes: systemPromptBytes, tool_declaration_bytes: toolDeclarationBytes, history_count: historyCount, success: true, fallback_count: fallbackCount, llm_call_count: budget.geminiCalls, tool_call_count: budget.toolCalls, tool_rounds: budget.toolRounds });
-    return response({ message: text, answer: text, type: 'text', data: null, actions: [], language }, 200, origin);
+    return response({ message: text, answer: text, type: 'text', data: null, actions: [], language, runtime: { provider: 'gemini', model: usedModel, secondPass: false } }, 200, origin, requestId);
   } catch (error) {
     const timedOut = error instanceof DOMException && error.name === 'AbortError';
     const errorCode = error instanceof Error ? error.message : 'MAXXIS_FAILED';

@@ -24,6 +24,10 @@ export function logMaxxisEvent(event: string, details: Record<string, unknown>) 
     provider: details.model ? 'gemini' : String(details.provider || ''),
     status: details.status || details.action_status,
     metrics: {
+      provider_status: Number(details.provider_status || 0),
+      provider_error_status: details.provider_error_status,
+      provider_error_reason: details.provider_error_reason,
+      second_pass_attempts: Number(details.second_pass_attempts || 0),
       fallback_count: Number(details.fallback_count || 0),
       result_count: Number(details.result_count || 0),
       property_count: Number(details.property_count || 0),
@@ -61,7 +65,6 @@ export function logMaxxisEvent(event: string, details: Record<string, unknown>) 
       timeout: Boolean(details.timeout),
       budget_exhausted: Boolean(details.budget_exhausted),
       degraded_reason: details.degraded_reason,
-      provider_status: Number(details.provider_status || 0),
       model_attempts: Number(details.model_attempts || 0),
     },
   });

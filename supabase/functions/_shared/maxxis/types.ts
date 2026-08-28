@@ -453,5 +453,11 @@ export type MaxxisResponse = {
   degraded?: boolean;
   degradedReason?: string;
   requestId?: string;
+  runtime?: {
+    provider: 'gemini' | 'stub' | 'local';
+    model?: string;
+    toolName?: string;
+    secondPass: boolean;
+  };
   error?: string;
 };

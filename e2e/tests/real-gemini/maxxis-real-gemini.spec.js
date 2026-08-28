@@ -1,3 +1,4 @@
+/* global process */
 import { test, expect } from '../../fixtures/realBackendFixture.js';
 
 const REQUEST_ID = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
@@ -69,7 +70,11 @@ test('real Gemini selects tools and interprets their structured results in a sec
     },
   ];
 
-  for (const item of cases) {
+  const selectedCase = String(process.env.E2E_GEMINI_TOOL_CASE || '').trim();
+  const casesToRun = selectedCase ? cases.filter((item) => item.expectedTool === selectedCase) : cases;
+  expect(casesToRun.length, `Unknown E2E_GEMINI_TOOL_CASE: ${selectedCase}`).toBeGreaterThan(0);
+
+  for (const item of casesToRun) {
     const result = await realBackend.invokeFunction({
       token,
       name: 'maxxis-chat',
