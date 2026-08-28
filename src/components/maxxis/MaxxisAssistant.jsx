@@ -433,12 +433,15 @@ export function MaxxisAssistant({ page = 'dashboard', onOpenSupport = null, onNa
 
   const maxxisContextSnapshot = useMemo(() => buildMaxxisContextSnapshot({
     page,
-    propertyId: propertyContextId,
+    propertyId: propertyContextId || appContext?.entity?.propertyId || '',
     surface: appContext?.surface || { page },
     serviceId: appContext?.entity?.serviceId || '',
     conversationId: appContext?.entity?.conversationId || '',
     workflowVisible: Boolean(appContext?.entity?.workflowVisible),
     profileScope: appContext?.entity?.profileScope || '',
+    view: appContext?.view || {},
+    investmentProfile: appContext?.investmentProfile || null,
+    economy: appContext?.economy || {},
     appSignals: appContext?.operational || {},
     messages,
     pendingProviderUnlock,

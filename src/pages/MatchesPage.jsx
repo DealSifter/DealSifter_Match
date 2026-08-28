@@ -79,7 +79,7 @@ import {
   mergeContactForDisplay,
 } from '../components/matches/MatchesPortfolio';
 
-export function MatchesPage({ nuggets, isAdmin = false, setModal, openUnlock, unlocked, initialChat, chatFocusToken = 0, interested, matched, setInterested, setMatched, convos, setConvos, categoryOrder, setCategoryOrder, showcaseProperties, propertyPortfolio, servicePortfolio, userProfile, personalProfile, professionalProfile, mobileBottomNavCollapsed = false, userPreferences = null, planActionAccess = {}, setPage = null, addToast = null, onOpenChatLanguageConfig = null, onSendChatMessage = null, onRetryChatMessage = null, onMarkChatRead = null, onLoadMoreChatMessages = null, chatHasMore = {}, chatLoadingMore = {}, propertyUnlocks = [], unlockedContactMap = new Map(), currentUserId = 'local-user', onAnalyzePropertyWithMaxxis = null, onPropertyContextChange = null, isActive = true }) {
+export function MatchesPage({ nuggets, isAdmin = false, setModal, openUnlock, unlocked, initialChat, chatFocusToken = 0, interested, matched, setInterested, setMatched, convos, setConvos, categoryOrder, setCategoryOrder, showcaseProperties, propertyPortfolio, servicePortfolio, userProfile, personalProfile, professionalProfile, mobileBottomNavCollapsed = false, userPreferences = null, planActionAccess = {}, setPage = null, addToast = null, onOpenChatLanguageConfig = null, onSendChatMessage = null, onRetryChatMessage = null, onMarkChatRead = null, onLoadMoreChatMessages = null, chatHasMore = {}, chatLoadingMore = {}, propertyUnlocks = [], unlockedContactMap = new Map(), currentUserId = 'local-user', onAnalyzePropertyWithMaxxis = null, onPropertyContextChange = null, onMaxxisContextChange = null, isActive = true }) {
   const PORTFOLIO_PANEL_PADDING = 40;
   const PORTFOLIO_GRID_GAP = 12;
   const PORTFOLIO_CARD_MIN_WIDTH = 132;
@@ -1149,7 +1149,6 @@ export function MatchesPage({ nuggets, isAdmin = false, setModal, openUnlock, un
   const [mobileCardSheet, setMobileCardSheet] = useState(null);
 
   useEffect(() => {
-    if (typeof onPropertyContextChange !== 'function') return;
     const isPropertyItem = (item) => Boolean(item && (
       item.address
       || item.propertyId
@@ -1161,8 +1160,26 @@ export function MatchesPage({ nuggets, isAdmin = false, setModal, openUnlock, un
     const visibleProperty = isActive
       ? (isPropertyItem(mobileCardSheet) ? mobileCardSheet : (isPropertyItem(selectedPortfolioItem) ? selectedPortfolioItem : null))
       : null;
-    onPropertyContextChange(String(visibleProperty?.id || '').trim());
-  }, [isActive, mobileCardSheet, onPropertyContextChange, selectedPortfolioItem]);
+    const visibleItem = isActive ? (mobileCardSheet || selectedPortfolioItem) : null;
+    const propertyId = String(visibleProperty?.id || '').trim();
+    const serviceId = visibleItem && !isPropertyItem(visibleItem) ? String(visibleItem?.id || '').trim() : '';
+    const conversationId = String(active?.conversationId || active?.conversation_id || '').trim();
+    if (typeof onPropertyContextChange === 'function') onPropertyContextChange(propertyId);
+    if (isActive && typeof onMaxxisContextChange === 'function') {
+      onMaxxisContextChange({
+        surfaceName: 'matches',
+        subview: propertyId ? 'property' : (active ? 'conversation' : 'matches_overview'),
+        entity: { propertyId, serviceId, conversationId },
+        view: {
+          activePropertyId: propertyId,
+          providerServiceId: serviceId,
+          conversationId,
+          relationshipId: activeContactId,
+          filters: { peopleFilter, interestsFilter, portfolioTab },
+        },
+      });
+    }
+  }, [active, activeContactId, interestsFilter, isActive, mobileCardSheet, onMaxxisContextChange, onPropertyContextChange, peopleFilter, portfolioTab, selectedPortfolioItem]);
 
   useEffect(() => {
     if (!initialChat) return;

@@ -4,10 +4,14 @@ import { describe, expect, it } from 'vitest';
 const chatSource = readFileSync(new URL('../../maxxis-chat/index.ts', import.meta.url), 'utf8');
 const serviceSource = readFileSync(new URL('../../../../src/services/maxxisService.js', import.meta.url), 'utf8');
 const contextSource = readFileSync(new URL('../../../../src/features/maxxis/context/maxxisContextSnapshot.js', import.meta.url), 'utf8');
+const appSource = readFileSync(new URL('../../../../src/App.jsx', import.meta.url), 'utf8');
+const dashboardSource = readFileSync(new URL('../../../../src/pages/Dashboard.jsx', import.meta.url), 'utf8');
+const mapSource = readFileSync(new URL('../../../../src/pages/MapView.jsx', import.meta.url), 'utf8');
+const matchesSource = readFileSync(new URL('../../../../src/pages/MatchesPage.jsx', import.meta.url), 'utf8');
 
 describe('Phase 6A Maxxis Deal AI Context Awareness', () => {
   it('passes a sanitized versioned context snapshot only through the existing maxxis-chat channel', () => {
-    expect(contextSource).toContain('MAXXIS_CONTEXT_VERSION = 1');
+    expect(contextSource).toContain('MAXXIS_CONTEXT_VERSION = 2');
     expect(contextSource).toContain('sanitizeMaxxisContextSnapshot');
     expect(contextSource).toContain('selectMaxxisContextForMessage');
     expect(serviceSource).toContain('maxxisContext: cleanMaxxisContext');
@@ -32,5 +36,18 @@ describe('Phase 6A Maxxis Deal AI Context Awareness', () => {
     expect(chatSource).toContain('structuredContextBytes > 4096');
     expect(chatSource).toContain('context_size');
     expect(chatSource).not.toMatch(/insert into|create table|alter table/i);
+  });
+
+  it('connects current Feed, MapView, Matches, Profile and nugget state to the v2 allowlist', () => {
+    expect(dashboardSource).toContain("surfaceName: 'dashboard'");
+    expect(dashboardSource).toContain('visibleOpportunityIds: propDeck.slice(0, 8)');
+    expect(mapSource).toContain("surfaceName: 'mapview'");
+    expect(mapSource).toContain('visiblePropertyIds: canonicalProperties');
+    expect(matchesSource).toContain("surfaceName: 'matches'");
+    expect(matchesSource).toContain('relationshipId: activeContactId');
+    expect(appSource).toContain('investmentProfile: professionalProfile?.investmentProfile || null');
+    expect(appSource).toContain('economy: { nuggetBalance: nuggets }');
+    expect(contextSource).toContain('normalizeInvestmentContext');
+    expect(contextSource).toContain('normalizeEconomyContext');
   });
 });

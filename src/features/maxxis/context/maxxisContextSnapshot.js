@@ -1,4 +1,4 @@
-export const MAXXIS_CONTEXT_VERSION = 1;
+export const MAXXIS_CONTEXT_VERSION = 2;
 export const MAXXIS_CONTEXT_MAX_BYTES = 4096;
 export const MAXXIS_CONTEXT_FRESH_MS = 5 * 60 * 1000;
 
@@ -31,7 +31,7 @@ const SURFACE_ROUTE_BY_NAME = {
 };
 
 const CONTEXTUAL_REFERENCE_RE = /\b(this|that|these|those|it|them|last|second|third|provider|contractor|property|deal|workflow|unlock|contact|conversation|chat|esse|essa|este|esta|esses|essas|eles|elas|ultimo|ultima|segundo|terceiro|imovel|provedor|prestador|contratista|propiedad|ultimo)\b/i;
-const SURFACE_QUESTION_RE = /(what am i seeing|what page|where am i|current screen|current page|o que estou vendo|qual tela|onde estou|que pagina|que estoy viendo|pantalla actual|pagina actual)/i;
+const SURFACE_QUESTION_RE = /(what am i seeing|what page|where am i|current screen|current page|explain (this|the current) screen|o que estou vendo|qual tela|onde estou|que pagina|explicar? (esta|essa) tela|que estoy viendo|pantalla actual|pagina actual|explica (esta|la) pantalla)/i;
 
 function cleanText(value, maxLength = 80) {
   return Array.from(String(value ?? ''))
@@ -58,6 +58,70 @@ function uniqueIds(values = [], maxItems = 10) {
     ids.push(id);
   });
   return ids.slice(0, maxItems);
+}
+
+function safeList(values = [], maxItems = 8, maxLength = 80) {
+  return Array.from(new Set((Array.isArray(values) ? values : [])
+    .map((value) => cleanText(value, maxLength))
+    .filter(Boolean)))
+    .slice(0, maxItems);
+}
+
+function normalizeMaxxisView(input = {}) {
+  const filters = input.filters && typeof input.filters === 'object' ? input.filters : {};
+  const activeCardIndex = Number(input.activeCardIndex);
+  return {
+    ...(cleanId(input.activeCardId) ? { activeCardId: cleanId(input.activeCardId) } : {}),
+    ...(Number.isFinite(activeCardIndex) ? { activeCardIndex: Math.max(0, Math.min(999, Math.round(activeCardIndex))) } : {}),
+    visibleOpportunityIds: uniqueIds(input.visibleOpportunityIds, 8),
+    visiblePropertyIds: uniqueIds(input.visiblePropertyIds, 8),
+    comparisonPropertyIds: uniqueIds(input.comparisonPropertyIds, 3),
+    ...(cleanId(input.selectedPropertyId) ? { selectedPropertyId: cleanId(input.selectedPropertyId) } : {}),
+    ...(cleanId(input.activePropertyId) ? { activePropertyId: cleanId(input.activePropertyId) } : {}),
+    ...(cleanId(input.providerServiceId) ? { providerServiceId: cleanId(input.providerServiceId) } : {}),
+    ...(cleanId(input.conversationId) ? { conversationId: cleanId(input.conversationId) } : {}),
+    ...(cleanId(input.relationshipId) ? { relationshipId: cleanId(input.relationshipId) } : {}),
+    ...(cleanId(input.workflowPropertyId) ? { workflowPropertyId: cleanId(input.workflowPropertyId) } : {}),
+    filters: {
+      view: cleanText(filters.view, 30),
+      category: cleanText(filters.category, 40),
+      profileScope: cleanText(filters.profileScope, 30),
+      stateCodes: safeList(filters.stateCodes, 8, 2).filter((value) => /^[A-Za-z]{2}$/.test(value)).map((value) => value.toUpperCase()),
+      showPeople: Boolean(filters.showPeople),
+      showProperties: Boolean(filters.showProperties),
+      showOnlyUnlocked: Boolean(filters.showOnlyUnlocked),
+      showOnlyMyPins: Boolean(filters.showOnlyMyPins),
+      locationMode: cleanText(filters.locationMode, 20),
+      locationFilterApplied: Boolean(filters.locationFilterApplied),
+      peopleFilter: cleanText(filters.peopleFilter, 30),
+      interestsFilter: cleanText(filters.interestsFilter, 30),
+      portfolioTab: cleanText(filters.portfolioTab, 30),
+    },
+  };
+}
+
+function normalizeInvestmentContext(input = {}) {
+  if (!input || typeof input !== 'object') return null;
+  const profileStrength = Number(input.profileStrength);
+  return {
+    status: input.status === 'complete' ? 'complete' : 'draft',
+    profileStrength: Number.isFinite(profileStrength) ? Math.max(0, Math.min(100, Math.round(profileStrength))) : 0,
+    investorRoles: safeList(input.investorRoles, 6),
+    lookingFor: safeList(input.lookingFor, 6),
+    targetMarkets: safeList(input.targetMarkets, 6),
+    propertyTypes: safeList(input.propertyTypes, 6),
+    strategies: safeList(input.strategies, 6),
+    priceRange: cleanText(input.priceRange, 40),
+    acceptableConditions: safeList(input.acceptableConditions, 6),
+    capitalReady: ['yes', 'no'].includes(input.capitalReady) ? input.capitalReady : '',
+  };
+}
+
+function normalizeEconomyContext(input = {}) {
+  const balance = Number(input.nuggetBalance);
+  return {
+    ...(Number.isFinite(balance) ? { nuggetBalance: Math.max(0, Math.min(1_000_000_000, Math.floor(balance))) } : {}),
+  };
 }
 
 function contextBytes(value) {
@@ -263,8 +327,9 @@ export function buildMaxxisFreshness(input = {}) {
 
 export function buildMaxxisContextSnapshot(input = {}) {
   const surface = normalizeMaxxisSurface(input.surface || { page: input.page });
-  const propertyId = cleanId(input.propertyId);
-  const serviceId = cleanId(input.serviceId);
+  const view = normalizeMaxxisView(input.view || {});
+  const propertyId = cleanId(input.propertyId || view.selectedPropertyId || view.activePropertyId);
+  const serviceId = cleanId(input.serviceId || view.providerServiceId);
   const sessionMemory = buildMaxxisSessionMemory({ ...input, propertyId });
   const directEntity = normalizeMaxxisEntity({
     propertyId,
@@ -283,6 +348,9 @@ export function buildMaxxisContextSnapshot(input = {}) {
     entity,
     ...(effectivePropertyId ? { property: { id: effectivePropertyId } } : {}),
     ...(serviceId ? { provider: { serviceId } } : {}),
+    view,
+    ...(normalizeInvestmentContext(input.investmentProfile) ? { profile: normalizeInvestmentContext(input.investmentProfile) } : {}),
+    economy: normalizeEconomyContext(input.economy || {}),
     operational: buildMaxxisOperationalContext(input),
     sessionMemory,
     freshness: buildMaxxisFreshness({ ...input, propertyId, serviceId }),
@@ -298,6 +366,9 @@ export function sanitizeMaxxisContextSnapshot(snapshot = {}) {
   const operational = snapshot.operational || {};
   const sessionMemory = snapshot.sessionMemory || {};
   const freshness = snapshot.freshness || {};
+  const view = normalizeMaxxisView(snapshot.view || {});
+  const profile = normalizeInvestmentContext(snapshot.profile);
+  const economy = normalizeEconomyContext(snapshot.economy || {});
 
   return {
     contextVersion: MAXXIS_CONTEXT_VERSION,
@@ -305,6 +376,9 @@ export function sanitizeMaxxisContextSnapshot(snapshot = {}) {
     entity,
     ...(propertyId ? { property: { id: propertyId } } : {}),
     ...(serviceId ? { provider: { serviceId } } : {}),
+    view,
+    ...(profile ? { profile } : {}),
+    economy,
     operational: {
       capabilities: {
         propertyDetails: Boolean(operational.capabilities?.propertyDetails),
@@ -374,7 +448,18 @@ export function shouldAttachMaxxisContext(message = '', snapshot = {}) {
     || cleanSnapshot.sessionMemory?.lastPropertyIds?.length
     || cleanSnapshot.sessionMemory?.lastServiceIds?.length
   );
-  return Boolean((hasEntity || hasMemoryEntity) && CONTEXTUAL_REFERENCE_RE.test(text));
+  const hasLiveViewContext = Boolean(
+    cleanSnapshot.view?.activeCardId
+    || cleanSnapshot.view?.selectedPropertyId
+    || cleanSnapshot.view?.activePropertyId
+    || cleanSnapshot.view?.providerServiceId
+    || cleanSnapshot.view?.conversationId
+    || cleanSnapshot.view?.visibleOpportunityIds?.length
+    || cleanSnapshot.view?.visiblePropertyIds?.length
+    || cleanSnapshot.profile
+    || Number.isFinite(cleanSnapshot.economy?.nuggetBalance)
+  );
+  return Boolean((hasEntity || hasMemoryEntity || hasLiveViewContext) && CONTEXTUAL_REFERENCE_RE.test(text));
 }
 
 export function selectMaxxisContextForMessage(snapshot = {}, message = '') {

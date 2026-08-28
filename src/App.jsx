@@ -901,6 +901,15 @@ export default function App() {
   const [modal, setModal] = useState(null);
   const [maxxisPropertyAnalysisRequest, setMaxxisPropertyAnalysisRequest] = useState(null);
   const [maxxisPropertyContextId, setMaxxisPropertyContextId] = useState('');
+  const [maxxisSurfaceRuntimeContext, setMaxxisSurfaceRuntimeContext] = useState({ surfaceName: '', view: {}, entity: {} });
+  const handleMaxxisSurfaceContextChange = useCallback((nextContext = {}) => {
+    const next = nextContext && typeof nextContext === 'object'
+      ? nextContext
+      : { surfaceName: '', view: {}, entity: {} };
+    setMaxxisSurfaceRuntimeContext((previous) => (
+      JSON.stringify(previous) === JSON.stringify(next) ? previous : next
+    ));
+  }, []);
   const [authModalTab, setAuthModalTab] = useState('signup');
   const openAuthModal = useCallback((tab = 'signup') => {
     setAuthModalTab(tab === 'login' ? 'login' : 'signup');
@@ -5430,6 +5439,7 @@ export default function App() {
             activeSpotlightKeys={activeSpotlightKeys}
             onOpenSpotlight={() => setModal('spotlight')}
             onboardingRequired={onboardingNavigationLocked}
+            onMaxxisContextChange={handleMaxxisSurfaceContextChange}
           />
         );
       case 'matches':
@@ -5474,6 +5484,7 @@ export default function App() {
             activeSpotlightKeys={activeSpotlightKeys}
             onAnalyzePropertyWithMaxxis={handleAnalyzePropertyWithMaxxis}
             onPropertyContextChange={setMaxxisPropertyContextId}
+            onMaxxisContextChange={handleMaxxisSurfaceContextChange}
             isActive={page === 'matches'}
           />
         );
@@ -5500,6 +5511,7 @@ export default function App() {
             activeSpotlightKeys={activeSpotlightKeys}
             activeSpotlights={activeSpotlights}
             isActive={page === 'mapview'}
+            onMaxxisContextChange={handleMaxxisSurfaceContextChange}
           />
         );
       case 'onboarding':
@@ -5601,22 +5613,28 @@ export default function App() {
       pricing: 'plans',
       settings: settingsInitialTab || 'profile',
     };
+    const activeSurfaceRuntime = maxxisSurfaceRuntimeContext?.surfaceName === page
+      ? maxxisSurfaceRuntimeContext
+      : { view: {}, entity: {} };
     return {
       surface: {
         page,
         route: routeByPage[page] || `/${page || 'unknown'}`,
-        subview: subviewByPage[page] || page || 'unknown',
+        subview: activeSurfaceRuntime.subview || subviewByPage[page] || page || 'unknown',
         modal: checkoutModalIntent
           ? 'checkout'
           : (modal || (requireSignupConsent ? 'consent' : '')),
       },
       entity: {
-        propertyId: maxxisPropertyContextId,
-        conversationId: '',
-        serviceId: '',
-        workflowVisible: false,
+        propertyId: activeSurfaceRuntime.entity?.propertyId || (page === 'matches' ? maxxisPropertyContextId : ''),
+        conversationId: activeSurfaceRuntime.entity?.conversationId || '',
+        serviceId: activeSurfaceRuntime.entity?.serviceId || '',
+        workflowVisible: Boolean(activeSurfaceRuntime.entity?.workflowPropertyId),
         profileScope: page === 'settings' || page === 'onboarding' ? accountType : '',
       },
+      view: activeSurfaceRuntime.view || {},
+      investmentProfile: professionalProfile?.investmentProfile || null,
+      economy: { nuggetBalance: nuggets },
       operational: {
         profileReady: Boolean(profileHydrationReady),
         portfolioReady: Boolean(portfolioHydrationReady),
@@ -5652,13 +5670,16 @@ export default function App() {
     isConsentProcessing,
     isSpotlightProcessing,
     maxxisPropertyContextId,
+    maxxisSurfaceRuntimeContext,
     modal,
     onboardingInitialTab,
     page,
+    nuggets,
     pendingCheckoutIntent,
     portfolioHydrationReady,
     portfolioSyncStatus,
     profileHydrationReady,
+    professionalProfile?.investmentProfile,
     profileSyncStatus,
     requireSignupConsent,
     settingsInitialTab,

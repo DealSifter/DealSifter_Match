@@ -770,6 +770,7 @@ export function MapView({
   activeSpotlightKeys = new Set(),
   propertyUnlocks = [],
   isActive = true,
+  onMaxxisContextChange = null,
 }) {
   const enableMockMapData = import.meta.env.DEV && String(import.meta.env.VITE_ENABLE_MOCK_DATA || '').toLowerCase() === 'true';
   const allT = useT('mapview');
@@ -1488,6 +1489,38 @@ export function MapView({
       return Boolean(props.itemType && props.itemId != null && feature?.payload);
     })
   ), [renderedFeatures]);
+
+  React.useEffect(() => {
+    if (!isActive || typeof onMaxxisContextChange !== 'function') return;
+    const canonicalProperties = safeRenderedFeatures
+      .filter((feature) => String(feature?.properties?.itemType || '').toLowerCase() === 'property')
+      .map((feature) => String(feature?.properties?.itemId || '').trim())
+      .filter(Boolean)
+      .slice(0, 8);
+    const selectedFeature = safeRenderedFeatures.find((feature) => (
+      String(feature?.properties?.itemId || '').trim() === String(selectedCardId || '').trim()
+    ));
+    const selectedPropertyId = String(selectedFeature?.properties?.itemType || '').toLowerCase() === 'property'
+      ? String(selectedFeature?.properties?.itemId || '').trim()
+      : '';
+    onMaxxisContextChange({
+      surfaceName: 'mapview',
+      subview: selectedCardId ? 'selected_pin' : (panelTab === 'filters' ? 'filters' : 'map_canvas'),
+      entity: { propertyId: selectedPropertyId },
+      view: {
+        selectedPropertyId,
+        visiblePropertyIds: canonicalProperties,
+        filters: {
+          showPeople,
+          showProperties,
+          showOnlyUnlocked,
+          showOnlyMyPins,
+          locationMode,
+          locationFilterApplied: Boolean(appliedLocationQuery),
+        },
+      },
+    });
+  }, [appliedLocationQuery, isActive, locationMode, onMaxxisContextChange, panelTab, safeRenderedFeatures, selectedCardId, showOnlyMyPins, showOnlyUnlocked, showPeople, showProperties]);
 
   const safeViewportCenter = sanitizeLatLngPair(viewport?.center) || DEFAULT_CENTER;
   const safeViewportZoomRaw = Number(viewport?.zoom);

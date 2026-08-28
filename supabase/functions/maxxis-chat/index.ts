@@ -232,6 +232,11 @@ function sanitizeContextIds(values: unknown) {
   return Array.from(new Set(values.map((value) => sanitizeText(value, 80)).filter((id) => UUID_PATTERN.test(id)))).slice(0, 10);
 }
 
+function sanitizeContextTextList(values: unknown, maxItems = 8, maxLength = 80) {
+  if (!Array.isArray(values)) return [];
+  return Array.from(new Set(values.map((value) => sanitizeText(value, maxLength)).filter(Boolean))).slice(0, maxItems);
+}
+
 function sanitizeMaxxisContext(value: unknown) {
   if (!value || typeof value !== 'object') return null;
   const raw = value as Record<string, unknown>;
@@ -242,6 +247,10 @@ function sanitizeMaxxisContext(value: unknown) {
   const rawFreshness = raw.freshness && typeof raw.freshness === 'object' ? raw.freshness as Record<string, unknown> : {};
   const rawProvider = raw.provider && typeof raw.provider === 'object' ? raw.provider as Record<string, unknown> : {};
   const rawProperty = raw.property && typeof raw.property === 'object' ? raw.property as Record<string, unknown> : {};
+  const rawView = raw.view && typeof raw.view === 'object' ? raw.view as Record<string, unknown> : {};
+  const rawFilters = rawView.filters && typeof rawView.filters === 'object' ? rawView.filters as Record<string, unknown> : {};
+  const rawProfile = raw.profile && typeof raw.profile === 'object' ? raw.profile as Record<string, unknown> : null;
+  const rawEconomy = raw.economy && typeof raw.economy === 'object' ? raw.economy as Record<string, unknown> : {};
   const rawCapabilities = rawOperational.capabilities && typeof rawOperational.capabilities === 'object' ? rawOperational.capabilities : {};
   const rawState = rawOperational.state && typeof rawOperational.state === 'object' ? rawOperational.state as Record<string, unknown> : {};
   const rawFocusedEntity = rawSessionMemory.lastFocusedEntity && typeof rawSessionMemory.lastFocusedEntity === 'object'
@@ -251,7 +260,7 @@ function sanitizeMaxxisContext(value: unknown) {
   const serviceId = sanitizeText(rawProvider.serviceId, 80);
 
   return {
-    contextVersion: Number(raw.contextVersion) === 1 ? 1 : 1,
+    contextVersion: Number(raw.contextVersion) === 2 ? 2 : 1,
     surface: {
       name: sanitizeText(rawSurface.name || 'unknown', 40),
       route: sanitizeText(rawSurface.route || '/unknown', 80),
@@ -263,6 +272,50 @@ function sanitizeMaxxisContext(value: unknown) {
     },
     ...(UUID_PATTERN.test(propertyId) ? { property: { id: propertyId } } : {}),
     ...(UUID_PATTERN.test(serviceId) ? { provider: { serviceId } } : {}),
+    view: {
+      ...(UUID_PATTERN.test(sanitizeText(rawView.activeCardId, 80)) ? { activeCardId: sanitizeText(rawView.activeCardId, 80) } : {}),
+      ...(Number.isFinite(Number(rawView.activeCardIndex)) ? { activeCardIndex: Math.max(0, Math.min(999, Math.round(Number(rawView.activeCardIndex)))) } : {}),
+      visibleOpportunityIds: sanitizeContextIds(rawView.visibleOpportunityIds).slice(0, 8),
+      visiblePropertyIds: sanitizeContextIds(rawView.visiblePropertyIds).slice(0, 8),
+      comparisonPropertyIds: sanitizeContextIds(rawView.comparisonPropertyIds).slice(0, 3),
+      ...Object.fromEntries(['selectedPropertyId', 'activePropertyId', 'providerServiceId', 'conversationId', 'relationshipId', 'workflowPropertyId']
+        .map((key) => [key, sanitizeText(rawView[key], 80)])
+        .filter(([, id]) => UUID_PATTERN.test(String(id)))),
+      filters: {
+        view: sanitizeText(rawFilters.view, 30),
+        category: sanitizeText(rawFilters.category, 40),
+        profileScope: sanitizeText(rawFilters.profileScope, 30),
+        stateCodes: sanitizeContextTextList(rawFilters.stateCodes, 8, 2).filter((value) => /^[A-Za-z]{2}$/.test(value)).map((value) => value.toUpperCase()),
+        showPeople: Boolean(rawFilters.showPeople),
+        showProperties: Boolean(rawFilters.showProperties),
+        showOnlyUnlocked: Boolean(rawFilters.showOnlyUnlocked),
+        showOnlyMyPins: Boolean(rawFilters.showOnlyMyPins),
+        locationMode: sanitizeText(rawFilters.locationMode, 20),
+        locationFilterApplied: Boolean(rawFilters.locationFilterApplied),
+        peopleFilter: sanitizeText(rawFilters.peopleFilter, 30),
+        interestsFilter: sanitizeText(rawFilters.interestsFilter, 30),
+        portfolioTab: sanitizeText(rawFilters.portfolioTab, 30),
+      },
+    },
+    ...(rawProfile ? {
+      profile: {
+        status: rawProfile.status === 'complete' ? 'complete' : 'draft',
+        profileStrength: Math.max(0, Math.min(100, Math.round(Number(rawProfile.profileStrength) || 0))),
+        investorRoles: sanitizeContextTextList(rawProfile.investorRoles, 6),
+        lookingFor: sanitizeContextTextList(rawProfile.lookingFor, 6),
+        targetMarkets: sanitizeContextTextList(rawProfile.targetMarkets, 6),
+        propertyTypes: sanitizeContextTextList(rawProfile.propertyTypes, 6),
+        strategies: sanitizeContextTextList(rawProfile.strategies, 6),
+        priceRange: sanitizeText(rawProfile.priceRange, 40),
+        acceptableConditions: sanitizeContextTextList(rawProfile.acceptableConditions, 6),
+        capitalReady: ['yes', 'no'].includes(String(rawProfile.capitalReady)) ? String(rawProfile.capitalReady) : '',
+      },
+    } : {}),
+    economy: {
+      ...(Number.isFinite(Number(rawEconomy.nuggetBalance))
+        ? { nuggetBalance: Math.max(0, Math.min(1_000_000_000, Math.floor(Number(rawEconomy.nuggetBalance)))) }
+        : {}),
+    },
     operational: {
       capabilities: booleanRecord(rawCapabilities, ['propertyDetails', 'matchScore', 'serviceNeeds', 'providerMatches', 'dealAdvisor', 'workflow']),
       state: {
@@ -299,7 +352,7 @@ function contextSizeBytes(value: unknown) {
 }
 
 function isSurfaceContextQuestion(message: string) {
-  return /(what am i seeing|what page|where am i|current screen|current page|o que estou vendo|qual tela|onde estou|que pagina|que estoy viendo|pantalla actual|pagina actual)/i.test(message);
+  return /(what am i seeing|what page|where am i|current screen|current page|explain (this|the current) screen|o que estou vendo|qual tela|onde estou|que pagina|explicar? (esta|essa) tela|que estoy viendo|pantalla actual|pagina actual|explica (esta|la) pantalla)/i.test(message);
 }
 
 function shouldUseStructuredContext(message: string, context: unknown) {
@@ -319,13 +372,18 @@ function contextAwarenessMessage(language: MaxxisLanguage, context: ReturnType<t
   const entityType = context?.entity?.type && context.entity.type !== 'NONE' ? context.entity.type.toLowerCase() : '';
   const capabilities = context?.operational?.capabilities || {};
   const activeCapabilities = Object.entries(capabilities).filter(([, enabled]) => Boolean(enabled)).map(([name]) => name);
+  const visibleCount = new Set([
+    ...(context?.view?.visibleOpportunityIds || []),
+    ...(context?.view?.visiblePropertyIds || []),
+  ]).size;
+  const viewDetail = visibleCount > 0 ? ` ${visibleCount} item${visibleCount === 1 ? '' : 's'} are present in the limited visible context.` : '';
   if (language === 'pt') {
-    return `Voce esta em ${surfaceName}${subview && subview !== surfaceName ? ` (${subview})` : ''}. ${entityType ? `O foco atual e ${entityType}.` : 'Nao ha entidade especifica em foco.'} ${activeCapabilities.length ? `Contexto operacional disponivel: ${activeCapabilities.join(', ')}.` : 'Ainda nao ha contexto operacional carregado para este ponto.'}`;
+    return `Voce esta em ${surfaceName}${subview && subview !== surfaceName ? ` (${subview})` : ''}. ${entityType ? `O foco atual e ${entityType}.` : 'Nao ha entidade especifica em foco.'}${visibleCount > 0 ? ` Ha ${visibleCount} item${visibleCount === 1 ? '' : 's'} no contexto visivel limitado.` : ''} ${activeCapabilities.length ? `Contexto operacional disponivel: ${activeCapabilities.join(', ')}.` : 'Ainda nao ha contexto operacional carregado para este ponto.'}`;
   }
   if (language === 'es') {
     return `Estas en ${surfaceName}${subview && subview !== surfaceName ? ` (${subview})` : ''}. ${entityType ? `El foco actual es ${entityType}.` : 'No hay una entidad especifica en foco.'} ${activeCapabilities.length ? `Contexto operativo disponible: ${activeCapabilities.join(', ')}.` : 'Aun no hay contexto operativo cargado para este punto.'}`;
   }
-  return `You are on ${surfaceName}${subview && subview !== surfaceName ? ` (${subview})` : ''}. ${entityType ? `The current focus is ${entityType}.` : 'There is no specific entity in focus.'} ${activeCapabilities.length ? `Available operational context: ${activeCapabilities.join(', ')}.` : 'No operational context is loaded for this point yet.'}`;
+  return `You are on ${surfaceName}${subview && subview !== surfaceName ? ` (${subview})` : ''}. ${entityType ? `The current focus is ${entityType}.` : 'There is no specific entity in focus.'}${viewDetail} ${activeCapabilities.length ? `Available operational context: ${activeCapabilities.join(', ')}.` : 'No operational context is loaded for this point yet.'}`;
 }
 
 async function authenticatedUser(authHeader: string) {
@@ -426,7 +484,7 @@ Deno.serve(async (req) => {
         context_size: structuredContextBytes,
         freshness_summary: Object.values(structuredContext.freshness).includes('stale') ? 'stale' : Object.values(structuredContext.freshness).includes('fresh') ? 'fresh' : 'unknown',
       });
-      return response({ message: text, answer: text, type: 'context_snapshot', data: { surface: structuredContext.surface, entity: structuredContext.entity, operational: structuredContext.operational, freshness: structuredContext.freshness }, actions: [], language }, 200, origin, requestId);
+      return response({ message: text, answer: text, type: 'context_snapshot', data: { surface: structuredContext.surface, entity: structuredContext.entity, view: structuredContext.view, profile: structuredContext.profile || null, economy: structuredContext.economy, operational: structuredContext.operational, freshness: structuredContext.freshness }, actions: [], language }, 200, origin, requestId);
     }
     const stubFunctionCall = isE2ELlmStubEnabled() ? e2eStubFunctionCall(message, propertyContextId) : null;
     if (!geminiApiKey && !stubFunctionCall) {

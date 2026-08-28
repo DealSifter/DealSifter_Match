@@ -75,6 +75,56 @@ describe('Maxxis Deal AI context snapshot', () => {
     });
   });
 
+  it('keeps only allowlisted current-view, investment and nugget context in v2', () => {
+    const snapshot = buildMaxxisContextSnapshot({
+      page: 'mapview',
+      view: {
+        selectedPropertyId: PROPERTY_A,
+        visiblePropertyIds: [PROPERTY_A, PROPERTY_B],
+        filters: { showPeople: true, showProperties: true, locationMode: 'state', locationQuery: 'Private Street' },
+      },
+      investmentProfile: {
+        status: 'complete',
+        profileStrength: 80,
+        investorRoles: ['Cash Buyer'],
+        targetMarkets: ['Dallas, TX'],
+        propertyTypes: ['Single Family'],
+        strategies: ['Fix & Flip'],
+        priceRange: '200_400k',
+        email: 'private@example.test',
+      },
+      economy: { nuggetBalance: 98, ledger: [{ secret: true }] },
+    });
+
+    expect(snapshot).toMatchObject({
+      contextVersion: 2,
+      entity: { type: 'PROPERTY', id: PROPERTY_A },
+      view: { selectedPropertyId: PROPERTY_A, visiblePropertyIds: [PROPERTY_A, PROPERTY_B] },
+      profile: { status: 'complete', investorRoles: ['Cash Buyer'], targetMarkets: ['Dallas, TX'] },
+      economy: { nuggetBalance: 98 },
+    });
+    expect(JSON.stringify(snapshot)).not.toMatch(/Private Street|private@example|ledger|secret/i);
+  });
+
+  it('attaches live view context before an entity has been focused', () => {
+    const snapshot = buildMaxxisContextSnapshot({
+      surface: { page: 'dashboard' },
+      view: {
+        activeCardIndex: 0,
+        visibleOpportunityIds: [PROPERTY_A],
+        filters: { view: 'connections' },
+      },
+      economy: { nuggetBalance: 20 },
+    });
+
+    expect(selectMaxxisContextForMessage(snapshot, `Show property details for ${PROPERTY_A}`)).toMatchObject({
+      contextVersion: 2,
+      surface: { name: 'dashboard' },
+      view: { visibleOpportunityIds: [PROPERTY_A] },
+      economy: { nuggetBalance: 20 },
+    });
+  });
+
   it('marks stale and unavailable context explicitly', () => {
     const snapshot = buildMaxxisContextSnapshot({
       propertyId: PROPERTY_A,
@@ -127,6 +177,7 @@ describe('Maxxis Deal AI context snapshot', () => {
     });
 
     expect(isSurfaceContextQuestion('O que estou vendo?')).toBe(true);
+    expect(isSurfaceContextQuestion('Você consegue explicar esta tela?')).toBe(true);
     expect(describeMaxxisContext(snapshot, 'pt')).toContain('matches');
     expect(describeMaxxisContext(snapshot, 'en')).toContain('current focus is property');
   });

@@ -172,7 +172,7 @@ function getStableInterestListKey(interest, fallbackIndex = 0) {
   ].map((value) => String(value || '').trim()).filter(Boolean).join(':');
 }
 
-export function Dashboard({ page, nuggets, setModal, setPage, onOpenOnboardingTab, openUnlock, unlocked, matched, setMatched, interested, setInterested, purchases, setPurchases, userProfile, personalProfile, professionalProfile, propertyPortfolio, servicePortfolio, accountType, showcaseProperties, categoryOrder, setCategoryOrder, editMode, setEditMode, mobileBottomNavCollapsed = false, addToast, setSystemNotifications = null, isHydrationReady = true, isHydrationSyncing = false, planActionAccess = {}, propertyUnlocks = [], unlockedContactMap = new Map(), currentUserId = 'local-user', activeSpotlightKeys = new Set(), onOpenSpotlight = null, userPreferences = null, onboardingRequired = false }) {
+export function Dashboard({ page, nuggets, setModal, setPage, onOpenOnboardingTab, openUnlock, unlocked, matched, setMatched, interested, setInterested, purchases, setPurchases, userProfile, personalProfile, professionalProfile, propertyPortfolio, servicePortfolio, accountType, showcaseProperties, categoryOrder, setCategoryOrder, editMode, setEditMode, mobileBottomNavCollapsed = false, addToast, setSystemNotifications = null, isHydrationReady = true, isHydrationSyncing = false, planActionAccess = {}, propertyUnlocks = [], unlockedContactMap = new Map(), currentUserId = 'local-user', activeSpotlightKeys = new Set(), onOpenSpotlight = null, userPreferences = null, onboardingRequired = false, onMaxxisContextChange = null }) {
   const isMobileViewport = useMediaQuery('(max-width: 767px)');
   const isTabletPortraitViewport = useMediaQuery('(min-width: 768px) and (max-width: 1080px) and (orientation: portrait)');
   const isTabletLandscapeViewport = useMediaQuery('(min-width: 768px) and (max-width: 1180px) and (orientation: landscape)');
@@ -1122,6 +1122,30 @@ export function Dashboard({ page, nuggets, setModal, setPage, onOpenOnboardingTa
   const propDeckSessionKey = `${feedDeckSessionPrefix}:showcase`;
   const [connDeck, setConnDeck] = useState(() => readFeedDeckSession(connDeckSessionKey, connectionCards.map(c => c.id).filter(id => !getHiddenSet().has(String(id)))));
   const [propDeck, setPropDeck] = useState(() => readFeedDeckSession(propDeckSessionKey, (showcaseItems || []).map(p => p.id).filter(id => !getHiddenSet().has(String(id)))));
+
+  useEffect(() => {
+    if (page !== 'dashboard' || typeof onMaxxisContextChange !== 'function') return;
+    const propertyView = view === 'properties';
+    const activeDeck = propertyView ? propDeck : connDeck;
+    const activeCardId = String(activeDeck[0] || '').trim();
+    onMaxxisContextChange({
+      surfaceName: 'dashboard',
+      subview: propertyView ? 'showcase_deck' : 'connections_deck',
+      entity: { propertyId: propertyView ? activeCardId : '' },
+      view: {
+        activeCardId,
+        activeCardIndex: 0,
+        visibleOpportunityIds: propDeck.slice(0, 8),
+        activePropertyId: propertyView ? activeCardId : '',
+        filters: {
+          view,
+          category: activeCat,
+          profileScope: publishingProfileKey,
+          stateCodes: selectedStates,
+        },
+      },
+    });
+  }, [activeCat, connDeck, onMaxxisContextChange, page, propDeck, publishingProfileKey, selectedStates, view]);
   const [lastConnOp, setLastConnOp] = useState(null); // {type, card, snap}
   const [lastPropOp, setLastPropOp] = useState(null);
   const [injectedProps, setInjectedProps] = useState({});
