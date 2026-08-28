@@ -119,10 +119,14 @@ O Maxxis Deal AI usa Gemini somente para compreender intenção, selecionar tool
 React / MaxxisAssistant
   -> maxxisService
   -> maxxis-chat
-  -> toolRegistry
-  -> módulos determinísticos + Supabase
-  -> resposta estruturada
+  -> Gemini (intenção e seleção de no máximo uma tool round)
+  -> toolRegistry -> módulos determinísticos + Supabase
+  -> resultado estruturado e sanitizado
+  -> Gemini (segunda passagem de interpretação)
+  -> texto natural + dados/cards estruturados
 ```
+
+O conhecimento operacional usado em runtime não é a leitura irrestrita dos arquivos `.md`. Ele é um Knowledge Pack compacto, versionado por `MAXXIS_KNOWLEDGE_VERSION` e selecionado por tópico/intenção. O código atual prevalece quando um documento histórico estiver desatualizado.
 
 O tipo `deal_copilot_overview` agrega, quando solicitado explicitamente, detalhes da property, métricas, Deal Advisor, Workflow, Next Best Action e contexto opcional de provider/conversa. O primeiro nível prioriza Next Best Action, progresso e pontos de atenção; métricas e contexto adicional ficam em "View details".
 
@@ -165,7 +169,7 @@ O contrato normativo esta em `MAXXIS_AUTONOMY_LEVELS.md` e usa: `READ`, `EXPLAIN
 ## Feature Flags, Kill Switches E Preferencias
 
 - `maxxis_next_generation`: rollout geral da experiencia futura; falha fechada.
-- `maxxis_proactive_insights`: controla proatividade; producao permanece OFF ate rollout aprovado.
+- `maxxis_proactive_insights`: controla proatividade; está ON para 100% em produção e pode ser desligado pelo usuário nas preferências. Cooldown, dedupe, limites de sessão e supressões de segurança continuam obrigatórios.
 - `maxxis_deal_memory`: controla Deal Memory; producao permanece OFF ate rollout aprovado.
 - Kill switches de messaging e contact unlock removem as acoes correspondentes no Orchestrator, sem fallback autonomo.
 - Preferencias por conta sincronizam proatividade, animations e intensidade entre header e Settings. `SUBTLE` e o default; `prefers-reduced-motion` prevalece na apresentacao sem corromper a preferencia salva.
@@ -175,6 +179,21 @@ O contrato normativo esta em `MAXXIS_AUTONOMY_LEVELS.md` e usa: `READ`, `EXPLAIN
 Os seis assets oficiais mapeiam `IDLE`, `OBSERVING`, `PROCESSING`, `NOTICED`, `WAITING` e `SUCCESS`. Os PNGs em `src/assets/maxxis/avatar/` sao autoridade visual e nao devem ser modificados. Timeline, cooldown e Attention Controller impedem bubble concorrente, layout shift e animacao incompatível; reduced motion e respeitado.
 
 Deal Memory guarda somente snapshot allowlisted, por conta/property, com limites de tamanho, quantidade e retencao definidos em `FEATURE_FLAGS.md`. Cross-Surface Continuity e runtime/session-only, TTL curto, isolada por conta/property e sem queries, Gemini, polling ou persistencia. Nenhuma das duas guarda corpo de mensagem, contato, prompt ou payload protegido.
+
+## Proatividade E Fallback Operacional
+
+Sinais proativos vêm apenas de estado/eventos reais já autorizados: replies de conversas, service matches, Deal Gaps/Advisor, Workflow, unlock confirmado, Smart Actions elegíveis, pending actions e mudança de contexto confiável. Não há polling. O fluxo permanece `signal -> relevance -> attention -> orchestrator -> composer -> bubble -> chat`; clicar apenas restaura contexto e nunca confirma ou executa uma ação.
+
+Fallback segue uma política única e explícita:
+
+- nível 0: Gemini + tools em operação normal;
+- nível 1: resultado estruturado já calculado pela tool quando a segunda passagem falha;
+- nível 2: resposta do catálogo local de conhecimento para tópico reconhecido;
+- nível 3: mensagem genérica segura e transparente.
+
+Todo fallback de níveis 1–3 retorna `degraded=true`, `degradedReason`, `requestId`, `fallbackLevel` e `fallbackSource` quando aplicável. O frontend não mantém um catálogo concorrente e exibe discretamente o estado degradado.
+
+Observabilidade registra contagens de request/sucesso/falha do Gemini, fallback/degraded, seleção e resultado de tools, sucesso da segunda passagem e duração da resposta. Logs não incluem prompt, corpo do chat, email, telefone, contato privado ou chave de API.
 
 ## Deploy, Rollback E Backlog
 
