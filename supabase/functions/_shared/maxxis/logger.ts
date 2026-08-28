@@ -13,6 +13,13 @@ function functionNameForEvent(event: string) {
 
 export function logMaxxisEvent(event: string, details: Record<string, unknown>) {
   const success = details.success !== false && !details.error_code;
+  const isChatResponse = event === 'maxxis_chat';
+  const isGeminiRequest = isChatResponse && Boolean(
+    details.model
+    || String(details.degraded_reason || details.error_code || '').startsWith('GEMINI_'),
+  );
+  const isToolEvent = event === 'maxxis_tool';
+  const isSecondPassEvent = event === 'maxxis_second_pass';
   return logOperationalEvent({
     functionName: String(details.function_name || functionNameForEvent(event)),
     operation: event,
@@ -66,6 +73,15 @@ export function logMaxxisEvent(event: string, details: Record<string, unknown>) 
       budget_exhausted: Boolean(details.budget_exhausted),
       degraded_reason: details.degraded_reason,
       model_attempts: Number(details.model_attempts || 0),
+      gemini_request_count: isGeminiRequest ? 1 : 0,
+      gemini_success_count: isGeminiRequest && success ? 1 : 0,
+      gemini_failure_count: isGeminiRequest && !success ? 1 : 0,
+      degraded_count: details.degraded_reason ? 1 : 0,
+      tool_selection_count: isChatResponse && Number(details.tool_call_count || 0) > 0 ? 1 : 0,
+      tool_success_count: isToolEvent && success ? 1 : 0,
+      tool_failure_count: isToolEvent && !success ? 1 : 0,
+      second_pass_success: isSecondPassEvent && success ? 1 : 0,
+      response_duration_ms: isChatResponse ? Number(details.duration_ms || 0) : 0,
     },
   });
 }

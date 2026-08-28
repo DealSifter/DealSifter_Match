@@ -90,3 +90,69 @@ test('real Gemini selects tools and interprets their structured results in a sec
     expectToolInterpretation(result, item.expectedTool, item.expectedType);
   }
 });
+
+test('real Gemini understands free-language requests in Portuguese, English and Spanish', async ({ realBackend }) => {
+  const session = await realBackend.signIn(realBackend.investor.email, realBackend.investor.password);
+  const token = session.access_token;
+  const cases = [
+    {
+      language: 'pt',
+      message: 'Quais imóveis parecem mais alinhados ao que eu busco?',
+      page: 'feed',
+      expectedTool: 'searchProperties',
+      expectedType: 'properties',
+    },
+    {
+      language: 'pt',
+      message: 'Tem alguma coisa aqui que eu deveria prestar atenção?',
+      page: 'property-details',
+      context: { propertyId: realBackend.property.id },
+      expectedTool: 'getDealCopilotOverview',
+      expectedType: 'deal_copilot_overview',
+    },
+    {
+      language: 'en',
+      message: 'Could you walk me through what I am looking at on this screen?',
+      page: 'dashboard',
+    },
+    {
+      language: 'en',
+      message: 'Who could help me move this property forward?',
+      page: 'property-details',
+      context: { propertyId: realBackend.property.id },
+      expectedTool: 'getPropertyDetails',
+      expectedType: 'property_details',
+    },
+    {
+      language: 'es',
+      message: '¿Qué cambió en este negocio desde la última revisión?',
+      page: 'property-details',
+      context: { propertyId: realBackend.property.id },
+      expectedTool: 'getDealCopilotOverview',
+      expectedType: 'deal_copilot_overview',
+    },
+    {
+      language: 'es',
+      message: '¿Y ahora qué debería revisar aquí?',
+      page: 'property-details',
+      context: { propertyId: realBackend.property.id },
+      history: [{ role: 'user', content: 'Explícame la situación actual de este negocio.' }],
+    },
+  ];
+
+  for (const item of cases) {
+    const result = await realBackend.invokeFunction({
+      token,
+      name: 'maxxis-chat',
+      body: {
+        message: item.message,
+        page: item.page,
+        language: item.language,
+        history: item.history || [],
+        context: item.context || {},
+      },
+    });
+    if (item.expectedTool) expectToolInterpretation(result, item.expectedTool, item.expectedType);
+    else expectHealthyGemini(result);
+  }
+});

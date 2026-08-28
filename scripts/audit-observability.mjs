@@ -34,6 +34,7 @@ if (config.sampling?.session_replay !== 0) fail('Session Replay must remain disa
 const frontend = read('src/lib/observability.js');
 const vite = read('vite.config.js');
 const edge = read('supabase/functions/_shared/observability.ts');
+const maxxisLogger = read('supabase/functions/_shared/maxxis/logger.ts');
 const workflow = read('.github/workflows/observability-smoke.yml');
 const sourceCorpus = [read('src/lib/observability.js'), read('vite.config.js')].join('\n');
 
@@ -41,6 +42,9 @@ if (!frontend.includes('sendDefaultPii: false') || !frontend.includes('beforeSen
 if (!frontend.includes('browserTracingIntegration') || !frontend.includes('captureWebVital')) fail('Frontend performance/Web Vitals instrumentation is incomplete.');
 if (!vite.includes("sourcemap: sentryUploadEnabled ? 'hidden' : false") || !vite.includes('filesToDeleteAfterUpload')) fail('Private Sentry sourcemap strategy is incomplete.');
 if (!edge.includes("signal: 'operational_event'") || !edge.includes('request_id') || !edge.includes('error_category')) fail('Edge structured logging schema is incomplete.');
+for (const metric of ['gemini_request_count', 'gemini_success_count', 'gemini_failure_count', 'fallback_count', 'degraded_count', 'tool_selection_count', 'tool_success_count', 'tool_failure_count', 'second_pass_success', 'response_duration_ms']) {
+  if (!maxxisLogger.includes(metric)) fail(`Missing Maxxis operational metric: ${metric}`);
+}
 if (!workflow.includes('schedule:') || !workflow.includes('force_alert')) fail('Uptime and controlled alert workflow is incomplete.');
 if (/VITE_(?:SUPABASE_SERVICE_ROLE|STRIPE_SECRET|SENTRY_AUTH_TOKEN)/.test(sourceCorpus)) fail('A server-side secret is exposed through a VITE_ name.');
 
