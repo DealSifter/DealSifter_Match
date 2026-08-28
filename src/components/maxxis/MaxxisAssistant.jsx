@@ -1750,6 +1750,7 @@ export function MaxxisAssistant({ page = 'dashboard', onOpenSupport = null, onNa
       messages,
       now,
       accountKey: sessionKeyRef.current,
+      pendingActions: [pendingProviderUnlock, pendingProviderMessageSend].filter(Boolean),
     });
     const relevanceOptions = {
       config: { enabled: proactiveEnabled, attentionSafetyManaged: true },

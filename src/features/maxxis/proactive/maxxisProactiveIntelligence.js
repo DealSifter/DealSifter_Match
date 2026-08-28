@@ -1,5 +1,6 @@
 import { buildMaxxisDealGaps, normalizeMaxxisDealIntelligenceSource } from '../intelligence/maxxisDealIntelligence';
 import { buildMaxxisSmartActions } from '../actions/maxxisSmartActions';
+import { MAXXIS_PROACTIVE_SIGNAL_SOURCE_MAP } from './maxxisProactiveEventBridge';
 
 export const MAXXIS_PROACTIVE_SIGNAL_CODES = Object.freeze({
   PROVIDER_REPLIED: 'PROVIDER_REPLIED',
@@ -135,6 +136,7 @@ const ACTIONFUL_SIGNAL_CODES = new Set([
   'PROVIDER_UNLOCKED',
   'SERVICE_MATCH_AVAILABLE',
   'PENDING_ACTION_EXPIRING',
+  'DEAL_CONTEXT_UPDATED',
   'IMPORTANT_MISSING_INFORMATION',
   'NEW_ACTION_AVAILABLE',
 ]);
@@ -161,6 +163,16 @@ function asArray(value) {
   return Array.isArray(value) ? value : [];
 }
 
+function stableFingerprint(value) {
+  const text = JSON.stringify(value || '');
+  let hash = 2166136261;
+  for (let index = 0; index < text.length; index += 1) {
+    hash ^= text.charCodeAt(index);
+    hash = Math.imul(hash, 16777619);
+  }
+  return (hash >>> 0).toString(36);
+}
+
 function uniqueSignals(signals) {
   const seen = new Set();
   const result = [];
@@ -185,9 +197,10 @@ function normalizeSeverity(value, fallback = 'RELEVANT') {
 function normalizeSignal(raw = {}, fallback = {}) {
   const code = cleanText(raw.code || fallback.code, 60).toUpperCase();
   if (!MAXXIS_PROACTIVE_SIGNAL_CODES[code]) return null;
+  const sourceDefinition = MAXXIS_PROACTIVE_SIGNAL_SOURCE_MAP[code] || {};
   const entityType = cleanEntityType(raw.entityType || fallback.entityType || 'PROPERTY');
   const entityId = cleanTechnicalId(raw.entityId || fallback.entityId || '');
-  const source = sourceFromEvent(raw.source || fallback.source);
+  const source = sourceFromEvent(raw.source || fallback.source || sourceDefinition.source);
   const occurredAt = Number(raw.occurredAt || fallback.occurredAt || Date.now());
   const safeOccurredAt = Number.isFinite(occurredAt) && occurredAt > 0 ? occurredAt : Date.now();
   const evidence = {
@@ -199,6 +212,7 @@ function normalizeSignal(raw = {}, fallback = {}) {
   };
   const dedupeKey = cleanTechnicalId(raw.dedupeKey || fallback.dedupeKey || `${code}:${entityType}:${entityId || evidence.propertyId || evidence.serviceId || 'none'}:${source}`);
   if (!dedupeKey) return null;
+  const freshnessMs = Number(raw.freshnessMs || fallback.freshnessMs || sourceDefinition.freshnessMs || MAXXIS_PROACTIVE_DEFAULT_CONFIG.maxAgeMs);
   return {
     code,
     entityType,
@@ -208,6 +222,9 @@ function normalizeSignal(raw = {}, fallback = {}) {
     evidence,
     severity: normalizeSeverity(raw.severity, fallback.severity || 'RELEVANT'),
     dedupeKey,
+    freshnessMs: Number.isFinite(freshnessMs) && freshnessMs > 0
+      ? Math.min(freshnessMs, MAXXIS_PROACTIVE_DEFAULT_CONFIG.maxAgeMs)
+      : MAXXIS_PROACTIVE_DEFAULT_CONFIG.maxAgeMs,
   };
 }
 
@@ -238,6 +255,7 @@ export function buildMaxxisProactiveSignals({
   messages = [],
   now = Date.now(),
   accountKey = '',
+  pendingActions = [],
 } = {}) {
   if (isClosedPropertyContext({ appContext, messages })) return [];
   const entity = contextSnapshot.entity || {};
@@ -259,21 +277,25 @@ export function buildMaxxisProactiveSignals({
     ...asArray(appContext?.operational?.proactiveEvents),
   ];
   const explicitSignals = explicitEvents
-    .map((event) => normalizeSignal({
-      ...event,
-      dedupeKey: `${accountPrefix}:${event?.code}:${event?.dedupeKey || event?.entityId || event?.serviceId || event?.propertyId || focusedPropertyId || focusedServiceId || now}`,
-    }, {
-      entityType: event?.entityType || (event?.serviceId ? 'SERVICE' : 'PROPERTY'),
-      entityId: event?.entityId || event?.serviceId || event?.propertyId || focusedPropertyId || focusedServiceId,
-      source: event?.source || 'app_state',
-      occurredAt: event?.occurredAt || now,
-      evidence: {
-        propertyId: event?.propertyId || focusedPropertyId,
-        serviceId: event?.serviceId || focusedServiceId,
-        actionAvailable: true,
-      },
-      dedupeKey: `${accountPrefix}:${event?.code}:${event?.dedupeKey || event?.entityId || event?.serviceId || event?.propertyId || focusedPropertyId || focusedServiceId || now}`,
-    }))
+    .map((event) => {
+      const eventIdentity = event?.dedupeKey || event?.entityId || event?.serviceId || event?.propertyId || focusedPropertyId || focusedServiceId || now;
+      const scopedDedupeKey = `${accountPrefix}:${event?.code}:${stableFingerprint(eventIdentity)}`;
+      return normalizeSignal({
+        ...event,
+        dedupeKey: scopedDedupeKey,
+      }, {
+        entityType: event?.entityType || (event?.serviceId ? 'SERVICE' : 'PROPERTY'),
+        entityId: event?.entityId || event?.serviceId || event?.propertyId || focusedPropertyId || focusedServiceId,
+        source: event?.source || 'app_state',
+        occurredAt: event?.occurredAt || now,
+        evidence: {
+          propertyId: event?.propertyId || focusedPropertyId,
+          serviceId: event?.serviceId || focusedServiceId,
+          actionAvailable: true,
+        },
+        dedupeKey: scopedDedupeKey,
+      });
+    })
     .filter(Boolean);
 
   const signals = [...explicitSignals];
@@ -284,6 +306,11 @@ export function buildMaxxisProactiveSignals({
   const latestDealSource = latestDealMessage ? normalizeMaxxisDealIntelligenceSource({ type: latestDealMessage.type, data: latestDealMessage.data }) : null;
   const dealGaps = latestDealSource ? buildMaxxisDealGaps(latestDealSource) : [];
   const smartActions = latestDealSource ? buildMaxxisSmartActions({ type: latestDealMessage.type, data: latestDealMessage.data }, { maxVisible: 3 }) : [];
+  const latestMessageKey = cleanTechnicalId(latestDealMessage?.id) || focusedPropertyId || 'context';
+  const matchedServices = asArray(latestDealSource?.serviceMatches)
+    .flatMap((match) => asArray(match?.services))
+    .filter((service) => cleanTechnicalId(service?.id));
+  const workflowItems = asArray(latestDealSource?.workflow?.items);
 
   if (state.providerReplyAvailable) {
     signals.push(normalizeSignal({}, {
@@ -309,7 +336,7 @@ export function buildMaxxisProactiveSignals({
       dedupeKey: `${accountPrefix}:PROVIDER_UNLOCKED:${focusedServiceId || focusedPropertyId || 'context'}`,
     }));
   }
-  if (capabilities.providerMatches && appContext?.operational?.serviceMatchAvailable === true) {
+  if (capabilities.providerMatches && (matchedServices.length > 0 || appContext?.operational?.serviceMatchAvailable === true)) {
     signals.push(normalizeSignal({}, {
       code: 'SERVICE_MATCH_AVAILABLE',
       entityType: 'PROPERTY',
@@ -318,7 +345,7 @@ export function buildMaxxisProactiveSignals({
       occurredAt: now,
       severity: 'RELEVANT',
       evidence: { propertyId: focusedPropertyId, serviceId: focusedServiceId, actionAvailable: true },
-      dedupeKey: `${accountPrefix}:SERVICE_MATCH_AVAILABLE:${focusedPropertyId || 'context'}`,
+      dedupeKey: `${accountPrefix}:SERVICE_MATCH_AVAILABLE:${focusedPropertyId || 'context'}:${latestMessageKey}`,
     }));
   }
   if (dealGaps.length || appContext?.operational?.newDealGapAvailable === true) {
@@ -330,10 +357,10 @@ export function buildMaxxisProactiveSignals({
       occurredAt: now,
       severity: dealGaps.some((gap) => gap?.category === 'DATA') ? 'IMPORTANT' : 'RELEVANT',
       evidence: { propertyId: focusedPropertyId, serviceId: focusedServiceId, actionAvailable: true },
-      dedupeKey: `${accountPrefix}:NEW_DEAL_GAP:${focusedPropertyId || latestDealMessage?.id || 'context'}`,
+      dedupeKey: `${accountPrefix}:NEW_DEAL_GAP:${focusedPropertyId || 'context'}:${latestMessageKey}:${stableFingerprint(dealGaps.map((gap) => gap?.code))}`,
     }));
   }
-  if (appContext?.operational?.workflowChanged === true) {
+  if (workflowItems.length > 0 || appContext?.operational?.workflowChanged === true) {
     signals.push(normalizeSignal({}, {
       code: 'WORKFLOW_ITEM_CHANGED',
       entityType: 'PROPERTY',
@@ -342,10 +369,10 @@ export function buildMaxxisProactiveSignals({
       occurredAt: now,
       severity: 'INFO',
       evidence: { propertyId: focusedPropertyId, actionAvailable: true },
-      dedupeKey: `${accountPrefix}:WORKFLOW_ITEM_CHANGED:${focusedPropertyId || 'context'}`,
+      dedupeKey: `${accountPrefix}:WORKFLOW_ITEM_CHANGED:${focusedPropertyId || 'context'}:${stableFingerprint(workflowItems.map((item) => [item?.code, item?.status]))}`,
     }));
   }
-  if (smartActions.some((action) => action?.enabled) && appContext?.operational?.newActionAvailable === true) {
+  if (smartActions.some((action) => action?.enabled) || appContext?.operational?.newActionAvailable === true) {
     signals.push(normalizeSignal({}, {
       code: 'NEW_ACTION_AVAILABLE',
       entityType: focusedPropertyId ? 'PROPERTY' : 'PRODUCT',
@@ -354,9 +381,27 @@ export function buildMaxxisProactiveSignals({
       occurredAt: now,
       severity: 'INFO',
       evidence: { propertyId: focusedPropertyId, serviceId: focusedServiceId, actionAvailable: true },
-      dedupeKey: `${accountPrefix}:NEW_ACTION_AVAILABLE:${focusedPropertyId || latestDealMessage?.id || 'context'}`,
+      dedupeKey: `${accountPrefix}:NEW_ACTION_AVAILABLE:${focusedPropertyId || 'context'}:${latestMessageKey}:${stableFingerprint(smartActions.filter((action) => action?.enabled).map((action) => action?.code))}`,
     }));
   }
+
+  asArray(pendingActions).forEach((action) => {
+    const expiresAt = new Date(action?.expiresAt || action?.expires_at || 0).getTime();
+    if (!Number.isFinite(expiresAt) || expiresAt <= now || expiresAt - now > 15 * 60_000) return;
+    const serviceId = cleanTechnicalId(action?.serviceId || focusedServiceId);
+    const propertyId = cleanTechnicalId(action?.propertyId || focusedPropertyId);
+    const actionId = cleanTechnicalId(action?.intentToken || action?.id || serviceId || propertyId);
+    if (!actionId) return;
+    signals.push(normalizeSignal({}, {
+      code: 'PENDING_ACTION_EXPIRING',
+      entityType: serviceId ? 'SERVICE' : 'PROPERTY',
+      entityId: serviceId || propertyId,
+      occurredAt: now,
+      severity: 'IMPORTANT',
+      evidence: { propertyId, serviceId, actionAvailable: true },
+      dedupeKey: `${accountPrefix}:PENDING_ACTION_EXPIRING:${actionId}:${Math.floor(expiresAt / 60_000)}`,
+    }));
+  });
 
   return uniqueSignals(signals.filter(Boolean));
 }
@@ -410,8 +455,9 @@ export function evaluateMaxxisProactiveAttention(signal = {}, {
   if (!visualSafetyManaged && (userActivity.typing || userActivity.modalOpen || userActivity.criticalFlow || contextSnapshot.operational?.state?.pendingActionExists)) {
     return { shouldSurface: false, priority: 0, reasonCode: 'USER_BUSY', expiresAt: 0 };
   }
+  const signalMaxAgeMs = Math.min(settings.maxAgeMs, Number(signal.freshnessMs || settings.maxAgeMs));
   const age = now - Number(signal.occurredAt || 0);
-  if (age < 0 || age > settings.maxAgeMs) return { shouldSurface: false, priority: 0, reasonCode: 'STALE_SIGNAL', expiresAt: 0 };
+  if (age < 0 || age > signalMaxAgeMs) return { shouldSurface: false, priority: 0, reasonCode: 'STALE_SIGNAL', expiresAt: 0 };
   if (sessionMemory.dismissedSignals?.has(signal.dedupeKey)) return { shouldSurface: false, priority: 0, reasonCode: 'DISMISSED', expiresAt: 0 };
   if (sessionMemory.surfacedSignals?.has(signal.dedupeKey) || sessionMemory.seenSignals?.has(signal.dedupeKey)) {
     return { shouldSurface: false, priority: 0, reasonCode: 'DUPLICATE', expiresAt: 0 };
@@ -436,7 +482,7 @@ export function evaluateMaxxisProactiveAttention(signal = {}, {
     shouldSurface: true,
     priority,
     reasonCode: sameEntityBoost ? 'RELEVANT_SAME_CONTEXT' : 'RELEVANT_SIGNAL',
-    expiresAt: now + Math.min(settings.maxAgeMs, 10 * 60_000),
+    expiresAt: now + Math.min(signalMaxAgeMs, 10 * 60_000),
   };
 }
 

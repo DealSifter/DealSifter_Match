@@ -103,6 +103,45 @@ describe('Maxxis Deal AI proactive intelligence', () => {
     expect(new Set(signals.map((item) => item.dedupeKey)).size).toBe(signals.length);
   });
 
+  it('derives real matching, intelligence, workflow, unlock, smart-action and pending signals without synthetic flags', () => {
+    const messages = [{
+      id: 'deal-runtime-1',
+      role: 'assistant',
+      type: 'property_details',
+      createdAt: new Date(now),
+      data: {
+        property: { id: propertyId, price: 100000, sqft: 0 },
+        missingFields: ['sqft'],
+        serviceNeeds: [{ serviceType: 'General Contractor' }],
+        serviceMatches: [{ services: [{ id: serviceId, contactAccess: { status: 'already_unlocked' } }] }],
+        workflow: { items: [{ code: 'review_title', status: 'pending' }] },
+        nextBestAction: { code: 'review_workflow', priority: 'medium' },
+      },
+    }];
+    const signals = buildMaxxisProactiveSignals({
+      contextSnapshot: context({
+        operational: {
+          ...context().operational,
+          state: { ...context().operational.state, contactAccessState: 'already_unlocked' },
+        },
+      }),
+      messages,
+      pendingActions: [{ intentToken: 'intent-1', serviceId, expiresAt: new Date(now + 5 * 60_000).toISOString() }],
+      now,
+      accountKey: 'acct-real',
+    });
+
+    expect(signals.map((item) => item.code)).toEqual(expect.arrayContaining([
+      'SERVICE_MATCH_AVAILABLE',
+      'IMPORTANT_MISSING_INFORMATION',
+      'WORKFLOW_ITEM_CHANGED',
+      'PROVIDER_UNLOCKED',
+      'NEW_ACTION_AVAILABLE',
+      'PENDING_ACTION_EXPIRING',
+    ]));
+    expect(signals.every((item) => item.source && item.freshnessMs > 0)).toBe(true);
+  });
+
   it('ignores invalid events and closed property contexts', () => {
     expect(buildMaxxisProactiveSignals({
       contextSnapshot: context(),

@@ -223,7 +223,11 @@ import {
 
 import { DEFAULT_USER_PREFERENCES, normalizeUserPreferences } from './domain/profile/userPreferences';
 import { readMaxxisProactiveFlagOverrides } from './features/maxxis/preferences/maxxisPreferences';
-import { buildMaxxisProactiveEventsFromChatNotifications } from './features/maxxis/proactive/maxxisProactiveEventBridge';
+import {
+  buildMaxxisProactiveEventsFromRuntime,
+  buildMaxxisTrustedDealContextEvents,
+  createMaxxisProactiveRuntimeEvent,
+} from './features/maxxis/proactive/maxxisProactiveEventBridge';
 
 // Keys whose full (media-inclusive) version is stored in localforage (IndexedDB)
 // instead of localStorage to avoid the ~5MB quota limit.
@@ -902,6 +906,17 @@ export default function App() {
   const [maxxisPropertyAnalysisRequest, setMaxxisPropertyAnalysisRequest] = useState(null);
   const [maxxisPropertyContextId, setMaxxisPropertyContextId] = useState('');
   const [maxxisSurfaceRuntimeContext, setMaxxisSurfaceRuntimeContext] = useState({ surfaceName: '', view: {}, entity: {} });
+  const [maxxisRuntimeProactiveEvents, setMaxxisRuntimeProactiveEvents] = useState([]);
+  const maxxisTrustedDealVersionsRef = useRef({ accountKey: '', versions: {} });
+  const recordMaxxisRuntimeProactiveEvent = useCallback((eventInput) => {
+    const event = createMaxxisProactiveRuntimeEvent(eventInput?.code, eventInput);
+    if (!event) return;
+    setMaxxisRuntimeProactiveEvents((previous) => {
+      const current = Array.isArray(previous) ? previous : [];
+      if (current.some((item) => item.dedupeKey === event.dedupeKey)) return current;
+      return [...current, event].slice(-30);
+    });
+  }, []);
   const handleMaxxisSurfaceContextChange = useCallback((nextContext = {}) => {
     const next = nextContext && typeof nextContext === 'object'
       ? nextContext
@@ -5194,6 +5209,22 @@ export default function App() {
         setChatFocusTarget(matchedCard);
         setChatFocusToken((v) => v + 1);
         setPage('matches');
+        if (remoteUnlockRow?.unlock_id) {
+          const propertyId = isPropertyUnlock ? String(card.propertyId || '') : '';
+          const serviceId = !isPropertyUnlock && String(card?.cardKind || '').toLowerCase() === 'service'
+            ? String(contactUnlockId || '')
+            : '';
+          recordMaxxisRuntimeProactiveEvent({
+            code: 'PROVIDER_UNLOCKED',
+            entityType: propertyId ? 'PROPERTY' : serviceId ? 'SERVICE' : 'CONTACT',
+            entityId: propertyId || serviceId || String(unlockOwnerId || ''),
+            propertyId,
+            serviceId,
+            eventId: String(remoteUnlockRow.unlock_id),
+            occurredAt: remoteUnlockRow.created_at || Date.now(),
+            severity: 'INFO',
+          });
+        }
       } catch {
         // Rollback any optimistic updates
         restorePrevState();
@@ -5308,6 +5339,21 @@ export default function App() {
     if (!isHydratingPortfolio && portfolioHydrationAttempts >= 6) return true;
     return false;
   }, [isHydratingPortfolio, portfolioHydrationAttempts, portfolioSyncSnapshot, supabaseUserId]);
+
+  useEffect(() => {
+    const accountKey = String(supabaseUserId || authSession?.userId || 'local-user');
+    const previous = maxxisTrustedDealVersionsRef.current;
+    if (previous.accountKey !== accountKey) {
+      maxxisTrustedDealVersionsRef.current = { accountKey, versions: {} };
+      setMaxxisRuntimeProactiveEvents([]);
+      if (!portfolioHydrationReady) return;
+    }
+    if (!portfolioHydrationReady) return;
+    const activePrevious = maxxisTrustedDealVersionsRef.current;
+    const result = buildMaxxisTrustedDealContextEvents(activePrevious.versions, propertyPortfolio);
+    maxxisTrustedDealVersionsRef.current = { accountKey, versions: result.versions };
+    result.events.forEach(recordMaxxisRuntimeProactiveEvent);
+  }, [authSession?.userId, portfolioHydrationReady, propertyPortfolio, recordMaxxisRuntimeProactiveEvent, supabaseUserId]);
 
   const dashboardHydrationReady = profileHydrationReady && portfolioHydrationReady;
   const dashboardHydrationSyncing = isHydratingProfiles || isHydratingPortfolio;
@@ -5656,7 +5702,11 @@ export default function App() {
           && (profileSyncStatus === 'syncing' || portfolioSyncStatus === 'syncing')
         ),
       },
-      proactiveEvents: buildMaxxisProactiveEventsFromChatNotifications(chatNotifications),
+      proactiveEvents: buildMaxxisProactiveEventsFromRuntime({
+        chatNotifications,
+        conversations: convos,
+        runtimeEvents: maxxisRuntimeProactiveEvents,
+      }),
     };
   }, [
     accountType,
@@ -5664,6 +5714,8 @@ export default function App() {
     checkoutModalIntent,
     checkoutSubmitting,
     chatNotifications,
+    convos,
+    maxxisRuntimeProactiveEvents,
     isAccountProcessing,
     isAdminAuthProcessing,
     isAuthProcessing,
@@ -5783,8 +5835,18 @@ export default function App() {
                 onNuggetBalanceChange={(value) => {
                   void applyConfirmedNuggetBalance({ serverRemainingNuggets: value, refresh: true });
                 }}
-                onProviderUnlockConfirmed={() => {
+                onProviderUnlockConfirmed={(result) => {
                   void fetchRemoteUnlockState();
+                  if (result?.serviceId) {
+                    recordMaxxisRuntimeProactiveEvent({
+                      code: 'PROVIDER_UNLOCKED',
+                      entityType: 'SERVICE',
+                      entityId: String(result.serviceId),
+                      serviceId: String(result.serviceId),
+                      eventId: `maxxis-unlock:${result.serviceId}:${Date.now()}`,
+                      severity: 'INFO',
+                    });
+                  }
                 }}
                 userPreferences={userPreferences}
                 onChangeUserPreferences={handleChangeUserPreferences}

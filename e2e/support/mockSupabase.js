@@ -293,7 +293,7 @@ function tablePayload(table, userId, wantsObject, state = {}) {
         message_params: {},
         metadata: { originalLang: 'en', translatedLang: 'en' },
         read_at: '2026-01-04T12:05:00.000Z',
-        created_at: '2026-01-04T12:00:00.000Z',
+        created_at: state.runtimeProviderReply ? new Date().toISOString() : '2026-01-04T12:00:00.000Z',
       },
       {
         id: 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaa2',
@@ -467,6 +467,7 @@ export async function setupMockSupabase(context, options = {}) {
     confirmedMessageActionIds: [],
     unlockedServiceIds: [],
     maxxisProviderReplied: false,
+    runtimeProviderReply: false,
   };
 
   await context.route('**/*', async (route) => {
