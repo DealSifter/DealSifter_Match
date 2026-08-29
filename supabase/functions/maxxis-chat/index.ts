@@ -62,6 +62,81 @@ function isE2ELlmStubEnabled() {
     && E2E_LLM_STUB_PROJECT_REFS.has(supabaseProjectRef());
 }
 
+function normalizeIntentText(message: string) {
+  return ` ${message.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase().replace(/[^a-z0-9/$]+/g, ' ')} `;
+}
+
+function intentIncludesAny(normalized: string, terms: string[]) {
+  return terms.some((term) => normalized.includes(term));
+}
+
+function resolveMandatoryToolCall(message: string, propertyContextId: string, comparisonPropertyIds: string[]) {
+  const normalized = normalizeIntentText(message);
+  if (comparisonPropertyIds.length >= 2 && intentIncludesAny(normalized, [' compare ', ' comparar ', ' compare estos ', ' compare estes '])) {
+    return { name: 'compareProperties', args: { propertyIds: comparisonPropertyIds.slice(0, 3) } };
+  }
+  if (propertyContextId && intentIncludesAny(normalized, [
+    ' como esta este deal ',
+    ' como esta esse deal ',
+    ' deal status ',
+    ' deal summary ',
+    ' overall situation ',
+    ' situacion actual ',
+    ' situacao atual ',
+    ' que mudou ',
+    ' que cambio ',
+    ' what changed ',
+    ' deveria me preocupar ',
+    ' deveria prestar atencao ',
+    ' prestar atencao ',
+    ' should worry ',
+    ' should pay attention ',
+    ' concern ',
+  ])) {
+    return { name: 'getDealCopilotOverview', args: { propertyId: propertyContextId } };
+  }
+  if (propertyContextId && intentIncludesAny(normalized, [
+    ' price/sqft ',
+    ' price per sqft ',
+    ' preco por sqft ',
+    ' preço por sqft ',
+    ' sqft ',
+    ' dados faltando ',
+    ' dados estao faltando ',
+    ' missing data ',
+    ' missing information ',
+    ' o que acha deste imovel ',
+    ' o que acha desse imovel ',
+    ' pontos devo revisar ',
+    ' should review ',
+    ' revisar aqui ',
+    ' quem pode me ajudar ',
+    ' who can help ',
+    ' who could help ',
+  ])) {
+    const includeServiceMatches = intentIncludesAny(normalized, [' ajudar ', ' help ', ' provider ', ' providers ', ' service ', ' services ', ' profissionais ', ' contractor ']);
+    const includeOperationalContext = intentIncludesAny(normalized, [' e agora ', ' next ', ' workflow ', ' checklist ', ' progress ']);
+    return {
+      name: 'getPropertyDetails',
+      args: { propertyId: propertyContextId, includeServiceMatches, includeOperationalContext },
+    };
+  }
+  if (intentIncludesAny(normalized, [
+    ' oportunidade ',
+    ' oportunidades ',
+    ' opportunity ',
+    ' opportunities ',
+    ' propriedades ',
+    ' properties ',
+    ' dallas ',
+    ' texas ',
+  ])) {
+    const personalized = intentIncludesAny(normalized, [' meu perfil ', ' me encaixa ', ' eu busco ', ' for me ', ' my profile ', ' aligned ']);
+    return { name: 'searchProperties', args: { personalized, limit: 5 } };
+  }
+  return null;
+}
+
 function e2eStubFunctionCall(message: string, propertyContextId: string) {
   const normalized = ` ${message.toLowerCase()} `;
   if (normalized.includes('investment profile') || normalized.includes('perfil de investimento')) {
@@ -563,16 +638,42 @@ Deno.serve(async (req) => {
       : [];
     const functionCallPart = parts.find((part) => part.functionCall && typeof part.functionCall === 'object');
     const parsedFunctionCall = functionCallPart?.functionCall as Record<string, unknown> | undefined;
-    const functionCall = stubFunctionCall || parsedFunctionCall;
+    const mandatoryFunctionCall = !stubFunctionCall
+      ? resolveMandatoryToolCall(message, propertyContextId, comparisonPropertyIds)
+      : null;
+    const parsedToolName = String(parsedFunctionCall?.name || '');
+    const correctedFunctionCall = parsedFunctionCall
+      && mandatoryFunctionCall
+      && parsedToolName
+      && parsedToolName !== mandatoryFunctionCall.name
+      && ['getDealCopilotOverview', 'compareProperties'].includes(mandatoryFunctionCall.name)
+        ? mandatoryFunctionCall
+        : null;
+    const recoveredFunctionCall = !parsedFunctionCall && mandatoryFunctionCall ? mandatoryFunctionCall : null;
+    if (recoveredFunctionCall || correctedFunctionCall) {
+      logMaxxisEvent('maxxis_tool_selection_recovered', {
+        request_id: requestId,
+        user_id: userId,
+        model: usedModel,
+        duration_ms: Date.now() - startedAt,
+        success: true,
+        tool: (recoveredFunctionCall || correctedFunctionCall)?.name,
+      });
+    }
+    const functionCall = stubFunctionCall || correctedFunctionCall || parsedFunctionCall || recoveredFunctionCall;
     if (functionCall) {
       budget.consumeToolRound();
       const toolStartedAt = Date.now();
       const toolName = String(functionCall.name || '');
+      const functionArgs = functionCall.args && typeof functionCall.args === 'object' ? functionCall.args as Record<string, unknown> : {};
+      const modelPartsForTool = parsedFunctionCall
+        ? parts
+        : [{ functionCall: { name: toolName, args: functionArgs } }];
       let result;
       try {
         result = await executeMaxxisTool(
           toolName,
-          functionCall.args && typeof functionCall.args === 'object' ? functionCall.args as Record<string, unknown> : {},
+          functionArgs,
           req.headers.get('Authorization') || '',
           { propertyId: propertyContextId, propertyIds: comparisonPropertyIds, userId },
         );
@@ -606,11 +707,12 @@ Deno.serve(async (req) => {
         const secondPassStartedAt = Date.now();
         const interpretationRequest = buildToolInterpretationRequest({
           contents,
-          modelParts: parts,
+          modelParts: modelPartsForTool,
           toolName,
           functionCallId: String(parsedFunctionCall?.id || ''),
           toolResult: result,
           language,
+          plainToolResult: Boolean(recoveredFunctionCall || correctedFunctionCall),
           generationConfig: buildGeminiGenerationConfig(
             usedModel,
             Math.min(MAXXIS_EXECUTION_LIMITS.maxOutputTokens, 420),

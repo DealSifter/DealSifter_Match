@@ -18,8 +18,86 @@ function expectToolInterpretation(result, toolName, responseType) {
   expect(result.payload.type).toBe(responseType);
 }
 
+async function resetMaxxisChatRateLimit(realBackend) {
+  await realBackend.adminDelete(
+    'edge_rate_limits',
+    `subject_id=eq.${realBackend.investor.id}&operation=eq.maxxis_chat`,
+  ).catch(() => {});
+}
+
+test('real Gemini minimal health returns MAXXIS_OK without fallback', async ({ realBackend }) => {
+  const session = await realBackend.signIn(realBackend.investor.email, realBackend.investor.password);
+  await resetMaxxisChatRateLimit(realBackend);
+  const result = await realBackend.invokeFunction({
+    token: session.access_token,
+    name: 'maxxis-chat',
+    body: {
+      message: 'Reply exactly: MAXXIS_OK',
+      page: 'dashboard',
+      language: 'en',
+      context: {},
+    },
+  });
+
+  expect(result.ok, JSON.stringify(result.payload)).toBe(true);
+  expect(result.payload.degraded, JSON.stringify(result.payload)).not.toBe(true);
+  expect(result.payload.requestId).toMatch(REQUEST_ID);
+  expect(result.payload.runtime?.provider).toBe('gemini');
+  expect(result.payload.runtime?.secondPass).toBe(false);
+  expect(String(result.payload.message || result.payload.answer || '').trim()).toContain('MAXXIS_OK');
+});
+
+test('real Gemini answers free chat in PT, EN and ES without fallback', async ({ realBackend }) => {
+  const session = await realBackend.signIn(realBackend.investor.email, realBackend.investor.password);
+  const cases = [
+    { language: 'pt', message: 'Olá, quem é você?' },
+    { language: 'pt', message: 'Como funciona o DealSifter?' },
+    { language: 'pt', message: 'Explique o que são Tax Deeds.' },
+    { language: 'pt', message: 'Qual a diferença entre Tax Deed e Tax Lien?' },
+    { language: 'en', message: 'What can you help me with?' },
+    { language: 'es', message: '¿Cómo funciona DealSifter?' },
+  ];
+
+  for (const item of cases) {
+    await resetMaxxisChatRateLimit(realBackend);
+    const result = await realBackend.invokeFunction({
+      token: session.access_token,
+      name: 'maxxis-chat',
+      body: { message: item.message, page: 'dashboard', language: item.language, context: {} },
+    });
+    expectHealthyGemini(result);
+    expect(result.payload.runtime?.secondPass).toBe(false);
+  }
+});
+
+test('real Gemini answers app support knowledge questions without fallback', async ({ realBackend }) => {
+  const session = await realBackend.signIn(realBackend.investor.email, realBackend.investor.password);
+  const cases = [
+    'Como funciona o Dashboard?',
+    'Como funciona o Feed?',
+    'Como funciona o MapView?',
+    'Como funcionam os Matches?',
+    'O que são Nuggets?',
+    'Como desbloqueio um provider?',
+    'Como altero meu perfil?',
+  ];
+
+  for (const message of cases) {
+    await resetMaxxisChatRateLimit(realBackend);
+    const result = await realBackend.invokeFunction({
+      token: session.access_token,
+      name: 'maxxis-chat',
+      body: { message, page: 'dashboard', language: 'pt', context: {} },
+    });
+    expectHealthyGemini(result);
+    expect(result.payload.runtime?.secondPass).toBe(false);
+    expect(result.payload.runtime?.knowledgeVersion).toMatch(/^\d{4}-\d{2}-\d{2}\./);
+  }
+});
+
 test('real Gemini answers a contextual Dashboard question without degraded fallback', async ({ realBackend }) => {
   const session = await realBackend.signIn(realBackend.investor.email, realBackend.investor.password);
+  await resetMaxxisChatRateLimit(realBackend);
   const result = await realBackend.invokeFunction({
     token: session.access_token,
     name: 'maxxis-chat',
@@ -77,6 +155,7 @@ test('real Gemini selects tools and interprets their structured results in a sec
   expect(casesToRun.length, `Unknown E2E_GEMINI_TOOL_CASE: ${selectedCase}`).toBeGreaterThan(0);
 
   for (const item of casesToRun) {
+    await resetMaxxisChatRateLimit(realBackend);
     const result = await realBackend.invokeFunction({
       token,
       name: 'maxxis-chat',
@@ -141,6 +220,7 @@ test('real Gemini understands free-language requests in Portuguese, English and 
   ];
 
   for (const item of cases) {
+    await resetMaxxisChatRateLimit(realBackend);
     const result = await realBackend.invokeFunction({
       token,
       name: 'maxxis-chat',

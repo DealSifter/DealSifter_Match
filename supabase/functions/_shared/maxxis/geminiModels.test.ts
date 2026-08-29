@@ -4,6 +4,7 @@ import { buildGeminiModelCandidates, DEFAULT_GEMINI_MODELS } from './geminiModel
 describe('Gemini model candidates', () => {
   it('uses the current supported lightweight model first by default', () => {
     expect(buildGeminiModelCandidates()[0]).toBe('gemini-3.5-flash-lite');
+    expect(DEFAULT_GEMINI_MODELS).not.toContain('gemini-2.5-flash-lite');
     expect(DEFAULT_GEMINI_MODELS).not.toContain('gemini-2.0-flash');
   });
 

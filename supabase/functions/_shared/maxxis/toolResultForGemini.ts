@@ -260,13 +260,30 @@ export function buildToolInterpretationRequest(input: {
   language: string;
   generationConfig: Record<string, unknown>;
   safetySettings: unknown[];
+  plainToolResult?: boolean;
 }) {
   const safeResult = sanitizeToolResultForGemini(input.toolResult);
+  const systemText = `You are Maxxis Deal AI inside DealSifter. Interpret the authoritative structured tool result naturally in ${safeText(input.language, 8) || 'en'}. Answer the user's exact question. Do not recalculate metrics, invent missing facts, expose hidden data, or request another tool. Use at most 120 words; structured cards are rendered separately.`;
+  if (input.plainToolResult) {
+    const resultText = JSON.stringify(safeResult).slice(0, 12_000);
+    return {
+      systemInstruction: { parts: [{ text: systemText }] },
+      contents: [
+        ...input.contents,
+        {
+          role: 'user',
+          parts: [{
+            text: `Authoritative ${safeText(input.toolName, 80)} result from DealSifter backend. Use only these facts:\n${resultText}`,
+          }],
+        },
+      ],
+      generationConfig: input.generationConfig,
+      safetySettings: input.safetySettings,
+    };
+  }
   return {
     systemInstruction: {
-      parts: [{
-        text: `You are Maxxis Deal AI inside DealSifter. Interpret the authoritative structured tool result naturally in ${safeText(input.language, 8) || 'en'}. Answer the user's exact question. Do not recalculate metrics, invent missing facts, expose hidden data, or request another tool. Use at most 120 words; structured cards are rendered separately.`,
-      }],
+      parts: [{ text: systemText }],
     },
     contents: [
       ...input.contents,

@@ -9,7 +9,7 @@ export const geminiApiKey = Deno.env.get('GEMINI_API_KEY') ?? Deno.env.get('GOOG
 const configuredModel = Deno.env.get('MAXXIS_GEMINI_MODEL') ?? '';
 export const geminiModels = buildGeminiModelCandidates(configuredModel);
 
-export const geminiTimeoutMs = Math.max(1_000, Number(Deno.env.get('MAXXIS_GEMINI_TIMEOUT_MS') || 35_000));
+export const geminiTimeoutMs = Math.max(1_000, Number(Deno.env.get('MAXXIS_GEMINI_TIMEOUT_MS') || 60_000));
 
 const allowedOrigins = parseAllowedOrigins(
   Deno.env.get('MAXXIS_ALLOWED_ORIGINS') || '',
