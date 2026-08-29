@@ -3,7 +3,7 @@ import { guideTipsEnabledKey, resolveGuideTipsActivation } from './guideTipsActi
 
 describe('GuideTips activation', () => {
   it('requires the guide only when the hydrated account has no valid profile', () => {
-    expect(resolveGuideTipsActivation({ canStart: true, hasValidProfile: false })).toMatchObject({
+    expect(resolveGuideTipsActivation({ canStart: true, isAuthenticated: true, hasValidProfile: false })).toMatchObject({
       mandatory: true,
       enabled: true,
       activeTour: 'initial',
@@ -13,6 +13,7 @@ describe('GuideTips activation', () => {
   it('does not reopen on login when a valid profile exists', () => {
     expect(resolveGuideTipsActivation({
       canStart: true,
+      isAuthenticated: true,
       hasValidProfile: true,
       manuallyEnabled: false,
       pageTour: 'feed',
@@ -22,10 +23,32 @@ describe('GuideTips activation', () => {
   it('reopens for a valid profile only when the user manually enabled it', () => {
     expect(resolveGuideTipsActivation({
       canStart: true,
+      isAuthenticated: true,
       hasValidProfile: true,
       manuallyEnabled: true,
       pageTour: 'matches',
     })).toEqual({ mandatory: false, enabled: true, activeTour: 'matches' });
+  });
+
+  it('never starts while the user is not authenticated even if stale flags exist', () => {
+    expect(resolveGuideTipsActivation({
+      canStart: true,
+      isAuthenticated: false,
+      hasValidProfile: false,
+      manuallyEnabled: true,
+      pageTour: 'feed',
+    })).toEqual({ mandatory: false, enabled: false, activeTour: 'feed' });
+  });
+
+  it('never starts on public/auth surfaces', () => {
+    expect(resolveGuideTipsActivation({
+      canStart: true,
+      isAuthenticated: true,
+      isProtectedSurface: false,
+      hasValidProfile: false,
+      manuallyEnabled: true,
+      pageTour: 'feed',
+    })).toEqual({ mandatory: false, enabled: false, activeTour: 'feed' });
   });
 
   it('scopes the manual preference to each authenticated user', () => {

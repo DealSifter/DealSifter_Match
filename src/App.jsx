@@ -5743,6 +5743,7 @@ export default function App() {
       <GuideTipsProvider
         userId={supabaseUserId || authSession?.userId || authSession?.id}
         page={page}
+        isAuthenticated={Boolean(authSession)}
         canStart={Boolean(authSession && dashboardHydrationReady && lgpdConsentChecked && !requireSignupConsent)}
         onboardingComplete={Boolean(isAdmin || registeredProfileScopes.size > 0)}
       >

@@ -4,12 +4,15 @@ export function resolveGuideTipsActivation({
   canStart = false,
   hasValidProfile = false,
   manuallyEnabled = false,
+  isAuthenticated = false,
+  isProtectedSurface = true,
   pageTour = 'feed',
 } = {}) {
-  const mandatory = Boolean(canStart && !hasValidProfile);
+  const eligible = Boolean(canStart && isAuthenticated && isProtectedSurface);
+  const mandatory = Boolean(eligible && !hasValidProfile);
   return {
     mandatory,
-    enabled: Boolean(mandatory || manuallyEnabled),
+    enabled: Boolean(eligible && (mandatory || manuallyEnabled)),
     activeTour: mandatory ? 'initial' : pageTour,
   };
 }
