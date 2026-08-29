@@ -34,6 +34,7 @@ export function GuideTipsProvider({
   const [activeTour, setActiveTour] = useState('initial');
   const [stepIndex, setStepIndex] = useState(0);
   const [progress, setProgress] = useState({ cycleCompleted: false, completedTours: [] });
+  const [sessionDismissed, setSessionDismissed] = useState(false);
   const pageRef = useRef(page);
   const onboardingCompleteRef = useRef(onboardingComplete);
   const authenticatedUserId = String(userId || '').trim();
@@ -56,6 +57,7 @@ export function GuideTipsProvider({
         setEnabledState(false);
         setActiveTour(tourForPage(pageRef.current));
         setStepIndex(0);
+        setSessionDismissed(false);
       }, 0);
       return () => window.clearTimeout(timer);
     }
@@ -82,6 +84,7 @@ export function GuideTipsProvider({
       isProtectedSurface: GUIDE_SURFACES.has(pageRef.current),
       hasValidProfile: isOperational,
       manuallyEnabled: storedEnabled,
+      sessionDismissed,
       pageTour: tourForPage(pageRef.current),
     });
     const timer = window.setTimeout(() => {
@@ -94,7 +97,7 @@ export function GuideTipsProvider({
       }
     }, 0);
     return () => window.clearTimeout(timer);
-  }, [authenticatedUserId, canStart, guideCanStart, onboardingComplete, page, userId]);
+  }, [authenticatedUserId, canStart, guideCanStart, onboardingComplete, page, sessionDismissed, userId]);
 
   const setEnabled = useCallback((value) => {
     if (!guideCanStart) {
@@ -102,6 +105,7 @@ export function GuideTipsProvider({
       return;
     }
     const next = Boolean(value);
+    setSessionDismissed(!next);
     setEnabledState(next);
     if (next) {
       setActiveTour(tourForPage(page));
@@ -119,6 +123,7 @@ export function GuideTipsProvider({
     }
     const mandatory = Boolean(guideCanStart && !onboardingCompleteRef.current);
     if (mandatory) {
+      setSessionDismissed(false);
       setEnabledState(true);
       return;
     }
@@ -138,6 +143,7 @@ export function GuideTipsProvider({
       setEnabledState(false);
       return;
     }
+    setSessionDismissed(false);
     const requested = String(tourId || '').trim();
     const normalized = TOUR_IDS.has(requested)
       ? requested
@@ -158,6 +164,7 @@ export function GuideTipsProvider({
     };
     persistProgress(next);
     if (completesCycle) {
+      setSessionDismissed(true);
       setEnabledState(false);
       try { localStorage.setItem(guideTipsEnabledKey(authenticatedUserId), '0'); } catch { /* noop */ }
     }
@@ -170,7 +177,10 @@ export function GuideTipsProvider({
     };
     window.addEventListener('ds-guidetips-start', onStartTour);
     const onResumeTour = () => {
-      if (guideCanStart) setEnabledState(true);
+      if (guideCanStart) {
+        setSessionDismissed(false);
+        setEnabledState(true);
+      }
     };
     window.addEventListener('ds-guidetips-resume', onResumeTour);
     return () => {

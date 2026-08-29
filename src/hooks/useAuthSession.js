@@ -168,7 +168,7 @@ export function useAuthSession({
 
     supabase.auth.getSession().then(async ({ data }) => {
       if (data?.session) await applySession(data.session, { restoreNavigation: true });
-      else if (!lastKnownAuthSessionRef.current) clearSession();
+      else clearSession();
     }).catch((error) => {
       safeLogError?.('Supabase session bootstrap failed.', error);
     }).finally(() => {

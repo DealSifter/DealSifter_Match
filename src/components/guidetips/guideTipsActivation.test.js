@@ -51,6 +51,16 @@ describe('GuideTips activation', () => {
     })).toEqual({ mandatory: false, enabled: false, activeTour: 'feed' });
   });
 
+  it('keeps mandatory status but does not reopen after a session dismiss', () => {
+    expect(resolveGuideTipsActivation({
+      canStart: true,
+      isAuthenticated: true,
+      hasValidProfile: false,
+      sessionDismissed: true,
+      pageTour: 'feed',
+    })).toEqual({ mandatory: true, enabled: false, activeTour: 'initial' });
+  });
+
   it('scopes the manual preference to each authenticated user', () => {
     expect(guideTipsEnabledKey('user-a')).toBe('ds_guidetips_enabled:user-a');
     expect(guideTipsEnabledKey('user-b')).toBe('ds_guidetips_enabled:user-b');

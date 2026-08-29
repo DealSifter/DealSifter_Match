@@ -240,6 +240,11 @@ export function GuideTipOverlay({ page, setPage, isFreePlan = true }) {
     setStepIndex(0);
     if (page !== 'onboarding') setPage?.('onboarding');
   };
+  const closeGuide = (event) => {
+    event?.preventDefault?.();
+    event?.stopPropagation?.();
+    setEnabled(false);
+  };
   const beginMobileDrag = (event) => {
     if (event.button > 0) return;
     mobileDragRef.current = {
@@ -283,7 +288,8 @@ export function GuideTipOverlay({ page, setPage, isFreePlan = true }) {
       {mobileViewport ? (
         <button
           type="button"
-          onClick={() => setEnabled(false)}
+          onPointerDown={(event) => event.stopPropagation()}
+          onClick={closeGuide}
           aria-label={copy.common.skip}
           title={copy.common.skip}
           style={{
@@ -382,7 +388,8 @@ export function GuideTipOverlay({ page, setPage, isFreePlan = true }) {
             {!mobileViewport ? (
               <button
                 type="button"
-                onClick={() => setEnabled(false)}
+                onPointerDown={(event) => event.stopPropagation()}
+                onClick={closeGuide}
                 aria-label={copy.common.skip}
                 title={copy.common.skip}
                 style={{
@@ -445,7 +452,7 @@ export function GuideTipOverlay({ page, setPage, isFreePlan = true }) {
             </button>
           ) : null}
           {!mandatory ? (
-            <button type="button" onClick={() => setEnabled(false)} style={{ flex: 1, border: '1px solid #cbd5e1', background: 'transparent', color: cardTextSoft, borderRadius: 9, padding: '9px 10px', fontSize: 12, fontWeight: 800, cursor: 'pointer' }}>
+            <button type="button" onClick={closeGuide} style={{ flex: 1, border: '1px solid #cbd5e1', background: 'transparent', color: cardTextSoft, borderRadius: 9, padding: '9px 10px', fontSize: 12, fontWeight: 800, cursor: 'pointer' }}>
               {copy.common.skip}
             </button>
           ) : null}

@@ -878,6 +878,7 @@ export default function App() {
   const [isConsentProcessing, setIsConsentProcessing] = useState(false);
   const [isAccountProcessing, setIsAccountProcessing] = useState(false);
   const [page, _setPage] = useState(() => {
+    if (isSupabaseConfigured) return 'landing';
     try {
       const raw = localStorage.getItem('authSession');
       if (raw && JSON.parse(raw)) {
@@ -937,6 +938,7 @@ export default function App() {
   const [settingsInitialView, setSettingsInitialView] = useState('menu');
   const [onboardingInitialTab, setOnboardingInitialTab] = useState('personal');
   const [authSession, setAuthSession] = useState(() => {
+    if (isSupabaseConfigured) return null;
     try {
       const raw = localStorage.getItem('authSession');
       return raw ? JSON.parse(raw) : null;
