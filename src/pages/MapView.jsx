@@ -530,7 +530,7 @@ const FLY_OPTIONS_SNAP = {
   noMoveStart: true,   // skip the movestart event on the old position (perf)
 };
 
-function MapController({ mapRef, fitToBounds, fitPaddingTopLeft }) {
+function MapController({ mapRef, fitToBounds, fitPaddingTopLeft, fitPaddingBottomRight }) {
   const map = useMap();
 
   // Expose the Leaflet map instance to the parent via ref so parent can call
@@ -543,11 +543,11 @@ function MapController({ mapRef, fitToBounds, fitPaddingTopLeft }) {
     if (!fitToBounds?.bounds) return;
     map.flyToBounds(fitToBounds.bounds, {
       paddingTopLeft: fitPaddingTopLeft || [36, 36],
-      paddingBottomRight: [36, 36],
+      paddingBottomRight: fitPaddingBottomRight || [36, 36],
       maxZoom: fitToBounds.maxZoom,
       ...FLY_OPTIONS,
     });
-  }, [fitToBounds, fitPaddingTopLeft, map]);
+  }, [fitToBounds, fitPaddingBottomRight, fitPaddingTopLeft, map]);
 
   return null;
 }
@@ -1799,6 +1799,10 @@ export function MapView({
     () => (isMobileViewport ? [24, 24] : [panelWidth + 36, 36]),
     [isMobileViewport, panelWidth],
   );
+  const mapFitPaddingBottomRight = useMemo(
+    () => [36, 36],
+    [],
+  );
   const panelToggleLeft = panelCollapsed
     ? '0px'
     : (isMobileViewport ? '0px' : `${panelWidth}px`);
@@ -2681,7 +2685,7 @@ export function MapView({
               active={Boolean(manualPinTarget)}
               onPlace={applyManualPinPlacement}
             />
-            <MapController mapRef={mapRef} fitToBounds={fitToBounds} fitPaddingTopLeft={mapFitPaddingTopLeft} />
+            <MapController mapRef={mapRef} fitToBounds={fitToBounds} fitPaddingTopLeft={mapFitPaddingTopLeft} fitPaddingBottomRight={mapFitPaddingBottomRight} />
             <ZoomControl position="topright" />
             <TileLayer
               key={`base-${mapStyle}-${forceSimpleBaseTiles ? `fallback-${baseTileFallbackIndex}` : 'native'}`}

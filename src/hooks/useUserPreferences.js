@@ -1,11 +1,9 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { isSupabaseConfigured } from '../lib/supabaseClient';
 import { USER_PREFERENCES_KEY } from '../lib/appSessionSecurity';
 import { normalizeUserPreferences } from '../domain/profile/userPreferences';
 import { captureAppException } from '../lib/observability';
 
 function readInitialPreferences() {
-  if (isSupabaseConfigured) return normalizeUserPreferences(null);
   try {
     const raw = localStorage.getItem(USER_PREFERENCES_KEY);
     return normalizeUserPreferences(raw ? JSON.parse(raw) : null);
@@ -58,7 +56,7 @@ export function useUserPreferences({ accountKey = '', persistPreferences = null 
     const nextAccountKey = String(accountKey || '');
     if (previousAccountKeyRef.current === nextAccountKey) return;
     previousAccountKeyRef.current = nextAccountKey;
-    const defaults = normalizeUserPreferences(null);
+    const defaults = readInitialPreferences();
     latestPreferencesRef.current = defaults;
     if (persistenceTimerRef.current) {
       window.clearTimeout(persistenceTimerRef.current);

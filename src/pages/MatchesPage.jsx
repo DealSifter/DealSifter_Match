@@ -706,6 +706,66 @@ export function MatchesPage({ nuggets, isAdmin = false, setModal, openUnlock, un
     return rows;
   }, [convos]);
 
+  const buildRealOwnerPreviewContact = useCallback((sourceRecord) => {
+    if (!sourceRecord || typeof sourceRecord !== 'object') return null;
+    const ownerId = String(sourceRecord.ownerId || sourceRecord.owner_id || sourceRecord.unlockOwnerId || '').trim();
+    const ownerPreview = sourceRecord.ownerPreview && typeof sourceRecord.ownerPreview === 'object'
+      ? sourceRecord.ownerPreview
+      : (sourceRecord.owner_preview && typeof sourceRecord.owner_preview === 'object' ? sourceRecord.owner_preview : null);
+    const ownerName = String(ownerPreview?.name || ownerPreview?.title || '').trim();
+    if (!ownerId || !ownerPreview || !ownerName) return null;
+    const primaryProfile = normalizeProfileScope(
+      sourceRecord.primaryProfile
+      || sourceRecord.primary_profile
+      || ownerPreview.primaryProfile
+      || ownerPreview.primary_profile
+      || getRecordProfileScope(sourceRecord)
+    );
+    if (!primaryProfile) return null;
+    const propertyId = String(sourceRecord.id || sourceRecord.propertyId || sourceRecord.property_id || sourceRecord.portfolioId || '').trim();
+    const category = ownerPreview.type || ownerPreview.category || ownerPreview.cat || (primaryProfile === 'fsbo' ? 'FSBO' : 'Contact');
+    return {
+      ...ownerPreview,
+      id: String(ownerPreview.id || `${ownerId}:${primaryProfile}`),
+      ownerId,
+      unlockOwnerId: ownerId,
+      sourceCardId: ownerPreview.sourceCardId || (propertyId ? `property-owner:${propertyId}` : `owner-preview:${ownerId}:${primaryProfile}`),
+      source: 'remote-owner-preview',
+      primaryProfile,
+      name: ownerName,
+      title: ownerName,
+      type: category,
+      category,
+      cat: ownerPreview.cat || ownerPreview.category || category,
+      loc: ownerPreview.loc || ownerPreview.location || '',
+      photo: ownerPreview.photo || ownerPreview.avatar || ownerPreview.avatarUrl || ownerPreview.avatar_url || '',
+      avatar: ownerPreview.avatar || ownerPreview.photo || ownerPreview.avatarUrl || ownerPreview.avatar_url || '',
+      unlockedPropertyIds: propertyId ? [propertyId] : [],
+    };
+  }, [getRecordProfileScope]);
+
+  const realOwnerPreviewContacts = useMemo(() => {
+    const byKey = new Map();
+    const sources = [
+      ...(Array.isArray(interested) ? interested : []),
+      ...(Array.isArray(allPropertiesSource) ? allPropertiesSource : []),
+    ];
+    sources.forEach((record) => {
+      const ownerId = String(record?.ownerId || record?.owner_id || record?.unlockOwnerId || '').trim();
+      const primaryProfile = getRecordProfileScope(record);
+      if (!ownerId || !primaryProfile) return;
+      const ownerUnlocked = isCanonicalOwnerUnlocked(unlockedContactMap, ownerId, primaryProfile)
+        || isContactUnlockedByState({ ownerId, primaryProfile });
+      const propertyUnlocked = isPropertyUnlockedByCanonicalState(record);
+      if (!ownerUnlocked && !propertyUnlocked) return;
+      const contact = buildRealOwnerPreviewContact(record);
+      if (!contact) return;
+      const key = `${contact.ownerId}::${contact.primaryProfile}`;
+      byKey.set(key, mergeContactForDisplay(byKey.get(key) || {}, contact));
+    });
+    return [...byKey.values()];
+  }, [allPropertiesSource, buildRealOwnerPreviewContact, getRecordProfileScope, interested, isContactUnlockedByState, isPropertyUnlockedByCanonicalState, unlockedContactMap]);
+
   const allMatched = useMemo(() => {
     const byKey = new Map();
     if (unlockedContactMap instanceof Map) {
@@ -717,7 +777,7 @@ export function MatchesPage({ nuggets, isAdmin = false, setModal, openUnlock, un
           if (key) byKey.set(key, contact);
         });
     }
-    [...(Array.isArray(matched) ? matched : []), ...reciprocalChatContacts]
+    [...realOwnerPreviewContacts, ...(Array.isArray(matched) ? matched : []), ...reciprocalChatContacts]
       .map((m) => {
         const publicContact = resolveContactCard(m);
         if (!publicContact) return null;
@@ -736,7 +796,7 @@ export function MatchesPage({ nuggets, isAdmin = false, setModal, openUnlock, un
         byKey.set(key, mergeContactForDisplay(byKey.get(key) || {}, contact));
       });
     return [...byKey.values()];
-  }, [matched, reciprocalChatContacts, resolveCanonicalContactCard, resolveContactCard, getContactUnlockKeys, unlockedContactMap]);
+  }, [matched, realOwnerPreviewContacts, reciprocalChatContacts, resolveCanonicalContactCard, resolveContactCard, getContactUnlockKeys, unlockedContactMap]);
 
   const parseStateCode = useCallback((value) => {
     const raw = String(value || '').trim();

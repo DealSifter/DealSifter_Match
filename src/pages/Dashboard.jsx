@@ -2924,8 +2924,10 @@ export function Dashboard({ page, nuggets, setModal, setPage, onOpenOnboardingTa
           0%   { transform: translateX(0); }
           100% { transform: translateX(-50%); }
         }
-        .opportunity-banner:hover .opportunity-track {
-          animation-play-state: paused;
+        .opportunity-track {
+          animation: bannerScroll var(--ds-banner-duration, 80s) linear infinite;
+          transform: translate3d(0, 0, 0);
+          will-change: transform;
         }
         .ds-mycard-showcase-scroll {
           scrollbar-width: none;
@@ -4740,9 +4742,7 @@ export function Dashboard({ page, nuggets, setModal, setPage, onOpenOnboardingTa
                 width:"max-content",
                 gap:10,
                 padding:"0 10px",
-                animation:`bannerScroll ${bannerDurationSec}s linear infinite`,
-                transform:"translateZ(0)",
-                willChange:"transform",
+                '--ds-banner-duration': `${bannerDurationSec}s`,
               }}
             >
               {[0, 1].map(loop => (
