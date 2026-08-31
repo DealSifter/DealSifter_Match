@@ -1,0 +1,35 @@
+{
+  "schemaVersion": 1,
+  "name": "repair-r1-maxxis-core-routing",
+  "target": "staging",
+  "projectRef": "oqdcnjupquhybwdbeeew",
+  "functionVersion": 48,
+  "authenticated": true,
+  "geminiReal": true,
+  "stub": false,
+  "executedAt": "2026-08-31T14:00:19.391Z",
+  "varianceValidation": {
+    "id": "HB-06",
+    "expectedTool": "getDealCopilotOverview",
+    "pass": 3,
+    "fail": 0,
+    "requestIds": [
+      "37929f9f-7f27-4c07-b37b-d45d53cde5b5",
+      "99569b86-c932-49ab-9107-d6140a4a9135",
+      "5cda0646-fd11-4353-95af-33c267c3a007"
+    ]
+  },
+  "results": [
+    { "id": "HB-01", "status": "PASS", "requestId": "e2788670-6c0d-4bb5-9ce2-0ccccfb13fbd", "toolCalled": "none", "degraded": false },
+    { "id": "HB-02", "status": "PASS", "requestId": "805f5637-5a06-40ca-a525-0a1cfdef5b5a", "toolCalled": "none", "degraded": false },
+    { "id": "HB-03", "status": "PASS", "requestId": "fb8a1d2a-4270-4edc-bc15-c65580c75d5c", "toolCalled": "none", "degraded": false },
+    { "id": "HB-04", "status": "PASS", "requestId": "153f0e04-59a9-454a-9f1e-4e11362e54ca", "toolCalled": "none", "degraded": false },
+    { "id": "HB-05", "status": "PASS", "requestId": "6797d8da-27da-4260-9f69-8ea0e1afa49e", "toolCalled": "searchProperties", "degraded": false },
+    { "id": "HB-06", "status": "PASS", "requestId": "98eba1ab-db71-428a-bd69-d06d723fecc9", "toolCalled": "getDealCopilotOverview", "degraded": false },
+    { "id": "HB-07", "status": "PASS", "requestId": "cb84dd3e-7d0b-4f9f-aede-edbdf47e0f8a", "toolCalled": "compareProperties", "degraded": false },
+    { "id": "HB-08", "status": "PASS", "requestId": "00ff608f-2d18-439a-b704-a13a0db52e9e", "toolCalled": "getPropertyDetails", "degraded": false },
+    { "id": "HB-09", "status": "PASS", "requestId": "ee438acd-59ff-4645-bba8-424ccedc6dfc", "toolCalled": "getDealCopilotOverview", "degraded": false },
+    { "id": "HB-10", "status": "PASS", "requestId": "5073db3b-209b-4aa3-b838-e5210909ef3a", "toolCalled": "getPropertyDetails", "degraded": false }
+  ],
+  "summary": { "pass": 10, "degraded": 0, "fail": 0 }
+}

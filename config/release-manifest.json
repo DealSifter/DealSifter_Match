@@ -1,9 +1,9 @@
 {
   "schemaVersion": 1,
-  "kind": "r0-source-baseline",
-  "releaseSha": "63b2c134a22289bacd7a642dcf4f040ce5a6c1a7",
-  "frontendSha": "63b2c134a22289bacd7a642dcf4f040ce5a6c1a7",
-  "frontendSourceHash": "049603c52f721bc639194e642cbf436ade718fb82d311a44a8ee03a52ec747c7",
+  "kind": "r1-staging-candidate",
+  "releaseSha": "77d21c3da7933c64516e5cb1220b87f6d215c1c0",
+  "frontendSha": "77d21c3da7933c64516e5cb1220b87f6d215c1c0",
+  "frontendSourceHash": "188c58d865990f620ad22786722d240a08e53e94e4d957af361803d879799366",
   "expectedFunctions": [
     "create-checkout-session",
     "create-portal-session",
@@ -34,12 +34,12 @@
     "geocode-address": { "combinedHash": "1715e2dcb0b2243efeff1c582584a9047f604ee7ab7ba49cbf184ee4ae542595" },
     "maxxis-action-cancel": { "combinedHash": "18604ec75a96f7b13c048f5e937fe96409047a2ae4ee2eeb3d1e1d3d928e9170" },
     "maxxis-action-confirm": { "combinedHash": "a77bbc0ced29c419cd5e92fc6ba9990938030587065db029492dac828cd0f364" },
-    "maxxis-chat": { "combinedHash": "87ba1f0bffebb6c65a8c10f470eb24e99cb34b40c857c7a47c280230a9cbd0b5" },
-    "maxxis-deal-workflow": { "combinedHash": "5ef63c6334de92b34fc2a1a17e7cf3cc03b2709270b2f9edf6a1252ba007658b" },
+    "maxxis-chat": { "combinedHash": "806c2fd6536d1601e209d1a0fce22c5ae55bb2cf44a8c8c313d40dcedf89702a" },
+    "maxxis-deal-workflow": { "combinedHash": "94aa7856ae92ccc98aa3c53ffa30b5d2f6b6dfac090c2fcbdf489084a4049fef" },
     "maxxis-provider-conversation-analysis": { "combinedHash": "8aa84cbeb2fa6e6d10b70ca9a269fa76b6fda9fd561e4abd061ccf758fee21e1" },
     "maxxis-provider-message-cancel": { "combinedHash": "54c19e9652ab13a97fa6d00855bb60072c8e902dedc189f3ddf6770b84535ef8" },
     "maxxis-provider-message-confirm": { "combinedHash": "d64df2aeccd8aad99846409b4429a948c43fcc5cc14e32ac4ef6ff9558ac12c1" },
-    "maxxis-provider-message-draft": { "combinedHash": "f4a9b337525c40575050d4aa0a72bf167c054bb1452a6f2be3bd406d5defcc0e" },
+    "maxxis-provider-message-draft": { "combinedHash": "5f6249a326026af9ac65217739dc8c3519a326656e8eeb5ef996987d296fbdf1" },
     "maxxis-provider-message-prepare": { "combinedHash": "4d7e7851dbc85a43b5a226faf9acc25ef00ac6216f99cd265701b25c7c249790" },
     "maxxis-provider-unlock-cancel": { "combinedHash": "d58eb8768405d9688d3a2a434e5467bf581ddc83af203c74e6c8119513beba14" },
     "maxxis-provider-unlock-confirm": { "combinedHash": "2612873854d0a818dd8ea71a19ee5721b8987e3fcb10c18c8a95bc87e704a43b" },
@@ -60,7 +60,7 @@
   },
   "remoteFunctionInventory": {
     "staging": {
-      "maxxis-chat": { "version": 47, "updatedAt": "2026-08-31 00:47:41 UTC", "status": "IN_SYNC" },
+      "maxxis-chat": { "version": 48, "updatedAt": "2026-08-31 13:51:35 UTC", "status": "IN_SYNC" },
       "feature-flags": { "version": 16, "updatedAt": "2026-08-24 22:09:41 UTC" },
       "count": 20
     },
@@ -70,5 +70,5 @@
       "count": 20
     }
   },
-  "generatedAt": "2026-08-30T14:44:40.3782618Z"
+  "generatedAt": "2026-08-31T14:00:19.391Z"
 }
