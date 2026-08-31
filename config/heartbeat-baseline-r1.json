@@ -3,6 +3,8 @@
   "name": "repair-r1-maxxis-core-routing",
   "target": "staging",
   "projectRef": "oqdcnjupquhybwdbeeew",
+  "sourceSha": "77d21c3da7933c64516e5cb1220b87f6d215c1c0",
+  "maxxisChatDeployHash": "806c2fd6536d1601e209d1a0fce22c5ae55bb2cf44a8c8c313d40dcedf89702a",
   "functionVersion": 48,
   "authenticated": true,
   "geminiReal": true,

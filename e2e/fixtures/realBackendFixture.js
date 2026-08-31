@@ -1,5 +1,7 @@
 /* global process, Buffer */
 import { test as base, expect } from '@playwright/test';
+import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs';
+import { dirname } from 'node:path';
 import { getE2ERunId } from '../support/environment.js';
 import { loginAs, logout } from '../support/appActions.js';
 
@@ -7,6 +9,19 @@ const supabaseUrl = process.env.E2E_SUPABASE_URL || process.env.VITE_SUPABASE_UR
 const anonKey = process.env.E2E_SUPABASE_ANON_KEY || process.env.VITE_SUPABASE_ANON_KEY;
 const serviceRoleKey = process.env.E2E_SUPABASE_SERVICE_ROLE_KEY;
 const runId = getE2ERunId();
+const lifecycleFile = String(process.env.E2E_HEARTBEAT_LIFECYCLE_FILE || '').trim();
+
+function writeFixtureLifecycle(patch) {
+  if (!lifecycleFile) return;
+  let current = {};
+  try {
+    if (existsSync(lifecycleFile)) current = JSON.parse(readFileSync(lifecycleFile, 'utf8'));
+  } catch {
+    current = {};
+  }
+  mkdirSync(dirname(lifecycleFile), { recursive: true });
+  writeFileSync(lifecycleFile, `${JSON.stringify({ ...current, runId, ...patch }, null, 2)}\n`, 'utf8');
+}
 
 const publicEnv = {
   supabaseUrl,
@@ -313,23 +328,56 @@ async function setupRealBackendFixture() {
   const fixture = {
     runId,
     password: passwordForRun(),
-    investor: await createAuthUser('investor'),
-    owner: await createAuthUser('owner'),
-    provider: await createAuthUser('provider'),
+    investor: null,
+    owner: null,
+    provider: null,
     property: null,
     comparisonProperty: null,
     service: null,
   };
-  await upsertFixtureRows(fixture);
-  return fixture;
+  writeFixtureLifecycle({ setup: 'RUNNING', cleanup: 'PENDING', setupStartedAt: new Date().toISOString() });
+  try {
+    fixture.investor = await createAuthUser('investor');
+    fixture.owner = await createAuthUser('owner');
+    fixture.provider = await createAuthUser('provider');
+    await upsertFixtureRows(fixture);
+    writeFixtureLifecycle({
+      setup: 'PASS',
+      cleanup: 'PENDING',
+      setupCompletedAt: new Date().toISOString(),
+      canonicalIds: fixture.property?.id && fixture.comparisonProperty?.id && fixture.service?.id ? 'VERIFIED' : 'MISSING',
+    });
+    return fixture;
+  } catch {
+    writeFixtureLifecycle({ setup: 'FAIL', setupCompletedAt: new Date().toISOString(), setupFailure: 'FIXTURE_SETUP_FAILED' });
+    try { await cleanupRealBackendFixture(fixture); } catch { /* cleanup status is persisted */ }
+    throw new Error('E2E_FIXTURE_SETUP_FAILED');
+  }
 }
 
 async function cleanupRealBackendFixture(fixture) {
   const userIds = [fixture?.investor?.id, fixture?.owner?.id, fixture?.provider?.id].filter(Boolean);
-  if (!userIds.length) return;
+  const failures = [];
+  if (!userIds.length) {
+    writeFixtureLifecycle({ cleanup: 'PASS', cleanupCompletedAt: new Date().toISOString(), deletedAuthUsers: 0 });
+    return;
+  }
   const encodedIds = userIds.map((id) => `"${id}"`).join(',');
-  await adminFetch(`/rest/v1/app_events?user_id=in.(${encodedIds})`, { method: 'DELETE' }).catch(() => {});
-  await Promise.allSettled(userIds.map((id) => adminFetch(`/auth/v1/admin/users/${id}`, { method: 'DELETE' })));
+  try {
+    await adminFetch(`/rest/v1/app_events?user_id=in.(${encodedIds})`, { method: 'DELETE' });
+  } catch {
+    failures.push('APP_EVENTS_DELETE_FAILED');
+  }
+  const authDeletes = await Promise.allSettled(userIds.map((id) => adminFetch(`/auth/v1/admin/users/${id}`, { method: 'DELETE' })));
+  if (authDeletes.some((result) => result.status === 'rejected')) failures.push('AUTH_USER_DELETE_FAILED');
+  const cleanup = failures.length ? 'FAIL' : 'PASS';
+  writeFixtureLifecycle({
+    cleanup,
+    cleanupCompletedAt: new Date().toISOString(),
+    deletedAuthUsers: authDeletes.filter((result) => result.status === 'fulfilled').length,
+    cleanupFailures: failures,
+  });
+  if (failures.length) throw new Error(`E2E_FIXTURE_CLEANUP_FAILED:${failures.join(',')}`);
 }
 
 async function signIn(email, password) {

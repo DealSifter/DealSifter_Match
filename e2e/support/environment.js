@@ -9,6 +9,7 @@ const PRODUCTION_HOSTS = new Set([
 const PRODUCTION_SUPABASE_PROJECT_REFS = new Set([
   'cyeipfskwwisbbayyaca',
 ]);
+const REAL_RUNTIME_STAGING_PROJECT_REF = 'oqdcnjupquhybwdbeeew';
 
 export function getE2ERunId() {
   const raw = String(process.env.E2E_RUN_ID || '').trim();
@@ -56,25 +57,29 @@ export function assertSafeRealBackendEnvironment({
   }
   const projectRef = getSupabaseProjectRef(supabaseUrl);
   if (!projectRef) {
-    throw new Error(`Blocked real backend E2E: invalid Supabase URL (${supabaseUrl || 'missing'}).`);
+    throw new Error('BLOCKED_BY_GUARD: invalid Supabase URL for real backend E2E.');
   }
-  if (PRODUCTION_SUPABASE_PROJECT_REFS.has(projectRef)) {
-    throw new Error(`Blocked real backend E2E against production Supabase project: ${projectRef}.`);
+  if (PRODUCTION_SUPABASE_PROJECT_REFS.has(projectRef) || projectRef !== REAL_RUNTIME_STAGING_PROJECT_REF) {
+    throw new Error(`BLOCKED_BY_GUARD: real backend E2E requires staging project ${REAL_RUNTIME_STAGING_PROJECT_REF}.`);
   }
   if (!String(serviceRoleKey || '').trim()) {
-    throw new Error('Blocked real backend E2E: E2E_SUPABASE_SERVICE_ROLE_KEY is required for fixture setup/cleanup.');
+    throw new Error('BLOCKED_AUTH: staging service-role credential is required for fixture setup/cleanup.');
   }
 }
 
 export function assertRealGeminiEnvironment({
   mode = process.env.E2E_LLM_MODE,
   supabaseUrl = process.env.E2E_SUPABASE_URL || process.env.VITE_SUPABASE_URL,
+  stubValue = process.env.MAXXIS_E2E_LLM_STUB,
 } = {}) {
   if (mode !== 'real') {
-    throw new Error('Blocked real Gemini E2E: set E2E_LLM_MODE=real explicitly.');
+    throw new Error('BLOCKED_BY_GUARD: set E2E_LLM_MODE=real explicitly.');
   }
   const projectRef = getSupabaseProjectRef(supabaseUrl);
-  if (!projectRef || PRODUCTION_SUPABASE_PROJECT_REFS.has(projectRef)) {
-    throw new Error(`Blocked real Gemini E2E against unsafe Supabase project: ${projectRef || 'missing'}.`);
+  if (!projectRef || PRODUCTION_SUPABASE_PROJECT_REFS.has(projectRef) || projectRef !== REAL_RUNTIME_STAGING_PROJECT_REF) {
+    throw new Error(`BLOCKED_BY_GUARD: real Gemini E2E requires staging project ${REAL_RUNTIME_STAGING_PROJECT_REF}.`);
+  }
+  if (String(stubValue || '').trim() && String(stubValue || '').trim() !== '0') {
+    throw new Error('BLOCKED_BY_GUARD: MAXXIS_E2E_LLM_STUB is forbidden in real-runtime acceptance.');
   }
 }
