@@ -21,8 +21,6 @@ import { captureAppException } from '../../lib/observability';
 import { trackProductEvent } from '../../lib/productAnalytics';
 import {
   buildMaxxisContextSnapshot,
-  describeMaxxisContext,
-  isSurfaceContextQuestion,
   resolveMaxxisNaturalReference,
   selectMaxxisContextForMessage,
   shouldResetMaxxisContextSession,
@@ -965,8 +963,9 @@ export function MaxxisAssistant({ page = 'dashboard', onOpenSupport = null, onNa
             propertyId: continuityReference.context.propertyId,
           }
         : null;
-      const providerConversationRequested = isProviderConversationIntent(cleanMessage)
-        || Boolean(continuityProviderContext && ['CONTINUE', 'PROVIDER_REFERENCE'].includes(continuityReference.intent));
+      const providerConversationRequested = Boolean(
+        continuityProviderContext && ['CONTINUE', 'PROVIDER_REFERENCE'].includes(continuityReference.intent),
+      ) || Boolean(validatedLatestProviderContext && isProviderConversationIntent(cleanMessage));
       if (providerConversationRequested) {
         const providerConversationContext = continuityProviderContext || validatedLatestProviderContext;
         if (!providerConversationContext) {
@@ -1000,30 +999,13 @@ export function MaxxisAssistant({ page = 'dashboard', onOpenSupport = null, onNa
         }]);
         return;
       }
-      if (isSurfaceContextQuestion(cleanMessage)) {
-        setMessages((prev) => [...prev, {
-          id: `maxxis-context-${Date.now()}`,
-          role: 'assistant',
-          content: describeMaxxisContext(continuityContextSnapshot, language),
-          createdAt: new Date(),
-          type: 'context_snapshot',
-          data: {
-            contextVersion: continuityContextSnapshot.contextVersion,
-            surface: continuityContextSnapshot.surface,
-            entity: continuityContextSnapshot.entity,
-            operational: continuityContextSnapshot.operational,
-            freshness: continuityContextSnapshot.freshness,
-          },
-        }]);
-        return;
-      }
-      const localDealIntelligence = buildLocalDealIntelligenceReply({
+      const localDealIntelligence = meta.controlledIntent ? buildLocalDealIntelligenceReply({
         message: cleanMessage,
         language,
         messages,
         sourceMessageId: meta.sourceMessageId || '',
         forcedIntent: meta.controlledIntent || '',
-      });
+      }) : null;
       if (localDealIntelligence) {
         if (localDealIntelligence.eventName) {
           void trackProductEvent(localDealIntelligence.eventName, {

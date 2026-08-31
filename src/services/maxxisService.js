@@ -101,6 +101,8 @@ export async function sendMaxxisMessage({ message, history = [], page = 'dashboa
       degradedReason: 'MAXXIS_CLIENT_NOT_CONFIGURED',
       fallbackLevel: 3,
       fallbackSource: 'client_config_guard',
+      status: 'unavailable',
+      providerStatus: 'not_attempted',
       requestId: '',
     };
   }
@@ -159,11 +161,13 @@ export async function sendMaxxisMessage({ message, history = [], page = 'dashboa
       degradedReason: 'GEMINI_NETWORK_ERROR',
       fallbackLevel: 3,
       fallbackSource: 'client_network_guard',
+      status: 'unavailable',
+      providerStatus: 'network',
       requestId: '',
     };
   }
 
-  if (data?.degraded) {
+  if (data?.degraded || data?.status === 'degraded') {
     captureOperationalMetric('maxxis.chat', {
       success: false,
       duration_ms: Date.now() - startedAt,
@@ -179,6 +183,8 @@ export async function sendMaxxisMessage({ message, history = [], page = 'dashboa
       degradedReason: String(data?.degradedReason || data?.error || 'MAXXIS_DEGRADED').slice(0, 64),
       fallbackLevel: Number(data?.fallbackLevel || 3),
       fallbackSource: String(data?.fallbackSource || 'edge_degraded_guard').slice(0, 64),
+      status: 'degraded',
+      providerStatus: String(data?.providerStatus || 'internal').slice(0, 32),
       requestId,
     };
   }
@@ -196,6 +202,8 @@ export async function sendMaxxisMessage({ message, history = [], page = 'dashboa
       return {
         answer: AUTH_MESSAGES[language] || AUTH_MESSAGES.en,
         unavailable: true,
+        status: 'unavailable',
+        providerStatus: String(data?.providerStatus || 'not_attempted').slice(0, 32),
         requestId,
       };
     }
@@ -203,6 +211,8 @@ export async function sendMaxxisMessage({ message, history = [], page = 'dashboa
       return {
         answer: String(data.message || data.answer || '').trim() || (FALLBACK_MESSAGES[language] || FALLBACK_MESSAGES.en),
         unavailable: Boolean(data?.unavailable || status >= 500),
+        status: 'unavailable',
+        providerStatus: String(data?.providerStatus || 'internal').slice(0, 32),
         requestId,
       };
     }
@@ -213,6 +223,31 @@ export async function sendMaxxisMessage({ message, history = [], page = 'dashboa
       degradedReason: String(data?.error || 'MAXXIS_REQUEST_FAILED').slice(0, 64),
       fallbackLevel: 3,
       fallbackSource: 'client_http_guard',
+      status: 'unavailable',
+      providerStatus: String(data?.providerStatus || 'internal').slice(0, 32),
+      requestId,
+    };
+  }
+
+  const answer = String(data?.message || data?.answer || '').trim();
+  if (!answer) {
+    captureOperationalMetric('maxxis.chat', {
+      success: false,
+      duration_ms: Date.now() - startedAt,
+      error_category: 'PROVIDER',
+      error_code: 'MAXXIS_EMPTY_RESPONSE',
+      provider_status: status || undefined,
+      request_id: requestId || undefined,
+    });
+    return {
+      answer: FALLBACK_MESSAGES[language] || FALLBACK_MESSAGES.en,
+      unavailable: false,
+      degraded: true,
+      degradedReason: 'MAXXIS_EMPTY_RESPONSE',
+      fallbackLevel: 3,
+      fallbackSource: 'client_response_guard',
+      status: 'degraded',
+      providerStatus: 'empty',
       requestId,
     };
   }
@@ -233,10 +268,12 @@ export async function sendMaxxisMessage({ message, history = [], page = 'dashboa
 
   const normalizedResponse = normalizeMaxxisResponsePayload(data?.type, data?.data);
   return {
-    answer: String(data?.message || data?.answer || '').trim() || (FALLBACK_MESSAGES[language] || FALLBACK_MESSAGES.en),
+    answer,
     unavailable: Boolean(data?.unavailable),
     degraded: Boolean(data?.degraded),
     degradedReason: String(data?.degradedReason || ''),
+    status: String(data?.status || 'success'),
+    providerStatus: String(data?.providerStatus || 'ok'),
     requestId,
     ...normalizedResponse,
   };

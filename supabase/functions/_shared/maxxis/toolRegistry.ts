@@ -27,7 +27,7 @@ export const MAXXIS_TOOLS = [{
     },
     {
       name: 'getPropertyDetails',
-      description: 'Read factual published details for the specific property in the trusted structured screen context. Copy that context propertyId exactly. Set includeOperationalContext true only when the user explicitly asks for Next Best Action, what to do next, checklist, or deal progress. Set includeServiceMatches true only when the user explicitly asks to find professionals or published services for this property; the backend alone derives the categories from serviceNeeds. Never invent or infer a propertyId, category, or provider.',
+      description: 'Read canonical factual published fields for one property, such as price, bedrooms, bathrooms, sqft, type, location, rehab, cap rate, description, images, or a specifically requested stored metric. Use only when the user explicitly asks for published/factual details or named fields. Do NOT use for a broad reading, overview, analysis, current situation, gaps, what is missing, how the deal looks, or what you see in the opportunity; those require getDealCopilotOverview. Copy the trusted context propertyId exactly. Set includeOperationalContext true only for an explicit Next Best Action, what-to-do-next, checklist, or progress request. Set includeServiceMatches true only for an explicit request to find professionals for this property; the backend alone derives the categories from serviceNeeds. Never invent or infer a propertyId, category, or provider.',
       parameters: {
         type: 'OBJECT',
         properties: {
@@ -40,7 +40,7 @@ export const MAXXIS_TOOLS = [{
     },
     {
       name: 'getDealCopilotOverview',
-      description: 'Load the consolidated read-only Deal Copilot overview only when the user explicitly asks for the current deal status, a deal summary, what has already happened, what remains, or the overall situation. Requires the exact propertyId from trusted structured screen context. Do not use for a single metric, property search, service search, comparison, or general question. This tool aggregates existing results and never executes actions.',
+      description: 'Load the consolidated read-only Deal Copilot view for any broad or interpretive reading of a specific deal: how the property/deal looks, what is visible, an overview or analysis, current situation/status, gaps or missing information, what happened, or what remains. Natural equivalents in Portuguese, English, and Spanish belong here even when the user says property, imóvel, or propiedad instead of deal. Do NOT use for an explicit list of published facts or a named field/metric; those require getPropertyDetails. Requires the exact trusted propertyId. This tool aggregates existing backend results and never executes actions.',
       parameters: {
         type: 'OBJECT',
         properties: {
@@ -66,6 +66,10 @@ export const MAXXIS_TOOLS = [{
     },
   ],
 }];
+
+export const MAXXIS_TOOL_NAMES = new Set(
+  MAXXIS_TOOLS[0].functionDeclarations.map((declaration) => declaration.name),
+);
 
 export async function executeMaxxisTool(name: string, args: unknown, authHeader: string, context: { propertyId?: string; propertyIds?: string[]; userId?: string } = {}) {
   const authenticatedContext = () => {

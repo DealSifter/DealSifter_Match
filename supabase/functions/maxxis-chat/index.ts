@@ -13,8 +13,10 @@ import {
 import { logMaxxisEvent } from '../_shared/maxxis/logger.ts';
 import { buildSystemPrompt } from '../_shared/maxxis/prompts.ts';
 import { prepareProfileSuggestions } from '../_shared/maxxis/prepareProfileSuggestions.ts';
-import { executeMaxxisTool, MAXXIS_TOOLS } from '../_shared/maxxis/toolRegistry.ts';
+import { executeMaxxisTool, MAXXIS_TOOLS, MAXXIS_TOOL_NAMES } from '../_shared/maxxis/toolRegistry.ts';
 import { normalizeComparisonContextIds } from '../_shared/maxxis/compareProperties.ts';
+import { inspectGeminiCandidate } from '../_shared/maxxis/geminiCandidate.ts';
+import { validateMaxxisToolSelection } from '../_shared/maxxis/conversationRouting.ts';
 import { buildToolInterpretationRequest } from '../_shared/maxxis/toolResultForGemini.ts';
 import { buildGeminiGenerationConfig } from '../_shared/maxxis/geminiGenerationConfig.ts';
 import { buildMaxxisKnowledgeInstruction, MAXXIS_KNOWLEDGE_VERSION, selectMaxxisKnowledge } from '../_shared/maxxis/maxxisKnowledge.ts';
@@ -41,8 +43,28 @@ const GEMINI_SAFETY_SETTINGS = [
   { category: 'HARM_CATEGORY_DANGEROUS_CONTENT', threshold: 'BLOCK_ONLY_HIGH' },
 ];
 
-function response(body: MaxxisResponse, status: number, origin: string, requestId = '') {
-  return new Response(JSON.stringify({ ...body, ...(requestId ? { requestId } : {}) }), { status, headers: { ...corsHeaders(origin), 'Content-Type': 'application/json', ...(requestId ? { 'x-request-id': requestId } : {}) } });
+function providerStatusFromReason(reason: unknown): NonNullable<MaxxisResponse['providerStatus']> {
+  const code = String(reason || '').toUpperCase();
+  if (code.includes('EMPTY')) return 'empty';
+  if (code.includes('TIMEOUT') || code.includes('BUDGET')) return 'timeout';
+  if (code.includes('AUTH')) return 'auth';
+  if (code.includes('QUOTA')) return 'quota';
+  if (code.includes('TOOL')) return 'tool_error';
+  if (code.includes('NETWORK')) return 'network';
+  if (code.includes('PARS')) return 'parsing';
+  if (code.includes('MODEL') || code.includes('UNAVAILABLE') || code.includes('DISABLED') || code.includes('CONFIG')) return 'unavailable';
+  return code ? 'internal' : 'not_attempted';
+}
+
+function response(body: MaxxisResponse, httpStatus: number, origin: string, requestId = '') {
+  const conversationStatus: NonNullable<MaxxisResponse['status']> = body.status
+    || (body.degraded ? 'degraded' : body.unavailable || body.error || httpStatus >= 400 ? 'unavailable' : 'success');
+  const providerStatus: NonNullable<MaxxisResponse['providerStatus']> = body.providerStatus
+    || (conversationStatus === 'success'
+      ? (body.runtime?.provider === 'gemini' || body.runtime?.provider === 'stub' ? 'ok' : 'not_attempted')
+      : providerStatusFromReason(body.degradedReason || body.error));
+  const payload = { ...body, status: conversationStatus, providerStatus, ...(requestId ? { requestId } : {}) };
+  return new Response(JSON.stringify(payload), { status: httpStatus, headers: { ...corsHeaders(origin), 'Content-Type': 'application/json', ...(requestId ? { 'x-request-id': requestId } : {}) } });
 }
 
 function sanitizeText(value: unknown, maxLength = 2400) {
@@ -60,81 +82,6 @@ function supabaseProjectRef() {
 function isE2ELlmStubEnabled() {
   return Deno.env.get('MAXXIS_E2E_LLM_STUB') === '1'
     && E2E_LLM_STUB_PROJECT_REFS.has(supabaseProjectRef());
-}
-
-function normalizeIntentText(message: string) {
-  return ` ${message.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase().replace(/[^a-z0-9/$]+/g, ' ')} `;
-}
-
-function intentIncludesAny(normalized: string, terms: string[]) {
-  return terms.some((term) => normalized.includes(term));
-}
-
-function resolveMandatoryToolCall(message: string, propertyContextId: string, comparisonPropertyIds: string[]) {
-  const normalized = normalizeIntentText(message);
-  if (comparisonPropertyIds.length >= 2 && intentIncludesAny(normalized, [' compare ', ' comparar ', ' compare estos ', ' compare estes '])) {
-    return { name: 'compareProperties', args: { propertyIds: comparisonPropertyIds.slice(0, 3) } };
-  }
-  if (propertyContextId && intentIncludesAny(normalized, [
-    ' como esta este deal ',
-    ' como esta esse deal ',
-    ' deal status ',
-    ' deal summary ',
-    ' overall situation ',
-    ' situacion actual ',
-    ' situacao atual ',
-    ' que mudou ',
-    ' que cambio ',
-    ' what changed ',
-    ' deveria me preocupar ',
-    ' deveria prestar atencao ',
-    ' prestar atencao ',
-    ' should worry ',
-    ' should pay attention ',
-    ' concern ',
-  ])) {
-    return { name: 'getDealCopilotOverview', args: { propertyId: propertyContextId } };
-  }
-  if (propertyContextId && intentIncludesAny(normalized, [
-    ' price/sqft ',
-    ' price per sqft ',
-    ' preco por sqft ',
-    ' preço por sqft ',
-    ' sqft ',
-    ' dados faltando ',
-    ' dados estao faltando ',
-    ' missing data ',
-    ' missing information ',
-    ' o que acha deste imovel ',
-    ' o que acha desse imovel ',
-    ' pontos devo revisar ',
-    ' should review ',
-    ' revisar aqui ',
-    ' quem pode me ajudar ',
-    ' who can help ',
-    ' who could help ',
-  ])) {
-    const includeServiceMatches = intentIncludesAny(normalized, [' ajudar ', ' help ', ' provider ', ' providers ', ' service ', ' services ', ' profissionais ', ' contractor ']);
-    const includeOperationalContext = intentIncludesAny(normalized, [' e agora ', ' next ', ' workflow ', ' checklist ', ' progress ']);
-    return {
-      name: 'getPropertyDetails',
-      args: { propertyId: propertyContextId, includeServiceMatches, includeOperationalContext },
-    };
-  }
-  if (intentIncludesAny(normalized, [
-    ' oportunidade ',
-    ' oportunidades ',
-    ' opportunity ',
-    ' opportunities ',
-    ' propriedades ',
-    ' properties ',
-    ' dallas ',
-    ' texas ',
-  ])) {
-    const personalized = intentIncludesAny(normalized, [' meu perfil ', ' me encaixa ', ' eu busco ', ' for me ', ' my profile ', ' aligned ']);
-    return { name: 'searchProperties', args: { personalized, limit: 5 } };
-  }
-  return null;
 }
 
 function e2eStubFunctionCall(message: string, propertyContextId: string) {
@@ -313,7 +260,7 @@ function propertyContextInstruction(propertyId: string, searchPropertyIds: strin
   const comparisonContext = comparisonPropertyIds.length >= 2
     ? `Trusted comparison propertyIds are ${JSON.stringify(comparisonPropertyIds)}. Search-result IDs are in display order ${JSON.stringify(searchPropertyIds)}. For compareProperties, copy an exact subset of two or three IDs from this context.`
     : 'Fewer than two trusted comparison propertyIds are available. Never call compareProperties; ask the user to select or search for at least two properties.';
-  return `${detailsContext} ${comparisonContext} Never substitute, infer, or invent a propertyId. Use getDealCopilotOverview only for an explicit overall deal status, summary, what happened, what remains, or current situation request. For one metric or a focused property question, use getPropertyDetails and do not load the overview. For an explicit request such as "show professionals for this property", "who can help with this deal", or "find the suggested services", call getPropertyDetails with includeServiceMatches true. Otherwise omit that flag. Never call searchServices separately to choose categories for a property; the backend derives them exclusively from serviceNeeds. If DealMetricsResult, DealAdvisorAnalysis, PropertyServiceNeed, PropertyServiceMatch, ServiceFitResult, ProviderContactAccess, ProviderMessageContext, Next Best Action, Deal Workflow, Deal Copilot Overview, provider_message_draft, provider_message_sent, provider_conversation_analysis, or a property comparison is supplied, explain only exact returned values, codes, reasons, and sources. Deal Copilot Overview only aggregates existing capability outputs. Gemini may route to it and explain it, but must never recalculate a score or metric, create advice, change workflow, create a Next Best Action, invent a provider or conversation, execute an action, consume Nuggets, or send a message. Next Best Action is a deterministic backend suggestion. Gemini must never choose, alter, reprioritize, invent, execute, or confirm it; create workflow, pipeline, checklist, deal, or negotiation statuses from it; consume Nuggets; send messages; or claim that its suggested step occurred. Gemini may only explain the returned code, priority, reason, actionable flag, confirmation requirement, target, and alternatives. Deal Workflow is deterministic backend state. Gemini must never define items, change status or source, complete items, fabricate evidence, interpret progress as deal quality or probability, create negotiation status, execute an action, send a message, consume Nuggets, or create reminders or deadlines. It may only explain the returned items and operational completed/total count. Service Fit is an objective backend compatibility calculation, not provider quality, reputation, endorsement, or a recommendation. Provider contact unlock is an entitlement flow controlled by backend RPCs and explicit UI confirmation. You may explain exact contactAccess status and cost returned by the backend, but you must never create an unlock intent, confirm an unlock, execute an RPC, consume Nuggets, reveal contact fields, invent a serviceId, or say contact is available before the backend confirms entitlement. Provider Message Draft is a backend/UI draft action for an already identified serviceId and propertyId; you must never choose the recipient, change the serviceId, send a message, create pending_message_send, negotiate price, promise hiring, make binding offers, or imply that the user has committed to payment or engagement. Confirmed Provider Message Send is executed only by backend/UI endpoints after explicit user confirmation and must use the user's final reviewed text; you must never send, confirm, modify text after confirmation, choose a recipient, call send endpoints, send follow-ups, initiate conversations automatically, or claim a message was sent unless the backend returns provider_message_sent. Provider Conversation Analysis is a read-only assistant view of already authorized chat_messages and may only summarize extracted facts, questions, requests, quoted amounts, availability, open items, and an editable suggested reply; you must never send the suggestedReply, auto-reply, choose or switch provider/conversation, alter past messages, create follow-up tasks, negotiate, update property data, update Service Fit, consume Nuggets, or infer contract, hiring, accepted price, accepted terms, or appointment confirmation unless the provider stated it explicitly. Never calculate, recalculate, estimate, modify, override, or invent a Service Fit score, classification, reason, or order. Never create, remove, or reclassify Deal Advisor signals, attention points, missing information, limitations, service needs, categories, or providers. Never add a service, remove a service, change service confidence, imply a service is mandatory, rank or choose a provider. Suggested services are contextual types that may be relevant, not legal or operational requirements. Never calculate comparison values or create missing numbers. Never choose a preferred property or describe any property as the best deal, winner, buy, or avoid. Match Score is unrelated and must not be used in financial comparison. Cap rate is user-reported stored data, not verified return. Never calculate, derive, estimate, verify, or judge any additional metric, including ROI, profit, MAO, ARV, rehab estimates, risk, deal quality, or recommendations.`;
+  return `${detailsContext} ${comparisonContext} Never substitute, infer, or invent a propertyId. Use getPropertyDetails only for explicit canonical facts, published details, named fields, or one focused metric. Use getDealCopilotOverview for any broad reading of this opportunity: how the property or deal looks, what you see, overview, analysis, current situation/status, gaps or missing information, what happened, or what remains. Apply this semantic distinction in Portuguese, English, and Spanish regardless of whether the user says deal, property, imovel, or propiedad. For an explicit request such as "show professionals for this property", "who can help with this deal", or "find the suggested services", call getPropertyDetails with includeServiceMatches true. Otherwise omit that flag. Never call searchServices separately to choose categories for a property; the backend derives them exclusively from serviceNeeds. If DealMetricsResult, DealAdvisorAnalysis, PropertyServiceNeed, PropertyServiceMatch, ServiceFitResult, ProviderContactAccess, ProviderMessageContext, Next Best Action, Deal Workflow, Deal Copilot Overview, provider_message_draft, provider_message_sent, provider_conversation_analysis, or a property comparison is supplied, explain only exact returned values, codes, reasons, and sources. Deal Copilot Overview only aggregates existing capability outputs. Gemini may route to it and explain it, but must never recalculate a score or metric, create advice, change workflow, create a Next Best Action, invent a provider or conversation, execute an action, consume Nuggets, or send a message. Next Best Action is a deterministic backend suggestion. Gemini must never choose, alter, reprioritize, invent, execute, or confirm it; create workflow, pipeline, checklist, deal, or negotiation statuses from it; consume Nuggets; send messages; or claim that its suggested step occurred. Gemini may only explain the returned code, priority, reason, actionable flag, confirmation requirement, target, and alternatives. Deal Workflow is deterministic backend state. Gemini must never define items, change status or source, complete items, fabricate evidence, interpret progress as deal quality or probability, create negotiation status, execute an action, send a message, consume Nuggets, or create reminders or deadlines. It may only explain the returned items and operational completed/total count. Service Fit is an objective backend compatibility calculation, not provider quality, reputation, endorsement, or a recommendation. Provider contact unlock is an entitlement flow controlled by backend RPCs and explicit UI confirmation. You may explain exact contactAccess status and cost returned by the backend, but you must never create an unlock intent, confirm an unlock, execute an RPC, consume Nuggets, reveal contact fields, invent a serviceId, or say contact is available before the backend confirms entitlement. Provider Message Draft is a backend/UI draft action for an already identified serviceId and propertyId; you must never choose the recipient, change the serviceId, send a message, create pending_message_send, negotiate price, promise hiring, make binding offers, or imply that the user has committed to payment or engagement. Confirmed Provider Message Send is executed only by backend/UI endpoints after explicit user confirmation and must use the user's final reviewed text; you must never send, confirm, modify text after confirmation, choose a recipient, call send endpoints, send follow-ups, initiate conversations automatically, or claim a message was sent unless the backend returns provider_message_sent. Provider Conversation Analysis is a read-only assistant view of already authorized chat_messages and may only summarize extracted facts, questions, requests, quoted amounts, availability, open items, and an editable suggested reply; you must never send the suggestedReply, auto-reply, choose or switch provider/conversation, alter past messages, create follow-up tasks, negotiate, update property data, update Service Fit, consume Nuggets, or infer contract, hiring, accepted price, accepted terms, or appointment confirmation unless the provider stated it explicitly. Never calculate, recalculate, estimate, modify, override, or invent a Service Fit score, classification, reason, or order. Never create, remove, or reclassify Deal Advisor signals, attention points, missing information, limitations, service needs, categories, or providers. Never add a service, remove a service, change service confidence, imply a service is mandatory, rank or choose a provider. Suggested services are contextual types that may be relevant, not legal or operational requirements. Never calculate comparison values or create missing numbers. Never choose a preferred property or describe any property as the best deal, winner, buy, or avoid. Match Score is unrelated and must not be used in financial comparison. Cap rate is user-reported stored data, not verified return. Never calculate, derive, estimate, verify, or judge any additional metric, including ROI, profit, MAO, ARV, rehab estimates, risk, deal quality, or recommendations.`;
 }
 
 function booleanRecord(value: unknown, allowedKeys: string[]) {
@@ -565,8 +512,19 @@ Deno.serve(async (req) => {
       logAbuseGuard({ functionName: 'maxxis-chat', operation: 'maxxis_context', requestId, userId, category: 'REQUEST_TOO_LARGE', status: 413, limitType: 'maxxis_context' });
       return response({ message: 'Request context is too large.', type: 'text', data: null, actions: [], error: 'MAXXIS_CONTEXT_TOO_LARGE' }, 413, origin, requestId);
     }
+    logMaxxisEvent('maxxis_request_received', {
+      request_id: requestId,
+      user_id: userId,
+      success: true,
+      page: resolvedPage,
+      history_count: Array.isArray(body.history) ? body.history.length : 0,
+      has_property_context: Boolean(propertyContextId),
+      comparison_context_count: comparisonPropertyIds.length,
+      structured_context_bytes: structuredContextBytes,
+    });
     if (structuredContext && isSurfaceContextQuestion(message)) {
       const text = contextAwarenessMessage(language, structuredContext);
+      logMaxxisEvent('maxxis_router', { request_id: requestId, user_id: userId, success: true, router_path: 'SAFE_LOCAL_SURFACE_CONTEXT' });
       logMaxxisEvent('maxxis_context', {
         request_id: requestId,
         user_id: userId,
@@ -580,6 +538,7 @@ Deno.serve(async (req) => {
       });
       return response({ message: text, answer: text, type: 'context_snapshot', data: { surface: structuredContext.surface, entity: structuredContext.entity, view: structuredContext.view, profile: structuredContext.profile || null, economy: structuredContext.economy, operational: structuredContext.operational, freshness: structuredContext.freshness }, actions: [], language }, 200, origin, requestId);
     }
+    logMaxxisEvent('maxxis_router', { request_id: requestId, user_id: userId, success: true, router_path: 'GEMINI_CONVERSATION' });
     const stubFunctionCall = isE2ELlmStubEnabled() ? e2eStubFunctionCall(message, propertyContextId) : null;
     if (!geminiApiKey && !stubFunctionCall) {
       const degradedPayload = degradedFallbackPayload(message, language, 'MAXXIS_NOT_CONFIGURED');
@@ -603,53 +562,74 @@ Deno.serve(async (req) => {
     } else {
       const selectionAttemptLimit = Math.max(1, budget.limits.maxGeminiCalls - 1);
       for (const model of geminiModels.slice(0, selectionAttemptLimit)) {
-        budget.consumeGeminiCall();
+        let failure: GeminiFailureCode | '' = '';
+        let providerStatus = 0;
         const providerStartedAt = Date.now();
-        const result = await callGemini(model, {
-          systemInstruction: { parts: [{ text: systemPrompt }] },
-          contents,
-          tools: MAXXIS_TOOLS,
-          generationConfig: buildGeminiGenerationConfig(model, MAXXIS_EXECUTION_LIMITS.maxOutputTokens),
-          safetySettings: GEMINI_SAFETY_SETTINGS,
-        }, budget.remainingMs());
-        providerDurationMs += Date.now() - providerStartedAt;
-        payload = result.payload;
-        if (result.response.ok) { usedModel = model; break; }
+        try {
+          budget.consumeGeminiCall();
+          const result = await callGemini(model, {
+            systemInstruction: { parts: [{ text: systemPrompt }] },
+            contents,
+            tools: MAXXIS_TOOLS,
+            generationConfig: buildGeminiGenerationConfig(model, MAXXIS_EXECUTION_LIMITS.maxOutputTokens),
+            safetySettings: GEMINI_SAFETY_SETTINGS,
+          }, budget.remainingMs());
+          providerDurationMs += Date.now() - providerStartedAt;
+          providerStatus = result.response.status;
+          if (!result.response.ok) {
+            failure = classifyGeminiHttpFailure(result.response.status, result.payload);
+          } else {
+            const inspection = inspectGeminiCandidate(result.payload, MAXXIS_TOOL_NAMES);
+            if (inspection.usable) {
+              payload = result.payload;
+              usedModel = model;
+            } else {
+              failure = inspection.failure || 'GEMINI_EMPTY_RESPONSE';
+            }
+          }
+        } catch (error) {
+          providerDurationMs += Date.now() - providerStartedAt;
+          failure = classifyGeminiThrownFailure(error);
+        }
+        logMaxxisEvent('maxxis_model_attempt', {
+          request_id: requestId,
+          user_id: userId,
+          model,
+          duration_ms: Date.now() - providerStartedAt,
+          success: Boolean(usedModel),
+          error_code: failure || undefined,
+          provider_status: providerStatus || undefined,
+          model_attempt: budget.geminiCalls,
+        });
+        if (usedModel) break;
         fallbackCount += 1;
-        providerErrors.push({ status: result.response.status, code: classifyGeminiHttpFailure(result.response.status, result.payload) });
+        providerErrors.push({ status: providerStatus, code: failure || 'GEMINI_INTERNAL_ERROR' });
+        if (!isRetryableGeminiFailure(failure)) break;
       }
     }
     if (!usedModel) {
       const degradedReason = selectGeminiFailure(providerErrors.map((item) => item.code));
       const lastProviderStatus = providerErrors.at(-1)?.status || 0;
       const degradedPayload = degradedFallbackPayload(message, language, degradedReason);
-      logMaxxisEvent('maxxis_chat', { request_id: requestId, user_id: userId, duration_ms: Date.now() - startedAt, provider_duration_ms: providerDurationMs, success: false, fallback_count: fallbackCount, error_code: degradedReason, degraded_reason: degradedReason, provider_status: lastProviderStatus, model_attempts: providerErrors.length });
+      logMaxxisEvent('maxxis_chat', { request_id: requestId, user_id: userId, duration_ms: Date.now() - startedAt, provider_duration_ms: providerDurationMs, success: false, fallback_count: fallbackCount, error_code: degradedReason, degraded_reason: degradedReason, provider_status: lastProviderStatus, model_attempts: providerErrors.length, conversation_status: 'degraded' });
       return response({ ...degradedPayload, type: 'text', data: null, actions: [], language, degraded: true, degradedReason, error: degradedReason }, 200, origin, requestId);
     }
-    const candidateList = Array.isArray(payload.candidates) ? payload.candidates : [];
-    const firstCandidate = candidateList[0] && typeof candidateList[0] === 'object'
-      ? candidateList[0] as Record<string, unknown>
-      : {};
-    const candidateContent = firstCandidate.content && typeof firstCandidate.content === 'object'
-      ? firstCandidate.content as Record<string, unknown>
-      : {};
-    const parts = Array.isArray(candidateContent.parts)
-      ? candidateContent.parts.filter((part): part is Record<string, unknown> => Boolean(part && typeof part === 'object'))
-      : [];
-    const functionCallPart = parts.find((part) => part.functionCall && typeof part.functionCall === 'object');
-    const parsedFunctionCall = functionCallPart?.functionCall as Record<string, unknown> | undefined;
-    const mandatoryFunctionCall = !stubFunctionCall
-      ? resolveMandatoryToolCall(message, propertyContextId, comparisonPropertyIds)
-      : null;
-    const parsedToolName = String(parsedFunctionCall?.name || '');
-    const correctedFunctionCall = parsedFunctionCall
-      && mandatoryFunctionCall
-      && parsedToolName
-      && parsedToolName !== mandatoryFunctionCall.name
-      && ['getDealCopilotOverview', 'compareProperties'].includes(mandatoryFunctionCall.name)
-        ? mandatoryFunctionCall
-        : null;
-    const recoveredFunctionCall = !parsedFunctionCall && mandatoryFunctionCall ? mandatoryFunctionCall : null;
+    const candidateInspection = inspectGeminiCandidate(payload, MAXXIS_TOOL_NAMES);
+    const firstCandidate = candidateInspection.candidate;
+    const parts = candidateInspection.parts;
+    const parsedFunctionCall = candidateInspection.functionCall;
+    const routingDecision = !stubFunctionCall
+      ? validateMaxxisToolSelection({
+          message,
+          propertyId: propertyContextId,
+          comparisonPropertyIds,
+          proposedTool: parsedFunctionCall
+            ? { name: String(parsedFunctionCall.name || ''), args: parsedFunctionCall.args && typeof parsedFunctionCall.args === 'object' ? parsedFunctionCall.args as Record<string, unknown> : {} }
+            : null,
+        })
+      : { tool: null, policy: 'E2E_STUB', corrected: false };
+    const correctedFunctionCall = parsedFunctionCall && routingDecision.corrected ? routingDecision.tool : null;
+    const recoveredFunctionCall = !parsedFunctionCall && routingDecision.tool ? routingDecision.tool : null;
     if (recoveredFunctionCall || correctedFunctionCall) {
       logMaxxisEvent('maxxis_tool_selection_recovered', {
         request_id: requestId,
@@ -658,17 +638,28 @@ Deno.serve(async (req) => {
         duration_ms: Date.now() - startedAt,
         success: true,
         tool: (recoveredFunctionCall || correctedFunctionCall)?.name,
+        router_path: routingDecision.policy,
       });
     }
-    const functionCall = stubFunctionCall || correctedFunctionCall || parsedFunctionCall || recoveredFunctionCall;
+    const functionCall = stubFunctionCall || routingDecision.tool || parsedFunctionCall || recoveredFunctionCall;
     if (functionCall) {
       budget.consumeToolRound();
       const toolStartedAt = Date.now();
       const toolName = String(functionCall.name || '');
       const functionArgs = functionCall.args && typeof functionCall.args === 'object' ? functionCall.args as Record<string, unknown> : {};
       const modelPartsForTool = parsedFunctionCall
-        ? parts
+        && !routingDecision.corrected ? parts
         : [{ functionCall: { name: toolName, args: functionArgs } }];
+      logMaxxisEvent('maxxis_tool_selected', {
+        request_id: requestId,
+        user_id: userId,
+        model: usedModel,
+        success: true,
+        tool: toolName,
+        proposed_tool: String(parsedFunctionCall?.name || '') || undefined,
+        router_path: routingDecision.policy,
+        selection_corrected: routingDecision.corrected,
+      });
       let result;
       try {
         result = await executeMaxxisTool(
@@ -733,19 +724,10 @@ Deno.serve(async (req) => {
               secondPassFailure = classifyGeminiHttpFailure(interpretation.response.status, interpretation.payload);
               secondPassProviderMeta = getGeminiProviderFailureMeta(interpretation.response.status, interpretation.payload);
             } else {
-              const interpretationCandidates = Array.isArray(interpretation.payload.candidates) ? interpretation.payload.candidates : [];
-              const interpretationCandidate = interpretationCandidates[0] && typeof interpretationCandidates[0] === 'object'
-                ? interpretationCandidates[0] as Record<string, unknown>
-                : {};
-              const interpretationContent = interpretationCandidate.content && typeof interpretationCandidate.content === 'object'
-                ? interpretationCandidate.content as Record<string, unknown>
-                : {};
-              const interpretationParts = Array.isArray(interpretationContent.parts)
-                ? interpretationContent.parts.filter((part): part is Record<string, unknown> => Boolean(part && typeof part === 'object'))
-                : [];
-              interpretedText = String(interpretationParts.find((part) => part.text)?.text || '').trim();
+              const interpretationCandidate = inspectGeminiCandidate(interpretation.payload, MAXXIS_TOOL_NAMES);
+              interpretedText = interpretationCandidate.text;
               if (interpretedText) secondPass = true;
-              else secondPassFailure = classifyGeminiCandidateFailure(interpretationCandidate);
+              else secondPassFailure = interpretationCandidate.failure || 'GEMINI_EMPTY_RESPONSE';
             }
           } catch (error) {
             secondPassFailure = classifyGeminiThrownFailure(error);
@@ -813,6 +795,7 @@ Deno.serve(async (req) => {
         llm_call_count: budget.geminiCalls,
         tool_call_count: budget.toolCalls,
         tool_rounds: budget.toolRounds,
+        conversation_status: secondPassFailure ? 'degraded' : 'success',
       });
       if (result.type === 'property_details') {
         logMaxxisEvent('maxxis_tool', { tool: toolName, duration_ms: Date.now() - toolStartedAt, success: true, property_found: result.found });
@@ -878,14 +861,14 @@ Deno.serve(async (req) => {
       const text = interpretedText || propertySearchMessage(language, properties.length, result.personalized, result.requiresProfile);
       return response({ message: text, answer: text, type: 'properties', data: { properties, personalized: result.personalized, profileAvailable: result.profileAvailable, profileSuggestions }, actions: [], language, runtime: toolRuntime, ...toolDegraded }, 200, origin, requestId);
     }
-    const text = String(parts.find((part) => part?.text)?.text || '').trim();
+    const text = candidateInspection.text;
     if (!text) {
       const degradedReason = classifyGeminiCandidateFailure(firstCandidate);
       const degradedPayload = degradedFallbackPayload(message, language, degradedReason);
-      logMaxxisEvent('maxxis_chat', { request_id: requestId, user_id: userId, model: usedModel, duration_ms: Date.now() - startedAt, provider_duration_ms: providerDurationMs, success: false, fallback_count: fallbackCount + 1, error_code: degradedReason, degraded_reason: degradedReason, model_attempts: budget.geminiCalls });
+      logMaxxisEvent('maxxis_chat', { request_id: requestId, user_id: userId, model: usedModel, duration_ms: Date.now() - startedAt, provider_duration_ms: providerDurationMs, success: false, fallback_count: fallbackCount + 1, error_code: degradedReason, degraded_reason: degradedReason, model_attempts: budget.geminiCalls, conversation_status: 'degraded' });
       return response({ ...degradedPayload, type: 'text', data: null, actions: [], language, degraded: true, degradedReason, error: degradedReason }, 200, origin, requestId);
     }
-    logMaxxisEvent('maxxis_chat', { request_id: requestId, user_id: userId, model: usedModel, duration_ms: Date.now() - startedAt, provider_duration_ms: providerDurationMs, request_payload_bytes: requestPayloadBytes, system_prompt_bytes: systemPromptBytes, tool_declaration_bytes: toolDeclarationBytes, history_count: historyCount, success: true, fallback_count: fallbackCount, llm_call_count: budget.geminiCalls, tool_call_count: budget.toolCalls, tool_rounds: budget.toolRounds });
+    logMaxxisEvent('maxxis_chat', { request_id: requestId, user_id: userId, model: usedModel, duration_ms: Date.now() - startedAt, provider_duration_ms: providerDurationMs, request_payload_bytes: requestPayloadBytes, system_prompt_bytes: systemPromptBytes, tool_declaration_bytes: toolDeclarationBytes, history_count: historyCount, success: true, fallback_count: fallbackCount, llm_call_count: budget.geminiCalls, tool_call_count: budget.toolCalls, tool_rounds: budget.toolRounds, conversation_status: 'success' });
     return response({ message: text, answer: text, type: 'text', data: null, actions: [], language, runtime: { provider: 'gemini', model: usedModel, secondPass: false, knowledgeVersion: MAXXIS_KNOWLEDGE_VERSION, knowledgeTopics: selectedKnowledge.map((section) => section.topic) } }, 200, origin, requestId);
   } catch (error) {
     const timedOut = error instanceof DOMException && error.name === 'AbortError';

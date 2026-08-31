@@ -437,6 +437,8 @@ export type MaxxisDealCopilotOverview = {
 };
 export type MaxxisResponse = {
   message: string;
+  status?: 'success' | 'degraded' | 'unavailable';
+  providerStatus?: 'ok' | 'not_attempted' | 'empty' | 'timeout' | 'unavailable' | 'auth' | 'quota' | 'parsing' | 'tool_error' | 'network' | 'internal';
   type: 'text' | 'properties' | 'services' | 'investment_profile' | 'property_details' | 'property_comparison' | 'deal_copilot_overview';
   data: null
     | { properties: MaxxisPropertyResult[]; personalized?: boolean; profileAvailable?: boolean; profileSuggestions?: ProfileDriftSuggestion[] }

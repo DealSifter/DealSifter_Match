@@ -20,6 +20,9 @@ describe('Maxxis fallback policy contract', () => {
     expect(edgeSource).toContain("fallbackSource: 'edge_generic_guard'");
     expect(clientSource).toContain("fallbackSource: 'client_network_guard'");
     expect(clientSource).toContain("fallbackSource: 'client_http_guard'");
+    expect(clientSource).toContain("status: 'degraded'");
+    expect(clientSource).toContain("providerStatus: 'empty'");
+    expect(edgeSource).toContain("conversationStatus === 'success'");
   });
 
   it('does not present an unsupported local intent as a normal guide answer', () => {

@@ -158,8 +158,8 @@ describe('Phase 4C Maxxis Deal AI Deal Copilot', () => {
   });
 
   it('routes a simple metric or focused question to getPropertyDetails instead of Copilot', () => {
-    expect(registrySource).toContain('Do not use for a single metric');
-    expect(chatSource).toContain('For one metric or a focused property question, use getPropertyDetails and do not load the overview.');
+    expect(registrySource).toContain('Do NOT use for a broad reading, overview, analysis');
+    expect(chatSource).toContain('Use getPropertyDetails only for explicit canonical facts, published details, named fields, or one focused metric.');
     expect(chatSource).toContain('For one metric or a focused property question, omit includeOperationalContext.');
     expect(propertyDetailsSource).toContain('if (!validated.includeOperationalContext');
     expect(contextSource).toContain('includeOperationalContext: true');
@@ -173,7 +173,7 @@ describe('Phase 4C Maxxis Deal AI Deal Copilot', () => {
 
   it('does not mutate workflow or execute operational actions', () => {
     expect(contextSource).not.toMatch(/setMaxxisDealWorkflowManualItem|set_deal_workflow_manual_item|\.rpc\(/);
-    expect(registrySource).toContain('This tool aggregates existing results and never executes actions.');
+    expect(registrySource).toContain('This tool aggregates existing backend results and never executes actions.');
     expect(assistantSource).toMatch(/function DealCopilotOverviewCard[\s\S]*?<DealProgressCard[\s\S]*?readOnly/);
   });
 
