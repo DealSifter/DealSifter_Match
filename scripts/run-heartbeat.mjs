@@ -31,6 +31,19 @@ if (level === 'contract') {
   ));
   console.log(`[heartbeat] baseline=${baseline.name} sourceSha=${baseline.sourceSha} status=${failures.length ? 'FAIL' : 'RECORDED'}`);
   if (failures.length) process.exitCode = 1;
+} else if (level === 'staging-baseline') {
+  const baseline = readJson('config/heartbeat-baseline-r0b.json');
+  const failures = baseline.results.filter((item) => !allowedStatuses.has(item.status));
+  baseline.results.forEach((item) => console.log(
+    `[heartbeat] level=staging-baseline id=${item.id} status=${item.status} requestId=${item.requestId} ` +
+    `http=${item.httpStatus} degraded=${item.degraded} tool=${item.toolCalled}`,
+  ));
+  console.log(
+    `[heartbeat] baseline=${baseline.name} target=${baseline.target} authenticated=${baseline.authenticated} ` +
+    `geminiReal=${baseline.geminiReal} stub=${baseline.stub} pass=${baseline.summary.pass} fail=${baseline.summary.fail} ` +
+    `status=${failures.length ? 'INVALID' : 'RECORDED'}`,
+  );
+  if (failures.length) process.exitCode = 1;
 } else if (level === 'real') {
   const target = requireTarget();
   if (target !== 'staging') throw new Error('Real heartbeat execution is restricted to staging in this runner.');
@@ -91,5 +104,5 @@ if (level === 'contract') {
   }
   if (failed) process.exitCode = 1;
 } else {
-  throw new Error('Heartbeat level must be contract, baseline or real.');
+  throw new Error('Heartbeat level must be contract, baseline, staging-baseline or real.');
 }

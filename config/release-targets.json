@@ -2,6 +2,11 @@
   "schemaVersion": 1,
   "staging": {
     "supabaseProjectRef": "oqdcnjupquhybwdbeeew",
+    "db": {
+      "host": "aws-0-us-west-2.pooler.supabase.com",
+      "port": 5432,
+      "user": "postgres.oqdcnjupquhybwdbeeew"
+    },
     "destructiveE2EAllowed": true,
     "requiresExplicitTarget": true
   },

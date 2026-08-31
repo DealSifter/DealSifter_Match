@@ -10,6 +10,7 @@ const projectRefs = {
 };
 const sentryNames = new Set(['VITE_SENTRY_DSN', 'SENTRY_ORG', 'SENTRY_PROJECT', 'SENTRY_AUTH_TOKEN']);
 const allowedPublic = new Set(['VITE_SENTRY_DSN']);
+const ambiguousRemoteAuthorities = new Set(['POSTGRES_PASSWORD', 'SUPABASE_DB_URL', 'SUPABASE_ACCESS_TOKEN']);
 const searchableExtensions = /\.(?:cjs|js|jsx|json|md|mjs|ps1|ts|tsx|toml|ya?ml)$/i;
 const searchableRoots = ['src', 'supabase', 'scripts', 'config', '.github']
   .map((name) => resolve(root, name))
@@ -67,17 +68,20 @@ for (const row of rows) {
     /(SECRET|SERVICE_ROLE|GEMINI_API_KEY|WEBHOOK|POSTGRES_PASSWORD)/i.test(row.name) &&
     !allowedPublic.has(row.name);
   const optional = sentryNames.has(row.name);
-  const used = new RegExp(`\\b${row.name}\\b`).test(searchableText);
+  const ambiguousAuthority = ambiguousRemoteAuthorities.has(row.name) && row.loadGroup !== 'template';
+  const targetSpecificRemoteAuthority = /^(?:POSTGRES_PASSWORD|SUPABASE_DB_URL)_(?:STAGING|PRODUCTION)$/.test(row.name);
+  const used = targetSpecificRemoteAuthority || new RegExp(`\\b${row.name}\\b`).test(searchableText);
   const statuses = [];
   if (duplicate) statuses.push('DUPLICATE');
   if (shadowed) statuses.push('SHADOWED');
   if (empty) statuses.push(optional ? 'OPTIONAL_EMPTY' : 'EMPTY');
   if (exposedSecret) statuses.push('CLIENT_SECRET_NAME');
+  if (ambiguousAuthority) statuses.push('AMBIGUOUS_REMOTE_AUTHORITY');
   if (optional) statuses.push('OPTIONAL_NON_BLOCKING');
   if (row.loadGroup === 'template') statuses.push('TEMPLATE_ONLY');
   if (!used && row.loadGroup !== 'template') statuses.push('UNUSED_CANDIDATE');
   if (!statuses.length) statuses.push('OK');
-  if (duplicate || empty && !optional || exposedSecret) failures += 1;
+  if (duplicate || empty && !optional || exposedSecret || ambiguousAuthority) failures += 1;
   console.log(
     `[env] name=${row.name} source=${basename(sourceDir)}/${row.filename}:${row.line} ` +
     `loadGroup=${row.loadGroup} expectedTarget=${row.expectedTarget} duplicate=${duplicate} shadowed=${shadowed} ` +

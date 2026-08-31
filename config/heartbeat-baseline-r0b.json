@@ -1,0 +1,26 @@
+{
+  "schemaVersion": 1,
+  "name": "R0-B authenticated real staging baseline",
+  "sourceSha": "63b2c134a22289bacd7a642dcf4f040ce5a6c1a7",
+  "target": "staging",
+  "projectRef": "oqdcnjupquhybwdbeeew",
+  "authenticated": true,
+  "geminiReal": true,
+  "stub": false,
+  "fixture": "EPHEMERAL_REUSED_AND_CLEANED",
+  "model": "gemini-3.5-flash-lite",
+  "executedAt": "2026-08-31T00:55:46.179Z",
+  "summary": { "pass": 9, "fail": 1, "degraded": 0, "blocked": 0 },
+  "results": [
+    { "id": "HB-01", "timestamp": "2026-08-31T00:55:46.179Z", "requestId": "84dbabb8-afab-499e-8cd3-8b09abad4a06", "httpStatus": 200, "degraded": false, "toolCalled": "none", "responseClass": "text", "status": "PASS" },
+    { "id": "HB-02", "timestamp": "2026-08-31T00:56:04.247Z", "requestId": "a57cd36a-1fd3-4ba5-88cc-59649e8dc896", "httpStatus": 200, "degraded": false, "toolCalled": "none", "responseClass": "text", "status": "PASS" },
+    { "id": "HB-03", "timestamp": "2026-08-31T00:56:07.584Z", "requestId": "22e087c6-99f9-46e6-9afd-38d953e9a23e", "httpStatus": 200, "degraded": false, "toolCalled": "none", "responseClass": "text", "status": "PASS" },
+    { "id": "HB-04", "timestamp": "2026-08-31T00:56:11.760Z", "requestId": "87fd31c6-3e5d-4c05-914a-8477cfd4f6dc", "httpStatus": 200, "degraded": false, "toolCalled": "none", "responseClass": "text", "status": "PASS" },
+    { "id": "HB-05", "timestamp": "2026-08-31T00:56:15.819Z", "requestId": "9bf05dda-2b53-4943-a198-651b8b41b9a7", "httpStatus": 200, "degraded": false, "toolCalled": "searchProperties", "responseClass": "properties", "status": "PASS" },
+    { "id": "HB-06", "timestamp": "2026-08-31T00:56:20.098Z", "requestId": "913db562-cc8b-42d6-93d3-d5223c955a3b", "httpStatus": 200, "degraded": false, "toolCalled": "getPropertyDetails", "responseClass": "WRONG_TOOL", "status": "FAIL" },
+    { "id": "HB-07", "timestamp": "2026-08-31T00:56:23.748Z", "requestId": "43b0963e-105f-4d62-bc4f-08c1f0f668bd", "httpStatus": 200, "degraded": false, "toolCalled": "compareProperties", "responseClass": "property_comparison", "status": "PASS" },
+    { "id": "HB-08", "timestamp": "2026-08-31T00:56:28.920Z", "requestId": "2220db38-6b25-4d87-b375-f5ec5aece129", "httpStatus": 200, "degraded": false, "toolCalled": "getPropertyDetails", "responseClass": "property_details", "status": "PASS" },
+    { "id": "HB-09", "timestamp": "2026-08-31T00:56:31.410Z", "requestId": "93a2260f-f115-489e-a898-8a9b1646db6e", "httpStatus": 200, "degraded": false, "toolCalled": "none", "responseClass": "text", "status": "PASS" },
+    { "id": "HB-10", "timestamp": "2026-08-31T00:56:35.756Z", "requestId": "e2ea2854-7997-4ae2-8779-533eca09c303", "httpStatus": 200, "degraded": false, "toolCalled": "getDealCopilotOverview", "responseClass": "deal_copilot_overview", "status": "PASS" }
+  ]
+}

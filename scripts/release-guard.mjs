@@ -12,6 +12,7 @@ if (target === 'production' && operation === 'destructive-e2e') {
 }
 
 const mutatingOperations = new Set(['deploy', 'migration', 'secrets', 'destructive']);
+const mode = mutatingOperations.has(operation) || operation === 'destructive-e2e' ? 'MUTATING' : 'READ_ONLY';
 if (target === 'production' && mutatingOperations.has(operation)) {
   const confirmation = parseArg('confirm-production') || process.env.PRODUCTION_CONFIRMATION || '';
   if (confirmation !== contract.supabaseProjectRef) {
@@ -21,6 +22,8 @@ if (target === 'production' && mutatingOperations.has(operation)) {
   }
 }
 
+console.log(`TARGET: ${target.toUpperCase()}`);
+console.log(`MODE: ${mode}`);
 console.log(
   `[release-guard] target=${target} operation=${operation} ` +
   `destructiveE2E=${contract.destructiveE2EAllowed ? 'allowed' : 'blocked'} status=PASS`,

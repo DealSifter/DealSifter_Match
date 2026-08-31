@@ -5,6 +5,7 @@ const targets = readJson('config/release-targets.json');
 const projectRef = targets[target].supabaseProjectRef;
 const local = localFunctionInventory();
 const expected = readJson('supabase/functions-manifest.json').functions.map((row) => row.name).sort();
+const receipts = readJson('config/function-deployments.json');
 
 let remote = [];
 try {
@@ -19,6 +20,7 @@ let possiblyStale = 0;
 let confirmedStale = 0;
 for (const item of local) {
   const remoteRow = remote.find((row) => row.name === item.name);
+  const receipt = receipts[target]?.[item.name];
   let status = 'UNKNOWN';
   let latestLocalCommit = '';
   try {
@@ -28,7 +30,16 @@ for (const item of local) {
   } catch {
     latestLocalCommit = '';
   }
-  if (!remoteRow) {
+  const receiptMatches = Boolean(
+    remoteRow && receipt &&
+    receipt.combinedHash === item.combinedHash &&
+    Number(receipt.remoteVersion) === Number(remoteRow.version) &&
+    receipt.remoteUpdatedAt === remoteRow.updatedAt &&
+    receipt.projectRef === projectRef,
+  );
+  if (receiptMatches) {
+    status = 'IN_SYNC';
+  } else if (!remoteRow) {
     status = 'CONFIRMED_STALE';
     confirmedStale += 1;
   } else if (latestLocalCommit && remoteRow.updatedAt) {
@@ -46,7 +57,7 @@ for (const item of local) {
   console.log(
     `[function-parity] target=${target} name=${item.name} hash=${item.combinedHash} ` +
     `usesShared=${item.usesShared} remoteVersion=${remoteRow?.version || 'missing'} ` +
-    `deployedAt=${remoteRow?.updatedAt || 'missing'} status=${status}`,
+    `deployedAt=${remoteRow?.updatedAt || 'missing'} evidence=${receiptMatches ? 'CONTROLLED_DEPLOY_RECEIPT' : 'UNVERIFIED'} status=${status}`,
   );
 }
 

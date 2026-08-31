@@ -1,0 +1,17 @@
+{
+  "schemaVersion": 1,
+  "staging": {
+    "maxxis-chat": {
+      "projectRef": "oqdcnjupquhybwdbeeew",
+      "sourceHash": "6702a28884744452e85de0a5cdff126e9a1b26ab6223a093f4a47ba9991bb8fd",
+      "sharedHash": "747033fd76b6218b6c983f60d9e2c951fb9f064c6253edb02a172fedb477bf62",
+      "combinedHash": "87ba1f0bffebb6c65a8c10f470eb24e99cb34b40c857c7a47c280230a9cbd0b5",
+      "remoteVersion": 47,
+      "remoteUpdatedAt": "2026-08-31 00:47:41",
+      "deployedFromSha": "63b2c134a22289bacd7a642dcf4f040ce5a6c1a7",
+      "evidence": "CONTROLLED_IDENTICAL_STAGING_DEPLOY",
+      "status": "IN_SYNC"
+    }
+  },
+  "production": {}
+}

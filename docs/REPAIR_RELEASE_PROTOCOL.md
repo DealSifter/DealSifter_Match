@@ -53,7 +53,16 @@ npm run heartbeat:baseline
 
 When the ignored `.env.local` remains in another worktree, set `ENV_AUDIT_SOURCE_DIR` explicitly to that worktree before `npm run audit:env:names`. The auditor prints names and status only, never values.
 
-Migration audits require target-specific URLs: `SUPABASE_DB_URL_STAGING` and `SUPABASE_DB_URL_PRODUCTION`. Generic passwords and CLI linking are deliberately rejected.
+Migration audits accept only target-specific authority: `SUPABASE_DB_URL_<TARGET>` or `POSTGRES_PASSWORD_<TARGET>` plus versioned target connection metadata. `--env-file` may load an ignored file without logging values. Generic passwords and CLI linking are deliberately rejected.
+
+Staging development readiness and production release readiness are separate gates:
+
+```powershell
+node scripts/audit-release.mjs --readiness=staging --affected-function=maxxis-chat --schema-change=false
+node scripts/audit-release.mjs --readiness=production --affected-function=maxxis-chat --schema-change=false
+```
+
+The staging gate requires a matching controlled-deploy receipt only for the affected staging function. The production gate additionally requires a matching production receipt. Production migration parity is mandatory for a production repair that changes schema, RPC or migrations, but does not block schema-neutral staging work.
 
 ## Heartbeat policy
 
@@ -62,9 +71,9 @@ The ten scenarios are versioned in `config/heartbeat-contract.json`.
 - Level A (`contract`): fast local/mock behavior contract. R0 versions its definition; until a repair binds each scenario to a functional runner, its result remains `NOT_EXECUTED`.
 - Level B (`real`): authenticated staging, real Gemini and real backend. It is the release authority when a repair affects runtime behavior.
 
-The real runner requires staging-only `HEARTBEAT_*` variables and refuses the production project. Missing canonical property IDs produce `NOT_APPLICABLE`, never PASS.
+The R0-B baseline reuses `realBackendFixture.js`: isolated ephemeral staging users, two canonical properties and a provider/service, followed by cleanup. The exact HB-01..10 runner is `e2e/tests/real-gemini/maxxis-heartbeat-r0.spec.js`; it refuses production through `playwright.real-gemini.config.js`, requires real backend/LLM modes and records sanitized request evidence. No stub or network interception is permitted.
 
-The manual `Release Safety Audit` workflow captures remote evidence for an explicit target. Its optional real heartbeat is allowed only for staging and performs authenticated read-only conversation requests; it creates no fixture and changes no production data.
+The local R0-B staging baseline uses the existing ephemeral E2E fixture and authenticated real-runtime requests. Fixture rows are isolated by run ID and cleaned after the suite; production data is never used. CI credential wiring remains unchanged until it receives a separate credential-scope review.
 
 Before and after every repair, preserve the results. A PASS may not regress. Targeted FAIL/DEGRADED heartbeats must become PASS.
 

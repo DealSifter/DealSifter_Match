@@ -60,7 +60,7 @@
   },
   "remoteFunctionInventory": {
     "staging": {
-      "maxxis-chat": { "version": 46, "updatedAt": "2026-08-28 19:03:34 UTC" },
+      "maxxis-chat": { "version": 47, "updatedAt": "2026-08-31 00:47:41 UTC", "status": "IN_SYNC" },
       "feature-flags": { "version": 16, "updatedAt": "2026-08-24 22:09:41 UTC" },
       "count": 20
     },
