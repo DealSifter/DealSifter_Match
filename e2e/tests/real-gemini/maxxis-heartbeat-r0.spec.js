@@ -35,8 +35,12 @@ test('HB-01..HB-10 use authenticated staging, real Gemini and ephemeral fixtures
   expect(process.env.E2E_LLM_MODE).toBe('real');
   const session = await realBackend.signIn(realBackend.investor.email, realBackend.investor.password);
   const results = [];
+  const selectedId = String(process.env.E2E_HEARTBEAT_CASE || '').trim().toUpperCase();
+  const selectedCases = selectedId ? cases.filter((item) => item.id === selectedId) : cases;
+  const repeat = selectedId ? Math.max(1, Math.min(3, Number(process.env.E2E_HEARTBEAT_REPEAT || 1))) : 1;
+  expect(selectedCases.length, `Unknown E2E_HEARTBEAT_CASE: ${selectedId}`).toBeGreaterThan(0);
 
-  for (const item of cases) {
+  for (const item of selectedCases.flatMap((entry) => Array.from({ length: repeat }, (_, index) => ({ ...entry, attempt: index + 1 })))) {
     const result = await realBackend.invokeFunction({
       token: session.access_token,
       name: 'maxxis-chat',
@@ -53,6 +57,7 @@ test('HB-01..HB-10 use authenticated staging, real Gemini and ephemeral fixtures
     const classification = classify(result, item.expectedTool);
     const evidence = {
       id: item.id,
+      attempt: item.attempt,
       timestamp: new Date().toISOString(),
       target: 'staging',
       authenticated: true,
@@ -63,6 +68,8 @@ test('HB-01..HB-10 use authenticated staging, real Gemini and ephemeral fixtures
       degraded: result.payload?.degraded === true,
       model: result.payload?.runtime?.model || 'not-reported',
       toolCalled: result.payload?.runtime?.toolName || 'none',
+      expectedTool: item.expectedTool || 'none',
+      secondPass: result.payload?.runtime?.secondPass === true,
       responseClass: classification.responseClass,
       status: classification.status,
     };
@@ -74,7 +81,7 @@ test('HB-01..HB-10 use authenticated staging, real Gemini and ephemeral fixtures
     body: JSON.stringify(results, null, 2),
     contentType: 'application/json',
   });
-  expect(results).toHaveLength(10);
+  expect(results).toHaveLength(selectedCases.length * repeat);
   expect(results.every((item) => item.geminiReal && !item.stub)).toBe(true);
   expect(results.filter((item) => item.status !== 'PASS'), JSON.stringify(results)).toEqual([]);
 });

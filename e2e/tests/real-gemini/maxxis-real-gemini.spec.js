@@ -135,6 +135,13 @@ test('real Gemini selects tools and interprets their structured results in a sec
       context: { propertyId: realBackend.property.id },
     },
     {
+      message: 'Mostre os detalhes publicados deste imóvel.',
+      page: 'property-details',
+      expectedTool: 'getPropertyDetails',
+      expectedType: 'property_details',
+      context: { propertyId: realBackend.property.id },
+    },
+    {
       message: 'Compare estes dois imóveis.',
       page: 'property-details',
       expectedTool: 'compareProperties',
@@ -143,6 +150,13 @@ test('real Gemini selects tools and interprets their structured results in a sec
     },
     {
       message: 'Como está este deal?',
+      page: 'property-details',
+      expectedTool: 'getDealCopilotOverview',
+      expectedType: 'deal_copilot_overview',
+      context: { propertyId: realBackend.property.id },
+    },
+    {
+      message: 'Como está este imóvel?',
       page: 'property-details',
       expectedTool: 'getDealCopilotOverview',
       expectedType: 'deal_copilot_overview',
