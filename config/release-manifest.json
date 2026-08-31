@@ -1,0 +1,74 @@
+{
+  "schemaVersion": 1,
+  "kind": "r0-source-baseline",
+  "releaseSha": "63b2c134a22289bacd7a642dcf4f040ce5a6c1a7",
+  "frontendSha": "63b2c134a22289bacd7a642dcf4f040ce5a6c1a7",
+  "frontendSourceHash": "049603c52f721bc639194e642cbf436ade718fb82d311a44a8ee03a52ec747c7",
+  "expectedFunctions": [
+    "create-checkout-session",
+    "create-portal-session",
+    "delete-account",
+    "feature-flags",
+    "geocode-address",
+    "maxxis-action-cancel",
+    "maxxis-action-confirm",
+    "maxxis-chat",
+    "maxxis-deal-workflow",
+    "maxxis-provider-conversation-analysis",
+    "maxxis-provider-message-cancel",
+    "maxxis-provider-message-confirm",
+    "maxxis-provider-message-draft",
+    "maxxis-provider-message-prepare",
+    "maxxis-provider-unlock-cancel",
+    "maxxis-provider-unlock-confirm",
+    "maxxis-provider-unlock-prepare",
+    "send-support-email",
+    "stripe-reprocess-queue",
+    "stripe-webhook"
+  ],
+  "functionSourceHashes": {
+    "create-checkout-session": { "combinedHash": "14809d6cc5595eea17e723d9f98cc06bf23afab4b59ce397ff478091859d41c7" },
+    "create-portal-session": { "combinedHash": "46bdbd080217135ea6ac02cc3304535e77f4b0c6d99c87a35b7f9f04bb6ae88a" },
+    "delete-account": { "combinedHash": "fdcc7d37d6b1bb79744bea8844906fa384ec965db4f759495de11ce450110ebb" },
+    "feature-flags": { "combinedHash": "c4cfd4b8b4fc944550f4c51771b064a9974d863e0848795e64182f4af9198fcb" },
+    "geocode-address": { "combinedHash": "1715e2dcb0b2243efeff1c582584a9047f604ee7ab7ba49cbf184ee4ae542595" },
+    "maxxis-action-cancel": { "combinedHash": "18604ec75a96f7b13c048f5e937fe96409047a2ae4ee2eeb3d1e1d3d928e9170" },
+    "maxxis-action-confirm": { "combinedHash": "a77bbc0ced29c419cd5e92fc6ba9990938030587065db029492dac828cd0f364" },
+    "maxxis-chat": { "combinedHash": "87ba1f0bffebb6c65a8c10f470eb24e99cb34b40c857c7a47c280230a9cbd0b5" },
+    "maxxis-deal-workflow": { "combinedHash": "5ef63c6334de92b34fc2a1a17e7cf3cc03b2709270b2f9edf6a1252ba007658b" },
+    "maxxis-provider-conversation-analysis": { "combinedHash": "8aa84cbeb2fa6e6d10b70ca9a269fa76b6fda9fd561e4abd061ccf758fee21e1" },
+    "maxxis-provider-message-cancel": { "combinedHash": "54c19e9652ab13a97fa6d00855bb60072c8e902dedc189f3ddf6770b84535ef8" },
+    "maxxis-provider-message-confirm": { "combinedHash": "d64df2aeccd8aad99846409b4429a948c43fcc5cc14e32ac4ef6ff9558ac12c1" },
+    "maxxis-provider-message-draft": { "combinedHash": "f4a9b337525c40575050d4aa0a72bf167c054bb1452a6f2be3bd406d5defcc0e" },
+    "maxxis-provider-message-prepare": { "combinedHash": "4d7e7851dbc85a43b5a226faf9acc25ef00ac6216f99cd265701b25c7c249790" },
+    "maxxis-provider-unlock-cancel": { "combinedHash": "d58eb8768405d9688d3a2a434e5467bf581ddc83af203c74e6c8119513beba14" },
+    "maxxis-provider-unlock-confirm": { "combinedHash": "2612873854d0a818dd8ea71a19ee5721b8987e3fcb10c18c8a95bc87e704a43b" },
+    "maxxis-provider-unlock-prepare": { "combinedHash": "b610c9237088a311c1169ec0a561b4a1cdc9a2440aaade19c0cb31e813521228" },
+    "send-support-email": { "combinedHash": "b26a8b71920395e453705d30b4b025274620a799ae9137729910fd91516a8e4b" },
+    "stripe-reprocess-queue": { "combinedHash": "62f44404b428e124b418aa61d3b28ce301a28869909f30377dbaa24d36857e0d" },
+    "stripe-webhook": { "combinedHash": "9d4cc8903a1127d63bfe8ed9e635b2b74fd86facf2281c445534ec0bb001ac32" }
+  },
+  "migrationHead": "20260815000006_optimize_property_search_plan",
+  "migrationCount": 106,
+  "remoteFunctionParity": {
+    "staging": "POSSIBLY_STALE",
+    "production": "POSSIBLY_STALE"
+  },
+  "migrationParity": {
+    "staging": "PASS",
+    "production": "UNKNOWN"
+  },
+  "remoteFunctionInventory": {
+    "staging": {
+      "maxxis-chat": { "version": 46, "updatedAt": "2026-08-28 19:03:34 UTC" },
+      "feature-flags": { "version": 16, "updatedAt": "2026-08-24 22:09:41 UTC" },
+      "count": 20
+    },
+    "production": {
+      "maxxis-chat": { "version": 26, "updatedAt": "2026-08-30 01:52:13 UTC" },
+      "feature-flags": { "version": 9, "updatedAt": "2026-08-30 02:06:30 UTC" },
+      "count": 20
+    }
+  },
+  "generatedAt": "2026-08-30T14:44:40.3782618Z"
+}

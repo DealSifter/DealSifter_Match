@@ -1,0 +1,22 @@
+{
+  "schemaVersion": 1,
+  "authority": {
+    "contract": "Fast local/mock validation; never sufficient for Gemini, context or tool promotion.",
+    "realRuntime": "Authenticated staging with real Gemini and real backend; release authority when applicable."
+  },
+  "heartbeats": [
+    { "id": "HB-01", "capability": "APP_GUIDE", "prompt": "Como funciona o Feed?", "page": "feed", "context": "none", "expectedTool": null },
+    { "id": "HB-02", "capability": "APP_GUIDE", "prompt": "Como funciona o Dashboard?", "page": "dashboard", "context": "none", "expectedTool": null },
+    { "id": "HB-03", "capability": "REAL_ESTATE", "prompt": "O que é Tax Deed?", "page": "dashboard", "context": "none", "expectedTool": null },
+    { "id": "HB-04", "capability": "REAL_ESTATE", "prompt": "Qual a diferença entre Tax Deed e Wholesale?", "page": "dashboard", "context": "none", "expectedTool": null },
+    { "id": "HB-05", "capability": "SEARCH", "prompt": "Mostre propriedades em Dallas.", "page": "feed", "context": "none", "expectedTool": "searchProperties" },
+    { "id": "HB-06", "capability": "PROPERTY", "prompt": "Como está este imóvel?", "page": "property-details", "context": "property", "expectedTool": "getDealCopilotOverview" },
+    { "id": "HB-07", "capability": "COMPARISON", "prompt": "Compare estes dois imóveis.", "page": "property-details", "context": "comparison", "expectedTool": "compareProperties" },
+    { "id": "HB-08", "capability": "PROVIDER", "prompt": "Quem pode me ajudar aqui?", "page": "property-details", "context": "property", "expectedTool": "getPropertyDetails" },
+    { "id": "HB-09", "capability": "CONTEXT", "prompt": "O que estou vendo?", "page": "property-details", "context": "property", "expectedTool": null },
+    { "id": "HB-10", "capability": "CONTINUITY", "prompt": "E agora?", "page": "property-details", "context": "property-history", "expectedTool": null }
+  ],
+  "allowedStatuses": ["PASS", "FAIL", "DEGRADED", "NOT_APPLICABLE", "NOT_EXECUTED"],
+  "noRegressionRule": "A heartbeat that is PASS before a repair may not become FAIL after it.",
+  "targetImprovementRule": "A heartbeat targeted by a repair must move from FAIL or DEGRADED to PASS before promotion."
+}

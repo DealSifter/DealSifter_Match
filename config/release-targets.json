@@ -1,0 +1,15 @@
+{
+  "schemaVersion": 1,
+  "staging": {
+    "supabaseProjectRef": "oqdcnjupquhybwdbeeew",
+    "destructiveE2EAllowed": true,
+    "requiresExplicitTarget": true
+  },
+  "production": {
+    "supabaseProjectRef": "cyeipfskwwisbbayyaca",
+    "frontendAlias": "https://dealsiftermatch.vercel.app",
+    "destructiveE2EAllowed": false,
+    "requiresExplicitTarget": true,
+    "requiresAdditionalConfirmation": true
+  }
+}

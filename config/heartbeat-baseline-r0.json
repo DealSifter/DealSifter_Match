@@ -1,0 +1,22 @@
+{
+  "schemaVersion": 1,
+  "name": "BASELINE_BEFORE_REPAIRS",
+  "sourceSha": "63b2c134a22289bacd7a642dcf4f040ce5a6c1a7",
+  "capturedAt": "2026-08-30T14:44:40.3782618Z",
+  "contractDefinition": "PASS",
+  "contractLevel": "NOT_EXECUTED",
+  "realRuntimeLevel": "NOT_EXECUTED",
+  "realRuntimeReason": "Explicit isolated staging heartbeat credentials and canonical context IDs were not available. Production credentials were intentionally not used.",
+  "results": [
+    { "id": "HB-01", "contract": "NOT_EXECUTED", "realRuntime": "NOT_EXECUTED" },
+    { "id": "HB-02", "contract": "NOT_EXECUTED", "realRuntime": "NOT_EXECUTED" },
+    { "id": "HB-03", "contract": "NOT_EXECUTED", "realRuntime": "NOT_EXECUTED" },
+    { "id": "HB-04", "contract": "NOT_EXECUTED", "realRuntime": "NOT_EXECUTED" },
+    { "id": "HB-05", "contract": "NOT_EXECUTED", "realRuntime": "NOT_EXECUTED" },
+    { "id": "HB-06", "contract": "NOT_EXECUTED", "realRuntime": "NOT_EXECUTED" },
+    { "id": "HB-07", "contract": "NOT_EXECUTED", "realRuntime": "NOT_EXECUTED" },
+    { "id": "HB-08", "contract": "NOT_EXECUTED", "realRuntime": "NOT_EXECUTED" },
+    { "id": "HB-09", "contract": "NOT_EXECUTED", "realRuntime": "NOT_EXECUTED" },
+    { "id": "HB-10", "contract": "NOT_EXECUTED", "realRuntime": "NOT_EXECUTED" }
+  ]
+}

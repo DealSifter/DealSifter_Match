@@ -1,5 +1,7 @@
 # DealSifter Dev/Production Workflow
 
+> **R0 authority:** for Repairs R1-R8, `docs/REPAIR_RELEASE_PROTOCOL.md` supersedes historical branch and target instructions in this document. The Supabase CLI is currently linked to staging (`oqdcnjupquhybwdbeeew`), not production. Every remote operation must provide an explicit target/project ref.
+
 Este fluxo separa producao e desenvolvimento sem depender de cliques manuais.
 
 ## Branches
@@ -13,7 +15,7 @@ Este fluxo separa producao e desenvolvimento sem depender de cliques manuais.
 - A branch `dev` foi criada a partir de `origin/main`.
 - A branch `dev` foi publicada em `origin/dev`.
 - O projeto Vercel ja esta vinculado em `.vercel/project.json`.
-- O Supabase local esta vinculado ao projeto `cyeipfskwwisbbayyaca`.
+- O Supabase CLI esta atualmente vinculado ao staging `oqdcnjupquhybwdbeeew`. Esse link nao e autoridade de release e nao deve ser alterado implicitamente para executar um Repair.
 
 ## Trabalhar em desenvolvimento
 

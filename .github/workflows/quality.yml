@@ -52,6 +52,11 @@ jobs:
       - name: Run complete local quality gate
         run: npm run quality
 
+      - name: Validate repair release manifest and heartbeat contract
+        run: |
+          npm run audit:release
+          npm run heartbeat:contract
+
       - name: Enforce deterministic performance budgets
         run: node scripts/audit-performance.mjs
 

@@ -1,0 +1,83 @@
+name: Release Safety Audit
+
+on:
+  workflow_dispatch:
+    inputs:
+      target:
+        description: Explicit read-only audit target
+        required: true
+        type: choice
+        options:
+          - staging
+          - production
+      run_real_heartbeat:
+        description: Run authenticated real heartbeat (staging only)
+        required: true
+        default: false
+        type: boolean
+
+permissions:
+  contents: read
+
+jobs:
+  release-audit:
+    name: Source, function, migration and heartbeat evidence
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    env:
+      CI: true
+      TARGET_ENV: ${{ inputs.target }}
+      SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
+      SUPABASE_DB_URL_STAGING: ${{ secrets.SUPABASE_DB_URL_STAGING }}
+      SUPABASE_DB_URL_PRODUCTION: ${{ secrets.SUPABASE_DB_URL_PRODUCTION }}
+
+    steps:
+      - name: Checkout candidate
+        uses: actions/checkout@v4
+
+      - name: Use Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version-file: .nvmrc
+          cache: npm
+
+      - name: Install from lockfile
+        run: npm ci
+
+      - name: Install Supabase CLI
+        uses: supabase/setup-cli@v2
+        with:
+          version: 2.116.0
+          github-token: ${{ github.token }}
+
+      - name: Validate source manifest and heartbeat definition
+        run: |
+          npm run audit:release
+          npm run heartbeat:contract
+          npm run heartbeat:baseline
+
+      - name: Validate explicit read-only target guard
+        run: node scripts/release-guard.mjs --target=${{ inputs.target }} --operation=read-only
+
+      - name: Capture remote Edge Function evidence
+        run: node scripts/audit-edge-function-release.mjs --target=${{ inputs.target }}
+
+      - name: Compare migration ledger
+        run: node scripts/audit-migration-parity.mjs --target=${{ inputs.target }}
+
+      - name: Run real authenticated staging heartbeat
+        if: ${{ inputs.target == 'staging' && inputs.run_real_heartbeat }}
+        env:
+          HEARTBEAT_SUPABASE_URL: ${{ secrets.HEARTBEAT_SUPABASE_URL }}
+          HEARTBEAT_SUPABASE_ANON_KEY: ${{ secrets.HEARTBEAT_SUPABASE_ANON_KEY }}
+          HEARTBEAT_USER_EMAIL: ${{ secrets.HEARTBEAT_USER_EMAIL }}
+          HEARTBEAT_USER_PASSWORD: ${{ secrets.HEARTBEAT_USER_PASSWORD }}
+          HEARTBEAT_PROPERTY_ID: ${{ secrets.HEARTBEAT_PROPERTY_ID }}
+          HEARTBEAT_COMPARISON_PROPERTY_ID: ${{ secrets.HEARTBEAT_COMPARISON_PROPERTY_ID }}
+        run: npm run heartbeat:real:staging
+
+      - name: Reject production real-runtime selection
+        if: ${{ inputs.target == 'production' && inputs.run_real_heartbeat }}
+        run: |
+          echo "Real heartbeat authority is staging-only in R0."
+          exit 1
