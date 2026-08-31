@@ -1,5 +1,6 @@
 import { existsSync, readFileSync } from 'node:fs';
 import { resolve } from 'node:path';
+import { validatePreviewSupabaseEnvironment } from './preview-environment-guard.mjs';
 
 function readLocalEnv() {
   if (process.env.CI || process.env.VERCEL) return {};
@@ -20,9 +21,10 @@ const localEnv = readLocalEnv();
 const valueOf = (...names) => names.map((name) => process.env[name] || localEnv[name] || '').find(Boolean) || '';
 const strict = process.argv.includes('--strict') || Boolean(process.env.CI || process.env.VERCEL);
 const failures = [];
+const supabaseUrl = valueOf('VITE_SUPABASE_URL', 'SUPABASE_URL');
 
 const required = [
-  ['Supabase URL', valueOf('VITE_SUPABASE_URL', 'SUPABASE_URL')],
+  ['Supabase URL', supabaseUrl],
   ['Supabase public key', valueOf('VITE_SUPABASE_ANON_KEY', 'SUPABASE_ANON_KEY', 'ANON_KEY')],
   ['App URL', valueOf('VITE_APP_URL', 'APP_URL')],
   ['Stripe P5 price', valueOf('VITE_STRIPE_PRICE_P5')],
@@ -35,6 +37,12 @@ const required = [
   ['Stripe Enterprise annual price', valueOf('VITE_STRIPE_PRICE_PLAN_ENTERPRISE_YEAR')],
 ];
 required.forEach(([label, value]) => { if (!String(value).trim()) failures.push(`missing ${label}`); });
+
+const previewGuard = validatePreviewSupabaseEnvironment({
+  vercelEnv: process.env.VERCEL_ENV,
+  supabaseUrl,
+});
+if (!previewGuard.ok) failures.push(previewGuard.reason);
 
 for (const [label, value] of required.filter(([name]) => name.includes('Stripe'))) {
   if (value && !/^price_[A-Za-z0-9]+$/.test(value) && !/^price_ci_[A-Za-z0-9_]+$/.test(value)) {

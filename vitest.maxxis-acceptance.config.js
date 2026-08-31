@@ -5,6 +5,7 @@ export default defineConfig({
     environment: 'node',
     include: [
       'scripts/maxxis-acceptance-lib.test.js',
+      'scripts/preview-environment-guard.test.js',
       'e2e/support/environment.test.js',
       'supabase/functions/_shared/maxxis/geminiErrors.test.ts',
       'supabase/functions/_shared/maxxis/geminiCandidate.test.ts',

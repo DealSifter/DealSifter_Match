@@ -34,7 +34,7 @@
     "heartbeat:contract": "node scripts/run-heartbeat.mjs --level=contract",
     "heartbeat:baseline": "node scripts/run-heartbeat.mjs --level=baseline",
     "heartbeat:real:staging": "npm run test:heartbeat:staging",
-    "lint:maxxis:acceptance": "eslint scripts/maxxis-acceptance-lib.mjs scripts/maxxis-acceptance-lib.test.js scripts/maxxis-staging-acceptance.mjs scripts/gate-maxxis-staging.mjs e2e/support/environment.js e2e/support/environment.test.js e2e/fixtures/realBackendFixture.js e2e/tests/real-gemini/maxxis-heartbeat-r0.spec.js vitest.maxxis-acceptance.config.js --max-warnings=0",
+    "lint:maxxis:acceptance": "eslint scripts/maxxis-acceptance-lib.mjs scripts/maxxis-acceptance-lib.test.js scripts/maxxis-staging-acceptance.mjs scripts/gate-maxxis-staging.mjs scripts/preview-environment-guard.mjs scripts/preview-environment-guard.test.js e2e/support/environment.js e2e/support/environment.test.js e2e/fixtures/realBackendFixture.js e2e/tests/real-gemini/maxxis-heartbeat-r0.spec.js vitest.maxxis-acceptance.config.js --max-warnings=0",
     "test:maxxis:acceptance:contract": "vitest run --config vitest.maxxis-acceptance.config.js",
     "test:heartbeat:staging": "node scripts/maxxis-staging-acceptance.mjs --target=staging",
     "test:heartbeat:staging:variance": "node scripts/maxxis-staging-acceptance.mjs --target=staging --variance-check",
