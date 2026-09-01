@@ -12,7 +12,10 @@ assertRealGeminiEnvironment();
 
 export default defineConfig({
   testDir: './e2e/tests/real-gemini',
-  timeout: 240_000,
+  // The variance gate can perform up to 16 paced real-provider calls. Keep the
+  // test timeout above the aggregate provider budget so every heartbeat emits
+  // evidence instead of being truncated by the runner.
+  timeout: 1_800_000,
   expect: { timeout: 20_000 },
   fullyParallel: false,
   retries: 0,
