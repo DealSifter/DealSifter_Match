@@ -29,4 +29,10 @@ describe('Maxxis core conversation contract', () => {
     expect(edgeSource).toContain('inspectGeminiCandidate(result.payload, MAXXIS_TOOL_NAMES)');
     expect(serviceSource).toContain("degradedReason: 'MAXXIS_EMPTY_RESPONSE'");
   });
+
+  it('promotes the current sanitized property context to the canonical edge contract', () => {
+    expect(serviceSource).toContain("cleanMaxxisContext?.property?.id");
+    expect(serviceSource).toContain("{ propertyId: trustedPropertyId }");
+    expect(edgeSource).toContain('bodyContext.propertyId');
+  });
 });

@@ -462,6 +462,29 @@ export type MaxxisResponse = {
     secondPass: boolean;
     knowledgeVersion?: string;
     knowledgeTopics?: string[];
+    timing?: {
+      totalMs: number;
+      edgeInitMs: null;
+      authMs: number;
+      contextMs: number;
+      knowledgeMs: number;
+      providerCall1Ms: number | null;
+      pacingWait1Ms: null;
+      toolMs: number | null;
+      providerCall2Ms: number | null;
+      pacingWait2Ms: null;
+      responseFinalizeMs: null;
+      providerTimeMs: number;
+      applicationOverheadMs: number;
+      providerAttempts: Array<{
+        phase: 'selection' | 'interpretation';
+        attempt: number;
+        model: string;
+        durationMs: number;
+        status: number | null;
+        failure: string | null;
+      }>;
+    };
   };
   error?: string;
 };

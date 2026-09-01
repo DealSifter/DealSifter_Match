@@ -15,6 +15,11 @@ on:
         required: true
         default: false
         type: boolean
+      run_latency_probe:
+        description: Run the sanitized R2.6 real-Gemini latency probe (staging only)
+        required: true
+        default: false
+        type: boolean
 
 permissions:
   contents: read
@@ -75,6 +80,25 @@ jobs:
           HEARTBEAT_PROPERTY_ID: ${{ secrets.HEARTBEAT_PROPERTY_ID }}
           HEARTBEAT_COMPARISON_PROPERTY_ID: ${{ secrets.HEARTBEAT_COMPARISON_PROPERTY_ID }}
         run: npm run heartbeat:real:staging
+
+      - name: Run sanitized Maxxis R2.6 latency probe
+        if: ${{ inputs.target == 'staging' && inputs.run_latency_probe }}
+        env:
+          HEARTBEAT_SUPABASE_URL: ${{ secrets.HEARTBEAT_SUPABASE_URL }}
+          HEARTBEAT_SUPABASE_ANON_KEY: ${{ secrets.HEARTBEAT_SUPABASE_ANON_KEY }}
+          HEARTBEAT_USER_EMAIL: ${{ secrets.HEARTBEAT_USER_EMAIL }}
+          HEARTBEAT_USER_PASSWORD: ${{ secrets.HEARTBEAT_USER_PASSWORD }}
+          HEARTBEAT_PROPERTY_ID: ${{ secrets.HEARTBEAT_PROPERTY_ID }}
+        run: npm run test:maxxis:latency:staging
+
+      - name: Upload sanitized Maxxis R2.6 latency evidence
+        if: ${{ always() && inputs.run_latency_probe }}
+        uses: actions/upload-artifact@v4
+        with:
+          name: maxxis-r26-latency-${{ github.sha }}-${{ github.run_attempt }}
+          path: artifacts/latency/maxxis-r26-*.json
+          if-no-files-found: warn
+          retention-days: 30
 
       - name: Reject production real-runtime selection
         if: ${{ inputs.target == 'production' && inputs.run_real_heartbeat }}

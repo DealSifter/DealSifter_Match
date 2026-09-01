@@ -112,10 +112,14 @@ export async function sendMaxxisMessage({ message, history = [], page = 'dashboa
       .map((id) => String(id || '').trim())
       .filter((id) => UUID_PATTERN.test(id)),
   )).slice(0, 20);
-  const trustedPropertyId = String(propertyId || '').trim();
   const cleanMaxxisContext = maxxisContext ? sanitizeMaxxisContextSnapshot(maxxisContext) : null;
+  const explicitPropertyId = String(propertyId || '').trim();
+  const contextualPropertyId = String(cleanMaxxisContext?.property?.id || '').trim();
+  const trustedPropertyId = UUID_PATTERN.test(explicitPropertyId)
+    ? explicitPropertyId
+    : (UUID_PATTERN.test(contextualPropertyId) ? contextualPropertyId : '');
   const context = {
-    ...(UUID_PATTERN.test(trustedPropertyId) ? { propertyId: trustedPropertyId } : {}),
+    ...(trustedPropertyId ? { propertyId: trustedPropertyId } : {}),
     ...(trustedPropertyIds.length ? { propertyIds: trustedPropertyIds } : {}),
     ...(cleanMaxxisContext ? { maxxisContext: cleanMaxxisContext } : {}),
   };

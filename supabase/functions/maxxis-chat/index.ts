@@ -457,12 +457,40 @@ Deno.serve(async (req) => {
   let systemPromptBytes = 0;
   let toolDeclarationBytes = 0;
   let historyCount = 0;
+  let authDurationMs = 0;
+  let contextDurationMs = 0;
+  let knowledgeDurationMs = 0;
+  let providerCall1Ms = 0;
+  let providerCall2Ms = 0;
+  let toolExecutionMs: number | null = null;
+  const providerAttempts: NonNullable<NonNullable<MaxxisResponse['runtime']>['timing']>['providerAttempts'] = [];
   let resolvedLanguage: MaxxisLanguage = 'en';
   let resolvedMessage = '';
   let resolvedPage = 'dashboard';
   const budget = new MaxxisExecutionBudget();
+  const runtimeTiming = (): NonNullable<NonNullable<MaxxisResponse['runtime']>['timing']> => {
+    const totalMs = Date.now() - startedAt;
+    return {
+      totalMs,
+      edgeInitMs: null,
+      authMs: authDurationMs,
+      contextMs: contextDurationMs,
+      knowledgeMs: knowledgeDurationMs,
+      providerCall1Ms: providerCall1Ms || null,
+      pacingWait1Ms: null,
+      toolMs: toolExecutionMs,
+      providerCall2Ms: providerCall2Ms || null,
+      pacingWait2Ms: null,
+      responseFinalizeMs: null,
+      providerTimeMs: providerDurationMs,
+      applicationOverheadMs: Math.max(0, totalMs - providerDurationMs),
+      providerAttempts,
+    };
+  };
   try {
+    const authStartedAt = Date.now();
     const user = await authenticatedUser(req.headers.get('Authorization') || '');
+    authDurationMs = Date.now() - authStartedAt;
     if (!user) {
       logMaxxisEvent('maxxis_chat', { request_id: requestId, duration_ms: Date.now() - startedAt, success: false, error_code: 'UNAUTHORIZED' });
       return response({ message: 'Authentication required.', type: 'text', data: null, actions: [], error: 'UNAUTHORIZED' }, 401, origin);
@@ -477,6 +505,7 @@ Deno.serve(async (req) => {
       logAbuseGuard({ functionName: 'maxxis-chat', operation: 'maxxis_chat', requestId, userId, category: 'RATE_LIMIT', status: rateLimit.unavailable ? 503 : 429, limitType: 'maxxis_chat' });
       return rateLimitResponse(rateLimit, requestId, corsHeaders(origin));
     }
+    const contextStartedAt = Date.now();
     const parsed = await readJsonWithLimit(req, MAXXIS_EXECUTION_LIMITS.maxRequestBytes);
     if (!parsed.ok) {
       const status = parsed.error === 'REQUEST_TOO_LARGE' ? 413 : 400;
@@ -508,6 +537,7 @@ Deno.serve(async (req) => {
     if (!message) return response({ message: 'Message is required.', type: 'text', data: null, actions: [], error: 'MESSAGE_REQUIRED' }, 400, origin);
     const structuredContext = sanitizeMaxxisContext(bodyContext.maxxisContext);
     const structuredContextBytes = structuredContext ? contextSizeBytes(structuredContext) : 0;
+    contextDurationMs = Date.now() - contextStartedAt;
     if (structuredContextBytes > 4096) {
       logAbuseGuard({ functionName: 'maxxis-chat', operation: 'maxxis_context', requestId, userId, category: 'REQUEST_TOO_LARGE', status: 413, limitType: 'maxxis_context' });
       return response({ message: 'Request context is too large.', type: 'text', data: null, actions: [], error: 'MAXXIS_CONTEXT_TOO_LARGE' }, 413, origin, requestId);
@@ -550,11 +580,13 @@ Deno.serve(async (req) => {
     budget.validateHistory(history);
     const contents = [...history.map((item: Record<string, unknown>) => ({ role: item?.role === 'assistant' ? 'model' : 'user', parts: [{ text: sanitizeText(item?.content || item?.text, 1600) }] })).filter((item) => item.parts[0].text), { role: 'user', parts: [{ text: message }] }];
     const contextInstruction = shouldUseStructuredContext(message, structuredContext) ? `\n\n${structuredContextInstruction(structuredContext)}` : '';
+    const knowledgeStartedAt = Date.now();
     const selectedKnowledge = selectMaxxisKnowledge(message, resolvedPage);
     const knowledgeInstruction = buildMaxxisKnowledgeInstruction(selectedKnowledge);
     const systemPrompt = `${buildSystemPrompt(language, resolvedPage, knowledgeInstruction)}\n\n${propertyContextInstruction(propertyContextId, searchPropertyIds, comparisonPropertyIds)}${contextInstruction}`;
     systemPromptBytes = new TextEncoder().encode(systemPrompt).byteLength;
     toolDeclarationBytes = new TextEncoder().encode(JSON.stringify(MAXXIS_TOOLS)).byteLength;
+    knowledgeDurationMs = Date.now() - knowledgeStartedAt;
     const providerErrors: Array<{ status: number; code: GeminiFailureCode }> = [];
     let payload: Record<string, unknown> = {};
     if (stubFunctionCall) {
@@ -574,7 +606,6 @@ Deno.serve(async (req) => {
             generationConfig: buildGeminiGenerationConfig(model, MAXXIS_EXECUTION_LIMITS.maxOutputTokens),
             safetySettings: GEMINI_SAFETY_SETTINGS,
           }, budget.remainingMs());
-          providerDurationMs += Date.now() - providerStartedAt;
           providerStatus = result.response.status;
           if (!result.response.ok) {
             failure = classifyGeminiHttpFailure(result.response.status, result.payload);
@@ -588,9 +619,19 @@ Deno.serve(async (req) => {
             }
           }
         } catch (error) {
-          providerDurationMs += Date.now() - providerStartedAt;
           failure = classifyGeminiThrownFailure(error);
         }
+        const attemptDurationMs = Date.now() - providerStartedAt;
+        providerDurationMs += attemptDurationMs;
+        providerCall1Ms += attemptDurationMs;
+        providerAttempts.push({
+          phase: 'selection',
+          attempt: budget.geminiCalls,
+          model,
+          durationMs: attemptDurationMs,
+          status: providerStatus || null,
+          failure: failure || null,
+        });
         logMaxxisEvent('maxxis_model_attempt', {
           request_id: requestId,
           user_id: userId,
@@ -689,6 +730,7 @@ Deno.serve(async (req) => {
         throw error;
       }
       budget.validateToolPayload(result);
+      toolExecutionMs = Date.now() - toolStartedAt;
       let interpretedText = '';
       let secondPass = false;
       let secondPassFailure: GeminiFailureCode | '' = '';
@@ -715,11 +757,12 @@ Deno.serve(async (req) => {
           secondPassAttempts = attempt;
           secondPassFailure = '';
           secondPassProviderMeta = null;
+          let secondPassProviderStatus = 0;
+          const providerStartedAt = Date.now();
           try {
             budget.consumeGeminiCall();
-            const providerStartedAt = Date.now();
             const interpretation = await callGemini(usedModel, interpretationRequest, budget.remainingMs());
-            providerDurationMs += Date.now() - providerStartedAt;
+            secondPassProviderStatus = interpretation.response.status;
             if (!interpretation.response.ok) {
               secondPassFailure = classifyGeminiHttpFailure(interpretation.response.status, interpretation.payload);
               secondPassProviderMeta = getGeminiProviderFailureMeta(interpretation.response.status, interpretation.payload);
@@ -732,6 +775,17 @@ Deno.serve(async (req) => {
           } catch (error) {
             secondPassFailure = classifyGeminiThrownFailure(error);
           }
+          const attemptDurationMs = Date.now() - providerStartedAt;
+          providerDurationMs += attemptDurationMs;
+          providerCall2Ms += attemptDurationMs;
+          providerAttempts.push({
+            phase: 'interpretation',
+            attempt,
+            model: usedModel,
+            durationMs: attemptDurationMs,
+            status: secondPassProviderStatus || null,
+            failure: secondPassFailure || null,
+          });
           if (secondPass || !isRetryableGeminiFailure(secondPassFailure)) break;
         }
         logMaxxisEvent('maxxis_second_pass', {
@@ -759,6 +813,7 @@ Deno.serve(async (req) => {
         secondPass,
         knowledgeVersion: MAXXIS_KNOWLEDGE_VERSION,
         knowledgeTopics: selectedKnowledge.map((section) => section.topic),
+        timing: runtimeTiming(),
       };
       const toolDegraded = secondPassFailure
         ? {
@@ -769,7 +824,7 @@ Deno.serve(async (req) => {
           fallbackSource: 'structured_tool_result',
         }
         : {};
-      const toolDurationMs = Date.now() - toolStartedAt;
+      const toolDurationMs = toolExecutionMs || 0;
       const dbDurationMs = Number(result?.performance?.dbDurationMs || result?.serviceMatchingSummary?.dbDurationMs || 0);
       const toolPayloadBytes = new TextEncoder().encode(JSON.stringify(result)).byteLength;
       const totalDurationMs = Date.now() - startedAt;
@@ -779,6 +834,11 @@ Deno.serve(async (req) => {
         model: usedModel,
         duration_ms: totalDurationMs,
         provider_duration_ms: providerDurationMs,
+        auth_duration_ms: authDurationMs,
+        context_duration_ms: contextDurationMs,
+        knowledge_duration_ms: knowledgeDurationMs,
+        provider_call_1_ms: providerCall1Ms,
+        provider_call_2_ms: providerCall2Ms,
         tool_duration_ms: toolDurationMs,
         db_duration_ms: dbDurationMs,
         app_duration_ms: Math.max(0, totalDurationMs - providerDurationMs - toolDurationMs),
@@ -868,8 +928,8 @@ Deno.serve(async (req) => {
       logMaxxisEvent('maxxis_chat', { request_id: requestId, user_id: userId, model: usedModel, duration_ms: Date.now() - startedAt, provider_duration_ms: providerDurationMs, success: false, fallback_count: fallbackCount + 1, error_code: degradedReason, degraded_reason: degradedReason, model_attempts: budget.geminiCalls, conversation_status: 'degraded' });
       return response({ ...degradedPayload, type: 'text', data: null, actions: [], language, degraded: true, degradedReason, error: degradedReason }, 200, origin, requestId);
     }
-    logMaxxisEvent('maxxis_chat', { request_id: requestId, user_id: userId, model: usedModel, duration_ms: Date.now() - startedAt, provider_duration_ms: providerDurationMs, request_payload_bytes: requestPayloadBytes, system_prompt_bytes: systemPromptBytes, tool_declaration_bytes: toolDeclarationBytes, history_count: historyCount, success: true, fallback_count: fallbackCount, llm_call_count: budget.geminiCalls, tool_call_count: budget.toolCalls, tool_rounds: budget.toolRounds, conversation_status: 'success' });
-    return response({ message: text, answer: text, type: 'text', data: null, actions: [], language, runtime: { provider: 'gemini', model: usedModel, secondPass: false, knowledgeVersion: MAXXIS_KNOWLEDGE_VERSION, knowledgeTopics: selectedKnowledge.map((section) => section.topic) } }, 200, origin, requestId);
+    logMaxxisEvent('maxxis_chat', { request_id: requestId, user_id: userId, model: usedModel, duration_ms: Date.now() - startedAt, provider_duration_ms: providerDurationMs, auth_duration_ms: authDurationMs, context_duration_ms: contextDurationMs, knowledge_duration_ms: knowledgeDurationMs, provider_call_1_ms: providerCall1Ms, provider_call_2_ms: providerCall2Ms, request_payload_bytes: requestPayloadBytes, system_prompt_bytes: systemPromptBytes, tool_declaration_bytes: toolDeclarationBytes, history_count: historyCount, success: true, fallback_count: fallbackCount, llm_call_count: budget.geminiCalls, tool_call_count: budget.toolCalls, tool_rounds: budget.toolRounds, conversation_status: 'success' });
+    return response({ message: text, answer: text, type: 'text', data: null, actions: [], language, runtime: { provider: 'gemini', model: usedModel, secondPass: false, knowledgeVersion: MAXXIS_KNOWLEDGE_VERSION, knowledgeTopics: selectedKnowledge.map((section) => section.topic), timing: runtimeTiming() } }, 200, origin, requestId);
   } catch (error) {
     const timedOut = error instanceof DOMException && error.name === 'AbortError';
     const errorCode = error instanceof Error ? error.message : 'MAXXIS_FAILED';
