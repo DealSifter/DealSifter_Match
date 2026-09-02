@@ -2,7 +2,7 @@ import { mkdirSync, writeFileSync } from 'node:fs';
 import { resolve } from 'node:path';
 
 const STAGING_REF = 'oqdcnjupquhybwdbeeew';
-const MINIMUM_START_INTERVAL_MS = 8_000;
+const MINIMUM_START_INTERVAL_MS = 20_000;
 const url = String(process.env.HEARTBEAT_SUPABASE_URL || '').replace(/\/$/, '');
 const anonKey = String(process.env.HEARTBEAT_SUPABASE_ANON_KEY || '');
 const email = String(process.env.HEARTBEAT_USER_EMAIL || '');

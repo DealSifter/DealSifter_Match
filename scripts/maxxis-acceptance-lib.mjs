@@ -51,7 +51,7 @@ export function attemptsForHeartbeat(id, varianceCheck) {
   return varianceCheck && CRITICAL_VARIANCE_IDS.has(id) ? 3 : 1;
 }
 
-export function rateLimitWaitMs({ lastStartedAt = 0, now = Date.now(), minimumIntervalMs = 8_000 } = {}) {
+export function rateLimitWaitMs({ lastStartedAt = 0, now = Date.now(), minimumIntervalMs = 20_000 } = {}) {
   if (!lastStartedAt) return 0;
   return Math.max(0, minimumIntervalMs - (now - lastStartedAt));
 }

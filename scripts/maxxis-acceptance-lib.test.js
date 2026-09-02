@@ -39,8 +39,8 @@ describe('Maxxis real-runtime acceptance contract', () => {
 
   it('paces real calls without retrying or delaying the first request', () => {
     expect(rateLimitWaitMs({ lastStartedAt: 0, now: 1_000 })).toBe(0);
-    expect(rateLimitWaitMs({ lastStartedAt: 1_000, now: 5_000 })).toBe(4_000);
-    expect(rateLimitWaitMs({ lastStartedAt: 1_000, now: 10_000 })).toBe(0);
+    expect(rateLimitWaitMs({ lastStartedAt: 1_000, now: 5_000 })).toBe(16_000);
+    expect(rateLimitWaitMs({ lastStartedAt: 1_000, now: 22_000 })).toBe(0);
   });
 
   it('marks mixed attempts as FLAKY and never hides the first failure', () => {
