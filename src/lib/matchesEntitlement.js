@@ -53,3 +53,19 @@ export const resolveCanonicalContactCardFromMap = (unlockedContactMap, contactLi
   const canonicalEntry = getContactByOwnerId(unlockedContactMap, ownerId, getRecordProfileScope(contactLike));
   return canonicalEntry ? canonicalContactToDisplayCard(canonicalEntry) : null;
 };
+
+export const resolveDisplayContactCardFromMap = (unlockedContactMap, contactLike) => {
+  if (!contactLike || typeof contactLike !== 'object') return null;
+  const ownerId = normalizeId(contactLike.ownerId || contactLike.unlockOwnerId);
+  if (!ownerId) return null;
+  const canonical = resolveCanonicalContactCardFromMap(unlockedContactMap, {
+    ...contactLike,
+    ownerId,
+  });
+  if (canonical) return canonical;
+  return {
+    ...contactLike,
+    ownerId,
+    unlockOwnerId: ownerId,
+  };
+};

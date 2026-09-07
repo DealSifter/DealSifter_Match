@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest';
 import {
   canonicalContactToDisplayCard,
   resolveCanonicalContactCardFromMap,
+  resolveDisplayContactCardFromMap,
 } from './matchesEntitlement';
 import {
   isOwnerUnlocked,
@@ -115,5 +116,29 @@ describe('matches entitlement canonical contact flow', () => {
     });
 
     expect(contact).toBeNull();
+  });
+
+  it('preserves canonical public identity for a locked contact', () => {
+    const ownerId = 'ce0b8497-750a-4009-a53b-2146253d568d';
+    const contact = resolveDisplayContactCardFromMap(new Map(), {
+      id: `${ownerId}:professional`,
+      ownerId,
+      primaryProfile: 'professional',
+      name: 'R27 Provider Test',
+    });
+
+    expect(contact).toMatchObject({
+      id: `${ownerId}:professional`,
+      ownerId,
+      unlockOwnerId: ownerId,
+      primaryProfile: 'professional',
+    });
+  });
+
+  it('does not infer canonical identity from a presentation-only id', () => {
+    expect(resolveDisplayContactCardFromMap(new Map(), {
+      id: 'presentation-only:professional',
+      primaryProfile: 'professional',
+    })).toBeNull();
   });
 });

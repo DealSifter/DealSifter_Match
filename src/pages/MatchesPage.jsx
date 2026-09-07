@@ -23,7 +23,7 @@ import { getPortfolioUnlockCost, getPropertyExclusivityStatus } from '../lib/unl
 import { isSupabaseConfigured } from '../lib/supabaseClient';
 import { normalizeCard } from '../lib/normalizeFeedCard';
 import { captureEntitlementAlert, hashForTelemetry } from '../lib/observability';
-import { canonicalContactToDisplayCard, resolveCanonicalContactCardFromMap } from '../lib/matchesEntitlement';
+import { canonicalContactToDisplayCard, resolveCanonicalContactCardFromMap, resolveDisplayContactCardFromMap } from '../lib/matchesEntitlement';
 import { getActiveExclusivities } from '../services/unlockService';
 import {
   getContactByOwnerId,
@@ -504,6 +504,10 @@ export function MatchesPage({ nuggets, isAdmin = false, setModal, openUnlock, un
 
   const resolveCanonicalContactCard = useCallback((contactLike) => {
     return resolveCanonicalContactCardFromMap(unlockedContactMap, contactLike);
+  }, [unlockedContactMap]);
+
+  const resolveDisplayContactCard = useCallback((contactLike) => {
+    return resolveDisplayContactCardFromMap(unlockedContactMap, contactLike);
   }, [unlockedContactMap]);
 
   const getPropertyExclusiveStatus = useCallback((propertyOrId) => {
@@ -997,11 +1001,11 @@ export function MatchesPage({ nuggets, isAdmin = false, setModal, openUnlock, un
     const canonical = canonicalContactToDisplayCard(getCanonicalContact(activeOwnerId, activeLookupScope));
     if (canonical) return canonical;
     if (!isActiveProperty) {
-      const resolved = resolveCanonicalContactCard(resolveContactCard(active));
+      const resolved = resolveDisplayContactCard(resolveContactCard(active));
       if (resolved) return resolved;
       const activeKeys = getContactUnlockKeys(active);
       const hydrated = allMatched.find((contact) => getContactUnlockKeys(contact).some((key) => activeKeys.includes(key)));
-      return hydrated ? resolveCanonicalContactCard(hydrated) : null;
+      return hydrated ? resolveDisplayContactCard(hydrated) : null;
     }
     const hydratedOwner = allMatched.find((contact) => getContactUnlockKeys(contact).includes(String(active.ownerId || '')));
     if (hydratedOwner) return resolveCanonicalContactCard(hydratedOwner);
@@ -1019,7 +1023,7 @@ export function MatchesPage({ nuggets, isAdmin = false, setModal, openUnlock, un
       return resolveCanonicalContactCard(buildLocalOwnerCard(activeScope));
     }
     return null;
-  }, [active, isActiveProperty, getCanonicalContact, resolveContactCard, secondaryOwnerId, fsboOwnerId, personalOwnerId, buildLocalOwnerCard, resolveCanonicalContactCard, allMatched, getContactUnlockKeys, getRecordProfileScope]);
+  }, [active, isActiveProperty, getCanonicalContact, resolveContactCard, secondaryOwnerId, fsboOwnerId, personalOwnerId, buildLocalOwnerCard, resolveCanonicalContactCard, resolveDisplayContactCard, allMatched, getContactUnlockKeys, getRecordProfileScope]);
 
   const handleOpenActiveCardPreview = useCallback(() => {
     if (!activeOwner && !active) return;
