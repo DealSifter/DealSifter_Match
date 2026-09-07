@@ -129,6 +129,38 @@ describe('Maxxis Deal AI interactive deal intelligence', () => {
     expect(reply.content).toContain('What is missing');
   });
 
+  it('keeps every controlled deal follow-up semantically distinct', () => {
+    const messages = [{ id: 'source', role: 'assistant', ...propertyDetails }];
+    const reply = (intent) => buildLocalDealIntelligenceReply({
+      message: 'controlled action',
+      language: 'en',
+      messages,
+      sourceMessageId: 'source',
+      forcedIntent: intent,
+    });
+    const results = [
+      reply('explain_current_insight'),
+      reply('deal_gaps'),
+      reply('show_providers'),
+      reply('explain_metrics'),
+      reply('deal_snapshot'),
+    ];
+
+    expect(results.map((result) => result.type)).toEqual([
+      'maxxis_insight_explanation',
+      'deal_gaps',
+      'maxxis_provider_context',
+      'maxxis_metric_explanation',
+      'deal_snapshot',
+    ]);
+    expect(new Set(results.map((result) => result.content)).size).toBe(5);
+  });
+
+  it('deduplicates the same missing fact reported by details and advisor', () => {
+    const gaps = buildMaxxisDealGaps(propertyDetails);
+    expect(gaps.filter((gap) => gap.evidence === 'Description')).toHaveLength(1);
+  });
+
   it('enhances backend property responses into snapshots only for snapshot intent', () => {
     const normal = enhanceMaxxisAssistantResponse({ message: 'show property details', result: propertyDetails, language: 'en' });
     const enhanced = enhanceMaxxisAssistantResponse({ message: 'how is this deal?', result: propertyDetails, language: 'en' });

@@ -1761,6 +1761,7 @@ export function PortfolioDetail({ item, owner, ownerContact = null, isOwnerUnloc
       id: `maxxis-property-analysis-${item?.id || item?.address || Date.now()}-${Date.now()}`,
       title: source.title,
       prompt: buildMaxxisAnalysisPrompt(),
+      visibleMessage: `${matchesT.exportAnalyzeWithMaxxis || 'Analyze with Maxxis Deal AI'}: ${source.title}`,
       propertyId: item?.id,
       onExportPdf: (analysisText) => generateReleasePdf({
         title: source.title,

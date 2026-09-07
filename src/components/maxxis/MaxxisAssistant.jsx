@@ -935,7 +935,7 @@ export function MaxxisAssistant({ page = 'dashboard', onOpenSupport = null, onNa
     const userMessage = {
       id: `maxxis-user-${Date.now()}`,
       role: 'user',
-      content: cleanMessage,
+      content: String(meta.visibleUserMessage || cleanMessage).trim(),
       createdAt: new Date(),
     };
     setMessages((prev) => [...prev, userMessage]);
@@ -1041,7 +1041,9 @@ export function MaxxisAssistant({ page = 'dashboard', onOpenSupport = null, onNa
           followUps: localDealIntelligence.followUps,
           smartActionsEnabled: localDealIntelligence.type === 'deal_snapshot',
           smartActionSurface: 'snapshot',
-          compositionMode: localDealIntelligence.type === 'property_tradeoffs' ? 'COMPARISON' : 'ANALYSIS',
+          compositionMode: localDealIntelligence.type === 'property_tradeoffs'
+            ? 'COMPARISON'
+            : localDealIntelligence.type === 'deal_snapshot' ? 'ANALYSIS' : undefined,
         }]);
         return;
       }
@@ -2107,13 +2109,18 @@ export function MaxxisAssistant({ page = 'dashboard', onOpenSupport = null, onNa
     setOpen(true);
     setInput('');
     void submitMessageRef.current?.(prompt, {
+      visibleUserMessage: request?.visibleMessage || request?.title || (language === 'pt'
+        ? 'Analisar o imóvel selecionado com o Maxxis Deal AI'
+        : language === 'es'
+          ? 'Analizar la propiedad seleccionada con Maxxis Deal AI'
+          : 'Analyze the selected property with Maxxis Deal AI'),
       analysisExport: {
         requestId,
         title: request?.title || '',
         onExportPdf: request?.onExportPdf || null,
       },
     });
-  }, [propertyAnalysisRequest?.id]);
+  }, [language, propertyAnalysisRequest?.id]);
 
   if (!enabled) return null;
 
