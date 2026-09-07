@@ -4,7 +4,12 @@ import {
   resolveFeatureFlags,
   selectScopedFeatureFlagReviewOverrides,
 } from '../../supabase/functions/_shared/featureFlags';
-import { isFeatureEnabled, normalizeFeatureFlagResponse, OFF_FEATURE_FLAGS } from './featureFlagService';
+import {
+  fetchFeatureFlagsWithRetry,
+  isFeatureEnabled,
+  normalizeFeatureFlagResponse,
+  OFF_FEATURE_FLAGS,
+} from './featureFlagService';
 
 describe('controlled feature rollout', () => {
   it('keeps future flags off by default and enables the neutral staging probe', () => {
@@ -48,5 +53,21 @@ describe('controlled feature rollout', () => {
     expect(snapshot.flags).toEqual(OFF_FEATURE_FLAGS);
     expect(isFeatureEnabled(snapshot, 'maxxis_next_generation')).toBe(false);
     expect(isFeatureEnabled(snapshot, 'hidden_bypass')).toBe(false);
+  });
+
+  it('recovers from a transient fallback without leaving runtime flags permanently disabled', async () => {
+    let calls = 0;
+    const snapshot = await fetchFeatureFlagsWithRetry({
+      retryDelayMs: 0,
+      fetcher: async () => {
+        calls += 1;
+        return calls === 1
+          ? normalizeFeatureFlagResponse(null)
+          : normalizeFeatureFlagResponse({ source: 'server', environment: 'staging', flags: { maxxis_proactive_insights: true } });
+      },
+    });
+
+    expect(calls).toBe(2);
+    expect(isFeatureEnabled(snapshot, 'maxxis_proactive_insights')).toBe(true);
   });
 });
