@@ -1,0 +1,60 @@
+{
+  "capturedAt": "2026-09-07T20:42:07.0861701-03:00",
+  "branch": "fix/maxxis-production-runtime",
+  "baselineSha": "5fe1bc868f2ead1a4cf2015d74975da7af1a487b",
+  "environment": {
+    "supabaseProjectRef": "oqdcnjupquhybwdbeeew",
+    "preview": "https://dealsifter-maxxis-human.vercel.app/",
+    "productionTouched": false
+  },
+  "viewer": {
+    "userId": "8d24f11a-3b75-4aea-8b8c-a389ff32ae1a",
+    "plan": "enterprise",
+    "planSource": "admin_manual",
+    "nuggets": 980,
+    "maxxisPreferences": {
+      "avatarSize": 1.75,
+      "animationEnabled": true,
+      "proactiveEnabled": true,
+      "animationIntensity": "NORMAL"
+    }
+  },
+  "fixtures": {
+    "r27Provider": {
+      "ownerId": "ce0b8497-750a-4009-a53b-2146253d568d",
+      "userProfileId": "9567bd1e-c01e-495b-b2ae-8ab400551332",
+      "professionalProfileId": "e2a41a5f-2092-4de7-b7f6-1a2fc8473bbe",
+      "serviceId": "70768c58-1d81-4f89-a685-6f5997e01971"
+    },
+    "r27aGeorgiaWholesaler": {
+      "ownerId": "550a809b-582d-4868-b701-ad8c5f3f9ae9",
+      "userProfileId": "b7a6f7f2-5814-4ac5-862f-bc2dc7090bea",
+      "professionalProfileId": "7abe0d11-215d-43e4-9f58-fba3c664c25e",
+      "propertyId": "3b4f43ce-da79-4f06-8159-922833f2571c",
+      "propertyTitle": "730 Peachtree Duplex",
+      "propertyDatabaseState": {
+        "primaryProfile": "professional",
+        "active": true,
+        "publishToShowcase": true,
+        "dealClosed": false
+      },
+      "canonicalPortfolioState": {
+        "itemType": "property",
+        "isUnlocked": true,
+        "isExclusive": true
+      }
+    }
+  },
+  "observedRenderedState": {
+    "r27aPersonVisible": true,
+    "portfolioCountLabel": "Properties (0)",
+    "propertyCardVisibleElsewhere": true,
+    "emptyPortfolioVisible": true,
+    "maxxisProactiveEffectiveState": "enabled",
+    "avatarStoredSize": 1.75,
+    "avatarEffectiveSize": 1.75,
+    "avatarOverlapsHeaderTitle": false,
+    "avatarOverlapsHeaderActions": false
+  },
+  "firstKnownDivergence": "frontend portfolio filtering discarded canonical portfolio membership after global inventory normalized the discovery scope to fsbo"
+}

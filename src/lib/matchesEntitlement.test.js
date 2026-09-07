@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import {
   canonicalContactToDisplayCard,
+  getCanonicalPortfolioItemIds,
   resolveCanonicalContactCardFromMap,
   resolveDisplayContactCardFromMap,
 } from './matchesEntitlement';
@@ -140,5 +141,18 @@ describe('matches entitlement canonical contact flow', () => {
       id: 'presentation-only:professional',
       primaryProfile: 'professional',
     })).toBeNull();
+  });
+
+  it('preserves canonical portfolio membership across discovery scope normalization', () => {
+    const ids = getCanonicalPortfolioItemIds({
+      canonicalContact: {
+        portfolio: [
+          { item_id: 'property-1', item_type: 'property', is_unlocked: true },
+          { item_id: 'service-1', item_type: 'service', is_unlocked: true },
+        ],
+      },
+    }, 'property');
+
+    expect([...ids]).toEqual(['property-1']);
   });
 });

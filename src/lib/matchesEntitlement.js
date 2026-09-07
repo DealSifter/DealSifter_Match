@@ -69,3 +69,13 @@ export const resolveDisplayContactCardFromMap = (unlockedContactMap, contactLike
     unlockOwnerId: ownerId,
   };
 };
+
+export const getCanonicalPortfolioItemIds = (contactLike, itemType) => {
+  const expectedType = String(itemType || '').trim().toLowerCase();
+  const canonical = contactLike?.canonicalContact || contactLike;
+  const portfolio = Array.isArray(canonical?.portfolio) ? canonical.portfolio : [];
+  return new Set(portfolio
+    .filter((item) => String(item?.itemType || item?.item_type || '').trim().toLowerCase() === expectedType)
+    .map((item) => normalizeId(item?.itemId || item?.item_id))
+    .filter(Boolean));
+};

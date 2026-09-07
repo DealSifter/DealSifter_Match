@@ -23,7 +23,7 @@ import { getPortfolioUnlockCost, getPropertyExclusivityStatus } from '../lib/unl
 import { isSupabaseConfigured } from '../lib/supabaseClient';
 import { normalizeCard } from '../lib/normalizeFeedCard';
 import { captureEntitlementAlert, hashForTelemetry } from '../lib/observability';
-import { canonicalContactToDisplayCard, resolveCanonicalContactCardFromMap, resolveDisplayContactCardFromMap } from '../lib/matchesEntitlement';
+import { canonicalContactToDisplayCard, getCanonicalPortfolioItemIds, resolveCanonicalContactCardFromMap, resolveDisplayContactCardFromMap } from '../lib/matchesEntitlement';
 import { getActiveExclusivities } from '../services/unlockService';
 import {
   getContactByOwnerId,
@@ -1165,9 +1165,10 @@ export function MatchesPage({ nuggets, isAdmin = false, setModal, openUnlock, un
     if (!activeOwner) return [];
     const activeScope = normalizeProfileScope(activeOwner.primaryProfile || activeOwner.primary_profile || getRecordProfileScope(activeOwner));
     const ownerKey = String(activeOwner.ownerId || activeOwner.owner_id || activeOwner.unlockOwnerId || activeOwner.id || '').trim();
+    const canonicalPropertyIds = getCanonicalPortfolioItemIds(activeOwner, 'property');
     return allPropertiesSource.filter((p) => (
       String(p.ownerId) === ownerKey
-      && getRecordProfileScope(p) === activeScope
+      && (getRecordProfileScope(p) === activeScope || canonicalPropertyIds.has(String(p.id || p.propertyId || p.portfolioId || '').trim()))
     ));
   }, [activeOwner, allPropertiesSource, getRecordProfileScope]);
 
@@ -1255,9 +1256,10 @@ export function MatchesPage({ nuggets, isAdmin = false, setModal, openUnlock, un
     if (!activeOwner) return [];
     const activeScope = normalizeProfileScope(activeOwner.primaryProfile || activeOwner.primary_profile || getRecordProfileScope(activeOwner));
     const ownerKey = String(activeOwner.ownerId || activeOwner.owner_id || activeOwner.unlockOwnerId || activeOwner.id || '').trim();
+    const canonicalServiceIds = getCanonicalPortfolioItemIds(activeOwner, 'service');
     return allServicesSource.filter((s) => (
       String(s.ownerId) === ownerKey
-      && getRecordProfileScope(s) === activeScope
+      && (getRecordProfileScope(s) === activeScope || canonicalServiceIds.has(String(s.id || s.serviceId || '').trim()))
     ));
   }, [activeOwner, allServicesSource, getRecordProfileScope]);
 
