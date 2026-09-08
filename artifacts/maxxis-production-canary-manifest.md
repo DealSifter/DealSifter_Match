@@ -9,6 +9,7 @@
 - Selectively validated source: `fix/maxxis-production-runtime@0bb6b61`
 - Release branch: `release/maxxis-production-canary`
 - Maxxis runtime release-set commit: `4e75f965b2c0b539bbe4be3bce910d3ec9bb2c73`
+- Maxxis CORS repair commit: `107d6df9fb54f1a4a59d5bddee7f0c739e47c44c`
 - Release strategy: branch created from the production base and populated with approved Maxxis-only hunks.
 - Database backup: not required because this release does not touch the database.
 
@@ -82,12 +83,12 @@ Promoted frontend files:
 - `src/components/maxxis/MaxxisAssistant.jsx`
 - `src/features/maxxis/intelligence/maxxisDealIntelligence.js`
 - `src/services/featureFlagService.js`
-- `supabase/functions/_shared/maxxis/corsPolicy.ts` (bundled only into the `maxxis-chat` deployment)
+- `supabase/functions/_shared/maxxis/corsPolicy.ts` (bundled only into the `maxxis-chat` and `feature-flags` deployments)
 
 Release characteristics:
 
 - Frontend changed: **YES**, Maxxis-only delta plus two minimal integration hunks.
-- Edge functions changed/deployed: **YES**, only `maxxis-chat`; the shared CORS source is bundled into this one deployment.
+- Edge functions changed/deployed: **YES**, only `maxxis-chat` and the Maxxis-required `feature-flags`; the shared CORS source is bundled into both deployments.
 - Database changed: **NO**.
 - Migrations applied: **NONE**.
 - Staging fixtures, users, relations, flags, balances and entitlements copied: **NO**.
@@ -108,6 +109,26 @@ Release characteristics:
 | Authenticated production Edge/Gemini probe | PASS, HTTP 200, non-degraded, request ID present |
 | Diff allowlist review | PASS, seven approved runtime/support files plus this manifest |
 
+## Production canary result
+
+- Frontend deployment: `dpl_9sG7iRQ3rLsYX54AnGBE3rrA9M2o`, `READY`, aliased to `https://dealsiftermatch.vercel.app/`.
+- Sentry frontend release: `89b61e80f133feb07fb29ab7e6252ea8618a95b0`.
+- `maxxis-chat`: ACTIVE v27 (pre-canary v26).
+- `feature-flags`: ACTIVE v10 (pre-canary v9).
+- Auth, Dashboard/Feed, Matches, MapView and Pricing: PASS.
+- Maxxis browser conversation: PASS, HTTP 200, non-degraded, no internal prompt exposure.
+- Avatar desktop/mobile: PASS; stored/effective preference `1.81`, rendered without title/action collision.
+- Property context: NOT_APPLICABLE for the naturally available controlled-account state.
+- Next Interaction: NOT_APPLICABLE for the naturally available controlled-account state.
+- Proactive bubble: NOT_TRIGGERED; no artificial production event was created.
+- Cross-environment requests: zero.
+- Page errors and relevant failed requests after repair: zero.
+- Nuggets delta: zero.
+- Contact unlock delta: zero.
+- Property unlock delta: zero.
+- Plan/subscription state: unchanged.
+- Stripe/billing requests: zero.
+
 ## Rollback anchor
 
-If a mandatory rollback trigger occurs, restore the recorded pre-canary frontend deployment `dpl_2XoKbvNbfsU7NDMVed7PE3kFoymh` (base SHA `63b2c134a22289bacd7a642dcf4f040ce5a6c1a7`) and redeploy `maxxis-chat` from the production-base source. The canary frontend deployment is `dpl_9sG7iRQ3rLsYX54AnGBE3rrA9M2o`. No database rollback is required because this canary applies no migration.
+If a mandatory rollback trigger occurs, restore the recorded pre-canary frontend deployment `dpl_2XoKbvNbfsU7NDMVed7PE3kFoymh` (base SHA `63b2c134a22289bacd7a642dcf4f040ce5a6c1a7`) and redeploy `maxxis-chat`/`feature-flags` from the production-base source (pre-canary v26/v9). The canary frontend deployment is `dpl_9sG7iRQ3rLsYX54AnGBE3rrA9M2o`. No database rollback is required because this canary applies no migration.
