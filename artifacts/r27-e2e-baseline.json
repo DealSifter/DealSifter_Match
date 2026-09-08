@@ -24,7 +24,12 @@
       "ownerId": "ce0b8497-750a-4009-a53b-2146253d568d",
       "userProfileId": "9567bd1e-c01e-495b-b2ae-8ab400551332",
       "professionalProfileId": "e2a41a5f-2092-4de7-b7f6-1a2fc8473bbe",
-      "serviceId": "70768c58-1d81-4f89-a685-6f5997e01971"
+      "serviceId": "70768c58-1d81-4f89-a685-6f5997e01971",
+      "originalEntitlement": {
+        "planId": "free",
+        "planOverrideSource": null,
+        "nuggets": 50
+      }
     },
     "r27aGeorgiaWholesaler": {
       "ownerId": "550a809b-582d-4868-b701-ad8c5f3f9ae9",
