@@ -5852,6 +5852,7 @@ export default function App() {
                   }
                 }}
                 userPreferences={userPreferences}
+                userPreferencesHydrated={Boolean(profileSyncSnapshot.loaded)}
                 onChangeUserPreferences={handleChangeUserPreferences}
                 userPreferencesPersistenceStatus={userPreferencesPersistenceStatus}
                 proactiveFeatureEnabled={maxxisProactiveFeatureEnabled}

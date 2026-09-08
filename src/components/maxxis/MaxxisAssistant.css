@@ -57,6 +57,11 @@
   isolation: isolate;
   flex: 0 0 auto;
   overflow: visible;
+  margin-inline-end: var(--maxxis-avatar-overflow-reserve, 0px);
+}
+
+.maxxis-shell[data-maxxis-preferences-hydrated="false"] .maxxis-avatar-art {
+  visibility: hidden;
 }
 
 .maxxis-avatar::before,

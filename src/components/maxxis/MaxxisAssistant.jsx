@@ -160,7 +160,7 @@ function readDevMaxxisAttentionOverrides() {
   }
 }
 
-export function MaxxisAssistant({ page = 'dashboard', onOpenSupport = null, onNavigateAction = null, propertyAnalysisRequest = null, propertyContextId = '', appContext = null, sessionKey = '', onExportAnalysisPdf = null, onNuggetBalanceChange = null, onProviderUnlockConfirmed = null, enabled = true, userPreferences = null, onChangeUserPreferences = null, userPreferencesPersistenceStatus = 'idle', proactiveFeatureEnabled = false, dealMemoryFeatureEnabled = false, onOpenPreferences = null }) {
+export function MaxxisAssistant({ page = 'dashboard', onOpenSupport = null, onNavigateAction = null, propertyAnalysisRequest = null, propertyContextId = '', appContext = null, sessionKey = '', onExportAnalysisPdf = null, onNuggetBalanceChange = null, onProviderUnlockConfirmed = null, enabled = true, userPreferences = null, userPreferencesHydrated = true, onChangeUserPreferences = null, userPreferencesPersistenceStatus = 'idle', proactiveFeatureEnabled = false, dealMemoryFeatureEnabled = false, onOpenPreferences = null }) {
   const language = getUiLang();
   const t = COPY[language] || COPY.en;
   const preferencesCopy = getMaxxisPreferencesCopy(language);
@@ -2136,11 +2136,16 @@ export function MaxxisAssistant({ page = 'dashboard', onOpenSupport = null, onNa
       data-maxxis-continuity-status={maxxisContinuityResolution.status.toLowerCase()}
       data-maxxis-continuity-source={maxxisContinuityResolution.source.toLowerCase()}
       data-maxxis-animation={effectiveMaxxisPreferences.animationEnabled ? 'enabled' : 'disabled'}
+      data-maxxis-preferences-hydrated={userPreferencesHydrated ? 'true' : 'false'}
     >
       {open ? (
         <section className="maxxis-panel" data-testid="maxxis-panel" role="dialog" aria-modal="true" aria-label={t.title}>
           <header className="maxxis-header">
-            <div className="maxxis-avatar" aria-hidden="true">
+            <div
+              className="maxxis-avatar"
+              aria-hidden="true"
+              style={{ '--maxxis-avatar-overflow-reserve': `${maxxisAvatarEdgeOffset}px` }}
+            >
               <MaxxisAvatarRenderer
                 avatarState={maxxisAvatarRenderState}
                 avatarSize={maxxisPreferences.avatarSize}
