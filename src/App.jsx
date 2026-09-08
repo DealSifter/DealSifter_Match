@@ -103,7 +103,7 @@ import { useChatRealtime } from './hooks/useChatRealtime';
 import { useUnlockNotifications } from './hooks/useUnlockNotifications';
 import { useAppSessionLifecycle } from './hooks/useAppSessionLifecycle';
 import { useUserPreferences } from './hooks/useUserPreferences';
-import { fetchFeatureFlags, isFeatureEnabled } from './services/featureFlagService';
+import { fetchFeatureFlagsWithRetry, isFeatureEnabled } from './services/featureFlagService';
 import { canPerformAction, getPlanActionAccess, getPlanGateCopy, getCurrentPlan, isPlanLimitError, refreshUsageFromDB, resolveRemainingNuggets } from './services/planUsageService';
 import { isProfileConflictError, saveProfessionalProfileWithVersion } from './services/profileConcurrencyService';
 import { clearSensitiveCache, clearUserScopedCache } from './lib/localStoragePolicy';
@@ -1013,7 +1013,7 @@ export default function App() {
       setMaxxisDealMemoryFeatureEnabled(false);
       return undefined;
     }
-    fetchFeatureFlags({ overrides: readMaxxisProactiveFlagOverrides() })
+    fetchFeatureFlagsWithRetry({ overrides: readMaxxisProactiveFlagOverrides() })
       .then((snapshot) => {
         if (!cancelled) {
           setMaxxisProactiveFeatureEnabled(isFeatureEnabled(snapshot, 'maxxis_proactive_insights'));
@@ -5852,6 +5852,7 @@ export default function App() {
                   }
                 }}
                 userPreferences={userPreferences}
+                userPreferencesHydrated={Boolean(profileSyncSnapshot.loaded)}
                 onChangeUserPreferences={handleChangeUserPreferences}
                 userPreferencesPersistenceStatus={userPreferencesPersistenceStatus}
                 proactiveFeatureEnabled={maxxisProactiveFeatureEnabled}

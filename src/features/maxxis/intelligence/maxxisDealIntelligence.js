@@ -315,12 +315,17 @@ export function buildMaxxisDealGaps(sourceInput = {}) {
   const gaps = [];
   const add = (gap) => {
     const code = String(gap.code || '').slice(0, 90);
-    if (!code || gaps.some((item) => item.code === code)) return;
+    const evidence = String(gap.evidence || '').slice(0, 260);
+    const evidenceKey = `${String(gap.category || 'DATA').toLowerCase()}:${evidence.toLowerCase().replace(/[^a-z0-9]+/g, '')}`;
+    if (!code || gaps.some((item) => (
+      item.code === code
+      || `${item.category.toLowerCase()}:${item.evidence.toLowerCase().replace(/[^a-z0-9]+/g, '')}` === evidenceKey
+    ))) return;
     gaps.push({
       code,
       category: String(gap.category || 'DATA'),
       priority: String(gap.priority || 'medium'),
-      evidence: String(gap.evidence || '').slice(0, 260),
+      evidence,
       source: String(gap.source || '').slice(0, 120),
       resolvableByExistingCapability: Boolean(gap.resolvableByExistingCapability),
     });
@@ -526,7 +531,7 @@ export function buildLocalDealIntelligenceReply({ message = '', language = 'en',
     response = intent === 'explain_metrics'
       ? buildMetricsExplanation(source, language)
       : buildInsightExplanation(source, language);
-    type = 'maxxis_insight_explanation';
+    type = intent === 'explain_metrics' ? 'maxxis_metric_explanation' : 'maxxis_insight_explanation';
   } else if (intent === 'compare_these' && source.comparison) {
     response = buildComparisonTradeoffs(source, language);
     type = 'property_tradeoffs';

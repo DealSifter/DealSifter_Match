@@ -38,6 +38,24 @@ export async function fetchFeatureFlags({ overrides = null } = {}) {
   }
 }
 
+export async function fetchFeatureFlagsWithRetry({
+  overrides = null,
+  attempts = 3,
+  retryDelayMs = 350,
+  fetcher = fetchFeatureFlags,
+} = {}) {
+  const maxAttempts = Math.max(1, Number(attempts) || 1);
+  let snapshot = normalizeFeatureFlagResponse(null);
+
+  for (let attempt = 1; attempt <= maxAttempts; attempt += 1) {
+    snapshot = await fetcher({ overrides });
+    if (snapshot?.source === 'server' || attempt === maxAttempts) return snapshot;
+    await new Promise((resolve) => globalThis.setTimeout(resolve, Math.max(0, retryDelayMs)));
+  }
+
+  return snapshot;
+}
+
 export const isFeatureEnabled = (snapshot, flagName) => (
   FEATURE_FLAG_NAMES.includes(flagName) && snapshot?.source === 'server' && snapshot?.flags?.[flagName] === true
 );
