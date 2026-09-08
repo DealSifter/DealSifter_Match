@@ -20,7 +20,7 @@
 | Supabase | Production ref `cyeipfskwwisbbayyaca` |
 | Maxxis Edge | `maxxis-chat` ACTIVE v26 |
 | Feature flags Edge | `feature-flags` ACTIVE v9 |
-| Edge source delta | None between production base and the validated source |
+| Edge source delta | Canary-discovered Maxxis CORS allow-header repair only |
 | Migration delta promoted | None |
 | Environment policy | Production frontend and production Supabase only; staging ref is forbidden |
 
@@ -44,6 +44,8 @@ This table classifies every file changed between production base `63b2c13` and v
 | `src/pages/MatchesPage.jsx` | Active-owner and portfolio behavior | APP_BEHAVIOR_CHANGE_NON_MAXXIS | Not required by selected Maxxis repair | NO | Sensitive general Matches/portfolio behavior; excluded by default. |
 | `src/services/featureFlagService.js` | Bounded retry with fail-closed fallback | MAXXIS_REQUIRED | Restores Maxxis proactive flag resolution | YES | Required for Maxxis proactive availability; does not copy staging flags/preferences. |
 | `src/services/featureFlagService.test.js` | Feature-flag retry tests | TEST_ONLY | Validation only | NO | Already exercised; production code is the isolated service delta. |
+| `supabase/functions/_shared/maxxis/corsPolicy.ts` | Allow Sentry trace headers on exact trusted Maxxis origins | MAXXIS_REQUIRED | Browser-to-Maxxis transport | YES | Real production smoke proved `baggage` was rejected by preflight while authenticated Edge/Gemini calls worked. |
+| `supabase/functions/_shared/maxxis/corsPolicy.test.ts` | Maxxis CORS regression coverage | TEST_ONLY | Validation only | NO (runtime) | Test remains in source control; it is not runtime code. |
 | `supabase/migrations/20260903000001_property_unlock_idempotency.sql` | Property unlock idempotency migration | RISKY | Not required for the Maxxis canary | NO | Changes global unlock behavior and database state. |
 
 There are no `UNKNOWN` changes in the selected release set.
@@ -53,7 +55,7 @@ There are no `UNKNOWN` changes in the selected release set.
 | COMPONENT | CHANGE | CLASS | PROMOTED | REASON |
 |---|---|---|---|---|
 | Maxxis core | Conversation display/semantic continuation stabilization; existing core retained | MAXXIS_REQUIRED | YES | Selected runtime changes extend the production Maxxis core without replacing its scope. |
-| Gemini runtime | Existing production Edge runtime retained; no function source delta | MAXXIS_REQUIRED | YES (existing) | Production `maxxis-chat` remains the provider authority; unnecessary redeploy avoided. |
+| Gemini runtime | Existing provider runtime retained; Maxxis browser CORS repaired | MAXXIS_REQUIRED | YES | The authenticated provider returned a real HTTP 200 answer; only its browser transport allow-headers changed. |
 | Maxxis tools | Existing production tools retained; no entity/business-rule change | MAXXIS_REQUIRED | YES (existing) | Search/profile/property/deal tools remain available through the existing runtime. |
 | Property context | Visible user message separated from internal instruction | MAXXIS_REQUIRED | YES | Correct property context remains internal while the UI shows safe user copy. |
 | Next Interaction | Semantic action identity preserved | MAXXIS_REQUIRED | YES | Avoids generic snapshot collapse and retains action intent. |
@@ -80,11 +82,12 @@ Promoted frontend files:
 - `src/components/maxxis/MaxxisAssistant.jsx`
 - `src/features/maxxis/intelligence/maxxisDealIntelligence.js`
 - `src/services/featureFlagService.js`
+- `supabase/functions/_shared/maxxis/corsPolicy.ts` (bundled only into the `maxxis-chat` deployment)
 
 Release characteristics:
 
 - Frontend changed: **YES**, Maxxis-only delta plus two minimal integration hunks.
-- Edge functions changed/deployed: **NO**; source delta is empty.
+- Edge functions changed/deployed: **YES**, only `maxxis-chat`; the shared CORS source is bundled into this one deployment.
 - Database changed: **NO**.
 - Migrations applied: **NONE**.
 - Staging fixtures, users, relations, flags, balances and entitlements copied: **NO**.
@@ -101,8 +104,10 @@ Release characteristics:
 | `npm run audit:feature-readiness` | PASS, 23/23 |
 | `npm run test` | PASS, 80 files / 667 tests |
 | `npm run build` | PASS, 894 modules |
-| Diff allowlist review | PASS, six approved files only |
+| Maxxis CORS targeted test | PASS, 3/3 |
+| Authenticated production Edge/Gemini probe | PASS, HTTP 200, non-degraded, request ID present |
+| Diff allowlist review | PASS, seven approved runtime/support files plus this manifest |
 
 ## Rollback anchor
 
-If a mandatory rollback trigger occurs, restore production deployment `dpl_2XoKbvNbfsU7NDMVed7PE3kFoymh` (base SHA `63b2c134a22289bacd7a642dcf4f040ce5a6c1a7`). No database rollback is required because this canary applies no migration.
+If a mandatory rollback trigger occurs, restore the recorded pre-canary frontend deployment `dpl_2XoKbvNbfsU7NDMVed7PE3kFoymh` (base SHA `63b2c134a22289bacd7a642dcf4f040ce5a6c1a7`) and redeploy `maxxis-chat` from the production-base source. The canary frontend deployment is `dpl_9sG7iRQ3rLsYX54AnGBE3rrA9M2o`. No database rollback is required because this canary applies no migration.
