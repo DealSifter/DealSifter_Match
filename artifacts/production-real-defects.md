@@ -89,6 +89,22 @@ Production diagnosis was read-only. Identifiers below are SHA-256 prefixes, not 
 
 ## Production data safety decision
 
-- Database migrations: none planned.
-- Production data mutation: none planned.
+- Database migrations: none.
+- Production data mutation: none.
 - Nuggets/billing/Auth/RLS: contracts remain unchanged.
+
+## Production closeout
+
+- Repair commits: `93d4b926b8de9265432cab91eaa8b8e0f3252b66` and `83e0e272983a4427f67d18f3ec6d0fb7e6ba9882`.
+- Production deployment: `dpl_DFWMQBGC7DNZMeeBdGv1vFaCdNsg`, aliased to `https://dealsiftermatch.vercel.app`.
+- Authenticated production smoke: PASS with HTTP 200 from Maxxis, seven real service results, canonical provider navigation, official inline-link styling, Inter structured typography, exact avatar preference `1.81`, and MapView custom-width persistence on desktop/tablet while retaining the mobile policy.
+- Proactive classification: two real signals were detected and legitimately suppressed by the attention policy while Maxxis was open; no fake event was created and no accepted signal was lost.
+- Integrity snapshot: nuggets delta `0`, contact unlock delta `0`, property unlock delta `0`, plan unchanged, subscriptions unchanged, and zero relevant browser/runtime failures.
+
+## Additional production defect — desktop opportunity mini-cards
+
+- Reproduction: active Spotlight mini-cards were present, but the desktop strip did not reliably move.
+- First broken boundary: frontend list reconciliation and scroll interaction.
+- Root cause: repeated real Spotlight entries shared duplicate React keys; rerenders could recreate the track and restart its animation. The container also used `overflow: hidden`, while its wheel handler did not scroll it.
+- Correction: every repeated display instance now receives a stable unique presentation key; the CSS marquee remains active and the desktop container supports horizontal wheel and keyboard scrolling. No card or Spotlight event is fabricated.
+- Production assertion: PASS — banner available, CSS animation running, automatic position changed, and wheel input changed the horizontal scroll position.

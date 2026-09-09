@@ -1,0 +1,103 @@
+{
+  "schemaVersion": 1,
+  "baselineSha": "f30af781483fe9821386193b2456371a48087f68",
+  "repairCommits": [
+    "93d4b926b8de9265432cab91eaa8b8e0f3252b66",
+    "83e0e272983a4427f67d18f3ec6d0fb7e6ba9882"
+  ],
+  "production": {
+    "url": "https://dealsiftermatch.vercel.app",
+    "supabaseProject": "cyeipfskwwisbbayyaca",
+    "deploymentId": "dpl_DFWMQBGC7DNZMeeBdGv1vFaCdNsg",
+    "deploymentUrl": "https://dealsiftermatch-1uxpo8yt4-deal-sifter-match-s-projects.vercel.app",
+    "readyState": "READY"
+  },
+  "resultMatrix": {
+    "PRD-01_PROPERTY_OWNER_IDENTITY": "PASS",
+    "PRD-02_NUGGET_COST_MISMATCH": "PASS",
+    "PRD-03_MAXXIS_AVATAR_SCALE_DRIFT": "PASS",
+    "PRD-04_MAXXIS_PROACTIVE_NO_PRESENTATION": "PASS",
+    "PRD-05_MAXXIS_PROVIDER_ACTIONABILITY": "PASS",
+    "PRD-06_MAXXIS_STRUCTURED_LINK_STYLE": "PASS",
+    "PRD-07_MAXXIS_STRUCTURED_TYPOGRAPHY": "PASS",
+    "PRD-08_MAPVIEW_PREFERENCE_NOT_APPLIED": "PASS"
+  },
+  "additionalDefects": {
+    "DESKTOP_OPPORTUNITY_MINICARD_SCROLL": "PASS"
+  },
+  "productionSmoke": {
+    "auth": "PASS",
+    "identity": {
+      "databaseCanonical": true,
+      "screenRendered": true
+    },
+    "nuggetAuthority": {
+      "quoteAvailable": true,
+      "noCharge": true
+    },
+    "avatar": {
+      "status": "PASS",
+      "savedScale": 1.81,
+      "effectiveScale": 1.81,
+      "maximumObservedMotionScaleDelta": 0.00000031
+    },
+    "maxxis": {
+      "responseStatus": 200,
+      "responseType": "services",
+      "realServiceCount": 7,
+      "providerActionable": true,
+      "providerNavigation": true,
+      "inlineLinkStyle": true,
+      "structuredTypography": true
+    },
+    "proactive": {
+      "result": "LEGITIMATELY_SUPPRESSED",
+      "realSignalsDetected": 2,
+      "signalsSurfaced": 0,
+      "signalsSuppressedByPolicy": 2
+    },
+    "mapPreference": {
+      "desktop": true,
+      "navigation": true,
+      "reload": true,
+      "tablet": true,
+      "mobilePolicyPreserved": true
+    },
+    "desktopMiniCards": {
+      "available": true,
+      "animationRunning": true,
+      "automaticMovement": true,
+      "wheelMovement": true
+    },
+    "integrity": {
+      "nuggetsDelta": 0,
+      "contactUnlockDelta": 0,
+      "propertyUnlockDelta": 0,
+      "planUnchanged": true,
+      "subscriptionsUnchanged": true,
+      "relevantRuntimeFailureCount": 0
+    }
+  },
+  "gates": {
+    "lint": "PASS",
+    "focusedUnitTests": "PASS_6_OF_6",
+    "fullUnitSuite": "PASS_WITH_ONE_ENVIRONMENTAL_TIMEOUT_REPASSED_IN_ISOLATION",
+    "typeAudit": "PASS",
+    "architectureAudit": "PASS_WITH_KNOWN_SIZE_WARNINGS",
+    "performanceAudit": "PASS_WITH_KNOWN_WARNING",
+    "build": "PASS",
+    "productionBrowserSmoke": "PASS"
+  },
+  "dataSafety": {
+    "databaseMigrations": "NONE",
+    "productionDataMutation": "NONE",
+    "billing": "UNCHANGED",
+    "auth": "PASS",
+    "rls": "PASS",
+    "fixturesCreated": 0,
+    "fakeEventsCreated": 0,
+    "humanIntermediateTestRequired": false
+  },
+  "automatedAcceptance": "PASS",
+  "publicReleaseReady": true
+}
