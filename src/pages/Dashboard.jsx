@@ -30,6 +30,7 @@ import { getPublicPropertyAddressLine, shouldHideStreetAddressOnCard } from '../
 import { buildProfileEntitlementKey } from '../lib/profileScope';
 import { resolveProfileCardSlots } from '../lib/profileCardSlots';
 import { isOwnerUnlocked as isCanonicalOwnerUnlocked } from '../services/unlockedContactService';
+import { buildMarqueeBannerItems } from '../lib/opportunityBanner';
 import feedMatchIcon from '../assets/feed-match-icon.png';
 import spotlightIcon from '../assets/spotlight-icon.png';
 
@@ -235,6 +236,7 @@ export function Dashboard({ page, nuggets, setModal, setPage, onOpenOnboardingTa
   const [isMobileDockSuppressed, setIsMobileDockSuppressed] = useState(false);
   const isMobileDockSuppressedRef = useRef(false);
   const mobileDockSuppressTimerRef = useRef(null);
+  const opportunityBannerScrollRef = useRef(null);
   const [matchCategoryDropdownOpen, setMatchCategoryDropdownOpen] = useState(false);
   const [interestStateDropdownOpen, setInterestStateDropdownOpen] = useState(false);
   const [selectedMatchCategories, setSelectedMatchCategories] = useState([]);
@@ -490,6 +492,33 @@ export function Dashboard({ page, nuggets, setModal, setPage, onOpenOnboardingTa
       setIsMobileDockSuppressed(false);
       mobileDockSuppressTimerRef.current = null;
     }, durationMs);
+  };
+
+  const scrollOpportunityBanner = (delta) => {
+    const container = opportunityBannerScrollRef.current;
+    if (!container || !Number.isFinite(delta) || delta === 0) return;
+    const loopWidth = container.scrollWidth / 2;
+    let next = container.scrollLeft + delta;
+    if (loopWidth > 0) {
+      if (next >= loopWidth) next %= loopWidth;
+      if (next < 0) next = loopWidth + (next % loopWidth);
+    }
+    container.scrollLeft = next;
+  };
+
+  const handleOpportunityBannerWheel = (event) => {
+    suppressMobileDockTemporarily(1200);
+    if (isMobileViewport) return;
+    const delta = Math.abs(event.deltaX) > Math.abs(event.deltaY) ? event.deltaX : event.deltaY;
+    if (!delta) return;
+    event.preventDefault();
+    scrollOpportunityBanner(delta);
+  };
+
+  const handleOpportunityBannerKeyDown = (event) => {
+    if (event.key !== 'ArrowLeft' && event.key !== 'ArrowRight') return;
+    event.preventDefault();
+    scrollOpportunityBanner(event.key === 'ArrowLeft' ? -280 : 280);
   };
 
   useEffect(() => () => {
@@ -2840,11 +2869,7 @@ export function Dashboard({ page, nuggets, setModal, setPage, onOpenOnboardingTa
   }, [bannerConnItems, bannerPropItems]);
 
   const marqueeBannerItems = useMemo(() => {
-    if (!prioritizedBannerItems.length) return [];
-    const minCards = 16;
-    const out = [...prioritizedBannerItems];
-    while (out.length < minCards) out.push(...prioritizedBannerItems);
-    return out.slice(0, Math.max(minCards, prioritizedBannerItems.length));
+    return buildMarqueeBannerItems(prioritizedBannerItems);
   }, [prioritizedBannerItems]);
 
   const bannerDurationSec = useMemo(
@@ -2926,8 +2951,17 @@ export function Dashboard({ page, nuggets, setModal, setPage, onOpenOnboardingTa
         }
         .opportunity-track {
           animation: bannerScroll var(--ds-banner-duration, 80s) linear infinite;
-          transform: translate3d(0, 0, 0);
           will-change: transform;
+        }
+        .opportunity-banner {
+          overflow-x: auto;
+          overflow-y: hidden;
+          overscroll-behavior-x: contain;
+          scrollbar-width: none;
+          -ms-overflow-style: none;
+        }
+        .opportunity-banner::-webkit-scrollbar {
+          display: none;
         }
         .ds-mycard-showcase-scroll {
           scrollbar-width: none;
@@ -4729,8 +4763,14 @@ export function Dashboard({ page, nuggets, setModal, setPage, onOpenOnboardingTa
         {marqueeBannerItems.length > 0 ? (
           <div
             className="opportunity-banner"
-            style={{ overflow:"hidden", padding:"10px 0" }}
-            onWheel={() => suppressMobileDockTemporarily(1200)}
+            ref={opportunityBannerScrollRef}
+            data-testid="opportunity-banner-scroll"
+            role="region"
+            aria-label={t.paidOpportunities || 'Paid opportunities'}
+            tabIndex={0}
+            style={{ padding:"10px 0" }}
+            onWheel={handleOpportunityBannerWheel}
+            onKeyDown={handleOpportunityBannerKeyDown}
             onPointerDown={() => suppressMobileDockTemporarily(1200)}
             onTouchStart={() => suppressMobileDockTemporarily(1200)}
             onTouchMove={() => suppressMobileDockTemporarily(1200)}
@@ -4760,7 +4800,7 @@ export function Dashboard({ page, nuggets, setModal, setPage, onOpenOnboardingTa
                       : (miniBadgeStatus === CARD_STATUS.hot ? (cardsT.hotBadge || 'HOT') : null);
                     return (
                   <button
-                    key={`${item.key}-${loop}`}
+                    key={`${item.marqueeInstanceKey}-${loop}`}
                     onClick={() => openBannerItem(item)}
                     style={{
                       position: 'relative',

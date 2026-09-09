@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { normalizeCard } from '../lib/normalizeFeedCard';
 import { sanitizePublicCardInput } from '../lib/sanitizePublicCardInput';
+import { buildMarqueeBannerItems } from '../lib/opportunityBanner';
 
 const buildDashboardPublicProfileCard = (ownerPreview) => {
   const publicOwnerPreview = sanitizePublicCardInput(ownerPreview);
@@ -74,5 +75,27 @@ describe('Dashboard public card builders', () => {
       whatsapp: '+15551230003',
       contactMethods: ['email', 'phone'],
     });
+  });
+});
+
+describe('Dashboard opportunity banner', () => {
+  it('creates stable unique instances when real spotlight cards must repeat', () => {
+    const items = [
+      { key: 'property-1', title: 'Property 1' },
+      { key: 'profile-1', title: 'Profile 1' },
+    ];
+
+    const marquee = buildMarqueeBannerItems(items);
+    const instanceKeys = marquee.map((item) => item.marqueeInstanceKey);
+
+    expect(marquee).toHaveLength(16);
+    expect(new Set(instanceKeys).size).toBe(16);
+    expect(marquee.map((item) => item.key)).toEqual(
+      Array.from({ length: 16 }, (_, index) => items[index % items.length].key)
+    );
+  });
+
+  it('does not invent banner items when there are no active spotlight cards', () => {
+    expect(buildMarqueeBannerItems([])).toEqual([]);
   });
 });

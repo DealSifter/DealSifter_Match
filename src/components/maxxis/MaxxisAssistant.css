@@ -366,7 +366,7 @@ button.maxxis-action-link:hover {
   border: 0;
   border-radius: 2px;
   background: transparent;
-  color: var(--accent);
+  color: var(--accent-hex);
   font: inherit;
   font-weight: 500;
   line-height: inherit;
@@ -383,7 +383,7 @@ button.maxxis-action-link:hover {
 }
 
 .maxxis-inline-link:focus-visible {
-  outline: 2px solid var(--accent);
+  outline: 2px solid var(--accent-hex);
   outline-offset: 3px;
 }
 

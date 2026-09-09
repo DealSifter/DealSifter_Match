@@ -40,7 +40,7 @@ describe('Maxxis Deal AI structured result presentation', () => {
     const css = readFileSync(new URL('./MaxxisAssistant.css', import.meta.url), 'utf8');
     expect(css).toMatch(/\.maxxis-action-links\s*\{[\s\S]*?font-family:\s*['"]Inter/);
     expect(css).toMatch(/\.maxxis-action-link\s*\{[\s\S]*?font-weight:\s*400/);
-    expect(css).toMatch(/\.maxxis-inline-link\s*\{[\s\S]*?text-decoration:\s*underline/);
+    expect(css).toMatch(/\.maxxis-inline-link\s*\{[\s\S]*?color:\s*var\(--accent-hex\)[\s\S]*?text-decoration:\s*underline/);
     expect(css).toMatch(/\.maxxis-inline-link:focus-visible/);
   });
 });
