@@ -307,6 +307,11 @@
   flex-wrap: wrap;
   gap: 7px;
   padding: 1px 4px 0;
+  max-width: 100%;
+  font-family: 'Inter', 'Outfit', sans-serif;
+  font-size: 14px;
+  font-weight: 400;
+  line-height: 1.5;
 }
 
 .maxxis-action-link {
@@ -317,29 +322,77 @@
   justify-content: center;
   gap: 7px;
   border: 1px solid color-mix(in srgb, var(--accent) 44%, var(--border));
-  border-radius: 999px;
+  border-radius: 12px;
   background: color-mix(in srgb, var(--accent) 12%, var(--card));
   color: var(--accent);
   padding: 7px 11px;
   font: inherit;
-  font-size: 11px;
-  line-height: 1.1;
-  font-weight: 900;
-  cursor: pointer;
+  font-size: inherit;
+  line-height: inherit;
+  font-weight: 400;
   box-shadow: 0 8px 18px color-mix(in srgb, var(--accent) 12%, transparent);
 }
 
-.maxxis-action-link span {
+.maxxis-action-links strong {
+  font-weight: 600;
+}
+
+button.maxxis-action-link {
+  border-radius: 999px;
+  font-size: 12px;
+  line-height: 1.2;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+button.maxxis-action-link > span {
   min-width: 0;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
 }
 
-.maxxis-action-link:hover {
+button.maxxis-action-link:hover {
   transform: translateY(-1px);
   border-color: var(--accent);
   background: color-mix(in srgb, var(--accent) 18%, var(--card));
+}
+
+.maxxis-inline-link {
+  display: inline;
+  max-width: 100%;
+  margin: 0;
+  padding: 0;
+  border: 0;
+  border-radius: 2px;
+  background: transparent;
+  color: var(--accent);
+  font: inherit;
+  font-weight: 500;
+  line-height: inherit;
+  text-align: inherit;
+  text-decoration: underline;
+  text-decoration-thickness: 1.5px;
+  text-underline-offset: 3px;
+  cursor: pointer;
+}
+
+.maxxis-inline-link:hover {
+  color: var(--accent-d);
+  text-decoration-thickness: 2px;
+}
+
+.maxxis-inline-link:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 3px;
+}
+
+.maxxis-inline-link:disabled,
+.maxxis-inline-link[aria-disabled="true"] {
+  color: var(--t3);
+  text-decoration: none;
+  cursor: default;
+  opacity: 0.7;
 }
 
 .maxxis-followups {
@@ -777,7 +830,7 @@
   box-shadow: 0 0 14px rgba(53, 202, 201, 0.28), inset 0 0 10px rgba(53, 202, 201, 0.1);
 }
 
-[data-theme="dark"] .maxxis-action-link:hover {
+[data-theme="dark"] button.maxxis-action-link:hover {
   box-shadow: 0 0 20px rgba(53, 202, 201, 0.5), inset 0 0 12px rgba(53, 202, 201, 0.16);
 }
 
@@ -881,10 +934,10 @@
     padding-right: 2px;
   }
 
-  .maxxis-action-link {
+  button.maxxis-action-link {
     min-height: 31px;
     padding: 7px 10px;
-    font-size: 10.5px;
+    font-size: 12px;
   }
 
   .maxxis-preferences-popover {

@@ -2,19 +2,19 @@
   --maxxis-art-scale: 1.3;
   --maxxis-art-x: 0%;
   --maxxis-art-y: 0%;
-  --maxxis-idle-scale: 1.016;
+  --maxxis-idle-scale: 1;
   --maxxis-idle-y: -1.8px;
   --maxxis-idle-rotate: 0.18deg;
   --maxxis-observing-rotate: 1.8deg;
   --maxxis-observing-x: 1.5px;
-  --maxxis-observing-scale: 1.018;
+  --maxxis-observing-scale: 1;
   --maxxis-processing-rotate: 1.8deg;
   --maxxis-processing-x: 2.4px;
   --maxxis-processing-y: -1px;
   --maxxis-noticed-scale: 1.055;
   --maxxis-noticed-y: -3.5px;
   --maxxis-noticed-rotate: 1.2deg;
-  --maxxis-waiting-scale: 1.012;
+  --maxxis-waiting-scale: 1;
   --maxxis-waiting-y: -1.5px;
   --maxxis-waiting-rotate: 0.35deg;
   --maxxis-success-scale: 1.07;
@@ -138,19 +138,19 @@
 }
 
 .maxxis-avatar-motion--normal {
-  --maxxis-idle-scale: 1.026;
+  --maxxis-idle-scale: 1;
   --maxxis-idle-y: -2.6px;
   --maxxis-idle-rotate: 0.3deg;
   --maxxis-observing-rotate: 2.8deg;
   --maxxis-observing-x: 2.6px;
-  --maxxis-observing-scale: 1.03;
+  --maxxis-observing-scale: 1;
   --maxxis-processing-rotate: 2.8deg;
   --maxxis-processing-x: 4px;
   --maxxis-processing-y: -1.8px;
   --maxxis-noticed-scale: 1.085;
   --maxxis-noticed-y: -5px;
   --maxxis-noticed-rotate: 2deg;
-  --maxxis-waiting-scale: 1.02;
+  --maxxis-waiting-scale: 1;
   --maxxis-waiting-y: -2.4px;
   --maxxis-waiting-rotate: 0.6deg;
   --maxxis-success-scale: 1.105;
@@ -182,15 +182,15 @@
 @keyframes maxxisAvatarObserving {
   0%, 18%, 100% { transform: translate3d(0, 0, 0) rotate(0) scale(1); }
   38% { transform: translate3d(calc(var(--maxxis-observing-x) * -1), -0.8px, 0) rotate(calc(var(--maxxis-observing-rotate) * -1)) scale(var(--maxxis-observing-scale)); }
-  58% { transform: translate3d(var(--maxxis-observing-x), 0, 0) rotate(var(--maxxis-observing-rotate)) scale(1.005); }
+  58% { transform: translate3d(var(--maxxis-observing-x), 0, 0) rotate(var(--maxxis-observing-rotate)) scale(1); }
   76% { transform: translate3d(0, 0, 0) rotate(0) scale(1); }
 }
 
 @keyframes maxxisAvatarProcessing {
   0%, 100% { transform: translate3d(calc(var(--maxxis-processing-x) * -1), 0, 0) rotate(calc(var(--maxxis-processing-rotate) * -1)) scale(1); }
-  28% { transform: translate3d(0, var(--maxxis-processing-y), 0) rotate(0) scale(1.015); }
+  28% { transform: translate3d(0, var(--maxxis-processing-y), 0) rotate(0) scale(1); }
   55% { transform: translate3d(var(--maxxis-processing-x), 0, 0) rotate(var(--maxxis-processing-rotate)) scale(1); }
-  78% { transform: translate3d(0, calc(var(--maxxis-processing-y) * -0.45), 0) rotate(calc(var(--maxxis-processing-rotate) * -0.35)) scale(1.008); }
+  78% { transform: translate3d(0, calc(var(--maxxis-processing-y) * -0.45), 0) rotate(calc(var(--maxxis-processing-rotate) * -0.35)) scale(1); }
 }
 
 @keyframes maxxisAvatarNoticed {
@@ -202,7 +202,7 @@
 @keyframes maxxisAvatarWaiting {
   0%, 100% { transform: translate3d(0, 0, 0) rotate(0) scale(1); }
   45% { transform: translate3d(0, var(--maxxis-waiting-y), 0) rotate(var(--maxxis-waiting-rotate)) scale(var(--maxxis-waiting-scale)); }
-  72% { transform: translate3d(0, -0.4px, 0) rotate(calc(var(--maxxis-waiting-rotate) * -0.4)) scale(1.003); }
+  72% { transform: translate3d(0, -0.4px, 0) rotate(calc(var(--maxxis-waiting-rotate) * -0.4)) scale(1); }
 }
 
 @keyframes maxxisAvatarSuccess {
@@ -214,7 +214,7 @@
 
 @media (max-width: 767px) {
   .maxxis-avatar-renderer {
-    --maxxis-idle-scale: 1.012;
+    --maxxis-idle-scale: 1;
     --maxxis-idle-y: -1.2px;
     --maxxis-observing-rotate: 1.4deg;
     --maxxis-observing-x: 1.1px;
@@ -223,14 +223,14 @@
     --maxxis-processing-y: -0.7px;
     --maxxis-noticed-scale: 1.04;
     --maxxis-noticed-y: -2.4px;
-    --maxxis-waiting-scale: 1.009;
+    --maxxis-waiting-scale: 1;
     --maxxis-waiting-y: -1px;
     --maxxis-success-scale: 1.055;
     --maxxis-success-y: -3px;
   }
 
   .maxxis-avatar-motion--normal {
-    --maxxis-idle-scale: 1.019;
+    --maxxis-idle-scale: 1;
     --maxxis-idle-y: -1.8px;
     --maxxis-observing-rotate: 2.1deg;
     --maxxis-observing-x: 1.8px;
@@ -239,7 +239,7 @@
     --maxxis-processing-y: -1.1px;
     --maxxis-noticed-scale: 1.062;
     --maxxis-noticed-y: -3.5px;
-    --maxxis-waiting-scale: 1.014;
+    --maxxis-waiting-scale: 1;
     --maxxis-waiting-y: -1.6px;
     --maxxis-success-scale: 1.078;
     --maxxis-success-y: -4.2px;

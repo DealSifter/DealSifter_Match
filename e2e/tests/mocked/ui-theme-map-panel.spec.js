@@ -41,3 +41,33 @@ test('brand palette and MapView defaults stay responsive', async ({ page, mockBa
   await page.setViewportSize({ width: 390, height: 844 });
   await expect.poll(async () => Math.round((await panel.boundingBox())?.width || 0)).toBe(359);
 });
+
+test('custom MapView width survives navigation, tablet adaptation, and reload', async ({ page, mockBackend }) => {
+  await page.setViewportSize({ width: 1280, height: 720 });
+  await loginAs(page, mockBackend.users.investor);
+  await closeGuideIfVisible(page);
+  await page.evaluate(() => {
+    localStorage.setItem('mapViewPanelWidth', '520');
+    localStorage.setItem('ds_mapview_ui_state_v1', JSON.stringify({ panelWidth: 520, panelWidthCustomized: true }));
+  });
+  await page.getByTestId('nav-mapview').click();
+  const panel = page.locator('aside.map-panel');
+  await expect.poll(async () => Math.round((await panel.boundingBox())?.width || 0)).toBe(520);
+
+  await page.getByTestId('nav-dashboard').click();
+  await page.getByTestId('nav-mapview').click();
+  await expect.poll(async () => Math.round((await panel.boundingBox())?.width || 0)).toBe(520);
+
+  await page.reload({ waitUntil: 'domcontentloaded' });
+  await page.getByTestId('dashboard-root').waitFor({ state: 'visible', timeout: 120_000 });
+  await closeGuideIfVisible(page);
+  await page.getByTestId('nav-mapview').click();
+  await expect(panel).toBeVisible({ timeout: 120_000 });
+  await expect.poll(async () => Math.round((await panel.boundingBox())?.width || 0)).toBe(520);
+
+  await page.setViewportSize({ width: 800, height: 1024 });
+  await expect.poll(async () => Math.round((await panel.boundingBox())?.width || 0)).toBe(520);
+
+  await page.setViewportSize({ width: 390, height: 844 });
+  await expect.poll(async () => Math.round((await panel.boundingBox())?.width || 0)).toBe(359);
+});

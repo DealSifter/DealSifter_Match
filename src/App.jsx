@@ -4191,6 +4191,38 @@ export default function App() {
     }
   }, [openOnboardingTab, openPricingHub, openSettingsTab, setPage]);
 
+  const handleMaxxisOpenProvider = useCallback(async ({ serviceId } = {}) => {
+    const canonicalServiceId = String(serviceId || '').trim();
+    let service = globalServicePortfolio.find((item) => String(item?.id || '') === canonicalServiceId);
+    if (!service && canonicalServiceId && isSupabaseConfigured && supabase && supabaseUserId) {
+      try {
+        const rawInventory = await fetchGlobalInventory(supabase);
+        const refreshedFeed = buildGlobalFeedState(rawInventory, supabaseUserId, feedFilters, feedSessionSeed);
+        service = refreshedFeed.connectionServices.find((item) => String(item?.id || '') === canonicalServiceId);
+      } catch (error) {
+        safeLogError('Maxxis provider navigation refresh failed.', error);
+      }
+    }
+    const ownerId = String(service?.ownerId || '').trim();
+    if (!canonicalServiceId || !service || !ownerId) {
+      addToast({ type: 'warning', message: 'This provider is no longer available.' });
+      return;
+    }
+    const primaryProfile = inferRecordProfileScope(service, 'professional');
+    const ownerPreview = service.ownerPreview && typeof service.ownerPreview === 'object' ? service.ownerPreview : {};
+    setChatFocusTarget({
+      ...ownerPreview,
+      id: buildProfileEntitlementKey(ownerId, primaryProfile),
+      ownerId,
+      unlockOwnerId: ownerId,
+      primaryProfile,
+      serviceId: canonicalServiceId,
+      name: ownerPreview.name || service.title || 'Provider',
+    });
+    setChatFocusToken((value) => value + 1);
+    setPage('matches');
+  }, [addToast, feedFilters, feedSessionSeed, globalServicePortfolio, setPage, supabaseUserId]);
+
   const handleAnalyzePropertyWithMaxxis = useCallback((request = {}) => {
     const id = request.id || `property-analysis-${Date.now()}`;
     const propertyId = String(request.propertyId || '').trim();
@@ -5830,6 +5862,7 @@ export default function App() {
                 enabled={Boolean(authSession)}
                 onOpenSupport={() => openSettingsTab('communication', 'support')}
                 onNavigateAction={handleMaxxisNavigateAction}
+                onOpenProvider={handleMaxxisOpenProvider}
                 propertyAnalysisRequest={maxxisPropertyAnalysisRequest}
                 propertyContextId={maxxisPropertyContextId}
                 appContext={maxxisAppContext}

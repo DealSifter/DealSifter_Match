@@ -1184,6 +1184,7 @@ function SuggestedPropertyServices({
   onConfirmProviderUnlock,
   onCancelProviderUnlock,
   onPrepareProviderMessageDraft,
+  onOpenProvider,
 }) {
   if (!Array.isArray(serviceNeeds) || !serviceNeeds.length) return null;
   const copy = PROPERTY_SERVICE_NEEDS_COPY[language] || PROPERTY_SERVICE_NEEDS_COPY.en;
@@ -1209,7 +1210,15 @@ function SuggestedPropertyServices({
                     ? services.map((service) => (
                       <div key={service.id} style={{ display: 'grid', gap: 2, paddingBottom: 4 }}>
                         <span>
-                          {`- ${service.title} — ${service.fit?.calculable && Number.isFinite(service.fit?.score)
+                          {'- '}
+                          <button
+                            type="button"
+                            className="maxxis-inline-link"
+                            onClick={() => onOpenProvider?.({ serviceId: service.id })}
+                          >
+                            {service.title}
+                          </button>
+                          {` — ${service.fit?.calculable && Number.isFinite(service.fit?.score)
                             ? `${copy.fit}: ${service.fit.score}%`
                             : copy.fitUnavailable}`}
                         </span>
@@ -1571,6 +1580,7 @@ export function MessageBubble({
   onConfirmMemoryForget,
   onCancelMemoryForget,
   composedExperience,
+  onOpenProvider,
 }) {
   const isUser = message.role === 'user';
   const { text, actions } = isUser
@@ -1622,7 +1632,7 @@ export function MessageBubble({
             <button
               type="button"
               key={`${message.id}-${action.id}`}
-              className="maxxis-action-link"
+              className="maxxis-inline-link"
               onClick={() => onAction?.(action.id)}
             >
               <span>{action.label}</span>
@@ -1698,7 +1708,15 @@ export function MessageBubble({
         <div className="maxxis-action-links" aria-label="Service search results">
           {message.data.services.map((service) => (
             <div key={service.id} className="maxxis-action-link" style={{ cursor: 'default', display: 'grid', gap: 2 }}>
-              <strong>{service.title || service.serviceType || 'Service'}</strong>
+              <strong>
+                <button
+                  type="button"
+                  className="maxxis-inline-link"
+                  onClick={() => onOpenProvider?.({ serviceId: service.id })}
+                >
+                  {service.title || service.serviceType || 'Service'}
+                </button>
+              </strong>
               {service.serviceType ? <span>{service.serviceType}</span> : null}
               {service.markets?.length ? <span>{service.markets.join(', ')}</span> : null}
               <span>{service.price === null || service.price === undefined ? 'Price not provided' : `$${Number(service.price).toLocaleString('en-US')}`}</span>
@@ -1856,6 +1874,7 @@ export function MessageBubble({
           onConfirmProviderUnlock={onConfirmProviderUnlock}
           onCancelProviderUnlock={onCancelProviderUnlock}
           onPrepareProviderMessageDraft={onPrepareProviderMessageDraft}
+          onOpenProvider={onOpenProvider}
         />
       ) : null}
       {message.type === 'smart_provider_actions' && message.data?.serviceNeeds?.length ? (
@@ -1872,6 +1891,7 @@ export function MessageBubble({
           onConfirmProviderUnlock={onConfirmProviderUnlock}
           onCancelProviderUnlock={onCancelProviderUnlock}
           onPrepareProviderMessageDraft={onPrepareProviderMessageDraft}
+          onOpenProvider={onOpenProvider}
         />
       ) : null}
       {message.type === 'deal_copilot_overview' && message.data?.propertySummary ? (

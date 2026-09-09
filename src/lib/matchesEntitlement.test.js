@@ -1,7 +1,10 @@
 import { describe, expect, it } from 'vitest';
 import {
   canonicalContactToDisplayCard,
+  getProfilePresentationKey,
+  hasSameProfileIdentity,
   resolveCanonicalContactCardFromMap,
+  resolveDisplayContactCardFromMap,
 } from './matchesEntitlement';
 import {
   isOwnerUnlocked,
@@ -115,5 +118,29 @@ describe('matches entitlement canonical contact flow', () => {
     });
 
     expect(contact).toBeNull();
+  });
+
+  it('keeps two profile scopes from one account distinct in presentation', () => {
+    const fsbo = { ownerId: 'owner-1', primaryProfile: 'fsbo', name: 'Dr. Dree' };
+    const professional = { ownerId: 'owner-1', primaryProfile: 'professional', name: 'DealSifter' };
+
+    expect(getProfilePresentationKey(fsbo)).toBe('owner-1:fsbo');
+    expect(getProfilePresentationKey(professional)).toBe('owner-1:professional');
+    expect(hasSameProfileIdentity(fsbo, professional)).toBe(false);
+    expect(hasSameProfileIdentity(fsbo, { ownerId: 'owner-1', primary_profile: 'fsbo' })).toBe(true);
+  });
+
+  it('keeps the canonical owner UUID separate from a locked presentation id', () => {
+    expect(resolveDisplayContactCardFromMap(new Map(), {
+      id: 'presentation-only',
+      ownerId: 'owner-1',
+      primaryProfile: 'fsbo',
+      name: 'Dr. Dree',
+    })).toMatchObject({
+      id: 'owner-1:fsbo',
+      ownerId: 'owner-1',
+      unlockOwnerId: 'owner-1',
+      primaryProfile: 'fsbo',
+    });
   });
 });

@@ -1,3 +1,4 @@
+import { readFileSync } from 'node:fs';
 import { describe, expect, it, vi } from 'vitest';
 import {
   MAXXIS_AVATAR_ASSETS,
@@ -140,5 +141,14 @@ describe('Maxxis Deal AI avatar animation presentation', () => {
       effective: 1.8,
     });
     expect(resolveEffectiveMaxxisAvatarSize(1.43)).toEqual({ stored: 1.43, effective: 1.43 });
+  });
+
+  it('does not add scale drift to continuously repeating motion states', () => {
+    const css = readFileSync(new URL('./MaxxisAvatar.css', import.meta.url), 'utf8');
+    expect(css).toContain('--maxxis-idle-scale: 1;');
+    expect(css).toContain('--maxxis-observing-scale: 1;');
+    expect(css).toContain('--maxxis-waiting-scale: 1;');
+    const processing = css.match(/@keyframes maxxisAvatarProcessing \{([\s\S]*?)\n\}/)?.[1] || '';
+    expect(processing).not.toMatch(/scale\((?!1\))/);
   });
 });

@@ -8,8 +8,8 @@ export function MatchesPeopleList({
   return (
     <>
       {contacts.map((contact) => (
-        <React.Fragment key={contact.ownerId || contact.id}>
-          {renderContact?.(contact, String(contact.ownerId || contact.id) === String(activeOwnerId || ''))}
+        <React.Fragment key={contact.id || contact.ownerId}>
+          {renderContact?.(contact, String(contact.id || contact.ownerId) === String(activeOwnerId || ''))}
         </React.Fragment>
       ))}
     </>

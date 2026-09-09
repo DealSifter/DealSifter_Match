@@ -53,3 +53,28 @@ export const resolveCanonicalContactCardFromMap = (unlockedContactMap, contactLi
   const canonicalEntry = getContactByOwnerId(unlockedContactMap, ownerId, getRecordProfileScope(contactLike));
   return canonicalEntry ? canonicalContactToDisplayCard(canonicalEntry) : null;
 };
+
+export const getProfilePresentationKey = (contactLike) => {
+  if (!contactLike || typeof contactLike !== 'object') return '';
+  const ownerId = normalizeId(contactLike.ownerId || contactLike.unlockOwnerId);
+  return ownerId ? buildProfileEntitlementKey(ownerId, getRecordProfileScope(contactLike)) : '';
+};
+
+export const hasSameProfileIdentity = (left, right) => {
+  const leftKey = getProfilePresentationKey(left);
+  return Boolean(leftKey && leftKey === getProfilePresentationKey(right));
+};
+
+export const resolveDisplayContactCardFromMap = (unlockedContactMap, contactLike) => {
+  if (!contactLike || typeof contactLike !== 'object') return null;
+  const ownerId = normalizeId(contactLike.ownerId || contactLike.unlockOwnerId);
+  if (!ownerId) return null;
+  const canonical = resolveCanonicalContactCardFromMap(unlockedContactMap, { ...contactLike, ownerId });
+  if (canonical) return canonical;
+  return {
+    ...contactLike,
+    id: getProfilePresentationKey({ ...contactLike, ownerId }),
+    ownerId,
+    unlockOwnerId: ownerId,
+  };
+};

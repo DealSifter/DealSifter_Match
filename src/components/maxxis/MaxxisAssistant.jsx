@@ -160,7 +160,7 @@ function readDevMaxxisAttentionOverrides() {
   }
 }
 
-export function MaxxisAssistant({ page = 'dashboard', onOpenSupport = null, onNavigateAction = null, propertyAnalysisRequest = null, propertyContextId = '', appContext = null, sessionKey = '', onExportAnalysisPdf = null, onNuggetBalanceChange = null, onProviderUnlockConfirmed = null, enabled = true, userPreferences = null, userPreferencesHydrated = true, onChangeUserPreferences = null, userPreferencesPersistenceStatus = 'idle', proactiveFeatureEnabled = false, dealMemoryFeatureEnabled = false, onOpenPreferences = null }) {
+export function MaxxisAssistant({ page = 'dashboard', onOpenSupport = null, onNavigateAction = null, onOpenProvider = null, propertyAnalysisRequest = null, propertyContextId = '', appContext = null, sessionKey = '', onExportAnalysisPdf = null, onNuggetBalanceChange = null, onProviderUnlockConfirmed = null, enabled = true, userPreferences = null, userPreferencesHydrated = true, onChangeUserPreferences = null, userPreferencesPersistenceStatus = 'idle', proactiveFeatureEnabled = false, dealMemoryFeatureEnabled = false, onOpenPreferences = null }) {
   const language = getUiLang();
   const t = COPY[language] || COPY.en;
   const preferencesCopy = getMaxxisPreferencesCopy(language);
@@ -2256,6 +2256,7 @@ export function MaxxisAssistant({ page = 'dashboard', onOpenSupport = null, onNa
                   onConfirmMemoryForget={handleConfirmMemoryForget}
                   onCancelMemoryForget={handleCancelMemoryForget}
                   composedExperience={getMessageComposedExperience(message, smartActions)}
+                  onOpenProvider={onOpenProvider}
                 />
               );
             })}

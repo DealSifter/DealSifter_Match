@@ -997,6 +997,9 @@ export function MapView({
       ? MAP_PANEL_TABLET_PORTRAIT_DEFAULT_WIDTH
       : MAP_PANEL_DEFAULT_WIDTH;
   });
+  const [panelWidthCustomized, setPanelWidthCustomized] = useState(() => (
+    loadCustomPanelWidth() !== null || initialMapUiState.panelWidthCustomized === true
+  ));
   const [isResizing, setIsResizing] = useState(false);
   const [mapUiHydrated, setMapUiHydrated] = useState(false);
   // Start as true when returning from feed navigation so auto-fit doesn't override the restored viewport.
@@ -1020,7 +1023,7 @@ export function MapView({
       filterBounds,
       panelCollapsed,
       panelWidth,
-      panelWidthCustomized: mapUiStateRef.current?.panelWidthCustomized === true,
+      panelWidthCustomized,
       viewport,
       ...overrides,
     };
@@ -1040,6 +1043,7 @@ export function MapView({
     filterBounds,
     panelCollapsed,
     panelWidth,
+    panelWidthCustomized,
     viewport,
   ]);
 
@@ -1072,7 +1076,10 @@ export function MapView({
       if (typeof saved.panelCollapsed === 'boolean') setPanelCollapsed(saved.panelCollapsed);
       const customWidth = loadCustomPanelWidth();
       const savedWidth = customWidth ?? (saved.panelWidthCustomized === true ? normalizeMapPanelWidth(saved.panelWidth) : null);
-      if (savedWidth !== null) setPanelWidth(savedWidth);
+      if (savedWidth !== null) {
+        setPanelWidth(savedWidth);
+        setPanelWidthCustomized(true);
+      }
       const sanitizedViewport = sanitizeViewport(saved.viewport, preferredInitialZoom);
       if (sanitizedViewport) setViewport(sanitizedViewport);
       mapUiStateRef.current = saved;
@@ -1250,6 +1257,7 @@ export function MapView({
 
     const handleMouseUp = () => {
       setIsResizing(false);
+      setPanelWidthCustomized(true);
       localStorage.setItem('mapViewPanelWidth', panelWidth.toString());
       persistMapUiState({ panelWidth, panelWidthCustomized: true });
     };
@@ -1792,9 +1800,11 @@ export function MapView({
     PUBLIC_MAP_STYLE_KEYS.map((styleKey) => [styleKey, MAP_STYLE_OPTIONS[styleKey]]).filter(([, cfg]) => Boolean(cfg))
   ), []);
 
-  const panelOpenWidth = isMobileViewport
-    ? `min(92vw, ${isTabletPortraitViewport ? MAP_PANEL_TABLET_PORTRAIT_DEFAULT_WIDTH : MAP_PANEL_MOBILE_MAX_WIDTH}px)`
-    : `${panelWidth}px`;
+  const panelOpenWidth = isTabletPortraitViewport
+    ? `min(92vw, ${panelWidthCustomized ? panelWidth : MAP_PANEL_TABLET_PORTRAIT_DEFAULT_WIDTH}px)`
+    : isMobileViewport
+      ? `min(92vw, ${MAP_PANEL_MOBILE_MAX_WIDTH}px)`
+      : `${panelWidth}px`;
   const mapFitPaddingTopLeft = useMemo(
     () => (isMobileViewport ? [24, 24] : [panelWidth + 36, 36]),
     [isMobileViewport, panelWidth],

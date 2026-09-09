@@ -44,6 +44,34 @@ test.describe('property, Maxxis Deal AI and provider flow', () => {
     await expect(page.getByTestId('maxxis-messages')).toContainText('Property Details');
     await expect(page.getByTestId('maxxis-messages')).toContainText('General Contractor');
 
+    const providerTitle = maxxisPayload.data.serviceMatches[0].services[0].title;
+    const providerLink = page.getByTestId('maxxis-messages').getByRole('button', { name: providerTitle, exact: true });
+    await expect(providerLink).toBeVisible();
+    const providerLinkStyle = await providerLink.evaluate((element) => {
+      const style = getComputedStyle(element);
+      return {
+        cursor: style.cursor,
+        decoration: style.textDecorationLine,
+        color: style.color,
+      };
+    });
+    expect(providerLinkStyle.cursor).toBe('pointer');
+    expect(providerLinkStyle.decoration).toContain('underline');
+    expect(providerLinkStyle.color).not.toBe('rgb(128, 0, 128)');
+
+    await providerLink.click();
+    await page.getByTestId('maxxis-panel').getByRole('button', { name: /close/i }).click();
+    await expect(page.getByTestId('matches-root')).toBeVisible({ timeout: 120_000 });
+    await expect(page.getByTestId('matches-locked-target')).toHaveText(mockBackend.users.provider.fullName);
+    const profileCostCopy = page.getByTestId('matches-root').getByText(/Unlock this contact costs \d+ nuggets/i);
+    const profileUnlockButton = page.getByTestId('matches-root').getByRole('button', { name: /unlock\s*-\s*\d+\s+nuggets/i });
+    await expect(profileCostCopy).toBeVisible();
+    await expect(profileUnlockButton).toBeVisible();
+    const profileCost = Number((await profileCostCopy.textContent())?.match(/\d+/)?.[0]);
+    const profileCtaCost = Number((await profileUnlockButton.textContent())?.match(/\d+/)?.[0]);
+    expect(profileCost).toBeGreaterThan(0);
+    expect(profileCtaCost).toBe(profileCost);
+
     const prepare = await page.evaluate(async ({ supabaseUrl, token, serviceId }) => {
       const response = await fetch(`${supabaseUrl}/functions/v1/maxxis-provider-unlock-prepare`, {
         method: 'POST',

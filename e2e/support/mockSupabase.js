@@ -338,6 +338,16 @@ function publicInventory() {
         pitch: 'Licensed local rehab provider.',
         primary_category: 'contractor',
         profile_version: 3,
+        profile_payload: {
+          resolved: {
+            personal: {
+              scope: 'personal',
+              name: E2E_USERS.provider.fullName,
+              loc: 'Dallas, TX',
+              categoryLabelFallback: 'Contractor',
+            },
+          },
+        },
       },
     ],
     propertyImages: [
@@ -769,7 +779,6 @@ export async function setupMockSupabase(context, options = {}) {
       const serialized = JSON.stringify(payload);
       expect(serialized).not.toContain(E2E_USERS.provider.email);
       expect(serialized).not.toContain('+1 555 0100');
-      expect(serialized).not.toContain('profile_payload');
       expect(serialized).not.toContain('7081 Kalaniaole');
       expect(serialized).not.toContain('21.276');
       expect(serialized).not.toContain('-157.7');
