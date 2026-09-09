@@ -33,6 +33,9 @@ const AUTH_MESSAGES = {
   es: 'Inicia sesion nuevamente para que Maxxis Deal AI responda con el contexto de DealSifter.',
 };
 
+const PERSONALIZED_OPPORTUNITY_RE = /\b(oportunidade|oportunidades|opportunity|opportunities|deal|deals|imovel|im[oó]vel|imoveis|im[oó]veis|propriedade|propriedades|property|properties)\b/i;
+const PROFILE_FIT_RE = /\b(meu\s+perfil|minha\s+estrategia|minha\s+estrat[eé]gia|me\s+encaixa|encaixa\s+comigo|para\s+mim|pra\s+mim|for\s+me|my\s+profile|fit\s+me|matches\s+me|aligned\s+with\s+me)\b/i;
+
 function currentLanguage() {
   const lang = String(getLang?.() || 'en').slice(0, 2).toLowerCase();
   return ['en', 'pt', 'es'].includes(lang) ? lang : 'en';
@@ -90,7 +93,13 @@ export function getMaxxisGreeting(language = currentLanguage()) {
   return 'Hi, I am Maxxis Deal AI, your DealSifter Match assistant. I can help you with Feed, MapView, Matches, unlocks, plans, nuggets, spotlight, and general US Tax Deed or Wholesale concepts. How can I help?';
 }
 
-export async function sendMaxxisMessage({ message, history = [], page = 'dashboard', language = currentLanguage(), propertyId = '', propertyIds = [], maxxisContext = null }) {
+function resolveControlledIntent(message) {
+  const text = String(message || '');
+  if (PERSONALIZED_OPPORTUNITY_RE.test(text) && PROFILE_FIT_RE.test(text)) return 'personalized_property_search';
+  return '';
+}
+
+export async function sendMaxxisMessage({ message, history = [], page = 'dashboard', language = currentLanguage(), propertyId = '', propertyIds = [], maxxisContext = null, controlledIntent = '' }) {
   const text = String(message || '').trim();
   if (!text) throw new Error('Message is required.');
   if (!isSupabaseConfigured || !supabase) {
@@ -139,6 +148,7 @@ export async function sendMaxxisMessage({ message, history = [], page = 'dashboa
       history: normalizeHistory(history),
       page,
       language,
+      controlledIntent: String(controlledIntent || resolveControlledIntent(text)).trim(),
       ...(Object.keys(context).length ? { context } : {}),
     });
     data = result.data;

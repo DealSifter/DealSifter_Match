@@ -28,4 +28,13 @@ describe('Maxxis fallback policy contract', () => {
     expect(edgeSource).not.toContain('I am in local guide mode right now');
     expect(edgeSource).not.toContain('Estou em modo guia local neste momento');
   });
+
+  it('forces profile-fit opportunity questions through personalized property search', () => {
+    expect(clientSource).toContain('resolveControlledIntent(text)');
+    expect(clientSource).toContain("return 'personalized_property_search'");
+    expect(edgeSource).toContain('resolveControlledToolCall(body.controlledIntent, message)');
+    expect(edgeSource).toContain("intent !== 'personalized_property_search'");
+    expect(edgeSource).toContain("name: 'searchProperties'");
+    expect(edgeSource).toContain('personalized: true');
+  });
 });

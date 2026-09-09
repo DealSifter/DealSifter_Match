@@ -70,6 +70,41 @@ function intentIncludesAny(normalized: string, terms: string[]) {
   return terms.some((term) => normalized.includes(term));
 }
 
+function resolveControlledToolCall(rawIntent: unknown, message: string) {
+  const intent = sanitizeText(rawIntent, 80);
+  if (intent !== 'personalized_property_search') return null;
+  const normalized = normalizeIntentText(message);
+  const asksForOpportunity = intentIncludesAny(normalized, [
+    ' oportunidade ',
+    ' oportunidades ',
+    ' opportunity ',
+    ' opportunities ',
+    ' deal ',
+    ' deals ',
+    ' imovel ',
+    ' imoveis ',
+    ' propriedade ',
+    ' propriedades ',
+    ' property ',
+    ' properties ',
+  ]);
+  const asksForProfileFit = intentIncludesAny(normalized, [
+    ' meu perfil ',
+    ' minha estrategia ',
+    ' me encaixa ',
+    ' encaixa comigo ',
+    ' para mim ',
+    ' pra mim ',
+    ' for me ',
+    ' my profile ',
+    ' fit me ',
+    ' matches me ',
+    ' aligned with me ',
+  ]);
+  if (!asksForOpportunity || !asksForProfileFit) return null;
+  return { name: 'searchProperties', args: { personalized: true, limit: 5 } };
+}
+
 function resolveMandatoryToolCall(message: string, propertyContextId: string, comparisonPropertyIds: string[]) {
   const normalized = normalizeIntentText(message);
   if (comparisonPropertyIds.length >= 2 && intentIncludesAny(normalized, [' compare ', ' comparar ', ' compare estos ', ' compare estes '])) {
@@ -580,7 +615,8 @@ Deno.serve(async (req) => {
       });
       return response({ message: text, answer: text, type: 'context_snapshot', data: { surface: structuredContext.surface, entity: structuredContext.entity, view: structuredContext.view, profile: structuredContext.profile || null, economy: structuredContext.economy, operational: structuredContext.operational, freshness: structuredContext.freshness }, actions: [], language }, 200, origin, requestId);
     }
-    const stubFunctionCall = isE2ELlmStubEnabled() ? e2eStubFunctionCall(message, propertyContextId) : null;
+    const controlledFunctionCall = resolveControlledToolCall(body.controlledIntent, message);
+    const stubFunctionCall = controlledFunctionCall || (isE2ELlmStubEnabled() ? e2eStubFunctionCall(message, propertyContextId) : null);
     if (!geminiApiKey && !stubFunctionCall) {
       const degradedPayload = degradedFallbackPayload(message, language, 'MAXXIS_NOT_CONFIGURED');
       logMaxxisEvent('maxxis_chat', { request_id: requestId, user_id: userId, duration_ms: Date.now() - startedAt, success: false, fallback_count: fallbackCount + 1, error_code: 'MAXXIS_NOT_CONFIGURED' });
@@ -599,7 +635,7 @@ Deno.serve(async (req) => {
     const providerErrors: Array<{ status: number; code: GeminiFailureCode }> = [];
     let payload: Record<string, unknown> = {};
     if (stubFunctionCall) {
-      usedModel = 'e2e-llm-stub';
+      usedModel = controlledFunctionCall ? 'controlled-intent' : 'e2e-llm-stub';
     } else {
       const selectionAttemptLimit = Math.max(1, budget.limits.maxGeminiCalls - 1);
       for (const model of geminiModels.slice(0, selectionAttemptLimit)) {
