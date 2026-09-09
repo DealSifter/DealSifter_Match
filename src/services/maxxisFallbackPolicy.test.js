@@ -6,6 +6,10 @@ const edgeSource = readFileSync(
   new URL('../../supabase/functions/maxxis-chat/index.ts', import.meta.url),
   'utf8',
 );
+const propertySearchMigration = readFileSync(
+  new URL('../../supabase/migrations/20260909162500_exclude_own_properties_from_maxxis_search.sql', import.meta.url),
+  'utf8',
+);
 
 describe('Maxxis fallback policy contract', () => {
   it('keeps Gemini as the primary brain and removes the duplicate client keyword catalog', () => {
@@ -32,9 +36,17 @@ describe('Maxxis fallback policy contract', () => {
   it('forces profile-fit opportunity questions through personalized property search', () => {
     expect(clientSource).toContain('resolveControlledIntent(text)');
     expect(clientSource).toContain("return 'personalized_property_search'");
+    expect(clientSource).toContain('me\\s+sugere');
+    expect(clientSource).toContain('normalizeMaxxisResponsePayload(data?.type, data?.data)');
     expect(edgeSource).toContain('resolveControlledToolCall(body.controlledIntent, message)');
     expect(edgeSource).toContain("intent !== 'personalized_property_search'");
+    expect(edgeSource).toContain("' me sugere '");
     expect(edgeSource).toContain("name: 'searchProperties'");
     expect(edgeSource).toContain('personalized: true');
+  });
+
+  it('excludes own property cards from Maxxis property suggestions at the RPC source', () => {
+    expect(propertySearchMigration).toContain('p.owner_id is distinct from auth.uid()');
+    expect(propertySearchMigration).not.toMatch(/select[\s\S]*p\.owner_id[\s\S]*returns table/i);
   });
 });

@@ -34,7 +34,7 @@ const AUTH_MESSAGES = {
 };
 
 const PERSONALIZED_OPPORTUNITY_RE = /\b(oportunidade|oportunidades|opportunity|opportunities|deal|deals|imovel|im[oó]vel|imoveis|im[oó]veis|propriedade|propriedades|property|properties)\b/i;
-const PROFILE_FIT_RE = /\b(meu\s+perfil|minha\s+estrategia|minha\s+estrat[eé]gia|me\s+encaixa|encaixa\s+comigo|para\s+mim|pra\s+mim|for\s+me|my\s+profile|fit\s+me|matches\s+me|aligned\s+with\s+me)\b/i;
+const PROFILE_FIT_RE = /\b(meu\s+perfil|minha\s+estrategia|minha\s+estrat[eé]gia|me\s+encaixa|encaixa\s+comigo|me\s+sugere|vc\s+me\s+sugere|voce\s+me\s+sugere|você\s+me\s+sugere|me\s+indica|me\s+recomenda|sugere\s+para\s+mim|sugere\s+pra\s+mim|para\s+mim|pra\s+mim|for\s+me|my\s+profile|suggest\s+for\s+me|recommend\s+for\s+me|fit\s+me|matches\s+me|aligned\s+with\s+me)\b/i;
 
 function currentLanguage() {
   const lang = String(getLang?.() || 'en').slice(0, 2).toLowerCase();
@@ -182,6 +182,7 @@ export async function sendMaxxisMessage({ message, history = [], page = 'dashboa
       provider_status: status || undefined,
       request_id: requestId || undefined,
     });
+    const normalizedResponse = normalizeMaxxisResponsePayload(data?.type, data?.data);
     return {
       answer: String(data?.message || data?.answer || '').trim() || (FALLBACK_MESSAGES[language] || FALLBACK_MESSAGES.en),
       unavailable: false,
@@ -190,6 +191,7 @@ export async function sendMaxxisMessage({ message, history = [], page = 'dashboa
       fallbackLevel: Number(data?.fallbackLevel || 3),
       fallbackSource: String(data?.fallbackSource || 'edge_degraded_guard').slice(0, 64),
       requestId,
+      ...normalizedResponse,
     };
   }
 
