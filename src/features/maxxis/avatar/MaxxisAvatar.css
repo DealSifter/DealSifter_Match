@@ -33,22 +33,22 @@
 
 .maxxis-avatar-renderer[data-avatar-state="IDLE"] {
   --maxxis-art-scale: 1.56;
-  --maxxis-art-x: -4%;
+  --maxxis-art-x: 0%;
 }
 
 .maxxis-avatar-renderer[data-avatar-state="OBSERVING"] {
   --maxxis-art-scale: 1.17;
-  --maxxis-art-x: 12%;
+  --maxxis-art-x: 0%;
 }
 
 .maxxis-avatar-renderer[data-avatar-state="PROCESSING"] {
   --maxxis-art-scale: 1.39;
-  --maxxis-art-x: 2%;
+  --maxxis-art-x: 0%;
 }
 
 .maxxis-avatar-renderer[data-avatar-state="NOTICED"] {
   --maxxis-art-scale: 1.41;
-  --maxxis-art-x: -6%;
+  --maxxis-art-x: 0%;
 }
 
 .maxxis-avatar-renderer[data-avatar-state="WAITING"] {
@@ -57,7 +57,7 @@
 
 .maxxis-avatar-renderer[data-avatar-state="SUCCESS"] {
   --maxxis-art-scale: 1.26;
-  --maxxis-art-x: 10%;
+  --maxxis-art-x: 0%;
 }
 
 .maxxis-avatar-motion,

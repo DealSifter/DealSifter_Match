@@ -140,6 +140,7 @@ const ACTIONFUL_SIGNAL_CODES = new Set([
   'IMPORTANT_MISSING_INFORMATION',
   'NEW_ACTION_AVAILABLE',
 ]);
+const CONTEXT_SURFACES = new Set(['dashboard', 'matches', 'map', 'mapview']);
 
 function cleanText(value, maxLength = 90) {
   return String(value || '')
@@ -276,6 +277,7 @@ export function buildMaxxisProactiveSignals({
     ...asArray(appContext?.proactiveEvents),
     ...asArray(appContext?.operational?.proactiveEvents),
   ];
+  const hasExplicitEvents = explicitEvents.length > 0;
   const explicitSignals = explicitEvents
     .map((event) => {
       const eventIdentity = event?.dedupeKey || event?.entityId || event?.serviceId || event?.propertyId || focusedPropertyId || focusedServiceId || now;
@@ -299,6 +301,26 @@ export function buildMaxxisProactiveSignals({
     .filter(Boolean);
 
   const signals = [...explicitSignals];
+  const surfaceName = cleanText(contextSnapshot.surface?.name || appContext?.surface?.page || '', 40).toLowerCase();
+  const subviewName = cleanText(contextSnapshot.surface?.subview || appContext?.surface?.subview || '', 60).toLowerCase();
+  if (
+    !hasExplicitEvents
+    &&
+    CONTEXT_SURFACES.has(surfaceName)
+    && (focusedPropertyId || focusedServiceId)
+    && contextSnapshot.freshness?.entity !== 'stale'
+  ) {
+    signals.push(normalizeSignal({}, {
+      code: 'DEAL_CONTEXT_UPDATED',
+      entityType: focusedServiceId ? 'SERVICE' : 'PROPERTY',
+      entityId: focusedServiceId || focusedPropertyId,
+      source: 'surface_context',
+      occurredAt: now,
+      severity: 'INFO',
+      evidence: { propertyId: focusedPropertyId, serviceId: focusedServiceId, actionAvailable: true },
+      dedupeKey: `${accountPrefix}:DEAL_CONTEXT_UPDATED:${surfaceName}:${subviewName || 'default'}:${focusedServiceId || focusedPropertyId}`,
+    }));
+  }
   const operational = contextSnapshot.operational || {};
   const capabilities = operational.capabilities || {};
   const state = operational.state || {};

@@ -151,4 +151,13 @@ describe('Maxxis Deal AI avatar animation presentation', () => {
     const processing = css.match(/@keyframes maxxisAvatarProcessing \{([\s\S]*?)\n\}/)?.[1] || '';
     expect(processing).not.toMatch(/scale\((?!1\))/);
   });
+
+  it('keeps all avatar state assets centered during crossfade transitions', () => {
+    const css = readFileSync(new URL('./MaxxisAvatar.css', import.meta.url), 'utf8');
+    const stateBlocks = css.match(/\.maxxis-avatar-renderer\[data-avatar-state="[^"]+"\]\s*\{[^}]+\}/g) || [];
+    expect(stateBlocks.length).toBeGreaterThanOrEqual(6);
+    stateBlocks.forEach((block) => {
+      expect(block).not.toMatch(/--maxxis-art-x:\s*[-]?(?!0(?:\.0)?%)[\d.]+%/);
+    });
+  });
 });

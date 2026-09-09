@@ -177,6 +177,30 @@ describe('Maxxis Deal AI proactive intelligence', () => {
     expect(attention.priority).toBeGreaterThan(60);
   });
 
+  it('creates a safe contextual bubble signal from real focused navigation context', () => {
+    const signals = buildMaxxisProactiveSignals({
+      contextSnapshot: context({ surface: { name: 'dashboard', route: '/dashboard', subview: 'feed' } }),
+      appContext: {},
+      messages: [],
+      now,
+      accountKey: 'acct-a',
+    });
+    const contextual = signals.find((item) => item.code === 'DEAL_CONTEXT_UPDATED');
+    expect(contextual).toMatchObject({
+      entityType: 'PROPERTY',
+      entityId: propertyId,
+      source: 'surface_context',
+      evidence: expect.objectContaining({ propertyId }),
+    });
+    const attention = evaluateMaxxisProactiveAttention(contextual, {
+      config: enabledConfig,
+      contextSnapshot: context({ surface: { name: 'dashboard', route: '/dashboard', subview: 'feed' } }),
+      sessionMemory: createMaxxisProactiveSessionMemory('acct-a'),
+      now,
+    });
+    expect(attention.shouldSurface).toBe(true);
+  });
+
   it('suppresses when feature is off, Maxxis Deal AI is open, signal is old, dismissed, duplicate, or on a different property', () => {
     const item = signal();
     const memory = createMaxxisProactiveSessionMemory('acct-a');
