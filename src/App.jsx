@@ -4223,6 +4223,37 @@ export default function App() {
     setPage('matches');
   }, [addToast, feedFilters, feedSessionSeed, globalServicePortfolio, setPage, supabaseUserId]);
 
+  const openMatchesItemFromFeed = useCallback((item, options = {}) => {
+    if (!item) return;
+    const kind = String(options?.kind || '').trim();
+    const owner = options?.owner && typeof options.owner === 'object' ? options.owner : null;
+    const ownerId = String(
+      item.ownerId
+      || item.owner_id
+      || item.unlockOwnerId
+      || item.unlock_owner_id
+      || owner?.ownerId
+      || owner?.owner_id
+      || owner?.unlockOwnerId
+      || owner?.id
+      || ''
+    ).trim();
+    const target = kind === 'property'
+      ? {
+        ...item,
+        ...(ownerId ? { ownerId } : {}),
+        ownerPreview: item.ownerPreview || owner || null,
+        primaryProfile: item.primaryProfile || item.primary_profile || item.profileScope || item.profile_scope || owner?.primaryProfile || owner?.primary_profile,
+      }
+      : {
+        ...item,
+        ...(ownerId ? { ownerId, unlockOwnerId: ownerId } : {}),
+      };
+    setChatFocusTarget(target);
+    setChatFocusToken((value) => value + 1);
+    setPage('matches');
+  }, [setPage]);
+
   const handleAnalyzePropertyWithMaxxis = useCallback((request = {}) => {
     const id = request.id || `property-analysis-${Date.now()}`;
     const propertyId = String(request.propertyId || '').trim();
@@ -5520,6 +5551,7 @@ export default function App() {
             onOpenSpotlight={() => setModal('spotlight')}
             onboardingRequired={onboardingNavigationLocked}
             onMaxxisContextChange={handleMaxxisSurfaceContextChange}
+            onOpenMatchesItem={openMatchesItemFromFeed}
           />
         );
       case 'matches':

@@ -173,7 +173,7 @@ function getStableInterestListKey(interest, fallbackIndex = 0) {
   ].map((value) => String(value || '').trim()).filter(Boolean).join(':');
 }
 
-export function Dashboard({ page, nuggets, setModal, setPage, onOpenOnboardingTab, openUnlock, unlocked, matched, setMatched, interested, setInterested, purchases, setPurchases, userProfile, personalProfile, professionalProfile, propertyPortfolio, servicePortfolio, accountType, showcaseProperties, categoryOrder, setCategoryOrder, editMode, setEditMode, mobileBottomNavCollapsed = false, addToast, setSystemNotifications = null, isHydrationReady = true, isHydrationSyncing = false, planActionAccess = {}, propertyUnlocks = [], unlockedContactMap = new Map(), currentUserId = 'local-user', activeSpotlightKeys = new Set(), onOpenSpotlight = null, userPreferences = null, onboardingRequired = false, onMaxxisContextChange = null }) {
+export function Dashboard({ page, nuggets, setModal, setPage, onOpenOnboardingTab, openUnlock, unlocked, matched, setMatched, interested, setInterested, purchases, setPurchases, userProfile, personalProfile, professionalProfile, propertyPortfolio, servicePortfolio, accountType, showcaseProperties, categoryOrder, setCategoryOrder, editMode, setEditMode, mobileBottomNavCollapsed = false, addToast, setSystemNotifications = null, isHydrationReady = true, isHydrationSyncing = false, planActionAccess = {}, propertyUnlocks = [], unlockedContactMap = new Map(), currentUserId = 'local-user', activeSpotlightKeys = new Set(), onOpenSpotlight = null, userPreferences = null, onboardingRequired = false, onMaxxisContextChange = null, onOpenMatchesItem = null }) {
   const isMobileViewport = useMediaQuery('(max-width: 767px)');
   const isTabletPortraitViewport = useMediaQuery('(min-width: 768px) and (max-width: 1080px) and (orientation: portrait)');
   const isTabletLandscapeViewport = useMediaQuery('(min-width: 768px) and (max-width: 1180px) and (orientation: landscape)');
@@ -1661,6 +1661,37 @@ export function Dashboard({ page, nuggets, setModal, setPage, onOpenOnboardingTa
     });
   }, [feedStorageKeys.hiddenInterests, getFeedInterestKey]);
 
+  const openFeedMatchInMatches = useCallback((contact) => {
+    if (!contact) return;
+    if (typeof onOpenMatchesItem === 'function') {
+      onOpenMatchesItem(contact, { kind: 'contact', source: 'feed_matches_column' });
+      return;
+    }
+    setPage?.('matches');
+  }, [onOpenMatchesItem, setPage]);
+
+  const openFeedInterestInMatches = useCallback((property, owner = null) => {
+    if (!property) return;
+    const ownerId = String(property.ownerId || property.owner_id || owner?.ownerId || owner?.owner_id || owner?.id || '').trim();
+    const target = {
+      ...property,
+      ...(ownerId ? { ownerId } : {}),
+      ownerPreview: property.ownerPreview || owner || null,
+      primaryProfile: property.primaryProfile || property.primary_profile || owner?.primaryProfile || owner?.primary_profile || property.profileScope || property.profile_scope,
+    };
+    if (typeof onOpenMatchesItem === 'function') {
+      onOpenMatchesItem(target, { kind: 'property', owner, source: 'feed_interested_column' });
+      return;
+    }
+    setPage?.('matches');
+  }, [onOpenMatchesItem, setPage]);
+
+  const handleFeedShortcutKeyDown = useCallback((event, open) => {
+    if (event.key !== 'Enter' && event.key !== ' ') return;
+    event.preventDefault();
+    open();
+  }, []);
+
   const dedupedMatched = useMemo(
     () => matched.filter((m, i, arr) => arr.findIndex((x) => x.id === m.id) === i),
     [matched],
@@ -2953,10 +2984,16 @@ export function Dashboard({ page, nuggets, setModal, setPage, onOpenOnboardingTa
           animation: bannerScroll var(--ds-banner-duration, 80s) linear infinite;
           will-change: transform;
         }
+        .opportunity-sequence {
+          display: flex;
+          flex: 0 0 auto;
+          gap: 10px;
+          padding: 0 10px;
+        }
         .opportunity-banner {
-          overflow-x: auto;
+          overflow-x: hidden;
           overflow-y: hidden;
-          overscroll-behavior-x: contain;
+          overscroll-behavior: contain;
           scrollbar-width: none;
           -ms-overflow-style: none;
         }
@@ -4584,7 +4621,16 @@ export function Dashboard({ page, nuggets, setModal, setPage, onOpenOnboardingTa
                 const unlockCost = getUnlockCost(m);
                 const portfolioCount = getPortfolioCount(m);
                 return (
-              <div key={getStableContactListKey(m, i)} style={{ display:"flex", alignItems:"center", gap:8, padding:"8px 0", borderBottom:i < filteredArr.length-1 ? `1px solid ${C.border}` : "none" }}>
+              <div
+                key={getStableContactListKey(m, i)}
+                role="button"
+                tabIndex={0}
+                data-testid="feed-match-shortcut"
+                onClick={() => openFeedMatchInMatches(m)}
+                onKeyDown={(event) => handleFeedShortcutKeyDown(event, () => openFeedMatchInMatches(m))}
+                title={isUnlockedMatch ? matchesT.openChat || 'Open in Matches' : cardsT.unlock || 'Unlock in Matches'}
+                style={{ display:"flex", alignItems:"center", gap:8, padding:"8px 0", borderBottom:i < filteredArr.length-1 ? `1px solid ${C.border}` : "none", cursor:"pointer", outline:"none" }}
+              >
                   <SmartImage
                     src={typeof m.photo === 'string' && m.photo.length > 8 ? m.photo : undefined}
                     alt={m.name}
@@ -4701,7 +4747,16 @@ export function Dashboard({ page, nuggets, setModal, setPage, onOpenOnboardingTa
               const isOwnerUnlocked = propOwner && isContactUnlocked(propOwner);
               const ownerUnlockCost = propOwner ? getUnlockCost(propOwner) : 1;
               return (
-                <div key={getStableInterestListKey(m, i)} style={{ display:"flex", alignItems:"center", gap:8, padding:"8px 0", borderBottom:i < filteredInterested.length-1 ? `1px solid ${C.border}` : "none" }}>
+                <div
+                  key={getStableInterestListKey(m, i)}
+                  role="button"
+                  tabIndex={0}
+                  data-testid="feed-interest-shortcut"
+                  onClick={() => openFeedInterestInMatches(m, propOwner)}
+                  onKeyDown={(event) => handleFeedShortcutKeyDown(event, () => openFeedInterestInMatches(m, propOwner))}
+                  title={isOwnerUnlocked ? matchesT.openChat || 'Open in Matches' : cardsT.unlock || 'Unlock in Matches'}
+                  style={{ display:"flex", alignItems:"center", gap:8, padding:"8px 0", borderBottom:i < filteredInterested.length-1 ? `1px solid ${C.border}` : "none", cursor:"pointer", outline:"none" }}
+                >
                   <SmartImage
                     src={typeof (m.images?.[0] || m.image) === 'string' && (m.images?.[0] || m.image)?.length > 8 ? (m.images?.[0] || m.image) : undefined}
                     alt={getSafePropertyLabel(m, 'Property')}
@@ -4780,13 +4835,12 @@ export function Dashboard({ page, nuggets, setModal, setPage, onOpenOnboardingTa
               style={{
                 display:"flex",
                 width:"max-content",
-                gap:10,
-                padding:"0 10px",
                 '--ds-banner-duration': `${bannerDurationSec}s`,
               }}
             >
               {[0, 1].map(loop => (
-                marqueeBannerItems.map((item) => (
+                <div className="opportunity-sequence" aria-hidden={loop === 1 ? 'true' : undefined} key={`opportunity-sequence-${loop}`}>
+                {marqueeBannerItems.map((item) => (
                   (() => {
                     const isNeonVerified = item.isHot && item.isVerified;
                     const miniStatuses = [
@@ -4859,7 +4913,8 @@ export function Dashboard({ page, nuggets, setModal, setPage, onOpenOnboardingTa
                   </button>
                     );
                   })()
-                ))
+                ))}
+                </div>
               ))}
             </div>
           </div>
