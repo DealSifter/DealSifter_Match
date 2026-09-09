@@ -18,10 +18,24 @@ function readLocalEnv() {
 
 const localEnv = readLocalEnv();
 const valueOf = (...names) => names.map((name) => process.env[name] || localEnv[name] || '').find(Boolean) || '';
-const strict = process.argv.includes('--strict') || Boolean(process.env.CI || process.env.VERCEL);
-const failures = [];
+const vercelEnvironment = String(process.env.VERCEL_ENV || '').trim().toLowerCase();
+const explicitStrict = process.argv.includes('--strict');
+const isVercel = Boolean(process.env.VERCEL);
+const isGenericCi = Boolean(process.env.CI) && !isVercel;
+const knownVercelEnvironments = new Set(['production', 'preview', 'development']);
 
-const required = [
+let environment = 'development';
+if (isVercel) {
+  environment = knownVercelEnvironments.has(vercelEnvironment) ? vercelEnvironment : 'unknown';
+} else if (isGenericCi) {
+  environment = 'ci';
+}
+
+const strictProduction = explicitStrict || environment === 'production' || environment === 'ci';
+const failures = [];
+const warnings = [];
+
+const productionRequired = [
   ['Supabase URL', valueOf('VITE_SUPABASE_URL', 'SUPABASE_URL')],
   ['Supabase public key', valueOf('VITE_SUPABASE_ANON_KEY', 'SUPABASE_ANON_KEY', 'ANON_KEY')],
   ['App URL', valueOf('VITE_APP_URL', 'APP_URL')],
@@ -34,21 +48,54 @@ const required = [
   ['Stripe Pro annual price', valueOf('VITE_STRIPE_PRICE_PLAN_PRO_YEAR')],
   ['Stripe Enterprise annual price', valueOf('VITE_STRIPE_PRICE_PLAN_ENTERPRISE_YEAR')],
 ];
-required.forEach(([label, value]) => { if (!String(value).trim()) failures.push(`missing ${label}`); });
 
-for (const [label, value] of required.filter(([name]) => name.includes('Stripe'))) {
+// Required for an authenticated Preview at runtime, but not by Vite compilation.
+// Preview must not inherit LIVE values merely to satisfy a build-time check.
+const previewRuntimeRequired = [
+  ['Supabase URL', valueOf('VITE_SUPABASE_URL', 'SUPABASE_URL')],
+  ['Supabase public key', valueOf('VITE_SUPABASE_ANON_KEY', 'SUPABASE_ANON_KEY', 'ANON_KEY')],
+  ['App URL', valueOf('VITE_APP_URL', 'APP_URL')],
+];
+
+if (environment === 'unknown') {
+  failures.push('unable to classify Vercel deployment: VERCEL_ENV must be production, preview, or development');
+}
+
+if (strictProduction) {
+  productionRequired.forEach(([label, value]) => {
+    if (!String(value).trim()) failures.push(`missing ${label}`);
+  });
+} else if (environment === 'preview') {
+  previewRuntimeRequired.forEach(([label, value]) => {
+    if (!String(value).trim()) warnings.push(`missing runtime ${label}`);
+  });
+} else {
+  productionRequired.forEach(([label, value]) => {
+    if (!String(value).trim()) warnings.push(`missing ${label}`);
+  });
+}
+
+for (const [label, value] of productionRequired.filter(([name]) => name.includes('Stripe'))) {
   if (value && !/^price_[A-Za-z0-9]+$/.test(value) && !/^price_ci_[A-Za-z0-9_]+$/.test(value)) {
-    failures.push(`invalid ${label} format`);
+    const issue = `invalid ${label} format`;
+    if (strictProduction) failures.push(issue);
+    else warnings.push(issue);
   }
 }
 
-for (const [label, value] of required.filter(([name]) => name.endsWith('URL'))) {
+for (const [label, value] of productionRequired.filter(([name]) => name.endsWith('URL'))) {
   if (!value) continue;
   try {
     const parsed = new URL(value);
-    if (!['http:', 'https:'].includes(parsed.protocol)) failures.push(`invalid ${label} protocol`);
+    if (!['http:', 'https:'].includes(parsed.protocol)) {
+      const issue = `invalid ${label} protocol`;
+      if (strictProduction) failures.push(issue);
+      else warnings.push(issue);
+    }
   } catch {
-    failures.push(`invalid ${label}`);
+    const issue = `invalid ${label}`;
+    if (strictProduction) failures.push(issue);
+    else warnings.push(issue);
   }
 }
 
@@ -59,17 +106,20 @@ const exposedSecrets = [...allNames].filter((name) => (
 if (exposedSecrets.length) {
   const message = `secret-like VITE_ variables must not be configured: ${exposedSecrets.sort().join(', ')}`;
   if (process.env.CI || process.env.VERCEL) failures.push(message);
-  else console.warn(`[build-env] warning: ${message}`);
+  else warnings.push(message);
 }
 
 if (failures.length) {
   const message = failures.map((failure) => `  - ${failure}`).join('\n');
-  if (strict) {
-    console.error(`[build-env] production environment invalid:\n${message}`);
-    process.exit(1);
-  }
-  console.warn(`[build-env] local environment incomplete:\n${message}`);
-  process.exit(0);
+  console.error(`[build-env] ${environment} environment invalid:\n${message}`);
+  process.exit(1);
 }
 
-console.log(`[build-env] required-public-values=${required.length} strict=${strict ? 'yes' : 'no'} status=ok`);
+if (warnings.length) {
+  const message = warnings.map((warning) => `  - ${warning}`).join('\n');
+  console.warn(`[build-env] ${environment} environment warning:\n${message}`);
+}
+
+console.log(
+  `[build-env] environment=${environment} authority=${isVercel ? 'VERCEL_ENV' : explicitStrict ? '--strict' : isGenericCi ? 'CI' : 'local'} production-required=${productionRequired.length} strict=${strictProduction ? 'yes' : 'no'} status=ok`,
+);
