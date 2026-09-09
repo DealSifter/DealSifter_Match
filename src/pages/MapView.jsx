@@ -530,7 +530,7 @@ const FLY_OPTIONS_SNAP = {
   noMoveStart: true,   // skip the movestart event on the old position (perf)
 };
 
-function MapController({ mapRef, fitToBounds, fitPaddingTopLeft, fitPaddingBottomRight }) {
+function MapController({ mapRef, fitToBounds, fitPaddingTopLeft, fitPaddingBottomRight, viewport }) {
   const map = useMap();
 
   // Expose the Leaflet map instance to the parent via ref so parent can call
@@ -549,12 +549,26 @@ function MapController({ mapRef, fitToBounds, fitPaddingTopLeft, fitPaddingBotto
     });
   }, [fitToBounds, fitPaddingBottomRight, fitPaddingTopLeft, map]);
 
+  React.useEffect(() => {
+    if (fitToBounds?.bounds) return;
+    const center = sanitizeLatLngPair(viewport?.center);
+    const zoom = Number(viewport?.zoom);
+    if (!center || !Number.isFinite(zoom)) return;
+    const currentCenter = map.getCenter();
+    const currentZoom = map.getZoom();
+    const sameCenter = Math.abs(currentCenter.lat - center[0]) < 0.000001
+      && Math.abs(currentCenter.lng - center[1]) < 0.000001;
+    if (sameCenter && Math.abs(currentZoom - zoom) < 0.001) return;
+    map.setView(center, zoom, { animate: false });
+  }, [fitToBounds, map, viewport?.center, viewport?.zoom]);
+
   return null;
 }
 
 const PIN_OVERRIDES_KEY = 'ds_pin_overrides';
 const PIN_OVERRIDES_STORAGE_KEY = 'ds_pin_overrides_by_user';
 const MAP_UI_STATE_KEY = 'ds_mapview_ui_state_v1';
+const MAP_VIEWPORT_SESSION_KEY = 'mapViewport';
 
 function loadCustomPanelWidth() {
   try {
@@ -625,7 +639,7 @@ function _savePinOverrides(overrides, userProfile) {
 
 function _loadMapUiState() {
   try {
-    const raw = localStorage.getItem(MAP_UI_STATE_KEY);
+    const raw = sessionStorage.getItem(MAP_UI_STATE_KEY);
     if (!raw) return {};
     const parsed = JSON.parse(raw);
     return parsed && typeof parsed === 'object' ? parsed : {};
@@ -635,7 +649,23 @@ function _loadMapUiState() {
 }
 
 function _saveMapUiState(state) {
-  try { localStorage.setItem(MAP_UI_STATE_KEY, JSON.stringify(state || {})); } catch { /* noop */ }
+  try { sessionStorage.setItem(MAP_UI_STATE_KEY, JSON.stringify(state || {})); } catch { /* noop */ }
+}
+
+function _loadSessionViewport(fallbackZoom = DEFAULT_ZOOM) {
+  try {
+    return sanitizeViewport(JSON.parse(sessionStorage.getItem(MAP_VIEWPORT_SESSION_KEY) || 'null'), fallbackZoom);
+  } catch {
+    return null;
+  }
+}
+
+function _saveSessionViewport(viewport) {
+  try {
+    if (viewport) sessionStorage.setItem(MAP_VIEWPORT_SESSION_KEY, JSON.stringify(viewport));
+  } catch {
+    // noop
+  }
 }
 
 // Module-level signal: set by the viewport useState initializer when a nav-return viewport is
@@ -869,7 +899,7 @@ export function MapView({
   const [pinOverrides, setPinOverrides] = useState(() => _loadPinOverrides(userProfile));
   const [panelCollapsed, setPanelCollapsed] = useState(() => {
     if (typeof initialMapUiState.panelCollapsed === 'boolean') return initialMapUiState.panelCollapsed;
-    return localStorage.getItem('mapViewPanelCollapsed') === '1';
+    return false;
   });
   const isMobileViewport = useMediaQuery('(max-width: 900px)');
   const isTabletPortraitViewport = useMediaQuery('(min-width: 768px) and (max-width: 1080px) and (orientation: portrait)');
@@ -887,10 +917,10 @@ export function MapView({
     // Check for a back-navigation return viewport FIRST. This is written by navigateToFeed()
     // and takes priority over all other sources so the exact PIN-zoom position is preserved.
     try {
-      const returnVp = JSON.parse(localStorage.getItem('ds_map_return_viewport') || 'null');
+      const returnVp = JSON.parse(sessionStorage.getItem('ds_map_return_viewport') || 'null');
       const sanitizedReturnVp = sanitizeViewport(returnVp, preferredInitialZoom);
       if (returnVp?.fromNav && sanitizedReturnVp) {
-        localStorage.removeItem('ds_map_return_viewport');
+        sessionStorage.removeItem('ds_map_return_viewport');
         _navReturnViewportConsumed = true; // signal hasAutoFitRealPinsRef to skip auto-fit
         return sanitizedReturnVp;
       }
@@ -898,7 +928,7 @@ export function MapView({
     const savedUiViewport = sanitizeViewport(initialMapUiState.viewport, preferredInitialZoom);
     if (savedUiViewport) return savedUiViewport;
     try {
-      const saved = sanitizeViewport(JSON.parse(localStorage.getItem('mapViewport') || 'null'), preferredInitialZoom);
+      const saved = _loadSessionViewport(preferredInitialZoom);
       if (saved) return saved;
     } catch (e) {
       void e;
@@ -915,7 +945,7 @@ export function MapView({
   const mapRef = React.useRef(null);
   const [fitToBounds, setFitToBounds] = useState(() => {
     try {
-      const saved = sanitizeViewport(JSON.parse(localStorage.getItem('mapViewport') || 'null'), preferredInitialZoom);
+      const saved = _loadSessionViewport(preferredInitialZoom);
       if (saved) {
         // If a saved viewport exists, don't force-fit to the USA bounds on mount
         return null;
@@ -930,7 +960,10 @@ export function MapView({
   const [filterBounds, setFilterBounds] = useState(() => {
     return sanitizeLeafletBounds(initialMapUiState.filterBounds);
   });
-  const [selectedCardId, setSelectedCardId] = useState(null);
+  const [selectedCardId, setSelectedCardId] = useState(() => {
+    const value = String(initialMapUiState.selectedCardId || '').trim();
+    return value || null;
+  });
   const [panelTab, setPanelTab] = useState(() => (initialMapUiState.panelTab === 'filters' ? 'filters' : 'cards'));
 
   useEffect(() => {
@@ -1003,7 +1036,12 @@ export function MapView({
   const [isResizing, setIsResizing] = useState(false);
   const [mapUiHydrated, setMapUiHydrated] = useState(false);
   // Start as true when returning from feed navigation so auto-fit doesn't override the restored viewport.
-  const hasAutoFitRealPinsRef = React.useRef(_navReturnViewportConsumed);
+  const hasSavedViewportRef = React.useRef(Boolean(
+    _navReturnViewportConsumed
+    || sanitizeViewport(initialMapUiState.viewport, preferredInitialZoom)
+    || _loadSessionViewport(preferredInitialZoom)
+  ));
+  const hasAutoFitRealPinsRef = React.useRef(_navReturnViewportConsumed || hasSavedViewportRef.current);
   React.useEffect(() => {
     _navReturnViewportConsumed = false;
   }, []);
@@ -1025,6 +1063,7 @@ export function MapView({
       panelWidth,
       panelWidthCustomized,
       viewport,
+      selectedCardId,
       ...overrides,
     };
     mapUiStateRef.current = snapshot;
@@ -1045,6 +1084,7 @@ export function MapView({
     panelWidth,
     panelWidthCustomized,
     viewport,
+    selectedCardId,
   ]);
 
   // Active restore pass on mount to avoid losing context after redirection/unmount cycles.
@@ -1082,6 +1122,8 @@ export function MapView({
       }
       const sanitizedViewport = sanitizeViewport(saved.viewport, preferredInitialZoom);
       if (sanitizedViewport) setViewport(sanitizedViewport);
+      const savedSelectedCardId = String(saved.selectedCardId || '').trim();
+      if (savedSelectedCardId) setSelectedCardId(savedSelectedCardId);
       mapUiStateRef.current = saved;
       setMapUiHydrated(true);
     }, 0);
@@ -1193,22 +1235,22 @@ export function MapView({
     });
   }, []);
 
-  // Persist viewport changes so current center/zoom become the default next time
+  // Persist live viewport only for the active browser session. General map
+  // preferences remain the durable default for a future login/session.
   React.useEffect(() => {
+    if (!mapUiHydrated) return;
     try {
       if (!viewport) return;
-      localStorage.setItem('mapViewport', JSON.stringify(viewport));
+      _saveSessionViewport(viewport);
     } catch (e) { void e; }
     persistMapUiState({ viewport });
-  }, [viewport, persistMapUiState]);
+  }, [mapUiHydrated, viewport, persistMapUiState]);
 
-  // Persist panel collapsed/open state.
+  // Persist panel collapsed/open state only in the active browser session.
   React.useEffect(() => {
-    try {
-      localStorage.setItem('mapViewPanelCollapsed', panelCollapsed ? '1' : '0');
-    } catch (e) { void e; }
+    if (!mapUiHydrated) return;
     persistMapUiState({ panelCollapsed });
-  }, [panelCollapsed, persistMapUiState]);
+  }, [mapUiHydrated, panelCollapsed, persistMapUiState]);
 
   React.useEffect(() => {
     if (!mapUiHydrated) return;
@@ -1230,6 +1272,7 @@ export function MapView({
     panelWidth,
     viewport,
     panelCollapsed,
+    selectedCardId,
   ]);
 
   React.useEffect(() => {
@@ -1733,7 +1776,7 @@ export function MapView({
     // Save a dedicated return-viewport key so the map restores the exact position on back-navigation,
     // independent of any geographic filters that may trigger fitToBounds on remount.
     try {
-      localStorage.setItem('ds_map_return_viewport', JSON.stringify({ ...viewport, fromNav: true }));
+      sessionStorage.setItem('ds_map_return_viewport', JSON.stringify({ ...viewport, fromNav: true }));
     } catch (e) { void e; }
     try {
       localStorage.setItem('focusCard', JSON.stringify(focusPayload));
@@ -2695,7 +2738,13 @@ export function MapView({
               active={Boolean(manualPinTarget)}
               onPlace={applyManualPinPlacement}
             />
-            <MapController mapRef={mapRef} fitToBounds={fitToBounds} fitPaddingTopLeft={mapFitPaddingTopLeft} fitPaddingBottomRight={mapFitPaddingBottomRight} />
+            <MapController
+              mapRef={mapRef}
+              fitToBounds={fitToBounds}
+              fitPaddingTopLeft={mapFitPaddingTopLeft}
+              fitPaddingBottomRight={mapFitPaddingBottomRight}
+              viewport={viewport}
+            />
             <ZoomControl position="topright" />
             <TileLayer
               key={`base-${mapStyle}-${forceSimpleBaseTiles ? `fallback-${baseTileFallbackIndex}` : 'native'}`}

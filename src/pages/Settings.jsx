@@ -1539,6 +1539,9 @@ export function Settings({ setPage, prevPage, initialTab = 'profile', initialCom
                         localStorage.removeItem('ds_notif_deferred_chat');
                         localStorage.removeItem('ds_notif_deferred_system');
                         localStorage.removeItem('chatSeenIncomingByContact');
+                        sessionStorage.removeItem('mapViewport');
+                        sessionStorage.removeItem('ds_map_return_viewport');
+                        sessionStorage.removeItem('ds_mapview_ui_state_v1');
                         addToast?.({ type: 'success', message: t.prefLocalCacheCleared || 'Local cache cleared.' });
                       } catch {
                         addToast?.({ type: 'error', message: t.prefLocalCacheClearError || 'Failed to clear local cache.' });
