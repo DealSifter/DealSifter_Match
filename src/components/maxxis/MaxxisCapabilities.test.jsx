@@ -36,6 +36,42 @@ describe('Maxxis Deal AI structured result presentation', () => {
     expect(onOpenProvider).not.toHaveBeenCalled();
   });
 
+  it('renders property option titles as controlled feed navigation links', () => {
+    const propertyId = '22222222-2222-4222-8222-222222222222';
+    const onOpenFeedCard = vi.fn();
+    const html = renderToStaticMarkup(
+      <MessageBubble
+        language="en"
+        message={{
+          id: 'property-options',
+          role: 'assistant',
+          content: 'Pick one property.',
+          type: 'properties',
+          data: {
+            properties: [{
+              id: propertyId,
+              title: '249 Majestic Gardens Ln',
+              propertyType: 'SFR',
+              city: 'Winters Haven',
+              state: 'FL',
+              zip: '33880',
+              price: 314000,
+              bedrooms: 4,
+              bathrooms: 2,
+              match: { calculable: true, score: 40, classification: 'moderate' },
+            }],
+          },
+        }}
+        onOpenFeedCard={onOpenFeedCard}
+      />,
+    );
+
+    expect(html).toContain('class="maxxis-inline-link"');
+    expect(html).toContain('Property A · 249 Majestic Gardens Ln');
+    expect(html).not.toContain('href=');
+    expect(onOpenFeedCard).not.toHaveBeenCalled();
+  });
+
   it('keeps structured results readable and distinguishes links from actions', () => {
     const css = readFileSync(new URL('./MaxxisAssistant.css', import.meta.url), 'utf8');
     expect(css).toMatch(/\.maxxis-action-links\s*\{[\s\S]*?font-family:\s*['"]Inter/);

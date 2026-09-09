@@ -237,6 +237,10 @@ export function Dashboard({ page, nuggets, setModal, setPage, onOpenOnboardingTa
   const isMobileDockSuppressedRef = useRef(false);
   const mobileDockSuppressTimerRef = useRef(null);
   const opportunityBannerScrollRef = useRef(null);
+  const opportunityBannerTrackRef = useRef(null);
+  const opportunityBannerOffsetRef = useRef(0);
+  const opportunityBannerRafRef = useRef(0);
+  const opportunityBannerLastFrameRef = useRef(0);
   const [matchCategoryDropdownOpen, setMatchCategoryDropdownOpen] = useState(false);
   const [interestStateDropdownOpen, setInterestStateDropdownOpen] = useState(false);
   const [selectedMatchCategories, setSelectedMatchCategories] = useState([]);
@@ -495,15 +499,16 @@ export function Dashboard({ page, nuggets, setModal, setPage, onOpenOnboardingTa
   };
 
   const scrollOpportunityBanner = (delta) => {
-    const container = opportunityBannerScrollRef.current;
-    if (!container || !Number.isFinite(delta) || delta === 0) return;
-    const loopWidth = container.scrollWidth / 2;
-    let next = container.scrollLeft + delta;
+    const track = opportunityBannerTrackRef.current;
+    if (!track || !Number.isFinite(delta) || delta === 0) return;
+    const loopWidth = track.scrollWidth / 2;
+    let next = opportunityBannerOffsetRef.current + delta;
     if (loopWidth > 0) {
       if (next >= loopWidth) next %= loopWidth;
       if (next < 0) next = loopWidth + (next % loopWidth);
     }
-    container.scrollLeft = next;
+    opportunityBannerOffsetRef.current = next;
+    track.style.setProperty('--ds-banner-offset', `${next}px`);
   };
 
   const handleOpportunityBannerWheel = (event) => {
@@ -520,6 +525,31 @@ export function Dashboard({ page, nuggets, setModal, setPage, onOpenOnboardingTa
     event.preventDefault();
     scrollOpportunityBanner(event.key === 'ArrowLeft' ? -280 : 280);
   };
+
+  useEffect(() => {
+    const track = opportunityBannerTrackRef.current;
+    if (!track || marqueeBannerItems.length === 0) return undefined;
+    const speedPxPerSecond = 38;
+    const step = (timestamp) => {
+      const loopWidth = track.scrollWidth / 2;
+      if (loopWidth > 0) {
+        const last = opportunityBannerLastFrameRef.current || timestamp;
+        const elapsed = Math.min(100, Math.max(0, timestamp - last));
+        const next = (opportunityBannerOffsetRef.current + ((elapsed / 1000) * speedPxPerSecond)) % loopWidth;
+        opportunityBannerOffsetRef.current = next;
+        track.style.setProperty('--ds-banner-offset', `${next}px`);
+      }
+      opportunityBannerLastFrameRef.current = timestamp;
+      opportunityBannerRafRef.current = window.requestAnimationFrame(step);
+    };
+    opportunityBannerLastFrameRef.current = 0;
+    opportunityBannerRafRef.current = window.requestAnimationFrame(step);
+    return () => {
+      if (opportunityBannerRafRef.current) window.cancelAnimationFrame(opportunityBannerRafRef.current);
+      opportunityBannerRafRef.current = 0;
+      opportunityBannerLastFrameRef.current = 0;
+    };
+  }, [marqueeBannerItems.length]);
 
   useEffect(() => () => {
     if (mobileDockSuppressTimerRef.current) {
@@ -2903,11 +2933,6 @@ export function Dashboard({ page, nuggets, setModal, setPage, onOpenOnboardingTa
     return buildMarqueeBannerItems(prioritizedBannerItems);
   }, [prioritizedBannerItems]);
 
-  const bannerDurationSec = useMemo(
-    () => Math.max(64, marqueeBannerItems.length * 5),
-    [marqueeBannerItems.length]
-  );
-
 // ---
   const openBannerItem = (item) => {
     if (!item) return;
@@ -2976,12 +3001,8 @@ export function Dashboard({ page, nuggets, setModal, setPage, onOpenOnboardingTa
           70%  { transform: translate3d(-120%, -6%, 0) scale(0.97) rotate(-11deg); opacity: 0.58; }
           100% { transform: translate3d(-220%, -10%, 0) scale(0.93) rotate(-16deg); opacity: 0; }
         }
-        @keyframes bannerScroll {
-          0%   { transform: translateX(0); }
-          100% { transform: translateX(-50%); }
-        }
         .opportunity-track {
-          animation: bannerScroll var(--ds-banner-duration, 80s) linear infinite;
+          transform: translate3d(calc(var(--ds-banner-offset, 0px) * -1), 0, 0);
           will-change: transform;
         }
         .opportunity-sequence {
@@ -4832,10 +4853,10 @@ export function Dashboard({ page, nuggets, setModal, setPage, onOpenOnboardingTa
           >
             <div
               className="opportunity-track"
+              ref={opportunityBannerTrackRef}
               style={{
                 display:"flex",
                 width:"max-content",
-                '--ds-banner-duration': `${bannerDurationSec}s`,
               }}
             >
               {[0, 1].map(loop => (

@@ -1581,6 +1581,7 @@ export function MessageBubble({
   onCancelMemoryForget,
   composedExperience,
   onOpenProvider,
+  onOpenFeedCard,
 }) {
   const isUser = message.role === 'user';
   const { text, actions } = isUser
@@ -1643,14 +1644,28 @@ export function MessageBubble({
       ) : null}
       {message.type === 'properties' && Array.isArray(message.data?.properties) ? (
         <div className="maxxis-action-links" aria-label="Property search results">
-          {message.data.properties.map((property, index) => (
-            <div key={property.id} className="maxxis-action-link" style={{ cursor: 'default', display: 'grid', gap: 2 }}>
-              <strong>{`${(COPY[language] || COPY.en).comparisonProperty} ${comparisonLetter(index)} · ${property.title || property.propertyType || 'Property'}`}</strong>
-              <span>{[property.city, property.state, property.zip].filter(Boolean).join(', ')}</span>
-              <span>{property.price ? `$${Number(property.price).toLocaleString('en-US')}` : 'Price not provided'}{property.bedrooms ? ` · ${property.bedrooms} bd` : ''}{property.bathrooms ? ` · ${property.bathrooms} ba` : ''}</span>
-              {property.match?.calculable && Number.isFinite(property.match?.score) ? <span>{`Match: ${property.match.score}% — ${String(property.match.classification || '').replace(/^./, (letter) => letter.toUpperCase())}`}</span> : null}
-            </div>
-          ))}
+          {message.data.properties.map((property, index) => {
+            const title = `${(COPY[language] || COPY.en).comparisonProperty} ${comparisonLetter(index)} · ${property.title || property.propertyType || 'Property'}`;
+            const canOpenFeedCard = Boolean(property?.id || property?.propertyId || property?.property_id);
+            return (
+              <div key={property.id || property.propertyId || `${message.id}-property-${index}`} className="maxxis-action-link" style={{ cursor: 'default', display: 'grid', gap: 2 }}>
+                <strong>
+                  {canOpenFeedCard ? (
+                    <button
+                      type="button"
+                      className="maxxis-inline-link"
+                      onClick={() => onOpenFeedCard?.(property, { kind: 'property', source: 'maxxis_property_option' })}
+                    >
+                      {title}
+                    </button>
+                  ) : title}
+                </strong>
+                <span>{[property.city, property.state, property.zip].filter(Boolean).join(', ')}</span>
+                <span>{property.price ? `$${Number(property.price).toLocaleString('en-US')}` : 'Price not provided'}{property.bedrooms ? ` · ${property.bedrooms} bd` : ''}{property.bathrooms ? ` · ${property.bathrooms} ba` : ''}</span>
+                {property.match?.calculable && Number.isFinite(property.match?.score) ? <span>{`Match: ${property.match.score}% — ${String(property.match.classification || '').replace(/^./, (letter) => letter.toUpperCase())}`}</span> : null}
+              </div>
+            );
+          })}
         </div>
       ) : null}
       {message.type === 'properties' && Array.isArray(message.data?.profileSuggestions) && message.data.profileSuggestions.length ? (

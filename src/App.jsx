@@ -4254,6 +4254,33 @@ export default function App() {
     setPage('matches');
   }, [setPage]);
 
+  const openFeedCardFromMaxxis = useCallback((item, options = {}) => {
+    if (!item) return;
+    const kind = String(options?.kind || '').trim().toLowerCase();
+    const isProperty = kind === 'property' || item.address !== undefined || item.propertyType !== undefined || item.property_type !== undefined;
+    const id = String(item.id || item.propertyId || item.property_id || '').trim();
+    const ownerId = String(item.ownerId || item.owner_id || item.unlockOwnerId || item.unlock_owner_id || '').trim();
+    if (!id && !ownerId) return;
+    const focus = {
+      type: isProperty ? 'property' : 'person',
+      id: id || ownerId,
+      ...(ownerId ? { ownerId } : {}),
+      ...(item.primaryProfile || item.primary_profile || item.profileScope || item.profile_scope
+        ? { primaryProfile: item.primaryProfile || item.primary_profile || item.profileScope || item.profile_scope }
+        : {}),
+      source: 'maxxis_result_link',
+    };
+    try {
+      window.localStorage.setItem('focusCard', JSON.stringify(focus));
+    } catch {
+      // Focus delivery is also dispatched below for the active session.
+    }
+    setPage('dashboard');
+    window.setTimeout(() => {
+      window.dispatchEvent(new CustomEvent('dealsifter.focusCard', { detail: focus }));
+    }, 80);
+  }, [setPage]);
+
   const handleAnalyzePropertyWithMaxxis = useCallback((request = {}) => {
     const id = request.id || `property-analysis-${Date.now()}`;
     const propertyId = String(request.propertyId || '').trim();
@@ -5895,6 +5922,7 @@ export default function App() {
                 onOpenSupport={() => openSettingsTab('communication', 'support')}
                 onNavigateAction={handleMaxxisNavigateAction}
                 onOpenProvider={handleMaxxisOpenProvider}
+                onOpenFeedCard={openFeedCardFromMaxxis}
                 propertyAnalysisRequest={maxxisPropertyAnalysisRequest}
                 propertyContextId={maxxisPropertyContextId}
                 appContext={maxxisAppContext}

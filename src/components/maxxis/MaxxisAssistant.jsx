@@ -160,7 +160,7 @@ function readDevMaxxisAttentionOverrides() {
   }
 }
 
-export function MaxxisAssistant({ page = 'dashboard', onOpenSupport = null, onNavigateAction = null, onOpenProvider = null, propertyAnalysisRequest = null, propertyContextId = '', appContext = null, sessionKey = '', onExportAnalysisPdf = null, onNuggetBalanceChange = null, onProviderUnlockConfirmed = null, enabled = true, userPreferences = null, userPreferencesHydrated = true, onChangeUserPreferences = null, userPreferencesPersistenceStatus = 'idle', proactiveFeatureEnabled = false, dealMemoryFeatureEnabled = false, onOpenPreferences = null }) {
+export function MaxxisAssistant({ page = 'dashboard', onOpenSupport = null, onNavigateAction = null, onOpenProvider = null, onOpenFeedCard = null, propertyAnalysisRequest = null, propertyContextId = '', appContext = null, sessionKey = '', onExportAnalysisPdf = null, onNuggetBalanceChange = null, onProviderUnlockConfirmed = null, enabled = true, userPreferences = null, userPreferencesHydrated = true, onChangeUserPreferences = null, userPreferencesPersistenceStatus = 'idle', proactiveFeatureEnabled = false, dealMemoryFeatureEnabled = false, onOpenPreferences = null }) {
   const language = getUiLang();
   const t = COPY[language] || COPY.en;
   const preferencesCopy = getMaxxisPreferencesCopy(language);
@@ -2095,6 +2095,18 @@ export function MaxxisAssistant({ page = 'dashboard', onOpenSupport = null, onNa
     }
   };
 
+  const handleOpenFeedCard = useCallback((item, options = {}) => {
+    if (typeof onOpenFeedCard !== 'function') return;
+    setOpen(false);
+    onOpenFeedCard(item, options);
+    void trackProductEvent('maxxis_result_card_link_clicked', {
+      entityType: options?.kind === 'property' ? 'property' : 'card',
+      entityId: String(item?.id || item?.propertyId || item?.ownerId || ''),
+      dedupeKey: `maxxis-result-link:${item?.id || item?.propertyId || item?.ownerId || Date.now()}`,
+      properties: { source: 'maxxis', kind: options?.kind || 'unknown' },
+    });
+  }, [onOpenFeedCard]);
+
   const submit = async () => {
     if (!canSend) return;
     await submitMessage(trimmedInput);
@@ -2257,6 +2269,7 @@ export function MaxxisAssistant({ page = 'dashboard', onOpenSupport = null, onNa
                   onCancelMemoryForget={handleCancelMemoryForget}
                   composedExperience={getMessageComposedExperience(message, smartActions)}
                   onOpenProvider={onOpenProvider}
+                  onOpenFeedCard={handleOpenFeedCard}
                 />
               );
             })}
