@@ -526,31 +526,6 @@ export function Dashboard({ page, nuggets, setModal, setPage, onOpenOnboardingTa
     scrollOpportunityBanner(event.key === 'ArrowLeft' ? -280 : 280);
   };
 
-  useEffect(() => {
-    const track = opportunityBannerTrackRef.current;
-    if (!track || marqueeBannerItems.length === 0) return undefined;
-    const speedPxPerSecond = 38;
-    const step = (timestamp) => {
-      const loopWidth = track.scrollWidth / 2;
-      if (loopWidth > 0) {
-        const last = opportunityBannerLastFrameRef.current || timestamp;
-        const elapsed = Math.min(100, Math.max(0, timestamp - last));
-        const next = (opportunityBannerOffsetRef.current + ((elapsed / 1000) * speedPxPerSecond)) % loopWidth;
-        opportunityBannerOffsetRef.current = next;
-        track.style.setProperty('--ds-banner-offset', `${next}px`);
-      }
-      opportunityBannerLastFrameRef.current = timestamp;
-      opportunityBannerRafRef.current = window.requestAnimationFrame(step);
-    };
-    opportunityBannerLastFrameRef.current = 0;
-    opportunityBannerRafRef.current = window.requestAnimationFrame(step);
-    return () => {
-      if (opportunityBannerRafRef.current) window.cancelAnimationFrame(opportunityBannerRafRef.current);
-      opportunityBannerRafRef.current = 0;
-      opportunityBannerLastFrameRef.current = 0;
-    };
-  }, [marqueeBannerItems.length]);
-
   useEffect(() => () => {
     if (mobileDockSuppressTimerRef.current) {
       window.clearTimeout(mobileDockSuppressTimerRef.current);
@@ -2932,6 +2907,31 @@ export function Dashboard({ page, nuggets, setModal, setPage, onOpenOnboardingTa
   const marqueeBannerItems = useMemo(() => {
     return buildMarqueeBannerItems(prioritizedBannerItems);
   }, [prioritizedBannerItems]);
+
+  useEffect(() => {
+    const track = opportunityBannerTrackRef.current;
+    if (!track || marqueeBannerItems.length === 0) return undefined;
+    const speedPxPerSecond = 38;
+    const step = (timestamp) => {
+      const loopWidth = track.scrollWidth / 2;
+      if (loopWidth > 0) {
+        const last = opportunityBannerLastFrameRef.current || timestamp;
+        const elapsed = Math.min(100, Math.max(0, timestamp - last));
+        const next = (opportunityBannerOffsetRef.current + ((elapsed / 1000) * speedPxPerSecond)) % loopWidth;
+        opportunityBannerOffsetRef.current = next;
+        track.style.setProperty('--ds-banner-offset', `${next}px`);
+      }
+      opportunityBannerLastFrameRef.current = timestamp;
+      opportunityBannerRafRef.current = window.requestAnimationFrame(step);
+    };
+    opportunityBannerLastFrameRef.current = 0;
+    opportunityBannerRafRef.current = window.requestAnimationFrame(step);
+    return () => {
+      if (opportunityBannerRafRef.current) window.cancelAnimationFrame(opportunityBannerRafRef.current);
+      opportunityBannerRafRef.current = 0;
+      opportunityBannerLastFrameRef.current = 0;
+    };
+  }, [marqueeBannerItems.length]);
 
 // ---
   const openBannerItem = (item) => {
