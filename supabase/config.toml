@@ -57,3 +57,6 @@ verify_jwt = true
 
 [functions.feature-flags]
 verify_jwt = true
+
+[functions.property-intelligence]
+verify_jwt = true

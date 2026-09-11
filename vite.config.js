@@ -22,6 +22,7 @@ function resolveBuildEnv(mode) {
     VITE_APP_URL: pick('VITE_APP_URL', 'APP_URL'),
     VITE_APP_ENVIRONMENT: pick('VITE_APP_ENVIRONMENT', 'VERCEL_ENV') || mode,
     VITE_APP_RELEASE: pick('VITE_APP_RELEASE', 'VERCEL_GIT_COMMIT_SHA') || pick('GITHUB_SHA', '') || 'local',
+    VITE_PROPERTY_INTELLIGENCE_ENABLED: pick('VITE_PROPERTY_INTELLIGENCE_ENABLED', 'PROPERTY_INTELLIGENCE_ENABLED'),
     SENTRY_AUTH_TOKEN: pick('SENTRY_AUTH_TOKEN', ''),
     SENTRY_ORG: pick('SENTRY_ORG', ''),
     SENTRY_PROJECT: pick('SENTRY_PROJECT', ''),
@@ -68,6 +69,7 @@ export default defineConfig(({ mode }) => {
     'import.meta.env.VITE_APP_URL': JSON.stringify(buildEnv.VITE_APP_URL),
     'import.meta.env.VITE_APP_ENVIRONMENT': JSON.stringify(buildEnv.VITE_APP_ENVIRONMENT),
     'import.meta.env.VITE_APP_RELEASE': JSON.stringify(buildEnv.VITE_APP_RELEASE),
+    'import.meta.env.VITE_PROPERTY_INTELLIGENCE_ENABLED': JSON.stringify(buildEnv.VITE_PROPERTY_INTELLIGENCE_ENABLED),
   },
   build: {
     // The legacy plugin owns JavaScript targets; cssTarget retains old Safari CSS output.

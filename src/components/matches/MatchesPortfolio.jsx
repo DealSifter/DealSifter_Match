@@ -19,6 +19,7 @@ import { formatPropertyLocation } from '../../lib/formatPropertyLocation';
 import { getSafeLang } from '../../services/chatTranslation';
 import { isSupabaseConfigured } from '../../lib/supabaseClient';
 import { formatCompactUsd } from '../../lib/formatMoney';
+import { PropertyIntelligenceGate } from '../property-intelligence/PropertyIntelligenceGate';
 
 const releaseDarkLogo = '/logo%20tema%20preto.png';
 export const PROPERTIES = import.meta.env.DEV ? (_MOCK_PROPERTIES || []) : [];
@@ -1964,6 +1965,8 @@ export function PortfolioDetail({ item, owner, ownerContact = null, isOwnerUnloc
             </div>
           ) : null}
         </div>
+
+      <PropertyIntelligenceGate propertyId={item.id} />
 
       {item.video ? (
         <div style={{ padding: '0 10px 10px' }}>
