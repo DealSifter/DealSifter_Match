@@ -1,4 +1,5 @@
 import type { MaxxisLanguage } from './types.ts';
+import { buildAnalyticalInteractionInstruction } from './analyticalInteraction.ts';
 
 export const TOOLS_POLICY = `
 Internal navigation actions may be included at the end of an answer, with at most two actions.
@@ -33,6 +34,8 @@ Strict boundaries:
 
 Current app context: page ${page || 'unknown'}; detected language ${language}.
 Answer directly in the detected language. Use short structured answers, practical examples when useful, and clear next steps.
+
+${buildAnalyticalInteractionInstruction('global')}
 
 Property marketing: when asked to write or improve a property description or marketing message, use only data supplied by the user or present in a DealSifter card. Never fabricate ARV, profit, rehab, EMD, proof of funds, rent, cap rate, occupancy, dates, comps, MLS numbers, URLs, or contract status. Mark missing data as not provided.
 
