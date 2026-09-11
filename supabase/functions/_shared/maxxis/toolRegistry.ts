@@ -7,6 +7,7 @@ import { searchMatchedProperties } from './searchMatchedProperties.ts';
 import { comparePropertiesWithLookup, resolveComparePropertiesInput } from './compareProperties.ts';
 import { getDealCopilotOverview, getDealCopilotOverviewForAuthenticatedUser } from './dealCopilotContext.ts';
 import { getPropertyEvidenceForAuthenticatedUser } from './getPropertyEvidence.ts';
+import { getDealInsightContextForAuthenticatedUser } from './getDealInsightContext.ts';
 import { supabaseAnonKey, supabaseUrl } from './config.ts';
 
 export const MAXXIS_TOOLS = [{
@@ -42,6 +43,17 @@ export const MAXXIS_TOOLS = [{
     {
       name: 'getPropertyEvidence',
       description: 'Read already-loaded public-record evidence for the property in trusted structured screen context. Use for questions about public records, factual consistency, tax records, recorded sale, evidence conflicts, missing evidence, or what should be verified. This tool is cache-only and never loads provider data. Copy the context propertyId exactly; never infer an ID or address.',
+      parameters: {
+        type: 'OBJECT',
+        properties: {
+          propertyId: { type: 'STRING', description: 'Exact UUID from the trusted structured property context.' },
+        },
+        required: ['propertyId'],
+      },
+    },
+    {
+      name: 'getDealInsightContext',
+      description: 'Compose the current property, authenticated Investment Profile, existing profile-fit Match Score and factors, cached Property Evidence, and deterministic Deal Metrics for a contextual deal analysis. Use for analyze-this-deal, profile-fit, deal uncertainty, or ARV/MAO availability questions. Copy the trusted context propertyId exactly. This read-only tool never calculates ARV, MAO, ROI, cash flow, or a new deal score and never calls an external provider.',
       parameters: {
         type: 'OBJECT',
         properties: {
@@ -116,6 +128,13 @@ export async function executeMaxxisTool(name: string, args: unknown, authHeader:
     const authenticated = authenticatedContext();
     if (!authenticated) throw new Error('UNAUTHORIZED');
     return getPropertyEvidenceForAuthenticatedUser(args, authHeader, authenticated.userId, context.propertyId);
+  }
+  if (name === 'getDealInsightContext') {
+    const authenticated = authenticatedContext();
+    if (!authenticated) throw new Error('UNAUTHORIZED');
+    return getDealInsightContextForAuthenticatedUser(
+      args, authHeader, authenticated.client, authenticated.userId, context.propertyId,
+    );
   }
   if (name === 'getDealCopilotOverview') {
     const input = resolvePropertyDetailsInput({ propertyId: (args as Record<string, unknown>)?.propertyId }, context.propertyId);

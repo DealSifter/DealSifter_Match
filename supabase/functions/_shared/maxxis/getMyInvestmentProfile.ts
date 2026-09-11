@@ -2,7 +2,15 @@ import { createClient } from 'npm:@supabase/supabase-js@2';
 import { supabaseAnonKey, supabaseUrl } from './config.ts';
 import { extractInvestmentProfile, normalizeInvestmentProfile } from './normalizeInvestmentProfile.ts';
 
-export async function getMyInvestmentProfileWithClient(userId: string, client: ReturnType<typeof createClient>) {
+type InvestmentProfileClient = {
+  from(table: string): {
+    select(columns: string): {
+      eq(column: string, value: string): { maybeSingle(): PromiseLike<{ data: { profile_payload?: unknown } | null; error: unknown }> };
+    };
+  };
+};
+
+export async function getMyInvestmentProfileWithClient(userId: string, client: InvestmentProfileClient) {
   if (!userId) throw new Error('INVESTMENT_PROFILE_UNAUTHORIZED');
   const { data, error } = await client.from('professional_profiles')
     .select('profile_payload')
@@ -20,5 +28,5 @@ export async function getMyInvestmentProfile(authHeader: string) {
   const { data: { user }, error: authError } = await client.auth.getUser(token);
   if (authError || !user) throw new Error('INVESTMENT_PROFILE_UNAUTHORIZED');
 
-  return getMyInvestmentProfileWithClient(user.id, client);
+  return getMyInvestmentProfileWithClient(user.id, client as unknown as InvestmentProfileClient);
 }

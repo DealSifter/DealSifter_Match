@@ -120,6 +120,30 @@ function resolveMandatoryToolCall(message: string, propertyContextId: string, co
     return { name: 'compareProperties', args: { propertyIds: comparisonPropertyIds.slice(0, 3) } };
   }
   if (propertyContextId && intentIncludesAny(normalized, [
+    ' analyze this deal ',
+    ' analyse this deal ',
+    ' analyze the deal ',
+    ' fit my investment profile ',
+    ' fit with my investment profile ',
+    ' biggest uncertainties ',
+    ' calculate the arv ',
+    ' calculate arv ',
+    ' arv and mao ',
+    ' analisar este deal ',
+    ' analisar esse deal ',
+    ' aderencia ao meu perfil ',
+    ' encaixa no meu perfil ',
+    ' maiores incertezas ',
+    ' calcular arv ',
+    ' arv e mao ',
+    ' analizar este deal ',
+    ' encaja con mi perfil ',
+    ' mayores incertidumbres ',
+    ' arv y mao ',
+  ])) {
+    return { name: 'getDealInsightContext', args: { propertyId: propertyContextId } };
+  }
+  if (propertyContextId && intentIncludesAny(normalized, [
     ' what stands out ',
     ' public record ',
     ' public records ',
@@ -217,6 +241,9 @@ function e2eStubFunctionCall(message: string, propertyContextId: string) {
   }
   if (propertyContextId && (normalized.includes('copilot') || normalized.includes('overall situation') || normalized.includes('deal status') || normalized.includes('deal summary'))) {
     return { name: 'getDealCopilotOverview', args: { propertyId: propertyContextId } };
+  }
+  if (propertyContextId && (normalized.includes('analyze this deal') || normalized.includes('fit my investment profile') || normalized.includes('biggest uncertainties') || normalized.includes('arv and mao'))) {
+    return { name: 'getDealInsightContext', args: { propertyId: propertyContextId } };
   }
   if (propertyContextId && (normalized.includes('public record') || normalized.includes('evidence') || normalized.includes('what stands out') || normalized.includes('what should i verify'))) {
     return { name: 'getPropertyEvidence', args: { propertyId: propertyContextId } };
@@ -408,9 +435,20 @@ function propertyEvidenceMessage(language: MaxxisLanguage, state: string) {
   return 'Cached property evidence is available.';
 }
 
+function dealInsightMessage(language: MaxxisLanguage, available: boolean) {
+  if (!available) {
+    if (language === 'pt') return 'Nao foi possivel compor o contexto deste deal com seguranca.';
+    if (language === 'es') return 'No fue posible componer el contexto de este deal de forma segura.';
+    return 'I could not safely compose this deal context.';
+  }
+  if (language === 'pt') return 'O contexto estruturado deste deal esta disponivel, mas a interpretacao esta temporariamente indisponivel.';
+  if (language === 'es') return 'El contexto estructurado de este deal esta disponible, pero la interpretacion no esta disponible temporalmente.';
+  return 'The structured deal context is available, but interpretation is temporarily unavailable.';
+}
+
 function propertyContextInstruction(propertyId: string, searchPropertyIds: string[], comparisonPropertyIds: string[]) {
   const detailsContext = propertyId
-    ? `Trusted current property context: {"propertyId":"${propertyId}"}. For getPropertyDetails, getPropertyEvidence, or getDealCopilotOverview, copy this exact UUID. Use getPropertyEvidence for public-record evidence, factual consistency, evidence conflicts, tax records, recorded sale, or verification questions. For one metric or a focused property question, omit includeOperationalContext. Set includeOperationalContext true only for an explicit Next Best Action, what-to-do-next, checklist, or deal-progress request.`
+    ? `Trusted current property context: {"propertyId":"${propertyId}"}. For getPropertyDetails, getPropertyEvidence, getDealInsightContext, or getDealCopilotOverview, copy this exact UUID. Use getPropertyEvidence for focused public-record evidence questions. Use getDealInsightContext for deal analysis, profile-fit, biggest-uncertainty, or ARV/MAO availability questions. For one metric or a focused property question, omit includeOperationalContext. Set includeOperationalContext true only for an explicit Next Best Action, what-to-do-next, checklist, or deal-progress request.`
     : 'No trusted current property context is available. Never call getPropertyDetails or getDealCopilotOverview; ask the user to open or select a specific property.';
   const comparisonContext = comparisonPropertyIds.length >= 2
     ? `Trusted comparison propertyIds are ${JSON.stringify(comparisonPropertyIds)}. Search-result IDs are in display order ${JSON.stringify(searchPropertyIds)}. For compareProperties, copy an exact subset of two or three IDs from this context.`
@@ -749,7 +787,7 @@ Deno.serve(async (req) => {
       && mandatoryFunctionCall
       && parsedToolName
       && parsedToolName !== mandatoryFunctionCall.name
-      && ['getPropertyEvidence', 'getDealCopilotOverview', 'compareProperties'].includes(mandatoryFunctionCall.name)
+      && ['getDealInsightContext', 'getPropertyEvidence', 'getDealCopilotOverview', 'compareProperties'].includes(mandatoryFunctionCall.name)
         ? mandatoryFunctionCall
         : null;
     const recoveredFunctionCall = !parsedFunctionCall && mandatoryFunctionCall ? mandatoryFunctionCall : null;
@@ -948,6 +986,21 @@ Deno.serve(async (req) => {
         });
         const text = interpretedText || propertyEvidenceMessage(language, result.state);
         return response({ message: text, answer: text, type: 'property_evidence', data: result, actions: [], language, runtime: toolRuntime, ...toolDegraded }, 200, origin, requestId);
+      }
+      if (result.type === 'deal_insight') {
+        logMaxxisEvent('maxxis_tool', {
+          request_id: requestId,
+          user_id: userId,
+          tool: toolName,
+          duration_ms: Date.now() - toolStartedAt,
+          success: result.state === 'available',
+          property_found: result.state !== 'not_found',
+          cache_hit: result.evidence.cacheState === 'hit',
+          entitlement_state: result.evidence.entitlementState,
+          match_available: Boolean(result.match?.calculable),
+        });
+        const text = interpretedText || dealInsightMessage(language, result.state === 'available');
+        return response({ message: text, answer: text, type: 'deal_insight', data: result, actions: [], language, runtime: toolRuntime, ...toolDegraded }, 200, origin, requestId);
       }
       if (result.type === 'deal_copilot_overview') {
         const text = interpretedText || dealCopilotMessage(language, result.found);

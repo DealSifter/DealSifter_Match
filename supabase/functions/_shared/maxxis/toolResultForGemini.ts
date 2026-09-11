@@ -248,6 +248,35 @@ export function sanitizeToolResultForGemini(value: unknown) {
       workflow: safeWorkflow(source.workflow),
     };
   }
+  if (type === 'deal_insight') {
+    const profile = record(source.investmentProfile);
+    const capabilities = record(source.capabilities);
+    const evidence = sanitizeToolResultForGemini(source.evidence);
+    return {
+      type,
+      propertyId: safeText(source.propertyId, 50),
+      state: safeText(source.state, 30),
+      property: safeProperty(source.property),
+      investmentProfile: {
+        exists: Boolean(profile.exists),
+        complete: Boolean(profile.complete),
+        profile: safeProfile(profile.profile),
+      },
+      match: source.match ? { ...safeMatch(source.match), semantics: 'profile_fit_only' } : null,
+      evidence,
+      metrics: safeMetrics(source.metrics),
+      analysis: safeAdvisor(source.analysis),
+      capabilities: {
+        canDiscussPricePerSqft: Boolean(capabilities.canDiscussPricePerSqft),
+        canDiscussAcquisitionPlusRehab: Boolean(capabilities.canDiscussAcquisitionPlusRehab),
+        hasReportedCapRate: Boolean(capabilities.hasReportedCapRate),
+        canCalculateARV: false,
+        canCalculateMAO: false,
+        canCalculateROI: false,
+        canCalculateCashFlow: false,
+      },
+    };
+  }
   if (type === 'property_evidence') {
     const evidence = record(source.evidence);
     const evidenceSource = record(evidence.source);
@@ -331,7 +360,7 @@ export function buildToolInterpretationRequest(input: {
   plainToolResult?: boolean;
 }) {
   const safeResult = sanitizeToolResultForGemini(input.toolResult);
-  const systemText = `You are Maxxis Deal AI inside DealSifter. Interpret the authoritative structured tool result naturally in ${safeText(input.language, 8) || 'en'}. Answer the user's exact question. Do not recalculate metrics, invent missing facts, expose hidden data, or request another tool. For property evidence, clearly distinguish DealSifter user-provided data from public-record evidence, preserve conflicts without choosing a winner, call unavailable fields unavailable, and mention source/retrieval date when useful. Evidence is not an appraisal or guaranteed truth; never infer ARV, MAO, ROI, rent, risk, deal quality, BUY, SELL, PASS, or a winner. Use at most 120 words; structured cards are rendered separately.`;
+  const systemText = `You are Maxxis Deal AI inside DealSifter. Interpret the authoritative structured tool result naturally in ${safeText(input.language, 8) || 'en'}. Answer the user's exact question. Do not recalculate metrics, invent missing facts, expose hidden data, or request another tool. For property evidence, clearly distinguish DealSifter user-provided data from public-record evidence, preserve conflicts without choosing a winner, call unavailable fields unavailable, and mention source/retrieval date when useful. For deal insight, prioritize 3-6 material observations: profile fit, available/verified facts, evidence conflicts or gaps, deterministic metrics, and what can or cannot be analyzed. Match Score is profile fit only, never deal quality. A stored cap rate is reported, never independently verified. Evidence is not an appraisal or guaranteed truth; never infer ARV, MAO, ROI, rent, profit, cash flow, risk, deal quality, BUY, SELL, PASS, or a winner. If ARV/MAO capability is false, explain that verified comps and an authorized calculation engine/rule are unavailable. Use at most 180 words for deal insight and 120 words otherwise; structured cards are rendered separately.`;
   if (input.plainToolResult) {
     const resultText = JSON.stringify(safeResult).slice(0, 12_000);
     return {
