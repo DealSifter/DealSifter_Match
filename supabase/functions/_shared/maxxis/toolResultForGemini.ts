@@ -17,6 +17,12 @@ const safeNumber = (value: unknown) => {
   return Number.isFinite(parsed) ? parsed : null;
 };
 
+const safeDate = (value: unknown) => {
+  const candidate = String(value || '').trim();
+  if (!/^\d{4}(?:-\d{2}-\d{2}(?:T\d{2}:\d{2}:\d{2}(?:\.\d{1,3})?Z)?)?$/.test(candidate)) return null;
+  return candidate;
+};
+
 const safeList = (value: unknown, maxItems = 20) => (
   Array.isArray(value) ? value.map((item) => safeText(item, 120)).filter(Boolean).slice(0, maxItems) : []
 );
@@ -188,8 +194,8 @@ function safeEvidenceField(value: unknown) {
     value: safeValue,
     status: safeText(source.status, 30),
     source: safeText(source.source, 40) || null,
-    retrievedAt: safeText(source.retrievedAt, 40) || null,
-    effectiveDate: safeText(source.effectiveDate, 40) || null,
+    retrievedAt: safeDate(source.retrievedAt),
+    effectiveDate: safeDate(source.effectiveDate),
   };
 }
 
@@ -266,7 +272,7 @@ export function sanitizeToolResultForGemini(value: unknown) {
         missingFields: safeList(evidence.missingFields, 30),
         source: {
           label: safeText(evidenceSource.label, 100),
-          retrievedAt: safeText(evidenceSource.updatedAt, 40) || null,
+          retrievedAt: safeDate(evidenceSource.updatedAt),
         },
       } : {}),
     };

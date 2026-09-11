@@ -109,6 +109,8 @@ describe('Maxxis getPropertyEvidence cache-only contract', () => {
     expect(serialized).not.toContain('rawProviderPayload');
     expect(serialized).not.toContain('providerPropertyId');
     expect(safe).toMatchObject({ publicEvidence: { ownershipRecordPresent: { value: true } } });
+    expect(safe).toMatchObject({ source: { retrievedAt: NOW.toISOString() } });
+    expect(serialized).not.toContain('[Redacted]');
   });
 
   it('preserves unavailable public fields as null and never invents zero or false', async () => {
