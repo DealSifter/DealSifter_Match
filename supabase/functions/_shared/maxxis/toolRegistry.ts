@@ -6,6 +6,7 @@ import { resolvePropertyDetailsInput } from './propertyDetails.ts';
 import { searchMatchedProperties } from './searchMatchedProperties.ts';
 import { comparePropertiesWithLookup, resolveComparePropertiesInput } from './compareProperties.ts';
 import { getDealCopilotOverview, getDealCopilotOverviewForAuthenticatedUser } from './dealCopilotContext.ts';
+import { getPropertyEvidenceForAuthenticatedUser } from './getPropertyEvidence.ts';
 import { supabaseAnonKey, supabaseUrl } from './config.ts';
 
 export const MAXXIS_TOOLS = [{
@@ -34,6 +35,17 @@ export const MAXXIS_TOOLS = [{
           propertyId: { type: 'STRING', description: 'Exact UUID from the trusted structured property context.' },
           includeOperationalContext: { type: 'BOOLEAN', description: 'True only for an explicit Next Best Action, what-to-do-next, checklist, or deal progress request. Omit for a focused property or metric question.' },
           includeServiceMatches: { type: 'BOOLEAN', description: 'True only for an explicit request to find published professionals for this property. Omit otherwise.' },
+        },
+        required: ['propertyId'],
+      },
+    },
+    {
+      name: 'getPropertyEvidence',
+      description: 'Read already-loaded public-record evidence for the property in trusted structured screen context. Use for questions about public records, factual consistency, tax records, recorded sale, evidence conflicts, missing evidence, or what should be verified. This tool is cache-only and never loads provider data. Copy the context propertyId exactly; never infer an ID or address.',
+      parameters: {
+        type: 'OBJECT',
+        properties: {
+          propertyId: { type: 'STRING', description: 'Exact UUID from the trusted structured property context.' },
         },
         required: ['propertyId'],
       },
@@ -99,6 +111,11 @@ export async function executeMaxxisTool(name: string, args: unknown, authHeader:
       ? await getPropertyDetailsForAuthenticatedUser(input, authHeader, authenticated.client, authenticated.userId)
       : await getPropertyDetails(input, authHeader);
     return { type: 'property_details' as const, ...result };
+  }
+  if (name === 'getPropertyEvidence') {
+    const authenticated = authenticatedContext();
+    if (!authenticated) throw new Error('UNAUTHORIZED');
+    return getPropertyEvidenceForAuthenticatedUser(args, authHeader, authenticated.userId, context.propertyId);
   }
   if (name === 'getDealCopilotOverview') {
     const input = resolvePropertyDetailsInput({ propertyId: (args as Record<string, unknown>)?.propertyId }, context.propertyId);

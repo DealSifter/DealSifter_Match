@@ -174,6 +174,39 @@ function safeProfile(value: unknown) {
   };
 }
 
+function safeEvidenceField(value: unknown) {
+  const source = record(value);
+  const rawValue = source.value;
+  const safeValue = typeof rawValue === 'number'
+    ? safeNumber(rawValue)
+    : typeof rawValue === 'boolean'
+      ? rawValue
+      : rawValue === null || rawValue === undefined
+        ? null
+        : safeText(rawValue, 120);
+  return {
+    value: safeValue,
+    status: safeText(source.status, 30),
+    source: safeText(source.source, 40) || null,
+    retrievedAt: safeText(source.retrievedAt, 40) || null,
+    effectiveDate: safeText(source.effectiveDate, 40) || null,
+  };
+}
+
+const PROPERTY_EVIDENCE_FIELDS = [
+  'propertyType', 'bedrooms', 'bathrooms', 'livingAreaSqft', 'lotSizeSqft', 'yearBuilt',
+  'county', 'latitude', 'longitude', 'assessedValue', 'assessmentYear', 'annualPropertyTax',
+  'propertyTaxYear', 'latestSalePrice', 'latestSaleDate', 'ownerOccupied', 'ownershipRecordPresent',
+  'askingPrice',
+];
+
+function safeEvidenceFields(value: unknown) {
+  const source = record(value);
+  return Object.fromEntries(PROPERTY_EVIDENCE_FIELDS
+    .filter((field) => Object.hasOwn(source, field))
+    .map((field) => [field, safeEvidenceField(source[field])]));
+}
+
 export function sanitizeToolResultForGemini(value: unknown) {
   const source = record(value);
   const type = safeText(source.type, 50);
@@ -207,6 +240,35 @@ export function sanitizeToolResultForGemini(value: unknown) {
       serviceMatches: safeServiceMatches(source.serviceMatches),
       nextBestAction: safeNextAction(source.nextBestAction),
       workflow: safeWorkflow(source.workflow),
+    };
+  }
+  if (type === 'property_evidence') {
+    const evidence = record(source.evidence);
+    const evidenceSource = record(evidence.source);
+    return {
+      type,
+      propertyId: safeText(source.propertyId, 50),
+      state: safeText(source.state, 30),
+      entitlementState: safeText(source.entitlementState, 30),
+      cacheState: safeText(source.cacheState, 20),
+      ...(source.state === 'available' ? {
+        internalData: safeEvidenceFields(evidence.internalFields),
+        publicEvidence: safeEvidenceFields(evidence.fields),
+        conflicts: (Array.isArray(evidence.conflicts) ? evidence.conflicts : []).slice(0, 20).map((item) => {
+          const conflict = record(item);
+          return {
+            field: safeText(conflict.field, 60),
+            dealSifterValue: typeof conflict.dealSifterValue === 'number' ? safeNumber(conflict.dealSifterValue) : safeText(conflict.dealSifterValue, 120),
+            publicRecordValue: typeof conflict.publicRecordValue === 'number' ? safeNumber(conflict.publicRecordValue) : safeText(conflict.publicRecordValue, 120),
+            severity: safeText(conflict.severity, 20),
+          };
+        }),
+        missingFields: safeList(evidence.missingFields, 30),
+        source: {
+          label: safeText(evidenceSource.label, 100),
+          retrievedAt: safeText(evidenceSource.updatedAt, 40) || null,
+        },
+      } : {}),
     };
   }
   if (type === 'deal_copilot_overview') {
@@ -263,7 +325,7 @@ export function buildToolInterpretationRequest(input: {
   plainToolResult?: boolean;
 }) {
   const safeResult = sanitizeToolResultForGemini(input.toolResult);
-  const systemText = `You are Maxxis Deal AI inside DealSifter. Interpret the authoritative structured tool result naturally in ${safeText(input.language, 8) || 'en'}. Answer the user's exact question. Do not recalculate metrics, invent missing facts, expose hidden data, or request another tool. Use at most 120 words; structured cards are rendered separately.`;
+  const systemText = `You are Maxxis Deal AI inside DealSifter. Interpret the authoritative structured tool result naturally in ${safeText(input.language, 8) || 'en'}. Answer the user's exact question. Do not recalculate metrics, invent missing facts, expose hidden data, or request another tool. For property evidence, clearly distinguish DealSifter user-provided data from public-record evidence, preserve conflicts without choosing a winner, call unavailable fields unavailable, and mention source/retrieval date when useful. Evidence is not an appraisal or guaranteed truth; never infer ARV, MAO, ROI, rent, risk, deal quality, BUY, SELL, PASS, or a winner. Use at most 120 words; structured cards are rendered separately.`;
   if (input.plainToolResult) {
     const resultText = JSON.stringify(safeResult).slice(0, 12_000);
     return {

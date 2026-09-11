@@ -437,13 +437,14 @@ export type MaxxisDealCopilotOverview = {
 };
 export type MaxxisResponse = {
   message: string;
-  type: 'text' | 'properties' | 'services' | 'investment_profile' | 'property_details' | 'property_comparison' | 'deal_copilot_overview';
+  type: 'text' | 'properties' | 'services' | 'investment_profile' | 'property_details' | 'property_evidence' | 'property_comparison' | 'deal_copilot_overview';
   data: null
     | { properties: MaxxisPropertyResult[]; personalized?: boolean; profileAvailable?: boolean; profileSuggestions?: ProfileDriftSuggestion[] }
     | { services: MaxxisServiceResult[] }
     | { profile: MaxxisInvestmentProfile | null; complete: boolean }
     | { property: MaxxisPropertyDetails | null; missingFields: string[]; metrics: DealMetricsResult | null; analysis: DealAdvisorAnalysis | null; serviceNeeds: PropertyServiceNeed[]; serviceMatches: PropertyServiceMatch[] | null; nextBestAction?: MaxxisNextBestActionResult | null; workflow?: DealWorkflowView | null }
     | MaxxisDealCopilotOverview
+    | { type: 'property_evidence'; propertyId: string; state: string; entitlementState: string; cacheState: string; evidence?: Record<string, unknown> }
     | PropertyComparisonResult
     | { properties: []; comparison: null };
   actions: [];

@@ -100,6 +100,46 @@ export class PropertyEvidenceService {
     this.enabled = options.enabled !== false;
   }
 
+  async getCachedPropertyEvidence(input: { propertyId: string; userId?: string | null }): Promise<PropertyEvidenceResult> {
+    const startedAt = Date.now();
+    const propertyId = validatePropertyId(input.propertyId);
+    try {
+      const property = await this.repository.getById(propertyId, input.userId);
+      if (!property) throw new PropertyDataError('PROPERTY_NOT_FOUND');
+      const internalData = buildInternalPropertyEvidence(property);
+      const fingerprint = await propertyAddressFingerprint({
+        street: property.address || '', city: property.city || '', state: property.state || '', zipCode: property.zip || '',
+      });
+      const cached = await this.cache.getPropertyRecord(propertyId);
+      if (!cached || cached.addressFingerprint !== fingerprint) {
+        throw new PropertyDataError('PROPERTY_EVIDENCE_CACHE_MISS');
+      }
+      const cachedFingerprint = await propertyAddressFingerprint({
+        street: cached.record.address.addressLine1.value || '', city: cached.record.address.city.value || '',
+        state: cached.record.address.state.value || '', zipCode: cached.record.address.zipCode.value || '',
+      }).catch(() => '');
+      if (cachedFingerprint !== fingerprint) throw new PropertyDataError('PROPERTY_EVIDENCE_CACHE_INVALID');
+      const result: PropertyEvidenceResult = {
+        propertyId,
+        internalData,
+        externalData: cached.record,
+        conflicts: detectPropertyEvidenceConflicts(internalData, cached.record),
+        missingFields: listMissingExternalFields(cached.record),
+        provider: 'rentcast',
+        cacheHit: true,
+        retrievedAt: cached.record.sourceMetadata.retrievedAt,
+      };
+      this.logger({ operation: 'property_evidence', success: true, durationMs: Date.now() - startedAt, cacheHit: true });
+      return result;
+    } catch (error) {
+      this.logger({
+        operation: 'property_evidence', success: false, durationMs: Date.now() - startedAt,
+        cacheHit: false, errorCode: error instanceof Error ? error.message : 'PROPERTY_EVIDENCE_CACHE_READ_FAILED',
+      });
+      throw error;
+    }
+  }
+
   async getPropertyEvidence(input: { propertyId: string; userId?: string | null }): Promise<PropertyEvidenceResult> {
     const startedAt = Date.now();
     const propertyId = validatePropertyId(input.propertyId);

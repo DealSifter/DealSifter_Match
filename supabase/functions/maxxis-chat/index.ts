@@ -120,6 +120,35 @@ function resolveMandatoryToolCall(message: string, propertyContextId: string, co
     return { name: 'compareProperties', args: { propertyIds: comparisonPropertyIds.slice(0, 3) } };
   }
   if (propertyContextId && intentIncludesAny(normalized, [
+    ' what stands out ',
+    ' public record ',
+    ' public records ',
+    ' property evidence ',
+    ' records match ',
+    ' tax information ',
+    ' tax assessment ',
+    ' property tax ',
+    ' recorded sale ',
+    ' last sale ',
+    ' what should i verify ',
+    ' anything i should verify ',
+    ' evidence ',
+    ' registro publico ',
+    ' registros publicos ',
+    ' dados publicos ',
+    ' evidencia ',
+    ' evidencias ',
+    ' imposto predial ',
+    ' ultima venda registrada ',
+    ' o que devo verificar ',
+    ' o que se destaca ',
+    ' registro publico ',
+    ' registros publicos ',
+    ' que debo verificar ',
+  ])) {
+    return { name: 'getPropertyEvidence', args: { propertyId: propertyContextId } };
+  }
+  if (propertyContextId && intentIncludesAny(normalized, [
     ' como esta este deal ',
     ' como esta esse deal ',
     ' deal status ',
@@ -188,6 +217,9 @@ function e2eStubFunctionCall(message: string, propertyContextId: string) {
   }
   if (propertyContextId && (normalized.includes('copilot') || normalized.includes('overall situation') || normalized.includes('deal status') || normalized.includes('deal summary'))) {
     return { name: 'getDealCopilotOverview', args: { propertyId: propertyContextId } };
+  }
+  if (propertyContextId && (normalized.includes('public record') || normalized.includes('evidence') || normalized.includes('what stands out') || normalized.includes('what should i verify'))) {
+    return { name: 'getPropertyEvidence', args: { propertyId: propertyContextId } };
   }
   if (propertyContextId && (normalized.includes('detail') || normalized.includes('property') || normalized.includes('deal') || normalized.includes('professionals') || normalized.includes('services'))) {
     return {
@@ -350,9 +382,35 @@ function dealCopilotMessage(language: MaxxisLanguage, available: boolean) {
       : 'This is the consolidated operational view of this deal based only on existing data and state.';
 }
 
+function propertyEvidenceMessage(language: MaxxisLanguage, state: string) {
+  if (state === 'locked') {
+    if (language === 'pt') return 'A evidencia publica desta propriedade esta bloqueada para esta conta.';
+    if (language === 'es') return 'La evidencia publica de esta propiedad esta bloqueada para esta cuenta.';
+    return 'Public-record evidence for this property is locked for this account.';
+  }
+  if (state === 'not_loaded') {
+    if (language === 'pt') return 'A evidencia de registros publicos ainda nao foi carregada para esta propriedade.';
+    if (language === 'es') return 'La evidencia de registros publicos aun no se ha cargado para esta propiedad.';
+    return 'Public-record evidence has not been loaded for this property yet.';
+  }
+  if (state === 'not_found') {
+    if (language === 'pt') return 'Nao foi possivel localizar esta propriedade com seguranca.';
+    if (language === 'es') return 'No fue posible localizar esta propiedad de forma segura.';
+    return 'This property could not be located safely.';
+  }
+  if (state !== 'available') {
+    if (language === 'pt') return 'A evidencia desta propriedade esta temporariamente indisponivel.';
+    if (language === 'es') return 'La evidencia de esta propiedad no esta disponible temporalmente.';
+    return 'Property evidence is temporarily unavailable.';
+  }
+  if (language === 'pt') return 'A evidencia cacheada da propriedade esta disponivel.';
+  if (language === 'es') return 'La evidencia almacenada de la propiedad esta disponible.';
+  return 'Cached property evidence is available.';
+}
+
 function propertyContextInstruction(propertyId: string, searchPropertyIds: string[], comparisonPropertyIds: string[]) {
   const detailsContext = propertyId
-    ? `Trusted current property context: {"propertyId":"${propertyId}"}. For getPropertyDetails or getDealCopilotOverview, copy this exact UUID. For one metric or a focused property question, omit includeOperationalContext. Set includeOperationalContext true only for an explicit Next Best Action, what-to-do-next, checklist, or deal-progress request.`
+    ? `Trusted current property context: {"propertyId":"${propertyId}"}. For getPropertyDetails, getPropertyEvidence, or getDealCopilotOverview, copy this exact UUID. Use getPropertyEvidence for public-record evidence, factual consistency, evidence conflicts, tax records, recorded sale, or verification questions. For one metric or a focused property question, omit includeOperationalContext. Set includeOperationalContext true only for an explicit Next Best Action, what-to-do-next, checklist, or deal-progress request.`
     : 'No trusted current property context is available. Never call getPropertyDetails or getDealCopilotOverview; ask the user to open or select a specific property.';
   const comparisonContext = comparisonPropertyIds.length >= 2
     ? `Trusted comparison propertyIds are ${JSON.stringify(comparisonPropertyIds)}. Search-result IDs are in display order ${JSON.stringify(searchPropertyIds)}. For compareProperties, copy an exact subset of two or three IDs from this context.`
@@ -691,7 +749,7 @@ Deno.serve(async (req) => {
       && mandatoryFunctionCall
       && parsedToolName
       && parsedToolName !== mandatoryFunctionCall.name
-      && ['getDealCopilotOverview', 'compareProperties'].includes(mandatoryFunctionCall.name)
+      && ['getPropertyEvidence', 'getDealCopilotOverview', 'compareProperties'].includes(mandatoryFunctionCall.name)
         ? mandatoryFunctionCall
         : null;
     const recoveredFunctionCall = !parsedFunctionCall && mandatoryFunctionCall ? mandatoryFunctionCall : null;
@@ -833,7 +891,8 @@ Deno.serve(async (req) => {
         }
         : {};
       const toolDurationMs = Date.now() - toolStartedAt;
-      const dbDurationMs = Number(result?.performance?.dbDurationMs || result?.serviceMatchingSummary?.dbDurationMs || 0);
+      const resultTiming = result as { performance?: { dbDurationMs?: number }; serviceMatchingSummary?: { dbDurationMs?: number } };
+      const dbDurationMs = Number(resultTiming.performance?.dbDurationMs || resultTiming.serviceMatchingSummary?.dbDurationMs || 0);
       const toolPayloadBytes = new TextEncoder().encode(JSON.stringify(result)).byteLength;
       const totalDurationMs = Date.now() - startedAt;
       logMaxxisEvent('maxxis_chat', {
@@ -875,6 +934,20 @@ Deno.serve(async (req) => {
         }
         const text = interpretedText || propertyDetailsMessage(language, result.found);
         return response({ message: text, answer: text, type: 'property_details', data: { property: result.property, missingFields: result.missingFields, metrics: result.metrics, analysis: result.analysis, serviceNeeds: result.serviceNeeds, serviceMatches: result.serviceMatches, nextBestAction: result.nextBestAction || null, workflow: result.workflow || null }, actions: [], language, runtime: toolRuntime, ...toolDegraded }, 200, origin, requestId);
+      }
+      if (result.type === 'property_evidence') {
+        logMaxxisEvent('maxxis_tool', {
+          request_id: requestId,
+          user_id: userId,
+          tool: toolName,
+          duration_ms: Date.now() - toolStartedAt,
+          success: result.state === 'available',
+          property_found: result.state !== 'not_found',
+          cache_hit: result.cacheState === 'hit',
+          entitlement_state: result.entitlementState,
+        });
+        const text = interpretedText || propertyEvidenceMessage(language, result.state);
+        return response({ message: text, answer: text, type: 'property_evidence', data: result, actions: [], language, runtime: toolRuntime, ...toolDegraded }, 200, origin, requestId);
       }
       if (result.type === 'deal_copilot_overview') {
         const text = interpretedText || dealCopilotMessage(language, result.found);
