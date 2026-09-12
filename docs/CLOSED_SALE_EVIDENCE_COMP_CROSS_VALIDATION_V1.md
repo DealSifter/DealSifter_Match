@@ -95,3 +95,7 @@ Material exclusions:
 - 18 other AVM candidates have `NO_SOLD_RECORD_MATCH` within this single controlled query; examples include 379 Ainahou St, 6703 Hawaii Kai Dr, 315 Hanakoa St, 502 Kekupua St, and 7157 Makaa St.
 
 Decision: the bulk sold-record response has excellent transaction-field coverage, but cross-over with the AVM candidate set is insufficient. There are not five strong Qualified Sold Comps. The project is not ready to implement a defensible DealSifter ARV from this evidence set without first revisiting candidate acquisition/cross-validation strategy or adding another verified sold-evidence source. No filters were retuned and no second provider request was made to force a pass.
+
+## Subsequent architectural clarification
+
+This cross-validation result measures convergence between the provider AVM candidates and recorded sales; it does not establish that the sold-record pool itself lacks comparable properties. [Recorded Sold Comps Selection v1](./RECORDED_SOLD_COMPS_SELECTION_V1.md) preserves this result and separately evaluates cached recorded sales as direct DealSifter comparable candidates, without making AVM membership mandatory.

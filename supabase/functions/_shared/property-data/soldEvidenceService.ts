@@ -1,5 +1,5 @@
 import { propertyAddressFingerprint } from './address.ts';
-import { crossValidateSoldComparables } from './soldCompEngine.ts';
+import { crossValidateSoldComparables, selectRecordedSoldComparables } from './soldCompEngine.ts';
 import { validatePropertyId } from './cache.ts';
 import { InMemoryPropertySingleFlight, type PropertySingleFlight } from './singleFlight.ts';
 import { soldSearchQueryFingerprint, type SoldRecordPoolCache } from './soldCache.ts';
@@ -35,8 +35,14 @@ export class SoldEvidenceService {
 
   private result(propertyId: string, cacheHit: boolean,
     soldPool: NormalizedSoldRecordPool, valuation: NormalizedValuationEvidence): SoldEvidenceResult {
-    return { propertyId, cacheHit, soldPool, valuation,
-      soldCompSet: crossValidateSoldComparables(valuation, soldPool.records) };
+    return {
+      propertyId,
+      cacheHit,
+      soldPool,
+      valuation,
+      soldCompSet: crossValidateSoldComparables(valuation, soldPool.records),
+      recordedSoldCompSelection: selectRecordedSoldComparables(valuation, soldPool.records),
+    };
   }
 
   private async context(input: { propertyId: string; userId?: string | null }) {

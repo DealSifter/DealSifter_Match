@@ -24,7 +24,7 @@ const normalizeType = (value: string | null) => String(value || '').trim().toLow
   .replace(/^sfr$/, 'single family');
 const present = (value: number | null) => typeof value === 'number' && Number.isFinite(value);
 
-function analyzeCandidate(
+export function analyzeComparableCandidate(
   candidate: NormalizedComparableCandidate,
   subjectType: string | null,
   policy = INITIAL_DEALSIFTER_COMP_POLICY,
@@ -33,8 +33,9 @@ function analyzeCandidate(
   const positiveReasons: ComparableReasonCode[] = [];
   const penaltyReasons: ComparableReasonCode[] = [];
   const limitations: ComparableReasonCode[] = [
-    'RENOVATION_CONDITION_UNAVAILABLE', 'ARMS_LENGTH_DISTRESS_UNAVAILABLE', 'SALE_PRICE_UNCONFIRMED',
+    'RENOVATION_CONDITION_UNAVAILABLE', 'ARMS_LENGTH_DISTRESS_UNAVAILABLE',
   ];
+  if (candidate.priceSemantic !== 'RECORDED_SALE_PRICE') limitations.push('SALE_PRICE_UNCONFIRMED');
   const normalizedSubjectType = normalizeType(subjectType);
   const normalizedCandidateType = normalizeType(candidate.propertyType);
   if (!SUPPORTED_TYPES.has(normalizedSubjectType) || !SUPPORTED_TYPES.has(normalizedCandidateType)) {
@@ -87,7 +88,7 @@ export function analyzeSaleComparables(valuation: NormalizedValuationEvidence): 
   const paired = valuation.comparables.map((candidate, index) => ({
     candidate,
     index,
-    diagnostic: analyzeCandidate(candidate, subjectType),
+    diagnostic: analyzeComparableCandidate(candidate, subjectType),
   }));
   const order = { strong: 0, usable: 1, down_ranked: 2, hard_rejected: 3 } as const;
   paired.sort((left, right) => order[left.diagnostic.classification] - order[right.diagnostic.classification]

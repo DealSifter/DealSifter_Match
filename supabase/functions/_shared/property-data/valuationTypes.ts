@@ -29,7 +29,7 @@ export type NormalizedValuationSubject = {
 export type NormalizedComparableCandidate = {
   provider: 'rentcast';
   retrievedAt: string;
-  evidenceStatus: 'ESTIMATED';
+  evidenceStatus: 'ESTIMATED' | 'VERIFIED_RECORD';
   providerPropertyId: string | null;
   formattedAddress: string | null;
   addressLine1: string | null;
@@ -45,7 +45,7 @@ export type NormalizedComparableCandidate = {
   lotSizeSqft: number | null;
   yearBuilt: number | null;
   price: number | null;
-  priceSemantic: 'PROVIDER_LISTING_PRICE';
+  priceSemantic: 'PROVIDER_LISTING_PRICE' | 'RECORDED_SALE_PRICE';
   listingStatus: string | null;
   listingType: string | null;
   listedDate: string | null;

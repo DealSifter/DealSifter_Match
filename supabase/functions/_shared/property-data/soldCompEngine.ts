@@ -1,7 +1,24 @@
 import { normalizeState, normalizeStreet, normalizeZipCode } from './address.ts';
-import { analyzeSaleComparables } from './compEngine.ts';
-import type { ComparableQualityDiagnostic, NormalizedComparableCandidate, NormalizedValuationEvidence } from './valuationTypes.ts';
-import type { CandidateSoldMatch, QualifiedSoldComparable, SoldCompReasonCode, SoldCompSet, SoldMatchStrength, SoldPropertyRecord } from './soldTypes.ts';
+import {
+  analyzeComparableCandidate,
+  analyzeSaleComparables,
+  INITIAL_DEALSIFTER_COMP_POLICY,
+} from './compEngine.ts';
+import type {
+  ComparableQualityDiagnostic,
+  NormalizedComparableCandidate,
+  NormalizedValuationEvidence,
+} from './valuationTypes.ts';
+import type {
+  CandidateSoldMatch,
+  QualifiedSoldComparable,
+  RecordedSoldComparableCandidate,
+  RecordedSoldCompSelection,
+  SoldCompReasonCode,
+  SoldCompSet,
+  SoldMatchStrength,
+  SoldPropertyRecord,
+} from './soldTypes.ts';
 
 export const INITIAL_SOLD_COMP_POLICY = Object.freeze({
   recentSaleDays: 270, maximumDistanceMiles: 3, maximumLivingAreaVariance: 0.4,
@@ -144,5 +161,195 @@ export function crossValidateSoldComparables(valuation: NormalizedValuationEvide
     matchedCandidates: count('EXACT') + count('STRONG'), exactMatches: count('EXACT'), strongMatches: count('STRONG'),
     ambiguousMatches: count('AMBIGUOUS'), unmatchedCandidates: count('NO_MATCH'),
     qualifiedSoldComps: qualified, strongSoldComps: strong, conditionalSoldComps: conditional, matches, sufficiency,
+  };
+}
+
+function absoluteDifference(left: number | null, right: number | null) {
+  return left !== null && right !== null ? Math.abs(left - right) : null;
+}
+
+function directCandidateAdapter(
+  valuation: NormalizedValuationEvidence,
+  record: SoldPropertyRecord,
+  distance: number | null,
+  daysSinceSale: number | null,
+): NormalizedComparableCandidate {
+  const subject = valuation.subjectProperty;
+  const salePrice = record.latestValidSale?.salePrice ?? null;
+  return {
+    provider: 'rentcast',
+    retrievedAt: record.retrievedAt,
+    evidenceStatus: 'VERIFIED_RECORD',
+    providerPropertyId: record.providerPropertyId,
+    formattedAddress: record.formattedAddress,
+    addressLine1: record.addressLine1,
+    city: record.city,
+    state: record.state,
+    zipCode: record.zipCode,
+    latitude: record.latitude,
+    longitude: record.longitude,
+    propertyType: record.propertyType,
+    bedrooms: record.bedrooms,
+    bathrooms: record.bathrooms,
+    livingAreaSqft: record.livingAreaSqft,
+    lotSizeSqft: record.lotSizeSqft,
+    yearBuilt: record.yearBuilt,
+    price: salePrice,
+    priceSemantic: 'RECORDED_SALE_PRICE',
+    listingStatus: null,
+    listingType: null,
+    listedDate: null,
+    removedDate: null,
+    lastSeenDate: null,
+    daysOnMarket: null,
+    distanceMiles: distance,
+    daysOld: daysSinceSale,
+    providerCorrelation: null,
+    derived: {
+      pricePerSqft: calculated(salePrice !== null && record.livingAreaSqft !== null
+        ? salePrice / record.livingAreaSqft : null, record.retrievedAt),
+      sqftVarianceFromSubject: calculated(variance(record.livingAreaSqft, subject.livingAreaSqft.value), record.retrievedAt),
+      lotSizeVarianceFromSubject: calculated(variance(record.lotSizeSqft, subject.lotSizeSqft.value), record.retrievedAt),
+      yearBuiltDifference: calculated(absoluteDifference(record.yearBuilt, subject.yearBuilt.value), record.retrievedAt),
+      bedroomDifference: calculated(absoluteDifference(record.bedrooms, subject.bedrooms.value), record.retrievedAt),
+      bathroomDifference: calculated(absoluteDifference(record.bathrooms, subject.bathrooms.value), record.retrievedAt),
+    },
+  };
+}
+
+function findAvmOverlap(record: SoldPropertyRecord, valuation: NormalizedValuationEvidence) {
+  const matches = valuation.comparables.map((candidate) => ({ candidate, ...matchCandidate(candidate, [record]) }));
+  const exact = matches.filter((item) => item.strength === 'EXACT');
+  if (exact.length === 1) return { strength: 'EXACT' as const, candidate: exact[0].candidate };
+  if (exact.length > 1) return { strength: 'AMBIGUOUS' as const, candidate: null };
+  const strong = matches.filter((item) => item.strength === 'STRONG');
+  if (strong.length === 1) return { strength: 'STRONG' as const, candidate: strong[0].candidate };
+  if (strong.length > 1 || matches.some((item) => item.strength === 'AMBIGUOUS')) {
+    return { strength: 'AMBIGUOUS' as const, candidate: null };
+  }
+  return { strength: 'NO_MATCH' as const, candidate: null };
+}
+
+const round = (value: number) => Math.round(value * 100) / 100;
+function distribution(values: number[]) {
+  if (!values.length) return { median: null, average: null, minimum: null, maximum: null };
+  const sorted = [...values].sort((left, right) => left - right);
+  const middle = Math.floor(sorted.length / 2);
+  const median = sorted.length % 2 ? sorted[middle] : (sorted[middle - 1] + sorted[middle]) / 2;
+  return {
+    median: round(median),
+    average: round(sorted.reduce((sum, value) => sum + value, 0) / sorted.length),
+    minimum: sorted[0],
+    maximum: sorted[sorted.length - 1],
+  };
+}
+
+export function selectRecordedSoldComparables(
+  valuation: NormalizedValuationEvidence,
+  records: SoldPropertyRecord[],
+): RecordedSoldCompSelection {
+  const subject = valuation.subjectProperty;
+  const asOf = records[0]?.retrievedAt || valuation.retrievedAt;
+  const candidates = records.map((record): RecordedSoldComparableCandidate => {
+    const sale = record.latestValidSale;
+    const daysSinceSale = sale && Number.isFinite(Date.parse(sale.saleDate))
+      ? Math.floor((Date.parse(asOf) - Date.parse(sale.saleDate)) / 86_400_000) : null;
+    const distance = coordinateDistanceMiles(
+      subject.latitude.value, subject.longitude.value, record.latitude, record.longitude,
+    );
+    const adapter = directCandidateAdapter(valuation, record, distance, daysSinceSale);
+    const diagnostic = analyzeComparableCandidate(adapter, subject.propertyType.value);
+    const hardInvalidReasons = [...diagnostic.hardInvalidReasons] as RecordedSoldComparableCandidate['hardInvalidReasons'];
+    if (!sale) hardInvalidReasons.push('SALE_PRICE_UNAVAILABLE', 'SALE_DATE_UNAVAILABLE');
+    if (record.saleTransactionAmbiguous) hardInvalidReasons.push('SALE_TRANSACTION_AMBIGUOUS');
+    const hasCoreSimilarity = distance !== null
+      && distance <= INITIAL_SOLD_COMP_POLICY.maximumDistanceMiles
+      && adapter.derived.sqftVarianceFromSubject.value !== null
+      && adapter.derived.sqftVarianceFromSubject.value <= INITIAL_SOLD_COMP_POLICY.maximumLivingAreaVariance
+      && daysSinceSale !== null && daysSinceSale >= 0
+      && daysSinceSale <= INITIAL_SOLD_COMP_POLICY.recentSaleDays;
+    let compQuality: RecordedSoldComparableCandidate['compQuality'];
+    if (hardInvalidReasons.length) compQuality = 'HARD_INVALID';
+    else if (diagnostic.classification === 'strong' && hasCoreSimilarity) compQuality = 'STRONG';
+    else if (diagnostic.classification === 'usable' && hasCoreSimilarity) compQuality = 'ACCEPTABLE';
+    else compQuality = 'WEAK';
+    const overlap = findAvmOverlap(record, valuation);
+    const qualityReasons: RecordedSoldComparableCandidate['qualityReasons'] = [
+      ...(sale ? ['RECORDED_SALE_CONFIRMED' as const] : []),
+      ...(sale && daysSinceSale !== null && daysSinceSale <= INITIAL_DEALSIFTER_COMP_POLICY.recentDays
+        ? ['RECORDED_SALE_RECENT' as const]
+        : sale && daysSinceSale !== null && daysSinceSale <= INITIAL_SOLD_COMP_POLICY.recentSaleDays
+          ? ['RECORDED_SALE_WITHIN_WINDOW' as const]
+          : sale ? ['RECORDED_SALE_OLD' as const] : []),
+      ...diagnostic.positiveReasons,
+    ];
+    const penaltyReasons: RecordedSoldComparableCandidate['penaltyReasons'] = [...diagnostic.penaltyReasons];
+    if (!hasCoreSimilarity && !hardInvalidReasons.length) penaltyReasons.push('STRUCTURAL_COMPARABILITY_WEAK');
+    const limitations: RecordedSoldComparableCandidate['limitations'] = [
+      'TRANSACTION_QUALITY_UNKNOWN', 'RENOVATION_CONDITION_UNKNOWN',
+      ...(record.lotSizeSqft === null ? ['LOT_DATA_UNAVAILABLE' as const] : []),
+    ];
+    return {
+      soldRecord: record,
+      recordedSalePrice: sale?.salePrice ?? null,
+      recordedSaleDate: sale?.saleDate ?? null,
+      recordedSalePricePerSqft: adapter.derived.pricePerSqft,
+      distanceFromSubjectMiles: calculated(distance, asOf),
+      daysSinceSale: calculated(daysSinceSale, asOf),
+      sqftDifference: calculated(absoluteDifference(record.livingAreaSqft, subject.livingAreaSqft.value), asOf),
+      sqftDifferencePercent: adapter.derived.sqftVarianceFromSubject,
+      bedroomDifference: adapter.derived.bedroomDifference,
+      bathroomDifference: adapter.derived.bathroomDifference,
+      lotSizeDifferencePercent: adapter.derived.lotSizeVarianceFromSubject,
+      yearBuiltDifference: adapter.derived.yearBuiltDifference,
+      evidenceStatus: 'VERIFIED_RECORD',
+      compQuality,
+      qualityReasons,
+      penaltyReasons,
+      hardInvalidReasons,
+      limitations,
+      recordMatchStrength: overlap.strength,
+      avmOverlap: overlap.strength === 'EXACT' || overlap.strength === 'STRONG',
+      providerCorrelation: overlap.candidate?.providerCorrelation ?? null,
+    };
+  });
+  const order = { STRONG: 0, ACCEPTABLE: 1, WEAK: 2, HARD_INVALID: 3 } as const;
+  candidates.sort((left, right) => order[left.compQuality] - order[right.compQuality]
+    || left.penaltyReasons.length - right.penaltyReasons.length
+    || right.qualityReasons.length - left.qualityReasons.length
+    || (left.distanceFromSubjectMiles.value ?? Infinity) - (right.distanceFromSubjectMiles.value ?? Infinity)
+    || (left.sqftDifferencePercent.value ?? Infinity) - (right.sqftDifferencePercent.value ?? Infinity)
+    || (left.daysSinceSale.value ?? Infinity) - (right.daysSinceSale.value ?? Infinity)
+    || String(left.soldRecord.providerPropertyId || '').localeCompare(String(right.soldRecord.providerPropertyId || '')));
+  const hardInvalid = candidates.filter((item) => item.compQuality === 'HARD_INVALID');
+  const weak = candidates.filter((item) => item.compQuality === 'WEAK');
+  const acceptable = candidates.filter((item) => item.compQuality === 'ACCEPTABLE');
+  const strong = candidates.filter((item) => item.compQuality === 'STRONG');
+  const topFiveStrong = strong.slice(0, 5);
+  const usable = [...strong, ...acceptable];
+  const statisticsSource = topFiveStrong.length ? topFiveStrong : usable.slice(0, 5);
+  const priceStats = distribution(statisticsSource
+    .map((item) => item.recordedSalePrice).filter((value): value is number => value !== null));
+  const sqftStats = distribution(statisticsSource
+    .map((item) => item.recordedSalePricePerSqft.value).filter((value): value is number => value !== null));
+  return {
+    soldRecordsAvailable: records.length,
+    directSoldCompCandidates: candidates,
+    hardInvalid,
+    weak,
+    acceptable,
+    strong,
+    topFiveStrong,
+    avmOverlapAmongTopFive: topFiveStrong.filter((item) => item.avmOverlap).length,
+    sufficiency: strong.length >= INITIAL_SOLD_COMP_POLICY.minimumStrongComps
+      ? 'SUFFICIENT' : usable.length >= INITIAL_SOLD_COMP_POLICY.minimumStrongComps ? 'CONDITIONAL' : 'INSUFFICIENT',
+    descriptiveStatistics: {
+      scope: topFiveStrong.length ? 'TOP_5_STRONG' : 'TOP_5_USABLE',
+      medianRecordedSalePrice: priceStats.median,
+      medianRecordedSalePricePerSqft: sqftStats.median,
+      averageRecordedSalePricePerSqft: sqftStats.average,
+      minimumRecordedSalePrice: priceStats.minimum,
+      maximumRecordedSalePrice: priceStats.maximum,
+    },
   };
 }

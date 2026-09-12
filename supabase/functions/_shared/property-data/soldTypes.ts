@@ -1,5 +1,10 @@
 import type { Evidence, PropertyLookupInput } from './types.ts';
-import type { ComparableQualityDiagnostic, NormalizedComparableCandidate, NormalizedValuationEvidence } from './valuationTypes.ts';
+import type {
+  ComparableQualityDiagnostic,
+  ComparableReasonCode,
+  NormalizedComparableCandidate,
+  NormalizedValuationEvidence,
+} from './valuationTypes.ts';
 
 export type SoldSearchPolicy = {
   radiusMiles: number;
@@ -59,6 +64,7 @@ export type SoldMatchStrength = 'EXACT' | 'STRONG' | 'AMBIGUOUS' | 'NO_MATCH';
 export type SoldCompReasonCode =
   | 'RECORDED_SALE_CONFIRMED'
   | 'RECORDED_SALE_RECENT'
+  | 'RECORDED_SALE_WITHIN_WINDOW'
   | 'RECORDED_SALE_OLD'
   | 'EXACT_PROPERTY_MATCH'
   | 'STRONG_PROPERTY_MATCH'
@@ -110,10 +116,57 @@ export type SoldCompSet = {
   sufficiency: 'SUFFICIENT' | 'CONDITIONAL' | 'INSUFFICIENT';
 };
 
+export type RecordedSoldCompQuality = 'STRONG' | 'ACCEPTABLE' | 'WEAK' | 'HARD_INVALID';
+
+export type RecordedSoldComparableCandidate = {
+  soldRecord: SoldPropertyRecord;
+  recordedSalePrice: number | null;
+  recordedSaleDate: string | null;
+  recordedSalePricePerSqft: Evidence<number>;
+  distanceFromSubjectMiles: Evidence<number>;
+  daysSinceSale: Evidence<number>;
+  sqftDifference: Evidence<number>;
+  sqftDifferencePercent: Evidence<number>;
+  bedroomDifference: Evidence<number>;
+  bathroomDifference: Evidence<number>;
+  lotSizeDifferencePercent: Evidence<number>;
+  yearBuiltDifference: Evidence<number>;
+  evidenceStatus: 'VERIFIED_RECORD';
+  compQuality: RecordedSoldCompQuality;
+  qualityReasons: Array<SoldCompReasonCode | ComparableReasonCode>;
+  penaltyReasons: Array<SoldCompReasonCode | ComparableReasonCode>;
+  hardInvalidReasons: Array<SoldCompReasonCode | ComparableReasonCode>;
+  limitations: Array<SoldCompReasonCode | ComparableReasonCode>;
+  recordMatchStrength: SoldMatchStrength;
+  avmOverlap: boolean;
+  providerCorrelation: number | null;
+};
+
+export type RecordedSoldCompSelection = {
+  soldRecordsAvailable: number;
+  directSoldCompCandidates: RecordedSoldComparableCandidate[];
+  hardInvalid: RecordedSoldComparableCandidate[];
+  weak: RecordedSoldComparableCandidate[];
+  acceptable: RecordedSoldComparableCandidate[];
+  strong: RecordedSoldComparableCandidate[];
+  topFiveStrong: RecordedSoldComparableCandidate[];
+  avmOverlapAmongTopFive: number;
+  sufficiency: 'SUFFICIENT' | 'CONDITIONAL' | 'INSUFFICIENT';
+  descriptiveStatistics: {
+    scope: 'TOP_5_STRONG' | 'TOP_5_USABLE';
+    medianRecordedSalePrice: number | null;
+    medianRecordedSalePricePerSqft: number | null;
+    averageRecordedSalePricePerSqft: number | null;
+    minimumRecordedSalePrice: number | null;
+    maximumRecordedSalePrice: number | null;
+  };
+};
+
 export type SoldEvidenceResult = {
   propertyId: string;
   cacheHit: boolean;
   soldPool: NormalizedSoldRecordPool;
   valuation: NormalizedValuationEvidence;
   soldCompSet: SoldCompSet;
+  recordedSoldCompSelection: RecordedSoldCompSelection;
 };

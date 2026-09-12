@@ -27,6 +27,7 @@ export * from './soldManualValidation.ts';
 export * from './soldProvider.ts';
 export * from './soldSchema.ts';
 export * from './soldTypes.ts';
+export * from './recordedSoldManualValidation.ts';
 export * from './rentcast/rentcastClient.ts';
 export * from './rentcast/rentcastMapper.ts';
 export type * from './rentcast/rentcastTypes.ts';
