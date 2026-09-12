@@ -1,11 +1,12 @@
 import { PropertyDataError } from './types.ts';
 
 export const DEFAULT_RENTCAST_MONTHLY_HARD_LIMIT = 45;
+export type PropertyDataUsageOperation = 'property_lookup' | 'property_value_avm';
 
 export type UsageReservation = {
   id: string;
   provider: 'rentcast';
-  operation: 'property_lookup';
+  operation: PropertyDataUsageOperation;
   createdAt: string;
 };
 
@@ -16,7 +17,7 @@ export type UsageCompletion = {
 };
 
 export interface PropertyDataUsageGuard {
-  reserve(input: { propertyId?: string | null; userId?: string | null }): Promise<UsageReservation>;
+  reserve(input: { propertyId?: string | null; userId?: string | null; operation?: PropertyDataUsageOperation }): Promise<UsageReservation>;
   finalize(reservation: UsageReservation, completion: UsageCompletion): Promise<void>;
 }
 
@@ -39,7 +40,7 @@ export class InMemoryPropertyDataUsageGuard implements PropertyDataUsageGuard {
     this.rows = [...(options.rows || [])];
   }
 
-  async reserve(_input: { propertyId?: string | null; userId?: string | null }) {
+  async reserve(input: { propertyId?: string | null; userId?: string | null; operation?: PropertyDataUsageOperation }) {
     const now = this.now();
     const monthStart = Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), 1);
     const nextMonth = Date.UTC(now.getUTCFullYear(), now.getUTCMonth() + 1, 1);
@@ -54,7 +55,7 @@ export class InMemoryPropertyDataUsageGuard implements PropertyDataUsageGuard {
     const reservation: UsageReservation = {
       id: crypto.randomUUID(),
       provider: 'rentcast',
-      operation: 'property_lookup',
+      operation: input.operation || 'property_lookup',
       createdAt: now.toISOString(),
     };
     this.rows.push({ ...reservation, status: 'reserved', billableSuccess: false, httpStatus: null, errorCode: null });
@@ -88,10 +89,10 @@ export class SupabasePropertyDataUsageGuard implements PropertyDataUsageGuard {
     this.hardLimit = normalizeRentCastHardLimit(hardLimit);
   }
 
-  async reserve(input: { propertyId?: string | null; userId?: string | null }) {
+  async reserve(input: { propertyId?: string | null; userId?: string | null; operation?: PropertyDataUsageOperation }) {
     const { data, error } = await this.client.rpc('ds_reserve_external_provider_usage', {
       p_provider: 'rentcast',
-      p_operation: 'property_lookup',
+      p_operation: input.operation || 'property_lookup',
       p_property_id: input.propertyId || null,
       p_user_id: input.userId || null,
       p_hard_limit: this.hardLimit,
@@ -104,7 +105,7 @@ export class SupabasePropertyDataUsageGuard implements PropertyDataUsageGuard {
     }
     const id = String(data || '').trim();
     if (!id) throw new PropertyDataError('PROVIDER_UPSTREAM_ERROR');
-    return { id, provider: 'rentcast', operation: 'property_lookup', createdAt: new Date().toISOString() } as UsageReservation;
+    return { id, provider: 'rentcast', operation: input.operation || 'property_lookup', createdAt: new Date().toISOString() } as UsageReservation;
   }
 
   async finalize(reservation: UsageReservation, completion: UsageCompletion) {

@@ -32,6 +32,24 @@ describe('RentCast client', () => {
     expect(new Headers(init?.headers).get('X-Api-Key')).toBe(TEST_KEY);
   });
 
+  it('builds one backend-only AVM/value request with the explicit DealSifter search policy', async () => {
+    const fetchImpl = vi.fn(async () => jsonResponse({ price: 250000, subjectProperty: {}, comparables: [] }));
+    const client = createRentCastClient({ apiKey: TEST_KEY, fetchImpl });
+    await client.estimateValue({
+      address: '7081 Kalanianaole Hwy, Honolulu, HI, 96825',
+      maxRadius: 5, daysOld: 270, compCount: 20, lookupSubjectAttributes: true,
+    });
+    const [url, init] = fetchImpl.mock.calls[0];
+    const parsed = new URL(String(url));
+    expect(`${parsed.origin}${parsed.pathname}`).toBe(`${RENTCAST_BASE_URL}/avm/value`);
+    expect(Object.fromEntries(parsed.searchParams)).toEqual({
+      address: '7081 Kalanianaole Hwy, Honolulu, HI, 96825',
+      maxRadius: '5', daysOld: '270', compCount: '20', lookupSubjectAttributes: 'true',
+    });
+    expect(String(url)).not.toContain(TEST_KEY);
+    expect(new Headers(init?.headers).get('X-Api-Key')).toBe(TEST_KEY);
+  });
+
   it.each([
     [400, 'INVALID_PROPERTY_LOOKUP'],
     [401, 'PROVIDER_AUTH_ERROR'],

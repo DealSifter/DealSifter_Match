@@ -48,13 +48,13 @@ export class MockPropertyDataProvider implements PropertyDataProvider {
 }
 
 export class RentCastPropertyDataProvider implements PropertyDataProvider {
-  private readonly client: RentCastClient;
+  private readonly client: Pick<RentCastClient, 'lookupProperty'>;
   private readonly usageGuard: PropertyDataUsageGuard;
   private readonly logger: PropertyDataLogger;
   private readonly now: () => Date;
 
   constructor(options: {
-    client: RentCastClient;
+    client: Pick<RentCastClient, 'lookupProperty'>;
     usageGuard: PropertyDataUsageGuard;
     logger?: PropertyDataLogger;
     now?: () => Date;
