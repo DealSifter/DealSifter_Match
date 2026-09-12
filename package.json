@@ -33,7 +33,7 @@
     "audit:performance": "node scripts/audit-performance.mjs",
     "audit:card-integrity": "node scripts/audit-card-reference-integrity.mjs",
     "audit:types": "node scripts/audit-database-types.mjs && tsc -p tsconfig.contracts.json && npm run typecheck:property-intelligence",
-    "typecheck:property-intelligence": "npx --yes --package=deno deno check supabase/functions/_shared/property-data/index.ts supabase/functions/_shared/property-data/manualValidation.ts supabase/functions/property-intelligence/index.ts",
+    "typecheck:property-intelligence": "npx --yes --package=deno deno check supabase/functions/_shared/property-data/index.ts supabase/functions/_shared/property-data/manualValidation.ts supabase/functions/property-intelligence/index.ts supabase/functions/arv-visual-comp-review/index.ts",
     "audit:types:remote": "node scripts/audit-database-types.mjs --remote && tsc -p tsconfig.contracts.json && npm run typecheck:property-intelligence",
     "audit:feature-readiness": "node scripts/audit-feature-readiness.mjs",
     "audit:ui-structural": "playwright test --config=playwright.ui-regression.config.js",

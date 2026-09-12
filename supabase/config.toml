@@ -60,3 +60,6 @@ verify_jwt = true
 
 [functions.property-intelligence]
 verify_jwt = true
+
+[functions.arv-visual-comp-review]
+verify_jwt = true

@@ -7,6 +7,7 @@ import { MAXXIS_WIDGET_POSITION_KEY } from '../../lib/localStoragePolicy';
 import { trackProductEvent } from '../../lib/productAnalytics';
 import { MaxxisDealMemoryCard } from '../../features/maxxis/memory/MaxxisDealMemoryCard';
 import { MaxxisComposedExperience } from '../../features/maxxis/composition/MaxxisComposedExperience';
+import { MaxxisArvVisualCompReview } from '../../features/maxxis/arvReview/MaxxisArvVisualCompReview';
 
 export const UUID_PATTERN = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
 
@@ -1582,6 +1583,9 @@ export function MessageBubble({
   composedExperience,
   onOpenProvider,
   onOpenFeedCard,
+  onSetArvTargetCondition,
+  onSaveArvCompReview,
+  activeArvReviewKey,
 }) {
   const isUser = message.role === 'user';
   const { text, actions } = isUser
@@ -1918,6 +1922,16 @@ export function MessageBubble({
       ) : null}
       {message.type === 'property_comparison' ? (
         <PropertyComparison data={message.data} language={language} />
+      ) : null}
+      {message.type === 'arv_visual_comp_review' ? (
+        <MaxxisArvVisualCompReview
+          key={`${message.id}:${message.data?.targetCondition}:${message.data?.targetConditionEvidenceStatus || 'unset'}`}
+          messageId={message.id}
+          data={message.data}
+          onSetTarget={onSetArvTargetCondition}
+          onSaveReview={onSaveArvCompReview}
+          activeReviewKey={activeArvReviewKey}
+        />
       ) : null}
       {(message.type === 'deal_memory_recall' || message.type === 'deal_memory_forget_confirmation') ? (
         <MaxxisDealMemoryCard

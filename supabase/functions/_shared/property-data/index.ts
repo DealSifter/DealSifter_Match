@@ -33,6 +33,7 @@ export * from './compQualityCalibrationManual.ts';
 export * from './weightedCompTypes.ts';
 export * from './weightedCompPolicy.ts';
 export * from './weightedCompManualValidation.ts';
+export * from './arvVisualCompReview.ts';
 export * from './rentcast/rentcastClient.ts';
 export * from './rentcast/rentcastMapper.ts';
 export type * from './rentcast/rentcastTypes.ts';

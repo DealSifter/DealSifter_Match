@@ -91,6 +91,15 @@ import {
 } from '../../features/maxxis/composition/maxxisExperienceComposer';
 import { buildMaxxisContinuityEvidence } from '../../features/maxxis/continuity/maxxisContinuityContext';
 import {
+  arvReviewGuidance,
+  isArvVisualCompReviewIntent,
+} from '../../features/maxxis/arvReview/arvVisualCompReview';
+import {
+  fetchArvVisualCompReview,
+  persistArvCompConditionReview,
+  persistArvTargetCondition,
+} from '../../services/arvVisualCompReviewService';
+import {
   applyMaxxisContinuityToContextSnapshot,
   captureMaxxisContinuity,
   createMaxxisContinuitySession,
@@ -175,6 +184,7 @@ export function MaxxisAssistant({ page = 'dashboard', onOpenSupport = null, onNa
   const [activeProviderMessageSendId, setActiveProviderMessageSendId] = useState('');
   const [activeProviderConversationAnalysisId, setActiveProviderConversationAnalysisId] = useState('');
   const [activeWorkflowItemCode, setActiveWorkflowItemCode] = useState('');
+  const [activeArvReviewKey, setActiveArvReviewKey] = useState('');
   const [pendingProviderUnlock, setPendingProviderUnlock] = useState(null);
   const [pendingProviderMessageSend, setPendingProviderMessageSend] = useState(null);
   const [devAvatarPresentation, setDevAvatarPresentation] = useState(readDevMaxxisAvatarPresentation);
@@ -1017,6 +1027,52 @@ export function MaxxisAssistant({ page = 'dashboard', onOpenSupport = null, onNa
         }]);
         return;
       }
+      if (isArvVisualCompReviewIntent(cleanMessage, meta.controlledIntent)) {
+        const arvReference = continuityReference.status !== 'unresolved'
+          ? continuityReference
+          : resolveMaxxisNaturalReference(cleanMessage, continuityContextSnapshot);
+        const arvPropertyId = arvReference.status === 'resolved' && arvReference.entity?.type === 'PROPERTY'
+          ? String(arvReference.entity.id || '')
+          : String(propertyContextId || appContext?.entity?.propertyId || '');
+        if (!UUID_PATTERN.test(arvPropertyId)) {
+          setMessages((prev) => [...prev, {
+            id: `maxxis-arv-context-required-${Date.now()}`,
+            role: 'assistant',
+            content: language === 'pt'
+              ? 'Selecione uma propriedade para revisar os comparáveis estruturais de ARV.'
+              : language === 'es'
+                ? 'Selecciona una propiedad para revisar los comparables estructurales de ARV.'
+                : 'Select a property to review structural ARV comparables.',
+            createdAt: new Date(),
+            type: 'arv_visual_comp_review_unavailable',
+          }]);
+          return;
+        }
+        try {
+          const data = await fetchArvVisualCompReview(arvPropertyId);
+          setMessages((prev) => [...prev, {
+            id: `maxxis-arv-review-${Date.now()}`,
+            role: 'assistant',
+            content: arvReviewGuidance(data.summary, language),
+            createdAt: new Date(),
+            type: 'arv_visual_comp_review',
+            data,
+          }]);
+        } catch {
+          setMessages((prev) => [...prev, {
+            id: `maxxis-arv-unavailable-${Date.now()}`,
+            role: 'assistant',
+            content: language === 'pt'
+              ? 'Não consegui carregar comparáveis estruturais do cache para esta propriedade. Nenhuma consulta externa foi realizada e nenhum ARV foi calculado.'
+              : language === 'es'
+                ? 'No pude cargar comparables estructurales del caché para esta propiedad. No se realizó ninguna consulta externa ni se calculó ARV.'
+                : 'I could not load cached structural comparables for this property. No external lookup was made and no ARV was calculated.',
+            createdAt: new Date(),
+            type: 'arv_visual_comp_review_unavailable',
+          }]);
+        }
+        return;
+      }
       const localDealIntelligence = buildLocalDealIntelligenceReply({
         message: cleanMessage,
         language,
@@ -1143,6 +1199,58 @@ export function MaxxisAssistant({ page = 'dashboard', onOpenSupport = null, onNa
   useEffect(() => {
     submitMessageRef.current = submitMessage;
   });
+
+  const replaceArvReviewMessage = (messageId, data) => {
+    setMessages((prev) => prev.map((message) => message.id === messageId ? {
+      ...message,
+      content: arvReviewGuidance(data.summary, language),
+      data,
+      error: false,
+    } : message));
+  };
+
+  const markArvReviewError = (messageId) => {
+    setMessages((prev) => prev.map((message) => message.id === messageId ? {
+      ...message,
+      data: { ...message.data, reviewError: language === 'pt'
+        ? 'Não foi possível salvar a revisão. Tente novamente.'
+        : language === 'es' ? 'No se pudo guardar la revisión. Inténtalo de nuevo.'
+          : 'The review could not be saved. Please try again.' },
+    } : message));
+  };
+
+  const handleSetArvTargetCondition = async (messageId, targetCondition) => {
+    const message = messages.find((item) => item.id === messageId);
+    const propertyId = String(message?.data?.propertyId || '');
+    if (!propertyId || activeArvReviewKey) return;
+    setActiveArvReviewKey('target');
+    try {
+      replaceArvReviewMessage(messageId, await persistArvTargetCondition(propertyId, targetCondition));
+    } catch (error) {
+      captureAppException(error, { area: 'maxxis_arv_target_condition', propertyId });
+      markArvReviewError(messageId);
+    } finally {
+      setActiveArvReviewKey('');
+    }
+  };
+
+  const handleSaveArvCompReview = async (messageId, candidate, review) => {
+    const message = messages.find((item) => item.id === messageId);
+    const propertyId = String(message?.data?.propertyId || '');
+    const compIdentifier = String(candidate?.stableCompIdentifier || '');
+    if (!propertyId || !compIdentifier || activeArvReviewKey) return;
+    setActiveArvReviewKey(compIdentifier);
+    try {
+      replaceArvReviewMessage(messageId, await persistArvCompConditionReview(propertyId, {
+        ...review, compIdentifier,
+      }));
+    } catch (error) {
+      captureAppException(error, { area: 'maxxis_arv_comp_review', propertyId });
+      markArvReviewError(messageId);
+    } finally {
+      setActiveArvReviewKey('');
+    }
+  };
 
   const updateProfileSuggestionMessage = (messageId, pendingActionId, feedback) => {
     setMessages((prev) => prev.map((message) => {
@@ -2270,6 +2378,9 @@ export function MaxxisAssistant({ page = 'dashboard', onOpenSupport = null, onNa
                   composedExperience={getMessageComposedExperience(message, smartActions)}
                   onOpenProvider={onOpenProvider}
                   onOpenFeedCard={handleOpenFeedCard}
+                  onSetArvTargetCondition={handleSetArvTargetCondition}
+                  onSaveArvCompReview={handleSaveArvCompReview}
+                  activeArvReviewKey={activeArvReviewKey}
                 />
               );
             })}

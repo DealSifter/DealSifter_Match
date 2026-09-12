@@ -8,6 +8,7 @@ export const MAXXIS_RESPONSE_TYPES = Object.freeze({
   PROVIDER_MESSAGE_DRAFT: 'provider_message_draft',
   PROVIDER_CONVERSATION_ANALYSIS: 'provider_conversation_analysis',
   DEAL_COPILOT_OVERVIEW: 'deal_copilot_overview',
+  ARV_VISUAL_COMP_REVIEW: 'arv_visual_comp_review',
 });
 
 const validators = {
@@ -17,6 +18,7 @@ const validators = {
   property_details: (data) => Object.prototype.hasOwnProperty.call(data || {}, 'property'),
   property_comparison: (data) => Array.isArray(data?.properties),
   deal_copilot_overview: (data) => Boolean(data?.propertySummary),
+  arv_visual_comp_review: (data) => Array.isArray(data?.candidates) && Boolean(data?.summary),
 };
 
 export function normalizeMaxxisResponsePayload(type, data) {

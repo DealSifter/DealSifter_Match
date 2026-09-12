@@ -79,4 +79,31 @@ describe('Maxxis Deal AI structured result presentation', () => {
     expect(css).toMatch(/\.maxxis-inline-link\s*\{[\s\S]*?color:\s*var\(--accent-hex\)[\s\S]*?text-decoration:\s*underline/);
     expect(css).toMatch(/\.maxxis-inline-link:focus-visible/);
   });
+
+  it('renders safe external visual-review links and preserves structural evidence', () => {
+    const html = renderToStaticMarkup(
+      <MessageBubble
+        language="en"
+        message={{
+          id: 'arv-review', role: 'assistant', content: 'Review the condition.', type: 'arv_visual_comp_review',
+          data: {
+            propertyId: 'e86dd292-429d-4b51-9b02-bc60a3e9068f', targetCondition: 'FULL_RENOVATION',
+            targetConditionEvidenceStatus: 'USER_PROVIDED', summary: { reviewedCount: 0,
+              totalStructuralCandidates: 1, status: 'NOT_STARTED' },
+            candidates: [{ stableCompIdentifier: 'rentcast-436',
+              address: { line1: '436 Kekauluohi St', city: 'Honolulu', state: 'HI', zipCode: '96825' },
+              structuralComparabilityScore: 84.5, dataCompletenessScore: 70, distanceMiles: .64,
+              recordedSalePrice: 1550000, recordedSaleDate: '2026-04-08T00:00:00.000Z', review: null }],
+          },
+        }}
+      />,
+    );
+    expect(html).toContain('436 Kekauluohi St');
+    expect(html).toContain('Structural Match: 84.5%');
+    expect(html).toContain('target="_blank"');
+    expect(html).toContain('rel="noopener noreferrer"');
+    expect(html).toContain('Zillow ↗');
+    expect(html).toContain('Redfin ↗');
+    expect(html).toContain('No ARV or MAO is calculated');
+  });
 });

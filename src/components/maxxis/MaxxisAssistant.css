@@ -1034,3 +1034,114 @@ button.maxxis-action-link:hover {
     transition: none;
   }
 }
+
+.maxxis-arv-review {
+  display: grid;
+  gap: 10px;
+  margin-top: 8px;
+  width: 100%;
+}
+
+.maxxis-arv-target,
+.maxxis-arv-comp-card {
+  display: grid;
+  gap: 7px;
+  padding: 10px;
+  border: 1px solid var(--border-color, #cbd5e1);
+  border-radius: 12px;
+  background: color-mix(in srgb, var(--surface, #fff) 94%, var(--accent-hex, #20c6c7) 6%);
+}
+
+.maxxis-arv-target select,
+.maxxis-arv-review-form select,
+.maxxis-arv-review-form textarea {
+  width: 100%;
+  min-height: 36px;
+  padding: 7px 9px;
+  color: inherit;
+  border: 1px solid var(--border-color, #cbd5e1);
+  border-radius: 8px;
+  background: var(--surface, #fff);
+}
+
+.maxxis-arv-target button,
+.maxxis-arv-review-form button,
+.maxxis-arv-review-button,
+.maxxis-arv-saved-review button {
+  min-height: 34px;
+  padding: 7px 10px;
+  color: #073f42;
+  font-weight: 700;
+  border: 1px solid var(--accent-hex, #20c6c7);
+  border-radius: 9px;
+  background: color-mix(in srgb, var(--accent-hex, #20c6c7) 16%, transparent);
+  cursor: pointer;
+}
+
+.maxxis-arv-target button:disabled,
+.maxxis-arv-review-form button:disabled,
+.maxxis-arv-review-button:disabled {
+  cursor: not-allowed;
+  opacity: .55;
+}
+
+.maxxis-arv-comp-heading {
+  display: flex;
+  gap: 8px;
+  align-items: flex-start;
+  justify-content: space-between;
+}
+
+.maxxis-arv-review-status {
+  flex: 0 0 auto;
+  font-size: 11px;
+  color: #64748b;
+}
+
+.maxxis-arv-review-status.is-reviewed { color: #16865b; }
+
+.maxxis-arv-comp-facts,
+.maxxis-arv-saved-review,
+.maxxis-arv-review-form {
+  display: grid;
+  gap: 4px;
+  font-size: 12px;
+}
+
+.maxxis-arv-review-form label { display: grid; gap: 4px; }
+.maxxis-arv-review-form textarea { min-height: 58px; resize: vertical; }
+
+.maxxis-arv-external-links {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.maxxis-arv-external-links a {
+  color: var(--accent-hex, #20c6c7);
+  font-weight: 700;
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+
+.maxxis-arv-summary {
+  padding: 7px 9px;
+  color: #475569;
+  font-size: 12px;
+  border-radius: 8px;
+  background: rgba(32, 198, 199, .1);
+}
+
+.maxxis-arv-review-error {
+  padding: 7px 9px;
+  color: #b42318;
+  font-size: 12px;
+  border: 1px solid #fda29b;
+  border-radius: 8px;
+  background: #fef3f2;
+}
+
+@media (max-width: 767px) {
+  .maxxis-arv-comp-heading { display: grid; }
+  .maxxis-arv-review { gap: 8px; }
+}
