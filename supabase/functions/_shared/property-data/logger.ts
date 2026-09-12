@@ -1,7 +1,7 @@
 import { logOperationalEvent } from '../observability.ts';
 
 export type PropertyDataLogEvent = {
-  operation?: 'property_lookup' | 'property_evidence' | 'property_value_avm';
+  operation?: 'property_lookup' | 'property_evidence' | 'property_value_avm' | 'property_sold_search';
   success: boolean;
   durationMs: number;
   cacheHit?: boolean;

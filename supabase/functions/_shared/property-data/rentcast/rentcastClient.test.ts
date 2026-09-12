@@ -33,7 +33,8 @@ describe('RentCast client', () => {
   });
 
   it('builds one backend-only AVM/value request with the explicit DealSifter search policy', async () => {
-    const fetchImpl = vi.fn(async () => jsonResponse({ price: 250000, subjectProperty: {}, comparables: [] }));
+    const fetchImpl = vi.fn(async (_input: string | URL, _init?: RequestInit) =>
+      jsonResponse({ price: 250000, subjectProperty: {}, comparables: [] }));
     const client = createRentCastClient({ apiKey: TEST_KEY, fetchImpl });
     await client.estimateValue({
       address: '7081 Kalanianaole Hwy, Honolulu, HI, 96825',
@@ -48,6 +49,20 @@ describe('RentCast client', () => {
     });
     expect(String(url)).not.toContain(TEST_KEY);
     expect(new Headers(init?.headers).get('X-Api-Key')).toBe(TEST_KEY);
+  });
+
+  it('builds one bulk sold-property request without a per-comparable loop', async () => {
+    const fetchImpl = vi.fn(async (_input: string | URL, _init?: RequestInit) => jsonResponse([]));
+    const client = createRentCastClient({ apiKey: TEST_KEY, fetchImpl });
+    await client.searchSoldProperties({ address: '7081 Kalanianaole Hwy, Honolulu, HI, 96825',
+      radius: 5, saleDateRange: 270, propertyType: 'Single Family', limit: 100 });
+    expect(fetchImpl).toHaveBeenCalledTimes(1);
+    const parsed = new URL(String(fetchImpl.mock.calls[0][0]));
+    expect(`${parsed.origin}${parsed.pathname}`).toBe(`${RENTCAST_BASE_URL}/properties`);
+    expect(Object.fromEntries(parsed.searchParams)).toEqual({
+      address: '7081 Kalanianaole Hwy, Honolulu, HI, 96825', radius: '5', saleDateRange: '270',
+      propertyType: 'Single Family', limit: '100',
+    });
   });
 
   it.each([

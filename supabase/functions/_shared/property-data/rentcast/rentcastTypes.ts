@@ -30,6 +30,7 @@ export type RentCastPropertyRecordRaw = {
   squareFootage?: unknown;
   lotSize?: unknown;
   yearBuilt?: unknown;
+  assessorID?: unknown;
   lastSaleDate?: unknown;
   lastSalePrice?: unknown;
   taxAssessments?: Record<string, RentCastTaxAssessmentRaw> | null;
@@ -41,6 +42,12 @@ export type RentCastPropertyRecordRaw = {
 
 export type RentCastLookupResult = {
   record: RentCastPropertyRecordRaw | null;
+  httpStatus: 200;
+  billableSuccess: true;
+};
+
+export type RentCastSoldSearchResult = {
+  records: RentCastPropertyRecordRaw[];
   httpStatus: 200;
   billableSuccess: true;
 };

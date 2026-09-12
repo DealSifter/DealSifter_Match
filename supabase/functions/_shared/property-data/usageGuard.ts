@@ -1,7 +1,7 @@
 import { PropertyDataError } from './types.ts';
 
 export const DEFAULT_RENTCAST_MONTHLY_HARD_LIMIT = 45;
-export type PropertyDataUsageOperation = 'property_lookup' | 'property_value_avm';
+export type PropertyDataUsageOperation = 'property_lookup' | 'property_value_avm' | 'property_sold_search';
 
 export type UsageReservation = {
   id: string;

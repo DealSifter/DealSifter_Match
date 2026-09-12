@@ -2,6 +2,7 @@ import { PropertyDataError } from '../types.ts';
 import type {
   RentCastLookupResult,
   RentCastPropertyRecordRaw,
+  RentCastSoldSearchResult,
   RentCastValueEstimateRaw,
   RentCastValueEstimateResult,
 } from './rentcastTypes.ts';
@@ -14,6 +15,7 @@ export type RentCastFetch = (input: string | URL, init?: RequestInit) => Promise
 export type RentCastClient = {
   lookupProperty(address: string): Promise<RentCastLookupResult>;
   estimateValue(input: RentCastValueEstimateInput): Promise<RentCastValueEstimateResult>;
+  searchSoldProperties(input: RentCastSoldSearchInput): Promise<RentCastSoldSearchResult>;
 };
 
 export type RentCastValueEstimateInput = {
@@ -22,6 +24,14 @@ export type RentCastValueEstimateInput = {
   daysOld: number;
   compCount: number;
   lookupSubjectAttributes: boolean;
+};
+
+export type RentCastSoldSearchInput = {
+  address: string;
+  radius: number;
+  saleDateRange: number;
+  propertyType: string;
+  limit: number;
 };
 
 function statusError(status: number) {
@@ -114,6 +124,22 @@ export function createRentCastClient(options: {
         throw new PropertyDataError('INVALID_PROVIDER_RESPONSE', { httpStatus: 200, billableSuccess: true });
       }
       return { valuation: body as RentCastValueEstimateRaw, httpStatus: 200, billableSuccess: true };
+    },
+    async searchSoldProperties(input: RentCastSoldSearchInput) {
+      const address = String(input?.address || '').trim();
+      const propertyType = String(input?.propertyType || '').trim();
+      if (!address || !propertyType) throw new PropertyDataError('INVALID_PROPERTY_LOOKUP');
+      const url = new URL(`${baseUrl}/properties`);
+      url.searchParams.set('address', address);
+      url.searchParams.set('radius', String(input.radius));
+      url.searchParams.set('saleDateRange', String(input.saleDateRange));
+      url.searchParams.set('propertyType', propertyType);
+      url.searchParams.set('limit', String(input.limit));
+      const body = await requestJson(url);
+      if (!Array.isArray(body) || body.some((record) => !record || typeof record !== 'object' || Array.isArray(record))) {
+        throw new PropertyDataError('INVALID_PROVIDER_RESPONSE', { httpStatus: 200, billableSuccess: true });
+      }
+      return { records: body as RentCastPropertyRecordRaw[], httpStatus: 200, billableSuccess: true };
     },
   };
 }
