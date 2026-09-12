@@ -4,6 +4,7 @@ import {
   analyzeSaleComparables,
   INITIAL_DEALSIFTER_COMP_POLICY,
 } from './compEngine.ts';
+import { evaluateRecordedSoldCandidate, referenceSetClass } from './compQualityCalibration.ts';
 import type {
   ComparableQualityDiagnostic,
   NormalizedComparableCandidate,
@@ -22,7 +23,8 @@ import type {
 
 export const INITIAL_SOLD_COMP_POLICY = Object.freeze({
   recentSaleDays: 270, maximumDistanceMiles: 3, maximumLivingAreaVariance: 0.4,
-  geographicIdentityMiles: 0.08, geographicIdentityLivingVariance: 0.15, minimumStrongComps: 5,
+  geographicIdentityMiles: 0.08, geographicIdentityLivingVariance: 0.15,
+  minimumReferenceComps: 2, acceptableReferenceComps: 3, preferredReferenceComps: 5,
 });
 
 const normalizeType = (value: string | null) => String(value || '').trim().toLowerCase().replace(/^sfr$/, 'single family');
@@ -153,8 +155,9 @@ export function crossValidateSoldComparables(valuation: NormalizedValuationEvide
     || (left.candidate.distanceMiles ?? Infinity) - (right.candidate.distanceMiles ?? Infinity));
   const strong = qualified.filter((item) => item.quality === 'strong');
   const conditional = qualified.filter((item) => item.quality === 'conditional');
-  const sufficiency = strong.length >= INITIAL_SOLD_COMP_POLICY.minimumStrongComps
-    ? 'SUFFICIENT' : qualified.length ? 'CONDITIONAL' : 'INSUFFICIENT';
+  const sufficiency = strong.length >= INITIAL_SOLD_COMP_POLICY.acceptableReferenceComps
+    ? 'SUFFICIENT' : strong.length >= INITIAL_SOLD_COMP_POLICY.minimumReferenceComps
+      ? 'CONDITIONAL' : 'INSUFFICIENT';
   const count = (strength: SoldMatchStrength) => matches.filter((item) => item.matchStrength === strength).length;
   return {
     totalAvmCandidates: valuation.comparables.length, soldRecordsFound: records.length,
@@ -268,11 +271,11 @@ export function selectRecordedSoldComparables(
       && adapter.derived.sqftVarianceFromSubject.value <= INITIAL_SOLD_COMP_POLICY.maximumLivingAreaVariance
       && daysSinceSale !== null && daysSinceSale >= 0
       && daysSinceSale <= INITIAL_SOLD_COMP_POLICY.recentSaleDays;
-    let compQuality: RecordedSoldComparableCandidate['compQuality'];
-    if (hardInvalidReasons.length) compQuality = 'HARD_INVALID';
-    else if (diagnostic.classification === 'strong' && hasCoreSimilarity) compQuality = 'STRONG';
-    else if (diagnostic.classification === 'usable' && hasCoreSimilarity) compQuality = 'ACCEPTABLE';
-    else compQuality = 'WEAK';
+    let baselineCompQuality: RecordedSoldComparableCandidate['baselineCompQuality'];
+    if (hardInvalidReasons.length) baselineCompQuality = 'HARD_INVALID';
+    else if (diagnostic.classification === 'strong' && hasCoreSimilarity) baselineCompQuality = 'STRONG';
+    else if (diagnostic.classification === 'usable' && hasCoreSimilarity) baselineCompQuality = 'ACCEPTABLE';
+    else baselineCompQuality = 'WEAK';
     const overlap = findAvmOverlap(record, valuation);
     const qualityReasons: RecordedSoldComparableCandidate['qualityReasons'] = [
       ...(sale ? ['RECORDED_SALE_CONFIRMED' as const] : []),
@@ -289,7 +292,7 @@ export function selectRecordedSoldComparables(
       'TRANSACTION_QUALITY_UNKNOWN', 'RENOVATION_CONDITION_UNKNOWN',
       ...(record.lotSizeSqft === null ? ['LOT_DATA_UNAVAILABLE' as const] : []),
     ];
-    return {
+    const base: RecordedSoldComparableCandidate = {
       soldRecord: record,
       recordedSalePrice: sale?.salePrice ?? null,
       recordedSaleDate: sale?.saleDate ?? null,
@@ -303,7 +306,16 @@ export function selectRecordedSoldComparables(
       lotSizeDifferencePercent: adapter.derived.lotSizeVarianceFromSubject,
       yearBuiltDifference: adapter.derived.yearBuiltDifference,
       evidenceStatus: 'VERIFIED_RECORD',
-      compQuality,
+      baselineCompQuality,
+      compQuality: baselineCompQuality,
+      qualityScore: 0,
+      qualityChecks: {
+        recordedSale: 'UNAVAILABLE', recency: 'UNAVAILABLE', proximity: 'UNAVAILABLE',
+        propertyType: 'UNAVAILABLE', structuralCompatibility: 'UNAVAILABLE', livingArea: 'UNAVAILABLE', bedrooms: 'UNAVAILABLE',
+        bathrooms: 'UNAVAILABLE', lotSize: 'UNAVAILABLE', yearBuilt: 'UNAVAILABLE',
+        specialCharacteristics: 'UNAVAILABLE', missingDataBurden: 'UNAVAILABLE',
+      },
+      primaryQualityBlocker: null,
       qualityReasons,
       penaltyReasons,
       hardInvalidReasons,
@@ -312,8 +324,11 @@ export function selectRecordedSoldComparables(
       avmOverlap: overlap.strength === 'EXACT' || overlap.strength === 'STRONG',
       providerCorrelation: overlap.candidate?.providerCorrelation ?? null,
     };
+    const calibrated = evaluateRecordedSoldCandidate(base, 'MULTI_CHECK_BALANCED');
+    return { ...base, compQuality: calibrated.quality, qualityScore: calibrated.score,
+      qualityChecks: calibrated.checks, primaryQualityBlocker: calibrated.primaryBlocker };
   });
-  const order = { STRONG: 0, ACCEPTABLE: 1, WEAK: 2, HARD_INVALID: 3 } as const;
+  const order = { STRONG: 0, GOOD: 1, ACCEPTABLE: 2, WEAK: 3, HARD_INVALID: 4 } as const;
   candidates.sort((left, right) => order[left.compQuality] - order[right.compQuality]
     || left.penaltyReasons.length - right.penaltyReasons.length
     || right.qualityReasons.length - left.qualityReasons.length
@@ -323,10 +338,11 @@ export function selectRecordedSoldComparables(
     || String(left.soldRecord.providerPropertyId || '').localeCompare(String(right.soldRecord.providerPropertyId || '')));
   const hardInvalid = candidates.filter((item) => item.compQuality === 'HARD_INVALID');
   const weak = candidates.filter((item) => item.compQuality === 'WEAK');
+  const good = candidates.filter((item) => item.compQuality === 'GOOD');
   const acceptable = candidates.filter((item) => item.compQuality === 'ACCEPTABLE');
   const strong = candidates.filter((item) => item.compQuality === 'STRONG');
   const topFiveStrong = strong.slice(0, 5);
-  const usable = [...strong, ...acceptable];
+  const usable = [...strong, ...good, ...acceptable];
   const statisticsSource = topFiveStrong.length ? topFiveStrong : usable.slice(0, 5);
   const priceStats = distribution(statisticsSource
     .map((item) => item.recordedSalePrice).filter((value): value is number => value !== null));
@@ -337,12 +353,13 @@ export function selectRecordedSoldComparables(
     directSoldCompCandidates: candidates,
     hardInvalid,
     weak,
+    good,
     acceptable,
     strong,
     topFiveStrong,
     avmOverlapAmongTopFive: topFiveStrong.filter((item) => item.avmOverlap).length,
-    sufficiency: strong.length >= INITIAL_SOLD_COMP_POLICY.minimumStrongComps
-      ? 'SUFFICIENT' : usable.length >= INITIAL_SOLD_COMP_POLICY.minimumStrongComps ? 'CONDITIONAL' : 'INSUFFICIENT',
+    sufficiency: strong.length >= 3 ? 'SUFFICIENT' : strong.length === 2 ? 'CONDITIONAL' : 'INSUFFICIENT',
+    referenceSetClass: referenceSetClass(strong.length),
     descriptiveStatistics: {
       scope: topFiveStrong.length ? 'TOP_5_STRONG' : 'TOP_5_USABLE',
       medianRecordedSalePrice: priceStats.median,

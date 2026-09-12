@@ -75,14 +75,15 @@ describe('direct recorded sold comparable selection', () => {
     expect(result.sufficiency).toBe('INSUFFICIENT');
   });
 
-  it('returns CONDITIONAL for five acceptable records that meet core limits but not strong quality', () => {
+  it('keeps five acceptable records insufficient when there are no strong references', () => {
     const result = selectRecordedSoldComparables(valuation(), soldRecords(5, (index) => ({
       latitude: 30.025 + index / 10000,
       lastSaleDate: '2026-06-01',
     })));
     expect(result.acceptable).toHaveLength(5);
     expect(result.strong).toHaveLength(0);
-    expect(result.sufficiency).toBe('CONDITIONAL');
+    expect(result.sufficiency).toBe('INSUFFICIENT');
+    expect(result.referenceSetClass).toBe('INSUFFICIENT');
   });
 
   it('hard-invalidates objective evidence defects while keeping lot optional', () => {

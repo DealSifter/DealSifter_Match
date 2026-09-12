@@ -35,7 +35,7 @@ export async function runCachedRecordedSoldCompSelectionValidation(options: {
   });
   const topFive = selection.topFiveStrong.map(summarize);
   const topFiveUsable = selection.directSoldCompCandidates
-    .filter((item) => item.compQuality === 'STRONG' || item.compQuality === 'ACCEPTABLE')
+    .filter((item) => ['STRONG', 'GOOD', 'ACCEPTABLE'].includes(item.compQuality))
     .slice(0, 5)
     .map(summarize);
   return {
@@ -48,6 +48,7 @@ export async function runCachedRecordedSoldCompSelectionValidation(options: {
     directSoldCompCandidates: selection.directSoldCompCandidates.length,
     hardInvalid: selection.hardInvalid.length,
     weak: selection.weak.length,
+    good: selection.good.length,
     acceptable: selection.acceptable.length,
     strong: selection.strong.length,
     topFive,
@@ -55,6 +56,7 @@ export async function runCachedRecordedSoldCompSelectionValidation(options: {
     weakExamples: selection.weak.slice(0, 5).map(summarize),
     avmOverlapAmongTopFive: selection.avmOverlapAmongTopFive,
     sufficiency: selection.sufficiency,
+    referenceSetClass: selection.referenceSetClass,
     descriptiveStatistics: selection.descriptiveStatistics,
     lotCoverage: result.soldPool.records.filter((record) => record.lotSizeSqft !== null).length,
   };

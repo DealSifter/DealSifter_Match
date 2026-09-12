@@ -69,7 +69,7 @@ describe('recorded sale normalization and cross-validation', () => {
     const conditional = crossValidateSoldComparables(valuation(5, 4), records(5));
     expect(conditional.strongSoldComps).toHaveLength(0);
     expect(conditional.conditionalSoldComps).toHaveLength(5);
-    expect(conditional.sufficiency).toBe('CONDITIONAL');
+    expect(conditional.sufficiency).toBe('INSUFFICIENT');
     expect(crossValidateSoldComparables(valuation(5), []).sufficiency).toBe('INSUFFICIENT');
     expect(crossValidateSoldComparables(valuation(5), records(5)).sufficiency).toBe('SUFFICIENT');
   });

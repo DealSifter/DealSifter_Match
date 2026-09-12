@@ -79,6 +79,10 @@ Descriptive statistics for those five usable candidates, not an ARV:
 
 There is no Top 5 strong set, so AVM overlap among Top 5 strong is 0/5. Among the five diagnostic usable candidates, overlap is 1/5. The evidence is useful but does not yet support the strong-five product threshold. Readiness for the DealSifter ARV Engine v1 is therefore `NO` under the current reviewed policy.
 
+## Subsequent policy calibration
+
+The zero-strong result above is preserved as the historical output of the original binary policy. [Comp Quality Calibration + Sensitivity Analysis v1](./COMP_QUALITY_CALIBRATION_SENSITIVITY_V1.md) replaces the five-as-minimum interpretation with explicit 2-5 reference-set classes and a price-independent multi-check policy. The calibrated result is two consensus strong comps (`MINIMUM`) with conditional ARV-engine readiness; it does not retroactively alter the evidence collected here.
+
 ## Boundaries
 
 The prior AVM cross-validation remains intact as an independent convergence diagnostic. This phase made no provider request and used a fail-fast provider during validation, so any accidental acquisition attempt would have failed. Public Property Intelligence remains off.

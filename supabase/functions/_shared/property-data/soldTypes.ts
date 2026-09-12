@@ -116,7 +116,8 @@ export type SoldCompSet = {
   sufficiency: 'SUFFICIENT' | 'CONDITIONAL' | 'INSUFFICIENT';
 };
 
-export type RecordedSoldCompQuality = 'STRONG' | 'ACCEPTABLE' | 'WEAK' | 'HARD_INVALID';
+export type RecordedSoldCompQuality = 'STRONG' | 'GOOD' | 'ACCEPTABLE' | 'WEAK' | 'HARD_INVALID';
+export type RecordedSoldQualityCheck = 'PASS' | 'PARTIAL' | 'FAIL' | 'UNAVAILABLE';
 
 export type RecordedSoldComparableCandidate = {
   soldRecord: SoldPropertyRecord;
@@ -132,7 +133,24 @@ export type RecordedSoldComparableCandidate = {
   lotSizeDifferencePercent: Evidence<number>;
   yearBuiltDifference: Evidence<number>;
   evidenceStatus: 'VERIFIED_RECORD';
+  baselineCompQuality: Exclude<RecordedSoldCompQuality, 'GOOD'>;
   compQuality: RecordedSoldCompQuality;
+  qualityScore: number;
+  qualityChecks: {
+    recordedSale: RecordedSoldQualityCheck;
+    recency: RecordedSoldQualityCheck;
+    proximity: RecordedSoldQualityCheck;
+    propertyType: RecordedSoldQualityCheck;
+    structuralCompatibility: RecordedSoldQualityCheck;
+    livingArea: RecordedSoldQualityCheck;
+    bedrooms: RecordedSoldQualityCheck;
+    bathrooms: RecordedSoldQualityCheck;
+    lotSize: RecordedSoldQualityCheck;
+    yearBuilt: RecordedSoldQualityCheck;
+    specialCharacteristics: RecordedSoldQualityCheck;
+    missingDataBurden: RecordedSoldQualityCheck;
+  };
+  primaryQualityBlocker: string | null;
   qualityReasons: Array<SoldCompReasonCode | ComparableReasonCode>;
   penaltyReasons: Array<SoldCompReasonCode | ComparableReasonCode>;
   hardInvalidReasons: Array<SoldCompReasonCode | ComparableReasonCode>;
@@ -147,11 +165,13 @@ export type RecordedSoldCompSelection = {
   directSoldCompCandidates: RecordedSoldComparableCandidate[];
   hardInvalid: RecordedSoldComparableCandidate[];
   weak: RecordedSoldComparableCandidate[];
+  good: RecordedSoldComparableCandidate[];
   acceptable: RecordedSoldComparableCandidate[];
   strong: RecordedSoldComparableCandidate[];
   topFiveStrong: RecordedSoldComparableCandidate[];
   avmOverlapAmongTopFive: number;
   sufficiency: 'SUFFICIENT' | 'CONDITIONAL' | 'INSUFFICIENT';
+  referenceSetClass: 'PREFERRED' | 'ROBUST' | 'ACCEPTABLE' | 'MINIMUM' | 'INSUFFICIENT';
   descriptiveStatistics: {
     scope: 'TOP_5_STRONG' | 'TOP_5_USABLE';
     medianRecordedSalePrice: number | null;
