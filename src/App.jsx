@@ -5688,6 +5688,7 @@ export default function App() {
             prevPage={prevPage}
             addToast={addToast}
             onRequestCheckoutIntent={handlePricingCheckoutSelection}
+            currentPlan={authSession ? accessSubscription : null}
             guideReturnRequired={onboardingNavigationLocked}
             onReturnToGuide={handleReturnToRequiredGuide}
           />

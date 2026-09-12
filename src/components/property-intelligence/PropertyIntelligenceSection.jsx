@@ -10,9 +10,9 @@ import {
 } from './propertyIntelligenceViewModel';
 
 const fallback = {
-  title: 'Maxxis Deal Intelligence', locked: 'Locked', unlockRequired: 'Unlock required',
-  unlock: 'Unlock Deal Intelligence', modalTitle: 'Deal Intelligence unlock',
-  modalBody: 'Unlock purchasing will be available in the next release. No Nuggets have been charged.',
+  title: 'Full Property Intelligence', locked: 'Locked', unlockRequired: 'Explicit unlock required',
+  unlock: 'Learn about Full Property Intelligence', modalTitle: 'Full Property Intelligence',
+  modalBody: 'One future explicit unlock will grant persistent access for this property. Pricing is not active yet, and asking Maxxis or rereading acquired intelligence does not consume Nuggets.',
   unavailable: 'Unavailable', temporarilyUnavailable: 'Property intelligence is temporarily unavailable.',
   source: 'Source', updated: 'Updated', recordsDiffer: 'Records differ', dealSifter: 'DealSifter', publicRecord: 'Public Record',
   propertyRecord: 'Property Record', propertyCharacteristics: 'Property Characteristics', taxAssessment: 'Tax Assessment',

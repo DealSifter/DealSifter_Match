@@ -8,6 +8,7 @@ import { redirectToPortal } from '../lib/stripeClient';
 import { CHAT_LANGUAGE_OPTIONS, translateChatText, getSafeLang } from '../services/chatTranslation';
 import { DEFAULT_USER_PREFERENCES } from '../domain/profile/userPreferences';
 import { MaxxisPreferencesControls } from '../features/maxxis/preferences/MaxxisPreferencesControls';
+import { getIntelligencePlanCapabilities, normalizeIntelligencePlanId } from '../lib/planAccess';
 
 function TabButton({ active, onClick, label }) {
   return (
@@ -192,6 +193,8 @@ export function Settings({ setPage, prevPage, initialTab = 'profile', initialCom
     status: 'active',
     nextBillingAt: null,
   };
+  const intelligencePlanId = normalizeIntelligencePlanId(activeSubscription);
+  const intelligenceCapabilities = getIntelligencePlanCapabilities(intelligencePlanId);
 
   useEffect(() => {
     const timer = window.setTimeout(() => setTab(initialTab || 'profile'), 0);
@@ -1139,6 +1142,23 @@ export function Settings({ setPage, prevPage, initialTab = 'profile', initialCom
                       <strong style={{ color: C.t1 }}>
                         {monthlyValue > 0 ? `$${monthlyValue.toFixed(2)}` : (t.notApplicable || 'N/A')}
                       </strong>
+                    </div>
+                  </div>
+
+                  <div data-testid="settings-intelligence-plan" style={{ border: `1px solid ${C.alpha(C.accent, 0.32)}`, borderRadius: 10, padding: 10, display: 'grid', gap: 5, background: C.alpha(C.accent, 0.055), width: '100%', minWidth: 0, boxSizing: 'border-box' }}>
+                    <div style={{ fontSize: 11, color: C.accent, fontWeight: 900 }}>{t.intelligenceTitle || 'Property Intelligence'}</div>
+                    <div style={{ fontSize: 12, color: C.t1, fontWeight: 800 }}>
+                      {t.intelligencePlanSummary?.[intelligencePlanId] || (intelligenceCapabilities.enterpriseIntelligenceIncluded
+                        ? 'Full Property Intelligence included with the plan when available.'
+                        : intelligenceCapabilities.hasIncludedPropertyIntelligenceAllowance
+                          ? 'Full Property Intelligence included within a future monthly allowance.'
+                          : 'Included intelligence now; Full Property Intelligence through a future explicit Nugget unlock.')}
+                    </div>
+                    <div style={{ fontSize: 10.5, color: C.t3, lineHeight: 1.45 }}>
+                      {t.intelligenceNoQuestionCharge || 'Asking Maxxis and reusing intelligence already acquired do not consume Nuggets.'}
+                    </div>
+                    <div style={{ fontSize: 10, color: C.t3, lineHeight: 1.4 }}>
+                      {t.intelligenceActivationPending || 'Full Property Intelligence pricing and usage limits are not active yet.'}
                     </div>
                   </div>
 

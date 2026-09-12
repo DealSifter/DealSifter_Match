@@ -9,8 +9,9 @@ import {
   VERIFIED_PROFILE_RULE,
 } from '../data/mockData';
 import { Icon } from '../components/ui/Icon';
+import { getIntelligencePlanCapabilities, normalizeIntelligencePlanId } from '../lib/planAccess';
 
-export function Pricing({ setPage, setModal, prevPage, addToast, onRequestCheckoutIntent, guideReturnRequired = false, onReturnToGuide }) {
+export function Pricing({ setPage, setModal, prevPage, addToast, onRequestCheckoutIntent, currentPlan = null, guideReturnRequired = false, onReturnToGuide }) {
   const allT = useT('pricing');
   const t = allT.pricing;
   const [checkoutLoading, setCheckoutLoading] = useState(null);
@@ -19,10 +20,11 @@ export function Pricing({ setPage, setModal, prevPage, addToast, onRequestChecko
   const isAnnualBilling = billingCycle === 'annual';
 
   const planName = (id, fallback) => t.planNames?.[id] || fallback;
+  const currentPlanId = currentPlan ? normalizeIntelligencePlanId(currentPlan) : '';
   const featureMap = {
-    free: ['f1', 'f2', 'f3', 'f4', 'f5'],
-    pro: ['p1', 'p2', 'p3', 'p4', 'p5', 'p6', 'p7'],
-    enterprise: ['e1', 'e2', 'e3', 'e4', 'e5'],
+    free: ['f6', 'f7', 'f8', 'f9', 'f1', 'f2', 'f3', 'f4', 'f5'],
+    pro: ['p8', 'p9', 'p10', 'p1', 'p2', 'p3', 'p4', 'p5', 'p6', 'p7'],
+    enterprise: ['e6', 'e7', 'e8', 'e1', 'e2', 'e3', 'e4', 'e5'],
   };
   const planFeatures = (id, fallbackFeatures) => {
     const keys = featureMap[id] || [];
@@ -42,6 +44,15 @@ export function Pricing({ setPage, setModal, prevPage, addToast, onRequestChecko
   const yes = <Icon name="check" size={14} color={C.accent} strokeWidth={2.3} />;
   const dash = <span style={{ color: C.t3 }}>—</span>;
   const comparisonSections = [
+    {
+      title: t.compareIntelligence || 'Property Intelligence',
+      rows: [
+        [t.compareMaxxis || 'Maxxis Deal AI + profile insights', t.compareIncluded || 'Included', t.compareIncluded || 'Included', t.compareIncluded || 'Included'],
+        [t.compareIncludedIntelligence || 'Included property intelligence', t.compareIncluded || 'Included', t.compareIncluded || 'Included', t.compareIncluded || 'Included'],
+        [t.compareFullIntelligence || 'Full Property Intelligence', t.compareFullFree || 'Nugget unlock · coming soon', t.compareFullPro || 'Monthly allowance included · coming soon', t.compareFullEnterprise || 'Included with plan · coming soon'],
+        [t.compareAskMaxxis || 'Ask Maxxis / reuse acquired intelligence', t.compareNoCharge || 'No Nugget charge', t.compareNoCharge || 'No Nugget charge', t.compareNoCharge || 'No Nugget charge'],
+      ],
+    },
     {
       title: t.compareSectionAccess || 'Access & Usage',
       rows: [
@@ -78,7 +89,11 @@ export function Pricing({ setPage, setModal, prevPage, addToast, onRequestChecko
     },
     {
       q: t.faqNuggetsQ || 'How do Gold Nuggets work?',
-      a: t.faqNuggetsA || 'Nuggets are platform credits used for unlocks, exclusivity and spotlight visibility. Contact unlock cost follows the active portfolio size of the card owner.',
+      a: t.faqNuggetsA || 'Nuggets support explicit premium unlocks and overage. Asking Maxxis, reading included intelligence and reusing intelligence already acquired do not consume Nuggets.',
+    },
+    {
+      q: t.faqIntelligenceQ || 'Does Maxxis charge for every question?',
+      a: t.faqIntelligenceA || 'No. Maxxis reasoning and interpretation are included. A future acquisition of new Full Property Intelligence may require an explicit Nugget unlock, with the exact price shown before confirmation.',
     },
     {
       q: t.faqFreeQ || 'What happens when I reach Basic plan limits?',
@@ -304,10 +319,15 @@ export function Pricing({ setPage, setModal, prevPage, addToast, onRequestChecko
         {PLANS.map(p=>{
           const shownPrice = displayPlanPrice(p);
           const annualTotal = displayAnnualTotal(p);
+          const intelligenceCapabilities = getIntelligencePlanCapabilities(p.id);
+          const isCurrentPlan = currentPlanId === p.id;
           return (
-          <div key={p.name} style={{ background:p.popular?C.alpha(C.accent, 0.05):C.card, border:`1px solid ${p.popular?C.accent:C.border}`, borderRadius:20, padding:24, position:"relative", textAlign:"left" }}>
+          <div key={p.name} data-testid={`pricing-plan-${p.id}`} style={{ background:p.popular?C.alpha(C.accent, 0.05):C.card, border:`1px solid ${p.popular?C.accent:C.border}`, borderRadius:20, padding:24, position:"relative", textAlign:"left" }}>
             {p.popular&&<div style={{ position:"absolute", top:-12, left:"50%", transform:"translateX(-50%)", background:C.accent, color:"#fff", fontSize:10, fontWeight:700, padding:"3px 12px", borderRadius:100, whiteSpace:"nowrap" }}>{t.mostPopular}</div>}
-            <div style={{ fontWeight:800, color:p.color, fontSize:15, marginBottom:4 }}>{planName(p.id, p.name)}</div>
+            <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', gap:8, marginBottom:4 }}>
+              <div style={{ fontWeight:800, color:p.color, fontSize:15 }}>{planName(p.id, p.name)}</div>
+              {isCurrentPlan ? <span data-testid="pricing-current-plan" style={{ border:`1px solid ${C.accent}`, borderRadius:999, padding:'3px 8px', color:C.accent, fontSize:9, fontWeight:900 }}>{t.currentPlanBadge || 'CURRENT PLAN'}</span> : null}
+            </div>
             <div style={{ marginBottom:12 }}>
               {isAnnualBilling && p.price > 0 ? (
                 <div style={{ color:C.t3, fontSize:12, fontWeight:800, textDecoration:'line-through', marginBottom:2 }}>${Number(p.price || 0).toLocaleString('en-US')}{t.month}</div>
@@ -319,6 +339,13 @@ export function Pricing({ setPage, setModal, prevPage, addToast, onRequestChecko
                   {(t.billingAnnualTotal || 'Billed annually: ${total}/year').replace('{total}', Number(annualTotal || 0).toLocaleString('en-US'))}
                 </div>
               ) : null}
+            </div>
+            <div data-testid={`pricing-intelligence-${p.id}`} style={{ background:C.alpha(C.accent, 0.07), border:`1px solid ${C.alpha(C.accent, 0.2)}`, borderRadius:10, padding:"10px 12px", marginBottom:10 }}>
+              <div style={{ color:C.accent, fontSize:10, fontWeight:900, letterSpacing:'.05em', textTransform:'uppercase' }}>{t.intelligenceTitle || 'Property Intelligence'}</div>
+              <div style={{ marginTop:4, color:C.t1, fontSize:12, fontWeight:800, lineHeight:1.35 }}>{t.intelligencePlanSummary?.[p.id]}</div>
+              <div style={{ marginTop:4, color:C.t3, fontSize:10.5, lineHeight:1.4 }}>
+                {intelligenceCapabilities.maxxisIncluded ? (t.thinkingIncluded || 'Maxxis reasoning and interpretation included. No pay-per-question.') : null}
+              </div>
             </div>
             <div style={{ background:C.alpha(C.gold, 0.08), border:`1px solid ${C.alpha(C.gold, 0.15)}`, borderRadius:10, padding:"10px 12px", marginBottom:16, display:"flex", alignItems:"center", gap:10 }}>
               <Icon name="nugget" size={18} color={C.gold} strokeWidth={1.3} />

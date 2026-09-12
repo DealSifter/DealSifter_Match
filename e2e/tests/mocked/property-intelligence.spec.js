@@ -21,8 +21,8 @@ test('locked Property Intelligence shows placeholders without protected data or 
   await expect(section.getByTestId('property-intelligence-locked')).toBeVisible();
   await expect(section).toContainText('Tax Assessment');
   await expect(section).not.toContainText(/\$[0-9]|Public property records via RentCast/);
-  await section.getByRole('button', { name: 'Unlock Deal Intelligence' }).click();
-  await expect(page.getByRole('dialog', { name: 'Deal Intelligence unlock' })).toContainText('No Nuggets have been charged');
+  await section.getByRole('button', { name: 'Learn about Full Property Intelligence' }).click();
+  await expect(page.getByRole('dialog', { name: 'Full Property Intelligence' })).toContainText('Pricing is not active yet');
   expect(mockBackend.users.investor.nuggets).toBe(balance);
   expect(calls).toEqual([{ propertyId: E2E_IDS.property }]);
 });

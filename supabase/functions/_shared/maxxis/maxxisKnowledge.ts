@@ -1,4 +1,4 @@
-export const MAXXIS_KNOWLEDGE_VERSION = '2026-08-27.1';
+export const MAXXIS_KNOWLEDGE_VERSION = '2026-09-11.1';
 
 export type MaxxisKnowledgeTopic =
   | 'app'
@@ -63,7 +63,7 @@ export const MAXXIS_KNOWLEDGE_SECTIONS: readonly KnowledgeSection[] = [
     topic: 'nuggets',
     pages: ['pricing'],
     keywords: ['nugget', 'nuggets', 'balance', 'saldo', 'pricing', 'plan', 'plano', 'upgrade', 'subscription'],
-    text: 'Nuggets are the in-app unit used by protected paid interactions such as eligible unlock or visibility flows. The current cost and balance must come from server-authoritative UI at confirmation time. Pricing shows the plans and packs currently available; Maxxis must not invent a price, debit, refund or entitlement.',
+    text: 'Maxxis questions, interpretation, included intelligence, and rereading intelligence already acquired do not consume Nuggets. Nuggets are a secondary unit for explicit premium unlocks and future intelligence overage, never pay-per-question or pay-per-field. Full Property Intelligence pricing and the Professional monthly allowance remain undefined and disabled until unit economics are approved. Any future acquisition must show an exact server-authoritative price and require explicit confirmation; Maxxis must not invent a price, debit, refund, entitlement, plan allowance, or provider access.',
   },
   {
     topic: 'providers',

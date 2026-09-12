@@ -23,6 +23,14 @@ describe('versioned Maxxis runtime knowledge', () => {
     expect(selectMaxxisKnowledge('Quem pode me ajudar com esse imovel?', 'property-details')[0]?.topic).toBe('providers');
   });
 
+  it('keeps Maxxis thinking included and undefined intelligence pricing disabled', () => {
+    const nuggets = MAXXIS_KNOWLEDGE_SECTIONS.find((section) => section.topic === 'nuggets')?.text || '';
+    expect(nuggets).toContain('do not consume Nuggets');
+    expect(nuggets).toContain('never pay-per-question or pay-per-field');
+    expect(nuggets).toContain('remain undefined and disabled');
+    expect(nuggets).toContain('server-authoritative price');
+  });
+
   it('does not compile mutable rollout claims or sensitive data into the artifact', () => {
     const artifact = JSON.stringify(MAXXIS_KNOWLEDGE_SECTIONS);
     expect(artifact).not.toMatch(/production remains off|producao permanece off|api key|password|email|phone|whatsapp/i);
