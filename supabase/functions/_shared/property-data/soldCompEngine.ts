@@ -5,6 +5,7 @@ import {
   INITIAL_DEALSIFTER_COMP_POLICY,
 } from './compEngine.ts';
 import { evaluateRecordedSoldCandidate, referenceSetClass } from './compQualityCalibration.ts';
+import { evaluateWeightedCompCandidate } from './weightedCompPolicy.ts';
 import type {
   ComparableQualityDiagnostic,
   NormalizedComparableCandidate,
@@ -303,6 +304,7 @@ export function selectRecordedSoldComparables(
       sqftDifferencePercent: adapter.derived.sqftVarianceFromSubject,
       bedroomDifference: adapter.derived.bedroomDifference,
       bathroomDifference: adapter.derived.bathroomDifference,
+      lotSizeDifference: calculated(absoluteDifference(record.lotSizeSqft, subject.lotSizeSqft.value), asOf),
       lotSizeDifferencePercent: adapter.derived.lotSizeVarianceFromSubject,
       yearBuiltDifference: adapter.derived.yearBuiltDifference,
       evidenceStatus: 'VERIFIED_RECORD',
@@ -316,6 +318,7 @@ export function selectRecordedSoldComparables(
         specialCharacteristics: 'UNAVAILABLE', missingDataBurden: 'UNAVAILABLE',
       },
       primaryQualityBlocker: null,
+      weightedAssessment: null,
       qualityReasons,
       penaltyReasons,
       hardInvalidReasons,
@@ -325,8 +328,10 @@ export function selectRecordedSoldComparables(
       providerCorrelation: overlap.candidate?.providerCorrelation ?? null,
     };
     const calibrated = evaluateRecordedSoldCandidate(base, 'MULTI_CHECK_BALANCED');
-    return { ...base, compQuality: calibrated.quality, qualityScore: calibrated.score,
+    const calibratedCandidate = { ...base, compQuality: calibrated.quality, qualityScore: calibrated.score,
       qualityChecks: calibrated.checks, primaryQualityBlocker: calibrated.primaryBlocker };
+    return { ...calibratedCandidate,
+      weightedAssessment: evaluateWeightedCompCandidate(calibratedCandidate, 'WEIGHTED_BALANCED') };
   });
   const order = { STRONG: 0, GOOD: 1, ACCEPTABLE: 2, WEAK: 3, HARD_INVALID: 4 } as const;
   candidates.sort((left, right) => order[left.compQuality] - order[right.compQuality]
@@ -342,6 +347,10 @@ export function selectRecordedSoldComparables(
   const acceptable = candidates.filter((item) => item.compQuality === 'ACCEPTABLE');
   const strong = candidates.filter((item) => item.compQuality === 'STRONG');
   const topFiveStrong = strong.slice(0, 5);
+  const primaryStructuralCandidates = candidates.filter((item) => item.weightedAssessment?.primaryArvCompCandidate)
+    .sort((left, right) => (right.weightedAssessment?.structuralComparabilityScore ?? 0)
+      - (left.weightedAssessment?.structuralComparabilityScore ?? 0)
+      || (left.distanceFromSubjectMiles.value ?? Infinity) - (right.distanceFromSubjectMiles.value ?? Infinity));
   const usable = [...strong, ...good, ...acceptable];
   const statisticsSource = topFiveStrong.length ? topFiveStrong : usable.slice(0, 5);
   const priceStats = distribution(statisticsSource
@@ -360,6 +369,9 @@ export function selectRecordedSoldComparables(
     avmOverlapAmongTopFive: topFiveStrong.filter((item) => item.avmOverlap).length,
     sufficiency: strong.length >= 3 ? 'SUFFICIENT' : strong.length === 2 ? 'CONDITIONAL' : 'INSUFFICIENT',
     referenceSetClass: referenceSetClass(strong.length),
+    primaryStructuralCandidates,
+    structuralReferenceSetClass: referenceSetClass(primaryStructuralCandidates.length),
+    conditionVerifiedArvComps: [],
     descriptiveStatistics: {
       scope: topFiveStrong.length ? 'TOP_5_STRONG' : 'TOP_5_USABLE',
       medianRecordedSalePrice: priceStats.median,

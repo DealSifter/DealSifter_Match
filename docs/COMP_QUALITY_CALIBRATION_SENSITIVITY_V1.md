@@ -126,3 +126,9 @@ After: 2 strong, 4 good, 17 acceptable, 37 weak, 0 invalid.
 The policy change is applied because it is generalizable, price-independent, property-type-aware, preserves fundamentals, and maintains the <=1-mile strong safety rule. Readiness for building the DealSifter ARV Engine is `CONDITIONAL`: the engine may support 2-5 primary references but must degrade confidence/range and return unavailable when evidence is insufficient. No ARV was calculated.
 
 Validation used the existing cache only. RentCast calls: 0. Usage Guard: 4/45 -> 4/45. Public Property Intelligence remains off; Nuggets and Stripe were untouched.
+
+## ARV condition / renovation review foundation
+
+The subsequent [Weighted Appraisal-Style Comp Policy v1](./DEALSIFTER_WEIGHTED_APPRAISAL_STYLE_COMP_POLICY_V1.md) preserves this calibration while adding three separate layers: hard gates, normalized structural score, and data completeness. Condition review remains a fourth independent layer and starts as `UNREVIEWED`; structural eligibility never means confirmed ARV suitability.
+
+The cache-only weighted analysis produced three stable primary structural candidates at the 80 threshold with 70 completeness. They form an `ACCEPTABLE` structural candidate set, but zero condition-verified ARV comps. The explicit condition taxonomy keeps `TURN_KEY`, `HIGH_END`, and `NEW_CONSTRUCTION` distinct and stores future user review as `USER_PROVIDED`, without rewriting the structural score.

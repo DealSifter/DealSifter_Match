@@ -5,6 +5,7 @@ import type {
   NormalizedComparableCandidate,
   NormalizedValuationEvidence,
 } from './valuationTypes.ts';
+import type { WeightedCompAssessment } from './weightedCompTypes.ts';
 
 export type SoldSearchPolicy = {
   radiusMiles: number;
@@ -130,6 +131,7 @@ export type RecordedSoldComparableCandidate = {
   sqftDifferencePercent: Evidence<number>;
   bedroomDifference: Evidence<number>;
   bathroomDifference: Evidence<number>;
+  lotSizeDifference: Evidence<number>;
   lotSizeDifferencePercent: Evidence<number>;
   yearBuiltDifference: Evidence<number>;
   evidenceStatus: 'VERIFIED_RECORD';
@@ -151,6 +153,7 @@ export type RecordedSoldComparableCandidate = {
     missingDataBurden: RecordedSoldQualityCheck;
   };
   primaryQualityBlocker: string | null;
+  weightedAssessment: WeightedCompAssessment | null;
   qualityReasons: Array<SoldCompReasonCode | ComparableReasonCode>;
   penaltyReasons: Array<SoldCompReasonCode | ComparableReasonCode>;
   hardInvalidReasons: Array<SoldCompReasonCode | ComparableReasonCode>;
@@ -172,6 +175,9 @@ export type RecordedSoldCompSelection = {
   avmOverlapAmongTopFive: number;
   sufficiency: 'SUFFICIENT' | 'CONDITIONAL' | 'INSUFFICIENT';
   referenceSetClass: 'PREFERRED' | 'ROBUST' | 'ACCEPTABLE' | 'MINIMUM' | 'INSUFFICIENT';
+  primaryStructuralCandidates: RecordedSoldComparableCandidate[];
+  structuralReferenceSetClass: 'PREFERRED' | 'ROBUST' | 'ACCEPTABLE' | 'MINIMUM' | 'INSUFFICIENT';
+  conditionVerifiedArvComps: [];
   descriptiveStatistics: {
     scope: 'TOP_5_STRONG' | 'TOP_5_USABLE';
     medianRecordedSalePrice: number | null;
