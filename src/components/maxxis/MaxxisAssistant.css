@@ -1313,6 +1313,38 @@ button.maxxis-action-link:hover {
   background: color-mix(in srgb, var(--accent-hex, #20c6c7) 7%, var(--surface, #fff));
 }
 
+.maxxis-analysis-report {
+  display: grid;
+  gap: 10px;
+  width: 100%;
+  margin-top: 8px;
+  padding: 12px;
+  border: 1px solid color-mix(in srgb, var(--accent-hex, #20c6c7) 55%, var(--border-color, #cbd5e1));
+  border-radius: 12px;
+  background: color-mix(in srgb, var(--accent-hex, #20c6c7) 7%, var(--surface, #fff));
+}
+
+.maxxis-analysis-fit {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: 2px 10px;
+  align-items: center;
+  padding: 8px;
+  border: 1px solid var(--border-color, #cbd5e1);
+  border-radius: 8px;
+}
+
+.maxxis-analysis-fit small { grid-column: 1 / -1; color: #64748b; font-size: 9px; font-weight: 800; }
+.maxxis-analysis-section { display: grid; gap: 5px; }
+.maxxis-analysis-section ul,
+.maxxis-analysis-section ol { display: grid; gap: 3px; margin: 0; padding-left: 19px; }
+.maxxis-analysis-field-grid { display: grid; gap: 7px; }
+.maxxis-analysis-field-group { display: grid; gap: 4px; padding: 8px; border-radius: 8px; background: color-mix(in srgb, var(--surface, #fff) 90%, transparent); }
+.maxxis-analysis-field-group dl { display: grid; gap: 3px; margin: 0; }
+.maxxis-analysis-field-group dl div { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 8px; }
+.maxxis-analysis-field-group dt { color: #64748b; }
+.maxxis-analysis-field-group dd { margin: 0; text-align: right; }
+
 .maxxis-deal-intelligence-heading {
   display: flex;
   gap: 8px;

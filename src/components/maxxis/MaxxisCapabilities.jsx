@@ -9,6 +9,7 @@ import { MaxxisDealMemoryCard } from '../../features/maxxis/memory/MaxxisDealMem
 import { MaxxisComposedExperience } from '../../features/maxxis/composition/MaxxisComposedExperience';
 import { MaxxisArvVisualCompReview } from '../../features/maxxis/arvReview/MaxxisArvVisualCompReview';
 import { MaxxisDealIntelligenceResponse } from '../../features/maxxis/intelligence/MaxxisDealIntelligenceResponse';
+import { MaxxisAnalysisReportExperience } from '../../features/maxxis/intelligence/MaxxisAnalysisReportExperience';
 
 export const UUID_PATTERN = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
 
@@ -1839,6 +1840,9 @@ export function MessageBubble({
       ) : null}
       {message.type === 'deal_insight' && message.data?.dealIntelligence ? (
         <MaxxisDealIntelligenceResponse context={message.data.dealIntelligence} />
+      ) : null}
+      {message.type === 'maxxis_analysis_report' && message.data?.maxxisAnalysisReport ? (
+        <MaxxisAnalysisReportExperience report={message.data.maxxisAnalysisReport} language={language} />
       ) : null}
       {message.type === 'property_details' && message.data?.metrics?.metrics ? (
         <div className="maxxis-action-links" aria-label={(COPY[language] || COPY.en).dealMetricsTitle}>

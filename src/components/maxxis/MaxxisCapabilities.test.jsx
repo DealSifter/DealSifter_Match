@@ -166,4 +166,37 @@ describe('Maxxis Deal AI structured result presentation', () => {
     expect(html).not.toContain('$0');
     expect(html).not.toMatch(/good deal|buy this property|guaranteed return/i);
   });
+
+  it('renders the Level 2 Maxxis Analysis sections without Deal Intelligence output', () => {
+    const html = renderToStaticMarkup(
+      <MessageBubble
+        language="en"
+        message={{ id: 'maxxis-analysis', role: 'assistant', content: '75% profile fit.',
+          type: 'maxxis_analysis_report', data: { maxxisAnalysisReport: {
+            type: 'maxxis_analysis_report', executiveSummary: 'The available information indicates 75% Investment Profile fit.',
+            propertyHighlights: {
+              verified: [{ field: 'propertyType', label: 'Property type', value: 'Single Family' }],
+              userProvided: [{ field: 'city', label: 'City', value: 'Austin' }],
+              unknown: [{ field: 'yearBuilt', label: 'Year built', value: null }],
+            },
+            profileAlignment: { score: 75,
+              targetMarket: { label: 'Target market', status: 'ALIGNED', explanation: 'Location matches the target market.' },
+              propertyType: { label: 'Property type', status: 'ALIGNED', explanation: 'Type matches the profile.' },
+              strategy: { label: 'Strategy', status: 'UNKNOWN', explanation: 'Strategy is unknown.' } },
+            keyObservations: { positives: ['Location matches the target market.'], attention: ['Year built is unknown.'] },
+            riskAwareness: [{ code: 'UNKNOWN_PROPERTY_FIELDS', category: 'DATA_RISK', severity: 'MEDIUM', explanation: 'Some fields remain unknown.' }],
+            limitations: ['Match Score measures Investment Profile fit only.'],
+            nextSteps: ['Confirm the year built.'],
+          } } }}
+      />,
+    );
+    expect(html).toContain('Maxxis Analysis');
+    expect(html).toContain('Property highlights');
+    expect(html).toContain('Profile fit');
+    expect(html).toContain('PROFILE FIT ONLY');
+    expect(html).toContain('Limitations');
+    expect(html).toContain('Next steps');
+    expect(html).not.toContain('Deal Intelligence');
+    expect(html).not.toMatch(/ARV|comparables|valuation/i);
+  });
 });

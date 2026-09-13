@@ -32,6 +32,7 @@ import {
   enhanceMaxxisAssistantResponse,
   promptForMaxxisFollowUp,
 } from '../../features/maxxis/intelligence/maxxisDealIntelligence';
+import { projectMaxxisAnalysisResponse } from '../../features/maxxis/intelligence/maxxisAnalysisReport';
 import {
   buildMaxxisSmartActions,
   dedupeMaxxisSmartActionsByLatestMessage,
@@ -1188,6 +1189,9 @@ export function MaxxisAssistant({ page = 'dashboard', onOpenSupport = null, onNa
         language,
         forcedIntent: meta.controlledIntent || '',
       });
+      const maxxisAnalysis = requestedReportType === 'MAXXIS_ANALYSIS'
+        ? projectMaxxisAnalysisResponse(result)
+        : null;
       persistStructuredDealMemory(result, 'DEAL_REVIEW');
       if (intelligence.eventName) {
         void trackProductEvent(intelligence.eventName, {
@@ -1200,19 +1204,19 @@ export function MaxxisAssistant({ page = 'dashboard', onOpenSupport = null, onNa
       setMessages((prev) => [...prev, {
         id: `maxxis-assistant-${Date.now()}`,
         role: 'assistant',
-        content: intelligence.content || result.answer,
+        content: maxxisAnalysis?.content || intelligence.content || result.answer,
         createdAt: new Date(),
         error: Boolean(result.unavailable),
         degraded: Boolean(result.degraded),
         degradedReason: result.degradedReason || '',
         requestId: result.requestId || '',
-        type: intelligence.type || result.type,
-        data: intelligence.data || result.data,
-        followUps: intelligence.followUps,
+        type: maxxisAnalysis?.type || intelligence.type || result.type,
+        data: maxxisAnalysis?.data || intelligence.data || result.data,
+        followUps: maxxisAnalysis ? [] : intelligence.followUps,
         smartActionsEnabled: intelligence.type === 'deal_snapshot',
         smartActionSurface: 'snapshot',
-        analysisExport: result.unavailable ? null : (meta.analysisExport || null),
-        compositionMode: intelligence.type === 'property_tradeoffs' ? 'COMPARISON' : (intelligence.type ? 'ANALYSIS' : undefined),
+        analysisExport: maxxisAnalysis ? null : (result.unavailable ? null : (meta.analysisExport || null)),
+        compositionMode: maxxisAnalysis ? 'ANALYSIS' : (intelligence.type === 'property_tradeoffs' ? 'COMPARISON' : (intelligence.type ? 'ANALYSIS' : undefined)),
       }]);
     } catch (error) {
       captureAppException(error, { area: 'maxxis_assistant', page });
