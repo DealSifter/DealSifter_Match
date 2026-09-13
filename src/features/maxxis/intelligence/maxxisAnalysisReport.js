@@ -1,3 +1,5 @@
+import { buildMaxxisReportSchema } from '../../../domain/maxxis/maxxisReportSchema';
+
 export const MAXXIS_ANALYSIS_REPORT_VERSION = 'MAXXIS_ANALYSIS_REPORT_V1';
 
 const ALLOWED_RISK_CATEGORIES = new Set(['DATA_RISK', 'MARKET_RISK', 'EXECUTION_RISK']);
@@ -179,10 +181,13 @@ export function buildMaxxisAnalysisReport(dealIntelligence) {
 export function projectMaxxisAnalysisResponse(result = {}) {
   const report = buildMaxxisAnalysisReport(result?.data?.dealIntelligence);
   if (!report) return null;
+  const maxxisReport = buildMaxxisReportSchema({
+    reportType: 'MAXXIS_ANALYSIS', property: result?.data?.property, maxxisAnalysis: report,
+  });
   return Object.freeze({
     type: 'maxxis_analysis_report',
     content: report.executiveSummary,
-    data: Object.freeze({ maxxisAnalysisReport: report }),
+    data: Object.freeze({ maxxisAnalysisReport: report, maxxisReport }),
     analysisExport: null,
   });
 }

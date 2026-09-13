@@ -19,7 +19,7 @@ function context({ arvAvailable = true, missing = false, unsafe = false } = {}) 
       : { status: 'ARV_UNAVAILABLE', range: { low: 1, high: 2 }, centralReference: 1,
         confidence: 'LOW', compsUsed: 0, methodologyVersion: null, warnings: ['INSUFFICIENT_COMPS'] },
     comparableEvidence: arvAvailable ? [
-      { compIdentifier: 'comp-1', address: '100 Example St', recordedSaleDate: '2026-04-08', distanceMiles: 0.6,
+      { compIdentifier: 'comp-1', address: '100 Example St', recordedSalePrice: 390000, recordedSaleDate: '2026-04-08', distanceMiles: 0.6,
         transactionQuality: 'ARMS_LENGTH_VERIFIED', conditionCompatibility: 'MATCHES_TARGET', structuralComparabilityScore: 88,
         valuationRole: 'PRIMARY', valuationEligibility: 'INCLUDED', inclusionReason: 'CONDITION_MATCH' },
       { compIdentifier: 'comp-2', address: '200 Example St', recordedSaleDate: '2026-03-01', distanceMiles: 1.2,
@@ -97,7 +97,7 @@ describe('Maxxis Deal Intelligence Experience v1', () => {
 
   it('preserves exact comp roles and values instead of recomputing them', () => {
     const report = buildMaxxisDealIntelligenceReport(context());
-    expect(report.comparableEvidence.used[0]).toMatchObject({ address: '100 Example St', distanceMiles: 0.6, similarity: 88, role: 'PRIMARY' });
+    expect(report.comparableEvidence.used[0]).toMatchObject({ address: '100 Example St', salePrice: 390000, distanceMiles: 0.6, similarity: 88, role: 'PRIMARY', sourceType: 'VERIFIED_RECORD' });
     expect(report.comparableEvidence.supporting[0].role).toBe('SUPPORTING');
     expect(report.comparableEvidence.excluded[0].exclusionReason).toBe('TRANSACTION_NOT_ARMS_LENGTH');
   });

@@ -1431,6 +1431,13 @@ button.maxxis-action-link:hover {
 .maxxis-deal-comp-list article { display: grid; gap: 3px; padding: 8px; border: 1px solid var(--border-color, #cbd5e1); border-radius: 8px; }
 .maxxis-deal-comp-list article span { color: var(--text-secondary, #64748b); font-size: 11px; }
 
+.maxxis-report-preview { padding: 9px; border: 1px solid var(--border-color, #cbd5e1); border-radius: 9px; }
+.maxxis-report-preview > summary { cursor: pointer; font-weight: 800; }
+.maxxis-report-page-list { display: grid; gap: 7px; margin: 8px 0; }
+.maxxis-report-page-list article { display: grid; gap: 3px; padding: 8px; border-left: 3px solid var(--accent-hex, #20c6c7); background: color-mix(in srgb, var(--surface, #fff) 90%, transparent); }
+.maxxis-report-page-list article small { color: var(--text-tertiary, #64748b); font-size: 9px; font-weight: 800; }
+.maxxis-report-page-list article span { color: var(--text-secondary, #64748b); font-size: 11px; }
+
 .maxxis-arv-provider-estimate {
   border-left: 3px solid #64748b;
   background: color-mix(in srgb, #64748b 8%, transparent);

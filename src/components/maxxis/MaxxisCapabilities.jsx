@@ -1846,7 +1846,7 @@ export function MessageBubble({
         <MaxxisAnalysisReportExperience report={message.data.maxxisAnalysisReport} language={language} />
       ) : null}
       {message.type === 'maxxis_deal_intelligence' && message.data?.maxxisDealIntelligence ? (
-        <MaxxisDealIntelligenceExperience report={message.data.maxxisDealIntelligence} language={language} />
+        <MaxxisDealIntelligenceExperience report={message.data.maxxisDealIntelligence} reportSchema={message.data.maxxisReport} language={language} />
       ) : null}
       {message.type === 'property_details' && message.data?.metrics?.metrics ? (
         <div className="maxxis-action-links" aria-label={(COPY[language] || COPY.en).dealMetricsTitle}>

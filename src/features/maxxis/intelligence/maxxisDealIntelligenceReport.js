@@ -1,3 +1,5 @@
+import { buildMaxxisReportSchema } from '../../../domain/maxxis/maxxisReportSchema';
+
 export const MAXXIS_DEAL_INTELLIGENCE_REPORT_VERSION = 'MAXXIS_DEAL_INTELLIGENCE_REPORT_V1';
 
 const RECOMMENDATION_PATTERN = /\b(?:good deal|great opportunity|strong investment|buy this|should buy|recommend(?:ed|ing)? (?:a )?purchase|guaranteed? return)\b/i;
@@ -27,6 +29,28 @@ function standoutSignals(context) {
     explanation: safeText(signal?.explanation),
     source: signalSource(signal?.code),
   })).filter((signal) => signal.code && signal.explanation && VALID_SOURCES.has(signal.source)).slice(0, 6).map(Object.freeze));
+}
+
+function propertyEvidence(context) {
+  const fields = isObject(context?.propertyContext?.fields) ? context.propertyContext.fields : {};
+  const evidenceField = (name) => Object.freeze({
+    field: name,
+    value: fields[name]?.value ?? null,
+    sourceType: ['VERIFIED_RECORD', 'USER_PROVIDED', 'UNKNOWN'].includes(fields[name]?.status)
+      ? fields[name].status
+      : 'UNKNOWN',
+    source: safeText(fields[name]?.source) || null,
+  });
+  return Object.freeze({
+    strength: safeText(context?.evidenceSummary?.strength) || 'LOW',
+    verifiedRecords: Object.freeze(list(context?.propertyContext?.verifiedFields).map(evidenceField)),
+    userProvided: Object.freeze(list(context?.propertyContext?.userProvidedFields).map(evidenceField)),
+    unknown: Object.freeze(list(context?.propertyContext?.unknownFields).map(evidenceField)),
+    conflicts: Object.freeze(list(context?.evidenceSummary?.conflicts).map((conflict) => Object.freeze({
+      field: safeText(conflict?.field) || 'UNKNOWN',
+      severity: safeText(conflict?.severity) || 'UNKNOWN',
+    }))),
+  });
 }
 
 function investmentFit(context) {
@@ -76,6 +100,7 @@ function comparableItem(comp) {
   return Object.freeze({
     compIdentifier: safeText(comp?.compIdentifier) || null,
     address: safeText(comp?.address) || 'UNKNOWN',
+    salePrice: nullableNumber(comp?.recordedSalePrice),
     saleDate: safeText(comp?.recordedSaleDate) || 'UNKNOWN',
     distanceMiles: nullableNumber(comp?.distanceMiles),
     similarity: nullableNumber(comp?.structuralComparabilityScore),
@@ -85,6 +110,7 @@ function comparableItem(comp) {
       : comp?.valuationEligibility === 'SUPPORTING_ONLY' ? 'SUPPORTING' : 'EXCLUDED'),
     inclusionReason: safeText(comp?.inclusionReason) || null,
     exclusionReason: safeText(comp?.exclusionReason) || null,
+    sourceType: 'VERIFIED_RECORD',
     provenance: 'VERIFIED_RECORD',
   });
 }
@@ -142,6 +168,7 @@ export function buildMaxxisDealIntelligenceReport(context) {
     propertyId: String(context.propertyId || '').trim() || null,
     executiveDealOverview: overview(context, valuation),
     whyThisPropertyStandsOut: standoutSignals(context),
+    propertyEvidence: propertyEvidence(context),
     investmentFit: investmentFit(context),
     valuationIntelligence: valuation,
     comparableEvidence: comps,
@@ -165,10 +192,13 @@ export function buildMaxxisDealIntelligenceReport(context) {
 export function projectMaxxisDealIntelligenceResponse(result = {}) {
   const report = buildMaxxisDealIntelligenceReport(result?.data?.dealIntelligence);
   if (!report) return null;
+  const maxxisReport = buildMaxxisReportSchema({
+    reportType: 'DEAL_INTELLIGENCE', property: result?.data?.property, dealIntelligence: report,
+  });
   return Object.freeze({
     type: 'maxxis_deal_intelligence',
     content: report.executiveDealOverview,
-    data: Object.freeze({ maxxisDealIntelligence: report }),
+    data: Object.freeze({ maxxisDealIntelligence: report, maxxisReport }),
     analysisExport: null,
   });
 }

@@ -84,7 +84,18 @@ describe('Maxxis Analysis Report Experience v1', () => {
       data: { dealIntelligence: context(), unrelated: { valuation: 1 } } });
     const serialized = JSON.stringify(projected);
     expect(serialized).not.toMatch(/\b(?:arv|comps?|comparables?|valuation|mao|roi)\b/i);
-    expect(projected.data).toEqual({ maxxisAnalysisReport: projected.data.maxxisAnalysisReport });
+    expect(projected.data.maxxisAnalysisReport).toBeTruthy();
+    expect(projected.data.maxxisReport).toMatchObject({
+      reportType: 'MAXXIS_ANALYSIS',
+      sections: {
+        propertyEvidence: { available: false, data: null },
+        comparableEvidence: { available: false, data: null },
+        valuationEvidence: { available: false, data: null },
+      },
+    });
+    const authorizedValues = Object.values(projected.data.maxxisReport.sections)
+      .filter((section) => section.available).map((section) => section.data);
+    expect(JSON.stringify(authorizedValues)).not.toMatch(/\b(?:arv|comps?|comparables?|valuation|mao|roi)\b/i);
     expect(projected.analysisExport).toBeNull();
   });
 

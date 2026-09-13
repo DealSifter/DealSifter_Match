@@ -1,4 +1,5 @@
 import React from 'react';
+import { MaxxisDealIntelligenceReportPreview } from './MaxxisDealIntelligenceReportPreview';
 
 const COPY = {
   en: { title: 'Maxxis Deal Intelligence', overview: 'Executive deal overview', standsOut: 'Why this property stands out',
@@ -37,7 +38,7 @@ function CompList({ title, items, unavailable }) {
       <div className="maxxis-deal-comp-list">{items.map((comp) => (
         <article key={comp.compIdentifier || `${comp.address}-${comp.saleDate}`}>
           <strong>{comp.address}</strong>
-          <span>{comp.saleDate} · {comp.distanceMiles === null ? unavailable : `${comp.distanceMiles} mi`}</span>
+          <span>{money(comp.salePrice, unavailable)} · {comp.saleDate} · {comp.distanceMiles === null ? unavailable : `${comp.distanceMiles} mi`}</span>
           <span>Similarity: {comp.similarity === null ? unavailable : `${comp.similarity}%`} · Condition: {comp.conditionStatus}</span>
           <span>{comp.exclusionReason || comp.inclusionReason || comp.transactionQuality}</span>
         </article>
@@ -46,7 +47,7 @@ function CompList({ title, items, unavailable }) {
   );
 }
 
-export function MaxxisDealIntelligenceExperience({ report, language = 'en' }) {
+export function MaxxisDealIntelligenceExperience({ report, reportSchema = null, language = 'en' }) {
   if (!report || report.type !== 'maxxis_deal_intelligence_report') return null;
   const t = COPY[language] || COPY.en;
   const valuation = report.valuationIntelligence || {};
@@ -88,6 +89,7 @@ export function MaxxisDealIntelligenceExperience({ report, language = 'en' }) {
       {report.riskAnalysis?.length ? <div className="maxxis-deal-intelligence-section"><strong>{t.risks}</strong><ul>{report.riskAnalysis.map((risk) => <li key={risk.code}><span className={`maxxis-risk-severity is-${risk.severity.toLowerCase()}`}>{risk.severity}</span> <strong>{risk.category.replaceAll('_', ' ')}</strong>: {risk.reason}</li>)}</ul></div> : null}
       <div className="maxxis-deal-intelligence-section"><strong>{t.limitations}</strong><ul>{report.limitations?.map((item) => <li key={item}>{item.replaceAll('_', ' ')}</li>)}</ul></div>
       {report.nextVerificationSteps?.length ? <div className="maxxis-deal-intelligence-next"><strong>{t.next}</strong><ol>{report.nextVerificationSteps.map((item) => <li key={item}>{item}</li>)}</ol></div> : null}
+      <MaxxisDealIntelligenceReportPreview schema={reportSchema} language={language} />
       <small>{t.disclaimer}</small>
     </section>
   );
