@@ -178,6 +178,6 @@ describe('Phase 3G findServicesForPropertyNeeds', () => {
     const names = Array.from(registrySource.matchAll(/\n\s+name: '([^']+)'/g), (match) => match[1]);
     expect(source).toContain('contactAccess');
     expect(source).not.toMatch(/consume|purchase|ds_purchase|intent/i);
-    expect(names).toEqual(['searchProperties', 'searchServices', 'getMyInvestmentProfile', 'getPropertyDetails', 'getDealCopilotOverview', 'compareProperties']);
+    expect(names).toEqual(['searchProperties', 'searchServices', 'getMyInvestmentProfile', 'getPropertyDetails', 'getPropertyEvidence', 'getDealInsightContext', 'getDealCopilotOverview', 'compareProperties']);
   });
 });

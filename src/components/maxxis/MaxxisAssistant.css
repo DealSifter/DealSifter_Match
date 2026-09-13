@@ -1416,6 +1416,21 @@ button.maxxis-action-link:hover {
 
 .maxxis-deal-intelligence-details summary { cursor: pointer; font-weight: 700; }
 
+.maxxis-provenance-badge {
+  display: inline-block;
+  margin-right: 4px;
+  padding: 2px 5px;
+  color: #075b5e;
+  font-size: 9px;
+  font-weight: 800;
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--accent-hex, #20c6c7) 14%, transparent);
+}
+
+.maxxis-deal-comp-list { display: grid; gap: 7px; margin-top: 7px; }
+.maxxis-deal-comp-list article { display: grid; gap: 3px; padding: 8px; border: 1px solid var(--border-color, #cbd5e1); border-radius: 8px; }
+.maxxis-deal-comp-list article span { color: var(--text-secondary, #64748b); font-size: 11px; }
+
 .maxxis-arv-provider-estimate {
   border-left: 3px solid #64748b;
   background: color-mix(in srgb, #64748b 8%, transparent);

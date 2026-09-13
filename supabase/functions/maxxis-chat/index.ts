@@ -123,6 +123,9 @@ function resolveMandatoryToolCall(message: string, propertyContextId: string, co
     ' analyze this deal ',
     ' analyse this deal ',
     ' analyze the deal ',
+    ' is this property worth looking at ',
+    ' what are the risks ',
+    ' explain this arv ',
     ' fit my investment profile ',
     ' fit with my investment profile ',
     ' biggest uncertainties ',
@@ -131,12 +134,21 @@ function resolveMandatoryToolCall(message: string, propertyContextId: string, co
     ' arv and mao ',
     ' analisar este deal ',
     ' analisar esse deal ',
+    ' vale a pena analisar este imovel ',
+    ' vale a pena analisar esse imovel ',
+    ' quais sao os riscos ',
+    ' quais os riscos ',
+    ' explique este arv ',
+    ' explique o arv ',
     ' aderencia ao meu perfil ',
     ' encaixa no meu perfil ',
     ' maiores incertezas ',
     ' calcular arv ',
     ' arv e mao ',
     ' analizar este deal ',
+    ' vale la pena revisar esta propiedad ',
+    ' cuales son los riesgos ',
+    ' explica este arv ',
     ' encaja con mi perfil ',
     ' mayores incertidumbres ',
     ' arv y mao ',
@@ -242,7 +254,7 @@ function e2eStubFunctionCall(message: string, propertyContextId: string) {
   if (propertyContextId && (normalized.includes('copilot') || normalized.includes('overall situation') || normalized.includes('deal status') || normalized.includes('deal summary'))) {
     return { name: 'getDealCopilotOverview', args: { propertyId: propertyContextId } };
   }
-  if (propertyContextId && (normalized.includes('analyze this deal') || normalized.includes('fit my investment profile') || normalized.includes('biggest uncertainties') || normalized.includes('arv and mao'))) {
+  if (propertyContextId && (normalized.includes('analyze this deal') || normalized.includes('is this property worth looking at') || normalized.includes('what are the risks') || normalized.includes('explain this arv') || normalized.includes('fit my investment profile') || normalized.includes('biggest uncertainties') || normalized.includes('arv and mao'))) {
     return { name: 'getDealInsightContext', args: { propertyId: propertyContextId } };
   }
   if (propertyContextId && (normalized.includes('public record') || normalized.includes('evidence') || normalized.includes('what stands out') || normalized.includes('what should i verify'))) {

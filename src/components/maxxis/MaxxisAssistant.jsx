@@ -33,6 +33,7 @@ import {
   promptForMaxxisFollowUp,
 } from '../../features/maxxis/intelligence/maxxisDealIntelligence';
 import { projectMaxxisAnalysisResponse } from '../../features/maxxis/intelligence/maxxisAnalysisReport';
+import { projectMaxxisDealIntelligenceResponse } from '../../features/maxxis/intelligence/maxxisDealIntelligenceReport';
 import {
   buildMaxxisSmartActions,
   dedupeMaxxisSmartActionsByLatestMessage,
@@ -1167,6 +1168,28 @@ export function MaxxisAssistant({ page = 'dashboard', onOpenSupport = null, onNa
         maxxisContext: selectMaxxisContextForMessage(continuityContextSnapshot, cleanMessage),
       });
       const responseType = String(result?.type || 'text');
+      if (responseType === 'deal_insight' && !requestedReportType) {
+        const accessDecision = resolveIntelligenceReportAccess({
+          plan: currentPlan,
+          reportType: 'DEAL_INTELLIGENCE',
+          entitlements: reportEntitlements,
+        });
+        if (!accessDecision.allowed) {
+          setMessages((prev) => [...prev, {
+            id: `maxxis-intelligence-access-${Date.now()}`,
+            role: 'assistant',
+            content: language === 'pt'
+              ? 'Seu plano atual não inclui Full Deal Intelligence. Desbloqueie inteligência aprofundada com Nuggets para acessar este nível.'
+              : language === 'es'
+                ? 'Tu plan actual no incluye Full Deal Intelligence. Desbloquea inteligencia profunda con Nuggets para acceder a este nivel.'
+                : 'Your current plan does not include Full Deal Intelligence. Unlock deeper intelligence with Nuggets to access this level.',
+            createdAt: new Date(),
+            type: 'intelligence_access_gate',
+            data: { accessDecision },
+          }]);
+          return;
+        }
+      }
       if (responseType === 'properties') {
         void trackProductEvent('maxxis_property_search', { dedupeKey: `maxxis-search:${userMessage.id}`, properties: { source: 'maxxis', response_type: responseType } });
       }
@@ -1192,6 +1215,10 @@ export function MaxxisAssistant({ page = 'dashboard', onOpenSupport = null, onNa
       const maxxisAnalysis = requestedReportType === 'MAXXIS_ANALYSIS'
         ? projectMaxxisAnalysisResponse(result)
         : null;
+      const dealIntelligence = requestedReportType === 'DEAL_INTELLIGENCE'
+        || (responseType === 'deal_insight' && !requestedReportType)
+        ? projectMaxxisDealIntelligenceResponse(result)
+        : null;
       persistStructuredDealMemory(result, 'DEAL_REVIEW');
       if (intelligence.eventName) {
         void trackProductEvent(intelligence.eventName, {
@@ -1204,19 +1231,19 @@ export function MaxxisAssistant({ page = 'dashboard', onOpenSupport = null, onNa
       setMessages((prev) => [...prev, {
         id: `maxxis-assistant-${Date.now()}`,
         role: 'assistant',
-        content: maxxisAnalysis?.content || intelligence.content || result.answer,
+        content: dealIntelligence?.content || maxxisAnalysis?.content || intelligence.content || result.answer,
         createdAt: new Date(),
         error: Boolean(result.unavailable),
         degraded: Boolean(result.degraded),
         degradedReason: result.degradedReason || '',
         requestId: result.requestId || '',
-        type: maxxisAnalysis?.type || intelligence.type || result.type,
-        data: maxxisAnalysis?.data || intelligence.data || result.data,
-        followUps: maxxisAnalysis ? [] : intelligence.followUps,
+        type: dealIntelligence?.type || maxxisAnalysis?.type || intelligence.type || result.type,
+        data: dealIntelligence?.data || maxxisAnalysis?.data || intelligence.data || result.data,
+        followUps: dealIntelligence || maxxisAnalysis ? [] : intelligence.followUps,
         smartActionsEnabled: intelligence.type === 'deal_snapshot',
         smartActionSurface: 'snapshot',
-        analysisExport: maxxisAnalysis ? null : (result.unavailable ? null : (meta.analysisExport || null)),
-        compositionMode: maxxisAnalysis ? 'ANALYSIS' : (intelligence.type === 'property_tradeoffs' ? 'COMPARISON' : (intelligence.type ? 'ANALYSIS' : undefined)),
+        analysisExport: dealIntelligence || maxxisAnalysis ? null : (result.unavailable ? null : (meta.analysisExport || null)),
+        compositionMode: dealIntelligence || maxxisAnalysis ? 'ANALYSIS' : (intelligence.type === 'property_tradeoffs' ? 'COMPARISON' : (intelligence.type ? 'ANALYSIS' : undefined)),
       }]);
     } catch (error) {
       captureAppException(error, { area: 'maxxis_assistant', page });

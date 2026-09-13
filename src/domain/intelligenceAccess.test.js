@@ -74,5 +74,9 @@ describe('Intelligence access and report architecture', () => {
     expect(inferRequestedIntelligenceReportType('Analyze this property', { hasPropertyContext: true })).toBe('MAXXIS_ANALYSIS');
     expect(inferRequestedIntelligenceReportType('How does the dashboard work?', { hasPropertyContext: true })).toBeNull();
     expect(inferRequestedIntelligenceReportType('Analyze this property deeply', { hasPropertyContext: false })).toBeNull();
+    expect(inferRequestedIntelligenceReportType('Analyze this deal', { hasPropertyContext: true })).toBe('DEAL_INTELLIGENCE');
+    expect(inferRequestedIntelligenceReportType('Is this property worth looking at?', { hasPropertyContext: true })).toBe('DEAL_INTELLIGENCE');
+    expect(inferRequestedIntelligenceReportType('What are the risks?', { hasPropertyContext: true })).toBe('DEAL_INTELLIGENCE');
+    expect(inferRequestedIntelligenceReportType('Explain this ARV', { hasPropertyContext: true })).toBe('DEAL_INTELLIGENCE');
   });
 });

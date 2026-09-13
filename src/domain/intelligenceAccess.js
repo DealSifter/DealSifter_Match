@@ -187,7 +187,7 @@ export function inferRequestedIntelligenceReportType(message, { explicitReportTy
   if (isIntelligenceReportType(explicit)) return explicit;
   if (!hasPropertyContext) return null;
   const text = String(message || '').normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase();
-  if (/\b(full deal intelligence|deal intelligence|analyze this property deeply|analyze this deal deeply|deep analysis|analise completa|analise profunda|inteligencia completa|inteligencia do deal|analisis completo|analisis profundo)\b/.test(text)) {
+  if (/\b(full deal intelligence|deal intelligence|analyze this property deeply|analyze this deal(?: deeply)?|is this property worth looking at|what are the risks|explain this arv|deep analysis|analise (?:este |esse )?deal|vale a pena analisar (?:este |esse )?imovel|quais (?:sao )?os riscos|explique (?:este |o )?arv|analise completa|analise profunda|inteligencia completa|inteligencia do deal|analisis (?:este )?deal|vale la pena revisar esta propiedad|cuales son los riesgos|explica este arv|analisis completo|analisis profundo)\b/.test(text)) {
     return INTELLIGENCE_REPORT_TYPES.DEAL_INTELLIGENCE;
   }
   if (/\b(analyze this property|analyse this property|analyze the property|analise (este|esta|esse|essa) (imovel|propriedade)|analizar (esta|la) propiedad|maxxis analysis)\b/.test(text)) {

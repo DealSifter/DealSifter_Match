@@ -2,6 +2,7 @@ import { readFileSync } from 'node:fs';
 import { renderToStaticMarkup } from 'react-dom/server';
 import { describe, expect, it, vi } from 'vitest';
 import { MessageBubble } from './MaxxisCapabilities';
+import { MaxxisDealIntelligenceExperience } from '../../features/maxxis/intelligence/MaxxisDealIntelligenceExperience';
 
 describe('Maxxis Deal AI structured result presentation', () => {
   it('renders a non-transactional intelligence upgrade gate without granting access', () => {
@@ -198,5 +199,36 @@ describe('Maxxis Deal AI structured result presentation', () => {
     expect(html).toContain('Next steps');
     expect(html).not.toContain('Deal Intelligence');
     expect(html).not.toMatch(/ARV|comparables|valuation/i);
+  });
+
+  it('renders the premium Deal Intelligence evidence, valuation, comps, risks, and limitations', () => {
+    expect(typeof MaxxisDealIntelligenceExperience).toBe('function');
+    const html = renderToStaticMarkup(
+      <MessageBubble
+        language="en"
+        message={{ id: 'premium-intelligence', role: 'assistant', content: 'Evidence-based overview.',
+          type: 'maxxis_deal_intelligence', data: { maxxisDealIntelligence: {
+            type: 'maxxis_deal_intelligence_report', executiveDealOverview: 'Based on available evidence, valuation confidence is limited.',
+            whyThisPropertyStandsOut: [{ code: 'VERIFIED_PROPERTY_EVIDENCE_AVAILABLE', source: 'VERIFIED_RECORD', explanation: 'Verified evidence is available.' }],
+            investmentFit: { score: 75, requiredMessage: 'Match Score indicates profile compatibility, not investment quality.',
+              targetMarket: { status: 'matched' }, strategy: { status: 'not_evaluated' }, propertyType: { status: 'matched' } },
+            valuationIntelligence: { status: 'ARV_LIMITED', range: { low: 380000, high: 430000 }, confidence: 'LOW', compsUsed: 2,
+              methodology: 'DEALSIFTER_WEIGHTED_ARV_V1', warnings: ['VALUATION_DISPERSION_WARNING'] },
+            comparableEvidence: { used: [{ compIdentifier: 'comp-1', address: '100 Example St', saleDate: '2026-04-08', distanceMiles: .6,
+              similarity: 88, conditionStatus: 'MATCHES_TARGET', transactionQuality: 'ARMS_LENGTH_VERIFIED', role: 'PRIMARY', inclusionReason: 'CONDITION_MATCH' }], supporting: [], excluded: [] },
+            riskAnalysis: [{ code: 'UNKNOWN_CONDITION', category: 'DATA_RISK', severity: 'HIGH', reason: 'Property condition is unknown.' }],
+            limitations: ['property_condition_unknown'], nextVerificationSteps: ['Confirm the target condition.'],
+          } } }}
+      />,
+    );
+    expect(html).toContain('Maxxis Deal Intelligence');
+    expect(html).toContain('$380,000 – $430,000');
+    expect(html).toContain('100 Example St');
+    expect(html).toContain('0.6 mi');
+    expect(html).toContain('Similarity: 88%');
+    expect(html).toContain('Match Score indicates profile compatibility, not investment quality.');
+    expect(html).toContain('Risk analysis');
+    expect(html).toContain('Limitations');
+    expect(html).not.toMatch(/good deal|buy this property|guaranteed return/i);
   });
 });

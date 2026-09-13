@@ -66,10 +66,13 @@ export type DealIntelligenceContext = {
     valuationEligibility: string;
     recordedSalePrice: number | null;
     recordedSaleDate: string | null;
+    distanceMiles: number | null;
+    transactionQuality: string;
     conditionCompatibility: string;
     structuralComparabilityScore: number;
     dataCompletenessScore: number;
     valuationWeight: number;
+    valuationRole: string;
     inclusionReason: string | null;
     exclusionReason: string | null;
   }>;
@@ -175,10 +178,13 @@ function comparableEvidence(arv: ArvEvaluationResult | null): DealIntelligenceCo
     valuationEligibility: comp.valuationEligibility,
     recordedSalePrice: comp.recordedSalePrice,
     recordedSaleDate: comp.recordedSaleDate,
+    distanceMiles: comp.distanceMiles,
+    transactionQuality: comp.transactionQuality,
     conditionCompatibility: comp.conditionCompatibility,
     structuralComparabilityScore: comp.structuralComparabilityScore,
     dataCompletenessScore: comp.dataCompletenessScore,
     valuationWeight: comp.valuationWeight,
+    valuationRole: comp.valuationRole,
     inclusionReason: comp.inclusionReason,
     exclusionReason: comp.exclusionReason,
   }));

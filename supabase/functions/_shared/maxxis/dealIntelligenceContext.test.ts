@@ -71,6 +71,8 @@ describe('Maxxis Deal Intelligence Context v1', () => {
     expect(context.valuationContext).toMatchObject({ status: evaluation.status,
       range: { low: evaluation.arvRangeLow, high: evaluation.arvRangeHigh },
       centralReference: evaluation.centralReference, confidence: evaluation.confidence });
+    expect(context.comparableEvidence[0]).toMatchObject({ valuationRole: 'PRIMARY', distanceMiles: .5,
+      transactionQuality: 'ARMS_LENGTH_VERIFIED' });
   });
 
   it('keeps unavailable ARV monetary fields absent instead of inventing a value', () => {

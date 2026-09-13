@@ -292,10 +292,13 @@ function safeDealIntelligence(value: unknown) {
           valuationEligibility: safeText(comp.valuationEligibility, 30),
           recordedSalePrice: safeNumber(comp.recordedSalePrice),
           recordedSaleDate: safeDate(comp.recordedSaleDate),
+          distanceMiles: safeNumber(comp.distanceMiles),
+          transactionQuality: safeText(comp.transactionQuality, 40),
           conditionCompatibility: safeText(comp.conditionCompatibility, 40),
           structuralComparabilityScore: safeNumber(comp.structuralComparabilityScore),
           dataCompletenessScore: safeNumber(comp.dataCompletenessScore),
           valuationWeight: safeNumber(comp.valuationWeight),
+          valuationRole: safeText(comp.valuationRole, 30),
           inclusionReason: safeText(comp.inclusionReason, 80) || null,
           exclusionReason: safeText(comp.exclusionReason, 80) || null,
         };

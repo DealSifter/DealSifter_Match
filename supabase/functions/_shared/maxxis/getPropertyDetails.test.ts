@@ -175,7 +175,7 @@ describe('Phase 3A integration contracts', () => {
 
   it('keeps the existing tools registered while adding the Deal Copilot overview tool', () => {
     const names = Array.from(registrySource.matchAll(/\n\s+name: '([^']+)'/g), (match) => match[1]);
-    expect(names).toEqual(['searchProperties', 'searchServices', 'getMyInvestmentProfile', 'getPropertyDetails', 'getDealCopilotOverview', 'compareProperties']);
+    expect(names).toEqual(['searchProperties', 'searchServices', 'getMyInvestmentProfile', 'getPropertyDetails', 'getPropertyEvidence', 'getDealInsightContext', 'getDealCopilotOverview', 'compareProperties']);
     expect(registrySource).toContain("if (name === 'searchProperties')");
     expect(registrySource).toContain('searchMatchedProperties(args, authHeader, authenticatedContext() || undefined)');
     expect(registrySource).toContain("if (name === 'searchServices')");
@@ -319,7 +319,7 @@ describe('Phase 3E factual Deal Advisor integration', () => {
 
   it('keeps the established tools and compareProperties module unchanged by Deal Advisor', () => {
     const names = Array.from(registrySource.matchAll(/\n\s+name: '([^']+)'/g), (match) => match[1]);
-    expect(names).toEqual(['searchProperties', 'searchServices', 'getMyInvestmentProfile', 'getPropertyDetails', 'getDealCopilotOverview', 'compareProperties']);
+    expect(names).toEqual(['searchProperties', 'searchServices', 'getMyInvestmentProfile', 'getPropertyDetails', 'getPropertyEvidence', 'getDealInsightContext', 'getDealCopilotOverview', 'compareProperties']);
     expect(comparisonSource).not.toContain('analyzeDealFacts');
   });
 });
