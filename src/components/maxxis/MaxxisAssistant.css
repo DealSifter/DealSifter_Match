@@ -1143,8 +1143,8 @@ button.maxxis-action-link:hover {
 
 .maxxis-arv-result {
   display: grid;
-  gap: 5px;
-  padding: 11px;
+  gap: 10px;
+  padding: 12px;
   border: 1px solid color-mix(in srgb, var(--accent-hex, #20c6c7) 55%, #cbd5e1);
   border-radius: 12px;
   background: color-mix(in srgb, var(--accent-hex, #20c6c7) 8%, var(--surface, #fff));
@@ -1155,17 +1155,111 @@ button.maxxis-action-link:hover {
   gap: 8px;
   align-items: center;
   justify-content: space-between;
-  font-size: 11px;
+  font-size: 12px;
 }
 
+.maxxis-arv-result-heading span {
+  padding: 3px 7px;
+  color: #075b5e;
+  font-size: 10px;
+  font-weight: 800;
+  letter-spacing: .04em;
+  border: 1px solid color-mix(in srgb, var(--accent-hex, #20c6c7) 55%, transparent);
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--accent-hex, #20c6c7) 14%, transparent);
+}
+
+.maxxis-arv-result.is-arv-limited .maxxis-arv-result-heading span,
+.maxxis-arv-result.is-arv-unavailable .maxxis-arv-result-heading span {
+  color: #8a5400;
+  border-color: rgba(245, 166, 35, .45);
+  background: rgba(245, 166, 35, .12);
+}
+
+.maxxis-arv-result-statement,
+.maxxis-arv-evidence-row p { margin: 0; }
+
+.maxxis-arv-primary-result {
+  display: grid;
+  grid-template-columns: minmax(0, 1.5fr) minmax(120px, 1fr);
+  gap: 10px;
+}
+
+.maxxis-arv-primary-result > div,
+.maxxis-arv-result-metrics span,
+.maxxis-arv-next-action {
+  display: grid;
+  gap: 2px;
+  padding: 8px;
+  border: 1px solid color-mix(in srgb, var(--border-color, #cbd5e1) 80%, transparent);
+  border-radius: 9px;
+  background: color-mix(in srgb, var(--surface, #fff) 88%, transparent);
+}
+
+.maxxis-arv-primary-result small { color: #64748b; }
+
 .maxxis-arv-range {
+  display: block;
   font-size: 19px;
   font-weight: 800;
   color: var(--accent-hex, #20c6c7);
 }
 
-.maxxis-arv-evidence-details { margin-top: 4px; }
-.maxxis-arv-evidence-details summary { cursor: pointer; font-weight: 700; }
+.maxxis-arv-result-metrics {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 8px;
+}
+
+.maxxis-arv-explanation-block {
+  display: grid;
+  gap: 4px;
+}
+
+.maxxis-arv-explanation-block ul {
+  display: grid;
+  gap: 3px;
+  margin: 0;
+  padding-left: 18px;
+}
+
+.maxxis-arv-warning-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 5px;
+}
+
+.maxxis-arv-warning-list span {
+  padding: 4px 7px;
+  color: #8a5400;
+  font-size: 10px;
+  font-weight: 750;
+  border-radius: 999px;
+  background: rgba(245, 166, 35, .13);
+}
+
+.maxxis-arv-next-action { border-left: 3px solid var(--accent-hex, #20c6c7); }
+
+.maxxis-arv-evidence-details { margin-top: 2px; }
+.maxxis-arv-evidence-details summary {
+  padding: 8px 10px;
+  cursor: pointer;
+  font-weight: 700;
+  border: 1px solid var(--border-color, #cbd5e1);
+  border-radius: 8px;
+}
+
+.maxxis-arv-evidence-drawer {
+  display: grid;
+  gap: 12px;
+  margin-top: 8px;
+  padding: 10px;
+  border: 1px solid var(--border-color, #cbd5e1);
+  border-radius: 10px;
+  background: color-mix(in srgb, var(--surface, #fff) 96%, transparent);
+}
+
+.maxxis-arv-evidence-drawer h4 { margin: 0 0 5px; }
 
 .maxxis-arv-evidence-row {
   display: grid;
@@ -1176,7 +1270,46 @@ button.maxxis-action-link:hover {
   border-top: 1px solid var(--border-color, #cbd5e1);
 }
 
+.maxxis-arv-evidence-title {
+  display: flex;
+  gap: 8px;
+  align-items: flex-start;
+  justify-content: space-between;
+}
+
+.maxxis-arv-evidence-title span {
+  flex: 0 0 auto;
+  color: #64748b;
+  font-size: 9px;
+  font-weight: 800;
+  letter-spacing: .03em;
+}
+
+.maxxis-arv-evidence-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 3px 8px;
+}
+
+.maxxis-arv-evidence-row.is-excluded { opacity: .84; }
+
+.maxxis-arv-methodology,
+.maxxis-arv-provider-estimate {
+  display: grid;
+  gap: 3px;
+  padding: 9px;
+  border-radius: 9px;
+  background: color-mix(in srgb, var(--accent-hex, #20c6c7) 7%, transparent);
+}
+
+.maxxis-arv-provider-estimate {
+  border-left: 3px solid #64748b;
+  background: color-mix(in srgb, #64748b 8%, transparent);
+}
+
 @media (max-width: 767px) {
   .maxxis-arv-comp-heading { display: grid; }
   .maxxis-arv-review { gap: 8px; }
+  .maxxis-arv-primary-result,
+  .maxxis-arv-evidence-grid { grid-template-columns: 1fr; }
 }

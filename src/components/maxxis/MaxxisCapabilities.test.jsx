@@ -115,8 +115,10 @@ describe('Maxxis Deal AI structured result presentation', () => {
     expect(html).toContain('Redfin ↗');
     expect(html).toContain('No MAO is calculated');
     expect(html).toContain('$1,800,000 – $2,400,000');
-    expect(html).toContain('Central reference: $2,100,000');
-    expect(html).toContain('Confidence: LOW');
+    expect(html).toContain('Central reference</small><strong>$2,100,000');
+    expect(html).toContain('Confidence <strong>LOW</strong>');
+    expect(html).toContain('LIMITED CONFIDENCE');
+    expect(html).toContain('VALUATION DISPERSION WARNING');
     expect(html).toContain('View evidence');
   });
 });

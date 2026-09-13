@@ -5,6 +5,7 @@ import {
   formatCompAddress,
   resolveExternalCompReviewLink,
 } from './arvVisualCompReview';
+import { MaxxisArvResultExperience } from './MaxxisArvResultExperience';
 
 const LABELS = {
   AS_IS: 'As-is', LIGHT_REHAB: 'Light rehab', STANDARD_RENOVATION: 'Standard renovation',
@@ -22,54 +23,6 @@ function money(value) {
 function date(value) {
   const parsed = Date.parse(value);
   return Number.isFinite(parsed) ? new Intl.DateTimeFormat('en-US', { dateStyle: 'medium' }).format(new Date(parsed)) : 'Unavailable';
-}
-
-function ArvEvaluationCard({ evaluation }) {
-  if (!evaluation) return null;
-  const available = evaluation.status !== 'ARV_UNAVAILABLE';
-  return (
-    <section className="maxxis-arv-result" aria-label="Deterministic ARV evaluation">
-      <div className="maxxis-arv-result-heading">
-        <strong>ARV Reference</strong>
-        <span>{evaluation.status.replaceAll('_', ' ')}</span>
-      </div>
-      <div className="maxxis-arv-range">
-        {available ? `${money(evaluation.arvRangeLow)} – ${money(evaluation.arvRangeHigh)}` : 'Unavailable'}
-      </div>
-      {available ? <span>Central reference: {money(evaluation.centralReference)}</span> : null}
-      <span>Confidence: {evaluation.confidence}</span>
-      <span>Comps used: {evaluation.eligibleCompCount}</span>
-      {!available ? <span>Reason: {(evaluation.confidenceReasons?.[0] || 'INSUFFICIENT_EVIDENCE').replaceAll('_', ' ')}</span> : null}
-      <small>Calculated evidence, not a guaranteed value. Monetary adjustments are inactive.</small>
-      <details className="maxxis-arv-evidence-details">
-        <summary>View evidence</summary>
-        {available ? (
-          <div className="maxxis-arv-evidence-row">
-            <strong>Method diagnostics</strong>
-            <span>Median reference: {money(evaluation.medianBasedReference)}</span>
-            <span>Weighted reference: {money(evaluation.weightedReference)}</span>
-            <span>Median price/sqft: {money(evaluation.medianPricePerSqft)}</span>
-            <span>Weighted price/sqft: {money(evaluation.weightedPricePerSqft)}</span>
-            <span>Dispersion: {evaluation.dispersion?.level || 'Unavailable'}</span>
-            <span>Range method: {evaluation.rangeMethod || 'Unavailable'}</span>
-            <span>Provider AVM: {evaluation.providerAvmCrossCheck?.status || 'PROVIDER_ESTIMATE_UNAVAILABLE'}</span>
-          </div>
-        ) : null}
-        {(evaluation.valuationSet || []).map((comp) => (
-          <div key={comp.compIdentifier || comp.address} className="maxxis-arv-evidence-row">
-            <strong>{comp.address || 'Comparable'}</strong>
-            <span>{comp.valuationRole} · {comp.valuationEligibility}</span>
-            <span>Recorded sale: {money(comp.recordedSalePrice)} · {date(comp.recordedSaleDate)}</span>
-            <span>Price/sqft: {comp.recordedPricePerSqft === null ? 'Unavailable' : money(comp.recordedPricePerSqft)}</span>
-            <span>Structural: {comp.structuralComparabilityScore}% · Completeness: {comp.dataCompletenessScore}%</span>
-            <span>Condition: {comp.conditionCompatibility} · Weight: {comp.valuationWeight}</span>
-            {comp.exclusionReason ? <span>Reason: {comp.exclusionReason}</span> : null}
-          </div>
-        ))}
-        {evaluation.warnings?.length ? <span>Warnings: {evaluation.warnings.join(', ')}</span> : null}
-      </details>
-    </section>
-  );
 }
 
 function ReviewCard({ candidate, targetCondition, targetConfirmed, onSave, saving }) {
@@ -163,7 +116,7 @@ export function MaxxisArvVisualCompReview({ messageId, data, onSetTarget, onSave
         {data.summary?.reviewedCount || 0}/{data.summary?.totalStructuralCandidates || 0} reviewed · {data.summary?.status || 'NOT_STARTED'}
       </div>
       {data.reviewError ? <div className="maxxis-arv-review-error" role="alert">{data.reviewError}</div> : null}
-      <ArvEvaluationCard evaluation={data.arvEvaluation} />
+      <MaxxisArvResultExperience evaluation={data.arvEvaluation} />
       {data.candidates.map((candidate) => (
         <ReviewCard
           key={`${candidate.stableCompIdentifier}:${candidate.review?.reviewedAt || 'unreviewed'}`}
