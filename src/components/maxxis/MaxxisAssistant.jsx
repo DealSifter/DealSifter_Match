@@ -1053,7 +1053,7 @@ export function MaxxisAssistant({ page = 'dashboard', onOpenSupport = null, onNa
           setMessages((prev) => [...prev, {
             id: `maxxis-arv-review-${Date.now()}`,
             role: 'assistant',
-            content: arvReviewGuidance(data.summary, language),
+            content: arvReviewGuidance(data.summary, language, data.arvEvaluation),
             createdAt: new Date(),
             type: 'arv_visual_comp_review',
             data,
@@ -1203,7 +1203,7 @@ export function MaxxisAssistant({ page = 'dashboard', onOpenSupport = null, onNa
   const replaceArvReviewMessage = (messageId, data) => {
     setMessages((prev) => prev.map((message) => message.id === messageId ? {
       ...message,
-      content: arvReviewGuidance(data.summary, language),
+      content: arvReviewGuidance(data.summary, language, data.arvEvaluation),
       data,
       error: false,
     } : message));

@@ -119,6 +119,12 @@ export async function handleArvVisualCompReviewRequest(req: Request) {
       targetCondition,
       candidates: soldEvidence.recordedSoldCompSelection.primaryStructuralCandidates,
       persistedReviews: Array.isArray(reviewRows) ? reviewRows : [],
+      subjectLivingAreaSqft: soldEvidence.valuation.subjectProperty.livingAreaSqft.value,
+      cachedProviderAvm: {
+        value: soldEvidence.valuation.providerEstimate.value.value,
+        evidenceStatus: soldEvidence.valuation.providerEstimate.value.status === 'ESTIMATED'
+          ? 'ESTIMATED' : 'UNAVAILABLE',
+      },
     });
     return response(origin, { success: true, state: 'ready', data: payload });
   } catch (error) {

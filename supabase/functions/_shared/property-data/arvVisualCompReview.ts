@@ -1,4 +1,5 @@
 import type { RecordedSoldComparableCandidate } from './soldTypes.ts';
+import { evaluateArv } from './arvEngine.ts';
 import {
   CONDITION_COMPATIBILITIES,
   createUserCompConditionReview,
@@ -61,6 +62,9 @@ export function buildArvVisualCompReviewPayload(input: {
   candidates: RecordedSoldComparableCandidate[];
   persistedReviews?: PersistedCompReviewRow[];
   minimumCompatibleComps?: number;
+  subjectLivingAreaSqft?: number | null;
+  cachedProviderAvm?: { value: number | null; evidenceStatus: 'ESTIMATED' | 'UNAVAILABLE' } | null;
+  calculatedAt?: string;
 }) {
   const targetCondition = input.targetCondition || 'UNKNOWN';
   const reviews = (input.persistedReviews || [])
@@ -87,6 +91,8 @@ export function buildArvVisualCompReviewPayload(input: {
         distanceMiles: candidate.distanceFromSubjectMiles.value,
         recordedSalePrice: candidate.recordedSalePrice,
         recordedSaleDate: candidate.recordedSaleDate,
+        recordedSaleEvidenceStatus: candidate.evidenceStatus,
+        livingAreaSqft: candidate.soldRecord.livingAreaSqft,
         structuralEvidenceStatus: 'CALCULATED' as const,
         saleEvidenceStatus: candidate.evidenceStatus,
         review,
@@ -98,6 +104,36 @@ export function buildArvVisualCompReviewPayload(input: {
     reviews,
     minimumCompatibleComps: input.minimumCompatibleComps ?? DEFAULT_MINIMUM_COMPATIBLE_COMPS,
   });
+  const arvEvaluation = evaluateArv({
+    subjectPropertyId: input.propertyId,
+    subjectLivingAreaSqft: input.subjectLivingAreaSqft ?? null,
+    targetCondition,
+    calculatedAt: input.calculatedAt,
+    cachedProviderAvm: input.cachedProviderAvm,
+    candidates: input.candidates.map((candidate) => {
+      const compIdentifier = candidate.soldRecord.providerPropertyId;
+      const review = reviewByIdentifier.get(compIdentifier) || null;
+      return {
+        source: 'ARV_COMP_CANDIDATE' as const,
+        compIdentifier,
+        address: candidate.soldRecord.formattedAddress,
+        recordedSalePrice: candidate.recordedSalePrice,
+        recordedSaleDate: candidate.recordedSaleDate,
+        recordedSaleEvidenceStatus: candidate.evidenceStatus,
+        livingAreaSqft: candidate.soldRecord.livingAreaSqft,
+        structuralComparabilityScore: candidate.weightedAssessment?.structuralComparabilityScore ?? 0,
+        dataCompletenessScore: candidate.weightedAssessment?.dataCompletenessScore ?? 0,
+        hardGatesPass: candidate.weightedAssessment?.hardGates.pass === true,
+        recordAmbiguousOrCorrupt: candidate.soldRecord.saleTransactionAmbiguous
+          || candidate.hardInvalidReasons.length > 0,
+        distanceMiles: candidate.distanceFromSubjectMiles.value,
+        daysSinceSale: candidate.daysSinceSale.value,
+        transactionQuality: candidate.soldRecord.transactionQuality,
+        conditionCompatibility: review?.conditionCompatibility || 'UNREVIEWED' as const,
+        conditionEvidenceStatus: review?.evidenceStatus || null,
+      };
+    }),
+  });
   return {
     propertyId: input.propertyId,
     policyVersion: ARV_VISUAL_COMP_REVIEW_POLICY_VERSION,
@@ -105,7 +141,8 @@ export function buildArvVisualCompReviewPayload(input: {
     targetConditionEvidenceStatus: input.targetCondition ? 'USER_PROVIDED' as const : null,
     candidates,
     summary,
-    arvCalculated: false as const,
+    arvEvaluation,
+    arvCalculated: arvEvaluation.status !== 'ARV_UNAVAILABLE',
     maoCalculated: false as const,
     providerCalls: 0 as const,
   };

@@ -1141,6 +1141,41 @@ button.maxxis-action-link:hover {
   background: #fef3f2;
 }
 
+.maxxis-arv-result {
+  display: grid;
+  gap: 5px;
+  padding: 11px;
+  border: 1px solid color-mix(in srgb, var(--accent-hex, #20c6c7) 55%, #cbd5e1);
+  border-radius: 12px;
+  background: color-mix(in srgb, var(--accent-hex, #20c6c7) 8%, var(--surface, #fff));
+}
+
+.maxxis-arv-result-heading {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  justify-content: space-between;
+  font-size: 11px;
+}
+
+.maxxis-arv-range {
+  font-size: 19px;
+  font-weight: 800;
+  color: var(--accent-hex, #20c6c7);
+}
+
+.maxxis-arv-evidence-details { margin-top: 4px; }
+.maxxis-arv-evidence-details summary { cursor: pointer; font-weight: 700; }
+
+.maxxis-arv-evidence-row {
+  display: grid;
+  gap: 2px;
+  margin-top: 7px;
+  padding-top: 7px;
+  font-size: 11px;
+  border-top: 1px solid var(--border-color, #cbd5e1);
+}
+
 @media (max-width: 767px) {
   .maxxis-arv-comp-heading { display: grid; }
   .maxxis-arv-review { gap: 8px; }

@@ -90,6 +90,15 @@ describe('Maxxis Deal AI structured result presentation', () => {
             propertyId: 'e86dd292-429d-4b51-9b02-bc60a3e9068f', targetCondition: 'FULL_RENOVATION',
             targetConditionEvidenceStatus: 'USER_PROVIDED', summary: { reviewedCount: 0,
               totalStructuralCandidates: 1, status: 'NOT_STARTED' },
+            arvEvaluation: { status: 'ARV_LIMITED', arvRangeLow: 1800000, arvRangeHigh: 2400000,
+              centralReference: 2100000, confidence: 'LOW', eligibleCompCount: 2,
+              confidenceReasons: [], warnings: ['VALUATION_DISPERSION_WARNING'], valuationSet: [{
+                compIdentifier: 'rentcast-436', address: '436 Kekauluohi St, Honolulu, HI 96825',
+                valuationRole: 'PRIMARY', valuationEligibility: 'INCLUDED', recordedSalePrice: 1550000,
+                recordedSaleDate: '2026-04-08T00:00:00.000Z', recordedPricePerSqft: 865.92,
+                structuralComparabilityScore: 84.5, dataCompletenessScore: 70,
+                conditionCompatibility: 'MATCHES_TARGET', valuationWeight: 0.52, exclusionReason: null,
+              }] },
             candidates: [{ stableCompIdentifier: 'rentcast-436',
               address: { line1: '436 Kekauluohi St', city: 'Honolulu', state: 'HI', zipCode: '96825' },
               structuralComparabilityScore: 84.5, dataCompletenessScore: 70, distanceMiles: .64,
@@ -104,6 +113,10 @@ describe('Maxxis Deal AI structured result presentation', () => {
     expect(html).toContain('rel="noopener noreferrer"');
     expect(html).toContain('Zillow ↗');
     expect(html).toContain('Redfin ↗');
-    expect(html).toContain('No ARV or MAO is calculated');
+    expect(html).toContain('No MAO is calculated');
+    expect(html).toContain('$1,800,000 – $2,400,000');
+    expect(html).toContain('Central reference: $2,100,000');
+    expect(html).toContain('Confidence: LOW');
+    expect(html).toContain('View evidence');
   });
 });
