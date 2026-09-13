@@ -4288,6 +4288,16 @@ export default function App() {
     setMaxxisPropertyAnalysisRequest({ ...request, id, createdAt: Date.now() });
   }, []);
 
+  const handleRequestIntelligenceUnlock = useCallback((request = {}) => {
+    const reportType = String(request?.reportType || '').replaceAll('_', ' ').toLowerCase();
+    addToast({
+      type: 'info',
+      title: 'Unlock deeper intelligence',
+      message: `The ${reportType || 'requested intelligence'} Nugget unlock is not active until an exact server-authoritative price is configured. No Nuggets were charged.`,
+      duration: 6500,
+    });
+  }, [addToast]);
+
   const handleExportMaxxisAnalysisPdf = useCallback(async (analysisExport, analysisText) => {
     if (typeof analysisExport?.onExportPdf !== 'function') return;
     try {
@@ -5608,6 +5618,8 @@ export default function App() {
             mobileBottomNavCollapsed={mobileBottomNavCollapsed}
             userPreferences={userPreferences}
             planActionAccess={planActionAccess}
+            currentPlan={accessSubscription}
+            onRequestIntelligenceUnlock={handleRequestIntelligenceUnlock}
             setPage={setPage}
             addToast={addToast}
             onOpenChatLanguageConfig={() => openSettingsTab('preferences')}
@@ -5929,6 +5941,8 @@ export default function App() {
                 appContext={maxxisAppContext}
                 sessionKey={supabaseUserId || authSession?.userId || authSession?.id || ''}
                 onExportAnalysisPdf={handleExportMaxxisAnalysisPdf}
+                currentPlan={accessSubscription}
+                onRequestIntelligenceUnlock={handleRequestIntelligenceUnlock}
                 onNuggetBalanceChange={(value) => {
                   void applyConfirmedNuggetBalance({ serverRemainingNuggets: value, refresh: true });
                 }}

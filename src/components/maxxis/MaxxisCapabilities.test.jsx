@@ -4,6 +4,24 @@ import { describe, expect, it, vi } from 'vitest';
 import { MessageBubble } from './MaxxisCapabilities';
 
 describe('Maxxis Deal AI structured result presentation', () => {
+  it('renders a non-transactional intelligence upgrade gate without granting access', () => {
+    const onRequestIntelligenceUnlock = vi.fn();
+    const html = renderToStaticMarkup(
+      <MessageBubble
+        language="en"
+        message={{
+          id: 'report-gate', role: 'assistant', type: 'intelligence_access_gate',
+          content: 'Unlock deeper intelligence.',
+          data: { accessDecision: { reportType: 'DEAL_INTELLIGENCE', paidUnlockEnabled: false, nuggetCost: null } },
+        }}
+        onRequestIntelligenceUnlock={onRequestIntelligenceUnlock}
+      />,
+    );
+    expect(html).toContain('data-testid="maxxis-intelligence-unlock"');
+    expect(html).toContain('Exact price is not configured yet. No charge will be made.');
+    expect(onRequestIntelligenceUnlock).not.toHaveBeenCalled();
+  });
+
   it('renders provider identity as a canonical service navigation control', () => {
     const serviceId = '11111111-1111-4111-8111-111111111111';
     const onOpenProvider = vi.fn();

@@ -1,7 +1,7 @@
 /* eslint-disable react-refresh/only-export-components -- portfolio capability module exports renderers and stable chat/domain helpers */
 import React, { useState, useEffect, useMemo } from 'react';
 import { C } from '../../theme/colors';
-import { translations, useT } from '../../i18n/translations';
+import { getLang, translations, useT } from '../../i18n/translations';
 import { PROPERTIES as _MOCK_PROPERTIES, CATEGORIES, SERVICE_PORTFOLIO as _MOCK_SERVICE_PORTFOLIO } from '../../data/mockData';
 import { Icon } from '../ui/Icon';
 import { Modal } from '../ui/Modal';
@@ -20,6 +20,11 @@ import { getSafeLang } from '../../services/chatTranslation';
 import { isSupabaseConfigured } from '../../lib/supabaseClient';
 import { formatCompactUsd } from '../../lib/formatMoney';
 import { PropertyIntelligenceGate } from '../property-intelligence/PropertyIntelligenceGate';
+import { IntelligenceAnalysisChooser } from '../../features/maxxis/access/IntelligenceAnalysisChooser';
+import {
+  INTELLIGENCE_REPORT_TYPES,
+  resolveExportPopupFlow,
+} from '../../domain/intelligenceAccess';
 
 const releaseDarkLogo = '/logo%20tema%20preto.png';
 export const PROPERTIES = import.meta.env.DEV ? (_MOCK_PROPERTIES || []) : [];
@@ -384,7 +389,7 @@ export function ExclusiveBlockedBadge({ status, onUnlockOwner = null }) {
   );
 }
 
-export function PortfolioDetail({ item, owner, ownerContact = null, isOwnerUnlocked = false, onUnlockRequest = null, contactPanelVariant = 'desktop', ownerDesc, onBack, autoplayMedia = false, onBlockedExport = null, imageSources = [], onStartChat = null, canUseChat = true, chatInterestLabel = CHAT_INTEREST_PREFIX.en, exclusiveStatus = null, onAnalyzeWithMaxxis = null }) {
+export function PortfolioDetail({ item, owner, ownerContact = null, isOwnerUnlocked = false, onUnlockRequest = null, contactPanelVariant = 'desktop', ownerDesc, onBack, autoplayMedia = false, imageSources = [], onStartChat = null, canUseChat = true, chatInterestLabel = CHAT_INTEREST_PREFIX.en, exclusiveStatus = null, onAnalyzeWithMaxxis = null, intelligencePlan = 'free', reportEntitlements = [], onRequestIntelligenceUnlock = null }) {
   const allT = useT('matches');
   const matchesT = allT.matches;
   const modalsT = allT.modals;
@@ -455,6 +460,11 @@ export function PortfolioDetail({ item, owner, ownerContact = null, isOwnerUnloc
     } catch (e) { void e; return 'download'; }
   });
   const [isPreparingExport, setIsPreparingExport] = useState(false);
+  const [analysisLevelOpen, setAnalysisLevelOpen] = useState(false);
+  const analysisFlow = useMemo(
+    () => resolveExportPopupFlow({ plan: intelligencePlan, entitlements: reportEntitlements }),
+    [intelligencePlan, reportEntitlements],
+  );
 
   useEffect(() => {
     // Reset image index when item changes; defer to next tick to avoid
@@ -1744,26 +1754,29 @@ export function PortfolioDetail({ item, owner, ownerContact = null, isOwnerUnloc
   };
 
   const handleOpenEmailCompose = () => {
-    if (typeof onBlockedExport === 'function' && onBlockedExport() === false) return;
     if (!String(emailTo || '').trim()) setEmailTo(getProfileEmailFallback());
     setEmailComposeOpen(true);
   };
 
-  const buildMaxxisAnalysisPrompt = () => {
-    return 'Show the factual published details for the property currently selected on screen. Identify missing fields, but do not calculate financial metrics, assess risk, judge deal quality, or make a recommendation.';
+  const buildMaxxisAnalysisPrompt = (reportType) => {
+    if (reportType === INTELLIGENCE_REPORT_TYPES.DEAL_INTELLIGENCE) {
+      return 'Build the full Deal Intelligence view for the property currently selected on screen. Use only authorized stored facts, cached evidence, and existing deterministic engine outputs. Explain provenance, conflicts, sold comps, the existing ARV result and confidence, warnings, limitations, opportunity signals, and verification actions. Do not make new provider calls, recalculate metrics, guarantee returns, recommend buying, or state a definitive value.';
+    }
+    return 'Create a Maxxis Analysis for the property currently selected on screen. Use only factual published details and the active Investment Profile. Provide an analytical summary, positive points, attention points, important questions, compatibility context, and practical next steps. Identify missing fields. Do not provide professional ARV, sold comps, valuation evidence, appraisal analysis, calculate new financial metrics, guarantee returns, judge deal quality, or recommend buying.';
   };
 
-  const handleAnalyzeWithMaxxis = () => {
-    if (typeof onBlockedExport === 'function' && onBlockedExport() === false) return;
+  const startMaxxisAnalysis = (accessDecision) => {
     if (typeof onAnalyzeWithMaxxis !== 'function') return;
     const source = buildExportPayload();
     const imageUrls = getExportImageUrls();
     onAnalyzeWithMaxxis({
       id: `maxxis-property-analysis-${item?.id || item?.address || Date.now()}-${Date.now()}`,
       title: source.title,
-      prompt: buildMaxxisAnalysisPrompt(),
+      prompt: buildMaxxisAnalysisPrompt(accessDecision.reportType),
       visibleMessage: `${matchesT.exportAnalyzeWithMaxxis || 'Analyze with Maxxis Deal AI'}: ${source.title}`,
       propertyId: item?.id,
+      reportType: accessDecision.reportType,
+      accessDecision,
       onExportPdf: (analysisText) => generateReleasePdf({
         title: source.title,
         cardsDescription: source.cardsDescription,
@@ -1772,6 +1785,23 @@ export function PortfolioDetail({ item, owner, ownerContact = null, isOwnerUnloc
       }),
     });
     setEmailComposeOpen(false);
+  };
+
+  const handleAnalysisSelection = (accessDecision) => {
+    if (accessDecision?.allowed) {
+      startMaxxisAnalysis(accessDecision);
+      return;
+    }
+    onRequestIntelligenceUnlock?.({ ...accessDecision, propertyId: item?.id || null });
+  };
+
+  const handleAnalyzeWithMaxxis = () => {
+    if (analysisFlow.directReportType) {
+      const decision = analysisFlow.analysisOptions.find((option) => option.reportType === analysisFlow.directReportType);
+      if (decision?.allowed) startMaxxisAnalysis(decision);
+      return;
+    }
+    setAnalysisLevelOpen(true);
   };
 
   const handleConfirmEmailExport = async () => {
@@ -2088,6 +2118,15 @@ export function PortfolioDetail({ item, owner, ownerContact = null, isOwnerUnloc
                   {matchesT.exportAnalyzeWithMaxxis || 'Analyze with Maxxis Deal AI'}
                 </button>
               </div>
+
+              {analysisLevelOpen ? (
+                <IntelligenceAnalysisChooser
+                  options={analysisFlow.analysisOptions}
+                  language={getLang()}
+                  onSelect={handleAnalysisSelection}
+                  onRequestUnlock={handleAnalysisSelection}
+                />
+              ) : null}
 
               {exportMode === 'download' ? (
                 <>

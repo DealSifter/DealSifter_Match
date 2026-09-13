@@ -1587,6 +1587,7 @@ export function MessageBubble({
   onSetArvTargetCondition,
   onSaveArvCompReview,
   activeArvReviewKey,
+  onRequestIntelligenceUnlock,
 }) {
   const isUser = message.role === 'user';
   const { text, actions } = isUser
@@ -1990,6 +1991,23 @@ export function MessageBubble({
             <span>{isExportingAnalysis ? exportingAnalysisLabel : exportAnalysisLabel}</span>
             <Icon name="doc" size={13} color="currentColor" strokeWidth={2.1} />
           </button>
+        </div>
+      ) : null}
+      {!isUser && message.type === 'intelligence_access_gate' && message.data?.accessDecision ? (
+        <div className="maxxis-action-links" aria-label="Maxxis Deal AI intelligence access">
+          <button
+            type="button"
+            className="maxxis-action-link"
+            data-testid="maxxis-intelligence-unlock"
+            onClick={() => onRequestIntelligenceUnlock?.(message.data.accessDecision)}
+          >
+            <span>{language === 'pt' ? 'Desbloquear inteligência completa · Nuggets' : language === 'es' ? 'Desbloquear inteligencia completa · Nuggets' : 'Unlock Full Deal Intelligence · Nuggets'}</span>
+          </button>
+          {!message.data.accessDecision.paidUnlockEnabled ? (
+            <span style={{ color: 'var(--text-tertiary)', fontSize: 10 }}>
+              {language === 'pt' ? 'Preço exato ainda não configurado. Nenhuma cobrança será feita.' : language === 'es' ? 'Precio exacto aún no configurado. No se realizará ningún cobro.' : 'Exact price is not configured yet. No charge will be made.'}
+            </span>
+          ) : null}
         </div>
       ) : null}
       <div className="maxxis-message-meta">{formatTime(message.createdAt)}</div>

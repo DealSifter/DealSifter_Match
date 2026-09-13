@@ -85,7 +85,7 @@ import {
   mergeContactForDisplay,
 } from '../components/matches/MatchesPortfolio';
 
-export function MatchesPage({ nuggets, isAdmin = false, setModal, openUnlock, unlocked, initialChat, chatFocusToken = 0, interested, matched, setInterested, setMatched, convos, setConvos, categoryOrder, setCategoryOrder, showcaseProperties, propertyPortfolio, servicePortfolio, userProfile, personalProfile, professionalProfile, mobileBottomNavCollapsed = false, userPreferences = null, planActionAccess = {}, setPage = null, addToast = null, onOpenChatLanguageConfig = null, onSendChatMessage = null, onRetryChatMessage = null, onMarkChatRead = null, onLoadMoreChatMessages = null, chatHasMore = {}, chatLoadingMore = {}, propertyUnlocks = [], unlockedContactMap = new Map(), currentUserId = 'local-user', onAnalyzePropertyWithMaxxis = null, onPropertyContextChange = null, onMaxxisContextChange = null, isActive = true }) {
+export function MatchesPage({ nuggets, isAdmin = false, setModal, openUnlock, unlocked, initialChat, chatFocusToken = 0, interested, matched, setInterested, setMatched, convos, setConvos, categoryOrder, setCategoryOrder, showcaseProperties, propertyPortfolio, servicePortfolio, userProfile, personalProfile, professionalProfile, mobileBottomNavCollapsed = false, userPreferences = null, planActionAccess = {}, currentPlan = 'free', reportEntitlements = [], onRequestIntelligenceUnlock = null, setPage = null, addToast = null, onOpenChatLanguageConfig = null, onSendChatMessage = null, onRetryChatMessage = null, onMarkChatRead = null, onLoadMoreChatMessages = null, chatHasMore = {}, chatLoadingMore = {}, propertyUnlocks = [], unlockedContactMap = new Map(), currentUserId = 'local-user', onAnalyzePropertyWithMaxxis = null, onPropertyContextChange = null, onMaxxisContextChange = null, isActive = true }) {
   const PORTFOLIO_PANEL_PADDING = 40;
   const PORTFOLIO_GRID_GAP = 12;
   const PORTFOLIO_CARD_MIN_WIDTH = 132;
@@ -185,7 +185,6 @@ export function MatchesPage({ nuggets, isAdmin = false, setModal, openUnlock, un
   const t = allT.matches;
   const [planGate, setPlanGate] = useState(null);
   const canUseChat = Boolean(planActionAccess?.chat?.allowed);
-  const canExportPdf = Boolean(planActionAccess?.export_pdf?.allowed ?? planActionAccess?.exportPdf?.allowed);
   const goToPricingFromGate = useCallback(() => {
     if (planGate?.feature) {
       trackAppEvent('plan_gate_upgrade_clicked', {
@@ -208,10 +207,6 @@ export function MatchesPage({ nuggets, isAdmin = false, setModal, openUnlock, un
     setPlanGate({ ...copy, feature });
     return false;
   }, [addToast]);
-  const guardExportPdf = useCallback(() => {
-    if (canExportPdf) return true;
-    return blockFeature('exportPdf');
-  }, [blockFeature, canExportPdf]);
   const matchesPrefs = userPreferences?.feedMatches || {};
   const privacyPrefs = userPreferences?.privacy || {};
   const sortOrder = String(matchesPrefs.sortOrder || 'recent');
@@ -2522,10 +2517,12 @@ export function MatchesPage({ nuggets, isAdmin = false, setModal, openUnlock, un
                         ownerDesc={ownerDesc}
                         onBack={() => setSelectedPortfolioItem(null)}
                         autoplayMedia={autoplayMedia}
-                        onBlockedExport={guardExportPdf}
                         imageSources={[...(propertyPortfolio || []), ...(showcaseProperties || []), ...(allPropertiesSource || [])]}
                         exclusiveStatus={getPropertyExclusiveStatus(selectedPortfolioItem)}
                         onAnalyzeWithMaxxis={onAnalyzePropertyWithMaxxis}
+                        intelligencePlan={currentPlan}
+                        reportEntitlements={reportEntitlements}
+                        onRequestIntelligenceUnlock={onRequestIntelligenceUnlock}
                         canUseChat={canUseChat}
                         chatInterestLabel={CHAT_INTEREST_PREFIX[myInputLang] || CHAT_INTEREST_PREFIX.en}
                         onStartChat={(refItem) => {
@@ -2701,10 +2698,12 @@ export function MatchesPage({ nuggets, isAdmin = false, setModal, openUnlock, un
                   ownerDesc={ownerDesc}
                   onBack={() => setMobileCardSheet(null)}
                   autoplayMedia={autoplayMedia}
-                  onBlockedExport={guardExportPdf}
                   imageSources={[...(propertyPortfolio || []), ...(showcaseProperties || []), ...(allPropertiesSource || [])]}
                   exclusiveStatus={getPropertyExclusiveStatus(mobileCardSheet)}
                   onAnalyzeWithMaxxis={onAnalyzePropertyWithMaxxis}
+                  intelligencePlan={currentPlan}
+                  reportEntitlements={reportEntitlements}
+                  onRequestIntelligenceUnlock={onRequestIntelligenceUnlock}
                 />
                 <button
                   type="button"

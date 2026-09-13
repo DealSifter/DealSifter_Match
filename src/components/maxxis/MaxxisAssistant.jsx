@@ -108,6 +108,10 @@ import {
   resolveMaxxisContinuityReference,
   shouldDiscardMaxxisPendingConfirmation,
 } from '../../features/maxxis/continuity/maxxisContinuityResolver';
+import {
+  inferRequestedIntelligenceReportType,
+  resolveIntelligenceReportAccess,
+} from '../../domain/intelligenceAccess';
 import './MaxxisAssistant.css';
 
 import {
@@ -169,7 +173,7 @@ function readDevMaxxisAttentionOverrides() {
   }
 }
 
-export function MaxxisAssistant({ page = 'dashboard', onOpenSupport = null, onNavigateAction = null, onOpenProvider = null, onOpenFeedCard = null, propertyAnalysisRequest = null, propertyContextId = '', appContext = null, sessionKey = '', onExportAnalysisPdf = null, onNuggetBalanceChange = null, onProviderUnlockConfirmed = null, enabled = true, userPreferences = null, userPreferencesHydrated = true, onChangeUserPreferences = null, userPreferencesPersistenceStatus = 'idle', proactiveFeatureEnabled = false, dealMemoryFeatureEnabled = false, onOpenPreferences = null }) {
+export function MaxxisAssistant({ page = 'dashboard', onOpenSupport = null, onNavigateAction = null, onOpenProvider = null, onOpenFeedCard = null, propertyAnalysisRequest = null, propertyContextId = '', appContext = null, sessionKey = '', onExportAnalysisPdf = null, onNuggetBalanceChange = null, onProviderUnlockConfirmed = null, enabled = true, userPreferences = null, userPreferencesHydrated = true, onChangeUserPreferences = null, userPreferencesPersistenceStatus = 'idle', proactiveFeatureEnabled = false, dealMemoryFeatureEnabled = false, onOpenPreferences = null, currentPlan = 'free', reportEntitlements = [], onRequestIntelligenceUnlock = null }) {
   const language = getUiLang();
   const t = COPY[language] || COPY.en;
   const preferencesCopy = getMaxxisPreferencesCopy(language);
@@ -953,6 +957,33 @@ export function MaxxisAssistant({ page = 'dashboard', onOpenSupport = null, onNa
     setLoading(true);
 
     try {
+      const requestedReportType = inferRequestedIntelligenceReportType(cleanMessage, {
+        explicitReportType: meta.reportType,
+        hasPropertyContext: Boolean(meta.reportType || UUID_PATTERN.test(String(propertyContextId || appContext?.entity?.propertyId || ''))),
+      });
+      if (requestedReportType) {
+        const accessDecision = resolveIntelligenceReportAccess({
+          plan: currentPlan,
+          reportType: requestedReportType,
+          entitlements: reportEntitlements,
+        });
+        if (!accessDecision.allowed) {
+          const reportLabel = requestedReportType === 'DEAL_INTELLIGENCE' ? 'Full Deal Intelligence' : 'Maxxis Analysis';
+          setMessages((prev) => [...prev, {
+            id: `maxxis-intelligence-access-${Date.now()}`,
+            role: 'assistant',
+            content: language === 'pt'
+              ? `Seu plano atual não inclui ${reportLabel}. Desbloqueie inteligência aprofundada com Nuggets para acessar este nível.`
+              : language === 'es'
+                ? `Tu plan actual no incluye ${reportLabel}. Desbloquea inteligencia profunda con Nuggets para acceder a este nivel.`
+                : `Your current plan does not include ${reportLabel}. Unlock deeper intelligence with Nuggets to access this level.`,
+            createdAt: new Date(),
+            type: 'intelligence_access_gate',
+            data: { accessDecision },
+          }]);
+          return;
+        }
+      }
       const continuityResolution = resolveCurrentMaxxisContinuity();
       const continuityReference = resolveMaxxisContinuityReference(cleanMessage, continuityResolution, {
         candidateServiceIds: continuityEvidence.serviceIds,
@@ -2239,6 +2270,7 @@ export function MaxxisAssistant({ page = 'dashboard', onOpenSupport = null, onNa
         title: request?.title || '',
         onExportPdf: request?.onExportPdf || null,
       },
+      reportType: request?.reportType || '',
     });
   }, [language, propertyAnalysisRequest?.id]);
 
@@ -2381,6 +2413,7 @@ export function MaxxisAssistant({ page = 'dashboard', onOpenSupport = null, onNa
                   onSetArvTargetCondition={handleSetArvTargetCondition}
                   onSaveArvCompReview={handleSaveArvCompReview}
                   activeArvReviewKey={activeArvReviewKey}
+                  onRequestIntelligenceUnlock={onRequestIntelligenceUnlock}
                 />
               );
             })}
