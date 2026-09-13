@@ -121,4 +121,31 @@ describe('Maxxis Deal AI structured result presentation', () => {
     expect(html).toContain('VALUATION DISPERSION WARNING');
     expect(html).toContain('View evidence');
   });
+
+  it('renders Deal Intelligence answer-first with profile-fit semantics and no unavailable ARV value', () => {
+    const html = renderToStaticMarkup(
+      <MessageBubble
+        language="en"
+        message={{ id: 'deal-intelligence', role: 'assistant', content: 'Structured deal context.',
+          type: 'deal_insight', data: { dealIntelligence: {
+            type: 'deal_intelligence_context', evidenceSummary: { strength: 'LOW' },
+            matchContext: { classification: 'low', semantics: 'PROFILE_FIT_ONLY' },
+            valuationContext: { status: 'ARV_UNAVAILABLE', range: null, centralReference: null, confidence: 'LOW' },
+            response: { initialAssessment: 'Based on available evidence, profile alignment is limited.',
+              why: ['The market is outside the configured target.'],
+              nextSteps: ['Verify the target market preference.'] },
+            risks: [{ code: 'TARGET_MARKET_MISMATCH', category: 'MARKET_RISK', severity: 'HIGH',
+              explanation: 'The property is outside the configured target market.' }],
+            opportunities: [], limitations: ['ARV_EVALUATION_NOT_LOADED'],
+          } } }}
+      />,
+    );
+    expect(html).toContain('Initial assessment');
+    expect(html).toContain('Profile fit');
+    expect(html).toContain('ARV UNAVAILABLE');
+    expect(html).toContain('Main risks');
+    expect(html).toContain('Suggested next steps');
+    expect(html).not.toContain('$0');
+    expect(html).not.toMatch(/good deal|buy this property|guaranteed return/i);
+  });
 });

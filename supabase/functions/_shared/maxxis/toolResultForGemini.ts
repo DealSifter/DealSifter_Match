@@ -215,6 +215,119 @@ function safeEvidenceFields(value: unknown) {
     .map((field) => [field, safeEvidenceField(source[field])]));
 }
 
+const DEAL_CONTEXT_FIELDS = [
+  'address', 'city', 'state', 'zipCode', 'propertyType', 'bedrooms', 'bathrooms',
+  'livingAreaSqft', 'lotSizeSqft', 'yearBuilt', 'askingPrice',
+];
+
+function safeDealContextField(value: unknown) {
+  const source = record(value);
+  const rawValue = source.value;
+  return {
+    value: typeof rawValue === 'number' ? safeNumber(rawValue)
+      : rawValue === null || rawValue === undefined ? null : safeText(rawValue, 160),
+    status: safeText(source.status, 30) || 'UNKNOWN',
+    source: safeText(source.source, 50) || null,
+  };
+}
+
+function safeDealIntelligence(value: unknown) {
+  const source = record(value);
+  const property = record(source.propertyContext);
+  const fields = record(property.fields);
+  const investor = record(source.investorContext);
+  const evidence = record(source.evidenceSummary);
+  const valuation = record(source.valuationContext);
+  const range = record(valuation.range);
+  const fit = record(source.fitAnalysis);
+  const response = record(source.response);
+  return {
+    type: 'deal_intelligence_context',
+    version: safeText(source.version, 60),
+    propertyId: safeText(source.propertyId, 50),
+    propertyContext: {
+      fields: Object.fromEntries(DEAL_CONTEXT_FIELDS.filter((name) => Object.hasOwn(fields, name))
+        .map((name) => [name, safeDealContextField(fields[name])])),
+      verifiedFields: safeList(property.verifiedFields, 20),
+      userProvidedFields: safeList(property.userProvidedFields, 20),
+      unknownFields: safeList(property.unknownFields, 20),
+    },
+    investorContext: {
+      exists: Boolean(investor.exists),
+      complete: Boolean(investor.complete),
+      provenance: safeText(investor.provenance, 30),
+      targetMarkets: safeList(investor.targetMarkets, 20),
+      propertyTypes: safeList(investor.propertyTypes, 20),
+      strategies: safeList(investor.strategies, 20),
+      priceRange: safeText(investor.priceRange, 60) || null,
+      preferences: safeList(investor.preferences, 20),
+    },
+    evidenceSummary: {
+      strength: safeText(evidence.strength, 20),
+      verifiedFieldCount: safeNumber(evidence.verifiedFieldCount),
+      userProvidedFieldCount: safeNumber(evidence.userProvidedFieldCount),
+      unknownFieldCount: safeNumber(evidence.unknownFieldCount),
+      conflictCount: safeNumber(evidence.conflictCount),
+      conflicts: (Array.isArray(evidence.conflicts) ? evidence.conflicts : []).slice(0, 20).map((item) => {
+        const conflict = record(item);
+        return { field: safeText(conflict.field, 60), severity: safeText(conflict.severity, 20) };
+      }),
+    },
+    valuationContext: {
+      status: safeText(valuation.status, 30),
+      range: Object.keys(range).length ? { low: safeNumber(range.low), high: safeNumber(range.high) } : null,
+      centralReference: safeNumber(valuation.centralReference),
+      confidence: safeText(valuation.confidence, 20),
+      compsUsed: safeNumber(valuation.compsUsed),
+      warnings: safeList(valuation.warnings, 20),
+      provenance: safeText(valuation.provenance, 30),
+      methodologyVersion: safeText(valuation.methodologyVersion, 60) || null,
+    },
+    comparableEvidence: (Array.isArray(source.comparableEvidence) ? source.comparableEvidence : []).slice(0, 12)
+      .map((item) => {
+        const comp = record(item);
+        return {
+          compIdentifier: safeText(comp.compIdentifier, 100) || null,
+          address: safeText(comp.address, 160) || null,
+          valuationEligibility: safeText(comp.valuationEligibility, 30),
+          recordedSalePrice: safeNumber(comp.recordedSalePrice),
+          recordedSaleDate: safeDate(comp.recordedSaleDate),
+          conditionCompatibility: safeText(comp.conditionCompatibility, 40),
+          structuralComparabilityScore: safeNumber(comp.structuralComparabilityScore),
+          dataCompletenessScore: safeNumber(comp.dataCompletenessScore),
+          valuationWeight: safeNumber(comp.valuationWeight),
+          inclusionReason: safeText(comp.inclusionReason, 80) || null,
+          exclusionReason: safeText(comp.exclusionReason, 80) || null,
+        };
+      }),
+    matchContext: source.matchContext
+      ? { ...safeMatch(source.matchContext), semantics: 'PROFILE_FIT_ONLY' }
+      : null,
+    dealMetrics: safeMetrics(source.dealMetrics),
+    fitAnalysis: {
+      positiveFactors: safeList(fit.positiveFactors, 20),
+      negativeFactors: safeList(fit.negativeFactors, 20),
+    },
+    risks: (Array.isArray(source.risks) ? source.risks : []).slice(0, 20).map((item) => {
+      const risk = record(item);
+      return { code: safeText(risk.code, 80), category: safeText(risk.category, 30),
+        severity: safeText(risk.severity, 20), explanation: safeText(risk.explanation, 240) };
+    }),
+    opportunities: (Array.isArray(source.opportunities) ? source.opportunities : []).slice(0, 20).map((item) => {
+      const signal = record(item);
+      return { code: safeText(signal.code, 80), explanation: safeText(signal.explanation, 240) };
+    }),
+    limitations: safeList(source.limitations, 30),
+    recommendedActions: safeList(source.recommendedActions, 10),
+    response: {
+      initialAssessment: safeText(response.initialAssessment, 400),
+      why: safeList(response.why, 10),
+      mainRisks: safeList(response.mainRisks, 10),
+      nextSteps: safeList(response.nextSteps, 10),
+    },
+  };
+}
+
 export function sanitizeToolResultForGemini(value: unknown): Record<string, unknown> {
   const source = record(value);
   const type = safeText(source.type, 50);
@@ -268,6 +381,7 @@ export function sanitizeToolResultForGemini(value: unknown): Record<string, unkn
       evidence,
       metrics: safeMetrics(source.metrics),
       analysis: safeAdvisor(source.analysis),
+      dealIntelligence: source.dealIntelligence ? safeDealIntelligence(source.dealIntelligence) : null,
       capabilities: {
         canDiscussPricePerSqft: Boolean(capabilities.canDiscussPricePerSqft),
         canDiscussAcquisitionPlusRehab: Boolean(capabilities.canDiscussAcquisitionPlusRehab),
@@ -276,6 +390,7 @@ export function sanitizeToolResultForGemini(value: unknown): Record<string, unkn
         canCalculateMAO: false,
         canCalculateROI: false,
         canCalculateCashFlow: false,
+        hasArvEvaluation: Boolean(capabilities.hasArvEvaluation),
       },
     };
   }
@@ -366,7 +481,7 @@ export function buildToolInterpretationRequest(input: {
   const interaction = buildAnalyticalInteractionInstruction(resultType === 'deal_insight' ? 'deal_insight' : 'tool_result');
   const systemText = `You are Maxxis Deal AI inside DealSifter. Interpret the authoritative structured tool result naturally in ${safeText(input.language, 8) || 'en'}. Do not expose hidden data or request another tool.
 ${interaction}
-For property evidence, preserve provenance and effective/retrieval dates when material. For deal insight, use only the composed backend context. Evidence is not an appraisal or guaranteed truth. If ARV/MAO capability is false, explain that verified comps and an authorized calculation engine/rule are unavailable. Use at most 180 words for deal insight and 120 words otherwise; structured cards are rendered separately.`;
+For property evidence, preserve provenance and effective/retrieval dates when material. For deal insight, use only the composed backend context and follow ANSWER FIRST, then WHY, RISKS, and NEXT STEP. Evidence is not an appraisal or guaranteed truth. An existing ARV evaluation may be explained only by copying its exact status, range, central reference, confidence, comps, warnings and provenance; never calculate, alter, interpolate, round into a new value, blend with another estimate, or infer missing ARV data. Match Score is profile fit only, never deal quality. Never guarantee return, recommend buying, or recommend a price. Use at most 180 words for deal insight and 120 words otherwise; structured cards are rendered separately.`;
   if (input.plainToolResult) {
     const resultText = JSON.stringify(safeResult).slice(0, 12_000);
     return {

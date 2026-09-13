@@ -31,6 +31,13 @@ const evidence = {
     conflicts: [], missingFields: [], source: { label: 'Public property records via RentCast', updatedAt: '2026-09-11T15:02:46.829Z' }, cacheHit: true,
   },
 };
+const arvEvaluation = {
+  status: 'ARV_LIMITED', arvRangeLow: 2_020_196, arvRangeHigh: 3_063_156,
+  centralReference: 2_541_676, confidence: 'LOW', eligibleCompCount: 2,
+  warnings: ['VALUATION_DISPERSION_WARNING'], limitations: ['TRANSACTION_QUALITY_UNKNOWN'],
+  methodologyVersion: 'DEALSIFTER_ARV_ENGINE_V1', evidenceSummary: { arv: 'CALCULATED',
+    conditionReview: 'USER_PROVIDED' }, valuationSet: [],
+};
 
 function setup(evidenceResult = evidence) {
   return orchestrateDealInsightContext({
@@ -39,6 +46,7 @@ function setup(evidenceResult = evidence) {
     loadInvestmentProfile: vi.fn(async () => investmentProfile),
     calculateMatch: calculatePropertyMatch,
     loadPropertyEvidence: vi.fn(async () => evidenceResult),
+    loadArvEvaluation: vi.fn(async () => arvEvaluation as never),
   });
 }
 
@@ -52,6 +60,9 @@ describe('Maxxis Deal Insight context', () => {
       evidence: { state: 'available', cacheState: 'hit' },
       metrics: { metrics: { pricePerSqft: { calculable: true, source: 'calculated' }, acquisitionPlusRehab: { calculable: false }, capRate: { value: 5, source: 'stored' } } },
       capabilities: { canDiscussPricePerSqft: true, canDiscussAcquisitionPlusRehab: false, hasReportedCapRate: true },
+      dealIntelligence: { type: 'deal_intelligence_context', valuationContext: {
+        status: 'ARV_LIMITED', range: { low: 2_020_196, high: 3_063_156 }, centralReference: 2_541_676,
+      }, matchContext: { semantics: 'PROFILE_FIT_ONLY' } },
     });
     expect(result.match?.reasons.map((reason) => reason.key)).toEqual(['market', 'price', 'property_type', 'strategy']);
   });
@@ -70,6 +81,7 @@ describe('Maxxis Deal Insight context', () => {
       match: { semantics: 'profile_fit_only' },
       metrics: { metrics: { capRate: { value: 5, source: 'stored' } } },
       capabilities: { canCalculateARV: false, canCalculateMAO: false, canCalculateROI: false, canCalculateCashFlow: false, hasReportedCapRate: true },
+      dealIntelligence: { valuationContext: { status: 'ARV_LIMITED', centralReference: 2_541_676 } },
     });
     expect(JSON.stringify(safe)).not.toMatch(/"(?:arv|mao|roi|cashFlow)"\s*:\s*(?!false|null)/i);
   });

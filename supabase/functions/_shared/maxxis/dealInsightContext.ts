@@ -4,6 +4,8 @@ import type { NormalizedInvestmentProfileResult } from './normalizeInvestmentPro
 import type { PropertyDetailsLookupResult } from './propertyDetails.ts';
 import type { PropertyMatchResult } from './types.ts';
 import type { MaxxisPropertyEvidenceResult } from './propertyEvidence.ts';
+import type { ArvEvaluationResult } from '../property-data/arvEngine.ts';
+import { buildDealIntelligenceContext, type DealIntelligenceContext } from './dealIntelligenceContext.ts';
 
 export type DealInsightContext = {
   type: 'deal_insight';
@@ -15,6 +17,7 @@ export type DealInsightContext = {
   evidence: MaxxisPropertyEvidenceResult;
   metrics: DealMetricsResult | null;
   analysis: DealAdvisorAnalysis | null;
+  dealIntelligence: DealIntelligenceContext | null;
   capabilities: {
     canDiscussPricePerSqft: boolean;
     canDiscussAcquisitionPlusRehab: boolean;
@@ -23,6 +26,7 @@ export type DealInsightContext = {
     canCalculateMAO: false;
     canCalculateROI: false;
     canCalculateCashFlow: false;
+    hasArvEvaluation: boolean;
   };
 };
 
@@ -32,6 +36,7 @@ export async function orchestrateDealInsightContext(input: {
   loadInvestmentProfile: () => Promise<NormalizedInvestmentProfileResult>;
   calculateMatch: (profile: NormalizedInvestmentProfileResult['profile'], property: PropertyDetailsLookupResult['property']) => PropertyMatchResult;
   loadPropertyEvidence: (propertyId: string) => Promise<MaxxisPropertyEvidenceResult>;
+  loadArvEvaluation?: (propertyId: string) => Promise<ArvEvaluationResult | null>;
 }): Promise<DealInsightContext> {
   const details = await input.loadPropertyDetails(input.propertyId);
   const unavailableEvidence: MaxxisPropertyEvidenceResult = {
@@ -42,24 +47,35 @@ export async function orchestrateDealInsightContext(input: {
     return {
       type: 'deal_insight', propertyId: input.propertyId, state: 'not_found', property: null,
       investmentProfile: { profile: null, exists: false, complete: false }, match: null,
-      evidence: unavailableEvidence, metrics: null, analysis: null,
+      evidence: unavailableEvidence, metrics: null, analysis: null, dealIntelligence: null,
       capabilities: {
         canDiscussPricePerSqft: false, canDiscussAcquisitionPlusRehab: false, hasReportedCapRate: false,
         canCalculateARV: false, canCalculateMAO: false, canCalculateROI: false, canCalculateCashFlow: false,
+        hasArvEvaluation: false,
       },
     };
   }
-  const [investmentProfile, evidence] = await Promise.all([
+  const [investmentProfile, evidence, arvEvaluation] = await Promise.all([
     input.loadInvestmentProfile().catch(() => ({ profile: null, exists: false, complete: false })),
     input.loadPropertyEvidence(input.propertyId).catch(() => unavailableEvidence),
+    input.loadArvEvaluation?.(input.propertyId).catch(() => null) ?? Promise.resolve(null),
   ]);
   const match = investmentProfile.profile
     ? { ...input.calculateMatch(investmentProfile.profile, details.property), semantics: 'profile_fit_only' as const }
     : null;
   const metrics = details.metrics;
+  const dealIntelligence = buildDealIntelligenceContext({
+    property: details.property,
+    investmentProfile,
+    match,
+    propertyEvidence: evidence,
+    dealMetrics: metrics,
+    analysis: details.analysis,
+    arvEvaluation,
+  });
   return {
     type: 'deal_insight', propertyId: input.propertyId, state: 'available', property: details.property,
-    investmentProfile, match, evidence, metrics, analysis: details.analysis,
+    investmentProfile, match, evidence, metrics, analysis: details.analysis, dealIntelligence,
     capabilities: {
       canDiscussPricePerSqft: Boolean(metrics?.metrics.pricePerSqft.calculable),
       canDiscussAcquisitionPlusRehab: Boolean(metrics?.metrics.acquisitionPlusRehab.calculable),
@@ -68,6 +84,7 @@ export async function orchestrateDealInsightContext(input: {
       canCalculateMAO: false,
       canCalculateROI: false,
       canCalculateCashFlow: false,
+      hasArvEvaluation: arvEvaluation !== null,
     },
   };
 }
