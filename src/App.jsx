@@ -906,12 +906,12 @@ export default function App() {
   });
   const [reportEntitlements, setReportEntitlements] = useState([]);
   const [maxxisReportHistory, setMaxxisReportHistory] = useState([]);
+  const [maxxisPropertyAnalysisRequest, setMaxxisPropertyAnalysisRequest] = useState(null);
+  const [maxxisPropertyContextId, setMaxxisPropertyContextId] = useState('');
   const activeMaxxisReportEntitlements = useMemo(() => (
     reportEntitlements.filter((item) => String(item?.propertyId || '') === String(maxxisPropertyContextId || ''))
   ), [maxxisPropertyContextId, reportEntitlements]);
   const [modal, setModal] = useState(null);
-  const [maxxisPropertyAnalysisRequest, setMaxxisPropertyAnalysisRequest] = useState(null);
-  const [maxxisPropertyContextId, setMaxxisPropertyContextId] = useState('');
   const [maxxisSurfaceRuntimeContext, setMaxxisSurfaceRuntimeContext] = useState({ surfaceName: '', view: {}, entity: {} });
   const [maxxisRuntimeProactiveEvents, setMaxxisRuntimeProactiveEvents] = useState([]);
   const maxxisTrustedDealVersionsRef = useRef({ accountKey: '', versions: {} });
