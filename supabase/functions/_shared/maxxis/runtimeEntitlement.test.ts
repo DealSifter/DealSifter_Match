@@ -23,9 +23,9 @@ describe('MaxxisRuntimeEntitlementGuard', () => {
     });
   });
 
-  it('returns modeled unlock costs without enabling an unlock', () => {
-    expect(guardMaxxisRuntimeEntitlement({ userId: USER_ID, plan: 'free', requestedCapability: 'MAXXIS_ANALYSIS' })).toMatchObject({ allowed: false, nuggetCost: 3, paidUnlockEnabled: false });
-    expect(guardMaxxisRuntimeEntitlement({ userId: USER_ID, plan: 'pro', requestedCapability: 'DEAL_INTELLIGENCE' })).toMatchObject({ allowed: false, nuggetCost: 5, paidUnlockEnabled: false });
+  it('returns server-authoritative unlock costs for capabilities not included in the plan', () => {
+    expect(guardMaxxisRuntimeEntitlement({ userId: USER_ID, plan: 'free', requestedCapability: 'MAXXIS_ANALYSIS' })).toMatchObject({ allowed: false, nuggetCost: 3, paidUnlockEnabled: true });
+    expect(guardMaxxisRuntimeEntitlement({ userId: USER_ID, plan: 'pro', requestedCapability: 'DEAL_INTELLIGENCE' })).toMatchObject({ allowed: false, nuggetCost: 5, paidUnlockEnabled: true });
   });
 
   it('is fail-closed for missing identity and unknown capabilities', () => {
@@ -62,9 +62,9 @@ describe('MaxxisRuntimeEntitlementGuard', () => {
     expect(source.indexOf('const toolCapability = capabilityForMaxxisTool(toolName)')).toBeLessThan(source.indexOf('result = await executeMaxxisTool('));
   });
 
-  it('does not activate RentCast, Nuggets, or Stripe', () => {
+  it('loads owned report entitlements without RentCast or Stripe', () => {
     const source = readFileSync(new URL('./runtimeEntitlement.ts', import.meta.url), 'utf8');
     expect(source).not.toMatch(/RENTCAST_API_KEY|stripe\.|consume_nuggets|debit/i);
-    expect(source).toContain('entitlements: []');
+    expect(source).toContain("from('maxxis_report_entitlements')");
   });
 });

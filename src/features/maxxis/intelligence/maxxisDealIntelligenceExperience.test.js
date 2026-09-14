@@ -55,7 +55,7 @@ describe('Maxxis Deal Intelligence Experience v1', () => {
 
   it('asks Pro without a complete entitlement to unlock instead of exposing premium content', () => {
     expect(resolveIntelligenceReportAccess({ plan: 'pro', reportType: 'DEAL_INTELLIGENCE' })).toMatchObject({
-      allowed: false, state: 'NUGGET_UNLOCK_REQUIRED', paidUnlockEnabled: false, nuggetCost: 5,
+      allowed: false, state: 'NUGGET_UNLOCK_REQUIRED', paidUnlockEnabled: true, nuggetCost: 5,
     });
   });
 

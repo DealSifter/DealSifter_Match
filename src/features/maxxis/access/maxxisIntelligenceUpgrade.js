@@ -33,7 +33,7 @@ function option(reportType, accessDecision, actionLabel) {
     actionLabel,
     unlockTypes: Object.freeze([INTELLIGENCE_UNLOCK_TYPES.SUBSCRIPTION, INTELLIGENCE_UNLOCK_TYPES.ONE_TIME_UNLOCK]),
     price: accessDecision.allowed ? 0 : accessDecision.nuggetCost,
-    unlockExecutionEnabled: false,
+    unlockExecutionEnabled: !accessDecision.allowed && Number(accessDecision.nuggetCost) > 0,
     premiumPreview: reportType === INTELLIGENCE_REPORT_TYPES.DEAL_INTELLIGENCE
       ? Object.freeze(['Comparable Analysis', 'ARV Intelligence', 'Investment Scenarios'])
       : Object.freeze([]),
@@ -69,7 +69,7 @@ export function buildMaxxisIntelligenceUpgradeExperience({ plan, entitlements = 
     options: Object.freeze(options),
     premiumPayload: null,
     commercialMessage: 'Use the intelligence you need when you need it, or upgrade your plan for ongoing access.',
-    pricing: Object.freeze({ configured: true, currency: 'NUGGETS', executionEnabled: false }),
+    pricing: Object.freeze({ configured: true, currency: 'NUGGETS', executionEnabled: true }),
     mutation: null,
   });
 }

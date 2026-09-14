@@ -2,7 +2,7 @@ export const INTELLIGENCE_ECONOMY_CONFIG = Object.freeze({
   fullPropertyIntelligenceNuggetCost: null,
   proMonthlyPropertyIntelligenceAllowance: null,
   enterpriseFairUseThreshold: null,
-  paidPropertyIntelligenceUnlockEnabled: false,
+  paidPropertyIntelligenceUnlockEnabled: true,
   revenueBackedProviderOverageEnabled: false,
 });
 
@@ -37,8 +37,8 @@ export const CAPABILITY_ENTITLEMENT_MATRIX = Object.freeze({
 });
 
 export const INTELLIGENCE_ECONOMY_RUNTIME = Object.freeze({
-  oneTimeUnlockExecutionEnabled: false,
-  nuggetDebitEnabled: false,
+  oneTimeUnlockExecutionEnabled: true,
+  nuggetDebitEnabled: true,
   stripeEnabled: false,
 });
 

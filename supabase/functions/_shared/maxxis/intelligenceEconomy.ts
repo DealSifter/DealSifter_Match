@@ -48,8 +48,8 @@ export const CAPABILITY_ENTITLEMENT_MATRIX: Readonly<Record<Exclude<Intelligence
 });
 
 export const INTELLIGENCE_ECONOMY_RUNTIME = Object.freeze({
-  oneTimeUnlockExecutionEnabled: false,
-  nuggetDebitEnabled: false,
+  oneTimeUnlockExecutionEnabled: true,
+  nuggetDebitEnabled: true,
   stripeEnabled: false,
 });
 

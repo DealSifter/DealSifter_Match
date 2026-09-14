@@ -23,8 +23,8 @@ describe('Maxxis Intelligence Economy v2 backend contracts', () => {
     expect(Object.isFrozen(event)).toBe(true);
   });
 
-  it('keeps all economic execution switches off and contains no payment integration', () => {
-    expect(INTELLIGENCE_ECONOMY_RUNTIME).toEqual({ oneTimeUnlockExecutionEnabled: false, nuggetDebitEnabled: false, stripeEnabled: false });
+  it('enables canonical Nugget unlocks without adding payment integration', () => {
+    expect(INTELLIGENCE_ECONOMY_RUNTIME).toEqual({ oneTimeUnlockExecutionEnabled: true, nuggetDebitEnabled: true, stripeEnabled: false });
     const source = readFileSync(new URL('./intelligenceEconomy.ts', import.meta.url), 'utf8');
     expect(source).not.toMatch(/STRIPE_SECRET|consume_nuggets|createPayment|charge\s*\(/i);
   });

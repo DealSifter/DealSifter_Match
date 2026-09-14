@@ -390,6 +390,9 @@ export function ExclusiveBlockedBadge({ status, onUnlockOwner = null }) {
 }
 
 export function PortfolioDetail({ item, owner, ownerContact = null, isOwnerUnlocked = false, onUnlockRequest = null, contactPanelVariant = 'desktop', ownerDesc, onBack, autoplayMedia = false, imageSources = [], onStartChat = null, canUseChat = true, chatInterestLabel = CHAT_INTEREST_PREFIX.en, exclusiveStatus = null, onAnalyzeWithMaxxis = null, intelligencePlan = 'free', reportEntitlements = [], onRequestIntelligenceUnlock = null }) {
+  const scopedReportEntitlements = useMemo(() => reportEntitlements.filter((entitlement) => (
+    !entitlement?.propertyId || String(entitlement.propertyId) === String(item?.id || '')
+  )), [item?.id, reportEntitlements]);
   const allT = useT('matches');
   const matchesT = allT.matches;
   const modalsT = allT.modals;
@@ -462,8 +465,8 @@ export function PortfolioDetail({ item, owner, ownerContact = null, isOwnerUnloc
   const [isPreparingExport, setIsPreparingExport] = useState(false);
   const [analysisLevelOpen, setAnalysisLevelOpen] = useState(false);
   const analysisFlow = useMemo(
-    () => resolveExportPopupFlow({ plan: intelligencePlan, entitlements: reportEntitlements }),
-    [intelligencePlan, reportEntitlements],
+    () => resolveExportPopupFlow({ plan: intelligencePlan, entitlements: scopedReportEntitlements }),
+    [intelligencePlan, scopedReportEntitlements],
   );
 
   useEffect(() => {
@@ -2122,7 +2125,7 @@ export function PortfolioDetail({ item, owner, ownerContact = null, isOwnerUnloc
               {analysisLevelOpen ? (
                 <MaxxisIntelligenceUpgradeModal
                   plan={intelligencePlan}
-                  entitlements={reportEntitlements}
+                  entitlements={scopedReportEntitlements}
                   language={getLang()}
                   onRequestUnlock={handleAnalysisSelection}
                 />

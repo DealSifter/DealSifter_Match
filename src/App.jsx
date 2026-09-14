@@ -104,6 +104,7 @@ import { useUnlockNotifications } from './hooks/useUnlockNotifications';
 import { useAppSessionLifecycle } from './hooks/useAppSessionLifecycle';
 import { useUserPreferences } from './hooks/useUserPreferences';
 import { fetchFeatureFlagsWithRetry, isFeatureEnabled } from './services/featureFlagService';
+import { listMaxxisReportEntitlements, listMaxxisReportHistory, saveMaxxisReportPayload, unlockMaxxisReport } from './services/maxxisReportService';
 import { canPerformAction, getPlanActionAccess, getPlanGateCopy, getCurrentPlan, isPlanLimitError, refreshUsageFromDB, resolveRemainingNuggets } from './services/planUsageService';
 import { isProfileConflictError, saveProfessionalProfileWithVersion } from './services/profileConcurrencyService';
 import { clearSensitiveCache, clearUserScopedCache } from './lib/localStoragePolicy';
@@ -903,6 +904,11 @@ export default function App() {
     if (isSupabaseConfigured) return 0;
     return 5;
   });
+  const [reportEntitlements, setReportEntitlements] = useState([]);
+  const [maxxisReportHistory, setMaxxisReportHistory] = useState([]);
+  const activeMaxxisReportEntitlements = useMemo(() => (
+    reportEntitlements.filter((item) => String(item?.propertyId || '') === String(maxxisPropertyContextId || ''))
+  ), [maxxisPropertyContextId, reportEntitlements]);
   const [modal, setModal] = useState(null);
   const [maxxisPropertyAnalysisRequest, setMaxxisPropertyAnalysisRequest] = useState(null);
   const [maxxisPropertyContextId, setMaxxisPropertyContextId] = useState('');
@@ -1566,6 +1572,18 @@ export default function App() {
   }, [userProfile]);
 
   const supabaseUserId = authSession?.userId || null;
+  useEffect(() => {
+    let active = true;
+    if (!supabaseUserId) {
+      setReportEntitlements([]);
+      setMaxxisReportHistory([]);
+      return () => { active = false; };
+    }
+    Promise.all([listMaxxisReportEntitlements(supabaseUserId), listMaxxisReportHistory(supabaseUserId)])
+      .then(([entitlements, history]) => { if (active) { setReportEntitlements(entitlements); setMaxxisReportHistory(history); } })
+      .catch((error) => { safeLogError('Could not load Maxxis report ownership.', error); });
+    return () => { active = false; };
+  }, [supabaseUserId]);
   const localStorageOwnerId = supabaseUserId || authSession?.id || 'guest';
 
   const refreshPlanActionAccess = useCallback(async () => {
@@ -4288,15 +4306,42 @@ export default function App() {
     setMaxxisPropertyAnalysisRequest({ ...request, id, createdAt: Date.now() });
   }, []);
 
-  const handleRequestIntelligenceUnlock = useCallback((request = {}) => {
-    const reportType = String(request?.reportType || '').replaceAll('_', ' ').toLowerCase();
-    addToast({
-      type: 'info',
-      title: 'Unlock deeper intelligence',
-      message: `The ${reportType || 'requested intelligence'} Nugget unlock is not active until an exact server-authoritative price is configured. No Nuggets were charged.`,
-      duration: 6500,
-    });
-  }, [addToast]);
+  const handleRequestIntelligenceUnlock = useCallback(async (request = {}) => {
+    const capability = String(request?.reportType || request?.capability || '').trim().toUpperCase();
+    const propertyId = String(request?.propertyId || maxxisPropertyContextId || '').trim();
+    const cost = capability === 'MAXXIS_ANALYSIS' ? 3 : capability === 'DEAL_INTELLIGENCE' ? 5 : null;
+    if (!isUuid(propertyId) || cost === null) {
+      addToast({ type: 'warning', title: 'Selecione um imóvel', message: 'Abra o imóvel que deseja analisar antes de desbloquear o relatório.' });
+      return null;
+    }
+    const accepted = window.confirm(
+      `${capability === 'MAXXIS_ANALYSIS' ? 'Maxxis Analysis' : 'Deal Intelligence'}: ${cost} Nuggets.\n\n`
+      + 'O débito ocorre apenas uma vez para este imóvel. Relatórios já adquiridos podem ser reabertos sem custo. Deseja continuar?',
+    );
+    if (!accepted) return null;
+    try {
+      const result = await unlockMaxxisReport({ propertyId, capability });
+      if (Number.isFinite(Number(result?.remaining_nuggets))) {
+        await applyConfirmedNuggetBalance({ serverRemainingNuggets: result.remaining_nuggets, refresh: false });
+      }
+      const next = await listMaxxisReportEntitlements(supabaseUserId);
+      setReportEntitlements(next);
+      setMaxxisReportHistory(await listMaxxisReportHistory(supabaseUserId));
+      addToast({
+        type: 'success', title: result?.already_owned ? 'Relatório já adquirido' : 'Inteligência desbloqueada',
+        message: result?.already_owned
+          ? 'Este relatório foi reaberto sem novo consumo de Nuggets.'
+          : result?.access_source === 'SUBSCRIPTION_INCLUDED'
+            ? 'Incluído no seu plano. Nenhum Nugget foi debitado.'
+            : `${result?.charged_nuggets ?? cost} Nuggets debitados uma única vez para este imóvel.`,
+      });
+      return result;
+    } catch (error) {
+      const message = String(error?.message || 'Não foi possível desbloquear a inteligência.');
+      addToast({ type: 'error', title: message.toLowerCase().includes('not enough nuggets') ? 'Nuggets insuficientes' : 'Falha no desbloqueio', message });
+      return null;
+    }
+  }, [addToast, applyConfirmedNuggetBalance, maxxisPropertyContextId, supabaseUserId]);
 
   const handleExportMaxxisAnalysisPdf = useCallback(async (analysisExport, analysisText) => {
     if (typeof analysisExport?.onExportPdf !== 'function') return;
@@ -5619,6 +5664,7 @@ export default function App() {
             userPreferences={userPreferences}
             planActionAccess={planActionAccess}
             currentPlan={accessSubscription}
+            reportEntitlements={reportEntitlements}
             onRequestIntelligenceUnlock={handleRequestIntelligenceUnlock}
             setPage={setPage}
             addToast={addToast}
@@ -5942,6 +5988,12 @@ export default function App() {
                 sessionKey={supabaseUserId || authSession?.userId || authSession?.id || ''}
                 onExportAnalysisPdf={handleExportMaxxisAnalysisPdf}
                 currentPlan={accessSubscription}
+                reportEntitlements={activeMaxxisReportEntitlements}
+                reportHistory={maxxisReportHistory.filter((item) => String(item?.propertyId || '') === String(maxxisPropertyContextId || ''))}
+                onPersistReport={async (payload) => {
+                  await saveMaxxisReportPayload(payload);
+                  setMaxxisReportHistory(await listMaxxisReportHistory(supabaseUserId));
+                }}
                 onRequestIntelligenceUnlock={handleRequestIntelligenceUnlock}
                 onNuggetBalanceChange={(value) => {
                   void applyConfirmedNuggetBalance({ serverRemainingNuggets: value, refresh: true });

@@ -49,7 +49,8 @@ export function Pricing({ setPage, setModal, prevPage, addToast, onRequestChecko
       rows: [
         [t.compareMaxxis || 'Maxxis Deal AI + profile insights', t.compareIncluded || 'Included', t.compareIncluded || 'Included', t.compareIncluded || 'Included'],
         [t.compareIncludedIntelligence || 'Included property intelligence', t.compareIncluded || 'Included', t.compareIncluded || 'Included', t.compareIncluded || 'Included'],
-        [t.compareFullIntelligence || 'Full Property Intelligence', t.compareFullFree || 'Nugget unlock · coming soon', t.compareFullPro || 'Monthly allowance included · coming soon', t.compareFullEnterprise || 'Included with plan · coming soon'],
+        [t.compareMaxxisAnalysis || 'Maxxis Analysis report', t.compareMaxxisAnalysisFree || '3 Nuggets · once per property', t.compareIncluded || 'Included', t.compareIncluded || 'Included'],
+        [t.compareDealIntelligence || 'Deal Intelligence report', t.compareDealIntelligenceUnlock || '5 Nuggets · once per property', t.compareDealIntelligenceUnlock || '5 Nuggets · once per property', t.compareIncluded || 'Included'],
         [t.compareAskMaxxis || 'Ask Maxxis / reuse acquired intelligence', t.compareNoCharge || 'No Nugget charge', t.compareNoCharge || 'No Nugget charge', t.compareNoCharge || 'No Nugget charge'],
       ],
     },
@@ -93,7 +94,7 @@ export function Pricing({ setPage, setModal, prevPage, addToast, onRequestChecko
     },
     {
       q: t.faqIntelligenceQ || 'Does Maxxis charge for every question?',
-      a: t.faqIntelligenceA || 'No. Maxxis reasoning and interpretation are included. A future acquisition of new Full Property Intelligence may require an explicit Nugget unlock, with the exact price shown before confirmation.',
+      a: t.faqIntelligenceA || 'No. Maxxis questions and included intelligence do not consume Nuggets. Maxxis Analysis costs 3 Nuggets when not included; Deal Intelligence costs 5. Each is charged once per property and can be reopened without charge.',
     },
     {
       q: t.faqFreeQ || 'What happens when I reach Basic plan limits?',

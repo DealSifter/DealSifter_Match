@@ -19,7 +19,7 @@ describe('backend Intelligence Access foundation', () => {
       allowed: false, state: 'DENIED', paidUnlockEnabled: false,
     });
     expect(resolveIntelligenceReportAccess({ plan: 'free', reportType: 'DEAL_INTELLIGENCE' })).toMatchObject({
-      allowed: false, state: 'NUGGET_UNLOCK_REQUIRED', nuggetCost: 5, paidUnlockEnabled: false,
+      allowed: false, state: 'NUGGET_UNLOCK_REQUIRED', nuggetCost: 5, paidUnlockEnabled: true,
     });
   });
 

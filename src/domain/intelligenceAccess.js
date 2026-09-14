@@ -19,7 +19,7 @@ export const REPORT_ACCESS_SOURCES = Object.freeze({
 export const INTELLIGENCE_REPORT_CONFIG = Object.freeze({
   maxxisAnalysisNuggetCost: 3,
   dealIntelligenceNuggetCost: 5,
-  paidUnlockEnabled: false,
+  paidUnlockEnabled: true,
 });
 
 const REPORT_ORDER = Object.freeze({

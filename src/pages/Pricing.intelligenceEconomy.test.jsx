@@ -21,9 +21,9 @@ describe('Pricing Intelligence Economy presentation', () => {
   it('presents value before the paywall for all plans without a fake price or quota', () => {
     const html = renderPricing();
     expect(html).toContain('Maxxis Deal AI included');
-    expect(html).toContain('Full Property Intelligence via Nuggets (coming soon)');
-    expect(html).toContain('Monthly Full Property Intelligence allowance included (coming soon)');
-    expect(html).toContain('Full Property Intelligence included (coming soon)');
+    expect(html).toContain('Maxxis Analysis 3 Nuggets');
+    expect(html).toContain('Deal Intelligence 5 Nuggets');
+    expect(html).toContain('Maxxis Analysis and Deal Intelligence included');
     expect(html).toContain('No Nugget charge');
     expect(html).not.toMatch(/X Nuggets|\d+ of \d+ included analyses/);
   });

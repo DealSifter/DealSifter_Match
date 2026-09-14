@@ -24,7 +24,7 @@ describe('Maxxis Deal AI structured result presentation', () => {
     );
     expect(html).toContain('MAXXIS INTELLIGENCE');
     expect(html).toContain('Unlock deeper investment intelligence when you need it.');
-    expect(html).toContain('No charge or debit will be made.');
+    expect(html).toContain('Charged once for this property.');
     expect(html).not.toMatch(/recordedSalePrice|valuationIntelligence|propertyIntelligence/);
     expect(onRequestIntelligenceUnlock).not.toHaveBeenCalled();
   });

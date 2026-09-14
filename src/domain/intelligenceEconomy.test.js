@@ -16,7 +16,7 @@ describe('Intelligence Economy plan capabilities', () => {
     expect(CAPABILITY_ENTITLEMENT_MATRIX.FREE.optionalUnlock).toEqual(['MAXXIS_ANALYSIS', 'DEAL_INTELLIGENCE']);
     expect(CAPABILITY_ENTITLEMENT_MATRIX.PRO.optionalUnlock).toEqual(['DEAL_INTELLIGENCE']);
     expect(CAPABILITY_ENTITLEMENT_MATRIX.ENTERPRISE.optionalUnlock).toEqual([]);
-    expect(INTELLIGENCE_ECONOMY_RUNTIME).toEqual({ oneTimeUnlockExecutionEnabled: false, nuggetDebitEnabled: false, stripeEnabled: false });
+    expect(INTELLIGENCE_ECONOMY_RUNTIME).toEqual({ oneTimeUnlockExecutionEnabled: true, nuggetDebitEnabled: true, stripeEnabled: false });
   });
 
   it('models usage events without persisting, charging or granting access', () => {

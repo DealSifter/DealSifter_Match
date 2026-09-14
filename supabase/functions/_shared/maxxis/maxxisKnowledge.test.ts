@@ -27,7 +27,8 @@ describe('versioned Maxxis runtime knowledge', () => {
     const nuggets = MAXXIS_KNOWLEDGE_SECTIONS.find((section) => section.topic === 'nuggets')?.text || '';
     expect(nuggets).toContain('do not consume Nuggets');
     expect(nuggets).toContain('never pay-per-question or pay-per-field');
-    expect(nuggets).toContain('remain undefined and disabled');
+    expect(nuggets).toContain('Maxxis Analysis costs 3 Nuggets');
+    expect(nuggets).toContain('Deal Intelligence costs 5 Nuggets');
     expect(nuggets).toContain('server-authoritative price');
   });
 

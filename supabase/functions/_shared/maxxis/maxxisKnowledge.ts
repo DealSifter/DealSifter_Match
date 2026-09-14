@@ -63,7 +63,7 @@ export const MAXXIS_KNOWLEDGE_SECTIONS: readonly KnowledgeSection[] = [
     topic: 'nuggets',
     pages: ['pricing'],
     keywords: ['nugget', 'nuggets', 'balance', 'saldo', 'pricing', 'plan', 'plano', 'upgrade', 'subscription'],
-    text: 'Maxxis questions, interpretation, included intelligence, and rereading intelligence already acquired do not consume Nuggets. Nuggets are a secondary unit for explicit premium unlocks and future intelligence overage, never pay-per-question or pay-per-field. Full Property Intelligence pricing and the Professional monthly allowance remain undefined and disabled until unit economics are approved. Any future acquisition must show an exact server-authoritative price and require explicit confirmation; Maxxis must not invent a price, debit, refund, entitlement, plan allowance, or provider access.',
+    text: 'Maxxis questions, included intelligence, and rereading an acquired report do not consume Nuggets: it is never pay-per-question or pay-per-field. Maxxis Analysis costs 3 Nuggets when it is not included in the user plan, and Deal Intelligence costs 5 Nuggets when it is not included. Each unlock is owned by the authenticated user for that property and capability and is charged only once. PRO includes Maxxis Analysis; Enterprise includes both reports. Every paid unlock must show the exact server-authoritative price and require explicit confirmation. Maxxis must not invent a price, debit, refund, entitlement, plan allowance, provider result, or property fact.',
   },
   {
     topic: 'providers',

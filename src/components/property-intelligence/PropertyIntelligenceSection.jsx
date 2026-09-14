@@ -12,7 +12,7 @@ import {
 const fallback = {
   title: 'Full Property Intelligence', locked: 'Locked', unlockRequired: 'Explicit unlock required',
   unlock: 'Learn about Full Property Intelligence', modalTitle: 'Full Property Intelligence',
-  modalBody: 'One future explicit unlock will grant persistent access for this property. Pricing is not active yet, and asking Maxxis or rereading acquired intelligence does not consume Nuggets.',
+  modalBody: 'Maxxis Analysis costs 3 Nuggets when not included in your plan; Deal Intelligence costs 5. Each unlock is charged once for this property, remains in your history, and can be reopened without charge.',
   unavailable: 'Unavailable', temporarilyUnavailable: 'Property intelligence is temporarily unavailable.',
   source: 'Source', updated: 'Updated', recordsDiffer: 'Records differ', dealSifter: 'DealSifter', publicRecord: 'Public Record',
   propertyRecord: 'Property Record', propertyCharacteristics: 'Property Characteristics', taxAssessment: 'Tax Assessment',

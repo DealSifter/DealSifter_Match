@@ -97,6 +97,11 @@ export async function loadMaxxisRuntimeAccessContext(
     .limit(1)
     .maybeSingle();
   if (error) return { ok: false, error: 'ENTITLEMENT_MISSING' };
+  const { data: entitlementRows, error: entitlementError } = await client
+    .from('maxxis_report_entitlements')
+    .select('capability, access_source')
+    .eq('user_id', userId);
+  if (entitlementError) return { ok: false, error: 'ENTITLEMENT_MISSING' };
   const status = String(data?.status || '').toLowerCase();
   const plan = status === 'active' || status === 'trialing' ? data?.plan_id : 'free';
   return {
@@ -104,8 +109,11 @@ export async function loadMaxxisRuntimeAccessContext(
     context: {
       userId,
       plan: resolveIntelligenceReportAccess({ plan, reportType: 'PROPERTY_RELEASE' }).accessLevel,
-      // ONE_TIME_UNLOCK-ready boundary. No report unlock table or charging is activated in v1.
-      entitlements: [],
+      entitlements: (entitlementRows || []).map((row: { capability: IntelligenceReportType; access_source: string }) => ({
+        reportType: row.capability,
+        accessSource: row.access_source === 'ONE_TIME_UNLOCK' ? 'NUGGET_UNLOCK' : 'SUBSCRIPTION',
+        expires: null,
+      })),
     },
   };
 }

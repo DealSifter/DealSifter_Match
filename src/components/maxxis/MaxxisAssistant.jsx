@@ -177,7 +177,7 @@ function readDevMaxxisAttentionOverrides() {
   }
 }
 
-export function MaxxisAssistant({ page = 'dashboard', onOpenSupport = null, onNavigateAction = null, onOpenProvider = null, onOpenFeedCard = null, propertyAnalysisRequest = null, propertyContextId = '', appContext = null, sessionKey = '', onExportAnalysisPdf = null, onNuggetBalanceChange = null, onProviderUnlockConfirmed = null, enabled = true, userPreferences = null, userPreferencesHydrated = true, onChangeUserPreferences = null, userPreferencesPersistenceStatus = 'idle', proactiveFeatureEnabled = false, dealMemoryFeatureEnabled = false, onOpenPreferences = null, currentPlan = 'free', reportEntitlements = [], onRequestIntelligenceUnlock = null }) {
+export function MaxxisAssistant({ page = 'dashboard', onOpenSupport = null, onNavigateAction = null, onOpenProvider = null, onOpenFeedCard = null, propertyAnalysisRequest = null, propertyContextId = '', appContext = null, sessionKey = '', onExportAnalysisPdf = null, onNuggetBalanceChange = null, onProviderUnlockConfirmed = null, enabled = true, userPreferences = null, userPreferencesHydrated = true, onChangeUserPreferences = null, userPreferencesPersistenceStatus = 'idle', proactiveFeatureEnabled = false, dealMemoryFeatureEnabled = false, onOpenPreferences = null, currentPlan = 'free', reportEntitlements = [], reportHistory = [], onPersistReport = null, onRequestIntelligenceUnlock = null }) {
   const language = getUiLang();
   const t = COPY[language] || COPY.en;
   const preferencesCopy = getMaxxisPreferencesCopy(language);
@@ -987,6 +987,19 @@ export function MaxxisAssistant({ page = 'dashboard', onOpenSupport = null, onNa
           }]);
           return;
         }
+        const contextPropertyId = String(propertyContextId || appContext?.entity?.propertyId || '');
+        const storedReport = reportHistory.find((entry) => entry.capability === requestedReportType
+          && String(entry.propertyId || '') === contextPropertyId && entry.reportPayload);
+        if (storedReport) {
+          setMessages((prev) => [...prev, {
+            id: `maxxis-report-history-${storedReport.id || Date.now()}`,
+            role: 'assistant', createdAt: new Date(),
+            content: storedReport.reportPayload.content,
+            type: storedReport.reportPayload.type || 'maxxis_report_history',
+            data: storedReport.reportPayload.data || null,
+          }]);
+          return;
+        }
       }
       const continuityResolution = resolveCurrentMaxxisContinuity();
       const continuityReference = resolveMaxxisContinuityReference(cleanMessage, continuityResolution, {
@@ -1228,6 +1241,22 @@ export function MaxxisAssistant({ page = 'dashboard', onOpenSupport = null, onNa
         resolveReportExportEntitlement({ plan: currentPlan, entitlements: reportEntitlements, reportType: projectedReportType, channel }),
       ]))) : null;
       persistStructuredDealMemory(result, 'DEAL_REVIEW');
+      if (projectedReportType && typeof onPersistReport === 'function') {
+        try {
+          await onPersistReport({
+            propertyId: String(result?.data?.property?.id || propertyContextId || ''),
+            capability: projectedReportType,
+            reportVersion: '1',
+            reportPayload: {
+              content: dealIntelligence?.content || maxxisAnalysis?.content || intelligence.content || result.answer,
+              type: dealIntelligence?.type || maxxisAnalysis?.type || intelligence.type || result.type,
+              data: projectedReport.data,
+            },
+          });
+        } catch (error) {
+          captureAppException(error, { area: 'maxxis_report_history', page });
+        }
+      }
       if (intelligence.eventName) {
         void trackProductEvent(intelligence.eventName, {
           entityType: 'property',

@@ -726,6 +726,18 @@ export function Landing({ onOpenAuthModal = () => {} }) {
               <h2 style={{ fontSize: 'clamp(20px,4vw,30px)', fontWeight: 900, color: C.gold, margin: 0 }}>{t.howNuggetsWork}</h2>
             </div>
             <p style={{ color: '#222c48', fontSize: 'clamp(13px,2vw,15px)', marginBottom: 40, lineHeight: 1.75, maxWidth: 460 }}>{t.nuggetsSubtitle}</p>
+            <div style={{ margin:'-22px 0 30px', padding:'14px 16px', borderRadius:14, border:'1px solid rgba(20,184,166,.28)', background:'rgba(20,184,166,.07)', color:'#222c48', textAlign:'left' }}>
+              <strong style={{ display:'block', color:'#0f8f8d', marginBottom:6 }}>
+                {lang === 'pt' ? 'Inteligência Maxxis sob demanda' : lang === 'es' ? 'Inteligencia Maxxis bajo demanda' : 'Maxxis intelligence on demand'}
+              </strong>
+              <span style={{ fontSize:12, lineHeight:1.55 }}>
+                {lang === 'pt'
+                  ? 'Maxxis Analysis custa 3 Nuggets quando não está incluído no plano; Deal Intelligence custa 5. O acesso é permanente para aquele imóvel e a releitura não consome Nuggets.'
+                  : lang === 'es'
+                    ? 'Maxxis Analysis cuesta 3 Nuggets cuando no está incluido en el plan; Deal Intelligence cuesta 5. El acceso es permanente para esa propiedad y releer no consume Nuggets.'
+                    : 'Maxxis Analysis costs 3 Nuggets when not included in your plan; Deal Intelligence costs 5. Access remains available for that property and rereading does not consume Nuggets.'}
+              </span>
+            </div>
 
             {/* Vertical flow diagram */}
             <div style={{ display: 'flex', flexDirection: 'column' }}>
