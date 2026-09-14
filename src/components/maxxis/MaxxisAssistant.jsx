@@ -34,6 +34,7 @@ import {
 } from '../../features/maxxis/intelligence/maxxisDealIntelligence';
 import { projectMaxxisAnalysisResponse } from '../../features/maxxis/intelligence/maxxisAnalysisReport';
 import { projectMaxxisDealIntelligenceResponse } from '../../features/maxxis/intelligence/maxxisDealIntelligenceReport';
+import { composePropertyAnalysisAcknowledgement } from '../../features/maxxis/context/propertyAnalysisHandoff';
 import {
   buildMaxxisSmartActions,
   dedupeMaxxisSmartActionsByLatestMessage,
@@ -183,6 +184,7 @@ export function MaxxisAssistant({ page = 'dashboard', onOpenSupport = null, onNa
   const preferencesCopy = getMaxxisPreferencesCopy(language);
   const [open, setOpen] = useState(false);
   const [input, setInput] = useState('');
+  const [propertyAnalysisMode, setPropertyAnalysisMode] = useState(null);
   const [loading, setLoading] = useState(false);
   const [preferencesOpen, setPreferencesOpen] = useState(false);
   const [exportingAnalysisId, setExportingAnalysisId] = useState(null);
@@ -730,6 +732,7 @@ export function MaxxisAssistant({ page = 'dashboard', onOpenSupport = null, onNa
   }, [onChangeUserPreferences]);
 
   const resetConversation = useCallback(() => {
+    setPropertyAnalysisMode(null);
     setMessages([{
       id: `maxxis-greeting-${Date.now()}`,
       role: 'assistant',
@@ -950,6 +953,7 @@ export function MaxxisAssistant({ page = 'dashboard', onOpenSupport = null, onNa
   const submitMessage = async (messageText, meta = {}) => {
     const cleanMessage = String(messageText || '').trim();
     if (!cleanMessage || loading) return;
+    const analysisContext = meta.propertyAnalysisContext || propertyAnalysisMode;
     const userMessage = {
       id: `maxxis-user-${Date.now()}`,
       role: 'user',
@@ -957,6 +961,18 @@ export function MaxxisAssistant({ page = 'dashboard', onOpenSupport = null, onNa
       createdAt: new Date(),
     };
     setMessages((prev) => [...prev, userMessage]);
+    if (meta.propertyAnalysisContext?.mode === 'PROPERTY_ANALYSIS_MODE') {
+      const acknowledgement = composePropertyAnalysisAcknowledgement(meta.propertyAnalysisContext, language);
+      setPropertyAnalysisMode(meta.propertyAnalysisContext);
+      setMessages((prev) => [...prev, {
+        id: `maxxis-property-context-${Date.now()}`,
+        role: 'assistant',
+        content: acknowledgement,
+        createdAt: new Date(),
+        type: 'property_analysis_context',
+        data: meta.propertyAnalysisContext,
+      }]);
+    }
     setInput('');
     setLoading(true);
 
@@ -1181,6 +1197,8 @@ export function MaxxisAssistant({ page = 'dashboard', onOpenSupport = null, onNa
         propertyId: resolvedPropertyId || propertyContextId,
         propertyIds: comparisonPropertyIds,
         maxxisContext: selectMaxxisContextForMessage(continuityContextSnapshot, cleanMessage),
+        requestedCapability: requestedReportType || meta.reportType || analysisContext?.report_type || '',
+        propertyAnalysisContext: analysisContext || null,
       });
       const responseType = String(result?.type || 'text');
       if (responseType === 'deal_insight' && !requestedReportType) {
@@ -2325,6 +2343,9 @@ export function MaxxisAssistant({ page = 'dashboard', onOpenSupport = null, onNa
     const prompt = String(request?.prompt || '').trim();
     if (!requestId || !prompt || handledAnalysisRequestsRef.current.has(requestId)) return;
     handledAnalysisRequestsRef.current.add(requestId);
+    if (request?.propertyAnalysisContext?.mode === 'PROPERTY_ANALYSIS_MODE') {
+      setMessages([]);
+    }
     setOpen(true);
     setInput('');
     void submitMessageRef.current?.(prompt, {
@@ -2339,6 +2360,7 @@ export function MaxxisAssistant({ page = 'dashboard', onOpenSupport = null, onNa
         onExportPdf: request?.onExportPdf || null,
       },
       reportType: request?.reportType || '',
+      propertyAnalysisContext: request?.propertyAnalysisContext || null,
     });
   }, [language, propertyAnalysisRequest?.id]);
 
@@ -2356,6 +2378,7 @@ export function MaxxisAssistant({ page = 'dashboard', onOpenSupport = null, onNa
       data-maxxis-continuity-status={maxxisContinuityResolution.status.toLowerCase()}
       data-maxxis-continuity-source={maxxisContinuityResolution.source.toLowerCase()}
       data-maxxis-animation={effectiveMaxxisPreferences.animationEnabled ? 'enabled' : 'disabled'}
+      data-maxxis-mode={propertyAnalysisMode?.mode || 'GENERAL_CHAT_MODE'}
       data-maxxis-preferences-hydrated={userPreferencesHydrated ? 'true' : 'false'}
     >
       {open ? (

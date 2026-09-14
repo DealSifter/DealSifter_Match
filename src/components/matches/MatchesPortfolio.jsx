@@ -20,10 +20,10 @@ import { getSafeLang } from '../../services/chatTranslation';
 import { isSupabaseConfigured } from '../../lib/supabaseClient';
 import { formatCompactUsd } from '../../lib/formatMoney';
 import { PropertyIntelligenceGate } from '../property-intelligence/PropertyIntelligenceGate';
-import { MaxxisIntelligenceUpgradeModal } from '../../features/maxxis/access/MaxxisIntelligenceUpgradeModal';
+import { ReportExperienceSelector } from '../../features/maxxis/access/ReportExperienceSelector';
+import { buildPropertyAnalysisHandoff } from '../../features/maxxis/context/propertyAnalysisHandoff';
 import {
   INTELLIGENCE_REPORT_TYPES,
-  resolveExportPopupFlow,
 } from '../../domain/intelligenceAccess';
 
 const releaseDarkLogo = '/logo%20tema%20preto.png';
@@ -464,10 +464,6 @@ export function PortfolioDetail({ item, owner, ownerContact = null, isOwnerUnloc
   });
   const [isPreparingExport, setIsPreparingExport] = useState(false);
   const [analysisLevelOpen, setAnalysisLevelOpen] = useState(false);
-  const analysisFlow = useMemo(
-    () => resolveExportPopupFlow({ plan: intelligencePlan, entitlements: scopedReportEntitlements }),
-    [intelligencePlan, scopedReportEntitlements],
-  );
 
   useEffect(() => {
     // Reset image index when item changes; defer to next tick to avoid
@@ -1772,6 +1768,12 @@ export function PortfolioDetail({ item, owner, ownerContact = null, isOwnerUnloc
     if (typeof onAnalyzeWithMaxxis !== 'function') return;
     const source = buildExportPayload();
     const imageUrls = getExportImageUrls();
+    const propertyAnalysisContext = buildPropertyAnalysisHandoff({
+      property: item,
+      reportType: accessDecision.reportType,
+      accessDecision,
+      userPlan: intelligencePlan,
+    });
     onAnalyzeWithMaxxis({
       id: `maxxis-property-analysis-${item?.id || item?.address || Date.now()}-${Date.now()}`,
       title: source.title,
@@ -1780,6 +1782,7 @@ export function PortfolioDetail({ item, owner, ownerContact = null, isOwnerUnloc
       propertyId: item?.id,
       reportType: accessDecision.reportType,
       accessDecision,
+      propertyAnalysisContext,
       onExportPdf: (analysisText) => generateReleasePdf({
         title: source.title,
         cardsDescription: source.cardsDescription,
@@ -1790,20 +1793,27 @@ export function PortfolioDetail({ item, owner, ownerContact = null, isOwnerUnloc
     setEmailComposeOpen(false);
   };
 
-  const handleAnalysisSelection = (accessDecision) => {
+  const handleAnalysisSelection = async (accessDecision) => {
+    if (accessDecision?.reportType === INTELLIGENCE_REPORT_TYPES.PROPERTY_RELEASE) {
+      setAnalysisLevelOpen(false);
+      return;
+    }
     if (accessDecision?.allowed) {
       startMaxxisAnalysis(accessDecision);
       return;
     }
-    onRequestIntelligenceUnlock?.({ ...accessDecision, propertyId: item?.id || null });
+    const result = await onRequestIntelligenceUnlock?.({ ...accessDecision, propertyId: item?.id || null });
+    if (result) {
+      startMaxxisAnalysis({
+        ...accessDecision,
+        allowed: true,
+        state: result.already_owned ? 'ENTITLED' : 'UNLOCKED',
+        accessSource: result.access_source || accessDecision.accessSource,
+      });
+    }
   };
 
   const handleAnalyzeWithMaxxis = () => {
-    if (analysisFlow.directReportType) {
-      const decision = analysisFlow.analysisOptions.find((option) => option.reportType === analysisFlow.directReportType);
-      if (decision?.allowed) startMaxxisAnalysis(decision);
-      return;
-    }
     setAnalysisLevelOpen(true);
   };
 
@@ -2108,9 +2118,9 @@ export function PortfolioDetail({ item, owner, ownerContact = null, isOwnerUnloc
                   type="button"
                   onClick={handleAnalyzeWithMaxxis}
                   style={{
-                    border: `1px solid ${C.accent}`,
-                    background: C.alpha(C.accent, 0.14),
-                    color: C.accent,
+                    border: `1px solid ${analysisLevelOpen ? C.accent : C.border}`,
+                    background: analysisLevelOpen ? C.alpha(C.accent, 0.1) : C.card,
+                    color: analysisLevelOpen ? C.accent : C.t1,
                     borderRadius: 9,
                     padding: '9px 8px',
                     fontSize: 11,
@@ -2123,11 +2133,11 @@ export function PortfolioDetail({ item, owner, ownerContact = null, isOwnerUnloc
               </div>
 
               {analysisLevelOpen ? (
-                <MaxxisIntelligenceUpgradeModal
+                <ReportExperienceSelector
                   plan={intelligencePlan}
                   entitlements={scopedReportEntitlements}
                   language={getLang()}
-                  onRequestUnlock={handleAnalysisSelection}
+                  onSelect={handleAnalysisSelection}
                 />
               ) : null}
 

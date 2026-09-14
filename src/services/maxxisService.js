@@ -99,7 +99,39 @@ function resolveControlledIntent(message) {
   return '';
 }
 
-export async function sendMaxxisMessage({ message, history = [], page = 'dashboard', language = currentLanguage(), propertyId = '', propertyIds = [], maxxisContext = null, controlledIntent = '' }) {
+function sanitizePropertyAnalysisContext(input) {
+  if (!input || input.mode !== 'PROPERTY_ANALYSIS_MODE') return null;
+  const propertyId = String(input.property_id || '').trim();
+  const reportType = String(input.report_type || '').trim().toUpperCase();
+  if (!UUID_PATTERN.test(propertyId) || !['PROPERTY_RELEASE', 'MAXXIS_ANALYSIS', 'DEAL_INTELLIGENCE'].includes(reportType)) return null;
+  const safeList = (value) => (Array.isArray(value) ? value : [])
+    .map((item) => String(item || '').trim().slice(0, 40))
+    .filter(Boolean)
+    .slice(0, 24);
+  return {
+    mode: 'PROPERTY_ANALYSIS_MODE',
+    property_id: propertyId,
+    address: String(input.address || '').replace(/\s+/g, ' ').trim().slice(0, 180),
+    report_type: reportType,
+    entitlement: {
+      state: String(input.entitlement?.state || '').trim().slice(0, 40),
+      allowed: Boolean(input.entitlement?.allowed),
+      access_source: String(input.entitlement?.access_source || '').trim().slice(0, 40) || null,
+    },
+    user_plan: String(input.user_plan || 'FREE').trim().toUpperCase().slice(0, 30),
+    available_property_data: {
+      fields: safeList(input.available_property_data?.fields),
+      missing_fields: safeList(input.available_property_data?.missing_fields),
+    },
+    available_intelligence_context: Object.fromEntries(
+      Object.entries(input.available_intelligence_context || {})
+        .filter(([key]) => ['selected_property', 'property_release', 'maxxis_analysis', 'deal_intelligence'].includes(key))
+        .map(([key, value]) => [key, Boolean(value)]),
+    ),
+  };
+}
+
+export async function sendMaxxisMessage({ message, history = [], page = 'dashboard', language = currentLanguage(), propertyId = '', propertyIds = [], maxxisContext = null, controlledIntent = '', requestedCapability = '', propertyAnalysisContext = null }) {
   const text = String(message || '').trim();
   if (!text) throw new Error('Message is required.');
   if (!isSupabaseConfigured || !supabase) {
@@ -121,10 +153,12 @@ export async function sendMaxxisMessage({ message, history = [], page = 'dashboa
   )).slice(0, 20);
   const trustedPropertyId = String(propertyId || '').trim();
   const cleanMaxxisContext = maxxisContext ? sanitizeMaxxisContextSnapshot(maxxisContext) : null;
+  const cleanPropertyAnalysisContext = sanitizePropertyAnalysisContext(propertyAnalysisContext);
   const context = {
     ...(UUID_PATTERN.test(trustedPropertyId) ? { propertyId: trustedPropertyId } : {}),
     ...(trustedPropertyIds.length ? { propertyIds: trustedPropertyIds } : {}),
     ...(cleanMaxxisContext ? { maxxisContext: cleanMaxxisContext } : {}),
+    ...(cleanPropertyAnalysisContext ? { propertyAnalysis: cleanPropertyAnalysisContext } : {}),
   };
   const contextTelemetry = cleanMaxxisContext ? maxxisContextTelemetry(cleanMaxxisContext) : null;
   if (contextTelemetry) {
@@ -149,6 +183,10 @@ export async function sendMaxxisMessage({ message, history = [], page = 'dashboa
       page,
       language,
       controlledIntent: String(controlledIntent || resolveControlledIntent(text)).trim(),
+      ...(cleanPropertyAnalysisContext ? {
+        requestedCapability: String(requestedCapability || cleanPropertyAnalysisContext.report_type),
+        analysisMode: 'PROPERTY_ANALYSIS_MODE',
+      } : {}),
       ...(Object.keys(context).length ? { context } : {}),
     });
     data = result.data;

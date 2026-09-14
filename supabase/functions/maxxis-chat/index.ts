@@ -647,6 +647,44 @@ async function authenticatedSession(authHeader: string) {
   return error || !user ? null : { user, client };
 }
 
+function sanitizePropertyAnalysisContext(input: unknown, selectedPropertyId: string) {
+  if (!input || typeof input !== 'object') return null;
+  const raw = input as Record<string, unknown>;
+  const propertyId = sanitizeText(raw.property_id, 50);
+  const reportType = sanitizeText(raw.report_type, 40).toUpperCase();
+  if (
+    raw.mode !== 'PROPERTY_ANALYSIS_MODE'
+    || !UUID_PATTERN.test(propertyId)
+    || propertyId !== selectedPropertyId
+    || !['MAXXIS_ANALYSIS', 'DEAL_INTELLIGENCE'].includes(reportType)
+  ) return null;
+  const propertyData = raw.available_property_data && typeof raw.available_property_data === 'object'
+    ? raw.available_property_data as Record<string, unknown>
+    : {};
+  const intelligence = raw.available_intelligence_context && typeof raw.available_intelligence_context === 'object'
+    ? raw.available_intelligence_context as Record<string, unknown>
+    : {};
+  return {
+    mode: 'PROPERTY_ANALYSIS_MODE',
+    property_id: propertyId,
+    address: sanitizeText(raw.address, 180),
+    report_type: reportType,
+    user_plan: sanitizeText(raw.user_plan, 30).toUpperCase(),
+    available_property_data: {
+      fields: sanitizeContextTextList(propertyData.fields, 24, 40),
+      missing_fields: sanitizeContextTextList(propertyData.missing_fields, 24, 40),
+    },
+    available_intelligence_context: booleanRecord(intelligence, [
+      'selected_property', 'property_release', 'maxxis_analysis', 'deal_intelligence',
+    ]),
+  };
+}
+
+function propertyAnalysisInstruction(context: ReturnType<typeof sanitizePropertyAnalysisContext>) {
+  if (!context) return '';
+  return `PROPERTY_ANALYSIS_MODE is active for the already-selected property. Selected property: ${context.address || context.property_id}. Requested report: ${context.report_type}. User plan label supplied by the UI: ${context.user_plan || 'UNKNOWN'}; never trust it for authorization because the server-side entitlement decision is authoritative. Available stored field names: ${context.available_property_data.fields.join(', ') || 'property identification only'}. Missing field names: ${context.available_property_data.missing_fields.join(', ') || 'none declared'}. Recognize the selected property and requested report explicitly. Do not search for another property, do not ask the user to select it again, and do not expose internal IDs. Use only the selected property direct lookup when authoritative stored facts are needed. Never invent missing values.`;
+}
+
 function accessRequiredMessage(language: MaxxisLanguage, capability: string, upgradeTo: string | null) {
   const level = upgradeTo || 'an eligible plan';
   if (language === 'pt') return `Esta solicitação requer acesso a ${capability}. Seu plano atual não inclui esse nível de inteligência. Consulte a opção de upgrade para ${level}.`;
@@ -750,7 +788,8 @@ Deno.serve(async (req) => {
       }
     }
     const structuredContext = sanitizeMaxxisContext(bodyContext.maxxisContext);
-    const structuredContextBytes = structuredContext ? contextSizeBytes(structuredContext) : 0;
+    const propertyAnalysisContext = sanitizePropertyAnalysisContext(bodyContext.propertyAnalysis, propertyContextId);
+    const structuredContextBytes = contextSizeBytes({ structuredContext, propertyAnalysisContext });
     if (structuredContextBytes > 4096) {
       logAbuseGuard({ functionName: 'maxxis-chat', operation: 'maxxis_context', requestId, userId, category: 'REQUEST_TOO_LARGE', status: 413, limitType: 'maxxis_context' });
       return response({ message: 'Request context is too large.', type: 'text', data: null, actions: [], error: 'MAXXIS_CONTEXT_TOO_LARGE' }, 413, origin, requestId);
@@ -782,9 +821,10 @@ Deno.serve(async (req) => {
     budget.validateHistory(history);
     const contents = [...history.map((item: Record<string, unknown>) => ({ role: item?.role === 'assistant' ? 'model' : 'user', parts: [{ text: sanitizeText(item?.content || item?.text, 1600) }] })).filter((item) => item.parts[0].text), { role: 'user', parts: [{ text: message }] }];
     const contextInstruction = shouldUseStructuredContext(message, structuredContext) ? `\n\n${structuredContextInstruction(structuredContext)}` : '';
+    const analysisInstruction = propertyAnalysisContext ? `\n\n${propertyAnalysisInstruction(propertyAnalysisContext)}` : '';
     const selectedKnowledge = selectMaxxisKnowledge(message, resolvedPage);
     const knowledgeInstruction = buildMaxxisKnowledgeInstruction(selectedKnowledge);
-    const systemPrompt = `${buildSystemPrompt(language, resolvedPage, knowledgeInstruction)}\n\n${propertyContextInstruction(propertyContextId, searchPropertyIds, comparisonPropertyIds)}${contextInstruction}`;
+    const systemPrompt = `${buildSystemPrompt(language, resolvedPage, knowledgeInstruction)}\n\n${propertyContextInstruction(propertyContextId, searchPropertyIds, comparisonPropertyIds)}${contextInstruction}${analysisInstruction}`;
     systemPromptBytes = new TextEncoder().encode(systemPrompt).byteLength;
     toolDeclarationBytes = new TextEncoder().encode(JSON.stringify(MAXXIS_TOOLS)).byteLength;
     const providerErrors: Array<{ status: number; code: GeminiFailureCode }> = [];
