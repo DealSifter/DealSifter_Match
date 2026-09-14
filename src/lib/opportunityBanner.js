@@ -7,3 +7,8 @@ export function buildMarqueeBannerItems(items, minCards = 16) {
     marqueeInstanceKey: `${source[index % source.length].key || 'item'}-${index}`,
   }));
 }
+
+export function getMarqueeTransformOffset(offset) {
+  const safeOffset = Number.isFinite(Number(offset)) ? Number(offset) : 0;
+  return `${-safeOffset}px`;
+}

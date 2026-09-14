@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { normalizeCard } from '../lib/normalizeFeedCard';
 import { sanitizePublicCardInput } from '../lib/sanitizePublicCardInput';
-import { buildMarqueeBannerItems } from '../lib/opportunityBanner';
+import { buildMarqueeBannerItems, getMarqueeTransformOffset } from '../lib/opportunityBanner';
 
 const buildDashboardPublicProfileCard = (ownerPreview) => {
   const publicOwnerPreview = sanitizePublicCardInput(ownerPreview);
@@ -79,6 +79,11 @@ describe('Dashboard public card builders', () => {
 });
 
 describe('Dashboard opportunity banner', () => {
+  it('produces a valid negative CSS offset for the animated track', () => {
+    expect(getMarqueeTransformOffset(38.5)).toBe('-38.5px');
+    expect(getMarqueeTransformOffset('not-a-number')).toBe('0px');
+  });
+
   it('creates stable unique instances when real spotlight cards must repeat', () => {
     const items = [
       { key: 'property-1', title: 'Property 1' },

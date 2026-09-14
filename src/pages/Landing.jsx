@@ -7,6 +7,7 @@ import { catIcon } from '../lib/catIcon';
 import { FOOTER_INFO } from '../content/footerInfoContent';
 import { useMediaQuery } from '../hooks/useMediaQuery';
 import { getLogoSrc } from '../services/themeService';
+import { buildHeroMosaicLoopItems } from '../lib/heroMosaic';
 
 /* ─── Preview cards used inside the "Most Requested Services" section ─── */
 function LandingProfCard({ onClick }) {
@@ -579,14 +580,6 @@ export function Landing({ onOpenAuthModal = () => {} }) {
           from { transform: translateY(-50%); }
           to   { transform: translateY(0); }
         }
-        @keyframes mosaicScrollUpSeven {
-          from { transform: translateY(0); }
-          to   { transform: translateY(-14.2857%); }
-        }
-        @keyframes mosaicScrollDownSeven {
-          from { transform: translateY(-14.2857%); }
-          to   { transform: translateY(0); }
-        }
         .timeline-link {
           position: relative;
           width: 56px;
@@ -645,9 +638,9 @@ export function Landing({ onOpenAuthModal = () => {} }) {
         {/* ── Mosaico tipo Tinder de fundo ── */}
         <div aria-hidden="true" className="hero-mosaic-layer" style={{ position:'absolute', inset:0, zIndex:0, pointerEvents:'none', display:'flex', alignItems:'stretch', gap:10, padding:'0 8px', contain:'layout paint style' }}>
           {HERO_MOSAIC_COLS.map((col, ci) => {
-            const dirs = ['mosaicScrollUpSeven','mosaicScrollDownSeven','mosaicScrollUpSeven','mosaicScrollDownSeven','mosaicScrollUpSeven'];
+            const dirs = ['mosaicScrollUp','mosaicScrollDown','mosaicScrollUp','mosaicScrollDown','mosaicScrollUp'];
             const durs = ['55s','41s','66s','48s','50s'];
-            const loopItems = Array.from({ length: 7 }).flatMap(() => col);
+            const loopItems = buildHeroMosaicLoopItems(col);
             return (
               <div key={ci} className={`hero-mc hero-mc-${ci}`} style={{ flex:1, minWidth:0, overflow:'hidden' }}>
                 <div className="hero-mosaic-track" style={{ display:'flex', flexDirection:'column', gap:10, animation:`${dirs[ci]} ${durs[ci]} linear infinite` }}>

@@ -30,7 +30,7 @@ import { getPublicPropertyAddressLine, shouldHideStreetAddressOnCard } from '../
 import { buildProfileEntitlementKey } from '../lib/profileScope';
 import { resolveProfileCardSlots } from '../lib/profileCardSlots';
 import { isOwnerUnlocked as isCanonicalOwnerUnlocked } from '../services/unlockedContactService';
-import { buildMarqueeBannerItems } from '../lib/opportunityBanner';
+import { buildMarqueeBannerItems, getMarqueeTransformOffset } from '../lib/opportunityBanner';
 import feedMatchIcon from '../assets/feed-match-icon.png';
 import spotlightIcon from '../assets/spotlight-icon.png';
 
@@ -508,7 +508,7 @@ export function Dashboard({ page, nuggets, setModal, setPage, onOpenOnboardingTa
       if (next < 0) next = loopWidth + (next % loopWidth);
     }
     opportunityBannerOffsetRef.current = next;
-    track.style.setProperty('--ds-banner-offset', `${next}px`);
+    track.style.setProperty('--ds-banner-offset', getMarqueeTransformOffset(next));
   };
 
   const handleOpportunityBannerWheel = (event) => {
@@ -2919,7 +2919,7 @@ export function Dashboard({ page, nuggets, setModal, setPage, onOpenOnboardingTa
         const elapsed = Math.min(100, Math.max(0, timestamp - last));
         const next = (opportunityBannerOffsetRef.current + ((elapsed / 1000) * speedPxPerSecond)) % loopWidth;
         opportunityBannerOffsetRef.current = next;
-        track.style.setProperty('--ds-banner-offset', `${next}px`);
+        track.style.setProperty('--ds-banner-offset', getMarqueeTransformOffset(next));
       }
       opportunityBannerLastFrameRef.current = timestamp;
       opportunityBannerRafRef.current = window.requestAnimationFrame(step);
@@ -3002,7 +3002,7 @@ export function Dashboard({ page, nuggets, setModal, setPage, onOpenOnboardingTa
           100% { transform: translate3d(-220%, -10%, 0) scale(0.93) rotate(-16deg); opacity: 0; }
         }
         .opportunity-track {
-          transform: translate3d(calc(var(--ds-banner-offset, 0px) * -1), 0, 0);
+          transform: translate3d(var(--ds-banner-offset, 0px), 0, 0);
           will-change: transform;
         }
         .opportunity-sequence {
