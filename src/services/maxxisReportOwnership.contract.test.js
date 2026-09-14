@@ -3,6 +3,7 @@ import { readFileSync } from 'node:fs';
 
 const migration = readFileSync(new URL('../../supabase/migrations/20260914090000_maxxis_report_unlock_ownership.sql', import.meta.url), 'utf8');
 const planFallback = readFileSync(new URL('../../supabase/migrations/20260914100000_maxxis_report_plan_fallback.sql', import.meta.url), 'utf8');
+const conflictFix = readFileSync(new URL('../../supabase/migrations/20260914110000_maxxis_report_unlock_conflict_fix.sql', import.meta.url), 'utf8');
 
 describe('Maxxis report ownership migration contract', () => {
   it('binds ownership to user, property and capability with a unique entitlement', () => {
@@ -19,7 +20,7 @@ describe('Maxxis report ownership migration contract', () => {
   });
 
   it('prevents repeat charges and allows only owner reads', () => {
-    expect(migration).toMatch(/on conflict \(user_id, property_id, capability\) do nothing/i);
+    expect(conflictFix).toMatch(/on conflict on constraint maxxis_report_entitlements_user_id_property_id_capability_key do nothing/i);
     expect(migration).toMatch(/already_owned boolean/i);
     expect(migration.match(/using \(user_id = auth\.uid\(\)\)/g)).toHaveLength(2);
     expect(migration).toMatch(/report ownership required/i);
@@ -34,5 +35,10 @@ describe('Maxxis report ownership migration contract', () => {
     expect(planFallback).toMatch(/select lower\(coalesce\(u\.plan_id, 'free'\)\)/i);
     expect(planFallback).toContain("v_plan in ('pro', 'professional')");
     expect(planFallback).not.toMatch(/stripe|rentcast/i);
+  });
+
+  it('avoids PL/pgSQL output-column ambiguity in the effective unlock RPC', () => {
+    expect(conflictFix).not.toMatch(/on conflict \(user_id, property_id, capability\)/i);
+    expect(conflictFix).toContain('maxxis_report_entitlements_user_id_property_id_capability_key');
   });
 });
