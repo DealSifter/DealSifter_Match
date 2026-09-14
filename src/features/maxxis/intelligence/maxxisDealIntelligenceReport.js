@@ -110,6 +110,11 @@ function comparableItem(comp) {
       : comp?.valuationEligibility === 'SUPPORTING_ONLY' ? 'SUPPORTING' : 'EXCLUDED'),
     inclusionReason: safeText(comp?.inclusionReason) || null,
     exclusionReason: safeText(comp?.exclusionReason) || null,
+    beds: nullableNumber(comp?.beds),
+    baths: nullableNumber(comp?.baths),
+    sqft: nullableNumber(comp?.sqft),
+    latitude: nullableNumber(comp?.latitude),
+    longitude: nullableNumber(comp?.longitude),
     sourceType: 'VERIFIED_RECORD',
     provenance: 'VERIFIED_RECORD',
   });
@@ -194,6 +199,7 @@ export function projectMaxxisDealIntelligenceResponse(result = {}) {
   if (!report) return null;
   const maxxisReport = buildMaxxisReportSchema({
     reportType: 'DEAL_INTELLIGENCE', property: result?.data?.property, dealIntelligence: report,
+    dealMetrics: result?.data?.metrics,
   });
   return Object.freeze({
     type: 'maxxis_deal_intelligence',

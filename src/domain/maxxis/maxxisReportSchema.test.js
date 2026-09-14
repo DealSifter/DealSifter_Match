@@ -7,6 +7,8 @@ const property = Object.freeze({
   id: 'property-1', title: 'Fixture property', address: 'Stored address', city: 'Austin', state: 'TX',
   zip: '78701', description: 'Stored description', type: 'SFR', beds: 3, baths: 2,
   sqft: 1600, lot: null, price: 320000, images: ['stored-image.jpg'], internalSecret: 'never-export',
+  owner: { name: 'Stored owner', type: 'FSBO', status: 'ACTIVE', privateEmail: 'never-export@example.test',
+    allowedContacts: [{ type: 'email', label: 'Email', value: 'allowed@example.test', internalId: 'never-export' }] },
 });
 
 function analysis() {
@@ -33,11 +35,17 @@ function intelligence(status = 'ARV_AVAILABLE') {
   };
 }
 
-describe('MaxxisReportSchema v1', () => {
+describe('MaxxisReportSchema v2', () => {
   it('TEST 1 exports Property Release from allowlisted user-provided card data only', () => {
     const report = buildMaxxisReportSchema({ reportType: 'PROPERTY_RELEASE', property });
+    expect(report).toMatchObject({ version: 'MAXXIS_REPORT_SCHEMA_V2', pages: [{ page: 1, code: 'PROPERTY_OVERVIEW' }] });
     expect(report.sections.propertySummary).toMatchObject({ available: true, sourceType: 'USER_PROVIDED' });
     expect(report.sections.propertySummary.data.internalSecret).toBeUndefined();
+    expect(report.sections.propertySummary.data.owner).toEqual({
+      name: 'Stored owner', type: 'FSBO', status: 'ACTIVE',
+      allowedContacts: [{ type: 'email', label: 'Email', value: 'allowed@example.test' }],
+    });
+    expect(JSON.stringify(report.sections.propertySummary.data.owner)).not.toContain('privateEmail');
     for (const key of ['executiveSummary', 'propertyEvidence', 'comparableEvidence', 'valuationEvidence', 'riskAssessment']) {
       expect(report.sections[key]).toEqual({ available: false, sourceType: 'UNKNOWN', data: null });
     }
@@ -46,6 +54,7 @@ describe('MaxxisReportSchema v1', () => {
   it('TEST 2 exports Maxxis Analysis without evidence, comps, ARV, or valuation data', () => {
     const report = buildMaxxisReportSchema({ reportType: 'MAXXIS_ANALYSIS', property, maxxisAnalysis: analysis() });
     expect(report.sections.executiveSummary.available).toBe(true);
+    expect(report.pages).toHaveLength(2);
     expect(report.sections.executiveSummary.data).toMatchObject({ summary: expect.any(String) });
     expect(report.sections.investmentProfile.data).toMatchObject({ semantics: 'PROFILE_FIT_ONLY' });
     expect(report.sections.propertyEvidence.data).toBeNull();
