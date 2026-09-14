@@ -10,8 +10,8 @@ import { MAXXIS_REPORT_DISCLAIMER, renderMaxxisReportDocument } from './maxxisRe
 import { resolveReportExportEntitlement } from './reportExportEntitlement';
 
 const property = { id: 'property-1', address: '100 Stored St', type: 'SFR', objective: 'Fix and Flip', images: ['https://portfolio.example/subject.jpg'] };
-const analysis = { executiveSummary: 'Evidence summary.', profileAlignment: { score: 70 }, riskAwareness: [], limitations: ['Condition unknown'], nextSteps: ['Verify condition'] };
-const intelligence = { executiveDealOverview: 'Evidence overview.', investmentFit: { score: 70 }, valuationIntelligence: { status: 'ARV_UNAVAILABLE' }, comparableEvidence: { used: [], supporting: [], excluded: [] }, riskAnalysis: [], limitations: ['Condition unknown'], nextVerificationSteps: ['Verify condition'] };
+const analysis = { executiveSummary: 'Evidence summary.', profileAlignment: { score: 70 }, riskAwareness: [], limitations: ['Condition unknown'], nextSteps: ['Verify condition'], provenance: { property: 'USER_PROVIDED' } };
+const intelligence = { executiveDealOverview: 'Evidence overview.', investmentFit: { score: 70 }, propertyEvidence: { verifiedRecords: [], userProvided: [], unknown: [{ field: 'condition' }], conflicts: [] }, valuationIntelligence: { status: 'ARV_UNAVAILABLE' }, comparableEvidence: { used: [], supporting: [], excluded: [] }, riskAnalysis: [], limitations: ['Condition unknown'], nextVerificationSteps: ['Verify condition'], provenance: { propertyEvidence: 'PROPERTY_INTELLIGENCE' } };
 const schema = (reportType) => buildMaxxisReportSchema({ reportType, property, maxxisAnalysis: analysis, dealIntelligence: intelligence });
 const entitlement = (plan, reportType, channel) => resolveReportExportEntitlement({ plan, reportType, channel });
 

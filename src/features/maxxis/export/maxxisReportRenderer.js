@@ -1,4 +1,5 @@
 import { isMatchingReportExportEntitlement } from './reportExportEntitlement';
+import { validateIntelligenceConsistency, validateReportIntegrity } from '../qa/maxxisProductionReadiness';
 
 export const MAXXIS_REPORT_DOCUMENT_VERSION = 'MAXXIS_REPORT_DOCUMENT_V1';
 export const MAXXIS_REPORT_DISCLAIMER = 'This report provides evidence-based investment analysis only and does not constitute appraisal, financial advice, or recommendation to buy or sell.';
@@ -10,6 +11,9 @@ export function renderMaxxisReportDocument({ schema, exportEntitlement, generate
     || !isMatchingReportExportEntitlement(exportEntitlement, schema.reportType, 'PDF')) {
     return Object.freeze({ state: 'DENIED', document: null });
   }
+  const integrity = validateReportIntegrity({ schema, exportEntitlement, channel: 'PDF' });
+  const consistency = validateIntelligenceConsistency({ schema });
+  if (!integrity.valid || !consistency.valid) return Object.freeze({ state: 'VALIDATION_FAILED', document: null, validation: Object.freeze({ integrity, consistency }) });
   const property = section(schema, 'propertySummary') || {};
   const generatedDate = new Date(generatedAt);
   if (Number.isNaN(generatedDate.getTime())) return Object.freeze({ state: 'DENIED', document: null });
