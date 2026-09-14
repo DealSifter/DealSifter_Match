@@ -115,6 +115,7 @@ import {
   resolveIntelligenceReportAccess,
 } from '../../domain/intelligenceAccess';
 import { buildMaxxisIntelligenceUpgradeExperience } from '../../features/maxxis/access/maxxisIntelligenceUpgrade';
+import { resolveReportExportEntitlement } from '../../features/maxxis/export/reportExportEntitlement';
 import './MaxxisAssistant.css';
 
 import {
@@ -1220,6 +1221,12 @@ export function MaxxisAssistant({ page = 'dashboard', onOpenSupport = null, onNa
         || (responseType === 'deal_insight' && !requestedReportType)
         ? projectMaxxisDealIntelligenceResponse(result)
         : null;
+      const projectedReport = dealIntelligence || maxxisAnalysis;
+      const projectedReportType = projectedReport?.data?.maxxisReport?.reportType || null;
+      const reportExportEntitlements = projectedReportType ? Object.freeze(Object.fromEntries(['PDF', 'EMAIL', 'SHARE'].map((channel) => [
+        channel,
+        resolveReportExportEntitlement({ plan: currentPlan, entitlements: reportEntitlements, reportType: projectedReportType, channel }),
+      ]))) : null;
       persistStructuredDealMemory(result, 'DEAL_REVIEW');
       if (intelligence.eventName) {
         void trackProductEvent(intelligence.eventName, {
@@ -1239,7 +1246,7 @@ export function MaxxisAssistant({ page = 'dashboard', onOpenSupport = null, onNa
         degradedReason: result.degradedReason || '',
         requestId: result.requestId || '',
         type: dealIntelligence?.type || maxxisAnalysis?.type || intelligence.type || result.type,
-        data: dealIntelligence?.data || maxxisAnalysis?.data || intelligence.data || result.data,
+        data: projectedReport ? { ...projectedReport.data, reportExportEntitlements } : (intelligence.data || result.data),
         followUps: dealIntelligence || maxxisAnalysis ? [] : intelligence.followUps,
         smartActionsEnabled: intelligence.type === 'deal_snapshot',
         smartActionSurface: 'snapshot',

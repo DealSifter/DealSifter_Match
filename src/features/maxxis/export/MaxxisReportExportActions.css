@@ -1,0 +1,11 @@
+.maxxis-report-export-actions { display: grid; gap: 8px; margin-top: 9px; }
+.maxxis-report-export-actions > div:first-child { display: flex; flex-wrap: wrap; gap: 6px; }
+.maxxis-report-export-actions button { border: 1px solid var(--border-color, #cbd5e1); border-radius: 8px; padding: 7px 10px; color: var(--text-primary, #172033); background: var(--card-bg, #fff); font-size: 10px; font-weight: 800; cursor: pointer; }
+.maxxis-report-export-actions button:disabled { cursor: not-allowed; opacity: .45; }
+.maxxis-report-export-preview { display: grid; gap: 7px; padding: 11px; border: 1px solid var(--border-color, #cbd5e1); border-radius: 10px; background: var(--card-bg, #fff); }
+.maxxis-report-export-preview header, .maxxis-report-export-preview footer { display: flex; justify-content: space-between; gap: 8px; align-items: center; }
+.maxxis-report-export-preview header strong { color: #168f91; }
+.maxxis-report-export-preview ul { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 3px 8px; margin: 0; padding: 0; list-style: none; font-size: 10px; }
+.maxxis-report-export-preview small { color: var(--text-tertiary, #64748b); }
+.maxxis-report-export-preview footer button:last-child { color: #fff; border-color: #168f91; background: linear-gradient(135deg, #168f91, #20c6c7); }
+@media (max-width: 560px) { .maxxis-report-export-preview ul { grid-template-columns: 1fr; } }

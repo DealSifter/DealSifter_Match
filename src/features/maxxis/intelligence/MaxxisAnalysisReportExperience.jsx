@@ -37,7 +37,7 @@ function ListSection({ title, items, ordered = false }) {
   return <div className="maxxis-analysis-section"><strong>{title}</strong><List>{items.map((item) => <li key={item}>{item}</li>)}</List></div>;
 }
 
-export function MaxxisAnalysisReportExperience({ report, reportSchema = null, language = 'en' }) {
+export function MaxxisAnalysisReportExperience({ report, reportSchema = null, exportEntitlements = {}, language = 'en' }) {
   if (!report || report.type !== 'maxxis_analysis_report') return null;
   const t = COPY[language] || COPY.en;
   const alignment = report.profileAlignment || {};
@@ -81,7 +81,7 @@ export function MaxxisAnalysisReportExperience({ report, reportSchema = null, la
       ) : null}
       <ListSection title={t.limitations} items={report.limitations} />
       <ListSection title={t.next} items={report.nextSteps} ordered />
-      <MaxxisDealIntelligenceReportPreview schema={reportSchema} language={language} />
+      <MaxxisDealIntelligenceReportPreview schema={reportSchema} language={language} exportEntitlements={exportEntitlements} />
       <small>{t.disclaimer}</small>
     </section>
   );
