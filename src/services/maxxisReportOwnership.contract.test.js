@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest';
 import { readFileSync } from 'node:fs';
 
 const migration = readFileSync(new URL('../../supabase/migrations/20260914090000_maxxis_report_unlock_ownership.sql', import.meta.url), 'utf8');
+const planFallback = readFileSync(new URL('../../supabase/migrations/20260914100000_maxxis_report_plan_fallback.sql', import.meta.url), 'utf8');
 
 describe('Maxxis report ownership migration contract', () => {
   it('binds ownership to user, property and capability with a unique entitlement', () => {
@@ -27,5 +28,11 @@ describe('Maxxis report ownership migration contract', () => {
 
   it('does not add Stripe or RentCast integration', () => {
     expect(migration).not.toMatch(/stripe|rentcast/i);
+  });
+
+  it('preserves users.plan_id when no active subscription row exists', () => {
+    expect(planFallback).toMatch(/select lower\(coalesce\(u\.plan_id, 'free'\)\)/i);
+    expect(planFallback).toContain("v_plan in ('pro', 'professional')");
+    expect(planFallback).not.toMatch(/stripe|rentcast/i);
   });
 });

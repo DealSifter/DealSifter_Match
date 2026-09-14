@@ -97,13 +97,19 @@ export async function loadMaxxisRuntimeAccessContext(
     .limit(1)
     .maybeSingle();
   if (error) return { ok: false, error: 'ENTITLEMENT_MISSING' };
+  const { data: userPlan, error: userPlanError } = await client
+    .from('users')
+    .select('plan_id')
+    .eq('id', userId)
+    .maybeSingle();
+  if (userPlanError) return { ok: false, error: 'ENTITLEMENT_MISSING' };
   const { data: entitlementRows, error: entitlementError } = await client
     .from('maxxis_report_entitlements')
     .select('capability, access_source')
     .eq('user_id', userId);
   if (entitlementError) return { ok: false, error: 'ENTITLEMENT_MISSING' };
   const status = String(data?.status || '').toLowerCase();
-  const plan = status === 'active' || status === 'trialing' ? data?.plan_id : 'free';
+  const plan = status === 'active' || status === 'trialing' ? data?.plan_id : userPlan?.plan_id || 'free';
   return {
     ok: true,
     context: {
