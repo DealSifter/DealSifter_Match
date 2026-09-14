@@ -464,4 +464,10 @@ export type MaxxisResponse = {
     knowledgeTopics?: string[];
   };
   error?: string;
+  accessRequired?: {
+    capability: 'PROPERTY_RELEASE' | 'MAXXIS_ANALYSIS' | 'DEAL_INTELLIGENCE';
+    currentLevel: 'FREE' | 'PRO' | 'ENTERPRISE' | 'NUGGET_UNLOCK';
+    upgradeTo: 'PRO' | 'ENTERPRISE' | null;
+    reason: 'UNAUTHENTICATED' | 'ENTITLEMENT_MISSING' | 'INSUFFICIENT_PLAN' | 'CAPABILITY_NOT_AVAILABLE';
+  };
 };

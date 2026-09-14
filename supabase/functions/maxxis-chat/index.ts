@@ -29,6 +29,13 @@ import {
   rateLimitResponse,
   readJsonWithLimit,
 } from '../_shared/abuseProtection.ts';
+import {
+  capabilityForMaxxisTool,
+  guardMaxxisRuntimeEntitlement,
+  inferMaxxisRuntimeCapability,
+  loadMaxxisRuntimeAccessContext,
+  type MaxxisRuntimeAccessContext,
+} from '../_shared/maxxis/runtimeEntitlement.ts';
 
 if (!supabaseUrl) throw new Error('Missing SUPABASE_URL');
 if (!supabaseAnonKey) throw new Error('Missing SUPABASE_ANON_KEY');
@@ -632,12 +639,19 @@ function contextAwarenessMessage(language: MaxxisLanguage, context: ReturnType<t
   return `You are on ${surfaceName}${subview && subview !== surfaceName ? ` (${subview})` : ''}. ${entityType ? `The current focus is ${entityType}.` : 'There is no specific entity in focus.'}${viewDetail} ${activeCapabilities.length ? `Available operational context: ${activeCapabilities.join(', ')}.` : 'No operational context is loaded for this point yet.'}`;
 }
 
-async function authenticatedUser(authHeader: string) {
+async function authenticatedSession(authHeader: string) {
   const token = String(authHeader || '').replace(/^Bearer\s+/i, '').trim();
   if (!token) return null;
   const client = createClient(supabaseUrl, supabaseAnonKey, { global: { headers: { Authorization: authHeader } } });
   const { data: { user }, error } = await client.auth.getUser(token);
-  return error || !user ? null : user;
+  return error || !user ? null : { user, client };
+}
+
+function accessRequiredMessage(language: MaxxisLanguage, capability: string, upgradeTo: string | null) {
+  const level = upgradeTo || 'an eligible plan';
+  if (language === 'pt') return `Esta solicitação requer acesso a ${capability}. Seu plano atual não inclui esse nível de inteligência. Consulte a opção de upgrade para ${level}.`;
+  if (language === 'es') return `Esta solicitud requiere acceso a ${capability}. Tu plan actual no incluye este nivel de inteligencia. Consulta la opción de upgrade a ${level}.`;
+  return `This request requires access to ${capability}. Your current plan does not include this intelligence level. Review the ${level} upgrade option.`;
 }
 
 Deno.serve(async (req) => {
@@ -667,11 +681,12 @@ Deno.serve(async (req) => {
   let resolvedPage = 'dashboard';
   const budget = new MaxxisExecutionBudget();
   try {
-    const user = await authenticatedUser(req.headers.get('Authorization') || '');
-    if (!user) {
+    const session = await authenticatedSession(req.headers.get('Authorization') || '');
+    if (!session) {
       logMaxxisEvent('maxxis_chat', { request_id: requestId, duration_ms: Date.now() - startedAt, success: false, error_code: 'UNAUTHORIZED' });
       return response({ message: 'Authentication required.', type: 'text', data: null, actions: [], error: 'UNAUTHORIZED' }, 401, origin);
     }
+    const { user, client: userClient } = session;
     userId = user.id;
     if (!isOperationalFeatureEnabled('MAXXIS_ENABLED')) {
       logAbuseGuard({ functionName: 'maxxis-chat', operation: 'maxxis_disabled', requestId, userId, category: 'ABUSE_GUARD', status: 503 });
@@ -711,6 +726,29 @@ Deno.serve(async (req) => {
       ...(propertyContextId ? [propertyContextId] : []),
     ]);
     if (!message) return response({ message: 'Message is required.', type: 'text', data: null, actions: [], error: 'MESSAGE_REQUIRED' }, 400, origin);
+    const accessLoad = await loadMaxxisRuntimeAccessContext(userId, userClient);
+    if (!accessLoad.ok) {
+      logMaxxisEvent('maxxis_runtime_entitlement', { request_id: requestId, user_id: userId, capability: 'UNKNOWN', result: 'DENY', success: false, error_code: accessLoad.error });
+      return response({ message: 'Intelligence access could not be verified.', type: 'text', data: null, actions: [], error: 'ENTITLEMENT_MISSING' }, 503, origin, requestId);
+    }
+    const runtimeAccess: MaxxisRuntimeAccessContext = accessLoad.context;
+    const requestedCapability = inferMaxxisRuntimeCapability({
+      message,
+      requestedCapability: body.requestedCapability,
+      requestedReportLevel: body.requestedReportLevel,
+      hasPropertyContext: Boolean(propertyContextId),
+    });
+    if (requestedCapability) {
+      const decision = guardMaxxisRuntimeEntitlement({ ...runtimeAccess, requestedCapability });
+      logMaxxisEvent('maxxis_runtime_entitlement', { request_id: requestId, user_id: userId, capability: requestedCapability, result: decision.result, success: decision.allowed, error_code: decision.error || undefined });
+      if (!decision.allowed) {
+        const text = accessRequiredMessage(language, requestedCapability, decision.upgradeTo);
+        return response({
+          message: text, answer: text, type: 'text', data: null, actions: [], error: 'ACCESS_REQUIRED',
+          accessRequired: { capability: requestedCapability, currentLevel: decision.accessLevel, upgradeTo: decision.upgradeTo, reason: decision.error || 'INSUFFICIENT_PLAN' },
+        }, 402, origin, requestId);
+      }
+    }
     const structuredContext = sanitizeMaxxisContext(bodyContext.maxxisContext);
     const structuredContextBytes = structuredContext ? contextSizeBytes(structuredContext) : 0;
     if (structuredContextBytes > 4096) {
@@ -819,6 +857,18 @@ Deno.serve(async (req) => {
       const toolStartedAt = Date.now();
       const toolName = String(functionCall.name || '');
       const functionArgs = functionCall.args && typeof functionCall.args === 'object' ? functionCall.args as Record<string, unknown> : {};
+      const toolCapability = capabilityForMaxxisTool(toolName);
+      if (toolCapability) {
+        const decision = guardMaxxisRuntimeEntitlement({ ...runtimeAccess, requestedCapability: toolCapability });
+        logMaxxisEvent('maxxis_runtime_entitlement', { request_id: requestId, user_id: userId, capability: toolCapability, result: decision.result, success: decision.allowed, error_code: decision.error || undefined });
+        if (!decision.allowed) {
+          const text = accessRequiredMessage(language, toolCapability, decision.upgradeTo);
+          return response({
+            message: text, answer: text, type: 'text', data: null, actions: [], error: 'ACCESS_REQUIRED',
+            accessRequired: { capability: toolCapability, currentLevel: decision.accessLevel, upgradeTo: decision.upgradeTo, reason: decision.error || 'INSUFFICIENT_PLAN' },
+          }, 402, origin, requestId);
+        }
+      }
       const modelPartsForTool = parsedFunctionCall
         ? parts
         : [{ functionCall: { name: toolName, args: functionArgs } }];
