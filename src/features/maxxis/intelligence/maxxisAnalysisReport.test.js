@@ -64,7 +64,7 @@ describe('Maxxis Analysis Report Experience v1', () => {
 
   it('blocks Free without a report entitlement', () => {
     expect(resolveIntelligenceReportAccess({ plan: 'free', reportType: 'MAXXIS_ANALYSIS' })).toMatchObject({
-      allowed: false, state: 'NUGGET_UNLOCK_REQUIRED', nuggetCost: null, paidUnlockEnabled: false,
+      allowed: false, state: 'NUGGET_UNLOCK_REQUIRED', nuggetCost: 3, paidUnlockEnabled: false,
     });
   });
 

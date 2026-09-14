@@ -17,8 +17,8 @@ export const REPORT_ACCESS_SOURCES = Object.freeze({
 });
 
 export const INTELLIGENCE_REPORT_CONFIG = Object.freeze({
-  maxxisAnalysisNuggetCost: null,
-  dealIntelligenceNuggetCost: null,
+  maxxisAnalysisNuggetCost: 3,
+  dealIntelligenceNuggetCost: 5,
   paidUnlockEnabled: false,
 });
 

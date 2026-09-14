@@ -19,10 +19,10 @@ describe('Intelligence access and report architecture', () => {
     }
   });
 
-  it('requires a Nugget unlock for Free Maxxis Analysis without enabling an undefined charge', () => {
+  it('models the 3-Nugget Free unlock without activating execution', () => {
     expect(resolveIntelligenceReportAccess({ plan: 'free', reportType: INTELLIGENCE_REPORT_TYPES.MAXXIS_ANALYSIS })).toMatchObject({
       allowed: false, state: 'NUGGET_UNLOCK_REQUIRED', requiredAccessMethod: 'NUGGET_UNLOCK',
-      nuggetCost: null, paidUnlockEnabled: false,
+      nuggetCost: 3, paidUnlockEnabled: false,
     });
     expect(INTELLIGENCE_REPORT_CONFIG.paidUnlockEnabled).toBe(false);
   });
@@ -30,7 +30,7 @@ describe('Intelligence access and report architecture', () => {
   it('includes Maxxis Analysis for Pro but gates Deal Intelligence', () => {
     expect(resolveIntelligenceReportAccess({ plan: 'pro', reportType: INTELLIGENCE_REPORT_TYPES.MAXXIS_ANALYSIS }).allowed).toBe(true);
     expect(resolveIntelligenceReportAccess({ plan: 'pro', reportType: INTELLIGENCE_REPORT_TYPES.DEAL_INTELLIGENCE })).toMatchObject({
-      allowed: false, state: 'NUGGET_UNLOCK_REQUIRED', nuggetCost: null,
+      allowed: false, state: 'NUGGET_UNLOCK_REQUIRED', nuggetCost: 5,
     });
   });
 

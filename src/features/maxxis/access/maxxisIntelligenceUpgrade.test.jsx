@@ -12,6 +12,7 @@ describe('Maxxis Intelligence Upgrade Experience v1', () => {
     expect(experience).toMatchObject({ accessLevel: 'FREE', showModal: true, directAccess: false, premiumPayload: null, mutation: null });
     expect(experience.included.map((item) => item.reportType)).toEqual(['PROPERTY_RELEASE']);
     expect(experience.options.map((item) => item.reportType)).toEqual(['MAXXIS_ANALYSIS', 'DEAL_INTELLIGENCE']);
+    expect(experience.options.map((item) => item.price)).toEqual([3, 5]);
     expect(experience.options[0].unlockTypes).toEqual(['SUBSCRIPTION', 'ONE_TIME_UNLOCK']);
     expect(INTELLIGENCE_UNLOCK_TYPES.ONE_TIME_UNLOCK).toBe('ONE_TIME_UNLOCK');
     expect(JSON.stringify(experience)).not.toMatch(/propertyIntelligence|valuationIntelligence|decisionIntelligence|recordedSalePrice|arvRange/);
@@ -32,7 +33,7 @@ describe('Maxxis Intelligence Upgrade Experience v1', () => {
       .toMatchObject({ showModal: false, directAccess: true });
   });
 
-  it('renders calm benefits and placeholders with no price, charge or premium values', () => {
+  it('renders the modeled Nugget options without charge or premium values', () => {
     const onRequestUnlock = vi.fn();
     const html = renderToStaticMarkup(<MaxxisIntelligenceUpgradeModal plan="free" language="en" onRequestUnlock={onRequestUnlock} />);
     expect(html).toContain('Transform your property data into investor-ready analysis.');
@@ -41,6 +42,9 @@ describe('Maxxis Intelligence Upgrade Experience v1', () => {
     expect(html).toContain('Unlock Deal Intelligence');
     expect(html).toContain('Comparable Analysis');
     expect(html).toContain('ARV Intelligence');
+    expect(html).toContain('3 Nuggets');
+    expect(html).toContain('5 Nuggets');
+    expect(html).toContain('Prefer ongoing access?');
     expect(html).not.toMatch(/PAY NOW|price="|\$[0-9]|recordedSalePrice/);
     expect(onRequestUnlock).not.toHaveBeenCalled();
   });

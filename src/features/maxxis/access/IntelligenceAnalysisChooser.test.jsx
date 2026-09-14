@@ -4,13 +4,13 @@ import { resolveExportPopupFlow } from '../../../domain/intelligenceAccess';
 import { IntelligenceAnalysisChooser } from './IntelligenceAnalysisChooser';
 
 describe('Intelligence Analysis chooser', () => {
-  it('shows both Free unlock paths without inventing a Nugget price', () => {
+  it('shows both Free unlock paths with the modeled Nugget costs', () => {
     const flow = resolveExportPopupFlow({ plan: 'free' });
     const html = renderToStaticMarkup(<IntelligenceAnalysisChooser options={flow.analysisOptions} language="en" />);
     expect(html).toContain('Professional Analysis');
     expect(html).toContain('Enterprise Deal Intelligence');
-    expect(html).toContain('Nugget price pending configuration');
-    expect(html).not.toMatch(/·\s*[1-9][0-9]*/);
+    expect(html).toContain('3 Nuggets');
+    expect(html).toContain('5 Nuggets');
   });
 
   it('exposes a controlled intent callback and performs no purchase itself', () => {

@@ -25,6 +25,8 @@ export type IntelligenceReportAccess = {
   paidUnlockEnabled: false;
 };
 
+import { intelligenceNuggetCost } from './intelligenceEconomy.ts';
+
 const INCLUDED_PLANS: Record<IntelligenceReportType, ReadonlySet<IntelligenceAccessLevel>> = {
   PROPERTY_RELEASE: new Set(['FREE', 'PRO', 'ENTERPRISE']),
   MAXXIS_ANALYSIS: new Set(['PRO', 'ENTERPRISE']),
@@ -87,7 +89,7 @@ export function resolveIntelligenceReportAccess(input: {
   if (INCLUDED_PLANS[reportType].has(accessLevel)) {
     return { allowed: true, state: 'INCLUDED', reportType, accessLevel, accessSource: 'SUBSCRIPTION', requiredAccessMethod: null, nuggetCost: 0, paidUnlockEnabled: false };
   }
-  return { allowed: false, state: 'NUGGET_UNLOCK_REQUIRED', reportType, accessLevel, accessSource: null, requiredAccessMethod: 'NUGGET_UNLOCK', nuggetCost: null, paidUnlockEnabled: false };
+  return { allowed: false, state: 'NUGGET_UNLOCK_REQUIRED', reportType, accessLevel, accessSource: null, requiredAccessMethod: 'NUGGET_UNLOCK', nuggetCost: intelligenceNuggetCost(reportType), paidUnlockEnabled: false };
 }
 
 export function filterIntelligenceReportContent(reportTypeValue: unknown, payload: Record<string, unknown>) {

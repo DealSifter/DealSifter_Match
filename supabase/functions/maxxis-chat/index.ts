@@ -745,7 +745,7 @@ Deno.serve(async (req) => {
         const text = accessRequiredMessage(language, requestedCapability, decision.upgradeTo);
         return response({
           message: text, answer: text, type: 'text', data: null, actions: [], error: 'ACCESS_REQUIRED',
-          accessRequired: { capability: requestedCapability, currentLevel: decision.accessLevel, upgradeTo: decision.upgradeTo, reason: decision.error || 'INSUFFICIENT_PLAN' },
+          accessRequired: { capability: requestedCapability, currentLevel: decision.accessLevel, upgradeTo: decision.upgradeTo, reason: decision.error || 'INSUFFICIENT_PLAN', nuggetCost: decision.nuggetCost || 0, unlockExecutionEnabled: false },
         }, 402, origin, requestId);
       }
     }
@@ -865,7 +865,7 @@ Deno.serve(async (req) => {
           const text = accessRequiredMessage(language, toolCapability, decision.upgradeTo);
           return response({
             message: text, answer: text, type: 'text', data: null, actions: [], error: 'ACCESS_REQUIRED',
-            accessRequired: { capability: toolCapability, currentLevel: decision.accessLevel, upgradeTo: decision.upgradeTo, reason: decision.error || 'INSUFFICIENT_PLAN' },
+            accessRequired: { capability: toolCapability, currentLevel: decision.accessLevel, upgradeTo: decision.upgradeTo, reason: decision.error || 'INSUFFICIENT_PLAN', nuggetCost: decision.nuggetCost || 0, unlockExecutionEnabled: false },
           }, 402, origin, requestId);
         }
       }

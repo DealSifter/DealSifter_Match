@@ -23,6 +23,11 @@ describe('MaxxisRuntimeEntitlementGuard', () => {
     });
   });
 
+  it('returns modeled unlock costs without enabling an unlock', () => {
+    expect(guardMaxxisRuntimeEntitlement({ userId: USER_ID, plan: 'free', requestedCapability: 'MAXXIS_ANALYSIS' })).toMatchObject({ allowed: false, nuggetCost: 3, paidUnlockEnabled: false });
+    expect(guardMaxxisRuntimeEntitlement({ userId: USER_ID, plan: 'pro', requestedCapability: 'DEAL_INTELLIGENCE' })).toMatchObject({ allowed: false, nuggetCost: 5, paidUnlockEnabled: false });
+  });
+
   it('is fail-closed for missing identity and unknown capabilities', () => {
     expect(guardMaxxisRuntimeEntitlement({ plan: 'enterprise', requestedCapability: 'DEAL_INTELLIGENCE' })).toMatchObject({ allowed: false, error: 'UNAUTHENTICATED' });
     expect(guardMaxxisRuntimeEntitlement({ userId: USER_ID, plan: 'enterprise', requestedCapability: 'UNKNOWN' })).toMatchObject({ allowed: false, error: 'CAPABILITY_NOT_AVAILABLE' });

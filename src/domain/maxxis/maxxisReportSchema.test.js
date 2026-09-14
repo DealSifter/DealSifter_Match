@@ -82,7 +82,7 @@ describe('MaxxisReportSchema v2', () => {
 
   it('TEST 5 preserves the Pro upgrade flow without enabling a paid unlock', () => {
     const accessDecision = resolveIntelligenceReportAccess({ plan: 'pro', reportType: 'DEAL_INTELLIGENCE' });
-    expect(accessDecision).toMatchObject({ allowed: false, state: 'NUGGET_UNLOCK_REQUIRED', nuggetCost: null, paidUnlockEnabled: false });
+    expect(accessDecision).toMatchObject({ allowed: false, state: 'NUGGET_UNLOCK_REQUIRED', nuggetCost: 5, paidUnlockEnabled: false });
     expect(buildAuthorizedMaxxisReport({ reportType: 'DEAL_INTELLIGENCE', accessDecision, property, dealIntelligence: intelligence() }).report).toBeNull();
   });
 

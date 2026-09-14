@@ -42,7 +42,7 @@ export function IntelligenceAnalysisChooser({ options = [], language = 'en', onS
       <strong style={{ color: C.t1, fontSize: 12 }}>{t.title}</strong>
       {options.map((option) => {
         const isDeal = option.reportType === INTELLIGENCE_REPORT_TYPES.DEAL_INTELLIGENCE;
-        const costReady = Number.isFinite(option.nuggetCost) && option.nuggetCost > 0 && option.paidUnlockEnabled;
+        const costReady = Number.isFinite(option.nuggetCost) && option.nuggetCost > 0;
         const label = isDeal ? t.deal : t.analysis;
         const description = isDeal ? t.dealDescription : t.analysisDescription;
         return (
@@ -62,7 +62,7 @@ export function IntelligenceAnalysisChooser({ options = [], language = 'en', onS
             <span style={{ fontWeight: 900, fontSize: 11 }}>{label}</span>
             <span style={{ color: C.t2, fontSize: 10, lineHeight: 1.35 }}>{description}</span>
             <span style={{ color: option.allowed ? C.accent : C.gold, fontSize: 10, fontWeight: 800 }}>
-              {option.allowed ? t.included : (costReady ? `${t.unlock} · ${option.nuggetCost}` : `${t.unlock} · ${t.pending}`)}
+              {option.allowed ? t.included : (costReady ? `${t.unlock} · ${option.nuggetCost} Nuggets` : `${t.unlock} · ${t.pending}`)}
             </span>
           </button>
         );

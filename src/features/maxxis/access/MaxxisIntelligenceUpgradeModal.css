@@ -11,5 +11,6 @@
 .maxxis-intelligence-badge { width: max-content; border-radius: 999px; padding: 3px 7px; color: #12364d; background: #bff3f1; font-size: 9px; font-weight: 900; }
 .maxxis-intelligence-preview { display: grid; gap: 3px; padding: 7px; border-radius: 8px; color: var(--text-secondary, #64748b); background: color-mix(in srgb, #12364d 8%, transparent); font-size: 10px; }
 .maxxis-intelligence-options button { border: 0; border-radius: 9px; padding: 9px; color: #fff; background: linear-gradient(135deg, #168f91, #20c6c7); font-weight: 900; cursor: pointer; }
+.maxxis-intelligence-ongoing { padding: 0 12px; color: var(--text-secondary, #64748b); font-size: 10px; }
 .maxxis-intelligence-no-charge { padding: 0 12px 12px; color: var(--text-tertiary, #64748b); font-size: 9px; }
 @media (min-width: 720px) { .maxxis-intelligence-upgrade[data-access-level="FREE"] .maxxis-intelligence-options { grid-template-columns: repeat(2, minmax(0, 1fr)); } }

@@ -14,12 +14,12 @@ describe('backend Intelligence Access foundation', () => {
     expect(resolveIntelligenceReportAccess({ plan, reportType }).allowed).toBe(allowed);
   });
 
-  it('is fail-closed and cannot activate a paid unlock with undefined economics', () => {
+  it('is fail-closed and exposes catalog cost without activating execution', () => {
     expect(resolveIntelligenceReportAccess({ plan: 'enterprise', reportType: 'UNKNOWN' })).toMatchObject({
       allowed: false, state: 'DENIED', paidUnlockEnabled: false,
     });
     expect(resolveIntelligenceReportAccess({ plan: 'free', reportType: 'DEAL_INTELLIGENCE' })).toMatchObject({
-      allowed: false, state: 'NUGGET_UNLOCK_REQUIRED', nuggetCost: null, paidUnlockEnabled: false,
+      allowed: false, state: 'NUGGET_UNLOCK_REQUIRED', nuggetCost: 5, paidUnlockEnabled: false,
     });
   });
 

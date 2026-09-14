@@ -6,6 +6,52 @@ export const INTELLIGENCE_ECONOMY_CONFIG = Object.freeze({
   revenueBackedProviderOverageEnabled: false,
 });
 
+export const MAXXIS_CAPABILITY_CATALOG = Object.freeze({
+  PROPERTY_RELEASE: Object.freeze({
+    description: 'Basic property information.',
+    includes: Object.freeze(['CARD_DATA', 'EXISTING_PHOTOS', 'LOCATION', 'REGISTERED_INFORMATION']),
+    oneTimeUnlockNuggetCost: 0,
+    reportRelationship: 'FREE_EXPORT',
+    unlockSku: null,
+  }),
+  MAXXIS_ANALYSIS: Object.freeze({
+    description: 'AI assisted investment analysis.',
+    includes: Object.freeze(['EXECUTIVE_SUMMARY', 'INVESTOR_PROFILE_ALIGNMENT', 'RISK_ANALYSIS', 'LIMITATIONS', 'NEXT_STEPS']),
+    oneTimeUnlockNuggetCost: 3,
+    reportRelationship: 'PRO_REPORT',
+    unlockSku: 'MAXXIS_ANALYSIS_UNLOCK',
+  }),
+  DEAL_INTELLIGENCE: Object.freeze({
+    description: 'Complete investment intelligence analysis.',
+    includes: Object.freeze(['MAXXIS_ANALYSIS', 'COMPARABLE_SALES', 'VALUATION_EVIDENCE', 'ARV_INTELLIGENCE', 'KPI_SCENARIOS', 'CONFIDENCE_LAYER', 'INVESTOR_REPORT']),
+    oneTimeUnlockNuggetCost: 5,
+    reportRelationship: 'ENTERPRISE_REPORT',
+    unlockSku: 'DEAL_INTELLIGENCE_UNLOCK',
+  }),
+});
+
+export const CAPABILITY_ENTITLEMENT_MATRIX = Object.freeze({
+  FREE: Object.freeze({ included: Object.freeze(['PROPERTY_RELEASE']), optionalUnlock: Object.freeze(['MAXXIS_ANALYSIS', 'DEAL_INTELLIGENCE']) }),
+  PRO: Object.freeze({ included: Object.freeze(['PROPERTY_RELEASE', 'MAXXIS_ANALYSIS']), optionalUnlock: Object.freeze(['DEAL_INTELLIGENCE']) }),
+  ENTERPRISE: Object.freeze({ included: Object.freeze(['PROPERTY_RELEASE', 'MAXXIS_ANALYSIS', 'DEAL_INTELLIGENCE']), optionalUnlock: Object.freeze([]) }),
+});
+
+export const INTELLIGENCE_ECONOMY_RUNTIME = Object.freeze({
+  oneTimeUnlockExecutionEnabled: false,
+  nuggetDebitEnabled: false,
+  stripeEnabled: false,
+});
+
+export function createIntelligenceUsageEvent({ userId, capability, entitlementType, timestamp = new Date().toISOString() } = {}) {
+  if (!Object.hasOwn(MAXXIS_CAPABILITY_CATALOG, capability)) return null;
+  if (!['SUBSCRIPTION_INCLUDED', 'ONE_TIME_UNLOCK'].includes(entitlementType)) return null;
+  return Object.freeze({
+    userId: String(userId || '').trim(), capability,
+    source: entitlementType === 'ONE_TIME_UNLOCK' ? 'NUGGET_UNLOCK' : 'SUBSCRIPTION',
+    timestamp, entitlementType,
+  });
+}
+
 export const INTELLIGENCE_PLAN_CAPABILITIES = Object.freeze({
   free: Object.freeze({
     includedIntelligence: true,
