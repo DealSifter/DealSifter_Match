@@ -34,6 +34,7 @@ function context({ arvAvailable = true, missing = false, unsafe = false } = {}) 
     risks: [{ code: 'UNKNOWN_CONDITION', category: 'DATA_RISK', severity: 'HIGH', explanation: 'Property condition is unknown.' }],
     limitations: missing ? ['rehab_missing', 'property_condition_unknown'] : ['property_condition_unknown'],
     recommendedActions: unsafe ? ['You should buy this property.'] : ['Confirm the target condition before relying on the analysis.'],
+    investorContext: { strategies: ['Wholesale'] },
     response: { initialAssessment: unsafe ? 'This is a strong investment.' : 'Based on available evidence, profile alignment is partial and valuation confidence is limited.' },
   };
 }
@@ -46,6 +47,9 @@ describe('Maxxis Deal Intelligence Experience v1', () => {
     expect(buildMaxxisDealIntelligenceReport(context())).toMatchObject({
       type: 'maxxis_deal_intelligence_report', reportType: 'DEAL_INTELLIGENCE',
       investmentFit: { score: 75, semantics: 'PROFILE_FIT_ONLY' },
+      analysisConfidence: { semantics: 'ANALYSIS_COMPLETENESS_AND_RELIABILITY_ONLY', notPropertyScore: true },
+      investorPerspective: { persona: 'WHOLESALER', narrativeOnly: true },
+      executiveSummaryIntelligence: { lines: expect.any(Array) },
     });
   });
 
@@ -100,5 +104,16 @@ describe('Maxxis Deal Intelligence Experience v1', () => {
     expect(report.comparableEvidence.used[0]).toMatchObject({ address: '100 Example St', salePrice: 390000, distanceMiles: 0.6, similarity: 88, role: 'PRIMARY', sourceType: 'VERIFIED_RECORD' });
     expect(report.comparableEvidence.supporting[0].role).toBe('SUPPORTING');
     expect(report.comparableEvidence.excluded[0].exclusionReason).toBe('TRANSACTION_NOT_ARMS_LENGTH');
+  });
+
+  it('keeps Match Score semantics unchanged while adapting only report narrative', () => {
+    const wholesale = buildMaxxisDealIntelligenceReport(context());
+    const holdInput = context();
+    holdInput.investorContext = { strategies: ['Buy and Hold'] };
+    const hold = buildMaxxisDealIntelligenceReport(holdInput);
+    expect(wholesale.investmentFit).toEqual(hold.investmentFit);
+    expect(wholesale.valuationIntelligence).toEqual(hold.valuationIntelligence);
+    expect(wholesale.investorPerspective.persona).toBe('WHOLESALER');
+    expect(hold.investorPerspective.persona).toBe('BUY_AND_HOLD');
   });
 });

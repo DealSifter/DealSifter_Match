@@ -30,6 +30,9 @@ function dealIntelligence(status = 'ARV_LIMITED') {
     valuationIntelligence: { status, range: unavailable ? null : { low: 430000, high: 490000 }, centralReference: unavailable ? null : 460000, confidence: unavailable ? 'LOW' : 'MODERATE', compsUsed: unavailable ? 0 : 1, methodology: unavailable ? null : 'DEALSIFTER_WEIGHTED_ARV_V1', warnings: unavailable ? ['INSUFFICIENT_COMPS'] : ['SCENARIO_BASED'] },
     riskAnalysis: [{ code: 'UNKNOWN_CONDITION', category: 'DATA_RISK', severity: 'HIGH', reason: 'Condition is unknown.' }],
     limitations: ['yearBuilt: UNKNOWN'], nextVerificationSteps: ['Validate condition.'],
+    analysisConfidence: { score: 72, classification: 'MODERATE', semantics: 'ANALYSIS_COMPLETENESS_AND_RELIABILITY_ONLY', notPropertyScore: true, contributors: ['Verified property records'], limitations: ['Condition unknown'] },
+    investorPerspective: { persona: 'WHOLESALER', narrativeOnly: true, priorities: ['ARV', 'Potential spread', 'Verification'], message: 'Focus on potential margin and validation requirements.' },
+    executiveSummaryIntelligence: { lines: ['Based on available evidence, confidence is moderate.', 'The property has partial profile compatibility.', 'Verified records support the available characteristics.', 'Comparable evidence supports a preliminary reference.', 'Property condition remains uncertain.', 'Next verification priority: validate condition.'] },
     provenance: { property: 'PROPERTY_INTELLIGENCE' },
   };
 }
@@ -63,8 +66,22 @@ describe('Maxxis Deal Intelligence Report Experience v2', () => {
     expect(html).toContain('data-report-section="INVESTMENT_FIT_RISK"');
     expect(html).toContain('data-report-section="KEY_INSIGHTS_VERIFICATION"');
     expect(html).toContain('Match Score represents profile compatibility, not investment quality.');
+    expect(html).toContain('Maxxis Analysis Confidence');
+    expect(html).toContain('72%');
+    expect(html).toContain('Investor Perspective');
+    expect(html).toContain('WHOLESALER');
+    expect((html.match(/MAXXIS EXECUTIVE SUMMARY/g) || [])).toHaveLength(2);
     expect(html).toContain('does not constitute appraisal');
     expect(html).not.toMatch(/\b(?:BUY|SELL|GOOD DEAL|GUARANTEED)\b/);
+  });
+
+  it('does not expose confidence or persona in lower report levels', () => {
+    const propertyRelease = render(buildMaxxisReportSchema({ reportType: 'PROPERTY_RELEASE', property }));
+    const analysis = render(buildMaxxisReportSchema({ reportType: 'MAXXIS_ANALYSIS', property, maxxisAnalysis }));
+    for (const html of [propertyRelease, analysis]) {
+      expect(html).not.toContain('Maxxis Analysis Confidence');
+      expect(html).not.toContain('Investor Perspective');
+    }
   });
 
   it('shows scenario KPIs without false precision or a guaranteed result', () => {

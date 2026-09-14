@@ -1,4 +1,5 @@
 import { buildMaxxisReportSchema } from '../../../domain/maxxis/maxxisReportSchema';
+import { buildMaxxisAnalysisConfidence, buildMaxxisExecutiveSummaryIntelligence, resolveMaxxisInvestorPersona } from './maxxisReportConfidencePersona';
 
 export const MAXXIS_DEAL_INTELLIGENCE_REPORT_VERSION = 'MAXXIS_DEAL_INTELLIGENCE_REPORT_V1';
 
@@ -166,6 +167,9 @@ export function buildMaxxisDealIntelligenceReport(context) {
   if (!isObject(context) || context.type !== 'deal_intelligence_context') return null;
   const valuation = valuationIntelligence(context);
   const comps = comparableEvidence(context);
+  const analysisConfidence = buildMaxxisAnalysisConfidence(context);
+  const investorPerspective = resolveMaxxisInvestorPersona(context.investorContext);
+  const executiveSummaryIntelligence = buildMaxxisExecutiveSummaryIntelligence(context, analysisConfidence, investorPerspective);
   return Object.freeze({
     type: 'maxxis_deal_intelligence_report',
     version: MAXXIS_DEAL_INTELLIGENCE_REPORT_VERSION,
@@ -180,6 +184,9 @@ export function buildMaxxisDealIntelligenceReport(context) {
     riskAnalysis: riskAnalysis(context),
     limitations: limitations(context, valuation, comps),
     nextVerificationSteps: nextVerificationSteps(context),
+    analysisConfidence,
+    investorPerspective,
+    executiveSummaryIntelligence,
     provenance: Object.freeze({
       propertyEvidence: 'PROPERTY_INTELLIGENCE',
       comparableEvidence: 'COMP_ENGINE',

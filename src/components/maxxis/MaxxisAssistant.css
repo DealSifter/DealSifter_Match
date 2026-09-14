@@ -1503,6 +1503,16 @@ button.maxxis-action-link:hover {
 .maxxis-v2-score { display: grid; place-items: center; gap: 4px; padding: 12px; border-radius: 8px; color: #fff; background: #15384f; text-align: center; }
 .maxxis-v2-score > b { color: #4be1dc; font-size: 28px; }
 .maxxis-v2-score small { color: #d7e2e9; }
+.maxxis-v2-confidence { display: grid; grid-template-columns: .75fr 1fr 1fr; gap: 8px; padding: 10px; border: 1px solid #d5dfe7; border-radius: 9px; background: #fff; }
+.maxxis-v2-confidence > div { display: grid; align-content: start; gap: 4px; }
+.maxxis-v2-confidence > div:first-child { padding: 10px; border-radius: 8px; color: #fff; background: #10283d; }
+.maxxis-v2-confidence > div:first-child > strong { color: #4be1dc; font-size: 28px; }
+.maxxis-v2-confidence em { color: #d7e2e9; font-size: 8px; line-height: 1.35; }
+.maxxis-v2-confidence span { font-size: 9px; line-height: 1.35; }
+.maxxis-v2-perspective { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1.25fr); gap: 10px; padding: 10px; border-left: 4px solid #20c6c7; border-radius: 8px; background: #fff; }
+.maxxis-v2-perspective > div { display: flex; flex-wrap: wrap; align-content: center; gap: 5px; }
+.maxxis-v2-perspective > div:first-child { display: grid; }
+.maxxis-v2-perspective span { font-size: 9px; line-height: 1.4; }
 .maxxis-v2-risk-grid { display: grid; gap: 6px; margin-top: 6px; }
 .maxxis-v2-risk-grid > div { display: grid; grid-template-columns: auto minmax(90px, .6fr) 1fr; gap: 7px; align-items: center; padding: 7px; border: 1px solid #d5dfe7; border-radius: 7px; background: #fff; font-size: 9px; }
 .maxxis-v2-evidence-counts { display: grid; grid-template-columns: repeat(6, 1fr); gap: 5px; margin-top: 6px; }
@@ -1511,6 +1521,7 @@ button.maxxis-action-link:hover {
 .maxxis-v2-evidence-counts small { color: #5f7181; font-size: 7px; }
 .maxxis-v2-insight-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
 .maxxis-v2-ai-summary { display: grid; gap: 4px; padding: 12px; border-left: 4px solid #20c6c7; border-radius: 8px; background: #fff; }
+.maxxis-v2-ai-summary span { font-size: 10px; line-height: 1.45; }
 .maxxis-v2-disclaimer { margin: 0; padding: 10px; border-radius: 8px; color: #dbe7ef; background: #10283d; font-size: 9px; }
 .maxxis-v2-export-state { padding: 8px 12px; color: #637586; background: #fff; font-size: 8px; font-weight: 800; text-align: center; }
 
@@ -1528,7 +1539,9 @@ button.maxxis-action-link:hover {
   .maxxis-v2-report { padding: 7px; }
   .maxxis-v2-info-grid,
   .maxxis-v2-two-col,
-  .maxxis-v2-insight-grid { grid-template-columns: 1fr; }
+  .maxxis-v2-insight-grid,
+  .maxxis-v2-confidence,
+  .maxxis-v2-perspective { grid-template-columns: 1fr; }
   .maxxis-v2-evidence-counts { grid-template-columns: repeat(3, 1fr); }
   .maxxis-v2-arv { grid-template-columns: 1fr; }
 }

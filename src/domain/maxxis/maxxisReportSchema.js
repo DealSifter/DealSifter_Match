@@ -249,6 +249,12 @@ export function buildMaxxisReportSchema({ reportType, property = null, maxxisAna
       existingMetrics: normalizedType === INTELLIGENCE_REPORT_TYPES.DEAL_INTELLIGENCE ? existingMetrics(dealMetrics) : null,
       evidenceCounts: normalizedType === INTELLIGENCE_REPORT_TYPES.DEAL_INTELLIGENCE
         ? evidenceCounts(sections.propertyEvidence.data, sections) : null,
+      analysisConfidence: normalizedType === INTELLIGENCE_REPORT_TYPES.DEAL_INTELLIGENCE
+        ? (dealIntelligence?.analysisConfidence || null) : null,
+      investorPerspective: normalizedType === INTELLIGENCE_REPORT_TYPES.DEAL_INTELLIGENCE
+        ? (dealIntelligence?.investorPerspective || null) : null,
+      executiveSummaryIntelligence: normalizedType === INTELLIGENCE_REPORT_TYPES.DEAL_INTELLIGENCE
+        ? (dealIntelligence?.executiveSummaryIntelligence || null) : null,
       externalComparableImages: false,
     }),
     exportFoundation: Object.freeze({
