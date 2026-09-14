@@ -11,6 +11,7 @@ import { MaxxisArvVisualCompReview } from '../../features/maxxis/arvReview/Maxxi
 import { MaxxisDealIntelligenceResponse } from '../../features/maxxis/intelligence/MaxxisDealIntelligenceResponse';
 import { MaxxisAnalysisReportExperience } from '../../features/maxxis/intelligence/MaxxisAnalysisReportExperience';
 import { MaxxisDealIntelligenceExperience } from '../../features/maxxis/intelligence/MaxxisDealIntelligenceExperience';
+import { MaxxisIntelligenceUpgradeModal } from '../../features/maxxis/access/MaxxisIntelligenceUpgradeModal';
 
 export const UUID_PATTERN = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
 
@@ -2002,7 +2003,11 @@ export function MessageBubble({
         </div>
       ) : null}
       {!isUser && message.type === 'intelligence_access_gate' && message.data?.accessDecision ? (
-        <div className="maxxis-action-links" aria-label="Maxxis Deal AI intelligence access">
+        message.data.upgradeExperience ? <MaxxisIntelligenceUpgradeModal
+          experience={message.data.upgradeExperience}
+          language={language}
+          onRequestUnlock={onRequestIntelligenceUnlock}
+        /> : <div className="maxxis-action-links" aria-label="Maxxis Deal AI intelligence access">
           <button
             type="button"
             className="maxxis-action-link"

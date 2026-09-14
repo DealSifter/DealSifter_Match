@@ -3,6 +3,7 @@ import { renderToStaticMarkup } from 'react-dom/server';
 import { describe, expect, it, vi } from 'vitest';
 import { MessageBubble } from './MaxxisCapabilities';
 import { MaxxisDealIntelligenceExperience } from '../../features/maxxis/intelligence/MaxxisDealIntelligenceExperience';
+import { buildMaxxisIntelligenceUpgradeExperience } from '../../features/maxxis/access/maxxisIntelligenceUpgrade';
 
 describe('Maxxis Deal AI structured result presentation', () => {
   it('renders a non-transactional intelligence upgrade gate without granting access', () => {
@@ -13,13 +14,18 @@ describe('Maxxis Deal AI structured result presentation', () => {
         message={{
           id: 'report-gate', role: 'assistant', type: 'intelligence_access_gate',
           content: 'Unlock deeper intelligence.',
-          data: { accessDecision: { reportType: 'DEAL_INTELLIGENCE', paidUnlockEnabled: false, nuggetCost: null } },
+          data: {
+            accessDecision: { reportType: 'DEAL_INTELLIGENCE', paidUnlockEnabled: false, nuggetCost: null },
+            upgradeExperience: buildMaxxisIntelligenceUpgradeExperience({ plan: 'free', requestedReportType: 'DEAL_INTELLIGENCE' }),
+          },
         }}
         onRequestIntelligenceUnlock={onRequestIntelligenceUnlock}
       />,
     );
-    expect(html).toContain('data-testid="maxxis-intelligence-unlock"');
-    expect(html).toContain('Exact price is not configured yet. No charge will be made.');
+    expect(html).toContain('MAXXIS INTELLIGENCE');
+    expect(html).toContain('Unlock deeper investment intelligence when you need it.');
+    expect(html).toContain('No charge or debit will be made.');
+    expect(html).not.toMatch(/recordedSalePrice|valuationIntelligence|propertyIntelligence/);
     expect(onRequestIntelligenceUnlock).not.toHaveBeenCalled();
   });
 

@@ -78,5 +78,6 @@ describe('Intelligence access and report architecture', () => {
     expect(inferRequestedIntelligenceReportType('Is this property worth looking at?', { hasPropertyContext: true })).toBe('DEAL_INTELLIGENCE');
     expect(inferRequestedIntelligenceReportType('What are the risks?', { hasPropertyContext: true })).toBe('DEAL_INTELLIGENCE');
     expect(inferRequestedIntelligenceReportType('Explain this ARV', { hasPropertyContext: true })).toBe('DEAL_INTELLIGENCE');
+    expect(inferRequestedIntelligenceReportType('Calculate ARV', { hasPropertyContext: true })).toBe('DEAL_INTELLIGENCE');
   });
 });

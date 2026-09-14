@@ -114,6 +114,7 @@ import {
   inferRequestedIntelligenceReportType,
   resolveIntelligenceReportAccess,
 } from '../../domain/intelligenceAccess';
+import { buildMaxxisIntelligenceUpgradeExperience } from '../../features/maxxis/access/maxxisIntelligenceUpgrade';
 import './MaxxisAssistant.css';
 
 import {
@@ -975,13 +976,13 @@ export function MaxxisAssistant({ page = 'dashboard', onOpenSupport = null, onNa
             id: `maxxis-intelligence-access-${Date.now()}`,
             role: 'assistant',
             content: language === 'pt'
-              ? `Seu plano atual não inclui ${reportLabel}. Desbloqueie inteligência aprofundada com Nuggets para acessar este nível.`
+              ? `Esta análise requer ${reportLabel}. Veja o que este nível acrescenta antes de solicitar o desbloqueio.`
               : language === 'es'
-                ? `Tu plan actual no incluye ${reportLabel}. Desbloquea inteligencia profunda con Nuggets para acceder a este nivel.`
-                : `Your current plan does not include ${reportLabel}. Unlock deeper intelligence with Nuggets to access this level.`,
+                ? `Este análisis requiere ${reportLabel}. Revisa lo que agrega este nivel antes de solicitar el desbloqueo.`
+                : `This analysis requires ${reportLabel}. Review what this level adds before requesting access.`,
             createdAt: new Date(),
             type: 'intelligence_access_gate',
-            data: { accessDecision },
+            data: { accessDecision, upgradeExperience: buildMaxxisIntelligenceUpgradeExperience({ plan: currentPlan, entitlements: reportEntitlements, requestedReportType }) },
           }]);
           return;
         }
@@ -1179,13 +1180,13 @@ export function MaxxisAssistant({ page = 'dashboard', onOpenSupport = null, onNa
             id: `maxxis-intelligence-access-${Date.now()}`,
             role: 'assistant',
             content: language === 'pt'
-              ? 'Seu plano atual não inclui Full Deal Intelligence. Desbloqueie inteligência aprofundada com Nuggets para acessar este nível.'
+              ? 'Esta análise requer Maxxis Deal Intelligence. Veja os benefícios antes de solicitar o desbloqueio.'
               : language === 'es'
-                ? 'Tu plan actual no incluye Full Deal Intelligence. Desbloquea inteligencia profunda con Nuggets para acceder a este nivel.'
-                : 'Your current plan does not include Full Deal Intelligence. Unlock deeper intelligence with Nuggets to access this level.',
+                ? 'Este análisis requiere Maxxis Deal Intelligence. Revisa los beneficios antes de solicitar el desbloqueo.'
+                : 'This analysis requires Maxxis Deal Intelligence. Review the benefits before requesting access.',
             createdAt: new Date(),
             type: 'intelligence_access_gate',
-            data: { accessDecision },
+            data: { accessDecision, upgradeExperience: buildMaxxisIntelligenceUpgradeExperience({ plan: currentPlan, entitlements: reportEntitlements, requestedReportType: 'DEAL_INTELLIGENCE' }) },
           }]);
           return;
         }

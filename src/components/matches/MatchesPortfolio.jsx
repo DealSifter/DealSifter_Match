@@ -20,7 +20,7 @@ import { getSafeLang } from '../../services/chatTranslation';
 import { isSupabaseConfigured } from '../../lib/supabaseClient';
 import { formatCompactUsd } from '../../lib/formatMoney';
 import { PropertyIntelligenceGate } from '../property-intelligence/PropertyIntelligenceGate';
-import { IntelligenceAnalysisChooser } from '../../features/maxxis/access/IntelligenceAnalysisChooser';
+import { MaxxisIntelligenceUpgradeModal } from '../../features/maxxis/access/MaxxisIntelligenceUpgradeModal';
 import {
   INTELLIGENCE_REPORT_TYPES,
   resolveExportPopupFlow,
@@ -2120,10 +2120,10 @@ export function PortfolioDetail({ item, owner, ownerContact = null, isOwnerUnloc
               </div>
 
               {analysisLevelOpen ? (
-                <IntelligenceAnalysisChooser
-                  options={analysisFlow.analysisOptions}
+                <MaxxisIntelligenceUpgradeModal
+                  plan={intelligencePlan}
+                  entitlements={reportEntitlements}
                   language={getLang()}
-                  onSelect={handleAnalysisSelection}
                   onRequestUnlock={handleAnalysisSelection}
                 />
               ) : null}
