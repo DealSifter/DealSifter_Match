@@ -1,5 +1,6 @@
 import { createClient } from 'npm:@supabase/supabase-js@2';
 import {
+  createBackendValuationEvidenceService,
   createBackendSoldEvidenceService,
   type PropertyEvidenceBackendClient,
 } from '../property-data/backendFactory.ts';
@@ -26,10 +27,14 @@ export async function getDealInsightContextForAuthenticatedUser(
   const loadArvEvaluation = async (propertyId: string) => {
     if (!supabaseServiceRoleKey) return null;
     const admin = createClient(supabaseUrl, supabaseServiceRoleKey) as unknown as PropertyEvidenceBackendClient;
+    const getEnv = (name: string) => Deno.env.get(name);
+    const valuationService = createBackendValuationEvidenceService({ supabaseAdmin: admin, getEnv });
     const soldService = createBackendSoldEvidenceService({
       supabaseAdmin: admin,
-      getEnv: (name) => name === 'PROPERTY_DATA_MODE' ? 'disabled' : undefined,
+      getEnv,
     });
+    await valuationService.getValuationEvidence({ propertyId, userId });
+    await soldService.getSoldEvidence({ propertyId, userId });
     return loadCachedArvEvaluation({
       propertyId,
       userId,
@@ -64,7 +69,7 @@ export async function getDealInsightContextForAuthenticatedUser(
     loadInvestmentProfile: () => getMyInvestmentProfileWithClient(userId, client),
     calculateMatch: (profile, property) => calculatePropertyMatch(profile, property),
     loadPropertyEvidence: (propertyId) => getPropertyEvidenceForAuthenticatedUser(
-      { propertyId }, authHeader, userId, propertyId,
+      { propertyId }, authHeader, userId, propertyId, true,
     ),
     loadArvEvaluation,
   });

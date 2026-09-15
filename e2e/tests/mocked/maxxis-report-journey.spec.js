@@ -26,14 +26,14 @@ for(const [name,width,height] of viewports){
     expect(first&&second&&second.y>first.y+first.height-2).toBeTruthy();
     await selector.getByLabel('Preview BASIC PROPERTY RELEASE').first().click();
     await expect(page.locator('.report-experience-selector').getByText(/Page 1 of 1/)).toBeVisible();
-    await page.locator('.report-experience-selector').getByLabel('Close').click();
+    await page.locator('.report-experience-selector').getByRole('button',{name:/Back/}).click();
     await selector.getByLabel('Preview MAXXIS AI ANALYSIS').click();
     const analysisPreview=page.locator('.report-experience-selector');
     await expect(analysisPreview.getByText(/Page 1 of 3/)).toBeVisible();
-    await analysisPreview.getByRole('button',{name:'›'}).click();
-    await analysisPreview.getByRole('button',{name:'›'}).click();
+    await analysisPreview.getByRole('button',{name:'Next page'}).click();
+    await analysisPreview.getByRole('button',{name:'Next page'}).click();
     await expect(analysisPreview.getByText(/Page 3 of 3/)).toBeVisible();
-    await analysisPreview.getByLabel('Close').click();
+    await analysisPreview.getByRole('button',{name:/Back/}).click();
     await selector.getByText('AI-powered property analysis').click();
     await expect(selector).toHaveAttribute('data-stage','intelligence');
     await expect(selector.getByText('DEAL INTELLIGENCE REPORT')).toBeVisible();

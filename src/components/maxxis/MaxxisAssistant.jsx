@@ -179,7 +179,7 @@ function readDevMaxxisAttentionOverrides() {
   }
 }
 
-export function MaxxisAssistant({ page = 'dashboard', onOpenSupport = null, onNavigateAction = null, onOpenProvider = null, onOpenFeedCard = null, propertyAnalysisRequest = null, propertyContextId = '', appContext = null, sessionKey = '', onExportAnalysisPdf = null, onNuggetBalanceChange = null, onProviderUnlockConfirmed = null, enabled = true, userPreferences = null, userPreferencesHydrated = true, onChangeUserPreferences = null, userPreferencesPersistenceStatus = 'idle', proactiveFeatureEnabled = false, dealMemoryFeatureEnabled = false, onOpenPreferences = null, currentPlan = 'free', reportEntitlements = [], reportHistory = [], onPersistReport = null, onDeleteReport = null, onRequestIntelligenceUnlock = null }) {
+export function MaxxisAssistant({ page = 'dashboard', onOpenSupport = null, onNavigateAction = null, onOpenProvider = null, onOpenFeedCard = null, propertyAnalysisRequest = null, propertyContextId = '', appContext = null, sessionKey = '', onExportAnalysisPdf = null, onNuggetBalanceChange = null, onProviderUnlockConfirmed = null, enabled = true, userPreferences = null, userPreferencesHydrated = true, onChangeUserPreferences = null, userPreferencesPersistenceStatus = 'idle', proactiveFeatureEnabled = false, dealMemoryFeatureEnabled = false, currentPlan = 'free', reportEntitlements = [], reportHistory = [], onPersistReport = null, onDeleteReport = null, onRequestIntelligenceUnlock = null }) {
   const language = getUiLang();
   const t = COPY[language] || COPY.en;
   const preferencesCopy = getMaxxisPreferencesCopy(language);
@@ -2470,19 +2470,6 @@ export function MaxxisAssistant({ page = 'dashboard', onOpenSupport = null, onNa
                 <button type="button" className="maxxis-more-preferences" onClick={() => { setPreferencesOpen(false); setReportsOpen(true); }}>
                   {language === 'pt' ? 'Meus Relatórios' : language === 'es' ? 'Mis Informes' : 'My Reports'}
                 </button>
-                {typeof onOpenPreferences === 'function' ? (
-                  <button
-                    type="button"
-                    className="maxxis-more-preferences"
-                    onClick={() => {
-                      setPreferencesOpen(false);
-                      setOpen(false);
-                      onOpenPreferences();
-                    }}
-                  >
-                    {preferencesCopy.moreSettings}
-                  </button>
-                ) : null}
               </div>
             ) : null}
           </header>

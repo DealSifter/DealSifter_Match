@@ -1,5 +1,5 @@
 import { createClient } from 'npm:@supabase/supabase-js@2';
-import type { PropertyEvidenceBackendClient } from '../property-data/backendFactory.ts';
+import { createBackendPropertyEvidenceService, type PropertyEvidenceBackendClient } from '../property-data/backendFactory.ts';
 import { SupabasePropertyIntelligenceCache } from '../property-data/cache.ts';
 import { PropertyEvidenceService } from '../property-data/propertyEvidenceService.ts';
 import { SupabasePropertyEvidenceRepository } from '../property-data/propertyRepository.ts';
@@ -8,7 +8,7 @@ import { resolvePropertyDetailsInput } from './propertyDetails.ts';
 import { supabaseAnonKey, supabaseServiceRoleKey, supabaseUrl } from './config.ts';
 import { getPropertyEvidenceWithDependencies } from './propertyEvidence.ts';
 
-export async function getPropertyEvidenceForAuthenticatedUser(input: unknown, authHeader: string, userId: string, contextPropertyId?: string) {
+export async function getPropertyEvidenceForAuthenticatedUser(input: unknown, authHeader: string, userId: string, contextPropertyId?: string, allowProviderFallback = false) {
   const validated = resolvePropertyDetailsInput(input, contextPropertyId);
   const userClient = createClient(supabaseUrl, supabaseAnonKey, { global: { headers: { Authorization: authHeader } } });
   return getPropertyEvidenceWithDependencies({
@@ -26,6 +26,12 @@ export async function getPropertyEvidenceForAuthenticatedUser(input: unknown, au
     loadCachedEvidence: async (propertyId, authenticatedUserId) => {
       if (!supabaseServiceRoleKey) throw new Error('PROPERTY_INTELLIGENCE_BACKEND_UNAVAILABLE');
       const admin = createClient(supabaseUrl, supabaseServiceRoleKey) as unknown as PropertyEvidenceBackendClient;
+      if (allowProviderFallback) {
+        return createBackendPropertyEvidenceService({
+          supabaseAdmin: admin,
+          getEnv: (name) => Deno.env.get(name),
+        }).getPropertyEvidence({ propertyId, userId: authenticatedUserId });
+      }
       const provider: PropertyDataProvider = {
         getPropertyRecord: async () => { throw new Error('MAXXIS_EVIDENCE_PROVIDER_FORBIDDEN'); },
       };
