@@ -7,6 +7,7 @@ import { MaxxisReportExportActions } from './MaxxisReportExportActions';
 import { createReportEmailRequest, createSharedReport } from './maxxisReportDeliveryContracts';
 import { buildMaxxisReportExportPreview } from './maxxisReportExportPreview';
 import { MAXXIS_REPORT_DISCLAIMER, renderMaxxisReportDocument } from './maxxisReportRenderer';
+import { renderMaxxisReportPdf } from './maxxisReportPdf';
 import { resolveReportExportEntitlement } from './reportExportEntitlement';
 
 const property = { id: 'property-1', address: '100 Stored St', type: 'SFR', objective: 'Fix and Flip', images: ['https://portfolio.example/subject.jpg'] };
@@ -33,6 +34,21 @@ describe('Maxxis Report Export + Delivery Experience v1', () => {
     expect(result).toMatchObject({ state: 'PREPARED', document: { reportType: 'DEAL_INTELLIGENCE', language: 'pt', pageCount: 6, binary: null, downloadUrl: null } });
     expect(result.document.cover).toMatchObject({ propertyAddress: '100 Stored St', propertyType: 'SFR', strategy: 'Fix and Flip', heroImage: 'https://portfolio.example/subject.jpg' });
     expect(result.document.pages[0]).toMatchObject({ header: { brand: 'DealSifter Match', descriptor: 'Evidence-based investment intelligence', product: 'MAXXIS AI' }, footer: { page: 1, version: expect.any(String), disclaimer: MAXXIS_REPORT_DISCLAIMER } });
+  });
+
+  it.each([
+    ['free', 'PROPERTY_RELEASE', 1],
+    ['pro', 'MAXXIS_ANALYSIS', 3],
+    ['enterprise', 'DEAL_INTELLIGENCE', 6],
+  ])('renders a physical %s PDF with exactly %i pages', async (plan, reportType, expectedPages) => {
+    const result = await renderMaxxisReportPdf({
+      schema: schema(reportType),
+      exportEntitlement: entitlement(plan, reportType, 'PDF'),
+      generatedAt: '2026-09-15T12:00:00.000Z',
+    });
+    expect(result).toMatchObject({ state: 'RENDERED', document: { pageCount: expectedPages, mimeType: 'application/pdf' } });
+    expect(result.document.binary.byteLength).toBeGreaterThan(1000);
+    expect(new TextDecoder('latin1').decode(result.document.binary.slice(0, 8))).toContain('%PDF-');
   });
 
   it('refuses mismatched or missing export entitlement without returning document content', () => {

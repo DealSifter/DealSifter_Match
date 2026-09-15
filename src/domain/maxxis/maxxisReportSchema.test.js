@@ -54,7 +54,7 @@ describe('MaxxisReportSchema v2', () => {
   it('TEST 2 exports Maxxis Analysis without evidence, comps, ARV, or valuation data', () => {
     const report = buildMaxxisReportSchema({ reportType: 'MAXXIS_ANALYSIS', property, maxxisAnalysis: analysis() });
     expect(report.sections.executiveSummary.available).toBe(true);
-    expect(report.pages).toHaveLength(2);
+    expect(report.pages).toHaveLength(3);
     expect(report.sections.executiveSummary.data).toMatchObject({ summary: expect.any(String) });
     expect(report.sections.investmentProfile.data).toMatchObject({ semantics: 'PROFILE_FIT_ONLY' });
     expect(report.sections.propertyEvidence.data).toBeNull();
@@ -66,7 +66,7 @@ describe('MaxxisReportSchema v2', () => {
     const report = buildMaxxisReportSchema({ reportType: 'DEAL_INTELLIGENCE', property, dealIntelligence: intelligence(status) });
     expect(report.pages).toHaveLength(6);
     expect(report.sections.comparableEvidence.available).toBe(true);
-    expect(report.exportFoundation).toEqual({ pdf: 'PREPARED_NOT_RENDERED', email: 'PREPARED_NOT_RENDERED', share: 'PREPARED_NOT_RENDERED' });
+    expect(report.exportFoundation).toEqual({ pdf: 'CLIENT_RENDERED', email: 'PREPARED_NOT_RENDERED', share: 'PREPARED_NOT_RENDERED' });
     if (status === 'ARV_UNAVAILABLE') {
       expect(report.sections.valuationEvidence).toMatchObject({ sourceType: 'UNKNOWN', data: { range: null, centralReference: null } });
       expect(JSON.stringify(report.sections.valuationEvidence.data)).not.toContain('"avm"');

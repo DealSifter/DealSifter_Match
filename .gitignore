@@ -37,3 +37,4 @@ src/**/*.bak
 *.sw?
 .vercel
 .tmp-codex/
+qa-artifacts/

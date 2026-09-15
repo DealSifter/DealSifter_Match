@@ -52,9 +52,9 @@ describe('Maxxis Deal Intelligence Report Experience v2', () => {
 
   it('renders Pro Maxxis Analysis without premium valuation or comparable content', () => {
     const html = render(buildMaxxisReportSchema({ reportType: 'MAXXIS_ANALYSIS', property, maxxisAnalysis }));
-    expect((html.match(/data-report-page=/g) || [])).toHaveLength(2);
-    expect(html).toContain('Powered by MAXXIS AI');
-    expect(html).toContain('Profile fit');
+    expect((html.match(/data-report-page=/g) || [])).toHaveLength(3);
+    expect(html).toContain('Investment Fit &amp; Risk Analysis');
+    expect(html).toContain('Key Insights &amp; Verification');
     expect(html).not.toContain('Estimated ARV Range');
     expect(html).not.toContain('Sale Price');
   });

@@ -156,8 +156,9 @@ function pagesFor(reportType) {
   }
   if (reportType === INTELLIGENCE_REPORT_TYPES.MAXXIS_ANALYSIS) {
     return Object.freeze([
-      Object.freeze({ page: 1, code: 'PROPERTY_OVERVIEW', sections: ['propertySummary', 'provenance'] }),
-      Object.freeze({ page: 2, code: 'MAXXIS_ANALYSIS', sections: ['executiveSummary', 'investmentProfile', 'riskAssessment', 'limitations', 'verificationChecklist'] }),
+      Object.freeze({ page: 1, code: 'EXECUTIVE_SUMMARY_PROPERTY_CONTEXT', sections: ['propertySummary', 'executiveSummary', 'provenance'] }),
+      Object.freeze({ page: 2, code: 'INVESTMENT_FIT_RISK', sections: ['investmentProfile', 'riskAssessment', 'limitations'] }),
+      Object.freeze({ page: 3, code: 'KEY_INSIGHTS_NEXT_STEPS', sections: ['executiveSummary', 'limitations', 'verificationChecklist', 'provenance'] }),
     ]);
   }
   return Object.freeze([
@@ -258,7 +259,7 @@ export function buildMaxxisReportSchema({ reportType, property = null, maxxisAna
       externalComparableImages: false,
     }),
     exportFoundation: Object.freeze({
-      pdf: 'PREPARED_NOT_RENDERED',
+      pdf: 'CLIENT_RENDERED',
       email: 'PREPARED_NOT_RENDERED',
       share: 'PREPARED_NOT_RENDERED',
     }),
