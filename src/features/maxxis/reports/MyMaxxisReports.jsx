@@ -1,6 +1,6 @@
 import React, { useMemo, useState } from 'react';
 import maxxisAnalysisAsset from '../../../assets/maxxis/avatar/avatar-idle.png';
-import maxxisDealAsset from '../../../assets/maxxis/avatar/avatar-observing.png';
+import maxxisDealAsset from '../../../assets/maxxis/avatar/avatar-success.png';
 import './MyMaxxisReports.css';
 
 const COPY={en:{title:'MY MAXXIS REPORTS',all:'All',analysis:'Maxxis Analysis',deal:'Deal Intelligence',search:'Search by address',empty:'No saved reports.',view:'View',pdf:'PDF',email:'Email',remove:'Delete from history',confirm:'Remove this saved report from history? Your acquired access will remain available.',back:'Back'},pt:{title:'MEUS RELATÓRIOS MAXXIS',all:'Todos',analysis:'Análise Maxxis',deal:'Deal Intelligence',search:'Buscar por endereço',empty:'Nenhum relatório salvo.',view:'Ver',pdf:'PDF',email:'Email',remove:'Excluir do histórico',confirm:'Remover este relatório salvo do histórico? Seu acesso adquirido continuará disponível.',back:'Voltar'},es:{title:'MIS INFORMES MAXXIS',all:'Todos',analysis:'Análisis Maxxis',deal:'Deal Intelligence',search:'Buscar por dirección',empty:'No hay informes guardados.',view:'Ver',pdf:'PDF',email:'Email',remove:'Eliminar del historial',confirm:'¿Eliminar este informe guardado del historial? El acceso adquirido seguirá disponible.',back:'Volver'}};
