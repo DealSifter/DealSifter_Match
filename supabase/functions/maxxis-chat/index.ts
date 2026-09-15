@@ -870,14 +870,21 @@ Deno.serve(async (req) => {
     const functionCallPart = parts.find((part) => part.functionCall && typeof part.functionCall === 'object');
     const parsedFunctionCall = functionCallPart?.functionCall as Record<string, unknown> | undefined;
     const mandatoryFunctionCall = !stubFunctionCall
-      ? resolveMandatoryToolCall(message, propertyContextId, comparisonPropertyIds)
+      ? (propertyAnalysisContext
+        ? {
+            name: propertyAnalysisContext.report_type === 'DEAL_INTELLIGENCE' ? 'getDealInsightContext' : 'getPropertyDetails',
+            args: propertyAnalysisContext.report_type === 'DEAL_INTELLIGENCE'
+              ? { propertyId: propertyAnalysisContext.property_id }
+              : { propertyId: propertyAnalysisContext.property_id, includeServiceMatches: false, includeOperationalContext: false },
+          }
+        : resolveMandatoryToolCall(message, propertyContextId, comparisonPropertyIds))
       : null;
     const parsedToolName = String(parsedFunctionCall?.name || '');
     const correctedFunctionCall = parsedFunctionCall
       && mandatoryFunctionCall
       && parsedToolName
       && parsedToolName !== mandatoryFunctionCall.name
-      && ['getDealInsightContext', 'getPropertyEvidence', 'getDealCopilotOverview', 'compareProperties'].includes(mandatoryFunctionCall.name)
+      && ['getDealInsightContext', 'getPropertyDetails', 'getPropertyEvidence', 'getDealCopilotOverview', 'compareProperties'].includes(mandatoryFunctionCall.name)
         ? mandatoryFunctionCall
         : null;
     const recoveredFunctionCall = !parsedFunctionCall && mandatoryFunctionCall ? mandatoryFunctionCall : null;

@@ -456,14 +456,8 @@ export function PortfolioDetail({ item, owner, ownerContact = null, isOwnerUnloc
       return Boolean(saved?.exportPhotosWithEmail);
     } catch (e) { void e; return false; }
   });
-  const [exportMode, setExportMode] = useState(() => {
-    try {
-      const saved = JSON.parse(localStorage.getItem('ds_export_mail_defaults') || 'null');
-      return saved?.exportMode === 'email' ? 'email' : 'download';
-    } catch (e) { void e; return 'download'; }
-  });
+  const [exportMode, setExportMode] = useState('');
   const [isPreparingExport, setIsPreparingExport] = useState(false);
-  const [analysisLevelOpen, setAnalysisLevelOpen] = useState(false);
 
   useEffect(() => {
     // Reset image index when item changes; defer to next tick to avoid
@@ -537,24 +531,22 @@ export function PortfolioDetail({ item, owner, ownerContact = null, isOwnerUnloc
       ? ownerContacts.map(({ label, val, priority }) => `- ${normalizeExportText(label || 'Contact')}: ${normalizeExportText(val || '-')}${priority ? ` (${priority===1 ? modalsT.contactPriorityFirst : `P${priority}`})` : ''}`)
       : ['- No unlocked contact modes'];
 
+    const field = (label, value, fallbackLabel) => {
+      const cleanValue = normalizeExportText(value);
+      if (!cleanValue || cleanValue === '-' || cleanValue.toLowerCase() === 'undefined') return null;
+      return `${normalizeExportText(label || fallbackLabel)}: ${cleanValue}`;
+    };
     const cardsDescription = [
       `TITLE: ${title}`,
       '',
       'DESCRIPTION:',
-      `${matchesT.price}: ${fmtMoney(item?.price)}`,
-      `${matchesT.type}: ${normalizeExportText(item?.type || '-')}`,
-      `${matchesT.strategy}: ${normalizeExportText(item?.objective || '-')}`,
-      `${matchesT.capRate}: ${item?.capRate ? `${item.capRate}%` : '-'}`,
-      `${matchesT.beds}: ${item?.beds > 0 ? item.beds : '-'}`,
-      `${matchesT.baths}: ${item?.baths > 0 ? item.baths : '-'}`,
-      `${matchesT.size}: ${item?.sqft || '-'}`,
-      `${matchesT.lot}: ${item?.lot || '-'}`,
-      `${matchesT.rehab}: ${fmtMoney(item?.rehab || 0)}`,
-      `${matchesT.zip}: ${zip}`,
-      `${matchesT.dealTag}: ${normalizeExportText(item?.dealTag || '-')}`,
-      `${matchesT.source}: ${normalizeExportText(item?.source || '-')}`,
-      `${matchesT.isActive}: ${item?.isActive ? matchesT.active : matchesT.inactive}`,
-      `LOCATION: ${city}, ${state}`,
+      field(matchesT.price, fmtMoney(item?.price), 'Price'), field(matchesT.type, item?.type, 'Type'),
+      field(matchesT.strategy, item?.objective, 'Strategy'), field(matchesT.capRate, item?.capRate ? `${item.capRate}%` : '', 'Cap Rate'),
+      field(matchesT.beds, item?.beds > 0 ? item.beds : '', 'Beds'), field(matchesT.baths, item?.baths > 0 ? item.baths : '', 'Baths'),
+      field(matchesT.size, item?.sqft, 'Size'), field(matchesT.lot, item?.lot, 'Lot'), field(matchesT.rehab, item?.rehab ? fmtMoney(item.rehab) : '', 'Rehab'),
+      field(matchesT.zip, zip, 'ZIP'), field(matchesT.dealTag, item?.dealTag, 'Deal Tag'), field(matchesT.source, item?.source, 'Source'),
+      field(matchesT.isActive, item?.isActive == null ? '' : (item.isActive ? (matchesT.active || 'Active') : (matchesT.inactive || 'Inactive')), 'Status'),
+      field('LOCATION', [city, state].filter((value) => value && value !== '-').join(', '), 'LOCATION'),
       '',
       'OWNER:',
       `Name: ${ownerName}`,
@@ -567,7 +559,7 @@ export function PortfolioDetail({ item, owner, ownerContact = null, isOwnerUnloc
       `${normalizeExportText(item?.objective || 'General')}`,
       `${normalizeExportText(item?.dealTag || 'No DealTag')}`,
       `${normalizeExportText(item?.source || 'No Source')}`,
-    ].map((line) => normalizeExportText(line)).join('\n');
+    ].filter((line) => line !== null && line !== undefined).map((line) => normalizeExportText(line)).join('\n');
 
     return { title, cardsDescription };
   };
@@ -1754,6 +1746,7 @@ export function PortfolioDetail({ item, owner, ownerContact = null, isOwnerUnloc
 
   const handleOpenEmailCompose = () => {
     if (!String(emailTo || '').trim()) setEmailTo(getProfileEmailFallback());
+    setExportMode('');
     setEmailComposeOpen(true);
   };
 
@@ -1789,13 +1782,15 @@ export function PortfolioDetail({ item, owner, ownerContact = null, isOwnerUnloc
         imageUrls,
         maxxisAnalysis: analysisText,
       }),
+      onEmail: () => {
+        setExportMode('email'); setExportPdfWithEmail(true); setEmailComposeOpen(true);
+      },
     });
     setEmailComposeOpen(false);
   };
 
   const handleAnalysisSelection = async (accessDecision) => {
     if (accessDecision?.reportType === INTELLIGENCE_REPORT_TYPES.PROPERTY_RELEASE) {
-      setAnalysisLevelOpen(false);
       return;
     }
     if (accessDecision?.allowed) {
@@ -1811,10 +1806,6 @@ export function PortfolioDetail({ item, owner, ownerContact = null, isOwnerUnloc
         accessSource: result.access_source || accessDecision.accessSource,
       });
     }
-  };
-
-  const handleAnalyzeWithMaxxis = () => {
-    setAnalysisLevelOpen(true);
   };
 
   const handleConfirmEmailExport = async () => {
@@ -2070,76 +2061,20 @@ export function PortfolioDetail({ item, owner, ownerContact = null, isOwnerUnloc
             <div style={{ fontSize: 14, fontWeight: 800, color: C.t1 }}>{matchesT.exportModalTitle || 'Export portfolio release'}</div>
 
             <div style={{ border: `1px solid ${C.border}`, borderRadius: 10, padding: 10, display: 'grid', gap: 8, background: C.alpha(C.accent, 0.04) }}>
-              <div style={{ fontSize: 11, color: C.t2, fontWeight: 800 }}>{matchesT.exportOptions || 'Export options'}</div>
-              <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : 'repeat(3, minmax(0, 1fr))', gap: 8 }}>
-                <button
-                  type="button"
-                  onClick={() => {
-                    setExportMode('download');
-                    setExportPdfLocal(true);
-                    setExportPdfWithEmail(false);
-                    setExportPhotosWithEmail(false);
-                  }}
-                  style={{
-                    border: `1px solid ${exportMode === 'download' ? C.accent : C.border}`,
-                    background: exportMode === 'download' ? C.alpha(C.accent, 0.12) : C.card,
-                    color: exportMode === 'download' ? C.accent : C.t1,
-                    borderRadius: 9,
-                    padding: '9px 8px',
-                    fontSize: 11,
-                    fontWeight: 800,
-                    cursor: 'pointer',
-                  }}
-                >
-                  {matchesT.exportModeDownload || 'Download to device'}
-                </button>
-                <button
-                  type="button"
-                  onClick={() => {
-                    setExportMode('email');
-                    setExportPdfWithEmail(true);
-                    setExportPdfLocal(false);
-                    if (!String(emailTo || '').trim()) setEmailTo(getProfileEmailFallback());
-                  }}
-                  style={{
-                    border: `1px solid ${exportMode === 'email' ? C.accent : C.border}`,
-                    background: exportMode === 'email' ? C.alpha(C.accent, 0.12) : C.card,
-                    color: exportMode === 'email' ? C.accent : C.t1,
-                    borderRadius: 9,
-                    padding: '9px 8px',
-                    fontSize: 11,
-                    fontWeight: 800,
-                    cursor: 'pointer',
-                  }}
-                >
-                  {matchesT.exportModeEmail || 'Prepare by email'}
-                </button>
-                <button
-                  type="button"
-                  onClick={handleAnalyzeWithMaxxis}
-                  style={{
-                    border: `1px solid ${analysisLevelOpen ? C.accent : C.border}`,
-                    background: analysisLevelOpen ? C.alpha(C.accent, 0.1) : C.card,
-                    color: analysisLevelOpen ? C.accent : C.t1,
-                    borderRadius: 9,
-                    padding: '9px 8px',
-                    fontSize: 11,
-                    fontWeight: 900,
-                    cursor: 'pointer',
-                  }}
-                >
-                  {matchesT.exportAnalyzeWithMaxxis || 'Analyze with Maxxis Deal AI'}
-                </button>
-              </div>
-
-              {analysisLevelOpen ? (
-                <ReportExperienceSelector
-                  plan={intelligencePlan}
-                  entitlements={scopedReportEntitlements}
-                  language={getLang()}
-                  onSelect={handleAnalysisSelection}
-                />
-              ) : null}
+              <ReportExperienceSelector
+                plan={intelligencePlan}
+                entitlements={scopedReportEntitlements}
+                language={getLang()}
+                onSelect={handleAnalysisSelection}
+                onBasicDownload={() => {
+                  setExportMode('download'); setExportPdfLocal(true);
+                  setExportPdfWithEmail(false); setExportPhotosWithEmail(false);
+                }}
+                onBasicEmail={() => {
+                  setExportMode('email'); setExportPdfWithEmail(true); setExportPdfLocal(false);
+                  if (!String(emailTo || '').trim()) setEmailTo(getProfileEmailFallback());
+                }}
+              />
 
               {exportMode === 'download' ? (
                 <>
@@ -2152,7 +2087,7 @@ export function PortfolioDetail({ item, owner, ownerContact = null, isOwnerUnloc
                     {matchesT.exportDownloadPhotos || 'Download property photos separately to device'}
                   </label>
                 </>
-              ) : (
+              ) : exportMode === 'email' ? (
                 <>
                   <label style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 11, color: C.t1 }}>
                     <input type="checkbox" checked={exportPdfWithEmail} onChange={(e) => setExportPdfWithEmail(e.target.checked)} />
@@ -2166,10 +2101,10 @@ export function PortfolioDetail({ item, owner, ownerContact = null, isOwnerUnloc
                     {matchesT.exportAttachmentHint || 'Email attachments are prepared locally and can be attached manually in your email client.'}
                   </div>
                 </>
-              )}
+              ) : null}
             </div>
 
-            <div style={{ borderTop: `1px solid ${C.border}`, paddingTop: 10, display: 'grid', gap: 8, opacity: exportMode === 'email' ? 1 : 0.48 }}>
+            <div style={{ borderTop: `1px solid ${C.border}`, paddingTop: 10, display: exportMode === 'email' ? 'grid' : 'none', gap: 8 }}>
               <div style={{ fontSize: 14, fontWeight: 800, color: C.t1 }}>{matchesT.exportEmailRecipients || 'Email recipients'}</div>
               <label style={{ display: 'grid', gap: 4 }}>
                 <span style={{ fontSize: 11, color: C.t2, fontWeight: 700 }}>{matchesT.exportRecipientTo || 'To'}</span>
@@ -2218,7 +2153,7 @@ export function PortfolioDetail({ item, owner, ownerContact = null, isOwnerUnloc
               <button
                 type="button"
                 onClick={handleConfirmEmailExport}
-                disabled={isPreparingExport}
+                disabled={isPreparingExport || !exportMode}
                 style={{ border:'none', background:C.accent, color:'#fff', borderRadius:8, padding:'7px 10px', fontSize:11, fontWeight:700, cursor:'pointer' }}
               >
                 {isPreparingExport ? (matchesT.exportPreparing || 'Preparing...') : (matchesT.exportContinue || 'Continue')}

@@ -117,6 +117,7 @@ import {
 } from '../../domain/intelligenceAccess';
 import { buildMaxxisIntelligenceUpgradeExperience } from '../../features/maxxis/access/maxxisIntelligenceUpgrade';
 import { resolveReportExportEntitlement } from '../../features/maxxis/export/reportExportEntitlement';
+import { MyMaxxisReports } from '../../features/maxxis/reports/MyMaxxisReports';
 import './MaxxisAssistant.css';
 
 import {
@@ -178,12 +179,13 @@ function readDevMaxxisAttentionOverrides() {
   }
 }
 
-export function MaxxisAssistant({ page = 'dashboard', onOpenSupport = null, onNavigateAction = null, onOpenProvider = null, onOpenFeedCard = null, propertyAnalysisRequest = null, propertyContextId = '', appContext = null, sessionKey = '', onExportAnalysisPdf = null, onNuggetBalanceChange = null, onProviderUnlockConfirmed = null, enabled = true, userPreferences = null, userPreferencesHydrated = true, onChangeUserPreferences = null, userPreferencesPersistenceStatus = 'idle', proactiveFeatureEnabled = false, dealMemoryFeatureEnabled = false, onOpenPreferences = null, currentPlan = 'free', reportEntitlements = [], reportHistory = [], onPersistReport = null, onRequestIntelligenceUnlock = null }) {
+export function MaxxisAssistant({ page = 'dashboard', onOpenSupport = null, onNavigateAction = null, onOpenProvider = null, onOpenFeedCard = null, propertyAnalysisRequest = null, propertyContextId = '', appContext = null, sessionKey = '', onExportAnalysisPdf = null, onNuggetBalanceChange = null, onProviderUnlockConfirmed = null, enabled = true, userPreferences = null, userPreferencesHydrated = true, onChangeUserPreferences = null, userPreferencesPersistenceStatus = 'idle', proactiveFeatureEnabled = false, dealMemoryFeatureEnabled = false, onOpenPreferences = null, currentPlan = 'free', reportEntitlements = [], reportHistory = [], onPersistReport = null, onDeleteReport = null, onRequestIntelligenceUnlock = null }) {
   const language = getUiLang();
   const t = COPY[language] || COPY.en;
   const preferencesCopy = getMaxxisPreferencesCopy(language);
   const [open, setOpen] = useState(false);
   const [input, setInput] = useState('');
+  const [reportsOpen, setReportsOpen] = useState(false);
   const [propertyAnalysisMode, setPropertyAnalysisMode] = useState(null);
   const [loading, setLoading] = useState(false);
   const [preferencesOpen, setPreferencesOpen] = useState(false);
@@ -1039,8 +1041,10 @@ export function MaxxisAssistant({ page = 'dashboard', onOpenSupport = null, onNa
             propertyId: continuityReference.context.propertyId,
           }
         : null;
-      const providerConversationRequested = isProviderConversationIntent(cleanMessage)
-        || Boolean(continuityProviderContext && ['CONTINUE', 'PROVIDER_REFERENCE'].includes(continuityReference.intent));
+      const providerConversationRequested = !analysisContext && (
+        isProviderConversationIntent(cleanMessage)
+        || Boolean(continuityProviderContext && ['CONTINUE', 'PROVIDER_REFERENCE'].includes(continuityReference.intent))
+      );
       if (providerConversationRequested) {
         const providerConversationContext = continuityProviderContext || validatedLatestProviderContext;
         if (!providerConversationContext) {
@@ -1259,9 +1263,10 @@ export function MaxxisAssistant({ page = 'dashboard', onOpenSupport = null, onNa
         resolveReportExportEntitlement({ plan: currentPlan, entitlements: reportEntitlements, reportType: projectedReportType, channel }),
       ]))) : null;
       persistStructuredDealMemory(result, 'DEAL_REVIEW');
+      let persistedReportId = null;
       if (projectedReportType && typeof onPersistReport === 'function') {
         try {
-          await onPersistReport({
+          persistedReportId = await onPersistReport({
             propertyId: String(result?.data?.property?.id || propertyContextId || ''),
             capability: projectedReportType,
             reportVersion: '1',
@@ -1286,18 +1291,18 @@ export function MaxxisAssistant({ page = 'dashboard', onOpenSupport = null, onNa
       setMessages((prev) => [...prev, {
         id: `maxxis-assistant-${Date.now()}`,
         role: 'assistant',
-        content: dealIntelligence?.content || maxxisAnalysis?.content || intelligence.content || result.answer,
+        content: `${dealIntelligence?.content || maxxisAnalysis?.content || intelligence.content || result.answer}${persistedReportId ? `\n\n${language === 'pt' ? 'Relatório salvo em Meus Relatórios.' : language === 'es' ? 'Informe guardado en Mis Informes.' : 'Report saved to My Reports.'}` : ''}`,
         createdAt: new Date(),
         error: Boolean(result.unavailable),
         degraded: Boolean(result.degraded),
         degradedReason: result.degradedReason || '',
         requestId: result.requestId || '',
         type: dealIntelligence?.type || maxxisAnalysis?.type || intelligence.type || result.type,
-        data: projectedReport ? { ...projectedReport.data, reportExportEntitlements } : (intelligence.data || result.data),
+        data: projectedReport ? { ...projectedReport.data, reportExportEntitlements, reportId: persistedReportId } : (intelligence.data || result.data),
         followUps: dealIntelligence || maxxisAnalysis ? [] : intelligence.followUps,
         smartActionsEnabled: intelligence.type === 'deal_snapshot',
         smartActionSurface: 'snapshot',
-        analysisExport: dealIntelligence || maxxisAnalysis ? null : (result.unavailable ? null : (meta.analysisExport || null)),
+        analysisExport: result.unavailable ? null : (meta.analysisExport || null),
         compositionMode: dealIntelligence || maxxisAnalysis ? 'ANALYSIS' : (intelligence.type === 'property_tradeoffs' ? 'COMPARISON' : (intelligence.type ? 'ANALYSIS' : undefined)),
       }]);
     } catch (error) {
@@ -2358,11 +2363,33 @@ export function MaxxisAssistant({ page = 'dashboard', onOpenSupport = null, onNa
         requestId,
         title: request?.title || '',
         onExportPdf: request?.onExportPdf || null,
+        onEmail: request?.onEmail || null,
       },
       reportType: request?.reportType || '',
       propertyAnalysisContext: request?.propertyAnalysisContext || null,
     });
   }, [language, propertyAnalysisRequest?.id]);
+
+  const openSavedReport = (report) => {
+    const payload = report?.reportPayload || {};
+    setReportsOpen(false); setOpen(true);
+    setMessages((prev) => [...prev, { id:`maxxis-saved-report-${report?.id}`, role:'assistant', createdAt:new Date(), content:payload.content || '', type:payload.type || 'maxxis_report_history', data:payload.data || null }]);
+  };
+  const downloadSavedReport = async (report) => {
+    const { jsPDF } = await import('jspdf');
+    const doc = new jsPDF({ unit:'pt', format:'letter' });
+    doc.setFontSize(17); doc.text('DealSifter Match · Maxxis Deal AI', 42, 48);
+    doc.setFontSize(10);
+    const lines = doc.splitTextToSize(String(report?.reportPayload?.content || ''), 528);
+    let y = 78;
+    lines.forEach((line) => { if (y > 730) { doc.addPage(); y = 48; } doc.text(line, 42, y); y += 14; });
+    doc.save(`maxxis-${report?.id || 'report'}.pdf`);
+  };
+  const emailSavedReport = (report) => {
+    const subject=encodeURIComponent(`DealSifter · ${String(report?.capability || '').replaceAll('_',' ')}`);
+    const body=encodeURIComponent(String(report?.reportPayload?.content || ''));
+    window.location.href=`mailto:?subject=${subject}&body=${body}`;
+  };
 
   if (!enabled) return null;
 
@@ -2440,6 +2467,9 @@ export function MaxxisAssistant({ page = 'dashboard', onOpenSupport = null, onNa
                   surface="header"
                   compact
                 />
+                <button type="button" className="maxxis-more-preferences" onClick={() => { setPreferencesOpen(false); setReportsOpen(true); }}>
+                  {language === 'pt' ? 'Meus Relatórios' : language === 'es' ? 'Mis Informes' : 'My Reports'}
+                </button>
                 {typeof onOpenPreferences === 'function' ? (
                   <button
                     type="button"
@@ -2458,6 +2488,7 @@ export function MaxxisAssistant({ page = 'dashboard', onOpenSupport = null, onNa
           </header>
 
           <div className="maxxis-scope">{t.scope}</div>
+          {reportsOpen ? <MyMaxxisReports reports={reportHistory} language={language} onClose={() => setReportsOpen(false)} onView={openSavedReport} onPdf={downloadSavedReport} onEmail={emailSavedReport} onDelete={onDeleteReport} /> : null}
 
           <div className="maxxis-messages" data-testid="maxxis-messages">
             {messages.map((message) => {

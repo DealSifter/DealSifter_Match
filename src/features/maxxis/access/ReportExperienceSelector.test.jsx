@@ -3,33 +3,11 @@ import { readFileSync } from 'node:fs';
 import { renderToStaticMarkup } from 'react-dom/server';
 import { describe, expect, it, vi } from 'vitest';
 import { ReportExperienceSelector } from './ReportExperienceSelector';
-
-describe('Report Experience Selector', () => {
-  it('renders three neutral intelligence levels with preview controls', () => {
-    const html = renderToStaticMarkup(<ReportExperienceSelector plan="free" language="en" />);
-    expect(html).toContain('BASIC PROPERTY RELEASE');
-    expect(html).toContain('MAXXIS AI ANALYSIS');
-    expect(html).toContain('DEAL INTELLIGENCE REPORT');
-    expect(html).toContain('3 Nuggets');
-    expect(html).toContain('5 Nuggets');
-    expect(html).toContain('Preview report');
-    expect(html).not.toContain('is-selected');
-    expect(html).not.toMatch(/icon-(?:crown|diamond|lock|star)|data-icon="(?:crown|diamond|lock|star)"/i);
-  });
-
-  it('uses official Maxxis assets and performs no entitlement mutation itself', () => {
-    const onSelect = vi.fn();
-    const html = renderToStaticMarkup(<ReportExperienceSelector plan="enterprise" onSelect={onSelect} />);
-    expect(html).toContain('avatar-idle');
-    expect(html).toContain('avatar-observing');
-    expect(html.match(/Included/g)).toHaveLength(3);
-    expect(onSelect).not.toHaveBeenCalled();
-  });
-
-  it('exposes mobile vertical layout and enlarged previews', () => {
-    const css = readFileSync(new URL('./ReportExperienceSelector.css', import.meta.url), 'utf8');
-    expect(css).toMatch(/max-width:767px/);
-    expect(css).toMatch(/\.report-level-grid\s*\{\s*grid-template-columns:1fr/);
-    expect(css).toContain('min-height:170px');
-  });
+const source=readFileSync(new URL('./ReportExperienceSelector.jsx',import.meta.url),'utf8');
+const css=readFileSync(new URL('./ReportExperienceSelector.css',import.meta.url),'utf8');
+describe('Report Experience Selector',()=>{
+  it('starts with approved stacked actions and no selection',()=>{const html=renderToStaticMarkup(<ReportExperienceSelector plan="free" language="en"/>);expect(html.match(/BASIC PROPERTY RELEASE/g)).toHaveLength(4);expect(html).toContain('Download to device');expect(html).toContain('Send by email');expect(html).toContain('AI-powered property analysis');expect(html).not.toContain('is-selected')});
+  it('keeps info preview independent from actions',()=>{const action=vi.fn();renderToStaticMarkup(<ReportExperienceSelector onBasicDownload={action}/>);expect(source).toContain("onInfo={()=>setPreview('PROPERTY_RELEASE')}");expect(action).not.toHaveBeenCalled()});
+  it('defines canonical intelligence selection and 3/5 access resolver',()=>{expect(source).toContain("['MAXXIS_ANALYSIS','DEAL_INTELLIGENCE']");expect(source).toContain('access.nuggetCost');expect(source).toContain('DEAL INTELLIGENCE REPORT')});
+  it('uses official assets and responsive large paginated previews',()=>{expect(source).toContain('avatar-idle.png');expect(source).toContain('avatar-observing.png');expect(source).toContain('DEAL_INTELLIGENCE:6');expect(css).toContain('@media(max-width:767px)');expect(css).toContain('min-height:66vh')});
 });

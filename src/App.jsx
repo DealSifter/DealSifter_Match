@@ -104,7 +104,7 @@ import { useUnlockNotifications } from './hooks/useUnlockNotifications';
 import { useAppSessionLifecycle } from './hooks/useAppSessionLifecycle';
 import { useUserPreferences } from './hooks/useUserPreferences';
 import { fetchFeatureFlagsWithRetry, isFeatureEnabled } from './services/featureFlagService';
-import { listMaxxisReportEntitlements, listMaxxisReportHistory, saveMaxxisReportPayload, unlockMaxxisReport } from './services/maxxisReportService';
+import { deleteMaxxisReportArtifact, listMaxxisReportEntitlements, listMaxxisReportHistory, saveMaxxisReportPayload, unlockMaxxisReport } from './services/maxxisReportService';
 import { canPerformAction, getPlanActionAccess, getPlanGateCopy, getCurrentPlan, isPlanLimitError, refreshUsageFromDB, resolveRemainingNuggets } from './services/planUsageService';
 import { isProfileConflictError, saveProfessionalProfileWithVersion } from './services/profileConcurrencyService';
 import { clearSensitiveCache, clearUserScopedCache } from './lib/localStoragePolicy';
@@ -5989,9 +5989,14 @@ export default function App() {
                 onExportAnalysisPdf={handleExportMaxxisAnalysisPdf}
                 currentPlan={accessSubscription}
                 reportEntitlements={activeMaxxisReportEntitlements}
-                reportHistory={maxxisReportHistory.filter((item) => String(item?.propertyId || '') === String(maxxisPropertyContextId || ''))}
+                reportHistory={maxxisReportHistory}
                 onPersistReport={async (payload) => {
-                  await saveMaxxisReportPayload(payload);
+                  const reportId = await saveMaxxisReportPayload(payload);
+                  setMaxxisReportHistory(await listMaxxisReportHistory(supabaseUserId));
+                  return reportId;
+                }}
+                onDeleteReport={async (report) => {
+                  await deleteMaxxisReportArtifact(report?.id);
                   setMaxxisReportHistory(await listMaxxisReportHistory(supabaseUserId));
                 }}
                 onRequestIntelligenceUnlock={handleRequestIntelligenceUnlock}

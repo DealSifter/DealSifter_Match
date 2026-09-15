@@ -2000,6 +2000,14 @@ export function MessageBubble({
             <span>{isExportingAnalysis ? exportingAnalysisLabel : exportAnalysisLabel}</span>
             <Icon name="doc" size={13} color="currentColor" strokeWidth={2.1} />
           </button>
+          {message.analysisExport.onEmail ? <button
+            type="button"
+            className="maxxis-action-link maxxis-analysis-email"
+            onClick={() => message.analysisExport.onEmail()}
+          >
+            <span>{language === 'pt' ? 'Enviar por email' : language === 'es' ? 'Enviar por email' : 'Send by Email'}</span>
+            <Icon name="mail" size={13} color="currentColor" strokeWidth={2.1} />
+          </button> : null}
         </div>
       ) : null}
       {!isUser && message.type === 'intelligence_access_gate' && message.data?.accessDecision ? (
