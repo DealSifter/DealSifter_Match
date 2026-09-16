@@ -2910,7 +2910,7 @@ export function Dashboard({ page, nuggets, setModal, setPage, onOpenOnboardingTa
 
   useEffect(() => {
     const track = opportunityBannerTrackRef.current;
-    if (!track || marqueeBannerItems.length === 0) return undefined;
+    if (!track) return undefined;
     const speedPxPerSecond = 38;
     const step = (timestamp) => {
       const loopWidth = track.scrollWidth / 2;
@@ -2931,7 +2931,7 @@ export function Dashboard({ page, nuggets, setModal, setPage, onOpenOnboardingTa
       opportunityBannerRafRef.current = 0;
       opportunityBannerLastFrameRef.current = 0;
     };
-  }, [marqueeBannerItems.length]);
+  }, [marqueeBannerItems.length, page]);
 
 // ---
   const openBannerItem = (item) => {
@@ -3010,6 +3010,38 @@ export function Dashboard({ page, nuggets, setModal, setPage, onOpenOnboardingTa
           flex: 0 0 auto;
           gap: 10px;
           padding: 0 10px;
+        }
+        .opportunity-empty-sequence {
+          display: flex;
+          flex: 0 0 auto;
+          align-items: center;
+          gap: clamp(42px, 5vw, 88px);
+          min-width: 100vw;
+          padding: 0 clamp(24px, 3vw, 52px);
+          white-space: nowrap;
+        }
+        .opportunity-empty-message {
+          color: ${C.t3};
+          font-size: 11px;
+          line-height: 1.35;
+        }
+        .opportunity-empty-cta {
+          appearance: none;
+          border: 0;
+          background: transparent;
+          color: ${C.accent};
+          cursor: pointer;
+          font: inherit;
+          font-weight: 900;
+          padding: 0;
+          text-decoration: underline;
+          text-underline-offset: 2px;
+        }
+        .opportunity-empty-cta:hover,
+        .opportunity-empty-cta:focus-visible {
+          color: ${C.accent2 || C.accent};
+          outline: none;
+          text-decoration-thickness: 2px;
         }
         .opportunity-banner {
           overflow-x: hidden;
@@ -4940,7 +4972,48 @@ export function Dashboard({ page, nuggets, setModal, setPage, onOpenOnboardingTa
             </div>
           </div>
         ) : (
-          <div style={{ padding:"10px 14px", color:C.t3, fontSize:11, textAlign:"center" }}>{t.noOpportunitiesNow}</div>
+          <div
+            className="opportunity-banner"
+            ref={opportunityBannerScrollRef}
+            data-testid="opportunity-banner-scroll"
+            role="region"
+            aria-label={t.paidOpportunities || 'Paid opportunities'}
+            tabIndex={0}
+            style={{ padding:"10px 0" }}
+            onWheel={handleOpportunityBannerWheel}
+            onKeyDown={handleOpportunityBannerKeyDown}
+            onPointerDown={() => suppressMobileDockTemporarily(1200)}
+            onTouchStart={() => suppressMobileDockTemporarily(1200)}
+            onTouchMove={() => suppressMobileDockTemporarily(1200)}
+          >
+            <div
+              className="opportunity-track"
+              ref={opportunityBannerTrackRef}
+              style={{ display:"flex", width:"max-content" }}
+            >
+              {[0, 1].map((loop) => (
+                <div
+                  className="opportunity-empty-sequence"
+                  aria-hidden={loop === 1 ? 'true' : undefined}
+                  key={`opportunity-empty-sequence-${loop}`}
+                >
+                  <span className="opportunity-empty-message">{t.noOpportunitiesNow}</span>
+                  <span className="opportunity-empty-message">
+                    {t.noOpportunitiesPromoPrefix || 'Take the opportunity to stand out and do more business...'}{' '}
+                    <button
+                      type="button"
+                      className="opportunity-empty-cta"
+                      tabIndex={loop === 1 ? -1 : 0}
+                      onClick={() => onOpenSpotlight?.()}
+                    >
+                      {t.noOpportunitiesPromoCta || 'Click here'}
+                    </button>{' '}
+                    {t.noOpportunitiesPromoSuffix || 'and promote your service and property cards.'}
+                  </span>
+                </div>
+              ))}
+            </div>
+          </div>
         )}
       </div>
     ) : null}

@@ -16,6 +16,12 @@ describe('Report Experience Selector',()=>{
     expect(source).toContain('asset={brandLogoAsset}');
     expect(html.match(/report-info-button/g)).toHaveLength(2);
   });
+  it('renders intelligence report avatars at 150 percent across responsive sizes',()=>{
+    expect(css).toContain('.report-action-stack.is-intelligence .report-action-main img');
+    expect(css).toMatch(/\.is-intelligence \.report-action-main img\s*\{\s*width:\s*104px;\s*height:\s*104px;/);
+    expect(css).toMatch(/\.is-intelligence \.report-action-main img\s*\{\s*width:\s*84px;\s*height:\s*84px;/);
+    expect(css).toMatch(/\.is-intelligence \.report-action-main img\s*\{\s*width:\s*72px;\s*height:\s*72px;/);
+  });
   it('defines canonical intelligence selection and 3/5 access resolver',()=>{expect(source).toContain("['MAXXIS_ANALYSIS','DEAL_INTELLIGENCE']");expect(source).toContain('access.nuggetCost');expect(source).toContain('DEAL INTELLIGENCE REPORT')});
   it('groups the approved preview images into 1, 3 and 6 page carousels',()=>{
     expect(source.match(/Basic Release\.png/g)).toHaveLength(1);

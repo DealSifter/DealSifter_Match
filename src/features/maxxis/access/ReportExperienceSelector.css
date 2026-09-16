@@ -178,6 +178,17 @@
   font-size: 24px;
 }
 
+/* Intelligence report avatars are intentionally 150% of the delivery icons. */
+.report-action-stack.is-intelligence .report-action-main {
+  min-height: 124px;
+  grid-template-columns: 106px minmax(0, 1fr) 18px;
+}
+
+.report-action-stack.is-intelligence .report-action-main img {
+  width: 104px;
+  height: 104px;
+}
+
 .report-info-button {
   width: 34px;
   height: 34px;
@@ -317,6 +328,8 @@
   .report-action-main { min-height: 82px; grid-template-columns: 58px minmax(0, 1fr) 14px; gap: 9px; padding: 8px 10px; }
   .report-action-main img,
   .report-action-icon { width: 56px; height: 56px; font-size: 28px; }
+  .report-action-stack.is-intelligence .report-action-main { min-height: 100px; grid-template-columns: 86px minmax(0, 1fr) 14px; }
+  .report-action-stack.is-intelligence .report-action-main img { width: 84px; height: 84px; }
   .report-action-row.has-info { grid-template-columns: minmax(0, 1fr) 40px; gap: 6px; }
   .report-info-button { width: 38px; height: 38px; }
   .report-preview-sheet { width: min(100%, 45dvh); }
@@ -333,5 +346,7 @@
   .report-action-main { min-height: 72px; grid-template-columns: 50px minmax(0, 1fr) 12px; }
   .report-action-main img,
   .report-action-icon { width: 48px; height: 48px; }
+  .report-action-stack.is-intelligence .report-action-main { min-height: 88px; grid-template-columns: 74px minmax(0, 1fr) 12px; }
+  .report-action-stack.is-intelligence .report-action-main img { width: 72px; height: 72px; }
   .report-preview-sheet { width: min(100%, 41dvh); }
 }
