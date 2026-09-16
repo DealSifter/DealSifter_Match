@@ -1,4 +1,5 @@
 import React, { useMemo, useState } from 'react';
+import brandLogoAsset from '../../../assets/logo.png';
 import maxxisAnalysisAsset from '../../../assets/maxxis/avatar/maxxis-master.png';
 import maxxisIntelligenceAsset from '../../../assets/maxxis/avatar/avatar-success.png';
 import propertyReleasePage1 from '../../../assets/maxxis/report-previews/Basic Release.png';
@@ -21,7 +22,18 @@ const PREVIEW_PAGES=Object.freeze({
   DEAL_INTELLIGENCE:Object.freeze([dealIntelligencePage1,dealIntelligencePage2,dealIntelligencePage3,dealIntelligencePage4,dealIntelligencePage5,dealIntelligencePage6]),
 });
 
-function Preview({type,t,onClose}){
+function SelectorActions({showBack=false,onBack,onCancel,onContinue,continueDisabled=false,isPreparing=false,backLabel='Back',cancelLabel='Cancel',continueLabel='Continue',preparingLabel='Preparing...'}){
+  if(!showBack&&!onCancel&&!onContinue)return null;
+  return <div className="report-selector-actions">
+    {showBack?<button type="button" className="report-selector-button is-secondary" onClick={onBack}>← {backLabel}</button>:null}
+    <div>
+      {onCancel?<button type="button" className="report-selector-button is-secondary" onClick={onCancel}>{cancelLabel}</button>:null}
+      {onContinue?<button type="button" className="report-selector-button is-primary" onClick={onContinue} disabled={continueDisabled||isPreparing}>{isPreparing?preparingLabel:continueLabel}</button>:null}
+    </div>
+  </div>;
+}
+
+function Preview({type,t,onClose,actions}){
   const[page,setPage]=useState(0);
   const[touchStart,setTouchStart]=useState(null);
   const pages=PREVIEW_PAGES[type]||PREVIEW_PAGES.PROPERTY_RELEASE;
@@ -39,16 +51,13 @@ function Preview({type,t,onClose}){
     if(Math.abs(distance)>=45)move(distance>0?-1:1);
   };
   return <div className="report-preview-overlay" role="dialog" aria-modal="true" aria-label={`${t.page} ${page+1}`} tabIndex={-1} onKeyDown={onKeyDown}>
-    <button type="button" className="report-preview-back" onClick={onClose}>← {t.back}</button>
+    <SelectorActions showBack onBack={onClose} backLabel={t.back} {...actions}/>
     <div className={`report-preview-sheet is-${type.toLowerCase()}`} data-preview-page={page+1} onTouchStart={event=>setTouchStart(event.touches[0].clientX)} onTouchEnd={onTouchEnd}>
       <img key={pages[page]} src={pages[page]} alt={`${type.replaceAll('_',' ')} — ${t.page} ${page+1} / ${count}`} draggable="false" decoding="async"/>
+      {count>1?<><button type="button" className="report-preview-arrow is-previous" aria-label="Previous page" onClick={()=>move(-1)}>‹</button><button type="button" className="report-preview-arrow is-next" aria-label="Next page" onClick={()=>move(1)}>›</button></>:null}
+      <b className="report-preview-page-indicator">{t.page} {page+1} / {count}</b>
     </div>
-    {count>1?<div className="report-preview-controls">
-      <button type="button" aria-label="Previous page" onClick={()=>move(-1)}>‹</button>
-      <b>{t.page} {page+1} of {count}</b>
-      <button type="button" aria-label="Next page" onClick={()=>move(1)}>›</button>
-    </div>:<b>{t.page} 1 of 1</b>}
   </div>;
 }
-function Row({icon,asset,title,subtitle,onAction,onInfo}){return <div className="report-action-row"><button type="button" className="report-action-main" onClick={onAction}>{asset?<img src={asset} alt="" aria-hidden="true"/>:<span className="report-action-icon" aria-hidden="true">{icon}</span>}<span><strong>{title}</strong><small>{subtitle}</small></span><b aria-hidden="true">›</b></button><button type="button" className="report-info-button" aria-label={`Preview ${title}`} onClick={onInfo}>i</button></div>}
-export function ReportExperienceSelector({plan='free',entitlements=[],language='en',onSelect=null,onBasicDownload=null,onBasicEmail=null}){const t=COPY[String(language).slice(0,2)]||COPY.en;const[stage,setStage]=useState('delivery');const[preview,setPreview]=useState('');const intelligence=useMemo(()=>['MAXXIS_ANALYSIS','DEAL_INTELLIGENCE'].map(reportType=>resolveIntelligenceReportAccess({plan,entitlements,reportType})),[plan,entitlements]);if(preview)return <section className="report-experience-selector"><Preview type={preview} t={t} onClose={()=>setPreview('')}/></section>;return <section className="report-experience-selector" data-testid="report-experience-selector" data-stage={stage}><header><strong>{stage==='delivery'?t.title:t.choose}</strong><span>{stage==='delivery'?t.intro:null}</span></header>{stage==='delivery'?<><div className="report-action-stack"><Row icon="▤" title={t.download} subtitle={t.downloadSub} onAction={onBasicDownload} onInfo={()=>setPreview('PROPERTY_RELEASE')}/><Row icon="✉" title={t.email} subtitle={t.emailSub} onAction={onBasicEmail} onInfo={()=>setPreview('PROPERTY_RELEASE')}/><Row asset={maxxisAnalysisAsset} title={t.maxxis} subtitle={t.maxxisSub} onAction={()=>setStage('intelligence')} onInfo={()=>setPreview('MAXXIS_ANALYSIS')}/></div><p className="report-selector-hint">{t.hint}</p></>:<><button type="button" className="report-selector-back" onClick={()=>setStage('delivery')}>‹ {t.back}</button><div className="report-action-stack is-intelligence">{intelligence.map((access,index)=><Row key={access.reportType} asset={index?maxxisIntelligenceAsset:maxxisAnalysisAsset} title={index?t.deal:t.analysis} subtitle={`${index?t.dealSub:t.analysisSub} · ${access.allowed?t.included:`${access.nuggetCost} ${t.unlock}`}`} onAction={()=>onSelect?.(access)} onInfo={()=>setPreview(access.reportType)}/>)}</div></>}</section>}
+function Row({icon,asset,title,subtitle,onAction,onInfo}){return <div className={`report-action-row${onInfo?' has-info':''}`}><button type="button" className="report-action-main" onClick={onAction}>{asset?<img src={asset} alt="" aria-hidden="true"/>:<span className="report-action-icon" aria-hidden="true">{icon}</span>}<span><strong>{title}</strong><small>{subtitle}</small></span><b aria-hidden="true">›</b></button>{onInfo?<button type="button" className="report-info-button" aria-label={`Preview ${title}`} onClick={onInfo}>i</button>:null}</div>}
+export function ReportExperienceSelector({plan='free',entitlements=[],language='en',onSelect=null,onBasicDownload=null,onBasicEmail=null,onCancel=null,onContinue=null,continueDisabled=false,isPreparing=false,cancelLabel='Cancel',continueLabel='Continue',preparingLabel='Preparing...'}){const t=COPY[String(language).slice(0,2)]||COPY.en;const[stage,setStage]=useState('delivery');const[preview,setPreview]=useState('');const intelligence=useMemo(()=>['MAXXIS_ANALYSIS','DEAL_INTELLIGENCE'].map(reportType=>resolveIntelligenceReportAccess({plan,entitlements,reportType})),[plan,entitlements]);const actions={onCancel,onContinue,continueDisabled,isPreparing,cancelLabel,continueLabel,preparingLabel};if(preview)return <section className="report-experience-selector"><Preview type={preview} t={t} onClose={()=>setPreview('')} actions={actions}/></section>;return <section className="report-experience-selector" data-testid="report-experience-selector" data-stage={stage}><header><div className="report-selector-heading"><strong>{stage==='delivery'?t.title:t.choose}</strong><SelectorActions showBack={stage!=='delivery'} onBack={()=>setStage('delivery')} backLabel={t.back} {...actions}/></div><span>{stage==='delivery'?t.intro:null}</span></header>{stage==='delivery'?<><div className="report-action-stack"><Row icon="▤" title={t.download} subtitle={t.downloadSub} onAction={onBasicDownload} onInfo={()=>setPreview('PROPERTY_RELEASE')}/><Row icon="✉" title={t.email} subtitle={t.emailSub} onAction={onBasicEmail} onInfo={()=>setPreview('PROPERTY_RELEASE')}/><Row asset={brandLogoAsset} title={t.maxxis} subtitle={t.maxxisSub} onAction={()=>setStage('intelligence')}/></div><p className="report-selector-hint">{t.hint}</p></>:<div className="report-action-stack is-intelligence">{intelligence.map((access,index)=><Row key={access.reportType} asset={index?maxxisIntelligenceAsset:maxxisAnalysisAsset} title={index?t.deal:t.analysis} subtitle={`${index?t.dealSub:t.analysisSub} · ${access.allowed?t.included:`${access.nuggetCost} ${t.unlock}`}`} onAction={()=>onSelect?.(access)} onInfo={()=>setPreview(access.reportType)}/>)}</div>}</section>}

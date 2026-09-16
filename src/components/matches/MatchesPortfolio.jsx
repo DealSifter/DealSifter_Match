@@ -1977,9 +1977,9 @@ export function PortfolioDetail({ item, owner, ownerContact = null, isOwnerUnloc
             </div>
           </div>
 
-          <div style={{ border:`1px solid ${C.border}`, borderRadius:10, padding:"10px 12px", background:C.alpha(C.bg, 0.38), display:"grid", gap:6 }}>
+          <div data-testid="matches-property-detail-grid" style={{ border:`1px solid ${C.border}`, borderRadius:10, padding:"10px 12px", background:C.alpha(C.bg, 0.38), display:"grid", gridTemplateColumns:"repeat(2, minmax(0, 1fr))", columnGap:14, rowGap:6 }}>
             {detailGroups.flat().map(([k, v]) => (
-              <div key={k} style={{ display:"flex", alignItems:"center", justifyContent:"space-between", gap:12, paddingBottom:5, borderBottom:`1px solid ${C.alpha(C.border, 0.5)}` }}
+              <div key={k} style={{ minWidth:0, display:"flex", alignItems:"center", justifyContent:"space-between", gap:8, paddingBottom:5, borderBottom:`1px solid ${C.alpha(C.border, 0.5)}` }}
                 onMouseEnter={e => e.currentTarget.style.background = C.alpha(C.t1, 0.03)}
                 onMouseLeave={e => e.currentTarget.style.background = 'transparent'}
               >
@@ -2059,19 +2059,26 @@ export function PortfolioDetail({ item, owner, ownerContact = null, isOwnerUnloc
         <Modal
           onClose={() => setEmailComposeOpen(false)}
           maxWidth={720}
-          contentClassName="report-export-modal"
-          scrollable={false}
+          contentClassName={`report-export-modal ${exportMode ? 'is-scrollable' : 'is-fitted'}`}
+          scrollable={Boolean(exportMode)}
           showCloseButton={false}
         >
           <div style={{ display: 'grid', gap: 10 }}>
             <div style={{ fontSize: 14, fontWeight: 800, color: C.t1 }}>{matchesT.exportModalTitle || 'Export portfolio release'}</div>
 
-            <div style={{ border: `1px solid ${C.border}`, borderRadius: 10, padding: 10, display: 'grid', gap: 8, background: C.alpha(C.accent, 0.04) }}>
+            <div className="report-export-panel" style={{ border: `1px solid ${C.border}`, borderRadius: 10, padding: 10, display: 'grid', gap: 8, background: C.alpha(C.accent, 0.04) }}>
               <ReportExperienceSelector
                 plan={intelligencePlan}
                 entitlements={scopedReportEntitlements}
                 language={getLang()}
                 onSelect={handleAnalysisSelection}
+                onCancel={() => setEmailComposeOpen(false)}
+                onContinue={handleConfirmEmailExport}
+                continueDisabled={!exportMode}
+                isPreparing={isPreparingExport}
+                cancelLabel={modalsT.cancel || 'Cancel'}
+                continueLabel={matchesT.exportContinue || 'Continue'}
+                preparingLabel={matchesT.exportPreparing || 'Preparing...'}
                 onBasicDownload={() => {
                   setExportMode('download'); setExportPdfLocal(true);
                   setExportPdfWithEmail(false); setExportPhotosWithEmail(false);
@@ -2147,23 +2154,6 @@ export function PortfolioDetail({ item, owner, ownerContact = null, isOwnerUnloc
                   ? (matchesT.exportEmailSavedDefaults || 'These values are saved as your default for future exports.')
                   : (matchesT.exportEmailDisabledHint || 'Choose email delivery to edit and save recipient fields.')}
               </div>
-            </div>
-            <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 8 }}>
-              <button
-                type="button"
-                onClick={() => setEmailComposeOpen(false)}
-                style={{ border:`1px solid ${C.border}`, background:'transparent', color:C.t2, borderRadius:8, padding:'7px 10px', fontSize:11, cursor:'pointer' }}
-              >
-                {modalsT.cancel || 'Cancel'}
-              </button>
-              <button
-                type="button"
-                onClick={handleConfirmEmailExport}
-                disabled={isPreparingExport || !exportMode}
-                style={{ border:'none', background:C.accent, color:'#fff', borderRadius:8, padding:'7px 10px', fontSize:11, fontWeight:700, cursor:'pointer' }}
-              >
-                {isPreparingExport ? (matchesT.exportPreparing || 'Preparing...') : (matchesT.exportContinue || 'Continue')}
-              </button>
             </div>
           </div>
         </Modal>

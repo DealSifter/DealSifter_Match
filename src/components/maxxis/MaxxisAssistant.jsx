@@ -1095,7 +1095,9 @@ export function MaxxisAssistant({ page = 'dashboard', onOpenSupport = null, onNa
         }]);
         return;
       }
-      if (isArvVisualCompReviewIntent(cleanMessage, meta.controlledIntent)) {
+      // An explicitly selected report owns routing. Its safety prompt mentions ARV as
+      // a prohibited/limited capability and must not be mistaken for an ARV request.
+      if (!requestedReportType && isArvVisualCompReviewIntent(cleanMessage, meta.controlledIntent)) {
         const arvReference = continuityReference.status !== 'unresolved'
           ? continuityReference
           : resolveMaxxisNaturalReference(cleanMessage, continuityContextSnapshot);
