@@ -1,6 +1,6 @@
 import React, { useMemo, useState } from 'react';
 import brandLogoAsset from '../../../assets/logo.png';
-import maxxisAnalysisAsset from '../../../assets/maxxis/avatar/maxxis-master.png';
+import maxxisAnalysisAsset from '../../../assets/maxxis/avatar/avatar-idle.png';
 import maxxisIntelligenceAsset from '../../../assets/maxxis/avatar/avatar-success.png';
 import propertyReleasePage1 from '../../../assets/maxxis/report-previews/Basic Release.png';
 import maxxisAnalysisPage1 from '../../../assets/maxxis/report-previews/Maxxis Analisys (1).png';

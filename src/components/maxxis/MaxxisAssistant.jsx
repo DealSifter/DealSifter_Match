@@ -117,6 +117,7 @@ import {
 } from '../../domain/intelligenceAccess';
 import { buildMaxxisIntelligenceUpgradeExperience } from '../../features/maxxis/access/maxxisIntelligenceUpgrade';
 import { resolveReportExportEntitlement } from '../../features/maxxis/export/reportExportEntitlement';
+import { downloadMaxxisReportPdf, renderMaxxisReportPdf } from '../../features/maxxis/export/maxxisReportPdf';
 import { MyMaxxisReports } from '../../features/maxxis/reports/MyMaxxisReports';
 import './MaxxisAssistant.css';
 
@@ -1282,6 +1283,15 @@ export function MaxxisAssistant({ page = 'dashboard', onOpenSupport = null, onNa
           captureAppException(error, { area: 'maxxis_report_history', page });
         }
       }
+      const runtimeTrace = result?.data?.runtimeTrace && typeof result.data.runtimeTrace === 'object'
+        ? {
+            ...result.data.runtimeTrace,
+            analysisContextCreated: Boolean(result?.data?.dealIntelligence),
+            reportGenerationAttempted: Boolean(projectedReport),
+            persistenceAttempted: Boolean(projectedReportType && typeof onPersistReport === 'function'),
+            persistenceSucceeded: Boolean(persistedReportId),
+          }
+        : null;
       if (intelligence.eventName) {
         void trackProductEvent(intelligence.eventName, {
           entityType: 'property',
@@ -1300,7 +1310,7 @@ export function MaxxisAssistant({ page = 'dashboard', onOpenSupport = null, onNa
         degradedReason: result.degradedReason || '',
         requestId: result.requestId || '',
         type: dealIntelligence?.type || maxxisAnalysis?.type || intelligence.type || result.type,
-        data: projectedReport ? { ...projectedReport.data, reportExportEntitlements, reportId: persistedReportId } : (intelligence.data || result.data),
+        data: projectedReport ? { ...projectedReport.data, reportExportEntitlements, reportId: persistedReportId, runtimeTrace } : (intelligence.data || result.data),
         followUps: dealIntelligence || maxxisAnalysis ? [] : intelligence.followUps,
         smartActionsEnabled: intelligence.type === 'deal_snapshot',
         smartActionSurface: 'snapshot',
@@ -2372,20 +2382,27 @@ export function MaxxisAssistant({ page = 'dashboard', onOpenSupport = null, onNa
     });
   }, [language, propertyAnalysisRequest?.id]);
 
+  const savedReportExportEntitlements = (report) => {
+    const reportType = String(report?.capability || report?.reportPayload?.data?.maxxisReport?.reportType || '');
+    if (!reportType) return {};
+    return Object.freeze(Object.fromEntries(['PDF', 'EMAIL', 'SHARE'].map((channel) => [
+      channel,
+      resolveReportExportEntitlement({ plan: currentPlan, entitlements: reportEntitlements, reportType, channel }),
+    ])));
+  };
   const openSavedReport = (report) => {
     const payload = report?.reportPayload || {};
+    const reportExportEntitlements = savedReportExportEntitlements(report);
     setReportsOpen(false); setOpen(true);
-    setMessages((prev) => [...prev, { id:`maxxis-saved-report-${report?.id}`, role:'assistant', createdAt:new Date(), content:payload.content || '', type:payload.type || 'maxxis_report_history', data:payload.data || null }]);
+    setMessages((prev) => [...prev, { id:`maxxis-saved-report-${report?.id}`, role:'assistant', createdAt:new Date(), content:payload.content || '', type:payload.type || 'maxxis_report_history', data:payload.data ? { ...payload.data, reportExportEntitlements, reportId: report?.id || null } : null }]);
   };
   const downloadSavedReport = async (report) => {
-    const { jsPDF } = await import('jspdf');
-    const doc = new jsPDF({ unit:'pt', format:'letter' });
-    doc.setFontSize(17); doc.text('DealSifter Match · Maxxis Deal AI', 42, 48);
-    doc.setFontSize(10);
-    const lines = doc.splitTextToSize(String(report?.reportPayload?.content || ''), 528);
-    let y = 78;
-    lines.forEach((line) => { if (y > 730) { doc.addPage(); y = 48; } doc.text(line, 42, y); y += 14; });
-    doc.save(`maxxis-${report?.id || 'report'}.pdf`);
+    const schema = report?.reportPayload?.data?.maxxisReport;
+    const entitlement = savedReportExportEntitlements(report).PDF;
+    if (!schema || !entitlement?.allowed) return false;
+    const rendered = await renderMaxxisReportPdf({ schema, exportEntitlement: entitlement, language });
+    if (rendered.state !== 'RENDERED') return false;
+    return downloadMaxxisReportPdf(rendered.document, `maxxis-${report?.id || schema.reportType.toLowerCase()}.pdf`);
   };
   const emailSavedReport = (report) => {
     const subject=encodeURIComponent(`DealSifter · ${String(report?.capability || '').replaceAll('_',' ')}`);

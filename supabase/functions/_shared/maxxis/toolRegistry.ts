@@ -53,11 +53,12 @@ export const MAXXIS_TOOLS = [{
     },
     {
       name: 'getDealInsightContext',
-      description: 'Compose the current property, authenticated Investment Profile, existing profile-fit Match Score, cached Property Evidence, deterministic Deal Metrics, and any existing cached ARV evaluation into Deal Intelligence Context. Use for analyze-this-deal, profile-fit, deal uncertainty, or ARV/MAO availability questions. Copy the trusted context propertyId exactly. This read-only tool never recalculates ARV, MAO, ROI, cash flow, or a new deal score and never calls an external provider.',
+      description: 'Compose the current property, authenticated Investment Profile, existing profile-fit Match Score, Property Evidence, deterministic Deal Metrics, and allowed valuation evidence into the canonical report context. MAXXIS_ANALYSIS is cache-only and independent from valuation. DEAL_INTELLIGENCE uses cache first and may load provider evidence server-side when legitimately required. Copy the trusted context propertyId exactly. This tool never invents or recalculates ARV, MAO, ROI, cash flow, or a new deal score.',
       parameters: {
         type: 'OBJECT',
         properties: {
           propertyId: { type: 'STRING', description: 'Exact UUID from the trusted structured property context.' },
+          reportType: { type: 'STRING', enum: ['MAXXIS_ANALYSIS', 'DEAL_INTELLIGENCE'], description: 'Authorized report capability selected in the trusted property analysis flow.' },
         },
         required: ['propertyId'],
       },

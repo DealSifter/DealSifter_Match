@@ -764,7 +764,7 @@ Deno.serve(async (req) => {
       ...(propertyContextId ? [propertyContextId] : []),
     ]);
     if (!message) return response({ message: 'Message is required.', type: 'text', data: null, actions: [], error: 'MESSAGE_REQUIRED' }, 400, origin);
-    const accessLoad = await loadMaxxisRuntimeAccessContext(userId, userClient);
+    const accessLoad = await loadMaxxisRuntimeAccessContext(userId, userClient, propertyContextId);
     if (!accessLoad.ok) {
       logMaxxisEvent('maxxis_runtime_entitlement', { request_id: requestId, user_id: userId, capability: 'UNKNOWN', result: 'DENY', success: false, error_code: accessLoad.error });
       return response({ message: 'Intelligence access could not be verified.', type: 'text', data: null, actions: [], error: 'ENTITLEMENT_MISSING' }, 503, origin, requestId);
@@ -872,10 +872,11 @@ Deno.serve(async (req) => {
     const mandatoryFunctionCall = !stubFunctionCall
       ? (propertyAnalysisContext
         ? {
-            name: propertyAnalysisContext.report_type === 'DEAL_INTELLIGENCE' ? 'getDealInsightContext' : 'getPropertyDetails',
-            args: propertyAnalysisContext.report_type === 'DEAL_INTELLIGENCE'
-              ? { propertyId: propertyAnalysisContext.property_id }
-              : { propertyId: propertyAnalysisContext.property_id, includeServiceMatches: false, includeOperationalContext: false },
+            name: 'getDealInsightContext',
+            args: {
+              propertyId: propertyAnalysisContext.property_id,
+              reportType: propertyAnalysisContext.report_type,
+            },
           }
         : resolveMandatoryToolCall(message, propertyContextId, comparisonPropertyIds))
       : null;
@@ -904,7 +905,7 @@ Deno.serve(async (req) => {
       const toolStartedAt = Date.now();
       const toolName = String(functionCall.name || '');
       const functionArgs = functionCall.args && typeof functionCall.args === 'object' ? functionCall.args as Record<string, unknown> : {};
-      const toolCapability = capabilityForMaxxisTool(toolName);
+      const toolCapability = capabilityForMaxxisTool(toolName, functionArgs.reportType);
       if (toolCapability) {
         const decision = guardMaxxisRuntimeEntitlement({ ...runtimeAccess, requestedCapability: toolCapability });
         logMaxxisEvent('maxxis_runtime_entitlement', { request_id: requestId, user_id: userId, capability: toolCapability, result: decision.result, success: decision.allowed, error_code: decision.error || undefined });
@@ -1097,6 +1098,40 @@ Deno.serve(async (req) => {
         return response({ message: text, answer: text, type: 'property_evidence', data: result, actions: [], language, runtime: toolRuntime, ...toolDegraded }, 200, origin, requestId);
       }
       if (result.type === 'deal_insight') {
+        const intelligenceTrace = result.runtimeTrace && typeof result.runtimeTrace === 'object'
+          ? result.runtimeTrace as Record<string, unknown>
+          : {};
+        const reportCapability = String(functionArgs.reportType || toolCapability || 'DEAL_INTELLIGENCE');
+        const accessTrace = guardMaxxisRuntimeEntitlement({ ...runtimeAccess, requestedCapability: reportCapability });
+        logMaxxisEvent('maxxis_intelligence_trace', {
+          request_id: requestId,
+          user_id: userId,
+          success: result.state === 'available',
+          property_id: result.propertyId,
+          address_region: [result.property?.city, result.property?.state, result.property?.zip].filter(Boolean).join('|'),
+          requested_capability: reportCapability,
+          report_type: reportCapability,
+          authenticated: true,
+          plan: runtimeAccess.plan,
+          capability_included: accessTrace.state === 'INCLUDED',
+          existing_unlock: accessTrace.state === 'ENTITLED',
+          effective_entitlement: accessTrace.allowed,
+          property_context_loaded: result.state === 'available',
+          property_evidence_cache: intelligenceTrace.propertyEvidence,
+          sold_evidence_cache: intelligenceTrace.soldEvidence,
+          valuation_evidence_cache: intelligenceTrace.valuationEvidence,
+          provider_enabled: intelligenceTrace.providerEnabled,
+          provider_allowed: intelligenceTrace.providerAllowedByCapability,
+          provider_attempted: intelligenceTrace.providerAttempted,
+          provider_result: intelligenceTrace.providerResult,
+          address_validation: intelligenceTrace.addressValidation,
+          candidate_count: intelligenceTrace.candidateCount,
+          structural_candidate_count: intelligenceTrace.structuralCandidateCount,
+          usable_candidate_count: intelligenceTrace.usableCandidateCount,
+          arv_status: intelligenceTrace.arvStatus,
+          analysis_context_created: Boolean(result.dealIntelligence),
+          final_status: intelligenceTrace.stopReason,
+        });
         logMaxxisEvent('maxxis_tool', {
           request_id: requestId,
           user_id: userId,

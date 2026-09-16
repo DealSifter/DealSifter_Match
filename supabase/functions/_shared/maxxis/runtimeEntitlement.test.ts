@@ -39,6 +39,7 @@ describe('MaxxisRuntimeEntitlementGuard', () => {
 
   it('maps premium tools and leaves ordinary tools outside the report gate', () => {
     expect(capabilityForMaxxisTool('getDealInsightContext')).toBe('DEAL_INTELLIGENCE');
+    expect(capabilityForMaxxisTool('getDealInsightContext', 'MAXXIS_ANALYSIS')).toBe('MAXXIS_ANALYSIS');
     expect(capabilityForMaxxisTool('getDealCopilotOverview')).toBe('DEAL_INTELLIGENCE');
     expect(capabilityForMaxxisTool('getPropertyDetails')).toBeNull();
   });
@@ -56,10 +57,18 @@ describe('MaxxisRuntimeEntitlementGuard', () => {
     expect(failed).toEqual({ ok: false, error: 'ENTITLEMENT_MISSING' });
   });
 
+  it('scopes one-time report entitlements to the selected property', () => {
+    const source = readFileSync(new URL('./runtimeEntitlement.ts', import.meta.url), 'utf8');
+    const edge = readFileSync(new URL('../../maxxis-chat/index.ts', import.meta.url), 'utf8');
+    expect(source).toContain(".select('property_id, capability, access_source')");
+    expect(source).toContain("entitlementQuery.eq('property_id', propertyId)");
+    expect(edge).toContain('loadMaxxisRuntimeAccessContext(userId, userClient, propertyContextId)');
+  });
+
   it('gates before Gemini and before premium tool execution', () => {
     const source = readFileSync(new URL('../../maxxis-chat/index.ts', import.meta.url), 'utf8');
     expect(source.indexOf('loadMaxxisRuntimeAccessContext(userId, userClient)')).toBeLessThan(source.indexOf('const result = await callGemini('));
-    expect(source.indexOf('const toolCapability = capabilityForMaxxisTool(toolName)')).toBeLessThan(source.indexOf('result = await executeMaxxisTool('));
+    expect(source.indexOf('const toolCapability = capabilityForMaxxisTool(toolName, functionArgs.reportType)')).toBeLessThan(source.indexOf('result = await executeMaxxisTool('));
   });
 
   it('loads owned report entitlements without RentCast or Stripe', () => {

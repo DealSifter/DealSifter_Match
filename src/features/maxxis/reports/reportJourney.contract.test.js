@@ -12,7 +12,7 @@ describe('canonical report journey contract',()=>{
   it('hands the selected property to PROPERTY_ANALYSIS_MODE',()=>{expect(portfolio).toContain('propertyAnalysisContext');expect(assistant).toContain("propertyAnalysisContext?.mode === 'PROPERTY_ANALYSIS_MODE'")});
   it('prevents property mode from entering provider conversation routing',()=>{expect(assistant).toContain('providerConversationRequested = !analysisContext')});
   it('gives an explicitly selected report precedence over incidental ARV wording in its safety prompt',()=>{expect(assistant).toContain('if (!requestedReportType && isArvVisualCompReviewIntent(cleanMessage, meta.controlledIntent))')});
-  it('forces an authorized selected-property tool, not searchProperties',()=>{expect(edge).toContain("propertyAnalysisContext.report_type === 'DEAL_INTELLIGENCE' ? 'getDealInsightContext' : 'getPropertyDetails'")});
+  it('forces the canonical report context tool for both authorized report levels',()=>{expect(edge).toContain("name: 'getDealInsightContext'");expect(edge).toContain('reportType: propertyAnalysisContext.report_type')});
   it('persists a report and confirms My Reports in chat',()=>{expect(assistant).toContain('persistedReportId');expect(assistant).toContain('Report saved to My Reports.')});
   it('lists only active owned report artifacts',()=>{expect(service).toContain(".eq('user_id', userId).is('deleted_at', null)")});
   it('does not add a RentCast call or Stripe path',()=>{expect(edge).not.toContain('rentcast.com');expect(service).not.toMatch(/stripe/i)});

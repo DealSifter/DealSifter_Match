@@ -75,6 +75,26 @@ describe('Maxxis Deal Insight context', () => {
     expect(result.metrics?.metrics.pricePerSqft.calculable).toBe(true);
   });
 
+  it('keeps the report context available when valuation evidence is rejected for ADDRESS_MISMATCH', async () => {
+    const result = await orchestrateDealInsightContext({
+      propertyId: PROPERTY_ID,
+      loadPropertyDetails: vi.fn(async () => details),
+      loadInvestmentProfile: vi.fn(async () => investmentProfile),
+      calculateMatch: calculatePropertyMatch,
+      loadPropertyEvidence: vi.fn(async () => ({
+        type: 'property_evidence' as const, propertyId: PROPERTY_ID, state: 'unavailable' as const,
+        entitlementState: 'authorized' as const, cacheState: 'invalid' as const,
+      })),
+      loadArvEvaluation: vi.fn(async () => { throw new Error('ADDRESS_MISMATCH'); }),
+    });
+    expect(result).toMatchObject({
+      state: 'available', property: { id: PROPERTY_ID },
+      evidence: { state: 'unavailable', cacheState: 'invalid' },
+      capabilities: { hasArvEvaluation: false },
+      dealIntelligence: { valuationContext: { status: 'ARV_UNAVAILABLE' } },
+    });
+  });
+
   it('hard-codes unavailable financial capabilities and keeps reported cap rate distinct from verified data', async () => {
     const safe = sanitizeToolResultForGemini(await setup());
     expect(safe).toMatchObject({

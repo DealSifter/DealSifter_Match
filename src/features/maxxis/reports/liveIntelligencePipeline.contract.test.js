@@ -18,7 +18,8 @@ describe('Deal Intelligence canonical live evidence pipeline',()=>{
   it('allows provider fallback only for the explicit Deal Intelligence loader',()=>{
     expect(evidenceLoader).toContain('allowProviderFallback = false');
     expect(evidenceLoader).toContain('createBackendPropertyEvidenceService');
-    expect(dealLoader).toContain('propertyId, true');
+    expect(dealLoader).toContain('propertyId, !maxxisAnalysisOnly');
+    expect(dealLoader).toContain('loadArvEvaluation: maxxisAnalysisOnly ? undefined : loadArvEvaluation');
   });
   it('preserves usage guard, cache and single-flight layers',()=>{
     expect(backendFactory).toContain('SupabasePropertyDataUsageGuard');
@@ -37,5 +38,10 @@ describe('Deal Intelligence canonical live evidence pipeline',()=>{
   });
   it('removes the empty More settings action',()=>{
     expect(assistant).not.toContain('preferencesCopy.moreSettings');
+  });
+  it('re-exports persisted reports from the validated dynamic schema without provider work',()=>{
+    expect(assistant).toContain('renderMaxxisReportPdf({ schema, exportEntitlement: entitlement, language })');
+    expect(assistant).toContain('downloadMaxxisReportPdf(rendered.document');
+    expect(assistant).not.toContain("new jsPDF({ unit:'pt', format:'letter' })");
   });
 });

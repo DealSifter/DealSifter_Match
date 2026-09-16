@@ -25,7 +25,7 @@ export type MaxxisRuntimeEntitlementDecision = IntelligenceReportAccess & {
 export type MaxxisRuntimeAccessContext = {
   userId: string;
   plan: IntelligenceAccessLevel;
-  entitlements: readonly ReportEntitlement[];
+  entitlements: readonly (ReportEntitlement & { propertyId?: string })[];
 };
 
 const PREMIUM_INTENT_PATTERNS: Array<[IntelligenceReportType, RegExp]> = [
@@ -54,9 +54,17 @@ export function inferMaxxisRuntimeCapability(input: {
   return rank[inferred] >= rank[explicit] ? inferred : explicit;
 }
 
-export function capabilityForMaxxisTool(toolName: unknown): MaxxisRuntimeCapability | null {
+export function capabilityForMaxxisTool(
+  toolName: unknown,
+  requestedCapability?: unknown,
+): MaxxisRuntimeCapability | null {
   const name = String(toolName || '');
-  if (name === 'getDealInsightContext' || name === 'getDealCopilotOverview') return 'DEAL_INTELLIGENCE';
+  if (name === 'getDealInsightContext') {
+    return normalizeIntelligenceReportType(requestedCapability) === 'MAXXIS_ANALYSIS'
+      ? 'MAXXIS_ANALYSIS'
+      : 'DEAL_INTELLIGENCE';
+  }
+  if (name === 'getDealCopilotOverview') return 'DEAL_INTELLIGENCE';
   return null;
 }
 
@@ -88,6 +96,7 @@ export function guardMaxxisRuntimeEntitlement(input: {
 export async function loadMaxxisRuntimeAccessContext(
   userId: string,
   client: Pick<SupabaseClient, 'from'>,
+  propertyId = '',
 ): Promise<{ ok: true; context: MaxxisRuntimeAccessContext } | { ok: false; error: 'ENTITLEMENT_MISSING' }> {
   const { data, error } = await client
     .from('subscriptions')
@@ -103,10 +112,12 @@ export async function loadMaxxisRuntimeAccessContext(
     .eq('id', userId)
     .maybeSingle();
   if (userPlanError) return { ok: false, error: 'ENTITLEMENT_MISSING' };
-  const { data: entitlementRows, error: entitlementError } = await client
+  let entitlementQuery = client
     .from('maxxis_report_entitlements')
-    .select('capability, access_source')
+    .select('property_id, capability, access_source')
     .eq('user_id', userId);
+  if (propertyId) entitlementQuery = entitlementQuery.eq('property_id', propertyId);
+  const { data: entitlementRows, error: entitlementError } = await entitlementQuery;
   if (entitlementError) return { ok: false, error: 'ENTITLEMENT_MISSING' };
   const status = String(data?.status || '').toLowerCase();
   const plan = status === 'active' || status === 'trialing' ? data?.plan_id : userPlan?.plan_id || 'free';
@@ -115,7 +126,8 @@ export async function loadMaxxisRuntimeAccessContext(
     context: {
       userId,
       plan: resolveIntelligenceReportAccess({ plan, reportType: 'PROPERTY_RELEASE' }).accessLevel,
-      entitlements: (entitlementRows || []).map((row: { capability: IntelligenceReportType; access_source: string }) => ({
+      entitlements: (entitlementRows || []).map((row: { property_id: string; capability: IntelligenceReportType; access_source: string }) => ({
+        propertyId: row.property_id,
         reportType: row.capability,
         accessSource: row.access_source === 'ONE_TIME_UNLOCK' ? 'NUGGET_UNLOCK' : 'SUBSCRIPTION',
         expires: null,
