@@ -8,6 +8,7 @@ import { PropertyEvidenceService } from './propertyEvidenceService.ts';
 import { SupabasePropertyEvidenceRepository, type PropertyEvidenceTableClient } from './propertyRepository.ts';
 import type { RentCastFetch } from './rentcast/rentcastClient.ts';
 import { SupabasePropertyDataUsageGuard, type PropertyDataUsageRpcClient } from './usageGuard.ts';
+import { readProviderBudgetConfig, SupabaseProviderBudgetManager, type ProviderBudgetBucket, type ProviderBudgetPlan } from './providerBudget.ts';
 import { SupabasePropertySingleFlight } from './singleFlight.ts';
 import { SupabaseValuationEvidenceCache } from './valuationCache.ts';
 import { ValuationEvidenceService } from './valuationEvidenceService.ts';
@@ -20,21 +21,33 @@ export type PropertyEvidenceBackendClient = PropertyIntelligenceRpcClient
   & PropertyDataUsageRpcClient
   & PropertyEvidenceTableClient;
 
+type ProviderBudgetContext = { userId: string; propertyId: string; plan: ProviderBudgetPlan; bucket: ProviderBudgetBucket };
+
+function usageGuard(options: { supabaseAdmin: PropertyEvidenceBackendClient; getEnv: (name: string) => string | undefined; context?: ProviderBudgetContext }) {
+  const config = readPropertyDataConfig(options.getEnv);
+  const budget = options.context ? new SupabaseProviderBudgetManager(options.supabaseAdmin, {
+    ...options.context,
+    config: readProviderBudgetConfig(options.context.plan, options.getEnv),
+  }) : null;
+  return new SupabasePropertyDataUsageGuard(options.supabaseAdmin, config.monthlyHardLimit, budget);
+}
+
 export function createBackendPropertyEvidenceService(options: {
   supabaseAdmin: PropertyEvidenceBackendClient;
   getEnv: (name: string) => string | undefined;
   fetchImpl?: RentCastFetch;
   logger?: PropertyDataLogger;
+  providerBudgetContext?: ProviderBudgetContext;
 }) {
   const config = readPropertyDataConfig(options.getEnv);
   // Backend callers outside HTTP must also restrict mock to isolated tests.
   if (config.mode === 'mock' && options.getEnv('NODE_ENV') !== 'test') config.mode = 'disabled';
-  const usageGuard = new SupabasePropertyDataUsageGuard(options.supabaseAdmin, config.monthlyHardLimit);
+  const guardedUsage = usageGuard({ supabaseAdmin: options.supabaseAdmin, getEnv: options.getEnv, context: options.providerBudgetContext });
   const provider = createPropertyDataProvider({
     mode: config.mode,
     apiKey: config.apiKey,
     timeoutMs: config.timeoutMs,
-    usageGuard,
+    usageGuard: guardedUsage,
     fetchImpl: options.fetchImpl,
     logger: options.logger,
   });
@@ -56,15 +69,16 @@ export function createBackendValuationEvidenceService(options: {
   getEnv: (name: string) => string | undefined;
   fetchImpl?: RentCastFetch;
   logger?: PropertyDataLogger;
+  providerBudgetContext?: ProviderBudgetContext;
 }) {
   const config = readPropertyDataConfig(options.getEnv);
   if (config.mode === 'mock' && options.getEnv('NODE_ENV') !== 'test') config.mode = 'disabled';
-  const usageGuard = new SupabasePropertyDataUsageGuard(options.supabaseAdmin, config.monthlyHardLimit);
+  const guardedUsage = usageGuard({ supabaseAdmin: options.supabaseAdmin, getEnv: options.getEnv, context: options.providerBudgetContext });
   return new ValuationEvidenceService({
     repository: new SupabasePropertyEvidenceRepository(options.supabaseAdmin),
     cache: new SupabaseValuationEvidenceCache(options.supabaseAdmin, options.getEnv('VALUATION_CACHE_TTL_HOURS')),
     provider: createValuationDataProvider({
-      mode: config.mode, apiKey: config.apiKey, timeoutMs: config.timeoutMs, usageGuard,
+      mode: config.mode, apiKey: config.apiKey, timeoutMs: config.timeoutMs, usageGuard: guardedUsage,
       fetchImpl: options.fetchImpl, logger: options.logger,
     }),
     enabled: config.mode === 'live',
@@ -77,16 +91,17 @@ export function createBackendSoldEvidenceService(options: {
   getEnv: (name: string) => string | undefined;
   fetchImpl?: RentCastFetch;
   logger?: PropertyDataLogger;
+  providerBudgetContext?: ProviderBudgetContext;
 }) {
   const config = readPropertyDataConfig(options.getEnv);
   if (config.mode === 'mock' && options.getEnv('NODE_ENV') !== 'test') config.mode = 'disabled';
-  const usageGuard = new SupabasePropertyDataUsageGuard(options.supabaseAdmin, config.monthlyHardLimit);
+  const guardedUsage = usageGuard({ supabaseAdmin: options.supabaseAdmin, getEnv: options.getEnv, context: options.providerBudgetContext });
   return new SoldEvidenceService({
     repository: new SupabasePropertyEvidenceRepository(options.supabaseAdmin),
     valuationCache: new SupabaseValuationEvidenceCache(options.supabaseAdmin, options.getEnv('VALUATION_CACHE_TTL_HOURS')),
     soldCache: new SupabaseSoldRecordPoolCache(options.supabaseAdmin, options.getEnv('SOLD_RECORD_POOL_CACHE_TTL_HOURS')),
     provider: createSoldRecordDataProvider({ mode: config.mode, apiKey: config.apiKey,
-      timeoutMs: config.timeoutMs, usageGuard, fetchImpl: options.fetchImpl, logger: options.logger }),
+      timeoutMs: config.timeoutMs, usageGuard: guardedUsage, fetchImpl: options.fetchImpl, logger: options.logger }),
     enabled: config.mode === 'live',
     singleFlight: new SupabasePropertySingleFlight(options.supabaseAdmin),
   });

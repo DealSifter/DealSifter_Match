@@ -4299,6 +4299,27 @@ export default function App() {
     }, 80);
   }, [setPage]);
 
+  const openReportSelectorFromMaxxis = useCallback(({ propertyId = '' } = {}) => {
+    const targetId = String(propertyId || maxxisPropertyContextId || '').trim();
+    if (!isUuid(targetId)) {
+      addToast({ type: 'warning', title: 'Selecione um imóvel', message: 'Abra um imóvel antes de gerar o relatório.' });
+      return;
+    }
+    const candidates = [
+      ...(showcaseProperties || []),
+      ...(propertyPortfolio || []),
+      ...(feedDeck || []),
+      ...(interested || []),
+      ...(matched || []),
+    ];
+    const property = candidates.find((item) => String(item?.id || item?.propertyId || item?.property_id || '') === targetId);
+    if (property) openMatchesItemFromFeed(property, { kind: 'property', owner: property.ownerPreview || null });
+    else setPage('matches');
+    window.setTimeout(() => {
+      window.dispatchEvent(new CustomEvent('dealsifter.openReportExport', { detail: { propertyId: targetId } }));
+    }, 320);
+  }, [addToast, feedDeck, interested, matched, maxxisPropertyContextId, openMatchesItemFromFeed, propertyPortfolio, setPage, showcaseProperties]);
+
   const handleAnalyzePropertyWithMaxxis = useCallback((request = {}) => {
     const id = request.id || `property-analysis-${Date.now()}`;
     const propertyId = String(request.propertyId || '').trim();
@@ -5980,6 +6001,7 @@ export default function App() {
                 enabled={Boolean(authSession)}
                 onOpenSupport={() => openSettingsTab('communication', 'support')}
                 onNavigateAction={handleMaxxisNavigateAction}
+                onOpenReportSelector={openReportSelectorFromMaxxis}
                 onOpenProvider={handleMaxxisOpenProvider}
                 onOpenFeedCard={openFeedCardFromMaxxis}
                 propertyAnalysisRequest={maxxisPropertyAnalysisRequest}

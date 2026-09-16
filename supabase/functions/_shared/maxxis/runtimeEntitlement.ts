@@ -60,11 +60,12 @@ export function capabilityForMaxxisTool(
 ): MaxxisRuntimeCapability | null {
   const name = String(toolName || '');
   if (name === 'getDealInsightContext') {
+    if (!normalizeIntelligenceReportType(requestedCapability)) return null;
     return normalizeIntelligenceReportType(requestedCapability) === 'MAXXIS_ANALYSIS'
       ? 'MAXXIS_ANALYSIS'
       : 'DEAL_INTELLIGENCE';
   }
-  if (name === 'getDealCopilotOverview') return 'DEAL_INTELLIGENCE';
+  if (name === 'getDealCopilotOverview') return null;
   return null;
 }
 
@@ -108,7 +109,7 @@ export async function loadMaxxisRuntimeAccessContext(
   if (error) return { ok: false, error: 'ENTITLEMENT_MISSING' };
   const { data: userPlan, error: userPlanError } = await client
     .from('users')
-    .select('plan_id')
+    .select('plan_id, is_admin')
     .eq('id', userId)
     .maybeSingle();
   if (userPlanError) return { ok: false, error: 'ENTITLEMENT_MISSING' };
@@ -120,7 +121,11 @@ export async function loadMaxxisRuntimeAccessContext(
   const { data: entitlementRows, error: entitlementError } = await entitlementQuery;
   if (entitlementError) return { ok: false, error: 'ENTITLEMENT_MISSING' };
   const status = String(data?.status || '').toLowerCase();
-  const plan = status === 'active' || status === 'trialing' ? data?.plan_id : userPlan?.plan_id || 'free';
+  const plan = userPlan?.is_admin
+    ? 'admin'
+    : status === 'active' || status === 'trialing'
+      ? data?.plan_id
+      : userPlan?.plan_id || 'free';
   return {
     ok: true,
     context: {

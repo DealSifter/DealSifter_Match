@@ -776,7 +776,11 @@ Deno.serve(async (req) => {
       requestedReportLevel: body.requestedReportLevel,
       hasPropertyContext: Boolean(propertyContextId),
     });
-    if (requestedCapability) {
+    const explicitReportRequest = Boolean(
+      String(body.requestedCapability || body.requestedReportLevel || '').trim()
+      || (bodyContext.propertyAnalysis && typeof bodyContext.propertyAnalysis === 'object'),
+    );
+    if (requestedCapability && explicitReportRequest) {
       const decision = guardMaxxisRuntimeEntitlement({ ...runtimeAccess, requestedCapability });
       logMaxxisEvent('maxxis_runtime_entitlement', { request_id: requestId, user_id: userId, capability: requestedCapability, result: decision.result, success: decision.allowed, error_code: decision.error || undefined });
       if (!decision.allowed) {
@@ -906,6 +910,7 @@ Deno.serve(async (req) => {
       const toolName = String(functionCall.name || '');
       const functionArgs = functionCall.args && typeof functionCall.args === 'object' ? functionCall.args as Record<string, unknown> : {};
       const toolCapability = capabilityForMaxxisTool(toolName, functionArgs.reportType);
+      let effectiveProviderPlan = runtimeAccess.plan;
       if (toolCapability) {
         const decision = guardMaxxisRuntimeEntitlement({ ...runtimeAccess, requestedCapability: toolCapability });
         logMaxxisEvent('maxxis_runtime_entitlement', { request_id: requestId, user_id: userId, capability: toolCapability, result: decision.result, success: decision.allowed, error_code: decision.error || undefined });
@@ -915,6 +920,9 @@ Deno.serve(async (req) => {
             message: text, answer: text, type: 'text', data: null, actions: [], error: 'ACCESS_REQUIRED',
             accessRequired: { capability: toolCapability, currentLevel: decision.accessLevel, upgradeTo: decision.upgradeTo, reason: decision.error || 'INSUFFICIENT_PLAN', nuggetCost: decision.nuggetCost || 0, unlockExecutionEnabled: false },
           }, 402, origin, requestId);
+        }
+        if (decision.allowed && decision.state === 'ENTITLED') {
+          effectiveProviderPlan = toolCapability === 'DEAL_INTELLIGENCE' ? 'ENTERPRISE' : 'PRO';
         }
       }
       const modelPartsForTool = parsedFunctionCall
@@ -926,7 +934,7 @@ Deno.serve(async (req) => {
           toolName,
           functionArgs,
           req.headers.get('Authorization') || '',
-          { propertyId: propertyContextId, propertyIds: comparisonPropertyIds, userId },
+          { propertyId: propertyContextId, propertyIds: comparisonPropertyIds, userId, plan: effectiveProviderPlan },
         );
       } catch (error) {
         if (toolName === 'getPropertyDetails' || toolName === 'getDealCopilotOverview') {

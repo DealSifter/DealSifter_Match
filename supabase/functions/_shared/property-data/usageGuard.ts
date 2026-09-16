@@ -1,4 +1,5 @@
 import { PropertyDataError } from './types.ts';
+import type { ProviderBudgetManager, ProviderBudgetReservation } from './providerBudget.ts';
 
 export const DEFAULT_RENTCAST_MONTHLY_HARD_LIMIT = 45;
 export type PropertyDataUsageOperation = 'property_lookup' | 'property_value_avm' | 'property_sold_search';
@@ -84,12 +85,17 @@ export class SupabasePropertyDataUsageGuard implements PropertyDataUsageGuard {
   private readonly client: PropertyDataUsageRpcClient;
   private readonly hardLimit: number;
 
-  constructor(client: PropertyDataUsageRpcClient, hardLimit: unknown = DEFAULT_RENTCAST_MONTHLY_HARD_LIMIT) {
+  private readonly providerBudget: ProviderBudgetManager | null;
+  private readonly budgetReservations = new Map<string, ProviderBudgetReservation>();
+
+  constructor(client: PropertyDataUsageRpcClient, hardLimit: unknown = DEFAULT_RENTCAST_MONTHLY_HARD_LIMIT, providerBudget: ProviderBudgetManager | null = null) {
     this.client = client;
     this.hardLimit = normalizeRentCastHardLimit(hardLimit);
+    this.providerBudget = providerBudget;
   }
 
   async reserve(input: { propertyId?: string | null; userId?: string | null; operation?: PropertyDataUsageOperation }) {
+    const budgetReservation = this.providerBudget ? await this.providerBudget.reserve() : null;
     const { data, error } = await this.client.rpc('ds_reserve_external_provider_usage', {
       p_provider: 'rentcast',
       p_operation: input.operation || 'property_lookup',
@@ -98,13 +104,18 @@ export class SupabasePropertyDataUsageGuard implements PropertyDataUsageGuard {
       p_hard_limit: this.hardLimit,
     });
     if (error) {
+      if (budgetReservation) await this.providerBudget?.finalize(budgetReservation, false).catch(() => undefined);
       if (`${error.code || ''} ${error.message || ''}`.includes('MONTHLY_PROVIDER_LIMIT_REACHED')) {
         throw new PropertyDataError('MONTHLY_PROVIDER_LIMIT_REACHED');
       }
       throw new PropertyDataError('PROVIDER_UPSTREAM_ERROR');
     }
     const id = String(data || '').trim();
-    if (!id) throw new PropertyDataError('PROVIDER_UPSTREAM_ERROR');
+    if (!id) {
+      if (budgetReservation) await this.providerBudget?.finalize(budgetReservation, false).catch(() => undefined);
+      throw new PropertyDataError('PROVIDER_UPSTREAM_ERROR');
+    }
+    if (budgetReservation) this.budgetReservations.set(id, budgetReservation);
     return { id, provider: 'rentcast', operation: input.operation || 'property_lookup', createdAt: new Date().toISOString() } as UsageReservation;
   }
 
@@ -115,6 +126,11 @@ export class SupabasePropertyDataUsageGuard implements PropertyDataUsageGuard {
       p_http_status: completion.httpStatus,
       p_error_code: completion.errorCode,
     });
+    const budgetReservation = this.budgetReservations.get(reservation.id);
+    if (budgetReservation) {
+      this.budgetReservations.delete(reservation.id);
+      await this.providerBudget?.finalize(budgetReservation, !error && Boolean(completion.billableSuccess));
+    }
     if (error) throw new PropertyDataError('PROVIDER_UPSTREAM_ERROR');
   }
 }

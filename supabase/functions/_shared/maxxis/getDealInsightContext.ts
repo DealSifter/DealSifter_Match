@@ -11,6 +11,7 @@ import { getPropertyEvidenceForAuthenticatedUser } from './getPropertyEvidence.t
 import { getMyInvestmentProfileWithClient } from './getMyInvestmentProfile.ts';
 import { orchestrateDealInsightContext } from './dealInsightContext.ts';
 import { getPropertyDetailsWithClient, resolvePropertyDetailsInput } from './propertyDetails.ts';
+import type { ProviderBudgetPlan } from '../property-data/providerBudget.ts';
 
 export async function getDealInsightContextForAuthenticatedUser(
   input: unknown,
@@ -18,22 +19,30 @@ export async function getDealInsightContextForAuthenticatedUser(
   client: Parameters<typeof getPropertyDetailsWithClient>[1] & Parameters<typeof getMyInvestmentProfileWithClient>[1],
   userId: string,
   contextPropertyId?: string,
+  plan: ProviderBudgetPlan = 'FREE',
 ) {
   const validated = resolvePropertyDetailsInput(input, contextPropertyId);
   const requestedReportType = input && typeof input === 'object'
     ? String((input as Record<string, unknown>).reportType || '').trim().toUpperCase()
     : '';
   const maxxisAnalysisOnly = requestedReportType === 'MAXXIS_ANALYSIS';
+  const reportRequested = maxxisAnalysisOnly || requestedReportType === 'DEAL_INTELLIGENCE';
+  const budgetBucket = reportRequested ? 'report' : 'chat';
+  const providerAllowedByPlan = plan !== 'FREE';
+  const allowPropertyProvider = providerAllowedByPlan;
+  const allowValuationProvider = providerAllowedByPlan && requestedReportType === 'DEAL_INTELLIGENCE';
   const providerEnabled = Deno.env.get('PROPERTY_DATA_MODE') === 'live';
   const runtimeTrace = {
-    reportType: maxxisAnalysisOnly ? 'MAXXIS_ANALYSIS' : 'DEAL_INTELLIGENCE',
+    reportType: reportRequested ? requestedReportType : 'CHAT',
     propertyEvidence: 'UNKNOWN',
-    valuationEvidence: maxxisAnalysisOnly ? 'NOT_REQUIRED' : 'UNKNOWN',
-    soldEvidence: maxxisAnalysisOnly ? 'NOT_REQUIRED' : 'UNKNOWN',
+    valuationEvidence: allowValuationProvider ? 'UNKNOWN' : 'NOT_REQUIRED',
+    soldEvidence: allowValuationProvider ? 'UNKNOWN' : 'NOT_REQUIRED',
     providerEnabled,
-    providerAllowedByCapability: !maxxisAnalysisOnly,
+    providerAllowedByCapability: allowPropertyProvider,
+    providerBudgetBucket: budgetBucket,
+    providerPlan: plan,
     providerAttempted: false,
-    providerResult: maxxisAnalysisOnly ? 'NOT_REQUIRED' : 'NOT_ATTEMPTED',
+    providerResult: providerAllowedByPlan ? 'NOT_ATTEMPTED' : 'PLAN_ZERO_PROVIDER',
     addressValidation: 'NOT_RUN',
     candidateCount: 0,
     structuralCandidateCount: 0,
@@ -52,10 +61,12 @@ export async function getDealInsightContextForAuthenticatedUser(
     }
     const admin = createClient(supabaseUrl, supabaseServiceRoleKey) as unknown as PropertyEvidenceBackendClient;
     const getEnv = (name: string) => Deno.env.get(name);
-    const valuationService = createBackendValuationEvidenceService({ supabaseAdmin: admin, getEnv });
+    const providerBudgetContext = { userId, propertyId, plan, bucket: budgetBucket } as const;
+    const valuationService = createBackendValuationEvidenceService({ supabaseAdmin: admin, getEnv, providerBudgetContext });
     const soldService = createBackendSoldEvidenceService({
       supabaseAdmin: admin,
       getEnv,
+      providerBudgetContext,
     });
     try {
       const valuation = await valuationService.getValuationEvidence({ propertyId, userId });
@@ -73,6 +84,7 @@ export async function getDealInsightContextForAuthenticatedUser(
         propertyId,
         userId,
         hasEntitlement: async (subjectPropertyId) => {
+          if (plan === 'PRO' || plan === 'ENTERPRISE') return true;
           const { data, error } = await queryClient.rpc('ds_has_property_intelligence_entitlement', {
             p_property_id: subjectPropertyId, p_unlock_type: 'property_record',
           });
@@ -114,7 +126,8 @@ export async function getDealInsightContextForAuthenticatedUser(
     calculateMatch: (profile, property) => calculatePropertyMatch(profile, property),
     loadPropertyEvidence: async (propertyId) => {
       const evidence = await getPropertyEvidenceForAuthenticatedUser(
-        { propertyId }, authHeader, userId, propertyId, !maxxisAnalysisOnly,
+        { propertyId }, authHeader, userId, propertyId, allowPropertyProvider,
+        allowPropertyProvider ? { plan, bucket: budgetBucket } : undefined,
       );
       runtimeTrace.propertyEvidence = evidence.cacheState.toUpperCase();
       if (evidence.state === 'available' && evidence.evidence?.cacheHit === false) {
@@ -123,8 +136,43 @@ export async function getDealInsightContextForAuthenticatedUser(
       }
       return evidence;
     },
-    loadArvEvaluation: maxxisAnalysisOnly ? undefined : loadArvEvaluation,
+    loadArvEvaluation: allowValuationProvider ? loadArvEvaluation : undefined,
   });
   if (!runtimeTrace.stopReason) runtimeTrace.stopReason = result.state === 'available' ? 'NONE' : 'PROPERTY_NOT_FOUND';
-  return { ...result, runtimeTrace };
+  const intelligenceSnapshot = {
+    version: 'MAXXIS_INTELLIGENCE_SNAPSHOT_V1',
+    propertyId: result.propertyId,
+    propertyFacts: result.property,
+    ownerLandFacts: result.dealIntelligence?.propertyContext || null,
+    investmentProfile: result.investmentProfile,
+    matchScore: result.match,
+    propertyEvidence: result.evidence,
+    providerEvidence: result.evidence.state === 'available' ? result.evidence.evidence || null : null,
+    soldEvidence: result.dealIntelligence?.comparableEvidence || [],
+    comps: result.dealIntelligence?.comparableEvidence || [],
+    valuationEvidence: result.dealIntelligence?.valuationContext || null,
+    arv: result.dealIntelligence?.valuationContext || null,
+    dealMetrics: result.metrics,
+    investmentKPIs: result.dealIntelligence?.dealMetrics || null,
+    riskSignals: result.dealIntelligence?.risks || [],
+    positiveSignals: result.dealIntelligence?.opportunities || [],
+    missingEvidence: result.dealIntelligence?.limitations || [],
+    recommendations: result.dealIntelligence?.recommendedActions || [],
+    provenance: result.dealIntelligence?.evidenceSummary || null,
+    generatedAt: new Date().toISOString(),
+    cacheStatus: {
+      property: runtimeTrace.propertyEvidence,
+      sold: runtimeTrace.soldEvidence,
+      valuation: runtimeTrace.valuationEvidence,
+    },
+    plan,
+    capabilities: result.capabilities,
+    providerBudgetStatus: {
+      bucket: runtimeTrace.providerBudgetBucket,
+      providerAllowed: runtimeTrace.providerAllowedByCapability,
+      providerAttempted: runtimeTrace.providerAttempted,
+      result: runtimeTrace.providerResult,
+    },
+  } as const;
+  return { ...result, intelligenceSnapshot, runtimeTrace };
 }

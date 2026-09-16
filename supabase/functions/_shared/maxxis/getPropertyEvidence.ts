@@ -7,8 +7,16 @@ import type { PropertyDataProvider } from '../property-data/types.ts';
 import { resolvePropertyDetailsInput } from './propertyDetails.ts';
 import { supabaseAnonKey, supabaseServiceRoleKey, supabaseUrl } from './config.ts';
 import { getPropertyEvidenceWithDependencies } from './propertyEvidence.ts';
+import type { ProviderBudgetBucket, ProviderBudgetPlan } from '../property-data/providerBudget.ts';
 
-export async function getPropertyEvidenceForAuthenticatedUser(input: unknown, authHeader: string, userId: string, contextPropertyId?: string, allowProviderFallback = false) {
+export async function getPropertyEvidenceForAuthenticatedUser(
+  input: unknown,
+  authHeader: string,
+  userId: string,
+  contextPropertyId?: string,
+  allowProviderFallback = false,
+  providerBudget?: { plan: ProviderBudgetPlan; bucket: ProviderBudgetBucket },
+) {
   const validated = resolvePropertyDetailsInput(input, contextPropertyId);
   const userClient = createClient(supabaseUrl, supabaseAnonKey, { global: { headers: { Authorization: authHeader } } });
   return getPropertyEvidenceWithDependencies({
@@ -16,6 +24,7 @@ export async function getPropertyEvidenceForAuthenticatedUser(input: unknown, au
     contextPropertyId,
     userId,
     hasEntitlement: async (propertyId) => {
+      if (providerBudget?.plan === 'PRO' || providerBudget?.plan === 'ENTERPRISE') return true;
       const { data, error } = await userClient.rpc('ds_has_property_intelligence_entitlement', {
         p_property_id: propertyId,
         p_unlock_type: 'property_record',
@@ -30,6 +39,11 @@ export async function getPropertyEvidenceForAuthenticatedUser(input: unknown, au
         return createBackendPropertyEvidenceService({
           supabaseAdmin: admin,
           getEnv: (name) => Deno.env.get(name),
+          providerBudgetContext: providerBudget ? {
+            userId: authenticatedUserId,
+            propertyId,
+            ...providerBudget,
+          } : undefined,
         }).getPropertyEvidence({ propertyId, userId: authenticatedUserId });
       }
       const provider: PropertyDataProvider = {

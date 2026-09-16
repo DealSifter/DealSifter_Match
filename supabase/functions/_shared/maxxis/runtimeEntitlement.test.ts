@@ -38,9 +38,9 @@ describe('MaxxisRuntimeEntitlementGuard', () => {
   });
 
   it('maps premium tools and leaves ordinary tools outside the report gate', () => {
-    expect(capabilityForMaxxisTool('getDealInsightContext')).toBe('DEAL_INTELLIGENCE');
+    expect(capabilityForMaxxisTool('getDealInsightContext')).toBeNull();
     expect(capabilityForMaxxisTool('getDealInsightContext', 'MAXXIS_ANALYSIS')).toBe('MAXXIS_ANALYSIS');
-    expect(capabilityForMaxxisTool('getDealCopilotOverview')).toBe('DEAL_INTELLIGENCE');
+    expect(capabilityForMaxxisTool('getDealCopilotOverview')).toBeNull();
     expect(capabilityForMaxxisTool('getPropertyDetails')).toBeNull();
   });
 
@@ -67,7 +67,7 @@ describe('MaxxisRuntimeEntitlementGuard', () => {
 
   it('gates before Gemini and before premium tool execution', () => {
     const source = readFileSync(new URL('../../maxxis-chat/index.ts', import.meta.url), 'utf8');
-    expect(source.indexOf('loadMaxxisRuntimeAccessContext(userId, userClient)')).toBeLessThan(source.indexOf('const result = await callGemini('));
+    expect(source.indexOf('loadMaxxisRuntimeAccessContext(userId, userClient, propertyContextId)')).toBeLessThan(source.indexOf('const result = await callGemini('));
     expect(source.indexOf('const toolCapability = capabilityForMaxxisTool(toolName, functionArgs.reportType)')).toBeLessThan(source.indexOf('result = await executeMaxxisTool('));
   });
 

@@ -180,7 +180,7 @@ function readDevMaxxisAttentionOverrides() {
   }
 }
 
-export function MaxxisAssistant({ page = 'dashboard', onOpenSupport = null, onNavigateAction = null, onOpenProvider = null, onOpenFeedCard = null, propertyAnalysisRequest = null, propertyContextId = '', appContext = null, sessionKey = '', onExportAnalysisPdf = null, onNuggetBalanceChange = null, onProviderUnlockConfirmed = null, enabled = true, userPreferences = null, userPreferencesHydrated = true, onChangeUserPreferences = null, userPreferencesPersistenceStatus = 'idle', proactiveFeatureEnabled = false, dealMemoryFeatureEnabled = false, currentPlan = 'free', reportEntitlements = [], reportHistory = [], onPersistReport = null, onDeleteReport = null, onRequestIntelligenceUnlock = null }) {
+export function MaxxisAssistant({ page = 'dashboard', onOpenSupport = null, onNavigateAction = null, onOpenReportSelector = null, onOpenProvider = null, onOpenFeedCard = null, propertyAnalysisRequest = null, propertyContextId = '', appContext = null, sessionKey = '', onExportAnalysisPdf = null, onNuggetBalanceChange = null, onProviderUnlockConfirmed = null, enabled = true, userPreferences = null, userPreferencesHydrated = true, onChangeUserPreferences = null, userPreferencesPersistenceStatus = 'idle', proactiveFeatureEnabled = false, dealMemoryFeatureEnabled = false, currentPlan = 'free', reportEntitlements = [], reportHistory = [], onPersistReport = null, onDeleteReport = null, onRequestIntelligenceUnlock = null }) {
   const language = getUiLang();
   const t = COPY[language] || COPY.en;
   const preferencesCopy = getMaxxisPreferencesCopy(language);
@@ -808,6 +808,13 @@ export function MaxxisAssistant({ page = 'dashboard', onOpenSupport = null, onNa
   const handleAction = (actionId) => {
     const normalized = normalizeActionId(actionId);
     if (!normalized) return;
+    if (['report-export', 'maxxis-analysis', 'deal-intelligence'].includes(normalized)) {
+      onOpenReportSelector?.({
+        propertyId: currentMemoryPropertyId(),
+        reportType: normalized === 'maxxis-analysis' ? 'MAXXIS_ANALYSIS' : normalized === 'deal-intelligence' ? 'DEAL_INTELLIGENCE' : '',
+      });
+      return;
+    }
     setOpen(false);
     if (normalized === 'support') {
       onOpenSupport?.();
@@ -1208,28 +1215,6 @@ export function MaxxisAssistant({ page = 'dashboard', onOpenSupport = null, onNa
         propertyAnalysisContext: analysisContext || null,
       });
       const responseType = String(result?.type || 'text');
-      if (responseType === 'deal_insight' && !requestedReportType) {
-        const accessDecision = resolveIntelligenceReportAccess({
-          plan: currentPlan,
-          reportType: 'DEAL_INTELLIGENCE',
-          entitlements: reportEntitlements,
-        });
-        if (!accessDecision.allowed) {
-          setMessages((prev) => [...prev, {
-            id: `maxxis-intelligence-access-${Date.now()}`,
-            role: 'assistant',
-            content: language === 'pt'
-              ? 'Esta análise requer Maxxis Deal Intelligence. Veja os benefícios antes de solicitar o desbloqueio.'
-              : language === 'es'
-                ? 'Este análisis requiere Maxxis Deal Intelligence. Revisa los beneficios antes de solicitar el desbloqueo.'
-                : 'This analysis requires Maxxis Deal Intelligence. Review the benefits before requesting access.',
-            createdAt: new Date(),
-            type: 'intelligence_access_gate',
-            data: { accessDecision, upgradeExperience: buildMaxxisIntelligenceUpgradeExperience({ plan: currentPlan, entitlements: reportEntitlements, requestedReportType: 'DEAL_INTELLIGENCE' }) },
-          }]);
-          return;
-        }
-      }
       if (responseType === 'properties') {
         void trackProductEvent('maxxis_property_search', { dedupeKey: `maxxis-search:${userMessage.id}`, properties: { source: 'maxxis', response_type: responseType } });
       }
@@ -1252,11 +1237,11 @@ export function MaxxisAssistant({ page = 'dashboard', onOpenSupport = null, onNa
         language,
         forcedIntent: meta.controlledIntent || '',
       });
-      const maxxisAnalysis = requestedReportType === 'MAXXIS_ANALYSIS'
+      const reportGenerationFailed = Boolean(requestedReportType && result?.degraded);
+      const maxxisAnalysis = requestedReportType === 'MAXXIS_ANALYSIS' && !reportGenerationFailed
         ? projectMaxxisAnalysisResponse(result)
         : null;
-      const dealIntelligence = requestedReportType === 'DEAL_INTELLIGENCE'
-        || (responseType === 'deal_insight' && !requestedReportType)
+      const dealIntelligence = !reportGenerationFailed && requestedReportType === 'DEAL_INTELLIGENCE'
         ? projectMaxxisDealIntelligenceResponse(result)
         : null;
       const projectedReport = dealIntelligence || maxxisAnalysis;
@@ -1300,10 +1285,25 @@ export function MaxxisAssistant({ page = 'dashboard', onOpenSupport = null, onNa
           properties: { source: 'maxxis', response_type: intelligence.type || responseType },
         });
       }
+      const reportActions = responseType === 'deal_insight' && !requestedReportType
+        ? (() => {
+            const analysisAccess = resolveIntelligenceReportAccess({ plan: currentPlan, reportType: 'MAXXIS_ANALYSIS', entitlements: reportEntitlements });
+            const dealAccess = resolveIntelligenceReportAccess({ plan: currentPlan, reportType: 'DEAL_INTELLIGENCE', entitlements: reportEntitlements });
+            if (dealAccess.allowed) return `\n\n[[action:deal-intelligence|${language === 'pt' ? 'Gerar Deal Intelligence Report — incluído' : language === 'es' ? 'Generar Deal Intelligence Report — incluido' : 'Generate Deal Intelligence Report — Included'}]]`;
+            const analysisLabel = analysisAccess.allowed
+              ? (language === 'pt' ? 'Gerar Maxxis Analysis Report — incluído no plano' : language === 'es' ? 'Generar Maxxis Analysis Report — incluido en el plan' : 'Generate Maxxis Analysis Report — Included in plan')
+              : (language === 'pt' ? 'Desbloquear Maxxis Analysis — 3 Nuggets' : language === 'es' ? 'Desbloquear Maxxis Analysis — 3 Nuggets' : 'Unlock Maxxis Analysis — 3 Nuggets');
+            const dealLabel = language === 'pt' ? 'Ver Deal Intelligence — 5 Nuggets' : language === 'es' ? 'Ver Deal Intelligence — 5 Nuggets' : 'View Deal Intelligence — 5 Nuggets';
+            return `\n\n[[action:maxxis-analysis|${analysisLabel}]]\n[[action:deal-intelligence|${dealLabel}]]`;
+          })()
+        : '';
+      const generationFailureText = reportGenerationFailed
+        ? (language === 'pt' ? 'Não foi possível concluir a interpretação do relatório agora. Nenhum relatório incompleto foi salvo. Você pode tentar novamente mantendo esta conversa.' : language === 'es' ? 'No fue posible completar la interpretación del informe. No se guardó un informe incompleto.' : 'The report interpretation could not be completed. No incomplete report was saved. You can retry without losing this conversation.')
+        : '';
       setMessages((prev) => [...prev, {
         id: `maxxis-assistant-${Date.now()}`,
         role: 'assistant',
-        content: `${dealIntelligence?.content || maxxisAnalysis?.content || intelligence.content || result.answer}${persistedReportId ? `\n\n${language === 'pt' ? 'Relatório salvo em Meus Relatórios.' : language === 'es' ? 'Informe guardado en Mis Informes.' : 'Report saved to My Reports.'}` : ''}`,
+        content: `${generationFailureText || dealIntelligence?.content || maxxisAnalysis?.content || intelligence.content || result.answer}${persistedReportId ? `\n\n${language === 'pt' ? 'Relatório salvo em Meus Relatórios.' : language === 'es' ? 'Informe guardado en Mis Informes.' : 'Report saved to My Reports.'}` : ''}${reportActions}`,
         createdAt: new Date(),
         error: Boolean(result.unavailable),
         degraded: Boolean(result.degraded),

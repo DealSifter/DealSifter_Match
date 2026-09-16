@@ -460,6 +460,18 @@ export function PortfolioDetail({ item, owner, ownerContact = null, isOwnerUnloc
   const [isPreparingExport, setIsPreparingExport] = useState(false);
 
   useEffect(() => {
+    const openRequestedReport = (event) => {
+      const requestedPropertyId = String(event?.detail?.propertyId || '').trim();
+      if (requestedPropertyId && requestedPropertyId !== String(item?.id || '')) return;
+      if (!String(emailTo || '').trim()) setEmailTo(getProfileEmailFallback());
+      setExportMode('');
+      setEmailComposeOpen(true);
+    };
+    window.addEventListener('dealsifter.openReportExport', openRequestedReport);
+    return () => window.removeEventListener('dealsifter.openReportExport', openRequestedReport);
+  }, [emailTo, item?.id]);
+
+  useEffect(() => {
     // Reset image index when item changes; defer to next tick to avoid
     // triggering a cascading render within the effect body.
     const t = setTimeout(() => setImgIdx(0), 0);

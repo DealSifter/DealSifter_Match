@@ -613,6 +613,21 @@ const DEAL_COPILOT_COPY = {
 };
 
 const ACTION_DEFINITIONS = {
+  'report-export': {
+    en: 'Export / Generate Report',
+    pt: 'Exportar / Gerar Relatório',
+    es: 'Exportar / Generar Informe',
+  },
+  'maxxis-analysis': {
+    en: 'Generate Maxxis Analysis Report',
+    pt: 'Gerar relatório Maxxis Analysis',
+    es: 'Generar informe Maxxis Analysis',
+  },
+  'deal-intelligence': {
+    en: 'Generate Deal Intelligence Report',
+    pt: 'Gerar relatório Deal Intelligence',
+    es: 'Generar informe Deal Intelligence',
+  },
   feed: {
     en: 'Open Feed',
     pt: 'Abrir Feed',
