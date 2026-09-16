@@ -9,6 +9,8 @@ export function Modal({
   overlayStyle = {},
   contentStyle = {},
   contentClassName = '',
+  scrollable = true,
+  showCloseButton = true,
 }) {
   const dialogRef = useRef(null);
 
@@ -109,10 +111,14 @@ export function Modal({
             right: 11px !important;
           }
         }
+        .ds-modal-content.ds-modal-no-scroll {
+          overflow: hidden !important;
+          overscroll-behavior: none !important;
+        }
       `}</style>
       <div
         ref={dialogRef}
-        className={`ds-modal-content ${contentClassName}`.trim()}
+        className={`ds-modal-content ${scrollable ? '' : 'ds-modal-no-scroll'} ${contentClassName}`.trim()}
         role="dialog"
         aria-modal="true"
         aria-label={ariaLabel}
@@ -125,7 +131,7 @@ export function Modal({
           width: "100%", 
           maxWidth: maxWidth, 
           maxHeight: "min(92dvh, 920px)", 
-          overflowY: "auto",
+          overflowY: scrollable ? "auto" : "hidden",
           overscrollBehavior: "contain",
           WebkitOverflowScrolling: 'touch',
           position: "relative",
@@ -136,29 +142,30 @@ export function Modal({
           ...contentStyle,
         }}
       >
-        {/* Close button top right */}
-        <button 
-          onClick={onClose}
-          type="button"
-          aria-label="Close dialog"
-          className="modal-close-btn"
-          style={{
-            position: "absolute",
-            top: 16,
-            right: 16,
-            background: "transparent",
-            border: "none",
-            color: C.t3,
-            cursor: "pointer",
-            fontSize: 20,
-            padding: 4,
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "center"
-          }}
-        >
-          ×
-        </button>
+        {showCloseButton ? (
+          <button
+            onClick={onClose}
+            type="button"
+            aria-label="Close dialog"
+            className="modal-close-btn"
+            style={{
+              position: "absolute",
+              top: 16,
+              right: 16,
+              background: "transparent",
+              border: "none",
+              color: C.t3,
+              cursor: "pointer",
+              fontSize: 20,
+              padding: 4,
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center"
+            }}
+          >
+            ×
+          </button>
+        ) : null}
 
         {children}
       </div>

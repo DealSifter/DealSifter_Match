@@ -1,12 +1,54 @@
 import React, { useMemo, useState } from 'react';
 import maxxisAnalysisAsset from '../../../assets/maxxis/avatar/maxxis-master.png';
 import maxxisIntelligenceAsset from '../../../assets/maxxis/avatar/avatar-success.png';
+import propertyReleasePage1 from '../../../assets/maxxis/report-previews/Basic Release.png';
+import maxxisAnalysisPage1 from '../../../assets/maxxis/report-previews/Maxxis Analisys (1).png';
+import maxxisAnalysisPage2 from '../../../assets/maxxis/report-previews/Maxxis Analisys (2).png';
+import maxxisAnalysisPage3 from '../../../assets/maxxis/report-previews/Maxxis Analisys (3).png';
+import dealIntelligencePage1 from '../../../assets/maxxis/report-previews/Deal Inteligence(1).png';
+import dealIntelligencePage2 from '../../../assets/maxxis/report-previews/Deal Inteligence(2).png';
+import dealIntelligencePage3 from '../../../assets/maxxis/report-previews/Deal Inteligence(3).png';
+import dealIntelligencePage4 from '../../../assets/maxxis/report-previews/Deal Inteligence(4).png';
+import dealIntelligencePage5 from '../../../assets/maxxis/report-previews/Deal Inteligence(5).png';
+import dealIntelligencePage6 from '../../../assets/maxxis/report-previews/Deal Inteligence(6).png';
 import { resolveIntelligenceReportAccess } from '../../../domain/intelligenceAccess';
 import './ReportExperienceSelector.css';
 
 const COPY={en:{title:'Export property report',intro:'Choose the report type and see what is included in each option.',download:'BASIC PROPERTY RELEASE',downloadSub:'Download to device (PDF)',email:'BASIC PROPERTY RELEASE',emailSub:'Send by email (PDF)',maxxis:'MAXXIS AI ANALYSIS',maxxisSub:'AI-powered property analysis',hint:"See what's included in each report type. Tap the information icon to preview an example.",choose:'Maxxis intelligence selection',back:'Back',included:'Included',unlock:'Nuggets',analysis:'MAXXIS AI ANALYSIS',analysisSub:'Profile alignment, risks, limitations and next steps.',deal:'DEAL INTELLIGENCE REPORT',dealSub:'Evidence, existing comps, valuation, scenarios and confidence.',page:'Page'},pt:{title:'Exportar relatório do imóvel',intro:'Escolha o tipo de relatório e veja o que está incluído em cada opção.',download:'BASIC PROPERTY RELEASE',downloadSub:'Baixar no dispositivo (PDF)',email:'BASIC PROPERTY RELEASE',emailSub:'Enviar por email (PDF)',maxxis:'MAXXIS AI ANALYSIS',maxxisSub:'Análise do imóvel com inteligência artificial',hint:'Veja o que está incluído em cada relatório. Toque no ícone de informação para visualizar um exemplo.',choose:'Seleção de inteligência Maxxis',back:'Voltar',included:'Incluído',unlock:'Nuggets',analysis:'MAXXIS AI ANALYSIS',analysisSub:'Aderência ao perfil, riscos, limitações e próximos passos.',deal:'DEAL INTELLIGENCE REPORT',dealSub:'Evidências, comps existentes, valuation, cenários e confiança.',page:'Página'},es:{title:'Exportar informe de propiedad',intro:'Elige el tipo de informe y consulta qué incluye cada opción.',download:'BASIC PROPERTY RELEASE',downloadSub:'Descargar al dispositivo (PDF)',email:'BASIC PROPERTY RELEASE',emailSub:'Enviar por email (PDF)',maxxis:'MAXXIS AI ANALYSIS',maxxisSub:'Análisis de propiedad con inteligencia artificial',hint:'Consulta qué incluye cada informe. Toca el icono de información para ver un ejemplo.',choose:'Selección de inteligencia Maxxis',back:'Volver',included:'Incluido',unlock:'Nuggets',analysis:'MAXXIS AI ANALYSIS',analysisSub:'Afinidad, riesgos, limitaciones y próximos pasos.',deal:'DEAL INTELLIGENCE REPORT',dealSub:'Evidencia, comparables existentes, valoración, escenarios y confianza.',page:'Página'}};
-const COUNTS={PROPERTY_RELEASE:1,MAXXIS_ANALYSIS:3,DEAL_INTELLIGENCE:6};
-const PAGE_CONTENT={PROPERTY_RELEASE:[['Property Overview',['Subject property','Property facts','Photos, location and notes']]],MAXXIS_ANALYSIS:[['Property Overview',['Published property facts','Owner and portfolio information','Location and notes']],['Investor Fit & Risk',['Profile alignment','Available metrics','Risks and limitations']],['Maxxis Analysis',['Evidence-based summary','Missing information','Recommended verification steps']]],DEAL_INTELLIGENCE:[['Property Overview',['Subject property','Property and land information','Photos, location and notes']],['Comparative Market Analysis',['Recorded sale comparables','Distance and structural similarity','Evidence observations']],['Valuation Intelligence',['ARV only when supported','Confidence and provenance','Scenario limitations']],['Investment Fit & Risk',['Investor profile fit','Match Score context','Evidence and risk summary']],['Key Insights',['Positive signals','Missing information','Recommended actions']],['Maxxis Deal AI Analysis',['Opportunity summary','Unknowns and key topics','Evidence-based conclusion']]]};
-function Preview({type,t,onClose}){const[page,setPage]=useState(0);const pages=PAGE_CONTENT[type]||PAGE_CONTENT.PROPERTY_RELEASE;const count=pages.length;const move=d=>setPage(v=>(v+d+count)%count);const[title,items]=pages[page];return <div className="report-preview-overlay" role="dialog" aria-label={`${t.page} ${page+1}`}><button type="button" className="report-preview-back" onClick={onClose}>← {t.back}</button><div className={`report-preview-sheet is-${type.toLowerCase()}`} data-preview-page={page+1}><div className="report-preview-brand">DealSifter <i>Match</i></div><small>{type.replaceAll('_',' ')}</small><strong>{title}</strong><div className="report-preview-subject"><span>⌂</span><div><b>Sample subject property</b><small>Controlled commercial preview · no live provider data</small></div></div><div className="report-preview-sections">{items.map(item=><div key={item}><i>✓</i><span>{item}</span></div>)}</div><p>Unavailable fields remain identified. No values are invented for this preview.</p></div>{count>1?<div className="report-preview-controls"><button type="button" aria-label="Previous page" onClick={()=>move(-1)}>‹</button><b>{t.page} {page+1} of {count}</b><button type="button" aria-label="Next page" onClick={()=>move(1)}>›</button></div>:<b>{t.page} 1 of 1</b>}</div>}
+const PREVIEW_PAGES=Object.freeze({
+  PROPERTY_RELEASE:Object.freeze([propertyReleasePage1]),
+  MAXXIS_ANALYSIS:Object.freeze([maxxisAnalysisPage1,maxxisAnalysisPage2,maxxisAnalysisPage3]),
+  DEAL_INTELLIGENCE:Object.freeze([dealIntelligencePage1,dealIntelligencePage2,dealIntelligencePage3,dealIntelligencePage4,dealIntelligencePage5,dealIntelligencePage6]),
+});
+
+function Preview({type,t,onClose}){
+  const[page,setPage]=useState(0);
+  const[touchStart,setTouchStart]=useState(null);
+  const pages=PREVIEW_PAGES[type]||PREVIEW_PAGES.PROPERTY_RELEASE;
+  const count=pages.length;
+  const move=d=>setPage(v=>(v+d+count)%count);
+  const onKeyDown=event=>{
+    if(event.key==='ArrowLeft')move(-1);
+    if(event.key==='ArrowRight')move(1);
+    if(event.key==='Escape')onClose();
+  };
+  const onTouchEnd=event=>{
+    if(touchStart===null)return;
+    const distance=event.changedTouches[0].clientX-touchStart;
+    setTouchStart(null);
+    if(Math.abs(distance)>=45)move(distance>0?-1:1);
+  };
+  return <div className="report-preview-overlay" role="dialog" aria-modal="true" aria-label={`${t.page} ${page+1}`} tabIndex={-1} onKeyDown={onKeyDown}>
+    <button type="button" className="report-preview-back" onClick={onClose}>← {t.back}</button>
+    <div className={`report-preview-sheet is-${type.toLowerCase()}`} data-preview-page={page+1} onTouchStart={event=>setTouchStart(event.touches[0].clientX)} onTouchEnd={onTouchEnd}>
+      <img key={pages[page]} src={pages[page]} alt={`${type.replaceAll('_',' ')} — ${t.page} ${page+1} / ${count}`} draggable="false" decoding="async"/>
+    </div>
+    {count>1?<div className="report-preview-controls">
+      <button type="button" aria-label="Previous page" onClick={()=>move(-1)}>‹</button>
+      <b>{t.page} {page+1} of {count}</b>
+      <button type="button" aria-label="Next page" onClick={()=>move(1)}>›</button>
+    </div>:<b>{t.page} 1 of 1</b>}
+  </div>;
+}
 function Row({icon,asset,title,subtitle,onAction,onInfo}){return <div className="report-action-row"><button type="button" className="report-action-main" onClick={onAction}>{asset?<img src={asset} alt="" aria-hidden="true"/>:<span className="report-action-icon" aria-hidden="true">{icon}</span>}<span><strong>{title}</strong><small>{subtitle}</small></span><b aria-hidden="true">›</b></button><button type="button" className="report-info-button" aria-label={`Preview ${title}`} onClick={onInfo}>i</button></div>}
 export function ReportExperienceSelector({plan='free',entitlements=[],language='en',onSelect=null,onBasicDownload=null,onBasicEmail=null}){const t=COPY[String(language).slice(0,2)]||COPY.en;const[stage,setStage]=useState('delivery');const[preview,setPreview]=useState('');const intelligence=useMemo(()=>['MAXXIS_ANALYSIS','DEAL_INTELLIGENCE'].map(reportType=>resolveIntelligenceReportAccess({plan,entitlements,reportType})),[plan,entitlements]);if(preview)return <section className="report-experience-selector"><Preview type={preview} t={t} onClose={()=>setPreview('')}/></section>;return <section className="report-experience-selector" data-testid="report-experience-selector" data-stage={stage}><header><strong>{stage==='delivery'?t.title:t.choose}</strong><span>{stage==='delivery'?t.intro:null}</span></header>{stage==='delivery'?<><div className="report-action-stack"><Row icon="▤" title={t.download} subtitle={t.downloadSub} onAction={onBasicDownload} onInfo={()=>setPreview('PROPERTY_RELEASE')}/><Row icon="✉" title={t.email} subtitle={t.emailSub} onAction={onBasicEmail} onInfo={()=>setPreview('PROPERTY_RELEASE')}/><Row asset={maxxisAnalysisAsset} title={t.maxxis} subtitle={t.maxxisSub} onAction={()=>setStage('intelligence')} onInfo={()=>setPreview('MAXXIS_ANALYSIS')}/></div><p className="report-selector-hint">{t.hint}</p></>:<><button type="button" className="report-selector-back" onClick={()=>setStage('delivery')}>‹ {t.back}</button><div className="report-action-stack is-intelligence">{intelligence.map((access,index)=><Row key={access.reportType} asset={index?maxxisIntelligenceAsset:maxxisAnalysisAsset} title={index?t.deal:t.analysis} subtitle={`${index?t.dealSub:t.analysisSub} · ${access.allowed?t.included:`${access.nuggetCost} ${t.unlock}`}`} onAction={()=>onSelect?.(access)} onInfo={()=>setPreview(access.reportType)}/>)}</div></>}</section>}

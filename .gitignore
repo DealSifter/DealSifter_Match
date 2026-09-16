@@ -38,3 +38,4 @@ src/**/*.bak
 .vercel
 .tmp-codex/
 qa-artifacts/
+test-results/

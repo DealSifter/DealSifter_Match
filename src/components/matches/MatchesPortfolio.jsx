@@ -2056,7 +2056,13 @@ export function PortfolioDetail({ item, owner, ownerContact = null, isOwnerUnloc
       </div>
 
       {emailComposeOpen ? (
-        <Modal onClose={() => setEmailComposeOpen(false)} maxWidth={520}>
+        <Modal
+          onClose={() => setEmailComposeOpen(false)}
+          maxWidth={720}
+          contentClassName="report-export-modal"
+          scrollable={false}
+          showCloseButton={false}
+        >
           <div style={{ display: 'grid', gap: 10 }}>
             <div style={{ fontSize: 14, fontWeight: 800, color: C.t1 }}>{matchesT.exportModalTitle || 'Export portfolio release'}</div>
 
