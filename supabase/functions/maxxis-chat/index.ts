@@ -14,6 +14,7 @@ import { logMaxxisEvent } from '../_shared/maxxis/logger.ts';
 import { buildSystemPrompt } from '../_shared/maxxis/prompts.ts';
 import { prepareProfileSuggestions } from '../_shared/maxxis/prepareProfileSuggestions.ts';
 import { executeMaxxisTool, MAXXIS_TOOLS } from '../_shared/maxxis/toolRegistry.ts';
+import { asksForSelectedPropertyAnalysis } from '../_shared/maxxis/propertyAnalysisIntent.ts';
 import { normalizeComparisonContextIds } from '../_shared/maxxis/compareProperties.ts';
 import { buildToolInterpretationRequest } from '../_shared/maxxis/toolResultForGemini.ts';
 import { buildGeminiGenerationConfig } from '../_shared/maxxis/geminiGenerationConfig.ts';
@@ -126,7 +127,7 @@ function resolveMandatoryToolCall(message: string, propertyContextId: string, co
   if (comparisonPropertyIds.length >= 2 && intentIncludesAny(normalized, [' compare ', ' comparar ', ' compare estos ', ' compare estes '])) {
     return { name: 'compareProperties', args: { propertyIds: comparisonPropertyIds.slice(0, 3) } };
   }
-  if (propertyContextId && intentIncludesAny(normalized, [
+  if (propertyContextId && (asksForSelectedPropertyAnalysis(message) || intentIncludesAny(normalized, [
     ' analyze this deal ',
     ' analyse this deal ',
     ' analyze the deal ',
@@ -159,7 +160,7 @@ function resolveMandatoryToolCall(message: string, propertyContextId: string, co
     ' encaja con mi perfil ',
     ' mayores incertidumbres ',
     ' arv y mao ',
-  ])) {
+  ]))) {
     return { name: 'getDealInsightContext', args: { propertyId: propertyContextId } };
   }
   if (propertyContextId && intentIncludesAny(normalized, [
@@ -261,7 +262,7 @@ function e2eStubFunctionCall(message: string, propertyContextId: string) {
   if (propertyContextId && (normalized.includes('copilot') || normalized.includes('overall situation') || normalized.includes('deal status') || normalized.includes('deal summary'))) {
     return { name: 'getDealCopilotOverview', args: { propertyId: propertyContextId } };
   }
-  if (propertyContextId && (normalized.includes('analyze this deal') || normalized.includes('is this property worth looking at') || normalized.includes('what are the risks') || normalized.includes('explain this arv') || normalized.includes('fit my investment profile') || normalized.includes('biggest uncertainties') || normalized.includes('arv and mao'))) {
+  if (propertyContextId && (asksForSelectedPropertyAnalysis(message) || normalized.includes('analyze this deal') || normalized.includes('is this property worth looking at') || normalized.includes('what are the risks') || normalized.includes('explain this arv') || normalized.includes('fit my investment profile') || normalized.includes('biggest uncertainties') || normalized.includes('arv and mao'))) {
     return { name: 'getDealInsightContext', args: { propertyId: propertyContextId } };
   }
   if (propertyContextId && (normalized.includes('public record') || normalized.includes('evidence') || normalized.includes('what stands out') || normalized.includes('what should i verify'))) {

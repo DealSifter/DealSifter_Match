@@ -1621,6 +1621,21 @@ export function MessageBubble({
           onSmartAction={onSmartAction}
           onFollowUp={onDealFollowUp}
         />
+        {actions.length ? (
+          <div className="maxxis-action-links" aria-label="Maxxis Deal AI navigation actions">
+            {actions.map((action) => (
+              <button
+                type="button"
+                key={`${message.id}-${action.id}`}
+                className="maxxis-inline-link"
+                onClick={() => onAction?.(action.id)}
+              >
+                <span>{action.label}</span>
+                <Icon name="arrowRight" size={13} color="currentColor" strokeWidth={2.1} />
+              </button>
+            ))}
+          </div>
+        ) : null}
       </div>
     );
   }

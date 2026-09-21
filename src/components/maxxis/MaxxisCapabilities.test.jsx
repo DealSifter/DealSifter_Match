@@ -6,6 +6,20 @@ import { MaxxisDealIntelligenceExperience } from '../../features/maxxis/intellig
 import { buildMaxxisIntelligenceUpgradeExperience } from '../../features/maxxis/access/maxxisIntelligenceUpgrade';
 
 describe('Maxxis Deal AI structured result presentation', () => {
+  it('keeps a report CTA visible when the answer uses the composed experience', () => {
+    const html = renderToStaticMarkup(
+      <MessageBubble
+        language="en"
+        message={{ id: 'chat-report-cta', role: 'assistant', type: 'deal_insight',
+          content: 'Available property facts.\n\n[[action:deal-intelligence|Generate Deal Intelligence Report — Included]]' }}
+        composedExperience={{ status: 'COMPOSED', mode: 'ANALYSIS', headline: 'Property analysis',
+          summary: 'Available property facts.', evidence: [], statusItems: [], primaryAction: null,
+          secondaryActions: [], followUps: [], tone: 'CALM', presentationHints: { render: true, density: 'COMPACT' } }}
+      />,
+    );
+    expect(html).toContain('Generate Deal Intelligence Report — Included');
+    expect(html).toContain('Maxxis Deal AI navigation actions');
+  });
   it('renders a non-transactional intelligence upgrade gate without granting access', () => {
     const onRequestIntelligenceUnlock = vi.fn();
     const html = renderToStaticMarkup(

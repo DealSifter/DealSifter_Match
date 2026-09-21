@@ -2360,9 +2360,6 @@ export function MaxxisAssistant({ page = 'dashboard', onOpenSupport = null, onNa
     const prompt = String(request?.prompt || '').trim();
     if (!requestId || !prompt || handledAnalysisRequestsRef.current.has(requestId)) return;
     handledAnalysisRequestsRef.current.add(requestId);
-    if (request?.propertyAnalysisContext?.mode === 'PROPERTY_ANALYSIS_MODE') {
-      setMessages([]);
-    }
     setOpen(true);
     setInput('');
     void submitMessageRef.current?.(prompt, {
