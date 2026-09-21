@@ -10,7 +10,8 @@ import { supabaseServiceRoleKey, supabaseUrl } from './config.ts';
 import { getPropertyEvidenceForAuthenticatedUser } from './getPropertyEvidence.ts';
 import { getMyInvestmentProfileWithClient } from './getMyInvestmentProfile.ts';
 import { orchestrateDealInsightContext } from './dealInsightContext.ts';
-import { getPropertyDetailsWithClient, resolvePropertyDetailsInput } from './propertyDetails.ts';
+import { getPropertyDetailsWithClient } from './propertyDetails.ts';
+import { resolveDealInsightInput } from './dealInsightInput.ts';
 import type { ProviderBudgetPlan } from '../property-data/providerBudget.ts';
 
 export async function getDealInsightContextForAuthenticatedUser(
@@ -21,15 +22,14 @@ export async function getDealInsightContextForAuthenticatedUser(
   contextPropertyId?: string,
   plan: ProviderBudgetPlan = 'FREE',
 ) {
-  const validated = resolvePropertyDetailsInput(input, contextPropertyId);
-  const requestedReportType = input && typeof input === 'object'
-    ? String((input as Record<string, unknown>).reportType || '').trim().toUpperCase()
-    : '';
+  const validated = resolveDealInsightInput(input, contextPropertyId);
+  const requestedReportType = validated.reportType;
   const maxxisAnalysisOnly = requestedReportType === 'MAXXIS_ANALYSIS';
   const reportRequested = maxxisAnalysisOnly || requestedReportType === 'DEAL_INTELLIGENCE';
   const budgetBucket = reportRequested ? 'report' : 'chat';
   const providerAllowedByPlan = plan !== 'FREE';
-  const allowPropertyProvider = providerAllowedByPlan;
+  // Level 2 analysis must remain cache-only; it does not purchase or refresh evidence.
+  const allowPropertyProvider = providerAllowedByPlan && !maxxisAnalysisOnly;
   const allowValuationProvider = providerAllowedByPlan && requestedReportType === 'DEAL_INTELLIGENCE';
   const providerEnabled = Deno.env.get('PROPERTY_DATA_MODE') === 'live';
   const runtimeTrace = {

@@ -464,6 +464,16 @@ export type MaxxisResponse = {
     knowledgeTopics?: string[];
   };
   error?: string;
+  diagnostic?: {
+    stage: string;
+    tool: string;
+    argumentShape: string[];
+    errorCode: string;
+    location: string;
+    geminiCalls: number;
+    snapshotCreated: boolean;
+    structuredResponseCreated: boolean;
+  };
   accessRequired?: {
     capability: 'PROPERTY_RELEASE' | 'MAXXIS_ANALYSIS' | 'DEAL_INTELLIGENCE';
     currentLevel: 'FREE' | 'PRO' | 'ENTERPRISE' | 'NUGGET_UNLOCK';

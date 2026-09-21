@@ -76,6 +76,7 @@ describe('Maxxis Deal Insight context', () => {
   });
 
   it('keeps the report context available when valuation evidence is rejected for ADDRESS_MISMATCH', async () => {
+    const loadArvEvaluation = vi.fn(async () => { throw new Error('ADDRESS_MISMATCH'); });
     const result = await orchestrateDealInsightContext({
       propertyId: PROPERTY_ID,
       loadPropertyDetails: vi.fn(async () => details),
@@ -85,14 +86,28 @@ describe('Maxxis Deal Insight context', () => {
         type: 'property_evidence' as const, propertyId: PROPERTY_ID, state: 'unavailable' as const,
         entitlementState: 'authorized' as const, cacheState: 'invalid' as const,
       })),
-      loadArvEvaluation: vi.fn(async () => { throw new Error('ADDRESS_MISMATCH'); }),
+      loadArvEvaluation,
     });
+    expect(loadArvEvaluation).not.toHaveBeenCalled();
     expect(result).toMatchObject({
       state: 'available', property: { id: PROPERTY_ID },
       evidence: { state: 'unavailable', cacheState: 'invalid' },
       capabilities: { hasArvEvaluation: false },
       dealIntelligence: { valuationContext: { status: 'ARV_UNAVAILABLE' } },
     });
+  });
+
+  it('serializes property evidence before valuation for a shared provider lease', async () => {
+    const order: string[] = [];
+    await orchestrateDealInsightContext({
+      propertyId: PROPERTY_ID,
+      loadPropertyDetails: vi.fn(async () => details),
+      loadInvestmentProfile: vi.fn(async () => investmentProfile),
+      calculateMatch: calculatePropertyMatch,
+      loadPropertyEvidence: vi.fn(async () => { order.push('property'); return evidence; }),
+      loadArvEvaluation: vi.fn(async () => { order.push('valuation'); return arvEvaluation as never; }),
+    });
+    expect(order).toEqual(['property', 'valuation']);
   });
 
   it('hard-codes unavailable financial capabilities and keeps reported cap rate distinct from verified data', async () => {

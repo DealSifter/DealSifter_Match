@@ -55,11 +55,15 @@ export async function orchestrateDealInsightContext(input: {
       },
     };
   }
-  const [investmentProfile, evidence, arvEvaluation] = await Promise.all([
+  const [investmentProfile, evidence] = await Promise.all([
     input.loadInvestmentProfile().catch(() => ({ profile: null, exists: false, complete: false })),
     input.loadPropertyEvidence(input.propertyId).catch(() => unavailableEvidence),
-    input.loadArvEvaluation?.(input.propertyId).catch(() => null) ?? Promise.resolve(null),
   ]);
+  // Provider services share a property-scoped lease. Do not race valuation against
+  // the property record, and do not request valuation after evidence failed closed.
+  const arvEvaluation = evidence.state === 'available'
+    ? await input.loadArvEvaluation?.(input.propertyId).catch(() => null) ?? null
+    : null;
   const match = investmentProfile.profile
     ? { ...input.calculateMatch(investmentProfile.profile, details.property), semantics: 'profile_fit_only' as const }
     : null;

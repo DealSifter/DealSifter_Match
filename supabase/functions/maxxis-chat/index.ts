@@ -718,6 +718,11 @@ Deno.serve(async (req) => {
   let resolvedLanguage: MaxxisLanguage = 'en';
   let resolvedMessage = '';
   let resolvedPage = 'dashboard';
+  let failureStage = 'request';
+  let activeTool = '';
+  let activeArgumentShape: string[] = [];
+  let snapshotCreated = false;
+  let structuredResponseCreated = false;
   const budget = new MaxxisExecutionBudget();
   try {
     const session = await authenticatedSession(req.headers.get('Authorization') || '');
@@ -885,15 +890,29 @@ Deno.serve(async (req) => {
           }
         : resolveMandatoryToolCall(message, propertyContextId, comparisonPropertyIds))
       : null;
+    const trustedFunctionCall = mandatoryFunctionCall?.name === 'getDealInsightContext'
+      ? {
+          ...mandatoryFunctionCall,
+          args: {
+            ...mandatoryFunctionCall.args,
+            reportType: propertyAnalysisContext?.report_type
+              || (requestedCapability === 'DEAL_INTELLIGENCE' ? 'DEAL_INTELLIGENCE' : 'MAXXIS_ANALYSIS'),
+          },
+        }
+      : mandatoryFunctionCall;
+    const trustedArgs = trustedFunctionCall?.args as Record<string, unknown> | undefined;
     const parsedToolName = String(parsedFunctionCall?.name || '');
     const correctedFunctionCall = parsedFunctionCall
-      && mandatoryFunctionCall
+      && trustedFunctionCall
       && parsedToolName
-      && parsedToolName !== mandatoryFunctionCall.name
-      && ['getDealInsightContext', 'getPropertyDetails', 'getPropertyEvidence', 'getDealCopilotOverview', 'compareProperties'].includes(mandatoryFunctionCall.name)
-        ? mandatoryFunctionCall
+      && (parsedToolName !== trustedFunctionCall.name
+        || (trustedFunctionCall.name === 'getDealInsightContext'
+          && (String((parsedFunctionCall.args as Record<string, unknown> | undefined)?.propertyId || '') !== String(trustedArgs?.propertyId || '')
+            || String((parsedFunctionCall.args as Record<string, unknown> | undefined)?.reportType || '') !== String(trustedArgs?.reportType || ''))))
+      && ['getDealInsightContext', 'getPropertyDetails', 'getPropertyEvidence', 'getDealCopilotOverview', 'compareProperties'].includes(trustedFunctionCall.name)
+        ? trustedFunctionCall
         : null;
-    const recoveredFunctionCall = !parsedFunctionCall && mandatoryFunctionCall ? mandatoryFunctionCall : null;
+    const recoveredFunctionCall = !parsedFunctionCall && trustedFunctionCall ? trustedFunctionCall : null;
     if (recoveredFunctionCall || correctedFunctionCall) {
       logMaxxisEvent('maxxis_tool_selection_recovered', {
         request_id: requestId,
@@ -910,6 +929,9 @@ Deno.serve(async (req) => {
       const toolStartedAt = Date.now();
       const toolName = String(functionCall.name || '');
       const functionArgs = functionCall.args && typeof functionCall.args === 'object' ? functionCall.args as Record<string, unknown> : {};
+      activeTool = toolName;
+      activeArgumentShape = Object.keys(functionArgs).sort();
+      failureStage = 'tool_entitlement';
       const toolCapability = capabilityForMaxxisTool(toolName, functionArgs.reportType);
       let effectiveProviderPlan = runtimeAccess.plan;
       if (toolCapability) {
@@ -926,11 +948,12 @@ Deno.serve(async (req) => {
           effectiveProviderPlan = toolCapability === 'DEAL_INTELLIGENCE' ? 'ENTERPRISE' : 'PRO';
         }
       }
-      const modelPartsForTool = parsedFunctionCall
+      const modelPartsForTool = parsedFunctionCall && !correctedFunctionCall
         ? parts
         : [{ functionCall: { name: toolName, args: functionArgs } }];
       let result;
       try {
+        failureStage = 'tool_execution';
         result = await executeMaxxisTool(
           toolName,
           functionArgs,
@@ -957,6 +980,8 @@ Deno.serve(async (req) => {
         }
         throw error;
       }
+      snapshotCreated = Boolean((result as { intelligenceSnapshot?: unknown })?.intelligenceSnapshot);
+      failureStage = 'tool_payload_validation';
       budget.validateToolPayload(result);
       let interpretedText = '';
       let secondPass = false;
@@ -964,6 +989,7 @@ Deno.serve(async (req) => {
       let secondPassProviderMeta: ReturnType<typeof getGeminiProviderFailureMeta> | null = null;
       let secondPassAttempts = 0;
       if (!stubFunctionCall) {
+        failureStage = 'gemini_second_pass';
         const secondPassStartedAt = Date.now();
         const interpretationRequest = buildToolInterpretationRequest({
           contents,
@@ -1107,6 +1133,7 @@ Deno.serve(async (req) => {
         return response({ message: text, answer: text, type: 'property_evidence', data: result, actions: [], language, runtime: toolRuntime, ...toolDegraded }, 200, origin, requestId);
       }
       if (result.type === 'deal_insight') {
+        failureStage = 'structured_response';
         const intelligenceTrace = result.runtimeTrace && typeof result.runtimeTrace === 'object'
           ? result.runtimeTrace as Record<string, unknown>
           : {};
@@ -1153,6 +1180,7 @@ Deno.serve(async (req) => {
           match_available: Boolean(result.match?.calculable),
         });
         const text = interpretedText || dealInsightMessage(language, result.state === 'available');
+        structuredResponseCreated = true;
         return response({ message: text, answer: text, type: 'deal_insight', data: result, actions: [], language, runtime: toolRuntime, ...toolDegraded }, 200, origin, requestId);
       }
       if (result.type === 'deal_copilot_overview') {
@@ -1221,11 +1249,30 @@ Deno.serve(async (req) => {
     }
     const isToolFailure = budget.toolCalls > 0 && !budgetExhausted && !requestTooLarge;
     const degradedReason = isToolFailure ? 'GEMINI_TOOL_ERROR' : classifyGeminiThrownFailure(error);
+    const rawError = error instanceof Error ? error.message : '';
+    const safeErrorCode = /^[A-Z][A-Z0-9_]{2,79}$/.test(rawError) ? rawError : error instanceof Error ? error.name : 'UNKNOWN_ERROR';
+    const stackLocation = error instanceof Error
+      ? String(error.stack || '').match(/([A-Za-z][A-Za-z0-9_.-]*\.ts:\d+:\d+)/)?.[1] || ''
+      : '';
+    logMaxxisEvent('maxxis_tool_diagnostic', {
+      request_id: requestId, user_id: userId, success: false, error_code: safeErrorCode,
+      tool: activeTool, status: failureStage, llm_call_count: budget.geminiCalls,
+      tool_call_count: budget.toolCalls, property_context_loaded: snapshotCreated,
+    });
     logMaxxisEvent('maxxis_chat', { request_id: requestId, user_id: userId, model: usedModel, duration_ms: Date.now() - startedAt, provider_duration_ms: providerDurationMs, request_payload_bytes: requestPayloadBytes, system_prompt_bytes: systemPromptBytes, tool_declaration_bytes: toolDeclarationBytes, history_count: historyCount, success: false, fallback_count: fallbackCount, error_code: budgetExhausted || requestTooLarge ? errorCode : degradedReason, degraded_reason: budgetExhausted || requestTooLarge ? undefined : degradedReason, llm_call_count: budget.geminiCalls, tool_call_count: budget.toolCalls, tool_rounds: budget.toolRounds, timeout: timedOut, budget_exhausted: budgetExhausted });
     if (requestTooLarge) {
       return response({ message: 'Request context is too large.', answer: 'Request context is too large.', type: 'text', data: null, actions: [], unavailable: true, error: errorCode }, 413, origin, requestId);
     }
     const degradedPayload = degradedFallbackPayload(resolvedMessage, resolvedLanguage, degradedReason);
-    return response({ ...degradedPayload, type: 'text', data: null, actions: [], language: resolvedLanguage, degraded: true, degradedReason, error: degradedReason }, 200, origin, requestId);
+    const adminCheck = userId
+      ? await createClient(supabaseUrl, supabaseAnonKey, { global: { headers: { Authorization: req.headers.get('Authorization') || '' } } })
+        .from('users').select('is_admin').eq('id', userId).maybeSingle()
+      : null;
+    const diagnostic = adminCheck?.data?.is_admin === true ? {
+      stage: failureStage, tool: activeTool, argumentShape: activeArgumentShape,
+      errorCode: safeErrorCode, location: stackLocation, geminiCalls: budget.geminiCalls,
+      snapshotCreated, structuredResponseCreated,
+    } : undefined;
+    return response({ ...degradedPayload, type: 'text', data: null, actions: [], language: resolvedLanguage, degraded: true, degradedReason, error: degradedReason, ...(diagnostic ? { diagnostic } : {}) }, 200, origin, requestId);
   }
 });
