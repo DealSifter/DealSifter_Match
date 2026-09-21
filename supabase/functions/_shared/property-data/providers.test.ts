@@ -40,6 +40,7 @@ describe('address normalization and validation', () => {
     expect(rentCastAddressMatches(INPUT, { ...RAW, zipCode: '99999' })).toBe(false);
     expect(rentCastAddressMatches(INPUT, { ...RAW, state: 'CA' })).toBe(false);
     expect(rentCastAddressMatches(INPUT, { ...RAW, addressLine1: '1 Other St' })).toBe(false);
+    expect(rentCastAddressMatches(INPUT, { ...RAW, city: 'Other City' })).toBe(false);
   });
 });
 
@@ -65,7 +66,7 @@ describe('RentCast property provider', () => {
       logger: silentLogger,
     });
     await expectCode(provider.getPropertyRecord(INPUT), 'PROPERTY_NOT_FOUND');
-    expect(guard.snapshot()[0]).toMatchObject({ status: 'succeeded', billableSuccess: true });
+    expect(guard.snapshot()[0]).toMatchObject({ status: 'succeeded', billableSuccess: true, errorCode: 'PROPERTY_NOT_FOUND' });
   });
 
   it('rejects an address mismatch after recording the billable response', async () => {
@@ -76,7 +77,17 @@ describe('RentCast property provider', () => {
       logger: silentLogger,
     });
     await expectCode(provider.getPropertyRecord(INPUT), 'ADDRESS_MISMATCH');
-    expect(guard.snapshot()[0]).toMatchObject({ status: 'succeeded', billableSuccess: true });
+    expect(guard.snapshot()[0]).toMatchObject({ status: 'succeeded', billableSuccess: true, errorCode: 'ADDRESS_MISMATCH' });
+  });
+
+  it('records a billable normalization rejection without accepting the response', async () => {
+    const guard = new InMemoryPropertyDataUsageGuard();
+    const provider = new RentCastPropertyDataProvider({
+      client: { lookupProperty: async () => ({ record: { ...RAW, id: '' }, httpStatus: 200, billableSuccess: true }) },
+      usageGuard: guard, logger: silentLogger,
+    });
+    await expectCode(provider.getPropertyRecord(INPUT), 'INVALID_PROVIDER_RESPONSE');
+    expect(guard.snapshot()[0]).toMatchObject({ status: 'succeeded', billableSuccess: true, httpStatus: 200, errorCode: 'INVALID_PROVIDER_RESPONSE' });
   });
 
   it.each([

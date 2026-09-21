@@ -7,6 +7,7 @@ import { InMemoryPropertySingleFlight, SupabasePropertySingleFlight } from './si
 import { mapRentCastProperty } from './rentcast/rentcastMapper.ts';
 import { resolvePropertyIntelligenceAccess } from './propertyIntelligenceAccess.ts';
 import { RentCastPropertyDataProvider } from './providers.ts';
+import { PropertyDataError } from './types.ts';
 import { SupabasePropertyEvidenceRepository } from './propertyRepository.ts';
 import { createBackendPropertyEvidenceService } from './backendFactory.ts';
 
@@ -46,6 +47,7 @@ describe('production hardening without network',()=>{
   const results=await Promise.all(services.map(s=>s.getPropertyEvidence({propertyId:id})));
   expect(reserve).toHaveBeenCalledOnce();expect(lookupProperty).toHaveBeenCalledOnce();
   expect(results.filter(r=>r.cacheHit)).toHaveLength(3);
+  expect(token).toBeNull();
  });
  it('private acceptance fixture is readable only by its exact owner',async()=>{
   const fixtureId='07343e87-1ef8-4ca5-a88e-be49d95431a7';
@@ -91,12 +93,48 @@ describe('production hardening without network',()=>{
   const work=vi.fn();const flight=new SupabasePropertySingleFlight({rpc:async()=>({data:null,error:{message:'offline'}})});
   await expect(flight.run('key',work)).rejects.toThrow('LEASE_UNAVAILABLE');expect(work).not.toHaveBeenCalled();
  });
- it('releases only own successful work and retains failed work',async()=>{
-  const rpc=vi.fn(async()=>({data:true,error:null}));const flight=new SupabasePropertySingleFlight({rpc});
+ it('releases its own lease after success, rejection, or provider failure',async()=>{
+  let owner:string|null=null;
+  const rpc=vi.fn(async(name:string,args:Record<string,unknown>)=>{
+   if(name==='ds_acquire_property_evidence_lease') {if(owner)return {data:false,error:null};owner=String(args.p_token);return {data:true,error:null};}
+   if(owner===args.p_token)owner=null;return {data:null,error:null};
+  });
+  const flight=new SupabasePropertySingleFlight({rpc});
   expect(await flight.run('key',async()=>42)).toBe(42);
-  expect(rpc.mock.calls.length).toBe(2);
-  rpc.mockClear();
+  expect(owner).toBeNull();
+  await expect(flight.run('key',async()=>{throw new PropertyDataError('ADDRESS_MISMATCH');})).rejects.toMatchObject({code:'ADDRESS_MISMATCH'});
+  expect(owner).toBeNull();
   await expect(flight.run('key',async()=>{throw Error('provider');})).rejects.toThrow('provider');
-  expect(rpc.mock.calls.length).toBe(1);
+  expect(owner).toBeNull();
+  expect(rpc.mock.calls.filter(([name])=>name==='ds_release_property_evidence_lease')).toHaveLength(3);
+ });
+ it('rejected evidence never enters cache and a later accepted response becomes a cache hit',async()=>{
+  let owner:string|null=null;
+  const rpc=vi.fn(async(name:string,args:Record<string,unknown>)=>{
+   if(name==='ds_acquire_property_evidence_lease') {if(owner)return {data:false,error:null};owner=String(args.p_token);return {data:true,error:null};}
+   if(owner===args.p_token)owner=null;return {data:null,error:null};
+  });
+  const cache=new InMemoryPropertyIntelligenceCache();
+  const getPropertyRecord=vi.fn().mockResolvedValueOnce(record('999 Wrong St')).mockResolvedValue(record());
+  const service=new PropertyEvidenceService({repository:{getById:async()=>property},cache,provider:{getPropertyRecord},singleFlight:new SupabasePropertySingleFlight({rpc}),logger:vi.fn()});
+  await expect(service.getPropertyEvidence({propertyId:id})).rejects.toMatchObject({code:'ADDRESS_MISMATCH'});
+  expect(cache.size()).toBe(0);expect(owner).toBeNull();
+  expect((await service.getPropertyEvidence({propertyId:id})).cacheHit).toBe(false);
+  expect((await service.getPropertyEvidence({propertyId:id})).cacheHit).toBe(true);
+  expect(getPropertyRecord).toHaveBeenCalledTimes(2);expect(owner).toBeNull();
+ });
+ it('network failure finalizes its attempt without retaining the database lease',async()=>{
+  let owner:string|null=null;
+  const rpc=vi.fn(async(name:string,args:Record<string,unknown>)=>{
+   if(name==='ds_acquire_property_evidence_lease') {if(owner)return {data:false,error:null};owner=String(args.p_token);return {data:true,error:null};}
+   if(owner===args.p_token)owner=null;return {data:null,error:null};
+  });
+  const cache=new InMemoryPropertyIntelligenceCache();
+  const getPropertyRecord=vi.fn().mockRejectedValueOnce(new PropertyDataError('PROVIDER_NETWORK_ERROR')).mockResolvedValue(record());
+  const service=new PropertyEvidenceService({repository:{getById:async()=>property},cache,provider:{getPropertyRecord},singleFlight:new SupabasePropertySingleFlight({rpc}),logger:vi.fn()});
+  await expect(service.getPropertyEvidence({propertyId:id})).rejects.toMatchObject({code:'PROVIDER_NETWORK_ERROR'});
+  expect(owner).toBeNull();expect(cache.size()).toBe(0);
+  await expect(service.getPropertyEvidence({propertyId:id})).resolves.toMatchObject({cacheHit:false});
+  expect(owner).toBeNull();expect(getPropertyRecord).toHaveBeenCalledTimes(2);
  });
 });

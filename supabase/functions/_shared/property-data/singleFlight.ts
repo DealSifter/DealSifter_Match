@@ -11,7 +11,8 @@ export class InMemoryPropertySingleFlight implements PropertySingleFlight {
     finally { if (this.pending.get(key) === task) this.pending.delete(key); }
   }
 }
-// Database lease coordinates independent Edge isolates; failures retain the lease.
+// Database lease coordinates independent Edge isolates. A settled attempt must not
+// strand its lease; the database also expires leases from interrupted isolates.
 export class SupabasePropertySingleFlight implements PropertySingleFlight {
   constructor(private client: PropertyIntelligenceRpcClient) {}
   async run<T>(key: string, work: () => Promise<T>): Promise<T> {
@@ -21,10 +22,12 @@ export class SupabasePropertySingleFlight implements PropertySingleFlight {
       const { data, error } = await this.client.rpc('ds_acquire_property_evidence_lease', { p_key: key, p_token: token });
       if (error) throw new Error('PROPERTY_EVIDENCE_LEASE_UNAVAILABLE');
       if (data === true) {
-        const result = await work();
-        const released = await this.client.rpc('ds_release_property_evidence_lease', { p_key: key, p_token: token });
-        if (released.error) throw new Error('PROPERTY_EVIDENCE_LEASE_RELEASE_FAILED');
-        return result;
+        try {
+          return await work();
+        } finally {
+          const released = await this.client.rpc('ds_release_property_evidence_lease', { p_key: key, p_token: token });
+          if (released.error) throw new Error('PROPERTY_EVIDENCE_LEASE_RELEASE_FAILED');
+        }
       }
       await new Promise(resolve => setTimeout(resolve, 250));
     }

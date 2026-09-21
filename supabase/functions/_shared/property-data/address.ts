@@ -71,10 +71,11 @@ export function formatPropertyLookupAddress(input: PropertyLookupInput) {
 
 export function rentCastAddressMatches(
   input: PropertyLookupInput,
-  returned: { addressLine1?: unknown; state?: unknown; zipCode?: unknown },
+  returned: { addressLine1?: unknown; city?: unknown; state?: unknown; zipCode?: unknown },
 ) {
   const expected = validatePropertyLookupInput(input);
   return normalizeStreet(expected.street) === normalizeStreet(returned.addressLine1)
+    && expected.city.toUpperCase() === clean(returned.city).toUpperCase()
     && expected.state === normalizeState(returned.state)
     && expected.zipCode === normalizeZipCode(returned.zipCode);
 }

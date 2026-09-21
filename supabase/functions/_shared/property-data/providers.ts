@@ -70,19 +70,21 @@ export class RentCastPropertyDataProvider implements PropertyDataProvider {
     const normalizedInput = validatePropertyLookupInput(input);
     let reservation: UsageReservation | null = null;
     let finalizationAttempted = false;
+    let billableResponseReceived = false;
     try {
       reservation = await this.usageGuard.reserve({
         propertyId: normalizedInput.propertyId,
         userId: normalizedInput.userId,
       });
       const result = await this.client.lookupProperty(formatPropertyLookupAddress(normalizedInput));
-      finalizationAttempted = true;
-      await this.usageGuard.finalize(reservation, { billableSuccess: true, httpStatus: 200, errorCode: null });
+      billableResponseReceived = true;
       if (!result.record) throw new PropertyDataError('PROPERTY_NOT_FOUND', { httpStatus: 200, billableSuccess: true });
       if (!rentCastAddressMatches(normalizedInput, result.record)) {
         throw new PropertyDataError('ADDRESS_MISMATCH', { httpStatus: 200, billableSuccess: true });
       }
       const normalizedRecord = mapRentCastProperty(result.record, this.now().toISOString());
+      finalizationAttempted = true;
+      await this.usageGuard.finalize(reservation, { billableSuccess: true, httpStatus: 200, errorCode: null });
       this.logger({ success: true, durationMs: Date.now() - startedAt, httpStatus: 200, quotaState: 'completed' });
       return normalizedRecord;
     } catch (value) {
@@ -91,8 +93,8 @@ export class RentCastPropertyDataProvider implements PropertyDataProvider {
         finalizationAttempted = true;
         try {
           await this.usageGuard.finalize(reservation, {
-            billableSuccess: error.billableSuccess,
-            httpStatus: error.httpStatus,
+            billableSuccess: error.billableSuccess || billableResponseReceived,
+            httpStatus: billableResponseReceived ? 200 : error.httpStatus,
             errorCode: error.code,
           });
         } catch {
