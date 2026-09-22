@@ -35,6 +35,19 @@ describe('Maxxis Investor Report QA + Production Readiness v1', () => {
     expect(validateReportIntegrity({ schema: schema('DEAL_INTELLIGENCE'), exportEntitlement: exportAccess('pro', 'DEAL_INTELLIGENCE') }).valid).toBe(false);
   });
 
+  it('accepts a redacted street only when the stored property still has type and city/state/ZIP', () => {
+    const redacted = buildMaxxisReportSchema({ reportType: 'DEAL_INTELLIGENCE',
+      property: { id: 'property-1', type: 'SFR', city: 'Porter Ranch', state: 'CA', zip: '91326' },
+      dealIntelligence: deal() });
+    expect(validateReportIntegrity({ schema: redacted,
+      exportEntitlement: exportAccess('enterprise', 'DEAL_INTELLIGENCE') }).valid).toBe(true);
+    const withoutZip = buildMaxxisReportSchema({ reportType: 'DEAL_INTELLIGENCE',
+      property: { id: 'property-1', type: 'SFR', city: 'Porter Ranch', state: 'CA' },
+      dealIntelligence: deal() });
+    expect(validateReportIntegrity({ schema: withoutZip,
+      exportEntitlement: exportAccess('enterprise', 'DEAL_INTELLIGENCE') }).valid).toBe(false);
+  });
+
   it('preserves unavailable ARV as null and rejects fabricated unavailable values', () => {
     const valid = schema('DEAL_INTELLIGENCE', { dealIntelligence: deal({ valuationIntelligence: { status: 'ARV_UNAVAILABLE', range: { low: 1, high: 2 }, centralReference: 1, compsUsed: 0 } }) });
     expect(valid.sections.valuationEvidence.data).toMatchObject({ status: 'ARV_UNAVAILABLE', range: null, centralReference: null });

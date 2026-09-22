@@ -15,7 +15,9 @@ export function validateReportIntegrity({ schema, exportEntitlement, channel = '
   const findings = [
     finding('VALID_SCHEMA', schema?.type === 'maxxis_report_schema', 'A recognized MaxxisReportSchema is required.'),
     finding('PROPERTY_EXISTS', Boolean(property?.id), 'A persisted property identifier is required.'),
-    finding('BASIC_PROPERTY_INFORMATION', Boolean(property?.type && (property?.address || property?.title)), 'Property type and address or title are required.'),
+    finding('BASIC_PROPERTY_INFORMATION', Boolean(property?.type && (
+      property?.address || property?.title || (property?.city && property?.state && property?.zip)
+    )), 'Property type and an address, title, or stored city/state/ZIP are required.'),
     finding('PROVENANCE_AVAILABLE', available(schema, 'provenance'), 'Report provenance is required.'),
     finding('EXPORT_ENTITLEMENT_MATCH', isMatchingReportExportEntitlement(exportEntitlement, reportType, channel), 'Export entitlement must match report type and channel.'),
   ];

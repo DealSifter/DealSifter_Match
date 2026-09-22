@@ -1,0 +1,17 @@
+import React from 'react';
+import { renderToStaticMarkup } from 'react-dom/server';
+import { describe, expect, it } from 'vitest';
+import { MyMaxxisReports } from './MyMaxxisReports';
+
+describe('My Maxxis Reports', () => {
+  it('labels a saved report by its real redacted location without inventing a street', () => {
+    const html = renderToStaticMarkup(<MyMaxxisReports reports={[{
+      id: 'report-1', capability: 'DEAL_INTELLIGENCE', accessSource: 'SUBSCRIPTION_INCLUDED',
+      createdAt: '2026-09-21T00:00:00Z', reportPayload: { data: { maxxisReport: {
+        sections: { propertySummary: { data: { id: 'property-1', type: 'SFR', city: 'Porter Ranch', state: 'CA', zip: '91326' } } },
+      } } },
+    }]} />);
+    expect(html).toContain('Porter Ranch, CA 91326');
+    expect(html).not.toContain('100 Stored St');
+  });
+});
