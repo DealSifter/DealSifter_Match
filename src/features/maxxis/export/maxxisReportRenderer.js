@@ -3,6 +3,11 @@ import { validateIntelligenceConsistency, validateReportIntegrity } from '../qa/
 
 export const MAXXIS_REPORT_DOCUMENT_VERSION = 'MAXXIS_REPORT_DOCUMENT_V1';
 export const MAXXIS_REPORT_DISCLAIMER = 'This report provides evidence-based investment analysis only and does not constitute appraisal, financial advice, or recommendation to buy or sell.';
+const REPORT_NAMES = Object.freeze({
+  PROPERTY_RELEASE: 'PROPERTY RELEASE',
+  MAXXIS_ANALYSIS: 'MAXXIS ANALYSIS REPORT',
+  DEAL_INTELLIGENCE: 'MAXXIS DEAL INTELLIGENCE REPORT',
+});
 
 const section = (schema, key) => schema?.sections?.[key]?.available ? schema.sections[key].data : null;
 
@@ -20,9 +25,9 @@ export function renderMaxxisReportDocument({ schema, exportEntitlement, generate
   const pages = schema.pages.map((page) => Object.freeze({
     page: page.page,
     code: page.code,
-    header: Object.freeze({ brand: 'DealSifter Match', descriptor: 'Evidence-based investment intelligence', product: 'MAXXIS AI' }),
+    header: Object.freeze({ brand: 'DealSifter Match', product: REPORT_NAMES[schema.reportType] }),
     sectionKeys: Object.freeze(page.sections.filter((key) => schema.sections[key]?.available)),
-    footer: Object.freeze({ page: page.page, generatedAt: generatedDate.toISOString(), version: schema.version, disclaimer: MAXXIS_REPORT_DISCLAIMER }),
+    footer: Object.freeze({ page: page.page, generatedAt: generatedDate.toISOString() }),
   }));
   return Object.freeze({ state: 'PREPARED', document: Object.freeze({
     type: 'maxxis_investment_intelligence_document', version: MAXXIS_REPORT_DOCUMENT_VERSION,

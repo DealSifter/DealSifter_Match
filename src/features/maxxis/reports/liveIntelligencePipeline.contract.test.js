@@ -42,7 +42,7 @@ describe('Deal Intelligence canonical live evidence pipeline',()=>{
     expect(assistant).not.toContain('preferencesCopy.moreSettings');
   });
   it('re-exports persisted reports from the validated dynamic schema without provider work',()=>{
-    expect(assistant).toContain('renderMaxxisReportPdf({ schema, exportEntitlement: entitlement, language })');
+    expect(assistant).toContain('renderMaxxisReportPdf({ schema, exportEntitlement: entitlement, generatedAt: report.createdAt, language })');
     expect(assistant).toContain('downloadMaxxisReportPdf(rendered.document');
     expect(assistant).not.toContain("new jsPDF({ unit:'pt', format:'letter' })");
   });

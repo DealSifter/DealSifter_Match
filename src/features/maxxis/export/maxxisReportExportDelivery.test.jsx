@@ -6,7 +6,7 @@ import { buildMaxxisReportSchema } from '../../../domain/maxxis/maxxisReportSche
 import { MaxxisReportExportActions } from './MaxxisReportExportActions';
 import { createReportEmailRequest, createSharedReport } from './maxxisReportDeliveryContracts';
 import { buildMaxxisReportExportPreview } from './maxxisReportExportPreview';
-import { MAXXIS_REPORT_DISCLAIMER, renderMaxxisReportDocument } from './maxxisReportRenderer';
+import { renderMaxxisReportDocument } from './maxxisReportRenderer';
 import { renderMaxxisReportPdf } from './maxxisReportPdf';
 import { resolveReportExportEntitlement } from './reportExportEntitlement';
 
@@ -33,7 +33,8 @@ describe('Maxxis Report Export + Delivery Experience v1', () => {
     const result = renderMaxxisReportDocument({ schema: schema('DEAL_INTELLIGENCE'), exportEntitlement: entitlement('enterprise', 'DEAL_INTELLIGENCE', 'PDF'), generatedAt: '2026-09-14T12:00:00.000Z', language: 'pt' });
     expect(result).toMatchObject({ state: 'PREPARED', document: { reportType: 'DEAL_INTELLIGENCE', language: 'pt', pageCount: 6, binary: null, downloadUrl: null } });
     expect(result.document.cover).toMatchObject({ propertyAddress: '100 Stored St', propertyType: 'SFR', strategy: 'Fix and Flip', heroImage: 'https://portfolio.example/subject.jpg' });
-    expect(result.document.pages[0]).toMatchObject({ header: { brand: 'DealSifter Match', descriptor: 'Evidence-based investment intelligence', product: 'MAXXIS AI' }, footer: { page: 1, version: expect.any(String), disclaimer: MAXXIS_REPORT_DISCLAIMER } });
+    expect(result.document.pages[0]).toMatchObject({ header: { brand: 'DealSifter Match', product: 'MAXXIS DEAL INTELLIGENCE REPORT' }, footer: { page: 1, generatedAt: '2026-09-14T12:00:00.000Z' } });
+    expect(Object.keys(result.document.pages[0].footer)).toEqual(['page', 'generatedAt']);
   });
 
   it.each([

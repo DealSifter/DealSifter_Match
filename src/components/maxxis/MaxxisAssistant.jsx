@@ -1314,7 +1314,7 @@ export function MaxxisAssistant({ page = 'dashboard', onOpenSupport = null, onNa
         followUps: dealIntelligence || maxxisAnalysis ? [] : intelligence.followUps,
         smartActionsEnabled: intelligence.type === 'deal_snapshot',
         smartActionSurface: 'snapshot',
-        analysisExport: result.unavailable ? null : (meta.analysisExport || null),
+        analysisExport: projectedReportType ? (meta.analysisExport || null) : null,
         compositionMode: dealIntelligence || maxxisAnalysis ? 'ANALYSIS' : (intelligence.type === 'property_tradeoffs' ? 'COMPARISON' : (intelligence.type ? 'ANALYSIS' : undefined)),
       }]);
     } catch (error) {
@@ -1826,7 +1826,22 @@ export function MaxxisAssistant({ page = 'dashboard', onOpenSupport = null, onNa
     if (!analysisExport?.onExportPdf || !onExportAnalysisPdf || exportingAnalysisId) return;
     setExportingAnalysisId(messageId || analysisExport.requestId || 'active');
     try {
-      await onExportAnalysisPdf(analysisExport, analysisText);
+      const reportMessage = messages.find((entry) => entry.id === messageId);
+      const schema = reportMessage?.data?.maxxisReport;
+      const entitlement = schema ? resolveReportExportEntitlement({
+        plan: currentPlan, entitlements: reportEntitlements, reportType: schema.reportType, channel: 'PDF',
+      }) : null;
+      await onExportAnalysisPdf({
+        ...analysisExport,
+        onExportPdf: async () => {
+          if (!schema || !entitlement?.allowed) throw new Error('MAXXIS_REPORT_SCHEMA_OR_ACCESS_UNAVAILABLE');
+          const rendered = await renderMaxxisReportPdf({ schema, exportEntitlement: entitlement, generatedAt: reportMessage.createdAt, language });
+          if (rendered.state !== 'RENDERED') throw new Error(`MAXXIS_REPORT_${rendered.state}`);
+          if (!downloadMaxxisReportPdf(rendered.document, `maxxis-${schema.reportType.toLowerCase().replaceAll('_', '-')}.pdf`)) {
+            throw new Error('MAXXIS_REPORT_DOWNLOAD_FAILED');
+          }
+        },
+      }, analysisText);
     } finally {
       setExportingAnalysisId(null);
     }
@@ -2397,7 +2412,7 @@ export function MaxxisAssistant({ page = 'dashboard', onOpenSupport = null, onNa
     const schema = report?.reportPayload?.data?.maxxisReport;
     const entitlement = savedReportExportEntitlements(report).PDF;
     if (!schema || !entitlement?.allowed) return false;
-    const rendered = await renderMaxxisReportPdf({ schema, exportEntitlement: entitlement, language });
+    const rendered = await renderMaxxisReportPdf({ schema, exportEntitlement: entitlement, generatedAt: report.createdAt, language });
     if (rendered.state !== 'RENDERED') return false;
     return downloadMaxxisReportPdf(rendered.document, `maxxis-${report?.id || schema.reportType.toLowerCase()}.pdf`);
   };

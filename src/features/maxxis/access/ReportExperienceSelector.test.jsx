@@ -8,7 +8,7 @@ const css=readFileSync(new URL('./ReportExperienceSelector.css',import.meta.url)
 const modalSource=readFileSync(new URL('../../../components/ui/Modal.jsx',import.meta.url),'utf8');
 const portfolioSource=readFileSync(new URL('../../../components/matches/MatchesPortfolio.jsx',import.meta.url),'utf8');
 describe('Report Experience Selector',()=>{
-  it('starts with approved stacked actions and no selection',()=>{const html=renderToStaticMarkup(<ReportExperienceSelector plan="free" language="en"/>);expect(html.match(/BASIC PROPERTY RELEASE/g)).toHaveLength(4);expect(html).toContain('Download to device');expect(html).toContain('Send by email');expect(html).toContain('AI-powered property analysis');expect(html).not.toContain('is-selected')});
+  it('starts with canonical stacked actions and no selection',()=>{const html=renderToStaticMarkup(<ReportExperienceSelector plan="free" language="en"/>);expect(html.match(/PROPERTY RELEASE/g)).toHaveLength(4);expect(html).toContain('Download to device');expect(html).toContain('Send by email');expect(html).toContain('AI-powered property analysis');expect(html).not.toContain('is-selected')});
   it('keeps info preview independent from actions',()=>{const action=vi.fn();renderToStaticMarkup(<ReportExperienceSelector onBasicDownload={action}/>);expect(source).toContain("onInfo={()=>setPreview('PROPERTY_RELEASE')}");expect(action).not.toHaveBeenCalled()});
   it('uses the favicon brand in the first Maxxis action and omits only its information button',()=>{
     const html=renderToStaticMarkup(<ReportExperienceSelector language="en"/>);
@@ -23,10 +23,10 @@ describe('Report Experience Selector',()=>{
     expect(css).toMatch(/\.is-intelligence \.report-action-main img\s*\{\s*width:\s*72px;\s*height:\s*72px;/);
   });
   it('defines canonical intelligence selection and 3/5 access resolver',()=>{expect(source).toContain("['MAXXIS_ANALYSIS','DEAL_INTELLIGENCE']");expect(source).toContain('access.nuggetCost');expect(source).toContain('DEAL INTELLIGENCE REPORT')});
-  it('groups the approved preview images into 1, 3 and 6 page carousels',()=>{
-    expect(source.match(/Basic Release\.png/g)).toHaveLength(1);
-    expect(source.match(/Maxxis Analisys/g)).toHaveLength(3);
-    expect(source.match(/Deal Inteligence/g)).toHaveLength(6);
+  it('groups renderer-derived preview pages into 1, 3 and 6 page carousels',()=>{
+    expect(source.match(/property-release-page-1\.png/g)).toHaveLength(1);
+    expect(source.match(/maxxis-analysis-page-[123]\.png/g)).toHaveLength(3);
+    expect(source.match(/deal-intelligence-page-[1-6]\.png/g)).toHaveLength(6);
     expect(source).toContain('PROPERTY_RELEASE:Object.freeze([propertyReleasePage1])');
     expect(source).toContain('MAXXIS_ANALYSIS:Object.freeze([maxxisAnalysisPage1,maxxisAnalysisPage2,maxxisAnalysisPage3])');
     expect(source).toContain('DEAL_INTELLIGENCE:Object.freeze([dealIntelligencePage1,dealIntelligencePage2,dealIntelligencePage3,dealIntelligencePage4,dealIntelligencePage5,dealIntelligencePage6])');
