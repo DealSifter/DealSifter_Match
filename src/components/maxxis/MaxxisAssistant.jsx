@@ -116,7 +116,7 @@ import {
   resolveIntelligenceReportAccess,
 } from '../../domain/intelligenceAccess';
 import { buildMaxxisIntelligenceUpgradeExperience } from '../../features/maxxis/access/maxxisIntelligenceUpgrade';
-import { resolveReportExportEntitlement } from '../../features/maxxis/export/reportExportEntitlement';
+import { resolveReportExportEntitlement, resolveReportExportEntitlements } from '../../features/maxxis/export/reportExportEntitlement';
 import { downloadMaxxisReportPdf, renderMaxxisReportPdf } from '../../features/maxxis/export/maxxisReportPdf';
 import { MyMaxxisReports } from '../../features/maxxis/reports/MyMaxxisReports';
 import './MaxxisAssistant.css';
@@ -1246,10 +1246,16 @@ export function MaxxisAssistant({ page = 'dashboard', onOpenSupport = null, onNa
         : null;
       const projectedReport = dealIntelligence || maxxisAnalysis;
       const projectedReportType = projectedReport?.data?.maxxisReport?.reportType || null;
-      const reportExportEntitlements = projectedReportType ? Object.freeze(Object.fromEntries(['PDF', 'EMAIL', 'SHARE'].map((channel) => [
-        channel,
-        resolveReportExportEntitlement({ plan: currentPlan, entitlements: reportEntitlements, reportType: projectedReportType, channel }),
-      ]))) : null;
+      const grantedReportAccess = meta.reportAccessDecision?.allowed
+        && String(meta.reportAccessDecision.reportType || '').toUpperCase() === projectedReportType
+        ? meta.reportAccessDecision
+        : null;
+      const reportExportEntitlements = projectedReportType ? resolveReportExportEntitlements({
+        plan: currentPlan,
+        entitlements: reportEntitlements,
+        reportType: projectedReportType,
+        grantedAccessDecision: grantedReportAccess,
+      }) : null;
       persistStructuredDealMemory(result, 'DEAL_REVIEW');
       let persistedReportId = null;
       if (projectedReportType && typeof onPersistReport === 'function') {
@@ -1261,7 +1267,7 @@ export function MaxxisAssistant({ page = 'dashboard', onOpenSupport = null, onNa
             reportPayload: {
               content: dealIntelligence?.content || maxxisAnalysis?.content || intelligence.content || result.answer,
               type: dealIntelligence?.type || maxxisAnalysis?.type || intelligence.type || result.type,
-              data: projectedReport.data,
+              data: { ...projectedReport.data, reportAccessDecision: grantedReportAccess },
             },
           });
         } catch (error) {
@@ -1310,7 +1316,7 @@ export function MaxxisAssistant({ page = 'dashboard', onOpenSupport = null, onNa
         degradedReason: result.degradedReason || '',
         requestId: result.requestId || '',
         type: dealIntelligence?.type || maxxisAnalysis?.type || intelligence.type || result.type,
-        data: projectedReport ? { ...projectedReport.data, reportExportEntitlements, reportId: persistedReportId, runtimeTrace } : (intelligence.data || result.data),
+        data: projectedReport ? { ...projectedReport.data, reportAccessDecision: grantedReportAccess, reportExportEntitlements, reportId: persistedReportId, runtimeTrace } : (intelligence.data || result.data),
         followUps: dealIntelligence || maxxisAnalysis ? [] : intelligence.followUps,
         smartActionsEnabled: intelligence.type === 'deal_snapshot',
         smartActionSurface: 'snapshot',
@@ -1828,9 +1834,9 @@ export function MaxxisAssistant({ page = 'dashboard', onOpenSupport = null, onNa
     try {
       const reportMessage = messages.find((entry) => entry.id === messageId);
       const schema = reportMessage?.data?.maxxisReport;
-      const entitlement = schema ? resolveReportExportEntitlement({
+      const entitlement = reportMessage?.data?.reportExportEntitlements?.PDF || (schema ? resolveReportExportEntitlement({
         plan: currentPlan, entitlements: reportEntitlements, reportType: schema.reportType, channel: 'PDF',
-      }) : null;
+      }) : null);
       await onExportAnalysisPdf({
         ...analysisExport,
         onExportPdf: async () => {
@@ -2390,6 +2396,7 @@ export function MaxxisAssistant({ page = 'dashboard', onOpenSupport = null, onNa
         onEmail: request?.onEmail || null,
       },
       reportType: request?.reportType || '',
+      reportAccessDecision: request?.accessDecision || null,
       propertyAnalysisContext: request?.propertyAnalysisContext || null,
     });
   }, [language, propertyAnalysisRequest?.id]);
@@ -2397,10 +2404,12 @@ export function MaxxisAssistant({ page = 'dashboard', onOpenSupport = null, onNa
   const savedReportExportEntitlements = (report) => {
     const reportType = String(report?.capability || report?.reportPayload?.data?.maxxisReport?.reportType || '');
     if (!reportType) return {};
-    return Object.freeze(Object.fromEntries(['PDF', 'EMAIL', 'SHARE'].map((channel) => [
-      channel,
-      resolveReportExportEntitlement({ plan: currentPlan, entitlements: reportEntitlements, reportType, channel }),
-    ])));
+    return resolveReportExportEntitlements({
+      plan: currentPlan,
+      entitlements: reportEntitlements,
+      reportType,
+      grantedAccessDecision: report?.reportPayload?.data?.reportAccessDecision || null,
+    });
   };
   const openSavedReport = (report) => {
     const payload = report?.reportPayload || {};
@@ -2559,10 +2568,13 @@ export function MaxxisAssistant({ page = 'dashboard', onOpenSupport = null, onNa
             })}
             {loading ? (
               <div className="maxxis-message maxxis-message-assistant">
-                <div className="maxxis-typing" aria-label={t.typing}>
-                  <span />
-                  <span />
-                  <span />
+                <div className="maxxis-typing" role="status" aria-live="polite" aria-label={t.typing}>
+                  <strong>{t.typing}</strong>
+                  <span className="maxxis-typing-dots" aria-hidden="true">
+                    <i />
+                    <i />
+                    <i />
+                  </span>
                 </div>
               </div>
             ) : null}

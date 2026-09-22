@@ -4,11 +4,12 @@ import { renderToStaticMarkup } from 'react-dom/server';
 import { describe, expect, it, vi } from 'vitest';
 import { buildMaxxisReportSchema } from '../../../domain/maxxis/maxxisReportSchema';
 import { MaxxisReportExportActions } from './MaxxisReportExportActions';
+import { buildReportMailtoUrl } from './reportDeliveryUtils';
 import { createReportEmailRequest, createSharedReport } from './maxxisReportDeliveryContracts';
 import { buildMaxxisReportExportPreview } from './maxxisReportExportPreview';
 import { renderMaxxisReportDocument } from './maxxisReportRenderer';
 import { renderMaxxisReportPdf } from './maxxisReportPdf';
-import { resolveReportExportEntitlement } from './reportExportEntitlement';
+import { resolveReportExportEntitlement, resolveReportExportEntitlements } from './reportExportEntitlement';
 
 const property = { id: 'property-1', address: '100 Stored St', type: 'SFR', objective: 'Fix and Flip', images: ['https://portfolio.example/subject.jpg'] };
 const analysis = { executiveSummary: 'Evidence summary.', profileAlignment: { score: 70 }, riskAwareness: [], limitations: ['Condition unknown'], nextSteps: ['Verify condition'], provenance: { property: 'USER_PROVIDED' } };
@@ -27,6 +28,33 @@ describe('Maxxis Report Export + Delivery Experience v1', () => {
     expect(entitlement('pro', 'MAXXIS_ANALYSIS', 'PDF').allowed).toBe(true);
     expect(entitlement('pro', 'DEAL_INTELLIGENCE', 'PDF').allowed).toBe(false);
     for (const type of ['PROPERTY_RELEASE', 'MAXXIS_ANALYSIS', 'DEAL_INTELLIGENCE']) expect(entitlement('enterprise', type, 'PDF').allowed).toBe(true);
+  });
+
+  it('keeps a legitimate just-issued report grant attached to all local delivery actions', () => {
+    const grantedAccessDecision = {
+      allowed: true,
+      reportType: 'DEAL_INTELLIGENCE',
+      reason: 'ACTIVE_REPORT_ENTITLEMENT',
+      accessLevel: 'NUGGET_UNLOCK',
+      accessSource: 'NUGGET_UNLOCK',
+    };
+    const decisions = resolveReportExportEntitlements({
+      plan: 'free',
+      reportType: 'DEAL_INTELLIGENCE',
+      grantedAccessDecision,
+    });
+    expect(Object.values(decisions).every((decision) => decision.allowed)).toBe(true);
+    expect(decisions.PDF).toMatchObject({ state: 'AUTHORIZED', accessSource: 'NUGGET_UNLOCK' });
+    expect(resolveReportExportEntitlements({
+      plan: 'free',
+      reportType: 'MAXXIS_ANALYSIS',
+      grantedAccessDecision,
+    }).PDF.allowed).toBe(false);
+  });
+
+  it('builds a functional encoded email draft target', () => {
+    expect(buildReportMailtoUrl({ subject: 'Deal & report', body: 'PDF pronto / ready' }))
+      .toBe('mailto:?subject=Deal%20%26%20report&body=PDF%20pronto%20%2F%20ready');
   });
 
   it('prepares an auditable document structure without producing a binary or URL', () => {

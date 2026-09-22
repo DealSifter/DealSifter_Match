@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { Download, Mail, Share2 } from 'lucide-react';
 import { downloadMaxxisReportPdf, renderMaxxisReportPdf } from './maxxisReportPdf';
+import { buildReportMailtoUrl } from './reportDeliveryUtils';
 import './MaxxisReportExportActions.css';
 
 const COPY = Object.freeze({
@@ -29,6 +30,15 @@ const COPY = Object.freeze({
 
 const reportFileName = (schema) => `maxxis-${String(schema?.reportType || 'report').toLowerCase().replaceAll('_', '-')}.pdf`;
 
+function openEmailDraft(url) {
+  const anchor = window.document.createElement('a');
+  anchor.href = url;
+  anchor.style.display = 'none';
+  window.document.body.appendChild(anchor);
+  anchor.click();
+  anchor.remove();
+}
+
 export function MaxxisReportExportActions({ schema, exportEntitlements = {}, language = 'en', onPrepared = null }) {
   const [busyChannel, setBusyChannel] = useState(null);
   const [status, setStatus] = useState('');
@@ -52,18 +62,23 @@ export function MaxxisReportExportActions({ schema, exportEntitlements = {}, lan
         setStatus(copy.ready);
       } else if (channel === 'EMAIL') {
         downloadMaxxisReportPdf(document, fileName);
-        const subject = encodeURIComponent(copy.subject);
-        const body = encodeURIComponent(copy.body);
-        window.location.assign(`mailto:?subject=${subject}&body=${body}`);
+        openEmailDraft(buildReportMailtoUrl(copy));
         setStatus(copy.emailReady);
       } else {
         const file = typeof File === 'function' ? new File([document.binary], fileName, { type: 'application/pdf' }) : null;
         if (file && navigator.share && (!navigator.canShare || navigator.canShare({ files: [file] }))) {
-          await navigator.share({ title: copy.subject, text: copy.body, files: [file] });
-          setStatus(copy.shared);
+          try {
+            await navigator.share({ title: copy.subject, text: copy.body, files: [file] });
+            setStatus(copy.shared);
+          } catch (error) {
+            if (error?.name === 'AbortError') throw error;
+            downloadMaxxisReportPdf(document, fileName);
+            try { await navigator.clipboard?.writeText(`${copy.subject}\n${copy.body}`); } catch { /* Download remains the reliable fallback. */ }
+            setStatus(copy.copied);
+          }
         } else {
           downloadMaxxisReportPdf(document, fileName);
-          await navigator.clipboard?.writeText(`${copy.subject}\n${copy.body}`);
+          try { await navigator.clipboard?.writeText(`${copy.subject}\n${copy.body}`); } catch { /* Download remains the reliable fallback. */ }
           setStatus(copy.copied);
         }
       }

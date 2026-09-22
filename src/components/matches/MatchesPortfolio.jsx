@@ -423,14 +423,15 @@ export function PortfolioDetail({ item, owner, ownerContact = null, isOwnerUnloc
   const [emailCc, setEmailCc] = useState(() => {
     try {
       const saved = JSON.parse(localStorage.getItem('ds_export_mail_defaults') || 'null');
-      if (saved && typeof saved.cc === 'string') return saved.cc;
+      if (saved && typeof saved.cc === 'string' && saved.cc.trim() !== String(saved.to || '').trim()) return saved.cc;
     } catch (e) { void e; }
     return '';
   });
   const [emailBcc, setEmailBcc] = useState(() => {
     try {
       const saved = JSON.parse(localStorage.getItem('ds_export_mail_defaults') || 'null');
-      if (saved && typeof saved.bcc === 'string') return saved.bcc;
+      const bcc = String(saved?.bcc || '').trim();
+      if (bcc && bcc !== String(saved?.to || '').trim() && bcc !== String(saved?.cc || '').trim()) return saved.bcc;
     } catch (e) { void e; }
     return '';
   });
@@ -486,8 +487,11 @@ export function PortfolioDetail({ item, owner, ownerContact = null, isOwnerUnloc
       try {
         const saved = JSON.parse(localStorage.getItem('ds_export_mail_defaults') || 'null');
         setEmailTo(saved?.to?.trim() || getProfileEmailFallback());
-        setEmailCc(saved?.cc || '');
-        setEmailBcc(saved?.bcc || '');
+        const savedTo = String(saved?.to || '').trim();
+        const savedCc = String(saved?.cc || '').trim();
+        const savedBcc = String(saved?.bcc || '').trim();
+        setEmailCc(savedCc && savedCc !== savedTo ? savedCc : '');
+        setEmailBcc(savedBcc && savedBcc !== savedTo && savedBcc !== savedCc ? savedBcc : '');
       } catch (e) {
         void e;
         setEmailTo(getProfileEmailFallback());
@@ -1166,6 +1170,16 @@ export function PortfolioDetail({ item, owner, ownerContact = null, isOwnerUnloc
               <label style={{ display: 'grid', gap: 4 }}>
                 <span style={{ fontSize: 11, color: C.t2, fontWeight: 700 }}>{matchesT.exportRecipientTo || 'To'}</span>
                 <input
+                  id="report-email-recipient-to"
+                  name="report-email-recipient-to"
+                  type="text"
+                  inputMode="email"
+                  autoComplete="off"
+                  autoCapitalize="none"
+                  spellCheck={false}
+                  data-form-type="other"
+                  data-lpignore="true"
+                  data-1p-ignore="true"
                   value={emailTo}
                   onChange={(e) => setEmailTo(e.target.value)}
                   disabled={exportMode !== 'email'}
@@ -1176,6 +1190,16 @@ export function PortfolioDetail({ item, owner, ownerContact = null, isOwnerUnloc
               <label style={{ display: 'grid', gap: 4 }}>
                 <span style={{ fontSize: 11, color: C.t2, fontWeight: 700 }}>{matchesT.exportRecipientCc || 'Cc'}</span>
                 <input
+                  id="report-email-recipient-cc"
+                  name="report-email-recipient-cc"
+                  type="text"
+                  inputMode="email"
+                  autoComplete="off"
+                  autoCapitalize="none"
+                  spellCheck={false}
+                  data-form-type="other"
+                  data-lpignore="true"
+                  data-1p-ignore="true"
                   value={emailCc}
                   onChange={(e) => setEmailCc(e.target.value)}
                   disabled={exportMode !== 'email'}
@@ -1186,6 +1210,16 @@ export function PortfolioDetail({ item, owner, ownerContact = null, isOwnerUnloc
               <label style={{ display: 'grid', gap: 4 }}>
                 <span style={{ fontSize: 11, color: C.t2, fontWeight: 700 }}>{matchesT.exportRecipientBcc || 'Bcc'}</span>
                 <input
+                  id="report-email-recipient-bcc"
+                  name="report-email-recipient-bcc"
+                  type="text"
+                  inputMode="email"
+                  autoComplete="off"
+                  autoCapitalize="none"
+                  spellCheck={false}
+                  data-form-type="other"
+                  data-lpignore="true"
+                  data-1p-ignore="true"
                   value={emailBcc}
                   onChange={(e) => setEmailBcc(e.target.value)}
                   disabled={exportMode !== 'email'}

@@ -21,6 +21,28 @@ export function resolveReportExportEntitlement({ plan, entitlements = [], report
   });
 }
 
+export function resolveReportExportEntitlements({ plan, entitlements = [], reportType, grantedAccessDecision = null } = {}) {
+  const normalizedReportType = String(reportType || '').trim().toUpperCase();
+  const hasMatchingGrant = Boolean(
+    grantedAccessDecision?.allowed
+    && String(grantedAccessDecision?.reportType || '').trim().toUpperCase() === normalizedReportType,
+  );
+
+  return Object.freeze(Object.fromEntries(MAXXIS_REPORT_EXPORT_CHANNELS.map((channel) => {
+    const resolved = resolveReportExportEntitlement({ plan, entitlements, reportType: normalizedReportType, channel });
+    if (resolved.allowed || !hasMatchingGrant) return [channel, resolved];
+    return [channel, Object.freeze({
+      ...resolved,
+      allowed: true,
+      state: 'AUTHORIZED',
+      reason: grantedAccessDecision.reason || 'AUTHORIZED_REPORT_GENERATION',
+      accessLevel: grantedAccessDecision.accessLevel || resolved.accessLevel,
+      accessSource: grantedAccessDecision.accessSource || resolved.accessSource,
+      accessDecision: grantedAccessDecision,
+    })];
+  })));
+}
+
 export function isMatchingReportExportEntitlement(decision, reportType, channel) {
   return Boolean(decision?.allowed
     && decision.reportType === String(reportType || '').trim().toUpperCase()
