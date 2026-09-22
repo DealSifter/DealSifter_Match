@@ -1,11 +1,51 @@
-.maxxis-report-export-actions { display: grid; gap: 8px; margin-top: 9px; }
-.maxxis-report-export-actions > div:first-child { display: flex; flex-wrap: wrap; gap: 6px; }
-.maxxis-report-export-actions button { border: 1px solid var(--border-color, #cbd5e1); border-radius: 8px; padding: 7px 10px; color: var(--text-primary, #172033); background: var(--card-bg, #fff); font-size: 10px; font-weight: 800; cursor: pointer; }
+.maxxis-report-export-actions {
+  display: grid;
+  gap: 8px;
+  padding: 12px;
+  border-top: 1px solid var(--border-color, #cbd5e1);
+  background: var(--card-bg, #fff);
+}
+
+.maxxis-report-export-actions > strong {
+  color: var(--text-secondary, #475569);
+  font-size: 10px;
+  letter-spacing: .06em;
+  text-transform: uppercase;
+}
+
+.maxxis-report-export-actions > div {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 7px;
+}
+
+.maxxis-report-export-actions button {
+  display: inline-flex;
+  min-height: 38px;
+  align-items: center;
+  justify-content: center;
+  gap: 7px;
+  border: 1px solid color-mix(in srgb, var(--accent-hex, #20c6c7) 45%, var(--border-color, #cbd5e1));
+  border-radius: 9px;
+  padding: 8px 10px;
+  color: var(--text-primary, #172033);
+  background: color-mix(in srgb, var(--accent-hex, #20c6c7) 8%, var(--card-bg, #fff));
+  font-size: 10px;
+  font-weight: 800;
+  cursor: pointer;
+  transition: transform .18s ease, border-color .18s ease, background .18s ease;
+}
+
+.maxxis-report-export-actions button:hover:not(:disabled),
+.maxxis-report-export-actions button:focus-visible:not(:disabled) {
+  border-color: var(--accent-hex, #20c6c7);
+  background: color-mix(in srgb, var(--accent-hex, #20c6c7) 16%, var(--card-bg, #fff));
+  transform: translateY(-1px);
+}
+
 .maxxis-report-export-actions button:disabled { cursor: not-allowed; opacity: .45; }
-.maxxis-report-export-preview { display: grid; gap: 7px; padding: 11px; border: 1px solid var(--border-color, #cbd5e1); border-radius: 10px; background: var(--card-bg, #fff); }
-.maxxis-report-export-preview header, .maxxis-report-export-preview footer { display: flex; justify-content: space-between; gap: 8px; align-items: center; }
-.maxxis-report-export-preview header strong { color: #168f91; }
-.maxxis-report-export-preview ul { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 3px 8px; margin: 0; padding: 0; list-style: none; font-size: 10px; }
-.maxxis-report-export-preview small { color: var(--text-tertiary, #64748b); }
-.maxxis-report-export-preview footer button:last-child { color: #fff; border-color: #168f91; background: linear-gradient(135deg, #168f91, #20c6c7); }
-@media (max-width: 560px) { .maxxis-report-export-preview ul { grid-template-columns: 1fr; } }
+.maxxis-report-export-actions > small { color: var(--text-tertiary, #64748b); font-size: 9px; }
+
+@media (max-width: 430px) {
+  .maxxis-report-export-actions > div { grid-template-columns: 1fr; }
+}

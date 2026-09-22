@@ -141,9 +141,46 @@ function panel(doc, x, y, w, h, { fill = C.white, stroke = C.line, radius = 8 } 
   doc.setFillColor(...fill); doc.setDrawColor(...stroke);
   doc.roundedRect(x, y, w, h, radius, radius, 'FD');
 }
+function iconKind(title) {
+  const normalized = String(title || '').toLowerCase();
+  if (/owner|propriet|perfil|profile/.test(normalized)) return 'person';
+  if (/location|localiza|ubicaci|map|terreno|land/.test(normalized)) return 'pin';
+  if (/photo|foto/.test(normalized)) return 'camera';
+  if (/risk|risco|riesgo|missing|falta|limita|warning|atenção|atenci/.test(normalized)) return 'warning';
+  if (/positive|positivo|evidence|evidência|evidencia/.test(normalized)) return 'check';
+  if (/valuation|avalia|valoraci|arv|kpi|compatib|fit|adequação|afinidad|spread|roi/.test(normalized)) return 'chart';
+  if (/next|próxim|proxim|action|ações|acciones|steps|etapas|pasos/.test(normalized)) return 'list';
+  if (/property|imóvel|propiedad|detail|detalhe|característica|release|overview|resumen/.test(normalized)) return 'house';
+  return 'document';
+}
+function drawIcon(doc, kind, cx, cy, accent, size = 12) {
+  const r = size / 2;
+  doc.setFillColor(...accent); doc.circle(cx, cy, r, 'F');
+  doc.setDrawColor(...C.white); doc.setTextColor(...C.white); doc.setLineWidth(Math.max(.7, size / 13));
+  if (kind === 'person') {
+    doc.circle(cx, cy - r * .25, r * .22, 'S'); doc.ellipse(cx, cy + r * .4, r * .44, r * .3, 'S');
+  } else if (kind === 'pin') {
+    doc.circle(cx, cy - r * .13, r * .24, 'S'); doc.line(cx - r * .4, cy - r * .05, cx, cy + r * .58); doc.line(cx + r * .4, cy - r * .05, cx, cy + r * .58);
+  } else if (kind === 'camera') {
+    doc.roundedRect(cx - r * .54, cy - r * .32, r * 1.08, r * .72, 1, 1, 'S'); doc.circle(cx, cy + r * .03, r * .22, 'S'); doc.line(cx - r * .35, cy - r * .32, cx - r * .2, cy - r * .5); doc.line(cx - r * .2, cy - r * .5, cx + r * .05, cy - r * .5);
+  } else if (kind === 'warning') {
+    doc.triangle(cx, cy - r * .55, cx - r * .58, cy + r * .45, cx + r * .58, cy + r * .45, 'S'); doc.line(cx, cy - r * .2, cx, cy + r * .15); doc.circle(cx, cy + r * .3, .45, 'F');
+  } else if (kind === 'check') {
+    doc.circle(cx, cy, r * .54, 'S'); doc.line(cx - r * .3, cy, cx - r * .05, cy + r * .25); doc.line(cx - r * .05, cy + r * .25, cx + r * .35, cy - r * .27);
+  } else if (kind === 'chart') {
+    doc.rect(cx - r * .5, cy + r * .06, r * .2, r * .42, 'S'); doc.rect(cx - r * .1, cy - r * .17, r * .2, r * .65, 'S'); doc.rect(cx + r * .3, cy - r * .45, r * .2, r * .93, 'S');
+  } else if (kind === 'list') {
+    [-.34, 0, .34].forEach((offset) => { doc.circle(cx - r * .35, cy + r * offset, .55, 'F'); doc.line(cx - r * .16, cy + r * offset, cx + r * .48, cy + r * offset); });
+  } else if (kind === 'house') {
+    doc.line(cx - r * .5, cy, cx, cy - r * .48); doc.line(cx, cy - r * .48, cx + r * .5, cy); doc.rect(cx - r * .34, cy, r * .68, r * .48, 'S');
+  } else {
+    doc.rect(cx - r * .36, cy - r * .48, r * .72, r * .96, 'S'); [-.2, .04, .28].forEach((offset) => doc.line(cx - r * .2, cy + r * offset, cx + r * .2, cy + r * offset));
+  }
+  doc.setLineWidth(.2);
+}
 function heading(doc, title, x, y, w, accent) {
-  doc.setFillColor(...accent); doc.roundedRect(x, y - 11, 4, 16, 2, 2, 'F');
-  text(doc, title, x + 12, y, { size: 12, bold: true, width: w - 12, maxLines: 1 });
+  drawIcon(doc, iconKind(title), x + 8, y - 5, accent, 17);
+  text(doc, title, x + 22, y, { size: 12, bold: true, width: w - 22, maxLines: 1 });
 }
 function rows(doc, items, x, y, w, { lineHeight = 24, labelWidth = 95, limit = 8, t } = {}) {
   let yy = y;
@@ -232,9 +269,9 @@ function propertyFactGrid(doc, property, t, accent, y) {
 }
 function propertyBottom(doc, property, t, accent, y, images, conflicts = []) {
   panel(doc, M, y, CONTENT, 96); heading(doc, t.photos, M + 12, y + 25, CONTENT - 24, accent);
-  const shown = images.length ? images.slice(0, 3) : [null];
-  shown.forEach((image, index) => photo(doc, M + 12 + index * 151, y + 38, 143, 48, image, t));
-  if (images.length > 3) text(doc, `+${images.length - 3}`, M + 478, y + 66, { size: 8.5, color: C.muted });
+  const shown = images.length ? images.slice(0, 4) : [null];
+  const photoGap = 7; const photoWidth = (CONTENT - 24 - photoGap * 3) / 4;
+  shown.forEach((image, index) => photo(doc, M + 12 + index * (photoWidth + photoGap), y + 38, photoWidth, 48, image, t));
   y += 108;
   const w = (CONTENT - 10) / 2;
   panel(doc, M, y, w, 145); heading(doc, t.location, M + 12, y + 25, w - 24, accent);
@@ -362,11 +399,23 @@ function renderValuation(doc, schema, t, accent) {
     ? `${currency(valuation.range.low, t)} – ${currency(valuation.range.high, t)}` : t.unavailable;
   text(doc, arv, M + 14, 204, { size: 21, bold: true, color: C.ink });
   text(doc, valuation.status || 'ARV_UNAVAILABLE', M + 14, 230, { size: 9, bold: true, color: C.muted });
-  text(doc, valuation.status === 'ARV_UNAVAILABLE' ? t.noArv : value(valuation.methodology, t.noDetails), M + 14, 253, { size: 8.5, width: CONTENT - 28, maxLines: 2 });
+  text(doc, valuation.status === 'ARV_UNAVAILABLE' ? t.noArv : value(valuation.methodology, t.noDetails), M + 14, 253, { size: 8.5, width: valuation.range ? 285 : CONTENT - 28, maxLines: 2 });
+  if (valuation.status !== 'ARV_UNAVAILABLE' && valuation.range) {
+    const low = Number(valuation.range.low); const high = Number(valuation.range.high);
+    const middle = Number.isFinite(Number(valuation.centralReference)) ? Number(valuation.centralReference) : (low + high) / 2;
+    const values = [low, middle, high];
+    const labels = ['LOW', 'MID', 'HIGH'];
+    const maximum = Math.max(...values, 1); const originX = M + 360; const baseY = 267;
+    values.forEach((entry, index) => {
+      const barHeight = Math.max(24, (entry / maximum) * 72); const x = originX + index * 45;
+      doc.setFillColor(...(index === 1 ? accent : C.line)); doc.roundedRect(x, baseY - barHeight, 26, barHeight, 4, 4, 'F');
+      text(doc, labels[index], x + 13, baseY + 12, { size: 6.5, bold: true, color: C.muted, align: 'center' });
+    });
+  }
   const w = (CONTENT - 12) / 2;
-  panel(doc, M, 315, w, 203); heading(doc, t.inputs, M + 12, 341, w - 24, accent);
+  panel(doc, M, 315, w, 170); heading(doc, t.inputs, M + 12, 341, w - 24, accent);
   rows(doc, [[t.price, currency(property.price, t)], [t.rehab, property.rehab ? currency(property.rehab, t) : null], [t.compsUsed, valuation.compsUsed], [t.confidence, valuation.confidence], [t.pricePerSqft, metrics.pricePerSqft?.value == null ? null : currency(metrics.pricePerSqft.value, t)]], M + 12, 365, w - 24, { lineHeight: 26, labelWidth: 93, t });
-  panel(doc, M + w + 12, 315, w, 203); heading(doc, t.kpis, M + w + 24, 341, w - 24, accent);
+  panel(doc, M + w + 12, 315, w, 170); heading(doc, t.kpis, M + w + 24, 341, w - 24, accent);
   rows(doc, [
     [t.costBasis, metrics.acquisitionPlusRehab?.value == null ? null : currency(metrics.acquisitionPlusRehab.value, t)],
     [t.capRate, metrics.capRate?.value == null ? null : `${metrics.capRate.value}%`],
@@ -374,8 +423,22 @@ function renderValuation(doc, schema, t, accent) {
       ? `${Number(scenarios.potentialSpread.find((v) => v.scenario === 'EXPECTED').value) < 0 ? '-' : ''}$${Math.abs(Number(scenarios.potentialSpread.find((v) => v.scenario === 'EXPECTED').value)).toLocaleString('en-US')}` : null],
     [t.roiScenario, scenarios?.available && scenarios.projectedRoi?.find((v) => v.scenario === 'EXPECTED')?.value != null
       ? `${scenarios.projectedRoi.find((v) => v.scenario === 'EXPECTED').value}%` : null],
-  ], M + w + 24, 365, w - 24, { lineHeight: 31, labelWidth: 105, t });
-  listPanel(doc, t.limitations, array(valuation.warnings).length ? array(valuation.warnings) : array(section(schema, 'limitations')), M, 530, CONTENT, 208, t, accent);
+  ], M + w + 24, 365, w - 24, { lineHeight: 28, labelWidth: 105, t });
+  const cardsY = 497; const cardsGap = 9; const cardW = (CONTENT - cardsGap * 2) / 3;
+  const cards = [
+    [t.pricePerSqft, metrics.pricePerSqft?.value == null ? t.unavailable : currency(metrics.pricePerSqft.value, t), t.price],
+    [t.spread, scenarios?.available && scenarios.potentialSpread?.find((entry) => entry.scenario === 'EXPECTED')?.value != null
+      ? `${Number(scenarios.potentialSpread.find((entry) => entry.scenario === 'EXPECTED').value) < 0 ? '-' : ''}$${Math.abs(Number(scenarios.potentialSpread.find((entry) => entry.scenario === 'EXPECTED').value)).toLocaleString('en-US')}` : t.unavailable, t.costBasis],
+    [t.capRate, metrics.capRate?.value == null ? t.unavailable : `${metrics.capRate.value}%`, t.confidence],
+  ];
+  cards.forEach(([label, entry, caption], index) => {
+    const x = M + index * (cardW + cardsGap); panel(doc, x, cardsY, cardW, 100, { fill: index === 1 ? C.warm : C.pale, stroke: index === 1 ? C.gold : C.line });
+    drawIcon(doc, index === 1 ? 'chart' : index === 2 ? 'check' : 'document', x + 20, cardsY + 23, accent, 18);
+    text(doc, label, x + 35, cardsY + 28, { size: 8.5, bold: true, width: cardW - 45, maxLines: 1 });
+    text(doc, entry, x + cardW / 2, cardsY + 63, { size: 14, bold: true, color: accent, align: 'center' });
+    text(doc, caption, x + cardW / 2, cardsY + 84, { size: 7, color: C.muted, align: 'center' });
+  });
+  listPanel(doc, t.limitations, array(valuation.warnings).length ? array(valuation.warnings) : array(section(schema, 'limitations')), M, 609, CONTENT, 129, t, accent);
 }
 function renderConclusion(doc, schema, t, accent) {
   const summary = section(schema, 'executiveSummary') || {};

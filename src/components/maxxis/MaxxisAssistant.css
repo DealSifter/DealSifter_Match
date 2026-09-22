@@ -1439,19 +1439,40 @@ button.maxxis-action-link:hover {
 .maxxis-report-page-list article span { color: var(--text-secondary, #64748b); font-size: 11px; }
 
 .maxxis-report-v2 { padding: 0; overflow: hidden; background: #e8eef3; color: #102033; }
-.maxxis-report-v2 > summary { display: flex; align-items: center; justify-content: space-between; gap: 10px; padding: 10px 12px; background: #fff; }
-.maxxis-v2-report { display: grid; gap: 14px; max-height: 72vh; padding: 12px; overflow: auto; }
+.maxxis-report-v2 > summary {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  padding: 12px 14px;
+  border: 1px solid rgba(32, 198, 199, .52);
+  background: #fff;
+  box-shadow: 0 0 0 0 rgba(32, 198, 199, .52);
+  animation: maxxis-report-ready-pulse 1.35s ease-out infinite;
+  list-style: none;
+}
+.maxxis-report-v2 > summary::-webkit-details-marker { display: none; }
+.maxxis-report-v2[open] > summary { animation: none; box-shadow: none; }
+.maxxis-report-v2 > summary::after { content: '›'; color: #168f91; font-size: 22px; font-weight: 900; }
+.maxxis-report-v2 > summary .maxxis-v2-badge { margin-left: auto; }
+@keyframes maxxis-report-ready-pulse {
+  0% { box-shadow: 0 0 0 0 rgba(32, 198, 199, .5); }
+  65% { box-shadow: 0 0 0 7px rgba(32, 198, 199, 0); }
+  100% { box-shadow: 0 0 0 0 rgba(32, 198, 199, 0); }
+}
+.maxxis-v2-report { display: grid; gap: 10px; max-height: 72vh; padding: 8px; overflow: auto; }
 .maxxis-v2-page { overflow: hidden; border: 1px solid #c9d5df; border-radius: 10px; background: #f7f9fb; box-shadow: 0 5px 16px rgba(15, 35, 55, .12); }
-.maxxis-v2-header { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 12px 14px; color: #fff; background: #10283d; }
-.maxxis-v2-header div { display: grid; gap: 2px; }
-.maxxis-v2-header strong { font-size: 17px; }
-.maxxis-v2-header strong i { color: #20c6c7; font-size: 9px; text-transform: uppercase; }
+.maxxis-v2-header { display: grid; grid-template-columns: minmax(105px, 1fr) minmax(0, 1.25fr) auto; align-items: center; gap: 12px; padding: 11px 13px; color: #fff; background: linear-gradient(115deg, #0b3448, #10283d 64%, #1f292e); }
+.maxxis-v2-header > img { display: block; width: 100%; max-width: 158px; height: 47px; object-fit: contain; object-position: left center; }
+.maxxis-v2-header div { display: grid; gap: 2px; text-align: right; }
+.maxxis-v2-header strong { font-size: 12px; }
 .maxxis-v2-header small { color: #c9d7e2; }
-.maxxis-v2-header > span { font-size: 9px; font-weight: 800; letter-spacing: .08em; }
-.maxxis-v2-page-body { display: grid; gap: 12px; padding: 14px; }
+.maxxis-v2-header > span { padding: 5px 7px; border-radius: 6px; color: #102033; background: #f4b91f; font-size: 8px; font-weight: 900; letter-spacing: .06em; }
+.maxxis-v2-page-body { display: grid; gap: 8px; padding: 10px; }
 .maxxis-v2-property-hero { display: grid; grid-template-columns: minmax(105px, 34%) minmax(0, 1fr); gap: 12px; align-items: center; }
 .maxxis-v2-property-hero img,
-.maxxis-v2-image-empty { width: 100%; height: 112px; border-radius: 8px; object-fit: cover; background: #d9e4eb; }
+.maxxis-v2-image-empty { width: 100%; height: 128px; border-radius: 8px; object-fit: cover; background: #d9e4eb; }
 .maxxis-v2-image-empty { display: grid; place-items: center; color: #60778a; font-size: 34px; }
 .maxxis-v2-property-hero > div:last-child { display: grid; gap: 4px; }
 .maxxis-v2-property-hero h3 { margin: 0; font-size: 18px; }
@@ -1463,18 +1484,29 @@ button.maxxis-action-link:hover {
 .maxxis-v2-badge.is-muted { color: #556678; background: #e4e9ee; }
 .maxxis-v2-badge.is-danger { color: #8e251d; background: #fee0de; }
 .maxxis-v2-info-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; }
-.maxxis-v2-info-card { min-width: 0; padding: 9px; border: 1px solid #d5dfe7; border-radius: 8px; background: #fff; }
-.maxxis-v2-info-card > strong { color: #12364d; font-size: 11px; }
+.maxxis-v2-info-card { min-width: 0; padding: 8px; border: 1px solid #d5dfe7; border-radius: 8px; background: linear-gradient(145deg, #fff, #f7fbfc); }
+.maxxis-v2-section-title { display: flex; align-items: center; gap: 6px; color: #12364d; font-size: 11px; }
+.maxxis-v2-section-title > span { display: grid; flex: 0 0 auto; width: 25px; height: 25px; place-items: center; border-radius: 50%; color: #fff; background: #0e6f78; }
 .maxxis-v2-info-card dl { display: grid; gap: 3px; margin: 6px 0 0; }
 .maxxis-v2-info-card dl div { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1.25fr); gap: 5px; align-items: start; }
 .maxxis-v2-info-card dt { color: #718192; font-size: 9px; }
 .maxxis-v2-info-card dd { display: grid; margin: 0; overflow-wrap: anywhere; font-size: 9px; font-weight: 700; text-align: right; }
 .maxxis-v2-info-card dd small { color: #168f91; font-size: 7px; }
-.maxxis-v2-location > div { display: grid; place-items: center; min-height: 155px; margin-top: 6px; padding: 15px; border-radius: 9px; background-color: #dbe8ee; background-image: linear-gradient(rgba(28, 76, 100, .08) 1px, transparent 1px), linear-gradient(90deg, rgba(28, 76, 100, .08) 1px, transparent 1px); background-size: 22px 22px; text-align: center; }
-.maxxis-v2-location span { color: #18bfc1; font-size: 36px; }
+.maxxis-v2-metric-strip { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 5px; }
+.maxxis-v2-metric-strip > span { display: grid; grid-template-columns: auto 1fr; gap: 1px 5px; align-items: center; padding: 7px; border: 1px solid #d5dfe7; border-radius: 7px; background: #fff; }
+.maxxis-v2-metric-strip svg { grid-row: 1 / 3; width: 18px; color: #0e6f78; }
+.maxxis-v2-metric-strip small { color: #718192; font-size: 7px; text-transform: uppercase; }
+.maxxis-v2-metric-strip b { font-size: 10px; }
+.maxxis-v2-bottom-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+.maxxis-v2-location,
+.maxxis-v2-notes,
+.maxxis-v2-photo-section { padding: 8px; border: 1px solid #d5dfe7; border-radius: 8px; background: #fff; }
+.maxxis-v2-location > div { display: grid; place-items: center; min-height: 105px; margin-top: 6px; padding: 10px; border-radius: 7px; background-color: #dbe8ee; background-image: linear-gradient(rgba(28, 76, 100, .08) 1px, transparent 1px), linear-gradient(90deg, rgba(28, 76, 100, .08) 1px, transparent 1px); background-size: 22px 22px; text-align: center; }
+.maxxis-v2-location > div > svg { color: #18bfc1; }
 .maxxis-v2-location small { color: #65798a; }
-.maxxis-v2-photos { display: grid; grid-auto-columns: 86px; grid-auto-flow: column; gap: 6px; margin-top: 6px; overflow-x: auto; }
-.maxxis-v2-photos img { width: 86px; height: 58px; border-radius: 6px; object-fit: cover; }
+.maxxis-v2-notes p { margin: 7px 0 0; font-size: 9px; line-height: 1.45; }
+.maxxis-v2-photos { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 5px; margin-top: 6px; }
+.maxxis-v2-photos img { width: 100%; height: 64px; border-radius: 6px; object-fit: cover; }
 .maxxis-v2-relative-map { position: relative; height: 155px; overflow: hidden; border-radius: 9px; background: radial-gradient(circle, transparent 20%, rgba(32, 198, 199, .12) 21%, transparent 22%, transparent 42%, rgba(32, 198, 199, .12) 43%, transparent 44%), #dce9ef; }
 .maxxis-v2-relative-map > span { position: absolute; top: 48%; left: var(--comp-offset, 50%); display: grid; place-items: center; width: 23px; height: 23px; border: 2px solid #fff; border-radius: 50%; color: #fff; background: #1a9da0; font-size: 8px; font-weight: 900; transform: translate(-50%, -50%); box-shadow: 0 2px 6px rgba(0, 0, 0, .2); }
 .maxxis-v2-relative-map > span.is-subject { top: 50%; left: 50%; width: 30px; height: 30px; background: #15384f; }
@@ -1499,10 +1531,12 @@ button.maxxis-action-link:hover {
 .maxxis-v2-chart > div { display: flex; align-items: end; gap: 9px; height: 105px; padding: 10px 10px 0; border-bottom: 1px solid #9cabb7; }
 .maxxis-v2-chart > div span { position: relative; flex: 1; min-height: 15px; border-radius: 5px 5px 0 0; background: linear-gradient(#20c6c7, #176b83); }
 .maxxis-v2-chart > div b { position: absolute; bottom: 4px; left: 50%; color: #fff; font-size: 7px; transform: translateX(-50%); white-space: nowrap; }
-.maxxis-v2-warning { margin: 0; padding: 7px; border-radius: 7px; color: #714900; background: #fff1c9; font-size: 9px; }
-.maxxis-v2-score { display: grid; place-items: center; gap: 4px; padding: 12px; border-radius: 8px; color: #fff; background: #15384f; text-align: center; }
-.maxxis-v2-score > b { color: #4be1dc; font-size: 28px; }
-.maxxis-v2-score small { color: #d7e2e9; }
+.maxxis-v2-warning { display: flex; align-items: center; gap: 6px; margin: 0; padding: 7px; border-radius: 7px; color: #714900; background: #fff1c9; font-size: 9px; }
+.maxxis-v2-score { display: grid; place-items: center; gap: 6px; padding: 10px; border: 1px solid #d5dfe7; border-radius: 8px; background: #fff; text-align: center; }
+.maxxis-v2-score > div { display: grid; width: 94px; height: 94px; place-items: center; border-radius: 50%; background: conic-gradient(#20c6c7 var(--match-score, 0deg), #dbe5eb 0); }
+.maxxis-v2-score > div::before { content: ''; grid-area: 1 / 1; width: 70px; height: 70px; border-radius: 50%; background: #fff; }
+.maxxis-v2-score > div > b { z-index: 1; grid-area: 1 / 1; color: #12364d; font-size: 22px; }
+.maxxis-v2-score small { color: #637586; }
 .maxxis-v2-confidence { display: grid; grid-template-columns: .75fr 1fr 1fr; gap: 8px; padding: 10px; border: 1px solid #d5dfe7; border-radius: 9px; background: #fff; }
 .maxxis-v2-confidence > div { display: grid; align-content: start; gap: 4px; }
 .maxxis-v2-confidence > div:first-child { padding: 10px; border-radius: 8px; color: #fff; background: #10283d; }
@@ -1525,6 +1559,10 @@ button.maxxis-action-link:hover {
 .maxxis-v2-disclaimer { margin: 0; padding: 10px; border-radius: 8px; color: #dbe7ef; background: #10283d; font-size: 9px; }
 .maxxis-v2-export-state { padding: 8px 12px; color: #637586; background: #fff; font-size: 8px; font-weight: 800; text-align: center; }
 
+@media (prefers-reduced-motion: reduce) {
+  .maxxis-report-v2 > summary { animation: none; }
+}
+
 .maxxis-arv-provider-estimate {
   border-left: 3px solid #64748b;
   background: color-mix(in srgb, #64748b 8%, transparent);
@@ -1544,4 +1582,11 @@ button.maxxis-action-link:hover {
   .maxxis-v2-perspective { grid-template-columns: 1fr; }
   .maxxis-v2-evidence-counts { grid-template-columns: repeat(3, 1fr); }
   .maxxis-v2-arv { grid-template-columns: 1fr; }
+  .maxxis-v2-header { grid-template-columns: minmax(90px, 1fr) auto; gap: 7px; }
+  .maxxis-v2-header > img { height: 39px; }
+  .maxxis-v2-header > div { display: none; }
+  .maxxis-v2-metric-strip { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .maxxis-v2-bottom-grid { grid-template-columns: 1fr; }
+  .maxxis-v2-photos { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+  .maxxis-v2-photos img { height: 72px; }
 }

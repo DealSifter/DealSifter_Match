@@ -1,41 +1,93 @@
-import React, { useMemo, useState } from 'react';
-import { buildMaxxisReportExportPreview } from './maxxisReportExportPreview';
+import React, { useState } from 'react';
+import { Download, Mail, Share2 } from 'lucide-react';
 import { downloadMaxxisReportPdf, renderMaxxisReportPdf } from './maxxisReportPdf';
 import './MaxxisReportExportActions.css';
 
 const COPY = Object.freeze({
-  en: Object.freeze({ pdf: 'Export PDF', email: 'Send Email', share: 'Share', preview: 'Report delivery preview', pages: 'pages', includes: 'Included Intelligence', access: 'Access Level', confirm: 'Confirm preparation', cancel: 'Cancel', prepared: 'Architecture prepared — no file, email, or link is generated in this phase.' }),
-  pt: Object.freeze({ pdf: 'Exportar PDF', email: 'Enviar por email', share: 'Compartilhar', preview: 'Prévia de entrega do relatório', pages: 'páginas', includes: 'Inteligência incluída', access: 'Nível de acesso', confirm: 'Confirmar preparação', cancel: 'Cancelar', prepared: 'Arquitetura preparada — nenhum arquivo, email ou link é gerado nesta fase.' }),
-  es: Object.freeze({ pdf: 'Exportar PDF', email: 'Enviar email', share: 'Compartir', preview: 'Vista previa de entrega del informe', pages: 'páginas', includes: 'Inteligencia incluida', access: 'Nivel de acceso', confirm: 'Confirmar preparación', cancel: 'Cancelar', prepared: 'Arquitectura preparada — no se genera ningún archivo, email o enlace en esta fase.' }),
+  en: Object.freeze({
+    label: 'Report actions', pdf: 'Export PDF', email: 'Send Email', share: 'Share', generating: 'Generating report…',
+    ready: 'PDF downloaded.', emailReady: 'PDF downloaded. Your email app is opening — attach the downloaded file.',
+    shared: 'Report shared.', copied: 'Sharing is unavailable here. The PDF was downloaded and a summary was copied.',
+    failed: 'Could not prepare the report. Please try again.', subject: 'DealSifter investor report',
+    body: 'Your DealSifter report is ready. Attach the PDF that was downloaded with this message.',
+  }),
+  pt: Object.freeze({
+    label: 'Ações do relatório', pdf: 'Gerar PDF', email: 'Enviar por email', share: 'Compartilhar', generating: 'Gerando relatório…',
+    ready: 'PDF baixado.', emailReady: 'PDF baixado. Seu aplicativo de email será aberto — anexe o arquivo baixado.',
+    shared: 'Relatório compartilhado.', copied: 'O compartilhamento não está disponível aqui. O PDF foi baixado e um resumo foi copiado.',
+    failed: 'Não foi possível preparar o relatório. Tente novamente.', subject: 'Relatório de investimento DealSifter',
+    body: 'Seu relatório DealSifter está pronto. Anexe a este email o PDF que acabou de ser baixado.',
+  }),
+  es: Object.freeze({
+    label: 'Acciones del informe', pdf: 'Generar PDF', email: 'Enviar por email', share: 'Compartir', generating: 'Generando informe…',
+    ready: 'PDF descargado.', emailReady: 'PDF descargado. Se abrirá su aplicación de correo — adjunte el archivo descargado.',
+    shared: 'Informe compartido.', copied: 'Compartir no está disponible aquí. Se descargó el PDF y se copió un resumen.',
+    failed: 'No se pudo preparar el informe. Inténtelo de nuevo.', subject: 'Informe de inversión DealSifter',
+    body: 'Su informe DealSifter está listo. Adjunte a este correo el PDF que acaba de descargar.',
+  }),
 });
 
+const reportFileName = (schema) => `maxxis-${String(schema?.reportType || 'report').toLowerCase().replaceAll('_', '-')}.pdf`;
+
 export function MaxxisReportExportActions({ schema, exportEntitlements = {}, language = 'en', onPrepared = null }) {
-  const [channel, setChannel] = useState(null);
-  const [exportState, setExportState] = useState('IDLE');
+  const [busyChannel, setBusyChannel] = useState(null);
+  const [status, setStatus] = useState('');
   const copy = COPY[language] || COPY.en;
-  const entitlement = channel ? exportEntitlements[channel] : null;
-  const preview = useMemo(() => channel ? buildMaxxisReportExportPreview({ schema, exportEntitlement: entitlement, channel }) : null, [channel, entitlement, schema]);
-  const actions = [['PDF', copy.pdf], ['EMAIL', copy.email], ['SHARE', copy.share]];
-  const confirmPreparation = async () => {
-    if (channel !== 'PDF') { onPrepared?.(preview); return; }
-    setExportState('RENDERING');
+
+  const renderDocument = async () => {
+    const result = await renderMaxxisReportPdf({ schema, exportEntitlement: exportEntitlements.PDF, language });
+    if (result.state !== 'RENDERED') throw new Error('REPORT_PDF_RENDER_FAILED');
+    return result.document;
+  };
+
+  const runAction = async (channel) => {
+    if (busyChannel || !exportEntitlements[channel]?.allowed) return;
+    setBusyChannel(channel);
+    setStatus(copy.generating);
     try {
-      const result = await renderMaxxisReportPdf({ schema, exportEntitlement: entitlement, language });
-      if (result.state !== 'RENDERED') throw new Error('REPORT_PDF_RENDER_FAILED');
-      downloadMaxxisReportPdf(result.document, `maxxis-${schema.reportType.toLowerCase().replaceAll('_', '-')}.pdf`);
-      setExportState('DONE');
-      onPrepared?.({ ...preview, renderedDocument: result.document });
-    } catch {
-      setExportState('FAILED');
+      const document = await renderDocument();
+      const fileName = reportFileName(schema);
+      if (channel === 'PDF') {
+        downloadMaxxisReportPdf(document, fileName);
+        setStatus(copy.ready);
+      } else if (channel === 'EMAIL') {
+        downloadMaxxisReportPdf(document, fileName);
+        const subject = encodeURIComponent(copy.subject);
+        const body = encodeURIComponent(copy.body);
+        window.location.assign(`mailto:?subject=${subject}&body=${body}`);
+        setStatus(copy.emailReady);
+      } else {
+        const file = typeof File === 'function' ? new File([document.binary], fileName, { type: 'application/pdf' }) : null;
+        if (file && navigator.share && (!navigator.canShare || navigator.canShare({ files: [file] }))) {
+          await navigator.share({ title: copy.subject, text: copy.body, files: [file] });
+          setStatus(copy.shared);
+        } else {
+          downloadMaxxisReportPdf(document, fileName);
+          await navigator.clipboard?.writeText(`${copy.subject}\n${copy.body}`);
+          setStatus(copy.copied);
+        }
+      }
+      onPrepared?.({ channel, reportType: schema.reportType, state: 'DELIVERED_LOCALLY' });
+    } catch (error) {
+      if (error?.name !== 'AbortError') setStatus(copy.failed);
+    } finally {
+      setBusyChannel(null);
     }
   };
-  return <section className="maxxis-report-export-actions" aria-label={copy.preview}>
-    <div>{actions.map(([code, label]) => <button key={code} type="button" disabled={!exportEntitlements[code]?.allowed} onClick={() => setChannel(code)}>{label}</button>)}</div>
-    {preview?.allowed ? <div className="maxxis-report-export-preview" role="dialog" aria-label={copy.preview}>
-      <header><strong>{preview.reportType.replaceAll('_', ' ')}</strong><span>{preview.pages} {copy.pages}</span></header>
-      <span>{copy.access}: <strong>{preview.accessLevel}</strong></span><strong>{copy.includes}</strong>
-      <ul>{preview.includedIntelligence.map((item) => <li key={item}>✓ {item}</li>)}</ul>
-      <small>{channel === 'PDF' ? 'The PDF will be generated from this validated report.' : copy.prepared}</small>{exportState === 'FAILED' ? <small role="alert">PDF generation failed.</small> : null}<footer><button type="button" onClick={() => setChannel(null)}>{copy.cancel}</button><button type="button" disabled={exportState === 'RENDERING'} onClick={confirmPreparation}>{exportState === 'RENDERING' ? 'Generating…' : copy.confirm}</button></footer>
-    </div> : null}
+
+  const actions = [
+    ['PDF', copy.pdf, Download],
+    ['EMAIL', copy.email, Mail],
+    ['SHARE', copy.share, Share2],
+  ];
+  return <section className="maxxis-report-export-actions" aria-label={copy.label}>
+    <strong>{copy.label}</strong>
+    <div>{actions.map(([code, label, ActionIcon]) => <button
+      key={code}
+      type="button"
+      disabled={Boolean(busyChannel) || !exportEntitlements[code]?.allowed || !exportEntitlements.PDF?.allowed}
+      onClick={() => runAction(code)}
+    >{React.createElement(ActionIcon, { 'aria-hidden': true, size: 16 })}<span>{busyChannel === code ? copy.generating : label}</span></button>)}</div>
+    {status ? <small role="status">{status}</small> : null}
   </section>;
 }
