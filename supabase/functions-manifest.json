@@ -5,6 +5,8 @@
     "APP_URL",
     "GEMINI_API_KEY",
     "MAXXIS_ALLOWED_ORIGINS",
+    "PROPERTY_DATA_MODE",
+    "RENTCAST_API_KEY",
     "RESEND_API_KEY",
     "SERVICE_ROLE_KEY",
     "STRIPE_PRICE_P5",
@@ -21,10 +23,21 @@
   ],
   "optionalSecrets": [
     "APP_ALLOWED_ORIGINS",
+    "CONTACT_UNLOCK_ENABLED",
     "FEATURE_FLAG_REVIEW_ORIGIN",
     "FEATURE_FLAGS_JSON",
+    "MAXXIS_E2E_LLM_STUB",
+    "MAXXIS_ENABLED",
+    "MAXXIS_ENTERPRISE_CHAT_PERCENT",
+    "MAXXIS_ENTERPRISE_PROVIDER_BUDGET",
     "MAXXIS_GEMINI_MODEL",
     "MAXXIS_GEMINI_TIMEOUT_MS",
+    "MAXXIS_PRO_CHAT_PERCENT",
+    "MAXXIS_PRO_PROVIDER_BUDGET",
+    "PROPERTY_INTELLIGENCE_ALLOWED_ORIGINS",
+    "PROVIDER_MESSAGING_ENABLED",
+    "RENTCAST_MONTHLY_HARD_LIMIT",
+    "RENTCAST_TIMEOUT_MS",
     "SUPPORT_EMAIL_FROM",
     "SUPPORT_EMAIL_TO",
     "VITE_APP_URL"
@@ -38,6 +51,7 @@
     "SUPABASE_SERVICE_ROLE_KEY"
   ],
   "functions": [
+    { "name": "arv-visual-comp-review", "verifyJwt": true },
     { "name": "create-checkout-session", "verifyJwt": false },
     { "name": "create-portal-session", "verifyJwt": false },
     { "name": "delete-account", "verifyJwt": false },
@@ -55,6 +69,7 @@
     { "name": "maxxis-provider-unlock-cancel", "verifyJwt": true },
     { "name": "maxxis-provider-unlock-confirm", "verifyJwt": true },
     { "name": "maxxis-provider-unlock-prepare", "verifyJwt": true },
+    { "name": "property-intelligence", "verifyJwt": true },
     { "name": "send-support-email", "verifyJwt": true },
     { "name": "stripe-reprocess-queue", "verifyJwt": false },
     { "name": "stripe-webhook", "verifyJwt": false }
