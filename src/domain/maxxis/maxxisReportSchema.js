@@ -32,12 +32,70 @@ const COMPARABLE_KEYS = Object.freeze([
 ]);
 
 const isObject = (value) => Boolean(value) && typeof value === 'object' && !Array.isArray(value);
+const hasReportValue = (value) => value !== null && value !== undefined && value !== '';
 const sourceType = (value, fallback = 'UNKNOWN') => MAXXIS_REPORT_SOURCE_TYPES.includes(value) ? value : fallback;
 const emptySection = () => Object.freeze({ available: false, sourceType: 'UNKNOWN', data: null });
 const finiteCoordinate = (value) => value !== null && value !== '' && Number.isFinite(Number(value)) ? Number(value) : null;
 const section = (data, source, available = data !== null && data !== undefined) => available
   ? Object.freeze({ available: true, sourceType: sourceType(source), data })
   : emptySection();
+
+function canonicalPropertyInput(property) {
+  if (!isObject(property)) return {};
+  return {
+    ...property,
+    id: property.id ?? property.propertyId,
+    title: property.title ?? property.name,
+    address: property.address ?? property.streetAddress,
+    zip: property.zip ?? property.zipCode ?? property.postalCode,
+    type: property.type ?? property.propertyType,
+    beds: property.beds ?? property.bedrooms,
+    baths: property.baths ?? property.bathrooms,
+    sqft: property.sqft ?? property.livingAreaSqft ?? property.squareFeet,
+    lot: property.lot ?? property.lotSizeSqft ?? property.lotSize,
+    price: property.price ?? property.askingPrice,
+    latitude: property.latitude ?? property.lat,
+    longitude: property.longitude ?? property.lng,
+  };
+}
+
+// Combines the server-owned evidence snapshot with the exact property context already
+// authorized on the current app surface. Evidence wins when present; app values only
+// fill gaps (owner/contact data, photos and notes are commonly app-only).
+export function mergeMaxxisReportProperty(evidenceProperty, appProperty) {
+  const evidence = canonicalPropertyInput(evidenceProperty);
+  const app = canonicalPropertyInput(appProperty);
+  const merged = {};
+  PROPERTY_KEYS.forEach((key) => {
+    if (key === 'owner' || key === 'images') return;
+    const selected = hasReportValue(evidence[key]) ? evidence[key] : app[key];
+    if (hasReportValue(selected)) merged[key] = selected;
+  });
+  const images = [...(Array.isArray(evidence.images) ? evidence.images : []),
+    ...(Array.isArray(app.images) ? app.images : [])]
+    .filter((item) => typeof item === 'string' && item.trim())
+    .filter((item, index, values) => values.indexOf(item) === index)
+    .slice(0, 8);
+  if (images.length) merged.images = images;
+  const evidenceOwner = isObject(evidence.owner) ? evidence.owner : {};
+  const appOwner = isObject(app.owner) ? app.owner : {};
+  const allowedContacts = [
+    ...(Array.isArray(evidenceOwner.allowedContacts) ? evidenceOwner.allowedContacts : []),
+    ...(Array.isArray(appOwner.allowedContacts) ? appOwner.allowedContacts : []),
+  ].filter((contact, index, values) => contact && values.findIndex((candidate) =>
+    String(candidate?.type || '') === String(contact?.type || '')
+      && String(candidate?.value || '') === String(contact?.value || '')) === index);
+  const owner = {
+    name: hasReportValue(evidenceOwner.name) ? evidenceOwner.name : appOwner.name,
+    type: hasReportValue(evidenceOwner.type) ? evidenceOwner.type : appOwner.type,
+    status: hasReportValue(evidenceOwner.status) ? evidenceOwner.status : appOwner.status,
+    allowedContacts,
+  };
+  if (hasReportValue(owner.name) || hasReportValue(owner.type) || hasReportValue(owner.status) || allowedContacts.length) {
+    merged.owner = owner;
+  }
+  return Object.freeze(merged);
+}
 
 function propertySummary(property) {
   if (!isObject(property)) return null;

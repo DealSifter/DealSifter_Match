@@ -1,4 +1,4 @@
-import { buildMaxxisReportSchema } from '../../../domain/maxxis/maxxisReportSchema';
+import { buildMaxxisReportSchema, mergeMaxxisReportProperty } from '../../../domain/maxxis/maxxisReportSchema';
 import { buildMaxxisAnalysisConfidence, buildMaxxisExecutiveSummaryIntelligence, resolveMaxxisInvestorPersona } from './maxxisReportConfidencePersona';
 
 export const MAXXIS_DEAL_INTELLIGENCE_REPORT_VERSION = 'MAXXIS_DEAL_INTELLIGENCE_REPORT_V1';
@@ -210,13 +210,14 @@ export function buildMaxxisDealIntelligenceReport(context) {
   });
 }
 
-export function projectMaxxisDealIntelligenceResponse(result = {}) {
+export function projectMaxxisDealIntelligenceResponse(result = {}, { reportProperty = null } = {}) {
   const report = buildMaxxisDealIntelligenceReport(result?.data?.dealIntelligence);
   if (!report) return null;
   const intelligenceSnapshot = isObject(result?.data?.intelligenceSnapshot)
     ? result.data.intelligenceSnapshot : null;
-  const property = isObject(intelligenceSnapshot?.propertyFacts)
+  const evidenceProperty = isObject(intelligenceSnapshot?.propertyFacts)
     ? intelligenceSnapshot.propertyFacts : result?.data?.property;
+  const property = mergeMaxxisReportProperty(evidenceProperty, reportProperty);
   const maxxisReport = buildMaxxisReportSchema({
     reportType: 'DEAL_INTELLIGENCE', property, dealIntelligence: report,
     dealMetrics: result?.data?.metrics,

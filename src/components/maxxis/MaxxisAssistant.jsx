@@ -1235,10 +1235,10 @@ export function MaxxisAssistant({ page = 'dashboard', onOpenSupport = null, onNa
       const structuredReportFallbackUsed = hasUsableStructuredReportFallback(result, requestedReportType);
       const reportGenerationFailed = didStructuredReportGenerationFail(result, requestedReportType);
       const maxxisAnalysis = requestedReportType === 'MAXXIS_ANALYSIS' && !reportGenerationFailed
-        ? projectMaxxisAnalysisResponse(result)
+        ? projectMaxxisAnalysisResponse(result, { reportProperty: meta.reportProperty })
         : null;
       const dealIntelligence = !reportGenerationFailed && requestedReportType === 'DEAL_INTELLIGENCE'
-        ? projectMaxxisDealIntelligenceResponse(result)
+        ? projectMaxxisDealIntelligenceResponse(result, { reportProperty: meta.reportProperty })
         : null;
       const projectedReport = dealIntelligence || maxxisAnalysis;
       const projectedReportType = projectedReport?.data?.maxxisReport?.reportType || null;
@@ -2401,6 +2401,7 @@ export function MaxxisAssistant({ page = 'dashboard', onOpenSupport = null, onNa
       reportType: request?.reportType || '',
       reportAccessDecision: request?.accessDecision || null,
       propertyAnalysisContext: request?.propertyAnalysisContext || null,
+      reportProperty: request?.reportProperty || null,
     });
   }, [language, propertyAnalysisRequest?.id]);
 

@@ -1,4 +1,4 @@
-import { buildMaxxisReportSchema } from '../../../domain/maxxis/maxxisReportSchema';
+import { buildMaxxisReportSchema, mergeMaxxisReportProperty } from '../../../domain/maxxis/maxxisReportSchema';
 
 export const MAXXIS_ANALYSIS_REPORT_VERSION = 'MAXXIS_ANALYSIS_REPORT_V1';
 
@@ -178,11 +178,12 @@ export function buildMaxxisAnalysisReport(dealIntelligence) {
   return Object.freeze(report);
 }
 
-export function projectMaxxisAnalysisResponse(result = {}) {
+export function projectMaxxisAnalysisResponse(result = {}, { reportProperty = null } = {}) {
   const report = buildMaxxisAnalysisReport(result?.data?.dealIntelligence);
   if (!report) return null;
+  const property = mergeMaxxisReportProperty(result?.data?.property, reportProperty);
   const maxxisReport = buildMaxxisReportSchema({
-    reportType: 'MAXXIS_ANALYSIS', property: result?.data?.property, maxxisAnalysis: report,
+    reportType: 'MAXXIS_ANALYSIS', property, maxxisAnalysis: report,
   });
   return Object.freeze({
     type: 'maxxis_analysis_report',

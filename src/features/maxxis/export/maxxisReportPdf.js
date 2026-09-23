@@ -18,6 +18,7 @@ const C = Object.freeze({
 const COPY = Object.freeze({
   en: {
     generated: 'Generated', page: 'Page', unavailable: 'Unavailable', notVerified: 'Not verified', published: 'Published',
+    reportSubtitle: 'Intelligent property analysis',
     property: 'PROPERTY RELEASE', pro: 'MAXXIS ANALYSIS REPORT', deal: 'MAXXIS DEAL INTELLIGENCE REPORT',
     PROPERTY_OVERVIEW: 'Property Overview', EXECUTIVE_SUMMARY_PROPERTY_CONTEXT: 'Executive Summary',
     INVESTMENT_FIT_RISK: 'Investment Fit & Risk Analysis', KEY_INSIGHTS_NEXT_STEPS: 'Key Insights & Next Steps',
@@ -54,6 +55,7 @@ const COPY = Object.freeze({
   },
   pt: {
     generated: 'Gerado em', page: 'Página', unavailable: 'Indisponível', notVerified: 'Não verificado', published: 'Publicado',
+    reportSubtitle: 'Análise inteligente do imóvel',
     property: 'PROPERTY RELEASE', pro: 'MAXXIS ANALYSIS REPORT', deal: 'MAXXIS DEAL INTELLIGENCE REPORT',
     PROPERTY_OVERVIEW: 'Visão geral do imóvel', EXECUTIVE_SUMMARY_PROPERTY_CONTEXT: 'Resumo executivo',
     INVESTMENT_FIT_RISK: 'Adequação e análise de riscos', KEY_INSIGHTS_NEXT_STEPS: 'Insights e próximos passos',
@@ -90,6 +92,7 @@ const COPY = Object.freeze({
   },
   es: {
     generated: 'Generado', page: 'Página', unavailable: 'No disponible', notVerified: 'No verificado', published: 'Publicado',
+    reportSubtitle: 'Análisis inteligente de la propiedad',
     property: 'PROPERTY RELEASE', pro: 'MAXXIS ANALYSIS REPORT', deal: 'MAXXIS DEAL INTELLIGENCE REPORT',
     PROPERTY_OVERVIEW: 'Resumen de la propiedad', EXECUTIVE_SUMMARY_PROPERTY_CONTEXT: 'Resumen ejecutivo',
     INVESTMENT_FIT_RISK: 'Afinidad y análisis de riesgos', KEY_INSIGHTS_NEXT_STEPS: 'Hallazgos y próximos pasos',
@@ -131,6 +134,12 @@ const positiveObservations = (summary) => Array.isArray(summary?.observations)
   ? summary.observations : array(summary?.observations?.positives);
 const attentionObservations = (summary) => array(summary?.observations?.attention);
 const value = (input, fallback) => input === null || input === undefined || input === '' ? fallback : String(input);
+const reportNarrative = (input, fallback = '') => {
+  const raw = value(input, fallback).trim();
+  if (!raw || !raw.includes('_')) return raw;
+  const words = raw.replaceAll('_', ' ').toLowerCase();
+  return `${words.charAt(0).toUpperCase()}${words.slice(1)}`;
+};
 const currency = (input, t) => Number.isFinite(Number(input)) && Number(input) > 0
   ? `$${Number(input).toLocaleString('en-US')}` : t.unavailable;
 const location = (property) => [property.city, [property.state, property.zip].filter(Boolean).join(' ')].filter(Boolean).join(', ');
@@ -215,19 +224,28 @@ function listPanel(doc, title, items, x, y, w, h, t, accent, { positive = false 
   for (const item of entries.slice(0, 6)) {
     if (yy > y + h - 28) break;
     doc.setFillColor(...accent); doc.circle(x + 19, yy - 2, 2.5, 'F');
-    yy = text(doc, typeof item === 'string' ? item : item?.explanation || item?.reason || item?.label || item?.status || t.noDetails,
+    yy = text(doc, reportNarrative(typeof item === 'string' ? item : item?.explanation || item?.reason || item?.label || item?.status, t.noDetails),
       x + 30, yy, { size: 8.5, width: w - 44, maxLines: 3 }) + 7;
   }
 }
-function pageHeader(doc, schema, pageCode, t) {
+function pageHeader(doc, schema, pageCode, pageNumber, totalPages, t) {
   const theme = themeFor(schema.reportType); const accent = accentFor(schema.reportType);
   doc.setFillColor(...theme); doc.rect(0, 0, W, 78, 'F');
   // Proportional resize of the official transparent source PNG; no redraw or recoloring.
   doc.addImage(officialDealSifterLogo, 'PNG', M, 15, 177, 52.6, 'official-dealsifter-logo');
   text(doc, productFor(schema.reportType, t), W - 84, 30, { size: 10.5, bold: true, color: C.white, align: 'right' });
+  if (schema.reportType !== 'PROPERTY_RELEASE') {
+    text(doc, t.reportSubtitle, W - 114, 43, { size: 7.6, color: C.white, align: 'right' });
+  }
   panel(doc, W - 101, 42, 70, 23, { fill: accent, stroke: accent, radius: 5 });
   text(doc, planFor(schema.reportType), W - 66, 57, { size: 9, bold: true, color: schema.reportType === 'DEAL_INTELLIGENCE' ? C.ink : C.white, align: 'center' });
-  heading(doc, schema.reportType === 'PROPERTY_RELEASE' ? 'Property Release' : t[pageCode] || pageCode, M, 108, CONTENT, accent);
+  heading(doc, schema.reportType === 'PROPERTY_RELEASE' ? 'Property Release' : t[pageCode] || pageCode, M, 108, CONTENT - 92, accent);
+  if (schema.reportType !== 'PROPERTY_RELEASE') {
+    panel(doc, W - 104, 89, 74, 25, { fill: accent, stroke: accent, radius: 5 });
+    text(doc, `${t.page} ${pageNumber} / ${totalPages}`, W - 67, 105, {
+      size: 8.5, bold: true, color: schema.reportType === 'DEAL_INTELLIGENCE' ? C.ink : C.white, align: 'center',
+    });
+  }
   return { accent, theme };
 }
 function pageFooter(doc, page, total, generatedAt, language, t) {
@@ -630,7 +648,7 @@ export async function renderMaxxisReportPdf({ schema, exportEntitlement, generat
   const [images, mapImage] = await Promise.all([resolvePropertyImages(schema), resolveStreetMap(schema)]);
   pages.forEach((page, index) => {
     if (index) doc.addPage('a4', 'portrait');
-    const { accent } = pageHeader(doc, schema, page.code, t);
+    const { accent } = pageHeader(doc, schema, page.code, page.page, schema.pages.length, t);
     renderPage(doc, schema, page.code, t, accent, images, mapImage);
     pageFooter(doc, index + 1, pages.length, prepared.document.cover.generatedAt, lang, t);
   });

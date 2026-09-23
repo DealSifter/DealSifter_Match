@@ -96,6 +96,20 @@ describe('Maxxis Deal Intelligence Experience v1', () => {
     expect(projected.data.maxxisReport.sections.propertySummary.data.address).toBe('100 Snapshot St');
   });
 
+  it('combines provider facts with app-authorized owner data for the persisted report', () => {
+    const projected = projectMaxxisDealIntelligenceResponse({ data: {
+      dealIntelligence: context(),
+      intelligenceSnapshot: { propertyFacts: { id: 'property-1', address: '9537 Dalegrove Dr', yearBuilt: 1950 } },
+    } }, { reportProperty: {
+      id: 'property-1', beds: 3, baths: 2,
+      owner: { name: 'Mr. Zen', type: 'FSBO', allowedContacts: [{ type: 'phone', value: '555-0100' }] },
+    } });
+    expect(projected.data.maxxisReport.sections.propertySummary.data).toMatchObject({
+      address: '9537 Dalegrove Dr', yearBuilt: 1950, beds: 3, baths: 2,
+      owner: { name: 'Mr. Zen', type: 'FSBO', allowedContacts: [{ value: '555-0100' }] },
+    });
+  });
+
   it('is a pure presentation projector with no engine or provider dependency', () => {
     const source = readFileSync(new URL('./maxxisDealIntelligenceReport.js', import.meta.url), 'utf8');
     expect(source).not.toMatch(/from ['"].*(?:arvEngine|compEngine|calculatePropertyMatch|dealMetrics|rentcast)/i);

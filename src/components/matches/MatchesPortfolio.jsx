@@ -725,20 +725,7 @@ export function PortfolioDetail({ item, owner, ownerContact = null, isOwnerUnloc
     });
   };
 
-
-  const generateReleasePdf = async ({ title, imageUrls }) => {
-    const safeName = String(title || 'property-release').replace(/[^a-z0-9-_]+/gi, '_').slice(0, 64);
-    const imageSources = (Array.isArray(imageUrls) ? imageUrls : getExportImageUrls()).slice(0, 4);
-    const reportImages = (await Promise.all(imageSources.map((source) => {
-      if (typeof source === 'string') return Promise.resolve(source);
-      if (!(source instanceof Blob)) return Promise.resolve(null);
-      return new Promise((resolve) => {
-        const reader = new FileReader();
-        reader.onload = () => resolve(typeof reader.result === 'string' ? reader.result : null);
-        reader.onerror = () => resolve(null);
-        reader.readAsDataURL(source);
-      });
-    }))).filter(Boolean);
+  const buildCurrentReportProperty = ({ images = null } = {}) => {
     const shouldUseSavedProfile = !isSupabaseConfigured
       && (!owner?.id || owner?.id === 999999 || owner?.ownerId === 999999 || owner?.id === 'preview-personal');
     const savedProfile = shouldUseSavedProfile
@@ -751,9 +738,12 @@ export function PortfolioDetail({ item, owner, ownerContact = null, isOwnerUnloc
       telegram: modalsT.contactTelegram,
       email: modalsT.contactEmail,
     }).sort((a, b) => (a.priority || 99) - (b.priority || 99));
-    const property = {
+    const reportImages = Array.isArray(images)
+      ? images
+      : getExportImageUrls().filter((source) => typeof source === 'string').slice(0, 4);
+    return {
       ...item,
-      address: item?.address || title,
+      address: item?.address || item?.name || null,
       images: reportImages,
       notes: ownerDesc || owner?.desc || item?.notes || item?.description || null,
       published: Boolean(item?.isActive),
@@ -769,6 +759,23 @@ export function PortfolioDetail({ item, owner, ownerContact = null, isOwnerUnloc
         })),
       },
     };
+  };
+
+
+  const generateReleasePdf = async ({ title, imageUrls }) => {
+    const safeName = String(title || 'property-release').replace(/[^a-z0-9-_]+/gi, '_').slice(0, 64);
+    const imageSources = (Array.isArray(imageUrls) ? imageUrls : getExportImageUrls()).slice(0, 4);
+    const reportImages = (await Promise.all(imageSources.map((source) => {
+      if (typeof source === 'string') return Promise.resolve(source);
+      if (!(source instanceof Blob)) return Promise.resolve(null);
+      return new Promise((resolve) => {
+        const reader = new FileReader();
+        reader.onload = () => resolve(typeof reader.result === 'string' ? reader.result : null);
+        reader.onerror = () => resolve(null);
+        reader.readAsDataURL(source);
+      });
+    }))).filter(Boolean);
+    const property = { ...buildCurrentReportProperty({ images: reportImages }), address: item?.address || title };
     const schema = buildMaxxisReportSchema({ reportType: INTELLIGENCE_REPORT_TYPES.PROPERTY_RELEASE, property });
     const exportEntitlement = resolveReportExportEntitlement({
       plan: 'free', reportType: INTELLIGENCE_REPORT_TYPES.PROPERTY_RELEASE, channel: 'PDF',
@@ -828,6 +835,9 @@ export function PortfolioDetail({ item, owner, ownerContact = null, isOwnerUnloc
       reportType: accessDecision.reportType,
       accessDecision,
       propertyAnalysisContext,
+      // Kept client-side: this is the same already-authorized property surface used by
+      // Property Release and fills app-only report fields after the server analysis.
+      reportProperty: buildCurrentReportProperty(),
       // The chat exports the authorized structured MaxxisReportSchema, never a Basic PDF with analysis text appended.
       onExportPdf: async () => { throw new Error('MAXXIS_REPORT_SCHEMA_REQUIRED'); },
       onEmail: () => {

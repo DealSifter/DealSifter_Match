@@ -1,7 +1,7 @@
 import { readFileSync } from 'node:fs';
 import { describe, expect, it } from 'vitest';
 import { INTELLIGENCE_REPORT_TYPES, resolveIntelligenceReportAccess } from '../intelligenceAccess';
-import { buildAuthorizedMaxxisReport, buildMaxxisReportSchema, MAXXIS_REPORT_SOURCE_TYPES } from './maxxisReportSchema';
+import { buildAuthorizedMaxxisReport, buildMaxxisReportSchema, MAXXIS_REPORT_SOURCE_TYPES, mergeMaxxisReportProperty } from './maxxisReportSchema';
 
 const property = Object.freeze({
   id: 'property-1', title: 'Fixture property', address: 'Stored address', city: 'Austin', state: 'TX',
@@ -122,6 +122,22 @@ describe('MaxxisReportSchema v2', () => {
     expect(report.sections.propertySummary.data).toMatchObject({
       latitude: 28.5653,
       longitude: -81.5862,
+    });
+  });
+
+  it('TEST 11 fills evidence gaps from the authorized app property without overriding provider facts', () => {
+    const merged = mergeMaxxisReportProperty({
+      id: 'property-1', propertyType: 'SFR', bedrooms: 4, askingPrice: 425000,
+      county: 'Provider County', images: ['provider.jpg'],
+    }, {
+      id: 'property-1', type: 'Duplex', beds: 3, baths: 2, price: 399000,
+      images: ['app.jpg'], owner: { name: 'Visible Owner', type: 'FSBO', status: 'ACTIVE',
+        allowedContacts: [{ type: 'phone', label: 'Phone', value: '555-0100' }] },
+    });
+    expect(merged).toMatchObject({
+      id: 'property-1', type: 'SFR', beds: 4, baths: 2, price: 425000,
+      county: 'Provider County', images: ['provider.jpg', 'app.jpg'],
+      owner: { name: 'Visible Owner', type: 'FSBO', allowedContacts: [{ value: '555-0100' }] },
     });
   });
 });

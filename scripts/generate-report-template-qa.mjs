@@ -6,10 +6,18 @@ import { createServer } from 'vite';
 const property = Object.freeze({
   id: 'PREVIEW-ONLY', address: '1200 Sample Avenue', city: 'Example City', state: 'FL', zip: '00000',
   type: 'SFR', objective: 'Buy and Hold', price: 425000, beds: 4, baths: 2, sqft: 1780,
-  lot: '0.22 acres', rehab: 48000, capRate: 5.1, published: true, source: 'Sample fixture',
+  lot: '9,583 sqft / 0.22 acres', rehab: 48000, capRate: 5.1, published: true, source: 'Sample fixture',
   latitude: 27.0000, longitude: -80.0000,
+  description: 'Four-bedroom single-family sample with a long-term hold objective.',
+  improvement: 'Single-family residence', dealTag: 'Portfolio', portfolio: true,
+  labels: ['Buy and Hold', 'Portfolio', 'Sample'], markets: ['Example City, FL'],
+  yearBuilt: 2004, county: 'Example County', assessedValue: 398500, annualPropertyTax: 5120,
+  ownerOccupied: false, ownershipRecordPresent: true, latestSalePrice: 315000, latestSaleDate: '2021-06-18',
   notes: 'Fictional sample property for report layout demonstration only. Verify all facts in a real report.',
-  owner: { name: 'Sample Owner', type: 'Individual', status: 'Not verified', allowedContacts: [] },
+  owner: { name: 'Sample Owner', type: 'Individual', status: 'Published', allowedContacts: [
+    { type: 'phone', label: 'Phone', value: '(555) 010-0120' },
+    { type: 'email', label: 'Email', value: 'sample@example.invalid' },
+  ] },
 });
 const analysis = Object.freeze({
   executiveSummary: 'The sample property has a four-bedroom SFR layout and a stored buy-and-hold objective. The illustrated profile fit is 74%; condition, operating costs and ownership still need independent verification.',

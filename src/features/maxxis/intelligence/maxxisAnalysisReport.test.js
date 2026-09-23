@@ -117,4 +117,17 @@ describe('Maxxis Analysis Report Experience v1', () => {
     });
     expect(report.executiveSummary).not.toMatch(/great opportunity|good investment|buy|guarantee/i);
   });
+
+  it('keeps app-authorized owner, photos and basic fields in the generated analysis report', () => {
+    const projected = projectMaxxisAnalysisResponse({ data: {
+      dealIntelligence: context(), property: { id: 'property-1', address: '9537 Dalegrove Dr', beds: 3 },
+    } }, { reportProperty: {
+      id: 'property-1', baths: 2, sqft: 1838, images: ['photo.jpg'],
+      owner: { name: 'Mr. Zen', type: 'FSBO', allowedContacts: [{ type: 'phone', value: '555-0100' }] },
+    } });
+    expect(projected.data.maxxisReport.sections.propertySummary.data).toMatchObject({
+      address: '9537 Dalegrove Dr', beds: 3, baths: 2, sqft: 1838, images: ['photo.jpg'],
+      owner: { name: 'Mr. Zen', type: 'FSBO', allowedContacts: [{ type: 'phone', value: '555-0100' }] },
+    });
+  });
 });
