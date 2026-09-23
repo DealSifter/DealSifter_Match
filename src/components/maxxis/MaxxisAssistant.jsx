@@ -117,6 +117,7 @@ import {
 } from '../../domain/intelligenceAccess';
 import { buildMaxxisIntelligenceUpgradeExperience } from '../../features/maxxis/access/maxxisIntelligenceUpgrade';
 import { resolveReportExportEntitlement, resolveReportExportEntitlements } from '../../features/maxxis/export/reportExportEntitlement';
+import { withCurrentReportExportEntitlements } from '../../features/maxxis/export/reportMessageEntitlements';
 import { downloadMaxxisReportPdf, renderMaxxisReportPdf } from '../../features/maxxis/export/maxxisReportPdf';
 import { MyMaxxisReports } from '../../features/maxxis/reports/MyMaxxisReports';
 import './MaxxisAssistant.css';
@@ -2519,10 +2520,14 @@ export function MaxxisAssistant({ page = 'dashboard', onOpenSupport = null, onNa
           <div className="maxxis-messages" data-testid="maxxis-messages">
             {messages.map((message) => {
               const smartActions = visibleSmartActionsByMessageId[message.id] || [];
+              const renderedMessage = withCurrentReportExportEntitlements(message, {
+                plan: currentPlan,
+                entitlements: reportEntitlements,
+              });
               return (
                 <MessageBubble
                   key={message.id}
-                  message={message}
+                  message={renderedMessage}
                   language={language}
                   onAction={handleAction}
                   onConfirmProfileSuggestion={handleConfirmProfileSuggestion}
