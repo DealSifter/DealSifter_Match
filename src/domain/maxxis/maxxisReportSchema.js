@@ -32,6 +32,7 @@ const COMPARABLE_KEYS = Object.freeze([
 const isObject = (value) => Boolean(value) && typeof value === 'object' && !Array.isArray(value);
 const sourceType = (value, fallback = 'UNKNOWN') => MAXXIS_REPORT_SOURCE_TYPES.includes(value) ? value : fallback;
 const emptySection = () => Object.freeze({ available: false, sourceType: 'UNKNOWN', data: null });
+const finiteCoordinate = (value) => value !== null && value !== '' && Number.isFinite(Number(value)) ? Number(value) : null;
 const section = (data, source, available = data !== null && data !== undefined) => available
   ? Object.freeze({ available: true, sourceType: sourceType(source), data })
   : emptySection();
@@ -44,6 +45,10 @@ function propertySummary(property) {
   if (Object.hasOwn(data, 'images')) {
     data.images = Object.freeze((Array.isArray(data.images) ? data.images : []).filter((item) => typeof item === 'string' && item.trim()));
   }
+  const latitude = finiteCoordinate(property.latitude ?? property.lat);
+  const longitude = finiteCoordinate(property.longitude ?? property.lng);
+  if (latitude !== null && latitude >= -90 && latitude <= 90) data.latitude = latitude;
+  if (longitude !== null && longitude >= -180 && longitude <= 180) data.longitude = longitude;
   if (Object.hasOwn(data, 'owner')) {
     const owner = isObject(data.owner) ? data.owner : {};
     data.owner = Object.freeze({
@@ -59,7 +64,6 @@ function propertySummary(property) {
 }
 
 const finitePositive = (value) => Number.isFinite(Number(value)) && Number(value) > 0 ? Number(value) : null;
-const finiteCoordinate = (value) => value !== null && value !== '' && Number.isFinite(Number(value)) ? Number(value) : null;
 const roundedMoney = (value) => Number.isFinite(value) ? Math.round(value / 1000) * 1000 : null;
 const roundedPercent = (value) => Number.isFinite(value) ? Math.round(value * 10) / 10 : null;
 

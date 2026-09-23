@@ -6,6 +6,16 @@ import { MaxxisDealIntelligenceExperience } from '../../features/maxxis/intellig
 import { buildMaxxisIntelligenceUpgradeExperience } from '../../features/maxxis/access/maxxisIntelligenceUpgrade';
 
 describe('Maxxis Deal AI structured result presentation', () => {
+  it('uses a three-dot animated processing indicator without static thinking text', () => {
+    const assistant = readFileSync(new URL('./MaxxisAssistant.jsx', import.meta.url), 'utf8');
+    const css = readFileSync(new URL('./MaxxisAssistant.css', import.meta.url), 'utf8');
+    expect(assistant).toContain('<i>.</i>');
+    expect(assistant.match(/<i>\.<\/i>/g)).toHaveLength(3);
+    expect(assistant).not.toContain('<strong>{t.typing}</strong>');
+    expect(css).toMatch(/\.maxxis-typing-dots i\s*\{[\s\S]*animation:\s*maxxisTyping/);
+    expect(css).toMatch(/@keyframes maxxisTyping/);
+  });
+
   it('keeps a report CTA visible when the answer uses the composed experience', () => {
     const html = renderToStaticMarkup(
       <MessageBubble

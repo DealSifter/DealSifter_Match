@@ -32,6 +32,7 @@ const COPY = Object.freeze({
     propertyTax: 'Property tax', providerEstimate: 'Provider estimate (not ARV)',
     capRate: 'Cap rate', rehab: 'Rehab', noPhoto: 'No property photo available',
     noMap: 'Street map unavailable; location is shown from stored property data.',
+    mapAttribution: '© OpenStreetMap contributors',
     context: 'Property context', opportunity: 'Opportunity Summary', conclusion: 'Maxxis executive insight',
     profile: 'Investor Profile', compatibility: 'Profile Compatibility', fit: 'Fit by Criterion',
     risks: 'Risk Analysis', evidence: 'Evidence Considerations', positives: 'Positive Signals',
@@ -67,6 +68,7 @@ const COPY = Object.freeze({
     propertyTax: 'Imposto predial', providerEstimate: 'Estimativa do provedor (não é ARV)',
     capRate: 'Cap rate', rehab: 'Reforma', noPhoto: 'Sem foto disponível do imóvel',
     noMap: 'Mapa de ruas indisponível; localização baseada nos dados cadastrados.',
+    mapAttribution: '© Colaboradores do OpenStreetMap',
     context: 'Contexto do imóvel', opportunity: 'Resumo da oportunidade', conclusion: 'Insight executivo do Maxxis',
     profile: 'Perfil do investidor', compatibility: 'Compatibilidade do perfil', fit: 'Adequação por critério',
     risks: 'Análise de riscos', evidence: 'Considerações sobre evidências', positives: 'Sinais positivos',
@@ -102,6 +104,7 @@ const COPY = Object.freeze({
     propertyTax: 'Impuesto predial', providerEstimate: 'Estimación del proveedor (no es ARV)',
     capRate: 'Cap rate', rehab: 'Reforma', noPhoto: 'No hay foto disponible de la propiedad',
     noMap: 'Mapa de calles no disponible; ubicación según los datos registrados.',
+    mapAttribution: '© Colaboradores de OpenStreetMap',
     context: 'Contexto de la propiedad', opportunity: 'Resumen de la oportunidad', conclusion: 'Análisis ejecutivo de Maxxis',
     profile: 'Perfil del inversor', compatibility: 'Compatibilidad del perfil', fit: 'Afinidad por criterio',
     risks: 'Análisis de riesgos', evidence: 'Consideraciones de evidencia', positives: 'Señales positivas',
@@ -280,7 +283,7 @@ function propertyFactGrid(doc, property, evidence, t, accent, y) {
   });
   return y + h;
 }
-function propertyBottom(doc, property, t, accent, y, images, conflicts = []) {
+function propertyBottom(doc, property, t, accent, y, images, conflicts = [], mapImage = null) {
   panel(doc, M, y, CONTENT, 96); heading(doc, t.photos, M + 12, y + 25, CONTENT - 24, accent);
   const shown = images.length ? images.slice(0, 4) : [null];
   const photoGap = 7; const photoWidth = (CONTENT - 24 - photoGap * 3) / 4;
@@ -288,19 +291,26 @@ function propertyBottom(doc, property, t, accent, y, images, conflicts = []) {
   y += 108;
   const w = (CONTENT - 10) / 2;
   panel(doc, M, y, w, 145); heading(doc, t.location, M + 12, y + 25, w - 24, accent);
-  text(doc, location(property) || t.unavailable, M + 13, y + 52, { size: 10, bold: true, width: w - 25 });
-  if (property.latitude != null && property.longitude != null) text(doc, `${property.latitude}, ${property.longitude}`, M + 13, y + 73, { size: 8, color: C.muted });
-  text(doc, t.noMap, M + 13, y + 101, { size: 8, color: C.muted, width: w - 25, maxLines: 3 });
+  text(doc, location(property) || t.unavailable, M + 13, y + 49, { size: 9, bold: true, width: w - 25, maxLines: 1 });
+  if (mapImage) {
+    try {
+      doc.addImage(mapImage, 'PNG', M + 12, y + 59, w - 24, 68, 'property-street-map');
+      text(doc, t.mapAttribution, M + 13, y + 138, { size: 5.8, color: C.muted, width: w - 25, maxLines: 1 });
+    } catch { /* Keep the coordinate fallback if the generated map cannot be embedded. */ }
+  } else {
+    if (property.latitude != null && property.longitude != null) text(doc, `${property.latitude}, ${property.longitude}`, M + 13, y + 73, { size: 8, color: C.muted });
+    text(doc, t.noMap, M + 13, y + 101, { size: 8, color: C.muted, width: w - 25, maxLines: 3 });
+  }
   panel(doc, M + w + 10, y, w, 145); heading(doc, t.notes, M + w + 22, y + 25, w - 24, accent);
   text(doc, property.notes || property.description || t.unavailable, M + w + 22, y + 48, { size: 8.5, width: w - 25, maxLines: conflicts.length ? 5 : 8 });
   if (conflicts.length) text(doc, t.conflict, M + w + 22, y + 127, { size: 7.5, bold: true, color: C.gold, width: w - 25, maxLines: 2 });
 }
-function renderPropertyOverview(doc, schema, t, accent, images) {
+function renderPropertyOverview(doc, schema, t, accent, images, mapImage) {
   const property = section(schema, 'propertySummary') || {};
   const evidence = section(schema, 'propertyEvidence') || {};
   propertyHero(doc, property, t, accent, images[0]);
   propertyFactGrid(doc, property, evidence, t, accent, 335);
-  propertyBottom(doc, property, t, accent, 499, images, array(evidence.conflicts));
+  propertyBottom(doc, property, t, accent, 499, images, array(evidence.conflicts), mapImage);
 }
 function renderExecutive(doc, schema, t, accent, images) {
   const property = section(schema, 'propertySummary') || {};
@@ -473,8 +483,8 @@ function renderConclusion(doc, schema, t, accent) {
   heading(doc, t.considerations, M + 12, 677, CONTENT - 24, accent);
   text(doc, t.disclaimer, M + 12, 702, { size: 8.5, width: CONTENT - 24, maxLines: 4 });
 }
-function renderPage(doc, schema, pageCode, t, accent, images) {
-  if (pageCode === 'PROPERTY_OVERVIEW') return renderPropertyOverview(doc, schema, t, accent, images);
+function renderPage(doc, schema, pageCode, t, accent, images, mapImage) {
+  if (pageCode === 'PROPERTY_OVERVIEW') return renderPropertyOverview(doc, schema, t, accent, images, mapImage);
   if (pageCode === 'EXECUTIVE_SUMMARY_PROPERTY_CONTEXT') return renderExecutive(doc, schema, t, accent, images);
   if (pageCode === 'INVESTMENT_FIT_RISK') return renderFit(doc, schema, t, accent);
   if (pageCode === 'KEY_INSIGHTS_NEXT_STEPS') return renderInsights(doc, schema, t, accent);
@@ -506,6 +516,105 @@ async function resolvePropertyImages(schema) {
   return (await Promise.all(sources.map(resolveImageSource))).filter(Boolean);
 }
 
+const MAP_TILE_SIZE = 256;
+const MAP_ZOOM = 14;
+
+function mapWorldPoint(latitude, longitude, zoom = MAP_ZOOM) {
+  const scale = MAP_TILE_SIZE * (2 ** zoom);
+  const boundedLatitude = Math.max(-85.05112878, Math.min(85.05112878, latitude));
+  const sinLatitude = Math.sin((boundedLatitude * Math.PI) / 180);
+  return {
+    x: ((longitude + 180) / 360) * scale,
+    y: (0.5 - (Math.log((1 + sinLatitude) / (1 - sinLatitude)) / (4 * Math.PI))) * scale,
+  };
+}
+
+async function loadMapTile(url) {
+  if (typeof Image === 'undefined') return null;
+  const image = new Image();
+  image.crossOrigin = 'anonymous';
+  let timer;
+  try {
+    await new Promise((resolve, reject) => {
+      image.onload = resolve;
+      image.onerror = () => reject(new Error('MAP_TILE_LOAD_FAILED'));
+      timer = setTimeout(() => reject(new Error('MAP_TILE_TIMEOUT')), 3500);
+      image.src = url;
+    });
+    return image;
+  } catch {
+    return null;
+  } finally {
+    clearTimeout(timer);
+  }
+}
+
+async function resolveStreetMap(schema) {
+  const property = section(schema, 'propertySummary') || {};
+  const latitude = Number(property.latitude);
+  const longitude = Number(property.longitude);
+  if (!Number.isFinite(latitude) || !Number.isFinite(longitude)
+    || latitude < -90 || latitude > 90 || longitude < -180 || longitude > 180
+    || typeof document === 'undefined') return null;
+  try {
+    const width = 700;
+    const height = 200;
+    const canvas = document.createElement('canvas');
+    canvas.width = width;
+    canvas.height = height;
+    const context = canvas.getContext('2d');
+    if (!context) return null;
+    context.fillStyle = '#eef4f6';
+    context.fillRect(0, 0, width, height);
+    const center = mapWorldPoint(latitude, longitude);
+    const left = center.x - (width / 2);
+    const top = center.y - (height / 2);
+    const firstTileX = Math.floor(left / MAP_TILE_SIZE);
+    const lastTileX = Math.floor((left + width) / MAP_TILE_SIZE);
+    const firstTileY = Math.floor(top / MAP_TILE_SIZE);
+    const lastTileY = Math.floor((top + height) / MAP_TILE_SIZE);
+    const tileCount = 2 ** MAP_ZOOM;
+    const tiles = [];
+    for (let tileX = firstTileX; tileX <= lastTileX; tileX += 1) {
+      for (let tileY = firstTileY; tileY <= lastTileY; tileY += 1) {
+        if (tileY < 0 || tileY >= tileCount) continue;
+        const sourceX = ((tileX % tileCount) + tileCount) % tileCount;
+        tiles.push(loadMapTile(`https://tile.openstreetmap.org/${MAP_ZOOM}/${sourceX}/${tileY}.png`)
+          .then((image) => ({ image, x: (tileX * MAP_TILE_SIZE) - left, y: (tileY * MAP_TILE_SIZE) - top })));
+      }
+    }
+    const loaded = await Promise.all(tiles);
+    if (!loaded.some((tile) => tile.image)) return null;
+    loaded.forEach((tile) => {
+      if (tile.image) context.drawImage(tile.image, tile.x, tile.y, MAP_TILE_SIZE, MAP_TILE_SIZE);
+    });
+    const pinX = width / 2;
+    const pinY = height / 2;
+    context.save();
+    context.shadowColor = 'rgba(15, 32, 49, .35)';
+    context.shadowBlur = 7;
+    context.shadowOffsetY = 3;
+    context.fillStyle = '#1db8bc';
+    context.strokeStyle = '#ffffff';
+    context.lineWidth = 5;
+    context.beginPath();
+    context.arc(pinX, pinY - 9, 16, 0, Math.PI * 2);
+    context.fill();
+    context.stroke();
+    context.beginPath();
+    context.moveTo(pinX - 10, pinY + 2);
+    context.lineTo(pinX, pinY + 22);
+    context.lineTo(pinX + 10, pinY + 2);
+    context.closePath();
+    context.fill();
+    context.stroke();
+    context.restore();
+    return canvas.toDataURL('image/png');
+  } catch {
+    return null;
+  }
+}
+
 export async function renderMaxxisReportPdf({ schema, exportEntitlement, generatedAt, language = 'en' } = {}) {
   const prepared = renderMaxxisReportDocument({ schema, exportEntitlement, generatedAt, language });
   if (prepared.state !== 'PREPARED') return prepared;
@@ -518,11 +627,11 @@ export async function renderMaxxisReportPdf({ schema, exportEntitlement, generat
   const pages = prepared.document.pages;
   const lang = prepared.document.language;
   const t = COPY[lang];
-  const images = await resolvePropertyImages(schema);
+  const [images, mapImage] = await Promise.all([resolvePropertyImages(schema), resolveStreetMap(schema)]);
   pages.forEach((page, index) => {
     if (index) doc.addPage('a4', 'portrait');
     const { accent } = pageHeader(doc, schema, page.code, t);
-    renderPage(doc, schema, page.code, t, accent, images);
+    renderPage(doc, schema, page.code, t, accent, images, mapImage);
     pageFooter(doc, index + 1, pages.length, prepared.document.cover.generatedAt, lang, t);
   });
   const binary = new Uint8Array(doc.output('arraybuffer'));

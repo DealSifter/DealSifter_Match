@@ -119,6 +119,7 @@ import { buildMaxxisIntelligenceUpgradeExperience } from '../../features/maxxis/
 import { resolveReportExportEntitlement, resolveReportExportEntitlements } from '../../features/maxxis/export/reportExportEntitlement';
 import { withCurrentReportExportEntitlements } from '../../features/maxxis/export/reportMessageEntitlements';
 import { downloadMaxxisReportPdf, renderMaxxisReportPdf } from '../../features/maxxis/export/maxxisReportPdf';
+import { didStructuredReportGenerationFail, hasUsableStructuredReportFallback } from '../../features/maxxis/intelligence/maxxisStructuredReportFallback';
 import { MyMaxxisReports } from '../../features/maxxis/reports/MyMaxxisReports';
 import './MaxxisAssistant.css';
 
@@ -1230,7 +1231,8 @@ export function MaxxisAssistant({ page = 'dashboard', onOpenSupport = null, onNa
         language,
         forcedIntent: meta.controlledIntent || '',
       });
-      const reportGenerationFailed = Boolean(requestedReportType && result?.degraded);
+      const structuredReportFallbackUsed = hasUsableStructuredReportFallback(result, requestedReportType);
+      const reportGenerationFailed = didStructuredReportGenerationFail(result, requestedReportType);
       const maxxisAnalysis = requestedReportType === 'MAXXIS_ANALYSIS' && !reportGenerationFailed
         ? projectMaxxisAnalysisResponse(result)
         : null;
@@ -1312,7 +1314,7 @@ export function MaxxisAssistant({ page = 'dashboard', onOpenSupport = null, onNa
         content: `${generationFailureText || dealIntelligence?.content || maxxisAnalysis?.content || intelligence.content || result.answer}${persistedReportId ? `\n\n${language === 'pt' ? 'Relatório salvo em Meus Relatórios.' : language === 'es' ? 'Informe guardado en Mis Informes.' : 'Report saved to My Reports.'}` : ''}${reportActions}`,
         createdAt: new Date(),
         error: Boolean(result.unavailable),
-        degraded: Boolean(result.degraded),
+        degraded: Boolean(result.degraded && !structuredReportFallbackUsed),
         degradedReason: result.degradedReason || '',
         requestId: result.requestId || '',
         type: dealIntelligence?.type || maxxisAnalysis?.type || intelligence.type || result.type,
@@ -2573,11 +2575,10 @@ export function MaxxisAssistant({ page = 'dashboard', onOpenSupport = null, onNa
             {loading ? (
               <div className="maxxis-message maxxis-message-assistant">
                 <div className="maxxis-typing" role="status" aria-live="polite" aria-label={t.typing}>
-                  <strong>{t.typing}</strong>
                   <span className="maxxis-typing-dots" aria-hidden="true">
-                    <i />
-                    <i />
-                    <i />
+                    <i>.</i>
+                    <i>.</i>
+                    <i>.</i>
                   </span>
                 </div>
               </div>

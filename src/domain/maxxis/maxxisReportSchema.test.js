@@ -113,4 +113,15 @@ describe('MaxxisReportSchema v2', () => {
     expect(source).not.toMatch(/from ['"].*(?:arvEngine|compEngine|dealMetrics|calculatePropertyMatch)/i);
     expect(INTELLIGENCE_REPORT_TYPES.DEAL_INTELLIGENCE).toBe('DEAL_INTELLIGENCE');
   });
+
+  it('TEST 10 normalizes app lat/lng coordinates for report maps', () => {
+    const report = buildMaxxisReportSchema({
+      reportType: 'PROPERTY_RELEASE',
+      property: { ...property, lat: 28.5653, lng: -81.5862 },
+    });
+    expect(report.sections.propertySummary.data).toMatchObject({
+      latitude: 28.5653,
+      longitude: -81.5862,
+    });
+  });
 });

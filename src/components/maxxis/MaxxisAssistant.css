@@ -532,8 +532,9 @@ button.maxxis-action-link:hover {
 .maxxis-typing {
   display: inline-flex;
   align-items: center;
-  gap: 10px;
-  padding: 11px 14px;
+  justify-content: center;
+  min-width: 58px;
+  padding: 10px 14px 13px;
   border: 1px solid var(--border);
   border-radius: 14px;
   color: var(--t2);
@@ -541,27 +542,23 @@ button.maxxis-action-link:hover {
   box-shadow: 0 6px 18px color-mix(in srgb, var(--accent) 10%, transparent);
 }
 
-.maxxis-typing strong {
-  font-size: 11px;
-  font-weight: 800;
-}
-
 .maxxis-typing-dots {
   display: inline-flex;
-  align-items: flex-end;
-  gap: 4px;
-  min-width: 34px;
-  height: 14px;
+  align-items: baseline;
+  justify-content: center;
+  gap: 2px;
+  min-width: 30px;
+  height: 18px;
 }
 
 .maxxis-typing-dots i {
-  display: block;
-  width: 8px;
-  height: 8px;
-  border-radius: 999px;
-  background: var(--accent);
-  animation: maxxisTyping 1.05s infinite cubic-bezier(.34, 1.56, .64, 1);
-  transform-origin: center bottom;
+  display: inline-block;
+  color: var(--accent);
+  font-size: 22px;
+  font-style: normal;
+  font-weight: 900;
+  line-height: 1;
+  animation: maxxisTyping 1.05s infinite ease-in-out;
 }
 
 .maxxis-typing-dots i:nth-child(2) {
@@ -573,13 +570,13 @@ button.maxxis-action-link:hover {
 }
 
 @keyframes maxxisTyping {
-  0%, 60%, 100% {
-    opacity: .28;
-    transform: translateY(0) scale(.72);
+  0%, 20%, 70%, 100% {
+    opacity: .2;
+    transform: translateY(0);
   }
-  30% {
+  40% {
     opacity: 1;
-    transform: translateY(-5px) scale(1.12);
+    transform: translateY(-4px);
   }
 }
 
