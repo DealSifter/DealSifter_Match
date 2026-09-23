@@ -23,10 +23,10 @@ describe('Report Experience Selector',()=>{
     expect(css).toMatch(/\.is-intelligence \.report-action-main img\s*\{\s*width:\s*72px;\s*height:\s*72px;/);
   });
   it('defines canonical intelligence selection and 3/5 access resolver',()=>{expect(source).toContain("['MAXXIS_ANALYSIS','DEAL_INTELLIGENCE']");expect(source).toContain('access.nuggetCost');expect(source).toContain('DEAL INTELLIGENCE REPORT')});
-  it('groups renderer-derived preview pages into 1, 3 and 6 page carousels',()=>{
-    expect(source.match(/property-release-page-1\.png/g)).toHaveLength(1);
-    expect(source.match(/maxxis-analysis-page-[123]\.png/g)).toHaveLength(3);
-    expect(source.match(/deal-intelligence-page-[1-6]\.png/g)).toHaveLength(6);
+  it('groups the full-information supplied preview pages into 1, 3 and 6 page carousels',()=>{
+    expect(source.match(/Basic Release\.png/g)).toHaveLength(1);
+    expect(source.match(/Maxxis Analisys \([1-3]\)\.png/g)).toHaveLength(3);
+    expect(source.match(/Deal Inteligence\([1-6]\)\.png/g)).toHaveLength(6);
     expect(source).toContain('PROPERTY_RELEASE:Object.freeze([propertyReleasePage1])');
     expect(source).toContain('MAXXIS_ANALYSIS:Object.freeze([maxxisAnalysisPage1,maxxisAnalysisPage2,maxxisAnalysisPage3])');
     expect(source).toContain('DEAL_INTELLIGENCE:Object.freeze([dealIntelligencePage1,dealIntelligencePage2,dealIntelligencePage3,dealIntelligencePage4,dealIntelligencePage5,dealIntelligencePage6])');

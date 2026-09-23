@@ -21,7 +21,9 @@ const PROPERTY_KEYS = Object.freeze([
   'id', 'title', 'address', 'city', 'state', 'zip', 'description', 'type', 'beds',
   'baths', 'sqft', 'lot', 'price', 'images', 'improvement', 'dealTag', 'objective',
   'rehab', 'capRate', 'markets', 'published', 'dealClosed', 'notes', 'source',
-  'portfolio', 'labels', 'owner', 'latitude', 'longitude',
+  'portfolio', 'labels', 'owner', 'latitude', 'longitude', 'yearBuilt', 'county',
+  'assessedValue', 'annualPropertyTax', 'ownerOccupied', 'ownershipRecordPresent',
+  'latestSalePrice', 'latestSaleDate',
 ]);
 const COMPARABLE_KEYS = Object.freeze([
   'compIdentifier', 'address', 'salePrice', 'saleDate', 'distanceMiles', 'similarity',

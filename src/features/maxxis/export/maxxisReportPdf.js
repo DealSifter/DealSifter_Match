@@ -271,10 +271,15 @@ function propertyFactGrid(doc, property, evidence, t, accent, y) {
     ...array(evidence?.verifiedRecords), ...array(evidence?.userProvided),
   ].filter((item) => item?.field).map((item) => [item.field, item.value]));
   const fact = (name, fallback = null) => evidenceFacts[name] ?? fallback;
+  const contacts = array(owner.allowedContacts).map((contact) => contact?.value).filter(Boolean).join(' · ');
+  const latestSale = [
+    fact('latestSalePrice', property.latestSalePrice) ? currency(fact('latestSalePrice', property.latestSalePrice), t) : null,
+    fact('latestSaleDate', property.latestSaleDate),
+  ].filter(Boolean).join(' · ');
   const facts = [
-    [t.owner, [[t.ownerName, owner.name], [t.ownerOccupied, fact('ownerOccupied')], [t.ownershipRecord, fact('ownershipRecordPresent')], [t.latestSale, fact('latestSalePrice') ? currency(fact('latestSalePrice'), t) : null], [t.saleDate, fact('latestSaleDate')]]],
-    [t.facts, [[t.type, property.type], [t.strategy, property.objective], [t.yearBuilt, fact('yearBuilt')], [t.beds, fact('bedrooms', property.beds)], [t.baths, fact('bathrooms', property.baths)], [t.sqft, fact('livingAreaSqft', property.sqft)]]],
-    [t.land, [[t.location, [property.city, property.state].filter(Boolean).join(', ')], [t.county, fact('county')], [t.lot, fact('lotSizeSqft', property.lot)], [t.assessedValue, fact('assessedValue') ? currency(fact('assessedValue'), t) : null], [t.propertyTax, fact('annualPropertyTax') ? currency(fact('annualPropertyTax'), t) : null], [t.source, property.source]]],
+    [t.owner, [[t.ownerName, owner.name], [t.ownerType, owner.type], [t.status, owner.status], [t.contacts, contacts], [t.ownerOccupied, fact('ownerOccupied', property.ownerOccupied)], [t.latestSale, latestSale]]],
+    [t.facts, [[t.type, property.type], [t.strategy, property.objective], [t.yearBuilt, fact('yearBuilt', property.yearBuilt)], [t.beds, fact('bedrooms', property.beds)], [t.baths, fact('bathrooms', property.baths)], [t.sqft, fact('livingAreaSqft', property.sqft)]]],
+    [t.land, [[t.location, [property.city, property.state].filter(Boolean).join(', ')], [t.county, fact('county', property.county)], [t.lot, fact('lotSizeSqft', property.lot)], [t.assessedValue, fact('assessedValue', property.assessedValue) ? currency(fact('assessedValue', property.assessedValue), t) : null], [t.propertyTax, fact('annualPropertyTax', property.annualPropertyTax) ? currency(fact('annualPropertyTax', property.annualPropertyTax), t) : null], [t.source, property.source]]],
   ];
   facts.forEach(([title, entries], i) => {
     const x = M + i * (w + gap); panel(doc, x, y, w, h);
@@ -283,7 +288,7 @@ function propertyFactGrid(doc, property, evidence, t, accent, y) {
   });
   return y + h;
 }
-function propertyBottom(doc, property, t, accent, y, images, conflicts = [], mapImage = null) {
+function propertyBottom(doc, property, t, accent, y, images, conflicts = [], mapImage = null, notes = {}) {
   panel(doc, M, y, CONTENT, 96); heading(doc, t.photos, M + 12, y + 25, CONTENT - 24, accent);
   const shown = images.length ? images.slice(0, 4) : [null];
   const photoGap = 7; const photoWidth = (CONTENT - 24 - photoGap * 3) / 4;
@@ -301,8 +306,8 @@ function propertyBottom(doc, property, t, accent, y, images, conflicts = [], map
     if (property.latitude != null && property.longitude != null) text(doc, `${property.latitude}, ${property.longitude}`, M + 13, y + 73, { size: 8, color: C.muted });
     text(doc, t.noMap, M + 13, y + 101, { size: 8, color: C.muted, width: w - 25, maxLines: 3 });
   }
-  panel(doc, M + w + 10, y, w, 145); heading(doc, t.notes, M + w + 22, y + 25, w - 24, accent);
-  text(doc, property.notes || property.description || t.unavailable, M + w + 22, y + 48, { size: 8.5, width: w - 25, maxLines: conflicts.length ? 5 : 8 });
+  panel(doc, M + w + 10, y, w, 145); heading(doc, notes.title || t.notes, M + w + 22, y + 25, w - 24, accent);
+  text(doc, notes.text || property.notes || property.description || t.unavailable, M + w + 22, y + 48, { size: 8.5, width: w - 25, maxLines: conflicts.length ? 5 : 8 });
   if (conflicts.length) text(doc, t.conflict, M + w + 22, y + 127, { size: 7.5, bold: true, color: C.gold, width: w - 25, maxLines: 2 });
 }
 function renderPropertyOverview(doc, schema, t, accent, images, mapImage) {
@@ -312,18 +317,13 @@ function renderPropertyOverview(doc, schema, t, accent, images, mapImage) {
   propertyFactGrid(doc, property, evidence, t, accent, 335);
   propertyBottom(doc, property, t, accent, 499, images, array(evidence.conflicts), mapImage);
 }
-function renderExecutive(doc, schema, t, accent, images) {
+function renderExecutive(doc, schema, t, accent, images, mapImage) {
   const property = section(schema, 'propertySummary') || {};
   const summary = section(schema, 'executiveSummary') || {};
   propertyHero(doc, property, t, accent, images[0], { compact: true });
-  const y = 297; const gap = 10; const w = (CONTENT - gap * 2) / 3;
-  [[t.type, property.type], [t.strategy, property.objective], [t.location, location(property)]].forEach(([label, entry], i) => {
-    const x = M + i * (w + gap); panel(doc, x, y, w, 83);
-    heading(doc, label, x + 11, y + 24, w - 22, accent);
-    text(doc, value(entry, t.unavailable), x + 11, y + 50, { size: 10, bold: true, width: w - 22, maxLines: 2 });
-  });
-  listPanel(doc, t.opportunity, [summary.summary].filter(Boolean), M, 394, CONTENT, 145, t, accent);
-  listPanel(doc, t.conclusion, positiveObservations(summary), M, 551, CONTENT, 182, t, accent, { positive: true });
+  propertyFactGrid(doc, property, {}, t, accent, 297);
+  const summaryText = [summary.summary, ...positiveObservations(summary).map((item) => `• ${item}`)].filter(Boolean).join('\n');
+  propertyBottom(doc, property, t, accent, 462, images, [], mapImage, { title: t.opportunity, text: summaryText });
 }
 function profileRows(profile, t) {
   return [
@@ -485,7 +485,7 @@ function renderConclusion(doc, schema, t, accent) {
 }
 function renderPage(doc, schema, pageCode, t, accent, images, mapImage) {
   if (pageCode === 'PROPERTY_OVERVIEW') return renderPropertyOverview(doc, schema, t, accent, images, mapImage);
-  if (pageCode === 'EXECUTIVE_SUMMARY_PROPERTY_CONTEXT') return renderExecutive(doc, schema, t, accent, images);
+  if (pageCode === 'EXECUTIVE_SUMMARY_PROPERTY_CONTEXT') return renderExecutive(doc, schema, t, accent, images, mapImage);
   if (pageCode === 'INVESTMENT_FIT_RISK') return renderFit(doc, schema, t, accent);
   if (pageCode === 'KEY_INSIGHTS_NEXT_STEPS') return renderInsights(doc, schema, t, accent);
   if (pageCode === 'COMPARATIVE_MARKET_ANALYSIS') return renderComparables(doc, schema, t, accent);

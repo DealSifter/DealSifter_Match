@@ -10,6 +10,8 @@ Object.assign(globalThis, { DOMMatrix, ImageData, Path2D });
 const property = {
   id: 'report-template-test', address: '1200 Fictional Street', city: 'Example City', state: 'FL', zip: '00000',
   type: 'SFR', price: 425000, beds: 4, baths: 2, sqft: 1780, rehab: 48000,
+  lot: 9600, yearBuilt: 2004, county: 'Example County', assessedValue: 390000, annualPropertyTax: 5200,
+  owner: { name: 'Sample Owner', type: 'Individual', status: 'Not verified', allowedContacts: [] },
   notes: 'Owner narrative says three bedrooms; the structured record says four.', published: true,
 };
 const intelligence = {
@@ -107,6 +109,13 @@ describe('canonical PDF template behavior', () => {
     const pages = await pdfPages(result);
     expect(pages).toHaveLength(3);
     expect(pages[0].text).toContain('Recorded positive signal.');
+    expect(pages[0].text).toContain('Owner Information');
+    expect(pages[0].text).toContain('Property Details');
+    expect(pages[0].text).toContain('Land Information');
+    expect(pages[0].text).toContain('Property Photos');
+    expect(pages[0].text).toContain('Location');
+    expect(pages[0].text).toContain('Sample Owner');
+    expect(pages[0].text).toContain('2004');
     expect(pages[2].text).toContain('Recorded missing evidence.');
   });
 

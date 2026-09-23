@@ -21,5 +21,10 @@ describe('canonical report journey contract',()=>{
     expect(assistant).toMatch(/reportPayload:[\s\S]{0,500}reportExportEntitlements/);
   });
   it('lists only active owned report artifacts',()=>{expect(service).toContain(".eq('user_id', userId).is('deleted_at', null)")});
+  it('restores owned saved-report access for view, PDF, and email actions',()=>{
+    expect(assistant).toContain('resolveSavedReportAccessDecision(report)');
+    expect(assistant).toContain('reportAccessDecision: savedAccessDecision');
+    expect(assistant).toContain('const downloaded = await downloadSavedReport(report)');
+  });
   it('does not add a RentCast call or Stripe path',()=>{expect(edge).not.toContain('rentcast.com');expect(service).not.toMatch(/stripe/i)});
 });

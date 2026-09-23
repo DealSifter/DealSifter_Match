@@ -121,6 +121,7 @@ import { withCurrentReportExportEntitlements } from '../../features/maxxis/expor
 import { downloadMaxxisReportPdf, renderMaxxisReportPdf } from '../../features/maxxis/export/maxxisReportPdf';
 import { didStructuredReportGenerationFail, hasUsableStructuredReportFallback } from '../../features/maxxis/intelligence/maxxisStructuredReportFallback';
 import { MyMaxxisReports } from '../../features/maxxis/reports/MyMaxxisReports';
+import { resolveSavedReportAccessDecision } from '../../features/maxxis/reports/savedReportAccess';
 import './MaxxisAssistant.css';
 
 import {
@@ -2406,18 +2407,22 @@ export function MaxxisAssistant({ page = 'dashboard', onOpenSupport = null, onNa
   const savedReportExportEntitlements = (report) => {
     const reportType = String(report?.capability || report?.reportPayload?.data?.maxxisReport?.reportType || '');
     if (!reportType) return {};
+    const savedAccessDecision = resolveSavedReportAccessDecision(report);
     return resolveReportExportEntitlements({
       plan: currentPlan,
       entitlements: reportEntitlements,
       reportType,
-      grantedAccessDecision: report?.reportPayload?.data?.reportAccessDecision || null,
+      grantedAccessDecision: savedAccessDecision || report?.reportPayload?.data?.reportAccessDecision || null,
     });
   };
   const openSavedReport = (report) => {
     const payload = report?.reportPayload || {};
+    const savedAccessDecision = resolveSavedReportAccessDecision(report);
+    if (!payload?.data?.maxxisReport || !savedAccessDecision) return false;
     const reportExportEntitlements = savedReportExportEntitlements(report);
     setReportsOpen(false); setOpen(true);
-    setMessages((prev) => [...prev, { id:`maxxis-saved-report-${report?.id}`, role:'assistant', createdAt:new Date(), content:payload.content || '', type:payload.type || 'maxxis_report_history', data:payload.data ? { ...payload.data, reportExportEntitlements, reportId: report?.id || null } : null }]);
+    setMessages((prev) => [...prev, { id:`maxxis-saved-report-${report?.id}-${Date.now()}`, role:'assistant', createdAt:new Date(), content:payload.content || '', type:payload.type || 'maxxis_report_history', data:payload.data ? { ...payload.data, reportAccessDecision: savedAccessDecision, reportExportEntitlements, reportId: report?.id || null } : null }]);
+    return true;
   };
   const downloadSavedReport = async (report) => {
     const schema = report?.reportPayload?.data?.maxxisReport;
@@ -2427,10 +2432,13 @@ export function MaxxisAssistant({ page = 'dashboard', onOpenSupport = null, onNa
     if (rendered.state !== 'RENDERED') return false;
     return downloadMaxxisReportPdf(rendered.document, `maxxis-${report?.id || schema.reportType.toLowerCase()}.pdf`);
   };
-  const emailSavedReport = (report) => {
+  const emailSavedReport = async (report) => {
+    const downloaded = await downloadSavedReport(report);
+    if (!downloaded) return false;
     const subject=encodeURIComponent(`DealSifter · ${String(report?.capability || '').replaceAll('_',' ')}`);
     const body=encodeURIComponent(String(report?.reportPayload?.content || ''));
     window.location.href=`mailto:?subject=${subject}&body=${body}`;
+    return true;
   };
 
   if (!enabled) return null;
