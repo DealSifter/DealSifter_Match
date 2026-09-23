@@ -190,6 +190,16 @@ describe('DealSifter deterministic ARV Engine v1', () => {
       .toBe('PROVIDER_ESTIMATE_UNAVAILABLE');
   });
 
+  it('preserves a provider estimate as estimated evidence when DealSifter ARV is unavailable', () => {
+    const result = evaluate([], {
+      cachedProviderAvm: { value: 2_250_000, evidenceStatus: 'ESTIMATED' },
+    });
+    expect(result).toMatchObject({ status: 'ARV_UNAVAILABLE', centralReference: null });
+    expect(result.providerAvmCrossCheck).toEqual({
+      status: 'PROVIDER_ESTIMATE_UNVALIDATED', value: 2_250_000, evidenceStatus: 'ESTIMATED',
+    });
+  });
+
   it('preserves provenance and inactive base adjustments', () => {
     const result = evaluate(['MATCHES_TARGET', 'MATCHES_TARGET']);
     expect(result.evidenceSummary).toEqual({ recordedSale: 'VERIFIED_RECORD', structuralScore: 'CALCULATED',

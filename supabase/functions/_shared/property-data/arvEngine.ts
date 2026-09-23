@@ -186,8 +186,14 @@ function dispersion(values: number[]) {
 }
 
 function providerCrossCheck(value: number | null, low: number | null, high: number | null) {
-  if (!finitePositive(value) || !finitePositive(low) || !finitePositive(high)) return {
+  if (!finitePositive(value)) return {
     status: 'PROVIDER_ESTIMATE_UNAVAILABLE' as const, value: null, evidenceStatus: 'UNAVAILABLE' as const,
+  };
+  // A cached provider estimate remains useful evidence even when DealSifter cannot
+  // produce a condition-supported ARV. Preserve it as an unvalidated estimate and
+  // never blend it into, or present it as, the DealSifter ARV.
+  if (!finitePositive(low) || !finitePositive(high)) return {
+    status: 'PROVIDER_ESTIMATE_UNVALIDATED' as const, value, evidenceStatus: 'ESTIMATED' as const,
   };
   return { status: value < low ? 'PROVIDER_ESTIMATE_BELOW_RANGE' as const
     : value > high ? 'PROVIDER_ESTIMATE_ABOVE_RANGE' as const : 'PROVIDER_ESTIMATE_WITHIN_RANGE' as const,

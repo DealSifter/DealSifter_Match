@@ -52,6 +52,12 @@ const cleanNumber = (value: unknown): number | null => {
   return Number.isFinite(number) && number >= 0 ? number : null;
 };
 
+const cleanCoordinate = (value: unknown, minimum: number, maximum: number): number | null => {
+  if (value === null || value === undefined || value === '') return null;
+  const number = Number(value);
+  return Number.isFinite(number) && number >= minimum && number <= maximum ? number : null;
+};
+
 function cleanPublicImageUrl(value: unknown) {
   const raw = cleanText(value, 2_000);
   if (!raw) return '';
@@ -100,8 +106,11 @@ export function resolvePropertyDetailsInput(toolArgs: unknown, trustedPropertyId
 }
 
 export function normalizePropertyDetails(row: Record<string, any>, imageRows: Array<Record<string, any>> = []): NormalizedPropertyDetailsResult {
+  const address = cleanPublicNarrative(row.address, 240);
   const property: MaxxisPropertyDetails = {
     id: cleanText(row.id, 50),
+    title: address || cleanText([row.type, row.city, row.state].filter(Boolean).join(' · '), 240),
+    address,
     type: cleanText(row.type, 100),
     city: cleanText(row.city, 120),
     state: cleanText(row.state, 2).toUpperCase(),
@@ -117,6 +126,9 @@ export function normalizePropertyDetails(row: Record<string, any>, imageRows: Ar
     rehab: cleanNumber(row.rehab),
     capRate: cleanNumber(row.cap_rate),
     description: cleanPublicNarrative(row.description, 2_000),
+    source: cleanText(row.source, 80),
+    latitude: cleanCoordinate(row.latitude ?? row.lat, -90, 90),
+    longitude: cleanCoordinate(row.longitude ?? row.lng, -180, 180),
     markets: Array.isArray(row.markets)
       ? row.markets.map((market: unknown) => cleanText(market, 120)).filter(Boolean).slice(0, 12)
       : [],

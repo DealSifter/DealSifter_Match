@@ -987,6 +987,7 @@ export function MaxxisAssistant({ page = 'dashboard', onOpenSupport = null, onNa
     setLoading(true);
 
     try {
+      let authorizedReportAccess = null;
       const requestedReportType = inferRequestedIntelligenceReportType(cleanMessage, {
         explicitReportType: meta.reportType,
         hasPropertyContext: Boolean(meta.reportType || UUID_PATTERN.test(String(propertyContextId || appContext?.entity?.propertyId || ''))),
@@ -1013,19 +1014,10 @@ export function MaxxisAssistant({ page = 'dashboard', onOpenSupport = null, onNa
           }]);
           return;
         }
-        const contextPropertyId = String(propertyContextId || appContext?.entity?.propertyId || '');
-        const storedReport = reportHistory.find((entry) => entry.capability === requestedReportType
-          && String(entry.propertyId || '') === contextPropertyId && entry.reportPayload);
-        if (storedReport) {
-          setMessages((prev) => [...prev, {
-            id: `maxxis-report-history-${storedReport.id || Date.now()}`,
-            role: 'assistant', createdAt: new Date(),
-            content: storedReport.reportPayload.content,
-            type: storedReport.reportPayload.type || 'maxxis_report_history',
-            data: storedReport.reportPayload.data || null,
-          }]);
-          return;
-        }
+        // A new report request must run against the current app/provider snapshot. Saved
+        // reports remain available through My Reports, but must never short-circuit a new
+        // analysis with stale data or stale export permissions.
+        authorizedReportAccess = accessDecision;
       }
       const continuityResolution = resolveCurrentMaxxisContinuity();
       const continuityReference = resolveMaxxisContinuityReference(cleanMessage, continuityResolution, {
@@ -1246,7 +1238,10 @@ export function MaxxisAssistant({ page = 'dashboard', onOpenSupport = null, onNa
         : null;
       const projectedReport = dealIntelligence || maxxisAnalysis;
       const projectedReportType = projectedReport?.data?.maxxisReport?.reportType || null;
-      const grantedReportAccess = meta.reportAccessDecision?.allowed
+      const grantedReportAccess = authorizedReportAccess?.allowed
+        && String(authorizedReportAccess.reportType || '').toUpperCase() === projectedReportType
+        ? authorizedReportAccess
+        : meta.reportAccessDecision?.allowed
         && String(meta.reportAccessDecision.reportType || '').toUpperCase() === projectedReportType
         ? meta.reportAccessDecision
         : null;
@@ -1267,7 +1262,11 @@ export function MaxxisAssistant({ page = 'dashboard', onOpenSupport = null, onNa
             reportPayload: {
               content: dealIntelligence?.content || maxxisAnalysis?.content || intelligence.content || result.answer,
               type: dealIntelligence?.type || maxxisAnalysis?.type || intelligence.type || result.type,
-              data: { ...projectedReport.data, reportAccessDecision: grantedReportAccess },
+              data: {
+                ...projectedReport.data,
+                reportAccessDecision: grantedReportAccess,
+                reportExportEntitlements,
+              },
             },
           });
         } catch (error) {

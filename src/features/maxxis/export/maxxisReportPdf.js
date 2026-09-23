@@ -27,6 +27,9 @@ const COPY = Object.freeze({
     location: 'Location', notes: 'Notes', status: 'Status', type: 'Type', strategy: 'Strategy',
     price: 'Price', beds: 'Beds', baths: 'Baths', sqft: 'Living area', lot: 'Lot size',
     source: 'Source', ownerName: 'Owner', ownerType: 'Owner type', contacts: 'Contacts',
+    ownerOccupied: 'Owner occupied', ownershipRecord: 'Ownership record', latestSale: 'Latest sale',
+    saleDate: 'Sale date', yearBuilt: 'Year built', county: 'County', assessedValue: 'Assessed value',
+    propertyTax: 'Property tax', providerEstimate: 'Provider estimate (not ARV)',
     capRate: 'Cap rate', rehab: 'Rehab', noPhoto: 'No property photo available',
     noMap: 'Street map unavailable; location is shown from stored property data.',
     context: 'Property context', opportunity: 'Opportunity Summary', conclusion: 'Maxxis executive insight',
@@ -59,6 +62,9 @@ const COPY = Object.freeze({
     location: 'Localização', notes: 'Notas', status: 'Status', type: 'Tipo', strategy: 'Estratégia',
     price: 'Preço', beds: 'Quartos', baths: 'Banheiros', sqft: 'Área útil', lot: 'Área do lote',
     source: 'Fonte', ownerName: 'Proprietário', ownerType: 'Tipo de proprietário', contacts: 'Contatos',
+    ownerOccupied: 'Ocupado pelo proprietário', ownershipRecord: 'Registro de ownership', latestSale: 'Última venda',
+    saleDate: 'Data da venda', yearBuilt: 'Ano de construção', county: 'Condado', assessedValue: 'Valor fiscal',
+    propertyTax: 'Imposto predial', providerEstimate: 'Estimativa do provedor (não é ARV)',
     capRate: 'Cap rate', rehab: 'Reforma', noPhoto: 'Sem foto disponível do imóvel',
     noMap: 'Mapa de ruas indisponível; localização baseada nos dados cadastrados.',
     context: 'Contexto do imóvel', opportunity: 'Resumo da oportunidade', conclusion: 'Insight executivo do Maxxis',
@@ -91,6 +97,9 @@ const COPY = Object.freeze({
     location: 'Ubicación', notes: 'Notas', status: 'Estado', type: 'Tipo', strategy: 'Estrategia',
     price: 'Precio', beds: 'Habitaciones', baths: 'Baños', sqft: 'Superficie habitable', lot: 'Superficie del lote',
     source: 'Fuente', ownerName: 'Propietario', ownerType: 'Tipo de propietario', contacts: 'Contactos',
+    ownerOccupied: 'Ocupada por propietario', ownershipRecord: 'Registro de titularidad', latestSale: 'Última venta',
+    saleDate: 'Fecha de venta', yearBuilt: 'Año de construcción', county: 'Condado', assessedValue: 'Valor fiscal',
+    propertyTax: 'Impuesto predial', providerEstimate: 'Estimación del proveedor (no es ARV)',
     capRate: 'Cap rate', rehab: 'Reforma', noPhoto: 'No hay foto disponible de la propiedad',
     noMap: 'Mapa de calles no disponible; ubicación según los datos registrados.',
     context: 'Contexto de la propiedad', opportunity: 'Resumen de la oportunidad', conclusion: 'Análisis ejecutivo de Maxxis',
@@ -252,13 +261,17 @@ function propertyHero(doc, property, t, accent, imageData, { compact = false } =
   photo(doc, M + 300, y + 10, CONTENT - 312, h - 20, imageData, t);
   return y + h;
 }
-function propertyFactGrid(doc, property, t, accent, y) {
+function propertyFactGrid(doc, property, evidence, t, accent, y) {
   const gap = 9; const w = (CONTENT - gap * 2) / 3; const h = 153;
   const owner = property.owner || {};
+  const evidenceFacts = Object.fromEntries([
+    ...array(evidence?.verifiedRecords), ...array(evidence?.userProvided),
+  ].filter((item) => item?.field).map((item) => [item.field, item.value]));
+  const fact = (name, fallback = null) => evidenceFacts[name] ?? fallback;
   const facts = [
-    [t.owner, [[t.ownerName, owner.name], [t.ownerType, owner.type], [t.status, owner.status], [t.contacts, array(owner.allowedContacts).map((c) => c.value).filter(Boolean).join(', ')]]],
-    [t.facts, [[t.type, property.type], [t.strategy, property.objective], [t.beds, property.beds], [t.baths, property.baths], [t.sqft, property.sqft], [t.rehab, property.rehab ? currency(property.rehab, t) : null]]],
-    [t.land, [[t.location, [property.city, property.state].filter(Boolean).join(', ')], [t.lot, property.lot], [t.capRate, property.capRate ? `${property.capRate}%` : null], [t.source, property.source], [t.portfolio, property.portfolio == null ? null : property.portfolio ? t.yes : t.no]]],
+    [t.owner, [[t.ownerName, owner.name], [t.ownerOccupied, fact('ownerOccupied')], [t.ownershipRecord, fact('ownershipRecordPresent')], [t.latestSale, fact('latestSalePrice') ? currency(fact('latestSalePrice'), t) : null], [t.saleDate, fact('latestSaleDate')]]],
+    [t.facts, [[t.type, property.type], [t.strategy, property.objective], [t.yearBuilt, fact('yearBuilt')], [t.beds, fact('bedrooms', property.beds)], [t.baths, fact('bathrooms', property.baths)], [t.sqft, fact('livingAreaSqft', property.sqft)]]],
+    [t.land, [[t.location, [property.city, property.state].filter(Boolean).join(', ')], [t.county, fact('county')], [t.lot, fact('lotSizeSqft', property.lot)], [t.assessedValue, fact('assessedValue') ? currency(fact('assessedValue'), t) : null], [t.propertyTax, fact('annualPropertyTax') ? currency(fact('annualPropertyTax'), t) : null], [t.source, property.source]]],
   ];
   facts.forEach(([title, entries], i) => {
     const x = M + i * (w + gap); panel(doc, x, y, w, h);
@@ -284,9 +297,10 @@ function propertyBottom(doc, property, t, accent, y, images, conflicts = []) {
 }
 function renderPropertyOverview(doc, schema, t, accent, images) {
   const property = section(schema, 'propertySummary') || {};
+  const evidence = section(schema, 'propertyEvidence') || {};
   propertyHero(doc, property, t, accent, images[0]);
-  propertyFactGrid(doc, property, t, accent, 335);
-  propertyBottom(doc, property, t, accent, 499, images, array(section(schema, 'propertyEvidence')?.conflicts));
+  propertyFactGrid(doc, property, evidence, t, accent, 335);
+  propertyBottom(doc, property, t, accent, 499, images, array(evidence.conflicts));
 }
 function renderExecutive(doc, schema, t, accent, images) {
   const property = section(schema, 'propertySummary') || {};
@@ -400,6 +414,11 @@ function renderValuation(doc, schema, t, accent) {
   text(doc, arv, M + 14, 204, { size: 21, bold: true, color: C.ink });
   text(doc, valuation.status || 'ARV_UNAVAILABLE', M + 14, 230, { size: 9, bold: true, color: C.muted });
   text(doc, valuation.status === 'ARV_UNAVAILABLE' ? t.noArv : value(valuation.methodology, t.noDetails), M + 14, 253, { size: 8.5, width: valuation.range ? 285 : CONTENT - 28, maxLines: 2 });
+  if (valuation.providerEstimate?.value) {
+    text(doc, t.providerEstimate, M + 358, 185, { size: 8, bold: true, color: C.muted, width: 150, maxLines: 2 });
+    text(doc, currency(valuation.providerEstimate.value, t), M + 358, 220, { size: 15, bold: true, color: C.ink, width: 150, maxLines: 1 });
+    text(doc, value(valuation.providerEstimate.status, t.unavailable).replaceAll('_', ' '), M + 358, 241, { size: 7, color: C.muted, width: 150, maxLines: 2 });
+  }
   if (valuation.status !== 'ARV_UNAVAILABLE' && valuation.range) {
     const low = Number(valuation.range.low); const high = Number(valuation.range.high);
     const middle = Number.isFinite(Number(valuation.centralReference)) ? Number(valuation.centralReference) : (low + high) / 2;
@@ -414,7 +433,7 @@ function renderValuation(doc, schema, t, accent) {
   }
   const w = (CONTENT - 12) / 2;
   panel(doc, M, 315, w, 170); heading(doc, t.inputs, M + 12, 341, w - 24, accent);
-  rows(doc, [[t.price, currency(property.price, t)], [t.rehab, property.rehab ? currency(property.rehab, t) : null], [t.compsUsed, valuation.compsUsed], [t.confidence, valuation.confidence], [t.pricePerSqft, metrics.pricePerSqft?.value == null ? null : currency(metrics.pricePerSqft.value, t)]], M + 12, 365, w - 24, { lineHeight: 26, labelWidth: 93, t });
+  rows(doc, [[t.price, currency(property.price, t)], [t.rehab, property.rehab ? currency(property.rehab, t) : null], [t.compsUsed, valuation.compsUsed], [t.confidence, valuation.confidence], [t.providerEstimate, valuation.providerEstimate?.value ? currency(valuation.providerEstimate.value, t) : null], [t.pricePerSqft, metrics.pricePerSqft?.value == null ? null : currency(metrics.pricePerSqft.value, t)]], M + 12, 365, w - 24, { lineHeight: 22, labelWidth: 93, limit: 6, t });
   panel(doc, M + w + 12, 315, w, 170); heading(doc, t.kpis, M + w + 24, 341, w - 24, accent);
   rows(doc, [
     [t.costBasis, metrics.acquisitionPlusRehab?.value == null ? null : currency(metrics.acquisitionPlusRehab.value, t)],

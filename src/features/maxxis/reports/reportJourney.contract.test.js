@@ -14,6 +14,12 @@ describe('canonical report journey contract',()=>{
   it('gives an explicitly selected report precedence over incidental ARV wording in its safety prompt',()=>{expect(assistant).toContain('if (!requestedReportType && isArvVisualCompReviewIntent(cleanMessage, meta.controlledIntent))')});
   it('forces the canonical report context tool for both authorized report levels',()=>{expect(edge).toContain("name: 'getDealInsightContext'");expect(edge).toContain('reportType: propertyAnalysisContext.report_type')});
   it('persists a report and confirms My Reports in chat',()=>{expect(assistant).toContain('persistedReportId');expect(assistant).toContain('Report saved to My Reports.')});
+  it('regenerates an explicitly requested report from the current snapshot and persists export authorization',()=>{
+    expect(assistant).toContain('let authorizedReportAccess = null');
+    expect(assistant).toContain('authorizedReportAccess = accessDecision');
+    expect(assistant).not.toContain('const storedReport = reportHistory.find');
+    expect(assistant).toMatch(/reportPayload:[\s\S]{0,500}reportExportEntitlements/);
+  });
   it('lists only active owned report artifacts',()=>{expect(service).toContain(".eq('user_id', userId).is('deleted_at', null)")});
   it('does not add a RentCast call or Stripe path',()=>{expect(edge).not.toContain('rentcast.com');expect(service).not.toMatch(/stripe/i)});
 });

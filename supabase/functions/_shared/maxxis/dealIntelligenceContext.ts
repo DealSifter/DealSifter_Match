@@ -10,7 +10,7 @@ export type DealRiskCategory = 'DATA_RISK' | 'MARKET_RISK' | 'VALUATION_RISK' | 
 export type DealRiskSeverity = 'LOW' | 'MEDIUM' | 'HIGH';
 
 export type DealContextField = {
-  value: string | number | null;
+  value: string | number | boolean | null;
   status: EvidenceStatus;
   source: string | null;
 };
@@ -59,6 +59,11 @@ export type DealIntelligenceContext = {
     warnings: string[];
     provenance: 'CALCULATED' | 'UNAVAILABLE';
     methodologyVersion: string | null;
+    providerEstimate: {
+      value: number;
+      status: string;
+      provenance: 'ESTIMATED';
+    } | null;
   };
   comparableEvidence: Array<{
     compIdentifier: string | null;
@@ -75,6 +80,7 @@ export type DealIntelligenceContext = {
     valuationRole: string;
     inclusionReason: string | null;
     exclusionReason: string | null;
+    sqft: number | null;
   }>;
   matchContext: {
     score: number | null;
@@ -120,7 +126,7 @@ DealContextField {
   if (present(internal.value)) {
     return { value: internal.value, status: 'USER_PROVIDED', source: String(internal.source || fallbackSource) };
   }
-  if (present(fallback)) return { value: fallback as string | number, status: 'USER_PROVIDED', source: fallbackSource };
+  if (present(fallback)) return { value: fallback as string | number | boolean, status: 'USER_PROVIDED', source: fallbackSource };
   return { value: null, status: 'UNKNOWN', source: null };
 }
 
@@ -128,7 +134,7 @@ function propertyContext(property: MaxxisPropertyDetails, evidence: MaxxisProper
   const publicFields = evidence.state === 'available' ? record(evidence.evidence?.fields) : {};
   const internalFields = evidence.state === 'available' ? record(evidence.evidence?.internalFields) : {};
   const fields: Record<string, DealContextField> = {
-    address: field(null, null, null),
+    address: field(null, null, property.address),
     city: field(null, null, property.city),
     state: field(null, null, property.state),
     zipCode: field(null, null, property.zip),
@@ -139,6 +145,17 @@ function propertyContext(property: MaxxisPropertyDetails, evidence: MaxxisProper
     lotSizeSqft: field(publicFields.lotSizeSqft, internalFields.lotSizeSqft, property.lot),
     yearBuilt: field(publicFields.yearBuilt, internalFields.yearBuilt, null),
     askingPrice: field(null, internalFields.askingPrice, property.price),
+    county: field(publicFields.county, null, null),
+    latitude: field(publicFields.latitude, null, property.latitude),
+    longitude: field(publicFields.longitude, null, property.longitude),
+    assessedValue: field(publicFields.assessedValue, null, null),
+    assessmentYear: field(publicFields.assessmentYear, null, null),
+    annualPropertyTax: field(publicFields.annualPropertyTax, null, null),
+    propertyTaxYear: field(publicFields.propertyTaxYear, null, null),
+    latestSalePrice: field(publicFields.latestSalePrice, null, null),
+    latestSaleDate: field(publicFields.latestSaleDate, null, null),
+    ownerOccupied: field(publicFields.ownerOccupied, null, null),
+    ownershipRecordPresent: field(publicFields.ownershipRecordPresent, null, null),
   };
   return {
     fields,
@@ -156,8 +173,17 @@ function evidenceStrength(verified: number, unknown: number, conflicts: number):
 
 function valuationContext(arv: ArvEvaluationResult | null): DealIntelligenceContext['valuationContext'] {
   if (!arv) return { status: 'ARV_UNAVAILABLE', range: null, centralReference: null, confidence: 'LOW',
-    compsUsed: 0, warnings: ['ARV_EVALUATION_NOT_LOADED'], provenance: 'UNAVAILABLE', methodologyVersion: null };
+    compsUsed: 0, warnings: ['ARV_EVALUATION_NOT_LOADED'], provenance: 'UNAVAILABLE', methodologyVersion: null,
+    providerEstimate: null };
   const available = arv.status !== 'ARV_UNAVAILABLE';
+  const providerEstimate = arv.providerAvmCrossCheck?.evidenceStatus === 'ESTIMATED'
+    && Number.isFinite(Number(arv.providerAvmCrossCheck.value))
+    ? {
+        value: Number(arv.providerAvmCrossCheck.value),
+        status: arv.providerAvmCrossCheck.status,
+        provenance: 'ESTIMATED' as const,
+      }
+    : null;
   return {
     status: arv.status,
     range: available && arv.arvRangeLow !== null && arv.arvRangeHigh !== null
@@ -168,6 +194,7 @@ function valuationContext(arv: ArvEvaluationResult | null): DealIntelligenceCont
     warnings: [...arv.warnings],
     provenance: arv.evidenceSummary.arv,
     methodologyVersion: arv.methodologyVersion,
+    providerEstimate,
   };
 }
 
@@ -187,6 +214,7 @@ function comparableEvidence(arv: ArvEvaluationResult | null): DealIntelligenceCo
     valuationRole: comp.valuationRole,
     inclusionReason: comp.inclusionReason,
     exclusionReason: comp.exclusionReason,
+    sqft: comp.livingAreaSqft,
   }));
 }
 
@@ -270,6 +298,12 @@ export function buildDealIntelligenceContext(input: {
   arvEvaluation: ArvEvaluationResult | null;
 }): DealIntelligenceContext {
   const property = propertyContext(input.property, input.propertyEvidence);
+  const coreEvidenceFields = new Set([
+    'address', 'city', 'state', 'zipCode', 'propertyType', 'bedrooms', 'bathrooms',
+    'livingAreaSqft', 'lotSizeSqft', 'yearBuilt', 'askingPrice',
+  ]);
+  const coreVerifiedCount = property.verifiedFields.filter((name) => coreEvidenceFields.has(name)).length;
+  const coreUnknownCount = property.unknownFields.filter((name) => coreEvidenceFields.has(name)).length;
   const conflicts = input.propertyEvidence.state === 'available'
     ? (input.propertyEvidence.evidence?.conflicts || []).map((item) => ({ field: item.field, severity: item.severity })) : [];
   const valuation = valuationContext(input.arvEvaluation);
@@ -307,7 +341,7 @@ export function buildDealIntelligenceContext(input: {
       preferences: profile?.acceptableConditions?.length ? [...profile.acceptableConditions] : null,
     },
     evidenceSummary: {
-      strength: evidenceStrength(property.verifiedFields.length, property.unknownFields.length, conflicts.length),
+      strength: evidenceStrength(coreVerifiedCount, coreUnknownCount, conflicts.length),
       verifiedFieldCount: property.verifiedFields.length,
       userProvidedFieldCount: property.userProvidedFields.length,
       unknownFieldCount: property.unknownFields.length,

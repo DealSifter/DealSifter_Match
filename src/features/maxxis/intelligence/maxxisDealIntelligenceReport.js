@@ -85,6 +85,14 @@ function valuationIntelligence(context) {
     && nullableNumber(valuation.range.low) !== null && nullableNumber(valuation.range.high) !== null
     ? Object.freeze({ low: Number(valuation.range.low), high: Number(valuation.range.high) })
     : null;
+  const providerEstimate = isObject(valuation.providerEstimate)
+    && nullableNumber(valuation.providerEstimate.value) !== null
+    ? Object.freeze({
+        value: Number(valuation.providerEstimate.value),
+        status: safeText(valuation.providerEstimate.status) || 'PROVIDER_ESTIMATE_UNVALIDATED',
+        provenance: 'ESTIMATED',
+      })
+    : null;
   return Object.freeze({
     status,
     range,
@@ -94,6 +102,7 @@ function valuationIntelligence(context) {
     methodology: safeText(valuation.methodologyVersion) || null,
     warnings: Object.freeze(unique(list(valuation.warnings).map(safeText)).slice(0, 8)),
     source: status === 'ARV_UNAVAILABLE' ? 'UNKNOWN' : 'CALCULATED',
+    providerEstimate,
   });
 }
 
@@ -204,14 +213,23 @@ export function buildMaxxisDealIntelligenceReport(context) {
 export function projectMaxxisDealIntelligenceResponse(result = {}) {
   const report = buildMaxxisDealIntelligenceReport(result?.data?.dealIntelligence);
   if (!report) return null;
+  const intelligenceSnapshot = isObject(result?.data?.intelligenceSnapshot)
+    ? result.data.intelligenceSnapshot : null;
+  const property = isObject(intelligenceSnapshot?.propertyFacts)
+    ? intelligenceSnapshot.propertyFacts : result?.data?.property;
   const maxxisReport = buildMaxxisReportSchema({
-    reportType: 'DEAL_INTELLIGENCE', property: result?.data?.property, dealIntelligence: report,
+    reportType: 'DEAL_INTELLIGENCE', property, dealIntelligence: report,
     dealMetrics: result?.data?.metrics,
   });
   return Object.freeze({
     type: 'maxxis_deal_intelligence',
     content: report.executiveDealOverview,
-    data: Object.freeze({ maxxisDealIntelligence: report, maxxisReport }),
+    data: Object.freeze({
+      maxxisDealIntelligence: report,
+      maxxisReport,
+      intelligenceSnapshot,
+      runtimeTrace: isObject(result?.data?.runtimeTrace) ? result.data.runtimeTrace : null,
+    }),
     analysisExport: null,
   });
 }

@@ -147,6 +147,13 @@ function valuationEvidence(value) {
     methodology: value.methodology || null,
     warnings: Object.freeze(Array.isArray(value.warnings) ? [...value.warnings] : []),
     source: available ? 'CALCULATED' : 'UNKNOWN',
+    providerEstimate: isObject(value.providerEstimate) && finitePositive(value.providerEstimate.value)
+      ? Object.freeze({
+          value: finitePositive(value.providerEstimate.value),
+          status: value.providerEstimate.status || 'PROVIDER_ESTIMATE_UNVALIDATED',
+          provenance: 'ESTIMATED',
+        })
+      : null,
   });
 }
 

@@ -1557,6 +1557,10 @@ button.maxxis-action-link:hover {
 .maxxis-v2-arv > div { display: grid; gap: 4px; align-content: center; }
 .maxxis-v2-arv > div:first-child strong { color: #12364d; font-size: 20px; }
 .maxxis-v2-arv > div:last-child { grid-template-columns: repeat(2, auto); font-size: 9px; }
+.maxxis-v2-provider-estimate { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 9px 12px; border: 1px solid #f2d58c; border-radius: 8px; background: #fffbef; }
+.maxxis-v2-provider-estimate > div { display: grid; gap: 2px; }
+.maxxis-v2-provider-estimate small { color: #64748b; font-size: 8px; font-weight: 800; text-transform: uppercase; letter-spacing: .04em; }
+.maxxis-v2-provider-estimate strong { color: #12364d; font-size: 15px; }
 .maxxis-v2-kpi-block { display: grid; gap: 6px; }
 .maxxis-v2-kpi-block > div { display: grid; grid-template-columns: repeat(3, 1fr); gap: 7px; }
 .maxxis-v2-kpi-block > div span { display: grid; gap: 3px; padding: 9px; border: 1px solid #d5dfe7; border-radius: 8px; background: #fff; }
@@ -1619,6 +1623,7 @@ button.maxxis-action-link:hover {
   .maxxis-v2-perspective { grid-template-columns: 1fr; }
   .maxxis-v2-evidence-counts { grid-template-columns: repeat(3, 1fr); }
   .maxxis-v2-arv { grid-template-columns: 1fr; }
+  .maxxis-v2-provider-estimate { align-items: flex-start; flex-direction: column; }
   .maxxis-v2-header { grid-template-columns: minmax(90px, 1fr) auto; gap: 7px; }
   .maxxis-v2-header > img { height: 39px; }
   .maxxis-v2-header > div { display: none; }

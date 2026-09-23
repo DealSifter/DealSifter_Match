@@ -5,6 +5,10 @@ const migration = readFileSync(
   new URL('../../../migrations/20260814000001_maxxis_sanitized_property_access.sql', import.meta.url),
   'utf8',
 );
+const visibleContextMigration = readFileSync(
+  new URL('../../../migrations/20260922235000_maxxis_visible_property_context.sql', import.meta.url),
+  'utf8',
+);
 const detailsSource = readFileSync(new URL('./propertyDetails.ts', import.meta.url), 'utf8');
 const searchSource = readFileSync(new URL('./searchProperties.ts', import.meta.url), 'utf8');
 const behaviorSource = readFileSync(new URL('./getUserPropertyBehavior.ts', import.meta.url), 'utf8');
@@ -45,5 +49,15 @@ describe('sanitized Maxxis Deal AI property access boundary', () => {
     expect(conversationSource).toContain("rpc('ds_get_public_property_details'");
     [detailsSource, searchSource, behaviorSource, conversationSource]
       .forEach((source) => expect(source).not.toContain(".from('properties')"));
+  });
+
+  it('adds only already-visible location context while keeping hidden cards private', () => {
+    expect(visibleContextMigration).toMatch(/address text/i);
+    expect(visibleContextMigration).toMatch(/latitude double precision/i);
+    expect(visibleContextMigration).toMatch(/longitude double precision/i);
+    expect(visibleContextMigration).toMatch(/not coalesce\(p\.hide_street_address_on_card, false\)/i);
+    expect(visibleContextMigration).toMatch(/or p\.owner_id = auth\.uid\(\)/i);
+    expect(visibleContextMigration).toMatch(/or public\.ds_is_current_user_admin\(\)/i);
+    expect(visibleContextMigration).not.toMatch(/owner_name|email|phone|whatsapp|profile_payload|unlock_cost/i);
   });
 });

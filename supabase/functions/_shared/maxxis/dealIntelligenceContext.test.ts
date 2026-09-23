@@ -83,6 +83,23 @@ describe('Maxxis Deal Intelligence Context v1', () => {
     expect(JSON.stringify(context.valuationContext)).not.toContain('"centralReference":0');
   });
 
+  it('carries an unvalidated provider estimate separately from an unavailable ARV', () => {
+    const evaluation = evaluateArv({
+      propertyId: PROPERTY_ID,
+      subjectPropertyId: PROPERTY_ID,
+      subjectLivingAreaSqft: 2333,
+      targetCondition: 'FULL_RENOVATION',
+      candidates: [],
+      cachedProviderAvm: { value: 2_250_000, evidenceStatus: 'ESTIMATED' },
+      calculatedAt: '2026-09-13T12:00:00.000Z',
+    } as Parameters<typeof evaluateArv>[0]);
+    const context = build({ arvEvaluation: evaluation });
+    expect(context.valuationContext).toMatchObject({
+      status: 'ARV_UNAVAILABLE', centralReference: null,
+      providerEstimate: { value: 2_250_000, status: 'PROVIDER_ESTIMATE_UNVALIDATED', provenance: 'ESTIMATED' },
+    });
+  });
+
   it('passes exact engine values through the Gemini sanitizer without model-side calculation', () => {
     const context = build();
     const safe = sanitizeToolResultForGemini({ type: 'deal_insight', propertyId: PROPERTY_ID,

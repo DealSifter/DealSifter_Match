@@ -85,6 +85,17 @@ describe('Maxxis Deal Intelligence Experience v1', () => {
     expect(projected.analysisExport).toBeNull();
   });
 
+  it('persists the exact IntelligenceSnapshot used to build the report', () => {
+    const snapshot = { version: 'MAXXIS_INTELLIGENCE_SNAPSHOT_V1', propertyFacts: { id: 'property-1', address: '100 Snapshot St' } };
+    const projected = projectMaxxisDealIntelligenceResponse({ data: {
+      dealIntelligence: context(), property: { id: 'property-1' }, intelligenceSnapshot: snapshot,
+      runtimeTrace: { propertyEvidence: 'HIT' },
+    } });
+    expect(projected.data.intelligenceSnapshot).toBe(snapshot);
+    expect(projected.data.runtimeTrace).toEqual({ propertyEvidence: 'HIT' });
+    expect(projected.data.maxxisReport.sections.propertySummary.data.address).toBe('100 Snapshot St');
+  });
+
   it('is a pure presentation projector with no engine or provider dependency', () => {
     const source = readFileSync(new URL('./maxxisDealIntelligenceReport.js', import.meta.url), 'utf8');
     expect(source).not.toMatch(/from ['"].*(?:arvEngine|compEngine|calculatePropertyMatch|dealMetrics|rentcast)/i);

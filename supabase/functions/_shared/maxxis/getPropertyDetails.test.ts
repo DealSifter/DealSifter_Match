@@ -12,6 +12,7 @@ const OTHER_PROPERTY_ID = '22222222-2222-4222-8222-222222222222';
 
 const completeRow = {
   id: PROPERTY_ID,
+  address: '123 Main St',
   type: 'Single Family',
   city: 'Dallas',
   state: 'TX',
@@ -27,6 +28,9 @@ const completeRow = {
   rehab: 35_000,
   cap_rate: 7.2,
   description: 'Published property description.',
+  source: 'supabase',
+  latitude: 32.7767,
+  longitude: -96.797,
   markets: ['Dallas, TX'],
   is_active: true,
   publish_to_showcase: true,
@@ -50,11 +54,16 @@ describe('getPropertyDetails', () => {
       found: true,
       property: expect.objectContaining({
         id: PROPERTY_ID,
+        title: '123 Main St',
+        address: '123 Main St',
         type: 'Single Family',
         city: 'Dallas',
         state: 'TX',
         price: 175_000,
         images: ['https://cdn.example.com/property.jpg'],
+        source: 'supabase',
+        latitude: 32.7767,
+        longitude: -96.797,
         published: true,
         dealClosed: false,
       }),
@@ -119,7 +128,7 @@ describe('getPropertyDetails', () => {
     ]);
   });
 
-  it('never returns protected, contact, owner, unlock, address, or signed-link fields', () => {
+  it('keeps protected contact and ownership fields out while retaining the already-visible location context', () => {
     const result = normalizePropertyDetails({
       ...completeRow,
       address: '123 Private Street',
@@ -139,10 +148,11 @@ describe('getPropertyDetails', () => {
     ]);
     const property = result.property as Record<string, unknown>;
     expect(property.images).toEqual(['https://cdn.example.com/public.jpg']);
+    expect(property).toMatchObject({ address: '123 Private Street', title: '123 Private Street', latitude: 32.7767, longitude: -96.797, source: 'admin' });
     expect(property.description).not.toContain('555');
     expect(property.description).not.toContain('private@example.com');
     expect(property.description).not.toContain('https://private.example.com');
-    ['address', 'owner_id', 'owner_name', 'email', 'phone', 'whatsapp', 'unlock_cost', 'lat', 'lng', 'source']
+    ['owner_id', 'owner_name', 'email', 'phone', 'whatsapp', 'unlock_cost', 'lat', 'lng']
       .forEach((field) => expect(property).not.toHaveProperty(field));
   });
 
@@ -310,7 +320,7 @@ describe('Phase 3E factual Deal Advisor integration', () => {
       limitations: expect.any(Array),
     }));
     const serialized = JSON.stringify(result);
-    expect(serialized).not.toContain('123 Private Street');
+    expect(serialized).toContain('123 Private Street');
     expect(serialized).not.toContain('Private Owner');
     expect(serialized).not.toContain('private@example.com');
     expect(serialized).not.toContain('5555555555');

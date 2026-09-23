@@ -101,12 +101,18 @@ describe('Maxxis Deal Intelligence Report Experience v2', () => {
   });
 
   it('keeps ARV unavailable and unknown fields explicit without $0 or KPI substitution', () => {
-    const schema = buildMaxxisReportSchema({ reportType: 'DEAL_INTELLIGENCE', property, dealIntelligence: dealIntelligence('ARV_UNAVAILABLE') });
+    const intelligence = dealIntelligence('ARV_UNAVAILABLE');
+    intelligence.valuationIntelligence.providerEstimate = {
+      value: 455000, status: 'PROVIDER_ESTIMATE_UNVALIDATED', provenance: 'ESTIMATED',
+    };
+    const schema = buildMaxxisReportSchema({ reportType: 'DEAL_INTELLIGENCE', property, dealIntelligence: intelligence });
     const html = render(schema);
     expect(schema.presentation.kpiScenarios).toMatchObject({ available: false, sourceType: 'UNKNOWN' });
     expect(html).toContain('ARV_UNAVAILABLE');
     expect(html).toContain('UNKNOWN');
     expect(html).not.toContain('$0');
+    expect(html).toContain('Provider estimate (not DealSifter ARV)');
+    expect(html).toContain('$455,000');
     expect(JSON.stringify(schema)).not.toMatch(/\bavm\b/i);
   });
 });

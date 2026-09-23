@@ -15,6 +15,7 @@ const safeText = (value: unknown, max = 160) => String(value || '')
   .slice(0, max);
 
 const safeNumber = (value: unknown) => {
+  if (value === null || value === undefined || value === '') return null;
   const parsed = Number(value);
   return Number.isFinite(parsed) ? parsed : null;
 };
@@ -217,7 +218,9 @@ function safeEvidenceFields(value: unknown) {
 
 const DEAL_CONTEXT_FIELDS = [
   'address', 'city', 'state', 'zipCode', 'propertyType', 'bedrooms', 'bathrooms',
-  'livingAreaSqft', 'lotSizeSqft', 'yearBuilt', 'askingPrice',
+  'livingAreaSqft', 'lotSizeSqft', 'yearBuilt', 'askingPrice', 'county', 'latitude',
+  'longitude', 'assessedValue', 'assessmentYear', 'annualPropertyTax', 'propertyTaxYear',
+  'latestSalePrice', 'latestSaleDate', 'ownerOccupied', 'ownershipRecordPresent',
 ];
 
 function safeDealContextField(value: unknown) {
@@ -225,6 +228,7 @@ function safeDealContextField(value: unknown) {
   const rawValue = source.value;
   return {
     value: typeof rawValue === 'number' ? safeNumber(rawValue)
+      : typeof rawValue === 'boolean' ? rawValue
       : rawValue === null || rawValue === undefined ? null : safeText(rawValue, 160),
     status: safeText(source.status, 30) || 'UNKNOWN',
     source: safeText(source.source, 50) || null,
@@ -239,6 +243,7 @@ function safeDealIntelligence(value: unknown) {
   const evidence = record(source.evidenceSummary);
   const valuation = record(source.valuationContext);
   const range = record(valuation.range);
+  const providerEstimate = record(valuation.providerEstimate);
   const fit = record(source.fitAnalysis);
   const response = record(source.response);
   return {
@@ -282,6 +287,11 @@ function safeDealIntelligence(value: unknown) {
       warnings: safeList(valuation.warnings, 20),
       provenance: safeText(valuation.provenance, 30),
       methodologyVersion: safeText(valuation.methodologyVersion, 60) || null,
+      providerEstimate: Object.keys(providerEstimate).length ? {
+        value: safeNumber(providerEstimate.value),
+        status: safeText(providerEstimate.status, 60),
+        provenance: safeText(providerEstimate.provenance, 30),
+      } : null,
     },
     comparableEvidence: (Array.isArray(source.comparableEvidence) ? source.comparableEvidence : []).slice(0, 12)
       .map((item) => {
@@ -301,6 +311,7 @@ function safeDealIntelligence(value: unknown) {
           valuationRole: safeText(comp.valuationRole, 30),
           inclusionReason: safeText(comp.inclusionReason, 80) || null,
           exclusionReason: safeText(comp.exclusionReason, 80) || null,
+          sqft: safeNumber(comp.sqft),
         };
       }),
     matchContext: source.matchContext

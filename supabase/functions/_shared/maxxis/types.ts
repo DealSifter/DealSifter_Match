@@ -29,6 +29,8 @@ export type MaxxisServiceResult = {
 };
 export type MaxxisPropertyDetails = {
   id: string;
+  title?: string;
+  address?: string;
   type: string;
   city: string;
   state: string;
@@ -44,6 +46,9 @@ export type MaxxisPropertyDetails = {
   rehab: number | null;
   capRate: number | null;
   description: string;
+  source?: string;
+  latitude?: number | null;
+  longitude?: number | null;
   markets: string[];
   images: string[];
   published: boolean;
