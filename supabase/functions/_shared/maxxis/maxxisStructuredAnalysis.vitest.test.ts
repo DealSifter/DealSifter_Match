@@ -76,4 +76,19 @@ describe('EvidenceCompleteness', () => {
     expect(result.sold).toMatchObject({ status: 'REJECTED', reason: 'ADDRESS_MISMATCH' });
     expect(result.valuation).toMatchObject({ status: 'REJECTED', reason: 'ADDRESS_MISMATCH' });
   });
+
+  it('records an exhausted provider budget as explicit unavailable evidence without a false attempt', () => {
+    const completeness = buildEvidenceCompleteness({
+      reportType: 'DEAL_INTELLIGENCE', evidenceState: 'unavailable', context: snapshot.dealIntelligence,
+      trace: {
+        propertyEvidence: 'UNKNOWN', propertyEvidenceReason: 'PLAN_PROVIDER_BUDGET_EXHAUSTED',
+        propertyProviderAttempted: false, soldEvidence: 'UNKNOWN', valuationEvidence: 'UNKNOWN',
+      },
+    });
+    expect(completeness.property).toMatchObject({
+      status: 'INSUFFICIENT', reason: 'PLAN_PROVIDER_BUDGET_EXHAUSTED', providerAttempted: false,
+    });
+    expect(completeness.sold).toMatchObject({ status: 'NOT_REQUESTED', providerAttempted: false });
+    expect(completeness.valuation).toMatchObject({ status: 'NOT_REQUESTED', providerAttempted: false });
+  });
 });

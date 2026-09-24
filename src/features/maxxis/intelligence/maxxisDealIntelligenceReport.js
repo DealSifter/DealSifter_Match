@@ -101,7 +101,7 @@ function valuationIntelligence(context) {
     confidence: ['LOW', 'MODERATE', 'HIGH'].includes(valuation.confidence) ? valuation.confidence : 'LOW',
     compsUsed: Math.max(0, nullableNumber(valuation.compsUsed) ?? 0),
     methodology: safeText(valuation.methodologyVersion) || null,
-    warnings: Object.freeze(unique(list(valuation.warnings).map(safeText)).slice(0, 8)),
+    warnings: Object.freeze(unique(list(valuation.warnings).map(explainMaxxisEvidenceState).map(safeText)).slice(0, 8)),
     source: status === 'ARV_UNAVAILABLE' ? 'UNKNOWN' : 'CALCULATED',
     providerEstimate,
   });

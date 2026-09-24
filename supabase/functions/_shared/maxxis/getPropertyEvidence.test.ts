@@ -77,6 +77,18 @@ describe('Maxxis getPropertyEvidence cache-only contract', () => {
     expect(provider.getPropertyRecord).not.toHaveBeenCalled();
   });
 
+  it('records provider-budget denial without falsely claiming a provider attempt', async () => {
+    const result = await getPropertyEvidenceWithDependencies({
+      propertyId: PROPERTY_ID, contextPropertyId: PROPERTY_ID, userId: USER_ID,
+      hasEntitlement: vi.fn(async () => true),
+      loadCachedEvidence: vi.fn(async () => { throw new Error('PLAN_PROVIDER_BUDGET_EXHAUSTED'); }),
+    });
+    expect(result).toMatchObject({
+      state: 'unavailable', entitlementState: 'authorized', cacheState: 'unknown',
+      reason: 'PLAN_PROVIDER_BUDGET_EXHAUSTED', providerAttempted: false,
+    });
+  });
+
   it('treats address-bound corrupt cache as unavailable without provider access', async () => {
     const wrongRecord = mapRentCastProperty({
       id: 'wrong', addressLine1: '999 Other St', city: 'Honolulu', state: 'HI', zipCode: '96825',

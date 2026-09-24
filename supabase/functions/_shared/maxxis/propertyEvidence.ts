@@ -8,6 +8,8 @@ export type MaxxisPropertyEvidenceResult = {
   state: 'available' | 'locked' | 'not_loaded' | 'unavailable' | 'not_found';
   entitlementState: 'authorized' | 'not_authorized';
   cacheState: 'hit' | 'miss' | 'invalid' | 'unknown';
+  reason?: string;
+  providerAttempted?: boolean;
   evidence?: ReturnType<typeof presentPropertyIntelligence> & { internalFields: Record<string, unknown> };
 };
 
@@ -46,29 +48,44 @@ export async function getPropertyEvidenceWithDependencies(options: {
   let entitled = false;
   try {
     entitled = await options.hasEntitlement(input.propertyId);
-  } catch {
-    return { type: 'property_evidence', propertyId: input.propertyId, state: 'unavailable', entitlementState: 'not_authorized', cacheState: 'unknown' };
+  } catch (error) {
+    return {
+      type: 'property_evidence', propertyId: input.propertyId, state: 'unavailable',
+      entitlementState: 'not_authorized', cacheState: 'unknown',
+      reason: error instanceof Error ? error.message : 'PROPERTY_INTELLIGENCE_ENTITLEMENT_CHECK_FAILED',
+      providerAttempted: false,
+    };
   }
   if (!entitled) {
-    return { type: 'property_evidence', propertyId: input.propertyId, state: 'locked', entitlementState: 'not_authorized', cacheState: 'unknown' };
+    return {
+      type: 'property_evidence', propertyId: input.propertyId, state: 'locked',
+      entitlementState: 'not_authorized', cacheState: 'unknown',
+      reason: 'PROPERTY_INTELLIGENCE_NOT_AUTHORIZED', providerAttempted: false,
+    };
   }
   try {
     const evidence = await options.loadCachedEvidence(input.propertyId, options.userId);
     return {
       type: 'property_evidence', propertyId: input.propertyId, state: 'available',
-      entitlementState: 'authorized', cacheState: 'hit', evidence: presentPropertyEvidenceForMaxxis(evidence),
+      entitlementState: 'authorized', cacheState: evidence.cacheHit ? 'hit' : 'miss',
+      providerAttempted: evidence.cacheHit === false,
+      evidence: presentPropertyEvidenceForMaxxis(evidence),
     };
   } catch (error) {
     const code = error instanceof Error ? error.message : '';
     if (code === 'PROPERTY_NOT_FOUND') {
-      return { type: 'property_evidence', propertyId: input.propertyId, state: 'not_found', entitlementState: 'authorized', cacheState: 'unknown' };
+      return { type: 'property_evidence', propertyId: input.propertyId, state: 'not_found', entitlementState: 'authorized', cacheState: 'unknown', reason: code, providerAttempted: false };
     }
     if (code === 'PROPERTY_EVIDENCE_CACHE_MISS') {
-      return { type: 'property_evidence', propertyId: input.propertyId, state: 'not_loaded', entitlementState: 'authorized', cacheState: 'miss' };
+      return { type: 'property_evidence', propertyId: input.propertyId, state: 'not_loaded', entitlementState: 'authorized', cacheState: 'miss', reason: code, providerAttempted: false };
     }
     if (code === 'PROPERTY_EVIDENCE_CACHE_INVALID') {
-      return { type: 'property_evidence', propertyId: input.propertyId, state: 'not_loaded', entitlementState: 'authorized', cacheState: 'invalid' };
+      return { type: 'property_evidence', propertyId: input.propertyId, state: 'not_loaded', entitlementState: 'authorized', cacheState: 'invalid', reason: code, providerAttempted: false };
     }
-    return { type: 'property_evidence', propertyId: input.propertyId, state: 'unavailable', entitlementState: 'authorized', cacheState: 'unknown' };
+    return {
+      type: 'property_evidence', propertyId: input.propertyId, state: 'unavailable',
+      entitlementState: 'authorized', cacheState: 'unknown', reason: code || 'PROPERTY_EVIDENCE_FAILED',
+      providerAttempted: code === 'ADDRESS_MISMATCH' || /(?:RENTCAST|PROVIDER_HTTP|PROVIDER_TIMEOUT)/.test(code),
+    };
   }
 }

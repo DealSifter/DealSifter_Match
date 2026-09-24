@@ -37,8 +37,11 @@ export async function getDealInsightContextForAuthenticatedUser(
   const runtimeTrace = {
     reportType: reportRequested ? requestedReportType : 'CHAT',
     propertyEvidence: 'UNKNOWN',
+    propertyEvidenceReason: 'NOT_REQUESTED',
     valuationEvidence: allowValuationProvider ? 'UNKNOWN' : 'NOT_REQUIRED',
+    valuationEvidenceReason: allowValuationProvider ? 'NOT_REQUESTED' : 'CAPABILITY_NOT_AUTHORIZED',
     soldEvidence: allowValuationProvider ? 'UNKNOWN' : 'NOT_REQUIRED',
+    soldEvidenceReason: allowValuationProvider ? 'NOT_REQUESTED' : 'CAPABILITY_NOT_AUTHORIZED',
     providerEnabled,
     providerAllowedByCapability: allowPropertyProvider,
     providerBudgetBucket: budgetBucket,
@@ -74,21 +77,55 @@ export async function getDealInsightContextForAuthenticatedUser(
       providerBudgetContext,
     });
     try {
-      runtimeTrace.valuationProviderAttempted = providerEnabled;
+      runtimeTrace.addressValidation = 'ACCEPTED';
       const valuation = await valuationService.getValuationEvidence({ propertyId, userId });
       runtimeTrace.valuationEvidence = valuation.cacheHit ? 'HIT' : 'MISS_REFRESHED';
+      runtimeTrace.valuationEvidenceReason = valuation.cacheHit ? 'CACHE_HIT' : 'PROVIDER_REFRESHED';
       runtimeTrace.valuationProviderAttempted = !valuation.cacheHit;
       runtimeTrace.providerAttempted ||= !valuation.cacheHit;
-      runtimeTrace.soldProviderAttempted = providerEnabled;
+    } catch (error) {
+      const code = error instanceof Error ? error.message : 'VALUATION_EVIDENCE_FAILED';
+      runtimeTrace.valuationEvidence = code === 'ADDRESS_MISMATCH' ? 'REJECTED' : 'UNAVAILABLE';
+      runtimeTrace.valuationEvidenceReason = code;
+      runtimeTrace.valuationProviderAttempted = code === 'ADDRESS_MISMATCH' || /(?:RENTCAST|PROVIDER_HTTP|PROVIDER_TIMEOUT)/.test(code);
+      runtimeTrace.providerAttempted ||= runtimeTrace.valuationProviderAttempted;
+      if (code === 'ADDRESS_MISMATCH') {
+        runtimeTrace.stopReason = code;
+        runtimeTrace.providerResult = code;
+        runtimeTrace.addressValidation = 'REJECTED';
+        throw error;
+      }
+    }
+    let soldEvidenceLoaded = false;
+    try {
       const sold = await soldService.getSoldEvidence({ propertyId, userId });
+      soldEvidenceLoaded = true;
       runtimeTrace.soldEvidence = sold.cacheHit ? 'HIT' : 'MISS_REFRESHED';
+      runtimeTrace.soldEvidenceReason = sold.cacheHit ? 'CACHE_HIT' : 'PROVIDER_REFRESHED';
       runtimeTrace.soldProviderAttempted = !sold.cacheHit;
       runtimeTrace.providerAttempted ||= !sold.cacheHit;
       runtimeTrace.candidateCount = sold.soldPool.records.length;
       runtimeTrace.structuralCandidateCount = sold.recordedSoldCompSelection.primaryStructuralCandidates.length;
       runtimeTrace.usableCandidateCount = sold.recordedSoldCompSelection.conditionVerifiedArvComps.length;
-      runtimeTrace.providerResult = runtimeTrace.providerAttempted ? 'ACCEPTED' : 'CACHE_HIT';
-      runtimeTrace.addressValidation = 'ACCEPTED';
+    } catch (error) {
+      const code = error instanceof Error ? error.message : 'SOLD_EVIDENCE_FAILED';
+      runtimeTrace.soldEvidence = code === 'ADDRESS_MISMATCH' ? 'REJECTED' : 'UNAVAILABLE';
+      runtimeTrace.soldEvidenceReason = code;
+      runtimeTrace.soldProviderAttempted = code === 'ADDRESS_MISMATCH' || /(?:RENTCAST|PROVIDER_HTTP|PROVIDER_TIMEOUT)/.test(code);
+      runtimeTrace.providerAttempted ||= runtimeTrace.soldProviderAttempted;
+      if (code === 'ADDRESS_MISMATCH') {
+        runtimeTrace.stopReason = code;
+        runtimeTrace.providerResult = code;
+        runtimeTrace.addressValidation = 'REJECTED';
+        throw error;
+      }
+    }
+    runtimeTrace.providerResult = runtimeTrace.providerAttempted ? 'ACCEPTED'
+      : runtimeTrace.valuationEvidence === 'HIT' || runtimeTrace.soldEvidence === 'HIT' ? 'CACHE_HIT'
+      : runtimeTrace.valuationEvidenceReason !== 'NOT_REQUESTED' ? runtimeTrace.valuationEvidenceReason
+      : runtimeTrace.soldEvidenceReason;
+    if (!soldEvidenceLoaded) return null;
+    try {
       const evaluation = await loadCachedArvEvaluation({
         propertyId,
         userId,
@@ -122,10 +159,12 @@ export async function getDealInsightContextForAuthenticatedUser(
     } catch (error) {
       const code = error instanceof Error ? error.message : 'PROPERTY_INTELLIGENCE_FAILED';
       runtimeTrace.stopReason = code;
-      runtimeTrace.providerAttempted = providerEnabled;
       runtimeTrace.providerResult = code;
-      runtimeTrace.addressValidation = code === 'ADDRESS_MISMATCH' ? 'REJECTED' : 'NOT_CONFIRMED';
-      throw error;
+      if (code === 'ADDRESS_MISMATCH') {
+        runtimeTrace.addressValidation = 'REJECTED';
+        throw error;
+      }
+      return null;
     }
   };
   const result = await orchestrateDealInsightContext({
@@ -139,10 +178,15 @@ export async function getDealInsightContextForAuthenticatedUser(
         allowPropertyProvider ? { plan, bucket: budgetBucket } : undefined,
       );
       runtimeTrace.propertyEvidence = evidence.cacheState.toUpperCase();
-      runtimeTrace.propertyProviderAttempted = Boolean(allowPropertyProvider && providerEnabled && evidence.cacheState !== 'hit');
+      runtimeTrace.propertyEvidenceReason = evidence.reason || (evidence.state === 'available'
+        ? evidence.cacheState === 'hit' ? 'CACHE_HIT' : 'PROVIDER_REFRESHED'
+        : 'PROPERTY_EVIDENCE_UNAVAILABLE');
+      runtimeTrace.propertyProviderAttempted = Boolean(evidence.providerAttempted);
       if (evidence.state === 'available' && evidence.evidence?.cacheHit === false) {
         runtimeTrace.providerAttempted = true;
         runtimeTrace.providerResult = 'ACCEPTED';
+      } else if (evidence.state !== 'available' && evidence.reason) {
+        runtimeTrace.providerResult = evidence.reason;
       }
       return evidence;
     },

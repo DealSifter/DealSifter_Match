@@ -73,6 +73,17 @@ describe('Maxxis Deal Intelligence Experience v1', () => {
     expect(JSON.stringify(report.valuationIntelligence)).not.toContain('"low":1');
   });
 
+  it('translates valuation engine states before they reach preview, PDF, or email', () => {
+    const input = context({ arvAvailable: false });
+    input.valuationContext.warnings = ['ARV_EVALUATION_NOT_LOADED', 'INSUFFICIENT_COMPS'];
+    const report = buildMaxxisDealIntelligenceReport(input);
+    expect(report.valuationIntelligence.warnings).toEqual([
+      'A defensible ARV cannot be calculated with the evidence currently available.',
+      'There are not enough condition-compatible recorded sales to support a defensible ARV.',
+    ]);
+    expect(JSON.stringify(report)).not.toMatch(/ARV_EVALUATION_NOT_LOADED|INSUFFICIENT_COMPS/);
+  });
+
   it('preserves missing data explicitly as UNKNOWN', () => {
     const report = buildMaxxisDealIntelligenceReport(context({ missing: true }));
     expect(report.limitations).toEqual(expect.arrayContaining(['yearBuilt: UNKNOWN', 'lotSizeSqft: UNKNOWN']));
