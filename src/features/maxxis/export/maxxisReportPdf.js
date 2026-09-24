@@ -14,7 +14,7 @@ const C = Object.freeze({
   navy: [15, 32, 49], graphite: [39, 45, 48], teal: [29, 184, 188],
   blue: [24, 114, 190], green: [13, 135, 111], gold: [237, 176, 28],
   white: [255, 255, 255], ink: [27, 42, 60], muted: [91, 110, 129],
-  line: [216, 228, 234], pale: [246, 250, 252], warm: [255, 250, 237],
+  line: [216, 228, 234], pale: [246, 250, 252], card: [251, 253, 254], warm: [255, 250, 237],
 });
 const COPY = Object.freeze({
   en: {
@@ -50,7 +50,7 @@ const COPY = Object.freeze({
     noDetails: 'No additional verified details available.', portfolio: 'Portfolio', yes: 'Yes', no: 'No',
     coordinateMap: 'Schematic positions from stored coordinates; not a street map.',
     address: 'Address', salePrice: 'Sale price', date: 'Date', distance: 'Distance', bedsBaths: 'Beds / Baths', similarity: 'Similarity',
-    used: 'USED', supporting: 'SUPPORTING', excluded: 'EXCLUDED',
+    used: 'USED', supporting: 'SUPPORTING', excluded: 'EXCLUDED', totalComps: 'Comparable records', usedComparables: 'Used in analysis', averageSalePrice: 'Average sale price', averageSimilarity: 'Average similarity',
     compsUsed: 'Comps used', confidence: 'Confidence', pricePerSqft: 'Price / sqft',
     costBasis: 'Cost basis', spread: 'Spread', roiScenario: 'ROI scenario', marketPricePerSqft: 'Comparable avg. / sqft', subjectVsMarket: 'Subject vs. market', averageDistance: 'Average distance',
     arvAvailable: 'ARV available', arvLimited: 'ARV limited by evidence', arvUnavailable: 'ARV unavailable',
@@ -90,7 +90,7 @@ const COPY = Object.freeze({
     noDetails: 'Não há detalhes verificados adicionais.', portfolio: 'Portfólio', yes: 'Sim', no: 'Não',
     coordinateMap: 'Posições esquemáticas das coordenadas armazenadas; não é um mapa de ruas.',
     address: 'Endereço', salePrice: 'Preço de venda', date: 'Data', distance: 'Distância', bedsBaths: 'Quartos / Banhos', similarity: 'Similaridade',
-    used: 'USADO', supporting: 'SUPORTE', excluded: 'EXCLUÍDO',
+    used: 'USADO', supporting: 'SUPORTE', excluded: 'EXCLUÍDO', totalComps: 'Registros comparáveis', usedComparables: 'Usados na análise', averageSalePrice: 'Preço médio de venda', averageSimilarity: 'Similaridade média',
     compsUsed: 'Comps usados', confidence: 'Confiança', pricePerSqft: 'Preço / sqft',
     costBasis: 'Custo base', spread: 'Margem', roiScenario: 'Cenário de ROI', marketPricePerSqft: 'Média comparáveis / sqft', subjectVsMarket: 'Imóvel vs. mercado', averageDistance: 'Distância média',
     arvAvailable: 'ARV disponível', arvLimited: 'ARV limitado pelas evidências', arvUnavailable: 'ARV indisponível',
@@ -130,7 +130,7 @@ const COPY = Object.freeze({
     noDetails: 'No hay detalles verificados adicionales.', portfolio: 'Cartera', yes: 'Sí', no: 'No',
     coordinateMap: 'Posiciones esquemáticas de coordenadas guardadas; no es un mapa de calles.',
     address: 'Dirección', salePrice: 'Precio de venta', date: 'Fecha', distance: 'Distancia', bedsBaths: 'Hab. / Baños', similarity: 'Similitud',
-    used: 'USADO', supporting: 'APOYO', excluded: 'EXCLUIDO',
+    used: 'USADO', supporting: 'APOYO', excluded: 'EXCLUIDO', totalComps: 'Registros comparables', usedComparables: 'Usados en el análisis', averageSalePrice: 'Precio medio de venta', averageSimilarity: 'Similitud media',
     compsUsed: 'Comps usados', confidence: 'Confianza', pricePerSqft: 'Precio / sqft',
     costBasis: 'Costo base', spread: 'Diferencia', roiScenario: 'Escenario de ROI', marketPricePerSqft: 'Promedio comps / sqft', subjectVsMarket: 'Propiedad vs. mercado', averageDistance: 'Distancia media',
     arvAvailable: 'ARV disponible', arvLimited: 'ARV limitado por la evidencia', arvUnavailable: 'ARV no disponible',
@@ -188,18 +188,31 @@ function text(doc, input, x, y, { size = 9, bold = false, color = C.ink, width =
   doc.text(lines, x, y, { align });
   return y + lines.length * (size + 3);
 }
-function panel(doc, x, y, w, h, { fill = C.white, stroke = C.line, radius = 8 } = {}) {
+function softColor(color, whiteRatio = .9) {
+  return color.map((channel, index) => Math.round(channel * (1 - whiteRatio) + C.white[index] * whiteRatio));
+}
+function panel(doc, x, y, w, h, { fill = C.card, stroke = C.line, radius = 8, accent = null } = {}) {
   doc.setFillColor(...fill); doc.setDrawColor(...stroke);
   doc.roundedRect(x, y, w, h, radius, radius, 'FD');
+  if (accent) {
+    doc.setFillColor(...accent);
+    doc.roundedRect(x + 1.5, y + 8, 3.5, Math.max(8, h - 16), 1.75, 1.75, 'F');
+  }
 }
 function iconKind(title) {
   const normalized = String(title || '').toLowerCase();
+  if (/maxxis ai|intelligence|inteligência|inteligencia/.test(normalized)) return 'target';
+  if (/investment fit|adequação e análise|afinidad y análisis/.test(normalized)) return 'chart';
   if (/owner|propriet|perfil|profile/.test(normalized)) return 'person';
-  if (/location|localiza|ubicaci|map|terreno|land/.test(normalized)) return 'pin';
+  if (/location|localiza|ubicaci|map|terreno|land|comparative|comparativ/.test(normalized)) return 'pin';
   if (/photo|foto/.test(normalized)) return 'camera';
   if (/risk|risco|riesgo|missing|falta|limita|warning|atenção|atenci/.test(normalized)) return 'warning';
   if (/positive|positivo|evidence|evidência|evidencia/.test(normalized)) return 'check';
-  if (/valuation|avalia|valoraci|arv|kpi|compatib|fit|adequação|afinidad|spread|roi/.test(normalized)) return 'chart';
+  if (/valuation|avalia|valoraci|arv|kpi|compatib|fit|adequação|afinidad|spread|roi|topic|tópico|tema/.test(normalized)) return 'chart';
+  if (/bed|quarto|habitaci/.test(normalized)) return 'bed';
+  if (/bath|banhe|baño/.test(normalized)) return 'bath';
+  if (/area|sqft|superfície|superficie/.test(normalized)) return 'maximize';
+  if (/price|preço|precio|sale|venda|venta/.test(normalized)) return 'trend';
   if (/next|próxim|proxim|action|ações|acciones|steps|etapas|pasos/.test(normalized)) return 'list';
   if (/property|imóvel|propiedad|detail|detalhe|característica|release|overview|resumen/.test(normalized)) return 'house';
   return 'document';
@@ -220,6 +233,16 @@ function drawIcon(doc, kind, cx, cy, accent, size = 12) {
     doc.circle(cx, cy, r * .54, 'S'); doc.line(cx - r * .3, cy, cx - r * .05, cy + r * .25); doc.line(cx - r * .05, cy + r * .25, cx + r * .35, cy - r * .27);
   } else if (kind === 'chart') {
     doc.rect(cx - r * .5, cy + r * .06, r * .2, r * .42, 'S'); doc.rect(cx - r * .1, cy - r * .17, r * .2, r * .65, 'S'); doc.rect(cx + r * .3, cy - r * .45, r * .2, r * .93, 'S');
+  } else if (kind === 'bed') {
+    doc.line(cx - r * .54, cy + r * .38, cx - r * .54, cy - r * .42); doc.line(cx + r * .54, cy + r * .38, cx + r * .54, cy - r * .04); doc.rect(cx - r * .38, cy - r * .34, r * .36, r * .28, 'S'); doc.rect(cx - r * .54, cy - r * .04, r * 1.08, r * .42, 'S');
+  } else if (kind === 'bath') {
+    doc.line(cx - r * .52, cy + r * .04, cx + r * .52, cy + r * .04); doc.roundedRect(cx - r * .5, cy + r * .04, r, r * .42, r * .18, r * .18, 'S'); doc.line(cx - r * .34, cy + r * .43, cx - r * .34, cy + r * .56); doc.line(cx + r * .34, cy + r * .43, cx + r * .34, cy + r * .56); doc.line(cx - r * .4, cy - r * .12, cx - r * .4, cy - r * .45); doc.line(cx - r * .4, cy - r * .45, cx - r * .08, cy - r * .45);
+  } else if (kind === 'maximize') {
+    doc.line(cx - r * .5, cy - r * .12, cx - r * .5, cy - r * .5); doc.line(cx - r * .5, cy - r * .5, cx - r * .12, cy - r * .5); doc.line(cx + r * .5, cy + r * .12, cx + r * .5, cy + r * .5); doc.line(cx + r * .5, cy + r * .5, cx + r * .12, cy + r * .5);
+  } else if (kind === 'trend') {
+    doc.line(cx - r * .5, cy + r * .36, cx - r * .08, cy - r * .06); doc.line(cx - r * .08, cy - r * .06, cx + r * .14, cy + r * .16); doc.line(cx + r * .14, cy + r * .16, cx + r * .52, cy - r * .35); doc.line(cx + r * .24, cy - r * .35, cx + r * .52, cy - r * .35); doc.line(cx + r * .52, cy - r * .35, cx + r * .52, cy - r * .08);
+  } else if (kind === 'target') {
+    doc.circle(cx, cy, r * .54, 'S'); doc.circle(cx, cy, r * .25, 'S'); doc.circle(cx, cy, .75, 'F'); doc.line(cx + r * .18, cy - r * .18, cx + r * .55, cy - r * .55);
   } else if (kind === 'list') {
     [-.34, 0, .34].forEach((offset) => { doc.circle(cx - r * .35, cy + r * offset, .55, 'F'); doc.line(cx - r * .16, cy + r * offset, cx + r * .48, cy + r * offset); });
   } else if (kind === 'house') {
@@ -230,8 +253,10 @@ function drawIcon(doc, kind, cx, cy, accent, size = 12) {
   doc.setLineWidth(.2);
 }
 function heading(doc, title, x, y, w, accent) {
-  drawIcon(doc, iconKind(title), x + 8, y - 5, accent, 17);
-  text(doc, title, x + 22, y, { size: 12, bold: true, width: w - 22, maxLines: 1 });
+  doc.setFillColor(...softColor(accent, .9));
+  doc.roundedRect(x - 3, y - 20, w + 6, 28, 6, 6, 'F');
+  drawIcon(doc, iconKind(title), x + 10, y - 6, accent, 20);
+  text(doc, title, x + 26, y - 1, { size: 11.4, bold: true, width: w - 29, maxLines: 1 });
 }
 function rows(doc, items, x, y, w, { lineHeight = 24, labelWidth = 95, limit = 8, t } = {}) {
   let yy = y;
@@ -247,15 +272,15 @@ function rows(doc, items, x, y, w, { lineHeight = 24, labelWidth = 95, limit = 8
   });
 }
 function listPanel(doc, title, items, x, y, w, h, t, accent, { positive = false } = {}) {
-  panel(doc, x, y, w, h, { fill: positive ? [244, 252, 250] : C.white });
+  panel(doc, x, y, w, h, { fill: positive ? softColor(C.green, .94) : C.card, accent });
   heading(doc, title, x + 13, y + 26, w - 26, accent);
   let yy = y + 48;
   const entries = items.length ? items : [t.noDetails];
   for (const item of entries.slice(0, 6)) {
     if (yy > y + h - 28) break;
-    doc.setFillColor(...accent); doc.circle(x + 19, yy - 2, 2.5, 'F');
+    drawIcon(doc, positive ? 'check' : iconKind(title), x + 20, yy - 3, accent, 12);
     yy = text(doc, reportNarrative(typeof item === 'string' ? item : item?.explanation || item?.reason || item?.label || item?.status, t.noDetails, t.locale),
-      x + 30, yy, { size: 8.5, width: w - 44, maxLines: 3 }) + 7;
+      x + 31, yy, { size: 8.5, width: w - 45, maxLines: 3 }) + 7;
   }
 }
 function pageHeader(doc, schema, pageCode, t) {
@@ -264,13 +289,13 @@ function pageHeader(doc, schema, pageCode, t) {
   // Never infer a second dimension for the brand. Derive it from the source
   // bitmap on every render so the logo cannot be compressed by layout changes.
   const logoProperties = doc.getImageProperties(officialDealSifterLogo);
-  const logoWidth = 218;
+  const logoWidth = 198;
   const logoHeight = logoWidth * (logoProperties.height / logoProperties.width);
   doc.addImage(officialDealSifterLogo, 'PNG', M, 10, logoWidth, logoHeight, 'official-dealsifter-logo');
-  text(doc, t.tagline, M + 61, 68, { size: 8.2, color: accent });
-  const planWidth = 66; const planX = W - M - planWidth;
-  text(doc, productFor(schema.reportType, t), planX - 10, 31, { size: 10.4, bold: true, color: C.white, width: 205, maxLines: 1, align: 'right' });
-  text(doc, schema.reportType === 'PROPERTY_RELEASE' ? t.releaseSubtitle : t.reportSubtitle, planX - 10, 50, { size: 7.7, color: C.white, width: 200, maxLines: 1, align: 'right' });
+  text(doc, t.tagline, M + 55, 66, { size: 7.5, color: accent });
+  const planWidth = 62; const planX = W - M - planWidth;
+  text(doc, productFor(schema.reportType, t), planX - 9, 30, { size: 7.8, bold: true, color: C.white, width: 238, maxLines: 1, align: 'right' });
+  text(doc, schema.reportType === 'PROPERTY_RELEASE' ? t.releaseSubtitle : t.reportSubtitle, planX - 9, 48, { size: 6.8, color: C.white, width: 232, maxLines: 1, align: 'right' });
   panel(doc, planX, 22, planWidth, 29, { fill: accent, stroke: accent, radius: 5 });
   text(doc, schema.reportType === 'PROPERTY_RELEASE' ? 'FREE' : planFor(schema.reportType), planX + planWidth / 2, 40, { size: 8.2, bold: true, color: schema.reportType === 'DEAL_INTELLIGENCE' ? C.ink : C.white, align: 'center' });
   heading(doc, t[pageCode] || pageCode, M, 108, CONTENT, accent);
@@ -302,17 +327,29 @@ function photo(doc, x, y, w, h, imageData, t, { cover = false, radius = 6 } = {}
   panel(doc, x, y, w, h, { fill: [238, 246, 248], radius });
   text(doc, t.noPhoto, x + w / 2, y + h / 2, { size: 9, color: C.muted, align: 'center' });
 }
+function metricCard(doc, x, y, w, label, entry, kind, accent, { height = 39 } = {}) {
+  panel(doc, x, y, w, height, { fill: softColor(accent, .95), stroke: softColor(accent, .78) });
+  drawIcon(doc, kind, x + 15, y + height / 2, accent, 18);
+  text(doc, label, x + 29, y + 14, { size: 6.3, color: C.muted, width: w - 35, maxLines: 1 });
+  text(doc, entry, x + 29, y + 29, { size: 9.5, bold: true, width: w - 35, maxLines: 1 });
+}
 function propertyHero(doc, property, t, accent, imageData) {
-  const y = 121; const h = 157;
+  const y = 121; const h = 185;
   panel(doc, M, y, CONTENT, h);
   doc.setFillColor(...accent); doc.roundedRect(M + 12, y + 12, 66, 20, 4, 4, 'F');
   text(doc, property.published ? t.published : t.notVerified, M + 45, y + 26, { size: 8, bold: true, color: C.white, align: 'center' });
-  text(doc, value(property.address || property.title, t.unavailable), M + 13, y + 54, { size: 15.5, bold: true, width: 270, maxLines: 2 });
-  text(doc, location(property) || t.unavailable, M + 13, y + 77, { size: 10, color: C.muted, width: 260, maxLines: 2 });
-  text(doc, currency(property.price, t), M + 13, y + 108, { size: 22, bold: true, color: accent });
-  const facts = [`${value(property.beds, '–')} ${t.beds}`, `${value(property.baths, '–')} ${t.baths}`, `${value(property.sqft, '–')} sqft`];
-  text(doc, facts.join('   ·   '), M + 13, y + 134, { size: 8.6, bold: true, width: 260, maxLines: 2 });
-  photo(doc, M + 294, y + 9, CONTENT - 303, h - 18, imageData, t, { cover: true, radius: 7 });
+  text(doc, value(property.address || property.title, t.unavailable), M + 13, y + 55, { size: 15.5, bold: true, width: 270, maxLines: 2 });
+  text(doc, location(property) || t.unavailable, M + 13, y + 81, { size: 9.5, color: C.muted, width: 260, maxLines: 2 });
+  text(doc, currency(property.price, t), M + 13, y + 115, { size: 22, bold: true, color: accent });
+  photo(doc, M + 294, y + 9, CONTENT - 303, 116, imageData, t, { cover: true, radius: 7 });
+  const metricY = y + 136; const metricGap = 6; const metricW = (CONTENT - 24 - metricGap * 3) / 4;
+  const metrics = [
+    [t.beds, value(property.beds, '–'), 'bed'],
+    [t.baths, value(property.baths, '–'), 'bath'],
+    [t.sqft, value(property.sqft, '–'), 'maximize'],
+    [t.capRate, property.capRate == null ? t.unavailable : `${property.capRate}%`, 'trend'],
+  ];
+  metrics.forEach(([label, entry, kind], index) => metricCard(doc, M + 12 + index * (metricW + metricGap), metricY, metricW, label, entry, kind, accent));
   return y + h;
 }
 function propertyReleaseHero(doc, property, t, accent, imageData) {
@@ -337,8 +374,8 @@ function propertyFactGrid(doc, property, evidence, t, accent, y) {
   ];
   facts.forEach(([title, entries], i) => {
     const x = M + i * (w + gap); panel(doc, x, y, w, h);
-    heading(doc, title, x + 10, y + 23, w - 20, accent);
-    rows(doc, entries, x + 10, y + 43, w - 20, { lineHeight: 16.5, labelWidth: 64, limit: 6, t });
+    heading(doc, title, x + 10, y + 22, w - 20, accent);
+    rows(doc, entries, x + 10, y + 42, w - 20, { lineHeight: 16, labelWidth: 64, limit: 6, t });
   });
   return y + h;
 }
@@ -349,28 +386,28 @@ function propertyBottom(doc, property, t, accent, y, images, conflicts = [], map
   // The image itself is clipped to the rounded shape; there is no gallery card
   // or inner frame creating visible padding around it.
   const photoGap = 5; const photoWidth = (CONTENT - photoGap * 4) / 5;
-  shown.forEach((image, index) => photo(doc, M + index * (photoWidth + photoGap), y + 32, photoWidth, 58, image, t, { cover: true, radius: 6 }));
-  y += 100;
+  shown.forEach((image, index) => photo(doc, M + index * (photoWidth + photoGap), y + 31, photoWidth, 50, image, t, { cover: true, radius: 6 }));
+  y += 90;
   const gap = 6; const locationWidth = Math.round((CONTENT - gap) * 0.6); const notesWidth = CONTENT - gap - locationWidth;
-  const bottomHeight = 261;
+  const bottomHeight = 243;
   panel(doc, M, y, locationWidth, bottomHeight); heading(doc, t.location, M + 10, y + 23, locationWidth - 20, accent);
   text(doc, location(property) || t.unavailable, M + 11, y + 44, { size: 9, bold: true, width: locationWidth - 22, maxLines: 1 });
   if (mapImage) {
     try {
-      photo(doc, M + 7, y + 54, locationWidth - 14, 190, mapImage, t, { cover: true, radius: 6 });
-      text(doc, t.mapAttribution, M + 8, y + 255, { size: 5.8, color: C.muted, width: locationWidth - 16, maxLines: 1 });
+      photo(doc, M + 7, y + 54, locationWidth - 14, 172, mapImage, t, { cover: true, radius: 6 });
+      text(doc, t.mapAttribution, M + 8, y + 237, { size: 5.8, color: C.muted, width: locationWidth - 16, maxLines: 1 });
     } catch { /* Keep the coordinate fallback if the generated map cannot be embedded. */ }
   } else {
     if (property.latitude != null && property.longitude != null) text(doc, `${property.latitude}, ${property.longitude}`, M + 13, y + 73, { size: 8, color: C.muted });
     text(doc, t.noMap, M + 13, y + 101, { size: 8, color: C.muted, width: locationWidth - 25, maxLines: 3 });
   }
   const notesX = M + locationWidth + gap;
-  panel(doc, notesX, y, notesWidth, bottomHeight); heading(doc, notes.title || t.notes, notesX + 10, y + 23, notesWidth - 20, accent);
+  panel(doc, notesX, y, notesWidth, bottomHeight, { accent: notes.title && notes.title !== t.notes ? accent : null }); heading(doc, notes.title || t.notes, notesX + 10, y + 23, notesWidth - 20, accent);
   text(doc, notes.text || localizedPropertyNotes(property, t), notesX + 11, y + 45, { size: 8.7, width: notesWidth - 22, maxLines: conflicts.length ? 15 : 18 });
-  if (conflicts.length) text(doc, t.conflict, notesX + 11, y + 240, { size: 7.2, bold: true, color: C.gold, width: notesWidth - 22, maxLines: 2 });
+  if (conflicts.length) text(doc, t.conflict, notesX + 11, y + 222, { size: 7.2, bold: true, color: C.gold, width: notesWidth - 22, maxLines: 2 });
 }
 function propertyReleaseBottom(doc, property, t, accent, images, mapImage) {
-  return propertyBottom(doc, property, t, accent, 436, images, [], mapImage);
+  return propertyBottom(doc, property, t, accent, 464, images, [], mapImage);
 }
 function renderPropertyOverview(doc, schema, t, accent, images, mapImage) {
   const property = section(schema, 'propertySummary') || {};
@@ -379,21 +416,21 @@ function renderPropertyOverview(doc, schema, t, accent, images, mapImage) {
     ? schema.structuredAnalysis.propertyContextInterpretation : '';
   if (schema.reportType === 'PROPERTY_RELEASE') {
     propertyReleaseHero(doc, property, t, accent, images[0]);
-    propertyFactGrid(doc, property, evidence, t, accent, 287);
+    propertyFactGrid(doc, property, evidence, t, accent, 315);
     propertyReleaseBottom(doc, property, t, accent, images, mapImage);
     return;
   }
   propertyHero(doc, property, t, accent, images[0]);
-  propertyFactGrid(doc, property, evidence, t, accent, 287);
-  propertyBottom(doc, property, t, accent, 436, images, array(evidence.conflicts), mapImage, { text: translatedContext });
+  propertyFactGrid(doc, property, evidence, t, accent, 315);
+  propertyBottom(doc, property, t, accent, 464, images, array(evidence.conflicts), mapImage, { text: translatedContext });
 }
 function renderExecutive(doc, schema, t, accent, images, mapImage) {
   const property = section(schema, 'propertySummary') || {};
   const summary = section(schema, 'executiveSummary') || {};
   propertyHero(doc, property, t, accent, images[0]);
-  propertyFactGrid(doc, property, {}, t, accent, 287);
+  propertyFactGrid(doc, property, {}, t, accent, 315);
   const summaryText = [summary.summary, ...positiveObservations(summary).map((item) => `• ${item}`)].filter(Boolean).join('\n');
-  propertyBottom(doc, property, t, accent, 436, images, [], mapImage, { title: t.opportunity, text: summaryText });
+  propertyBottom(doc, property, t, accent, 464, images, [], mapImage, { title: t.opportunity, text: summaryText });
 }
 function profileRows(profile, t) {
   const profileCriterion = (criterion) => t.locale === 'en'
@@ -416,14 +453,15 @@ function renderFit(doc, schema, t, accent) {
   const risks = array(section(schema, 'riskAssessment'));
   const limitations = array(section(schema, 'limitations'));
   const property = section(schema, 'propertySummary') || {};
-  panel(doc, M, 127, CONTENT, 41, { fill: C.pale });
+  panel(doc, M, 127, CONTENT, 41, { fill: softColor(accent, .94), stroke: softColor(accent, .78) });
   text(doc, [property.address, location(property)].filter(Boolean).join(' · ') || t.unavailable, M + 13, 153, { size: 10, bold: true, width: CONTENT - 26 });
   const w = (CONTENT - 12) / 2;
-  panel(doc, M, 181, w, 218); heading(doc, t.profile, M + 12, 207, w - 24, accent);
+  panel(doc, M, 181, w, 218, { fill: softColor(accent, .96) }); heading(doc, t.profile, M + 12, 207, w - 24, accent);
   rows(doc, profileRows(profile, t), M + 12, 235, w - 24, { lineHeight: 35, labelWidth: 89, t });
-  panel(doc, M + w + 12, 181, w, 218); heading(doc, t.compatibility, M + w + 24, 207, w - 24, accent);
+  panel(doc, M + w + 12, 181, w, 218, { fill: softColor(accent, .96) }); heading(doc, t.compatibility, M + w + 24, 207, w - 24, accent);
   if (Number.isFinite(Number(profile.score))) {
     const score = Math.max(0, Math.min(100, Number(profile.score)));
+    doc.setFillColor(...C.white); doc.circle(M + w + 12 + w / 2, 296, 66, 'F');
     doc.setDrawColor(...C.line); doc.setLineWidth(15); doc.circle(M + w + 12 + w / 2, 296, 52, 'S');
     doc.setDrawColor(...accent); doc.setLineWidth(15);
     // Gauge is visualization of the existing score, not a new score calculation.
@@ -435,7 +473,7 @@ function renderFit(doc, schema, t, accent) {
     doc.setLineWidth(0.2);
     text(doc, `${score}%`, M + w + 12 + w / 2, 304, { size: 26, bold: true, align: 'center' });
   } else text(doc, t.unavailable, M + w + 12 + w / 2, 302, { size: 11, align: 'center' });
-  panel(doc, M, 412, w, 193); heading(doc, t.fit, M + 12, 438, w - 24, accent);
+  panel(doc, M, 412, w, 193, { fill: softColor(accent, .97) }); heading(doc, t.fit, M + 12, 438, w - 24, accent);
   const criteria = array(profile.criteria).length ? array(profile.criteria) : [
     { label: t.location, ...profile.targetMarket }, { label: t.price, ...profile.priceRange },
     { label: t.type, ...profile.propertyType }, { label: t.strategy, ...profile.strategy },
@@ -449,7 +487,7 @@ function renderFit(doc, schema, t, accent) {
     meter(doc, M + 101, yy - 7, w - 142, criterionScore, accent);
     text(doc, `${Math.round(criterionScore)}%`, M + w - 12, yy, { size: 7.4, bold: true, color: accent, align: 'right' });
   });
-  panel(doc, M + w + 12, 412, w, 193); heading(doc, t.risks, M + w + 24, 438, w - 24, accent);
+  panel(doc, M + w + 12, 412, w, 193, { fill: softColor(accent, .97) }); heading(doc, t.risks, M + w + 24, 438, w - 24, accent);
   risks.slice(0, 5).forEach((risk, index) => {
     const yy = 466 + index * 29; const severity = String(risk?.severity || 'MEDIUM').toUpperCase();
     const riskScore = severity === 'HIGH' ? 90 : severity === 'LOW' ? 32 : 62;
@@ -459,14 +497,16 @@ function renderFit(doc, schema, t, accent) {
     text(doc, displayValue(severity, t), M + CONTENT - 12, yy, { size: 7.2, bold: true, color: riskColor, align: 'right' });
   });
   const evidence = schema?.presentation?.evidenceCounts || {};
-  panel(doc, M, 617, CONTENT, 131); heading(doc, t.evidence, M + 12, 643, CONTENT - 24, accent);
+  panel(doc, M, 617, CONTENT, 131, { fill: softColor(accent, .97), accent }); heading(doc, t.evidence, M + 12, 643, CONTENT - 24, accent);
   const evidenceItems = Object.entries(evidence).slice(0, 6);
   if (evidenceItems.length) {
-    const ew = (CONTENT - 24) / evidenceItems.length;
+    const gap = 5; const ew = (CONTENT - 24 - gap * (evidenceItems.length - 1)) / evidenceItems.length;
     evidenceItems.forEach(([label, count], index) => {
-      const cx = M + 12 + ew * index + ew / 2;
-      text(doc, count, cx, 681, { size: 18, bold: true, color: accent, align: 'center' });
-      text(doc, label.replace(/([A-Z])/g, ' $1'), cx, 699, { size: 6.6, color: C.muted, width: ew - 5, maxLines: 2, align: 'center' });
+      const x = M + 12 + index * (ew + gap); const cx = x + ew / 2;
+      panel(doc, x, 657, ew, 70, { fill: C.white, stroke: softColor(accent, .78), radius: 7 });
+      drawIcon(doc, index < 2 ? 'check' : index === evidenceItems.length - 1 ? 'warning' : 'document', cx, 672, accent, 14);
+      text(doc, count, cx, 698, { size: 16, bold: true, color: accent, align: 'center' });
+      text(doc, label.replace(/([A-Z])/g, ' $1'), cx, 714, { size: 6.1, color: C.muted, width: ew - 7, maxLines: 2, align: 'center' });
     });
   } else text(doc, limitations.slice(0, 3).map((item) => reportNarrative(item, '', t.locale)).join(' • ') || t.noDetails, M + 12, 676, { size: 8, width: CONTENT - 24, maxLines: 3 });
 }
@@ -498,7 +538,7 @@ function renderComparables(doc, schema, t, accent, comparableMap) {
   const property = section(schema, 'propertySummary') || {};
   const comps = section(schema, 'comparableEvidence') || {};
   const all = [...array(comps.used).map((v) => ({ ...v, status: 'USED' })), ...array(comps.supporting).map((v) => ({ ...v, status: 'SUPPORTING' })), ...array(comps.excluded).map((v) => ({ ...v, status: 'EXCLUDED' }))];
-  panel(doc, M, 127, CONTENT, 78, { fill: C.pale });
+  panel(doc, M, 127, CONTENT, 78, { fill: softColor(accent, .94), stroke: softColor(accent, .76) });
   drawIcon(doc, 'house', M + 37, 166, accent, 42);
   text(doc, value(property.address || property.title, t.unavailable), M + 70, 151, { size: 12, bold: true, width: 220, maxLines: 1 });
   text(doc, location(property) || t.unavailable, M + 70, 169, { size: 8.2, color: C.muted, width: 220, maxLines: 1 });
@@ -522,22 +562,47 @@ function renderComparables(doc, schema, t, accent, comparableMap) {
     });
     text(doc, t.coordinateMap, M + 12, 392, { size: 7.5, color: C.muted });
   } else text(doc, t.noMap, M + 16, 305, { size: 9, color: C.muted, width: CONTENT - 32 });
-  panel(doc, M, 411, CONTENT, 244); heading(doc, t.comps, M + 12, 437, CONTENT - 24, accent);
+  panel(doc, M, 411, CONTENT, 244, { fill: softColor(accent, .98) }); heading(doc, t.comps, M + 12, 437, CONTENT - 24, accent);
   const columns = [M + 12, M + 183, M + 266, M + 329, M + 375, M + 426, M + 478];
   [t.address, t.salePrice, t.date, t.bedsBaths, t.sqft, t.similarity, t.status].forEach((label, i) => text(doc, label, columns[i], 460, { size: 7.1, bold: true, color: C.muted }));
   doc.setDrawColor(...C.line); doc.line(M + 12, 470, W - M - 12, 470);
   if (!all.length) text(doc, t.noComps, M + 12, 498, { size: 9, width: CONTENT - 24 });
   all.slice(0, 8).forEach((comp, i) => {
     const yy = 488 + i * 21;
+    if (i % 2 === 0) {
+      doc.setFillColor(...softColor(accent, .965));
+      doc.roundedRect(M + 9, yy - 13, CONTENT - 18, 19, 3, 3, 'F');
+    }
     text(doc, comp.address || t.unavailable, columns[0], yy, { size: 7.1, width: 160, maxLines: 1 });
     text(doc, currency(comp.salePrice, t), columns[1], yy, { size: 7.1 });
     text(doc, value(comp.saleDate, t.unavailable).slice(0, 10), columns[2], yy, { size: 7.1 });
     text(doc, `${value(comp.beds, '–')} / ${value(comp.baths, '–')}`, columns[3], yy, { size: 7.1 });
     text(doc, value(comp.sqft, '–'), columns[4], yy, { size: 7.1 });
     text(doc, comp.similarity == null ? '–' : `${Math.round(Number(comp.similarity))}%`, columns[5], yy, { size: 7.1 });
-    text(doc, t[comp.status.toLowerCase()], columns[6], yy, { size: 6.7, bold: true, color: accent });
+    const statusColor = comp.status === 'USED' ? C.green : comp.status === 'SUPPORTING' ? accent : C.muted;
+    doc.setFillColor(...softColor(statusColor, .82)); doc.roundedRect(columns[6] - 4, yy - 11, 50, 15, 5, 5, 'F');
+    text(doc, t[comp.status.toLowerCase()], columns[6] + 21, yy, { size: 6.2, bold: true, color: statusColor, width: 46, maxLines: 1, align: 'center' });
     doc.setDrawColor(...C.line); doc.line(M + 12, yy + 8, W - M - 12, yy + 8);
   });
+  if (all.length > 0 && all.length <= 5) {
+    const prices = all.map((comp) => Number(comp.salePrice)).filter((entry) => Number.isFinite(entry) && entry > 0);
+    const similarities = all.map((comp) => Number(comp.similarity)).filter(Number.isFinite);
+    const statY = Math.min(591, 500 + all.length * 21);
+    const statGap = 6; const statW = (CONTENT - 24 - statGap * 3) / 4;
+    const stats = [
+      [t.totalComps, String(all.length), 'document'],
+      [t.usedComparables, String(array(comps.used).length), 'check'],
+      [t.averageSalePrice, prices.length ? currency(prices.reduce((sum, entry) => sum + entry, 0) / prices.length, t) : t.unavailable, 'trend'],
+      [t.averageSimilarity, similarities.length ? `${Math.round(similarities.reduce((sum, entry) => sum + entry, 0) / similarities.length)}%` : '—', 'chart'],
+    ];
+    stats.forEach(([label, entry, kind], index) => {
+      const x = M + 12 + index * (statW + statGap);
+      panel(doc, x, statY, statW, 53, { fill: C.white, stroke: softColor(accent, .75), radius: 7 });
+      drawIcon(doc, kind, x + 15, statY + 16, accent, 16);
+      text(doc, label, x + 29, statY + 18, { size: 6.1, color: C.muted, width: statW - 35, maxLines: 2 });
+      text(doc, entry, x + statW / 2, statY + 43, { size: 10.5, bold: true, color: accent, width: statW - 10, maxLines: 1, align: 'center' });
+    });
+  }
   const compNarrative = [structured.comparativeAnalysis?.interpretation,
     ...array(structured.comparativeAnalysis?.limitations)].filter(Boolean);
   listPanel(doc, t.observations, compNarrative.length ? compNarrative : all.map((comp) => comp.inclusionReason || comp.exclusionReason).filter(Boolean), M, 667, CONTENT, 88, t, accent);
@@ -610,12 +675,12 @@ function renderConclusion(doc, schema, t, accent) {
   const summary = section(schema, 'executiveSummary') || {};
   const risks = array(section(schema, 'riskAssessment'));
   const steps = array(section(schema, 'verificationChecklist'));
-  listPanel(doc, t.opportunity, [structured.opportunityAssessment || summary.summary].filter(Boolean), M, 128, CONTENT, 134, t, accent);
+  listPanel(doc, t.opportunity, [structured.opportunityAssessment || summary.summary].filter(Boolean), M, 128, CONTENT, 112, t, accent);
   const w = (CONTENT - 12) / 2;
-  listPanel(doc, t.analysis, [structured.profileAdaptedConclusion, ...array(structured.positiveSignals)].filter(Boolean), M, 274, w, 191, t, accent, { positive: true });
-  listPanel(doc, t.mainTopics, array(structured.strategySpecificInsights).length ? array(structured.strategySpecificInsights) : risks, M + w + 12, 274, w, 191, t, accent);
-  listPanel(doc, t.questions, array(structured.missingEvidence).length ? array(structured.missingEvidence) : array(section(schema, 'limitations')), M, 477, w, 164, t, accent);
-  listPanel(doc, t.actions, array(structured.recommendedActions).length ? array(structured.recommendedActions) : steps, M + w + 12, 477, w, 164, t, accent);
+  listPanel(doc, t.analysis, [structured.profileAdaptedConclusion, ...array(structured.positiveSignals)].filter(Boolean), M, 252, w, 203, t, accent, { positive: true });
+  listPanel(doc, t.mainTopics, array(structured.strategySpecificInsights).length ? array(structured.strategySpecificInsights) : risks, M + w + 12, 252, w, 203, t, accent);
+  listPanel(doc, t.questions, array(structured.missingEvidence).length ? array(structured.missingEvidence) : array(section(schema, 'limitations')), M, 467, w, 174, t, accent);
+  listPanel(doc, t.actions, array(structured.recommendedActions).length ? array(structured.recommendedActions) : steps, M + w + 12, 467, w, 174, t, accent);
   panel(doc, M, 653, CONTENT, 99, { fill: C.warm, stroke: C.gold });
   heading(doc, t.considerations, M + 12, 677, CONTENT - 24, accent);
   text(doc, t.disclaimer, M + 12, 702, { size: 8.5, width: CONTENT - 24, maxLines: 4 });
