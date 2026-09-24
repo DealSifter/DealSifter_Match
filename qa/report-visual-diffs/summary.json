@@ -3,62 +3,62 @@
   "pages": [
     {
       "file": "property-release-page-1.png",
-      "similarity": 0.8594556110367705,
-      "materialDifferenceRatio": 0.3417525742355074,
+      "similarity": 1,
+      "materialDifferenceRatio": 0,
       "pass": true
     },
     {
       "file": "maxxis-analysis-page-1.png",
-      "similarity": 0.8250889975417851,
-      "materialDifferenceRatio": 0.3573156552209664,
+      "similarity": 1,
+      "materialDifferenceRatio": 0,
       "pass": true
     },
     {
       "file": "maxxis-analysis-page-2.png",
-      "similarity": 0.8862365554732399,
-      "materialDifferenceRatio": 0.23837231333177772,
+      "similarity": 1,
+      "materialDifferenceRatio": 0,
       "pass": true
     },
     {
       "file": "maxxis-analysis-page-3.png",
-      "similarity": 0.8889543251427606,
-      "materialDifferenceRatio": 0.23023029012127774,
+      "similarity": 1,
+      "materialDifferenceRatio": 0,
       "pass": true
     },
     {
       "file": "deal-intelligence-page-1.png",
-      "similarity": 0.8262070456779211,
-      "materialDifferenceRatio": 0.35171097163803744,
+      "similarity": 1,
+      "materialDifferenceRatio": 0,
       "pass": true
     },
     {
       "file": "deal-intelligence-page-2.png",
-      "similarity": 0.9026528118041935,
-      "materialDifferenceRatio": 0.18577175211553,
+      "similarity": 1,
+      "materialDifferenceRatio": 0,
       "pass": true
     },
     {
       "file": "deal-intelligence-page-3.png",
-      "similarity": 0.8890801015741373,
-      "materialDifferenceRatio": 0.1988393752829515,
+      "similarity": 1,
+      "materialDifferenceRatio": 0,
       "pass": true
     },
     {
       "file": "deal-intelligence-page-4.png",
-      "similarity": 0.8853910662802007,
-      "materialDifferenceRatio": 0.20386768539182426,
+      "similarity": 1,
+      "materialDifferenceRatio": 0,
       "pass": true
     },
     {
       "file": "deal-intelligence-page-5.png",
-      "similarity": 0.88916848288106,
-      "materialDifferenceRatio": 0.1750275721912762,
+      "similarity": 1,
+      "materialDifferenceRatio": 0,
       "pass": true
     },
     {
       "file": "deal-intelligence-page-6.png",
-      "similarity": 0.8918577193460524,
-      "materialDifferenceRatio": 0.1924942811386268,
+      "similarity": 1,
+      "materialDifferenceRatio": 0,
       "pass": true
     }
   ],

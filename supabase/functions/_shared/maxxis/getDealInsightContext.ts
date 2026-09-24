@@ -23,6 +23,7 @@ export async function getDealInsightContextForAuthenticatedUser(
   userId: string,
   contextPropertyId?: string,
   plan: ProviderBudgetPlan = 'FREE',
+  languageInput: string = 'en',
 ) {
   const validated = resolveDealInsightInput(input, contextPropertyId);
   const requestedReportType = validated.reportType;
@@ -236,6 +237,6 @@ export async function getDealInsightContextForAuthenticatedUser(
     evidenceCompleteness,
     dealIntelligence: result.dealIntelligence,
   } as const;
-  const structuredAnalysis = buildMaxxisStructuredAnalysis(intelligenceSnapshot, requestedReportType);
+  const structuredAnalysis = buildMaxxisStructuredAnalysis(intelligenceSnapshot, requestedReportType, languageInput);
   return { ...result, intelligenceSnapshot, structuredAnalysis, evidenceCompleteness, runtimeTrace };
 }

@@ -57,9 +57,9 @@ describe('canonical PDF template behavior', () => {
   });
 
   it.each([
-    ['en', 'Property Release', 'Generated', 'Page 1 / 1'],
-    ['pt', 'Property Release', 'Gerado em', 'Página 1 / 1'],
-    ['es', 'Property Release', 'Generado', 'Página 1 / 1'],
+    ['en', 'PROPERTY RELEASE', 'Generated', 'Page 1 / 1'],
+    ['pt', 'RELATÓRIO DO IMÓVEL', 'Gerado em', 'Página 1 / 1'],
+    ['es', 'INFORME DE LA PROPIEDAD', 'Generado', 'Página 1 / 1'],
   ])('renders factual Basic in %s as one stable A4 page', async (language, title, dateLabel, pageLabel) => {
     const result = await render('PROPERTY_RELEASE', language);
     expect(result.state).toBe('RENDERED');
@@ -71,6 +71,7 @@ describe('canonical PDF template behavior', () => {
     expect(pages[0].text).toContain('1200 Fictional Street');
     expect(pages[0].text).toContain(dateLabel);
     expect(pages[0].text).toContain(pageLabel);
+    expect(pages[0].text.split(pageLabel)).toHaveLength(2);
     expect(pages[0].text).not.toMatch(/ARV|Comparative Market Analysis|Match Score/);
   });
 

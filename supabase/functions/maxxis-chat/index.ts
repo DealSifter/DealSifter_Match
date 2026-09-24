@@ -19,6 +19,7 @@ import { normalizeComparisonContextIds } from '../_shared/maxxis/compareProperti
 import { buildToolInterpretationRequest } from '../_shared/maxxis/toolResultForGemini.ts';
 import { buildGeminiGenerationConfig } from '../_shared/maxxis/geminiGenerationConfig.ts';
 import { buildMaxxisKnowledgeInstruction, MAXXIS_KNOWLEDGE_VERSION, selectMaxxisKnowledge } from '../_shared/maxxis/maxxisKnowledge.ts';
+import { resolveMaxxisLanguage } from '../_shared/maxxis/maxxisLanguage.ts';
 import type { MaxxisLanguage, MaxxisResponse } from '../_shared/maxxis/types.ts';
 import { createRequestId, getEdgeRelease } from '../_shared/observability.ts';
 import {
@@ -285,15 +286,6 @@ function e2eStubFunctionCall(message: string, propertyContextId: string) {
     return { name: 'searchProperties', args: { state: ['TX'], city: 'Dallas', limit: 5 } };
   }
   return null;
-}
-
-function detectLanguage(text: string, preferred = 'auto'): MaxxisLanguage {
-  const normalized = ` ${String(text).normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase()} `;
-  const pt = [' voce ', ' ajuda ', ' imovel ', ' negocio ', ' desbloquear ', ' preciso '].filter((word) => normalized.includes(word)).length;
-  const es = [' usted ', ' puedes ', ' ayuda ', ' inmueble ', ' propiedad '].filter((word) => normalized.includes(word)).length;
-  if (pt > es && pt) return 'pt';
-  if (es > pt && es) return 'es';
-  return ['en', 'pt', 'es'].includes(preferred.slice(0, 2)) ? preferred.slice(0, 2) as MaxxisLanguage : 'en';
 }
 
 function fallback(language: MaxxisLanguage, reason: 'quota' | 'provider' | 'config') {
@@ -758,7 +750,7 @@ Deno.serve(async (req) => {
       return response({ message: 'Message is too large.', type: 'text', data: null, actions: [], error: 'REQUEST_TOO_LARGE' }, 413, origin, requestId);
     }
     const message = sanitizeText(rawMessage, MAXXIS_EXECUTION_LIMITS.maxMessageChars);
-    const language = detectLanguage(message, sanitizeText(body.language || 'auto', 8));
+    const language = resolveMaxxisLanguage(message, sanitizeText(body.language || 'auto', 8));
     resolvedMessage = message;
     resolvedLanguage = language;
     resolvedPage = sanitizeText(body.page || 'dashboard', 60) || 'dashboard';
@@ -958,7 +950,7 @@ Deno.serve(async (req) => {
           toolName,
           functionArgs,
           req.headers.get('Authorization') || '',
-          { propertyId: propertyContextId, propertyIds: comparisonPropertyIds, userId, plan: effectiveProviderPlan },
+          { propertyId: propertyContextId, propertyIds: comparisonPropertyIds, userId, plan: effectiveProviderPlan, language },
         );
       } catch (error) {
         if (toolName === 'getPropertyDetails' || toolName === 'getDealCopilotOverview') {

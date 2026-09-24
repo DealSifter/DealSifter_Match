@@ -108,7 +108,9 @@ describe('Maxxis Deal Intelligence Report Experience v2', () => {
     const schema = buildMaxxisReportSchema({ reportType: 'DEAL_INTELLIGENCE', property, dealIntelligence: intelligence });
     const html = render(schema);
     expect(schema.presentation.kpiScenarios).toMatchObject({ available: false, sourceType: 'UNKNOWN' });
-    expect(html).toContain('ARV_UNAVAILABLE');
+    expect(html).toContain('Estimated ARV Range');
+    expect(html).toContain('Unavailable');
+    expect(html).not.toContain('ARV_UNAVAILABLE');
     expect(html).toContain('UNKNOWN');
     expect(html).not.toContain('$0');
     expect(html).toContain('Provider estimate (not DealSifter ARV)');

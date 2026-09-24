@@ -1002,7 +1002,9 @@ export function MaxxisAssistant({ page = 'dashboard', onOpenSupport = null, onNa
           entitlements: reportEntitlements,
         });
         if (!accessDecision.allowed) {
-          const reportLabel = requestedReportType === 'DEAL_INTELLIGENCE' ? 'Full Deal Intelligence' : 'Maxxis Analysis';
+          const reportLabel = requestedReportType === 'DEAL_INTELLIGENCE'
+            ? (language === 'pt' ? 'Inteligência Completa do Negócio' : language === 'es' ? 'Inteligencia Completa del Negocio' : 'Full Deal Intelligence')
+            : (language === 'pt' ? 'Análise Maxxis' : language === 'es' ? 'Análisis Maxxis' : 'Maxxis Analysis');
           setMessages((prev) => [...prev, {
             id: `maxxis-intelligence-access-${Date.now()}`,
             role: 'assistant',

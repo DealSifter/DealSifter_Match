@@ -14,4 +14,17 @@ describe('My Maxxis Reports', () => {
     expect(html).toContain('Porter Ranch, CA 91326');
     expect(html).not.toContain('100 Stored St');
   });
+
+  it('localizes saved report labels and access metadata', () => {
+    const html = renderToStaticMarkup(<MyMaxxisReports language="pt" reports={[{
+      id: 'report-2', capability: 'DEAL_INTELLIGENCE', accessSource: 'SUBSCRIPTION_INCLUDED',
+      createdAt: '2026-09-21T00:00:00Z', reportPayload: { data: { maxxisReport: {
+        sections: { propertySummary: { data: { city: 'Honolulu', state: 'HI', zip: '96825' } } },
+      } } },
+    }]} />);
+    expect(html).toContain('Inteligência do Negócio');
+    expect(html).toContain('Incluído na assinatura');
+    expect(html).not.toContain('DEAL INTELLIGENCE');
+    expect(html).not.toContain('SUBSCRIPTION_INCLUDED');
+  });
 });

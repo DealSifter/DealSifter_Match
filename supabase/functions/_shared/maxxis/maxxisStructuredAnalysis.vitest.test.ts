@@ -48,6 +48,19 @@ describe('MaxxisStructuredAnalysis', () => {
     expect(explainMaxxisInternalState('MISSING_REHAB')).toBe('Rehabilitation scope and cost have not yet been confirmed.');
     expect(explainMaxxisInternalState('roi_not_calculated')).toContain('ROI cannot yet be calculated');
   });
+
+  it.each([
+    ['pt', 'O imóvel apresenta 62%', 'Não é possível calcular um ARV defensável', 'Limitação prioritária'],
+    ['es', 'La propiedad presenta 62%', 'No es posible calcular un ARV defendible', 'Limitación prioritaria'],
+  ])('keeps the canonical analysis entirely in the selected %s app language', (language, summary, arv, priority) => {
+    const analysis = buildMaxxisStructuredAnalysis(snapshot, 'DEAL_INTELLIGENCE', language);
+    expect(analysis.language).toBe(language);
+    expect(analysis.executiveSummary).toContain(summary);
+    expect(analysis.valuationAnalysis.limitations.join(' ')).toContain(arv);
+    expect(analysis.profileAdaptedConclusion).toContain(priority);
+    expect(JSON.stringify(analysis)).not.toContain('The property has 62%');
+    expect(JSON.stringify(analysis)).not.toContain('A defensible ARV cannot');
+  });
 });
 
 describe('EvidenceCompleteness', () => {

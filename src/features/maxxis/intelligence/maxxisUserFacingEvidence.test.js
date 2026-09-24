@@ -17,4 +17,13 @@ describe('Maxxis user-facing evidence copy', () => {
   it('deduplicates translated output', () => {
     expect(explainMaxxisEvidenceList(['MISSING_REHAB', 'MISSING_REHAB'])).toHaveLength(1);
   });
+
+  it('renders internal evidence states in the selected app language', () => {
+    expect(explainMaxxisEvidenceState('MISSING_REHAB', 'pt')).toContain('reforma');
+    expect(explainMaxxisEvidenceState('MISSING_REHAB', 'es')).toContain('reforma');
+    expect(explainMaxxisEvidenceState(
+      'A defensible ARV cannot be calculated with the evidence currently available.',
+      'pt',
+    )).toContain('ARV defensável');
+  });
 });

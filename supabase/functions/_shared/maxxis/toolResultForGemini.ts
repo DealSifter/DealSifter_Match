@@ -353,6 +353,7 @@ function safeStructuredAnalysis(value: unknown) {
     type: 'maxxis_structured_analysis',
     version: safeText(source.version, 60),
     reportType: safeText(source.reportType, 40),
+    language: safeText(source.language, 8),
     executiveSummary: safeText(source.executiveSummary, 900),
     opportunityAssessment: safeText(source.opportunityAssessment, 900),
     propertyContextInterpretation: safeText(source.propertyContextInterpretation, 700),
