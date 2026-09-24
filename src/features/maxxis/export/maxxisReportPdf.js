@@ -284,7 +284,10 @@ function photo(doc, x, y, w, h, imageData, t, { cover = false, radius = 6 } = {}
       const ratio = cover ? Math.max(w / properties.width, h / properties.height) : Math.min(w / properties.width, h / properties.height);
       const iw = properties.width * ratio; const ih = properties.height * ratio;
       doc.saveGraphicsState();
-      doc.roundedRect(x, y, w, h, radius, radius); doc.clip(); doc.discardPath();
+      // jsPDF only retains a geometry operation as a clipping path when its
+      // style is explicitly null. Without it, the bitmap keeps square corners
+      // and can bleed outside the intended image bounds.
+      doc.roundedRect(x, y, w, h, radius, radius, null); doc.clip(); doc.discardPath();
       doc.addImage(imageData, properties.fileType || 'JPEG', x + (w - iw) / 2, y + (h - ih) / 2, iw, ih);
       doc.restoreGraphicsState();
       return;
@@ -336,25 +339,29 @@ function propertyFactGrid(doc, property, evidence, t, accent, y) {
 function propertyBottom(doc, property, t, accent, y, images, conflicts = [], mapImage = null, notes = {}) {
   heading(doc, t.photos, M, y + 20, CONTENT, accent);
   const shown = images.length ? images.slice(0, 5) : [null];
-  const photoGap = 5; const photoWidth = (CONTENT - photoGap * (shown.length - 1)) / shown.length;
-  shown.forEach((image, index) => photo(doc, M + index * (photoWidth + photoGap), y + 30, photoWidth, 72, image, t, { cover: true, radius: 6 }));
-  y += 110;
+  // Keep the approved five-slot thumbnail scale even when fewer photos exist.
+  // The image itself is clipped to the rounded shape; there is no gallery card
+  // or inner frame creating visible padding around it.
+  const photoGap = 5; const photoWidth = (CONTENT - photoGap * 4) / 5;
+  shown.forEach((image, index) => photo(doc, M + index * (photoWidth + photoGap), y + 32, photoWidth, 58, image, t, { cover: true, radius: 6 }));
+  y += 100;
   const gap = 6; const locationWidth = Math.round((CONTENT - gap) * 0.6); const notesWidth = CONTENT - gap - locationWidth;
-  panel(doc, M, y, locationWidth, 226); heading(doc, t.location, M + 10, y + 23, locationWidth - 20, accent);
+  const bottomHeight = 261;
+  panel(doc, M, y, locationWidth, bottomHeight); heading(doc, t.location, M + 10, y + 23, locationWidth - 20, accent);
   text(doc, location(property) || t.unavailable, M + 11, y + 44, { size: 9, bold: true, width: locationWidth - 22, maxLines: 1 });
   if (mapImage) {
     try {
-      doc.addImage(mapImage, 'PNG', M + 10, y + 54, locationWidth - 20, 151, 'property-street-map');
-      text(doc, t.mapAttribution, M + 11, y + 218, { size: 5.8, color: C.muted, width: locationWidth - 22, maxLines: 1 });
+      photo(doc, M + 7, y + 54, locationWidth - 14, 190, mapImage, t, { cover: true, radius: 6 });
+      text(doc, t.mapAttribution, M + 8, y + 255, { size: 5.8, color: C.muted, width: locationWidth - 16, maxLines: 1 });
     } catch { /* Keep the coordinate fallback if the generated map cannot be embedded. */ }
   } else {
     if (property.latitude != null && property.longitude != null) text(doc, `${property.latitude}, ${property.longitude}`, M + 13, y + 73, { size: 8, color: C.muted });
     text(doc, t.noMap, M + 13, y + 101, { size: 8, color: C.muted, width: locationWidth - 25, maxLines: 3 });
   }
   const notesX = M + locationWidth + gap;
-  panel(doc, notesX, y, notesWidth, 226); heading(doc, notes.title || t.notes, notesX + 10, y + 23, notesWidth - 20, accent);
-  text(doc, notes.text || localizedPropertyNotes(property, t), notesX + 11, y + 45, { size: 8.5, width: notesWidth - 22, maxLines: conflicts.length ? 12 : 14 });
-  if (conflicts.length) text(doc, t.conflict, notesX + 11, y + 206, { size: 7.2, bold: true, color: C.gold, width: notesWidth - 22, maxLines: 2 });
+  panel(doc, notesX, y, notesWidth, bottomHeight); heading(doc, notes.title || t.notes, notesX + 10, y + 23, notesWidth - 20, accent);
+  text(doc, notes.text || localizedPropertyNotes(property, t), notesX + 11, y + 45, { size: 8.7, width: notesWidth - 22, maxLines: conflicts.length ? 15 : 18 });
+  if (conflicts.length) text(doc, t.conflict, notesX + 11, y + 240, { size: 7.2, bold: true, color: C.gold, width: notesWidth - 22, maxLines: 2 });
 }
 function propertyReleaseBottom(doc, property, t, accent, images, mapImage) {
   return propertyBottom(doc, property, t, accent, 436, images, [], mapImage);
@@ -631,7 +638,7 @@ async function resolveStreetMap(schema) {
     || typeof document === 'undefined') return null;
   try {
     const width = 700;
-    const height = 200;
+    const height = 400;
     const canvas = document.createElement('canvas');
     canvas.width = width;
     canvas.height = height;

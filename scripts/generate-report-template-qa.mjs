@@ -121,18 +121,18 @@ const root = fileURLToPath(new URL('../', import.meta.url));
 const out = fileURLToPath(new URL('../qa/report-template/', import.meta.url));
 await mkdir(out, { recursive: true });
 const samplePhoto = `data:image/jpeg;base64,${(await readFile(`${root}src/assets/maxxis/report-previews/sample-property-photo.jpg`)).toString('base64')}`;
-const mapCanvas = createCanvas(700, 300);
+const mapCanvas = createCanvas(700, 400);
 const mapContext = mapCanvas.getContext('2d');
-mapContext.fillStyle = '#edf2eb'; mapContext.fillRect(0, 0, 700, 300);
-mapContext.fillStyle = '#cce8ca'; mapContext.fillRect(55, 35, 235, 225);
+mapContext.fillStyle = '#edf2eb'; mapContext.fillRect(0, 0, 700, 400);
+mapContext.fillStyle = '#cce8ca'; mapContext.fillRect(55, 35, 235, 310);
 mapContext.strokeStyle = '#ffffff'; mapContext.lineWidth = 12;
-for (let y = 30; y < 300; y += 46) { mapContext.beginPath(); mapContext.moveTo(0, y); mapContext.lineTo(700, y + 18); mapContext.stroke(); }
-for (let x = 20; x < 700; x += 72) { mapContext.beginPath(); mapContext.moveTo(x, 0); mapContext.lineTo(x + 35, 300); mapContext.stroke(); }
-mapContext.strokeStyle = '#a9c8dc'; mapContext.lineWidth = 18; mapContext.beginPath(); mapContext.moveTo(0, 250); mapContext.lineTo(700, 205); mapContext.stroke();
-mapContext.fillStyle = '#148a67'; mapContext.font = 'bold 24px sans-serif'; mapContext.fillText('Sample Community Park', 70, 155);
-mapContext.fillStyle = '#1db8bc'; mapContext.beginPath(); mapContext.arc(410, 132, 18, 0, Math.PI * 2); mapContext.fill();
-mapContext.fillStyle = '#ffffff'; mapContext.beginPath(); mapContext.arc(410, 132, 6, 0, Math.PI * 2); mapContext.fill();
-mapContext.fillStyle = '#20344b'; mapContext.font = 'bold 20px sans-serif'; mapContext.fillText('1200 Sample Avenue', 430, 140);
+for (let y = 30; y < 400; y += 46) { mapContext.beginPath(); mapContext.moveTo(0, y); mapContext.lineTo(700, y + 18); mapContext.stroke(); }
+for (let x = 20; x < 700; x += 72) { mapContext.beginPath(); mapContext.moveTo(x, 0); mapContext.lineTo(x + 35, 400); mapContext.stroke(); }
+mapContext.strokeStyle = '#a9c8dc'; mapContext.lineWidth = 18; mapContext.beginPath(); mapContext.moveTo(0, 345); mapContext.lineTo(700, 300); mapContext.stroke();
+mapContext.fillStyle = '#148a67'; mapContext.font = 'bold 24px sans-serif'; mapContext.fillText('Sample Community Park', 70, 205);
+mapContext.fillStyle = '#1db8bc'; mapContext.beginPath(); mapContext.arc(410, 182, 18, 0, Math.PI * 2); mapContext.fill();
+mapContext.fillStyle = '#ffffff'; mapContext.beginPath(); mapContext.arc(410, 182, 6, 0, Math.PI * 2); mapContext.fill();
+mapContext.fillStyle = '#20344b'; mapContext.font = 'bold 20px sans-serif'; mapContext.fillText('1200 Sample Avenue', 430, 190);
 const sampleMap = mapCanvas.toDataURL('image/png');
 const server = await createServer({ root, optimizeDeps: { noDiscovery: true, include: [] }, server: { middlewareMode: true }, appType: 'custom' });
 try {
