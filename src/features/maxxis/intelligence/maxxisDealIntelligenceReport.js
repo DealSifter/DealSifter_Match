@@ -60,20 +60,30 @@ function investmentFit(context) {
   const reason = (key) => {
     const item = list(match?.reasons).find((candidate) => candidate?.key === key);
     return Object.freeze({
+      key,
+      label: safeText(item?.label) || key,
       status: ['matched', 'not_matched', 'not_evaluated'].includes(item?.status) ? item.status : 'not_evaluated',
       explanation: safeText(item?.detail) || 'UNKNOWN',
+      points: nullableNumber(item?.points),
+      maxPoints: nullableNumber(item?.maxPoints),
+      score: nullableNumber(item?.maxPoints) > 0
+        ? Math.round(((nullableNumber(item?.points) || 0) / Number(item.maxPoints)) * 100)
+        : null,
       source: 'CALCULATED',
     });
   };
+  const criteria = Object.freeze(['market', 'price', 'property_type', 'strategy'].map(reason));
   return Object.freeze({
     score: nullableNumber(match?.score),
     classification: safeText(match?.classification) || 'unavailable',
     calculable: Boolean(match?.calculable),
     semantics: 'PROFILE_FIT_ONLY',
     requiredMessage: 'Match Score indicates profile compatibility, not investment quality.',
-    targetMarket: reason('market'),
-    strategy: reason('strategy'),
-    propertyType: reason('property_type'),
+    targetMarket: criteria[0],
+    priceRange: criteria[1],
+    propertyType: criteria[2],
+    strategy: criteria[3],
+    criteria,
   });
 }
 
@@ -182,6 +192,8 @@ export function buildMaxxisDealIntelligenceReport(context, structuredAnalysis = 
   const analysisConfidence = buildMaxxisAnalysisConfidence(context);
   const investorPerspective = resolveMaxxisInvestorPersona(context.investorContext);
   const executiveSummaryIntelligence = buildMaxxisExecutiveSummaryIntelligence(context, analysisConfidence, investorPerspective);
+  const sourceRisks = riskAnalysis(context);
+  const sourceRiskByCategory = new Map(sourceRisks.map((risk) => [risk.category, risk]));
   return Object.freeze({
     type: 'maxxis_deal_intelligence_report',
     version: MAXXIS_DEAL_INTELLIGENCE_REPORT_VERSION,
@@ -203,8 +215,11 @@ export function buildMaxxisDealIntelligenceReport(context, structuredAnalysis = 
       ['VALUATION_RISK', canonical.riskAnalysis?.valuationRisk],
       ['EXECUTION_RISK', canonical.riskAnalysis?.executionRisk],
     ].filter(([, reason]) => safeText(reason)).map(([category, reason]) => Object.freeze({
-      code: category, category, severity: 'MEDIUM', reason: safeText(reason),
-    }))) : riskAnalysis(context),
+      code: sourceRiskByCategory.get(category)?.code || category,
+      category,
+      severity: sourceRiskByCategory.get(category)?.severity || 'MEDIUM',
+      reason: safeText(reason),
+    }))) : sourceRisks,
     limitations: canonical
       ? Object.freeze(unique([...list(canonical.missingEvidence), ...list(canonical.userFacingDisclaimers)].map(safeText)).slice(0, 12))
       : limitations(context, valuation, comps),

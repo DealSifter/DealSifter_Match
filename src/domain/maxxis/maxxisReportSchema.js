@@ -192,6 +192,40 @@ function comparableEvidence(value) {
   return Object.freeze({ used: select(value.used), supporting: select(value.supporting), excluded: select(value.excluded) });
 }
 
+function comparableStatistics(comparables, property) {
+  const used = Array.isArray(comparables?.used) ? comparables.used : [];
+  const supporting = Array.isArray(comparables?.supporting) ? comparables.supporting : [];
+  const set = used.length ? used : supporting;
+  const numbers = (values) => values.map(Number).filter(Number.isFinite);
+  const average = (values) => values.length
+    ? Math.round((values.reduce((sum, entry) => sum + entry, 0) / values.length) * 100) / 100 : null;
+  const salePrices = numbers(set.map((item) => item.salePrice));
+  const pricePerSqft = numbers(set.map((item) => {
+    const price = finitePositive(item.salePrice);
+    const sqft = finitePositive(item.sqft);
+    return price && sqft ? price / sqft : null;
+  }));
+  const subjectPrice = finitePositive(property?.price);
+  const subjectSqft = finitePositive(property?.sqft);
+  const subjectPricePerSqft = subjectPrice && subjectSqft ? subjectPrice / subjectSqft : null;
+  const marketPricePerSqft = average(pricePerSqft);
+  return Object.freeze({
+    sourceType: set.length ? 'CALCULATED' : 'UNKNOWN',
+    sampleSize: set.length,
+    usedCount: used.length,
+    supportingCount: supporting.length,
+    averageSalePrice: average(salePrices),
+    salePriceLow: salePrices.length ? Math.min(...salePrices) : null,
+    salePriceHigh: salePrices.length ? Math.max(...salePrices) : null,
+    averageDistanceMiles: average(numbers(set.map((item) => item.distanceMiles))),
+    averageSimilarity: average(numbers(set.map((item) => item.similarity))),
+    marketPricePerSqft,
+    subjectPricePerSqft: subjectPricePerSqft === null ? null : Math.round(subjectPricePerSqft * 100) / 100,
+    subjectVsMarketPercent: subjectPricePerSqft && marketPricePerSqft
+      ? Math.round(((subjectPricePerSqft / marketPricePerSqft) - 1) * 1000) / 10 : null,
+  });
+}
+
 function valuationEvidence(value) {
   if (!isObject(value)) return null;
   const status = ['ARV_AVAILABLE', 'ARV_LIMITED', 'ARV_UNAVAILABLE'].includes(value.status)
@@ -321,6 +355,8 @@ export function buildMaxxisReportSchema({ reportType, property = null, maxxisAna
       kpiScenarios: normalizedType === INTELLIGENCE_REPORT_TYPES.DEAL_INTELLIGENCE
         ? scenarioKpis(property, sections.valuationEvidence.data) : null,
       existingMetrics: normalizedType === INTELLIGENCE_REPORT_TYPES.DEAL_INTELLIGENCE ? existingMetrics(dealMetrics) : null,
+      comparableStatistics: normalizedType === INTELLIGENCE_REPORT_TYPES.DEAL_INTELLIGENCE
+        ? comparableStatistics(sections.comparableEvidence.data, property) : null,
       evidenceCounts: normalizedType === INTELLIGENCE_REPORT_TYPES.DEAL_INTELLIGENCE
         ? evidenceCounts(sections.propertyEvidence.data, sections) : null,
       analysisConfidence: normalizedType === INTELLIGENCE_REPORT_TYPES.DEAL_INTELLIGENCE

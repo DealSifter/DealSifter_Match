@@ -74,7 +74,11 @@ export type ArvEngineCandidate = {
   recordedSalePrice: number | null;
   recordedSaleDate: string | null;
   recordedSaleEvidenceStatus: 'VERIFIED_RECORD';
+  bedrooms?: number | null;
+  bathrooms?: number | null;
   livingAreaSqft: number | null;
+  latitude?: number | null;
+  longitude?: number | null;
   structuralComparabilityScore: number;
   dataCompletenessScore: number;
   hardGatesPass: boolean;

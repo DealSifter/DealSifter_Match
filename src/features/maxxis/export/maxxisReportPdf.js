@@ -20,7 +20,7 @@ const COPY = Object.freeze({
   en: {
     locale: 'en',
     generated: 'Generated', page: 'Page', unavailable: 'Unavailable', notVerified: 'Not verified', published: 'Published',
-    reportSubtitle: 'Intelligent property analysis', releaseSubtitle: 'Real Opportunities. Real Connections.',
+    reportSubtitle: 'Intelligent property analysis', releaseSubtitle: 'Real Opportunities. Real Connections.', tagline: 'Real Data. Smarter Decisions.',
     property: 'PROPERTY RELEASE', pro: 'MAXXIS ANALYSIS REPORT', deal: 'MAXXIS DEAL INTELLIGENCE REPORT',
     PROPERTY_OVERVIEW: 'Property Overview', EXECUTIVE_SUMMARY_PROPERTY_CONTEXT: 'Executive Summary',
     INVESTMENT_FIT_RISK: 'Investment Fit & Risk Analysis', KEY_INSIGHTS_NEXT_STEPS: 'Key Insights & Next Steps',
@@ -49,10 +49,10 @@ const COPY = Object.freeze({
     noArv: 'ARV unavailable under the current deterministic evidence gates.',
     noDetails: 'No additional verified details available.', portfolio: 'Portfolio', yes: 'Yes', no: 'No',
     coordinateMap: 'Schematic positions from stored coordinates; not a street map.',
-    address: 'Address', salePrice: 'Sale price', date: 'Date', distance: 'Distance',
+    address: 'Address', salePrice: 'Sale price', date: 'Date', distance: 'Distance', bedsBaths: 'Beds / Baths', similarity: 'Similarity',
     used: 'USED', supporting: 'SUPPORTING', excluded: 'EXCLUDED',
     compsUsed: 'Comps used', confidence: 'Confidence', pricePerSqft: 'Price / sqft',
-    costBasis: 'Cost basis', spread: 'Spread', roiScenario: 'ROI scenario',
+    costBasis: 'Cost basis', spread: 'Spread', roiScenario: 'ROI scenario', marketPricePerSqft: 'Comparable avg. / sqft', subjectVsMarket: 'Subject vs. market', averageDistance: 'Average distance',
     arvAvailable: 'ARV available', arvLimited: 'ARV limited by evidence', arvUnavailable: 'ARV unavailable',
     providerEstimateStatus: 'Supporting provider estimate — not DealSifter ARV',
     conflict: 'Needs verification: stored evidence conflicts with the narrative.', low: 'Low', middle: 'Mid', high: 'High',
@@ -60,7 +60,7 @@ const COPY = Object.freeze({
   pt: {
     locale: 'pt',
     generated: 'Gerado em', page: 'Página', unavailable: 'Indisponível', notVerified: 'Não verificado', published: 'Publicado',
-    reportSubtitle: 'Análise inteligente do imóvel', releaseSubtitle: 'Oportunidades reais. Conexões reais.',
+    reportSubtitle: 'Análise inteligente do imóvel', releaseSubtitle: 'Oportunidades reais. Conexões reais.', tagline: 'Dados reais. Decisões mais inteligentes.',
     property: 'RELATÓRIO DO IMÓVEL', pro: 'RELATÓRIO DE ANÁLISE MAXXIS', deal: 'RELATÓRIO MAXXIS DE INTELIGÊNCIA DO NEGÓCIO',
     PROPERTY_OVERVIEW: 'Visão geral do imóvel', EXECUTIVE_SUMMARY_PROPERTY_CONTEXT: 'Resumo executivo',
     INVESTMENT_FIT_RISK: 'Adequação e análise de riscos', KEY_INSIGHTS_NEXT_STEPS: 'Insights e próximos passos',
@@ -89,10 +89,10 @@ const COPY = Object.freeze({
     noArv: 'ARV indisponível segundo os critérios determinísticos de evidência.',
     noDetails: 'Não há detalhes verificados adicionais.', portfolio: 'Portfólio', yes: 'Sim', no: 'Não',
     coordinateMap: 'Posições esquemáticas das coordenadas armazenadas; não é um mapa de ruas.',
-    address: 'Endereço', salePrice: 'Preço de venda', date: 'Data', distance: 'Distância',
+    address: 'Endereço', salePrice: 'Preço de venda', date: 'Data', distance: 'Distância', bedsBaths: 'Quartos / Banhos', similarity: 'Similaridade',
     used: 'USADO', supporting: 'SUPORTE', excluded: 'EXCLUÍDO',
     compsUsed: 'Comps usados', confidence: 'Confiança', pricePerSqft: 'Preço / sqft',
-    costBasis: 'Custo base', spread: 'Margem', roiScenario: 'Cenário de ROI',
+    costBasis: 'Custo base', spread: 'Margem', roiScenario: 'Cenário de ROI', marketPricePerSqft: 'Média comparáveis / sqft', subjectVsMarket: 'Imóvel vs. mercado', averageDistance: 'Distância média',
     arvAvailable: 'ARV disponível', arvLimited: 'ARV limitado pelas evidências', arvUnavailable: 'ARV indisponível',
     providerEstimateStatus: 'Estimativa de apoio do provedor — não é ARV DealSifter',
     conflict: 'Requer verificação: evidências estruturadas divergem do texto.', low: 'Baixo', middle: 'Médio', high: 'Alto',
@@ -100,7 +100,7 @@ const COPY = Object.freeze({
   es: {
     locale: 'es',
     generated: 'Generado', page: 'Página', unavailable: 'No disponible', notVerified: 'No verificado', published: 'Publicado',
-    reportSubtitle: 'Análisis inteligente de la propiedad', releaseSubtitle: 'Oportunidades reales. Conexiones reales.',
+    reportSubtitle: 'Análisis inteligente de la propiedad', releaseSubtitle: 'Oportunidades reales. Conexiones reales.', tagline: 'Datos reales. Decisiones más inteligentes.',
     property: 'INFORME DE LA PROPIEDAD', pro: 'INFORME DE ANÁLISIS MAXXIS', deal: 'INFORME MAXXIS DE INTELIGENCIA DEL NEGOCIO',
     PROPERTY_OVERVIEW: 'Resumen de la propiedad', EXECUTIVE_SUMMARY_PROPERTY_CONTEXT: 'Resumen ejecutivo',
     INVESTMENT_FIT_RISK: 'Afinidad y análisis de riesgos', KEY_INSIGHTS_NEXT_STEPS: 'Hallazgos y próximos pasos',
@@ -129,10 +129,10 @@ const COPY = Object.freeze({
     noArv: 'ARV no disponible según los criterios determinísticos de evidencia.',
     noDetails: 'No hay detalles verificados adicionales.', portfolio: 'Cartera', yes: 'Sí', no: 'No',
     coordinateMap: 'Posiciones esquemáticas de coordenadas guardadas; no es un mapa de calles.',
-    address: 'Dirección', salePrice: 'Precio de venta', date: 'Fecha', distance: 'Distancia',
+    address: 'Dirección', salePrice: 'Precio de venta', date: 'Fecha', distance: 'Distancia', bedsBaths: 'Hab. / Baños', similarity: 'Similitud',
     used: 'USADO', supporting: 'APOYO', excluded: 'EXCLUIDO',
     compsUsed: 'Comps usados', confidence: 'Confianza', pricePerSqft: 'Precio / sqft',
-    costBasis: 'Costo base', spread: 'Diferencia', roiScenario: 'Escenario de ROI',
+    costBasis: 'Costo base', spread: 'Diferencia', roiScenario: 'Escenario de ROI', marketPricePerSqft: 'Promedio comps / sqft', subjectVsMarket: 'Propiedad vs. mercado', averageDistance: 'Distancia media',
     arvAvailable: 'ARV disponible', arvLimited: 'ARV limitado por la evidencia', arvUnavailable: 'ARV no disponible',
     providerEstimateStatus: 'Estimación de apoyo del proveedor — no es ARV DealSifter',
     conflict: 'Requiere verificación: la evidencia estructurada difiere del texto.', low: 'Bajo', middle: 'Medio', high: 'Alto',
@@ -260,13 +260,15 @@ function listPanel(doc, title, items, x, y, w, h, t, accent, { positive = false 
 }
 function pageHeader(doc, schema, pageCode, t) {
   const theme = themeFor(schema.reportType); const accent = accentFor(schema.reportType);
-  doc.setFillColor(...theme); doc.rect(0, 0, W, 78, 'F');
-  // Proportional resize of the official transparent source PNG; no redraw or recoloring.
-  doc.addImage(officialDealSifterLogo, 'PNG', M, 13, 177, 52.6, 'official-dealsifter-logo');
-  text(doc, productFor(schema.reportType, t), W - 101, 27, { size: 10.2, bold: true, color: C.white, align: 'right' });
-  text(doc, schema.reportType === 'PROPERTY_RELEASE' ? t.releaseSubtitle : t.reportSubtitle, W - 101, 43, { size: 7.2, color: C.white, align: 'right' });
-  panel(doc, W - 91, 50, 60, 21, { fill: accent, stroke: accent, radius: 5 });
-  text(doc, schema.reportType === 'PROPERTY_RELEASE' ? 'FREE' : planFor(schema.reportType), W - 61, 64, { size: 8, bold: true, color: schema.reportType === 'DEAL_INTELLIGENCE' ? C.ink : C.white, align: 'center' });
+  doc.setFillColor(...theme); doc.rect(0, 0, W, 86, 'F');
+  // The approved logo asset is 580 × 111. Keep that exact aspect ratio.
+  doc.addImage(officialDealSifterLogo, 'PNG', M, 12, 218, 41.7, 'official-dealsifter-logo');
+  text(doc, t.tagline, M + 61, 69, { size: 8.2, color: accent });
+  const planWidth = 66; const planX = W - M - planWidth;
+  text(doc, productFor(schema.reportType, t), planX - 10, 31, { size: 10.4, bold: true, color: C.white, width: 205, maxLines: 1, align: 'right' });
+  text(doc, schema.reportType === 'PROPERTY_RELEASE' ? t.releaseSubtitle : t.reportSubtitle, planX - 10, 50, { size: 7.7, color: C.white, width: 200, maxLines: 1, align: 'right' });
+  panel(doc, planX, 22, planWidth, 29, { fill: accent, stroke: accent, radius: 5 });
+  text(doc, schema.reportType === 'PROPERTY_RELEASE' ? 'FREE' : planFor(schema.reportType), planX + planWidth / 2, 40, { size: 8.2, bold: true, color: schema.reportType === 'DEAL_INTELLIGENCE' ? C.ink : C.white, align: 'center' });
   heading(doc, t[pageCode] || pageCode, M, 108, CONTENT, accent);
   return { accent, theme };
 }
@@ -400,6 +402,11 @@ function profileRows(profile, t) {
     [t.strategy, profileCriterion(profile.strategy)],
   ];
 }
+function meter(doc, x, y, width, percentValue, color) {
+  const score = Math.max(0, Math.min(100, Number(percentValue) || 0));
+  doc.setFillColor(...C.line); doc.roundedRect(x, y, width, 8, 4, 4, 'F');
+  if (score > 0) { doc.setFillColor(...color); doc.roundedRect(x, y, Math.max(8, width * score / 100), 8, 4, 4, 'F'); }
+}
 function renderFit(doc, schema, t, accent) {
   const profile = section(schema, 'investmentProfile') || {};
   const risks = array(section(schema, 'riskAssessment'));
@@ -424,9 +431,40 @@ function renderFit(doc, schema, t, accent) {
     doc.setLineWidth(0.2);
     text(doc, `${score}%`, M + w + 12 + w / 2, 304, { size: 26, bold: true, align: 'center' });
   } else text(doc, t.unavailable, M + w + 12 + w / 2, 302, { size: 11, align: 'center' });
-  listPanel(doc, t.fit, profileRows(profile, t).slice(1).map(([label, entry]) => `${label}: ${value(entry, t.unavailable)}`), M, 412, w, 167, t, accent);
-  listPanel(doc, t.risks, risks, M + w + 12, 412, w, 167, t, accent);
-  listPanel(doc, t.evidence, limitations, M, 591, CONTENT, 157, t, accent);
+  panel(doc, M, 412, w, 193); heading(doc, t.fit, M + 12, 438, w - 24, accent);
+  const criteria = array(profile.criteria).length ? array(profile.criteria) : [
+    { label: t.location, ...profile.targetMarket }, { label: t.price, ...profile.priceRange },
+    { label: t.type, ...profile.propertyType }, { label: t.strategy, ...profile.strategy },
+  ];
+  criteria.slice(0, 5).forEach((criterion, index) => {
+    const yy = 466 + index * 29;
+    const criterionScore = criterion.score == null
+      ? criterion.status === 'matched' ? 100 : criterion.status === 'not_matched' ? 0 : 35
+      : criterion.score;
+    text(doc, displayValue(criterion.label || criterion.key, t), M + 12, yy, { size: 7.7, bold: true, width: 85, maxLines: 1 });
+    meter(doc, M + 101, yy - 7, w - 142, criterionScore, accent);
+    text(doc, `${Math.round(criterionScore)}%`, M + w - 12, yy, { size: 7.4, bold: true, color: accent, align: 'right' });
+  });
+  panel(doc, M + w + 12, 412, w, 193); heading(doc, t.risks, M + w + 24, 438, w - 24, accent);
+  risks.slice(0, 5).forEach((risk, index) => {
+    const yy = 466 + index * 29; const severity = String(risk?.severity || 'MEDIUM').toUpperCase();
+    const riskScore = severity === 'HIGH' ? 90 : severity === 'LOW' ? 32 : 62;
+    const riskColor = severity === 'HIGH' ? [209, 68, 58] : severity === 'LOW' ? C.green : C.gold;
+    text(doc, displayValue(risk?.category || risk?.code, t), M + w + 24, yy, { size: 7.3, bold: true, width: 85, maxLines: 1 });
+    meter(doc, M + w + 113, yy - 7, w - 154, riskScore, riskColor);
+    text(doc, displayValue(severity, t), M + CONTENT - 12, yy, { size: 7.2, bold: true, color: riskColor, align: 'right' });
+  });
+  const evidence = schema?.presentation?.evidenceCounts || {};
+  panel(doc, M, 617, CONTENT, 131); heading(doc, t.evidence, M + 12, 643, CONTENT - 24, accent);
+  const evidenceItems = Object.entries(evidence).slice(0, 6);
+  if (evidenceItems.length) {
+    const ew = (CONTENT - 24) / evidenceItems.length;
+    evidenceItems.forEach(([label, count], index) => {
+      const cx = M + 12 + ew * index + ew / 2;
+      text(doc, count, cx, 681, { size: 18, bold: true, color: accent, align: 'center' });
+      text(doc, label.replace(/([A-Z])/g, ' $1'), cx, 699, { size: 6.6, color: C.muted, width: ew - 5, maxLines: 2, align: 'center' });
+    });
+  } else text(doc, limitations.slice(0, 3).map((item) => reportNarrative(item, '', t.locale)).join(' • ') || t.noDetails, M + 12, 676, { size: 8, width: CONTENT - 24, maxLines: 3 });
 }
 function renderInsights(doc, schema, t, accent, { verification = false } = {}) {
   const structured = schema?.structuredAnalysis || {};
@@ -451,47 +489,61 @@ function renderInsights(doc, schema, t, accent, { verification = false } = {}) {
   heading(doc, t.conclusion, M + 12, 691, CONTENT - 24, accent);
   text(doc, structured.profileAdaptedConclusion || summary.summary || t.noDetails, M + 12, 714, { size: 9, width: CONTENT - 24, maxLines: 3 });
 }
-function renderComparables(doc, schema, t, accent) {
+function renderComparables(doc, schema, t, accent, comparableMap) {
   const structured = schema?.structuredAnalysis || {};
   const property = section(schema, 'propertySummary') || {};
   const comps = section(schema, 'comparableEvidence') || {};
   const all = [...array(comps.used).map((v) => ({ ...v, status: 'USED' })), ...array(comps.supporting).map((v) => ({ ...v, status: 'SUPPORTING' })), ...array(comps.excluded).map((v) => ({ ...v, status: 'EXCLUDED' }))];
-  panel(doc, M, 127, CONTENT, 210); heading(doc, t.compLocation, M + 12, 153, CONTENT - 24, accent);
+  panel(doc, M, 127, CONTENT, 78, { fill: C.pale });
+  drawIcon(doc, 'house', M + 37, 166, accent, 42);
+  text(doc, value(property.address || property.title, t.unavailable), M + 70, 151, { size: 12, bold: true, width: 220, maxLines: 1 });
+  text(doc, location(property) || t.unavailable, M + 70, 169, { size: 8.2, color: C.muted, width: 220, maxLines: 1 });
+  text(doc, currency(property.price, t), M + 70, 191, { size: 13, bold: true, color: accent });
+  const subjectFacts = [`${value(property.beds, '–')} ${t.beds}`, `${value(property.baths, '–')} ${t.baths}`, `${value(property.sqft, '–')} sqft`];
+  text(doc, subjectFacts.join('   ·   '), W - M - 12, 164, { size: 8.1, bold: true, color: C.ink, align: 'right' });
+  text(doc, property.capRate == null ? '' : `${property.capRate}% ${t.capRate}`, W - M - 12, 184, { size: 8, color: C.muted, align: 'right' });
+  panel(doc, M, 216, CONTENT, 184); heading(doc, t.compLocation, M + 12, 242, CONTENT - 24, accent);
   const points = [property, ...all].filter((v) => Number.isFinite(Number(v.latitude)) && Number.isFinite(Number(v.longitude)) && v.latitude != null && v.longitude != null);
-  if (points.length > 1) {
+  if (comparableMap) {
+    photo(doc, M + 10, 251, CONTENT - 20, 135, comparableMap, t, { cover: true, radius: 6 });
+    text(doc, t.mapAttribution, M + 14, 394, { size: 6, color: C.muted });
+  } else if (points.length > 1) {
     const lat = points.map((p) => Number(p.latitude)); const lon = points.map((p) => Number(p.longitude));
     const minLat = Math.min(...lat); const minLon = Math.min(...lon); const spanLat = Math.max(0.001, Math.max(...lat) - minLat); const spanLon = Math.max(0.001, Math.max(...lon) - minLon);
     points.slice(0, 9).forEach((p, i) => {
       const xx = M + 38 + ((Number(p.longitude) - minLon) / spanLon) * (CONTENT - 75);
-      const yy = 301 - ((Number(p.latitude) - minLat) / spanLat) * 122;
+      const yy = 370 - ((Number(p.latitude) - minLat) / spanLat) * 105;
       doc.setFillColor(...(i ? accent : C.ink)); doc.circle(xx, yy, 9, 'F');
       text(doc, i ? String(i) : 'S', xx, yy + 3, { size: 9, bold: true, color: C.white, align: 'center' });
     });
-    text(doc, t.coordinateMap, M + 12, 326, { size: 7.5, color: C.muted });
-  } else text(doc, t.noMap, M + 16, 237, { size: 9, color: C.muted, width: CONTENT - 32 });
-  panel(doc, M, 350, CONTENT, 310); heading(doc, t.comps, M + 12, 376, CONTENT - 24, accent);
-  const columns = [M + 12, M + 215, M + 307, M + 377, M + 461];
-  [t.address, t.salePrice, t.date, t.distance, t.status].forEach((label, i) => text(doc, label, columns[i], 399, { size: 8, bold: true, color: C.muted }));
-  doc.setDrawColor(...C.line); doc.line(M + 12, 409, W - M - 12, 409);
-  if (!all.length) text(doc, t.noComps, M + 12, 438, { size: 9, width: CONTENT - 24 });
+    text(doc, t.coordinateMap, M + 12, 392, { size: 7.5, color: C.muted });
+  } else text(doc, t.noMap, M + 16, 305, { size: 9, color: C.muted, width: CONTENT - 32 });
+  panel(doc, M, 411, CONTENT, 244); heading(doc, t.comps, M + 12, 437, CONTENT - 24, accent);
+  const columns = [M + 12, M + 183, M + 266, M + 329, M + 375, M + 426, M + 478];
+  [t.address, t.salePrice, t.date, t.bedsBaths, t.sqft, t.similarity, t.status].forEach((label, i) => text(doc, label, columns[i], 460, { size: 7.1, bold: true, color: C.muted }));
+  doc.setDrawColor(...C.line); doc.line(M + 12, 470, W - M - 12, 470);
+  if (!all.length) text(doc, t.noComps, M + 12, 498, { size: 9, width: CONTENT - 24 });
   all.slice(0, 8).forEach((comp, i) => {
-    const yy = 430 + i * 26;
-    text(doc, comp.address || t.unavailable, columns[0], yy, { size: 7.7, width: 190, maxLines: 1 });
-    text(doc, currency(comp.salePrice, t), columns[1], yy, { size: 7.7 });
-    text(doc, value(comp.saleDate, t.unavailable).slice(0, 10), columns[2], yy, { size: 7.7 });
-    text(doc, comp.distanceMiles == null ? t.unavailable : `${comp.distanceMiles} mi`, columns[3], yy, { size: 7.7 });
-    text(doc, t[comp.status.toLowerCase()], columns[4], yy, { size: 7.4, bold: true, color: accent });
+    const yy = 488 + i * 21;
+    text(doc, comp.address || t.unavailable, columns[0], yy, { size: 7.1, width: 160, maxLines: 1 });
+    text(doc, currency(comp.salePrice, t), columns[1], yy, { size: 7.1 });
+    text(doc, value(comp.saleDate, t.unavailable).slice(0, 10), columns[2], yy, { size: 7.1 });
+    text(doc, `${value(comp.beds, '–')} / ${value(comp.baths, '–')}`, columns[3], yy, { size: 7.1 });
+    text(doc, value(comp.sqft, '–'), columns[4], yy, { size: 7.1 });
+    text(doc, comp.similarity == null ? '–' : `${Math.round(Number(comp.similarity))}%`, columns[5], yy, { size: 7.1 });
+    text(doc, t[comp.status.toLowerCase()], columns[6], yy, { size: 6.7, bold: true, color: accent });
     doc.setDrawColor(...C.line); doc.line(M + 12, yy + 8, W - M - 12, yy + 8);
   });
   const compNarrative = [structured.comparativeAnalysis?.interpretation,
     ...array(structured.comparativeAnalysis?.limitations)].filter(Boolean);
-  listPanel(doc, t.observations, compNarrative.length ? compNarrative : all.map((comp) => comp.inclusionReason || comp.exclusionReason).filter(Boolean), M, 672, CONTENT, 83, t, accent);
+  listPanel(doc, t.observations, compNarrative.length ? compNarrative : all.map((comp) => comp.inclusionReason || comp.exclusionReason).filter(Boolean), M, 667, CONTENT, 88, t, accent);
 }
 function renderValuation(doc, schema, t, accent) {
   const structured = schema?.structuredAnalysis || {};
   const valuation = section(schema, 'valuationEvidence') || {};
   const property = section(schema, 'propertySummary') || {};
   const metrics = schema?.presentation?.existingMetrics || {};
+  const compStats = schema?.presentation?.comparableStatistics || {};
   const scenarios = schema?.presentation?.kpiScenarios;
   panel(doc, M, 127, CONTENT, 175, { fill: C.warm, stroke: C.gold });
   heading(doc, t.arv, M + 14, 155, CONTENT - 28, accent);
@@ -521,7 +573,7 @@ function renderValuation(doc, schema, t, accent) {
   }
   const w = (CONTENT - 12) / 2;
   panel(doc, M, 315, w, 170); heading(doc, t.inputs, M + 12, 341, w - 24, accent);
-  rows(doc, [[t.price, currency(property.price, t)], [t.rehab, property.rehab ? currency(property.rehab, t) : null], [t.compsUsed, valuation.compsUsed], [t.confidence, valuation.confidence], [t.providerEstimate, valuation.providerEstimate?.value ? currency(valuation.providerEstimate.value, t) : null], [t.pricePerSqft, metrics.pricePerSqft?.value == null ? null : currency(metrics.pricePerSqft.value, t)]], M + 12, 365, w - 24, { lineHeight: 22, labelWidth: 93, limit: 6, t });
+  rows(doc, [[t.price, currency(property.price, t)], [t.rehab, property.rehab ? currency(property.rehab, t) : null], [t.compsUsed, valuation.compsUsed], [t.confidence, valuation.confidence], [t.marketPricePerSqft, compStats.marketPricePerSqft == null ? null : currency(compStats.marketPricePerSqft, t)], [t.averageDistance, compStats.averageDistanceMiles == null ? null : `${compStats.averageDistanceMiles} mi`]], M + 12, 365, w - 24, { lineHeight: 22, labelWidth: 105, limit: 6, t });
   panel(doc, M + w + 12, 315, w, 170); heading(doc, t.kpis, M + w + 24, 341, w - 24, accent);
   rows(doc, [
     [t.costBasis, metrics.acquisitionPlusRehab?.value == null ? null : currency(metrics.acquisitionPlusRehab.value, t)],
@@ -531,18 +583,19 @@ function renderValuation(doc, schema, t, accent) {
     [t.roiScenario, scenarios?.available && scenarios.projectedRoi?.find((v) => v.scenario === 'EXPECTED')?.value != null
       ? `${scenarios.projectedRoi.find((v) => v.scenario === 'EXPECTED').value}%` : null],
   ], M + w + 24, 365, w - 24, { lineHeight: 28, labelWidth: 105, t });
-  const cardsY = 497; const cardsGap = 9; const cardW = (CONTENT - cardsGap * 2) / 3;
+  const cardsY = 497; const cardsGap = 7; const cardW = (CONTENT - cardsGap * 3) / 4;
   const cards = [
     [t.pricePerSqft, metrics.pricePerSqft?.value == null ? t.unavailable : currency(metrics.pricePerSqft.value, t), t.price],
     [t.spread, scenarios?.available && scenarios.potentialSpread?.find((entry) => entry.scenario === 'EXPECTED')?.value != null
       ? `${Number(scenarios.potentialSpread.find((entry) => entry.scenario === 'EXPECTED').value) < 0 ? '-' : ''}$${Math.abs(Number(scenarios.potentialSpread.find((entry) => entry.scenario === 'EXPECTED').value)).toLocaleString('en-US')}` : t.unavailable, t.costBasis],
     [t.capRate, metrics.capRate?.value == null ? t.unavailable : `${metrics.capRate.value}%`, t.confidence],
+    [t.subjectVsMarket, compStats.subjectVsMarketPercent == null ? t.unavailable : `${compStats.subjectVsMarketPercent > 0 ? '+' : ''}${compStats.subjectVsMarketPercent}%`, t.marketPricePerSqft],
   ];
   cards.forEach(([label, entry, caption], index) => {
     const x = M + index * (cardW + cardsGap); panel(doc, x, cardsY, cardW, 100, { fill: index === 1 ? C.warm : C.pale, stroke: index === 1 ? C.gold : C.line });
     drawIcon(doc, index === 1 ? 'chart' : index === 2 ? 'check' : 'document', x + 20, cardsY + 23, accent, 18);
     text(doc, label, x + 35, cardsY + 28, { size: 8.5, bold: true, width: cardW - 45, maxLines: 1 });
-    text(doc, entry, x + cardW / 2, cardsY + 63, { size: 14, bold: true, color: accent, align: 'center' });
+    text(doc, entry, x + cardW / 2, cardsY + 63, { size: 12, bold: true, color: accent, align: 'center' });
     text(doc, caption, x + cardW / 2, cardsY + 84, { size: 7, color: C.muted, align: 'center' });
   });
   const valuationNarrative = array(structured.valuationAnalysis?.limitations);
@@ -563,12 +616,12 @@ function renderConclusion(doc, schema, t, accent) {
   heading(doc, t.considerations, M + 12, 677, CONTENT - 24, accent);
   text(doc, t.disclaimer, M + 12, 702, { size: 8.5, width: CONTENT - 24, maxLines: 4 });
 }
-function renderPage(doc, schema, pageCode, t, accent, images, mapImage) {
+function renderPage(doc, schema, pageCode, t, accent, images, mapImage, comparableMap) {
   if (pageCode === 'PROPERTY_OVERVIEW') return renderPropertyOverview(doc, schema, t, accent, images, mapImage);
   if (pageCode === 'EXECUTIVE_SUMMARY_PROPERTY_CONTEXT') return renderExecutive(doc, schema, t, accent, images, mapImage);
   if (pageCode === 'INVESTMENT_FIT_RISK') return renderFit(doc, schema, t, accent);
   if (pageCode === 'KEY_INSIGHTS_NEXT_STEPS') return renderInsights(doc, schema, t, accent);
-  if (pageCode === 'COMPARATIVE_MARKET_ANALYSIS') return renderComparables(doc, schema, t, accent);
+  if (pageCode === 'COMPARATIVE_MARKET_ANALYSIS') return renderComparables(doc, schema, t, accent, comparableMap);
   if (pageCode === 'VALUATION_INTELLIGENCE') return renderValuation(doc, schema, t, accent);
   if (pageCode === 'KEY_INSIGHTS_VERIFICATION') return renderInsights(doc, schema, t, accent, { verification: true });
   if (pageCode === 'MAXXIS_AI_ANALYSIS') return renderConclusion(doc, schema, t, accent);
@@ -695,6 +748,58 @@ async function resolveStreetMap(schema) {
   }
 }
 
+export async function resolveComparableMap(schema) {
+  const property = section(schema, 'propertySummary') || {};
+  const comparables = section(schema, 'comparableEvidence') || {};
+  const all = [
+    { ...property, marker: 'S', markerTone: '#15384f' },
+    ...array(comparables.used).map((item, index) => ({ ...item, marker: String(index + 1), markerTone: '#0d876f' })),
+    ...array(comparables.supporting).map((item, index) => ({ ...item, marker: String(array(comparables.used).length + index + 1), markerTone: '#e6a416' })),
+    ...array(comparables.excluded).map((item, index) => ({ ...item, marker: String(array(comparables.used).length + array(comparables.supporting).length + index + 1), markerTone: '#7b8995' })),
+  ].filter((item) => item.latitude != null && item.longitude != null
+    && Number.isFinite(Number(item.latitude)) && Number.isFinite(Number(item.longitude)));
+  if (all.length < 2 || typeof document === 'undefined') return null;
+  try {
+    const width = 900; const height = 330; const padding = 65;
+    let zoom = 16; let world = [];
+    for (; zoom >= 10; zoom -= 1) {
+      world = all.map((item) => ({ ...mapWorldPoint(Number(item.latitude), Number(item.longitude), zoom), item }));
+      const spanX = Math.max(...world.map((point) => point.x)) - Math.min(...world.map((point) => point.x));
+      const spanY = Math.max(...world.map((point) => point.y)) - Math.min(...world.map((point) => point.y));
+      if (spanX <= width - padding * 2 && spanY <= height - padding * 2) break;
+    }
+    const minX = Math.min(...world.map((point) => point.x)); const maxX = Math.max(...world.map((point) => point.x));
+    const minY = Math.min(...world.map((point) => point.y)); const maxY = Math.max(...world.map((point) => point.y));
+    const center = { x: (minX + maxX) / 2, y: (minY + maxY) / 2 };
+    const left = center.x - width / 2; const top = center.y - height / 2;
+    const canvas = document.createElement('canvas'); canvas.width = width; canvas.height = height;
+    const context = canvas.getContext('2d'); if (!context) return null;
+    context.fillStyle = '#eef4f6'; context.fillRect(0, 0, width, height);
+    const firstTileX = Math.floor(left / MAP_TILE_SIZE); const lastTileX = Math.floor((left + width) / MAP_TILE_SIZE);
+    const firstTileY = Math.floor(top / MAP_TILE_SIZE); const lastTileY = Math.floor((top + height) / MAP_TILE_SIZE);
+    const tileCount = 2 ** zoom; const tiles = [];
+    for (let tileX = firstTileX; tileX <= lastTileX; tileX += 1) {
+      for (let tileY = firstTileY; tileY <= lastTileY; tileY += 1) {
+        if (tileY < 0 || tileY >= tileCount) continue;
+        const sourceX = ((tileX % tileCount) + tileCount) % tileCount;
+        tiles.push(loadMapTile(`https://tile.openstreetmap.org/${zoom}/${sourceX}/${tileY}.png`)
+          .then((image) => ({ image, x: tileX * MAP_TILE_SIZE - left, y: tileY * MAP_TILE_SIZE - top })));
+      }
+    }
+    const loaded = await Promise.all(tiles); if (!loaded.some((tile) => tile.image)) return null;
+    loaded.forEach((tile) => { if (tile.image) context.drawImage(tile.image, tile.x, tile.y, MAP_TILE_SIZE, MAP_TILE_SIZE); });
+    world.forEach(({ x, y, item }) => {
+      const px = x - left; const py = y - top;
+      context.save(); context.shadowColor = 'rgba(15,32,49,.35)'; context.shadowBlur = 6; context.shadowOffsetY = 2;
+      context.fillStyle = item.markerTone; context.strokeStyle = '#fff'; context.lineWidth = 4;
+      context.beginPath(); context.arc(px, py, item.marker === 'S' ? 18 : 15, 0, Math.PI * 2); context.fill(); context.stroke();
+      context.restore(); context.fillStyle = '#fff'; context.font = '700 16px sans-serif'; context.textAlign = 'center'; context.textBaseline = 'middle';
+      context.fillText(item.marker, px, py + 1);
+    });
+    return canvas.toDataURL('image/png');
+  } catch { return null; }
+}
+
 export async function renderMaxxisReportPdf({ schema, exportEntitlement, generatedAt, language = 'en', mapImageData = null } = {}) {
   const prepared = renderMaxxisReportDocument({ schema, exportEntitlement, generatedAt, language });
   if (prepared.state !== 'PREPARED') return prepared;
@@ -707,11 +812,13 @@ export async function renderMaxxisReportPdf({ schema, exportEntitlement, generat
   const pages = prepared.document.pages;
   const lang = prepared.document.language;
   const t = COPY[lang];
-  const [images, mapImage] = await Promise.all([resolvePropertyImages(schema), mapImageData || resolveStreetMap(schema)]);
+  const [images, mapImage, comparableMap] = await Promise.all([
+    resolvePropertyImages(schema), mapImageData || resolveStreetMap(schema), resolveComparableMap(schema),
+  ]);
   pages.forEach((page, index) => {
     if (index) doc.addPage('a4', 'portrait');
     const { accent } = pageHeader(doc, schema, page.code, t);
-    renderPage(doc, schema, page.code, t, accent, images, mapImage);
+    renderPage(doc, schema, page.code, t, accent, images, mapImage, comparableMap);
     pageFooter(doc, index + 1, pages.length, prepared.document.cover.generatedAt, lang, t);
   });
   const binary = new Uint8Array(doc.output('arraybuffer'));

@@ -80,7 +80,11 @@ export type DealIntelligenceContext = {
     valuationRole: string;
     inclusionReason: string | null;
     exclusionReason: string | null;
+    beds: number | null | undefined;
+    baths: number | null | undefined;
     sqft: number | null;
+    latitude: number | null | undefined;
+    longitude: number | null | undefined;
   }>;
   matchContext: {
     score: number | null;
@@ -214,7 +218,11 @@ function comparableEvidence(arv: ArvEvaluationResult | null): DealIntelligenceCo
     valuationRole: comp.valuationRole,
     inclusionReason: comp.inclusionReason,
     exclusionReason: comp.exclusionReason,
+    beds: comp.bedrooms,
+    baths: comp.bathrooms,
     sqft: comp.livingAreaSqft,
+    latitude: comp.latitude,
+    longitude: comp.longitude,
   }));
 }
 

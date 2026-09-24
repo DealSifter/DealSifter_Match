@@ -1495,9 +1495,11 @@ button.maxxis-action-link:hover {
 @keyframes maxxis-open-hint-blink { from { opacity: .48; } to { opacity: 1; } }
 .maxxis-v2-report { display: grid; gap: 10px; max-height: 72vh; padding: 8px; overflow: auto; }
 .maxxis-v2-page { overflow: hidden; border: 1px solid #c9d5df; border-radius: 10px; background: #f7f9fb; box-shadow: 0 5px 16px rgba(15, 35, 55, .12); }
-.maxxis-v2-header { display: grid; grid-template-columns: minmax(105px, 1fr) minmax(0, 1.25fr) auto; align-items: center; gap: 12px; padding: 11px 13px; color: #fff; background: linear-gradient(115deg, #0b3448, #10283d 64%, #1f292e); }
-.maxxis-v2-header > img { display: block; width: 100%; max-width: 158px; height: 47px; object-fit: contain; object-position: left center; }
-.maxxis-v2-header div { display: grid; gap: 2px; text-align: right; }
+.maxxis-v2-header { display: grid; grid-template-columns: minmax(180px, 1.15fr) minmax(145px, .9fr) auto; align-items: center; gap: 12px; min-height: 72px; padding: 10px 13px; color: #fff; background: linear-gradient(115deg, #0b3448, #10283d 64%, #1f292e); }
+.maxxis-v2-brand { display: grid; gap: 3px; justify-items: start; min-width: 0; }
+.maxxis-v2-brand img { display: block; width: 100%; max-width: 218px; height: auto; object-fit: contain; object-position: left center; }
+.maxxis-v2-brand small { padding-left: 48px; color: #20c6c7; font-size: 8px; line-height: 1; }
+.maxxis-v2-header > div:not(.maxxis-v2-brand) { display: grid; gap: 3px; text-align: right; }
 .maxxis-v2-header strong { font-size: 12px; }
 .maxxis-v2-header small { color: #c9d7e2; }
 .maxxis-v2-header > span { padding: 5px 7px; border-radius: 6px; color: #102033; background: #f4b91f; font-size: 8px; font-weight: 900; letter-spacing: .06em; }
@@ -1545,6 +1547,13 @@ button.maxxis-action-link:hover {
 .maxxis-v2-relative-map > span.is-support { background: #e6a416; }
 .maxxis-v2-relative-map > span.is-excluded { background: #80909f; }
 .maxxis-v2-relative-map small { position: absolute; right: 8px; bottom: 7px; color: #52697b; font-size: 8px; }
+.maxxis-v2-comparable-map { position: relative; height: 180px; overflow: hidden; border: 1px solid #d5dfe7; border-radius: 9px; background: #dce9ef; }
+.maxxis-v2-comparable-map img { display: block; width: 100%; height: 100%; object-fit: cover; }
+.maxxis-v2-comparable-map small { position: absolute; right: 6px; bottom: 5px; padding: 2px 4px; border-radius: 3px; color: #33485a; background: rgba(255, 255, 255, .82); font-size: 6px; }
+.maxxis-v2-comp-stats { display: grid; grid-template-columns: repeat(6, minmax(0, 1fr)); gap: 5px; }
+.maxxis-v2-comp-stats span { display: grid; gap: 2px; padding: 7px; border: 1px solid #d5dfe7; border-radius: 7px; background: #fff; }
+.maxxis-v2-comp-stats small { overflow: hidden; color: #718192; font-size: 7px; text-overflow: ellipsis; text-transform: capitalize; white-space: nowrap; }
+.maxxis-v2-comp-stats b { color: #12364d; font-size: 11px; }
 .maxxis-v2-table-wrap { overflow-x: auto; border: 1px solid #d5dfe7; border-radius: 8px; background: #fff; }
 .maxxis-v2-table-wrap table { width: 100%; min-width: 720px; border-collapse: collapse; font-size: 8px; }
 .maxxis-v2-table-wrap th { padding: 7px; color: #fff; background: #173a53; text-align: left; white-space: nowrap; }
@@ -1584,7 +1593,16 @@ button.maxxis-action-link:hover {
 .maxxis-v2-perspective > div:first-child { display: grid; }
 .maxxis-v2-perspective span { font-size: 9px; line-height: 1.4; }
 .maxxis-v2-risk-grid { display: grid; gap: 6px; margin-top: 6px; }
-.maxxis-v2-risk-grid > div { display: grid; grid-template-columns: auto minmax(90px, .6fr) 1fr; gap: 7px; align-items: center; padding: 7px; border: 1px solid #d5dfe7; border-radius: 7px; background: #fff; font-size: 9px; }
+.maxxis-v2-fit-bars { display: grid; gap: 6px; margin-top: 6px; }
+.maxxis-v2-fit-bars > div { display: grid; grid-template-columns: minmax(85px, .7fr) minmax(80px, 1fr) 34px; gap: 7px; align-items: center; padding: 6px 8px; border: 1px solid #d5dfe7; border-radius: 7px; background: #fff; font-size: 9px; }
+.maxxis-v2-fit-bars i,
+.maxxis-v2-risk-grid i { display: block; height: 7px; overflow: hidden; border-radius: 999px; background: #dbe5eb; }
+.maxxis-v2-fit-bars i b,
+.maxxis-v2-risk-grid i span { display: block; height: 100%; border-radius: inherit; background: linear-gradient(90deg, #13a9aa, #20c6c7); }
+.maxxis-v2-risk-grid > div { display: grid; grid-template-columns: auto minmax(80px, .45fr) minmax(70px, .45fr) 1fr; gap: 7px; align-items: center; padding: 7px; border: 1px solid #d5dfe7; border-radius: 7px; background: #fff; font-size: 9px; }
+.maxxis-v2-risk-grid i.is-high span { width: 90%; background: #d1443a; }
+.maxxis-v2-risk-grid i.is-medium span { width: 62%; background: #edb01c; }
+.maxxis-v2-risk-grid i.is-low span { width: 32%; background: #0d876f; }
 .maxxis-v2-evidence-counts { display: grid; grid-template-columns: repeat(6, 1fr); gap: 5px; margin-top: 6px; }
 .maxxis-v2-evidence-counts span { display: grid; place-items: center; padding: 7px 3px; border-radius: 7px; background: #fff; text-align: center; }
 .maxxis-v2-evidence-counts b { color: #168f91; font-size: 16px; }
@@ -1622,8 +1640,13 @@ button.maxxis-action-link:hover {
   .maxxis-v2-arv { grid-template-columns: 1fr; }
   .maxxis-v2-provider-estimate { align-items: flex-start; flex-direction: column; }
   .maxxis-v2-header { grid-template-columns: minmax(90px, 1fr) auto; gap: 7px; }
-  .maxxis-v2-header > img { height: 39px; }
-  .maxxis-v2-header > div { display: none; }
+  .maxxis-v2-header > div:not(.maxxis-v2-brand) { display: none; }
+  .maxxis-v2-brand { display: grid; }
+  .maxxis-v2-brand img { max-width: 180px; }
+  .maxxis-v2-brand small { padding-left: 39px; }
+  .maxxis-v2-comp-stats { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+  .maxxis-v2-risk-grid > div { grid-template-columns: auto minmax(75px, .6fr) 1fr; }
+  .maxxis-v2-risk-grid > div > span:last-child { grid-column: 1 / -1; }
   .maxxis-v2-metric-strip { grid-template-columns: repeat(2, minmax(0, 1fr)); }
   .maxxis-v2-bottom-grid { grid-template-columns: 1fr; }
   .maxxis-v2-photos { grid-template-columns: repeat(3, minmax(0, 1fr)); }

@@ -40,10 +40,12 @@ function safeMatch(value: unknown) {
       const reason = record(item);
       return {
         key: safeText(reason.key, 40),
+        label: safeText(reason.label, 80),
         status: safeText(reason.status, 30),
         matched: typeof reason.matched === 'boolean' ? reason.matched : null,
         points: safeNumber(reason.points),
         maxPoints: safeNumber(reason.maxPoints),
+        detail: safeText(reason.detail, 180),
       };
     }),
   };
@@ -311,7 +313,11 @@ function safeDealIntelligence(value: unknown) {
           valuationRole: safeText(comp.valuationRole, 30),
           inclusionReason: safeText(comp.inclusionReason, 80) || null,
           exclusionReason: safeText(comp.exclusionReason, 80) || null,
+          beds: safeNumber(comp.beds),
+          baths: safeNumber(comp.baths),
           sqft: safeNumber(comp.sqft),
+          latitude: safeNumber(comp.latitude),
+          longitude: safeNumber(comp.longitude),
         };
       }),
     matchContext: source.matchContext
