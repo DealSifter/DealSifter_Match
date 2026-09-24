@@ -20,7 +20,6 @@ import {
   Wrench,
 } from "lucide-react";
 import officialDealSifterLogo from "../../../assets/maxxis/report-official-logo.png";
-import { MaxxisReportExportActions } from "../export/MaxxisReportExportActions";
 import { resolveComparableMap } from "../export/maxxisReportPdf";
 import { explainMaxxisEvidenceState } from "./maxxisUserFacingEvidence";
 
@@ -1160,7 +1159,6 @@ function MaxxisAnalysisPage({ schema, copy, page = 6, level = 3 }) {
 export function MaxxisDealIntelligenceReportPreview({
   schema,
   language = "en",
-  exportEntitlements = {},
 }) {
   if (!schema || schema.type !== "maxxis_report_schema") return null;
   const copy = COPY[language] || COPY.en;
@@ -1198,15 +1196,6 @@ export function MaxxisDealIntelligenceReportPreview({
           </>
         ) : null}
       </div>
-      <MaxxisReportExportActions
-        schema={schema}
-        exportEntitlements={exportEntitlements}
-        language={language}
-      />
-      <footer className="maxxis-v2-export-state">
-        PDF export uses the same validated report structure shown in this
-        preview.
-      </footer>
     </details>
   );
 }

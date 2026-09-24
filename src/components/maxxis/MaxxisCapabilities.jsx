@@ -1608,6 +1608,7 @@ export function MessageBubble({
   onRequestIntelligenceUnlock,
 }) {
   const isUser = message.role === 'user';
+  const isReportResult = ['maxxis_analysis_report', 'maxxis_deal_intelligence'].includes(message.type);
   const { text, actions } = isUser
     ? { text: String(message.content || ''), actions: [] }
     : parseActionContent(message.content, language);
@@ -1640,7 +1641,7 @@ export function MessageBubble({
     );
   }
   return (
-    <div className={`maxxis-message ${isUser ? 'maxxis-message-user' : 'maxxis-message-assistant'} ${message.error ? 'maxxis-message-error' : ''}`}>
+    <div className={`maxxis-message ${isUser ? 'maxxis-message-user' : 'maxxis-message-assistant'} ${isReportResult ? 'maxxis-message-report' : ''} ${message.error ? 'maxxis-message-error' : ''}`}>
       {compositionKeepsControls ? (
         <MaxxisComposedExperience
           experience={composedExperience}

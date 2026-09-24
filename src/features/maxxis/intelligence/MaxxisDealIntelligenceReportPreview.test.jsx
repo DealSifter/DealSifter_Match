@@ -57,6 +57,8 @@ describe('Maxxis Deal Intelligence Report Experience v2', () => {
     expect(html).toContain('Key Insights &amp; Verification');
     expect(html).not.toContain('Estimated ARV Range');
     expect(html).not.toContain('Sale Price');
+    expect(html).not.toContain('maxxis-report-export-actions');
+    expect(html).not.toContain('PDF export uses the same validated report structure');
   });
 
   it('renders the six-page Enterprise experience with approved report sections', () => {
