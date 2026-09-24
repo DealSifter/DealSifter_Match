@@ -1495,10 +1495,10 @@ button.maxxis-action-link:hover {
 @keyframes maxxis-open-hint-blink { from { opacity: .48; } to { opacity: 1; } }
 .maxxis-v2-report { display: grid; gap: 10px; max-height: 72vh; padding: 8px; overflow: auto; }
 .maxxis-v2-page { overflow: hidden; border: 1px solid #c9d5df; border-radius: 10px; background: #f7f9fb; box-shadow: 0 5px 16px rgba(15, 35, 55, .12); }
-.maxxis-v2-header { display: grid; grid-template-columns: minmax(180px, 1.15fr) minmax(145px, .9fr) auto; align-items: center; gap: 12px; min-height: 72px; padding: 10px 13px; color: #fff; background: linear-gradient(115deg, #0b3448, #10283d 64%, #1f292e); }
-.maxxis-v2-brand { display: grid; gap: 3px; justify-items: start; min-width: 0; }
-.maxxis-v2-brand img { display: block; width: 100%; max-width: 218px; height: auto; object-fit: contain; object-position: left center; }
-.maxxis-v2-brand small { padding-left: 48px; color: #20c6c7; font-size: 8px; line-height: 1; }
+.maxxis-v2-header { display: grid; grid-template-columns: 218px minmax(145px, 1fr) auto; align-items: center; gap: 12px; min-height: 72px; padding: 7px 13px; color: #fff; background: linear-gradient(115deg, #0b3448, #10283d 64%, #1f292e); }
+.maxxis-v2-brand { position: relative; display: block; width: 218px; height: 55px; min-width: 0; }
+.maxxis-v2-brand img { display: block; width: 218px !important; max-width: none !important; height: auto !important; max-height: none !important; aspect-ratio: 580 / 111; object-fit: contain; object-position: left top; }
+.maxxis-v2-brand small { position: absolute; bottom: 1px; left: 48px; color: #20c6c7; font-size: 8px; line-height: 1; white-space: nowrap; }
 .maxxis-v2-header > div:not(.maxxis-v2-brand) { display: grid; gap: 3px; text-align: right; }
 .maxxis-v2-header strong { font-size: 12px; }
 .maxxis-v2-header small { color: #c9d7e2; }
@@ -1639,11 +1639,11 @@ button.maxxis-action-link:hover {
   .maxxis-v2-evidence-counts { grid-template-columns: repeat(3, 1fr); }
   .maxxis-v2-arv { grid-template-columns: 1fr; }
   .maxxis-v2-provider-estimate { align-items: flex-start; flex-direction: column; }
-  .maxxis-v2-header { grid-template-columns: minmax(90px, 1fr) auto; gap: 7px; }
+  .maxxis-v2-header { grid-template-columns: 180px auto; gap: 7px; }
   .maxxis-v2-header > div:not(.maxxis-v2-brand) { display: none; }
-  .maxxis-v2-brand { display: grid; }
-  .maxxis-v2-brand img { max-width: 180px; }
-  .maxxis-v2-brand small { padding-left: 39px; }
+  .maxxis-v2-brand { display: block; width: 180px; height: 47px; }
+  .maxxis-v2-brand img { width: 180px !important; }
+  .maxxis-v2-brand small { left: 39px; }
   .maxxis-v2-comp-stats { grid-template-columns: repeat(3, minmax(0, 1fr)); }
   .maxxis-v2-risk-grid > div { grid-template-columns: auto minmax(75px, .6fr) 1fr; }
   .maxxis-v2-risk-grid > div > span:last-child { grid-column: 1 / -1; }

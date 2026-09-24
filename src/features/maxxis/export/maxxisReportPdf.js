@@ -261,9 +261,13 @@ function listPanel(doc, title, items, x, y, w, h, t, accent, { positive = false 
 function pageHeader(doc, schema, pageCode, t) {
   const theme = themeFor(schema.reportType); const accent = accentFor(schema.reportType);
   doc.setFillColor(...theme); doc.rect(0, 0, W, 86, 'F');
-  // The approved logo asset is 580 × 111. Keep that exact aspect ratio.
-  doc.addImage(officialDealSifterLogo, 'PNG', M, 12, 218, 41.7, 'official-dealsifter-logo');
-  text(doc, t.tagline, M + 61, 69, { size: 8.2, color: accent });
+  // Never infer a second dimension for the brand. Derive it from the source
+  // bitmap on every render so the logo cannot be compressed by layout changes.
+  const logoProperties = doc.getImageProperties(officialDealSifterLogo);
+  const logoWidth = 218;
+  const logoHeight = logoWidth * (logoProperties.height / logoProperties.width);
+  doc.addImage(officialDealSifterLogo, 'PNG', M, 10, logoWidth, logoHeight, 'official-dealsifter-logo');
+  text(doc, t.tagline, M + 61, 68, { size: 8.2, color: accent });
   const planWidth = 66; const planX = W - M - planWidth;
   text(doc, productFor(schema.reportType, t), planX - 10, 31, { size: 10.4, bold: true, color: C.white, width: 205, maxLines: 1, align: 'right' });
   text(doc, schema.reportType === 'PROPERTY_RELEASE' ? t.releaseSubtitle : t.reportSubtitle, planX - 10, 50, { size: 7.7, color: C.white, width: 200, maxLines: 1, align: 'right' });
