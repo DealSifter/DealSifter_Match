@@ -2,6 +2,7 @@ import officialDealSifterLogo from '../../../assets/maxxis/report-official-logo.
 import notoSansRegular from '../../../assets/maxxis/fonts/NotoSans-Regular.ttf?inline';
 import notoSansBold from '../../../assets/maxxis/fonts/NotoSans-Bold.ttf?inline';
 import { renderMaxxisReportDocument } from './maxxisReportRenderer';
+import { explainMaxxisEvidenceState } from '../intelligence/maxxisUserFacingEvidence';
 
 // The same page functions render real reports and the isolated commercial fixture.
 // They only read the authorized report schema; no provider or AI work happens here.
@@ -51,6 +52,8 @@ const COPY = Object.freeze({
     used: 'USED', supporting: 'SUPPORTING', excluded: 'EXCLUDED',
     compsUsed: 'Comps used', confidence: 'Confidence', pricePerSqft: 'Price / sqft',
     costBasis: 'Cost basis', spread: 'Spread', roiScenario: 'ROI scenario',
+    arvAvailable: 'ARV available', arvLimited: 'ARV limited by evidence', arvUnavailable: 'ARV unavailable',
+    providerEstimateStatus: 'Supporting provider estimate — not DealSifter ARV',
     conflict: 'Needs verification: stored evidence conflicts with the narrative.',
   },
   pt: {
@@ -88,6 +91,8 @@ const COPY = Object.freeze({
     used: 'USADO', supporting: 'SUPORTE', excluded: 'EXCLUÍDO',
     compsUsed: 'Comps usados', confidence: 'Confiança', pricePerSqft: 'Preço / sqft',
     costBasis: 'Custo base', spread: 'Margem', roiScenario: 'Cenário de ROI',
+    arvAvailable: 'ARV disponível', arvLimited: 'ARV limitado pelas evidências', arvUnavailable: 'ARV indisponível',
+    providerEstimateStatus: 'Estimativa de apoio do provedor — não é ARV DealSifter',
     conflict: 'Requer verificação: evidências estruturadas divergem do texto.',
   },
   es: {
@@ -125,6 +130,8 @@ const COPY = Object.freeze({
     used: 'USADO', supporting: 'APOYO', excluded: 'EXCLUIDO',
     compsUsed: 'Comps usados', confidence: 'Confianza', pricePerSqft: 'Precio / sqft',
     costBasis: 'Costo base', spread: 'Diferencia', roiScenario: 'Escenario de ROI',
+    arvAvailable: 'ARV disponible', arvLimited: 'ARV limitado por la evidencia', arvUnavailable: 'ARV no disponible',
+    providerEstimateStatus: 'Estimación de apoyo del proveedor — no es ARV DealSifter',
     conflict: 'Requiere verificación: la evidencia estructurada difiere del texto.',
   },
 });
@@ -133,12 +140,11 @@ const array = (value) => Array.isArray(value) ? value : [];
 const positiveObservations = (summary) => Array.isArray(summary?.observations)
   ? summary.observations : array(summary?.observations?.positives);
 const attentionObservations = (summary) => array(summary?.observations?.attention);
-const value = (input, fallback) => input === null || input === undefined || input === '' ? fallback : String(input);
+const value = (input, fallback) => input === null || input === undefined || input === ''
+  || /^(?:UNKNOWN|UNAVAILABLE|NOT_LOADED|NOT_AVAILABLE)$/i.test(String(input).trim()) ? fallback : String(input);
 const reportNarrative = (input, fallback = '') => {
   const raw = value(input, fallback).trim();
-  if (!raw || !raw.includes('_')) return raw;
-  const words = raw.replaceAll('_', ' ').toLowerCase();
-  return `${words.charAt(0).toUpperCase()}${words.slice(1)}`;
+  return explainMaxxisEvidenceState(raw);
 };
 const currency = (input, t) => Number.isFinite(Number(input)) && Number(input) > 0
   ? `$${Number(input).toLocaleString('en-US')}` : t.unavailable;
@@ -230,17 +236,20 @@ function listPanel(doc, title, items, x, y, w, h, t, accent, { positive = false 
 }
 function pageHeader(doc, schema, pageCode, pageNumber, totalPages, t) {
   const theme = themeFor(schema.reportType); const accent = accentFor(schema.reportType);
-  doc.setFillColor(...theme); doc.rect(0, 0, W, 78, 'F');
+  const release = schema.reportType === 'PROPERTY_RELEASE';
+  doc.setFillColor(...theme); doc.rect(0, 0, W, release ? 67 : 78, 'F');
   // Proportional resize of the official transparent source PNG; no redraw or recoloring.
-  doc.addImage(officialDealSifterLogo, 'PNG', M, 15, 177, 52.6, 'official-dealsifter-logo');
-  text(doc, productFor(schema.reportType, t), W - 84, 30, { size: 10.5, bold: true, color: C.white, align: 'right' });
-  if (schema.reportType !== 'PROPERTY_RELEASE') {
+  doc.addImage(officialDealSifterLogo, 'PNG', M, release ? 10 : 15, release ? 185 : 177, release ? 55 : 52.6, 'official-dealsifter-logo');
+  text(doc, release ? 'Property Release' : productFor(schema.reportType, t), W - 101, release ? 25 : 30, { size: release ? 14 : 10.5, bold: true, color: C.white, align: 'right' });
+  if (release) {
+    text(doc, 'Real Opportunities. Real Connections.', W - 101, 43, { size: 7.6, color: C.white, align: 'right' });
+  } else {
     text(doc, t.reportSubtitle, W - 114, 43, { size: 7.6, color: C.white, align: 'right' });
   }
-  panel(doc, W - 101, 42, 70, 23, { fill: accent, stroke: accent, radius: 5 });
-  text(doc, planFor(schema.reportType), W - 66, 57, { size: 9, bold: true, color: schema.reportType === 'DEAL_INTELLIGENCE' ? C.ink : C.white, align: 'center' });
-  heading(doc, schema.reportType === 'PROPERTY_RELEASE' ? 'Property Release' : t[pageCode] || pageCode, M, 108, CONTENT - 92, accent);
-  if (schema.reportType !== 'PROPERTY_RELEASE') {
+  panel(doc, W - 91, release ? 19 : 42, 60, 23, { fill: accent, stroke: accent, radius: 5 });
+  text(doc, release ? 'FREE REPORT' : planFor(schema.reportType), W - 61, release ? 34 : 57, { size: release ? 7.2 : 9, bold: true, color: schema.reportType === 'DEAL_INTELLIGENCE' ? C.ink : C.white, align: 'center' });
+  if (!release) {
+    heading(doc, t[pageCode] || pageCode, M, 108, CONTENT - 92, accent);
     panel(doc, W - 104, 89, 74, 25, { fill: accent, stroke: accent, radius: 5 });
     text(doc, `${t.page} ${pageNumber} / ${totalPages}`, W - 67, 105, {
       size: 8.5, bold: true, color: schema.reportType === 'DEAL_INTELLIGENCE' ? C.ink : C.white, align: 'center',
@@ -255,14 +264,19 @@ function pageFooter(doc, page, total, generatedAt, language, t) {
   text(doc, `${t.generated}: ${stamp} UTC`, M, 822, { size: 7.4, color: C.muted });
   text(doc, `${t.page} ${page} / ${total}`, W - M, 822, { size: 7.4, color: C.muted, align: 'right' });
 }
-function photo(doc, x, y, w, h, imageData, t) {
+function photo(doc, x, y, w, h, imageData, t, { cover = false } = {}) {
   panel(doc, x, y, w, h, { fill: [238, 246, 248] });
   if (imageData) {
     try {
       const properties = doc.getImageProperties(imageData);
-      const ratio = Math.min(w / properties.width, h / properties.height);
+      const ratio = cover ? Math.max(w / properties.width, h / properties.height) : Math.min(w / properties.width, h / properties.height);
       const iw = properties.width * ratio; const ih = properties.height * ratio;
+      if (cover) {
+        doc.saveGraphicsState();
+        doc.rect(x, y, w, h); doc.clip(); doc.discardPath();
+      }
       doc.addImage(imageData, properties.fileType || 'JPEG', x + (w - iw) / 2, y + (h - ih) / 2, iw, ih);
+      if (cover) doc.restoreGraphicsState();
       return;
     } catch { /* Preserve factual report if media cannot be embedded. */ }
   }
@@ -281,6 +295,19 @@ function propertyHero(doc, property, t, accent, imageData, { compact = false } =
   if (!compact) text(doc, [property.type, property.objective].filter(Boolean).join('   ·   ') || t.unavailable, M + 13, y + 169, { size: 8.5, color: C.muted, width: 260 });
   photo(doc, M + 300, y + 10, CONTENT - 312, h - 20, imageData, t);
   return y + h;
+}
+function propertyReleaseHero(doc, property, t, accent, imageData) {
+  const y = 76;
+  doc.setFillColor(...C.green); doc.roundedRect(M + 2, y + 6, 66, 20, 4, 4, 'F');
+  text(doc, property.published ? t.published : t.notVerified, M + 35, y + 20, { size: 8, bold: true, color: C.white, align: 'center' });
+  panel(doc, M + 75, y + 6, 141, 20, { fill: [235, 244, 252], stroke: [235, 244, 252], radius: 4 });
+  text(doc, value(property.improvement || property.type, t.unavailable).toUpperCase(), M + 145, y + 20, { size: 7.5, bold: true, color: C.ink, align: 'center', width: 130, maxLines: 1 });
+  text(doc, value(property.address || property.title, t.unavailable), M + 2, y + 57, { size: 18, bold: true, width: 232, maxLines: 2 });
+  text(doc, location(property) || t.unavailable, M + 2, y + 81, { size: 11.5, color: C.ink, width: 230, maxLines: 2 });
+  text(doc, currency(property.price, t), M + 2, y + 125, { size: 27, bold: true, color: C.blue });
+  const facts = [`${value(property.beds, '–')} ${t.beds}`, `${value(property.baths, '–')} ${t.baths}`, `${value(property.sqft, '–')} sqft`, property.capRate ? `${property.capRate}% ${t.capRate}` : ''].filter(Boolean);
+  text(doc, facts.join('   ·   '), M + 2, y + 157, { size: 8.6, bold: true, color: C.ink, width: 232, maxLines: 2 });
+  photo(doc, M + 247, y, CONTENT - 247, 176, imageData, t, { cover: true });
 }
 function propertyFactGrid(doc, property, evidence, t, accent, y) {
   const gap = 9; const w = (CONTENT - gap * 2) / 3; const h = 153;
@@ -328,9 +355,36 @@ function propertyBottom(doc, property, t, accent, y, images, conflicts = [], map
   text(doc, notes.text || property.notes || property.description || t.unavailable, M + w + 22, y + 48, { size: 8.5, width: w - 25, maxLines: conflicts.length ? 5 : 8 });
   if (conflicts.length) text(doc, t.conflict, M + w + 22, y + 127, { size: 7.5, bold: true, color: C.gold, width: w - 25, maxLines: 2 });
 }
+function propertyReleaseBottom(doc, property, t, accent, images, mapImage) {
+  const photosY = 448;
+  panel(doc, M, photosY, CONTENT, 124); heading(doc, t.photos, M + 12, photosY + 25, CONTENT - 24, accent);
+  const shown = images.length ? images.slice(0, 5) : [null];
+  const gap = 5; const imageWidth = (CONTENT - 24 - gap * 4) / 5;
+  shown.forEach((image, index) => photo(doc, M + 12 + index * (imageWidth + gap), photosY + 38, imageWidth, 74, image, t, { cover: true }));
+  const bottomY = 583; const bottomWidth = (CONTENT - 10) / 2;
+  panel(doc, M, bottomY, bottomWidth, 187); heading(doc, t.location, M + 12, bottomY + 25, bottomWidth - 24, accent);
+  if (mapImage) {
+    try {
+      doc.addImage(mapImage, 'PNG', M + 12, bottomY + 39, bottomWidth - 24, 126, 'property-release-street-map');
+      text(doc, t.mapAttribution, M + 13, bottomY + 179, { size: 5.8, color: C.muted, width: bottomWidth - 25, maxLines: 1 });
+    } catch { /* Preserve the factual location fallback. */ }
+  } else {
+    text(doc, location(property) || t.unavailable, M + 13, bottomY + 51, { size: 9, bold: true, width: bottomWidth - 25 });
+    if (property.latitude != null && property.longitude != null) text(doc, `${property.latitude}, ${property.longitude}`, M + 13, bottomY + 76, { size: 8, color: C.muted });
+    text(doc, t.noMap, M + 13, bottomY + 112, { size: 8, color: C.muted, width: bottomWidth - 25, maxLines: 3 });
+  }
+  panel(doc, M + bottomWidth + 10, bottomY, bottomWidth, 187); heading(doc, t.notes, M + bottomWidth + 22, bottomY + 25, bottomWidth - 24, accent);
+  text(doc, property.notes || property.description || t.unavailable, M + bottomWidth + 22, bottomY + 48, { size: 8.5, width: bottomWidth - 25, maxLines: 11 });
+}
 function renderPropertyOverview(doc, schema, t, accent, images, mapImage) {
   const property = section(schema, 'propertySummary') || {};
   const evidence = section(schema, 'propertyEvidence') || {};
+  if (schema.reportType === 'PROPERTY_RELEASE') {
+    propertyReleaseHero(doc, property, t, accent, images[0]);
+    propertyFactGrid(doc, property, evidence, t, accent, 265);
+    propertyReleaseBottom(doc, property, t, accent, images, mapImage);
+    return;
+  }
   propertyHero(doc, property, t, accent, images[0]);
   propertyFactGrid(doc, property, evidence, t, accent, 335);
   propertyBottom(doc, property, t, accent, 499, images, array(evidence.conflicts), mapImage);
@@ -380,24 +434,30 @@ function renderFit(doc, schema, t, accent) {
   listPanel(doc, t.evidence, limitations, M, 591, CONTENT, 157, t, accent);
 }
 function renderInsights(doc, schema, t, accent, { verification = false } = {}) {
+  const structured = schema?.structuredAnalysis || {};
   const summary = section(schema, 'executiveSummary') || {};
   const limitations = array(section(schema, 'limitations'));
   const steps = array(section(schema, 'verificationChecklist'));
   const attention = attentionObservations(summary);
-  const missing = attention.length ? attention : limitations;
+  const structuredMissing = array(structured.missingEvidence);
+  const structuredConcerns = array(structured.concerns);
+  const structuredSteps = [...array(structured.recommendedVerificationSteps), ...array(structured.recommendedActions)];
+  const missing = structuredMissing.length ? structuredMissing : (attention.length ? attention : limitations);
   const valuationWarnings = array(section(schema, 'valuationEvidence')?.warnings);
   const evidenceConflicts = array(section(schema, 'propertyEvidence')?.conflicts).map((item) => `${t.conflict} ${value(item?.field, '')}`.trim());
-  const considerations = attention.length ? limitations : [...valuationWarnings, ...evidenceConflicts].filter((item) => !missing.includes(item));
+  const considerations = structuredConcerns.length ? structuredConcerns
+    : attention.length ? limitations : [...valuationWarnings, ...evidenceConflicts].filter((item) => !missing.includes(item));
   const w = (CONTENT - 12) / 2;
-  listPanel(doc, t.positives, positiveObservations(summary), M, 128, w, 258, t, accent, { positive: true });
+  listPanel(doc, t.positives, array(structured.positiveSignals).length ? array(structured.positiveSignals) : positiveObservations(summary), M, 128, w, 258, t, accent, { positive: true });
   listPanel(doc, t.missing, missing, M + w + 12, 128, w, 258, t, accent);
-  listPanel(doc, verification ? t.considerations : t.next, verification ? considerations : steps, M, 398, w, 257, t, accent);
-  listPanel(doc, verification ? t.next : t.considerations, verification ? steps : considerations, M + w + 12, 398, w, 257, t, accent);
+  listPanel(doc, verification ? t.considerations : t.next, verification ? considerations : (structuredSteps.length ? structuredSteps : steps), M, 398, w, 257, t, accent);
+  listPanel(doc, verification ? t.next : t.considerations, verification ? (structuredSteps.length ? structuredSteps : steps) : considerations, M + w + 12, 398, w, 257, t, accent);
   panel(doc, M, 667, CONTENT, 85, { fill: C.pale });
   heading(doc, t.conclusion, M + 12, 691, CONTENT - 24, accent);
-  text(doc, summary.summary || t.noDetails, M + 12, 714, { size: 9, width: CONTENT - 24, maxLines: 3 });
+  text(doc, structured.profileAdaptedConclusion || summary.summary || t.noDetails, M + 12, 714, { size: 9, width: CONTENT - 24, maxLines: 3 });
 }
 function renderComparables(doc, schema, t, accent) {
+  const structured = schema?.structuredAnalysis || {};
   const property = section(schema, 'propertySummary') || {};
   const comps = section(schema, 'comparableEvidence') || {};
   const all = [...array(comps.used).map((v) => ({ ...v, status: 'USED' })), ...array(comps.supporting).map((v) => ({ ...v, status: 'SUPPORTING' })), ...array(comps.excluded).map((v) => ({ ...v, status: 'EXCLUDED' }))];
@@ -428,9 +488,12 @@ function renderComparables(doc, schema, t, accent) {
     text(doc, t[comp.status.toLowerCase()], columns[4], yy, { size: 7.4, bold: true, color: accent });
     doc.setDrawColor(...C.line); doc.line(M + 12, yy + 8, W - M - 12, yy + 8);
   });
-  listPanel(doc, t.observations, all.map((comp) => comp.inclusionReason || comp.exclusionReason).filter(Boolean), M, 672, CONTENT, 83, t, accent);
+  const compNarrative = [structured.comparativeAnalysis?.interpretation,
+    ...array(structured.comparativeAnalysis?.limitations)].filter(Boolean);
+  listPanel(doc, t.observations, compNarrative.length ? compNarrative : all.map((comp) => comp.inclusionReason || comp.exclusionReason).filter(Boolean), M, 672, CONTENT, 83, t, accent);
 }
 function renderValuation(doc, schema, t, accent) {
+  const structured = schema?.structuredAnalysis || {};
   const valuation = section(schema, 'valuationEvidence') || {};
   const property = section(schema, 'propertySummary') || {};
   const metrics = schema?.presentation?.existingMetrics || {};
@@ -440,12 +503,14 @@ function renderValuation(doc, schema, t, accent) {
   const arv = valuation.status !== 'ARV_UNAVAILABLE' && valuation.range
     ? `${currency(valuation.range.low, t)} – ${currency(valuation.range.high, t)}` : t.unavailable;
   text(doc, arv, M + 14, 204, { size: 21, bold: true, color: C.ink });
-  text(doc, valuation.status || 'ARV_UNAVAILABLE', M + 14, 230, { size: 9, bold: true, color: C.muted });
+  const valuationStatus = valuation.status === 'ARV_AVAILABLE' ? t.arvAvailable
+    : valuation.status === 'ARV_LIMITED' ? t.arvLimited : t.arvUnavailable;
+  text(doc, valuationStatus, M + 14, 230, { size: 9, bold: true, color: C.muted });
   text(doc, valuation.status === 'ARV_UNAVAILABLE' ? t.noArv : value(valuation.methodology, t.noDetails), M + 14, 253, { size: 8.5, width: valuation.range ? 285 : CONTENT - 28, maxLines: 2 });
   if (valuation.providerEstimate?.value) {
     text(doc, t.providerEstimate, M + 358, 185, { size: 8, bold: true, color: C.muted, width: 150, maxLines: 2 });
     text(doc, currency(valuation.providerEstimate.value, t), M + 358, 220, { size: 15, bold: true, color: C.ink, width: 150, maxLines: 1 });
-    text(doc, value(valuation.providerEstimate.status, t.unavailable).replaceAll('_', ' '), M + 358, 241, { size: 7, color: C.muted, width: 150, maxLines: 2 });
+    text(doc, t.providerEstimateStatus, M + 358, 241, { size: 7, color: C.muted, width: 150, maxLines: 2 });
   }
   if (valuation.status !== 'ARV_UNAVAILABLE' && valuation.range) {
     const low = Number(valuation.range.low); const high = Number(valuation.range.high);
@@ -485,18 +550,20 @@ function renderValuation(doc, schema, t, accent) {
     text(doc, entry, x + cardW / 2, cardsY + 63, { size: 14, bold: true, color: accent, align: 'center' });
     text(doc, caption, x + cardW / 2, cardsY + 84, { size: 7, color: C.muted, align: 'center' });
   });
-  listPanel(doc, t.limitations, array(valuation.warnings).length ? array(valuation.warnings) : array(section(schema, 'limitations')), M, 609, CONTENT, 129, t, accent);
+  const valuationNarrative = array(structured.valuationAnalysis?.limitations);
+  listPanel(doc, t.limitations, valuationNarrative.length ? valuationNarrative : (array(valuation.warnings).length ? array(valuation.warnings) : array(section(schema, 'limitations'))), M, 609, CONTENT, 129, t, accent);
 }
 function renderConclusion(doc, schema, t, accent) {
+  const structured = schema?.structuredAnalysis || {};
   const summary = section(schema, 'executiveSummary') || {};
   const risks = array(section(schema, 'riskAssessment'));
   const steps = array(section(schema, 'verificationChecklist'));
-  listPanel(doc, t.opportunity, [summary.summary].filter(Boolean), M, 128, CONTENT, 134, t, accent);
+  listPanel(doc, t.opportunity, [structured.opportunityAssessment || summary.summary].filter(Boolean), M, 128, CONTENT, 134, t, accent);
   const w = (CONTENT - 12) / 2;
-  listPanel(doc, t.analysis, positiveObservations(summary), M, 274, w, 191, t, accent, { positive: true });
-  listPanel(doc, t.mainTopics, risks, M + w + 12, 274, w, 191, t, accent);
-  listPanel(doc, t.questions, array(section(schema, 'limitations')), M, 477, w, 164, t, accent);
-  listPanel(doc, t.actions, steps, M + w + 12, 477, w, 164, t, accent);
+  listPanel(doc, t.analysis, [structured.profileAdaptedConclusion, ...array(structured.positiveSignals)].filter(Boolean), M, 274, w, 191, t, accent, { positive: true });
+  listPanel(doc, t.mainTopics, array(structured.strategySpecificInsights).length ? array(structured.strategySpecificInsights) : risks, M + w + 12, 274, w, 191, t, accent);
+  listPanel(doc, t.questions, array(structured.missingEvidence).length ? array(structured.missingEvidence) : array(section(schema, 'limitations')), M, 477, w, 164, t, accent);
+  listPanel(doc, t.actions, array(structured.recommendedActions).length ? array(structured.recommendedActions) : steps, M + w + 12, 477, w, 164, t, accent);
   panel(doc, M, 653, CONTENT, 99, { fill: C.warm, stroke: C.gold });
   heading(doc, t.considerations, M + 12, 677, CONTENT - 24, accent);
   text(doc, t.disclaimer, M + 12, 702, { size: 8.5, width: CONTENT - 24, maxLines: 4 });
@@ -530,7 +597,7 @@ async function resolveImageSource(source) {
   } catch { return null; }
 }
 async function resolvePropertyImages(schema) {
-  const sources = array(section(schema, 'propertySummary')?.images).slice(0, 4);
+  const sources = array(section(schema, 'propertySummary')?.images).slice(0, 5);
   return (await Promise.all(sources.map(resolveImageSource))).filter(Boolean);
 }
 
@@ -633,7 +700,7 @@ async function resolveStreetMap(schema) {
   }
 }
 
-export async function renderMaxxisReportPdf({ schema, exportEntitlement, generatedAt, language = 'en' } = {}) {
+export async function renderMaxxisReportPdf({ schema, exportEntitlement, generatedAt, language = 'en', mapImageData = null } = {}) {
   const prepared = renderMaxxisReportDocument({ schema, exportEntitlement, generatedAt, language });
   if (prepared.state !== 'PREPARED') return prepared;
   const { jsPDF } = await import('jspdf');
@@ -645,7 +712,7 @@ export async function renderMaxxisReportPdf({ schema, exportEntitlement, generat
   const pages = prepared.document.pages;
   const lang = prepared.document.language;
   const t = COPY[lang];
-  const [images, mapImage] = await Promise.all([resolvePropertyImages(schema), resolveStreetMap(schema)]);
+  const [images, mapImage] = await Promise.all([resolvePropertyImages(schema), mapImageData || resolveStreetMap(schema)]);
   pages.forEach((page, index) => {
     if (index) doc.addPage('a4', 'portrait');
     const { accent } = pageHeader(doc, schema, page.code, page.page, schema.pages.length, t);

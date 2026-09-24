@@ -34,4 +34,19 @@ describe('sanitized Gemini tool interpretation payload', () => {
     expect(JSON.stringify(request.contents.at(-1))).toContain('functionResponse');
     expect(JSON.stringify(request.contents.at(-1))).toContain('call-1');
   });
+
+  it('passes the canonical structured analysis to chat and forbids raw machine codes', () => {
+    const safe = sanitizeToolResultForGemini({
+      type: 'deal_insight', propertyId: 'property-1', state: 'available',
+      structuredAnalysis: { type: 'maxxis_structured_analysis', executiveSummary: 'Canonical evidence-linked summary.',
+        investorFit: {}, marketContext: {}, comparativeAnalysis: {}, valuationAnalysis: {}, riskAnalysis: {} },
+    });
+    expect((safe.structuredAnalysis as Record<string, unknown>).executiveSummary).toBe('Canonical evidence-linked summary.');
+    const request = buildToolInterpretationRequest({
+      contents: [], modelParts: [], toolName: 'getDealInsightContext', toolResult: safe,
+      language: 'en', generationConfig: {}, safetySettings: [], plainToolResult: true,
+    });
+    expect(JSON.stringify(request.systemInstruction)).toContain('Never expose snake_case');
+    expect(JSON.stringify(request)).toContain('Canonical evidence-linked summary.');
+  });
 });

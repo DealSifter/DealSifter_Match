@@ -130,4 +130,18 @@ describe('Maxxis Analysis Report Experience v1', () => {
       owner: { name: 'Mr. Zen', type: 'FSBO', allowedContacts: [{ type: 'phone', value: '555-0100' }] },
     });
   });
+
+  it('persists the same canonical structured analysis used by chat without a report-side interpretation', () => {
+    const structuredAnalysis = {
+      type: 'maxxis_structured_analysis', executiveSummary: 'Evidence-linked summary.',
+      positiveSignals: ['Property type aligns with the profile.'], concerns: ['Condition is not verified.'],
+      missingEvidence: ['Rehabilitation scope and cost have not yet been confirmed.'],
+      recommendedVerificationSteps: ['Inspect the property.'], recommendedActions: [],
+      userFacingDisclaimers: [], riskAnalysis: { dataRisk: 'Condition is not verified.' },
+    };
+    const projected = projectMaxxisAnalysisResponse({ data: { dealIntelligence: context(), structuredAnalysis } });
+    expect(projected.content).toBe(structuredAnalysis.executiveSummary);
+    expect(projected.data.maxxisAnalysisReport.structuredAnalysis).toBe(structuredAnalysis);
+    expect(projected.data.maxxisReport.structuredAnalysis).toBe(structuredAnalysis);
+  });
 });

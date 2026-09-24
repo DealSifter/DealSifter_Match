@@ -1,5 +1,6 @@
 import { buildMaxxisReportSchema, mergeMaxxisReportProperty } from '../../../domain/maxxis/maxxisReportSchema';
 import { buildMaxxisAnalysisConfidence, buildMaxxisExecutiveSummaryIntelligence, resolveMaxxisInvestorPersona } from './maxxisReportConfidencePersona';
+import { explainMaxxisEvidenceList, explainMaxxisEvidenceState } from './maxxisUserFacingEvidence';
 
 export const MAXXIS_DEAL_INTELLIGENCE_REPORT_VERSION = 'MAXXIS_DEAL_INTELLIGENCE_REPORT_V1';
 
@@ -149,7 +150,7 @@ function riskAnalysis(context) {
 }
 
 function limitations(context, valuation, comps) {
-  const values = list(context?.limitations).map(safeText);
+  const values = explainMaxxisEvidenceList(context?.limitations).map(safeText);
   list(context?.propertyContext?.unknownFields).forEach((field) => values.push(`${field}: UNKNOWN`));
   if (valuation.status === 'ARV_UNAVAILABLE') values.push('ARV: UNKNOWN — the existing engine did not produce a value.');
   if (!comps.used.length) values.push('Verified sold comparables used by the existing evaluation: NONE.');
@@ -158,7 +159,7 @@ function limitations(context, valuation, comps) {
 }
 
 function nextVerificationSteps(context) {
-  const steps = unique(list(context?.recommendedActions).map(safeText));
+  const steps = unique(list(context?.recommendedActions).map(explainMaxxisEvidenceState).map(safeText));
   if (!steps.length) steps.push('Review the underlying evidence and confirm that the available inputs are current.');
   return Object.freeze(steps.slice(0, 6));
 }
@@ -172,8 +173,10 @@ function overview(context, valuation) {
     : `Based on available evidence, the evidence strength is ${evidence} and the existing ARV result has ${valuation.confidence.toLowerCase()} confidence.`;
 }
 
-export function buildMaxxisDealIntelligenceReport(context) {
+export function buildMaxxisDealIntelligenceReport(context, structuredAnalysis = null) {
   if (!isObject(context) || context.type !== 'deal_intelligence_context') return null;
+  const canonical = isObject(structuredAnalysis) && structuredAnalysis.type === 'maxxis_structured_analysis'
+    ? structuredAnalysis : null;
   const valuation = valuationIntelligence(context);
   const comps = comparableEvidence(context);
   const analysisConfidence = buildMaxxisAnalysisConfidence(context);
@@ -184,15 +187,31 @@ export function buildMaxxisDealIntelligenceReport(context) {
     version: MAXXIS_DEAL_INTELLIGENCE_REPORT_VERSION,
     reportType: 'DEAL_INTELLIGENCE',
     propertyId: String(context.propertyId || '').trim() || null,
-    executiveDealOverview: overview(context, valuation),
-    whyThisPropertyStandsOut: standoutSignals(context),
+    executiveDealOverview: safeText(canonical?.opportunityAssessment || canonical?.executiveSummary) || overview(context, valuation),
+    whyThisPropertyStandsOut: canonical
+      ? Object.freeze(list(canonical.positiveSignals).map((explanation, index) => Object.freeze({
+        code: `STRUCTURED_SIGNAL_${index + 1}`, explanation: safeText(explanation), source: 'CALCULATED',
+      })).filter((signal) => signal.explanation).slice(0, 6))
+      : standoutSignals(context),
     propertyEvidence: propertyEvidence(context),
     investmentFit: investmentFit(context),
     valuationIntelligence: valuation,
     comparableEvidence: comps,
-    riskAnalysis: riskAnalysis(context),
-    limitations: limitations(context, valuation, comps),
-    nextVerificationSteps: nextVerificationSteps(context),
+    riskAnalysis: canonical ? Object.freeze([
+      ['DATA_RISK', canonical.riskAnalysis?.dataRisk],
+      ['MARKET_RISK', canonical.riskAnalysis?.marketRisk],
+      ['VALUATION_RISK', canonical.riskAnalysis?.valuationRisk],
+      ['EXECUTION_RISK', canonical.riskAnalysis?.executionRisk],
+    ].filter(([, reason]) => safeText(reason)).map(([category, reason]) => Object.freeze({
+      code: category, category, severity: 'MEDIUM', reason: safeText(reason),
+    }))) : riskAnalysis(context),
+    limitations: canonical
+      ? Object.freeze(unique([...list(canonical.missingEvidence), ...list(canonical.userFacingDisclaimers)].map(safeText)).slice(0, 12))
+      : limitations(context, valuation, comps),
+    nextVerificationSteps: canonical
+      ? Object.freeze(unique([...list(canonical.recommendedVerificationSteps), ...list(canonical.recommendedActions)].map(safeText)).slice(0, 8))
+      : nextVerificationSteps(context),
+    structuredAnalysis: canonical,
     analysisConfidence,
     investorPerspective,
     executiveSummaryIntelligence,
@@ -211,7 +230,8 @@ export function buildMaxxisDealIntelligenceReport(context) {
 }
 
 export function projectMaxxisDealIntelligenceResponse(result = {}, { reportProperty = null } = {}) {
-  const report = buildMaxxisDealIntelligenceReport(result?.data?.dealIntelligence);
+  const structuredAnalysis = result?.data?.structuredAnalysis;
+  const report = buildMaxxisDealIntelligenceReport(result?.data?.dealIntelligence, structuredAnalysis);
   if (!report) return null;
   const intelligenceSnapshot = isObject(result?.data?.intelligenceSnapshot)
     ? result.data.intelligenceSnapshot : null;
@@ -220,7 +240,7 @@ export function projectMaxxisDealIntelligenceResponse(result = {}, { reportPrope
   const property = mergeMaxxisReportProperty(evidenceProperty, reportProperty);
   const maxxisReport = buildMaxxisReportSchema({
     reportType: 'DEAL_INTELLIGENCE', property, dealIntelligence: report,
-    dealMetrics: result?.data?.metrics,
+    dealMetrics: result?.data?.metrics, structuredAnalysis,
   });
   return Object.freeze({
     type: 'maxxis_deal_intelligence',

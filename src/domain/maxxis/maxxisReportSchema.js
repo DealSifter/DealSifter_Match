@@ -293,7 +293,7 @@ function levelData(reportType, input) {
   };
 }
 
-export function buildMaxxisReportSchema({ reportType, property = null, maxxisAnalysis = null, dealIntelligence = null, dealMetrics = null } = {}) {
+export function buildMaxxisReportSchema({ reportType, property = null, maxxisAnalysis = null, dealIntelligence = null, dealMetrics = null, structuredAnalysis = null } = {}) {
   const normalizedType = String(reportType || '').trim().toUpperCase();
   const allowed = LEVEL_SECTIONS[normalizedType];
   if (!allowed) return null;
@@ -308,6 +308,8 @@ export function buildMaxxisReportSchema({ reportType, property = null, maxxisAna
     reportType: normalizedType,
     sections,
     pages: pagesFor(normalizedType),
+    structuredAnalysis: isObject(structuredAnalysis) && structuredAnalysis.type === 'maxxis_structured_analysis'
+      ? Object.freeze(structuredAnalysis) : null,
     presentation: Object.freeze({
       brand: 'DealSifter Match',
       design: 'PREMIUM_INVESTOR_REPORT_V2',

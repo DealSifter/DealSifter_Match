@@ -740,7 +740,7 @@ export function PortfolioDetail({ item, owner, ownerContact = null, isOwnerUnloc
     }).sort((a, b) => (a.priority || 99) - (b.priority || 99));
     const reportImages = Array.isArray(images)
       ? images
-      : getExportImageUrls().filter((source) => typeof source === 'string').slice(0, 4);
+      : getExportImageUrls().filter((source) => typeof source === 'string').slice(0, 5);
     return {
       ...item,
       address: item?.address || item?.name || null,
@@ -764,7 +764,7 @@ export function PortfolioDetail({ item, owner, ownerContact = null, isOwnerUnloc
 
   const generateReleasePdf = async ({ title, imageUrls }) => {
     const safeName = String(title || 'property-release').replace(/[^a-z0-9-_]+/gi, '_').slice(0, 64);
-    const imageSources = (Array.isArray(imageUrls) ? imageUrls : getExportImageUrls()).slice(0, 4);
+    const imageSources = (Array.isArray(imageUrls) ? imageUrls : getExportImageUrls()).slice(0, 5);
     const reportImages = (await Promise.all(imageSources.map((source) => {
       if (typeof source === 'string') return Promise.resolve(source);
       if (!(source instanceof Blob)) return Promise.resolve(null);

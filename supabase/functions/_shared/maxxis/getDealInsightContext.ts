@@ -13,6 +13,8 @@ import { orchestrateDealInsightContext } from './dealInsightContext.ts';
 import { getPropertyDetailsWithClient } from './propertyDetails.ts';
 import { resolveDealInsightInput } from './dealInsightInput.ts';
 import type { ProviderBudgetPlan } from '../property-data/providerBudget.ts';
+import { buildEvidenceCompleteness } from './evidenceCompleteness.ts';
+import { buildMaxxisStructuredAnalysis } from './maxxisStructuredAnalysis.ts';
 
 export async function getDealInsightContextForAuthenticatedUser(
   input: unknown,
@@ -42,6 +44,9 @@ export async function getDealInsightContextForAuthenticatedUser(
     providerBudgetBucket: budgetBucket,
     providerPlan: plan,
     providerAttempted: false,
+    propertyProviderAttempted: false,
+    soldProviderAttempted: false,
+    valuationProviderAttempted: false,
     providerResult: providerAllowedByPlan ? 'NOT_ATTEMPTED' : 'PLAN_ZERO_PROVIDER',
     addressValidation: 'NOT_RUN',
     candidateCount: 0,
@@ -69,11 +74,15 @@ export async function getDealInsightContextForAuthenticatedUser(
       providerBudgetContext,
     });
     try {
+      runtimeTrace.valuationProviderAttempted = providerEnabled;
       const valuation = await valuationService.getValuationEvidence({ propertyId, userId });
       runtimeTrace.valuationEvidence = valuation.cacheHit ? 'HIT' : 'MISS_REFRESHED';
+      runtimeTrace.valuationProviderAttempted = !valuation.cacheHit;
       runtimeTrace.providerAttempted ||= !valuation.cacheHit;
+      runtimeTrace.soldProviderAttempted = providerEnabled;
       const sold = await soldService.getSoldEvidence({ propertyId, userId });
       runtimeTrace.soldEvidence = sold.cacheHit ? 'HIT' : 'MISS_REFRESHED';
+      runtimeTrace.soldProviderAttempted = !sold.cacheHit;
       runtimeTrace.providerAttempted ||= !sold.cacheHit;
       runtimeTrace.candidateCount = sold.soldPool.records.length;
       runtimeTrace.structuralCandidateCount = sold.recordedSoldCompSelection.primaryStructuralCandidates.length;
@@ -130,6 +139,7 @@ export async function getDealInsightContextForAuthenticatedUser(
         allowPropertyProvider ? { plan, bucket: budgetBucket } : undefined,
       );
       runtimeTrace.propertyEvidence = evidence.cacheState.toUpperCase();
+      runtimeTrace.propertyProviderAttempted = Boolean(allowPropertyProvider && providerEnabled && evidence.cacheState !== 'hit');
       if (evidence.state === 'available' && evidence.evidence?.cacheHit === false) {
         runtimeTrace.providerAttempted = true;
         runtimeTrace.providerResult = 'ACCEPTED';
@@ -139,6 +149,12 @@ export async function getDealInsightContextForAuthenticatedUser(
     loadArvEvaluation: allowValuationProvider ? loadArvEvaluation : undefined,
   });
   if (!runtimeTrace.stopReason) runtimeTrace.stopReason = result.state === 'available' ? 'NONE' : 'PROPERTY_NOT_FOUND';
+  const evidenceCompleteness = buildEvidenceCompleteness({
+    reportType: requestedReportType,
+    evidenceState: result.evidence.state,
+    context: result.dealIntelligence || null,
+    trace: runtimeTrace,
+  });
   const intelligenceSnapshot = {
     version: 'MAXXIS_INTELLIGENCE_SNAPSHOT_V1',
     propertyId: result.propertyId,
@@ -173,6 +189,9 @@ export async function getDealInsightContextForAuthenticatedUser(
       providerAttempted: runtimeTrace.providerAttempted,
       result: runtimeTrace.providerResult,
     },
+    evidenceCompleteness,
+    dealIntelligence: result.dealIntelligence,
   } as const;
-  return { ...result, intelligenceSnapshot, runtimeTrace };
+  const structuredAnalysis = buildMaxxisStructuredAnalysis(intelligenceSnapshot, requestedReportType);
+  return { ...result, intelligenceSnapshot, structuredAnalysis, evidenceCompleteness, runtimeTrace };
 }

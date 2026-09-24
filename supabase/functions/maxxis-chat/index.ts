@@ -1179,7 +1179,10 @@ Deno.serve(async (req) => {
           entitlement_state: result.evidence.entitlementState,
           match_available: Boolean(result.match?.calculable),
         });
-        const text = interpretedText || dealInsightMessage(language, result.state === 'available');
+        const canonicalSummary = result.structuredAnalysis && typeof result.structuredAnalysis === 'object'
+          ? String((result.structuredAnalysis as { executiveSummary?: unknown }).executiveSummary || '').trim()
+          : '';
+        const text = interpretedText || canonicalSummary || dealInsightMessage(language, result.state === 'available');
         structuredResponseCreated = true;
         return response({ message: text, answer: text, type: 'deal_insight', data: result, actions: [], language, runtime: toolRuntime, ...toolDegraded }, 200, origin, requestId);
       }

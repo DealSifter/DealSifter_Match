@@ -110,6 +110,21 @@ describe('Maxxis Deal Intelligence Experience v1', () => {
     });
   });
 
+  it('binds the same canonical analysis into Enterprise chat projection and persisted report', () => {
+    const structuredAnalysis = {
+      type: 'maxxis_structured_analysis', executiveSummary: 'Canonical summary.',
+      opportunityAssessment: 'Canonical opportunity assessment.', positiveSignals: [], concerns: [],
+      missingEvidence: ['Condition is not verified.'], recommendedVerificationSteps: ['Inspect the property.'],
+      recommendedActions: [], userFacingDisclaimers: [], riskAnalysis: {},
+    };
+    const projected = projectMaxxisDealIntelligenceResponse({ data: {
+      dealIntelligence: context(), structuredAnalysis,
+    } });
+    expect(projected.content).toBe(structuredAnalysis.opportunityAssessment);
+    expect(projected.data.maxxisDealIntelligence.structuredAnalysis).toBe(structuredAnalysis);
+    expect(projected.data.maxxisReport.structuredAnalysis).toBe(structuredAnalysis);
+  });
+
   it('is a pure presentation projector with no engine or provider dependency', () => {
     const source = readFileSync(new URL('./maxxisDealIntelligenceReport.js', import.meta.url), 'utf8');
     expect(source).not.toMatch(/from ['"].*(?:arvEngine|compEngine|calculatePropertyMatch|dealMetrics|rentcast)/i);

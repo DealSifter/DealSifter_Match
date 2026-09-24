@@ -1,4 +1,5 @@
 import { buildMaxxisReportSchema, mergeMaxxisReportProperty } from '../../../domain/maxxis/maxxisReportSchema';
+import { explainMaxxisEvidenceList } from './maxxisUserFacingEvidence';
 
 export const MAXXIS_ANALYSIS_REPORT_VERSION = 'MAXXIS_ANALYSIS_REPORT_V1';
 
@@ -122,7 +123,7 @@ function riskAwareness(context) {
 }
 
 function limitations(context, highlights, alignment) {
-  const values = list(context?.limitations).map(safeText);
+  const values = explainMaxxisEvidenceList(context?.limitations).map(safeText);
   if (highlights.unknown.length) values.push(`${highlights.unknown.length} property field(s) remain unknown.`);
   if (alignment.score === null) values.push('Investment Profile fit could not be calculated from the available information.');
   values.push('Match Score measures Investment Profile fit only; it is not a deal score or investment grade.');
@@ -150,22 +151,40 @@ function executiveSummary(highlights, alignment) {
   return `The available information indicates ${alignment.score}% Investment Profile fit across the criteria that could be evaluated.`;
 }
 
-export function buildMaxxisAnalysisReport(dealIntelligence) {
+export function buildMaxxisAnalysisReport(dealIntelligence, structuredAnalysis = null) {
   if (!isObject(dealIntelligence) || dealIntelligence.type !== 'deal_intelligence_context') return null;
   const highlights = propertyHighlights(dealIntelligence);
   const alignment = profileAlignment(dealIntelligence);
+  const canonical = isObject(structuredAnalysis) && structuredAnalysis.type === 'maxxis_structured_analysis'
+    ? structuredAnalysis : null;
+  const canonicalRisks = canonical ? [
+    ['DATA_RISK', canonical.riskAnalysis?.dataRisk],
+    ['MARKET_RISK', canonical.riskAnalysis?.marketRisk],
+    ['VALUATION_RISK', canonical.riskAnalysis?.valuationRisk],
+    ['EXECUTION_RISK', canonical.riskAnalysis?.executionRisk],
+  ].filter(([, explanation]) => safeText(explanation)).map(([category, explanation]) => Object.freeze({
+    code: category, category, severity: 'MEDIUM', explanation: safeText(explanation),
+  })) : null;
   const report = {
     type: 'maxxis_analysis_report',
     version: MAXXIS_ANALYSIS_REPORT_VERSION,
     reportType: 'MAXXIS_ANALYSIS',
     propertyId: String(dealIntelligence.propertyId || '').trim() || null,
-    executiveSummary: executiveSummary(highlights, alignment),
+    executiveSummary: safeText(canonical?.executiveSummary) || executiveSummary(highlights, alignment),
     propertyHighlights: highlights,
     profileAlignment: alignment,
-    keyObservations: keyObservations(dealIntelligence, highlights),
-    riskAwareness: riskAwareness(dealIntelligence),
-    limitations: limitations(dealIntelligence, highlights, alignment),
-    nextSteps: nextSteps(highlights, alignment),
+    keyObservations: canonical ? Object.freeze({
+      positives: Object.freeze(list(canonical.positiveSignals).map(safeText).filter(Boolean).slice(0, 6)),
+      attention: Object.freeze(list(canonical.concerns).map(safeText).filter(Boolean).slice(0, 8)),
+    }) : keyObservations(dealIntelligence, highlights),
+    riskAwareness: canonicalRisks || riskAwareness(dealIntelligence),
+    limitations: canonical
+      ? Object.freeze(unique([...list(canonical.missingEvidence), ...list(canonical.userFacingDisclaimers)].map(safeText)).slice(0, 10))
+      : limitations(dealIntelligence, highlights, alignment),
+    nextSteps: canonical
+      ? Object.freeze(unique([...list(canonical.recommendedVerificationSteps), ...list(canonical.recommendedActions)].map(safeText)).slice(0, 8))
+      : nextSteps(highlights, alignment),
+    structuredAnalysis: canonical,
     provenance: Object.freeze({
       property: 'EXISTING_PROPERTY_CONTEXT',
       investmentProfile: dealIntelligence.investorContext?.provenance === 'USER_PROVIDED' ? 'USER_PROVIDED' : 'UNKNOWN',
@@ -179,11 +198,12 @@ export function buildMaxxisAnalysisReport(dealIntelligence) {
 }
 
 export function projectMaxxisAnalysisResponse(result = {}, { reportProperty = null } = {}) {
-  const report = buildMaxxisAnalysisReport(result?.data?.dealIntelligence);
+  const structuredAnalysis = result?.data?.structuredAnalysis;
+  const report = buildMaxxisAnalysisReport(result?.data?.dealIntelligence, structuredAnalysis);
   if (!report) return null;
   const property = mergeMaxxisReportProperty(result?.data?.property, reportProperty);
   const maxxisReport = buildMaxxisReportSchema({
-    reportType: 'MAXXIS_ANALYSIS', property, maxxisAnalysis: report,
+    reportType: 'MAXXIS_ANALYSIS', property, maxxisAnalysis: report, structuredAnalysis,
   });
   return Object.freeze({
     type: 'maxxis_analysis_report',

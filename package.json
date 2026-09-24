@@ -21,6 +21,8 @@
     "test:e2e:accessibility": "playwright test --config=playwright.accessibility.config.js",
     "test:e2e:visual": "playwright test --config=playwright.visual.config.js",
     "test:e2e:visual:update": "playwright test --config=playwright.visual.config.js --update-snapshots",
+    "qa:reports:generate": "node scripts/generate-report-template-qa.mjs && node scripts/render-report-template-pages.mjs",
+    "qa:reports:visual": "node scripts/report-visual-qa.mjs",
     "dev:e2e": "vite --host 127.0.0.1 --port 4180 --strictPort",
     "dev:e2e:integration": "vite --host 127.0.0.1 --port 4181 --strictPort",
     "audit:functions": "node scripts/audit-edge-function-parity.mjs",

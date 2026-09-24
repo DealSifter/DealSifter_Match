@@ -1,6 +1,7 @@
 import { mkdir, readFile, writeFile } from 'node:fs/promises';
 import { fileURLToPath } from 'node:url';
 import { createServer } from 'vite';
+import { createCanvas } from '@napi-rs/canvas';
 
 // Isolated fictional fixture: never imported by the app, stored, or sent to a provider.
 const property = Object.freeze({
@@ -96,11 +97,43 @@ const sampleMetrics = Object.freeze({ metrics: {
   acquisitionPlusRehab: { calculable: true, value: 473000, source: 'FICTIONAL_SAMPLE' },
   capRate: { calculable: true, value: 5.1, source: 'FICTIONAL_SAMPLE' },
 } });
+const structuredAnalysis = Object.freeze({
+  type: 'maxxis_structured_analysis', version: 'MAXXIS_STRUCTURED_ANALYSIS_V1',
+  executiveSummary: 'The four-bedroom SFR structure aligns with the illustrated buy-and-hold profile. The 74% profile fit reflects that structural alignment, while condition, operating expenses and ownership evidence still require verification.',
+  opportunityAssessment: 'The recorded layout and stored strategy support continued review. The unresolved condition, operating-cost and ownership evidence should be verified before relying on the analysis for an investment decision.',
+  propertyContextInterpretation: 'The subject is recorded as a four-bedroom, two-bathroom SFR with 1,780 sqft in Example City, Florida.',
+  investorFit: { overallAssessment: 'The property has 74% Investment Profile alignment.', fitRationale: 'Property type and strategy align; evidence completeness limits the conclusion.', strengths: analysis.keyObservations.positives, mismatches: analysis.keyObservations.attention },
+  marketContext: { interpretation: 'The example location is inside the illustrated target market.', evidenceUsed: ['Configured target market: Example City, FL.'], limitations: ['Market alignment is profile context, not independent proof of demand.'] },
+  comparativeAnalysis: { interpretation: 'Two recorded sales meet the illustrated structural selection gates.', selectedCompSummary: deal.comparableEvidence.used, supportingEvidence: ['One additional sale supports context.'], limitations: ['Condition evidence remains illustrative.'] },
+  valuationAnalysis: { currentPositioning: 'The asking price equates to $238.76 per square foot.', arvInterpretation: 'The illustrated deterministic ARV range is $470,000 to $530,000.', confidenceInterpretation: 'Confidence is limited by sample condition evidence.', scenarioInterpretation: 'Scenarios use the stored price and rehabilitation amount.', limitations: deal.valuationIntelligence.warnings },
+  riskAnalysis: { dataRisk: 'Condition evidence is incomplete.', marketRisk: 'Comparable evidence must be refreshed before reliance.', valuationRisk: 'ARV confidence is limited.', executionRisk: 'Renovation scope and timing are not confirmed.', rationale: deal.riskAnalysis.map((item) => item.explanation) },
+  positiveSignals: analysis.keyObservations.positives,
+  concerns: analysis.keyObservations.attention,
+  missingEvidence: analysis.limitations,
+  recommendedVerificationSteps: analysis.nextSteps,
+  recommendedActions: deal.nextVerificationSteps,
+  strategySpecificInsights: ['For Buy and Hold, verify achievable rent, occupancy and operating expenses.', 'Confirm the renovation scope before relying on cost-basis scenarios.'],
+  profileAdaptedConclusion: 'The property is structurally aligned with the illustrated long-term hold profile, but condition and operating evidence remain the priority verification items.',
+  userFacingDisclaimers: ['Evidence-based decision support only; not an appraisal or return guarantee.'],
+});
 
 const root = fileURLToPath(new URL('../', import.meta.url));
 const out = fileURLToPath(new URL('../qa/report-template/', import.meta.url));
 await mkdir(out, { recursive: true });
 const samplePhoto = `data:image/jpeg;base64,${(await readFile(`${root}src/assets/maxxis/report-previews/sample-property-photo.jpg`)).toString('base64')}`;
+const mapCanvas = createCanvas(700, 300);
+const mapContext = mapCanvas.getContext('2d');
+mapContext.fillStyle = '#edf2eb'; mapContext.fillRect(0, 0, 700, 300);
+mapContext.fillStyle = '#cce8ca'; mapContext.fillRect(55, 35, 235, 225);
+mapContext.strokeStyle = '#ffffff'; mapContext.lineWidth = 12;
+for (let y = 30; y < 300; y += 46) { mapContext.beginPath(); mapContext.moveTo(0, y); mapContext.lineTo(700, y + 18); mapContext.stroke(); }
+for (let x = 20; x < 700; x += 72) { mapContext.beginPath(); mapContext.moveTo(x, 0); mapContext.lineTo(x + 35, 300); mapContext.stroke(); }
+mapContext.strokeStyle = '#a9c8dc'; mapContext.lineWidth = 18; mapContext.beginPath(); mapContext.moveTo(0, 250); mapContext.lineTo(700, 205); mapContext.stroke();
+mapContext.fillStyle = '#148a67'; mapContext.font = 'bold 24px sans-serif'; mapContext.fillText('Sample Community Park', 70, 155);
+mapContext.fillStyle = '#1db8bc'; mapContext.beginPath(); mapContext.arc(410, 132, 18, 0, Math.PI * 2); mapContext.fill();
+mapContext.fillStyle = '#ffffff'; mapContext.beginPath(); mapContext.arc(410, 132, 6, 0, Math.PI * 2); mapContext.fill();
+mapContext.fillStyle = '#20344b'; mapContext.font = 'bold 20px sans-serif'; mapContext.fillText('1200 Sample Avenue', 430, 140);
+const sampleMap = mapCanvas.toDataURL('image/png');
 const server = await createServer({ root, optimizeDeps: { noDiscovery: true, include: [] }, server: { middlewareMode: true }, appType: 'custom' });
 try {
   const { buildMaxxisReportSchema } = await server.ssrLoadModule('/src/domain/maxxis/maxxisReportSchema.js');
@@ -111,9 +144,9 @@ try {
     ['MAXXIS_ANALYSIS', 'pro', 'maxxis-analysis.pdf'],
     ['DEAL_INTELLIGENCE', 'enterprise', 'deal-intelligence.pdf'],
   ]) {
-    const schema = buildMaxxisReportSchema({ reportType, property: { ...property, images: [samplePhoto] }, maxxisAnalysis: analysis, dealIntelligence: deal, dealMetrics: sampleMetrics });
+    const schema = buildMaxxisReportSchema({ reportType, property: { ...property, images: [samplePhoto, samplePhoto, samplePhoto, samplePhoto, samplePhoto] }, maxxisAnalysis: analysis, dealIntelligence: deal, dealMetrics: sampleMetrics, structuredAnalysis });
     const exportEntitlement = resolveReportExportEntitlement({ plan, reportType, channel: 'PDF' });
-    const result = await renderMaxxisReportPdf({ schema, exportEntitlement, generatedAt: '2026-09-21T22:45:00.000Z', language: 'en' });
+    const result = await renderMaxxisReportPdf({ schema, exportEntitlement, generatedAt: '2026-09-21T22:45:00.000Z', language: 'en', mapImageData: sampleMap });
     if (result.state !== 'RENDERED') throw new Error(`${reportType}: ${result.state} ${JSON.stringify(result.validation || {})}`);
     await writeFile(`${out}${file}`, result.document.binary);
     process.stdout.write(`${file}: ${result.document.pageCount} A4 pages\n`);

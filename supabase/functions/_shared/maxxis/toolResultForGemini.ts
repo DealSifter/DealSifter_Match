@@ -342,6 +342,61 @@ function safeDealIntelligence(value: unknown) {
   };
 }
 
+function safeStructuredAnalysis(value: unknown) {
+  const source = record(value);
+  const investorFit = record(source.investorFit);
+  const market = record(source.marketContext);
+  const comparative = record(source.comparativeAnalysis);
+  const valuation = record(source.valuationAnalysis);
+  const risk = record(source.riskAnalysis);
+  return {
+    type: 'maxxis_structured_analysis',
+    version: safeText(source.version, 60),
+    reportType: safeText(source.reportType, 40),
+    executiveSummary: safeText(source.executiveSummary, 900),
+    opportunityAssessment: safeText(source.opportunityAssessment, 900),
+    propertyContextInterpretation: safeText(source.propertyContextInterpretation, 700),
+    investorFit: {
+      overallAssessment: safeText(investorFit.overallAssessment, 500),
+      fitRationale: safeText(investorFit.fitRationale, 900),
+      strengths: safeList(investorFit.strengths, 10),
+      mismatches: safeList(investorFit.mismatches, 10),
+    },
+    marketContext: {
+      interpretation: safeText(market.interpretation, 700),
+      evidenceUsed: safeList(market.evidenceUsed, 10),
+      limitations: safeList(market.limitations, 10),
+    },
+    comparativeAnalysis: {
+      interpretation: safeText(comparative.interpretation, 700),
+      supportingEvidence: safeList(comparative.supportingEvidence, 10),
+      limitations: safeList(comparative.limitations, 10),
+    },
+    valuationAnalysis: {
+      currentPositioning: safeText(valuation.currentPositioning, 700),
+      arvInterpretation: safeText(valuation.arvInterpretation, 700),
+      confidenceInterpretation: safeText(valuation.confidenceInterpretation, 700),
+      scenarioInterpretation: safeText(valuation.scenarioInterpretation, 700),
+      limitations: safeList(valuation.limitations, 12),
+    },
+    riskAnalysis: {
+      dataRisk: safeText(risk.dataRisk, 500),
+      marketRisk: safeText(risk.marketRisk, 500),
+      valuationRisk: safeText(risk.valuationRisk, 500),
+      executionRisk: safeText(risk.executionRisk, 500),
+      rationale: safeList(risk.rationale, 12),
+    },
+    positiveSignals: safeList(source.positiveSignals, 12),
+    concerns: safeList(source.concerns, 12),
+    missingEvidence: safeList(source.missingEvidence, 16),
+    recommendedVerificationSteps: safeList(source.recommendedVerificationSteps, 12),
+    recommendedActions: safeList(source.recommendedActions, 12),
+    strategySpecificInsights: safeList(source.strategySpecificInsights, 10),
+    profileAdaptedConclusion: safeText(source.profileAdaptedConclusion, 1200),
+    userFacingDisclaimers: safeList(source.userFacingDisclaimers, 6),
+  };
+}
+
 export function sanitizeToolResultForGemini(value: unknown): Record<string, unknown> {
   const source = record(value);
   const type = safeText(source.type, 50);
@@ -396,6 +451,7 @@ export function sanitizeToolResultForGemini(value: unknown): Record<string, unkn
       metrics: safeMetrics(source.metrics),
       analysis: safeAdvisor(source.analysis),
       dealIntelligence: source.dealIntelligence ? safeDealIntelligence(source.dealIntelligence) : null,
+      structuredAnalysis: source.structuredAnalysis ? safeStructuredAnalysis(source.structuredAnalysis) : null,
       capabilities: {
         canDiscussPricePerSqft: Boolean(capabilities.canDiscussPricePerSqft),
         canDiscussAcquisitionPlusRehab: Boolean(capabilities.canDiscussAcquisitionPlusRehab),
@@ -495,7 +551,7 @@ export function buildToolInterpretationRequest(input: {
   const interaction = buildAnalyticalInteractionInstruction(resultType === 'deal_insight' ? 'deal_insight' : 'tool_result');
   const systemText = `You are Maxxis Deal AI inside DealSifter. Interpret the authoritative structured tool result naturally in ${safeText(input.language, 8) || 'en'}. Do not expose hidden data or request another tool.
 ${interaction}
-For property evidence, preserve provenance and effective/retrieval dates when material. For deal insight, use only the composed backend context and follow ANSWER FIRST, then WHY, RISKS, and NEXT STEP. Evidence is not an appraisal or guaranteed truth. An existing ARV evaluation may be explained only by copying its exact status, range, central reference, confidence, comps, warnings and provenance; never calculate, alter, interpolate, round into a new value, blend with another estimate, or infer missing ARV data. Match Score is profile fit only, never deal quality. Never guarantee return, recommend buying, or recommend a price. Use at most 180 words for deal insight and 120 words otherwise; structured cards are rendered separately.`;
+For property evidence, preserve provenance and effective/retrieval dates when material. For deal insight, use MaxxisStructuredAnalysis as the canonical interpretation shared with the report and follow ANSWER FIRST, then WHY, RISKS, and NEXT STEP. Never expose snake_case, UPPER_SNAKE_CASE, machine reasons, or internal state codes; express only the supplied natural-language interpretation. Evidence is not an appraisal or guaranteed truth. An existing ARV evaluation may be explained only by copying its exact status, range, central reference, confidence, comps, warnings and provenance; never calculate, alter, interpolate, round into a new value, blend with another estimate, or infer missing ARV data. Match Score is profile fit only, never deal quality. Never guarantee return, recommend buying, or recommend a price. Use at most 180 words for deal insight and 120 words otherwise; structured cards are rendered separately.`;
   if (input.plainToolResult) {
     const resultText = JSON.stringify(safeResult).slice(0, 12_000);
     return {
