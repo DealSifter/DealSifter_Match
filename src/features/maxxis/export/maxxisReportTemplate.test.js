@@ -22,6 +22,20 @@ const intelligence = {
   comparableEvidence: { used: [], supporting: [], excluded: [] },
   valuationIntelligence: { status: 'ARV_UNAVAILABLE', warnings: ['Insufficient condition evidence.'] },
   riskAnalysis: [], limitations: ['Condition unverified.'], nextVerificationSteps: ['Verify condition.'],
+  analysisConfidence: {
+    score: 87, classification: 'LIMITED', semantics: 'ANALYSIS_COMPLETENESS_AND_RELIABILITY_ONLY',
+    notPropertyScore: true, contributors: ['Verified property records'], limitations: ['Condition unknown'],
+  },
+  executiveSummaryIntelligence: {
+    lines: [
+      'Only recorded facts and supplied analysis are displayed.',
+      'The assessment reflects the verified property fields.',
+      'Comparable and valuation support remains unavailable.',
+      'The principal uncertainty is the property condition.',
+      'Focus on the unresolved evidence before making a decision.',
+      'Next verification priority: verify condition.',
+    ],
+  },
   provenance: { propertyEvidence: 'USER_PROVIDED' },
 };
 
@@ -87,6 +101,10 @@ describe('canonical PDF template behavior', () => {
       expect(pages[0].text).toContain('Needs verification');
       expect(pages[2].text).toContain('ARV unavailable');
       expect(pages[2].text).not.toContain('$0');
+      expect(pages[5].text).toContain('Maxxis Analysis Confidence');
+      expect(pages[5].text).toContain('87%');
+      expect(pages[5].text).toContain('Positive contributions');
+      expect(pages[5].text).toContain('MAXXIS EXECUTIVE SUMMARY');
       expect(pages[5].text).toContain('Only recorded facts and supplied analysis are displayed.');
       expect(fetchSpy).not.toHaveBeenCalled();
     } finally { fetchSpy.mockRestore(); }

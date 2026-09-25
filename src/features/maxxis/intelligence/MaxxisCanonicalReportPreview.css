@@ -1,0 +1,141 @@
+.maxxis-canonical-preview {
+  --canonical-accent: #20c6c7;
+  padding: 0;
+  overflow: hidden;
+  background: #e8eef3;
+  color: #102033;
+}
+
+.maxxis-canonical-preview.is-maxxis_analysis { --canonical-accent: #0d876f; }
+.maxxis-canonical-preview.is-deal_intelligence { --canonical-accent: #edb01c; }
+
+.maxxis-canonical-preview > summary {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  padding: 10px 12px;
+  border: 1px solid color-mix(in srgb, var(--canonical-accent) 65%, #cbd5e1);
+  background: #fff;
+  cursor: pointer;
+  list-style: none;
+  font-size: 12px;
+  font-weight: 850;
+}
+
+.maxxis-canonical-preview > summary::-webkit-details-marker { display: none; }
+.maxxis-canonical-preview > summary > span:first-child { min-width: 0; }
+.maxxis-canonical-preview > summary > b {
+  padding: 4px 7px;
+  border-radius: 999px;
+  color: #fff;
+  background: #173c57;
+  font-size: 8px;
+  white-space: nowrap;
+}
+
+.maxxis-canonical-hint {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  margin-left: auto;
+  padding: 4px 7px;
+  border-radius: 999px;
+  color: #0b6f72;
+  background: #d9f8f6;
+  font-size: 7px;
+  letter-spacing: .06em;
+  white-space: nowrap;
+}
+
+.maxxis-canonical-hint i { width: 6px; height: 6px; border-radius: 50%; background: #13b8b9; }
+.maxxis-canonical-preview[open] .maxxis-canonical-hint { display: none; }
+
+.maxxis-canonical-stage {
+  position: relative;
+  min-height: 180px;
+  max-height: min(67vh, 690px);
+  padding: 8px;
+  overflow: auto;
+  background: #dfe7ed;
+}
+
+.maxxis-canonical-stage canvas {
+  display: block;
+  width: 100%;
+  height: auto;
+  margin: 0 auto;
+  background: #fff;
+  box-shadow: 0 5px 18px rgba(15, 32, 49, .18);
+}
+
+.maxxis-canonical-status {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  padding: 24px;
+  color: #52697b;
+  background: #fff;
+  text-align: center;
+  font-size: 11px;
+  font-weight: 750;
+}
+
+.maxxis-canonical-status.is-error { color: #9f2e26; }
+
+.maxxis-canonical-navigation,
+.maxxis-canonical-page {
+  position: sticky;
+  z-index: 2;
+}
+
+.maxxis-canonical-navigation {
+  top: calc(50% - 21px);
+  display: flex;
+  justify-content: space-between;
+  height: 0;
+  pointer-events: none;
+}
+
+.maxxis-canonical-arrow,
+.maxxis-canonical-page {
+  color: #fff;
+  background: rgba(15, 32, 49, .84);
+  backdrop-filter: blur(5px);
+}
+
+.maxxis-canonical-arrow {
+  width: 34px;
+  height: 42px;
+  border: 0;
+  border-radius: 8px;
+  font-size: 26px;
+  line-height: 1;
+  cursor: pointer;
+  pointer-events: auto;
+}
+
+.maxxis-canonical-page {
+  bottom: 6px;
+  display: block;
+  width: fit-content;
+  margin-left: auto;
+  margin-top: -30px;
+  padding: 5px 8px;
+  border-radius: 6px;
+  font-size: 8px;
+}
+
+[data-theme="dark"] .maxxis-canonical-preview > summary {
+  color: #edf8f5;
+  border-color: color-mix(in srgb, var(--canonical-accent) 55%, #40514d);
+  background: #15211e;
+}
+
+[data-theme="dark"] .maxxis-canonical-stage { background: #111a18; }
+
+@media (max-width: 560px) {
+  .maxxis-canonical-preview > summary { padding: 9px; }
+  .maxxis-canonical-preview > summary > span:first-child { font-size: 11px; }
+  .maxxis-canonical-stage { padding: 5px; }
+}

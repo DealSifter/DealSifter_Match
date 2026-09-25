@@ -1875,10 +1875,10 @@ export function MessageBubble({
         <MaxxisDealIntelligenceResponse context={message.data.dealIntelligence} />
       ) : null}
       {message.type === 'maxxis_analysis_report' && message.data?.maxxisAnalysisReport ? (
-        <MaxxisAnalysisReportExperience report={message.data.maxxisAnalysisReport} reportSchema={message.data.maxxisReport} exportEntitlements={message.data.reportExportEntitlements} language={language} />
+        <MaxxisAnalysisReportExperience report={message.data.maxxisAnalysisReport} reportSchema={message.data.maxxisReport} exportEntitlements={message.data.reportExportEntitlements} language={language} generatedAt={message.createdAt} />
       ) : null}
       {message.type === 'maxxis_deal_intelligence' && message.data?.maxxisDealIntelligence ? (
-        <MaxxisDealIntelligenceExperience report={message.data.maxxisDealIntelligence} reportSchema={message.data.maxxisReport} exportEntitlements={message.data.reportExportEntitlements} language={language} />
+        <MaxxisDealIntelligenceExperience report={message.data.maxxisDealIntelligence} reportSchema={message.data.maxxisReport} exportEntitlements={message.data.reportExportEntitlements} language={language} generatedAt={message.createdAt} />
       ) : null}
       {message.type === 'property_details' && message.data?.metrics?.metrics ? (
         <div className="maxxis-action-links" aria-label={(COPY[language] || COPY.en).dealMetricsTitle}>

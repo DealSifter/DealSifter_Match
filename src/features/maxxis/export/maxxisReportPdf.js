@@ -45,6 +45,9 @@ const COPY = Object.freeze({
     arv: 'Estimated ARV Range', inputs: 'Valuation Inputs', kpis: 'Investment Scenarios',
     limitations: 'Valuation Limitations', mainTopics: 'Main Topics', questions: 'Open Questions', investorFocus: 'Investor Focus Map',
     actions: 'Recommended Actions', analysis: 'Profile-adapted conclusion',
+    analysisConfidence: 'Maxxis Analysis Confidence', contributors: 'Positive contributions', confidenceLimitations: 'Limitations',
+    confidenceDisclaimer: 'Analysis completeness and reliability — not property quality.',
+    executiveIntelligence: 'MAXXIS EXECUTIVE SUMMARY',
     disclaimer: 'Evidence-based decision support only. Not an appraisal or financial, legal, or investment advice.',
     noComps: 'No recorded sold comparables available for this report.',
     noArv: 'ARV unavailable under the current deterministic evidence gates.',
@@ -85,6 +88,9 @@ const COPY = Object.freeze({
     arv: 'Faixa estimada de ARV', inputs: 'Dados da avaliação', kpis: 'Cenários de investimento',
     limitations: 'Limitações da avaliação', mainTopics: 'Tópicos principais', questions: 'Questões abertas', investorFocus: 'Mapa de foco do investidor',
     actions: 'Ações recomendadas', analysis: 'Conclusão adaptada ao perfil',
+    analysisConfidence: 'Confiança da Análise Maxxis', contributors: 'Contribuições positivas', confidenceLimitations: 'Limitações',
+    confidenceDisclaimer: 'Completude e confiabilidade da análise — não é qualidade do imóvel.',
+    executiveIntelligence: 'RESUMO EXECUTIVO MAXXIS',
     disclaimer: 'Análise baseada em evidências. Não constitui avaliação imobiliária nem aconselhamento financeiro, jurídico ou de investimento.',
     noComps: 'Não há comparáveis vendidos registrados para este relatório.',
     noArv: 'ARV indisponível segundo os critérios determinísticos de evidência.',
@@ -125,6 +131,9 @@ const COPY = Object.freeze({
     arv: 'Rango ARV estimado', inputs: 'Datos de la valoración', kpis: 'Escenarios de inversión',
     limitations: 'Limitaciones de la valoración', mainTopics: 'Temas principales', questions: 'Preguntas abiertas', investorFocus: 'Mapa de enfoque del inversor',
     actions: 'Acciones recomendadas', analysis: 'Conclusión adaptada al perfil',
+    analysisConfidence: 'Confianza del Análisis Maxxis', contributors: 'Contribuciones positivas', confidenceLimitations: 'Limitaciones',
+    confidenceDisclaimer: 'Integridad y fiabilidad del análisis; no es la calidad del inmueble.',
+    executiveIntelligence: 'RESUMEN EJECUTIVO MAXXIS',
     disclaimer: 'Análisis basado en evidencias. No es una tasación ni asesoramiento financiero, legal o de inversión.',
     noComps: 'No hay comparables vendidos registrados para este informe.',
     noArv: 'ARV no disponible según los criterios determinísticos de evidencia.',
@@ -152,10 +161,10 @@ const reportNarrative = (input, fallback = '', language = 'en') => {
 };
 const DISPLAY_VALUE = Object.freeze({
   pt: Object.freeze({ Sell: 'Venda', Buy: 'Compra', 'Buy and Hold': 'Comprar e manter', true: 'Sim', false: 'Não',
-    HIGH: 'Alta', MODERATE: 'Moderada', MEDIUM: 'Média', LOW: 'Baixa', MATCHED: 'Aderente', NOT_MATCHED: 'Não aderente', PARTIAL: 'Parcial',
+    HIGH: 'Alta', MODERATE: 'Moderada', MEDIUM: 'Média', LOW: 'Baixa', LIMITED: 'Limitada', MATCHED: 'Aderente', NOT_MATCHED: 'Não aderente', PARTIAL: 'Parcial',
     'Not verified': 'Não verificado', Published: 'Publicado', Individual: 'Pessoa física' }),
   es: Object.freeze({ Sell: 'Venta', Buy: 'Compra', 'Buy and Hold': 'Comprar y mantener', true: 'Sí', false: 'No',
-    HIGH: 'Alta', MODERATE: 'Moderada', MEDIUM: 'Media', LOW: 'Baja', MATCHED: 'Compatible', NOT_MATCHED: 'No compatible', PARTIAL: 'Parcial',
+    HIGH: 'Alta', MODERATE: 'Moderada', MEDIUM: 'Media', LOW: 'Baja', LIMITED: 'Limitada', MATCHED: 'Compatible', NOT_MATCHED: 'No compatible', PARTIAL: 'Parcial',
     'Not verified': 'No verificado', Published: 'Publicado', Individual: 'Persona física' }),
 });
 const displayValue = (input, t) => {
@@ -745,6 +754,12 @@ function renderConclusion(doc, schema, t, accent) {
   const summary = section(schema, 'executiveSummary') || {};
   const risks = array(section(schema, 'riskAssessment'));
   const steps = array(section(schema, 'verificationChecklist'));
+  const confidence = schema?.presentation?.analysisConfidence;
+  const executiveLines = array(schema?.presentation?.executiveSummaryIntelligence?.lines);
+  if (confidence && executiveLines.length) {
+    renderEnterpriseAnalysis(doc, schema, t, accent, confidence, executiveLines);
+    return;
+  }
   listPanel(doc, t.opportunity, [structured.opportunityAssessment || summary.summary].filter(Boolean), M, 128, CONTENT, 112, t, accent);
   const w = (CONTENT - 12) / 2;
   listPanel(doc, t.analysis, [structured.profileAdaptedConclusion, ...array(structured.positiveSignals)].filter(Boolean), M, 252, w, 203, t, accent, { positive: true });
@@ -754,6 +769,61 @@ function renderConclusion(doc, schema, t, accent) {
   panel(doc, M, 653, CONTENT, 99, { fill: C.white, stroke: C.gold, accent: C.orange });
   heading(doc, t.considerations, M + 12, 677, CONTENT - 24, accent);
   text(doc, t.disclaimer, M + 12, 702, { size: 8.5, width: CONTENT - 24, maxLines: 4 });
+}
+
+function renderEnterpriseAnalysis(doc, schema, t, accent, confidence, executiveLines) {
+  const structured = schema?.structuredAnalysis || {};
+  const risks = array(section(schema, 'riskAssessment'));
+  const steps = array(section(schema, 'verificationChecklist'));
+  const limitations = array(section(schema, 'limitations'));
+  const score = Number.isFinite(Number(confidence.score)) ? Math.round(Number(confidence.score)) : null;
+  const contributors = array(confidence.contributors);
+  const confidenceLimitations = array(confidence.limitations);
+
+  panel(doc, M, 128, CONTENT, 150, { fill: C.white, accent });
+  heading(doc, t.analysisConfidence, M + 13, 154, CONTENT - 26, accent);
+
+  const confidenceX = M + 12; const confidenceY = 168; const confidenceW = 142; const confidenceH = 96;
+  panel(doc, confidenceX, confidenceY, confidenceW, confidenceH, { fill: C.navy, stroke: C.navy, radius: 7 });
+  text(doc, score == null ? t.unavailable : `${score}%`, confidenceX + 13, confidenceY + 37,
+    { size: score == null ? 14 : 25, bold: true, color: C.teal, width: confidenceW - 26, maxLines: 1 });
+  const classification = displayValue(confidence.classification, t);
+  doc.setFillColor(...softColor(C.white, .13));
+  doc.roundedRect(confidenceX + 13, confidenceY + 46, Math.min(82, Math.max(47, classification.length * 5.8)), 17, 6, 6, 'F');
+  text(doc, classification, confidenceX + 20, confidenceY + 58, { size: 6.8, bold: true, color: C.muted, maxLines: 1 });
+  text(doc, t.confidenceDisclaimer, confidenceX + 13, confidenceY + 75,
+    { size: 6.2, bold: true, color: C.white, width: confidenceW - 26, maxLines: 3 });
+
+  const drawConfidenceList = (title, items, x, y, w, kind, color) => {
+    text(doc, title, x, y, { size: 8.4, bold: true, color: C.ink, width: w, maxLines: 1 });
+    let yy = y + 19;
+    const entries = items.length ? items : [t.noDetails];
+    for (const item of entries.slice(0, 4)) {
+      if (yy > 258) break;
+      drawIcon(doc, kind, x + 6, yy - 3, color, 10);
+      yy = text(doc, reportNarrative(item, t.noDetails, t.locale), x + 16, yy,
+        { size: 6.7, width: w - 16, maxLines: 2 }) + 2;
+    }
+  };
+  drawConfidenceList(t.contributors, contributors, M + 174, 181, 158, 'check', C.green);
+  drawConfidenceList(t.confidenceLimitations, confidenceLimitations, M + 350, 181, 173, 'warning', C.orange);
+
+  panel(doc, M, 290, CONTENT, 165, { fill: C.white, accent });
+  heading(doc, t.executiveIntelligence, M + 13, 316, CONTENT - 26, accent);
+  let executiveY = 340;
+  for (const line of executiveLines.slice(0, 6)) {
+    if (executiveY > 442) break;
+    doc.setFillColor(...accent); doc.circle(M + 20, executiveY - 3, 2.2, 'F');
+    executiveY = text(doc, reportNarrative(line, t.noDetails, t.locale), M + 29, executiveY,
+      { size: 7.8, width: CONTENT - 43, maxLines: 2 }) + 4;
+  }
+
+  const w = (CONTENT - 12) / 2;
+  listPanel(doc, t.analysis, [structured.profileAdaptedConclusion, ...array(structured.positiveSignals)].filter(Boolean), M, 467, w, 133, t, accent, { positive: true });
+  listPanel(doc, t.mainTopics, array(structured.strategySpecificInsights).length ? array(structured.strategySpecificInsights) : risks, M + w + 12, 467, w, 133, t, accent);
+  listPanel(doc, t.questions, array(structured.missingEvidence).length ? array(structured.missingEvidence) : limitations, M, 612, w, 140, t, accent);
+  listPanel(doc, t.actions, array(structured.recommendedActions).length ? array(structured.recommendedActions) : steps, M + w + 12, 612, w, 140, t, accent);
+  text(doc, t.disclaimer, W / 2, 773, { size: 6.7, color: C.muted, width: CONTENT, maxLines: 2, align: 'center' });
 }
 function renderPage(doc, schema, pageCode, t, accent, images, mapImage, comparableMap) {
   if (pageCode === 'PROPERTY_OVERVIEW') return renderPropertyOverview(doc, schema, t, accent, images, mapImage);

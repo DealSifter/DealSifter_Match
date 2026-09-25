@@ -81,6 +81,32 @@ const deal = Object.freeze({
     { category: 'VALUATION', explanation: 'The ARV range is limited pending condition review.' },
     { category: 'EXECUTION', explanation: 'Renovation scope and timeline are not confirmed.' },
   ],
+  analysisConfidence: {
+    score: 87,
+    classification: 'LIMITED',
+    semantics: 'ANALYSIS_COMPLETENESS_AND_RELIABILITY_ONLY',
+    notPropertyScore: true,
+    contributors: [
+      'Verified property records are available for the illustrated characteristics.',
+      'The investment profile and strategy are explicitly configured.',
+    ],
+    limitations: [
+      'MISSING REHAB',
+      'INSUFFICIENT CONDITION COMPATIBLE COMPS',
+      'Data freshness unavailable',
+      'Valuation confidence unavailable',
+    ],
+  },
+  executiveSummaryIntelligence: {
+    lines: [
+      'Based on available evidence, the analysis has limited confidence and 74% profile compatibility.',
+      'The assessment reflects the verified and user-provided property fields in this fictional sample.',
+      'Comparable and valuation support is limited to the illustrated records used by the deterministic engine.',
+      'The principal uncertainty currently identified is the property condition.',
+      'Focus on renovation assumptions, operating evidence and exit-value uncertainty.',
+      'Next verification priority: confirm target condition and review comparable condition evidence.',
+    ],
+  },
   limitations: [
     'No inspection, title report, or expense statement is included in this sample.',
     'Comparable selection remains illustrative and must be reviewed.',
