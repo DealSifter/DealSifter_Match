@@ -260,8 +260,8 @@ function drawIcon(doc, kind, cx, cy, accent, size = 12) {
   doc.setLineWidth(.2);
 }
 function heading(doc, title, x, y, w, accent) {
-  doc.setFillColor(...C.graphite);
-  doc.roundedRect(x, y - 23, w + 5, 27, 6, 6, 'F');
+  doc.setFillColor(...softColor(C.graphite, .5));
+  doc.roundedRect(x - 3, y - 23, w + 6, 27, 6, 6, 'F');
   doc.setFillColor(...softColor(accent, .88));
   doc.roundedRect(x - 3, y - 19, w + 6, 27, 6, 6, 'F');
   drawIcon(doc, iconKind(title), x + 10, y - 6, accent, 20);

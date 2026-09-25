@@ -1574,7 +1574,7 @@ button.maxxis-action-link:hover {
   border-radius: 6px;
   color: #12364d;
   background: color-mix(in srgb, var(--maxxis-report-accent) 13%, #fff);
-  box-shadow: 3px -3px 0 #272d30;
+  box-shadow: 0 -3px 0 rgba(39, 45, 48, .5);
   font-size: 11px;
 }
 .maxxis-v2-section-title > span { display: grid; flex: 0 0 auto; width: 25px; height: 25px; place-items: center; border-radius: 50%; color: #fff; background: var(--maxxis-report-accent); }
@@ -1671,7 +1671,6 @@ button.maxxis-action-link:hover {
 .maxxis-v2-export-state { padding: 8px 12px; color: #637586; background: #fff; font-size: 8px; font-weight: 800; text-align: center; }
 
 [data-theme="dark"] .maxxis-report-v2 {
-  color: #e4ece7;
   border-color: #34443e;
   background: #0d1513;
 }
@@ -1684,63 +1683,6 @@ button.maxxis-action-link:hover {
 }
 
 [data-theme="dark"] .maxxis-report-v2 > summary::after { color: var(--maxxis-report-accent); }
-
-[data-theme="dark"] .maxxis-v2-page {
-  border-color: #34443e;
-  background: #111917;
-  box-shadow: 0 6px 18px rgba(0, 0, 0, .34);
-}
-
-[data-theme="dark"] .maxxis-v2-section-title {
-  color: #edf5f2;
-  background: color-mix(in srgb, var(--maxxis-report-accent) 17%, #17211e);
-  box-shadow: 3px -3px 0 #050908;
-}
-
-[data-theme="dark"] .maxxis-v2-info-card,
-[data-theme="dark"] .maxxis-v2-metric-strip > span,
-[data-theme="dark"] .maxxis-v2-location,
-[data-theme="dark"] .maxxis-v2-notes,
-[data-theme="dark"] .maxxis-v2-photo-section,
-[data-theme="dark"] .maxxis-v2-comp-stats span,
-[data-theme="dark"] .maxxis-v2-table-wrap,
-[data-theme="dark"] .maxxis-v2-arv,
-[data-theme="dark"] .maxxis-v2-kpi-block > div span,
-[data-theme="dark"] .maxxis-v2-score,
-[data-theme="dark"] .maxxis-v2-confidence,
-[data-theme="dark"] .maxxis-v2-perspective,
-[data-theme="dark"] .maxxis-v2-fit-bars > div,
-[data-theme="dark"] .maxxis-v2-risk-grid > div,
-[data-theme="dark"] .maxxis-v2-evidence-counts span,
-[data-theme="dark"] .maxxis-v2-ai-summary,
-[data-theme="dark"] .maxxis-v2-export-state {
-  border-color: #34443e;
-  background: #17211e;
-}
-
-[data-theme="dark"] .maxxis-v2-info-card dt,
-[data-theme="dark"] .maxxis-v2-metric-strip small,
-[data-theme="dark"] .maxxis-v2-comp-stats small,
-[data-theme="dark"] .maxxis-v2-score small,
-[data-theme="dark"] .maxxis-v2-evidence-counts small,
-[data-theme="dark"] .maxxis-v2-property-hero > div:last-child > span,
-[data-theme="dark"] .maxxis-v2-location small,
-[data-theme="dark"] .maxxis-v2-export-state { color: #a3b2ab; }
-
-[data-theme="dark"] .maxxis-v2-property-hero h3,
-[data-theme="dark"] .maxxis-v2-price,
-[data-theme="dark"] .maxxis-v2-comp-stats b,
-[data-theme="dark"] .maxxis-v2-provider-estimate strong,
-[data-theme="dark"] .maxxis-v2-kpi-block b,
-[data-theme="dark"] .maxxis-v2-score > div > b { color: #e4ece7; }
-
-[data-theme="dark"] .maxxis-v2-score > div::before { background: #17211e; }
-[data-theme="dark"] .maxxis-v2-fit-bars i,
-[data-theme="dark"] .maxxis-v2-risk-grid i { background: #31413c; }
-[data-theme="dark"] .maxxis-v2-table-wrap td { border-color: #2b3934; }
-[data-theme="dark"] .maxxis-v2-provider-estimate,
-[data-theme="dark"] .maxxis-v2-warning { color: #f7e3ad; border-color: #5b4a22; background: #2b2618; }
-[data-theme="dark"] .maxxis-v2-location > div { background-color: #1a2926; }
 
 @media (prefers-reduced-motion: reduce) {
   .maxxis-report-v2 > summary { animation: none; }
