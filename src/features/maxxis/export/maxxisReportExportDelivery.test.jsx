@@ -8,7 +8,7 @@ import { buildReportMailtoUrl } from './reportDeliveryUtils';
 import { createReportEmailRequest, createSharedReport } from './maxxisReportDeliveryContracts';
 import { buildMaxxisReportExportPreview } from './maxxisReportExportPreview';
 import { renderMaxxisReportDocument } from './maxxisReportRenderer';
-import { renderMaxxisReportPdf } from './maxxisReportPdf';
+import { renderMaxxisReportPdf, renderMaxxisReportPdfCached } from './maxxisReportPdf';
 import { resolveReportExportEntitlement, resolveReportExportEntitlements } from './reportExportEntitlement';
 
 const property = { id: 'property-1', address: '100 Stored St', type: 'SFR', objective: 'Fix and Flip', images: ['https://portfolio.example/subject.jpg'] };
@@ -78,6 +78,26 @@ describe('Maxxis Report Export + Delivery Experience v1', () => {
     expect(result).toMatchObject({ state: 'RENDERED', document: { pageCount: expectedPages, mimeType: 'application/pdf' } });
     expect(result.document.binary.byteLength).toBeGreaterThan(1000);
     expect(new TextDecoder('latin1').decode(result.document.binary.slice(0, 8))).toContain('%PDF-');
+  });
+
+  it('shares one in-flight PDF render between the chat preview and export action', async () => {
+    const reportSchema = schema('MAXXIS_ANALYSIS');
+    const options = {
+      schema: reportSchema,
+      exportEntitlement: entitlement('pro', 'MAXXIS_ANALYSIS', 'PDF'),
+      generatedAt: '2026-09-15T12:00:00.000Z',
+    };
+    const previewRender = renderMaxxisReportPdfCached(options);
+    const exportRender = renderMaxxisReportPdfCached(options);
+    expect(exportRender).toBe(previewRender);
+    await expect(exportRender).resolves.toMatchObject({ state: 'RENDERED', document: { pageCount: 3 } });
+  });
+
+  it('attaches the temporary download link before clicking for browser compatibility', () => {
+    const source = readFileSync(new URL('./maxxisReportPdf.js', import.meta.url), 'utf8');
+    expect(source).toContain('window.document.body.appendChild(anchor)');
+    expect(source).toContain('anchor.click()');
+    expect(source).toContain('anchor.remove()');
   });
 
   it('refuses mismatched or missing export entitlement without returning document content', () => {

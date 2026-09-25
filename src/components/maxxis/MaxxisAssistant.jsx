@@ -118,7 +118,7 @@ import {
 import { buildMaxxisIntelligenceUpgradeExperience } from '../../features/maxxis/access/maxxisIntelligenceUpgrade';
 import { resolveReportExportEntitlement, resolveReportExportEntitlements } from '../../features/maxxis/export/reportExportEntitlement';
 import { withCurrentReportExportEntitlements } from '../../features/maxxis/export/reportMessageEntitlements';
-import { downloadMaxxisReportPdf, renderMaxxisReportPdf } from '../../features/maxxis/export/maxxisReportPdf';
+import { downloadMaxxisReportPdf, renderMaxxisReportPdf, renderMaxxisReportPdfCached } from '../../features/maxxis/export/maxxisReportPdf';
 import { didStructuredReportGenerationFail, hasUsableStructuredReportFallback } from '../../features/maxxis/intelligence/maxxisStructuredReportFallback';
 import { MyMaxxisReports } from '../../features/maxxis/reports/MyMaxxisReports';
 import { resolveSavedReportAccessDecision } from '../../features/maxxis/reports/savedReportAccess';
@@ -1846,7 +1846,7 @@ export function MaxxisAssistant({ page = 'dashboard', onOpenSupport = null, onNa
         ...analysisExport,
         onExportPdf: async () => {
           if (!schema || !entitlement?.allowed) throw new Error('MAXXIS_REPORT_SCHEMA_OR_ACCESS_UNAVAILABLE');
-          const rendered = await renderMaxxisReportPdf({ schema, exportEntitlement: entitlement, generatedAt: reportMessage.createdAt, language });
+          const rendered = await renderMaxxisReportPdfCached({ schema, exportEntitlement: entitlement, generatedAt: reportMessage.createdAt, language });
           if (rendered.state !== 'RENDERED') throw new Error(`MAXXIS_REPORT_${rendered.state}`);
           if (!downloadMaxxisReportPdf(rendered.document, `maxxis-${schema.reportType.toLowerCase().replaceAll('_', '-')}.pdf`)) {
             throw new Error('MAXXIS_REPORT_DOWNLOAD_FAILED');

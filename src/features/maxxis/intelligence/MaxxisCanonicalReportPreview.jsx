@@ -1,6 +1,6 @@
-import React, { useEffect, useRef, useState } from 'react';
+import React, { useCallback, useEffect, useRef, useState } from 'react';
 import pdfWorkerUrl from 'pdfjs-dist/legacy/build/pdf.worker.mjs?url';
-import { renderMaxxisReportPdf } from '../export/maxxisReportPdf';
+import { renderMaxxisReportPdfCached } from '../export/maxxisReportPdf';
 import './MaxxisCanonicalReportPreview.css';
 
 const COPY = Object.freeze({
@@ -11,24 +11,54 @@ const COPY = Object.freeze({
 
 const levelFor = (reportType) => reportType === 'DEAL_INTELLIGENCE' ? 3 : reportType === 'MAXXIS_ANALYSIS' ? 2 : 1;
 
-export function MaxxisCanonicalReportPreview({ schema, language = 'en', exportEntitlements = {}, generatedAt = null }) {
+function CanonicalPdfPage({ pdfDocument, pageNumber, pageLabel, onRendered, onError }) {
   const canvasRef = useRef(null);
+
+  useEffect(() => {
+    let active = true;
+    let renderTask = null;
+    (async () => {
+      const pdfPage = await pdfDocument.getPage(pageNumber);
+      if (!active || !canvasRef.current) return;
+      const density = Math.min(2, Math.max(1.5, window.devicePixelRatio || 1));
+      const viewport = pdfPage.getViewport({ scale: density });
+      const canvas = canvasRef.current;
+      const context = canvas.getContext('2d', { alpha: false });
+      canvas.width = Math.ceil(viewport.width);
+      canvas.height = Math.ceil(viewport.height);
+      renderTask = pdfPage.render({ canvasContext: context, viewport });
+      await renderTask.promise;
+      if (active) onRendered(pageNumber);
+    })().catch((error) => {
+      if (active && error?.name !== 'RenderingCancelledException') onError();
+    });
+    return () => {
+      active = false;
+      renderTask?.cancel?.();
+    };
+  }, [onError, onRendered, pageNumber, pdfDocument]);
+
+  return <canvas ref={canvasRef} aria-label={`${pageLabel} ${pageNumber} / ${pdfDocument.numPages}`} />;
+}
+
+export function MaxxisCanonicalReportPreview({ schema, language = 'en', exportEntitlements = {}, generatedAt = null }) {
   const [pdfDocument, setPdfDocument] = useState(null);
-  const [page, setPage] = useState(1);
+  const [activated, setActivated] = useState(false);
+  const [renderedPages, setRenderedPages] = useState(0);
   const [status, setStatus] = useState('idle');
   const t = COPY[language] || COPY.en;
   const level = levelFor(schema?.reportType);
 
   useEffect(() => {
-    if (!schema || schema.type !== 'maxxis_report_schema' || !exportEntitlements.PDF) return undefined;
+    if (!activated || !schema || schema.type !== 'maxxis_report_schema' || !exportEntitlements.PDF) return undefined;
     let active = true;
     let loadingTask = null;
     let loadedDocument = null;
     setStatus('loading');
-    setPage(1);
+    setRenderedPages(0);
     setPdfDocument(null);
     (async () => {
-      const rendered = await renderMaxxisReportPdf({
+      const rendered = await renderMaxxisReportPdfCached({
         schema,
         exportEntitlement: exportEntitlements.PDF,
         generatedAt: generatedAt || undefined,
@@ -41,7 +71,7 @@ export function MaxxisCanonicalReportPreview({ schema, language = 'en', exportEn
       loadedDocument = await loadingTask.promise;
       if (!active) return;
       setPdfDocument(loadedDocument);
-      setStatus('ready');
+      setStatus('rendering');
     })().catch(() => {
       if (active) setStatus('failed');
     });
@@ -50,55 +80,43 @@ export function MaxxisCanonicalReportPreview({ schema, language = 'en', exportEn
       loadingTask?.destroy?.();
       loadedDocument?.destroy?.();
     };
-  }, [schema, exportEntitlements.PDF, generatedAt, language]);
+  }, [activated, schema, exportEntitlements.PDF, generatedAt, language]);
+
+  const handlePageRendered = useCallback(() => setRenderedPages((current) => current + 1), []);
+  const handlePageError = useCallback(() => setStatus('failed'), []);
 
   useEffect(() => {
-    if (!pdfDocument || !canvasRef.current) return undefined;
-    let active = true;
-    let renderTask = null;
-    (async () => {
-      const pdfPage = await pdfDocument.getPage(page);
-      if (!active || !canvasRef.current) return;
-      const density = Math.min(2, Math.max(1.5, window.devicePixelRatio || 1));
-      const viewport = pdfPage.getViewport({ scale: density });
-      const canvas = canvasRef.current;
-      const context = canvas.getContext('2d', { alpha: false });
-      canvas.width = Math.ceil(viewport.width);
-      canvas.height = Math.ceil(viewport.height);
-      canvas.setAttribute('aria-label', `${t.page} ${page} / ${pdfDocument.numPages}`);
-      renderTask = pdfPage.render({ canvasContext: context, viewport });
-      await renderTask.promise;
-    })().catch((error) => {
-      if (active && error?.name !== 'RenderingCancelledException') setStatus('failed');
-    });
-    return () => {
-      active = false;
-      renderTask?.cancel?.();
-    };
-  }, [pdfDocument, page, t.page]);
+    if (pdfDocument && renderedPages >= pdfDocument.numPages) setStatus('ready');
+  }, [pdfDocument, renderedPages]);
 
   if (!schema || schema.type !== 'maxxis_report_schema') return null;
   const total = pdfDocument?.numPages || schema.pages?.length || 1;
-  const move = (offset) => setPage((current) => ((current - 1 + offset + total) % total) + 1);
 
   return (
-    <details className={`maxxis-report-preview maxxis-canonical-preview is-${schema.reportType.toLowerCase()}`}>
+    <details className={`maxxis-report-preview maxxis-canonical-preview is-${schema.reportType.toLowerCase()}`} onToggle={(event) => { if (event.currentTarget.open) setActivated(true); }}>
       <summary>
         <span>{t.open}</span>
         <span className="maxxis-canonical-hint"><i aria-hidden="true" />{t.hint}</span>
         <b>LEVEL {level}</b>
       </summary>
       <div className="maxxis-canonical-stage" aria-live="polite">
-        {status === 'loading' || status === 'idle' ? <span className="maxxis-canonical-status">{t.loading}</span> : null}
+        {status === 'loading' || status === 'rendering' || status === 'idle' ? <span className="maxxis-canonical-status">{t.loading}</span> : null}
         {status === 'failed' ? <span className="maxxis-canonical-status is-error">{t.failed}</span> : null}
-        {status === 'ready' && total > 1 ? (
-          <div className="maxxis-canonical-navigation">
-            <button type="button" className="maxxis-canonical-arrow is-previous" aria-label={`${t.page} ${page === 1 ? total : page - 1}`} onClick={() => move(-1)}>‹</button>
-            <button type="button" className="maxxis-canonical-arrow is-next" aria-label={`${t.page} ${page === total ? 1 : page + 1}`} onClick={() => move(1)}>›</button>
+        {pdfDocument ? (
+          <div className={`maxxis-canonical-pages${status === 'ready' ? ' is-ready' : ''}`} aria-label={`${total} ${t.page.toLowerCase()}`}>
+            {Array.from({ length: total }, (_, index) => (
+              <CanonicalPdfPage
+                key={index + 1}
+                pdfDocument={pdfDocument}
+                pageNumber={index + 1}
+                pageLabel={t.page}
+                onRendered={handlePageRendered}
+                onError={handlePageError}
+              />
+            ))}
           </div>
         ) : null}
-        <canvas ref={canvasRef} hidden={status !== 'ready'} />
-        {status === 'ready' ? <b className="maxxis-canonical-page">{t.page} {page} / {total}</b> : null}
+        {status === 'ready' ? <span className="maxxis-canonical-complete" aria-hidden="true">{renderedPages}/{total}</span> : null}
       </div>
     </details>
   );

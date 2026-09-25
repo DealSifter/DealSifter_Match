@@ -1036,12 +1036,44 @@ export async function renderMaxxisReportPdf({ schema, exportEntitlement, generat
   }) });
 }
 
+const reportRenderCache = new WeakMap();
+
+export function renderMaxxisReportPdfCached(options = {}) {
+  const { schema, exportEntitlement, generatedAt, language = 'en', mapImageData = null } = options;
+  if (!schema || typeof schema !== 'object' || mapImageData) return renderMaxxisReportPdf(options);
+  const date = generatedAt ? new Date(generatedAt) : null;
+  const dateKey = date && !Number.isNaN(date.getTime()) ? date.toISOString() : '';
+  const entitlementKey = `${exportEntitlement?.reportType || ''}:${exportEntitlement?.channel || ''}:${exportEntitlement?.state || ''}:${Boolean(exportEntitlement?.allowed)}`;
+  const cacheKey = `${language}:${dateKey}:${entitlementKey}`;
+  let entries = reportRenderCache.get(schema);
+  if (!entries) {
+    entries = new Map();
+    reportRenderCache.set(schema, entries);
+  }
+  if (entries.has(cacheKey)) return entries.get(cacheKey);
+  const rendering = renderMaxxisReportPdf(options).then((result) => {
+    if (result.state !== 'RENDERED') entries.delete(cacheKey);
+    return result;
+  }).catch((error) => {
+    entries.delete(cacheKey);
+    throw error;
+  });
+  entries.set(cacheKey, rendering);
+  return rendering;
+}
+
 export function downloadMaxxisReportPdf(document, fileName = 'maxxis-report.pdf') {
   if (!document?.binary?.length || typeof window === 'undefined') return false;
   const blob = new Blob([document.binary], { type: 'application/pdf' });
   const url = URL.createObjectURL(blob);
   const anchor = window.document.createElement('a');
-  anchor.href = url; anchor.download = fileName; anchor.click();
+  anchor.href = url;
+  anchor.download = fileName;
+  anchor.rel = 'noopener';
+  anchor.style.display = 'none';
+  window.document.body.appendChild(anchor);
+  anchor.click();
+  anchor.remove();
   window.setTimeout(() => URL.revokeObjectURL(url), 15000);
   return true;
 }
