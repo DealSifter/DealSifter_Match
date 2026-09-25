@@ -276,13 +276,16 @@ function heading(doc, title, x, y, w, accent) {
   drawIcon(doc, iconKind(title), x + 10, y - 6, accent, 20);
   text(doc, title, x + 26, y - 1, { size: 11.4, bold: true, color: C.ink, width: w - 29, maxLines: 1 });
 }
-function rows(doc, items, x, y, w, { lineHeight = 24, labelWidth = 95, limit = 8, t } = {}) {
+function rows(doc, items, x, y, w, {
+  lineHeight = 24, labelWidth = 95, limit = 8, t,
+  labelSize = 8, valueSize = 8.5, valueMaxLines = 2,
+} = {}) {
   let yy = y;
   items.slice(0, limit).forEach(([label, entry], i) => {
-    text(doc, label, x, yy, { size: 8, color: C.muted, width: labelWidth - 5, maxLines: 1 });
-    text(doc, displayValue(entry, t), x + labelWidth, yy, { size: 8.5, bold: true, width: w - labelWidth, maxLines: 2 });
-    const lines = doc.splitTextToSize(displayValue(entry, t), w - labelWidth).length;
-    const step = Math.max(lineHeight, Math.min(2, lines) * 12 + 5);
+    text(doc, label, x, yy, { size: labelSize, color: C.muted, width: labelWidth - 5, maxLines: 1 });
+    text(doc, displayValue(entry, t), x + labelWidth, yy, { size: valueSize, bold: true, width: w - labelWidth, maxLines: valueMaxLines });
+    const lines = Math.min(valueMaxLines, doc.splitTextToSize(displayValue(entry, t), w - labelWidth).length);
+    const step = Math.max(lineHeight, lines * (valueSize + 3) + 3);
     if (i < Math.min(limit, items.length) - 1) {
       doc.setDrawColor(...C.line); doc.line(x, yy + step - 10, x + w, yy + step - 10);
     }
@@ -398,16 +401,17 @@ function propertyReleaseHero(doc, property, t, accent, imageData) {
   return propertyHero(doc, property, t, accent, imageData);
 }
 function propertyFactGrid(doc, property, evidence, t, accent, y) {
-  const gap = 6; const w = (CONTENT - gap * 2) / 3; const h = 139;
+  const gap = 6; const w = (CONTENT - gap * 2) / 3; const h = 134;
   const owner = property.owner || {};
   const evidenceFacts = Object.fromEntries([
     ...array(evidence?.verifiedRecords), ...array(evidence?.userProvided),
   ].filter((item) => item?.field).map((item) => [item.field, item.value]));
   const fact = (name, fallback = null) => evidenceFacts[name] ?? fallback;
   const contacts = array(owner.allowedContacts).map((contact) => contact?.value).filter(Boolean).join(' · ');
+  const latestSaleDate = fact('latestSaleDate', property.latestSaleDate);
   const latestSale = [
     fact('latestSalePrice', property.latestSalePrice) ? currency(fact('latestSalePrice', property.latestSalePrice), t) : null,
-    fact('latestSaleDate', property.latestSaleDate),
+    latestSaleDate ? String(latestSaleDate).slice(0, 10) : null,
   ].filter(Boolean).join(' · ');
   const facts = [
     [t.owner, [[t.ownerName, owner.name], [t.ownerType, owner.type], [t.status, owner.status], [t.contacts, contacts], [t.ownerOccupied, fact('ownerOccupied', property.ownerOccupied)], [t.latestSale, latestSale]]],
@@ -417,7 +421,10 @@ function propertyFactGrid(doc, property, evidence, t, accent, y) {
   facts.forEach(([title, entries], i) => {
     const x = M + i * (w + gap); panel(doc, x, y, w, h);
     heading(doc, title, x + 10, y + 22, w - 20, accent);
-    rows(doc, entries, x + 10, y + 42, w - 20, { lineHeight: 16, labelWidth: 64, limit: 6, t });
+    rows(doc, entries, x + 10, y + 42, w - 20, {
+      lineHeight: 14, labelWidth: 55, limit: 6, t,
+      labelSize: 7, valueSize: 6.8, valueMaxLines: 1,
+    });
   });
   return y + h;
 }

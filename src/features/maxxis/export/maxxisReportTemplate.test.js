@@ -80,6 +80,15 @@ describe('canonical PDF template behavior', () => {
     expect(source).toContain('doc.line(M, 803 + BODY_OFFSET, W - M, 803 + BODY_OFFSET)');
   });
 
+  it('keeps long property facts inside their cards before the photo section', () => {
+    const source = readFileSync(new URL('./maxxisReportPdf.js', import.meta.url), 'utf8');
+    const facts = source.split('function propertyFactGrid(')[1].split('function propertyBottom(')[0];
+    expect(facts).toContain('const h = 134');
+    expect(facts).toContain("String(latestSaleDate).slice(0, 10)");
+    expect(facts).toContain('lineHeight: 14');
+    expect(facts).toContain('valueMaxLines: 1');
+  });
+
   it.each([
     ['en', 'PROPERTY RELEASE', 'Generated', 'Page 1 / 1'],
     ['pt', 'RELATÓRIO DO IMÓVEL', 'Gerado em', 'Página 1 / 1'],
