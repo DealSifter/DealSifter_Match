@@ -70,6 +70,16 @@ describe('canonical PDF template behavior', () => {
     expect(footer).not.toMatch(/addImage|officialDealSifterLogo|slogan/i);
   });
 
+  it('keeps every page title below the shared graphite masthead', () => {
+    const source = readFileSync(new URL('./maxxisReportPdf.js', import.meta.url), 'utf8');
+    const header = source.split('function pageHeader(')[1].split('function schematicComparableMap(')[0];
+    expect(header).toContain('doc.rect(0, 0, W, 86');
+    expect(header).toContain('heading(doc, t[pageCode] || pageCode, M, 115');
+    expect(source).toContain('const BODY_OFFSET = 7');
+    expect(source).toContain('doc.setCurrentTransformationMatrix(doc.Matrix(1, 0, 0, 1, 0, -BODY_OFFSET))');
+    expect(source).toContain('doc.line(M, 803 + BODY_OFFSET, W - M, 803 + BODY_OFFSET)');
+  });
+
   it.each([
     ['en', 'PROPERTY RELEASE', 'Generated', 'Page 1 / 1'],
     ['pt', 'RELATÓRIO DO IMÓVEL', 'Gerado em', 'Página 1 / 1'],

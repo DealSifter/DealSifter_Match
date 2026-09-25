@@ -10,6 +10,7 @@ const W = 595.28;
 const H = 841.89;
 const M = 30;
 const CONTENT = W - M * 2;
+const BODY_OFFSET = 7;
 const C = Object.freeze({
   navy: [15, 32, 49], graphite: [39, 45, 48], teal: [29, 184, 188],
   blue: [24, 114, 190], green: [13, 135, 111], gold: [237, 176, 28], red: [209, 68, 58],
@@ -318,7 +319,10 @@ function pageHeader(doc, schema, pageCode, t) {
   text(doc, schema.reportType === 'PROPERTY_RELEASE' ? t.releaseSubtitle : t.reportSubtitle, planX - 9, 48, { size: 6.8, color: C.white, width: 232, maxLines: 1, align: 'right' });
   panel(doc, planX, 22, planWidth, 29, { fill: accent, stroke: accent, radius: 5 });
   text(doc, schema.reportType === 'PROPERTY_RELEASE' ? 'FREE' : planFor(schema.reportType), planX + planWidth / 2, 40, { size: 8.2, bold: true, color: schema.reportType === 'DEAL_INTELLIGENCE' ? C.ink : C.white, align: 'center' });
-  heading(doc, t[pageCode] || pageCode, M, 108, CONTENT, accent);
+  // Keep the page title fully below the graphite masthead. The title helper
+  // paints a top shadow 23pt above its baseline, so 115 leaves a visible gap
+  // after the 86pt header on every report page.
+  heading(doc, t[pageCode] || pageCode, M, 115, CONTENT, accent);
   return { accent, theme };
 }
 function schematicComparableMap(doc, x, y, w, h, accent, label) {
@@ -337,11 +341,11 @@ function schematicComparableMap(doc, x, y, w, h, accent, label) {
   doc.setLineCap('butt'); doc.setLineWidth(.2);
 }
 function pageFooter(doc, page, total, generatedAt, language, t) {
-  doc.setDrawColor(...C.line); doc.line(M, 803, W - M, 803);
+  doc.setDrawColor(...C.line); doc.line(M, 803 + BODY_OFFSET, W - M, 803 + BODY_OFFSET);
   const locale = language === 'pt' ? 'pt-BR' : language === 'es' ? 'es-ES' : 'en-US';
   const stamp = new Intl.DateTimeFormat(locale, { dateStyle: 'medium', timeStyle: 'short', timeZone: 'UTC' }).format(new Date(generatedAt));
-  text(doc, `${t.generated}: ${stamp} UTC`, M, 822, { size: 7.4, color: C.muted });
-  text(doc, `${t.page} ${page} / ${total}`, W - M, 822, { size: 7.4, color: C.muted, align: 'right' });
+  text(doc, `${t.generated}: ${stamp} UTC`, M, 822 + BODY_OFFSET, { size: 7.4, color: C.muted });
+  text(doc, `${t.page} ${page} / ${total}`, W - M, 822 + BODY_OFFSET, { size: 7.4, color: C.muted, align: 'right' });
 }
 function photo(doc, x, y, w, h, imageData, t, { cover = false, radius = 6 } = {}) {
   if (imageData) {
@@ -1027,7 +1031,12 @@ export async function renderMaxxisReportPdf({ schema, exportEntitlement, generat
   pages.forEach((page, index) => {
     if (index) doc.addPage('a4', 'portrait');
     const { accent } = pageHeader(doc, schema, page.code, t);
+    // Preserve the original spacing between the page title and its first
+    // section by moving the complete body down into the former footer margin.
+    doc.saveGraphicsState();
+    doc.setCurrentTransformationMatrix(doc.Matrix(1, 0, 0, 1, 0, -BODY_OFFSET));
     renderPage(doc, schema, page.code, t, accent, images, mapImage, comparableMap);
+    doc.restoreGraphicsState();
     pageFooter(doc, index + 1, pages.length, prepared.document.cover.generatedAt, lang, t);
   });
   const binary = new Uint8Array(doc.output('arraybuffer'));
