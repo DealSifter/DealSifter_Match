@@ -12,7 +12,8 @@ const M = 30;
 const CONTENT = W - M * 2;
 const C = Object.freeze({
   navy: [15, 32, 49], graphite: [39, 45, 48], teal: [29, 184, 188],
-  blue: [24, 114, 190], green: [13, 135, 111], gold: [237, 176, 28],
+  blue: [24, 114, 190], green: [13, 135, 111], gold: [237, 176, 28], red: [209, 68, 58],
+  orange: [238, 135, 20], purple: [116, 94, 189],
   white: [255, 255, 255], ink: [27, 42, 60], muted: [91, 110, 129],
   line: [216, 228, 234], pale: [246, 250, 252], card: [251, 253, 254], warm: [255, 250, 237],
 });
@@ -42,7 +43,7 @@ const COPY = Object.freeze({
     missing: "What's Missing", next: 'Recommended Next Steps', considerations: 'Key Considerations',
     comps: 'Recorded Sold Comparables', compLocation: 'Comparable Locations', observations: 'Analysis Observations',
     arv: 'Estimated ARV Range', inputs: 'Valuation Inputs', kpis: 'Investment Scenarios',
-    limitations: 'Valuation Limitations', mainTopics: 'Main Topics', questions: 'Open Questions',
+    limitations: 'Valuation Limitations', mainTopics: 'Main Topics', questions: 'Open Questions', investorFocus: 'Investor Focus Map',
     actions: 'Recommended Actions', analysis: 'Profile-adapted conclusion',
     disclaimer: 'Evidence-based decision support only. Not an appraisal or financial, legal, or investment advice.',
     noComps: 'No recorded sold comparables available for this report.',
@@ -82,7 +83,7 @@ const COPY = Object.freeze({
     missing: 'O que falta', next: 'Próximos passos recomendados', considerations: 'Pontos de atenção',
     comps: 'Comparáveis vendidos registrados', compLocation: 'Localização dos comparáveis', observations: 'Observações da análise',
     arv: 'Faixa estimada de ARV', inputs: 'Dados da avaliação', kpis: 'Cenários de investimento',
-    limitations: 'Limitações da avaliação', mainTopics: 'Tópicos principais', questions: 'Questões abertas',
+    limitations: 'Limitações da avaliação', mainTopics: 'Tópicos principais', questions: 'Questões abertas', investorFocus: 'Mapa de foco do investidor',
     actions: 'Ações recomendadas', analysis: 'Conclusão adaptada ao perfil',
     disclaimer: 'Análise baseada em evidências. Não constitui avaliação imobiliária nem aconselhamento financeiro, jurídico ou de investimento.',
     noComps: 'Não há comparáveis vendidos registrados para este relatório.',
@@ -122,7 +123,7 @@ const COPY = Object.freeze({
     missing: 'Qué falta', next: 'Próximos pasos recomendados', considerations: 'Puntos de atención',
     comps: 'Comparables vendidos registrados', compLocation: 'Ubicación de comparables', observations: 'Observaciones del análisis',
     arv: 'Rango ARV estimado', inputs: 'Datos de la valoración', kpis: 'Escenarios de inversión',
-    limitations: 'Limitaciones de la valoración', mainTopics: 'Temas principales', questions: 'Preguntas abiertas',
+    limitations: 'Limitaciones de la valoración', mainTopics: 'Temas principales', questions: 'Preguntas abiertas', investorFocus: 'Mapa de enfoque del inversor',
     actions: 'Acciones recomendadas', analysis: 'Conclusión adaptada al perfil',
     disclaimer: 'Análisis basado en evidencias. No es una tasación ni asesoramiento financiero, legal o de inversión.',
     noComps: 'No hay comparables vendidos registrados para este informe.',
@@ -191,7 +192,13 @@ function text(doc, input, x, y, { size = 9, bold = false, color = C.ink, width =
 function softColor(color, whiteRatio = .9) {
   return color.map((channel, index) => Math.round(channel * (1 - whiteRatio) + C.white[index] * whiteRatio));
 }
-function panel(doc, x, y, w, h, { fill = C.card, stroke = C.line, radius = 8, accent = null } = {}) {
+function darkColor(color, blackRatio = .2) {
+  return color.map((channel) => Math.round(channel * (1 - blackRatio)));
+}
+function blendColor(from, to, ratio) {
+  return from.map((channel, index) => Math.round(channel + (to[index] - channel) * ratio));
+}
+function panel(doc, x, y, w, h, { fill = C.white, stroke = C.line, radius = 8, accent = null } = {}) {
   doc.setFillColor(...fill); doc.setDrawColor(...stroke);
   doc.roundedRect(x, y, w, h, radius, radius, 'FD');
   if (accent) {
@@ -253,10 +260,10 @@ function drawIcon(doc, kind, cx, cy, accent, size = 12) {
   doc.setLineWidth(.2);
 }
 function heading(doc, title, x, y, w, accent) {
-  doc.setFillColor(...softColor(accent, .9));
+  doc.setFillColor(...C.graphite);
   doc.roundedRect(x - 3, y - 20, w + 6, 28, 6, 6, 'F');
   drawIcon(doc, iconKind(title), x + 10, y - 6, accent, 20);
-  text(doc, title, x + 26, y - 1, { size: 11.4, bold: true, width: w - 29, maxLines: 1 });
+  text(doc, title, x + 26, y - 1, { size: 11.4, bold: true, color: C.white, width: w - 29, maxLines: 1 });
 }
 function rows(doc, items, x, y, w, { lineHeight = 24, labelWidth = 95, limit = 8, t } = {}) {
   let yy = y;
@@ -272,13 +279,16 @@ function rows(doc, items, x, y, w, { lineHeight = 24, labelWidth = 95, limit = 8
   });
 }
 function listPanel(doc, title, items, x, y, w, h, t, accent, { positive = false } = {}) {
-  panel(doc, x, y, w, h, { fill: positive ? softColor(C.green, .94) : C.card, accent });
+  const relevanceColor = positive ? C.green
+    : /missing|falta|questions|questões|preguntas|limita|considera|attention|atenção|atención/i.test(title) ? C.orange
+      : /next|próxim|action|ações|acciones/i.test(title) ? C.blue : accent;
+  panel(doc, x, y, w, h, { fill: C.white, accent: relevanceColor });
   heading(doc, title, x + 13, y + 26, w - 26, accent);
   let yy = y + 48;
   const entries = items.length ? items : [t.noDetails];
   for (const item of entries.slice(0, 6)) {
     if (yy > y + h - 28) break;
-    drawIcon(doc, positive ? 'check' : iconKind(title), x + 20, yy - 3, accent, 12);
+    drawIcon(doc, positive ? 'check' : iconKind(title), x + 20, yy - 3, relevanceColor, 12);
     yy = text(doc, reportNarrative(typeof item === 'string' ? item : item?.explanation || item?.reason || item?.label || item?.status, t.noDetails, t.locale),
       x + 31, yy, { size: 8.5, width: w - 45, maxLines: 3 }) + 7;
   }
@@ -327,29 +337,32 @@ function photo(doc, x, y, w, h, imageData, t, { cover = false, radius = 6 } = {}
   panel(doc, x, y, w, h, { fill: [238, 246, 248], radius });
   text(doc, t.noPhoto, x + w / 2, y + h / 2, { size: 9, color: C.muted, align: 'center' });
 }
-function metricCard(doc, x, y, w, label, entry, kind, accent, { height = 39 } = {}) {
-  panel(doc, x, y, w, height, { fill: softColor(accent, .95), stroke: softColor(accent, .78) });
-  drawIcon(doc, kind, x + 15, y + height / 2, accent, 18);
-  text(doc, label, x + 29, y + 14, { size: 6.3, color: C.muted, width: w - 35, maxLines: 1 });
-  text(doc, entry, x + 29, y + 29, { size: 9.5, bold: true, width: w - 35, maxLines: 1 });
+function metricCard(doc, x, y, w, label, entry, kind, accent, { height = 27 } = {}) {
+  panel(doc, x, y, w, height, { fill: C.white, stroke: softColor(accent, .72), radius: 5 });
+  drawIcon(doc, kind, x + 10, y + height / 2, accent, 12);
+  text(doc, label, x + 19, y + 10, { size: 5.4, color: C.muted, width: w - 23, maxLines: 1 });
+  text(doc, entry, x + 19, y + 21, { size: 7.9, bold: true, width: w - 23, maxLines: 1 });
 }
 function propertyHero(doc, property, t, accent, imageData) {
   const y = 121; const h = 185;
   panel(doc, M, y, CONTENT, h);
   doc.setFillColor(...accent); doc.roundedRect(M + 12, y + 12, 66, 20, 4, 4, 'F');
   text(doc, property.published ? t.published : t.notVerified, M + 45, y + 26, { size: 8, bold: true, color: C.white, align: 'center' });
-  text(doc, value(property.address || property.title, t.unavailable), M + 13, y + 55, { size: 15.5, bold: true, width: 270, maxLines: 2 });
-  text(doc, location(property) || t.unavailable, M + 13, y + 81, { size: 9.5, color: C.muted, width: 260, maxLines: 2 });
-  text(doc, currency(property.price, t), M + 13, y + 115, { size: 22, bold: true, color: accent });
-  photo(doc, M + 294, y + 9, CONTENT - 303, 116, imageData, t, { cover: true, radius: 7 });
-  const metricY = y + 136; const metricGap = 6; const metricW = (CONTENT - 24 - metricGap * 3) / 4;
+  text(doc, value(property.address || property.title, t.unavailable), M + 13, y + 54, { size: 14.5, bold: true, width: 215, maxLines: 2 });
+  text(doc, location(property) || t.unavailable, M + 13, y + 78, { size: 8.8, color: C.muted, width: 215, maxLines: 2 });
+  text(doc, currency(property.price, t), M + 13, y + 108, { size: 20, bold: true, color: accent });
+  photo(doc, M + 265, y + 9, CONTENT - 274, h - 18, imageData, t, { cover: true, radius: 7 });
+  const metricY = y + 122; const metricGap = 5; const metricW = (223 - metricGap) / 2;
   const metrics = [
     [t.beds, value(property.beds, '–'), 'bed'],
     [t.baths, value(property.baths, '–'), 'bath'],
     [t.sqft, value(property.sqft, '–'), 'maximize'],
     [t.capRate, property.capRate == null ? t.unavailable : `${property.capRate}%`, 'trend'],
   ];
-  metrics.forEach(([label, entry, kind], index) => metricCard(doc, M + 12 + index * (metricW + metricGap), metricY, metricW, label, entry, kind, accent));
+  metrics.forEach(([label, entry, kind], index) => {
+    const column = index % 2; const row = Math.floor(index / 2);
+    metricCard(doc, M + 12 + column * (metricW + metricGap), metricY + row * 32, metricW, label, entry, kind, accent);
+  });
   return y + h;
 }
 function propertyReleaseHero(doc, property, t, accent, imageData) {
@@ -446,69 +459,108 @@ function profileRows(profile, t) {
 function meter(doc, x, y, width, percentValue, color) {
   const score = Math.max(0, Math.min(100, Number(percentValue) || 0));
   doc.setFillColor(...C.line); doc.roundedRect(x, y, width, 8, 4, 4, 'F');
-  if (score > 0) { doc.setFillColor(...color); doc.roundedRect(x, y, Math.max(8, width * score / 100), 8, 4, 4, 'F'); }
+  if (score > 0) {
+    const activeWidth = Math.max(8, width * score / 100);
+    const segments = Math.max(4, Math.ceil(activeWidth / 6));
+    const segmentWidth = activeWidth / segments;
+    const start = softColor(color, .28); const end = darkColor(color, .12);
+    for (let index = 0; index < segments; index += 1) {
+      doc.setFillColor(...blendColor(start, end, index / Math.max(1, segments - 1)));
+      doc.rect(x + index * segmentWidth, y, segmentWidth + .35, 8, 'F');
+    }
+  }
 }
 function renderFit(doc, schema, t, accent) {
   const profile = section(schema, 'investmentProfile') || {};
   const risks = array(section(schema, 'riskAssessment'));
   const limitations = array(section(schema, 'limitations'));
   const property = section(schema, 'propertySummary') || {};
-  panel(doc, M, 127, CONTENT, 41, { fill: softColor(accent, .94), stroke: softColor(accent, .78) });
+  const suppliedPerspective = schema?.presentation?.investorPerspective;
+  const fallbackFocus = [
+    profile.targetMarket?.explanation || t.location,
+    profile.priceRange?.explanation || t.price,
+    profile.propertyType?.explanation || t.type,
+    profile.strategy?.explanation || t.strategy,
+  ].filter(Boolean);
+  const perspective = {
+    persona: suppliedPerspective?.persona || profile.strategy?.explanation || profile.strategy?.status || t.strategy,
+    priorities: array(suppliedPerspective?.priorities).length ? array(suppliedPerspective.priorities) : fallbackFocus,
+  };
+  panel(doc, M, 127, CONTENT, 41, { fill: C.white, stroke: softColor(accent, .68) });
   text(doc, [property.address, location(property)].filter(Boolean).join(' · ') || t.unavailable, M + 13, 153, { size: 10, bold: true, width: CONTENT - 26 });
   const w = (CONTENT - 12) / 2;
-  panel(doc, M, 181, w, 218, { fill: softColor(accent, .96) }); heading(doc, t.profile, M + 12, 207, w - 24, accent);
+  panel(doc, M, 181, w, 200); heading(doc, t.profile, M + 12, 207, w - 24, accent);
   rows(doc, profileRows(profile, t), M + 12, 235, w - 24, { lineHeight: 35, labelWidth: 89, t });
-  panel(doc, M + w + 12, 181, w, 218, { fill: softColor(accent, .96) }); heading(doc, t.compatibility, M + w + 24, 207, w - 24, accent);
+  panel(doc, M + w + 12, 181, w, 200); heading(doc, t.compatibility, M + w + 24, 207, w - 24, accent);
   if (Number.isFinite(Number(profile.score))) {
     const score = Math.max(0, Math.min(100, Number(profile.score)));
-    doc.setFillColor(...C.white); doc.circle(M + w + 12 + w / 2, 296, 66, 'F');
-    doc.setDrawColor(...C.line); doc.setLineWidth(15); doc.circle(M + w + 12 + w / 2, 296, 52, 'S');
-    doc.setDrawColor(...accent); doc.setLineWidth(15);
+    const scoreX = M + w + 12 + w / 2; const scoreY = 286; const scoreRadius = 48;
+    doc.setFillColor(...C.white); doc.circle(scoreX, scoreY, 61, 'F');
+    doc.setDrawColor(...C.line); doc.setLineWidth(14); doc.circle(scoreX, scoreY, scoreRadius, 'S');
+    doc.setLineWidth(14);
     // Gauge is visualization of the existing score, not a new score calculation.
     const points = Array.from({ length: Math.max(2, Math.ceil(score / 3)) }, (_, i) => {
       const a = (-Math.PI / 2) + ((i / Math.max(1, Math.ceil(score / 3) - 1)) * (score / 100) * Math.PI * 2);
-      return [M + w + 12 + w / 2 + 52 * Math.cos(a), 296 + 52 * Math.sin(a)];
+      return [scoreX + scoreRadius * Math.cos(a), scoreY + scoreRadius * Math.sin(a)];
     });
-    points.slice(1).forEach((p, i) => doc.line(...points[i], ...p));
+    const ringStart = softColor(accent, .2); const ringEnd = darkColor(accent, .18);
+    points.slice(1).forEach((p, i) => {
+      doc.setDrawColor(...blendColor(ringStart, ringEnd, i / Math.max(1, points.length - 2)));
+      doc.line(...points[i], ...p);
+    });
     doc.setLineWidth(0.2);
-    text(doc, `${score}%`, M + w + 12 + w / 2, 304, { size: 26, bold: true, align: 'center' });
-  } else text(doc, t.unavailable, M + w + 12 + w / 2, 302, { size: 11, align: 'center' });
-  panel(doc, M, 412, w, 193, { fill: softColor(accent, .97) }); heading(doc, t.fit, M + 12, 438, w - 24, accent);
+    text(doc, `${score}%`, scoreX, scoreY + 8, { size: 25, bold: true, align: 'center' });
+  } else text(doc, t.unavailable, M + w + 12 + w / 2, 292, { size: 11, align: 'center' });
+  panel(doc, M, 393, w, 174); heading(doc, t.fit, M + 12, 419, w - 24, accent);
   const criteria = array(profile.criteria).length ? array(profile.criteria) : [
     { label: t.location, ...profile.targetMarket }, { label: t.price, ...profile.priceRange },
     { label: t.type, ...profile.propertyType }, { label: t.strategy, ...profile.strategy },
   ];
   criteria.slice(0, 5).forEach((criterion, index) => {
-    const yy = 466 + index * 29;
+    const yy = 447 + index * 27;
     const criterionScore = criterion.score == null
       ? criterion.status === 'matched' ? 100 : criterion.status === 'not_matched' ? 0 : 35
       : criterion.score;
+    const fitColor = criterionScore >= 75 ? C.green : criterionScore >= 50 ? accent : criterionScore >= 30 ? C.gold : C.red;
     text(doc, displayValue(criterion.label || criterion.key, t), M + 12, yy, { size: 7.7, bold: true, width: 85, maxLines: 1 });
-    meter(doc, M + 101, yy - 7, w - 142, criterionScore, accent);
-    text(doc, `${Math.round(criterionScore)}%`, M + w - 12, yy, { size: 7.4, bold: true, color: accent, align: 'right' });
+    meter(doc, M + 101, yy - 7, w - 142, criterionScore, fitColor);
+    text(doc, `${Math.round(criterionScore)}%`, M + w - 12, yy, { size: 7.4, bold: true, color: fitColor, align: 'right' });
   });
-  panel(doc, M + w + 12, 412, w, 193, { fill: softColor(accent, .97) }); heading(doc, t.risks, M + w + 24, 438, w - 24, accent);
+  panel(doc, M + w + 12, 393, w, 174); heading(doc, t.risks, M + w + 24, 419, w - 24, accent);
   risks.slice(0, 5).forEach((risk, index) => {
-    const yy = 466 + index * 29; const severity = String(risk?.severity || 'MEDIUM').toUpperCase();
+    const yy = 447 + index * 27; const severity = String(risk?.severity || 'MEDIUM').toUpperCase();
     const riskScore = severity === 'HIGH' ? 90 : severity === 'LOW' ? 32 : 62;
-    const riskColor = severity === 'HIGH' ? [209, 68, 58] : severity === 'LOW' ? C.green : C.gold;
+    const riskColor = severity === 'HIGH' ? C.red : severity === 'LOW' ? C.green : C.gold;
     text(doc, displayValue(risk?.category || risk?.code, t), M + w + 24, yy, { size: 7.3, bold: true, width: 85, maxLines: 1 });
     meter(doc, M + w + 113, yy - 7, w - 154, riskScore, riskColor);
     text(doc, displayValue(severity, t), M + CONTENT - 12, yy, { size: 7.2, bold: true, color: riskColor, align: 'right' });
   });
   const evidence = schema?.presentation?.evidenceCounts || {};
-  panel(doc, M, 617, CONTENT, 131, { fill: softColor(accent, .97), accent }); heading(doc, t.evidence, M + 12, 643, CONTENT - 24, accent);
   const evidenceItems = Object.entries(evidence).slice(0, 6);
+  const evidenceY = 577; const evidenceHeight = 72;
+  panel(doc, M, evidenceY, CONTENT, evidenceHeight, { accent }); heading(doc, t.evidence, M + 12, evidenceY + 26, CONTENT - 24, accent);
   if (evidenceItems.length) {
     const gap = 5; const ew = (CONTENT - 24 - gap * (evidenceItems.length - 1)) / evidenceItems.length;
     evidenceItems.forEach(([label, count], index) => {
-      const x = M + 12 + index * (ew + gap); const cx = x + ew / 2;
-      panel(doc, x, 657, ew, 70, { fill: C.white, stroke: softColor(accent, .78), radius: 7 });
-      drawIcon(doc, index < 2 ? 'check' : index === evidenceItems.length - 1 ? 'warning' : 'document', cx, 672, accent, 14);
-      text(doc, count, cx, 698, { size: 16, bold: true, color: accent, align: 'center' });
-      text(doc, label.replace(/([A-Z])/g, ' $1'), cx, 714, { size: 6.1, color: C.muted, width: ew - 7, maxLines: 2, align: 'center' });
+      const x = M + 12 + index * (ew + gap);
+      const evidenceColor = /verified/i.test(label) ? C.green : /conflict/i.test(label) ? C.red
+        : /unknown/i.test(label) ? C.orange : /estimated/i.test(label) ? C.purple : /user/i.test(label) ? C.blue : accent;
+      const tileY = evidenceY + 39; const tileHeight = 24;
+      panel(doc, x, tileY, ew, tileHeight, { fill: C.white, stroke: softColor(evidenceColor, .72), radius: 6 });
+      drawIcon(doc, index < 2 ? 'check' : index === evidenceItems.length - 1 ? 'warning' : 'document', x + 10, tileY + 12, evidenceColor, 11);
+      text(doc, count, x + 21, tileY + 11, { size: 9.5, bold: true, color: evidenceColor });
+      text(doc, label.replace(/([A-Z])/g, ' $1'), x + 21, tileY + 20, { size: 4.9, color: C.muted, width: ew - 24, maxLines: 1 });
     });
-  } else text(doc, limitations.slice(0, 3).map((item) => reportNarrative(item, '', t.locale)).join(' • ') || t.noDetails, M + 12, 676, { size: 8, width: CONTENT - 24, maxLines: 3 });
+  } else text(doc, limitations.slice(0, 3).map((item) => reportNarrative(item, '', t.locale)).join(' • ') || t.noDetails, M + 12, evidenceY + 48, { size: 8, width: CONTENT - 24, maxLines: 3 });
+  const focusY = 659; const priorities = array(perspective.priorities).slice(0, 4);
+  panel(doc, M, focusY, CONTENT, 89, { accent }); heading(doc, t.investorFocus, M + 12, focusY + 26, CONTENT - 24, accent);
+  text(doc, displayValue(perspective.persona, t), W - M - 13, focusY + 25, { size: 7.2, bold: true, color: C.white, align: 'right', width: 170, maxLines: 1 });
+  priorities.forEach((priority, index) => {
+    const yy = focusY + 45 + index * 10.5; const barX = M + 190; const barWidth = CONTENT - 215;
+    const priorityColor = [accent, C.blue, C.green, C.purple][index % 4];
+    text(doc, priority, M + 13, yy + 4, { size: 6.8, bold: true, width: 145, maxLines: 1 });
+    meter(doc, barX, yy - 2, barWidth, 100 - index * 14, priorityColor);
+  });
 }
 function renderInsights(doc, schema, t, accent, { verification = false } = {}) {
   const structured = schema?.structuredAnalysis || {};
@@ -529,7 +581,7 @@ function renderInsights(doc, schema, t, accent, { verification = false } = {}) {
   listPanel(doc, t.missing, missing, M + w + 12, 128, w, 258, t, accent);
   listPanel(doc, verification ? t.considerations : t.next, verification ? considerations : (structuredSteps.length ? structuredSteps : steps), M, 398, w, 257, t, accent);
   listPanel(doc, verification ? t.next : t.considerations, verification ? (structuredSteps.length ? structuredSteps : steps) : considerations, M + w + 12, 398, w, 257, t, accent);
-  panel(doc, M, 667, CONTENT, 85, { fill: C.pale });
+  panel(doc, M, 667, CONTENT, 85, { fill: C.white, accent });
   heading(doc, t.conclusion, M + 12, 691, CONTENT - 24, accent);
   text(doc, structured.profileAdaptedConclusion || summary.summary || t.noDetails, M + 12, 714, { size: 9, width: CONTENT - 24, maxLines: 3 });
 }
@@ -538,7 +590,7 @@ function renderComparables(doc, schema, t, accent, comparableMap) {
   const property = section(schema, 'propertySummary') || {};
   const comps = section(schema, 'comparableEvidence') || {};
   const all = [...array(comps.used).map((v) => ({ ...v, status: 'USED' })), ...array(comps.supporting).map((v) => ({ ...v, status: 'SUPPORTING' })), ...array(comps.excluded).map((v) => ({ ...v, status: 'EXCLUDED' }))];
-  panel(doc, M, 127, CONTENT, 78, { fill: softColor(accent, .94), stroke: softColor(accent, .76) });
+  panel(doc, M, 127, CONTENT, 78, { fill: C.white, stroke: softColor(accent, .64) });
   drawIcon(doc, 'house', M + 37, 166, accent, 42);
   text(doc, value(property.address || property.title, t.unavailable), M + 70, 151, { size: 12, bold: true, width: 220, maxLines: 1 });
   text(doc, location(property) || t.unavailable, M + 70, 169, { size: 8.2, color: C.muted, width: 220, maxLines: 1 });
@@ -562,7 +614,7 @@ function renderComparables(doc, schema, t, accent, comparableMap) {
     });
     text(doc, t.coordinateMap, M + 12, 392, { size: 7.5, color: C.muted });
   } else text(doc, t.noMap, M + 16, 305, { size: 9, color: C.muted, width: CONTENT - 32 });
-  panel(doc, M, 411, CONTENT, 244, { fill: softColor(accent, .98) }); heading(doc, t.comps, M + 12, 437, CONTENT - 24, accent);
+  panel(doc, M, 411, CONTENT, 244); heading(doc, t.comps, M + 12, 437, CONTENT - 24, accent);
   const columns = [M + 12, M + 183, M + 266, M + 329, M + 375, M + 426, M + 478];
   [t.address, t.salePrice, t.date, t.bedsBaths, t.sqft, t.similarity, t.status].forEach((label, i) => text(doc, label, columns[i], 460, { size: 7.1, bold: true, color: C.muted }));
   doc.setDrawColor(...C.line); doc.line(M + 12, 470, W - M - 12, 470);
@@ -614,7 +666,7 @@ function renderValuation(doc, schema, t, accent) {
   const metrics = schema?.presentation?.existingMetrics || {};
   const compStats = schema?.presentation?.comparableStatistics || {};
   const scenarios = schema?.presentation?.kpiScenarios;
-  panel(doc, M, 127, CONTENT, 175, { fill: C.warm, stroke: C.gold });
+  panel(doc, M, 127, CONTENT, 175, { fill: C.white, stroke: C.gold });
   heading(doc, t.arv, M + 14, 155, CONTENT - 28, accent);
   const arv = valuation.status !== 'ARV_UNAVAILABLE' && valuation.range
     ? `${currency(valuation.range.low, t)} – ${currency(valuation.range.high, t)}` : t.unavailable;
@@ -636,7 +688,8 @@ function renderValuation(doc, schema, t, accent) {
     const maximum = Math.max(...values, 1); const originX = M + 360; const baseY = 267;
     values.forEach((entry, index) => {
       const barHeight = Math.max(24, (entry / maximum) * 72); const x = originX + index * 45;
-      doc.setFillColor(...(index === 1 ? accent : C.line)); doc.roundedRect(x, baseY - barHeight, 26, barHeight, 4, 4, 'F');
+      const barColors = [softColor(accent, .42), accent, darkColor(accent, .24)];
+      doc.setFillColor(...barColors[index]); doc.roundedRect(x, baseY - barHeight, 26, barHeight, 4, 4, 'F');
       text(doc, labels[index], x + 13, baseY + 12, { size: 6.5, bold: true, color: C.muted, align: 'center' });
     });
   }
@@ -661,7 +714,7 @@ function renderValuation(doc, schema, t, accent) {
     [t.subjectVsMarket, compStats.subjectVsMarketPercent == null ? t.unavailable : `${compStats.subjectVsMarketPercent > 0 ? '+' : ''}${compStats.subjectVsMarketPercent}%`, t.marketPricePerSqft],
   ];
   cards.forEach(([label, entry, caption], index) => {
-    const x = M + index * (cardW + cardsGap); panel(doc, x, cardsY, cardW, 100, { fill: index === 1 ? C.warm : C.pale, stroke: index === 1 ? C.gold : C.line });
+    const x = M + index * (cardW + cardsGap); panel(doc, x, cardsY, cardW, 100, { fill: C.white, stroke: index === 1 ? C.gold : C.line });
     drawIcon(doc, index === 1 ? 'chart' : index === 2 ? 'check' : 'document', x + 20, cardsY + 23, accent, 18);
     text(doc, label, x + 35, cardsY + 28, { size: 8.5, bold: true, width: cardW - 45, maxLines: 1 });
     text(doc, entry, x + cardW / 2, cardsY + 63, { size: 12, bold: true, color: accent, align: 'center' });
@@ -681,7 +734,7 @@ function renderConclusion(doc, schema, t, accent) {
   listPanel(doc, t.mainTopics, array(structured.strategySpecificInsights).length ? array(structured.strategySpecificInsights) : risks, M + w + 12, 252, w, 203, t, accent);
   listPanel(doc, t.questions, array(structured.missingEvidence).length ? array(structured.missingEvidence) : array(section(schema, 'limitations')), M, 467, w, 174, t, accent);
   listPanel(doc, t.actions, array(structured.recommendedActions).length ? array(structured.recommendedActions) : steps, M + w + 12, 467, w, 174, t, accent);
-  panel(doc, M, 653, CONTENT, 99, { fill: C.warm, stroke: C.gold });
+  panel(doc, M, 653, CONTENT, 99, { fill: C.white, stroke: C.gold, accent: C.orange });
   heading(doc, t.considerations, M + 12, 677, CONTENT - 24, accent);
   text(doc, t.disclaimer, M + 12, 702, { size: 8.5, width: CONTENT - 24, maxLines: 4 });
 }
