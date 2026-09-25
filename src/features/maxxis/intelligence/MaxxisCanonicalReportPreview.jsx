@@ -46,11 +46,24 @@ export function MaxxisCanonicalReportPreview({ schema, language = 'en', exportEn
   const [activated, setActivated] = useState(false);
   const [renderedPages, setRenderedPages] = useState(0);
   const [status, setStatus] = useState('idle');
+  const pdfEntitlement = exportEntitlements.PDF;
+  const pdfEntitlementRef = useRef(pdfEntitlement);
+  pdfEntitlementRef.current = pdfEntitlement;
+  const pdfEntitlementKey = [
+    pdfEntitlement?.allowed,
+    pdfEntitlement?.state,
+    pdfEntitlement?.reason,
+    pdfEntitlement?.channel,
+    pdfEntitlement?.reportType,
+    pdfEntitlement?.accessLevel,
+    pdfEntitlement?.accessSource,
+  ].map((entry) => String(entry ?? '')).join(':');
   const t = COPY[language] || COPY.en;
   const level = levelFor(schema?.reportType);
 
   useEffect(() => {
-    if (!activated || !schema || schema.type !== 'maxxis_report_schema' || !exportEntitlements.PDF) return undefined;
+    const entitlement = pdfEntitlementRef.current;
+    if (!activated || !schema || schema.type !== 'maxxis_report_schema' || !entitlement) return undefined;
     let active = true;
     let loadingTask = null;
     let loadedDocument = null;
@@ -60,7 +73,7 @@ export function MaxxisCanonicalReportPreview({ schema, language = 'en', exportEn
     (async () => {
       const rendered = await renderMaxxisReportPdfCached({
         schema,
-        exportEntitlement: exportEntitlements.PDF,
+        exportEntitlement: entitlement,
         generatedAt: generatedAt || undefined,
         language,
       });
@@ -80,7 +93,7 @@ export function MaxxisCanonicalReportPreview({ schema, language = 'en', exportEn
       loadingTask?.destroy?.();
       loadedDocument?.destroy?.();
     };
-  }, [activated, schema, exportEntitlements.PDF, generatedAt, language]);
+  }, [activated, schema, pdfEntitlementKey, generatedAt, language]);
 
   const handlePageRendered = useCallback(() => setRenderedPages((current) => current + 1), []);
   const handlePageError = useCallback(() => setStatus('failed'), []);

@@ -32,4 +32,12 @@ describe('canonical report preview', () => {
     expect(css).toMatch(/\.maxxis-canonical-pages\s*\{[^}]*display:\s*grid/);
     expect(css).not.toContain('.maxxis-canonical-arrow');
   });
+
+  it('does not restart rendering when the parent recreates an equivalent entitlement object', () => {
+    const source = readFileSync(new URL('./MaxxisCanonicalReportPreview.jsx', import.meta.url), 'utf8');
+    expect(source).toContain('const pdfEntitlementKey = [');
+    expect(source).toContain('const pdfEntitlementRef = useRef(pdfEntitlement)');
+    expect(source).toContain('[activated, schema, pdfEntitlementKey, generatedAt, language]');
+    expect(source).not.toContain('[activated, schema, exportEntitlements.PDF, generatedAt, language]');
+  });
 });
