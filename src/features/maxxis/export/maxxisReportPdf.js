@@ -193,8 +193,9 @@ function text(doc, input, x, y, { size = 9, bold = false, color = C.ink, width =
   doc.setFontSize(size);
   doc.setTextColor(...color);
   const wrapped = width ? doc.splitTextToSize(value(input, ''), width) : [value(input, '')];
-  const lines = wrapped.slice(0, maxLines);
-  if (wrapped.length > maxLines && lines.length) lines[lines.length - 1] = `${lines[lines.length - 1].trimEnd()}…`;
+  const hasLineLimit = Number.isFinite(maxLines);
+  const lines = hasLineLimit ? wrapped.slice(0, maxLines) : wrapped;
+  if (hasLineLimit && wrapped.length > maxLines && lines.length) lines[lines.length - 1] = `${lines[lines.length - 1].trimEnd()}…`;
   doc.text(lines, x, y, { align });
   return y + lines.length * (size + 3);
 }
@@ -278,19 +279,26 @@ function heading(doc, title, x, y, w, accent) {
 }
 function rows(doc, items, x, y, w, {
   lineHeight = 24, labelWidth = 95, limit = 8, t,
-  labelSize = 8, valueSize = 8.5, valueMaxLines = 2,
+  labelSize = 8, valueSize = 8.5, valueMaxLines = 2, draw = true,
 } = {}) {
   let yy = y;
   items.slice(0, limit).forEach(([label, entry], i) => {
-    text(doc, label, x, yy, { size: labelSize, color: C.muted, width: labelWidth - 5, maxLines: 1 });
-    text(doc, displayValue(entry, t), x + labelWidth, yy, { size: valueSize, bold: true, width: w - labelWidth, maxLines: valueMaxLines });
-    const lines = Math.min(valueMaxLines, doc.splitTextToSize(displayValue(entry, t), w - labelWidth).length);
-    const step = Math.max(lineHeight, lines * (valueSize + 3) + 3);
-    if (i < Math.min(limit, items.length) - 1) {
-      doc.setDrawColor(...C.line); doc.line(x, yy + step - 10, x + w, yy + step - 10);
+    doc.setFont('NotoSans', 'normal'); doc.setFontSize(labelSize);
+    const labelLines = doc.splitTextToSize(value(label, ''), labelWidth - 5);
+    doc.setFont('NotoSans', 'bold'); doc.setFontSize(valueSize);
+    const valueLines = doc.splitTextToSize(displayValue(entry, t), w - labelWidth);
+    const visibleValueLines = Number.isFinite(valueMaxLines) ? Math.min(valueMaxLines, valueLines.length) : valueLines.length;
+    const step = Math.max(lineHeight, labelLines.length * (labelSize + 3) + 3, visibleValueLines * (valueSize + 3) + 3);
+    if (draw) {
+      text(doc, label, x, yy, { size: labelSize, color: C.muted, width: labelWidth - 5, maxLines: null });
+      text(doc, displayValue(entry, t), x + labelWidth, yy, { size: valueSize, bold: true, width: w - labelWidth, maxLines: valueMaxLines });
+    }
+    if (draw && i < Math.min(limit, items.length) - 1) {
+      doc.setDrawColor(...C.line); doc.line(x, yy + step - 3, x + w, yy + step - 3);
     }
     yy += step;
   });
+  return yy - y;
 }
 function listPanel(doc, title, items, x, y, w, h, t, accent, { positive = false } = {}) {
   const relevanceColor = positive ? C.green
@@ -401,7 +409,7 @@ function propertyReleaseHero(doc, property, t, accent, imageData) {
   return propertyHero(doc, property, t, accent, imageData);
 }
 function propertyFactGrid(doc, property, evidence, t, accent, y) {
-  const gap = 6; const w = (CONTENT - gap * 2) / 3; const h = 134;
+  const gap = 6; const w = (CONTENT - gap * 2) / 3;
   const owner = property.owner || {};
   const evidenceFacts = Object.fromEntries([
     ...array(evidence?.verifiedRecords), ...array(evidence?.userProvided),
@@ -411,20 +419,23 @@ function propertyFactGrid(doc, property, evidence, t, accent, y) {
   const latestSaleDate = fact('latestSaleDate', property.latestSaleDate);
   const latestSale = [
     fact('latestSalePrice', property.latestSalePrice) ? currency(fact('latestSalePrice', property.latestSalePrice), t) : null,
-    latestSaleDate ? String(latestSaleDate).slice(0, 10) : null,
+    latestSaleDate ? String(latestSaleDate) : null,
   ].filter(Boolean).join(' · ');
   const facts = [
     [t.owner, [[t.ownerName, owner.name], [t.ownerType, owner.type], [t.status, owner.status], [t.contacts, contacts], [t.ownerOccupied, fact('ownerOccupied', property.ownerOccupied)], [t.latestSale, latestSale]]],
     [t.facts, [[t.type, property.type], [t.strategy, property.objective], [t.yearBuilt, fact('yearBuilt', property.yearBuilt)], [t.beds, fact('bedrooms', property.beds)], [t.baths, fact('bathrooms', property.baths)], [t.sqft, fact('livingAreaSqft', property.sqft)]]],
     [t.land, [[t.location, [property.city, property.state].filter(Boolean).join(', ')], [t.county, fact('county', property.county)], [t.lot, fact('lotSizeSqft', property.lot)], [t.assessedValue, fact('assessedValue', property.assessedValue) ? currency(fact('assessedValue', property.assessedValue), t) : null], [t.propertyTax, fact('annualPropertyTax', property.annualPropertyTax) ? currency(fact('annualPropertyTax', property.annualPropertyTax), t) : null], [t.source, property.source]]],
   ];
+  const rowOptions = {
+    lineHeight: 14, labelWidth: 55, limit: 6, t,
+    labelSize: 7, valueSize: 6.8, valueMaxLines: null,
+  };
+  const contentHeight = Math.max(...facts.map(([, entries]) => rows(doc, entries, 0, 0, w - 20, { ...rowOptions, draw: false })));
+  const h = Math.max(134, 42 + contentHeight + 5);
   facts.forEach(([title, entries], i) => {
     const x = M + i * (w + gap); panel(doc, x, y, w, h);
     heading(doc, title, x + 10, y + 22, w - 20, accent);
-    rows(doc, entries, x + 10, y + 42, w - 20, {
-      lineHeight: 14, labelWidth: 55, limit: 6, t,
-      labelSize: 7, valueSize: 6.8, valueMaxLines: 1,
-    });
+    rows(doc, entries, x + 10, y + 42, w - 20, rowOptions);
   });
   return y + h;
 }
@@ -438,13 +449,13 @@ function propertyBottom(doc, property, t, accent, y, images, conflicts = [], map
   shown.forEach((image, index) => photo(doc, M + index * (photoWidth + photoGap), y + 31, photoWidth, 50, image, t, { cover: true, radius: 6 }));
   y += 90;
   const gap = 6; const locationWidth = Math.round((CONTENT - gap) * 0.6); const notesWidth = CONTENT - gap - locationWidth;
-  const bottomHeight = 243;
+  const bottomHeight = 797 - y;
   panel(doc, M, y, locationWidth, bottomHeight); heading(doc, t.location, M + 10, y + 23, locationWidth - 20, accent);
   text(doc, location(property) || t.unavailable, M + 11, y + 44, { size: 9, bold: true, width: locationWidth - 22, maxLines: 1 });
   if (mapImage) {
     try {
-      photo(doc, M + 7, y + 54, locationWidth - 14, 172, mapImage, t, { cover: true, radius: 6 });
-      text(doc, t.mapAttribution, M + 8, y + 237, { size: 5.8, color: C.muted, width: locationWidth - 16, maxLines: 1 });
+      photo(doc, M + 7, y + 54, locationWidth - 14, bottomHeight - 71, mapImage, t, { cover: true, radius: 6 });
+      text(doc, t.mapAttribution, M + 8, y + bottomHeight - 6, { size: 5.8, color: C.muted, width: locationWidth - 16, maxLines: 1 });
     } catch { /* Keep the coordinate fallback if the generated map cannot be embedded. */ }
   } else {
     if (property.latitude != null && property.longitude != null) text(doc, `${property.latitude}, ${property.longitude}`, M + 13, y + 73, { size: 8, color: C.muted });
@@ -455,8 +466,8 @@ function propertyBottom(doc, property, t, accent, y, images, conflicts = [], map
   text(doc, notes.text || localizedPropertyNotes(property, t), notesX + 11, y + 45, { size: 8.7, width: notesWidth - 22, maxLines: conflicts.length ? 15 : 18 });
   if (conflicts.length) text(doc, t.conflict, notesX + 11, y + 222, { size: 7.2, bold: true, color: C.gold, width: notesWidth - 22, maxLines: 2 });
 }
-function propertyReleaseBottom(doc, property, t, accent, images, mapImage) {
-  return propertyBottom(doc, property, t, accent, 464, images, [], mapImage);
+function propertyReleaseBottom(doc, property, t, accent, y, images, mapImage) {
+  return propertyBottom(doc, property, t, accent, y, images, [], mapImage);
 }
 function renderPropertyOverview(doc, schema, t, accent, images, mapImage) {
   const property = section(schema, 'propertySummary') || {};
@@ -465,21 +476,21 @@ function renderPropertyOverview(doc, schema, t, accent, images, mapImage) {
     ? schema.structuredAnalysis.propertyContextInterpretation : '';
   if (schema.reportType === 'PROPERTY_RELEASE') {
     propertyReleaseHero(doc, property, t, accent, images[0]);
-    propertyFactGrid(doc, property, evidence, t, accent, 315);
-    propertyReleaseBottom(doc, property, t, accent, images, mapImage);
+    const factGridBottom = propertyFactGrid(doc, property, evidence, t, accent, 315);
+    propertyReleaseBottom(doc, property, t, accent, factGridBottom + 15, images, mapImage);
     return;
   }
   propertyHero(doc, property, t, accent, images[0]);
-  propertyFactGrid(doc, property, evidence, t, accent, 315);
-  propertyBottom(doc, property, t, accent, 464, images, array(evidence.conflicts), mapImage, { text: translatedContext });
+  const factGridBottom = propertyFactGrid(doc, property, evidence, t, accent, 315);
+  propertyBottom(doc, property, t, accent, factGridBottom + 15, images, array(evidence.conflicts), mapImage, { text: translatedContext });
 }
 function renderExecutive(doc, schema, t, accent, images, mapImage) {
   const property = section(schema, 'propertySummary') || {};
   const summary = section(schema, 'executiveSummary') || {};
   propertyHero(doc, property, t, accent, images[0]);
-  propertyFactGrid(doc, property, {}, t, accent, 315);
+  const factGridBottom = propertyFactGrid(doc, property, {}, t, accent, 315);
   const summaryText = [summary.summary, ...positiveObservations(summary).map((item) => `• ${item}`)].filter(Boolean).join('\n');
-  propertyBottom(doc, property, t, accent, 464, images, [], mapImage, { title: t.opportunity, text: summaryText });
+  propertyBottom(doc, property, t, accent, factGridBottom + 15, images, [], mapImage, { title: t.opportunity, text: summaryText });
 }
 function profileRows(profile, t) {
   const profileCriterion = (criterion) => t.locale === 'en'

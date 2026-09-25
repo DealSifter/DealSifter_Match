@@ -80,13 +80,14 @@ describe('canonical PDF template behavior', () => {
     expect(source).toContain('doc.line(M, 803 + BODY_OFFSET, W - M, 803 + BODY_OFFSET)');
   });
 
-  it('keeps long property facts inside their cards before the photo section', () => {
+  it('preserves complete property facts and expands the layout before the photo section', () => {
     const source = readFileSync(new URL('./maxxisReportPdf.js', import.meta.url), 'utf8');
     const facts = source.split('function propertyFactGrid(')[1].split('function propertyBottom(')[0];
-    expect(facts).toContain('const h = 134');
-    expect(facts).toContain("String(latestSaleDate).slice(0, 10)");
+    expect(facts).toContain('const h = Math.max(134, 42 + contentHeight + 5)');
+    expect(facts).toContain('latestSaleDate ? String(latestSaleDate) : null');
     expect(facts).toContain('lineHeight: 14');
-    expect(facts).toContain('valueMaxLines: 1');
+    expect(facts).toContain('valueMaxLines: null');
+    expect(source).toContain('factGridBottom + 15');
   });
 
   it.each([
