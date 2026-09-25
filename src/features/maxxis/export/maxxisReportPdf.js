@@ -199,12 +199,12 @@ function blendColor(from, to, ratio) {
   return from.map((channel, index) => Math.round(channel + (to[index] - channel) * ratio));
 }
 function panel(doc, x, y, w, h, { fill = C.white, stroke = C.line, radius = 8, accent = null } = {}) {
+  if (accent) {
+    doc.setFillColor(...softColor(accent, .5));
+    doc.roundedRect(x - 3, y, w, h, radius, radius, 'F');
+  }
   doc.setFillColor(...fill); doc.setDrawColor(...stroke);
   doc.roundedRect(x, y, w, h, radius, radius, 'FD');
-  if (accent) {
-    doc.setFillColor(...accent);
-    doc.roundedRect(x + 1.5, y + 8, 3.5, Math.max(8, h - 16), 1.75, 1.75, 'F');
-  }
 }
 function iconKind(title) {
   const normalized = String(title || '').toLowerCase();
