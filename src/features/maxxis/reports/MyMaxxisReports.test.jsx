@@ -1,4 +1,5 @@
 import React from 'react';
+import { readFileSync } from 'node:fs';
 import { renderToStaticMarkup } from 'react-dom/server';
 import { describe, expect, it } from 'vitest';
 import { MyMaxxisReports } from './MyMaxxisReports';
@@ -26,5 +27,12 @@ describe('My Maxxis Reports', () => {
     expect(html).toContain('Incluído na assinatura');
     expect(html).not.toContain('DEAL INTELLIGENCE');
     expect(html).not.toContain('SUBSCRIPTION_INCLUDED');
+  });
+
+  it('keeps saved reports readable with the current dark-theme tokens', () => {
+    const css = readFileSync(new URL('./MyMaxxisReports.css', import.meta.url), 'utf8');
+    expect(css).toContain('[data-theme="dark"] .my-maxxis-reports');
+    expect(css).toContain('var(--card-bg,var(--card,#fff))');
+    expect(css).toContain('color:var(--t1,#0f172a)');
   });
 });

@@ -129,6 +129,13 @@ describe('Maxxis Deal AI structured result presentation', () => {
     expect(css).toMatch(/\.maxxis-inline-link:focus-visible/);
   });
 
+  it('maps legacy report tokens and gives the embedded preview a dark palette', () => {
+    const css = readFileSync(new URL('./MaxxisAssistant.css', import.meta.url), 'utf8');
+    expect(css).toMatch(/\.maxxis-panel\s*\{[\s\S]*?--surface:\s*var\(--card\)/);
+    expect(css).toMatch(/\[data-theme="dark"\] \.maxxis-report-v2\s*\{/);
+    expect(css).toMatch(/\.maxxis-v2-section-title\s*\{[\s\S]*?box-shadow:\s*3px -3px 0 #272d30/);
+  });
+
   it('renders safe external visual-review links and preserves structural evidence', () => {
     const html = renderToStaticMarkup(
       <MessageBubble

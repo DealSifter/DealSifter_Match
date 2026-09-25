@@ -261,9 +261,11 @@ function drawIcon(doc, kind, cx, cy, accent, size = 12) {
 }
 function heading(doc, title, x, y, w, accent) {
   doc.setFillColor(...C.graphite);
-  doc.roundedRect(x - 3, y - 20, w + 6, 28, 6, 6, 'F');
+  doc.roundedRect(x, y - 23, w + 5, 27, 6, 6, 'F');
+  doc.setFillColor(...softColor(accent, .88));
+  doc.roundedRect(x - 3, y - 19, w + 6, 27, 6, 6, 'F');
   drawIcon(doc, iconKind(title), x + 10, y - 6, accent, 20);
-  text(doc, title, x + 26, y - 1, { size: 11.4, bold: true, color: C.white, width: w - 29, maxLines: 1 });
+  text(doc, title, x + 26, y - 1, { size: 11.4, bold: true, color: C.ink, width: w - 29, maxLines: 1 });
 }
 function rows(doc, items, x, y, w, { lineHeight = 24, labelWidth = 95, limit = 8, t } = {}) {
   let yy = y;
@@ -554,7 +556,7 @@ function renderFit(doc, schema, t, accent) {
   } else text(doc, limitations.slice(0, 3).map((item) => reportNarrative(item, '', t.locale)).join(' • ') || t.noDetails, M + 12, evidenceY + 48, { size: 8, width: CONTENT - 24, maxLines: 3 });
   const focusY = 659; const priorities = array(perspective.priorities).slice(0, 4);
   panel(doc, M, focusY, CONTENT, 89, { accent }); heading(doc, t.investorFocus, M + 12, focusY + 26, CONTENT - 24, accent);
-  text(doc, displayValue(perspective.persona, t), W - M - 13, focusY + 25, { size: 7.2, bold: true, color: C.white, align: 'right', width: 170, maxLines: 1 });
+  text(doc, displayValue(perspective.persona, t), W - M - 13, focusY + 25, { size: 7.2, bold: true, color: C.ink, align: 'right', width: 170, maxLines: 1 });
   priorities.forEach((priority, index) => {
     const yy = focusY + 45 + index * 10.5; const barX = M + 190; const barWidth = CONTENT - 215;
     const priorityColor = [accent, C.blue, C.green, C.purple][index % 4];

@@ -1169,7 +1169,7 @@ export function MaxxisDealIntelligenceReportPreview({
         ? 2
         : 1;
   return (
-    <details className="maxxis-report-preview maxxis-report-v2">
+    <details className={`maxxis-report-preview maxxis-report-v2 is-${schema.reportType.toLowerCase()}`}>
       <summary>
         <span>{copy.open}</span>
         <span className="maxxis-v2-open-hint">
