@@ -35,4 +35,18 @@ describe('My Maxxis Reports', () => {
     expect(css).toContain('var(--card-bg,var(--card,#fff))');
     expect(css).toContain('color:var(--t1,#0f172a)');
   });
+
+  it('identifies every interactive report control with the pointer cursor', () => {
+    const css = readFileSync(new URL('./MyMaxxisReports.css', import.meta.url), 'utf8');
+    expect(css).toMatch(/\.my-maxxis-reports>header button\{[^}]*cursor:pointer/);
+    expect(css).toMatch(/\.my-maxxis-report-filters button,\.my-maxxis-report-list button\{[^}]*cursor:pointer/);
+    expect(css).toMatch(/\.my-maxxis-report-list button:disabled\{cursor:wait/);
+  });
+
+  it('uses an explicit trash icon for report deletion instead of an overflow menu', () => {
+    const source = readFileSync(new URL('./MyMaxxisReports.jsx', import.meta.url), 'utf8');
+    expect(source).toContain("import { Trash2 } from 'lucide-react'");
+    expect(source).toContain('<Trash2 aria-hidden="true"');
+    expect(source).not.toContain('>⋮</button>');
+  });
 });
