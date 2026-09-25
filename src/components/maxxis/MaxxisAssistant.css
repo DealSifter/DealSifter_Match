@@ -1541,14 +1541,15 @@ button.maxxis-action-link:hover {
 @keyframes maxxis-open-hint-blink { from { opacity: .48; } to { opacity: 1; } }
 .maxxis-v2-report { display: grid; gap: 8px; max-height: min(64vh, 620px); padding: 6px; overflow: auto; }
 .maxxis-v2-page { overflow: hidden; border: 1px solid #c9d5df; border-radius: 10px; background: #f7f9fb; box-shadow: 0 5px 16px rgba(15, 35, 55, .12); }
-.maxxis-v2-header { display: grid; grid-template-columns: 190px minmax(125px, 1fr) auto; align-items: center; gap: 9px; min-height: 64px; padding: 6px 10px; color: #fff; background: linear-gradient(115deg, #0b3448, #10283d 64%, #1f292e); }
+.maxxis-v2-header { display: grid; grid-template-columns: 190px minmax(125px, 1fr) auto; align-items: center; gap: 9px; min-height: 64px; padding: 6px 10px; color: #fff; background: #272d30; }
 .maxxis-v2-brand { position: relative; display: block; width: 190px; height: 48px; min-width: 0; }
 .maxxis-v2-brand img { display: block; width: 190px !important; max-width: none !important; height: auto !important; max-height: none !important; aspect-ratio: 580 / 111; object-fit: contain; object-position: left top; }
 .maxxis-v2-brand small { position: absolute; bottom: 1px; left: 48px; color: #20c6c7; font-size: 8px; line-height: 1; white-space: nowrap; }
 .maxxis-v2-header > div:not(.maxxis-v2-brand) { display: grid; gap: 3px; text-align: right; }
 .maxxis-v2-header strong { font-size: 10px; line-height: 1.2; }
 .maxxis-v2-header small { color: #c9d7e2; font-size: 7px; line-height: 1.2; }
-.maxxis-v2-header > span { padding: 5px 7px; border-radius: 6px; color: #102033; background: #f4b91f; font-size: 8px; font-weight: 900; letter-spacing: .06em; }
+.maxxis-v2-header > span { padding: 5px 7px; border-radius: 6px; color: #fff; background: var(--maxxis-report-accent); font-size: 8px; font-weight: 900; letter-spacing: .06em; }
+.maxxis-v2-header > span.is-level-3 { color: #102033; }
 .maxxis-v2-page-body { display: grid; gap: 6px; padding: 8px; font-size: 9.5px; line-height: 1.35; }
 .maxxis-v2-property-hero { display: grid; grid-template-columns: minmax(0, 1fr) minmax(150px, 44%); gap: 10px; align-items: center; }
 .maxxis-v2-property-hero img,
@@ -1584,6 +1585,8 @@ button.maxxis-action-link:hover {
 .maxxis-v2-info-card dt { color: #718192; font-size: 9px; }
 .maxxis-v2-info-card dd { display: grid; margin: 0; overflow-wrap: anywhere; font-size: 9px; font-weight: 700; text-align: right; }
 .maxxis-v2-info-card dd small { color: #168f91; font-size: 7px; }
+.maxxis-v2-info-card.is-narrative dl div { grid-template-columns: 22px minmax(0, 1fr); }
+.maxxis-v2-info-card.is-narrative dd { justify-items: start; text-align: left; }
 .maxxis-v2-metric-strip { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 5px; }
 .maxxis-v2-metric-strip > span { display: grid; grid-template-columns: auto 1fr; gap: 1px 5px; align-items: center; padding: 7px; border: 1px solid #d5dfe7; border-radius: 7px; background: #fff; }
 .maxxis-v2-metric-strip svg { grid-row: 1 / 3; width: 18px; color: #0e6f78; }
@@ -1599,7 +1602,8 @@ button.maxxis-action-link:hover {
 .maxxis-v2-notes p { margin: 7px 0 0; font-size: 9px; line-height: 1.45; }
 .maxxis-v2-photos { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 5px; margin-top: 6px; }
 .maxxis-v2-photos img { width: 100%; height: 64px; border-radius: 6px; object-fit: cover; }
-.maxxis-v2-relative-map { position: relative; height: 155px; overflow: hidden; border-radius: 9px; background: radial-gradient(circle, transparent 20%, rgba(32, 198, 199, .12) 21%, transparent 22%, transparent 42%, rgba(32, 198, 199, .12) 43%, transparent 44%), #dce9ef; }
+.maxxis-v2-relative-map { position: relative; height: 155px; overflow: hidden; border-radius: 9px; background-color: #e8f0eb; background-image: linear-gradient(24deg, transparent 46%, rgba(255,255,255,.96) 47% 51%, transparent 52%), linear-gradient(96deg, transparent 38%, rgba(255,255,255,.9) 39% 43%, transparent 44%), linear-gradient(rgba(150,174,164,.24) 1px, transparent 1px), linear-gradient(90deg, rgba(150,174,164,.24) 1px, transparent 1px); background-size: 100% 100%, 100% 100%, 34px 34px, 34px 34px; }
+.maxxis-v2-relative-map::before { content: ''; position: absolute; inset: 12% 67% 38% 7%; border-radius: 9px; background: rgba(121,190,112,.24); }
 .maxxis-v2-relative-map > span { position: absolute; top: 48%; left: var(--comp-offset, 50%); display: grid; place-items: center; width: 23px; height: 23px; border: 2px solid #fff; border-radius: 50%; color: #fff; background: #1a9da0; font-size: 8px; font-weight: 900; transform: translate(-50%, -50%); box-shadow: 0 2px 6px rgba(0, 0, 0, .2); }
 .maxxis-v2-relative-map > span.is-subject { top: 50%; left: 50%; width: 30px; height: 30px; background: #15384f; }
 .maxxis-v2-relative-map > span.is-support { background: #e6a416; }

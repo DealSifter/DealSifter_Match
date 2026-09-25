@@ -59,6 +59,8 @@ describe('Maxxis Deal Intelligence Report Experience v2', () => {
     expect(html).not.toContain('Sale Price');
     expect(html).not.toContain('maxxis-report-export-actions');
     expect(html).not.toContain('PDF export uses the same validated report structure');
+    expect(html).toContain('class="is-level-2">PRO</span>');
+    expect(html).toContain('maxxis-v2-info-card is-narrative');
   });
 
   it('renders the six-page Enterprise experience with approved report sections', () => {
@@ -74,6 +76,8 @@ describe('Maxxis Deal Intelligence Report Experience v2', () => {
     expect(html).toContain('WHOLESALER');
     expect((html.match(/MAXXIS EXECUTIVE SUMMARY/g) || [])).toHaveLength(2);
     expect(html).toContain('does not constitute appraisal');
+    expect(html).toContain('maxxis-v2-relative-map');
+    expect(html).toContain('class="is-level-3">ENTERPRISE</span>');
     expect(html).not.toMatch(/\b(?:BUY|SELL|GOOD DEAL|GUARANTEED)\b/);
   });
 

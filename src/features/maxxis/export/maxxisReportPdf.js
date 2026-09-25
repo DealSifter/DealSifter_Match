@@ -49,7 +49,7 @@ const COPY = Object.freeze({
     noComps: 'No recorded sold comparables available for this report.',
     noArv: 'ARV unavailable under the current deterministic evidence gates.',
     noDetails: 'No additional verified details available.', portfolio: 'Portfolio', yes: 'Yes', no: 'No',
-    coordinateMap: 'Schematic positions from stored coordinates; not a street map.',
+    coordinateMap: 'Schematic positions from stored coordinates; not a street map.', mapArea: 'MARKET AREA',
     address: 'Address', salePrice: 'Sale price', date: 'Date', distance: 'Distance', bedsBaths: 'Beds / Baths', similarity: 'Similarity',
     used: 'USED', supporting: 'SUPPORTING', excluded: 'EXCLUDED', totalComps: 'Comparable records', usedComparables: 'Used in analysis', averageSalePrice: 'Average sale price', averageSimilarity: 'Average similarity',
     compsUsed: 'Comps used', confidence: 'Confidence', pricePerSqft: 'Price / sqft',
@@ -89,7 +89,7 @@ const COPY = Object.freeze({
     noComps: 'Não há comparáveis vendidos registrados para este relatório.',
     noArv: 'ARV indisponível segundo os critérios determinísticos de evidência.',
     noDetails: 'Não há detalhes verificados adicionais.', portfolio: 'Portfólio', yes: 'Sim', no: 'Não',
-    coordinateMap: 'Posições esquemáticas das coordenadas armazenadas; não é um mapa de ruas.',
+    coordinateMap: 'Posições esquemáticas das coordenadas armazenadas; não é um mapa de ruas.', mapArea: 'ÁREA DE MERCADO',
     address: 'Endereço', salePrice: 'Preço de venda', date: 'Data', distance: 'Distância', bedsBaths: 'Quartos / Banhos', similarity: 'Similaridade',
     used: 'USADO', supporting: 'SUPORTE', excluded: 'EXCLUÍDO', totalComps: 'Registros comparáveis', usedComparables: 'Usados na análise', averageSalePrice: 'Preço médio de venda', averageSimilarity: 'Similaridade média',
     compsUsed: 'Comps usados', confidence: 'Confiança', pricePerSqft: 'Preço / sqft',
@@ -129,7 +129,7 @@ const COPY = Object.freeze({
     noComps: 'No hay comparables vendidos registrados para este informe.',
     noArv: 'ARV no disponible según los criterios determinísticos de evidencia.',
     noDetails: 'No hay detalles verificados adicionales.', portfolio: 'Cartera', yes: 'Sí', no: 'No',
-    coordinateMap: 'Posiciones esquemáticas de coordenadas guardadas; no es un mapa de calles.',
+    coordinateMap: 'Posiciones esquemáticas de coordenadas guardadas; no es un mapa de calles.', mapArea: 'ÁREA DE MERCADO',
     address: 'Dirección', salePrice: 'Precio de venta', date: 'Fecha', distance: 'Distancia', bedsBaths: 'Hab. / Baños', similarity: 'Similitud',
     used: 'USADO', supporting: 'APOYO', excluded: 'EXCLUIDO', totalComps: 'Registros comparables', usedComparables: 'Usados en el análisis', averageSalePrice: 'Precio medio de venta', averageSimilarity: 'Similitud media',
     compsUsed: 'Comps usados', confidence: 'Confianza', pricePerSqft: 'Precio / sqft',
@@ -175,7 +175,6 @@ const currency = (input, t) => Number.isFinite(Number(input)) && Number(input) >
   ? `$${Number(input).toLocaleString('en-US')}` : t.unavailable;
 const location = (property) => [property.city, [property.state, property.zip].filter(Boolean).join(' ')].filter(Boolean).join(', ');
 const accentFor = (type) => type === 'DEAL_INTELLIGENCE' ? C.gold : type === 'MAXXIS_ANALYSIS' ? C.green : C.teal;
-const themeFor = (type) => type === 'DEAL_INTELLIGENCE' ? C.graphite : C.navy;
 const productFor = (type, t) => type === 'DEAL_INTELLIGENCE' ? t.deal : type === 'MAXXIS_ANALYSIS' ? t.pro : t.property;
 const planFor = (type) => type === 'DEAL_INTELLIGENCE' ? 'ENTERPRISE' : type === 'MAXXIS_ANALYSIS' ? 'PRO' : 'FREE';
 
@@ -296,7 +295,7 @@ function listPanel(doc, title, items, x, y, w, h, t, accent, { positive = false 
   }
 }
 function pageHeader(doc, schema, pageCode, t) {
-  const theme = themeFor(schema.reportType); const accent = accentFor(schema.reportType);
+  const theme = C.graphite; const accent = accentFor(schema.reportType);
   doc.setFillColor(...theme); doc.rect(0, 0, W, 86, 'F');
   // Never infer a second dimension for the brand. Derive it from the source
   // bitmap on every render so the logo cannot be compressed by layout changes.
@@ -312,6 +311,21 @@ function pageHeader(doc, schema, pageCode, t) {
   text(doc, schema.reportType === 'PROPERTY_RELEASE' ? 'FREE' : planFor(schema.reportType), planX + planWidth / 2, 40, { size: 8.2, bold: true, color: schema.reportType === 'DEAL_INTELLIGENCE' ? C.ink : C.white, align: 'center' });
   heading(doc, t[pageCode] || pageCode, M, 108, CONTENT, accent);
   return { accent, theme };
+}
+function schematicComparableMap(doc, x, y, w, h, accent, label) {
+  doc.setFillColor(235, 242, 238); doc.roundedRect(x, y, w, h, 6, 6, 'F');
+  doc.setFillColor(210, 233, 205); doc.roundedRect(x + w * .08, y + h * .12, w * .24, h * .56, 8, 8, 'F');
+  doc.setFillColor(220, 239, 245); doc.roundedRect(x + w * .74, y, w * .26, h, 4, 4, 'F');
+  doc.setDrawColor(255, 255, 255); doc.setLineCap('round');
+  doc.setLineWidth(10); doc.line(x - 5, y + h * .77, x + w + 5, y + h * .46);
+  doc.setLineWidth(7); doc.line(x + w * .41, y - 4, x + w * .55, y + h + 4);
+  doc.line(x - 4, y + h * .28, x + w * .72, y + h * .2);
+  doc.setDrawColor(202, 215, 210); doc.setLineWidth(1.2);
+  [0.18, 0.36, 0.58, 0.82].forEach((ratio) => doc.line(x + w * ratio, y + 4, x + w * ratio, y + h - 4));
+  [0.18, 0.4, 0.64, 0.84].forEach((ratio) => doc.line(x + 4, y + h * ratio, x + w - 4, y + h * ratio));
+  doc.setFillColor(...softColor(accent, .42)); doc.roundedRect(x + w * .12, y + h * .24, w * .15, h * .2, 4, 4, 'F');
+  text(doc, label, x + w * .12, y + h * .56, { size: 7, bold: true, color: darkColor(accent, .18) });
+  doc.setLineCap('butt'); doc.setLineWidth(.2);
 }
 function pageFooter(doc, page, total, generatedAt, language, t) {
   doc.setDrawColor(...C.line); doc.line(M, 803, W - M, 803);
@@ -606,6 +620,7 @@ function renderComparables(doc, schema, t, accent, comparableMap) {
     photo(doc, M + 10, 251, CONTENT - 20, 135, comparableMap, t, { cover: true, radius: 6 });
     text(doc, t.mapAttribution, M + 14, 394, { size: 6, color: C.muted });
   } else if (points.length > 1) {
+    schematicComparableMap(doc, M + 10, 251, CONTENT - 20, 135, accent, t.mapArea);
     const lat = points.map((p) => Number(p.latitude)); const lon = points.map((p) => Number(p.longitude));
     const minLat = Math.min(...lat); const minLon = Math.min(...lon); const spanLat = Math.max(0.001, Math.max(...lat) - minLat); const spanLon = Math.max(0.001, Math.max(...lon) - minLon);
     points.slice(0, 9).forEach((p, i) => {

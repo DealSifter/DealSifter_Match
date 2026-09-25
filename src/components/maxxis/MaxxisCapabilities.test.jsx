@@ -136,6 +136,9 @@ describe('Maxxis Deal AI structured result presentation', () => {
     expect(css).toMatch(/\.maxxis-v2-page\s*\{[\s\S]*?background:\s*#f7f9fb/);
     expect(css).not.toMatch(/\[data-theme="dark"\] \.maxxis-v2-page\s*\{/);
     expect(css).toMatch(/\.maxxis-v2-section-title\s*\{[\s\S]*?box-shadow:\s*0 -3px 0 rgba\(39, 45, 48, \.5\)/);
+    expect(css).toMatch(/\.maxxis-v2-header\s*\{[^}]*background:\s*#272d30/);
+    expect(css).toMatch(/\.maxxis-v2-header > span\s*\{[^}]*background:\s*var\(--maxxis-report-accent\)/);
+    expect(css).toMatch(/\.maxxis-v2-info-card\.is-narrative dd\s*\{[^}]*text-align:\s*left/);
   });
 
   it('renders safe external visual-review links and preserves structural evidence', () => {

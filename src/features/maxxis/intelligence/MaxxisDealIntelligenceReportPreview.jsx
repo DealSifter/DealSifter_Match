@@ -263,7 +263,9 @@ function ReportHeader({ level, subtitle, copy }) {
         <strong>{product}</strong>
         <small>{subtitle}</small>
       </div>
-      <span>{level === 3 ? "ENTERPRISE" : level === 2 ? "PRO" : "FREE"}</span>
+      <span className={`is-level-${level}`}>
+        {level === 3 ? "ENTERPRISE" : level === 2 ? "PRO" : "FREE"}
+      </span>
     </header>
   );
 }
@@ -324,9 +326,9 @@ function SectionTitle({ icon = FileText, children }) {
   );
 }
 
-function InfoCard({ title, rows, icon }) {
+function InfoCard({ title, rows, icon, narrative = false }) {
   return (
-    <section className="maxxis-v2-info-card">
+    <section className={`maxxis-v2-info-card${narrative ? " is-narrative" : ""}`}>
       <SectionTitle icon={icon}>{title}</SectionTitle>
       <dl>
         {rows.length ? (
@@ -1047,6 +1049,7 @@ function InsightsPage({ schema, copy, page = 5, level = 3 }) {
         <InfoCard
           icon={CheckCircle}
           title={copy.positive}
+          narrative
           rows={observations.map((item, index) => [
             `${index + 1}`,
             text(item.explanation || item, copy.unknown),
@@ -1056,6 +1059,7 @@ function InsightsPage({ schema, copy, page = 5, level = 3 }) {
         <InfoCard
           icon={AlertTriangle}
           title={copy.missing}
+          narrative
           rows={limitations
             .filter((item) => /unknown|missing|unavailable|none/i.test(item))
             .map((item, index) => [`${index + 1}`, item])}
@@ -1063,11 +1067,13 @@ function InsightsPage({ schema, copy, page = 5, level = 3 }) {
         <InfoCard
           icon={Wrench}
           title={copy.considerations}
+          narrative
           rows={limitations.map((item, index) => [`${index + 1}`, item])}
         />
         <InfoCard
           icon={ListChecks}
           title={copy.steps}
+          narrative
           rows={checks.map((item, index) => [`${index + 1}`, item])}
         />
       </div>
@@ -1105,6 +1111,7 @@ function MaxxisAnalysisPage({ schema, copy, page = 6, level = 3 }) {
           <InfoCard
             icon={Target}
             title={copy.conclusion}
+            narrative
             rows={[
               [
                 "Evidence",
@@ -1129,6 +1136,7 @@ function MaxxisAnalysisPage({ schema, copy, page = 6, level = 3 }) {
           <InfoCard
             icon={BarChart3}
             title={copy.topics}
+            narrative
             rows={risks.map((risk, index) => [
               `${index + 1}`,
               `${displayLabel(risk.category)}: ${displayLabel(risk.reason || risk.explanation)}`,
@@ -1138,6 +1146,7 @@ function MaxxisAnalysisPage({ schema, copy, page = 6, level = 3 }) {
         <InfoCard
           icon={AlertTriangle}
           title={copy.questions}
+          narrative
           rows={checks
             .slice(0, 4)
             .map((item, index) => [
@@ -1148,6 +1157,7 @@ function MaxxisAnalysisPage({ schema, copy, page = 6, level = 3 }) {
         <InfoCard
           icon={ListChecks}
           title={copy.actions}
+          narrative
           rows={checks.map((item, index) => [`${index + 1}`, item])}
         />
         <p className="maxxis-v2-disclaimer">{copy.disclaimer}</p>
