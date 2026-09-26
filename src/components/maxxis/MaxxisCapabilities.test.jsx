@@ -183,6 +183,23 @@ describe('Maxxis Deal AI structured result presentation', () => {
     expect(html).toContain('View evidence');
   });
 
+  it('renders only the material inputs requested by the analysis completeness gate', () => {
+    const html = renderToStaticMarkup(
+      <MessageBubble
+        language="pt"
+        message={{ id: 'analysis-gap', role: 'assistant', type: 'analysis_gap_resolution',
+          content: 'Preciso confirmar os dados ausentes.', data: {
+            propertyId: 'f38e9347-49ec-413e-a554-230c4059bb2b',
+            missingUserInputs: ['rehab_budget', 'target_condition'],
+          } }}
+      />,
+    );
+    expect(html).toContain('Completar a análise');
+    expect(html).toContain('Condição alvo');
+    expect(html).toContain('Orçamento de reforma');
+    expect(html).toContain('Continuar com limitações');
+  });
+
   it('renders Deal Intelligence answer-first with profile-fit semantics and no unavailable ARV value', () => {
     const html = renderToStaticMarkup(
       <MessageBubble

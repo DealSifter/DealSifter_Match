@@ -34,6 +34,13 @@ describe('MaxxisStructuredAnalysis', () => {
     expect(analysis.valuationAnalysis.currentPositioning).toContain('$1,194.23');
     expect(analysis.strategySpecificInsights[0]).toContain('Buy and Hold');
     expect(JSON.stringify(analysis)).not.toMatch(/MISSING_REHAB|roi_not_calculated|arv_not_structured/);
+    expect(analysis).toMatchObject({
+      investmentThesis: expect.any(String),
+      profileFit: { score: 62, strengths: expect.any(Array), mismatches: expect.any(Array), unknownCriteria: expect.any(Array) },
+      marketAnalysis: { interpretation: expect.any(String), evidence: expect.any(Array) },
+      comparablesAnalysis: { candidatesConsidered: 0, selected: [] },
+      valuationAnalysis: { providerEstimate: 2236000, providerEstimateRole: 'SUPPORTING_EVIDENCE_ONLY', arv: null },
+    });
   });
 
   it('keeps provider AVM separate from DealSifter ARV and invents neither comps nor ARV', () => {

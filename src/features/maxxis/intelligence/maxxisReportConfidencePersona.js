@@ -21,16 +21,21 @@ function personaText(investorContext) {
   ].join(' ').normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase();
 }
 
-export function resolveMaxxisInvestorPersona(investorContext = {}) {
+export function resolveMaxxisInvestorPersona(investorContext = {}, language = 'en') {
   const value = personaText(investorContext);
   const persona = /tax deed|tax lien|leilao fiscal|subasta fiscal/.test(value) ? 'TAX_DEED_INVESTOR'
     : /wholesal|atacad/.test(value) ? 'WHOLESALER'
       : /fix\s*(?:and|&)\s*flip|flipp|reabilit/.test(value) ? 'FLIPPER'
         : /buy\s*(?:and|&)\s*hold|rental|rent|loca[cç][aã]o/.test(value) ? 'BUY_AND_HOLD'
           : 'GENERAL_INVESTOR';
+  const translatedMessage = language === 'pt'
+    ? ({ WHOLESALER: 'Foco na margem potencial e nas verificações necessárias.', FLIPPER: 'Foco nas premissas de reforma e na incerteza do valor de saída.', BUY_AND_HOLD: 'Foco nas premissas de renda e no desempenho operacional.', TAX_DEED_INVESTOR: 'Foco na validação de titularidade e na diligência jurídica.', GENERAL_INVESTOR: 'Foco nas evidências disponíveis, incertezas e verificações necessárias.' }[persona])
+    : language === 'es'
+      ? ({ WHOLESALER: 'Enfoque en el margen potencial y las verificaciones necesarias.', FLIPPER: 'Enfoque en los supuestos de reforma y la incertidumbre del valor de salida.', BUY_AND_HOLD: 'Enfoque en los supuestos de renta y el desempeño operativo.', TAX_DEED_INVESTOR: 'Enfoque en la validación de titularidad y la diligencia legal.', GENERAL_INVESTOR: 'Enfoque en la evidencia disponible, las incertidumbres y las verificaciones necesarias.' }[persona])
+      : PERSONAS[persona].message;
   return Object.freeze({
     version: MAXXIS_INVESTOR_PERSONA_VERSION, persona,
-    priorities: PERSONAS[persona].priorities, message: PERSONAS[persona].message,
+    priorities: PERSONAS[persona].priorities, message: translatedMessage,
     sourceType: value ? 'USER_PROVIDED' : 'UNKNOWN', narrativeOnly: true,
   });
 }
@@ -91,9 +96,9 @@ function missingImpactComponent(context) {
   return Object.freeze({ code: 'MISSING_INFORMATION_IMPACT', score: clamp(100 - (material.length * 12)), status: 'CALCULATED', sourceType: 'CALCULATED', inputs: Object.freeze({ materialMissingItems: material }) });
 }
 
-function classification(score, hasUnknown) {
-  if (hasUnknown) return 'LIMITED';
-  if (score >= 80 && !hasUnknown) return 'HIGH';
+function classification(score) {
+  if (score === null) return 'LIMITED';
+  if (score >= 80) return 'HIGH';
   if (score >= 60) return 'MODERATE';
   return 'LIMITED';
 }
@@ -122,14 +127,26 @@ export function buildMaxxisAnalysisConfidence(context, { now = Date.now() } = {}
   ]).slice(0, 8);
   return Object.freeze({
     version: MAXXIS_ANALYSIS_CONFIDENCE_VERSION, label: 'MAXXIS ANALYSIS CONFIDENCE',
-    score, classification: classification(score, components.some((item) => item.score === null)),
+    score, classification: classification(score),
     semantics: 'ANALYSIS_COMPLETENESS_AND_RELIABILITY_ONLY', notPropertyScore: true,
+    evidenceCompletenessScore: evidence.score,
+    valuationConfidence: context?.valuationContext?.confidence || 'UNAVAILABLE',
     components, contributors: Object.freeze(contributors), limitations: Object.freeze(limitations),
     coverage: Math.round(availableWeight * 100), sourceType: 'CALCULATED',
   });
 }
 
-export function buildMaxxisExecutiveSummaryIntelligence(context, confidence, persona) {
+export function buildMaxxisExecutiveSummaryIntelligence(context, confidence, persona, structuredAnalysis = null) {
+  if (structuredAnalysis?.type === 'maxxis_structured_analysis') {
+    return Object.freeze({ sourceType: 'CALCULATED', lines: Object.freeze(unique([
+      structuredAnalysis.executiveSummary,
+      structuredAnalysis.opportunityAssessment,
+      structuredAnalysis.comparablesAnalysis?.interpretation || structuredAnalysis.comparativeAnalysis?.interpretation,
+      structuredAnalysis.valuationAnalysis?.confidenceInterpretation,
+      structuredAnalysis.riskAnalysis?.rationale?.[0],
+      structuredAnalysis.recommendedVerificationSteps?.[0],
+    ].map((item) => String(item || '').trim())).slice(0, 6)) });
+  }
   const evidence = context?.evidenceSummary || {};
   const fit = context?.matchContext;
   const valuation = context?.valuationContext || {};

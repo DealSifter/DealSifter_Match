@@ -57,7 +57,11 @@ export type NormalizedSoldRecordPool = {
 };
 
 export interface SoldRecordDataProvider {
-  getSoldRecordPool(input: PropertyLookupInput & { policy: SoldSearchPolicy; queryFingerprint: string }): Promise<NormalizedSoldRecordPool>;
+  getSoldRecordPool(input: PropertyLookupInput & {
+    policy: SoldSearchPolicy;
+    queryFingerprint: string;
+    searchCenter?: { latitude: number; longitude: number } | null;
+  }): Promise<NormalizedSoldRecordPool>;
 }
 
 export type SoldMatchStrength = 'EXACT' | 'STRONG' | 'AMBIGUOUS' | 'NO_MATCH';

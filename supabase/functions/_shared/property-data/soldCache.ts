@@ -26,8 +26,14 @@ export function normalizeSoldPoolCacheTtlHours(value: unknown) {
   return Math.min(2_160, Math.trunc(parsed));
 }
 
-export async function soldSearchQueryFingerprint(addressFingerprint: string, policy: SoldSearchPolicy) {
-  const canonical = JSON.stringify({ addressFingerprint, radiusMiles: policy.radiusMiles,
+export async function soldSearchQueryFingerprint(addressFingerprint: string, policy: SoldSearchPolicy,
+  searchCenter: { latitude: number; longitude: number } | null = null) {
+  const canonical = JSON.stringify({ version: 2, addressFingerprint,
+    searchCenter: searchCenter ? {
+      latitude: Math.round(searchCenter.latitude * 1_000_000) / 1_000_000,
+      longitude: Math.round(searchCenter.longitude * 1_000_000) / 1_000_000,
+    } : null,
+    radiusMiles: policy.radiusMiles,
     saleDateRangeDays: policy.saleDateRangeDays, propertyType: policy.propertyType, limit: policy.limit });
   const digest = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(canonical));
   return Array.from(new Uint8Array(digest), (value) => value.toString(16).padStart(2, '0')).join('');

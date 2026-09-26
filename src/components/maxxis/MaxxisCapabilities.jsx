@@ -12,6 +12,7 @@ import { MaxxisDealIntelligenceResponse } from '../../features/maxxis/intelligen
 import { MaxxisAnalysisReportExperience } from '../../features/maxxis/intelligence/MaxxisAnalysisReportExperience';
 import { MaxxisDealIntelligenceExperience } from '../../features/maxxis/intelligence/MaxxisDealIntelligenceExperience';
 import { MaxxisIntelligenceUpgradeModal } from '../../features/maxxis/access/MaxxisIntelligenceUpgradeModal';
+import { MaxxisAnalysisGapResolution } from '../../features/maxxis/intelligence/MaxxisAnalysisGapResolution';
 
 export const UUID_PATTERN = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
 
@@ -1606,6 +1607,9 @@ export function MessageBubble({
   onSaveArvCompReview,
   activeArvReviewKey,
   onRequestIntelligenceUnlock,
+  onResolveAnalysisGaps,
+  onDeclineAnalysisGaps,
+  activeAnalysisGapId,
 }) {
   const isUser = message.role === 'user';
   const isReportResult = ['maxxis_analysis_report', 'maxxis_deal_intelligence'].includes(message.type);
@@ -1976,6 +1980,15 @@ export function MessageBubble({
           onSetTarget={onSetArvTargetCondition}
           onSaveReview={onSaveArvCompReview}
           activeReviewKey={activeArvReviewKey}
+        />
+      ) : null}
+      {message.type === 'analysis_gap_resolution' ? (
+        <MaxxisAnalysisGapResolution
+          message={message}
+          language={language}
+          busy={activeAnalysisGapId === message.id}
+          onResolve={onResolveAnalysisGaps}
+          onDecline={onDeclineAnalysisGaps}
         />
       ) : null}
       {(message.type === 'deal_memory_recall' || message.type === 'deal_memory_forget_confirmation') ? (

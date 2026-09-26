@@ -118,6 +118,7 @@ import {
 import { buildMaxxisIntelligenceUpgradeExperience } from '../../features/maxxis/access/maxxisIntelligenceUpgrade';
 import { resolveReportExportEntitlement, resolveReportExportEntitlements } from '../../features/maxxis/export/reportExportEntitlement';
 import { withCurrentReportExportEntitlements } from '../../features/maxxis/export/reportMessageEntitlements';
+import { declineMaxxisAnalysisInputs, saveMaxxisAnalysisInputs } from '../../services/maxxisAnalysisInputsService';
 import { downloadMaxxisReportPdf, renderMaxxisReportPdf, renderMaxxisReportPdfCached } from '../../features/maxxis/export/maxxisReportPdf';
 import { didStructuredReportGenerationFail, hasUsableStructuredReportFallback } from '../../features/maxxis/intelligence/maxxisStructuredReportFallback';
 import { MyMaxxisReports } from '../../features/maxxis/reports/MyMaxxisReports';
@@ -201,6 +202,7 @@ export function MaxxisAssistant({ page = 'dashboard', onOpenSupport = null, onNa
   const [activeProviderConversationAnalysisId, setActiveProviderConversationAnalysisId] = useState('');
   const [activeWorkflowItemCode, setActiveWorkflowItemCode] = useState('');
   const [activeArvReviewKey, setActiveArvReviewKey] = useState('');
+  const [activeAnalysisGapId, setActiveAnalysisGapId] = useState('');
   const [pendingProviderUnlock, setPendingProviderUnlock] = useState(null);
   const [pendingProviderMessageSend, setPendingProviderMessageSend] = useState(null);
   const [devAvatarPresentation, setDevAvatarPresentation] = useState(readDevMaxxisAvatarPresentation);
@@ -1211,6 +1213,26 @@ export function MaxxisAssistant({ page = 'dashboard', onOpenSupport = null, onNa
         requestedCapability: requestedReportType || meta.reportType || analysisContext?.report_type || '',
         propertyAnalysisContext: analysisContext || null,
       });
+      const completenessGate = result?.data?.evidenceCompletenessGate;
+      if (requestedReportType && completenessGate?.status === 'USER_INPUT_REQUIRED') {
+        setMessages((prev) => [...prev, {
+          id: `maxxis-analysis-gap-${Date.now()}`,
+          role: 'assistant',
+          content: completenessGate.question,
+          createdAt: new Date(),
+          type: 'analysis_gap_resolution',
+          data: {
+            ...completenessGate,
+            propertyId: String(result?.data?.propertyId || resolvedPropertyId || propertyContextId || ''),
+            reportType: requestedReportType,
+            originalRequest: cleanMessage,
+            reportProperty: meta.reportProperty || null,
+            reportAccessDecision: authorizedReportAccess || meta.reportAccessDecision || null,
+            analysisExport: meta.analysisExport || null,
+          },
+        }]);
+        return;
+      }
       const responseType = String(result?.type || 'text');
       if (responseType === 'properties') {
         void trackProductEvent('maxxis_property_search', { dedupeKey: `maxxis-search:${userMessage.id}`, properties: { source: 'maxxis', response_type: responseType } });
@@ -1394,6 +1416,68 @@ export function MaxxisAssistant({ page = 'dashboard', onOpenSupport = null, onNa
       markArvReviewError(messageId);
     } finally {
       setActiveArvReviewKey('');
+    }
+  };
+
+  const continueGatedAnalysis = (message, visibleUserMessage) => {
+    const data = message?.data || {};
+    void submitMessageRef.current?.(data.originalRequest || visibleUserMessage, {
+      visibleUserMessage,
+      reportType: data.reportType,
+      reportProperty: data.reportProperty,
+      reportAccessDecision: data.reportAccessDecision,
+      analysisExport: data.analysisExport,
+      propertyAnalysisContext: {
+        mode: 'PROPERTY_ANALYSIS_MODE',
+        property_id: data.propertyId,
+        report_type: data.reportType,
+      },
+    });
+  };
+
+  const handleResolveAnalysisGaps = async (message, values) => {
+    const messageId = String(message?.id || '');
+    const propertyId = String(message?.data?.propertyId || '');
+    if (!messageId || !propertyId || activeAnalysisGapId) return;
+    setActiveAnalysisGapId(messageId);
+    try {
+      await saveMaxxisAnalysisInputs(propertyId, values);
+      setMessages((prev) => prev.map((item) => item.id === messageId
+        ? { ...item, type: 'analysis_gap_resolved', content: language === 'pt'
+          ? 'Informações registradas como fornecidas pelo usuário. Recalculando somente as partes afetadas.'
+          : language === 'es' ? 'Información registrada como aportada por el usuario. Recalculando solo las partes afectadas.'
+            : 'Inputs saved as user-provided evidence. Recalculating only the affected analysis.' }
+        : item));
+      continueGatedAnalysis(message, language === 'pt' ? 'Continuar análise com as informações fornecidas.'
+        : language === 'es' ? 'Continuar el análisis con la información proporcionada.' : 'Continue analysis with the supplied inputs.');
+    } catch (error) {
+      captureAppException(error, { area: 'maxxis_analysis_gap_resolution', propertyId });
+      setMessages((prev) => prev.map((item) => item.id === messageId
+        ? { ...item, data: { ...item.data, error: t.unavailable } } : item));
+    } finally {
+      setActiveAnalysisGapId('');
+    }
+  };
+
+  const handleDeclineAnalysisGaps = async (message, fields) => {
+    const messageId = String(message?.id || '');
+    const propertyId = String(message?.data?.propertyId || '');
+    if (!messageId || !propertyId || activeAnalysisGapId) return;
+    setActiveAnalysisGapId(messageId);
+    try {
+      await declineMaxxisAnalysisInputs(propertyId, fields);
+      setMessages((prev) => prev.map((item) => item.id === messageId
+        ? { ...item, type: 'analysis_gap_resolved', content: language === 'pt'
+          ? 'Tudo bem. O relatório continuará com limitações explícitas para os dados não informados.'
+          : language === 'es' ? 'De acuerdo. El informe continuará con limitaciones explícitas para los datos no informados.'
+            : 'Understood. The report will continue with explicit limitations for the unavailable inputs.' }
+        : item));
+      continueGatedAnalysis(message, language === 'pt' ? 'Continuar com limitações explícitas.'
+        : language === 'es' ? 'Continuar con limitaciones explícitas.' : 'Continue with explicit limitations.');
+    } catch (error) {
+      captureAppException(error, { area: 'maxxis_analysis_gap_decline', propertyId });
+    } finally {
+      setActiveAnalysisGapId('');
     }
   };
 
@@ -2580,6 +2664,9 @@ export function MaxxisAssistant({ page = 'dashboard', onOpenSupport = null, onNa
                   onSaveArvCompReview={handleSaveArvCompReview}
                   activeArvReviewKey={activeArvReviewKey}
                   onRequestIntelligenceUnlock={onRequestIntelligenceUnlock}
+                  onResolveAnalysisGaps={handleResolveAnalysisGaps}
+                  onDeclineAnalysisGaps={handleDeclineAnalysisGaps}
+                  activeAnalysisGapId={activeAnalysisGapId}
                 />
               );
             })}

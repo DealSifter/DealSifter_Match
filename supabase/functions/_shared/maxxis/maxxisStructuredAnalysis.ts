@@ -110,18 +110,21 @@ function fitAnalysis(context: AnyRecord, language: AnalysisLanguage) {
       : localized(language, `${label} is not confirmed as a profile match.`, `${label} não está confirmado como aderente ao perfil.`, `${label} no está confirmado como compatible con el perfil.`);
   };
   const strengths = unique(reasons.filter((item) => item?.status === 'matched').map((item) => reasonText(item, true)));
-  const mismatches = unique(reasons.filter((item) => item?.status !== 'matched').map((item) => reasonText(item, false)));
+  const mismatches = unique(reasons.filter((item) => item?.status === 'not_matched').map((item) => reasonText(item, false)));
+  const unknownCriteria = unique(reasons.filter((item) => item?.status !== 'matched' && item?.status !== 'not_matched')
+    .map((item) => reasonText(item, false)));
   const score = finite(match.score);
   const overallAssessment = score === null
     ? localized(language, 'Investment Profile alignment cannot be fully evaluated from the available criteria.', 'A aderência ao Perfil de Investimento não pode ser avaliada integralmente com os critérios disponíveis.', 'La compatibilidad con el Perfil de Inversión no puede evaluarse por completo con los criterios disponibles.')
     : localized(language, `The property has ${score}% alignment with the configured Investment Profile; this is a profile-fit measure, not a deal-quality score.`, `O imóvel apresenta ${score}% de aderência ao Perfil de Investimento configurado; esta é uma medida de compatibilidade com o perfil, não uma nota de qualidade do negócio.`, `La propiedad presenta ${score}% de compatibilidad con el Perfil de Inversión configurado; esta es una medida de afinidad con el perfil, no una puntuación de calidad del negocio.`);
-  const rationaleParts = [...strengths.slice(0, 2), ...mismatches.slice(0, 2)];
+  const rationaleParts = [...strengths.slice(0, 2), ...mismatches.slice(0, 2), ...unknownCriteria.slice(0, 1)];
   return {
     overallAssessment,
     fitRationale: rationaleParts.length
       ? `${overallAssessment} ${rationaleParts.join(' ')}` : overallAssessment,
     strengths,
     mismatches,
+    unknownCriteria,
   };
 }
 
@@ -178,6 +181,17 @@ function valuationAnalysis(context: AnyRecord, language: AnalysisLanguage) {
     ...(!record(metrics.acquisitionPlusRehab).calculable ? [localized(language, 'ROI and spread scenarios remain limited until acquisition and rehabilitation inputs are complete.', 'Os cenários de ROI e margem permanecem limitados até que os dados de aquisição e reforma estejam completos.', 'Los escenarios de ROI y margen permanecen limitados hasta completar los datos de adquisición y reforma.')] : []),
   ]);
   return {
+    providerEstimate,
+    providerEstimateRole: providerEstimate !== null ? 'SUPPORTING_EVIDENCE_ONLY' : 'UNAVAILABLE',
+    arv: arvAvailable ? {
+      rangeLow: finite(valuation.range.low), rangeHigh: finite(valuation.range.high),
+      centralReference: finite(valuation.centralReference),
+    } : null,
+    confidence: arvAvailable ? text(valuation.confidence) : 'LOW',
+    pricePositioning: record(metrics.pricePerSqft).calculable ? finite(record(metrics.pricePerSqft).value) : null,
+    rehabImpact: record(metrics.acquisitionPlusRehab).calculable
+      ? localized(language, 'The supplied rehabilitation budget is included in the deterministic acquisition-plus-rehab total.', 'O orçamento de reforma informado está incluído no total determinístico de aquisição mais reforma.', 'El presupuesto de reforma informado está incluido en el total determinístico de adquisición más reforma.')
+      : localized(language, 'Rehabilitation impact cannot be quantified until a budget is supplied.', 'O impacto da reforma não pode ser quantificado até que um orçamento seja informado.', 'El impacto de la reforma no puede cuantificarse hasta que se informe un presupuesto.'),
     currentPositioning: record(metrics.pricePerSqft).calculable
       ? localized(language, `The stored asking price equates to ${Number(record(metrics.pricePerSqft).value).toLocaleString('en-US', { style: 'currency', currency: 'USD' })} per square foot; this is a deterministic positioning metric, not a valuation conclusion.`, `O preço pedido registrado equivale a ${Number(record(metrics.pricePerSqft).value).toLocaleString('en-US', { style: 'currency', currency: 'USD' })} por pé quadrado; esta é uma métrica determinística de posicionamento, não uma conclusão de valor.`, `El precio solicitado registrado equivale a ${Number(record(metrics.pricePerSqft).value).toLocaleString('en-US', { style: 'currency', currency: 'USD' })} por pie cuadrado; esta es una métrica determinística de posicionamiento, no una conclusión de valor.`)
       : localized(language, 'Price-per-square-foot positioning cannot be calculated from the currently available facts.', 'O posicionamento por preço por pé quadrado não pode ser calculado com os dados disponíveis.', 'El posicionamiento por precio por pie cuadrado no puede calcularse con los datos disponibles.'),
@@ -321,17 +335,39 @@ export function buildMaxxisStructuredAnalysis(snapshotInput: unknown, reportType
     : localized(language, 'The current record supports a structured review, but it does not yet provide enough verified evidence for a positive investment conclusion.', 'O registro atual permite uma revisão estruturada, mas ainda não apresenta evidências verificadas suficientes para uma conclusão positiva de investimento.', 'El registro actual permite una revisión estructurada, pero aún no presenta suficiente evidencia verificada para una conclusión positiva de inversión.');
   const priority = missingEvidence[0] ? localized(language, `Priority limitation: ${missingEvidence[0]}`, `Limitação prioritária: ${missingEvidence[0]}`, `Limitación prioritaria: ${missingEvidence[0]}`) : '';
   const profileAdaptedConclusion = `${fit.fitRationale}${strategySpecificInsights[0] ? ` ${strategySpecificInsights[0]}` : ''} ${priority}`.trim();
+  const investmentThesis = `${opportunityAssessment} ${profileAdaptedConclusion}`.trim();
   return Object.freeze({
     type: 'maxxis_structured_analysis',
     version: MAXXIS_STRUCTURED_ANALYSIS_VERSION,
     reportType,
     language,
     executiveSummary,
+    investmentThesis,
     opportunityAssessment,
     propertyContextInterpretation: propertyContext,
     investorFit: Object.freeze(fit),
+    profileFit: Object.freeze({
+      score: finite(record(context.matchContext).score),
+      strengths: Object.freeze(fit.strengths),
+      mismatches: Object.freeze(fit.mismatches),
+      unknownCriteria: Object.freeze(fit.unknownCriteria),
+      rationale: fit.fitRationale,
+    }),
     marketContext: Object.freeze(market),
+    marketAnalysis: Object.freeze({
+      interpretation: market.interpretation,
+      evidence: Object.freeze(market.evidenceUsed),
+      limitations: Object.freeze(market.limitations),
+    }),
     comparativeAnalysis: Object.freeze(comparative),
+    comparablesAnalysis: Object.freeze({
+      candidatesConsidered: list(context.comparableEvidence).length,
+      selected: Object.freeze(comparative.selectedCompSummary),
+      supporting: Object.freeze(comparative.supportingEvidence),
+      excluded: list(context.comparableEvidence).filter((item) => item?.valuationRole === 'EXCLUDED').length,
+      interpretation: comparative.interpretation,
+      limitations: Object.freeze(comparative.limitations),
+    }),
     valuationAnalysis: Object.freeze(valuation),
     riskAnalysis: Object.freeze(risks),
     positiveSignals: Object.freeze(positiveSignals.slice(0, 8)),

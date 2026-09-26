@@ -1080,6 +1080,8 @@ button.maxxis-action-link:hover {
 }
 
 .maxxis-arv-target select,
+.maxxis-arv-target input,
+.maxxis-arv-target textarea,
 .maxxis-arv-review-form select,
 .maxxis-arv-review-form textarea {
   width: 100%;
@@ -1089,6 +1091,16 @@ button.maxxis-action-link:hover {
   border: 1px solid var(--border-color, #cbd5e1);
   border-radius: 8px;
   background: var(--surface, #fff);
+}
+
+.maxxis-arv-target label {
+  display: grid;
+  gap: 4px;
+}
+
+.maxxis-arv-target textarea {
+  min-height: 58px;
+  resize: vertical;
 }
 
 .maxxis-arv-target button,

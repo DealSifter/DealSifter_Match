@@ -41,7 +41,10 @@ export class RentCastSoldRecordDataProvider implements SoldRecordDataProvider {
         propertyId: lookup.propertyId, userId: lookup.userId, operation: 'property_sold_search',
       });
       const response = await this.options.client.searchSoldProperties({
-        address: formatPropertyLookupAddress(lookup), radius: policy.radiusMiles,
+        address: input.searchCenter ? undefined : formatPropertyLookupAddress(lookup),
+        latitude: input.searchCenter?.latitude,
+        longitude: input.searchCenter?.longitude,
+        radius: policy.radiusMiles,
         saleDateRange: policy.saleDateRangeDays, propertyType: policy.propertyType, limit: policy.limit,
       });
       finalized = true;

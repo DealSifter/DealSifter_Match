@@ -232,6 +232,7 @@ function buildRisks(input: {
   evidence: MaxxisPropertyEvidenceResult;
   match: PropertyMatchResult | null;
   arv: ArvEvaluationResult | null;
+  analysis: DealAdvisorAnalysis | null;
 }): DealIntelligenceRisk[] {
   const risks: DealIntelligenceRisk[] = [];
   const add = (code: string, category: DealRiskCategory, severity: DealRiskSeverity, explanation: string) => {
@@ -243,7 +244,7 @@ function buildRisks(input: {
   if (input.evidence.state === 'available' && (input.evidence.evidence?.conflicts?.length || 0) > 0) {
     add('PROPERTY_EVIDENCE_CONFLICT', 'DATA_RISK', 'MEDIUM', 'Internal and verified property evidence contain unresolved conflicts.');
   }
-  if (!present(input.property.rehab)) add('MISSING_REHAB_INFORMATION', 'DATA_RISK', 'MEDIUM',
+  if (input.analysis?.missingInformation.includes('rehab')) add('MISSING_REHAB_INFORMATION', 'DATA_RISK', 'MEDIUM',
     'Rehabilitation information is missing.');
   const market = input.match?.reasons.find((reason) => reason.key === 'market');
   const price = input.match?.reasons.find((reason) => reason.key === 'price');
@@ -317,7 +318,7 @@ export function buildDealIntelligenceContext(input: {
   const valuation = valuationContext(input.arvEvaluation);
   const fit = matchFactors(input.match);
   const risks = buildRisks({ property: input.property, propertyFields: property,
-    evidence: input.propertyEvidence, match: input.match, arv: input.arvEvaluation });
+    evidence: input.propertyEvidence, match: input.match, arv: input.arvEvaluation, analysis: input.analysis });
   const profile = input.investmentProfile.profile;
   const limitations = unique([
     ...(input.analysis?.limitations || []),

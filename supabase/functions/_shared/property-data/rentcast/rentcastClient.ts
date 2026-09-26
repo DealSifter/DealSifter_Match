@@ -27,7 +27,9 @@ export type RentCastValueEstimateInput = {
 };
 
 export type RentCastSoldSearchInput = {
-  address: string;
+  address?: string;
+  latitude?: number | null;
+  longitude?: number | null;
   radius: number;
   saleDateRange: number;
   propertyType: string;
@@ -127,10 +129,21 @@ export function createRentCastClient(options: {
     },
     async searchSoldProperties(input: RentCastSoldSearchInput) {
       const address = String(input?.address || '').trim();
+      const latitude = Number(input?.latitude);
+      const longitude = Number(input?.longitude);
+      const hasCoordinates = input?.latitude !== null && input?.latitude !== undefined
+        && input?.longitude !== null && input?.longitude !== undefined
+        && Number.isFinite(latitude) && latitude >= -90 && latitude <= 90
+        && Number.isFinite(longitude) && longitude >= -180 && longitude <= 180;
       const propertyType = String(input?.propertyType || '').trim();
-      if (!address || !propertyType) throw new PropertyDataError('INVALID_PROPERTY_LOOKUP');
+      if ((!address && !hasCoordinates) || !propertyType) throw new PropertyDataError('INVALID_PROPERTY_LOOKUP');
       const url = new URL(`${baseUrl}/properties`);
-      url.searchParams.set('address', address);
+      if (hasCoordinates) {
+        url.searchParams.set('latitude', String(latitude));
+        url.searchParams.set('longitude', String(longitude));
+      } else {
+        url.searchParams.set('address', address);
+      }
       url.searchParams.set('radius', String(input.radius));
       url.searchParams.set('saleDateRange', String(input.saleDateRange));
       url.searchParams.set('propertyType', propertyType);

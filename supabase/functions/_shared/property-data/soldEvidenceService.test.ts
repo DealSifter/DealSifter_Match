@@ -15,7 +15,8 @@ const property = { id: ID, type: 'SFR', address: '100 Subject St', city: 'Austin
 const lookup = { street: property.address, city: property.city, state: property.state, zipCode: property.zip };
 const valuation = mapRentCastValueEstimate({ lookup, requestPolicy: { ...DEFAULT_VALUATION_REQUEST_POLICY }, retrievedAt: NOW.toISOString(),
   raw: { subjectProperty: { id: 'subject', addressLine1: property.address, city: property.city, state: property.state,
-    zipCode: property.zip, propertyType: 'Single Family', squareFootage: 2000 }, comparables: [] } });
+    zipCode: property.zip, propertyType: 'Single Family', squareFootage: 2000,
+    latitude: 30.2672, longitude: -97.7431 }, comparables: [] } });
 
 async function setup() {
   const valuationCache = new InMemoryValuationEvidenceCache({ now: () => NOW });
@@ -36,6 +37,9 @@ describe('SoldEvidenceService cache and single-flight', () => {
     expect([first.cacheHit, second.cacheHit]).toEqual([false, false]);
     await expect(service.getSoldEvidence({ propertyId: ID })).resolves.toMatchObject({ cacheHit: true });
     expect(provider.getSoldRecordPool).toHaveBeenCalledTimes(1);
+    expect(provider.getSoldRecordPool).toHaveBeenCalledWith(expect.objectContaining({
+      searchCenter: { latitude: 30.2672, longitude: -97.7431 },
+    }));
   });
 
   it('requires a valid cached AVM and never acquires AVM itself', async () => {

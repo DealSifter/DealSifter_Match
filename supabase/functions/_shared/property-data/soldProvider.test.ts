@@ -12,8 +12,12 @@ describe('sold record provider', () => {
       now: () => new Date('2026-09-12T12:00:00Z') });
     const pool = await provider.getSoldRecordPool({ street: '100 Test St', city: 'Austin', state: 'TX', zipCode: '78701',
       propertyId: '11111111-1111-4111-8111-111111111111', policy: { radiusMiles: 5, saleDateRangeDays: 270,
-        propertyType: 'Single Family', limit: 100 }, queryFingerprint: 'a'.repeat(64) });
+        propertyType: 'Single Family', limit: 100 }, queryFingerprint: 'a'.repeat(64),
+      searchCenter: { latitude: 30.2672, longitude: -97.7431 } });
     expect(client.searchSoldProperties).toHaveBeenCalledTimes(1);
+    expect(client.searchSoldProperties).toHaveBeenCalledWith(expect.objectContaining({
+      address: undefined, latitude: 30.2672, longitude: -97.7431,
+    }));
     expect(pool.records[0].latestValidSale).toMatchObject({ salePrice: 300000, evidenceStatus: 'VERIFIED_RECORD' });
     expect(pool).not.toHaveProperty('raw');
     expect(guard.snapshot()[0]).toMatchObject({ operation: 'property_sold_search', status: 'succeeded', billableSuccess: true });

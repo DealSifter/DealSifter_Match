@@ -53,6 +53,18 @@ describe('Maxxis Deal Intelligence Experience v1', () => {
     });
   });
 
+  it('keeps unknown and not-evaluated criteria out of percentage scoring', () => {
+    const input = context();
+    input.matchContext.reasons = [
+      { key: 'market', status: 'matched', points: 35, maxPoints: 35, detail: 'matched' },
+      { key: 'price', status: 'not_matched', points: 0, maxPoints: 25, detail: 'mismatch' },
+      { key: 'property_type', status: 'not_evaluated', points: 0, maxPoints: 25, detail: 'unknown' },
+      { key: 'strategy', status: 'not_evaluated', points: null, maxPoints: 15, detail: 'unavailable' },
+    ];
+    const report = buildMaxxisDealIntelligenceReport(input);
+    expect(report.investmentFit.criteria.map((criterion) => criterion.score)).toEqual([100, 0, null, null]);
+  });
+
   it('asks Pro without a complete entitlement to unlock instead of exposing premium content', () => {
     expect(resolveIntelligenceReportAccess({ plan: 'pro', reportType: 'DEAL_INTELLIGENCE' })).toMatchObject({
       allowed: false, state: 'NUGGET_UNLOCK_REQUIRED', paidUnlockEnabled: true, nuggetCost: 5,

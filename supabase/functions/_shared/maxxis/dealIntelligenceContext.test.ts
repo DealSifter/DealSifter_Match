@@ -83,6 +83,19 @@ describe('Maxxis Deal Intelligence Context v1', () => {
     expect(JSON.stringify(context.valuationContext)).not.toContain('"centralReference":0');
   });
 
+  it('distinguishes an explicit zero rehab budget from an unknown default zero', () => {
+    const explicit = build({
+      property: { ...property, rehab: 0 },
+      dealMetrics: calculateDealMetrics({ ...property, rehab: 0, rehabProvided: true }),
+      analysis: { positiveSignals: ['acquisition_plus_rehab_calculable'], attentionPoints: [],
+        missingInformation: [], limitations: ['roi_not_calculated'] },
+    });
+    expect(explicit.dealMetrics?.metrics.acquisitionPlusRehab).toMatchObject({ calculable: true, value: property.price });
+    expect(explicit.risks.map((risk) => risk.code)).not.toContain('MISSING_REHAB_INFORMATION');
+    const unknown = build({ property: { ...property, rehab: 0 } });
+    expect(unknown.risks.map((risk) => risk.code)).toContain('MISSING_REHAB_INFORMATION');
+  });
+
   it('carries an unvalidated provider estimate separately from an unavailable ARV', () => {
     const evaluation = evaluateArv({
       propertyId: PROPERTY_ID,

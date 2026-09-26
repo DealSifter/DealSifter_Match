@@ -65,6 +65,19 @@ describe('RentCast client', () => {
     });
   });
 
+  it('uses a validated coordinate center instead of reparsing the subject address', async () => {
+    const fetchImpl = vi.fn(async (_input: string | URL, _init?: RequestInit) => jsonResponse([]));
+    const client = createRentCastClient({ apiKey: TEST_KEY, fetchImpl });
+    await client.searchSoldProperties({ latitude: 34.09681, longitude: -118.4212,
+      radius: 5, saleDateRange: 270, propertyType: 'Single Family', limit: 100 });
+    const parsed = new URL(String(fetchImpl.mock.calls[0][0]));
+    expect(Object.fromEntries(parsed.searchParams)).toEqual({
+      latitude: '34.09681', longitude: '-118.4212', radius: '5', saleDateRange: '270',
+      propertyType: 'Single Family', limit: '100',
+    });
+    expect(parsed.searchParams.has('address')).toBe(false);
+  });
+
   it.each([
     [400, 'INVALID_PROPERTY_LOOKUP'],
     [401, 'PROVIDER_AUTH_ERROR'],

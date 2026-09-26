@@ -54,13 +54,18 @@ export class SoldEvidenceService {
     const addressFingerprint = await propertyAddressFingerprint(lookup);
     const policy = normalizeSoldSearchPolicy({ ...DEFAULT_SOLD_SEARCH_POLICY, ...this.policyOverrides,
       propertyType: providerPropertyType(property.type) });
-    const queryFingerprint = await soldSearchQueryFingerprint(addressFingerprint, policy);
     const valuationEntry = await this.options.valuationCache.getValuation(propertyId);
     if (!valuationEntry || valuationEntry.addressFingerprint !== addressFingerprint
       || await valuationSubjectAddressFingerprint(valuationEntry.valuation) !== addressFingerprint) {
       throw new Error('VALUATION_EVIDENCE_CACHE_REQUIRED');
     }
-    return { propertyId, property, lookup, addressFingerprint, policy, queryFingerprint, valuation: valuationEntry.valuation };
+    const latitude = valuationEntry.valuation.subjectProperty.latitude.value;
+    const longitude = valuationEntry.valuation.subjectProperty.longitude.value;
+    const searchCenter = Number.isFinite(latitude) && Number.isFinite(longitude)
+      ? { latitude: Number(latitude), longitude: Number(longitude) } : null;
+    const queryFingerprint = await soldSearchQueryFingerprint(addressFingerprint, policy, searchCenter);
+    return { propertyId, property, lookup, addressFingerprint, policy, queryFingerprint,
+      searchCenter, valuation: valuationEntry.valuation };
   }
 
   async getCachedSoldEvidence(input: { propertyId: string; userId?: string | null }) {
@@ -81,7 +86,7 @@ export class SoldEvidenceService {
       const rechecked = await validCached();
       if (rechecked) return { pool: rechecked.pool, cacheHit: true };
       const pool = await this.options.provider.getSoldRecordPool({ ...context.lookup,
-        policy: context.policy, queryFingerprint: context.queryFingerprint });
+        policy: context.policy, queryFingerprint: context.queryFingerprint, searchCenter: context.searchCenter });
       const current = await this.options.repository.getById(context.propertyId, input.userId);
       const currentFingerprint = current ? await propertyAddressFingerprint({ street: current.address || '', city: current.city || '',
         state: current.state || '', zipCode: current.zip || '' }) : null;

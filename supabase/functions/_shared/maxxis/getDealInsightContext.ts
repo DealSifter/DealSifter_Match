@@ -15,6 +15,10 @@ import { resolveDealInsightInput } from './dealInsightInput.ts';
 import type { ProviderBudgetPlan } from '../property-data/providerBudget.ts';
 import { buildEvidenceCompleteness } from './evidenceCompleteness.ts';
 import { buildMaxxisStructuredAnalysis } from './maxxisStructuredAnalysis.ts';
+import { buildEvidenceCompletenessGate } from './analysisGapResolver.ts';
+import { calculateDealMetrics } from './dealMetrics.ts';
+import { analyzeDealFacts } from './dealAdvisor.ts';
+import { DEALSIFTER_ARV_ENGINE_POLICY_V1 } from '../property-data/arvEngine.ts';
 
 export async function getDealInsightContextForAuthenticatedUser(
   input: unknown,
@@ -54,6 +58,23 @@ export async function getDealInsightContextForAuthenticatedUser(
     providerResult: providerAllowedByPlan ? 'NOT_ATTEMPTED' : 'PLAN_ZERO_PROVIDER',
     addressValidation: 'NOT_RUN',
     candidateCount: 0,
+    valuationProviderComparableCount: 0,
+    valuationNormalizedComparableCount: 0,
+    valuationCompEngineReceived: 0,
+    valuationCompStrong: 0,
+    valuationCompUsable: 0,
+    valuationCompHardRejected: 0,
+    soldRawCandidateCount: 0,
+    soldNormalizedCandidateCount: 0,
+    hardGatePassCount: 0,
+    structuralThresholdPassCount: 0,
+    completenessThresholdPassCount: 0,
+    excellentCandidateCount: 0,
+    validCandidateCount: 0,
+    supportingCandidateCount: 0,
+    weakCandidateCount: 0,
+    excludedCandidateCount: 0,
+    arvEligibleCount: 0,
     structuralCandidateCount: 0,
     usableCandidateCount: 0,
     arvStatus: 'UNAVAILABLE',
@@ -84,6 +105,12 @@ export async function getDealInsightContextForAuthenticatedUser(
       runtimeTrace.valuationEvidenceReason = valuation.cacheHit ? 'CACHE_HIT' : 'PROVIDER_REFRESHED';
       runtimeTrace.valuationProviderAttempted = !valuation.cacheHit;
       runtimeTrace.providerAttempted ||= !valuation.cacheHit;
+      runtimeTrace.valuationProviderComparableCount = valuation.valuation.providerComparableCount;
+      runtimeTrace.valuationNormalizedComparableCount = valuation.valuation.comparables.length;
+      runtimeTrace.valuationCompEngineReceived = valuation.comparableAnalysis.counts.total;
+      runtimeTrace.valuationCompStrong = valuation.comparableAnalysis.counts.strong;
+      runtimeTrace.valuationCompUsable = valuation.comparableAnalysis.counts.usable;
+      runtimeTrace.valuationCompHardRejected = valuation.comparableAnalysis.counts.hardRejected;
     } catch (error) {
       const code = error instanceof Error ? error.message : 'VALUATION_EVIDENCE_FAILED';
       runtimeTrace.valuationEvidence = code === 'ADDRESS_MISMATCH' ? 'REJECTED' : 'UNAVAILABLE';
@@ -106,6 +133,22 @@ export async function getDealInsightContextForAuthenticatedUser(
       runtimeTrace.soldProviderAttempted = !sold.cacheHit;
       runtimeTrace.providerAttempted ||= !sold.cacheHit;
       runtimeTrace.candidateCount = sold.soldPool.records.length;
+      runtimeTrace.soldRawCandidateCount = sold.soldPool.recordsReturned;
+      runtimeTrace.soldNormalizedCandidateCount = sold.soldPool.records.length;
+      const directCandidates = sold.recordedSoldCompSelection.directSoldCompCandidates;
+      runtimeTrace.hardGatePassCount = directCandidates.filter((candidate) => candidate.weightedAssessment?.hardGates.pass).length;
+      runtimeTrace.structuralThresholdPassCount = directCandidates.filter((candidate) =>
+        (candidate.weightedAssessment?.structuralComparabilityScore ?? -1) >= DEALSIFTER_ARV_ENGINE_POLICY_V1.structuralScoreFloor).length;
+      runtimeTrace.completenessThresholdPassCount = directCandidates.filter((candidate) =>
+        (candidate.weightedAssessment?.dataCompletenessScore ?? -1) >= DEALSIFTER_ARV_ENGINE_POLICY_V1.completenessFloor).length;
+      runtimeTrace.excellentCandidateCount = directCandidates.filter((candidate) =>
+        candidate.weightedAssessment?.structuralClass === 'EXCELLENT_STRUCTURAL_CANDIDATE').length;
+      runtimeTrace.validCandidateCount = directCandidates.filter((candidate) =>
+        candidate.weightedAssessment?.structuralClass === 'VALID_STRUCTURAL_CANDIDATE').length;
+      runtimeTrace.supportingCandidateCount = directCandidates.filter((candidate) =>
+        candidate.weightedAssessment?.structuralClass === 'SUPPORTING_ACCEPTABLE').length;
+      runtimeTrace.weakCandidateCount = sold.recordedSoldCompSelection.weak.length;
+      runtimeTrace.excludedCandidateCount = sold.recordedSoldCompSelection.hardInvalid.length;
       runtimeTrace.structuralCandidateCount = sold.recordedSoldCompSelection.primaryStructuralCandidates.length;
       runtimeTrace.usableCandidateCount = sold.recordedSoldCompSelection.conditionVerifiedArvComps.length;
     } catch (error) {
@@ -156,6 +199,11 @@ export async function getDealInsightContextForAuthenticatedUser(
         },
       });
       runtimeTrace.arvStatus = evaluation?.status || 'UNAVAILABLE';
+      runtimeTrace.arvEligibleCount = evaluation?.eligibleCompCount || 0;
+      runtimeTrace.supportingCandidateCount = evaluation?.supportingCompCount
+        ?? runtimeTrace.supportingCandidateCount;
+      runtimeTrace.excludedCandidateCount = evaluation?.excludedCompCount
+        ?? runtimeTrace.excludedCandidateCount;
       return evaluation;
     } catch (error) {
       const code = error instanceof Error ? error.message : 'PROPERTY_INTELLIGENCE_FAILED';
@@ -168,9 +216,32 @@ export async function getDealInsightContextForAuthenticatedUser(
       return null;
     }
   };
+  const { data: analysisInputRow } = await queryClient.from('property_arv_review_contexts')
+    .select('target_condition,rehab_budget,renovation_scope,declined_inputs,evidence_status')
+    .eq('subject_property_id', validated.propertyId).eq('reviewer_user_id', userId).maybeSingle();
+  const analysisInputs = {
+    targetCondition: analysisInputRow?.target_condition ?? null,
+    rehabBudget: analysisInputRow?.rehab_budget ?? null,
+    renovationScope: analysisInputRow?.renovation_scope ?? null,
+    declinedInputs: Array.isArray(analysisInputRow?.declined_inputs) ? analysisInputRow.declined_inputs : [],
+  };
   const result = await orchestrateDealInsightContext({
     propertyId: validated.propertyId,
-    loadPropertyDetails: (propertyId) => getPropertyDetailsWithClient({ propertyId }, client),
+    loadPropertyDetails: async (propertyId) => {
+      const details = await getPropertyDetailsWithClient({ propertyId }, client);
+      const explicitRehab = analysisInputs.rehabBudget !== null && analysisInputs.rehabBudget !== ''
+        && Number.isFinite(Number(analysisInputs.rehabBudget))
+        ? Number(analysisInputs.rehabBudget) : null;
+      if (!details.property || explicitRehab === null) return details;
+      const property = { ...details.property, rehab: explicitRehab };
+      const missingFields = details.missingFields.filter((field) => field !== 'rehab');
+      const metrics = calculateDealMetrics({
+        price: property.price, sqft: property.sqft, rehab: explicitRehab,
+        capRate: property.capRate, rehabProvided: true,
+      });
+      return { ...details, property, missingFields, metrics,
+        analysis: analyzeDealFacts({ property, metrics, missingFields }) };
+    },
     loadInvestmentProfile: () => getMyInvestmentProfileWithClient(userId, client),
     calculateMatch: (profile, property) => calculatePropertyMatch(profile, property),
     loadPropertyEvidence: async (propertyId) => {
@@ -199,6 +270,12 @@ export async function getDealInsightContextForAuthenticatedUser(
     evidenceState: result.evidence.state,
     context: result.dealIntelligence || null,
     trace: runtimeTrace,
+  });
+  const evidenceCompletenessGate = buildEvidenceCompletenessGate({
+    reportType: requestedReportType,
+    property: result.property as unknown as Record<string, unknown> | null,
+    assumptions: analysisInputs,
+    language: languageInput,
   });
   const intelligenceSnapshot = {
     version: 'MAXXIS_INTELLIGENCE_SNAPSHOT_V1',
@@ -235,8 +312,10 @@ export async function getDealInsightContextForAuthenticatedUser(
       result: runtimeTrace.providerResult,
     },
     evidenceCompleteness,
+    evidenceCompletenessGate,
     dealIntelligence: result.dealIntelligence,
   } as const;
   const structuredAnalysis = buildMaxxisStructuredAnalysis(intelligenceSnapshot, requestedReportType, languageInput);
-  return { ...result, intelligenceSnapshot, structuredAnalysis, evidenceCompleteness, runtimeTrace };
+  return { ...result, intelligenceSnapshot, structuredAnalysis, evidenceCompleteness,
+    evidenceCompletenessGate, runtimeTrace };
 }

@@ -54,7 +54,7 @@ export function buildEvidenceCompleteness({ reportType, evidenceState, context, 
     ? result('REJECTED', 'ADDRESS_MISMATCH', soldCacheChecked, Boolean(trace.soldProviderAttempted))
     : propertyBlocksDependentEvidence && !soldCacheChecked
       ? result('NOT_REQUESTED', `PROPERTY_EVIDENCE_REQUIRED:${property.reason}`, false, false)
-    : comps.length
+    : Number(trace.soldNormalizedCandidateCount || trace.candidateCount || 0) > 0
       ? result('AVAILABLE', 'RECORDED_SALES_AVAILABLE', soldCacheChecked, Boolean(trace.soldProviderAttempted))
       : soldCacheChecked
         ? result('UNAVAILABLE', String(trace.soldEvidenceReason || (trace.soldProviderAttempted ? 'PROVIDER_NO_RESULTS' : 'CACHE_NO_RESULTS')), true, Boolean(trace.soldProviderAttempted))

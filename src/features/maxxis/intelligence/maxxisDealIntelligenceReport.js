@@ -59,14 +59,15 @@ function investmentFit(context) {
   const match = isObject(context?.matchContext) ? context.matchContext : null;
   const reason = (key) => {
     const item = list(match?.reasons).find((candidate) => candidate?.key === key);
+    const status = ['matched', 'not_matched', 'not_evaluated'].includes(item?.status) ? item.status : 'not_evaluated';
     return Object.freeze({
       key,
       label: safeText(item?.label) || key,
-      status: ['matched', 'not_matched', 'not_evaluated'].includes(item?.status) ? item.status : 'not_evaluated',
+      status,
       explanation: safeText(item?.detail) || 'UNKNOWN',
       points: nullableNumber(item?.points),
       maxPoints: nullableNumber(item?.maxPoints),
-      score: nullableNumber(item?.maxPoints) > 0
+      score: status !== 'not_evaluated' && nullableNumber(item?.maxPoints) > 0
         ? Math.round(((nullableNumber(item?.points) || 0) / Number(item.maxPoints)) * 100)
         : null,
       source: 'CALCULATED',
@@ -190,8 +191,8 @@ export function buildMaxxisDealIntelligenceReport(context, structuredAnalysis = 
   const valuation = valuationIntelligence(context);
   const comps = comparableEvidence(context);
   const analysisConfidence = buildMaxxisAnalysisConfidence(context);
-  const investorPerspective = resolveMaxxisInvestorPersona(context.investorContext);
-  const executiveSummaryIntelligence = buildMaxxisExecutiveSummaryIntelligence(context, analysisConfidence, investorPerspective);
+  const investorPerspective = resolveMaxxisInvestorPersona(context.investorContext, canonical?.language || 'en');
+  const executiveSummaryIntelligence = buildMaxxisExecutiveSummaryIntelligence(context, analysisConfidence, investorPerspective, canonical);
   const sourceRisks = riskAnalysis(context);
   const sourceRiskByCategory = new Map(sourceRisks.map((risk) => [risk.category, risk]));
   return Object.freeze({
