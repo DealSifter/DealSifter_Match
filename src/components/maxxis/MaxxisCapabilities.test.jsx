@@ -1,11 +1,28 @@
 import { readFileSync } from 'node:fs';
 import { renderToStaticMarkup } from 'react-dom/server';
 import { describe, expect, it, vi } from 'vitest';
-import { MessageBubble } from './MaxxisCapabilities';
+import { clampPanelPosition, MessageBubble } from './MaxxisCapabilities';
 import { MaxxisDealIntelligenceExperience } from '../../features/maxxis/intelligence/MaxxisDealIntelligenceExperience';
 import { buildMaxxisIntelligenceUpgradeExperience } from '../../features/maxxis/access/maxxisIntelligenceUpgrade';
 
 describe('Maxxis Deal AI structured result presentation', () => {
+  it('keeps the desktop assistant floating, minimizable, and constrained to the viewport', () => {
+    const assistant = readFileSync(new URL('./MaxxisAssistant.jsx', import.meta.url), 'utf8');
+    const css = readFileSync(new URL('./MaxxisAssistant.css', import.meta.url), 'utf8');
+    const service = readFileSync(new URL('../../services/maxxisService.js', import.meta.url), 'utf8');
+    const budget = readFileSync(new URL('../../../supabase/functions/_shared/maxxisExecutionBudget.ts', import.meta.url), 'utf8');
+
+    expect(assistant).toContain('data-testid="maxxis-minimize-button"');
+    expect(assistant).toContain('data-testid="maxxis-drag-handle"');
+    expect(assistant).toContain(".slice(-20)");
+    expect(css).toMatch(/@media \(min-width: 768px\)[\s\S]*?\.maxxis-header\s*\{[\s\S]*?cursor:\s*grab/);
+    expect(css).toMatch(/\.maxxis-shell-open::before\s*\{\s*display:\s*none/);
+    expect(service).toContain('const MAX_HISTORY_ITEMS = 20;');
+    expect(budget).toContain('maxHistoryItems: 20');
+    expect(clampPanelPosition({ x: 900, y: 700 }, { width: 620, height: 720 }, { width: 1200, height: 900 }))
+      .toEqual({ x: 572, y: 172 });
+  });
+
   it('uses a three-dot animated processing indicator without static thinking text', () => {
     const assistant = readFileSync(new URL('./MaxxisAssistant.jsx', import.meta.url), 'utf8');
     const css = readFileSync(new URL('./MaxxisAssistant.css', import.meta.url), 'utf8');
@@ -198,6 +215,22 @@ describe('Maxxis Deal AI structured result presentation', () => {
     expect(html).toContain('Condição alvo');
     expect(html).toContain('Orçamento de reforma');
     expect(html).toContain('Continuar com limitações');
+  });
+
+  it('offers the mapped 2026 benchmark after the target condition has been resolved', () => {
+    const html = renderToStaticMarkup(
+      <MessageBubble
+        language="pt"
+        message={{ id: 'rehab-gap', role: 'assistant', type: 'analysis_gap_resolution', content: 'Informe a reforma.', data: {
+          propertyId: 'f38e9347-49ec-413e-a554-230c4059bb2b',
+          missingUserInputs: ['rehab_budget'],
+          assumptions: { targetCondition: 'FULL_RENOVATION' },
+          benchmarkOptions: [{ scope: 'FULL_RENOVATION', low: 241920, mid: 302400, high: 362880 }],
+        } }}
+      />,
+    );
+    expect(html).toContain('Usar referência estadual 2026');
+    expect(html).not.toMatch(/Usar referência estadual 2026[\s\S]{0,80}disabled/);
   });
 
   it('renders Deal Intelligence answer-first with profile-fit semantics and no unavailable ARV value', () => {

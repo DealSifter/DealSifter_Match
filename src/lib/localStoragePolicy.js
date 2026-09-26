@@ -5,6 +5,7 @@ export const LOCAL_STORAGE_CATEGORY = {
 };
 
 export const MAXXIS_WIDGET_POSITION_KEY = 'ds_maxxis_widget_position';
+export const MAXXIS_PANEL_POSITION_KEY = 'ds_maxxis_panel_position';
 export const MAXXIS_DEAL_MEMORY_STORAGE_PREFIX = 'ds_maxxis_deal_memory_v1:';
 
 // UI-only keys never authorize paid access and can safely persist per device.
@@ -31,6 +32,7 @@ export const UI_ONLY_LOCAL_STORAGE_KEYS = Object.freeze([
   'ds_guidetips_enabled',
   'ds_remember_login_email',
   MAXXIS_WIDGET_POSITION_KEY,
+  MAXXIS_PANEL_POSITION_KEY,
 ]);
 
 // Remote-cache keys are allowed only as UX cache. The database/RPC must overwrite

@@ -1,7 +1,10 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Icon } from '../ui/Icon';
 import { C } from '../../theme/colors';
-import { MAXXIS_WIDGET_POSITION_KEY } from '../../lib/localStoragePolicy';
+import {
+  MAXXIS_PANEL_POSITION_KEY,
+  MAXXIS_WIDGET_POSITION_KEY,
+} from '../../lib/localStoragePolicy';
 import {
   analyzeMaxxisProviderConversation,
   cancelMaxxisProfileAction,
@@ -28,10 +31,10 @@ import {
   shouldResetMaxxisContextSession,
 } from '../../features/maxxis/context/maxxisContextSnapshot';
 import {
-  buildLocalDealIntelligenceReply,
   enhanceMaxxisAssistantResponse,
   promptForMaxxisFollowUp,
 } from '../../features/maxxis/intelligence/maxxisDealIntelligence';
+import { parseAnalysisGapAnswer } from '../../features/maxxis/intelligence/analysisGapAnswer';
 import { projectMaxxisAnalysisResponse } from '../../features/maxxis/intelligence/maxxisAnalysisReport';
 import { projectMaxxisDealIntelligenceResponse } from '../../features/maxxis/intelligence/maxxisDealIntelligenceReport';
 import { composePropertyAnalysisAcknowledgement } from '../../features/maxxis/context/propertyAnalysisHandoff';
@@ -130,14 +133,19 @@ import {
   MessageBubble,
   PROPERTY_SERVICE_NEEDS_COPY,
   UUID_PATTERN,
+  clampPanelPosition,
   clampWidgetPosition,
   findLatestProviderConversationContext,
   getUiLang,
   isProviderConversationIntent,
   normalizeActionId,
+  readStoredPanelPosition,
   readStoredWidgetPosition,
   stripActionTokens,
 } from './MaxxisCapabilities';
+
+const isDesktopFloatingViewport = () => typeof window !== 'undefined'
+  && window.matchMedia('(min-width: 768px)').matches;
 
 function mergeDevMaxxisProactiveEvents(appContext) {
   const adminReviewEnabled = import.meta.env.VITE_MAXXIS_PROACTIVE_REVIEW === 'true';
@@ -211,7 +219,10 @@ export function MaxxisAssistant({ page = 'dashboard', onOpenSupport = null, onNa
   const [continuityRevision, setContinuityRevision] = useState(0);
   const [dealMemoryStatus, setDealMemoryStatus] = useState('idle');
   const [widgetPosition, setWidgetPosition] = useState(readStoredWidgetPosition);
+  const [panelPosition, setPanelPosition] = useState(readStoredPanelPosition);
   const [dragging, setDragging] = useState(false);
+  const [panelDragging, setPanelDragging] = useState(false);
+  const [desktopFloating, setDesktopFloating] = useState(isDesktopFloatingViewport);
   const [messages, setMessages] = useState(() => [{
     id: 'maxxis-greeting',
     role: 'assistant',
@@ -220,6 +231,7 @@ export function MaxxisAssistant({ page = 'dashboard', onOpenSupport = null, onNa
   }]);
   const endRef = useRef(null);
   const inputRef = useRef(null);
+  const panelRef = useRef(null);
   const preferencesButtonRef = useRef(null);
   const preferencesPanelRef = useRef(null);
   const handledAnalysisRequestsRef = useRef(new Set());
@@ -245,6 +257,12 @@ export function MaxxisAssistant({ page = 'dashboard', onOpenSupport = null, onNa
     offsetY: 0,
     startX: 0,
     startY: 0,
+  });
+  const panelDragRef = useRef({
+    active: false,
+    pointerId: null,
+    offsetX: 0,
+    offsetY: 0,
   });
   const avatarTimelineIdentityKey = `${String(sessionKey || '')}:${String(
     propertyContextId || appContext?.entity?.propertyId || 'global',
@@ -385,12 +403,32 @@ export function MaxxisAssistant({ page = 'dashboard', onOpenSupport = null, onNa
   }, [language]);
 
   useEffect(() => {
+    const media = window.matchMedia('(min-width: 768px)');
+    const updateViewport = () => setDesktopFloating(media.matches);
+    updateViewport();
+    media.addEventListener?.('change', updateViewport);
+    return () => media.removeEventListener?.('change', updateViewport);
+  }, []);
+
+  useEffect(() => {
     const handleResize = () => {
       setWidgetPosition((prev) => {
         const next = clampWidgetPosition(prev);
         if (!next) return prev;
         try {
           window.localStorage.setItem(MAXXIS_WIDGET_POSITION_KEY, JSON.stringify(next));
+        } catch {
+          // UI preference persistence is best-effort.
+        }
+        return next;
+      });
+      setPanelPosition((prev) => {
+        if (!prev) return prev;
+        const rect = panelRef.current?.getBoundingClientRect();
+        const next = clampPanelPosition(prev, rect);
+        if (!next) return prev;
+        try {
+          window.localStorage.setItem(MAXXIS_PANEL_POSITION_KEY, JSON.stringify(next));
         } catch {
           // UI preference persistence is best-effort.
         }
@@ -442,7 +480,8 @@ export function MaxxisAssistant({ page = 'dashboard', onOpenSupport = null, onNa
   const historyForRequest = useMemo(
     () => messages
       .filter((item) => item.id !== 'maxxis-greeting' && !item.error)
-      .map((item) => ({ role: item.role, content: stripActionTokens(item.content) })),
+      .map((item) => ({ role: item.role, content: stripActionTokens(item.content) }))
+      .slice(-20),
     [messages],
   );
 
@@ -796,6 +835,59 @@ export function MaxxisAssistant({ page = 'dashboard', onOpenSupport = null, onNa
     }
   };
 
+  const persistPanelPosition = useCallback((position) => {
+    const rect = panelRef.current?.getBoundingClientRect();
+    const next = clampPanelPosition(position, rect);
+    if (!next) return;
+    setPanelPosition(next);
+    try {
+      window.localStorage.setItem(MAXXIS_PANEL_POSITION_KEY, JSON.stringify(next));
+    } catch {
+      // UI preference persistence is best-effort.
+    }
+  }, []);
+
+  useEffect(() => {
+    const handlePointerMove = (event) => {
+      const drag = panelDragRef.current;
+      if (!drag.active || drag.pointerId !== event.pointerId) return;
+      event.preventDefault();
+      persistPanelPosition({
+        x: event.clientX - drag.offsetX,
+        y: event.clientY - drag.offsetY,
+      });
+    };
+    const handlePointerUp = (event) => {
+      const drag = panelDragRef.current;
+      if (!drag.active || drag.pointerId !== event.pointerId) return;
+      panelDragRef.current = { ...drag, active: false };
+      setPanelDragging(false);
+    };
+    window.addEventListener('pointermove', handlePointerMove, { passive: false });
+    window.addEventListener('pointerup', handlePointerUp);
+    window.addEventListener('pointercancel', handlePointerUp);
+    return () => {
+      window.removeEventListener('pointermove', handlePointerMove);
+      window.removeEventListener('pointerup', handlePointerUp);
+      window.removeEventListener('pointercancel', handlePointerUp);
+    };
+  }, [persistPanelPosition]);
+
+  const handlePanelPointerDown = (event) => {
+    if (!desktopFloating || event.button > 0) return;
+    if (event.target.closest('button, input, textarea, select, a, [role="button"]')) return;
+    const rect = panelRef.current?.getBoundingClientRect();
+    if (!rect) return;
+    event.preventDefault();
+    panelDragRef.current = {
+      active: true,
+      pointerId: event.pointerId,
+      offsetX: event.clientX - rect.left,
+      offsetY: event.clientY - rect.top,
+    };
+    setPanelDragging(true);
+  };
+
   const handleFabPointerDown = (event) => {
     if (open || event.button > 0) return;
     const rect = event.currentTarget.getBoundingClientRect();
@@ -968,6 +1060,18 @@ export function MaxxisAssistant({ page = 'dashboard', onOpenSupport = null, onNa
   const submitMessage = async (messageText, meta = {}) => {
     const cleanMessage = String(messageText || '').trim();
     if (!cleanMessage || loading) return;
+    const pendingGap = !meta.skipGapResolutionParse
+      ? [...messages].reverse().find((item) => item?.type === 'analysis_gap_resolution')
+      : null;
+    const parsedGapAnswer = pendingGap ? parseAnalysisGapAnswer(pendingGap, cleanMessage) : null;
+    if (parsedGapAnswer?.action === 'resolve') {
+      void handleResolveAnalysisGaps(pendingGap, parsedGapAnswer.values, cleanMessage);
+      return;
+    }
+    if (parsedGapAnswer?.action === 'decline') {
+      void handleDeclineAnalysisGaps(pendingGap, parsedGapAnswer.fields, cleanMessage);
+      return;
+    }
     const analysisContext = meta.propertyAnalysisContext || propertyAnalysisMode;
     const userMessage = {
       id: `maxxis-user-${Date.now()}`,
@@ -1150,36 +1254,6 @@ export function MaxxisAssistant({ page = 'dashboard', onOpenSupport = null, onNa
         }
         return;
       }
-      const localDealIntelligence = buildLocalDealIntelligenceReply({
-        message: cleanMessage,
-        language,
-        messages,
-        sourceMessageId: meta.sourceMessageId || '',
-        forcedIntent: meta.controlledIntent || '',
-      });
-      if (localDealIntelligence) {
-        if (localDealIntelligence.eventName) {
-          void trackProductEvent(localDealIntelligence.eventName, {
-            dedupeKey: `${localDealIntelligence.eventName}:${userMessage.id}`,
-            properties: { source: 'maxxis', response_type: localDealIntelligence.type },
-          });
-        }
-        setMessages((prev) => [...prev, {
-          id: `maxxis-intelligence-${Date.now()}`,
-          role: 'assistant',
-          content: localDealIntelligence.content,
-          createdAt: new Date(),
-          type: localDealIntelligence.type,
-          data: localDealIntelligence.data,
-          followUps: localDealIntelligence.followUps,
-          smartActionsEnabled: localDealIntelligence.type === 'deal_snapshot',
-          smartActionSurface: 'snapshot',
-          compositionMode: localDealIntelligence.type === 'property_tradeoffs'
-            ? 'COMPARISON'
-            : localDealIntelligence.type === 'deal_snapshot' ? 'ANALYSIS' : undefined,
-        }]);
-        return;
-      }
       const referenceResolution = continuityReference.status !== 'unresolved'
         ? continuityReference
         : resolveMaxxisNaturalReference(cleanMessage, continuityContextSnapshot);
@@ -1210,11 +1284,12 @@ export function MaxxisAssistant({ page = 'dashboard', onOpenSupport = null, onNa
         propertyId: resolvedPropertyId || propertyContextId,
         propertyIds: comparisonPropertyIds,
         maxxisContext: selectMaxxisContextForMessage(continuityContextSnapshot, cleanMessage),
+        controlledIntent: meta.controlledIntent || '',
         requestedCapability: requestedReportType || meta.reportType || analysisContext?.report_type || '',
         propertyAnalysisContext: analysisContext || null,
       });
       const completenessGate = result?.data?.evidenceCompletenessGate;
-      if (requestedReportType && completenessGate?.status === 'USER_INPUT_REQUIRED') {
+      if (result?.type === 'deal_insight' && completenessGate?.status === 'USER_INPUT_REQUIRED') {
         setMessages((prev) => [...prev, {
           id: `maxxis-analysis-gap-${Date.now()}`,
           role: 'assistant',
@@ -1224,7 +1299,7 @@ export function MaxxisAssistant({ page = 'dashboard', onOpenSupport = null, onNa
           data: {
             ...completenessGate,
             propertyId: String(result?.data?.propertyId || resolvedPropertyId || propertyContextId || ''),
-            reportType: requestedReportType,
+            reportType: requestedReportType || '',
             originalRequest: cleanMessage,
             reportProperty: meta.reportProperty || null,
             reportAccessDecision: authorizedReportAccess || meta.reportAccessDecision || null,
@@ -1427,15 +1502,16 @@ export function MaxxisAssistant({ page = 'dashboard', onOpenSupport = null, onNa
       reportProperty: data.reportProperty,
       reportAccessDecision: data.reportAccessDecision,
       analysisExport: data.analysisExport,
-      propertyAnalysisContext: {
+      skipGapResolutionParse: true,
+      propertyAnalysisContext: data.reportType ? {
         mode: 'PROPERTY_ANALYSIS_MODE',
         property_id: data.propertyId,
         report_type: data.reportType,
-      },
+      } : null,
     });
   };
 
-  const handleResolveAnalysisGaps = async (message, values) => {
+  const handleResolveAnalysisGaps = async (message, values, typedAnswer = '') => {
     const messageId = String(message?.id || '');
     const propertyId = String(message?.data?.propertyId || '');
     if (!messageId || !propertyId || activeAnalysisGapId) return;
@@ -1448,8 +1524,8 @@ export function MaxxisAssistant({ page = 'dashboard', onOpenSupport = null, onNa
           : language === 'es' ? 'Información registrada como aportada por el usuario. Recalculando solo las partes afectadas.'
             : 'Inputs saved as user-provided evidence. Recalculating only the affected analysis.' }
         : item));
-      continueGatedAnalysis(message, language === 'pt' ? 'Continuar análise com as informações fornecidas.'
-        : language === 'es' ? 'Continuar el análisis con la información proporcionada.' : 'Continue analysis with the supplied inputs.');
+      continueGatedAnalysis(message, typedAnswer || (language === 'pt' ? 'Continuar análise com as informações fornecidas.'
+        : language === 'es' ? 'Continuar el análisis con la información proporcionada.' : 'Continue analysis with the supplied inputs.'));
     } catch (error) {
       captureAppException(error, { area: 'maxxis_analysis_gap_resolution', propertyId });
       setMessages((prev) => prev.map((item) => item.id === messageId
@@ -1459,7 +1535,7 @@ export function MaxxisAssistant({ page = 'dashboard', onOpenSupport = null, onNa
     }
   };
 
-  const handleDeclineAnalysisGaps = async (message, fields) => {
+  const handleDeclineAnalysisGaps = async (message, fields, typedAnswer = '') => {
     const messageId = String(message?.id || '');
     const propertyId = String(message?.data?.propertyId || '');
     if (!messageId || !propertyId || activeAnalysisGapId) return;
@@ -1472,8 +1548,8 @@ export function MaxxisAssistant({ page = 'dashboard', onOpenSupport = null, onNa
           : language === 'es' ? 'De acuerdo. El informe continuará con limitaciones explícitas para los datos no informados.'
             : 'Understood. The report will continue with explicit limitations for the unavailable inputs.' }
         : item));
-      continueGatedAnalysis(message, language === 'pt' ? 'Continuar com limitações explícitas.'
-        : language === 'es' ? 'Continuar con limitaciones explícitas.' : 'Continue with explicit limitations.');
+      continueGatedAnalysis(message, typedAnswer || (language === 'pt' ? 'Continuar com limitações explícitas.'
+        : language === 'es' ? 'Continuar con limitaciones explícitas.' : 'Continue with explicit limitations.'));
     } catch (error) {
       captureAppException(error, { area: 'maxxis_analysis_gap_decline', propertyId });
     } finally {
@@ -2546,8 +2622,20 @@ export function MaxxisAssistant({ page = 'dashboard', onOpenSupport = null, onNa
       data-maxxis-preferences-hydrated={userPreferencesHydrated ? 'true' : 'false'}
     >
       {open ? (
-        <section className="maxxis-panel" data-testid="maxxis-panel" role="dialog" aria-modal="true" aria-label={t.title}>
-          <header className="maxxis-header">
+        <section
+          ref={panelRef}
+          className={`maxxis-panel ${panelDragging ? 'maxxis-panel-dragging' : ''}`}
+          data-testid="maxxis-panel"
+          role="dialog"
+          aria-modal={desktopFloating ? undefined : true}
+          aria-label={t.title}
+          style={desktopFloating && panelPosition ? {
+            '--maxxis-panel-left': `${panelPosition.x}px`,
+            '--maxxis-panel-top': `${panelPosition.y}px`,
+            '--maxxis-panel-transform': 'none',
+          } : undefined}
+        >
+          <header className="maxxis-header" data-testid="maxxis-drag-handle" onPointerDown={handlePanelPointerDown}>
             <div
               className="maxxis-avatar"
               aria-hidden="true"
@@ -2564,6 +2652,17 @@ export function MaxxisAssistant({ page = 'dashboard', onOpenSupport = null, onNa
               <span><i />{t.status}</span>
             </div>
             <div className="maxxis-actions">
+              {desktopFloating ? (
+                <button
+                  type="button"
+                  data-testid="maxxis-minimize-button"
+                  onClick={() => setOpen(false)}
+                  title={t.minimize}
+                  aria-label={t.minimize}
+                >
+                  <Icon name="minus" size={15} color="currentColor" strokeWidth={2} />
+                </button>
+              ) : null}
               <button type="button" onClick={resetConversation} title={t.reset} aria-label={t.reset}>
                 <Icon name="rotateCcw" size={15} color="currentColor" strokeWidth={2} />
               </button>

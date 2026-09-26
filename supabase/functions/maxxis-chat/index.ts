@@ -123,11 +123,22 @@ function resolveControlledToolCall(rawIntent: unknown, message: string) {
   return { name: 'searchProperties', args: { personalized: true, limit: 5 } };
 }
 
-function resolveMandatoryToolCall(message: string, propertyContextId: string, comparisonPropertyIds: string[]) {
+function resolveMandatoryToolCall(message: string, propertyContextId: string, comparisonPropertyIds: string[], rawIntent: unknown = '') {
   const normalized = normalizeIntentText(message);
+  const controlledIntent = sanitizeText(rawIntent, 80);
   if (comparisonPropertyIds.length >= 2 && intentIncludesAny(normalized, [' compare ', ' comparar ', ' compare estos ', ' compare estes '])) {
     return { name: 'compareProperties', args: { propertyIds: comparisonPropertyIds.slice(0, 3) } };
   }
+  if (propertyContextId && (
+    ['deal_gaps', 'explain_current_insight', 'explain_metrics', 'deal_snapshot', 'review_next'].includes(controlledIntent)
+    || intentIncludesAny(normalized, [
+      ' what s missing ', ' what is missing ', ' missing information ', ' missing data ',
+      ' o que falta ', ' dados faltando ', ' informacoes faltando ', ' que falta ',
+      ' why ', ' por que ', ' porque ', ' explain metrics ', ' explain the metrics ',
+      ' explique as metricas ', ' explicar metricas ', ' deal snapshot ', ' snapshot do deal ',
+      ' deal overview ', ' resumo do deal ', ' resumen del deal ',
+    ])
+  )) return { name: 'getDealInsightContext', args: { propertyId: propertyContextId } };
   if (propertyContextId && (asksForSelectedPropertyAnalysis(message) || intentIncludesAny(normalized, [
     ' analyze this deal ',
     ' analyse this deal ',
@@ -880,16 +891,18 @@ Deno.serve(async (req) => {
               reportType: propertyAnalysisContext.report_type,
             },
           }
-        : resolveMandatoryToolCall(message, propertyContextId, comparisonPropertyIds))
+        : resolveMandatoryToolCall(message, propertyContextId, comparisonPropertyIds, body.controlledIntent))
       : null;
     const trustedFunctionCall = mandatoryFunctionCall?.name === 'getDealInsightContext'
       ? {
           ...mandatoryFunctionCall,
-          args: {
-            ...mandatoryFunctionCall.args,
-            reportType: propertyAnalysisContext?.report_type
-              || (requestedCapability === 'DEAL_INTELLIGENCE' ? 'DEAL_INTELLIGENCE' : 'MAXXIS_ANALYSIS'),
-          },
+          args: propertyAnalysisContext?.report_type || requestedCapability
+            ? {
+                ...mandatoryFunctionCall.args,
+                reportType: propertyAnalysisContext?.report_type
+                  || (requestedCapability === 'DEAL_INTELLIGENCE' ? 'DEAL_INTELLIGENCE' : 'MAXXIS_ANALYSIS'),
+              }
+            : mandatoryFunctionCall.args,
         }
       : mandatoryFunctionCall;
     const trustedArgs = trustedFunctionCall?.args as Record<string, unknown> | undefined;

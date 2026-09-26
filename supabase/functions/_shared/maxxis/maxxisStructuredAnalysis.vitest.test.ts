@@ -51,6 +51,38 @@ describe('MaxxisStructuredAnalysis', () => {
     expect(analysis.valuationAnalysis.scenarioInterpretation).toContain('is not the DealSifter ARV');
   });
 
+  it('propagates an optional benchmark as an estimated low-confidence scenario', () => {
+    const benchmarkSnapshot = {
+      ...snapshot,
+      rehabAnalysis: {
+        value: 302400,
+        source: 'USER_CURATED_REHAB_BENCHMARK_2026',
+        provenance: 'ESTIMATED',
+        confidence: 'LOW',
+        benchmark: {
+          state: 'California', scope: 'FULL_RENOVATION', low: 241920, mid: 302400, high: 362880,
+          source: 'USER_CURATED_REHAB_BENCHMARK_2026', confidence: 'LOW', usage: 'REFERENCE_ONLY',
+        },
+        sanityCheck: { actualRehabPerSqft: 180, classification: 'WITHIN_REFERENCE_RANGE' },
+        providerCalls: 0,
+      },
+      dealIntelligence: {
+        ...snapshot.dealIntelligence,
+        dealMetrics: { metrics: {
+          ...snapshot.dealIntelligence.dealMetrics.metrics,
+          acquisitionPlusRehab: { calculable: true, value: 2497400 },
+        } },
+      },
+    };
+    const analysis = buildMaxxisStructuredAnalysis(benchmarkSnapshot, 'DEAL_INTELLIGENCE', 'pt');
+    expect(analysis.rehabAnalysis).toMatchObject({
+      budget: 302400, source: 'USER_CURATED_REHAB_BENCHMARK_2026', provenance: 'ESTIMATED',
+      confidence: 'LOW', actualRehabPerSqft: 180,
+    });
+    expect(analysis.valuationAnalysis.rehabImpact).toContain('estimativa preliminar de baixa confiança');
+    expect(analysis.rehabAnalysis.interpretation).toContain('não deve ser tratado como orçamento de empreiteiro');
+  });
+
   it('centralizes natural-language explanations for internal states', () => {
     expect(explainMaxxisInternalState('MISSING_REHAB')).toBe('Rehabilitation scope and cost have not yet been confirmed.');
     expect(explainMaxxisInternalState('roi_not_calculated')).toContain('ROI cannot yet be calculated');

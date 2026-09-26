@@ -18,7 +18,7 @@ export const MAXXIS_EXECUTION_LIMITS: Readonly<MaxxisExecutionLimits> = {
   maxDurationMs: 75_000,
   maxRequestBytes: 64 * 1024,
   maxMessageChars: 1_800,
-  maxHistoryItems: 10,
+  maxHistoryItems: 20,
   maxHistoryChars: 12_000,
   maxToolPayloadChars: 64_000,
   maxOutputTokens: 1_400,

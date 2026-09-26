@@ -2,6 +2,7 @@ import { createClient } from 'npm:@supabase/supabase-js@2';
 import { buildCorsHeaders, parseAllowedOrigins } from '../_shared/maxxis/corsPolicy.ts';
 import { isTargetCondition } from '../_shared/property-data/arvVisualCompReview.ts';
 import { validatePropertyId } from '../_shared/property-data/cache.ts';
+import { estimateRehabBenchmark2026 } from '../_shared/maxxis/rehabCostBenchmarks2026.ts';
 
 const supabaseUrl = Deno.env.get('SUPABASE_URL') ?? '';
 const supabaseAnonKey = Deno.env.get('ANON_KEY') ?? Deno.env.get('SUPABASE_ANON_KEY') ?? '';
@@ -30,6 +31,12 @@ function scope(value: unknown) {
   return parsed || null;
 }
 
+function rehabSource(value: unknown) {
+  const parsed = String(value || 'USER_PROVIDED').trim().toUpperCase();
+  if (!['USER_PROVIDED', 'USER_CURATED_REHAB_BENCHMARK_2026'].includes(parsed)) throw new Error('INVALID_REHAB_SOURCE');
+  return parsed;
+}
+
 export async function handleMaxxisAnalysisInputsRequest(req: Request) {
   const origin = req.headers.get('Origin') || '';
   if (req.method === 'OPTIONS') return new Response('ok', { headers: buildCorsHeaders(origin, allowedOrigins) });
@@ -50,7 +57,7 @@ export async function handleMaxxisAnalysisInputsRequest(req: Request) {
     });
     if (entitlementError || entitled !== true) return response(origin, { success: false, error: 'NOT_ENTITLED' }, 403);
     const { data: existing, error: readError } = await client.from('property_arv_review_contexts')
-      .select('target_condition,rehab_budget,renovation_scope,declined_inputs')
+      .select('target_condition,rehab_budget,renovation_scope,rehab_source,declined_inputs')
       .eq('subject_property_id', propertyId).eq('reviewer_user_id', user.id).maybeSingle();
     if (readError) throw new Error('ANALYSIS_INPUT_READ_FAILED');
     const declined = new Set(Array.isArray(existing?.declined_inputs) ? existing.declined_inputs : []);
@@ -60,6 +67,7 @@ export async function handleMaxxisAnalysisInputsRequest(req: Request) {
       target_condition: existing?.target_condition || null,
       rehab_budget: existing?.rehab_budget ?? null,
       renovation_scope: existing?.renovation_scope || null,
+      rehab_source: existing?.rehab_source || null,
       evidence_status: 'USER_PROVIDED',
       policy_version: 'MAXXIS_ANALYSIS_INPUTS_V1',
     };
@@ -70,8 +78,27 @@ export async function handleMaxxisAnalysisInputsRequest(req: Request) {
         declined.delete('target_condition');
       }
       if (body.rehabBudget !== undefined) {
-        row.rehab_budget = budget(body.rehabBudget);
-        if (row.rehab_budget === null) throw new Error('INVALID_REHAB_BUDGET');
+        const source = rehabSource(body.rehabSource);
+        row.rehab_source = source;
+        if (source === 'USER_CURATED_REHAB_BENCHMARK_2026') {
+          if (existing?.rehab_budget !== null && existing?.rehab_budget !== undefined
+            && existing?.rehab_source !== 'USER_CURATED_REHAB_BENCHMARK_2026') {
+            throw new Error('STORED_REHAB_TAKES_PRIORITY');
+          }
+          const condition = body.targetCondition || row.target_condition;
+          const { data: property, error: propertyError } = await client.from('properties')
+            .select('state,sqft,rehab').eq('id', propertyId).maybeSingle();
+          if (propertyError) throw new Error('BENCHMARK_PROPERTY_READ_FAILED');
+          if (Number.isFinite(Number(property?.rehab)) && Number(property?.rehab) > 0) {
+            throw new Error('STORED_REHAB_TAKES_PRIORITY');
+          }
+          const estimate = estimateRehabBenchmark2026({ state: property?.state, livingAreaSqft: property?.sqft, condition });
+          if (!estimate) throw new Error('BENCHMARK_NOT_AVAILABLE');
+          row.rehab_budget = estimate.mid;
+        } else {
+          row.rehab_budget = budget(body.rehabBudget);
+          if (row.rehab_budget === null) throw new Error('INVALID_REHAB_BUDGET');
+        }
         declined.delete('rehab_budget');
       }
       if (body.renovationScope !== undefined) {
@@ -92,12 +119,15 @@ export async function handleMaxxisAnalysisInputsRequest(req: Request) {
       targetCondition: row.target_condition,
       rehabBudget: row.rehab_budget,
       renovationScope: row.renovation_scope,
+      rehabSource: row.rehab_source,
       declinedInputs: row.declined_inputs,
-      provenance: 'USER_PROVIDED',
+      provenance: row.rehab_source === 'USER_CURATED_REHAB_BENCHMARK_2026' ? 'ESTIMATED' : 'USER_PROVIDED',
     } });
   } catch (error) {
     const code = String(error instanceof Error ? error.message : 'ANALYSIS_INPUTS_UNAVAILABLE');
-    return response(origin, { success: false, error: code }, /^INVALID_/.test(code) ? 400 : 500);
+    const status = /^INVALID_|BENCHMARK_NOT_AVAILABLE/.test(code) ? 400
+      : code === 'STORED_REHAB_TAKES_PRIORITY' ? 409 : 500;
+    return response(origin, { success: false, error: code }, status);
   }
 }
 

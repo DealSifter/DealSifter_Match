@@ -20,11 +20,11 @@
   --text-secondary: var(--t2);
   --text-tertiary: var(--t3);
   position: fixed;
-  left: 50%;
-  top: 50%;
+  left: var(--maxxis-panel-left, 50%);
+  top: var(--maxxis-panel-top, 50%);
   width: min(620px, calc(100vw - 32px));
   height: min(720px, calc(100dvh - 54px));
-  transform: translate(-50%, -50%);
+  transform: var(--maxxis-panel-transform, translate(-50%, -50%));
   display: flex;
   flex-direction: column;
   overflow: hidden;
@@ -35,6 +35,10 @@
   backdrop-filter: blur(18px);
   color: var(--t1);
   pointer-events: auto;
+}
+
+.maxxis-panel-dragging {
+  box-shadow: 0 34px 96px rgba(8, 18, 25, 0.34);
 }
 
 .maxxis-shell-open::before {
@@ -1711,6 +1715,31 @@ button.maxxis-action-link:hover {
   border-left: 0;
   background: color-mix(in srgb, #64748b 8%, transparent);
   box-shadow: -3px 0 0 rgba(100, 116, 139, .5);
+}
+
+@media (min-width: 768px) {
+  .maxxis-shell-open {
+    pointer-events: none;
+  }
+
+  .maxxis-shell-open::before {
+    display: none;
+  }
+
+  .maxxis-header {
+    cursor: grab;
+    touch-action: none;
+    user-select: none;
+  }
+
+  .maxxis-panel-dragging .maxxis-header {
+    cursor: grabbing;
+  }
+
+  .maxxis-actions,
+  .maxxis-actions button {
+    cursor: pointer;
+  }
 }
 
 @media (max-width: 767px) {

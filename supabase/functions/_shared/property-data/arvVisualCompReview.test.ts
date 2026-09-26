@@ -108,6 +108,45 @@ describe('ARV visual comp review domain', () => {
     expect(reload).toMatchObject({ arvCalculated: false, maoCalculated: false, providerCalls: 0 });
   });
 
+  it('re-evaluates five cached structural candidates after condition review without lowering thresholds or calling a provider', () => {
+    const candidates = ['a', 'b', 'c', 'd', 'e'].map((id, index) => candidate(id, `${100 + index} Test St`, 84 - index));
+    const before = buildArvVisualCompReviewPayload({
+      propertyId: 'e86dd292-429d-4b51-9b02-bc60a3e9068f', targetCondition: 'FULL_RENOVATION',
+      candidates, persistedReviews: [], subjectLivingAreaSqft: 1838,
+    });
+    const compatibilities: ConditionCompatibility[] = [
+      'MATCHES_TARGET', 'MATCHES_TARGET', 'PARTIAL_MATCH', 'PARTIAL_MATCH', 'NOT_COMPARABLE',
+    ];
+    const rows = compatibilities.map((compatibility, index) => ({
+      comp_identifier: candidates[index].soldRecord.providerPropertyId,
+      target_condition: 'FULL_RENOVATION' as const,
+      observed_condition: 'FULL_RENOVATION' as const,
+      condition_compatibility: compatibility,
+      notes: null,
+      evidence_status: 'USER_PROVIDED' as const,
+      reviewed_at: '2026-09-12T12:00:00.000Z',
+    }));
+    const after = buildArvVisualCompReviewPayload({
+      propertyId: before.propertyId, targetCondition: 'FULL_RENOVATION', candidates,
+      persistedReviews: rows, subjectLivingAreaSqft: 1838,
+    });
+
+    expect(before).toMatchObject({
+      providerCalls: 0,
+      summary: { totalStructuralCandidates: 5, compatibleCount: 0, status: 'NOT_STARTED' },
+      arvEvaluation: { eligibleCompCount: 0, supportingCompCount: 0 },
+    });
+    expect(after).toMatchObject({
+      providerCalls: 0,
+      summary: { totalStructuralCandidates: 5, matchingCount: 2, partialCount: 2, compatibleCount: 4,
+        status: 'READY_FOR_ARV_EVALUATION' },
+      arvEvaluation: { eligibleCompCount: 2, supportingCompCount: 2 },
+    });
+    expect(after.candidates.map((item) => item.structuralComparabilityScore))
+      .toEqual(before.candidates.map((item) => item.structuralComparabilityScore));
+    expect(after.candidates.map((item) => item.stableCompIdentifier)).toEqual(['a', 'b', 'c', 'd', 'e']);
+  });
+
   it('enforces own-user RLS and idempotent upsert keys in the migration', () => {
     const sql = readFileSync(new URL('../../../migrations/20260912160000_arv_visual_comp_reviews.sql', import.meta.url), 'utf8');
     expect(sql).toMatch(/reviewer_user_id\s*=\s*auth\.uid\(\)/);

@@ -3,7 +3,10 @@ import React, { useState } from 'react';
 import { Icon } from '../ui/Icon';
 import { getLang } from '../../i18n/translations';
 import { C } from '../../theme/colors';
-import { MAXXIS_WIDGET_POSITION_KEY } from '../../lib/localStoragePolicy';
+import {
+  MAXXIS_PANEL_POSITION_KEY,
+  MAXXIS_WIDGET_POSITION_KEY,
+} from '../../lib/localStoragePolicy';
 import { trackProductEvent } from '../../lib/productAnalytics';
 import { MaxxisDealMemoryCard } from '../../features/maxxis/memory/MaxxisDealMemoryCard';
 import { MaxxisComposedExperience } from '../../features/maxxis/composition/MaxxisComposedExperience';
@@ -23,6 +26,7 @@ export const COPY = {
     placeholder: 'Ask about DealSifter, Tax Deeds or Wholesale...',
     send: 'Send',
     reset: 'New conversation',
+    minimize: 'Minimize to avatar',
     close: 'Close',
     open: 'Open Maxxis Deal AI Assistant',
     support: 'Human support',
@@ -73,6 +77,7 @@ export const COPY = {
     placeholder: 'Pergunte sobre DealSifter, Tax Deeds ou Wholesale...',
     send: 'Enviar',
     reset: 'Nova conversa',
+    minimize: 'Minimizar para o avatar',
     close: 'Fechar',
     open: 'Abrir Assistente Maxxis Deal AI',
     support: 'Suporte humano',
@@ -123,6 +128,7 @@ export const COPY = {
     placeholder: 'Pregunta sobre DealSifter, Tax Deeds o Wholesale...',
     send: 'Enviar',
     reset: 'Nueva conversacion',
+    minimize: 'Minimizar al avatar',
     close: 'Cerrar',
     open: 'Abrir Asistente Maxxis Deal AI',
     support: 'Soporte humano',
@@ -1555,12 +1561,36 @@ export function clampWidgetPosition(position) {
   };
 }
 
+export function clampPanelPosition(position, panelSize = {}, viewport = getViewportBounds()) {
+  const width = Number(viewport?.width) || 0;
+  const height = Number(viewport?.height) || 0;
+  if (!width || !height || !position) return null;
+  const margin = 8;
+  const panelWidth = Math.min(Math.max(Number(panelSize?.width) || 620, 1), Math.max(1, width - margin * 2));
+  const panelHeight = Math.min(Math.max(Number(panelSize?.height) || 720, 1), Math.max(1, height - margin * 2));
+  return {
+    x: Math.min(Math.max(Number(position.x) || margin, margin), Math.max(margin, width - panelWidth - margin)),
+    y: Math.min(Math.max(Number(position.y) || margin, margin), Math.max(margin, height - panelHeight - margin)),
+  };
+}
+
 export function readStoredWidgetPosition() {
   if (typeof window === 'undefined') return null;
   try {
     const raw = window.localStorage.getItem(MAXXIS_WIDGET_POSITION_KEY);
     if (!raw) return null;
     return clampWidgetPosition(JSON.parse(raw));
+  } catch {
+    return null;
+  }
+}
+
+export function readStoredPanelPosition() {
+  if (typeof window === 'undefined') return null;
+  try {
+    const raw = window.localStorage.getItem(MAXXIS_PANEL_POSITION_KEY);
+    if (!raw) return null;
+    return clampPanelPosition(JSON.parse(raw));
   } catch {
     return null;
   }

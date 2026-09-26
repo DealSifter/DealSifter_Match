@@ -1,3 +1,5 @@
+import { estimateRehabBenchmark2026 } from './rehabCostBenchmarks2026.ts';
+
 export type AnalysisInputClassification = 'AVAILABLE' | 'PROVIDER_RESOLVABLE' | 'USER_RESOLVABLE'
   | 'CALCULABLE' | 'TRULY_UNAVAILABLE' | 'NOT_AUTHORIZED';
 
@@ -5,10 +7,14 @@ type Assumptions = {
   targetCondition?: unknown;
   rehabBudget?: unknown;
   renovationScope?: unknown;
+  rehabSource?: unknown;
   declinedInputs?: unknown;
 };
 
-const finite = (value: unknown) => Number.isFinite(Number(value)) ? Number(value) : null;
+const finite = (value: unknown) => {
+  if (value === null || value === undefined || value === '') return null;
+  return Number.isFinite(Number(value)) ? Number(value) : null;
+};
 const text = (value: unknown) => String(value || '').trim();
 const list = (value: unknown) => Array.isArray(value) ? value.map(text).filter(Boolean) : [];
 
@@ -44,8 +50,14 @@ export function buildEvidenceCompletenessGate({ reportType, property, assumption
   const targetCondition = text(assumptions.targetCondition);
   const targetAvailable = Boolean(targetCondition && targetCondition !== 'UNKNOWN');
   const missing: string[] = [];
-  if (!rehabAvailable && !declined.has('rehab_budget')) missing.push('rehab_budget');
   if (enterprise && !targetAvailable && !declined.has('target_condition')) missing.push('target_condition');
+  else if (!rehabAvailable && !declined.has('rehab_budget')) missing.push('rehab_budget');
+  const benchmarkOptions = ['LIGHT_REHAB', 'STANDARD_RENOVATION', 'FULL_RENOVATION', 'NEW_CONSTRUCTION']
+    .map((condition) => estimateRehabBenchmark2026({
+      state: property?.state,
+      livingAreaSqft: property?.sqft ?? property?.livingAreaSqft,
+      condition,
+    })).filter(Boolean);
   const inputs = Object.freeze({
     property: 'AVAILABLE' as AnalysisInputClassification,
     rehabBudget: (rehabAvailable ? 'AVAILABLE' : declined.has('rehab_budget') ? 'TRULY_UNAVAILABLE' : 'USER_RESOLVABLE') as AnalysisInputClassification,
@@ -63,8 +75,10 @@ export function buildEvidenceCompletenessGate({ reportType, property, assumption
       targetCondition: targetAvailable ? targetCondition : null,
       rehabBudget: userRehab,
       renovationScope: text(assumptions.renovationScope) || null,
+      rehabSource: text(assumptions.rehabSource) || null,
       declinedInputs: Object.freeze([...declined]),
       provenance: userRehab !== null || targetAvailable || text(assumptions.renovationScope) ? 'USER_PROVIDED' : null,
     }),
+    benchmarkOptions: Object.freeze(benchmarkOptions),
   });
 }

@@ -563,6 +563,30 @@ export function enhanceMaxxisAssistantResponse({ message = '', result = {}, lang
   const source = normalizeMaxxisDealIntelligenceSource({ type: result?.type, data: result?.data });
   const intent = detectMaxxisDealIntent(message, forcedIntent);
   const followUps = source ? buildMaxxisFollowUps(source, language) : [];
+  const canonical = result?.data?.structuredAnalysis?.type === 'maxxis_structured_analysis'
+    ? result.data.structuredAnalysis : null;
+  if (canonical) {
+    const lines = intent === 'deal_gaps'
+      ? canonical.missingEvidence || []
+      : intent === 'explain_metrics'
+        ? [canonical.valuationAnalysis?.currentPositioning, canonical.valuationAnalysis?.rehabImpact,
+          canonical.rehabAnalysis?.interpretation]
+        : intent === 'explain_current_insight'
+          ? [canonical.investmentThesis, canonical.profileFit?.rationale, canonical.riskAnalysis?.rationale?.[0]]
+          : [canonical.executiveSummary, canonical.opportunityAssessment];
+    const content = lines.filter(Boolean).slice(0, intent === 'deal_gaps' ? 5 : 3).join('\n\n')
+      || canonical.executiveSummary;
+    return {
+      type: intent === 'deal_gaps' ? 'deal_gaps' : intent === 'explain_metrics'
+        ? 'maxxis_metric_explanation' : intent === 'explain_current_insight'
+          ? 'maxxis_insight_explanation' : 'deal_snapshot',
+      content,
+      data: { sourceType: result.type, sourceData: result.data, structuredAnalysis: canonical, intent },
+      followUps,
+      eventName: TRACK_BY_INTENT[intent] || null,
+      canonical: true,
+    };
+  }
   if (!source || !hasStructuredDeal(source)) return { followUps: [], eventName: TRACK_BY_INTENT[intent] || null };
   if (intent === 'deal_gaps') {
     const response = buildDealGapsResponse(source, language);

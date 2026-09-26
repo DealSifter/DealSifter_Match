@@ -10,6 +10,17 @@ describe('maxxisAnalysisInputsService', () => {
     expect(result).toMatchObject({ action: 'UPSERT', rehabBudget: 50000, targetCondition: 'STANDARD_RENOVATION' });
   });
 
+  it('preserves benchmark provenance selected by the user', async () => {
+    const invoke = vi.fn(async (body) => ({ data: { success: true, data: body }, error: null }));
+    const result = await saveMaxxisAnalysisInputs(propertyId, {
+      rehabBudget: 302400,
+      rehabSource: 'USER_CURATED_REHAB_BENCHMARK_2026',
+    }, invoke);
+    expect(result).toMatchObject({
+      action: 'UPSERT', rehabBudget: 302400, rehabSource: 'USER_CURATED_REHAB_BENCHMARK_2026',
+    });
+  });
+
   it('persists a decline to prevent repeated questions', async () => {
     const invoke = vi.fn(async (body) => ({ data: { success: true, data: body }, error: null }));
     expect(await declineMaxxisAnalysisInputs(propertyId, ['rehab_budget'], invoke)).toMatchObject({ action: 'DECLINE' });

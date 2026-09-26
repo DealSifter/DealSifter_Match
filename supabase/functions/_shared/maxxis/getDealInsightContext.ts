@@ -19,6 +19,10 @@ import { buildEvidenceCompletenessGate } from './analysisGapResolver.ts';
 import { calculateDealMetrics } from './dealMetrics.ts';
 import { analyzeDealFacts } from './dealAdvisor.ts';
 import { DEALSIFTER_ARV_ENGINE_POLICY_V1 } from '../property-data/arvEngine.ts';
+import {
+  estimateRehabBenchmark2026,
+  sanityCheckRehabAgainstBenchmark2026,
+} from './rehabCostBenchmarks2026.ts';
 
 export async function getDealInsightContextForAuthenticatedUser(
   input: unknown,
@@ -77,6 +81,7 @@ export async function getDealInsightContextForAuthenticatedUser(
     arvEligibleCount: 0,
     structuralCandidateCount: 0,
     usableCandidateCount: 0,
+    compPromotionDiagnostics: [] as Array<Record<string, unknown>>,
     arvStatus: 'UNAVAILABLE',
     stopReason: '',
   };
@@ -151,6 +156,19 @@ export async function getDealInsightContextForAuthenticatedUser(
       runtimeTrace.excludedCandidateCount = sold.recordedSoldCompSelection.hardInvalid.length;
       runtimeTrace.structuralCandidateCount = sold.recordedSoldCompSelection.primaryStructuralCandidates.length;
       runtimeTrace.usableCandidateCount = sold.recordedSoldCompSelection.conditionVerifiedArvComps.length;
+      runtimeTrace.compPromotionDiagnostics = directCandidates.filter((candidate) =>
+        (candidate.weightedAssessment?.structuralComparabilityScore ?? -1) >= DEALSIFTER_ARV_ENGINE_POLICY_V1.structuralScoreFloor
+        && (candidate.weightedAssessment?.dataCompletenessScore ?? -1) >= DEALSIFTER_ARV_ENGINE_POLICY_V1.completenessFloor)
+        .map((candidate) => ({
+          candidateId: candidate.soldRecord.providerPropertyId,
+          address: candidate.soldRecord.formattedAddress,
+          structuralScore: candidate.weightedAssessment?.structuralComparabilityScore ?? null,
+          completenessScore: candidate.weightedAssessment?.dataCompletenessScore ?? null,
+          conditionStatus: 'UNREVIEWED',
+          conditionCompatibility: 'UNKNOWN',
+          promotionStatus: candidate.weightedAssessment?.primaryArvCompCandidate ? 'CONDITION_REVIEW_PENDING' : 'EXCLUDED',
+          rejectionReasons: candidate.weightedAssessment?.primaryEligibilityBlockers || [],
+        }));
     } catch (error) {
       const code = error instanceof Error ? error.message : 'SOLD_EVIDENCE_FAILED';
       runtimeTrace.soldEvidence = code === 'ADDRESS_MISMATCH' ? 'REJECTED' : 'UNAVAILABLE';
@@ -217,14 +235,16 @@ export async function getDealInsightContextForAuthenticatedUser(
     }
   };
   const { data: analysisInputRow } = await queryClient.from('property_arv_review_contexts')
-    .select('target_condition,rehab_budget,renovation_scope,declined_inputs,evidence_status')
+    .select('target_condition,rehab_budget,renovation_scope,rehab_source,declined_inputs,evidence_status')
     .eq('subject_property_id', validated.propertyId).eq('reviewer_user_id', userId).maybeSingle();
   const analysisInputs = {
     targetCondition: analysisInputRow?.target_condition ?? null,
     rehabBudget: analysisInputRow?.rehab_budget ?? null,
     renovationScope: analysisInputRow?.renovation_scope ?? null,
+    rehabSource: analysisInputRow?.rehab_source ?? null,
     declinedInputs: Array.isArray(analysisInputRow?.declined_inputs) ? analysisInputRow.declined_inputs : [],
   };
+  let activeRehabInputSource: string | null = null;
   const result = await orchestrateDealInsightContext({
     propertyId: validated.propertyId,
     loadPropertyDetails: async (propertyId) => {
@@ -232,7 +252,11 @@ export async function getDealInsightContextForAuthenticatedUser(
       const explicitRehab = analysisInputs.rehabBudget !== null && analysisInputs.rehabBudget !== ''
         && Number.isFinite(Number(analysisInputs.rehabBudget))
         ? Number(analysisInputs.rehabBudget) : null;
-      if (!details.property || explicitRehab === null) return details;
+      const storedPropertyRehab = Number(details.property?.rehab);
+      const benchmarkMayApply = analysisInputs.rehabSource !== 'USER_CURATED_REHAB_BENCHMARK_2026'
+        || !Number.isFinite(storedPropertyRehab) || storedPropertyRehab <= 0;
+      if (!details.property || explicitRehab === null || !benchmarkMayApply) return details;
+      activeRehabInputSource = analysisInputs.rehabSource || 'USER_PROVIDED';
       const property = { ...details.property, rehab: explicitRehab };
       const missingFields = details.missingFields.filter((field) => field !== 'rehab');
       const metrics = calculateDealMetrics({
@@ -272,11 +296,30 @@ export async function getDealInsightContextForAuthenticatedUser(
     trace: runtimeTrace,
   });
   const evidenceCompletenessGate = buildEvidenceCompletenessGate({
-    reportType: requestedReportType,
+    reportType: requestedReportType || (plan === 'ENTERPRISE' ? 'DEAL_INTELLIGENCE' : ''),
     property: result.property as unknown as Record<string, unknown> | null,
     assumptions: analysisInputs,
     language: languageInput,
   });
+  const rehabBenchmark = estimateRehabBenchmark2026({
+    state: result.property?.state,
+    livingAreaSqft: result.property?.sqft,
+    condition: analysisInputs.targetCondition,
+  });
+  const activeRehab = Number(result.property?.rehab);
+  const explicitRehab = Boolean(activeRehabInputSource);
+  const rehabAnalysis = {
+    value: Number.isFinite(activeRehab) && activeRehab >= 0 ? activeRehab : null,
+    source: explicitRehab
+      ? activeRehabInputSource || 'USER_PROVIDED'
+      : Number.isFinite(activeRehab) && activeRehab > 0 ? 'PROPERTY_APP_VALUE' : null,
+    provenance: explicitRehab && activeRehabInputSource === 'USER_CURATED_REHAB_BENCHMARK_2026'
+      ? 'ESTIMATED' : explicitRehab ? 'USER_PROVIDED' : Number.isFinite(activeRehab) && activeRehab > 0 ? 'REPORTED' : 'UNAVAILABLE',
+    confidence: explicitRehab && activeRehabInputSource === 'USER_CURATED_REHAB_BENCHMARK_2026' ? 'LOW' : null,
+    benchmark: rehabBenchmark,
+    sanityCheck: sanityCheckRehabAgainstBenchmark2026(activeRehab, rehabBenchmark),
+    providerCalls: 0,
+  } as const;
   const intelligenceSnapshot = {
     version: 'MAXXIS_INTELLIGENCE_SNAPSHOT_V1',
     propertyId: result.propertyId,
@@ -288,10 +331,12 @@ export async function getDealInsightContextForAuthenticatedUser(
     providerEvidence: result.evidence.state === 'available' ? result.evidence.evidence || null : null,
     soldEvidence: result.dealIntelligence?.comparableEvidence || [],
     comps: result.dealIntelligence?.comparableEvidence || [],
+    compPromotionDiagnostics: runtimeTrace.compPromotionDiagnostics,
     valuationEvidence: result.dealIntelligence?.valuationContext || null,
     arv: result.dealIntelligence?.valuationContext || null,
     dealMetrics: result.metrics,
     investmentKPIs: result.dealIntelligence?.dealMetrics || null,
+    rehabAnalysis,
     riskSignals: result.dealIntelligence?.risks || [],
     positiveSignals: result.dealIntelligence?.opportunities || [],
     missingEvidence: result.dealIntelligence?.limitations || [],

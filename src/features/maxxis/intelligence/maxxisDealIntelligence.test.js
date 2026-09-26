@@ -139,6 +139,36 @@ describe('Maxxis Deal AI interactive deal intelligence', () => {
     expect(enhanced.content).toContain('Deal snapshot');
   });
 
+  it.each([
+    ['typed question', '', 'Como está este imóvel?'],
+    ['Why?', 'explain_current_insight', 'Por que?'],
+    ["What's missing?", 'deal_gaps', 'O que falta?'],
+    ['Explain metrics', 'explain_metrics', 'Explique as métricas'],
+    ['Deal snapshot', 'deal_snapshot', 'Snapshot do deal'],
+    ['follow-up question', 'review_next', 'O que revisar agora?'],
+  ])('routes %s through the canonical structured analysis', (_entry, forcedIntent, message) => {
+    const canonical = {
+      type: 'maxxis_structured_analysis',
+      executiveSummary: 'Resumo canônico em português.',
+      opportunityAssessment: 'Avaliação canônica da oportunidade.',
+      investmentThesis: 'Tese canônica.',
+      profileFit: { rationale: 'Justificativa canônica.' },
+      riskAnalysis: { rationale: ['Risco explicado de forma canônica.'] },
+      missingEvidence: ['A condição alvo precisa ser confirmada.'],
+      valuationAnalysis: { currentPositioning: 'Posicionamento canônico.', rehabImpact: 'Impacto canônico.' },
+      rehabAnalysis: { interpretation: 'Cenário canônico de reforma.' },
+    };
+    const response = enhanceMaxxisAssistantResponse({
+      message,
+      language: 'pt',
+      forcedIntent,
+      result: { type: 'deal_insight', data: { property: propertyDetails.data.property, structuredAnalysis: canonical } },
+    });
+    expect(response.canonical).toBe(true);
+    expect(response.data.structuredAnalysis).toBe(canonical);
+    expect(response.content).not.toContain('Com base apenas nos dados cadastrados');
+  });
+
   it('summarizes comparison trade-offs without winner, best, buy, or avoid language', () => {
     const response = buildComparisonTradeoffs({
       type: 'property_comparison',

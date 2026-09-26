@@ -45,7 +45,7 @@ describe('Phase 5C abuse protection', () => {
 
   it('rejects oversized history and tool payloads before further work', () => {
     const budget = new MaxxisExecutionBudget();
-    expect(() => budget.validateHistory(Array.from({ length: 11 }, () => ({ content: 'ok' })))).toThrow('MAXXIS_CONTEXT_TOO_LARGE');
+    expect(() => budget.validateHistory(Array.from({ length: 21 }, () => ({ content: 'ok' })))).toThrow('MAXXIS_CONTEXT_TOO_LARGE');
     expect(() => budget.validateHistory([{ content: 'x'.repeat(MAXXIS_EXECUTION_LIMITS.maxHistoryChars + 1) }])).toThrow('MAXXIS_CONTEXT_TOO_LARGE');
     expect(() => budget.validateToolPayload('x'.repeat(MAXXIS_EXECUTION_LIMITS.maxToolPayloadChars + 1))).toThrow('MAXXIS_TOOL_PAYLOAD_TOO_LARGE');
   });

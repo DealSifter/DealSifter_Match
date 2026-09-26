@@ -169,7 +169,7 @@ function comparativeAnalysis(context: AnyRecord, language: AnalysisLanguage) {
   };
 }
 
-function valuationAnalysis(context: AnyRecord, language: AnalysisLanguage) {
+function valuationAnalysis(context: AnyRecord, language: AnalysisLanguage, rehab: AnyRecord = {}) {
   const valuation = record(context.valuationContext);
   const metrics = record(record(context.dealMetrics).metrics);
   const status = text(valuation.status) || 'ARV_UNAVAILABLE';
@@ -190,7 +190,9 @@ function valuationAnalysis(context: AnyRecord, language: AnalysisLanguage) {
     confidence: arvAvailable ? text(valuation.confidence) : 'LOW',
     pricePositioning: record(metrics.pricePerSqft).calculable ? finite(record(metrics.pricePerSqft).value) : null,
     rehabImpact: record(metrics.acquisitionPlusRehab).calculable
-      ? localized(language, 'The supplied rehabilitation budget is included in the deterministic acquisition-plus-rehab total.', 'O orçamento de reforma informado está incluído no total determinístico de aquisição mais reforma.', 'El presupuesto de reforma informado está incluido en el total determinístico de adquisición más reforma.')
+      ? rehab.provenance === 'ESTIMATED'
+        ? localized(language, 'The acquisition-plus-rehab scenario uses the optional 2026 state benchmark as a low-confidence preliminary estimate.', 'O cenário de aquisição mais reforma utiliza a referência estadual opcional de 2026 como estimativa preliminar de baixa confiança.', 'El escenario de adquisición más reforma utiliza la referencia estatal opcional de 2026 como estimación preliminar de baja confianza.')
+        : localized(language, 'The supplied rehabilitation budget is included in the deterministic acquisition-plus-rehab total.', 'O orçamento de reforma informado está incluído no total determinístico de aquisição mais reforma.', 'El presupuesto de reforma informado está incluido en el total determinístico de adquisición más reforma.')
       : localized(language, 'Rehabilitation impact cannot be quantified until a budget is supplied.', 'O impacto da reforma não pode ser quantificado até que um orçamento seja informado.', 'El impacto de la reforma no puede cuantificarse hasta que se informe un presupuesto.'),
     currentPositioning: record(metrics.pricePerSqft).calculable
       ? localized(language, `The stored asking price equates to ${Number(record(metrics.pricePerSqft).value).toLocaleString('en-US', { style: 'currency', currency: 'USD' })} per square foot; this is a deterministic positioning metric, not a valuation conclusion.`, `O preço pedido registrado equivale a ${Number(record(metrics.pricePerSqft).value).toLocaleString('en-US', { style: 'currency', currency: 'USD' })} por pé quadrado; esta é uma métrica determinística de posicionamento, não uma conclusão de valor.`, `El precio solicitado registrado equivale a ${Number(record(metrics.pricePerSqft).value).toLocaleString('en-US', { style: 'currency', currency: 'USD' })} por pie cuadrado; esta es una métrica determinística de posicionamiento, no una conclusión de valor.`)
@@ -205,6 +207,38 @@ function valuationAnalysis(context: AnyRecord, language: AnalysisLanguage) {
       ? localized(language, `The provider AVM is ${providerEstimate.toLocaleString('en-US', { style: 'currency', currency: 'USD', maximumFractionDigits: 0 })}; it is supporting estimated evidence and is not the DealSifter ARV.`, `O AVM do provedor é ${providerEstimate.toLocaleString('en-US', { style: 'currency', currency: 'USD', maximumFractionDigits: 0 })}; trata-se de evidência estimada de apoio, não do ARV DealSifter.`, `El AVM del proveedor es ${providerEstimate.toLocaleString('en-US', { style: 'currency', currency: 'USD', maximumFractionDigits: 0 })}; es evidencia estimada de apoyo, no el ARV DealSifter.`)
       : localized(language, 'No provider AVM is available as supporting valuation evidence.', 'Não há AVM do provedor disponível como evidência de apoio à avaliação.', 'No hay un AVM del proveedor disponible como evidencia de apoyo a la valoración.'),
     limitations,
+  };
+}
+
+function rehabAnalysis(snapshot: AnyRecord, language: AnalysisLanguage) {
+  const rehab = record(snapshot.rehabAnalysis);
+  const benchmark = record(rehab.benchmark);
+  const sanity = record(rehab.sanityCheck);
+  const value = finite(rehab.value);
+  const estimateAvailable = finite(benchmark.mid) !== null;
+  const sanityText = sanity.classification === 'BELOW_REFERENCE_RANGE'
+    ? localized(language, 'The active budget is below the reference range; this is a heuristic signal, not a finding that the budget is incorrect.', 'O orçamento ativo está abaixo da faixa de referência; este é um sinal heurístico, não uma conclusão de que o orçamento esteja incorreto.', 'El presupuesto activo está por debajo del rango de referencia; es una señal heurística, no una conclusión de que sea incorrecto.')
+    : sanity.classification === 'ABOVE_REFERENCE_RANGE'
+      ? localized(language, 'The active budget is above the reference range; this is a heuristic signal, not a finding that the budget is incorrect.', 'O orçamento ativo está acima da faixa de referência; este é um sinal heurístico, não uma conclusão de que o orçamento esteja incorreto.', 'El presupuesto activo está por encima del rango de referencia; es una señal heurística, no una conclusión de que sea incorrecto.')
+      : sanity.classification === 'WITHIN_REFERENCE_RANGE'
+        ? localized(language, 'The active budget is within the 2026 reference range.', 'O orçamento ativo está dentro da faixa de referência de 2026.', 'El presupuesto activo está dentro del rango de referencia de 2026.') : '';
+  return {
+    budget: value,
+    source: text(rehab.source) || null,
+    provenance: text(rehab.provenance) || 'UNAVAILABLE',
+    confidence: text(rehab.confidence) || null,
+    benchmark: estimateAvailable ? {
+      state: text(benchmark.state), scope: text(benchmark.scope), low: finite(benchmark.low),
+      mid: finite(benchmark.mid), high: finite(benchmark.high), source: text(benchmark.source),
+      confidence: text(benchmark.confidence), usage: text(benchmark.usage),
+    } : null,
+    actualRehabPerSqft: finite(sanity.actualRehabPerSqft),
+    sanityCheck: sanityText || null,
+    interpretation: value !== null
+      ? rehab.provenance === 'ESTIMATED'
+        ? localized(language, 'This preliminary rehabilitation scenario uses a user-selected, unsourced 2026 reference benchmark and must not be treated as contractor pricing.', 'Este cenário preliminar de reforma utiliza uma referência de 2026 sem fonte preservada, escolhida pelo usuário, e não deve ser tratado como orçamento de empreiteiro.', 'Este escenario preliminar de reforma utiliza una referencia de 2026 sin fuente preservada, elegida por el usuario, y no debe tratarse como presupuesto de contratista.')
+        : localized(language, 'The active rehabilitation amount comes from the user or the stored property record and takes priority over the reference benchmark.', 'O valor de reforma ativo vem do usuário ou do cadastro do imóvel e tem prioridade sobre a referência.', 'El valor de reforma activo proviene del usuario o del registro de la propiedad y tiene prioridad sobre la referencia.')
+      : localized(language, 'No rehabilitation amount is active. The user may provide one, choose the benchmark, or continue without this assumption.', 'Nenhum valor de reforma está ativo. O usuário pode informar um valor, escolher a referência ou continuar sem essa premissa.', 'No hay un valor de reforma activo. El usuario puede informarlo, elegir la referencia o continuar sin este supuesto.'),
   };
 }
 
@@ -312,7 +346,18 @@ export function buildMaxxisStructuredAnalysis(snapshotInput: unknown, reportType
   const fit = fitAnalysis(context, language);
   const market = marketContext(context, language);
   const comparative = comparativeAnalysis(context, language);
-  const valuation = valuationAnalysis(context, language);
+  const promotionDiagnostics = list(snapshot.compPromotionDiagnostics);
+  const promotionLimitations = unique(promotionDiagnostics.flatMap((item) => list(item?.rejectionReasons)).map((reason) => {
+    const value = text(reason);
+    if (value.includes('SECONDARY_PROXIMITY')) return localized(language,
+      'Structurally relevant sales were found, but they remain outside the current local-eligibility boundary and cannot be promoted for ARV use.',
+      'Foram encontradas vendas estruturalmente relevantes, mas elas permanecem fora do limite atual de elegibilidade local e não podem ser promovidas para uso no ARV.',
+      'Se encontraron ventas estructuralmente relevantes, pero permanecen fuera del límite actual de elegibilidad local y no pueden promoverse para uso en el ARV.');
+    if (value.includes('COMPLETENESS')) return localized(language, 'Some candidates lack the evidence completeness required for promotion.', 'Alguns candidatos não possuem a completude de evidências exigida para promoção.', 'Algunos candidatos no tienen la integridad de evidencia requerida para su promoción.');
+    return '';
+  }).filter(Boolean));
+  const rehab = rehabAnalysis(snapshot, language);
+  const valuation = valuationAnalysis(context, language, rehab);
   const risks = riskAnalysis(context, language);
   const positiveSignals = unique([
     ...list(context.opportunities).map((item) => localizedOpportunity(item, language)),
@@ -361,14 +406,15 @@ export function buildMaxxisStructuredAnalysis(snapshotInput: unknown, reportType
     }),
     comparativeAnalysis: Object.freeze(comparative),
     comparablesAnalysis: Object.freeze({
-      candidatesConsidered: list(context.comparableEvidence).length,
+      candidatesConsidered: Math.max(list(context.comparableEvidence).length, promotionDiagnostics.length),
       selected: Object.freeze(comparative.selectedCompSummary),
       supporting: Object.freeze(comparative.supportingEvidence),
       excluded: list(context.comparableEvidence).filter((item) => item?.valuationRole === 'EXCLUDED').length,
       interpretation: comparative.interpretation,
-      limitations: Object.freeze(comparative.limitations),
+      limitations: Object.freeze(unique([...comparative.limitations, ...promotionLimitations])),
     }),
     valuationAnalysis: Object.freeze(valuation),
+    rehabAnalysis: Object.freeze(rehab),
     riskAnalysis: Object.freeze(risks),
     positiveSignals: Object.freeze(positiveSignals.slice(0, 8)),
     concerns: Object.freeze(concerns.slice(0, 8)),
