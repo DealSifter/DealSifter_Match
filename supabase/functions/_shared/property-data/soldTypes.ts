@@ -180,6 +180,7 @@ export type RecordedSoldCompSelection = {
   sufficiency: 'SUFFICIENT' | 'CONDITIONAL' | 'INSUFFICIENT';
   referenceSetClass: 'PREFERRED' | 'ROBUST' | 'ACCEPTABLE' | 'MINIMUM' | 'INSUFFICIENT';
   primaryStructuralCandidates: RecordedSoldComparableCandidate[];
+  supportingStructuralCandidates: RecordedSoldComparableCandidate[];
   structuralReferenceSetClass: 'PREFERRED' | 'ROBUST' | 'ACCEPTABLE' | 'MINIMUM' | 'INSUFFICIENT';
   conditionVerifiedArvComps: [];
   descriptiveStatistics: {

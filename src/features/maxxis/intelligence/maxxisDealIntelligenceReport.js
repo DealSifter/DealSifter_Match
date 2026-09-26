@@ -127,6 +127,9 @@ function comparableItem(comp) {
     distanceMiles: nullableNumber(comp?.distanceMiles),
     similarity: nullableNumber(comp?.structuralComparabilityScore),
     conditionStatus: safeText(comp?.conditionCompatibility) || 'UNKNOWN',
+    candidateCondition: safeText(comp?.candidateCondition) || 'UNKNOWN',
+    conditionEvidenceSource: safeText(comp?.conditionEvidenceSource) || null,
+    promotionBlockers: Object.freeze(list(comp?.promotionBlockers).map(safeText).filter(Boolean)),
     transactionQuality: safeText(comp?.transactionQuality) || 'UNKNOWN',
     role: safeText(comp?.valuationRole) || (comp?.valuationEligibility === 'INCLUDED' ? 'PRIMARY'
       : comp?.valuationEligibility === 'SUPPORTING_ONLY' ? 'SUPPORTING' : 'EXCLUDED'),
@@ -146,7 +149,7 @@ function comparableEvidence(context) {
   const items = list(context?.comparableEvidence).map(comparableItem);
   return Object.freeze({
     used: Object.freeze(items.filter((item) => item.role === 'PRIMARY').slice(0, 5)),
-    supporting: Object.freeze(items.filter((item) => item.role === 'SUPPORTING').slice(0, 3)),
+    supporting: Object.freeze(items.filter((item) => item.role === 'SUPPORTING').slice(0, 5)),
     excluded: Object.freeze(items.filter((item) => item.role === 'EXCLUDED').slice(0, 3)),
   });
 }
@@ -164,7 +167,8 @@ function limitations(context, valuation, comps) {
   const values = explainMaxxisEvidenceList(context?.limitations).map(safeText);
   list(context?.propertyContext?.unknownFields).forEach((field) => values.push(`${field}: UNKNOWN`));
   if (valuation.status === 'ARV_UNAVAILABLE') values.push('ARV: UNKNOWN — the existing engine did not produce a value.');
-  if (!comps.used.length) values.push('Verified sold comparables used by the existing evaluation: NONE.');
+  if (!comps.used.length && comps.supporting.length) values.push(`No comparable sale currently meets all ARV eligibility criteria. ${comps.supporting.length} structurally relevant sale${comps.supporting.length === 1 ? '' : 's'} are retained as supporting market evidence.`);
+  else if (!comps.used.length) values.push('Verified sold comparables used by the existing evaluation: NONE.');
   values.push('This analysis is limited to the evidence and deterministic engine outputs currently available in DealSifter.');
   return Object.freeze(unique(values).slice(0, 12));
 }

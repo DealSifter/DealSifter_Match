@@ -5,7 +5,7 @@ import {
   INITIAL_DEALSIFTER_COMP_POLICY,
 } from './compEngine.ts';
 import { evaluateRecordedSoldCandidate, referenceSetClass } from './compQualityCalibration.ts';
-import { evaluateWeightedCompCandidate } from './weightedCompPolicy.ts';
+import { DEALSIFTER_WEIGHTED_COMP_POLICY_V1, evaluateWeightedCompCandidate } from './weightedCompPolicy.ts';
 import type {
   ComparableQualityDiagnostic,
   NormalizedComparableCandidate,
@@ -351,6 +351,18 @@ export function selectRecordedSoldComparables(
     .sort((left, right) => (right.weightedAssessment?.structuralComparabilityScore ?? 0)
       - (left.weightedAssessment?.structuralComparabilityScore ?? 0)
       || (left.distanceFromSubjectMiles.value ?? Infinity) - (right.distanceFromSubjectMiles.value ?? Infinity));
+  const supportingStructuralCandidates = candidates.filter((item) => {
+    const assessment = item.weightedAssessment;
+    return assessment?.hardGates.pass === true
+      && assessment.structuralComparabilityScore >= DEALSIFTER_WEIGHTED_COMP_POLICY_V1.arvCandidateThreshold
+      && assessment.dataCompletenessScore >= DEALSIFTER_WEIGHTED_COMP_POLICY_V1.minimumPrimaryDataCompleteness
+      && !assessment.primaryArvCompCandidate
+      && assessment.primaryEligibilityBlockers.length > 0
+      && assessment.primaryEligibilityBlockers.every((blocker) =>
+        blocker === 'SECONDARY_PROXIMITY_WITHOUT_MICRO_MARKET_EVIDENCE');
+  }).sort((left, right) => (right.weightedAssessment?.structuralComparabilityScore ?? 0)
+    - (left.weightedAssessment?.structuralComparabilityScore ?? 0)
+    || (left.distanceFromSubjectMiles.value ?? Infinity) - (right.distanceFromSubjectMiles.value ?? Infinity));
   const usable = [...strong, ...good, ...acceptable];
   const statisticsSource = topFiveStrong.length ? topFiveStrong : usable.slice(0, 5);
   const priceStats = distribution(statisticsSource
@@ -370,6 +382,7 @@ export function selectRecordedSoldComparables(
     sufficiency: strong.length >= 3 ? 'SUFFICIENT' : strong.length === 2 ? 'CONDITIONAL' : 'INSUFFICIENT',
     referenceSetClass: referenceSetClass(strong.length),
     primaryStructuralCandidates,
+    supportingStructuralCandidates,
     structuralReferenceSetClass: referenceSetClass(primaryStructuralCandidates.length),
     conditionVerifiedArvComps: [],
     descriptiveStatistics: {

@@ -20,6 +20,10 @@ import { calculateDealMetrics } from './dealMetrics.ts';
 import { analyzeDealFacts } from './dealAdvisor.ts';
 import { DEALSIFTER_ARV_ENGINE_POLICY_V1 } from '../property-data/arvEngine.ts';
 import {
+  buildStructuralCandidatePromotionDiagnostic,
+  finalizeCompPromotionDiagnostic,
+} from '../property-data/compPromotion.ts';
+import {
   estimateRehabBenchmark2026,
   sanityCheckRehabAgainstBenchmark2026,
 } from './rehabCostBenchmarks2026.ts';
@@ -154,21 +158,15 @@ export async function getDealInsightContextForAuthenticatedUser(
         candidate.weightedAssessment?.structuralClass === 'SUPPORTING_ACCEPTABLE').length;
       runtimeTrace.weakCandidateCount = sold.recordedSoldCompSelection.weak.length;
       runtimeTrace.excludedCandidateCount = sold.recordedSoldCompSelection.hardInvalid.length;
-      runtimeTrace.structuralCandidateCount = sold.recordedSoldCompSelection.primaryStructuralCandidates.length;
+      runtimeTrace.structuralCandidateCount = sold.recordedSoldCompSelection.primaryStructuralCandidates.length
+        + (sold.recordedSoldCompSelection.supportingStructuralCandidates?.length || 0);
       runtimeTrace.usableCandidateCount = sold.recordedSoldCompSelection.conditionVerifiedArvComps.length;
       runtimeTrace.compPromotionDiagnostics = directCandidates.filter((candidate) =>
         (candidate.weightedAssessment?.structuralComparabilityScore ?? -1) >= DEALSIFTER_ARV_ENGINE_POLICY_V1.structuralScoreFloor
         && (candidate.weightedAssessment?.dataCompletenessScore ?? -1) >= DEALSIFTER_ARV_ENGINE_POLICY_V1.completenessFloor)
-        .map((candidate) => ({
-          candidateId: candidate.soldRecord.providerPropertyId,
-          address: candidate.soldRecord.formattedAddress,
-          structuralScore: candidate.weightedAssessment?.structuralComparabilityScore ?? null,
-          completenessScore: candidate.weightedAssessment?.dataCompletenessScore ?? null,
-          conditionStatus: 'UNREVIEWED',
-          conditionCompatibility: 'UNKNOWN',
-          promotionStatus: candidate.weightedAssessment?.primaryArvCompCandidate ? 'CONDITION_REVIEW_PENDING' : 'EXCLUDED',
-          rejectionReasons: candidate.weightedAssessment?.primaryEligibilityBlockers || [],
-        }));
+        .map((candidate) => buildStructuralCandidatePromotionDiagnostic(
+          candidate, sold.valuation.subjectProperty,
+        ));
     } catch (error) {
       const code = error instanceof Error ? error.message : 'SOLD_EVIDENCE_FAILED';
       runtimeTrace.soldEvidence = code === 'ADDRESS_MISMATCH' ? 'REJECTED' : 'UNAVAILABLE';
@@ -222,6 +220,10 @@ export async function getDealInsightContextForAuthenticatedUser(
         ?? runtimeTrace.supportingCandidateCount;
       runtimeTrace.excludedCandidateCount = evaluation?.excludedCompCount
         ?? runtimeTrace.excludedCandidateCount;
+      if (evaluation) {
+        runtimeTrace.compPromotionDiagnostics = runtimeTrace.compPromotionDiagnostics.map((diagnostic) =>
+          finalizeCompPromotionDiagnostic(diagnostic as ReturnType<typeof buildStructuralCandidatePromotionDiagnostic>, evaluation));
+      }
       return evaluation;
     } catch (error) {
       const code = error instanceof Error ? error.message : 'PROPERTY_INTELLIGENCE_FAILED';

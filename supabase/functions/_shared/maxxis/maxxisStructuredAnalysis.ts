@@ -31,6 +31,9 @@ const STATE_COPY: Record<string, string> = Object.freeze({
   property_condition_unknown: 'The current property condition has not yet been verified.',
   INSUFFICIENT_COMPS: 'There are not enough condition-compatible recorded sales to support a defensible ARV.',
   VALUATION_DISPERSION_WARNING: 'The available comparable values vary materially, which limits valuation confidence.',
+  SECONDARY_PROXIMITY_WITHOUT_MICRO_MARKET_EVIDENCE: 'The sale is structurally relevant and retained as supporting market evidence, but its secondary proximity lacks verified same-submarket or subdivision evidence required for ARV use.',
+  CONDITION_REVIEW_PENDING: 'The sale is retained as supporting evidence while its condition remains unverified; unknown condition is not treated as an incompatibility.',
+  CONDITION_UNKNOWN: 'The sale is retained as supporting evidence because its condition is unknown rather than contradicted.',
 });
 const STATE_COPY_PT: Record<string, string> = Object.freeze({
   analysis_depends_on_submitted_data: 'A análise depende parcialmente de informações cadastradas do imóvel que devem ser verificadas de forma independente.',
@@ -45,6 +48,9 @@ const STATE_COPY_PT: Record<string, string> = Object.freeze({
   property_condition_unknown: 'A condição atual do imóvel ainda não foi verificada.',
   INSUFFICIENT_COMPS: 'Não há vendas registradas compatíveis em quantidade suficiente para sustentar um ARV defensável.',
   VALUATION_DISPERSION_WARNING: 'Os valores dos comparáveis disponíveis variam de forma relevante, o que limita a confiança da avaliação.',
+  SECONDARY_PROXIMITY_WITHOUT_MICRO_MARKET_EVIDENCE: 'A venda é estruturalmente relevante e foi mantida como evidência de apoio de mercado, mas sua proximidade secundária não possui comprovação de mesmo submercado ou subdivisão exigida para uso no ARV.',
+  CONDITION_REVIEW_PENDING: 'A venda foi mantida como evidência de apoio enquanto sua condição permanece sem verificação; condição desconhecida não é tratada como incompatibilidade.',
+  CONDITION_UNKNOWN: 'A venda foi mantida como evidência de apoio porque sua condição é desconhecida, e não contraditória.',
 });
 const STATE_COPY_ES: Record<string, string> = Object.freeze({
   analysis_depends_on_submitted_data: 'El análisis depende parcialmente de información registrada de la propiedad que debe verificarse de forma independiente.',
@@ -59,6 +65,9 @@ const STATE_COPY_ES: Record<string, string> = Object.freeze({
   property_condition_unknown: 'El estado actual de la propiedad aún no ha sido verificado.',
   INSUFFICIENT_COMPS: 'No hay suficientes ventas registradas compatibles para respaldar un ARV defendible.',
   VALUATION_DISPERSION_WARNING: 'Los valores de los comparables disponibles varían de manera significativa, lo que limita la confianza de la valoración.',
+  SECONDARY_PROXIMITY_WITHOUT_MICRO_MARKET_EVIDENCE: 'La venta es estructuralmente relevante y se conserva como evidencia de apoyo de mercado, pero su proximidad secundaria carece de evidencia verificada del mismo submercado o subdivisión exigida para el ARV.',
+  CONDITION_REVIEW_PENDING: 'La venta se conserva como evidencia de apoyo mientras su condición no está verificada; una condición desconocida no se trata como incompatibilidad.',
+  CONDITION_UNKNOWN: 'La venta se conserva como evidencia de apoyo porque su condición es desconocida y no contradictoria.',
 });
 
 export function explainMaxxisInternalState(value: unknown, languageInput: unknown = 'en') {
@@ -153,11 +162,21 @@ function comparativeAnalysis(context: AnyRecord, language: AnalysisLanguage) {
   const excluded = comps.filter((item) => item?.valuationRole === 'EXCLUDED' || item?.valuationEligibility === 'EXCLUDED');
   const limitations = selected.length
     ? unique(excluded.map((item) => explainMaxxisInternalState(item?.exclusionReason, language)).filter(Boolean))
-    : [localized(language, 'No condition-compatible recorded sale is currently available to support a defensible comparable conclusion.', 'Nenhuma venda registrada compatível com a condição está disponível para sustentar uma conclusão defensável por comparáveis.', 'No hay ventas registradas compatibles con la condición para respaldar una conclusión defendible mediante comparables.')];
+    : supporting.length
+      ? [localized(language,
+        `No comparable sale currently meets all ARV eligibility criteria. ${supporting.length} structurally relevant sale${supporting.length === 1 ? '' : 's'} remain as supporting market evidence only.`,
+        `Nenhuma venda comparável atende atualmente a todos os critérios de elegibilidade do ARV. ${supporting.length} venda(s) estruturalmente relevante(s) permanecem apenas como evidência de apoio de mercado.`,
+        `Ninguna venta comparable cumple actualmente todos los criterios de elegibilidad del ARV. ${supporting.length} venta(s) estructuralmente relevante(s) permanecen solo como evidencia de apoyo de mercado.`)]
+      : [localized(language, 'No condition-compatible recorded sale is currently available to support a defensible comparable conclusion.', 'Nenhuma venda registrada compatível com a condição está disponível para sustentar uma conclusão defensável por comparáveis.', 'No hay ventas registradas compatibles con la condición para respaldar una conclusión defendible mediante comparables.')];
   return {
     interpretation: selected.length
       ? localized(language, `${selected.length} recorded sale${selected.length === 1 ? '' : 's'} met the current structural and condition gates; ${supporting.length} additional sale${supporting.length === 1 ? '' : 's'} provide supporting context.`, `${selected.length} venda(s) registrada(s) atenderam aos critérios estruturais e de condição; outras ${supporting.length} venda(s) fornecem contexto de apoio.`, `${selected.length} venta(s) registrada(s) cumplieron los criterios estructurales y de condición; otras ${supporting.length} venta(s) aportan contexto de apoyo.`)
-      : localized(language, 'The current evidence set does not contain a recorded sale that passed all comparable-selection gates.', 'O conjunto atual de evidências não contém uma venda registrada que tenha atendido a todos os critérios de seleção de comparáveis.', 'El conjunto actual de evidencia no contiene una venta registrada que haya cumplido todos los criterios de selección de comparables.'),
+      : supporting.length
+        ? localized(language,
+          `${supporting.length} structurally relevant sale${supporting.length === 1 ? '' : 's'} were retained as supporting market evidence, but none passed every deterministic ARV gate.`,
+          `${supporting.length} venda(s) estruturalmente relevante(s) foram mantidas como evidência de apoio de mercado, mas nenhuma atendeu a todos os critérios determinísticos do ARV.`,
+          `${supporting.length} venta(s) estructuralmente relevante(s) se conservaron como evidencia de apoyo de mercado, pero ninguna cumplió todos los criterios determinísticos del ARV.`)
+        : localized(language, 'The current evidence set does not contain a recorded sale that passed all comparable-selection gates.', 'O conjunto atual de evidências não contém uma venda registrada que tenha atendido a todos os critérios de seleção de comparáveis.', 'El conjunto actual de evidencia no contiene una venta registrada que haya cumplido todos los criterios de selección de comparables.'),
     selectedCompSummary: selected.slice(0, 5).map((item) => ({
       address: text(item.address) || localized(language, 'Address unavailable', 'Endereço indisponível', 'Dirección no disponible'),
       salePrice: finite(item.recordedSalePrice),
@@ -347,7 +366,9 @@ export function buildMaxxisStructuredAnalysis(snapshotInput: unknown, reportType
   const market = marketContext(context, language);
   const comparative = comparativeAnalysis(context, language);
   const promotionDiagnostics = list(snapshot.compPromotionDiagnostics);
-  const promotionLimitations = unique(promotionDiagnostics.flatMap((item) => list(item?.rejectionReasons)).map((reason) => {
+  const promotionLimitations = unique(promotionDiagnostics.flatMap((item) => [
+    ...list(item?.promotionBlockers), ...list(item?.rejectionReasons),
+  ]).map((reason) => {
     const value = text(reason);
     if (value.includes('SECONDARY_PROXIMITY')) return localized(language,
       'Structurally relevant sales were found, but they remain outside the current local-eligibility boundary and cannot be promoted for ARV use.',

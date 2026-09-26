@@ -24,7 +24,10 @@ export async function loadCachedArvEvaluation(input: {
   return buildArvVisualCompReviewPayload({
     propertyId: input.propertyId,
     targetCondition,
-    candidates: soldEvidence.recordedSoldCompSelection.primaryStructuralCandidates,
+    candidates: [
+      ...soldEvidence.recordedSoldCompSelection.primaryStructuralCandidates,
+      ...(soldEvidence.recordedSoldCompSelection.supportingStructuralCandidates || []),
+    ],
     persistedReviews: reviews,
     subjectLivingAreaSqft: soldEvidence.valuation.subjectProperty.livingAreaSqft.value,
     cachedProviderAvm: {

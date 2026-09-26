@@ -73,7 +73,10 @@ export type DealIntelligenceContext = {
     recordedSaleDate: string | null;
     distanceMiles: number | null;
     transactionQuality: string;
+    candidateCondition: string;
+    conditionEvidenceSource: string | null;
     conditionCompatibility: string;
+    promotionBlockers: string[];
     structuralComparabilityScore: number;
     dataCompletenessScore: number;
     valuationWeight: number;
@@ -211,7 +214,10 @@ function comparableEvidence(arv: ArvEvaluationResult | null): DealIntelligenceCo
     recordedSaleDate: comp.recordedSaleDate,
     distanceMiles: comp.distanceMiles,
     transactionQuality: comp.transactionQuality,
+    candidateCondition: comp.candidateCondition || 'UNKNOWN',
+    conditionEvidenceSource: comp.conditionEvidenceStatus,
     conditionCompatibility: comp.conditionCompatibility,
+    promotionBlockers: comp.promotionBlockers || [],
     structuralComparabilityScore: comp.structuralComparabilityScore,
     dataCompletenessScore: comp.dataCompletenessScore,
     valuationWeight: comp.valuationWeight,

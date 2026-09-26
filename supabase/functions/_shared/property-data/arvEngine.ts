@@ -1,4 +1,4 @@
-import type { ConditionCompatibility, TargetCondition } from './weightedCompTypes.ts';
+import type { ConditionCompatibility, ObservedCondition, TargetCondition } from './weightedCompTypes.ts';
 
 export type ArvEnginePolicy = {
   version: 'DEALSIFTER_ARV_POLICY_V1';
@@ -86,6 +86,8 @@ export type ArvEngineCandidate = {
   distanceMiles: number | null;
   daysSinceSale: number | null;
   transactionQuality: 'UNKNOWN' | 'ARMS_LENGTH_VERIFIED' | 'NON_ARMS_LENGTH';
+  promotionBlockers?: string[];
+  candidateCondition?: ObservedCondition | 'UNKNOWN';
   conditionCompatibility: ConditionCompatibility | 'UNREVIEWED';
   conditionEvidenceStatus: 'USER_PROVIDED' | null;
 };
@@ -149,8 +151,11 @@ function classify(candidate: ArvEngineCandidate, policy: ArvEnginePolicy) {
   if (!finitePositive(candidate.recordedSalePrice)) return { role: 'EXCLUDED' as const, reason: 'MISSING_RECORDED_SALE_PRICE' };
   if (!candidate.recordedSaleDate || !Number.isFinite(Date.parse(candidate.recordedSaleDate))) return { role: 'EXCLUDED' as const, reason: 'MISSING_RECORDED_SALE_DATE' };
   if (!finitePositive(candidate.livingAreaSqft)) return { role: 'EXCLUDED' as const, reason: 'MISSING_LIVING_AREA' };
+  if (candidate.promotionBlockers?.includes('SECONDARY_PROXIMITY_WITHOUT_MICRO_MARKET_EVIDENCE')) {
+    return { role: 'SUPPORTING' as const, reason: 'SECONDARY_PROXIMITY_WITHOUT_MICRO_MARKET_EVIDENCE' };
+  }
   if (candidate.conditionEvidenceStatus !== 'USER_PROVIDED' || candidate.conditionCompatibility === 'UNREVIEWED') {
-    return { role: 'EXCLUDED' as const, reason: 'CONDITION_REVIEW_PENDING' };
+    return { role: 'SUPPORTING' as const, reason: 'CONDITION_REVIEW_PENDING' };
   }
   if (candidate.conditionCompatibility === 'MATCHES_TARGET') return { role: 'PRIMARY' as const, reason: 'CONDITION_MATCH' };
   if (candidate.conditionCompatibility === 'PARTIAL_MATCH') return policy.includePartialMatchInCore
@@ -160,7 +165,7 @@ function classify(candidate: ArvEngineCandidate, policy: ArvEnginePolicy) {
   if (candidate.conditionCompatibility === 'INFERIOR_TO_TARGET') return { role: 'SUPPORTING' as const, reason: 'INFERIOR_TO_TARGET' };
   if (candidate.conditionCompatibility === 'DIFFERENT_PRODUCT_CLASS') return { role: 'EXCLUDED' as const, reason: 'DIFFERENT_PRODUCT_CLASS' };
   if (candidate.conditionCompatibility === 'NOT_COMPARABLE') return { role: 'EXCLUDED' as const, reason: 'NOT_COMPARABLE' };
-  return { role: 'EXCLUDED' as const, reason: 'CONDITION_UNKNOWN' };
+  return { role: 'SUPPORTING' as const, reason: 'CONDITION_UNKNOWN' };
 }
 
 function rawWeight(candidate: ArvEngineCandidate, policy: ArvEnginePolicy) {

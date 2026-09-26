@@ -27,7 +27,8 @@ const PROPERTY_KEYS = Object.freeze([
 ]);
 const COMPARABLE_KEYS = Object.freeze([
   'compIdentifier', 'address', 'salePrice', 'saleDate', 'distanceMiles', 'similarity',
-  'conditionStatus', 'transactionQuality', 'role', 'inclusionReason', 'exclusionReason', 'beds',
+  'conditionStatus', 'candidateCondition', 'conditionEvidenceSource', 'promotionBlockers',
+  'transactionQuality', 'role', 'inclusionReason', 'exclusionReason', 'beds',
   'baths', 'sqft', 'latitude', 'longitude', 'sourceType', 'provenance',
 ]);
 

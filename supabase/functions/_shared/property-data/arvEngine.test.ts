@@ -95,7 +95,9 @@ describe('DealSifter deterministic ARV Engine v1', () => {
     expect(notComparable.valuationSet.find((item) => item.compIdentifier === 'kauhako')).toMatchObject({
       valuationEligibility: 'EXCLUDED', exclusionReason: 'NOT_COMPARABLE', valuationWeight: 0,
     });
-    expect(unknown.valuationSet.find((item) => item.compIdentifier === 'kauhako')?.exclusionReason).toBe('CONDITION_UNKNOWN');
+    expect(unknown.valuationSet.find((item) => item.compIdentifier === 'kauhako')).toMatchObject({
+      valuationEligibility: 'SUPPORTING_ONLY', exclusionReason: 'CONDITION_UNKNOWN', valuationWeight: 0,
+    });
   });
 
   it('uses partial, superior and inferior only as supporting evidence without guessed adjustments', () => {

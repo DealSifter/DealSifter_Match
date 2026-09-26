@@ -137,6 +137,8 @@ export function buildArvVisualCompReviewPayload(input: {
         distanceMiles: candidate.distanceFromSubjectMiles.value,
         daysSinceSale: candidate.daysSinceSale.value,
         transactionQuality: candidate.soldRecord.transactionQuality,
+        promotionBlockers: candidate.weightedAssessment?.primaryEligibilityBlockers || [],
+        candidateCondition: review?.observedCondition || 'UNKNOWN' as const,
         conditionCompatibility: review?.conditionCompatibility || 'UNREVIEWED' as const,
         conditionEvidenceStatus: review?.evidenceStatus || null,
       };

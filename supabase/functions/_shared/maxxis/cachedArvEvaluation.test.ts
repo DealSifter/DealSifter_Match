@@ -17,7 +17,7 @@ function cachedSoldEvidence() {
   return { valuation: { subjectProperty: { livingAreaSqft: { value: 2333 } },
     providerEstimate: { value: { value: 2_500_000, status: 'ESTIMATED' } } },
   recordedSoldCompSelection: { primaryStructuralCandidates: [soldCandidate('comp-a', 1_500_000),
-    soldCandidate('comp-b', 1_600_000)] } };
+    soldCandidate('comp-b', 1_600_000)], supportingStructuralCandidates: [soldCandidate('comp-support', 1_550_000)] } };
 }
 
 describe('cached-only ARV loading for Deal Intelligence', () => {
@@ -42,7 +42,7 @@ describe('cached-only ARV loading for Deal Intelligence', () => {
         condition_compatibility: 'MATCHES_TARGET', notes: null, evidence_status: 'USER_PROVIDED',
         reviewed_at: '2026-09-13T12:00:00.000Z' })) as never) });
     expect(loadCachedSoldEvidence).toHaveBeenCalledTimes(1);
-    expect(result).toMatchObject({ status: 'ARV_LIMITED', eligibleCompCount: 2,
+    expect(result).toMatchObject({ status: 'ARV_LIMITED', eligibleCompCount: 2, supportingCompCount: 1,
       evidenceSummary: { conditionReview: 'USER_PROVIDED' } });
   });
 });
