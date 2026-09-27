@@ -124,6 +124,7 @@ import { withCurrentReportExportEntitlements } from '../../features/maxxis/expor
 import { declineMaxxisAnalysisInputs, saveMaxxisAnalysisInputs } from '../../services/maxxisAnalysisInputsService';
 import { downloadMaxxisReportPdf, renderMaxxisReportPdfCached } from '../../features/maxxis/export/maxxisReportPdf';
 import { didStructuredReportGenerationFail, hasUsableStructuredReportFallback } from '../../features/maxxis/intelligence/maxxisStructuredReportFallback';
+import { finishMaxxisBrowserTrace, markMaxxisBrowserStage, startMaxxisBrowserTrace } from '../../features/maxxis/performance/maxxisBrowserPerformance';
 import { MyMaxxisReports } from '../../features/maxxis/reports/MyMaxxisReports';
 import { resolveSavedReportAccessDecision } from '../../features/maxxis/reports/savedReportAccess';
 import './MaxxisAssistant.css';
@@ -1080,6 +1081,8 @@ export function MaxxisAssistant({ page = 'dashboard', onOpenSupport = null, onNa
       content: String(meta.visibleUserMessage || cleanMessage).trim(),
       createdAt: new Date(),
     };
+    const browserTraceId = startMaxxisBrowserTrace(`maxxis-request-${userMessage.id}`, { intent: meta.reportType || meta.controlledIntent || 'chat' });
+    let browserTraceFinishesAfterPaint = false;
     setMessages((prev) => [...prev, userMessage]);
     if (meta.propertyAnalysisContext?.mode === 'PROPERTY_ANALYSIS_MODE') {
       const acknowledgement = composePropertyAnalysisAcknowledgement(meta.propertyAnalysisContext, language);
@@ -1235,7 +1238,7 @@ export function MaxxisAssistant({ page = 'dashboard', onOpenSupport = null, onNa
           setMessages((prev) => [...prev, {
             id: `maxxis-arv-review-${Date.now()}`,
             role: 'assistant',
-            content: arvReviewGuidance(data.summary, language, data.arvEvaluation),
+            content: arvReviewGuidance(data.summary, language, data.arvEvaluation, data),
             createdAt: new Date(),
             type: 'arv_visual_comp_review',
             data,
@@ -1290,6 +1293,7 @@ export function MaxxisAssistant({ page = 'dashboard', onOpenSupport = null, onNa
         requestedCapability: requestedReportType || meta.reportType || analysisContext?.report_type || '',
         propertyAnalysisContext: analysisContext || null,
       });
+      markMaxxisBrowserStage(browserTraceId, 'T1_analysis_ready');
       const analysisRequestMs = (typeof performance !== 'undefined' ? performance.now() : Date.now()) - analysisStartedAt;
       const completenessGate = result?.data?.evidenceCompletenessGate;
       if (result?.type === 'deal_insight' && completenessGate?.status === 'USER_INPUT_REQUIRED') {
@@ -1345,6 +1349,7 @@ export function MaxxisAssistant({ page = 'dashboard', onOpenSupport = null, onNa
         ? projectMaxxisDealIntelligenceResponse(result, { reportProperty: meta.reportProperty })
         : null;
       const projectedReport = dealIntelligence || maxxisAnalysis;
+      if (projectedReport) markMaxxisBrowserStage(browserTraceId, 'T2_report_view_model_ready');
       const projectionMs = (typeof performance !== 'undefined' ? performance.now() : Date.now()) - projectionStartedAt;
       const projectedReportType = projectedReport?.data?.maxxisReport?.reportType || null;
       const grantedReportAccess = authorizedReportAccess?.allowed
@@ -1413,7 +1418,11 @@ export function MaxxisAssistant({ page = 'dashboard', onOpenSupport = null, onNa
         analysisExport: projectedReportType ? (meta.analysisExport || null) : null,
         compositionMode: dealIntelligence || maxxisAnalysis ? 'ANALYSIS' : (intelligence.type === 'property_tradeoffs' ? 'COMPARISON' : (intelligence.type ? 'ANALYSIS' : undefined)),
       }]);
+      if (projectedReport) {
+        markMaxxisBrowserStage(browserTraceId, 'T3_inline_report_committed');
+      }
       if (projectedReport && typeof window !== 'undefined' && typeof window.requestAnimationFrame === 'function') {
+        browserTraceFinishesAfterPaint = true;
         window.requestAnimationFrame(() => window.requestAnimationFrame(() => {
           const chatMountMs = (typeof performance !== 'undefined' ? performance.now() : Date.now()) - chatCommitStartedAt;
           const domNodeCount = panelRef.current?.querySelectorAll('*')?.length || 0;
@@ -1424,6 +1433,8 @@ export function MaxxisAssistant({ page = 'dashboard', onOpenSupport = null, onNa
           if (typeof CustomEvent === 'function') {
             window.dispatchEvent(new CustomEvent('dealsifter:maxxis-performance', { detail: { stage: 'chat_mount', durationMs: Math.round(chatMountMs * 10) / 10, domNodeCount } }));
           }
+          markMaxxisBrowserStage(browserTraceId, 'T4_first_visible_report_paint', { domNodeCount });
+          finishMaxxisBrowserTrace(browserTraceId, { reportType: projectedReportType, domNodeCount });
         }));
       }
       if (shouldPersistReport) {
@@ -1467,6 +1478,8 @@ export function MaxxisAssistant({ page = 'dashboard', onOpenSupport = null, onNa
       }]);
     } finally {
       setLoading(false);
+      markMaxxisBrowserStage(browserTraceId, 'final_ui_unlock');
+      if (!browserTraceFinishesAfterPaint) finishMaxxisBrowserTrace(browserTraceId);
     }
   };
   useEffect(() => {
@@ -1476,7 +1489,7 @@ export function MaxxisAssistant({ page = 'dashboard', onOpenSupport = null, onNa
   const replaceArvReviewMessage = (messageId, data) => {
     setMessages((prev) => prev.map((message) => message.id === messageId ? {
       ...message,
-      content: arvReviewGuidance(data.summary, language, data.arvEvaluation),
+      content: arvReviewGuidance(data.summary, language, data.arvEvaluation, data),
       data,
       error: false,
     } : message));
@@ -1523,6 +1536,33 @@ export function MaxxisAssistant({ page = 'dashboard', onOpenSupport = null, onNa
     } finally {
       setActiveArvReviewKey('');
     }
+  };
+
+  const handleRequestArvGap = (messageId, field) => {
+    const source = messages.find((item) => item.id === messageId);
+    const propertyId = String(source?.data?.propertyId || propertyContextId || '');
+    if (!UUID_PATTERN.test(propertyId) || !['target_condition', 'rehab_budget'].includes(field)) return;
+    const isCondition = field === 'target_condition';
+    setMessages((prev) => [...prev, {
+      id: `maxxis-arv-gap-${field}-${Date.now()}`,
+      role: 'assistant',
+      content: language === 'pt'
+        ? (isCondition ? 'Para tentar avançar no ARV, preciso confirmar a condição-alvo.' : 'Para tentar avançar no ARV, preciso confirmar ou estimar o rehab.')
+        : language === 'es'
+          ? (isCondition ? 'Para intentar avanzar con el ARV, necesito confirmar la condición objetivo.' : 'Para intentar avanzar con el ARV, necesito confirmar o estimar la rehabilitación.')
+          : (isCondition ? 'To try to advance the ARV, I need to confirm the target condition.' : 'To try to advance the ARV, I need to confirm or estimate rehab.'),
+      createdAt: new Date(),
+      type: 'analysis_gap_resolution',
+      data: {
+        propertyId,
+        missingUserInputs: [field],
+        assumptions: { targetCondition: source?.data?.targetCondition || 'AS_IS' },
+        benchmarkOptions: source?.data?.benchmarkOptions || [],
+        currentRehab: source?.data?.currentRehab ?? source?.data?.rehabBudget ?? null,
+        originalRequest: language === 'pt' ? 'Por que não tem ARV?' : language === 'es' ? '¿Por qué no hay ARV?' : 'Why is ARV unavailable?',
+        reportType: '',
+      },
+    }]);
   };
 
   const continueGatedAnalysis = (message, visibleUserMessage) => {
@@ -2047,6 +2087,7 @@ export function MaxxisAssistant({ page = 'dashboard', onOpenSupport = null, onNa
 
   const handleExportAnalysisPdf = async (analysisExport, analysisText, messageId) => {
     if (!analysisExport?.onExportPdf || !onExportAnalysisPdf || exportingAnalysisId) return;
+    const pdfTraceId = startMaxxisBrowserTrace(`maxxis-pdf-${messageId || Date.now()}`, { intent: 'pdf_export' });
     setExportingAnalysisId(messageId || analysisExport.requestId || 'active');
     try {
       const reportMessage = messages.find((entry) => entry.id === messageId);
@@ -2059,14 +2100,17 @@ export function MaxxisAssistant({ page = 'dashboard', onOpenSupport = null, onNa
         onExportPdf: async () => {
           if (!schema || !entitlement?.allowed) throw new Error('MAXXIS_REPORT_SCHEMA_OR_ACCESS_UNAVAILABLE');
           const rendered = await renderMaxxisReportPdfCached({ schema, exportEntitlement: entitlement, generatedAt: reportMessage.createdAt, language });
+          markMaxxisBrowserStage(pdfTraceId, 'pdf_artifact_ready', { pageCount: rendered.document?.pageCount || 0 });
           if (rendered.state !== 'RENDERED') throw new Error(`MAXXIS_REPORT_${rendered.state}`);
           if (!downloadMaxxisReportPdf(rendered.document, `maxxis-${schema.reportType.toLowerCase().replaceAll('_', '-')}.pdf`)) {
             throw new Error('MAXXIS_REPORT_DOWNLOAD_FAILED');
           }
+          markMaxxisBrowserStage(pdfTraceId, 'pdf_download_dispatched');
         },
       }, analysisText);
     } finally {
       setExportingAnalysisId(null);
+      finishMaxxisBrowserTrace(pdfTraceId, { intent: 'pdf_export' });
     }
   };
 
@@ -2813,6 +2857,7 @@ export function MaxxisAssistant({ page = 'dashboard', onOpenSupport = null, onNa
                   onOpenFeedCard={handleOpenFeedCard}
                   onSetArvTargetCondition={handleSetArvTargetCondition}
                   onSaveArvCompReview={handleSaveArvCompReview}
+                  onRequestArvGap={handleRequestArvGap}
                   activeArvReviewKey={activeArvReviewKey}
                   onRequestIntelligenceUnlock={onRequestIntelligenceUnlock}
                   onResolveAnalysisGaps={handleResolveAnalysisGaps}

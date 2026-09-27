@@ -49,7 +49,7 @@ export function resolveExternalCompReviewLink({ provider, address, directUrl = '
   };
 }
 
-export function arvReviewGuidance(summary, language = 'en', evaluation = null) {
+export function arvReviewGuidance(summary, language = 'en', evaluation = null, reviewData = null) {
   const lang = ['pt', 'es'].includes(language) ? language : 'en';
   const copy = {
     en: {
@@ -80,7 +80,22 @@ export function arvReviewGuidance(summary, language = 'en', evaluation = null) {
       unavailable: 'Aún no hay evidencia defendible y compatible en condición suficiente para producir una referencia de ARV.',
     },
   }[lang];
+  const candidates = Array.isArray(reviewData?.candidates) ? reviewData.candidates : [];
+  const distances = candidates.map((item) => Number(item?.distanceMiles)).filter((value) => Number.isFinite(value));
+  const distanceRange = distances.length ? [Math.min(...distances), Math.max(...distances)] : null;
   if (evaluation?.status === 'ARV_AVAILABLE') return copy.available(evaluation.eligibleCompCount || 0, evaluation.confidence);
+  if (language === 'pt' && evaluation?.status === 'ARV_UNAVAILABLE' && candidates.length) {
+    const count = candidates.length;
+    const distance = distanceRange
+      ? ` Eles ficam entre aproximadamente ${distanceRange[0].toLocaleString('pt-BR')} e ${distanceRange[1].toLocaleString('pt-BR')} milhas do imóvel.`
+      : '';
+    const conditionPending = reviewData?.targetConditionEvidenceStatus !== 'USER_PROVIDED'
+      || candidates.some((item) => !item.review || ['UNKNOWN', 'UNREVIEWED'].includes(item.review?.conditionCompatibility));
+    const blocker = conditionPending
+      ? 'O principal bloqueio é que a condição-alvo e a compatibilidade de condição desses imóveis ainda não estão confirmadas.'
+      : 'Os candidatos ainda não atenderam a todos os critérios determinísticos da avaliação.';
+    return `Encontrei ${count} ${count === 1 ? 'venda estruturalmente semelhante' : 'vendas estruturalmente semelhantes'}, mas ${count === 1 ? 'ela ainda não pode' : 'elas ainda não podem'} ser usada${count === 1 ? '' : 's'} como comparáveis confirmados para ARV.${distance}\n\n${blocker} Posso mantê-${count === 1 ? 'la' : 'las'} como evidência de apoio.\n\nPara tentar avançar, posso confirmar a condição-alvo, revisar o rehab e reavaliar os ${count} candidatos para mostrar quais passam ou não passam nos critérios. Isso não garante que uma faixa de ARV ficará disponível.`;
+  }
   if (evaluation?.status === 'ARV_LIMITED') return copy.limited(evaluation.eligibleCompCount || 0);
   if (evaluation?.status === 'ARV_UNAVAILABLE' && (summary?.reviewedCount || 0) > 0) return copy.unavailable;
   if (summary?.status === 'READY_FOR_ARV_EVALUATION') return copy.ready(summary.compatibleCount || 0);

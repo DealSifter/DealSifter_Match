@@ -158,7 +158,7 @@ describe('Maxxis Deal AI structured result presentation', () => {
     expect(css).toMatch(/\.maxxis-v2-info-card\.is-narrative dd\s*\{[^}]*text-align:\s*left/);
   });
 
-  it('renders safe external visual-review links and preserves structural evidence', () => {
+  it('keeps structural evidence behind the compact supporting-comps action', () => {
     const html = renderToStaticMarkup(
       <MessageBubble
         language="en"
@@ -186,11 +186,8 @@ describe('Maxxis Deal AI structured result presentation', () => {
       />,
     );
     expect(html).toContain('436 Kekauluohi St');
-    expect(html).toContain('Structural Match: 84.5%');
-    expect(html).toContain('target="_blank"');
-    expect(html).toContain('rel="noopener noreferrer"');
-    expect(html).toContain('Zillow ↗');
-    expect(html).toContain('Redfin ↗');
+    expect(html).toContain('Structural: <strong>84.5%');
+    expect(html).toContain('View 1 supporting comps');
     expect(html).toContain('No MAO is calculated');
     expect(html).toContain('$1,800,000 – $2,400,000');
     expect(html).toContain('Central reference</small><strong>$2,100,000');
@@ -253,7 +250,8 @@ describe('Maxxis Deal AI structured result presentation', () => {
     );
     expect(html).toContain('Initial assessment');
     expect(html).toContain('Profile fit');
-    expect(html).toContain('ARV UNAVAILABLE');
+    expect(html).toContain('ARV unavailable');
+    expect(html).not.toContain('ARV_UNAVAILABLE');
     expect(html).toContain('Main risks');
     expect(html).toContain('Suggested next steps');
     expect(html).not.toContain('$0');

@@ -47,6 +47,8 @@ export function explainMaxxisEvidenceState(value, language = 'en') {
   const canonicalKey = Object.keys(COPY.en).find((key) => COPY.en[key] === raw);
   if (canonicalKey && COPY[selected][canonicalKey]) return COPY[selected][canonicalKey];
   if (!/^[A-Za-z0-9]+(?:_[A-Za-z0-9]+)+$/.test(raw)) return raw;
+  if (selected === 'pt') return 'Há uma limitação adicional de evidência registrada para revisão.';
+  if (selected === 'es') return 'Hay una limitación adicional de evidencia registrada para revisión.';
   const readable = raw.replaceAll('_', ' ').toLowerCase();
   return `${readable.charAt(0).toUpperCase()}${readable.slice(1)}.`;
 }

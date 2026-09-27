@@ -1,4 +1,5 @@
 import React, { useMemo, useState } from 'react';
+import { localizeMaxxisValue } from '../presentation/maxxisPresentationI18n';
 
 export const MAXXIS_TARGET_CONDITIONS = Object.freeze([
   'AS_IS', 'LIGHT_REHAB', 'STANDARD_RENOVATION', 'FULL_RENOVATION',
@@ -15,11 +16,6 @@ const LABELS = {
   es: {
     title: 'Completar el análisis', condition: 'Condición objetivo', rehab: 'Presupuesto de reforma', currentRehab: 'Rehabilitación actual', keep: 'Mantener valor actual', reevaluate: 'Reevaluar', missingRehab: 'No informado', own: 'Ingresar un valor', benchmark: 'Usar referencia estatal 2026', without: 'Continuar sin rehabilitación', amount: 'Valor de rehabilitación', reference: 'Referencia preliminar · baja confianza', addScope: 'Agregar detalles del alcance', hideScope: 'Ocultar detalles del alcance', scope: 'Alcance de la reforma (opcional)', save: 'Continuar análisis', decline: 'Continuar con limitaciones', saving: 'Guardando…', edit: 'Editar', resolved: 'Información suministrada', limitation: 'Continuación con limitaciones explícitas',
   },
-};
-
-const CONDITION_LABELS = {
-  AS_IS: 'As-is', LIGHT_REHAB: 'Light rehab', STANDARD_RENOVATION: 'Standard renovation',
-  FULL_RENOVATION: 'Full renovation', HIGH_END: 'High-end', TURN_KEY: 'Turn-key', NEW_CONSTRUCTION: 'New construction',
 };
 
 const currency = (value, language) => new Intl.NumberFormat(language === 'pt' ? 'pt-BR' : language === 'es' ? 'es-US' : 'en-US', {
@@ -77,7 +73,7 @@ export function MaxxisAnalysisGapResolution({ message, language = 'en', onResolv
         <strong>{copy.title}</strong>
         {needsTarget ? <label className="maxxis-gap-field">{copy.condition}
           <select aria-label={copy.condition} value={targetCondition} disabled={busy} onChange={(event) => setTargetCondition(event.target.value)}>
-            {MAXXIS_TARGET_CONDITIONS.map((value) => <option key={value} value={value}>{CONDITION_LABELS[value]}</option>)}
+            {MAXXIS_TARGET_CONDITIONS.map((value) => <option key={value} value={value}>{localizeMaxxisValue(value, language)}</option>)}
           </select>
         </label> : null}
         {needsRehab ? <fieldset className="maxxis-gap-rehab-options"><legend>{copy.rehab}</legend>
@@ -118,9 +114,9 @@ export function MaxxisAnalysisGapResolved({ message, language = 'en', onEdit }) 
     <section className="maxxis-gap-resolved" data-testid="maxxis-analysis-gap-resolved">
       <div>
         <strong>{declined.length ? copy.limitation : copy.resolved}</strong>
-        {values.targetCondition ? <span>{copy.condition}: {CONDITION_LABELS[values.targetCondition] || values.targetCondition}</span> : null}
-        {Number.isFinite(Number(values.rehabBudget)) ? <span>{copy.rehab}: {currency(values.rehabBudget, language)}</span> : null}
-        {declined.length ? <span>{declined.join(', ')}</span> : null}
+        {values.targetCondition ? <span>✓ {copy.condition}: {localizeMaxxisValue(values.targetCondition, language)}</span> : null}
+        {Number.isFinite(Number(values.rehabBudget)) ? <span>✓ {copy.rehab}: {currency(values.rehabBudget, language)}</span> : null}
+        {declined.length ? <span>✓ {declined.map((field) => field === 'rehab_budget' ? copy.missingRehab : localizeMaxxisValue(field, language)).join(', ')}</span> : null}
       </div>
       <button type="button" onClick={() => onEdit?.(message)}>{copy.edit}</button>
     </section>

@@ -49,12 +49,13 @@ describe('Maxxis report generation performance contract', () => {
     expect(source).toContain('await yieldReportRendering()');
     expect(source).toContain("globalThis.scheduler?.yield");
   });
-  it('uses cached exports and sequential preview rasterization without provider work', () => {
+  it('uses cached exports while the inline experience avoids PDF rasterization and provider work', () => {
     const actions = readFileSync(new URL('./MaxxisReportExportActions.jsx', import.meta.url), 'utf8');
-    const preview = readFileSync(new URL('../intelligence/MaxxisCanonicalReportPreview.jsx', import.meta.url), 'utf8');
+    const experience = readFileSync(new URL('../intelligence/MaxxisDealIntelligenceExperience.jsx', import.meta.url), 'utf8');
     const pdf = readFileSync(new URL('./maxxisReportPdf.js', import.meta.url), 'utf8');
     expect(actions).toContain('renderMaxxisReportPdfCached');
-    expect(preview).toContain('active={index + 1 <= nextPageToRender}');
-    expect(`${actions}${preview}${pdf}`).not.toMatch(/generative-ai|gemini/i);
+    expect(experience).toContain('MaxxisDealIntelligenceReportPreview');
+    expect(experience).not.toContain('MaxxisCanonicalReportPreview');
+    expect(`${actions}${experience}${pdf}`).not.toMatch(/generative-ai|gemini/i);
   });
 });

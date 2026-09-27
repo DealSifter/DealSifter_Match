@@ -16,6 +16,12 @@ const STATUS_COPY = Object.freeze({
   },
 });
 
+const STATUS_COPY_PT = Object.freeze({
+  ARV_AVAILABLE: { label: 'DISPONÍVEL', statement: 'As evidências atuais sustentam a faixa estimada de ARV abaixo.', nextAction: 'Revise as evidências de apoio e as limitações antes de usar esta referência.' },
+  ARV_LIMITED: { label: 'CONFIANÇA LIMITADA', statement: 'As evidências atuais sustentam apenas uma referência limitada de ARV.', nextAction: 'Revise mais vendas registradas compatíveis em condição antes de usar esta estimativa.' },
+  ARV_UNAVAILABLE: { label: 'AINDA NÃO DISPONÍVEL', statement: 'As evidências disponíveis ainda não sustentam uma faixa de ARV.', nextAction: 'Confirme a condição-alvo, o rehab e revise os comparáveis de apoio.' },
+});
+
 const EXPLANATIONS = Object.freeze({
   INSUFFICIENT_CONDITION_COMPATIBLE_COMPS: 'There is insufficient condition-compatible comparable evidence.',
   INSUFFICIENT_PRICE_PER_SQFT_EVIDENCE: 'There is insufficient recorded price-per-square-foot evidence.',
@@ -49,14 +55,36 @@ const EXPLANATIONS = Object.freeze({
   DUPLICATE_COMP_IDENTITY: 'Duplicate comparable evidence was excluded.',
 });
 
-function explain(code, fallback = 'Evidence limitation recorded by the deterministic valuation policy.') {
-  return EXPLANATIONS[String(code || '')] || fallback;
+const EXPLANATIONS_PT = Object.freeze({
+  INSUFFICIENT_CONDITION_COMPATIBLE_COMPS: 'Não há comparáveis suficientes com condição compatível.',
+  INSUFFICIENT_PRICE_PER_SQFT_EVIDENCE: 'Não há evidência registrada suficiente de preço por pé quadrado.',
+  MISSING_SUBJECT_LIVING_AREA: 'A área útil do imóvel não está disponível.',
+  EXTREME_VALUATION_DISPERSION: 'As evidências comparáveis estão dispersas demais para sustentar uma faixa defensável.',
+  MONETARY_ADJUSTMENTS_INACTIVE: 'Os ajustes monetários por condição não estão ativos ou calibrados.',
+  TRANSACTION_QUALITY_UNKNOWN: 'A verificação das condições das transações é limitada.',
+  VALUATION_DISPERSION_WARNING: 'As evidências de avaliação apresentam dispersão relevante.',
+  LOW_COMP_COUNT: 'Há poucos comparáveis compatíveis em condição.',
+  UNKNOWN_TRANSACTION_QUALITY: 'Um ou mais campos de qualidade da transação permanecem desconhecidos.',
+  UNKNOWN_CONDITION: 'A condição de um ou mais comparáveis ainda não foi revisada.',
+  CONDITION_MATCH: 'A semelhança estrutural e a condição revisada sustentam a inclusão.',
+  PARTIAL_CONDITION_MATCH: 'A condição é apenas parcialmente compatível com o alvo confirmado.',
+  CONDITION_UNKNOWN: 'A revisão da condição está pendente ou desconhecida.',
+  FAILED_HARD_GATE: 'Os critérios estruturais obrigatórios não foram atendidos.',
+  INSUFFICIENT_COMPLETENESS: 'As evidências do comparável estão incompletas.',
+  INSUFFICIENT_STRUCTURAL_SCORE: 'A semelhança estrutural está abaixo do limite da política.',
+  MISSING_RECORDED_SALE_PRICE: 'O preço da venda registrada não está disponível.',
+  MISSING_RECORDED_SALE_DATE: 'A data da venda registrada não está disponível.',
+  MISSING_LIVING_AREA: 'A área útil do comparável não está disponível.',
+});
+
+function explain(code, fallback = 'Evidence limitation recorded by the deterministic valuation policy.', language = 'en') {
+  return (language === 'pt' ? EXPLANATIONS_PT[String(code || '')] : null) || EXPLANATIONS[String(code || '')] || fallback;
 }
 function unique(values) {
   return [...new Set(values.filter(Boolean))];
 }
 
-function presentationWarnings(evaluation) {
+function presentationWarnings(evaluation, language = 'en') {
   const warnings = [...(evaluation.warnings || [])];
   if (Number(evaluation.eligibleCompCount || 0) < 3) warnings.push('LOW_COMP_COUNT');
   if ((evaluation.limitations || []).includes('TRANSACTION_QUALITY_UNKNOWN')) {
@@ -66,10 +94,10 @@ function presentationWarnings(evaluation) {
     || comp.conditionCompatibility === 'UNREVIEWED' || comp.exclusionReason === 'CONDITION_UNKNOWN')) {
     warnings.push('UNKNOWN_CONDITION');
   }
-  return unique(warnings).map((code) => ({ code, message: explain(code) }));
+  return unique(warnings).map((code) => ({ code, message: explain(code, undefined, language) }));
 }
 
-function comparableEvidence(comp) {
+function comparableEvidence(comp, language = 'en') {
   const included = comp.valuationEligibility === 'INCLUDED';
   const reasonCode = included ? comp.inclusionReason : comp.exclusionReason;
   return {
@@ -87,7 +115,7 @@ function comparableEvidence(comp) {
     reasonCode: reasonCode || (included ? 'CONDITION_MATCH' : 'INSUFFICIENT_EVIDENCE'),
     reason: explain(reasonCode, included
       ? 'Structural eligibility and the user-reviewed condition support inclusion.'
-      : 'This comparable did not satisfy the deterministic valuation-set policy.'),
+      : 'This comparable did not satisfy the deterministic valuation-set policy.', language),
     provenance: {
       recordedSale: comp.recordedSaleEvidenceStatus || 'UNAVAILABLE',
       conditionReview: comp.conditionEvidenceStatus || 'UNAVAILABLE',
@@ -96,14 +124,14 @@ function comparableEvidence(comp) {
   };
 }
 
-export function createArvExplanationContext(evaluation) {
+export function createArvExplanationContext(evaluation, language = 'en') {
   if (!evaluation || !STATUS_COPY[evaluation.status]) return null;
-  const copy = STATUS_COPY[evaluation.status];
-  const valuationSet = (evaluation.valuationSet || []).map(comparableEvidence);
+  const copy = (language === 'pt' ? STATUS_COPY_PT : STATUS_COPY)[evaluation.status];
+  const valuationSet = (evaluation.valuationSet || []).map((comp) => comparableEvidence(comp, language));
   const usedComps = valuationSet.filter((comp) => comp.valuationEligibility === 'INCLUDED');
   const notIncludedComps = valuationSet.filter((comp) => comp.valuationEligibility !== 'INCLUDED');
-  const limitations = unique(evaluation.limitations || []).map((code) => ({ code, message: explain(code) }));
-  const confidenceReasons = unique(evaluation.confidenceReasons || []).map((code) => ({ code, message: explain(code) }));
+  const limitations = unique(evaluation.limitations || []).map((code) => ({ code, message: explain(code, undefined, language) }));
+  const confidenceReasons = unique(evaluation.confidenceReasons || []).map((code) => ({ code, message: explain(code, undefined, language) }));
   const available = evaluation.status !== 'ARV_UNAVAILABLE';
   const provider = evaluation.providerAvmCrossCheck;
   const providerEstimate = provider?.evidenceStatus === 'ESTIMATED' && Number(provider.value) > 0 ? {
@@ -115,14 +143,14 @@ export function createArvExplanationContext(evaluation) {
   } : null;
   const why = [];
   if (usedComps.length) {
-    why.push(`${usedComps.length} condition-compatible recorded sale${usedComps.length === 1 ? '' : 's'} passed the valuation policy.`);
-    why.push('Recorded sale prices were used as evidence.');
-    why.push('Structural similarity was evaluated before valuation.');
+    why.push(language === 'pt' ? `${usedComps.length} ${usedComps.length === 1 ? 'venda registrada compatível em condição passou' : 'vendas registradas compatíveis em condição passaram'} pela política de avaliação.` : `${usedComps.length} condition-compatible recorded sale${usedComps.length === 1 ? '' : 's'} passed the valuation policy.`);
+    why.push(language === 'pt' ? 'Os preços das vendas registradas foram usados como evidência.' : 'Recorded sale prices were used as evidence.');
+    why.push(language === 'pt' ? 'A semelhança estrutural foi avaliada antes da estimativa.' : 'Structural similarity was evaluated before valuation.');
   } else {
-    why.push(explain(evaluation.confidenceReasons?.[0]));
+    why.push(explain(evaluation.confidenceReasons?.[0], undefined, language));
   }
   if (evaluation.status === 'ARV_LIMITED' && usedComps.length === 2) {
-    why.unshift('Only two condition-compatible comparables are available.');
+    why.unshift(language === 'pt' ? 'Há apenas dois comparáveis compatíveis em condição.' : 'Only two condition-compatible comparables are available.');
   }
 
   return {
@@ -136,7 +164,7 @@ export function createArvExplanationContext(evaluation) {
     eligibleCompCount: evaluation.eligibleCompCount,
     why: unique(why),
     limitations,
-    warnings: presentationWarnings(evaluation),
+    warnings: presentationWarnings(evaluation, language),
     nextAction: copy.nextAction,
     usedComps,
     notIncludedComps,

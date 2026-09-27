@@ -1,19 +1,20 @@
 import React from 'react';
-import { MaxxisCanonicalReportPreview } from './MaxxisCanonicalReportPreview';
+import { MaxxisDealIntelligenceReportPreview } from './MaxxisDealIntelligenceReportPreview';
+import { localizeMaxxisValue } from '../presentation/maxxisPresentationI18n';
 
 const COPY = {
   en: { title: 'Maxxis Analysis', summary: 'Summary', highlights: 'Property highlights', verified: 'Verified',
     provided: 'User provided', unknown: 'Unknown', alignment: 'Profile alignment', observations: 'Why',
     important: 'What is important', risks: 'Risk awareness', limitations: 'Limitations', next: 'Next steps',
-    unavailable: 'Unavailable', profileFit: 'Profile fit', disclaimer: 'Decision support based only on available information.' },
+    unavailable: 'Unavailable', profileFit: 'Profile fit', profileOnly: 'PROFILE FIT ONLY', disclaimer: 'Decision support based only on available information.' },
   pt: { title: 'Análise Maxxis', summary: 'Resumo', highlights: 'Destaques do imóvel', verified: 'Verificado',
     provided: 'Informado pelo usuário', unknown: 'Desconhecido', alignment: 'Aderência ao perfil', observations: 'Por quê',
     important: 'O que importa', risks: 'Atenção a riscos', limitations: 'Limitações', next: 'Próximos passos',
-    unavailable: 'Indisponível', profileFit: 'Aderência ao perfil', disclaimer: 'Suporte à decisão baseado somente nas informações disponíveis.' },
+    unavailable: 'Indisponível', profileFit: 'Aderência ao perfil', profileOnly: 'SOMENTE ADERÊNCIA AO PERFIL', disclaimer: 'Suporte à decisão baseado somente nas informações disponíveis.' },
   es: { title: 'Análisis Maxxis', summary: 'Resumen', highlights: 'Datos destacados', verified: 'Verificado',
     provided: 'Informado por el usuario', unknown: 'Desconocido', alignment: 'Alineación con el perfil', observations: 'Por qué',
     important: 'Qué importa', risks: 'Atención a riesgos', limitations: 'Limitaciones', next: 'Próximos pasos',
-    unavailable: 'No disponible', profileFit: 'Alineación del perfil', disclaimer: 'Apoyo a la decisión basado solo en la información disponible.' },
+    unavailable: 'No disponible', profileFit: 'Alineación del perfil', profileOnly: 'SOLO AFINIDAD CON EL PERFIL', disclaimer: 'Apoyo a la decisión basado solo en la información disponible.' },
 };
 
 function FieldGroup({ title, items, unavailable }) {
@@ -37,7 +38,7 @@ function ListSection({ title, items, ordered = false }) {
   return <div className="maxxis-analysis-section"><strong>{title}</strong><List>{items.map((item) => <li key={item}>{item}</li>)}</List></div>;
 }
 
-function MaxxisAnalysisReportExperienceView({ report, reportSchema = null, exportEntitlements = {}, language = 'en', generatedAt = null }) {
+function MaxxisAnalysisReportExperienceView({ report, reportSchema = null, language = 'en' }) {
   if (!report || report.type !== 'maxxis_analysis_report') return null;
   const t = COPY[language] || COPY.en;
   const alignment = report.profileAlignment || {};
@@ -55,7 +56,7 @@ function MaxxisAnalysisReportExperienceView({ report, reportSchema = null, expor
       <div className="maxxis-analysis-fit">
         <span>{t.profileFit}</span>
         <strong>{alignment.score === null ? t.unavailable : `${alignment.score}%`}</strong>
-        <small>PROFILE FIT ONLY</small>
+        <small>{t.profileOnly}</small>
       </div>
       <div className="maxxis-analysis-section">
         <strong>{t.highlights}</strong>
@@ -68,7 +69,7 @@ function MaxxisAnalysisReportExperienceView({ report, reportSchema = null, expor
       {alignmentItems.length ? (
         <div className="maxxis-analysis-section">
           <strong>{t.alignment}</strong>
-          <ul>{alignmentItems.map((item) => <li key={item.label}><strong>{item.label}:</strong> {item.explanation || item.status.replaceAll('_', ' ')}</li>)}</ul>
+          <ul>{alignmentItems.map((item) => <li key={item.label}><strong>{item.label}:</strong> {item.explanation || localizeMaxxisValue(item.status, language)}</li>)}</ul>
         </div>
       ) : null}
       <ListSection title={t.observations} items={report.keyObservations?.positives} />
@@ -76,12 +77,12 @@ function MaxxisAnalysisReportExperienceView({ report, reportSchema = null, expor
       {report.riskAwareness?.length ? (
         <div className="maxxis-analysis-section">
           <strong>{t.risks}</strong>
-          <ul>{report.riskAwareness.map((risk) => <li key={risk.code}><span className={`maxxis-risk-severity is-${risk.severity.toLowerCase()}`}>{risk.severity}</span> {risk.explanation}</li>)}</ul>
+          <ul>{report.riskAwareness.map((risk) => <li key={risk.code}><span className={`maxxis-risk-severity is-${risk.severity.toLowerCase()}`}>{localizeMaxxisValue(risk.severity, language)}</span> {risk.explanation}</li>)}</ul>
         </div>
       ) : null}
       <ListSection title={t.limitations} items={report.limitations} />
       <ListSection title={t.next} items={report.nextSteps} ordered />
-      <MaxxisCanonicalReportPreview schema={reportSchema} language={language} exportEntitlements={exportEntitlements} generatedAt={generatedAt} />
+      <MaxxisDealIntelligenceReportPreview schema={reportSchema} language={language} />
       <small>{t.disclaimer}</small>
     </section>
   );

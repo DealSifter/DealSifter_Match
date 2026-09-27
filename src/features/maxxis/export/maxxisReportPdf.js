@@ -1044,8 +1044,15 @@ function emitReportPerformance(timings) {
   window.dispatchEvent(new CustomEvent('dealsifter:maxxis-performance', { detail: { stage: 'pdf_render', ...timings } }));
 }
 
+function emitReportStage(stage, detail = {}) {
+  if (typeof performance !== 'undefined' && typeof performance.mark === 'function') performance.mark(`maxxis-pdf:${stage}`);
+  if (typeof window === 'undefined' || typeof window.dispatchEvent !== 'function' || typeof CustomEvent !== 'function') return;
+  window.dispatchEvent(new CustomEvent('dealsifter:maxxis-performance', { detail: { stage, ...detail } }));
+}
+
 export async function renderMaxxisReportPdf({ schema, exportEntitlement, generatedAt, language = 'en', mapImageData = null } = {}) {
   const totalStartedAt = performanceNow();
+  emitReportStage('pdf_generation_start');
   const preparationStartedAt = performanceNow();
   const prepared = renderMaxxisReportDocument({ schema, exportEntitlement, generatedAt, language });
   if (prepared.state !== 'PREPARED') return prepared;
@@ -1066,10 +1073,12 @@ export async function renderMaxxisReportPdf({ schema, exportEntitlement, generat
     resolvePropertyImages(schema), mapImageData || resolveStreetMap(schema), resolveComparableMap(schema),
   ]);
   const assetsMs = performanceNow() - assetsStartedAt;
+  emitReportStage('pdf_assets_ready', { durationMs: Math.round(assetsMs * 10) / 10 });
   const perPageMs = [];
   for (let index = 0; index < pages.length; index += 1) {
     const page = pages[index];
     const pageStartedAt = performanceNow();
+    emitReportStage(`pdf_page_${index + 1}_start`, { page: index + 1 });
     if (index) doc.addPage('a4', 'portrait');
     const { accent } = pageHeader(doc, schema, page.code, t);
     // Preserve the original spacing between the page title and its first
@@ -1079,12 +1088,15 @@ export async function renderMaxxisReportPdf({ schema, exportEntitlement, generat
     renderPage(doc, schema, page.code, t, accent, images, mapImage, comparableMap);
     doc.restoreGraphicsState();
     pageFooter(doc, index + 1, pages.length, prepared.document.cover.generatedAt, lang, t);
-    perPageMs.push(Math.round((performanceNow() - pageStartedAt) * 10) / 10);
+    const pageMs = Math.round((performanceNow() - pageStartedAt) * 10) / 10;
+    perPageMs.push(pageMs);
+    emitReportStage(`pdf_page_${index + 1}_end`, { page: index + 1, durationMs: pageMs });
     if (index < pages.length - 1) await yieldReportRendering();
   }
   const assemblyStartedAt = performanceNow();
   const binary = new Uint8Array(doc.output('arraybuffer'));
   const assemblyMs = performanceNow() - assemblyStartedAt;
+  emitReportStage('pdf_assembly_complete', { durationMs: Math.round(assemblyMs * 10) / 10 });
   const timings = Object.freeze({
     totalMs: Math.round((performanceNow() - totalStartedAt) * 10) / 10,
     preparationMs: Math.round(preparationMs * 10) / 10,
@@ -1128,7 +1140,9 @@ export function renderMaxxisReportPdfCached(options = {}) {
 
 export function downloadMaxxisReportPdf(document, fileName = 'maxxis-report.pdf') {
   if (!document?.binary?.length || typeof window === 'undefined') return false;
+  const blobStartedAt = performanceNow();
   const blob = new Blob([document.binary], { type: 'application/pdf' });
+  emitReportStage('pdf_blob_created', { durationMs: Math.round((performanceNow() - blobStartedAt) * 10) / 10, bytes: blob.size });
   const url = URL.createObjectURL(blob);
   const anchor = window.document.createElement('a');
   anchor.href = url;

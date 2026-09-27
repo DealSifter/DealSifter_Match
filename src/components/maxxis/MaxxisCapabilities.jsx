@@ -1635,6 +1635,7 @@ export function MessageBubble({
   onOpenFeedCard,
   onSetArvTargetCondition,
   onSaveArvCompReview,
+  onRequestArvGap,
   activeArvReviewKey,
   onRequestIntelligenceUnlock,
   onResolveAnalysisGaps,
@@ -1907,7 +1908,7 @@ export function MessageBubble({
         </div>
       ) : null}
       {message.type === 'deal_insight' && message.data?.dealIntelligence ? (
-        <MaxxisDealIntelligenceResponse context={message.data.dealIntelligence} />
+        <MaxxisDealIntelligenceResponse context={message.data.dealIntelligence} language={language} />
       ) : null}
       {message.type === 'maxxis_analysis_report' && message.data?.maxxisAnalysisReport ? (
         <MaxxisAnalysisReportExperience report={message.data.maxxisAnalysisReport} reportSchema={message.data.maxxisReport} exportEntitlements={message.data.reportExportEntitlements} language={language} generatedAt={message.createdAt} />
@@ -2010,7 +2011,9 @@ export function MessageBubble({
           data={message.data}
           onSetTarget={onSetArvTargetCondition}
           onSaveReview={onSaveArvCompReview}
+          onRequestGap={onRequestArvGap}
           activeReviewKey={activeArvReviewKey}
+          language={language}
         />
       ) : null}
       {message.type === 'analysis_gap_resolution' ? (

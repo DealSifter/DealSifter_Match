@@ -22,9 +22,11 @@ import {
 import officialDealSifterLogo from "../../../assets/maxxis/report-official-logo.png";
 import { resolveComparableMap } from "../export/maxxisReportPdf";
 import { explainMaxxisEvidenceState } from "./maxxisUserFacingEvidence";
+import { localizeMaxxisValue } from "../presentation/maxxisPresentationI18n";
 
 const COPY = {
   en: {
+    language: "en",
     open: "Open investor report experience",
     release: "Investor-ready property release",
     tagline: "Real Data. Smarter Decisions.",
@@ -68,11 +70,13 @@ const COPY = {
     unknown: "UNKNOWN",
     unavailable: "Unavailable",
     scenario: "Scenario-based",
+    beds: "Beds", baths: "Baths", livingArea: "Living area", capRate: "Cap rate", ownerLabel: "Owner", ownerOccupied: "Owner occupied", ownershipRecord: "Ownership record", latestSale: "Latest sale", saleDate: "Sale date", allowedContacts: "Allowed contacts", title: "Title", priceLabel: "Price", strategy: "Strategy", range: "Range", yearBuilt: "Year built", bedsBaths: "Beds / Baths", rehab: "Rehab", county: "County", lotSize: "Lot size", assessedValue: "Assessed value", propertyTax: "Property tax", source: "Source", address: "Address", salePrice: "Sale Price", distance: "Distance", similarity: "Similarity", status: "Status", confidenceLabel: "Confidence", compsLabel: "Comps", method: "Method", estimatedArv: "Estimated ARV Range", estimatedRent: "Estimated rent", rentalYield: "Rental yield", reportedCapRate: "Reported cap rate", listPrice: "List price", marketRange: "Market range", priceSqft: "Price / sqft", subjectComparison: "Subject comparison", riskAnalysis: "Risk Analysis", matchDisclaimer: "Match Score represents profile compatibility, not investment quality.", evidenceLabel: "Evidence", profileFit: "Profile fit", valuationLabel: "Valuation", executiveSummary: "MAXXIS EXECUTIVE SUMMARY", confidenceDisclaimer: "Analysis completeness and reliability — not property quality.", notAvailable: "Not available", level: "LEVEL", mapAttribution: "© OpenStreetMap contributors",
     noExternal: "Property records only — no external comparable images.",
     disclaimer:
       "This report provides evidence-based investment analysis only and does not constitute appraisal, financial advice, or recommendation to buy or sell.",
   },
   pt: {
+    language: "pt",
     open: "Abrir experiência do relatório do investidor",
     release: "Relatório de imóvel pronto para investidores",
     tagline: "Dados reais. Decisões mais inteligentes.",
@@ -80,7 +84,7 @@ const COPY = {
     reportPro: "Relatório de Análise Maxxis",
     reportDeal: "Relatório Maxxis de Inteligência do Negócio",
     property: "Visão Geral do Imóvel",
-    owner: "Ownership e Registro Público",
+    owner: "Propriedade e Registro Público",
     characteristics: "Características do Imóvel",
     land: "Terreno e Dados Fiscais",
     photos: "Fotos do Imóvel",
@@ -117,12 +121,14 @@ const COPY = {
     unknown: "DESCONHECIDO",
     unavailable: "Indisponível",
     scenario: "Baseado em cenários",
+    beds: "Quartos", baths: "Banheiros", livingArea: "Área útil", capRate: "Cap rate", ownerLabel: "Proprietário", ownerOccupied: "Ocupado pelo proprietário", ownershipRecord: "Registro de propriedade", latestSale: "Última venda", saleDate: "Data da venda", allowedContacts: "Contatos permitidos", title: "Título", priceLabel: "Preço", strategy: "Estratégia", range: "Faixa", yearBuilt: "Ano de construção", bedsBaths: "Quartos / Banheiros", rehab: "Reforma", county: "Condado", lotSize: "Área do lote", assessedValue: "Valor fiscal", propertyTax: "Imposto predial", source: "Fonte", address: "Endereço", salePrice: "Preço de venda", distance: "Distância", similarity: "Similaridade", status: "Status", confidenceLabel: "Confiança", compsLabel: "Comparáveis", method: "Método", estimatedArv: "Faixa estimada de ARV", estimatedRent: "Aluguel estimado", rentalYield: "Rendimento do aluguel", reportedCapRate: "Cap rate informado", listPrice: "Preço anunciado", marketRange: "Faixa de mercado", priceSqft: "Preço / sqft", subjectComparison: "Comparação do imóvel", riskAnalysis: "Análise de riscos", matchDisclaimer: "A pontuação representa aderência ao perfil, não a qualidade do investimento.", evidenceLabel: "Evidência", profileFit: "Aderência ao perfil", valuationLabel: "Avaliação", executiveSummary: "RESUMO EXECUTIVO MAXXIS", confidenceDisclaimer: "Completude e confiabilidade da análise — não é qualidade do imóvel.", notAvailable: "Indisponível", level: "NÍVEL", mapAttribution: "© Colaboradores do OpenStreetMap",
     noExternal:
       "Somente registros dos imóveis — sem imagens externas de comparáveis.",
     disclaimer:
       "Este relatório fornece apenas análise de investimento baseada em evidências e não constitui avaliação oficial, aconselhamento financeiro ou recomendação de compra ou venda.",
   },
   es: {
+    language: "es",
     open: "Abrir experiencia del informe del inversor",
     release: "Informe de propiedad listo para inversores",
     tagline: "Datos reales. Decisiones más inteligentes.",
@@ -167,6 +173,7 @@ const COPY = {
     unknown: "DESCONOCIDO",
     unavailable: "No disponible",
     scenario: "Basado en escenarios",
+    beds: "Habitaciones", baths: "Baños", livingArea: "Superficie", capRate: "Cap rate", ownerLabel: "Propietario", ownerOccupied: "Ocupada por propietario", ownershipRecord: "Registro de titularidad", latestSale: "Última venta", saleDate: "Fecha de venta", allowedContacts: "Contactos permitidos", title: "Título", priceLabel: "Precio", strategy: "Estrategia", range: "Rango", yearBuilt: "Año de construcción", bedsBaths: "Hab. / Baños", rehab: "Reforma", county: "Condado", lotSize: "Superficie del lote", assessedValue: "Valor fiscal", propertyTax: "Impuesto predial", source: "Fuente", address: "Dirección", salePrice: "Precio de venta", distance: "Distancia", similarity: "Similitud", status: "Estado", confidenceLabel: "Confianza", compsLabel: "Comparables", method: "Método", estimatedArv: "Rango ARV estimado", estimatedRent: "Alquiler estimado", rentalYield: "Rendimiento del alquiler", reportedCapRate: "Cap rate informado", listPrice: "Precio anunciado", marketRange: "Rango de mercado", priceSqft: "Precio / sqft", subjectComparison: "Comparación de la propiedad", riskAnalysis: "Análisis de riesgos", matchDisclaimer: "La puntuación representa afinidad con el perfil, no la calidad de la inversión.", evidenceLabel: "Evidencia", profileFit: "Afinidad con el perfil", valuationLabel: "Valoración", executiveSummary: "RESUMEN EJECUTIVO MAXXIS", confidenceDisclaimer: "Integridad y fiabilidad del análisis; no es la calidad del inmueble.", notAvailable: "No disponible", level: "NIVEL", mapAttribution: "© Colaboradores de OpenStreetMap",
     noExternal:
       "Solo registros de propiedades — sin imágenes externas de comparables.",
     disclaimer:
@@ -197,39 +204,19 @@ const percent = (value, unknown) =>
   Number.isFinite(Number(value))
     ? `${Number(value).toLocaleString("en-US")}%`
     : unknown;
-const evidenceText = (value, fallback) =>
-  explainMaxxisEvidenceState(value || fallback).replace(/[.]$/, "");
-const DISPLAY_LABELS = Object.freeze({
-  HIGH: "High",
-  MODERATE: "Moderate",
-  LOW: "Low",
-  PUBLISHED: "Published",
-  CLOSED: "Closed",
-  DRAFT: "Draft",
-  USED: "Used",
-  SUPPORT: "Supporting",
-  EXCLUDED: "Excluded",
-  MATCHED: "Matched",
-  PARTIAL: "Partially matched",
-  NOT_MATCHED: "Not matched",
-  VERIFIED_RECORD: "Verified record",
-  USER_PROVIDED: "User provided",
-  DATA_RISK: "Data risk",
-  MARKET_RISK: "Market risk",
-  VALUATION_RISK: "Valuation risk",
-  EXECUTION_RISK: "Execution risk",
-  MAP_AVAILABLE: "Map available",
-  MAP_UNAVAILABLE: "Map unavailable",
+const evidenceText = (value, fallback, language = "en") =>
+  explainMaxxisEvidenceState(value || fallback, language).replace(/[.]$/, "");
+const KEY_LABELS = Object.freeze({
+  pt: { totalComparableRecords: "Registros comparáveis", usedComparables: "Usados na análise", averageSalePrice: "Preço médio de venda", averageSimilarity: "Similaridade média", averageDistance: "Distância média", verifiedRecords: "Registros verificados", userProvided: "Informado pelo usuário", calculated: "Calculado", estimated: "Estimado", unknown: "Desconhecido", conflicts: "Conflitos", location: "Localização", priceRange: "Faixa de preço", propertyType: "Tipo de imóvel", strategy: "Estratégia" },
+  es: { totalComparableRecords: "Registros comparables", usedComparables: "Usados en el análisis", averageSalePrice: "Precio medio de venta", averageSimilarity: "Similitud media", averageDistance: "Distancia media", verifiedRecords: "Registros verificados", userProvided: "Informado por el usuario", calculated: "Calculado", estimated: "Estimado", unknown: "Desconocido", conflicts: "Conflictos" },
 });
-const displayLabel = (value, fallback = "") => {
-  if (value === null || value === undefined || value === "") return fallback;
-  const key = String(value).trim();
-  if (DISPLAY_LABELS[key]) return DISPLAY_LABELS[key];
-  if (/^[A-Z][A-Z0-9_:-]+$/.test(key)) {
-    return evidenceText(key, fallback || key).replaceAll("_", " ");
-  }
-  return key;
+
+const reportProfiler = (id, phase, actualDuration, baseDuration, startTime, commitTime) => {
+  if (typeof window === "undefined" || typeof window.dispatchEvent !== "function" || typeof CustomEvent !== "function") return;
+  window.dispatchEvent(new CustomEvent("dealsifter:maxxis-performance", { detail: { stage: "inline_report_react_commit", id, phase, actualDuration, baseDuration, startTime, commitTime } }));
 };
+const keyLabel = (key, language = "en") => KEY_LABELS[language]?.[key] || key.replace(/([A-Z])/g, " $1").replace(/^./, (letter) => letter.toUpperCase());
+const displayLabel = (value, fallback = "", language = "en") => localizeMaxxisValue(value, language, fallback);
 const arvStatusText = (status, copy) => {
   if (status === "ARV_AVAILABLE")
     return copy.unavailable === "Indisponível"
@@ -274,18 +261,23 @@ function ComparableMap({ schema, rows, copy }) {
   const [mapImage, setMapImage] = useState(null);
   useEffect(() => {
     let active = true;
-    resolveComparableMap(schema).then((result) => {
+    const renderMap = () => resolveComparableMap(schema).then((result) => {
       if (active) setMapImage(result);
     });
+    const idleId = typeof window !== "undefined" && typeof window.requestIdleCallback === "function"
+      ? window.requestIdleCallback(renderMap, { timeout: 1500 })
+      : setTimeout(renderMap, 0);
     return () => {
       active = false;
+      if (typeof window !== "undefined" && typeof window.cancelIdleCallback === "function") window.cancelIdleCallback(idleId);
+      else clearTimeout(idleId);
     };
   }, [schema]);
   if (mapImage)
     return (
       <div className="maxxis-v2-comparable-map">
         <img src={mapImage} alt={copy.cma} />
-        <small>© OpenStreetMap contributors</small>
+        <small>{copy.mapAttribution}</small>
       </div>
     );
   return (
@@ -326,7 +318,7 @@ function SectionTitle({ icon = FileText, children }) {
   );
 }
 
-function InfoCard({ title, rows, icon, narrative = false }) {
+function InfoCard({ title, rows, icon, narrative = false, copy }) {
   return (
     <section className={`maxxis-v2-info-card${narrative ? " is-narrative" : ""}`}>
       <SectionTitle icon={icon}>{title}</SectionTitle>
@@ -336,15 +328,15 @@ function InfoCard({ title, rows, icon, narrative = false }) {
             <div key={`${label}-${value}`}>
               <dt>{label}</dt>
               <dd>
-                {displayLabel(value)}
-                {source ? <small>{displayLabel(source)}</small> : null}
+                {displayLabel(value, copy?.unavailable, copy?.language)}
+                {source ? <small>{displayLabel(source, copy?.unavailable, copy?.language)}</small> : null}
               </dd>
             </div>
           ))
         ) : (
           <div>
-            <dt>Status</dt>
-            <dd>Not available</dd>
+            <dt>{copy?.status || "Status"}</dt>
+            <dd>{copy?.notAvailable || "Not available"}</dd>
           </div>
         )}
       </dl>
@@ -368,20 +360,20 @@ function ConfidenceCard({ confidence, copy }) {
                 : "muted"
           }
         >
-          {displayLabel(confidence.classification, copy.unavailable)}
+          {displayLabel(confidence.classification, copy.unavailable, copy.language)}
         </Badge>
-        <em>Analysis completeness and reliability — not property quality.</em>
+        <em>{copy.confidenceDisclaimer}</em>
       </div>
       <div>
         <strong>{copy.contributors}</strong>
         {list(confidence.contributors).map((item) => (
-          <span key={item}>✓ {displayLabel(item)}</span>
+          <span key={item}>✓ {displayLabel(item, copy.unavailable, copy.language)}</span>
         ))}
       </div>
       <div>
         <strong>{copy.limitations}</strong>
         {list(confidence.limitations).map((item) => (
-          <span key={item}>⚠ {displayLabel(item)}</span>
+          <span key={item}>⚠ {displayLabel(item, copy.unavailable, copy.language)}</span>
         ))}
       </div>
     </section>
@@ -451,7 +443,7 @@ function PropertyOverview({ schema, copy, level }) {
           <div>
             <div className="maxxis-v2-badges">
               <Badge>{text(property.type, copy.unknown)}</Badge>
-              <Badge tone="navy">{status}</Badge>
+              <Badge tone="navy">{displayLabel(status, copy.unavailable, copy.language)}</Badge>
             </div>
             <h3>{text(property.title || property.address, copy.unknown)}</h3>
             <span>
@@ -468,22 +460,22 @@ function PropertyOverview({ schema, copy, level }) {
         <section className="maxxis-v2-metric-strip">
           <span>
             <BedDouble aria-hidden="true" />
-            <small>Beds</small>
+            <small>{copy.beds}</small>
             <b>{text(property.beds, copy.unknown)}</b>
           </span>
           <span>
             <Bath aria-hidden="true" />
-            <small>Baths</small>
+            <small>{copy.baths}</small>
             <b>{text(property.baths, copy.unknown)}</b>
           </span>
           <span>
             <Maximize aria-hidden="true" />
-            <small>Living area</small>
+            <small>{copy.livingArea}</small>
             <b>{text(property.sqft, copy.unknown)}</b>
           </span>
           <span>
             <TrendingUp aria-hidden="true" />
-            <small>Cap rate</small>
+            <small>{copy.capRate}</small>
             <b>
               {property.capRate === null || property.capRate === undefined
                 ? copy.unknown
@@ -499,7 +491,7 @@ function PropertyOverview({ schema, copy, level }) {
         ) : null}
         {level === 3 && executiveLines.length ? (
           <section className="maxxis-v2-ai-summary">
-            <small>MAXXIS EXECUTIVE SUMMARY</small>
+            <small>{copy.executiveSummary}</small>
             {executiveLines.map((line) => (
               <span key={line}>{line}</span>
             ))}
@@ -507,83 +499,86 @@ function PropertyOverview({ schema, copy, level }) {
         ) : null}
         <div className="maxxis-v2-info-grid">
           <InfoCard
+            copy={copy}
             icon={User}
             title={copy.owner}
             rows={[
-              ["Owner", text(owner.name, copy.unknown)],
+              [copy.ownerLabel, text(owner.name, copy.unknown)],
               [
-                "Owner occupied",
+                copy.ownerOccupied,
                 text(fact("ownerOccupied"), copy.unknown),
                 factSource("ownerOccupied"),
               ],
               [
-                "Ownership record",
+                copy.ownershipRecord,
                 text(fact("ownershipRecordPresent"), copy.unknown),
                 factSource("ownershipRecordPresent"),
               ],
               [
-                "Latest sale",
+                copy.latestSale,
                 money(fact("latestSalePrice"), copy.unknown),
                 factSource("latestSalePrice"),
               ],
               [
-                "Sale date",
+                copy.saleDate,
                 text(fact("latestSaleDate"), copy.unknown),
                 factSource("latestSaleDate"),
               ],
-              ["Allowed contacts", text(contacts, copy.unknown)],
+              [copy.allowedContacts, text(contacts, copy.unknown)],
             ]}
           />
           <InfoCard
+            copy={copy}
             icon={Home}
             title={copy.characteristics}
             rows={[
-              ["Title", text(property.title, copy.unknown)],
-              ["Price", money(property.price, copy.unknown)],
-              ["Strategy", text(property.objective, copy.unknown)],
+              [copy.title, text(property.title, copy.unknown)],
+              [copy.priceLabel, money(property.price, copy.unknown)],
+              [copy.strategy, text(property.objective, copy.unknown)],
               [
-                "Year built",
+                copy.yearBuilt,
                 text(fact("yearBuilt"), copy.unknown),
                 factSource("yearBuilt"),
               ],
               [
-                "Beds / Baths",
+                copy.bedsBaths,
                 `${text(fact("bedrooms", property.beds), copy.unknown)} / ${text(fact("bathrooms", property.baths), copy.unknown)}`,
               ],
               [
-                "Living area",
+                copy.livingArea,
                 text(fact("livingAreaSqft", property.sqft), copy.unknown),
                 factSource("livingAreaSqft"),
               ],
-              ["Rehab", money(property.rehab, copy.unknown)],
+              [copy.rehab, money(property.rehab, copy.unknown)],
             ]}
           />
           <InfoCard
+            copy={copy}
             icon={MapPin}
             title={copy.land}
             rows={[
-              ["Location", text(location, copy.unknown)],
+              [copy.location, text(location, copy.unknown)],
               [
-                "County",
+                copy.county,
                 text(fact("county"), copy.unknown),
                 factSource("county"),
               ],
               [
-                "Lot size",
+                copy.lotSize,
                 text(fact("lotSizeSqft", property.lot), copy.unknown),
                 factSource("lotSizeSqft"),
               ],
               [
-                "Assessed value",
+                copy.assessedValue,
                 money(fact("assessedValue"), copy.unknown),
                 factSource("assessedValue"),
               ],
               [
-                "Property tax",
+                copy.propertyTax,
                 money(fact("annualPropertyTax"), copy.unknown),
                 factSource("annualPropertyTax"),
               ],
-              ["Source", text(property.source, copy.unknown)],
+              [copy.source, text(property.source, copy.unknown)],
             ]}
           />
         </div>
@@ -613,7 +608,7 @@ function PropertyOverview({ schema, copy, level }) {
               <MapPin aria-hidden="true" />
               <b>{text(location, copy.unknown)}</b>
               <small>
-                {displayLabel(schema.presentation.map.status, copy.unavailable)}
+                {displayLabel(schema.presentation.map.status, copy.unavailable, copy.language)}
               </small>
             </div>
           </section>
@@ -655,7 +650,7 @@ function ComparableMarket({ schema, copy }) {
             .slice(0, 6)
             .map(([key, value]) => (
               <span key={key}>
-                <small>{key.replace(/([A-Z])/g, " $1")}</small>
+                <small>{keyLabel(key, copy.language)}</small>
                 <b>
                   {key.toLowerCase().includes("percent") ||
                   key.toLowerCase().includes("similarity")
@@ -670,14 +665,14 @@ function ComparableMarket({ schema, copy }) {
             <thead>
               <tr>
                 <th>#</th>
-                <th>Address</th>
-                <th>Sale Price</th>
-                <th>Sale Date</th>
-                <th>Beds/Baths</th>
+                <th>{copy.address}</th>
+                <th>{copy.salePrice}</th>
+                <th>{copy.saleDate}</th>
+                <th>{copy.bedsBaths}</th>
                 <th>Sqft</th>
-                <th>Distance</th>
-                <th>Similarity</th>
-                <th>Status</th>
+                <th>{copy.distance}</th>
+                <th>{copy.similarity}</th>
+                <th>{copy.status}</th>
               </tr>
             </thead>
             <tbody>
@@ -689,6 +684,8 @@ function ComparableMarket({ schema, copy }) {
                     <small>
                       {displayLabel(
                         item.exclusionReason || item.inclusionReason || "",
+                        copy.unavailable,
+                        copy.language,
                       )}
                     </small>
                   </td>
@@ -718,7 +715,7 @@ function ComparableMarket({ schema, copy }) {
                             : "teal"
                       }
                     >
-                      {displayLabel(item.status)}
+                      {displayLabel(item.status, copy.unavailable, copy.language)}
                     </Badge>
                   </td>
                 </tr>
@@ -739,7 +736,7 @@ function ScenarioCards({ title, values, formatter, copy }) {
       <div>
         {list(values).map((item) => (
           <span key={item.scenario}>
-            <small>{displayLabel(item.scenario)}</small>
+            <small>{displayLabel(item.scenario, copy.unavailable, copy.language)}</small>
             <b>{formatter(item.value, copy.unknown)}</b>
           </span>
         ))}
@@ -773,7 +770,7 @@ function ValuationPage({ schema, copy }) {
       <div className="maxxis-v2-page-body">
         <section className="maxxis-v2-arv">
           <div>
-            <small>Estimated ARV Range</small>
+            <small>{copy.estimatedArv}</small>
             <strong>
               {range
                 ? `${money(range.low, copy.unknown)} – ${money(range.high, copy.unknown)}`
@@ -793,13 +790,13 @@ function ValuationPage({ schema, copy }) {
               {arvStatusText(valuation.status, copy)}
             </Badge>
             <span>
-              Confidence: <b>{valuation.confidence || "LOW"}</b>
+              {copy.confidenceLabel}: <b>{displayLabel(valuation.confidence || "LOW", copy.unavailable, copy.language)}</b>
             </span>
             <span>
-              Comps: <b>{valuation.compsUsed || 0}</b>
+              {copy.compsLabel}: <b>{valuation.compsUsed || 0}</b>
             </span>
             <span>
-              Method: <b>{text(valuation.methodology, copy.unknown)}</b>
+              {copy.method}: <b>{text(valuation.methodology, copy.unknown)}</b>
             </span>
           </div>
         </section>
@@ -810,7 +807,7 @@ function ValuationPage({ schema, copy }) {
               <strong>{money(providerEstimate.value, copy.unknown)}</strong>
             </div>
             <Badge tone="gold">
-              {evidenceText(providerEstimate.status, copy.unknown)}
+              {evidenceText(providerEstimate.status, copy.unknown, copy.language)}
             </Badge>
           </section>
         ) : null}
@@ -834,19 +831,20 @@ function ValuationPage({ schema, copy }) {
         ) : (
           <p>
             {copy.spread} / {copy.roi}: {copy.unavailable} —{" "}
-            {evidenceText(scenarios?.reason, copy.unknown)}
+            {evidenceText(scenarios?.reason, copy.unknown, copy.language)}
           </p>
         )}
         <div className="maxxis-v2-two-col">
           <InfoCard
+            copy={copy}
             icon={DollarSign}
             title={copy.rental}
             rows={[
-              ["Estimated rent", copy.unknown],
-              ["Rental yield", copy.unknown],
+              [copy.estimatedRent, copy.unknown],
+              [copy.rentalYield, copy.unknown],
               ["NOI", copy.unknown],
               [
-                "Reported cap rate",
+                copy.reportedCapRate,
                 metrics.capRate?.value === null
                   ? copy.unknown
                   : percent(metrics.capRate?.value, copy.unknown),
@@ -855,19 +853,20 @@ function ValuationPage({ schema, copy }) {
             ]}
           />
           <InfoCard
+            copy={copy}
             icon={TrendingUp}
             title={copy.price}
             rows={[
-              ["List price", money(property.price, copy.unknown)],
-              ["Market range", copy.unknown],
+              [copy.listPrice, money(property.price, copy.unknown)],
+              [copy.marketRange, copy.unknown],
               [
-                "Price / sqft",
+                copy.priceSqft,
                 metrics.pricePerSqft?.value === null
                   ? copy.unknown
                   : money(metrics.pricePerSqft?.value, copy.unknown),
                 metrics.pricePerSqft?.sourceType,
               ],
-              ["Subject comparison", copy.unknown],
+              [copy.subjectComparison, copy.unknown],
             ]}
           />
         </div>
@@ -891,7 +890,7 @@ function ValuationPage({ schema, copy }) {
         {list(valuation.warnings).map((warning) => (
           <p className="maxxis-v2-warning" key={warning}>
             <AlertTriangle aria-hidden="true" size={14} />{" "}
-            {evidenceText(warning, copy.unknown)}
+            {evidenceText(warning, copy.unknown, copy.language)}
           </p>
         ))}
       </div>
@@ -922,15 +921,16 @@ function FitRiskPage({ schema, copy, page = 4, level = 3 }) {
       <div className="maxxis-v2-page-body">
         <div className="maxxis-v2-two-col">
           <InfoCard
+            copy={copy}
             icon={User}
             title={copy.profile}
             rows={[
-              ["Strategy", displayLabel(fit.strategy?.status, copy.unknown)],
-              ["Market", displayLabel(fit.targetMarket?.status, copy.unknown)],
-              ["Range", displayLabel(fit.priceRange?.status, copy.unknown)],
+              [copy.strategy, displayLabel(fit.strategy?.status, copy.unknown, copy.language)],
+              [copy.marketRange, displayLabel(fit.targetMarket?.status, copy.unknown, copy.language)],
+              [copy.range || "Range", displayLabel(fit.priceRange?.status, copy.unknown, copy.language)],
               [
-                "Property type",
-                displayLabel(fit.propertyType?.status, copy.unknown),
+                copy.characteristics,
+                displayLabel(fit.propertyType?.status, copy.unknown, copy.language),
               ],
             ]}
           />
@@ -940,8 +940,7 @@ function FitRiskPage({ schema, copy, page = 4, level = 3 }) {
               <b>{percent(fit.score, copy.unknown)}</b>
             </div>
             <small>
-              Match Score represents profile compatibility, not investment
-              quality.
+              {copy.matchDisclaimer}
             </small>
           </section>
         </div>
@@ -949,13 +948,13 @@ function FitRiskPage({ schema, copy, page = 4, level = 3 }) {
           <section className="maxxis-v2-perspective">
             <div>
               <small>{copy.perspective}</small>
-              <strong>{displayLabel(perspective.persona)}</strong>
+              <strong>{displayLabel(perspective.persona, copy.unavailable, copy.language)}</strong>
               <span>{perspective.message}</span>
             </div>
             <div>
               {list(perspective.priorities).map((item, index) => (
                 <Badge key={item} tone={index === 0 ? "navy" : "teal"}>
-                  {index + 1}. {displayLabel(item)}
+                  {index + 1}. {displayLabel(item, copy.unavailable, copy.language)}
                 </Badge>
               ))}
             </div>
@@ -964,7 +963,7 @@ function FitRiskPage({ schema, copy, page = 4, level = 3 }) {
         <section>
           <SectionTitle icon={BarChart3}>{copy.fitRisk}</SectionTitle>
           <div className="maxxis-v2-fit-bars">
-            {criteria.map((criterion) => {
+            {criteria.map((criterion, criterionIndex) => {
               const score =
                 criterion.score ??
                 (criterion.status === "matched"
@@ -973,8 +972,8 @@ function FitRiskPage({ schema, copy, page = 4, level = 3 }) {
                     ? 0
                     : 35);
               return (
-                <div key={criterion.key || criterion.label}>
-                  <span>{displayLabel(criterion.label || criterion.key)}</span>
+                <div key={criterion.key || criterion.label || `criterion-${criterionIndex}`}>
+                  <span>{displayLabel(criterion.label || criterion.key, copy.unavailable, copy.language)}</span>
                   <i>
                     <b
                       style={{ width: `${Math.max(0, Math.min(100, score))}%` }}
@@ -987,7 +986,7 @@ function FitRiskPage({ schema, copy, page = 4, level = 3 }) {
           </div>
         </section>
         <section>
-          <SectionTitle icon={AlertTriangle}>Risk Analysis</SectionTitle>
+          <SectionTitle icon={AlertTriangle}>{copy.riskAnalysis}</SectionTitle>
           <div className="maxxis-v2-risk-grid">
             {risks.length ? (
               risks.map((risk) => (
@@ -1001,15 +1000,15 @@ function FitRiskPage({ schema, copy, page = 4, level = 3 }) {
                           : "teal"
                     }
                   >
-                    {displayLabel(risk.severity)}
+                    {displayLabel(risk.severity, copy.unavailable, copy.language)}
                   </Badge>
-                  <b>{displayLabel(risk.category)}</b>
+                  <b>{displayLabel(risk.category, copy.unavailable, copy.language)}</b>
                   <i
                     className={`is-${String(risk.severity || "medium").toLowerCase()}`}
                   >
                     <span />
                   </i>
-                  <span>{displayLabel(risk.reason || risk.explanation)}</span>
+                  <span>{displayLabel(risk.reason || risk.explanation, copy.unavailable, copy.language)}</span>
                 </div>
               ))
             ) : (
@@ -1023,7 +1022,7 @@ function FitRiskPage({ schema, copy, page = 4, level = 3 }) {
             {Object.entries(counts).map(([key, value]) => (
               <span key={key}>
                 <b>{value}</b>
-                <small>{key.replace(/([A-Z])/g, " $1")}</small>
+                <small>{keyLabel(key, copy.language)}</small>
               </span>
             ))}
           </div>
@@ -1047,6 +1046,7 @@ function InsightsPage({ schema, copy, page = 5, level = 3 }) {
       <ReportHeader level={level} copy={copy} subtitle={copy.insights} />
       <div className="maxxis-v2-page-body maxxis-v2-insight-grid">
         <InfoCard
+          copy={copy}
           icon={CheckCircle}
           title={copy.positive}
           narrative
@@ -1057,6 +1057,7 @@ function InsightsPage({ schema, copy, page = 5, level = 3 }) {
           ])}
         />
         <InfoCard
+          copy={copy}
           icon={AlertTriangle}
           title={copy.missing}
           narrative
@@ -1065,12 +1066,14 @@ function InsightsPage({ schema, copy, page = 5, level = 3 }) {
             .map((item, index) => [`${index + 1}`, item])}
         />
         <InfoCard
+          copy={copy}
           icon={Wrench}
           title={copy.considerations}
           narrative
           rows={limitations.map((item, index) => [`${index + 1}`, item])}
         />
         <InfoCard
+          copy={copy}
           icon={ListChecks}
           title={copy.steps}
           narrative
@@ -1098,52 +1101,56 @@ function MaxxisAnalysisPage({ schema, copy, page = 6, level = 3 }) {
       <ReportHeader level={level} copy={copy} subtitle={copy.powered} />
       <div className="maxxis-v2-page-body">
         <section className="maxxis-v2-ai-summary">
-          <SectionTitle icon={Brain}>MAXXIS EXECUTIVE SUMMARY</SectionTitle>
+          <SectionTitle icon={Brain}>{copy.executiveSummary}</SectionTitle>
           {summaryLines.length ? (
             summaryLines.map((line) => (
-              <span key={line}>{displayLabel(line)}</span>
+              <span key={line}>{displayLabel(line, copy.unavailable, copy.language)}</span>
             ))
           ) : (
-            <strong>{displayLabel(summary)}</strong>
+            <strong>{displayLabel(summary, copy.unavailable, copy.language)}</strong>
           )}
         </section>
         <div className="maxxis-v2-two-col">
           <InfoCard
+            copy={copy}
             icon={Target}
             title={copy.conclusion}
             narrative
             rows={[
               [
-                "Evidence",
-                `Based on available evidence: ${displayLabel(schema.sections.propertyEvidence.sourceType, copy.unavailable)}`,
+                copy.evidenceLabel,
+                displayLabel(schema.sections.propertyEvidence.sourceType, copy.unavailable, copy.language),
               ],
               [
-                "Profile fit",
+                copy.profileFit,
                 text(
                   available(schema.sections.investmentProfile)?.score,
                   copy.unknown,
                 ),
               ],
               [
-                "Valuation",
+                copy.valuationLabel,
                 displayLabel(
                   available(schema.sections.valuationEvidence)?.status,
                   copy.unavailable,
+                  copy.language,
                 ),
               ],
             ]}
           />
           <InfoCard
+            copy={copy}
             icon={BarChart3}
             title={copy.topics}
             narrative
             rows={risks.map((risk, index) => [
               `${index + 1}`,
-              `${displayLabel(risk.category)}: ${displayLabel(risk.reason || risk.explanation)}`,
+              `${displayLabel(risk.category, copy.unavailable, copy.language)}: ${displayLabel(risk.reason || risk.explanation, copy.unavailable, copy.language)}`,
             ])}
           />
         </div>
         <InfoCard
+          copy={copy}
           icon={AlertTriangle}
           title={copy.questions}
           narrative
@@ -1155,6 +1162,7 @@ function MaxxisAnalysisPage({ schema, copy, page = 6, level = 3 }) {
             ])}
         />
         <InfoCard
+          copy={copy}
           icon={ListChecks}
           title={copy.actions}
           narrative
@@ -1179,6 +1187,7 @@ export function MaxxisDealIntelligenceReportPreview({
         ? 2
         : 1;
   return (
+    <React.Profiler id={`maxxis-inline-${schema.reportType}`} onRender={reportProfiler}>
     <details className={`maxxis-report-preview maxxis-report-v2 is-${schema.reportType.toLowerCase()}`}>
       <summary>
         <span>{copy.open}</span>
@@ -1186,7 +1195,7 @@ export function MaxxisDealIntelligenceReportPreview({
           <i aria-hidden="true" />
           {OPEN_HINT[language] || OPEN_HINT.en}
         </span>
-        <Badge tone="navy">LEVEL {level}</Badge>
+        <Badge tone="navy">{copy.level} {level}</Badge>
       </summary>
       <div className="maxxis-v2-report">
         <PropertyOverview schema={schema} copy={copy} level={level} />
@@ -1207,5 +1216,6 @@ export function MaxxisDealIntelligenceReportPreview({
         ) : null}
       </div>
     </details>
+    </React.Profiler>
   );
 }

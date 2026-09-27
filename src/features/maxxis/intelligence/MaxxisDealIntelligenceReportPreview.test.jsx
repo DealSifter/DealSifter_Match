@@ -73,7 +73,7 @@ describe('Maxxis Deal Intelligence Report Experience v2', () => {
     expect(html).toContain('Maxxis Analysis Confidence');
     expect(html).toContain('72%');
     expect(html).toContain('Investor Perspective');
-    expect(html).toContain('WHOLESALER');
+    expect(html).toContain('Wholesaler');
     expect((html.match(/MAXXIS EXECUTIVE SUMMARY/g) || [])).toHaveLength(2);
     expect(html).toContain('does not constitute appraisal');
     expect(html).toContain('maxxis-v2-relative-map');

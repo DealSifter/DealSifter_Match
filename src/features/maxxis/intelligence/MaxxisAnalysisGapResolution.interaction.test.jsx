@@ -125,7 +125,7 @@ describe('Maxxis analysis gap resolution UX', () => {
     const onEdit = vi.fn();
     const resolvedMessage = message({ resolution: { status: 'resolved', values: { targetCondition: 'TURN_KEY', rehabBudget: 12000 }, declinedFields: [] } });
     render(<MaxxisAnalysisGapResolved message={resolvedMessage} language="pt" onEdit={onEdit} />);
-    expect(screen.getByText('Condição alvo: Turn-key')).toBeVisible();
+    expect(screen.getByText('✓ Condição alvo: Pronto para uso')).toBeVisible();
     await user.click(screen.getByRole('button', { name: 'Alterar' }));
     expect(onEdit).toHaveBeenCalledTimes(1);
   });
