@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { Download, Mail, Share2 } from 'lucide-react';
-import { downloadMaxxisReportPdf, renderMaxxisReportPdf } from './maxxisReportPdf';
+import { downloadMaxxisReportPdf, renderMaxxisReportPdfCached } from './maxxisReportPdf';
 import { buildReportMailtoUrl } from './reportDeliveryUtils';
 import './MaxxisReportExportActions.css';
 
@@ -45,7 +45,7 @@ export function MaxxisReportExportActions({ schema, exportEntitlements = {}, lan
   const copy = COPY[language] || COPY.en;
 
   const renderDocument = async () => {
-    const result = await renderMaxxisReportPdf({ schema, exportEntitlement: exportEntitlements.PDF, language });
+    const result = await renderMaxxisReportPdfCached({ schema, exportEntitlement: exportEntitlements.PDF, language });
     if (result.state !== 'RENDERED') throw new Error('REPORT_PDF_RENDER_FAILED');
     return result.document;
   };

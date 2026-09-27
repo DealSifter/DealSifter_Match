@@ -47,7 +47,7 @@ function CompList({ title, items, unavailable }) {
   );
 }
 
-export function MaxxisDealIntelligenceExperience({ report, reportSchema = null, exportEntitlements = {}, language = 'en', generatedAt = null }) {
+function MaxxisDealIntelligenceExperienceView({ report, reportSchema = null, exportEntitlements = {}, language = 'en', generatedAt = null }) {
   if (!report || report.type !== 'maxxis_deal_intelligence_report') return null;
   const t = COPY[language] || COPY.en;
   const valuation = report.valuationIntelligence || {};
@@ -93,4 +93,17 @@ export function MaxxisDealIntelligenceExperience({ report, reportSchema = null, 
       <small>{t.disclaimer}</small>
     </section>
   );
+}
+
+const sameReportExperience = (previous, next) => previous.report === next.report
+  && previous.reportSchema === next.reportSchema
+  && previous.language === next.language
+  && previous.generatedAt === next.generatedAt
+  && previous.exportEntitlements?.PDF?.allowed === next.exportEntitlements?.PDF?.allowed
+  && previous.exportEntitlements?.PDF?.state === next.exportEntitlements?.PDF?.state;
+
+const MemoizedMaxxisDealIntelligenceExperience = React.memo(MaxxisDealIntelligenceExperienceView, sameReportExperience);
+
+export function MaxxisDealIntelligenceExperience(props) {
+  return <MemoizedMaxxisDealIntelligenceExperience {...props} />;
 }

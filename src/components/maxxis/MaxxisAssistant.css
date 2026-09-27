@@ -1084,7 +1084,7 @@ button.maxxis-action-link:hover {
 }
 
 .maxxis-arv-target select,
-.maxxis-arv-target input,
+.maxxis-arv-target input:not([type="radio"]):not([type="checkbox"]),
 .maxxis-arv-target textarea,
 .maxxis-arv-review-form select,
 .maxxis-arv-review-form textarea {
@@ -1100,6 +1100,29 @@ button.maxxis-action-link:hover {
 .maxxis-arv-target label {
   display: grid;
   gap: 4px;
+}
+
+.maxxis-gap-resolution { gap: 9px; }
+.maxxis-gap-field { color: inherit; font-size: 12px; font-weight: 700; }
+.maxxis-gap-rehab-options { display: grid; gap: 8px; min-width: 0; margin: 0; padding: 0; border: 0; }
+.maxxis-gap-rehab-options legend { margin-bottom: 6px; padding: 0; font-size: 12px; font-weight: 800; }
+.maxxis-gap-current { font-size: 12px; color: var(--text-muted, #64748b); }
+.maxxis-gap-choices { display: flex; flex-wrap: wrap; gap: 6px; }
+.maxxis-arv-target .maxxis-gap-choice { min-height: 30px; padding: 5px 9px; font-size: 11px; }
+.maxxis-arv-target .maxxis-gap-choice[aria-pressed="true"] { color: #fff; background: var(--accent-hex, #087f80); }
+.maxxis-arv-target .maxxis-gap-scope-toggle { justify-self: start; min-height: 28px; padding: 4px 8px; font-size: 11px; }
+.maxxis-gap-actions { display: flex; flex-wrap: wrap; gap: 7px; }
+.maxxis-gap-actions > button { flex: 1 1 170px; }
+.maxxis-gap-error { margin: 0; color: #b42318; font-size: 12px; }
+.maxxis-gap-resolved { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-top: 8px; padding: 9px 10px; border: 1px solid var(--border-color, #cbd5e1); border-radius: 10px; background: color-mix(in srgb, var(--surface, #fff) 96%, var(--accent-hex, #20c6c7) 4%); }
+.maxxis-gap-resolved > div { display: grid; gap: 2px; min-width: 0; font-size: 11px; }
+.maxxis-gap-resolved > div > span { color: var(--text-muted, #64748b); overflow-wrap: anywhere; }
+.maxxis-gap-resolved > button { flex: 0 0 auto; min-height: 30px; padding: 5px 9px; color: #073f42; font-weight: 750; border: 1px solid var(--accent-hex, #20c6c7); border-radius: 8px; background: transparent; cursor: pointer; }
+
+@media (max-width: 560px) {
+  .maxxis-gap-actions > button { flex-basis: 100%; }
+  .maxxis-gap-choices { display: grid; grid-template-columns: 1fr; }
+  .maxxis-arv-target .maxxis-gap-choice { width: 100%; }
 }
 
 .maxxis-arv-target textarea {

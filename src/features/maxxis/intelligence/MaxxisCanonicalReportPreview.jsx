@@ -4,22 +4,23 @@ import { renderMaxxisReportPdfCached } from '../export/maxxisReportPdf';
 import './MaxxisCanonicalReportPreview.css';
 
 const COPY = Object.freeze({
-  en: Object.freeze({ open: 'Open investor report experience', hint: 'CLICK TO VIEW', page: 'Page', loading: 'Preparing the exact PDF preview…', failed: 'The report preview could not be prepared.' }),
-  pt: Object.freeze({ open: 'Abrir experiência do relatório do investidor', hint: 'CLIQUE PARA VER', page: 'Página', loading: 'Preparando o preview exato do PDF…', failed: 'Não foi possível preparar o preview do relatório.' }),
-  es: Object.freeze({ open: 'Abrir experiencia del informe del inversor', hint: 'CLIC PARA VER', page: 'Página', loading: 'Preparando la vista previa exacta del PDF…', failed: 'No se pudo preparar la vista previa del informe.' }),
+  en: Object.freeze({ open: 'Open investor report experience', hint: 'CLICK TO VIEW', page: 'Page', loading: 'Preparing the exact PDF preview…', rendering: 'Rendering pages', failed: 'The report preview could not be prepared.', retry: 'Try again' }),
+  pt: Object.freeze({ open: 'Abrir experiência do relatório do investidor', hint: 'CLIQUE PARA VER', page: 'Página', loading: 'Preparando o preview exato do PDF…', rendering: 'Renderizando páginas', failed: 'Não foi possível preparar o preview do relatório.', retry: 'Tentar novamente' }),
+  es: Object.freeze({ open: 'Abrir experiencia del informe del inversor', hint: 'CLIC PARA VER', page: 'Página', loading: 'Preparando la vista previa exacta del PDF…', rendering: 'Renderizando páginas', failed: 'No se pudo preparar la vista previa del informe.', retry: 'Intentar de nuevo' }),
 });
 
 const levelFor = (reportType) => reportType === 'DEAL_INTELLIGENCE' ? 3 : reportType === 'MAXXIS_ANALYSIS' ? 2 : 1;
 
-function CanonicalPdfPage({ pdfDocument, pageNumber, pageLabel, onRendered, onError }) {
+function CanonicalPdfPage({ pdfDocument, pageNumber, pageLabel, active, onRendered, onError }) {
   const canvasRef = useRef(null);
 
   useEffect(() => {
-    let active = true;
+    if (!active) return undefined;
+    let mounted = true;
     let renderTask = null;
     (async () => {
       const pdfPage = await pdfDocument.getPage(pageNumber);
-      if (!active || !canvasRef.current) return;
+      if (!mounted || !canvasRef.current) return;
       const density = Math.min(2, Math.max(1.5, window.devicePixelRatio || 1));
       const viewport = pdfPage.getViewport({ scale: density });
       const canvas = canvasRef.current;
@@ -28,15 +29,15 @@ function CanonicalPdfPage({ pdfDocument, pageNumber, pageLabel, onRendered, onEr
       canvas.height = Math.ceil(viewport.height);
       renderTask = pdfPage.render({ canvasContext: context, viewport });
       await renderTask.promise;
-      if (active) onRendered(pageNumber);
+      if (mounted) onRendered(pageNumber);
     })().catch((error) => {
-      if (active && error?.name !== 'RenderingCancelledException') onError();
+      if (mounted && error?.name !== 'RenderingCancelledException') onError();
     });
     return () => {
-      active = false;
+      mounted = false;
       renderTask?.cancel?.();
     };
-  }, [onError, onRendered, pageNumber, pdfDocument]);
+  }, [active, onError, onRendered, pageNumber, pdfDocument]);
 
   return <canvas ref={canvasRef} aria-label={`${pageLabel} ${pageNumber} / ${pdfDocument.numPages}`} />;
 }
@@ -45,7 +46,10 @@ export function MaxxisCanonicalReportPreview({ schema, language = 'en', exportEn
   const [pdfDocument, setPdfDocument] = useState(null);
   const [activated, setActivated] = useState(false);
   const [renderedPages, setRenderedPages] = useState(0);
+  const [nextPageToRender, setNextPageToRender] = useState(1);
   const [status, setStatus] = useState('idle');
+  const [retryKey, setRetryKey] = useState(0);
+  const renderedPageNumbersRef = useRef(new Set());
   const pdfEntitlement = exportEntitlements.PDF;
   const pdfEntitlementRef = useRef(pdfEntitlement);
   pdfEntitlementRef.current = pdfEntitlement;
@@ -69,6 +73,8 @@ export function MaxxisCanonicalReportPreview({ schema, language = 'en', exportEn
     let loadedDocument = null;
     setStatus('loading');
     setRenderedPages(0);
+    setNextPageToRender(1);
+    renderedPageNumbersRef.current = new Set();
     setPdfDocument(null);
     (async () => {
       const rendered = await renderMaxxisReportPdfCached({
@@ -93,9 +99,14 @@ export function MaxxisCanonicalReportPreview({ schema, language = 'en', exportEn
       loadingTask?.destroy?.();
       loadedDocument?.destroy?.();
     };
-  }, [activated, schema, pdfEntitlementKey, generatedAt, language]);
+  }, [activated, schema, pdfEntitlementKey, generatedAt, language, retryKey]);
 
-  const handlePageRendered = useCallback(() => setRenderedPages((current) => current + 1), []);
+  const handlePageRendered = useCallback((pageNumber) => {
+    if (renderedPageNumbersRef.current.has(pageNumber)) return;
+    renderedPageNumbersRef.current.add(pageNumber);
+    setRenderedPages(renderedPageNumbersRef.current.size);
+    window.setTimeout(() => setNextPageToRender((current) => Math.max(current, pageNumber + 1)), 0);
+  }, []);
   const handlePageError = useCallback(() => setStatus('failed'), []);
 
   useEffect(() => {
@@ -113,8 +124,9 @@ export function MaxxisCanonicalReportPreview({ schema, language = 'en', exportEn
         <b>LEVEL {level}</b>
       </summary>
       <div className="maxxis-canonical-stage" aria-live="polite">
-        {status === 'loading' || status === 'rendering' || status === 'idle' ? <span className="maxxis-canonical-status">{t.loading}</span> : null}
-        {status === 'failed' ? <span className="maxxis-canonical-status is-error">{t.failed}</span> : null}
+        {status === 'loading' || status === 'idle' ? <span className="maxxis-canonical-status">{t.loading}</span> : null}
+        {status === 'rendering' ? <span className="maxxis-canonical-status is-progress">{t.rendering}: {renderedPages}/{total}</span> : null}
+        {status === 'failed' ? <span className="maxxis-canonical-status is-error">{t.failed}<button type="button" onClick={() => setRetryKey((value) => value + 1)}>{t.retry}</button></span> : null}
         {pdfDocument ? (
           <div className={`maxxis-canonical-pages${status === 'ready' ? ' is-ready' : ''}`} aria-label={`${total} ${t.page.toLowerCase()}`}>
             {Array.from({ length: total }, (_, index) => (
@@ -123,6 +135,7 @@ export function MaxxisCanonicalReportPreview({ schema, language = 'en', exportEn
                 pdfDocument={pdfDocument}
                 pageNumber={index + 1}
                 pageLabel={t.page}
+                active={index + 1 <= nextPageToRender}
                 onRendered={handlePageRendered}
                 onError={handlePageError}
               />

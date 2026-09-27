@@ -37,7 +37,7 @@ function ListSection({ title, items, ordered = false }) {
   return <div className="maxxis-analysis-section"><strong>{title}</strong><List>{items.map((item) => <li key={item}>{item}</li>)}</List></div>;
 }
 
-export function MaxxisAnalysisReportExperience({ report, reportSchema = null, exportEntitlements = {}, language = 'en', generatedAt = null }) {
+function MaxxisAnalysisReportExperienceView({ report, reportSchema = null, exportEntitlements = {}, language = 'en', generatedAt = null }) {
   if (!report || report.type !== 'maxxis_analysis_report') return null;
   const t = COPY[language] || COPY.en;
   const alignment = report.profileAlignment || {};
@@ -85,4 +85,17 @@ export function MaxxisAnalysisReportExperience({ report, reportSchema = null, ex
       <small>{t.disclaimer}</small>
     </section>
   );
+}
+
+const sameReportExperience = (previous, next) => previous.report === next.report
+  && previous.reportSchema === next.reportSchema
+  && previous.language === next.language
+  && previous.generatedAt === next.generatedAt
+  && previous.exportEntitlements?.PDF?.allowed === next.exportEntitlements?.PDF?.allowed
+  && previous.exportEntitlements?.PDF?.state === next.exportEntitlements?.PDF?.state;
+
+const MemoizedMaxxisAnalysisReportExperience = React.memo(MaxxisAnalysisReportExperienceView, sameReportExperience);
+
+export function MaxxisAnalysisReportExperience(props) {
+  return <MemoizedMaxxisAnalysisReportExperience {...props} />;
 }

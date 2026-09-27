@@ -62,10 +62,7 @@
 .maxxis-canonical-pages {
   display: grid;
   gap: 8px;
-  opacity: 0;
 }
-
-.maxxis-canonical-pages.is-ready { opacity: 1; }
 
 .maxxis-canonical-pages canvas {
   display: block;
@@ -73,21 +70,26 @@
   height: auto;
   margin: 0 auto;
   background: #fff;
+  aspect-ratio: 595.28 / 841.89;
   box-shadow: 0 5px 18px rgba(15, 32, 49, .18);
 }
 
 .maxxis-canonical-status {
-  position: absolute;
-  inset: 0;
-  display: grid;
-  place-items: center;
-  padding: 24px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 9px;
+  min-height: 164px;
+  padding: 18px;
   color: #52697b;
   background: #fff;
   text-align: center;
   font-size: 11px;
   font-weight: 750;
 }
+
+.maxxis-canonical-status.is-progress { min-height: 0; margin-bottom: 7px; padding: 7px 10px; border-radius: 7px; }
+.maxxis-canonical-status button { padding: 6px 9px; color: inherit; font: inherit; border: 1px solid currentColor; border-radius: 7px; background: transparent; cursor: pointer; }
 
 .maxxis-canonical-status.is-error { color: #9f2e26; }
 

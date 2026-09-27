@@ -15,7 +15,7 @@ import { MaxxisDealIntelligenceResponse } from '../../features/maxxis/intelligen
 import { MaxxisAnalysisReportExperience } from '../../features/maxxis/intelligence/MaxxisAnalysisReportExperience';
 import { MaxxisDealIntelligenceExperience } from '../../features/maxxis/intelligence/MaxxisDealIntelligenceExperience';
 import { MaxxisIntelligenceUpgradeModal } from '../../features/maxxis/access/MaxxisIntelligenceUpgradeModal';
-import { MaxxisAnalysisGapResolution } from '../../features/maxxis/intelligence/MaxxisAnalysisGapResolution';
+import { MaxxisAnalysisGapResolution, MaxxisAnalysisGapResolved } from '../../features/maxxis/intelligence/MaxxisAnalysisGapResolution';
 
 export const UUID_PATTERN = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
 
@@ -1639,6 +1639,7 @@ export function MessageBubble({
   onRequestIntelligenceUnlock,
   onResolveAnalysisGaps,
   onDeclineAnalysisGaps,
+  onEditAnalysisGaps,
   activeAnalysisGapId,
 }) {
   const isUser = message.role === 'user';
@@ -2020,6 +2021,9 @@ export function MessageBubble({
           onResolve={onResolveAnalysisGaps}
           onDecline={onDeclineAnalysisGaps}
         />
+      ) : null}
+      {message.type === 'analysis_gap_resolved' ? (
+        <MaxxisAnalysisGapResolved message={message} language={language} onEdit={onEditAnalysisGaps} />
       ) : null}
       {(message.type === 'deal_memory_recall' || message.type === 'deal_memory_forget_confirmation') ? (
         <MaxxisDealMemoryCard

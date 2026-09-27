@@ -1031,10 +1031,28 @@ export async function resolveComparableMap(schema) {
   } catch { return null; }
 }
 
+const performanceNow = () => typeof performance !== 'undefined' && typeof performance.now === 'function' ? performance.now() : Date.now();
+
+const yieldReportRendering = () => {
+  if (typeof window === 'undefined') return Promise.resolve();
+  if (typeof globalThis.scheduler?.yield === 'function') return globalThis.scheduler.yield();
+  return new Promise((resolve) => setTimeout(resolve, 0));
+};
+
+function emitReportPerformance(timings) {
+  if (typeof window === 'undefined' || typeof window.dispatchEvent !== 'function' || typeof CustomEvent !== 'function') return;
+  window.dispatchEvent(new CustomEvent('dealsifter:maxxis-performance', { detail: { stage: 'pdf_render', ...timings } }));
+}
+
 export async function renderMaxxisReportPdf({ schema, exportEntitlement, generatedAt, language = 'en', mapImageData = null } = {}) {
+  const totalStartedAt = performanceNow();
+  const preparationStartedAt = performanceNow();
   const prepared = renderMaxxisReportDocument({ schema, exportEntitlement, generatedAt, language });
   if (prepared.state !== 'PREPARED') return prepared;
+  const preparationMs = performanceNow() - preparationStartedAt;
+  const moduleStartedAt = performanceNow();
   const { jsPDF } = await import('jspdf');
+  const moduleMs = performanceNow() - moduleStartedAt;
   const doc = new jsPDF({ orientation: 'portrait', unit: 'pt', format: 'a4', compress: true });
   doc.addFileToVFS('NotoSans-Regular.ttf', notoSansRegular.split(',')[1]);
   doc.addFileToVFS('NotoSans-Bold.ttf', notoSansBold.split(',')[1]);
@@ -1043,10 +1061,15 @@ export async function renderMaxxisReportPdf({ schema, exportEntitlement, generat
   const pages = prepared.document.pages;
   const lang = prepared.document.language;
   const t = COPY[lang];
+  const assetsStartedAt = performanceNow();
   const [images, mapImage, comparableMap] = await Promise.all([
     resolvePropertyImages(schema), mapImageData || resolveStreetMap(schema), resolveComparableMap(schema),
   ]);
-  pages.forEach((page, index) => {
+  const assetsMs = performanceNow() - assetsStartedAt;
+  const perPageMs = [];
+  for (let index = 0; index < pages.length; index += 1) {
+    const page = pages[index];
+    const pageStartedAt = performanceNow();
     if (index) doc.addPage('a4', 'portrait');
     const { accent } = pageHeader(doc, schema, page.code, t);
     // Preserve the original spacing between the page title and its first
@@ -1056,9 +1079,23 @@ export async function renderMaxxisReportPdf({ schema, exportEntitlement, generat
     renderPage(doc, schema, page.code, t, accent, images, mapImage, comparableMap);
     doc.restoreGraphicsState();
     pageFooter(doc, index + 1, pages.length, prepared.document.cover.generatedAt, lang, t);
-  });
+    perPageMs.push(Math.round((performanceNow() - pageStartedAt) * 10) / 10);
+    if (index < pages.length - 1) await yieldReportRendering();
+  }
+  const assemblyStartedAt = performanceNow();
   const binary = new Uint8Array(doc.output('arraybuffer'));
-  return Object.freeze({ state: 'RENDERED', document: Object.freeze({
+  const assemblyMs = performanceNow() - assemblyStartedAt;
+  const timings = Object.freeze({
+    totalMs: Math.round((performanceNow() - totalStartedAt) * 10) / 10,
+    preparationMs: Math.round(preparationMs * 10) / 10,
+    moduleMs: Math.round(moduleMs * 10) / 10,
+    assetsMs: Math.round(assetsMs * 10) / 10,
+    pageRenderMs: Math.round(perPageMs.reduce((sum, value) => sum + value, 0) * 10) / 10,
+    assemblyMs: Math.round(assemblyMs * 10) / 10,
+    perPageMs: Object.freeze(perPageMs),
+  });
+  emitReportPerformance(timings);
+  return Object.freeze({ state: 'RENDERED', timings, document: Object.freeze({
     ...prepared.document, binary, pageCount: doc.getNumberOfPages(), mimeType: 'application/pdf',
   }) });
 }
