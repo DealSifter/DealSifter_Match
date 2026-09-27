@@ -13,6 +13,7 @@ function functionNameForEvent(event: string) {
 
 export function logMaxxisEvent(event: string, details: Record<string, unknown>) {
   const success = details.success !== false && !details.error_code;
+  const rawStatus = details.status ?? details.action_status;
   const isChatResponse = event === 'maxxis_chat';
   const isGeminiRequest = isChatResponse && Boolean(
     details.model
@@ -29,7 +30,7 @@ export function logMaxxisEvent(event: string, details: Record<string, unknown>) 
     success,
     errorCode: details.error_code,
     provider: details.model ? 'gemini' : String(details.provider || ''),
-    status: details.status || details.action_status,
+    status: typeof rawStatus === 'string' || typeof rawStatus === 'number' ? rawStatus : undefined,
     metrics: {
       provider_status: Number(details.provider_status || 0),
       provider_error_status: details.provider_error_status,
@@ -52,6 +53,23 @@ export function logMaxxisEvent(event: string, details: Record<string, unknown>) 
       tool_declaration_bytes: Number(details.tool_declaration_bytes || 0),
       tool_payload_bytes: Number(details.tool_payload_bytes || 0),
       history_count: Number(details.history_count || 0),
+      history_original_chars: Number(details.history_original_chars || 0),
+      history_compacted_chars: Number(details.history_compacted_chars || 0),
+      context_before_chars: Number(details.context_before_chars || 0),
+      context_after_chars: Number(details.context_after_chars || 0),
+      context_after_tokens: Number(details.context_after_tokens || 0),
+      context_system_chars: Number(details.context_system_chars || 0),
+      context_history_chars: Number(details.context_history_chars || 0),
+      context_property_chars: Number(details.context_property_chars || 0),
+      context_profile_chars: Number(details.context_profile_chars || 0),
+      context_snapshot_chars: Number(details.context_snapshot_chars || 0),
+      context_evidence_chars: Number(details.context_evidence_chars || 0),
+      context_sold_chars: Number(details.context_sold_chars || 0),
+      context_valuation_chars: Number(details.context_valuation_chars || 0),
+      context_comps_chars: Number(details.context_comps_chars || 0),
+      context_rehab_chars: Number(details.context_rehab_chars || 0),
+      context_analysis_chars: Number(details.context_analysis_chars || 0),
+      context_tools_chars: Number(details.context_tools_chars || 0),
       behavior_history_available: details.behavior_history_available,
       behavior_action_count: Number(details.behavior_action_count || 0),
       behavior_signal_applied: details.behavior_signal_applied,

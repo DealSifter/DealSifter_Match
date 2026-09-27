@@ -41,7 +41,8 @@ describe('sanitized Gemini tool interpretation payload', () => {
       structuredAnalysis: { type: 'maxxis_structured_analysis', executiveSummary: 'Canonical evidence-linked summary.',
         investorFit: {}, marketContext: {}, comparativeAnalysis: {}, valuationAnalysis: {}, riskAnalysis: {} },
     });
-    expect((safe.structuredAnalysis as Record<string, unknown>).executiveSummary).toBe('Canonical evidence-linked summary.');
+    expect((safe.analysisSummary as Record<string, unknown>).executiveSummary).toBe('Canonical evidence-linked summary.');
+    expect(safe).not.toHaveProperty('structuredAnalysis');
     const request = buildToolInterpretationRequest({
       contents: [], modelParts: [], toolName: 'getDealInsightContext', toolResult: safe,
       language: 'en', generationConfig: {}, safetySettings: [], plainToolResult: true,

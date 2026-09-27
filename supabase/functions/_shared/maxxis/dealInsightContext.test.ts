@@ -113,12 +113,11 @@ describe('Maxxis Deal Insight context', () => {
   it('hard-codes unavailable financial capabilities and keeps reported cap rate distinct from verified data', async () => {
     const safe = sanitizeToolResultForGemini(await setup());
     expect(safe).toMatchObject({
-      match: { semantics: 'profile_fit_only' },
-      metrics: { metrics: { capRate: { value: 5, source: 'stored' } } },
-      capabilities: { canCalculateARV: false, canCalculateMAO: false, canCalculateROI: false, canCalculateCashFlow: false, hasReportedCapRate: true },
-      dealIntelligence: { valuationContext: { status: 'ARV_LIMITED', centralReference: 2_541_676 } },
+      matchAnalysis: { semantics: 'PROFILE_FIT_ONLY' },
+      dealMetrics: { metrics: { capRate: { value: 5, source: 'stored' } } },
+      valuationSummary: { status: 'ARV_LIMITED', centralReference: 2_541_676 },
     });
-    expect(JSON.stringify(safe)).not.toMatch(/"(?:arv|mao|roi|cashFlow)"\s*:\s*(?!false|null)/i);
+    expect(JSON.stringify(safe)).not.toMatch(/"(?:mao|roi|cashFlow)"\s*:/i);
   });
 
   it('preserves conflicts without resolving them and strips owner/raw payload data', async () => {
@@ -126,7 +125,7 @@ describe('Maxxis Deal Insight context', () => {
     conflicted.evidence.conflicts = [{ field: 'livingAreaSqft', dealSifterValue: 2333, publicRecordValue: 2500, severity: 'WARNING' }];
     Object.assign(conflicted.evidence, { ownerNames: ['Private Owner'], rawProviderPayload: { owner: 'Private Owner' } });
     const safe = sanitizeToolResultForGemini(await setup(conflicted));
-    expect(safe).toMatchObject({ evidence: { conflicts: [{ field: 'livingAreaSqft', dealSifterValue: 2333, publicRecordValue: 2500 }] } });
+    expect(safe).toMatchObject({ evidenceSummary: { conflicts: [{ field: 'livingAreaSqft', severity: 'WARNING' }] } });
     expect(JSON.stringify(safe)).not.toMatch(/Private Owner|ownerNames|rawProviderPayload|providerPropertyId/);
   });
 

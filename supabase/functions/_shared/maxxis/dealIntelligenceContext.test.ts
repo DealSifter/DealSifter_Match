@@ -117,9 +117,12 @@ describe('Maxxis Deal Intelligence Context v1', () => {
     const context = build();
     const safe = sanitizeToolResultForGemini({ type: 'deal_insight', propertyId: PROPERTY_ID,
       state: 'available', dealIntelligence: context, capabilities: { hasArvEvaluation: true } });
-    const safeContext = safe.dealIntelligence as Record<string, any>;
-    expect(safeContext.valuationContext).toMatchObject(context.valuationContext);
-    expect(safeContext.matchContext.semantics).toBe('PROFILE_FIT_ONLY');
+    expect(safe.valuationSummary).toMatchObject({
+      status: context.valuationContext.status,
+      centralReference: context.valuationContext.centralReference,
+      confidence: context.valuationContext.confidence,
+    });
+    expect((safe.matchAnalysis as Record<string, any>).semantics).toBe('PROFILE_FIT_ONLY');
     expect(JSON.stringify(safe)).not.toMatch(/recommend_buy|deal_quality_score|guaranteed_return/i);
   });
 

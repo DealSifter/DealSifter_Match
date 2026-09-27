@@ -1,4 +1,5 @@
 import { buildAnalyticalInteractionInstruction } from './analyticalInteraction.ts';
+import { fitToolProjectionToBudget } from './maxxisContextBudget.ts';
 
 const EMAIL_RE = /[a-z0-9.!#$%&'*+/=?^_`{|}~-]+@[a-z0-9.-]+\.[a-z]{2,}/gi;
 const PHONE_RE = /(?:\+?\d[\d\s().-]{7,}\d)/g;
@@ -404,6 +405,113 @@ function safeStructuredAnalysis(value: unknown) {
   };
 }
 
+export function buildMaxxisLLMContext(value: unknown) {
+  const source = record(value);
+  const profile = record(source.investmentProfile);
+  const intelligence = record(source.dealIntelligence);
+  const evidence = record(intelligence.evidenceSummary);
+  const valuation = record(intelligence.valuationContext);
+  const range = record(valuation.range);
+  const providerEstimate = record(valuation.providerEstimate);
+  const runtime = record(source.runtimeTrace);
+  const snapshot = record(source.intelligenceSnapshot);
+  const rehab = record(snapshot.rehabAnalysis);
+  const benchmark = record(rehab.benchmark);
+  const rate = record(benchmark.rate);
+  const gate = record(source.evidenceCompletenessGate);
+  const assumptions = record(gate.assumptions);
+  const structured = record(source.structuredAnalysis);
+  const comparative = record(structured.comparablesAnalysis);
+  const valuationAnalysis = record(structured.valuationAnalysis);
+  const comps = Array.isArray(intelligence.comparableEvidence) ? intelligence.comparableEvidence.map(record) : [];
+  const selected = comps.filter((comp) => comp.valuationEligibility === 'INCLUDED' || comp.valuationRole === 'PRIMARY');
+  const supporting = comps.filter((comp) => comp.valuationEligibility === 'SUPPORTING_ONLY' || comp.valuationRole === 'SUPPORTING');
+  const excluded = comps.filter((comp) => comp.valuationEligibility === 'EXCLUDED' || comp.valuationRole === 'EXCLUDED');
+  const compactComp = (comp: Record<string, unknown>) => ({
+    address: safeText(comp.address, 160) || null,
+    salePrice: safeNumber(comp.recordedSalePrice), saleDate: safeDate(comp.recordedSaleDate),
+    distanceMiles: safeNumber(comp.distanceMiles), structuralScore: safeNumber(comp.structuralComparabilityScore),
+    completenessScore: safeNumber(comp.dataCompletenessScore),
+    condition: safeText(comp.conditionCompatibility, 40) || 'UNKNOWN',
+    reason: safeText(comp.exclusionReason || comp.inclusionReason, 120) || null,
+  });
+  return {
+    type: 'deal_insight',
+    contextVersion: 'MAXXIS_LLM_CONTEXT_V1',
+    activeCapability: safeText(runtime.reportType, 40) || null,
+    propertyId: safeText(source.propertyId, 50),
+    state: safeText(source.state, 30),
+    propertySummary: safeProperty(source.property),
+    investorProfileSummary: {
+      exists: Boolean(profile.exists), complete: Boolean(profile.complete), profile: safeProfile(profile.profile),
+    },
+    matchAnalysis: source.match || intelligence.matchContext
+      ? { ...safeMatch(source.match || intelligence.matchContext), semantics: 'PROFILE_FIT_ONLY' } : null,
+    dealMetrics: safeMetrics(source.metrics || intelligence.dealMetrics),
+    evidenceSummary: {
+      strength: safeText(evidence.strength, 20), verifiedFieldCount: safeNumber(evidence.verifiedFieldCount),
+      userProvidedFieldCount: safeNumber(evidence.userProvidedFieldCount), unknownFieldCount: safeNumber(evidence.unknownFieldCount),
+      conflictCount: safeNumber(evidence.conflictCount), conflicts: (Array.isArray(evidence.conflicts) ? evidence.conflicts : [])
+        .slice(0, 6).map((item) => { const conflict = record(item); return { field: safeText(conflict.field, 60), severity: safeText(conflict.severity, 20) }; }),
+    },
+    compsSummary: {
+      candidatesConsidered: safeNumber(runtime.candidateCount) ?? comps.length,
+      structuralCandidates: safeNumber(runtime.structuralCandidateCount) ?? comps.length,
+      selectedCount: selected.length,
+      supportingCount: supporting.length,
+      excludedCount: excluded.length,
+      selected: selected.slice(0, 5).map(compactComp),
+      supporting: supporting.slice(0, 5).map(compactComp),
+      selectionSummary: safeText(comparative.interpretation, 700),
+      arvEligibleCount: safeNumber(runtime.arvEligibleCount) ?? selected.length,
+      limitations: safeList(comparative.limitations, 8),
+    },
+    valuationSummary: {
+      status: safeText(valuation.status, 30),
+      range: Object.keys(range).length ? { low: safeNumber(range.low), high: safeNumber(range.high) } : null,
+      centralReference: safeNumber(valuation.centralReference), confidence: safeText(valuation.confidence, 20),
+      compsUsed: safeNumber(valuation.compsUsed), warnings: safeList(valuation.warnings, 8),
+      providerEstimate: Object.keys(providerEstimate).length ? { value: safeNumber(providerEstimate.value),
+        status: safeText(providerEstimate.status, 60), provenance: safeText(providerEstimate.provenance, 30) } : null,
+      interpretation: safeText(valuationAnalysis.arvInterpretation, 700),
+    },
+    rehabSummary: {
+      selectedValue: safeNumber(rehab.value), source: safeText(rehab.source, 60) || null,
+      provenance: safeText(rehab.provenance, 30), confidence: safeText(rehab.confidence, 20) || null,
+      benchmark: Object.keys(benchmark).length ? {
+        state: safeText(benchmark.state, 40), scope: safeText(benchmark.scope, 40),
+        averagePerSqft: safeNumber(rate.average), rangeLowPerSqft: safeNumber(rate.low),
+        rangeHighPerSqft: safeNumber(rate.high), low: safeNumber(benchmark.low),
+        mid: safeNumber(benchmark.mid), high: safeNumber(benchmark.high),
+        source: safeText(benchmark.source, 80), provenance: safeText(benchmark.provenance, 30),
+        confidence: safeText(benchmark.confidence, 20),
+      } : null,
+    },
+    risks: (Array.isArray(intelligence.risks) ? intelligence.risks : []).slice(0, 8).map((item) => {
+      const risk = record(item);
+      return { category: safeText(risk.category, 30), severity: safeText(risk.severity, 20),
+        explanation: safeText(risk.explanation, 240) };
+    }),
+    unresolvedGaps: {
+      missingUserInputs: safeList(gate.missingUserInputs, 6),
+      question: safeText(gate.question, 320), missingEvidence: safeList(structured.missingEvidence, 8),
+    },
+    recentUserInputs: {
+      targetCondition: safeText(assumptions.targetCondition, 40) || null,
+      rehabBudget: safeNumber(assumptions.rehabBudget), renovationScope: safeText(assumptions.renovationScope, 80) || null,
+      rehabSource: safeText(assumptions.rehabSource, 80) || null, declinedInputs: safeList(assumptions.declinedInputs, 6),
+      provenance: safeText(assumptions.provenance, 30) || null,
+    },
+    analysisSummary: {
+      executiveSummary: safeText(structured.executiveSummary, 900),
+      comparables: safeText(comparative.interpretation, 700),
+      valuation: safeText(valuationAnalysis.arvInterpretation, 700),
+      recommendedVerificationSteps: safeList(structured.recommendedVerificationSteps, 6),
+      disclaimers: safeList(structured.userFacingDisclaimers, 3),
+    },
+  };
+}
+
 export function sanitizeToolResultForGemini(value: unknown): Record<string, unknown> {
   const source = record(value);
   const type = safeText(source.type, 50);
@@ -440,36 +548,7 @@ export function sanitizeToolResultForGemini(value: unknown): Record<string, unkn
     };
   }
   if (type === 'deal_insight') {
-    const profile = record(source.investmentProfile);
-    const capabilities = record(source.capabilities);
-    const evidence: Record<string, unknown> = sanitizeToolResultForGemini(source.evidence);
-    return {
-      type,
-      propertyId: safeText(source.propertyId, 50),
-      state: safeText(source.state, 30),
-      property: safeProperty(source.property),
-      investmentProfile: {
-        exists: Boolean(profile.exists),
-        complete: Boolean(profile.complete),
-        profile: safeProfile(profile.profile),
-      },
-      match: source.match ? { ...safeMatch(source.match), semantics: 'profile_fit_only' } : null,
-      evidence,
-      metrics: safeMetrics(source.metrics),
-      analysis: safeAdvisor(source.analysis),
-      dealIntelligence: source.dealIntelligence ? safeDealIntelligence(source.dealIntelligence) : null,
-      structuredAnalysis: source.structuredAnalysis ? safeStructuredAnalysis(source.structuredAnalysis) : null,
-      capabilities: {
-        canDiscussPricePerSqft: Boolean(capabilities.canDiscussPricePerSqft),
-        canDiscussAcquisitionPlusRehab: Boolean(capabilities.canDiscussAcquisitionPlusRehab),
-        hasReportedCapRate: Boolean(capabilities.hasReportedCapRate),
-        canCalculateARV: false,
-        canCalculateMAO: false,
-        canCalculateROI: false,
-        canCalculateCashFlow: false,
-        hasArvEvaluation: Boolean(capabilities.hasArvEvaluation),
-      },
-    };
+    return buildMaxxisLLMContext(source);
   }
   if (type === 'property_evidence') {
     const evidence = record(source.evidence);
@@ -553,14 +632,19 @@ export function buildToolInterpretationRequest(input: {
   safetySettings: unknown[];
   plainToolResult?: boolean;
 }) {
-  const safeResult = sanitizeToolResultForGemini(input.toolResult);
+  const inputResult = record(input.toolResult);
+  const safeResult = fitToolProjectionToBudget(
+    inputResult.contextVersion === 'MAXXIS_LLM_CONTEXT_V1'
+      ? inputResult
+      : sanitizeToolResultForGemini(input.toolResult),
+  );
   const resultType = safeText((safeResult as Record<string, unknown>).type, 50);
   const interaction = buildAnalyticalInteractionInstruction(resultType === 'deal_insight' ? 'deal_insight' : 'tool_result');
   const systemText = `You are Maxxis Deal AI inside DealSifter. Interpret the authoritative structured tool result naturally in ${safeText(input.language, 8) || 'en'}. Do not expose hidden data or request another tool.
 ${interaction}
-For property evidence, preserve provenance and effective/retrieval dates when material. For deal insight, use MaxxisStructuredAnalysis as the canonical interpretation shared with the report and follow ANSWER FIRST, then WHY, RISKS, and NEXT STEP. Never expose snake_case, UPPER_SNAKE_CASE, machine reasons, or internal state codes; express only the supplied natural-language interpretation. Evidence is not an appraisal or guaranteed truth. An existing ARV evaluation may be explained only by copying its exact status, range, central reference, confidence, comps, warnings and provenance; never calculate, alter, interpolate, round into a new value, blend with another estimate, or infer missing ARV data. Match Score is profile fit only, never deal quality. Never guarantee return, recommend buying, or recommend a price. Use at most 180 words for deal insight and 120 words otherwise; structured cards are rendered separately.`;
+For property evidence, preserve provenance and effective/retrieval dates when material. For deal insight, use analysisSummary, which is the compact projection of the canonical MaxxisStructuredAnalysis shared with the report, and follow ANSWER FIRST, then WHY, RISKS, and NEXT STEP. Never expose snake_case, UPPER_SNAKE_CASE, machine reasons, or internal state codes; express only the supplied natural-language interpretation. Evidence is not an appraisal or guaranteed truth. An existing ARV evaluation may be explained only by copying its exact status, range, central reference, confidence, comps, warnings and provenance; never calculate, alter, interpolate, round into a new value, blend with another estimate, or infer missing ARV data. Match Score is profile fit only, never deal quality. Never guarantee return, recommend buying, or recommend a price. Use at most 180 words for deal insight and 120 words otherwise; structured cards are rendered separately.`;
   if (input.plainToolResult) {
-    const resultText = JSON.stringify(safeResult).slice(0, 12_000);
+    const resultText = JSON.stringify(safeResult);
     return {
       systemInstruction: { parts: [{ text: systemText }] },
       contents: [

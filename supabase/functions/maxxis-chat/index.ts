@@ -16,7 +16,13 @@ import { prepareProfileSuggestions } from '../_shared/maxxis/prepareProfileSugge
 import { executeMaxxisTool, MAXXIS_TOOLS } from '../_shared/maxxis/toolRegistry.ts';
 import { asksForSelectedPropertyAnalysis } from '../_shared/maxxis/propertyAnalysisIntent.ts';
 import { normalizeComparisonContextIds } from '../_shared/maxxis/compareProperties.ts';
-import { buildToolInterpretationRequest } from '../_shared/maxxis/toolResultForGemini.ts';
+import { buildToolInterpretationRequest, sanitizeToolResultForGemini } from '../_shared/maxxis/toolResultForGemini.ts';
+import {
+  assertMaxxisContextBudget,
+  compactMaxxisConversationHistory,
+  MAXXIS_CONTEXT_BUDGET,
+  measureMaxxisContext,
+} from '../_shared/maxxis/maxxisContextBudget.ts';
 import { buildGeminiGenerationConfig } from '../_shared/maxxis/geminiGenerationConfig.ts';
 import { buildMaxxisKnowledgeInstruction, MAXXIS_KNOWLEDGE_VERSION, selectMaxxisKnowledge } from '../_shared/maxxis/maxxisKnowledge.ts';
 import { resolveMaxxisLanguage } from '../_shared/maxxis/maxxisLanguage.ts';
@@ -718,6 +724,11 @@ Deno.serve(async (req) => {
   let systemPromptBytes = 0;
   let toolDeclarationBytes = 0;
   let historyCount = 0;
+  let historyOriginalChars = 0;
+  let historyCompactedChars = 0;
+  let contextBeforeChars = 0;
+  let contextAfterChars = 0;
+  let contextAfterTokens = 0;
   let resolvedLanguage: MaxxisLanguage = 'en';
   let resolvedMessage = '';
   let resolvedPage = 'dashboard';
@@ -805,7 +816,12 @@ Deno.serve(async (req) => {
     const structuredContextBytes = contextSizeBytes({ structuredContext, propertyAnalysisContext });
     if (structuredContextBytes > 4096) {
       logAbuseGuard({ functionName: 'maxxis-chat', operation: 'maxxis_context', requestId, userId, category: 'REQUEST_TOO_LARGE', status: 413, limitType: 'maxxis_context' });
-      return response({ message: 'Request context is too large.', type: 'text', data: null, actions: [], error: 'MAXXIS_CONTEXT_TOO_LARGE' }, 413, origin, requestId);
+      const text = language === 'pt'
+        ? 'Não consegui preparar todo o contexto desta solicitação. O histórico foi preservado; tente novamente com uma pergunta mais específica.'
+        : language === 'es'
+          ? 'No pude preparar todo el contexto de esta solicitud. El historial se conservó; inténtalo de nuevo con una pregunta más específica.'
+          : 'I could not prepare all context for this request. Your history was preserved; please retry with a more specific question.';
+      return response({ message: text, answer: text, type: 'text', data: null, actions: [], error: 'MAXXIS_CONTEXT_COMPACTION_FAILED' }, 200, origin, requestId);
     }
     if (structuredContext && isSurfaceContextQuestion(message)) {
       const text = contextAwarenessMessage(language, structuredContext);
@@ -831,8 +847,10 @@ Deno.serve(async (req) => {
     }
     const history = Array.isArray(body.history) ? body.history : [];
     historyCount = history.length;
-    budget.validateHistory(history);
-    const contents = [...history.map((item: Record<string, unknown>) => ({ role: item?.role === 'assistant' ? 'model' : 'user', parts: [{ text: sanitizeText(item?.content || item?.text, 1600) }] })).filter((item) => item.parts[0].text), { role: 'user', parts: [{ text: message }] }];
+    const compactedHistory = compactMaxxisConversationHistory(history);
+    historyOriginalChars = compactedHistory.originalChars;
+    historyCompactedChars = compactedHistory.compactedChars;
+    const contents = [...compactedHistory.contents, { role: 'user' as const, parts: [{ text: message }] }];
     const contextInstruction = shouldUseStructuredContext(message, structuredContext) ? `\n\n${structuredContextInstruction(structuredContext)}` : '';
     const analysisInstruction = propertyAnalysisContext ? `\n\n${propertyAnalysisInstruction(propertyAnalysisContext)}` : '';
     const selectedKnowledge = selectMaxxisKnowledge(message, resolvedPage);
@@ -840,6 +858,14 @@ Deno.serve(async (req) => {
     const systemPrompt = `${buildSystemPrompt(language, resolvedPage, knowledgeInstruction)}\n\n${propertyContextInstruction(propertyContextId, searchPropertyIds, comparisonPropertyIds)}${contextInstruction}${analysisInstruction}`;
     systemPromptBytes = new TextEncoder().encode(systemPrompt).byteLength;
     toolDeclarationBytes = new TextEncoder().encode(JSON.stringify(MAXXIS_TOOLS)).byteLength;
+    const initialContextSize = assertMaxxisContextBudget({
+      system: systemPrompt,
+      recentConversation: contents,
+      tools: MAXXIS_TOOLS,
+      generation: { maxOutputTokens: MAXXIS_EXECUTION_LIMITS.maxOutputTokens, safetySettings: GEMINI_SAFETY_SETTINGS },
+    });
+    contextAfterChars = initialContextSize.totalChars;
+    contextAfterTokens = initialContextSize.approximateTokens;
     const providerErrors: Array<{ status: number; code: GeminiFailureCode }> = [];
     let payload: Record<string, unknown> = {};
     if (stubFunctionCall) {
@@ -987,7 +1013,31 @@ Deno.serve(async (req) => {
       }
       snapshotCreated = Boolean((result as { intelligenceSnapshot?: unknown })?.intelligenceSnapshot);
       failureStage = 'tool_payload_validation';
-      budget.validateToolPayload(result);
+      const llmToolResult = sanitizeToolResultForGemini(result);
+      budget.validateToolPayload(llmToolResult);
+      const rawResult = result as Record<string, unknown>;
+      const rawSnapshot = rawResult.intelligenceSnapshot && typeof rawResult.intelligenceSnapshot === 'object'
+        ? rawResult.intelligenceSnapshot as Record<string, unknown> : {};
+      const beforeMeasurement = measureMaxxisContext({
+        system: systemPrompt,
+        recentConversation: contents,
+        property: rawResult.property,
+        profile: rawResult.investmentProfile,
+        intelligenceSnapshot: rawResult.intelligenceSnapshot,
+        propertyEvidence: rawResult.evidence,
+        soldEvidence: rawSnapshot.soldEvidence,
+        valuationEvidence: rawSnapshot.valuationEvidence,
+        comparableCandidates: rawSnapshot.compPromotionDiagnostics,
+        rehabBenchmark: rawSnapshot.rehabAnalysis,
+        structuredAnalysis: rawResult.structuredAnalysis,
+        tools: MAXXIS_TOOLS,
+      }, Number.MAX_SAFE_INTEGER);
+      contextBeforeChars = measureMaxxisContext({
+        system: systemPrompt,
+        recentConversation: contents,
+        rawToolResult: rawResult,
+        tools: MAXXIS_TOOLS,
+      }, Number.MAX_SAFE_INTEGER).totalChars;
       let interpretedText = '';
       let secondPass = false;
       let secondPassFailure: GeminiFailureCode | '' = '';
@@ -1001,7 +1051,7 @@ Deno.serve(async (req) => {
           modelParts: modelPartsForTool,
           toolName,
           functionCallId: String(parsedFunctionCall?.id || ''),
-          toolResult: result,
+          toolResult: llmToolResult,
           language,
           plainToolResult: Boolean(recoveredFunctionCall || correctedFunctionCall),
           generationConfig: buildGeminiGenerationConfig(
@@ -1009,6 +1059,34 @@ Deno.serve(async (req) => {
             Math.min(MAXXIS_EXECUTION_LIMITS.maxOutputTokens, 420),
           ),
           safetySettings: GEMINI_SAFETY_SETTINGS,
+        });
+        const secondPassMeasurement = assertMaxxisContextBudget({
+          system: interpretationRequest.systemInstruction,
+          contents: interpretationRequest.contents,
+          generation: interpretationRequest.generationConfig,
+          safetySettings: interpretationRequest.safetySettings,
+        }, MAXXIS_CONTEXT_BUDGET.maxSecondPassChars);
+        contextAfterChars = secondPassMeasurement.totalChars;
+        contextAfterTokens = secondPassMeasurement.approximateTokens;
+        logMaxxisEvent('maxxis_context_budget', {
+          request_id: requestId,
+          user_id: userId,
+          success: true,
+          context_before_chars: contextBeforeChars,
+          context_after_chars: contextAfterChars,
+          context_after_tokens: contextAfterTokens,
+          context_system_chars: beforeMeasurement.sections.system,
+          context_history_chars: beforeMeasurement.sections.recentConversation,
+          context_property_chars: beforeMeasurement.sections.property,
+          context_profile_chars: beforeMeasurement.sections.profile,
+          context_snapshot_chars: beforeMeasurement.sections.intelligenceSnapshot,
+          context_evidence_chars: beforeMeasurement.sections.propertyEvidence,
+          context_sold_chars: beforeMeasurement.sections.soldEvidence,
+          context_valuation_chars: beforeMeasurement.sections.valuationEvidence,
+          context_comps_chars: beforeMeasurement.sections.comparableCandidates,
+          context_rehab_chars: beforeMeasurement.sections.rehabBenchmark,
+          context_analysis_chars: beforeMeasurement.sections.structuredAnalysis,
+          context_tools_chars: beforeMeasurement.sections.tools,
         });
         const maxSecondPassAttempts = Math.max(1, budget.limits.maxGeminiCalls - budget.geminiCalls);
         for (let attempt = 1; attempt <= maxSecondPassAttempts; attempt += 1) {
@@ -1097,6 +1175,11 @@ Deno.serve(async (req) => {
         tool_declaration_bytes: toolDeclarationBytes,
         tool_payload_bytes: toolPayloadBytes,
         history_count: historyCount,
+        history_original_chars: historyOriginalChars,
+        history_compacted_chars: historyCompactedChars,
+        context_before_chars: contextBeforeChars,
+        context_after_chars: contextAfterChars,
+        context_after_tokens: contextAfterTokens,
         success: !secondPassFailure,
         error_code: secondPassFailure || undefined,
         degraded_reason: secondPassFailure || undefined,
@@ -1251,7 +1334,8 @@ Deno.serve(async (req) => {
     const timedOut = error instanceof DOMException && error.name === 'AbortError';
     const errorCode = error instanceof Error ? error.message : 'MAXXIS_FAILED';
     const budgetExhausted = errorCode === 'MAXXIS_BUDGET_EXHAUSTED';
-    const requestTooLarge = errorCode === 'MAXXIS_CONTEXT_TOO_LARGE' || errorCode === 'MAXXIS_TOOL_PAYLOAD_TOO_LARGE';
+    const requestTooLarge = errorCode === 'MAXXIS_CONTEXT_TOO_LARGE' || errorCode === 'MAXXIS_TOOL_PAYLOAD_TOO_LARGE'
+      || errorCode === 'MAXXIS_CONTEXT_COMPACTION_FAILED';
     if (budgetExhausted || requestTooLarge) {
       logAbuseGuard({ functionName: 'maxxis-chat', operation: 'maxxis_chat', requestId, userId, category: budgetExhausted ? 'BUDGET_EXHAUSTED' : 'REQUEST_TOO_LARGE', status: requestTooLarge ? 413 : 503, durationMs: Date.now() - startedAt, limitType: budgetExhausted ? 'execution_budget' : 'context' });
     }
@@ -1269,7 +1353,12 @@ Deno.serve(async (req) => {
     });
     logMaxxisEvent('maxxis_chat', { request_id: requestId, user_id: userId, model: usedModel, duration_ms: Date.now() - startedAt, provider_duration_ms: providerDurationMs, request_payload_bytes: requestPayloadBytes, system_prompt_bytes: systemPromptBytes, tool_declaration_bytes: toolDeclarationBytes, history_count: historyCount, success: false, fallback_count: fallbackCount, error_code: budgetExhausted || requestTooLarge ? errorCode : degradedReason, degraded_reason: budgetExhausted || requestTooLarge ? undefined : degradedReason, llm_call_count: budget.geminiCalls, tool_call_count: budget.toolCalls, tool_rounds: budget.toolRounds, timeout: timedOut, budget_exhausted: budgetExhausted });
     if (requestTooLarge) {
-      return response({ message: 'Request context is too large.', answer: 'Request context is too large.', type: 'text', data: null, actions: [], unavailable: true, error: errorCode }, 413, origin, requestId);
+      const text = resolvedLanguage === 'pt'
+        ? 'Não consegui preparar todo o contexto desta solicitação. O histórico foi preservado; tente novamente com uma pergunta mais específica.'
+        : resolvedLanguage === 'es'
+          ? 'No pude preparar todo el contexto de esta solicitud. El historial se conservó; inténtalo de nuevo con una pregunta más específica.'
+          : 'I could not prepare all context for this request. Your history was preserved; please retry with a more specific question.';
+      return response({ message: text, answer: text, type: 'text', data: null, actions: [], unavailable: false, error: 'MAXXIS_CONTEXT_COMPACTION_FAILED' }, 200, origin, requestId);
     }
     const degradedPayload = degradedFallbackPayload(resolvedMessage, resolvedLanguage, degradedReason);
     const adminCheck = userId
