@@ -8,6 +8,7 @@ const structuredFallback = {
   data: {
     state: 'available',
     dealIntelligence: { type: 'deal_intelligence_context', propertyId: 'property-1' },
+    structuredAnalysis: { type: 'maxxis_structured_analysis', reportType: 'DEAL_INTELLIGENCE' },
   },
 };
 
@@ -24,5 +25,12 @@ describe('Maxxis structured report fallback', () => {
     expect(didStructuredReportGenerationFail({
       type: 'deal_insight', degraded: true, fallbackSource: 'structured_tool_result', data: { state: 'available' },
     }, 'DEAL_INTELLIGENCE')).toBe(true);
+  });
+
+  it('fails closed when the canonical structured analysis is absent', () => {
+    expect(hasUsableStructuredReportFallback({
+      type: 'deal_insight', degraded: true, fallbackSource: 'structured_tool_result',
+      data: { state: 'available', dealIntelligence: { type: 'deal_intelligence_context' } },
+    }, 'DEAL_INTELLIGENCE')).toBe(false);
   });
 });

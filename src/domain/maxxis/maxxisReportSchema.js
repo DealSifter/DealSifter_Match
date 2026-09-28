@@ -2,7 +2,7 @@ import { INTELLIGENCE_REPORT_TYPES } from '../intelligenceAccess';
 
 export const MAXXIS_REPORT_SCHEMA_VERSION = 'MAXXIS_REPORT_SCHEMA_V2';
 export const MAXXIS_REPORT_SOURCE_TYPES = Object.freeze([
-  'USER_PROVIDED', 'VERIFIED_RECORD', 'CALCULATED', 'ESTIMATED', 'UNKNOWN',
+  'USER_PROVIDED', 'VERIFIED_RECORD', 'CALCULATED', 'ESTIMATED', 'UNKNOWN', 'NOT_APPLICABLE',
 ]);
 
 const REPORT_SECTIONS = Object.freeze([
@@ -37,6 +37,7 @@ const hasReportValue = (value) => value !== null && value !== undefined && value
 const sourceType = (value, fallback = 'UNKNOWN') => MAXXIS_REPORT_SOURCE_TYPES.includes(value) ? value : fallback;
 const emptySection = () => Object.freeze({ available: false, sourceType: 'UNKNOWN', data: null });
 const finiteCoordinate = (value) => value !== null && value !== '' && Number.isFinite(Number(value)) ? Number(value) : null;
+const isVacantLandType = (value) => /^(?:vacant\s+land|land|lot|terreno|solar)$/i.test(String(value || '').trim());
 const section = (data, source, available = data !== null && data !== undefined) => available
   ? Object.freeze({ available: true, sourceType: sourceType(source), data })
   : emptySection();
@@ -95,6 +96,9 @@ export function mergeMaxxisReportProperty(evidenceProperty, appProperty) {
   if (hasReportValue(owner.name) || hasReportValue(owner.type) || hasReportValue(owner.status) || allowedContacts.length) {
     merged.owner = owner;
   }
+  if (isVacantLandType(merged.type)) {
+    ['beds', 'baths', 'sqft', 'yearBuilt', 'rehab', 'capRate'].forEach((key) => delete merged[key]);
+  }
   return Object.freeze(merged);
 }
 
@@ -103,6 +107,9 @@ function propertySummary(property) {
   const data = Object.fromEntries(PROPERTY_KEYS
     .filter((key) => Object.hasOwn(property, key))
     .map((key) => [key, property[key] === undefined ? null : property[key]]));
+  if (isVacantLandType(data.type)) {
+    ['beds', 'baths', 'sqft', 'yearBuilt', 'rehab', 'capRate'].forEach((key) => delete data[key]);
+  }
   if (Object.hasOwn(data, 'images')) {
     data.images = Object.freeze((Array.isArray(data.images) ? data.images : []).filter((item) => typeof item === 'string' && item.trim()));
   }
@@ -133,9 +140,12 @@ function scenarioKpis(property, valuation) {
   const rehab = finitePositive(property?.rehab);
   const rangeLow = finitePositive(valuation?.range?.low);
   const rangeHigh = finitePositive(valuation?.range?.high);
-  if (!purchasePrice || !rehab || !rangeLow || !rangeHigh || valuation?.status === 'ARV_UNAVAILABLE') {
+  if (!purchasePrice || !rehab || !rangeLow || !rangeHigh || ['ARV_UNAVAILABLE', 'NOT_APPLICABLE'].includes(valuation?.status)) {
     return Object.freeze({
-      available: false, sourceType: 'UNKNOWN', reason: 'PURCHASE_PRICE_REHAB_AND_ARV_RANGE_REQUIRED',
+      available: false,
+      sourceType: valuation?.status === 'NOT_APPLICABLE' ? 'NOT_APPLICABLE' : 'UNKNOWN',
+      reason: valuation?.status === 'NOT_APPLICABLE'
+        ? 'RESIDENTIAL_ARV_NOT_APPLICABLE' : 'PURCHASE_PRICE_REHAB_AND_ARV_RANGE_REQUIRED',
       potentialSpread: null, projectedRoi: null,
     });
   }
@@ -229,9 +239,9 @@ function comparableStatistics(comparables, property) {
 
 function valuationEvidence(value) {
   if (!isObject(value)) return null;
-  const status = ['ARV_AVAILABLE', 'ARV_LIMITED', 'ARV_UNAVAILABLE'].includes(value.status)
+  const status = ['ARV_AVAILABLE', 'ARV_LIMITED', 'ARV_UNAVAILABLE', 'NOT_APPLICABLE'].includes(value.status)
     ? value.status : 'ARV_UNAVAILABLE';
-  const available = status !== 'ARV_UNAVAILABLE';
+  const available = !['ARV_UNAVAILABLE', 'NOT_APPLICABLE'].includes(status);
   const low = finitePositive(value.range?.low);
   const high = finitePositive(value.range?.high);
   const range = available && low && high && low <= high ? Object.freeze({ low, high }) : null;
@@ -245,7 +255,7 @@ function valuationEvidence(value) {
     compsUsed: Number.isFinite(Number(value.compsUsed)) ? Math.max(0, Number(value.compsUsed)) : 0,
     methodology: value.methodology || null,
     warnings: Object.freeze(Array.isArray(value.warnings) ? [...value.warnings] : []),
-    source: available ? 'CALCULATED' : 'UNKNOWN',
+    source: status === 'NOT_APPLICABLE' ? 'NOT_APPLICABLE' : available ? 'CALCULATED' : 'UNKNOWN',
     providerEstimate: isObject(value.providerEstimate) && finitePositive(value.providerEstimate.value)
       ? Object.freeze({
           value: finitePositive(value.providerEstimate.value),
@@ -309,7 +319,7 @@ function levelData(reportType, input) {
     }) : null;
   const checklist = Object.freeze([
     ...(Array.isArray(intelligence.nextVerificationSteps) ? intelligence.nextVerificationSteps : []),
-    'Validate property condition.',
+    ...(valuation?.status === 'NOT_APPLICABLE' ? [] : ['Validate property condition.']),
     'Verify title and encumbrances.',
     ...(intelligence.comparableEvidence?.used?.length ? ['Inspect the comparable evidence.'] : []),
     'Confirm all user-provided assumptions.',
@@ -320,7 +330,8 @@ function levelData(reportType, input) {
     investmentProfile: section(intelligence.investmentFit || null, 'CALCULATED'),
     propertyEvidence: section(intelligence.propertyEvidence || null, 'VERIFIED_RECORD'),
     comparableEvidence: section(comparableEvidence(intelligence.comparableEvidence), 'VERIFIED_RECORD'),
-    valuationEvidence: section(valuation, valuation?.status === 'ARV_UNAVAILABLE' ? 'UNKNOWN' : 'CALCULATED'),
+    valuationEvidence: section(valuation, valuation?.status === 'NOT_APPLICABLE'
+      ? 'NOT_APPLICABLE' : valuation?.status === 'ARV_UNAVAILABLE' ? 'UNKNOWN' : 'CALCULATED'),
     riskAssessment: section(intelligence.riskAnalysis || null, 'CALCULATED'),
     limitations: section(intelligence.limitations || null, 'CALCULATED'),
     verificationChecklist: section(checklist, 'CALCULATED'),

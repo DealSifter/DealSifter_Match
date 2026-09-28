@@ -154,10 +154,26 @@ describe('Maxxis Deal Intelligence Context v1', () => {
       },
     });
     expect(context.analysisApplicability).toMatchObject({ rehab: 'NOT_APPLICABLE', residentialArv: 'NOT_APPLICABLE' });
+    expect(context.valuationContext).toMatchObject({
+      status: 'NOT_APPLICABLE', range: null, centralReference: null,
+      provenance: 'NOT_APPLICABLE', warnings: ['RESIDENTIAL_ARV_NOT_APPLICABLE'],
+    });
     expect(context.risks.map((risk) => risk.code)).not.toEqual(expect.arrayContaining([
       'MISSING_REHAB_INFORMATION', 'ARV_EVIDENCE_UNAVAILABLE', 'UNKNOWN_CONDITION',
     ]));
     expect(context.limitations).toContain('RESIDENTIAL_ARV_NOT_APPLICABLE');
     expect(context.recommendedActions.join(' ')).toMatch(/zoning.*utilities.*land-sale/i);
+    const llmContext = sanitizeToolResultForGemini({
+      type: 'deal_insight', propertyId: PROPERTY_ID, state: 'available',
+      dealIntelligence: context,
+      intelligenceSnapshot: { analysisApplicability: context.analysisApplicability,
+        rehabAnalysis: { applicability: 'NOT_APPLICABLE', provenance: 'NOT_APPLICABLE', value: null } },
+    });
+    expect(llmContext).toMatchObject({
+      valuationSummary: { status: 'NOT_APPLICABLE', applicability: 'NOT_APPLICABLE', range: null },
+      rehabSummary: { applicability: 'NOT_APPLICABLE', selectedValue: null, provenance: 'NOT_APPLICABLE' },
+      analysisApplicability: { propertyCategory: 'VACANT_LAND', constructionPlanned: false,
+        rehab: 'NOT_APPLICABLE', residentialArv: 'NOT_APPLICABLE' },
+    });
   });
 });

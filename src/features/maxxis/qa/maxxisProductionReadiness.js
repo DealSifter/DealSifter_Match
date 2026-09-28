@@ -35,6 +35,7 @@ export function validateReportIntegrity({ schema, exportEntitlement, channel = '
 function validateArv(schema) {
   const valuation = data(schema, 'valuationEvidence');
   if (!valuation) return finding('ARV_RULES', schema.reportType !== 'DEAL_INTELLIGENCE', 'Valuation is absent outside Deal Intelligence.');
+  if (valuation.status === 'NOT_APPLICABLE') return finding('ARV_RULES', valuation.range === null && valuation.centralReference === null && valuation.source === 'NOT_APPLICABLE', 'Residential ARV marked not applicable must preserve null values and explicit provenance.');
   if (valuation.status === 'ARV_UNAVAILABLE') return finding('ARV_RULES', valuation.range === null && valuation.centralReference === null, 'Unavailable ARV must preserve null values.');
   const rangeValid = Number(valuation.range?.low) > 0 && Number(valuation.range?.high) >= Number(valuation.range?.low);
   return finding('ARV_RULES', rangeValid && Number(valuation.compsUsed) > 0 && ['LOW', 'MODERATE', 'HIGH'].includes(valuation.confidence), 'Displayed ARV requires a valid range, comps and engine confidence.');

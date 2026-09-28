@@ -85,6 +85,42 @@ describe('Maxxis Deal Intelligence Experience v1', () => {
     expect(JSON.stringify(report.valuationIntelligence)).not.toContain('"low":1');
   });
 
+  it('projects vacant land with residential valuation explicitly not applicable', () => {
+    const input = context({ arvAvailable: false });
+    input.analysisApplicability = {
+      propertyCategory: 'VACANT_LAND', constructionPlanned: false,
+      rehab: 'NOT_APPLICABLE', residentialArv: 'NOT_APPLICABLE',
+    };
+    input.valuationContext = {
+      status: 'NOT_APPLICABLE', range: null, centralReference: null, confidence: 'LOW', compsUsed: 0,
+      methodologyVersion: null, warnings: ['RESIDENTIAL_ARV_NOT_APPLICABLE'], provenance: 'NOT_APPLICABLE',
+    };
+    input.limitations = ['RESIDENTIAL_ARV_NOT_APPLICABLE'];
+    input.recommendedActions = ['Verify zoning, permitted use, utilities, access, survey, title and land-sale evidence.'];
+    const structuredAnalysis = {
+      type: 'maxxis_structured_analysis', opportunityAssessment: 'Vacant-land analysis.', executiveSummary: 'Land summary.',
+      positiveSignals: [], concerns: [], missingEvidence: [], recommendedVerificationSteps: input.recommendedActions,
+      recommendedActions: input.recommendedActions, userFacingDisclaimers: [], riskAnalysis: {},
+      valuationAnalysis: { applicability: 'NOT_APPLICABLE', arv: null },
+      rehabAnalysis: { applicability: 'NOT_APPLICABLE', value: null },
+    };
+    const projected = projectMaxxisDealIntelligenceResponse({ data: {
+      dealIntelligence: input,
+      structuredAnalysis,
+      intelligenceSnapshot: { propertyFacts: { id: 'property-1', type: 'Land', lot: 52272 } },
+    } });
+    expect(projected.data.maxxisDealIntelligence.valuationIntelligence).toMatchObject({
+      status: 'NOT_APPLICABLE', range: null, centralReference: null, source: 'NOT_APPLICABLE',
+    });
+    expect(projected.data.maxxisReport.sections.valuationEvidence).toMatchObject({
+      available: true, sourceType: 'NOT_APPLICABLE', data: { status: 'NOT_APPLICABLE', range: null },
+    });
+    expect(projected.data.maxxisReport.presentation.kpiScenarios).toMatchObject({
+      available: false, sourceType: 'NOT_APPLICABLE', reason: 'RESIDENTIAL_ARV_NOT_APPLICABLE',
+    });
+    expect(JSON.stringify(projected)).not.toMatch(/Validate property condition|MISSING_REHAB/i);
+  });
+
   it('keeps five supporting comps visible in the report while ARV remains unavailable', () => {
     const input = context({ arvAvailable: false });
     input.comparableEvidence = Array.from({ length: 5 }, (_, index) => ({

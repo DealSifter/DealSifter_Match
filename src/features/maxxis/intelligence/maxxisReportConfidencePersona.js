@@ -74,6 +74,7 @@ function comparableComponent(context, now) {
 
 function valuationComponent(context) {
   const valuation = context?.valuationContext || {};
+  if (valuation.status === 'NOT_APPLICABLE') return Object.freeze({ code: 'VALUATION_CONFIDENCE', score: null, status: 'NOT_APPLICABLE', sourceType: 'NOT_APPLICABLE', inputs: Object.freeze({ arvStatus: 'NOT_APPLICABLE' }) });
   if (valuation.status === 'ARV_UNAVAILABLE') return Object.freeze({ code: 'VALUATION_CONFIDENCE', score: null, status: 'UNKNOWN', sourceType: 'UNKNOWN', inputs: Object.freeze({ arvStatus: 'ARV_UNAVAILABLE' }) });
   const confidence = { HIGH: 90, MODERATE: 70, LOW: 40 }[valuation.confidence] ?? 40;
   const statusAdjustment = valuation.status === 'ARV_LIMITED' ? -15 : 0;
@@ -122,7 +123,7 @@ export function buildMaxxisAnalysisConfidence(context, { now = Date.now() } = {}
   const limitations = unique([
     ...missing.inputs.materialMissingItems.map((item) => String(item).replaceAll('_', ' ')),
     freshness.score === null ? 'Data freshness unavailable' : null,
-    valuation.score === null ? 'Valuation confidence unavailable' : null,
+    valuation.score === null && valuation.status !== 'NOT_APPLICABLE' ? 'Valuation confidence unavailable' : null,
     comparables.inputs.verifiedTransactions < comparables.inputs.count ? 'Transaction quality unavailable for one or more comparables' : null,
   ]).slice(0, 8);
   return Object.freeze({
@@ -130,7 +131,8 @@ export function buildMaxxisAnalysisConfidence(context, { now = Date.now() } = {}
     score, classification: classification(score),
     semantics: 'ANALYSIS_COMPLETENESS_AND_RELIABILITY_ONLY', notPropertyScore: true,
     evidenceCompletenessScore: evidence.score,
-    valuationConfidence: context?.valuationContext?.confidence || 'UNAVAILABLE',
+    valuationConfidence: context?.valuationContext?.status === 'NOT_APPLICABLE'
+      ? 'NOT_APPLICABLE' : context?.valuationContext?.confidence || 'UNAVAILABLE',
     components, contributors: Object.freeze(contributors), limitations: Object.freeze(limitations),
     coverage: Math.round(availableWeight * 100), sourceType: 'CALCULATED',
   });

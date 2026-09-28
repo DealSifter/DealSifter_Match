@@ -80,6 +80,39 @@ describe('Maxxis Report Export + Delivery Experience v1', () => {
     expect(new TextDecoder('latin1').decode(result.document.binary.slice(0, 8))).toContain('%PDF-');
   });
 
+  it('renders a vacant-land Deal Intelligence PDF without residential ARV placeholders', async () => {
+    const landIntelligence = {
+      ...intelligence,
+      valuationIntelligence: {
+        status: 'NOT_APPLICABLE',
+        range: null,
+        centralReference: null,
+        confidence: 'LOW',
+        compsUsed: 0,
+        methodology: null,
+        warnings: ['Residential ARV does not apply to vacant land.'],
+        source: 'NOT_APPLICABLE',
+      },
+      nextVerificationSteps: ['Verify zoning and permitted use.'],
+    };
+    const landSchema = buildMaxxisReportSchema({
+      reportType: 'DEAL_INTELLIGENCE',
+      property: { ...property, type: 'Land', beds: null, baths: null, sqft: null, lot: 52272, rehab: null },
+      dealIntelligence: landIntelligence,
+    });
+    const result = await renderMaxxisReportPdf({
+      schema: landSchema,
+      exportEntitlement: entitlement('enterprise', 'DEAL_INTELLIGENCE', 'PDF'),
+      generatedAt: '2026-09-15T12:00:00.000Z',
+      language: 'pt',
+    });
+    expect(result).toMatchObject({ state: 'RENDERED', document: { pageCount: 6, mimeType: 'application/pdf' } });
+    expect(result.document.binary.byteLength).toBeGreaterThan(1000);
+    expect(landSchema.sections.valuationEvidence).toMatchObject({
+      sourceType: 'NOT_APPLICABLE', data: { status: 'NOT_APPLICABLE', range: null, centralReference: null },
+    });
+  });
+
   it('shares one in-flight PDF render between the chat preview and export action', async () => {
     const reportSchema = schema('MAXXIS_ANALYSIS');
     const options = {

@@ -1,5 +1,5 @@
 const PT_VALUES = Object.freeze({
-  ARV_AVAILABLE: 'ARV disponível', ARV_LIMITED: 'ARV limitado', ARV_UNAVAILABLE: 'ARV indisponível',
+  ARV_AVAILABLE: 'ARV disponível', ARV_LIMITED: 'ARV limitado', ARV_UNAVAILABLE: 'ARV indisponível', NOT_APPLICABLE: 'Não aplicável',
   AVAILABLE: 'Disponível', UNAVAILABLE: 'Indisponível', NOT_AVAILABLE: 'Indisponível', NOT_AVAILABLE_YET: 'Ainda não disponível',
   HIGH: 'Alta', MODERATE: 'Moderada', MEDIUM: 'Média', LOW: 'Baixa', LIMITED: 'Limitada', UNKNOWN: 'Desconhecido',
   PUBLISHED: 'Publicado', CLOSED: 'Encerrado', DRAFT: 'Rascunho', NOT_STARTED: 'Ainda não iniciado', IN_PROGRESS: 'Em andamento',
@@ -26,7 +26,7 @@ const PT_VALUES = Object.freeze({
 });
 
 const ES_VALUES = Object.freeze({
-  ARV_AVAILABLE: 'ARV disponible', ARV_LIMITED: 'ARV limitado', ARV_UNAVAILABLE: 'ARV no disponible',
+  ARV_AVAILABLE: 'ARV disponible', ARV_LIMITED: 'ARV limitado', ARV_UNAVAILABLE: 'ARV no disponible', NOT_APPLICABLE: 'No aplicable',
   AVAILABLE: 'Disponible', UNAVAILABLE: 'No disponible', NOT_AVAILABLE_YET: 'Aún no disponible',
   HIGH: 'Alta', MODERATE: 'Moderada', MEDIUM: 'Media', LOW: 'Baja', LIMITED: 'Limitada', UNKNOWN: 'Desconocido',
   USER_PROVIDED: 'Informado por el usuario', CALCULATED: 'Calculado', SUPPORT: 'Evidencia de apoyo', SUPPORTING: 'Evidencia de apoyo',
@@ -34,7 +34,7 @@ const ES_VALUES = Object.freeze({
 });
 
 const EN_VALUES = Object.freeze({
-  ARV_AVAILABLE: 'ARV available', ARV_LIMITED: 'ARV limited', ARV_UNAVAILABLE: 'ARV unavailable',
+  ARV_AVAILABLE: 'ARV available', ARV_LIMITED: 'ARV limited', ARV_UNAVAILABLE: 'ARV unavailable', NOT_APPLICABLE: 'Not applicable',
   NOT_AVAILABLE_YET: 'Not available yet', USER_PROVIDED: 'User provided', CALCULATED: 'Calculated',
   SUPPORT: 'Supporting evidence', SUPPORTING: 'Supporting evidence', SELECTED: 'Selected comparable', EXCLUDED: 'Excluded from analysis',
   NOT_STARTED: 'Not started', MATCHES_TARGET: 'Matches target', PARTIAL_MATCH: 'Partially matches target',

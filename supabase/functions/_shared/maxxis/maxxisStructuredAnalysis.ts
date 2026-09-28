@@ -87,14 +87,21 @@ function fieldValue(context: AnyRecord, name: string) {
 
 function propertyInterpretation(snapshot: AnyRecord, context: AnyRecord, language: AnalysisLanguage) {
   const property = record(snapshot.propertyFacts);
+  const applicability = record(context.analysisApplicability);
+  const vacantLand = applicability.propertyCategory === 'VACANT_LAND';
+  const bedroomFact = finite(property.beds ?? fieldValue(context, 'bedrooms'));
+  const bathroomFact = finite(property.baths ?? fieldValue(context, 'bathrooms'));
+  const livingAreaFact = finite(property.sqft ?? fieldValue(context, 'livingAreaSqft'));
+  const lotFact = finite(property.lot ?? fieldValue(context, 'lotSizeSqft'));
   const facts = [
     text(property.type || fieldValue(context, 'propertyType')),
-    finite(property.beds ?? fieldValue(context, 'bedrooms')) !== null
-      ? localized(language, `${finite(property.beds ?? fieldValue(context, 'bedrooms'))} bedrooms`, `${finite(property.beds ?? fieldValue(context, 'bedrooms'))} quartos`, `${finite(property.beds ?? fieldValue(context, 'bedrooms'))} habitaciones`) : '',
-    finite(property.baths ?? fieldValue(context, 'bathrooms')) !== null
-      ? localized(language, `${finite(property.baths ?? fieldValue(context, 'bathrooms'))} bathrooms`, `${finite(property.baths ?? fieldValue(context, 'bathrooms'))} banheiros`, `${finite(property.baths ?? fieldValue(context, 'bathrooms'))} baños`) : '',
-    finite(property.sqft ?? fieldValue(context, 'livingAreaSqft')) !== null
-      ? `${finite(property.sqft ?? fieldValue(context, 'livingAreaSqft'))?.toLocaleString('en-US')} sqft` : '',
+    !vacantLand && bedroomFact !== null
+      ? localized(language, `${bedroomFact} bedrooms`, `${bedroomFact} quartos`, `${bedroomFact} habitaciones`) : '',
+    !vacantLand && bathroomFact !== null
+      ? localized(language, `${bathroomFact} bathrooms`, `${bathroomFact} banheiros`, `${bathroomFact} baños`) : '',
+    !vacantLand && livingAreaFact !== null ? `${livingAreaFact.toLocaleString('en-US')} sqft` : '',
+    vacantLand && lotFact !== null
+      ? localized(language, `${lotFact.toLocaleString('en-US')} sqft lot`, `terreno de ${lotFact.toLocaleString('pt-BR')} sqft`, `terreno de ${lotFact.toLocaleString('es-US')} sqft`) : '',
   ].filter(Boolean);
   const location = [property.city, property.state].map(text).filter(Boolean).join(', ');
   return facts.length

@@ -1,5 +1,5 @@
 export type EvidenceFamilyStatus = 'AVAILABLE' | 'UNAVAILABLE' | 'REJECTED' | 'NOT_AUTHORIZED'
-  | 'NOT_REQUESTED' | 'INSUFFICIENT' | 'STALE';
+  | 'NOT_REQUESTED' | 'NOT_APPLICABLE' | 'INSUFFICIENT' | 'STALE';
 
 export type EvidenceFamilyResult = Readonly<{
   status: EvidenceFamilyStatus;
@@ -47,6 +47,14 @@ export function buildEvidenceCompleteness({ reportType, evidenceState, context, 
   const comps = Array.isArray(context?.comparableEvidence) ? context.comparableEvidence : [];
   const valuationContext = context?.valuationContext && typeof context.valuationContext === 'object'
     ? context.valuationContext : {};
+  if (context?.analysisApplicability?.residentialArv === 'NOT_APPLICABLE') {
+    return Object.freeze({
+      complete: property.status === 'AVAILABLE',
+      property,
+      sold: result('NOT_APPLICABLE', 'RESIDENTIAL_SOLD_COMPS_NOT_APPLICABLE', false, false),
+      valuation: result('NOT_APPLICABLE', 'RESIDENTIAL_ARV_NOT_APPLICABLE', false, false),
+    });
+  }
   const soldCacheChecked = !['UNKNOWN', 'NOT_REQUIRED'].includes(String(trace.soldEvidence || ''));
   const valuationCacheChecked = !['UNKNOWN', 'NOT_REQUIRED'].includes(String(trace.valuationEvidence || ''));
   const propertyBlocksDependentEvidence = property.status !== 'AVAILABLE';

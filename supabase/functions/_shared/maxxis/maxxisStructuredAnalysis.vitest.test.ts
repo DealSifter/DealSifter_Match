@@ -122,10 +122,32 @@ describe('MaxxisStructuredAnalysis', () => {
     expect(analysis.valuationAnalysis).toMatchObject({ applicability: 'NOT_APPLICABLE', arv: null });
     expect(analysis.valuationAnalysis.arvInterpretation).toContain('ignorado intencionalmente');
     expect(analysis.recommendedActions.join(' ')).toContain('zoneamento');
+    expect(analysis.propertyContextInterpretation).toContain('terreno de 52.272 sqft');
+    expect(analysis.propertyContextInterpretation).not.toMatch(/0 quartos|0 banheiros|0 sqft/);
   });
 });
 
 describe('EvidenceCompleteness', () => {
+  it('marks residential sold and ARV evidence not applicable for vacant land', () => {
+    const completeness = buildEvidenceCompleteness({
+      reportType: 'DEAL_INTELLIGENCE',
+      evidenceState: 'available',
+      context: {
+        ...snapshot.dealIntelligence,
+        analysisApplicability: { propertyCategory: 'VACANT_LAND', constructionPlanned: false,
+          rehab: 'NOT_APPLICABLE', residentialArv: 'NOT_APPLICABLE' },
+        valuationContext: { status: 'NOT_APPLICABLE' },
+      },
+      trace: { propertyEvidence: 'HIT', soldEvidence: 'NOT_REQUIRED', valuationEvidence: 'NOT_REQUIRED' },
+    });
+    expect(completeness).toMatchObject({
+      complete: true,
+      property: { status: 'AVAILABLE' },
+      sold: { status: 'NOT_APPLICABLE', providerAttempted: false },
+      valuation: { status: 'NOT_APPLICABLE', providerAttempted: false },
+    });
+  });
+
   it('requires only property/app/profile evidence for PRO', () => {
     expect(buildEvidenceCompleteness({ reportType: 'MAXXIS_ANALYSIS', evidenceState: 'available', context: snapshot.dealIntelligence,
       trace: { propertyEvidence: 'HIT' } })).toMatchObject({

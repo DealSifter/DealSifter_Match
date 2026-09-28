@@ -90,10 +90,10 @@ function investmentFit(context) {
 
 function valuationIntelligence(context) {
   const valuation = isObject(context?.valuationContext) ? context.valuationContext : {};
-  const status = ['ARV_AVAILABLE', 'ARV_LIMITED', 'ARV_UNAVAILABLE'].includes(valuation.status)
+  const status = ['ARV_AVAILABLE', 'ARV_LIMITED', 'ARV_UNAVAILABLE', 'NOT_APPLICABLE'].includes(valuation.status)
     ? valuation.status
     : 'ARV_UNAVAILABLE';
-  const range = status !== 'ARV_UNAVAILABLE' && isObject(valuation.range)
+  const range = !['ARV_UNAVAILABLE', 'NOT_APPLICABLE'].includes(status) && isObject(valuation.range)
     && nullableNumber(valuation.range.low) !== null && nullableNumber(valuation.range.high) !== null
     ? Object.freeze({ low: Number(valuation.range.low), high: Number(valuation.range.high) })
     : null;
@@ -108,12 +108,12 @@ function valuationIntelligence(context) {
   return Object.freeze({
     status,
     range,
-    centralReference: status === 'ARV_UNAVAILABLE' ? null : nullableNumber(valuation.centralReference),
+    centralReference: ['ARV_UNAVAILABLE', 'NOT_APPLICABLE'].includes(status) ? null : nullableNumber(valuation.centralReference),
     confidence: ['LOW', 'MODERATE', 'HIGH'].includes(valuation.confidence) ? valuation.confidence : 'LOW',
     compsUsed: Math.max(0, nullableNumber(valuation.compsUsed) ?? 0),
     methodology: safeText(valuation.methodologyVersion) || null,
     warnings: Object.freeze(unique(list(valuation.warnings).map(explainMaxxisEvidenceState).map(safeText)).slice(0, 8)),
-    source: status === 'ARV_UNAVAILABLE' ? 'UNKNOWN' : 'CALCULATED',
+    source: status === 'NOT_APPLICABLE' ? 'NOT_APPLICABLE' : status === 'ARV_UNAVAILABLE' ? 'UNKNOWN' : 'CALCULATED',
     providerEstimate,
   });
 }

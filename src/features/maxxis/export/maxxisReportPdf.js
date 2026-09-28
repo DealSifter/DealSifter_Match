@@ -51,14 +51,14 @@ const COPY = Object.freeze({
     executiveIntelligence: 'MAXXIS EXECUTIVE SUMMARY',
     disclaimer: 'Evidence-based decision support only. Not an appraisal or financial, legal, or investment advice.',
     noComps: 'No recorded sold comparables available for this report.',
-    noArv: 'ARV unavailable under the current deterministic evidence gates.',
+    noArv: 'ARV unavailable under the current deterministic evidence gates.', noResidentialArv: 'Residential ARV is not applicable to vacant land without a planned improvement scenario.',
     noDetails: 'No additional verified details available.', portfolio: 'Portfolio', yes: 'Yes', no: 'No',
     coordinateMap: 'Schematic positions from stored coordinates; not a street map.', mapArea: 'MARKET AREA',
     address: 'Address', salePrice: 'Sale price', date: 'Date', distance: 'Distance', bedsBaths: 'Beds / Baths', similarity: 'Similarity',
     used: 'USED', supporting: 'SUPPORTING', excluded: 'EXCLUDED', totalComps: 'Comparable records', usedComparables: 'Used in analysis', averageSalePrice: 'Average sale price', averageSimilarity: 'Average similarity',
     compsUsed: 'Comps used', confidence: 'Confidence', pricePerSqft: 'Price / sqft',
     costBasis: 'Cost basis', spread: 'Spread', roiScenario: 'ROI scenario', marketPricePerSqft: 'Comparable avg. / sqft', subjectVsMarket: 'Subject vs. market', averageDistance: 'Average distance',
-    arvAvailable: 'ARV available', arvLimited: 'ARV limited by evidence', arvUnavailable: 'ARV unavailable',
+    arvAvailable: 'ARV available', arvLimited: 'ARV limited by evidence', arvUnavailable: 'ARV unavailable', arvNotApplicable: 'Residential ARV not applicable',
     providerEstimateStatus: 'Supporting provider estimate — not DealSifter ARV',
     conflict: 'Needs verification: stored evidence conflicts with the narrative.', low: 'Low', middle: 'Mid', high: 'High',
   },
@@ -94,14 +94,14 @@ const COPY = Object.freeze({
     executiveIntelligence: 'RESUMO EXECUTIVO MAXXIS',
     disclaimer: 'Análise baseada em evidências. Não constitui avaliação imobiliária nem aconselhamento financeiro, jurídico ou de investimento.',
     noComps: 'Não há comparáveis vendidos registrados para este relatório.',
-    noArv: 'ARV indisponível segundo os critérios determinísticos de evidência.',
+    noArv: 'ARV indisponível segundo os critérios determinísticos de evidência.', noResidentialArv: 'O ARV residencial não se aplica a terreno vago sem um cenário planejado de construção ou melhoria.',
     noDetails: 'Não há detalhes verificados adicionais.', portfolio: 'Portfólio', yes: 'Sim', no: 'Não',
     coordinateMap: 'Posições esquemáticas das coordenadas armazenadas; não é um mapa de ruas.', mapArea: 'ÁREA DE MERCADO',
     address: 'Endereço', salePrice: 'Preço de venda', date: 'Data', distance: 'Distância', bedsBaths: 'Quartos / Banhos', similarity: 'Similaridade',
     used: 'USADO', supporting: 'SUPORTE', excluded: 'EXCLUÍDO', totalComps: 'Registros comparáveis', usedComparables: 'Usados na análise', averageSalePrice: 'Preço médio de venda', averageSimilarity: 'Similaridade média',
     compsUsed: 'Comps usados', confidence: 'Confiança', pricePerSqft: 'Preço / sqft',
     costBasis: 'Custo base', spread: 'Margem', roiScenario: 'Cenário de ROI', marketPricePerSqft: 'Média comparáveis / sqft', subjectVsMarket: 'Imóvel vs. mercado', averageDistance: 'Distância média',
-    arvAvailable: 'ARV disponível', arvLimited: 'ARV limitado pelas evidências', arvUnavailable: 'ARV indisponível',
+    arvAvailable: 'ARV disponível', arvLimited: 'ARV limitado pelas evidências', arvUnavailable: 'ARV indisponível', arvNotApplicable: 'ARV residencial não aplicável',
     providerEstimateStatus: 'Estimativa de apoio do provedor — não é ARV DealSifter',
     conflict: 'Requer verificação: evidências estruturadas divergem do texto.', low: 'Baixo', middle: 'Médio', high: 'Alto',
   },
@@ -137,14 +137,14 @@ const COPY = Object.freeze({
     executiveIntelligence: 'RESUMEN EJECUTIVO MAXXIS',
     disclaimer: 'Análisis basado en evidencias. No es una tasación ni asesoramiento financiero, legal o de inversión.',
     noComps: 'No hay comparables vendidos registrados para este informe.',
-    noArv: 'ARV no disponible según los criterios determinísticos de evidencia.',
+    noArv: 'ARV no disponible según los criterios determinísticos de evidencia.', noResidentialArv: 'El ARV residencial no aplica a terreno vacío sin un escenario planificado de construcción o mejora.',
     noDetails: 'No hay detalles verificados adicionales.', portfolio: 'Cartera', yes: 'Sí', no: 'No',
     coordinateMap: 'Posiciones esquemáticas de coordenadas guardadas; no es un mapa de calles.', mapArea: 'ÁREA DE MERCADO',
     address: 'Dirección', salePrice: 'Precio de venta', date: 'Fecha', distance: 'Distancia', bedsBaths: 'Hab. / Baños', similarity: 'Similitud',
     used: 'USADO', supporting: 'APOYO', excluded: 'EXCLUIDO', totalComps: 'Registros comparables', usedComparables: 'Usados en el análisis', averageSalePrice: 'Precio medio de venta', averageSimilarity: 'Similitud media',
     compsUsed: 'Comps usados', confidence: 'Confianza', pricePerSqft: 'Precio / sqft',
     costBasis: 'Costo base', spread: 'Diferencia', roiScenario: 'Escenario de ROI', marketPricePerSqft: 'Promedio comps / sqft', subjectVsMarket: 'Propiedad vs. mercado', averageDistance: 'Distancia media',
-    arvAvailable: 'ARV disponible', arvLimited: 'ARV limitado por la evidencia', arvUnavailable: 'ARV no disponible',
+    arvAvailable: 'ARV disponible', arvLimited: 'ARV limitado por la evidencia', arvUnavailable: 'ARV no disponible', arvNotApplicable: 'ARV residencial no aplicable',
     providerEstimateStatus: 'Estimación de apoyo del proveedor — no es ARV DealSifter',
     conflict: 'Requiere verificación: la evidencia estructurada difiere del texto.', low: 'Bajo', middle: 'Medio', high: 'Alto',
   },
@@ -720,19 +720,21 @@ function renderValuation(doc, schema, t, accent) {
   const scenarios = schema?.presentation?.kpiScenarios;
   panel(doc, M, 127, CONTENT, 175, { fill: C.white, stroke: C.gold });
   heading(doc, t.arv, M + 14, 155, CONTENT - 28, accent);
-  const arv = valuation.status !== 'ARV_UNAVAILABLE' && valuation.range
+  const arv = !['ARV_UNAVAILABLE', 'NOT_APPLICABLE'].includes(valuation.status) && valuation.range
     ? `${currency(valuation.range.low, t)} – ${currency(valuation.range.high, t)}` : t.unavailable;
   text(doc, arv, M + 14, 204, { size: 21, bold: true, color: C.ink });
   const valuationStatus = valuation.status === 'ARV_AVAILABLE' ? t.arvAvailable
-    : valuation.status === 'ARV_LIMITED' ? t.arvLimited : t.arvUnavailable;
+    : valuation.status === 'ARV_LIMITED' ? t.arvLimited
+      : valuation.status === 'NOT_APPLICABLE' ? t.arvNotApplicable : t.arvUnavailable;
   text(doc, valuationStatus, M + 14, 230, { size: 9, bold: true, color: C.muted });
-  text(doc, valuation.status === 'ARV_UNAVAILABLE' ? t.noArv : value(valuation.methodology, t.noDetails), M + 14, 253, { size: 8.5, width: valuation.range ? 285 : CONTENT - 28, maxLines: 2 });
+  text(doc, valuation.status === 'NOT_APPLICABLE' ? t.noResidentialArv
+    : valuation.status === 'ARV_UNAVAILABLE' ? t.noArv : value(valuation.methodology, t.noDetails), M + 14, 253, { size: 8.5, width: valuation.range ? 285 : CONTENT - 28, maxLines: 2 });
   if (valuation.providerEstimate?.value) {
     text(doc, t.providerEstimate, M + 358, 185, { size: 8, bold: true, color: C.muted, width: 150, maxLines: 2 });
     text(doc, currency(valuation.providerEstimate.value, t), M + 358, 220, { size: 15, bold: true, color: C.ink, width: 150, maxLines: 1 });
     text(doc, t.providerEstimateStatus, M + 358, 241, { size: 7, color: C.muted, width: 150, maxLines: 2 });
   }
-  if (valuation.status !== 'ARV_UNAVAILABLE' && valuation.range) {
+  if (!['ARV_UNAVAILABLE', 'NOT_APPLICABLE'].includes(valuation.status) && valuation.range) {
     const low = Number(valuation.range.low); const high = Number(valuation.range.high);
     const middle = Number.isFinite(Number(valuation.centralReference)) ? Number(valuation.centralReference) : (low + high) / 2;
     const values = [low, middle, high];

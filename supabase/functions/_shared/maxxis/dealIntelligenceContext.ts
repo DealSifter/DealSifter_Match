@@ -58,13 +58,13 @@ export type DealIntelligenceContext = {
     conflicts: Array<{ field: string; severity: string }>;
   };
   valuationContext: {
-    status: 'ARV_AVAILABLE' | 'ARV_LIMITED' | 'ARV_UNAVAILABLE';
+    status: 'ARV_AVAILABLE' | 'ARV_LIMITED' | 'ARV_UNAVAILABLE' | 'NOT_APPLICABLE';
     range: { low: number; high: number } | null;
     centralReference: number | null;
     confidence: 'LOW' | 'MODERATE' | 'HIGH';
     compsUsed: number;
     warnings: string[];
-    provenance: 'CALCULATED' | 'UNAVAILABLE';
+    provenance: 'CALCULATED' | 'UNAVAILABLE' | 'NOT_APPLICABLE';
     methodologyVersion: string | null;
     providerEstimate: {
       value: number;
@@ -185,7 +185,12 @@ function evidenceStrength(verified: number, unknown: number, conflicts: number):
   return 'LOW';
 }
 
-function valuationContext(arv: ArvEvaluationResult | null): DealIntelligenceContext['valuationContext'] {
+function valuationContext(arv: ArvEvaluationResult | null, applicability: AnalysisApplicability): DealIntelligenceContext['valuationContext'] {
+  if (applicability.residentialArv === 'NOT_APPLICABLE') {
+    return { status: 'NOT_APPLICABLE', range: null, centralReference: null, confidence: 'LOW',
+      compsUsed: 0, warnings: ['RESIDENTIAL_ARV_NOT_APPLICABLE'], provenance: 'NOT_APPLICABLE',
+      methodologyVersion: null, providerEstimate: null };
+  }
   if (!arv) return { status: 'ARV_UNAVAILABLE', range: null, centralReference: null, confidence: 'LOW',
     compsUsed: 0, warnings: ['ARV_EVALUATION_NOT_LOADED'], provenance: 'UNAVAILABLE', methodologyVersion: null,
     providerEstimate: null };
@@ -340,7 +345,7 @@ export function buildDealIntelligenceContext(input: {
   const coreUnknownCount = property.unknownFields.filter((name) => coreEvidenceFields.has(name)).length;
   const conflicts = input.propertyEvidence.state === 'available'
     ? (input.propertyEvidence.evidence?.conflicts || []).map((item) => ({ field: item.field, severity: item.severity })) : [];
-  const valuation = valuationContext(input.arvEvaluation);
+  const valuation = valuationContext(input.arvEvaluation, analysisApplicability);
   const fit = matchFactors(input.match);
   const risks = buildRisks({ property: input.property, propertyFields: property,
     evidence: input.propertyEvidence, match: input.match, arv: input.arvEvaluation, analysis: input.analysis,

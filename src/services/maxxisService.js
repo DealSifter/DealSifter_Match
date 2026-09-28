@@ -230,6 +230,7 @@ export async function sendMaxxisMessage({ message, history = [], page = 'dashboa
       fallbackLevel: Number(data?.fallbackLevel || 3),
       fallbackSource: String(data?.fallbackSource || 'edge_degraded_guard').slice(0, 64),
       requestId,
+      diagnostic: data?.diagnostic && typeof data.diagnostic === 'object' ? data.diagnostic : null,
       ...normalizedResponse,
     };
   }

@@ -221,6 +221,7 @@ const keyLabel = (key, language = "en") => {
 };
 const displayLabel = (value, fallback = "", language = "en") => localizeMaxxisValue(value, language, fallback);
 const arvStatusText = (status, copy) => {
+  if (status === "NOT_APPLICABLE") return displayLabel(status, copy.unavailable, copy.language);
   if (status === "ARV_AVAILABLE")
     return copy.unavailable === "Indisponível"
       ? "ARV disponível"
@@ -738,7 +739,7 @@ function ValuationPage({ schema, copy, page = 3 }) {
   const scenarios = schema.presentation.kpiScenarios;
   const metrics = schema.presentation.existingMetrics || {};
   const property = available(schema.sections.propertySummary) || {};
-  const range = valuation.status === "ARV_UNAVAILABLE" ? null : valuation.range;
+  const range = ["ARV_UNAVAILABLE", "NOT_APPLICABLE"].includes(valuation.status) ? null : valuation.range;
   const providerEstimate = valuation.providerEstimate;
   const chartValues = range
     ? [

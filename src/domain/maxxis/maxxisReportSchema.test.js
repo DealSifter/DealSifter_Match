@@ -95,10 +95,37 @@ describe('MaxxisReportSchema v2', () => {
 
   it('TEST 7 keeps source ownership explicit and UNKNOWN intact', () => {
     const report = buildMaxxisReportSchema({ reportType: 'DEAL_INTELLIGENCE', property, dealIntelligence: intelligence('ARV_UNAVAILABLE') });
-    expect(MAXXIS_REPORT_SOURCE_TYPES).toEqual(['USER_PROVIDED', 'VERIFIED_RECORD', 'CALCULATED', 'ESTIMATED', 'UNKNOWN']);
+    expect(MAXXIS_REPORT_SOURCE_TYPES).toEqual(['USER_PROVIDED', 'VERIFIED_RECORD', 'CALCULATED', 'ESTIMATED', 'UNKNOWN', 'NOT_APPLICABLE']);
     expect(report.sections.propertySummary.sourceType).toBe('USER_PROVIDED');
     expect(report.sections.propertyEvidence.sourceType).toBe('VERIFIED_RECORD');
     expect(report.sections.valuationEvidence.sourceType).toBe('UNKNOWN');
+  });
+
+  it('represents vacant-land residential ARV as not applicable without fake values', () => {
+    const landIntelligence = intelligence('ARV_UNAVAILABLE');
+    landIntelligence.valuationIntelligence = {
+      status: 'NOT_APPLICABLE', range: null, centralReference: null,
+      confidence: 'LOW', compsUsed: 0, methodology: null,
+      warnings: ['Residential ARV does not apply to vacant land.'], source: 'NOT_APPLICABLE',
+    };
+    landIntelligence.nextVerificationSteps = ['Verify zoning and permitted use.'];
+    const report = buildMaxxisReportSchema({
+      reportType: 'DEAL_INTELLIGENCE',
+      property: { ...property, type: 'Land', beds: 0, baths: 0, sqft: 0, lot: 52272, rehab: 0 },
+      dealIntelligence: landIntelligence,
+    });
+    expect(report.sections.valuationEvidence).toMatchObject({
+      available: true, sourceType: 'NOT_APPLICABLE',
+      data: { status: 'NOT_APPLICABLE', range: null, centralReference: null, source: 'NOT_APPLICABLE' },
+    });
+    expect(report.presentation.kpiScenarios).toMatchObject({
+      available: false, sourceType: 'NOT_APPLICABLE', reason: 'RESIDENTIAL_ARV_NOT_APPLICABLE',
+    });
+    expect(report.sections.propertySummary.data).not.toHaveProperty('beds');
+    expect(report.sections.propertySummary.data).not.toHaveProperty('baths');
+    expect(report.sections.propertySummary.data).not.toHaveProperty('sqft');
+    expect(report.sections.propertySummary.data).not.toHaveProperty('rehab');
+    expect(report.sections.verificationChecklist.data).not.toContain('Validate property condition.');
   });
 
   it('TEST 8 strips non-contract provider fields from comparable evidence', () => {

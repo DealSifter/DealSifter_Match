@@ -858,8 +858,20 @@ Deno.serve(async (req) => {
       return response({ message: text, answer: text, type: 'context_snapshot', data: { surface: structuredContext.surface, entity: structuredContext.entity, view: structuredContext.view, profile: structuredContext.profile || null, economy: structuredContext.economy, operational: structuredContext.operational, freshness: structuredContext.freshness }, actions: [], language }, 200, origin, requestId);
     }
     const controlledFunctionCall = resolveControlledToolCall(body.controlledIntent, message);
+    // PROPERTY_ANALYSIS_MODE already carries a server-validated property id and
+    // report capability. Asking Gemini to select that same mandatory tool adds a
+    // provider failure point before any deterministic analysis has run.
+    const deterministicPropertyAnalysisCall: { name: string; args: Record<string, unknown> } | null = propertyAnalysisContext
+      ? {
+          name: 'getDealInsightContext',
+          args: {
+            propertyId: propertyAnalysisContext.property_id,
+            reportType: propertyAnalysisContext.report_type,
+          },
+        }
+      : null;
     const stubFunctionCall = controlledFunctionCall || (isE2ELlmStubEnabled() ? e2eStubFunctionCall(message, propertyContextId) : null);
-    if (!geminiApiKey && !stubFunctionCall) {
+    if (!geminiApiKey && !stubFunctionCall && !deterministicPropertyAnalysisCall) {
       const degradedPayload = degradedFallbackPayload(message, language, 'MAXXIS_NOT_CONFIGURED');
       logMaxxisEvent('maxxis_chat', { request_id: requestId, user_id: userId, duration_ms: Date.now() - startedAt, success: false, fallback_count: fallbackCount + 1, error_code: 'MAXXIS_NOT_CONFIGURED' });
       return response({ ...degradedPayload, type: 'text', data: null, actions: [], language, degraded: true, degradedReason: 'MAXXIS_NOT_CONFIGURED', error: 'MAXXIS_NOT_CONFIGURED' }, 200, origin, requestId);
@@ -885,10 +897,18 @@ Deno.serve(async (req) => {
     });
     contextAfterChars = initialContextSize.totalChars;
     contextAfterTokens = initialContextSize.approximateTokens;
-    const providerErrors: Array<{ status: number; code: GeminiFailureCode }> = [];
+    const providerErrors: Array<{
+      status: number;
+      code: GeminiFailureCode;
+      meta: ReturnType<typeof getGeminiProviderFailureMeta>;
+    }> = [];
     let payload: Record<string, unknown> = {};
     if (stubFunctionCall) {
       usedModel = controlledFunctionCall ? 'controlled-intent' : 'e2e-llm-stub';
+    } else if (deterministicPropertyAnalysisCall) {
+      // The model remains available for the optional interpretation pass below,
+      // but it is not allowed to block deterministic snapshot/report creation.
+      usedModel = geminiModels[0] || 'deterministic-property-analysis';
     } else {
       const selectionAttemptLimit = Math.max(1, budget.limits.maxGeminiCalls - 1);
       for (const model of geminiModels.slice(0, selectionAttemptLimit)) {
@@ -905,14 +925,19 @@ Deno.serve(async (req) => {
         payload = result.payload;
         if (result.response.ok) { usedModel = model; break; }
         fallbackCount += 1;
-        providerErrors.push({ status: result.response.status, code: classifyGeminiHttpFailure(result.response.status, result.payload) });
+        providerErrors.push({
+          status: result.response.status,
+          code: classifyGeminiHttpFailure(result.response.status, result.payload),
+          meta: getGeminiProviderFailureMeta(result.response.status, result.payload),
+        });
       }
     }
     if (!usedModel) {
       const degradedReason = selectGeminiFailure(providerErrors.map((item) => item.code));
-      const lastProviderStatus = providerErrors.at(-1)?.status || 0;
+      const lastProviderFailure = providerErrors.at(-1);
+      const lastProviderStatus = lastProviderFailure?.status || 0;
       const degradedPayload = degradedFallbackPayload(message, language, degradedReason);
-      logMaxxisEvent('maxxis_chat', { request_id: requestId, user_id: userId, duration_ms: Date.now() - startedAt, provider_duration_ms: providerDurationMs, success: false, fallback_count: fallbackCount, error_code: degradedReason, degraded_reason: degradedReason, provider_status: lastProviderStatus, model_attempts: providerErrors.length });
+      logMaxxisEvent('maxxis_chat', { request_id: requestId, user_id: userId, duration_ms: Date.now() - startedAt, provider_duration_ms: providerDurationMs, success: false, fallback_count: fallbackCount, error_code: degradedReason, degraded_reason: degradedReason, provider_status: lastProviderStatus, provider_error_status: lastProviderFailure?.meta.upstreamStatus, provider_error_reason: lastProviderFailure?.meta.reason, model_attempts: providerErrors.length });
       return response({ ...degradedPayload, type: 'text', data: null, actions: [], language, degraded: true, degradedReason, error: degradedReason }, 200, origin, requestId);
     }
     const candidateList = Array.isArray(payload.candidates) ? payload.candidates : [];
@@ -927,17 +952,9 @@ Deno.serve(async (req) => {
       : [];
     const functionCallPart = parts.find((part) => part.functionCall && typeof part.functionCall === 'object');
     const parsedFunctionCall = functionCallPart?.functionCall as Record<string, unknown> | undefined;
-    const mandatoryFunctionCall = !stubFunctionCall
-      ? (propertyAnalysisContext
-        ? {
-            name: 'getDealInsightContext',
-            args: {
-              propertyId: propertyAnalysisContext.property_id,
-              reportType: propertyAnalysisContext.report_type,
-            },
-          }
-        : resolveMandatoryToolCall(message, propertyContextId, comparisonPropertyIds, body.controlledIntent))
-      : null;
+    const mandatoryFunctionCall = deterministicPropertyAnalysisCall || (!stubFunctionCall
+      ? resolveMandatoryToolCall(message, propertyContextId, comparisonPropertyIds, body.controlledIntent)
+      : null);
     const trustedFunctionCall = mandatoryFunctionCall?.name === 'getDealInsightContext'
       ? {
           ...mandatoryFunctionCall,
@@ -1063,7 +1080,7 @@ Deno.serve(async (req) => {
       let secondPassFailure: GeminiFailureCode | '' = '';
       let secondPassProviderMeta: ReturnType<typeof getGeminiProviderFailureMeta> | null = null;
       let secondPassAttempts = 0;
-      if (!stubFunctionCall) {
+      if (!stubFunctionCall && geminiApiKey) {
         failureStage = 'gemini_second_pass';
         const secondPassStartedAt = Date.now();
         const interpretationRequest = buildToolInterpretationRequest({

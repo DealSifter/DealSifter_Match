@@ -415,6 +415,7 @@ export function buildMaxxisLLMContext(value: unknown) {
   const providerEstimate = record(valuation.providerEstimate);
   const runtime = record(source.runtimeTrace);
   const snapshot = record(source.intelligenceSnapshot);
+  const applicability = record(snapshot.analysisApplicability);
   const rehab = record(snapshot.rehabAnalysis);
   const benchmark = record(rehab.benchmark);
   const rate = record(benchmark.rate);
@@ -467,6 +468,7 @@ export function buildMaxxisLLMContext(value: unknown) {
       limitations: safeList(comparative.limitations, 8),
     },
     valuationSummary: {
+      applicability: safeText(applicability.residentialArv, 30) || null,
       status: safeText(valuation.status, 30),
       range: Object.keys(range).length ? { low: safeNumber(range.low), high: safeNumber(range.high) } : null,
       centralReference: safeNumber(valuation.centralReference), confidence: safeText(valuation.confidence, 20),
@@ -476,6 +478,7 @@ export function buildMaxxisLLMContext(value: unknown) {
       interpretation: safeText(valuationAnalysis.arvInterpretation, 700),
     },
     rehabSummary: {
+      applicability: safeText(applicability.rehab, 30) || null,
       selectedValue: safeNumber(rehab.value), source: safeText(rehab.source, 60) || null,
       provenance: safeText(rehab.provenance, 30), confidence: safeText(rehab.confidence, 20) || null,
       benchmark: Object.keys(benchmark).length ? {
@@ -486,6 +489,12 @@ export function buildMaxxisLLMContext(value: unknown) {
         source: safeText(benchmark.source, 80), provenance: safeText(benchmark.provenance, 30),
         confidence: safeText(benchmark.confidence, 20),
       } : null,
+    },
+    analysisApplicability: {
+      propertyCategory: safeText(applicability.propertyCategory, 30) || null,
+      constructionPlanned: Boolean(applicability.constructionPlanned),
+      rehab: safeText(applicability.rehab, 30) || null,
+      residentialArv: safeText(applicability.residentialArv, 30) || null,
     },
     risks: (Array.isArray(intelligence.risks) ? intelligence.risks : []).slice(0, 8).map((item) => {
       const risk = record(item);

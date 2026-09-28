@@ -130,6 +130,11 @@ import { withCurrentReportExportEntitlements } from '../../features/maxxis/expor
 import { declineMaxxisAnalysisInputs, saveMaxxisAnalysisInputs } from '../../services/maxxisAnalysisInputsService';
 import { downloadMaxxisReportPdf, renderMaxxisReportPdfCached } from '../../features/maxxis/export/maxxisReportPdf';
 import { didStructuredReportGenerationFail, hasUsableStructuredReportFallback } from '../../features/maxxis/intelligence/maxxisStructuredReportFallback';
+import {
+  composeMaxxisReportFailureExplanation,
+  createMaxxisReportFailureState,
+  isMaxxisReportFailureExplanationQuestion,
+} from '../../features/maxxis/intelligence/maxxisReportFailureRecovery';
 import { finishMaxxisBrowserTrace, markMaxxisBrowserStage, startMaxxisBrowserTrace } from '../../features/maxxis/performance/maxxisBrowserPerformance';
 import { MyMaxxisReports } from '../../features/maxxis/reports/MyMaxxisReports';
 import { resolveSavedReportAccessDecision } from '../../features/maxxis/reports/savedReportAccess';
@@ -257,6 +262,7 @@ export function MaxxisAssistant({ page = 'dashboard', onOpenSupport = null, onNa
   const continuityAuthorityRef = useRef({ accountKey: String(sessionKey || ''), propertyId: String(propertyContextId || '') });
   const submitMessageRef = useRef(null);
   const activeAnalysisGapRef = useRef('');
+  const lastReportFailureRef = useRef(null);
   const conversationIntentRef = useRef(MAXXIS_CONVERSATION_INTENTS.GENERAL_CONVERSATION);
   const dragRef = useRef({
     active: false,
@@ -789,6 +795,7 @@ export function MaxxisAssistant({ page = 'dashboard', onOpenSupport = null, onNa
 
   const resetConversation = useCallback(() => {
     conversationIntentRef.current = MAXXIS_CONVERSATION_INTENTS.GENERAL_CONVERSATION;
+    lastReportFailureRef.current = null;
     setPropertyAnalysisMode(null);
     setMessages([{
       id: `maxxis-greeting-${Date.now()}`,
@@ -1070,6 +1077,24 @@ export function MaxxisAssistant({ page = 'dashboard', onOpenSupport = null, onNa
   const submitMessage = async (messageText, meta = {}) => {
     const cleanMessage = String(messageText || '').trim();
     if (!cleanMessage || loading) return;
+    const previousReportFailure = lastReportFailureRef.current;
+    if (previousReportFailure && isMaxxisReportFailureExplanationQuestion(cleanMessage)) {
+      const createdAt = new Date();
+      setMessages((prev) => [...prev,
+        { id: `maxxis-user-${Date.now()}`, role: 'user', content: cleanMessage, createdAt },
+        {
+          id: `maxxis-report-failure-explanation-${Date.now()}`,
+          role: 'assistant',
+          content: composeMaxxisReportFailureExplanation(previousReportFailure, language),
+          createdAt: new Date(),
+          type: 'report_failure_explanation',
+          data: { propertyId: previousReportFailure.propertyId, reportType: previousReportFailure.reportType,
+            requestId: previousReportFailure.requestId },
+        },
+      ]);
+      setInput('');
+      return;
+    }
     const pendingGap = !meta.skipGapResolutionParse
       ? [...messages].reverse().find((item) => item?.type === 'analysis_gap_resolution')
       : null;
@@ -1372,6 +1397,23 @@ export function MaxxisAssistant({ page = 'dashboard', onOpenSupport = null, onNa
         ? projectMaxxisDealIntelligenceResponse(result, { reportProperty: meta.reportProperty })
         : null;
       const projectedReport = dealIntelligence || maxxisAnalysis;
+      if (reportGenerationFailed) {
+        lastReportFailureRef.current = createMaxxisReportFailureState(
+          result,
+          String(result?.data?.propertyId || resolvedPropertyId || propertyContextId || ''),
+          requestedReportType,
+        );
+        // Preserve the selected property and conversation, but release the
+        // one-shot report mode so later messages are not forced back through
+        // the failed report operation.
+        setPropertyAnalysisMode(null);
+      } else if (projectedReport) {
+        lastReportFailureRef.current = null;
+        // PROPERTY_ANALYSIS_MODE is a one-shot generation route. The selected
+        // property remains available through the normal chat context, while
+        // subsequent questions return to conversational intent routing.
+        setPropertyAnalysisMode(null);
+      }
       if (projectedReport) markMaxxisBrowserStage(browserTraceId, 'T2_report_view_model_ready');
       const projectionMs = (typeof performance !== 'undefined' ? performance.now() : Date.now()) - projectionStartedAt;
       const projectedReportType = projectedReport?.data?.maxxisReport?.reportType || null;
@@ -1388,7 +1430,7 @@ export function MaxxisAssistant({ page = 'dashboard', onOpenSupport = null, onNa
         reportType: projectedReportType,
         grantedAccessDecision: grantedReportAccess,
       }) : null;
-      persistStructuredDealMemory(result, 'DEAL_REVIEW');
+      if (!reportGenerationFailed) persistStructuredDealMemory(result, 'DEAL_REVIEW');
       const shouldPersistReport = Boolean(projectedReportType && typeof onPersistReport === 'function');
       const runtimeTrace = {
         ...(result?.data?.runtimeTrace && typeof result.data.runtimeTrace === 'object' ? result.data.runtimeTrace : {}),
