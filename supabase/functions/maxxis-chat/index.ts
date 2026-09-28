@@ -779,6 +779,8 @@ Deno.serve(async (req) => {
       return response({ message: 'Invalid request.', type: 'text', data: null, actions: [], error: parsed.error }, status, origin, requestId);
     }
     const body = parsed.body as Record<string, unknown>;
+    const analysisRecomputeMode = body.analysisRecomputeMode === 'GAP_UPDATE_CACHE_ONLY'
+      ? 'GAP_UPDATE_CACHE_ONLY' : '';
     const bodyContext = body.context && typeof body.context === 'object'
       ? body.context as Record<string, unknown>
       : {};
@@ -1006,7 +1008,8 @@ Deno.serve(async (req) => {
           toolName,
           functionArgs,
           req.headers.get('Authorization') || '',
-          { propertyId: propertyContextId, propertyIds: comparisonPropertyIds, userId, plan: effectiveProviderPlan, language },
+          { propertyId: propertyContextId, propertyIds: comparisonPropertyIds, userId, plan: effectiveProviderPlan,
+            language, cacheOnly: analysisRecomputeMode === 'GAP_UPDATE_CACHE_ONLY' },
         );
       } catch (error) {
         if (toolName === 'getPropertyDetails' || toolName === 'getDealCopilotOverview') {

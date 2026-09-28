@@ -137,4 +137,27 @@ describe('Maxxis Deal Intelligence Context v1', () => {
     expect(context.investorContext).toMatchObject({ provenance: 'UNKNOWN', targetMarkets: null, priceRange: null });
     expect(context.evidenceSummary.strength).toBe('LOW');
   });
+
+  it('continues vacant-land analysis without residential rehab or ARV risks', () => {
+    const land = { ...property, type: 'Land', sqft: '', lot: '52272', rehab: 0, beds: 0, baths: 0 };
+    const context = buildDealIntelligenceContext({
+      property: land,
+      investmentProfile: profile,
+      match: calculatePropertyMatch(profile.profile, land),
+      propertyEvidence: evidence(),
+      dealMetrics: calculateDealMetrics(land),
+      analysis: { positiveSignals: [], attentionPoints: [], missingInformation: ['rehab'], limitations: ['roi_not_calculated'] },
+      arvEvaluation: null,
+      analysisApplicability: {
+        propertyCategory: 'VACANT_LAND', constructionPlanned: false,
+        rehab: 'NOT_APPLICABLE', residentialArv: 'NOT_APPLICABLE',
+      },
+    });
+    expect(context.analysisApplicability).toMatchObject({ rehab: 'NOT_APPLICABLE', residentialArv: 'NOT_APPLICABLE' });
+    expect(context.risks.map((risk) => risk.code)).not.toEqual(expect.arrayContaining([
+      'MISSING_REHAB_INFORMATION', 'ARV_EVIDENCE_UNAVAILABLE', 'UNKNOWN_CONDITION',
+    ]));
+    expect(context.limitations).toContain('RESIDENTIAL_ARV_NOT_APPLICABLE');
+    expect(context.recommendedActions.join(' ')).toMatch(/zoning.*utilities.*land-sale/i);
+  });
 });

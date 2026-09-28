@@ -58,6 +58,15 @@ describe('Maxxis analysis gap resolution UX', () => {
     expect(onResolve.mock.calls[0][1]).toMatchObject({ rehabBudget: 25000, rehabSource: 'USER_PROVIDED' });
   });
 
+  it('continues with a canonical condition when optional rehab is absent', async () => {
+    const user = userEvent.setup();
+    const onResolve = vi.fn();
+    render(<MaxxisAnalysisGapResolution message={message()} onResolve={onResolve} />);
+    await user.selectOptions(screen.getByLabelText('Target condition'), 'STANDARD_RENOVATION');
+    await user.click(screen.getByRole('button', { name: 'Continue analysis' }));
+    expect(onResolve).toHaveBeenCalledWith(expect.any(Object), { targetCondition: 'STANDARD_RENOVATION' });
+  });
+
   it('submits the selected 2026 benchmark and its provenance', async () => {
     const user = userEvent.setup();
     const onResolve = vi.fn();

@@ -6,6 +6,7 @@ import type { PropertyMatchResult } from './types.ts';
 import type { MaxxisPropertyEvidenceResult } from './propertyEvidence.ts';
 import type { ArvEvaluationResult } from '../property-data/arvEngine.ts';
 import { buildDealIntelligenceContext, type DealIntelligenceContext } from './dealIntelligenceContext.ts';
+import { classifyAnalysisApplicability } from './analysisApplicability.ts';
 
 export type DealInsightContext = {
   type: 'deal_insight';
@@ -37,6 +38,7 @@ export async function orchestrateDealInsightContext(input: {
   calculateMatch: (profile: NormalizedInvestmentProfileResult['profile'], property: PropertyDetailsLookupResult['property']) => PropertyMatchResult;
   loadPropertyEvidence: (propertyId: string) => Promise<MaxxisPropertyEvidenceResult>;
   loadArvEvaluation?: (propertyId: string) => Promise<ArvEvaluationResult | null>;
+  analysisAssumptions?: Record<string, unknown>;
 }): Promise<DealInsightContext> {
   const details = await input.loadPropertyDetails(input.propertyId);
   const unavailableEvidence: MaxxisPropertyEvidenceResult = {
@@ -68,6 +70,9 @@ export async function orchestrateDealInsightContext(input: {
     ? { ...input.calculateMatch(investmentProfile.profile, details.property), semantics: 'profile_fit_only' as const }
     : null;
   const metrics = details.metrics;
+  const analysisApplicability = classifyAnalysisApplicability(
+    details.property as unknown as Record<string, unknown>, input.analysisAssumptions || {},
+  );
   const dealIntelligence = buildDealIntelligenceContext({
     property: details.property,
     investmentProfile,
@@ -76,6 +81,7 @@ export async function orchestrateDealInsightContext(input: {
     dealMetrics: metrics,
     analysis: details.analysis,
     arvEvaluation,
+    analysisApplicability,
   });
   return {
     type: 'deal_insight', propertyId: input.propertyId, state: 'available', property: details.property,

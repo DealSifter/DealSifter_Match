@@ -131,7 +131,7 @@ function sanitizePropertyAnalysisContext(input) {
   };
 }
 
-export async function sendMaxxisMessage({ message, history = [], page = 'dashboard', language = currentLanguage(), propertyId = '', propertyIds = [], maxxisContext = null, controlledIntent = '', requestedCapability = '', propertyAnalysisContext = null }) {
+export async function sendMaxxisMessage({ message, history = [], page = 'dashboard', language = currentLanguage(), propertyId = '', propertyIds = [], maxxisContext = null, controlledIntent = '', requestedCapability = '', propertyAnalysisContext = null, analysisRecomputeMode = '' }) {
   const text = String(message || '').trim();
   if (!text) throw new Error('Message is required.');
   if (!isSupabaseConfigured || !supabase) {
@@ -183,6 +183,7 @@ export async function sendMaxxisMessage({ message, history = [], page = 'dashboa
       page,
       language,
       controlledIntent: String(controlledIntent || resolveControlledIntent(text)).trim(),
+      ...(analysisRecomputeMode === 'GAP_UPDATE_CACHE_ONLY' ? { analysisRecomputeMode } : {}),
       ...(cleanPropertyAnalysisContext ? {
         requestedCapability: String(requestedCapability || cleanPropertyAnalysisContext.report_type),
         analysisMode: 'PROPERTY_ANALYSIS_MODE',

@@ -1311,6 +1311,7 @@ export function MaxxisAssistant({ page = 'dashboard', onOpenSupport = null, onNa
         controlledIntent: effectiveControlledIntent,
         requestedCapability: requestedReportType || meta.reportType || analysisContext?.report_type || '',
         propertyAnalysisContext: analysisContext || null,
+        analysisRecomputeMode: meta.analysisRecomputeMode || '',
       });
       markMaxxisBrowserStage(browserTraceId, 'T1_analysis_ready');
       const analysisRequestMs = (typeof performance !== 'undefined' ? performance.now() : Date.now()) - analysisStartedAt;
@@ -1332,6 +1333,8 @@ export function MaxxisAssistant({ page = 'dashboard', onOpenSupport = null, onNa
             reportAccessDecision: authorizedReportAccess || meta.reportAccessDecision || null,
             analysisExport: meta.analysisExport || null,
             currentRehab: result?.data?.property?.rehab ?? result?.data?.property?.estimatedRehab ?? null,
+            propertyType: result?.data?.property?.type || result?.data?.property?.propertyType || '',
+            snapshotRevision: result?.data?.intelligenceSnapshot?.generatedAt || '',
           },
         }]);
         return;
@@ -1595,6 +1598,7 @@ export function MaxxisAssistant({ page = 'dashboard', onOpenSupport = null, onNa
       reportAccessDecision: data.reportAccessDecision,
       analysisExport: data.analysisExport,
       skipGapResolutionParse: true,
+      analysisRecomputeMode: 'GAP_UPDATE_CACHE_ONLY',
       propertyAnalysisContext: data.reportType ? {
         mode: 'PROPERTY_ANALYSIS_MODE',
         property_id: data.propertyId,
@@ -1610,7 +1614,11 @@ export function MaxxisAssistant({ page = 'dashboard', onOpenSupport = null, onNa
     activeAnalysisGapRef.current = messageId;
     setActiveAnalysisGapId(messageId);
     try {
-      await saveMaxxisAnalysisInputs(propertyId, values);
+      await saveMaxxisAnalysisInputs(propertyId, values, null, {
+        capability: message?.data?.reportType || undefined,
+        pendingGaps: message?.data?.missingUserInputs || [],
+        snapshotRevision: message?.data?.snapshotRevision || undefined,
+      });
       setMessages((prev) => prev.map((item) => item.id === messageId
         ? { ...item, type: 'analysis_gap_resolved', data: {
             ...item.data,
@@ -1625,7 +1633,8 @@ export function MaxxisAssistant({ page = 'dashboard', onOpenSupport = null, onNa
       continueGatedAnalysis(message, typedAnswer || (language === 'pt' ? 'Continuar análise com as informações fornecidas.'
         : language === 'es' ? 'Continuar el análisis con la información proporcionada.' : 'Continue analysis with the supplied inputs.'));
     } catch (error) {
-      captureAppException(error, { area: 'maxxis_analysis_gap_resolution', propertyId });
+      captureAppException(error, { area: 'maxxis_analysis_gap_resolution', propertyId,
+        errorCode: error instanceof Error ? error.message : 'GAP_RECOMPUTE_ERROR', requestId: error?.requestId || '' });
       setMessages((prev) => prev.map((item) => item.id === messageId
         ? { ...item, data: { ...item.data, error: t.unavailable } } : item));
     } finally {
@@ -1641,7 +1650,11 @@ export function MaxxisAssistant({ page = 'dashboard', onOpenSupport = null, onNa
     activeAnalysisGapRef.current = messageId;
     setActiveAnalysisGapId(messageId);
     try {
-      await declineMaxxisAnalysisInputs(propertyId, fields);
+      await declineMaxxisAnalysisInputs(propertyId, fields, null, {
+        capability: message?.data?.reportType || undefined,
+        pendingGaps: message?.data?.missingUserInputs || [],
+        snapshotRevision: message?.data?.snapshotRevision || undefined,
+      });
       setMessages((prev) => prev.map((item) => item.id === messageId
         ? { ...item, type: 'analysis_gap_resolved', data: {
             ...item.data,
@@ -1655,7 +1668,10 @@ export function MaxxisAssistant({ page = 'dashboard', onOpenSupport = null, onNa
       continueGatedAnalysis(message, typedAnswer || (language === 'pt' ? 'Continuar com limitações explícitas.'
         : language === 'es' ? 'Continuar con limitaciones explícitas.' : 'Continue with explicit limitations.'));
     } catch (error) {
-      captureAppException(error, { area: 'maxxis_analysis_gap_decline', propertyId });
+      captureAppException(error, { area: 'maxxis_analysis_gap_decline', propertyId,
+        errorCode: error instanceof Error ? error.message : 'GAP_RECOMPUTE_ERROR', requestId: error?.requestId || '' });
+      setMessages((prev) => prev.map((item) => item.id === messageId
+        ? { ...item, data: { ...item.data, error: t.unavailable } } : item));
     } finally {
       activeAnalysisGapRef.current = '';
       setActiveAnalysisGapId('');

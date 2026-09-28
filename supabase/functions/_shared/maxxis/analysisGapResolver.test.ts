@@ -14,15 +14,15 @@ describe('EvidenceCompletenessGate', () => {
     expect(gate.question).toMatch(/condição alvo/i);
   });
 
-  it('asks for rehab only after the target condition is available and exposes mapped benchmark choices', () => {
+  it('keeps rehab optional after target condition is available and exposes benchmark choices', () => {
     const gate = buildEvidenceCompletenessGate({
       reportType: 'DEAL_INTELLIGENCE',
       property: { rehab: null, state: 'CA', sqft: 1680 },
       assumptions: { rehabBudget: null, targetCondition: 'FULL_RENOVATION' },
       language: 'pt',
     });
-    expect(gate.missingUserInputs).toEqual(['rehab_budget']);
-    expect(gate.question).toMatch(/orçamento de reforma/i);
+    expect(gate).toMatchObject({ status: 'READY', complete: true, missingUserInputs: [] });
+    expect(gate.inputs.rehabBudget).toBe('USER_RESOLVABLE');
     expect(gate.benchmarkOptions.find((item) => item?.scope === 'FULL_RENOVATION')).toMatchObject({
       low: 241920, mid: 302400, high: 362880, providerCalls: 0,
     });
@@ -47,5 +47,23 @@ describe('EvidenceCompletenessGate', () => {
       assumptions: { targetCondition: 'FULL_RENOVATION', declinedInputs: ['rehab_budget'] } });
     expect(resolved).toMatchObject({ status: 'READY', missingUserInputs: [] });
     expect(declined).toMatchObject({ status: 'LIMITED', complete: true, missingUserInputs: [] });
+  });
+
+  it('does not ask residential condition or rehab questions for vacant land', () => {
+    const gate = buildEvidenceCompletenessGate({
+      reportType: 'DEAL_INTELLIGENCE',
+      property: { type: 'Land', rehab: 0, sqft: null, lot: '1.2 acres' },
+      assumptions: { renovationScope: 'é um terreno, não haverá construção' },
+      language: 'pt',
+    });
+    expect(gate).toMatchObject({
+      status: 'READY', complete: true, missingUserInputs: [],
+      inputs: {
+        rehabBudget: 'NOT_APPLICABLE', targetCondition: 'NOT_APPLICABLE',
+        acquisitionPlusRehab: 'NOT_APPLICABLE',
+      },
+      analysisApplicability: { propertyCategory: 'VACANT_LAND', rehab: 'NOT_APPLICABLE', residentialArv: 'NOT_APPLICABLE' },
+    });
+    expect(gate.benchmarkOptions).toEqual([]);
   });
 });

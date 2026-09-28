@@ -1,7 +1,8 @@
 import { estimateRehabBenchmark2026 } from './rehabCostBenchmarks2026.ts';
+import { classifyAnalysisApplicability, normalizeTargetCondition } from './analysisApplicability.ts';
 
 export type AnalysisInputClassification = 'AVAILABLE' | 'PROVIDER_RESOLVABLE' | 'USER_RESOLVABLE'
-  | 'CALCULABLE' | 'TRULY_UNAVAILABLE' | 'NOT_AUTHORIZED';
+  | 'CALCULABLE' | 'TRULY_UNAVAILABLE' | 'NOT_AUTHORIZED' | 'NOT_APPLICABLE';
 
 type Assumptions = {
   targetCondition?: unknown;
@@ -47,12 +48,18 @@ export function buildEvidenceCompletenessGate({ reportType, property, assumption
   const storedRehab = finite(property?.rehab);
   const userRehab = finite(assumptions.rehabBudget);
   const rehabAvailable = (storedRehab !== null && storedRehab > 0) || userRehab !== null;
-  const targetCondition = text(assumptions.targetCondition);
-  const targetAvailable = Boolean(targetCondition && targetCondition !== 'UNKNOWN');
+  const targetCondition = normalizeTargetCondition(assumptions.targetCondition);
+  const targetAvailable = Boolean(targetCondition);
+  const applicability = classifyAnalysisApplicability(property, assumptions as Record<string, unknown>);
+  const residentialScenarioApplicable = applicability.residentialArv === 'APPLICABLE';
   const missing: string[] = [];
-  if (enterprise && !targetAvailable && !declined.has('target_condition')) missing.push('target_condition');
-  else if (!rehabAvailable && !declined.has('rehab_budget')) missing.push('rehab_budget');
-  const benchmarkOptions = ['LIGHT_REHAB', 'STANDARD_RENOVATION', 'FULL_RENOVATION', 'NEW_CONSTRUCTION']
+  if (enterprise && residentialScenarioApplicable && !targetAvailable && !declined.has('target_condition')) {
+    missing.push('target_condition');
+  }
+  // Rehab is an optional analytical assumption. Missing rehab limits cost/margin
+  // scenarios, but must never block the deterministic analysis or report flow.
+  const benchmarkOptions = (residentialScenarioApplicable
+    ? ['LIGHT_REHAB', 'STANDARD_RENOVATION', 'FULL_RENOVATION', 'NEW_CONSTRUCTION'] : [])
     .map((condition) => estimateRehabBenchmark2026({
       state: property?.state,
       livingAreaSqft: property?.sqft ?? property?.livingAreaSqft,
@@ -60,9 +67,13 @@ export function buildEvidenceCompletenessGate({ reportType, property, assumption
     })).filter(Boolean);
   const inputs = Object.freeze({
     property: 'AVAILABLE' as AnalysisInputClassification,
-    rehabBudget: (rehabAvailable ? 'AVAILABLE' : declined.has('rehab_budget') ? 'TRULY_UNAVAILABLE' : 'USER_RESOLVABLE') as AnalysisInputClassification,
-    targetCondition: (!enterprise ? 'NOT_AUTHORIZED' : targetAvailable ? 'AVAILABLE' : declined.has('target_condition') ? 'TRULY_UNAVAILABLE' : 'USER_RESOLVABLE') as AnalysisInputClassification,
-    acquisitionPlusRehab: (rehabAvailable ? 'CALCULABLE' : 'TRULY_UNAVAILABLE') as AnalysisInputClassification,
+    rehabBudget: (applicability.rehab === 'NOT_APPLICABLE' ? 'NOT_APPLICABLE'
+      : rehabAvailable ? 'AVAILABLE' : declined.has('rehab_budget') ? 'TRULY_UNAVAILABLE' : 'USER_RESOLVABLE') as AnalysisInputClassification,
+    targetCondition: (applicability.residentialArv === 'NOT_APPLICABLE' ? 'NOT_APPLICABLE'
+      : !enterprise ? 'NOT_AUTHORIZED' : targetAvailable ? 'AVAILABLE'
+        : declined.has('target_condition') ? 'TRULY_UNAVAILABLE' : 'USER_RESOLVABLE') as AnalysisInputClassification,
+    acquisitionPlusRehab: (applicability.rehab === 'NOT_APPLICABLE' ? 'NOT_APPLICABLE'
+      : rehabAvailable ? 'CALCULABLE' : 'TRULY_UNAVAILABLE') as AnalysisInputClassification,
   });
   return Object.freeze({
     type: 'evidence_completeness_gate',
@@ -80,5 +91,6 @@ export function buildEvidenceCompletenessGate({ reportType, property, assumption
       provenance: userRehab !== null || targetAvailable || text(assumptions.renovationScope) ? 'USER_PROVIDED' : null,
     }),
     benchmarkOptions: Object.freeze(benchmarkOptions),
+    analysisApplicability: applicability,
   });
 }

@@ -1,8 +1,9 @@
 import { createClient } from 'npm:@supabase/supabase-js@2';
 import { buildCorsHeaders, parseAllowedOrigins } from '../_shared/maxxis/corsPolicy.ts';
-import { isTargetCondition } from '../_shared/property-data/arvVisualCompReview.ts';
 import { validatePropertyId } from '../_shared/property-data/cache.ts';
 import { estimateRehabBenchmark2026 } from '../_shared/maxxis/rehabCostBenchmarks2026.ts';
+import { normalizeTargetCondition } from '../_shared/maxxis/analysisApplicability.ts';
+import { createRequestId, logOperationalEvent } from '../_shared/observability.ts';
 
 const supabaseUrl = Deno.env.get('SUPABASE_URL') ?? '';
 const supabaseAnonKey = Deno.env.get('ANON_KEY') ?? Deno.env.get('SUPABASE_ANON_KEY') ?? '';
@@ -37,7 +38,30 @@ function rehabSource(value: unknown) {
   return parsed;
 }
 
+function capability(value: unknown) {
+  const parsed = String(value || '').trim().toUpperCase();
+  if (!parsed) return null;
+  if (!['MAXXIS_ANALYSIS', 'DEAL_INTELLIGENCE'].includes(parsed)) throw new Error('INVALID_CAPABILITY');
+  return parsed;
+}
+
+function publicErrorCode(code: string) {
+  if (/^INVALID_|BENCHMARK_NOT_AVAILABLE|STORED_REHAB_TAKES_PRIORITY/.test(code)) {
+    return 'GAP_RESOLUTION_VALIDATION_ERROR';
+  }
+  if (code === 'NOT_ENTITLED') return 'GAP_RESOLUTION_ACCESS_DENIED';
+  if (/READ_FAILED|WRITE_FAILED/.test(code)) return 'GAP_RESOLUTION_PERSISTENCE_ERROR';
+  return 'GAP_RECOMPUTE_ERROR';
+}
+
 export async function handleMaxxisAnalysisInputsRequest(req: Request) {
+  const startedAt = Date.now();
+  const requestId = createRequestId(req);
+  let userId = '';
+  let propertyId = '';
+  let action = '';
+  let requestedCapability: string | null = null;
+  let propertyType = '';
   const origin = req.headers.get('Origin') || '';
   if (req.method === 'OPTIONS') return new Response('ok', { headers: buildCorsHeaders(origin, allowedOrigins) });
   if (req.method !== 'POST') return response(origin, { success: false, error: 'METHOD_NOT_ALLOWED' }, 405);
@@ -47,15 +71,19 @@ export async function handleMaxxisAnalysisInputsRequest(req: Request) {
   const client = createClient(supabaseUrl, supabaseAnonKey, { global: { headers: { Authorization: authHeader } } });
   const { data: { user }, error: authError } = await client.auth.getUser(token);
   if (authError || !user) return response(origin, { success: false, error: 'AUTH_REQUIRED' }, 401);
+  userId = user.id;
   try {
     const body = await req.json().catch(() => ({}));
-    const propertyId = validatePropertyId(String(body?.propertyId || '').trim());
-    const action = String(body?.action || '').trim().toUpperCase();
-    if (!['UPSERT', 'DECLINE'].includes(action)) return response(origin, { success: false, error: 'INVALID_ACTION' }, 400);
-    const { data: entitled, error: entitlementError } = await client.rpc('ds_has_property_intelligence_entitlement', {
-      p_property_id: propertyId, p_unlock_type: 'property_record',
+    propertyId = validatePropertyId(String(body?.propertyId || '').trim());
+    action = String(body?.action || '').trim().toUpperCase();
+    requestedCapability = capability(body?.capability);
+    if (!['UPSERT', 'DECLINE'].includes(action)) throw new Error('INVALID_ACTION');
+    const { data: entitled, error: entitlementError } = await client.rpc('ds_has_maxxis_analysis_context_access', {
+      p_property_id: propertyId,
     });
-    if (entitlementError || entitled !== true) return response(origin, { success: false, error: 'NOT_ENTITLED' }, 403);
+    if (entitlementError || entitled !== true) throw new Error('NOT_ENTITLED');
+    const { data: property } = await client.from('properties').select('type').eq('id', propertyId).maybeSingle();
+    propertyType = String(property?.type || '');
     const { data: existing, error: readError } = await client.from('property_arv_review_contexts')
       .select('target_condition,rehab_budget,renovation_scope,rehab_source,declined_inputs')
       .eq('subject_property_id', propertyId).eq('reviewer_user_id', user.id).maybeSingle();
@@ -73,8 +101,9 @@ export async function handleMaxxisAnalysisInputsRequest(req: Request) {
     };
     if (action === 'UPSERT') {
       if (body.targetCondition !== undefined) {
-        if (!isTargetCondition(body.targetCondition) || body.targetCondition === 'UNKNOWN') throw new Error('INVALID_TARGET_CONDITION');
-        row.target_condition = body.targetCondition;
+        const canonicalCondition = normalizeTargetCondition(body.targetCondition);
+        if (!canonicalCondition) throw new Error('INVALID_TARGET_CONDITION');
+        row.target_condition = canonicalCondition;
         declined.delete('target_condition');
       }
       if (body.rehabBudget !== undefined) {
@@ -115,6 +144,17 @@ export async function handleMaxxisAnalysisInputsRequest(req: Request) {
       onConflict: 'subject_property_id,reviewer_user_id',
     });
     if (writeError) throw new Error('ANALYSIS_INPUT_WRITE_FAILED');
+    logOperationalEvent({
+      functionName: 'maxxis-analysis-inputs', operation: 'persist_gap_resolution', requestId, userId,
+      durationMs: Date.now() - startedAt, success: true, status: 200, provider: 'supabase',
+      metrics: {
+        action, capability: requestedCapability || 'UNSPECIFIED', property_type: propertyType || 'UNKNOWN',
+        pending_gap_count: Array.isArray(body.pendingGaps) ? body.pendingGaps.length : 0,
+        target_condition: String(row.target_condition || 'UNAVAILABLE'),
+        rehab_present: row.rehab_budget !== null, scope_present: Boolean(row.renovation_scope),
+        snapshot_revision: String(body.snapshotRevision || 'UNSPECIFIED').slice(0, 80),
+      },
+    });
     return response(origin, { success: true, data: {
       targetCondition: row.target_condition,
       rehabBudget: row.rehab_budget,
@@ -126,8 +166,17 @@ export async function handleMaxxisAnalysisInputsRequest(req: Request) {
   } catch (error) {
     const code = String(error instanceof Error ? error.message : 'ANALYSIS_INPUTS_UNAVAILABLE');
     const status = /^INVALID_|BENCHMARK_NOT_AVAILABLE/.test(code) ? 400
-      : code === 'STORED_REHAB_TAKES_PRIORITY' ? 409 : 500;
-    return response(origin, { success: false, error: code }, status);
+      : code === 'STORED_REHAB_TAKES_PRIORITY' ? 409 : code === 'NOT_ENTITLED' ? 403 : 500;
+    const stableCode = publicErrorCode(code);
+    logOperationalEvent({
+      functionName: 'maxxis-analysis-inputs', operation: 'persist_gap_resolution', requestId, userId,
+      durationMs: Date.now() - startedAt, success: false, errorCode: stableCode, status, provider: 'supabase',
+      metrics: {
+        internal_code: code, action: action || 'UNKNOWN', capability: requestedCapability || 'UNSPECIFIED',
+        property_type: propertyType || 'UNKNOWN', property_id_present: Boolean(propertyId),
+      },
+    });
+    return response(origin, { success: false, error: stableCode, requestId }, status);
   }
 }
 

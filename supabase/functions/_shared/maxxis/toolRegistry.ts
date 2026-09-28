@@ -92,7 +92,7 @@ export const MAXXIS_TOOLS = [{
   ],
 }];
 
-export async function executeMaxxisTool(name: string, args: unknown, authHeader: string, context: { propertyId?: string; propertyIds?: string[]; userId?: string; plan?: string; language?: string } = {}) {
+export async function executeMaxxisTool(name: string, args: unknown, authHeader: string, context: { propertyId?: string; propertyIds?: string[]; userId?: string; plan?: string; language?: string; cacheOnly?: boolean } = {}) {
   const authenticatedContext = () => {
     const userId = String(context.userId || '').trim();
     if (!userId) return null;
@@ -136,6 +136,7 @@ export async function executeMaxxisTool(name: string, args: unknown, authHeader:
     const providerPlan = context.plan === 'ENTERPRISE' ? 'ENTERPRISE' : context.plan === 'PRO' ? 'PRO' : 'FREE';
     return getDealInsightContextForAuthenticatedUser(
       args, authHeader, authenticated.client, authenticated.userId, context.propertyId, providerPlan, context.language,
+      Boolean(context.cacheOnly),
     );
   }
   if (name === 'getDealCopilotOverview') {

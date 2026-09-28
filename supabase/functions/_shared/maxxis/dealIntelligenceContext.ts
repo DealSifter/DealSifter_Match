@@ -8,6 +8,12 @@ export type EvidenceStatus = 'VERIFIED_RECORD' | 'USER_PROVIDED' | 'UNKNOWN';
 export type EvidenceStrength = 'HIGH' | 'MEDIUM' | 'LOW';
 export type DealRiskCategory = 'DATA_RISK' | 'MARKET_RISK' | 'VALUATION_RISK' | 'EXECUTION_RISK';
 export type DealRiskSeverity = 'LOW' | 'MEDIUM' | 'HIGH';
+export type AnalysisApplicability = {
+  propertyCategory: 'VACANT_LAND' | 'IMPROVED_PROPERTY';
+  constructionPlanned: boolean;
+  rehab: 'APPLICABLE' | 'NOT_APPLICABLE';
+  residentialArv: 'APPLICABLE' | 'NOT_APPLICABLE';
+};
 
 export type DealContextField = {
   value: string | number | boolean | null;
@@ -26,6 +32,7 @@ export type DealIntelligenceContext = {
   type: 'deal_intelligence_context';
   version: 'MAXXIS_DEAL_INTELLIGENCE_CONTEXT_V1';
   propertyId: string;
+  analysisApplicability: AnalysisApplicability;
   propertyContext: {
     fields: Record<string, DealContextField>;
     verifiedFields: string[];
@@ -239,6 +246,7 @@ function buildRisks(input: {
   match: PropertyMatchResult | null;
   arv: ArvEvaluationResult | null;
   analysis: DealAdvisorAnalysis | null;
+  analysisApplicability: AnalysisApplicability;
 }): DealIntelligenceRisk[] {
   const risks: DealIntelligenceRisk[] = [];
   const add = (code: string, category: DealRiskCategory, severity: DealRiskSeverity, explanation: string) => {
@@ -250,7 +258,7 @@ function buildRisks(input: {
   if (input.evidence.state === 'available' && (input.evidence.evidence?.conflicts?.length || 0) > 0) {
     add('PROPERTY_EVIDENCE_CONFLICT', 'DATA_RISK', 'MEDIUM', 'Internal and verified property evidence contain unresolved conflicts.');
   }
-  if (input.analysis?.missingInformation.includes('rehab')) add('MISSING_REHAB_INFORMATION', 'DATA_RISK', 'MEDIUM',
+  if (input.analysisApplicability.rehab === 'APPLICABLE' && input.analysis?.missingInformation.includes('rehab')) add('MISSING_REHAB_INFORMATION', 'DATA_RISK', 'MEDIUM',
     'Rehabilitation information is missing.');
   const market = input.match?.reasons.find((reason) => reason.key === 'market');
   const price = input.match?.reasons.find((reason) => reason.key === 'price');
@@ -258,15 +266,18 @@ function buildRisks(input: {
     'The property location is outside the configured target markets.');
   if (price?.status === 'not_matched') add('TARGET_PRICE_RANGE_MISMATCH', 'MARKET_RISK', 'MEDIUM',
     'The asking price is outside the configured Investment Profile range.');
-  if (!input.arv || input.arv.status === 'ARV_UNAVAILABLE') add('ARV_EVIDENCE_UNAVAILABLE', 'VALUATION_RISK', 'HIGH',
+  if (input.analysisApplicability.residentialArv === 'APPLICABLE' && (!input.arv || input.arv.status === 'ARV_UNAVAILABLE')) add('ARV_EVIDENCE_UNAVAILABLE', 'VALUATION_RISK', 'HIGH',
     'Condition-compatible comparable evidence does not currently support an ARV range.');
   if (input.arv?.status === 'ARV_LIMITED') add('ARV_EVIDENCE_LIMITED', 'VALUATION_RISK',
     input.arv.confidence === 'LOW' ? 'HIGH' : 'MEDIUM', 'The existing ARV evaluation is limited by its evidence or confidence.');
   if (input.arv?.warnings.includes('VALUATION_DISPERSION_WARNING')) add('COMPARABLE_DISPERSION', 'VALUATION_RISK', 'HIGH',
     'The existing ARV evaluation reports material comparable dispersion.');
-  if (!input.arv || input.arv.evidenceSummary.conditionReview !== 'USER_PROVIDED') add('UNKNOWN_CONDITION', 'DATA_RISK', 'HIGH',
+  if (input.analysisApplicability.residentialArv === 'APPLICABLE'
+    && (!input.arv || input.arv.evidenceSummary.conditionReview !== 'USER_PROVIDED')) add('UNKNOWN_CONDITION', 'DATA_RISK', 'HIGH',
     'Target or comparable condition evidence has not been confirmed by the user.');
-  const critical = ['propertyType', 'livingAreaSqft', 'askingPrice']
+  const critical = ['propertyType',
+    ...(input.analysisApplicability.propertyCategory === 'VACANT_LAND' ? [] : ['livingAreaSqft']),
+    'askingPrice']
     .filter((name) => input.propertyFields.fields[name]?.status === 'UNKNOWN');
   if (critical.length) add('MISSING_CRITICAL_INFORMATION', 'EXECUTION_RISK', 'HIGH',
     `Critical property information remains unknown: ${critical.join(', ')}.`);
@@ -295,8 +306,11 @@ function opportunities(match: PropertyMatchResult | null, evidence: MaxxisProper
   return signals;
 }
 
-function initialAssessment(match: PropertyMatchResult | null, valuation: DealIntelligenceContext['valuationContext']) {
+function initialAssessment(match: PropertyMatchResult | null, valuation: DealIntelligenceContext['valuationContext'], applicability: AnalysisApplicability) {
   const profileFit = match?.calculable ? `${match.classification} Investment Profile alignment` : 'unavailable Investment Profile alignment';
+  if (applicability.residentialArv === 'NOT_APPLICABLE') {
+    return `Based on available evidence, this vacant-land property has ${profileFit}; residential rehabilitation and ARV are not applicable without a planned improvement scenario.`;
+  }
   const valuationState = valuation.status === 'ARV_AVAILABLE' ? `${valuation.confidence.toLowerCase()}-confidence valuation evidence`
     : valuation.status === 'ARV_LIMITED' ? `limited ${valuation.confidence.toLowerCase()}-confidence valuation evidence`
       : 'no currently defensible ARV range';
@@ -311,7 +325,12 @@ export function buildDealIntelligenceContext(input: {
   dealMetrics: DealMetricsResult | null;
   analysis: DealAdvisorAnalysis | null;
   arvEvaluation: ArvEvaluationResult | null;
+  analysisApplicability?: AnalysisApplicability;
 }): DealIntelligenceContext {
+  const analysisApplicability = input.analysisApplicability || {
+    propertyCategory: 'IMPROVED_PROPERTY', constructionPlanned: false,
+    rehab: 'APPLICABLE', residentialArv: 'APPLICABLE',
+  };
   const property = propertyContext(input.property, input.propertyEvidence);
   const coreEvidenceFields = new Set([
     'address', 'city', 'state', 'zipCode', 'propertyType', 'bedrooms', 'bathrooms',
@@ -324,16 +343,23 @@ export function buildDealIntelligenceContext(input: {
   const valuation = valuationContext(input.arvEvaluation);
   const fit = matchFactors(input.match);
   const risks = buildRisks({ property: input.property, propertyFields: property,
-    evidence: input.propertyEvidence, match: input.match, arv: input.arvEvaluation, analysis: input.analysis });
+    evidence: input.propertyEvidence, match: input.match, arv: input.arvEvaluation, analysis: input.analysis,
+    analysisApplicability });
   const profile = input.investmentProfile.profile;
   const limitations = unique([
-    ...(input.analysis?.limitations || []),
-    ...(input.analysis?.missingInformation || []).map((item) => `MISSING_${item.toUpperCase()}`),
-    ...(input.arvEvaluation?.limitations || ['ARV_EVALUATION_NOT_LOADED']),
+    ...(input.analysis?.limitations || []).filter((item) => analysisApplicability.rehab === 'APPLICABLE' || !/rehab/i.test(item)),
+    ...(input.analysis?.missingInformation || []).filter((item) => analysisApplicability.rehab === 'APPLICABLE' || item !== 'rehab')
+      .map((item) => `MISSING_${item.toUpperCase()}`),
+    ...(analysisApplicability.residentialArv === 'NOT_APPLICABLE'
+      ? ['RESIDENTIAL_ARV_NOT_APPLICABLE']
+      : input.arvEvaluation?.limitations || ['ARV_EVALUATION_NOT_LOADED']),
   ]);
   const recommendedActions = unique([
     ...(risks.some((risk) => risk.code === 'UNKNOWN_CONDITION') ? ['Confirm target condition and review comparable condition evidence.'] : []),
-    ...(valuation.status !== 'ARV_AVAILABLE' ? ['Review additional condition-compatible recorded sales.'] : []),
+    ...(analysisApplicability.residentialArv === 'APPLICABLE' && valuation.status !== 'ARV_AVAILABLE'
+      ? ['Review additional condition-compatible recorded sales.'] : []),
+    ...(analysisApplicability.propertyCategory === 'VACANT_LAND'
+      ? ['Verify zoning, permitted use, utilities, access, survey, title and land-sale evidence.'] : []),
     ...(conflicts.length ? ['Resolve property evidence conflicts before relying on the analysis.'] : []),
     ...(risks.some((risk) => risk.category === 'MARKET_RISK') ? ['Compare the property with the configured target market and price preferences.'] : []),
     ...(property.unknownFields.length ? ['Complete or verify the missing property fields.'] : []),
@@ -344,6 +370,7 @@ export function buildDealIntelligenceContext(input: {
     type: 'deal_intelligence_context',
     version: 'MAXXIS_DEAL_INTELLIGENCE_CONTEXT_V1',
     propertyId: input.property.id,
+    analysisApplicability,
     propertyContext: property,
     investorContext: {
       exists: input.investmentProfile.exists,
@@ -373,7 +400,7 @@ export function buildDealIntelligenceContext(input: {
     limitations,
     recommendedActions,
     response: {
-      initialAssessment: initialAssessment(input.match, valuation),
+      initialAssessment: initialAssessment(input.match, valuation, analysisApplicability),
       why: unique([...fit.positiveFactors, ...fit.negativeFactors, ...opportunities(input.match, input.propertyEvidence, input.arvEvaluation)
         .map((signal) => signal.explanation)]).slice(0, 6),
       mainRisks: risks.filter((risk) => risk.severity !== 'LOW').map((risk) => risk.explanation).slice(0, 5),

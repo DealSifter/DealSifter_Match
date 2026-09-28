@@ -25,4 +25,21 @@ describe('maxxisAnalysisInputsService', () => {
     const invoke = vi.fn(async (body) => ({ data: { success: true, data: body }, error: null }));
     expect(await declineMaxxisAnalysisInputs(propertyId, ['rehab_budget'], invoke)).toMatchObject({ action: 'DECLINE' });
   });
+
+  it('sends the authorized capability and snapshot metadata with the gap update', async () => {
+    const invoke = vi.fn(async (body) => ({ data: { success: true, data: body }, error: null }));
+    const result = await saveMaxxisAnalysisInputs(propertyId, { targetCondition: 'AS_IS' }, invoke, {
+      capability: 'DEAL_INTELLIGENCE', pendingGaps: ['target_condition'], snapshotRevision: 'revision-1',
+    });
+    expect(result).toMatchObject({
+      capability: 'DEAL_INTELLIGENCE', pendingGaps: ['target_condition'], snapshotRevision: 'revision-1',
+    });
+  });
+
+  it('preserves the stable backend error code for diagnostics', async () => {
+    const response = new Response(JSON.stringify({ error: 'GAP_RESOLUTION_ACCESS_DENIED', requestId: 'request-1' }));
+    const invoke = vi.fn(async () => ({ data: null, error: { context: response } }));
+    await expect(saveMaxxisAnalysisInputs(propertyId, { targetCondition: 'AS_IS' }, invoke))
+      .rejects.toMatchObject({ message: 'GAP_RESOLUTION_ACCESS_DENIED', requestId: 'request-1' });
+  });
 });

@@ -45,14 +45,15 @@ export function MaxxisAnalysisGapResolution({ message, language = 'en', onResolv
   const [renovationScope, setRenovationScope] = useState(String(assumptions.renovationScope || ''));
   const [scopeOpen, setScopeOpen] = useState(Boolean(assumptions.renovationScope));
   const copy = LABELS[language] || LABELS.en;
-  const needsTarget = missing.includes('target_condition');
-  const needsRehab = missing.includes('rehab_budget');
+  const residentialNotApplicable = data.analysisApplicability?.residentialArv === 'NOT_APPLICABLE';
+  const needsTarget = !residentialNotApplicable && missing.includes('target_condition');
+  const needsRehab = !residentialNotApplicable && missing.includes('rehab_budget');
   const benchmark = useMemo(() => {
     const options = Array.isArray(data.benchmarkOptions) ? data.benchmarkOptions : [];
     return options.find((item) => item?.scope === targetCondition) || null;
   }, [data.benchmarkOptions, targetCondition]);
   const hasCustomValue = rehabBudget !== '' && Number.isFinite(Number(rehabBudget)) && Number(rehabBudget) >= 0;
-  const rehabSatisfied = !needsRehab || rehabMode === 'without' || rehabMode === 'maintain'
+  const rehabSatisfied = !needsRehab || rehabMode === 'unset' || rehabMode === 'without' || rehabMode === 'maintain'
     || (rehabMode === 'benchmark' && Boolean(benchmark)) || (rehabMode === 'custom' && hasCustomValue);
   const valid = (!needsTarget || MAXXIS_TARGET_CONDITIONS.includes(targetCondition)) && rehabSatisfied;
   const rehabSanity = currentRehab !== null && benchmark?.livingAreaSqft

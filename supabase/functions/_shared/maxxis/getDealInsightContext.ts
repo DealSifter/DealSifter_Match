@@ -27,6 +27,7 @@ import {
   estimateRehabBenchmark2026,
   sanityCheckRehabAgainstBenchmark2026,
 } from './rehabCostBenchmarks2026.ts';
+import { classifyAnalysisApplicability } from './analysisApplicability.ts';
 
 export async function getDealInsightContextForAuthenticatedUser(
   input: unknown,
@@ -36,6 +37,7 @@ export async function getDealInsightContextForAuthenticatedUser(
   contextPropertyId?: string,
   plan: ProviderBudgetPlan = 'FREE',
   languageInput: string = 'en',
+  cacheOnly = false,
 ) {
   const validated = resolveDealInsightInput(input, contextPropertyId);
   const requestedReportType = validated.reportType;
@@ -44,7 +46,7 @@ export async function getDealInsightContextForAuthenticatedUser(
   const budgetBucket = reportRequested ? 'report' : 'chat';
   const providerAllowedByPlan = plan !== 'FREE';
   // Level 2 analysis must remain cache-only; it does not purchase or refresh evidence.
-  const allowPropertyProvider = providerAllowedByPlan && !maxxisAnalysisOnly;
+  const allowPropertyProvider = providerAllowedByPlan && !maxxisAnalysisOnly && !cacheOnly;
   const allowValuationProvider = providerAllowedByPlan && requestedReportType === 'DEAL_INTELLIGENCE';
   const providerEnabled = Deno.env.get('PROPERTY_DATA_MODE') === 'live';
   const runtimeTrace = {
@@ -87,13 +89,24 @@ export async function getDealInsightContextForAuthenticatedUser(
     usableCandidateCount: 0,
     compPromotionDiagnostics: [] as Array<Record<string, unknown>>,
     arvStatus: 'UNAVAILABLE',
+    recomputeMode: cacheOnly ? 'GAP_UPDATE_CACHE_ONLY' : 'STANDARD',
     stopReason: '',
   };
   const queryClient = client as unknown as {
     rpc: (name: string, args: Record<string, unknown>) => PromiseLike<{ data: unknown; error: unknown }>;
     from: (table: string) => any;
   };
+  let activeAnalysisApplicability: ReturnType<typeof classifyAnalysisApplicability> | null = null;
   const loadArvEvaluation = async (propertyId: string) => {
+    if (activeAnalysisApplicability?.residentialArv === 'NOT_APPLICABLE') {
+      runtimeTrace.valuationEvidence = 'NOT_REQUIRED';
+      runtimeTrace.valuationEvidenceReason = 'RESIDENTIAL_ARV_NOT_APPLICABLE';
+      runtimeTrace.soldEvidence = 'NOT_REQUIRED';
+      runtimeTrace.soldEvidenceReason = 'RESIDENTIAL_ARV_NOT_APPLICABLE';
+      runtimeTrace.arvStatus = 'NOT_APPLICABLE';
+      runtimeTrace.providerResult = 'NOT_APPLICABLE';
+      return null;
+    }
     if (!supabaseServiceRoleKey) {
       runtimeTrace.stopReason = 'PROPERTY_INTELLIGENCE_BACKEND_UNAVAILABLE';
       return null;
@@ -109,7 +122,10 @@ export async function getDealInsightContextForAuthenticatedUser(
     });
     try {
       runtimeTrace.addressValidation = 'ACCEPTED';
-      const valuation = await valuationService.getValuationEvidence({ propertyId, userId });
+      const valuation = cacheOnly
+        ? await valuationService.getCachedValuationEvidence({ propertyId, userId })
+        : await valuationService.getValuationEvidence({ propertyId, userId });
+      if (!valuation) throw new Error('VALUATION_CACHE_MISS');
       runtimeTrace.valuationEvidence = valuation.cacheHit ? 'HIT' : 'MISS_REFRESHED';
       runtimeTrace.valuationEvidenceReason = valuation.cacheHit ? 'CACHE_HIT' : 'PROVIDER_REFRESHED';
       runtimeTrace.valuationProviderAttempted = !valuation.cacheHit;
@@ -135,7 +151,10 @@ export async function getDealInsightContextForAuthenticatedUser(
     }
     let soldEvidenceLoaded = false;
     try {
-      const sold = await soldService.getSoldEvidence({ propertyId, userId });
+      const sold = cacheOnly
+        ? await soldService.getCachedSoldEvidence({ propertyId, userId })
+        : await soldService.getSoldEvidence({ propertyId, userId });
+      if (!sold) throw new Error('SOLD_EVIDENCE_CACHE_MISS');
       soldEvidenceLoaded = true;
       runtimeTrace.soldEvidence = sold.cacheHit ? 'HIT' : 'MISS_REFRESHED';
       runtimeTrace.soldEvidenceReason = sold.cacheHit ? 'CACHE_HIT' : 'PROVIDER_REFRESHED';
@@ -251,6 +270,10 @@ export async function getDealInsightContextForAuthenticatedUser(
     propertyId: validated.propertyId,
     loadPropertyDetails: async (propertyId) => {
       const details = await getPropertyDetailsWithClient({ propertyId }, client);
+      activeAnalysisApplicability = classifyAnalysisApplicability(
+        details.property as unknown as Record<string, unknown> | null,
+        analysisInputs,
+      );
       const explicitRehab = analysisInputs.rehabBudget !== null && analysisInputs.rehabBudget !== ''
         && Number.isFinite(Number(analysisInputs.rehabBudget))
         ? Number(analysisInputs.rehabBudget) : null;
@@ -289,6 +312,7 @@ export async function getDealInsightContextForAuthenticatedUser(
       return evidence;
     },
     loadArvEvaluation: allowValuationProvider ? loadArvEvaluation : undefined,
+    analysisAssumptions: analysisInputs,
   });
   if (!runtimeTrace.stopReason) runtimeTrace.stopReason = result.state === 'available' ? 'NONE' : 'PROPERTY_NOT_FOUND';
   const evidenceCompleteness = buildEvidenceCompleteness({
@@ -303,7 +327,11 @@ export async function getDealInsightContextForAuthenticatedUser(
     assumptions: analysisInputs,
     language: languageInput,
   });
-  const rehabBenchmark = estimateRehabBenchmark2026({
+  const analysisApplicability = activeAnalysisApplicability || classifyAnalysisApplicability(
+    result.property as unknown as Record<string, unknown> | null, analysisInputs,
+  );
+  const rehabNotApplicable = analysisApplicability.rehab === 'NOT_APPLICABLE';
+  const rehabBenchmark = rehabNotApplicable ? null : estimateRehabBenchmark2026({
     state: result.property?.state,
     livingAreaSqft: result.property?.sqft,
     condition: analysisInputs.targetCondition,
@@ -311,11 +339,12 @@ export async function getDealInsightContextForAuthenticatedUser(
   const activeRehab = Number(result.property?.rehab);
   const explicitRehab = Boolean(activeRehabInputSource);
   const rehabAnalysis = {
-    value: Number.isFinite(activeRehab) && activeRehab >= 0 ? activeRehab : null,
-    source: explicitRehab
+    applicability: analysisApplicability.rehab,
+    value: rehabNotApplicable ? null : Number.isFinite(activeRehab) && activeRehab >= 0 ? activeRehab : null,
+    source: rehabNotApplicable ? null : explicitRehab
       ? activeRehabInputSource || 'USER_PROVIDED'
       : Number.isFinite(activeRehab) && activeRehab > 0 ? 'PROPERTY_APP_VALUE' : null,
-    provenance: explicitRehab && activeRehabInputSource === 'USER_CURATED_REHAB_BENCHMARK_2026'
+    provenance: rehabNotApplicable ? 'NOT_APPLICABLE' : explicitRehab && activeRehabInputSource === 'USER_CURATED_REHAB_BENCHMARK_2026'
       ? 'ESTIMATED' : explicitRehab ? 'USER_PROVIDED' : Number.isFinite(activeRehab) && activeRehab > 0 ? 'REPORTED' : 'UNAVAILABLE',
     confidence: explicitRehab && activeRehabInputSource === 'USER_CURATED_REHAB_BENCHMARK_2026' ? 'LOW' : null,
     benchmark: rehabBenchmark,
@@ -360,6 +389,7 @@ export async function getDealInsightContextForAuthenticatedUser(
     },
     evidenceCompleteness,
     evidenceCompletenessGate,
+    analysisApplicability,
     dealIntelligence: result.dealIntelligence,
   } as const;
   const structuredAnalysis = buildMaxxisStructuredAnalysis(intelligenceSnapshot, requestedReportType, languageInput);

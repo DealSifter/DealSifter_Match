@@ -100,6 +100,29 @@ describe('MaxxisStructuredAnalysis', () => {
     expect(JSON.stringify(analysis)).not.toContain('The property has 62%');
     expect(JSON.stringify(analysis)).not.toContain('A defensible ARV cannot');
   });
+
+  it('represents vacant-land rehab and residential ARV as not applicable in Portuguese', () => {
+    const landSnapshot = {
+      ...snapshot,
+      propertyFacts: { type: 'Land', city: 'Center Point', state: 'AL', lot: '52272', rehab: 0 },
+      rehabAnalysis: { applicability: 'NOT_APPLICABLE', value: null, provenance: 'NOT_APPLICABLE' },
+      dealIntelligence: {
+        ...snapshot.dealIntelligence,
+        analysisApplicability: {
+          propertyCategory: 'VACANT_LAND', constructionPlanned: false,
+          rehab: 'NOT_APPLICABLE', residentialArv: 'NOT_APPLICABLE',
+        },
+        limitations: ['RESIDENTIAL_ARV_NOT_APPLICABLE'],
+        recommendedActions: ['Verify zoning, permitted use, utilities, access, survey, title and land-sale evidence.'],
+      },
+    };
+    const analysis = buildMaxxisStructuredAnalysis(landSnapshot, 'DEAL_INTELLIGENCE', 'pt');
+    expect(analysis.rehabAnalysis).toMatchObject({ applicability: 'NOT_APPLICABLE', provenance: 'NOT_APPLICABLE' });
+    expect(analysis.rehabAnalysis.interpretation).toContain('não se aplica a terreno vago');
+    expect(analysis.valuationAnalysis).toMatchObject({ applicability: 'NOT_APPLICABLE', arv: null });
+    expect(analysis.valuationAnalysis.arvInterpretation).toContain('ignorado intencionalmente');
+    expect(analysis.recommendedActions.join(' ')).toContain('zoneamento');
+  });
 });
 
 describe('EvidenceCompleteness', () => {

@@ -190,17 +190,22 @@ function comparativeAnalysis(context: AnyRecord, language: AnalysisLanguage) {
 
 function valuationAnalysis(context: AnyRecord, language: AnalysisLanguage, rehab: AnyRecord = {}) {
   const valuation = record(context.valuationContext);
+  const applicability = record(context.analysisApplicability);
+  const residentialArvNotApplicable = applicability.residentialArv === 'NOT_APPLICABLE';
   const metrics = record(record(context.dealMetrics).metrics);
   const status = text(valuation.status) || 'ARV_UNAVAILABLE';
   const providerEstimate = finite(record(valuation.providerEstimate).value);
   const arvAvailable = status !== 'ARV_UNAVAILABLE' && record(valuation.range).low != null && record(valuation.range).high != null;
   const limitations = unique([
     ...list(valuation.warnings).map((item) => explainMaxxisInternalState(item, language)),
-    ...(!arvAvailable ? [localized(language, 'A defensible ARV cannot be calculated with the evidence currently available.', 'Não é possível calcular um ARV defensável com as evidências disponíveis.', 'No es posible calcular un ARV defendible con la evidencia disponible.')] : []),
-    ...(!record(metrics.acquisitionPlusRehab).calculable ? [localized(language, 'ROI and spread scenarios remain limited until acquisition and rehabilitation inputs are complete.', 'Os cenários de ROI e margem permanecem limitados até que os dados de aquisição e reforma estejam completos.', 'Los escenarios de ROI y margen permanecen limitados hasta completar los datos de adquisición y reforma.')] : []),
+    ...(residentialArvNotApplicable
+      ? [localized(language, 'Residential ARV is not applicable to vacant land without a planned improvement scenario.', 'O ARV residencial não se aplica a terreno vago sem um cenário de construção ou melhoria planejada.', 'El ARV residencial no aplica a terreno vacío sin un escenario de construcción o mejora planificada.')]
+      : !arvAvailable ? [localized(language, 'A defensible ARV cannot be calculated with the evidence currently available.', 'Não é possível calcular um ARV defensável com as evidências disponíveis.', 'No es posible calcular un ARV defendible con la evidencia disponible.')] : []),
+    ...(rehab.applicability !== 'NOT_APPLICABLE' && !record(metrics.acquisitionPlusRehab).calculable ? [localized(language, 'ROI and spread scenarios remain limited until acquisition and rehabilitation inputs are complete.', 'Os cenários de ROI e margem permanecem limitados até que os dados de aquisição e reforma estejam completos.', 'Los escenarios de ROI y margen permanecen limitados hasta completar los datos de adquisición y reforma.')] : []),
   ]);
   return {
     providerEstimate,
+    applicability: residentialArvNotApplicable ? 'NOT_APPLICABLE' : 'APPLICABLE',
     providerEstimateRole: providerEstimate !== null ? 'SUPPORTING_EVIDENCE_ONLY' : 'UNAVAILABLE',
     arv: arvAvailable ? {
       rangeLow: finite(valuation.range.low), rangeHigh: finite(valuation.range.high),
@@ -208,7 +213,9 @@ function valuationAnalysis(context: AnyRecord, language: AnalysisLanguage, rehab
     } : null,
     confidence: arvAvailable ? text(valuation.confidence) : 'LOW',
     pricePositioning: record(metrics.pricePerSqft).calculable ? finite(record(metrics.pricePerSqft).value) : null,
-    rehabImpact: record(metrics.acquisitionPlusRehab).calculable
+    rehabImpact: rehab.applicability === 'NOT_APPLICABLE'
+      ? localized(language, 'Residential rehabilitation is not applicable to the current vacant-land scenario.', 'A reforma residencial não se aplica ao cenário atual de terreno vago.', 'La rehabilitación residencial no aplica al escenario actual de terreno vacío.')
+      : record(metrics.acquisitionPlusRehab).calculable
       ? rehab.provenance === 'ESTIMATED'
         ? localized(language, 'The acquisition-plus-rehab scenario uses the optional 2026 state benchmark as a low-confidence preliminary estimate.', 'O cenário de aquisição mais reforma utiliza a referência estadual opcional de 2026 como estimativa preliminar de baixa confiança.', 'El escenario de adquisición más reforma utiliza la referencia estatal opcional de 2026 como estimación preliminar de baja confianza.')
         : localized(language, 'The supplied rehabilitation budget is included in the deterministic acquisition-plus-rehab total.', 'O orçamento de reforma informado está incluído no total determinístico de aquisição mais reforma.', 'El presupuesto de reforma informado está incluido en el total determinístico de adquisición más reforma.')
@@ -216,10 +223,14 @@ function valuationAnalysis(context: AnyRecord, language: AnalysisLanguage, rehab
     currentPositioning: record(metrics.pricePerSqft).calculable
       ? localized(language, `The stored asking price equates to ${Number(record(metrics.pricePerSqft).value).toLocaleString('en-US', { style: 'currency', currency: 'USD' })} per square foot; this is a deterministic positioning metric, not a valuation conclusion.`, `O preço pedido registrado equivale a ${Number(record(metrics.pricePerSqft).value).toLocaleString('en-US', { style: 'currency', currency: 'USD' })} por pé quadrado; esta é uma métrica determinística de posicionamento, não uma conclusão de valor.`, `El precio solicitado registrado equivale a ${Number(record(metrics.pricePerSqft).value).toLocaleString('en-US', { style: 'currency', currency: 'USD' })} por pie cuadrado; esta es una métrica determinística de posicionamiento, no una conclusión de valor.`)
       : localized(language, 'Price-per-square-foot positioning cannot be calculated from the currently available facts.', 'O posicionamento por preço por pé quadrado não pode ser calculado com os dados disponíveis.', 'El posicionamiento por precio por pie cuadrado no puede calcularse con los datos disponibles.'),
-    arvInterpretation: arvAvailable
+    arvInterpretation: residentialArvNotApplicable
+      ? localized(language, 'Residential ARV was intentionally skipped for this vacant-land scenario.', 'O ARV residencial foi ignorado intencionalmente neste cenário de terreno vago.', 'El ARV residencial se omitió intencionalmente en este escenario de terreno vacío.')
+      : arvAvailable
       ? localized(language, `The existing deterministic engine produced an ARV range of $${Number(valuation.range.low).toLocaleString('en-US')} to $${Number(valuation.range.high).toLocaleString('en-US')} with ${text(valuation.confidence).toLowerCase()} confidence.`, `O mecanismo determinístico existente produziu uma faixa de ARV de $${Number(valuation.range.low).toLocaleString('en-US')} a $${Number(valuation.range.high).toLocaleString('en-US')}, com confiança ${text(valuation.confidence).toLowerCase()}.`, `El motor determinístico existente produjo un rango ARV de $${Number(valuation.range.low).toLocaleString('en-US')} a $${Number(valuation.range.high).toLocaleString('en-US')}, con confianza ${text(valuation.confidence).toLowerCase()}.`)
       : localized(language, 'A defensible DealSifter ARV is unavailable under the current evidence gates.', 'Um ARV DealSifter defensável está indisponível segundo os critérios atuais de evidência.', 'Un ARV DealSifter defendible no está disponible según los criterios actuales de evidencia.'),
-    confidenceInterpretation: arvAvailable
+    confidenceInterpretation: residentialArvNotApplicable
+      ? localized(language, 'No residential ARV confidence level is assigned because the method is not applicable.', 'Nenhum nível de confiança de ARV residencial é atribuído porque o método não é aplicável.', 'No se asigna un nivel de confianza de ARV residencial porque el método no es aplicable.')
+      : arvAvailable
       ? localized(language, `Confidence is ${text(valuation.confidence).toLowerCase()} because the result depends on ${finite(valuation.compsUsed) ?? 0} eligible comparable sale${Number(valuation.compsUsed) === 1 ? '' : 's'} and the recorded evidence quality.`, `A confiança é ${text(valuation.confidence).toLowerCase()} porque o resultado depende de ${finite(valuation.compsUsed) ?? 0} venda(s) comparável(is) elegível(is) e da qualidade das evidências registradas.`, `La confianza es ${text(valuation.confidence).toLowerCase()} porque el resultado depende de ${finite(valuation.compsUsed) ?? 0} venta(s) comparable(s) elegible(s) y de la calidad de la evidencia registrada.`)
       : localized(language, 'Valuation confidence is limited because no eligible deterministic ARV set is available.', 'A confiança da avaliação é limitada porque não há um conjunto determinístico de ARV elegível.', 'La confianza de la valoración es limitada porque no hay un conjunto determinístico de ARV elegible.'),
     scenarioInterpretation: providerEstimate !== null
@@ -242,6 +253,7 @@ function rehabAnalysis(snapshot: AnyRecord, language: AnalysisLanguage) {
       : sanity.classification === 'WITHIN_REFERENCE_RANGE'
         ? localized(language, 'The active budget is within the 2026 reference range.', 'O orçamento ativo está dentro da faixa de referência de 2026.', 'El presupuesto activo está dentro del rango de referencia de 2026.') : '';
   return {
+    applicability: rehab.applicability === 'NOT_APPLICABLE' ? 'NOT_APPLICABLE' : 'APPLICABLE',
     budget: value,
     source: text(rehab.source) || null,
     provenance: text(rehab.provenance) || 'UNAVAILABLE',
@@ -253,7 +265,9 @@ function rehabAnalysis(snapshot: AnyRecord, language: AnalysisLanguage) {
     } : null,
     actualRehabPerSqft: finite(sanity.actualRehabPerSqft),
     sanityCheck: sanityText || null,
-    interpretation: value !== null
+    interpretation: rehab.applicability === 'NOT_APPLICABLE'
+      ? localized(language, 'Residential rehabilitation is not applicable to vacant land without planned construction.', 'A reforma residencial não se aplica a terreno vago sem construção planejada.', 'La rehabilitación residencial no aplica a terreno vacío sin construcción planificada.')
+      : value !== null
       ? rehab.provenance === 'ESTIMATED'
         ? localized(language, 'This preliminary rehabilitation scenario uses a user-selected, unsourced 2026 reference benchmark and must not be treated as contractor pricing.', 'Este cenário preliminar de reforma utiliza uma referência de 2026 sem fonte preservada, escolhida pelo usuário, e não deve ser tratado como orçamento de empreiteiro.', 'Este escenario preliminar de reforma utiliza una referencia de 2026 sin fuente preservada, elegida por el usuario, y no debe tratarse como presupuesto de contratista.')
         : localized(language, 'The active rehabilitation amount comes from the user or the stored property record and takes priority over the reference benchmark.', 'O valor de reforma ativo vem do usuário ou do cadastro do imóvel e tem prioridade sobre a referência.', 'El valor de reforma activo proviene del usuario o del registro de la propiedad y tiene prioridad sobre la referencia.')
@@ -330,6 +344,7 @@ function localizedAction(value: unknown, language: AnalysisLanguage) {
     'Compare the property with the configured target market and price preferences.': ['Compare o imóvel com o mercado-alvo e as preferências de preço configuradas.', 'Compara la propiedad con el mercado objetivo y las preferencias de precio configuradas.'],
     'Complete or verify the missing property fields.': ['Complete ou verifique os campos ausentes do imóvel.', 'Completa o verifica los campos faltantes de la propiedad.'],
     'Confirm property condition.': ['Confirme a condição do imóvel.', 'Confirma el estado de la propiedad.'],
+    'Verify zoning, permitted use, utilities, access, survey, title and land-sale evidence.': ['Verifique zoneamento, uso permitido, serviços públicos, acesso, levantamento, titularidade e evidências de vendas de terrenos.', 'Verifica zonificación, uso permitido, servicios públicos, acceso, levantamiento, titularidad y evidencia de ventas de terrenos.'],
   };
   const translated = actions[raw]?.[language === 'pt' ? 0 : 1] || explainMaxxisInternalState(raw, language);
   if (translated !== raw) return translated;
@@ -341,6 +356,7 @@ function localizedLimitation(value: unknown, language: AnalysisLanguage) {
   const explained = explainMaxxisInternalState(raw, language);
   if (language === 'en' || explained !== raw) return explained;
   const normalized = raw.toLowerCase();
+  if (raw === 'RESIDENTIAL_ARV_NOT_APPLICABLE') return localized(language, raw, 'O ARV residencial não se aplica a este cenário de terreno vago.', 'El ARV residencial no aplica a este escenario de terreno vacío.');
   if (/rehab|renov|repair|condition/.test(normalized)) return localized(language, raw, 'A condição do imóvel e o escopo da reforma ainda precisam ser verificados.', 'El estado de la propiedad y el alcance de la reforma aún deben verificarse.');
   if (/title|ownership|owner|legal/.test(normalized)) return localized(language, raw, 'A titularidade e a situação jurídica do imóvel ainda precisam ser verificadas.', 'La titularidad y la situación jurídica de la propiedad aún deben verificarse.');
   if (/rent|income|operating|expense|occupancy/.test(normalized)) return localized(language, raw, 'A renda, a ocupação e as despesas operacionais ainda precisam ser verificadas.', 'Los ingresos, la ocupación y los gastos operativos aún deben verificarse.');
