@@ -1750,7 +1750,13 @@ button.maxxis-action-link:hover {
 @media (prefers-reduced-motion: reduce) {
   .maxxis-report-v2 > summary { animation: none; }
   .maxxis-v2-open-hint { animation: none; }
-  .maxxis-typing-dots i { animation: maxxisTypingReduced 1.2s infinite ease-in-out; transform: none; }
+  /* This status indicator must keep communicating that a request is active.
+     Use opacity-only motion and explicitly override the global reduced-motion
+     reset, which otherwise turns the desktop indicator into static dots. */
+  .maxxis-typing-dots i {
+    animation: maxxisTypingReduced 1.2s infinite ease-in-out !important;
+    transform: none !important;
+  }
 }
 
 .maxxis-arv-comp-card { border-bottom: 1px solid var(--border-color, #cbd5e1); }

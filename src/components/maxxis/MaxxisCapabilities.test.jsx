@@ -31,6 +31,7 @@ describe('Maxxis Deal AI structured result presentation', () => {
     expect(assistant).not.toContain('<strong>{t.typing}</strong>');
     expect(css).toMatch(/\.maxxis-typing-dots i\s*\{[\s\S]*animation:\s*maxxisTyping/);
     expect(css).toMatch(/@keyframes maxxisTyping/);
+    expect(css).toMatch(/@media \(prefers-reduced-motion: reduce\)[\s\S]*?\.maxxis-typing-dots i\s*\{[\s\S]*?animation:\s*maxxisTypingReduced 1\.2s infinite ease-in-out !important/);
   });
 
   it('keeps a report CTA visible when the answer uses the composed experience', () => {
