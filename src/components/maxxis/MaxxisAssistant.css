@@ -242,12 +242,68 @@
 }
 
 .maxxis-message-body {
+  position: relative;
   padding: 11px 13px;
   border-radius: 14px;
   font-size: 13px;
   line-height: 1.45;
   white-space: normal;
   overflow-wrap: anywhere;
+}
+
+.maxxis-message-body-copyable {
+  padding-right: 45px;
+}
+
+.maxxis-message-copy-row {
+  min-height: 29px;
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+}
+
+.maxxis-message-copy-button {
+  width: 29px;
+  height: 29px;
+  padding: 0;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid color-mix(in srgb, var(--border) 82%, transparent);
+  border-radius: 8px;
+  background: color-mix(in srgb, var(--card) 82%, transparent);
+  color: var(--t2);
+  box-shadow: 0 3px 10px color-mix(in srgb, #071b2a 8%, transparent);
+  cursor: pointer;
+  opacity: 0.76;
+  transition: opacity 140ms ease, color 140ms ease, border-color 140ms ease, background 140ms ease, transform 140ms ease;
+}
+
+.maxxis-message-body > .maxxis-message-copy-button {
+  position: absolute;
+  top: 7px;
+  right: 7px;
+}
+
+.maxxis-message-copy-button:hover,
+.maxxis-message-copy-button:focus-visible {
+  opacity: 1;
+  color: var(--accent);
+  border-color: color-mix(in srgb, var(--accent) 62%, var(--border));
+  background: color-mix(in srgb, var(--accent) 9%, var(--card));
+  transform: translateY(-1px);
+}
+
+.maxxis-message-copy-button:focus-visible {
+  outline: 2px solid color-mix(in srgb, var(--accent) 72%, transparent);
+  outline-offset: 2px;
+}
+
+.maxxis-message-copy-button.is-copied {
+  opacity: 1;
+  color: #0f9f78;
+  border-color: color-mix(in srgb, #0f9f78 58%, var(--border));
+  background: color-mix(in srgb, #0f9f78 10%, var(--card));
 }
 
 .maxxis-message-user .maxxis-message-body {
@@ -962,6 +1018,14 @@ button.maxxis-action-link:hover {
     border-radius: 13px;
     font-size: 12px;
     line-height: 1.38;
+  }
+
+  .maxxis-message-body-copyable {
+    padding-right: 43px;
+  }
+
+  .maxxis-message-copy-button {
+    opacity: 1;
   }
 
   .maxxis-action-links {

@@ -1,5 +1,5 @@
 /* eslint-disable react-refresh/only-export-components -- capability registry intentionally co-locates renderers and their pure discriminators */
-import React, { useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { Icon } from '../ui/Icon';
 import { getLang } from '../../i18n/translations';
 import { C } from '../../theme/colors';
@@ -31,6 +31,8 @@ export const COPY = {
     open: 'Open Maxxis Deal AI Assistant',
     support: 'Human support',
     typing: 'Maxxis Deal AI is thinking...',
+    copyResponse: 'Copy response',
+    responseCopied: 'Response copied',
     unavailable: 'I had a temporary issue. Please try again or contact human support.',
     providerConversationContextMissing: 'Open a provider message flow first, then I can analyze that provider conversation safely.',
     exportAnalysisPdf: 'Export analysis PDF',
@@ -82,6 +84,8 @@ export const COPY = {
     open: 'Abrir Assistente Maxxis Deal AI',
     support: 'Suporte humano',
     typing: 'Maxxis Deal AI esta pensando...',
+    copyResponse: 'Copiar resposta',
+    responseCopied: 'Resposta copiada',
     unavailable: 'Tive uma dificuldade temporaria. Tente novamente ou fale com o suporte humano.',
     providerConversationContextMissing: 'Abra primeiro um fluxo de mensagem com provider, entao eu consigo analisar essa conversa com seguranca.',
     exportAnalysisPdf: 'Exportar PDF da analise',
@@ -133,6 +137,8 @@ export const COPY = {
     open: 'Abrir Asistente Maxxis Deal AI',
     support: 'Soporte humano',
     typing: 'Maxxis Deal AI esta pensando...',
+    copyResponse: 'Copiar respuesta',
+    responseCopied: 'Respuesta copiada',
     unavailable: 'Tuve un problema temporal. Intentalo otra vez o contacta soporte humano.',
     providerConversationContextMissing: 'Abre primero un flujo de mensaje con provider, y entonces puedo analizar esa conversacion de forma segura.',
     exportAnalysisPdf: 'Exportar PDF del analisis',
@@ -1596,6 +1602,70 @@ export function readStoredPanelPosition() {
   }
 }
 
+export async function writeMaxxisResponseToClipboard(value) {
+  const text = String(value || '').trim();
+  if (!text) return false;
+
+  try {
+    if (typeof navigator !== 'undefined' && navigator.clipboard?.writeText) {
+      await navigator.clipboard.writeText(text);
+      return true;
+    }
+  } catch {
+    // Some desktop browsers expose the Clipboard API but block it. Use the
+    // selection fallback so the control still works in that environment.
+  }
+
+  if (typeof document === 'undefined' || typeof document.execCommand !== 'function') return false;
+  const textarea = document.createElement('textarea');
+  textarea.value = text;
+  textarea.setAttribute('readonly', '');
+  textarea.style.position = 'fixed';
+  textarea.style.inset = '-9999px auto auto -9999px';
+  textarea.style.opacity = '0';
+  document.body.appendChild(textarea);
+  textarea.select();
+  try {
+    return Boolean(document.execCommand('copy'));
+  } catch {
+    return false;
+  } finally {
+    textarea.remove();
+  }
+}
+
+function MessageCopyButton({ text, language }) {
+  const copy = COPY[language] || COPY.en;
+  const [copied, setCopied] = useState(false);
+  const resetTimerRef = useRef(null);
+
+  useEffect(() => () => {
+    if (resetTimerRef.current) window.clearTimeout(resetTimerRef.current);
+  }, []);
+
+  const handleCopy = async () => {
+    const succeeded = await writeMaxxisResponseToClipboard(text);
+    if (!succeeded) return;
+    setCopied(true);
+    if (resetTimerRef.current) window.clearTimeout(resetTimerRef.current);
+    resetTimerRef.current = window.setTimeout(() => setCopied(false), 1800);
+  };
+
+  const label = copied ? copy.responseCopied : copy.copyResponse;
+  return (
+    <button
+      type="button"
+      className={`maxxis-message-copy-button ${copied ? 'is-copied' : ''}`}
+      onClick={handleCopy}
+      aria-label={label}
+      title={label}
+      data-testid="maxxis-message-copy-button"
+    >
+      <Icon name={copied ? 'check' : 'copy'} size={15} color="currentColor" strokeWidth={2} />
+    </button>
+  );
+}
+
 export function MessageBubble({
   message,
   language,
@@ -1648,10 +1718,16 @@ export function MessageBubble({
   const { text, actions } = isUser
     ? { text: String(message.content || ''), actions: [] }
     : parseActionContent(message.content, language);
+  const canCopyResponse = !isUser && !message.error && Boolean(String(text || '').trim());
   const compositionKeepsControls = ['ACTION_PREPARATION', 'ACTION_CONFIRMATION'].includes(composedExperience?.mode);
   if (!isUser && composedExperience?.status === 'COMPOSED' && composedExperience?.presentationHints?.render !== false && !compositionKeepsControls) {
     return (
       <div className={`maxxis-message maxxis-message-assistant ${message.error ? 'maxxis-message-error' : ''}`}>
+        {canCopyResponse ? (
+          <div className="maxxis-message-copy-row">
+            <MessageCopyButton text={text} language={language} />
+          </div>
+        ) : null}
         <MaxxisComposedExperience
           experience={composedExperience}
           message={message}
@@ -1678,6 +1754,11 @@ export function MessageBubble({
   }
   return (
     <div className={`maxxis-message ${isUser ? 'maxxis-message-user' : 'maxxis-message-assistant'} ${isReportResult ? 'maxxis-message-report' : ''} ${message.error ? 'maxxis-message-error' : ''}`}>
+      {compositionKeepsControls && canCopyResponse ? (
+        <div className="maxxis-message-copy-row">
+          <MessageCopyButton text={text} language={language} />
+        </div>
+      ) : null}
       {compositionKeepsControls ? (
         <MaxxisComposedExperience
           experience={composedExperience}
@@ -1687,7 +1768,8 @@ export function MessageBubble({
         />
       ) : null}
       {text && !compositionKeepsControls ? (
-        <div className="maxxis-message-body">
+        <div className={`maxxis-message-body ${canCopyResponse ? 'maxxis-message-body-copyable' : ''}`}>
+          {canCopyResponse ? <MessageCopyButton text={text} language={language} /> : null}
           {String(text || '').split('\n').map((line, index, arr) => (
             <React.Fragment key={`${message.id}-line-${index}`}>
               {line}
