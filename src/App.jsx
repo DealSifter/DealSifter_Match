@@ -106,6 +106,7 @@ import { useUserPreferences } from './hooks/useUserPreferences';
 import { fetchFeatureFlagsWithRetry, isFeatureEnabled } from './services/featureFlagService';
 import { deleteMaxxisReportArtifact, listMaxxisReportEntitlements, listMaxxisReportHistory, saveMaxxisReportPayload, unlockMaxxisReport } from './services/maxxisReportService';
 import { canPerformAction, getPlanActionAccess, getPlanGateCopy, getCurrentPlan, isPlanLimitError, refreshUsageFromDB, resolveRemainingNuggets } from './services/planUsageService';
+import { isInsufficientSpotlightBalanceError, purchaseCardSpotlights } from './services/spotlightService';
 import { isProfileConflictError, saveProfessionalProfileWithVersion } from './services/profileConcurrencyService';
 import { clearSensitiveCache, clearUserScopedCache } from './lib/localStoragePolicy';
 import { trackAppEvent } from './lib/adminEventTracking';
@@ -5413,20 +5414,6 @@ export default function App() {
     const selected = (items || []).filter((item) => item?.cardKind && item?.cardId);
     const totalCost = selected.length * 10;
     if (!selected.length) return;
-    if (isSupabaseConfigured && supabaseUserId) {
-      const gate = await canPerformAction(supabaseUserId, 'spotlight');
-      if (!gate.allowed) {
-        const copy = getPlanGateCopy('spotlight');
-        addToast({ type: 'warning', title: copy.title, message: copy.message });
-        openPricingHub();
-        return;
-      }
-    }
-    if (!isAdmin && nuggets < totalCost) {
-      addToast({ type: 'warning', title: 'Not enough nuggets', message: `You need ${totalCost} nuggets to activate these spotlights.` });
-      openPricingHub();
-      return;
-    }
     if (!isSupabaseConfigured || !supabase || !supabaseUserId) {
       addToast({ type: 'error', title: 'Spotlight unavailable', message: 'Supabase is required to activate paid spotlights.' });
       return;
@@ -5434,22 +5421,13 @@ export default function App() {
 
     setIsSpotlightProcessing(true);
     try {
-      const payload = selected.map((item) => ({
-        cardKind: item.cardKind,
-        cardId: item.cardId,
-        ownerId: supabaseUserId,
-        scope: item.scope || '',
-        metadata: { source: 'spotlight_modal', title: String(item.title || '').slice(0, 120) },
-      }));
-      const { data, error } = await supabase.rpc('ds_purchase_card_spotlights', { p_items: payload });
-      if (error) throw error;
-      const rows = Array.isArray(data) ? data : [];
-      const firstRow = rows[0] || null;
-      if (!Number.isFinite(Number(firstRow?.remaining_nuggets))) {
-        throw new Error('Spotlight purchase did not return the confirmed server balance.');
-      }
+      const { rows, remainingNuggets } = await purchaseCardSpotlights({
+        supabaseClient: supabase,
+        userId: supabaseUserId,
+        items: selected,
+      });
       await applyConfirmedNuggetBalance({
-        serverRemainingNuggets: firstRow.remaining_nuggets,
+        serverRemainingNuggets: remainingNuggets,
         fallbackCost: totalCost,
       });
       clearSensitiveCache(supabaseUserId);
@@ -5467,7 +5445,13 @@ export default function App() {
       addToast({ type: 'success', title: 'Spotlight activated', message: `${selected.length} card(s) will be featured for 30 days.` });
       setModal(null);
     } catch (error) {
-      addToast({ type: 'error', title: 'Spotlight failed', message: String(error?.message || 'Could not activate spotlight right now.') });
+      await refreshCurrentPlanAccess({ notify: false });
+      if (isInsufficientSpotlightBalanceError(error)) {
+        addToast({ type: 'warning', title: 'Not enough nuggets', message: `You need ${totalCost} nuggets to activate these spotlights.` });
+        openPricingHub();
+      } else {
+        addToast({ type: 'error', title: 'Spotlight failed', message: String(error?.message || 'Could not activate spotlight right now.') });
+      }
     } finally {
       setIsSpotlightProcessing(false);
     }
