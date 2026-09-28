@@ -161,7 +161,7 @@ describe('EvidenceCompleteness', () => {
       trace: { propertyEvidence: 'HIT', soldEvidence: 'MISS_REFRESHED', valuationEvidence: 'MISS_REFRESHED',
         soldProviderAttempted: true, valuationProviderAttempted: true } })).toMatchObject({
       complete: true,
-      sold: { status: 'UNAVAILABLE', reason: 'PROVIDER_NO_RESULTS', cacheChecked: true, providerAttempted: true },
+      sold: { status: 'PROVIDER_NO_RESULT', reason: 'PROVIDER_NO_RESULTS', cacheChecked: true, providerAttempted: true },
       valuation: { status: 'INSUFFICIENT', reason: 'PROVIDER_AVM_AVAILABLE_ARV_GATES_NOT_MET', cacheChecked: true, providerAttempted: true },
     });
   });
@@ -187,5 +187,29 @@ describe('EvidenceCompleteness', () => {
     });
     expect(completeness.sold).toMatchObject({ status: 'NOT_REQUESTED', providerAttempted: false });
     expect(completeness.valuation).toMatchObject({ status: 'NOT_REQUESTED', providerAttempted: false });
+  });
+
+  it('keeps stale, unauthorized, and provider-no-result evidence states distinct', () => {
+    const stale = buildEvidenceCompleteness({
+      reportType: 'DEAL_INTELLIGENCE', evidenceState: 'unavailable', context: snapshot.dealIntelligence,
+      trace: { propertyEvidence: 'STALE', propertyEvidenceReason: 'CACHE_EXPIRED' },
+    });
+    expect(stale.property).toMatchObject({ status: 'STALE', reason: 'CACHE_EXPIRED' });
+
+    const unauthorized = buildEvidenceCompleteness({
+      reportType: 'DEAL_INTELLIGENCE', evidenceState: 'unavailable', context: snapshot.dealIntelligence,
+      trace: { propertyEvidence: 'UNKNOWN', propertyEvidenceReason: 'PROPERTY_INTELLIGENCE_NOT_AUTHORIZED' },
+    });
+    expect(unauthorized.property).toMatchObject({
+      status: 'NOT_AUTHORIZED', reason: 'PROPERTY_INTELLIGENCE_NOT_AUTHORIZED', providerAttempted: false,
+    });
+
+    const noResult = buildEvidenceCompleteness({
+      reportType: 'DEAL_INTELLIGENCE', evidenceState: 'not_found', context: snapshot.dealIntelligence,
+      trace: { propertyEvidence: 'MISS', propertyEvidenceReason: 'PROPERTY_NOT_FOUND', propertyProviderAttempted: true },
+    });
+    expect(noResult.property).toMatchObject({
+      status: 'PROVIDER_NO_RESULT', reason: 'PROPERTY_NOT_FOUND', providerAttempted: true,
+    });
   });
 });

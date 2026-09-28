@@ -28,6 +28,8 @@ import {
   sanityCheckRehabAgainstBenchmark2026,
 } from './rehabCostBenchmarks2026.ts';
 import { classifyAnalysisApplicability } from './analysisApplicability.ts';
+import { resolvePropertyEvidenceAccess } from './propertyEvidenceAccess.ts';
+import { mergeVerifiedPropertyEvidenceIntoFacts } from './propertyEvidenceProjection.ts';
 
 export async function getDealInsightContextForAuthenticatedUser(
   input: unknown,
@@ -45,8 +47,9 @@ export async function getDealInsightContextForAuthenticatedUser(
   const reportRequested = maxxisAnalysisOnly || requestedReportType === 'DEAL_INTELLIGENCE';
   const budgetBucket = reportRequested ? 'report' : 'chat';
   const providerAllowedByPlan = plan !== 'FREE';
-  // Level 2 analysis must remain cache-only; it does not purchase or refresh evidence.
-  const allowPropertyProvider = providerAllowedByPlan && !maxxisAnalysisOnly && !cacheOnly;
+  const propertyEvidenceAccess = resolvePropertyEvidenceAccess({ plan, maxxisAnalysisOnly, cacheOnly });
+  // Level 2 and cache-only recomputations may consume existing evidence, but never purchase a refresh.
+  const allowPropertyProvider = propertyEvidenceAccess.allowProviderFallback;
   const allowValuationProvider = providerAllowedByPlan && requestedReportType === 'DEAL_INTELLIGENCE';
   const providerEnabled = Deno.env.get('PROPERTY_DATA_MODE') === 'live';
   const runtimeTrace = {
@@ -296,7 +299,7 @@ export async function getDealInsightContextForAuthenticatedUser(
     loadPropertyEvidence: async (propertyId) => {
       const evidence = await getPropertyEvidenceForAuthenticatedUser(
         { propertyId }, authHeader, userId, propertyId, allowPropertyProvider,
-        allowPropertyProvider ? { plan, bucket: budgetBucket } : undefined,
+        propertyEvidenceAccess.cacheAuthorized ? { plan, bucket: budgetBucket } : undefined,
       );
       runtimeTrace.propertyEvidence = evidence.cacheState.toUpperCase();
       runtimeTrace.propertyEvidenceReason = evidence.reason || (evidence.state === 'available'
@@ -354,7 +357,10 @@ export async function getDealInsightContextForAuthenticatedUser(
   const intelligenceSnapshot = {
     version: 'MAXXIS_INTELLIGENCE_SNAPSHOT_V1',
     propertyId: result.propertyId,
-    propertyFacts: result.property,
+    propertyFacts: mergeVerifiedPropertyEvidenceIntoFacts(
+      result.property as unknown as Record<string, unknown> | null,
+      result.dealIntelligence?.propertyContext || null,
+    ),
     ownerLandFacts: result.dealIntelligence?.propertyContext || null,
     investmentProfile: result.investmentProfile,
     matchScore: result.match,

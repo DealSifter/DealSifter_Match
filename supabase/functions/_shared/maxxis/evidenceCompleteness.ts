@@ -1,5 +1,5 @@
 export type EvidenceFamilyStatus = 'AVAILABLE' | 'UNAVAILABLE' | 'REJECTED' | 'NOT_AUTHORIZED'
-  | 'NOT_REQUESTED' | 'NOT_APPLICABLE' | 'INSUFFICIENT' | 'STALE';
+  | 'NOT_REQUESTED' | 'NOT_APPLICABLE' | 'INSUFFICIENT' | 'STALE' | 'PROVIDER_NO_RESULT';
 
 export type EvidenceFamilyResult = Readonly<{
   status: EvidenceFamilyStatus;
@@ -18,6 +18,19 @@ function rejected(trace: Trace) {
   return trace.addressValidation === 'REJECTED' || trace.stopReason === 'ADDRESS_MISMATCH';
 }
 
+function isStale(state: unknown, reason: unknown) {
+  return String(state || '').toUpperCase() === 'STALE' || /STALE|EXPIRED/.test(String(reason || '').toUpperCase());
+}
+
+function isNotAuthorized(reason: unknown) {
+  return /NOT_AUTHORIZED|ENTITLEMENT_(?:MISSING|REQUIRED)|CAPABILITY_NOT_AUTHORIZED/.test(String(reason || '').toUpperCase());
+}
+
+function isProviderNoResult(reason: unknown, providerAttempted: boolean) {
+  if (!providerAttempted) return false;
+  return /PROVIDER_NO_RESULTS?|PROPERTY_NOT_FOUND|NO_(?:PROPERTY|RESULTS?)_FOUND/.test(String(reason || '').toUpperCase());
+}
+
 export function buildEvidenceCompleteness({ reportType, evidenceState, context, trace }: {
   reportType: string;
   evidenceState: string;
@@ -29,6 +42,12 @@ export function buildEvidenceCompleteness({ reportType, evidenceState, context, 
   const propertyReason = String(trace.propertyEvidenceReason || 'PROPERTY_EVIDENCE_INCOMPLETE');
   const property = rejected(trace)
     ? result('REJECTED', 'ADDRESS_MISMATCH', propertyCacheChecked, Boolean(trace.propertyProviderAttempted))
+    : isNotAuthorized(propertyReason)
+      ? result('NOT_AUTHORIZED', propertyReason, propertyCacheChecked, false)
+    : isStale(trace.propertyEvidence, propertyReason)
+      ? result('STALE', propertyReason, true, Boolean(trace.propertyProviderAttempted))
+    : isProviderNoResult(propertyReason, Boolean(trace.propertyProviderAttempted))
+      ? result('PROVIDER_NO_RESULT', propertyReason, propertyCacheChecked, true)
     : evidenceState === 'available'
       ? result('AVAILABLE', trace.propertyEvidence === 'HIT' ? 'CACHE_HIT' : 'PROPERTY_EVIDENCE_ASSEMBLED', propertyCacheChecked, Boolean(trace.propertyProviderAttempted))
       : evidenceState === 'locked'
@@ -57,25 +76,39 @@ export function buildEvidenceCompleteness({ reportType, evidenceState, context, 
   }
   const soldCacheChecked = !['UNKNOWN', 'NOT_REQUIRED'].includes(String(trace.soldEvidence || ''));
   const valuationCacheChecked = !['UNKNOWN', 'NOT_REQUIRED'].includes(String(trace.valuationEvidence || ''));
+  const soldReason = String(trace.soldEvidenceReason || (trace.soldProviderAttempted ? 'PROVIDER_NO_RESULTS' : 'CACHE_NO_RESULTS'));
+  const valuationReason = String(trace.valuationEvidenceReason || (valuationContext.providerEstimate?.value
+    ? 'PROVIDER_AVM_AVAILABLE_ARV_GATES_NOT_MET' : 'ARV_GATES_NOT_MET'));
   const propertyBlocksDependentEvidence = property.status !== 'AVAILABLE';
   const sold = rejected(trace)
     ? result('REJECTED', 'ADDRESS_MISMATCH', soldCacheChecked, Boolean(trace.soldProviderAttempted))
+    : isNotAuthorized(soldReason)
+      ? result('NOT_AUTHORIZED', soldReason, soldCacheChecked, false)
+    : isStale(trace.soldEvidence, soldReason)
+      ? result('STALE', soldReason, true, Boolean(trace.soldProviderAttempted))
     : propertyBlocksDependentEvidence && !soldCacheChecked
       ? result('NOT_REQUESTED', `PROPERTY_EVIDENCE_REQUIRED:${property.reason}`, false, false)
     : Number(trace.soldNormalizedCandidateCount || trace.candidateCount || 0) > 0
       ? result('AVAILABLE', 'RECORDED_SALES_AVAILABLE', soldCacheChecked, Boolean(trace.soldProviderAttempted))
+      : isProviderNoResult(soldReason, Boolean(trace.soldProviderAttempted))
+        ? result('PROVIDER_NO_RESULT', soldReason, true, true)
       : soldCacheChecked
-        ? result('UNAVAILABLE', String(trace.soldEvidenceReason || (trace.soldProviderAttempted ? 'PROVIDER_NO_RESULTS' : 'CACHE_NO_RESULTS')), true, Boolean(trace.soldProviderAttempted))
+        ? result('UNAVAILABLE', soldReason, true, Boolean(trace.soldProviderAttempted))
         : result('NOT_REQUESTED', 'SOLD_EVIDENCE_NOT_CHECKED', false, false);
   const valuation = rejected(trace)
     ? result('REJECTED', 'ADDRESS_MISMATCH', valuationCacheChecked, Boolean(trace.valuationProviderAttempted))
+    : isNotAuthorized(valuationReason)
+      ? result('NOT_AUTHORIZED', valuationReason, valuationCacheChecked, false)
+    : isStale(trace.valuationEvidence, valuationReason)
+      ? result('STALE', valuationReason, true, Boolean(trace.valuationProviderAttempted))
     : propertyBlocksDependentEvidence && !valuationCacheChecked
       ? result('NOT_REQUESTED', `PROPERTY_EVIDENCE_REQUIRED:${property.reason}`, false, false)
     : valuationContext.status && valuationContext.status !== 'ARV_UNAVAILABLE'
       ? result('AVAILABLE', 'DETERMINISTIC_ARV_AVAILABLE', valuationCacheChecked, Boolean(trace.valuationProviderAttempted))
+      : isProviderNoResult(valuationReason, Boolean(trace.valuationProviderAttempted))
+        ? result('PROVIDER_NO_RESULT', valuationReason, true, true)
       : valuationCacheChecked
-        ? result('INSUFFICIENT', String(trace.valuationEvidenceReason || (valuationContext.providerEstimate?.value
-          ? 'PROVIDER_AVM_AVAILABLE_ARV_GATES_NOT_MET' : 'ARV_GATES_NOT_MET')), true, Boolean(trace.valuationProviderAttempted))
+        ? result('INSUFFICIENT', valuationReason, true, Boolean(trace.valuationProviderAttempted))
         : result('NOT_REQUESTED', 'VALUATION_EVIDENCE_NOT_CHECKED', false, false);
   return Object.freeze({
     complete: property.status === 'AVAILABLE' && sold.status !== 'NOT_REQUESTED' && valuation.status !== 'NOT_REQUESTED',

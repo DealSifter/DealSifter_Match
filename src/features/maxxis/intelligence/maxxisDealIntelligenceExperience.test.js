@@ -191,6 +191,24 @@ describe('Maxxis Deal Intelligence Experience v1', () => {
     });
   });
 
+  it('preserves supported provider evidence fields in the Enterprise report projection', () => {
+    const projected = projectMaxxisDealIntelligenceResponse({ data: {
+      dealIntelligence: context(),
+      intelligenceSnapshot: { propertyFacts: {
+        id: 'property-1', address: '5939 Droad St', yearBuilt: 1962, county: 'Duval', lot: 7253,
+        assessedValue: 108188, assessmentYear: 2025, annualPropertyTax: 1843, propertyTaxYear: 2024,
+        latestSalePrice: 80500, latestSaleDate: '2021-08-03T00:00:00.000Z',
+        ownerOccupied: true, ownershipRecordPresent: true,
+      } },
+    } });
+    expect(projected.data.maxxisReport.sections.propertySummary.data).toMatchObject({
+      address: '5939 Droad St', yearBuilt: 1962, county: 'Duval', lot: 7253,
+      assessedValue: 108188, assessmentYear: 2025, annualPropertyTax: 1843, propertyTaxYear: 2024,
+      latestSalePrice: 80500, latestSaleDate: '2021-08-03T00:00:00.000Z',
+      ownerOccupied: true, ownershipRecordPresent: true,
+    });
+  });
+
   it('binds the same canonical analysis into Enterprise chat projection and persisted report', () => {
     const structuredAnalysis = {
       type: 'maxxis_structured_analysis', executiveSummary: 'Canonical summary.',
