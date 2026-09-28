@@ -152,12 +152,13 @@ describe('Maxxis Deal AI avatar animation presentation', () => {
     expect(processing).not.toMatch(/scale\((?!1\))/);
   });
 
-  it('keeps all avatar state assets centered during crossfade transitions', () => {
+  it('normalizes each avatar asset independently during crossfade transitions', () => {
     const css = readFileSync(new URL('./MaxxisAvatar.css', import.meta.url), 'utf8');
-    const stateBlocks = css.match(/\.maxxis-avatar-renderer\[data-avatar-state="[^"]+"\]\s*\{[^}]+\}/g) || [];
-    expect(stateBlocks.length).toBeGreaterThanOrEqual(6);
-    stateBlocks.forEach((block) => {
-      expect(block).not.toMatch(/--maxxis-art-x:\s*[-]?(?!0(?:\.0)?%)[\d.]+%/);
-    });
+    const stateBlocks = css.match(/\.maxxis-avatar-layer\[data-avatar-layer-state="[^"]+"\]\s*\{[^}]+\}/g) || [];
+    expect(stateBlocks).toHaveLength(6);
+    stateBlocks.forEach((block) => expect(block).toMatch(/--maxxis-layer-(?:scale|x|y):/));
+    const renderer = readFileSync(new URL('./MaxxisAvatarRenderer.jsx', import.meta.url), 'utf8');
+    expect(renderer).toContain('data-avatar-layer-state={layers.outgoing.state}');
+    expect(renderer).toContain('data-avatar-layer-state={layers.active.state}');
   });
 });

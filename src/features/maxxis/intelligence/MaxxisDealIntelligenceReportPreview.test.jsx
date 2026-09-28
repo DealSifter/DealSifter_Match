@@ -74,7 +74,8 @@ describe('Maxxis Deal Intelligence Report Experience v2', () => {
     expect(html).toContain('72%');
     expect(html).toContain('Investor Perspective');
     expect(html).toContain('Wholesaler');
-    expect((html.match(/MAXXIS EXECUTIVE SUMMARY/g) || [])).toHaveLength(2);
+    expect((html.match(/MAXXIS EXECUTIVE SUMMARY/g) || [])).toHaveLength(1);
+    expect(html.indexOf('MAXXIS EXECUTIVE SUMMARY')).toBeGreaterThan(html.indexOf('data-report-page="5"'));
     expect(html).toContain('does not constitute appraisal');
     expect(html).toContain('maxxis-v2-relative-map');
     expect(html).toContain('class="is-level-3">ENTERPRISE</span>');
@@ -122,5 +123,19 @@ describe('Maxxis Deal Intelligence Report Experience v2', () => {
     expect(html).toContain('Provider estimate (not DealSifter ARV)');
     expect(html).toContain('$455,000');
     expect(JSON.stringify(schema)).not.toMatch(/\bavm\b/i);
+  });
+
+  it('localizes analytical prose in a Portuguese report without mixing known English fallbacks', () => {
+    const html = renderToStaticMarkup(
+      <MaxxisDealIntelligenceReportPreview
+        schema={buildMaxxisReportSchema({ reportType: 'DEAL_INTELLIGENCE', property, dealIntelligence: dealIntelligence() })}
+        language="pt"
+      />,
+    );
+    expect(html).toContain('A condição do imóvel é desconhecida');
+    expect(html).toContain('Próxima prioridade de verificação: validar a condição');
+    expect(html).not.toContain('Condition is unknown');
+    expect(html).not.toContain('Next verification priority: validate condition');
+    expect(html).not.toContain('This alignment could not be evaluated');
   });
 });

@@ -32,6 +32,26 @@ import {
 export const PROPERTIES = import.meta.env.DEV ? (_MOCK_PROPERTIES || []) : [];
 export const SERVICE_PORTFOLIO = import.meta.env.DEV ? (_MOCK_SERVICE_PORTFOLIO || []) : [];
 
+export function normalizeReportEmailRecipients(saved, fallbackTo = '') {
+  const to = String(saved?.to || fallbackTo || '').trim();
+  const ccCandidate = String(saved?.cc || '').trim();
+  const bccCandidate = String(saved?.bcc || '').trim();
+  const normalizedTo = to.toLocaleLowerCase();
+  const cc = ccCandidate && ccCandidate.toLocaleLowerCase() !== normalizedTo ? ccCandidate : '';
+  const normalizedCc = cc.toLocaleLowerCase();
+  const bcc = bccCandidate
+    && bccCandidate.toLocaleLowerCase() !== normalizedTo
+    && bccCandidate.toLocaleLowerCase() !== normalizedCc
+    ? bccCandidate
+    : '';
+  return { to, cc, bcc };
+}
+
+export function updateReportEmailRecipient(current, field, value) {
+  if (!['to', 'cc', 'bcc'].includes(field)) return current;
+  return { ...current, [field]: String(value ?? '') };
+}
+
 export function ServiceImageCarousel({ images = [], title = '', compact = false }) {
   const safeImages = useMemo(() => (Array.isArray(images) ? images.filter(Boolean) : []), [images]);
   const [index, setIndex] = useState(0);
@@ -413,28 +433,21 @@ export function PortfolioDetail({ item, owner, ownerContact = null, isOwnerUnloc
     } catch (e) { void e; return ''; }
   };
   const [emailComposeOpen, setEmailComposeOpen] = useState(false);
-  const [emailTo, setEmailTo] = useState(() => {
+  const [activeEmailRecipient, setActiveEmailRecipient] = useState('');
+  const [emailRecipients, setEmailRecipients] = useState(() => {
     try {
       const saved = JSON.parse(localStorage.getItem('ds_export_mail_defaults') || 'null');
-      if (saved && typeof saved.to === 'string' && saved.to.trim()) return saved.to.trim();
-    } catch (e) { void e; }
-    return getProfileEmailFallback();
+      return normalizeReportEmailRecipients(saved, getProfileEmailFallback());
+    } catch (e) { void e; return normalizeReportEmailRecipients(null, getProfileEmailFallback()); }
   });
-  const [emailCc, setEmailCc] = useState(() => {
-    try {
-      const saved = JSON.parse(localStorage.getItem('ds_export_mail_defaults') || 'null');
-      if (saved && typeof saved.cc === 'string' && saved.cc.trim() !== String(saved.to || '').trim()) return saved.cc;
-    } catch (e) { void e; }
-    return '';
-  });
-  const [emailBcc, setEmailBcc] = useState(() => {
-    try {
-      const saved = JSON.parse(localStorage.getItem('ds_export_mail_defaults') || 'null');
-      const bcc = String(saved?.bcc || '').trim();
-      if (bcc && bcc !== String(saved?.to || '').trim() && bcc !== String(saved?.cc || '').trim()) return saved.bcc;
-    } catch (e) { void e; }
-    return '';
-  });
+  const { to: emailTo, cc: emailCc, bcc: emailBcc } = emailRecipients;
+  const setEmailRecipient = (field, value) => {
+    setEmailRecipients((current) => updateReportEmailRecipient(
+      current,
+      field,
+      typeof value === 'function' ? value(current[field]) : value,
+    ));
+  };
   const [exportPdfLocal, setExportPdfLocal] = useState(() => {
     try {
       const saved = JSON.parse(localStorage.getItem('ds_export_mail_defaults') || 'null');
@@ -466,8 +479,9 @@ export function PortfolioDetail({ item, owner, ownerContact = null, isOwnerUnloc
     const openRequestedReport = (event) => {
       const requestedPropertyId = String(event?.detail?.propertyId || '').trim();
       if (requestedPropertyId && requestedPropertyId !== String(item?.id || '')) return;
-      if (!String(emailTo || '').trim()) setEmailTo(getProfileEmailFallback());
+      if (!String(emailTo || '').trim()) setEmailRecipient('to', getProfileEmailFallback());
       setExportMode('');
+      setActiveEmailRecipient('');
       setEmailComposeOpen(true);
     };
     window.addEventListener('dealsifter.openReportExport', openRequestedReport);
@@ -486,17 +500,10 @@ export function PortfolioDetail({ item, owner, ownerContact = null, isOwnerUnloc
     const t = setTimeout(() => {
       try {
         const saved = JSON.parse(localStorage.getItem('ds_export_mail_defaults') || 'null');
-        setEmailTo(saved?.to?.trim() || getProfileEmailFallback());
-        const savedTo = String(saved?.to || '').trim();
-        const savedCc = String(saved?.cc || '').trim();
-        const savedBcc = String(saved?.bcc || '').trim();
-        setEmailCc(savedCc && savedCc !== savedTo ? savedCc : '');
-        setEmailBcc(savedBcc && savedBcc !== savedTo && savedBcc !== savedCc ? savedBcc : '');
+        setEmailRecipients(normalizeReportEmailRecipients(saved, getProfileEmailFallback()));
       } catch (e) {
         void e;
-        setEmailTo(getProfileEmailFallback());
-        setEmailCc('');
-        setEmailBcc('');
+        setEmailRecipients(normalizeReportEmailRecipients(null, getProfileEmailFallback()));
       }
     }, 0);
     return () => clearTimeout(t);
@@ -805,8 +812,9 @@ export function PortfolioDetail({ item, owner, ownerContact = null, isOwnerUnloc
   };
 
   const handleOpenEmailCompose = () => {
-    if (!String(emailTo || '').trim()) setEmailTo(getProfileEmailFallback());
+    if (!String(emailTo || '').trim()) setEmailRecipient('to', getProfileEmailFallback());
     setExportMode('');
+    setActiveEmailRecipient('');
     setEmailComposeOpen(true);
   };
 
@@ -841,9 +849,10 @@ export function PortfolioDetail({ item, owner, ownerContact = null, isOwnerUnloc
       // The chat exports the authorized structured MaxxisReportSchema, never a Basic PDF with analysis text appended.
       onExportPdf: async () => { throw new Error('MAXXIS_REPORT_SCHEMA_REQUIRED'); },
       onEmail: () => {
-        setExportMode('email'); setExportPdfWithEmail(true); setEmailComposeOpen(true);
+        setExportMode('email'); setExportPdfWithEmail(true); setActiveEmailRecipient(''); setEmailComposeOpen(true);
       },
     });
+    setActiveEmailRecipient('');
     setEmailComposeOpen(false);
   };
 
@@ -921,6 +930,7 @@ export function PortfolioDetail({ item, owner, ownerContact = null, isOwnerUnloc
       setIsPreparingExport(false);
     }
 
+    setActiveEmailRecipient('');
     setEmailComposeOpen(false);
     if (shouldSendEmail) {
       handleExportToEmail(payload.to, payload.cc, payload.bcc, bodySuffix);
@@ -1115,7 +1125,7 @@ export function PortfolioDetail({ item, owner, ownerContact = null, isOwnerUnloc
 
       {emailComposeOpen ? (
         <Modal
-          onClose={() => setEmailComposeOpen(false)}
+          onClose={() => { setActiveEmailRecipient(''); setEmailComposeOpen(false); }}
           maxWidth={720}
           contentClassName={`report-export-modal ${exportMode ? 'is-scrollable' : 'is-fitted'}`}
           scrollable={Boolean(exportMode)}
@@ -1130,7 +1140,7 @@ export function PortfolioDetail({ item, owner, ownerContact = null, isOwnerUnloc
                 entitlements={scopedReportEntitlements}
                 language={getLang()}
                 onSelect={handleAnalysisSelection}
-                onCancel={() => setEmailComposeOpen(false)}
+                onCancel={() => { setActiveEmailRecipient(''); setEmailComposeOpen(false); }}
                 onContinue={handleConfirmEmailExport}
                 continueDisabled={!exportMode}
                 isPreparing={isPreparingExport}
@@ -1143,7 +1153,7 @@ export function PortfolioDetail({ item, owner, ownerContact = null, isOwnerUnloc
                 }}
                 onBasicEmail={() => {
                   setExportMode('email'); setExportPdfWithEmail(true); setExportPdfLocal(false);
-                  if (!String(emailTo || '').trim()) setEmailTo(getProfileEmailFallback());
+                  if (!String(emailTo || '').trim()) setEmailRecipient('to', getProfileEmailFallback());
                 }}
               />
 
@@ -1184,14 +1194,16 @@ export function PortfolioDetail({ item, owner, ownerContact = null, isOwnerUnloc
                   name="report-email-recipient-to"
                   type="text"
                   inputMode="email"
-                  autoComplete="off"
+                  autoComplete="section-maxxis-report-to new-password"
                   autoCapitalize="none"
                   spellCheck={false}
                   data-form-type="other"
                   data-lpignore="true"
                   data-1p-ignore="true"
+                  readOnly={activeEmailRecipient !== 'to'}
                   value={emailTo}
-                  onChange={(e) => setEmailTo(e.target.value)}
+                  onFocus={() => setActiveEmailRecipient('to')}
+                  onChange={(e) => setEmailRecipient('to', e.target.value)}
                   disabled={exportMode !== 'email'}
                   placeholder={matchesT.exportRecipientPlaceholder || 'recipient@company.com'}
                   style={{ padding: '9px 10px', borderRadius: 8, border: `1px solid ${C.border}`, background: exportMode === 'email' ? C.card : C.alpha(C.t1, 0.04), color: C.t1, outline: 'none' }}
@@ -1204,14 +1216,16 @@ export function PortfolioDetail({ item, owner, ownerContact = null, isOwnerUnloc
                   name="report-email-recipient-cc"
                   type="text"
                   inputMode="email"
-                  autoComplete="off"
+                  autoComplete="section-maxxis-report-cc new-password"
                   autoCapitalize="none"
                   spellCheck={false}
                   data-form-type="other"
                   data-lpignore="true"
                   data-1p-ignore="true"
+                  readOnly={activeEmailRecipient !== 'cc'}
                   value={emailCc}
-                  onChange={(e) => setEmailCc(e.target.value)}
+                  onFocus={() => setActiveEmailRecipient('cc')}
+                  onChange={(e) => setEmailRecipient('cc', e.target.value)}
                   disabled={exportMode !== 'email'}
                   placeholder={matchesT.exportCcPlaceholder || 'copy@company.com'}
                   style={{ padding: '9px 10px', borderRadius: 8, border: `1px solid ${C.border}`, background: exportMode === 'email' ? C.card : C.alpha(C.t1, 0.04), color: C.t1, outline: 'none' }}
@@ -1224,14 +1238,16 @@ export function PortfolioDetail({ item, owner, ownerContact = null, isOwnerUnloc
                   name="report-email-recipient-bcc"
                   type="text"
                   inputMode="email"
-                  autoComplete="off"
+                  autoComplete="section-maxxis-report-bcc new-password"
                   autoCapitalize="none"
                   spellCheck={false}
                   data-form-type="other"
                   data-lpignore="true"
                   data-1p-ignore="true"
+                  readOnly={activeEmailRecipient !== 'bcc'}
                   value={emailBcc}
-                  onChange={(e) => setEmailBcc(e.target.value)}
+                  onFocus={() => setActiveEmailRecipient('bcc')}
+                  onChange={(e) => setEmailRecipient('bcc', e.target.value)}
                   disabled={exportMode !== 'email'}
                   placeholder={matchesT.exportBccPlaceholder || 'hidden@company.com'}
                   style={{ padding: '9px 10px', borderRadius: 8, border: `1px solid ${C.border}`, background: exportMode === 'email' ? C.card : C.alpha(C.t1, 0.04), color: C.t1, outline: 'none' }}

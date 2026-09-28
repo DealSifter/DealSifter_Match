@@ -25,22 +25,27 @@ function ReviewCard({ candidate, targetCondition, targetConfirmed, onSave, savin
   const links = useMemo(() => ['ZILLOW', 'REDFIN'].map((provider) => resolveExternalCompReviewLink({ provider, address, directUrl: candidate.externalUrls?.[provider.toLowerCase()] || '' })).filter(Boolean), [address, candidate.externalUrls]);
   const unavailable = language === 'pt' ? 'Indisponível' : language === 'es' ? 'No disponible' : 'Unavailable';
   return (
-    <article className="maxxis-arv-comp-card" data-testid={`arv-comp-${candidate.stableCompIdentifier}`}>
-      <div className="maxxis-arv-comp-heading"><strong>{candidate.address?.line1 || address}</strong><span className={`maxxis-arv-review-status ${candidate.review ? 'is-reviewed' : ''}`}>{candidate.review ? `✓ ${copy.reviewedBadge}` : copy.notReviewed}</span></div>
-      <span>{[candidate.address?.city, candidate.address?.state, candidate.address?.zipCode].filter(Boolean).join(', ')}</span>
-      <div className="maxxis-arv-comp-facts">
-        <span>{copy.structural}: {candidate.structuralComparabilityScore}%</span><span>{copy.completeness}: {candidate.dataCompletenessScore}%</span><span>{copy.distance}: {candidate.distanceMiles ?? unavailable} mi</span><span>{copy.sale}: {money(candidate.recordedSalePrice, unavailable)}</span><span>{copy.saleDate}: {date(candidate.recordedSaleDate, language, unavailable)}</span>
+    <details className="maxxis-arv-comp-card" data-testid={`arv-comp-${candidate.stableCompIdentifier}`}>
+      <summary>
+        <span><strong>{candidate.address?.line1 || address}</strong><small>{money(candidate.recordedSalePrice, unavailable)} · {candidate.distanceMiles ?? unavailable} mi · {copy.structural} {candidate.structuralComparabilityScore}%</small></span>
+        <span className={`maxxis-arv-review-status ${candidate.review ? 'is-reviewed' : ''}`}>{candidate.review ? `✓ ${copy.reviewedBadge}` : copy.notReviewed}</span>
+      </summary>
+      <div className="maxxis-arv-comp-detail">
+        <span>{[candidate.address?.city, candidate.address?.state, candidate.address?.zipCode].filter(Boolean).join(', ')}</span>
+        <div className="maxxis-arv-comp-facts">
+          <span>{copy.completeness}: {candidate.dataCompletenessScore}%</span><span>{copy.saleDate}: {date(candidate.recordedSaleDate, language, unavailable)}</span>
+        </div>
+        <div className="maxxis-arv-external-links">{links.map((link) => <a key={link.provider} href={link.url} target="_blank" rel="noopener noreferrer">{link.provider === 'ZILLOW' ? 'Zillow ↗' : 'Redfin ↗'}</a>)}</div>
+        {candidate.review && !editing ? <div className="maxxis-arv-saved-review"><span>{copy.observed}: {localizeMaxxisValue(candidate.review.observedCondition, language)}</span><span>{copy.compatibility}: {localizeMaxxisValue(candidate.review.conditionCompatibility, language)}</span><span className="maxxis-provenance-badge">{copy.provenance}</span>{candidate.review.notes ? <span>{copy.notes}: {candidate.review.notes}</span> : null}<button type="button" onClick={() => setEditing(true)}>{copy.edit}</button></div> : null}
+        {!candidate.review && !editing ? <button type="button" className="maxxis-arv-review-button" disabled={!targetConfirmed} onClick={() => setEditing(true)}>{copy.review}</button> : null}
+        {editing ? <div className="maxxis-arv-review-form">
+          <label>{copy.observed}<select value={observedCondition} onChange={(event) => setObservedCondition(event.target.value)}>{ARV_TARGET_CONDITIONS.map((value) => <option key={value} value={value}>{localizeMaxxisValue(value, language)}</option>)}</select></label>
+          <label>{copy.compatibility}<select value={conditionCompatibility} onChange={(event) => setConditionCompatibility(event.target.value)}>{ARV_CONDITION_COMPATIBILITIES.map((value) => <option key={value} value={value}>{localizeMaxxisValue(value, language)}</option>)}</select></label>
+          <label>{copy.notes}<textarea value={notes} maxLength={1000} onChange={(event) => setNotes(event.target.value)} /></label>
+          <button type="button" disabled={saving} onClick={() => onSave?.(candidate, { targetCondition, observedCondition, conditionCompatibility, notes })}>{saving ? copy.saving : copy.save}</button>
+        </div> : null}
       </div>
-      <div className="maxxis-arv-external-links">{links.map((link) => <a key={link.provider} href={link.url} target="_blank" rel="noopener noreferrer">{link.provider === 'ZILLOW' ? 'Zillow ↗' : 'Redfin ↗'}</a>)}</div>
-      {candidate.review && !editing ? <div className="maxxis-arv-saved-review"><span>{copy.observed}: {localizeMaxxisValue(candidate.review.observedCondition, language)}</span><span>{copy.compatibility}: {localizeMaxxisValue(candidate.review.conditionCompatibility, language)}</span><span className="maxxis-provenance-badge">{copy.provenance}</span>{candidate.review.notes ? <span>{copy.notes}: {candidate.review.notes}</span> : null}<button type="button" onClick={() => setEditing(true)}>{copy.edit}</button></div> : null}
-      {!candidate.review && !editing ? <button type="button" className="maxxis-arv-review-button" disabled={!targetConfirmed} onClick={() => setEditing(true)}>{copy.review}</button> : null}
-      {editing ? <div className="maxxis-arv-review-form">
-        <label>{copy.observed}<select value={observedCondition} onChange={(event) => setObservedCondition(event.target.value)}>{ARV_TARGET_CONDITIONS.map((value) => <option key={value} value={value}>{localizeMaxxisValue(value, language)}</option>)}</select></label>
-        <label>{copy.compatibility}<select value={conditionCompatibility} onChange={(event) => setConditionCompatibility(event.target.value)}>{ARV_CONDITION_COMPATIBILITIES.map((value) => <option key={value} value={value}>{localizeMaxxisValue(value, language)}</option>)}</select></label>
-        <label>{copy.notes}<textarea value={notes} maxLength={1000} onChange={(event) => setNotes(event.target.value)} /></label>
-        <button type="button" disabled={saving} onClick={() => onSave?.(candidate, { targetCondition, observedCondition, conditionCompatibility, notes })}>{saving ? copy.saving : copy.save}</button>
-      </div> : null}
-    </article>
+    </details>
   );
 }
 
@@ -54,7 +59,7 @@ export function MaxxisArvVisualCompReview({ messageId, data, onSetTarget, onSave
   if (continued) return <section className="maxxis-arv-continued" role="status">✓ {copy.continued}</section>;
   return (
     <section className="maxxis-arv-review" aria-label={copy.aria}>
-      <MaxxisArvResultExperience evaluation={data.arvEvaluation} language={language} />
+      <MaxxisArvResultExperience evaluation={data.arvEvaluation} supportingCount={data.candidates.length} language={language} />
       <div className="maxxis-arv-summary" role="status">{data.summary?.reviewedCount || 0}/{data.summary?.totalStructuralCandidates || 0} {copy.reviewed} · {localizeMaxxisValue(data.summary?.status || 'NOT_STARTED', language)}</div>
       <div className="maxxis-arv-actions" aria-label={copy.aria}>
         <button type="button" onClick={() => onRequestGap?.(messageId, 'target_condition')}>{copy.confirm}</button>

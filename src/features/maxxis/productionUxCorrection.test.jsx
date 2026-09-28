@@ -31,7 +31,7 @@ afterEach(cleanup);
 
 describe('production UX correction acceptance', () => {
   it('1 compact Gap Resolver uses reduced field heights', () => expect(source('src/components/maxxis/MaxxisAssistant.css')).toContain('min-height: 28px'));
-  it('2 compact ARV card uses the normal ARV heading', () => { renderArv(); expect(screen.getByText('ARV')).toBeTruthy(); expect(screen.queryByText('ARV Intelligence')).toBeNull(); });
+  it('2 compact ARV card uses the normal ARV heading', () => { renderArv(); expect(screen.getAllByText('ARV').length).toBeGreaterThan(0); expect(screen.queryByText('ARV Intelligence')).toBeNull(); });
   it('3 resolved card collapses the editor', () => { render(<MaxxisAnalysisGapResolved language="pt" message={{ data: { resolution: { values: { targetCondition: 'AS_IS' }, declinedFields: [] } } }} />); expect(screen.queryByRole('combobox')).toBeNull(); });
   it('4 condition control is clickable', async () => { const fn = vi.fn(); renderArv({ onRequestGap: fn }); await userEvent.click(screen.getByRole('button', { name: 'Confirmar condição' })); expect(fn).toHaveBeenCalledWith('m1', 'target_condition'); });
   it('5 rehab control is clickable', async () => { const fn = vi.fn(); renderArv({ onRequestGap: fn }); await userEvent.click(screen.getByRole('button', { name: 'Revisar rehab' })); expect(fn).toHaveBeenCalledWith('m1', 'rehab_budget'); });

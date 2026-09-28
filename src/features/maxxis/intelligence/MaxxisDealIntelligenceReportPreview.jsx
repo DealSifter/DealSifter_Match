@@ -95,7 +95,7 @@ const COPY = {
       "Visão de distância relativa — não representa coordenadas geográficas",
     valuation: "Inteligência de Avaliação",
     providerEstimate: "Estimativa do provedor (não é o ARV DealSifter)",
-    spread: "Spread Potencial",
+    spread: "Margem Potencial",
     roi: "Faixa de ROI Projetado",
     rental: "Inteligência de Locação",
     price: "Análise de Preço",
@@ -205,17 +205,20 @@ const percent = (value, unknown) =>
     ? `${Number(value).toLocaleString("en-US")}%`
     : unknown;
 const evidenceText = (value, fallback, language = "en") =>
-  explainMaxxisEvidenceState(value || fallback, language).replace(/[.]$/, "");
+  explainMaxxisEvidenceState(value || fallback, language);
 const KEY_LABELS = Object.freeze({
-  pt: { totalComparableRecords: "Registros comparáveis", usedComparables: "Usados na análise", averageSalePrice: "Preço médio de venda", averageSimilarity: "Similaridade média", averageDistance: "Distância média", verifiedRecords: "Registros verificados", userProvided: "Informado pelo usuário", calculated: "Calculado", estimated: "Estimado", unknown: "Desconhecido", conflicts: "Conflitos", location: "Localização", priceRange: "Faixa de preço", propertyType: "Tipo de imóvel", strategy: "Estratégia" },
-  es: { totalComparableRecords: "Registros comparables", usedComparables: "Usados en el análisis", averageSalePrice: "Precio medio de venta", averageSimilarity: "Similitud media", averageDistance: "Distancia media", verifiedRecords: "Registros verificados", userProvided: "Informado por el usuario", calculated: "Calculado", estimated: "Estimado", unknown: "Desconocido", conflicts: "Conflictos" },
+  pt: { totalComparableRecords: "Registros comparáveis", sampleSize: "Total de registros", usedCount: "Usados na análise", supportingCount: "Registros de apoio", salePriceLow: "Menor preço de venda", salePriceHigh: "Maior preço de venda", usedComparables: "Usados na análise", averageSalePrice: "Preço médio de venda", averageSimilarity: "Similaridade média", averageDistance: "Distância média", verifiedRecords: "Registros verificados", userProvided: "Informado pelo usuário", calculated: "Calculado", estimated: "Estimado", unknown: "Desconhecido", conflicts: "Conflitos", location: "Localização", priceRange: "Faixa de preço", propertyType: "Tipo de imóvel", strategy: "Estratégia" },
+  es: { totalComparableRecords: "Registros comparables", sampleSize: "Total de registros", usedCount: "Usados en el análisis", supportingCount: "Registros de apoyo", salePriceLow: "Menor precio de venta", salePriceHigh: "Mayor precio de venta", usedComparables: "Usados en el análisis", averageSalePrice: "Precio medio de venta", averageSimilarity: "Similitud media", averageDistance: "Distancia media", verifiedRecords: "Registros verificados", userProvided: "Informado por el usuario", calculated: "Calculado", estimated: "Estimado", unknown: "Desconocido", conflicts: "Conflictos" },
 });
 
 const reportProfiler = (id, phase, actualDuration, baseDuration, startTime, commitTime) => {
   if (typeof window === "undefined" || typeof window.dispatchEvent !== "function" || typeof CustomEvent !== "function") return;
   window.dispatchEvent(new CustomEvent("dealsifter:maxxis-performance", { detail: { stage: "inline_report_react_commit", id, phase, actualDuration, baseDuration, startTime, commitTime } }));
 };
-const keyLabel = (key, language = "en") => KEY_LABELS[language]?.[key] || key.replace(/([A-Z])/g, " $1").replace(/^./, (letter) => letter.toUpperCase());
+const keyLabel = (key, language = "en") => {
+  const safeKey = String(key || "");
+  return KEY_LABELS[language]?.[safeKey] || safeKey.replace(/([A-Z])/g, " $1").replace(/^./, (letter) => letter.toUpperCase());
+};
 const displayLabel = (value, fallback = "", language = "en") => localizeMaxxisValue(value, language, fallback);
 const arvStatusText = (status, copy) => {
   if (status === "ARV_AVAILABLE")
@@ -328,7 +331,9 @@ function InfoCard({ title, rows, icon, narrative = false, copy }) {
             <div key={`${label}-${value}`}>
               <dt>{label}</dt>
               <dd>
-                {displayLabel(value, copy?.unavailable, copy?.language)}
+                {narrative
+                  ? evidenceText(value, copy?.unavailable, copy?.language)
+                  : displayLabel(value, copy?.unavailable, copy?.language)}
                 {source ? <small>{displayLabel(source, copy?.unavailable, copy?.language)}</small> : null}
               </dd>
             </div>
@@ -367,20 +372,20 @@ function ConfidenceCard({ confidence, copy }) {
       <div>
         <strong>{copy.contributors}</strong>
         {list(confidence.contributors).map((item) => (
-          <span key={item}>✓ {displayLabel(item, copy.unavailable, copy.language)}</span>
+          <span key={item}>✓ {evidenceText(item, copy.unavailable, copy.language)}</span>
         ))}
       </div>
       <div>
         <strong>{copy.limitations}</strong>
         {list(confidence.limitations).map((item) => (
-          <span key={item}>⚠ {displayLabel(item, copy.unavailable, copy.language)}</span>
+          <span key={item}>⚠ {evidenceText(item, copy.unavailable, copy.language)}</span>
         ))}
       </div>
     </section>
   );
 }
 
-function PropertyOverview({ schema, copy, level }) {
+function PropertyOverview({ schema, copy, level, page = 1, pageCode = "PROPERTY_OVERVIEW" }) {
   const property = available(schema.sections.propertySummary) || {};
   const owner = property.owner || {};
   const images = list(property.images);
@@ -414,14 +419,11 @@ function PropertyOverview({ schema, copy, level }) {
     evidenceFacts[field]?.value ?? fallback;
   const factSource = (field) =>
     evidenceFacts[field]?.sourceType || evidenceFacts[field]?.source || null;
-  const executiveLines = list(
-    schema.presentation.executiveSummaryIntelligence?.lines,
-  );
   return (
     <article
       className="maxxis-v2-page"
-      data-report-page="1"
-      data-report-section="PROPERTY_OVERVIEW"
+      data-report-page={page}
+      data-report-section={pageCode}
     >
       <ReportHeader
         level={level}
@@ -483,20 +485,6 @@ function PropertyOverview({ schema, copy, level }) {
             </b>
           </span>
         </section>
-        {level === 3 ? (
-          <ConfidenceCard
-            confidence={schema.presentation.analysisConfidence}
-            copy={copy}
-          />
-        ) : null}
-        {level === 3 && executiveLines.length ? (
-          <section className="maxxis-v2-ai-summary">
-            <small>{copy.executiveSummary}</small>
-            {executiveLines.map((line) => (
-              <span key={line}>{line}</span>
-            ))}
-          </section>
-        ) : null}
         <div className="maxxis-v2-info-grid">
           <InfoCard
             copy={copy}
@@ -622,7 +610,7 @@ function PropertyOverview({ schema, copy, level }) {
   );
 }
 
-function ComparableMarket({ schema, copy }) {
+function ComparableMarket({ schema, copy, page = 2 }) {
   const comps = available(schema.sections.comparableEvidence) || {};
   const groups = [
     ["USED", list(comps.used)],
@@ -635,7 +623,7 @@ function ComparableMarket({ schema, copy }) {
   return (
     <article
       className="maxxis-v2-page"
-      data-report-page="2"
+      data-report-page={page}
       data-report-section="COMPARATIVE_MARKET_ANALYSIS"
     >
       <ReportHeader level={3} copy={copy} subtitle={copy.cma} />
@@ -682,7 +670,7 @@ function ComparableMarket({ schema, copy }) {
                   <td>
                     <strong>{text(item.address, copy.unknown)}</strong>
                     <small>
-                      {displayLabel(
+                      {evidenceText(
                         item.exclusionReason || item.inclusionReason || "",
                         copy.unavailable,
                         copy.language,
@@ -745,7 +733,7 @@ function ScenarioCards({ title, values, formatter, copy }) {
   );
 }
 
-function ValuationPage({ schema, copy }) {
+function ValuationPage({ schema, copy, page = 3 }) {
   const valuation = available(schema.sections.valuationEvidence) || {};
   const scenarios = schema.presentation.kpiScenarios;
   const metrics = schema.presentation.existingMetrics || {};
@@ -763,7 +751,7 @@ function ValuationPage({ schema, copy }) {
   return (
     <article
       className="maxxis-v2-page"
-      data-report-page="3"
+      data-report-page={page}
       data-report-section="VALUATION_INTELLIGENCE"
     >
       <ReportHeader level={3} copy={copy} subtitle={copy.valuation} />
@@ -826,7 +814,7 @@ function ValuationPage({ schema, copy }) {
               formatter={percent}
               copy={copy}
             />
-            <small>{scenarios.disclaimer}</small>
+            <small>{evidenceText(scenarios.disclaimer, copy.unknown, copy.language)}</small>
           </>
         ) : (
           <p>
@@ -908,9 +896,12 @@ function FitRiskPage({ schema, copy, page = 4, level = 3 }) {
     : 0;
   const criteria = list(fit.criteria).length
     ? list(fit.criteria)
-    : [fit.targetMarket, fit.priceRange, fit.propertyType, fit.strategy].filter(
-        Boolean,
-      );
+    : [
+        ["location", fit.targetMarket],
+        ["priceRange", fit.priceRange],
+        ["propertyType", fit.propertyType],
+        ["strategy", fit.strategy],
+      ].filter(([, criterion]) => Boolean(criterion)).map(([key, criterion]) => ({ ...criterion, key }));
   return (
     <article
       className="maxxis-v2-page"
@@ -949,12 +940,12 @@ function FitRiskPage({ schema, copy, page = 4, level = 3 }) {
             <div>
               <small>{copy.perspective}</small>
               <strong>{displayLabel(perspective.persona, copy.unavailable, copy.language)}</strong>
-              <span>{perspective.message}</span>
+              <span>{evidenceText(perspective.message, copy.unavailable, copy.language)}</span>
             </div>
             <div>
               {list(perspective.priorities).map((item, index) => (
                 <Badge key={item} tone={index === 0 ? "navy" : "teal"}>
-                  {index + 1}. {displayLabel(item, copy.unavailable, copy.language)}
+                  {index + 1}. {evidenceText(item, copy.unavailable, copy.language)}
                 </Badge>
               ))}
             </div>
@@ -973,7 +964,7 @@ function FitRiskPage({ schema, copy, page = 4, level = 3 }) {
                     : 35);
               return (
                 <div key={criterion.key || criterion.label || `criterion-${criterionIndex}`}>
-                  <span>{displayLabel(criterion.label || criterion.key, copy.unavailable, copy.language)}</span>
+                  <span>{keyLabel(criterion.key || criterion.label, copy.language)}</span>
                   <i>
                     <b
                       style={{ width: `${Math.max(0, Math.min(100, score))}%` }}
@@ -1008,7 +999,7 @@ function FitRiskPage({ schema, copy, page = 4, level = 3 }) {
                   >
                     <span />
                   </i>
-                  <span>{displayLabel(risk.reason || risk.explanation, copy.unavailable, copy.language)}</span>
+                  <span>{evidenceText(risk.reason || risk.explanation, copy.unavailable, copy.language)}</span>
                 </div>
               ))
             ) : (
@@ -1100,11 +1091,15 @@ function MaxxisAnalysisPage({ schema, copy, page = 6, level = 3 }) {
     >
       <ReportHeader level={level} copy={copy} subtitle={copy.powered} />
       <div className="maxxis-v2-page-body">
+        <ConfidenceCard
+          confidence={schema.presentation.analysisConfidence}
+          copy={copy}
+        />
         <section className="maxxis-v2-ai-summary">
           <SectionTitle icon={Brain}>{copy.executiveSummary}</SectionTitle>
           {summaryLines.length ? (
             summaryLines.map((line) => (
-              <span key={line}>{displayLabel(line, copy.unavailable, copy.language)}</span>
+              <span key={line}>{evidenceText(line, copy.unavailable, copy.language)}</span>
             ))
           ) : (
             <strong>{displayLabel(summary, copy.unavailable, copy.language)}</strong>
@@ -1145,7 +1140,7 @@ function MaxxisAnalysisPage({ schema, copy, page = 6, level = 3 }) {
             narrative
             rows={risks.map((risk, index) => [
               `${index + 1}`,
-              `${displayLabel(risk.category, copy.unavailable, copy.language)}: ${displayLabel(risk.reason || risk.explanation, copy.unavailable, copy.language)}`,
+              `${displayLabel(risk.category, copy.unavailable, copy.language)}: ${evidenceText(risk.reason || risk.explanation, copy.unavailable, copy.language)}`,
             ])}
           />
         </div>
@@ -1158,7 +1153,7 @@ function MaxxisAnalysisPage({ schema, copy, page = 6, level = 3 }) {
             .slice(0, 4)
             .map((item, index) => [
               `${index + 1}`,
-              item.endsWith("?") ? item : `${item.replace(/[.]$/, "")}?`,
+              `${evidenceText(item, copy.unavailable, copy.language).replace(/[.?]$/, "")}?`,
             ])}
         />
         <InfoCard
@@ -1172,6 +1167,28 @@ function MaxxisAnalysisPage({ schema, copy, page = 6, level = 3 }) {
       </div>
     </article>
   );
+}
+
+function CanonicalReportPage({ page, schema, copy, level }) {
+  if (page.code === "PROPERTY_OVERVIEW" || page.code === "EXECUTIVE_SUMMARY_PROPERTY_CONTEXT") {
+    return <PropertyOverview schema={schema} copy={copy} level={level} page={page.page} pageCode={page.code} />;
+  }
+  if (page.code === "COMPARATIVE_MARKET_ANALYSIS") {
+    return <ComparableMarket schema={schema} copy={copy} page={page.page} />;
+  }
+  if (page.code === "VALUATION_INTELLIGENCE") {
+    return <ValuationPage schema={schema} copy={copy} page={page.page} />;
+  }
+  if (page.code === "INVESTMENT_FIT_RISK") {
+    return <FitRiskPage schema={schema} copy={copy} page={page.page} level={level} />;
+  }
+  if (page.code === "KEY_INSIGHTS_NEXT_STEPS" || page.code === "KEY_INSIGHTS_VERIFICATION") {
+    return <InsightsPage schema={schema} copy={copy} page={page.page} level={level} />;
+  }
+  if (page.code === "MAXXIS_AI_ANALYSIS") {
+    return <MaxxisAnalysisPage schema={schema} copy={copy} page={page.page} level={level} />;
+  }
+  return null;
 }
 
 export function MaxxisDealIntelligenceReportPreview({
@@ -1198,22 +1215,9 @@ export function MaxxisDealIntelligenceReportPreview({
         <Badge tone="navy">{copy.level} {level}</Badge>
       </summary>
       <div className="maxxis-v2-report">
-        <PropertyOverview schema={schema} copy={copy} level={level} />
-        {level === 2 ? (
-          <>
-            <FitRiskPage schema={schema} copy={copy} page={2} level={2} />
-            <InsightsPage schema={schema} copy={copy} page={3} level={2} />
-          </>
-        ) : null}
-        {level === 3 ? (
-          <>
-            <ComparableMarket schema={schema} copy={copy} />
-            <ValuationPage schema={schema} copy={copy} />
-            <FitRiskPage schema={schema} copy={copy} />
-            <InsightsPage schema={schema} copy={copy} />
-            <MaxxisAnalysisPage schema={schema} copy={copy} />
-          </>
-        ) : null}
+        {list(schema.pages).map((page) => (
+          <CanonicalReportPage key={`${page.page}-${page.code}`} page={page} schema={schema} copy={copy} level={level} />
+        ))}
       </div>
     </details>
     </React.Profiler>

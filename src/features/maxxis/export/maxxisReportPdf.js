@@ -279,7 +279,7 @@ function heading(doc, title, x, y, w, accent) {
 }
 function rows(doc, items, x, y, w, {
   lineHeight = 24, labelWidth = 95, limit = 8, t,
-  labelSize = 8, valueSize = 8.5, valueMaxLines = 2, draw = true,
+  labelSize = 8, valueSize = 8.5, valueMaxLines = 2, draw = true, rowGap = 7,
 } = {}) {
   let yy = y;
   items.slice(0, limit).forEach(([label, entry], i) => {
@@ -288,13 +288,17 @@ function rows(doc, items, x, y, w, {
     doc.setFont('NotoSans', 'bold'); doc.setFontSize(valueSize);
     const valueLines = doc.splitTextToSize(displayValue(entry, t), w - labelWidth);
     const visibleValueLines = Number.isFinite(valueMaxLines) ? Math.min(valueMaxLines, valueLines.length) : valueLines.length;
-    const step = Math.max(lineHeight, labelLines.length * (labelSize + 3) + 3, visibleValueLines * (valueSize + 3) + 3);
+    const labelHeight = labelLines.length * (labelSize + 3);
+    const valueHeight = visibleValueLines * (valueSize + 3);
+    const contentHeight = Math.max(labelHeight, valueHeight);
+    const step = Math.max(lineHeight, contentHeight + rowGap);
     if (draw) {
       text(doc, label, x, yy, { size: labelSize, color: C.muted, width: labelWidth - 5, maxLines: null });
       text(doc, displayValue(entry, t), x + labelWidth, yy, { size: valueSize, bold: true, width: w - labelWidth, maxLines: valueMaxLines });
     }
     if (draw && i < Math.min(limit, items.length) - 1) {
-      doc.setDrawColor(...C.line); doc.line(x, yy + step - 3, x + w, yy + step - 3);
+      const separatorY = yy + step - 3;
+      doc.setDrawColor(...C.line); doc.line(x, separatorY, x + w, separatorY);
     }
     yy += step;
   });
@@ -601,11 +605,11 @@ function renderFit(doc, schema, t, accent) {
   } else text(doc, limitations.slice(0, 3).map((item) => reportNarrative(item, '', t.locale)).join(' • ') || t.noDetails, M + 12, evidenceY + 48, { size: 8, width: CONTENT - 24, maxLines: 3 });
   const focusY = 659; const priorities = array(perspective.priorities).slice(0, 4);
   panel(doc, M, focusY, CONTENT, 89, { accent }); heading(doc, t.investorFocus, M + 12, focusY + 26, CONTENT - 24, accent);
-  text(doc, displayValue(perspective.persona, t), W - M - 13, focusY + 25, { size: 7.2, bold: true, color: C.ink, align: 'right', width: 170, maxLines: 1 });
+  text(doc, reportNarrative(displayValue(perspective.persona, t), t.unavailable, t.locale), W - M - 13, focusY + 25, { size: 7.2, bold: true, color: C.ink, align: 'right', width: 170, maxLines: 1 });
   priorities.forEach((priority, index) => {
     const yy = focusY + 45 + index * 10.5; const barX = M + 190; const barWidth = CONTENT - 215;
     const priorityColor = [accent, C.blue, C.green, C.purple][index % 4];
-    text(doc, priority, M + 13, yy + 4, { size: 6.8, bold: true, width: 145, maxLines: 1 });
+    text(doc, reportNarrative(priority, t.noDetails, t.locale), M + 13, yy + 4, { size: 6.8, bold: true, width: 145, maxLines: 1 });
     meter(doc, barX, yy - 2, barWidth, 100 - index * 14, priorityColor);
   });
 }

@@ -8,18 +8,21 @@ export const MAXXIS_TARGET_CONDITIONS = Object.freeze([
 
 const LABELS = {
   en: {
-    title: 'Complete the analysis', condition: 'Target condition', rehab: 'Rehabilitation budget', currentRehab: 'Current rehab', keep: 'Keep current value', reevaluate: 'Reevaluate', missingRehab: 'Not provided', own: 'Enter an amount', benchmark: 'Use 2026 state reference', without: 'Continue without rehab', amount: 'Rehab amount', reference: 'Preliminary reference · low confidence', addScope: 'Add renovation details', hideScope: 'Hide renovation details', scope: 'Renovation scope (optional)', save: 'Continue analysis', decline: 'Continue with limitations', saving: 'Saving…', edit: 'Edit', resolved: 'Information supplied', limitation: 'Continued with explicit limitations',
+    title: 'Complete the analysis', intro: 'To advance the ARV analysis, I need to confirm the remaining assumptions.', condition: 'Target condition', rehab: 'Rehabilitation budget', currentRehab: 'Current rehab', keep: 'Keep current value', reevaluate: 'Reevaluate', missingRehab: 'Not provided', own: 'Enter an amount', benchmark: 'Use 2026 state reference', without: 'Continue without rehab', amount: 'Rehab amount', reference: 'Preliminary reference · low confidence', benchmarkLabel: '2026 benchmark', perSqft: 'per sqft', within: 'The current value is within the reference range.', outside: 'The current value is outside the reference range.', addScope: 'Add renovation details', hideScope: 'Hide renovation details', scope: 'Renovation scope (optional)', save: 'Continue analysis', decline: 'Continue with limitations', saving: 'Saving…', edit: 'Edit', resolved: 'Information supplied', limitation: 'Continued with explicit limitations',
   },
   pt: {
-    title: 'Completar a análise', condition: 'Condição alvo', rehab: 'Orçamento de reforma', currentRehab: 'Rehab atual', keep: 'Manter valor atual', reevaluate: 'Reavaliar', missingRehab: 'Não informado', own: 'Informar valor', benchmark: 'Usar referência estadual 2026', without: 'Continuar sem rehab', amount: 'Valor da reforma', reference: 'Referência preliminar · baixa confiança', addScope: 'Adicionar detalhes do escopo', hideScope: 'Ocultar detalhes do escopo', scope: 'Escopo da reforma (opcional)', save: 'Continuar análise', decline: 'Continuar com limitações', saving: 'Salvando…', edit: 'Alterar', resolved: 'Informações fornecidas', limitation: 'Continuação com limitações explícitas',
+    title: 'Completar a análise', intro: 'Para avançar na análise de ARV, preciso confirmar as premissas restantes.', condition: 'Condição alvo', rehab: 'Orçamento de reforma', currentRehab: 'Reforma atual', keep: 'Manter valor atual', reevaluate: 'Reavaliar', missingRehab: 'Não informado', own: 'Informar valor', benchmark: 'Usar referência estadual 2026', without: 'Continuar sem orçamento de reforma', amount: 'Valor da reforma', reference: 'Referência preliminar · baixa confiança', benchmarkLabel: 'Referência 2026', perSqft: 'por sqft', within: 'O valor informado está dentro da faixa de referência.', outside: 'O valor informado está fora da faixa de referência.', addScope: 'Adicionar detalhes do escopo', hideScope: 'Ocultar detalhes do escopo', scope: 'Escopo da reforma (opcional)', save: 'Continuar análise', decline: 'Continuar com limitações', saving: 'Salvando…', edit: 'Alterar', resolved: 'Informações fornecidas', limitation: 'Continuação com limitações explícitas',
   },
   es: {
-    title: 'Completar el análisis', condition: 'Condición objetivo', rehab: 'Presupuesto de reforma', currentRehab: 'Rehabilitación actual', keep: 'Mantener valor actual', reevaluate: 'Reevaluar', missingRehab: 'No informado', own: 'Ingresar un valor', benchmark: 'Usar referencia estatal 2026', without: 'Continuar sin rehabilitación', amount: 'Valor de rehabilitación', reference: 'Referencia preliminar · baja confianza', addScope: 'Agregar detalles del alcance', hideScope: 'Ocultar detalles del alcance', scope: 'Alcance de la reforma (opcional)', save: 'Continuar análisis', decline: 'Continuar con limitaciones', saving: 'Guardando…', edit: 'Editar', resolved: 'Información suministrada', limitation: 'Continuación con limitaciones explícitas',
+    title: 'Completar el análisis', intro: 'Para avanzar en el análisis de ARV, necesito confirmar los supuestos restantes.', condition: 'Condición objetivo', rehab: 'Rehabilitación', currentRehab: 'Rehabilitación actual', keep: 'Mantener valor actual', reevaluate: 'Reevaluar', missingRehab: 'No informado', own: 'Ingresar un valor', benchmark: 'Usar referencia estatal 2026', without: 'Continuar sin rehabilitación', amount: 'Valor de rehabilitación', reference: 'Referencia preliminar · baja confianza', benchmarkLabel: 'Referencia 2026', perSqft: 'por sqft', within: 'El valor informado está dentro del rango de referencia.', outside: 'El valor informado está fuera del rango de referencia.', addScope: 'Agregar detalles del alcance', hideScope: 'Ocultar detalles del alcance', scope: 'Alcance de la reforma (opcional)', save: 'Continuar análisis', decline: 'Continuar con limitaciones', saving: 'Guardando…', edit: 'Editar', resolved: 'Información suministrada', limitation: 'Continuación con limitaciones explícitas',
   },
 };
 
 const currency = (value, language) => new Intl.NumberFormat(language === 'pt' ? 'pt-BR' : language === 'es' ? 'es-US' : 'en-US', {
   style: 'currency', currency: 'USD', maximumFractionDigits: 0,
+}).format(Number(value || 0));
+const currencyRate = (value, language) => new Intl.NumberFormat(language === 'pt' ? 'pt-BR' : language === 'es' ? 'es-US' : 'en-US', {
+  style: 'currency', currency: 'USD', minimumFractionDigits: 2, maximumFractionDigits: 2,
 }).format(Number(value || 0));
 
 function ChoiceButton({ active, disabled, children, onClick }) {
@@ -52,6 +55,12 @@ export function MaxxisAnalysisGapResolution({ message, language = 'en', onResolv
   const rehabSatisfied = !needsRehab || rehabMode === 'without' || rehabMode === 'maintain'
     || (rehabMode === 'benchmark' && Boolean(benchmark)) || (rehabMode === 'custom' && hasCustomValue);
   const valid = (!needsTarget || MAXXIS_TARGET_CONDITIONS.includes(targetCondition)) && rehabSatisfied;
+  const rehabSanity = currentRehab !== null && benchmark?.livingAreaSqft
+    ? {
+        perSqft: currentRehab / Number(benchmark.livingAreaSqft),
+        within: currentRehab >= Number(benchmark.low) && currentRehab <= Number(benchmark.high),
+      }
+    : null;
 
   const resolve = () => {
     if (!valid || busy) return;
@@ -70,7 +79,7 @@ export function MaxxisAnalysisGapResolution({ message, language = 'en', onResolv
   return (
     <section className="maxxis-arv-review" aria-label={copy.title} data-testid="maxxis-analysis-gap-resolution">
       <div className="maxxis-arv-target maxxis-gap-resolution">
-        <strong>{copy.title}</strong>
+        <strong>{copy.intro}</strong>
         {needsTarget ? <label className="maxxis-gap-field">{copy.condition}
           <select aria-label={copy.condition} value={targetCondition} disabled={busy} onChange={(event) => setTargetCondition(event.target.value)}>
             {MAXXIS_TARGET_CONDITIONS.map((value) => <option key={value} value={value}>{localizeMaxxisValue(value, language)}</option>)}
@@ -88,6 +97,11 @@ export function MaxxisAnalysisGapResolution({ message, language = 'en', onResolv
             <input aria-label={copy.amount} type="number" inputMode="decimal" min="0" max="1000000000" step="0.01" value={rehabBudget} disabled={busy} onChange={(event) => setRehabBudget(event.target.value)} />
           </label> : null}
           {rehabMode === 'benchmark' && benchmark ? <small>{copy.reference}: {currency(benchmark.low, language)}–{currency(benchmark.high, language)} ({currency(benchmark.mid, language)})</small> : null}
+          {rehabSanity ? <div className="maxxis-gap-sanity">
+            <span>{copy.currentRehab}: <strong>{currency(currentRehab, language)}</strong> · {currencyRate(rehabSanity.perSqft, language)} {copy.perSqft}</span>
+            <span>{copy.benchmarkLabel}: {currency(benchmark.low, language)}–{currency(benchmark.high, language)}</span>
+            <strong>{rehabSanity.within ? copy.within : copy.outside}</strong>
+          </div> : null}
         </fieldset> : null}
         {(needsTarget || needsRehab) ? <>
           <button type="button" className="maxxis-gap-scope-toggle" aria-expanded={scopeOpen} disabled={busy} onClick={() => setScopeOpen((value) => !value)}>{scopeOpen ? copy.hideScope : copy.addScope}</button>

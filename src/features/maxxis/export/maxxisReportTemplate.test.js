@@ -11,7 +11,8 @@ const property = {
   id: 'report-template-test', address: '1200 Fictional Street', city: 'Example City', state: 'FL', zip: '00000',
   type: 'SFR', price: 425000, beds: 4, baths: 2, sqft: 1780, rehab: 48000,
   lot: 9600, yearBuilt: 2004, county: 'Example County', assessedValue: 390000, annualPropertyTax: 5200,
-  owner: { name: 'Sample Owner', type: 'Individual', status: 'Not verified', allowedContacts: [] },
+  owner: { name: 'Sample Owner', type: 'Individual', status: 'Not verified', allowedContacts: [{ value: '+1 205 378 0355' }, { value: 'owner.full.address@example.com' }] },
+  latestSalePrice: 682130, latestSaleDate: '2014-03-07T00:00:00.000Z',
   notes: 'Owner narrative says three bedrooms; the structured record says four.', published: true,
 };
 const intelligence = {
@@ -87,6 +88,8 @@ describe('canonical PDF template behavior', () => {
     expect(facts).toContain('latestSaleDate ? String(latestSaleDate) : null');
     expect(facts).toContain('lineHeight: 14');
     expect(facts).toContain('valueMaxLines: null');
+    expect(facts).toContain('contentHeight');
+    expect(source).toContain('const step = Math.max(lineHeight, contentHeight + rowGap)');
     expect(source).toContain('factGridBottom + 15');
   });
 
@@ -103,6 +106,9 @@ describe('canonical PDF template behavior', () => {
     expect(pages[0].height).toBeCloseTo(841.89, 1);
     expect(pages[0].text).toContain(title);
     expect(pages[0].text).toContain('1200 Fictional Street');
+    expect(pages[0].text).toContain('+1 205 378 0355');
+    expect(pages[0].text.replace(/\s/g, '')).toContain('owner.full.address@example.com');
+    expect(pages[0].text).toContain('2014-03-07T00:00:00.000Z');
     expect(pages[0].text).toContain(dateLabel);
     expect(pages[0].text).toContain(pageLabel);
     expect(pages[0].text.split(pageLabel)).toHaveLength(2);

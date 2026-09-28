@@ -30,9 +30,13 @@ describe('Deal Intelligence canonical live evidence pipeline',()=>{
     expect(backendFactory).toContain('SupabaseSoldRecordPoolCache');
   });
   it('keeps To, Cc and Bcc independent and preserves UTF-8 content',()=>{
-    expect(portfolio).toContain('const [emailTo, setEmailTo]');
-    expect(portfolio).toContain('const [emailCc, setEmailCc]');
-    expect(portfolio).toContain('const [emailBcc, setEmailBcc]');
+    expect(portfolio).toContain('const [emailRecipients, setEmailRecipients]');
+    expect(portfolio).toContain("setEmailRecipient('to', e.target.value)");
+    expect(portfolio).toContain("setEmailRecipient('cc', e.target.value)");
+    expect(portfolio).toContain("setEmailRecipient('bcc', e.target.value)");
+    expect(portfolio).toContain("readOnly={activeEmailRecipient !== 'to'}");
+    expect(portfolio).toContain("readOnly={activeEmailRecipient !== 'cc'}");
+    expect(portfolio).toContain("readOnly={activeEmailRecipient !== 'bcc'}");
     expect(portfolio).toContain("to: String(emailTo || '').trim()");
     expect(portfolio).toContain("cc: String(emailCc || '').trim()");
     expect(portfolio).toContain("bcc: String(emailBcc || '').trim()");

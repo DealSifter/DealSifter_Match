@@ -22,7 +22,7 @@ describe('Maxxis ARV result experience', () => {
     const html = renderToStaticMarkup(<MaxxisArvResultExperience evaluation={base} />);
     expect(html).toContain('$2,020,196 – $3,063,156');
     expect(html).toContain('LIMITED CONFIDENCE');
-    expect(html).toContain('Confidence <strong>LOW</strong>');
+    expect(html).toContain('Valuation confidence <strong>LOW</strong>');
     expect(html).toContain('VALUATION DISPERSION WARNING');
     expect(html).toContain('View evidence');
     expect(html).toContain('Valuation comps used');
@@ -35,15 +35,15 @@ describe('Maxxis ARV result experience', () => {
       eligibleCompCount: 0, evidenceSummary: { ...base.evidenceSummary, arv: 'UNAVAILABLE' } }} />);
     expect(html).toContain('Not available yet');
     expect(html).not.toContain('$0');
-    expect(html).not.toContain('External Provider Estimate');
+    expect(html).not.toContain('Estimated Market Value');
   });
 
   it('displays a cached provider estimate in a distinct evidence section', () => {
     const html = renderToStaticMarkup(<MaxxisArvResultExperience evaluation={{ ...base,
       providerAvmCrossCheck: { status: 'PROVIDER_ESTIMATE_WITHIN_RANGE', value: 2500000, evidenceStatus: 'ESTIMATED' } }} />);
-    expect(html).toContain('External Provider Estimate');
+    expect(html).toContain('Estimated Market Value');
     expect(html).toContain('$2,500,000');
     expect(html).toContain('Source: RentCast');
-    expect(html).toContain('not blended with the DealSifter ARV');
+    expect(html).toContain('not an appraisal or ARV');
   });
 });

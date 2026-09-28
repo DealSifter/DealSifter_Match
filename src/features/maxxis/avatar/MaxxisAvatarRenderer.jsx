@@ -115,6 +115,7 @@ export function MaxxisAvatarRenderer({ avatarState, avatarSize = 1, className = 
           {layers.outgoing ? (
             <img
               className="maxxis-avatar-layer maxxis-avatar-layer--outgoing"
+              data-avatar-layer-state={layers.outgoing.state}
               src={layers.outgoing.src}
               alt=""
               draggable="false"
@@ -123,6 +124,7 @@ export function MaxxisAvatarRenderer({ avatarState, avatarSize = 1, className = 
           ) : null}
           <img
             className="maxxis-avatar-layer maxxis-avatar-layer--active"
+            data-avatar-layer-state={layers.active.state}
             src={layers.active.src}
             alt=""
             draggable="false"
