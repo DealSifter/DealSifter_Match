@@ -85,6 +85,28 @@ describe('Maxxis Deal Intelligence Experience v1', () => {
     expect(JSON.stringify(report.valuationIntelligence)).not.toContain('"low":1');
   });
 
+  it('keeps five supporting comps visible in the report while ARV remains unavailable', () => {
+    const input = context({ arvAvailable: false });
+    input.comparableEvidence = Array.from({ length: 5 }, (_, index) => ({
+      compIdentifier: `support-${index + 1}`,
+      address: `${index + 1} Supporting St`,
+      recordedSalePrice: 390000 + index * 10000,
+      recordedSaleDate: '2026-04-08',
+      distanceMiles: 1 + index / 10,
+      transactionQuality: 'UNKNOWN',
+      conditionCompatibility: 'UNREVIEWED',
+      structuralComparabilityScore: 85 - index,
+      valuationRole: 'SUPPORTING',
+      valuationEligibility: 'SUPPORTING_ONLY',
+      exclusionReason: 'CONDITION_REVIEW_PENDING',
+    }));
+    const report = buildMaxxisDealIntelligenceReport(input);
+    expect(report.valuationIntelligence).toMatchObject({ status: 'ARV_UNAVAILABLE', compsUsed: 0 });
+    expect(report.comparableEvidence).toMatchObject({ used: [], supporting: expect.any(Array) });
+    expect(report.comparableEvidence.supporting).toHaveLength(5);
+    expect(report.limitations.join(' ')).toContain('5 structurally relevant sales');
+  });
+
   it('translates valuation engine states before they reach preview, PDF, or email', () => {
     const input = context({ arvAvailable: false });
     input.valuationContext.warnings = ['ARV_EVALUATION_NOT_LOADED', 'INSUFFICIENT_COMPS'];

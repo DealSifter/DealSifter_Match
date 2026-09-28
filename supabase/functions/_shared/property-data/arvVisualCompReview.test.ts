@@ -134,17 +134,33 @@ describe('ARV visual comp review domain', () => {
     expect(before).toMatchObject({
       providerCalls: 0,
       summary: { totalStructuralCandidates: 5, compatibleCount: 0, status: 'NOT_STARTED' },
-      arvEvaluation: { eligibleCompCount: 0, supportingCompCount: 0 },
+      arvEvaluation: { eligibleCompCount: 0, supportingCompCount: 5 },
+      compAnalysisState: { candidatesConsidered: 5, selected: [], supporting: expect.any(Array),
+        arvEligible: [], subjectCondition: 'FULL_RENOVATION' },
     });
     expect(after).toMatchObject({
       providerCalls: 0,
       summary: { totalStructuralCandidates: 5, matchingCount: 2, partialCount: 2, compatibleCount: 4,
         status: 'READY_FOR_ARV_EVALUATION' },
       arvEvaluation: { eligibleCompCount: 2, supportingCompCount: 2 },
+      compAnalysisState: { candidatesConsidered: 5, selected: expect.any(Array),
+        supporting: expect.any(Array), excluded: expect.any(Array) },
     });
+    expect(before.compAnalysisState.supporting).toHaveLength(5);
+    expect(after.compAnalysisState).toMatchObject({ selected: expect.any(Array), supporting: expect.any(Array) });
+    expect(after.compAnalysisState.selected).toHaveLength(2);
+    expect(after.compAnalysisState.supporting).toHaveLength(2);
+    expect(after.compAnalysisState.excluded).toHaveLength(1);
     expect(after.candidates.map((item) => item.structuralComparabilityScore))
       .toEqual(before.candidates.map((item) => item.structuralComparabilityScore));
     expect(after.candidates.map((item) => item.stableCompIdentifier)).toEqual(['a', 'b', 'c', 'd', 'e']);
+  });
+
+  it('reuses primary and supporting structural cache partitions in the endpoint', () => {
+    const source = readFileSync(new URL('../../arv-visual-comp-review/index.ts', import.meta.url), 'utf8');
+    expect(source).toContain('supportingStructuralCandidates');
+    expect(source).toContain('candidates: structuralCandidates');
+    expect(source).not.toMatch(/candidates:\s*soldEvidence\.recordedSoldCompSelection\.primaryStructuralCandidates/);
   });
 
   it('enforces own-user RLS and idempotent upsert keys in the migration', () => {

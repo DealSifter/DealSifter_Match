@@ -81,11 +81,14 @@ export function arvReviewGuidance(summary, language = 'en', evaluation = null, r
     },
   }[lang];
   const candidates = Array.isArray(reviewData?.candidates) ? reviewData.candidates : [];
+  const canonicalSupporting = Array.isArray(reviewData?.compAnalysisState?.supporting)
+    ? reviewData.compAnalysisState.supporting : null;
   const distances = candidates.map((item) => Number(item?.distanceMiles)).filter((value) => Number.isFinite(value));
   const distanceRange = distances.length ? [Math.min(...distances), Math.max(...distances)] : null;
   if (evaluation?.status === 'ARV_AVAILABLE') return copy.available(evaluation.eligibleCompCount || 0, evaluation.confidence);
-  if (language === 'pt' && evaluation?.status === 'ARV_UNAVAILABLE' && candidates.length) {
-    const count = candidates.length;
+  if (language === 'pt' && evaluation?.status === 'ARV_UNAVAILABLE'
+    && (canonicalSupporting?.length || candidates.length)) {
+    const count = canonicalSupporting?.length || candidates.length;
     const distance = distanceRange
       ? ` Eles ficam entre aproximadamente ${distanceRange[0].toLocaleString('pt-BR')} e ${distanceRange[1].toLocaleString('pt-BR')} milhas do imóvel.`
       : '';
@@ -94,7 +97,7 @@ export function arvReviewGuidance(summary, language = 'en', evaluation = null, r
     const blocker = conditionPending
       ? 'O principal bloqueio é que a condição-alvo e a compatibilidade de condição desses imóveis ainda não estão confirmadas.'
       : 'Os candidatos ainda não atenderam a todos os critérios determinísticos da avaliação.';
-    return `Encontrei ${count} ${count === 1 ? 'venda estruturalmente semelhante' : 'vendas estruturalmente semelhantes'}, mas ${count === 1 ? 'ela ainda não pode' : 'elas ainda não podem'} ser usada${count === 1 ? '' : 's'} como comparáveis confirmados para ARV.${distance}\n\n${blocker} Posso mantê-${count === 1 ? 'la' : 'las'} como evidência de apoio.\n\nPara tentar avançar, posso confirmar a condição-alvo, revisar o rehab e reavaliar os ${count} candidatos para mostrar quais passam ou não passam nos critérios. Isso não garante que uma faixa de ARV ficará disponível.`;
+    return `Encontrei ${count} ${count === 1 ? 'venda estruturalmente semelhante e a mantive' : 'vendas estruturalmente semelhantes e as mantive'} como comparáveis de apoio. Nenhuma atende ainda a todos os critérios exigidos para entrar no cálculo determinístico do ARV.${distance}\n\n${blocker} Por isso, não vou apresentar um ARV como se estivesse confirmado.\n\nPosso mostrar por que cada uma ficou apenas como apoio e o que ainda precisaria ser validado para tentar promovê-las. Também posso confirmar a condição-alvo e revisar o rehab sem garantir que uma faixa de ARV ficará disponível.`;
   }
   if (evaluation?.status === 'ARV_LIMITED') return copy.limited(evaluation.eligibleCompCount || 0);
   if (evaluation?.status === 'ARV_UNAVAILABLE' && (summary?.reviewedCount || 0) > 0) return copy.unavailable;

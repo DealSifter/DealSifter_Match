@@ -124,14 +124,22 @@ function comparableEvidence(comp, language = 'en') {
   };
 }
 
-export function createArvExplanationContext(evaluation, language = 'en') {
+export function createArvExplanationContext(evaluation, language = 'en', options = {}) {
   if (!evaluation || !STATUS_COPY[evaluation.status]) return null;
   const copy = (language === 'pt' ? STATUS_COPY_PT : STATUS_COPY)[evaluation.status];
   const valuationSet = (evaluation.valuationSet || []).map((comp) => comparableEvidence(comp, language));
   const usedComps = valuationSet.filter((comp) => comp.valuationEligibility === 'INCLUDED');
   const notIncludedComps = valuationSet.filter((comp) => comp.valuationEligibility !== 'INCLUDED');
-  const limitations = unique(evaluation.limitations || []).map((code) => ({ code, message: explain(code, undefined, language) }));
-  const confidenceReasons = unique(evaluation.confidenceReasons || []).map((code) => ({ code, message: explain(code, undefined, language) }));
+  const supportingCount = Math.max(0, Number(options.supportingCount || 0));
+  const explainForCurrentSet = (code) => code === 'INSUFFICIENT_CONDITION_COMPATIBLE_COMPS' && supportingCount > 0
+    ? language === 'pt'
+      ? `${supportingCount} ${supportingCount === 1 ? 'venda estruturalmente semelhante permanece como comparável' : 'vendas estruturalmente semelhantes permanecem como comparáveis'} de apoio; nenhuma atende ainda a todos os critérios determinísticos do ARV.`
+      : language === 'es'
+        ? `${supportingCount} ${supportingCount === 1 ? 'venta estructuralmente similar permanece' : 'ventas estructuralmente similares permanecen'} como comparables de apoyo; ninguna cumple todavía todos los criterios determinísticos del ARV.`
+        : `${supportingCount} structurally similar sale${supportingCount === 1 ? '' : 's'} remain as supporting comps; none yet meets every deterministic ARV criterion.`
+    : explain(code, undefined, language);
+  const limitations = unique(evaluation.limitations || []).map((code) => ({ code, message: explainForCurrentSet(code) }));
+  const confidenceReasons = unique(evaluation.confidenceReasons || []).map((code) => ({ code, message: explainForCurrentSet(code) }));
   const available = evaluation.status !== 'ARV_UNAVAILABLE';
   const provider = evaluation.providerAvmCrossCheck;
   const providerEstimate = provider?.evidenceStatus === 'ESTIMATED' && Number(provider.value) > 0 ? {
@@ -147,7 +155,7 @@ export function createArvExplanationContext(evaluation, language = 'en') {
     why.push(language === 'pt' ? 'Os preços das vendas registradas foram usados como evidência.' : 'Recorded sale prices were used as evidence.');
     why.push(language === 'pt' ? 'A semelhança estrutural foi avaliada antes da estimativa.' : 'Structural similarity was evaluated before valuation.');
   } else {
-    why.push(explain(evaluation.confidenceReasons?.[0], undefined, language));
+    why.push(explainForCurrentSet(evaluation.confidenceReasons?.[0]));
   }
   if (evaluation.status === 'ARV_LIMITED' && usedComps.length === 2) {
     why.unshift(language === 'pt' ? 'Há apenas dois comparáveis compatíveis em condição.' : 'Only two condition-compatible comparables are available.');

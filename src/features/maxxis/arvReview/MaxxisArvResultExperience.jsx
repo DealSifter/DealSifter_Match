@@ -37,29 +37,24 @@ function CompEvidence({ comp, included, language, copy }) {
   );
 }
 
-export function MaxxisArvResultExperience({ evaluation, supportingCount = 0, language = 'en' }) {
-  const context = createArvExplanationContext(evaluation, language);
+export function MaxxisArvResultExperience({ evaluation, compAnalysisState = null, supportingCount = 0, language = 'en' }) {
+  const canonicalSupportingCount = Array.isArray(compAnalysisState?.supporting)
+    ? compAnalysisState.supporting.length : supportingCount;
+  const context = createArvExplanationContext(evaluation, language, { supportingCount: canonicalSupportingCount });
   if (!context) return null;
   const t = COPY[language] || COPY.en;
   const available = context.status !== 'ARV_UNAVAILABLE';
   return (
     <section className={`maxxis-arv-result is-${context.status.toLowerCase().replaceAll('_', '-')}`} aria-label={`${t.title} Maxxis`}>
-      <div className="maxxis-arv-result-heading"><strong>{t.title}</strong><span>{context.statusLabel}</span></div>
-      <div className="maxxis-arv-primary-result">
-        <div><small>{available ? t.range : t.evaluation}</small><strong className="maxxis-arv-range">{available ? `${money(context.range.low, t.unavailable)} – ${money(context.range.high, t.unavailable)}` : t.unavailable}</strong></div>
-        {available ? <div><small>{t.central}</small><strong>{money(context.centralReference, t.unavailable)}</strong></div> : null}
-      </div>
-      <div className="maxxis-arv-result-metrics">
-        <span>{t.confidence} <strong>{language === 'en' ? context.confidence : localizeMaxxisValue(context.confidence, language, t.unavailable)}</strong></span>
-        <span>{t.confirmed} <strong>{context.eligibleCompCount}</strong></span>
-        <span>{t.supporting} <strong>{supportingCount}</strong></span>
-      </div>
-      {context.providerEstimate ? <section className="maxxis-arv-provider-estimate"><span>{t.provider}</span><strong>{money(context.providerEstimate.value, t.unavailable)}</strong><small>{t.providerNote} {t.source}: {context.providerEstimate.source}. {t.provenance}: {localizeMaxxisValue(context.providerEstimate.evidenceStatus, language)}.</small></section> : null}
-      <div className="maxxis-arv-result-statement"><strong>{t.why}</strong><p>{context.statement}</p></div>
+      <p className="maxxis-arv-inline-result"><strong>{available ? `${t.range}:` : `${t.evaluation}:`}</strong> <span className="maxxis-arv-range">{available ? `${money(context.range.low, t.unavailable)} – ${money(context.range.high, t.unavailable)}` : t.unavailable}</span> <small>{context.statusLabel}</small></p>
+      {available ? <p>{t.central}: <strong>{money(context.centralReference, t.unavailable)}</strong></p> : null}
+      <p className="maxxis-arv-inline-metrics">{t.confidence} <strong>{language === 'en' ? context.confidence : localizeMaxxisValue(context.confidence, language, t.unavailable)}</strong> · {t.confirmed} <strong>{context.eligibleCompCount}</strong> · {t.supporting} <strong>{canonicalSupportingCount}</strong></p>
+      {context.providerEstimate ? <p className="maxxis-arv-provider-estimate"><span>{t.provider}: </span><strong>{money(context.providerEstimate.value, t.unavailable)}</strong><small>{t.providerNote} {t.source}: {context.providerEstimate.source}. {t.provenance}: {localizeMaxxisValue(context.providerEstimate.evidenceStatus, language)}.</small></p> : null}
+      <p className="maxxis-arv-result-statement"><strong>{t.why}</strong> {context.statement}</p>
       <details className="maxxis-arv-explanation-block"><summary>{t.evidence}</summary><ul>{context.why.map((item) => <li key={item}>{item}</li>)}</ul></details>
       {context.limitations.length ? <details className="maxxis-arv-explanation-block"><summary>{t.limitations}</summary><ul>{context.limitations.map((item) => <li key={item.code}>{item.message}</li>)}</ul></details> : null}
       {context.warnings.length ? <div className="maxxis-arv-warning-list">{context.warnings.map((warning) => <span key={warning.code}>⚠ {language === 'en' ? warning.code.replaceAll('_', ' ') : warning.message}</span>)}</div> : null}
-      <div className="maxxis-arv-next-action"><strong>{t.next}</strong><span>{context.nextAction}</span></div>
+      <p className="maxxis-arv-next-action"><strong>{t.next}:</strong> <span>{context.nextAction}</span></p>
       <details className="maxxis-arv-evidence-details">
         <summary>{t.evidence} ({context.usedComps.length} {t.used}, {context.notIncludedComps.length} {t.excluded})</summary>
         <div className="maxxis-arv-evidence-drawer">
@@ -67,7 +62,7 @@ export function MaxxisArvResultExperience({ evaluation, supportingCount = 0, lan
           <section><h4>{t.notIncluded}</h4>{context.notIncludedComps.length ? context.notIncludedComps.map((comp) => <CompEvidence key={comp.compIdentifier || comp.address} comp={comp} included={false} language={language} copy={t} />) : <p>{t.noneExcluded}</p>}</section>
         </div>
       </details>
-      <small>{t.calculated}</small>
+      <small className="maxxis-arv-footnote">{t.calculated}</small>
     </section>
   );
 }

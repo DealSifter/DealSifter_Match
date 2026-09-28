@@ -31,7 +31,7 @@ afterEach(cleanup);
 
 describe('production UX correction acceptance', () => {
   it('1 compact Gap Resolver uses reduced field heights', () => expect(source('src/components/maxxis/MaxxisAssistant.css')).toContain('min-height: 28px'));
-  it('2 compact ARV card uses the normal ARV heading', () => { renderArv(); expect(screen.getAllByText('ARV').length).toBeGreaterThan(0); expect(screen.queryByText('ARV Intelligence')).toBeNull(); });
+  it('2 compact ARV card uses the normal ARV heading', () => { renderArv(); expect(screen.getAllByText(/^ARV:/).length).toBeGreaterThan(0); expect(screen.queryByText('ARV Intelligence')).toBeNull(); });
   it('3 resolved card collapses the editor', () => { render(<MaxxisAnalysisGapResolved language="pt" message={{ data: { resolution: { values: { targetCondition: 'AS_IS' }, declinedFields: [] } } }} />); expect(screen.queryByRole('combobox')).toBeNull(); });
   it('4 condition control is clickable', async () => { const fn = vi.fn(); renderArv({ onRequestGap: fn }); await userEvent.click(screen.getByRole('button', { name: 'Confirmar condição' })); expect(fn).toHaveBeenCalledWith('m1', 'target_condition'); });
   it('5 rehab control is clickable', async () => { const fn = vi.fn(); renderArv({ onRequestGap: fn }); await userEvent.click(screen.getByRole('button', { name: 'Revisar rehab' })); expect(fn).toHaveBeenCalledWith('m1', 'rehab_budget'); });
@@ -48,7 +48,7 @@ describe('production UX correction acceptance', () => {
   it('14 guidance offers concrete next steps', () => expect(arvReviewGuidance(data.summary, 'pt', evaluation, data)).toContain('revisar o rehab'));
   it('15 condition action requests Gap Resolver', async () => { const fn = vi.fn(); renderArv({ onRequestGap: fn }); await userEvent.click(screen.getByText('Confirmar condição')); expect(fn).toHaveBeenCalledOnce(); });
   it('16 rehab action requests Gap Resolver', async () => { const fn = vi.fn(); renderArv({ onRequestGap: fn }); await userEvent.click(screen.getByText('Revisar rehab')); expect(fn).toHaveBeenCalledOnce(); });
-  it('17 supporting comps can be inspected', async () => { renderArv(); await userEvent.click(screen.getByText('Ver 2 comparáveis de apoio')); expect(screen.getByText('10 Rua A')).toBeTruthy(); });
+  it('17 supporting comps can be inspected', async () => { renderArv(); await userEvent.click(screen.getByText('Comparáveis de apoio (2)')); expect(screen.getByText('10 Rua A')).toBeTruthy(); });
   it('18 continue without ARV collapses the card', async () => { renderArv(); await userEvent.click(screen.getByText('Continuar sem ARV')); expect(screen.getByText(/Continuando sem ARV/)).toBeTruthy(); expect(screen.queryByText('Confirmar condição')).toBeNull(); });
 
   it('19 inline report uses DOM before any PDF artifact', () => { const code = source('src/features/maxxis/intelligence/MaxxisDealIntelligenceExperience.jsx'); expect(code).toContain('MaxxisDealIntelligenceReportPreview'); expect(code).not.toContain('MaxxisCanonicalReportPreview'); });
@@ -58,4 +58,34 @@ describe('production UX correction acceptance', () => {
   it('23 PDF generation is single-flight cached', () => expect(source('src/features/maxxis/export/maxxisReportPdf.js')).toContain('reportRenderCache'));
   it('24 PDF path contains no Gemini call', () => expect(source('src/features/maxxis/export/maxxisReportPdf.js')).not.toMatch(/generative-ai|gemini/i));
   it('25 PDF path contains no provider acquisition call', () => expect(source('src/features/maxxis/export/maxxisReportPdf.js')).not.toMatch(/rentcast|fetch\s*\(/i));
+
+  it('26 preserves five supporting comps while condition re-evaluation is in flight and after it completes', () => {
+    const supporting = Array.from({ length: 5 }, (_, index) => ({ compIdentifier: `c${index + 1}`, valuationEligibility: 'SUPPORTING_ONLY' }));
+    const fiveCandidates = supporting.map((item, index) => ({
+      stableCompIdentifier: item.compIdentifier,
+      address: { line1: `${index + 1} Apoio St`, city: 'Beverly Hills', state: 'CA' },
+      structuralComparabilityScore: 85 - index,
+      dataCompletenessScore: 70,
+      distanceMiles: 1 + index / 10,
+      recordedSalePrice: 1_900_000 + index * 10_000,
+      recordedSaleDate: '2026-01-01',
+      externalUrls: {},
+    }));
+    const canonicalData = {
+      ...data,
+      candidates: fiveCandidates,
+      summary: { ...data.summary, totalStructuralCandidates: 5 },
+      arvEvaluation: { ...evaluation, supportingCompCount: 5, valuationSet: supporting },
+      compAnalysisState: { candidatesConsidered: 5, structuralCandidates: supporting,
+        selected: [], supporting, excluded: [], arvEligible: [] },
+    };
+    const view = renderArv({ data: canonicalData, activeReviewKey: 'target' });
+    expect(screen.getByText('Reavaliando os 5 comparáveis de apoio…')).toBeTruthy();
+    expect(document.body.textContent).toContain('Apoio 5');
+    expect(document.body.textContent).not.toContain('Apoio 0');
+    view.rerender(<MaxxisArvVisualCompReview messageId="m1" data={{ ...canonicalData,
+      targetCondition: 'TURN_KEY', targetConditionEvidenceStatus: 'USER_PROVIDED' }} language="pt" />);
+    expect(screen.getByText('Comparáveis de apoio (5)')).toBeTruthy();
+    expect(document.body.textContent).not.toContain('Não há comparáveis suficientes');
+  });
 });

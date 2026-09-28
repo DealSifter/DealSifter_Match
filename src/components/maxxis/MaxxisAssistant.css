@@ -1826,3 +1826,110 @@ button.maxxis-action-link:hover {
   .maxxis-v2-photos { grid-template-columns: repeat(3, minmax(0, 1fr)); }
   .maxxis-v2-photos img { height: 72px; }
 }
+
+/* Chat-native analysis controls deliberately inherit the ordinary message scale. */
+.maxxis-gap-inline,
+.maxxis-arv-review,
+.maxxis-arv-result {
+  color: var(--t1);
+  font: inherit;
+  line-height: inherit;
+}
+
+.maxxis-gap-inline,
+.maxxis-gap-resolution {
+  display: grid;
+  gap: 6px;
+  width: 100%;
+}
+
+.maxxis-gap-inline { margin-top: 5px; }
+.maxxis-gap-resolution { padding: 0; border: 0; border-radius: 0; background: transparent; }
+.maxxis-gap-resolution > p,
+.maxxis-arv-result > p,
+.maxxis-arv-summary { margin: 0; }
+.maxxis-gap-field,
+.maxxis-gap-rehab-options legend,
+.maxxis-gap-current { color: inherit; font: inherit; line-height: inherit; }
+.maxxis-gap-current,
+.maxxis-arv-summary,
+.maxxis-arv-footnote { color: var(--t2); }
+.maxxis-gap-resolution select,
+.maxxis-gap-resolution input:not([type="radio"]):not([type="checkbox"]) {
+  min-height: 30px;
+  padding: 4px 7px;
+  color: var(--t1);
+  font: inherit;
+  border: 1px solid var(--border);
+  border-radius: 7px;
+  background: var(--bg);
+}
+.maxxis-gap-resolution textarea { color: var(--t1); font: inherit; background: var(--bg); }
+.maxxis-gap-choices,
+.maxxis-gap-actions,
+.maxxis-arv-actions { align-items: baseline; gap: 5px 9px; }
+.maxxis-gap-choices > button + button::before,
+.maxxis-gap-actions > button + button::before,
+.maxxis-arv-actions > button + button::before { content: '·'; margin-right: 9px; color: var(--t3); }
+.maxxis-gap-choice[aria-pressed="true"] { color: var(--accent); font-weight: 750; }
+.maxxis-gap-resolution button.maxxis-inline-link,
+.maxxis-gap-actions > button.maxxis-inline-link,
+.maxxis-arv-actions button.maxxis-inline-link,
+.maxxis-gap-resolved > button.maxxis-inline-link {
+  min-height: 0;
+  padding: 0;
+  color: var(--accent);
+  font: inherit;
+  font-weight: 600;
+  line-height: inherit;
+  border: 0;
+  border-radius: 2px;
+  background: transparent;
+  box-shadow: none;
+}
+.maxxis-gap-resolution button.maxxis-inline-link[aria-pressed="true"] { color: var(--accent); background: transparent; }
+.maxxis-gap-resolved {
+  margin-top: 5px;
+  padding: 0;
+  color: var(--t1);
+  font: inherit;
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+}
+.maxxis-gap-resolved > div { gap: 1px; color: inherit; font: inherit; }
+.maxxis-gap-resolved > div > span { color: var(--t2); }
+
+.maxxis-arv-review { gap: 6px; margin-top: 5px; }
+.maxxis-arv-result { gap: 4px; padding: 0; }
+.maxxis-arv-inline-result small { margin-left: 5px; color: var(--t2); font-size: .82em; }
+.maxxis-arv-range { display: inline; color: var(--accent); font: inherit; font-weight: 750; }
+.maxxis-arv-inline-metrics,
+.maxxis-arv-result-statement,
+.maxxis-arv-next-action { display: block; color: var(--t1); font: inherit; }
+.maxxis-arv-inline-metrics { color: var(--t2); }
+.maxxis-arv-provider-estimate {
+  display: block;
+  margin: 0;
+  padding: 0;
+  color: var(--t1);
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+  box-shadow: none;
+}
+.maxxis-arv-provider-estimate small { display: block; color: var(--t2); }
+.maxxis-arv-next-action { padding: 0; border: 0; border-radius: 0; background: transparent; box-shadow: none; }
+.maxxis-arv-result summary,
+.maxxis-arv-evidence-details summary { padding: 0; color: var(--accent); font: inherit; font-weight: 600; border: 0; border-radius: 0; background: transparent; }
+.maxxis-arv-explanation-block ul { margin-top: 3px; color: var(--t2); }
+.maxxis-arv-warning-list { gap: 3px 8px; }
+.maxxis-arv-warning-list span { padding: 0; color: var(--gold); font: inherit; background: transparent; }
+.maxxis-arv-evidence-drawer { margin-top: 4px; padding: 0; border: 0; border-radius: 0; background: transparent; }
+.maxxis-arv-summary { padding: 0; color: var(--t2); font: inherit; background: transparent; }
+.maxxis-arv-supporting-list { gap: 3px; }
+.maxxis-arv-comp-card { border-bottom-color: var(--border); }
+.maxxis-arv-comp-card > summary { padding: 4px 0; font: inherit; }
+.maxxis-arv-comp-card > summary small,
+.maxxis-arv-comp-detail > span { color: var(--t2); font-size: .86em; }
+.maxxis-arv-continued { margin-top: 5px; padding: 0; color: var(--t2); font: inherit; border: 0; border-radius: 0; }

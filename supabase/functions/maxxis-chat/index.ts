@@ -135,6 +135,16 @@ function resolveMandatoryToolCall(message: string, propertyContextId: string, co
   if (comparisonPropertyIds.length >= 2 && intentIncludesAny(normalized, [' compare ', ' comparar ', ' compare estos ', ' compare estes '])) {
     return { name: 'compareProperties', args: { propertyIds: comparisonPropertyIds.slice(0, 3) } };
   }
+  // A current-deal financing follow-up is a focused question, not a request for
+  // the Deal Snapshot/report flow. Load only the selected property's registered
+  // fields so the answer can name missing SUB-TO inputs without inventing them.
+  if (propertyContextId && controlledIntent === 'current_deal_followup') {
+    return { name: 'getPropertyDetails', args: { propertyId: propertyContextId,
+      includeServiceMatches: false, includeOperationalContext: false } };
+  }
+  if (propertyContextId && controlledIntent === 'property_analysis_question') {
+    return { name: 'getDealInsightContext', args: { propertyId: propertyContextId } };
+  }
   if (propertyContextId && (
     ['deal_gaps', 'explain_current_insight', 'explain_metrics', 'deal_snapshot', 'review_next'].includes(controlledIntent)
     || intentIncludesAny(normalized, [
@@ -414,6 +424,13 @@ function propertyDetailsMessage(language: MaxxisLanguage, found: boolean) {
     : language === 'es'
       ? 'Estos son los datos factuales publicados, las métricas determinísticas y el análisis factual del Deal Advisor para esta propiedad.'
       : 'These are the factual published details, deterministic metrics, and factual Deal Advisor analysis for this property.';
+}
+
+function subToFinancingMessage(language: MaxxisLanguage, found: boolean) {
+  if (!found) return propertyDetailsMessage(language, false);
+  if (language === 'pt') return 'Para calcular com precisão o mortgage assumido no SUB-TO, ainda preciso do saldo atual da hipoteca e das condições do financiamento existente. Com esses dados consigo separar a dívida assumida, eventual entrada ou cash to seller, atrasos e reinstatement, custos de fechamento e o custo total de entrada. Informe, quando disponíveis, o saldo devedor, a taxa de juros, a parcela mensal de principal e juros, impostos, seguro, atrasos, valor de reinstatement, cash to seller e custos de fechamento.';
+  if (language === 'es') return 'Para calcular con precisión la hipoteca asumida en el SUB-TO, todavía necesito el saldo actual y las condiciones del financiamiento existente. Con esos datos puedo separar la deuda asumida, el cash to seller, atrasos y reinstatement, costos de cierre y el costo total de entrada. Indica, cuando estén disponibles, el saldo, la tasa, el pago mensual de principal e intereses, impuestos, seguro, atrasos, reinstatement, cash to seller y costos de cierre.';
+  return 'To calculate the mortgage assumed in the SUB-TO accurately, I still need the current unpaid balance and the existing loan terms. With those inputs I can separate assumed debt, cash to seller, arrears and reinstatement, closing costs, and total entry cost. Please provide, when available, the balance, interest rate, monthly principal-and-interest payment, taxes, insurance, arrears, reinstatement amount, cash to seller, and closing costs.';
 }
 
 function propertyComparisonMessage(language: MaxxisLanguage, available: boolean) {
@@ -1202,6 +1219,13 @@ Deno.serve(async (req) => {
             tool_payload_bytes: result.serviceMatchingSummary.payloadBytes,
             city_to_state_fallback: result.serviceMatchingSummary.cityToStateFallbackUsed,
           });
+        }
+        if (sanitizeText(body.controlledIntent, 80) === 'current_deal_followup') {
+          const text = interpretedText || subToFinancingMessage(language, result.found);
+          return response({ message: text, answer: text, type: 'text', data: {
+            propertyId: result.property?.id || propertyContextId,
+            focusedIntent: 'CURRENT_DEAL_FOLLOWUP',
+          }, actions: [], language, runtime: toolRuntime, ...toolDegraded }, 200, origin, requestId);
         }
         const text = interpretedText || propertyDetailsMessage(language, result.found);
         return response({ message: text, answer: text, type: 'property_details', data: { property: result.property, missingFields: result.missingFields, metrics: result.metrics, analysis: result.analysis, serviceNeeds: result.serviceNeeds, serviceMatches: result.serviceMatches, nextBestAction: result.nextBestAction || null, workflow: result.workflow || null }, actions: [], language, runtime: toolRuntime, ...toolDegraded }, 200, origin, requestId);

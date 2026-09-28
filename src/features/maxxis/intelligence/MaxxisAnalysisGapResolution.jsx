@@ -26,7 +26,7 @@ const currencyRate = (value, language) => new Intl.NumberFormat(language === 'pt
 }).format(Number(value || 0));
 
 function ChoiceButton({ active, disabled, children, onClick }) {
-  return <button type="button" className="maxxis-gap-choice" aria-pressed={active} disabled={disabled} onClick={onClick}>{children}</button>;
+  return <button type="button" className="maxxis-inline-link maxxis-gap-choice" aria-pressed={active} disabled={disabled} onClick={onClick}>{children}</button>;
 }
 
 export function MaxxisAnalysisGapResolution({ message, language = 'en', onResolve, onDecline, busy = false }) {
@@ -77,9 +77,9 @@ export function MaxxisAnalysisGapResolution({ message, language = 'en', onResolv
   };
 
   return (
-    <section className="maxxis-arv-review" aria-label={copy.title} data-testid="maxxis-analysis-gap-resolution">
-      <div className="maxxis-arv-target maxxis-gap-resolution">
-        <strong>{copy.intro}</strong>
+    <section className="maxxis-gap-inline" aria-label={copy.title} data-testid="maxxis-analysis-gap-resolution">
+      <div className="maxxis-gap-resolution">
+        <p>{copy.intro}</p>
         {needsTarget ? <label className="maxxis-gap-field">{copy.condition}
           <select aria-label={copy.condition} value={targetCondition} disabled={busy} onChange={(event) => setTargetCondition(event.target.value)}>
             {MAXXIS_TARGET_CONDITIONS.map((value) => <option key={value} value={value}>{localizeMaxxisValue(value, language)}</option>)}
@@ -104,15 +104,15 @@ export function MaxxisAnalysisGapResolution({ message, language = 'en', onResolv
           </div> : null}
         </fieldset> : null}
         {(needsTarget || needsRehab) ? <>
-          <button type="button" className="maxxis-gap-scope-toggle" aria-expanded={scopeOpen} disabled={busy} onClick={() => setScopeOpen((value) => !value)}>{scopeOpen ? copy.hideScope : copy.addScope}</button>
+          <button type="button" className="maxxis-inline-link maxxis-gap-scope-toggle" aria-expanded={scopeOpen} disabled={busy} onClick={() => setScopeOpen((value) => !value)}>{scopeOpen ? copy.hideScope : copy.addScope}</button>
           {scopeOpen ? <label className="maxxis-gap-field">{copy.scope}
             <textarea aria-label={copy.scope} maxLength={1000} value={renovationScope} disabled={busy} onChange={(event) => setRenovationScope(event.target.value)} />
           </label> : null}
         </> : null}
         {data.error ? <p className="maxxis-gap-error" role="alert">{data.error}</p> : null}
         <div className="maxxis-gap-actions">
-          <button type="button" disabled={busy || !valid} onClick={resolve}>{busy ? copy.saving : copy.save}</button>
-          <button type="button" disabled={busy} onClick={() => onDecline?.(message, missing)}>{copy.decline}</button>
+          <button type="button" className="maxxis-inline-link" disabled={busy || !valid} onClick={resolve}>{busy ? copy.saving : copy.save}</button>
+          <button type="button" className="maxxis-inline-link" disabled={busy} onClick={() => onDecline?.(message, missing)}>{copy.decline}</button>
         </div>
       </div>
     </section>
@@ -132,7 +132,7 @@ export function MaxxisAnalysisGapResolved({ message, language = 'en', onEdit }) 
         {Number.isFinite(Number(values.rehabBudget)) ? <span>✓ {copy.rehab}: {currency(values.rehabBudget, language)}</span> : null}
         {declined.length ? <span>✓ {declined.map((field) => field === 'rehab_budget' ? copy.missingRehab : localizeMaxxisValue(field, language)).join(', ')}</span> : null}
       </div>
-      <button type="button" onClick={() => onEdit?.(message)}>{copy.edit}</button>
+      <button type="button" className="maxxis-inline-link" onClick={() => onEdit?.(message)}>{copy.edit}</button>
     </section>
   );
 }

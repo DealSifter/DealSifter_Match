@@ -144,6 +144,21 @@ export function buildArvVisualCompReviewPayload(input: {
       };
     }),
   });
+  const structuralCandidates = arvEvaluation.valuationSet;
+  const selected = structuralCandidates.filter((item) => item.valuationEligibility === 'INCLUDED');
+  const supporting = structuralCandidates.filter((item) => item.valuationEligibility === 'SUPPORTING_ONLY');
+  const excluded = structuralCandidates.filter((item) => item.valuationEligibility === 'EXCLUDED');
+  const compAnalysisState = {
+    candidatesConsidered: input.candidates.length,
+    structuralCandidates,
+    selected,
+    supporting,
+    excluded,
+    arvEligible: selected,
+    evaluatedAt: arvEvaluation.calculatedAt,
+    subjectCondition: targetCondition,
+    assumptions: { targetCondition },
+  } as const;
   return {
     propertyId: input.propertyId,
     policyVersion: ARV_VISUAL_COMP_REVIEW_POLICY_VERSION,
@@ -152,6 +167,7 @@ export function buildArvVisualCompReviewPayload(input: {
     candidates,
     summary,
     arvEvaluation,
+    compAnalysisState,
     arvCalculated: arvEvaluation.status !== 'ARV_UNAVAILABLE',
     maoCalculated: false as const,
     providerCalls: 0 as const,

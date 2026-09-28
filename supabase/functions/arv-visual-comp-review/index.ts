@@ -73,7 +73,11 @@ export async function handleArvVisualCompReviewRequest(req: Request) {
     });
     const soldEvidence = await soldService.getCachedSoldEvidence({ propertyId, userId: user.id });
     if (!soldEvidence) return response(origin, { success: false, state: 'no_cached_evidence', error: 'CACHED_SOLD_EVIDENCE_REQUIRED' });
-    const candidateIds = new Set(soldEvidence.recordedSoldCompSelection.primaryStructuralCandidates
+    const structuralCandidates = [
+      ...soldEvidence.recordedSoldCompSelection.primaryStructuralCandidates,
+      ...(soldEvidence.recordedSoldCompSelection.supportingStructuralCandidates || []),
+    ];
+    const candidateIds = new Set(structuralCandidates
       .map((candidate) => candidate.soldRecord.providerPropertyId).filter(Boolean));
 
     if (action === 'UPSERT_REVIEW') {
@@ -117,7 +121,7 @@ export async function handleArvVisualCompReviewRequest(req: Request) {
     const payload = buildArvVisualCompReviewPayload({
       propertyId,
       targetCondition,
-      candidates: soldEvidence.recordedSoldCompSelection.primaryStructuralCandidates,
+      candidates: structuralCandidates,
       persistedReviews: Array.isArray(reviewRows) ? reviewRows : [],
       subjectLivingAreaSqft: soldEvidence.valuation.subjectProperty.livingAreaSqft.value,
       cachedProviderAvm: {

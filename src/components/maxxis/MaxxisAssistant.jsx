@@ -35,6 +35,12 @@ import {
   promptForMaxxisFollowUp,
 } from '../../features/maxxis/intelligence/maxxisDealIntelligence';
 import { parseAnalysisGapAnswer } from '../../features/maxxis/intelligence/analysisGapAnswer';
+import {
+  classifyMaxxisConversationIntent,
+  controlledIntentForConversation,
+  MAXXIS_CONVERSATION_INTENTS,
+  shouldPresentAnalysisGap,
+} from '../../features/maxxis/routing/maxxisConversationIntent';
 import { projectMaxxisAnalysisResponse } from '../../features/maxxis/intelligence/maxxisAnalysisReport';
 import { projectMaxxisDealIntelligenceResponse } from '../../features/maxxis/intelligence/maxxisDealIntelligenceReport';
 import { composePropertyAnalysisAcknowledgement } from '../../features/maxxis/context/propertyAnalysisHandoff';
@@ -251,6 +257,7 @@ export function MaxxisAssistant({ page = 'dashboard', onOpenSupport = null, onNa
   const continuityAuthorityRef = useRef({ accountKey: String(sessionKey || ''), propertyId: String(propertyContextId || '') });
   const submitMessageRef = useRef(null);
   const activeAnalysisGapRef = useRef('');
+  const conversationIntentRef = useRef(MAXXIS_CONVERSATION_INTENTS.GENERAL_CONVERSATION);
   const dragRef = useRef({
     active: false,
     moved: false,
@@ -781,6 +788,7 @@ export function MaxxisAssistant({ page = 'dashboard', onOpenSupport = null, onNa
   }, [onChangeUserPreferences]);
 
   const resetConversation = useCallback(() => {
+    conversationIntentRef.current = MAXXIS_CONVERSATION_INTENTS.GENERAL_CONVERSATION;
     setPropertyAnalysisMode(null);
     setMessages([{
       id: `maxxis-greeting-${Date.now()}`,
@@ -1065,7 +1073,21 @@ export function MaxxisAssistant({ page = 'dashboard', onOpenSupport = null, onNa
     const pendingGap = !meta.skipGapResolutionParse
       ? [...messages].reverse().find((item) => item?.type === 'analysis_gap_resolution')
       : null;
-    const parsedGapAnswer = pendingGap ? parseAnalysisGapAnswer(pendingGap, cleanMessage) : null;
+    const inferredReportType = inferRequestedIntelligenceReportType(cleanMessage, {
+      explicitReportType: meta.reportType,
+      hasPropertyContext: Boolean(meta.reportType || UUID_PATTERN.test(String(propertyContextId || appContext?.entity?.propertyId || ''))),
+    });
+    const conversationRoute = classifyMaxxisConversationIntent(cleanMessage, {
+      pendingGap,
+      requestedReportType: inferredReportType,
+      previousIntent: conversationIntentRef.current,
+    });
+    if (conversationRoute.code !== MAXXIS_CONVERSATION_INTENTS.GAP_RESPONSE) {
+      conversationIntentRef.current = conversationRoute.code;
+    }
+    const effectiveControlledIntent = controlledIntentForConversation(conversationRoute, meta.controlledIntent);
+    const parsedGapAnswer = conversationRoute.gapAnswer
+      || (pendingGap ? parseAnalysisGapAnswer(pendingGap, cleanMessage) : null);
     if (parsedGapAnswer?.action === 'resolve') {
       void handleResolveAnalysisGaps(pendingGap, parsedGapAnswer.values, cleanMessage);
       return;
@@ -1081,7 +1103,7 @@ export function MaxxisAssistant({ page = 'dashboard', onOpenSupport = null, onNa
       content: String(meta.visibleUserMessage || cleanMessage).trim(),
       createdAt: new Date(),
     };
-    const browserTraceId = startMaxxisBrowserTrace(`maxxis-request-${userMessage.id}`, { intent: meta.reportType || meta.controlledIntent || 'chat' });
+    const browserTraceId = startMaxxisBrowserTrace(`maxxis-request-${userMessage.id}`, { intent: meta.reportType || effectiveControlledIntent || conversationRoute.code || 'chat' });
     let browserTraceFinishesAfterPaint = false;
     setMessages((prev) => [...prev, userMessage]);
     if (meta.propertyAnalysisContext?.mode === 'PROPERTY_ANALYSIS_MODE') {
@@ -1101,10 +1123,7 @@ export function MaxxisAssistant({ page = 'dashboard', onOpenSupport = null, onNa
 
     try {
       let authorizedReportAccess = null;
-      const requestedReportType = inferRequestedIntelligenceReportType(cleanMessage, {
-        explicitReportType: meta.reportType,
-        hasPropertyContext: Boolean(meta.reportType || UUID_PATTERN.test(String(propertyContextId || appContext?.entity?.propertyId || ''))),
-      });
+      const requestedReportType = inferredReportType;
       if (requestedReportType) {
         const accessDecision = resolveIntelligenceReportAccess({
           plan: currentPlan,
@@ -1289,14 +1308,15 @@ export function MaxxisAssistant({ page = 'dashboard', onOpenSupport = null, onNa
         propertyId: resolvedPropertyId || propertyContextId,
         propertyIds: comparisonPropertyIds,
         maxxisContext: selectMaxxisContextForMessage(continuityContextSnapshot, cleanMessage),
-        controlledIntent: meta.controlledIntent || '',
+        controlledIntent: effectiveControlledIntent,
         requestedCapability: requestedReportType || meta.reportType || analysisContext?.report_type || '',
         propertyAnalysisContext: analysisContext || null,
       });
       markMaxxisBrowserStage(browserTraceId, 'T1_analysis_ready');
       const analysisRequestMs = (typeof performance !== 'undefined' ? performance.now() : Date.now()) - analysisStartedAt;
       const completenessGate = result?.data?.evidenceCompletenessGate;
-      if (result?.type === 'deal_insight' && completenessGate?.status === 'USER_INPUT_REQUIRED') {
+      if (result?.type === 'deal_insight' && completenessGate?.status === 'USER_INPUT_REQUIRED'
+        && shouldPresentAnalysisGap(conversationRoute, requestedReportType)) {
         setMessages((prev) => [...prev, {
           id: `maxxis-analysis-gap-${Date.now()}`,
           role: 'assistant',
@@ -1338,7 +1358,7 @@ export function MaxxisAssistant({ page = 'dashboard', onOpenSupport = null, onNa
         message: cleanMessage,
         result,
         language,
-        forcedIntent: meta.controlledIntent || '',
+        forcedIntent: effectiveControlledIntent,
       });
       const structuredReportFallbackUsed = hasUsableStructuredReportFallback(result, requestedReportType);
       const reportGenerationFailed = didStructuredReportGenerationFail(result, requestedReportType);
@@ -1385,6 +1405,7 @@ export function MaxxisAssistant({ page = 'dashboard', onOpenSupport = null, onNa
         });
       }
       const reportActions = responseType === 'deal_insight' && !requestedReportType
+        && conversationRoute.code === MAXXIS_CONVERSATION_INTENTS.REPORT_REQUEST
         ? (() => {
             const analysisAccess = resolveIntelligenceReportAccess({ plan: currentPlan, reportType: 'MAXXIS_ANALYSIS', entitlements: reportEntitlements });
             const dealAccess = resolveIntelligenceReportAccess({ plan: currentPlan, reportType: 'DEAL_INTELLIGENCE', entitlements: reportEntitlements });
