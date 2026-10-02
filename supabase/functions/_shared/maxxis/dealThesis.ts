@@ -29,6 +29,7 @@ const GAP_LABELS: Record<string, [string, string, string]> = {
   selling_costs: ['selling costs', 'custos de venda', 'costos de venta'],
   holding_costs: ['holding costs', 'custos de carregamento', 'costos de mantenimiento'],
   financing_terms: ['financing terms', 'condições de financiamento', 'condiciones de financiación'],
+  loan_amount: ['financed amount', 'valor financiado', 'importe financiado'],
   rent_evidence: ['rent evidence', 'evidências de aluguel', 'evidencia de alquiler'],
   operating_expenses: ['operating expenses', 'despesas operacionais', 'gastos operativos'],
   vacancy: ['vacancy assumption', 'premissa de vacância', 'supuesto de vacancia'],

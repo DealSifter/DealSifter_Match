@@ -29,7 +29,9 @@ const PLAYBOOKS: Readonly<Record<DealStrategy, StrategyPlaybook>> = Object.freez
     requirement('renovation_scope', 'IMPORTANT', 'USER', 'REHAB_BENCHMARK_VALIDATION'),
     requirement('selling_costs', 'IMPORTANT', 'USER', 'NET_EXIT_SCENARIO'),
     requirement('holding_costs', 'IMPORTANT', 'USER', 'NET_EXIT_SCENARIO'),
-    requirement('financing_terms', 'SUPPORTING', 'USER', 'NET_RETURN_SCENARIO'),
+    requirement('loan_amount', 'SUPPORTING', 'USER', 'NET_RETURN_SCENARIO'),
+    requirement('interest_rate', 'SUPPORTING', 'USER', 'NET_RETURN_SCENARIO'),
+    requirement('term_months', 'SUPPORTING', 'USER', 'NET_RETURN_SCENARIO'),
   ]) }),
   BUY_AND_HOLD: Object.freeze({ strategy: 'BUY_AND_HOLD', residentialArvApplicable: false, requirements: Object.freeze([
     requirement('acquisition_price', 'CRITICAL', 'USER', 'COST_BASIS'),
@@ -41,7 +43,9 @@ const PLAYBOOKS: Readonly<Record<DealStrategy, StrategyPlaybook>> = Object.freez
     requirement('management', 'SUPPORTING', 'USER', 'NOI'),
     requirement('maintenance', 'SUPPORTING', 'USER', 'NOI'),
     requirement('hoa', 'OPTIONAL', 'USER', 'NOI'),
-    requirement('financing_terms', 'IMPORTANT', 'USER', 'CASH_FLOW'),
+    requirement('loan_amount', 'IMPORTANT', 'USER', 'CASH_FLOW'),
+    requirement('interest_rate', 'IMPORTANT', 'USER', 'CASH_FLOW'),
+    requirement('term_months', 'IMPORTANT', 'USER', 'CASH_FLOW'),
   ]) }),
   WHOLESALE: Object.freeze({ strategy: 'WHOLESALE', residentialArvApplicable: false, requirements: Object.freeze([
     requirement('acquisition_price', 'CRITICAL', 'USER', 'ASSIGNMENT_SPREAD'),

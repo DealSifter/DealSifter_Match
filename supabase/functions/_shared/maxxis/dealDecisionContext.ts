@@ -117,7 +117,7 @@ function requirementAvailable(requirement: StrategyRequirement, values: AnyRecor
     renovation_scope: hasAssumption(assumption, ['renovationScope']),
     selling_costs: hasAssumption(assumption, ['sellingCosts', 'sellingCostPercent']),
     holding_costs: hasAssumption(assumption, ['holdingCosts', 'holdingPeriodMonths']),
-    financing_terms: hasAssumption(assumption, ['interestRate', 'loanAmount', 'monthlyPayment']),
+    loan_amount: hasAssumption(assumption, ['loanAmount']),
     rent_evidence: present(property.monthlyRent) || present(property.rent) || present(context.rentEvidence),
     operating_expenses: hasAssumption(assumption, ['operatingExpenses', 'noi']),
     vacancy: hasAssumption(assumption, ['vacancyRate']),
@@ -154,7 +154,6 @@ function requirementAvailable(requirement: StrategyRequirement, values: AnyRecor
     market_evidence: comps.length > 0 || finite(record(valuation.providerEstimate).value) !== null,
     property_condition: hasAssumption(assumption, ['targetCondition']),
   };
-  if (requirement.key === 'financing_terms' && metricValue(metrics, 'cashOnCash') !== null) return true;
   return map[requirement.key] === true;
 }
 
