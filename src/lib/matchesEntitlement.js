@@ -1,5 +1,8 @@
 import { getContactByOwnerId } from '../services/unlockedContactService';
 import { buildProfileEntitlementKey, getRecordProfileScope } from './profileScope';
+import { getContactProfileIdentityKey } from './matchesIdentityRegistry';
+
+export { getOwnerIdentityKey, hasSameOwnerIdentity } from './matchesIdentityRegistry';
 
 const normalizeId = (value) => String(value || '').trim();
 
@@ -56,29 +59,12 @@ export const resolveCanonicalContactCardFromMap = (unlockedContactMap, contactLi
 
 export const getProfilePresentationKey = (contactLike) => {
   if (!contactLike || typeof contactLike !== 'object') return '';
-  const ownerId = normalizeId(contactLike.ownerId || contactLike.unlockOwnerId);
-  return ownerId ? buildProfileEntitlementKey(ownerId, getRecordProfileScope(contactLike)) : '';
+  return getContactProfileIdentityKey(contactLike);
 };
 
 export const hasSameProfileIdentity = (left, right) => {
   const leftKey = getProfilePresentationKey(left);
   return Boolean(leftKey && leftKey === getProfilePresentationKey(right));
-};
-
-export const getOwnerIdentityKey = (record) => normalizeId(
-  record?.ownerId
-  || record?.owner_id
-  || record?.unlockOwnerId
-  || record?.unlock_owner_id
-  || record?.sellerId
-  || record?.seller_id
-  || record?.contactId
-  || record?.contact_id
-);
-
-export const hasSameOwnerIdentity = (left, right) => {
-  const leftOwnerId = getOwnerIdentityKey(left);
-  return Boolean(leftOwnerId && leftOwnerId === getOwnerIdentityKey(right));
 };
 
 export const resolveDisplayContactCardFromMap = (unlockedContactMap, contactLike) => {

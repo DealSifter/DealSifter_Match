@@ -8,6 +8,7 @@ import {
   resolveCanonicalContactCardFromMap,
   resolveDisplayContactCardFromMap,
 } from './matchesEntitlement';
+import { createMatchesIdentityRegistry } from './matchesIdentityRegistry';
 import {
   isOwnerUnlocked,
   isPropertyUnlocked,
@@ -153,5 +154,56 @@ describe('matches entitlement canonical contact flow', () => {
     expect(getOwnerIdentityKey(property)).toBe('owner-1');
     expect(hasSameOwnerIdentity(property, person)).toBe(true);
     expect(hasSameProfileIdentity(property, person)).toBe(true);
+  });
+
+  it('reconciles a stale chat snapshot with the current published profile', () => {
+    const fsbo = { ownerId: 'owner-1', primaryProfile: 'fsbo', name: 'Dr. Dree', photo: 'current.jpg' };
+    const professional = { ownerId: 'owner-1', primaryProfile: 'professional', name: 'Dealsifter' };
+    const staleChat = {
+      ownerId: 'owner-1',
+      primaryProfile: 'personal',
+      name: 'Dr. Dree',
+      type: 'Tax Deed / Tax Lien',
+      source: 'chat',
+      chatLinked: true,
+    };
+
+    const registry = createMatchesIdentityRegistry([professional, fsbo]);
+    expect(registry.resolveSnapshot(staleChat)).toEqual(fsbo);
+    expect(registry.attachSnapshots([staleChat])).toEqual([
+      professional,
+      { ...fsbo, chatLinked: true, chatUnreadSource: false },
+    ]);
+  });
+
+  it('keeps two legitimate active profiles separate while rejecting stale snapshot identity fields', () => {
+    const fsbo = { ownerId: 'owner-1', primaryProfile: 'fsbo', name: 'Owner A', photo: 'fsbo.jpg' };
+    const professional = { ownerId: 'owner-1', primaryProfile: 'professional', name: 'Company A', photo: 'business.jpg' };
+    const staleChat = {
+      ownerId: 'owner-1',
+      primaryProfile: 'personal',
+      name: 'Old Alias',
+      photo: 'obsolete.jpg',
+      type: 'Obsolete category',
+      chatLinked: true,
+    };
+
+    const contacts = createMatchesIdentityRegistry([fsbo, professional]).attachSnapshots([staleChat]);
+    expect(contacts).toHaveLength(2);
+    expect(contacts).not.toContainEqual(expect.objectContaining({ name: 'Old Alias' }));
+    expect(contacts).not.toContainEqual(expect.objectContaining({ photo: 'obsolete.jpg' }));
+    expect(contacts.filter((contact) => contact.chatLinked)).toHaveLength(1);
+  });
+
+  it('preserves a genuine chat-only contact when no authoritative profile exists', () => {
+    const chatOnly = {
+      ownerId: 'chat-owner',
+      primaryProfile: 'personal',
+      name: 'Chat-only contact',
+      chatLinked: true,
+    };
+
+    const contacts = createMatchesIdentityRegistry([]).attachSnapshots([chatOnly]);
+    expect(contacts).toEqual([chatOnly]);
   });
 });

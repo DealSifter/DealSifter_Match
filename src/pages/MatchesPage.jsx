@@ -31,6 +31,7 @@ import {
   resolveCanonicalContactCardFromMap,
   resolveDisplayContactCardFromMap,
 } from '../lib/matchesEntitlement';
+import { createMatchesIdentityRegistry } from '../lib/matchesIdentityRegistry';
 import { getActiveExclusivities } from '../services/unlockService';
 import {
   getContactByOwnerId,
@@ -774,34 +775,33 @@ export function MatchesPage({ nuggets, isAdmin = false, setModal, openUnlock, un
 
   const allMatched = useMemo(() => {
     const byKey = new Map();
+    const addAuthoritativeContact = (contactLike) => {
+      const publicContact = resolveContactCard(contactLike);
+      if (!publicContact) return;
+      const canonicalContact = resolveCanonicalContactCard(publicContact);
+      const resolved = canonicalContact || publicContact;
+      const contact = {
+        ...contactLike,
+        ...resolved,
+        chatLinked: Boolean(contactLike?.chatLinked || resolved?.chatLinked),
+      };
+      const key = getProfilePresentationKey(contact);
+      if (!key) return;
+      byKey.set(key, mergeContactForDisplay(byKey.get(key) || {}, contact));
+    };
+
     if (unlockedContactMap instanceof Map) {
       Array.from(unlockedContactMap.values())
         .map(canonicalContactToDisplayCard)
         .filter(Boolean)
-        .forEach((contact) => {
-          const key = getProfilePresentationKey(contact);
-          if (key) byKey.set(key, contact);
-        });
+        .forEach(addAuthoritativeContact);
     }
-    [...realOwnerPreviewContacts, ...(Array.isArray(matched) ? matched : []), ...reciprocalChatContacts]
-      .map((m) => {
-        const publicContact = resolveContactCard(m);
-        if (!publicContact) return null;
-        const canonicalContact = resolveCanonicalContactCard(publicContact);
-        const resolved = canonicalContact || publicContact;
-        return {
-          ...m,
-          ...resolved,
-          chatLinked: Boolean(m?.chatLinked || resolved?.chatLinked),
-        };
-      })
-      .filter(Boolean)
-      .forEach((contact) => {
-        const key = getProfilePresentationKey(contact);
-        if (!key) return;
-        byKey.set(key, mergeContactForDisplay(byKey.get(key) || {}, contact));
-      });
-    return [...byKey.values()];
+
+    [...realOwnerPreviewContacts, ...(Array.isArray(matched) ? matched : [])]
+      .forEach(addAuthoritativeContact);
+
+    return createMatchesIdentityRegistry([...byKey.values()])
+      .attachSnapshots(reciprocalChatContacts);
   }, [matched, realOwnerPreviewContacts, reciprocalChatContacts, resolveCanonicalContactCard, resolveContactCard, unlockedContactMap]);
 
   const parseStateCode = useCallback((value) => {
