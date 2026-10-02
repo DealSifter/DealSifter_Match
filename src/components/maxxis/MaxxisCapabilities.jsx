@@ -1702,6 +1702,7 @@ export function MessageBubble({
   onCancelMemoryForget,
   composedExperience,
   onOpenProvider,
+  onSelectProperty,
   onOpenFeedCard,
   onSetArvTargetCondition,
   onSaveArvCompReview,
@@ -1804,23 +1805,32 @@ export function MessageBubble({
         <div className="maxxis-action-links" aria-label="Property search results">
           {message.data.properties.map((property, index) => {
             const title = `${(COPY[language] || COPY.en).comparisonProperty} ${comparisonLetter(index)} · ${property.title || property.propertyType || 'Property'}`;
-            const canOpenFeedCard = Boolean(property?.id || property?.propertyId || property?.property_id);
+            const canSelectProperty = Boolean(property?.id || property?.propertyId || property?.property_id);
             return (
               <div key={property.id || property.propertyId || `${message.id}-property-${index}`} className="maxxis-action-link" style={{ cursor: 'default', display: 'grid', gap: 2 }}>
-                <strong>
-                  {canOpenFeedCard ? (
-                    <button
-                      type="button"
-                      className="maxxis-inline-link"
-                      onClick={() => onOpenFeedCard?.(property, { kind: 'property', source: 'maxxis_property_option' })}
-                    >
-                      {title}
-                    </button>
-                  ) : title}
-                </strong>
+                <strong>{title}</strong>
                 <span>{[property.city, property.state, property.zip].filter(Boolean).join(', ')}</span>
                 <span>{property.price ? `$${Number(property.price).toLocaleString('en-US')}` : 'Price not provided'}{property.bedrooms ? ` · ${property.bedrooms} bd` : ''}{property.bathrooms ? ` · ${property.bathrooms} ba` : ''}</span>
                 {property.match?.calculable && Number.isFinite(property.match?.score) ? <span>{`Match: ${property.match.score}% — ${String(property.match.classification || '').replace(/^./, (letter) => letter.toUpperCase())}`}</span> : null}
+                {canSelectProperty ? (
+                  <div className="maxxis-property-result-actions">
+                    <button
+                      type="button"
+                      className="maxxis-action-link maxxis-property-analyze-action"
+                      onClick={() => onSelectProperty?.(property)}
+                    >
+                      <span>{language === 'pt' ? 'Analisar com Maxxis' : language === 'es' ? 'Analizar con Maxxis' : 'Analyze with Maxxis'}</span>
+                      <Icon name="zap" size={13} color="currentColor" strokeWidth={2.1} />
+                    </button>
+                    <button
+                      type="button"
+                      className="maxxis-inline-link"
+                      onClick={() => onOpenFeedCard?.(property, { kind: 'property', source: 'maxxis_property_option_open' })}
+                    >
+                      {language === 'pt' ? 'Abrir imóvel' : language === 'es' ? 'Abrir propiedad' : 'Open property'}
+                    </button>
+                  </div>
+                ) : null}
               </div>
             );
           })}

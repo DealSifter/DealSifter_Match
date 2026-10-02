@@ -30,7 +30,7 @@ const SURFACE_ROUTE_BY_NAME = {
   unknown: '/unknown',
 };
 
-const CONTEXTUAL_REFERENCE_RE = /\b(this|that|these|those|it|them|last|second|third|provider|contractor|property|deal|workflow|unlock|contact|conversation|chat|esse|essa|este|esta|esses|essas|eles|elas|ultimo|ultima|segundo|terceiro|imovel|provedor|prestador|contratista|propiedad|ultimo)\b/i;
+const CONTEXTUAL_REFERENCE_RE = /\b(this|that|these|those|it|them|last|second|third|provider|contractor|property|deal|workflow|unlock|contact|conversation|chat|opportunity|potential|worth|esse|essa|este|esta|isso|esses|essas|eles|elas|ultimo|ultima|segundo|terceiro|imovel|oportunidade|potencial|vale|acha|provedor|prestador|contratista|propiedad|oportunidad|ultimo)\b/i;
 const SURFACE_QUESTION_RE = /(what am i seeing|what page|where am i|current screen|current page|explain (this|the current) screen|o que estou vendo|qual tela|onde estou|que pagina|explicar? (esta|essa) tela|que estoy viendo|pantalla actual|pagina actual|explica (esta|la) pantalla)/i;
 
 function cleanText(value, maxLength = 80) {

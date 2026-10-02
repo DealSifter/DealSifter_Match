@@ -498,6 +498,22 @@ export function buildMaxxisFollowUps(sourceInput = {}, language = 'en') {
   return items.slice(0, 5);
 }
 
+export function progressMaxxisFollowUps(followUps = [], completedIntent = '') {
+  const intent = String(completedIntent || '').trim();
+  const blockedCodes = new Set();
+  if (intent === 'explain_current_insight') blockedCodes.add('why_current_signal');
+  if (intent === 'deal_gaps') {
+    blockedCodes.add('why_current_signal');
+    blockedCodes.add('deal_gaps');
+    blockedCodes.add('deal_snapshot');
+  }
+  if (intent === 'deal_snapshot') {
+    blockedCodes.add('why_current_signal');
+    blockedCodes.add('deal_snapshot');
+  }
+  return asArray(followUps).filter((item) => !blockedCodes.has(String(item?.code || '')));
+}
+
 export function findLatestMaxxisDealIntelligenceSource(messages = [], sourceMessageId = '') {
   const list = asArray(messages);
   if (sourceMessageId) {
@@ -554,7 +570,7 @@ export function buildLocalDealIntelligenceReply({ message = '', language = 'en',
       gaps: buildMaxxisDealGaps(source),
       intent,
     },
-    followUps: buildMaxxisFollowUps(source, language),
+    followUps: progressMaxxisFollowUps(buildMaxxisFollowUps(source, language), intent),
     eventName: TRACK_BY_INTENT[intent] || null,
   };
 }
@@ -562,7 +578,7 @@ export function buildLocalDealIntelligenceReply({ message = '', language = 'en',
 export function enhanceMaxxisAssistantResponse({ message = '', result = {}, language = 'en', forcedIntent = '' } = {}) {
   const source = normalizeMaxxisDealIntelligenceSource({ type: result?.type, data: result?.data });
   const intent = detectMaxxisDealIntent(message, forcedIntent);
-  const followUps = source ? buildMaxxisFollowUps(source, language) : [];
+  const followUps = source ? progressMaxxisFollowUps(buildMaxxisFollowUps(source, language), intent) : [];
   const canonical = result?.data?.structuredAnalysis?.type === 'maxxis_structured_analysis'
     ? result.data.structuredAnalysis : null;
   if (canonical) {

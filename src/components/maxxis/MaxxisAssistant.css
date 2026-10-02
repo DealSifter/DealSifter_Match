@@ -409,6 +409,19 @@
   font-weight: 600;
 }
 
+.maxxis-property-result-actions {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 8px;
+}
+
+.maxxis-property-result-actions .maxxis-property-analyze-action {
+  width: auto;
+  min-height: 34px;
+}
+
 button.maxxis-action-link {
   border-radius: 999px;
   font-size: 12px;

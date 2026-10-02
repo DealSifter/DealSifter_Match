@@ -103,7 +103,7 @@ describe('Maxxis Deal AI structured result presentation', () => {
     expect(onOpenProvider).not.toHaveBeenCalled();
   });
 
-  it('renders property option titles as controlled feed navigation links', () => {
+  it('renders separate analyze-in-chat and explicit property navigation actions', () => {
     const propertyId = '22222222-2222-4222-8222-222222222222';
     const onOpenFeedCard = vi.fn();
     const html = renderToStaticMarkup(
@@ -135,6 +135,8 @@ describe('Maxxis Deal AI structured result presentation', () => {
 
     expect(html).toContain('class="maxxis-inline-link"');
     expect(html).toContain('Property A · 249 Majestic Gardens Ln');
+    expect(html).toContain('Analyze with Maxxis');
+    expect(html).toContain('Open property');
     expect(html).not.toContain('href=');
     expect(onOpenFeedCard).not.toHaveBeenCalled();
   });
@@ -188,10 +190,10 @@ describe('Maxxis Deal AI structured result presentation', () => {
     );
     expect(html).toContain('436 Kekauluohi St');
     expect(html).toContain('Structural: <strong>84.5%');
-    expect(html).toContain('View 1 supporting comps');
+    expect(html).toContain('Supporting comps (1)');
     expect(html).toContain('No MAO is calculated');
     expect(html).toContain('$1,800,000 – $2,400,000');
-    expect(html).toContain('Central reference</small><strong>$2,100,000');
+    expect(html).toContain('Central reference: <strong>$2,100,000');
     expect(html).toContain('Valuation confidence <strong>LOW</strong>');
     expect(html).toContain('LIMITED CONFIDENCE');
     expect(html).toContain('VALUATION DISPERSION WARNING');

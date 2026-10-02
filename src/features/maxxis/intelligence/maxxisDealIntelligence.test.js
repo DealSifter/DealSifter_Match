@@ -8,6 +8,7 @@ import {
   buildMaxxisFollowUps,
   buildMaxxisInsights,
   enhanceMaxxisAssistantResponse,
+  progressMaxxisFollowUps,
 } from './maxxisDealIntelligence';
 
 const propertyDetails = {
@@ -113,6 +114,19 @@ describe('Maxxis Deal AI interactive deal intelligence', () => {
       'review_next',
     ]));
     expect(followUps.every((item) => item.intent && item.requiredContext)).toBe(true);
+  });
+
+  it('progresses quick actions instead of replaying the same triad', () => {
+    const actions = buildMaxxisFollowUps(propertyDetails, 'pt');
+    expect(progressMaxxisFollowUps(actions, 'explain_current_insight').map((item) => item.code))
+      .not.toContain('why_current_signal');
+    const afterGaps = progressMaxxisFollowUps(actions, 'deal_gaps').map((item) => item.code);
+    expect(afterGaps).not.toContain('why_current_signal');
+    expect(afterGaps).not.toContain('deal_gaps');
+    expect(afterGaps).not.toContain('deal_snapshot');
+    const afterSnapshot = progressMaxxisFollowUps(actions, 'deal_snapshot').map((item) => item.code);
+    expect(afterSnapshot).not.toContain('deal_snapshot');
+    expect(afterSnapshot).not.toContain('why_current_signal');
   });
 
   it('answers follow-up clicks locally when a structured source is already loaded', () => {

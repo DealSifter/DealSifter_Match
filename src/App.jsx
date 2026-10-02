@@ -932,6 +932,8 @@ export default function App() {
     setMaxxisSurfaceRuntimeContext((previous) => (
       JSON.stringify(previous) === JSON.stringify(next) ? previous : next
     ));
+    const visiblePropertyId = String(next?.entity?.propertyId || '').trim();
+    if (isUuid(visiblePropertyId)) setMaxxisPropertyContextId(visiblePropertyId);
   }, []);
   const [authModalTab, setAuthModalTab] = useState('signup');
   const openAuthModal = useCallback((tab = 'signup') => {
@@ -4280,6 +4282,10 @@ export default function App() {
     const id = String(item.id || item.propertyId || item.property_id || '').trim();
     const ownerId = String(item.ownerId || item.owner_id || item.unlockOwnerId || item.unlock_owner_id || '').trim();
     if (!id && !ownerId) return;
+    if (isProperty) {
+      openMatchesItemFromFeed(item, { kind: 'property', owner: item.ownerPreview || item.owner || null });
+      return;
+    }
     const focus = {
       type: isProperty ? 'property' : 'person',
       id: id || ownerId,
@@ -4298,7 +4304,7 @@ export default function App() {
     window.setTimeout(() => {
       window.dispatchEvent(new CustomEvent('dealsifter.focusCard', { detail: focus }));
     }, 80);
-  }, [setPage]);
+  }, [openMatchesItemFromFeed, setPage]);
 
   const openReportSelectorFromMaxxis = useCallback(({ propertyId = '' } = {}) => {
     const targetId = String(propertyId || maxxisPropertyContextId || '').trim();
@@ -4326,6 +4332,11 @@ export default function App() {
     const propertyId = String(request.propertyId || '').trim();
     setMaxxisPropertyContextId(isUuid(propertyId) ? propertyId : '');
     setMaxxisPropertyAnalysisRequest({ ...request, id, createdAt: Date.now() });
+  }, []);
+
+  const handleSelectPropertyForMaxxis = useCallback((property = {}) => {
+    const propertyId = String(property?.id || property?.propertyId || property?.property_id || property || '').trim();
+    if (isUuid(propertyId)) setMaxxisPropertyContextId(propertyId);
   }, []);
 
   const handleRequestIntelligenceUnlock = useCallback(async (request = {}) => {
@@ -5685,7 +5696,6 @@ export default function App() {
             currentUserId={supabaseUserId || 'local-user'}
             activeSpotlightKeys={activeSpotlightKeys}
             onAnalyzePropertyWithMaxxis={handleAnalyzePropertyWithMaxxis}
-            onPropertyContextChange={setMaxxisPropertyContextId}
             onMaxxisContextChange={handleMaxxisSurfaceContextChange}
             isActive={page === 'matches'}
           />
@@ -5798,6 +5808,21 @@ export default function App() {
   const shellForcedTheme = !isAuthCallbackSettling && !authSession && (page === 'landing' || isPublicPricingPage || isAuthBootstrapping)
     ? 'light'
     : null;
+  const maxxisPropertyCandidates = useMemo(() => {
+    const seen = new Set();
+    return [
+      ...(showcaseProperties || []),
+      ...(propertyPortfolio || []),
+      ...(feedDeck || []),
+      ...(interested || []),
+      ...(matched || []),
+    ].filter((property) => {
+      const id = String(property?.id || property?.propertyId || property?.property_id || '').trim();
+      if (!isUuid(id) || seen.has(id)) return false;
+      seen.add(id);
+      return true;
+    });
+  }, [feedDeck, interested, matched, propertyPortfolio, showcaseProperties]);
   const maxxisAppContext = useMemo(() => {
     const routeByPage = {
       dashboard: '/dashboard',
@@ -5829,7 +5854,7 @@ export default function App() {
           : (modal || (requireSignupConsent ? 'consent' : '')),
       },
       entity: {
-        propertyId: activeSurfaceRuntime.entity?.propertyId || (page === 'matches' ? maxxisPropertyContextId : ''),
+        propertyId: activeSurfaceRuntime.entity?.propertyId || '',
         conversationId: activeSurfaceRuntime.entity?.conversationId || '',
         serviceId: activeSurfaceRuntime.entity?.serviceId || '',
         workflowVisible: Boolean(activeSurfaceRuntime.entity?.workflowPropertyId),
@@ -5878,7 +5903,6 @@ export default function App() {
     isAuthProcessing,
     isConsentProcessing,
     isSpotlightProcessing,
-    maxxisPropertyContextId,
     maxxisSurfaceRuntimeContext,
     modal,
     onboardingInitialTab,
@@ -5988,6 +6012,8 @@ export default function App() {
                 onOpenReportSelector={openReportSelectorFromMaxxis}
                 onOpenProvider={handleMaxxisOpenProvider}
                 onOpenFeedCard={openFeedCardFromMaxxis}
+                onSelectPropertyContext={handleSelectPropertyForMaxxis}
+                propertyCandidates={maxxisPropertyCandidates}
                 propertyAnalysisRequest={maxxisPropertyAnalysisRequest}
                 propertyContextId={maxxisPropertyContextId}
                 appContext={maxxisAppContext}
