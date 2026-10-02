@@ -35,6 +35,36 @@ function sourceWithService(contactAccess, overrides = {}) {
 }
 
 describe('Maxxis Deal AI smart actions eligibility', () => {
+  it('replaces generic snapshot actions with prioritized decision-gap actions', () => {
+    const source = sourceWithService({ status: 'locked', cost: 1 });
+    source.data.structuredAnalysis = {
+      decisionActions: [
+        { code: 'RESOLVE_EXIT_VALUE_EVIDENCE', gapCode: 'FLIP_exit_value_evidence',
+          label: 'Revisar comparáveis', why: 'Exit value blocks the spread.', unlocks: 'EXIT_SPREAD', criticality: 'CRITICAL' },
+        { code: 'RESOLVE_RENOVATION_SCOPE', gapCode: 'FLIP_renovation_scope',
+          label: 'Validar reforma', why: 'Scope validates the benchmark.', unlocks: 'REHAB_BENCHMARK_VALIDATION',
+          criticality: 'IMPORTANT', inputField: 'renovation_scope' },
+      ],
+    };
+
+    const actions = buildMaxxisSmartActions(source, { surface: 'snapshot', maxVisible: 3 });
+    expect(actions.map((action) => action.label)).toEqual(['Revisar comparáveis', 'Validar reforma']);
+    expect(actions.every((action) => action.code.startsWith('DECISION_'))).toBe(true);
+    expect(actions.map((action) => action.code)).not.toEqual(expect.arrayContaining(['VIEW_DEAL_GAPS', 'EXPLAIN_INSIGHT']));
+  });
+
+  it('removes a completed decision action and advances to the next one', () => {
+    const source = sourceWithService({ status: 'locked', cost: 1 });
+    source.data.structuredAnalysis = { decisionActions: [
+      { code: 'RESOLVE_EXIT', gapCode: 'FLIP_EXIT', label: 'Review exit evidence', criticality: 'CRITICAL' },
+      { code: 'RESOLVE_REHAB', gapCode: 'FLIP_REHAB', label: 'Validate rehab', criticality: 'IMPORTANT' },
+    ] };
+    const actions = buildMaxxisSmartActions(source, {
+      surface: 'snapshot', completedActionCodes: ['DECISION_RESOLVE_EXIT'],
+    });
+    expect(actions.map((action) => action.code)).toEqual(['DECISION_RESOLVE_REHAB']);
+  });
+
   it('surfaces provider viewing from a snapshot without jumping to unlock', () => {
     const actions = buildMaxxisSmartActions(sourceWithService({ status: 'locked', cost: 1 }), { surface: 'snapshot', maxVisible: 3 });
 

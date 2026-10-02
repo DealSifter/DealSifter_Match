@@ -80,6 +80,7 @@ function canonicalFixture() {
           rate: { average: 180, low: 144, high: 216 }, low: 264_672, mid: 330_840, high: 397_008,
           provenance: 'ESTIMATED', source: 'USER_CURATED_REHAB_BENCHMARK_2026', confidence: 'LOW' },
       },
+      dealAssumptions: { holdingPeriodMonths: 8, sellingCostPercent: 8 },
     },
     structuredAnalysis: {
       type: 'maxxis_structured_analysis',
@@ -208,5 +209,11 @@ describe('Maxxis critical context compaction', () => {
     expect(projection.rehabSummary.selectedValue).toBe(330_840);
     expect(fetchSpy).not.toHaveBeenCalled();
     fetchSpy.mockRestore();
+  });
+
+  it('19. keeps only compact strategy assumptions inside the existing tool budget', () => {
+    const projection = buildMaxxisLLMContext(canonicalFixture()) as any;
+    expect(projection.recentUserInputs.dealAssumptions).toEqual({ holdingPeriodMonths: 8, sellingCostPercent: 8 });
+    expect(JSON.stringify(projection).length).toBeLessThan(MAXXIS_CONTEXT_BUDGET.maxToolProjectionChars);
   });
 });

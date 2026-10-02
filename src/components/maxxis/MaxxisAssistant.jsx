@@ -271,6 +271,7 @@ export function MaxxisAssistant({ page = 'dashboard', onOpenSupport = null, onNa
   const lastReportFailureRef = useRef(null);
   const conversationIntentRef = useRef(MAXXIS_CONVERSATION_INTENTS.GENERAL_CONVERSATION);
   const recentPropertyContextsRef = useRef([]);
+  const completedDecisionActionsRef = useRef(new Set());
   const dragRef = useRef({
     active: false,
     moved: false,
@@ -851,6 +852,7 @@ export function MaxxisAssistant({ page = 'dashboard', onOpenSupport = null, onNa
     const entityKey = String(activePropertyContextId || 'global');
     const changed = attentionControllerRef.current.setScope(String(sessionKey || ''), entityKey);
     if (changed) setAttentionRevision((revision) => revision + 1);
+    completedDecisionActionsRef.current.clear();
   }, [activePropertyContextId, sessionKey]);
 
   const persistWidgetPosition = (position) => {
@@ -1690,19 +1692,21 @@ export function MaxxisAssistant({ page = 'dashboard', onOpenSupport = null, onNa
     }
   };
 
-  const handleRequestArvGap = (messageId, field) => {
+  const handleRequestArvGap = (messageId, field, decisionAction = null) => {
     const source = messages.find((item) => item.id === messageId);
     const propertyId = String(source?.data?.propertyId || activePropertyContextId || '');
-    if (!UUID_PATTERN.test(propertyId) || !['target_condition', 'rehab_budget'].includes(field)) return;
+    const userDecisionInput = decisionAction?.target?.source === 'USER' && /^[a-z][A-Za-z0-9_]*$/.test(field);
+    if (!UUID_PATTERN.test(propertyId) || (!['target_condition', 'rehab_budget'].includes(field) && !userDecisionInput)) return;
     const isCondition = field === 'target_condition';
+    const isRehab = field === 'rehab_budget';
     setMessages((prev) => [...prev, {
       id: `maxxis-arv-gap-${field}-${Date.now()}`,
       role: 'assistant',
       content: language === 'pt'
-        ? (isCondition ? 'Para tentar avançar no ARV, preciso confirmar a condição-alvo.' : 'Para tentar avançar no ARV, preciso confirmar ou estimar o rehab.')
+        ? (isCondition ? 'Para tentar avançar no ARV, preciso confirmar a condição-alvo.' : isRehab ? 'Para tentar avançar no ARV, preciso confirmar ou estimar o rehab.' : 'Informe esta premissa para avançar a decisão.')
         : language === 'es'
-          ? (isCondition ? 'Para intentar avanzar con el ARV, necesito confirmar la condición objetivo.' : 'Para intentar avanzar con el ARV, necesito confirmar o estimar la rehabilitación.')
-          : (isCondition ? 'To try to advance the ARV, I need to confirm the target condition.' : 'To try to advance the ARV, I need to confirm or estimate rehab.'),
+          ? (isCondition ? 'Para intentar avanzar con el ARV, necesito confirmar la condición objetivo.' : isRehab ? 'Para intentar avanzar con el ARV, necesito confirmar o estimar la rehabilitación.' : 'Proporciona este supuesto para avanzar la decisión.')
+          : (isCondition ? 'To try to advance the ARV, I need to confirm the target condition.' : isRehab ? 'To try to advance the ARV, I need to confirm or estimate rehab.' : 'Provide this assumption to advance the decision.'),
       createdAt: new Date(),
       type: 'analysis_gap_resolution',
       data: {
@@ -1711,6 +1715,18 @@ export function MaxxisAssistant({ page = 'dashboard', onOpenSupport = null, onNa
         assumptions: { targetCondition: source?.data?.targetCondition || 'AS_IS' },
         benchmarkOptions: source?.data?.benchmarkOptions || [],
         currentRehab: source?.data?.currentRehab ?? source?.data?.rehabBudget ?? null,
+        decisionInputField: !isCondition && !isRehab ? field : '',
+        decisionInputLabel: !isCondition && !isRehab ? decisionAction?.label : '',
+        decisionReason: decisionAction?.reason || (language === 'pt'
+          ? (isCondition ? 'A condição-alvo define quais vendas podem sustentar o valor de saída.' : 'O orçamento de reforma define a base de custo e a intensidade por sqft.')
+          : language === 'es'
+            ? (isCondition ? 'La condición objetivo define qué ventas pueden respaldar el valor de salida.' : 'El presupuesto de rehabilitación define la base de costo y la intensidad por sqft.')
+            : (isCondition ? 'Target condition determines which sales can support the exit value.' : 'The rehabilitation budget determines cost basis and intensity per sqft.')),
+        decisionUnlocks: decisionAction?.target?.unlocks || (language === 'pt'
+          ? (isCondition ? 'Libera a revisão de elegibilidade dos comparáveis para ARV.' : 'Libera a validação do benchmark e dos cenários de custo.')
+          : language === 'es'
+            ? (isCondition ? 'Habilita la revisión de elegibilidad de comparables para ARV.' : 'Habilita la validación del benchmark y los escenarios de costo.')
+            : (isCondition ? 'Unlocks the comparable eligibility review for ARV.' : 'Unlocks benchmark validation and cost scenarios.')),
         originalRequest: language === 'pt' ? 'Por que não tem ARV?' : language === 'es' ? '¿Por qué no hay ARV?' : 'Why is ARV unavailable?',
         reportType: '',
       },
@@ -2341,7 +2357,8 @@ export function MaxxisAssistant({ page = 'dashboard', onOpenSupport = null, onNa
       pendingProviderUnlock,
       surface: message.smartActionSurface || (message.type === 'smart_provider_actions' ? 'providers' : 'snapshot'),
       maxVisible: 3,
-    }).filter((action) => action.enabled);
+      completedActionCodes: [...completedDecisionActionsRef.current],
+    }).filter((action) => action.enabled && !completedDecisionActionsRef.current.has(action.code));
     const completedIntent = String(message?.data?.intent || '');
     if (completedIntent === 'deal_snapshot') {
       eligibleActions = eligibleActions.filter((action) => action.code !== 'EXPLAIN_INSIGHT');
@@ -2740,6 +2757,20 @@ export function MaxxisAssistant({ page = 'dashboard', onOpenSupport = null, onNa
       lastExperienceMode: sourceMessage?.compositionMode || '',
       sourceSurface: { page: 'maxxis' },
     });
+    if (String(action.code || '').startsWith('DECISION_')) {
+      completedDecisionActionsRef.current.add(action.code);
+      const inputField = String(action.target?.inputField || '');
+      if (['target_condition', 'rehab_budget'].includes(inputField) || action.target?.source === 'USER') {
+        handleRequestArvGap(sourceMessage?.id, inputField, action);
+        return;
+      }
+      void submitMessage(action.target?.prompt || action.label, {
+        visibleUserMessage: action.label,
+        controlledIntent: 'review_next',
+        sourceMessageId: sourceMessage?.id || '',
+      });
+      return;
+    }
     if (action.code === 'VIEW_DEAL_GAPS') {
       void submitMessage(promptForMaxxisFollowUp({ code: 'deal_gaps', label: action.label }, language), {
         controlledIntent: 'deal_gaps',

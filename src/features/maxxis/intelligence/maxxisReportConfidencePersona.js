@@ -140,13 +140,11 @@ export function buildMaxxisAnalysisConfidence(context, { now = Date.now() } = {}
 
 export function buildMaxxisExecutiveSummaryIntelligence(context, confidence, persona, structuredAnalysis = null) {
   if (structuredAnalysis?.type === 'maxxis_structured_analysis') {
+    const page6 = structuredAnalysis.reportPage6 || {};
     return Object.freeze({ sourceType: 'CALCULATED', lines: Object.freeze(unique([
-      structuredAnalysis.executiveSummary,
-      structuredAnalysis.opportunityAssessment,
-      structuredAnalysis.comparablesAnalysis?.interpretation || structuredAnalysis.comparativeAnalysis?.interpretation,
-      structuredAnalysis.valuationAnalysis?.confidenceInterpretation,
-      structuredAnalysis.riskAnalysis?.rationale?.[0],
-      structuredAnalysis.recommendedVerificationSteps?.[0],
+      page6.currentThesis || structuredAnalysis.executiveSummary,
+      page6.investorMeaning || structuredAnalysis.profileAdaptedConclusion,
+      ...(Array.isArray(page6.decisionChangingActions) ? page6.decisionChangingActions : []),
     ].map((item) => String(item || '').trim())).slice(0, 6)) });
   }
   const evidence = context?.evidenceSummary || {};

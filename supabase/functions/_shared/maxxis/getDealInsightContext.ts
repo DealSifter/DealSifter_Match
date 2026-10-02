@@ -30,6 +30,7 @@ import {
 import { classifyAnalysisApplicability } from './analysisApplicability.ts';
 import { resolvePropertyEvidenceAccess } from './propertyEvidenceAccess.ts';
 import { mergeVerifiedPropertyEvidenceIntoFacts } from './propertyEvidenceProjection.ts';
+import { buildDealDecisionContext } from './dealDecisionContext.ts';
 
 export async function getDealInsightContextForAuthenticatedUser(
   input: unknown,
@@ -259,7 +260,7 @@ export async function getDealInsightContextForAuthenticatedUser(
     }
   };
   const { data: analysisInputRow } = await queryClient.from('property_arv_review_contexts')
-    .select('target_condition,rehab_budget,renovation_scope,rehab_source,declined_inputs,evidence_status')
+    .select('target_condition,rehab_budget,renovation_scope,rehab_source,declined_inputs,evidence_status,deal_assumptions')
     .eq('subject_property_id', validated.propertyId).eq('reviewer_user_id', userId).maybeSingle();
   const analysisInputs = {
     targetCondition: analysisInputRow?.target_condition ?? null,
@@ -267,6 +268,8 @@ export async function getDealInsightContextForAuthenticatedUser(
     renovationScope: analysisInputRow?.renovation_scope ?? null,
     rehabSource: analysisInputRow?.rehab_source ?? null,
     declinedInputs: Array.isArray(analysisInputRow?.declined_inputs) ? analysisInputRow.declined_inputs : [],
+    dealAssumptions: analysisInputRow?.deal_assumptions && typeof analysisInputRow.deal_assumptions === 'object'
+      ? analysisInputRow.deal_assumptions as Record<string, unknown> : {},
   };
   let activeRehabInputSource: string | null = null;
   const result = await orchestrateDealInsightContext({
@@ -354,7 +357,7 @@ export async function getDealInsightContextForAuthenticatedUser(
     sanityCheck: sanityCheckRehabAgainstBenchmark2026(activeRehab, rehabBenchmark),
     providerCalls: 0,
   } as const;
-  const intelligenceSnapshot = {
+  const intelligenceSnapshotBase = {
     version: 'MAXXIS_INTELLIGENCE_SNAPSHOT_V1',
     propertyId: result.propertyId,
     propertyFacts: mergeVerifiedPropertyEvidenceIntoFacts(
@@ -395,8 +398,14 @@ export async function getDealInsightContextForAuthenticatedUser(
     },
     evidenceCompleteness,
     evidenceCompletenessGate,
+    dealAssumptions: analysisInputs.dealAssumptions,
     analysisApplicability,
     dealIntelligence: result.dealIntelligence,
+  } as const;
+  const dealDecisionContext = buildDealDecisionContext(intelligenceSnapshotBase);
+  const intelligenceSnapshot = {
+    ...intelligenceSnapshotBase,
+    dealDecisionContext,
   } as const;
   const structuredAnalysis = buildMaxxisStructuredAnalysis(intelligenceSnapshot, requestedReportType, languageInput);
   return { ...result, intelligenceSnapshot, structuredAnalysis, evidenceCompleteness,

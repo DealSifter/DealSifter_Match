@@ -1,3 +1,7 @@
+import { buildDealDecisionContext, type DealDecisionContext } from './dealDecisionContext.ts';
+import { buildDealThesis, localizeDecisionAction } from './dealThesis.ts';
+import { dedupeAnalysisSections, dedupeSemanticStatements } from './semanticDeduplication.ts';
+
 export const MAXXIS_STRUCTURED_ANALYSIS_VERSION = 'MAXXIS_STRUCTURED_ANALYSIS_V1' as const;
 
 type ReportType = 'MAXXIS_ANALYSIS' | 'DEAL_INTELLIGENCE';
@@ -385,6 +389,11 @@ export function buildMaxxisStructuredAnalysis(snapshotInput: unknown, reportType
   const context = record(snapshot.dealIntelligence);
   const language = languageOf(languageInput);
   const reportType: ReportType = reportTypeInput === 'DEAL_INTELLIGENCE' ? 'DEAL_INTELLIGENCE' : 'MAXXIS_ANALYSIS';
+  const decisionContext = (record(snapshot.dealDecisionContext).type === 'deal_decision_context'
+    ? snapshot.dealDecisionContext : buildDealDecisionContext(snapshot)) as DealDecisionContext;
+  const thesis = buildDealThesis(decisionContext, language);
+  const decisionActions = decisionContext.decisionGaps.slice(0, 3)
+    .map((gap) => localizeDecisionAction(gap, language));
   const fit = fitAnalysis(context, language);
   const market = marketContext(context, language);
   const comparative = comparativeAnalysis(context, language);
@@ -403,28 +412,58 @@ export function buildMaxxisStructuredAnalysis(snapshotInput: unknown, reportType
   const rehab = rehabAnalysis(snapshot, language);
   const valuation = valuationAnalysis(context, language, rehab);
   const risks = riskAnalysis(context, language);
-  const positiveSignals = unique([
+  const sourcePositiveSignals = unique([
+    ...thesis.supportingEvidence,
     ...list(context.opportunities).map((item) => localizedOpportunity(item, language)),
     ...fit.strengths,
   ]);
-  const concerns = unique([...risks.rationale, ...fit.mismatches]);
-  const missingEvidence = unique([
+  const sourceConcerns = unique([...thesis.contraryEvidence, ...risks.rationale, ...fit.mismatches]);
+  const sourceMissingEvidence = unique([
+    ...decisionActions.map((action) => action.why),
     ...list(context.limitations).map((item) => localizedLimitation(item, language)),
     ...valuation.limitations,
   ]);
-  const recommendedVerificationSteps = unique([
+  const sourceActions = unique([
+    ...decisionActions.map((action) => action.label),
     ...list(context.recommendedActions).map((item) => localizedAction(item, language)),
-    ...missingEvidence.slice(0, 3).map((item) => localized(language, `Verify the evidence behind this limitation: ${item}`, `Verifique as evidências relacionadas a esta limitação: ${item}`, `Verifica la evidencia relacionada con esta limitación: ${item}`)),
-  ]).slice(0, 8);
+  ]);
+  const deduplicated = dedupeAnalysisSections({
+    positiveSignals: sourcePositiveSignals,
+    concerns: sourceConcerns,
+    missingEvidence: sourceMissingEvidence,
+  }, ['positiveSignals', 'concerns', 'missingEvidence']);
+  const positiveSignals = [...deduplicated.positiveSignals];
+  const concerns = [...deduplicated.concerns];
+  const allMissingEvidence = [...deduplicated.missingEvidence];
+  const missingEvidence = allMissingEvidence.slice(0, 3);
+  // Actions intentionally remain a separate semantic class: a diagnosed gap and
+  // the action that resolves it are related, but they serve different user jobs.
+  const recommendedActions = dedupeSemanticStatements(sourceActions).slice(0, 3);
+  const recommendedVerificationSteps = dedupeSemanticStatements([
+    ...decisionActions.map((action) => action.why),
+    ...recommendedActions,
+  ]).slice(0, 3);
   const strategySpecificInsights = strategyInsights(context, language);
   const propertyContext = propertyInterpretation(snapshot, context, language);
-  const executiveSummary = `${fit.overallAssessment} ${propertyContext}`;
-  const opportunityAssessment = positiveSignals.length
-    ? `${positiveSignals.slice(0, 2).join(' ')} ${localized(language, 'The unresolved evidence should be verified before relying on this analysis for an investment decision.', 'As evidências ainda não resolvidas devem ser verificadas antes de utilizar esta análise em uma decisão de investimento.', 'La evidencia pendiente debe verificarse antes de utilizar este análisis en una decisión de inversión.')}`
-    : localized(language, 'The current record supports a structured review, but it does not yet provide enough verified evidence for a positive investment conclusion.', 'O registro atual permite uma revisão estruturada, mas ainda não apresenta evidências verificadas suficientes para uma conclusão positiva de investimento.', 'El registro actual permite una revisión estructurada, pero aún no presenta suficiente evidencia verificada para una conclusión positiva de inversión.');
-  const priority = missingEvidence[0] ? localized(language, `Priority limitation: ${missingEvidence[0]}`, `Limitação prioritária: ${missingEvidence[0]}`, `Limitación prioritaria: ${missingEvidence[0]}`) : '';
-  const profileAdaptedConclusion = `${fit.fitRationale}${strategySpecificInsights[0] ? ` ${strategySpecificInsights[0]}` : ''} ${priority}`.trim();
-  const investmentThesis = `${opportunityAssessment} ${profileAdaptedConclusion}`.trim();
+  const executiveSummary = `${thesis.summary} ${fit.overallAssessment}`.trim();
+  const opportunityAssessment = thesis.summary;
+  const priority = thesis.highestValueUnknown?.why || '';
+  const priorityStatement = priority ? localized(language, `Priority limitation: ${priority}`,
+    `Limitação prioritária: ${priority}`, `Limitación prioritaria: ${priority}`) : '';
+  const profileAdaptedConclusion = `${fit.fitRationale}${strategySpecificInsights[0] ? ` ${strategySpecificInsights[0]}` : ''}${priorityStatement ? ` ${priorityStatement}` : ''}`.trim();
+  const investmentThesis = thesis.summary;
+  const reportPage5 = Object.freeze({
+    supportsDeal: Object.freeze(positiveSignals.slice(0, 4)),
+    weakensDeal: Object.freeze(concerns.slice(0, 4)),
+    stillUnknown: Object.freeze(allMissingEvidence.slice(0, 4)),
+    verifyFirst: Object.freeze(recommendedVerificationSteps.slice(0, 3)),
+  });
+  const reportPage6 = Object.freeze({
+    currentThesis: thesis.summary,
+    investorMeaning: profileAdaptedConclusion,
+    openDecisionQuestions: Object.freeze(decisionActions.map((action) => action.why).slice(0, 3)),
+    decisionChangingActions: Object.freeze(decisionActions.map((action) => action.label).slice(0, 3)),
+  });
   return Object.freeze({
     type: 'maxxis_structured_analysis',
     version: MAXXIS_STRUCTURED_ANALYSIS_VERSION,
@@ -432,6 +471,11 @@ export function buildMaxxisStructuredAnalysis(snapshotInput: unknown, reportType
     language,
     executiveSummary,
     investmentThesis,
+    dealThesis: thesis,
+    decisionContext,
+    decisionActions: Object.freeze(decisionActions),
+    reportPage5,
+    reportPage6,
     opportunityAssessment,
     propertyContextInterpretation: propertyContext,
     investorFit: Object.freeze(fit),
@@ -462,9 +506,10 @@ export function buildMaxxisStructuredAnalysis(snapshotInput: unknown, reportType
     riskAnalysis: Object.freeze(risks),
     positiveSignals: Object.freeze(positiveSignals.slice(0, 8)),
     concerns: Object.freeze(concerns.slice(0, 8)),
-    missingEvidence: Object.freeze(missingEvidence.slice(0, 12)),
+    missingEvidence: Object.freeze(missingEvidence),
+    fullMissingEvidenceAudit: Object.freeze(allMissingEvidence.slice(0, 12)),
     recommendedVerificationSteps: Object.freeze(recommendedVerificationSteps),
-    recommendedActions: Object.freeze(unique(list(context.recommendedActions).map((item) => localizedAction(item, language))).slice(0, 8)),
+    recommendedActions: Object.freeze(recommendedActions),
     strategySpecificInsights: Object.freeze(strategySpecificInsights.slice(0, 6)),
     profileAdaptedConclusion,
     userFacingDisclaimers: Object.freeze([

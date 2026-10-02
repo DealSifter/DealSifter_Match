@@ -146,6 +146,30 @@ function makeAction(code, state, overrides = {}, language = 'en') {
   };
 }
 
+function makeDecisionAction(action = {}, propertyId = '') {
+  const code = String(action.code || action.gapCode || '').trim();
+  if (!code || !String(action.label || '').trim()) return null;
+  return {
+    code: `DECISION_${code}`,
+    capability: 'decision_gap_resolution',
+    state: MAXXIS_SMART_ACTION_STATES.AVAILABLE,
+    priority: action.criticality === 'CRITICAL' ? 110 : action.criticality === 'IMPORTANT' ? 100 : 80,
+    reason: String(action.why || '').slice(0, 300),
+    requiredContext: ['deal_decision_context'],
+    confirmationRequired: false,
+    enabled: true,
+    label: String(action.label),
+    target: {
+      propertyId,
+      gapCode: String(action.gapCode || ''),
+      inputField: String(action.inputField || ''),
+      source: String(action.source || ''),
+      unlocks: String(action.unlocks || ''),
+      prompt: String(action.why || action.label || ''),
+    },
+  };
+}
+
 function orderActions(actions, maxVisible) {
   const stateRank = {
     available: 0,
@@ -199,6 +223,15 @@ export function buildMaxxisSmartActions(sourceInput = {}, options = {}) {
   const pendingUnlock = options.pendingProviderUnlock || null;
   const propertyId = String(source?.property?.id || source?.raw?.property?.id || '').trim();
   const operational = isPropertyOperational(source);
+  const completedActionCodes = new Set(asArray(options.completedActionCodes).map((code) => String(code)));
+  const structured = source?.raw?.structuredAnalysis || sourceInput?.data?.structuredAnalysis
+    || sourceInput?.structuredAnalysis || null;
+  const decisionActions = asArray(structured?.decisionActions)
+    .map((action) => makeDecisionAction(action, propertyId)).filter(Boolean);
+
+  if (decisionActions.length && surface !== 'providers') {
+    return orderActions(decisionActions.filter((action) => !completedActionCodes.has(action.code)), maxVisible);
+  }
 
   if (gaps.length) {
     actions.push(makeAction('VIEW_DEAL_GAPS', 'available', { reason: 'Deal gaps are available from loaded structured data.' }, language));

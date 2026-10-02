@@ -21,6 +21,14 @@ describe('maxxisAnalysisInputsService', () => {
     });
   });
 
+  it('submits a single strategy-specific deal assumption without requiring a large form', async () => {
+    const invoke = vi.fn(async (body) => ({ data: { success: true, data: body }, error: null }));
+    const result = await saveMaxxisAnalysisInputs(propertyId, {
+      dealAssumptions: { existingLoanBalance: 425000 },
+    }, invoke);
+    expect(result).toMatchObject({ dealAssumptions: { existingLoanBalance: 425000 } });
+  });
+
   it('persists a decline to prevent repeated questions', async () => {
     const invoke = vi.fn(async (body) => ({ data: { success: true, data: body }, error: null }));
     expect(await declineMaxxisAnalysisInputs(propertyId, ['rehab_budget'], invoke)).toMatchObject({ action: 'DECLINE' });

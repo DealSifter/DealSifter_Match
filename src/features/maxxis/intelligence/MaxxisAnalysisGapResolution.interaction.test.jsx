@@ -113,6 +113,24 @@ describe('Maxxis analysis gap resolution UX', () => {
     expect(onResolve.mock.calls[0][1]).toMatchObject({ renovationScope: 'Kitchen and roof' });
   });
 
+  it('progressively collects one strategy-specific deal assumption', async () => {
+    const user = userEvent.setup();
+    const onResolve = vi.fn();
+    render(<MaxxisAnalysisGapResolution message={message({
+      missingUserInputs: ['existingLoanBalance'],
+      decisionInputField: 'existingLoanBalance',
+      decisionInputLabel: 'Existing loan balance',
+      decisionReason: 'Required to calculate debt assumed.',
+      decisionUnlocks: 'DEBT_ASSUMED',
+    })} onResolve={onResolve} />);
+    expect(screen.queryByLabelText('Target condition')).toBeNull();
+    await user.type(screen.getByLabelText('Existing loan balance'), '425000');
+    await user.click(screen.getByRole('button', { name: 'Continue analysis' }));
+    expect(onResolve).toHaveBeenCalledWith(expect.any(Object), {
+      dealAssumptions: { existingLoanBalance: 425000 },
+    });
+  });
+
   it('disables every mutating control while a save is in flight', () => {
     render(<MaxxisAnalysisGapResolution message={message()} busy />);
     expect(screen.getByRole('button', { name: 'Saving…' })).toBeDisabled();

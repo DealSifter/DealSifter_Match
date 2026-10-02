@@ -12,6 +12,16 @@ const allowedOrigins = parseAllowedOrigins(
   [Deno.env.get('APP_URL') || '', Deno.env.get('VITE_APP_URL') || ''],
 );
 const ALLOWED_FIELDS = new Set(['rehab_budget', 'target_condition', 'renovation_scope']);
+const NUMERIC_DEAL_ASSUMPTIONS = new Set([
+  'sellingCosts', 'sellingCostPercent', 'holdingCosts', 'holdingPeriodMonths', 'interestRate', 'loanAmount',
+  'monthlyPayment', 'operatingExpenses', 'noi', 'vacancyRate', 'insurance', 'management', 'maintenance', 'hoa',
+  'dispositionPrice', 'assignmentFee', 'closingCosts', 'downPayment', 'termMonths', 'amortizationMonths',
+  'balloonMonths', 'existingLoanBalance', 'monthlyPiPayment', 'arrears', 'cashToSeller', 'reinstatement',
+]);
+const TEXT_DEAL_ASSUMPTIONS = new Set([
+  'allowedUse', 'roadAccess', 'utilities', 'survey', 'topography', 'developmentAssumptions',
+]);
+const BOOLEAN_DEAL_ASSUMPTIONS = new Set(['assignability']);
 
 function response(origin: string, body: Record<string, unknown>, status = 200) {
   return new Response(JSON.stringify(body), { status, headers: {
@@ -36,6 +46,28 @@ function rehabSource(value: unknown) {
   const parsed = String(value || 'USER_PROVIDED').trim().toUpperCase();
   if (!['USER_PROVIDED', 'USER_CURATED_REHAB_BENCHMARK_2026'].includes(parsed)) throw new Error('INVALID_REHAB_SOURCE');
   return parsed;
+}
+
+function dealAssumptions(value: unknown) {
+  if (!value || typeof value !== 'object' || Array.isArray(value)) throw new Error('INVALID_DEAL_ASSUMPTIONS');
+  const sanitized: Record<string, number | string | boolean> = {};
+  for (const [key, raw] of Object.entries(value as Record<string, unknown>)) {
+    if (NUMERIC_DEAL_ASSUMPTIONS.has(key)) {
+      const parsed = Number(raw);
+      if (!Number.isFinite(parsed) || parsed < 0 || parsed > 1_000_000_000) throw new Error('INVALID_DEAL_ASSUMPTIONS');
+      sanitized[key] = Math.round(parsed * 100) / 100;
+    } else if (TEXT_DEAL_ASSUMPTIONS.has(key)) {
+      const parsed = String(raw || '').trim();
+      if (!parsed || parsed.length > 1000) throw new Error('INVALID_DEAL_ASSUMPTIONS');
+      sanitized[key] = parsed;
+    } else if (BOOLEAN_DEAL_ASSUMPTIONS.has(key) && typeof raw === 'boolean') {
+      sanitized[key] = raw;
+    } else {
+      throw new Error('INVALID_DEAL_ASSUMPTIONS');
+    }
+  }
+  if (!Object.keys(sanitized).length) throw new Error('INVALID_DEAL_ASSUMPTIONS');
+  return sanitized;
 }
 
 function capability(value: unknown) {
@@ -85,7 +117,7 @@ export async function handleMaxxisAnalysisInputsRequest(req: Request) {
     const { data: property } = await client.from('properties').select('type').eq('id', propertyId).maybeSingle();
     propertyType = String(property?.type || '');
     const { data: existing, error: readError } = await client.from('property_arv_review_contexts')
-      .select('target_condition,rehab_budget,renovation_scope,rehab_source,declined_inputs')
+      .select('target_condition,rehab_budget,renovation_scope,rehab_source,declined_inputs,deal_assumptions')
       .eq('subject_property_id', propertyId).eq('reviewer_user_id', user.id).maybeSingle();
     if (readError) throw new Error('ANALYSIS_INPUT_READ_FAILED');
     const declined = new Set(Array.isArray(existing?.declined_inputs) ? existing.declined_inputs : []);
@@ -96,6 +128,8 @@ export async function handleMaxxisAnalysisInputsRequest(req: Request) {
       rehab_budget: existing?.rehab_budget ?? null,
       renovation_scope: existing?.renovation_scope || null,
       rehab_source: existing?.rehab_source || null,
+      deal_assumptions: existing?.deal_assumptions && typeof existing.deal_assumptions === 'object'
+        ? existing.deal_assumptions : {},
       evidence_status: 'USER_PROVIDED',
       policy_version: 'MAXXIS_ANALYSIS_INPUTS_V1',
     };
@@ -134,6 +168,10 @@ export async function handleMaxxisAnalysisInputsRequest(req: Request) {
         row.renovation_scope = scope(body.renovationScope);
         if (row.renovation_scope) declined.delete('renovation_scope');
       }
+      if (body.dealAssumptions !== undefined) {
+        row.deal_assumptions = { ...(row.deal_assumptions as Record<string, unknown>),
+          ...dealAssumptions(body.dealAssumptions) };
+      }
     } else {
       const fields = Array.isArray(body.fields) ? body.fields.map((field: unknown) => String(field || '')) : [];
       if (!fields.length || fields.some((field: string) => !ALLOWED_FIELDS.has(field))) throw new Error('INVALID_DECLINED_INPUTS');
@@ -159,6 +197,7 @@ export async function handleMaxxisAnalysisInputsRequest(req: Request) {
       targetCondition: row.target_condition,
       rehabBudget: row.rehab_budget,
       renovationScope: row.renovation_scope,
+      dealAssumptions: row.deal_assumptions,
       rehabSource: row.rehab_source,
       declinedInputs: row.declined_inputs,
       provenance: row.rehab_source === 'USER_CURATED_REHAB_BENCHMARK_2026' ? 'ESTIMATED' : 'USER_PROVIDED',

@@ -226,7 +226,11 @@ export function buildMaxxisDealIntelligenceReport(context, structuredAnalysis = 
       reason: safeText(reason),
     }))) : sourceRisks,
     limitations: canonical
-      ? Object.freeze(unique([...list(canonical.missingEvidence), ...list(canonical.userFacingDisclaimers)].map(safeText)).slice(0, 12))
+      ? Object.freeze(unique([
+        ...(list(canonical.fullMissingEvidenceAudit).length
+          ? list(canonical.fullMissingEvidenceAudit) : list(canonical.missingEvidence)),
+        ...list(canonical.userFacingDisclaimers),
+      ].map(safeText)).slice(0, 12))
       : limitations(context, valuation, comps),
     nextVerificationSteps: canonical
       ? Object.freeze(unique([...list(canonical.recommendedVerificationSteps), ...list(canonical.recommendedActions)].map(safeText)).slice(0, 8))

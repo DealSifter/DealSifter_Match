@@ -1029,6 +1029,12 @@ function InsightsPage({ schema, copy, page = 5, level = 3 }) {
   const observations = list(executive.observations);
   const limitations = list(available(schema.sections.limitations));
   const checks = list(available(schema.sections.verificationChecklist));
+  const decisionContent = schema.structuredAnalysis?.reportPage5 || {};
+  const supports = list(decisionContent.supportsDeal).length ? list(decisionContent.supportsDeal) : observations;
+  const weakens = list(decisionContent.weakensDeal);
+  const unknown = list(decisionContent.stillUnknown).length
+    ? list(decisionContent.stillUnknown) : limitations.filter((item) => /unknown|missing|unavailable|none/i.test(item));
+  const verifyFirst = list(decisionContent.verifyFirst).length ? list(decisionContent.verifyFirst) : checks;
   return (
     <article
       className="maxxis-v2-page"
@@ -1042,7 +1048,7 @@ function InsightsPage({ schema, copy, page = 5, level = 3 }) {
           icon={CheckCircle}
           title={copy.positive}
           narrative
-          rows={observations.map((item, index) => [
+          rows={supports.map((item, index) => [
             `${index + 1}`,
             text(item.explanation || item, copy.unknown),
             item.source || item.sourceType,
@@ -1053,23 +1059,21 @@ function InsightsPage({ schema, copy, page = 5, level = 3 }) {
           icon={AlertTriangle}
           title={copy.missing}
           narrative
-          rows={limitations
-            .filter((item) => /unknown|missing|unavailable|none/i.test(item))
-            .map((item, index) => [`${index + 1}`, item])}
+          rows={unknown.map((item, index) => [`${index + 1}`, item])}
         />
         <InfoCard
           copy={copy}
           icon={Wrench}
           title={copy.considerations}
           narrative
-          rows={limitations.map((item, index) => [`${index + 1}`, item])}
+          rows={(weakens.length ? weakens : limitations).map((item, index) => [`${index + 1}`, item])}
         />
         <InfoCard
           copy={copy}
           icon={ListChecks}
           title={copy.steps}
           narrative
-          rows={checks.map((item, index) => [`${index + 1}`, item])}
+          rows={verifyFirst.map((item, index) => [`${index + 1}`, item])}
         />
       </div>
     </article>
@@ -1084,6 +1088,10 @@ function MaxxisAnalysisPage({ schema, copy, page = 6, level = 3 }) {
   const summaryLines = list(
     schema.presentation.executiveSummaryIntelligence?.lines,
   );
+  const thesisContent = schema.structuredAnalysis?.reportPage6 || {};
+  const thesisLines = [thesisContent.currentThesis, thesisContent.investorMeaning].filter(Boolean);
+  const decisionQuestions = list(thesisContent.openDecisionQuestions);
+  const decisionActions = list(thesisContent.decisionChangingActions);
   return (
     <article
       className="maxxis-v2-page"
@@ -1098,8 +1106,8 @@ function MaxxisAnalysisPage({ schema, copy, page = 6, level = 3 }) {
         />
         <section className="maxxis-v2-ai-summary">
           <SectionTitle icon={Brain}>{copy.executiveSummary}</SectionTitle>
-          {summaryLines.length ? (
-            summaryLines.map((line) => (
+          {(thesisLines.length ? thesisLines : summaryLines).length ? (
+            (thesisLines.length ? thesisLines : summaryLines).map((line) => (
               <span key={line}>{evidenceText(line, copy.unavailable, copy.language)}</span>
             ))
           ) : (
@@ -1150,7 +1158,7 @@ function MaxxisAnalysisPage({ schema, copy, page = 6, level = 3 }) {
           icon={AlertTriangle}
           title={copy.questions}
           narrative
-          rows={checks
+          rows={(decisionQuestions.length ? decisionQuestions : checks)
             .slice(0, 4)
             .map((item, index) => [
               `${index + 1}`,
@@ -1162,7 +1170,7 @@ function MaxxisAnalysisPage({ schema, copy, page = 6, level = 3 }) {
           icon={ListChecks}
           title={copy.actions}
           narrative
-          rows={checks.map((item, index) => [`${index + 1}`, item])}
+          rows={(decisionActions.length ? decisionActions : checks).map((item, index) => [`${index + 1}`, item])}
         />
         <p className="maxxis-v2-disclaimer">{copy.disclaimer}</p>
       </div>

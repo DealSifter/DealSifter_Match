@@ -356,6 +356,8 @@ function safeStructuredAnalysis(value: unknown) {
   const comparative = record(source.comparativeAnalysis);
   const valuation = record(source.valuationAnalysis);
   const risk = record(source.riskAnalysis);
+  const thesis = record(source.dealThesis);
+  const decision = record(source.decisionContext);
   return {
     type: 'maxxis_structured_analysis',
     version: safeText(source.version, 60),
@@ -394,6 +396,25 @@ function safeStructuredAnalysis(value: unknown) {
       executionRisk: safeText(risk.executionRisk, 500),
       rationale: safeList(risk.rationale, 12),
     },
+    dealThesis: {
+      summary: safeText(thesis.summary, 900),
+      supportingEvidence: safeList(thesis.supportingEvidence, 4),
+      contraryEvidence: safeList(thesis.contraryEvidence, 4),
+      whatWouldChange: safeList(thesis.whatWouldChange, 3),
+      highestValueUnknown: record(thesis.highestValueUnknown),
+    },
+    decisionGaps: (Array.isArray(decision.decisionGaps) ? decision.decisionGaps : []).slice(0, 3).map((item) => {
+      const gap = record(item);
+      return {
+        code: safeText(gap.code, 90), criticality: safeText(gap.criticality, 20),
+        unlocks: safeText(gap.unlocks, 90), inputField: safeText(gap.inputField, 80), source: safeText(gap.source, 20),
+      };
+    }),
+    decisionActions: (Array.isArray(source.decisionActions) ? source.decisionActions : []).slice(0, 3).map((item) => {
+      const action = record(item);
+      return { code: safeText(action.code, 90), label: safeText(action.label, 140),
+        why: safeText(action.why, 300), unlocks: safeText(action.unlocks, 90), source: safeText(action.source, 20) };
+    }),
     positiveSignals: safeList(source.positiveSignals, 12),
     concerns: safeList(source.concerns, 12),
     missingEvidence: safeList(source.missingEvidence, 16),
@@ -421,6 +442,9 @@ export function buildMaxxisLLMContext(value: unknown) {
   const rate = record(benchmark.rate);
   const gate = record(source.evidenceCompletenessGate);
   const assumptions = record(gate.assumptions);
+  const dealAssumptions = Object.fromEntries(Object.entries(record(snapshot.dealAssumptions)).slice(0, 8)
+    .map(([key, item]) => [safeText(key, 60), typeof item === 'boolean' ? item
+      : safeNumber(item) ?? safeText(item, 120)]));
   const structured = record(source.structuredAnalysis);
   const comparative = record(structured.comparablesAnalysis);
   const valuationAnalysis = record(structured.valuationAnalysis);
@@ -509,13 +533,21 @@ export function buildMaxxisLLMContext(value: unknown) {
       targetCondition: safeText(assumptions.targetCondition, 40) || null,
       rehabBudget: safeNumber(assumptions.rehabBudget), renovationScope: safeText(assumptions.renovationScope, 80) || null,
       rehabSource: safeText(assumptions.rehabSource, 80) || null, declinedInputs: safeList(assumptions.declinedInputs, 6),
+      dealAssumptions,
       provenance: safeText(assumptions.provenance, 30) || null,
     },
     analysisSummary: {
-      executiveSummary: safeText(structured.executiveSummary, 900),
+      executiveSummary: safeText(record(structured.dealThesis).summary || structured.executiveSummary, 900),
+      supportingEvidence: safeList(record(structured.dealThesis).supportingEvidence, 3),
+      contraryEvidence: safeList(record(structured.dealThesis).contraryEvidence, 3),
+      highestValueUnknown: (() => {
+        const gap = record(record(structured.dealThesis).highestValueUnknown);
+        return Object.keys(gap).length ? { code: safeText(gap.code, 90), criticality: safeText(gap.criticality, 20),
+          label: safeText(gap.label, 140), why: safeText(gap.why, 300), unlocks: safeText(gap.unlocks, 90) } : null;
+      })(),
       comparables: safeText(comparative.interpretation, 700),
       valuation: safeText(valuationAnalysis.arvInterpretation, 700),
-      recommendedVerificationSteps: safeList(structured.recommendedVerificationSteps, 6),
+      recommendedVerificationSteps: safeList(structured.recommendedVerificationSteps, 3),
       disclaimers: safeList(structured.userFacingDisclaimers, 3),
     },
   };
