@@ -65,6 +65,22 @@ export const hasSameProfileIdentity = (left, right) => {
   return Boolean(leftKey && leftKey === getProfilePresentationKey(right));
 };
 
+export const getOwnerIdentityKey = (record) => normalizeId(
+  record?.ownerId
+  || record?.owner_id
+  || record?.unlockOwnerId
+  || record?.unlock_owner_id
+  || record?.sellerId
+  || record?.seller_id
+  || record?.contactId
+  || record?.contact_id
+);
+
+export const hasSameOwnerIdentity = (left, right) => {
+  const leftOwnerId = getOwnerIdentityKey(left);
+  return Boolean(leftOwnerId && leftOwnerId === getOwnerIdentityKey(right));
+};
+
 export const resolveDisplayContactCardFromMap = (unlockedContactMap, contactLike) => {
   if (!contactLike || typeof contactLike !== 'object') return null;
   const ownerId = normalizeId(contactLike.ownerId || contactLike.unlockOwnerId);

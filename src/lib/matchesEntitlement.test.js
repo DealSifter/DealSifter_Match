@@ -2,6 +2,8 @@ import { describe, expect, it } from 'vitest';
 import {
   canonicalContactToDisplayCard,
   getProfilePresentationKey,
+  getOwnerIdentityKey,
+  hasSameOwnerIdentity,
   hasSameProfileIdentity,
   resolveCanonicalContactCardFromMap,
   resolveDisplayContactCardFromMap,
@@ -142,5 +144,14 @@ describe('matches entitlement canonical contact flow', () => {
       unlockOwnerId: 'owner-1',
       primaryProfile: 'fsbo',
     });
+  });
+
+  it('links a property to its responsible person even when their presentation ids differ', () => {
+    const property = { id: 'property-1', ownerId: 'owner-1', primaryProfile: 'professional' };
+    const person = { id: 'service-card-9', ownerId: 'owner-1', primaryProfile: 'professional' };
+
+    expect(getOwnerIdentityKey(property)).toBe('owner-1');
+    expect(hasSameOwnerIdentity(property, person)).toBe(true);
+    expect(hasSameProfileIdentity(property, person)).toBe(true);
   });
 });

@@ -20,6 +20,7 @@ const canonicalProperty = {
   id: PROPERTY_ID,
   ownerId: OWNER_ID,
   title: 'Canonical Property',
+  primaryProfile: 'fsbo',
 };
 
 const identityIndex = (loaded = true) => ({
@@ -93,6 +94,37 @@ describe('feed action canonical identity boundary', () => {
     const result = resolveCanonicalFeedActions(rows, identityIndex());
     expect(result.matched[0]).toMatchObject({ id: `${OWNER_ID}:fsbo`, primaryProfile: 'fsbo' });
     expect(result.interested[0]).toMatchObject({ id: PROPERTY_ID });
+  });
+
+  it('restores the responsible person when a legacy saved action contains only a property', () => {
+    const result = resolveCanonicalFeedActions([{
+      action: 'interested',
+      entity_type: 'property',
+      entity_id: PROPERTY_ID,
+      payload: { ownerId: OWNER_ID, primaryProfile: 'fsbo' },
+    }], identityIndex());
+
+    expect(result.interested).toEqual([expect.objectContaining({ id: PROPERTY_ID })]);
+    expect(result.matched).toEqual([
+      expect.objectContaining({ ownerId: OWNER_ID, primaryProfile: 'fsbo', name: 'Canonical FSBO' }),
+    ]);
+  });
+
+  it('persists the person/property association and deduplicates an explicit person action', () => {
+    const rows = makeFeedActionRows({
+      matched: [fsboContact],
+      interested: [canonicalProperty],
+    });
+
+    expect(rows.filter((row) => row.action === 'matched')).toHaveLength(1);
+    expect(rows.find((row) => row.action === 'matched')?.payload).toMatchObject({
+      ownerId: OWNER_ID,
+      primaryProfile: 'fsbo',
+    });
+    expect(rows.find((row) => row.action === 'interested')?.payload).toMatchObject({
+      ownerId: OWNER_ID,
+      primaryProfile: 'fsbo',
+    });
   });
 
   it('accepts a validated empty inventory without falling back to persisted payloads', () => {

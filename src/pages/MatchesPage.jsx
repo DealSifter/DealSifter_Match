@@ -26,6 +26,7 @@ import { captureEntitlementAlert, hashForTelemetry } from '../lib/observability'
 import {
   canonicalContactToDisplayCard,
   getProfilePresentationKey,
+  hasSameOwnerIdentity,
   hasSameProfileIdentity,
   resolveCanonicalContactCardFromMap,
   resolveDisplayContactCardFromMap,
@@ -1002,9 +1003,22 @@ export function MatchesPage({ nuggets, isAdmin = false, setModal, openUnlock, un
       const hydrated = allMatched.find((contact) => getContactUnlockKeys(contact).some((key) => activeKeys.includes(key)));
       return hydrated ? resolveDisplayContactCard(hydrated) : null;
     }
-    const hydratedOwner = allMatched.find((contact) => hasSameProfileIdentity(contact, active));
-    if (hydratedOwner) return resolveCanonicalContactCard(hydratedOwner);
-    if (active.ownerPreview) return resolveCanonicalContactCard(active);
+    const hydratedOwner = allMatched.find((contact) => hasSameProfileIdentity(contact, active))
+      || allMatched.find((contact) => hasSameOwnerIdentity(contact, active));
+    if (hydratedOwner) {
+      return resolveCanonicalContactCard(hydratedOwner)
+        || resolveDisplayContactCard(resolveContactCard(hydratedOwner))
+        || hydratedOwner;
+    }
+    if (active.ownerPreview) {
+      const previewOwner = resolveContactCard({
+        ...active.ownerPreview,
+        ownerId: active.ownerId,
+        unlockOwnerId: active.ownerId,
+        primaryProfile: activeLookupScope,
+      });
+      if (previewOwner) return resolveDisplayContactCard(previewOwner) || previewOwner;
+    }
     const activeScope = getRecordProfileScope(active, (
       String(active.ownerId) === String(secondaryOwnerId)
         ? 'professional'
@@ -1077,8 +1091,12 @@ export function MatchesPage({ nuggets, isAdmin = false, setModal, openUnlock, un
 
   const activeUnlockCost = useMemo(() => {
     if (!activeOwner?.id && !activeOwner?.ownerId) return 1;
-    return getPortfolioUnlockCost(activeOwner, allPropertiesSource, allServicesSource);
-  }, [activeOwner, allPropertiesSource, allServicesSource]);
+    return getPortfolioUnlockCost(
+      isActiveProperty ? active : activeOwner,
+      allPropertiesSource,
+      allServicesSource
+    );
+  }, [active, activeOwner, allPropertiesSource, allServicesSource, isActiveProperty]);
 
   const activeExclusiveStatus = useMemo(() => {
     if (!active || !isActiveProperty) return null;
@@ -1850,7 +1868,10 @@ export function MatchesPage({ nuggets, isAdmin = false, setModal, openUnlock, un
                 <MatchesPeopleList contacts={filteredMatched} activeOwnerId={activeContactKey} renderContact={(m) => {
                   const contactKeys = getContactUnlockKeys(m);
                   const contactRowKey = contactKeys[0] || String(m?.id || '');
-                  const isLinkedContact = Boolean(activeContactKey && contactKeys.includes(activeContactKey));
+                  const isLinkedContact = Boolean(
+                    activeOwner
+                    && hasSameProfileIdentity(m, activeOwner)
+                  );
                   const rowContactUnlocked = isContactUnlockedByState(m);
                   const contactPeerKey = String(m.ownerId || m.owner_id || m.unlockOwnerId || m.id || '').trim();
                   const contactUnlockCost = getUnlockCost(m);

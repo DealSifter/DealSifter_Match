@@ -66,9 +66,28 @@ export function resolveCanonicalFeedActions(rows = [], identityIndex = {}) {
   const contactsByOwnerId = identityIndex.contactsByOwnerId || new Map();
   const contactsByOwnerScope = identityIndex.contactsByOwnerScope || new Map();
   const propertiesById = identityIndex.propertiesById || new Map();
-  const matched = [];
-  const interested = [];
+  const matchedByKey = new Map();
+  const interestedById = new Map();
   const canonicalRows = [];
+  const propertyOwnerLinks = [];
+
+  const contactKey = (contact, fallbackOwnerId = '') => {
+    const ownerId = normalizeText(contact?.ownerId || contact?.unlockOwnerId || fallbackOwnerId);
+    const scope = sanitizeProfileScope(contact?.primaryProfile || contact?.primary_profile);
+    return ownerId ? `${ownerId}::${scope || 'personal'}` : '';
+  };
+
+  const addMatched = (contact, ownerId) => {
+    if (!contact) return;
+    const key = contactKey(contact, ownerId);
+    if (!key || matchedByKey.has(key)) return;
+    matchedByKey.set(key, {
+      ...contact,
+      source: 'supabase',
+      ownerId,
+      unlockOwnerId: ownerId,
+    });
+  };
 
   (Array.isArray(rows) ? rows : [])
     .map(normalizeRow)
@@ -83,13 +102,10 @@ export function resolveCanonicalFeedActions(rows = [], identityIndex = {}) {
           || null;
         if (!canonical) return;
         canonicalRows.push(row);
-        matched.push({
+        addMatched({
           ...canonical,
-          source: 'supabase',
-          ownerId,
-          unlockOwnerId: ownerId,
           ...(payload.sourceCardId ? { sourceCardId: payload.sourceCardId } : {}),
-        });
+        }, ownerId);
         return;
       }
 
@@ -97,12 +113,42 @@ export function resolveCanonicalFeedActions(rows = [], identityIndex = {}) {
         const canonical = propertiesById.get(row.entity_id) || null;
         if (canonical) {
           canonicalRows.push(row);
-          interested.push({ ...canonical, source: 'supabase' });
+          interestedById.set(row.entity_id, { ...canonical, source: 'supabase' });
+          propertyOwnerLinks.push({
+            ownerId: normalizeText(canonical.ownerId || canonical.owner_id || row.owner_id || payload.ownerId),
+            scope: sanitizeProfileScope(
+              canonical.primaryProfile
+              || canonical.primary_profile
+              || canonical.ownerPreview?.primaryProfile
+              || canonical.owner_preview?.primaryProfile
+              || payload.primaryProfile
+            ),
+          });
         }
       }
     });
 
-  return { ready: true, matched, interested, canonicalRows };
+  // A saved property is never an orphan in Matches: restore its responsible
+  // profile even for legacy rows that persisted only the property action.
+  propertyOwnerLinks.forEach(({ ownerId, scope }) => {
+    if (!ownerId) return;
+    const alreadyLinked = [...matchedByKey.values()].find((contact) => (
+      normalizeText(contact?.ownerId || contact?.unlockOwnerId) === ownerId
+      && (!scope || sanitizeProfileScope(contact?.primaryProfile || contact?.primary_profile) === scope)
+    ));
+    if (alreadyLinked) return;
+    const canonical = (scope && contactsByOwnerScope.get(`${ownerId}::${scope}`))
+      || contactsByOwnerId.get(ownerId)
+      || null;
+    addMatched(canonical, ownerId);
+  });
+
+  return {
+    ready: true,
+    matched: [...matchedByKey.values()],
+    interested: [...interestedById.values()],
+    canonicalRows,
+  };
 }
 
 const feedActionKey = (row) => [row?.action, row?.entity_type, row?.entity_id].map(normalizeText).join('::');
@@ -213,7 +259,7 @@ export async function clearFeedActions(userId) {
 }
 
 export function makeFeedActionRows({ matched = [], interested = [] }) {
-  const rows = [];
+  const rowsByKey = new Map();
   const pushRow = (action, entityType, entityId, ownerId = '', primaryProfile = '') => {
     const cleanAction = sanitizeAction(action);
     const cleanEntityType = sanitizeEntityType(entityType);
@@ -221,7 +267,7 @@ export function makeFeedActionRows({ matched = [], interested = [] }) {
     const cleanOwnerId = normalizeText(ownerId);
     const cleanPrimaryProfile = sanitizeProfileScope(primaryProfile);
     if (!cleanAction || !cleanEntityType || !cleanEntityId) return;
-    rows.push({
+    const row = {
       action: cleanAction,
       entity_type: cleanEntityType,
       entity_id: cleanEntityId,
@@ -232,7 +278,14 @@ export function makeFeedActionRows({ matched = [], interested = [] }) {
         ownerId: cleanOwnerId,
         primaryProfile: cleanPrimaryProfile,
       }),
-    });
+    };
+    const key = `${cleanAction}::${cleanEntityType}::${cleanEntityId}`;
+    const existing = rowsByKey.get(key);
+    // Keep the richer explicit profile identity when the property-derived
+    // association reaches the same responsible person.
+    if (!existing || (!existing.payload?.primaryProfile && cleanPrimaryProfile)) {
+      rowsByKey.set(key, row);
+    }
   };
 
   (Array.isArray(matched) ? matched : []).slice(-MAX_FEED_ACTION_ROWS).forEach((item) => {
@@ -245,8 +298,16 @@ export function makeFeedActionRows({ matched = [], interested = [] }) {
     );
   });
   (Array.isArray(interested) ? interested : []).slice(-MAX_FEED_ACTION_ROWS).forEach((item) => {
-    pushRow('interested', 'property', item?.id || item?.propertyId || item?.property_id || item?.portfolioId, item?.ownerId || item?.owner_id);
+    const ownerId = item?.ownerId || item?.owner_id;
+    const primaryProfile = item?.primaryProfile
+      || item?.primary_profile
+      || item?.profileScope
+      || item?.profile_scope
+      || item?.ownerPreview?.primaryProfile
+      || item?.owner_preview?.primaryProfile;
+    pushRow('interested', 'property', item?.id || item?.propertyId || item?.property_id || item?.portfolioId, ownerId, primaryProfile);
+    if (ownerId) pushRow('matched', 'person', ownerId, ownerId, primaryProfile);
   });
 
-  return rows;
+  return [...rowsByKey.values()];
 }
