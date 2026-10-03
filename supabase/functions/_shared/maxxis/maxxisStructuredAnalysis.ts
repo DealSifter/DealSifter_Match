@@ -150,11 +150,23 @@ function fitAnalysis(context: AnyRecord, language: AnalysisLanguage) {
 
 function marketContext(context: AnyRecord, language: AnalysisLanguage) {
   const match = record(context.matchContext);
+  const providerMarket = record(context.providerMarketContext);
+  const market = record(providerMarket.market);
+  const saleMarket = record(market.sale);
+  const saleListings = record(providerMarket.saleListings);
   const marketReason = list(match.reasons).find((item) => item?.key === 'market');
   const evidenceUsed = unique([
     language === 'en' ? text(marketReason?.detail) : marketReason
       ? localized(language, '', `Mercado-alvo ${marketReason.status === 'matched' ? 'alinhado' : 'não confirmado'} com o imóvel.`, `Mercado objetivo ${marketReason.status === 'matched' ? 'alineado' : 'no confirmado'} con la propiedad.`) : '',
     ...list(record(context.investorContext).targetMarkets).map((item) => localized(language, `Configured target market: ${text(item)}.`, `Mercado-alvo configurado: ${text(item)}.`, `Mercado objetivo configurado: ${text(item)}.`)),
+    finite(saleMarket.medianPricePerSqft) !== null ? localized(language,
+      `ZIP active-listing median: $${finite(saleMarket.medianPricePerSqft)}/sqft.`,
+      `Mediana dos anúncios ativos do ZIP: US$ ${finite(saleMarket.medianPricePerSqft)}/sqft.`,
+      `Mediana de anuncios activos del ZIP: US$ ${finite(saleMarket.medianPricePerSqft)}/sqft.`) : '',
+    finite(saleListings.totalListings) !== null ? localized(language,
+      `${finite(saleListings.totalListings)} active sale listings were retained as competition context only.`,
+      `${finite(saleListings.totalListings)} anúncios de venda ativos foram mantidos apenas como contexto de concorrência.`,
+      `${finite(saleListings.totalListings)} anuncios de venta activos se conservaron solo como contexto de competencia.`) : '',
   ]);
   const limitations = marketReason?.status === 'matched'
     ? [localized(language, 'Market alignment reflects the configured Investment Profile and does not independently establish market demand or liquidity.', 'O alinhamento de mercado reflete o Perfil de Investimento configurado e não comprova, isoladamente, demanda ou liquidez.', 'La alineación de mercado refleja el Perfil de Inversión configurado y no demuestra, por sí sola, demanda o liquidez.')]
@@ -201,6 +213,8 @@ function comparativeAnalysis(context: AnyRecord, language: AnalysisLanguage) {
 
 function valuationAnalysis(context: AnyRecord, language: AnalysisLanguage, rehab: AnyRecord = {}) {
   const valuation = record(context.valuationContext);
+  const providerMarket = record(context.providerMarketContext);
+  const recentSales = record(providerMarket.recentSalesMarketEstimate);
   const applicability = record(context.analysisApplicability);
   const residentialArvNotApplicable = applicability.residentialArv === 'NOT_APPLICABLE';
   const metrics = record(record(context.dealMetrics).metrics);
@@ -216,6 +230,15 @@ function valuationAnalysis(context: AnyRecord, language: AnalysisLanguage, rehab
   ]);
   return {
     providerEstimate,
+    recentSalesMarketEstimate: Object.keys(recentSales).length ? {
+      status: text(recentSales.status), centralEstimate: finite(recentSales.centralEstimate),
+      rangeLow: finite(record(recentSales.range).low), rangeHigh: finite(record(recentSales.range).high),
+      weightedUnitValue: finite(recentSales.weightedUnitValue), unitMetric: text(recentSales.unitMetric),
+      qualifyingSalesCount: finite(recentSales.qualifyingSalesCount), valuationCompCount: finite(recentSales.valuationCompCount),
+      confidence: text(recentSales.confidence), conditionAdjustmentStatus: text(recentSales.conditionAdjustmentStatus),
+    } : null,
+    providerEstimateDivergence: finite(providerMarket.providerEstimateDivergence),
+    providerAvmCompatibility: text(providerMarket.providerAvmCompatibility) || 'UNKNOWN',
     applicability: residentialArvNotApplicable ? 'NOT_APPLICABLE' : 'APPLICABLE',
     providerEstimateRole: providerEstimate !== null ? 'SUPPORTING_EVIDENCE_ONLY' : 'UNAVAILABLE',
     arv: arvAvailable ? {

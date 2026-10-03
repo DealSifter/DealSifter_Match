@@ -21,7 +21,7 @@ export type RentCastClient = {
   searchSaleListings(input: RentCastListingSearchInput): Promise<RentCastArrayResult>;
   estimateRent(input: RentCastValueEstimateInput): Promise<RentCastObjectResult>;
   searchRentalListings(input: RentCastListingSearchInput): Promise<RentCastArrayResult>;
-  getMarketData(zipCode: string): Promise<RentCastArrayResult>;
+  getMarketData(zipCode: string): Promise<RentCastObjectResult>;
 };
 
 export type RentCastListingSearchInput = {
@@ -30,6 +30,8 @@ export type RentCastListingSearchInput = {
   longitude?: number | null;
   radius: number;
   status?: string;
+  propertyType?: string;
+  daysOld?: number;
   limit: number;
 };
 
@@ -128,6 +130,10 @@ export function createRentCastClient(options: {
     } else url.searchParams.set('address', address);
     url.searchParams.set('radius', String(input.radius));
     if (String(input.status || '').trim()) url.searchParams.set('status', String(input.status).trim());
+    if (String(input.propertyType || '').trim()) url.searchParams.set('propertyType', String(input.propertyType).trim());
+    if (Number.isFinite(Number(input.daysOld)) && Number(input.daysOld) > 0) {
+      url.searchParams.set('daysOld', String(Math.trunc(Number(input.daysOld))));
+    }
     url.searchParams.set('limit', String(input.limit));
     return url;
   };
@@ -224,7 +230,7 @@ export function createRentCastClient(options: {
       if (!/^\d{5}$/.test(zip)) throw new PropertyDataError('INVALID_PROPERTY_LOOKUP');
       const url = new URL(`${baseUrl}/markets`);
       url.searchParams.set('zipCode', zip);
-      return arrayResult(url);
+      return objectResult(url);
     },
   };
 }

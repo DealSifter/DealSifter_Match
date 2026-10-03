@@ -36,6 +36,11 @@ const COPY = {
       explain_metrics: 'Explain metrics',
       review_next: 'What should I review next?',
       deal_snapshot: 'Deal snapshot',
+      view_recent_sales_comps: 'View the sales used',
+      compare_provider_avm: 'Compare with provider estimate',
+      view_zip_market: 'View ZIP market',
+      view_active_competition: 'View active competition',
+      review_rent: 'Review rent evidence',
     },
     gapCategories: {
       DATA: 'Data',
@@ -74,6 +79,11 @@ const COPY = {
       explain_metrics: 'Explicar metricas',
       review_next: 'O que revisar agora?',
       deal_snapshot: 'Snapshot do deal',
+      view_recent_sales_comps: 'Ver vendas utilizadas',
+      compare_provider_avm: 'Comparar com estimativa do provedor',
+      view_zip_market: 'Ver mercado do ZIP',
+      view_active_competition: 'Ver concorrencia ativa',
+      review_rent: 'Revisar evidencias de aluguel',
     },
     gapCategories: {
       DATA: 'Dados',
@@ -112,6 +122,11 @@ const COPY = {
       explain_metrics: 'Explicar metricas',
       review_next: 'Que revisar ahora?',
       deal_snapshot: 'Snapshot del deal',
+      view_recent_sales_comps: 'Ver ventas utilizadas',
+      compare_provider_avm: 'Comparar con estimacion del proveedor',
+      view_zip_market: 'Ver mercado del ZIP',
+      view_active_competition: 'Ver competencia activa',
+      review_rent: 'Revisar evidencia de alquiler',
     },
     gapCategories: {
       DATA: 'Datos',
@@ -488,13 +503,24 @@ export function buildMaxxisFollowUps(sourceInput = {}, language = 'en') {
   };
   const insights = buildMaxxisInsights(source);
   const gaps = buildMaxxisDealGaps(source);
-  if (insights.length || gaps.length) add('why_current_signal', 'explain_current_insight', 'structured_deal_intelligence');
-  if (gaps.length) add('deal_gaps', 'deal_gaps', 'property_details_or_copilot');
+  const snapshot = source?.raw?.intelligenceSnapshot || source?.raw?.data?.intelligenceSnapshot || {};
+  const recent = snapshot?.recentSalesMarketEstimate || snapshot?.providerMarketContext?.recentSalesMarketEstimate;
+  const hasRecentEstimate = recent?.status === 'AVAILABLE';
+  if (hasRecentEstimate) {
+    add('view_recent_sales_comps', 'view_recent_sales_comps', 'recent_sales_market_estimate');
+    if (snapshot?.providerMarketContext?.providerEstimate != null) add('compare_provider_avm', 'compare_provider_avm', 'provider_market_context');
+    if (snapshot?.marketEvidence || snapshot?.providerMarketContext?.market) add('view_zip_market', 'view_zip_market', 'market_evidence');
+    if (snapshot?.listingEvidence || snapshot?.providerMarketContext?.saleListings) add('view_active_competition', 'view_active_competition', 'sale_listing_evidence');
+    if (snapshot?.rentalEvidence?.rentEstimate || snapshot?.providerMarketContext?.rentEstimate) add('review_rent', 'review_rent', 'rental_evidence');
+  } else {
+    if (insights.length || gaps.length) add('why_current_signal', 'explain_current_insight', 'structured_deal_intelligence');
+    if (gaps.length) add('deal_gaps', 'deal_gaps', 'property_details_or_copilot');
+  }
   if (source?.comparison) add('compare_these', 'compare_these', 'property_comparison');
   if (asArray(source?.serviceNeeds).length || asArray(source?.serviceMatches).length) add('show_providers', 'show_providers', 'service_needs_or_matches');
   if (source?.metrics?.metrics) add('explain_metrics', 'explain_metrics', 'deal_metrics');
   if (source?.nextBestAction || asArray(source?.workflow?.items).length) add('review_next', 'review_next', 'workflow_or_next_best_action');
-  if (!items.some((item) => item.code === 'deal_snapshot')) add('deal_snapshot', 'deal_snapshot', 'property_details_or_copilot');
+  if (!hasRecentEstimate && !items.some((item) => item.code === 'deal_snapshot')) add('deal_snapshot', 'deal_snapshot', 'property_details_or_copilot');
   return items.slice(0, 5);
 }
 

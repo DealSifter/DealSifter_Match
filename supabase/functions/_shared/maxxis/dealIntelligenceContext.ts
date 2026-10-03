@@ -3,6 +3,8 @@ import type { DealMetricsResult } from './dealMetrics.ts';
 import type { NormalizedInvestmentProfileResult } from './normalizeInvestmentProfile.ts';
 import type { MaxxisPropertyEvidenceResult } from './propertyEvidence.ts';
 import type { DealAdvisorAnalysis, MaxxisPropertyDetails, PropertyMatchResult } from './types.ts';
+import type { RecentSalesMarketEstimate } from '../property-data/recentSalesMarketEstimate.ts';
+import type { SupplementalEvidence } from '../property-data/supplementalEvidenceTypes.ts';
 
 export type EvidenceStatus = 'VERIFIED_RECORD' | 'USER_PROVIDED' | 'UNKNOWN';
 export type EvidenceStrength = 'HIGH' | 'MEDIUM' | 'LOW';
@@ -109,6 +111,13 @@ export type DealIntelligenceContext = {
     medianRecordedSalePrice: number | null;
     minimumRecordedSalePrice: number | null;
     maximumRecordedSalePrice: number | null;
+    recentSalesMarketEstimate?: RecentSalesMarketEstimate | null;
+    providerEstimateDivergence?: number | null;
+    providerAvmCompatibility?: 'COMPATIBLE' | 'QUARANTINED_FOR_TYPE_CONFLICT' | 'UNKNOWN';
+    saleListings?: SupplementalEvidence | null;
+    rentEstimate?: SupplementalEvidence | null;
+    rentalListings?: SupplementalEvidence | null;
+    market?: SupplementalEvidence | null;
     source: string;
   };
   matchContext: {

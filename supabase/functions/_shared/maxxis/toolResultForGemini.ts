@@ -443,6 +443,14 @@ export function buildMaxxisLLMContext(value: unknown) {
   const providerEstimate = record(valuation.providerEstimate);
   const runtime = record(source.runtimeTrace);
   const snapshot = record(source.intelligenceSnapshot);
+  const providerMarket = record(snapshot.providerMarketContext || intelligence.providerMarketContext);
+  const recentSales = record(snapshot.recentSalesMarketEstimate || providerMarket.recentSalesMarketEstimate);
+  const recentRange = record(recentSales.range);
+  const marketEvidence = record(snapshot.marketEvidence || providerMarket.market);
+  const saleMarket = record(marketEvidence.sale);
+  const listingEvidence = record(snapshot.listingEvidence || providerMarket.saleListings);
+  const rentalEvidence = record(snapshot.rentalEvidence);
+  const rentEstimate = record(rentalEvidence.rentEstimate || providerMarket.rentEstimate);
   const applicability = record(snapshot.analysisApplicability);
   const rehab = record(snapshot.rehabAnalysis);
   const benchmark = record(rehab.benchmark);
@@ -507,6 +515,40 @@ export function buildMaxxisLLMContext(value: unknown) {
       providerEstimate: Object.keys(providerEstimate).length ? { value: safeNumber(providerEstimate.value),
         status: safeText(providerEstimate.status, 60), provenance: safeText(providerEstimate.provenance, 30) } : null,
       interpretation: safeText(valuationAnalysis.arvInterpretation, 700),
+    },
+    recentSalesMarketEstimate: Object.keys(recentSales).length ? {
+      methodology: 'RECENT_SALES_MARKET_ESTIMATE', status: safeText(recentSales.status, 60),
+      propertyCategory: safeText(recentSales.propertyCategory, 30),
+      centralEstimate: safeNumber(recentSales.centralEstimate),
+      range: Object.keys(recentRange).length ? { low: safeNumber(recentRange.low), high: safeNumber(recentRange.high) } : null,
+      unitMetric: safeText(recentSales.unitMetric, 40), weightedUnitValue: safeNumber(recentSales.weightedUnitValue),
+      weightedLotPricePerSqft: safeNumber(recentSales.weightedLotPricePerSqft),
+      qualifyingSalesCount: safeNumber(recentSales.qualifyingSalesCount), valuationCompCount: safeNumber(recentSales.valuationCompCount),
+      confidence: safeText(recentSales.confidence, 20), confidenceReasons: safeList(recentSales.confidenceReasons, 8),
+      dispersion: { coefficient: safeNumber(record(recentSales.dispersion).coefficient) },
+      conditionAdjustmentStatus: safeText(recentSales.conditionAdjustmentStatus, 40),
+      providerAvmCompatibility: safeText(recentSales.providerAvmCompatibility, 60),
+      comps: (Array.isArray(recentSales.valuationComps) ? recentSales.valuationComps : []).slice(0, 5).map((item) => {
+        const comp = record(item);
+        return { address: safeText(comp.address, 160), salePrice: safeNumber(comp.salePrice), saleDate: safeDate(comp.saleDate),
+          saleAgeDays: safeNumber(comp.saleAgeDays), distanceMiles: safeNumber(comp.distanceMiles),
+          unitValue: safeNumber(comp.unitValue), impliedSubjectValue: safeNumber(comp.impliedSubjectValue),
+          structuralScore: safeNumber(comp.structuralScore), classification: safeText(comp.classification, 40) };
+      }),
+      providerEstimateDivergence: safeNumber(providerMarket.providerEstimateDivergence),
+    } : null,
+    currentMarketContext: {
+      activeSaleListingCount: safeNumber(listingEvidence.totalListings),
+      activeSaleMedianAskingPrice: safeNumber(listingEvidence.medianAskingPrice),
+      activeSaleMedianDaysOnMarket: safeNumber(listingEvidence.medianDaysOnMarket),
+      zipCode: safeText(marketEvidence.zipCode, 10) || null,
+      marketLastUpdatedDate: safeDate(marketEvidence.lastUpdatedDate),
+      zipMedianListingPrice: safeNumber(saleMarket.medianPrice),
+      zipMedianListingPricePerSqft: safeNumber(saleMarket.medianPricePerSqft),
+      zipMedianDaysOnMarket: safeNumber(saleMarket.medianDaysOnMarket),
+      zipTotalListings: safeNumber(saleMarket.totalListings),
+      providerRentEstimate: safeNumber(rentEstimate.rent),
+      providerRentRange: { low: safeNumber(rentEstimate.rangeLow), high: safeNumber(rentEstimate.rangeHigh) },
     },
     rehabSummary: {
       applicability: safeText(applicability.rehab, 30) || null,

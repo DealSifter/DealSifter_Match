@@ -16,6 +16,9 @@ import { createValuationDataProvider } from './valuationProvider.ts';
 import { SupabaseSoldRecordPoolCache } from './soldCache.ts';
 import { SoldEvidenceService } from './soldEvidenceService.ts';
 import { createSoldRecordDataProvider } from './soldProvider.ts';
+import { SupabaseSupplementalEvidenceCache } from './supplementalEvidenceCache.ts';
+import { SupplementalEvidenceService } from './supplementalEvidenceService.ts';
+import { createSupplementalEvidenceProvider } from './supplementalEvidenceProvider.ts';
 
 export type PropertyEvidenceBackendClient = PropertyIntelligenceRpcClient
   & PropertyDataUsageRpcClient
@@ -102,6 +105,26 @@ export function createBackendSoldEvidenceService(options: {
     soldCache: new SupabaseSoldRecordPoolCache(options.supabaseAdmin, options.getEnv('SOLD_RECORD_POOL_CACHE_TTL_HOURS')),
     provider: createSoldRecordDataProvider({ mode: config.mode, apiKey: config.apiKey,
       timeoutMs: config.timeoutMs, usageGuard: guardedUsage, fetchImpl: options.fetchImpl, logger: options.logger }),
+    enabled: config.mode === 'live',
+    singleFlight: new SupabasePropertySingleFlight(options.supabaseAdmin),
+  });
+}
+
+export function createBackendSupplementalEvidenceService(options: {
+  supabaseAdmin: PropertyEvidenceBackendClient;
+  getEnv: (name: string) => string | undefined;
+  fetchImpl?: RentCastFetch;
+  logger?: PropertyDataLogger;
+  providerBudgetContext?: ProviderBudgetContext;
+}) {
+  const config = readPropertyDataConfig(options.getEnv);
+  if (config.mode === 'mock' && options.getEnv('NODE_ENV') !== 'test') config.mode = 'disabled';
+  const guardedUsage = usageGuard({ supabaseAdmin: options.supabaseAdmin, getEnv: options.getEnv, context: options.providerBudgetContext });
+  return new SupplementalEvidenceService({
+    repository: new SupabasePropertyEvidenceRepository(options.supabaseAdmin),
+    cache: new SupabaseSupplementalEvidenceCache(options.supabaseAdmin),
+    provider: createSupplementalEvidenceProvider({ mode: config.mode, apiKey: config.apiKey,
+      timeoutMs: config.timeoutMs, usageGuard: guardedUsage, fetchImpl: options.fetchImpl }),
     enabled: config.mode === 'live',
     singleFlight: new SupabasePropertySingleFlight(options.supabaseAdmin),
   });

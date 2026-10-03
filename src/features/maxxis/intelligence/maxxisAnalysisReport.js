@@ -191,6 +191,18 @@ export function buildMaxxisAnalysisReport(dealIntelligence, structuredAnalysis =
         ? Object.freeze({ ...providerMarket.providerEstimateRange }) : null,
       supportingMarketSalesCount: Number(providerMarket.supportingMarketSalesCount) || 0,
       recordedSoldCount: Number(providerMarket.recordedSoldCount) || 0,
+      recentSalesMarketEstimate: isObject(providerMarket.recentSalesMarketEstimate)
+        ? Object.freeze({ ...providerMarket.recentSalesMarketEstimate, valuationComps: undefined,
+          marketReferenceOutliers: undefined, exclusions: undefined, historicalReferences: undefined }) : null,
+      providerEstimateDivergence: Number.isFinite(Number(providerMarket.providerEstimateDivergence))
+        ? Number(providerMarket.providerEstimateDivergence) : null,
+      providerAvmCompatibility: safeText(providerMarket.providerAvmCompatibility) || 'UNKNOWN',
+      zipMarketSummary: isObject(providerMarket.market) ? Object.freeze({
+        zipCode: providerMarket.market.zipCode || null,
+        lastUpdatedDate: providerMarket.market.lastUpdatedDate || null,
+        sale: providerMarket.market.sale || null,
+        rental: providerMarket.market.rental || null,
+      }) : null,
       detailedComparableRowsIncluded: false,
     }),
     propertyHighlights: highlights,

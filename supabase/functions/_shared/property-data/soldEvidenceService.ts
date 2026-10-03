@@ -14,6 +14,7 @@ function providerPropertyType(value: string | null) {
   if (normalized === 'sfr' || normalized === 'single family') return 'Single Family';
   if (normalized === 'condo') return 'Condo';
   if (normalized === 'townhouse') return 'Townhouse';
+  if (normalized === 'land' || normalized === 'lot' || normalized === 'vacant land') return 'Land';
   throw new Error('UNSUPPORTED_SOLD_SEARCH_PROPERTY_TYPE');
 }
 

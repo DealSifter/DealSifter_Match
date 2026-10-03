@@ -80,7 +80,8 @@ describe('RentCast client', () => {
 
   it('supports the remaining strategy-aware evidence endpoints without frontend access', async () => {
     const fetchImpl = vi.fn(async (input: string | URL) => String(input).includes('/avm/rent/')
-      ? jsonResponse({ rent: 2400, comparables: [] }) : jsonResponse([]));
+      ? jsonResponse({ rent: 2400, comparables: [] })
+      : String(input).includes('/markets') ? jsonResponse({ zipCode: '78701', saleData: {}, rentalData: {} }) : jsonResponse([]));
     const client = createRentCastClient({ apiKey: TEST_KEY, fetchImpl });
     await client.searchSaleListings({ address: '100 Main St, Austin, TX 78701', radius: 5, status: 'Active', limit: 50 });
     await client.estimateRent({ address: '100 Main St, Austin, TX 78701', maxRadius: 5, daysOld: 180, compCount: 20, lookupSubjectAttributes: true });

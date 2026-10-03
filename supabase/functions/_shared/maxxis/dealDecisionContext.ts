@@ -95,6 +95,10 @@ function evidenceCoverage(snapshot: AnyRecord) {
     property: family('property', 'property'),
     valuation: family('valuation', 'valuation'),
     sold: family('sold', 'sold'),
+    saleListings: Object.freeze({ status: snapshot.listingEvidence ? 'AVAILABLE' : 'NOT_AVAILABLE', reason: null }),
+    rental: Object.freeze({ status: record(snapshot.rentalEvidence).rentEstimate || record(snapshot.rentalEvidence).rentalListings
+      ? 'AVAILABLE' : 'NOT_AVAILABLE', reason: null }),
+    market: Object.freeze({ status: snapshot.marketEvidence ? 'AVAILABLE' : 'NOT_AVAILABLE', reason: null }),
   });
 }
 
@@ -119,7 +123,8 @@ function requirementAvailable(requirement: StrategyRequirement, values: AnyRecor
     selling_costs: hasAssumption(assumption, ['sellingCosts', 'sellingCostPercent']),
     holding_costs: hasAssumption(assumption, ['holdingCosts', 'holdingPeriodMonths']),
     loan_amount: hasAssumption(assumption, ['loanAmount']),
-    rent_evidence: present(property.monthlyRent) || present(property.rent) || present(context.rentEvidence),
+    rent_evidence: present(property.monthlyRent) || present(property.rent) || present(context.rentEvidence)
+      || finite(record(record(values.snapshot.rentalEvidence).rentEstimate).rent) !== null,
     operating_expenses: hasAssumption(assumption, ['operatingExpenses', 'noi']),
     vacancy: hasAssumption(assumption, ['vacancyRate']),
     property_tax: present(field(context, 'annualPropertyTax').value),
@@ -152,7 +157,8 @@ function requirementAvailable(requirement: StrategyRequirement, values: AnyRecor
     ownership: present(field(context, 'ownershipRecordPresent').value),
     land_sale_evidence: comps.length > 0,
     development_assumptions: hasAssumption(assumption, ['developmentAssumptions']),
-    market_evidence: comps.length > 0 || finite(record(valuation.providerEstimate).value) !== null,
+    market_evidence: comps.length > 0 || finite(record(valuation.providerEstimate).value) !== null
+      || Boolean(values.snapshot.marketEvidence),
     property_condition: hasAssumption(assumption, ['targetCondition']),
   };
   return map[requirement.key] === true;
@@ -243,6 +249,12 @@ export function buildDealDecisionContext(snapshotInput: unknown): DealDecisionCo
   const benchmarkResemblance = !present(assumptions.targetCondition)
     ? rehabBenchmarkResemblance(rehabPerSqft, benchmarkOptions) : null;
   const providerEstimate = finite(record(valuation.providerEstimate).value);
+  const providerMarket = record(snapshot.providerMarketContext || context.providerMarketContext);
+  const recentSalesEstimate = record(snapshot.recentSalesMarketEstimate || providerMarket.recentSalesMarketEstimate);
+  const recentSalesValue = recentSalesEstimate.status === 'AVAILABLE' ? finite(recentSalesEstimate.centralEstimate) : null;
+  const providerAvmCompatible = text(recentSalesEstimate.providerAvmCompatibility || providerMarket.providerAvmCompatibility)
+    !== 'QUARANTINED_FOR_TYPE_CONFLICT';
+  const rentEstimate = finite(record(record(snapshot.rentalEvidence).rentEstimate).rent);
   const assessedValue = finite(field(context, 'assessedValue').value);
   const latestSalePrice = finite(field(context, 'latestSalePrice').value);
   const reportedCapRate = metricValue(metrics, 'capRate') ?? finite(property.capRate);
@@ -274,7 +286,16 @@ export function buildDealDecisionContext(snapshotInput: unknown): DealDecisionCo
       ? datum('pricePerAcre', landUnitMetrics?.pricePerAcre, 'CALCULATED', 'ASKING_PRICE_DIVIDED_BY_LOT_ACRES') : null,
   ].filter(Boolean) as DecisionDatum[];
   const marketReferences = [
-    providerEstimate !== null ? datum('providerEstimate', providerEstimate, 'MARKET_REFERENCE', 'PROVIDER_AVM_NOT_ARV') : null,
+    recentSalesValue !== null ? datum('recentSalesMarketEstimate', {
+      value: recentSalesValue, range: recentSalesEstimate.range, confidence: recentSalesEstimate.confidence,
+      unitMetric: recentSalesEstimate.unitMetric, weightedUnitValue: recentSalesEstimate.weightedUnitValue,
+      compsUsed: recentSalesEstimate.valuationCompCount,
+    }, 'MARKET_REFERENCE', 'DEALSIFTER_RECORDED_SALES_180_DAY_ENGINE') : null,
+    providerEstimate !== null ? datum('providerEstimate', providerEstimate, 'MARKET_REFERENCE',
+      providerAvmCompatible ? 'PROVIDER_AVM_NOT_ARV' : 'PROVIDER_AVM_QUARANTINED_TYPE_CONFLICT') : null,
+    snapshot.marketEvidence ? datum('zipMarketData', snapshot.marketEvidence, 'MARKET_REFERENCE', 'PROVIDER_ZIP_AGGREGATE_CONTEXT_ONLY') : null,
+    snapshot.listingEvidence ? datum('activeSaleListings', snapshot.listingEvidence, 'MARKET_REFERENCE', 'ACTIVE_LISTING_CONTEXT_ONLY') : null,
+    rentEstimate !== null ? datum('providerRentEstimate', rentEstimate, 'MARKET_REFERENCE', 'PROVIDER_RENT_ESTIMATE') : null,
     reportedCapRate !== null ? datum('reportedCapRate', reportedCapRate, 'MARKET_REFERENCE', 'REPORTED_NOT_CALCULATED') : null,
     rehabAnalysis.benchmark ? datum('rehabBenchmark', rehabAnalysis.benchmark, 'MARKET_REFERENCE',
       text(rehabAnalysis.benchmark.source) || 'USER_CURATED_REHAB_BENCHMARK_2026') : null,
@@ -284,7 +305,24 @@ export function buildDealDecisionContext(snapshotInput: unknown): DealDecisionCo
       { address: item.address, salePrice: item.recordedSalePrice }, 'MARKET_REFERENCE', 'COMP_ENGINE_SUPPORTING_ONLY')),
   ].filter(Boolean) as DecisionDatum[];
   const values = { snapshot, property, context, valuation, metrics, assumptions, comps, price, rehab };
-  const decisionGaps = buildGaps(playbook, values);
+  const conflicts = list(record(snapshot.propertyEvidence).evidence?.conflicts || record(snapshot.providerEvidence).conflicts);
+  const conflictGaps = conflicts.filter((conflict) => conflict?.resolution === 'UNRESOLVED'
+    && ['CRITICAL_IDENTITY', 'HIGH_VALUATION'].includes(text(conflict?.classification))).map((conflict) => Object.freeze({
+      code: `EVIDENCE_CONFLICT_${text(conflict.field).toUpperCase()}`,
+      field: text(conflict.field) || 'property_identity',
+      criticality: 'CRITICAL' as const,
+      why: 'material_identity_or_valuation_conflict_must_be_resolved_before_valuation',
+      unlocks: 'RECENT_SALES_MARKET_ESTIMATE',
+      actionCode: 'RESOLVE_EVIDENCE_CONFLICT',
+      inputField: null,
+      source: 'USER' as const,
+      storedValue: conflict.storedValue ?? conflict.dealSifterValue ?? null,
+      providerValue: conflict.externalValue ?? conflict.publicRecordValue ?? null,
+      analysisValue: conflict.analysisValue ?? null,
+      resolution: conflict.resolution,
+      actions: ['USE_STORED_VALUE', 'USE_PROVIDER_VALUE', 'REVIEW_DETAILS'],
+    }));
+  const decisionGaps = [...conflictGaps, ...buildGaps(playbook, values)];
   const highestGap = decisionGaps[0] || null;
   const exitEvidenceAvailable = valuation.status === 'ARV_AVAILABLE' || valuation.status === 'ARV_LIMITED';
   const scenariosPossible = [
@@ -321,6 +359,15 @@ export function buildDealDecisionContext(snapshotInput: unknown): DealDecisionCo
       rehabPerSqft,
       rehabBenchmarkResemblance: benchmarkResemblance ? text(benchmarkResemblance.scope) : null,
       providerEstimate,
+      providerAvmCompatibility: providerAvmCompatible ? 'COMPATIBLE_OR_UNKNOWN' : 'QUARANTINED_FOR_TYPE_CONFLICT',
+      recentSalesMarketEstimate: recentSalesValue,
+      recentSalesEstimateLow: finite(record(recentSalesEstimate.range).low),
+      recentSalesEstimateHigh: finite(record(recentSalesEstimate.range).high),
+      recentSalesWeightedUnitValue: finite(recentSalesEstimate.weightedUnitValue),
+      recentSalesCompCount: finite(recentSalesEstimate.valuationCompCount),
+      recentSalesConfidence: text(recentSalesEstimate.confidence) || null,
+      providerEstimateDivergence: finite(providerMarket.providerEstimateDivergence),
+      rentEstimate,
       assessedValue,
       latestSalePrice,
       reportedCapRate,

@@ -2,6 +2,7 @@ import { createClient } from 'npm:@supabase/supabase-js@2';
 import {
   createBackendValuationEvidenceService,
   createBackendSoldEvidenceService,
+  createBackendSupplementalEvidenceService,
   type PropertyEvidenceBackendClient,
 } from '../property-data/backendFactory.ts';
 import { calculatePropertyMatch } from './calculatePropertyMatch.ts';
@@ -34,6 +35,35 @@ import { buildDealDecisionContext } from './dealDecisionContext.ts';
 import { buildProviderEvidencePlan, type ProviderEvidencePlan, type ProviderReportLevel } from './providerEvidencePlan.ts';
 import type { ValuationEvidenceResult } from '../property-data/valuationTypes.ts';
 import type { SoldEvidenceResult } from '../property-data/soldTypes.ts';
+import { buildRecentSalesMarketEstimate, providerEstimateDivergence } from '../property-data/recentSalesMarketEstimate.ts';
+import type { SupplementalEvidenceBundle } from '../property-data/supplementalEvidenceService.ts';
+import type { SupplementalEvidenceFamily } from '../property-data/supplementalEvidenceTypes.ts';
+import { parseCanonicalLotArea } from './landMetrics.ts';
+
+const finiteNumber = (value: unknown) => Number.isFinite(Number(value)) ? Number(value) : null;
+const medianNumber = (values: number[]) => {
+  if (!values.length) return null;
+  const sorted = [...values].sort((left, right) => left - right);
+  const middle = Math.floor(sorted.length / 2);
+  return sorted.length % 2 ? sorted[middle] : (sorted[middle - 1] + sorted[middle]) / 2;
+};
+function listingSummary(value: any) {
+  if (!value || !Array.isArray(value.records)) return null;
+  const prices = value.records.map((item: any) => finiteNumber(item.price)).filter((item: number | null): item is number => item !== null);
+  const dom = value.records.map((item: any) => finiteNumber(item.daysOnMarket)).filter((item: number | null): item is number => item !== null);
+  return { evidenceType: value.evidenceType, provider: value.provider, retrievedAt: value.retrievedAt,
+    status: value.status, provenance: value.provenance, totalListings: value.records.length,
+    medianAskingPrice: medianNumber(prices), medianDaysOnMarket: medianNumber(dom),
+    records: value.records.slice(0, 10) };
+}
+function rentSummary(value: any) {
+  if (!value) return null;
+  return { evidenceType: value.evidenceType, provider: value.provider, retrievedAt: value.retrievedAt,
+    status: value.status, provenance: value.provenance, rent: value.rent, rangeLow: value.rangeLow,
+    rangeHigh: value.rangeHigh, subjectProperty: value.subjectProperty,
+    comparableCount: Array.isArray(value.comparables) ? value.comparables.length : 0,
+    comparables: Array.isArray(value.comparables) ? value.comparables.slice(0, 5) : [] };
+}
 
 export async function getDealInsightContextForAuthenticatedUser(
   input: unknown,
@@ -338,6 +368,32 @@ export async function getDealInsightContextForAuthenticatedUser(
     loadArvEvaluation: shouldLoadValuationEvidence ? loadArvEvaluation : undefined,
     analysisAssumptions: analysisInputs,
   });
+  let supplementalEvidence: SupplementalEvidenceBundle | null = null;
+  if (supabaseServiceRoleKey && result.property) {
+    const familyPlan: Array<[SupplementalEvidenceFamily, keyof ProviderEvidencePlan['families']]> = [
+      ['saleListings', 'SALE_LISTINGS'], ['rentEstimate', 'RENT_ESTIMATE'],
+      ['rentalListings', 'RENTAL_COMPS'], ['market', 'MARKET_DATA'],
+    ];
+    const families = familyPlan.filter(([, planFamily]) => activeProviderEvidencePlan.families[planFamily].cacheReadAllowed)
+      .map(([family]) => family);
+    if (families.length) {
+      const admin = createClient(supabaseUrl, supabaseServiceRoleKey) as unknown as PropertyEvidenceBackendClient;
+      const supplementalService = createBackendSupplementalEvidenceService({
+        supabaseAdmin: admin, getEnv: (name) => Deno.env.get(name),
+        providerBudgetContext: { userId, propertyId: validated.propertyId, plan, bucket: budgetBucket },
+      });
+      const providerFamilies = familyPlan.filter(([family, planFamily]) => families.includes(family)
+        && activeProviderEvidencePlan.families[planFamily].providerCallAllowed).map(([family]) => family);
+      // Cache-only levels never purchase missing market/listing/rental evidence.
+      supplementalEvidence = await supplementalService.getBundle({ propertyId: validated.propertyId, userId,
+        families, cacheOnly: cacheOnly || providerFamilies.length === 0 });
+      // If only a subset is provider-authorized, load the remainder cache-first and then only the authorized subset.
+      if (!cacheOnly && providerFamilies.length > 0 && providerFamilies.length < families.length) {
+        supplementalEvidence = await supplementalService.getBundle({ propertyId: validated.propertyId, userId,
+          families: providerFamilies, cacheOnly: false });
+      }
+    }
+  }
   if (!runtimeTrace.stopReason) runtimeTrace.stopReason = result.state === 'available' ? 'NONE' : 'PROPERTY_NOT_FOUND';
   const evidenceCompleteness = buildEvidenceCompleteness({
     reportType: requestedReportType,
@@ -379,6 +435,19 @@ export async function getDealInsightContextForAuthenticatedUser(
   const providerEstimateLow = providerEvidenceState.valuation?.valuation.providerEstimate.rangeLow.value ?? null;
   const providerEstimateHigh = providerEvidenceState.valuation?.valuation.providerEstimate.rangeHigh.value ?? null;
   const soldStatistics = providerEvidenceState.sold?.recordedSoldCompSelection.descriptiveStatistics || null;
+  const propertyConflicts = result.evidence.state === 'available' ? result.evidence.evidence?.conflicts || [] : [];
+  const providerSubjectType = providerEvidenceState.valuation?.valuation.subjectProperty.propertyType.value
+    ?? (result.evidence.state === 'available' ? result.evidence.evidence?.fields?.propertyType?.value : null);
+  const materialIdentityConflict = propertyConflicts.some((conflict) =>
+    conflict.resolution === 'UNRESOLVED' && conflict.classification === 'CRITICAL_IDENTITY');
+  const recentSalesMarketEstimate = providerEvidenceState.sold ? buildRecentSalesMarketEstimate({
+    propertyType: result.property?.type || null,
+    livingAreaSqft: Number.isFinite(Number(result.property?.sqft)) ? Number(result.property?.sqft) : null,
+    lotSizeSqft: Number(result.dealIntelligence?.propertyContext?.fields?.lotSizeSqft?.value)
+      || parseCanonicalLotArea(result.property?.lot).lotSizeSqft,
+    providerPropertyType: typeof providerSubjectType === 'string' ? providerSubjectType : null,
+    materialIdentityConflict,
+  }, providerEvidenceState.sold.recordedSoldCompSelection.directSoldCompCandidates) : null;
   const providerMarketContext = {
     providerEstimate: Number.isFinite(Number(providerEstimateValue)) ? Number(providerEstimateValue) : null,
     providerEstimateRange: Number.isFinite(Number(providerEstimateLow)) && Number.isFinite(Number(providerEstimateHigh))
@@ -389,6 +458,15 @@ export async function getDealInsightContextForAuthenticatedUser(
     medianRecordedSalePrice: soldStatistics?.medianRecordedSalePrice ?? null,
     minimumRecordedSalePrice: soldStatistics?.minimumRecordedSalePrice ?? null,
     maximumRecordedSalePrice: soldStatistics?.maximumRecordedSalePrice ?? null,
+    recentSalesMarketEstimate,
+    providerEstimateDivergence: recentSalesMarketEstimate
+      ? providerEstimateDivergence(Number.isFinite(Number(providerEstimateValue)) ? Number(providerEstimateValue) : null, recentSalesMarketEstimate)
+      : null,
+    providerAvmCompatibility: recentSalesMarketEstimate?.providerAvmCompatibility || 'UNKNOWN',
+    saleListings: listingSummary(supplementalEvidence?.saleListings),
+    rentEstimate: rentSummary(supplementalEvidence?.rentEstimate),
+    rentalListings: listingSummary(supplementalEvidence?.rentalListings),
+    market: supplementalEvidence?.market || null,
     source: providerEvidenceState.valuation || providerEvidenceState.sold ? 'CACHED_OR_AUTHORIZED_PROVIDER_EVIDENCE' : 'UNAVAILABLE',
   } as const;
   const enrichedDealIntelligence = result.dealIntelligence ? {
@@ -423,6 +501,13 @@ export async function getDealInsightContextForAuthenticatedUser(
     compPromotionDiagnostics: runtimeTrace.compPromotionDiagnostics,
     valuationEvidence: enrichedDealIntelligence?.valuationContext || null,
     providerMarketContext,
+    recentSalesMarketEstimate,
+    listingEvidence: listingSummary(supplementalEvidence?.saleListings),
+    rentalEvidence: {
+      rentEstimate: rentSummary(supplementalEvidence?.rentEstimate),
+      rentalListings: listingSummary(supplementalEvidence?.rentalListings),
+    },
+    marketEvidence: supplementalEvidence?.market || null,
     providerEvidencePlan: activeProviderEvidencePlan,
     arv: enrichedDealIntelligence?.valuationContext || null,
     dealMetrics: result.metrics,

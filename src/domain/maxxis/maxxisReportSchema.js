@@ -299,6 +299,13 @@ function valuationEvidence(value) {
           provenance: 'ESTIMATED',
         })
       : null,
+    recentSalesMarketEstimate: isObject(value.recentSalesMarketEstimate)
+      ? Object.freeze({ ...value.recentSalesMarketEstimate }) : null,
+    providerEstimateDivergence: Number.isFinite(Number(value.providerEstimateDivergence))
+      ? Number(value.providerEstimateDivergence) : null,
+    activeSaleListings: Object.freeze(Array.isArray(value.activeSaleListings) ? value.activeSaleListings.slice(0, 10) : []),
+    marketData: isObject(value.marketData) ? Object.freeze({ ...value.marketData }) : null,
+    rentalEvidence: isObject(value.rentalEvidence) ? Object.freeze({ ...value.rentalEvidence }) : null,
   });
 }
 

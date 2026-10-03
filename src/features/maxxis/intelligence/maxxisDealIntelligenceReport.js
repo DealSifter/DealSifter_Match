@@ -90,6 +90,8 @@ function investmentFit(context) {
 
 function valuationIntelligence(context) {
   const valuation = isObject(context?.valuationContext) ? context.valuationContext : {};
+  const market = isObject(context?.providerMarketContext) ? context.providerMarketContext : {};
+  const recent = isObject(market.recentSalesMarketEstimate) ? market.recentSalesMarketEstimate : null;
   const status = ['ARV_AVAILABLE', 'ARV_LIMITED', 'ARV_UNAVAILABLE', 'NOT_APPLICABLE'].includes(valuation.status)
     ? valuation.status
     : 'ARV_UNAVAILABLE';
@@ -115,6 +117,30 @@ function valuationIntelligence(context) {
     warnings: Object.freeze(unique(list(valuation.warnings).map(explainMaxxisEvidenceState).map(safeText)).slice(0, 8)),
     source: status === 'NOT_APPLICABLE' ? 'NOT_APPLICABLE' : status === 'ARV_UNAVAILABLE' ? 'UNKNOWN' : 'CALCULATED',
     providerEstimate,
+    recentSalesMarketEstimate: recent ? Object.freeze({
+      methodology: 'RECENT_SALES_MARKET_ESTIMATE', status: recent.status,
+      centralEstimate: nullableNumber(recent.centralEstimate),
+      range: isObject(recent.range) ? Object.freeze({ low: nullableNumber(recent.range.low), high: nullableNumber(recent.range.high) }) : null,
+      weightedUnitValue: nullableNumber(recent.weightedUnitValue),
+      weightedLotPricePerSqft: nullableNumber(recent.weightedLotPricePerSqft),
+      unitMetric: safeText(recent.unitMetric) || null,
+      qualifyingSalesCount: Math.max(0, nullableNumber(recent.qualifyingSalesCount) || 0),
+      valuationCompCount: Math.max(0, nullableNumber(recent.valuationCompCount) || 0),
+      confidence: ['LOW', 'MODERATE', 'HIGH'].includes(recent.confidence) ? recent.confidence : 'LOW',
+      confidenceReasons: Object.freeze(list(recent.confidenceReasons).map(safeText).filter(Boolean)),
+      dispersion: isObject(recent.dispersion) ? Object.freeze({ ...recent.dispersion }) : null,
+      conditionAdjustmentStatus: 'CONDITION_NOT_ADJUSTED',
+      providerAvmCompatibility: safeText(recent.providerAvmCompatibility) || 'UNKNOWN',
+      valuationComps: Object.freeze(list(recent.valuationComps).slice(0, 5).map((item) => Object.freeze({ ...item }))),
+      marketReferenceOutliers: Object.freeze(list(recent.marketReferenceOutliers).slice(0, 5).map((item) => Object.freeze({ ...item }))),
+    }) : null,
+    providerEstimateDivergence: nullableNumber(market.providerEstimateDivergence),
+    activeSaleListings: Object.freeze(list(market.saleListings?.records).slice(0, 10).map((item) => Object.freeze({ ...item }))),
+    marketData: isObject(market.market) ? Object.freeze({ ...market.market }) : null,
+    rentalEvidence: Object.freeze({
+      rentEstimate: isObject(market.rentEstimate) ? Object.freeze({ ...market.rentEstimate }) : null,
+      rentalListings: Object.freeze(list(market.rentalListings?.records).slice(0, 10).map((item) => Object.freeze({ ...item }))),
+    }),
   });
 }
 

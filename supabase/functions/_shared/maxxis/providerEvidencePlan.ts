@@ -35,7 +35,8 @@ const normalizedStrategy = (value: unknown, land: boolean) => {
 };
 
 function desiredFamilies(strategy: string) {
-  const common: ProviderEvidenceFamily[] = ['PROPERTY_RECORD', 'VALUATION', 'MARKET_DATA'];
+  // A current-market estimate requires recorded closed sales for every valuation-relevant strategy.
+  const common: ProviderEvidenceFamily[] = ['PROPERTY_RECORD', 'VALUATION', 'RECORDED_SOLD', 'MARKET_DATA'];
   if (strategy === 'BUY_AND_HOLD') return new Set([...common, 'RENT_ESTIMATE', 'RENTAL_COMPS']);
   if (strategy === 'SUB_TO' || strategy === 'SELLER_FINANCING') return new Set(common);
   return new Set([...common, 'PROVIDER_AVM_COMPS', 'RECORDED_SOLD', 'SALE_LISTINGS']);
