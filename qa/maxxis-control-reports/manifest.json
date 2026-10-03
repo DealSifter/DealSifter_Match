@@ -10,29 +10,184 @@
         "hasRawRiskCodes": false,
         "hasFalseZero": false,
         "hasFixAndFlip": false,
-        "hasTruncatedText": false
+        "hasTruncatedText": false,
+        "hasUnlocalizedConfidenceCopy": false
       }
     },
     "droad-level-2.pdf": {
       "pageCount": 3,
       "reportType": "MAXXIS_ANALYSIS",
       "property": "droad",
+      "focusMap": {
+        "strategy": "SELLER_FINANCING",
+        "semantics": "STRATEGY_DECISION_READINESS_ONLY",
+        "note": "As barras representam a prontidão da decisão com base nas evidências disponíveis.",
+        "dimensions": [
+          {
+            "dimension": "Base de compra",
+            "readiness": 90,
+            "supportingEvidence": [
+              "acquisition_price",
+              "assessedValue"
+            ],
+            "missingEvidence": [
+              "askingPrice"
+            ],
+            "reason": "2 supporting input(s); 1 missing input(s)."
+          },
+          {
+            "dimension": "Entrada",
+            "readiness": 0,
+            "supportingEvidence": [],
+            "missingEvidence": [
+              "down_payment"
+            ],
+            "reason": "No supporting input is currently available."
+          },
+          {
+            "dimension": "Juros e pagamento",
+            "readiness": 0,
+            "supportingEvidence": [],
+            "missingEvidence": [
+              "interest_rate"
+            ],
+            "reason": "No supporting input is currently available."
+          },
+          {
+            "dimension": "Prazo e amortização",
+            "readiness": 0,
+            "supportingEvidence": [],
+            "missingEvidence": [
+              "term_months",
+              "amortization_months",
+              "balloon_months"
+            ],
+            "reason": "No supporting input is currently available."
+          },
+          {
+            "dimension": "Garantia do imóvel",
+            "readiness": 95,
+            "supportingEvidence": [
+              "ownership",
+              "property_tax",
+              "county",
+              "assessedValue",
+              "ownerOccupied"
+            ],
+            "missingEvidence": [
+              "assessorId"
+            ],
+            "reason": "5 supporting input(s); 1 missing input(s)."
+          },
+          {
+            "dimension": "Viabilidade da saída",
+            "readiness": 93,
+            "supportingEvidence": [
+              "market_evidence",
+              "latestSalePrice",
+              "propertyType"
+            ],
+            "missingEvidence": [
+              "askingPrice"
+            ],
+            "reason": "3 supporting input(s); 1 missing input(s)."
+          }
+        ]
+      },
       "textChecks": {
         "hasRawRiskCodes": false,
         "hasFalseZero": false,
         "hasFixAndFlip": false,
-        "hasTruncatedText": false
+        "hasTruncatedText": false,
+        "hasUnlocalizedConfidenceCopy": false
       }
     },
     "droad-level-3.pdf": {
       "pageCount": 6,
       "reportType": "DEAL_INTELLIGENCE",
       "property": "droad",
+      "focusMap": {
+        "strategy": "SELLER_FINANCING",
+        "semantics": "STRATEGY_DECISION_READINESS_ONLY",
+        "note": "As barras representam a prontidão da decisão com base nas evidências disponíveis.",
+        "dimensions": [
+          {
+            "dimension": "Base de compra",
+            "readiness": 90,
+            "supportingEvidence": [
+              "acquisition_price",
+              "assessedValue"
+            ],
+            "missingEvidence": [
+              "askingPrice"
+            ],
+            "reason": "2 supporting input(s); 1 missing input(s)."
+          },
+          {
+            "dimension": "Entrada",
+            "readiness": 0,
+            "supportingEvidence": [],
+            "missingEvidence": [
+              "down_payment"
+            ],
+            "reason": "No supporting input is currently available."
+          },
+          {
+            "dimension": "Juros e pagamento",
+            "readiness": 0,
+            "supportingEvidence": [],
+            "missingEvidence": [
+              "interest_rate"
+            ],
+            "reason": "No supporting input is currently available."
+          },
+          {
+            "dimension": "Prazo e amortização",
+            "readiness": 0,
+            "supportingEvidence": [],
+            "missingEvidence": [
+              "term_months",
+              "amortization_months",
+              "balloon_months"
+            ],
+            "reason": "No supporting input is currently available."
+          },
+          {
+            "dimension": "Garantia do imóvel",
+            "readiness": 95,
+            "supportingEvidence": [
+              "ownership",
+              "property_tax",
+              "county",
+              "assessedValue",
+              "ownerOccupied"
+            ],
+            "missingEvidence": [
+              "assessorId"
+            ],
+            "reason": "5 supporting input(s); 1 missing input(s)."
+          },
+          {
+            "dimension": "Viabilidade da saída",
+            "readiness": 93,
+            "supportingEvidence": [
+              "market_evidence",
+              "latestSalePrice",
+              "propertyType"
+            ],
+            "missingEvidence": [
+              "askingPrice"
+            ],
+            "reason": "3 supporting input(s); 1 missing input(s)."
+          }
+        ]
+      },
       "textChecks": {
         "hasRawRiskCodes": false,
         "hasFalseZero": false,
         "hasFixAndFlip": false,
-        "hasTruncatedText": false
+        "hasTruncatedText": false,
+        "hasUnlocalizedConfidenceCopy": false
       }
     },
     "gable-level-1.pdf": {
@@ -43,40 +198,280 @@
         "hasRawRiskCodes": false,
         "hasFalseZero": false,
         "hasFixAndFlip": false,
-        "hasTruncatedText": false
+        "hasTruncatedText": false,
+        "hasUnlocalizedConfidenceCopy": false
       }
     },
     "gable-level-2.pdf": {
       "pageCount": 3,
       "reportType": "MAXXIS_ANALYSIS",
       "property": "gable",
+      "focusMap": {
+        "strategy": "LAND",
+        "semantics": "STRATEGY_DECISION_READINESS_ONLY",
+        "note": "As barras representam a prontidão da decisão com base nas evidências disponíveis.",
+        "dimensions": [
+          {
+            "dimension": "Uso permitido / zoneamento",
+            "readiness": 0,
+            "supportingEvidence": [],
+            "missingEvidence": [
+              "zoning",
+              "allowed_use"
+            ],
+            "reason": "No supporting input is currently available."
+          },
+          {
+            "dimension": "Evidência do lote / parcela",
+            "readiness": 90,
+            "supportingEvidence": [
+              "lot_size",
+              "lotSizeSqft",
+              "stateFips"
+            ],
+            "missingEvidence": [
+              "assessorId",
+              "county"
+            ],
+            "reason": "3 supporting input(s); 2 missing input(s)."
+          },
+          {
+            "dimension": "Acesso",
+            "readiness": 0,
+            "supportingEvidence": [],
+            "missingEvidence": [
+              "road_access",
+              "propertyFeatures"
+            ],
+            "reason": "No supporting input is currently available."
+          },
+          {
+            "dimension": "Serviços públicos",
+            "readiness": 0,
+            "supportingEvidence": [],
+            "missingEvidence": [
+              "utilities",
+              "propertyFeatures"
+            ],
+            "reason": "No supporting input is currently available."
+          },
+          {
+            "dimension": "Vendas recentes de terrenos",
+            "readiness": 0,
+            "supportingEvidence": [],
+            "missingEvidence": [
+              "land_sale_evidence",
+              "latestSalePrice",
+              "latestSaleDate"
+            ],
+            "reason": "No supporting input is currently available."
+          },
+          {
+            "dimension": "Título / levantamento / viabilidade",
+            "readiness": 8,
+            "supportingEvidence": [
+              "assessedValue",
+              "annualPropertyTax"
+            ],
+            "missingEvidence": [
+              "ownership",
+              "survey",
+              "topography",
+              "assessorId",
+              "legalDescription",
+              "subdivision"
+            ],
+            "reason": "2 supporting input(s); 6 missing input(s)."
+          }
+        ]
+      },
       "textChecks": {
         "hasRawRiskCodes": false,
         "hasFalseZero": false,
         "hasFixAndFlip": false,
-        "hasTruncatedText": false
+        "hasTruncatedText": false,
+        "hasUnlocalizedConfidenceCopy": false
       }
     },
     "gable-level-3.pdf": {
       "pageCount": 6,
       "reportType": "DEAL_INTELLIGENCE",
       "property": "gable",
+      "focusMap": {
+        "strategy": "LAND",
+        "semantics": "STRATEGY_DECISION_READINESS_ONLY",
+        "note": "As barras representam a prontidão da decisão com base nas evidências disponíveis.",
+        "dimensions": [
+          {
+            "dimension": "Uso permitido / zoneamento",
+            "readiness": 0,
+            "supportingEvidence": [],
+            "missingEvidence": [
+              "zoning",
+              "allowed_use"
+            ],
+            "reason": "No supporting input is currently available."
+          },
+          {
+            "dimension": "Evidência do lote / parcela",
+            "readiness": 90,
+            "supportingEvidence": [
+              "lot_size",
+              "lotSizeSqft",
+              "stateFips"
+            ],
+            "missingEvidence": [
+              "assessorId",
+              "county"
+            ],
+            "reason": "3 supporting input(s); 2 missing input(s)."
+          },
+          {
+            "dimension": "Acesso",
+            "readiness": 0,
+            "supportingEvidence": [],
+            "missingEvidence": [
+              "road_access",
+              "propertyFeatures"
+            ],
+            "reason": "No supporting input is currently available."
+          },
+          {
+            "dimension": "Serviços públicos",
+            "readiness": 0,
+            "supportingEvidence": [],
+            "missingEvidence": [
+              "utilities",
+              "propertyFeatures"
+            ],
+            "reason": "No supporting input is currently available."
+          },
+          {
+            "dimension": "Vendas recentes de terrenos",
+            "readiness": 0,
+            "supportingEvidence": [],
+            "missingEvidence": [
+              "land_sale_evidence",
+              "latestSalePrice",
+              "latestSaleDate"
+            ],
+            "reason": "No supporting input is currently available."
+          },
+          {
+            "dimension": "Título / levantamento / viabilidade",
+            "readiness": 8,
+            "supportingEvidence": [
+              "assessedValue",
+              "annualPropertyTax"
+            ],
+            "missingEvidence": [
+              "ownership",
+              "survey",
+              "topography",
+              "assessorId",
+              "legalDescription",
+              "subdivision"
+            ],
+            "reason": "2 supporting input(s); 6 missing input(s)."
+          }
+        ]
+      },
       "textChecks": {
         "hasRawRiskCodes": false,
         "hasFalseZero": false,
         "hasFixAndFlip": false,
-        "hasTruncatedText": false
+        "hasTruncatedText": false,
+        "hasUnlocalizedConfidenceCopy": false
       }
     },
     "bent-creek-level-3.pdf": {
       "pageCount": 6,
       "reportType": "DEAL_INTELLIGENCE",
       "property": "bent",
+      "focusMap": {
+        "strategy": "LAND",
+        "semantics": "STRATEGY_DECISION_READINESS_ONLY",
+        "note": "As barras representam a prontidão da decisão com base nas evidências disponíveis.",
+        "dimensions": [
+          {
+            "dimension": "Uso permitido / zoneamento",
+            "readiness": 0,
+            "supportingEvidence": [],
+            "missingEvidence": [
+              "zoning",
+              "allowed_use"
+            ],
+            "reason": "No supporting input is currently available."
+          },
+          {
+            "dimension": "Evidência do lote / parcela",
+            "readiness": 84,
+            "supportingEvidence": [
+              "lot_size",
+              "lotSizeSqft"
+            ],
+            "missingEvidence": [
+              "assessorId",
+              "county",
+              "stateFips"
+            ],
+            "reason": "2 supporting input(s); 3 missing input(s)."
+          },
+          {
+            "dimension": "Acesso",
+            "readiness": 0,
+            "supportingEvidence": [],
+            "missingEvidence": [
+              "road_access",
+              "propertyFeatures"
+            ],
+            "reason": "No supporting input is currently available."
+          },
+          {
+            "dimension": "Serviços públicos",
+            "readiness": 0,
+            "supportingEvidence": [],
+            "missingEvidence": [
+              "utilities",
+              "propertyFeatures"
+            ],
+            "reason": "No supporting input is currently available."
+          },
+          {
+            "dimension": "Vendas recentes de terrenos",
+            "readiness": 0,
+            "supportingEvidence": [],
+            "missingEvidence": [
+              "land_sale_evidence",
+              "latestSalePrice",
+              "latestSaleDate"
+            ],
+            "reason": "No supporting input is currently available."
+          },
+          {
+            "dimension": "Título / levantamento / viabilidade",
+            "readiness": 0,
+            "supportingEvidence": [],
+            "missingEvidence": [
+              "ownership",
+              "survey",
+              "topography",
+              "assessorId",
+              "legalDescription",
+              "subdivision",
+              "assessedValue",
+              "annualPropertyTax"
+            ],
+            "reason": "No supporting input is currently available."
+          }
+        ]
+      },
       "textChecks": {
         "hasRawRiskCodes": false,
         "hasFalseZero": false,
         "hasFixAndFlip": false,
-        "hasTruncatedText": false
+        "hasTruncatedText": false,
+        "hasUnlocalizedConfidenceCopy": false
       }
     }
   },
@@ -1154,6 +1549,624 @@
       },
       "providerEstimate": null,
       "providerEstimateDivergence": -1
+    },
+    "wystone": {
+      "id": "588e34cf-bd85-4bb1-88f1-64a1cfa985ea",
+      "type": "SFR",
+      "strategy": "GENERIC_SELL",
+      "providerType": "Single Family",
+      "propertyTypeConflict": false,
+      "county": "Los Angeles",
+      "stateFips": null,
+      "countyFips": null,
+      "assessorId": null,
+      "yearBuilt": 1965,
+      "lotSizeSqft": 8428,
+      "lotSizeAcres": 0.1935,
+      "assessedValue": 1220000,
+      "annualPropertyTax": 14993,
+      "latestSalePrice": null,
+      "latestSaleDate": null,
+      "ownerOccupied": false,
+      "notes": "Privately situated at the end of a quiet cul-de-sac in one of Porter Ranch’s most desirable neighborhoods, this thoughtfully\nupdated two-story residence offers approximately 2,501 square feet of inviting living space with three spacious bedrooms, three\nbathrooms, and an expansive 8,428-square-foot lot. From the moment you step inside, you’ll appreciate the abundance of natural\nlight streaming through newer dual-pane windows and sliding glass doors, creating a bright, open atmosphere throughout the\nhome. Fresh interior paint in warm, inviting tones, upgraded wood-look flooring, newer plush carpeting, and custom built-ins add\nboth style and functionality. The magazine-worthy designer kitchen is thoughtfully appointed for both everyday living and\nentertaining, featuring rich granite countertops, stainless steel appliances, beautiful glass display cabinetry, generous storage,\nand abundant counter space. Seamlessly opening to the main living areas, it serves as the true heart of the home.\nThe thoughtfully designed floor plan offers multiple living and dining spaces, providing flexibility for entertaining, working from\nhome, or simply relaxing with family. Upstairs, the spacious bedrooms offer comfort and privacy, while the versatile layout easily\naccommodates a variety of lifestyles. Outside, the oversized backyard offers endless possibilities to create your own private\nretreat. Whether you envision an outdoor kitchen, lush gardens, a sparkling pool, or a play space, there is plenty of room to bring\nyour vision to life.",
+      "recentSalesMarketEstimate": {
+        "methodology": "RECENT_SALES_MARKET_ESTIMATE",
+        "methodologyVersion": "DEALSIFTER_RECENT_SALES_V1",
+        "propertyCategory": "RESIDENTIAL",
+        "conditionAdjustmentStatus": "CONDITION_NOT_ADJUSTED",
+        "providerAvmCompatibility": "COMPATIBLE",
+        "status": "INSUFFICIENT_RECENT_SALES_EVIDENCE",
+        "centralEstimate": null,
+        "range": null,
+        "weightedUnitValue": null,
+        "weightedLotPricePerSqft": null,
+        "unitMetric": "PRICE_PER_SQFT",
+        "qualifyingSalesCount": 0,
+        "valuationCompCount": 0,
+        "confidence": "LOW",
+        "confidenceReasons": [
+          "FEWER_THAN_TWO_QUALIFIED_RECENT_RECORDED_SALES"
+        ],
+        "dispersion": {
+          "coefficient": null,
+          "minimumUnitValue": null,
+          "maximumUnitValue": null
+        },
+        "valuationComps": [],
+        "marketReferenceOutliers": [],
+        "historicalReferences": [],
+        "exclusions": []
+      },
+      "providerEstimate": 1328000,
+      "providerEstimateDivergence": null
     }
+  },
+  "parity": {
+    "droad": [
+      {
+        "field": "assessorId",
+        "canonical": null,
+        "chat": null,
+        "l1": null,
+        "l2": null,
+        "l3": null,
+        "result": "PASS"
+      },
+      {
+        "field": "county",
+        "canonical": "Duval",
+        "chat": "Duval",
+        "l1": "Duval",
+        "l2": "Duval",
+        "l3": "Duval",
+        "result": "PASS"
+      },
+      {
+        "field": "lotSizeSqft",
+        "canonical": 7253,
+        "chat": 7253,
+        "l1": 7253,
+        "l2": 7253,
+        "l3": 7253,
+        "result": "PASS"
+      },
+      {
+        "field": "yearBuilt",
+        "canonical": 1962,
+        "chat": 1962,
+        "l1": 1962,
+        "l2": 1962,
+        "l3": 1962,
+        "result": "PASS"
+      },
+      {
+        "field": "annualPropertyTax",
+        "canonical": 1843,
+        "chat": 1843,
+        "l1": 1843,
+        "l2": 1843,
+        "l3": 1843,
+        "result": "PASS"
+      },
+      {
+        "field": "assessedValue",
+        "canonical": 108188,
+        "chat": 108188,
+        "l1": 108188,
+        "l2": 108188,
+        "l3": 108188,
+        "result": "PASS"
+      },
+      {
+        "field": "latestSalePrice",
+        "canonical": 80500,
+        "chat": 80500,
+        "l1": 80500,
+        "l2": 80500,
+        "l3": 80500,
+        "result": "PASS"
+      },
+      {
+        "field": "ownerOccupied",
+        "canonical": true,
+        "chat": true,
+        "l1": true,
+        "l2": true,
+        "l3": true,
+        "result": "PASS"
+      },
+      {
+        "field": "zoning",
+        "canonical": null,
+        "chat": null,
+        "l1": null,
+        "l2": null,
+        "l3": null,
+        "result": "PASS"
+      },
+      {
+        "field": "subdivision",
+        "canonical": null,
+        "chat": null,
+        "l1": null,
+        "l2": null,
+        "l3": null,
+        "result": "PASS"
+      },
+      {
+        "field": "propertyUserNotes",
+        "canonical": "good opportunity for flippers",
+        "chat": "good opportunity for flippers",
+        "l1": "good opportunity for flippers",
+        "l2": "good opportunity for flippers",
+        "l3": "good opportunity for flippers",
+        "result": "PASS"
+      }
+    ],
+    "gable": [
+      {
+        "field": "assessorId",
+        "canonical": null,
+        "chat": null,
+        "l1": null,
+        "l2": null,
+        "l3": null,
+        "result": "PASS"
+      },
+      {
+        "field": "county",
+        "canonical": null,
+        "chat": null,
+        "l1": null,
+        "l2": null,
+        "l3": null,
+        "result": "PASS"
+      },
+      {
+        "field": "lotSizeSqft",
+        "canonical": 23854,
+        "chat": 23854,
+        "l1": 23854,
+        "l2": 23854,
+        "l3": 23854,
+        "result": "PASS"
+      },
+      {
+        "field": "yearBuilt",
+        "canonical": null,
+        "chat": null,
+        "l1": null,
+        "l2": null,
+        "l3": null,
+        "result": "PASS"
+      },
+      {
+        "field": "annualPropertyTax",
+        "canonical": 323,
+        "chat": 323,
+        "l1": 323,
+        "l2": 323,
+        "l3": 323,
+        "result": "PASS"
+      },
+      {
+        "field": "assessedValue",
+        "canonical": 5880,
+        "chat": 5880,
+        "l1": 5880,
+        "l2": 5880,
+        "l3": 5880,
+        "result": "PASS"
+      },
+      {
+        "field": "latestSalePrice",
+        "canonical": null,
+        "chat": null,
+        "l1": null,
+        "l2": null,
+        "l3": null,
+        "result": "PASS"
+      },
+      {
+        "field": "ownerOccupied",
+        "canonical": null,
+        "chat": null,
+        "l1": null,
+        "l2": null,
+        "l3": null,
+        "result": "PASS"
+      },
+      {
+        "field": "zoning",
+        "canonical": null,
+        "chat": null,
+        "l1": null,
+        "l2": null,
+        "l3": null,
+        "result": "PASS"
+      },
+      {
+        "field": "subdivision",
+        "canonical": null,
+        "chat": null,
+        "l1": null,
+        "l2": null,
+        "l3": null,
+        "result": "PASS"
+      },
+      {
+        "field": "propertyUserNotes",
+        "canonical": "opportunity to subdivide in 2 lots for new constructions, after this the land will gain the equity in high %.",
+        "chat": "opportunity to subdivide in 2 lots for new constructions, after this the land will gain the equity in high %.",
+        "l1": "opportunity to subdivide in 2 lots for new constructions, after this the land will gain the equity in high %.",
+        "l2": "opportunity to subdivide in 2 lots for new constructions, after this the land will gain the equity in high %.",
+        "l3": "opportunity to subdivide in 2 lots for new constructions, after this the land will gain the equity in high %.",
+        "result": "PASS"
+      }
+    ],
+    "bent": [
+      {
+        "field": "assessorId",
+        "canonical": null,
+        "chat": null,
+        "l1": null,
+        "l2": null,
+        "l3": null,
+        "result": "PASS"
+      },
+      {
+        "field": "county",
+        "canonical": null,
+        "chat": null,
+        "l1": null,
+        "l2": null,
+        "l3": null,
+        "result": "PASS"
+      },
+      {
+        "field": "lotSizeSqft",
+        "canonical": 27442.8,
+        "chat": 27442.8,
+        "l1": 27442.8,
+        "l2": 27442.8,
+        "l3": 27442.8,
+        "result": "PASS"
+      },
+      {
+        "field": "yearBuilt",
+        "canonical": null,
+        "chat": null,
+        "l1": null,
+        "l2": null,
+        "l3": null,
+        "result": "PASS"
+      },
+      {
+        "field": "annualPropertyTax",
+        "canonical": null,
+        "chat": null,
+        "l1": null,
+        "l2": null,
+        "l3": null,
+        "result": "PASS"
+      },
+      {
+        "field": "assessedValue",
+        "canonical": null,
+        "chat": null,
+        "l1": null,
+        "l2": null,
+        "l3": null,
+        "result": "PASS"
+      },
+      {
+        "field": "latestSalePrice",
+        "canonical": null,
+        "chat": null,
+        "l1": null,
+        "l2": null,
+        "l3": null,
+        "result": "PASS"
+      },
+      {
+        "field": "ownerOccupied",
+        "canonical": null,
+        "chat": null,
+        "l1": null,
+        "l2": null,
+        "l3": null,
+        "result": "PASS"
+      },
+      {
+        "field": "zoning",
+        "canonical": null,
+        "chat": null,
+        "l1": null,
+        "l2": null,
+        "l3": null,
+        "result": "PASS"
+      },
+      {
+        "field": "subdivision",
+        "canonical": null,
+        "chat": null,
+        "l1": null,
+        "l2": null,
+        "l3": null,
+        "result": "PASS"
+      },
+      {
+        "field": "propertyUserNotes",
+        "canonical": "in front of lake and low HOA ($176/yr)",
+        "chat": "in front of lake and low HOA ($176/yr)",
+        "l1": "in front of lake and low HOA ($176/yr)",
+        "l2": "in front of lake and low HOA ($176/yr)",
+        "l3": "in front of lake and low HOA ($176/yr)",
+        "result": "PASS"
+      }
+    ],
+    "honolulu": [
+      {
+        "field": "assessorId",
+        "canonical": null,
+        "chat": null,
+        "l1": null,
+        "l2": null,
+        "l3": null,
+        "result": "PASS"
+      },
+      {
+        "field": "county",
+        "canonical": "Honolulu",
+        "chat": "Honolulu",
+        "l1": "Honolulu",
+        "l2": "Honolulu",
+        "l3": "Honolulu",
+        "result": "PASS"
+      },
+      {
+        "field": "lotSizeSqft",
+        "canonical": 10995,
+        "chat": 10995,
+        "l1": 10995,
+        "l2": 10995,
+        "l3": 10995,
+        "result": "PASS"
+      },
+      {
+        "field": "yearBuilt",
+        "canonical": 1976,
+        "chat": 1976,
+        "l1": 1976,
+        "l2": 1976,
+        "l3": 1976,
+        "result": "PASS"
+      },
+      {
+        "field": "annualPropertyTax",
+        "canonical": 5168,
+        "chat": 5168,
+        "l1": 5168,
+        "l2": 5168,
+        "l3": 5168,
+        "result": "PASS"
+      },
+      {
+        "field": "assessedValue",
+        "canonical": 1842500,
+        "chat": 1842500,
+        "l1": 1842500,
+        "l2": 1842500,
+        "l3": 1842500,
+        "result": "PASS"
+      },
+      {
+        "field": "latestSalePrice",
+        "canonical": 682130,
+        "chat": 682130,
+        "l1": 682130,
+        "l2": 682130,
+        "l3": 682130,
+        "result": "PASS"
+      },
+      {
+        "field": "ownerOccupied",
+        "canonical": true,
+        "chat": true,
+        "l1": true,
+        "l2": true,
+        "l3": true,
+        "result": "PASS"
+      },
+      {
+        "field": "zoning",
+        "canonical": null,
+        "chat": null,
+        "l1": null,
+        "l2": null,
+        "l3": null,
+        "result": "PASS"
+      },
+      {
+        "field": "subdivision",
+        "canonical": null,
+        "chat": null,
+        "l1": null,
+        "l2": null,
+        "l3": null,
+        "result": "PASS"
+      },
+      {
+        "field": "propertyUserNotes",
+        "canonical": "Welcome home to a thoughtfully designed space where comfort, connection, and everyday living come naturally. Located in the prestigious Portlock neighborhood of Hawaii Kai, this 5-bedroom, 3-bathroom home offers the perfect blend of functionality, space, and island living. Boasting over 2,000 square feet of interior living area, the home's unique open-concept floor plan provides generous living and dining spaces ideal for both everyday living and entertaining. Spacious bedrooms provide flexibility for family, a home office, or multigenerational living, while three separate gated yard areas offer private outdoor spaces off each wing of the home. Step outside to your own private tropical retreat featuring a swimming pool and beautifully landscaped yard, creating the perfect setting for outdoor dining, relaxation, and year-round enjoyment. From the spacious gathering areas to the private backyard, this home was made for making memories. Located in one of East Honolulu's most coveted neighborhoods and just moments from both Hawaii Kai's shopping centers and desirable beach access points, this Portlock home offers the lifestyle, space, and comfort you've been searching for.",
+        "chat": "Welcome home to a thoughtfully designed space where comfort, connection, and everyday living come naturally. Located in the prestigious Portlock neighborhood of Hawaii Kai, this 5-bedroom, 3-bathroom home offers the perfect blend of functionality, space, and island living. Boasting over 2,000 square feet of interior living area, the home's unique open-concept floor plan provides generous living and dining spaces ideal for both everyday living and entertaining. Spacious bedrooms provide flexibility for family, a home office, or multigenerational living, while three separate gated yard areas offer private outdoor spaces off each wing of the home. Step outside to your own private tropical retreat featuring a swimming pool and beautifully landscaped yard, creating the perfect setting for outdoor dining, relaxation, and year-round enjoyment. From the spacious gathering areas to the private backyard, this home was made for making memories. Located in one of East Honolulu's most coveted neighborhoods and just moments from both Hawaii Kai's shopping centers and desirable beach access points, this Portlock home offers the lifestyle, space, and comfort you've been searching for.",
+        "l1": "Welcome home to a thoughtfully designed space where comfort, connection, and everyday living come naturally. Located in the prestigious Portlock neighborhood of Hawaii Kai, this 5-bedroom, 3-bathroom home offers the perfect blend of functionality, space, and island living. Boasting over 2,000 square feet of interior living area, the home's unique open-concept floor plan provides generous living and dining spaces ideal for both everyday living and entertaining. Spacious bedrooms provide flexibility for family, a home office, or multigenerational living, while three separate gated yard areas offer private outdoor spaces off each wing of the home. Step outside to your own private tropical retreat featuring a swimming pool and beautifully landscaped yard, creating the perfect setting for outdoor dining, relaxation, and year-round enjoyment. From the spacious gathering areas to the private backyard, this home was made for making memories. Located in one of East Honolulu's most coveted neighborhoods and just moments from both Hawaii Kai's shopping centers and desirable beach access points, this Portlock home offers the lifestyle, space, and comfort you've been searching for.",
+        "l2": "Welcome home to a thoughtfully designed space where comfort, connection, and everyday living come naturally. Located in the prestigious Portlock neighborhood of Hawaii Kai, this 5-bedroom, 3-bathroom home offers the perfect blend of functionality, space, and island living. Boasting over 2,000 square feet of interior living area, the home's unique open-concept floor plan provides generous living and dining spaces ideal for both everyday living and entertaining. Spacious bedrooms provide flexibility for family, a home office, or multigenerational living, while three separate gated yard areas offer private outdoor spaces off each wing of the home. Step outside to your own private tropical retreat featuring a swimming pool and beautifully landscaped yard, creating the perfect setting for outdoor dining, relaxation, and year-round enjoyment. From the spacious gathering areas to the private backyard, this home was made for making memories. Located in one of East Honolulu's most coveted neighborhoods and just moments from both Hawaii Kai's shopping centers and desirable beach access points, this Portlock home offers the lifestyle, space, and comfort you've been searching for.",
+        "l3": "Welcome home to a thoughtfully designed space where comfort, connection, and everyday living come naturally. Located in the prestigious Portlock neighborhood of Hawaii Kai, this 5-bedroom, 3-bathroom home offers the perfect blend of functionality, space, and island living. Boasting over 2,000 square feet of interior living area, the home's unique open-concept floor plan provides generous living and dining spaces ideal for both everyday living and entertaining. Spacious bedrooms provide flexibility for family, a home office, or multigenerational living, while three separate gated yard areas offer private outdoor spaces off each wing of the home. Step outside to your own private tropical retreat featuring a swimming pool and beautifully landscaped yard, creating the perfect setting for outdoor dining, relaxation, and year-round enjoyment. From the spacious gathering areas to the private backyard, this home was made for making memories. Located in one of East Honolulu's most coveted neighborhoods and just moments from both Hawaii Kai's shopping centers and desirable beach access points, this Portlock home offers the lifestyle, space, and comfort you've been searching for.",
+        "result": "PASS"
+      }
+    ],
+    "wystone": [
+      {
+        "field": "assessorId",
+        "canonical": null,
+        "chat": null,
+        "l1": null,
+        "l2": null,
+        "l3": null,
+        "result": "PASS"
+      },
+      {
+        "field": "county",
+        "canonical": "Los Angeles",
+        "chat": "Los Angeles",
+        "l1": "Los Angeles",
+        "l2": "Los Angeles",
+        "l3": "Los Angeles",
+        "result": "PASS"
+      },
+      {
+        "field": "lotSizeSqft",
+        "canonical": 8428,
+        "chat": 8428,
+        "l1": 8428,
+        "l2": 8428,
+        "l3": 8428,
+        "result": "PASS"
+      },
+      {
+        "field": "yearBuilt",
+        "canonical": 1965,
+        "chat": 1965,
+        "l1": 1965,
+        "l2": 1965,
+        "l3": 1965,
+        "result": "PASS"
+      },
+      {
+        "field": "annualPropertyTax",
+        "canonical": 14993,
+        "chat": 14993,
+        "l1": 14993,
+        "l2": 14993,
+        "l3": 14993,
+        "result": "PASS"
+      },
+      {
+        "field": "assessedValue",
+        "canonical": 1220000,
+        "chat": 1220000,
+        "l1": 1220000,
+        "l2": 1220000,
+        "l3": 1220000,
+        "result": "PASS"
+      },
+      {
+        "field": "latestSalePrice",
+        "canonical": null,
+        "chat": null,
+        "l1": null,
+        "l2": null,
+        "l3": null,
+        "result": "PASS"
+      },
+      {
+        "field": "ownerOccupied",
+        "canonical": false,
+        "chat": false,
+        "l1": false,
+        "l2": false,
+        "l3": false,
+        "result": "PASS"
+      },
+      {
+        "field": "zoning",
+        "canonical": null,
+        "chat": null,
+        "l1": null,
+        "l2": null,
+        "l3": null,
+        "result": "PASS"
+      },
+      {
+        "field": "subdivision",
+        "canonical": null,
+        "chat": null,
+        "l1": null,
+        "l2": null,
+        "l3": null,
+        "result": "PASS"
+      },
+      {
+        "field": "propertyUserNotes",
+        "canonical": "Privately situated at the end of a quiet cul-de-sac in one of Porter Ranch’s most desirable neighborhoods, this thoughtfully\nupdated two-story residence offers approximately 2,501 square feet of inviting living space with three spacious bedrooms, three\nbathrooms, and an expansive 8,428-square-foot lot. From the moment you step inside, you’ll appreciate the abundance of natural\nlight streaming through newer dual-pane windows and sliding glass doors, creating a bright, open atmosphere throughout the\nhome. Fresh interior paint in warm, inviting tones, upgraded wood-look flooring, newer plush carpeting, and custom built-ins add\nboth style and functionality. The magazine-worthy designer kitchen is thoughtfully appointed for both everyday living and\nentertaining, featuring rich granite countertops, stainless steel appliances, beautiful glass display cabinetry, generous storage,\nand abundant counter space. Seamlessly opening to the main living areas, it serves as the true heart of the home.\nThe thoughtfully designed floor plan offers multiple living and dining spaces, providing flexibility for entertaining, working from\nhome, or simply relaxing with family. Upstairs, the spacious bedrooms offer comfort and privacy, while the versatile layout easily\naccommodates a variety of lifestyles. Outside, the oversized backyard offers endless possibilities to create your own private\nretreat. Whether you envision an outdoor kitchen, lush gardens, a sparkling pool, or a play space, there is plenty of room to bring\nyour vision to life.",
+        "chat": "Privately situated at the end of a quiet cul-de-sac in one of Porter Ranch’s most desirable neighborhoods, this thoughtfully\nupdated two-story residence offers approximately 2,501 square feet of inviting living space with three spacious bedrooms, three\nbathrooms, and an expansive 8,428-square-foot lot. From the moment you step inside, you’ll appreciate the abundance of natural\nlight streaming through newer dual-pane windows and sliding glass doors, creating a bright, open atmosphere throughout the\nhome. Fresh interior paint in warm, inviting tones, upgraded wood-look flooring, newer plush carpeting, and custom built-ins add\nboth style and functionality. The magazine-worthy designer kitchen is thoughtfully appointed for both everyday living and\nentertaining, featuring rich granite countertops, stainless steel appliances, beautiful glass display cabinetry, generous storage,\nand abundant counter space. Seamlessly opening to the main living areas, it serves as the true heart of the home.\nThe thoughtfully designed floor plan offers multiple living and dining spaces, providing flexibility for entertaining, working from\nhome, or simply relaxing with family. Upstairs, the spacious bedrooms offer comfort and privacy, while the versatile layout easily\naccommodates a variety of lifestyles. Outside, the oversized backyard offers endless possibilities to create your own private\nretreat. Whether you envision an outdoor kitchen, lush gardens, a sparkling pool, or a play space, there is plenty of room to bring\nyour vision to life.",
+        "l1": "Privately situated at the end of a quiet cul-de-sac in one of Porter Ranch’s most desirable neighborhoods, this thoughtfully\nupdated two-story residence offers approximately 2,501 square feet of inviting living space with three spacious bedrooms, three\nbathrooms, and an expansive 8,428-square-foot lot. From the moment you step inside, you’ll appreciate the abundance of natural\nlight streaming through newer dual-pane windows and sliding glass doors, creating a bright, open atmosphere throughout the\nhome. Fresh interior paint in warm, inviting tones, upgraded wood-look flooring, newer plush carpeting, and custom built-ins add\nboth style and functionality. The magazine-worthy designer kitchen is thoughtfully appointed for both everyday living and\nentertaining, featuring rich granite countertops, stainless steel appliances, beautiful glass display cabinetry, generous storage,\nand abundant counter space. Seamlessly opening to the main living areas, it serves as the true heart of the home.\nThe thoughtfully designed floor plan offers multiple living and dining spaces, providing flexibility for entertaining, working from\nhome, or simply relaxing with family. Upstairs, the spacious bedrooms offer comfort and privacy, while the versatile layout easily\naccommodates a variety of lifestyles. Outside, the oversized backyard offers endless possibilities to create your own private\nretreat. Whether you envision an outdoor kitchen, lush gardens, a sparkling pool, or a play space, there is plenty of room to bring\nyour vision to life.",
+        "l2": "Privately situated at the end of a quiet cul-de-sac in one of Porter Ranch’s most desirable neighborhoods, this thoughtfully\nupdated two-story residence offers approximately 2,501 square feet of inviting living space with three spacious bedrooms, three\nbathrooms, and an expansive 8,428-square-foot lot. From the moment you step inside, you’ll appreciate the abundance of natural\nlight streaming through newer dual-pane windows and sliding glass doors, creating a bright, open atmosphere throughout the\nhome. Fresh interior paint in warm, inviting tones, upgraded wood-look flooring, newer plush carpeting, and custom built-ins add\nboth style and functionality. The magazine-worthy designer kitchen is thoughtfully appointed for both everyday living and\nentertaining, featuring rich granite countertops, stainless steel appliances, beautiful glass display cabinetry, generous storage,\nand abundant counter space. Seamlessly opening to the main living areas, it serves as the true heart of the home.\nThe thoughtfully designed floor plan offers multiple living and dining spaces, providing flexibility for entertaining, working from\nhome, or simply relaxing with family. Upstairs, the spacious bedrooms offer comfort and privacy, while the versatile layout easily\naccommodates a variety of lifestyles. Outside, the oversized backyard offers endless possibilities to create your own private\nretreat. Whether you envision an outdoor kitchen, lush gardens, a sparkling pool, or a play space, there is plenty of room to bring\nyour vision to life.",
+        "l3": "Privately situated at the end of a quiet cul-de-sac in one of Porter Ranch’s most desirable neighborhoods, this thoughtfully\nupdated two-story residence offers approximately 2,501 square feet of inviting living space with three spacious bedrooms, three\nbathrooms, and an expansive 8,428-square-foot lot. From the moment you step inside, you’ll appreciate the abundance of natural\nlight streaming through newer dual-pane windows and sliding glass doors, creating a bright, open atmosphere throughout the\nhome. Fresh interior paint in warm, inviting tones, upgraded wood-look flooring, newer plush carpeting, and custom built-ins add\nboth style and functionality. The magazine-worthy designer kitchen is thoughtfully appointed for both everyday living and\nentertaining, featuring rich granite countertops, stainless steel appliances, beautiful glass display cabinetry, generous storage,\nand abundant counter space. Seamlessly opening to the main living areas, it serves as the true heart of the home.\nThe thoughtfully designed floor plan offers multiple living and dining spaces, providing flexibility for entertaining, working from\nhome, or simply relaxing with family. Upstairs, the spacious bedrooms offer comfort and privacy, while the versatile layout easily\naccommodates a variety of lifestyles. Outside, the oversized backyard offers endless possibilities to create your own private\nretreat. Whether you envision an outdoor kitchen, lush gardens, a sparkling pool, or a play space, there is plenty of room to bring\nyour vision to life.",
+        "result": "PASS"
+      }
+    ]
+  },
+  "apnLineage": {
+    "droad": {
+      "rawProviderAssessorID": "NOT_RETAINED_BY_NORMALIZED_CACHE",
+      "normalized": null,
+      "cache": null,
+      "canonicalFact": null,
+      "chat": null,
+      "l1": null,
+      "l2": null,
+      "l3": null,
+      "result": "PASS"
+    },
+    "gable": {
+      "rawProviderAssessorID": "NOT_RETAINED_BY_NORMALIZED_CACHE",
+      "normalized": null,
+      "cache": null,
+      "canonicalFact": null,
+      "chat": null,
+      "l1": null,
+      "l2": null,
+      "l3": null,
+      "result": "PASS"
+    },
+    "bent": {
+      "rawProviderAssessorID": "NOT_RETAINED_BY_NORMALIZED_CACHE",
+      "normalized": null,
+      "cache": null,
+      "canonicalFact": null,
+      "chat": null,
+      "l1": null,
+      "l2": null,
+      "l3": null,
+      "result": "PASS"
+    },
+    "honolulu": {
+      "rawProviderAssessorID": "NOT_RETAINED_BY_NORMALIZED_CACHE",
+      "normalized": null,
+      "cache": null,
+      "canonicalFact": null,
+      "chat": null,
+      "l1": null,
+      "l2": null,
+      "l3": null,
+      "result": "PASS"
+    },
+    "wystone": {
+      "rawProviderAssessorID": "NOT_RETAINED_BY_NORMALIZED_CACHE",
+      "normalized": null,
+      "cache": null,
+      "canonicalFact": null,
+      "chat": null,
+      "l1": null,
+      "l2": null,
+      "l3": null,
+      "result": "PASS"
+    }
+  },
+  "wow": {
+    "droad": "O registro externo atual não trouxe um APN/Assessor ID para este imóvel.\n\nPrioridades para SELLER_FINANCING:\n1. definir a entrada.\n2. definir juros e forma de pagamento.\n3. definir prazo, amortização e balloon.",
+    "gable": "Prioridades para LAND:\n1. verificar o uso permitido.\n2. obter vendas recentes de terrenos comparáveis.\n3. verificar uso permitido e zoneamento."
   }
 }

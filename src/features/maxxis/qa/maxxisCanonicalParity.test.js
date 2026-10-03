@@ -1,0 +1,88 @@
+import { describe, expect, it } from 'vitest';
+import { mergeVerifiedPropertyEvidenceIntoFacts } from '../../../../supabase/functions/_shared/maxxis/propertyEvidenceProjection.ts';
+import { buildPropertyFactLookupAnswer } from '../../../../supabase/functions/_shared/maxxis/propertyFactLookup.ts';
+import { buildMaxxisReportSchema } from '../../../domain/maxxis/maxxisReportSchema';
+import { buildCanonicalInvestmentAnalysis } from '../intelligence/canonicalInvestmentAnalysis';
+
+const verified = (value, effectiveDate = null) => ({ value, status: 'VERIFIED_RECORD', source: 'rentcast',
+  retrievedAt: '2026-09-25T12:00:00.000Z', effectiveDate, confidence: null });
+const unknown = () => ({ value: null, status: 'UNKNOWN', source: null, retrievedAt: null, effectiveDate: null, confidence: null });
+
+function droad() {
+  const propertyContext = { fields: {
+    propertyType: verified('Single Family'), county: verified('Duval'), lotSizeSqft: verified(7253), yearBuilt: verified(1962),
+    assessedValue: verified(108188, '2025'), annualPropertyTax: verified(1843, '2024'),
+    latestSalePrice: verified(80500, '2021-08-03'), latestSaleDate: verified('2021-08-03T00:00:00.000Z', '2021-08-03'),
+    ownerOccupied: verified(true), assessorId: unknown(), zoning: unknown(), subdivision: unknown(),
+    askingPrice: { value: 113900, status: 'USER_PROVIDED', source: 'DealSifter' },
+  }, conflicts: [] };
+  return mergeVerifiedPropertyEvidenceIntoFacts({ id: 'droad', address: '5939 Droad St', city: 'Jacksonville', state: 'FL', zip: '32208',
+    type: 'SFR', objective: 'Seller Financing', price: 113900, notes: 'Excelent opportunity for buy&hold' }, propertyContext);
+}
+
+const matchContext = { score: 50, classification: 'moderate', calculable: true, reasons: [
+  { key: 'market', label: 'Market', status: 'matched', points: 35, maxPoints: 35 },
+  { key: 'price', label: 'Price range', status: 'not_matched', points: 0, maxPoints: 35 },
+  { key: 'property_type', label: 'Property type', status: 'matched', points: 20, maxPoints: 20 },
+  { key: 'strategy', label: 'Strategy', status: 'not_evaluated', points: 0, maxPoints: 10 },
+] };
+
+function analysisContext(propertyFacts, strategy, decisionGaps = [], fields = {}) {
+  return { propertyFacts, matchContext, propertyContext: { fields }, evidenceSummary: { verifiedFieldCount: 8, userProvidedFieldCount: 7, unknownFieldCount: 3, conflictCount: 0 },
+    risks: [], limitations: [], comparableEvidence: [], dealDecisionContext: { strategy, decisionGaps } };
+}
+
+describe('canonical property and investment parity', () => {
+  it('projects the exact Droad facts through L1, L2 and L3 from one overview model', () => {
+    const property = droad();
+    const profile = { ...matchContext, semantics: 'PROFILE_FIT_ONLY', criteria: [] };
+    const l1 = buildMaxxisReportSchema({ reportType: 'PROPERTY_RELEASE', property });
+    const l2 = buildMaxxisReportSchema({ reportType: 'MAXXIS_ANALYSIS', property, maxxisAnalysis: { profileAlignment: profile } });
+    const l3 = buildMaxxisReportSchema({ reportType: 'DEAL_INTELLIGENCE', property, dealIntelligence: { investmentFit: profile } });
+    const fields = ['county', 'lotSizeSqft', 'yearBuilt', 'assessedValue', 'annualPropertyTax', 'latestSalePrice', 'latestSaleDate', 'ownerOccupied', 'propertyUserNotes'];
+    for (const field of fields) {
+      expect(l2.sections.propertySummary.data[field]).toEqual(l1.sections.propertySummary.data[field]);
+      expect(l3.sections.propertySummary.data[field]).toEqual(l1.sections.propertySummary.data[field]);
+    }
+    expect(l1.sections.propertySummary.data.assessorId).toBeUndefined();
+    expect(l1.sections.propertySummary.data.canonicalPropertyFacts.parcel.assessorId.status).toBe('UNKNOWN');
+  });
+
+  it('answers direct facts without Gemini and localizes dates and booleans', () => {
+    const propertyFacts = droad();
+    const snapshot = { propertyFacts, dealDecisionContext: { strategy: 'SELLER_FINANCING', decisionGaps: [
+      { field: 'down_payment' }, { field: 'interest_rate' }, { field: 'term_months' },
+    ] } };
+    expect(buildPropertyFactLookupAnswer('qual o APN?', 'pt', snapshot).text)
+      .toBe('O registro externo atual não trouxe um APN/Assessor ID para este imóvel.');
+    const combined = buildPropertyFactLookupAnswer('Qual o APN e quais são os 3 pontos mais importantes para estruturar este Seller Financing?', 'pt', snapshot).text;
+    expect(combined).toContain('O registro externo atual não trouxe um APN');
+    expect(combined).toContain('Prioridades para SELLER_FINANCING');
+    expect(combined).toContain('definir a entrada');
+    expect(buildPropertyFactLookupAnswer('qual foi a última venda?', 'pt', snapshot).text).toMatch(/US\$\s*80\.500.*3 de ago\. de 2021/);
+    expect(buildPropertyFactLookupAnswer('o owner ocupa o imóvel?', 'pt', snapshot).text).toContain('Sim');
+    expect(buildPropertyFactLookupAnswer('quais são as Notes?', 'pt', snapshot).text).toContain('Excelent opportunity for buy&hold');
+  });
+
+  it('uses the same non-default profile scores and never invents 35 for not-evaluated criteria', () => {
+    const result = buildCanonicalInvestmentAnalysis(analysisContext(droad(), 'SELLER_FINANCING'), 'pt');
+    expect(result.profileFit.criteria.map((item) => item.score)).toEqual([100, 0, 100, null]);
+  });
+
+  it('creates strategy-aware and evidence-varying focus maps', () => {
+    const seller = buildCanonicalInvestmentAnalysis(analysisContext(droad(), 'SELLER_FINANCING', [
+      { field: 'down_payment' }, { field: 'interest_rate' }, { field: 'term_months' }, { field: 'amortization_months' }, { field: 'balloon_months' },
+    ]), 'pt').focusMap;
+    const gable = buildCanonicalInvestmentAnalysis(analysisContext({ type: 'Land', resolvedAnalysisStrategy: 'LAND' }, 'LAND', [
+      { field: 'zoning' }, { field: 'allowed_use' }, { field: 'road_access' }, { field: 'utilities' }, { field: 'survey' },
+    ], { lotSizeSqft: verified(23854), ownershipRecordPresent: verified(true) }), 'pt').focusMap;
+    const bent = buildCanonicalInvestmentAnalysis(analysisContext({ type: 'Land', resolvedAnalysisStrategy: 'LAND' }, 'LAND', [
+      { field: 'zoning' }, { field: 'allowed_use' }, { field: 'road_access' }, { field: 'utilities' }, { field: 'land_sale_evidence' }, { field: 'ownership' }, { field: 'survey' }, { field: 'topography' }, { field: 'lot_size' },
+    ]), 'pt').focusMap;
+    expect(seller.strategy).toBe('SELLER_FINANCING');
+    expect(seller.dimensions.map((item) => item.dimension).join(' ')).not.toMatch(/reforma|ARV/i);
+    expect(gable.strategy).toBe('LAND');
+    expect(gable.dimensions.map((item) => item.dimension)).not.toEqual(seller.dimensions.map((item) => item.dimension));
+    expect(gable.dimensions.map((item) => item.readiness)).not.toEqual(bent.dimensions.map((item) => item.readiness));
+  });
+});

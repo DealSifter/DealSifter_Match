@@ -1,6 +1,7 @@
 import { buildMaxxisReportSchema, mergeMaxxisReportProperty } from '../../../domain/maxxis/maxxisReportSchema';
 import { buildMaxxisAnalysisConfidence, buildMaxxisExecutiveSummaryIntelligence, resolveMaxxisInvestorPersona } from './maxxisReportConfidencePersona';
 import { explainMaxxisEvidenceList, explainMaxxisEvidenceState } from './maxxisUserFacingEvidence';
+import { buildCanonicalInvestmentAnalysis } from './canonicalInvestmentAnalysis';
 
 export const MAXXIS_DEAL_INTELLIGENCE_REPORT_VERSION = 'MAXXIS_DEAL_INTELLIGENCE_REPORT_V1';
 
@@ -52,39 +53,6 @@ function propertyEvidence(context) {
       field: safeText(conflict?.field) || 'UNKNOWN',
       severity: safeText(conflict?.severity) || 'UNKNOWN',
     }))),
-  });
-}
-
-function investmentFit(context) {
-  const match = isObject(context?.matchContext) ? context.matchContext : null;
-  const reason = (key) => {
-    const item = list(match?.reasons).find((candidate) => candidate?.key === key);
-    const status = ['matched', 'not_matched', 'not_evaluated'].includes(item?.status) ? item.status : 'not_evaluated';
-    return Object.freeze({
-      key,
-      label: safeText(item?.label) || key,
-      status,
-      explanation: safeText(item?.detail) || 'UNKNOWN',
-      points: nullableNumber(item?.points),
-      maxPoints: nullableNumber(item?.maxPoints),
-      score: status !== 'not_evaluated' && nullableNumber(item?.maxPoints) > 0
-        ? Math.round(((nullableNumber(item?.points) || 0) / Number(item.maxPoints)) * 100)
-        : null,
-      source: 'CALCULATED',
-    });
-  };
-  const criteria = Object.freeze(['market', 'price', 'property_type', 'strategy'].map(reason));
-  return Object.freeze({
-    score: nullableNumber(match?.score),
-    classification: safeText(match?.classification) || 'unavailable',
-    calculable: Boolean(match?.calculable),
-    semantics: 'PROFILE_FIT_ONLY',
-    requiredMessage: 'Match Score indicates profile compatibility, not investment quality.',
-    targetMarket: criteria[0],
-    priceRange: criteria[1],
-    propertyType: criteria[2],
-    strategy: criteria[3],
-    criteria,
   });
 }
 
@@ -220,14 +188,28 @@ function overview(context, valuation) {
     : `Based on available evidence, the evidence strength is ${evidence} and the existing ARV result has ${valuation.confidence.toLowerCase()} confidence.`;
 }
 
-export function buildMaxxisDealIntelligenceReport(context, structuredAnalysis = null) {
+export function buildMaxxisDealIntelligenceReport(context, structuredAnalysis = null, snapshotOrFacts = null) {
   if (!isObject(context) || context.type !== 'deal_intelligence_context') return null;
   const canonical = isObject(structuredAnalysis) && structuredAnalysis.type === 'maxxis_structured_analysis'
     ? structuredAnalysis : null;
   const valuation = valuationIntelligence(context);
   const comps = comparableEvidence(context);
-  const analysisConfidence = buildMaxxisAnalysisConfidence(context);
-  const investorPerspective = resolveMaxxisInvestorPersona(context.investorContext, canonical?.language || 'en');
+  const reportLanguage = canonical?.language || 'en';
+  const analysisConfidence = buildMaxxisAnalysisConfidence(context, { language: reportLanguage });
+  const snapshot = isObject(snapshotOrFacts?.propertyFacts) ? snapshotOrFacts : { propertyFacts: snapshotOrFacts };
+  const canonicalInvestmentAnalysis = buildCanonicalInvestmentAnalysis({
+    ...context,
+    propertyFacts: isObject(snapshot.propertyFacts) ? snapshot.propertyFacts : {},
+    dealDecisionContext: isObject(snapshot.dealDecisionContext) ? snapshot.dealDecisionContext : {},
+  }, reportLanguage);
+  const narrativePersona = resolveMaxxisInvestorPersona(context.investorContext, reportLanguage);
+  const investorPerspective = Object.freeze({
+    version: 'STRATEGY_FOCUS_MAP_V1',
+    persona: narrativePersona.persona,
+    priorities: canonicalInvestmentAnalysis.focusMap.dimensions.map((item) => item.dimension),
+    focusMap: canonicalInvestmentAnalysis.focusMap,
+    sourceType: 'CALCULATED', narrativeOnly: true,
+  });
   const executiveSummaryIntelligence = buildMaxxisExecutiveSummaryIntelligence(context, analysisConfidence, investorPerspective, canonical);
   const sourceRisks = riskAnalysis(context);
   const sourceRiskByCategory = new Map(sourceRisks.map((risk) => [risk.category, risk]));
@@ -243,7 +225,8 @@ export function buildMaxxisDealIntelligenceReport(context, structuredAnalysis = 
       })).filter((signal) => signal.explanation).slice(0, 6))
       : standoutSignals(context),
     propertyEvidence: propertyEvidence(context),
-    investmentFit: investmentFit(context),
+    investmentFit: canonicalInvestmentAnalysis.profileFit,
+    canonicalInvestmentAnalysis,
     valuationIntelligence: valuation,
     comparableEvidence: comps,
     riskAnalysis: canonical ? Object.freeze([
@@ -287,12 +270,12 @@ export function buildMaxxisDealIntelligenceReport(context, structuredAnalysis = 
 
 export function projectMaxxisDealIntelligenceResponse(result = {}, { reportProperty = null } = {}) {
   const structuredAnalysis = result?.data?.structuredAnalysis;
-  const report = buildMaxxisDealIntelligenceReport(result?.data?.dealIntelligence, structuredAnalysis);
-  if (!report) return null;
   const intelligenceSnapshot = isObject(result?.data?.intelligenceSnapshot)
     ? result.data.intelligenceSnapshot : null;
   const evidenceProperty = isObject(intelligenceSnapshot?.propertyFacts)
     ? intelligenceSnapshot.propertyFacts : result?.data?.property;
+  const report = buildMaxxisDealIntelligenceReport(result?.data?.dealIntelligence, structuredAnalysis, intelligenceSnapshot || evidenceProperty);
+  if (!report) return null;
   const property = mergeMaxxisReportProperty(evidenceProperty, reportProperty);
   const maxxisReport = buildMaxxisReportSchema({
     reportType: 'DEAL_INTELLIGENCE', property, dealIntelligence: report,

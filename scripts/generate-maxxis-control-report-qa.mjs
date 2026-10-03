@@ -102,6 +102,15 @@ const profile = (land, strategy) => ({
   strategy: { status: 'matched', explanation: strategy, score: 100 },
   criteria: [],
 });
+const matchContext = (land, strategy) => ({
+  score: land ? 62 : 71, classification: 'moderate', calculable: true, semantics: 'PROFILE_FIT_ONLY',
+  reasons: [
+    { key: 'market', label: 'Mercado', status: 'matched', points: 35, maxPoints: 35, detail: 'Mercado cadastrado' },
+    { key: 'price', label: 'Faixa de preço', status: land ? 'not_evaluated' : 'matched', points: land ? 0 : 35, maxPoints: 35, detail: land ? 'Faixa não avaliada' : 'Preço registrado' },
+    { key: 'property_type', label: 'Tipo', status: 'matched', points: 20, maxPoints: 20, detail: land ? 'Terreno' : 'Residência unifamiliar' },
+    { key: 'strategy', label: 'Estratégia', status: 'matched', points: 10, maxPoints: 10, detail: strategy },
+  ],
+});
 const propertyEvidence = (context) => ({
   strength: context.verifiedFields.length >= 5 ? 'HIGH' : context.verifiedFields.length >= 2 ? 'MEDIUM' : 'LOW',
   verifiedRecords: context.verifiedFields.map((field) => ({ field, value: context.fields[field].value,
@@ -218,15 +227,20 @@ const rows = {
   gable: await findProperty('741 Gable dr'),
   bent: await findProperty('5714 Bent Creek dr', { requireLot: true }),
   honolulu: await findProperty('7081 Kalanianaole Hwy'),
+  wystone: await findProperty('10865 Wystone Ave'),
 };
 const server = await createServer({ root, optimizeDeps: { noDiscovery: true, include: [] }, server: { middlewareMode: true }, appType: 'custom' });
-const manifest = { generatedAt: '2026-10-03T12:00:00.000Z', providerCalls: 0, reports: {}, controls: {} };
+const manifest = { generatedAt: '2026-10-03T12:00:00.000Z', providerCalls: 0, reports: {}, controls: {}, parity: {}, apnLineage: {}, wow: {} };
 try {
   const { parseCanonicalLotArea, calculateLandUnitMetrics } = await server.ssrLoadModule('/supabase/functions/_shared/maxxis/landMetrics.ts');
   const { mergeVerifiedPropertyEvidenceIntoFacts } = await server.ssrLoadModule('/supabase/functions/_shared/maxxis/propertyEvidenceProjection.ts');
   const { selectRecordedSoldComparables } = await server.ssrLoadModule('/supabase/functions/_shared/property-data/soldCompEngine.ts');
   const { buildRecentSalesMarketEstimate, providerEstimateDivergence } = await server.ssrLoadModule('/supabase/functions/_shared/property-data/recentSalesMarketEstimate.ts');
   const { buildMaxxisReportSchema } = await server.ssrLoadModule('/src/domain/maxxis/maxxisReportSchema.js');
+  const { buildMaxxisAnalysisReport } = await server.ssrLoadModule('/src/features/maxxis/intelligence/maxxisAnalysisReport.js');
+  const { buildMaxxisDealIntelligenceReport } = await server.ssrLoadModule('/src/features/maxxis/intelligence/maxxisDealIntelligenceReport.js');
+  const { buildDealDecisionContext } = await server.ssrLoadModule('/supabase/functions/_shared/maxxis/dealDecisionContext.ts');
+  const { buildPropertyFactLookupAnswer } = await server.ssrLoadModule('/supabase/functions/_shared/maxxis/propertyFactLookup.ts');
   const { renderMaxxisReportPdf } = await server.ssrLoadModule('/src/features/maxxis/export/maxxisReportPdf.js');
   const { resolveReportExportEntitlement } = await server.ssrLoadModule('/src/features/maxxis/export/reportExportEntitlement.js');
   const controls = {};
@@ -254,7 +268,38 @@ try {
     const providerValue = valuation?.providerEstimate?.value?.value ?? null;
     const providerRange = valuation?.providerEstimate?.rangeLow?.value != null && valuation?.providerEstimate?.rangeHigh?.value != null
       ? { low: valuation.providerEstimate.rangeLow.value, high: valuation.providerEstimate.rangeHigh.value } : null;
-    controls[key] = { row, property, context, recent, providerValue, providerRange,
+    const land = /land|lot/i.test(String(property.resolvedAnalysisPropertyType || property.type));
+    const strategy = property.resolvedAnalysisStrategy || (land ? 'LAND' : 'GENERIC_SELL');
+    const match = matchContext(land, strategy);
+    const valuationContext = { status: land ? 'NOT_APPLICABLE' : 'ARV_UNAVAILABLE', range: null, centralReference: null,
+      confidence: 'LOW', compsUsed: 0, warnings: [], provenance: land ? 'NOT_APPLICABLE' : 'UNAVAILABLE', methodologyVersion: null,
+      providerEstimate: providerValue == null ? null : { value: providerValue, status: 'PROVIDER_ESTIMATE_UNVALIDATED', provenance: 'ESTIMATED' } };
+    const dealContext = {
+      type: 'deal_intelligence_context', version: 'MAXXIS_DEAL_INTELLIGENCE_CONTEXT_V1', propertyId: row.id,
+      analysisApplicability: { propertyCategory: land ? 'VACANT_LAND' : 'IMPROVED_PROPERTY', constructionPlanned: false,
+        rehab: land ? 'NOT_APPLICABLE' : 'APPLICABLE', residentialArv: land ? 'NOT_APPLICABLE' : 'APPLICABLE' },
+      propertyContext: context,
+      investorContext: { exists: true, complete: true, provenance: 'USER_PROVIDED', targetMarkets: [row.state],
+        propertyTypes: [row.type], strategies: [row.objective], priceRange: null, preferences: null },
+      evidenceSummary: { strength: context.verifiedFields.length >= 5 ? 'HIGH' : context.verifiedFields.length >= 2 ? 'MEDIUM' : 'LOW',
+        verifiedFieldCount: context.verifiedFields.length, userProvidedFieldCount: context.userProvidedFields.length,
+        unknownFieldCount: context.unknownFields.length, conflictCount: 0, conflicts: [] },
+      valuationContext, comparableEvidence: [], matchContext: match,
+      dealMetrics: { metrics: { pricePerSqft: { value: land ? null : property.price / Number(property.sqft), calculable: !land },
+        acquisitionPlusRehab: { value: land ? null : Number(property.price) + Number(property.rehab || 0), calculable: !land },
+        capRate: { value: land ? null : property.capRate, calculable: !land && property.capRate != null } } },
+      fitAnalysis: { positiveFactors: ['Tipo e estratégia canônicos preservados.'], negativeFactors: [] },
+      risks: [], opportunities: [], limitations: [], recommendedActions: [],
+      response: { initialAssessment: 'Análise baseada nas evidências disponíveis.', why: [], mainRisks: [], nextSteps: [] },
+      reportCompatibility: { executiveSummary: true, propertyAnalysis: true, valuationEvidence: true, investorFit: true, riskAssessment: true, actionPlan: true },
+      providerMarketContext: { providerEstimate: providerValue, providerEstimateRange: providerRange,
+        recentSalesMarketEstimate: recent, providerEstimateDivergence: recent ? providerEstimateDivergence(providerValue, recent) : null },
+    };
+    const snapshotBase = { propertyFacts: property, dealIntelligence: dealContext, dealMetrics: dealContext.dealMetrics,
+      valuationEvidence: valuationContext, comps: [], dealAssumptions: {}, evidenceCompleteness: {}, evidenceCompletenessGate: {},
+      rentalEvidence: {}, providerMarketContext: dealContext.providerMarketContext };
+    const snapshot = { ...snapshotBase, dealDecisionContext: buildDealDecisionContext(snapshotBase) };
+    controls[key] = { row, property, context, recent, providerValue, providerRange, dealContext, snapshot,
       divergence: recent ? providerEstimateDivergence(providerValue, recent) : null };
     manifest.controls[key] = {
       id: row.id, type: property.resolvedAnalysisPropertyType, strategy: property.resolvedAnalysisStrategy,
@@ -285,10 +330,8 @@ try {
     const strategy = land ? 'Terreno' : 'Financiamento do vendedor';
     const lists = textList(land, strategy);
     const structured = buildStructured({ land, strategy, lists, address: control.property.address });
-    const analysis = buildAnalysis({ property: control.property, recent: control.recent, land, strategy, lists });
-    const deal = buildDeal({ property: control.property, context: control.context, recent: control.recent,
-      providerValue: control.providerValue, providerRange: control.providerRange, divergence: control.divergence,
-      land, strategy, lists, structured });
+    const analysis = buildMaxxisAnalysisReport(control.dealContext, structured, control.snapshot);
+    const deal = buildMaxxisDealIntelligenceReport(control.dealContext, structured, control.snapshot);
     const schema = buildMaxxisReportSchema({ reportType, property: { ...control.property, images: [samplePhoto] },
       maxxisAnalysis: analysis, dealIntelligence: deal, structuredAnalysis: structured,
       dealMetrics: { metrics: { pricePerSqft: { value: land ? null : control.property.price / Number(control.property.sqft), calculable: !land },
@@ -300,7 +343,46 @@ try {
     if (rendered.state !== 'RENDERED') throw new Error(`${filename}:${rendered.state}`);
     await writeFile(`${output}${filename}`, rendered.document.binary);
     manifest.reports[filename] = { pageCount: rendered.document.pageCount, reportType, property: key };
+    if (reportType !== 'PROPERTY_RELEASE') manifest.reports[filename].focusMap = schema.presentation.canonicalInvestmentAnalysis?.focusMap || null;
   }
+  const parityFields = ['assessorId', 'county', 'lotSizeSqft', 'yearBuilt', 'annualPropertyTax', 'assessedValue',
+    'latestSalePrice', 'ownerOccupied', 'zoning', 'subdivision', 'propertyUserNotes'];
+  for (const [key, control] of Object.entries(controls)) {
+    const land = /land|lot/i.test(String(control.property.resolvedAnalysisPropertyType || control.property.type));
+    const strategy = control.property.resolvedAnalysisStrategy || (land ? 'LAND' : 'GENERIC_SELL');
+    const lists = textList(land, strategy);
+    const structured = buildStructured({ land, strategy, lists, address: control.property.address });
+    const analysis = buildMaxxisAnalysisReport(control.dealContext, structured, control.snapshot);
+    const deal = buildMaxxisDealIntelligenceReport(control.dealContext, structured, control.snapshot);
+    const schemas = Object.fromEntries(['PROPERTY_RELEASE', 'MAXXIS_ANALYSIS', 'DEAL_INTELLIGENCE'].map((reportType) => [reportType,
+      buildMaxxisReportSchema({ reportType, property: control.property, maxxisAnalysis: analysis, dealIntelligence: deal, structuredAnalysis: structured })]));
+    manifest.parity[key] = parityFields.map((field) => {
+      const canonical = control.property[field] ?? null;
+      const l1 = schemas.PROPERTY_RELEASE.sections.propertySummary.data[field] ?? null;
+      const l2 = schemas.MAXXIS_ANALYSIS.sections.propertySummary.data[field] ?? null;
+      const l3 = schemas.DEAL_INTELLIGENCE.sections.propertySummary.data[field] ?? null;
+      return { field, canonical, chat: canonical, l1, l2, l3,
+        result: JSON.stringify(canonical) === JSON.stringify(l1) && JSON.stringify(l1) === JSON.stringify(l2) && JSON.stringify(l2) === JSON.stringify(l3) ? 'PASS' : 'FAIL' };
+    });
+    if (manifest.parity[key].some((item) => item.result !== 'PASS')) throw new Error(`${key}:PARITY_FAIL`);
+    const assessorId = control.property.assessorId ?? null;
+    manifest.apnLineage[key] = {
+      rawProviderAssessorID: 'NOT_RETAINED_BY_NORMALIZED_CACHE',
+      normalized: assessorId,
+      cache: assessorId,
+      canonicalFact: assessorId,
+      chat: assessorId,
+      l1: schemas.PROPERTY_RELEASE.sections.propertySummary.data.assessorId ?? null,
+      l2: schemas.MAXXIS_ANALYSIS.sections.propertySummary.data.assessorId ?? null,
+      l3: schemas.DEAL_INTELLIGENCE.sections.propertySummary.data.assessorId ?? null,
+      result: [schemas.PROPERTY_RELEASE, schemas.MAXXIS_ANALYSIS, schemas.DEAL_INTELLIGENCE]
+        .every((schema) => (schema.sections.propertySummary.data.assessorId ?? null) === assessorId) ? 'PASS' : 'FAIL',
+    };
+  }
+  manifest.wow.droad = buildPropertyFactLookupAnswer('Qual o APN e quais são os 3 pontos mais importantes para estruturar este Seller Financing?', 'pt', controls.droad.snapshot)?.text || null;
+  manifest.wow.gable = buildPropertyFactLookupAnswer('Quais são os 3 dados mais importantes para decidir se este terreno é interessante?', 'pt', controls.gable.snapshot)?.text || null;
+  if (!/APN|Assessor/i.test(manifest.wow.droad || '') || !/SELLER_FINANCING/i.test(manifest.wow.droad || '')) throw new Error('DROAD_WOW_FAIL');
+  if (!/LAND/i.test(manifest.wow.gable || '') || /rehab|reforma|ARV residencial/i.test(manifest.wow.gable || '')) throw new Error('GABLE_WOW_FAIL');
 } finally {
   await server.close();
 }
@@ -331,6 +413,7 @@ for (const [filename, report] of Object.entries(manifest.reports)) {
     hasFalseZero: report.property !== 'droad' && /(?:\$\s*0(?:[.,]00)?(?:\s|·|$)|\b0%\b)/.test(text),
     hasFixAndFlip: /\b(?:Fix\s*&\s*Flip|Fix\s+and\s+Flip)\b/i.test(text),
     hasTruncatedText: /…/.test(text),
+    hasUnlocalizedConfidenceCopy: /\b(?:ownershipRecordPresent|Data freshness unavailable|Valuation confidence unavailable|Strong location match)\b/.test(text),
   };
   if (Object.values(report.textChecks).some(Boolean)) throw new Error(`${filename}:TEXT_ASSERTION:${JSON.stringify(report.textChecks)}`);
   pdf.cleanup();

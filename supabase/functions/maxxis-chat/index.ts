@@ -15,6 +15,7 @@ import { buildSystemPrompt } from '../_shared/maxxis/prompts.ts';
 import { prepareProfileSuggestions } from '../_shared/maxxis/prepareProfileSuggestions.ts';
 import { executeMaxxisTool, MAXXIS_TOOLS } from '../_shared/maxxis/toolRegistry.ts';
 import { asksForSelectedPropertyAnalysis } from '../_shared/maxxis/propertyAnalysisIntent.ts';
+import { buildPropertyFactLookupAnswer, detectPropertyFactLookup } from '../_shared/maxxis/propertyFactLookup.ts';
 import { normalizeComparisonContextIds } from '../_shared/maxxis/compareProperties.ts';
 import { buildToolInterpretationRequest, sanitizeToolResultForGemini } from '../_shared/maxxis/toolResultForGemini.ts';
 import {
@@ -861,6 +862,7 @@ Deno.serve(async (req) => {
     // PROPERTY_ANALYSIS_MODE already carries a server-validated property id and
     // report capability. Asking Gemini to select that same mandatory tool adds a
     // provider failure point before any deterministic analysis has run.
+    const propertyFactIntent = propertyContextId ? detectPropertyFactLookup(message) : null;
     const deterministicPropertyAnalysisCall: { name: string; args: Record<string, unknown> } | null = propertyAnalysisContext
       ? {
           name: 'getDealInsightContext',
@@ -869,7 +871,7 @@ Deno.serve(async (req) => {
             reportType: propertyAnalysisContext.report_type,
           },
         }
-      : null;
+      : propertyFactIntent ? { name: 'getDealInsightContext', args: { propertyId: propertyContextId } } : null;
     const stubFunctionCall = controlledFunctionCall || (isE2ELlmStubEnabled() ? e2eStubFunctionCall(message, propertyContextId) : null);
     if (!geminiApiKey && !stubFunctionCall && !deterministicPropertyAnalysisCall) {
       const degradedPayload = degradedFallbackPayload(message, language, 'MAXXIS_NOT_CONFIGURED');
@@ -1026,7 +1028,7 @@ Deno.serve(async (req) => {
           functionArgs,
           req.headers.get('Authorization') || '',
           { propertyId: propertyContextId, propertyIds: comparisonPropertyIds, userId, plan: effectiveProviderPlan,
-            language, cacheOnly: analysisRecomputeMode === 'GAP_UPDATE_CACHE_ONLY' },
+            language, cacheOnly: analysisRecomputeMode === 'GAP_UPDATE_CACHE_ONLY' || Boolean(propertyFactIntent) },
         );
       } catch (error) {
         if (toolName === 'getPropertyDetails' || toolName === 'getDealCopilotOverview') {
@@ -1080,7 +1082,7 @@ Deno.serve(async (req) => {
       let secondPassFailure: GeminiFailureCode | '' = '';
       let secondPassProviderMeta: ReturnType<typeof getGeminiProviderFailureMeta> | null = null;
       let secondPassAttempts = 0;
-      if (!stubFunctionCall && geminiApiKey) {
+      if (!stubFunctionCall && geminiApiKey && !propertyFactIntent) {
         failureStage = 'gemini_second_pass';
         const secondPassStartedAt = Date.now();
         const interpretationRequest = buildToolInterpretationRequest({
@@ -1311,12 +1313,20 @@ Deno.serve(async (req) => {
           entitlement_state: result.evidence.entitlementState,
           match_available: Boolean(result.match?.calculable),
         });
+        const directFactAnswer = propertyFactIntent
+          ? buildPropertyFactLookupAnswer(message, language, result.intelligenceSnapshot) : null;
         const canonicalSummary = result.structuredAnalysis && typeof result.structuredAnalysis === 'object'
           ? String((result.structuredAnalysis as { executiveSummary?: unknown }).executiveSummary || '').trim()
           : '';
+        if (directFactAnswer) {
+          structuredResponseCreated = true;
+          return response({ message: directFactAnswer.text, answer: directFactAnswer.text, type: 'text',
+            data: null, actions: [], language, runtime: toolRuntime, ...toolDegraded }, 200, origin, requestId);
+        }
         const text = interpretedText || canonicalSummary || dealInsightMessage(language, result.state === 'available');
         structuredResponseCreated = true;
-        return response({ message: text, answer: text, type: 'deal_insight', data: result, actions: [], language, runtime: toolRuntime, ...toolDegraded }, 200, origin, requestId);
+        return response({ message: text, answer: text, type: 'deal_insight', data: result,
+          actions: [], language, runtime: toolRuntime, ...toolDegraded }, 200, origin, requestId);
       }
       if (result.type === 'deal_copilot_overview') {
         const text = interpretedText || dealCopilotMessage(language, result.found);

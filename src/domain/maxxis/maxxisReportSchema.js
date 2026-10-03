@@ -31,6 +31,7 @@ const PROPERTY_KEYS = Object.freeze([
   'propertyUserNotes', 'maxxisPropertySummary', 'maxxisAnalyticalCommentary',
   'resolvedAnalysisPropertyType', 'resolvedAnalysisStrategy', 'providerPropertyType',
   'propertyTypeConflict', 'materialPropertyFeatures', 'fieldProvenance', 'reportFieldVisibility',
+  'canonicalPropertyFacts',
 ]);
 const COMPARABLE_KEYS = Object.freeze([
   'compIdentifier', 'address', 'salePrice', 'saleDate', 'distanceMiles', 'similarity',
@@ -148,11 +149,39 @@ export function mergeMaxxisReportProperty(evidenceProperty, appProperty) {
   return Object.freeze(merged);
 }
 
-function propertySummary(property) {
+const CANONICAL_TO_OVERVIEW = Object.freeze({
+  'identity.address': 'address', 'identity.city': 'city', 'identity.state': 'state', 'identity.zip': 'zip',
+  'identity.latitude': 'latitude', 'identity.longitude': 'longitude', 'physical.propertyType': 'type',
+  'physical.beds': 'beds', 'physical.baths': 'baths', 'physical.livingAreaSqft': 'sqft',
+  'physical.lotSizeSqft': 'lotSizeSqft', 'physical.lotSizeAcres': 'lotSizeAcres', 'physical.yearBuilt': 'yearBuilt',
+  'physical.hoaFee': 'hoaFee', 'parcel.county': 'county', 'parcel.stateFips': 'stateFips',
+  'parcel.countyFips': 'countyFips', 'parcel.assessorId': 'assessorId', 'parcel.legalDescription': 'legalDescription',
+  'parcel.subdivision': 'subdivision', 'parcel.zoning': 'zoning', 'ownership.ownerOccupied': 'ownerOccupied',
+  'ownership.ownershipRecordPresent': 'ownershipRecordPresent', 'tax.assessedValue': 'assessedValue',
+  'tax.assessmentYear': 'assessmentYear', 'tax.annualPropertyTax': 'annualPropertyTax',
+  'tax.propertyTaxYear': 'propertyTaxYear', 'sales.lastSalePrice': 'latestSalePrice',
+  'sales.lastSaleDate': 'latestSaleDate', 'sales.saleHistory': 'saleHistory', 'notes.userNotes': 'propertyUserNotes',
+  'features.propertyFeatures': 'propertyFeatures',
+});
+
+/** A single factual overview projection shared by L1, L2 and L3. */
+export function buildPropertyOverviewModel(property) {
   if (!isObject(property)) return null;
   const data = Object.fromEntries(PROPERTY_KEYS
     .filter((key) => Object.hasOwn(property, key))
     .map((key) => [key, property[key] === undefined ? null : property[key]]));
+  const canonical = isObject(property.canonicalPropertyFacts) ? property.canonicalPropertyFacts : null;
+  if (canonical) {
+    Object.entries(CANONICAL_TO_OVERVIEW).forEach(([path, target]) => {
+      const [group, field] = path.split('.');
+      const fact = canonical?.[group]?.[field];
+      // Canonical evidence wins for objective facts. App-owned Notes remain exact.
+      if (hasReportValue(fact?.value) && (target !== 'propertyUserNotes' || !hasReportValue(data.propertyUserNotes))) {
+        data[target] = fact.value;
+      }
+    });
+    data.canonicalPropertyFacts = canonical;
+  }
   if (!hasReportValue(data.resolvedAnalysisPropertyType) && hasReportValue(data.type)) data.resolvedAnalysisPropertyType = data.type;
   if (!hasReportValue(data.resolvedAnalysisStrategy)) data.resolvedAnalysisStrategy = resolvedStrategyFor(data.type, data.objective);
   if (Number(data.capRate) === 0 && data.resolvedAnalysisStrategy !== 'BUY_AND_HOLD') delete data.capRate;
@@ -373,7 +402,7 @@ function pagesFor(reportType) {
 }
 
 function levelData(reportType, input) {
-  const property = propertySummary(input.property);
+  const property = buildPropertyOverviewModel(input.property);
   if (reportType === INTELLIGENCE_REPORT_TYPES.PROPERTY_RELEASE) {
     return {
       propertySummary: section(property, 'USER_PROVIDED'),
@@ -456,11 +485,29 @@ export function buildMaxxisReportSchema({ reportType, property = null, maxxisAna
       comparableStatistics: normalizedType === INTELLIGENCE_REPORT_TYPES.DEAL_INTELLIGENCE
         ? comparableStatistics(sections.comparableEvidence.data, property) : null,
       evidenceCounts: normalizedType === INTELLIGENCE_REPORT_TYPES.DEAL_INTELLIGENCE
-        ? evidenceCounts(sections.propertyEvidence.data, sections) : null,
+        ? evidenceCounts(sections.propertyEvidence.data, sections)
+        : normalizedType === INTELLIGENCE_REPORT_TYPES.MAXXIS_ANALYSIS
+          ? Object.freeze({
+            verifiedRecords: Number(maxxisAnalysis?.canonicalInvestmentAnalysis?.evidenceSummary?.verifiedFieldCount) || 0,
+            userProvided: Number(maxxisAnalysis?.canonicalInvestmentAnalysis?.evidenceSummary?.userProvidedFieldCount) || 0,
+            calculated: sections.investmentProfile.available ? 1 : 0,
+            estimated: 0,
+            unknown: Number(maxxisAnalysis?.canonicalInvestmentAnalysis?.evidenceSummary?.unknownFieldCount) || 0,
+            conflicts: Number(maxxisAnalysis?.canonicalInvestmentAnalysis?.evidenceSummary?.conflictCount) || 0,
+          }) : null,
       analysisConfidence: normalizedType === INTELLIGENCE_REPORT_TYPES.DEAL_INTELLIGENCE
         ? (dealIntelligence?.analysisConfidence || null) : null,
-      investorPerspective: normalizedType === INTELLIGENCE_REPORT_TYPES.DEAL_INTELLIGENCE
-        ? (dealIntelligence?.investorPerspective || null) : null,
+      canonicalInvestmentAnalysis: normalizedType === INTELLIGENCE_REPORT_TYPES.MAXXIS_ANALYSIS
+        ? (maxxisAnalysis?.canonicalInvestmentAnalysis || null)
+        : normalizedType === INTELLIGENCE_REPORT_TYPES.DEAL_INTELLIGENCE
+          ? (dealIntelligence?.canonicalInvestmentAnalysis || null) : null,
+      investorPerspective: normalizedType === INTELLIGENCE_REPORT_TYPES.MAXXIS_ANALYSIS
+        ? (maxxisAnalysis?.canonicalInvestmentAnalysis?.focusMap ? Object.freeze({
+          persona: maxxisAnalysis.canonicalInvestmentAnalysis.focusMap.strategy,
+          priorities: maxxisAnalysis.canonicalInvestmentAnalysis.focusMap.dimensions.map((item) => item.dimension),
+          focusMap: maxxisAnalysis.canonicalInvestmentAnalysis.focusMap,
+        }) : null)
+        : normalizedType === INTELLIGENCE_REPORT_TYPES.DEAL_INTELLIGENCE ? (dealIntelligence?.investorPerspective || null) : null,
       executiveSummaryIntelligence: normalizedType === INTELLIGENCE_REPORT_TYPES.DEAL_INTELLIGENCE
         ? (dealIntelligence?.executiveSummaryIntelligence || null) : null,
       externalComparableImages: false,

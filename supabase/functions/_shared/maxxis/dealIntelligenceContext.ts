@@ -21,6 +21,9 @@ export type DealContextField = {
   value: string | number | boolean | null;
   status: EvidenceStatus;
   source: string | null;
+  retrievedAt: string | null;
+  effectiveDate: string | null;
+  confidence: number | null;
 };
 
 export type DealIntelligenceRisk = {
@@ -40,6 +43,7 @@ export type DealIntelligenceContext = {
     verifiedFields: string[];
     userProvidedFields: string[];
     unknownFields: string[];
+    conflicts: Array<Record<string, unknown>>;
   };
   investorContext: {
     exists: boolean;
@@ -158,14 +162,21 @@ function field(publicField: unknown, internalField: unknown, fallback: unknown, 
 DealContextField {
   const external = record(publicField);
   if (external.status === 'VERIFIED_RECORD' && present(external.value)) {
-    return { value: external.value, status: 'VERIFIED_RECORD', source: String(external.source || 'public_record') };
+    return { value: external.value, status: 'VERIFIED_RECORD', source: String(external.source || 'public_record'),
+      retrievedAt: present(external.retrievedAt) ? String(external.retrievedAt) : null,
+      effectiveDate: present(external.effectiveDate) ? String(external.effectiveDate) : null,
+      confidence: Number.isFinite(Number(external.confidence)) ? Number(external.confidence) : null };
   }
   const internal = record(internalField);
   if (present(internal.value)) {
-    return { value: internal.value, status: 'USER_PROVIDED', source: String(internal.source || fallbackSource) };
+    return { value: internal.value, status: 'USER_PROVIDED', source: String(internal.source || fallbackSource),
+      retrievedAt: present(internal.retrievedAt) ? String(internal.retrievedAt) : null,
+      effectiveDate: present(internal.effectiveDate) ? String(internal.effectiveDate) : null,
+      confidence: Number.isFinite(Number(internal.confidence)) ? Number(internal.confidence) : null };
   }
-  if (present(fallback)) return { value: fallback as string | number | boolean, status: 'USER_PROVIDED', source: fallbackSource };
-  return { value: null, status: 'UNKNOWN', source: null };
+  if (present(fallback)) return { value: fallback as string | number | boolean, status: 'USER_PROVIDED', source: fallbackSource,
+    retrievedAt: null, effectiveDate: null, confidence: null };
+  return { value: null, status: 'UNKNOWN', source: null, retrievedAt: null, effectiveDate: null, confidence: null };
 }
 
 function propertyContext(property: MaxxisPropertyDetails, evidence: MaxxisPropertyEvidenceResult) {
@@ -214,6 +225,8 @@ function propertyContext(property: MaxxisPropertyDetails, evidence: MaxxisProper
     verifiedFields: Object.keys(fields).filter((key) => fields[key].status === 'VERIFIED_RECORD'),
     userProvidedFields: Object.keys(fields).filter((key) => fields[key].status === 'USER_PROVIDED'),
     unknownFields: Object.keys(fields).filter((key) => fields[key].status === 'UNKNOWN'),
+    conflicts: evidence.state === 'available'
+      ? (evidence.evidence?.conflicts || []).map((item) => ({ ...item })) : [],
   };
 }
 

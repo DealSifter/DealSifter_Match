@@ -496,6 +496,14 @@ export async function getDealInsightContextForAuthenticatedUser(
     propertyFacts: mergeVerifiedPropertyEvidenceIntoFacts(
       result.property as unknown as Record<string, unknown> | null,
       enrichedDealIntelligence?.propertyContext || null,
+      { valuationReferences: {
+        providerEstimate: providerMarketContext.providerEstimate === null ? null : {
+          value: providerMarketContext.providerEstimate,
+          range: providerMarketContext.providerEstimateRange,
+          status: 'PROVIDER_ESTIMATE_UNVALIDATED',
+        },
+        recentSalesMarketEstimate,
+      } },
     ),
     ownerLandFacts: result.dealIntelligence?.propertyContext || null,
     investmentProfile: result.investmentProfile,

@@ -21,7 +21,7 @@ const C = Object.freeze({
 const COPY = Object.freeze({
   en: {
     locale: 'en',
-    generated: 'Generated', page: 'Page', unavailable: 'Unavailable', notVerified: 'Not verified', published: 'Published',
+    generated: 'Generated', page: 'Page', unavailable: 'Unavailable', recordUnavailable: 'Not available from current property record', notVerified: 'Not verified', published: 'Published',
     reportSubtitle: 'Intelligent property analysis', releaseSubtitle: 'Real Opportunities. Real Connections.', tagline: 'Real Data. Smarter Decisions.',
     property: 'PROPERTY RELEASE', pro: 'MAXXIS ANALYSIS REPORT', deal: 'MAXXIS DEAL INTELLIGENCE REPORT',
     PROPERTY_OVERVIEW: 'Property Overview', EXECUTIVE_SUMMARY_PROPERTY_CONTEXT: 'Executive Summary',
@@ -66,7 +66,7 @@ const COPY = Object.freeze({
   },
   pt: {
     locale: 'pt',
-    generated: 'Gerado em', page: 'Página', unavailable: 'Indisponível', notVerified: 'Não verificado', published: 'Publicado',
+    generated: 'Gerado em', page: 'Página', unavailable: 'Indisponível', recordUnavailable: 'Não disponível no registro atual do imóvel', notVerified: 'Não verificado', published: 'Publicado',
     reportSubtitle: 'Análise inteligente do imóvel', releaseSubtitle: 'Oportunidades reais. Conexões reais.', tagline: 'Dados reais. Decisões mais inteligentes.',
     property: 'RELATÓRIO DO IMÓVEL', pro: 'RELATÓRIO DE ANÁLISE MAXXIS', deal: 'RELATÓRIO MAXXIS DE INTELIGÊNCIA DO NEGÓCIO',
     PROPERTY_OVERVIEW: 'Visão geral do imóvel', EXECUTIVE_SUMMARY_PROPERTY_CONTEXT: 'Resumo executivo',
@@ -111,7 +111,7 @@ const COPY = Object.freeze({
   },
   es: {
     locale: 'es',
-    generated: 'Generado', page: 'Página', unavailable: 'No disponible', notVerified: 'No verificado', published: 'Publicado',
+    generated: 'Generado', page: 'Página', unavailable: 'No disponible', recordUnavailable: 'No disponible en el registro actual de la propiedad', notVerified: 'No verificado', published: 'Publicado',
     reportSubtitle: 'Análisis inteligente de la propiedad', releaseSubtitle: 'Oportunidades reales. Conexiones reales.', tagline: 'Datos reales. Decisiones más inteligentes.',
     property: 'INFORME DE LA PROPIEDAD', pro: 'INFORME DE ANÁLISIS MAXXIS', deal: 'INFORME MAXXIS DE INTELIGENCIA DEL NEGOCIO',
     PROPERTY_OVERVIEW: 'Resumen de la propiedad', EXECUTIVE_SUMMARY_PROPERTY_CONTEXT: 'Resumen ejecutivo',
@@ -473,7 +473,7 @@ function propertyFactGrid(doc, property, evidence, t, accent, y) {
   const facts = [
     [t.owner, [[t.ownerName, owner.name], [t.ownerType, owner.type], [t.status, owner.status], [t.contacts, contacts], [t.ownerOccupied, fact('ownerOccupied', property.ownerOccupied)], [t.ownershipRecord, fact('ownershipRecordPresent', property.ownershipRecordPresent)], [t.latestSale, latestSale]]],
     [t.facts, characteristicFacts],
-    [t.land, [[t.location, [property.city, property.state].filter(Boolean).join(', ')], [t.county, fact('county', property.county)], [t.lot, fact('lotSizeSqft', property.lotSizeSqft ?? property.lot)], [t.assessorId, fact('assessorId', property.assessorId)], [t.legalDescription, fact('legalDescription', property.legalDescription)], [t.subdivision, fact('subdivision', property.subdivision)], [t.zoning, fact('zoning', property.zoning)], [t.assessedValue, assessed], [t.propertyTax, propertyTax]]],
+    [t.land, [[t.location, [property.city, property.state].filter(Boolean).join(', ')], [t.county, fact('county', property.county)], [t.lot, fact('lotSizeSqft', property.lotSizeSqft ?? property.lot)], [t.assessorId, fact('assessorId', property.assessorId) ?? t.recordUnavailable], [t.legalDescription, fact('legalDescription', property.legalDescription)], [t.subdivision, fact('subdivision', property.subdivision)], [t.zoning, fact('zoning', property.zoning)], [t.assessedValue, assessed], [t.propertyTax, propertyTax]]],
   ].map(([title, entries]) => [title, entries.filter(([, entry]) => entry !== null && entry !== undefined && entry !== ''
     && (!Array.isArray(entry) || entry.length > 0))]);
   const rowOptions = {
@@ -630,12 +630,17 @@ function renderFit(doc, schema, t, accent) {
   criteria.slice(0, 5).forEach((criterion, index) => {
     const yy = 447 + index * 27;
     const criterionScore = criterion.score == null
-      ? criterion.status === 'matched' ? 100 : criterion.status === 'not_matched' ? 0 : 35
+      ? criterion.status === 'matched' || criterion.status === 'ALIGNED' ? 100
+        : criterion.status === 'not_matched' || criterion.status === 'NOT_ALIGNED' ? 0 : null
       : criterion.score;
-    const fitColor = criterionScore >= 75 ? C.green : criterionScore >= 50 ? accent : criterionScore >= 30 ? C.gold : C.red;
+    const fitColor = criterionScore == null ? C.muted : criterionScore >= 75 ? C.green : criterionScore >= 50 ? accent : criterionScore >= 30 ? C.gold : C.red;
     text(doc, displayValue(criterion.label || criterion.key, t), M + 12, yy, { size: 7.7, bold: true, width: 85, maxLines: 1 });
-    meter(doc, M + 101, yy - 7, w - 142, criterionScore, fitColor);
-    text(doc, `${Math.round(criterionScore)}%`, M + w - 12, yy, { size: 7.4, bold: true, color: fitColor, align: 'right' });
+    if (criterionScore == null) {
+      text(doc, t.unavailable, M + 101, yy, { size: 7.1, color: C.muted, width: w - 130, maxLines: 1 });
+    } else {
+      meter(doc, M + 101, yy - 7, w - 142, criterionScore, fitColor);
+      text(doc, `${Math.round(criterionScore)}%`, M + w - 12, yy, { size: 7.4, bold: true, color: fitColor, align: 'right' });
+    }
   });
   panel(doc, M + w + 12, 393, w, 174); heading(doc, t.risks, M + w + 24, 419, w - 24, accent);
   risks.slice(0, 5).forEach((risk, index) => {
@@ -663,14 +668,19 @@ function renderFit(doc, schema, t, accent) {
       text(doc, label.replace(/([A-Z])/g, ' $1'), x + 21, tileY + 20, { size: 4.9, color: C.muted, width: ew - 24, maxLines: 1 });
     });
   } else text(doc, limitations.slice(0, 3).map((item) => reportNarrative(item, '', t.locale)).join(' • ') || t.noDetails, M + 12, evidenceY + 48, { size: 8, width: CONTENT - 24, maxLines: 3 });
-  const focusY = 659; const priorities = array(perspective.priorities).slice(0, 4);
+  const focusY = 659;
+  const focusMap = perspective.focusMap || schema?.presentation?.canonicalInvestmentAnalysis?.focusMap || {};
+  const focusDimensions = array(focusMap.dimensions).slice(0, 6);
+  const priorities = focusDimensions.length ? focusDimensions
+    : array(perspective.priorities).slice(0, 6).map((dimension, index) => ({ dimension, readiness: null, index }));
   panel(doc, M, focusY, CONTENT, 89, { accent }); heading(doc, t.investorFocus, M + 12, focusY + 26, CONTENT - 24, accent);
-  text(doc, reportNarrative(displayValue(perspective.persona, t), t.unavailable, t.locale), W - M - 13, focusY + 25, { size: 7.2, bold: true, color: C.ink, align: 'right', width: 170, maxLines: 1 });
+  text(doc, reportNarrative(displayValue(focusMap.strategy || perspective.persona, t), t.unavailable, t.locale), W - M - 13, focusY + 25, { size: 7.2, bold: true, color: C.ink, align: 'right', width: 170, maxLines: 1 });
   priorities.forEach((priority, index) => {
-    const yy = focusY + 45 + index * 10.5; const barX = M + 190; const barWidth = CONTENT - 215;
-    const priorityColor = [accent, C.blue, C.green, C.purple][index % 4];
-    text(doc, reportNarrative(priority, t.noDetails, t.locale), M + 13, yy + 4, { size: 6.8, bold: true, width: 145, maxLines: 1 });
-    meter(doc, barX, yy - 2, barWidth, 100 - index * 14, priorityColor);
+    const yy = focusY + 43 + index * 7.1; const barX = M + 190; const barWidth = CONTENT - 215;
+    const priorityColor = [accent, C.blue, C.green, C.purple, C.gold, C.orange][index % 6];
+    text(doc, reportNarrative(priority.dimension, t.noDetails, t.locale), M + 13, yy + 3, { size: 6.2, bold: true, width: 145, maxLines: 1 });
+    if (priority.readiness == null) text(doc, t.unavailable, barX, yy + 3, { size: 5.8, color: C.muted });
+    else meter(doc, barX, yy - 2, barWidth, priority.readiness, priorityColor);
   });
 }
 function renderInsights(doc, schema, t, accent, { verification = false } = {}) {

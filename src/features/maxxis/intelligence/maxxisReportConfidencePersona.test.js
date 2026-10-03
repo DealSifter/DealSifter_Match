@@ -44,6 +44,19 @@ describe('Maxxis report confidence and investor persona v1', () => {
     expect(result.classification).toBe('LIMITED');
   });
 
+  it('localizes confidence evidence without exposing internal field keys', () => {
+    const result = buildMaxxisAnalysisConfidence(context({
+      propertyContext: { verifiedFields: ['county'], userProvidedFields: [], unknownFields: ['ownershipRecordPresent'] },
+      evidenceSummary: { verifiedFieldCount: 1, userProvidedFieldCount: 0, unknownFieldCount: 1, conflictCount: 0 },
+      comparableEvidence: [], valuationContext: { status: 'ARV_UNAVAILABLE' }, limitations: [],
+    }), { now: NOW, language: 'pt' });
+    expect(result.contributors).toContain('Registros verificados do imóvel');
+    expect(result.limitations).toContain('Registro de titularidade indisponível');
+    expect(result.limitations).toContain('Atualidade dos dados indisponível');
+    expect(JSON.stringify({ contributors: result.contributors, limitations: result.limitations }))
+      .not.toMatch(/ownershipRecordPresent|Data freshness unavailable|Strong location match/);
+  });
+
   it('adapts narrative by persona without changing calculations', () => {
     const before = buildMaxxisAnalysisConfidence(context(), { now: NOW });
     const wholesaler = resolveMaxxisInvestorPersona({ strategies: ['Wholesale'] });

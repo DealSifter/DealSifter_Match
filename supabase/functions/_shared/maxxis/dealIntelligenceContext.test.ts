@@ -133,7 +133,9 @@ describe('Maxxis Deal Intelligence Context v1', () => {
       investmentProfile: { exists: false, complete: false, profile: null }, match: null,
       propertyEvidence: { type: 'property_evidence', propertyId: PROPERTY_ID, state: 'not_loaded',
         entitlementState: 'authorized', cacheState: 'miss' }, dealMetrics: null, analysis: null, arvEvaluation: null });
-    expect(context.propertyContext.fields.propertyType).toEqual({ value: null, status: 'UNKNOWN', source: null });
+    expect(context.propertyContext.fields.propertyType).toEqual({
+      value: null, status: 'UNKNOWN', source: null, retrievedAt: null, effectiveDate: null, confidence: null,
+    });
     expect(context.investorContext).toMatchObject({ provenance: 'UNKNOWN', targetMarkets: null, priceRange: null });
     expect(context.evidenceSummary.strength).toBe('LOW');
   });

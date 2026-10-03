@@ -104,7 +104,39 @@ function classification(score) {
   return 'LIMITED';
 }
 
-export function buildMaxxisAnalysisConfidence(context, { now = Date.now() } = {}) {
+const CONFIDENCE_COPY = Object.freeze({
+  en: Object.freeze({
+    verified: 'Verified property records', recent: 'Recent comparable sales', location: 'Strong location match',
+    freshness: 'Data freshness unavailable', valuation: 'Valuation confidence unavailable',
+    transactions: 'Transaction quality unavailable for one or more comparables',
+    ownershipRecordPresent: 'Ownership record unavailable', ownerOccupied: 'Owner occupancy unavailable',
+  }),
+  pt: Object.freeze({
+    verified: 'Registros verificados do imóvel', recent: 'Vendas comparáveis recentes', location: 'Localização aderente ao perfil',
+    freshness: 'Atualidade dos dados indisponível', valuation: 'Confiança da avaliação indisponível',
+    transactions: 'Qualidade da transação indisponível para um ou mais comparáveis',
+    ownershipRecordPresent: 'Registro de titularidade indisponível', ownerOccupied: 'Ocupação pelo proprietário indisponível',
+  }),
+  es: Object.freeze({
+    verified: 'Registros verificados de la propiedad', recent: 'Ventas comparables recientes', location: 'Ubicación compatible con el perfil',
+    freshness: 'Actualidad de los datos no disponible', valuation: 'Confianza de la valoración no disponible',
+    transactions: 'Calidad de la transacción no disponible para uno o más comparables',
+    ownershipRecordPresent: 'Registro de titularidad no disponible', ownerOccupied: 'Ocupación por el propietario no disponible',
+  }),
+});
+
+function confidenceCopy(language) {
+  return CONFIDENCE_COPY[language] || CONFIDENCE_COPY.en;
+}
+
+function localizeMissingItem(value, language) {
+  const key = String(value || '').trim();
+  const copy = confidenceCopy(language);
+  if (copy[key]) return copy[key];
+  return key.replaceAll('_', ' ');
+}
+
+export function buildMaxxisAnalysisConfidence(context, { now = Date.now(), language = 'en' } = {}) {
   const evidence = evidenceComponent(context);
   const comparables = comparableComponent(context, now);
   const valuation = valuationComponent(context);
@@ -115,16 +147,17 @@ export function buildMaxxisAnalysisConfidence(context, { now = Date.now() } = {}
   const availableWeight = components.reduce((sum, item, index) => sum + (item.score === null ? 0 : weights[index]), 0);
   const weighted = components.reduce((sum, item, index) => sum + (item.score === null ? 0 : item.score * weights[index]), 0);
   const score = availableWeight ? clamp(weighted / availableWeight) : null;
+  const copy = confidenceCopy(language);
   const contributors = unique([
-    evidence.inputs.verified > 0 ? 'Verified property records' : null,
-    comparables.inputs.recentCount > 0 ? 'Recent comparable sales' : null,
-    context?.matchContext?.reasons?.some((item) => item?.key === 'market' && item?.status === 'matched') ? 'Strong location match' : null,
+    evidence.inputs.verified > 0 ? copy.verified : null,
+    comparables.inputs.recentCount > 0 ? copy.recent : null,
+    context?.matchContext?.reasons?.some((item) => item?.key === 'market' && item?.status === 'matched') ? copy.location : null,
   ]);
   const limitations = unique([
-    ...missing.inputs.materialMissingItems.map((item) => String(item).replaceAll('_', ' ')),
-    freshness.score === null ? 'Data freshness unavailable' : null,
-    valuation.score === null && valuation.status !== 'NOT_APPLICABLE' ? 'Valuation confidence unavailable' : null,
-    comparables.inputs.verifiedTransactions < comparables.inputs.count ? 'Transaction quality unavailable for one or more comparables' : null,
+    ...missing.inputs.materialMissingItems.map((item) => localizeMissingItem(item, language)),
+    freshness.score === null ? copy.freshness : null,
+    valuation.score === null && valuation.status !== 'NOT_APPLICABLE' ? copy.valuation : null,
+    comparables.inputs.verifiedTransactions < comparables.inputs.count ? copy.transactions : null,
   ]).slice(0, 8);
   return Object.freeze({
     version: MAXXIS_ANALYSIS_CONFIDENCE_VERSION, label: 'MAXXIS ANALYSIS CONFIDENCE',
