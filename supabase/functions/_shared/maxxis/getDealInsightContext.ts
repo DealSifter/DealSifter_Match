@@ -440,14 +440,20 @@ export async function getDealInsightContextForAuthenticatedUser(
     ?? (result.evidence.state === 'available' ? result.evidence.evidence?.fields?.propertyType?.value : null);
   const materialIdentityConflict = propertyConflicts.some((conflict) =>
     conflict.resolution === 'UNRESOLVED' && conflict.classification === 'CRITICAL_IDENTITY');
-  const recentSalesMarketEstimate = providerEvidenceState.sold ? buildRecentSalesMarketEstimate({
+  const recentSalesSubject = {
     propertyType: result.property?.type || null,
     livingAreaSqft: Number.isFinite(Number(result.property?.sqft)) ? Number(result.property?.sqft) : null,
     lotSizeSqft: Number(result.dealIntelligence?.propertyContext?.fields?.lotSizeSqft?.value)
       || parseCanonicalLotArea(result.property?.lot).lotSizeSqft,
     providerPropertyType: typeof providerSubjectType === 'string' ? providerSubjectType : null,
     materialIdentityConflict,
-  }, providerEvidenceState.sold.recordedSoldCompSelection.directSoldCompCandidates) : null;
+  };
+  const recentSalesMarketEstimate = providerEvidenceState.sold
+    ? buildRecentSalesMarketEstimate(recentSalesSubject,
+      providerEvidenceState.sold.recordedSoldCompSelection.directSoldCompCandidates)
+    : recentSalesSubject.providerPropertyType
+      ? buildRecentSalesMarketEstimate(recentSalesSubject, [])
+      : null;
   const providerMarketContext = {
     providerEstimate: Number.isFinite(Number(providerEstimateValue)) ? Number(providerEstimateValue) : null,
     providerEstimateRange: Number.isFinite(Number(providerEstimateLow)) && Number.isFinite(Number(providerEstimateHigh))

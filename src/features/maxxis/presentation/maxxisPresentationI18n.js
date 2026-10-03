@@ -17,6 +17,7 @@ const PT_VALUES = Object.freeze({
   MARKET: 'Mercado', PRICE_RANGE: 'Faixa de preço', PROPERTY_TYPE: 'Tipo de imóvel', STRATEGY: 'Estratégia', RANGE: 'Faixa',
   PROPERTY_INTELLIGENCE: 'Inteligência do imóvel', PRIMARY: 'Principal', EXPECTED: 'Esperado', WHOLESALER: 'Atacadista', FLIPPER: 'Reformador para revenda',
   BUY_AND_HOLD: 'Compra e manutenção', GENERAL_INVESTOR: 'Investidor geral', SFR: 'Residencial unifamiliar (SFR)', FSBO: 'Venda pelo proprietário (FSBO)',
+  SELLER_FINANCING: 'Financiamento pelo vendedor', LAND: 'Terreno', WHOLESALE: 'Atacado imobiliário', FLIP: 'Reforma e revenda', SUB_TO: 'Subject-to', GENERIC_SELL: 'Venda', RECENT: 'Avaliação por vendas recentes',
   SUPPORTING_ONLY: 'Somente evidência de apoio', ARMS_LENGTH_VERIFIED: 'Transação independente verificada', NON_ARMS_LENGTH: 'Transação não independente',
   PROVIDER_ESTIMATE: 'Estimativa do provedor', PROVIDER_ESTIMATE_UNVALIDATED: 'Estimativa do provedor não validada', PROVIDER_ESTIMATE_WITHIN_RANGE: 'Estimativa do provedor dentro da faixa',
   DETERMINISTIC_PROFILE_FIT: 'Aderência determinística ao perfil', PROFILE_FIT_ONLY: 'Somente aderência ao perfil',
@@ -31,6 +32,7 @@ const ES_VALUES = Object.freeze({
   HIGH: 'Alta', MODERATE: 'Moderada', MEDIUM: 'Media', LOW: 'Baja', LIMITED: 'Limitada', UNKNOWN: 'Desconocido',
   USER_PROVIDED: 'Informado por el usuario', CALCULATED: 'Calculado', SUPPORT: 'Evidencia de apoyo', SUPPORTING: 'Evidencia de apoyo',
   SELECTED: 'Comparable seleccionado', EXCLUDED: 'Excluido del análisis', NOT_STARTED: 'Aún no iniciado',
+  SELLER_FINANCING: 'Financiación del vendedor', BUY_AND_HOLD: 'Comprar y mantener', LAND: 'Terreno', WHOLESALE: 'Venta mayorista', FLIP: 'Reforma y reventa', SUB_TO: 'Subject-to', GENERIC_SELL: 'Venta', RECENT: 'Valoración por ventas recientes',
 });
 
 const EN_VALUES = Object.freeze({
@@ -39,6 +41,7 @@ const EN_VALUES = Object.freeze({
   SUPPORT: 'Supporting evidence', SUPPORTING: 'Supporting evidence', SELECTED: 'Selected comparable', EXCLUDED: 'Excluded from analysis',
   NOT_STARTED: 'Not started', MATCHES_TARGET: 'Matches target', PARTIAL_MATCH: 'Partially matches target',
   WHOLESALER: 'Wholesaler', FLIPPER: 'Flipper',
+  SELLER_FINANCING: 'Seller Financing', BUY_AND_HOLD: 'Buy and Hold', LAND: 'Land', WHOLESALE: 'Wholesale', FLIP: 'Fix and Flip', SUB_TO: 'Subject-to', GENERIC_SELL: 'Sell', RECENT: 'Recent-sales valuation',
 });
 
 const VALUES = Object.freeze({ en: EN_VALUES, pt: PT_VALUES, es: ES_VALUES });

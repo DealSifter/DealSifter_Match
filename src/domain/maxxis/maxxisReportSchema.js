@@ -28,6 +28,9 @@ const PROPERTY_KEYS = Object.freeze([
   'lotSizeSqft', 'lotSizeAcres', 'pricePerLotSqft', 'pricePerAcre',
   'stateFips', 'countyFips', 'assessorId', 'legalDescription', 'subdivision',
   'zoning', 'hoaFee', 'propertyFeatures', 'saleHistory',
+  'propertyUserNotes', 'maxxisPropertySummary', 'maxxisAnalyticalCommentary',
+  'resolvedAnalysisPropertyType', 'resolvedAnalysisStrategy', 'providerPropertyType',
+  'propertyTypeConflict', 'materialPropertyFeatures', 'fieldProvenance', 'reportFieldVisibility',
 ]);
 const COMPARABLE_KEYS = Object.freeze([
   'compIdentifier', 'address', 'salePrice', 'saleDate', 'distanceMiles', 'similarity',
@@ -43,6 +46,17 @@ const sourceType = (value, fallback = 'UNKNOWN') => MAXXIS_REPORT_SOURCE_TYPES.i
 const emptySection = () => Object.freeze({ available: false, sourceType: 'UNKNOWN', data: null });
 const finiteCoordinate = (value) => value !== null && value !== '' && Number.isFinite(Number(value)) ? Number(value) : null;
 const isVacantLandType = (value) => /^(?:vacant\s+land|land|lot|terreno|solar)$/i.test(String(value || '').trim());
+const resolvedStrategyFor = (type, objective) => {
+  const propertyType = String(type || '').trim().toLowerCase();
+  const strategy = String(objective || '').trim().toLowerCase().replace(/[^a-z0-9]+/g, ' ');
+  if (isVacantLandType(propertyType)) return 'LAND';
+  if (/\b(?:sub to|subject to|subto)\b/.test(strategy)) return 'SUB_TO';
+  if (/\b(?:seller financ\w*|owner financ\w*|owner carry)\b/.test(strategy)) return 'SELLER_FINANCING';
+  if (/\b(?:wholesale|assignment)\b/.test(strategy)) return 'WHOLESALE';
+  if (/\b(?:buy and hold|buy hold|rental|hold)\b/.test(strategy)) return 'BUY_AND_HOLD';
+  if (/\b(?:flip|fix and flip|rehab and sell)\b/.test(strategy)) return 'FLIP';
+  return 'GENERIC_SELL';
+};
 const section = (data, source, available = data !== null && data !== undefined) => available
   ? Object.freeze({ available: true, sourceType: sourceType(source), data })
   : emptySection();
@@ -77,11 +91,34 @@ export function mergeMaxxisReportProperty(evidenceProperty, appProperty) {
   const evidence = canonicalPropertyInput(evidenceProperty);
   const app = canonicalPropertyInput(appProperty);
   const merged = {};
+  const appAuthoritative = new Set([
+    'id', 'title', 'address', 'city', 'state', 'zip', 'type', 'objective', 'notes',
+    'propertyUserNotes', 'description', 'maxxisPropertySummary',
+  ]);
   PROPERTY_KEYS.forEach((key) => {
     if (key === 'owner' || key === 'images') return;
-    const selected = hasReportValue(evidence[key]) ? evidence[key] : app[key];
+    const selected = appAuthoritative.has(key)
+      ? (hasReportValue(app[key]) ? app[key] : evidence[key])
+      : (hasReportValue(evidence[key]) ? evidence[key] : app[key]);
     if (hasReportValue(selected)) merged[key] = selected;
   });
+  merged.propertyUserNotes = hasReportValue(app.propertyUserNotes) ? app.propertyUserNotes
+    : hasReportValue(app.notes) ? app.notes
+      : hasReportValue(evidence.propertyUserNotes) ? evidence.propertyUserNotes : null;
+  merged.maxxisPropertySummary = hasReportValue(evidence.maxxisPropertySummary)
+    ? evidence.maxxisPropertySummary : (hasReportValue(app.description) ? app.description : null);
+  merged.maxxisAnalyticalCommentary = hasReportValue(evidence.maxxisAnalyticalCommentary)
+    ? evidence.maxxisAnalyticalCommentary : null;
+  merged.resolvedAnalysisPropertyType = hasReportValue(app.type) ? app.type
+    : (evidence.resolvedAnalysisPropertyType || evidence.type || null);
+  merged.type = merged.resolvedAnalysisPropertyType || merged.type;
+  merged.resolvedAnalysisStrategy = app.resolvedAnalysisStrategy
+    || (hasReportValue(app.type) || hasReportValue(app.objective)
+      ? resolvedStrategyFor(merged.type, merged.objective)
+      : evidence.resolvedAnalysisStrategy || resolvedStrategyFor(merged.type, merged.objective));
+  if (Number(merged.capRate) === 0 && merged.resolvedAnalysisStrategy !== 'BUY_AND_HOLD') {
+    delete merged.capRate;
+  }
   const images = [...(Array.isArray(evidence.images) ? evidence.images : []),
     ...(Array.isArray(app.images) ? app.images : [])]
     .filter((item) => typeof item === 'string' && item.trim())
@@ -116,6 +153,9 @@ function propertySummary(property) {
   const data = Object.fromEntries(PROPERTY_KEYS
     .filter((key) => Object.hasOwn(property, key))
     .map((key) => [key, property[key] === undefined ? null : property[key]]));
+  if (!hasReportValue(data.resolvedAnalysisPropertyType) && hasReportValue(data.type)) data.resolvedAnalysisPropertyType = data.type;
+  if (!hasReportValue(data.resolvedAnalysisStrategy)) data.resolvedAnalysisStrategy = resolvedStrategyFor(data.type, data.objective);
+  if (Number(data.capRate) === 0 && data.resolvedAnalysisStrategy !== 'BUY_AND_HOLD') delete data.capRate;
   if (isVacantLandType(data.type)) {
     ['beds', 'baths', 'sqft', 'yearBuilt', 'rehab', 'capRate'].forEach((key) => delete data[key]);
   }
@@ -177,7 +217,7 @@ function scenarioKpis(property, valuation) {
   });
 }
 
-function existingMetrics(dealMetrics) {
+function existingMetrics(dealMetrics, property) {
   const metrics = isObject(dealMetrics?.metrics) ? dealMetrics.metrics : {};
   const metric = (key) => metrics[key]?.calculable && Number.isFinite(Number(metrics[key]?.value))
     ? Object.freeze({ value: Number(metrics[key].value), sourceType: 'CALCULATED', source: metrics[key].source || null })
@@ -186,6 +226,8 @@ function existingMetrics(dealMetrics) {
     pricePerSqft: metric('pricePerSqft'),
     acquisitionPlusRehab: metric('acquisitionPlusRehab'),
     capRate: metrics.capRate?.calculable && Number.isFinite(Number(metrics.capRate?.value))
+      && (String(property?.resolvedAnalysisStrategy || '').toUpperCase() === 'BUY_AND_HOLD'
+        || Number(metrics.capRate.value) > 0)
       ? Object.freeze({ value: Number(metrics.capRate.value), sourceType: 'USER_PROVIDED', source: metrics.capRate.source || 'stored' })
       : Object.freeze({ value: null, sourceType: 'UNKNOWN', source: null }),
   });
@@ -410,7 +452,7 @@ export function buildMaxxisReportSchema({ reportType, property = null, maxxisAna
       }),
       kpiScenarios: normalizedType === INTELLIGENCE_REPORT_TYPES.DEAL_INTELLIGENCE
         ? scenarioKpis(property, sections.valuationEvidence.data) : null,
-      existingMetrics: normalizedType === INTELLIGENCE_REPORT_TYPES.DEAL_INTELLIGENCE ? existingMetrics(dealMetrics) : null,
+      existingMetrics: normalizedType === INTELLIGENCE_REPORT_TYPES.DEAL_INTELLIGENCE ? existingMetrics(dealMetrics, property) : null,
       comparableStatistics: normalizedType === INTELLIGENCE_REPORT_TYPES.DEAL_INTELLIGENCE
         ? comparableStatistics(sections.comparableEvidence.data, property) : null,
       evidenceCounts: normalizedType === INTELLIGENCE_REPORT_TYPES.DEAL_INTELLIGENCE

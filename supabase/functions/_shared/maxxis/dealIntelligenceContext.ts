@@ -206,7 +206,8 @@ function propertyContext(property: MaxxisPropertyDetails, evidence: MaxxisProper
     hoaFee: field(publicFields.hoaFee, null, null),
     propertyFeatures: field(publicFields.propertyFeatures, null, null),
     saleHistory: field(publicFields.saleHistory, null, null),
-    notes: field(null, null, property.notes || property.description),
+    propertyUserNotes: field(null, null, property.notes),
+    notes: field(null, null, property.notes),
   };
   return {
     fields,
@@ -394,7 +395,12 @@ export function buildDealIntelligenceContext(input: {
   const profile = input.investmentProfile.profile;
   const limitations = unique([
     ...(input.analysis?.limitations || []).filter((item) => analysisApplicability.rehab === 'APPLICABLE' || !/rehab/i.test(item)),
-    ...(input.analysis?.missingInformation || []).filter((item) => analysisApplicability.rehab === 'APPLICABLE' || item !== 'rehab')
+    ...(input.analysis?.missingInformation || []).filter((item) => {
+      if (analysisApplicability.rehab === 'NOT_APPLICABLE' && item === 'rehab') return false;
+      if (analysisApplicability.propertyCategory === 'VACANT_LAND'
+        && ['sqft', 'livingAreaSqft', 'beds', 'baths', 'capRate'].includes(item)) return false;
+      return true;
+    })
       .map((item) => `MISSING_${item.toUpperCase()}`),
     ...(analysisApplicability.residentialArv === 'NOT_APPLICABLE'
       ? ['RESIDENTIAL_ARV_NOT_APPLICABLE']

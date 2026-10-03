@@ -69,8 +69,27 @@ function safeProperty(value: unknown) {
     lot: safeText(source.lot, 40),
     lotSizeSqft: safeNumber(source.lotSizeSqft),
     lotSizeAcres: safeNumber(source.lotSizeAcres),
-    notes: safeText(source.notes || source.description, 500),
+    propertyUserNotes: safeText(source.propertyUserNotes || source.notes, 1200),
+    notes: safeText(source.propertyUserNotes || source.notes, 1200),
     objective: safeText(source.objective, 80),
+    resolvedAnalysisPropertyType: safeText(source.resolvedAnalysisPropertyType || source.type, 80),
+    resolvedAnalysisStrategy: safeText(source.resolvedAnalysisStrategy || source.objective, 80),
+    providerPropertyType: safeText(source.providerPropertyType, 80) || null,
+    propertyTypeConflict: source.propertyTypeConflict === true,
+    county: safeText(source.county, 80),
+    yearBuilt: safeNumber(source.yearBuilt),
+    assessorId: safeText(source.assessorId, 120),
+    legalParcelText: safeText(source.legalDescription || source.legalParcelText, 500),
+    subdivision: safeText(source.subdivision, 160),
+    zoning: safeText(source.zoning, 120),
+    assessedValue: safeNumber(source.assessedValue),
+    assessmentYear: safeNumber(source.assessmentYear),
+    annualPropertyTax: safeNumber(source.annualPropertyTax),
+    propertyTaxYear: safeNumber(source.propertyTaxYear),
+    latestSalePrice: safeNumber(source.latestSalePrice),
+    latestSaleDate: safeDate(source.latestSaleDate),
+    ownerOccupied: typeof source.ownerOccupied === 'boolean' ? source.ownerOccupied : null,
+    materialPropertyFeatures: safeList(source.materialPropertyFeatures, 12),
     rehab: safeNumber(source.rehab),
     capRate: safeNumber(source.capRate),
     ...(Object.keys(match).length ? { match: safeMatch(match) } : {}),
@@ -230,7 +249,7 @@ const DEAL_CONTEXT_FIELDS = [
   'longitude', 'assessedValue', 'assessmentYear', 'annualPropertyTax', 'propertyTaxYear',
   'latestSalePrice', 'latestSaleDate', 'ownerOccupied', 'ownershipRecordPresent',
   'stateFips', 'countyFips', 'assessorId', 'legalDescription', 'subdivision', 'zoning',
-  'hoaFee', 'lotSizeAcres', 'notes',
+  'hoaFee', 'lotSizeAcres', 'propertyUserNotes', 'notes',
 ];
 
 function safeDealContextField(value: unknown) {
@@ -481,7 +500,8 @@ export function buildMaxxisLLMContext(value: unknown) {
     activeCapability: safeText(runtime.reportType, 40) || null,
     propertyId: safeText(source.propertyId, 50),
     state: safeText(source.state, 30),
-    propertySummary: safeProperty(source.property),
+    propertySummary: safeProperty(Object.keys(record(snapshot.propertyFacts)).length
+      ? snapshot.propertyFacts : source.property),
     investorProfileSummary: {
       exists: Boolean(profile.exists), complete: Boolean(profile.complete), profile: safeProfile(profile.profile),
     },
@@ -732,7 +752,7 @@ export function buildToolInterpretationRequest(input: {
   const interaction = buildAnalyticalInteractionInstruction(resultType === 'deal_insight' ? 'deal_insight' : 'tool_result');
   const systemText = `You are Maxxis Deal AI inside DealSifter. Interpret the authoritative structured tool result naturally in ${safeText(input.language, 8) || 'en'}. Do not expose hidden data or request another tool.
 ${interaction}
-For property evidence, preserve provenance and effective/retrieval dates when material. For deal insight, use analysisSummary, which is the compact projection of the canonical MaxxisStructuredAnalysis shared with the report, and follow ANSWER FIRST, then WHY, RISKS, and NEXT STEP. Never expose snake_case, UPPER_SNAKE_CASE, machine reasons, or internal state codes; express only the supplied natural-language interpretation. Evidence is not an appraisal or guaranteed truth. An existing ARV evaluation may be explained only by copying its exact status, range, central reference, confidence, comps, warnings and provenance; never calculate, alter, interpolate, round into a new value, blend with another estimate, or infer missing ARV data. Match Score is profile fit only, never deal quality. Never guarantee return, recommend buying, or recommend a price. Use at most 180 words for deal insight and 120 words otherwise; structured cards are rendered separately.`;
+For property evidence, preserve provenance and effective/retrieval dates when material. propertySummary.resolvedAnalysisPropertyType and propertySummary.resolvedAnalysisStrategy are the canonical analytical locks; providerPropertyType is evidence only and must never replace them. propertySummary.propertyUserNotes is the user's actual card note and must never be replaced by generated summary prose. For deal insight, use analysisSummary, which is the compact projection of the canonical MaxxisStructuredAnalysis shared with the report, and follow ANSWER FIRST, then WHY, RISKS, and NEXT STEP. Never expose snake_case, UPPER_SNAKE_CASE, machine reasons, or internal state codes; express only the supplied natural-language interpretation. Evidence is not an appraisal or guaranteed truth. An existing ARV evaluation may be explained only by copying its exact status, range, central reference, confidence, comps, warnings and provenance; never calculate, alter, interpolate, round into a new value, blend with another estimate, or infer missing ARV data. Match Score is profile fit only, never deal quality. Never guarantee return, recommend buying, or recommend a price. Use at most 180 words for deal insight and 120 words otherwise; structured cards are rendered separately.`;
   if (input.plainToolResult) {
     const resultText = JSON.stringify(safeResult);
     return {

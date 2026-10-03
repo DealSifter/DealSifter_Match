@@ -118,7 +118,14 @@ export default defineConfig(({ mode }) => {
       'src/**/*.{test,spec}.{js,jsx,ts,tsx}',
       'supabase/functions/_shared/**/*.{test,spec}.{js,jsx,ts,tsx}',
     ],
-    exclude: ['node_modules/**', 'dist/**', 'e2e/**'],
+    exclude: [
+      'node_modules/**',
+      'dist/**',
+      'e2e/**',
+      // These suites use Deno.test/jsr imports and are executed by Deno in CI.
+      'supabase/functions/_shared/maxxis/dealInsightInput.test.ts',
+      'supabase/functions/_shared/maxxis/propertyAnalysisIntent.test.ts',
+    ],
   },
   }
 })

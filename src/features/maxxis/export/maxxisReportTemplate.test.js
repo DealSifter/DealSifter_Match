@@ -85,8 +85,8 @@ describe('canonical PDF template behavior', () => {
     const source = readFileSync(new URL('./maxxisReportPdf.js', import.meta.url), 'utf8');
     const facts = source.split('function propertyFactGrid(')[1].split('function propertyBottom(')[0];
     expect(facts).toContain('const h = Math.max(134, 42 + contentHeight + 5)');
-    expect(facts).toContain('latestSaleDate ? String(latestSaleDate) : null');
-    expect(facts).toContain('lineHeight: 14');
+    expect(facts).toContain('localizedDate(latestSaleDate, t)');
+    expect(facts).toContain('lineHeight: 13');
     expect(facts).toContain('valueMaxLines: null');
     expect(facts).toContain('contentHeight');
     expect(source).toContain('const step = Math.max(lineHeight, contentHeight + rowGap)');
@@ -94,10 +94,10 @@ describe('canonical PDF template behavior', () => {
   });
 
   it.each([
-    ['en', 'PROPERTY RELEASE', 'Generated', 'Page 1 / 1'],
-    ['pt', 'RELATÓRIO DO IMÓVEL', 'Gerado em', 'Página 1 / 1'],
-    ['es', 'INFORME DE LA PROPIEDAD', 'Generado', 'Página 1 / 1'],
-  ])('renders factual Basic in %s as one stable A4 page', async (language, title, dateLabel, pageLabel) => {
+    ['en', 'PROPERTY RELEASE', 'Generated', 'Page 1 / 1', 'Mar 7, 2014'],
+    ['pt', 'RELATÓRIO DO IMÓVEL', 'Gerado em', 'Página 1 / 1', '07/03/2014'],
+    ['es', 'INFORME DE LA PROPIEDAD', 'Generado', 'Página 1 / 1', '07/03/2014'],
+  ])('renders factual Basic in %s as one stable A4 page', async (language, title, dateLabel, pageLabel, saleDate) => {
     const result = await render('PROPERTY_RELEASE', language);
     expect(result.state).toBe('RENDERED');
     const pages = await pdfPages(result);
@@ -108,7 +108,7 @@ describe('canonical PDF template behavior', () => {
     expect(pages[0].text).toContain('1200 Fictional Street');
     expect(pages[0].text).toContain('+1 205 378 0355');
     expect(pages[0].text.replace(/\s/g, '')).toContain('owner.full.address@example.com');
-    expect(pages[0].text).toContain('2014-03-07T00:00:00.000Z');
+    expect(pages[0].text).toContain(saleDate);
     expect(pages[0].text).toContain(dateLabel);
     expect(pages[0].text).toContain(pageLabel);
     expect(pages[0].text.split(pageLabel)).toHaveLength(2);

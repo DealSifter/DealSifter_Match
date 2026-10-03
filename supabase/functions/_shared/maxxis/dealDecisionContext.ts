@@ -231,9 +231,11 @@ export function buildDealDecisionContext(snapshotInput: unknown): DealDecisionCo
   const rehab = finite(rehabAnalysis.value ?? fact(snapshot, context, ['rehab']));
   const sqft = finite(fact(snapshot, context, ['sqft', 'livingAreaSqft']));
   const objective = fact(snapshot, context, ['objective']);
-  const propertyType = fact(snapshot, context, ['type', 'propertyType']);
+  const propertyType = fact(snapshot, context, ['resolvedAnalysisPropertyType', 'type', 'propertyType']);
   const strategies = list(record(context.investorContext).strategies);
-  const strategy = resolveDealStrategy({ propertyType, objective, strategies, rehab });
+  const lockedStrategy = text(property.resolvedAnalysisStrategy);
+  const strategy = (['FLIP', 'BUY_AND_HOLD', 'WHOLESALE', 'SELLER_FINANCING', 'SUB_TO', 'LAND', 'GENERIC_SELL']
+    .includes(lockedStrategy) ? lockedStrategy : resolveDealStrategy({ propertyType, objective, strategies, rehab })) as DealStrategy;
   const playbook = getStrategyPlaybook(strategy);
   const lotArea = parseCanonicalLotArea(
     fact(snapshot, context, ['lotSizeSqft', 'lot']) ?? property.lotSizeSqft,
@@ -269,8 +271,8 @@ export function buildDealDecisionContext(snapshotInput: unknown): DealDecisionCo
   const userAssumptions = [
     price !== null ? datum('askingPrice', price, 'USER_ASSUMPTION', 'PROPERTY_RECORD') : null,
     rehab !== null ? datum('rehabBudget', rehab, 'USER_ASSUMPTION', text(rehabAnalysis.source) || 'PROPERTY_RECORD') : null,
-    present(property.notes ?? property.description)
-      ? datum('propertyNotes', property.notes ?? property.description, 'USER_PROVIDED', 'PROPERTY_CARD_NOTES') : null,
+    present(property.propertyUserNotes ?? property.notes)
+      ? datum('propertyNotes', property.propertyUserNotes ?? property.notes, 'USER_PROVIDED', 'PROPERTY_CARD_NOTES') : null,
     ...Object.entries(assumptions).filter(([, value]) => present(value) && !Array.isArray(value))
       .map(([key, value]) => datum(key, value, 'USER_ASSUMPTION', 'DEAL_ASSUMPTIONS')),
   ].filter(Boolean) as DecisionDatum[];

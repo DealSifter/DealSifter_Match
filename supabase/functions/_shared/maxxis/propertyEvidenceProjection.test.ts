@@ -39,7 +39,31 @@ describe('property evidence snapshot projection', () => {
         yearBuilt: { value: null, status: 'VERIFIED_RECORD' },
       },
     });
-    expect(value).toEqual({ lot: 6000 });
+    expect(value).toMatchObject({ lot: 6000, lotSizeAcres: 0.1377 });
     expect(value).not.toHaveProperty('yearBuilt');
+    expect(value).not.toHaveProperty('propertyUserNotes');
+    expect(value).not.toHaveProperty('fieldProvenance');
+  });
+
+  it('locks canonical card type, strategy and notes while retaining a conflicting provider type as evidence', () => {
+    const value = mergeVerifiedPropertyEvidenceIntoFacts({
+      type: 'Land', objective: 'Seller Financing', notes: 'Actual card note.', description: 'Generated-like summary.',
+    }, { fields: { propertyType: { value: 'Single Family', status: 'VERIFIED_RECORD', source: 'provider' } } });
+    expect(value).toMatchObject({
+      type: 'Land', providerPropertyType: 'Single Family', propertyTypeConflict: true,
+      resolvedAnalysisPropertyType: 'Land', resolvedAnalysisStrategy: 'LAND',
+      propertyUserNotes: 'Actual card note.', maxxisPropertySummary: 'Generated-like summary.',
+    });
+    expect(value.propertyUserNotes).not.toBe(value.maxxisPropertySummary);
+  });
+
+  it('treats SFR and Single Family as the same analytical property family', () => {
+    const value = mergeVerifiedPropertyEvidenceIntoFacts({ type: 'SFR' }, {
+      fields: { propertyType: { value: 'Single Family', status: 'VERIFIED_RECORD' } },
+    });
+    expect(value).toMatchObject({
+      type: 'SFR', resolvedAnalysisPropertyType: 'SFR', providerPropertyType: 'Single Family',
+      propertyTypeConflict: false,
+    });
   });
 });

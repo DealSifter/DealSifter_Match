@@ -195,10 +195,21 @@ const text = (value, unknown) =>
     : String(value);
 const money = (value, unknown) => {
   const number = Number(value);
-  if (!Number.isFinite(number) || number === 0) return unknown;
+  if (value === null || value === undefined || value === "" || !Number.isFinite(number)) return unknown;
   return number < 0
     ? `-$${Math.abs(number).toLocaleString("en-US")}`
     : `$${number.toLocaleString("en-US")}`;
+};
+const localizedBoolean = (value, copy) => typeof value !== "boolean" ? text(value, copy.unknown)
+  : value ? (copy.language === "pt" ? "Sim" : copy.language === "es" ? "Sí" : "Yes")
+    : (copy.language === "pt" ? "Não" : copy.language === "es" ? "No" : "No");
+const localizedDate = (value, copy) => {
+  if (!value) return copy.unknown;
+  const date = new Date(String(value));
+  if (Number.isNaN(date.getTime())) return String(value);
+  return new Intl.DateTimeFormat(copy.language === "pt" ? "pt-BR" : copy.language === "es" ? "es-ES" : "en-US",
+    copy.language === "en" ? { month: "short", day: "numeric", year: "numeric", timeZone: "UTC" }
+      : { day: "2-digit", month: "2-digit", year: "numeric", timeZone: "UTC" }).format(date);
 };
 const percent = (value, unknown) =>
   Number.isFinite(Number(value))
@@ -388,7 +399,7 @@ function ConfidenceCard({ confidence, copy }) {
 
 function PropertyOverview({ schema, copy, level, page = 1, pageCode = "PROPERTY_OVERVIEW" }) {
   const property = available(schema.sections.propertySummary) || {};
-  const isLand = /^(?:vacant\s+land|land|lot|terreno|solar)$/i.test(String(property.type || '').trim());
+  const isLand = /^(?:vacant\s+land|land|lot|terreno|solar)$/i.test(String(property.resolvedAnalysisPropertyType || property.type || '').trim());
   const landLabels = copy.language === 'pt'
     ? { acres: 'Lote / acres', perAcre: 'Preço / acre', perLotSqft: 'Preço / sqft do lote', apn: 'APN / cadastro fiscal', zoning: 'Zoneamento' }
     : copy.language === 'es'
@@ -508,12 +519,12 @@ function PropertyOverview({ schema, copy, level, page = 1, pageCode = "PROPERTY_
               [copy.ownerLabel, text(owner.name, copy.unknown)],
               [
                 copy.ownerOccupied,
-                text(fact("ownerOccupied", property.ownerOccupied), copy.unknown),
+                localizedBoolean(fact("ownerOccupied", property.ownerOccupied), copy),
                 factSource("ownerOccupied"),
               ],
               [
                 copy.ownershipRecord,
-                text(fact("ownershipRecordPresent", property.ownershipRecordPresent), copy.unknown),
+                localizedBoolean(fact("ownershipRecordPresent", property.ownershipRecordPresent), copy),
                 factSource("ownershipRecordPresent"),
               ],
               [
@@ -523,7 +534,7 @@ function PropertyOverview({ schema, copy, level, page = 1, pageCode = "PROPERTY_
               ],
               [
                 copy.saleDate,
-                text(fact("latestSaleDate", property.latestSaleDate), copy.unknown),
+                localizedDate(fact("latestSaleDate", property.latestSaleDate), copy),
                 factSource("latestSaleDate"),
               ],
               [copy.allowedContacts, text(contacts, copy.unknown)],
@@ -536,14 +547,14 @@ function PropertyOverview({ schema, copy, level, page = 1, pageCode = "PROPERTY_
             rows={isLand ? [
               [copy.title, text(property.title, copy.unknown)],
               [copy.priceLabel, money(property.price, copy.unknown)],
-              [copy.strategy, text(property.objective, copy.unknown)],
+              [copy.strategy, displayLabel(property.resolvedAnalysisStrategy || property.objective, copy.unknown, copy.language)],
               [landLabels.acres, text(property.lotSizeAcres, copy.unknown)],
               [landLabels.perAcre, money(property.pricePerAcre, copy.unknown)],
               [landLabels.zoning, text(fact("zoning", property.zoning), copy.unknown), factSource("zoning")],
             ] : [
               [copy.title, text(property.title, copy.unknown)],
               [copy.priceLabel, money(property.price, copy.unknown)],
-              [copy.strategy, text(property.objective, copy.unknown)],
+              [copy.strategy, displayLabel(property.resolvedAnalysisStrategy || property.objective, copy.unknown, copy.language)],
               [
                 copy.yearBuilt,
                 text(fact("yearBuilt", property.yearBuilt), copy.unknown),
@@ -624,7 +635,7 @@ function PropertyOverview({ schema, copy, level, page = 1, pageCode = "PROPERTY_
           </section>
           <section className="maxxis-v2-notes">
             <SectionTitle icon={FileText}>{copy.notes}</SectionTitle>
-            <p>{text(property.notes || property.description, copy.unknown)}</p>
+            <p>{text(property.propertyUserNotes || property.notes, copy.unknown)}</p>
           </section>
         </div>
       </div>
@@ -634,7 +645,10 @@ function PropertyOverview({ schema, copy, level, page = 1, pageCode = "PROPERTY_
 
 function ComparableMarket({ schema, copy, page = 2 }) {
   const comps = available(schema.sections.comparableEvidence) || {};
+  const valuation = available(schema.sections.valuationEvidence) || {};
+  const recent = valuation.recentSalesMarketEstimate || {};
   const groups = [
+    ["RECENT", list(recent.valuationComps).map((item) => ({ ...item, similarity: item.structuralScore }))],
     ["USED", list(comps.used)],
     ["SUPPORT", list(comps.supporting)],
     ["EXCLUDED", list(comps.excluded)],
@@ -700,7 +714,7 @@ function ComparableMarket({ schema, copy, page = 2 }) {
                     </small>
                   </td>
                   <td>{money(item.salePrice, copy.unknown)}</td>
-                  <td>{text(item.saleDate, copy.unknown)}</td>
+                  <td>{localizedDate(item.saleDate, copy)}</td>
                   <td>
                     {text(item.beds, copy.unknown)} /{" "}
                     {text(item.baths, copy.unknown)}
@@ -760,12 +774,17 @@ function ValuationPage({ schema, copy, page = 3 }) {
   const scenarios = schema.presentation.kpiScenarios;
   const metrics = schema.presentation.existingMetrics || {};
   const property = available(schema.sections.propertySummary) || {};
-  const range = ["ARV_UNAVAILABLE", "NOT_APPLICABLE"].includes(valuation.status) ? null : valuation.range;
+  const recent = valuation.recentSalesMarketEstimate || {};
+  const recentAvailable = recent.status === "AVAILABLE" && Number.isFinite(Number(recent.centralEstimate));
+  const range = recentAvailable ? recent.range
+    : ["ARV_UNAVAILABLE", "NOT_APPLICABLE"].includes(valuation.status) ? null : valuation.range;
+  const centralReference = recentAvailable ? recent.centralEstimate : valuation.centralReference;
   const providerEstimate = valuation.providerEstimate;
+  const isLand = /^(?:vacant\s+land|land|lot|terreno|solar)$/i.test(String(property.resolvedAnalysisPropertyType || property.type || "").trim());
   const chartValues = range
     ? [
         range.low,
-        valuation.centralReference || (range.low + range.high) / 2,
+        centralReference || (range.low + range.high) / 2,
         range.high,
       ]
     : [];
@@ -780,10 +799,13 @@ function ValuationPage({ schema, copy, page = 3 }) {
       <div className="maxxis-v2-page-body">
         <section className="maxxis-v2-arv">
           <div>
-            <small>{copy.estimatedArv}</small>
+            <small>{recentAvailable
+              ? (copy.language === "pt" ? "Estimativa de mercado por vendas recentes" : copy.language === "es" ? "Estimación de mercado por ventas recientes" : "Recent-sales market estimate")
+              : copy.estimatedArv}</small>
             <strong>
-              {range
-                ? `${money(range.low, copy.unknown)} – ${money(range.high, copy.unknown)}`
+              {recentAvailable
+                ? money(recent.centralEstimate, copy.unknown)
+                : range ? `${money(range.low, copy.unknown)} – ${money(range.high, copy.unknown)}`
                 : copy.unavailable}
             </strong>
           </div>
@@ -797,16 +819,16 @@ function ValuationPage({ schema, copy, page = 3 }) {
                     : "muted"
               }
             >
-              {arvStatusText(valuation.status, copy)}
+              {recentAvailable ? displayLabel(recent.confidence, copy.unavailable, copy.language) : arvStatusText(valuation.status, copy)}
             </Badge>
             <span>
-              {copy.confidenceLabel}: <b>{displayLabel(valuation.confidence || "LOW", copy.unavailable, copy.language)}</b>
+              {copy.confidenceLabel}: <b>{displayLabel((recentAvailable ? recent.confidence : valuation.confidence) || "LOW", copy.unavailable, copy.language)}</b>
             </span>
             <span>
-              {copy.compsLabel}: <b>{valuation.compsUsed || 0}</b>
+              {copy.compsLabel}: <b>{recentAvailable ? `${recent.valuationCompCount} market / ${valuation.compsUsed || 0} ARV` : valuation.compsUsed || 0}</b>
             </span>
             <span>
-              {copy.method}: <b>{text(valuation.methodology, copy.unknown)}</b>
+              {copy.method}: <b>{text(recentAvailable ? recent.methodology : valuation.methodology, copy.unknown)}</b>
             </span>
           </div>
         </section>
@@ -817,7 +839,9 @@ function ValuationPage({ schema, copy, page = 3 }) {
               <strong>{money(providerEstimate.value, copy.unknown)}</strong>
             </div>
             <Badge tone="gold">
-              {evidenceText(providerEstimate.status, copy.unknown, copy.language)}
+              {recent.providerAvmCompatibility === "QUARANTINED_FOR_TYPE_CONFLICT"
+                ? (copy.language === "pt" ? "Em quarentena por conflito de tipo" : copy.language === "es" ? "En cuarentena por conflicto de tipo" : "Quarantined for type conflict")
+                : evidenceText(providerEstimate.status, copy.unknown, copy.language)}
             </Badge>
           </section>
         ) : null}
@@ -845,6 +869,17 @@ function ValuationPage({ schema, copy, page = 3 }) {
           </p>
         )}
         <div className="maxxis-v2-two-col">
+          {isLand ? <InfoCard
+            copy={copy}
+            icon={MapPin}
+            title={copy.land}
+            rows={[
+              [copy.lotSize, text(property.lotSizeSqft ?? property.lot, copy.unknown)],
+              ["Acres", text(property.lotSizeAcres, copy.unknown)],
+              [copy.priceSqft, money(property.pricePerLotSqft, copy.unknown)],
+              [copy.priceLabel, money(property.pricePerAcre, copy.unknown)],
+            ]}
+          /> :
           <InfoCard
             copy={copy}
             icon={DollarSign}
@@ -861,12 +896,17 @@ function ValuationPage({ schema, copy, page = 3 }) {
                 metrics.capRate?.sourceType,
               ],
             ]}
-          />
+          />}
           <InfoCard
             copy={copy}
             icon={TrendingUp}
             title={copy.price}
-            rows={[
+            rows={isLand ? [
+              [copy.listPrice, money(property.price, copy.unknown)],
+              [copy.marketRange, range ? `${money(range.low, copy.unknown)} – ${money(range.high, copy.unknown)}` : copy.unknown],
+              [copy.confidenceLabel, displayLabel(recent.confidence, copy.unknown, copy.language)],
+              [copy.compsLabel, text(recent.valuationCompCount, copy.unknown)],
+            ] : [
               [copy.listPrice, money(property.price, copy.unknown)],
               [copy.marketRange, copy.unknown],
               [

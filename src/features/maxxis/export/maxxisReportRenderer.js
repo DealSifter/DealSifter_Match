@@ -34,8 +34,9 @@ export function renderMaxxisReportDocument({ schema, exportEntitlement, generate
     reportType: schema.reportType, language: ['en', 'pt', 'es'].includes(language) ? language : 'en',
     cover: Object.freeze({
       propertyAddress: property.address || null,
-      propertyType: property.type || null,
+      propertyType: property.resolvedAnalysisPropertyType || property.type || null,
       strategy: property.objective || null,
+      resolvedAnalysisStrategy: property.resolvedAnalysisStrategy || property.objective || null,
       reportType: schema.reportType,
       generatedAt: generatedDate.toISOString(),
       heroImage: Array.isArray(property.images) && property.images[0] ? property.images[0] : null,

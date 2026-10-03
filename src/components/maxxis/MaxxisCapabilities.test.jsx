@@ -211,7 +211,7 @@ describe('Maxxis Deal AI structured result presentation', () => {
           } }}
       />,
     );
-    expect(html).toContain('Completar a análise');
+    expect(html).toContain('Avançar a decisão');
     expect(html).toContain('Condição alvo');
     expect(html).toContain('Orçamento de reforma');
     expect(html).toContain('Continuar com limitações');

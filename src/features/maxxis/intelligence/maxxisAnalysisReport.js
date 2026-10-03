@@ -235,7 +235,9 @@ export function projectMaxxisAnalysisResponse(result = {}, { reportProperty = nu
   const structuredAnalysis = result?.data?.structuredAnalysis;
   const report = buildMaxxisAnalysisReport(result?.data?.dealIntelligence, structuredAnalysis);
   if (!report) return null;
-  const property = mergeMaxxisReportProperty(result?.data?.property, reportProperty);
+  const snapshotProperty = isObject(result?.data?.intelligenceSnapshot?.propertyFacts)
+    ? result.data.intelligenceSnapshot.propertyFacts : result?.data?.property;
+  const property = mergeMaxxisReportProperty(snapshotProperty, reportProperty);
   const maxxisReport = buildMaxxisReportSchema({
     reportType: 'MAXXIS_ANALYSIS', property, maxxisAnalysis: report, structuredAnalysis,
   });

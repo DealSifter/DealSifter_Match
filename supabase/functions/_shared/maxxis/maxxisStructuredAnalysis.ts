@@ -343,27 +343,33 @@ function riskAnalysis(context: AnyRecord, language: AnalysisLanguage) {
   };
 }
 
-function strategyInsights(context: AnyRecord, language: AnalysisLanguage) {
-  const strategies = list(record(context.investorContext).strategies).map(text).filter(Boolean);
+function strategyInsights(context: AnyRecord, language: AnalysisLanguage, resolvedStrategy: unknown) {
+  const strategy = text(resolvedStrategy) || 'GENERIC_SELL';
   const capRate = record(record(context.dealMetrics).metrics).capRate;
-  return unique(strategies.map((strategy) => {
-    const normalized = strategy.toLowerCase();
+  return unique([strategy].map((strategy) => {
+    const normalized = strategy.toLowerCase().replaceAll('_', ' ');
     const displayStrategy = language === 'en'
-      ? strategy
+      ? ({ BUY_AND_HOLD: 'Buy and Hold', SELLER_FINANCING: 'Seller Financing', GENERIC_SELL: 'Sell', LAND: 'Land', FLIP: 'Fix and Flip', WHOLESALE: 'Wholesale', SUB_TO: 'Subject-to' }[strategy] || strategy)
       : /buy\s*(and|&)\s*hold|hold|rental/.test(normalized)
       ? localized(language, strategy, 'comprar e manter', 'comprar y mantener')
       : /fix\s*(and|&)\s*flip|flip|rehab/.test(normalized)
       ? localized(language, strategy, 'reformar e revender', 'reformar y revender')
       : /wholesale/.test(normalized)
       ? localized(language, strategy, 'atacado imobiliário', 'venta mayorista inmobiliaria')
+      : /seller financing/.test(normalized)
+      ? localized(language, strategy, 'financiamento pelo vendedor', 'financiación del vendedor')
+      : /land/.test(normalized)
+      ? localized(language, strategy, 'terreno', 'terreno')
       : localized(language, strategy, 'objetivo de investimento configurado', 'objetivo de inversión configurado');
     if (/hold|rental|rent/.test(normalized)) {
       return capRate?.calculable
-        ? localized(language, `For the ${strategy} strategy, the stored ${Number(capRate.value)}% cap rate is relevant but should be validated against current income and operating expenses.`, `Para a estratégia ${displayStrategy}, a cap rate registrada de ${Number(capRate.value)}% é relevante, mas deve ser validada com a receita e as despesas operacionais atuais.`, `Para la estrategia ${displayStrategy}, la tasa de capitalización registrada de ${Number(capRate.value)}% es relevante, pero debe validarse con los ingresos y gastos operativos actuales.`)
-        : localized(language, `For the ${strategy} strategy, rent, occupancy and operating expenses must be verified before income performance can be assessed.`, `Para a estratégia ${displayStrategy}, aluguel, ocupação e despesas operacionais devem ser verificados antes da avaliação de desempenho da renda.`, `Para la estrategia ${displayStrategy}, el alquiler, la ocupación y los gastos operativos deben verificarse antes de evaluar el rendimiento de los ingresos.`);
+        ? localized(language, `For the ${displayStrategy} strategy, the stored ${Number(capRate.value)}% cap rate is relevant but should be validated against current income and operating expenses.`, `Para a estratégia ${displayStrategy}, a cap rate registrada de ${Number(capRate.value)}% é relevante, mas deve ser validada com a receita e as despesas operacionais atuais.`, `Para la estrategia ${displayStrategy}, la tasa de capitalización registrada de ${Number(capRate.value)}% es relevante, pero debe validarse con los ingresos y gastos operativos actuales.`)
+        : localized(language, `For the ${displayStrategy} strategy, rent, occupancy and operating expenses must be verified before income performance can be assessed.`, `Para a estratégia ${displayStrategy}, aluguel, ocupação e despesas operacionais devem ser verificados antes da avaliação de desempenho da renda.`, `Para la estrategia ${displayStrategy}, el alquiler, la ocupación y los gastos operativos deben verificarse antes de evaluar el rendimiento de los ingresos.`);
     }
     if (/flip|rehab/.test(normalized)) return localized(language, `For the ${strategy} strategy, property condition, rehabilitation scope and exit-value evidence are the primary unresolved execution inputs.`, `Para a estratégia ${displayStrategy}, a condição do imóvel, o escopo da reforma e as evidências do valor de saída são os principais pontos de execução ainda não resolvidos.`, `Para la estrategia ${displayStrategy}, el estado de la propiedad, el alcance de la reforma y la evidencia del valor de salida son los principales puntos de ejecución pendientes.`);
     if (/wholesale/.test(normalized)) return localized(language, `For the ${strategy} strategy, disposition demand, assignability and a verified buyer margin remain essential validation points.`, `Para a estratégia ${displayStrategy}, a demanda de saída, a possibilidade de cessão e uma margem verificada para o comprador continuam sendo pontos essenciais de validação.`, `Para la estrategia ${displayStrategy}, la demanda de salida, la posibilidad de cesión y un margen verificado para el comprador siguen siendo puntos esenciales de validación.`);
+    if (/seller financing/.test(normalized)) return localized(language, 'For seller financing, confirm down payment, interest rate, amortization, term and balloon before evaluating the payment structure.', 'Para financiamento pelo vendedor, confirme entrada, taxa de juros, amortização, prazo e balloon antes de avaliar a estrutura de pagamentos.', 'Para financiación del vendedor, confirma pago inicial, tasa de interés, amortización, plazo y pago balloon antes de evaluar la estructura de pagos.');
+    if (/land/.test(normalized)) return localized(language, 'For land, verify permitted use, zoning, access, utilities, survey, title, lot metrics and recorded land-sale evidence.', 'Para terreno, verifique uso permitido, zoneamento, acesso, infraestrutura, levantamento, titularidade, métricas do lote e vendas registradas de terrenos.', 'Para terreno, verifica uso permitido, zonificación, acceso, servicios, levantamiento, título, métricas del lote y ventas registradas de terrenos.');
     return localized(language, `For the ${strategy} strategy, confirm that the available property facts and unresolved risks remain compatible with the configured objective.`, `Para a estratégia ${displayStrategy}, confirme se os dados disponíveis do imóvel e os riscos não resolvidos permanecem compatíveis com o objetivo configurado.`, `Para la estrategia ${displayStrategy}, confirma que los datos disponibles de la propiedad y los riesgos pendientes sigan siendo compatibles con el objetivo configurado.`);
   }));
 }
@@ -466,7 +472,7 @@ export function buildMaxxisStructuredAnalysis(snapshotInput: unknown, reportType
     ...decisionActions.map((action) => action.why),
     ...recommendedActions,
   ]).slice(0, 3);
-  const strategySpecificInsights = strategyInsights(context, language);
+  const strategySpecificInsights = strategyInsights(context, language, decisionContext.strategy);
   const propertyContext = propertyInterpretation(snapshot, context, language);
   const executiveSummary = `${thesis.summary} ${fit.overallAssessment}`.trim();
   const opportunityAssessment = thesis.summary;

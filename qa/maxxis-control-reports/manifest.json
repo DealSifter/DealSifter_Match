@@ -1,0 +1,1159 @@
+{
+  "generatedAt": "2026-10-03T12:00:00.000Z",
+  "providerCalls": 0,
+  "reports": {
+    "droad-level-1.pdf": {
+      "pageCount": 1,
+      "reportType": "PROPERTY_RELEASE",
+      "property": "droad",
+      "textChecks": {
+        "hasRawRiskCodes": false,
+        "hasFalseZero": false,
+        "hasFixAndFlip": false,
+        "hasTruncatedText": false
+      }
+    },
+    "droad-level-2.pdf": {
+      "pageCount": 3,
+      "reportType": "MAXXIS_ANALYSIS",
+      "property": "droad",
+      "textChecks": {
+        "hasRawRiskCodes": false,
+        "hasFalseZero": false,
+        "hasFixAndFlip": false,
+        "hasTruncatedText": false
+      }
+    },
+    "droad-level-3.pdf": {
+      "pageCount": 6,
+      "reportType": "DEAL_INTELLIGENCE",
+      "property": "droad",
+      "textChecks": {
+        "hasRawRiskCodes": false,
+        "hasFalseZero": false,
+        "hasFixAndFlip": false,
+        "hasTruncatedText": false
+      }
+    },
+    "gable-level-1.pdf": {
+      "pageCount": 1,
+      "reportType": "PROPERTY_RELEASE",
+      "property": "gable",
+      "textChecks": {
+        "hasRawRiskCodes": false,
+        "hasFalseZero": false,
+        "hasFixAndFlip": false,
+        "hasTruncatedText": false
+      }
+    },
+    "gable-level-2.pdf": {
+      "pageCount": 3,
+      "reportType": "MAXXIS_ANALYSIS",
+      "property": "gable",
+      "textChecks": {
+        "hasRawRiskCodes": false,
+        "hasFalseZero": false,
+        "hasFixAndFlip": false,
+        "hasTruncatedText": false
+      }
+    },
+    "gable-level-3.pdf": {
+      "pageCount": 6,
+      "reportType": "DEAL_INTELLIGENCE",
+      "property": "gable",
+      "textChecks": {
+        "hasRawRiskCodes": false,
+        "hasFalseZero": false,
+        "hasFixAndFlip": false,
+        "hasTruncatedText": false
+      }
+    },
+    "bent-creek-level-3.pdf": {
+      "pageCount": 6,
+      "reportType": "DEAL_INTELLIGENCE",
+      "property": "bent",
+      "textChecks": {
+        "hasRawRiskCodes": false,
+        "hasFalseZero": false,
+        "hasFixAndFlip": false,
+        "hasTruncatedText": false
+      }
+    }
+  },
+  "controls": {
+    "droad": {
+      "id": "7953533a-b545-412a-ba7f-009036c7cfb6",
+      "type": "SFR",
+      "strategy": "SELLER_FINANCING",
+      "providerType": "Single Family",
+      "propertyTypeConflict": false,
+      "county": "Duval",
+      "stateFips": null,
+      "countyFips": null,
+      "assessorId": null,
+      "yearBuilt": 1962,
+      "lotSizeSqft": 7253,
+      "lotSizeAcres": 0.1665,
+      "assessedValue": 108188,
+      "annualPropertyTax": 1843,
+      "latestSalePrice": 80500,
+      "latestSaleDate": "2021-08-03T00:00:00.000Z",
+      "ownerOccupied": true,
+      "notes": "good opportunity for flippers",
+      "recentSalesMarketEstimate": {
+        "methodology": "RECENT_SALES_MARKET_ESTIMATE",
+        "methodologyVersion": "DEALSIFTER_RECENT_SALES_V1",
+        "propertyCategory": "RESIDENTIAL",
+        "conditionAdjustmentStatus": "CONDITION_NOT_ADJUSTED",
+        "providerAvmCompatibility": "COMPATIBLE",
+        "status": "AVAILABLE",
+        "centralEstimate": 113967,
+        "range": {
+          "low": 91841,
+          "high": 133646
+        },
+        "weightedUnitValue": 107.21,
+        "weightedLotPricePerSqft": null,
+        "unitMetric": "PRICE_PER_SQFT",
+        "qualifyingSalesCount": 38,
+        "valuationCompCount": 5,
+        "confidence": "LOW",
+        "confidenceReasons": [
+          "5_QUALIFIED_RECENT_RECORDED_SALES",
+          "CONDITION_NOT_ADJUSTED",
+          "HIGH_UNIT_VALUE_DISPERSION"
+        ],
+        "dispersion": {
+          "coefficient": 1.3293,
+          "minimumUnitValue": 74.07,
+          "maximumUnitValue": 216.59
+        },
+        "valuationComps": [
+          {
+            "providerPropertyId": "8951-Adams-Ave,-Jacksonville,-FL-32208",
+            "address": "8951 Adams Ave, Jacksonville, FL 32208",
+            "salePrice": 100000,
+            "saleDate": "2026-07-07T00:00:00.000Z",
+            "saleAgeDays": 83,
+            "distanceMiles": 1.5296566355281205,
+            "propertyType": "Single Family",
+            "bedrooms": 3,
+            "bathrooms": 1,
+            "livingAreaSqft": 1350,
+            "lotSizeSqft": 6098,
+            "latitude": 30.404582,
+            "longitude": -81.683489,
+            "unitMetric": "PRICE_PER_SQFT",
+            "unitValue": 74.07407407407408,
+            "lotPricePerSqft": null,
+            "impliedSubjectValue": 78740.74074074074,
+            "weight": 0.6967000453681481,
+            "structuralScore": 84.93,
+            "completenessScore": 70,
+            "providerCorrelation": 0,
+            "classification": "VALUATION_INCLUDED",
+            "reasons": [
+              "RECORDED_SALE",
+              "SALE_WITHIN_180_DAYS",
+              "STRUCTURALLY_QUALIFIED"
+            ]
+          },
+          {
+            "providerPropertyId": "10592-Haverford-Rd,-Jacksonville,-FL-32218",
+            "address": "10592 Haverford Rd, Jacksonville, FL 32218",
+            "salePrice": 130000,
+            "saleDate": "2026-07-23T00:00:00.000Z",
+            "saleAgeDays": 67,
+            "distanceMiles": 3.268569315193608,
+            "propertyType": "Single Family",
+            "bedrooms": 3,
+            "bathrooms": 1,
+            "livingAreaSqft": 1034,
+            "lotSizeSqft": 8946,
+            "latitude": 30.427516,
+            "longitude": -81.667823,
+            "unitMetric": "PRICE_PER_SQFT",
+            "unitValue": 125.72533849129594,
+            "lotPricePerSqft": null,
+            "impliedSubjectValue": 133646.0348162476,
+            "weight": 0.6800273953011688,
+            "structuralScore": 80.86,
+            "completenessScore": 70,
+            "providerCorrelation": 0,
+            "classification": "VALUATION_INCLUDED",
+            "reasons": [
+              "RECORDED_SALE",
+              "SALE_WITHIN_180_DAYS",
+              "STRUCTURALLY_QUALIFIED"
+            ]
+          },
+          {
+            "providerPropertyId": "8905-1st-Ave,-Jacksonville,-FL-32208",
+            "address": "8905 1st Ave, Jacksonville, FL 32208",
+            "salePrice": 243017,
+            "saleDate": "2026-05-14T00:00:00.000Z",
+            "saleAgeDays": 137,
+            "distanceMiles": 1.4224838705554934,
+            "propertyType": "Single Family",
+            "bedrooms": 3,
+            "bathrooms": 1,
+            "livingAreaSqft": 1122,
+            "lotSizeSqft": 3920,
+            "latitude": 30.403039,
+            "longitude": -81.685312,
+            "unitMetric": "PRICE_PER_SQFT",
+            "unitValue": 216.5926916221034,
+            "lotPricePerSqft": null,
+            "impliedSubjectValue": 230238.0311942959,
+            "weight": 0.6708483233314381,
+            "structuralScore": 80.29,
+            "completenessScore": 70,
+            "providerCorrelation": 0,
+            "classification": "VALUATION_INCLUDED",
+            "reasons": [
+              "RECORDED_SALE",
+              "SALE_WITHIN_180_DAYS",
+              "STRUCTURALLY_QUALIFIED"
+            ]
+          },
+          {
+            "providerPropertyId": "1240-Briarcliff-Rd-S,-Jacksonville,-FL-32218",
+            "address": "1240 Briarcliff Rd S, Jacksonville, FL 32218",
+            "salePrice": 78363,
+            "saleDate": "2026-07-02T00:00:00.000Z",
+            "saleAgeDays": 88,
+            "distanceMiles": 3.0951582847330807,
+            "propertyType": "Single Family",
+            "bedrooms": 3,
+            "bathrooms": 1,
+            "livingAreaSqft": 907,
+            "lotSizeSqft": 6970,
+            "latitude": 30.424584,
+            "longitude": -81.666868,
+            "unitMetric": "PRICE_PER_SQFT",
+            "unitValue": 86.39801543550165,
+            "lotPricePerSqft": null,
+            "impliedSubjectValue": 91841.09040793825,
+            "weight": 0.6498087478518614,
+            "structuralScore": 80.86,
+            "completenessScore": 70,
+            "providerCorrelation": 0,
+            "classification": "VALUATION_INCLUDED",
+            "reasons": [
+              "RECORDED_SALE",
+              "SALE_WITHIN_180_DAYS",
+              "STRUCTURALLY_QUALIFIED"
+            ]
+          },
+          {
+            "providerPropertyId": "10415-Briarcliff-Rd-E,-Jacksonville,-FL-32218",
+            "address": "10415 Briarcliff Rd E, Jacksonville, FL 32218",
+            "salePrice": 110000,
+            "saleDate": "2026-06-12T00:00:00.000Z",
+            "saleAgeDays": 108,
+            "distanceMiles": 3.120866911764528,
+            "propertyType": "Single Family",
+            "bedrooms": 3,
+            "bathrooms": 1,
+            "livingAreaSqft": 1026,
+            "lotSizeSqft": 8276,
+            "latitude": 30.424443,
+            "longitude": -81.665221,
+            "unitMetric": "PRICE_PER_SQFT",
+            "unitValue": 107.21247563352827,
+            "lotPricePerSqft": null,
+            "impliedSubjectValue": 113966.86159844055,
+            "weight": 0.6481479202105637,
+            "structuralScore": 80.57,
+            "completenessScore": 70,
+            "providerCorrelation": 0,
+            "classification": "VALUATION_INCLUDED",
+            "reasons": [
+              "RECORDED_SALE",
+              "SALE_WITHIN_180_DAYS",
+              "STRUCTURALLY_QUALIFIED"
+            ]
+          }
+        ],
+        "marketReferenceOutliers": [
+          {
+            "providerPropertyId": "10321-Westmar-Rd,-Jacksonville,-FL-32218",
+            "address": "10321 Westmar Rd, Jacksonville, FL 32218",
+            "salePrice": 550000,
+            "saleDate": "2026-07-28T00:00:00.000Z",
+            "saleAgeDays": 62,
+            "distanceMiles": 3.0727270248341783,
+            "propertyType": "Single Family",
+            "bedrooms": 3,
+            "bathrooms": 1,
+            "livingAreaSqft": 912,
+            "lotSizeSqft": 8276,
+            "latitude": 30.422941,
+            "longitude": -81.663192,
+            "unitMetric": "PRICE_PER_SQFT",
+            "unitValue": 603.0701754385965,
+            "lotPricePerSqft": null,
+            "impliedSubjectValue": 641063.5964912281,
+            "weight": 0.672853902644752,
+            "structuralScore": 80.86,
+            "completenessScore": 70,
+            "providerCorrelation": 0,
+            "classification": "MARKET_REFERENCE_OUTLIER",
+            "reasons": [
+              "RECORDED_SALE",
+              "SALE_WITHIN_180_DAYS",
+              "STRUCTURALLY_QUALIFIED",
+              "UNIT_VALUE_OUTLIER"
+            ]
+          }
+        ],
+        "historicalReferences": [
+          {
+            "providerPropertyId": "1819-Clyde-St,-Jacksonville,-FL-32208",
+            "saleAgeDays": 181,
+            "reason": "SALE_OLDER_THAN_180_DAYS"
+          },
+          {
+            "providerPropertyId": "9035-Harrison-Ave,-Jacksonville,-FL-32208",
+            "saleAgeDays": 257,
+            "reason": "SALE_OLDER_THAN_180_DAYS"
+          },
+          {
+            "providerPropertyId": "9162-Jefferson-Ave,-Jacksonville,-FL-32208",
+            "saleAgeDays": 262,
+            "reason": "SALE_OLDER_THAN_180_DAYS"
+          },
+          {
+            "providerPropertyId": "9015-Polk-Ave,-Jacksonville,-FL-32208",
+            "saleAgeDays": 248,
+            "reason": "SALE_OLDER_THAN_180_DAYS"
+          },
+          {
+            "providerPropertyId": "10250-Briarcliff-Rd-E,-Jacksonville,-FL-32218",
+            "saleAgeDays": 185,
+            "reason": "SALE_OLDER_THAN_180_DAYS"
+          },
+          {
+            "providerPropertyId": "10228-Westmar-Rd,-Jacksonville,-FL-32218",
+            "saleAgeDays": 182,
+            "reason": "SALE_OLDER_THAN_180_DAYS"
+          },
+          {
+            "providerPropertyId": "9023-Jackson-Ave,-Jacksonville,-FL-32208",
+            "saleAgeDays": 200,
+            "reason": "SALE_OLDER_THAN_180_DAYS"
+          },
+          {
+            "providerPropertyId": "9036-Van-Buren-Ave,-Jacksonville,-FL-32208",
+            "saleAgeDays": 194,
+            "reason": "SALE_OLDER_THAN_180_DAYS"
+          },
+          {
+            "providerPropertyId": "1517-Ollie-Dr,-Jacksonville,-FL-32208",
+            "saleAgeDays": 265,
+            "reason": "SALE_OLDER_THAN_180_DAYS"
+          },
+          {
+            "providerPropertyId": "1414-Belleshore-Cir,-Jacksonville,-FL-32218",
+            "saleAgeDays": 203,
+            "reason": "SALE_OLDER_THAN_180_DAYS"
+          },
+          {
+            "providerPropertyId": "2439-Gayland-Rd,-Jacksonville,-FL-32218",
+            "saleAgeDays": 202,
+            "reason": "SALE_OLDER_THAN_180_DAYS"
+          },
+          {
+            "providerPropertyId": "9136-Monroe-Ave,-Jacksonville,-FL-32208",
+            "saleAgeDays": 263,
+            "reason": "SALE_OLDER_THAN_180_DAYS"
+          },
+          {
+            "providerPropertyId": "1620-Lauder-Ave,-Jacksonville,-FL-32208",
+            "saleAgeDays": 248,
+            "reason": "SALE_OLDER_THAN_180_DAYS"
+          },
+          {
+            "providerPropertyId": "10127-Haverford-Rd,-Jacksonville,-FL-32218",
+            "saleAgeDays": 222,
+            "reason": "SALE_OLDER_THAN_180_DAYS"
+          },
+          {
+            "providerPropertyId": "2116-Broward-Rd,-Jacksonville,-FL-32218",
+            "saleAgeDays": 223,
+            "reason": "SALE_OLDER_THAN_180_DAYS"
+          },
+          {
+            "providerPropertyId": "10326-Depaul-Dr,-Jacksonville,-FL-32218",
+            "saleAgeDays": 214,
+            "reason": "SALE_OLDER_THAN_180_DAYS"
+          },
+          {
+            "providerPropertyId": "10450-Keuka-Dr,-Jacksonville,-FL-32218",
+            "saleAgeDays": 259,
+            "reason": "SALE_OLDER_THAN_180_DAYS"
+          },
+          {
+            "providerPropertyId": "1614-Loyola-Dr-N,-Jacksonville,-FL-32218",
+            "saleAgeDays": 223,
+            "reason": "SALE_OLDER_THAN_180_DAYS"
+          },
+          {
+            "providerPropertyId": "1040-Beckner-Ave,-Jacksonville,-FL-32218",
+            "saleAgeDays": 253,
+            "reason": "SALE_OLDER_THAN_180_DAYS"
+          },
+          {
+            "providerPropertyId": "10520-Monaco-Dr,-Jacksonville,-FL-32218",
+            "saleAgeDays": 253,
+            "reason": "SALE_OLDER_THAN_180_DAYS"
+          },
+          {
+            "providerPropertyId": "1115-Bacall-Rd,-Jacksonville,-FL-32218",
+            "saleAgeDays": 214,
+            "reason": "SALE_OLDER_THAN_180_DAYS"
+          },
+          {
+            "providerPropertyId": "2431-Warfield-Ave,-Jacksonville,-FL-32218",
+            "saleAgeDays": 250,
+            "reason": "SALE_OLDER_THAN_180_DAYS"
+          },
+          {
+            "providerPropertyId": "1711-Wofford-Ave,-Jacksonville,-FL-32218",
+            "saleAgeDays": 229,
+            "reason": "SALE_OLDER_THAN_180_DAYS"
+          },
+          {
+            "providerPropertyId": "10528-Wooster-Dr,-Jacksonville,-FL-32218",
+            "saleAgeDays": 194,
+            "reason": "SALE_OLDER_THAN_180_DAYS"
+          },
+          {
+            "providerPropertyId": "2469-Quail-Ave,-Jacksonville,-FL-32218",
+            "saleAgeDays": 249,
+            "reason": "SALE_OLDER_THAN_180_DAYS"
+          },
+          {
+            "providerPropertyId": "10633-Ithaca-Dr,-Jacksonville,-FL-32218",
+            "saleAgeDays": 262,
+            "reason": "SALE_OLDER_THAN_180_DAYS"
+          },
+          {
+            "providerPropertyId": "1012-Beckner-Ave,-Jacksonville,-FL-32218",
+            "saleAgeDays": 208,
+            "reason": "SALE_OLDER_THAN_180_DAYS"
+          },
+          {
+            "providerPropertyId": "10551-Conrad-Dr,-Jacksonville,-FL-32218",
+            "saleAgeDays": 217,
+            "reason": "SALE_OLDER_THAN_180_DAYS"
+          },
+          {
+            "providerPropertyId": "11338-Margarets-Landing-Pl,-Jacksonville,-FL-32218",
+            "saleAgeDays": 200,
+            "reason": "SALE_OLDER_THAN_180_DAYS"
+          },
+          {
+            "providerPropertyId": "1499-Bassett-Rd,-Jacksonville,-FL-32208",
+            "saleAgeDays": 182,
+            "reason": "SALE_OLDER_THAN_180_DAYS"
+          },
+          {
+            "providerPropertyId": "11341-Quailhollow-Dr,-Jacksonville,-FL-32218",
+            "saleAgeDays": 238,
+            "reason": "SALE_OLDER_THAN_180_DAYS"
+          },
+          {
+            "providerPropertyId": "11430-Quailhollow-Dr,-Jacksonville,-FL-32218",
+            "saleAgeDays": 206,
+            "reason": "SALE_OLDER_THAN_180_DAYS"
+          },
+          {
+            "providerPropertyId": "11811-Armsdale-Rd,-Jacksonville,-FL-32218",
+            "saleAgeDays": 207,
+            "reason": "SALE_OLDER_THAN_180_DAYS"
+          },
+          {
+            "providerPropertyId": "11753-Raven-Dr-W,-Jacksonville,-FL-32218",
+            "saleAgeDays": 245,
+            "reason": "SALE_OLDER_THAN_180_DAYS"
+          },
+          {
+            "providerPropertyId": "1380-High-Plains-Dr-W,-Jacksonville,-FL-32218",
+            "saleAgeDays": 187,
+            "reason": "SALE_OLDER_THAN_180_DAYS"
+          },
+          {
+            "providerPropertyId": "11862-Alexandra-Dr,-Jacksonville,-FL-32218",
+            "saleAgeDays": 181,
+            "reason": "SALE_OLDER_THAN_180_DAYS"
+          },
+          {
+            "providerPropertyId": "10525-Villanova-Rd,-Jacksonville,-FL-32218",
+            "saleAgeDays": 265,
+            "reason": "SALE_OLDER_THAN_180_DAYS"
+          },
+          {
+            "providerPropertyId": "2435-Pine-Estates-Rd-S,-Jacksonville,-FL-32218",
+            "saleAgeDays": 261,
+            "reason": "SALE_OLDER_THAN_180_DAYS"
+          },
+          {
+            "providerPropertyId": "1509-Mar-Vic-Ln,-Jacksonville,-FL-32218",
+            "saleAgeDays": 216,
+            "reason": "SALE_OLDER_THAN_180_DAYS"
+          },
+          {
+            "providerPropertyId": "1966-Montward-Preserve-Way,-Jacksonville,-FL-32218",
+            "saleAgeDays": 196,
+            "reason": "SALE_OLDER_THAN_180_DAYS"
+          },
+          {
+            "providerPropertyId": "1735-Daytona-Ln,-Jacksonville,-FL-32218",
+            "saleAgeDays": 230,
+            "reason": "SALE_OLDER_THAN_180_DAYS"
+          },
+          {
+            "providerPropertyId": "11339-Island-Shore-Dr-W,-Jacksonville,-FL-32218",
+            "saleAgeDays": 189,
+            "reason": "SALE_OLDER_THAN_180_DAYS"
+          },
+          {
+            "providerPropertyId": "2338-Blossom-Ridge-Dr-N,-Jacksonville,-FL-32218",
+            "saleAgeDays": 259,
+            "reason": "SALE_OLDER_THAN_180_DAYS"
+          },
+          {
+            "providerPropertyId": "2352-Scenic-View-Ct,-Jacksonville,-FL-32218",
+            "saleAgeDays": 200,
+            "reason": "SALE_OLDER_THAN_180_DAYS"
+          },
+          {
+            "providerPropertyId": "11958-Iron-Creek-Rd,-Jacksonville,-FL-32218",
+            "saleAgeDays": 202,
+            "reason": "SALE_OLDER_THAN_180_DAYS"
+          },
+          {
+            "providerPropertyId": "12010-Mission-Creek-Ln,-Jacksonville,-FL-32218",
+            "saleAgeDays": 264,
+            "reason": "SALE_OLDER_THAN_180_DAYS"
+          },
+          {
+            "providerPropertyId": "926-Chalmet-Ln,-Jacksonville,-FL-32218",
+            "saleAgeDays": 250,
+            "reason": "SALE_OLDER_THAN_180_DAYS"
+          },
+          {
+            "providerPropertyId": "2440-Beachview-Dr,-Jacksonville,-FL-32218",
+            "saleAgeDays": 195,
+            "reason": "SALE_OLDER_THAN_180_DAYS"
+          },
+          {
+            "providerPropertyId": "2513-Beachview-Dr,-Jacksonville,-FL-32218",
+            "saleAgeDays": 257,
+            "reason": "SALE_OLDER_THAN_180_DAYS"
+          },
+          {
+            "providerPropertyId": "11787-Tumbleweed-Way,-Jacksonville,-FL-32218",
+            "saleAgeDays": 217,
+            "reason": "SALE_OLDER_THAN_180_DAYS"
+          },
+          {
+            "providerPropertyId": "12195-Breeze-Ct,-Jacksonville,-FL-32218",
+            "saleAgeDays": 209,
+            "reason": "SALE_OLDER_THAN_180_DAYS"
+          },
+          {
+            "providerPropertyId": "1595-Elsa-Dr,-Jacksonville,-FL-32218",
+            "saleAgeDays": 257,
+            "reason": "SALE_OLDER_THAN_180_DAYS"
+          },
+          {
+            "providerPropertyId": "1650-Lauder-Ave,-Jacksonville,-FL-32208",
+            "saleAgeDays": 250,
+            "reason": "SALE_OLDER_THAN_180_DAYS"
+          },
+          {
+            "providerPropertyId": "10632-Tulsa-Rd,-Jacksonville,-FL-32218",
+            "saleAgeDays": 208,
+            "reason": "SALE_OLDER_THAN_180_DAYS"
+          },
+          {
+            "providerPropertyId": "2532-Eisner-Dr,-Jacksonville,-FL-32218",
+            "saleAgeDays": 231,
+            "reason": "SALE_OLDER_THAN_180_DAYS"
+          },
+          {
+            "providerPropertyId": "12101-Alexandra-Dr,-Jacksonville,-FL-32218",
+            "saleAgeDays": 214,
+            "reason": "SALE_OLDER_THAN_180_DAYS"
+          },
+          {
+            "providerPropertyId": "2536-Beachview-Dr,-Jacksonville,-FL-32218",
+            "saleAgeDays": 207,
+            "reason": "SALE_OLDER_THAN_180_DAYS"
+          },
+          {
+            "providerPropertyId": "2433-Beachview-Dr,-Jacksonville,-FL-32218",
+            "saleAgeDays": 209,
+            "reason": "SALE_OLDER_THAN_180_DAYS"
+          },
+          {
+            "providerPropertyId": "953-Tortoise-Way,-Jacksonville,-FL-32218",
+            "saleAgeDays": 244,
+            "reason": "SALE_OLDER_THAN_180_DAYS"
+          },
+          {
+            "providerPropertyId": "978-Tammy-Cove-Ln,-Jacksonville,-FL-32218",
+            "saleAgeDays": 248,
+            "reason": "SALE_OLDER_THAN_180_DAYS"
+          },
+          {
+            "providerPropertyId": "12156-Blockhouse-Creek-Ct,-Jacksonville,-FL-32218",
+            "saleAgeDays": 238,
+            "reason": "SALE_OLDER_THAN_180_DAYS"
+          },
+          {
+            "providerPropertyId": "3769-Verde-Gardens-Cir,-Jacksonville,-FL-32218",
+            "saleAgeDays": 189,
+            "reason": "SALE_OLDER_THAN_180_DAYS"
+          }
+        ],
+        "exclusions": []
+      },
+      "providerEstimate": 124000,
+      "providerEstimateDivergence": 0.088
+    },
+    "gable": {
+      "id": "20e8a78f-fcf7-4017-83cd-5c8355498da9",
+      "type": "Land",
+      "strategy": "LAND",
+      "providerType": "Single Family",
+      "propertyTypeConflict": true,
+      "county": null,
+      "stateFips": "01",
+      "countyFips": null,
+      "assessorId": null,
+      "yearBuilt": null,
+      "lotSizeSqft": 23854,
+      "lotSizeAcres": 1.14,
+      "assessedValue": 5880,
+      "annualPropertyTax": 323,
+      "latestSalePrice": null,
+      "latestSaleDate": null,
+      "ownerOccupied": null,
+      "notes": "opportunity to subdivide in 2 lots for new constructions, after this the land will gain the equity in high %.",
+      "recentSalesMarketEstimate": {
+        "methodology": "RECENT_SALES_MARKET_ESTIMATE",
+        "methodologyVersion": "DEALSIFTER_RECENT_SALES_V1",
+        "propertyCategory": "LAND",
+        "conditionAdjustmentStatus": "CONDITION_NOT_ADJUSTED",
+        "providerAvmCompatibility": "QUARANTINED_FOR_TYPE_CONFLICT",
+        "status": "BLOCKED_BY_MATERIAL_CONFLICT",
+        "centralEstimate": null,
+        "range": null,
+        "weightedUnitValue": null,
+        "weightedLotPricePerSqft": null,
+        "unitMetric": "PRICE_PER_ACRE",
+        "qualifyingSalesCount": 0,
+        "valuationCompCount": 0,
+        "confidence": "LOW",
+        "confidenceReasons": [
+          "UNRESOLVED_MATERIAL_IDENTITY_OR_TYPE_CONFLICT"
+        ],
+        "dispersion": {
+          "coefficient": null,
+          "minimumUnitValue": null,
+          "maximumUnitValue": null
+        },
+        "valuationComps": [],
+        "marketReferenceOutliers": [],
+        "historicalReferences": [],
+        "exclusions": []
+      },
+      "providerEstimate": 174000,
+      "providerEstimateDivergence": null
+    },
+    "bent": {
+      "id": "b9bf9dc5-30af-4365-b05f-ea48895dbc19",
+      "type": "Land",
+      "strategy": "LAND",
+      "providerType": null,
+      "propertyTypeConflict": false,
+      "county": null,
+      "stateFips": null,
+      "countyFips": null,
+      "assessorId": null,
+      "yearBuilt": null,
+      "lotSizeSqft": 27442.8,
+      "lotSizeAcres": 0.63,
+      "assessedValue": null,
+      "annualPropertyTax": null,
+      "latestSalePrice": null,
+      "latestSaleDate": null,
+      "ownerOccupied": null,
+      "notes": "in front of lake and low HOA ($176/yr)",
+      "recentSalesMarketEstimate": null,
+      "providerEstimate": null,
+      "providerEstimateDivergence": null
+    },
+    "honolulu": {
+      "id": "e86dd292-429d-4b51-9b02-bc60a3e9068f",
+      "type": "SFR",
+      "strategy": "GENERIC_SELL",
+      "providerType": "Single Family",
+      "propertyTypeConflict": false,
+      "county": "Honolulu",
+      "stateFips": null,
+      "countyFips": null,
+      "assessorId": null,
+      "yearBuilt": 1976,
+      "lotSizeSqft": 10995,
+      "lotSizeAcres": 0.2524,
+      "assessedValue": 1842500,
+      "annualPropertyTax": 5168,
+      "latestSalePrice": 682130,
+      "latestSaleDate": "2014-03-07T00:00:00.000Z",
+      "ownerOccupied": true,
+      "notes": "Welcome home to a thoughtfully designed space where comfort, connection, and everyday living come naturally. Located in the prestigious Portlock neighborhood of Hawaii Kai, this 5-bedroom, 3-bathroom home offers the perfect blend of functionality, space, and island living. Boasting over 2,000 square feet of interior living area, the home's unique open-concept floor plan provides generous living and dining spaces ideal for both everyday living and entertaining. Spacious bedrooms provide flexibility for family, a home office, or multigenerational living, while three separate gated yard areas offer private outdoor spaces off each wing of the home. Step outside to your own private tropical retreat featuring a swimming pool and beautifully landscaped yard, creating the perfect setting for outdoor dining, relaxation, and year-round enjoyment. From the spacious gathering areas to the private backyard, this home was made for making memories. Located in one of East Honolulu's most coveted neighborhoods and just moments from both Hawaii Kai's shopping centers and desirable beach access points, this Portlock home offers the lifestyle, space, and comfort you've been searching for.",
+      "recentSalesMarketEstimate": {
+        "methodology": "RECENT_SALES_MARKET_ESTIMATE",
+        "methodologyVersion": "DEALSIFTER_RECENT_SALES_V1",
+        "propertyCategory": "RESIDENTIAL",
+        "conditionAdjustmentStatus": "CONDITION_NOT_ADJUSTED",
+        "providerAvmCompatibility": "COMPATIBLE",
+        "status": "AVAILABLE",
+        "centralEstimate": 2020196,
+        "range": {
+          "low": 1546740,
+          "high": 2789457
+        },
+        "weightedUnitValue": 865.92,
+        "weightedLotPricePerSqft": null,
+        "unitMetric": "PRICE_PER_SQFT",
+        "qualifyingSalesCount": 40,
+        "valuationCompCount": 5,
+        "confidence": "LOW",
+        "confidenceReasons": [
+          "5_QUALIFIED_RECENT_RECORDED_SALES",
+          "CONDITION_NOT_ADJUSTED",
+          "HIGH_UNIT_VALUE_DISPERSION"
+        ],
+        "dispersion": {
+          "coefficient": 1.0976,
+          "minimumUnitValue": 362.52,
+          "maximumUnitValue": 1312.97
+        },
+        "valuationComps": [
+          {
+            "providerPropertyId": "252-Lumahai-Pl,-Honolulu,-HI-96825",
+            "address": "252 Lumahai Pl, Honolulu, HI 96825",
+            "salePrice": 2750000,
+            "saleDate": "2026-05-18T00:00:00.000Z",
+            "saleAgeDays": 132,
+            "distanceMiles": 0.6942242248939435,
+            "propertyType": "Single Family",
+            "bedrooms": 3,
+            "bathrooms": 3.5,
+            "livingAreaSqft": 2300,
+            "lotSizeSqft": 13275,
+            "latitude": 21.26807,
+            "longitude": -157.706033,
+            "unitMetric": "PRICE_PER_SQFT",
+            "unitValue": 1195.6521739130435,
+            "lotPricePerSqft": null,
+            "impliedSubjectValue": 2789456.5217391304,
+            "weight": 0.736806541577228,
+            "structuralScore": 89.93,
+            "completenessScore": 70,
+            "providerCorrelation": 0,
+            "classification": "VALUATION_INCLUDED",
+            "reasons": [
+              "RECORDED_SALE",
+              "SALE_WITHIN_180_DAYS",
+              "STRUCTURALLY_QUALIFIED"
+            ]
+          },
+          {
+            "providerPropertyId": "1069-Lunalilo-Home-Rd,-Honolulu,-HI-96825",
+            "address": "1069 Lunalilo Home Rd, Honolulu, HI 96825",
+            "salePrice": 1680000,
+            "saleDate": "2026-06-24T00:00:00.000Z",
+            "saleAgeDays": 95,
+            "distanceMiles": 2.376710467626556,
+            "propertyType": "Single Family",
+            "bedrooms": 6,
+            "bathrooms": 4,
+            "livingAreaSqft": 2534,
+            "lotSizeSqft": 7832,
+            "latitude": 21.304586,
+            "longitude": -157.684276,
+            "unitMetric": "PRICE_PER_SQFT",
+            "unitValue": 662.9834254143647,
+            "lotPricePerSqft": null,
+            "impliedSubjectValue": 1546740.3314917127,
+            "weight": 0.6580987445510004,
+            "structuralScore": 76.14,
+            "completenessScore": 70,
+            "providerCorrelation": 0,
+            "classification": "VALUATION_INCLUDED",
+            "reasons": [
+              "RECORDED_SALE",
+              "SALE_WITHIN_180_DAYS",
+              "STRUCTURALLY_QUALIFIED"
+            ]
+          },
+          {
+            "providerPropertyId": "436-Kekauluohi-St,-Honolulu,-HI-96825",
+            "address": "436 Kekauluohi St, Honolulu, HI 96825",
+            "salePrice": 1550000,
+            "saleDate": "2026-04-08T00:00:00.000Z",
+            "saleAgeDays": 172,
+            "distanceMiles": 0.6443554410940516,
+            "propertyType": "Single Family",
+            "bedrooms": 5,
+            "bathrooms": 2,
+            "livingAreaSqft": 1790,
+            "lotSizeSqft": 6614,
+            "latitude": 21.281967,
+            "longitude": -157.698642,
+            "unitMetric": "PRICE_PER_SQFT",
+            "unitValue": 865.9217877094972,
+            "lotPricePerSqft": null,
+            "impliedSubjectValue": 2020195.5307262568,
+            "weight": 0.653173873129516,
+            "structuralScore": 84.5,
+            "completenessScore": 70,
+            "providerCorrelation": 0,
+            "classification": "VALUATION_INCLUDED",
+            "reasons": [
+              "RECORDED_SALE",
+              "SALE_WITHIN_180_DAYS",
+              "STRUCTURALLY_QUALIFIED"
+            ]
+          },
+          {
+            "providerPropertyId": "945-Wainiha-St,-Honolulu,-HI-96825",
+            "address": "945 Wainiha St, Honolulu, HI 96825",
+            "salePrice": 650000,
+            "saleDate": "2026-06-23T00:00:00.000Z",
+            "saleAgeDays": 96,
+            "distanceMiles": 2.059124582417997,
+            "propertyType": "Single Family",
+            "bedrooms": 5,
+            "bathrooms": 2.5,
+            "livingAreaSqft": 1793,
+            "lotSizeSqft": 9839,
+            "latitude": 21.297832,
+            "longitude": -157.683827,
+            "unitMetric": "PRICE_PER_SQFT",
+            "unitValue": 362.5209146681539,
+            "lotPricePerSqft": null,
+            "impliedSubjectValue": 845761.2939208031,
+            "weight": 0.6482520169209447,
+            "structuralScore": 77.07,
+            "completenessScore": 70,
+            "providerCorrelation": 0,
+            "classification": "VALUATION_INCLUDED",
+            "reasons": [
+              "RECORDED_SALE",
+              "SALE_WITHIN_180_DAYS",
+              "STRUCTURALLY_QUALIFIED"
+            ]
+          },
+          {
+            "providerPropertyId": "777-Kumukahi-Pl,-Honolulu,-HI-96825",
+            "address": "777 Kumukahi Pl, Honolulu, HI 96825",
+            "salePrice": 2450000,
+            "saleDate": "2026-04-13T00:00:00.000Z",
+            "saleAgeDays": 167,
+            "distanceMiles": 0.9181301603246861,
+            "propertyType": "Single Family",
+            "bedrooms": 4,
+            "bathrooms": 2.5,
+            "livingAreaSqft": 1866,
+            "lotSizeSqft": 7196,
+            "latitude": 21.29103,
+            "longitude": -157.710479,
+            "unitMetric": "PRICE_PER_SQFT",
+            "unitValue": 1312.9689174705252,
+            "lotPricePerSqft": null,
+            "impliedSubjectValue": 3063156.484458735,
+            "weight": 0.6445287105638842,
+            "structuralScore": 81.79,
+            "completenessScore": 70,
+            "providerCorrelation": 0,
+            "classification": "VALUATION_INCLUDED",
+            "reasons": [
+              "RECORDED_SALE",
+              "SALE_WITHIN_180_DAYS",
+              "STRUCTURALLY_QUALIFIED"
+            ]
+          }
+        ],
+        "marketReferenceOutliers": [
+          {
+            "providerPropertyId": "459-Portlock-Rd,-Apt-A,-Honolulu,-HI-96825",
+            "address": "459 Portlock Rd, Apt A, Honolulu, HI 96825",
+            "salePrice": 6000000,
+            "saleDate": "2026-06-15T00:00:00.000Z",
+            "saleAgeDays": 104,
+            "distanceMiles": 0.5430509380261782,
+            "propertyType": "Single Family",
+            "bedrooms": 5,
+            "bathrooms": 4,
+            "livingAreaSqft": 3208,
+            "lotSizeSqft": 15257,
+            "latitude": 21.270163,
+            "longitude": -157.708378,
+            "unitMetric": "PRICE_PER_SQFT",
+            "unitValue": 1870.3241895261845,
+            "lotPricePerSqft": null,
+            "impliedSubjectValue": 4363466.334164589,
+            "weight": 0.6365487683301391,
+            "structuralScore": 68.79,
+            "completenessScore": 70,
+            "providerCorrelation": 0,
+            "classification": "MARKET_REFERENCE_OUTLIER",
+            "reasons": [
+              "RECORDED_SALE",
+              "SALE_WITHIN_180_DAYS",
+              "STRUCTURALLY_QUALIFIED",
+              "UNIT_VALUE_OUTLIER"
+            ]
+          },
+          {
+            "providerPropertyId": "1158-Waiholo-St,-Honolulu,-HI-96821",
+            "address": "1158 Waiholo St, Honolulu, HI 96821",
+            "salePrice": 1000,
+            "saleDate": "2026-04-22T00:00:00.000Z",
+            "saleAgeDays": 158,
+            "distanceMiles": 4.174121273052428,
+            "propertyType": "Single Family",
+            "bedrooms": 6,
+            "bathrooms": 3.5,
+            "livingAreaSqft": 3163,
+            "lotSizeSqft": 14523,
+            "latitude": 21.27656,
+            "longitude": -157.772511,
+            "unitMetric": "PRICE_PER_SQFT",
+            "unitValue": 0.3161555485298767,
+            "lotPricePerSqft": null,
+            "impliedSubjectValue": 737.5908947202023,
+            "weight": 0.4289849287465612,
+            "structuralScore": 52.64,
+            "completenessScore": 70,
+            "providerCorrelation": 0,
+            "classification": "MARKET_REFERENCE_OUTLIER",
+            "reasons": [
+              "RECORDED_SALE",
+              "SALE_WITHIN_180_DAYS",
+              "STRUCTURALLY_QUALIFIED",
+              "UNIT_VALUE_OUTLIER"
+            ]
+          }
+        ],
+        "historicalReferences": [
+          {
+            "providerPropertyId": "7304-Kauhako-St,-Honolulu,-HI-96825",
+            "saleAgeDays": 247,
+            "reason": "SALE_OLDER_THAN_180_DAYS"
+          },
+          {
+            "providerPropertyId": "542-Kekupua-St,-Honolulu,-HI-96825",
+            "saleAgeDays": 261,
+            "reason": "SALE_OLDER_THAN_180_DAYS"
+          },
+          {
+            "providerPropertyId": "955-Kawaiki-Pl,-Honolulu,-HI-96825",
+            "saleAgeDays": 234,
+            "reason": "SALE_OLDER_THAN_180_DAYS"
+          },
+          {
+            "providerPropertyId": "1059-Kaumoku-St,-Honolulu,-HI-96825",
+            "saleAgeDays": 198,
+            "reason": "SALE_OLDER_THAN_180_DAYS"
+          },
+          {
+            "providerPropertyId": "7114-Niumalu-Loop,-Honolulu,-HI-96825",
+            "saleAgeDays": 264,
+            "reason": "SALE_OLDER_THAN_180_DAYS"
+          },
+          {
+            "providerPropertyId": "1201-Kaeleku-St,-Honolulu,-HI-96825",
+            "saleAgeDays": 201,
+            "reason": "SALE_OLDER_THAN_180_DAYS"
+          },
+          {
+            "providerPropertyId": "7227-Pikoni-Pl,-Honolulu,-HI-96825",
+            "saleAgeDays": 186,
+            "reason": "SALE_OLDER_THAN_180_DAYS"
+          },
+          {
+            "providerPropertyId": "7223-Naohe-St,-Honolulu,-HI-96825",
+            "saleAgeDays": 227,
+            "reason": "SALE_OLDER_THAN_180_DAYS"
+          },
+          {
+            "providerPropertyId": "1035-Kamaole-St,-Honolulu,-HI-96825",
+            "saleAgeDays": 205,
+            "reason": "SALE_OLDER_THAN_180_DAYS"
+          },
+          {
+            "providerPropertyId": "612-Hind-Iuka-Dr,-Honolulu,-HI-96821",
+            "saleAgeDays": 244,
+            "reason": "SALE_OLDER_THAN_180_DAYS"
+          },
+          {
+            "providerPropertyId": "930-Kaahue-St,-Honolulu,-HI-96825",
+            "saleAgeDays": 199,
+            "reason": "SALE_OLDER_THAN_180_DAYS"
+          },
+          {
+            "providerPropertyId": "7161-Waioli-Pl,-Honolulu,-HI-96825",
+            "saleAgeDays": 212,
+            "reason": "SALE_OLDER_THAN_180_DAYS"
+          },
+          {
+            "providerPropertyId": "1262-Pihana-St,-Honolulu,-HI-96825",
+            "saleAgeDays": 244,
+            "reason": "SALE_OLDER_THAN_180_DAYS"
+          },
+          {
+            "providerPropertyId": "7440-Kamehame-Pl,-Honolulu,-HI-96825",
+            "saleAgeDays": 244,
+            "reason": "SALE_OLDER_THAN_180_DAYS"
+          },
+          {
+            "providerPropertyId": "1090-Kumukumu-St,-Apt-C,-Honolulu,-HI-96825",
+            "saleAgeDays": 249,
+            "reason": "SALE_OLDER_THAN_180_DAYS"
+          },
+          {
+            "providerPropertyId": "607-Kealahou-St,-Honolulu,-HI-96825",
+            "saleAgeDays": 240,
+            "reason": "SALE_OLDER_THAN_180_DAYS"
+          },
+          {
+            "providerPropertyId": "520-Lunalilo-Home-Rd,-Unit-6202,-Honolulu,-HI-96825",
+            "saleAgeDays": 181,
+            "reason": "SALE_OLDER_THAN_180_DAYS"
+          },
+          {
+            "providerPropertyId": "1460-Kamole-St,-Honolulu,-HI-96821",
+            "saleAgeDays": 228,
+            "reason": "SALE_OLDER_THAN_180_DAYS"
+          },
+          {
+            "providerPropertyId": "6002-Kaniela-Pl,-Honolulu,-HI-96821",
+            "saleAgeDays": 205,
+            "reason": "SALE_OLDER_THAN_180_DAYS"
+          },
+          {
+            "providerPropertyId": "1205-Lunalilo-Home-Rd,-Honolulu,-HI-96825",
+            "saleAgeDays": 247,
+            "reason": "SALE_OLDER_THAN_180_DAYS"
+          },
+          {
+            "providerPropertyId": "1315-Kaeleku-St,-Honolulu,-HI-96825",
+            "saleAgeDays": 186,
+            "reason": "SALE_OLDER_THAN_180_DAYS"
+          },
+          {
+            "providerPropertyId": "345-Kamala-Loop,-Honolulu,-HI-96825",
+            "saleAgeDays": 265,
+            "reason": "SALE_OLDER_THAN_180_DAYS"
+          },
+          {
+            "providerPropertyId": "344-Wailupe-Cir,-Honolulu,-HI-96821",
+            "saleAgeDays": 240,
+            "reason": "SALE_OLDER_THAN_180_DAYS"
+          },
+          {
+            "providerPropertyId": "5270-Kilauea-Ave,-Honolulu,-HI-96816",
+            "saleAgeDays": 262,
+            "reason": "SALE_OLDER_THAN_180_DAYS"
+          },
+          {
+            "providerPropertyId": "5197-Poola-St,-Honolulu,-HI-96821",
+            "saleAgeDays": 209,
+            "reason": "SALE_OLDER_THAN_180_DAYS"
+          },
+          {
+            "providerPropertyId": "1789-Laukahi-St,-Honolulu,-HI-96821",
+            "saleAgeDays": 240,
+            "reason": "SALE_OLDER_THAN_180_DAYS"
+          },
+          {
+            "providerPropertyId": "2067-Laukahi-St,-Honolulu,-HI-96821",
+            "saleAgeDays": 262,
+            "reason": "SALE_OLDER_THAN_180_DAYS"
+          },
+          {
+            "providerPropertyId": "1154-Kaimoku-Pl,-Honolulu,-HI-96821",
+            "saleAgeDays": 235,
+            "reason": "SALE_OLDER_THAN_180_DAYS"
+          },
+          {
+            "providerPropertyId": "309-Hanakapiai-St,-Honolulu,-HI-96825",
+            "saleAgeDays": 233,
+            "reason": "SALE_OLDER_THAN_180_DAYS"
+          },
+          {
+            "providerPropertyId": "353-Kamala-Loop,-Honolulu,-HI-96825",
+            "saleAgeDays": 236,
+            "reason": "SALE_OLDER_THAN_180_DAYS"
+          },
+          {
+            "providerPropertyId": "520-Lunalilo-Home-Rd,-Unit-7121,-Honolulu,-HI-96825",
+            "saleAgeDays": 264,
+            "reason": "SALE_OLDER_THAN_180_DAYS"
+          },
+          {
+            "providerPropertyId": "520-Lunalilo-Home-Rd,-Unit-7411,-Honolulu,-HI-96825",
+            "saleAgeDays": 234,
+            "reason": "SALE_OLDER_THAN_180_DAYS"
+          },
+          {
+            "providerPropertyId": "520-Lunalilo-Home-Rd,-Unit-7211,-Honolulu,-HI-96825",
+            "saleAgeDays": 256,
+            "reason": "SALE_OLDER_THAN_180_DAYS"
+          },
+          {
+            "providerPropertyId": "520-Lunalilo-Home-Rd,-Unit-7311,-Honolulu,-HI-96825",
+            "saleAgeDays": 264,
+            "reason": "SALE_OLDER_THAN_180_DAYS"
+          },
+          {
+            "providerPropertyId": "41-570-Mekia-St,-Waimanalo,-HI-96795",
+            "saleAgeDays": 268,
+            "reason": "SALE_OLDER_THAN_180_DAYS"
+          },
+          {
+            "providerPropertyId": "4611-Kilauea-Ave,-Honolulu,-HI-96816",
+            "saleAgeDays": 215,
+            "reason": "SALE_OLDER_THAN_180_DAYS"
+          },
+          {
+            "providerPropertyId": "790-Ipuai-St,-Honolulu,-HI-96825",
+            "saleAgeDays": 256,
+            "reason": "SALE_OLDER_THAN_180_DAYS"
+          },
+          {
+            "providerPropertyId": "730-Ahuwale-St,-Honolulu,-HI-96821",
+            "saleAgeDays": 222,
+            "reason": "SALE_OLDER_THAN_180_DAYS"
+          },
+          {
+            "providerPropertyId": "1058-Awawamalu-St,-Apt-C,-Honolulu,-HI-96825",
+            "saleAgeDays": 212,
+            "reason": "SALE_OLDER_THAN_180_DAYS"
+          }
+        ],
+        "exclusions": []
+      },
+      "providerEstimate": null,
+      "providerEstimateDivergence": -1
+    }
+  }
+}

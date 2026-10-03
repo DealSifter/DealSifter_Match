@@ -35,6 +35,12 @@ export type RecentSalesValuationComp = {
   saleAgeDays: number;
   distanceMiles: number;
   propertyType: string | null;
+  bedrooms: number | null;
+  bathrooms: number | null;
+  livingAreaSqft: number | null;
+  lotSizeSqft: number | null;
+  latitude: number | null;
+  longitude: number | null;
   unitMetric: 'PRICE_PER_SQFT' | 'PRICE_PER_ACRE';
   unitValue: number;
   lotPricePerSqft: number | null;
@@ -193,7 +199,11 @@ export function buildRecentSalesMarketEstimate(
     qualified.push({
       providerPropertyId: id, address: candidate.soldRecord.formattedAddress,
       salePrice: price!, saleDate: candidate.recordedSaleDate!, saleAgeDays: age!, distanceMiles: distance!,
-      propertyType: candidate.soldRecord.propertyType, unitMetric: land ? 'PRICE_PER_ACRE' : 'PRICE_PER_SQFT',
+      propertyType: candidate.soldRecord.propertyType,
+      bedrooms: candidate.soldRecord.bedrooms, bathrooms: candidate.soldRecord.bathrooms,
+      livingAreaSqft: candidate.soldRecord.livingAreaSqft, lotSizeSqft: candidate.soldRecord.lotSizeSqft,
+      latitude: candidate.soldRecord.latitude, longitude: candidate.soldRecord.longitude,
+      unitMetric: land ? 'PRICE_PER_ACRE' : 'PRICE_PER_SQFT',
       unitValue, lotPricePerSqft, impliedSubjectValue, weight: Math.max(0.0001, weight),
       structuralScore, completenessScore, providerCorrelation: correlation,
       classification: 'VALUATION_INCLUDED', reasons: ['RECORDED_SALE', 'SALE_WITHIN_180_DAYS', 'STRUCTURALLY_QUALIFIED'],

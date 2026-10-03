@@ -56,10 +56,12 @@ const COPY = Object.freeze({
     coordinateMap: 'Schematic positions from stored coordinates; not a street map.', mapArea: 'MARKET AREA',
     address: 'Address', salePrice: 'Sale price', date: 'Date', distance: 'Distance', bedsBaths: 'Beds / Baths', similarity: 'Similarity',
     used: 'USED', supporting: 'SUPPORTING', excluded: 'EXCLUDED', totalComps: 'Comparable records', usedComparables: 'Used in analysis', averageSalePrice: 'Average sale price', averageSimilarity: 'Average similarity',
-    compsUsed: 'Comps used', confidence: 'Confidence', pricePerSqft: 'Price / sqft', lotAcres: 'Lot / acres', pricePerAcre: 'Price / acre', pricePerLotSqft: 'Price / lot sqft', assessorId: 'APN / Assessor ID', zoning: 'Zoning',
+    compsUsed: 'Comps used', confidence: 'Confidence', pricePerSqft: 'Price / sqft', lotAcres: 'Lot / acres', pricePerAcre: 'Price / acre', pricePerLotSqft: 'Price / lot sqft', assessorId: 'APN / Assessor ID', zoning: 'Zoning', legalDescription: 'Legal description', subdivision: 'Subdivision', hoaFee: 'HOA fee', features: 'Material features',
     costBasis: 'Cost basis', spread: 'Spread', roiScenario: 'ROI scenario', marketPricePerSqft: 'Comparable avg. / sqft', subjectVsMarket: 'Subject vs. market', averageDistance: 'Average distance',
     arvAvailable: 'ARV available', arvLimited: 'ARV limited by evidence', arvUnavailable: 'ARV unavailable', arvNotApplicable: 'Residential ARV not applicable',
-    providerEstimateStatus: 'Supporting provider estimate — not DealSifter ARV',
+    providerEstimateStatus: 'Supporting provider estimate — not DealSifter ARV', providerEstimateQuarantined: 'Quarantined: provider property type conflicts with the canonical DealSifter type.',
+    recentSalesValue: 'Recent-sales market estimate', recentSalesValueShort: 'Recent-sales estimate', recentSalesRange: 'Recent-sales range', recentSalesComps: 'Recent-sales valuation comps', arvComps: 'ARV confirmed comps',
+    weightedUnit: 'Weighted unit value', dispersion: 'Dispersion', divergence: 'Provider divergence', recent: 'VALUATION',
     conflict: 'Needs verification: stored evidence conflicts with the narrative.', low: 'Low', middle: 'Mid', high: 'High',
   },
   pt: {
@@ -99,10 +101,12 @@ const COPY = Object.freeze({
     coordinateMap: 'Posições esquemáticas das coordenadas armazenadas; não é um mapa de ruas.', mapArea: 'ÁREA DE MERCADO',
     address: 'Endereço', salePrice: 'Preço de venda', date: 'Data', distance: 'Distância', bedsBaths: 'Quartos / Banhos', similarity: 'Similaridade',
     used: 'USADO', supporting: 'SUPORTE', excluded: 'EXCLUÍDO', totalComps: 'Registros comparáveis', usedComparables: 'Usados na análise', averageSalePrice: 'Preço médio de venda', averageSimilarity: 'Similaridade média',
-    compsUsed: 'Comps usados', confidence: 'Confiança', pricePerSqft: 'Preço / sqft', lotAcres: 'Lote / acres', pricePerAcre: 'Preço / acre', pricePerLotSqft: 'Preço / sqft do lote', assessorId: 'APN / cadastro fiscal', zoning: 'Zoneamento',
+    compsUsed: 'Comps usados', confidence: 'Confiança', pricePerSqft: 'Preço / sqft', lotAcres: 'Lote / acres', pricePerAcre: 'Preço / acre', pricePerLotSqft: 'Preço / sqft do lote', assessorId: 'APN / cadastro fiscal', zoning: 'Zoneamento', legalDescription: 'Descrição legal', subdivision: 'Loteamento', hoaFee: 'Taxa de HOA', features: 'Características relevantes',
     costBasis: 'Custo base', spread: 'Margem', roiScenario: 'Cenário de ROI', marketPricePerSqft: 'Média comparáveis / sqft', subjectVsMarket: 'Imóvel vs. mercado', averageDistance: 'Distância média',
     arvAvailable: 'ARV disponível', arvLimited: 'ARV limitado pelas evidências', arvUnavailable: 'ARV indisponível', arvNotApplicable: 'ARV residencial não aplicável',
-    providerEstimateStatus: 'Estimativa de apoio do provedor — não é ARV DealSifter',
+    providerEstimateStatus: 'Estimativa de apoio do provedor — não é ARV DealSifter', providerEstimateQuarantined: 'Em quarentena: o tipo do provedor diverge do tipo canônico no DealSifter.',
+    recentSalesValue: 'Estimativa de mercado por vendas recentes', recentSalesValueShort: 'Estimativa por vendas recentes', recentSalesRange: 'Faixa por vendas recentes', recentSalesComps: 'Comparáveis da avaliação de mercado', arvComps: 'Comparáveis confirmados para ARV',
+    weightedUnit: 'Valor unitário ponderado', dispersion: 'Dispersão', divergence: 'Divergência do provedor', recent: 'AVALIAÇÃO',
     conflict: 'Requer verificação: evidências estruturadas divergem do texto.', low: 'Baixo', middle: 'Médio', high: 'Alto',
   },
   es: {
@@ -142,10 +146,12 @@ const COPY = Object.freeze({
     coordinateMap: 'Posiciones esquemáticas de coordenadas guardadas; no es un mapa de calles.', mapArea: 'ÁREA DE MERCADO',
     address: 'Dirección', salePrice: 'Precio de venta', date: 'Fecha', distance: 'Distancia', bedsBaths: 'Hab. / Baños', similarity: 'Similitud',
     used: 'USADO', supporting: 'APOYO', excluded: 'EXCLUIDO', totalComps: 'Registros comparables', usedComparables: 'Usados en el análisis', averageSalePrice: 'Precio medio de venta', averageSimilarity: 'Similitud media',
-    compsUsed: 'Comps usados', confidence: 'Confianza', pricePerSqft: 'Precio / sqft', lotAcres: 'Lote / acres', pricePerAcre: 'Precio / acre', pricePerLotSqft: 'Precio / sqft del lote', assessorId: 'APN / registro fiscal', zoning: 'Zonificación',
+    compsUsed: 'Comps usados', confidence: 'Confianza', pricePerSqft: 'Precio / sqft', lotAcres: 'Lote / acres', pricePerAcre: 'Precio / acre', pricePerLotSqft: 'Precio / sqft del lote', assessorId: 'APN / registro fiscal', zoning: 'Zonificación', legalDescription: 'Descripción legal', subdivision: 'Urbanización', hoaFee: 'Cuota de HOA', features: 'Características relevantes',
     costBasis: 'Costo base', spread: 'Diferencia', roiScenario: 'Escenario de ROI', marketPricePerSqft: 'Promedio comps / sqft', subjectVsMarket: 'Propiedad vs. mercado', averageDistance: 'Distancia media',
     arvAvailable: 'ARV disponible', arvLimited: 'ARV limitado por la evidencia', arvUnavailable: 'ARV no disponible', arvNotApplicable: 'ARV residencial no aplicable',
-    providerEstimateStatus: 'Estimación de apoyo del proveedor — no es ARV DealSifter',
+    providerEstimateStatus: 'Estimación de apoyo del proveedor — no es ARV DealSifter', providerEstimateQuarantined: 'En cuarentena: el tipo del proveedor difiere del tipo canónico en DealSifter.',
+    recentSalesValue: 'Estimación de mercado por ventas recientes', recentSalesValueShort: 'Estimación por ventas recientes', recentSalesRange: 'Rango por ventas recientes', recentSalesComps: 'Comparables de valoración de mercado', arvComps: 'Comparables confirmados para ARV',
+    weightedUnit: 'Valor unitario ponderado', dispersion: 'Dispersión', divergence: 'Divergencia del proveedor', recent: 'VALORACIÓN',
     conflict: 'Requiere verificación: la evidencia estructurada difiere del texto.', low: 'Bajo', middle: 'Medio', high: 'Alto',
   },
 });
@@ -161,10 +167,13 @@ const reportNarrative = (input, fallback = '', language = 'en') => {
   return explainMaxxisEvidenceState(raw, language);
 };
 const DISPLAY_VALUE = Object.freeze({
+  en: Object.freeze({ SELLER_FINANCING: 'Seller Financing', BUY_AND_HOLD: 'Buy and Hold', WHOLESALE: 'Wholesale', FLIP: 'Fix and Flip', SUB_TO: 'Subject-to', LAND: 'Land', GENERIC_SELL: 'Sell', DATA_RISK: 'Data evidence', MARKET_RISK: 'Market context', VALUATION_RISK: 'Valuation evidence', EXECUTION_RISK: 'Execution', true: 'Yes', false: 'No' }),
   pt: Object.freeze({ Sell: 'Venda', Buy: 'Compra', 'Buy and Hold': 'Comprar e manter', true: 'Sim', false: 'Não',
+    SELLER_FINANCING: 'Financiamento pelo vendedor', BUY_AND_HOLD: 'Comprar e manter', WHOLESALE: 'Atacado', FLIP: 'Reforma e revenda', SUB_TO: 'Subject-to', LAND: 'Terreno', GENERIC_SELL: 'Venda', DATA_RISK: 'Evidências dos dados', MARKET_RISK: 'Contexto de mercado', VALUATION_RISK: 'Evidências de avaliação', EXECUTION_RISK: 'Execução',
     HIGH: 'Alta', MODERATE: 'Moderada', MEDIUM: 'Média', LOW: 'Baixa', LIMITED: 'Limitada', MATCHED: 'Aderente', NOT_MATCHED: 'Não aderente', PARTIAL: 'Parcial',
     'Not verified': 'Não verificado', Published: 'Publicado', Individual: 'Pessoa física' }),
   es: Object.freeze({ Sell: 'Venta', Buy: 'Compra', 'Buy and Hold': 'Comprar y mantener', true: 'Sí', false: 'No',
+    SELLER_FINANCING: 'Financiación del vendedor', BUY_AND_HOLD: 'Comprar y mantener', WHOLESALE: 'Venta mayorista', FLIP: 'Reforma y reventa', SUB_TO: 'Subject-to', LAND: 'Terreno', GENERIC_SELL: 'Venta', DATA_RISK: 'Evidencia de datos', MARKET_RISK: 'Contexto de mercado', VALUATION_RISK: 'Evidencia de valoración', EXECUTION_RISK: 'Ejecución',
     HIGH: 'Alta', MODERATE: 'Moderada', MEDIUM: 'Media', LOW: 'Baja', LIMITED: 'Limitada', MATCHED: 'Compatible', NOT_MATCHED: 'No compatible', PARTIAL: 'Parcial',
     'Not verified': 'No verificado', Published: 'Publicado', Individual: 'Persona física' }),
 });
@@ -173,15 +182,18 @@ const displayValue = (input, t) => {
   return DISPLAY_VALUE[t.locale]?.[raw] || raw;
 };
 const localizedPropertyNotes = (property, t) => {
-  if (t.locale === 'en') return property.notes || property.description || t.unavailable;
-  const place = location(property) || t.unavailable;
-  const type = displayValue(property.type, t);
-  const facts = `${value(property.beds, '–')} ${t.beds.toLowerCase()}, ${value(property.baths, '–')} ${t.baths.toLowerCase()} e ${value(property.sqft, '–')} sqft`;
-  return t.locale === 'pt'
-    ? `Imóvel cadastrado em ${place}, do tipo ${type}, com ${facts}. Consulte as seções deste relatório para verificar os dados disponíveis e as limitações aplicáveis.`
-    : `Propiedad registrada en ${place}, de tipo ${type}, con ${facts.replace(' e ', ' y ')}. Consulta las secciones de este informe para verificar los datos disponibles y las limitaciones aplicables.`;
+  return property.propertyUserNotes || property.notes || t.unavailable;
 };
-const currency = (input, t) => Number.isFinite(Number(input)) && Number(input) > 0
+const localizedDate = (input, t) => {
+  if (!input) return null;
+  const date = new Date(String(input));
+  if (Number.isNaN(date.getTime())) return String(input);
+  return t.locale === 'en'
+    ? new Intl.DateTimeFormat('en-US', { month: 'short', day: 'numeric', year: 'numeric', timeZone: 'UTC' }).format(date)
+    : new Intl.DateTimeFormat(t.locale === 'pt' ? 'pt-BR' : 'es-ES', { day: '2-digit', month: '2-digit', year: 'numeric', timeZone: 'UTC' }).format(date);
+};
+const currency = (input, t) => input !== null && input !== undefined && input !== ''
+  && Number.isFinite(Number(input)) && Number(input) >= 0
   ? `$${Number(input).toLocaleString('en-US')}` : t.unavailable;
 const location = (property) => [property.city, [property.state, property.zip].filter(Boolean).join(' ')].filter(Boolean).join(', ');
 const accentFor = (type) => type === 'DEAL_INTELLIGENCE' ? C.gold : type === 'MAXXIS_ANALYSIS' ? C.green : C.teal;
@@ -190,14 +202,23 @@ const planFor = (type) => type === 'DEAL_INTELLIGENCE' ? 'ENTERPRISE' : type ===
 
 function text(doc, input, x, y, { size = 9, bold = false, color = C.ink, width = null, maxLines = 3, align = 'left' } = {}) {
   doc.setFont('NotoSans', bold ? 'bold' : 'normal');
-  doc.setFontSize(size);
   doc.setTextColor(...color);
-  const wrapped = width ? doc.splitTextToSize(value(input, ''), width) : [value(input, '')];
+  const content = value(input, '');
   const hasLineLimit = Number.isFinite(maxLines);
-  const lines = hasLineLimit ? wrapped.slice(0, maxLines) : wrapped;
-  if (hasLineLimit && wrapped.length > maxLines && lines.length) lines[lines.length - 1] = `${lines[lines.length - 1].trimEnd()}…`;
+  let effectiveSize = size;
+  doc.setFontSize(effectiveSize);
+  let wrapped = width ? doc.splitTextToSize(content, width) : [content];
+  // Fixed-page reports must preserve supplied text. When a bounded slot is
+  // tighter than its localized content, reduce the font before adding lines;
+  // never replace factual or analytical content with an ellipsis.
+  while (hasLineLimit && width && wrapped.length > maxLines && effectiveSize > 4.2) {
+    effectiveSize = Math.max(4.2, effectiveSize - 0.2);
+    doc.setFontSize(effectiveSize);
+    wrapped = doc.splitTextToSize(content, width);
+  }
+  const lines = wrapped;
   doc.text(lines, x, y, { align });
-  return y + lines.length * (size + 3);
+  return y + lines.length * (effectiveSize + 3);
 }
 function softColor(color, whiteRatio = .9) {
   return color.map((channel, index) => Math.round(channel * (1 - whiteRatio) + C.white[index] * whiteRatio));
@@ -429,24 +450,34 @@ function propertyFactGrid(doc, property, evidence, t, accent, y) {
   const latestSaleDate = fact('latestSaleDate', property.latestSaleDate);
   const latestSale = [
     fact('latestSalePrice', property.latestSalePrice) ? currency(fact('latestSalePrice', property.latestSalePrice), t) : null,
-    latestSaleDate ? String(latestSaleDate) : null,
+    localizedDate(latestSaleDate, t),
   ].filter(Boolean).join(' · ');
+  const assessed = [fact('assessedValue', property.assessedValue) != null
+    ? currency(fact('assessedValue', property.assessedValue), t) : null,
+    fact('assessmentYear', property.assessmentYear)].filter(Boolean).join(' · ');
+  const propertyTax = [fact('annualPropertyTax', property.annualPropertyTax) != null
+    ? currency(fact('annualPropertyTax', property.annualPropertyTax), t) : null,
+    fact('propertyTaxYear', property.propertyTaxYear)].filter(Boolean).join(' · ');
+  const materialFeatures = array(property.materialPropertyFeatures).map((item) => typeof item === 'string' ? item : item?.name || item?.label).filter(Boolean).join(' · ');
   const isLand = /^(?:vacant\s+land|land|lot|terreno|solar)$/i.test(String(property.type || '').trim());
   const characteristicFacts = isLand
-    ? [[t.type, property.type], [t.strategy, property.objective], [t.lotAcres, property.lotSizeAcres],
+    ? [[t.type, property.resolvedAnalysisPropertyType || property.type], [t.strategy, property.resolvedAnalysisStrategy || property.objective], [t.lotAcres, property.lotSizeAcres],
       [t.pricePerAcre, property.pricePerAcre == null ? null : currency(property.pricePerAcre, t)],
       [t.pricePerLotSqft, property.pricePerLotSqft == null ? null : currency(property.pricePerLotSqft, t)],
       [t.zoning, fact('zoning', property.zoning)]]
-    : [[t.type, property.type], [t.strategy, property.objective], [t.yearBuilt, fact('yearBuilt', property.yearBuilt)],
+    : [[t.type, property.resolvedAnalysisPropertyType || property.type], [t.strategy, property.resolvedAnalysisStrategy || property.objective], [t.yearBuilt, fact('yearBuilt', property.yearBuilt)],
       [t.beds, fact('bedrooms', property.beds)], [t.baths, fact('bathrooms', property.baths)],
-      [t.sqft, fact('livingAreaSqft', property.sqft)]];
+      [t.sqft, fact('livingAreaSqft', property.sqft)], [t.subdivision, fact('subdivision', property.subdivision)],
+      [t.hoaFee, fact('hoaFee', property.hoaFee) == null ? null : currency(fact('hoaFee', property.hoaFee), t)],
+      [t.features, materialFeatures]];
   const facts = [
-    [t.owner, [[t.ownerName, owner.name], [t.ownerType, owner.type], [t.status, owner.status], [t.contacts, contacts], [t.ownerOccupied, fact('ownerOccupied', property.ownerOccupied)], [t.latestSale, latestSale]]],
+    [t.owner, [[t.ownerName, owner.name], [t.ownerType, owner.type], [t.status, owner.status], [t.contacts, contacts], [t.ownerOccupied, fact('ownerOccupied', property.ownerOccupied)], [t.ownershipRecord, fact('ownershipRecordPresent', property.ownershipRecordPresent)], [t.latestSale, latestSale]]],
     [t.facts, characteristicFacts],
-    [t.land, [[t.location, [property.city, property.state].filter(Boolean).join(', ')], [t.county, fact('county', property.county)], [t.lot, fact('lotSizeSqft', property.lotSizeSqft ?? property.lot)], [t.assessorId, fact('assessorId', property.assessorId)], [t.assessedValue, fact('assessedValue', property.assessedValue) ? currency(fact('assessedValue', property.assessedValue), t) : null], [t.propertyTax, fact('annualPropertyTax', property.annualPropertyTax) ? currency(fact('annualPropertyTax', property.annualPropertyTax), t) : null]]],
-  ];
+    [t.land, [[t.location, [property.city, property.state].filter(Boolean).join(', ')], [t.county, fact('county', property.county)], [t.lot, fact('lotSizeSqft', property.lotSizeSqft ?? property.lot)], [t.assessorId, fact('assessorId', property.assessorId)], [t.legalDescription, fact('legalDescription', property.legalDescription)], [t.subdivision, fact('subdivision', property.subdivision)], [t.zoning, fact('zoning', property.zoning)], [t.assessedValue, assessed], [t.propertyTax, propertyTax]]],
+  ].map(([title, entries]) => [title, entries.filter(([, entry]) => entry !== null && entry !== undefined && entry !== ''
+    && (!Array.isArray(entry) || entry.length > 0))]);
   const rowOptions = {
-    lineHeight: 14, labelWidth: 55, limit: 6, t,
+    lineHeight: 13, labelWidth: 55, limit: 10, t,
     labelSize: 7, valueSize: 6.8, valueMaxLines: null,
   };
   const contentHeight = Math.max(...facts.map(([, entries]) => rows(doc, entries, 0, 0, w - 20, { ...rowOptions, draw: false })));
@@ -482,7 +513,13 @@ function propertyBottom(doc, property, t, accent, y, images, conflicts = [], map
   }
   const notesX = M + locationWidth + gap;
   panel(doc, notesX, y, notesWidth, bottomHeight, { accent: notes.title && notes.title !== t.notes ? accent : null }); heading(doc, notes.title || t.notes, notesX + 10, y + 23, notesWidth - 20, accent);
-  text(doc, notes.text || localizedPropertyNotes(property, t), notesX + 11, y + 45, { size: 8.7, width: notesWidth - 22, maxLines: conflicts.length ? 15 : 18 });
+  const primaryText = notes.text || localizedPropertyNotes(property, t);
+  text(doc, primaryText, notesX + 11, y + 45, { size: 8.7, width: notesWidth - 22, maxLines: notes.secondaryText ? 5 : conflicts.length ? 15 : 18 });
+  if (notes.secondaryText && bottomHeight >= 190) {
+    doc.setDrawColor(...C.line); doc.line(notesX + 10, y + 113, notesX + notesWidth - 10, y + 113);
+    heading(doc, notes.secondaryTitle || t.opportunity, notesX + 10, y + 140, notesWidth - 20, accent);
+    text(doc, notes.secondaryText, notesX + 11, y + 162, { size: 7.7, width: notesWidth - 22, maxLines: 7 });
+  }
   if (conflicts.length) text(doc, t.conflict, notesX + 11, y + 222, { size: 7.2, bold: true, color: C.gold, width: notesWidth - 22, maxLines: 2 });
 }
 function propertyReleaseBottom(doc, property, t, accent, y, images, mapImage) {
@@ -491,8 +528,6 @@ function propertyReleaseBottom(doc, property, t, accent, y, images, mapImage) {
 function renderPropertyOverview(doc, schema, t, accent, images, mapImage) {
   const property = section(schema, 'propertySummary') || {};
   const evidence = section(schema, 'propertyEvidence') || {};
-  const translatedContext = schema?.structuredAnalysis?.language === t.locale
-    ? schema.structuredAnalysis.propertyContextInterpretation : '';
   if (schema.reportType === 'PROPERTY_RELEASE') {
     propertyReleaseHero(doc, property, t, accent, images[0]);
     const factGridBottom = propertyFactGrid(doc, property, evidence, t, accent, 315);
@@ -501,15 +536,25 @@ function renderPropertyOverview(doc, schema, t, accent, images, mapImage) {
   }
   propertyHero(doc, property, t, accent, images[0]);
   const factGridBottom = propertyFactGrid(doc, property, evidence, t, accent, 315);
-  propertyBottom(doc, property, t, accent, factGridBottom + 15, images, array(evidence.conflicts), mapImage, { text: translatedContext });
+  propertyBottom(doc, property, t, accent, factGridBottom + 15, images, array(evidence.conflicts), mapImage);
 }
 function renderExecutive(doc, schema, t, accent, images, mapImage) {
   const property = section(schema, 'propertySummary') || {};
   const summary = section(schema, 'executiveSummary') || {};
   propertyHero(doc, property, t, accent, images[0]);
   const factGridBottom = propertyFactGrid(doc, property, {}, t, accent, 315);
-  const summaryText = [summary.summary, ...positiveObservations(summary).map((item) => `• ${item}`)].filter(Boolean).join('\n');
-  propertyBottom(doc, property, t, accent, factGridBottom + 15, images, [], mapImage, { title: t.opportunity, text: summaryText });
+  const recent = summary.marketContext?.recentSalesMarketEstimate;
+  const recentSummary = recent?.status === 'AVAILABLE' && recent.centralEstimate
+    ? `${t.recentSalesValue}: ${currency(recent.centralEstimate, t)}${recent.range
+      ? ` (${currency(recent.range.low, t)} – ${currency(recent.range.high, t)})` : ''}; ${recent.valuationCompCount || 0} ${t.recentSalesComps.toLowerCase()}.` : '';
+  const summaryText = [
+    summary.summary,
+    ...positiveObservations(summary).map((item) => `• ${item}`),
+    recentSummary,
+  ].filter(Boolean).join('\n');
+  propertyBottom(doc, property, t, accent, factGridBottom + 15, images, [], mapImage, {
+    secondaryTitle: t.opportunity, secondaryText: summaryText,
+  });
 }
 function profileRows(profile, t) {
   const profileCriterion = (criterion) => t.locale === 'en'
@@ -637,16 +682,23 @@ function renderInsights(doc, schema, t, accent, { verification = false } = {}) {
   const structuredMissing = array(structured.missingEvidence);
   const structuredConcerns = array(structured.concerns);
   const structuredSteps = [...array(structured.recommendedVerificationSteps), ...array(structured.recommendedActions)];
-  const missing = structuredMissing.length ? structuredMissing : (attention.length ? attention : limitations);
+  const page5 = structured.reportPage5 || {};
+  const missing = verification && array(page5.stillUnknown).length ? array(page5.stillUnknown)
+    : structuredMissing.length ? structuredMissing : (attention.length ? attention : limitations);
   const valuationWarnings = array(section(schema, 'valuationEvidence')?.warnings);
   const evidenceConflicts = array(section(schema, 'propertyEvidence')?.conflicts).map((item) => `${t.conflict} ${value(item?.field, '')}`.trim());
-  const considerations = structuredConcerns.length ? structuredConcerns
+  const considerations = verification && array(page5.weakensDeal).length ? array(page5.weakensDeal)
+    : structuredConcerns.length ? structuredConcerns
     : attention.length ? limitations : [...valuationWarnings, ...evidenceConflicts].filter((item) => !missing.includes(item));
   const w = (CONTENT - 12) / 2;
-  listPanel(doc, t.positives, array(structured.positiveSignals).length ? array(structured.positiveSignals) : positiveObservations(summary), M, 128, w, 258, t, accent, { positive: true });
+  const positives = verification && array(page5.supportsDeal).length ? array(page5.supportsDeal)
+    : array(structured.positiveSignals).length ? array(structured.positiveSignals) : positiveObservations(summary);
+  const verificationSteps = verification && array(page5.verifyFirst).length ? array(page5.verifyFirst)
+    : structuredSteps.length ? structuredSteps : steps;
+  listPanel(doc, t.positives, positives, M, 128, w, 258, t, accent, { positive: true });
   listPanel(doc, t.missing, missing, M + w + 12, 128, w, 258, t, accent);
-  listPanel(doc, verification ? t.considerations : t.next, verification ? considerations : (structuredSteps.length ? structuredSteps : steps), M, 398, w, 257, t, accent);
-  listPanel(doc, verification ? t.next : t.considerations, verification ? (structuredSteps.length ? structuredSteps : steps) : considerations, M + w + 12, 398, w, 257, t, accent);
+  listPanel(doc, verification ? t.considerations : t.next, verification ? considerations : verificationSteps, M, 398, w, 257, t, accent);
+  listPanel(doc, verification ? t.next : t.considerations, verification ? verificationSteps : considerations, M + w + 12, 398, w, 257, t, accent);
   panel(doc, M, 667, CONTENT, 85, { fill: C.white, accent });
   heading(doc, t.conclusion, M + 12, 691, CONTENT - 24, accent);
   text(doc, structured.profileAdaptedConclusion || summary.summary || t.noDetails, M + 12, 714, { size: 9, width: CONTENT - 24, maxLines: 3 });
@@ -655,13 +707,26 @@ function renderComparables(doc, schema, t, accent, comparableMap) {
   const structured = schema?.structuredAnalysis || {};
   const property = section(schema, 'propertySummary') || {};
   const comps = section(schema, 'comparableEvidence') || {};
-  const all = [...array(comps.used).map((v) => ({ ...v, status: 'USED' })), ...array(comps.supporting).map((v) => ({ ...v, status: 'SUPPORTING' })), ...array(comps.excluded).map((v) => ({ ...v, status: 'EXCLUDED' }))];
+  const valuation = section(schema, 'valuationEvidence') || {};
+  const recentEstimate = valuation.recentSalesMarketEstimate || {};
+  const recentComps = array(recentEstimate.valuationComps).map((comp) => ({
+    ...comp, beds: comp.bedrooms, baths: comp.bathrooms, sqft: comp.livingAreaSqft,
+    similarity: comp.structuralScore, status: 'RECENT',
+  }));
+  const arvComps = [...array(comps.used).map((v) => ({ ...v, status: 'USED' })),
+    ...array(comps.supporting).map((v) => ({ ...v, status: 'SUPPORTING' })),
+    ...array(comps.excluded).map((v) => ({ ...v, status: 'EXCLUDED' }))];
+  const recentIds = new Set(recentComps.map((item) => String(item.providerPropertyId || item.address || '')));
+  const all = [...recentComps, ...arvComps.filter((item) => !recentIds.has(String(item.compIdentifier || item.address || '')))];
   panel(doc, M, 127, CONTENT, 78, { fill: C.white, stroke: softColor(accent, .64) });
   drawIcon(doc, 'house', M + 37, 166, accent, 42);
   text(doc, value(property.address || property.title, t.unavailable), M + 70, 151, { size: 12, bold: true, width: 220, maxLines: 1 });
   text(doc, location(property) || t.unavailable, M + 70, 169, { size: 8.2, color: C.muted, width: 220, maxLines: 1 });
   text(doc, currency(property.price, t), M + 70, 191, { size: 13, bold: true, color: accent });
-  const subjectFacts = [`${value(property.beds, '–')} ${t.beds}`, `${value(property.baths, '–')} ${t.baths}`, `${value(property.sqft, '–')} sqft`];
+  const land = /^(?:vacant\s+land|land|lot|terreno|solar)$/i.test(String(property.resolvedAnalysisPropertyType || property.type || '').trim());
+  const subjectFacts = land
+    ? [`${value(property.lotSizeSqft ?? property.lot, '–')} sqft`, `${value(property.lotSizeAcres, '–')} acres`]
+    : [`${value(property.beds, '–')} ${t.beds}`, `${value(property.baths, '–')} ${t.baths}`, `${value(property.sqft, '–')} sqft`];
   text(doc, subjectFacts.join('   ·   '), W - M - 12, 164, { size: 8.1, bold: true, color: C.ink, align: 'right' });
   text(doc, property.capRate == null ? '' : `${property.capRate}% ${t.capRate}`, W - M - 12, 184, { size: 8, color: C.muted, align: 'right' });
   panel(doc, M, 216, CONTENT, 184); heading(doc, t.compLocation, M + 12, 242, CONTENT - 24, accent);
@@ -694,25 +759,24 @@ function renderComparables(doc, schema, t, accent, comparableMap) {
     }
     text(doc, comp.address || t.unavailable, columns[0], yy, { size: 7.1, width: 160, maxLines: 1 });
     text(doc, currency(comp.salePrice, t), columns[1], yy, { size: 7.1 });
-    text(doc, value(comp.saleDate, t.unavailable).slice(0, 10), columns[2], yy, { size: 7.1 });
+    text(doc, localizedDate(comp.saleDate, t), columns[2], yy, { size: 7.1 });
     text(doc, `${value(comp.beds, '–')} / ${value(comp.baths, '–')}`, columns[3], yy, { size: 7.1 });
     text(doc, value(comp.sqft, '–'), columns[4], yy, { size: 7.1 });
     text(doc, comp.similarity == null ? '–' : `${Math.round(Number(comp.similarity))}%`, columns[5], yy, { size: 7.1 });
-    const statusColor = comp.status === 'USED' ? C.green : comp.status === 'SUPPORTING' ? accent : C.muted;
+    const statusColor = comp.status === 'USED' ? C.green : comp.status === 'RECENT' ? C.gold : comp.status === 'SUPPORTING' ? accent : C.muted;
     doc.setFillColor(...softColor(statusColor, .82)); doc.roundedRect(columns[6] - 4, yy - 11, 50, 15, 5, 5, 'F');
     text(doc, t[comp.status.toLowerCase()], columns[6] + 21, yy, { size: 6.2, bold: true, color: statusColor, width: 46, maxLines: 1, align: 'center' });
     doc.setDrawColor(...C.line); doc.line(M + 12, yy + 8, W - M - 12, yy + 8);
   });
   if (all.length > 0 && all.length <= 5) {
     const prices = all.map((comp) => Number(comp.salePrice)).filter((entry) => Number.isFinite(entry) && entry > 0);
-    const similarities = all.map((comp) => Number(comp.similarity)).filter(Number.isFinite);
     const statY = Math.min(591, 500 + all.length * 21);
     const statGap = 6; const statW = (CONTENT - 24 - statGap * 3) / 4;
     const stats = [
       [t.totalComps, String(all.length), 'document'],
-      [t.usedComparables, String(array(comps.used).length), 'check'],
+      [t.recentSalesComps, String(recentEstimate.valuationCompCount ?? recentComps.length), 'check'],
       [t.averageSalePrice, prices.length ? currency(prices.reduce((sum, entry) => sum + entry, 0) / prices.length, t) : t.unavailable, 'trend'],
-      [t.averageSimilarity, similarities.length ? `${Math.round(similarities.reduce((sum, entry) => sum + entry, 0) / similarities.length)}%` : '—', 'chart'],
+      [t.arvComps, String(array(comps.used).length), 'chart'],
     ];
     stats.forEach(([label, entry, kind], index) => {
       const x = M + 12 + index * (statW + statGap);
@@ -733,25 +797,36 @@ function renderValuation(doc, schema, t, accent) {
   const metrics = schema?.presentation?.existingMetrics || {};
   const compStats = schema?.presentation?.comparableStatistics || {};
   const scenarios = schema?.presentation?.kpiScenarios;
+  const recent = valuation.recentSalesMarketEstimate || {};
+  const recentAvailable = recent.status === 'AVAILABLE' && Number.isFinite(Number(recent.centralEstimate));
+  const land = /^(?:vacant\s+land|land|lot|terreno|solar)$/i.test(String(property.resolvedAnalysisPropertyType || property.type || '').trim());
   panel(doc, M, 127, CONTENT, 175, { fill: C.white, stroke: C.gold });
-  heading(doc, t.arv, M + 14, 155, CONTENT - 28, accent);
+  heading(doc, recentAvailable ? t.recentSalesValue : t.arv, M + 14, 155, CONTENT - 28, accent);
   const arv = !['ARV_UNAVAILABLE', 'NOT_APPLICABLE'].includes(valuation.status) && valuation.range
     ? `${currency(valuation.range.low, t)} – ${currency(valuation.range.high, t)}` : t.unavailable;
-  text(doc, arv, M + 14, 204, { size: 21, bold: true, color: C.ink });
+  const primaryValue = recentAvailable ? currency(recent.centralEstimate, t) : arv;
+  text(doc, primaryValue, M + 14, 204, { size: 21, bold: true, color: C.ink });
   const valuationStatus = valuation.status === 'ARV_AVAILABLE' ? t.arvAvailable
     : valuation.status === 'ARV_LIMITED' ? t.arvLimited
       : valuation.status === 'NOT_APPLICABLE' ? t.arvNotApplicable : t.arvUnavailable;
-  text(doc, valuationStatus, M + 14, 230, { size: 9, bold: true, color: C.muted });
-  text(doc, valuation.status === 'NOT_APPLICABLE' ? t.noResidentialArv
-    : valuation.status === 'ARV_UNAVAILABLE' ? t.noArv : value(valuation.methodology, t.noDetails), M + 14, 253, { size: 8.5, width: valuation.range ? 285 : CONTENT - 28, maxLines: 2 });
+  text(doc, recentAvailable && recent.range
+    ? `${t.recentSalesRange}: ${currency(recent.range.low, t)} – ${currency(recent.range.high, t)}`
+    : valuationStatus, M + 14, 230, { size: 9, bold: true, color: C.muted, width: 315, maxLines: 2 });
+  text(doc, recentAvailable
+    ? `${recent.valuationCompCount} ${t.recentSalesComps.toLowerCase()} · ${displayValue(recent.confidence, t)}`
+    : valuation.status === 'NOT_APPLICABLE' ? t.noResidentialArv
+      : valuation.status === 'ARV_UNAVAILABLE' ? t.noArv : value(valuation.methodology, t.noDetails), M + 14, 253, { size: 8.5, width: 315, maxLines: 2 });
   if (valuation.providerEstimate?.value) {
     text(doc, t.providerEstimate, M + 358, 185, { size: 8, bold: true, color: C.muted, width: 150, maxLines: 2 });
     text(doc, currency(valuation.providerEstimate.value, t), M + 358, 220, { size: 15, bold: true, color: C.ink, width: 150, maxLines: 1 });
-    text(doc, t.providerEstimateStatus, M + 358, 241, { size: 7, color: C.muted, width: 150, maxLines: 2 });
+    text(doc, recent.providerAvmCompatibility === 'QUARANTINED_FOR_TYPE_CONFLICT'
+      ? t.providerEstimateQuarantined : t.providerEstimateStatus, M + 358, 241, { size: 7, color: recent.providerAvmCompatibility === 'QUARANTINED_FOR_TYPE_CONFLICT' ? C.orange : C.muted, width: 150, maxLines: 3 });
   }
-  if (!['ARV_UNAVAILABLE', 'NOT_APPLICABLE'].includes(valuation.status) && valuation.range) {
-    const low = Number(valuation.range.low); const high = Number(valuation.range.high);
-    const middle = Number.isFinite(Number(valuation.centralReference)) ? Number(valuation.centralReference) : (low + high) / 2;
+  const chartRange = recentAvailable ? recent.range : (!['ARV_UNAVAILABLE', 'NOT_APPLICABLE'].includes(valuation.status) ? valuation.range : null);
+  if (chartRange && !valuation.providerEstimate?.value) {
+    const low = Number(chartRange.low); const high = Number(chartRange.high);
+    const middle = recentAvailable ? Number(recent.centralEstimate)
+      : Number.isFinite(Number(valuation.centralReference)) ? Number(valuation.centralReference) : (low + high) / 2;
     const values = [low, middle, high];
     const labels = [t.low, t.middle, t.high];
     const maximum = Math.max(...values, 1); const originX = M + 360; const baseY = 267;
@@ -764,7 +839,15 @@ function renderValuation(doc, schema, t, accent) {
   }
   const w = (CONTENT - 12) / 2;
   panel(doc, M, 315, w, 170); heading(doc, t.inputs, M + 12, 341, w - 24, accent);
-  rows(doc, [[t.price, currency(property.price, t)], [t.rehab, property.rehab ? currency(property.rehab, t) : null], [t.compsUsed, valuation.compsUsed], [t.confidence, valuation.confidence], [t.marketPricePerSqft, compStats.marketPricePerSqft == null ? null : currency(compStats.marketPricePerSqft, t)], [t.averageDistance, compStats.averageDistanceMiles == null ? null : `${compStats.averageDistanceMiles} mi`]], M + 12, 365, w - 24, { lineHeight: 22, labelWidth: 105, limit: 6, t });
+  const inputRows = [
+    [t.price, currency(property.price, t)],
+    [t.recentSalesComps, recent.valuationCompCount],
+    [t.arvComps, valuation.compsUsed],
+    [t.weightedUnit, recent.weightedUnitValue == null ? null : currency(recent.weightedUnitValue, t)],
+    [t.confidence, recentAvailable ? recent.confidence : valuation.confidence],
+    [t.dispersion, recent.dispersion?.coefficient == null ? null : `${Math.round(Number(recent.dispersion.coefficient) * 1000) / 10}%`],
+  ];
+  rows(doc, inputRows, M + 12, 365, w - 24, { lineHeight: 22, labelWidth: 105, limit: 6, t });
   panel(doc, M + w + 12, 315, w, 170); heading(doc, t.kpis, M + w + 24, 341, w - 24, accent);
   rows(doc, [
     [t.costBasis, metrics.acquisitionPlusRehab?.value == null ? null : currency(metrics.acquisitionPlusRehab.value, t)],
@@ -775,7 +858,19 @@ function renderValuation(doc, schema, t, accent) {
       ? `${scenarios.projectedRoi.find((v) => v.scenario === 'EXPECTED').value}%` : null],
   ], M + w + 24, 365, w - 24, { lineHeight: 28, labelWidth: 105, t });
   const cardsY = 497; const cardsGap = 7; const cardW = (CONTENT - cardsGap * 3) / 4;
-  const cards = [
+  const cards = recentAvailable ? [
+    [t.recentSalesValueShort, currency(recent.centralEstimate, t), t.recentSalesComps],
+    [t.low, currency(recent.range?.low, t), t.recentSalesRange],
+    [t.high, currency(recent.range?.high, t), t.recentSalesRange],
+    [t.divergence, valuation.providerEstimateDivergence == null ? t.unavailable : `${valuation.providerEstimateDivergence > 0 ? '+' : ''}${Math.round(valuation.providerEstimateDivergence * 1000) / 10}%`, t.providerEstimate],
+  ] : land ? [
+    [t.pricePerAcre, property.pricePerAcre == null ? t.unavailable : currency(property.pricePerAcre, t), t.price],
+    [t.pricePerLotSqft, property.pricePerLotSqft == null ? t.unavailable : currency(property.pricePerLotSqft, t), t.price],
+    [t.lotAcres, value(property.lotSizeAcres, t.unavailable), t.lot],
+    [t.providerEstimate, valuation.providerEstimate?.value
+      && recent.providerAvmCompatibility !== 'QUARANTINED_FOR_TYPE_CONFLICT'
+      ? currency(valuation.providerEstimate.value, t) : t.unavailable, t.confidence],
+  ] : [
     [t.pricePerSqft, metrics.pricePerSqft?.value == null ? t.unavailable : currency(metrics.pricePerSqft.value, t), t.price],
     [t.spread, scenarios?.available && scenarios.potentialSpread?.find((entry) => entry.scenario === 'EXPECTED')?.value != null
       ? `${Number(scenarios.potentialSpread.find((entry) => entry.scenario === 'EXPECTED').value) < 0 ? '-' : ''}$${Math.abs(Number(scenarios.potentialSpread.find((entry) => entry.scenario === 'EXPECTED').value)).toLocaleString('en-US')}` : t.unavailable, t.costBasis],
@@ -785,7 +880,7 @@ function renderValuation(doc, schema, t, accent) {
   cards.forEach(([label, entry, caption], index) => {
     const x = M + index * (cardW + cardsGap); panel(doc, x, cardsY, cardW, 100, { fill: C.white, stroke: index === 1 ? C.gold : C.line });
     drawIcon(doc, index === 1 ? 'chart' : index === 2 ? 'check' : 'document', x + 20, cardsY + 23, accent, 18);
-    text(doc, label, x + 35, cardsY + 28, { size: 8.5, bold: true, width: cardW - 45, maxLines: 1 });
+    text(doc, label, x + 35, cardsY + 25, { size: 8.1, bold: true, width: cardW - 42, maxLines: 2 });
     text(doc, entry, x + cardW / 2, cardsY + 63, { size: 12, bold: true, color: accent, align: 'center' });
     text(doc, caption, x + cardW / 2, cardsY + 84, { size: 7, color: C.muted, align: 'center' });
   });
@@ -822,6 +917,7 @@ function renderEnterpriseAnalysis(doc, schema, t, accent, confidence, executiveL
   const score = Number.isFinite(Number(confidence.score)) ? Math.round(Number(confidence.score)) : null;
   const contributors = array(confidence.contributors);
   const confidenceLimitations = array(confidence.limitations);
+  const page6 = structured.reportPage6 || {};
 
   panel(doc, M, 128, CONTENT, 150, { fill: C.white, accent });
   heading(doc, t.analysisConfidence, M + 13, 154, CONTENT - 26, accent);
@@ -862,10 +958,12 @@ function renderEnterpriseAnalysis(doc, schema, t, accent, confidence, executiveL
   }
 
   const w = (CONTENT - 12) / 2;
-  listPanel(doc, t.analysis, [structured.profileAdaptedConclusion, ...array(structured.positiveSignals)].filter(Boolean), M, 467, w, 133, t, accent, { positive: true });
+  listPanel(doc, t.analysis, [page6.investorMeaning || structured.profileAdaptedConclusion].filter(Boolean), M, 467, w, 133, t, accent, { positive: true });
   listPanel(doc, t.mainTopics, array(structured.strategySpecificInsights).length ? array(structured.strategySpecificInsights) : risks, M + w + 12, 467, w, 133, t, accent);
-  listPanel(doc, t.questions, array(structured.missingEvidence).length ? array(structured.missingEvidence) : limitations, M, 612, w, 140, t, accent);
-  listPanel(doc, t.actions, array(structured.recommendedActions).length ? array(structured.recommendedActions) : steps, M + w + 12, 612, w, 140, t, accent);
+  listPanel(doc, t.questions, array(page6.openDecisionQuestions).length ? array(page6.openDecisionQuestions)
+    : array(structured.missingEvidence).length ? array(structured.missingEvidence) : limitations, M, 612, w, 140, t, accent);
+  listPanel(doc, t.actions, array(page6.decisionChangingActions).length ? array(page6.decisionChangingActions)
+    : array(structured.recommendedActions).length ? array(structured.recommendedActions) : steps, M + w + 12, 612, w, 140, t, accent);
   text(doc, t.disclaimer, W / 2, 773, { size: 6.7, color: C.muted, width: CONTENT, maxLines: 2, align: 'center' });
 }
 function renderPage(doc, schema, pageCode, t, accent, images, mapImage, comparableMap) {

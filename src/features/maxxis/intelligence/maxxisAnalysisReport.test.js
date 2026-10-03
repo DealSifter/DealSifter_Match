@@ -137,6 +137,22 @@ describe('Maxxis Analysis Report Experience v1', () => {
     });
   });
 
+  it('projects enriched snapshot facts into Level 2 while preserving canonical card identity and notes', () => {
+    const projected = projectMaxxisAnalysisResponse({ data: {
+      dealIntelligence: context(), property: { id: 'property-1', type: 'SFR' },
+      intelligenceSnapshot: { propertyFacts: {
+        id: 'property-1', type: 'SFR', resolvedAnalysisPropertyType: 'SFR',
+        resolvedAnalysisStrategy: 'SELLER_FINANCING', county: 'Duval', assessorId: 'APN-5939',
+        annualPropertyTax: 1843, latestSalePrice: 80500, latestSaleDate: '2021-08-03T00:00:00.000Z',
+        propertyUserNotes: 'Snapshot note.', providerPropertyType: 'Single Family',
+      } },
+    } }, { reportProperty: { type: 'SFR', objective: 'Seller Financing', notes: 'Actual card note.' } });
+    expect(projected.data.maxxisReport.sections.propertySummary.data).toMatchObject({
+      type: 'SFR', resolvedAnalysisStrategy: 'SELLER_FINANCING', county: 'Duval', assessorId: 'APN-5939',
+      annualPropertyTax: 1843, latestSalePrice: 80500, propertyUserNotes: 'Actual card note.',
+    });
+  });
+
   it('persists the same canonical structured analysis used by chat without a report-side interpretation', () => {
     const structuredAnalysis = {
       type: 'maxxis_structured_analysis', executiveSummary: 'Evidence-linked summary.',

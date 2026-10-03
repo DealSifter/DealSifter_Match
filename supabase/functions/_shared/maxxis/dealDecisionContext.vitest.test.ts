@@ -200,6 +200,21 @@ describe('DealDecisionContext', () => {
     expect(decision.decisionGaps.map((gap) => gap.field)).toContain('amortization_months');
   });
 
+  it('locks Droad to Seller Financing even when the investor profile also contains Fix and Flip', () => {
+    const input = snapshot({
+      propertyFacts: { type: 'SFR', objective: 'Seller Financing', resolvedAnalysisPropertyType: 'SFR',
+        resolvedAnalysisStrategy: 'SELLER_FINANCING', price: 113_900, sqft: 1063 },
+      strategies: ['Fix & Flip', 'Seller Financing'],
+    });
+    const decision = buildDealDecisionContext(input);
+    const analysis = buildMaxxisStructuredAnalysis({ ...input, dealDecisionContext: decision }, 'DEAL_INTELLIGENCE', 'en');
+    expect(decision.strategy).toBe('SELLER_FINANCING');
+    expect(analysis.dealThesis.summary).toMatch(/seller-financing/i);
+    expect(analysis.strategySpecificInsights.join(' ')).toMatch(/seller financing/i);
+    expect(JSON.stringify({ thesis: analysis.dealThesis, insights: analysis.strategySpecificInsights,
+      page5: analysis.reportPage5, page6: analysis.reportPage6 })).not.toMatch(/fix\s*(?:and|&)\s*flip|flip thesis/i);
+  });
+
   it('deduplicates equivalent verification warnings and separates report pages 5 and 6', () => {
     expect(dedupeSemanticStatements([
       'Property data should be independently verified.',

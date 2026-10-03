@@ -162,7 +162,7 @@ describe('MaxxisReportSchema v2', () => {
         allowedContacts: [{ type: 'phone', label: 'Phone', value: '555-0100' }] },
     });
     expect(merged).toMatchObject({
-      id: 'property-1', type: 'SFR', beds: 4, baths: 2, price: 425000,
+      id: 'property-1', type: 'Duplex', resolvedAnalysisPropertyType: 'Duplex', beds: 4, baths: 2, price: 425000,
       county: 'Provider County', images: ['provider.jpg', 'app.jpg'],
       owner: { name: 'Visible Owner', type: 'FSBO', allowedContacts: [{ value: '555-0100' }] },
     });

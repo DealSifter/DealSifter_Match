@@ -3,7 +3,7 @@ import { mergePropertyReleaseEvidence } from './propertyReleaseEvidence';
 
 describe('Property Release canonical evidence merge', () => {
   it('uses authorized verified facts without adding premium analysis', () => {
-    const merged = mergePropertyReleaseEvidence({ id: 'p1', description: 'Owner note' }, {
+    const merged = mergePropertyReleaseEvidence({ id: 'p1', notes: 'Owner note', description: 'Property summary' }, {
       state: 'unlocked', intelligence: { fields: {
         yearBuilt: { value: 1976, status: 'VERIFIED_RECORD' },
         county: { value: 'Jefferson', status: 'VERIFIED_RECORD' },
@@ -14,7 +14,8 @@ describe('Property Release canonical evidence merge', () => {
       } },
     });
     expect(merged).toMatchObject({ yearBuilt: 1976, county: 'Jefferson', lotSizeSqft: 49_658.4,
-      annualPropertyTax: 5168, assessedValue: 1_842_500, latestSalePrice: 682_130, notes: 'Owner note' });
+      annualPropertyTax: 5168, assessedValue: 1_842_500, latestSalePrice: 682_130,
+      notes: 'Owner note', propertyUserNotes: 'Owner note', maxxisPropertySummary: 'Property summary' });
     expect(merged).not.toHaveProperty('comparableEvidence');
     expect(merged).not.toHaveProperty('valuationEvidence');
   });
