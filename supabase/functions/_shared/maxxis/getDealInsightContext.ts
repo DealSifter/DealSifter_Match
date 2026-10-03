@@ -31,6 +31,9 @@ import { classifyAnalysisApplicability } from './analysisApplicability.ts';
 import { resolvePropertyEvidenceAccess } from './propertyEvidenceAccess.ts';
 import { mergeVerifiedPropertyEvidenceIntoFacts } from './propertyEvidenceProjection.ts';
 import { buildDealDecisionContext } from './dealDecisionContext.ts';
+import { buildProviderEvidencePlan, type ProviderEvidencePlan, type ProviderReportLevel } from './providerEvidencePlan.ts';
+import type { ValuationEvidenceResult } from '../property-data/valuationTypes.ts';
+import type { SoldEvidenceResult } from '../property-data/soldTypes.ts';
 
 export async function getDealInsightContextForAuthenticatedUser(
   input: unknown,
@@ -51,16 +54,21 @@ export async function getDealInsightContextForAuthenticatedUser(
   const propertyEvidenceAccess = resolvePropertyEvidenceAccess({ plan, maxxisAnalysisOnly, cacheOnly });
   // Level 2 and cache-only recomputations may consume existing evidence, but never purchase a refresh.
   const allowPropertyProvider = propertyEvidenceAccess.allowProviderFallback;
-  const allowValuationProvider = providerAllowedByPlan && requestedReportType === 'DEAL_INTELLIGENCE';
+  const reportLevel = (requestedReportType === 'PROPERTY_RELEASE' || requestedReportType === 'MAXXIS_ANALYSIS'
+    || requestedReportType === 'DEAL_INTELLIGENCE' ? requestedReportType : 'CHAT') as ProviderReportLevel;
+  let activeProviderEvidencePlan: ProviderEvidencePlan = buildProviderEvidencePlan({
+    reportLevel, plan, cacheOnly,
+  });
+  const shouldLoadValuationEvidence = reportLevel === 'MAXXIS_ANALYSIS' || reportLevel === 'DEAL_INTELLIGENCE';
   const providerEnabled = Deno.env.get('PROPERTY_DATA_MODE') === 'live';
   const runtimeTrace = {
     reportType: reportRequested ? requestedReportType : 'CHAT',
     propertyEvidence: 'UNKNOWN',
     propertyEvidenceReason: 'NOT_REQUESTED',
-    valuationEvidence: allowValuationProvider ? 'UNKNOWN' : 'NOT_REQUIRED',
-    valuationEvidenceReason: allowValuationProvider ? 'NOT_REQUESTED' : 'CAPABILITY_NOT_AUTHORIZED',
-    soldEvidence: allowValuationProvider ? 'UNKNOWN' : 'NOT_REQUIRED',
-    soldEvidenceReason: allowValuationProvider ? 'NOT_REQUESTED' : 'CAPABILITY_NOT_AUTHORIZED',
+    valuationEvidence: shouldLoadValuationEvidence ? 'UNKNOWN' : 'NOT_REQUIRED',
+    valuationEvidenceReason: shouldLoadValuationEvidence ? 'NOT_REQUESTED' : 'REPORT_LEVEL_NOT_REQUIRED',
+    soldEvidence: shouldLoadValuationEvidence ? 'UNKNOWN' : 'NOT_REQUIRED',
+    soldEvidenceReason: shouldLoadValuationEvidence ? 'NOT_REQUESTED' : 'REPORT_LEVEL_NOT_REQUIRED',
     providerEnabled,
     providerAllowedByCapability: allowPropertyProvider,
     providerBudgetBucket: budgetBucket,
@@ -101,16 +109,11 @@ export async function getDealInsightContextForAuthenticatedUser(
     from: (table: string) => any;
   };
   let activeAnalysisApplicability: ReturnType<typeof classifyAnalysisApplicability> | null = null;
+  const providerEvidenceState: { valuation: ValuationEvidenceResult | null; sold: SoldEvidenceResult | null } = {
+    valuation: null,
+    sold: null,
+  };
   const loadArvEvaluation = async (propertyId: string) => {
-    if (activeAnalysisApplicability?.residentialArv === 'NOT_APPLICABLE') {
-      runtimeTrace.valuationEvidence = 'NOT_REQUIRED';
-      runtimeTrace.valuationEvidenceReason = 'RESIDENTIAL_ARV_NOT_APPLICABLE';
-      runtimeTrace.soldEvidence = 'NOT_REQUIRED';
-      runtimeTrace.soldEvidenceReason = 'RESIDENTIAL_ARV_NOT_APPLICABLE';
-      runtimeTrace.arvStatus = 'NOT_APPLICABLE';
-      runtimeTrace.providerResult = 'NOT_APPLICABLE';
-      return null;
-    }
     if (!supabaseServiceRoleKey) {
       runtimeTrace.stopReason = 'PROPERTY_INTELLIGENCE_BACKEND_UNAVAILABLE';
       return null;
@@ -126,10 +129,12 @@ export async function getDealInsightContextForAuthenticatedUser(
     });
     try {
       runtimeTrace.addressValidation = 'ACCEPTED';
-      const valuation = cacheOnly
+      const valuationProviderAllowed = activeProviderEvidencePlan.families.VALUATION.providerCallAllowed;
+      const valuation = cacheOnly || !valuationProviderAllowed
         ? await valuationService.getCachedValuationEvidence({ propertyId, userId })
         : await valuationService.getValuationEvidence({ propertyId, userId });
       if (!valuation) throw new Error('VALUATION_CACHE_MISS');
+      providerEvidenceState.valuation = valuation;
       runtimeTrace.valuationEvidence = valuation.cacheHit ? 'HIT' : 'MISS_REFRESHED';
       runtimeTrace.valuationEvidenceReason = valuation.cacheHit ? 'CACHE_HIT' : 'PROVIDER_REFRESHED';
       runtimeTrace.valuationProviderAttempted = !valuation.cacheHit;
@@ -155,10 +160,12 @@ export async function getDealInsightContextForAuthenticatedUser(
     }
     let soldEvidenceLoaded = false;
     try {
-      const sold = cacheOnly
+      const soldProviderAllowed = activeProviderEvidencePlan.families.RECORDED_SOLD.providerCallAllowed;
+      const sold = cacheOnly || !soldProviderAllowed
         ? await soldService.getCachedSoldEvidence({ propertyId, userId })
         : await soldService.getSoldEvidence({ propertyId, userId });
       if (!sold) throw new Error('SOLD_EVIDENCE_CACHE_MISS');
+      providerEvidenceState.sold = sold;
       soldEvidenceLoaded = true;
       runtimeTrace.soldEvidence = sold.cacheHit ? 'HIT' : 'MISS_REFRESHED';
       runtimeTrace.soldEvidenceReason = sold.cacheHit ? 'CACHE_HIT' : 'PROVIDER_REFRESHED';
@@ -207,6 +214,10 @@ export async function getDealInsightContextForAuthenticatedUser(
       : runtimeTrace.valuationEvidence === 'HIT' || runtimeTrace.soldEvidence === 'HIT' ? 'CACHE_HIT'
       : runtimeTrace.valuationEvidenceReason !== 'NOT_REQUESTED' ? runtimeTrace.valuationEvidenceReason
       : runtimeTrace.soldEvidenceReason;
+    if (activeAnalysisApplicability?.residentialArv === 'NOT_APPLICABLE') {
+      runtimeTrace.arvStatus = 'NOT_APPLICABLE';
+      return null;
+    }
     if (!soldEvidenceLoaded) return null;
     try {
       const evaluation = await loadCachedArvEvaluation({
@@ -280,6 +291,13 @@ export async function getDealInsightContextForAuthenticatedUser(
         details.property as unknown as Record<string, unknown> | null,
         analysisInputs,
       );
+      activeProviderEvidencePlan = buildProviderEvidencePlan({
+        propertyType: details.property?.type,
+        strategy: details.property?.objective,
+        reportLevel,
+        plan,
+        cacheOnly,
+      });
       const explicitRehab = analysisInputs.rehabBudget !== null && analysisInputs.rehabBudget !== ''
         && Number.isFinite(Number(analysisInputs.rehabBudget))
         ? Number(analysisInputs.rehabBudget) : null;
@@ -317,7 +335,7 @@ export async function getDealInsightContextForAuthenticatedUser(
       }
       return evidence;
     },
-    loadArvEvaluation: allowValuationProvider ? loadArvEvaluation : undefined,
+    loadArvEvaluation: shouldLoadValuationEvidence ? loadArvEvaluation : undefined,
     analysisAssumptions: analysisInputs,
   });
   if (!runtimeTrace.stopReason) runtimeTrace.stopReason = result.state === 'available' ? 'NONE' : 'PROPERTY_NOT_FOUND';
@@ -357,31 +375,64 @@ export async function getDealInsightContextForAuthenticatedUser(
     sanityCheck: sanityCheckRehabAgainstBenchmark2026(activeRehab, rehabBenchmark),
     providerCalls: 0,
   } as const;
+  const providerEstimateValue = providerEvidenceState.valuation?.valuation.providerEstimate.value.value ?? null;
+  const providerEstimateLow = providerEvidenceState.valuation?.valuation.providerEstimate.rangeLow.value ?? null;
+  const providerEstimateHigh = providerEvidenceState.valuation?.valuation.providerEstimate.rangeHigh.value ?? null;
+  const soldStatistics = providerEvidenceState.sold?.recordedSoldCompSelection.descriptiveStatistics || null;
+  const providerMarketContext = {
+    providerEstimate: Number.isFinite(Number(providerEstimateValue)) ? Number(providerEstimateValue) : null,
+    providerEstimateRange: Number.isFinite(Number(providerEstimateLow)) && Number.isFinite(Number(providerEstimateHigh))
+      ? { low: Number(providerEstimateLow), high: Number(providerEstimateHigh) } : null,
+    providerComparableCount: providerEvidenceState.valuation?.valuation.providerComparableCount || 0,
+    recordedSoldCount: providerEvidenceState.sold?.soldPool.records.length || 0,
+    supportingMarketSalesCount: providerEvidenceState.sold?.recordedSoldCompSelection.directSoldCompCandidates.length || 0,
+    medianRecordedSalePrice: soldStatistics?.medianRecordedSalePrice ?? null,
+    minimumRecordedSalePrice: soldStatistics?.minimumRecordedSalePrice ?? null,
+    maximumRecordedSalePrice: soldStatistics?.maximumRecordedSalePrice ?? null,
+    source: providerEvidenceState.valuation || providerEvidenceState.sold ? 'CACHED_OR_AUTHORIZED_PROVIDER_EVIDENCE' : 'UNAVAILABLE',
+  } as const;
+  const enrichedDealIntelligence = result.dealIntelligence ? {
+    ...result.dealIntelligence,
+    valuationContext: providerMarketContext.providerEstimate !== null
+      && !result.dealIntelligence.valuationContext.providerEstimate
+      ? {
+          ...result.dealIntelligence.valuationContext,
+          providerEstimate: {
+            value: providerMarketContext.providerEstimate,
+            status: 'PROVIDER_ESTIMATE_UNVALIDATED',
+            provenance: 'ESTIMATED' as const,
+          },
+        }
+      : result.dealIntelligence.valuationContext,
+    providerMarketContext,
+  } : null;
   const intelligenceSnapshotBase = {
     version: 'MAXXIS_INTELLIGENCE_SNAPSHOT_V1',
     propertyId: result.propertyId,
     propertyFacts: mergeVerifiedPropertyEvidenceIntoFacts(
       result.property as unknown as Record<string, unknown> | null,
-      result.dealIntelligence?.propertyContext || null,
+      enrichedDealIntelligence?.propertyContext || null,
     ),
     ownerLandFacts: result.dealIntelligence?.propertyContext || null,
     investmentProfile: result.investmentProfile,
     matchScore: result.match,
     propertyEvidence: result.evidence,
     providerEvidence: result.evidence.state === 'available' ? result.evidence.evidence || null : null,
-    soldEvidence: result.dealIntelligence?.comparableEvidence || [],
-    comps: result.dealIntelligence?.comparableEvidence || [],
+    soldEvidence: enrichedDealIntelligence?.comparableEvidence || [],
+    comps: enrichedDealIntelligence?.comparableEvidence || [],
     compPromotionDiagnostics: runtimeTrace.compPromotionDiagnostics,
-    valuationEvidence: result.dealIntelligence?.valuationContext || null,
-    arv: result.dealIntelligence?.valuationContext || null,
+    valuationEvidence: enrichedDealIntelligence?.valuationContext || null,
+    providerMarketContext,
+    providerEvidencePlan: activeProviderEvidencePlan,
+    arv: enrichedDealIntelligence?.valuationContext || null,
     dealMetrics: result.metrics,
-    investmentKPIs: result.dealIntelligence?.dealMetrics || null,
+    investmentKPIs: enrichedDealIntelligence?.dealMetrics || null,
     rehabAnalysis,
-    riskSignals: result.dealIntelligence?.risks || [],
-    positiveSignals: result.dealIntelligence?.opportunities || [],
-    missingEvidence: result.dealIntelligence?.limitations || [],
-    recommendations: result.dealIntelligence?.recommendedActions || [],
-    provenance: result.dealIntelligence?.evidenceSummary || null,
+    riskSignals: enrichedDealIntelligence?.risks || [],
+    positiveSignals: enrichedDealIntelligence?.opportunities || [],
+    missingEvidence: enrichedDealIntelligence?.limitations || [],
+    recommendations: enrichedDealIntelligence?.recommendedActions || [],
+    provenance: enrichedDealIntelligence?.evidenceSummary || null,
     generatedAt: new Date().toISOString(),
     cacheStatus: {
       property: runtimeTrace.propertyEvidence,
@@ -400,7 +451,7 @@ export async function getDealInsightContextForAuthenticatedUser(
     evidenceCompletenessGate,
     dealAssumptions: analysisInputs.dealAssumptions,
     analysisApplicability,
-    dealIntelligence: result.dealIntelligence,
+    dealIntelligence: enrichedDealIntelligence,
   } as const;
   const dealDecisionContext = buildDealDecisionContext(intelligenceSnapshotBase);
   const intelligenceSnapshot = {
@@ -408,6 +459,6 @@ export async function getDealInsightContextForAuthenticatedUser(
     dealDecisionContext,
   } as const;
   const structuredAnalysis = buildMaxxisStructuredAnalysis(intelligenceSnapshot, requestedReportType, languageInput);
-  return { ...result, intelligenceSnapshot, structuredAnalysis, evidenceCompleteness,
+  return { ...result, dealIntelligence: enrichedDealIntelligence, intelligenceSnapshot, structuredAnalysis, evidenceCompleteness,
     evidenceCompletenessGate, runtimeTrace };
 }

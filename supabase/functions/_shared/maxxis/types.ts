@@ -41,11 +41,16 @@ export type MaxxisPropertyDetails = {
   sqft: string;
   improvement: string;
   lot: string;
+  lotSizeSqft?: number | null;
+  lotSizeAcres?: number | null;
+  pricePerLotSqft?: number | null;
+  pricePerAcre?: number | null;
   dealTag: string;
   objective: string;
   rehab: number | null;
   capRate: number | null;
   description: string;
+  notes?: string;
   source?: string;
   latitude?: number | null;
   longitude?: number | null;

@@ -128,6 +128,23 @@ describe('getPropertyDetails', () => {
     ]);
   });
 
+  it('normalizes vacant-land area and removes residential false gaps and zeroes', () => {
+    const result = normalizePropertyDetails({
+      ...completeRow,
+      address: '741 Gable dr', city: 'center point', state: 'AL', zip: '35215',
+      type: 'Land', price: 19_000, beds: 0, baths: 0, sqft: null, lot: '1,14ac',
+      objective: 'Sell', rehab: 0, cap_rate: 0,
+      description: 'opportunity to subdivide in 2 lots for new constructions',
+    }, [{ image_url: 'https://cdn.example.com/land.jpg' }]);
+    expect(result.property).toMatchObject({
+      zip: '35215', lotSizeAcres: 1.14, lotSizeSqft: 49_658.4,
+      pricePerLotSqft: 0.38, pricePerAcre: 16_666.67,
+      rehab: null, capRate: null,
+      notes: 'opportunity to subdivide in 2 lots for new constructions',
+    });
+    expect(result.missingFields).not.toEqual(expect.arrayContaining(['sqft', 'rehab', 'cap_rate', 'description']));
+  });
+
   it('keeps protected contact and ownership fields out while retaining the already-visible location context', () => {
     const result = normalizePropertyDetails({
       ...completeRow,

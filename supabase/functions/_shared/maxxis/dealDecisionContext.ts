@@ -5,9 +5,10 @@ import {
   type DealStrategy,
   type StrategyRequirement,
 } from './strategyPlaybooks.ts';
+import { calculateLandUnitMetrics, parseCanonicalLotArea } from './landMetrics.ts';
 
 type AnyRecord = Record<string, any>;
-type Provenance = 'PROVIDER_VERIFIED' | 'USER_ASSUMPTION' | 'CALCULATED' | 'MARKET_REFERENCE';
+type Provenance = 'PROVIDER_VERIFIED' | 'USER_PROVIDED' | 'USER_ASSUMPTION' | 'CALCULATED' | 'MARKET_REFERENCE';
 
 export type DecisionDatum = Readonly<{
   key: string;
@@ -141,7 +142,7 @@ function requirementAvailable(requirement: StrategyRequirement, values: AnyRecor
     arrears: hasAssumption(assumption, ['arrears']),
     cash_to_seller: hasAssumption(assumption, ['cashToSeller']),
     reinstatement: hasAssumption(assumption, ['reinstatement']),
-    lot_size: finite(fact(values.snapshot, context, ['lot', 'lotSizeSqft'])) !== null,
+    lot_size: parseCanonicalLotArea(fact(values.snapshot, context, ['lotSizeSqft', 'lot'])).lotSizeSqft !== null,
     zoning: present(property.zoning) || present(field(context, 'zoning').value),
     allowed_use: present(property.allowedUse) || hasAssumption(assumption, ['allowedUse']),
     road_access: present(property.roadAccess) || hasAssumption(assumption, ['roadAccess']),
@@ -228,6 +229,14 @@ export function buildDealDecisionContext(snapshotInput: unknown): DealDecisionCo
   const strategies = list(record(context.investorContext).strategies);
   const strategy = resolveDealStrategy({ propertyType, objective, strategies, rehab });
   const playbook = getStrategyPlaybook(strategy);
+  const lotArea = parseCanonicalLotArea(
+    fact(snapshot, context, ['lotSizeSqft', 'lot']) ?? property.lotSizeSqft,
+  );
+  const explicitAcres = finite(fact(snapshot, context, ['lotSizeAcres']));
+  const canonicalLotArea = explicitAcres !== null && lotArea.lotSizeSqft === null
+    ? parseCanonicalLotArea(`${explicitAcres} acres`) : lotArea;
+  const landUnitMetrics = strategy === 'LAND'
+    ? calculateLandUnitMetrics(price, canonicalLotArea) : null;
   const baseCost = price !== null && rehab !== null ? Math.round((price + rehab) * 100) / 100 : null;
   const rehabPerSqft = rehab !== null && sqft !== null && sqft > 0
     ? Math.round((rehab / sqft) * 100) / 100 : null;
@@ -248,6 +257,8 @@ export function buildDealDecisionContext(snapshotInput: unknown): DealDecisionCo
   const userAssumptions = [
     price !== null ? datum('askingPrice', price, 'USER_ASSUMPTION', 'PROPERTY_RECORD') : null,
     rehab !== null ? datum('rehabBudget', rehab, 'USER_ASSUMPTION', text(rehabAnalysis.source) || 'PROPERTY_RECORD') : null,
+    present(property.notes ?? property.description)
+      ? datum('propertyNotes', property.notes ?? property.description, 'USER_PROVIDED', 'PROPERTY_CARD_NOTES') : null,
     ...Object.entries(assumptions).filter(([, value]) => present(value) && !Array.isArray(value))
       .map(([key, value]) => datum(key, value, 'USER_ASSUMPTION', 'DEAL_ASSUMPTIONS')),
   ].filter(Boolean) as DecisionDatum[];
@@ -257,6 +268,10 @@ export function buildDealDecisionContext(snapshotInput: unknown): DealDecisionCo
     metricValue(metrics, 'pricePerSqft') !== null
       ? datum('pricePerSqft', metricValue(metrics, 'pricePerSqft'), 'CALCULATED', 'DEAL_METRICS') : null,
     calculatedCapRate !== null ? datum('calculatedCapRate', calculatedCapRate, 'CALCULATED', 'NOI_DIVIDED_BY_PRICE') : null,
+    landUnitMetrics?.pricePerLotSqft != null
+      ? datum('pricePerLotSqft', landUnitMetrics?.pricePerLotSqft, 'CALCULATED', 'ASKING_PRICE_DIVIDED_BY_LOT_SQFT') : null,
+    landUnitMetrics?.pricePerAcre != null
+      ? datum('pricePerAcre', landUnitMetrics?.pricePerAcre, 'CALCULATED', 'ASKING_PRICE_DIVIDED_BY_LOT_ACRES') : null,
   ].filter(Boolean) as DecisionDatum[];
   const marketReferences = [
     providerEstimate !== null ? datum('providerEstimate', providerEstimate, 'MARKET_REFERENCE', 'PROVIDER_AVM_NOT_ARV') : null,
@@ -276,7 +291,7 @@ export function buildDealDecisionContext(snapshotInput: unknown): DealDecisionCo
     baseCost !== null ? Object.freeze({ code: 'BASE_COST', basis: ['askingPrice', 'rehabBudget'] }) : null,
     rehabPerSqft !== null ? Object.freeze({ code: 'REHAB_INTENSITY', basis: ['rehabBudget', 'livingAreaSqft'] }) : null,
     calculatedCapRate !== null ? Object.freeze({ code: 'CALCULATED_CAP_RATE', basis: ['noi', 'askingPrice'] }) : null,
-    strategy === 'LAND' && price !== null && finite(fact(snapshot, context, ['lot', 'lotSizeSqft'])) !== null
+    strategy === 'LAND' && price !== null && canonicalLotArea.lotSizeSqft !== null
       ? Object.freeze({ code: 'LAND_UNIT_PRICE', basis: ['askingPrice', 'lotSizeSqft'] }) : null,
   ].filter(Boolean) as Array<Readonly<{ code: string; basis: string[] }>>;
   const scenariosBlocked = [
@@ -310,6 +325,10 @@ export function buildDealDecisionContext(snapshotInput: unknown): DealDecisionCo
       latestSalePrice,
       reportedCapRate,
       calculatedCapRate,
+      lotSizeSqft: strategy === 'LAND' ? canonicalLotArea.lotSizeSqft : null,
+      lotSizeAcres: strategy === 'LAND' ? canonicalLotArea.lotSizeAcres : null,
+      pricePerLotSqft: landUnitMetrics?.pricePerLotSqft ?? null,
+      pricePerAcre: landUnitMetrics?.pricePerAcre ?? null,
       selectedCompCount: selectedComps.length,
       supportingCompCount: supportingComps.length,
       arvStatus: text(valuation.status) || 'ARV_UNAVAILABLE',

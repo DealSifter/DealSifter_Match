@@ -66,6 +66,10 @@ function safeProperty(value: unknown) {
     bedrooms: safeNumber(source.bedrooms ?? source.beds),
     bathrooms: safeNumber(source.bathrooms ?? source.baths),
     sqft: safeText(source.sqft, 30),
+    lot: safeText(source.lot, 40),
+    lotSizeSqft: safeNumber(source.lotSizeSqft),
+    lotSizeAcres: safeNumber(source.lotSizeAcres),
+    notes: safeText(source.notes || source.description, 500),
     objective: safeText(source.objective, 80),
     rehab: safeNumber(source.rehab),
     capRate: safeNumber(source.capRate),
@@ -209,7 +213,8 @@ const PROPERTY_EVIDENCE_FIELDS = [
   'propertyType', 'bedrooms', 'bathrooms', 'livingAreaSqft', 'lotSizeSqft', 'yearBuilt',
   'county', 'latitude', 'longitude', 'assessedValue', 'assessmentYear', 'annualPropertyTax',
   'propertyTaxYear', 'latestSalePrice', 'latestSaleDate', 'ownerOccupied', 'ownershipRecordPresent',
-  'askingPrice',
+  'askingPrice', 'stateFips', 'countyFips', 'assessorId', 'legalDescription', 'subdivision',
+  'zoning', 'hoaFee',
 ];
 
 function safeEvidenceFields(value: unknown) {
@@ -224,6 +229,8 @@ const DEAL_CONTEXT_FIELDS = [
   'livingAreaSqft', 'lotSizeSqft', 'yearBuilt', 'askingPrice', 'county', 'latitude',
   'longitude', 'assessedValue', 'assessmentYear', 'annualPropertyTax', 'propertyTaxYear',
   'latestSalePrice', 'latestSaleDate', 'ownerOccupied', 'ownershipRecordPresent',
+  'stateFips', 'countyFips', 'assessorId', 'legalDescription', 'subdivision', 'zoning',
+  'hoaFee', 'lotSizeAcres', 'notes',
 ];
 
 function safeDealContextField(value: unknown) {

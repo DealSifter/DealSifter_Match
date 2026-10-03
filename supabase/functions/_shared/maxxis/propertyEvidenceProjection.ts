@@ -20,6 +20,15 @@ const REPORT_FIELD_MAP = Object.freeze({
   latestSaleDate: 'latestSaleDate',
   ownerOccupied: 'ownerOccupied',
   ownershipRecordPresent: 'ownershipRecordPresent',
+  stateFips: 'stateFips',
+  countyFips: 'countyFips',
+  assessorId: 'assessorId',
+  legalDescription: 'legalDescription',
+  subdivision: 'subdivision',
+  zoning: 'zoning',
+  hoaFee: 'hoaFee',
+  propertyFeatures: 'propertyFeatures',
+  saleHistory: 'saleHistory',
 } as const);
 
 function present(value: unknown) {
@@ -38,5 +47,6 @@ export function mergeVerifiedPropertyEvidenceIntoFacts(
       merged[reportKey] = evidence.value;
     }
   });
+  if (!present(merged.notes) && present(merged.description)) merged.notes = merged.description;
   return Object.freeze(merged);
 }

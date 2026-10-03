@@ -4,6 +4,8 @@ import type { RentCastPropertyRecordRaw } from './rentcastTypes.ts';
 const textValue = (value: unknown) => typeof value === 'string' && value.trim() ? value.trim() : null;
 const numberValue = (value: unknown) => typeof value === 'number' && Number.isFinite(value) ? value : null;
 const booleanValue = (value: unknown) => typeof value === 'boolean' ? value : null;
+const objectValue = (value: unknown) => value && typeof value === 'object' && !Array.isArray(value)
+  ? JSON.parse(JSON.stringify(value)) as Record<string, unknown> : null;
 
 function evidence<T>(
   value: T | null,
@@ -30,6 +32,14 @@ function latestSale(record: RentCastPropertyRecordRaw) {
     .filter((entry): entry is { date: string; price: number | null } => Boolean(entry.date) && Number.isFinite(Date.parse(entry.date as string)))
     .sort((a, b) => Date.parse(b.date) - Date.parse(a.date));
   return candidates[0] || null;
+}
+
+function saleHistory(record: RentCastPropertyRecordRaw) {
+  return Object.values(record.history || {})
+    .filter((entry) => String(entry?.event || '').toLowerCase() === 'sale')
+    .map((entry) => ({ date: textValue(entry.date), price: numberValue(entry.price) }))
+    .filter((entry): entry is { date: string; price: number | null } => typeof entry.date === 'string' && Number.isFinite(Date.parse(entry.date)))
+    .sort((left, right) => Date.parse(right.date) - Date.parse(left.date));
 }
 
 export function mapRentCastProperty(record: RentCastPropertyRecordRaw, retrievedAt = new Date().toISOString()): NormalizedPropertyRecord {
@@ -80,5 +90,16 @@ export function mapRentCastProperty(record: RentCastPropertyRecordRaw, retrieved
       price: evidence(sale?.price ?? null, metadata, sale?.date ?? null),
       date: evidence(sale?.date ?? null, metadata, sale?.date ?? null),
     },
+    parcel: {
+      stateFips: evidence(textValue(record.stateFips), metadata),
+      countyFips: evidence(textValue(record.countyFips), metadata),
+      assessorId: evidence(textValue(record.assessorID), metadata),
+      legalDescription: evidence(textValue(record.legalDescription), metadata),
+      subdivision: evidence(textValue(record.subdivision), metadata),
+      zoning: evidence(textValue(record.zoning), metadata),
+    },
+    hoa: { fee: evidence(numberValue(record.hoa?.fee), metadata) },
+    features: { values: evidence(objectValue(record.features), metadata) },
+    saleHistory: { transactions: evidence(saleHistory(record).length ? saleHistory(record) : null, metadata) },
   };
 }

@@ -10,6 +10,7 @@ import type {
   PropertyEvidenceResult,
 } from './propertyEvidenceTypes.ts';
 import { PropertyDataError, type Evidence, type NormalizedPropertyRecord, type PropertyDataProvider } from './types.ts';
+import { parseCanonicalLotArea } from '../maxxis/landMetrics.ts';
 
 const text = (value: unknown) => typeof value === 'string' && value.trim() ? value.trim() : null;
 const numeric = (value: unknown, allowZero: boolean) => {
@@ -38,7 +39,7 @@ export function buildInternalPropertyEvidence(property: InternalPropertyRecord):
       bedrooms: internalEvidence(numeric(property.beds, false)),
       bathrooms: internalEvidence(numeric(property.baths, false)),
       livingAreaSqft: internalEvidence(numeric(property.sqft, false)),
-      lotSizeSqft: internalEvidence(numeric(property.lot, false)),
+      lotSizeSqft: internalEvidence(parseCanonicalLotArea(property.lot).lotSizeSqft),
       // The current properties table has no year-built column.
       yearBuilt: internalEvidence<number>(null),
     },

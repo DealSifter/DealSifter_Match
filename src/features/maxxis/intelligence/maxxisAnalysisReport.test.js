@@ -43,6 +43,8 @@ function context() {
     limitations: ['rehab_not_provided', 'ARV_EVALUATION_NOT_LOADED', 'roi_not_calculated'],
     valuationContext: { status: 'ARV_AVAILABLE', range: { low: 400000, high: 500000 } },
     comparableEvidence: [{ address: 'Forbidden comp address', recordedSalePrice: 450000 }],
+    providerMarketContext: { providerEstimate: 440000, providerEstimateRange: { low: 420000, high: 460000 },
+      supportingMarketSalesCount: 5, recordedSoldCount: 8 },
   };
 }
 
@@ -79,11 +81,15 @@ describe('Maxxis Analysis Report Experience v1', () => {
     });
   });
 
-  it('does not leak Level 3 data through content, keys, risks, or hidden response data', () => {
+  it('uses high-level provider context without leaking Level 3 comparable rows', () => {
     const projected = projectMaxxisAnalysisResponse({ type: 'deal_insight', answer: 'ARV is $450k',
       data: { dealIntelligence: context(), unrelated: { valuation: 1 } } });
     const serialized = JSON.stringify(projected);
-    expect(serialized).not.toMatch(/\b(?:arv|comps?|comparables?|valuation|mao|roi)\b/i);
+    expect(serialized).not.toContain('Forbidden comp address');
+    expect(projected.data.maxxisAnalysisReport.marketContext).toMatchObject({
+      providerEstimate: 440000, supportingMarketSalesCount: 5, recordedSoldCount: 8,
+      detailedComparableRowsIncluded: false,
+    });
     expect(projected.data.maxxisAnalysisReport).toBeTruthy();
     expect(projected.data.maxxisReport).toMatchObject({
       reportType: 'MAXXIS_ANALYSIS',
@@ -95,7 +101,7 @@ describe('Maxxis Analysis Report Experience v1', () => {
     });
     const authorizedValues = Object.values(projected.data.maxxisReport.sections)
       .filter((section) => section.available).map((section) => section.data);
-    expect(JSON.stringify(authorizedValues)).not.toMatch(/\b(?:arv|comps?|comparables?|valuation|mao|roi)\b/i);
+    expect(JSON.stringify(authorizedValues)).not.toContain('Forbidden comp address');
     expect(projected.analysisExport).toBeNull();
   });
 

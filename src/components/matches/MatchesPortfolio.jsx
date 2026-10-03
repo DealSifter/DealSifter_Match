@@ -18,11 +18,13 @@ import { normalizeProfileScope, resolveScopedProfile } from '../../lib/profileSc
 import { formatPropertyLocation } from '../../lib/formatPropertyLocation';
 import { getSafeLang } from '../../services/chatTranslation';
 import { isSupabaseConfigured } from '../../lib/supabaseClient';
+import { fetchPropertyIntelligence, isPropertyIntelligenceId } from '../../services/propertyIntelligenceService';
 import { formatCompactUsd } from '../../lib/formatMoney';
 import { PropertyIntelligenceGate } from '../property-intelligence/PropertyIntelligenceGate';
 import { ReportExperienceSelector } from '../../features/maxxis/access/ReportExperienceSelector';
 import { buildPropertyAnalysisHandoff } from '../../features/maxxis/context/propertyAnalysisHandoff';
 import { buildMaxxisReportSchema } from '../../domain/maxxis/maxxisReportSchema';
+import { mergePropertyReleaseEvidence } from '../../domain/maxxis/propertyReleaseEvidence';
 import { resolveReportExportEntitlement } from '../../features/maxxis/export/reportExportEntitlement';
 import { downloadMaxxisReportPdf, renderMaxxisReportPdf } from '../../features/maxxis/export/maxxisReportPdf';
 import {
@@ -782,7 +784,10 @@ export function PortfolioDetail({ item, owner, ownerContact = null, isOwnerUnloc
         reader.readAsDataURL(source);
       });
     }))).filter(Boolean);
-    const property = { ...buildCurrentReportProperty({ images: reportImages }), address: item?.address || title };
+    const baseProperty = { ...buildCurrentReportProperty({ images: reportImages }), address: item?.address || title };
+    const cachedOrAuthorizedEvidence = isPropertyIntelligenceId(item?.id)
+      ? await fetchPropertyIntelligence(item.id).catch(() => null) : null;
+    const property = mergePropertyReleaseEvidence(baseProperty, cachedOrAuthorizedEvidence);
     const schema = buildMaxxisReportSchema({ reportType: INTELLIGENCE_REPORT_TYPES.PROPERTY_RELEASE, property });
     const exportEntitlement = resolveReportExportEntitlement({
       plan: 'free', reportType: INTELLIGENCE_REPORT_TYPES.PROPERTY_RELEASE, channel: 'PDF',

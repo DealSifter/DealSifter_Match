@@ -22,6 +22,8 @@ export type RentCastPropertyRecordRaw = {
   state?: unknown;
   zipCode?: unknown;
   county?: unknown;
+  stateFips?: unknown;
+  countyFips?: unknown;
   latitude?: unknown;
   longitude?: unknown;
   propertyType?: unknown;
@@ -31,6 +33,11 @@ export type RentCastPropertyRecordRaw = {
   lotSize?: unknown;
   yearBuilt?: unknown;
   assessorID?: unknown;
+  legalDescription?: unknown;
+  subdivision?: unknown;
+  zoning?: unknown;
+  hoa?: { fee?: unknown } | null;
+  features?: unknown;
   lastSaleDate?: unknown;
   lastSalePrice?: unknown;
   taxAssessments?: Record<string, RentCastTaxAssessmentRaw> | null;
@@ -94,3 +101,6 @@ export type RentCastValueEstimateResult = {
   httpStatus: 200;
   billableSuccess: true;
 };
+
+export type RentCastObjectResult = { data: Record<string, unknown>; httpStatus: 200; billableSuccess: true };
+export type RentCastArrayResult = { records: Record<string, unknown>[]; httpStatus: 200; billableSuccess: true };

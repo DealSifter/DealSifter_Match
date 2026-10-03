@@ -15,13 +15,15 @@ describe('Deal Intelligence canonical live evidence pipeline',()=>{
     expect(dealLoader).toContain('getSoldEvidence');
     expect(dealLoader).not.toContain("name === 'PROPERTY_DATA_MODE' ? 'disabled'");
   });
-  it('keeps chat/report provider work plan-aware and reserves valuation for Deal Intelligence',()=>{
+  it('keeps chat/report provider work plan-aware while allowing Level 2 cached valuation context',()=>{
     expect(evidenceLoader).toContain('allowProviderFallback = false');
     expect(evidenceLoader).toContain('createBackendPropertyEvidenceService');
-    expect(dealLoader).toContain('const allowPropertyProvider = providerAllowedByPlan');
+    expect(dealLoader).toContain('buildProviderEvidencePlan');
+    expect(dealLoader).toContain('const allowPropertyProvider = propertyEvidenceAccess.allowProviderFallback');
     expect(dealLoader).toContain("const budgetBucket = reportRequested ? 'report' : 'chat'");
-    expect(dealLoader).toContain("requestedReportType === 'DEAL_INTELLIGENCE'");
-    expect(dealLoader).toContain('loadArvEvaluation: allowValuationProvider ? loadArvEvaluation : undefined');
+    expect(dealLoader).toContain("reportLevel === 'MAXXIS_ANALYSIS' || reportLevel === 'DEAL_INTELLIGENCE'");
+    expect(dealLoader).toContain('cacheOnly || !valuationProviderAllowed');
+    expect(dealLoader).toContain('loadArvEvaluation: shouldLoadValuationEvidence ? loadArvEvaluation : undefined');
   });
   it('preserves usage guard, cache and single-flight layers',()=>{
     expect(backendFactory).toContain('SupabasePropertyDataUsageGuard');

@@ -388,6 +388,12 @@ function ConfidenceCard({ confidence, copy }) {
 
 function PropertyOverview({ schema, copy, level, page = 1, pageCode = "PROPERTY_OVERVIEW" }) {
   const property = available(schema.sections.propertySummary) || {};
+  const isLand = /^(?:vacant\s+land|land|lot|terreno|solar)$/i.test(String(property.type || '').trim());
+  const landLabels = copy.language === 'pt'
+    ? { acres: 'Lote / acres', perAcre: 'Preço / acre', perLotSqft: 'Preço / sqft do lote', apn: 'APN / cadastro fiscal', zoning: 'Zoneamento' }
+    : copy.language === 'es'
+      ? { acres: 'Lote / acres', perAcre: 'Precio / acre', perLotSqft: 'Precio / sqft del lote', apn: 'APN / registro fiscal', zoning: 'Zonificación' }
+      : { acres: 'Lot / acres', perAcre: 'Price / acre', perLotSqft: 'Price / lot sqft', apn: 'APN / Assessor ID', zoning: 'Zoning' };
   const owner = property.owner || {};
   const images = list(property.images);
   const status = property.dealClosed
@@ -461,6 +467,12 @@ function PropertyOverview({ schema, copy, level, page = 1, pageCode = "PROPERTY_
           </div>
         </section>
         <section className="maxxis-v2-metric-strip">
+          {isLand ? <>
+          <span><Maximize aria-hidden="true" /><small>{landLabels.acres}</small><b>{text(property.lotSizeAcres, copy.unknown)}</b></span>
+          <span><Maximize aria-hidden="true" /><small>{copy.lotSize}</small><b>{text(property.lotSizeSqft ?? property.lot, copy.unknown)}</b></span>
+          <span><TrendingUp aria-hidden="true" /><small>{landLabels.perAcre}</small><b>{money(property.pricePerAcre, copy.unknown)}</b></span>
+          <span><TrendingUp aria-hidden="true" /><small>{landLabels.perLotSqft}</small><b>{money(property.pricePerLotSqft, copy.unknown)}</b></span>
+          </> : <>
           <span>
             <BedDouble aria-hidden="true" />
             <small>{copy.beds}</small>
@@ -485,6 +497,7 @@ function PropertyOverview({ schema, copy, level, page = 1, pageCode = "PROPERTY_
                 : percent(property.capRate, copy.unknown)}
             </b>
           </span>
+          </>}
         </section>
         <div className="maxxis-v2-info-grid">
           <InfoCard
@@ -495,22 +508,22 @@ function PropertyOverview({ schema, copy, level, page = 1, pageCode = "PROPERTY_
               [copy.ownerLabel, text(owner.name, copy.unknown)],
               [
                 copy.ownerOccupied,
-                text(fact("ownerOccupied"), copy.unknown),
+                text(fact("ownerOccupied", property.ownerOccupied), copy.unknown),
                 factSource("ownerOccupied"),
               ],
               [
                 copy.ownershipRecord,
-                text(fact("ownershipRecordPresent"), copy.unknown),
+                text(fact("ownershipRecordPresent", property.ownershipRecordPresent), copy.unknown),
                 factSource("ownershipRecordPresent"),
               ],
               [
                 copy.latestSale,
-                money(fact("latestSalePrice"), copy.unknown),
+                money(fact("latestSalePrice", property.latestSalePrice), copy.unknown),
                 factSource("latestSalePrice"),
               ],
               [
                 copy.saleDate,
-                text(fact("latestSaleDate"), copy.unknown),
+                text(fact("latestSaleDate", property.latestSaleDate), copy.unknown),
                 factSource("latestSaleDate"),
               ],
               [copy.allowedContacts, text(contacts, copy.unknown)],
@@ -520,13 +533,20 @@ function PropertyOverview({ schema, copy, level, page = 1, pageCode = "PROPERTY_
             copy={copy}
             icon={Home}
             title={copy.characteristics}
-            rows={[
+            rows={isLand ? [
+              [copy.title, text(property.title, copy.unknown)],
+              [copy.priceLabel, money(property.price, copy.unknown)],
+              [copy.strategy, text(property.objective, copy.unknown)],
+              [landLabels.acres, text(property.lotSizeAcres, copy.unknown)],
+              [landLabels.perAcre, money(property.pricePerAcre, copy.unknown)],
+              [landLabels.zoning, text(fact("zoning", property.zoning), copy.unknown), factSource("zoning")],
+            ] : [
               [copy.title, text(property.title, copy.unknown)],
               [copy.priceLabel, money(property.price, copy.unknown)],
               [copy.strategy, text(property.objective, copy.unknown)],
               [
                 copy.yearBuilt,
-                text(fact("yearBuilt"), copy.unknown),
+                text(fact("yearBuilt", property.yearBuilt), copy.unknown),
                 factSource("yearBuilt"),
               ],
               [
@@ -549,22 +569,23 @@ function PropertyOverview({ schema, copy, level, page = 1, pageCode = "PROPERTY_
               [copy.location, text(location, copy.unknown)],
               [
                 copy.county,
-                text(fact("county"), copy.unknown),
+                text(fact("county", property.county), copy.unknown),
                 factSource("county"),
               ],
               [
                 copy.lotSize,
-                text(fact("lotSizeSqft", property.lot), copy.unknown),
+                text(fact("lotSizeSqft", property.lotSizeSqft ?? property.lot), copy.unknown),
                 factSource("lotSizeSqft"),
               ],
+              [landLabels.apn, text(fact("assessorId", property.assessorId), copy.unknown), factSource("assessorId")],
               [
                 copy.assessedValue,
-                money(fact("assessedValue"), copy.unknown),
+                money(fact("assessedValue", property.assessedValue), copy.unknown),
                 factSource("assessedValue"),
               ],
               [
                 copy.propertyTax,
-                money(fact("annualPropertyTax"), copy.unknown),
+                money(fact("annualPropertyTax", property.annualPropertyTax), copy.unknown),
                 factSource("annualPropertyTax"),
               ],
               [copy.source, text(property.source, copy.unknown)],

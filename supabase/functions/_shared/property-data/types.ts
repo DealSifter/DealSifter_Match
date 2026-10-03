@@ -67,6 +67,17 @@ export type NormalizedPropertyRecord = {
     price: Evidence<number>;
     date: Evidence<string>;
   };
+  parcel?: {
+    stateFips: Evidence<string>;
+    countyFips: Evidence<string>;
+    assessorId: Evidence<string>;
+    legalDescription: Evidence<string>;
+    subdivision: Evidence<string>;
+    zoning: Evidence<string>;
+  };
+  hoa?: { fee: Evidence<number> };
+  features?: { values: Evidence<Record<string, unknown>> };
+  saleHistory?: { transactions: Evidence<Array<{ date: string; price: number | null }>> };
 };
 
 export interface PropertyDataProvider {

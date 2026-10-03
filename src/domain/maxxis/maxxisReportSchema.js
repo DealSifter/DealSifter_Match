@@ -25,12 +25,16 @@ const PROPERTY_KEYS = Object.freeze([
   'assessedValue', 'assessmentYear', 'annualPropertyTax', 'propertyTaxYear',
   'ownerOccupied', 'ownershipRecordPresent',
   'latestSalePrice', 'latestSaleDate',
+  'lotSizeSqft', 'lotSizeAcres', 'pricePerLotSqft', 'pricePerAcre',
+  'stateFips', 'countyFips', 'assessorId', 'legalDescription', 'subdivision',
+  'zoning', 'hoaFee', 'propertyFeatures', 'saleHistory',
 ]);
 const COMPARABLE_KEYS = Object.freeze([
   'compIdentifier', 'address', 'salePrice', 'saleDate', 'distanceMiles', 'similarity',
   'conditionStatus', 'candidateCondition', 'conditionEvidenceSource', 'promotionBlockers',
   'transactionQuality', 'role', 'inclusionReason', 'exclusionReason', 'beds',
   'baths', 'sqft', 'latitude', 'longitude', 'sourceType', 'provenance',
+  'lotSizeSqft', 'yearBuilt', 'providerCorrelation', 'saleAgeDays', 'compClass',
 ]);
 
 const isObject = (value) => Boolean(value) && typeof value === 'object' && !Array.isArray(value);
@@ -56,6 +60,10 @@ function canonicalPropertyInput(property) {
     baths: property.baths ?? property.bathrooms,
     sqft: property.sqft ?? property.livingAreaSqft ?? property.squareFeet,
     lot: property.lot ?? property.lotSizeSqft ?? property.lotSize,
+    lotSizeSqft: property.lotSizeSqft,
+    lotSizeAcres: property.lotSizeAcres,
+    pricePerLotSqft: property.pricePerLotSqft,
+    pricePerAcre: property.pricePerAcre,
     price: property.price ?? property.askingPrice,
     latitude: property.latitude ?? property.lat,
     longitude: property.longitude ?? property.lng,
@@ -211,11 +219,24 @@ function comparableStatistics(comparables, property) {
   const numbers = (values) => values.map(Number).filter(Number.isFinite);
   const average = (values) => values.length
     ? Math.round((values.reduce((sum, entry) => sum + entry, 0) / values.length) * 100) / 100 : null;
+  const median = (values) => {
+    if (!values.length) return null;
+    const sorted = [...values].sort((left, right) => left - right);
+    const middle = Math.floor(sorted.length / 2);
+    const value = sorted.length % 2 ? sorted[middle] : (sorted[middle - 1] + sorted[middle]) / 2;
+    return Math.round(value * 100) / 100;
+  };
   const salePrices = numbers(set.map((item) => item.salePrice));
   const pricePerSqft = numbers(set.map((item) => {
     const price = finitePositive(item.salePrice);
     const sqft = finitePositive(item.sqft);
     return price && sqft ? price / sqft : null;
+  }));
+  const land = isVacantLandType(property?.type);
+  const pricePerLotSqft = numbers(set.map((item) => {
+    const price = finitePositive(item.salePrice);
+    const lot = finitePositive(item.lotSizeSqft);
+    return price && lot ? price / lot : null;
   }));
   const subjectPrice = finitePositive(property?.price);
   const subjectSqft = finitePositive(property?.sqft);
@@ -227,10 +248,24 @@ function comparableStatistics(comparables, property) {
     usedCount: used.length,
     supportingCount: supporting.length,
     averageSalePrice: average(salePrices),
+    medianSalePrice: median(salePrices),
     salePriceLow: salePrices.length ? Math.min(...salePrices) : null,
     salePriceHigh: salePrices.length ? Math.max(...salePrices) : null,
     averageDistanceMiles: average(numbers(set.map((item) => item.distanceMiles))),
+    medianDistanceMiles: median(numbers(set.map((item) => item.distanceMiles))),
+    medianSaleAgeDays: median(numbers(set.map((item) => item.saleAgeDays))),
     averageSimilarity: average(numbers(set.map((item) => item.similarity))),
+    structuralScoreRange: (() => {
+      const values = numbers(set.map((item) => item.similarity));
+      return values.length ? Object.freeze({ low: Math.min(...values), high: Math.max(...values) }) : null;
+    })(),
+    providerCorrelationRange: (() => {
+      const values = numbers(set.map((item) => item.providerCorrelation));
+      return values.length ? Object.freeze({ low: Math.min(...values), high: Math.max(...values) }) : null;
+    })(),
+    medianUnitPrice: land ? median(pricePerLotSqft) : median(pricePerSqft),
+    averageUnitPrice: land ? average(pricePerLotSqft) : average(pricePerSqft),
+    unitPriceBasis: land ? 'LOT_SQFT' : 'LIVING_SQFT',
     marketPricePerSqft,
     subjectPricePerSqft: subjectPricePerSqft === null ? null : Math.round(subjectPricePerSqft * 100) / 100,
     subjectVsMarketPercent: subjectPricePerSqft && marketPricePerSqft
@@ -299,7 +334,8 @@ function levelData(reportType, input) {
   if (reportType === INTELLIGENCE_REPORT_TYPES.MAXXIS_ANALYSIS) {
     const analysis = isObject(input.maxxisAnalysis) ? input.maxxisAnalysis : {};
     const executive = analysis.executiveSummary || analysis.keyObservations
-      ? Object.freeze({ summary: analysis.executiveSummary || null, observations: analysis.keyObservations || null })
+      ? Object.freeze({ summary: analysis.executiveSummary || null, observations: analysis.keyObservations || null,
+        dealThesis: analysis.dealThesis || null, marketContext: analysis.marketContext || null })
       : null;
     return {
       propertySummary: section(property, 'USER_PROVIDED'),

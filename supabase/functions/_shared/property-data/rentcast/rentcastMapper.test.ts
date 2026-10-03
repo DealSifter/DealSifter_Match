@@ -13,6 +13,8 @@ describe('RentCast mapper', () => {
       state: 'TX',
       zipCode: '78244',
       county: 'Bexar',
+      stateFips: '48',
+      countyFips: '029',
       latitude: 29.475962,
       longitude: -98.351442,
       propertyType: 'Single Family',
@@ -21,6 +23,12 @@ describe('RentCast mapper', () => {
       squareFootage: 1878,
       lotSize: 8850,
       yearBuilt: 1973,
+      assessorID: 'APN-5500',
+      legalDescription: 'LOT 10 BLOCK 2',
+      subdivision: 'Grand Lake',
+      zoning: 'R-6',
+      hoa: { fee: 45 },
+      features: { architectureType: 'Ranch', cooling: true },
       owner: { names: ['Fixture Owner', '', null] },
       ownerOccupied: true,
       taxAssessments: {
@@ -59,6 +67,16 @@ describe('RentCast mapper', () => {
         annualPropertyTax: { value: 4065 }, propertyTaxYear: { value: 2024 },
       },
       lastSale: { price: { value: 270000 }, date: { value: '2024-11-18T00:00:00.000Z' } },
+      parcel: {
+        stateFips: { value: '48' }, countyFips: { value: '029' }, assessorId: { value: 'APN-5500' },
+        legalDescription: { value: 'LOT 10 BLOCK 2' }, subdivision: { value: 'Grand Lake' }, zoning: { value: 'R-6' },
+      },
+      hoa: { fee: { value: 45 } },
+      features: { values: { value: { architectureType: 'Ranch', cooling: true } } },
+      saleHistory: { transactions: { value: [
+        { date: '2024-11-18T00:00:00.000Z', price: 270000 },
+        { date: '2020-01-01T00:00:00.000Z', price: 180000 },
+      ] } },
     });
     const serialized = JSON.stringify(result);
     expect(serialized).not.toContain('999999');

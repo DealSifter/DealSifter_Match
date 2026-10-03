@@ -8,6 +8,7 @@ import type {
   PropertyServiceMatch,
   PropertyServiceNeed,
 } from './types.ts';
+import { calculateLandUnitMetrics, parseCanonicalLotArea } from './landMetrics.ts';
 
 const UUID_PATTERN = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
 const MAX_IMAGES = 12;
@@ -107,25 +108,39 @@ export function resolvePropertyDetailsInput(toolArgs: unknown, trustedPropertyId
 
 export function normalizePropertyDetails(row: Record<string, any>, imageRows: Array<Record<string, any>> = []): NormalizedPropertyDetailsResult {
   const address = cleanPublicNarrative(row.address, 240);
+  const propertyType = cleanText(row.type, 100);
+  const isVacantLand = /^(?:vacant\s+land|land|lot|terreno|solar)$/i.test(propertyType);
+  const rawLot = cleanPublicNarrative(row.lot, 120);
+  const lotArea = parseCanonicalLotArea(rawLot);
+  const rawRehab = cleanNumber(row.rehab);
+  const rawCapRate = cleanNumber(row.cap_rate);
+  const notes = cleanPublicNarrative(row.description, 2_000);
+  const price = cleanNumber(row.price);
+  const landUnitMetrics = isVacantLand ? calculateLandUnitMetrics(price, lotArea) : null;
   const property: MaxxisPropertyDetails = {
     id: cleanText(row.id, 50),
     title: address || cleanText([row.type, row.city, row.state].filter(Boolean).join(' · '), 240),
     address,
-    type: cleanText(row.type, 100),
+    type: propertyType,
     city: cleanText(row.city, 120),
     state: cleanText(row.state, 2).toUpperCase(),
     zip: cleanText(row.zip, 10),
-    price: cleanNumber(row.price),
+    price,
     beds: cleanNumber(row.beds),
     baths: cleanNumber(row.baths),
-    sqft: cleanText(row.sqft, 40),
+    sqft: isVacantLand ? '' : cleanText(row.sqft, 40),
     improvement: cleanPublicNarrative(row.improvement, 300),
-    lot: cleanPublicNarrative(row.lot, 120),
+    lot: rawLot,
+    lotSizeSqft: lotArea.lotSizeSqft,
+    lotSizeAcres: lotArea.lotSizeAcres,
+    pricePerLotSqft: landUnitMetrics?.pricePerLotSqft ?? null,
+    pricePerAcre: landUnitMetrics?.pricePerAcre ?? null,
     dealTag: cleanPublicNarrative(row.deal_tag, 100),
     objective: cleanPublicNarrative(row.objective, 160),
-    rehab: cleanNumber(row.rehab),
-    capRate: cleanNumber(row.cap_rate),
-    description: cleanPublicNarrative(row.description, 2_000),
+    rehab: isVacantLand && rawRehab === 0 ? null : rawRehab,
+    capRate: isVacantLand && rawCapRate === 0 ? null : rawCapRate,
+    description: notes,
+    notes,
     source: cleanText(row.source, 80),
     latitude: cleanCoordinate(row.latitude ?? row.lat, -90, 90),
     longitude: cleanCoordinate(row.longitude ?? row.lng, -180, 180),
@@ -143,10 +158,11 @@ export function normalizePropertyDetails(row: Record<string, any>, imageRows: Ar
     ...(!property.state ? ['state'] : []),
     ...(!property.zip ? ['zip'] : []),
     ...(property.price === null || property.price <= 0 ? ['price'] : []),
-    ...(!property.sqft ? ['sqft'] : []),
+    ...(!isVacantLand && !property.sqft ? ['sqft'] : []),
+    ...(isVacantLand && property.lotSizeSqft === null ? ['lot'] : []),
     ...(!property.objective ? ['objective'] : []),
-    ...(property.rehab === null || property.rehab <= 0 ? ['rehab'] : []),
-    ...(property.capRate === null ? ['cap_rate'] : []),
+    ...(!isVacantLand && (property.rehab === null || property.rehab <= 0) ? ['rehab'] : []),
+    ...(!isVacantLand && property.capRate === null ? ['cap_rate'] : []),
     ...(!property.description ? ['description'] : []),
     ...(!property.images.length ? ['images'] : []),
   ];

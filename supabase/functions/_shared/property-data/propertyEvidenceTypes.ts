@@ -42,6 +42,11 @@ export type PropertyEvidenceConflict = {
   difference: number | null;
   differencePercent: number | null;
   severity: 'INFO' | 'WARNING';
+  classification: 'CRITICAL_IDENTITY' | 'HIGH_VALUATION' | 'MEDIUM_PROPERTY' | 'LOW_INFORMATIONAL';
+  storedValue: string | number;
+  externalValueForResolution: string | number;
+  analysisValue: null;
+  resolution: 'UNRESOLVED';
 };
 
 export type PropertyEvidenceResult = {

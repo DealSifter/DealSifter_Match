@@ -77,6 +77,9 @@ export type ArvEngineCandidate = {
   bedrooms?: number | null;
   bathrooms?: number | null;
   livingAreaSqft: number | null;
+  lotSizeSqft?: number | null;
+  yearBuilt?: number | null;
+  providerCorrelation?: number | null;
   latitude?: number | null;
   longitude?: number | null;
   structuralComparabilityScore: number;

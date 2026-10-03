@@ -11,6 +11,17 @@ const propertyType = (value: string) => {
   return normalized;
 };
 
+const conflictMetadata = (field: string, storedValue: string | number, externalValue: string | number) => ({
+  classification: (['address', 'city', 'state', 'zip'].includes(field) ? 'CRITICAL_IDENTITY'
+    : field === 'propertyType' ? 'HIGH_VALUATION'
+      : ['bedrooms', 'bathrooms', 'livingAreaSqft', 'lotSizeSqft', 'yearBuilt'].includes(field)
+        ? 'MEDIUM_PROPERTY' : 'LOW_INFORMATIONAL') as PropertyEvidenceConflict['classification'],
+  storedValue,
+  externalValueForResolution: externalValue,
+  analysisValue: null,
+  resolution: 'UNRESOLVED' as const,
+});
+
 function values<T>(internal: Evidence<T>, external: Evidence<T>) {
   return internal.value !== null && external.value !== null ? [internal.value, external.value] as const : null;
 }
@@ -26,6 +37,7 @@ function textConflict(
   return {
     field, internalValue: pair[0], externalValue: pair[1], internalSource: 'dealSifter',
     externalSource: 'rentcast', difference: null, differencePercent: null, severity: 'INFO',
+    ...conflictMetadata(field, pair[0], pair[1]),
   } satisfies PropertyEvidenceConflict;
 }
 
@@ -37,6 +49,7 @@ function exactNumericConflict(field: string, internal: Evidence<number>, externa
   return {
     field, internalValue: pair[0], externalValue: pair[1], internalSource: 'dealSifter',
     externalSource: 'rentcast', difference, differencePercent, severity: 'WARNING',
+    ...conflictMetadata(field, pair[0], pair[1]),
   } satisfies PropertyEvidenceConflict;
 }
 

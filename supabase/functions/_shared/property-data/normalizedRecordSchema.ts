@@ -29,6 +29,10 @@ const isString = (value: unknown): value is string => typeof value === 'string';
 const isNumber = (value: unknown): value is number => typeof value === 'number' && Number.isFinite(value);
 const isBoolean = (value: unknown): value is boolean => typeof value === 'boolean';
 const isStringArray = (value: unknown): value is string[] => Array.isArray(value) && value.every(isString);
+const isRecord = (value: unknown): value is Record<string, unknown> => isObject(value);
+const isSaleHistory = (value: unknown): value is Array<{ date: string; price: number | null }> => Array.isArray(value)
+  && value.every((item) => isObject(item) && hasExactKeys(item, ['date', 'price'])
+    && isString(item.date) && (item.price === null || isNumber(item.price)));
 
 function isEvidenceGroup(value: unknown, fields: Record<string, (candidate: unknown) => boolean>) {
   if (!isObject(value) || !hasExactKeys(value, Object.keys(fields))) return false;
@@ -36,9 +40,11 @@ function isEvidenceGroup(value: unknown, fields: Record<string, (candidate: unkn
 }
 
 export function isNormalizedPropertyRecord(value: unknown): value is NormalizedPropertyRecord {
-  if (!isObject(value) || !hasExactKeys(value, [
-    'provider', 'sourceMetadata', 'identity', 'address', 'characteristics', 'ownership', 'tax', 'lastSale',
-  ])) return false;
+  if (!isObject(value)) return false;
+  const requiredKeys = ['provider', 'sourceMetadata', 'identity', 'address', 'characteristics', 'ownership', 'tax', 'lastSale'];
+  const optionalKeys = ['parcel', 'hoa', 'features', 'saleHistory'];
+  if (!requiredKeys.every((key) => Object.hasOwn(value, key))
+    || Object.keys(value).some((key) => !requiredKeys.includes(key) && !optionalKeys.includes(key))) return false;
   if (value.provider !== 'rentcast' || !isObject(value.sourceMetadata)) return false;
   if (!hasExactKeys(value.sourceMetadata, ['source', 'retrievedAt', 'providerPropertyId', 'confidence'])) return false;
   if (value.sourceMetadata.source !== 'rentcast'
@@ -78,7 +84,18 @@ export function isNormalizedPropertyRecord(value: unknown): value is NormalizedP
     && isEvidenceGroup(value.lastSale, {
       price: (item) => isEvidence(item, isNumber),
       date: (item) => isEvidence(item, isString),
-    });
+    })
+    && (!value.parcel || isEvidenceGroup(value.parcel, {
+      stateFips: (item) => isEvidence(item, isString),
+      countyFips: (item) => isEvidence(item, isString),
+      assessorId: (item) => isEvidence(item, isString),
+      legalDescription: (item) => isEvidence(item, isString),
+      subdivision: (item) => isEvidence(item, isString),
+      zoning: (item) => isEvidence(item, isString),
+    }))
+    && (!value.hoa || isEvidenceGroup(value.hoa, { fee: (item) => isEvidence(item, isNumber) }))
+    && (!value.features || isEvidenceGroup(value.features, { values: (item) => isEvidence(item, isRecord) }))
+    && (!value.saleHistory || isEvidenceGroup(value.saleHistory, { transactions: (item) => isEvidence(item, isSaleHistory) }));
 }
 
 export function serializeNormalizedPropertyRecord(record: NormalizedPropertyRecord) {

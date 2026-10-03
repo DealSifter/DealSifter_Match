@@ -93,9 +93,24 @@ export type DealIntelligenceContext = {
     beds: number | null | undefined;
     baths: number | null | undefined;
     sqft: number | null;
+    lotSizeSqft: number | null | undefined;
+    yearBuilt: number | null | undefined;
+    providerCorrelation: number | null | undefined;
+    saleAgeDays: number | null | undefined;
     latitude: number | null | undefined;
     longitude: number | null | undefined;
   }>;
+  providerMarketContext?: {
+    providerEstimate: number | null;
+    providerEstimateRange: { low: number; high: number } | null;
+    providerComparableCount: number;
+    recordedSoldCount: number;
+    supportingMarketSalesCount: number;
+    medianRecordedSalePrice: number | null;
+    minimumRecordedSalePrice: number | null;
+    maximumRecordedSalePrice: number | null;
+    source: string;
+  };
   matchContext: {
     score: number | null;
     classification: string;
@@ -157,6 +172,9 @@ function propertyContext(property: MaxxisPropertyDetails, evidence: MaxxisProper
     bathrooms: field(publicFields.bathrooms, internalFields.bathrooms, property.baths),
     livingAreaSqft: field(publicFields.livingAreaSqft, internalFields.livingAreaSqft, property.sqft),
     lotSizeSqft: field(publicFields.lotSizeSqft, internalFields.lotSizeSqft, property.lot),
+    lotSizeAcres: field(null, null, property.lotSizeAcres),
+    pricePerLotSqft: field(null, null, property.pricePerLotSqft),
+    pricePerAcre: field(null, null, property.pricePerAcre),
     yearBuilt: field(publicFields.yearBuilt, internalFields.yearBuilt, null),
     askingPrice: field(null, internalFields.askingPrice, property.price),
     county: field(publicFields.county, null, null),
@@ -170,6 +188,16 @@ function propertyContext(property: MaxxisPropertyDetails, evidence: MaxxisProper
     latestSaleDate: field(publicFields.latestSaleDate, null, null),
     ownerOccupied: field(publicFields.ownerOccupied, null, null),
     ownershipRecordPresent: field(publicFields.ownershipRecordPresent, null, null),
+    stateFips: field(publicFields.stateFips, null, null),
+    countyFips: field(publicFields.countyFips, null, null),
+    assessorId: field(publicFields.assessorId, null, null),
+    legalDescription: field(publicFields.legalDescription, null, null),
+    subdivision: field(publicFields.subdivision, null, null),
+    zoning: field(publicFields.zoning, null, null),
+    hoaFee: field(publicFields.hoaFee, null, null),
+    propertyFeatures: field(publicFields.propertyFeatures, null, null),
+    saleHistory: field(publicFields.saleHistory, null, null),
+    notes: field(null, null, property.notes || property.description),
   };
   return {
     fields,
@@ -239,6 +267,10 @@ function comparableEvidence(arv: ArvEvaluationResult | null): DealIntelligenceCo
     beds: comp.bedrooms,
     baths: comp.bathrooms,
     sqft: comp.livingAreaSqft,
+    lotSizeSqft: comp.lotSizeSqft,
+    yearBuilt: comp.yearBuilt,
+    providerCorrelation: comp.providerCorrelation,
+    saleAgeDays: comp.daysSinceSale,
     latitude: comp.latitude,
     longitude: comp.longitude,
   }));

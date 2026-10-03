@@ -78,6 +78,21 @@ describe('RentCast client', () => {
     expect(parsed.searchParams.has('address')).toBe(false);
   });
 
+  it('supports the remaining strategy-aware evidence endpoints without frontend access', async () => {
+    const fetchImpl = vi.fn(async (input: string | URL) => String(input).includes('/avm/rent/')
+      ? jsonResponse({ rent: 2400, comparables: [] }) : jsonResponse([]));
+    const client = createRentCastClient({ apiKey: TEST_KEY, fetchImpl });
+    await client.searchSaleListings({ address: '100 Main St, Austin, TX 78701', radius: 5, status: 'Active', limit: 50 });
+    await client.estimateRent({ address: '100 Main St, Austin, TX 78701', maxRadius: 5, daysOld: 180, compCount: 20, lookupSubjectAttributes: true });
+    await client.searchRentalListings({ latitude: 30.26, longitude: -97.74, radius: 5, status: 'Active', limit: 50 });
+    await client.getMarketData('78701');
+    expect(fetchImpl).toHaveBeenCalledTimes(4);
+    expect(fetchImpl.mock.calls.map(([url]) => new URL(String(url)).pathname)).toEqual([
+      '/v1/listings/sale', '/v1/avm/rent/long-term', '/v1/listings/rental/long-term', '/v1/markets',
+    ]);
+    expect(new URL(String(fetchImpl.mock.calls[3][0])).searchParams.get('zipCode')).toBe('78701');
+  });
+
   it.each([
     [400, 'INVALID_PROPERTY_LOOKUP'],
     [401, 'PROVIDER_AUTH_ERROR'],

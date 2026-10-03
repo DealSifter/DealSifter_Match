@@ -16,6 +16,10 @@ describe('property evidence snapshot projection', () => {
         latestSaleDate: { value: '2021-08-03T00:00:00.000Z', status: 'VERIFIED_RECORD' },
         ownerOccupied: { value: true, status: 'VERIFIED_RECORD' },
         ownershipRecordPresent: { value: true, status: 'VERIFIED_RECORD' },
+        assessorId: { value: 'APN-5939', status: 'VERIFIED_RECORD' },
+        zoning: { value: 'RLD-60', status: 'VERIFIED_RECORD' },
+        subdivision: { value: 'Droad Park', status: 'VERIFIED_RECORD' },
+        hoaFee: { value: 0, status: 'VERIFIED_RECORD' },
       },
     });
     expect(value).toMatchObject({
@@ -24,6 +28,7 @@ describe('property evidence snapshot projection', () => {
       propertyTaxYear: 2024, latestSalePrice: 80500,
       latestSaleDate: '2021-08-03T00:00:00.000Z', ownerOccupied: true,
       ownershipRecordPresent: true,
+      assessorId: 'APN-5939', zoning: 'RLD-60', subdivision: 'Droad Park', hoaFee: 0,
     });
   });
 

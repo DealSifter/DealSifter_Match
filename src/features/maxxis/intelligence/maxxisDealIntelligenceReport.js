@@ -138,6 +138,12 @@ function comparableItem(comp) {
     beds: nullableNumber(comp?.beds),
     baths: nullableNumber(comp?.baths),
     sqft: nullableNumber(comp?.sqft),
+    lotSizeSqft: nullableNumber(comp?.lotSizeSqft),
+    yearBuilt: nullableNumber(comp?.yearBuilt),
+    providerCorrelation: nullableNumber(comp?.providerCorrelation),
+    saleAgeDays: nullableNumber(comp?.saleAgeDays),
+    compClass: comp?.valuationEligibility === 'INCLUDED' ? 'CONFIRMED'
+      : comp?.valuationEligibility === 'SUPPORTING_ONLY' ? 'SUPPORTING' : 'MARKET_REFERENCE',
     latitude: nullableNumber(comp?.latitude),
     longitude: nullableNumber(comp?.longitude),
     sourceType: 'VERIFIED_RECORD',

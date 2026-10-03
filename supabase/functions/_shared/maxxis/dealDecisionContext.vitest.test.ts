@@ -148,6 +148,30 @@ describe('DealDecisionContext', () => {
     expect(decision.decisionGaps.map((gap) => gap.field)).toEqual(expect.arrayContaining(['zoning', 'allowed_use', 'land_sale_evidence']));
   });
 
+  it('preserves Gable notes and calculates canonical land unit metrics', () => {
+    const input = snapshot({
+      propertyFacts: { type: 'Land', objective: 'Sell', price: 19_000, rehab: null, sqft: null,
+        lot: '1,14ac', notes: 'opportunity to subdivide in 2 lots for new constructions' },
+      strategies: ['Land'],
+      analysisApplicability: { propertyCategory: 'VACANT_LAND', constructionPlanned: false,
+        rehab: 'NOT_APPLICABLE', residentialArv: 'NOT_APPLICABLE' },
+      rehabAnalysis: { applicability: 'NOT_APPLICABLE', value: null, provenance: 'NOT_APPLICABLE' },
+      valuationContext: { status: 'NOT_APPLICABLE', confidence: 'LOW', providerEstimate: null },
+      assumptions: {},
+    });
+    const decision = buildDealDecisionContext(input);
+    expect(decision.relationships).toMatchObject({
+      lotSizeAcres: 1.14, lotSizeSqft: 49_658.4, pricePerLotSqft: 0.38, pricePerAcre: 16_666.67,
+    });
+    expect(decision.userAssumptions).toEqual(expect.arrayContaining([
+      expect.objectContaining({ key: 'propertyNotes', provenance: 'USER_PROVIDED' }),
+    ]));
+    expect(decision.calculatedMetrics).toEqual(expect.arrayContaining([
+      expect.objectContaining({ key: 'pricePerAcre', value: 16_666.67 }),
+      expect.objectContaining({ key: 'pricePerLotSqft', value: 0.38 }),
+    ]));
+  });
+
   it('uses financing-specific SUB-TO gaps instead of residential ARV gaps', () => {
     const input = snapshot({
       propertyFacts: { objective: 'SUB-TO', rehab: 0 },

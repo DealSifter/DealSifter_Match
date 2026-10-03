@@ -5,6 +5,8 @@ import type {
   RentCastSoldSearchResult,
   RentCastValueEstimateRaw,
   RentCastValueEstimateResult,
+  RentCastObjectResult,
+  RentCastArrayResult,
 } from './rentcastTypes.ts';
 
 export const RENTCAST_BASE_URL = 'https://api.rentcast.io/v1';
@@ -16,6 +18,19 @@ export type RentCastClient = {
   lookupProperty(address: string): Promise<RentCastLookupResult>;
   estimateValue(input: RentCastValueEstimateInput): Promise<RentCastValueEstimateResult>;
   searchSoldProperties(input: RentCastSoldSearchInput): Promise<RentCastSoldSearchResult>;
+  searchSaleListings(input: RentCastListingSearchInput): Promise<RentCastArrayResult>;
+  estimateRent(input: RentCastValueEstimateInput): Promise<RentCastObjectResult>;
+  searchRentalListings(input: RentCastListingSearchInput): Promise<RentCastArrayResult>;
+  getMarketData(zipCode: string): Promise<RentCastArrayResult>;
+};
+
+export type RentCastListingSearchInput = {
+  address?: string;
+  latitude?: number | null;
+  longitude?: number | null;
+  radius: number;
+  status?: string;
+  limit: number;
 };
 
 export type RentCastValueEstimateInput = {
@@ -82,6 +97,39 @@ export function createRentCastClient(options: {
     } finally {
       clearTimeout(timeout);
     }
+  };
+
+  const objectResult = async (url: URL): Promise<RentCastObjectResult> => {
+    const body = await requestJson(url);
+    if (!body || typeof body !== 'object' || Array.isArray(body)) {
+      throw new PropertyDataError('INVALID_PROVIDER_RESPONSE', { httpStatus: 200, billableSuccess: true });
+    }
+    return { data: body as Record<string, unknown>, httpStatus: 200, billableSuccess: true };
+  };
+  const arrayResult = async (url: URL): Promise<RentCastArrayResult> => {
+    const body = await requestJson(url);
+    if (!Array.isArray(body) || body.some((record) => !record || typeof record !== 'object' || Array.isArray(record))) {
+      throw new PropertyDataError('INVALID_PROVIDER_RESPONSE', { httpStatus: 200, billableSuccess: true });
+    }
+    return { records: body as Record<string, unknown>[], httpStatus: 200, billableSuccess: true };
+  };
+  const listingUrl = (path: string, input: RentCastListingSearchInput) => {
+    const address = String(input?.address || '').trim();
+    const latitude = Number(input?.latitude);
+    const longitude = Number(input?.longitude);
+    const hasCoordinates = input?.latitude != null && input?.longitude != null
+      && Number.isFinite(latitude) && latitude >= -90 && latitude <= 90
+      && Number.isFinite(longitude) && longitude >= -180 && longitude <= 180;
+    if (!address && !hasCoordinates) throw new PropertyDataError('INVALID_PROPERTY_LOOKUP');
+    const url = new URL(`${baseUrl}${path}`);
+    if (hasCoordinates) {
+      url.searchParams.set('latitude', String(latitude));
+      url.searchParams.set('longitude', String(longitude));
+    } else url.searchParams.set('address', address);
+    url.searchParams.set('radius', String(input.radius));
+    if (String(input.status || '').trim()) url.searchParams.set('status', String(input.status).trim());
+    url.searchParams.set('limit', String(input.limit));
+    return url;
   };
 
   return {
@@ -153,6 +201,30 @@ export function createRentCastClient(options: {
         throw new PropertyDataError('INVALID_PROVIDER_RESPONSE', { httpStatus: 200, billableSuccess: true });
       }
       return { records: body as RentCastPropertyRecordRaw[], httpStatus: 200, billableSuccess: true };
+    },
+    async searchSaleListings(input: RentCastListingSearchInput) {
+      return arrayResult(listingUrl('/listings/sale', input));
+    },
+    async estimateRent(input: RentCastValueEstimateInput) {
+      const address = String(input?.address || '').trim();
+      if (!address) throw new PropertyDataError('INVALID_PROPERTY_LOOKUP');
+      const url = new URL(`${baseUrl}/avm/rent/long-term`);
+      url.searchParams.set('address', address);
+      url.searchParams.set('maxRadius', String(input.maxRadius));
+      url.searchParams.set('daysOld', String(input.daysOld));
+      url.searchParams.set('compCount', String(input.compCount));
+      url.searchParams.set('lookupSubjectAttributes', String(input.lookupSubjectAttributes));
+      return objectResult(url);
+    },
+    async searchRentalListings(input: RentCastListingSearchInput) {
+      return arrayResult(listingUrl('/listings/rental/long-term', input));
+    },
+    async getMarketData(zipCode: string) {
+      const zip = String(zipCode || '').trim();
+      if (!/^\d{5}$/.test(zip)) throw new PropertyDataError('INVALID_PROPERTY_LOOKUP');
+      const url = new URL(`${baseUrl}/markets`);
+      url.searchParams.set('zipCode', zip);
+      return arrayResult(url);
     },
   };
 }

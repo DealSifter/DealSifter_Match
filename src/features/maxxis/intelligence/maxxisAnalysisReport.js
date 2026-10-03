@@ -4,7 +4,6 @@ import { explainMaxxisEvidenceList } from './maxxisUserFacingEvidence';
 export const MAXXIS_ANALYSIS_REPORT_VERSION = 'MAXXIS_ANALYSIS_REPORT_V1';
 
 const ALLOWED_RISK_CATEGORIES = new Set(['DATA_RISK', 'MARKET_RISK', 'EXECUTION_RISK']);
-const LEVEL_THREE_PATTERN = /\b(?:arv|comps?|comparables?|valuation|mao|roi)\b/i;
 const FIELD_LABELS = Object.freeze({
   address: 'Address',
   city: 'City',
@@ -17,6 +16,16 @@ const FIELD_LABELS = Object.freeze({
   lotSizeSqft: 'Lot size (sqft)',
   yearBuilt: 'Year built',
   askingPrice: 'Asking price',
+  county: 'County',
+  assessorId: 'APN / assessor ID',
+  zoning: 'Zoning',
+  subdivision: 'Subdivision',
+  assessedValue: 'Assessed value',
+  annualPropertyTax: 'Annual property tax',
+  latestSalePrice: 'Latest sale price',
+  latestSaleDate: 'Latest sale date',
+  hoaFee: 'HOA fee',
+  notes: 'Property notes',
 });
 
 const isObject = (value) => Boolean(value) && typeof value === 'object' && !Array.isArray(value);
@@ -24,7 +33,7 @@ const list = (value) => Array.isArray(value) ? value : [];
 const unique = (values) => [...new Set(values.filter(Boolean))];
 const safeText = (value) => {
   const text = String(value || '').trim();
-  return text && !LEVEL_THREE_PATTERN.test(text) ? text : '';
+  return text;
 };
 
 function highlightEntry(key, rawField = {}) {
@@ -165,12 +174,25 @@ export function buildMaxxisAnalysisReport(dealIntelligence, structuredAnalysis =
   ].filter(([, explanation]) => safeText(explanation)).map(([category, explanation]) => Object.freeze({
     code: category, category, severity: 'MEDIUM', explanation: safeText(explanation),
   })) : null;
+  const providerMarket = isObject(dealIntelligence.providerMarketContext)
+    ? dealIntelligence.providerMarketContext : {};
   const report = {
     type: 'maxxis_analysis_report',
     version: MAXXIS_ANALYSIS_REPORT_VERSION,
     reportType: 'MAXXIS_ANALYSIS',
     propertyId: String(dealIntelligence.propertyId || '').trim() || null,
     executiveSummary: safeText(canonical?.executiveSummary) || executiveSummary(highlights, alignment),
+    dealThesis: canonical?.dealThesis || null,
+    marketContext: Object.freeze({
+      providerEstimate: Number.isFinite(Number(providerMarket.providerEstimate))
+        ? Number(providerMarket.providerEstimate) : null,
+      providerEstimateLabel: 'PROVIDER_CURRENT_ESTIMATE_NOT_ARV',
+      providerEstimateRange: isObject(providerMarket.providerEstimateRange)
+        ? Object.freeze({ ...providerMarket.providerEstimateRange }) : null,
+      supportingMarketSalesCount: Number(providerMarket.supportingMarketSalesCount) || 0,
+      recordedSoldCount: Number(providerMarket.recordedSoldCount) || 0,
+      detailedComparableRowsIncluded: false,
+    }),
     propertyHighlights: highlights,
     profileAlignment: alignment,
     keyObservations: canonical ? Object.freeze({

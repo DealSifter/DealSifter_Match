@@ -56,7 +56,7 @@ const COPY = Object.freeze({
     coordinateMap: 'Schematic positions from stored coordinates; not a street map.', mapArea: 'MARKET AREA',
     address: 'Address', salePrice: 'Sale price', date: 'Date', distance: 'Distance', bedsBaths: 'Beds / Baths', similarity: 'Similarity',
     used: 'USED', supporting: 'SUPPORTING', excluded: 'EXCLUDED', totalComps: 'Comparable records', usedComparables: 'Used in analysis', averageSalePrice: 'Average sale price', averageSimilarity: 'Average similarity',
-    compsUsed: 'Comps used', confidence: 'Confidence', pricePerSqft: 'Price / sqft',
+    compsUsed: 'Comps used', confidence: 'Confidence', pricePerSqft: 'Price / sqft', lotAcres: 'Lot / acres', pricePerAcre: 'Price / acre', pricePerLotSqft: 'Price / lot sqft', assessorId: 'APN / Assessor ID', zoning: 'Zoning',
     costBasis: 'Cost basis', spread: 'Spread', roiScenario: 'ROI scenario', marketPricePerSqft: 'Comparable avg. / sqft', subjectVsMarket: 'Subject vs. market', averageDistance: 'Average distance',
     arvAvailable: 'ARV available', arvLimited: 'ARV limited by evidence', arvUnavailable: 'ARV unavailable', arvNotApplicable: 'Residential ARV not applicable',
     providerEstimateStatus: 'Supporting provider estimate — not DealSifter ARV',
@@ -99,7 +99,7 @@ const COPY = Object.freeze({
     coordinateMap: 'Posições esquemáticas das coordenadas armazenadas; não é um mapa de ruas.', mapArea: 'ÁREA DE MERCADO',
     address: 'Endereço', salePrice: 'Preço de venda', date: 'Data', distance: 'Distância', bedsBaths: 'Quartos / Banhos', similarity: 'Similaridade',
     used: 'USADO', supporting: 'SUPORTE', excluded: 'EXCLUÍDO', totalComps: 'Registros comparáveis', usedComparables: 'Usados na análise', averageSalePrice: 'Preço médio de venda', averageSimilarity: 'Similaridade média',
-    compsUsed: 'Comps usados', confidence: 'Confiança', pricePerSqft: 'Preço / sqft',
+    compsUsed: 'Comps usados', confidence: 'Confiança', pricePerSqft: 'Preço / sqft', lotAcres: 'Lote / acres', pricePerAcre: 'Preço / acre', pricePerLotSqft: 'Preço / sqft do lote', assessorId: 'APN / cadastro fiscal', zoning: 'Zoneamento',
     costBasis: 'Custo base', spread: 'Margem', roiScenario: 'Cenário de ROI', marketPricePerSqft: 'Média comparáveis / sqft', subjectVsMarket: 'Imóvel vs. mercado', averageDistance: 'Distância média',
     arvAvailable: 'ARV disponível', arvLimited: 'ARV limitado pelas evidências', arvUnavailable: 'ARV indisponível', arvNotApplicable: 'ARV residencial não aplicável',
     providerEstimateStatus: 'Estimativa de apoio do provedor — não é ARV DealSifter',
@@ -142,7 +142,7 @@ const COPY = Object.freeze({
     coordinateMap: 'Posiciones esquemáticas de coordenadas guardadas; no es un mapa de calles.', mapArea: 'ÁREA DE MERCADO',
     address: 'Dirección', salePrice: 'Precio de venta', date: 'Fecha', distance: 'Distancia', bedsBaths: 'Hab. / Baños', similarity: 'Similitud',
     used: 'USADO', supporting: 'APOYO', excluded: 'EXCLUIDO', totalComps: 'Registros comparables', usedComparables: 'Usados en el análisis', averageSalePrice: 'Precio medio de venta', averageSimilarity: 'Similitud media',
-    compsUsed: 'Comps usados', confidence: 'Confianza', pricePerSqft: 'Precio / sqft',
+    compsUsed: 'Comps usados', confidence: 'Confianza', pricePerSqft: 'Precio / sqft', lotAcres: 'Lote / acres', pricePerAcre: 'Precio / acre', pricePerLotSqft: 'Precio / sqft del lote', assessorId: 'APN / registro fiscal', zoning: 'Zonificación',
     costBasis: 'Costo base', spread: 'Diferencia', roiScenario: 'Escenario de ROI', marketPricePerSqft: 'Promedio comps / sqft', subjectVsMarket: 'Propiedad vs. mercado', averageDistance: 'Distancia media',
     arvAvailable: 'ARV disponible', arvLimited: 'ARV limitado por la evidencia', arvUnavailable: 'ARV no disponible', arvNotApplicable: 'ARV residencial no aplicable',
     providerEstimateStatus: 'Estimación de apoyo del proveedor — no es ARV DealSifter',
@@ -397,7 +397,13 @@ function propertyHero(doc, property, t, accent, imageData) {
   text(doc, currency(property.price, t), M + 13, y + 108, { size: 20, bold: true, color: accent });
   photo(doc, M + 265, y + 9, CONTENT - 274, h - 18, imageData, t, { cover: true, radius: 7 });
   const metricY = y + 122; const metricGap = 5; const metricW = (223 - metricGap) / 2;
-  const metrics = [
+  const isLand = /^(?:vacant\s+land|land|lot|terreno|solar)$/i.test(String(property.type || '').trim());
+  const metrics = isLand ? [
+    [t.lotAcres, value(property.lotSizeAcres, '–'), 'maximize'],
+    [t.lot, value(property.lotSizeSqft ?? property.lot, '–'), 'maximize'],
+    [t.pricePerAcre, property.pricePerAcre == null ? t.unavailable : currency(property.pricePerAcre, t), 'trend'],
+    [t.pricePerLotSqft, property.pricePerLotSqft == null ? t.unavailable : currency(property.pricePerLotSqft, t), 'trend'],
+  ] : [
     [t.beds, value(property.beds, '–'), 'bed'],
     [t.baths, value(property.baths, '–'), 'bath'],
     [t.sqft, value(property.sqft, '–'), 'maximize'],
@@ -425,10 +431,19 @@ function propertyFactGrid(doc, property, evidence, t, accent, y) {
     fact('latestSalePrice', property.latestSalePrice) ? currency(fact('latestSalePrice', property.latestSalePrice), t) : null,
     latestSaleDate ? String(latestSaleDate) : null,
   ].filter(Boolean).join(' · ');
+  const isLand = /^(?:vacant\s+land|land|lot|terreno|solar)$/i.test(String(property.type || '').trim());
+  const characteristicFacts = isLand
+    ? [[t.type, property.type], [t.strategy, property.objective], [t.lotAcres, property.lotSizeAcres],
+      [t.pricePerAcre, property.pricePerAcre == null ? null : currency(property.pricePerAcre, t)],
+      [t.pricePerLotSqft, property.pricePerLotSqft == null ? null : currency(property.pricePerLotSqft, t)],
+      [t.zoning, fact('zoning', property.zoning)]]
+    : [[t.type, property.type], [t.strategy, property.objective], [t.yearBuilt, fact('yearBuilt', property.yearBuilt)],
+      [t.beds, fact('bedrooms', property.beds)], [t.baths, fact('bathrooms', property.baths)],
+      [t.sqft, fact('livingAreaSqft', property.sqft)]];
   const facts = [
     [t.owner, [[t.ownerName, owner.name], [t.ownerType, owner.type], [t.status, owner.status], [t.contacts, contacts], [t.ownerOccupied, fact('ownerOccupied', property.ownerOccupied)], [t.latestSale, latestSale]]],
-    [t.facts, [[t.type, property.type], [t.strategy, property.objective], [t.yearBuilt, fact('yearBuilt', property.yearBuilt)], [t.beds, fact('bedrooms', property.beds)], [t.baths, fact('bathrooms', property.baths)], [t.sqft, fact('livingAreaSqft', property.sqft)]]],
-    [t.land, [[t.location, [property.city, property.state].filter(Boolean).join(', ')], [t.county, fact('county', property.county)], [t.lot, fact('lotSizeSqft', property.lot)], [t.assessedValue, fact('assessedValue', property.assessedValue) ? currency(fact('assessedValue', property.assessedValue), t) : null], [t.propertyTax, fact('annualPropertyTax', property.annualPropertyTax) ? currency(fact('annualPropertyTax', property.annualPropertyTax), t) : null], [t.source, property.source]]],
+    [t.facts, characteristicFacts],
+    [t.land, [[t.location, [property.city, property.state].filter(Boolean).join(', ')], [t.county, fact('county', property.county)], [t.lot, fact('lotSizeSqft', property.lotSizeSqft ?? property.lot)], [t.assessorId, fact('assessorId', property.assessorId)], [t.assessedValue, fact('assessedValue', property.assessedValue) ? currency(fact('assessedValue', property.assessedValue), t) : null], [t.propertyTax, fact('annualPropertyTax', property.annualPropertyTax) ? currency(fact('annualPropertyTax', property.annualPropertyTax), t) : null]]],
   ];
   const rowOptions = {
     lineHeight: 14, labelWidth: 55, limit: 6, t,
