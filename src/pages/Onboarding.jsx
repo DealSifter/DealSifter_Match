@@ -4225,7 +4225,7 @@ export function Onboarding({
                     myPortfolio.length === 0 ? (
                       <div style={{ fontSize: 11, color: C.t3 }}>{t.recordsNoProperty}</div>
                     ) : (
-                      myPortfolio.slice(0, 5).map((p, i) => (
+                      myPortfolio.map((p, i) => (
                         <div
                           key={p.id}
                           draggable
