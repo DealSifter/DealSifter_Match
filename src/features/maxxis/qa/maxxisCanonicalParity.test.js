@@ -64,6 +64,18 @@ describe('canonical property and investment parity', () => {
     expect(buildPropertyFactLookupAnswer('quais são as Notes?', 'pt', snapshot).text).toContain('Excelent opportunity for buy&hold');
   });
 
+  it('deduplicates equivalent land gaps in the three direct priorities', () => {
+    const answer = buildPropertyFactLookupAnswer('Quais são os 3 dados mais importantes para decidir se este terreno é interessante?', 'pt', {
+      propertyFacts: { type: 'Land' }, dealDecisionContext: { strategy: 'LAND', decisionGaps: [
+        { field: 'allowed_use' }, { field: 'land_sale_evidence' }, { field: 'zoning' }, { field: 'road_access' },
+      ] },
+    }).text;
+    expect(answer).toContain('1. verificar o uso permitido.');
+    expect(answer).toContain('2. obter vendas recentes de terrenos comparáveis.');
+    expect(answer).toContain('3. verificar acesso legal e físico.');
+    expect(answer.match(/uso permitido/g)).toHaveLength(1);
+  });
+
   it('uses the same non-default profile scores and never invents 35 for not-evaluated criteria', () => {
     const result = buildCanonicalInvestmentAnalysis(analysisContext(droad(), 'SELLER_FINANCING'), 'pt');
     expect(result.profileFit.criteria.map((item) => item.score)).toEqual([100, 0, 100, null]);

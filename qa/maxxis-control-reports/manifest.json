@@ -2167,6 +2167,6 @@
   },
   "wow": {
     "droad": "O registro externo atual não trouxe um APN/Assessor ID para este imóvel.\n\nPrioridades para SELLER_FINANCING:\n1. definir a entrada.\n2. definir juros e forma de pagamento.\n3. definir prazo, amortização e balloon.",
-    "gable": "Prioridades para LAND:\n1. verificar o uso permitido.\n2. obter vendas recentes de terrenos comparáveis.\n3. verificar uso permitido e zoneamento."
+    "gable": "Prioridades para LAND:\n1. verificar o uso permitido.\n2. obter vendas recentes de terrenos comparáveis.\n3. verificar titularidade e título."
   }
 }

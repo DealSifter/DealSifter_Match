@@ -106,18 +106,31 @@ function formatFact(field: string, fact: any, language: Language) {
 const GAP_LABELS: Record<Language, Record<string, string>> = {
   en: { down_payment: 'define the down payment', interest_rate: 'define interest and payment terms', term_months: 'define term, amortization and balloon',
     amortization_months: 'define amortization', balloon_months: 'define any balloon payment', allowed_use: 'verify the permitted use',
-    land_sale_evidence: 'obtain recent comparable land sales', zoning: 'verify allowed use and zoning', road_access: 'verify legal/physical access', utilities: 'verify utility availability', survey: 'verify survey and parcel boundaries' },
+    land_sale_evidence: 'obtain recent comparable land sales', zoning: 'verify allowed use and zoning', road_access: 'verify legal/physical access', utilities: 'verify utility availability', survey: 'verify survey and parcel boundaries',
+    ownership: 'verify ownership and title', topography: 'verify topography and development constraints', lot_size: 'confirm parcel area' },
   pt: { down_payment: 'definir a entrada', interest_rate: 'definir juros e forma de pagamento', term_months: 'definir prazo, amortização e balloon',
     amortization_months: 'definir a amortização', balloon_months: 'definir eventual pagamento balloon', allowed_use: 'verificar o uso permitido',
-    land_sale_evidence: 'obter vendas recentes de terrenos comparáveis', zoning: 'verificar uso permitido e zoneamento', road_access: 'verificar acesso legal e físico', utilities: 'verificar disponibilidade de serviços públicos', survey: 'verificar levantamento e limites da parcela' },
+    land_sale_evidence: 'obter vendas recentes de terrenos comparáveis', zoning: 'verificar uso permitido e zoneamento', road_access: 'verificar acesso legal e físico', utilities: 'verificar disponibilidade de serviços públicos', survey: 'verificar levantamento e limites da parcela',
+    ownership: 'verificar titularidade e título', topography: 'verificar topografia e restrições de desenvolvimento', lot_size: 'confirmar a área da parcela' },
   es: { down_payment: 'definir la entrada', interest_rate: 'definir interés y forma de pago', term_months: 'definir plazo, amortización y balloon',
     amortization_months: 'definir la amortización', balloon_months: 'definir eventual pago balloon', allowed_use: 'verificar el uso permitido',
-    land_sale_evidence: 'obtener ventas recientes de terrenos comparables', zoning: 'verificar uso permitido y zonificación', road_access: 'verificar acceso legal y físico', utilities: 'verificar servicios públicos', survey: 'verificar levantamiento y límites de parcela' },
+    land_sale_evidence: 'obtener ventas recientes de terrenos comparables', zoning: 'verificar uso permitido y zonificación', road_access: 'verificar acceso legal y físico', utilities: 'verificar servicios públicos', survey: 'verificar levantamiento y límites de parcela',
+    ownership: 'verificar titularidad y título', topography: 'verificar topografía y restricciones de desarrollo', lot_size: 'confirmar el área de la parcela' },
 };
 
 function guidance(snapshot: Record<string, any>, language: Language) {
   const decision = record(snapshot.dealDecisionContext); const strategy = String(decision.strategy || record(snapshot.propertyFacts).resolvedAnalysisStrategy || '');
-  const gaps = list(decision.decisionGaps).slice(0, 3);
+  const gapGroup: Record<string, string> = {
+    allowed_use: 'land_use', zoning: 'land_use', down_payment: 'down_payment', interest_rate: 'interest_payment',
+    monthly_pi_payment: 'interest_payment', term_months: 'term_structure', amortization_months: 'term_structure',
+    balloon_months: 'term_structure', road_access: 'access', utilities: 'utilities', land_sale_evidence: 'land_sales',
+  };
+  const seen = new Set<string>();
+  const gaps = list(decision.decisionGaps).filter((gap) => {
+    const field = String(gap?.field || ''); const group = gapGroup[field] || field;
+    if (!group || seen.has(group)) return false;
+    seen.add(group); return true;
+  }).slice(0, 3);
   const title = language === 'pt' ? `Prioridades para ${strategy}:` : language === 'es' ? `Prioridades para ${strategy}:` : `Priorities for ${strategy}:`;
   const items = gaps.length ? gaps.map((gap, index) => `${index + 1}. ${GAP_LABELS[language][gap.field] || String(gap.field || '').replaceAll('_', ' ')}.`)
     : [language === 'pt' ? '1. Revisar e confirmar as premissas estruturadas antes da decisão.' : '1. Review and confirm the structured assumptions before deciding.'];
