@@ -933,9 +933,25 @@ export function MaxxisAssistant({ page = 'dashboard', onOpenSupport = null, onNa
     };
   };
 
-  const handleAction = (actionId) => {
+  const handleAction = async (actionId) => {
     const normalized = normalizeActionId(actionId);
     if (!normalized) return;
+    if (normalized === 'scenario-compare') {
+      await submitMessage(language === 'pt' ? 'Compare o cenário atual com o anterior.'
+        : language === 'es' ? 'Compara el escenario actual con el anterior.' : 'Compare the current scenario with the prior scenario.');
+      return;
+    }
+    if (normalized === 'scenario-save') {
+      const source = [...messages].reverse().find((item) => item?.data?.scenario?.status === 'COMPLETE');
+      const scenario = source?.data?.scenario; const propertyId = String(scenario?.propertyId || currentMemoryPropertyId());
+      if (scenario && UUID_PATTERN.test(propertyId)) {
+        await saveMaxxisAnalysisInputs(propertyId, { dealAssumptions: { activeScenario: { ...scenario, confirmed: true } } });
+        setMessages((prev) => [...prev, { id: `maxxis-scenario-saved-${Date.now()}`, role: 'assistant', createdAt: new Date(),
+          content: language === 'pt' ? 'Cenário salvo para esta propriedade.' : language === 'es' ? 'Escenario guardado para esta propiedad.' : 'Scenario saved for this property.',
+          type: 'scenario_saved', data: { propertyId, scenario } }]);
+      }
+      return;
+    }
     if (['report-export', 'maxxis-analysis', 'deal-intelligence'].includes(normalized)) {
       onOpenReportSelector?.({
         propertyId: currentMemoryPropertyId(),
@@ -1550,6 +1566,9 @@ export function MaxxisAssistant({ page = 'dashboard', onOpenSupport = null, onNa
             return `\n\n[[action:maxxis-analysis|${analysisLabel}]]\n[[action:deal-intelligence|${dealLabel}]]`;
           })()
         : '';
+      const scenarioActions = Array.isArray(result?.actions) ? result.actions
+        .filter((action) => ['compare_scenario', 'save_scenario'].includes(String(action?.id || '')))
+        .map((action) => `[[action:${String(action.id).replace(/_/g, '-')}|${String(action.label || '')}]]`).join('\n') : '';
       const generationFailureText = reportGenerationFailed
         ? (language === 'pt' ? 'Não foi possível concluir a interpretação do relatório agora. Nenhum relatório incompleto foi salvo. Você pode tentar novamente mantendo esta conversa.' : language === 'es' ? 'No fue posible completar la interpretación del informe. No se guardó un informe incompleto.' : 'The report interpretation could not be completed. No incomplete report was saved. You can retry without losing this conversation.')
         : '';
@@ -1558,7 +1577,7 @@ export function MaxxisAssistant({ page = 'dashboard', onOpenSupport = null, onNa
       setMessages((prev) => [...prev, {
         id: reportMessageId,
         role: 'assistant',
-        content: `${generationFailureText || dealIntelligence?.content || maxxisAnalysis?.content || intelligence.content || result.answer}${reportActions}`,
+        content: `${generationFailureText || dealIntelligence?.content || maxxisAnalysis?.content || intelligence.content || result.answer}${reportActions}${scenarioActions ? `\n\n${scenarioActions}` : ''}`,
         createdAt: new Date(),
         error: Boolean(result.unavailable),
         degraded: Boolean(result.degraded && !structuredReportFallbackUsed),

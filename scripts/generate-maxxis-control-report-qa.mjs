@@ -230,7 +230,7 @@ const rows = {
   wystone: await findProperty('10865 Wystone Ave'),
 };
 const server = await createServer({ root, optimizeDeps: { noDiscovery: true, include: [] }, server: { middlewareMode: true }, appType: 'custom' });
-const manifest = { generatedAt: '2026-10-03T12:00:00.000Z', providerCalls: 0, reports: {}, controls: {}, parity: {}, apnLineage: {}, wow: {} };
+const manifest = { generatedAt: '2026-10-03T12:00:00.000Z', providerCalls: 0, reports: {}, controls: {}, parity: {}, apnLineage: {}, wow: {}, scenarios: {} };
 try {
   const { parseCanonicalLotArea, calculateLandUnitMetrics } = await server.ssrLoadModule('/supabase/functions/_shared/maxxis/landMetrics.ts');
   const { mergeVerifiedPropertyEvidenceIntoFacts } = await server.ssrLoadModule('/supabase/functions/_shared/maxxis/propertyEvidenceProjection.ts');
@@ -244,6 +244,7 @@ try {
   const { buildMaxxisStructuredAnalysis } = await server.ssrLoadModule('/supabase/functions/_shared/maxxis/maxxisStructuredAnalysis.ts');
   const { renderMaxxisReportPdf } = await server.ssrLoadModule('/src/features/maxxis/export/maxxisReportPdf.js');
   const { resolveReportExportEntitlement } = await server.ssrLoadModule('/src/features/maxxis/export/reportExportEntitlement.js');
+  const { calculateScenario, formatDealScenarioAnswer, resolveDealScenario } = await server.ssrLoadModule('/supabase/functions/_shared/maxxis/scenarioEngine.ts');
   const controls = {};
   for (const [key, row] of Object.entries(rows)) {
     const [record, valuation, sold] = await Promise.all([
@@ -315,6 +316,52 @@ try {
       recentSalesMarketEstimate: recent, providerEstimate: providerValue, providerEstimateDivergence: controls[key].divergence,
     };
   }
+  const sellerSix = resolveDealScenario({
+    message: 'E se eu der $20k de entrada, 6% ao ano, 30 anos com balloon em 5 anos?',
+    propertyId: controls.droad.property.id, canonicalStrategy: 'SELLER_FINANCING',
+    canonicalFacts: { purchasePrice: controls.droad.property.price }, history: [], now: manifest.generatedAt,
+  });
+  const sellerFour = resolveDealScenario({
+    message: 'e com 4%?', propertyId: controls.droad.property.id, canonicalStrategy: 'SELLER_FINANCING',
+    canonicalFacts: { purchasePrice: controls.droad.property.price },
+    history: [{ role: 'user', content: 'E se eu der $20k de entrada, 6% ao ano, 30 anos com balloon em 5 anos?' }],
+    now: manifest.generatedAt,
+  });
+  if (sellerSix.state !== 'CALCULATED' || sellerFour.state !== 'CALCULATED') throw new Error('SELLER_FINANCING_E2E_FAIL');
+  const activeScenario = { ...sellerFour.scenario, confirmed: true };
+  const droadSnapshotBase = { ...controls.droad.snapshot, dealAssumptions: { activeScenario } };
+  controls.droad.snapshot = { ...droadSnapshotBase, dealDecisionContext: buildDealDecisionContext(droadSnapshotBase) };
+  const scenarioFixtures = {
+    sellerFinancing6Percent: sellerSix,
+    sellerFinancing4PercentFollowUp: sellerFour,
+    buyAndHold: { scenario: { strategy: 'BUY_AND_HOLD', assumptions: {
+      purchasePrice: 200000, rent: 2000, vacancyRate: 5, propertyTax: 2400, insurance: 1200,
+      managementPercent: 8, maintenancePercent: 5, otherOperatingExpenses: 600, monthlyPI: 900, cashInvested: 50000,
+    } } },
+    flip: { scenario: { strategy: 'FLIP', assumptions: {
+      purchasePrice: 100000, rehab: 30000, closingCosts: 3000, holdingCosts: 5000,
+      financingCosts: 5000, sellingCosts: 10000, exitValue: 200000,
+    } } },
+    subTo: { scenario: { strategy: 'SUB_TO', assumptions: {
+      existingLoanBalance: 180000, monthlyPI: 1200, reinstatement: 10000, cashToSeller: 5000,
+      closingCosts: 5000, propertyTax: 1800, insurance: 1200, HOA: 0, expectedRent: 2100,
+    } } },
+    wholesale: { scenario: { strategy: 'WHOLESALE', assumptions: {
+      contractPrice: 90000, estimatedBuyerPrice: 110000, assignmentFee: 12000, closingCosts: 1000,
+    } } },
+    land: { scenario: { strategy: 'LAND', assumptions: {
+      purchasePrice: 20000, lotSizeAcres: 2, lotSizeSqft: 87120, closingCosts: 2000,
+      dueDiligenceCosts: 1000, surveyTitleCosts: 1000, utilityCosts: 4000, targetExitPricePerAcre: 30000,
+    } } },
+  };
+  manifest.scenarios = Object.fromEntries(Object.entries(scenarioFixtures).map(([key, fixture]) => {
+    const result = fixture.scenario.calculatedOutputs
+      ? fixture
+      : { state: 'CALCULATED', providerCalls: 0, arithmeticSource: 'DETERMINISTIC_SCENARIO_ENGINE',
+          scenario: { ...fixture.scenario, calculatedOutputs: calculateScenario(fixture.scenario.strategy, fixture.scenario.assumptions) } };
+    const answer = formatDealScenarioAnswer(result, 'pt');
+    return [key, { ...result, answer, wow: answer && Object.keys(result.scenario.calculatedOutputs || {}).length > 0 ? 'YES' : 'NO' }];
+  }));
   const reportPlan = [
     ['droad', 'PROPERTY_RELEASE', 'free', 'droad-level-1.pdf'],
     ['droad', 'MAXXIS_ANALYSIS', 'pro', 'droad-level-2.pdf'],
@@ -349,7 +396,8 @@ try {
     if (rendered.state !== 'RENDERED') throw new Error(`${filename}:${rendered.state}`);
     await writeFile(`${output}${filename}`, rendered.document.binary);
     manifest.reports[filename] = { pageCount: rendered.document.pageCount, reportType, property: key, language: requestedLanguage };
-    if (reportType !== 'PROPERTY_RELEASE') manifest.reports[filename].focusMap = schema.presentation.canonicalInvestmentAnalysis?.focusMap || null;
+    if (reportType !== 'PROPERTY_RELEASE') manifest.reports[filename].focusMap = schema.presentation.scenarioFocusMap
+      || schema.presentation.canonicalInvestmentAnalysis?.focusMap || null;
   }
   const parityFields = ['assessorId', 'county', 'lotSizeSqft', 'yearBuilt', 'annualPropertyTax', 'assessedValue',
     'latestSalePrice', 'ownerOccupied', 'zoning', 'subdivision', 'propertyUserNotes'];
@@ -395,21 +443,12 @@ try {
   manifest.wow.gable = buildPropertyFactLookupAnswer('Quais são os 3 dados mais importantes para decidir se este terreno é interessante?', 'pt', controls.gable.snapshot)?.text || null;
   if (!/(?:APN|Assessor|Não disponível no registro externo atual)/i.test(manifest.wow.droad || '') || !/SELLER_FINANCING/i.test(manifest.wow.droad || '')) throw new Error('DROAD_WOW_FAIL');
   if (!/LAND/i.test(manifest.wow.gable || '') || /rehab|reforma|ARV residencial/i.test(manifest.wow.gable || '')) throw new Error('GABLE_WOW_FAIL');
-  const { resolveSellerFinancingScenarioFromConversation, formatSellerFinancingScenarioAnswer } = await server.ssrLoadModule('/supabase/functions/_shared/maxxis/sellerFinancingScenario.ts');
-  const sixPercent = resolveSellerFinancingScenarioFromConversation({
-    message: 'E se eu der $20k de entrada, 6% ao ano, 30 anos com balloon em 5 anos?',
-    askingPrice: controls.droad.property.price, history: [],
-  });
-  const fourPercent = resolveSellerFinancingScenarioFromConversation({
-    message: 'e com 4%?', askingPrice: controls.droad.property.price,
-    history: [{ role: 'user', content: 'E se eu der $20k de entrada, 6% ao ano, 30 anos com balloon em 5 anos?' }],
-  });
   manifest.sellerFinancing = {
-    providerCalls: 0, arithmeticSource: 'DETERMINISTIC_ENGINE', sixPercent,
-    sixPercentAnswer: formatSellerFinancingScenarioAnswer(sixPercent, 'pt'), fourPercent,
-    fourPercentAnswer: formatSellerFinancingScenarioAnswer(fourPercent, 'pt'),
+    providerCalls: 0, arithmeticSource: 'DETERMINISTIC_SCENARIO_ENGINE', sixPercent: sellerSix,
+    sixPercentAnswer: formatDealScenarioAnswer(sellerSix, 'pt'), fourPercent: sellerFour,
+    fourPercentAnswer: formatDealScenarioAnswer(sellerFour, 'pt'),
   };
-  if (sixPercent.state !== 'CALCULATED' || fourPercent.state !== 'CALCULATED' || !fourPercent.comparison) throw new Error('SELLER_FINANCING_E2E_FAIL');
+  if (!sellerFour.comparison || Object.keys(sellerFour.comparison).length === 0) throw new Error('SELLER_FINANCING_COMPARISON_FAIL');
 } finally {
   await server.close();
 }

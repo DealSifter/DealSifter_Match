@@ -454,6 +454,31 @@ function levelData(reportType, input) {
   };
 }
 
+const SCENARIO_EVIDENCE_KEYS = Object.freeze({
+  purchasePrice: ['acquisition_price', 'askingPrice', 'purchase_price'], downPaymentAmount: ['down_payment'], downPaymentPercent: ['down_payment'],
+  annualInterestRate: ['interest_rate'], monthlyPI: ['monthly_pi_payment'], amortizationYears: ['amortization_months'], amortizationMonths: ['amortization_months'],
+  balloonYears: ['balloon_months', 'term_months'], balloonMonth: ['balloon_months', 'term_months'], rent: ['rent', 'expected_rent'], expectedRent: ['rent', 'expected_rent'],
+  rehab: ['rehab', 'rehab_budget'], exitValue: ['exit_value', 'arv'], contractPrice: ['contract_price'], estimatedBuyerPrice: ['buyer_price'],
+  assignmentFee: ['assignment_fee'], existingLoanBalance: ['existing_loan_balance'], reinstatement: ['reinstatement', 'arrears'],
+  lotSizeAcres: ['lot_size', 'lotSizeAcres'], lotSizeSqft: ['lot_size', 'lotSizeSqft'], targetExitPrice: ['exit_value'], targetExitPricePerAcre: ['land_sale_evidence'],
+  utilityCosts: ['utilities'], surveyTitleCosts: ['survey'],
+});
+function scenarioAdjustedFocusMap(base, activeScenario) {
+  if (!base || !Array.isArray(base.dimensions) || !activeScenario || activeScenario.status !== 'COMPLETE') return null;
+  const assumptions = activeScenario.assumptions && typeof activeScenario.assumptions === 'object' ? activeScenario.assumptions : {};
+  const supplied = new Set(Object.entries(assumptions).filter(([, entry]) => entry !== null && entry !== undefined && entry !== '')
+    .flatMap(([key]) => SCENARIO_EVIDENCE_KEYS[key] || [key]));
+  return Object.freeze({ ...base, semantics: 'STRATEGY_DECISION_READINESS_WITH_CONFIRMED_SCENARIO', scenarioId: activeScenario.id || null,
+    dimensions: Object.freeze(base.dimensions.map((dimension) => {
+      const missing = Array.isArray(dimension.missingEvidence) ? dimension.missingEvidence : [];
+      if (!missing.length) return Object.freeze({ ...dimension });
+      const resolved = missing.filter((key) => supplied.has(key)); if (!resolved.length) return Object.freeze({ ...dimension });
+      const readiness = Math.max(Number(dimension.readiness) || 0, Math.round((resolved.length / missing.length) * 100));
+      return Object.freeze({ ...dimension, readiness, scenarioResolvedEvidence: Object.freeze(resolved),
+        missingEvidence: Object.freeze(missing.filter((key) => !supplied.has(key))) });
+    })) });
+}
+
 export function buildMaxxisReportSchema({ reportType, property = null, maxxisAnalysis = null, dealIntelligence = null, dealMetrics = null, structuredAnalysis = null, resolvedUserLocale = null } = {}) {
   const normalizedType = String(reportType || '').trim().toUpperCase();
   const allowed = LEVEL_SECTIONS[normalizedType];
@@ -463,6 +488,12 @@ export function buildMaxxisReportSchema({ reportType, property = null, maxxisAna
     key,
     allowed.has(key) ? (populated[key] || emptySection()) : emptySection(),
   ])));
+  const activeScenario = normalizedType === INTELLIGENCE_REPORT_TYPES.MAXXIS_ANALYSIS
+    ? (maxxisAnalysis?.activeScenario || null) : normalizedType === INTELLIGENCE_REPORT_TYPES.DEAL_INTELLIGENCE
+      ? (dealIntelligence?.activeScenario || null) : null;
+  const canonicalFocusMap = normalizedType === INTELLIGENCE_REPORT_TYPES.MAXXIS_ANALYSIS
+    ? maxxisAnalysis?.canonicalInvestmentAnalysis?.focusMap : normalizedType === INTELLIGENCE_REPORT_TYPES.DEAL_INTELLIGENCE
+      ? dealIntelligence?.canonicalInvestmentAnalysis?.focusMap : null;
   return Object.freeze({
     type: 'maxxis_report_schema',
     version: MAXXIS_REPORT_SCHEMA_VERSION,
@@ -507,6 +538,8 @@ export function buildMaxxisReportSchema({ reportType, property = null, maxxisAna
         ? (maxxisAnalysis?.sellerFinancingScenario || null)
         : normalizedType === INTELLIGENCE_REPORT_TYPES.DEAL_INTELLIGENCE
           ? (dealIntelligence?.sellerFinancingScenario || null) : null,
+      activeScenario,
+      scenarioFocusMap: scenarioAdjustedFocusMap(canonicalFocusMap, activeScenario),
       investorPerspective: normalizedType === INTELLIGENCE_REPORT_TYPES.MAXXIS_ANALYSIS
         ? (maxxisAnalysis?.canonicalInvestmentAnalysis?.focusMap ? Object.freeze({
           persona: maxxisAnalysis.canonicalInvestmentAnalysis.focusMap.strategy,

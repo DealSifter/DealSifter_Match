@@ -255,4 +255,11 @@ describe('Maxxis Deal Intelligence Experience v1', () => {
     expect(wholesale.investorPerspective.persona).toBe('WHOLESALER');
     expect(hold.investorPerspective.persona).toBe('BUY_AND_HOLD');
   });
+
+  it('projects a confirmed deterministic scenario into Level 3 without recalculation', () => {
+    const activeScenario = { strategy: 'LAND', confirmed: true, assumptions: { targetExitPrice: 60000 }, calculatedOutputs: { knownBasis: 28000, ROI: 114.2857 } };
+    const report = buildMaxxisDealIntelligenceReport(context(), null, { propertyFacts: {}, dealAssumptions: { activeScenario } });
+    expect(report.activeScenario).toEqual(activeScenario);
+    expect(report.activeScenario.calculatedOutputs.ROI).toBe(114.2857);
+  });
 });

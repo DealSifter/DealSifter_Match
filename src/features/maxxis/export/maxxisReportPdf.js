@@ -4,7 +4,7 @@ import notoSansBold from '../../../assets/maxxis/fonts/NotoSans-Bold.ttf?inline'
 import { renderMaxxisReportDocument } from './maxxisReportRenderer';
 import { explainMaxxisEvidenceState } from '../intelligence/maxxisUserFacingEvidence';
 import {
-  REPORT_BODY_TIERS, REPORT_METRIC_BAR, REPORT_SOLID_OFFSETS, SECTION_TEXT_POLICIES,
+  REPORT_BODY_TIERS, REPORT_LAYOUT_TOKENS, REPORT_METRIC_BAR, REPORT_SOLID_OFFSETS, SECTION_TEXT_POLICIES,
   deduplicateAndBudgetItems, selectSectionTextTier,
 } from './maxxisReportVisualPolicy';
 
@@ -15,6 +15,7 @@ const H = 841.89;
 const M = 30;
 const CONTENT = W - M * 2;
 const BODY_OFFSET = 7;
+export const REPORT_SECTION_GAP_Y = REPORT_LAYOUT_TOKENS.sectionGapY;
 export const MAXXIS_REPORT_TYPOGRAPHY = Object.freeze({
   body: REPORT_BODY_TIERS.default, analyticalBody: REPORT_BODY_TIERS.default, sectionHeader: 11.6, caption: 6.7,
 });
@@ -220,6 +221,31 @@ const location = (property) => [property.city, [property.state, property.zip].fi
 const accentFor = (type) => type === 'DEAL_INTELLIGENCE' ? C.gold : type === 'MAXXIS_ANALYSIS' ? C.green : C.teal;
 const productFor = (type, t) => type === 'DEAL_INTELLIGENCE' ? t.deal : type === 'MAXXIS_ANALYSIS' ? t.pro : t.property;
 const planFor = (type) => type === 'DEAL_INTELLIGENCE' ? 'ENTERPRISE' : type === 'MAXXIS_ANALYSIS' ? 'PRO' : 'FREE';
+const SCENARIO_OUTPUT_LABELS = Object.freeze({
+  pt: { monthlyPI: 'Parcela mensal', balloonBalance: 'Saldo no balloon', cashToEntry: 'Caixa inicial', NOI: 'NOI', annualCashFlow: 'Fluxo anual',
+    projectedProfit: 'Lucro projetado', ROI: 'ROI', knownMonthlyCarry: 'Custo mensal', estimatedMonthlyCashFlow: 'Fluxo mensal',
+    estimatedNetAssignmentSpread: 'Margem líquida estimada', buyerBasis: 'Base do comprador', knownBasis: 'Base conhecida', targetExitValue: 'Saída-alvo' },
+  en: { monthlyPI: 'Monthly P&I', balloonBalance: 'Balloon balance', cashToEntry: 'Cash to entry', NOI: 'NOI', annualCashFlow: 'Annual cash flow',
+    projectedProfit: 'Projected profit', ROI: 'ROI', knownMonthlyCarry: 'Monthly carry', estimatedMonthlyCashFlow: 'Monthly cash flow',
+    estimatedNetAssignmentSpread: 'Estimated net spread', buyerBasis: 'Buyer basis', knownBasis: 'Known basis', targetExitValue: 'Target exit' },
+  es: { monthlyPI: 'Pago mensual', balloonBalance: 'Saldo balloon', cashToEntry: 'Efectivo inicial', NOI: 'NOI', annualCashFlow: 'Flujo anual',
+    projectedProfit: 'Beneficio proyectado', ROI: 'ROI', knownMonthlyCarry: 'Costo mensual', estimatedMonthlyCashFlow: 'Flujo mensual',
+    estimatedNetAssignmentSpread: 'Margen neto estimado', buyerBasis: 'Base del comprador', knownBasis: 'Base conocida', targetExitValue: 'Salida objetivo' },
+});
+function scenarioSnapshot(scenario, t, limit = 3) {
+  if (!scenario || scenario.confirmed === false) return '';
+  const outputs = scenario.calculatedOutputs || scenario;
+  const labels = SCENARIO_OUTPUT_LABELS[t.locale] || SCENARIO_OUTPUT_LABELS.en;
+  const entries = Object.keys(labels).filter((key) => Number.isFinite(Number(outputs[key]))).slice(0, limit);
+  if (!entries.length) return '';
+  const title = t.locale === 'pt' ? 'Cenário confirmado' : t.locale === 'es' ? 'Escenario confirmado' : 'Confirmed scenario';
+  const strategyLabels = t.locale === 'pt'
+    ? { SELLER_FINANCING: 'Financiamento pelo vendedor', BUY_AND_HOLD: 'Comprar e manter', FLIP: 'Reforma e revenda', SUB_TO: 'SUB-TO', WHOLESALE: 'Atacado', LAND: 'Terreno' }
+    : t.locale === 'es'
+      ? { SELLER_FINANCING: 'Financiación del vendedor', BUY_AND_HOLD: 'Comprar y mantener', FLIP: 'Rehabilitación y reventa', SUB_TO: 'SUB-TO', WHOLESALE: 'Mayoreo', LAND: 'Terreno' }
+      : { SELLER_FINANCING: 'Seller Financing', BUY_AND_HOLD: 'Buy & Hold', FLIP: 'Flip', SUB_TO: 'SUB-TO', WHOLESALE: 'Wholesale', LAND: 'Land' };
+  return `${title} (${strategyLabels[scenario.strategy] || strategyLabels.SELLER_FINANCING}): ${entries.map((key) => `${labels[key]} ${/ROI/.test(key) ? `${Number(outputs[key]).toLocaleString(t.locale === 'pt' ? 'pt-BR' : 'en-US')}%` : currency(outputs[key], t)}`).join(' · ')}`;
+}
 
 function text(doc, input, x, y, { size = 9, minSize = 4.2, bold = false, color = C.ink, width = null, maxLines = 3, align = 'left' } = {}) {
   doc.setFont('NotoSans', bold ? 'bold' : 'normal');
@@ -546,7 +572,7 @@ function propertyBottom(doc, property, t, accent, y, images, conflicts = [], map
   // or inner frame creating visible padding around it.
   const photoGap = 5; const photoWidth = (CONTENT - photoGap * 4) / 5;
   shown.forEach((image, index) => photo(doc, M + index * (photoWidth + photoGap), y + 31, photoWidth, 50, image, t, { cover: true, radius: 6 }));
-  y += 82;
+  y += 82 + Number(notes.sectionGapY || 0);
   const gap = 6;
   // Executive pages need enough horizontal room for both the user note and
   // the analytical summary. Give that column a little more width instead of
@@ -580,7 +606,7 @@ function propertyBottom(doc, property, t, accent, y, images, conflicts = [], map
   if (conflicts.length) text(doc, t.conflict, notesX + 11, y + 222, { size: 7.2, bold: true, color: C.gold, width: notesWidth - 22, maxLines: 2 });
 }
 function propertyReleaseBottom(doc, property, t, accent, y, images, mapImage) {
-  return propertyBottom(doc, property, t, accent, y, images, [], mapImage);
+  return propertyBottom(doc, property, t, accent, y, images, [], mapImage, { sectionGapY: REPORT_SECTION_GAP_Y });
 }
 function renderPropertyOverview(doc, schema, t, accent, images, mapImage) {
   const property = section(schema, 'propertySummary') || {};
@@ -723,15 +749,16 @@ function renderFit(doc, schema, t, accent) {
     });
   } else text(doc, limitations.slice(0, 3).map((item) => reportNarrative(item, '', t.locale)).join(' • ') || t.noDetails, M + 12, evidenceY + 48, { size: 8, width: CONTENT - 24, maxLines: 3 });
   const focusY = 659;
-  const focusMap = perspective.focusMap || schema?.presentation?.canonicalInvestmentAnalysis?.focusMap || {};
+  const focusMap = schema?.presentation?.scenarioFocusMap || perspective.focusMap || schema?.presentation?.canonicalInvestmentAnalysis?.focusMap || {};
   const financingScenario = schema?.presentation?.sellerFinancingScenario;
+  const activeScenario = schema?.presentation?.activeScenario || financingScenario;
   const focusDimensions = array(focusMap.dimensions).slice(0, 6);
   const priorities = focusDimensions.length ? focusDimensions
     : array(perspective.priorities).slice(0, 6).map((dimension, index) => ({ dimension, readiness: null, index }));
   panel(doc, M, focusY, CONTENT, 89, { accent }); heading(doc, t.investorFocus, M + 12, focusY + 26, CONTENT - 24, accent);
-  const focusSummary = financingScenario?.monthlyPI != null && financingScenario?.balloonBalance != null
+  const focusSummary = scenarioSnapshot(activeScenario, t, 2) || (financingScenario?.monthlyPI != null && financingScenario?.balloonBalance != null
     ? `${t.monthlyPI}: ${currency(financingScenario.monthlyPI, t)} · ${t.balloonBalance}: ${currency(financingScenario.balloonBalance, t)}`
-    : reportNarrative(displayValue(focusMap.strategy || perspective.persona, t), t.unavailable, t.locale);
+    : reportNarrative(displayValue(focusMap.strategy || perspective.persona, t), t.unavailable, t.locale));
   text(doc, focusSummary, W - M - 13, focusY + 25, { size: 7.2, bold: true, color: C.ink, align: 'right', width: 245, maxLines: 1 });
   priorities.forEach((priority, index) => {
     const yy = focusY + 43 + index * 7.1; const barX = M + 190; const barWidth = CONTENT - 215;
@@ -768,8 +795,9 @@ function renderInsights(doc, schema, t, accent, { verification = false } = {}) {
   listPanel(doc, verification ? t.next : t.considerations, verification ? verificationSteps : considerations, M + w + 12, 398, w, 257, t, accent);
   panel(doc, M, 667, CONTENT, 85, { fill: C.white, accent });
   heading(doc, t.conclusion, M + 12, 691, CONTENT - 24, accent);
-  adaptiveText(doc, structured.profileAdaptedConclusion || summary.summary || t.noDetails, M + 12, 714, {
-    width: CONTENT - 24, availableHeight: 30, policy: verification
+  const scenarioInsight = scenarioSnapshot(schema?.presentation?.activeScenario, t, 2);
+  adaptiveText(doc, [scenarioInsight, structured.profileAdaptedConclusion || summary.summary || t.noDetails].filter(Boolean).join('\n'), M + 12, 714, {
+    width: CONTENT - 24, availableHeight: 34, policy: verification
       ? SECTION_TEXT_POLICIES.level3ExecutiveInsight : SECTION_TEXT_POLICIES.level2ExecutiveInsight });
 }
 function renderComparables(doc, schema, t, accent, comparableMap) {
@@ -962,7 +990,8 @@ function renderConclusion(doc, schema, t, accent) {
   const risks = array(section(schema, 'riskAssessment'));
   const steps = array(section(schema, 'verificationChecklist'));
   const confidence = schema?.presentation?.analysisConfidence;
-  const executiveLines = array(schema?.presentation?.executiveSummaryIntelligence?.lines);
+  const scenarioLine = scenarioSnapshot(schema?.presentation?.activeScenario, t, 3);
+  const executiveLines = [scenarioLine, ...array(schema?.presentation?.executiveSummaryIntelligence?.lines)].filter(Boolean).slice(0, 3);
   if (confidence && executiveLines.length) {
     renderEnterpriseAnalysis(doc, schema, t, accent, confidence, executiveLines);
     return;

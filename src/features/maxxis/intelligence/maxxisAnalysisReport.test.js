@@ -166,4 +166,11 @@ describe('Maxxis Analysis Report Experience v1', () => {
     expect(projected.data.maxxisAnalysisReport.structuredAnalysis).toBe(structuredAnalysis);
     expect(projected.data.maxxisReport.structuredAnalysis).toBe(structuredAnalysis);
   });
+
+  it('projects only an explicitly confirmed active scenario into Level 2', () => {
+    const activeScenario = { strategy: 'BUY_AND_HOLD', confirmed: true, assumptions: { rent: 1800 }, calculatedOutputs: { NOI: 14200 } };
+    const report = buildMaxxisAnalysisReport(context(), null, { propertyFacts: {}, dealAssumptions: { activeScenario } });
+    expect(report.activeScenario).toEqual(activeScenario);
+    expect(buildMaxxisAnalysisReport(context(), null, { propertyFacts: {}, dealAssumptions: { activeScenario: { ...activeScenario, confirmed: false } } }).activeScenario).toBeNull();
+  });
 });

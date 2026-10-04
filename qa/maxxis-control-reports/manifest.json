@@ -24,49 +24,53 @@
       "language": "pt",
       "focusMap": {
         "strategy": "SELLER_FINANCING",
-        "semantics": "STRATEGY_DECISION_READINESS_ONLY",
+        "semantics": "STRATEGY_DECISION_READINESS_WITH_CONFIRMED_SCENARIO",
         "note": "As barras representam a prontidão da decisão com base nas evidências disponíveis.",
         "dimensions": [
           {
             "dimension": "Base de compra",
-            "readiness": 90,
+            "readiness": 100,
             "supportingEvidence": [
               "acquisition_price",
               "assessedValue"
             ],
-            "missingEvidence": [
+            "missingEvidence": [],
+            "reason": "2 supporting input(s); 1 missing input(s).",
+            "scenarioResolvedEvidence": [
               "askingPrice"
-            ],
-            "reason": "2 supporting input(s); 1 missing input(s)."
+            ]
           },
           {
             "dimension": "Entrada",
-            "readiness": 0,
+            "readiness": 100,
             "supportingEvidence": [],
-            "missingEvidence": [
+            "missingEvidence": [],
+            "reason": "No supporting input is currently available.",
+            "scenarioResolvedEvidence": [
               "down_payment"
-            ],
-            "reason": "No supporting input is currently available."
+            ]
           },
           {
             "dimension": "Juros e pagamento",
-            "readiness": 0,
+            "readiness": 100,
             "supportingEvidence": [],
-            "missingEvidence": [
+            "missingEvidence": [],
+            "reason": "No supporting input is currently available.",
+            "scenarioResolvedEvidence": [
               "interest_rate"
-            ],
-            "reason": "No supporting input is currently available."
+            ]
           },
           {
             "dimension": "Prazo e amortização",
-            "readiness": 0,
+            "readiness": 100,
             "supportingEvidence": [],
-            "missingEvidence": [
+            "missingEvidence": [],
+            "reason": "No supporting input is currently available.",
+            "scenarioResolvedEvidence": [
               "term_months",
               "amortization_months",
               "balloon_months"
-            ],
-            "reason": "No supporting input is currently available."
+            ]
           },
           {
             "dimension": "Garantia do imóvel",
@@ -85,18 +89,20 @@
           },
           {
             "dimension": "Viabilidade da saída",
-            "readiness": 93,
+            "readiness": 100,
             "supportingEvidence": [
               "market_evidence",
               "latestSalePrice",
               "propertyType"
             ],
-            "missingEvidence": [
+            "missingEvidence": [],
+            "reason": "3 supporting input(s); 1 missing input(s).",
+            "scenarioResolvedEvidence": [
               "askingPrice"
-            ],
-            "reason": "3 supporting input(s); 1 missing input(s)."
+            ]
           }
-        ]
+        ],
+        "scenarioId": "scenario-7953533a-b545-412a-ba7f-009036c7cfb6-seller_financing"
       },
       "textChecks": {
         "hasRawRiskCodes": false,
@@ -115,49 +121,53 @@
       "language": "pt",
       "focusMap": {
         "strategy": "SELLER_FINANCING",
-        "semantics": "STRATEGY_DECISION_READINESS_ONLY",
+        "semantics": "STRATEGY_DECISION_READINESS_WITH_CONFIRMED_SCENARIO",
         "note": "As barras representam a prontidão da decisão com base nas evidências disponíveis.",
         "dimensions": [
           {
             "dimension": "Base de compra",
-            "readiness": 90,
+            "readiness": 100,
             "supportingEvidence": [
               "acquisition_price",
               "assessedValue"
             ],
-            "missingEvidence": [
+            "missingEvidence": [],
+            "reason": "2 supporting input(s); 1 missing input(s).",
+            "scenarioResolvedEvidence": [
               "askingPrice"
-            ],
-            "reason": "2 supporting input(s); 1 missing input(s)."
+            ]
           },
           {
             "dimension": "Entrada",
-            "readiness": 0,
+            "readiness": 100,
             "supportingEvidence": [],
-            "missingEvidence": [
+            "missingEvidence": [],
+            "reason": "No supporting input is currently available.",
+            "scenarioResolvedEvidence": [
               "down_payment"
-            ],
-            "reason": "No supporting input is currently available."
+            ]
           },
           {
             "dimension": "Juros e pagamento",
-            "readiness": 0,
+            "readiness": 100,
             "supportingEvidence": [],
-            "missingEvidence": [
+            "missingEvidence": [],
+            "reason": "No supporting input is currently available.",
+            "scenarioResolvedEvidence": [
               "interest_rate"
-            ],
-            "reason": "No supporting input is currently available."
+            ]
           },
           {
             "dimension": "Prazo e amortização",
-            "readiness": 0,
+            "readiness": 100,
             "supportingEvidence": [],
-            "missingEvidence": [
+            "missingEvidence": [],
+            "reason": "No supporting input is currently available.",
+            "scenarioResolvedEvidence": [
               "term_months",
               "amortization_months",
               "balloon_months"
-            ],
-            "reason": "No supporting input is currently available."
+            ]
           },
           {
             "dimension": "Garantia do imóvel",
@@ -176,18 +186,20 @@
           },
           {
             "dimension": "Viabilidade da saída",
-            "readiness": 93,
+            "readiness": 100,
             "supportingEvidence": [
               "market_evidence",
               "latestSalePrice",
               "propertyType"
             ],
-            "missingEvidence": [
+            "missingEvidence": [],
+            "reason": "3 supporting input(s); 1 missing input(s).",
+            "scenarioResolvedEvidence": [
               "askingPrice"
-            ],
-            "reason": "3 supporting input(s); 1 missing input(s)."
+            ]
           }
-        ]
+        ],
+        "scenarioId": "scenario-7953533a-b545-412a-ba7f-009036c7cfb6-seller_financing"
       },
       "textChecks": {
         "hasRawRiskCodes": false,
@@ -595,49 +607,53 @@
       "language": "en",
       "focusMap": {
         "strategy": "SELLER_FINANCING",
-        "semantics": "STRATEGY_DECISION_READINESS_ONLY",
+        "semantics": "STRATEGY_DECISION_READINESS_WITH_CONFIRMED_SCENARIO",
         "note": "Bars represent decision readiness based on available evidence.",
         "dimensions": [
           {
             "dimension": "Purchase basis",
-            "readiness": 90,
+            "readiness": 100,
             "supportingEvidence": [
               "acquisition_price",
               "assessedValue"
             ],
-            "missingEvidence": [
+            "missingEvidence": [],
+            "reason": "2 supporting input(s); 1 missing input(s).",
+            "scenarioResolvedEvidence": [
               "askingPrice"
-            ],
-            "reason": "2 supporting input(s); 1 missing input(s)."
+            ]
           },
           {
             "dimension": "Down payment",
-            "readiness": 0,
+            "readiness": 100,
             "supportingEvidence": [],
-            "missingEvidence": [
+            "missingEvidence": [],
+            "reason": "No supporting input is currently available.",
+            "scenarioResolvedEvidence": [
               "down_payment"
-            ],
-            "reason": "No supporting input is currently available."
+            ]
           },
           {
             "dimension": "Interest & payment",
-            "readiness": 0,
+            "readiness": 100,
             "supportingEvidence": [],
-            "missingEvidence": [
+            "missingEvidence": [],
+            "reason": "No supporting input is currently available.",
+            "scenarioResolvedEvidence": [
               "interest_rate"
-            ],
-            "reason": "No supporting input is currently available."
+            ]
           },
           {
             "dimension": "Term structure",
-            "readiness": 0,
+            "readiness": 100,
             "supportingEvidence": [],
-            "missingEvidence": [
+            "missingEvidence": [],
+            "reason": "No supporting input is currently available.",
+            "scenarioResolvedEvidence": [
               "term_months",
               "amortization_months",
               "balloon_months"
-            ],
-            "reason": "No supporting input is currently available."
+            ]
           },
           {
             "dimension": "Property security",
@@ -656,18 +672,20 @@
           },
           {
             "dimension": "Exit feasibility",
-            "readiness": 93,
+            "readiness": 100,
             "supportingEvidence": [
               "market_evidence",
               "latestSalePrice",
               "propertyType"
             ],
-            "missingEvidence": [
+            "missingEvidence": [],
+            "reason": "3 supporting input(s); 1 missing input(s).",
+            "scenarioResolvedEvidence": [
               "askingPrice"
-            ],
-            "reason": "3 supporting input(s); 1 missing input(s)."
+            ]
           }
-        ]
+        ],
+        "scenarioId": "scenario-7953533a-b545-412a-ba7f-009036c7cfb6-seller_financing"
       },
       "textChecks": {
         "hasRawRiskCodes": false,
@@ -686,49 +704,53 @@
       "language": "es",
       "focusMap": {
         "strategy": "SELLER_FINANCING",
-        "semantics": "STRATEGY_DECISION_READINESS_ONLY",
+        "semantics": "STRATEGY_DECISION_READINESS_WITH_CONFIRMED_SCENARIO",
         "note": "Las barras representan la preparación de la decisión según la evidencia disponible.",
         "dimensions": [
           {
             "dimension": "Base de compra",
-            "readiness": 90,
+            "readiness": 100,
             "supportingEvidence": [
               "acquisition_price",
               "assessedValue"
             ],
-            "missingEvidence": [
+            "missingEvidence": [],
+            "reason": "2 supporting input(s); 1 missing input(s).",
+            "scenarioResolvedEvidence": [
               "askingPrice"
-            ],
-            "reason": "2 supporting input(s); 1 missing input(s)."
+            ]
           },
           {
             "dimension": "Entrada",
-            "readiness": 0,
+            "readiness": 100,
             "supportingEvidence": [],
-            "missingEvidence": [
+            "missingEvidence": [],
+            "reason": "No supporting input is currently available.",
+            "scenarioResolvedEvidence": [
               "down_payment"
-            ],
-            "reason": "No supporting input is currently available."
+            ]
           },
           {
             "dimension": "Interés y pago",
-            "readiness": 0,
+            "readiness": 100,
             "supportingEvidence": [],
-            "missingEvidence": [
+            "missingEvidence": [],
+            "reason": "No supporting input is currently available.",
+            "scenarioResolvedEvidence": [
               "interest_rate"
-            ],
-            "reason": "No supporting input is currently available."
+            ]
           },
           {
             "dimension": "Plazo y amortización",
-            "readiness": 0,
+            "readiness": 100,
             "supportingEvidence": [],
-            "missingEvidence": [
+            "missingEvidence": [],
+            "reason": "No supporting input is currently available.",
+            "scenarioResolvedEvidence": [
               "term_months",
               "amortization_months",
               "balloon_months"
-            ],
-            "reason": "No supporting input is currently available."
+            ]
           },
           {
             "dimension": "Garantía del inmueble",
@@ -747,18 +769,20 @@
           },
           {
             "dimension": "Viabilidad de salida",
-            "readiness": 93,
+            "readiness": 100,
             "supportingEvidence": [
               "market_evidence",
               "latestSalePrice",
               "propertyType"
             ],
-            "missingEvidence": [
+            "missingEvidence": [],
+            "reason": "3 supporting input(s); 1 missing input(s).",
+            "scenarioResolvedEvidence": [
               "askingPrice"
-            ],
-            "reason": "3 supporting input(s); 1 missing input(s)."
+            ]
           }
-        ]
+        ],
+        "scenarioId": "scenario-7953533a-b545-412a-ba7f-009036c7cfb6-seller_financing"
       },
       "textChecks": {
         "hasRawRiskCodes": false,
@@ -2475,47 +2499,24 @@
     "droad": "Não disponível no registro externo atual.\n\nPrioridades para SELLER_FINANCING:\n1. definir a entrada.\n2. definir juros e forma de pagamento.\n3. definir prazo, amortização e balloon.",
     "gable": "Prioridades para LAND:\n1. verificar o uso permitido.\n2. obter vendas recentes de terrenos comparáveis.\n3. verificar titularidade e título."
   },
-  "sellerFinancing": {
-    "providerCalls": 0,
-    "arithmeticSource": "DETERMINISTIC_ENGINE",
-    "sixPercent": {
+  "scenarios": {
+    "sellerFinancing6Percent": {
       "state": "CALCULATED",
-      "assumptions": {
-        "purchasePrice": 113900,
-        "downPaymentAmount": 20000,
-        "annualInterestRate": 6,
-        "amortizationYears": 30,
-        "balloonYears": 5
-      },
-      "missing": [],
-      "result": {
-        "purchasePrice": 113900,
-        "downPaymentAmount": 20000,
-        "downPaymentPercent": 17.5593,
-        "financedPrincipal": 93900,
-        "financedPercent": 82.4407,
-        "annualInterestRate": 6,
-        "amortizationMonths": 360,
-        "balloonMonth": 60,
-        "hasEarlyBalloon": true,
-        "monthlyPI": 562.98,
-        "balloonBalance": 87378.04,
-        "principalPaidToBalloon": 6521.96,
-        "interestPaidToBalloon": 27256.72,
-        "totalScheduledPIToBalloon": 33778.68,
-        "cashToEntry": 20000,
-        "includedCashComponents": [
-          "downPayment"
-        ]
-      },
-      "previousResult": null,
-      "comparison": null,
-      "readiness": {
-        "downPayment": "INPUT_COMPLETE",
-        "interestPayment": "INPUT_COMPLETE",
-        "termAmortization": "INPUT_COMPLETE",
-        "semantics": "INPUT_EVIDENCE_COMPLETENESS_ONLY",
-        "scenario": {
+      "scenario": {
+        "id": "scenario-7953533a-b545-412a-ba7f-009036c7cfb6-seller_financing",
+        "propertyId": "7953533a-b545-412a-ba7f-009036c7cfb6",
+        "userId": null,
+        "strategy": "SELLER_FINANCING",
+        "label": "Scenario SELLER_FINANCING",
+        "createdAt": "2026-10-03T12:00:00.000Z",
+        "assumptions": {
+          "purchasePrice": 113900,
+          "downPaymentAmount": 20000,
+          "annualInterestRate": 6,
+          "amortizationYears": 30,
+          "balloonYears": 5
+        },
+        "calculatedOutputs": {
           "purchasePrice": 113900,
           "downPaymentAmount": 20000,
           "downPaymentPercent": 17.5593,
@@ -2534,41 +2535,103 @@
           "includedCashComponents": [
             "downPayment"
           ]
-        }
-      }
+        },
+        "evidenceReferences": [
+          "purchasePrice"
+        ],
+        "unresolvedInputs": [],
+        "source": {
+          "purchasePrice": "CALCULATED",
+          "downPaymentAmount": "CALCULATED",
+          "annualInterestRate": "CALCULATED",
+          "amortizationYears": "USER_PROVIDED",
+          "balloonYears": "USER_PROVIDED",
+          "downPaymentPercent": "CALCULATED",
+          "financedPrincipal": "CALCULATED",
+          "financedPercent": "CALCULATED",
+          "amortizationMonths": "CALCULATED",
+          "balloonMonth": "CALCULATED",
+          "hasEarlyBalloon": "CALCULATED",
+          "monthlyPI": "CALCULATED",
+          "balloonBalance": "CALCULATED",
+          "principalPaidToBalloon": "CALCULATED",
+          "interestPaidToBalloon": "CALCULATED",
+          "totalScheduledPIToBalloon": "CALCULATED",
+          "cashToEntry": "CALCULATED",
+          "includedCashComponents": "CALCULATED"
+        },
+        "status": "COMPLETE"
+      },
+      "previousScenario": null,
+      "comparison": {},
+      "providerCalls": 0,
+      "arithmeticSource": "DETERMINISTIC_SCENARIO_ENGINE",
+      "answer": "Cenário simulado — Financiamento pelo vendedor\n\nPremissas\n- Preço: US$ 113.900,00\n- Entrada: US$ 20.000,00\n- Juros anuais: 6%\n\nResultados\n- Preço: US$ 113.900,00\n- Entrada: US$ 20.000,00\n- Valor financiado: US$ 93.900,00\n- Juros anuais: 6%\n- Parcela mensal P&I: US$ 562,98\n- Saldo no balloon: US$ 87.378,04\n\nPróximo teste útil: altere uma premissa para comparar o impacto.",
+      "wow": "YES"
     },
-    "sixPercentAnswer": "Cenário usado\n- Preço: US$ 113.900,00\n- Entrada: US$ 20.000,00 (17,559%)\n- Valor financiado: US$ 93.900,00\n- Juros: 6% ao ano\n- Amortização: 30 anos\n- Balloon: 5 anos\n\nResultado\n- Parcela mensal P&I: US$ 562,98\n- Saldo no balloon: US$ 87.378,04\n- Principal amortizado até o balloon: US$ 6.521,96\n- Juros pagos até o balloon: US$ 27.256,72\n- Caixa inicial conhecido: US$ 20.000,00\n\nLeitura Maxxis\n- Usei o preço pedido atual porque você não informou outro preço de compra.\n- P&I não inclui impostos, seguro ou HOA.\n- O saldo do balloon exigirá quitação, refinanciamento ou nova negociação no prazo indicado.",
-    "fourPercent": {
+    "sellerFinancing4PercentFollowUp": {
       "state": "CALCULATED",
-      "assumptions": {
-        "purchasePrice": 113900,
-        "downPaymentAmount": 20000,
-        "annualInterestRate": 4,
-        "amortizationYears": 30,
-        "balloonYears": 5
+      "scenario": {
+        "id": "scenario-7953533a-b545-412a-ba7f-009036c7cfb6-seller_financing",
+        "propertyId": "7953533a-b545-412a-ba7f-009036c7cfb6",
+        "userId": null,
+        "strategy": "SELLER_FINANCING",
+        "label": "Scenario SELLER_FINANCING",
+        "createdAt": "2026-10-03T12:00:00.000Z",
+        "assumptions": {
+          "purchasePrice": 113900,
+          "downPaymentAmount": 20000,
+          "annualInterestRate": 4,
+          "amortizationYears": 30,
+          "balloonYears": 5
+        },
+        "calculatedOutputs": {
+          "purchasePrice": 113900,
+          "downPaymentAmount": 20000,
+          "downPaymentPercent": 17.5593,
+          "financedPrincipal": 93900,
+          "financedPercent": 82.4407,
+          "annualInterestRate": 4,
+          "amortizationMonths": 360,
+          "balloonMonth": 60,
+          "hasEarlyBalloon": true,
+          "monthlyPI": 448.29,
+          "balloonBalance": 84930.21,
+          "principalPaidToBalloon": 8969.79,
+          "interestPaidToBalloon": 17927.79,
+          "totalScheduledPIToBalloon": 26897.58,
+          "cashToEntry": 20000,
+          "includedCashComponents": [
+            "downPayment"
+          ]
+        },
+        "evidenceReferences": [
+          "purchasePrice"
+        ],
+        "unresolvedInputs": [],
+        "source": {
+          "purchasePrice": "CALCULATED",
+          "downPaymentAmount": "CALCULATED",
+          "annualInterestRate": "CALCULATED",
+          "amortizationYears": "USER_PROVIDED",
+          "balloonYears": "USER_PROVIDED",
+          "downPaymentPercent": "CALCULATED",
+          "financedPrincipal": "CALCULATED",
+          "financedPercent": "CALCULATED",
+          "amortizationMonths": "CALCULATED",
+          "balloonMonth": "CALCULATED",
+          "hasEarlyBalloon": "CALCULATED",
+          "monthlyPI": "CALCULATED",
+          "balloonBalance": "CALCULATED",
+          "principalPaidToBalloon": "CALCULATED",
+          "interestPaidToBalloon": "CALCULATED",
+          "totalScheduledPIToBalloon": "CALCULATED",
+          "cashToEntry": "CALCULATED",
+          "includedCashComponents": "CALCULATED"
+        },
+        "status": "COMPLETE"
       },
-      "missing": [],
-      "result": {
-        "purchasePrice": 113900,
-        "downPaymentAmount": 20000,
-        "downPaymentPercent": 17.5593,
-        "financedPrincipal": 93900,
-        "financedPercent": 82.4407,
-        "annualInterestRate": 4,
-        "amortizationMonths": 360,
-        "balloonMonth": 60,
-        "hasEarlyBalloon": true,
-        "monthlyPI": 448.29,
-        "balloonBalance": 84930.21,
-        "principalPaidToBalloon": 8969.79,
-        "interestPaidToBalloon": 17927.79,
-        "totalScheduledPIToBalloon": 26897.58,
-        "cashToEntry": 20000,
-        "includedCashComponents": [
-          "downPayment"
-        ]
-      },
-      "previousResult": {
+      "previousScenario": {
         "purchasePrice": 113900,
         "downPaymentAmount": 20000,
         "downPaymentPercent": 17.5593,
@@ -2589,18 +2652,286 @@
         ]
       },
       "comparison": {
-        "cashToEntry": 0,
-        "monthlyPI": -114.69,
-        "balloonBalance": -2447.83,
-        "interestPaidToBalloon": -9328.93,
-        "financedPrincipal": 0
+        "annualInterestRate": {
+          "before": 6,
+          "after": 4,
+          "absolute": -2,
+          "percent": -33.3333
+        },
+        "monthlyPI": {
+          "before": 562.98,
+          "after": 448.29,
+          "absolute": -114.69,
+          "percent": -20.3719
+        },
+        "balloonBalance": {
+          "before": 87378.04,
+          "after": 84930.21,
+          "absolute": -2447.83,
+          "percent": -2.8014
+        },
+        "principalPaidToBalloon": {
+          "before": 6521.96,
+          "after": 8969.79,
+          "absolute": 2447.83,
+          "percent": 37.5321
+        },
+        "interestPaidToBalloon": {
+          "before": 27256.72,
+          "after": 17927.79,
+          "absolute": -9328.93,
+          "percent": -34.2262
+        },
+        "totalScheduledPIToBalloon": {
+          "before": 33778.68,
+          "after": 26897.58,
+          "absolute": -6881.1,
+          "percent": -20.3711
+        }
       },
-      "readiness": {
-        "downPayment": "INPUT_COMPLETE",
-        "interestPayment": "INPUT_COMPLETE",
-        "termAmortization": "INPUT_COMPLETE",
-        "semantics": "INPUT_EVIDENCE_COMPLETENESS_ONLY",
-        "scenario": {
+      "providerCalls": 0,
+      "arithmeticSource": "DETERMINISTIC_SCENARIO_ENGINE",
+      "answer": "Cenário simulado — Financiamento pelo vendedor\n\nPremissas\n- Preço: US$ 113.900,00\n- Entrada: US$ 20.000,00\n- Juros anuais: 4%\n\nResultados\n- Preço: US$ 113.900,00\n- Entrada: US$ 20.000,00\n- Valor financiado: US$ 93.900,00\n- Juros anuais: 4%\n- Parcela mensal P&I: US$ 448,29\n- Saldo no balloon: US$ 84.930,21\n\nImpacto versus o cenário anterior\n- Juros anuais: -2%\n- Parcela mensal P&I: -US$ 114,69\n- Saldo no balloon: -US$ 2.447,83\n- Sem mudança: Preço, Entrada\nAs variações são direcionais; sem um objetivo informado, não são classificadas como melhores ou piores.\n\nPróximo teste útil: altere uma premissa para comparar o impacto.",
+      "wow": "YES"
+    },
+    "buyAndHold": {
+      "state": "CALCULATED",
+      "providerCalls": 0,
+      "arithmeticSource": "DETERMINISTIC_SCENARIO_ENGINE",
+      "scenario": {
+        "strategy": "BUY_AND_HOLD",
+        "assumptions": {
+          "purchasePrice": 200000,
+          "rent": 2000,
+          "vacancyRate": 5,
+          "propertyTax": 2400,
+          "insurance": 1200,
+          "managementPercent": 8,
+          "maintenancePercent": 5,
+          "otherOperatingExpenses": 600,
+          "monthlyPI": 900,
+          "cashInvested": 50000
+        },
+        "calculatedOutputs": {
+          "grossScheduledRent": 24000,
+          "effectiveGrossIncome": 22800,
+          "operatingExpenses": 7164,
+          "NOI": 15636,
+          "capRate": 7.818,
+          "monthlyOperatingCashFlow": 1303,
+          "annualCashFlow": 4836,
+          "debtService": 10800,
+          "cashFlowAfterDebt": 4836,
+          "cashOnCashReturn": 9.672,
+          "DSCR": 1.4478
+        }
+      },
+      "answer": "Cenário simulado — Comprar e manter\n\nPremissas\n- Preço: US$ 200.000,00\n- Aluguel: US$ 2.000,00\n- Parcela mensal P&I: US$ 900,00\n\nResultados\n- Aluguel bruto anual: US$ 24.000,00\n- Receita efetiva: US$ 22.800,00\n- Despesas operacionais: US$ 7.164,00\n- NOI: US$ 15.636,00\n- Cap rate: 7,818%\n- Fluxo de caixa anual: US$ 4.836,00\n\nPróximo teste útil: altere uma premissa para comparar o impacto.",
+      "wow": "YES"
+    },
+    "flip": {
+      "state": "CALCULATED",
+      "providerCalls": 0,
+      "arithmeticSource": "DETERMINISTIC_SCENARIO_ENGINE",
+      "scenario": {
+        "strategy": "FLIP",
+        "assumptions": {
+          "purchasePrice": 100000,
+          "rehab": 30000,
+          "closingCosts": 3000,
+          "holdingCosts": 5000,
+          "financingCosts": 5000,
+          "sellingCosts": 10000,
+          "exitValue": 200000
+        },
+        "calculatedOutputs": {
+          "acquisitionBasis": 103000,
+          "rehabCost": 30000,
+          "totalBasisBeforeSale": 143000,
+          "holdingCost": 5000,
+          "financingCost": 5000,
+          "sellingCost": 10000,
+          "allInCost": 153000,
+          "grossSpread": 100000,
+          "projectedProfit": 47000,
+          "ROI": 30.719,
+          "profitMargin": 23.5
+        }
+      },
+      "answer": "Cenário simulado — Reforma e revenda\n\nPremissas\n- Preço: US$ 100.000,00\n- Reforma: US$ 30.000,00\n- Valor de saída: US$ 200.000,00\n\nResultados\n- Base de aquisição: US$ 103.000,00\n- Custo total: US$ 153.000,00\n- Lucro projetado: US$ 47.000,00\n- ROI: 30,719%\n- Margem: 23,5%\n\nPróximo teste útil: altere uma premissa para comparar o impacto.",
+      "wow": "YES"
+    },
+    "subTo": {
+      "state": "CALCULATED",
+      "providerCalls": 0,
+      "arithmeticSource": "DETERMINISTIC_SCENARIO_ENGINE",
+      "scenario": {
+        "strategy": "SUB_TO",
+        "assumptions": {
+          "existingLoanBalance": 180000,
+          "monthlyPI": 1200,
+          "reinstatement": 10000,
+          "cashToSeller": 5000,
+          "closingCosts": 5000,
+          "propertyTax": 1800,
+          "insurance": 1200,
+          "HOA": 0,
+          "expectedRent": 2100
+        },
+        "calculatedOutputs": {
+          "knownCashToEntry": 20000,
+          "debtAssumed": 180000,
+          "monthlyDebtService": 1200,
+          "knownMonthlyCarry": 1450,
+          "estimatedMonthlyCashFlow": 650,
+          "DSCR": 1.75
+        }
+      },
+      "answer": "Cenário simulado — SUB-TO\n\nPremissas\n- Parcela mensal P&I: US$ 1.200,00\n\nResultados\n- Caixa inicial conhecido: US$ 20.000,00\n- Dívida assumida: US$ 180.000,00\n- Custo mensal conhecido: US$ 1.450,00\n- Fluxo mensal estimado: US$ 650,00\n- DSCR: 1,75\n\nPróximo teste útil: altere uma premissa para comparar o impacto.",
+      "wow": "YES"
+    },
+    "wholesale": {
+      "state": "CALCULATED",
+      "providerCalls": 0,
+      "arithmeticSource": "DETERMINISTIC_SCENARIO_ENGINE",
+      "scenario": {
+        "strategy": "WHOLESALE",
+        "assumptions": {
+          "contractPrice": 90000,
+          "estimatedBuyerPrice": 110000,
+          "assignmentFee": 12000,
+          "closingCosts": 1000
+        },
+        "calculatedOutputs": {
+          "grossAssignmentSpread": 20000,
+          "estimatedNetAssignmentSpread": 11000,
+          "buyerBasis": 102000,
+          "assignmentFee": 12000,
+          "guaranteedIncome": false
+        }
+      },
+      "answer": "Cenário simulado — Atacado\n\nPremissas\n- Preço de contrato: US$ 90.000,00\n- Preço do comprador: US$ 110.000,00\n- Taxa de cessão: US$ 12.000,00\n\nResultados\n- Margem bruta de cessão: US$ 20.000,00\n- Margem líquida estimada: US$ 11.000,00\n- Base do comprador: US$ 102.000,00\n- Taxa de cessão: US$ 12.000,00\n\nPróximo teste útil: altere uma premissa para comparar o impacto.",
+      "wow": "YES"
+    },
+    "land": {
+      "state": "CALCULATED",
+      "providerCalls": 0,
+      "arithmeticSource": "DETERMINISTIC_SCENARIO_ENGINE",
+      "scenario": {
+        "strategy": "LAND",
+        "assumptions": {
+          "purchasePrice": 20000,
+          "lotSizeAcres": 2,
+          "lotSizeSqft": 87120,
+          "closingCosts": 2000,
+          "dueDiligenceCosts": 1000,
+          "surveyTitleCosts": 1000,
+          "utilityCosts": 4000,
+          "targetExitPricePerAcre": 30000
+        },
+        "calculatedOutputs": {
+          "purchasePricePerAcre": 10000,
+          "purchasePricePerLotSqft": 0.2296,
+          "knownBasis": 28000,
+          "knownBasisPerAcre": 14000,
+          "targetExitValue": 60000,
+          "grossSpread": 40000,
+          "estimatedProfit": 32000,
+          "ROI": 114.2857
+        }
+      },
+      "answer": "Cenário simulado — Terreno\n\nPremissas\n- Preço: US$ 20.000,00\n- Saída por acre: US$ 30.000,00\n\nResultados\n- Compra por acre: US$ 10.000,00\n- Compra por sqft do lote: US$ 0,23\n- Base conhecida: US$ 28.000,00\n- Base por acre: US$ 14.000,00\n- Valor de saída-alvo: US$ 60.000,00\n- Lucro estimado: US$ 32.000,00\n\nPróximo teste útil: altere uma premissa para comparar o impacto.",
+      "wow": "YES"
+    }
+  },
+  "sellerFinancing": {
+    "providerCalls": 0,
+    "arithmeticSource": "DETERMINISTIC_SCENARIO_ENGINE",
+    "sixPercent": {
+      "state": "CALCULATED",
+      "scenario": {
+        "id": "scenario-7953533a-b545-412a-ba7f-009036c7cfb6-seller_financing",
+        "propertyId": "7953533a-b545-412a-ba7f-009036c7cfb6",
+        "userId": null,
+        "strategy": "SELLER_FINANCING",
+        "label": "Scenario SELLER_FINANCING",
+        "createdAt": "2026-10-03T12:00:00.000Z",
+        "assumptions": {
+          "purchasePrice": 113900,
+          "downPaymentAmount": 20000,
+          "annualInterestRate": 6,
+          "amortizationYears": 30,
+          "balloonYears": 5
+        },
+        "calculatedOutputs": {
+          "purchasePrice": 113900,
+          "downPaymentAmount": 20000,
+          "downPaymentPercent": 17.5593,
+          "financedPrincipal": 93900,
+          "financedPercent": 82.4407,
+          "annualInterestRate": 6,
+          "amortizationMonths": 360,
+          "balloonMonth": 60,
+          "hasEarlyBalloon": true,
+          "monthlyPI": 562.98,
+          "balloonBalance": 87378.04,
+          "principalPaidToBalloon": 6521.96,
+          "interestPaidToBalloon": 27256.72,
+          "totalScheduledPIToBalloon": 33778.68,
+          "cashToEntry": 20000,
+          "includedCashComponents": [
+            "downPayment"
+          ]
+        },
+        "evidenceReferences": [
+          "purchasePrice"
+        ],
+        "unresolvedInputs": [],
+        "source": {
+          "purchasePrice": "CALCULATED",
+          "downPaymentAmount": "CALCULATED",
+          "annualInterestRate": "CALCULATED",
+          "amortizationYears": "USER_PROVIDED",
+          "balloonYears": "USER_PROVIDED",
+          "downPaymentPercent": "CALCULATED",
+          "financedPrincipal": "CALCULATED",
+          "financedPercent": "CALCULATED",
+          "amortizationMonths": "CALCULATED",
+          "balloonMonth": "CALCULATED",
+          "hasEarlyBalloon": "CALCULATED",
+          "monthlyPI": "CALCULATED",
+          "balloonBalance": "CALCULATED",
+          "principalPaidToBalloon": "CALCULATED",
+          "interestPaidToBalloon": "CALCULATED",
+          "totalScheduledPIToBalloon": "CALCULATED",
+          "cashToEntry": "CALCULATED",
+          "includedCashComponents": "CALCULATED"
+        },
+        "status": "COMPLETE"
+      },
+      "previousScenario": null,
+      "comparison": {},
+      "providerCalls": 0,
+      "arithmeticSource": "DETERMINISTIC_SCENARIO_ENGINE"
+    },
+    "sixPercentAnswer": "Cenário simulado — Financiamento pelo vendedor\n\nPremissas\n- Preço: US$ 113.900,00\n- Entrada: US$ 20.000,00\n- Juros anuais: 6%\n\nResultados\n- Preço: US$ 113.900,00\n- Entrada: US$ 20.000,00\n- Valor financiado: US$ 93.900,00\n- Juros anuais: 6%\n- Parcela mensal P&I: US$ 562,98\n- Saldo no balloon: US$ 87.378,04\n\nPróximo teste útil: altere uma premissa para comparar o impacto.",
+    "fourPercent": {
+      "state": "CALCULATED",
+      "scenario": {
+        "id": "scenario-7953533a-b545-412a-ba7f-009036c7cfb6-seller_financing",
+        "propertyId": "7953533a-b545-412a-ba7f-009036c7cfb6",
+        "userId": null,
+        "strategy": "SELLER_FINANCING",
+        "label": "Scenario SELLER_FINANCING",
+        "createdAt": "2026-10-03T12:00:00.000Z",
+        "assumptions": {
+          "purchasePrice": 113900,
+          "downPaymentAmount": 20000,
+          "annualInterestRate": 4,
+          "amortizationYears": 30,
+          "balloonYears": 5
+        },
+        "calculatedOutputs": {
           "purchasePrice": 113900,
           "downPaymentAmount": 20000,
           "downPaymentPercent": 17.5593,
@@ -2619,9 +2950,94 @@
           "includedCashComponents": [
             "downPayment"
           ]
+        },
+        "evidenceReferences": [
+          "purchasePrice"
+        ],
+        "unresolvedInputs": [],
+        "source": {
+          "purchasePrice": "CALCULATED",
+          "downPaymentAmount": "CALCULATED",
+          "annualInterestRate": "CALCULATED",
+          "amortizationYears": "USER_PROVIDED",
+          "balloonYears": "USER_PROVIDED",
+          "downPaymentPercent": "CALCULATED",
+          "financedPrincipal": "CALCULATED",
+          "financedPercent": "CALCULATED",
+          "amortizationMonths": "CALCULATED",
+          "balloonMonth": "CALCULATED",
+          "hasEarlyBalloon": "CALCULATED",
+          "monthlyPI": "CALCULATED",
+          "balloonBalance": "CALCULATED",
+          "principalPaidToBalloon": "CALCULATED",
+          "interestPaidToBalloon": "CALCULATED",
+          "totalScheduledPIToBalloon": "CALCULATED",
+          "cashToEntry": "CALCULATED",
+          "includedCashComponents": "CALCULATED"
+        },
+        "status": "COMPLETE"
+      },
+      "previousScenario": {
+        "purchasePrice": 113900,
+        "downPaymentAmount": 20000,
+        "downPaymentPercent": 17.5593,
+        "financedPrincipal": 93900,
+        "financedPercent": 82.4407,
+        "annualInterestRate": 6,
+        "amortizationMonths": 360,
+        "balloonMonth": 60,
+        "hasEarlyBalloon": true,
+        "monthlyPI": 562.98,
+        "balloonBalance": 87378.04,
+        "principalPaidToBalloon": 6521.96,
+        "interestPaidToBalloon": 27256.72,
+        "totalScheduledPIToBalloon": 33778.68,
+        "cashToEntry": 20000,
+        "includedCashComponents": [
+          "downPayment"
+        ]
+      },
+      "comparison": {
+        "annualInterestRate": {
+          "before": 6,
+          "after": 4,
+          "absolute": -2,
+          "percent": -33.3333
+        },
+        "monthlyPI": {
+          "before": 562.98,
+          "after": 448.29,
+          "absolute": -114.69,
+          "percent": -20.3719
+        },
+        "balloonBalance": {
+          "before": 87378.04,
+          "after": 84930.21,
+          "absolute": -2447.83,
+          "percent": -2.8014
+        },
+        "principalPaidToBalloon": {
+          "before": 6521.96,
+          "after": 8969.79,
+          "absolute": 2447.83,
+          "percent": 37.5321
+        },
+        "interestPaidToBalloon": {
+          "before": 27256.72,
+          "after": 17927.79,
+          "absolute": -9328.93,
+          "percent": -34.2262
+        },
+        "totalScheduledPIToBalloon": {
+          "before": 33778.68,
+          "after": 26897.58,
+          "absolute": -6881.1,
+          "percent": -20.3711
         }
-      }
+      },
+      "providerCalls": 0,
+      "arithmeticSource": "DETERMINISTIC_SCENARIO_ENGINE"
     },
-    "fourPercentAnswer": "Cenário usado\n- Preço: US$ 113.900,00\n- Entrada: US$ 20.000,00 (17,559%)\n- Valor financiado: US$ 93.900,00\n- Juros: 4% ao ano\n- Amortização: 30 anos\n- Balloon: 5 anos\n\nResultado\n- Parcela mensal P&I: US$ 448,29\n- Saldo no balloon: US$ 84.930,21\n- Principal amortizado até o balloon: US$ 8.969,79\n- Juros pagos até o balloon: US$ 17.927,79\n- Caixa inicial conhecido: US$ 20.000,00\n\nLeitura Maxxis\n- Usei o preço pedido atual porque você não informou outro preço de compra.\n- P&I não inclui impostos, seguro ou HOA.\n- O saldo do balloon exigirá quitação, refinanciamento ou nova negociação no prazo indicado.\n\nComparação com o cenário anterior\n- Parcela mensal: -US$ 114,69\n- Saldo no balloon: -US$ 2.447,83\n- Juros até o balloon: -US$ 9.328,93\n(Valores negativos representam redução.)"
+    "fourPercentAnswer": "Cenário simulado — Financiamento pelo vendedor\n\nPremissas\n- Preço: US$ 113.900,00\n- Entrada: US$ 20.000,00\n- Juros anuais: 4%\n\nResultados\n- Preço: US$ 113.900,00\n- Entrada: US$ 20.000,00\n- Valor financiado: US$ 93.900,00\n- Juros anuais: 4%\n- Parcela mensal P&I: US$ 448,29\n- Saldo no balloon: US$ 84.930,21\n\nImpacto versus o cenário anterior\n- Juros anuais: -2%\n- Parcela mensal P&I: -US$ 114,69\n- Saldo no balloon: -US$ 2.447,83\n- Sem mudança: Preço, Entrada\nAs variações são direcionais; sem um objetivo informado, não são classificadas como melhores ou piores.\n\nPróximo teste útil: altere uma premissa para comparar o impacto."
   }
 }

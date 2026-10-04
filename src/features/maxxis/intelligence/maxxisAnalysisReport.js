@@ -154,6 +154,9 @@ export function buildMaxxisAnalysisReport(dealIntelligence, structuredAnalysis =
   const savedSellerFinancingScenario = isObject(snapshot.dealAssumptions?.sellerFinancingScenario)
     && snapshot.dealAssumptions.sellerFinancingScenario.confirmed === true
     ? Object.freeze({ ...snapshot.dealAssumptions.sellerFinancingScenario }) : null;
+  const savedActiveScenario = isObject(snapshot.dealAssumptions?.activeScenario)
+    && snapshot.dealAssumptions.activeScenario.confirmed === true
+    ? Object.freeze({ ...snapshot.dealAssumptions.activeScenario }) : savedSellerFinancingScenario;
   const canonicalRisks = canonical ? [
     ['DATA_RISK', canonical.riskAnalysis?.dataRisk],
     ['MARKET_RISK', canonical.riskAnalysis?.marketRisk],
@@ -197,6 +200,7 @@ export function buildMaxxisAnalysisReport(dealIntelligence, structuredAnalysis =
     profileAlignment: alignment,
     canonicalInvestmentAnalysis,
     sellerFinancingScenario: savedSellerFinancingScenario,
+    activeScenario: savedActiveScenario,
     keyObservations: canonical ? Object.freeze({
       positives: Object.freeze(list(canonical.positiveSignals).map(safeText).filter(Boolean).slice(0, 6)),
       attention: Object.freeze(list(canonical.concerns).map(safeText).filter(Boolean).slice(0, 8)),

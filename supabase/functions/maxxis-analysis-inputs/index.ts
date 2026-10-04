@@ -50,7 +50,7 @@ function rehabSource(value: unknown) {
 
 function dealAssumptions(value: unknown) {
   if (!value || typeof value !== 'object' || Array.isArray(value)) throw new Error('INVALID_DEAL_ASSUMPTIONS');
-  const sanitized: Record<string, number | string | boolean> = {};
+  const sanitized: Record<string, unknown> = {};
   for (const [key, raw] of Object.entries(value as Record<string, unknown>)) {
     if (NUMERIC_DEAL_ASSUMPTIONS.has(key)) {
       const parsed = Number(raw);
@@ -62,6 +62,17 @@ function dealAssumptions(value: unknown) {
       sanitized[key] = parsed;
     } else if (BOOLEAN_DEAL_ASSUMPTIONS.has(key) && typeof raw === 'boolean') {
       sanitized[key] = raw;
+    } else if (key === 'activeScenario' && raw && typeof raw === 'object' && !Array.isArray(raw)) {
+      const scenario = raw as Record<string, unknown>; const strategy = String(scenario.strategy || '').toUpperCase();
+      if (!['SELLER_FINANCING', 'BUY_AND_HOLD', 'FLIP', 'SUB_TO', 'WHOLESALE', 'LAND'].includes(strategy)
+        || scenario.status !== 'COMPLETE' || scenario.confirmed !== true) throw new Error('INVALID_DEAL_ASSUMPTIONS');
+      const serialized = JSON.stringify(scenario);
+      if (serialized.length > 16_000 || /__proto__|constructor|prototype/.test(serialized)) throw new Error('INVALID_DEAL_ASSUMPTIONS');
+      const parsed = JSON.parse(serialized) as Record<string, unknown>;
+      if (!parsed.assumptions || typeof parsed.assumptions !== 'object' || !parsed.calculatedOutputs || typeof parsed.calculatedOutputs !== 'object') {
+        throw new Error('INVALID_DEAL_ASSUMPTIONS');
+      }
+      sanitized[key] = parsed;
     } else {
       throw new Error('INVALID_DEAL_ASSUMPTIONS');
     }

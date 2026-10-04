@@ -626,6 +626,12 @@ const DEAL_COPILOT_COPY = {
 };
 
 const ACTION_DEFINITIONS = {
+  'scenario-compare': {
+    en: 'Compare scenarios', pt: 'Comparar cenários', es: 'Comparar escenarios',
+  },
+  'scenario-save': {
+    en: 'Save scenario', pt: 'Salvar cenário', es: 'Guardar escenario',
+  },
   'report-export': {
     en: 'Export / Generate Report',
     pt: 'Exportar / Gerar Relatório',

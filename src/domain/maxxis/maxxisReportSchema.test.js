@@ -167,4 +167,16 @@ describe('MaxxisReportSchema v2', () => {
       owner: { name: 'Visible Owner', type: 'FSBO', allowedContacts: [{ value: '555-0100' }] },
     });
   });
+
+  it('projects confirmed scenario inputs into decision readiness without changing profile fit', () => {
+    const maxxisAnalysis = { ...analysis(), activeScenario: { id: 'scenario-1', strategy: 'SELLER_FINANCING', status: 'COMPLETE', confirmed: true,
+      assumptions: { downPaymentAmount: 20000, annualInterestRate: 4, amortizationYears: 30, balloonYears: 5 }, calculatedOutputs: { monthlyPI: 448.29 } },
+    canonicalInvestmentAnalysis: { focusMap: { strategy: 'SELLER_FINANCING', semantics: 'STRATEGY_DECISION_READINESS_ONLY', dimensions: [
+      { dimension: 'Entrada', readiness: 0, missingEvidence: ['down_payment'] },
+      { dimension: 'Juros e pagamento', readiness: 0, missingEvidence: ['interest_rate'] },
+    ] } } };
+    const report = buildMaxxisReportSchema({ reportType: 'MAXXIS_ANALYSIS', property, maxxisAnalysis });
+    expect(report.presentation.scenarioFocusMap.dimensions.map((item) => item.readiness)).toEqual([100, 100]);
+    expect(report.sections.investmentProfile.data).toEqual(maxxisAnalysis.profileAlignment);
+  });
 });

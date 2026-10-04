@@ -6,6 +6,7 @@ export const REPORT_BODY_TIERS = Object.freeze({
 });
 
 export const REPORT_SOLID_OFFSETS = Object.freeze({ title: 2.5, card: 5.5 });
+export const REPORT_LAYOUT_TOKENS = Object.freeze({ sectionGapY: 8, informationalRowDividers: false });
 
 const policy = (sectionId, preferredCharacterBudget, hardCharacterBudget, preferredLineCount, maximumLineCount, preferredBulletCount = 3, maximumBulletCount = 4) => Object.freeze({
   sectionId,

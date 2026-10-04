@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import {
-  REPORT_BODY_TIERS, REPORT_METRIC_BAR, REPORT_SOLID_OFFSETS, SECTION_TEXT_POLICIES,
+  REPORT_BODY_TIERS, REPORT_LAYOUT_TOKENS, REPORT_METRIC_BAR, REPORT_SOLID_OFFSETS, SECTION_TEXT_POLICIES,
   deduplicateAndBudgetItems, selectSectionTextTier,
 } from './maxxisReportVisualPolicy';
 
@@ -31,5 +31,9 @@ describe('Maxxis fixed report visual policy', () => {
   it('keeps clean pill geometry and a deeper card than title solid offset', () => {
     expect(REPORT_METRIC_BAR).toMatchObject({ height: 8, radius: 4 });
     expect(REPORT_SOLID_OFFSETS.card).toBeGreaterThan(REPORT_SOLID_OFFSETS.title);
+  });
+  it('defines explicit Level 1 section spacing and forbids informational row dividers', () => {
+    expect(REPORT_LAYOUT_TOKENS.sectionGapY).toBeGreaterThanOrEqual(8);
+    expect(REPORT_LAYOUT_TOKENS.informationalRowDividers).toBe(false);
   });
 });

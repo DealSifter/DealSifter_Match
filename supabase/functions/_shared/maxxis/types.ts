@@ -458,7 +458,7 @@ export type MaxxisResponse = {
     | { type: 'deal_insight'; propertyId: string; state: string; [key: string]: unknown }
     | PropertyComparisonResult
     | { properties: []; comparison: null };
-  actions: [];
+  actions: Array<{ id: string; label: string; prompt?: string }>;
   answer?: string;
   language?: MaxxisLanguage;
   unavailable?: boolean;
