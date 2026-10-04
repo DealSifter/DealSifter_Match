@@ -77,6 +77,24 @@ export function listMissingExternalFields(record: NormalizedPropertyRecord) {
     .map(([path]) => path);
 }
 
+export function propertyEvidenceSourceDiagnostics(record: NormalizedPropertyRecord): PropertyEvidenceResult['sourceDiagnostics'] {
+  const diagnostics = record.sourceMetadata.fieldDiagnostics;
+  const normalized = record.parcel?.assessorId?.value ?? null;
+  if (!diagnostics) return {
+    assessorId: { providerFieldPresence: 'UNOBSERVED', normalizationResult: normalized,
+      classification: normalized ? 'AVAILABLE' : 'SOURCE_UNOBSERVED_LEGACY_CACHE' },
+  };
+  const presence = diagnostics.providerFieldPresence.assessorID;
+  return {
+    assessorId: {
+      providerFieldPresence: presence,
+      normalizationResult: diagnostics.normalizationResult.assessorId,
+      classification: normalized ? 'AVAILABLE'
+        : presence === 'ABSENT' ? 'PROVIDER_DID_NOT_RETURN_FIELD' : 'NORMALIZATION_DROPPED_FIELD',
+    },
+  };
+}
+
 export class PropertyEvidenceService {
   private readonly repository: PropertyEvidenceRepository;
   private readonly cache: PropertyIntelligenceCache;
@@ -129,6 +147,7 @@ export class PropertyEvidenceService {
         provider: 'rentcast',
         cacheHit: true,
         retrievedAt: cached.record.sourceMetadata.retrievedAt,
+        sourceDiagnostics: propertyEvidenceSourceDiagnostics(cached.record),
       };
       this.logger({ operation: 'property_evidence', success: true, durationMs: Date.now() - startedAt, cacheHit: true });
       return result;
@@ -189,6 +208,7 @@ export class PropertyEvidenceService {
         provider: 'rentcast',
         cacheHit,
         retrievedAt: externalData.sourceMetadata.retrievedAt,
+        sourceDiagnostics: propertyEvidenceSourceDiagnostics(externalData),
       };
       this.logger({ operation: 'property_evidence', success: true, durationMs: Date.now() - startedAt, cacheHit });
       return result;

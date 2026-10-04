@@ -29,9 +29,11 @@ export function renderMaxxisReportDocument({ schema, exportEntitlement, generate
     sectionKeys: Object.freeze(page.sections.filter((key) => schema.sections[key]?.available)),
     footer: Object.freeze({ page: page.page, generatedAt: generatedDate.toISOString() }),
   }));
+  const resolvedUserLocale = ['en', 'pt', 'es'].includes(schema.resolvedUserLocale)
+    ? schema.resolvedUserLocale : (['en', 'pt', 'es'].includes(language) ? language : 'en');
   return Object.freeze({ state: 'PREPARED', document: Object.freeze({
     type: 'maxxis_investment_intelligence_document', version: MAXXIS_REPORT_DOCUMENT_VERSION,
-    reportType: schema.reportType, language: ['en', 'pt', 'es'].includes(language) ? language : 'en',
+    reportType: schema.reportType, language: resolvedUserLocale, resolvedUserLocale,
     cover: Object.freeze({
       propertyAddress: property.address || null,
       propertyType: property.resolvedAnalysisPropertyType || property.type || null,

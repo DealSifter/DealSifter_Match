@@ -498,6 +498,7 @@ export function buildMaxxisStructuredAnalysis(snapshotInput: unknown, reportType
     version: MAXXIS_STRUCTURED_ANALYSIS_VERSION,
     reportType,
     language,
+    locale: language,
     executiveSummary,
     investmentThesis,
     dealThesis: thesis,

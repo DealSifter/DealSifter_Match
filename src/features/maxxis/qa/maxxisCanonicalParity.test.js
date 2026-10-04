@@ -54,14 +54,28 @@ describe('canonical property and investment parity', () => {
       { field: 'down_payment' }, { field: 'interest_rate' }, { field: 'term_months' },
     ] } };
     expect(buildPropertyFactLookupAnswer('qual o APN?', 'pt', snapshot).text)
-      .toBe('O registro externo atual não trouxe um APN/Assessor ID para este imóvel.');
+      .toBe('O registro externo armazenado para este imóvel não contém um APN / Assessor ID.');
     const combined = buildPropertyFactLookupAnswer('Qual o APN e quais são os 3 pontos mais importantes para estruturar este Seller Financing?', 'pt', snapshot).text;
-    expect(combined).toContain('O registro externo atual não trouxe um APN');
+    expect(combined).toContain('O registro externo armazenado para este imóvel não contém um APN');
     expect(combined).toContain('Prioridades para SELLER_FINANCING');
     expect(combined).toContain('definir a entrada');
     expect(buildPropertyFactLookupAnswer('qual foi a última venda?', 'pt', snapshot).text).toMatch(/US\$\s*80\.500.*3 de ago\. de 2021/);
     expect(buildPropertyFactLookupAnswer('o owner ocupa o imóvel?', 'pt', snapshot).text).toContain('Sim');
     expect(buildPropertyFactLookupAnswer('quais são as Notes?', 'pt', snapshot).text).toContain('Excelent opportunity for buy&hold');
+  });
+
+  it('projects a known canonical APN to chat and all three report levels without invention', () => {
+    const property = mergeVerifiedPropertyEvidenceIntoFacts({ id: 'known-apn', address: '1 APN St', type: 'SFR' }, {
+      fields: { assessorId: verified('APN-EXACT-123') }, conflicts: [],
+    });
+    const snapshot = { propertyFacts: property };
+    expect(buildPropertyFactLookupAnswer('Qual é o APN deste imóvel?', 'pt', snapshot).text).toContain('APN-EXACT-123');
+    for (const reportType of ['PROPERTY_RELEASE', 'MAXXIS_ANALYSIS', 'DEAL_INTELLIGENCE']) {
+      const schema = buildMaxxisReportSchema({ reportType, property,
+        maxxisAnalysis: { profileAlignment: {} }, dealIntelligence: { investmentFit: {} } });
+      expect(schema.sections.propertySummary.data.assessorId).toBe('APN-EXACT-123');
+    }
+    expect(JSON.stringify(snapshot)).not.toContain('APN-GENERATED');
   });
 
   it('deduplicates equivalent land gaps in the three direct priorities', () => {
@@ -96,5 +110,20 @@ describe('canonical property and investment parity', () => {
     expect(gable.strategy).toBe('LAND');
     expect(gable.dimensions.map((item) => item.dimension)).not.toEqual(seller.dimensions.map((item) => item.dimension));
     expect(gable.dimensions.map((item) => item.readiness)).not.toEqual(bent.dimensions.map((item) => item.readiness));
+  });
+
+  it('updates Seller Financing readiness from confirmed deterministic inputs, not economic favorability', () => {
+    const gaps = [{ field: 'down_payment' }, { field: 'interest_rate' }, { field: 'term_months' },
+      { field: 'amortization_months' }, { field: 'balloon_months' }];
+    const before = buildCanonicalInvestmentAnalysis(analysisContext(droad(), 'SELLER_FINANCING', gaps), 'pt').focusMap;
+    const after = buildCanonicalInvestmentAnalysis({
+      ...analysisContext(droad(), 'SELLER_FINANCING', gaps),
+      sellerFinancingScenario: { purchasePrice: 113900, downPaymentAmount: 20000, annualInterestRate: 6,
+        amortizationMonths: 360, balloonMonth: 60, monthlyPI: 562.98 },
+    }, 'pt').focusMap;
+    expect(after.semantics).toBe('STRATEGY_DECISION_READINESS_ONLY');
+    expect(after.dimensions[1].readiness).toBeGreaterThan(before.dimensions[1].readiness);
+    expect(after.dimensions[2].readiness).toBeGreaterThan(before.dimensions[2].readiness);
+    expect(after.dimensions[3].readiness).toBeGreaterThan(before.dimensions[3].readiness);
   });
 });

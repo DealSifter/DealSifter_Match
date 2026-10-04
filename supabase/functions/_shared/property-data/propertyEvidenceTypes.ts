@@ -58,6 +58,13 @@ export type PropertyEvidenceResult = {
   provider: 'rentcast';
   cacheHit: boolean;
   retrievedAt: string;
+  sourceDiagnostics: {
+    assessorId: {
+      providerFieldPresence: 'PRESENT' | 'ABSENT' | 'UNOBSERVED';
+      normalizationResult: string | null;
+      classification: 'AVAILABLE' | 'PROVIDER_DID_NOT_RETURN_FIELD' | 'NORMALIZATION_DROPPED_FIELD' | 'SOURCE_UNOBSERVED_LEGACY_CACHE';
+    };
+  };
 };
 
 export interface PropertyEvidenceRepository {

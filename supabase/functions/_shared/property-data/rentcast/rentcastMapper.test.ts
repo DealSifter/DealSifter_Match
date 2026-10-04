@@ -50,7 +50,8 @@ describe('RentCast mapper', () => {
 
     expect(result).toMatchObject({
       provider: 'rentcast',
-      sourceMetadata: { source: 'rentcast', retrievedAt: RETRIEVED_AT, providerPropertyId: 'rentcast-property-id', confidence: null },
+      sourceMetadata: { source: 'rentcast', retrievedAt: RETRIEVED_AT, providerPropertyId: 'rentcast-property-id', confidence: null,
+        fieldDiagnostics: { providerFieldPresence: { assessorID: 'PRESENT' }, normalizationResult: { assessorId: 'APN-5500' } } },
       identity: { providerPropertyId: { value: 'rentcast-property-id', status: 'VERIFIED_RECORD' } },
       address: {
         formattedAddress: { value: '5500 Grand Lake Dr, San Antonio, TX 78244' },
@@ -106,6 +107,17 @@ describe('RentCast mapper', () => {
       expect(item.confidence).toBeNull();
     });
     expect(JSON.stringify(result)).not.toContain('AI_INFERRED');
+    expect(result.sourceMetadata.fieldDiagnostics).toEqual({
+      providerFieldPresence: { assessorID: 'ABSENT' }, normalizationResult: { assessorId: null },
+    });
+  });
+
+  it('distinguishes a present provider field from its normalized value', () => {
+    const result = mapRentCastProperty({ id: 'blank-assessor', assessorID: '   ' }, RETRIEVED_AT);
+    expect(result.sourceMetadata.fieldDiagnostics).toEqual({
+      providerFieldPresence: { assessorID: 'PRESENT' }, normalizationResult: { assessorId: null },
+    });
+    expect(result.parcel?.assessorId).toMatchObject({ value: null, status: 'UNAVAILABLE' });
   });
 
   it('requires a confirmed provider property id', () => {

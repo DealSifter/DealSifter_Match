@@ -6,18 +6,22 @@
       "pageCount": 1,
       "reportType": "PROPERTY_RELEASE",
       "property": "droad",
+      "language": "pt",
       "textChecks": {
         "hasRawRiskCodes": false,
         "hasFalseZero": false,
+        "hasFalseCapRateZero": false,
         "hasFixAndFlip": false,
         "hasTruncatedText": false,
-        "hasUnlocalizedConfidenceCopy": false
+        "hasUnlocalizedConfidenceCopy": false,
+        "localeLeaks": []
       }
     },
     "droad-level-2.pdf": {
       "pageCount": 3,
       "reportType": "MAXXIS_ANALYSIS",
       "property": "droad",
+      "language": "pt",
       "focusMap": {
         "strategy": "SELLER_FINANCING",
         "semantics": "STRATEGY_DECISION_READINESS_ONLY",
@@ -97,15 +101,18 @@
       "textChecks": {
         "hasRawRiskCodes": false,
         "hasFalseZero": false,
+        "hasFalseCapRateZero": false,
         "hasFixAndFlip": false,
         "hasTruncatedText": false,
-        "hasUnlocalizedConfidenceCopy": false
+        "hasUnlocalizedConfidenceCopy": false,
+        "localeLeaks": []
       }
     },
     "droad-level-3.pdf": {
       "pageCount": 6,
       "reportType": "DEAL_INTELLIGENCE",
       "property": "droad",
+      "language": "pt",
       "focusMap": {
         "strategy": "SELLER_FINANCING",
         "semantics": "STRATEGY_DECISION_READINESS_ONLY",
@@ -185,27 +192,33 @@
       "textChecks": {
         "hasRawRiskCodes": false,
         "hasFalseZero": false,
+        "hasFalseCapRateZero": false,
         "hasFixAndFlip": false,
         "hasTruncatedText": false,
-        "hasUnlocalizedConfidenceCopy": false
+        "hasUnlocalizedConfidenceCopy": false,
+        "localeLeaks": []
       }
     },
     "gable-level-1.pdf": {
       "pageCount": 1,
       "reportType": "PROPERTY_RELEASE",
       "property": "gable",
+      "language": "pt",
       "textChecks": {
         "hasRawRiskCodes": false,
         "hasFalseZero": false,
+        "hasFalseCapRateZero": false,
         "hasFixAndFlip": false,
         "hasTruncatedText": false,
-        "hasUnlocalizedConfidenceCopy": false
+        "hasUnlocalizedConfidenceCopy": false,
+        "localeLeaks": []
       }
     },
     "gable-level-2.pdf": {
       "pageCount": 3,
       "reportType": "MAXXIS_ANALYSIS",
       "property": "gable",
+      "language": "pt",
       "focusMap": {
         "strategy": "LAND",
         "semantics": "STRATEGY_DECISION_READINESS_ONLY",
@@ -288,15 +301,18 @@
       "textChecks": {
         "hasRawRiskCodes": false,
         "hasFalseZero": false,
+        "hasFalseCapRateZero": false,
         "hasFixAndFlip": false,
         "hasTruncatedText": false,
-        "hasUnlocalizedConfidenceCopy": false
+        "hasUnlocalizedConfidenceCopy": false,
+        "localeLeaks": []
       }
     },
     "gable-level-3.pdf": {
       "pageCount": 6,
       "reportType": "DEAL_INTELLIGENCE",
       "property": "gable",
+      "language": "pt",
       "focusMap": {
         "strategy": "LAND",
         "semantics": "STRATEGY_DECISION_READINESS_ONLY",
@@ -379,15 +395,18 @@
       "textChecks": {
         "hasRawRiskCodes": false,
         "hasFalseZero": false,
+        "hasFalseCapRateZero": false,
         "hasFixAndFlip": false,
         "hasTruncatedText": false,
-        "hasUnlocalizedConfidenceCopy": false
+        "hasUnlocalizedConfidenceCopy": false,
+        "localeLeaks": []
       }
     },
-    "bent-creek-level-3.pdf": {
-      "pageCount": 6,
-      "reportType": "DEAL_INTELLIGENCE",
+    "bent-creek-level-2.pdf": {
+      "pageCount": 3,
+      "reportType": "MAXXIS_ANALYSIS",
       "property": "bent",
+      "language": "pt",
       "focusMap": {
         "strategy": "LAND",
         "semantics": "STRATEGY_DECISION_READINESS_ONLY",
@@ -469,9 +488,286 @@
       "textChecks": {
         "hasRawRiskCodes": false,
         "hasFalseZero": false,
+        "hasFalseCapRateZero": false,
         "hasFixAndFlip": false,
         "hasTruncatedText": false,
-        "hasUnlocalizedConfidenceCopy": false
+        "hasUnlocalizedConfidenceCopy": false,
+        "localeLeaks": []
+      }
+    },
+    "bent-creek-level-3.pdf": {
+      "pageCount": 6,
+      "reportType": "DEAL_INTELLIGENCE",
+      "property": "bent",
+      "language": "pt",
+      "focusMap": {
+        "strategy": "LAND",
+        "semantics": "STRATEGY_DECISION_READINESS_ONLY",
+        "note": "As barras representam a prontidão da decisão com base nas evidências disponíveis.",
+        "dimensions": [
+          {
+            "dimension": "Uso permitido / zoneamento",
+            "readiness": 0,
+            "supportingEvidence": [],
+            "missingEvidence": [
+              "zoning",
+              "allowed_use"
+            ],
+            "reason": "No supporting input is currently available."
+          },
+          {
+            "dimension": "Evidência do lote / parcela",
+            "readiness": 84,
+            "supportingEvidence": [
+              "lot_size",
+              "lotSizeSqft"
+            ],
+            "missingEvidence": [
+              "assessorId",
+              "county",
+              "stateFips"
+            ],
+            "reason": "2 supporting input(s); 3 missing input(s)."
+          },
+          {
+            "dimension": "Acesso",
+            "readiness": 0,
+            "supportingEvidence": [],
+            "missingEvidence": [
+              "road_access",
+              "propertyFeatures"
+            ],
+            "reason": "No supporting input is currently available."
+          },
+          {
+            "dimension": "Serviços públicos",
+            "readiness": 0,
+            "supportingEvidence": [],
+            "missingEvidence": [
+              "utilities",
+              "propertyFeatures"
+            ],
+            "reason": "No supporting input is currently available."
+          },
+          {
+            "dimension": "Vendas recentes de terrenos",
+            "readiness": 0,
+            "supportingEvidence": [],
+            "missingEvidence": [
+              "land_sale_evidence",
+              "latestSalePrice",
+              "latestSaleDate"
+            ],
+            "reason": "No supporting input is currently available."
+          },
+          {
+            "dimension": "Título / levantamento / viabilidade",
+            "readiness": 0,
+            "supportingEvidence": [],
+            "missingEvidence": [
+              "ownership",
+              "survey",
+              "topography",
+              "assessorId",
+              "legalDescription",
+              "subdivision",
+              "assessedValue",
+              "annualPropertyTax"
+            ],
+            "reason": "No supporting input is currently available."
+          }
+        ]
+      },
+      "textChecks": {
+        "hasRawRiskCodes": false,
+        "hasFalseZero": false,
+        "hasFalseCapRateZero": false,
+        "hasFixAndFlip": false,
+        "hasTruncatedText": false,
+        "hasUnlocalizedConfidenceCopy": false,
+        "localeLeaks": []
+      }
+    },
+    "droad-level-2-en.pdf": {
+      "pageCount": 3,
+      "reportType": "MAXXIS_ANALYSIS",
+      "property": "droad",
+      "language": "en",
+      "focusMap": {
+        "strategy": "SELLER_FINANCING",
+        "semantics": "STRATEGY_DECISION_READINESS_ONLY",
+        "note": "Bars represent decision readiness based on available evidence.",
+        "dimensions": [
+          {
+            "dimension": "Purchase basis",
+            "readiness": 90,
+            "supportingEvidence": [
+              "acquisition_price",
+              "assessedValue"
+            ],
+            "missingEvidence": [
+              "askingPrice"
+            ],
+            "reason": "2 supporting input(s); 1 missing input(s)."
+          },
+          {
+            "dimension": "Down payment",
+            "readiness": 0,
+            "supportingEvidence": [],
+            "missingEvidence": [
+              "down_payment"
+            ],
+            "reason": "No supporting input is currently available."
+          },
+          {
+            "dimension": "Interest & payment",
+            "readiness": 0,
+            "supportingEvidence": [],
+            "missingEvidence": [
+              "interest_rate"
+            ],
+            "reason": "No supporting input is currently available."
+          },
+          {
+            "dimension": "Term structure",
+            "readiness": 0,
+            "supportingEvidence": [],
+            "missingEvidence": [
+              "term_months",
+              "amortization_months",
+              "balloon_months"
+            ],
+            "reason": "No supporting input is currently available."
+          },
+          {
+            "dimension": "Property security",
+            "readiness": 95,
+            "supportingEvidence": [
+              "ownership",
+              "property_tax",
+              "county",
+              "assessedValue",
+              "ownerOccupied"
+            ],
+            "missingEvidence": [
+              "assessorId"
+            ],
+            "reason": "5 supporting input(s); 1 missing input(s)."
+          },
+          {
+            "dimension": "Exit feasibility",
+            "readiness": 93,
+            "supportingEvidence": [
+              "market_evidence",
+              "latestSalePrice",
+              "propertyType"
+            ],
+            "missingEvidence": [
+              "askingPrice"
+            ],
+            "reason": "3 supporting input(s); 1 missing input(s)."
+          }
+        ]
+      },
+      "textChecks": {
+        "hasRawRiskCodes": false,
+        "hasFalseZero": false,
+        "hasFalseCapRateZero": false,
+        "hasFixAndFlip": false,
+        "hasTruncatedText": false,
+        "hasUnlocalizedConfidenceCopy": false,
+        "localeLeaks": []
+      }
+    },
+    "droad-level-2-es.pdf": {
+      "pageCount": 3,
+      "reportType": "MAXXIS_ANALYSIS",
+      "property": "droad",
+      "language": "es",
+      "focusMap": {
+        "strategy": "SELLER_FINANCING",
+        "semantics": "STRATEGY_DECISION_READINESS_ONLY",
+        "note": "Las barras representan la preparación de la decisión según la evidencia disponible.",
+        "dimensions": [
+          {
+            "dimension": "Base de compra",
+            "readiness": 90,
+            "supportingEvidence": [
+              "acquisition_price",
+              "assessedValue"
+            ],
+            "missingEvidence": [
+              "askingPrice"
+            ],
+            "reason": "2 supporting input(s); 1 missing input(s)."
+          },
+          {
+            "dimension": "Entrada",
+            "readiness": 0,
+            "supportingEvidence": [],
+            "missingEvidence": [
+              "down_payment"
+            ],
+            "reason": "No supporting input is currently available."
+          },
+          {
+            "dimension": "Interés y pago",
+            "readiness": 0,
+            "supportingEvidence": [],
+            "missingEvidence": [
+              "interest_rate"
+            ],
+            "reason": "No supporting input is currently available."
+          },
+          {
+            "dimension": "Plazo y amortización",
+            "readiness": 0,
+            "supportingEvidence": [],
+            "missingEvidence": [
+              "term_months",
+              "amortization_months",
+              "balloon_months"
+            ],
+            "reason": "No supporting input is currently available."
+          },
+          {
+            "dimension": "Garantía del inmueble",
+            "readiness": 95,
+            "supportingEvidence": [
+              "ownership",
+              "property_tax",
+              "county",
+              "assessedValue",
+              "ownerOccupied"
+            ],
+            "missingEvidence": [
+              "assessorId"
+            ],
+            "reason": "5 supporting input(s); 1 missing input(s)."
+          },
+          {
+            "dimension": "Viabilidad de salida",
+            "readiness": 93,
+            "supportingEvidence": [
+              "market_evidence",
+              "latestSalePrice",
+              "propertyType"
+            ],
+            "missingEvidence": [
+              "askingPrice"
+            ],
+            "reason": "3 supporting input(s); 1 missing input(s)."
+          }
+        ]
+      },
+      "textChecks": {
+        "hasRawRiskCodes": false,
+        "hasFalseZero": false,
+        "hasFalseCapRateZero": false,
+        "hasFixAndFlip": false,
+        "hasTruncatedText": false,
+        "hasUnlocalizedConfidenceCopy": false,
+        "localeLeaks": []
       }
     }
   },
@@ -2111,6 +2407,8 @@
   "apnLineage": {
     "droad": {
       "rawProviderAssessorID": "NOT_RETAINED_BY_NORMALIZED_CACHE",
+      "providerFieldPresence": "UNOBSERVED",
+      "sourceClassification": "SOURCE_UNOBSERVED_LEGACY_CACHE",
       "normalized": null,
       "cache": null,
       "canonicalFact": null,
@@ -2122,6 +2420,8 @@
     },
     "gable": {
       "rawProviderAssessorID": "NOT_RETAINED_BY_NORMALIZED_CACHE",
+      "providerFieldPresence": "UNOBSERVED",
+      "sourceClassification": "SOURCE_UNOBSERVED_LEGACY_CACHE",
       "normalized": null,
       "cache": null,
       "canonicalFact": null,
@@ -2133,6 +2433,8 @@
     },
     "bent": {
       "rawProviderAssessorID": "NOT_RETAINED_BY_NORMALIZED_CACHE",
+      "providerFieldPresence": "UNOBSERVED",
+      "sourceClassification": "SOURCE_UNOBSERVED_LEGACY_CACHE",
       "normalized": null,
       "cache": null,
       "canonicalFact": null,
@@ -2144,6 +2446,8 @@
     },
     "honolulu": {
       "rawProviderAssessorID": "NOT_RETAINED_BY_NORMALIZED_CACHE",
+      "providerFieldPresence": "UNOBSERVED",
+      "sourceClassification": "SOURCE_UNOBSERVED_LEGACY_CACHE",
       "normalized": null,
       "cache": null,
       "canonicalFact": null,
@@ -2155,6 +2459,8 @@
     },
     "wystone": {
       "rawProviderAssessorID": "NOT_RETAINED_BY_NORMALIZED_CACHE",
+      "providerFieldPresence": "UNOBSERVED",
+      "sourceClassification": "SOURCE_UNOBSERVED_LEGACY_CACHE",
       "normalized": null,
       "cache": null,
       "canonicalFact": null,
@@ -2166,7 +2472,156 @@
     }
   },
   "wow": {
-    "droad": "O registro externo atual não trouxe um APN/Assessor ID para este imóvel.\n\nPrioridades para SELLER_FINANCING:\n1. definir a entrada.\n2. definir juros e forma de pagamento.\n3. definir prazo, amortização e balloon.",
+    "droad": "O registro externo armazenado para este imóvel não contém um APN / Assessor ID.\n\nPrioridades para SELLER_FINANCING:\n1. definir a entrada.\n2. definir juros e forma de pagamento.\n3. definir prazo, amortização e balloon.",
     "gable": "Prioridades para LAND:\n1. verificar o uso permitido.\n2. obter vendas recentes de terrenos comparáveis.\n3. verificar titularidade e título."
+  },
+  "sellerFinancing": {
+    "providerCalls": 0,
+    "arithmeticSource": "DETERMINISTIC_ENGINE",
+    "sixPercent": {
+      "state": "CALCULATED",
+      "assumptions": {
+        "purchasePrice": 113900,
+        "downPaymentAmount": 20000,
+        "annualInterestRate": 6,
+        "amortizationYears": 30,
+        "balloonYears": 5
+      },
+      "missing": [],
+      "result": {
+        "purchasePrice": 113900,
+        "downPaymentAmount": 20000,
+        "downPaymentPercent": 17.5593,
+        "financedPrincipal": 93900,
+        "financedPercent": 82.4407,
+        "annualInterestRate": 6,
+        "amortizationMonths": 360,
+        "balloonMonth": 60,
+        "hasEarlyBalloon": true,
+        "monthlyPI": 562.98,
+        "balloonBalance": 87378.04,
+        "principalPaidToBalloon": 6521.96,
+        "interestPaidToBalloon": 27256.72,
+        "totalScheduledPIToBalloon": 33778.68,
+        "cashToEntry": 20000,
+        "includedCashComponents": [
+          "downPayment"
+        ]
+      },
+      "previousResult": null,
+      "comparison": null,
+      "readiness": {
+        "downPayment": "INPUT_COMPLETE",
+        "interestPayment": "INPUT_COMPLETE",
+        "termAmortization": "INPUT_COMPLETE",
+        "semantics": "INPUT_EVIDENCE_COMPLETENESS_ONLY",
+        "scenario": {
+          "purchasePrice": 113900,
+          "downPaymentAmount": 20000,
+          "downPaymentPercent": 17.5593,
+          "financedPrincipal": 93900,
+          "financedPercent": 82.4407,
+          "annualInterestRate": 6,
+          "amortizationMonths": 360,
+          "balloonMonth": 60,
+          "hasEarlyBalloon": true,
+          "monthlyPI": 562.98,
+          "balloonBalance": 87378.04,
+          "principalPaidToBalloon": 6521.96,
+          "interestPaidToBalloon": 27256.72,
+          "totalScheduledPIToBalloon": 33778.68,
+          "cashToEntry": 20000,
+          "includedCashComponents": [
+            "downPayment"
+          ]
+        }
+      }
+    },
+    "sixPercentAnswer": "Cenário usado\n- Preço: US$ 113.900,00\n- Entrada: US$ 20.000,00 (17,559%)\n- Valor financiado: US$ 93.900,00\n- Juros: 6% ao ano\n- Amortização: 30 anos\n- Balloon: 5 anos\n\nResultado\n- Parcela mensal P&I: US$ 562,98\n- Saldo no balloon: US$ 87.378,04\n- Principal amortizado até o balloon: US$ 6.521,96\n- Juros pagos até o balloon: US$ 27.256,72\n- Caixa inicial conhecido: US$ 20.000,00\n\nLeitura Maxxis\n- Usei o preço pedido atual porque você não informou outro preço de compra.\n- P&I não inclui impostos, seguro ou HOA.\n- O saldo do balloon exigirá quitação, refinanciamento ou nova negociação no prazo indicado.",
+    "fourPercent": {
+      "state": "CALCULATED",
+      "assumptions": {
+        "purchasePrice": 113900,
+        "downPaymentAmount": 20000,
+        "annualInterestRate": 4,
+        "amortizationYears": 30,
+        "balloonYears": 5
+      },
+      "missing": [],
+      "result": {
+        "purchasePrice": 113900,
+        "downPaymentAmount": 20000,
+        "downPaymentPercent": 17.5593,
+        "financedPrincipal": 93900,
+        "financedPercent": 82.4407,
+        "annualInterestRate": 4,
+        "amortizationMonths": 360,
+        "balloonMonth": 60,
+        "hasEarlyBalloon": true,
+        "monthlyPI": 448.29,
+        "balloonBalance": 84930.21,
+        "principalPaidToBalloon": 8969.79,
+        "interestPaidToBalloon": 17927.79,
+        "totalScheduledPIToBalloon": 26897.58,
+        "cashToEntry": 20000,
+        "includedCashComponents": [
+          "downPayment"
+        ]
+      },
+      "previousResult": {
+        "purchasePrice": 113900,
+        "downPaymentAmount": 20000,
+        "downPaymentPercent": 17.5593,
+        "financedPrincipal": 93900,
+        "financedPercent": 82.4407,
+        "annualInterestRate": 6,
+        "amortizationMonths": 360,
+        "balloonMonth": 60,
+        "hasEarlyBalloon": true,
+        "monthlyPI": 562.98,
+        "balloonBalance": 87378.04,
+        "principalPaidToBalloon": 6521.96,
+        "interestPaidToBalloon": 27256.72,
+        "totalScheduledPIToBalloon": 33778.68,
+        "cashToEntry": 20000,
+        "includedCashComponents": [
+          "downPayment"
+        ]
+      },
+      "comparison": {
+        "cashToEntry": 0,
+        "monthlyPI": -114.69,
+        "balloonBalance": -2447.83,
+        "interestPaidToBalloon": -9328.93,
+        "financedPrincipal": 0
+      },
+      "readiness": {
+        "downPayment": "INPUT_COMPLETE",
+        "interestPayment": "INPUT_COMPLETE",
+        "termAmortization": "INPUT_COMPLETE",
+        "semantics": "INPUT_EVIDENCE_COMPLETENESS_ONLY",
+        "scenario": {
+          "purchasePrice": 113900,
+          "downPaymentAmount": 20000,
+          "downPaymentPercent": 17.5593,
+          "financedPrincipal": 93900,
+          "financedPercent": 82.4407,
+          "annualInterestRate": 4,
+          "amortizationMonths": 360,
+          "balloonMonth": 60,
+          "hasEarlyBalloon": true,
+          "monthlyPI": 448.29,
+          "balloonBalance": 84930.21,
+          "principalPaidToBalloon": 8969.79,
+          "interestPaidToBalloon": 17927.79,
+          "totalScheduledPIToBalloon": 26897.58,
+          "cashToEntry": 20000,
+          "includedCashComponents": [
+            "downPayment"
+          ]
+        }
+      }
+    },
+    "fourPercentAnswer": "Cenário usado\n- Preço: US$ 113.900,00\n- Entrada: US$ 20.000,00 (17,559%)\n- Valor financiado: US$ 93.900,00\n- Juros: 4% ao ano\n- Amortização: 30 anos\n- Balloon: 5 anos\n\nResultado\n- Parcela mensal P&I: US$ 448,29\n- Saldo no balloon: US$ 84.930,21\n- Principal amortizado até o balloon: US$ 8.969,79\n- Juros pagos até o balloon: US$ 17.927,79\n- Caixa inicial conhecido: US$ 20.000,00\n\nLeitura Maxxis\n- Usei o preço pedido atual porque você não informou outro preço de compra.\n- P&I não inclui impostos, seguro ou HOA.\n- O saldo do balloon exigirá quitação, refinanciamento ou nova negociação no prazo indicado.\n\nComparação com o cenário anterior\n- Parcela mensal: -US$ 114,69\n- Saldo no balloon: -US$ 2.447,83\n- Juros até o balloon: -US$ 9.328,93\n(Valores negativos representam redução.)"
   }
 }

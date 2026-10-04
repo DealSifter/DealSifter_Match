@@ -241,6 +241,7 @@ try {
   const { buildMaxxisDealIntelligenceReport } = await server.ssrLoadModule('/src/features/maxxis/intelligence/maxxisDealIntelligenceReport.js');
   const { buildDealDecisionContext } = await server.ssrLoadModule('/supabase/functions/_shared/maxxis/dealDecisionContext.ts');
   const { buildPropertyFactLookupAnswer } = await server.ssrLoadModule('/supabase/functions/_shared/maxxis/propertyFactLookup.ts');
+  const { buildMaxxisStructuredAnalysis } = await server.ssrLoadModule('/supabase/functions/_shared/maxxis/maxxisStructuredAnalysis.ts');
   const { renderMaxxisReportPdf } = await server.ssrLoadModule('/src/features/maxxis/export/maxxisReportPdf.js');
   const { resolveReportExportEntitlement } = await server.ssrLoadModule('/src/features/maxxis/export/reportExportEntitlement.js');
   const controls = {};
@@ -299,7 +300,7 @@ try {
       valuationEvidence: valuationContext, comps: [], dealAssumptions: {}, evidenceCompleteness: {}, evidenceCompletenessGate: {},
       rentalEvidence: {}, providerMarketContext: dealContext.providerMarketContext };
     const snapshot = { ...snapshotBase, dealDecisionContext: buildDealDecisionContext(snapshotBase) };
-    controls[key] = { row, property, context, recent, providerValue, providerRange, dealContext, snapshot,
+    controls[key] = { row, record, property, context, recent, providerValue, providerRange, dealContext, snapshot,
       divergence: recent ? providerEstimateDivergence(providerValue, recent) : null };
     manifest.controls[key] = {
       id: row.id, type: property.resolvedAnalysisPropertyType, strategy: property.resolvedAnalysisStrategy,
@@ -321,15 +322,20 @@ try {
     ['gable', 'PROPERTY_RELEASE', 'free', 'gable-level-1.pdf'],
     ['gable', 'MAXXIS_ANALYSIS', 'pro', 'gable-level-2.pdf'],
     ['gable', 'DEAL_INTELLIGENCE', 'enterprise', 'gable-level-3.pdf'],
+    ['bent', 'MAXXIS_ANALYSIS', 'pro', 'bent-creek-level-2.pdf'],
     ['bent', 'DEAL_INTELLIGENCE', 'enterprise', 'bent-creek-level-3.pdf'],
+    ['droad', 'MAXXIS_ANALYSIS', 'pro', 'droad-level-2-en.pdf', 'en'],
+    ['droad', 'MAXXIS_ANALYSIS', 'pro', 'droad-level-2-es.pdf', 'es'],
   ];
   const samplePhoto = `data:image/jpeg;base64,${(await readFile(`${root}src/assets/maxxis/report-previews/sample-property-photo.jpg`)).toString('base64')}`;
-  for (const [key, reportType, plan, filename] of reportPlan) {
+  for (const [key, reportType, plan, filename, requestedLanguage = 'pt'] of reportPlan) {
     const control = controls[key];
     const land = /land|lot/i.test(String(control.property.resolvedAnalysisPropertyType || control.property.type));
     const strategy = land ? 'Terreno' : 'Financiamento do vendedor';
     const lists = textList(land, strategy);
-    const structured = buildStructured({ land, strategy, lists, address: control.property.address });
+    const structured = requestedLanguage === 'pt'
+      ? buildStructured({ land, strategy, lists, address: control.property.address })
+      : buildMaxxisStructuredAnalysis(control.snapshot, reportType, requestedLanguage);
     const analysis = buildMaxxisAnalysisReport(control.dealContext, structured, control.snapshot);
     const deal = buildMaxxisDealIntelligenceReport(control.dealContext, structured, control.snapshot);
     const schema = buildMaxxisReportSchema({ reportType, property: { ...control.property, images: [samplePhoto] },
@@ -339,10 +345,10 @@ try {
         capRate: { value: land ? null : control.property.capRate, calculable: !land && control.property.capRate != null } } } });
     const entitlement = resolveReportExportEntitlement({ plan, reportType, channel: 'PDF' });
     const rendered = await renderMaxxisReportPdf({ schema, exportEntitlement: entitlement,
-      generatedAt: manifest.generatedAt, language: 'pt', mapImageData: mapImage });
+      generatedAt: manifest.generatedAt, language: requestedLanguage, mapImageData: mapImage });
     if (rendered.state !== 'RENDERED') throw new Error(`${filename}:${rendered.state}`);
     await writeFile(`${output}${filename}`, rendered.document.binary);
-    manifest.reports[filename] = { pageCount: rendered.document.pageCount, reportType, property: key };
+    manifest.reports[filename] = { pageCount: rendered.document.pageCount, reportType, property: key, language: requestedLanguage };
     if (reportType !== 'PROPERTY_RELEASE') manifest.reports[filename].focusMap = schema.presentation.canonicalInvestmentAnalysis?.focusMap || null;
   }
   const parityFields = ['assessorId', 'county', 'lotSizeSqft', 'yearBuilt', 'annualPropertyTax', 'assessedValue',
@@ -366,8 +372,14 @@ try {
     });
     if (manifest.parity[key].some((item) => item.result !== 'PASS')) throw new Error(`${key}:PARITY_FAIL`);
     const assessorId = control.property.assessorId ?? null;
+    const sourceDiagnostics = control.record?.sourceMetadata?.fieldDiagnostics;
     manifest.apnLineage[key] = {
       rawProviderAssessorID: 'NOT_RETAINED_BY_NORMALIZED_CACHE',
+      providerFieldPresence: sourceDiagnostics?.providerFieldPresence?.assessorID || 'UNOBSERVED',
+      sourceClassification: assessorId ? 'AVAILABLE'
+        : !sourceDiagnostics ? 'SOURCE_UNOBSERVED_LEGACY_CACHE'
+          : sourceDiagnostics.providerFieldPresence?.assessorID === 'ABSENT'
+            ? 'PROVIDER_DID_NOT_RETURN_FIELD' : 'NORMALIZATION_DROPPED_FIELD',
       normalized: assessorId,
       cache: assessorId,
       canonicalFact: assessorId,
@@ -383,6 +395,21 @@ try {
   manifest.wow.gable = buildPropertyFactLookupAnswer('Quais são os 3 dados mais importantes para decidir se este terreno é interessante?', 'pt', controls.gable.snapshot)?.text || null;
   if (!/APN|Assessor/i.test(manifest.wow.droad || '') || !/SELLER_FINANCING/i.test(manifest.wow.droad || '')) throw new Error('DROAD_WOW_FAIL');
   if (!/LAND/i.test(manifest.wow.gable || '') || /rehab|reforma|ARV residencial/i.test(manifest.wow.gable || '')) throw new Error('GABLE_WOW_FAIL');
+  const { resolveSellerFinancingScenarioFromConversation, formatSellerFinancingScenarioAnswer } = await server.ssrLoadModule('/supabase/functions/_shared/maxxis/sellerFinancingScenario.ts');
+  const sixPercent = resolveSellerFinancingScenarioFromConversation({
+    message: 'E se eu der $20k de entrada, 6% ao ano, 30 anos com balloon em 5 anos?',
+    askingPrice: controls.droad.property.price, history: [],
+  });
+  const fourPercent = resolveSellerFinancingScenarioFromConversation({
+    message: 'e com 4%?', askingPrice: controls.droad.property.price,
+    history: [{ role: 'user', content: 'E se eu der $20k de entrada, 6% ao ano, 30 anos com balloon em 5 anos?' }],
+  });
+  manifest.sellerFinancing = {
+    providerCalls: 0, arithmeticSource: 'DETERMINISTIC_ENGINE', sixPercent,
+    sixPercentAnswer: formatSellerFinancingScenarioAnswer(sixPercent, 'pt'), fourPercent,
+    fourPercentAnswer: formatSellerFinancingScenarioAnswer(fourPercent, 'pt'),
+  };
+  if (sixPercent.state !== 'CALCULATED' || fourPercent.state !== 'CALCULATED' || !fourPercent.comparison) throw new Error('SELLER_FINANCING_E2E_FAIL');
 } finally {
   await server.close();
 }
@@ -411,11 +438,16 @@ for (const [filename, report] of Object.entries(manifest.reports)) {
   report.textChecks = {
     hasRawRiskCodes: /\b(?:DATA_RISK|MARKET_RISK|VALUATION_RISK|EXECUTION_RISK|MISSING_SQFT)\b/.test(text),
     hasFalseZero: report.property !== 'droad' && /(?:\$\s*0(?:[.,]00)?(?:\s|·|$)|\b0%\b)/.test(text),
+    hasFalseCapRateZero: report.property === 'droad' && /cap\s*rate\s*(?:de|:)\s*0%/i.test(text),
     hasFixAndFlip: /\b(?:Fix\s*&\s*Flip|Fix\s+and\s+Flip)\b/i.test(text),
     hasTruncatedText: /…/.test(text),
     hasUnlocalizedConfidenceCopy: /\b(?:ownershipRecordPresent|Data freshness unavailable|Valuation confidence unavailable|Strong location match)\b/.test(text),
+    localeLeaks: report.language === 'pt'
+      ? [...text.matchAll(/\b(?:NOT_EVALUATED|Market|Price range|Property type|Strategy \/ objective|verified Records|user Provided|calculated|estimated|conflicts|financed principal|payment schedule|development feasibility|market context|allowed use|Residential arv not applicable)\b/gi)].map((match) => match[0]) : [],
   };
-  if (Object.values(report.textChecks).some(Boolean)) throw new Error(`${filename}:TEXT_ASSERTION:${JSON.stringify(report.textChecks)}`);
+  if (Object.entries(report.textChecks).some(([, result]) => Array.isArray(result) ? result.length > 0 : Boolean(result))) throw new Error(`${filename}:TEXT_ASSERTION:${JSON.stringify(report.textChecks)}`);
+  if (report.language === 'en' && !/Executive Summary|Property Overview|Investment Fit/i.test(text)) throw new Error(`${filename}:EN_LOCALE_SMOKE_FAIL`);
+  if (report.language === 'es' && !/Resumen ejecutivo|Resumen de la propiedad|Afinidad y análisis/i.test(text)) throw new Error(`${filename}:ES_LOCALE_SMOKE_FAIL`);
   pdf.cleanup();
 }
 const droad = manifest.controls.droad;

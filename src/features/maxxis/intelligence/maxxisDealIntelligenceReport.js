@@ -201,7 +201,12 @@ export function buildMaxxisDealIntelligenceReport(context, structuredAnalysis = 
     ...context,
     propertyFacts: isObject(snapshot.propertyFacts) ? snapshot.propertyFacts : {},
     dealDecisionContext: isObject(snapshot.dealDecisionContext) ? snapshot.dealDecisionContext : {},
+    dealAssumptions: isObject(snapshot.dealAssumptions) ? snapshot.dealAssumptions : {},
+    sellerFinancingScenario: isObject(snapshot.sellerFinancingScenario) ? snapshot.sellerFinancingScenario : null,
   }, reportLanguage);
+  const savedSellerFinancingScenario = isObject(snapshot.dealAssumptions?.sellerFinancingScenario)
+    && snapshot.dealAssumptions.sellerFinancingScenario.confirmed === true
+    ? Object.freeze({ ...snapshot.dealAssumptions.sellerFinancingScenario }) : null;
   const narrativePersona = resolveMaxxisInvestorPersona(context.investorContext, reportLanguage);
   const investorPerspective = Object.freeze({
     version: 'STRATEGY_FOCUS_MAP_V1',
@@ -227,6 +232,7 @@ export function buildMaxxisDealIntelligenceReport(context, structuredAnalysis = 
     propertyEvidence: propertyEvidence(context),
     investmentFit: canonicalInvestmentAnalysis.profileFit,
     canonicalInvestmentAnalysis,
+    sellerFinancingScenario: savedSellerFinancingScenario,
     valuationIntelligence: valuation,
     comparableEvidence: comps,
     riskAnalysis: canonical ? Object.freeze([

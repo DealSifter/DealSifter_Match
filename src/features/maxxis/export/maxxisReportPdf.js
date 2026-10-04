@@ -11,6 +11,9 @@ const H = 841.89;
 const M = 30;
 const CONTENT = W - M * 2;
 const BODY_OFFSET = 7;
+export const MAXXIS_REPORT_TYPOGRAPHY = Object.freeze({
+  body: 9.5, analyticalBody: 10, sectionHeader: 11.6, caption: 6.7,
+});
 const C = Object.freeze({
   navy: [15, 32, 49], graphite: [39, 45, 48], teal: [29, 184, 188],
   blue: [24, 114, 190], green: [13, 135, 111], gold: [237, 176, 28], red: [209, 68, 58],
@@ -29,7 +32,7 @@ const COPY = Object.freeze({
     COMPARATIVE_MARKET_ANALYSIS: 'Comparative Market Analysis', VALUATION_INTELLIGENCE: 'Valuation Intelligence / ARV / KPIs',
     KEY_INSIGHTS_VERIFICATION: 'Key Insights & Verification', MAXXIS_AI_ANALYSIS: 'Maxxis AI Analysis',
     owner: 'Owner Information', facts: 'Property Details', land: 'Land Information', photos: 'Property Photos',
-    location: 'Location', notes: 'Notes', status: 'Status', type: 'Type', strategy: 'Strategy',
+    location: 'Location', notes: 'Notes', status: 'Status', type: 'Type', strategy: 'Strategy', strategyFit: 'Strategy fit with profile',
     price: 'Price', beds: 'Beds', baths: 'Baths', sqft: 'Living area', lot: 'Lot size',
     source: 'Source', ownerName: 'Owner', ownerType: 'Owner type', contacts: 'Contacts',
     ownerOccupied: 'Owner occupied', ownershipRecord: 'Ownership record', latestSale: 'Latest sale',
@@ -63,10 +66,11 @@ const COPY = Object.freeze({
     recentSalesValue: 'Recent-sales market estimate', recentSalesValueShort: 'Recent-sales estimate', recentSalesRange: 'Recent-sales range', recentSalesComps: 'Recent-sales valuation comps', arvComps: 'ARV confirmed comps',
     weightedUnit: 'Weighted unit value', dispersion: 'Dispersion', divergence: 'Provider divergence', recent: 'VALUATION',
     conflict: 'Needs verification: stored evidence conflicts with the narrative.', low: 'Low', middle: 'Mid', high: 'High',
+    monthlyPI: 'Monthly P&I', balloonBalance: 'Balloon balance',
   },
   pt: {
     locale: 'pt',
-    generated: 'Gerado em', page: 'Página', unavailable: 'Indisponível', recordUnavailable: 'Não disponível no registro atual do imóvel', notVerified: 'Não verificado', published: 'Publicado',
+    generated: 'Gerado em', page: 'Página', unavailable: 'Indisponível', recordUnavailable: 'Não disponível no registro externo atual.', notVerified: 'Não verificado', published: 'Publicado',
     reportSubtitle: 'Análise inteligente do imóvel', releaseSubtitle: 'Oportunidades reais. Conexões reais.', tagline: 'Dados reais. Decisões mais inteligentes.',
     property: 'RELATÓRIO DO IMÓVEL', pro: 'RELATÓRIO DE ANÁLISE MAXXIS', deal: 'RELATÓRIO MAXXIS DE INTELIGÊNCIA DO NEGÓCIO',
     PROPERTY_OVERVIEW: 'Visão geral do imóvel', EXECUTIVE_SUMMARY_PROPERTY_CONTEXT: 'Resumo executivo',
@@ -74,10 +78,10 @@ const COPY = Object.freeze({
     COMPARATIVE_MARKET_ANALYSIS: 'Análise comparativa de mercado', VALUATION_INTELLIGENCE: 'Avaliação / ARV / indicadores',
     KEY_INSIGHTS_VERIFICATION: 'Insights e verificações', MAXXIS_AI_ANALYSIS: 'Análise Maxxis AI',
     owner: 'Dados do proprietário', facts: 'Detalhes do imóvel', land: 'Dados do terreno', photos: 'Fotos do imóvel',
-    location: 'Localização', notes: 'Notas', status: 'Status', type: 'Tipo', strategy: 'Estratégia',
+    location: 'Localização', notes: 'Notas', status: 'Status', type: 'Tipo', strategy: 'Estratégia', strategyFit: 'Aderência da estratégia ao perfil',
     price: 'Preço', beds: 'Quartos', baths: 'Banheiros', sqft: 'Área útil', lot: 'Área do lote',
     source: 'Fonte', ownerName: 'Proprietário', ownerType: 'Tipo de proprietário', contacts: 'Contatos',
-    ownerOccupied: 'Ocupado pelo proprietário', ownershipRecord: 'Registro de ownership', latestSale: 'Última venda',
+    ownerOccupied: 'Ocupado pelo proprietário', ownershipRecord: 'Registro de titularidade', latestSale: 'Última venda',
     saleDate: 'Data da venda', yearBuilt: 'Ano de construção', county: 'Condado', assessedValue: 'Valor fiscal',
     propertyTax: 'Imposto predial', providerEstimate: 'Estimativa do provedor (não é ARV)',
     capRate: 'Cap rate', rehab: 'Reforma', noPhoto: 'Sem foto disponível do imóvel',
@@ -108,6 +112,7 @@ const COPY = Object.freeze({
     recentSalesValue: 'Estimativa de mercado por vendas recentes', recentSalesValueShort: 'Estimativa por vendas recentes', recentSalesRange: 'Faixa por vendas recentes', recentSalesComps: 'Comparáveis da avaliação de mercado', arvComps: 'Comparáveis confirmados para ARV',
     weightedUnit: 'Valor unitário ponderado', dispersion: 'Dispersão', divergence: 'Divergência do provedor', recent: 'AVALIAÇÃO',
     conflict: 'Requer verificação: evidências estruturadas divergem do texto.', low: 'Baixo', middle: 'Médio', high: 'Alto',
+    monthlyPI: 'Parcela mensal P&I', balloonBalance: 'Saldo no balloon',
   },
   es: {
     locale: 'es',
@@ -119,7 +124,7 @@ const COPY = Object.freeze({
     COMPARATIVE_MARKET_ANALYSIS: 'Análisis comparativo de mercado', VALUATION_INTELLIGENCE: 'Valoración / ARV / indicadores',
     KEY_INSIGHTS_VERIFICATION: 'Hallazgos y verificación', MAXXIS_AI_ANALYSIS: 'Análisis de Maxxis AI',
     owner: 'Datos del propietario', facts: 'Detalles de la propiedad', land: 'Datos del terreno', photos: 'Fotos de la propiedad',
-    location: 'Ubicación', notes: 'Notas', status: 'Estado', type: 'Tipo', strategy: 'Estrategia',
+    location: 'Ubicación', notes: 'Notas', status: 'Estado', type: 'Tipo', strategy: 'Estrategia', strategyFit: 'Afinidad de la estrategia con el perfil',
     price: 'Precio', beds: 'Habitaciones', baths: 'Baños', sqft: 'Superficie habitable', lot: 'Superficie del lote',
     source: 'Fuente', ownerName: 'Propietario', ownerType: 'Tipo de propietario', contacts: 'Contactos',
     ownerOccupied: 'Ocupada por propietario', ownershipRecord: 'Registro de titularidad', latestSale: 'Última venta',
@@ -153,6 +158,7 @@ const COPY = Object.freeze({
     recentSalesValue: 'Estimación de mercado por ventas recientes', recentSalesValueShort: 'Estimación por ventas recientes', recentSalesRange: 'Rango por ventas recientes', recentSalesComps: 'Comparables de valoración de mercado', arvComps: 'Comparables confirmados para ARV',
     weightedUnit: 'Valor unitario ponderado', dispersion: 'Dispersión', divergence: 'Divergencia del proveedor', recent: 'VALORACIÓN',
     conflict: 'Requiere verificación: la evidencia estructurada difiere del texto.', low: 'Bajo', middle: 'Medio', high: 'Alto',
+    monthlyPI: 'Pago mensual P&I', balloonBalance: 'Saldo balloon',
   },
 });
 const section = (schema, key) => schema?.sections?.[key]?.available ? schema.sections[key].data : null;
@@ -171,10 +177,21 @@ const DISPLAY_VALUE = Object.freeze({
   pt: Object.freeze({ Sell: 'Venda', Buy: 'Compra', 'Buy and Hold': 'Comprar e manter', true: 'Sim', false: 'Não',
     SELLER_FINANCING: 'Financiamento pelo vendedor', BUY_AND_HOLD: 'Comprar e manter', WHOLESALE: 'Atacado', FLIP: 'Reforma e revenda', SUB_TO: 'Subject-to', LAND: 'Terreno', GENERIC_SELL: 'Venda', DATA_RISK: 'Evidências dos dados', MARKET_RISK: 'Contexto de mercado', VALUATION_RISK: 'Evidências de avaliação', EXECUTION_RISK: 'Execução',
     HIGH: 'Alta', MODERATE: 'Moderada', MEDIUM: 'Média', LOW: 'Baixa', LIMITED: 'Limitada', MATCHED: 'Aderente', NOT_MATCHED: 'Não aderente', PARTIAL: 'Parcial',
+    NOT_EVALUATED: 'Ainda não avaliado', Market: 'Mercado-alvo', 'Price range': 'Faixa de preço',
+    'Property type': 'Tipo de imóvel', 'Strategy / objective': 'Estratégia / objetivo',
+    verifiedRecords: 'Registros verificados', userProvided: 'Informado pelo usuário', calculated: 'Calculados',
+    estimated: 'Estimados', conflicts: 'Conflitos', unknown: 'Não disponíveis',
+    'financed principal': 'valor financiado', 'payment schedule': 'cronograma de pagamentos',
+    'development feasibility': 'viabilidade de desenvolvimento', 'market context': 'contexto de mercado',
+    'allowed use': 'uso permitido', 'Residential arv not applicable': 'ARV residencial não aplicável',
     'Not verified': 'Não verificado', Published: 'Publicado', Individual: 'Pessoa física' }),
   es: Object.freeze({ Sell: 'Venta', Buy: 'Compra', 'Buy and Hold': 'Comprar y mantener', true: 'Sí', false: 'No',
     SELLER_FINANCING: 'Financiación del vendedor', BUY_AND_HOLD: 'Comprar y mantener', WHOLESALE: 'Venta mayorista', FLIP: 'Reforma y reventa', SUB_TO: 'Subject-to', LAND: 'Terreno', GENERIC_SELL: 'Venta', DATA_RISK: 'Evidencia de datos', MARKET_RISK: 'Contexto de mercado', VALUATION_RISK: 'Evidencia de valoración', EXECUTION_RISK: 'Ejecución',
     HIGH: 'Alta', MODERATE: 'Moderada', MEDIUM: 'Media', LOW: 'Baja', LIMITED: 'Limitada', MATCHED: 'Compatible', NOT_MATCHED: 'No compatible', PARTIAL: 'Parcial',
+    NOT_EVALUATED: 'Aún no evaluado', Market: 'Mercado objetivo', 'Price range': 'Rango de precio',
+    'Property type': 'Tipo de propiedad', 'Strategy / objective': 'Estrategia / objetivo',
+    verifiedRecords: 'Registros verificados', userProvided: 'Informado por el usuario', calculated: 'Calculados',
+    estimated: 'Estimados', conflicts: 'Conflictos', unknown: 'No disponibles',
     'Not verified': 'No verificado', Published: 'Publicado', Individual: 'Persona física' }),
 });
 const displayValue = (input, t) => {
@@ -200,7 +217,7 @@ const accentFor = (type) => type === 'DEAL_INTELLIGENCE' ? C.gold : type === 'MA
 const productFor = (type, t) => type === 'DEAL_INTELLIGENCE' ? t.deal : type === 'MAXXIS_ANALYSIS' ? t.pro : t.property;
 const planFor = (type) => type === 'DEAL_INTELLIGENCE' ? 'ENTERPRISE' : type === 'MAXXIS_ANALYSIS' ? 'PRO' : 'FREE';
 
-function text(doc, input, x, y, { size = 9, bold = false, color = C.ink, width = null, maxLines = 3, align = 'left' } = {}) {
+function text(doc, input, x, y, { size = 9, minSize = 4.2, bold = false, color = C.ink, width = null, maxLines = 3, align = 'left' } = {}) {
   doc.setFont('NotoSans', bold ? 'bold' : 'normal');
   doc.setTextColor(...color);
   const content = value(input, '');
@@ -211,8 +228,8 @@ function text(doc, input, x, y, { size = 9, bold = false, color = C.ink, width =
   // Fixed-page reports must preserve supplied text. When a bounded slot is
   // tighter than its localized content, reduce the font before adding lines;
   // never replace factual or analytical content with an ellipsis.
-  while (hasLineLimit && width && wrapped.length > maxLines && effectiveSize > 4.2) {
-    effectiveSize = Math.max(4.2, effectiveSize - 0.2);
+  while (hasLineLimit && width && wrapped.length > maxLines && effectiveSize > minSize) {
+    effectiveSize = Math.max(minSize, effectiveSize - 0.2);
     doc.setFontSize(effectiveSize);
     wrapped = doc.splitTextToSize(content, width);
   }
@@ -296,7 +313,7 @@ function heading(doc, title, x, y, w, accent) {
   doc.setFillColor(...softColor(accent, .88));
   doc.roundedRect(x - 3, y - 19, w + 6, 27, 6, 6, 'F');
   drawIcon(doc, iconKind(title), x + 10, y - 6, accent, 20);
-  text(doc, title, x + 26, y - 1, { size: 11.4, bold: true, color: C.ink, width: w - 29, maxLines: 1 });
+  text(doc, title, x + 26, y - 1, { size: MAXXIS_REPORT_TYPOGRAPHY.sectionHeader, minSize: 10.8, bold: true, color: C.ink, width: w - 29, maxLines: 1 });
 }
 function rows(doc, items, x, y, w, {
   lineHeight = 24, labelWidth = 95, limit = 8, t,
@@ -332,12 +349,16 @@ function listPanel(doc, title, items, x, y, w, h, t, accent, { positive = false 
   panel(doc, x, y, w, h, { fill: C.white, accent: relevanceColor });
   heading(doc, title, x + 13, y + 26, w - 26, accent);
   let yy = y + 48;
-  const entries = items.length ? items : [t.noDetails];
-  for (const item of entries.slice(0, 6)) {
-    if (yy > y + h - 28) break;
+  const entries = [...new Map((items.length ? items : [t.noDetails]).map((item) => {
+    const narrative = reportNarrative(typeof item === 'string' ? item : item?.explanation || item?.reason || item?.label || item?.status, t.noDetails, t.locale);
+    return [narrative, narrative];
+  })).values()];
+  const itemBudget = h <= 135 ? 2 : h <= 175 ? 3 : 4;
+  for (const item of entries.slice(0, itemBudget)) {
+    if (yy > y + h - 34) break;
     drawIcon(doc, positive ? 'check' : iconKind(title), x + 20, yy - 3, relevanceColor, 12);
-    yy = text(doc, reportNarrative(typeof item === 'string' ? item : item?.explanation || item?.reason || item?.label || item?.status, t.noDetails, t.locale),
-      x + 31, yy, { size: 8.5, width: w - 45, maxLines: 3 }) + 7;
+    yy = text(doc, item, x + 31, yy, { size: MAXXIS_REPORT_TYPOGRAPHY.body,
+      minSize: MAXXIS_REPORT_TYPOGRAPHY.body, width: w - 45, maxLines: 3 }) + 6;
   }
 }
 function pageHeader(doc, schema, pageCode, t) {
@@ -497,8 +518,13 @@ function propertyBottom(doc, property, t, accent, y, images, conflicts = [], map
   // or inner frame creating visible padding around it.
   const photoGap = 5; const photoWidth = (CONTENT - photoGap * 4) / 5;
   shown.forEach((image, index) => photo(doc, M + index * (photoWidth + photoGap), y + 31, photoWidth, 50, image, t, { cover: true, radius: 6 }));
-  y += 90;
-  const gap = 6; const locationWidth = Math.round((CONTENT - gap) * 0.6); const notesWidth = CONTENT - gap - locationWidth;
+  y += 82;
+  const gap = 6;
+  // Executive pages need enough horizontal room for both the user note and
+  // the analytical summary. Give that column a little more width instead of
+  // shrinking or clipping either body of text.
+  const locationRatio = notes.secondaryText ? 0.55 : 0.6;
+  const locationWidth = Math.round((CONTENT - gap) * locationRatio); const notesWidth = CONTENT - gap - locationWidth;
   const bottomHeight = 797 - y;
   panel(doc, M, y, locationWidth, bottomHeight); heading(doc, t.location, M + 10, y + 23, locationWidth - 20, accent);
   text(doc, location(property) || t.unavailable, M + 11, y + 44, { size: 9, bold: true, width: locationWidth - 22, maxLines: 1 });
@@ -514,11 +540,14 @@ function propertyBottom(doc, property, t, accent, y, images, conflicts = [], map
   const notesX = M + locationWidth + gap;
   panel(doc, notesX, y, notesWidth, bottomHeight, { accent: notes.title && notes.title !== t.notes ? accent : null }); heading(doc, notes.title || t.notes, notesX + 10, y + 23, notesWidth - 20, accent);
   const primaryText = notes.text || localizedPropertyNotes(property, t);
-  text(doc, primaryText, notesX + 11, y + 45, { size: 8.7, width: notesWidth - 22, maxLines: notes.secondaryText ? 5 : conflicts.length ? 15 : 18 });
+  const primaryBottom = text(doc, primaryText, notesX + 11, y + 45, { size: MAXXIS_REPORT_TYPOGRAPHY.body,
+    minSize: MAXXIS_REPORT_TYPOGRAPHY.body, width: notesWidth - 22, maxLines: notes.secondaryText ? 5 : conflicts.length ? 15 : 18 });
   if (notes.secondaryText && bottomHeight >= 190) {
-    doc.setDrawColor(...C.line); doc.line(notesX + 10, y + 113, notesX + notesWidth - 10, y + 113);
-    heading(doc, notes.secondaryTitle || t.opportunity, notesX + 10, y + 140, notesWidth - 20, accent);
-    text(doc, notes.secondaryText, notesX + 11, y + 162, { size: 7.7, width: notesWidth - 22, maxLines: 7 });
+    const dividerY = Math.max(y + 68, primaryBottom + 7);
+    doc.setDrawColor(...C.line); doc.line(notesX + 10, dividerY, notesX + notesWidth - 10, dividerY);
+    heading(doc, notes.secondaryTitle || t.opportunity, notesX + 10, dividerY + 26, notesWidth - 20, accent);
+    text(doc, notes.secondaryText, notesX + 11, dividerY + 49, { size: MAXXIS_REPORT_TYPOGRAPHY.analyticalBody,
+      minSize: MAXXIS_REPORT_TYPOGRAPHY.analyticalBody, width: notesWidth - 22, maxLines: 7 });
   }
   if (conflicts.length) text(doc, t.conflict, notesX + 11, y + 222, { size: 7.2, bold: true, color: C.gold, width: notesWidth - 22, maxLines: 2 });
 }
@@ -549,7 +578,9 @@ function renderExecutive(doc, schema, t, accent, images, mapImage) {
       ? ` (${currency(recent.range.low, t)} – ${currency(recent.range.high, t)})` : ''}; ${recent.valuationCompCount || 0} ${t.recentSalesComps.toLowerCase()}.` : '';
   const summaryText = [
     summary.summary,
-    ...positiveObservations(summary).map((item) => `• ${item}`),
+    // The first page is a concise decision thesis, not a duplicate of the
+    // evidence pages. Keep the highest-value signal and the market reference.
+    ...positiveObservations(summary).slice(0, 1).map((item) => `• ${item}`),
     recentSummary,
   ].filter(Boolean).join('\n');
   propertyBottom(doc, property, t, accent, factGridBottom + 15, images, [], mapImage, {
@@ -564,7 +595,7 @@ function profileRows(profile, t) {
     [t.compatibility, profile.score == null ? t.unavailable : `${profile.score}%`],
     [t.location, profileCriterion(profile.targetMarket)],
     [t.type, profileCriterion(profile.propertyType)],
-    [t.strategy, profileCriterion(profile.strategy)],
+    [t.strategyFit, profileCriterion(profile.strategy)],
   ];
 }
 function meter(doc, x, y, width, percentValue, color) {
@@ -665,16 +696,20 @@ function renderFit(doc, schema, t, accent) {
       panel(doc, x, tileY, ew, tileHeight, { fill: C.white, stroke: softColor(evidenceColor, .72), radius: 6 });
       drawIcon(doc, index < 2 ? 'check' : index === evidenceItems.length - 1 ? 'warning' : 'document', x + 10, tileY + 12, evidenceColor, 11);
       text(doc, count, x + 21, tileY + 11, { size: 9.5, bold: true, color: evidenceColor });
-      text(doc, label.replace(/([A-Z])/g, ' $1'), x + 21, tileY + 20, { size: 4.9, color: C.muted, width: ew - 24, maxLines: 1 });
+       text(doc, displayValue(label, t), x + 21, tileY + 20, { size: 5.2, color: C.muted, width: ew - 24, maxLines: 1 });
     });
   } else text(doc, limitations.slice(0, 3).map((item) => reportNarrative(item, '', t.locale)).join(' • ') || t.noDetails, M + 12, evidenceY + 48, { size: 8, width: CONTENT - 24, maxLines: 3 });
   const focusY = 659;
   const focusMap = perspective.focusMap || schema?.presentation?.canonicalInvestmentAnalysis?.focusMap || {};
+  const financingScenario = schema?.presentation?.sellerFinancingScenario;
   const focusDimensions = array(focusMap.dimensions).slice(0, 6);
   const priorities = focusDimensions.length ? focusDimensions
     : array(perspective.priorities).slice(0, 6).map((dimension, index) => ({ dimension, readiness: null, index }));
   panel(doc, M, focusY, CONTENT, 89, { accent }); heading(doc, t.investorFocus, M + 12, focusY + 26, CONTENT - 24, accent);
-  text(doc, reportNarrative(displayValue(focusMap.strategy || perspective.persona, t), t.unavailable, t.locale), W - M - 13, focusY + 25, { size: 7.2, bold: true, color: C.ink, align: 'right', width: 170, maxLines: 1 });
+  const focusSummary = financingScenario?.monthlyPI != null && financingScenario?.balloonBalance != null
+    ? `${t.monthlyPI}: ${currency(financingScenario.monthlyPI, t)} · ${t.balloonBalance}: ${currency(financingScenario.balloonBalance, t)}`
+    : reportNarrative(displayValue(focusMap.strategy || perspective.persona, t), t.unavailable, t.locale);
+  text(doc, focusSummary, W - M - 13, focusY + 25, { size: 7.2, bold: true, color: C.ink, align: 'right', width: 245, maxLines: 1 });
   priorities.forEach((priority, index) => {
     const yy = focusY + 43 + index * 7.1; const barX = M + 190; const barWidth = CONTENT - 215;
     const priorityColor = [accent, C.blue, C.green, C.purple, C.gold, C.orange][index % 6];
@@ -947,11 +982,11 @@ function renderEnterpriseAnalysis(doc, schema, t, accent, confidence, executiveL
     text(doc, title, x, y, { size: 8.4, bold: true, color: C.ink, width: w, maxLines: 1 });
     let yy = y + 19;
     const entries = items.length ? items : [t.noDetails];
-    for (const item of entries.slice(0, 4)) {
+    for (const item of entries.slice(0, 2)) {
       if (yy > 258) break;
       drawIcon(doc, kind, x + 6, yy - 3, color, 10);
       yy = text(doc, reportNarrative(item, t.noDetails, t.locale), x + 16, yy,
-        { size: 6.7, width: w - 16, maxLines: 2 }) + 2;
+        { size: MAXXIS_REPORT_TYPOGRAPHY.body, minSize: MAXXIS_REPORT_TYPOGRAPHY.body, width: w - 16, maxLines: 2 }) + 3;
     }
   };
   drawConfidenceList(t.contributors, contributors, M + 174, 181, 158, 'check', C.green);
@@ -960,11 +995,11 @@ function renderEnterpriseAnalysis(doc, schema, t, accent, confidence, executiveL
   panel(doc, M, 290, CONTENT, 165, { fill: C.white, accent });
   heading(doc, t.executiveIntelligence, M + 13, 316, CONTENT - 26, accent);
   let executiveY = 340;
-  for (const line of executiveLines.slice(0, 6)) {
+  for (const line of executiveLines.slice(0, 3)) {
     if (executiveY > 442) break;
     doc.setFillColor(...accent); doc.circle(M + 20, executiveY - 3, 2.2, 'F');
     executiveY = text(doc, reportNarrative(line, t.noDetails, t.locale), M + 29, executiveY,
-      { size: 7.8, width: CONTENT - 43, maxLines: 2 }) + 4;
+      { size: MAXXIS_REPORT_TYPOGRAPHY.analyticalBody, minSize: MAXXIS_REPORT_TYPOGRAPHY.analyticalBody, width: CONTENT - 43, maxLines: 2 }) + 4;
   }
 
   const w = (CONTENT - 12) / 2;

@@ -405,6 +405,9 @@ function PropertyOverview({ schema, copy, level, page = 1, pageCode = "PROPERTY_
     : copy.language === 'es'
       ? { acres: 'Lote / acres', perAcre: 'Precio / acre', perLotSqft: 'Precio / sqft del lote', apn: 'APN / registro fiscal', zoning: 'Zonificación' }
       : { acres: 'Lot / acres', perAcre: 'Price / acre', perLotSqft: 'Price / lot sqft', apn: 'APN / Assessor ID', zoning: 'Zoning' };
+  const apnUnavailable = copy.language === 'pt' ? 'Não disponível no registro externo atual.'
+    : copy.language === 'es' ? 'No disponible en el registro externo actual.'
+      : 'Not available in the current external record.';
   const owner = property.owner || {};
   const images = list(property.images);
   const status = property.dealClosed
@@ -588,7 +591,7 @@ function PropertyOverview({ schema, copy, level, page = 1, pageCode = "PROPERTY_
                 text(fact("lotSizeSqft", property.lotSizeSqft ?? property.lot), copy.unknown),
                 factSource("lotSizeSqft"),
               ],
-              [landLabels.apn, text(fact("assessorId", property.assessorId), copy.unknown), factSource("assessorId")],
+              [landLabels.apn, text(fact("assessorId", property.assessorId), apnUnavailable), factSource("assessorId")],
               [
                 copy.assessedValue,
                 money(fact("assessedValue", property.assessedValue), copy.unknown),

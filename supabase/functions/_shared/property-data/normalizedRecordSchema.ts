@@ -46,11 +46,21 @@ export function isNormalizedPropertyRecord(value: unknown): value is NormalizedP
   if (!requiredKeys.every((key) => Object.hasOwn(value, key))
     || Object.keys(value).some((key) => !requiredKeys.includes(key) && !optionalKeys.includes(key))) return false;
   if (value.provider !== 'rentcast' || !isObject(value.sourceMetadata)) return false;
-  if (!hasExactKeys(value.sourceMetadata, ['source', 'retrievedAt', 'providerPropertyId', 'confidence'])) return false;
+  const sourceMetadataKeys = Object.keys(value.sourceMetadata);
+  if (!['source', 'retrievedAt', 'providerPropertyId', 'confidence'].every((key) => sourceMetadataKeys.includes(key))
+    || sourceMetadataKeys.some((key) => !['source', 'retrievedAt', 'providerPropertyId', 'confidence', 'fieldDiagnostics'].includes(key))) return false;
   if (value.sourceMetadata.source !== 'rentcast'
     || !isIsoDate(value.sourceMetadata.retrievedAt)
     || typeof value.sourceMetadata.providerPropertyId !== 'string'
     || value.sourceMetadata.confidence !== null) return false;
+  if (value.sourceMetadata.fieldDiagnostics !== undefined) {
+    const diagnostics = value.sourceMetadata.fieldDiagnostics;
+    if (!isObject(diagnostics) || !hasExactKeys(diagnostics, ['providerFieldPresence', 'normalizationResult'])
+      || !isObject(diagnostics.providerFieldPresence) || !hasExactKeys(diagnostics.providerFieldPresence, ['assessorID'])
+      || !['PRESENT', 'ABSENT'].includes(String(diagnostics.providerFieldPresence.assessorID))
+      || !isObject(diagnostics.normalizationResult) || !hasExactKeys(diagnostics.normalizationResult, ['assessorId'])
+      || !(diagnostics.normalizationResult.assessorId === null || typeof diagnostics.normalizationResult.assessorId === 'string')) return false;
+  }
 
   return isEvidenceGroup(value.identity, { providerPropertyId: (item) => isEvidence(item, isString) })
     && isEvidenceGroup(value.address, {

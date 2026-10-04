@@ -70,6 +70,7 @@ export function presentPropertyIntelligence(result: PropertyEvidenceResult) {
       label: 'Public property records via RentCast',
       updatedAt: result.retrievedAt,
     },
+    sourceDiagnostics: result.sourceDiagnostics,
     cacheHit: result.cacheHit,
   };
 }

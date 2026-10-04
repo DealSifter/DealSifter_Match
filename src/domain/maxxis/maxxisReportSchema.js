@@ -454,7 +454,7 @@ function levelData(reportType, input) {
   };
 }
 
-export function buildMaxxisReportSchema({ reportType, property = null, maxxisAnalysis = null, dealIntelligence = null, dealMetrics = null, structuredAnalysis = null } = {}) {
+export function buildMaxxisReportSchema({ reportType, property = null, maxxisAnalysis = null, dealIntelligence = null, dealMetrics = null, structuredAnalysis = null, resolvedUserLocale = null } = {}) {
   const normalizedType = String(reportType || '').trim().toUpperCase();
   const allowed = LEVEL_SECTIONS[normalizedType];
   if (!allowed) return null;
@@ -467,6 +467,8 @@ export function buildMaxxisReportSchema({ reportType, property = null, maxxisAna
     type: 'maxxis_report_schema',
     version: MAXXIS_REPORT_SCHEMA_VERSION,
     reportType: normalizedType,
+    resolvedUserLocale: ['en', 'pt', 'es'].includes(String(resolvedUserLocale || structuredAnalysis?.locale || structuredAnalysis?.language))
+      ? String(resolvedUserLocale || structuredAnalysis?.locale || structuredAnalysis?.language) : null,
     sections,
     pages: pagesFor(normalizedType),
     structuredAnalysis: isObject(structuredAnalysis) && structuredAnalysis.type === 'maxxis_structured_analysis'
@@ -501,6 +503,10 @@ export function buildMaxxisReportSchema({ reportType, property = null, maxxisAna
         ? (maxxisAnalysis?.canonicalInvestmentAnalysis || null)
         : normalizedType === INTELLIGENCE_REPORT_TYPES.DEAL_INTELLIGENCE
           ? (dealIntelligence?.canonicalInvestmentAnalysis || null) : null,
+      sellerFinancingScenario: normalizedType === INTELLIGENCE_REPORT_TYPES.MAXXIS_ANALYSIS
+        ? (maxxisAnalysis?.sellerFinancingScenario || null)
+        : normalizedType === INTELLIGENCE_REPORT_TYPES.DEAL_INTELLIGENCE
+          ? (dealIntelligence?.sellerFinancingScenario || null) : null,
       investorPerspective: normalizedType === INTELLIGENCE_REPORT_TYPES.MAXXIS_ANALYSIS
         ? (maxxisAnalysis?.canonicalInvestmentAnalysis?.focusMap ? Object.freeze({
           persona: maxxisAnalysis.canonicalInvestmentAnalysis.focusMap.strategy,

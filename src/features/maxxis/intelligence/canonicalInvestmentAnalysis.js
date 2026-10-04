@@ -55,6 +55,11 @@ const DIMENSION_REQUIREMENTS = Object.freeze({
   LAND: [['zoning', 'allowed_use'], ['lot_size'], ['road_access'], ['utilities'], ['land_sale_evidence'], ['ownership', 'survey', 'topography']],
   GENERIC_SELL: [['market_evidence'], ['land_sale_evidence'], ['market_evidence'], ['market_evidence'], ['ownership'], ['sale_price']],
 });
+const CRITERION_LABELS = Object.freeze({
+  en: ['Target market', 'Price range', 'Property type', 'Strategy / objective'],
+  pt: ['Mercado-alvo', 'Faixa de preço', 'Tipo de imóvel', 'Estratégia / objetivo'],
+  es: ['Mercado objetivo', 'Rango de precio', 'Tipo de propiedad', 'Estrategia / objetivo'],
+});
 
 function resolvedStrategy(context) {
   const property = object(context?.propertyFacts);
@@ -68,7 +73,7 @@ function criterion(match, key, label) {
   const item = list(match?.reasons).find((candidate) => candidate?.key === key) || {};
   const status = ['matched', 'not_matched', 'not_evaluated'].includes(item.status) ? item.status : 'not_evaluated';
   const max = finite(item.maxPoints); const points = finite(item.points);
-  return Object.freeze({ key, label: item.label || label, status, explanation: item.detail || null,
+  return Object.freeze({ key, label, status, explanation: item.detail || null,
     points, maxPoints: max, score: status !== 'not_evaluated' && max > 0 ? clamp(((points || 0) / max) * 100) : null,
     source: 'CALCULATED' });
 }
@@ -91,7 +96,14 @@ function buildFocusMap(context, language) {
   const fieldGroups = DIMENSION_FIELDS[strategy] || DIMENSION_FIELDS.GENERIC_SELL;
   const requirementGroups = DIMENSION_REQUIREMENTS[strategy] || DIMENSION_REQUIREMENTS.GENERIC_SELL;
   const decisionGaps = list(context?.dealDecisionContext?.decisionGaps);
-  const missingRequirements = new Set(decisionGaps.map((item) => item?.field).filter(Boolean));
+  const scenario = object(context?.sellerFinancingScenario || object(context?.dealAssumptions).sellerFinancingScenario);
+  const scenarioSatisfies = (requirement) => ({
+    acquisition_price: present(scenario.purchasePrice), down_payment: present(scenario.downPaymentAmount) || present(scenario.downPaymentPercent),
+    interest_rate: present(scenario.annualInterestRate), monthly_pi_payment: present(scenario.monthlyPI),
+    term_months: present(scenario.balloonMonth), amortization_months: present(scenario.amortizationMonths),
+    balloon_months: present(scenario.balloonMonth),
+  })[requirement] === true;
+  const missingRequirements = new Set(decisionGaps.map((item) => item?.field).filter((field) => field && !scenarioSatisfies(field)));
   const comparableCount = list(context?.comparableEvidence).filter((item) => ['PRIMARY', 'SUPPORTING'].includes(item?.valuationRole)).length;
   const dimensions = labels.map((label, index) => {
     const fields = fieldGroups[index] || [];
@@ -101,7 +113,7 @@ function buildFocusMap(context, language) {
     }
     const applicable = states.filter((item) => item.status !== 'NOT_APPLICABLE');
     const requirements = requirementGroups[index] || [];
-    const supportingRequirements = requirements.filter((item) => !missingRequirements.has(item));
+    const supportingRequirements = requirements.filter((item) => scenarioSatisfies(item) || !missingRequirements.has(item));
     const missingRequirementList = requirements.filter((item) => missingRequirements.has(item));
     const evidenceReadiness = applicable.length ? (applicable.reduce((sum, item) => sum + (WEIGHT[item.status] || 0), 0) / applicable.length) * 100 : 0;
     const requirementReadiness = requirements.length ? (supportingRequirements.length / requirements.length) * 100 : evidenceReadiness;
@@ -127,15 +139,17 @@ function buildFocusMap(context, language) {
 
 export function buildCanonicalInvestmentAnalysis(context = {}, language = 'en') {
   const match = object(context?.matchContext);
+  const locale = ['pt', 'es'].includes(language) ? language : 'en';
+  const labels = CRITERION_LABELS[locale];
   const criteria = Object.freeze([
-    criterion(match, 'market', 'Target market'), criterion(match, 'price', 'Price range'),
-    criterion(match, 'property_type', 'Property type'), criterion(match, 'strategy', 'Strategy / objective'),
+    criterion(match, 'market', labels[0]), criterion(match, 'price', labels[1]),
+    criterion(match, 'property_type', labels[2]), criterion(match, 'strategy', labels[3]),
   ]);
   return Object.freeze({ version: CANONICAL_INVESTMENT_ANALYSIS_VERSION, semantics: 'PROFILE_FIT_AND_DECISION_READINESS',
     profileFit: Object.freeze({ score: finite(match.score), classification: match.classification || 'unavailable',
       calculable: Boolean(match.calculable), semantics: 'PROFILE_FIT_ONLY', criteria,
       targetMarket: criteria[0], priceRange: criteria[1], propertyType: criteria[2], strategy: criteria[3] }),
-    focusMap: buildFocusMap(context, ['pt', 'es'].includes(language) ? language : 'en'),
+    focusMap: buildFocusMap(context, locale),
     evidenceSummary: Object.freeze({ ...(object(context?.evidenceSummary)) }),
     risks: Object.freeze(list(context?.risks).map((item) => Object.freeze({ ...item }))),
     decisionGaps: Object.freeze(list(context?.limitations)),

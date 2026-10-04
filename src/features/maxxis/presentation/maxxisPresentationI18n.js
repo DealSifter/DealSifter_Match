@@ -4,6 +4,10 @@ const PT_VALUES = Object.freeze({
   HIGH: 'Alta', MODERATE: 'Moderada', MEDIUM: 'Média', LOW: 'Baixa', LIMITED: 'Limitada', UNKNOWN: 'Desconhecido',
   PUBLISHED: 'Publicado', CLOSED: 'Encerrado', DRAFT: 'Rascunho', NOT_STARTED: 'Ainda não iniciado', IN_PROGRESS: 'Em andamento',
   USER_PROVIDED: 'Informado pelo usuário', CALCULATED: 'Calculado', VERIFIED_RECORD: 'Registro verificado', ESTIMATED: 'Estimado',
+  VERIFIED_RECORDS: 'Registros verificados', CALCULATED_RECORDS: 'Calculados',
+  ESTIMATED_RECORDS: 'Estimados', CONFLICTS: 'Conflitos', STRATEGY_OBJECTIVE: 'Estratégia / objetivo', FINANCED_PRINCIPAL: 'Valor financiado',
+  PAYMENT_SCHEDULE: 'Cronograma de pagamentos', DEVELOPMENT_FEASIBILITY: 'Viabilidade de desenvolvimento',
+  MARKET_CONTEXT: 'Contexto de mercado', ALLOWED_USE: 'Uso permitido', RESIDENTIAL_ARV_NOT_APPLICABLE: 'ARV residencial não aplicável',
   SUPPORT: 'Evidência de apoio', SUPPORTING: 'Evidência de apoio', SELECTED: 'Comparável selecionado', USED: 'Usado',
   INCLUDED: 'Incluído na análise', EXCLUDED: 'Excluído da análise', UNREVIEWED: 'Não revisado', REVIEWED: 'Revisado',
   MATCHED: 'Aderente', PARTIAL: 'Parcialmente aderente', NOT_MATCHED: 'Não aderente',
@@ -14,7 +18,7 @@ const PT_VALUES = Object.freeze({
   HIGH_END: 'Alto padrão', TURN_KEY: 'Pronto para uso', NEW_CONSTRUCTION: 'Construção nova',
   DATA_RISK: 'Risco dos dados', MARKET_RISK: 'Risco de mercado', VALUATION_RISK: 'Risco de avaliação', EXECUTION_RISK: 'Risco de execução',
   MAP_AVAILABLE: 'Mapa disponível', MAP_UNAVAILABLE: 'Mapa indisponível',
-  MARKET: 'Mercado', PRICE_RANGE: 'Faixa de preço', PROPERTY_TYPE: 'Tipo de imóvel', STRATEGY: 'Estratégia', RANGE: 'Faixa',
+  MARKET: 'Mercado-alvo', PRICE_RANGE: 'Faixa de preço', PROPERTY_TYPE: 'Tipo de imóvel', STRATEGY: 'Estratégia', RANGE: 'Faixa',
   PROPERTY_INTELLIGENCE: 'Inteligência do imóvel', PRIMARY: 'Principal', EXPECTED: 'Esperado', WHOLESALER: 'Atacadista', FLIPPER: 'Reformador para revenda',
   BUY_AND_HOLD: 'Compra e manutenção', GENERAL_INVESTOR: 'Investidor geral', SFR: 'Residencial unifamiliar (SFR)', FSBO: 'Venda pelo proprietário (FSBO)',
   SELLER_FINANCING: 'Financiamento pelo vendedor', LAND: 'Terreno', WHOLESALE: 'Atacado imobiliário', FLIP: 'Reforma e revenda', SUB_TO: 'Subject-to', GENERIC_SELL: 'Venda', RECENT: 'Avaliação por vendas recentes',
@@ -31,6 +35,8 @@ const ES_VALUES = Object.freeze({
   AVAILABLE: 'Disponible', UNAVAILABLE: 'No disponible', NOT_AVAILABLE_YET: 'Aún no disponible',
   HIGH: 'Alta', MODERATE: 'Moderada', MEDIUM: 'Media', LOW: 'Baja', LIMITED: 'Limitada', UNKNOWN: 'Desconocido',
   USER_PROVIDED: 'Informado por el usuario', CALCULATED: 'Calculado', SUPPORT: 'Evidencia de apoyo', SUPPORTING: 'Evidencia de apoyo',
+  VERIFIED_RECORDS: 'Registros verificados', CONFLICTS: 'Conflictos',
+  MARKET: 'Mercado objetivo', PRICE_RANGE: 'Rango de precio', PROPERTY_TYPE: 'Tipo de propiedad', STRATEGY_OBJECTIVE: 'Estrategia / objetivo',
   SELECTED: 'Comparable seleccionado', EXCLUDED: 'Excluido del análisis', NOT_STARTED: 'Aún no iniciado',
   SELLER_FINANCING: 'Financiación del vendedor', BUY_AND_HOLD: 'Comprar y mantener', LAND: 'Terreno', WHOLESALE: 'Venta mayorista', FLIP: 'Reforma y reventa', SUB_TO: 'Subject-to', GENERIC_SELL: 'Venta', RECENT: 'Valoración por ventas recientes',
 });
@@ -53,7 +59,7 @@ export function maxxisLocale(language = 'en') {
 export function localizeMaxxisValue(value, language = 'en', fallback = '') {
   if (value === null || value === undefined || value === '') return fallback;
   const raw = String(value).trim();
-  const key = raw.toUpperCase().replace(/[\s-]+/g, '_');
+  const key = raw.replace(/([a-z0-9])([A-Z])/g, '$1_$2').toUpperCase().replace(/[^A-Z0-9]+/g, '_').replace(/^_|_$/g, '');
   const translated = VALUES[maxxisLocale(language)]?.[key];
   if (translated) return translated;
   if (/^[A-Z][A-Z0-9_:-]+$/.test(raw)) {

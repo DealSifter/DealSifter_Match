@@ -31,6 +31,11 @@ export type NormalizedPropertyRecord = {
     retrievedAt: string;
     providerPropertyId: string;
     confidence: null;
+    /** Safe source-observability metadata. Never contains the raw provider payload. */
+    fieldDiagnostics?: {
+      providerFieldPresence: { assessorID: 'PRESENT' | 'ABSENT' };
+      normalizationResult: { assessorId: string | null };
+    };
   };
   identity: {
     providerPropertyId: Evidence<string>;

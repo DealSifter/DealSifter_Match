@@ -1,6 +1,6 @@
 import { describe, expect, it, vi } from 'vitest';
 import { InMemoryPropertyIntelligenceCache } from './cache.ts';
-import { PropertyEvidenceService } from './propertyEvidenceService.ts';
+import { PropertyEvidenceService, propertyEvidenceSourceDiagnostics } from './propertyEvidenceService.ts';
 import { mapRentCastProperty } from './rentcast/rentcastMapper.ts';
 import { PropertyDataError } from './types.ts';
 
@@ -65,5 +65,23 @@ describe('PropertyEvidenceService', () => {
     expect(result.internalData.characteristics.yearBuilt).toMatchObject({ value: null, status: 'UNAVAILABLE' });
     expect(result.missingFields).toContain('tax.annualPropertyTax');
     expect(result.externalData.tax.annualPropertyTax.value).toBeNull();
+    expect(result.sourceDiagnostics.assessorId).toEqual({
+      providerFieldPresence: 'ABSENT', normalizationResult: null, classification: 'PROVIDER_DID_NOT_RETURN_FIELD',
+    });
+  });
+
+  it('classifies legacy cache records without source-presence metadata as unobserved', () => {
+    const legacy = structuredClone(external());
+    delete legacy.sourceMetadata.fieldDiagnostics;
+    expect(propertyEvidenceSourceDiagnostics(legacy).assessorId).toEqual({
+      providerFieldPresence: 'UNOBSERVED', normalizationResult: null, classification: 'SOURCE_UNOBSERVED_LEGACY_CACHE',
+    });
+  });
+
+  it('classifies a present-but-dropped assessor field without inventing APN', () => {
+    const mapped = mapRentCastProperty({ id: 'provider-blank', assessorID: ' ' }, NOW.toISOString());
+    expect(propertyEvidenceSourceDiagnostics(mapped).assessorId).toEqual({
+      providerFieldPresence: 'PRESENT', normalizationResult: null, classification: 'NORMALIZATION_DROPPED_FIELD',
+    });
   });
 });

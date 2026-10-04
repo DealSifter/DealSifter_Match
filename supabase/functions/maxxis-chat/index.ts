@@ -16,6 +16,11 @@ import { prepareProfileSuggestions } from '../_shared/maxxis/prepareProfileSugge
 import { executeMaxxisTool, MAXXIS_TOOLS } from '../_shared/maxxis/toolRegistry.ts';
 import { asksForSelectedPropertyAnalysis } from '../_shared/maxxis/propertyAnalysisIntent.ts';
 import { buildPropertyFactLookupAnswer, detectPropertyFactLookup } from '../_shared/maxxis/propertyFactLookup.ts';
+import {
+  detectsSellerFinancingScenario,
+  formatSellerFinancingScenarioAnswer,
+  resolveSellerFinancingScenarioFromConversation,
+} from '../_shared/maxxis/sellerFinancingScenario.ts';
 import { normalizeComparisonContextIds } from '../_shared/maxxis/compareProperties.ts';
 import { buildToolInterpretationRequest, sanitizeToolResultForGemini } from '../_shared/maxxis/toolResultForGemini.ts';
 import {
@@ -863,6 +868,7 @@ Deno.serve(async (req) => {
     // report capability. Asking Gemini to select that same mandatory tool adds a
     // provider failure point before any deterministic analysis has run.
     const propertyFactIntent = propertyContextId ? detectPropertyFactLookup(message) : null;
+    const sellerFinancingScenarioIntent = propertyContextId && detectsSellerFinancingScenario(message);
     const deterministicPropertyAnalysisCall: { name: string; args: Record<string, unknown> } | null = propertyAnalysisContext
       ? {
           name: 'getDealInsightContext',
@@ -871,7 +877,8 @@ Deno.serve(async (req) => {
             reportType: propertyAnalysisContext.report_type,
           },
         }
-      : propertyFactIntent ? { name: 'getDealInsightContext', args: { propertyId: propertyContextId } } : null;
+      : propertyFactIntent || sellerFinancingScenarioIntent
+        ? { name: 'getDealInsightContext', args: { propertyId: propertyContextId } } : null;
     const stubFunctionCall = controlledFunctionCall || (isE2ELlmStubEnabled() ? e2eStubFunctionCall(message, propertyContextId) : null);
     if (!geminiApiKey && !stubFunctionCall && !deterministicPropertyAnalysisCall) {
       const degradedPayload = degradedFallbackPayload(message, language, 'MAXXIS_NOT_CONFIGURED');
@@ -1028,7 +1035,7 @@ Deno.serve(async (req) => {
           functionArgs,
           req.headers.get('Authorization') || '',
           { propertyId: propertyContextId, propertyIds: comparisonPropertyIds, userId, plan: effectiveProviderPlan,
-            language, cacheOnly: analysisRecomputeMode === 'GAP_UPDATE_CACHE_ONLY' || Boolean(propertyFactIntent) },
+            language, cacheOnly: analysisRecomputeMode === 'GAP_UPDATE_CACHE_ONLY' || Boolean(propertyFactIntent) || Boolean(sellerFinancingScenarioIntent) },
         );
       } catch (error) {
         if (toolName === 'getPropertyDetails' || toolName === 'getDealCopilotOverview') {
@@ -1082,7 +1089,7 @@ Deno.serve(async (req) => {
       let secondPassFailure: GeminiFailureCode | '' = '';
       let secondPassProviderMeta: ReturnType<typeof getGeminiProviderFailureMeta> | null = null;
       let secondPassAttempts = 0;
-      if (!stubFunctionCall && geminiApiKey && !propertyFactIntent) {
+      if (!stubFunctionCall && geminiApiKey && !propertyFactIntent && !sellerFinancingScenarioIntent) {
         failureStage = 'gemini_second_pass';
         const secondPassStartedAt = Date.now();
         const interpretationRequest = buildToolInterpretationRequest({
@@ -1315,6 +1322,16 @@ Deno.serve(async (req) => {
         });
         const directFactAnswer = propertyFactIntent
           ? buildPropertyFactLookupAnswer(message, language, result.intelligenceSnapshot) : null;
+        const sellerFinancingResolution = sellerFinancingScenarioIntent
+          ? resolveSellerFinancingScenarioFromConversation({
+              message,
+              history: Array.isArray(body.history) ? body.history as Array<{ role?: unknown; content?: unknown }> : [],
+              askingPrice: (rawSnapshot.propertyFacts as Record<string, unknown> | undefined)?.price
+                ?? (rawSnapshot.propertyFacts as Record<string, unknown> | undefined)?.askingPrice
+                ?? result.property?.price,
+              storedAssumptions: rawSnapshot.dealAssumptions as Record<string, number> | undefined,
+            })
+          : null;
         const canonicalSummary = result.structuredAnalysis && typeof result.structuredAnalysis === 'object'
           ? String((result.structuredAnalysis as { executiveSummary?: unknown }).executiveSummary || '').trim()
           : '';
@@ -1322,6 +1339,21 @@ Deno.serve(async (req) => {
           structuredResponseCreated = true;
           return response({ message: directFactAnswer.text, answer: directFactAnswer.text, type: 'text',
             data: null, actions: [], language, runtime: toolRuntime, ...toolDegraded }, 200, origin, requestId);
+        }
+        if (sellerFinancingResolution) {
+          const scenarioText = formatSellerFinancingScenarioAnswer(sellerFinancingResolution, language);
+          structuredResponseCreated = true;
+          return response({ message: scenarioText, answer: scenarioText, type: 'text',
+            data: {
+              propertyId: result.propertyId,
+              scenarioType: 'SELLER_FINANCING',
+              scenario: sellerFinancingResolution.result,
+              comparison: sellerFinancingResolution.comparison,
+              readiness: sellerFinancingResolution.state === 'CALCULATED' ? sellerFinancingResolution.readiness : null,
+              missingInputs: sellerFinancingResolution.missing,
+              arithmeticSource: 'DETERMINISTIC_ENGINE',
+              providerCalls: 0,
+            }, actions: [], language, runtime: { ...toolRuntime, provider: 'deterministic' }, ...toolDegraded }, 200, origin, requestId);
         }
         const text = interpretedText || canonicalSummary || dealInsightMessage(language, result.state === 'available');
         structuredResponseCreated = true;

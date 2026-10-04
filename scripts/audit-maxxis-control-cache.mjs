@@ -15,7 +15,7 @@ const request = async (path, options = {}) => {
 };
 const addressFilter = process.argv.slice(2).join(' ').trim().toLowerCase();
 const rows = (await request(`properties?select=id,type,address,city,state,zip,price,beds,baths,sqft,lot,objective,rehab,cap_rate,description,source,lat,lng&or=(${[
-  '5939 Droad St', '741 Gable Dr', '5714 Bent Creek Dr', '7081 Kalanianaole Hwy',
+  '5939 Droad St', '741 Gable Dr', '5714 Bent Creek Dr', '7081 Kalanianaole Hwy', '10865 Wystone Ave',
 ].map((address) => `address.ilike.${encodeURIComponent(address)}`).join(',')})`))
   .filter((property) => !addressFilter || String(property.address || '').toLowerCase().includes(addressFilter));
 const field = (entry) => entry && typeof entry === 'object' ? entry.value ?? null : null;
@@ -36,6 +36,18 @@ const propertyRecordSummary = (payload = {}) => ({
   annualPropertyTax: field(payload.tax?.annualPropertyTax), propertyTaxYear: field(payload.tax?.propertyTaxYear),
   hoaFee: field(payload.hoa?.fee), propertyFeaturesCount: field(payload.features?.values)
     ? Object.keys(field(payload.features?.values)).length : 0,
+  apnDiagnostics: payload.sourceMetadata?.fieldDiagnostics
+    ? {
+        providerFieldPresence: payload.sourceMetadata.fieldDiagnostics.providerFieldPresence?.assessorID || 'UNOBSERVED',
+        normalizationResult: payload.sourceMetadata.fieldDiagnostics.normalizationResult?.assessorId ?? null,
+        classification: field(payload.parcel?.assessorId) ? 'AVAILABLE'
+          : payload.sourceMetadata.fieldDiagnostics.providerFieldPresence?.assessorID === 'ABSENT'
+            ? 'PROVIDER_DID_NOT_RETURN_FIELD' : 'NORMALIZATION_DROPPED_FIELD',
+      }
+    : {
+        providerFieldPresence: 'UNOBSERVED', normalizationResult: field(payload.parcel?.assessorId),
+        classification: field(payload.parcel?.assessorId) ? 'AVAILABLE' : 'SOURCE_UNOBSERVED_LEGACY_CACHE',
+      },
 });
 const valuationSummary = (payload = {}) => ({
   providerType: field(payload.subjectProperty?.propertyType), providerEstimate: field(payload.providerEstimate?.value),

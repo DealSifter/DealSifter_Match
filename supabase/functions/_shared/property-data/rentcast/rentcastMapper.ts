@@ -47,6 +47,8 @@ export function mapRentCastProperty(record: RentCastPropertyRecordRaw, retrieved
   const providerPropertyId = textValue(record.id);
   if (!providerPropertyId) throw new PropertyDataError('INVALID_PROVIDER_RESPONSE', { billableSuccess: true, httpStatus: 200 });
   const metadata = { retrievedAt, providerPropertyId };
+  const normalizedAssessorId = textValue(record.assessorID);
+  const assessorFieldPresent = Object.prototype.hasOwnProperty.call(record, 'assessorID');
   const assessment = latestYearEntry(record.taxAssessments);
   const propertyTax = latestYearEntry(record.propertyTaxes);
   const sale = latestSale(record);
@@ -56,7 +58,13 @@ export function mapRentCastProperty(record: RentCastPropertyRecordRaw, retrieved
 
   return {
     provider: 'rentcast',
-    sourceMetadata: { source: 'rentcast', retrievedAt, providerPropertyId, confidence: null },
+    sourceMetadata: {
+      source: 'rentcast', retrievedAt, providerPropertyId, confidence: null,
+      fieldDiagnostics: {
+        providerFieldPresence: { assessorID: assessorFieldPresent ? 'PRESENT' : 'ABSENT' },
+        normalizationResult: { assessorId: normalizedAssessorId },
+      },
+    },
     identity: { providerPropertyId: evidence(providerPropertyId, metadata) },
     address: {
       formattedAddress: evidence(textValue(record.formattedAddress), metadata),
@@ -93,7 +101,7 @@ export function mapRentCastProperty(record: RentCastPropertyRecordRaw, retrieved
     parcel: {
       stateFips: evidence(textValue(record.stateFips), metadata),
       countyFips: evidence(textValue(record.countyFips), metadata),
-      assessorId: evidence(textValue(record.assessorID), metadata),
+      assessorId: evidence(normalizedAssessorId, metadata),
       legalDescription: evidence(textValue(record.legalDescription), metadata),
       subdivision: evidence(textValue(record.subdivision), metadata),
       zoning: evidence(textValue(record.zoning), metadata),
