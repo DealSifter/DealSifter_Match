@@ -54,9 +54,9 @@ describe('canonical property and investment parity', () => {
       { field: 'down_payment' }, { field: 'interest_rate' }, { field: 'term_months' },
     ] } };
     expect(buildPropertyFactLookupAnswer('qual o APN?', 'pt', snapshot).text)
-      .toBe('O registro externo armazenado para este imóvel não contém um APN / Assessor ID.');
+      .toBe('Não disponível no registro externo atual.');
     const combined = buildPropertyFactLookupAnswer('Qual o APN e quais são os 3 pontos mais importantes para estruturar este Seller Financing?', 'pt', snapshot).text;
-    expect(combined).toContain('O registro externo armazenado para este imóvel não contém um APN');
+    expect(combined).toContain('Não disponível no registro externo atual.');
     expect(combined).toContain('Prioridades para SELLER_FINANCING');
     expect(combined).toContain('definir a entrada');
     expect(buildPropertyFactLookupAnswer('qual foi a última venda?', 'pt', snapshot).text).toMatch(/US\$\s*80\.500.*3 de ago\. de 2021/);
@@ -76,6 +76,17 @@ describe('canonical property and investment parity', () => {
       expect(schema.sections.propertySummary.data.assessorId).toBe('APN-EXACT-123');
     }
     expect(JSON.stringify(snapshot)).not.toContain('APN-GENERATED');
+  });
+
+  it('keeps a user-provided APN when the stored provider field is unavailable', () => {
+    const property = mergeVerifiedPropertyEvidenceIntoFacts({ id: 'user-apn', address: '2 APN St', type: 'SFR', apn: 'USER-APN-77' }, {
+      fields: { assessorId: unknown() }, conflicts: [],
+    });
+    expect(property.assessorId).toBeUndefined();
+    expect(property.apn).toBe('USER-APN-77');
+    expect(property.canonicalPropertyFacts.parcel.assessorId).toMatchObject({ value: 'USER-APN-77', status: 'USER_PROVIDED' });
+    const schema = buildMaxxisReportSchema({ reportType: 'PROPERTY_RELEASE', property });
+    expect(schema.sections.propertySummary.data.assessorId).toBe('USER-APN-77');
   });
 
   it('deduplicates equivalent land gaps in the three direct priorities', () => {

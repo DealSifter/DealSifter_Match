@@ -2472,7 +2472,7 @@
     }
   },
   "wow": {
-    "droad": "O registro externo armazenado para este imóvel não contém um APN / Assessor ID.\n\nPrioridades para SELLER_FINANCING:\n1. definir a entrada.\n2. definir juros e forma de pagamento.\n3. definir prazo, amortização e balloon.",
+    "droad": "Não disponível no registro externo atual.\n\nPrioridades para SELLER_FINANCING:\n1. definir a entrada.\n2. definir juros e forma de pagamento.\n3. definir prazo, amortização e balloon.",
     "gable": "Prioridades para LAND:\n1. verificar o uso permitido.\n2. obter vendas recentes de terrenos comparáveis.\n3. verificar titularidade e título."
   },
   "sellerFinancing": {

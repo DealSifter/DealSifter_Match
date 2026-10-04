@@ -393,7 +393,7 @@ try {
   }
   manifest.wow.droad = buildPropertyFactLookupAnswer('Qual o APN e quais são os 3 pontos mais importantes para estruturar este Seller Financing?', 'pt', controls.droad.snapshot)?.text || null;
   manifest.wow.gable = buildPropertyFactLookupAnswer('Quais são os 3 dados mais importantes para decidir se este terreno é interessante?', 'pt', controls.gable.snapshot)?.text || null;
-  if (!/APN|Assessor/i.test(manifest.wow.droad || '') || !/SELLER_FINANCING/i.test(manifest.wow.droad || '')) throw new Error('DROAD_WOW_FAIL');
+  if (!/(?:APN|Assessor|Não disponível no registro externo atual)/i.test(manifest.wow.droad || '') || !/SELLER_FINANCING/i.test(manifest.wow.droad || '')) throw new Error('DROAD_WOW_FAIL');
   if (!/LAND/i.test(manifest.wow.gable || '') || /rehab|reforma|ARV residencial/i.test(manifest.wow.gable || '')) throw new Error('GABLE_WOW_FAIL');
   const { resolveSellerFinancingScenarioFromConversation, formatSellerFinancingScenarioAnswer } = await server.ssrLoadModule('/supabase/functions/_shared/maxxis/sellerFinancingScenario.ts');
   const sixPercent = resolveSellerFinancingScenarioFromConversation({

@@ -70,9 +70,9 @@ function locale(language: Language) { return language === 'pt' ? 'pt-BR' : langu
 function money(value: unknown, language: Language) { return new Intl.NumberFormat(locale(language), { style: 'currency', currency: 'USD', maximumFractionDigits: 0 }).format(Number(value)); }
 function date(value: unknown, language: Language) { const parsed = new Date(String(value)); return Number.isNaN(parsed.getTime()) ? String(value) : new Intl.DateTimeFormat(locale(language), { year: 'numeric', month: 'short', day: 'numeric', timeZone: 'UTC' }).format(parsed); }
 function unavailable(language: Language, field: string) {
-  if (field === 'assessorId') return language === 'pt' ? 'O registro externo armazenado para este imóvel não contém um APN / Assessor ID.'
-    : language === 'es' ? 'El registro externo almacenado para esta propiedad no contiene un APN / Assessor ID.'
-      : 'The stored external record for this property does not contain an APN / Assessor ID.';
+  if (field === 'assessorId') return language === 'pt' ? 'Não disponível no registro externo atual.'
+    : language === 'es' ? 'No disponible en el registro externo actual.'
+      : 'Not available in the current external record.';
   return language === 'pt' ? `${LABELS.pt[field] || field}: não disponível no registro atual do imóvel.`
     : language === 'es' ? `${LABELS.es[field] || field}: no disponible en el registro actual de la propiedad.`
       : `${LABELS.en[field] || field}: not available from the current property record.`;
