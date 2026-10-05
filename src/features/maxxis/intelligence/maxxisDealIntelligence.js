@@ -16,6 +16,9 @@ const COPY = {
     property: 'Property',
     price: 'Price',
     metrics: 'Metrics',
+    pricePerSqft: 'Price per sqft',
+    acquisitionPlusRehab: 'Acquisition + rehab',
+    capRate: 'Capitalization rate',
     signals: 'Maxxis Deal AI noticed',
     gaps: 'Gaps to review',
     services: 'Services',
@@ -24,18 +27,22 @@ const COPY = {
     loadedProviders: 'Loaded providers',
     noProviders: 'No provider match was loaded in this response.',
     unavailable: 'Unavailable',
+    alreadyVisible: 'Already visible',
+    explainMetricSource: 'What it means',
+    missingToCalculate: 'Missing to calculate',
+    nextAction: 'Next useful action',
     notLoaded: 'Not loaded in this response',
     noGaps: 'I did not find explicit missing fields, attention points, provider gaps, conversation gaps, or workflow gaps in the loaded structured data.',
     whyPrefix: 'This signal is shown because',
     sourcePrefix: 'Source',
     followUps: {
-      why_current_signal: 'Why?',
-      deal_gaps: "What's missing?",
+      why_current_signal: 'Why this attention point?',
+      deal_gaps: "What's needed to calculate?",
       compare_these: 'Compare these',
       show_providers: 'Show providers',
-      explain_metrics: 'Explain metrics',
+      explain_metrics: 'Explain visible metrics',
       review_next: 'What should I review next?',
-      deal_snapshot: 'Deal snapshot',
+      deal_snapshot: 'Current deal snapshot',
       view_recent_sales_comps: 'View the sales used',
       compare_provider_avm: 'Compare with provider estimate',
       view_zip_market: 'View ZIP market',
@@ -59,6 +66,9 @@ const COPY = {
     property: 'Propriedade',
     price: 'Preco',
     metrics: 'Metricas',
+    pricePerSqft: 'Preco por sqft',
+    acquisitionPlusRehab: 'Aquisicao + rehab',
+    capRate: 'Taxa de capitalizacao',
     signals: 'Maxxis Deal AI notou',
     gaps: 'Gaps para revisar',
     services: 'Servicos',
@@ -67,18 +77,22 @@ const COPY = {
     loadedProviders: 'Providers carregados',
     noProviders: 'Nenhum match de provider foi carregado nesta resposta.',
     unavailable: 'Indisponivel',
+    alreadyVisible: 'Ja visivel',
+    explainMetricSource: 'O que significa',
+    missingToCalculate: 'Falta para calcular',
+    nextAction: 'Proxima acao util',
     notLoaded: 'Nao carregado nesta resposta',
     noGaps: 'Nao encontrei campos ausentes, pontos de atencao, gaps de provider, conversa ou workflow nos dados estruturados carregados.',
     whyPrefix: 'Este sinal aparece porque',
     sourcePrefix: 'Fonte',
     followUps: {
-      why_current_signal: 'Por que?',
-      deal_gaps: 'O que falta?',
+      why_current_signal: 'Por que este ponto importa?',
+      deal_gaps: 'O que falta para calcular?',
       compare_these: 'Comparar estes',
       show_providers: 'Mostrar providers',
-      explain_metrics: 'Explicar metricas',
+      explain_metrics: 'Explicar metricas visiveis',
       review_next: 'O que revisar agora?',
-      deal_snapshot: 'Snapshot do deal',
+      deal_snapshot: 'Snapshot atual do deal',
       view_recent_sales_comps: 'Ver vendas utilizadas',
       compare_provider_avm: 'Comparar com estimativa do provedor',
       view_zip_market: 'Ver mercado do ZIP',
@@ -102,6 +116,9 @@ const COPY = {
     property: 'Propiedad',
     price: 'Precio',
     metrics: 'Metricas',
+    pricePerSqft: 'Precio por sqft',
+    acquisitionPlusRehab: 'Adquisicion + rehab',
+    capRate: 'Tasa de capitalizacion',
     signals: 'Maxxis Deal AI noto',
     gaps: 'Gaps para revisar',
     services: 'Servicios',
@@ -110,18 +127,22 @@ const COPY = {
     loadedProviders: 'Providers cargados',
     noProviders: 'Ningun match de provider fue cargado en esta respuesta.',
     unavailable: 'No disponible',
+    alreadyVisible: 'Ya visible',
+    explainMetricSource: 'Que significa',
+    missingToCalculate: 'Falta para calcular',
+    nextAction: 'Siguiente accion util',
     notLoaded: 'No cargado en esta respuesta',
     noGaps: 'No encontre campos faltantes, puntos de atencion, gaps de provider, conversacion o workflow en los datos estructurados cargados.',
     whyPrefix: 'Esta senal aparece porque',
     sourcePrefix: 'Fuente',
     followUps: {
-      why_current_signal: 'Por que?',
-      deal_gaps: 'Que falta?',
+      why_current_signal: 'Por que importa este punto?',
+      deal_gaps: 'Que falta para calcular?',
       compare_these: 'Comparar estos',
       show_providers: 'Mostrar providers',
-      explain_metrics: 'Explicar metricas',
+      explain_metrics: 'Explicar metricas visibles',
       review_next: 'Que revisar ahora?',
-      deal_snapshot: 'Snapshot del deal',
+      deal_snapshot: 'Snapshot actual del deal',
       view_recent_sales_comps: 'Ver ventas utilizadas',
       compare_provider_avm: 'Comparar con estimacion del proveedor',
       view_zip_market: 'Ver mercado del ZIP',
@@ -273,11 +294,54 @@ function metricsLine(metrics, t) {
   const metricSet = metrics?.metrics;
   if (!metricSet) return '';
   const parts = [
-    metricValue(metricSet.pricePerSqft, 'unitCurrency') ? `price/sqft ${metricValue(metricSet.pricePerSqft, 'unitCurrency')}` : '',
-    metricValue(metricSet.acquisitionPlusRehab, 'currency') ? `acq+rehab ${metricValue(metricSet.acquisitionPlusRehab, 'currency')}` : '',
-    metricValue(metricSet.capRate, 'percent') ? `cap rate ${metricValue(metricSet.capRate, 'percent')}` : '',
+    metricValue(metricSet.pricePerSqft, 'unitCurrency') ? `${t.pricePerSqft}: ${metricValue(metricSet.pricePerSqft, 'unitCurrency')}` : '',
+    metricValue(metricSet.acquisitionPlusRehab, 'currency') ? `${t.acquisitionPlusRehab}: ${metricValue(metricSet.acquisitionPlusRehab, 'currency')}` : '',
+    metricValue(metricSet.capRate, 'percent') ? `${t.capRate}: ${metricValue(metricSet.capRate, 'percent')}` : '',
   ].filter(Boolean);
   return parts.length ? `${t.metrics}: ${parts.join('; ')}` : '';
+}
+
+function missingMetricInputs(metric, t) {
+  const labels = {
+    price: t.price,
+    sqft: 'sqft',
+    rehab: 'rehab',
+    capRate: t.capRate,
+    rent: 'rent',
+    expenses: 'expenses',
+  };
+  return asArray(metric?.missingInputs).map((input) => labels[input] || titleize(input)).filter(Boolean);
+}
+
+function metricExplanationLines(metric, label, kind, explanation, t) {
+  const value = metricValue(metric, kind);
+  if (value) {
+    return [
+      `${label}: ${value}.`,
+      `${t.explainMetricSource}: ${explanation}`,
+      metric?.source === 'stored' ? `${t.sourcePrefix}: registered/stored value; not independently recalculated here.` : '',
+    ].filter(Boolean).join('\n');
+  }
+  const missing = missingMetricInputs(metric, t);
+  return [
+    `${label}: ${t.unavailable}.`,
+    `${t.missingToCalculate}: ${missing.length ? missing.join(', ') : t.notLoaded}.`,
+  ].join('\n');
+}
+
+function gapRank(gap = {}) {
+  const code = String(gap.code || '').toLowerCase();
+  const category = String(gap.category || '').toUpperCase();
+  if (/cap|rent|expense|rehab|price|sqft|arv|value|condition/.test(code)) return 100;
+  if (category === 'DATA') return 90;
+  if (category === 'DUE_DILIGENCE') return 80;
+  if (category === 'PROVIDER') return 55;
+  if (category === 'WORKFLOW') return 45;
+  return 30;
+}
+
+function highestValueGap(gaps = []) {
+  return [...asArray(gaps)].sort((left, right) => gapRank(right) - gapRank(left))[0] || null;
 }
 
 function firstServiceLine(source, t) {
@@ -389,13 +453,20 @@ export function buildDealGapsResponse(sourceInput = {}, language = 'en') {
   const source = normalizeMaxxisDealIntelligenceSource(sourceInput) || sourceInput;
   if (!hasStructuredDeal(source)) return { content: t.noStructuredDeal, gaps: [] };
   const gaps = buildMaxxisDealGaps(source);
+  const primaryGap = highestValueGap(gaps);
   const lines = [`${t.gapsTitle}`, t.basedOn];
   if (!gaps.length) lines.push(t.noGaps);
-  gaps.slice(0, 6).forEach((gap) => {
+  if (primaryGap) {
+    const category = t.gapCategories[primaryGap.category] || primaryGap.category;
+    lines.push(`${category}: ${primaryGap.evidence}.`);
+    lines.push(`${t.explainMetricSource}: ${primaryGap.source || t.notLoaded}.`);
+    lines.push(`${t.nextAction}: ${primaryGap.resolvableByExistingCapability ? (language === 'pt' ? 'revisar a evidencia carregada ou abrir a acao relacionada.' : language === 'es' ? 'revisar la evidencia cargada o abrir la accion relacionada.' : 'review the loaded evidence or open the related action.') : (language === 'pt' ? 'informar ou corrigir este dado no cadastro da propriedade.' : language === 'es' ? 'informar o corregir este dato en el registro de la propiedad.' : 'provide or correct this field in the property record.')}`);
+  }
+  gaps.filter((gap) => gap !== primaryGap).slice(0, 2).forEach((gap) => {
     const category = t.gapCategories[gap.category] || gap.category;
     lines.push(`- ${category}: ${gap.evidence} (${t.sourcePrefix}: ${gap.source})`);
   });
-  return { content: lines.join('\n'), gaps };
+  return { content: lines.join('\n'), gaps, primaryGap };
 }
 
 export function buildInsightExplanation(sourceInput = {}, language = 'en') {
@@ -420,9 +491,50 @@ export function buildMetricsExplanation(sourceInput = {}, language = 'en') {
   const t = copyFor(language);
   const source = normalizeMaxxisDealIntelligenceSource(sourceInput) || sourceInput;
   if (!hasStructuredDeal(source)) return { content: t.noStructuredDeal };
-  const line = metricsLine(source.metrics, t);
+  const metricSet = source?.metrics?.metrics || null;
+  const lines = [t.metrics, t.basedOn];
+  if (metricSet?.pricePerSqft) {
+    lines.push(metricExplanationLines(
+      metricSet.pricePerSqft,
+      t.pricePerSqft,
+      'unitCurrency',
+      language === 'pt'
+        ? 'preco cadastrado dividido pela area util conhecida.'
+        : language === 'es'
+          ? 'precio registrado dividido por el area util conocida.'
+          : 'registered price divided by known living area.',
+      t,
+    ));
+  }
+  if (metricSet?.acquisitionPlusRehab) {
+    lines.push(metricExplanationLines(
+      metricSet.acquisitionPlusRehab,
+      t.acquisitionPlusRehab,
+      'currency',
+      language === 'pt'
+        ? 'preco cadastrado somado ao rehab informado.'
+        : language === 'es'
+          ? 'precio registrado sumado al rehab informado.'
+          : 'registered price plus reported rehab.',
+      t,
+    ));
+  }
+  if (metricSet?.capRate) {
+    lines.push(metricExplanationLines(
+      metricSet.capRate,
+      t.capRate,
+      'percent',
+      language === 'pt'
+        ? 'taxa cadastrada ou calculavel somente quando receita e despesas estao disponiveis.'
+        : language === 'es'
+          ? 'tasa registrada o calculable solo cuando ingresos y gastos estan disponibles.'
+          : 'stored rate or calculable only when income and operating expenses are available.',
+      t,
+    ));
+  }
+  if (lines.length === 2) lines.push(t.unavailable);
   return {
-    content: [t.metrics, t.basedOn, line || t.unavailable].join('\n'),
+    content: lines.join('\n\n'),
   };
 }
 
@@ -501,8 +613,6 @@ export function buildMaxxisFollowUps(sourceInput = {}, language = 'en') {
     if (!t.followUps[code] || items.some((item) => item.code === code)) return;
     items.push({ code, label: t.followUps[code], intent, requiredContext });
   };
-  const insights = buildMaxxisInsights(source);
-  const gaps = buildMaxxisDealGaps(source);
   const snapshot = source?.raw?.intelligenceSnapshot || source?.raw?.data?.intelligenceSnapshot || {};
   const recent = snapshot?.recentSalesMarketEstimate || snapshot?.providerMarketContext?.recentSalesMarketEstimate;
   const hasRecentEstimate = recent?.status === 'AVAILABLE';
@@ -512,15 +622,10 @@ export function buildMaxxisFollowUps(sourceInput = {}, language = 'en') {
     if (snapshot?.marketEvidence || snapshot?.providerMarketContext?.market) add('view_zip_market', 'view_zip_market', 'market_evidence');
     if (snapshot?.listingEvidence || snapshot?.providerMarketContext?.saleListings) add('view_active_competition', 'view_active_competition', 'sale_listing_evidence');
     if (snapshot?.rentalEvidence?.rentEstimate || snapshot?.providerMarketContext?.rentEstimate) add('review_rent', 'review_rent', 'rental_evidence');
-  } else {
-    if (insights.length || gaps.length) add('why_current_signal', 'explain_current_insight', 'structured_deal_intelligence');
-    if (gaps.length) add('deal_gaps', 'deal_gaps', 'property_details_or_copilot');
   }
   if (source?.comparison) add('compare_these', 'compare_these', 'property_comparison');
   if (asArray(source?.serviceNeeds).length || asArray(source?.serviceMatches).length) add('show_providers', 'show_providers', 'service_needs_or_matches');
-  if (source?.metrics?.metrics) add('explain_metrics', 'explain_metrics', 'deal_metrics');
   if (source?.nextBestAction || asArray(source?.workflow?.items).length) add('review_next', 'review_next', 'workflow_or_next_best_action');
-  if (!hasRecentEstimate && !items.some((item) => item.code === 'deal_snapshot')) add('deal_snapshot', 'deal_snapshot', 'property_details_or_copilot');
   return items.slice(0, 5);
 }
 

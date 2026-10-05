@@ -15,6 +15,8 @@ export const MAXXIS_SMART_ACTION_STATES = Object.freeze({
 export const MAXXIS_SMART_ACTION_CODES = Object.freeze({
   VIEW_DEAL_GAPS: 'VIEW_DEAL_GAPS',
   EXPLAIN_INSIGHT: 'EXPLAIN_INSIGHT',
+  EXPLAIN_METRICS: 'EXPLAIN_METRICS',
+  DEAL_SNAPSHOT: 'DEAL_SNAPSHOT',
   VIEW_PROVIDERS: 'VIEW_PROVIDERS',
   UNLOCK_PROVIDER_CONTACT: 'UNLOCK_PROVIDER_CONTACT',
   DRAFT_PROVIDER_MESSAGE: 'DRAFT_PROVIDER_MESSAGE',
@@ -25,24 +27,58 @@ export const MAXXIS_SMART_ACTION_CODES = Object.freeze({
   REVIEW_NEXT_STEP: 'REVIEW_NEXT_STEP',
 });
 
+export const MAXXIS_ACTION_TYPES = Object.freeze({
+  INFORMATION: 'INFORMATION',
+  INPUT_REQUIRED: 'INPUT_REQUIRED',
+  CALCULATION: 'CALCULATION',
+  COMPARISON: 'COMPARISON',
+  CONFLICT_RESOLUTION: 'CONFLICT_RESOLUTION',
+  SCENARIO: 'SCENARIO',
+  NAVIGATION: 'NAVIGATION',
+});
+
 export const MAXXIS_SMART_ACTION_CATALOG = Object.freeze({
   VIEW_DEAL_GAPS: {
     capability: 'deal_gap_intelligence',
     priority: 78,
+    type: MAXXIS_ACTION_TYPES.INPUT_REQUIRED,
+    consumesOnExecution: true,
     confirmationRequired: false,
     requiredContext: ['structured_deal'],
-    labels: { en: 'View gaps', pt: 'Ver gaps', es: 'Ver gaps' },
+    labels: { en: "What's needed to calculate?", pt: 'O que falta para calcular?', es: 'Que falta para calcular?' },
   },
   EXPLAIN_INSIGHT: {
     capability: 'deal_insight_explanation',
     priority: 66,
+    type: MAXXIS_ACTION_TYPES.INFORMATION,
+    consumesOnExecution: true,
     confirmationRequired: false,
     requiredContext: ['structured_deal'],
-    labels: { en: 'Why?', pt: 'Por que?', es: 'Por que?' },
+    labels: { en: 'Why this attention point?', pt: 'Por que este ponto importa?', es: 'Por que importa este punto?' },
+  },
+  EXPLAIN_METRICS: {
+    capability: 'deal_metric_explanation',
+    priority: 74,
+    type: MAXXIS_ACTION_TYPES.INFORMATION,
+    consumesOnExecution: true,
+    confirmationRequired: false,
+    requiredContext: ['deal_metrics'],
+    labels: { en: 'Explain visible metrics', pt: 'Explicar metricas visiveis', es: 'Explicar metricas visibles' },
+  },
+  DEAL_SNAPSHOT: {
+    capability: 'deal_snapshot',
+    priority: 32,
+    type: MAXXIS_ACTION_TYPES.INFORMATION,
+    consumesOnExecution: true,
+    confirmationRequired: false,
+    requiredContext: ['structured_deal'],
+    labels: { en: 'Current deal snapshot', pt: 'Snapshot atual do deal', es: 'Snapshot actual del deal' },
   },
   VIEW_PROVIDERS: {
     capability: 'provider_matches',
     priority: 92,
+    type: MAXXIS_ACTION_TYPES.NAVIGATION,
+    consumesOnExecution: false,
     confirmationRequired: false,
     requiredContext: ['service_needs_or_matches'],
     labels: { en: 'Show providers', pt: 'Mostrar providers', es: 'Mostrar providers' },
@@ -50,6 +86,8 @@ export const MAXXIS_SMART_ACTION_CATALOG = Object.freeze({
   UNLOCK_PROVIDER_CONTACT: {
     capability: 'provider_contact_unlock',
     priority: 90,
+    type: MAXXIS_ACTION_TYPES.NAVIGATION,
+    consumesOnExecution: false,
     confirmationRequired: true,
     requiredContext: ['service_id', 'locked_contact'],
     labels: { en: 'Unlock contact', pt: 'Desbloquear contato', es: 'Desbloquear contacto' },
@@ -57,6 +95,8 @@ export const MAXXIS_SMART_ACTION_CATALOG = Object.freeze({
   DRAFT_PROVIDER_MESSAGE: {
     capability: 'provider_message_draft',
     priority: 86,
+    type: MAXXIS_ACTION_TYPES.NAVIGATION,
+    consumesOnExecution: false,
     confirmationRequired: false,
     requiredContext: ['service_id', 'property_id', 'unlocked_contact'],
     labels: { en: 'Draft message', pt: 'Gerar draft', es: 'Crear borrador' },
@@ -64,6 +104,8 @@ export const MAXXIS_SMART_ACTION_CATALOG = Object.freeze({
   REVIEW_PROVIDER_REPLY: {
     capability: 'provider_conversation_analysis',
     priority: 84,
+    type: MAXXIS_ACTION_TYPES.NAVIGATION,
+    consumesOnExecution: false,
     confirmationRequired: false,
     requiredContext: ['service_id', 'conversation'],
     labels: { en: 'Review reply', pt: 'Revisar resposta', es: 'Revisar respuesta' },
@@ -71,6 +113,8 @@ export const MAXXIS_SMART_ACTION_CATALOG = Object.freeze({
   DRAFT_PROVIDER_REPLY: {
     capability: 'provider_reply_draft',
     priority: 82,
+    type: MAXXIS_ACTION_TYPES.NAVIGATION,
+    consumesOnExecution: false,
     confirmationRequired: false,
     requiredContext: ['service_id', 'property_id', 'conversation_analysis'],
     labels: { en: 'Draft response', pt: 'Gerar resposta', es: 'Crear respuesta' },
@@ -78,6 +122,8 @@ export const MAXXIS_SMART_ACTION_CATALOG = Object.freeze({
   COMPARE_PROPERTIES: {
     capability: 'property_comparison',
     priority: 64,
+    type: MAXXIS_ACTION_TYPES.COMPARISON,
+    consumesOnExecution: true,
     confirmationRequired: false,
     requiredContext: ['comparison_set'],
     labels: { en: 'Compare', pt: 'Comparar', es: 'Comparar' },
@@ -85,6 +131,8 @@ export const MAXXIS_SMART_ACTION_CATALOG = Object.freeze({
   REVIEW_WORKFLOW: {
     capability: 'deal_workflow',
     priority: 62,
+    type: MAXXIS_ACTION_TYPES.NAVIGATION,
+    consumesOnExecution: false,
     confirmationRequired: false,
     requiredContext: ['workflow'],
     labels: { en: 'Review workflow', pt: 'Revisar workflow', es: 'Revisar workflow' },
@@ -92,6 +140,8 @@ export const MAXXIS_SMART_ACTION_CATALOG = Object.freeze({
   REVIEW_NEXT_STEP: {
     capability: 'next_best_action',
     priority: 72,
+    type: MAXXIS_ACTION_TYPES.NAVIGATION,
+    consumesOnExecution: false,
     confirmationRequired: false,
     requiredContext: ['next_best_action'],
     labels: { en: 'Review next step', pt: 'Revisar proximo passo', es: 'Revisar siguiente paso' },
@@ -115,6 +165,27 @@ function propertyStatus(source = {}) {
   return String(source?.property?.status || source?.property?.state || source?.raw?.property?.status || '').trim().toLowerCase();
 }
 
+function stableStateVersion(source = {}) {
+  const property = source?.property || source?.raw?.property || {};
+  const metricSet = source?.metrics?.metrics || {};
+  const parts = [
+    property.id || property.propertyId || '',
+    property.price ?? '',
+    property.sqft ?? '',
+    metricSet.pricePerSqft?.value ?? metricSet.pricePerSqft?.reason ?? '',
+    metricSet.acquisitionPlusRehab?.value ?? metricSet.acquisitionPlusRehab?.reason ?? '',
+    metricSet.capRate?.value ?? metricSet.capRate?.reason ?? '',
+    asArray(source?.missingFields).join(','),
+    asArray(source?.advisor?.missingInformation).join(','),
+    asArray(source?.advisor?.attentionPoints).join(','),
+  ].join('|');
+  let hash = 0;
+  for (let index = 0; index < parts.length; index += 1) {
+    hash = ((hash * 31) + parts.charCodeAt(index)) >>> 0;
+  }
+  return `v${hash.toString(36)}`;
+}
+
 function isPropertyOperational(source = {}) {
   const status = propertyStatus(source);
   return !['closed', 'sold', 'archived', 'inactive', 'deleted', 'unavailable'].includes(status);
@@ -132,33 +203,51 @@ function makeAction(code, state, overrides = {}, language = 'en') {
   const catalog = MAXXIS_SMART_ACTION_CATALOG[code];
   if (!catalog) return null;
   const label = catalog.labels?.[language] || catalog.labels?.en || code;
+  const status = String(overrides.status || state || '').toUpperCase();
+  const generatedFromStateVersion = String(overrides.generatedFromStateVersion || 'v0');
+  const propertyId = String(overrides.propertyId || overrides.target?.propertyId || '').trim();
   return {
+    id: [code, propertyId || 'global', generatedFromStateVersion].join(':'),
     code,
+    type: overrides.type || catalog.type || MAXXIS_ACTION_TYPES.INFORMATION,
     capability: catalog.capability,
     state,
+    status,
     priority: Number(overrides.priority ?? catalog.priority ?? 0),
     reason: String(overrides.reason || '').slice(0, 180),
     requiredContext: asArray(overrides.requiredContext || catalog.requiredContext),
     confirmationRequired: Boolean(overrides.confirmationRequired ?? catalog.confirmationRequired),
+    consumesOnExecution: Boolean(overrides.consumesOnExecution ?? catalog.consumesOnExecution),
+    generatedFromStateVersion,
     enabled: state === MAXXIS_SMART_ACTION_STATES.AVAILABLE,
     label,
+    intent: String(overrides.intent || code).toLowerCase(),
     target: overrides.target || null,
+    payload: overrides.payload || null,
   };
 }
 
 function makeDecisionAction(action = {}, propertyId = '') {
   const code = String(action.code || action.gapCode || '').trim();
   if (!code || !String(action.label || '').trim()) return null;
+  const generatedFromStateVersion = String(action.generatedFromStateVersion || 'decision');
+  const actionCode = `DECISION_${code}`;
   return {
-    code: `DECISION_${code}`,
+    id: [actionCode, propertyId || 'global', generatedFromStateVersion].join(':'),
+    code: actionCode,
+    type: MAXXIS_ACTION_TYPES.INPUT_REQUIRED,
     capability: 'decision_gap_resolution',
     state: MAXXIS_SMART_ACTION_STATES.AVAILABLE,
+    status: 'AVAILABLE',
     priority: action.criticality === 'CRITICAL' ? 110 : action.criticality === 'IMPORTANT' ? 100 : 80,
     reason: String(action.why || '').slice(0, 300),
     requiredContext: ['deal_decision_context'],
     confirmationRequired: false,
+    consumesOnExecution: true,
+    generatedFromStateVersion,
     enabled: true,
     label: String(action.label),
+    intent: 'decision_gap_resolution',
     target: {
       propertyId,
       gapCode: String(action.gapCode || ''),
@@ -222,37 +311,71 @@ export function buildMaxxisSmartActions(sourceInput = {}, options = {}) {
   const loadedService = firstLoadedService(source);
   const pendingUnlock = options.pendingProviderUnlock || null;
   const propertyId = String(source?.property?.id || source?.raw?.property?.id || '').trim();
+  const generatedFromStateVersion = String(options.analysisStateVersion || stableStateVersion(source));
   const operational = isPropertyOperational(source);
   const completedActionCodes = new Set(asArray(options.completedActionCodes).map((code) => String(code)));
+  const completedActionIds = new Set(asArray(options.completedActionIds).map((id) => String(id)));
+  const isCompleted = (action) => completedActionCodes.has(action?.code) || completedActionIds.has(action?.id);
   const structured = source?.raw?.structuredAnalysis || sourceInput?.data?.structuredAnalysis
     || sourceInput?.structuredAnalysis || null;
   const decisionActions = asArray(structured?.decisionActions)
     .map((action) => makeDecisionAction(action, propertyId)).filter(Boolean);
 
   if (decisionActions.length && surface !== 'providers') {
-    return orderActions(decisionActions.filter((action) => !completedActionCodes.has(action.code)), maxVisible);
+    return orderActions(decisionActions.filter((action) => !isCompleted(action)), maxVisible);
   }
 
   if (gaps.length) {
-    actions.push(makeAction('VIEW_DEAL_GAPS', 'available', { reason: 'Deal gaps are available from loaded structured data.' }, language));
+    const primaryGap = [...gaps].sort((left, right) => {
+      const rank = (gap) => String(gap.category || '') === 'DATA' ? 3 : String(gap.category || '') === 'DUE_DILIGENCE' ? 2 : 1;
+      return rank(right) - rank(left);
+    })[0];
+    actions.push(makeAction('VIEW_DEAL_GAPS', 'available', {
+      reason: primaryGap?.evidence || 'Deal gaps are available from loaded structured data.',
+      propertyId,
+      generatedFromStateVersion,
+      target: { propertyId, gapCode: primaryGap?.code || '', source: primaryGap?.source || '' },
+    }, language));
   }
-  if (insights.length) {
-    actions.push(makeAction('EXPLAIN_INSIGHT', 'available', { reason: 'Explainable insight evidence is loaded.' }, language));
+  const importantInsight = insights.find((insight) => insight.actionable || insight.priority === 'high') || null;
+  if (importantInsight) {
+    actions.push(makeAction('EXPLAIN_INSIGHT', 'available', {
+      reason: importantInsight.evidence,
+      propertyId,
+      generatedFromStateVersion,
+      target: { propertyId, insightCode: importantInsight.code },
+    }, language));
+  }
+  if (source?.metrics?.metrics) {
+    actions.push(makeAction('EXPLAIN_METRICS', 'available', {
+      reason: 'Visible deal metrics can be explained from loaded structured data.',
+      propertyId,
+      generatedFromStateVersion,
+      target: { propertyId },
+    }, language));
   }
   if (source?.comparison) {
-    actions.push(makeAction('COMPARE_PROPERTIES', 'available', { reason: 'Comparison set is loaded.' }, language));
+    actions.push(makeAction('COMPARE_PROPERTIES', 'available', { reason: 'Comparison set is loaded.', propertyId, generatedFromStateVersion }, language));
   }
   if (asArray(source?.serviceNeeds).length || services.length) {
     actions.push(makeAction('VIEW_PROVIDERS', surface === 'providers' ? 'completed' : 'available', {
       reason: services.length ? 'Provider matches are loaded.' : 'Service needs are loaded.',
+      propertyId,
+      generatedFromStateVersion,
     }, language));
   }
   if (asArray(source?.workflow?.items).length) {
-    actions.push(makeAction('REVIEW_WORKFLOW', 'available', { reason: 'Deal workflow is loaded.' }, language));
+    actions.push(makeAction('REVIEW_WORKFLOW', 'available', { reason: 'Deal workflow is loaded.', propertyId, generatedFromStateVersion }, language));
   }
   if (source?.nextBestAction?.nextBestAction || source?.nextBestAction?.code) {
-    actions.push(makeAction('REVIEW_NEXT_STEP', 'available', { reason: 'Next Best Action is loaded.' }, language));
+    actions.push(makeAction('REVIEW_NEXT_STEP', 'available', { reason: 'Next Best Action is loaded.', propertyId, generatedFromStateVersion }, language));
   }
+  actions.push(makeAction('DEAL_SNAPSHOT', 'available', {
+    reason: 'A concise one-shot deal snapshot can be shown.',
+    propertyId,
+    generatedFromStateVersion,
+    target: { propertyId },
+  }, language));
 
   if (surface === 'providers') {
     const pendingMatches = pendingUnlock?.serviceId && services.some((service) => String(service?.id || service?.serviceId || '') === String(pendingUnlock.serviceId));
@@ -294,7 +417,7 @@ export function buildMaxxisSmartActions(sourceInput = {}, options = {}) {
     }
   }
 
-  return orderActions(actions, maxVisible);
+  return orderActions(actions.filter((action) => !isCompleted(action)), maxVisible);
 }
 
 export function findSmartActionTargetService(sourceInput = {}, action = {}) {

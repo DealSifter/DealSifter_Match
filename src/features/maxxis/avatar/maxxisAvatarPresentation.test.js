@@ -148,8 +148,22 @@ describe('Maxxis Deal AI avatar animation presentation', () => {
     expect(css).toContain('--maxxis-idle-scale: 1;');
     expect(css).toContain('--maxxis-observing-scale: 1;');
     expect(css).toContain('--maxxis-waiting-scale: 1;');
+    expect(css.match(/--maxxis-(?:noticed|success)-scale: 1;/g)?.length).toBeGreaterThanOrEqual(6);
     const processing = css.match(/@keyframes maxxisAvatarProcessing \{([\s\S]*?)\n\}/)?.[1] || '';
     expect(processing).not.toMatch(/scale\((?!1\))/);
+  });
+
+  it('keeps expressive state assets visually centered instead of centered by PNG bounds', () => {
+    const css = readFileSync(new URL('./MaxxisAvatar.css', import.meta.url), 'utf8');
+    const stateBlock = (state) => css.match(new RegExp(`\\.maxxis-avatar-layer\\[data-avatar-layer-state="${state}"\\]\\s*\\{([^}]+)\\}`))?.[1] || '';
+    const numericVar = (block, name) => Number(block.match(new RegExp(`${name}:\\s*([-\\d.]+)%?`))?.[1]);
+    const idleScale = numericVar(stateBlock('IDLE'), '--maxxis-layer-scale');
+
+    ['PROCESSING', 'NOTICED', 'WAITING', 'SUCCESS'].forEach((state) => {
+      const block = stateBlock(state);
+      expect(numericVar(block, '--maxxis-layer-scale')).toBeLessThan(idleScale);
+      expect(numericVar(block, '--maxxis-layer-x')).toBeGreaterThan(4);
+    });
   });
 
   it('normalizes each avatar asset independently during crossfade transitions', () => {

@@ -36,7 +36,11 @@ import {
   resolveMaxxisPropertyContext,
 } from '../../features/maxxis/context/maxxisPropertyContext';
 import {
+  buildDealGapsResponse,
+  buildDealSnapshot,
+  buildInsightExplanation,
   buildLocalDealIntelligenceReply,
+  buildMetricsExplanation,
   enhanceMaxxisAssistantResponse,
   promptForMaxxisFollowUp,
 } from '../../features/maxxis/intelligence/maxxisDealIntelligence';
@@ -235,6 +239,7 @@ export function MaxxisAssistant({ page = 'dashboard', onOpenSupport = null, onNa
   const [devAttentionOverrides, setDevAttentionOverrides] = useState(readDevMaxxisAttentionOverrides);
   const [attentionRevision, setAttentionRevision] = useState(0);
   const [continuityRevision, setContinuityRevision] = useState(0);
+  const [actionStateRevision, setActionStateRevision] = useState(0);
   const [dealMemoryStatus, setDealMemoryStatus] = useState('idle');
   const [widgetPosition, setWidgetPosition] = useState(readStoredWidgetPosition);
   const [panelPosition, setPanelPosition] = useState(readStoredPanelPosition);
@@ -2322,6 +2327,33 @@ export function MaxxisAssistant({ page = 'dashboard', onOpenSupport = null, onNa
       dedupeKey: `maxxis-followup:${sourceMessage?.id || 'message'}:${code}`,
       properties: { source: 'maxxis', followup_code: code, intent },
     });
+    const deterministicAction = {
+      id: `followup:${sourceMessage?.id || 'message'}:${code}`,
+      code: intent === 'explain_metrics' ? 'EXPLAIN_METRICS'
+        : intent === 'deal_gaps' ? 'VIEW_DEAL_GAPS'
+          : intent === 'explain_current_insight' ? 'EXPLAIN_INSIGHT'
+            : intent === 'deal_snapshot' ? 'DEAL_SNAPSHOT' : '',
+      label: followUp?.label || promptForMaxxisFollowUp(followUp, language),
+      type: 'INFORMATION',
+      consumesOnExecution: true,
+      generatedFromStateVersion: String(sourceMessage?.data?.action?.generatedFromStateVersion || sourceMessage?.id || ''),
+    };
+    if (deterministicAction.code === 'EXPLAIN_METRICS') {
+      appendDeterministicSmartActionResponse(deterministicAction, sourceMessage, buildMetricsExplanation(smartActionSourcePayload(sourceMessage), language), 'maxxis_metric_explanation');
+      return;
+    }
+    if (deterministicAction.code === 'VIEW_DEAL_GAPS') {
+      appendDeterministicSmartActionResponse(deterministicAction, sourceMessage, buildDealGapsResponse(smartActionSourcePayload(sourceMessage), language), 'deal_gaps');
+      return;
+    }
+    if (deterministicAction.code === 'EXPLAIN_INSIGHT') {
+      appendDeterministicSmartActionResponse(deterministicAction, sourceMessage, buildInsightExplanation(smartActionSourcePayload(sourceMessage), language), 'maxxis_insight_explanation');
+      return;
+    }
+    if (deterministicAction.code === 'DEAL_SNAPSHOT') {
+      appendDeterministicSmartActionResponse(deterministicAction, sourceMessage, buildDealSnapshot(smartActionSourcePayload(sourceMessage), language), 'deal_snapshot');
+      return;
+    }
     void submitMessage(promptForMaxxisFollowUp(followUp, language), {
       controlledIntent: intent,
       sourceMessageId: sourceMessage?.id || '',
@@ -2370,6 +2402,7 @@ export function MaxxisAssistant({ page = 'dashboard', onOpenSupport = null, onNa
   };
 
   const getMessageSmartActions = useCallback((message) => {
+    void actionStateRevision;
     if (!message?.smartActionsEnabled) return [];
     let eligibleActions = buildMaxxisSmartActions(smartActionSourcePayload(message), {
       language,
@@ -2377,7 +2410,8 @@ export function MaxxisAssistant({ page = 'dashboard', onOpenSupport = null, onNa
       surface: message.smartActionSurface || (message.type === 'smart_provider_actions' ? 'providers' : 'snapshot'),
       maxVisible: 3,
       completedActionCodes: [...completedDecisionActionsRef.current],
-    }).filter((action) => action.enabled && !completedDecisionActionsRef.current.has(action.code));
+      completedActionIds: [...completedDecisionActionsRef.current],
+    }).filter((action) => action.enabled && !completedDecisionActionsRef.current.has(action.code) && !completedDecisionActionsRef.current.has(action.id));
     const completedIntent = String(message?.data?.intent || '');
     if (completedIntent === 'deal_snapshot') {
       eligibleActions = eligibleActions.filter((action) => action.code !== 'EXPLAIN_INSIGHT');
@@ -2392,7 +2426,7 @@ export function MaxxisAssistant({ page = 'dashboard', onOpenSupport = null, onNa
       continuityContext: maxxisContinuityResolution.context,
     });
     return [decision.primaryAction, ...decision.secondaryActions].filter(Boolean);
-  }, [effectiveMaxxisPreferences, enabled, language, maxxisContinuityResolution.context, open, pendingProviderUnlock]);
+  }, [actionStateRevision, effectiveMaxxisPreferences, enabled, language, maxxisContinuityResolution.context, open, pendingProviderUnlock]);
 
   const visibleSmartActionsByMessageId = useMemo(() => dedupeMaxxisSmartActionsByLatestMessage(
     messages.map((message) => ({ messageId: message.id, actions: getMessageSmartActions(message) })),
@@ -2751,6 +2785,48 @@ export function MaxxisAssistant({ page = 'dashboard', onOpenSupport = null, onNa
     appendProactiveContextMessage(currentBubble);
   };
 
+  const consumeSmartAction = (action) => {
+    if (!action?.consumesOnExecution) return;
+    completedDecisionActionsRef.current.add(String(action.id || action.code));
+    setActionStateRevision((revision) => revision + 1);
+  };
+
+  const appendDeterministicSmartActionResponse = (action, sourceMessage, response, responseType) => {
+    const visibleLabel = String(action?.label || '').trim();
+    const sourcePayload = smartActionSourcePayload(sourceMessage);
+    consumeSmartAction(action);
+    setMessages((prev) => [...prev,
+      {
+        id: `maxxis-user-action-${Date.now()}`,
+        role: 'user',
+        content: visibleLabel,
+        createdAt: new Date(),
+      },
+      {
+        id: `maxxis-action-response-${Date.now()}`,
+        role: 'assistant',
+        content: response?.content || t.unavailable,
+        createdAt: new Date(),
+        type: responseType,
+        data: {
+          sourceType: sourcePayload?.type || sourceMessage?.type || '',
+          sourceData: sourcePayload?.data || sourceMessage?.data || null,
+          action: {
+            id: action?.id || '',
+            code: action?.code || '',
+            type: action?.type || '',
+            status: 'COMPLETED',
+            generatedFromStateVersion: action?.generatedFromStateVersion || '',
+          },
+          gaps: response?.gaps || undefined,
+          primaryGap: response?.primaryGap || undefined,
+        },
+        followUps: [],
+        smartActionsEnabled: false,
+      },
+    ]);
+  };
+
   const handleSmartAction = (action, sourceMessage) => {
     if (!action?.enabled || loading) return;
     const sourcePayload = smartActionSourcePayload(sourceMessage);
@@ -2776,7 +2852,24 @@ export function MaxxisAssistant({ page = 'dashboard', onOpenSupport = null, onNa
       lastExperienceMode: sourceMessage?.compositionMode || '',
       sourceSurface: { page: 'maxxis' },
     });
+    if (action.code === 'EXPLAIN_METRICS') {
+      appendDeterministicSmartActionResponse(action, sourceMessage, buildMetricsExplanation(sourcePayload, language), 'maxxis_metric_explanation');
+      return;
+    }
+    if (action.code === 'VIEW_DEAL_GAPS') {
+      appendDeterministicSmartActionResponse(action, sourceMessage, buildDealGapsResponse(sourcePayload, language), 'deal_gaps');
+      return;
+    }
+    if (action.code === 'EXPLAIN_INSIGHT') {
+      appendDeterministicSmartActionResponse(action, sourceMessage, buildInsightExplanation(sourcePayload, language), 'maxxis_insight_explanation');
+      return;
+    }
+    if (action.code === 'DEAL_SNAPSHOT') {
+      appendDeterministicSmartActionResponse(action, sourceMessage, buildDealSnapshot(sourcePayload, language), 'deal_snapshot');
+      return;
+    }
     if (String(action.code || '').startsWith('DECISION_')) {
+      consumeSmartAction(action);
       completedDecisionActionsRef.current.add(action.code);
       const inputField = String(action.target?.inputField || '');
       if (['target_condition', 'rehab_budget'].includes(inputField) || action.target?.source === 'USER') {
@@ -2786,20 +2879,6 @@ export function MaxxisAssistant({ page = 'dashboard', onOpenSupport = null, onNa
       void submitMessage(action.target?.prompt || action.label, {
         visibleUserMessage: action.label,
         controlledIntent: 'review_next',
-        sourceMessageId: sourceMessage?.id || '',
-      });
-      return;
-    }
-    if (action.code === 'VIEW_DEAL_GAPS') {
-      void submitMessage(promptForMaxxisFollowUp({ code: 'deal_gaps', label: action.label }, language), {
-        controlledIntent: 'deal_gaps',
-        sourceMessageId: sourceMessage?.id || '',
-      });
-      return;
-    }
-    if (action.code === 'EXPLAIN_INSIGHT') {
-      void submitMessage(promptForMaxxisFollowUp({ code: 'why_current_signal', label: action.label }, language), {
-        controlledIntent: 'explain_current_insight',
         sourceMessageId: sourceMessage?.id || '',
       });
       return;

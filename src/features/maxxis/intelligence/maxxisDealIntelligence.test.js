@@ -103,15 +103,15 @@ describe('Maxxis Deal AI interactive deal intelligence', () => {
     expect(buildDealGapsResponse(propertyDetails, 'pt').content).toContain('O que esta faltando');
   });
 
-  it('adds controlled follow-ups inside the existing Maxxis Deal AI response context', () => {
+  it('keeps follow-ups for non-looping contextual actions only', () => {
     const followUps = buildMaxxisFollowUps(propertyDetails, 'en');
 
-    expect(followUps.map((item) => item.code)).toEqual(expect.arrayContaining([
+    expect(followUps.map((item) => item.code)).toEqual(['show_providers', 'review_next']);
+    expect(followUps.map((item) => item.code)).not.toEqual(expect.arrayContaining([
       'why_current_signal',
       'deal_gaps',
-      'show_providers',
       'explain_metrics',
-      'review_next',
+      'deal_snapshot',
     ]));
     expect(followUps.every((item) => item.intent && item.requiredContext)).toBe(true);
   });

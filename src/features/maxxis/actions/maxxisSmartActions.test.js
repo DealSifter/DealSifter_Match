@@ -73,6 +73,36 @@ describe('Maxxis Deal AI smart actions eligibility', () => {
     expect(actions.length).toBeLessThanOrEqual(3);
   });
 
+  it('uses canonical action metadata and suppresses completed one-shot actions at the same state version', () => {
+    const source = sourceWithService({ status: 'locked', cost: 1 });
+    source.data.metrics = {
+      metrics: {
+        pricePerSqft: { calculable: true, value: 133, source: 'calculated' },
+        acquisitionPlusRehab: { calculable: true, value: 276000, source: 'calculated' },
+        capRate: { calculable: false, reason: 'missing_input', missingInputs: ['capRate'] },
+      },
+    };
+    const actions = buildMaxxisSmartActions(source, { surface: 'snapshot', maxVisible: 3 });
+    const explain = actions.find((action) => action.code === 'EXPLAIN_METRICS');
+
+    expect(explain).toEqual(expect.objectContaining({
+      type: 'INFORMATION',
+      status: 'AVAILABLE',
+      consumesOnExecution: true,
+      generatedFromStateVersion: expect.stringMatching(/^v/),
+      id: expect.stringContaining('EXPLAIN_METRICS'),
+    }));
+    expect(actions.map((action) => action.label)).not.toContain('Por que?');
+    expect(actions).toHaveLength(3);
+
+    const afterCompleted = buildMaxxisSmartActions(source, {
+      surface: 'snapshot',
+      maxVisible: 3,
+      completedActionIds: [explain.id],
+    });
+    expect(afterCompleted.map((action) => action.code)).not.toContain('EXPLAIN_METRICS');
+  });
+
   it('allows unlock but blocks draft when provider contact is locked', () => {
     const actions = buildMaxxisSmartActions(sourceWithService({ status: 'locked', cost: 1 }), { surface: 'providers', maxVisible: 10 });
 
