@@ -798,15 +798,15 @@ function propertyFactGrid(doc, property, evidence, t, accent, y) {
   ].map(([title, entries]) => [title, entries.filter(([, entry]) => entry !== null && entry !== undefined && entry !== ''
     && (!Array.isArray(entry) || entry.length > 0))]);
   const rowOptions = {
-    lineHeight: 13, labelWidth: 55, limit: 10, t,
-    labelSize: 7, valueSize: 6.8, valueMaxLines: null,
+    lineHeight: 12, labelWidth: 55, limit: 10, t,
+    labelSize: 6.6, valueSize: 6.4, valueMaxLines: null, rowGap: 4,
   };
   const contentHeight = Math.max(...facts.map(([, entries]) => rows(doc, entries, 0, 0, w - 20, { ...rowOptions, draw: false })));
-  const h = Math.max(134, 42 + contentHeight + 5);
+  const h = Math.max(126, 39 + contentHeight + 4);
   facts.forEach(([title, entries], i) => {
     const x = M + i * (w + gap); panel(doc, x, y, w, h);
     heading(doc, title, x + 10, y + 22, w - 20, accent);
-    rows(doc, entries, x + 10, y + 42, w - 20, rowOptions);
+    rows(doc, entries, x + 10, y + 39, w - 20, rowOptions);
   });
   return y + h;
 }
@@ -869,12 +869,12 @@ function renderPropertyOverview(doc, schema, t, accent, images, mapImage) {
   if (schema.reportType === 'PROPERTY_RELEASE') {
     propertyReleaseHero(doc, property, t, accent, images[0]);
     const factGridBottom = propertyFactGrid(doc, property, evidence, t, accent, 315);
-    propertyReleaseBottom(doc, property, t, accent, factGridBottom + 15, images, mapImage);
+    propertyReleaseBottom(doc, property, t, accent, factGridBottom, images, mapImage);
     return;
   }
   propertyHero(doc, property, t, accent, images[0]);
   const factGridBottom = propertyFactGrid(doc, property, evidence, t, accent, 315);
-  propertyBottom(doc, property, t, accent, factGridBottom + 15, images, array(evidence.conflicts), mapImage);
+  propertyBottom(doc, property, t, accent, factGridBottom, images, array(evidence.conflicts), mapImage);
 }
 function renderExecutive(doc, schema, t, accent, images, mapImage) {
   const property = section(schema, 'propertySummary') || {};

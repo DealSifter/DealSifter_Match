@@ -84,13 +84,15 @@ describe('canonical PDF template behavior', () => {
   it('preserves complete property facts and expands the layout before the photo section', () => {
     const source = readFileSync(new URL('./maxxisReportPdf.js', import.meta.url), 'utf8');
     const facts = source.split('function propertyFactGrid(')[1].split('function propertyBottom(')[0];
-    expect(facts).toContain('const h = Math.max(134, 42 + contentHeight + 5)');
+    expect(facts).toContain('const h = Math.max(126, 39 + contentHeight + 4)');
     expect(facts).toContain('localizedDate(latestSaleDate, t)');
-    expect(facts).toContain('lineHeight: 13');
+    expect(facts).toContain('lineHeight: 12');
+    expect(facts).toContain('rowGap: 4');
     expect(facts).toContain('valueMaxLines: null');
     expect(facts).toContain('contentHeight');
     expect(source).toContain('const step = Math.max(lineHeight, contentHeight + rowGap)');
-    expect(source).toContain('factGridBottom + 15');
+    expect(source).toContain('propertyReleaseBottom(doc, property, t, accent, factGridBottom, images, mapImage)');
+    expect(source).toContain('propertyBottom(doc, property, t, accent, factGridBottom, images, array(evidence.conflicts), mapImage)');
     expect(source).toContain('notes.sectionGapY ?? REPORT_SECTION_GAP_Y');
   });
 

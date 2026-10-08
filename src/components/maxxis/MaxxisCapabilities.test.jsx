@@ -161,8 +161,9 @@ describe('Maxxis Deal AI structured result presentation', () => {
     expect(css).toMatch(/\.maxxis-v2-info-card\.is-narrative dd\s*\{[^}]*text-align:\s*left/);
     expect(css).toMatch(/\.maxxis-v2-info-card\s*\{[\s\S]*?overflow:\s*hidden/);
     expect(css).toMatch(/\.maxxis-v2-ai-summary\s*\{[\s\S]*?overflow:\s*hidden/);
-    expect(css).toMatch(/\.maxxis-v2-bottom-grid\s*\{[\s\S]*?margin-top:\s*8px/);
-    expect(css).toMatch(/\.maxxis-v2-photo-section\s*\{[\s\S]*?margin-bottom:\s*8px/);
+    expect(css).toMatch(/\.maxxis-v2-info-grid \+ \.maxxis-v2-photo-section\s*\{[\s\S]*?margin-top:\s*-4px/);
+    expect(css).toMatch(/\.maxxis-v2-bottom-grid\s*\{[\s\S]*?margin-top:\s*0/);
+    expect(css).not.toMatch(/\.maxxis-v2-photo-section\s*\{[\s\S]*?margin-bottom:\s*8px/);
   });
 
   it('keeps structural evidence behind the compact supporting-comps action', () => {
