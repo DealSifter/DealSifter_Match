@@ -77,17 +77,17 @@ export function buildMaxxisProactiveTriggers({ property = {}, snapshot = {}, dec
   const market = object(snapshot.providerMarketContext);
   const recent = object(snapshot.recentSalesMarketEstimate || market.recentSalesMarketEstimate);
   const assumptions = { ...object(snapshot.dealAssumptions), ...object(scenario?.assumptions) };
-  const compare = (patches) => {
-    if (scenario?.status !== 'COMPLETE') return {};
+  const compare = (patches, basis = scenario) => {
+    if (basis?.status !== 'COMPLETE') return {};
     try {
       const labels = { monthlyPI: t('P&I mensal', 'Monthly P&I', 'P&I mensual'), balloonBalance: t('Saldo do balloon', 'Balloon balance', 'Saldo del balloon'),
         interestPaidToBalloon: t('Juros até o balloon', 'Interest to balloon', 'Intereses hasta balloon'),
         projectedProfit: t('Lucro projetado', 'Projected profit', 'Beneficio proyectado'), profitMargin: t('Margem (%)', 'Margin (%)', 'Margen (%)'),
         NOI: 'NOI', capRate: 'Cap rate (%)', annualCashFlow: t('Fluxo de caixa anual', 'Annual cash flow', 'Flujo de caja anual') };
       const rows = patches.map((patch) => {
-        const outputs = calculateScenario(strategy, { ...scenario.assumptions, ...patch });
+        const outputs = calculateScenario(basis.strategy, { ...basis.assumptions, ...patch });
         return Object.entries(labels).filter(([key]) => number(outputs[key]) !== null).map(([key, label]) =>
-          `${label}: ${/Rate|Margin/.test(key) ? outputs[key] : money(outputs[key])} (${t('anterior', 'previous', 'anterior')}: ${/Rate|Margin/.test(key) ? scenario.calculatedOutputs[key] : money(scenario.calculatedOutputs[key])})`).join('\n');
+          `${label}: ${/Rate|Margin/.test(key) ? outputs[key] : money(outputs[key])} (${t('anterior', 'previous', 'anterior')}: ${/Rate|Margin/.test(key) ? basis.calculatedOutputs[key] : money(basis.calculatedOutputs[key])})`).join('\n');
       });
       return { localResponse: rows.join('\n\n') };
     } catch { return {}; }
@@ -211,7 +211,7 @@ export function buildMaxxisProactiveTriggers({ property = {}, snapshot = {}, dec
           `The assumption change moved ${labels[key]} from ${money(previousScenario.calculatedOutputs[key])} to ${money(outputs[key])}. Compare scenarios?`,
           `El cambio de supuesto modificó ${labels[key]} de ${money(previousScenario.calculatedOutputs[key])} a ${money(outputs[key])}. ¿Comparamos escenarios?`);
         add('SCENARIO_DELTA', 'P1', { key, comparison, before: previousScenario.assumptions, after: scenario.assumptions }, message,
-          t('Comparar cenários', 'Compare scenarios', 'Comparar escenarios'), message, { localResponse: message });
+          t('Comparar cenários', 'Compare scenarios', 'Comparar escenarios'), message, compare([scenario.assumptions], previousScenario));
       }
     }
     if (strategy === 'SELLER_FINANCING' && positive(outputs.monthlyPI) && number(outputs.balloonBalance) !== null && number(assumptions.annualInterestRate) >= 1) add('SELLER_FINANCING_COMPARISON', 'P2',

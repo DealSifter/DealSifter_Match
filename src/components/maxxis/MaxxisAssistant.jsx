@@ -2545,7 +2545,7 @@ export function MaxxisAssistant({ page = 'dashboard', onOpenSupport = null, onNa
     });
     signals.unshift(...contextualTriggers);
     const relevanceOptions = {
-      config: { enabled: proactiveEnabled, attentionSafetyManaged: true },
+      config: { enabled: proactiveEnabled, attentionSafetyManaged: true, cooldownMs: open ? 0 : MAXXIS_PROACTIVE_DEFAULT_CONFIG.cooldownMs },
       contextSnapshot: maxxisContextSnapshot,
       sessionMemory: proactiveSessionRef.current,
       now,

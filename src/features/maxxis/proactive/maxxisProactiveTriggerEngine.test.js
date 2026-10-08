@@ -69,6 +69,8 @@ describe('Contextual proactivity over existing deterministic intelligence', () =
     expect(trigger.message).toContain('lucro projetado');
     expect(trigger.message).toContain('45.000');
     expect(trigger.message).toContain('20.000');
+    expect(trigger.actions[0].target.localResponse).toContain('Margem (%)');
+    expect(trigger.actions[0].target.localResponse).not.toContain('Quer comparar');
   });
   it('FLIP offers a price target that actually produces the stated margin', () => {
     const flip = { ...property, objective: 'Flip' };
