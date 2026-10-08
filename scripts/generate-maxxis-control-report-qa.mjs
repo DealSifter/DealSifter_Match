@@ -222,6 +222,7 @@ mapContext.fillStyle = '#1db8bc'; mapContext.beginPath(); mapContext.arc(410, 18
 const mapImage = mapCanvas.toDataURL('image/png');
 
 await mkdir(output, { recursive: true });
+await mkdir(`${root}qa/`, { recursive: true });
 const rows = {
   droad: await findProperty('5939 Droad st'),
   gable: await findProperty('741 Gable dr'),
@@ -374,6 +375,7 @@ try {
     ['droad', 'MAXXIS_ANALYSIS', 'pro', 'droad-level-2-en.pdf', 'en'],
     ['droad', 'MAXXIS_ANALYSIS', 'pro', 'droad-level-2-es.pdf', 'es'],
   ];
+  const layoutAudit = { generatedAt: manifest.generatedAt, reports: {} };
   const samplePhoto = `data:image/jpeg;base64,${(await readFile(`${root}src/assets/maxxis/report-previews/sample-property-photo.jpg`)).toString('base64')}`;
   for (const [key, reportType, plan, filename, requestedLanguage = 'pt'] of reportPlan) {
     const control = controls[key];
@@ -395,10 +397,15 @@ try {
       generatedAt: manifest.generatedAt, language: requestedLanguage, mapImageData: mapImage });
     if (rendered.state !== 'RENDERED') throw new Error(`${filename}:${rendered.state}`);
     await writeFile(`${output}${filename}`, rendered.document.binary);
+    layoutAudit.reports[filename] = rendered.document.layoutAudit || { lines: [], sections: [] };
+    const overflowingLine = layoutAudit.reports[filename].lines.find((line) => Number(line.overflowX) > 0 || Number(line.overflowY) > 0);
+    const overflowingSection = layoutAudit.reports[filename].sections.find((section) => Number(section.overflowPixels) > 0 || Number(section.clippedLines) > 0);
+    if (overflowingLine || overflowingSection) throw new Error(`${filename}:LAYOUT_OVERFLOW:${JSON.stringify({ overflowingLine, overflowingSection })}`);
     manifest.reports[filename] = { pageCount: rendered.document.pageCount, reportType, property: key, language: requestedLanguage };
     if (reportType !== 'PROPERTY_RELEASE') manifest.reports[filename].focusMap = schema.presentation.scenarioFocusMap
       || schema.presentation.canonicalInvestmentAnalysis?.focusMap || null;
   }
+  await writeFile(`${root}qa/report-layout-audit.json`, `${JSON.stringify(layoutAudit, null, 2)}\n`, 'utf8');
   const parityFields = ['assessorId', 'county', 'lotSizeSqft', 'yearBuilt', 'annualPropertyTax', 'assessedValue',
     'latestSalePrice', 'ownerOccupied', 'zoning', 'subdivision', 'propertyUserNotes'];
   for (const [key, control] of Object.entries(controls)) {

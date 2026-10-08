@@ -32,6 +32,24 @@ export const SECTION_TEXT_POLICIES = Object.freeze({
   level3ListCard: policy('level3ListCard', 350, 520, 10, 14, 3, 4),
 });
 
+export const REPORT_TEXT_POLICIES = Object.freeze({
+  propertyNotes: SECTION_TEXT_POLICIES.propertyNotes,
+  level2OpportunitySummary: policy('level2OpportunitySummary', 640, 700, 7, 8, 3, 4),
+  level2ExecutiveInsight: policy('level2ExecutiveInsight', 580, 650, 6, 7, 3, 4),
+  page5PositiveSignals: policy('page5PositiveSignals', 300, 420, 6, 8, 4, 4),
+  page5Missing: policy('page5Missing', 300, 420, 6, 8, 4, 4),
+  page5AttentionPoints: policy('page5AttentionPoints', 300, 420, 6, 8, 4, 4),
+  page5RecommendedActions: policy('page5RecommendedActions', 300, 420, 6, 8, 4, 4),
+  page5ExecutiveInsight: policy('page5ExecutiveInsight', 580, 650, 6, 7, 3, 4),
+  page6ExecutiveSummary: policy('page6ExecutiveSummary', 700, 800, 6, 8, 2, 2),
+  page6ProfileConclusion: policy('page6ProfileConclusion', 560, 650, 7, 8, 2, 3),
+  page6MainTopics: policy('page6MainTopics', 300, 350, 5, 6, 3, 3),
+  page6OpenQuestions: policy('page6OpenQuestions', 260, 300, 5, 6, 3, 3),
+  page6RecommendedActions: policy('page6RecommendedActions', 260, 300, 5, 6, 3, 3),
+  valuationLimitations: policy('valuationLimitations', 350, 520, 8, 10, 3, 4),
+  comparableObservations: policy('comparableObservations', 350, 520, 6, 8, 3, 4),
+});
+
 export const REPORT_METRIC_BAR = Object.freeze({ height: 8, radius: 4, neutralTrack: [226, 234, 239] });
 
 export function selectSectionTextTier({ text = '', policy: sectionPolicy, measure }) {

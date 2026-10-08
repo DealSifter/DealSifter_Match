@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import {
-  REPORT_BODY_TIERS, REPORT_LAYOUT_TOKENS, REPORT_METRIC_BAR, REPORT_SOLID_OFFSETS, SECTION_TEXT_POLICIES,
+  REPORT_BODY_TIERS, REPORT_LAYOUT_TOKENS, REPORT_METRIC_BAR, REPORT_SOLID_OFFSETS, REPORT_TEXT_POLICIES, SECTION_TEXT_POLICIES,
   deduplicateAndBudgetItems, selectSectionTextTier,
 } from './maxxisReportVisualPolicy';
 
@@ -17,6 +17,7 @@ const select = (length, availableHeight) => selectSectionTextTier({
 describe('Maxxis fixed report visual policy', () => {
   it('defines seven section-specific policies and discrete readable tiers', () => {
     expect(Object.keys(SECTION_TEXT_POLICIES)).toHaveLength(7);
+    expect(Object.keys(REPORT_TEXT_POLICIES).length).toBeGreaterThanOrEqual(14);
     expect(REPORT_BODY_TIERS).toEqual({ default: 10.5, tier1: 10, tier2: 9.5, minimum: 9 });
   });
   it('keeps short text at the default size despite unused space', () => expect(select(80, 180).tier).toBe('default'));

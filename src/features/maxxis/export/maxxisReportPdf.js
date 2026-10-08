@@ -4,8 +4,8 @@ import notoSansBold from '../../../assets/maxxis/fonts/NotoSans-Bold.ttf?inline'
 import { renderMaxxisReportDocument } from './maxxisReportRenderer';
 import { explainMaxxisEvidenceState } from '../intelligence/maxxisUserFacingEvidence';
 import {
-  REPORT_BODY_TIERS, REPORT_LAYOUT_TOKENS, REPORT_METRIC_BAR, REPORT_SOLID_OFFSETS, SECTION_TEXT_POLICIES,
-  deduplicateAndBudgetItems, selectSectionTextTier,
+  REPORT_BODY_TIERS, REPORT_LAYOUT_TOKENS, REPORT_METRIC_BAR, REPORT_SOLID_OFFSETS, REPORT_TEXT_POLICIES,
+  deduplicateAndBudgetItems,
 } from './maxxisReportVisualPolicy';
 
 // The same page functions render real reports and the isolated commercial fixture.
@@ -15,6 +15,7 @@ const H = 841.89;
 const M = 30;
 const CONTENT = W - M * 2;
 const BODY_OFFSET = 7;
+const PAGE_SAFE_BOTTOM = 803 + BODY_OFFSET;
 export const REPORT_SECTION_GAP_Y = REPORT_LAYOUT_TOKENS.sectionGapY;
 export const MAXXIS_REPORT_TYPOGRAPHY = Object.freeze({
   body: REPORT_BODY_TIERS.default, analyticalBody: REPORT_BODY_TIERS.default, sectionHeader: 11.6, caption: 6.7,
@@ -267,16 +268,271 @@ function text(doc, input, x, y, { size = 9, minSize = 4.2, bold = false, color =
   doc.text(lines, x, y, { align });
   return y + lines.length * (effectiveSize + 3);
 }
-function adaptiveText(doc, input, x, y, { width, availableHeight, policy, bold = false, color = C.ink, align = 'left' }) {
-  const content = value(input, '');
-  const fit = selectSectionTextTier({ text: content, policy, measure: (fontSize) => {
-    doc.setFont('NotoSans', bold ? 'bold' : 'normal'); doc.setFontSize(fontSize);
-    const lineCount = doc.splitTextToSize(content, width).length;
-    const renderedHeight = lineCount * (fontSize + 3);
-    return { lineCount, renderedHeight, availableHeight, overflowHeight: Math.max(0, renderedHeight - availableHeight) };
-  } });
-  return text(doc, content, x, y, { size: fit.fontSize, minSize: fit.fontSize, bold, color, width,
-    maxLines: policy.maximumLineCount, align });
+export function createCardGeometry({
+  x, y, width, height, paddingTop = 8, paddingRight = 10, paddingBottom = 10, paddingLeft = 10, titleHeight = 34,
+} = {}) {
+  return Object.freeze({
+    x, y, width, height, paddingTop, paddingRight, paddingBottom, paddingLeft, titleHeight,
+    contentX: x + paddingLeft,
+    contentY: y + titleHeight + paddingTop,
+    contentWidth: width - paddingLeft - paddingRight,
+    contentHeight: height - titleHeight - paddingTop - paddingBottom,
+  });
+}
+const boundsFromGeometry = (geometry) => Object.freeze({
+  x: geometry.contentX, y: geometry.contentY, width: geometry.contentWidth, height: geometry.contentHeight,
+  right: geometry.contentX + geometry.contentWidth, bottom: geometry.contentY + geometry.contentHeight,
+});
+const cardBoundsFromGeometry = (geometry) => Object.freeze({
+  x: geometry.x, y: geometry.y, width: geometry.width, height: geometry.height,
+  right: geometry.x + geometry.width, bottom: geometry.y + geometry.height,
+});
+function reportLineHeight(doc, fontSize) {
+  doc.setFontSize(fontSize);
+  const metricHeight = typeof doc.getLineHeight === 'function' ? Number(doc.getLineHeight()) : 0;
+  return Math.max(fontSize + 3, Number.isFinite(metricHeight) ? metricHeight : 0);
+}
+function reportLayoutAudit(doc) {
+  if (!doc.__maxxisLayoutAudit) doc.__maxxisLayoutAudit = { lines: [], sections: [] };
+  return doc.__maxxisLayoutAudit;
+}
+function normalizeReportBody(input) {
+  return Array.isArray(input) ? input.map((item) => String(item || '').trim()).filter(Boolean).join('\n')
+    : String(input || '').replace(/\r/g, '').replace(/[ \t]+/g, ' ').replace(/\n{3,}/g, '\n\n').trim();
+}
+function semanticUnits(text) {
+  const normalized = normalizeReportBody(text);
+  if (!normalized) return [];
+  const byLine = normalized.split(/\n+/).map((line) => line.trim()).filter(Boolean);
+  const units = byLine.flatMap((line) => {
+    const stripped = line.replace(/^[-•*\d.)\s]+/, '').trim();
+    const sentences = stripped.match(/[^.!?]+[.!?]?/g) || [stripped];
+    return sentences.map((sentence) => sentence.trim()).filter(Boolean);
+  });
+  const seen = new Set();
+  return units.filter((unit) => {
+    const key = unit.toLocaleLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/\s+/g, ' ');
+    if (seen.has(key)) return false;
+    seen.add(key);
+    return true;
+  });
+}
+function reduceReportContent(text, policy) {
+  const units = semanticUnits(text);
+  const hardBudget = Number(policy?.hardCharacterBudget) || 500;
+  if (!units.length) return '';
+  const kept = [];
+  let count = 0;
+  for (const unit of units) {
+    const nextCount = count + unit.length + (kept.length ? 1 : 0);
+    if (kept.length && nextCount > hardBudget) break;
+    kept.push(unit);
+    count = nextCount;
+  }
+  return kept.join(' ').trim();
+}
+function breakLineToFit(doc, line, width) {
+  if (doc.getTextWidth(line) <= width) return [line];
+  const chunks = [];
+  let current = '';
+  for (const char of String(line)) {
+    const candidate = current + char;
+    if (current && doc.getTextWidth(candidate) > width) {
+      chunks.push(current);
+      current = char;
+    } else {
+      current = candidate;
+    }
+  }
+  if (current) chunks.push(current);
+  return chunks.length ? chunks : [''];
+}
+function wrapContainedLines(doc, textValue, width) {
+  const rawLines = normalizeReportBody(textValue).split('\n');
+  const wrapped = rawLines.flatMap((line) => {
+    const split = doc.splitTextToSize(line || ' ', width);
+    return split.flatMap((entry) => breakLineToFit(doc, String(entry || ''), width));
+  }).map((line) => String(line || '').trim()).filter(Boolean);
+  return wrapped.length ? wrapped : [''];
+}
+function evaluateContainedText(doc, textValue, bounds, policy, { bold = false } = {}) {
+  const fontSizes = [
+    policy.defaultFontSize || REPORT_BODY_TIERS.default,
+    policy.tier1FontSize || REPORT_BODY_TIERS.tier1,
+    policy.tier2FontSize || REPORT_BODY_TIERS.tier2,
+    policy.minimumFontSize || REPORT_BODY_TIERS.minimum,
+  ];
+  const measure = (content, fontSize) => {
+    doc.setFont('NotoSans', bold ? 'bold' : 'normal');
+    doc.setFontSize(fontSize);
+    const lineHeight = reportLineHeight(doc, fontSize);
+    const lines = wrapContainedLines(doc, content, bounds.width);
+    const maxLines = Number(policy.maximumLineCount || policy.maxLines || Infinity);
+    const visibleLines = lines.slice(0, maxLines);
+    return { lines, visibleLines, lineHeight, requiredHeight: visibleLines.length * lineHeight };
+  };
+  const original = normalizeReportBody(textValue);
+  const defaultMeasurement = measure(original, fontSizes[0]);
+  for (const fontSize of fontSizes) {
+    const result = measure(original, fontSize);
+    if (result.lines.length <= result.visibleLines.length && result.requiredHeight <= bounds.height) {
+      return { ...result, selectedFontSize: fontSize, content: original, contentReduced: false, requiredHeightAtDefault: defaultMeasurement.requiredHeight };
+    }
+  }
+  let reduced = reduceReportContent(original, policy);
+  for (const fontSize of fontSizes) {
+    const result = measure(reduced, fontSize);
+    if (result.lines.length <= result.visibleLines.length && result.requiredHeight <= bounds.height) {
+      return { ...result, selectedFontSize: fontSize, content: reduced, contentReduced: true, requiredHeightAtDefault: defaultMeasurement.requiredHeight };
+    }
+  }
+  const minResult = measure(reduced, REPORT_BODY_TIERS.minimum);
+  while (reduced && (minResult.requiredHeight > bounds.height || minResult.lines.length > minResult.visibleLines.length)) {
+    const units = semanticUnits(reduced);
+    if (units.length <= 1) break;
+    reduced = units.slice(0, -1).join(' ');
+    const candidate = measure(reduced, REPORT_BODY_TIERS.minimum);
+    if (candidate.requiredHeight <= bounds.height && candidate.lines.length <= candidate.visibleLines.length) {
+      return { ...candidate, selectedFontSize: REPORT_BODY_TIERS.minimum, content: reduced, contentReduced: true, requiredHeightAtDefault: defaultMeasurement.requiredHeight };
+    }
+  }
+  const failure = new Error('REPORT_SECTION_OVERFLOW');
+  failure.code = 'REPORT_SECTION_OVERFLOW';
+  failure.details = { requiredHeight: minResult.requiredHeight, availableHeight: bounds.height };
+  throw failure;
+}
+function assertContainedLine({ sectionId, page, cardBounds, contentBounds, lineRecord }) {
+  const overflowX = Math.max(0, contentBounds.x - lineRecord.x, lineRecord.x + lineRecord.width - contentBounds.right);
+  const overflowY = Math.max(0, contentBounds.y - lineRecord.y, lineRecord.bottomY - contentBounds.bottom);
+  const cardOverflowX = Math.max(0, cardBounds.x - lineRecord.x, lineRecord.x + lineRecord.width - cardBounds.right);
+  const cardOverflowY = Math.max(0, cardBounds.y - lineRecord.y, lineRecord.bottomY - cardBounds.bottom);
+  if (overflowX > 0 || overflowY > 0 || cardOverflowX > 0 || cardOverflowY > 0 || lineRecord.bottomY > PAGE_SAFE_BOTTOM) {
+    const failure = new Error('REPORT_SECTION_OVERFLOW');
+    failure.code = 'REPORT_SECTION_OVERFLOW';
+    failure.details = { page, sectionId, overflowX, overflowY, cardOverflowX, cardOverflowY, line: lineRecord.text };
+    throw failure;
+  }
+  return { overflowX, overflowY };
+}
+function layoutDebugEnabled() {
+  return Boolean(globalThis?.process?.env?.REPORT_LAYOUT_DEBUG === 'true'
+    || globalThis?.REPORT_LAYOUT_DEBUG === true
+    || (typeof import.meta !== 'undefined' && import.meta.env?.REPORT_LAYOUT_DEBUG === 'true'));
+}
+function drawLayoutDebug(doc, geometry, sectionId) {
+  if (!layoutDebugEnabled()) return;
+  const contentBounds = boundsFromGeometry(geometry);
+  doc.saveGraphicsState();
+  doc.setLineWidth(.8); doc.setDrawColor(220, 0, 0); doc.rect(geometry.x, geometry.y, geometry.width, geometry.height, 'S');
+  doc.setDrawColor(0, 80, 240); doc.rect(contentBounds.x, contentBounds.y, contentBounds.width, contentBounds.height, 'S');
+  text(doc, sectionId, contentBounds.x, contentBounds.y - 2, { size: 5.8, color: C.red, maxLines: 1 });
+  doc.restoreGraphicsState();
+}
+export function renderContainedText({
+  doc, text: textValue, bounds, policy = REPORT_TEXT_POLICIES.page6ProfileConclusion, locale = 'en', priority = 'normal',
+  sectionId = policy.sectionId || 'containedText', cardBounds = bounds, color = C.ink, bold = false, align = 'left',
+}) {
+  const contentBounds = Object.freeze({ ...bounds, right: bounds.x + bounds.width, bottom: bounds.y + bounds.height });
+  const normalizedCardBounds = Object.freeze({ ...cardBounds, right: cardBounds.x + cardBounds.width, bottom: cardBounds.y + cardBounds.height });
+  const layout = evaluateContainedText(doc, textValue, contentBounds, policy, { bold });
+  const audit = reportLayoutAudit(doc);
+  doc.saveGraphicsState();
+  doc.rect(contentBounds.x, contentBounds.y, contentBounds.width, contentBounds.height, null); doc.clip(); doc.discardPath();
+  doc.setFont('NotoSans', bold ? 'bold' : 'normal');
+  doc.setFontSize(layout.selectedFontSize);
+  doc.setTextColor(...color);
+  let clippedLines = 0;
+  layout.visibleLines.forEach((line, lineIndex) => {
+    const lineTop = contentBounds.y + lineIndex * layout.lineHeight;
+    const baseline = lineTop + layout.selectedFontSize * .86;
+    const width = doc.getTextWidth(line);
+    const x = align === 'center' ? contentBounds.x + contentBounds.width / 2 : align === 'right' ? contentBounds.right : contentBounds.x;
+    const auditX = align === 'center' ? x - width / 2 : align === 'right' ? x - width : x;
+    const lineRecord = {
+      page: typeof doc.getCurrentPageInfo === 'function' ? doc.getCurrentPageInfo().pageNumber : null,
+      sectionId, cardBounds: normalizedCardBounds, contentBounds, fontSize: layout.selectedFontSize,
+      lineHeight: layout.lineHeight, lineIndex, text: line, x: auditX, y: lineTop,
+      width, height: layout.lineHeight, bottomY: lineTop + layout.lineHeight,
+    };
+    const overflows = assertContainedLine({ sectionId, page: lineRecord.page, cardBounds: normalizedCardBounds, contentBounds, lineRecord });
+    const clipped = overflows.overflowX > 0 || overflows.overflowY > 0;
+    if (clipped) clippedLines += 1;
+    audit.lines.push({ ...lineRecord, overflowX: overflows.overflowX, overflowY: overflows.overflowY });
+    doc.text(line, x, baseline, { align });
+  });
+  doc.restoreGraphicsState();
+  const sectionResult = {
+    sectionId, locale, priority, availableHeight: contentBounds.height, requiredHeightAtDefault: layout.requiredHeightAtDefault,
+    selectedFontSize: layout.selectedFontSize, renderedLines: layout.visibleLines.length,
+    maxLines: policy.maximumLineCount || policy.maxLines || null, contentReduced: layout.contentReduced,
+    clippedLines, overflowPixels: 0,
+  };
+  audit.sections.push(sectionResult);
+  return { ...sectionResult, bottomY: contentBounds.y + layout.visibleLines.length * layout.lineHeight };
+}
+function renderContainedCardText(doc, textValue, geometry, sectionId, policy, t, options = {}) {
+  drawLayoutDebug(doc, geometry, sectionId);
+  return renderContainedText({
+    doc, text: textValue, bounds: boundsFromGeometry(geometry), cardBounds: cardBoundsFromGeometry(geometry),
+    policy, locale: t.locale, sectionId, ...options,
+  });
+}
+function renderContainedBulletList(doc, items, geometry, sectionId, policy, t, accent, { positive = false, color = C.ink } = {}) {
+  const relevanceColor = positive ? C.green
+    : /missing|questions|open|falta|questões|preguntas|limita|considera|attention|atenção|atención/i.test(sectionId) ? C.orange
+      : /next|action|recommended|ações|acciones/i.test(sectionId) ? C.blue : accent;
+  drawLayoutDebug(doc, geometry, sectionId);
+  const contentBounds = boundsFromGeometry(geometry);
+  const cardBounds = cardBoundsFromGeometry(geometry);
+  const entries = deduplicateAndBudgetItems((items.length ? items : [t.noDetails])
+    .map((item) => reportNarrative(typeof item === 'string' ? item : item?.explanation || item?.reason || item?.label || item?.status, t.noDetails, t.locale)),
+  policy).slice(0, policy.maximumBulletCount || 4);
+  const iconWidth = 18;
+  const textBounds = { x: contentBounds.x + iconWidth, y: contentBounds.y, width: contentBounds.width - iconWidth, height: contentBounds.height };
+  const bulletPolicy = { ...policy, maximumLineCount: policy.maximumLineCount || 8 };
+  const combined = entries.join('\n');
+  const layout = evaluateContainedText(doc, combined, textBounds, bulletPolicy);
+  const audit = reportLayoutAudit(doc);
+  doc.saveGraphicsState();
+  doc.rect(contentBounds.x, contentBounds.y, contentBounds.width, contentBounds.height, null); doc.clip(); doc.discardPath();
+  doc.setFont('NotoSans', 'normal'); doc.setFontSize(layout.selectedFontSize); doc.setTextColor(...color);
+  let lineIndex = 0; let itemCursor = 0; let clippedLines = 0;
+  for (const entry of entries) {
+    doc.setFont('NotoSans', 'normal'); doc.setFontSize(layout.selectedFontSize);
+    const lines = wrapContainedLines(doc, entry, textBounds.width).slice(0, 2);
+    if (lineIndex + lines.length > layout.visibleLines.length) break;
+    const iconTop = textBounds.y + lineIndex * layout.lineHeight;
+    drawIcon(doc, positive ? 'check' : iconKind(sectionId), contentBounds.x + 7, iconTop + layout.selectedFontSize * .46, relevanceColor, 11);
+    for (const line of lines) {
+      doc.setFont('NotoSans', 'normal');
+      doc.setFontSize(layout.selectedFontSize);
+      doc.setTextColor(...color);
+      const lineTop = textBounds.y + lineIndex * layout.lineHeight;
+      const baseline = lineTop + layout.selectedFontSize * .86;
+      const width = doc.getTextWidth(line);
+      const lineRecord = {
+        page: typeof doc.getCurrentPageInfo === 'function' ? doc.getCurrentPageInfo().pageNumber : null,
+        sectionId, cardBounds, contentBounds, fontSize: layout.selectedFontSize,
+        lineHeight: layout.lineHeight, lineIndex, text: line, x: textBounds.x, y: lineTop,
+        width, height: layout.lineHeight, bottomY: lineTop + layout.lineHeight,
+      };
+      const overflows = assertContainedLine({ sectionId, page: lineRecord.page, cardBounds, contentBounds, lineRecord });
+      if (overflows.overflowX > 0 || overflows.overflowY > 0) clippedLines += 1;
+      audit.lines.push({ ...lineRecord, overflowX: overflows.overflowX, overflowY: overflows.overflowY });
+      doc.text(line, textBounds.x, baseline);
+      lineIndex += 1;
+    }
+    itemCursor += 1;
+  }
+  doc.restoreGraphicsState();
+  const sectionResult = {
+    sectionId, locale: t.locale, priority: 'normal', availableHeight: contentBounds.height,
+    requiredHeightAtDefault: layout.requiredHeightAtDefault, selectedFontSize: layout.selectedFontSize,
+    renderedLines: lineIndex, maxLines: bulletPolicy.maximumLineCount, contentReduced: layout.contentReduced || itemCursor < entries.length,
+    clippedLines, overflowPixels: 0,
+  };
+  audit.sections.push(sectionResult);
+  return sectionResult;
 }
 function addsDistinctMeaning(candidate, existing) {
   const tokens = (input) => new Set(String(input || '').toLocaleLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '')
@@ -387,33 +643,23 @@ function rows(doc, items, x, y, w, {
   });
   return yy - y;
 }
-function listPanel(doc, title, items, x, y, w, h, t, accent, { positive = false } = {}) {
+function listPanel(doc, title, items, x, y, w, h, t, accent, { positive = false, sectionId: explicitSectionId = null } = {}) {
   const relevanceColor = positive ? C.green
     : /missing|falta|questions|questões|preguntas|limita|considera|attention|atenção|atención/i.test(title) ? C.orange
       : /next|próxim|action|ações|acciones/i.test(title) ? C.blue : accent;
   panel(doc, x, y, w, h, { fill: C.white, accent: relevanceColor });
   heading(doc, title, x + 13, y + 26, w - 26, accent);
-  let yy = y + 48;
-  const entries = [...new Map((items.length ? items : [t.noDetails]).map((item) => {
-    const narrative = reportNarrative(typeof item === 'string' ? item : item?.explanation || item?.reason || item?.label || item?.status, t.noDetails, t.locale);
-    return [narrative, narrative];
-  })).values()];
-  const sectionPolicy = h <= 175 ? SECTION_TEXT_POLICIES.level3SmallAnalyticalCard : SECTION_TEXT_POLICIES.level3ListCard;
-  const budgetedEntries = deduplicateAndBudgetItems(entries, sectionPolicy).slice(0, h <= 135 ? 2 : h <= 175 ? 3 : 4);
-  const bodyWidth = w - 45; const availableHeight = Math.max(1, y + h - 18 - yy);
-  const combined = budgetedEntries.join('\n');
-  const fit = selectSectionTextTier({ text: combined, policy: sectionPolicy, measure: (fontSize) => {
-    doc.setFont('NotoSans', 'normal'); doc.setFontSize(fontSize);
-    const lineCount = budgetedEntries.reduce((sum, item) => sum + doc.splitTextToSize(item, bodyWidth).length, 0);
-    const renderedHeight = lineCount * (fontSize + 3) + Math.max(0, budgetedEntries.length - 1) * 6;
-    return { lineCount, renderedHeight, availableHeight, overflowHeight: Math.max(0, renderedHeight - availableHeight) };
-  } });
-  for (const item of budgetedEntries) {
-    if (yy > y + h - 34) break;
-    drawIcon(doc, positive ? 'check' : iconKind(title), x + 20, yy - 3, relevanceColor, 12);
-    yy = text(doc, item, x + 31, yy, { size: fit.fontSize,
-      minSize: fit.fontSize, width: bodyWidth, maxLines: 3 }) + 6;
-  }
+  const sectionId = explicitSectionId || (/positive|positivo|sinais/i.test(title) ? 'page5PositiveSignals'
+    : /missing|falta|ausente/i.test(title) ? 'page5Missing'
+      : /action|next|próxim|ações|acciones|etapas/i.test(title) ? 'page6RecommendedActions'
+        : /questions|questões|preguntas/i.test(title) ? 'page6OpenQuestions'
+          : /analysis|conclus|adaptada/i.test(title) ? 'page6ProfileConclusion'
+            : /topics|tópicos|temas/i.test(title) ? 'page6MainTopics'
+              : /observ|limita/i.test(title) ? 'comparableObservations' : 'page5AttentionPoints');
+  const fallbackPolicy = h <= 175 ? REPORT_TEXT_POLICIES.page6MainTopics : REPORT_TEXT_POLICIES.page5AttentionPoints;
+  renderContainedBulletList(doc, items, createCardGeometry({
+    x, y, width: w, height: h, paddingLeft: 13, paddingRight: 13, paddingTop: 8, paddingBottom: 12, titleHeight: 34,
+  }), sectionId, REPORT_TEXT_POLICIES[sectionId] || fallbackPolicy, t, accent, { positive });
 }
 function pageHeader(doc, schema, pageCode, t) {
   const theme = C.graphite; const accent = accentFor(schema.reportType);
@@ -595,13 +841,22 @@ function propertyBottom(doc, property, t, accent, y, images, conflicts = [], map
   panel(doc, notesX, y, notesWidth, bottomHeight, { accent: notes.title && notes.title !== t.notes ? accent : null }); heading(doc, notes.title || t.notes, notesX + 10, y + 23, notesWidth - 20, accent);
   const primaryText = notes.text || localizedPropertyNotes(property, t);
   const primaryAvailable = notes.secondaryText ? 70 : bottomHeight - 62;
-  const primaryBottom = adaptiveText(doc, primaryText, notesX + 11, y + 45, { width: notesWidth - 22,
-    availableHeight: primaryAvailable, policy: SECTION_TEXT_POLICIES.propertyNotes });
+  const primaryResult = renderContainedText({
+    doc, text: primaryText,
+    bounds: { x: notesX + 11, y: y + 37, width: notesWidth - 22, height: primaryAvailable },
+    cardBounds: { x: notesX, y, width: notesWidth, height: bottomHeight },
+    policy: REPORT_TEXT_POLICIES.propertyNotes, locale: t.locale, sectionId: 'propertyNotes',
+  });
+  const primaryBottom = primaryResult.bottomY;
   if (notes.secondaryText && bottomHeight >= 190) {
     const secondaryY = Math.max(y + 73, primaryBottom + 8);
     heading(doc, notes.secondaryTitle || t.opportunity, notesX + 10, secondaryY + 26, notesWidth - 20, accent);
-    adaptiveText(doc, notes.secondaryText, notesX + 11, secondaryY + 49, { width: notesWidth - 22,
-      availableHeight: Math.max(1, y + bottomHeight - 12 - (secondaryY + 49)), policy: SECTION_TEXT_POLICIES.level2OpportunitySummary });
+    renderContainedText({
+      doc, text: notes.secondaryText,
+      bounds: { x: notesX + 11, y: secondaryY + 40, width: notesWidth - 22, height: Math.max(1, y + bottomHeight - 12 - (secondaryY + 40)) },
+      cardBounds: { x: notesX, y, width: notesWidth, height: bottomHeight },
+      policy: REPORT_TEXT_POLICIES.level2OpportunitySummary, locale: t.locale, sectionId: 'level2OpportunitySummary',
+    });
   }
   if (conflicts.length) text(doc, t.conflict, notesX + 11, y + 222, { size: 7.2, bold: true, color: C.gold, width: notesWidth - 22, maxLines: 2 });
 }
@@ -789,16 +1044,18 @@ function renderInsights(doc, schema, t, accent, { verification = false } = {}) {
     : array(structured.positiveSignals).length ? array(structured.positiveSignals) : positiveObservations(summary);
   const verificationSteps = verification && array(page5.verifyFirst).length ? array(page5.verifyFirst)
     : structuredSteps.length ? structuredSteps : steps;
-  listPanel(doc, t.positives, positives, M, 128, w, 258, t, accent, { positive: true });
-  listPanel(doc, t.missing, missing, M + w + 12, 128, w, 258, t, accent);
-  listPanel(doc, verification ? t.considerations : t.next, verification ? considerations : verificationSteps, M, 398, w, 257, t, accent);
-  listPanel(doc, verification ? t.next : t.considerations, verification ? verificationSteps : considerations, M + w + 12, 398, w, 257, t, accent);
+  listPanel(doc, t.positives, positives, M, 128, w, 258, t, accent, { positive: true, sectionId: 'page5PositiveSignals' });
+  listPanel(doc, t.missing, missing, M + w + 12, 128, w, 258, t, accent, { sectionId: 'page5Missing' });
+  listPanel(doc, verification ? t.considerations : t.next, verification ? considerations : verificationSteps, M, 398, w, 257, t, accent, { sectionId: verification ? 'page5AttentionPoints' : 'page6RecommendedActions' });
+  listPanel(doc, verification ? t.next : t.considerations, verification ? verificationSteps : considerations, M + w + 12, 398, w, 257, t, accent, { sectionId: verification ? 'page5RecommendedActions' : 'page5AttentionPoints' });
   panel(doc, M, 667, CONTENT, 85, { fill: C.white, accent });
   heading(doc, t.conclusion, M + 12, 691, CONTENT - 24, accent);
   const scenarioInsight = scenarioSnapshot(schema?.presentation?.activeScenario, t, 2);
-  adaptiveText(doc, [scenarioInsight, structured.profileAdaptedConclusion || summary.summary || t.noDetails].filter(Boolean).join('\n'), M + 12, 714, {
-    width: CONTENT - 24, availableHeight: 34, policy: verification
-      ? SECTION_TEXT_POLICIES.level3ExecutiveInsight : SECTION_TEXT_POLICIES.level2ExecutiveInsight });
+  renderContainedCardText(doc, [scenarioInsight, structured.profileAdaptedConclusion || summary.summary || t.noDetails].filter(Boolean).join('\n'),
+    createCardGeometry({ x: M, y: 667, width: CONTENT, height: 85, paddingLeft: 12, paddingRight: 12, paddingTop: 8, paddingBottom: 10, titleHeight: 34 }),
+    verification ? 'page5ExecutiveInsight' : 'level2ExecutiveInsight',
+    verification ? REPORT_TEXT_POLICIES.page5ExecutiveInsight : REPORT_TEXT_POLICIES.level2ExecutiveInsight,
+    t);
 }
 function renderComparables(doc, schema, t, accent, comparableMap) {
   const structured = schema?.structuredAnalysis || {};
@@ -885,7 +1142,7 @@ function renderComparables(doc, schema, t, accent, comparableMap) {
   }
   const compNarrative = [structured.comparativeAnalysis?.interpretation,
     ...array(structured.comparativeAnalysis?.limitations)].filter(Boolean);
-  listPanel(doc, t.observations, compNarrative.length ? compNarrative : all.map((comp) => comp.inclusionReason || comp.exclusionReason).filter(Boolean), M, 667, CONTENT, 88, t, accent);
+  listPanel(doc, t.observations, compNarrative.length ? compNarrative : all.map((comp) => comp.inclusionReason || comp.exclusionReason).filter(Boolean), M, 667, CONTENT, 88, t, accent, { sectionId: 'comparableObservations' });
 }
 function renderValuation(doc, schema, t, accent) {
   const structured = schema?.structuredAnalysis || {};
@@ -982,7 +1239,7 @@ function renderValuation(doc, schema, t, accent) {
     text(doc, caption, x + cardW / 2, cardsY + 84, { size: 7, color: C.muted, align: 'center' });
   });
   const valuationNarrative = array(structured.valuationAnalysis?.limitations);
-  listPanel(doc, t.limitations, valuationNarrative.length ? valuationNarrative : (array(valuation.warnings).length ? array(valuation.warnings) : array(section(schema, 'limitations'))), M, 609, CONTENT, 129, t, accent);
+  listPanel(doc, t.limitations, valuationNarrative.length ? valuationNarrative : (array(valuation.warnings).length ? array(valuation.warnings) : array(section(schema, 'limitations'))), M, 609, CONTENT, 129, t, accent, { sectionId: 'valuationLimitations' });
 }
 function renderConclusion(doc, schema, t, accent) {
   const structured = schema?.structuredAnalysis || {};
@@ -996,12 +1253,12 @@ function renderConclusion(doc, schema, t, accent) {
     renderEnterpriseAnalysis(doc, schema, t, accent, confidence, executiveLines);
     return;
   }
-  listPanel(doc, t.opportunity, [structured.opportunityAssessment || summary.summary].filter(Boolean), M, 128, CONTENT, 112, t, accent);
+  listPanel(doc, t.opportunity, [structured.opportunityAssessment || summary.summary].filter(Boolean), M, 128, CONTENT, 112, t, accent, { sectionId: 'level2OpportunitySummary' });
   const w = (CONTENT - 12) / 2;
-  listPanel(doc, t.analysis, [structured.profileAdaptedConclusion, ...array(structured.positiveSignals)].filter(Boolean), M, 252, w, 203, t, accent, { positive: true });
-  listPanel(doc, t.mainTopics, array(structured.strategySpecificInsights).length ? array(structured.strategySpecificInsights) : risks, M + w + 12, 252, w, 203, t, accent);
-  listPanel(doc, t.questions, array(structured.missingEvidence).length ? array(structured.missingEvidence) : array(section(schema, 'limitations')), M, 467, w, 174, t, accent);
-  listPanel(doc, t.actions, array(structured.recommendedActions).length ? array(structured.recommendedActions) : steps, M + w + 12, 467, w, 174, t, accent);
+  listPanel(doc, t.analysis, [structured.profileAdaptedConclusion, ...array(structured.positiveSignals)].filter(Boolean), M, 252, w, 203, t, accent, { positive: true, sectionId: 'page6ProfileConclusion' });
+  listPanel(doc, t.mainTopics, array(structured.strategySpecificInsights).length ? array(structured.strategySpecificInsights) : risks, M + w + 12, 252, w, 203, t, accent, { sectionId: 'page6MainTopics' });
+  listPanel(doc, t.questions, array(structured.missingEvidence).length ? array(structured.missingEvidence) : array(section(schema, 'limitations')), M, 467, w, 174, t, accent, { sectionId: 'page6OpenQuestions' });
+  listPanel(doc, t.actions, array(structured.recommendedActions).length ? array(structured.recommendedActions) : steps, M + w + 12, 467, w, 174, t, accent, { sectionId: 'page6RecommendedActions' });
   panel(doc, M, 653, CONTENT, 99, { fill: C.white, stroke: C.gold, accent: C.orange });
   heading(doc, t.considerations, M + 12, 677, CONTENT - 24, accent);
   text(doc, t.disclaimer, M + 12, 702, { size: 8.5, width: CONTENT - 24, maxLines: 4 });
@@ -1033,35 +1290,29 @@ function renderEnterpriseAnalysis(doc, schema, t, accent, confidence, executiveL
 
   const drawConfidenceList = (title, items, x, y, w, kind, color) => {
     text(doc, title, x, y, { size: 8.4, bold: true, color: C.ink, width: w, maxLines: 1 });
-    let yy = y + 19;
     const entries = items.length ? items : [t.noDetails];
-    for (const item of entries.slice(0, 2)) {
-      if (yy > 258) break;
-      drawIcon(doc, kind, x + 6, yy - 3, color, 10);
-      yy = text(doc, reportNarrative(item, t.noDetails, t.locale), x + 16, yy,
-        { size: MAXXIS_REPORT_TYPOGRAPHY.body, minSize: MAXXIS_REPORT_TYPOGRAPHY.body, width: w - 16, maxLines: 2 }) + 3;
-    }
+    renderContainedBulletList(doc, entries.slice(0, 2), createCardGeometry({
+      x, y: y + 6, width: w, height: 83, paddingLeft: 0, paddingRight: 0, paddingTop: 9, paddingBottom: 2, titleHeight: 11,
+    }), /limitation|limita/i.test(title) ? 'page6OpenQuestions' : 'page6MainTopics',
+    /limitation|limita/i.test(title) ? REPORT_TEXT_POLICIES.page6OpenQuestions : REPORT_TEXT_POLICIES.page6MainTopics,
+    t, color, { positive: kind === 'check' });
   };
   drawConfidenceList(t.contributors, contributors, M + 174, 181, 158, 'check', C.green);
   drawConfidenceList(t.confidenceLimitations, confidenceLimitations, M + 350, 181, 173, 'warning', C.orange);
 
   panel(doc, M, 290, CONTENT, 165, { fill: C.white, accent });
   heading(doc, t.executiveIntelligence, M + 13, 316, CONTENT - 26, accent);
-  let executiveY = 340;
-  for (const line of executiveLines.slice(0, 3)) {
-    if (executiveY > 442) break;
-    doc.setFillColor(...accent); doc.circle(M + 20, executiveY - 3, 2.2, 'F');
-    executiveY = text(doc, reportNarrative(line, t.noDetails, t.locale), M + 29, executiveY,
-      { size: MAXXIS_REPORT_TYPOGRAPHY.analyticalBody, minSize: MAXXIS_REPORT_TYPOGRAPHY.analyticalBody, width: CONTENT - 43, maxLines: 2 }) + 4;
-  }
+  renderContainedBulletList(doc, executiveLines.slice(0, 2), createCardGeometry({
+    x: M, y: 290, width: CONTENT, height: 165, paddingLeft: 13, paddingRight: 13, paddingTop: 8, paddingBottom: 12, titleHeight: 34,
+  }), 'page6ExecutiveSummary', REPORT_TEXT_POLICIES.page6ExecutiveSummary, t, accent, { positive: true });
 
   const w = (CONTENT - 12) / 2;
-  listPanel(doc, t.analysis, [page6.investorMeaning || structured.profileAdaptedConclusion].filter(Boolean), M, 467, w, 133, t, accent, { positive: true });
-  listPanel(doc, t.mainTopics, array(structured.strategySpecificInsights).length ? array(structured.strategySpecificInsights) : risks, M + w + 12, 467, w, 133, t, accent);
+  listPanel(doc, t.analysis, [page6.investorMeaning || structured.profileAdaptedConclusion].filter(Boolean), M, 467, w, 133, t, accent, { positive: true, sectionId: 'page6ProfileConclusion' });
+  listPanel(doc, t.mainTopics, array(structured.strategySpecificInsights).length ? array(structured.strategySpecificInsights) : risks, M + w + 12, 467, w, 133, t, accent, { sectionId: 'page6MainTopics' });
   listPanel(doc, t.questions, array(page6.openDecisionQuestions).length ? array(page6.openDecisionQuestions)
-    : array(structured.missingEvidence).length ? array(structured.missingEvidence) : limitations, M, 612, w, 140, t, accent);
+    : array(structured.missingEvidence).length ? array(structured.missingEvidence) : limitations, M, 612, w, 140, t, accent, { sectionId: 'page6OpenQuestions' });
   listPanel(doc, t.actions, array(page6.decisionChangingActions).length ? array(page6.decisionChangingActions)
-    : array(structured.recommendedActions).length ? array(structured.recommendedActions) : steps, M + w + 12, 612, w, 140, t, accent);
+    : array(structured.recommendedActions).length ? array(structured.recommendedActions) : steps, M + w + 12, 612, w, 140, t, accent, { sectionId: 'page6RecommendedActions' });
   text(doc, t.disclaimer, W / 2, 773, { size: 6.7, color: C.muted, width: CONTENT, maxLines: 2, align: 'center' });
 }
 function renderPage(doc, schema, pageCode, t, accent, images, mapImage, comparableMap) {
@@ -1324,8 +1575,13 @@ export async function renderMaxxisReportPdf({ schema, exportEntitlement, generat
     perPageMs: Object.freeze(perPageMs),
   });
   emitReportPerformance(timings);
+  const layoutAudit = reportLayoutAudit(doc);
   return Object.freeze({ state: 'RENDERED', timings, document: Object.freeze({
     ...prepared.document, binary, pageCount: doc.getNumberOfPages(), mimeType: 'application/pdf',
+    layoutAudit: Object.freeze({
+      lines: Object.freeze(layoutAudit.lines.map((line) => Object.freeze({ ...line }))),
+      sections: Object.freeze(layoutAudit.sections.map((section) => Object.freeze({ ...section }))),
+    }),
   }) });
 }
 
