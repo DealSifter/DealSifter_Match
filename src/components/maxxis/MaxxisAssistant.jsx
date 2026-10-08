@@ -72,6 +72,7 @@ import {
   safeProactiveAnalytics,
   selectMaxxisProactiveCandidate,
 } from '../../features/maxxis/proactive/maxxisProactiveIntelligence';
+import { buildMaxxisProactiveTriggers, resolveMaxxisProactiveContext, projectMaxxisProactiveSnapshot } from '../../features/maxxis/proactive/maxxisProactiveTriggerEngine';
 import { resolveMaxxisAvatarState } from '../../features/maxxis/avatar/maxxisAvatarStateMachine';
 import { MaxxisAvatarRenderer } from '../../features/maxxis/avatar/MaxxisAvatarRenderer';
 import { useMaxxisAvatarTimeline } from '../../features/maxxis/avatar/maxxisAvatarTimeline';
@@ -1589,7 +1590,7 @@ export function MaxxisAssistant({ page = 'dashboard', onOpenSupport = null, onNa
         degradedReason: result.degradedReason || '',
         requestId: result.requestId || '',
         type: dealIntelligence?.type || maxxisAnalysis?.type || intelligence.type || result.type,
-        data: projectedReport ? { ...projectedReport.data, reportAccessDecision: grantedReportAccess, reportExportEntitlements, reportId: null, runtimeTrace } : (intelligence.data || result.data),
+        data: projectedReport ? { ...projectedReport.data, proactiveContext: projectMaxxisProactiveSnapshot(result.data?.intelligenceSnapshot), reportAccessDecision: grantedReportAccess, reportExportEntitlements, reportId: null, runtimeTrace } : (intelligence.data || result.data),
         followUps: dealIntelligence || maxxisAnalysis ? [] : intelligence.followUps,
         smartActionsEnabled: intelligence.type === 'deal_snapshot',
         smartActionSurface: 'snapshot',
@@ -1718,7 +1719,7 @@ export function MaxxisAssistant({ page = 'dashboard', onOpenSupport = null, onNa
 
   const handleRequestArvGap = (messageId, field, decisionAction = null) => {
     const source = messages.find((item) => item.id === messageId);
-    const propertyId = String(source?.data?.propertyId || activePropertyContextId || '');
+    const propertyId = String(source?.data?.propertyId || decisionAction?.target?.propertyId || activePropertyContextId || '');
     const userDecisionInput = decisionAction?.target?.source === 'USER' && /^[a-z][A-Za-z0-9_]*$/.test(field);
     if (!UUID_PATTERN.test(propertyId) || (!['target_condition', 'rehab_budget'].includes(field) && !userDecisionInput)) return;
     const isCondition = field === 'target_condition';
@@ -2401,8 +2402,33 @@ export function MaxxisAssistant({ page = 'dashboard', onOpenSupport = null, onNa
     return { type: message.type, data: message.data };
   };
 
+  const contextualTriggers = useMemo(() => {
+    if (!proactiveEnabled || !enabled || !userPreferencesHydrated) return [];
+    const property = propertyCandidates.find((item) => String(item.id || item.propertyId) === String(activePropertyContextId))
+      || { id: activePropertyContextId };
+    const context = resolveMaxxisProactiveContext({ property, propertyId: activePropertyContextId, messages });
+    return buildMaxxisProactiveTriggers({ ...context, language, accountKey: sessionKey,
+      intensity: effectiveMaxxisPreferences.proactiveIntensity });
+  }, [activePropertyContextId, effectiveMaxxisPreferences.proactiveIntensity, enabled, language, messages,
+    proactiveEnabled, propertyCandidates, sessionKey, userPreferencesHydrated]);
+
+  useEffect(() => {
+    const bubble = proactiveBubble || pendingProactiveBubble;
+    if (bubble?.signal?.code === 'CONTEXTUAL_INSIGHT'
+      && !contextualTriggers.some((current) => current.dedupeKey === bubble.signal.dedupeKey)) {
+      bubble.signal.status = 'EXPIRED';
+      clearProactiveBubble();
+    }
+  }, [clearProactiveBubble, contextualTriggers, pendingProactiveBubble, proactiveBubble]);
+
   const getMessageSmartActions = useCallback((message) => {
     void actionStateRevision;
+    if (message?.data?.proactiveTrigger) {
+      const trigger = message.data.proactiveTrigger;
+      if (trigger.propertyId !== activePropertyContextId || !proactiveEnabled
+        || !contextualTriggers.some((current) => current.dedupeKey === trigger.dedupeKey)) return [];
+      return trigger.actions.filter((action) => action.code !== 'DISMISS' && !completedDecisionActionsRef.current.has(action.id));
+    }
     if (!message?.smartActionsEnabled) return [];
     let eligibleActions = buildMaxxisSmartActions(smartActionSourcePayload(message), {
       language,
@@ -2426,7 +2452,7 @@ export function MaxxisAssistant({ page = 'dashboard', onOpenSupport = null, onNa
       continuityContext: maxxisContinuityResolution.context,
     });
     return [decision.primaryAction, ...decision.secondaryActions].filter(Boolean);
-  }, [actionStateRevision, effectiveMaxxisPreferences, enabled, language, maxxisContinuityResolution.context, open, pendingProviderUnlock]);
+  }, [actionStateRevision, activePropertyContextId, contextualTriggers, proactiveEnabled, effectiveMaxxisPreferences, enabled, language, maxxisContinuityResolution.context, open, pendingProviderUnlock]);
 
   const visibleSmartActionsByMessageId = useMemo(() => dedupeMaxxisSmartActionsByLatestMessage(
     messages.map((message) => ({ messageId: message.id, actions: getMessageSmartActions(message) })),
@@ -2517,6 +2543,7 @@ export function MaxxisAssistant({ page = 'dashboard', onOpenSupport = null, onNa
       accountKey: sessionKeyRef.current,
       pendingActions: [pendingProviderUnlock, pendingProviderMessageSend].filter(Boolean),
     });
+    signals.unshift(...contextualTriggers);
     const relevanceOptions = {
       config: { enabled: proactiveEnabled, attentionSafetyManaged: true },
       contextSnapshot: maxxisContextSnapshot,
@@ -2568,6 +2595,24 @@ export function MaxxisAssistant({ page = 'dashboard', onOpenSupport = null, onNa
       }
     }
     if (!candidate) return;
+    if (candidate.signal.code === 'CONTEXTUAL_INSIGHT' && deferred && !signals.some((signal) => signal.dedupeKey === candidate.signal.dedupeKey)) {
+      attentionController.discardDeferred();
+      return;
+    }
+    // Chat suggestions stay in the conversation and never compete with an existing prompt.
+    if (open && candidate.signal.code === 'CONTEXTUAL_INSIGHT') {
+      if (loading || input.trim() || pendingProviderUnlock || pendingProviderMessageSend
+        || maxxisAttentionInputs.criticalModalOpen || maxxisAttentionInputs.navigationTransition || maxxisAttentionInputs.userTyping
+        || maxxisAttentionInputs.formSubmitting || maxxisAttentionInputs.sensitiveTransactionActive
+        || ['landing', 'settings', 'admin', 'pricing', 'onboarding', 'privacy', 'terms'].includes(page)
+        || messages.some((message) => message.data?.proactiveTrigger && !completedDecisionActionsRef.current.has(message.data.proactiveTrigger.actions[0].id)
+          && contextualTriggers.some((current) => current.dedupeKey === message.data.proactiveTrigger.dedupeKey))) return;
+      markMaxxisProactiveSignalSurfaced(proactiveSessionRef.current, candidate.signal, now);
+      setMessages((previous) => [...previous, { id: `maxxis-contextual-${candidate.signal.id}`, role: 'assistant',
+        content: candidate.signal.message, createdAt: new Date(), type: 'maxxis_contextual_insight',
+        data: { propertyId: activePropertyContextId, proactiveTrigger: candidate.signal }, smartActionsEnabled: true }]);
+      return;
+    }
     const attentionPolicy = attentionController.evaluate({
       ...maxxisAttentionInputs,
       hasSignal: true,
@@ -2666,6 +2711,10 @@ export function MaxxisAssistant({ page = 'dashboard', onOpenSupport = null, onNa
     open,
     pendingProviderMessageSend,
     pendingProviderUnlock,
+    activePropertyContextId,
+    contextualTriggers,
+    loading,
+    input,
     proactiveEnabled,
     stageProactiveBubble,
   ]);
@@ -2695,6 +2744,17 @@ export function MaxxisAssistant({ page = 'dashboard', onOpenSupport = null, onNa
     const insightKey = String(signal.dedupeKey || bubble?.id || '').trim();
     if (!insightKey || insertedProactiveInsightsRef.current.has(insightKey)) return false;
     insertedProactiveInsightsRef.current.add(insightKey);
+    if (signal.code === 'CONTEXTUAL_INSIGHT') {
+      signal.status = 'ACCEPTED';
+      const action = signal.actions[0];
+      const sourceMessage = { id: `maxxis-contextual-${signal.id}`, data: { propertyId: signal.propertyId } };
+      if (action.target.inputField) handleRequestArvGap(sourceMessage.id, action.target.inputField, action);
+      else if (action.target.localResponse) setMessages((previous) => [...previous, { ...sourceMessage, role: 'assistant',
+        createdAt: new Date(), type: 'maxxis_contextual_comparison', content: action.target.localResponse }]);
+      else void submitMessage(action.target.prompt, { visibleUserMessage: action.label, propertyContextOverride: signal.propertyId });
+      completedDecisionActionsRef.current.add(action.id);
+      return true;
+    }
     const continuationText = String(bubble?.message?.continuationText || bubble?.message?.text || '').trim();
     const serviceId = signal.evidence?.serviceId || (signal.entityType === 'SERVICE' ? signal.entityId : '');
     const propertyIdForSignal = signal.evidence?.propertyId || (signal.entityType === 'PROPERTY' ? signal.entityId : propertyContextId);
@@ -2772,6 +2832,8 @@ export function MaxxisAssistant({ page = 'dashboard', onOpenSupport = null, onNa
   const handleClickProactiveBubble = () => {
     const currentBubble = consumeProactiveBubble();
     if (!currentBubble) return;
+    if (currentBubble.signal?.code === 'CONTEXTUAL_INSIGHT'
+      && !contextualTriggers.some((current) => current.dedupeKey === currentBubble.signal.dedupeKey)) return;
     void trackProductEvent('maxxis_proactive_bubble_clicked', {
       entityType: currentBubble.signal?.entityType?.toLowerCase?.() || 'product',
       entityId: '',
@@ -2829,6 +2891,17 @@ export function MaxxisAssistant({ page = 'dashboard', onOpenSupport = null, onNa
 
   const handleSmartAction = (action, sourceMessage) => {
     if (!action?.enabled || loading) return;
+    if (sourceMessage?.data?.proactiveTrigger) {
+      const trigger = sourceMessage.data.proactiveTrigger;
+      if (trigger.propertyId !== activePropertyContextId || completedDecisionActionsRef.current.has(action.id)) return;
+      consumeSmartAction(action);
+      trigger.status = 'ACCEPTED';
+      if (action.target.inputField) handleRequestArvGap(sourceMessage.id, action.target.inputField, action);
+      else if (action.target.localResponse) setMessages((previous) => [...previous, { id: `maxxis-contextual-result-${Date.now()}`,
+        role: 'assistant', createdAt: new Date(), content: action.target.localResponse, type: 'maxxis_contextual_comparison', data: { propertyId: trigger.propertyId } }]);
+      else void submitMessage(action.target.prompt, { visibleUserMessage: action.label, propertyContextOverride: trigger.propertyId });
+      return;
+    }
     const sourcePayload = smartActionSourcePayload(sourceMessage);
     void trackProductEvent('maxxis_smart_action_clicked', {
       entityType: action.target?.serviceId ? 'service' : 'property',
@@ -3144,6 +3217,7 @@ export function MaxxisAssistant({ page = 'dashboard', onOpenSupport = null, onNa
                 entitlements: reportEntitlements,
               });
               return (
+                <React.Fragment key={message.id}>
                 <MessageBubble
                   key={message.id}
                   message={renderedMessage}
@@ -3193,6 +3267,15 @@ export function MaxxisAssistant({ page = 'dashboard', onOpenSupport = null, onNa
                   onEditAnalysisGaps={handleEditAnalysisGaps}
                   activeAnalysisGapId={activeAnalysisGapId}
                 />
+                {message.data?.proactiveTrigger && smartActions.length > 0 ? (
+                  <button type="button" className="maxxis-smart-action-chip" onClick={() => {
+                    const trigger = message.data.proactiveTrigger;
+                    markMaxxisProactiveSignalDismissed(proactiveSessionRef.current, trigger);
+                    completedDecisionActionsRef.current.add(trigger.actions[0].id);
+                    setActionStateRevision((revision) => revision + 1);
+                  }}>{message.data.proactiveTrigger.actions[1].label}</button>
+                ) : null}
+                </React.Fragment>
               );
             })}
             {loading ? (
@@ -3275,6 +3358,7 @@ export function MaxxisAssistant({ page = 'dashboard', onOpenSupport = null, onNa
                 aria-label={proactiveBubble.message?.text}
               >
                 <span>{proactiveBubble.message?.text}</span>
+                <strong>{proactiveBubble.message?.ctaLabel}</strong>
               </button>
               <button
                 type="button"

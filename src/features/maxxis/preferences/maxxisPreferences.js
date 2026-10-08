@@ -8,6 +8,7 @@ export { MAXXIS_AVATAR_SIZE, normalizeMaxxisAvatarSize } from '../avatar/maxxisA
 
 export const MAXXIS_PREFERENCE_KEYS = Object.freeze({
   PROACTIVE_ENABLED: 'proactiveEnabled',
+  PROACTIVE_INTENSITY: 'proactiveIntensity',
   ANIMATION_ENABLED: 'animationEnabled',
   ANIMATION_INTENSITY: 'animationIntensity',
   AVATAR_SIZE: 'avatarSize',
@@ -20,6 +21,7 @@ export const MAXXIS_ANIMATION_INTENSITIES = Object.freeze({
 
 export const DEFAULT_MAXXIS_PREFERENCES = Object.freeze({
   proactiveEnabled: true,
+  proactiveIntensity: 'BALANCED',
   animationEnabled: true,
   animationIntensity: MAXXIS_ANIMATION_INTENSITIES.SUBTLE,
   avatarSize: MAXXIS_AVATAR_SIZE.DEFAULT,
@@ -30,6 +32,8 @@ export function normalizeMaxxisPreferences(value) {
   const requestedIntensity = String(input.animationIntensity || '').trim().toUpperCase();
   return {
     proactiveEnabled: Boolean(input.proactiveEnabled ?? DEFAULT_MAXXIS_PREFERENCES.proactiveEnabled),
+    proactiveIntensity: ['LOW', 'BALANCED', 'HIGH'].includes(String(input.proactiveIntensity).toUpperCase())
+      ? String(input.proactiveIntensity).toUpperCase() : 'BALANCED',
     animationEnabled: Boolean(input.animationEnabled ?? DEFAULT_MAXXIS_PREFERENCES.animationEnabled),
     animationIntensity: Object.values(MAXXIS_ANIMATION_INTENSITIES).includes(requestedIntensity)
       ? requestedIntensity
@@ -58,6 +62,7 @@ export function resolveEffectiveMaxxisPreferences({
 }
 
 export function getMaxxisPreferenceValueCategory(key, value) {
+  if (key === MAXXIS_PREFERENCE_KEYS.PROACTIVE_INTENSITY) return String(value).toLowerCase();
   if (key === MAXXIS_PREFERENCE_KEYS.ANIMATION_INTENSITY) {
     return value === MAXXIS_ANIMATION_INTENSITIES.NORMAL ? 'normal' : 'subtle';
   }

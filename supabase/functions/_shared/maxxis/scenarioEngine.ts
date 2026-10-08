@@ -103,11 +103,16 @@ export function solveScenarioTarget(strategy: ScenarioStrategy, assumptions: Val
     const annualRentRequired = (Number(target.targetDSCR) * debt + fixed) / ((1 - vacancy) * (1 - variableExpenseRate));
     return Object.freeze({ monthlyRentRequired: round(annualRentRequired / 12), label: 'RENT_REQUIRED_FOR_STATED_TARGET' });
   }
-  if (strategy === 'FLIP' && targetROI !== null) {
+  const targetProfitMargin = finite(target.targetProfitMargin);
+  if (strategy === 'FLIP' && (targetROI !== null || targetProfitMargin !== null)) {
     const exit = required(assumptions.exitValue, 'exit_value'); const selling = finite(assumptions.sellingCosts) ?? exit * nonNegative(assumptions.sellingCostPercent, 'selling_cost_percent') / 100;
     const other = nonNegative(assumptions.rehab, 'rehab') + nonNegative(assumptions.acquisitionCosts ?? assumptions.closingCosts, 'acquisition_costs')
       + nonNegative(assumptions.holdingCosts, 'holding_costs') + nonNegative(assumptions.financingCosts, 'financing_costs') + selling;
-    return Object.freeze({ purchasePriceRequired: round((exit - other * (1 + targetROI / 100)) / (1 + targetROI / 100)), label: 'PRICE_REQUIRED_FOR_STATED_TARGET' });
+    if (targetProfitMargin !== null) {
+      if (targetProfitMargin < 0 || targetProfitMargin >= 100) throw new Error('SCENARIO_PROFIT_MARGIN_INVALID');
+      return Object.freeze({ purchasePriceRequired: round(exit * (1 - targetProfitMargin / 100) - other), label: 'PRICE_REQUIRED_FOR_STATED_MARGIN' });
+    }
+    return Object.freeze({ purchasePriceRequired: round((exit - other * (1 + Number(targetROI) / 100)) / (1 + Number(targetROI) / 100)), label: 'PRICE_REQUIRED_FOR_STATED_TARGET' });
   }
   if (strategy === 'LAND' && targetROI !== null) {
     const basisWithoutPurchase = nonNegative(assumptions.closingCosts, 'closing_costs') + nonNegative(assumptions.dueDiligenceCosts, 'due_diligence_costs')

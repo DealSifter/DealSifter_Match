@@ -436,6 +436,7 @@ export function createMaxxisProactiveSessionMemory(accountKey = '') {
     surfacedSignals: new Set(),
     lastBubbleAt: 0,
     surfacedCount: 0,
+    surfacedContextStates: new Set(),
   };
 }
 
@@ -469,6 +470,13 @@ export function evaluateMaxxisProactiveAttention(signal = {}, {
   const settings = { ...MAXXIS_PROACTIVE_DEFAULT_CONFIG, ...config };
   if (!settings.enabled || settings.proactiveEnabled === false) return { shouldSurface: false, priority: 0, reasonCode: 'FEATURE_DISABLED', expiresAt: 0 };
   if (!signal?.code || !signal?.dedupeKey) return { shouldSurface: false, priority: 0, reasonCode: 'INVALID_SIGNAL', expiresAt: 0 };
+  if (['NEW_DEAL_GAP', 'IMPORTANT_MISSING_INFORMATION', 'NEW_ACTION_AVAILABLE', 'DEAL_CONTEXT_UPDATED', 'WORKFLOW_ITEM_CHANGED', 'PROVIDER_UNLOCKED'].includes(signal.code)) {
+    return { shouldSurface: false, priority: 0, reasonCode: 'GENERIC_OR_INFORMATIONAL', expiresAt: 0 };
+  }
+  const contextual = signal.code === 'CONTEXTUAL_INSIGHT';
+  if (contextual && sessionMemory.surfacedContextStates?.has(`${signal.propertyId}:${signal.contextStateVersion}`)) {
+    return { shouldSurface: false, priority: 0, reasonCode: 'DUPLICATE_STATE', expiresAt: 0 };
+  }
   const visualSafetyManaged = settings.attentionSafetyManaged === true;
   if (!visualSafetyManaged && maxxisOpen) return { shouldSurface: false, priority: 0, reasonCode: 'MAXXIS_OPEN', expiresAt: 0 };
   const surfaceName = cleanText(contextSnapshot.surface?.name || '', 40).toLowerCase();
@@ -484,22 +492,23 @@ export function evaluateMaxxisProactiveAttention(signal = {}, {
   if (sessionMemory.surfacedSignals?.has(signal.dedupeKey) || sessionMemory.seenSignals?.has(signal.dedupeKey)) {
     return { shouldSurface: false, priority: 0, reasonCode: 'DUPLICATE', expiresAt: 0 };
   }
-  if (sessionMemory.lastBubbleAt && now - sessionMemory.lastBubbleAt < settings.cooldownMs) {
+  if (signal.priority !== 'P0' && sessionMemory.lastBubbleAt && now - sessionMemory.lastBubbleAt < settings.cooldownMs) {
     return { shouldSurface: false, priority: 0, reasonCode: 'COOLDOWN', expiresAt: 0 };
   }
-  if (Number(sessionMemory.surfacedCount || 0) >= settings.maxPerSession) {
+  if (!contextual && signal.priority !== 'P0' && Number(sessionMemory.surfacedCount || 0) >= settings.maxPerSession) {
     return { shouldSurface: false, priority: 0, reasonCode: 'SESSION_LIMIT', expiresAt: 0 };
   }
-  if (!hasUsefulAction(signal)) return { shouldSurface: false, priority: 0, reasonCode: 'NO_USEFUL_ACTION', expiresAt: 0 };
+  if (!contextual && !hasUsefulAction(signal)) return { shouldSurface: false, priority: 0, reasonCode: 'NO_USEFUL_ACTION', expiresAt: 0 };
   const focusProperty = focusedPropertyId(contextSnapshot);
   const propertyId = signalPropertyId(signal);
-  if (focusProperty && propertyId && focusProperty !== propertyId && signal.severity !== 'IMPORTANT') {
+  if (focusProperty && propertyId && focusProperty !== propertyId && (contextual || signal.severity !== 'IMPORTANT')) {
     return { shouldSurface: false, priority: 0, reasonCode: 'CONTEXT_MISMATCH', expiresAt: 0 };
   }
   const priorityBySeverity = { INFO: 35, RELEVANT: 60, IMPORTANT: 80 };
   const surfaceBoost = ['dashboard', 'matches', 'map'].includes(surfaceName) ? 8 : 0;
   const sameEntityBoost = focusProperty && propertyId && focusProperty === propertyId ? 12 : 0;
-  const priority = Math.min(100, (priorityBySeverity[signal.severity] || 50) + surfaceBoost + sameEntityBoost);
+  const priority = contextual ? ({ P0: 120, P1: 100, P2: 50 }[signal.priority] || 0)
+    : Math.min(100, (priorityBySeverity[signal.severity] || 50) + surfaceBoost + sameEntityBoost);
   return {
     shouldSurface: true,
     priority,
@@ -514,6 +523,8 @@ export function markMaxxisProactiveSignalSurfaced(memory, signal, now = Date.now
   memory.seenSignals.add(signal.dedupeKey);
   memory.lastBubbleAt = now;
   memory.surfacedCount = Number(memory.surfacedCount || 0) + 1;
+  if (signal.contextStateVersion) memory.surfacedContextStates?.add(`${signal.propertyId}:${signal.contextStateVersion}`);
+  signal.status = 'SHOWN';
   return memory;
 }
 
@@ -521,10 +532,14 @@ export function markMaxxisProactiveSignalDismissed(memory, signal) {
   if (!memory || !signal?.dedupeKey) return memory;
   memory.dismissedSignals.add(signal.dedupeKey);
   memory.seenSignals.add(signal.dedupeKey);
+  signal.status = 'DISMISSED';
   return memory;
 }
 
 export function composeMaxxisProactiveMessage(signal = {}, language = 'en') {
+  if (signal.code === 'CONTEXTUAL_INSIGHT') return {
+    signalCode: signal.type, text: signal.message, ctaLabel: signal.actions?.[0]?.label, continuationText: signal.message,
+  };
   const lang = ['en', 'pt', 'es'].includes(language) ? language : 'en';
   const signalCode = MAXXIS_PROACTIVE_SIGNAL_CODES[signal.code] ? signal.code : 'NEW_ACTION_AVAILABLE';
   const copy = MESSAGE_COPY[signalCode] || MESSAGE_COPY.NEW_ACTION_AVAILABLE;

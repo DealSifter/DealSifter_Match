@@ -74,6 +74,20 @@ export function MaxxisPreferencesControls({
         onChange={(value) => updatePreference(MAXXIS_PREFERENCE_KEYS.ANIMATION_ENABLED, value)}
       />
 
+      <fieldset className="maxxis-intensity" disabled={!proactiveFeatureEnabled || !normalized.proactiveEnabled}>
+        <legend>{language === 'pt' ? 'Intensidade dos insights' : language === 'es' ? 'Intensidad de los insights' : 'Insight intensity'}</legend>
+        <div className="maxxis-intensity-options">
+          {['LOW', 'BALANCED', 'HIGH'].map((value, index) => (
+            <label key={value}>
+              <input type="radio" name={`maxxis-proactive-intensity-${surface}`} value={value}
+                checked={normalized.proactiveIntensity === value}
+                onChange={() => updatePreference(MAXXIS_PREFERENCE_KEYS.PROACTIVE_INTENSITY, value)} />
+              <span>{(language === 'pt' ? ['Baixa', 'Equilibrada', 'Alta'] : language === 'es' ? ['Baja', 'Equilibrada', 'Alta'] : ['Low', 'Balanced', 'High'])[index]}</span>
+            </label>
+          ))}
+        </div>
+      </fieldset>
+
       <fieldset className="maxxis-intensity" disabled={!normalized.animationEnabled}>
         <legend>{copy.intensityLabel}</legend>
         <div className="maxxis-intensity-options">

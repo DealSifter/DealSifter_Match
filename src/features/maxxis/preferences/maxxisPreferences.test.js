@@ -23,6 +23,7 @@ describe('Maxxis Deal AI interaction preferences', () => {
       animationEnabled: false,
       animationIntensity: 'SUBTLE',
       avatarSize: 1,
+      proactiveIntensity: 'BALANCED',
     });
   });
 

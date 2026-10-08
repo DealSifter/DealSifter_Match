@@ -32,6 +32,7 @@ function contentType(value) {
   const clean = token(value, 60);
   if (PROVIDER_REPLY_CODES.has(clean)) return MAXXIS_EXPERIENCE_CONTENT.PROVIDER_REPLY;
   if (clean === 'PROVIDER_QUOTE_DETECTED') return MAXXIS_EXPERIENCE_CONTENT.PROVIDER_QUOTE;
+  if (clean === 'CONTEXTUAL_INSIGHT') return MAXXIS_EXPERIENCE_CONTENT.CONTEXT;
   return MAXXIS_EXPERIENCE_CONTENT[clean] || clean;
 }
 
@@ -76,7 +77,7 @@ function derivedContents(input) {
   append(input.workflowState, 'WORKFLOW', { source: 'CURRENT', priority: 65, requiredCapability: 'WORKFLOW' });
   append(input.comparison, 'COMPARISON', { source: 'CURRENT', priority: 85, requiredCapability: 'COMPARISON' });
   if (input.proactiveSignal) {
-    append(input.proactiveSignal, input.proactiveSignal.code, {
+    append({ ...input.proactiveSignal, priority: Number(input.attentionResult?.priority || 75) }, input.proactiveSignal.code, {
       source: 'PROACTIVE',
       priority: Number(input.attentionResult?.priority || 75),
     });
@@ -215,7 +216,7 @@ function modeContentTypes(mode, intent = {}) {
   if (requestedType) return [requestedType];
   return {
     ANALYSIS: ['DEAL_SNAPSHOT', 'METRIC', 'DEAL_GAP', 'NEXT_BEST_ACTION'],
-    CHANGE_REVIEW: ['PROVIDER_REPLY', 'PROVIDER_QUOTE', 'MEMORY_CHANGE', 'DEAL_GAP', 'WORKFLOW'],
+    CHANGE_REVIEW: ['PROVIDER_REPLY', 'PROVIDER_QUOTE', 'MEMORY_CHANGE', 'DEAL_GAP', 'WORKFLOW', 'CONTEXT'],
     PROVIDER_REVIEW: ['PROVIDER_REPLY', 'PROVIDER_QUOTE'],
     MEMORY_RECALL: ['MEMORY_RECALL', 'MEMORY_CHANGE', 'NEXT_BEST_ACTION'],
     WORKFLOW_REVIEW: ['WORKFLOW', 'NEXT_BEST_ACTION'],

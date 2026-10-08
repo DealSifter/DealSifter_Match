@@ -177,7 +177,7 @@ describe('Maxxis Deal AI proactive intelligence', () => {
     expect(attention.priority).toBeGreaterThan(60);
   });
 
-  it('creates a safe contextual bubble signal from real focused navigation context', () => {
+  it('keeps generic navigation context silent without a concrete analytical reason', () => {
     const signals = buildMaxxisProactiveSignals({
       contextSnapshot: context({ surface: { name: 'dashboard', route: '/dashboard', subview: 'feed' } }),
       appContext: {},
@@ -198,7 +198,8 @@ describe('Maxxis Deal AI proactive intelligence', () => {
       sessionMemory: createMaxxisProactiveSessionMemory('acct-a'),
       now,
     });
-    expect(attention.shouldSurface).toBe(true);
+    expect(attention.shouldSurface).toBe(false);
+    expect(attention.reasonCode).toBe('GENERIC_OR_INFORMATIONAL');
   });
 
   it('suppresses when feature is off, Maxxis Deal AI is open, signal is old, dismissed, duplicate, or on a different property', () => {

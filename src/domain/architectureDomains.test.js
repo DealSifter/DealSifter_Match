@@ -9,6 +9,7 @@ describe('extracted architecture domains', () => {
     expect(result.privacy.readReceipts).toBe(false);
     expect(result.maxxis).toEqual({
       proactiveEnabled: true,
+      proactiveIntensity: 'BALANCED',
       animationEnabled: true,
       animationIntensity: 'SUBTLE',
       avatarSize: 1,
