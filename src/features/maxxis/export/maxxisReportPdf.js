@@ -818,7 +818,7 @@ function propertyBottom(doc, property, t, accent, y, images, conflicts = [], map
   // or inner frame creating visible padding around it.
   const photoGap = 5; const photoWidth = (CONTENT - photoGap * 4) / 5;
   shown.forEach((image, index) => photo(doc, M + index * (photoWidth + photoGap), y + 31, photoWidth, 50, image, t, { cover: true, radius: 6 }));
-  y += 82 + Number(notes.sectionGapY || 0);
+  y += 82 + Number(notes.sectionGapY ?? REPORT_SECTION_GAP_Y);
   const gap = 6;
   // Executive pages need enough horizontal room for both the user note and
   // the analytical summary. Give that column a little more width instead of

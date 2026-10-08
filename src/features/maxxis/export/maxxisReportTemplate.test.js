@@ -91,6 +91,7 @@ describe('canonical PDF template behavior', () => {
     expect(facts).toContain('contentHeight');
     expect(source).toContain('const step = Math.max(lineHeight, contentHeight + rowGap)');
     expect(source).toContain('factGridBottom + 15');
+    expect(source).toContain('notes.sectionGapY ?? REPORT_SECTION_GAP_Y');
   });
 
   it.each([
