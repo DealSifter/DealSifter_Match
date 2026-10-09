@@ -13,6 +13,7 @@ import { getPendingDealRemainingDays, isPendingDealActive } from '../../lib/pend
 import { formatCompactUsd } from '../../lib/formatMoney';
 import { getBlurredStreetAddressLine, getPublicPropertyAddressLine, shouldHideStreetAddressOnCard } from '../../lib/propertyAddressPrivacy';
 import { trackProductEvent } from '../../lib/productAnalytics';
+import { LocalizedNarrative } from '../ui/LocalizedNarrative';
 
 export function PropertyCard({ property, action, statusAction, onInterest, owner, isSkipped = false, previewOnly = false, hotMetrics = null, exclusivityStatus = null, onAvatarClick, onUnlock = null, showActions = true, unlockCost = null }) {
   const t = useT('dashboard').cards;
@@ -762,7 +763,7 @@ export function PropertyCard({ property, action, statusAction, onInterest, owner
               overflow: 'hidden',
               textOverflow: 'ellipsis',
             }}>
-              {property.description}
+              <LocalizedNarrative text={property.description} sourceLocale={property.sourceLocale || 'auto'} protectedNames={[property.title, property.address, owner?.name, 'Poggenpohl', 'Sub Zero'].filter(Boolean)} />
             </div>
           </button>
         )}
@@ -837,7 +838,7 @@ export function PropertyCard({ property, action, statusAction, onInterest, owner
                 </button>
               </div>
               <div style={{ whiteSpace: 'pre-wrap', fontSize: isMobileLayout ? 14 : 15, lineHeight: 1.68, color: C.t2 }}>
-                {property.description}
+                <LocalizedNarrative text={property.description} sourceLocale={property.sourceLocale || 'auto'} protectedNames={[property.title, property.address, owner?.name, 'Poggenpohl', 'Sub Zero'].filter(Boolean)} />
               </div>
             </div>
           </div>,

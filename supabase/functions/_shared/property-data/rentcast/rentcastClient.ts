@@ -1,4 +1,5 @@
 import { PropertyDataError } from '../types.ts';
+import { assertProviderAvailable, rememberProviderFailure } from '../providerAvailability.ts';
 import type {
   RentCastLookupResult,
   RentCastPropertyRecordRaw,
@@ -11,6 +12,8 @@ import type {
 
 export const RENTCAST_BASE_URL = 'https://api.rentcast.io/v1';
 export const DEFAULT_RENTCAST_TIMEOUT_MS = 8_000;
+const transportIds = new WeakMap<RentCastFetch, number>();
+let nextTransportId = 0;
 
 export type RentCastFetch = (input: string | URL, init?: RequestInit) => Promise<Response>;
 
@@ -74,8 +77,11 @@ export function createRentCastClient(options: {
   const timeoutMs = Math.max(100, Math.min(30_000, Number(options.timeoutMs) || DEFAULT_RENTCAST_TIMEOUT_MS));
   const fetchImpl = options.fetchImpl || fetch;
   const baseUrl = String(options.baseUrl || RENTCAST_BASE_URL).replace(/\/+$/, '');
+  if (!transportIds.has(fetchImpl)) transportIds.set(fetchImpl, ++nextTransportId);
+  const availabilityKey = `${baseUrl}:${apiKey}:${transportIds.get(fetchImpl)}`;
 
   const requestJson = async (url: URL) => {
+    assertProviderAvailable(availabilityKey);
     const controller = new AbortController();
     const timeout = setTimeout(() => controller.abort(), timeoutMs);
     try {
@@ -91,11 +97,11 @@ export function createRentCastClient(options: {
         throw new PropertyDataError('INVALID_PROVIDER_RESPONSE', { httpStatus: 200, billableSuccess: true });
       }
     } catch (error) {
-      if (error instanceof PropertyDataError) throw error;
-      if (controller.signal.aborted || (error instanceof Error && error.name === 'AbortError')) {
-        throw new PropertyDataError('PROVIDER_TIMEOUT');
-      }
-      throw new PropertyDataError('PROVIDER_NETWORK_ERROR');
+      const failure = error instanceof PropertyDataError ? error
+        : new PropertyDataError(controller.signal.aborted || (error instanceof Error && error.name === 'AbortError')
+          ? 'PROVIDER_TIMEOUT' : 'PROVIDER_NETWORK_ERROR');
+      rememberProviderFailure(availabilityKey, failure);
+      throw failure;
     } finally {
       clearTimeout(timeout);
     }

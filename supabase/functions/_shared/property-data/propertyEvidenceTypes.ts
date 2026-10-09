@@ -1,6 +1,8 @@
 import type { Evidence, NormalizedPropertyRecord } from './types.ts';
 
 export type InternalPropertyRecord = {
+  lat?: number | null;
+  lng?: number | null;
   id: string;
   type: string | null;
   address: string | null;
@@ -50,6 +52,8 @@ export type PropertyEvidenceConflict = {
 };
 
 export type PropertyEvidenceResult = {
+  freshness?: import('./cacheFreshness.ts').EvidenceFreshness;
+  providerAvailability?: import('./providerAvailability.ts').ProviderAvailabilityState;
   propertyId: string;
   internalData: InternalPropertyEvidence;
   externalData: NormalizedPropertyRecord;

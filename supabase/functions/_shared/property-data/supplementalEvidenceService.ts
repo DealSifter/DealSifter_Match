@@ -4,6 +4,8 @@ import type { PropertyEvidenceRepository } from './propertyEvidenceTypes.ts';
 import { InMemoryPropertySingleFlight, type PropertySingleFlight } from './singleFlight.ts';
 import { supplementalQueryFingerprint, type SupplementalEvidenceCache } from './supplementalEvidenceCache.ts';
 import type { SupplementalEvidence, SupplementalEvidenceFamily, SupplementalEvidenceProvider } from './supplementalEvidenceTypes.ts';
+import { cacheFreshness, type EvidenceFreshness } from './cacheFreshness.ts';
+import { isProviderUnavailableError } from './providerAvailability.ts';
 
 export type SupplementalEvidenceBundle = {
   propertyId: string;
@@ -12,6 +14,7 @@ export type SupplementalEvidenceBundle = {
   rentalListings: SupplementalEvidence | null;
   market: SupplementalEvidence | null;
   cacheHits: Partial<Record<SupplementalEvidenceFamily, boolean>>;
+  freshness?: Partial<Record<SupplementalEvidenceFamily, EvidenceFreshness>>;
 };
 
 const FILTERS: Record<SupplementalEvidenceFamily, Record<string, unknown>> = {
@@ -40,13 +43,15 @@ export class SupplementalEvidenceService {
     return { propertyId, property, lookup, addressFingerprint, queryFingerprint };
   }
 
-  private async load(input: { propertyId: string; userId?: string | null }, family: SupplementalEvidenceFamily, cacheOnly: boolean) {
+  private async load(input: { propertyId: string; userId?: string | null }, family: SupplementalEvidenceFamily, cacheOnly: boolean): Promise<{ evidence: SupplementalEvidence; cacheHit: boolean; freshness?: EvidenceFreshness } | null> {
     const context = await this.context(input, family);
     const cached = await this.options.cache.get(context.propertyId, family, context.addressFingerprint, context.queryFingerprint);
-    if (cached) return { evidence: cached.evidence, cacheHit: true };
-    if (cacheOnly) return null;
-    if (this.options.enabled === false) throw new Error('PROVIDER_DISABLED');
-    return this.singleFlight.run(context.propertyId, async () => {
+    if (cached) return { evidence: cached.evidence, cacheHit: true, freshness: cacheFreshness(cached) };
+    if (cacheOnly || this.options.enabled === false) {
+      const retained = await this.options.cache.get(context.propertyId, family, context.addressFingerprint, context.queryFingerprint, { allowStale: true });
+      return retained ? { evidence: retained.evidence, cacheHit: true, freshness: cacheFreshness(retained) } : null;
+    }
+    try { return await this.singleFlight.run(context.propertyId, async () => {
       const rechecked = await this.options.cache.get(context.propertyId, family, context.addressFingerprint, context.queryFingerprint);
       if (rechecked) return { evidence: rechecked.evidence, cacheHit: true };
       const request = { ...context.lookup, queryFingerprint: context.queryFingerprint, propertyType: context.property.type };
@@ -60,7 +65,10 @@ export class SupplementalEvidenceService {
       if (currentFingerprint !== context.addressFingerprint) throw new Error('PROPERTY_ADDRESS_CHANGED');
       await this.options.cache.set(context.propertyId, family, context.addressFingerprint, evidence);
       return { evidence, cacheHit: false };
-    });
+    }); } catch (error) {
+      if (isProviderUnavailableError(error)) return this.load(input, family, true);
+      throw error;
+    }
   }
 
   getCached(input: { propertyId: string; userId?: string | null }, family: SupplementalEvidenceFamily) {
@@ -72,7 +80,7 @@ export class SupplementalEvidenceService {
 
   async getBundle(input: { propertyId: string; userId?: string | null; families: SupplementalEvidenceFamily[]; cacheOnly?: boolean }) {
     const bundle: SupplementalEvidenceBundle = { propertyId: validatePropertyId(input.propertyId), saleListings: null,
-      rentEstimate: null, rentalListings: null, market: null, cacheHits: {} };
+      rentEstimate: null, rentalListings: null, market: null, cacheHits: {}, freshness: {} };
     // Sequential provider access intentionally preserves the global usage guard and single-flight semantics.
     for (const family of [...new Set(input.families)]) {
       try {
@@ -80,6 +88,7 @@ export class SupplementalEvidenceService {
         if (!result) continue;
         bundle[family] = result.evidence;
         bundle.cacheHits[family] = result.cacheHit;
+        if ('freshness' in result && result.freshness) bundle.freshness![family] = result.freshness;
       } catch {
         // Each evidence family is independently optional; one provider endpoint must not erase the others.
       }

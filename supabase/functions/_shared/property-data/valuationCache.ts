@@ -2,6 +2,7 @@ import { propertyAddressFingerprint } from './address.ts';
 import { validatePropertyId, type PropertyIntelligenceRpcClient } from './cache.ts';
 import { isNormalizedValuationEvidence, serializeNormalizedValuationEvidence } from './valuationSchema.ts';
 import type { NormalizedValuationEvidence } from './valuationTypes.ts';
+import { canReadRetained, type CacheReadPolicy } from './cacheFreshness.ts';
 
 export const VALUATION_CACHE_SCHEMA_VERSION = 1;
 export const VALUATION_CACHE_DATA_TYPE = 'property_value_avm' as const;
@@ -20,7 +21,7 @@ export type ValuationCacheEntry = {
 };
 
 export interface ValuationEvidenceCache {
-  getValuation(propertyId: string): Promise<ValuationCacheEntry | null>;
+  getValuation(propertyId: string, policy?: CacheReadPolicy): Promise<ValuationCacheEntry | null>;
   setValuation(propertyId: string, addressFingerprint: string, valuation: NormalizedValuationEvidence): Promise<ValuationCacheEntry>;
 }
 
@@ -41,10 +42,10 @@ export class InMemoryValuationEvidenceCache implements ValuationEvidenceCache {
     this.ttlHours = normalizeValuationCacheTtlHours(options.ttlHours);
   }
 
-  async getValuation(propertyId: string): Promise<ValuationCacheEntry | null> {
+  async getValuation(propertyId: string, policy: CacheReadPolicy = {}): Promise<ValuationCacheEntry | null> {
     const id = validatePropertyId(propertyId);
     const entry = this.entries.get(id);
-    if (!entry || Date.parse(entry.expiresAt) <= this.now().getTime()) return null;
+    if (!entry || !canReadRetained(entry, policy, this.now().getTime())) return null;
     const candidate = entry.rawValuation === undefined ? entry.valuation : entry.rawValuation;
     if (!isNormalizedValuationEvidence(candidate)) return null;
     const { rawValuation: _raw, ...safe } = entry;
@@ -82,9 +83,9 @@ export class SupabaseValuationEvidenceCache implements ValuationEvidenceCache {
     this.ttlHours = normalizeValuationCacheTtlHours(ttlHours);
   }
 
-  async getValuation(propertyId: string): Promise<ValuationCacheEntry | null> {
+  async getValuation(propertyId: string, policy: CacheReadPolicy = {}): Promise<ValuationCacheEntry | null> {
     const id = validatePropertyId(propertyId);
-    const { data, error } = await this.client.rpc('ds_get_property_intelligence_cache', {
+    const { data, error } = await this.client.rpc(policy.allowStale ? 'ds_get_retained_property_intelligence_cache' : 'ds_get_property_intelligence_cache', {
       p_property_id: id, p_provider: 'rentcast', p_data_type: VALUATION_CACHE_DATA_TYPE,
       p_schema_version: VALUATION_CACHE_SCHEMA_VERSION,
     });
@@ -95,7 +96,7 @@ export class SupabaseValuationEvidenceCache implements ValuationEvidenceCache {
     if (!isNormalizedValuationEvidence(value.payload)) return null;
     const retrievedAt = String(value.retrieved_at || '');
     const expiresAt = String(value.expires_at || '');
-    if (!Number.isFinite(Date.parse(retrievedAt)) || Date.parse(expiresAt) <= Date.now()) return null;
+    if (!canReadRetained({ retrievedAt, expiresAt }, policy)) return null;
     return {
       propertyId: id, provider: 'rentcast' as const, dataType: VALUATION_CACHE_DATA_TYPE,
       schemaVersion: VALUATION_CACHE_SCHEMA_VERSION,

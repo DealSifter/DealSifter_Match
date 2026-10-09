@@ -3,6 +3,8 @@ import notoSansRegular from '../../../assets/maxxis/fonts/NotoSans-Regular.ttf?i
 import notoSansBold from '../../../assets/maxxis/fonts/NotoSans-Bold.ttf?inline';
 import { renderMaxxisReportDocument } from './maxxisReportRenderer';
 import { explainMaxxisEvidenceState } from '../intelligence/maxxisUserFacingEvidence';
+import { getCachedPresentationText } from '../../../services/chatTranslation';
+import { reportNarrativeCacheKey } from '../presentation/reportNarrativePresentation';
 import {
   REPORT_BODY_TIERS, REPORT_LAYOUT_TOKENS, REPORT_METRIC_BAR, REPORT_SOLID_OFFSETS, REPORT_TEXT_POLICIES,
   deduplicateAndBudgetItems,
@@ -205,7 +207,7 @@ const displayValue = (input, t) => {
   return DISPLAY_VALUE[t.locale]?.[raw] || raw;
 };
 const localizedPropertyNotes = (property, t) => {
-  return property.propertyUserNotes || property.notes || t.unavailable;
+  return getCachedPresentationText(property.propertyUserNotes || property.notes, t.locale) || t.unavailable;
 };
 const localizedDate = (input, t) => {
   if (!input) return null;
@@ -1535,7 +1537,16 @@ export async function renderMaxxisReportPdf({ schema, exportEntitlement, generat
   doc.addFont('NotoSans-Bold.ttf', 'NotoSans', 'bold');
   const pages = prepared.document.pages;
   const lang = prepared.document.language;
-  const t = COPY[lang];
+  const t = { ...COPY[lang] };
+  const freshness = section(schema, 'valuationEvidence')?.evidenceFreshness || section(schema, 'executiveSummary')?.marketContext?.evidenceFreshness;
+  if (freshness?.valuation?.state === 'STALE_USABLE') {
+    const date = localizedDate(freshness.valuation.retrievedAt, t);
+    t.providerEstimate = `${t.providerEstimate} — ${lang === 'pt' ? 'anterior' : lang === 'es' ? 'anterior' : 'prior'}`;
+    t.providerEstimateStatus = `${lang === 'pt' ? 'Dados externos anteriores' : lang === 'es' ? 'Datos externos anteriores' : 'Earlier external evidence'}${date ? ` · ${date}` : ''}. ${t.providerEstimateStatus}`;
+  }
+  if (freshness?.sold?.state === 'STALE_USABLE') {
+    t.recentSalesValue = lang === 'pt' ? 'Estimativa pelas vendas anteriormente registradas' : lang === 'es' ? 'Estimación por ventas registradas anteriormente' : 'Estimate from previously recorded sales';
+  }
   const assetsStartedAt = performanceNow();
   const [images, mapImage, comparableMap] = await Promise.all([
     resolvePropertyImages(schema), mapImageData || resolveStreetMap(schema), resolveComparableMap(schema),
@@ -1593,7 +1604,7 @@ export function renderMaxxisReportPdfCached(options = {}) {
   const date = generatedAt ? new Date(generatedAt) : null;
   const dateKey = date && !Number.isNaN(date.getTime()) ? date.toISOString() : '';
   const entitlementKey = `${exportEntitlement?.reportType || ''}:${exportEntitlement?.channel || ''}:${exportEntitlement?.state || ''}:${Boolean(exportEntitlement?.allowed)}`;
-  const cacheKey = `${language}:${dateKey}:${entitlementKey}`;
+  const cacheKey = `${language}:${dateKey}:${entitlementKey}:${reportNarrativeCacheKey(schema, language)}`;
   let entries = reportRenderCache.get(schema);
   if (!entries) {
     entries = new Map();

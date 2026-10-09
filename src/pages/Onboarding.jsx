@@ -1303,7 +1303,7 @@ export function Onboarding({
                         <div style={{ width: `min(${previewCardWidth}px, 100%)`, minHeight: previewCardHeight, margin: '0 auto', padding: 12, border: `1px solid ${C.border}`, borderRadius: 16, boxSizing: 'border-box', background: C.card }}>
                           <div style={{ marginBottom: 8 }}>
                             <div style={{ fontSize: 14, fontWeight: 700, color: C.t1 }}>{svc?.title || t.serviceFallbackName}</div>
-                            {svc?.description && <div style={{ fontSize: 12, color: C.t2, marginTop: 2 }}>{svc.description}</div>}
+                            {svc?.description && <div style={{ fontSize: 12, color: C.t2, marginTop: 2 }}><LocalizedNarrative text={svc.description} protectedNames={[svc.name, svc.title].filter(Boolean)} /></div>}
                             {svc?.category && <div style={{ display: 'inline-block', marginTop: 4, padding: '2px 8px', borderRadius: 12, background: C.alpha(C.accent, 0.08), border: `1px solid ${C.alpha(C.accent, 0.15)}`, fontSize: 10, color: C.accent, fontWeight: 700 }}>{svc.category}</div>}
                           </div>
                           {svcImages.length > 0 ? (
@@ -5324,3 +5324,4 @@ export function Onboarding({
 }
 
 
+import { LocalizedNarrative } from '../components/ui/LocalizedNarrative';

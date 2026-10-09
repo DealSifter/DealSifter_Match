@@ -72,6 +72,8 @@ export function presentPropertyIntelligence(result: PropertyEvidenceResult) {
     },
     sourceDiagnostics: result.sourceDiagnostics,
     cacheHit: result.cacheHit,
+    freshness: result.freshness || null,
+    providerAvailability: result.providerAvailability || 'UNKNOWN',
   };
 }
 

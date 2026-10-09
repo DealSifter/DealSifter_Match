@@ -2,6 +2,7 @@ import { buildMaxxisReportSchema, mergeMaxxisReportProperty } from '../../../dom
 import { buildMaxxisAnalysisConfidence, buildMaxxisExecutiveSummaryIntelligence, resolveMaxxisInvestorPersona } from './maxxisReportConfidencePersona';
 import { explainMaxxisEvidenceList, explainMaxxisEvidenceState } from './maxxisUserFacingEvidence';
 import { buildCanonicalInvestmentAnalysis } from './canonicalInvestmentAnalysis';
+import { describeStoredMarketReference } from '../presentation/evidenceFreshnessPresentation';
 
 export const MAXXIS_DEAL_INTELLIGENCE_REPORT_VERSION = 'MAXXIS_DEAL_INTELLIGENCE_REPORT_V1';
 
@@ -56,7 +57,7 @@ function propertyEvidence(context) {
   });
 }
 
-function valuationIntelligence(context) {
+function valuationIntelligence(context, language = 'en') {
   const valuation = isObject(context?.valuationContext) ? context.valuationContext : {};
   const market = isObject(context?.providerMarketContext) ? context.providerMarketContext : {};
   const recent = isObject(market.recentSalesMarketEstimate) ? market.recentSalesMarketEstimate : null;
@@ -77,16 +78,20 @@ function valuationIntelligence(context) {
     : null;
   return Object.freeze({
     status,
+    evidenceFreshness: market.evidenceFreshness || null,
+    savedRecentSalesReference: market.savedRecentSalesReference || null,
     range,
     centralReference: ['ARV_UNAVAILABLE', 'NOT_APPLICABLE'].includes(status) ? null : nullableNumber(valuation.centralReference),
     confidence: ['LOW', 'MODERATE', 'HIGH'].includes(valuation.confidence) ? valuation.confidence : 'LOW',
     compsUsed: Math.max(0, nullableNumber(valuation.compsUsed) ?? 0),
     methodology: safeText(valuation.methodologyVersion) || null,
-    warnings: Object.freeze(unique(list(valuation.warnings).map(explainMaxxisEvidenceState).map(safeText)).slice(0, 8)),
+    warnings: Object.freeze(unique([describeStoredMarketReference(market.savedRecentSalesReference, language), ...list(valuation.warnings).map(explainMaxxisEvidenceState).map(safeText)]).slice(0, 8)),
     source: status === 'NOT_APPLICABLE' ? 'NOT_APPLICABLE' : status === 'ARV_UNAVAILABLE' ? 'UNKNOWN' : 'CALCULATED',
     providerEstimate,
     recentSalesMarketEstimate: recent ? Object.freeze({
       methodology: 'RECENT_SALES_MARKET_ESTIMATE', status: recent.status,
+      referenceState: market.evidenceFreshness?.sold?.state === 'STALE_USABLE' ? 'STALE_CALCULATED_REFERENCE' : 'CURRENT_CALCULATED_REFERENCE',
+      retrievedAt: market.evidenceFreshness?.sold?.retrievedAt || null,
       centralEstimate: nullableNumber(recent.centralEstimate),
       range: isObject(recent.range) ? Object.freeze({ low: nullableNumber(recent.range.low), high: nullableNumber(recent.range.high) }) : null,
       weightedUnitValue: nullableNumber(recent.weightedUnitValue),
@@ -192,7 +197,7 @@ export function buildMaxxisDealIntelligenceReport(context, structuredAnalysis = 
   if (!isObject(context) || context.type !== 'deal_intelligence_context') return null;
   const canonical = isObject(structuredAnalysis) && structuredAnalysis.type === 'maxxis_structured_analysis'
     ? structuredAnalysis : null;
-  const valuation = valuationIntelligence(context);
+  const valuation = valuationIntelligence(context, canonical?.language || 'en');
   const comps = comparableEvidence(context);
   const reportLanguage = canonical?.language || 'en';
   const analysisConfidence = buildMaxxisAnalysisConfidence(context, { language: reportLanguage });

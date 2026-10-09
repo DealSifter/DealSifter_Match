@@ -13,9 +13,20 @@ const request = async (path, options = {}) => {
   if (!response.ok) throw new Error(`SUPABASE_READ_FAILED_${response.status}:${await response.text()}`);
   return response.json();
 };
-const addressFilter = process.argv.slice(2).join(' ').trim().toLowerCase();
+const validate = process.argv.includes('--validate');
+const addressFilter = process.argv.slice(2).filter(arg => arg !== '--validate').join(' ').trim().toLowerCase();
+// Deno's TS loader runs the actual cache identity/schema contracts during QA.
+const contracts = validate ? {
+  ...await import('../supabase/functions/_shared/property-data/cacheIdentity.ts'),
+  ...await import('../supabase/functions/_shared/property-data/address.ts'),
+  ...await import('../supabase/functions/_shared/property-data/normalizedRecordSchema.ts'),
+  ...await import('../supabase/functions/_shared/property-data/valuationSchema.ts'),
+  ...await import('../supabase/functions/_shared/property-data/soldSchema.ts'),
+  ...await import('../supabase/functions/_shared/property-data/soldCache.ts'),
+  ...await import('../supabase/functions/_shared/property-data/cacheFreshness.ts'),
+} : null;
 const rows = (await request(`properties?select=id,type,address,city,state,zip,price,beds,baths,sqft,lot,objective,rehab,cap_rate,description,source,lat,lng&or=(${[
-  '5939 Droad St', '741 Gable Dr', '5714 Bent Creek Dr', '7081 Kalanianaole Hwy', '10865 Wystone Ave',
+  '5939 Droad St', '741 Gable Dr', '5714 Bent Creek Dr', '7081 Kalanianaole Hwy', '10865 Wystone Ave', '9537 Dalegrove Dr',
 ].map((address) => `address.ilike.${encodeURIComponent(address)}`).join(',')})`))
   .filter((property) => !addressFilter || String(property.address || '').toLowerCase().includes(addressFilter));
 const field = (entry) => entry && typeof entry === 'object' ? entry.value ?? null : null;
@@ -61,18 +72,61 @@ const soldSummary = (payload = {}) => ({
 const output = [];
 for (const property of rows) {
   const cache = {};
-  for (const dataType of ['property_record', 'property_value_avm', 'property_sold_record_pool']) {
-    const result = await request('rpc/ds_get_property_intelligence_cache', {
-      method: 'POST', headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ p_property_id: property.id, p_provider: 'rentcast', p_data_type: dataType, p_schema_version: 1 }),
-    });
-    const row = result[0];
-    cache[dataType] = !row ? null : {
+  // Backend-only, read-only inspection includes expired rows; never contacts RentCast.
+  const retained = await request(`property_intelligence_cache?property_id=eq.${property.id}&select=data_type,address_fingerprint,provider_property_id,payload,retrieved_at,expires_at,schema_version`);
+  const fingerprint = contracts ? await contracts.propertyAddressFingerprint({ street: property.address, city: property.city, state: property.state, zipCode: property.zip }) : null;
+  const valuationRow = retained.find(row => row.data_type === 'property_value_avm');
+  const validValuation = contracts && contracts.isNormalizedValuationEvidence(valuationRow?.payload)
+    && await contracts.matchesCachedSubject(property, valuationRow.payload.subjectProperty);
+  for (const dataType of ['property_record', 'property_value_avm', 'property_sold_record_pool', 'sale_listing_evidence', 'rent_estimate_evidence', 'rental_listing_evidence', 'market_evidence']) {
+    const row = retained.find(entry => entry.data_type === dataType);
+    let diagnostic = {};
+    if (contracts && row) {
+      let structurallyValid = row.schema_version === 1, identityMatch = false, queryMatch = true;
+      if (dataType === 'property_record') {
+        structurallyValid &&= contracts.isNormalizedPropertyRecord(row.payload);
+        identityMatch = structurallyValid && await contracts.matchesCachedSubject(property, row.payload.address);
+      } else if (dataType === 'property_value_avm') {
+        structurallyValid &&= contracts.isNormalizedValuationEvidence(row.payload);
+        identityMatch = Boolean(validValuation);
+      } else if (dataType === 'property_sold_record_pool') {
+        structurallyValid &&= contracts.isNormalizedSoldRecordPool(row.payload);
+        identityMatch = Boolean(validValuation) && [fingerprint, valuationRow.address_fingerprint].includes(row.address_fingerprint);
+        if (structurallyValid && validValuation) {
+          const subject = valuationRow.payload.subjectProperty;
+          const center = { latitude: subject.latitude.value, longitude: subject.longitude.value };
+          const expected = await contracts.soldSearchQueryFingerprint(fingerprint, row.payload.requestPolicy, center);
+          const legacy = await contracts.legacySoldSearchQueryFingerprint(valuationRow.address_fingerprint || fingerprint, row.payload.requestPolicy);
+          queryMatch = [expected, legacy].includes(row.payload.queryFingerprint);
+          diagnostic.queryAlias = row.payload.queryFingerprint === legacy ? 'LEGACY_V1_VALIDATED' : queryMatch ? 'CURRENT_V2' : 'UNRESOLVED';
+        }
+      } else identityMatch = row.address_fingerprint === fingerprint;
+      const freshness = contracts.cacheFreshness({ retrievedAt: row.retrieved_at, expiresAt: row.expires_at, addressFingerprint: row.address_fingerprint },
+        { structurallyValid, identityMatches: identityMatch, invalidated: !queryMatch });
+      diagnostic = { ...diagnostic, freshness: freshness.state, identityMatch, usable: ['FRESH', 'STALE_USABLE'].includes(freshness.state),
+        why: !structurallyValid ? 'SCHEMA_INVALID' : !identityMatch ? 'IDENTITY_UNRESOLVED_OR_MISMATCH' : !queryMatch ? 'QUERY_UNRESOLVED' : 'VALIDATED_RETAINED_REFERENCE' };
+    }
+    cache[dataType] = !row ? { found: false, freshness: 'ABSENT' } : {
+      found: true, freshness: Date.parse(row.expires_at) > Date.now() ? 'FRESH' : 'STALE_REQUIRES_IDENTITY_VALIDATION',
+      addressFingerprint: row.address_fingerprint, providerPropertyId: row.provider_property_id, schemaVersion: row.schema_version,
       retrievedAt: row.retrieved_at, expiresAt: row.expires_at,
+      ...diagnostic,
       summary: dataType === 'property_record' ? propertyRecordSummary(row.payload)
         : dataType === 'property_value_avm' ? valuationSummary(row.payload) : soldSummary(row.payload),
     };
   }
-  output.push({ property, cache });
+  const reports = await request(`maxxis_reports?property_id=eq.${property.id}&select=id,capability,created_at,report_payload&order=created_at.desc&limit=10`);
+  const savedReports = reports.map(({ report_payload, ...report }) => ({ ...report,
+    hasPayload: Boolean(report_payload), payloadKeys: Object.keys(report_payload || {}),
+    hasRecentSales: /recentSales|recent.sales/i.test(JSON.stringify(report_payload || {})),
+    hasEvidence: /propertyEvidence|soldPool|externalData/.test(JSON.stringify(report_payload || {})),
+  }));
+  const providerIds = [...new Set(retained.map(row => row.provider_property_id).filter(Boolean))];
+  const aliases = [];
+  for (const id of providerIds) {
+    const related = await request(`property_intelligence_cache?provider_property_id=eq.${encodeURIComponent(id)}&select=property_id,data_type,address_fingerprint,retrieved_at,expires_at`);
+    aliases.push(...related.filter(row => row.property_id !== property.id));
+  }
+  output.push({ property, cache, savedReports, historicalAliases: aliases });
 }
 process.stdout.write(`${JSON.stringify(output, null, 2)}\n`);

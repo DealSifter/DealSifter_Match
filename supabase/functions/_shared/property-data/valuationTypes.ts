@@ -132,6 +132,8 @@ export type ComparableAnalysis = {
 };
 
 export type ValuationEvidenceResult = {
+  freshness?: import('./cacheFreshness.ts').EvidenceFreshness;
+  providerAvailability?: import('./providerAvailability.ts').ProviderAvailabilityState;
   propertyId: string;
   cacheHit: boolean;
   valuation: NormalizedValuationEvidence;

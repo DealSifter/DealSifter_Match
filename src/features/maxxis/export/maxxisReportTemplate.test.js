@@ -4,6 +4,8 @@ import { DOMMatrix, ImageData, Path2D } from '@napi-rs/canvas';
 import { buildMaxxisReportSchema } from '../../../domain/maxxis/maxxisReportSchema';
 import { renderMaxxisReportPdf } from './maxxisReportPdf';
 import { resolveReportExportEntitlement } from './reportExportEntitlement';
+import { localizePresentationText } from '../../../services/chatTranslation';
+import { prepareReportNarrativePresentation } from '../presentation/reportNarrativePresentation';
 
 Object.assign(globalThis, { DOMMatrix, ImageData, Path2D });
 
@@ -62,6 +64,22 @@ async function render(reportType, language = 'en') {
 }
 
 describe('canonical PDF template behavior', () => {
+  it.each(['PROPERTY_RELEASE', 'MAXXIS_ANALYSIS', 'DEAL_INTELLIGENCE'])('uses cached presentation notes in the real %s PDF without translation work during rendering', async reportType => {
+    const original = `Welcome to The Dalegrove MCM. Notes ${reportType}.`;
+    const translated = 'Bem-vindo ao The Dalegrove MCM. Piscina privativa.';
+    const translate = vi.fn(async () => ({ data: { translatedText: translated, translationSource: 'gemini' } }));
+    const registered = Object.freeze({ ...property, images: [], notes: original });
+    await localizePresentationText({ text: original, targetLocale: 'pt', invoke: translate });
+    const report = buildMaxxisReportSchema({ reportType, property: registered, dealIntelligence: intelligence,
+      maxxisAnalysis: { executiveSummary: 'Evidence summary.', profileAlignment: { score: 70 }, riskAwareness: [], limitations: ['Condition unknown'], nextSteps: ['Verify condition'], provenance: { property: 'USER_PROVIDED' } } });
+    await prepareReportNarrativePresentation(report, 'pt');
+    const result = await renderMaxxisReportPdf({ schema: report, language: 'pt', generatedAt: '2026-10-09T12:00:00Z',
+      exportEntitlement: resolveReportExportEntitlement({ plan: 'enterprise', reportType, channel: 'PDF' }) });
+    const pages = await pdfPages(result);
+    expect(pages[0].text).toContain('Bem-vindo ao The Dalegrove MCM. Piscina privativa.');
+    expect(registered.notes).toBe(original);
+    expect(translate).toHaveBeenCalledTimes(1);
+  }, 30000);
   it('uses the original-color official logo only in the shared header, with no brand footer', () => {
     const source = readFileSync(new URL('./maxxisReportPdf.js', import.meta.url), 'utf8');
     expect(source).toContain("import officialDealSifterLogo from '../../../assets/maxxis/report-official-logo.png?inline'");

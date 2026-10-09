@@ -13,6 +13,14 @@ const ids = {
 };
 
 describe('canonical Maxxis property context', () => {
+  it('hydrates UUID selections with same-ID card notes without substituting a similarly named property', () => {
+    const card = Object.freeze({ id: ids.selected, address: '9537 Dalegrove Dr', notes: 'Exact registered notes.' });
+    const other = { id: ids.screen, address: card.address, notes: 'Different property.' };
+    const resolved = resolveMaxxisPropertyContext({ chatSelectedProperty: ids.selected, propertyCandidates: [other, card] });
+    expect(resolved.property).toBe(card);
+    expect(resolved.property.notes).toBe('Exact registered notes.');
+    expect(resolved.propertyId).toBe(ids.selected);
+  });
   it.each(['portfolio', 'matches', 'feed'])('resolves the currently visible %s property', (surface) => {
     expect(resolveMaxxisPropertyContext({ screenProperty: { id: ids.screen, surface } })).toMatchObject({
       status: 'RESOLVED', propertyId: ids.screen, source: 'APP_SCREEN',

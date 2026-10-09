@@ -1,4 +1,9 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { useLang } from '../../i18n/translations';
+import { getSafeLang, localizePresentationText } from '../../services/chatTranslation';
+import { buildDegradedEvidenceContinuation } from '../../features/maxxis/intelligence/degradedEvidenceContinuation';
+import { prepareReportNarrativePresentation } from '../../features/maxxis/presentation/reportNarrativePresentation';
+import { describeEvidenceFreshness, describeStoredMarketReference } from '../../features/maxxis/presentation/evidenceFreshnessPresentation';
 import { Icon } from '../ui/Icon';
 import { C } from '../../theme/colors';
 import {
@@ -160,7 +165,6 @@ import {
   clampPanelPosition,
   clampWidgetPosition,
   findLatestProviderConversationContext,
-  getUiLang,
   isProviderConversationIntent,
   normalizeActionId,
   readStoredPanelPosition,
@@ -217,7 +221,7 @@ function readDevMaxxisAttentionOverrides() {
 }
 
 export function MaxxisAssistant({ page = 'dashboard', onOpenSupport = null, onNavigateAction = null, onOpenReportSelector = null, onOpenProvider = null, onOpenFeedCard = null, onSelectPropertyContext = null, propertyCandidates = [], propertyAnalysisRequest = null, propertyContextId = '', appContext = null, sessionKey = '', onExportAnalysisPdf = null, onNuggetBalanceChange = null, onProviderUnlockConfirmed = null, enabled = true, userPreferences = null, userPreferencesHydrated = true, onChangeUserPreferences = null, userPreferencesPersistenceStatus = 'idle', proactiveFeatureEnabled = false, dealMemoryFeatureEnabled = false, currentPlan = 'free', reportEntitlements = [], reportHistory = [], onPersistReport = null, onDeleteReport = null, onRequestIntelligenceUnlock = null }) {
-  const language = getUiLang();
+  const language = getSafeLang(useLang());
   const t = COPY[language] || COPY.en;
   const preferencesCopy = getMaxxisPreferencesCopy(language);
   const [open, setOpen] = useState(false);
@@ -436,8 +440,8 @@ export function MaxxisAssistant({ page = 'dashboard', onOpenSupport = null, onNa
 
   useEffect(() => {
     setMessages((prev) => {
-      if (!prev.length || prev[0]?.id !== 'maxxis-greeting') return prev;
-      return [{ ...prev[0], content: getMaxxisGreeting(language) }, ...prev.slice(1)];
+      return prev.map(item => /^maxxis-greeting(?:-|$)/.test(item.id || '')
+        ? { ...item, content: getMaxxisGreeting(language) } : item);
     });
   }, [language]);
 
@@ -518,7 +522,7 @@ export function MaxxisAssistant({ page = 'dashboard', onOpenSupport = null, onNa
 
   const historyForRequest = useMemo(
     () => messages
-      .filter((item) => item.id !== 'maxxis-greeting' && !item.error)
+      .filter((item) => !/^maxxis-greeting(?:-|$)/.test(item.id || '') && !item.error)
       .map((item) => ({ role: item.role, content: stripActionTokens(item.content) }))
       .slice(-20),
     [messages],
@@ -1144,6 +1148,23 @@ export function MaxxisAssistant({ page = 'dashboard', onOpenSupport = null, onNa
       recentProperties: recentPropertyContextsRef.current,
     });
     const resolvedSubmitPropertyId = String(messagePropertyContext.propertyId || '').trim();
+    const notesQuestion = /\b(?:notas|notes|observa[çc][õo]es|texto original|original text)\b/i.test(cleanMessage)
+      && !/\b(?:salvar|editar|alterar|save|edit|change|guardar)\b/i.test(cleanMessage);
+    const originalNotes = messagePropertyContext.property?.propertyUserNotes || messagePropertyContext.property?.notes || messagePropertyContext.property?.description;
+    if (notesQuestion && originalNotes) {
+      setLoading(true);
+      setInput('');
+      setMessages(prev => [...prev, { id: `maxxis-user-${Date.now()}`, role: 'user', content: cleanMessage, createdAt: new Date() }]);
+      const exactOriginal = /\boriginal\b/i.test(cleanMessage);
+      const prefix = exactOriginal ? (language === 'pt' ? 'Texto original cadastrado:' : language === 'es' ? 'Texto original registrado:' : 'Original registered text:')
+        : language === 'pt' ? 'Nas notas cadastradas (informadas pelo usuário):' : language === 'es' ? 'En las notas registradas (aportadas por el usuario):' : 'In the registered notes (user-provided):';
+      const localized = exactOriginal ? null : await localizePresentationText({ text: originalNotes, targetLocale: language,
+        protectedNames: [messagePropertyContext.property.title, messagePropertyContext.property.address, 'Poggenpohl', 'Sub Zero'].filter(Boolean) }).catch(() => null);
+      setMessages(prev => [...prev,
+        { id: `maxxis-notes-${Date.now()}`, role: 'assistant', content: `${prefix}\n\n${localized?.translatedText || originalNotes}`, createdAt: new Date(), type: 'property_notes', data: { propertyId: resolvedSubmitPropertyId, provenance: 'USER_PROVIDED', sourceText: originalNotes } }]);
+      setLoading(false);
+      return;
+    }
     if (UUID_PATTERN.test(resolvedSubmitPropertyId)) {
       recentPropertyContextsRef.current = [
         messagePropertyContext.property || resolvedSubmitPropertyId,
@@ -1414,7 +1435,7 @@ export function MaxxisAssistant({ page = 'dashboard', onOpenSupport = null, onNa
           setMessages((prev) => [...prev, {
             id: `maxxis-arv-review-${Date.now()}`,
             role: 'assistant',
-            content: arvReviewGuidance(data.summary, language, data.arvEvaluation, data),
+            content: [describeEvidenceFreshness(data.evidenceFreshness, language), arvReviewGuidance(data.summary, language, data.arvEvaluation, data)].filter(Boolean).join('\n\n'),
             createdAt: new Date(),
             type: 'arv_visual_comp_review',
             data,
@@ -1423,11 +1444,8 @@ export function MaxxisAssistant({ page = 'dashboard', onOpenSupport = null, onNa
           setMessages((prev) => [...prev, {
             id: `maxxis-arv-unavailable-${Date.now()}`,
             role: 'assistant',
-            content: language === 'pt'
-              ? 'Não consegui carregar comparáveis estruturais do cache para esta propriedade. Nenhuma consulta externa foi realizada e nenhum ARV foi calculado.'
-              : language === 'es'
-                ? 'No pude cargar comparables estructurales del caché para esta propiedad. No se realizó ninguna consulta externa ni se calculó ARV.'
-                : 'I could not load cached structural comparables for this property. No external lookup was made and no ARV was calculated.',
+            content: buildDegradedEvidenceContinuation({ property: propertyCandidates.find(property => String(property.id || property.propertyId) === arvPropertyId) || messagePropertyContext.property || {},
+              snapshot: [...messages].reverse().find(message => String(message.data?.intelligenceSnapshot?.propertyId || '') === arvPropertyId)?.data?.intelligenceSnapshot, language }),
             createdAt: new Date(),
             type: 'arv_visual_comp_review_unavailable',
           }]);
@@ -1529,6 +1547,7 @@ export function MaxxisAssistant({ page = 'dashboard', onOpenSupport = null, onNa
         ? projectMaxxisDealIntelligenceResponse(result, { reportProperty: meta.reportProperty })
         : null;
       const projectedReport = dealIntelligence || maxxisAnalysis;
+      if (projectedReport?.data?.maxxisReport) await prepareReportNarrativePresentation(projectedReport.data.maxxisReport, language);
       if (reportGenerationFailed) {
         lastReportFailureRef.current = createMaxxisReportFailureState(
           result,
@@ -1605,7 +1624,7 @@ export function MaxxisAssistant({ page = 'dashboard', onOpenSupport = null, onNa
       setMessages((prev) => [...prev, {
         id: reportMessageId,
         role: 'assistant',
-        content: `${generationFailureText || dealIntelligence?.content || maxxisAnalysis?.content || intelligence.content || result.answer}${reportActions}${scenarioActions ? `\n\n${scenarioActions}` : ''}`,
+        content: [describeEvidenceFreshness(result?.data?.dealIntelligence?.providerMarketContext?.evidenceFreshness, language), describeStoredMarketReference(result?.data?.dealIntelligence?.providerMarketContext?.savedRecentSalesReference, language), `${generationFailureText || dealIntelligence?.content || maxxisAnalysis?.content || intelligence.content || result.answer}${reportActions}${scenarioActions ? `\n\n${scenarioActions}` : ''}`].filter(Boolean).join('\n\n'),
         createdAt: new Date(),
         error: Boolean(result.unavailable),
         degraded: Boolean(result.degraded && !structuredReportFallbackUsed),
@@ -2328,6 +2347,7 @@ export function MaxxisAssistant({ page = 'dashboard', onOpenSupport = null, onNa
         ...analysisExport,
         onExportPdf: async () => {
           if (!schema || !entitlement?.allowed) throw new Error('MAXXIS_REPORT_SCHEMA_OR_ACCESS_UNAVAILABLE');
+          await prepareReportNarrativePresentation(schema, language);
           const rendered = await renderMaxxisReportPdfCached({ schema, exportEntitlement: entitlement, generatedAt: reportMessage.createdAt, language });
           markMaxxisBrowserStage(pdfTraceId, 'pdf_artifact_ready', { pageCount: rendered.document?.pageCount || 0 });
           if (rendered.state !== 'RENDERED') throw new Error(`MAXXIS_REPORT_${rendered.state}`);
@@ -3118,6 +3138,7 @@ export function MaxxisAssistant({ page = 'dashboard', onOpenSupport = null, onNa
     const schema = report?.reportPayload?.data?.maxxisReport;
     const entitlement = savedReportExportEntitlements(report).PDF;
     if (!schema || !entitlement?.allowed) return false;
+    await prepareReportNarrativePresentation(schema, language);
     const rendered = await renderMaxxisReportPdfCached({ schema, exportEntitlement: entitlement, generatedAt: report.createdAt, language });
     if (rendered.state !== 'RENDERED') return false;
     return downloadMaxxisReportPdf(rendered.document, `maxxis-${report?.id || schema.reportType.toLowerCase()}.pdf`);

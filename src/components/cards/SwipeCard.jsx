@@ -5,6 +5,7 @@ import { useT } from '../../i18n/translations';
 import { Icon } from '../ui/Icon';
 import { SmartImage } from '../ui/SmartImage';
 import { useMediaQuery } from '../../hooks/useMediaQuery';
+import { LocalizedNarrative } from '../ui/LocalizedNarrative';
 
 const cleanText = (value) => String(value ?? '').trim();
 
@@ -703,7 +704,7 @@ function SwipeCard({ card, action, isUnlocked, isSkipped, onSwipe, onUndo, onUnl
             }}
             title={t.readFullDescription || 'Read full description'}
           >
-            {bodyDescription}
+            <LocalizedNarrative text={bodyDescription} sourceLocale={card?.sourceLocale || 'auto'} protectedNames={[card?.name, card?.address].filter(Boolean)} />
           </button>
         ) : null}
 
@@ -1019,7 +1020,7 @@ function SwipeCard({ card, action, isUnlocked, isSkipped, onSwipe, onUndo, onUnl
             </button>
           </div>
           <div style={{ whiteSpace: 'pre-wrap', fontSize: isMobileLayout ? 14 : 15, lineHeight: 1.68, color: C.t2 }}>
-            {bodyDescription}
+            <LocalizedNarrative text={bodyDescription} sourceLocale={card?.sourceLocale || 'auto'} protectedNames={[card?.name, card?.address].filter(Boolean)} />
           </div>
         </div>
       </div>,

@@ -17,7 +17,7 @@ export class SupabasePropertyEvidenceRepository implements PropertyEvidenceRepos
     const id = validatePropertyId(propertyId);
     const { data, error } = await this.client
       .from('properties')
-      .select('id,type,address,city,state,zip,price,beds,baths,sqft,lot,owner_id,description')
+      .select('id,type,address,city,state,zip,price,beds,baths,sqft,lot,owner_id,description,lat,lng')
       .eq('id', id)
       .maybeSingle();
     if (error) throw new Error('PROPERTY_EVIDENCE_INTERNAL_LOOKUP_FAILED');

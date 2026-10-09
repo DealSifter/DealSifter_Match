@@ -3920,7 +3920,7 @@ export function Dashboard({ page, nuggets, setModal, setPage, onOpenOnboardingTa
                               <div style={{ width: `min(${myCardPreviewCardWidth}px, 100%)`, minHeight: myCardPreviewCardHeight, overflow: 'visible', padding: 12, margin: '0 auto', border: `1px solid ${C.border}`, borderRadius: 16, boxSizing: 'border-box', WebkitOverflowScrolling: 'touch', background: C.card }}>
                                 <div style={{ marginBottom: 8 }}>
                                   <div style={{ fontSize: 14, fontWeight: 700, color: C.t1 }}>{item.title || 'Service'}</div>
-                                  {item.description && <div style={{ fontSize: 12, color: C.t2, marginTop: 2 }}>{item.description}</div>}
+                                  {item.description && <div style={{ fontSize: 12, color: C.t2, marginTop: 2 }}><LocalizedNarrative text={item.description} protectedNames={[item.title, item.address, 'Poggenpohl', 'Sub Zero'].filter(Boolean)} /></div>}
                                   {item.category && <div style={{ display: 'inline-block', marginTop: 4, padding: '2px 8px', borderRadius: 12, background: C.alpha(C.accent, 0.08), border: `1px solid ${C.alpha(C.accent, 0.15)}`, fontSize: 10, color: C.accent, fontWeight: 700 }}>{item.category}</div>}
                                 </div>
                                 {svcImages.length > 0 ? (
@@ -5032,3 +5032,4 @@ export function Dashboard({ page, nuggets, setModal, setPage, onOpenOnboardingTa
 
 
 
+import { LocalizedNarrative } from '../components/ui/LocalizedNarrative';

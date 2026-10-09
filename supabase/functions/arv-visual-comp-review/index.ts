@@ -130,7 +130,9 @@ export async function handleArvVisualCompReviewRequest(req: Request) {
           ? 'ESTIMATED' : 'UNAVAILABLE',
       },
     });
-    return response(origin, { success: true, state: 'ready', data: payload });
+    return response(origin, { success: true, state: 'ready', data: { ...payload, evidenceFreshness: {
+      sold: soldEvidence.freshness || null, valuation: soldEvidence.valuationFreshness || null,
+    } } });
   } catch (error) {
     const code = String(error instanceof Error ? error.message : 'ARV_VISUAL_REVIEW_UNAVAILABLE');
     return response(origin, { success: false, error: code }, code === 'INVALID_PROPERTY' ? 400 : 500);

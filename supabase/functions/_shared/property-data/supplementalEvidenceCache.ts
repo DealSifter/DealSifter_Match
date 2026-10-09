@@ -1,5 +1,6 @@
 import { validatePropertyId, type PropertyIntelligenceRpcClient } from './cache.ts';
 import type { SupplementalEvidence, SupplementalEvidenceFamily } from './supplementalEvidenceTypes.ts';
+import { canReadRetained, type CacheReadPolicy } from './cacheFreshness.ts';
 
 export const SUPPLEMENTAL_CACHE_SCHEMA_VERSION = 1;
 export const SUPPLEMENTAL_CACHE_DATA_TYPES: Record<SupplementalEvidenceFamily, string> = Object.freeze({
@@ -21,7 +22,7 @@ export type SupplementalCacheEntry = {
 };
 
 export interface SupplementalEvidenceCache {
-  get(propertyId: string, family: SupplementalEvidenceFamily, addressFingerprint: string, queryFingerprint: string): Promise<SupplementalCacheEntry | null>;
+  get(propertyId: string, family: SupplementalEvidenceFamily, addressFingerprint: string, queryFingerprint: string, policy?: CacheReadPolicy): Promise<SupplementalCacheEntry | null>;
   set(propertyId: string, family: SupplementalEvidenceFamily, addressFingerprint: string, evidence: SupplementalEvidence): Promise<SupplementalCacheEntry>;
 }
 
@@ -45,10 +46,10 @@ export class InMemorySupplementalEvidenceCache implements SupplementalEvidenceCa
   private readonly entries = new Map<string, SupplementalCacheEntry>();
   constructor(private readonly now: () => Date = () => new Date()) {}
   private key(propertyId: string, family: SupplementalEvidenceFamily) { return `${validatePropertyId(propertyId)}:${family}`; }
-  async get(propertyId: string, family: SupplementalEvidenceFamily, addressFingerprint: string, queryFingerprint: string) {
+  async get(propertyId: string, family: SupplementalEvidenceFamily, addressFingerprint: string, queryFingerprint: string, policy: CacheReadPolicy = {}) {
     const entry = this.entries.get(this.key(propertyId, family));
     if (!entry || entry.addressFingerprint !== addressFingerprint || entry.queryFingerprint !== queryFingerprint
-      || Date.parse(entry.expiresAt) <= this.now().getTime() || !validEvidence(entry.evidence, family)) return null;
+      || !canReadRetained(entry, policy, this.now().getTime()) || !validEvidence(entry.evidence, family)) return null;
     return structuredClone(entry);
   }
   async set(propertyId: string, family: SupplementalEvidenceFamily, addressFingerprint: string, evidence: SupplementalEvidence) {
@@ -63,15 +64,15 @@ export class InMemorySupplementalEvidenceCache implements SupplementalEvidenceCa
 
 export class SupabaseSupplementalEvidenceCache implements SupplementalEvidenceCache {
   constructor(private readonly client: PropertyIntelligenceRpcClient) {}
-  async get(propertyId: string, family: SupplementalEvidenceFamily, addressFingerprint: string, queryFingerprint: string) {
+  async get(propertyId: string, family: SupplementalEvidenceFamily, addressFingerprint: string, queryFingerprint: string, policy: CacheReadPolicy = {}) {
     const id = validatePropertyId(propertyId);
-    const { data, error } = await this.client.rpc('ds_get_property_intelligence_cache', {
+    const { data, error } = await this.client.rpc(policy.allowStale ? 'ds_get_retained_property_intelligence_cache' : 'ds_get_property_intelligence_cache', {
       p_property_id: id, p_provider: 'rentcast', p_data_type: SUPPLEMENTAL_CACHE_DATA_TYPES[family],
       p_schema_version: SUPPLEMENTAL_CACHE_SCHEMA_VERSION,
     });
     if (error) throw new Error('SUPPLEMENTAL_CACHE_READ_FAILED');
     const row = Array.isArray(data) ? data[0] as Record<string, unknown> | undefined : undefined;
-    if (!row || row.address_fingerprint !== addressFingerprint || Date.parse(String(row.expires_at || '')) <= Date.now()
+    if (!row || row.address_fingerprint !== addressFingerprint || !canReadRetained({ retrievedAt: String(row.retrieved_at || ''), expiresAt: String(row.expires_at || '') }, policy)
       || !validEvidence(row.payload, family)) return null;
     const evidence = row.payload as SupplementalEvidence;
     if (evidence.queryFingerprint !== queryFingerprint) return null;

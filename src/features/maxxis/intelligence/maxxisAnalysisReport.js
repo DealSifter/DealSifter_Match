@@ -175,9 +175,11 @@ export function buildMaxxisAnalysisReport(dealIntelligence, structuredAnalysis =
     executiveSummary: safeText(canonical?.executiveSummary) || executiveSummary(highlights, alignment),
     dealThesis: canonical?.dealThesis || null,
     marketContext: Object.freeze({
+      evidenceFreshness: providerMarket.evidenceFreshness || null,
+      savedRecentSalesReference: providerMarket.savedRecentSalesReference || null,
       providerEstimate: Number.isFinite(Number(providerMarket.providerEstimate))
         ? Number(providerMarket.providerEstimate) : null,
-      providerEstimateLabel: 'PROVIDER_CURRENT_ESTIMATE_NOT_ARV',
+      providerEstimateLabel: providerMarket.evidenceFreshness?.valuation?.state === 'STALE_USABLE' ? 'PROVIDER_PRIOR_ESTIMATE_NOT_ARV' : 'PROVIDER_CURRENT_ESTIMATE_NOT_ARV',
       providerEstimateRange: isObject(providerMarket.providerEstimateRange)
         ? Object.freeze({ ...providerMarket.providerEstimateRange }) : null,
       supportingMarketSalesCount: Number(providerMarket.supportingMarketSalesCount) || 0,

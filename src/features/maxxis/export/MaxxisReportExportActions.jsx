@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { Download, Mail, Share2 } from 'lucide-react';
 import { downloadMaxxisReportPdf, renderMaxxisReportPdfCached } from './maxxisReportPdf';
 import { buildReportMailtoUrl } from './reportDeliveryUtils';
+import { prepareReportNarrativePresentation } from '../presentation/reportNarrativePresentation';
 import './MaxxisReportExportActions.css';
 
 const COPY = Object.freeze({
@@ -45,6 +46,7 @@ export function MaxxisReportExportActions({ schema, exportEntitlements = {}, lan
   const copy = COPY[language] || COPY.en;
 
   const renderDocument = async () => {
+    await prepareReportNarrativePresentation(schema, language);
     const result = await renderMaxxisReportPdfCached({ schema, exportEntitlement: exportEntitlements.PDF, language });
     if (result.state !== 'RENDERED') throw new Error('REPORT_PDF_RENDER_FAILED');
     return result.document;

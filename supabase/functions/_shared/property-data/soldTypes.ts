@@ -194,6 +194,9 @@ export type RecordedSoldCompSelection = {
 };
 
 export type SoldEvidenceResult = {
+  freshness?: import('./cacheFreshness.ts').EvidenceFreshness;
+  providerAvailability?: import('./providerAvailability.ts').ProviderAvailabilityState;
+  valuationFreshness?: import('./cacheFreshness.ts').EvidenceFreshness;
   propertyId: string;
   cacheHit: boolean;
   soldPool: NormalizedSoldRecordPool;

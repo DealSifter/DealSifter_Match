@@ -1,4 +1,5 @@
 import { getLang } from '../i18n/translations';
+import { getSafeLang } from './chatTranslation';
 import {
   getSupabaseFunctionUrl,
   isSupabaseConfigured,
@@ -84,6 +85,7 @@ async function invokeMaxxisChatFunction(body) {
 }
 
 export function getMaxxisGreeting(language = currentLanguage()) {
+  language = getSafeLang(language);
   if (language === 'pt') {
     return 'Ola, eu sou o Maxxis Deal AI, seu assistente do DealSifter Match. Posso te ajudar a navegar pelo Feed, MapView, Matches, desbloqueios, planos, nuggets, spotlight e conceitos gerais de Tax Deed ou Wholesale nos EUA. Como posso ajudar agora?';
   }

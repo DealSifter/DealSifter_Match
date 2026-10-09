@@ -1,6 +1,7 @@
 import { validatePropertyId, type PropertyIntelligenceRpcClient } from './cache.ts';
 import { isNormalizedSoldRecordPool, serializeNormalizedSoldRecordPool } from './soldSchema.ts';
 import type { NormalizedSoldRecordPool, SoldSearchPolicy } from './soldTypes.ts';
+import { canReadRetained, type CacheReadPolicy } from './cacheFreshness.ts';
 
 export const SOLD_POOL_CACHE_DATA_TYPE = 'property_sold_record_pool' as const;
 export const SOLD_POOL_CACHE_SCHEMA_VERSION = 1;
@@ -16,7 +17,7 @@ export type SoldPoolCacheEntry = {
 };
 
 export interface SoldRecordPoolCache {
-  getSoldPool(propertyId: string, addressFingerprint: string, queryFingerprint: string): Promise<SoldPoolCacheEntry | null>;
+  getSoldPool(propertyId: string, addressFingerprint: string, queryFingerprint: string, policy?: CacheReadPolicy): Promise<SoldPoolCacheEntry | null>;
   setSoldPool(propertyId: string, addressFingerprint: string, pool: NormalizedSoldRecordPool): Promise<SoldPoolCacheEntry>;
 }
 
@@ -39,15 +40,26 @@ export async function soldSearchQueryFingerprint(addressFingerprint: string, pol
   return Array.from(new Uint8Array(digest), (value) => value.toString(16).padStart(2, '0')).join('');
 }
 
+// Exact pre-v2 contract, not a fuzzy query fallback. Used only after independently
+// validating the cached subject address/coordinates and the full request policy.
+export async function legacySoldSearchQueryFingerprint(addressFingerprint: string, policy: SoldSearchPolicy) {
+  const canonical = JSON.stringify({ addressFingerprint, radiusMiles: policy.radiusMiles,
+    saleDateRangeDays: policy.saleDateRangeDays, propertyType: policy.propertyType, limit: policy.limit });
+  const digest = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(canonical));
+  return [...new Uint8Array(digest)].map(value => value.toString(16).padStart(2, '0')).join('');
+}
+
 export class InMemorySoldRecordPoolCache implements SoldRecordPoolCache {
   private entries = new Map<string, SoldPoolCacheEntry & { raw?: unknown }>();
   constructor(private readonly options: { now?: () => Date; ttlHours?: unknown } = {}) {}
-  async getSoldPool(propertyId: string, addressFingerprint: string, queryFingerprint: string) {
+  async getSoldPool(propertyId: string, addressFingerprint: string, queryFingerprint: string, policy: CacheReadPolicy = {}) {
     const entry = this.entries.get(validatePropertyId(propertyId));
     const now = (this.options.now || (() => new Date()))().getTime();
     const candidate = entry?.raw === undefined ? entry?.pool : entry.raw;
-    if (!entry || Date.parse(entry.expiresAt) <= now || entry.addressFingerprint !== addressFingerprint
-      || entry.queryFingerprint !== queryFingerprint || !isNormalizedSoldRecordPool(candidate)) return null;
+    if (!entry || !canReadRetained(entry, policy, now)
+      || (entry.addressFingerprint !== addressFingerprint && entry.addressFingerprint !== policy.validatedAddressAlias)
+      || (entry.queryFingerprint !== queryFingerprint && entry.queryFingerprint !== policy.legacyQueryFingerprint)
+      || !isNormalizedSoldRecordPool(candidate)) return null;
     return structuredClone({ ...entry, pool: candidate, raw: undefined }) as SoldPoolCacheEntry;
   }
   async setSoldPool(propertyId: string, addressFingerprint: string, pool: NormalizedSoldRecordPool) {
@@ -72,9 +84,9 @@ export class SupabaseSoldRecordPoolCache implements SoldRecordPoolCache {
   constructor(private readonly client: PropertyIntelligenceRpcClient, ttlHours: unknown) {
     this.ttlHours = normalizeSoldPoolCacheTtlHours(ttlHours);
   }
-  async getSoldPool(propertyId: string, addressFingerprint: string, queryFingerprint: string) {
+  async getSoldPool(propertyId: string, addressFingerprint: string, queryFingerprint: string, policy: CacheReadPolicy = {}) {
     const id = validatePropertyId(propertyId);
-    const { data, error } = await this.client.rpc('ds_get_property_intelligence_cache', {
+    const { data, error } = await this.client.rpc(policy.allowStale ? 'ds_get_retained_property_intelligence_cache' : 'ds_get_property_intelligence_cache', {
       p_property_id: id, p_provider: 'rentcast', p_data_type: SOLD_POOL_CACHE_DATA_TYPE,
       p_schema_version: SOLD_POOL_CACHE_SCHEMA_VERSION,
     });
@@ -82,11 +94,12 @@ export class SupabaseSoldRecordPoolCache implements SoldRecordPoolCache {
     const row = Array.isArray(data) ? data[0] : null;
     if (!row || typeof row !== 'object') return null;
     const value = row as Record<string, unknown>;
-    if (value.address_fingerprint !== addressFingerprint || !isNormalizedSoldRecordPool(value.payload)
-      || value.payload.queryFingerprint !== queryFingerprint) return null;
+    if ((value.address_fingerprint !== addressFingerprint && value.address_fingerprint !== policy.validatedAddressAlias)
+      || !isNormalizedSoldRecordPool(value.payload)
+      || (value.payload.queryFingerprint !== queryFingerprint && value.payload.queryFingerprint !== policy.legacyQueryFingerprint)) return null;
     const expiresAt = String(value.expires_at || '');
-    if (Date.parse(expiresAt) <= Date.now()) return null;
-    return { propertyId: id, addressFingerprint, queryFingerprint, pool: value.payload,
+    if (!canReadRetained({ retrievedAt: String(value.retrieved_at || ''), expiresAt }, policy)) return null;
+    return { propertyId: id, addressFingerprint: String(value.address_fingerprint), queryFingerprint: value.payload.queryFingerprint, pool: value.payload,
       retrievedAt: String(value.retrieved_at || ''), expiresAt };
   }
   async setSoldPool(propertyId: string, addressFingerprint: string, pool: NormalizedSoldRecordPool) {

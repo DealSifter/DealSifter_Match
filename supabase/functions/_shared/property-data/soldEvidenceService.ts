@@ -2,12 +2,15 @@ import { propertyAddressFingerprint } from './address.ts';
 import { crossValidateSoldComparables, selectRecordedSoldComparables } from './soldCompEngine.ts';
 import { validatePropertyId } from './cache.ts';
 import { InMemoryPropertySingleFlight, type PropertySingleFlight } from './singleFlight.ts';
-import { soldSearchQueryFingerprint, type SoldRecordPoolCache } from './soldCache.ts';
+import { soldSearchQueryFingerprint, legacySoldSearchQueryFingerprint, type SoldRecordPoolCache } from './soldCache.ts';
 import { DEFAULT_SOLD_SEARCH_POLICY, normalizeSoldSearchPolicy } from './soldProvider.ts';
 import type { NormalizedSoldRecordPool, SoldEvidenceResult, SoldRecordDataProvider, SoldSearchPolicy } from './soldTypes.ts';
 import type { PropertyEvidenceRepository } from './propertyEvidenceTypes.ts';
 import { valuationSubjectAddressFingerprint, type ValuationEvidenceCache } from './valuationCache.ts';
 import type { NormalizedValuationEvidence } from './valuationTypes.ts';
+import { cacheFreshness } from './cacheFreshness.ts';
+import { matchesCachedSubject } from './cacheIdentity.ts';
+import { isProviderUnavailableError, providerAvailabilityFromError } from './providerAvailability.ts';
 
 function providerPropertyType(value: string | null) {
   const normalized = String(value || '').trim().toLowerCase();
@@ -55,8 +58,8 @@ export class SoldEvidenceService {
     const addressFingerprint = await propertyAddressFingerprint(lookup);
     const policy = normalizeSoldSearchPolicy({ ...DEFAULT_SOLD_SEARCH_POLICY, ...this.policyOverrides,
       propertyType: providerPropertyType(property.type) });
-    const valuationEntry = await this.options.valuationCache.getValuation(propertyId);
-    if (!valuationEntry || valuationEntry.addressFingerprint !== addressFingerprint
+    const valuationEntry = await this.options.valuationCache.getValuation(propertyId, { allowStale: true });
+    if (!valuationEntry || !await matchesCachedSubject(property, valuationEntry.valuation.subjectProperty)
       || await valuationSubjectAddressFingerprint(valuationEntry.valuation) !== addressFingerprint) {
       throw new Error('VALUATION_EVIDENCE_CACHE_REQUIRED');
     }
@@ -66,13 +69,18 @@ export class SoldEvidenceService {
       ? { latitude: Number(latitude), longitude: Number(longitude) } : null;
     const queryFingerprint = await soldSearchQueryFingerprint(addressFingerprint, policy, searchCenter);
     return { propertyId, property, lookup, addressFingerprint, policy, queryFingerprint,
-      searchCenter, valuation: valuationEntry.valuation };
+      searchCenter, valuation: valuationEntry.valuation, valuationEntry };
   }
 
   async getCachedSoldEvidence(input: { propertyId: string; userId?: string | null }) {
     const context = await this.context(input);
-    const cached = await this.options.soldCache.getSoldPool(context.propertyId, context.addressFingerprint, context.queryFingerprint);
-    return cached ? this.result(context.propertyId, true, cached.pool, context.valuation) : null;
+    const cached = await this.options.soldCache.getSoldPool(context.propertyId, context.addressFingerprint, context.queryFingerprint, {
+      allowStale: true, validatedAddressAlias: context.valuationEntry.addressFingerprint || undefined,
+      legacyQueryFingerprint: await legacySoldSearchQueryFingerprint(context.valuationEntry.addressFingerprint || context.addressFingerprint, context.policy),
+    });
+    if (cached && Object.keys(context.policy).some(key => cached.pool.requestPolicy[key as keyof SoldSearchPolicy] !== context.policy[key as keyof SoldSearchPolicy])) return null;
+    return cached ? { ...this.result(context.propertyId, true, cached.pool, context.valuation),
+      freshness: cacheFreshness(cached), valuationFreshness: cacheFreshness(context.valuationEntry) } : null;
   }
 
   async getSoldEvidence(input: { propertyId: string; userId?: string | null }) {
@@ -82,19 +90,30 @@ export class SoldEvidenceService {
       context.propertyId, context.addressFingerprint, context.queryFingerprint,
     );
     const cached = await validCached();
-    if (cached) return this.result(context.propertyId, true, cached.pool, context.valuation);
+    if (cached) return { ...this.result(context.propertyId, true, cached.pool, context.valuation),
+      freshness: cacheFreshness(cached), valuationFreshness: cacheFreshness(context.valuationEntry) };
+    try {
     const loaded = await this.singleFlight.run(context.propertyId, async () => {
       const rechecked = await validCached();
-      if (rechecked) return { pool: rechecked.pool, cacheHit: true };
+      if (rechecked) return { pool: rechecked.pool, cacheHit: true, entry: rechecked };
       const pool = await this.options.provider.getSoldRecordPool({ ...context.lookup,
         policy: context.policy, queryFingerprint: context.queryFingerprint, searchCenter: context.searchCenter });
       const current = await this.options.repository.getById(context.propertyId, input.userId);
       const currentFingerprint = current ? await propertyAddressFingerprint({ street: current.address || '', city: current.city || '',
         state: current.state || '', zipCode: current.zip || '' }) : null;
       if (currentFingerprint !== context.addressFingerprint) throw new Error('PROPERTY_ADDRESS_CHANGED');
-      await this.options.soldCache.setSoldPool(context.propertyId, context.addressFingerprint, pool);
-      return { pool, cacheHit: false };
+      const entry = await this.options.soldCache.setSoldPool(context.propertyId, context.addressFingerprint, pool);
+      return { pool, cacheHit: false, entry };
     });
-    return this.result(context.propertyId, loaded.cacheHit, loaded.pool, context.valuation);
+    return { ...this.result(context.propertyId, loaded.cacheHit, loaded.pool, context.valuation),
+      freshness: cacheFreshness(loaded.entry),
+      valuationFreshness: cacheFreshness(context.valuationEntry) };
+    } catch (error) {
+      if (isProviderUnavailableError(error)) {
+        const retained = await this.getCachedSoldEvidence(input);
+        if (retained) return { ...retained, providerAvailability: providerAvailabilityFromError(error) };
+      }
+      throw error;
+    }
   }
 }

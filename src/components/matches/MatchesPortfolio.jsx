@@ -7,6 +7,8 @@ import { Icon } from '../ui/Icon';
 import { Modal } from '../ui/Modal';
 import { PlanGateModal } from '../modals/PlanGateModal';
 import { PropertyCard } from '../cards/PropertyCard';
+import { LocalizedNarrative } from '../ui/LocalizedNarrative';
+import { prepareReportNarrativePresentation } from '../../features/maxxis/presentation/reportNarrativePresentation';
 import { SwipeCard } from '../cards/SwipeCard';
 import { SmartImage } from '../ui/SmartImage';
 import { ExclusivityBadge } from '../ui/ExclusivityBadge';
@@ -792,7 +794,9 @@ export function PortfolioDetail({ item, owner, ownerContact = null, isOwnerUnloc
     const exportEntitlement = resolveReportExportEntitlement({
       plan: 'free', reportType: INTELLIGENCE_REPORT_TYPES.PROPERTY_RELEASE, channel: 'PDF',
     });
-    const rendered = await renderMaxxisReportPdf({ schema, exportEntitlement, language: getSafeLang(getLang()) });
+    const reportLanguage = getSafeLang(getLang());
+    await prepareReportNarrativePresentation(schema, reportLanguage);
+    const rendered = await renderMaxxisReportPdf({ schema, exportEntitlement, language: reportLanguage });
     if (rendered.state !== 'RENDERED' || rendered.document.pageCount !== 1) throw new Error('PROPERTY_RELEASE_RENDER_FAILED');
     const fileName = `${safeName || 'property_release'}.pdf`;
     if (!downloadMaxxisReportPdf(rendered.document, fileName)) throw new Error('PROPERTY_RELEASE_DOWNLOAD_FAILED');
@@ -1008,7 +1012,7 @@ export function PortfolioDetail({ item, owner, ownerContact = null, isOwnerUnloc
       {item.description ? (
         <div style={{ padding:10, borderBottom:`1px solid ${C.border}`, color: C.t2 }}>
           <div style={{ fontSize:14, fontWeight:400, lineHeight:1.3, display:'-webkit-box', WebkitLineClamp:2, WebkitBoxOrient:'vertical', overflow:'hidden', textOverflow:'ellipsis' }}>
-            {item.description}
+            <LocalizedNarrative text={item.description} protectedNames={[item.address, item.title, owner?.name, 'Poggenpohl', 'Sub Zero'].filter(Boolean)} />
           </div>
         </div>
       ) : null}
@@ -1123,7 +1127,7 @@ export function PortfolioDetail({ item, owner, ownerContact = null, isOwnerUnloc
         <div style={{ border:`1px solid ${C.border}`, borderRadius:8, padding:8, background:C.alpha(C.accent, 0.04) }}>
           <div style={{ fontSize:10, color:C.t3, marginBottom:3 }}>{matchesT.ownerNotes}</div>
           <div style={{ fontSize:11, color:C.t2, lineHeight:1.45 }}>
-            {ownerDesc || owner?.desc || matchesT.noOwnerNotes}
+            {ownerDesc || owner?.desc ? <LocalizedNarrative text={ownerDesc || owner?.desc} protectedNames={[owner?.name].filter(Boolean)} /> : matchesT.noOwnerNotes}
           </div>
         </div>
       </div>

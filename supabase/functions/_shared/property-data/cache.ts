@@ -1,6 +1,7 @@
 import { isNormalizedPropertyRecord, serializeNormalizedPropertyRecord } from './normalizedRecordSchema.ts';
 import { propertyAddressFingerprint } from './address.ts';
 import type { NormalizedPropertyRecord } from './types.ts';
+import { canReadRetained, type CacheReadPolicy } from './cacheFreshness.ts';
 
 export const PROPERTY_RECORD_CACHE_SCHEMA_VERSION = 1;
 export const DEFAULT_PROPERTY_RECORD_CACHE_TTL_HOURS = 168;
@@ -20,7 +21,7 @@ export type PropertyRecordCacheEntry = {
 };
 
 export interface PropertyIntelligenceCache {
-  getPropertyRecord(propertyId: string): Promise<PropertyRecordCacheEntry | null>;
+  getPropertyRecord(propertyId: string, policy?: CacheReadPolicy): Promise<PropertyRecordCacheEntry | null>;
   setPropertyRecord(propertyId: string, record: NormalizedPropertyRecord): Promise<PropertyRecordCacheEntry>;
 }
 
@@ -48,10 +49,10 @@ export class InMemoryPropertyIntelligenceCache implements PropertyIntelligenceCa
     this.ttlHours = normalizePropertyRecordCacheTtlHours(options.ttlHours);
   }
 
-  async getPropertyRecord(propertyId: string): Promise<PropertyRecordCacheEntry | null> {
+  async getPropertyRecord(propertyId: string, policy: CacheReadPolicy = {}): Promise<PropertyRecordCacheEntry | null> {
     const id = validatePropertyId(propertyId);
     const entry = this.entries.get(id);
-    if (!entry || Date.parse(entry.expiresAt) <= this.now().getTime()) return null;
+    if (!entry || !canReadRetained(entry, policy, this.now().getTime())) return null;
     const candidate = entry.rawRecord === undefined ? entry.record : entry.rawRecord;
     if (!isNormalizedPropertyRecord(candidate)) return null;
     const { rawRecord: _rawRecord, ...safeEntry } = entry;
@@ -104,9 +105,9 @@ export class SupabasePropertyIntelligenceCache implements PropertyIntelligenceCa
     this.ttlHours = normalizePropertyRecordCacheTtlHours(ttlHours);
   }
 
-  async getPropertyRecord(propertyId: string): Promise<PropertyRecordCacheEntry | null> {
+  async getPropertyRecord(propertyId: string, policy: CacheReadPolicy = {}): Promise<PropertyRecordCacheEntry | null> {
     const id = validatePropertyId(propertyId);
-    const { data, error } = await this.client.rpc('ds_get_property_intelligence_cache', {
+    const { data, error } = await this.client.rpc(policy.allowStale ? 'ds_get_retained_property_intelligence_cache' : 'ds_get_property_intelligence_cache', {
       p_property_id: id,
       p_provider: 'rentcast',
       p_data_type: PROPERTY_RECORD_CACHE_DATA_TYPE,
@@ -119,7 +120,7 @@ export class SupabasePropertyIntelligenceCache implements PropertyIntelligenceCa
     if (!isNormalizedPropertyRecord(value.payload)) return null;
     const retrievedAt = String(value.retrieved_at || '');
     const expiresAt = String(value.expires_at || '');
-    if (!Number.isFinite(Date.parse(retrievedAt)) || Date.parse(expiresAt) <= Date.now()) return null;
+    if (!canReadRetained({ retrievedAt, expiresAt }, policy)) return null;
     return {
       propertyId: id, provider: 'rentcast', dataType: PROPERTY_RECORD_CACHE_DATA_TYPE,
       addressFingerprint: typeof value.address_fingerprint === 'string' ? value.address_fingerprint : null,

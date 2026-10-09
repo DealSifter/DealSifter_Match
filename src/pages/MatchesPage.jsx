@@ -2581,7 +2581,7 @@ export function MatchesPage({ nuggets, isAdmin = false, setModal, openUnlock, un
                           </button>
                         </div>
                         <ServiceImageCarousel images={selectedPortfolioItem.media?.images || []} title={selectedPortfolioItem.name || selectedPortfolioItem.title || ''} />
-                        {selectedPortfolioItem.description && <div style={{ marginBottom:8, color:C.t2 }}>{selectedPortfolioItem.description}</div>}
+                        {selectedPortfolioItem.description && <div style={{ marginBottom:8, color:C.t2 }}><LocalizedNarrative text={selectedPortfolioItem.description} protectedNames={[selectedPortfolioItem.address, selectedPortfolioItem.title, 'Poggenpohl', 'Sub Zero'].filter(Boolean)} /></div>}
                         {(selectedPortfolioItem.publishToShowcase === false || selectedPortfolioItem.publishToConnections === false) ? (
                           <div style={{ marginBottom:8, display:'inline-flex', alignItems:'center', gap:6, padding:'5px 9px', borderRadius:999, border:`1px solid ${C.alpha(C.danger, 0.28)}`, background:C.alpha(C.danger, 0.08), color:C.danger, fontSize:10, fontWeight:800 }}>
                             <Icon name="slash" size={12} color={C.danger} strokeWidth={2.2} />
@@ -2756,7 +2756,7 @@ export function MatchesPage({ nuggets, isAdmin = false, setModal, openUnlock, un
                   </button>
                 </div>
                 <ServiceImageCarousel images={mobileCardSheet.media?.images || []} title={mobileCardSheet.name || mobileCardSheet.title || ''} compact />
-                {mobileCardSheet.description && <div style={{ color:C.t2, fontSize:13, marginBottom:12 }}>{mobileCardSheet.description}</div>}
+                {mobileCardSheet.description && <div style={{ color:C.t2, fontSize:13, marginBottom:12 }}><LocalizedNarrative text={mobileCardSheet.description} protectedNames={[mobileCardSheet.address, mobileCardSheet.title, 'Poggenpohl', 'Sub Zero'].filter(Boolean)} /></div>}
                 <PortfolioContactPanel
                   canonicalContact={activeOwner?.canonicalContact || null}
                   isUnlocked={isUnlocked}
@@ -2867,3 +2867,4 @@ export function MatchesPage({ nuggets, isAdmin = false, setModal, openUnlock, un
     </div>
   );
 }
+import { LocalizedNarrative } from '../components/ui/LocalizedNarrative';

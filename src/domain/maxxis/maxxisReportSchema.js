@@ -372,6 +372,8 @@ function valuationEvidence(value) {
       : null,
     recentSalesMarketEstimate: isObject(value.recentSalesMarketEstimate)
       ? Object.freeze({ ...value.recentSalesMarketEstimate }) : null,
+    evidenceFreshness: isObject(value.evidenceFreshness) ? Object.freeze({ ...value.evidenceFreshness }) : null,
+    savedRecentSalesReference: isObject(value.savedRecentSalesReference) ? Object.freeze({ ...value.savedRecentSalesReference }) : null,
     providerEstimateDivergence: Number.isFinite(Number(value.providerEstimateDivergence))
       ? Number(value.providerEstimateDivergence) : null,
     activeSaleListings: Object.freeze(Array.isArray(value.activeSaleListings) ? value.activeSaleListings.slice(0, 10) : []),

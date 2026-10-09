@@ -11,6 +11,9 @@ import type {
 } from './propertyEvidenceTypes.ts';
 import { PropertyDataError, type Evidence, type NormalizedPropertyRecord, type PropertyDataProvider } from './types.ts';
 import { parseCanonicalLotArea } from '../maxxis/landMetrics.ts';
+import { cacheFreshness } from './cacheFreshness.ts';
+import { matchesCachedSubject } from './cacheIdentity.ts';
+import { isProviderUnavailableError, providerAvailabilityFromError } from './providerAvailability.ts';
 
 const text = (value: unknown) => typeof value === 'string' && value.trim() ? value.trim() : null;
 const numeric = (value: unknown, allowZero: boolean) => {
@@ -129,10 +132,11 @@ export class PropertyEvidenceService {
       const fingerprint = await propertyAddressFingerprint({
         street: property.address || '', city: property.city || '', state: property.state || '', zipCode: property.zip || '',
       });
-      const cached = await this.cache.getPropertyRecord(propertyId);
-      if (!cached || cached.addressFingerprint !== fingerprint) {
+      const cached = await this.cache.getPropertyRecord(propertyId, { allowStale: true });
+      if (!cached) {
         throw new PropertyDataError('PROPERTY_EVIDENCE_CACHE_MISS');
       }
+      if (!await matchesCachedSubject(property, cached.record.address)) throw new PropertyDataError('PROPERTY_EVIDENCE_CACHE_INVALID');
       const cachedFingerprint = await propertyAddressFingerprint({
         street: cached.record.address.addressLine1.value || '', city: cached.record.address.city.value || '',
         state: cached.record.address.state.value || '', zipCode: cached.record.address.zipCode.value || '',
@@ -146,6 +150,7 @@ export class PropertyEvidenceService {
         missingFields: listMissingExternalFields(cached.record),
         provider: 'rentcast',
         cacheHit: true,
+        freshness: cacheFreshness({ ...cached, addressFingerprint: fingerprint }),
         retrievedAt: cached.record.sourceMetadata.retrievedAt,
         sourceDiagnostics: propertyEvidenceSourceDiagnostics(cached.record),
       };
@@ -213,6 +218,9 @@ export class PropertyEvidenceService {
       this.logger({ operation: 'property_evidence', success: true, durationMs: Date.now() - startedAt, cacheHit });
       return result;
     } catch (error) {
+      if (this.enabled && isProviderUnavailableError(error)) {
+        try { return { ...await this.getCachedPropertyEvidence(input), providerAvailability: providerAvailabilityFromError(error) }; } catch { /* retain original failure */ }
+      }
       this.logger({
         operation: 'property_evidence', success: false, durationMs: Date.now() - startedAt,
         cacheHit, errorCode: error instanceof Error ? error.message : 'PROPERTY_EVIDENCE_FAILED',

@@ -56,8 +56,13 @@ export function resolveMaxxisPropertyContext(input = {}) {
     })),
   ];
   const resolved = ordered.find((candidate) => candidate?.propertyId);
+  // Selection/screen state commonly stores a UUID, not the card object. Resolve
+  // that authoritative ID back to its canonical app facts; never use a name or
+  // an unrelated card as fallback.
+  const canonicalProperty = resolved && (Array.isArray(input.propertyCandidates) ? input.propertyCandidates : [])
+    .find(candidate => propertyId(candidate).toLowerCase() === resolved.propertyId.toLowerCase());
   return resolved
-    ? Object.freeze({ status: 'RESOLVED', ...resolved })
+    ? Object.freeze({ status: 'RESOLVED', ...resolved, property: canonicalProperty || resolved.property })
     : Object.freeze({ status: 'SELECTION_REQUIRED', propertyId: '', property: null, source: 'NONE' });
 }
 

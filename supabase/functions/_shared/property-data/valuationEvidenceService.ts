@@ -9,6 +9,9 @@ import {
   type ValuationEvidenceCache,
 } from './valuationCache.ts';
 import type { NormalizedValuationEvidence, ValuationDataProvider, ValuationEvidenceResult } from './valuationTypes.ts';
+import { cacheFreshness } from './cacheFreshness.ts';
+import { matchesCachedSubject } from './cacheIdentity.ts';
+import { isProviderUnavailableError, providerAvailabilityFromError } from './providerAvailability.ts';
 
 export class ValuationEvidenceService {
   private readonly repository: PropertyEvidenceRepository;
@@ -42,14 +45,14 @@ export class ValuationEvidenceService {
     const fingerprint = await propertyAddressFingerprint({
       street: property.address || '', city: property.city || '', state: property.state || '', zipCode: property.zip || '',
     });
-    const cached = await this.cache.getValuation(propertyId);
-    if (!cached || cached.addressFingerprint !== fingerprint) return null;
+    const cached = await this.cache.getValuation(propertyId, { allowStale: true });
+    if (!cached || !await matchesCachedSubject(property, cached.valuation.subjectProperty)) return null;
     try {
       if (await valuationSubjectAddressFingerprint(cached.valuation) !== fingerprint) return null;
     } catch {
       return null;
     }
-    return this.result(propertyId, cached.valuation, true);
+    return { ...this.result(propertyId, cached.valuation, true), freshness: cacheFreshness({ ...cached, addressFingerprint: fingerprint }) };
   }
 
   async getValuationEvidence(input: { propertyId: string; userId?: string | null }) {
@@ -74,6 +77,7 @@ export class ValuationEvidenceService {
     const cached = await validCached();
     if (cached) return this.result(propertyId, cached.valuation, true);
 
+    try {
     const loaded = await this.singleFlight.run(propertyId, async () => {
       const rechecked = await validCached();
       if (rechecked) return { valuation: rechecked.valuation, cacheHit: true };
@@ -87,5 +91,12 @@ export class ValuationEvidenceService {
       return { valuation, cacheHit: false };
     });
     return this.result(propertyId, loaded.valuation, loaded.cacheHit);
+    } catch (error) {
+      if (isProviderUnavailableError(error)) {
+        const retained = await this.getCachedValuationEvidence(input);
+        if (retained) return { ...retained, providerAvailability: providerAvailabilityFromError(error) };
+      }
+      throw error;
+    }
   }
 }

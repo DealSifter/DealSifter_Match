@@ -1,6 +1,7 @@
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import pdfWorkerUrl from 'pdfjs-dist/legacy/build/pdf.worker.mjs?url';
 import { renderMaxxisReportPdfCached } from '../export/maxxisReportPdf';
+import { prepareReportNarrativePresentation } from '../presentation/reportNarrativePresentation';
 import './MaxxisCanonicalReportPreview.css';
 
 const COPY = Object.freeze({
@@ -77,6 +78,7 @@ export function MaxxisCanonicalReportPreview({ schema, language = 'en', exportEn
     renderedPageNumbersRef.current = new Set();
     setPdfDocument(null);
     (async () => {
+      await prepareReportNarrativePresentation(schema, language);
       const rendered = await renderMaxxisReportPdfCached({
         schema,
         exportEntitlement: entitlement,

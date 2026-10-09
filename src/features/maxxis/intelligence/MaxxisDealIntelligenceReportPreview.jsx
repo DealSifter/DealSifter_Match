@@ -23,6 +23,7 @@ import officialDealSifterLogo from "../../../assets/maxxis/report-official-logo.
 import { resolveComparableMap } from "../export/maxxisReportPdf";
 import { explainMaxxisEvidenceState } from "./maxxisUserFacingEvidence";
 import { localizeMaxxisValue } from "../presentation/maxxisPresentationI18n";
+import { LocalizedNarrative } from '../../../components/ui/LocalizedNarrative';
 
 const COPY = {
   en: {
@@ -638,7 +639,7 @@ function PropertyOverview({ schema, copy, level, page = 1, pageCode = "PROPERTY_
           </section>
           <section className="maxxis-v2-notes">
             <SectionTitle icon={FileText}>{copy.notes}</SectionTitle>
-            <p>{text(property.propertyUserNotes || property.notes, copy.unknown)}</p>
+            <p><LocalizedNarrative text={text(property.propertyUserNotes || property.notes, copy.unknown)} language={copy.language} protectedNames={[property.title, property.address, property.owner?.name, 'Poggenpohl', 'Sub Zero'].filter(Boolean)} /></p>
           </section>
         </div>
       </div>
@@ -803,7 +804,9 @@ function ValuationPage({ schema, copy, page = 3 }) {
         <section className="maxxis-v2-arv">
           <div>
             <small>{recentAvailable
-              ? (copy.language === "pt" ? "Estimativa de mercado por vendas recentes" : copy.language === "es" ? "Estimación de mercado por ventas recientes" : "Recent-sales market estimate")
+              ? (recent.referenceState === "STALE_CALCULATED_REFERENCE"
+                ? (copy.language === "pt" ? "Estimativa baseada nas vendas anteriormente registradas" : copy.language === "es" ? "Estimación basada en ventas registradas anteriormente" : "Estimate based on previously recorded sales")
+                : (copy.language === "pt" ? "Estimativa de mercado por vendas recentes" : copy.language === "es" ? "Estimación de mercado por ventas recientes" : "Recent-sales market estimate"))
               : copy.estimatedArv}</small>
             <strong>
               {recentAvailable
@@ -838,7 +841,7 @@ function ValuationPage({ schema, copy, page = 3 }) {
         {providerEstimate ? (
           <section className="maxxis-v2-provider-estimate">
             <div>
-              <small>{copy.providerEstimate}</small>
+              <small>{copy.providerEstimate}{valuation.evidenceFreshness?.valuation?.state === 'STALE_USABLE' ? (copy.language === 'en' ? ' — prior external evidence' : copy.language === 'es' ? ' — datos externos anteriores' : ' — dados externos anteriores') : ''}</small>
               <strong>{money(providerEstimate.value, copy.unknown)}</strong>
             </div>
             <Badge tone="gold">

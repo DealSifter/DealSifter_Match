@@ -39,6 +39,7 @@ import { buildRecentSalesMarketEstimate, providerEstimateDivergence } from '../p
 import type { SupplementalEvidenceBundle } from '../property-data/supplementalEvidenceService.ts';
 import type { SupplementalEvidenceFamily } from '../property-data/supplementalEvidenceTypes.ts';
 import { parseCanonicalLotArea } from './landMetrics.ts';
+import { findRetainedRecentSalesReference } from './retainedReportReference.ts';
 
 const finiteNumber = (value: unknown) => Number.isFinite(Number(value)) ? Number(value) : null;
 const medianNumber = (values: number[]) => {
@@ -454,7 +455,24 @@ export async function getDealInsightContextForAuthenticatedUser(
     : recentSalesSubject.providerPropertyType
       ? buildRecentSalesMarketEstimate(recentSalesSubject, [])
       : null;
+  const evidenceFreshness = {
+    property: result.evidence.state === 'available' ? result.evidence.evidence?.freshness || null : null,
+    valuation: providerEvidenceState.valuation?.freshness || null,
+    sold: providerEvidenceState.sold?.freshness || null,
+    supplemental: supplementalEvidence?.freshness || {},
+  };
+  let savedRecentSalesReference = null;
+  if (recentSalesMarketEstimate?.status !== 'AVAILABLE' && result.property && propertyEvidenceAccess.cacheAuthorized) {
+    try {
+      const { data: reports } = await queryClient.from('maxxis_reports').select('id,created_at,report_payload')
+        .eq('property_id', validated.propertyId).eq('user_id', userId).order('created_at', { ascending: false }).limit(10);
+      savedRecentSalesReference = await findRetainedRecentSalesReference(reports || [], result.property as unknown as import('../property-data/propertyEvidenceTypes.ts').InternalPropertyRecord);
+    } catch { /* failure of a historical reference never stops app-based analysis */ }
+  }
   const providerMarketContext = {
+    evidenceFreshness,
+    providerAvailability: providerEvidenceState.valuation?.providerAvailability || providerEvidenceState.sold?.providerAvailability || 'UNKNOWN',
+    savedRecentSalesReference,
     providerEstimate: Number.isFinite(Number(providerEstimateValue)) ? Number(providerEstimateValue) : null,
     providerEstimateRange: Number.isFinite(Number(providerEstimateLow)) && Number.isFinite(Number(providerEstimateHigh))
       ? { low: Number(providerEstimateLow), high: Number(providerEstimateHigh) } : null,
