@@ -529,7 +529,9 @@ function SwipeCard({ card, action, isUnlocked, isSkipped, onSwipe, onUndo, onUnl
               {isSkipped && <Icon name="slash" size={18} color={C.danger} strokeWidth={2.5} />}
             </div>
             <div style={{ fontSize: 12, color: C.accent, fontWeight: 700, marginTop: 1 }}>
-              {subtitleValue && subtitleValue.length > 56 ? `${subtitleValue.slice(0, 56)}...` : subtitleValue}
+              {subtitleValue && subtitleValue === cleanText(card?.desc || card?.description)
+                ? <LocalizedNarrative text={subtitleValue} sourceLocale={card?.sourceLocale || 'auto'} protectedNames={[card?.name, card?.address].filter(Boolean)} maxLength={56} />
+                : subtitleValue && subtitleValue.length > 56 ? `${subtitleValue.slice(0, 56)}...` : subtitleValue}
             </div>
           </div>
           {profileCategoryBadge && (
@@ -994,7 +996,8 @@ function SwipeCard({ card, action, isUnlocked, isSkipped, onSwipe, onUndo, onUnl
               </div>
               {subtitleValue ? (
                 <div style={{ fontSize: 13, fontWeight: 800, color: C.accent, marginTop: 4 }}>
-                  {subtitleValue}
+                  {subtitleValue === cleanText(card?.desc || card?.description)
+                    ? <LocalizedNarrative text={subtitleValue} sourceLocale={card?.sourceLocale || 'auto'} protectedNames={[card?.name, card?.address].filter(Boolean)} /> : subtitleValue}
                 </div>
               ) : null}
             </div>

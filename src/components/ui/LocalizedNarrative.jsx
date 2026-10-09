@@ -2,7 +2,7 @@ import React, { useEffect, useRef, useState } from 'react';
 import { useLang } from '../../i18n/translations';
 import { getCachedPresentationText, localizePresentationText } from '../../services/chatTranslation';
 
-export function LocalizedNarrative({ text, language, sourceLocale = 'auto', protectedNames = [] }) {
+export function LocalizedNarrative({ text, language, sourceLocale = 'auto', protectedNames = [], maxLength = null }) {
   const uiLanguage = useLang();
   const locale = language || uiLanguage;
   const ref = useRef(null);
@@ -22,6 +22,8 @@ export function LocalizedNarrative({ text, language, sourceLocale = 'auto', prot
   const valid = resolved?.sourceText === String(text ?? '') && resolved?.targetLocale === String(locale).slice(0, 2).toLowerCase();
   const displayed = valid ? resolved.translatedText : getCachedPresentationText(text, locale);
   const translated = displayed !== text;
+  const shown = maxLength > 0 && typeof displayed === 'string' && displayed.length > maxLength
+    ? `${displayed.slice(0, maxLength)}...` : displayed;
   const originalLabel = String(locale).startsWith('pt') ? 'Texto original' : String(locale).startsWith('es') ? 'Texto original' : 'Original text';
-  return <span ref={ref} title={translated ? `${originalLabel}: ${text}` : undefined} data-presentation-translated={translated ? 'true' : 'false'}>{displayed}</span>;
+  return <span ref={ref} title={translated ? `${originalLabel}: ${text}` : undefined} data-presentation-translated={translated ? 'true' : 'false'}>{shown}</span>;
 }
