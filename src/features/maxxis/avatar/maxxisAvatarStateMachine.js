@@ -116,11 +116,13 @@ function buildAvatarState({
   previousState = '',
   accountKey = '',
   transitionAllowed = true,
+  conversationalState = state,
 }) {
   const clean = cleanState(state);
   const transientMs = MAXXIS_AVATAR_TRANSIENT_MS[clean] || 0;
   return Object.freeze({
     state: clean,
+    conversationalState,
     reason: cleanText(reason || 'default', 80),
     transient: transientMs > 0,
     transientUntil: transientMs > 0 ? Number(now || Date.now()) + transientMs : 0,
@@ -149,11 +151,12 @@ function selectRawState(context = {}) {
   }
 
   const processing = hasProcessing(context);
-  if (hasSuccess(context)) return { state: MAXXIS_AVATAR_STATES.SUCCESS, reason: 'confirmed_action_success' };
-  if (hasWaiting(context, processing)) return { state: MAXXIS_AVATAR_STATES.WAITING, reason: 'awaiting_user_decision' };
   if (processing) return { state: MAXXIS_AVATAR_STATES.PROCESSING, reason: 'request_in_progress' };
+  if (hasSuccess(context)) return { state: MAXXIS_AVATAR_STATES.SUCCESS, reason: 'confirmed_action_success' };
+  if (['EXPANDING', 'MESSAGE'].includes(context.communicationPhase)) return { state: MAXXIS_AVATAR_STATES.NOTICED, reason: 'contextual_communication' };
+  if (hasWaiting(context, processing)) return { state: MAXXIS_AVATAR_STATES.WAITING, reason: 'awaiting_user_decision' };
   if (hasNoticed(context)) return { state: MAXXIS_AVATAR_STATES.NOTICED, reason: 'proactive_signal_ready' };
-  if (hasActiveContext(context)) return { state: MAXXIS_AVATAR_STATES.OBSERVING, reason: 'active_context' };
+  if (context.contextObservationActive ?? hasActiveContext(context)) return { state: MAXXIS_AVATAR_STATES.OBSERVING, reason: 'active_context' };
   return { state: MAXXIS_AVATAR_STATES.IDLE, reason: 'no_active_context' };
 }
 
@@ -191,6 +194,7 @@ export function resolveMaxxisAvatarState(context = {}) {
 
   const selected = selectRawState(context);
   const selectedState = cleanState(selected.state);
+  const conversationalState = resolveMaxxisConversationalState(context, selectedState);
   const shouldClearTransient = Boolean(
     context.bubbleDismissed
     || context.proactiveBubbleDismissed
@@ -219,6 +223,7 @@ export function resolveMaxxisAvatarState(context = {}) {
   const transitionAllowed = isValidMaxxisAvatarTransition(previousState, selectedState);
   return buildAvatarState({
     state: selectedState,
+    conversationalState,
     reason: selected.reason,
     now,
     visualStateMode,
@@ -227,6 +232,18 @@ export function resolveMaxxisAvatarState(context = {}) {
     accountKey: context.accountKey,
     transitionAllowed,
   });
+}
+
+// Conversational phases reuse the existing official artwork and animation state machine.
+export function resolveMaxxisConversationalState(context = {}, visualState = 'IDLE') {
+  if (context.enabled === false || context.loggedOut) return 'IDLE';
+  if (hasProcessing(context)) return context.proactiveActionInProgress || context.activeWorkflowItemCode || context.exportingAnalysisId ? 'ACTION_IN_PROGRESS' : 'THINKING';
+  if (hasSuccess(context)) return context.lastActionResult?.visualPhase === 'POSITIVE_FEEDBACK' ? 'POSITIVE_FEEDBACK' : 'RESULT_READY';
+  if (context.communicationPhase === 'EXPANDING') return 'COMMUNICATING';
+  if (context.communicationPhase === 'WAITING' || hasWaiting(context)) return 'WAITING_FOR_USER';
+  if (context.communicationPhase === 'MESSAGE' || visualState === 'NOTICED') return 'COMMUNICATING';
+  if (context.proactiveEnabled === false) return 'IDLE';
+  return visualState === 'OBSERVING' ? 'OBSERVING' : 'IDLE';
 }
 
 export function deriveMaxxisAvatarStateContext(context = {}) {

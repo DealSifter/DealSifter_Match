@@ -75,6 +75,7 @@ import {
 import { buildMaxxisProactiveTriggers, resolveMaxxisProactiveContext, projectMaxxisProactiveSnapshot } from '../../features/maxxis/proactive/maxxisProactiveTriggerEngine';
 import { resolveMaxxisAvatarState } from '../../features/maxxis/avatar/maxxisAvatarStateMachine';
 import { MaxxisAvatarRenderer } from '../../features/maxxis/avatar/MaxxisAvatarRenderer';
+import { MaxxisCommunicationBadge } from '../../features/maxxis/avatar/MaxxisCommunicationBadge';
 import { useMaxxisAvatarTimeline } from '../../features/maxxis/avatar/maxxisAvatarTimeline';
 import {
   MAXXIS_AVATAR_ANIMATION_INTENSITY,
@@ -243,6 +244,10 @@ export function MaxxisAssistant({ page = 'dashboard', onOpenSupport = null, onNa
   const [actionStateRevision, setActionStateRevision] = useState(0);
   const [dealMemoryStatus, setDealMemoryStatus] = useState('idle');
   const [widgetPosition, setWidgetPosition] = useState(readStoredWidgetPosition);
+  const avatarAnchorRef = useRef(null);
+  const [communicationPhase, setCommunicationPhase] = useState('IDLE_BADGE');
+  const [contextObservationActive, setContextObservationActive] = useState(false);
+  const [proactiveActionInProgress, setProactiveActionInProgress] = useState(false);
   const [panelPosition, setPanelPosition] = useState(readStoredPanelPosition);
   const [dragging, setDragging] = useState(false);
   const [panelDragging, setPanelDragging] = useState(false);
@@ -677,6 +682,13 @@ export function MaxxisAssistant({ page = 'dashboard', onOpenSupport = null, onNa
     continuityAuthorityRef.current = authority;
   }, [continuityEvidence.serviceIds, continuityPropertyId, pendingProviderMessageSend, pendingProviderUnlock, sessionKey]);
 
+  useEffect(() => {
+    if (!proactiveEnabled) { setContextObservationActive(false); return undefined; }
+    setContextObservationActive(true);
+    const timer = window.setTimeout(() => setContextObservationActive(false), 600);
+    return () => window.clearTimeout(timer);
+  }, [continuityPropertyId, page, appContext?.surface?.subview, appContext?.surface?.modal, proactiveEnabled]);
+
   const maxxisAvatarState = useMemo(() => resolveMaxxisAvatarState({
     previousState: maxxisAvatarStateRef.current,
     accountKey: sessionKeyRef.current,
@@ -684,6 +696,11 @@ export function MaxxisAssistant({ page = 'dashboard', onOpenSupport = null, onNa
     open,
     loading,
     timelineManaged: true,
+    communicationPhase: open ? 'IDLE_BADGE' : communicationPhase,
+    contextObservationActive,
+    proactiveEnabled,
+    proactiveActionInProgress,
+    pendingAction: Boolean(activeAnalysisGapId),
     proactiveBubble,
     proactiveSignalSurfaced,
     pendingProviderUnlock,
@@ -701,6 +718,11 @@ export function MaxxisAssistant({ page = 'dashboard', onOpenSupport = null, onNa
     now: Date.now(),
   }), [
     activeProfileActionId,
+    communicationPhase,
+    contextObservationActive,
+    proactiveEnabled,
+    proactiveActionInProgress,
+    activeAnalysisGapId,
     activeProviderConversationAnalysisId,
     activeProviderDraftId,
     activeProviderMessageSendId,
@@ -1600,6 +1622,7 @@ export function MaxxisAssistant({ page = 'dashboard', onOpenSupport = null, onNa
       if (projectedReport) {
         markMaxxisBrowserStage(browserTraceId, 'T3_inline_report_committed');
       }
+      if (meta.proactiveAccepted && !result?.error && result?.type !== 'error') markAvatarActionSuccess('completed');
       if (projectedReport && typeof window !== 'undefined' && typeof window.requestAnimationFrame === 'function') {
         browserTraceFinishesAfterPaint = true;
         window.requestAnimationFrame(() => window.requestAnimationFrame(() => {
@@ -2671,7 +2694,8 @@ export function MaxxisAssistant({ page = 'dashboard', onOpenSupport = null, onNa
       message,
     };
     const staged = stageProactiveBubble(bubble, {
-      autoDismissMs: MAXXIS_PROACTIVE_DEFAULT_CONFIG.autoDismissMs,
+      // Keep the useful message available until user choice or context expiry, especially P0.
+      autoDismissMs: 0,
     });
     if (!staged) return;
     attentionController.consumeDeferred();
@@ -2749,9 +2773,16 @@ export function MaxxisAssistant({ page = 'dashboard', onOpenSupport = null, onNa
       const action = signal.actions[0];
       const sourceMessage = { id: `maxxis-contextual-${signal.id}`, data: { propertyId: signal.propertyId } };
       if (action.target.inputField) handleRequestArvGap(sourceMessage.id, action.target.inputField, action);
-      else if (action.target.localResponse) setMessages((previous) => [...previous, { ...sourceMessage, role: 'assistant',
-        createdAt: new Date(), type: 'maxxis_contextual_comparison', content: action.target.localResponse }]);
-      else void submitMessage(action.target.prompt, { visibleUserMessage: action.label, propertyContextOverride: signal.propertyId });
+      else if (action.target.localResponse) {
+        setMessages((previous) => [...previous, { ...sourceMessage, role: 'assistant',
+          createdAt: new Date(), type: 'maxxis_contextual_comparison', content: action.target.localResponse }]);
+        markAvatarTimelineSuccess({ status: 'completed', propertyId: signal.propertyId });
+      }
+      else {
+        setProactiveActionInProgress(true);
+        void submitMessage(action.target.prompt, { visibleUserMessage: action.label, propertyContextOverride: signal.propertyId, proactiveAccepted: true })
+          .finally(() => setProactiveActionInProgress(false));
+      }
       completedDecisionActionsRef.current.add(action.id);
       return true;
     }
@@ -3336,41 +3367,8 @@ export function MaxxisAssistant({ page = 'dashboard', onOpenSupport = null, onNa
       ) : null}
 
       {!open ? (
-        <>
-          {proactiveBubble ? (
-            <div
-              className="maxxis-proactive-bubble"
-              data-testid="maxxis-proactive-bubble"
-              role="status"
-              aria-live="polite"
-              style={widgetPosition ? {
-                left: `${Math.max(12, widgetPosition.x - 260)}px`,
-                top: `${Math.max(12, widgetPosition.y - 82)}px`,
-                right: 'auto',
-                bottom: 'auto',
-              } : {}}
-            >
-              <button
-                type="button"
-                className="maxxis-proactive-review"
-                data-testid="maxxis-proactive-review"
-                onClick={handleClickProactiveBubble}
-                aria-label={proactiveBubble.message?.text}
-              >
-                <span>{proactiveBubble.message?.text}</span>
-                <strong>{proactiveBubble.message?.ctaLabel}</strong>
-              </button>
-              <button
-                type="button"
-                className="maxxis-proactive-dismiss"
-                data-testid="maxxis-proactive-dismiss"
-                aria-label={language === 'pt' ? 'Descartar insight do Maxxis Deal AI' : language === 'es' ? 'Descartar insight de Maxxis Deal AI' : 'Dismiss Maxxis Deal AI insight'}
-                onClick={handleDismissProactiveBubble}
-              >
-                ×
-              </button>
-            </div>
-          ) : null}
+        <div ref={avatarAnchorRef} className="maxxis-avatar-anchor" data-testid="maxxis-avatar-anchor"
+          style={widgetPosition ? { left: `${widgetPosition.x}px`, top: `${widgetPosition.y}px`, right: 'auto', bottom: 'auto' } : {}}>
           <button
             type="button"
             data-guide="maxxis-widget"
@@ -3391,12 +3389,6 @@ export function MaxxisAssistant({ page = 'dashboard', onOpenSupport = null, onNa
             title={t.open}
             style={{
               '--maxxis-accent': C.accent,
-              ...(widgetPosition ? {
-                left: `${widgetPosition.x}px`,
-                top: `${widgetPosition.y}px`,
-                right: 'auto',
-                bottom: 'auto',
-              } : {}),
             }}
           >
             <MaxxisAvatarRenderer
@@ -3405,9 +3397,13 @@ export function MaxxisAssistant({ page = 'dashboard', onOpenSupport = null, onNa
               className="maxxis-fab-logo"
               testId="maxxis-avatar-fab"
             />
-            <span>AI</span>
           </button>
-        </>
+          <MaxxisCommunicationBadge anchorRef={avatarAnchorRef} bubble={proactiveEnabled ? proactiveBubble : null}
+            positionKey={`${widgetPosition?.x}:${widgetPosition?.y}:${maxxisPreferences.avatarSize}`}
+            motionEnabled={!reducedMotion && effectiveMaxxisPreferences.animationIntensity !== 'OFF'} language={language}
+            onOpen={() => proactiveBubble ? handleClickProactiveBubble() : setOpen(true)} onAccept={handleClickProactiveBubble}
+            onDismiss={handleDismissProactiveBubble} onPhaseChange={setCommunicationPhase} />
+        </div>
       ) : null}
     </div>
   );

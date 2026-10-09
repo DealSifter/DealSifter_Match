@@ -97,6 +97,7 @@ export function MaxxisAvatarRenderer({ avatarState, avatarSize = 1, className = 
       className={rootClassName}
       data-testid={testId}
       data-avatar-state={presentation.state}
+      data-conversational-state={avatarState?.conversationalState || presentation.state}
       data-avatar-asset={layers.active.key}
       data-avatar-renderer={renderAsset.renderer.toLowerCase().replaceAll('_', '-')}
       data-avatar-size={avatarSizing.stored.toFixed(2)}

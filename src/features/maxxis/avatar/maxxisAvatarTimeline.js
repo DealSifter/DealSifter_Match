@@ -96,9 +96,10 @@ export function createMaxxisAvatarTimelineController({
     consumeProactiveBubble: clearProactive,
     clearProactiveBubble: clearProactive,
     markSuccess: (result = {}, options = {}) => {
-      const nextResult = { ...result, success: true, at: Number(result.at || nowFn()) };
+      const nextResult = { ...result, success: true, visualPhase: 'RESULT_READY', at: Number(result.at || nowFn()) };
       cancelTimer('success');
       emit({ lastActionResult: nextResult });
+      schedule('feedback', () => { if (snapshot.lastActionResult === nextResult) emit({ lastActionResult: { ...nextResult, visualPhase: 'POSITIVE_FEEDBACK' } }); }, 280);
       if (!options.deferExpiration) {
         schedule('success', () => emit({ lastActionResult: null }), MAXXIS_AVATAR_SUCCESS_DURATION_MS);
       }
@@ -111,6 +112,7 @@ export function createMaxxisAvatarTimelineController({
     },
     clearSuccess: () => {
       cancelTimer('success');
+      cancelTimer('feedback');
       if (snapshot.lastActionResult) emit({ lastActionResult: null });
     },
     setIdentity: (identityKey = '') => {

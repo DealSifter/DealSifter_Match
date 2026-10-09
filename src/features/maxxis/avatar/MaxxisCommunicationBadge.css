@@ -1,0 +1,28 @@
+.maxxis-avatar-anchor { position: fixed; right: calc(max(16px, env(safe-area-inset-right)) + var(--maxxis-avatar-edge-offset, 0px)); bottom: calc(20px + env(safe-area-inset-bottom)); width: 62px; height: 62px; --maxxis-safe-top: env(safe-area-inset-top, 0px); --maxxis-safe-bottom: env(safe-area-inset-bottom, 0px); --maxxis-safe-left: env(safe-area-inset-left, 0px); --maxxis-safe-right: env(safe-area-inset-right, 0px); }
+.maxxis-avatar-anchor > .maxxis-fab { position: absolute; inset: 0; width: 100%; height: 100%; }
+.maxxis-avatar-anchor { --accent: var(--accent-hex); }
+.maxxis-communication-badge { position: absolute; inset: 0; z-index: 3; pointer-events: none; --maxxis-speech-duration: 220ms; }
+.maxxis-ai-idle { position: absolute; left: -12px; top: -4px; min-width: 24px; height: 20px; padding: 0 6px; border-radius: 999px; border: 2px solid #fff; background: #0f1720; color: #fff; font-size: 10px; font-weight: 950; line-height: 1; cursor: pointer; pointer-events: auto; transition: opacity var(--maxxis-speech-duration), transform var(--maxxis-speech-duration); }
+.maxxis-communication-badge:not([data-phase="IDLE_BADGE"]):not([data-phase="COLLAPSING"]) .maxxis-ai-idle { opacity: 0; pointer-events: none; transform: scale(.8); }
+.maxxis-speech-surface { position: absolute; left: var(--bubble-left); top: var(--bubble-top); width: var(--bubble-width); max-height: var(--bubble-max-height); box-sizing: border-box; padding: 14px; border: 1px solid color-mix(in srgb, var(--accent) 38%, var(--border)); border-radius: 16px; background: var(--card); color: var(--t1); box-shadow: 0 8px 28px color-mix(in srgb, var(--t1) 15%, transparent); pointer-events: auto; transform-origin: right center; animation: maxxisSpeechExpand var(--maxxis-speech-duration) ease-out both; }
+.maxxis-speech-surface[hidden] { display: none; }
+.maxxis-communication-badge .maxxis-speech-surface { transform-origin: var(--badge-origin-x) var(--badge-origin-y); }
+.maxxis-communication-badge[data-phase="COLLAPSING"] .maxxis-speech-surface { animation: maxxisSpeechCollapse var(--maxxis-speech-duration) ease-in both; pointer-events: none; }
+.maxxis-speech-surface p { margin: 0 0 10px; font-size: 13px; font-weight: 600; line-height: 1.4; overflow-wrap: anywhere; }
+.maxxis-speech-tail { position: absolute; width: 12px; height: 12px; background: var(--card); transform: rotate(45deg); border: 1px solid color-mix(in srgb, var(--accent) 38%, var(--border)); }
+[data-side="left"] .maxxis-speech-tail { right: -7px; top: calc(var(--bubble-tail) - 6px); border-left: 0; border-bottom: 0; }
+[data-side="right"] .maxxis-speech-tail { left: -7px; top: calc(var(--bubble-tail) - 6px); border-right: 0; border-top: 0; }
+[data-side="above"] .maxxis-speech-tail { bottom: -7px; left: calc(var(--bubble-tail) - 6px); border-left: 0; border-top: 0; }
+[data-side="below"] .maxxis-speech-tail { top: -7px; left: calc(var(--bubble-tail) - 6px); border-right: 0; border-bottom: 0; }
+.maxxis-speech-actions { display: flex; flex-wrap: wrap; gap: 8px; }
+.maxxis-speech-actions button { min-height: 44px; padding: 9px 12px; border: 1px solid var(--border); border-radius: 10px; background: color-mix(in srgb, var(--accent) 10%, var(--card)); color: var(--t1); font: inherit; font-size: 12px; font-weight: 800; cursor: pointer; }
+.maxxis-speech-actions button:first-child { border-color: var(--accent); }
+.maxxis-speech-actions button:hover { background: color-mix(in srgb, var(--accent) 20%, var(--card)); }
+.maxxis-speech-actions button:focus-visible, .maxxis-ai-idle:focus-visible, .maxxis-avatar-anchor > .maxxis-fab:focus-visible { outline: 2px solid var(--accent); outline-offset: 3px; }
+[data-theme="dark"] .maxxis-ai-idle { background: #0b1516; box-shadow: 0 0 10px color-mix(in srgb, var(--accent) 58%, transparent); }
+@keyframes maxxisSpeechExpand { from { opacity: 0; transform: scale(.12, .2); } to { opacity: 1; transform: scale(1); } }
+@keyframes maxxisSpeechCollapse { from { opacity: 1; transform: scale(1); } to { opacity: 0; transform: scale(.12, .2); } }
+.maxxis-communication-badge[data-motion="off"] { --maxxis-speech-duration: 0ms; }
+.maxxis-communication-badge[data-motion="off"] .maxxis-speech-surface { animation: none !important; }
+@media (prefers-reduced-motion: reduce) { .maxxis-communication-badge { --maxxis-speech-duration: 0ms; } .maxxis-communication-badge .maxxis-speech-surface { animation: none !important; } }
+@media (max-width: 767px) { .maxxis-avatar-anchor { right: calc(14px + var(--maxxis-avatar-edge-offset, 0px)); bottom: calc(max(82px, var(--ds-mobile-bottom-nav-visible-height, 0px) + 16px) + env(safe-area-inset-bottom)); width: 58px; height: 58px; } }
