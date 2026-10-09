@@ -37,5 +37,6 @@ src/**/*.bak
 *.sw?
 .vercel
 .tmp-codex/
+.codex-deploy/
 qa-artifacts/
 test-results/
