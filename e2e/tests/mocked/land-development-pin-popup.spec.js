@@ -62,9 +62,9 @@ test('people popup reserves the right column for scoped portfolio images and ind
     const popup = page.locator('.ds-map-person-popup');
     const bounds = await popup.evaluate(node => {
       const left = node.firstElementChild.getBoundingClientRect(); const right = node.lastElementChild.getBoundingClientRect();
-      return { separate: right.left >= left.right, fits: node.getBoundingClientRect().right <= innerWidth, photoHeight: right.height };
+      return { separate: right.left >= left.right, fits: node.getBoundingClientRect().right <= innerWidth, aspect: right.width / right.height };
     });
-    expect(bounds.separate).toBe(true); expect(bounds.fits).toBe(true); expect(bounds.photoHeight).toBeGreaterThanOrEqual(135);
+    expect(bounds.separate).toBe(true); expect(bounds.fits).toBe(true); expect(bounds.aspect).toBeCloseTo(16 / 9, 1);
     await popup.getByRole('button', { name: 'Próxima imagem' }).click();
     await expect(popup.locator('.ds-pin-portfolio-count')).toHaveText(width === 1280 ? '2/2' : '1/2');
     expect(await page.evaluate(() => window.__portfolioOpened)).toBeUndefined();

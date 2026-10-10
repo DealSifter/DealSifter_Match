@@ -2877,7 +2877,7 @@ export function MapView({
                     },
                   } : undefined}
                 >
-                  <Popup className={isPerson ? 'ds-person-leaflet-popup' : 'ds-property-leaflet-popup'} maxWidth={400}>
+                  <Popup className={isPerson ? 'ds-person-leaflet-popup' : 'ds-property-leaflet-popup'} maxWidth={isPerson ? 520 : 400}>
                     {isPerson ? (
                       <div className="ds-map-person-popup">
                       <div 

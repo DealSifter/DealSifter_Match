@@ -73,14 +73,6 @@
   transition: opacity var(--maxxis-avatar-crossfade-ms, 160ms) ease-out;
 }
 
-.maxxis-avatar-layer:is(
-  [data-avatar-layer-state="NOTICED"],
-  [data-avatar-layer-state="WAITING"],
-  [data-avatar-layer-state="SUCCESS"]
-) {
-  clip-path: inset(21% 0 0 0);
-}
-
 .maxxis-avatar-layer--active {
   z-index: 2;
   opacity: 1;

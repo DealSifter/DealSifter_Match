@@ -34,7 +34,10 @@ export function MaxxisCommunicationBadge({ anchorRef, bubble, positionKey, motio
       const anchor = anchorRef.current;
       if (!anchor || !surfaceRef.current) return;
       const rect = anchor.getBoundingClientRect();
-      const art = anchor.querySelector('.maxxis-avatar-art')?.getBoundingClientRect() || rect;
+      // The layer includes pose normalization, user scale and motion. The inner
+      // art box alone misses the visible overhang and can put speech over the head.
+      const art = anchor.querySelector('.maxxis-avatar-layer--active')?.getBoundingClientRect()
+        || anchor.querySelector('.maxxis-avatar-art')?.getBoundingClientRect() || rect;
       const visual = window.visualViewport;
       const rootStyle = getComputedStyle(document.documentElement);
       const bottomNav = parseFloat(rootStyle.getPropertyValue('--ds-mobile-bottom-nav-visible-height')) || 0;
@@ -61,12 +64,15 @@ export function MaxxisCommunicationBadge({ anchorRef, bubble, positionKey, motio
     const observer = new ResizeObserver(schedule);
     if (anchorRef.current) observer.observe(anchorRef.current);
     if (surfaceRef.current) observer.observe(surfaceRef.current);
+    const avatarObserver = new MutationObserver(schedule);
+    const renderer = anchorRef.current?.querySelector('.maxxis-avatar-renderer');
+    if (renderer) avatarObserver.observe(renderer, { attributes: true, attributeFilter: ['data-avatar-asset', 'data-transitioning', 'style'] });
     window.addEventListener('resize', schedule);
     window.addEventListener('scroll', schedule, true);
     window.visualViewport?.addEventListener('resize', schedule);
     window.visualViewport?.addEventListener('scroll', schedule);
     return () => {
-      cancelAnimationFrame(frame); observer.disconnect();
+      cancelAnimationFrame(frame); observer.disconnect(); avatarObserver.disconnect();
       window.removeEventListener('resize', schedule); window.removeEventListener('scroll', schedule, true);
       window.visualViewport?.removeEventListener('resize', schedule); window.visualViewport?.removeEventListener('scroll', schedule);
     };
