@@ -49,6 +49,7 @@ function mapRecord(raw: RentCastPropertyRecordRaw, retrievedAt: string, policy: 
     livingAreaSqft: positive(raw.squareFootage), lotSizeSqft: positive(raw.lotSize), yearBuilt: positive(raw.yearBuilt),
     saleTransactions: sales.transactions, latestValidSale: sales.latest, saleTransactionAmbiguous: sales.ambiguous,
     transactionQuality: 'UNKNOWN',
+    zoning: text(raw.zoning), subdivision: text(raw.subdivision),
   };
 }
 

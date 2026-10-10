@@ -32,6 +32,6 @@ describe('Maxxis analysis applicability', () => {
 
   it('allows a land improvement workflow only when construction is explicit', () => {
     expect(classifyAnalysisApplicability({ type: 'Land' }, { targetCondition: 'NEW_CONSTRUCTION' }))
-      .toMatchObject({ constructionPlanned: true, rehab: 'APPLICABLE', residentialArv: 'APPLICABLE' });
+      .toMatchObject({ constructionPlanned: true, rehab: 'NOT_APPLICABLE', residentialArv: 'NOT_APPLICABLE' });
   });
 });

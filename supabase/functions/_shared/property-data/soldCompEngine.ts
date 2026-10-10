@@ -3,7 +3,9 @@ import {
   analyzeComparableCandidate,
   analyzeSaleComparables,
   INITIAL_DEALSIFTER_COMP_POLICY,
+  DEVELOPMENT_COMP_POLICIES,
 } from './compEngine.ts';
+import { buildRecentSalesMarketEstimate } from './recentSalesMarketEstimate.ts';
 import { evaluateRecordedSoldCandidate, referenceSetClass } from './compQualityCalibration.ts';
 import { DEALSIFTER_WEIGHTED_COMP_POLICY_V1, evaluateWeightedCompCandidate } from './weightedCompPolicy.ts';
 import type {
@@ -32,7 +34,7 @@ const normalizeType = (value: string | null) => String(value || '').trim().toLow
 const variance = (left: number | null, right: number | null) => left !== null && right !== null && right > 0
   ? Math.abs(left - right) / right : null;
 const radians = (value: number) => value * Math.PI / 180;
-function coordinateDistanceMiles(leftLat: number | null, leftLng: number | null, rightLat: number | null, rightLng: number | null) {
+export function coordinateDistanceMiles(leftLat: number | null, leftLng: number | null, rightLat: number | null, rightLng: number | null) {
   if (leftLat === null || leftLng === null || rightLat === null || rightLng === null) return null;
   const dLat = radians(rightLat - leftLat);
   const dLon = radians(rightLng - leftLng);
@@ -394,4 +396,64 @@ export function selectRecordedSoldComparables(
       maximumRecordedSalePrice: priceStats.maximum,
     },
   };
+}
+
+export function selectDevelopmentComparables(
+  valuation: NormalizedValuationEvidence,
+  records: SoldPropertyRecord[],
+  assumptions: Record<string, unknown>,
+  asOf = new Date().toISOString(),
+) {
+  const subject = valuation.subjectProperty;
+  const units = Number(assumptions.proposedUnitCount);
+  const proposedSqft = Number(assumptions.proposedBuildingSqftPerUnit);
+  const lotSqft = Number(assumptions.lotSizeSqft) || subject.lotSizeSqft.value;
+  const estimate = (family: keyof typeof DEVELOPMENT_COMP_POLICIES) => {
+    const land = family === 'LAND_ACQUISITION';
+    const policy = DEVELOPMENT_COMP_POLICIES[family];
+    const field = <T>(original: { value: T | null }, value: T | null) => ({ ...original, value });
+    const hypothetical: NormalizedValuationEvidence = { ...valuation, subjectProperty: {
+      ...subject,
+      propertyType: { ...subject.propertyType, ...field(subject.propertyType, land ? 'Land' : String(assumptions.proposedPropertyType || '')) },
+      livingAreaSqft: { ...subject.livingAreaSqft, ...field(subject.livingAreaSqft, land ? null : proposedSqft > 0 ? proposedSqft : null) },
+      lotSizeSqft: { ...subject.lotSizeSqft, ...field(subject.lotSizeSqft, land ? lotSqft : units > 0 && lotSqft ? lotSqft / units : null) },
+      bedrooms: { ...subject.bedrooms, value: land ? null : Number(assumptions.proposedBedsPerUnit) || null },
+      bathrooms: { ...subject.bathrooms, value: land ? null : Number(assumptions.proposedBathsPerUnit) || null },
+      yearBuilt: { ...subject.yearBuilt, value: land ? null : new Date(asOf).getUTCFullYear() },
+    } };
+    const unique = [...new Map(records.map(record => [record.providerPropertyId || record.formattedAddress || JSON.stringify(record), record])).values()];
+    const zone = String(assumptions.zoning || '').trim().toLowerCase();
+    const distinct = unique.filter(record => !land || !zone || !record.zoning || record.zoning.toLowerCase() === zone)
+      .filter(record => record.providerPropertyId !== subject.providerPropertyId.value
+      || !record.providerPropertyId).filter(record => !record.formattedAddress
+        || record.formattedAddress.toLowerCase() !== subject.formattedAddress.value?.toLowerCase());
+    const candidates = selectRecordedSoldComparables(hypothetical, distinct).directSoldCompCandidates.map(candidate => {
+      const saleDate = candidate.recordedSaleDate;
+      const age = saleDate ? Math.floor((Date.parse(asOf) - Date.parse(saleDate)) / 86_400_000) : null;
+      if (!land) return { ...candidate, daysSinceSale: { ...candidate.daysSinceSale, value: age } };
+      const size = candidate.lotSizeDifferencePercent.value;
+      const distance = candidate.distanceFromSubjectMiles.value;
+      // Parcel comparability has no bedroom/living-area/rehab dependency.
+      const score = 100 * (0.5 * Math.max(0, 1 - (size ?? 1))
+        + 0.3 * Math.max(0, 1 - (distance ?? 5) / 5)
+        + 0.2 * Math.max(0, 1 - (age ?? 365) / 365));
+      return { ...candidate, weightedAssessment: null, qualityScore: score, daysSinceSale: { ...candidate.daysSinceSale, value: age } };
+    });
+    const subjectInput = { propertyType: hypothetical.subjectProperty.propertyType.value,
+      livingAreaSqft: hypothetical.subjectProperty.livingAreaSqft.value, lotSizeSqft: hypothetical.subjectProperty.lotSizeSqft.value };
+    const options = { ...policy, asOfYear: new Date(asOf).getUTCFullYear() };
+    let reference = buildRecentSalesMarketEstimate(subjectInput, candidates, options);
+    if (reference.status !== 'AVAILABLE') reference = buildRecentSalesMarketEstimate(subjectInput, candidates, { ...options, maximumAgeDays: 365 });
+    reference = { ...reference, confidence: land ? 'LOW' : reference.confidence,
+      confidenceReasons: [...reference.confidenceReasons, ...(land ? ['LAND_USE_ACCESS_UTILITIES_NOT_INDEPENDENTLY_VERIFIED'] : ['NEW_CONSTRUCTION_CONDITION_NOT_ADJUSTED'])] };
+    return { ...reference, family, asOf, supportingCandidates: candidates.filter(candidate =>
+      (land ? /^(land|lot|vacant land)$/i.test(candidate.soldRecord.propertyType || '') : !/^(land|lot|vacant land)$/i.test(candidate.soldRecord.propertyType || ''))
+      && !reference.exclusions.some(item => item.providerPropertyId === candidate.soldRecord.providerPropertyId)
+      &&
+      !reference.valuationComps.some(comp => comp.providerPropertyId === candidate.soldRecord.providerPropertyId)).map(candidate => ({
+        providerPropertyId: candidate.soldRecord.providerPropertyId, address: candidate.soldRecord.formattedAddress,
+        salePrice: candidate.recordedSalePrice, saleDate: candidate.recordedSaleDate,
+      })), provenance: 'CALCULATED_FROM_VERIFIED_RECORDED_SALES' as const };
+  };
+  return { landAcquisition: estimate('LAND_ACQUISITION'), finishedHomeExit: estimate('FINISHED_HOME_EXIT') };
 }

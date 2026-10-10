@@ -245,8 +245,8 @@ export function buildDealDecisionContext(snapshotInput: unknown): DealDecisionCo
     ? parseCanonicalLotArea(`${explicitAcres} acres`) : lotArea;
   const landUnitMetrics = strategy === 'LAND'
     ? calculateLandUnitMetrics(price, canonicalLotArea) : null;
-  const baseCost = price !== null && rehab !== null ? Math.round((price + rehab) * 100) / 100 : null;
-  const rehabPerSqft = rehab !== null && sqft !== null && sqft > 0
+  const baseCost = strategy !== 'LAND' && price !== null && rehab !== null ? Math.round((price + rehab) * 100) / 100 : null;
+  const rehabPerSqft = strategy !== 'LAND' && rehab !== null && sqft !== null && sqft > 0
     ? Math.round((rehab / sqft) * 100) / 100 : null;
   const benchmarkResemblance = !present(assumptions.targetCondition)
     ? rehabBenchmarkResemblance(rehabPerSqft, benchmarkOptions) : null;
@@ -259,9 +259,9 @@ export function buildDealDecisionContext(snapshotInput: unknown): DealDecisionCo
   const rentEstimate = finite(record(record(snapshot.rentalEvidence).rentEstimate).rent);
   const assessedValue = finite(field(context, 'assessedValue').value);
   const latestSalePrice = finite(field(context, 'latestSalePrice').value);
-  const reportedCapRate = metricValue(metrics, 'capRate') ?? finite(property.capRate);
+  const reportedCapRate = strategy === 'LAND' ? null : metricValue(metrics, 'capRate') ?? finite(property.capRate);
   const noi = finite(assumptions.noi ?? property.noi);
-  const calculatedCapRate = noi !== null && price !== null && price > 0
+  const calculatedCapRate = strategy !== 'LAND' && noi !== null && price !== null && price > 0
     ? Math.round((noi / price) * 10000) / 100 : null;
   const selectedComps = comps.filter((item) => item?.valuationRole === 'PRIMARY'
     || item?.valuationEligibility === 'INCLUDED');
@@ -270,7 +270,7 @@ export function buildDealDecisionContext(snapshotInput: unknown): DealDecisionCo
 
   const userAssumptions = [
     price !== null ? datum('askingPrice', price, 'USER_ASSUMPTION', 'PROPERTY_RECORD') : null,
-    rehab !== null ? datum('rehabBudget', rehab, 'USER_ASSUMPTION', text(rehabAnalysis.source) || 'PROPERTY_RECORD') : null,
+    strategy !== 'LAND' && rehab !== null ? datum('rehabBudget', rehab, 'USER_ASSUMPTION', text(rehabAnalysis.source) || 'PROPERTY_RECORD') : null,
     present(property.propertyUserNotes ?? property.notes)
       ? datum('propertyNotes', property.propertyUserNotes ?? property.notes, 'USER_PROVIDED', 'PROPERTY_CARD_NOTES') : null,
     ...Object.entries(assumptions).filter(([, value]) => present(value) && !Array.isArray(value))
@@ -279,7 +279,7 @@ export function buildDealDecisionContext(snapshotInput: unknown): DealDecisionCo
   const calculatedMetrics = [
     baseCost !== null ? datum('baseCost', baseCost, 'CALCULATED', 'ASKING_PRICE_PLUS_REHAB') : null,
     rehabPerSqft !== null ? datum('rehabPerSqft', rehabPerSqft, 'CALCULATED', 'REHAB_DIVIDED_BY_LIVING_AREA') : null,
-    metricValue(metrics, 'pricePerSqft') !== null
+    strategy !== 'LAND' && metricValue(metrics, 'pricePerSqft') !== null
       ? datum('pricePerSqft', metricValue(metrics, 'pricePerSqft'), 'CALCULATED', 'DEAL_METRICS') : null,
     calculatedCapRate !== null ? datum('calculatedCapRate', calculatedCapRate, 'CALCULATED', 'NOI_DIVIDED_BY_PRICE') : null,
     landUnitMetrics?.pricePerLotSqft != null

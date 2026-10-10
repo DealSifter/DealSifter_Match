@@ -108,6 +108,15 @@ export function buildMaxxisProactiveTriggers({ property = {}, snapshot = {}, dec
       { id: `${id}:dismiss`, code: 'DISMISS', type: 'INFORMATION', label: t('Agora não', 'Not now', 'Ahora no') }] });
   };
   const gaps = list(decision.decisionGaps);
+  const noteIntent = String(property.propertyUserNotes || property.notes || property.description || '').normalize('NFD').replace(/[\u0300-\u036f]/g, '');
+  if (strategy === 'LAND' && /subdiv|build|constru|desmembr/i.test(noteIntent) && !assumptions.developmentIntent) {
+    add('LAND_DEVELOPMENT', 'P1', { source: 'USER_NOTE_SOFT_INTENT', text: noteIntent },
+      t('As notas sugerem desenvolvimento do terreno. Quer simular custos de construção separados do valor de saída?',
+        'The notes suggest land development. Simulate construction costs separately from exit value?',
+        'Las notas sugieren desarrollo del terreno. ¿Simulamos costos de construcción separados del valor de salida?'),
+      t('Simular duas casas', 'Simulate two houses', 'Simular dos casas'),
+      t('Quero subdividir em dois lotes e construir duas casas.', 'I want to subdivide into two lots and build two houses.', 'Quiero subdividir en dos lotes y construir dos casas.'));
+  }
   const conflict = gaps.find((gap) => String(gap.code).startsWith('EVIDENCE_CONFLICT_'));
   if (conflict) {
     const values = present(conflict.storedValue) && present(conflict.providerValue) ? `${conflict.storedValue} / ${conflict.providerValue}` : '';

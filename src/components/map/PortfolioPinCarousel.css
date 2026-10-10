@@ -1,0 +1,15 @@
+.ds-map-person-popup { display: grid; grid-template-columns: minmax(0, 1fr) 144px; gap: 12px; width: min(374px, calc(100vw - 70px)); }
+.ds-map-person-popup .ds-map-popup-card { width: auto; gap: 8px; align-content: start; }
+.ds-person-leaflet-popup .leaflet-popup-content-wrapper { max-width: min(400px, calc(100vw - 40px)); }
+.ds-person-leaflet-popup .leaflet-popup-content { max-width: none; }
+.ds-pin-portfolio { position: relative; min-height: 135px; border-radius: 8px; overflow: hidden; align-self: stretch; touch-action: pan-y; }
+.ds-pin-portfolio-photo { position: absolute; inset: 0; display: block; border: 0; padding: 0; width: 100%; height: 100%; background: var(--border); cursor: pointer; }
+.ds-pin-portfolio-photo img { height: 100% !important; min-height: 135px; display: block; }
+.ds-pin-portfolio-prev, .ds-pin-portfolio-next { position: absolute; top: calc(50% - 14px); width: 25px; height: 28px; padding: 0; display: grid; place-items: center; border: 0; border-radius: 5px; color: #fff; background: rgba(0,0,0,.48); cursor: pointer; }
+.ds-pin-portfolio-prev { left: 4px; }
+.ds-pin-portfolio-next { right: 4px; }
+.ds-pin-portfolio-next svg { transform: rotate(180deg); }
+.ds-pin-portfolio button:focus-visible { outline: 2px solid #35cac9; outline-offset: -2px; }
+.ds-pin-portfolio-count { position: absolute; bottom: 5px; right: 6px; padding: 2px 6px; border-radius: 8px; background: rgba(0,0,0,.6); color: #fff; font-size: 10px; pointer-events: none; }
+.ds-pin-portfolio-empty { display: grid; min-height: 135px; place-items: center; padding: 10px; background: var(--bg); color: var(--t2); font-size: 11px; border-radius: 8px; text-align: center; }
+@media (max-width: 430px) { .ds-map-person-popup { grid-template-columns: minmax(0, 1fr) 122px; gap: 8px; } }

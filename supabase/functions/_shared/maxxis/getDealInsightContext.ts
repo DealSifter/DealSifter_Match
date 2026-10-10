@@ -40,6 +40,7 @@ import type { SupplementalEvidenceBundle } from '../property-data/supplementalEv
 import type { SupplementalEvidenceFamily } from '../property-data/supplementalEvidenceTypes.ts';
 import { parseCanonicalLotArea } from './landMetrics.ts';
 import { findRetainedRecentSalesReference } from './retainedReportReference.ts';
+import { calculateLandDevelopmentScenario, type LandDevelopmentEvidence } from './landDevelopmentScenario.ts';
 
 const finiteNumber = (value: unknown) => Number.isFinite(Number(value)) ? Number(value) : null;
 const medianNumber = (values: number[]) => {
@@ -412,6 +413,36 @@ export async function getDealInsightContextForAuthenticatedUser(
     result.property as unknown as Record<string, unknown> | null, analysisInputs,
   );
   const rehabNotApplicable = analysisApplicability.rehab === 'NOT_APPLICABLE';
+  let developmentEvidence: LandDevelopmentEvidence | null = null;
+  let landDevelopment = null;
+  const activeScenario = analysisInputs.dealAssumptions.activeScenario as Record<string, any> | undefined;
+  const developmentAssumptions = activeScenario?.assumptions || analysisInputs.dealAssumptions;
+  if (analysisApplicability.propertyCategory === 'VACANT_LAND' && supabaseServiceRoleKey
+    && shouldLoadValuationEvidence && propertyEvidenceAccess.cacheAuthorized) {
+    const admin = createClient(supabaseUrl, supabaseServiceRoleKey) as unknown as PropertyEvidenceBackendClient;
+    const product = String(developmentAssumptions.proposedPropertyType || '').toUpperCase();
+    const families = [undefined, ...(['SFR', 'TOWNHOUSE', 'CONDO'].includes(product) ? [product === 'SFR' ? product : product[0] + product.slice(1).toLowerCase()] : [])];
+    for (const developmentPropertyType of families) {
+      const service = createBackendSoldEvidenceService({ supabaseAdmin: admin, getEnv: name => Deno.env.get(name),
+        providerBudgetContext: { userId, propertyId: validated.propertyId, plan, bucket: budgetBucket }, developmentPropertyType });
+      try {
+        const cached = await service.getCachedSoldEvidence({ propertyId: validated.propertyId, userId });
+        const sold = cached || (!cacheOnly && activeProviderEvidencePlan.families.RECORDED_SOLD.providerCallAllowed
+          ? await service.getSoldEvidence({ propertyId: validated.propertyId, userId }) : null);
+        if (!sold) continue;
+        const previousEvidence = developmentEvidence as LandDevelopmentEvidence | null;
+        developmentEvidence = { valuation: sold.valuation,
+          records: [...(previousEvidence?.records || []), ...sold.soldPool.records],
+          freshness: { ...(previousEvidence?.freshness as object || {}), [developmentPropertyType ? 'finishedHomeExit' : 'landAcquisition']: sold.freshness } };
+        runtimeTrace.providerAttempted ||= !sold.cacheHit;
+      } catch { /* A missing/degraded family remains an explicit gap, never fabricated evidence. */ }
+    }
+    if (developmentAssumptions.developmentIntent && developmentAssumptions.developmentIntent !== 'NONE') {
+      landDevelopment = calculateLandDevelopmentScenario({ ...result.property,
+        purchasePrice: result.property?.price, lotSizeSqft: result.property?.lot, ...developmentAssumptions }, developmentEvidence);
+      if (activeScenario) analysisInputs.dealAssumptions.activeScenario = { ...activeScenario, calculatedOutputs: landDevelopment };
+    }
+  }
   const rehabBenchmark = rehabNotApplicable ? null : estimateRehabBenchmark2026({
     state: result.property?.state,
     livingAreaSqft: result.property?.sqft,
@@ -567,6 +598,8 @@ export async function getDealInsightContextForAuthenticatedUser(
     evidenceCompleteness,
     evidenceCompletenessGate,
     dealAssumptions: analysisInputs.dealAssumptions,
+    developmentEvidence,
+    landDevelopment,
     analysisApplicability,
     dealIntelligence: enrichedDealIntelligence,
   } as const;

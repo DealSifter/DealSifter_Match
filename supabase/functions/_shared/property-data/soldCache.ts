@@ -53,7 +53,9 @@ export class InMemorySoldRecordPoolCache implements SoldRecordPoolCache {
   private entries = new Map<string, SoldPoolCacheEntry & { raw?: unknown }>();
   constructor(private readonly options: { now?: () => Date; ttlHours?: unknown } = {}) {}
   async getSoldPool(propertyId: string, addressFingerprint: string, queryFingerprint: string, policy: CacheReadPolicy = {}) {
-    const entry = this.entries.get(validatePropertyId(propertyId));
+    const id = validatePropertyId(propertyId);
+    const entry = this.entries.get(`${id}:${queryFingerprint}`)
+      || (policy.legacyQueryFingerprint ? this.entries.get(`${id}:${policy.legacyQueryFingerprint}`) : undefined);
     const now = (this.options.now || (() => new Date()))().getTime();
     const candidate = entry?.raw === undefined ? entry?.pool : entry.raw;
     if (!entry || !canReadRetained(entry, policy, now)
@@ -70,24 +72,25 @@ export class InMemorySoldRecordPoolCache implements SoldRecordPoolCache {
       + normalizeSoldPoolCacheTtlHours(this.options.ttlHours) * 3_600_000).toISOString();
     const entry: SoldPoolCacheEntry = { propertyId: id, addressFingerprint, queryFingerprint: normalized.queryFingerprint,
       pool: normalized, retrievedAt: normalized.retrievedAt, expiresAt };
-    this.entries.set(id, structuredClone(entry));
+    this.entries.set(`${id}:${normalized.queryFingerprint}`, structuredClone(entry));
     return structuredClone(entry);
   }
   seedRaw(propertyId: string, raw: unknown, addressFingerprint: string, queryFingerprint: string, expiresAt: string) {
-    this.entries.set(validatePropertyId(propertyId), { propertyId, addressFingerprint, queryFingerprint,
+    this.entries.set(`${validatePropertyId(propertyId)}:${queryFingerprint}`, { propertyId, addressFingerprint, queryFingerprint,
       pool: raw as NormalizedSoldRecordPool, raw, retrievedAt: new Date().toISOString(), expiresAt });
   }
 }
 
 export class SupabaseSoldRecordPoolCache implements SoldRecordPoolCache {
   private readonly ttlHours: number;
-  constructor(private readonly client: PropertyIntelligenceRpcClient, ttlHours: unknown) {
+  constructor(private readonly client: PropertyIntelligenceRpcClient, ttlHours: unknown,
+    private readonly dataType = SOLD_POOL_CACHE_DATA_TYPE as string) {
     this.ttlHours = normalizeSoldPoolCacheTtlHours(ttlHours);
   }
   async getSoldPool(propertyId: string, addressFingerprint: string, queryFingerprint: string, policy: CacheReadPolicy = {}) {
     const id = validatePropertyId(propertyId);
     const { data, error } = await this.client.rpc(policy.allowStale ? 'ds_get_retained_property_intelligence_cache' : 'ds_get_property_intelligence_cache', {
-      p_property_id: id, p_provider: 'rentcast', p_data_type: SOLD_POOL_CACHE_DATA_TYPE,
+      p_property_id: id, p_provider: 'rentcast', p_data_type: this.dataType,
       p_schema_version: SOLD_POOL_CACHE_SCHEMA_VERSION,
     });
     if (error) throw new Error('SOLD_POOL_CACHE_READ_FAILED');
@@ -108,7 +111,7 @@ export class SupabaseSoldRecordPoolCache implements SoldRecordPoolCache {
     const expiresAt = new Date(Date.parse(normalized.retrievedAt) + this.ttlHours * 3_600_000).toISOString();
     const { error } = await this.client.rpc('ds_upsert_property_intelligence_cache', {
       p_address_fingerprint: addressFingerprint, p_property_id: id, p_provider: 'rentcast', p_provider_property_id: null,
-      p_data_type: SOLD_POOL_CACHE_DATA_TYPE, p_schema_version: SOLD_POOL_CACHE_SCHEMA_VERSION,
+      p_data_type: this.dataType, p_schema_version: SOLD_POOL_CACHE_SCHEMA_VERSION,
       p_payload: normalized, p_retrieved_at: normalized.retrievedAt, p_expires_at: expiresAt,
     });
     if (error) throw new Error('SOLD_POOL_CACHE_WRITE_FAILED');

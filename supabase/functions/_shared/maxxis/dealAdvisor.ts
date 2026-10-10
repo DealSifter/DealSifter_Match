@@ -7,6 +7,7 @@ import type {
   MaxxisPropertyDetails,
 } from './types.ts';
 import type { DealMetricsResult } from './dealMetrics.ts';
+import { isVacantLandProperty } from './analysisApplicability.ts';
 
 export type AnalyzeDealFactsInput = {
   property: MaxxisPropertyDetails;
@@ -59,7 +60,9 @@ function consolidatedMissingInformation(
 
 export function analyzeDealFacts(input: AnalyzeDealFactsInput): DealAdvisorAnalysis {
   const { property, metrics } = input;
-  const missingInformation = consolidatedMissingInformation(input.missingFields, metrics);
+  const land = isVacantLandProperty(property as unknown as Record<string, unknown>);
+  const missingInformation = consolidatedMissingInformation(input.missingFields, metrics)
+    .filter(field => !land || !['sqft', 'rehab', 'capRate'].includes(field));
   const missing = new Set(missingInformation);
   const positiveSignals = new Set<DealAdvisorPositiveSignal>();
   const attentionPoints = new Set<DealAdvisorAttentionPoint>();
@@ -91,6 +94,7 @@ export function analyzeDealFacts(input: AnalyzeDealFactsInput): DealAdvisorAnaly
   const acquisitionPlusRehab = metrics.metrics.acquisitionPlusRehab;
   const capRate = metrics.metrics.capRate;
 
+  if (!land) {
   if (pricePerSqft.calculable && pricePerSqft.source === 'calculated') {
     positiveSignals.add('price_per_sqft_calculable');
   } else {
@@ -113,6 +117,9 @@ export function analyzeDealFacts(input: AnalyzeDealFactsInput): DealAdvisorAnaly
     limitations.add('cap_rate_not_independently_verified');
   } else {
     attentionPoints.add('cap_rate_unavailable');
+  }
+  } else {
+    limitations.delete('arv_not_structured');
   }
 
   if (missingInformation.length) attentionPoints.add('property_information_incomplete');

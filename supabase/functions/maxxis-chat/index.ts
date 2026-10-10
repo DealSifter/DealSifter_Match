@@ -1325,10 +1325,11 @@ Deno.serve(async (req) => {
               history: Array.isArray(body.history) ? body.history as Array<{ role?: unknown; content?: unknown }> : [],
               propertyId: result.propertyId,
               userId,
+              developmentEvidence: rawSnapshot.developmentEvidence as Parameters<typeof resolveDealScenario>[0]['developmentEvidence'],
               canonicalStrategy: (rawSnapshot.dealDecisionContext as Record<string, unknown> | undefined)?.strategy
                 ?? (rawSnapshot.propertyFacts as Record<string, unknown> | undefined)?.resolvedAnalysisStrategy
                 ?? (rawSnapshot.propertyFacts as Record<string, unknown> | undefined)?.objective,
-              canonicalFacts: {
+            canonicalFacts: {
                 ...((rawSnapshot.propertyFacts as Record<string, unknown> | undefined) || {}),
                 purchasePrice: Number((rawSnapshot.propertyFacts as Record<string, unknown> | undefined)?.price
                   ?? (rawSnapshot.propertyFacts as Record<string, unknown> | undefined)?.askingPrice

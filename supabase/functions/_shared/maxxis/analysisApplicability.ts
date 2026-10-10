@@ -78,7 +78,8 @@ export function classifyAnalysisApplicability(
 ) {
   const vacantLand = isVacantLandProperty(property);
   const constructionPlanned = vacantLand && hasPlannedConstruction(assumptions);
-  const residentialScenarioApplicable = !vacantLand || constructionPlanned;
+  // A proposed house is an exit product, not an existing residential ARV/rehab.
+  const residentialScenarioApplicable = !vacantLand;
   return Object.freeze({
     propertyCategory: vacantLand ? 'VACANT_LAND' as const : 'IMPROVED_PROPERTY' as const,
     constructionPlanned,

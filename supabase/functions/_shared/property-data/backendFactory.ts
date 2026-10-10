@@ -95,6 +95,7 @@ export function createBackendSoldEvidenceService(options: {
   fetchImpl?: RentCastFetch;
   logger?: PropertyDataLogger;
   providerBudgetContext?: ProviderBudgetContext;
+  developmentPropertyType?: string;
 }) {
   const config = readPropertyDataConfig(options.getEnv);
   if (config.mode === 'mock' && options.getEnv('NODE_ENV') !== 'test') config.mode = 'disabled';
@@ -102,11 +103,14 @@ export function createBackendSoldEvidenceService(options: {
   return new SoldEvidenceService({
     repository: new SupabasePropertyEvidenceRepository(options.supabaseAdmin),
     valuationCache: new SupabaseValuationEvidenceCache(options.supabaseAdmin, options.getEnv('VALUATION_CACHE_TTL_HOURS')),
-    soldCache: new SupabaseSoldRecordPoolCache(options.supabaseAdmin, options.getEnv('SOLD_RECORD_POOL_CACHE_TTL_HOURS')),
+    soldCache: new SupabaseSoldRecordPoolCache(options.supabaseAdmin, options.getEnv('SOLD_RECORD_POOL_CACHE_TTL_HOURS'),
+      options.developmentPropertyType ? `property_sold_record_pool_exit_${options.developmentPropertyType.toLowerCase().replace(/\s+/g, '_')}` : 'property_sold_record_pool'),
     provider: createSoldRecordDataProvider({ mode: config.mode, apiKey: config.apiKey,
       timeoutMs: config.timeoutMs, usageGuard: guardedUsage, fetchImpl: options.fetchImpl, logger: options.logger }),
     enabled: config.mode === 'live',
     singleFlight: new SupabasePropertySingleFlight(options.supabaseAdmin),
+    developmentPropertyType: options.developmentPropertyType,
+    policy: options.developmentPropertyType ? { saleDateRangeDays: 365 } : undefined,
   });
 }
 

@@ -5,6 +5,7 @@ import { renderMaxxisReportDocument } from './maxxisReportRenderer';
 import { explainMaxxisEvidenceState } from '../intelligence/maxxisUserFacingEvidence';
 import { getCachedPresentationText } from '../../../services/chatTranslation';
 import { reportNarrativeCacheKey } from '../presentation/reportNarrativePresentation';
+import { formatLandDevelopmentAnswer } from '../../../../supabase/functions/_shared/maxxis/landDevelopmentScenario.ts';
 import {
   REPORT_BODY_TIERS, REPORT_LAYOUT_TOKENS, REPORT_METRIC_BAR, REPORT_SOLID_OFFSETS, REPORT_TEXT_POLICIES,
   deduplicateAndBudgetItems,
@@ -1059,7 +1060,33 @@ function renderInsights(doc, schema, t, accent, { verification = false } = {}) {
     verification ? REPORT_TEXT_POLICIES.page5ExecutiveInsight : REPORT_TEXT_POLICIES.level2ExecutiveInsight,
     t);
 }
+function developmentTextPanel(doc, title, content, y, height, t, accent, sectionId) {
+  panel(doc, M, y, CONTENT, height, { accent });
+  heading(doc, title, M + 12, y + 26, CONTENT - 24, accent);
+  renderContainedCardText(doc, content, createCardGeometry({ x: M, y, width: CONTENT, height,
+    paddingLeft: 14, paddingRight: 14, paddingTop: 10, paddingBottom: 14, titleHeight: 35 }), sectionId,
+  { defaultFontSize: 10.5, tier1FontSize: 10, tier2FontSize: 9.5, minimumFontSize: 9,
+    hardCharacterBudget: 20000, maximumLineCount: 1000 }, t);
+}
+function renderDevelopmentSummary(doc, development, t, accent) {
+  const title = t.locale === 'pt' ? 'Desenvolvimento do terreno — três camadas' : t.locale === 'es' ? 'Desarrollo del terreno — tres capas' : 'Land development — three layers';
+  developmentTextPanel(doc, title, formatLandDevelopmentAnswer(development, t.locale, { includeCoverage: true }), 127, 647, t, accent, 'landDevelopmentSummary');
+}
+function renderDevelopmentCompFamilies(doc, development, t, accent) {
+  const labels = t.locale === 'pt' ? ['Aquisição — terrenos vendidos', 'Saída — imóveis residenciais vendidos', 'Sem vendas qualificadas suficientes', 'Vendidos', 'Apoio', 'Faixa', 'Sem ajuste de condição; referência de saída não é ARV.']
+    : t.locale === 'es' ? ['Adquisición — terrenos vendidos', 'Salida — viviendas vendidas', 'Sin suficientes ventas calificadas', 'Ventas', 'Apoyo', 'Rango', 'Sin ajuste de condición; referencia de salida no es ARV.']
+      : ['Acquisition — sold land parcels', 'Exit — sold residential products', 'Insufficient qualified sales', 'Sales', 'Supporting', 'Range', 'No condition adjustment; exit reference is not ARV.'];
+  [development.landAcquisitionReference, development.finishedHomeExitReference].forEach((reference, index) => {
+    const selected = array(reference?.valuationComps);
+    const lines = [`${labels[3]}: ${selected.length}; ${labels[4]}: ${array(reference?.supportingCandidates).length}`,
+      reference?.status === 'AVAILABLE' ? `${labels[5]}: ${currency(reference.range.low, t)} – ${currency(reference.range.high, t)}; ${currency(reference.weightedUnitValue, t)}/${index ? 'sqft' : 'acre'}` : labels[2],
+      ...selected.map(comp => `${comp.address || t.unavailable}\n${currency(comp.salePrice, t)} · ${localizedDate(comp.saleDate, t)} · ${Number(comp.distanceMiles).toFixed(2)} mi · ${index ? `${comp.livingAreaSqft} sqft` : `${Number(comp.lotSizeSqft / 43560).toFixed(3)} acres`} · ${currency(comp.unitValue, t)}/${index ? 'sqft' : 'acre'}`),
+      labels[6]];
+    developmentTextPanel(doc, labels[index], lines.join('\n\n'), 127 + index * 325, 311, t, accent, `landDevelopmentComps${index}`);
+  });
+}
 function renderComparables(doc, schema, t, accent, comparableMap) {
+  if (schema.presentation?.landDevelopment) return renderDevelopmentCompFamilies(doc, schema.presentation.landDevelopment, t, accent);
   const structured = schema?.structuredAnalysis || {};
   const property = section(schema, 'propertySummary') || {};
   const comps = section(schema, 'comparableEvidence') || {};
@@ -1147,6 +1174,7 @@ function renderComparables(doc, schema, t, accent, comparableMap) {
   listPanel(doc, t.observations, compNarrative.length ? compNarrative : all.map((comp) => comp.inclusionReason || comp.exclusionReason).filter(Boolean), M, 667, CONTENT, 88, t, accent, { sectionId: 'comparableObservations' });
 }
 function renderValuation(doc, schema, t, accent) {
+  if (schema.presentation?.landDevelopment) return renderDevelopmentSummary(doc, schema.presentation.landDevelopment, t, accent);
   const structured = schema?.structuredAnalysis || {};
   const valuation = section(schema, 'valuationEvidence') || {};
   const property = section(schema, 'propertySummary') || {};
@@ -1318,6 +1346,7 @@ function renderEnterpriseAnalysis(doc, schema, t, accent, confidence, executiveL
   text(doc, t.disclaimer, W / 2, 773, { size: 6.7, color: C.muted, width: CONTENT, maxLines: 2, align: 'center' });
 }
 function renderPage(doc, schema, pageCode, t, accent, images, mapImage, comparableMap) {
+  if (pageCode === 'KEY_INSIGHTS_NEXT_STEPS' && schema.presentation?.landDevelopment) return renderDevelopmentSummary(doc, schema.presentation.landDevelopment, t, accent);
   if (pageCode === 'PROPERTY_OVERVIEW') return renderPropertyOverview(doc, schema, t, accent, images, mapImage);
   if (pageCode === 'EXECUTIVE_SUMMARY_PROPERTY_CONTEXT') return renderExecutive(doc, schema, t, accent, images, mapImage);
   if (pageCode === 'INVESTMENT_FIT_RISK') return renderFit(doc, schema, t, accent);

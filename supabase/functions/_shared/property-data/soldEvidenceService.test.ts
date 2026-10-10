@@ -30,6 +30,22 @@ async function setup() {
 }
 
 describe('SoldEvidenceService cache and single-flight', () => {
+  it('retains independent queries and acquires a hypothetical exit pool without buying a land AVM', async () => {
+    const land = { ...property, type: 'Land', lat: 33.65, lng: -86.68, lot: '1.14 acres' };
+    const soldCache = new InMemorySoldRecordPoolCache({ now: () => NOW });
+    const valuationCache = new InMemoryValuationEvidenceCache({ now: () => NOW });
+    const provider = { getSoldRecordPool: vi.fn(async input => mapRentCastSoldRecordPool({ records: [], policy: input.policy,
+      queryFingerprint: input.queryFingerprint, retrievedAt: NOW.toISOString() })) };
+    const options = { repository: { getById: vi.fn(async () => land) }, soldCache, valuationCache, provider };
+    const acquisition = new SoldEvidenceService(options);
+    const exit = new SoldEvidenceService({ ...options, developmentPropertyType: 'SFR', policy: { saleDateRangeDays: 365 } });
+    await acquisition.getSoldEvidence({ propertyId: ID }); await exit.getSoldEvidence({ propertyId: ID });
+    expect(provider.getSoldRecordPool).toHaveBeenCalledTimes(2);
+    await acquisition.getCachedSoldEvidence({ propertyId: ID }); await exit.getCachedSoldEvidence({ propertyId: ID });
+    expect(provider.getSoldRecordPool).toHaveBeenCalledTimes(2);
+    expect((await acquisition.getCachedSoldEvidence({ propertyId: ID }))?.soldPool.requestPolicy.propertyType).toBe('Land');
+    expect((await exit.getCachedSoldEvidence({ propertyId: ID }))?.soldPool.requestPolicy.propertyType).toBe('Single Family');
+  });
   it('coalesces parallel cache misses into one bulk provider call and then returns a cache hit', async () => {
     const { service, provider } = await setup();
     const [first, second] = await Promise.all([service.getSoldEvidence({ propertyId: ID }), service.getSoldEvidence({ propertyId: ID })]);

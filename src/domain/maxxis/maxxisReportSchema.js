@@ -541,6 +541,7 @@ export function buildMaxxisReportSchema({ reportType, property = null, maxxisAna
         : normalizedType === INTELLIGENCE_REPORT_TYPES.DEAL_INTELLIGENCE
           ? (dealIntelligence?.sellerFinancingScenario || null) : null,
       activeScenario,
+      landDevelopment: activeScenario?.calculatedOutputs?.model === 'LAND_DEVELOPMENT_V2' ? activeScenario.calculatedOutputs : null,
       scenarioFocusMap: scenarioAdjustedFocusMap(canonicalFocusMap, activeScenario),
       investorPerspective: normalizedType === INTELLIGENCE_REPORT_TYPES.MAXXIS_ANALYSIS
         ? (maxxisAnalysis?.canonicalInvestmentAnalysis?.focusMap ? Object.freeze({

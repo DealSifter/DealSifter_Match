@@ -43,6 +43,8 @@ export type SoldPropertyRecord = {
   latestValidSale: RecordedSaleTransaction | null;
   saleTransactionAmbiguous: boolean;
   transactionQuality: 'UNKNOWN';
+  zoning?: string | null;
+  subdivision?: string | null;
 };
 
 export type NormalizedSoldRecordPool = {

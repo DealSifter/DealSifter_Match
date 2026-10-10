@@ -19,6 +19,13 @@ export const INITIAL_DEALSIFTER_COMP_POLICY = Object.freeze({
   highBathroomDifference: 1,
 });
 
+// Development uses the same recorded-sale adapters and recent-sales estimator,
+// but never scores the finished home against the current vacant parcel.
+export const DEVELOPMENT_COMP_POLICIES = Object.freeze({
+  LAND_ACQUISITION: Object.freeze({ family: 'LAND_ACQUISITION', maximumSizeVariance: 0.75, preferNewConstruction: false }),
+  FINISHED_HOME_EXIT: Object.freeze({ family: 'FINISHED_HOME_EXIT', maximumSizeVariance: 0.4, preferNewConstruction: true }),
+});
+
 const SUPPORTED_TYPES = new Set(['single family', 'condo', 'townhouse']);
 const normalizeType = (value: string | null) => String(value || '').trim().toLowerCase()
   .replace(/^sfr$/, 'single family');

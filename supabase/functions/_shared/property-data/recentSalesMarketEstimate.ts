@@ -78,6 +78,7 @@ export type RecentSalesMarketEstimate = {
 };
 
 const finite = (value: unknown): number | null => {
+  if (value === null || value === undefined || value === '' || typeof value === 'boolean') return null;
   const parsed = Number(value);
   return Number.isFinite(parsed) ? parsed : null;
 };
@@ -94,7 +95,7 @@ const sameType = (left: unknown, right: unknown) => {
   return a === b || (singleFamily.has(a) && singleFamily.has(b));
 };
 
-function weightedQuantile(values: Array<{ value: number; weight: number }>, quantile: number) {
+export function weightedQuantile(values: Array<{ value: number; weight: number }>, quantile: number) {
   const sorted = [...values].sort((a, b) => a.value - b.value);
   const total = sorted.reduce((sum, item) => sum + item.weight, 0);
   const target = total * quantile;
@@ -130,7 +131,9 @@ function avmCompatibility(subject: RecentSalesSubject) {
 export function buildRecentSalesMarketEstimate(
   subject: RecentSalesSubject,
   candidates: RecordedSoldComparableCandidate[],
+  options: { maximumAgeDays?: number; maximumSizeVariance?: number; preferNewConstruction?: boolean; asOfYear?: number } = {},
 ): RecentSalesMarketEstimate {
+  const maximumAgeDays = options.maximumAgeDays === 365 ? 365 : RECENT_SALES_POLICY_V1.maximumAgeDays;
   const land = isLand(subject.propertyType);
   const propertyCategory = land ? 'LAND' as const : 'RESIDENTIAL' as const;
   const compatibility = avmCompatibility(subject);
@@ -163,8 +166,8 @@ export function buildRecentSalesMarketEstimate(
     const age = finite(candidate.daysSinceSale.value);
     const distance = finite(candidate.distanceFromSubjectMiles.value);
     const compArea = land ? finite(candidate.soldRecord.lotSizeSqft) : finite(candidate.soldRecord.livingAreaSqft);
-    if (age !== null && age > RECENT_SALES_POLICY_V1.maximumAgeDays) {
-      historicalReferences.push({ providerPropertyId: id, saleAgeDays: age, reason: 'SALE_OLDER_THAN_180_DAYS' });
+    if (age !== null && age > maximumAgeDays) {
+      historicalReferences.push({ providerPropertyId: id, saleAgeDays: age, reason: `SALE_OLDER_THAN_${maximumAgeDays}_DAYS` });
       continue;
     }
     if (!price || price <= 0) reasons.push('INVALID_RECORDED_SALE_PRICE');
@@ -173,6 +176,8 @@ export function buildRecentSalesMarketEstimate(
     if (distance === null || distance > RECENT_SALES_POLICY_V1.maximumDistanceMiles) reasons.push('EXTREME_GEOGRAPHICAL_MISMATCH');
     if (!subjectArea || subjectArea <= 0) reasons.push(land ? 'INVALID_SUBJECT_LOT_AREA' : 'INVALID_SUBJECT_LIVING_AREA');
     if (!compArea || compArea <= 0) reasons.push(land ? 'INVALID_COMP_LOT_AREA' : 'INVALID_COMP_LIVING_AREA');
+    if (options.maximumSizeVariance !== undefined && subjectArea && compArea
+      && Math.abs(compArea - subjectArea) / subjectArea > options.maximumSizeVariance) reasons.push('PROPOSED_PRODUCT_SIZE_MISMATCH');
     if (candidate.evidenceStatus !== 'VERIFIED_RECORD') reasons.push('NOT_RECORDED_CLOSED_SALE');
     if (candidate.soldRecord.saleTransactionAmbiguous) reasons.push('SALE_TRANSACTION_AMBIGUOUS');
     if (reasons.length) {
@@ -185,7 +190,7 @@ export function buildRecentSalesMarketEstimate(
     const sizeDelta = land ? finite(candidate.lotSizeDifferencePercent.value) : finite(candidate.sqftDifferencePercent.value);
     const sizeFactor = Math.max(0, 1 - Math.min(1, sizeDelta ?? 1));
     const proximityFactor = Math.max(0, 1 - (distance! / RECENT_SALES_POLICY_V1.maximumDistanceMiles));
-    const recencyFactor = Math.max(0, 1 - (age! / RECENT_SALES_POLICY_V1.maximumAgeDays));
+    const recencyFactor = Math.max(0, 1 - (age! / maximumAgeDays));
     const correlation = finite(candidate.providerCorrelation);
     const correlationFactor = correlation === null ? 0.5 : Math.max(0, Math.min(1, correlation));
     const weights = RECENT_SALES_POLICY_V1.weights;
@@ -196,6 +201,8 @@ export function buildRecentSalesMarketEstimate(
     const unitValue = land ? price! / (compArea! / 43_560) : price! / compArea!;
     const lotPricePerSqft = land ? price! / compArea! : null;
     const impliedSubjectValue = land ? unitValue * (subjectArea! / 43_560) : unitValue * subjectArea!;
+    const newnessFactor = options.preferNewConstruction
+      ? (candidate.soldRecord.yearBuilt != null && candidate.soldRecord.yearBuilt >= (options.asOfYear || new Date().getUTCFullYear()) - 5 ? 1.15 : 0.85) : 1;
     qualified.push({
       providerPropertyId: id, address: candidate.soldRecord.formattedAddress,
       salePrice: price!, saleDate: candidate.recordedSaleDate!, saleAgeDays: age!, distanceMiles: distance!,
@@ -204,9 +211,10 @@ export function buildRecentSalesMarketEstimate(
       livingAreaSqft: candidate.soldRecord.livingAreaSqft, lotSizeSqft: candidate.soldRecord.lotSizeSqft,
       latitude: candidate.soldRecord.latitude, longitude: candidate.soldRecord.longitude,
       unitMetric: land ? 'PRICE_PER_ACRE' : 'PRICE_PER_SQFT',
-      unitValue, lotPricePerSqft, impliedSubjectValue, weight: Math.max(0.0001, weight),
+      unitValue, lotPricePerSqft, impliedSubjectValue, weight: Math.max(0.0001, weight * newnessFactor),
       structuralScore, completenessScore, providerCorrelation: correlation,
-      classification: 'VALUATION_INCLUDED', reasons: ['RECORDED_SALE', 'SALE_WITHIN_180_DAYS', 'STRUCTURALLY_QUALIFIED'],
+      classification: 'VALUATION_INCLUDED', reasons: ['RECORDED_SALE', age! <= 180 ? 'SALE_WITHIN_180_DAYS' : 'CONTROLLED_365_DAY_EXPANSION', 'STRUCTURALLY_QUALIFIED',
+        ...(options.preferNewConstruction ? [newnessFactor > 1 ? 'RECENTLY_BUILT' : 'OLDER_HOME_SUPPORT_UNADJUSTED_NEWNESS'] : [])],
     });
   }
   qualified.sort((a, b) => b.weight - a.weight || a.saleAgeDays - b.saleAgeDays || a.distanceMiles - b.distanceMiles
@@ -252,6 +260,7 @@ export function buildRecentSalesMarketEstimate(
     confidenceReasons.push('HIGH_EVIDENCE_QUALITY_CAPPED_BY_UNADJUSTED_CONDITION');
   }
   if (compatibility === 'QUARANTINED_FOR_TYPE_CONFLICT') confidenceReasons.push('PROVIDER_AVM_QUARANTINED_FOR_TYPE_CONFLICT');
+  if (maximumAgeDays > 180) { confidence = 'LOW'; confidenceReasons.push('CONTROLLED_365_DAY_EXPANSION'); }
   return {
     ...base, status: 'AVAILABLE', centralEstimate: roundMoney(centralEstimate),
     range: { low: roundMoney(Math.min(low, centralEstimate)), high: roundMoney(Math.max(high, centralEstimate)) },

@@ -58,6 +58,7 @@ import {
 } from '../../features/maxxis/routing/maxxisConversationIntent';
 import { projectMaxxisAnalysisResponse } from '../../features/maxxis/intelligence/maxxisAnalysisReport';
 import { projectMaxxisDealIntelligenceResponse } from '../../features/maxxis/intelligence/maxxisDealIntelligenceReport';
+import { resolveLocalLandDevelopment, landScenarioForPersistence } from '../../features/maxxis/intelligence/maxxisLandDevelopment';
 import { composePropertyAnalysisAcknowledgement } from '../../features/maxxis/context/propertyAnalysisHandoff';
 import {
   buildMaxxisSmartActions,
@@ -964,10 +965,11 @@ export function MaxxisAssistant({ page = 'dashboard', onOpenSupport = null, onNa
       return;
     }
     if (normalized === 'scenario-save') {
-      const source = [...messages].reverse().find((item) => item?.data?.scenario?.status === 'COMPLETE');
+      const source = [...messages].reverse().find((item) => item?.data?.scenario?.status === 'COMPLETE'
+        && String(item.data.scenario.propertyId || '') === String(currentMemoryPropertyId() || ''));
       const scenario = source?.data?.scenario; const propertyId = String(scenario?.propertyId || currentMemoryPropertyId());
       if (scenario && UUID_PATTERN.test(propertyId)) {
-        await saveMaxxisAnalysisInputs(propertyId, { dealAssumptions: { activeScenario: { ...scenario, confirmed: true } } });
+        await saveMaxxisAnalysisInputs(propertyId, { dealAssumptions: { activeScenario: { ...landScenarioForPersistence(scenario), confirmed: true } } });
         setMessages((prev) => [...prev, { id: `maxxis-scenario-saved-${Date.now()}`, role: 'assistant', createdAt: new Date(),
           content: language === 'pt' ? 'Cenário salvo para esta propriedade.' : language === 'es' ? 'Escenario guardado para esta propiedad.' : 'Scenario saved for this property.',
           type: 'scenario_saved', data: { propertyId, scenario } }]);
@@ -1138,6 +1140,16 @@ export function MaxxisAssistant({ page = 'dashboard', onOpenSupport = null, onNa
       recentProperties: recentPropertyContextsRef.current,
     });
     const resolvedSubmitPropertyId = String(messagePropertyContext.propertyId || '').trim();
+    const developmentProperty = messagePropertyContext.property || propertyCandidates.find(item => String(item.id || item.propertyId) === resolvedSubmitPropertyId);
+    const landReply = resolveLocalLandDevelopment({ property: developmentProperty, propertyId: resolvedSubmitPropertyId, messages, message: cleanMessage, language });
+    if (landReply) {
+      setInput('');
+      continuitySessionRef.current = { ...continuitySessionRef.current, activePropertyId: resolvedSubmitPropertyId };
+      setMessages(prev => [...prev,
+        { id: `maxxis-user-${Date.now()}`, role: 'user', content: cleanMessage, createdAt: new Date(), data: { propertyId: resolvedSubmitPropertyId } },
+        { ...landReply, id: `maxxis-land-${Date.now()}`, role: 'assistant', createdAt: new Date() }]);
+      return;
+    }
     const notesQuestion = /\b(?:notas|notes|observa[çc][õo]es|texto original|original text)\b/i.test(cleanMessage)
       && !/\b(?:salvar|editar|alterar|save|edit|change|guardar)\b/i.test(cleanMessage);
     const originalNotes = messagePropertyContext.property?.propertyUserNotes || messagePropertyContext.property?.notes || messagePropertyContext.property?.description;

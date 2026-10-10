@@ -105,7 +105,7 @@ import { useAppSessionLifecycle } from './hooks/useAppSessionLifecycle';
 import { useUserPreferences } from './hooks/useUserPreferences';
 import { fetchFeatureFlagsWithRetry, isFeatureEnabled } from './services/featureFlagService';
 import { deleteMaxxisReportArtifact, listMaxxisReportEntitlements, listMaxxisReportHistory, saveMaxxisReportPayload, unlockMaxxisReport } from './services/maxxisReportService';
-import { canPerformAction, getPlanActionAccess, getPlanGateCopy, getCurrentPlan, isPlanLimitError, refreshUsageFromDB, resolveRemainingNuggets } from './services/planUsageService';
+import { canPerformAction, consumePlanActions, getPlanActionAccess, getPlanGateCopy, getCurrentPlan, isPlanLimitError, refreshUsageFromDB, resolveRemainingNuggets } from './services/planUsageService';
 import { isInsufficientSpotlightBalanceError, purchaseCardSpotlights } from './services/spotlightService';
 import { isProfileConflictError, saveProfessionalProfileWithVersion } from './services/profileConcurrencyService';
 import { clearSensitiveCache, clearUserScopedCache } from './lib/localStoragePolicy';
@@ -5703,6 +5703,32 @@ export default function App() {
       case 'mapview':
         return (
           <MapView
+            interested={interested}
+            onMatchProperty={async property => {
+              const id = String(property?.id || '');
+              if (!id || String(property.ownerId || property.owner_id) === String(supabaseUserId)) return false;
+              if (interested.some(item => String(item.id) === id)) {
+                setInterested(items => items.filter(item => String(item.id) !== id));
+                return true;
+              }
+              const resolved = resolveCanonicalFeedActions(makeVisualFeedActionRows({ interested: [property] }), globalFeedIdentityRef.current || {});
+              if (!resolved.ready || !resolved.interested.length || !resolved.matched.length) return false;
+              try {
+                if (!isSupabaseConfigured || !supabaseUserId) { handleOpenModal('login'); return false; }
+                const gate = await consumePlanActions(supabase, ['match', 'swipe', 'like']);
+                if (!gate?.allowed) {
+                  const copy = getPlanGateCopy(gate.failedAction || 'match');
+                  addToast({ type: 'warning', title: copy.title, message: copy.message });
+                  return false;
+                }
+                setInterested(items => mergeFeedActionItems(items, resolved.interested));
+                setMatched(items => mergeFeedActionItems(items, resolved.matched));
+                return true;
+              } catch {
+                addToast({ type: 'warning', message: getPlanGateCopy('match').message });
+                return false;
+              }
+            }}
             nuggets={nuggets}
             isAdmin={isAdmin}
             setModal={handleOpenModal}

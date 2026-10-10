@@ -24,6 +24,9 @@ import {
   normalizeMapPanelWidth,
 } from '../lib/mapPanelWidth';
 import { buildMapInventory } from '../services/mapInventoryService';
+import { PropertyPinPopup } from '../components/map/PropertyPinPopup';
+import { PortfolioPinCarousel } from '../components/map/PortfolioPinCarousel';
+import { getLang } from '../i18n/translations';
 
 const DEFAULT_CENTER = [39.5, -98.35];
 const DEFAULT_ZOOM = 4;
@@ -801,6 +804,8 @@ export function MapView({
   propertyUnlocks = [],
   isActive = true,
   onMaxxisContextChange = null,
+  interested = [],
+  onMatchProperty = null,
 }) {
   const enableMockMapData = import.meta.env.DEV && String(import.meta.env.VITE_ENABLE_MOCK_DATA || '').toLowerCase() === 'true';
   const allT = useT('mapview');
@@ -2872,8 +2877,9 @@ export function MapView({
                     },
                   } : undefined}
                 >
-                  <Popup>
+                  <Popup className={isPerson ? 'ds-person-leaflet-popup' : 'ds-property-leaflet-popup'} maxWidth={400}>
                     {isPerson ? (
+                      <div className="ds-map-person-popup">
                       <div 
                         className="ds-map-popup-card"
                         style={{ cursor: 'pointer' }}
@@ -2906,30 +2912,15 @@ export function MapView({
                         </div>
                         <div className="ds-map-popup-cta">{`${tMatches.viewInFeed} ->`}</div>
                       </div>
+                      <PortfolioPinCarousel key={`${payload.ownerId}:${payload.primaryProfile}`} owner={payload} language={getLang()}
+                        labelForItem={item => item.kind === 'property' ? getSafePropertyLabel(item) : String(item.title || item.category || payload.name)}
+                        onOpen={(item, kind) => navigateToFeed(kind === 'property' ? item : payload, kind === 'property' ? 'property' : 'person')} />
+                      </div>
                     ) : (
-                      <div 
-                        className="ds-map-popup-card"
-                        style={{ cursor: 'pointer' }}
-                        role="button"
-                        tabIndex={0}
-                        onClick={(e) => { e.stopPropagation(); navigateToFeed(payload, 'property'); }}
-                        onMouseDown={(e) => e.stopPropagation()}
-                        onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); e.stopPropagation(); navigateToFeed(payload, 'property'); } }}
-                      >
-                        <div className="ds-map-popup-head">
-                          <SmartImage
-                            src={(payload.images && payload.images[0]) || payload.image || ''}
-                            alt={getSafePropertyLabel(payload)}
-                            style={{ width: 102, height: 74, objectFit: 'cover', borderRadius: 8, flex: '0 0 auto' }}
-                            fallback={<div className="ds-map-popup-thumb" style={{ background:C.border, display:'flex', alignItems:'center', justifyContent:'center' }}><Icon name="home" size={18} color={C.t3} /></div>}
-                          />
-                          <div style={{ minWidth: 0, flex: 1 }}>
-                            <div className="ds-map-popup-title">{getSafePropertyLabel(payload)}</div>
-                            <div className="ds-map-popup-subtitle">{payload.type} · {payload.city}</div>
-                            <div className="ds-map-popup-meta">{formatCompactUsd(payload.price || 0)} · Cap {payload.capRate}%</div>
-                            <div className="ds-map-popup-cta">{`${tMatches.viewInFeed} ->`}</div>
-                          </div>
-                        </div>
+                      <div>
+                        <PropertyPinPopup property={payload} label={getSafePropertyLabel(payload)} language={getLang()}
+                          own={isOwnProperty} selected={interested.some(item => String(item.id || item.propertyId) === String(payload.id))}
+                          onOpen={() => navigateToFeed(payload, 'property')} onMatch={onMatchProperty} />
                         {isOwnProperty && (
                           <div style={{ marginTop: 6, fontSize: 11, color: C.t3, textAlign: 'center', borderTop: '1px solid var(--ui-border)', paddingTop: 5 }}>
                             ✥ {tMap.dragToReposition || 'Drag to reposition'}

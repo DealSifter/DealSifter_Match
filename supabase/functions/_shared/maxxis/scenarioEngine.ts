@@ -2,6 +2,8 @@ import {
   calculateSellerFinancingScenario, compareSellerFinancingScenarios,
   parseSellerFinancingAssumptions, type SellerFinancingScenarioInput,
 } from './sellerFinancingScenario.ts';
+import { calculateLandDevelopmentScenario, formatLandDevelopmentAnswer, parseLandDevelopmentAssumptions,
+  LAND_DEVELOPMENT_COST_FIELDS, type LandDevelopmentEvidence } from './landDevelopmentScenario.ts';
 
 export type ScenarioStrategy = 'SELLER_FINANCING' | 'BUY_AND_HOLD' | 'FLIP' | 'SUB_TO' | 'WHOLESALE' | 'LAND';
 export type ScenarioStatus = 'DRAFT' | 'COMPLETE' | 'PARTIAL';
@@ -14,7 +16,7 @@ export type DealScenario = Readonly<{
   status: ScenarioStatus;
 }>;
 
-const finite = (value: unknown) => Number.isFinite(Number(value)) ? Number(value) : null;
+const finite = (value: unknown) => value === null || value === undefined || value === '' ? null : Number.isFinite(Number(value)) ? Number(value) : null;
 const round = (value: number, digits = 2) => Math.round((value + Number.EPSILON) * (10 ** digits)) / (10 ** digits);
 const nonNegative = (value: unknown, name: string, fallback = 0) => {
   const parsed = finite(value); if (parsed === null) return fallback;
@@ -72,6 +74,7 @@ export function calculateWholesaleScenario(input: Values) {
 }
 
 export function calculateLandScenario(input: Values) {
+  if (input.developmentIntent && input.developmentIntent !== 'NONE') return calculateLandDevelopmentScenario(input);
   const purchasePrice = required(input.purchasePrice, 'purchase_price'); let acres = finite(input.lotSizeAcres); let sqft = finite(input.lotSizeSqft);
   if ((!acres || acres <= 0) && sqft && sqft > 0) acres = sqft / 43_560; if ((!sqft || sqft <= 0) && acres && acres > 0) sqft = acres * 43_560;
   if (!acres || !sqft) throw new Error('SCENARIO_LAND_SIZE_REQUIRED');
@@ -146,10 +149,19 @@ function compactScenarioInputs(input: Values) {
   const compact: Values = {};
   Object.entries(aliases).forEach(([target, keys]) => { const key = keys.find((candidate) => finite(input[candidate]) !== null);
     if (key) compact[target] = finite(input[key]); });
+  for (const key of ['proposedLotCount', 'proposedUnitCount', 'proposedBuildingSqftPerUnit', 'proposedBedsPerUnit', 'proposedBathsPerUnit',
+    'constructionCostPerSqft', 'contractorBid', 'constructionHardCost', ...LAND_DEVELOPMENT_COST_FIELDS]) {
+    if (finite(input[key]) !== null) compact[key] = finite(input[key]);
+  }
+  for (const key of ['state', 'developmentIntent', 'proposedPropertyType', 'constructionBenchmarkClass']) {
+    if (typeof input[key] === 'string' && input[key]) compact[key] = input[key];
+  }
+  for (const key of ['unitsEquivalent', 'zoningSubdivisionVerified']) if (typeof input[key] === 'boolean') compact[key] = input[key];
   return compact;
 }
 export function detectScenarioStrategy(message: unknown, fallback?: unknown): ScenarioStrategy | null {
   const text = String(message || '').normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase();
+  if (/subdiv|desmembr|constru.*(?:casa|lote)|build.*(?:home|house|lot)|land development/.test(text)) return 'LAND';
   if (/seller financ|financiamento do vendedor|balloon|amortiza/.test(text)) return 'SELLER_FINANCING';
   if (/buy.?and.?hold|aluguel|rent|vacancy|vacancia|cap rate|dscr/.test(text)) return 'BUY_AND_HOLD';
   if (/\bflip\b|rehab|reforma|arv/.test(text)) return 'FLIP';
@@ -179,7 +191,7 @@ export function parseScenarioAssumptions(message: unknown, strategy: ScenarioStr
     const buyerPays = text.match(/buyer\s+(?:only\s+)?pays?\s*(?:us\$|\$)?\s*([0-9][0-9.,]*)\s*([km])?/i); if (buyerPays) put('estimatedBuyerPrice', parsedAmount(buyerPays[1], buyerPays[2]));
     const assignFor = text.match(/assign(?:\s+this)?\s+contract\s+(?:at|for)\s*(?:us\$|\$)?\s*([0-9][0-9.,]*)\s*([km])?/i);
     if (assignFor) { put('assignmentFee', parsedAmount(assignFor[1], assignFor[2])); delete values.contractPrice; } }
-  if (strategy === 'LAND') { put('utilityCosts', numeric(text, ['utilities(?: cost)?', 'utilidades'])); put('targetExitPricePerAcre', numeric(text, ['per acre', 'por acre'])); put('targetExitPrice', numeric(text, ['sale price', 'preco de venda'])); }
+  if (strategy === 'LAND') { put('utilityCosts', numeric(text, ['utilities(?: cost)?', 'utilidades'])); put('targetExitPricePerAcre', numeric(text, ['per acre', 'por acre'])); put('targetExitPrice', numeric(text, ['sale price', 'preco de venda'])); Object.assign(values, parseLandDevelopmentAssumptions(message)); }
   if (strategy === 'SELLER_FINANCING') Object.assign(values, parseSellerFinancingAssumptions(text));
   const perAcre = text.match(/(?:us\$|\$)?\s*([0-9][0-9.,]*)\s*([km])?\s*(?:per|por)\s+acre/i);
   if (strategy === 'LAND' && perAcre) put('targetExitPricePerAcre', parsedAmount(perAcre[1], perAcre[2]));
@@ -203,7 +215,8 @@ export function parseScenarioAssumptions(message: unknown, strategy: ScenarioStr
   return Object.freeze(values);
 }
 
-export function calculateScenario(strategy: ScenarioStrategy, assumptions: Values) {
+export function calculateScenario(strategy: ScenarioStrategy, assumptions: Values, developmentEvidence?: LandDevelopmentEvidence | null, asOf?: string) {
+  if (strategy === 'LAND' && assumptions.developmentIntent && assumptions.developmentIntent !== 'NONE') return calculateLandDevelopmentScenario(assumptions, developmentEvidence, asOf);
   if (strategy === 'SELLER_FINANCING') return calculateSellerFinancingScenario(assumptions as SellerFinancingScenarioInput);
   if (strategy === 'BUY_AND_HOLD') return calculateBuyAndHoldScenario(assumptions);
   if (strategy === 'FLIP') return calculateFlipScenario(assumptions);
@@ -216,6 +229,15 @@ export function compareScenarioOutputs(before: Values | null, after: Values) {
   if (!before) return Object.freeze({}); const delta: Record<string, Readonly<{ before: number; after: number; absolute: number; percent: number | null }>> = {};
   Object.entries(after).forEach(([key, value]) => { const left = finite(before[key]); const right = finite(value); if (left === null || right === null || left === right) return;
     delta[key] = Object.freeze({ before: left, after: right, absolute: round(right - left), percent: left === 0 ? null : round(((right - left) / Math.abs(left)) * 100, 4) }); });
+  if (before.model === 'LAND_DEVELOPMENT_V2' && after.model === 'LAND_DEVELOPMENT_V2') {
+    for (const field of ['hardCost', 'knownDevelopmentBasis', 'projectedExitPerUnit', 'aggregateProjectedExit', 'preliminaryGrossSpread']) {
+      for (const bound of ['low', 'central', 'high']) {
+        const left = finite((before[field] as Values | null)?.[bound]); const right = finite((after[field] as Values | null)?.[bound]);
+        if (left === null || right === null || left === right) continue;
+        delta[`${field}.${bound}`] = Object.freeze({ before: left, after: right, absolute: round(right - left), percent: left === 0 ? null : round(((right - left) / Math.abs(left)) * 100, 4) });
+      }
+    }
+  }
   return Object.freeze(delta);
 }
 
@@ -226,7 +248,7 @@ export function detectsDealScenario(message: unknown, history: Array<{ role?: un
 }
 
 export function resolveDealScenario(options: { message: unknown; history?: Array<{ role?: unknown; content?: unknown }>; propertyId?: unknown; userId?: unknown;
-  canonicalStrategy?: unknown; canonicalFacts?: Values; storedAssumptions?: Values | null; now?: string }) {
+  canonicalStrategy?: unknown; canonicalFacts?: Values; storedAssumptions?: Values | null; now?: string; developmentEvidence?: LandDevelopmentEvidence | null }) {
   const history = Array.isArray(options.history) ? options.history.filter((item) => item?.role !== 'assistant') : [];
   const prior = history.slice(-5).map((item) => ({ strategy: detectScenarioStrategy(item.content, options.canonicalStrategy), content: item.content })).filter((item) => item.strategy);
   const strategy = detectScenarioStrategy(options.message, prior.at(-1)?.strategy || options.canonicalStrategy);
@@ -272,12 +294,14 @@ export function resolveDealScenario(options: { message: unknown; history?: Array
   let calculatedOutputs: Values = {}; const unresolvedInputs: string[] = [];
   const target = { targetROI: current.targetROI, targetDSCR: current.targetDSCR, targetMonthlyPI: current.targetMonthlyPI, targetBuyerBasis: current.targetBuyerBasis };
   const hasTarget = Object.values(target).some((value) => finite(value) !== null);
-  try { calculatedOutputs = calculateScenario(strategy, assumptions); } catch (error) { if (!hasTarget) unresolvedInputs.push(String(error instanceof Error ? error.message : error)); }
+  try { calculatedOutputs = calculateScenario(strategy, assumptions, options.developmentEvidence, options.now);
+    if (calculatedOutputs.model === 'LAND_DEVELOPMENT_V2' && (!calculatedOutputs.totalBuildingSqft || !assumptions.proposedPropertyType)) unresolvedInputs.push(String(calculatedOutputs.nextInput));
+  } catch (error) { if (!hasTarget) unresolvedInputs.push(String(error instanceof Error ? error.message : error)); }
   if (hasTarget) try { calculatedOutputs = { ...calculatedOutputs, ...solveScenarioTarget(strategy, assumptions, target) }; }
   catch (error) { unresolvedInputs.push(String(error instanceof Error ? error.message : error)); }
   let previousOutputs: Values | null = null; const previousInput = explicitComparisonLeft || previousAssumptions;
   if (Object.keys(previousInput).length && (!compareRequest || explicitComparisonLeft)) try { previousOutputs = calculateScenario(strategy,
-    { ...canonical, ...storedInputs, ...previousInput }); } catch { previousOutputs = null; }
+    { ...canonical, ...storedInputs, ...previousInput }, options.developmentEvidence, options.now); } catch { previousOutputs = null; }
   const status: ScenarioStatus = unresolvedInputs.length ? (Object.keys(assumptions).length ? 'PARTIAL' : 'DRAFT') : 'COMPLETE';
   const source = Object.fromEntries(Object.keys(assumptions).map((key) => [key, key in current || key in previousAssumptions ? 'USER_PROVIDED'
     : key in storedInputs ? 'USER_PROVIDED' : 'CANONICAL_PROPERTY_FACT'])) as DealScenario['source'];
@@ -330,6 +354,7 @@ const STRATEGY_LABELS: Record<string, Record<ScenarioStrategy, string>> = {
 export function formatDealScenarioAnswer(resolution: ReturnType<typeof resolveDealScenario>, languageInput: unknown) {
   const language = ['pt', 'es'].includes(String(languageInput)) ? String(languageInput) : 'en'; const scenario = resolution.scenario;
   if (!scenario) return language === 'pt' ? 'Não identifiquei um cenário financeiro.' : language === 'es' ? 'No identifiqué un escenario financiero.' : 'I could not identify a financial scenario.';
+  if (scenario.calculatedOutputs.model === 'LAND_DEVELOPMENT_V2') return formatLandDevelopmentAnswer(scenario.calculatedOutputs as ReturnType<typeof calculateLandDevelopmentScenario>, language);
   if (resolution.state !== 'CALCULATED') {
     const missingLabels: Record<string, Record<string, string>> = {
       pt: { PURCHASE_PRICE: 'preço de compra', RENT: 'aluguel', EXIT_VALUE: 'valor de saída', EXISTING_LOAN_BALANCE: 'saldo do financiamento', MONTHLY_PI: 'parcela mensal P&I', BUYER_PRICE: 'preço do comprador', CONTRACT_PRICE: 'preço de contrato', LAND_SIZE: 'área do terreno' },
