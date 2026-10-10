@@ -22,6 +22,7 @@ function context(overrides = {}) {
     now,
     accountKey: 'acct-a',
     enabled: true,
+    contextObservationActive: true,
     contextSnapshot: {
       surface: { name: 'matches' },
       entity: { type: 'PROPERTY', id: propertyId },
@@ -48,8 +49,23 @@ describe('Maxxis Deal AI avatar state machine', () => {
     });
   });
 
-  it('resolves observing when Maxxis Deal AI has active context but is not calling attention', () => {
+  it('resolves observing only for an explicit Maxxis observation', () => {
     expect(resolveMaxxisAvatarState(context()).state).toBe(MAXXIS_AVATAR_STATES.OBSERVING);
+  });
+
+  it('does not react to module, property or unrelated app confirmation changes', () => {
+    for (const page of ['feed', 'matches', 'map', 'dashboard']) {
+      expect(resolveMaxxisAvatarState(context({
+        contextObservationActive: undefined,
+        appContext: { surface: { page }, entity: { propertyId } },
+        contextSnapshot: { operational: { state: { pendingActionExists: true } } },
+      })).state).toBe('IDLE');
+    }
+  });
+
+  it('keeps the transition timestamp stable across same-state context updates', () => {
+    const previous = resolveMaxxisAvatarState(context({ loading: true }));
+    expect(resolveMaxxisAvatarState(context({ loading: true, previousState: previous, now: now + 500 })).transition.at).toBe(now);
   });
 
   it('resolves processing from existing Maxxis Deal AI loading/execution flags', () => {

@@ -39,11 +39,11 @@ afterEach(() => {
 });
 
 describe('Maxxis Deal AI avatar presentation timeline', () => {
-  it('synchronizes OBSERVING -> NOTICED -> WAITING without showing the bubble immediately', () => {
+  it('synchronizes IDLE -> NOTICED -> WAITING without showing the bubble immediately', () => {
     vi.useFakeTimers();
     vi.setSystemTime(2_000_000);
     const timeline = createMaxxisAvatarTimelineController({ nowFn: () => Date.now() });
-    expect(resolve(timeline.getSnapshot()).state).toBe(MAXXIS_AVATAR_STATES.OBSERVING);
+    expect(resolve(timeline.getSnapshot()).state).toBe(MAXXIS_AVATAR_STATES.IDLE);
 
     expect(timeline.stageProactiveBubble(bubble)).toBe(true);
     expect(resolve(timeline.getSnapshot()).state).toBe(MAXXIS_AVATAR_STATES.NOTICED);
@@ -78,7 +78,7 @@ describe('Maxxis Deal AI avatar presentation timeline', () => {
     expect(timeline.getSnapshot().proactiveBubble).toBe(replacement);
   });
 
-  it('synchronizes WAITING -> PROCESSING -> SUCCESS -> OBSERVING for confirmed backend work', () => {
+  it('synchronizes WAITING -> PROCESSING -> SUCCESS -> IDLE for confirmed backend work', () => {
     vi.useFakeTimers();
     const timeline = createMaxxisAvatarTimelineController({ nowFn: () => Date.now() });
     timeline.stageProactiveBubble(bubble, { reducedMotion: true });
@@ -91,17 +91,17 @@ describe('Maxxis Deal AI avatar presentation timeline', () => {
     timeline.markSuccess({ status: 'sent' });
     expect(resolve(timeline.getSnapshot()).state).toBe(MAXXIS_AVATAR_STATES.SUCCESS);
     vi.advanceTimersByTime(MAXXIS_AVATAR_SUCCESS_DURATION_MS);
-    expect(resolve(timeline.getSnapshot()).state).toBe(MAXXIS_AVATAR_STATES.OBSERVING);
+    expect(resolve(timeline.getSnapshot()).state).toBe(MAXXIS_AVATAR_STATES.IDLE);
   });
 
-  it('returns WAITING -> CANCEL -> OBSERVING without false success', () => {
+  it('returns WAITING -> CANCEL -> IDLE without false success', () => {
     vi.useFakeTimers();
     const timeline = createMaxxisAvatarTimelineController();
     timeline.stageProactiveBubble(bubble, { reducedMotion: true });
     expect(resolve(timeline.getSnapshot()).state).toBe(MAXXIS_AVATAR_STATES.WAITING);
     timeline.dismissProactiveBubble();
     expect(timeline.getSnapshot().lastActionResult).toBeNull();
-    expect(resolve(timeline.getSnapshot()).state).toBe(MAXXIS_AVATAR_STATES.OBSERVING);
+    expect(resolve(timeline.getSnapshot()).state).toBe(MAXXIS_AVATAR_STATES.IDLE);
   });
 
   it('does not let a signal interrupt PROCESSING and returns to pending WAITING after SUCCESS', () => {

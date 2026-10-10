@@ -250,7 +250,6 @@ export function MaxxisAssistant({ page = 'dashboard', onOpenSupport = null, onNa
   const [widgetPosition, setWidgetPosition] = useState(readStoredWidgetPosition);
   const avatarAnchorRef = useRef(null);
   const [communicationPhase, setCommunicationPhase] = useState('IDLE_BADGE');
-  const [contextObservationActive, setContextObservationActive] = useState(false);
   const [proactiveActionInProgress, setProactiveActionInProgress] = useState(false);
   const [panelPosition, setPanelPosition] = useState(readStoredPanelPosition);
   const [dragging, setDragging] = useState(false);
@@ -686,13 +685,6 @@ export function MaxxisAssistant({ page = 'dashboard', onOpenSupport = null, onNa
     continuityAuthorityRef.current = authority;
   }, [continuityEvidence.serviceIds, continuityPropertyId, pendingProviderMessageSend, pendingProviderUnlock, sessionKey]);
 
-  useEffect(() => {
-    if (!proactiveEnabled) { setContextObservationActive(false); return undefined; }
-    setContextObservationActive(true);
-    const timer = window.setTimeout(() => setContextObservationActive(false), 600);
-    return () => window.clearTimeout(timer);
-  }, [continuityPropertyId, page, appContext?.surface?.subview, appContext?.surface?.modal, proactiveEnabled]);
-
   const maxxisAvatarState = useMemo(() => resolveMaxxisAvatarState({
     previousState: maxxisAvatarStateRef.current,
     accountKey: sessionKeyRef.current,
@@ -701,7 +693,6 @@ export function MaxxisAssistant({ page = 'dashboard', onOpenSupport = null, onNa
     loading,
     timelineManaged: true,
     communicationPhase: open ? 'IDLE_BADGE' : communicationPhase,
-    contextObservationActive,
     proactiveEnabled,
     proactiveActionInProgress,
     pendingAction: Boolean(activeAnalysisGapId),
@@ -723,7 +714,6 @@ export function MaxxisAssistant({ page = 'dashboard', onOpenSupport = null, onNa
   }), [
     activeProfileActionId,
     communicationPhase,
-    contextObservationActive,
     proactiveEnabled,
     proactiveActionInProgress,
     activeAnalysisGapId,

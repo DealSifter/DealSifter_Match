@@ -79,7 +79,6 @@ function hasWaiting(context = {}, processing = false) {
     || context.pendingProfileSuggestion
     || context.proactiveBubble
     || context.proactiveBubbleActive
-    || context.contextSnapshot?.operational?.state?.pendingActionExists
     || smartActions.some((action) => ['prepared', 'pending', 'waiting', 'confirmation'].includes(cleanText(action?.state, 30).toLowerCase()))
   );
 }
@@ -156,7 +155,9 @@ function selectRawState(context = {}) {
   if (['EXPANDING', 'MESSAGE'].includes(context.communicationPhase)) return { state: MAXXIS_AVATAR_STATES.NOTICED, reason: 'contextual_communication' };
   if (hasWaiting(context, processing)) return { state: MAXXIS_AVATAR_STATES.WAITING, reason: 'awaiting_user_decision' };
   if (hasNoticed(context)) return { state: MAXXIS_AVATAR_STATES.NOTICED, reason: 'proactive_signal_ready' };
-  if (context.contextObservationActive ?? hasActiveContext(context)) return { state: MAXXIS_AVATAR_STATES.OBSERVING, reason: 'active_context' };
+  // Screen context is evidence, not a conversational event. Only an explicit
+  // Maxxis observation may change the pose; navigation alone stays idle.
+  if (context.contextObservationActive === true) return { state: MAXXIS_AVATAR_STATES.OBSERVING, reason: 'active_context' };
   return { state: MAXXIS_AVATAR_STATES.IDLE, reason: 'no_active_context' };
 }
 
@@ -225,7 +226,7 @@ export function resolveMaxxisAvatarState(context = {}) {
     state: selectedState,
     conversationalState,
     reason: selected.reason,
-    now,
+    now: previousState === selectedState ? (previous.transition?.at || now) : now,
     visualStateMode,
     intensity,
     previousState,

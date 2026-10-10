@@ -12,6 +12,8 @@
 }
 
 .maxxis-panel {
+  --maxxis-chat-font-size: 13px;
+  --maxxis-chat-line-height: 1.45;
   --accent: var(--accent-hex);
   --surface: var(--card);
   --card-bg: var(--card);
@@ -223,6 +225,9 @@
 }
 
 .maxxis-message {
+  font-family: 'Inter', 'Outfit', sans-serif;
+  font-size: var(--maxxis-chat-font-size);
+  line-height: var(--maxxis-chat-line-height);
   max-width: 86%;
   display: grid;
   gap: 4px;
@@ -2027,3 +2032,37 @@ button.maxxis-action-link:hover {
 .maxxis-arv-comp-card > summary small,
 .maxxis-arv-comp-detail > span { color: var(--t2); font-size: .86em; }
 .maxxis-arv-continued { margin-top: 5px; padding: 0; color: var(--t2); font: inherit; border: 0; border-radius: 0; }
+
+/* One screen metric for ordinary answers AND sibling analytical experiences.
+   PDF pages are a separate document surface and retain their export geometry. */
+.maxxis-panel .maxxis-input-row :is(button, textarea, span),
+.maxxis-panel .maxxis-messages :is(div, section, article, p, span, strong, b, em, small, h1, h2, h3, h4, h5, h6, summary, li, button, input, select, textarea, label, legend, dt, dd, table, th, td):not(:where(.maxxis-v2-page, .maxxis-v2-page *, .maxxis-canonical-stage, .maxxis-canonical-stage *)) {
+  font-family: 'Inter', 'Outfit', sans-serif;
+  font-size: var(--maxxis-chat-font-size);
+  line-height: var(--maxxis-chat-line-height);
+  overflow-wrap: anywhere;
+}
+
+.maxxis-panel .maxxis-messages :is(h1, h2, h3, h4, h5, h6):not(:where(.maxxis-v2-page *, .maxxis-canonical-stage *)) {
+  color: var(--t1);
+  font-weight: 700;
+}
+
+.maxxis-panel .maxxis-messages summary:not(:where(.maxxis-v2-page *, .maxxis-canonical-stage *)) {
+  padding: 5px 7px;
+  color: var(--ui-btn-text-strong);
+  background: color-mix(in srgb, var(--accent-hex) 9%, var(--card));
+  border-radius: 6px;
+  cursor: pointer;
+}
+
+.maxxis-panel .maxxis-messages button:not(:where(.maxxis-v2-page *, .maxxis-canonical-stage *)) {
+  cursor: pointer;
+}
+
+@media (max-width: 767px) {
+  .maxxis-panel {
+    --maxxis-chat-font-size: 12px;
+    --maxxis-chat-line-height: 1.38;
+  }
+}

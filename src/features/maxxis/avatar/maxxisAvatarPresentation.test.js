@@ -159,11 +159,14 @@ describe('Maxxis Deal AI avatar animation presentation', () => {
     const numericVar = (block, name) => Number(block.match(new RegExp(`${name}:\\s*([-\\d.]+)%?`))?.[1]);
     const idleScale = numericVar(stateBlock('IDLE'), '--maxxis-layer-scale');
 
-    ['PROCESSING', 'NOTICED', 'WAITING', 'SUCCESS'].forEach((state) => {
+    ['NOTICED', 'WAITING', 'SUCCESS'].forEach((state) => {
       const block = stateBlock(state);
       expect(numericVar(block, '--maxxis-layer-scale')).toBeLessThan(idleScale);
       expect(numericVar(block, '--maxxis-layer-x')).toBeGreaterThan(4);
     });
+    // The processing artwork includes a card/coin outside the robot bounds;
+    // equal PNG sizing previously made the character itself visibly smaller.
+    expect(numericVar(stateBlock('PROCESSING'), '--maxxis-layer-scale')).toBeGreaterThan(idleScale);
   });
 
   it('normalizes each avatar asset independently during crossfade transitions', () => {
@@ -172,7 +175,9 @@ describe('Maxxis Deal AI avatar animation presentation', () => {
     expect(stateBlocks).toHaveLength(6);
     stateBlocks.forEach((block) => expect(block).toMatch(/--maxxis-layer-(?:scale|x|y):/));
     const renderer = readFileSync(new URL('./MaxxisAvatarRenderer.jsx', import.meta.url), 'utf8');
-    expect(renderer).toContain('data-avatar-layer-state={layers.outgoing.state}');
-    expect(renderer).toContain('data-avatar-layer-state={layers.active.state}');
+    expect(renderer).toContain('MAXXIS_AVATAR_ASSET_LIST.map');
+    expect(renderer).toContain('data-avatar-layer-state={asset.state}');
+    expect(renderer).not.toContain('key={motionKey}');
+    expect(renderer).toContain('img.decode().then(show)');
   });
 });
