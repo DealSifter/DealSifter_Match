@@ -1,0 +1,41 @@
+{
+  "baseline": "d9ea801ffd1c57a85e418acddb0c198be744a02c",
+  "sourceRevision": "a02951fe06db81b27a75ec9995ec5e93165ab592",
+  "branch": "fix/production-real-defects",
+  "commit": "PASS",
+  "push": "PASS",
+  "frontend": {
+    "deploymentId": "dpl_D1n3cxEAUBpUJf4eKXuwfmvkszp4",
+    "url": "https://dealsiftermatch-omvdus177-deal-sifter-match-s-projects.vercel.app",
+    "alias": "https://dealsiftermatch.vercel.app",
+    "state": "READY",
+    "target": "production",
+    "metadataGitCommitSha": "a02951fe06db81b27a75ec9995ec5e93165ab592"
+  },
+  "edgeProject": "cyeipfskwwisbbayyaca",
+  "edgeFunctions": [
+    { "name": "maxxis-chat", "version": 77, "state": "ACTIVE", "updatedAt": "2026-10-11T20:31:11Z" },
+    { "name": "maxxis-analysis-inputs", "version": 8, "state": "ACTIVE", "updatedAt": "2026-10-11T20:31:11Z" },
+    { "name": "maxxis-provider-message-draft", "version": 14, "state": "ACTIVE", "updatedAt": "2026-10-11T20:31:11Z" },
+    { "name": "maxxis-deal-workflow", "version": 12, "state": "ACTIVE", "updatedAt": "2026-10-11T20:31:11Z" }
+  ],
+  "localValidation": {
+    "fullTests": "1580/1580",
+    "testFiles": 201,
+    "targetedExecutions": "112/112 (27 + 31 + 54, overlapping cases)",
+    "frontendTypecheck": "PASS",
+    "changedPortableBackendTypecheck": "PASS",
+    "lint": "PASS",
+    "build": "PASS",
+    "existingAggregateDenoErrors": 38,
+    "newAggregateDenoErrors": 0,
+    "controlEvidenceMode": "DETERMINISTIC_FIXTURES_NOT_LIVE_PROPERTY_OBSERVATIONS"
+  },
+  "smokeReceipt": "qa/p0-canonical-truth/production-smoke.json",
+  "overallAcceptance": "PARTIAL",
+  "blocker": "No configured authorized authenticated production smoke session to verify canonical response and dependent scenario/report flow without paid provider calls.",
+  "automatedRentCastCalls": 0,
+  "geminiCalls": 0,
+  "stripeMutations": 0,
+  "migration": "NONE"
+}

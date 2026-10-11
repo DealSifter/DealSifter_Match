@@ -1,0 +1,58 @@
+{
+  "sourceRevision": "a02951fe06db81b27a75ec9995ec5e93165ab592",
+  "checkedAt": "2026-10-11T20:37:38.230Z",
+  "state": "PARTIAL",
+  "checks": [
+    {
+      "name": "frontend",
+      "status": 200
+    },
+    {
+      "name": "maxxis-health",
+      "status": 200,
+      "body": {
+        "status": "ok",
+        "function": "maxxis-chat",
+        "release": "cyeipfskwwisbbayyaca_c74c9198-e4af-4543-a010-9dc1917ae641_77"
+      }
+    },
+    {
+      "name": "maxxis-analysis-inputs-cors",
+      "status": 200,
+      "body": null
+    },
+    {
+      "name": "maxxis-provider-message-draft-cors",
+      "status": 200,
+      "body": null
+    },
+    {
+      "name": "maxxis-deal-workflow-cors",
+      "status": 200,
+      "body": null
+    },
+    {
+      "name": "canonical-property-auth-boundary",
+      "status": 401,
+      "body": {
+        "code": "42501"
+      }
+    }
+  ],
+  "canonicalAuthenticatedResponse": {
+    "state": "NOT_VERIFIED",
+    "reason": "No configured authenticated smoke session; anon has no RPC execute permission."
+  },
+  "scenarioEndpoint": {
+    "endpoint": "maxxis-chat",
+    "state": "AVAILABILITY_ONLY",
+    "deterministicTests": "PASS"
+  },
+  "reportEndpoint": {
+    "state": "NOT_REQUIRED_CLIENT_RENDERER",
+    "deterministicTests": "PASS"
+  },
+  "automatedRentCastCalls": 0,
+  "geminiCalls": 0,
+  "stripeMutations": 0
+}

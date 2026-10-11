@@ -36,4 +36,11 @@ Final accepted test receipt is `full-tests-final.json`; earlier attempt receipts
 
 ## Production receipt
 
-Pending commit/push and deployment. The committed application revision, frontend deployment metadata, Edge versions/timestamps and non-destructive smoke results will be recorded below after publication. No production PASS is claimed yet.
+- Application source committed and pushed: `a02951fe06db81b27a75ec9995ec5e93165ab592`, branch `fix/production-real-defects`.
+- Frontend production deployment: `dpl_D1n3cxEAUBpUJf4eKXuwfmvkszp4`, **READY**, target **production**, API metadata SHA exactly `a02951fe06db81b27a75ec9995ec5e93165ab592`. Alias: https://dealsiftermatch.vercel.app. Deployment URL: https://dealsiftermatch-omvdus177-deal-sifter-match-s-projects.vercel.app.
+- Supabase project `cyeipfskwwisbbayyaca`: all four functions deployed successfully from the same unchanged application source. CLI inventory confirms ACTIVE: `maxxis-chat` v77, `maxxis-analysis-inputs` v8, `maxxis-provider-message-draft` v14, `maxxis-deal-workflow` v12. All updated at `2026-10-11 20:31:11 UTC`.
+- Non-destructive smoke at `2026-10-11T20:37:38.230Z`: production frontend HTTP 200; Maxxis health HTTP 200, release suffix `_77`; all three other function OPTIONS probes HTTP 200. Anonymous canonical RPC probe correctly rejected with HTTP 401 / permission code `42501`.
+- Automated RentCast calls **0**, Gemini calls **0**, Stripe mutations **0**; no migration or data mutation. Receipt: `qa/p0-canonical-truth/production-smoke.json`.
+- **Overall acceptance remains PARTIAL:** an authorized authenticated production smoke session is not configured. Public availability and the anonymous privacy boundary do not prove an authenticated canonical response, scenario result or report flow. No full production PASS or established P0 baseline is claimed.
+- Control-property acceptance is deterministic fixture evidence, **not live production-property observations**.
+- Post-deployment follow-up contains QA receipts and the read-only smoke script only. Deployed application source remains the SHA above; no additional application deployment is required for this documentation-only commit.
