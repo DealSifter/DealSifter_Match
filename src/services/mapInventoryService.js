@@ -155,6 +155,7 @@ const getFeaturePayload = (feature, currentUserId, getRecordProfileScope, servic
     ...(feature?.payload || {}),
     id: id || feature?.payload?.id,
     cardKind: itemType,
+    isUnlocked: feature?.properties?.isUnlocked === true,
     isOwnCard: feature?.payload?.isOwnCard === true
       || feature?.properties?.isOwn === true
       || String(feature?.payload?.ownerId || '') === String(currentUserId || ''),
@@ -221,6 +222,8 @@ const buildMapFeaturesFromSources = (sources = {}, currentUserId = '') => {
     resolvePropertyDisplayCoords = () => null,
     resolveScopedProfile = () => null,
     isUnlockedId = () => false,
+    isPersonUnlocked = card => isUnlockedId(card?.ownerId || card?.id),
+    isPropertyUnlocked = property => isUnlockedId(property?.ownerId),
   } = sources || {};
 
   const addFeature = (feature) => {
@@ -253,7 +256,7 @@ const buildMapFeaturesFromSources = (sources = {}, currentUserId = '') => {
           lat: card.lat,
           lng: card.lng,
           payload: card,
-          isUnlocked: isUnlockedId(card.id),
+          isUnlocked: isPersonUnlocked(card),
         }));
       });
 
@@ -269,7 +272,7 @@ const buildMapFeaturesFromSources = (sources = {}, currentUserId = '') => {
           lat: property.lat,
           lng: property.lng,
           payload: property,
-          isUnlocked: isUnlockedId(property.ownerId),
+          isUnlocked: isPropertyUnlocked(property),
         }));
       });
   }
@@ -303,7 +306,7 @@ const buildMapFeaturesFromSources = (sources = {}, currentUserId = '') => {
       lat: coords.lat,
       lng: coords.lng,
       payload,
-      isUnlocked: isUnlockedId(ownerId),
+      isUnlocked: isPersonUnlocked(payload),
     }));
   };
 
@@ -420,7 +423,7 @@ const buildMapFeaturesFromSources = (sources = {}, currentUserId = '') => {
       lat: coords.lat,
       lng: coords.lng,
       payload,
-      isUnlocked: isOwnProperty || isUnlockedId(property.ownerId),
+      isUnlocked: isOwnProperty || isPropertyUnlocked(payload),
       isOwn: isOwnProperty,
     }));
   });
@@ -461,6 +464,7 @@ export function buildMapInventory(normalizedCards = [], currentUserId = '', filt
     if (!matchesFilters(card, kind, currentUserId, filters)) return;
     const pin = toPin(card, currentUserId);
     if (!pin) return;
+    if (filters.showOnlyUnlocked === true && filters.showOnlyMyPins !== true && (!pin.isUnlocked || pin.isOwnCard)) return;
     if (!byPinId.has(pin.pinId)) byPinId.set(pin.pinId, pin);
   });
 

@@ -26,7 +26,9 @@ import {
 import { buildMapInventory } from '../services/mapInventoryService';
 import { PropertyPinPopup } from '../components/map/PropertyPinPopup';
 import { PortfolioPinCarousel } from '../components/map/PortfolioPinCarousel';
+import { linkedPortfolioSlides } from '../components/map/portfolioPinData';
 import { getLang } from '../i18n/translations';
+import { resolveContactUnlockState, resolvePropertyUnlockState } from '../lib/unlockAccessState';
 
 const DEFAULT_CENTER = [39.5, -98.35];
 const DEFAULT_ZOOM = 4;
@@ -789,6 +791,7 @@ export function MapView({
   setModal,
   openUnlock,
   unlocked,
+  unlockedContactMap = null,
   setPage,
   showcaseProperties = [],
   propertyPortfolio = [],
@@ -830,8 +833,10 @@ export function MapView({
     : {};
   const initialMapUiState = useMemo(() => _loadMapUiState(), []);
   const mapUiStateRef = React.useRef(initialMapUiState || {});
-  const unlockedIds = useMemo(() => (Array.isArray(unlocked) ? unlocked : []), [unlocked]);
-  const isUnlockedId = useCallback((id) => unlockedIds.includes(id), [unlockedIds]);
+  const unlockedIds = useMemo(() => new Set((Array.isArray(unlocked) ? unlocked : [])
+    .map(id => String(id ?? '').trim()).filter(Boolean)), [unlocked]);
+  const isPersonUnlocked = useCallback(card => resolveContactUnlockState(card, unlockedContactMap, unlockedIds), [unlockedContactMap, unlockedIds]);
+  const isPropertyUnlocked = useCallback(property => resolvePropertyUnlockState(property, unlockedContactMap), [unlockedContactMap]);
   const normalizeCardPriority = useCallback((value) => {
     const normalized = String(value || '').trim().toLowerCase();
     if (normalized === 'primary' || normalized === 'secondary' || normalized === 'tertiary') return normalized;
@@ -1338,13 +1343,15 @@ export function MapView({
       getStateCodeFromMarket,
       resolvePropertyDisplayCoords: (property) => resolvePropertyDisplayCoords(property, pinOverrides),
       resolveScopedProfile,
-      isUnlockedId,
+      isPersonUnlocked,
+      isPropertyUnlocked,
     }, currentUserId, {
       showPeople,
       showDeals: showProperties,
       showOnlyMyPins,
+      showOnlyUnlocked,
     });
-  }, [accountType, activeSpotlightKeys, currentUserId, enableMockMapData, getPortfolioPartsForOwner, getRecordProfileScope, isLocalPublishedRecord, isUnlockedId, personalProfile, pinOverrides, professionalProfile, publishedLocalProfileScopes, servicePortfolio, showcaseProperties, showOnlyMyPins, showPeople, showProperties, userProfile]);
+  }, [accountType, activeSpotlightKeys, currentUserId, enableMockMapData, getPortfolioPartsForOwner, getRecordProfileScope, isLocalPublishedRecord, isPersonUnlocked, isPropertyUnlocked, personalProfile, pinOverrides, professionalProfile, publishedLocalProfileScopes, servicePortfolio, showcaseProperties, showOnlyMyPins, showOnlyUnlocked, showPeople, showProperties, userProfile]);
   const mapInventoryPoints = useMemo(() => {
     const toFeature = (pin) => {
       if (pin?.sourceFeature) {
@@ -1407,28 +1414,14 @@ export function MapView({
 
   const filteredPoints = useMemo(() => {
     const query = normalizeText(appliedLocationQuery);
-    const basePoints = (showOnlyUnlocked && !showOnlyMyPins)
-      ? mapInventoryPoints.filter((point) => point?.properties?.isUnlocked && !point?.properties?.isOwn)
-      : mapInventoryPoints;
+    const basePoints = mapInventoryPoints;
     if (!query) return basePoints;
     return basePoints.filter((point) => {
       const isPerson = point.properties.itemType === 'person';
       const meta = getLocationMeta(point.payload, isPerson);
       return matchesLocationQuery(meta, locationMode, query);
     });
-  }, [mapInventoryPoints, locationMode, appliedLocationQuery, showOnlyUnlocked, showOnlyMyPins]);
-
-  React.useEffect(() => {
-    if (showOnlyMyPins) return;
-    if (showOnlyUnlocked && myPinPoints.length > 0 && filteredPoints.length === 0) {
-      const timer = window.setTimeout(() => {
-        setShowOnlyUnlocked(false);
-        setShowProperties(true);
-      }, 0);
-      return () => window.clearTimeout(timer);
-    }
-    return undefined;
-  }, [showOnlyMyPins, showOnlyUnlocked, myPinPoints.length, filteredPoints.length]);
+  }, [mapInventoryPoints, locationMode, appliedLocationQuery]);
 
   React.useEffect(() => {
     if (hasAutoFitRealPinsRef.current) return;
@@ -2336,6 +2329,7 @@ export function MapView({
                   </button>
                   <button
                     className={`map-chip ${showOnlyUnlocked ? 'map-chip-active' : ''}`}
+                    aria-pressed={showOnlyUnlocked}
                     onClick={() => {
                       setShowOnlyUnlocked((prev) => {
                         const next = !prev;
@@ -2554,16 +2548,16 @@ export function MapView({
                 item?.verified ? CARD_STATUS.verified : null,
               ].filter(Boolean);
               const mapCardBadgeStatus = pickPriorityStatus(mapCardStatuses.filter((status) => status !== CARD_STATUS.verified));
-              const isUnlockedCard = isPerson ? isUnlockedId(item.id) : isUnlockedId(item.ownerId);
+              const isUnlockedCard = isPerson ? isPersonUnlocked(item) : isPropertyUnlocked(item);
               const neonTone = isOwnCard
                 ? MY_PINS_COLOR
                 : (isUnlockedCard ? UNLOCKED_PERSON_PIN : (isPerson ? C.accent : '#4381bc'));
-              const isLocked = isPerson ? !isUnlockedId(item.id) : (exclusivityStatus?.kind === 'blocked' || !isUnlockedId(item.ownerId));
+              const isLocked = isPerson ? !isUnlockedCard : (exclusivityStatus?.kind === 'blocked' || !isUnlockedCard);
               const unlockCost = isPerson ? getUnlockCost(item.id) : 0;
               return (
                 <div 
                   key={`${isPerson ? 'person' : 'property'}-${item.id}`} 
-                  className={`map-list-item ${isPerson ? 'person' : 'property'} ${isPerson ? (isUnlockedId(item.id) ? 'unlocked' : '') : (isUnlockedId(item.ownerId) ? 'unlocked' : '')}`}
+                  className={`map-list-item ${isPerson ? 'person' : 'property'} ${isUnlockedCard ? 'unlocked' : ''}`}
                   style={{
                     cursor: 'pointer',
                     transition: 'box-shadow 0.18s ease, transform 0.18s ease',
@@ -2879,7 +2873,7 @@ export function MapView({
                 >
                   <Popup className={isPerson ? 'ds-person-leaflet-popup' : 'ds-property-leaflet-popup'} maxWidth={isPerson ? 520 : 400}>
                     {isPerson ? (
-                      <div className="ds-map-person-popup">
+                      <div className={`ds-map-person-popup${linkedPortfolioSlides(payload).length ? '' : ' ds-map-person-popup--no-media'}`}>
                       <div 
                         className="ds-map-popup-card"
                         style={{ cursor: 'pointer' }}
@@ -2893,7 +2887,7 @@ export function MapView({
                           <SmartImage
                             src={payload.photo || ''}
                             alt={payload.name}
-                            style={{ width: 48, height: 48, objectFit: 'cover', borderRadius: '50%', flex: '0 0 auto' }}
+                            className="ds-map-popup-avatar"
                             fallback={<div className="ds-map-popup-avatar" style={{ background:C.border, display:'flex', alignItems:'center', justifyContent:'center', color:C.t3, fontSize:13, fontWeight:700 }}>{String(payload.name || '?').trim().charAt(0).toUpperCase() || '?'}</div>}
                           />
                           <div style={{ minWidth: 0, flex: 1 }}>
@@ -2906,7 +2900,7 @@ export function MapView({
                         </div>
                         <div style={{ marginTop: 1, fontSize: 12, display: 'flex', alignItems: 'center', gap: 6, color: C.t2 }}>
                           <span>{payload.deals} {tMap.deals || 'deals'}</span>
-                          {isUnlockedId(payload.id) && (
+                          {isPersonUnlocked(payload) && (
                             <span style={{ color: '#75ba75', fontWeight: 600, fontSize: 11 }}>{tMatches.unlockedLabel || 'Unlocked'}</span>
                           )}
                         </div>

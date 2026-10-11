@@ -37,8 +37,8 @@ describe('Owner-scoped portfolio pin carousel', () => {
     expect(screen.getByText('1/3')).toBeTruthy();
   });
   it('does not manufacture portfolio photos when there are none', () => {
-    render(<PortfolioPinCarousel owner={{ ownerId: 'owner' }} language="pt" />);
-    expect(screen.getByText('Portfólio sem imagens')).toBeTruthy();
+    const { container } = render(<PortfolioPinCarousel owner={{ ownerId: 'owner' }} language="pt" />);
+    expect(container.childElementCount).toBe(0);
     expect(screen.queryByRole('img')).toBeNull();
   });
 });

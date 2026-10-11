@@ -5739,6 +5739,7 @@ export default function App() {
             propertyPortfolio={propertyPortfolio}
             propertyUnlocks={propertyUnlocks}
             servicePortfolio={globalServicePortfolio}
+            unlockedContactMap={unlockedContactsByOwnerId}
             userProfile={userProfile}
             accountType={accountType}
             personalProfile={personalProfile}

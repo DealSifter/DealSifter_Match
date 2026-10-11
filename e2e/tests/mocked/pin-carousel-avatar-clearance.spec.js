@@ -13,14 +13,14 @@ async function mount(page, mode) {
     const { createRoot } = (await import('/node_modules/.vite/deps/react-dom_client.js')).default;
     const { setLang } = await import('/src/i18n/translations.js'); setLang('pt');
     const root = createRoot(document.getElementById('root'));
-    if (modeName === 'map') {
+    if (modeName.startsWith('map')) {
       await import('/node_modules/leaflet/dist/leaflet.css');
       sessionStorage.setItem('ds_mapview_ui_state_v1', JSON.stringify({ showPeople: true, showProperties: false, panelCollapsed: true }));
       sessionStorage.setItem('mapViewport', JSON.stringify({ center: [31.9686, -99.9018], zoom: 8 }));
       const { MapView } = await import('/src/pages/MapView.jsx');
       const properties = [1, 2].map(index => ({ id: `property-${index}`, ownerId: 'owner', primaryProfile: 'fsbo',
         type: 'SFR', title: `Imóvel ${index}`, address: `Endereço ${index}`, city: 'New York', state: 'NY', price: 250000,
-        lat: 40.7, lng: -73.9, publishToShowcase: true, images: ['/src/assets/maxxis/report-previews/sample-property-photo.jpg'],
+        lat: 40.7, lng: -73.9, publishToShowcase: true, images: modeName === 'map-empty' ? [] : ['/src/assets/maxxis/report-previews/sample-property-photo.jpg'],
         ownerPreview: { id: 'owner', name: 'Mr. Zen', primaryProfile: 'fsbo', type: 'FSBO', loc: 'TX', deals: 24,
           photo: '/src/assets/maxxis/avatar/avatar-idle.png' } }));
       root.render(React.createElement(MapView, { showcaseProperties: properties, currentUserId: 'viewer', nuggets: 20,
@@ -52,7 +52,7 @@ test('real Leaflet person popup uses wide photos with a separate reachable close
     const geometry = await popup.evaluate(node => {
       const photo = node.querySelector('.ds-pin-portfolio').getBoundingClientRect();
       const close = node.querySelector('.leaflet-popup-close-button').getBoundingClientRect();
-      return { gap: photo.top - close.bottom, ratio: photo.width / photo.height, width: photo.width,
+      return { gap: close.left - photo.right, ratio: photo.width / photo.height, width: photo.width,
         closeReachable: document.elementFromPoint(close.left + close.width / 2, close.top + close.height / 2)?.closest('.leaflet-popup-close-button') !== null };
     });
     expect(geometry.gap).toBeGreaterThanOrEqual(3);
@@ -61,6 +61,21 @@ test('real Leaflet person popup uses wide photos with a separate reachable close
     expect(geometry.closeReachable).toBe(true);
     await popup.screenshot({ path: testInfo.outputPath(`person-popup-${width}.png`) });
   }
+  await popup.locator('.leaflet-popup-close-button').click();
+  await expect(popup).toBeHidden();
+});
+
+test('person popup shrinks to content without a blank carousel when portfolio has no images', async ({ page }, testInfo) => {
+  await page.setViewportSize({ width: 1280, height: 900 });
+  await mount(page, 'map-empty');
+  await page.locator('.leaflet-marker-icon').filter({ has: page.locator('svg [fill="#20CFC8"]') }).first().click();
+  const popup = page.locator('.ds-person-leaflet-popup');
+  await expect(popup).toBeVisible();
+  await expect(popup.locator('.ds-map-person-popup--no-media')).toHaveCount(1);
+  await expect(popup.locator('.ds-pin-portfolio, .ds-pin-portfolio-empty')).toHaveCount(0);
+  await expect(popup).toContainText('Mr. Zen');
+  expect((await popup.boundingBox()).width).toBeLessThanOrEqual(285);
+  await popup.screenshot({ path: testInfo.outputPath('person-popup-no-images.png') });
   await popup.locator('.leaflet-popup-close-button').click();
   await expect(popup).toBeHidden();
 });

@@ -33,6 +33,7 @@ import {
 } from '../lib/matchesEntitlement';
 import { createMatchesIdentityRegistry } from '../lib/matchesIdentityRegistry';
 import { getActiveExclusivities } from '../services/unlockService';
+import { getContactUnlockKeys as contactUnlockKeys, resolveContactUnlockState, resolvePropertyUnlockState } from '../lib/unlockAccessState';
 import {
   getContactByOwnerId,
   hasOwnerPortfolioEntitlement,
@@ -441,27 +442,7 @@ export function MatchesPage({ nuggets, isAdmin = false, setModal, openUnlock, un
     };
   }, [allPropertiesSource, allServicesSource, buildLocalOwnerCard, currentUserId, fsboOwnerId, getRecordProfileScope, personalOwnerId, secondaryOwnerId]);
 
-  const getContactUnlockKeys = useCallback((itemOrId) => {
-    if (itemOrId == null) return [];
-    if (typeof itemOrId === 'string' || typeof itemOrId === 'number') {
-      const key = String(itemOrId).trim();
-      return key ? [key] : [];
-    }
-    const candidates = [
-      itemOrId.ownerId,
-      itemOrId.unlockOwnerId,
-      itemOrId.sellerId,
-      itemOrId.contactId,
-      itemOrId.unlockContactId,
-      itemOrId.id,
-      itemOrId.sourceCardId,
-    ];
-    return Array.from(new Set(
-      candidates
-        .map((value) => String(value || '').trim())
-        .filter(Boolean)
-    ));
-  }, []);
+  const getContactUnlockKeys = useCallback(contactUnlockKeys, []);
 
   const unlockedIdSet = useMemo(() => new Set(
     (Array.isArray(unlocked) ? unlocked : [])
@@ -474,19 +455,11 @@ export function MatchesPage({ nuggets, isAdmin = false, setModal, openUnlock, un
   ), [unlockedContactMap]);
 
   const isContactUnlockedByState = useCallback((itemOrId) => {
-    if (itemOrId && typeof itemOrId === 'object') {
-      const ownerId = itemOrId.ownerId || itemOrId.unlockOwnerId || itemOrId.sellerId || itemOrId.id;
-      if (isCanonicalOwnerUnlocked(unlockedContactMap, ownerId, getRecordProfileScope(itemOrId))) return true;
-    }
-    return getContactUnlockKeys(itemOrId).some((key) => unlockedIdSet.has(key));
-  }, [getContactUnlockKeys, getRecordProfileScope, unlockedContactMap, unlockedIdSet]);
+    return resolveContactUnlockState(itemOrId, unlockedContactMap, unlockedIdSet, getRecordProfileScope(itemOrId));
+  }, [getRecordProfileScope, unlockedContactMap, unlockedIdSet]);
 
   const isPropertyUnlockedByCanonicalState = useCallback((property) => {
-    if (!property) return false;
-    const ownerId = String(property.ownerId || property.owner_id || '').trim();
-    const propertyId = String(property.id || property.propertyId || property.property_id || property.portfolioId || '').trim();
-    if (!ownerId || !propertyId) return false;
-    return isCanonicalPropertyUnlocked(unlockedContactMap, ownerId, propertyId, getRecordProfileScope(property));
+    return resolvePropertyUnlockState(property, unlockedContactMap, getRecordProfileScope(property));
   }, [getRecordProfileScope, unlockedContactMap]);
 
   const logEntitlementAlertOnce = useCallback(async (level, event, key, payloadBuilder, error = null) => {

@@ -10,7 +10,7 @@ export function PortfolioPinCarousel({ owner, language = 'en', onOpen, labelForI
   const swipeStart = useRef(null);
   const moved = useRef(false);
   const t = (pt, en, es) => language.startsWith('pt') ? pt : language.startsWith('es') ? es : en;
-  if (!slides.length) return <div className="ds-pin-portfolio-empty">{t('Portfólio sem imagens', 'Portfolio has no images', 'Portafolio sin imágenes')}</div>;
+  if (!slides.length) return null;
   const current = Math.min(index, slides.length - 1);
   const slide = slides[current];
   const move = step => setIndex((current + step + slides.length) % slides.length);
