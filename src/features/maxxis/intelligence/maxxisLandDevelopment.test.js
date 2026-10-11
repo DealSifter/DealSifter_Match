@@ -8,7 +8,9 @@ describe('Property-scoped local land decision coach', () => {
     const second = resolveLocalLandDevelopment({ property, messages: [{ role: 'assistant', ...first }], message: '1500 sqft cada', language: 'pt' });
     expect(second.data.scenario.calculatedOutputs.hardCost.central).toBe(436500);
     expect(second.data.providerCalls).toBe(0);
-    expect(second.content).toContain('scenario-save');
+    expect(second.data.scenario.status).toBe('PARTIAL');
+    expect(second.data.scenario.unresolvedInputs.length).toBeGreaterThan(0);
+    expect(second.content).not.toContain('scenario-save');
   });
   it('does not carry development assumptions between properties', () => {
     const first = resolveLocalLandDevelopment({ property, message: 'construir duas casas' });

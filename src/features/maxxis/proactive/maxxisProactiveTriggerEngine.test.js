@@ -54,7 +54,7 @@ describe('Contextual proactivity over existing deterministic intelligence', () =
   });
   it('rent divergence compares existing scenarios without changing the user rent', () => {
     const hold = { ...property, objective: 'Buy and Hold', annualPropertyTax: 2400 };
-    const current = scenario('BUY_AND_HOLD', { purchasePrice: 114000, rent: 2500, propertyTax: 2400, otherOperatingExpenses: 3000 });
+    const current = scenario('BUY_AND_HOLD', { purchasePrice: 114000, rent: 2500, propertyTax: 2400, otherOperatingExpenses: 3000, vacancyRate: 0, insurance: 0, HOA: 0, managementPercent: 0, maintenancePercent: 0, monthlyPI: 0 });
     const trigger = selectMaxxisProactiveTrigger({ property: hold, snapshot: { propertyFacts: hold, rentalEvidence: { rentEstimate: { rent: 1800 } } }, scenario: current, language: 'pt' });
     expect(trigger.type).toBe('RENT_DIVERGENCE');
     expect(trigger.actions[0].target.localResponse).toContain('NOI');
@@ -62,7 +62,7 @@ describe('Contextual proactivity over existing deterministic intelligence', () =
   });
   it('FLIP rehab increase surfaces a material profit delta', () => {
     const flip = { ...property, objective: 'Flip' };
-    const before = scenario('FLIP', { purchasePrice: 100000, rehab: 20000, exitValue: 180000, sellingCosts: 10000, holdingCosts: 5000 });
+    const before = scenario('FLIP', { purchasePrice: 100000, rehab: 20000, exitValue: 180000, sellingCosts: 10000, holdingCosts: 5000, acquisitionCosts: 0, financingCosts: 0 });
     const after = scenario('FLIP', { ...before.assumptions, rehab: 45000 });
     const trigger = selectMaxxisProactiveTrigger({ property: flip, snapshot: { propertyFacts: flip }, scenario: after, previousScenario: before, language: 'pt' });
     expect(trigger.type).toBe('SCENARIO_DELTA');
@@ -74,7 +74,7 @@ describe('Contextual proactivity over existing deterministic intelligence', () =
   });
   it('FLIP offers a price target that actually produces the stated margin', () => {
     const flip = { ...property, objective: 'Flip' };
-    const current = scenario('FLIP', { purchasePrice: 150000, rehab: 20000, exitValue: 180000, sellingCosts: 5000 });
+    const current = scenario('FLIP', { purchasePrice: 150000, rehab: 20000, exitValue: 180000, sellingCosts: 5000, holdingCosts: 0, acquisitionCosts: 0, financingCosts: 0 });
     const trigger = selectMaxxisProactiveTrigger({ property: flip, snapshot: { propertyFacts: flip }, scenario: current, language: 'pt' });
     expect(trigger.type).toBe('FLIP_MARGIN');
     expect(trigger.actions[0].target.localResponse).toContain('128.000');

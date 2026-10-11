@@ -1,3 +1,4 @@
+import { toKnownFiniteNumber } from '../../../../supabase/functions/_shared/maxxis/canonicalFactSemantics.ts';
 import { buildMaxxisReportSchema, mergeMaxxisReportProperty } from '../../../domain/maxxis/maxxisReportSchema';
 import { explainMaxxisEvidenceList } from './maxxisUserFacingEvidence';
 import { buildCanonicalInvestmentAnalysis } from './canonicalInvestmentAnalysis';
@@ -67,13 +68,13 @@ function metricObservations(context) {
   const pricePerSqft = metrics.pricePerSqft;
   const acquisitionPlusRehab = metrics.acquisitionPlusRehab;
   const capRate = metrics.capRate;
-  if (pricePerSqft?.calculable && Number.isFinite(Number(pricePerSqft.value))) {
+  if (pricePerSqft?.calculable && toKnownFiniteNumber(pricePerSqft.value) !== null) {
     observations.push(`Existing deterministic price per square foot: $${Number(pricePerSqft.value).toLocaleString('en-US')}.`);
   }
-  if (acquisitionPlusRehab?.calculable && Number.isFinite(Number(acquisitionPlusRehab.value))) {
+  if (acquisitionPlusRehab?.calculable && toKnownFiniteNumber(acquisitionPlusRehab.value) !== null) {
     observations.push(`Existing deterministic acquisition plus rehabilitation amount: $${Number(acquisitionPlusRehab.value).toLocaleString('en-US')}.`);
   }
-  if (capRate?.calculable && Number.isFinite(Number(capRate.value))) {
+  if (capRate?.calculable && toKnownFiniteNumber(capRate.value) !== null) {
     observations.push(`Stored capitalization rate: ${Number(capRate.value).toLocaleString('en-US')}%.`);
   }
   return observations;
@@ -177,7 +178,7 @@ export function buildMaxxisAnalysisReport(dealIntelligence, structuredAnalysis =
     marketContext: Object.freeze({
       evidenceFreshness: providerMarket.evidenceFreshness || null,
       savedRecentSalesReference: providerMarket.savedRecentSalesReference || null,
-      providerEstimate: Number.isFinite(Number(providerMarket.providerEstimate))
+      providerEstimate: toKnownFiniteNumber(providerMarket.providerEstimate) !== null
         ? Number(providerMarket.providerEstimate) : null,
       providerEstimateLabel: providerMarket.evidenceFreshness?.valuation?.state === 'STALE_USABLE' ? 'PROVIDER_PRIOR_ESTIMATE_NOT_ARV' : 'PROVIDER_CURRENT_ESTIMATE_NOT_ARV',
       providerEstimateRange: isObject(providerMarket.providerEstimateRange)
@@ -187,7 +188,7 @@ export function buildMaxxisAnalysisReport(dealIntelligence, structuredAnalysis =
       recentSalesMarketEstimate: isObject(providerMarket.recentSalesMarketEstimate)
         ? Object.freeze({ ...providerMarket.recentSalesMarketEstimate, valuationComps: undefined,
           marketReferenceOutliers: undefined, exclusions: undefined, historicalReferences: undefined }) : null,
-      providerEstimateDivergence: Number.isFinite(Number(providerMarket.providerEstimateDivergence))
+      providerEstimateDivergence: toKnownFiniteNumber(providerMarket.providerEstimateDivergence) !== null
         ? Number(providerMarket.providerEstimateDivergence) : null,
       providerAvmCompatibility: safeText(providerMarket.providerAvmCompatibility) || 'UNKNOWN',
       zipMarketSummary: isObject(providerMarket.market) ? Object.freeze({

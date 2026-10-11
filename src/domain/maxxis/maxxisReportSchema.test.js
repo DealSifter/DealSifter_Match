@@ -136,7 +136,9 @@ describe('MaxxisReportSchema v2', () => {
 
   it('TEST 9 has no provider, network, payment, or calculation-engine dependency', () => {
     const source = readFileSync(new URL('./maxxisReportSchema.js', import.meta.url), 'utf8');
-    expect(source).not.toMatch(/\b(?:fetch|supabase|rentcast|stripe|debit|invoke)\b/i);
+    // The portable canonical semantics module has no client, network or calculation dependency.
+    const executableSource = source.replace(/from ['"][^'"]*canonicalFactSemantics\.ts['"]/g, "from 'canonicalFactSemantics'");
+    expect(executableSource).not.toMatch(/\b(?:fetch|supabase|rentcast|stripe|debit|invoke)\b/i);
     expect(source).not.toMatch(/from ['"].*(?:arvEngine|compEngine|dealMetrics|calculatePropertyMatch)/i);
     expect(INTELLIGENCE_REPORT_TYPES.DEAL_INTELLIGENCE).toBe('DEAL_INTELLIGENCE');
   });

@@ -114,9 +114,8 @@ export function calculateDealMetrics(input: DealMetricsInput): DealMetricsResult
 
   const priceAvailable = price.status === 'valid' && price.value !== null && price.value > 0;
   const sqftAvailable = sqft.status === 'valid' && sqft.value !== null && sqft.value > 0;
-  const rehabAvailable = rehab.status === 'valid' && rehab.value !== null
-    && (rehab.value > 0 || (rehab.value === 0 && input.rehabProvided === true));
-  const capRateAvailable = capRate.status === 'valid' && capRate.value !== null && capRate.value > 0 && capRate.value < 100;
+  const rehabAvailable = rehab.status === 'valid' && rehab.value !== null;
+  const capRateAvailable = capRate.status === 'valid' && capRate.value !== null && capRate.value >= 0 && capRate.value < 100;
 
   const pricePerSqftMissing = [
     ...(!priceAvailable ? ['price' as const] : []),

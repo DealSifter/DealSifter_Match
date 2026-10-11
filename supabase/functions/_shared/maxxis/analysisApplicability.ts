@@ -1,3 +1,4 @@
+import { resolveAnalysisPropertyType } from './canonicalFactSemantics.ts';
 export const CANONICAL_TARGET_CONDITIONS = Object.freeze([
   'AS_IS', 'LIGHT_REHAB', 'STANDARD_RENOVATION', 'FULL_RENOVATION',
   'HIGH_END', 'TURN_KEY', 'NEW_CONSTRUCTION',
@@ -61,7 +62,7 @@ export function normalizePropertyType(value: unknown) {
 }
 
 export function isVacantLandProperty(property: Record<string, unknown> | null | undefined) {
-  const type = normalizePropertyType(property?.propertyType ?? property?.type ?? property?.property_type);
+  const type = normalizePropertyType(resolveAnalysisPropertyType(property) ?? property?.property_type);
   return LAND_TYPES.has(type) || type.startsWith('VACANT_LAND_') || type.endsWith('_VACANT_LAND');
 }
 

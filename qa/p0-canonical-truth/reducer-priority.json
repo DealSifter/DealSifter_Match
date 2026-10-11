@@ -1,0 +1,77 @@
+{
+  "baseline": "d9ea801ffd1c57a85e418acddb0c198be744a02c",
+  "evidenceMode": "DETERMINISTIC_FIXTURES_NOT_LIVE_PROPERTY_OBSERVATIONS",
+  "status": "PASS",
+  "items": [
+    {
+      "item": "APN 12.345.678; LAND, zoning RMD-B.",
+      "index": 4,
+      "text": "APN 12.345.678; LAND, zoning RMD-B.",
+      "priority": "P0_FACT"
+    },
+    {
+      "item": "Projected profit $25,000; ROI 12.5%.",
+      "index": 5,
+      "text": "Projected profit $25,000; ROI 12.5%.",
+      "priority": "P0_FINANCIAL"
+    },
+    {
+      "item": "MATERIAL_TYPE_CONFLICT: LAND / SFR.",
+      "index": 6,
+      "text": "MATERIAL_TYPE_CONFLICT: LAND / SFR.",
+      "priority": "P0_CONFLICT"
+    },
+    {
+      "item": "Material flood risk: verify before proceeding.",
+      "index": 7,
+      "text": "Material flood risk: verify before proceeding.",
+      "priority": "P1_RISK"
+    },
+    {
+      "item": "Generic introduction.",
+      "index": 0,
+      "text": "Generic introduction.",
+      "priority": "P2_CONTEXT"
+    },
+    {
+      "item": "Generic context.",
+      "index": 1,
+      "text": "Generic context.",
+      "priority": "P2_CONTEXT"
+    },
+    {
+      "item": "More context.",
+      "index": 2,
+      "text": "More context.",
+      "priority": "P2_CONTEXT"
+    },
+    {
+      "item": "Another introduction.",
+      "index": 3,
+      "text": "Another introduction.",
+      "priority": "P2_CONTEXT"
+    }
+  ],
+  "selected": [
+    "APN 12.345.678; LAND, zoning RMD-B.",
+    "Projected profit $25,000; ROI 12.5%.",
+    "MATERIAL_TYPE_CONFLICT: LAND / SFR.",
+    "Material flood risk: verify before proceeding."
+  ],
+  "reduced": "APN 12.345.678; LAND, zoning RMD-B.\nProjected profit $25,000; ROI 12.5%.\nMATERIAL_TYPE_CONFLICT: LAND / SFR.\nMaterial flood risk: verify before proceeding.",
+  "criticalFactRemoved": 0,
+  "criticalFinancialRemoved": 0,
+  "criticalRiskRemoved": 0,
+  "longNotesLength": 4060,
+  "originalSanitizedLength": 4060,
+  "priorities": [
+    "P2_CONTEXT",
+    "P2_CONTEXT",
+    "P2_CONTEXT",
+    "P2_CONTEXT",
+    "P0_FACT",
+    "P0_FINANCIAL",
+    "P0_CONFLICT",
+    "P1_RISK"
+  ]
+}

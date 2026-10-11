@@ -1,3 +1,4 @@
+import { toKnownFiniteNumber } from './canonicalFactSemantics.ts';
 import { calculateDealMetrics } from './dealMetrics.ts';
 import type { DealMetricsResult } from './dealMetrics.ts';
 import { analyzeDealFacts } from './dealAdvisor.ts';
@@ -47,16 +48,28 @@ const cleanPublicNarrative = (value: unknown, max = 500) => cleanText(value, max
   .replace(/https?:\/\/\S+/gi, '[redacted]')
   .replace(/(?:\+?\d[\d().\s-]{7,}\d)/g, '[redacted]');
 
+// Full narrative is separate from concise identifiers. Contact redaction is an
+// existing public-access policy, not a layout/content budget. Preserve newlines.
+export const sanitizePublicPropertyNarrative = (value: unknown) => String(value ?? '')
+  .replace(/<script\b[^>]*>[\s\S]*?<\/script\s*>/gi, '')
+  .replace(/<[^>]*>/g, '')
+  .replace(/[\u0000-\u0008\u000B\u000C\u000E-\u001F\u007F]/g, ' ')
+  .replace(/\b[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}\b/gi, '[redacted]')
+  .replace(/https?:\/\/\S+/gi, '[redacted]')
+  .replace(/\+\d[\d(). -]{7,}\d/g, '[redacted]')
+  .replace(/\b(?:phone|telefone|tel|call|ligue)\s*:?\s*\d[\d(). -]{7,}\d/gi, '[redacted]')
+  .trim();
+
 const cleanNumber = (value: unknown): number | null => {
   if (value === null || value === undefined || value === '') return null;
-  const number = Number(value);
-  return Number.isFinite(number) && number >= 0 ? number : null;
+  const number = toKnownFiniteNumber(value);
+  return number !== null && number >= 0 ? number : null;
 };
 
 const cleanCoordinate = (value: unknown, minimum: number, maximum: number): number | null => {
   if (value === null || value === undefined || value === '') return null;
-  const number = Number(value);
-  return Number.isFinite(number) && number >= minimum && number <= maximum ? number : null;
+  const number = toKnownFiniteNumber(value);
+  return number !== null && number >= minimum && number <= maximum ? number : null;
 };
 
 function cleanPublicImageUrl(value: unknown) {
@@ -114,7 +127,7 @@ export function normalizePropertyDetails(row: Record<string, any>, imageRows: Ar
   const lotArea = parseCanonicalLotArea(rawLot);
   const rawRehab = cleanNumber(row.rehab);
   const rawCapRate = cleanNumber(row.cap_rate);
-  const notes = cleanPublicNarrative(row.description, 2_000);
+  const notes = sanitizePublicPropertyNarrative(row.description);
   const price = cleanNumber(row.price);
   const landUnitMetrics = isVacantLand ? calculateLandUnitMetrics(price, lotArea) : null;
   const property: MaxxisPropertyDetails = {
@@ -161,7 +174,7 @@ export function normalizePropertyDetails(row: Record<string, any>, imageRows: Ar
     ...(!isVacantLand && !property.sqft ? ['sqft'] : []),
     ...(isVacantLand && property.lotSizeSqft === null ? ['lot'] : []),
     ...(!property.objective ? ['objective'] : []),
-    ...(!isVacantLand && (property.rehab === null || property.rehab <= 0) ? ['rehab'] : []),
+    ...(!isVacantLand && property.rehab === null ? ['rehab'] : []),
     ...(!isVacantLand && property.capRate === null ? ['cap_rate'] : []),
     ...(!property.description ? ['description'] : []),
     ...(!property.images.length ? ['images'] : []),

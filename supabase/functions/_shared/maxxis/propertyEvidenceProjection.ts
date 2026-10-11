@@ -1,12 +1,15 @@
-export type CanonicalFactStatus = 'VERIFIED_RECORD' | 'USER_PROVIDED' | 'CALCULATED' | 'ESTIMATED' | 'UNKNOWN' | 'NOT_APPLICABLE';
+import { canonicalFactValue, factSemanticState, isMaterialValue, propertyTypeFamily, resolveAnalysisPropertyType,
+  resolveAnalysisStrategy, toKnownFiniteNumber, type FactSemanticState } from './canonicalFactSemantics.ts';
+export type CanonicalFactStatus = 'VERIFIED_RECORD' | 'USER_PROVIDED' | 'CALCULATED' | 'ESTIMATED' | 'UNKNOWN' | 'UNAVAILABLE' | 'NOT_APPLICABLE' | 'NOT_EVALUATED';
 export type CanonicalPropertyFact = Readonly<{ value: unknown; status: CanonicalFactStatus; source: string | null;
-  retrievedAt: string | null; effectiveDate: string | null; confidence: number | null; conflict: unknown | null }>;
+  retrievedAt: string | null; effectiveDate: string | null; confidence: number | null; conflict: unknown | null;
+  semanticState?: FactSemanticState; providerEvidence?: unknown; provenance?: unknown }>;
 
 type ContextField = { value?: unknown; status?: string; source?: unknown; retrievedAt?: unknown;
   effectiveDate?: unknown; confidence?: unknown };
 type PropertyContext = { fields?: Record<string, ContextField>; conflicts?: Array<Record<string, unknown>> };
 type CanonicalOptions = { valuationReferences?: Record<string, unknown> | null };
-type RegistryEntry = Readonly<{ group: 'identity' | 'physical' | 'parcel' | 'ownership' | 'tax' | 'sales' | 'notes' | 'features' | 'valuationReferences';
+type RegistryEntry = Readonly<{ group: 'identity' | 'physical' | 'parcel' | 'ownership' | 'tax' | 'sales' | 'notes' | 'features' | 'valuationReferences' | 'financial';
   evidenceKey?: string; propertyKeys?: readonly string[]; source?: string }>;
 
 /** The explicit field registry used by chat and all three report levels. */
@@ -19,6 +22,10 @@ export const CANONICAL_PROPERTY_FIELD_REGISTRY: Readonly<Record<string, Registry
   latitude: { group: 'identity', evidenceKey: 'latitude', propertyKeys: ['latitude', 'lat'] },
   longitude: { group: 'identity', evidenceKey: 'longitude', propertyKeys: ['longitude', 'lng'] },
   propertyType: { group: 'physical', evidenceKey: 'propertyType', propertyKeys: ['type', 'propertyType'] },
+  askingPrice: { group: 'financial', evidenceKey: 'askingPrice', propertyKeys: ['price', 'purchasePrice', 'askingPrice'] },
+  rehab: { group: 'financial', evidenceKey: 'rehab', propertyKeys: ['rehab', 'rehabBudget'] },
+  capRate: { group: 'financial', evidenceKey: 'capRate', propertyKeys: ['capRate'] },
+  noi: { group: 'financial', evidenceKey: 'noi', propertyKeys: ['noi'] },
   beds: { group: 'physical', evidenceKey: 'bedrooms', propertyKeys: ['beds', 'bedrooms'] },
   baths: { group: 'physical', evidenceKey: 'bathrooms', propertyKeys: ['baths', 'bathrooms'] },
   livingAreaSqft: { group: 'physical', evidenceKey: 'livingAreaSqft', propertyKeys: ['sqft', 'livingAreaSqft', 'squareFeet'] },
@@ -72,19 +79,11 @@ export const REPORT_FIELD_VISIBILITY = Object.freeze({
   INTERNAL_ONLY: Object.freeze(['stateFips', 'countyFips', 'providerPropertyType', 'fieldProvenance']),
 });
 
-const present = (value: unknown) => value !== null && value !== undefined && value !== '';
-const finite = (value: unknown) => Number.isFinite(Number(value)) ? Number(value) : null;
-const normalize = (value: unknown) => String(value || '').trim().toLowerCase().replace(/[^a-z0-9]+/g, ' ');
-function propertyTypeFamily(value: unknown) { const token = normalize(value).replace(/\s+/g, '');
-  if (['sfr', 'singlefamily', 'singlefamilyresidence', 'detached'].includes(token)) return 'SINGLE_FAMILY';
-  if (['land', 'lot', 'vacantland', 'undevelopedland'].includes(token)) return 'LAND'; return token.toUpperCase(); }
-function resolvedStrategy(type: unknown, objective: unknown) { const t = normalize(type); const s = normalize(objective);
-  if (/\b(?:land|lot|vacant)\b/.test(t)) return 'LAND'; if (/\b(?:sub to|subject to|subto)\b/.test(s)) return 'SUB_TO';
-  if (/\b(?:seller financ\w*|owner financ\w*|owner carry)\b/.test(s)) return 'SELLER_FINANCING';
-  if (/\b(?:wholesale|assignment)\b/.test(s)) return 'WHOLESALE'; if (/\b(?:buy and hold|buy hold|rental|hold)\b/.test(s)) return 'BUY_AND_HOLD';
-  if (/\b(?:flip|fix and flip|rehab and sell)\b/.test(s)) return 'FLIP'; return 'GENERIC_SELL'; }
+const present = isMaterialValue;
+const finite = toKnownFiniteNumber;
+const resolvedStrategy = resolveAnalysisStrategy;
 function firstValue(property: Record<string, unknown>, keys: readonly string[] = []) { for (const key of keys) if (present(property[key])) return property[key]; return null; }
-function status(value: unknown): CanonicalFactStatus { return ['VERIFIED_RECORD', 'USER_PROVIDED', 'CALCULATED', 'ESTIMATED', 'NOT_APPLICABLE'].includes(String(value)) ? value as CanonicalFactStatus : 'UNKNOWN'; }
+function status(value: unknown): CanonicalFactStatus { return ['VERIFIED_RECORD', 'USER_PROVIDED', 'CALCULATED', 'ESTIMATED', 'UNAVAILABLE', 'NOT_APPLICABLE', 'NOT_EVALUATED'].includes(String(value)) ? value as CanonicalFactStatus : 'UNKNOWN'; }
 function conflictFor(field: string, context: PropertyContext | null) { return (context?.conflicts || []).find((item) => String(item.field || '') === field) || null; }
 function materialFeatures(value: unknown, strategy: string) { const entries = Array.isArray(value) ? value : value && typeof value === 'object'
   ? Object.entries(value as Record<string, unknown>).map(([key, item]) => `${key}: ${String(item)}`) : [];
@@ -95,21 +94,41 @@ function materialFeatures(value: unknown, strategy: string) { const entries = Ar
 function factFor(field: string, registry: RegistryEntry, property: Record<string, unknown>, context: PropertyContext | null,
   valuation: Record<string, unknown>): CanonicalPropertyFact {
   const evidence = registry.evidenceKey ? context?.fields?.[registry.evidenceKey] : null;
-  if (evidence && status(evidence.status) !== 'UNKNOWN' && present(evidence.value)) return Object.freeze({ value: evidence.value,
+  // Identity/classification and user Notes belong to the current subject, not a
+  // potentially stale provider record. Objective cadastral facts use evidence.
+  const appValue = firstValue(property, registry.propertyKeys);
+  const appOwned = field === 'propertyType' || registry.group === 'identity' || registry.group === 'notes';
+  const typeConflict = field === 'propertyType' && present(appValue) && present(canonicalFactValue(evidence))
+    && propertyTypeFamily(appValue) !== propertyTypeFamily(evidence?.value)
+    ? { code: 'MATERIAL_TYPE_CONFLICT', field: 'propertyType', appValue, providerValue: evidence?.value,
+      storedValue: appValue, externalValue: evidence?.value, analysisValue: appValue,
+      classification: 'CRITICAL_IDENTITY', resolution: 'UNRESOLVED' } : null;
+  const conflict = typeConflict || conflictFor(registry.evidenceKey || field, context);
+  if (appOwned && present(appValue)) return Object.freeze({ value: appValue, status: 'USER_PROVIDED',
+    source: 'PROPERTY_APP_VALUE', retrievedAt: null, effectiveDate: null, confidence: null, conflict,
+    semanticState: factSemanticState(appValue, 'USER_PROVIDED', conflict), providerEvidence: evidence || null,
+    provenance: { selected: 'PROPERTY_APP_VALUE', policy: 'SUBJECT_IDENTITY_AND_USER_NARRATIVE' } });
+  if (propertyTypeFamily(resolveAnalysisPropertyType(property)) === 'LAND'
+    && ['beds', 'baths', 'livingAreaSqft', 'yearBuilt', 'rehab', 'capRate', 'noi'].includes(field)) return Object.freeze({ value: null,
+      status: 'NOT_APPLICABLE', semanticState: 'NOT_APPLICABLE', source: 'CANONICAL_SUBJECT_APPLICABILITY',
+      retrievedAt: null, effectiveDate: null, confidence: null, conflict, providerEvidence: evidence || null });
+  if (evidence && present(canonicalFactValue(evidence))) return Object.freeze({ value: evidence.value,
     status: status(evidence.status), source: String(evidence.source || 'PROPERTY_EVIDENCE'),
     retrievedAt: present(evidence.retrievedAt) ? String(evidence.retrievedAt) : null,
     effectiveDate: present(evidence.effectiveDate) ? String(evidence.effectiveDate) : null,
-    confidence: finite(evidence.confidence), conflict: conflictFor(registry.evidenceKey || field, context) });
+    confidence: finite(evidence.confidence), conflict, semanticState: factSemanticState(evidence.value, evidence.status, conflict),
+    provenance: { selected: evidence.source || 'PROPERTY_EVIDENCE', policy: 'OBJECTIVE_RECORD_EVIDENCE' } });
   if (registry.group === 'valuationReferences') { const value = valuation[field]; return Object.freeze({ value: present(value) ? value : null,
     status: present(value) ? 'ESTIMATED' : 'UNKNOWN', source: present(value) ? registry.source || 'VALUATION_EVIDENCE' : null,
     retrievedAt: null, effectiveDate: null, confidence: null, conflict: null }); }
-  let value = firstValue(property, registry.propertyKeys);
+  let value = appValue;
   if (!present(value) && field === 'ownerName' && property.owner && typeof property.owner === 'object') value = (property.owner as Record<string, unknown>).name;
   if (!present(value) && field === 'ownerType' && property.owner && typeof property.owner === 'object') value = (property.owner as Record<string, unknown>).type;
   if (!present(value) && field === 'formattedAddress') value = [firstValue(property, ['address']), firstValue(property, ['city']), firstValue(property, ['state']), firstValue(property, ['zip'])].filter(present).join(', ') || null;
-  return Object.freeze({ value: present(value) ? value : null, status: present(value) ? 'USER_PROVIDED' : 'UNKNOWN',
+  const resolvedStatus = present(value) ? 'USER_PROVIDED' : evidence ? status(evidence.status) : 'UNKNOWN';
+  return Object.freeze({ value: present(value) ? value : null, status: resolvedStatus,
     source: present(value) ? 'PROPERTY_APP_VALUE' : null, retrievedAt: null, effectiveDate: null, confidence: null,
-    conflict: conflictFor(registry.evidenceKey || field, context) });
+    conflict, semanticState: factSemanticState(value, resolvedStatus, conflict), providerEvidence: evidence || null });
 }
 
 export function buildCanonicalPropertyFacts(property: Record<string, unknown> | null, propertyContext: PropertyContext | null,
@@ -123,7 +142,8 @@ export function buildCanonicalPropertyFacts(property: Record<string, unknown> | 
   const frozenGroups = Object.fromEntries(Object.entries(groups).map(([group, values]) => [group, Object.freeze(values)]));
   return Object.freeze({ version: 'CANONICAL_PROPERTY_FACTS_V1', ...frozenGroups,
     provenance: Object.freeze({ registry: 'CANONICAL_PROPERTY_FIELD_REGISTRY_V1' }),
-    conflicts: Object.freeze((propertyContext?.conflicts || []).map((item) => Object.freeze({ ...item }))) });
+    conflicts: Object.freeze([...(propertyContext?.conflicts || []),
+      ...(groups.physical.propertyType.conflict ? [groups.physical.propertyType.conflict] : [])].map((item) => Object.freeze({ ...(item as Record<string, unknown>) }))) });
 }
 
 export function mergeVerifiedPropertyEvidenceIntoFacts(property: Record<string, unknown> | null, propertyContext: PropertyContext | null,
@@ -132,11 +152,15 @@ export function mergeVerifiedPropertyEvidenceIntoFacts(property: Record<string, 
   Object.entries(REPORT_FIELD_MAP).forEach(([evidenceKey, reportKey]) => { const evidence = fields[evidenceKey];
     if (evidence?.status === 'VERIFIED_RECORD' && present(evidence.value)) { merged[reportKey] = evidence.value; provenance[reportKey] = String(evidence.source || 'PROPERTY_EVIDENCE'); } });
   const providerType = fields.propertyType?.status === 'VERIFIED_RECORD' && present(fields.propertyType.value) ? fields.propertyType.value : null;
-  const canonicalType = present(property?.type) ? property?.type : present(property?.propertyType) ? property?.propertyType : providerType;
+  const canonicalType = firstValue(property || {}, ['type', 'propertyType']) ?? resolveAnalysisPropertyType(property) ?? providerType;
   if (present(canonicalType)) merged.type = canonicalType; if (present(providerType)) merged.providerPropertyType = providerType;
   if (present(canonicalType)) merged.resolvedAnalysisPropertyType = canonicalType;
   if (present(canonicalType) || present(merged.objective)) merged.resolvedAnalysisStrategy = resolvedStrategy(canonicalType, merged.objective);
-  if (present(providerType) && present(canonicalType)) merged.propertyTypeConflict = propertyTypeFamily(providerType) !== propertyTypeFamily(canonicalType);
+  if (present(providerType) && present(canonicalType)) {
+    merged.propertyTypeConflict = propertyTypeFamily(providerType) !== propertyTypeFamily(canonicalType);
+    merged.propertyTypeConflictCode = merged.propertyTypeConflict ? 'MATERIAL_TYPE_CONFLICT' : null;
+    merged.providerPropertyTypeFamily = propertyTypeFamily(providerType);
+  }
   if (present(property?.notes)) merged.propertyUserNotes = property?.notes;
   if (!present(merged.propertyUserNotes) && present(property?.description)) merged.propertyUserNotes = property?.description;
   if (present(property?.maxxisPropertySummary)) merged.maxxisPropertySummary = property?.maxxisPropertySummary;
@@ -148,6 +172,6 @@ export function mergeVerifiedPropertyEvidenceIntoFacts(property: Record<string, 
   const features = materialFeatures(merged.propertyFeatures, String(merged.resolvedAnalysisStrategy)); if (features.length) merged.materialPropertyFeatures = features;
   if (Object.keys(provenance).length) merged.fieldProvenance = Object.freeze(provenance);
   if (merged.resolvedAnalysisStrategy === 'LAND') ['beds', 'baths', 'sqft', 'yearBuilt', 'rehab', 'capRate'].forEach((key) => delete merged[key]);
-  merged.canonicalPropertyFacts = buildCanonicalPropertyFacts(merged, propertyContext, options);
+  merged.canonicalPropertyFacts = buildCanonicalPropertyFacts({ ...merged, canonicalPropertyFacts: undefined }, propertyContext, options);
   return Object.freeze(merged);
 }

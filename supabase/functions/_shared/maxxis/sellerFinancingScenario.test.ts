@@ -9,7 +9,7 @@ describe('deterministic Seller Financing Scenario Engine', () => {
   it('calculates the Droad scenario deterministically', () => {
     expect(scenario()).toMatchObject({ purchasePrice: 113900, downPaymentAmount: 20000, financedPrincipal: 93900,
       monthlyPI: 562.98, balloonBalance: 87378.04, principalPaidToBalloon: 6521.96,
-      interestPaidToBalloon: 27256.72, cashToEntry: 20000 });
+      interestPaidToBalloon: 27256.72, cashToEntry: null, knownCashToEntry: 20000, cashToEntryStatus: 'NOT_EVALUATED' });
   });
   it('converts a down-payment percentage', () => {
     expect(calculateSellerFinancingScenario({ purchasePrice: 200000, downPaymentPercent: 10, annualInterestRate: 5,
@@ -35,7 +35,7 @@ describe('deterministic Seller Financing Scenario Engine', () => {
     const six = scenario();
     const four = calculateSellerFinancingScenario({ purchasePrice: 113900, downPaymentAmount: 20000,
       annualInterestRate: 4, amortizationYears: 30, balloonYears: 5 });
-    expect(compareSellerFinancingScenarios(six, four)).toMatchObject({ financedPrincipal: 0, cashToEntry: 0 });
+    expect(compareSellerFinancingScenarios(six, four)).toMatchObject({ financedPrincipal: 0, cashToEntry: null });
     expect(four.monthlyPI).toBeLessThan(six.monthlyPI);
     expect(four.interestPaidToBalloon).toBeLessThan(six.interestPaidToBalloon);
   });

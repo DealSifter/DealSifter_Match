@@ -35,7 +35,12 @@ describe('Maxxis report generation performance contract', () => {
   }, 30000);
 
   it('single-flights preview and export generation', () => expect(secondPromise).toBe(firstPromise));
-  it('produces one complete enterprise document', () => expect(result).toMatchObject({ state: 'RENDERED', document: { pageCount: 6 } }));
+  it('produces one complete enterprise document including necessary P0 continuation', () => {
+    expect(result.state).toBe('RENDERED');
+    expect(result.document.pages).toHaveLength(6);
+    expect(result.document.pageCount).toBeGreaterThanOrEqual(6);
+    if (result.document.pageCount > 6) expect(result.document.layoutAudit.continuations.length).toBeGreaterThan(0);
+  });
   it('records end-to-end generation time', () => expect(result.timings.totalMs).toBeGreaterThanOrEqual(0));
   it('records deterministic view-model preparation time', () => expect(result.timings.preparationMs).toBeGreaterThanOrEqual(0));
   it('records PDF module initialization time', () => expect(result.timings.moduleMs).toBeGreaterThanOrEqual(0));

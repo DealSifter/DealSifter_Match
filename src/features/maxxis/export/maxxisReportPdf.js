@@ -1,10 +1,12 @@
+import { toKnownFiniteNumber } from '../../../../supabase/functions/_shared/maxxis/canonicalFactSemantics.ts';
+import { reduceReportContent, rankReportContent, reportSemanticUnits } from './reportContentPriority';
 import officialDealSifterLogo from '../../../assets/maxxis/report-official-logo.png?inline';
 import notoSansRegular from '../../../assets/maxxis/fonts/NotoSans-Regular.ttf?inline';
 import notoSansBold from '../../../assets/maxxis/fonts/NotoSans-Bold.ttf?inline';
 import { renderMaxxisReportDocument } from './maxxisReportRenderer';
 import { explainMaxxisEvidenceState } from '../intelligence/maxxisUserFacingEvidence';
 import { getCachedPresentationText } from '../../../services/chatTranslation';
-import { reportNarrativeCacheKey } from '../presentation/reportNarrativePresentation';
+import { reportNarrativeCacheKey, reportNarrativeProjection } from '../presentation/reportNarrativePresentation';
 import { formatLandDevelopmentAnswer } from '../../../../supabase/functions/_shared/maxxis/landDevelopmentScenario.ts';
 import {
   REPORT_BODY_TIERS, REPORT_LAYOUT_TOKENS, REPORT_METRIC_BAR, REPORT_SOLID_OFFSETS, REPORT_TEXT_POLICIES,
@@ -208,7 +210,7 @@ const displayValue = (input, t) => {
   return DISPLAY_VALUE[t.locale]?.[raw] || raw;
 };
 const localizedPropertyNotes = (property, t) => {
-  return getCachedPresentationText(property.propertyUserNotes || property.notes, t.locale) || t.unavailable;
+  return property.localizedPropertyUserNotes || getCachedPresentationText(property.propertyUserNotesOriginal || property.propertyUserNotes || property.notes, t.locale) || t.unavailable;
 };
 const localizedDate = (input, t) => {
   if (!input) return null;
@@ -240,7 +242,7 @@ function scenarioSnapshot(scenario, t, limit = 3) {
   if (!scenario || scenario.confirmed === false) return '';
   const outputs = scenario.calculatedOutputs || scenario;
   const labels = SCENARIO_OUTPUT_LABELS[t.locale] || SCENARIO_OUTPUT_LABELS.en;
-  const entries = Object.keys(labels).filter((key) => Number.isFinite(Number(outputs[key]))).slice(0, limit);
+  const entries = Object.keys(labels).filter((key) => toKnownFiniteNumber(outputs[key]) !== null).slice(0, limit);
   if (!entries.length) return '';
   const title = t.locale === 'pt' ? 'Cenário confirmado' : t.locale === 'es' ? 'Escenario confirmado' : 'Confirmed scenario';
   const strategyLabels = t.locale === 'pt'
@@ -296,43 +298,13 @@ function reportLineHeight(doc, fontSize) {
   return Math.max(fontSize + 3, Number.isFinite(metricHeight) ? metricHeight : 0);
 }
 function reportLayoutAudit(doc) {
-  if (!doc.__maxxisLayoutAudit) doc.__maxxisLayoutAudit = { lines: [], sections: [] };
+  if (!doc.__maxxisLayoutAudit) doc.__maxxisLayoutAudit = { lines: [], sections: [], continuations: [] };
+  doc.__maxxisLayoutAudit.continuations ||= [];
   return doc.__maxxisLayoutAudit;
 }
 function normalizeReportBody(input) {
   return Array.isArray(input) ? input.map((item) => String(item || '').trim()).filter(Boolean).join('\n')
     : String(input || '').replace(/\r/g, '').replace(/[ \t]+/g, ' ').replace(/\n{3,}/g, '\n\n').trim();
-}
-function semanticUnits(text) {
-  const normalized = normalizeReportBody(text);
-  if (!normalized) return [];
-  const byLine = normalized.split(/\n+/).map((line) => line.trim()).filter(Boolean);
-  const units = byLine.flatMap((line) => {
-    const stripped = line.replace(/^[-•*\d.)\s]+/, '').trim();
-    const sentences = stripped.match(/[^.!?]+[.!?]?/g) || [stripped];
-    return sentences.map((sentence) => sentence.trim()).filter(Boolean);
-  });
-  const seen = new Set();
-  return units.filter((unit) => {
-    const key = unit.toLocaleLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/\s+/g, ' ');
-    if (seen.has(key)) return false;
-    seen.add(key);
-    return true;
-  });
-}
-function reduceReportContent(text, policy) {
-  const units = semanticUnits(text);
-  const hardBudget = Number(policy?.hardCharacterBudget) || 500;
-  if (!units.length) return '';
-  const kept = [];
-  let count = 0;
-  for (const unit of units) {
-    const nextCount = count + unit.length + (kept.length ? 1 : 0);
-    if (kept.length && nextCount > hardBudget) break;
-    kept.push(unit);
-    count = nextCount;
-  }
-  return kept.join(' ').trim();
 }
 function breakLineToFit(doc, line, width) {
   if (doc.getTextWidth(line) <= width) return [line];
@@ -386,23 +358,15 @@ function evaluateContainedText(doc, textValue, bounds, policy, { bold = false } 
   for (const fontSize of fontSizes) {
     const result = measure(reduced, fontSize);
     if (result.lines.length <= result.visibleLines.length && result.requiredHeight <= bounds.height) {
-      return { ...result, selectedFontSize: fontSize, content: reduced, contentReduced: true, requiredHeightAtDefault: defaultMeasurement.requiredHeight };
+      return { ...result, selectedFontSize: fontSize, content: reduced, contentReduced: true, continuationText: original, requiredHeightAtDefault: defaultMeasurement.requiredHeight };
     }
   }
-  const minResult = measure(reduced, REPORT_BODY_TIERS.minimum);
-  while (reduced && (minResult.requiredHeight > bounds.height || minResult.lines.length > minResult.visibleLines.length)) {
-    const units = semanticUnits(reduced);
-    if (units.length <= 1) break;
-    reduced = units.slice(0, -1).join(' ');
-    const candidate = measure(reduced, REPORT_BODY_TIERS.minimum);
-    if (candidate.requiredHeight <= bounds.height && candidate.lines.length <= candidate.visibleLines.length) {
-      return { ...candidate, selectedFontSize: REPORT_BODY_TIERS.minimum, content: reduced, contentReduced: true, requiredHeightAtDefault: defaultMeasurement.requiredHeight };
-    }
-  }
-  const failure = new Error('REPORT_SECTION_OVERFLOW');
-  failure.code = 'REPORT_SECTION_OVERFLOW';
-  failure.details = { requiredHeight: minResult.requiredHeight, availableHeight: bounds.height };
-  throw failure;
+  // Direct completeness exception: preserve overflow in existing-renderer continuation pages.
+  const label = policy.continuationLabel || '↪';
+  const result = measure(label, fontSizes[0]);
+  return { ...result, selectedFontSize: fontSizes[0], content: label, contentReduced: true,
+    continuationText: original, requiredHeightAtDefault: defaultMeasurement.requiredHeight };
+
 }
 function assertContainedLine({ sectionId, page, cardBounds, contentBounds, lineRecord }) {
   const overflowX = Math.max(0, contentBounds.x - lineRecord.x, lineRecord.x + lineRecord.width - contentBounds.right);
@@ -439,6 +403,7 @@ export function renderContainedText({
   const normalizedCardBounds = Object.freeze({ ...cardBounds, right: cardBounds.x + cardBounds.width, bottom: cardBounds.y + cardBounds.height });
   const layout = evaluateContainedText(doc, textValue, contentBounds, policy, { bold });
   const audit = reportLayoutAudit(doc);
+  if (layout.continuationText) audit.continuations.push({ sectionId, sourceText: layout.continuationText, reason: 'GEOMETRY_OVERFLOW' });
   doc.saveGraphicsState();
   doc.rect(contentBounds.x, contentBounds.y, contentBounds.width, contentBounds.height, null); doc.clip(); doc.discardPath();
   doc.setFont('NotoSans', bold ? 'bold' : 'normal');
@@ -487,9 +452,8 @@ function renderContainedBulletList(doc, items, geometry, sectionId, policy, t, a
   drawLayoutDebug(doc, geometry, sectionId);
   const contentBounds = boundsFromGeometry(geometry);
   const cardBounds = cardBoundsFromGeometry(geometry);
-  const entries = deduplicateAndBudgetItems((items.length ? items : [t.noDetails])
-    .map((item) => reportNarrative(typeof item === 'string' ? item : item?.explanation || item?.reason || item?.label || item?.status, t.noDetails, t.locale)),
-  policy).slice(0, policy.maximumBulletCount || 4);
+  const entries = deduplicateAndBudgetItems(items.length ? items : [t.noDetails], policy)
+    .map((item) => reportNarrative(typeof item === 'string' ? item : item?.explanation || item?.reason || item?.label || item?.status, t.noDetails, t.locale));
   const iconWidth = 18;
   const textBounds = { x: contentBounds.x + iconWidth, y: contentBounds.y, width: contentBounds.width - iconWidth, height: contentBounds.height };
   const bulletPolicy = { ...policy, maximumLineCount: policy.maximumLineCount || 8 };
@@ -500,9 +464,12 @@ function renderContainedBulletList(doc, items, geometry, sectionId, policy, t, a
   doc.rect(contentBounds.x, contentBounds.y, contentBounds.width, contentBounds.height, null); doc.clip(); doc.discardPath();
   doc.setFont('NotoSans', 'normal'); doc.setFontSize(layout.selectedFontSize); doc.setTextColor(...color);
   let lineIndex = 0; let itemCursor = 0; let clippedLines = 0;
-  for (const entry of entries) {
+  const displayEntries = layout.content.split('\n');
+  const allItems = rankReportContent(items).map(unit => reportNarrative(unit.text, t.noDetails, t.locale));
+  if (allItems.length && allItems.join('\n') !== entries.join('\n')) audit.continuations.push({ sectionId, sourceText: allItems.join('\n'), reason: 'BULLET_PRIORITY_SELECTION' });
+  for (const entry of displayEntries) {
     doc.setFont('NotoSans', 'normal'); doc.setFontSize(layout.selectedFontSize);
-    const lines = wrapContainedLines(doc, entry, textBounds.width).slice(0, 2);
+    const lines = wrapContainedLines(doc, entry, textBounds.width);
     if (lineIndex + lines.length > layout.visibleLines.length) break;
     const iconTop = textBounds.y + lineIndex * layout.lineHeight;
     drawIcon(doc, positive ? 'check' : iconKind(sectionId), contentBounds.x + 7, iconTop + layout.selectedFontSize * .46, relevanceColor, 11);
@@ -842,7 +809,7 @@ function propertyBottom(doc, property, t, accent, y, images, conflicts = [], map
   }
   const notesX = M + locationWidth + gap;
   panel(doc, notesX, y, notesWidth, bottomHeight, { accent: notes.title && notes.title !== t.notes ? accent : null }); heading(doc, notes.title || t.notes, notesX + 10, y + 23, notesWidth - 20, accent);
-  const primaryText = notes.text || localizedPropertyNotes(property, t);
+  const primaryText = [notes.text || localizedPropertyNotes(property, t), property.owner?.localizedNotes || getCachedPresentationText(property.owner?.notes, t.locale) || property.owner?.notes].filter(Boolean).join('\n');
   const primaryAvailable = notes.secondaryText ? 70 : bottomHeight - 62;
   const primaryResult = renderContainedText({
     doc, text: primaryText,
@@ -941,7 +908,7 @@ function renderFit(doc, schema, t, accent) {
   panel(doc, M, 181, w, 200); heading(doc, t.profile, M + 12, 207, w - 24, accent);
   rows(doc, profileRows(profile, t), M + 12, 235, w - 24, { lineHeight: 35, labelWidth: 89, t });
   panel(doc, M + w + 12, 181, w, 200); heading(doc, t.compatibility, M + w + 24, 207, w - 24, accent);
-  if (Number.isFinite(Number(profile.score))) {
+  if (toKnownFiniteNumber(profile.score) !== null) {
     const score = Math.max(0, Math.min(100, Number(profile.score)));
     const scoreX = M + w + 12 + w / 2; const scoreY = 286; const scoreRadius = 48;
     doc.setFillColor(...C.white); doc.circle(scoreX, scoreY, 61, 'F');
@@ -1278,7 +1245,7 @@ function renderConclusion(doc, schema, t, accent) {
   const steps = array(section(schema, 'verificationChecklist'));
   const confidence = schema?.presentation?.analysisConfidence;
   const scenarioLine = scenarioSnapshot(schema?.presentation?.activeScenario, t, 3);
-  const executiveLines = [scenarioLine, ...array(schema?.presentation?.executiveSummaryIntelligence?.lines)].filter(Boolean).slice(0, 3);
+  const executiveLines = [scenarioLine, ...array(schema?.presentation?.executiveSummaryIntelligence?.lines)].filter(Boolean);
   if (confidence && executiveLines.length) {
     renderEnterpriseAnalysis(doc, schema, t, accent, confidence, executiveLines);
     return;
@@ -1299,7 +1266,7 @@ function renderEnterpriseAnalysis(doc, schema, t, accent, confidence, executiveL
   const risks = array(section(schema, 'riskAssessment'));
   const steps = array(section(schema, 'verificationChecklist'));
   const limitations = array(section(schema, 'limitations'));
-  const score = Number.isFinite(Number(confidence.score)) ? Math.round(Number(confidence.score)) : null;
+  const score = toKnownFiniteNumber(confidence.score) !== null ? Math.round(Number(confidence.score)) : null;
   const contributors = array(confidence.contributors);
   const confidenceLimitations = array(confidence.limitations);
   const page6 = structured.reportPage6 || {};
@@ -1321,7 +1288,7 @@ function renderEnterpriseAnalysis(doc, schema, t, accent, confidence, executiveL
   const drawConfidenceList = (title, items, x, y, w, kind, color) => {
     text(doc, title, x, y, { size: 8.4, bold: true, color: C.ink, width: w, maxLines: 1 });
     const entries = items.length ? items : [t.noDetails];
-    renderContainedBulletList(doc, entries.slice(0, 2), createCardGeometry({
+    renderContainedBulletList(doc, entries, createCardGeometry({
       x, y: y + 6, width: w, height: 83, paddingLeft: 0, paddingRight: 0, paddingTop: 9, paddingBottom: 2, titleHeight: 11,
     }), /limitation|limita/i.test(title) ? 'page6OpenQuestions' : 'page6MainTopics',
     /limitation|limita/i.test(title) ? REPORT_TEXT_POLICIES.page6OpenQuestions : REPORT_TEXT_POLICIES.page6MainTopics,
@@ -1332,7 +1299,7 @@ function renderEnterpriseAnalysis(doc, schema, t, accent, confidence, executiveL
 
   panel(doc, M, 290, CONTENT, 165, { fill: C.white, accent });
   heading(doc, t.executiveIntelligence, M + 13, 316, CONTENT - 26, accent);
-  renderContainedBulletList(doc, executiveLines.slice(0, 2), createCardGeometry({
+  renderContainedBulletList(doc, executiveLines, createCardGeometry({
     x: M, y: 290, width: CONTENT, height: 165, paddingLeft: 13, paddingRight: 13, paddingTop: 8, paddingBottom: 12, titleHeight: 34,
   }), 'page6ExecutiveSummary', REPORT_TEXT_POLICIES.page6ExecutiveSummary, t, accent, { positive: true });
 
@@ -1595,11 +1562,33 @@ export async function renderMaxxisReportPdf({ schema, exportEntitlement, generat
     doc.setCurrentTransformationMatrix(doc.Matrix(1, 0, 0, 1, 0, -BODY_OFFSET));
     renderPage(doc, schema, page.code, t, accent, images, mapImage, comparableMap);
     doc.restoreGraphicsState();
-    pageFooter(doc, index + 1, pages.length, prepared.document.cover.generatedAt, lang, t);
     const pageMs = Math.round((performanceNow() - pageStartedAt) * 10) / 10;
     perPageMs.push(pageMs);
     emitReportStage(`pdf_page_${index + 1}_end`, { page: index + 1, durationMs: pageMs });
     if (index < pages.length - 1) await yieldReportRendering();
+  }
+  const continuations = reportLayoutAudit(doc).continuations.slice();
+  const continuationUnits = rankReportContent(continuations.flatMap(item => reportSemanticUnits(item.sourceText)));
+  if (continuationUnits.length) {
+    const continuation = { sectionId: 'preservedCanonicalContent', sourceText: continuationUnits.map(item => item.text).join('\n') };
+    doc.setFont('NotoSans', 'normal'); doc.setFontSize(REPORT_BODY_TIERS.default);
+    const lines = wrapContainedLines(doc, continuation.sourceText, CONTENT - 26);
+    const lineHeight = reportLineHeight(doc, REPORT_BODY_TIERS.default);
+    const linesPerPage = Math.floor(630 / lineHeight);
+    for (let offset = 0; offset < lines.length; offset += linesPerPage) {
+      doc.addPage('a4', 'portrait');
+      const continuationTitle = lang === 'pt' ? 'Informações preservadas — continuação' : lang === 'es' ? 'Información preservada — continuación' : 'Preserved information — continuation';
+      const { accent } = pageHeader(doc, schema, 'P0_CONTINUATION', { ...t, P0_CONTINUATION: continuationTitle });
+      panel(doc, M, 136, CONTENT, 656, { accent });
+      renderContainedText({ doc, text: lines.slice(offset, offset + linesPerPage).join('\n'),
+        bounds: { x: M + 13, y: 146, width: CONTENT - 26, height: 636 },
+        policy: { ...REPORT_TEXT_POLICIES.propertyNotes, maximumLineCount: linesPerPage },
+        locale: lang, sectionId: continuation.sectionId + ':continuation', priority: 'P0_FACT' });
+    }
+  }
+  const totalPages = doc.getNumberOfPages();
+  for (let page = 1; page <= totalPages; page += 1) {
+    doc.setPage(page); pageFooter(doc, page, totalPages, prepared.document.cover.generatedAt, lang, t);
   }
   const assemblyStartedAt = performanceNow();
   const binary = new Uint8Array(doc.output('arraybuffer'));
@@ -1618,9 +1607,11 @@ export async function renderMaxxisReportPdf({ schema, exportEntitlement, generat
   const layoutAudit = reportLayoutAudit(doc);
   return Object.freeze({ state: 'RENDERED', timings, document: Object.freeze({
     ...prepared.document, binary, pageCount: doc.getNumberOfPages(), mimeType: 'application/pdf',
+    narrativeProjection: reportNarrativeProjection(schema, language),
     layoutAudit: Object.freeze({
       lines: Object.freeze(layoutAudit.lines.map((line) => Object.freeze({ ...line }))),
       sections: Object.freeze(layoutAudit.sections.map((section) => Object.freeze({ ...section }))),
+      continuations: Object.freeze(continuations.map(item => Object.freeze({ ...item }))),
     }),
   }) });
 }

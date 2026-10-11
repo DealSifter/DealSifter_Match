@@ -1,3 +1,4 @@
+import { toKnownFiniteNumber, resolveAnalysisPropertyType, propertyTypeFamily } from '../../../../supabase/functions/_shared/maxxis/canonicalFactSemantics.ts';
 import { buildDealDecisionContext } from '../../../../supabase/functions/_shared/maxxis/dealDecisionContext.ts';
 import { calculateScenario, compareScenarioOutputs, solveScenarioTarget } from '../../../../supabase/functions/_shared/maxxis/scenarioEngine.ts';
 import { estimateRehabBenchmark2026, sanityCheckRehabAgainstBenchmark2026 } from '../../../../supabase/functions/_shared/maxxis/rehabCostBenchmarks2026.ts';
@@ -6,7 +7,7 @@ import { DEALSIFTER_ARV_ENGINE_POLICY_V1 } from '../../../../supabase/functions/
 
 const object = (value) => value && typeof value === 'object' && !Array.isArray(value) ? value : {};
 const list = (value) => Array.isArray(value) ? value : [];
-const number = (value) => value !== null && value !== undefined && value !== '' && Number.isFinite(Number(value)) ? Number(value) : null;
+const number = toKnownFiniteNumber;
 const positive = (value) => number(value) > 0;
 const present = (value) => value !== null && value !== undefined && value !== '';
 const locale = (language) => String(language || 'en').toLowerCase().split(/[-_]/)[0];
@@ -47,11 +48,12 @@ export function resolveMaxxisProactiveContext({ property = {}, propertyId = prop
       else if (!previousScenario) previousScenario = data.scenario;
     }
   }
-  const facts = { ...object(loaded.propertyFacts), ...property, id: propertyId };
+  let facts = { ...object(loaded.propertyFacts), ...property, id: propertyId };
   // Cached canonical facts remain authoritative within their snapshot; a changed card invalidates that snapshot.
   const stale = loaded.propertyFacts && ['price', 'sqft', 'type', 'objective', 'rehab'].some((key) =>
     present(property[key]) && present(loaded.propertyFacts[key]) && String(property[key]) !== String(loaded.propertyFacts[key]));
   const base = stale ? {} : loaded;
+  if (stale) facts = { ...property, id: propertyId };
   if (stale) { latestScenario = null; previousScenario = null; }
   const assumptions = { ...object(base.dealAssumptions), ...object(property.dealAssumptions), ...object(latestScenario?.assumptions) };
   const benchmark = estimateRehabBenchmark2026({ state: facts.state, livingAreaSqft: facts.sqft, condition: assumptions.targetCondition || facts.targetCondition });
@@ -72,7 +74,7 @@ export function buildMaxxisProactiveTriggers({ property = {}, snapshot = {}, dec
   const money = (value) => new Intl.NumberFormat(lang === 'pt' ? 'pt-BR' : lang === 'es' ? 'es-US' : 'en-US', { style: 'currency', currency: 'USD', maximumFractionDigits: 0 }).format(value);
   const percent = (ratio) => new Intl.NumberFormat(lang === 'pt' ? 'pt-BR' : lang === 'es' ? 'es-US' : 'en-US', { maximumFractionDigits: 1 }).format(Math.abs(ratio) * 100);
   const decision = decisionContext || buildDealDecisionContext(snapshot);
-  const strategy = decision.strategy;
+  const strategy = propertyTypeFamily(resolveAnalysisPropertyType(property)) === 'LAND' ? 'LAND' : decision.strategy;
   const relationships = object(decision.relationships);
   const market = object(snapshot.providerMarketContext);
   const recent = object(snapshot.recentSalesMarketEstimate || market.recentSalesMarketEstimate);
@@ -171,8 +173,9 @@ export function buildMaxxisProactiveTriggers({ property = {}, snapshot = {}, dec
         `Compare my current scenario with rent ${rentReference}, keeping other assumptions. Do not save property changes.`,
         `Compara mi escenario actual con alquiler ${rentReference}, manteniendo los otros supuestos. No guardes cambios en el inmueble.`), compare([{ rent: rentReference }]));
   }
+  const knownRehab = number(property.canonicalPropertyFacts?.financial?.rehab ?? assumptions.rehab ?? snapshot.rehabAnalysis?.value ?? property.rehab);
   const check = snapshot.rehabAnalysis?.sanityCheck;
-  if (strategy === 'FLIP' && check && snapshot.rehabAnalysis?.benchmark && check.classification !== 'WITHIN_REFERENCE_RANGE') add('REHAB_BENCHMARK', 'P1',
+  if (strategy === 'FLIP' && knownRehab !== null && number(check?.actualRehabPerSqft) !== null && check && snapshot.rehabAnalysis?.benchmark && check.classification !== 'WITHIN_REFERENCE_RANGE') add('REHAB_BENCHMARK', 'P1',
     { check, benchmark: snapshot.rehabAnalysis.benchmark },
     t(`O rehab equivale a ${money(check.actualRehabPerSqft)}/sqft e está fora da faixa de referência para ${snapshot.rehabAnalysis.benchmark.state}. A referência tem confiança baixa. Quer testar ±10%?`,
       `Rehab is ${money(check.actualRehabPerSqft)}/sqft, outside the reference range for ${snapshot.rehabAnalysis.benchmark.state}. The reference has low confidence. Test ±10%?`,
@@ -181,7 +184,7 @@ export function buildMaxxisProactiveTriggers({ property = {}, snapshot = {}, dec
     t('Compare o cenário atual com rehab 10% menor e 10% maior, mantendo as demais premissas.',
       'Compare the current scenario with rehab 10% lower and 10% higher, keeping other assumptions.',
       'Compara el escenario actual con rehabilitación un 10% menor y un 10% mayor, manteniendo los otros supuestos.'),
-    compare([{ rehab: Number(assumptions.rehab) * 0.9 }, { rehab: Number(assumptions.rehab) * 1.1 }]), false);
+    compare([{ rehab: knownRehab * 0.9 }, { rehab: knownRehab * 1.1 }]), false);
 
   const strategyFields = { SELLER_FINANCING: ['down_payment', 'interest_rate', 'amortization_months', 'balloon_months', 'term_months'],
     BUY_AND_HOLD: ['operating_expenses'], SUB_TO: ['existing_loan_balance', 'monthly_pi_payment', 'arrears', 'reinstatement', 'cash_to_seller'],

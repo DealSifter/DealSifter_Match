@@ -1,0 +1,3568 @@
+{
+  "baseline": "d9ea801ffd1c57a85e418acddb0c198be744a02c",
+  "evidenceMode": "DETERMINISTIC_FIXTURES_NOT_LIVE_PROPERTY_OBSERVATIONS",
+  "controls": [
+    {
+      "control": "GABLE",
+      "type": "Land",
+      "providerType": "Single Family",
+      "strategy": "LAND",
+      "conflict": "MATERIAL_TYPE_CONFLICT",
+      "canonical": {
+        "version": "CANONICAL_PROPERTY_FACTS_V1",
+        "identity": {
+          "address": {
+            "value": "741 Gable Dr",
+            "status": "USER_PROVIDED",
+            "source": "PROPERTY_APP_VALUE",
+            "retrievedAt": null,
+            "effectiveDate": null,
+            "confidence": null,
+            "conflict": null,
+            "semanticState": "KNOWN",
+            "providerEvidence": null,
+            "provenance": {
+              "selected": "PROPERTY_APP_VALUE",
+              "policy": "SUBJECT_IDENTITY_AND_USER_NARRATIVE"
+            }
+          },
+          "city": {
+            "value": null,
+            "status": "UNKNOWN",
+            "source": null,
+            "retrievedAt": null,
+            "effectiveDate": null,
+            "confidence": null,
+            "conflict": null,
+            "semanticState": "UNKNOWN",
+            "providerEvidence": null
+          },
+          "state": {
+            "value": null,
+            "status": "UNKNOWN",
+            "source": null,
+            "retrievedAt": null,
+            "effectiveDate": null,
+            "confidence": null,
+            "conflict": null,
+            "semanticState": "UNKNOWN",
+            "providerEvidence": null
+          },
+          "zip": {
+            "value": null,
+            "status": "UNKNOWN",
+            "source": null,
+            "retrievedAt": null,
+            "effectiveDate": null,
+            "confidence": null,
+            "conflict": null,
+            "semanticState": "UNKNOWN",
+            "providerEvidence": null
+          },
+          "formattedAddress": {
+            "value": "741 Gable Dr",
+            "status": "USER_PROVIDED",
+            "source": "PROPERTY_APP_VALUE",
+            "retrievedAt": null,
+            "effectiveDate": null,
+            "confidence": null,
+            "conflict": null,
+            "semanticState": "KNOWN",
+            "providerEvidence": null
+          },
+          "latitude": {
+            "value": null,
+            "status": "UNKNOWN",
+            "source": null,
+            "retrievedAt": null,
+            "effectiveDate": null,
+            "confidence": null,
+            "conflict": null,
+            "semanticState": "UNKNOWN",
+            "providerEvidence": null
+          },
+          "longitude": {
+            "value": null,
+            "status": "UNKNOWN",
+            "source": null,
+            "retrievedAt": null,
+            "effectiveDate": null,
+            "confidence": null,
+            "conflict": null,
+            "semanticState": "UNKNOWN",
+            "providerEvidence": null
+          }
+        },
+        "physical": {
+          "propertyType": {
+            "value": "Land",
+            "status": "USER_PROVIDED",
+            "source": "PROPERTY_APP_VALUE",
+            "retrievedAt": null,
+            "effectiveDate": null,
+            "confidence": null,
+            "conflict": {
+              "code": "MATERIAL_TYPE_CONFLICT",
+              "field": "propertyType",
+              "appValue": "Land",
+              "providerValue": "Single Family",
+              "storedValue": "Land",
+              "externalValue": "Single Family",
+              "analysisValue": "Land",
+              "classification": "CRITICAL_IDENTITY",
+              "resolution": "UNRESOLVED"
+            },
+            "semanticState": "CONFLICT",
+            "providerEvidence": {
+              "value": "Single Family",
+              "status": "VERIFIED_RECORD",
+              "source": "DETERMINISTIC_CONTROL_FIXTURE",
+              "confidence": null
+            },
+            "provenance": {
+              "selected": "PROPERTY_APP_VALUE",
+              "policy": "SUBJECT_IDENTITY_AND_USER_NARRATIVE"
+            }
+          },
+          "beds": {
+            "value": null,
+            "status": "NOT_APPLICABLE",
+            "semanticState": "NOT_APPLICABLE",
+            "source": "CANONICAL_SUBJECT_APPLICABILITY",
+            "retrievedAt": null,
+            "effectiveDate": null,
+            "confidence": null,
+            "conflict": null,
+            "providerEvidence": {
+              "value": 3,
+              "status": "VERIFIED_RECORD",
+              "source": "DETERMINISTIC_CONTROL_FIXTURE",
+              "confidence": null
+            }
+          },
+          "baths": {
+            "value": null,
+            "status": "NOT_APPLICABLE",
+            "semanticState": "NOT_APPLICABLE",
+            "source": "CANONICAL_SUBJECT_APPLICABILITY",
+            "retrievedAt": null,
+            "effectiveDate": null,
+            "confidence": null,
+            "conflict": null,
+            "providerEvidence": {
+              "value": 2,
+              "status": "VERIFIED_RECORD",
+              "source": "DETERMINISTIC_CONTROL_FIXTURE",
+              "confidence": null
+            }
+          },
+          "livingAreaSqft": {
+            "value": null,
+            "status": "NOT_APPLICABLE",
+            "semanticState": "NOT_APPLICABLE",
+            "source": "CANONICAL_SUBJECT_APPLICABILITY",
+            "retrievedAt": null,
+            "effectiveDate": null,
+            "confidence": null,
+            "conflict": null,
+            "providerEvidence": {
+              "value": 1063,
+              "status": "VERIFIED_RECORD",
+              "source": "DETERMINISTIC_CONTROL_FIXTURE",
+              "confidence": null
+            }
+          },
+          "lotSizeSqft": {
+            "value": 49658.4,
+            "status": "VERIFIED_RECORD",
+            "source": "DETERMINISTIC_CONTROL_FIXTURE",
+            "retrievedAt": null,
+            "effectiveDate": null,
+            "confidence": null,
+            "conflict": null,
+            "semanticState": "KNOWN",
+            "provenance": {
+              "selected": "DETERMINISTIC_CONTROL_FIXTURE",
+              "policy": "OBJECTIVE_RECORD_EVIDENCE"
+            }
+          },
+          "lotSizeAcres": {
+            "value": 1.14,
+            "status": "USER_PROVIDED",
+            "source": "PROPERTY_APP_VALUE",
+            "retrievedAt": null,
+            "effectiveDate": null,
+            "confidence": null,
+            "conflict": null,
+            "semanticState": "KNOWN",
+            "providerEvidence": null
+          },
+          "yearBuilt": {
+            "value": null,
+            "status": "NOT_APPLICABLE",
+            "semanticState": "NOT_APPLICABLE",
+            "source": "CANONICAL_SUBJECT_APPLICABILITY",
+            "retrievedAt": null,
+            "effectiveDate": null,
+            "confidence": null,
+            "conflict": null,
+            "providerEvidence": {
+              "value": 1962,
+              "status": "VERIFIED_RECORD",
+              "source": "DETERMINISTIC_CONTROL_FIXTURE",
+              "confidence": null
+            }
+          },
+          "hoaFee": {
+            "value": 0,
+            "status": "VERIFIED_RECORD",
+            "source": "DETERMINISTIC_CONTROL_FIXTURE",
+            "retrievedAt": null,
+            "effectiveDate": null,
+            "confidence": null,
+            "conflict": null,
+            "semanticState": "KNOWN",
+            "provenance": {
+              "selected": "DETERMINISTIC_CONTROL_FIXTURE",
+              "policy": "OBJECTIVE_RECORD_EVIDENCE"
+            }
+          }
+        },
+        "financial": {
+          "askingPrice": {
+            "value": 19000,
+            "status": "USER_PROVIDED",
+            "source": "PROPERTY_APP_VALUE",
+            "retrievedAt": null,
+            "effectiveDate": null,
+            "confidence": null,
+            "conflict": null,
+            "semanticState": "KNOWN",
+            "providerEvidence": null
+          },
+          "rehab": {
+            "value": null,
+            "status": "NOT_APPLICABLE",
+            "semanticState": "NOT_APPLICABLE",
+            "source": "CANONICAL_SUBJECT_APPLICABILITY",
+            "retrievedAt": null,
+            "effectiveDate": null,
+            "confidence": null,
+            "conflict": null,
+            "providerEvidence": null
+          },
+          "capRate": {
+            "value": null,
+            "status": "NOT_APPLICABLE",
+            "semanticState": "NOT_APPLICABLE",
+            "source": "CANONICAL_SUBJECT_APPLICABILITY",
+            "retrievedAt": null,
+            "effectiveDate": null,
+            "confidence": null,
+            "conflict": null,
+            "providerEvidence": null
+          },
+          "noi": {
+            "value": null,
+            "status": "NOT_APPLICABLE",
+            "semanticState": "NOT_APPLICABLE",
+            "source": "CANONICAL_SUBJECT_APPLICABILITY",
+            "retrievedAt": null,
+            "effectiveDate": null,
+            "confidence": null,
+            "conflict": null,
+            "providerEvidence": null
+          }
+        },
+        "parcel": {
+          "county": {
+            "value": "Control County",
+            "status": "VERIFIED_RECORD",
+            "source": "DETERMINISTIC_CONTROL_FIXTURE",
+            "retrievedAt": null,
+            "effectiveDate": null,
+            "confidence": null,
+            "conflict": null,
+            "semanticState": "KNOWN",
+            "provenance": {
+              "selected": "DETERMINISTIC_CONTROL_FIXTURE",
+              "policy": "OBJECTIVE_RECORD_EVIDENCE"
+            }
+          },
+          "stateFips": {
+            "value": null,
+            "status": "UNKNOWN",
+            "source": null,
+            "retrievedAt": null,
+            "effectiveDate": null,
+            "confidence": null,
+            "conflict": null,
+            "semanticState": "UNKNOWN",
+            "providerEvidence": null
+          },
+          "countyFips": {
+            "value": null,
+            "status": "UNKNOWN",
+            "source": null,
+            "retrievedAt": null,
+            "effectiveDate": null,
+            "confidence": null,
+            "conflict": null,
+            "semanticState": "UNKNOWN",
+            "providerEvidence": null
+          },
+          "assessorId": {
+            "value": "APN-12.345.678",
+            "status": "VERIFIED_RECORD",
+            "source": "DETERMINISTIC_CONTROL_FIXTURE",
+            "retrievedAt": null,
+            "effectiveDate": null,
+            "confidence": null,
+            "conflict": null,
+            "semanticState": "KNOWN",
+            "provenance": {
+              "selected": "DETERMINISTIC_CONTROL_FIXTURE",
+              "policy": "OBJECTIVE_RECORD_EVIDENCE"
+            }
+          },
+          "legalDescription": {
+            "value": null,
+            "status": "UNKNOWN",
+            "source": null,
+            "retrievedAt": null,
+            "effectiveDate": null,
+            "confidence": null,
+            "conflict": null,
+            "semanticState": "UNKNOWN",
+            "providerEvidence": null
+          },
+          "subdivision": {
+            "value": "CONTROL SUBDIVISION",
+            "status": "VERIFIED_RECORD",
+            "source": "DETERMINISTIC_CONTROL_FIXTURE",
+            "retrievedAt": null,
+            "effectiveDate": null,
+            "confidence": null,
+            "conflict": null,
+            "semanticState": "KNOWN",
+            "provenance": {
+              "selected": "DETERMINISTIC_CONTROL_FIXTURE",
+              "policy": "OBJECTIVE_RECORD_EVIDENCE"
+            }
+          },
+          "zoning": {
+            "value": "RMD-B",
+            "status": "VERIFIED_RECORD",
+            "source": "DETERMINISTIC_CONTROL_FIXTURE",
+            "retrievedAt": null,
+            "effectiveDate": null,
+            "confidence": null,
+            "conflict": null,
+            "semanticState": "KNOWN",
+            "provenance": {
+              "selected": "DETERMINISTIC_CONTROL_FIXTURE",
+              "policy": "OBJECTIVE_RECORD_EVIDENCE"
+            }
+          }
+        },
+        "ownership": {
+          "ownerName": {
+            "value": "Authorized owner",
+            "status": "USER_PROVIDED",
+            "source": "PROPERTY_APP_VALUE",
+            "retrievedAt": null,
+            "effectiveDate": null,
+            "confidence": null,
+            "conflict": null,
+            "semanticState": "KNOWN",
+            "providerEvidence": null
+          },
+          "ownerType": {
+            "value": null,
+            "status": "UNKNOWN",
+            "source": null,
+            "retrievedAt": null,
+            "effectiveDate": null,
+            "confidence": null,
+            "conflict": null,
+            "semanticState": "UNKNOWN",
+            "providerEvidence": null
+          },
+          "ownerOccupied": {
+            "value": false,
+            "status": "VERIFIED_RECORD",
+            "source": "DETERMINISTIC_CONTROL_FIXTURE",
+            "retrievedAt": null,
+            "effectiveDate": null,
+            "confidence": null,
+            "conflict": null,
+            "semanticState": "KNOWN",
+            "provenance": {
+              "selected": "DETERMINISTIC_CONTROL_FIXTURE",
+              "policy": "OBJECTIVE_RECORD_EVIDENCE"
+            }
+          },
+          "ownerMailingAddress": {
+            "value": null,
+            "status": "UNKNOWN",
+            "source": null,
+            "retrievedAt": null,
+            "effectiveDate": null,
+            "confidence": null,
+            "conflict": null,
+            "semanticState": "UNKNOWN",
+            "providerEvidence": null
+          },
+          "ownershipRecordPresent": {
+            "value": null,
+            "status": "UNKNOWN",
+            "source": null,
+            "retrievedAt": null,
+            "effectiveDate": null,
+            "confidence": null,
+            "conflict": null,
+            "semanticState": "UNKNOWN",
+            "providerEvidence": null
+          }
+        },
+        "tax": {
+          "assessedValue": {
+            "value": 108188,
+            "status": "VERIFIED_RECORD",
+            "source": "DETERMINISTIC_CONTROL_FIXTURE",
+            "retrievedAt": null,
+            "effectiveDate": null,
+            "confidence": null,
+            "conflict": null,
+            "semanticState": "KNOWN",
+            "provenance": {
+              "selected": "DETERMINISTIC_CONTROL_FIXTURE",
+              "policy": "OBJECTIVE_RECORD_EVIDENCE"
+            }
+          },
+          "assessmentYear": {
+            "value": null,
+            "status": "UNKNOWN",
+            "source": null,
+            "retrievedAt": null,
+            "effectiveDate": null,
+            "confidence": null,
+            "conflict": null,
+            "semanticState": "UNKNOWN",
+            "providerEvidence": null
+          },
+          "annualPropertyTax": {
+            "value": 1843,
+            "status": "VERIFIED_RECORD",
+            "source": "DETERMINISTIC_CONTROL_FIXTURE",
+            "retrievedAt": null,
+            "effectiveDate": null,
+            "confidence": null,
+            "conflict": null,
+            "semanticState": "KNOWN",
+            "provenance": {
+              "selected": "DETERMINISTIC_CONTROL_FIXTURE",
+              "policy": "OBJECTIVE_RECORD_EVIDENCE"
+            }
+          },
+          "propertyTaxYear": {
+            "value": null,
+            "status": "UNKNOWN",
+            "source": null,
+            "retrievedAt": null,
+            "effectiveDate": null,
+            "confidence": null,
+            "conflict": null,
+            "semanticState": "UNKNOWN",
+            "providerEvidence": null
+          }
+        },
+        "sales": {
+          "lastSalePrice": {
+            "value": 80500,
+            "status": "VERIFIED_RECORD",
+            "source": "DETERMINISTIC_CONTROL_FIXTURE",
+            "retrievedAt": null,
+            "effectiveDate": null,
+            "confidence": null,
+            "conflict": null,
+            "semanticState": "KNOWN",
+            "provenance": {
+              "selected": "DETERMINISTIC_CONTROL_FIXTURE",
+              "policy": "OBJECTIVE_RECORD_EVIDENCE"
+            }
+          },
+          "lastSaleDate": {
+            "value": "2021-08-03",
+            "status": "VERIFIED_RECORD",
+            "source": "DETERMINISTIC_CONTROL_FIXTURE",
+            "retrievedAt": null,
+            "effectiveDate": null,
+            "confidence": null,
+            "conflict": null,
+            "semanticState": "KNOWN",
+            "provenance": {
+              "selected": "DETERMINISTIC_CONTROL_FIXTURE",
+              "policy": "OBJECTIVE_RECORD_EVIDENCE"
+            }
+          },
+          "saleHistory": {
+            "value": [
+              {
+                "price": 80500,
+                "date": "2021-08-03"
+              }
+            ],
+            "status": "VERIFIED_RECORD",
+            "source": "DETERMINISTIC_CONTROL_FIXTURE",
+            "retrievedAt": null,
+            "effectiveDate": null,
+            "confidence": null,
+            "conflict": null,
+            "semanticState": "KNOWN",
+            "provenance": {
+              "selected": "DETERMINISTIC_CONTROL_FIXTURE",
+              "policy": "OBJECTIVE_RECORD_EVIDENCE"
+            }
+          }
+        },
+        "notes": {
+          "userNotes": {
+            "value": "Original owner notes. HOA $0. APN-12.345.678. Material risk: flood review required.",
+            "status": "USER_PROVIDED",
+            "source": "PROPERTY_APP_VALUE",
+            "retrievedAt": null,
+            "effectiveDate": null,
+            "confidence": null,
+            "conflict": null,
+            "semanticState": "KNOWN",
+            "providerEvidence": null,
+            "provenance": {
+              "selected": "PROPERTY_APP_VALUE",
+              "policy": "SUBJECT_IDENTITY_AND_USER_NARRATIVE"
+            }
+          }
+        },
+        "features": {
+          "garage": {
+            "value": null,
+            "status": "UNKNOWN",
+            "source": null,
+            "retrievedAt": null,
+            "effectiveDate": null,
+            "confidence": null,
+            "conflict": null,
+            "semanticState": "UNKNOWN",
+            "providerEvidence": null
+          },
+          "pool": {
+            "value": null,
+            "status": "UNKNOWN",
+            "source": null,
+            "retrievedAt": null,
+            "effectiveDate": null,
+            "confidence": null,
+            "conflict": null,
+            "semanticState": "UNKNOWN",
+            "providerEvidence": null
+          },
+          "stories": {
+            "value": null,
+            "status": "UNKNOWN",
+            "source": null,
+            "retrievedAt": null,
+            "effectiveDate": null,
+            "confidence": null,
+            "conflict": null,
+            "semanticState": "UNKNOWN",
+            "providerEvidence": null
+          },
+          "units": {
+            "value": null,
+            "status": "UNKNOWN",
+            "source": null,
+            "retrievedAt": null,
+            "effectiveDate": null,
+            "confidence": null,
+            "conflict": null,
+            "semanticState": "UNKNOWN",
+            "providerEvidence": null
+          },
+          "fireplace": {
+            "value": null,
+            "status": "UNKNOWN",
+            "source": null,
+            "retrievedAt": null,
+            "effectiveDate": null,
+            "confidence": null,
+            "conflict": null,
+            "semanticState": "UNKNOWN",
+            "providerEvidence": null
+          },
+          "roof": {
+            "value": null,
+            "status": "UNKNOWN",
+            "source": null,
+            "retrievedAt": null,
+            "effectiveDate": null,
+            "confidence": null,
+            "conflict": null,
+            "semanticState": "UNKNOWN",
+            "providerEvidence": null
+          },
+          "hvac": {
+            "value": null,
+            "status": "UNKNOWN",
+            "source": null,
+            "retrievedAt": null,
+            "effectiveDate": null,
+            "confidence": null,
+            "conflict": null,
+            "semanticState": "UNKNOWN",
+            "providerEvidence": null
+          },
+          "architecture": {
+            "value": null,
+            "status": "UNKNOWN",
+            "source": null,
+            "retrievedAt": null,
+            "effectiveDate": null,
+            "confidence": null,
+            "conflict": null,
+            "semanticState": "UNKNOWN",
+            "providerEvidence": null
+          },
+          "exterior": {
+            "value": null,
+            "status": "UNKNOWN",
+            "source": null,
+            "retrievedAt": null,
+            "effectiveDate": null,
+            "confidence": null,
+            "conflict": null,
+            "semanticState": "UNKNOWN",
+            "providerEvidence": null
+          },
+          "view": {
+            "value": null,
+            "status": "UNKNOWN",
+            "source": null,
+            "retrievedAt": null,
+            "effectiveDate": null,
+            "confidence": null,
+            "conflict": null,
+            "semanticState": "UNKNOWN",
+            "providerEvidence": null
+          },
+          "propertyFeatures": {
+            "value": {
+              "garage": true,
+              "roofType": "Composition Shingle"
+            },
+            "status": "VERIFIED_RECORD",
+            "source": "DETERMINISTIC_CONTROL_FIXTURE",
+            "retrievedAt": null,
+            "effectiveDate": null,
+            "confidence": null,
+            "conflict": null,
+            "semanticState": "KNOWN",
+            "provenance": {
+              "selected": "DETERMINISTIC_CONTROL_FIXTURE",
+              "policy": "OBJECTIVE_RECORD_EVIDENCE"
+            }
+          }
+        },
+        "valuationReferences": {
+          "providerEstimate": {
+            "value": null,
+            "status": "UNKNOWN",
+            "source": null,
+            "retrievedAt": null,
+            "effectiveDate": null,
+            "confidence": null,
+            "conflict": null
+          },
+          "recentSalesMarketEstimate": {
+            "value": null,
+            "status": "UNKNOWN",
+            "source": null,
+            "retrievedAt": null,
+            "effectiveDate": null,
+            "confidence": null,
+            "conflict": null
+          }
+        },
+        "provenance": {
+          "registry": "CANONICAL_PROPERTY_FIELD_REGISTRY_V1"
+        },
+        "conflicts": [
+          {
+            "code": "MATERIAL_TYPE_CONFLICT",
+            "field": "propertyType",
+            "appValue": "Land",
+            "providerValue": "Single Family",
+            "storedValue": "Land",
+            "externalValue": "Single Family",
+            "analysisValue": "Land",
+            "classification": "CRITICAL_IDENTITY",
+            "resolution": "UNRESOLVED"
+          }
+        ]
+      },
+      "fields": [
+        "county",
+        "lotSizeSqft",
+        "yearBuilt",
+        "assessorId",
+        "zoning",
+        "subdivision",
+        "ownerOccupied",
+        "assessedValue",
+        "annualPropertyTax",
+        "latestSalePrice",
+        "latestSaleDate",
+        "saleHistory",
+        "hoaFee",
+        "propertyFeatures",
+        "propertyUserNotes",
+        "localizedPropertyUserNotes",
+        "propertyTypeConflictCode"
+      ],
+      "consumers": [
+        "CHAT",
+        "L1",
+        "L2",
+        "L3"
+      ],
+      "status": "PASS"
+    },
+    {
+      "control": "DROAD",
+      "type": "SFR",
+      "providerType": "Single Family",
+      "strategy": "SELLER_FINANCING",
+      "conflict": null,
+      "canonical": {
+        "version": "CANONICAL_PROPERTY_FACTS_V1",
+        "identity": {
+          "address": {
+            "value": "5939 Droad St",
+            "status": "USER_PROVIDED",
+            "source": "PROPERTY_APP_VALUE",
+            "retrievedAt": null,
+            "effectiveDate": null,
+            "confidence": null,
+            "conflict": null,
+            "semanticState": "KNOWN",
+            "providerEvidence": null,
+            "provenance": {
+              "selected": "PROPERTY_APP_VALUE",
+              "policy": "SUBJECT_IDENTITY_AND_USER_NARRATIVE"
+            }
+          },
+          "city": {
+            "value": null,
+            "status": "UNKNOWN",
+            "source": null,
+            "retrievedAt": null,
+            "effectiveDate": null,
+            "confidence": null,
+            "conflict": null,
+            "semanticState": "UNKNOWN",
+            "providerEvidence": null
+          },
+          "state": {
+            "value": null,
+            "status": "UNKNOWN",
+            "source": null,
+            "retrievedAt": null,
+            "effectiveDate": null,
+            "confidence": null,
+            "conflict": null,
+            "semanticState": "UNKNOWN",
+            "providerEvidence": null
+          },
+          "zip": {
+            "value": null,
+            "status": "UNKNOWN",
+            "source": null,
+            "retrievedAt": null,
+            "effectiveDate": null,
+            "confidence": null,
+            "conflict": null,
+            "semanticState": "UNKNOWN",
+            "providerEvidence": null
+          },
+          "formattedAddress": {
+            "value": "5939 Droad St",
+            "status": "USER_PROVIDED",
+            "source": "PROPERTY_APP_VALUE",
+            "retrievedAt": null,
+            "effectiveDate": null,
+            "confidence": null,
+            "conflict": null,
+            "semanticState": "KNOWN",
+            "providerEvidence": null
+          },
+          "latitude": {
+            "value": null,
+            "status": "UNKNOWN",
+            "source": null,
+            "retrievedAt": null,
+            "effectiveDate": null,
+            "confidence": null,
+            "conflict": null,
+            "semanticState": "UNKNOWN",
+            "providerEvidence": null
+          },
+          "longitude": {
+            "value": null,
+            "status": "UNKNOWN",
+            "source": null,
+            "retrievedAt": null,
+            "effectiveDate": null,
+            "confidence": null,
+            "conflict": null,
+            "semanticState": "UNKNOWN",
+            "providerEvidence": null
+          }
+        },
+        "physical": {
+          "propertyType": {
+            "value": "SFR",
+            "status": "USER_PROVIDED",
+            "source": "PROPERTY_APP_VALUE",
+            "retrievedAt": null,
+            "effectiveDate": null,
+            "confidence": null,
+            "conflict": null,
+            "semanticState": "KNOWN",
+            "providerEvidence": {
+              "value": "Single Family",
+              "status": "VERIFIED_RECORD",
+              "source": "DETERMINISTIC_CONTROL_FIXTURE",
+              "confidence": null
+            },
+            "provenance": {
+              "selected": "PROPERTY_APP_VALUE",
+              "policy": "SUBJECT_IDENTITY_AND_USER_NARRATIVE"
+            }
+          },
+          "beds": {
+            "value": 3,
+            "status": "VERIFIED_RECORD",
+            "source": "DETERMINISTIC_CONTROL_FIXTURE",
+            "retrievedAt": null,
+            "effectiveDate": null,
+            "confidence": null,
+            "conflict": null,
+            "semanticState": "KNOWN",
+            "provenance": {
+              "selected": "DETERMINISTIC_CONTROL_FIXTURE",
+              "policy": "OBJECTIVE_RECORD_EVIDENCE"
+            }
+          },
+          "baths": {
+            "value": 2,
+            "status": "VERIFIED_RECORD",
+            "source": "DETERMINISTIC_CONTROL_FIXTURE",
+            "retrievedAt": null,
+            "effectiveDate": null,
+            "confidence": null,
+            "conflict": null,
+            "semanticState": "KNOWN",
+            "provenance": {
+              "selected": "DETERMINISTIC_CONTROL_FIXTURE",
+              "policy": "OBJECTIVE_RECORD_EVIDENCE"
+            }
+          },
+          "livingAreaSqft": {
+            "value": 1063,
+            "status": "VERIFIED_RECORD",
+            "source": "DETERMINISTIC_CONTROL_FIXTURE",
+            "retrievedAt": null,
+            "effectiveDate": null,
+            "confidence": null,
+            "conflict": null,
+            "semanticState": "KNOWN",
+            "provenance": {
+              "selected": "DETERMINISTIC_CONTROL_FIXTURE",
+              "policy": "OBJECTIVE_RECORD_EVIDENCE"
+            }
+          },
+          "lotSizeSqft": {
+            "value": 7253,
+            "status": "VERIFIED_RECORD",
+            "source": "DETERMINISTIC_CONTROL_FIXTURE",
+            "retrievedAt": null,
+            "effectiveDate": null,
+            "confidence": null,
+            "conflict": null,
+            "semanticState": "KNOWN",
+            "provenance": {
+              "selected": "DETERMINISTIC_CONTROL_FIXTURE",
+              "policy": "OBJECTIVE_RECORD_EVIDENCE"
+            }
+          },
+          "lotSizeAcres": {
+            "value": 0.1665,
+            "status": "USER_PROVIDED",
+            "source": "PROPERTY_APP_VALUE",
+            "retrievedAt": null,
+            "effectiveDate": null,
+            "confidence": null,
+            "conflict": null,
+            "semanticState": "KNOWN",
+            "providerEvidence": null
+          },
+          "yearBuilt": {
+            "value": 1962,
+            "status": "VERIFIED_RECORD",
+            "source": "DETERMINISTIC_CONTROL_FIXTURE",
+            "retrievedAt": null,
+            "effectiveDate": null,
+            "confidence": null,
+            "conflict": null,
+            "semanticState": "KNOWN",
+            "provenance": {
+              "selected": "DETERMINISTIC_CONTROL_FIXTURE",
+              "policy": "OBJECTIVE_RECORD_EVIDENCE"
+            }
+          },
+          "hoaFee": {
+            "value": 0,
+            "status": "VERIFIED_RECORD",
+            "source": "DETERMINISTIC_CONTROL_FIXTURE",
+            "retrievedAt": null,
+            "effectiveDate": null,
+            "confidence": null,
+            "conflict": null,
+            "semanticState": "KNOWN",
+            "provenance": {
+              "selected": "DETERMINISTIC_CONTROL_FIXTURE",
+              "policy": "OBJECTIVE_RECORD_EVIDENCE"
+            }
+          }
+        },
+        "financial": {
+          "askingPrice": {
+            "value": 113900,
+            "status": "USER_PROVIDED",
+            "source": "PROPERTY_APP_VALUE",
+            "retrievedAt": null,
+            "effectiveDate": null,
+            "confidence": null,
+            "conflict": null,
+            "semanticState": "KNOWN",
+            "providerEvidence": null
+          },
+          "rehab": {
+            "value": null,
+            "status": "UNKNOWN",
+            "source": null,
+            "retrievedAt": null,
+            "effectiveDate": null,
+            "confidence": null,
+            "conflict": null,
+            "semanticState": "UNKNOWN",
+            "providerEvidence": null
+          },
+          "capRate": {
+            "value": null,
+            "status": "UNKNOWN",
+            "source": null,
+            "retrievedAt": null,
+            "effectiveDate": null,
+            "confidence": null,
+            "conflict": null,
+            "semanticState": "UNKNOWN",
+            "providerEvidence": null
+          },
+          "noi": {
+            "value": null,
+            "status": "UNKNOWN",
+            "source": null,
+            "retrievedAt": null,
+            "effectiveDate": null,
+            "confidence": null,
+            "conflict": null,
+            "semanticState": "UNKNOWN",
+            "providerEvidence": null
+          }
+        },
+        "parcel": {
+          "county": {
+            "value": "Control County",
+            "status": "VERIFIED_RECORD",
+            "source": "DETERMINISTIC_CONTROL_FIXTURE",
+            "retrievedAt": null,
+            "effectiveDate": null,
+            "confidence": null,
+            "conflict": null,
+            "semanticState": "KNOWN",
+            "provenance": {
+              "selected": "DETERMINISTIC_CONTROL_FIXTURE",
+              "policy": "OBJECTIVE_RECORD_EVIDENCE"
+            }
+          },
+          "stateFips": {
+            "value": null,
+            "status": "UNKNOWN",
+            "source": null,
+            "retrievedAt": null,
+            "effectiveDate": null,
+            "confidence": null,
+            "conflict": null,
+            "semanticState": "UNKNOWN",
+            "providerEvidence": null
+          },
+          "countyFips": {
+            "value": null,
+            "status": "UNKNOWN",
+            "source": null,
+            "retrievedAt": null,
+            "effectiveDate": null,
+            "confidence": null,
+            "conflict": null,
+            "semanticState": "UNKNOWN",
+            "providerEvidence": null
+          },
+          "assessorId": {
+            "value": "APN-12.345.678",
+            "status": "VERIFIED_RECORD",
+            "source": "DETERMINISTIC_CONTROL_FIXTURE",
+            "retrievedAt": null,
+            "effectiveDate": null,
+            "confidence": null,
+            "conflict": null,
+            "semanticState": "KNOWN",
+            "provenance": {
+              "selected": "DETERMINISTIC_CONTROL_FIXTURE",
+              "policy": "OBJECTIVE_RECORD_EVIDENCE"
+            }
+          },
+          "legalDescription": {
+            "value": null,
+            "status": "UNKNOWN",
+            "source": null,
+            "retrievedAt": null,
+            "effectiveDate": null,
+            "confidence": null,
+            "conflict": null,
+            "semanticState": "UNKNOWN",
+            "providerEvidence": null
+          },
+          "subdivision": {
+            "value": "CONTROL SUBDIVISION",
+            "status": "VERIFIED_RECORD",
+            "source": "DETERMINISTIC_CONTROL_FIXTURE",
+            "retrievedAt": null,
+            "effectiveDate": null,
+            "confidence": null,
+            "conflict": null,
+            "semanticState": "KNOWN",
+            "provenance": {
+              "selected": "DETERMINISTIC_CONTROL_FIXTURE",
+              "policy": "OBJECTIVE_RECORD_EVIDENCE"
+            }
+          },
+          "zoning": {
+            "value": "RMD-B",
+            "status": "VERIFIED_RECORD",
+            "source": "DETERMINISTIC_CONTROL_FIXTURE",
+            "retrievedAt": null,
+            "effectiveDate": null,
+            "confidence": null,
+            "conflict": null,
+            "semanticState": "KNOWN",
+            "provenance": {
+              "selected": "DETERMINISTIC_CONTROL_FIXTURE",
+              "policy": "OBJECTIVE_RECORD_EVIDENCE"
+            }
+          }
+        },
+        "ownership": {
+          "ownerName": {
+            "value": "Authorized owner",
+            "status": "USER_PROVIDED",
+            "source": "PROPERTY_APP_VALUE",
+            "retrievedAt": null,
+            "effectiveDate": null,
+            "confidence": null,
+            "conflict": null,
+            "semanticState": "KNOWN",
+            "providerEvidence": null
+          },
+          "ownerType": {
+            "value": null,
+            "status": "UNKNOWN",
+            "source": null,
+            "retrievedAt": null,
+            "effectiveDate": null,
+            "confidence": null,
+            "conflict": null,
+            "semanticState": "UNKNOWN",
+            "providerEvidence": null
+          },
+          "ownerOccupied": {
+            "value": false,
+            "status": "VERIFIED_RECORD",
+            "source": "DETERMINISTIC_CONTROL_FIXTURE",
+            "retrievedAt": null,
+            "effectiveDate": null,
+            "confidence": null,
+            "conflict": null,
+            "semanticState": "KNOWN",
+            "provenance": {
+              "selected": "DETERMINISTIC_CONTROL_FIXTURE",
+              "policy": "OBJECTIVE_RECORD_EVIDENCE"
+            }
+          },
+          "ownerMailingAddress": {
+            "value": null,
+            "status": "UNKNOWN",
+            "source": null,
+            "retrievedAt": null,
+            "effectiveDate": null,
+            "confidence": null,
+            "conflict": null,
+            "semanticState": "UNKNOWN",
+            "providerEvidence": null
+          },
+          "ownershipRecordPresent": {
+            "value": null,
+            "status": "UNKNOWN",
+            "source": null,
+            "retrievedAt": null,
+            "effectiveDate": null,
+            "confidence": null,
+            "conflict": null,
+            "semanticState": "UNKNOWN",
+            "providerEvidence": null
+          }
+        },
+        "tax": {
+          "assessedValue": {
+            "value": 108188,
+            "status": "VERIFIED_RECORD",
+            "source": "DETERMINISTIC_CONTROL_FIXTURE",
+            "retrievedAt": null,
+            "effectiveDate": null,
+            "confidence": null,
+            "conflict": null,
+            "semanticState": "KNOWN",
+            "provenance": {
+              "selected": "DETERMINISTIC_CONTROL_FIXTURE",
+              "policy": "OBJECTIVE_RECORD_EVIDENCE"
+            }
+          },
+          "assessmentYear": {
+            "value": null,
+            "status": "UNKNOWN",
+            "source": null,
+            "retrievedAt": null,
+            "effectiveDate": null,
+            "confidence": null,
+            "conflict": null,
+            "semanticState": "UNKNOWN",
+            "providerEvidence": null
+          },
+          "annualPropertyTax": {
+            "value": 1843,
+            "status": "VERIFIED_RECORD",
+            "source": "DETERMINISTIC_CONTROL_FIXTURE",
+            "retrievedAt": null,
+            "effectiveDate": null,
+            "confidence": null,
+            "conflict": null,
+            "semanticState": "KNOWN",
+            "provenance": {
+              "selected": "DETERMINISTIC_CONTROL_FIXTURE",
+              "policy": "OBJECTIVE_RECORD_EVIDENCE"
+            }
+          },
+          "propertyTaxYear": {
+            "value": null,
+            "status": "UNKNOWN",
+            "source": null,
+            "retrievedAt": null,
+            "effectiveDate": null,
+            "confidence": null,
+            "conflict": null,
+            "semanticState": "UNKNOWN",
+            "providerEvidence": null
+          }
+        },
+        "sales": {
+          "lastSalePrice": {
+            "value": 80500,
+            "status": "VERIFIED_RECORD",
+            "source": "DETERMINISTIC_CONTROL_FIXTURE",
+            "retrievedAt": null,
+            "effectiveDate": null,
+            "confidence": null,
+            "conflict": null,
+            "semanticState": "KNOWN",
+            "provenance": {
+              "selected": "DETERMINISTIC_CONTROL_FIXTURE",
+              "policy": "OBJECTIVE_RECORD_EVIDENCE"
+            }
+          },
+          "lastSaleDate": {
+            "value": "2021-08-03",
+            "status": "VERIFIED_RECORD",
+            "source": "DETERMINISTIC_CONTROL_FIXTURE",
+            "retrievedAt": null,
+            "effectiveDate": null,
+            "confidence": null,
+            "conflict": null,
+            "semanticState": "KNOWN",
+            "provenance": {
+              "selected": "DETERMINISTIC_CONTROL_FIXTURE",
+              "policy": "OBJECTIVE_RECORD_EVIDENCE"
+            }
+          },
+          "saleHistory": {
+            "value": [
+              {
+                "price": 80500,
+                "date": "2021-08-03"
+              }
+            ],
+            "status": "VERIFIED_RECORD",
+            "source": "DETERMINISTIC_CONTROL_FIXTURE",
+            "retrievedAt": null,
+            "effectiveDate": null,
+            "confidence": null,
+            "conflict": null,
+            "semanticState": "KNOWN",
+            "provenance": {
+              "selected": "DETERMINISTIC_CONTROL_FIXTURE",
+              "policy": "OBJECTIVE_RECORD_EVIDENCE"
+            }
+          }
+        },
+        "notes": {
+          "userNotes": {
+            "value": "Original owner notes. HOA $0. APN-12.345.678. Material risk: flood review required.",
+            "status": "USER_PROVIDED",
+            "source": "PROPERTY_APP_VALUE",
+            "retrievedAt": null,
+            "effectiveDate": null,
+            "confidence": null,
+            "conflict": null,
+            "semanticState": "KNOWN",
+            "providerEvidence": null,
+            "provenance": {
+              "selected": "PROPERTY_APP_VALUE",
+              "policy": "SUBJECT_IDENTITY_AND_USER_NARRATIVE"
+            }
+          }
+        },
+        "features": {
+          "garage": {
+            "value": null,
+            "status": "UNKNOWN",
+            "source": null,
+            "retrievedAt": null,
+            "effectiveDate": null,
+            "confidence": null,
+            "conflict": null,
+            "semanticState": "UNKNOWN",
+            "providerEvidence": null
+          },
+          "pool": {
+            "value": null,
+            "status": "UNKNOWN",
+            "source": null,
+            "retrievedAt": null,
+            "effectiveDate": null,
+            "confidence": null,
+            "conflict": null,
+            "semanticState": "UNKNOWN",
+            "providerEvidence": null
+          },
+          "stories": {
+            "value": null,
+            "status": "UNKNOWN",
+            "source": null,
+            "retrievedAt": null,
+            "effectiveDate": null,
+            "confidence": null,
+            "conflict": null,
+            "semanticState": "UNKNOWN",
+            "providerEvidence": null
+          },
+          "units": {
+            "value": null,
+            "status": "UNKNOWN",
+            "source": null,
+            "retrievedAt": null,
+            "effectiveDate": null,
+            "confidence": null,
+            "conflict": null,
+            "semanticState": "UNKNOWN",
+            "providerEvidence": null
+          },
+          "fireplace": {
+            "value": null,
+            "status": "UNKNOWN",
+            "source": null,
+            "retrievedAt": null,
+            "effectiveDate": null,
+            "confidence": null,
+            "conflict": null,
+            "semanticState": "UNKNOWN",
+            "providerEvidence": null
+          },
+          "roof": {
+            "value": null,
+            "status": "UNKNOWN",
+            "source": null,
+            "retrievedAt": null,
+            "effectiveDate": null,
+            "confidence": null,
+            "conflict": null,
+            "semanticState": "UNKNOWN",
+            "providerEvidence": null
+          },
+          "hvac": {
+            "value": null,
+            "status": "UNKNOWN",
+            "source": null,
+            "retrievedAt": null,
+            "effectiveDate": null,
+            "confidence": null,
+            "conflict": null,
+            "semanticState": "UNKNOWN",
+            "providerEvidence": null
+          },
+          "architecture": {
+            "value": null,
+            "status": "UNKNOWN",
+            "source": null,
+            "retrievedAt": null,
+            "effectiveDate": null,
+            "confidence": null,
+            "conflict": null,
+            "semanticState": "UNKNOWN",
+            "providerEvidence": null
+          },
+          "exterior": {
+            "value": null,
+            "status": "UNKNOWN",
+            "source": null,
+            "retrievedAt": null,
+            "effectiveDate": null,
+            "confidence": null,
+            "conflict": null,
+            "semanticState": "UNKNOWN",
+            "providerEvidence": null
+          },
+          "view": {
+            "value": null,
+            "status": "UNKNOWN",
+            "source": null,
+            "retrievedAt": null,
+            "effectiveDate": null,
+            "confidence": null,
+            "conflict": null,
+            "semanticState": "UNKNOWN",
+            "providerEvidence": null
+          },
+          "propertyFeatures": {
+            "value": {
+              "garage": true,
+              "roofType": "Composition Shingle"
+            },
+            "status": "VERIFIED_RECORD",
+            "source": "DETERMINISTIC_CONTROL_FIXTURE",
+            "retrievedAt": null,
+            "effectiveDate": null,
+            "confidence": null,
+            "conflict": null,
+            "semanticState": "KNOWN",
+            "provenance": {
+              "selected": "DETERMINISTIC_CONTROL_FIXTURE",
+              "policy": "OBJECTIVE_RECORD_EVIDENCE"
+            }
+          }
+        },
+        "valuationReferences": {
+          "providerEstimate": {
+            "value": null,
+            "status": "UNKNOWN",
+            "source": null,
+            "retrievedAt": null,
+            "effectiveDate": null,
+            "confidence": null,
+            "conflict": null
+          },
+          "recentSalesMarketEstimate": {
+            "value": null,
+            "status": "UNKNOWN",
+            "source": null,
+            "retrievedAt": null,
+            "effectiveDate": null,
+            "confidence": null,
+            "conflict": null
+          }
+        },
+        "provenance": {
+          "registry": "CANONICAL_PROPERTY_FIELD_REGISTRY_V1"
+        },
+        "conflicts": []
+      },
+      "fields": [
+        "county",
+        "lotSizeSqft",
+        "yearBuilt",
+        "assessorId",
+        "zoning",
+        "subdivision",
+        "ownerOccupied",
+        "assessedValue",
+        "annualPropertyTax",
+        "latestSalePrice",
+        "latestSaleDate",
+        "saleHistory",
+        "hoaFee",
+        "propertyFeatures",
+        "propertyUserNotes",
+        "localizedPropertyUserNotes",
+        "propertyTypeConflictCode"
+      ],
+      "consumers": [
+        "CHAT",
+        "L1",
+        "L2",
+        "L3"
+      ],
+      "status": "PASS"
+    },
+    {
+      "control": "BENT CREEK",
+      "type": "Land",
+      "providerType": "Land",
+      "strategy": "LAND",
+      "conflict": null,
+      "canonical": {
+        "version": "CANONICAL_PROPERTY_FACTS_V1",
+        "identity": {
+          "address": {
+            "value": "5714 Bent Creek Dr",
+            "status": "USER_PROVIDED",
+            "source": "PROPERTY_APP_VALUE",
+            "retrievedAt": null,
+            "effectiveDate": null,
+            "confidence": null,
+            "conflict": null,
+            "semanticState": "KNOWN",
+            "providerEvidence": null,
+            "provenance": {
+              "selected": "PROPERTY_APP_VALUE",
+              "policy": "SUBJECT_IDENTITY_AND_USER_NARRATIVE"
+            }
+          },
+          "city": {
+            "value": null,
+            "status": "UNKNOWN",
+            "source": null,
+            "retrievedAt": null,
+            "effectiveDate": null,
+            "confidence": null,
+            "conflict": null,
+            "semanticState": "UNKNOWN",
+            "providerEvidence": null
+          },
+          "state": {
+            "value": null,
+            "status": "UNKNOWN",
+            "source": null,
+            "retrievedAt": null,
+            "effectiveDate": null,
+            "confidence": null,
+            "conflict": null,
+            "semanticState": "UNKNOWN",
+            "providerEvidence": null
+          },
+          "zip": {
+            "value": null,
+            "status": "UNKNOWN",
+            "source": null,
+            "retrievedAt": null,
+            "effectiveDate": null,
+            "confidence": null,
+            "conflict": null,
+            "semanticState": "UNKNOWN",
+            "providerEvidence": null
+          },
+          "formattedAddress": {
+            "value": "5714 Bent Creek Dr",
+            "status": "USER_PROVIDED",
+            "source": "PROPERTY_APP_VALUE",
+            "retrievedAt": null,
+            "effectiveDate": null,
+            "confidence": null,
+            "conflict": null,
+            "semanticState": "KNOWN",
+            "providerEvidence": null
+          },
+          "latitude": {
+            "value": null,
+            "status": "UNKNOWN",
+            "source": null,
+            "retrievedAt": null,
+            "effectiveDate": null,
+            "confidence": null,
+            "conflict": null,
+            "semanticState": "UNKNOWN",
+            "providerEvidence": null
+          },
+          "longitude": {
+            "value": null,
+            "status": "UNKNOWN",
+            "source": null,
+            "retrievedAt": null,
+            "effectiveDate": null,
+            "confidence": null,
+            "conflict": null,
+            "semanticState": "UNKNOWN",
+            "providerEvidence": null
+          }
+        },
+        "physical": {
+          "propertyType": {
+            "value": "Land",
+            "status": "USER_PROVIDED",
+            "source": "PROPERTY_APP_VALUE",
+            "retrievedAt": null,
+            "effectiveDate": null,
+            "confidence": null,
+            "conflict": null,
+            "semanticState": "KNOWN",
+            "providerEvidence": {
+              "value": "Land",
+              "status": "VERIFIED_RECORD",
+              "source": "DETERMINISTIC_CONTROL_FIXTURE",
+              "confidence": null
+            },
+            "provenance": {
+              "selected": "PROPERTY_APP_VALUE",
+              "policy": "SUBJECT_IDENTITY_AND_USER_NARRATIVE"
+            }
+          },
+          "beds": {
+            "value": null,
+            "status": "NOT_APPLICABLE",
+            "semanticState": "NOT_APPLICABLE",
+            "source": "CANONICAL_SUBJECT_APPLICABILITY",
+            "retrievedAt": null,
+            "effectiveDate": null,
+            "confidence": null,
+            "conflict": null,
+            "providerEvidence": {
+              "value": 3,
+              "status": "VERIFIED_RECORD",
+              "source": "DETERMINISTIC_CONTROL_FIXTURE",
+              "confidence": null
+            }
+          },
+          "baths": {
+            "value": null,
+            "status": "NOT_APPLICABLE",
+            "semanticState": "NOT_APPLICABLE",
+            "source": "CANONICAL_SUBJECT_APPLICABILITY",
+            "retrievedAt": null,
+            "effectiveDate": null,
+            "confidence": null,
+            "conflict": null,
+            "providerEvidence": {
+              "value": 2,
+              "status": "VERIFIED_RECORD",
+              "source": "DETERMINISTIC_CONTROL_FIXTURE",
+              "confidence": null
+            }
+          },
+          "livingAreaSqft": {
+            "value": null,
+            "status": "NOT_APPLICABLE",
+            "semanticState": "NOT_APPLICABLE",
+            "source": "CANONICAL_SUBJECT_APPLICABILITY",
+            "retrievedAt": null,
+            "effectiveDate": null,
+            "confidence": null,
+            "conflict": null,
+            "providerEvidence": {
+              "value": 1063,
+              "status": "VERIFIED_RECORD",
+              "source": "DETERMINISTIC_CONTROL_FIXTURE",
+              "confidence": null
+            }
+          },
+          "lotSizeSqft": {
+            "value": 10000,
+            "status": "VERIFIED_RECORD",
+            "source": "DETERMINISTIC_CONTROL_FIXTURE",
+            "retrievedAt": null,
+            "effectiveDate": null,
+            "confidence": null,
+            "conflict": null,
+            "semanticState": "KNOWN",
+            "provenance": {
+              "selected": "DETERMINISTIC_CONTROL_FIXTURE",
+              "policy": "OBJECTIVE_RECORD_EVIDENCE"
+            }
+          },
+          "lotSizeAcres": {
+            "value": 0.2296,
+            "status": "USER_PROVIDED",
+            "source": "PROPERTY_APP_VALUE",
+            "retrievedAt": null,
+            "effectiveDate": null,
+            "confidence": null,
+            "conflict": null,
+            "semanticState": "KNOWN",
+            "providerEvidence": null
+          },
+          "yearBuilt": {
+            "value": null,
+            "status": "NOT_APPLICABLE",
+            "semanticState": "NOT_APPLICABLE",
+            "source": "CANONICAL_SUBJECT_APPLICABILITY",
+            "retrievedAt": null,
+            "effectiveDate": null,
+            "confidence": null,
+            "conflict": null,
+            "providerEvidence": {
+              "value": 1962,
+              "status": "VERIFIED_RECORD",
+              "source": "DETERMINISTIC_CONTROL_FIXTURE",
+              "confidence": null
+            }
+          },
+          "hoaFee": {
+            "value": 0,
+            "status": "VERIFIED_RECORD",
+            "source": "DETERMINISTIC_CONTROL_FIXTURE",
+            "retrievedAt": null,
+            "effectiveDate": null,
+            "confidence": null,
+            "conflict": null,
+            "semanticState": "KNOWN",
+            "provenance": {
+              "selected": "DETERMINISTIC_CONTROL_FIXTURE",
+              "policy": "OBJECTIVE_RECORD_EVIDENCE"
+            }
+          }
+        },
+        "financial": {
+          "askingPrice": {
+            "value": 15000,
+            "status": "USER_PROVIDED",
+            "source": "PROPERTY_APP_VALUE",
+            "retrievedAt": null,
+            "effectiveDate": null,
+            "confidence": null,
+            "conflict": null,
+            "semanticState": "KNOWN",
+            "providerEvidence": null
+          },
+          "rehab": {
+            "value": null,
+            "status": "NOT_APPLICABLE",
+            "semanticState": "NOT_APPLICABLE",
+            "source": "CANONICAL_SUBJECT_APPLICABILITY",
+            "retrievedAt": null,
+            "effectiveDate": null,
+            "confidence": null,
+            "conflict": null,
+            "providerEvidence": null
+          },
+          "capRate": {
+            "value": null,
+            "status": "NOT_APPLICABLE",
+            "semanticState": "NOT_APPLICABLE",
+            "source": "CANONICAL_SUBJECT_APPLICABILITY",
+            "retrievedAt": null,
+            "effectiveDate": null,
+            "confidence": null,
+            "conflict": null,
+            "providerEvidence": null
+          },
+          "noi": {
+            "value": null,
+            "status": "NOT_APPLICABLE",
+            "semanticState": "NOT_APPLICABLE",
+            "source": "CANONICAL_SUBJECT_APPLICABILITY",
+            "retrievedAt": null,
+            "effectiveDate": null,
+            "confidence": null,
+            "conflict": null,
+            "providerEvidence": null
+          }
+        },
+        "parcel": {
+          "county": {
+            "value": "Control County",
+            "status": "VERIFIED_RECORD",
+            "source": "DETERMINISTIC_CONTROL_FIXTURE",
+            "retrievedAt": null,
+            "effectiveDate": null,
+            "confidence": null,
+            "conflict": null,
+            "semanticState": "KNOWN",
+            "provenance": {
+              "selected": "DETERMINISTIC_CONTROL_FIXTURE",
+              "policy": "OBJECTIVE_RECORD_EVIDENCE"
+            }
+          },
+          "stateFips": {
+            "value": null,
+            "status": "UNKNOWN",
+            "source": null,
+            "retrievedAt": null,
+            "effectiveDate": null,
+            "confidence": null,
+            "conflict": null,
+            "semanticState": "UNKNOWN",
+            "providerEvidence": null
+          },
+          "countyFips": {
+            "value": null,
+            "status": "UNKNOWN",
+            "source": null,
+            "retrievedAt": null,
+            "effectiveDate": null,
+            "confidence": null,
+            "conflict": null,
+            "semanticState": "UNKNOWN",
+            "providerEvidence": null
+          },
+          "assessorId": {
+            "value": "APN-12.345.678",
+            "status": "VERIFIED_RECORD",
+            "source": "DETERMINISTIC_CONTROL_FIXTURE",
+            "retrievedAt": null,
+            "effectiveDate": null,
+            "confidence": null,
+            "conflict": null,
+            "semanticState": "KNOWN",
+            "provenance": {
+              "selected": "DETERMINISTIC_CONTROL_FIXTURE",
+              "policy": "OBJECTIVE_RECORD_EVIDENCE"
+            }
+          },
+          "legalDescription": {
+            "value": null,
+            "status": "UNKNOWN",
+            "source": null,
+            "retrievedAt": null,
+            "effectiveDate": null,
+            "confidence": null,
+            "conflict": null,
+            "semanticState": "UNKNOWN",
+            "providerEvidence": null
+          },
+          "subdivision": {
+            "value": "CONTROL SUBDIVISION",
+            "status": "VERIFIED_RECORD",
+            "source": "DETERMINISTIC_CONTROL_FIXTURE",
+            "retrievedAt": null,
+            "effectiveDate": null,
+            "confidence": null,
+            "conflict": null,
+            "semanticState": "KNOWN",
+            "provenance": {
+              "selected": "DETERMINISTIC_CONTROL_FIXTURE",
+              "policy": "OBJECTIVE_RECORD_EVIDENCE"
+            }
+          },
+          "zoning": {
+            "value": "RMD-B",
+            "status": "VERIFIED_RECORD",
+            "source": "DETERMINISTIC_CONTROL_FIXTURE",
+            "retrievedAt": null,
+            "effectiveDate": null,
+            "confidence": null,
+            "conflict": null,
+            "semanticState": "KNOWN",
+            "provenance": {
+              "selected": "DETERMINISTIC_CONTROL_FIXTURE",
+              "policy": "OBJECTIVE_RECORD_EVIDENCE"
+            }
+          }
+        },
+        "ownership": {
+          "ownerName": {
+            "value": "Authorized owner",
+            "status": "USER_PROVIDED",
+            "source": "PROPERTY_APP_VALUE",
+            "retrievedAt": null,
+            "effectiveDate": null,
+            "confidence": null,
+            "conflict": null,
+            "semanticState": "KNOWN",
+            "providerEvidence": null
+          },
+          "ownerType": {
+            "value": null,
+            "status": "UNKNOWN",
+            "source": null,
+            "retrievedAt": null,
+            "effectiveDate": null,
+            "confidence": null,
+            "conflict": null,
+            "semanticState": "UNKNOWN",
+            "providerEvidence": null
+          },
+          "ownerOccupied": {
+            "value": false,
+            "status": "VERIFIED_RECORD",
+            "source": "DETERMINISTIC_CONTROL_FIXTURE",
+            "retrievedAt": null,
+            "effectiveDate": null,
+            "confidence": null,
+            "conflict": null,
+            "semanticState": "KNOWN",
+            "provenance": {
+              "selected": "DETERMINISTIC_CONTROL_FIXTURE",
+              "policy": "OBJECTIVE_RECORD_EVIDENCE"
+            }
+          },
+          "ownerMailingAddress": {
+            "value": null,
+            "status": "UNKNOWN",
+            "source": null,
+            "retrievedAt": null,
+            "effectiveDate": null,
+            "confidence": null,
+            "conflict": null,
+            "semanticState": "UNKNOWN",
+            "providerEvidence": null
+          },
+          "ownershipRecordPresent": {
+            "value": null,
+            "status": "UNKNOWN",
+            "source": null,
+            "retrievedAt": null,
+            "effectiveDate": null,
+            "confidence": null,
+            "conflict": null,
+            "semanticState": "UNKNOWN",
+            "providerEvidence": null
+          }
+        },
+        "tax": {
+          "assessedValue": {
+            "value": 108188,
+            "status": "VERIFIED_RECORD",
+            "source": "DETERMINISTIC_CONTROL_FIXTURE",
+            "retrievedAt": null,
+            "effectiveDate": null,
+            "confidence": null,
+            "conflict": null,
+            "semanticState": "KNOWN",
+            "provenance": {
+              "selected": "DETERMINISTIC_CONTROL_FIXTURE",
+              "policy": "OBJECTIVE_RECORD_EVIDENCE"
+            }
+          },
+          "assessmentYear": {
+            "value": null,
+            "status": "UNKNOWN",
+            "source": null,
+            "retrievedAt": null,
+            "effectiveDate": null,
+            "confidence": null,
+            "conflict": null,
+            "semanticState": "UNKNOWN",
+            "providerEvidence": null
+          },
+          "annualPropertyTax": {
+            "value": 1843,
+            "status": "VERIFIED_RECORD",
+            "source": "DETERMINISTIC_CONTROL_FIXTURE",
+            "retrievedAt": null,
+            "effectiveDate": null,
+            "confidence": null,
+            "conflict": null,
+            "semanticState": "KNOWN",
+            "provenance": {
+              "selected": "DETERMINISTIC_CONTROL_FIXTURE",
+              "policy": "OBJECTIVE_RECORD_EVIDENCE"
+            }
+          },
+          "propertyTaxYear": {
+            "value": null,
+            "status": "UNKNOWN",
+            "source": null,
+            "retrievedAt": null,
+            "effectiveDate": null,
+            "confidence": null,
+            "conflict": null,
+            "semanticState": "UNKNOWN",
+            "providerEvidence": null
+          }
+        },
+        "sales": {
+          "lastSalePrice": {
+            "value": 80500,
+            "status": "VERIFIED_RECORD",
+            "source": "DETERMINISTIC_CONTROL_FIXTURE",
+            "retrievedAt": null,
+            "effectiveDate": null,
+            "confidence": null,
+            "conflict": null,
+            "semanticState": "KNOWN",
+            "provenance": {
+              "selected": "DETERMINISTIC_CONTROL_FIXTURE",
+              "policy": "OBJECTIVE_RECORD_EVIDENCE"
+            }
+          },
+          "lastSaleDate": {
+            "value": "2021-08-03",
+            "status": "VERIFIED_RECORD",
+            "source": "DETERMINISTIC_CONTROL_FIXTURE",
+            "retrievedAt": null,
+            "effectiveDate": null,
+            "confidence": null,
+            "conflict": null,
+            "semanticState": "KNOWN",
+            "provenance": {
+              "selected": "DETERMINISTIC_CONTROL_FIXTURE",
+              "policy": "OBJECTIVE_RECORD_EVIDENCE"
+            }
+          },
+          "saleHistory": {
+            "value": [
+              {
+                "price": 80500,
+                "date": "2021-08-03"
+              }
+            ],
+            "status": "VERIFIED_RECORD",
+            "source": "DETERMINISTIC_CONTROL_FIXTURE",
+            "retrievedAt": null,
+            "effectiveDate": null,
+            "confidence": null,
+            "conflict": null,
+            "semanticState": "KNOWN",
+            "provenance": {
+              "selected": "DETERMINISTIC_CONTROL_FIXTURE",
+              "policy": "OBJECTIVE_RECORD_EVIDENCE"
+            }
+          }
+        },
+        "notes": {
+          "userNotes": {
+            "value": "Original owner notes. HOA $0. APN-12.345.678. Material risk: flood review required.",
+            "status": "USER_PROVIDED",
+            "source": "PROPERTY_APP_VALUE",
+            "retrievedAt": null,
+            "effectiveDate": null,
+            "confidence": null,
+            "conflict": null,
+            "semanticState": "KNOWN",
+            "providerEvidence": null,
+            "provenance": {
+              "selected": "PROPERTY_APP_VALUE",
+              "policy": "SUBJECT_IDENTITY_AND_USER_NARRATIVE"
+            }
+          }
+        },
+        "features": {
+          "garage": {
+            "value": null,
+            "status": "UNKNOWN",
+            "source": null,
+            "retrievedAt": null,
+            "effectiveDate": null,
+            "confidence": null,
+            "conflict": null,
+            "semanticState": "UNKNOWN",
+            "providerEvidence": null
+          },
+          "pool": {
+            "value": null,
+            "status": "UNKNOWN",
+            "source": null,
+            "retrievedAt": null,
+            "effectiveDate": null,
+            "confidence": null,
+            "conflict": null,
+            "semanticState": "UNKNOWN",
+            "providerEvidence": null
+          },
+          "stories": {
+            "value": null,
+            "status": "UNKNOWN",
+            "source": null,
+            "retrievedAt": null,
+            "effectiveDate": null,
+            "confidence": null,
+            "conflict": null,
+            "semanticState": "UNKNOWN",
+            "providerEvidence": null
+          },
+          "units": {
+            "value": null,
+            "status": "UNKNOWN",
+            "source": null,
+            "retrievedAt": null,
+            "effectiveDate": null,
+            "confidence": null,
+            "conflict": null,
+            "semanticState": "UNKNOWN",
+            "providerEvidence": null
+          },
+          "fireplace": {
+            "value": null,
+            "status": "UNKNOWN",
+            "source": null,
+            "retrievedAt": null,
+            "effectiveDate": null,
+            "confidence": null,
+            "conflict": null,
+            "semanticState": "UNKNOWN",
+            "providerEvidence": null
+          },
+          "roof": {
+            "value": null,
+            "status": "UNKNOWN",
+            "source": null,
+            "retrievedAt": null,
+            "effectiveDate": null,
+            "confidence": null,
+            "conflict": null,
+            "semanticState": "UNKNOWN",
+            "providerEvidence": null
+          },
+          "hvac": {
+            "value": null,
+            "status": "UNKNOWN",
+            "source": null,
+            "retrievedAt": null,
+            "effectiveDate": null,
+            "confidence": null,
+            "conflict": null,
+            "semanticState": "UNKNOWN",
+            "providerEvidence": null
+          },
+          "architecture": {
+            "value": null,
+            "status": "UNKNOWN",
+            "source": null,
+            "retrievedAt": null,
+            "effectiveDate": null,
+            "confidence": null,
+            "conflict": null,
+            "semanticState": "UNKNOWN",
+            "providerEvidence": null
+          },
+          "exterior": {
+            "value": null,
+            "status": "UNKNOWN",
+            "source": null,
+            "retrievedAt": null,
+            "effectiveDate": null,
+            "confidence": null,
+            "conflict": null,
+            "semanticState": "UNKNOWN",
+            "providerEvidence": null
+          },
+          "view": {
+            "value": null,
+            "status": "UNKNOWN",
+            "source": null,
+            "retrievedAt": null,
+            "effectiveDate": null,
+            "confidence": null,
+            "conflict": null,
+            "semanticState": "UNKNOWN",
+            "providerEvidence": null
+          },
+          "propertyFeatures": {
+            "value": {
+              "garage": true,
+              "roofType": "Composition Shingle"
+            },
+            "status": "VERIFIED_RECORD",
+            "source": "DETERMINISTIC_CONTROL_FIXTURE",
+            "retrievedAt": null,
+            "effectiveDate": null,
+            "confidence": null,
+            "conflict": null,
+            "semanticState": "KNOWN",
+            "provenance": {
+              "selected": "DETERMINISTIC_CONTROL_FIXTURE",
+              "policy": "OBJECTIVE_RECORD_EVIDENCE"
+            }
+          }
+        },
+        "valuationReferences": {
+          "providerEstimate": {
+            "value": null,
+            "status": "UNKNOWN",
+            "source": null,
+            "retrievedAt": null,
+            "effectiveDate": null,
+            "confidence": null,
+            "conflict": null
+          },
+          "recentSalesMarketEstimate": {
+            "value": null,
+            "status": "UNKNOWN",
+            "source": null,
+            "retrievedAt": null,
+            "effectiveDate": null,
+            "confidence": null,
+            "conflict": null
+          }
+        },
+        "provenance": {
+          "registry": "CANONICAL_PROPERTY_FIELD_REGISTRY_V1"
+        },
+        "conflicts": []
+      },
+      "fields": [
+        "county",
+        "lotSizeSqft",
+        "yearBuilt",
+        "assessorId",
+        "zoning",
+        "subdivision",
+        "ownerOccupied",
+        "assessedValue",
+        "annualPropertyTax",
+        "latestSalePrice",
+        "latestSaleDate",
+        "saleHistory",
+        "hoaFee",
+        "propertyFeatures",
+        "propertyUserNotes",
+        "localizedPropertyUserNotes",
+        "propertyTypeConflictCode"
+      ],
+      "consumers": [
+        "CHAT",
+        "L1",
+        "L2",
+        "L3"
+      ],
+      "status": "PASS"
+    },
+    {
+      "control": "DALEGROVE",
+      "type": "SFR",
+      "providerType": "Single Family",
+      "strategy": "SUB_TO",
+      "conflict": null,
+      "canonical": {
+        "version": "CANONICAL_PROPERTY_FACTS_V1",
+        "identity": {
+          "address": {
+            "value": "9537 Dalegrove Dr",
+            "status": "USER_PROVIDED",
+            "source": "PROPERTY_APP_VALUE",
+            "retrievedAt": null,
+            "effectiveDate": null,
+            "confidence": null,
+            "conflict": null,
+            "semanticState": "KNOWN",
+            "providerEvidence": null,
+            "provenance": {
+              "selected": "PROPERTY_APP_VALUE",
+              "policy": "SUBJECT_IDENTITY_AND_USER_NARRATIVE"
+            }
+          },
+          "city": {
+            "value": null,
+            "status": "UNKNOWN",
+            "source": null,
+            "retrievedAt": null,
+            "effectiveDate": null,
+            "confidence": null,
+            "conflict": null,
+            "semanticState": "UNKNOWN",
+            "providerEvidence": null
+          },
+          "state": {
+            "value": null,
+            "status": "UNKNOWN",
+            "source": null,
+            "retrievedAt": null,
+            "effectiveDate": null,
+            "confidence": null,
+            "conflict": null,
+            "semanticState": "UNKNOWN",
+            "providerEvidence": null
+          },
+          "zip": {
+            "value": null,
+            "status": "UNKNOWN",
+            "source": null,
+            "retrievedAt": null,
+            "effectiveDate": null,
+            "confidence": null,
+            "conflict": null,
+            "semanticState": "UNKNOWN",
+            "providerEvidence": null
+          },
+          "formattedAddress": {
+            "value": "9537 Dalegrove Dr",
+            "status": "USER_PROVIDED",
+            "source": "PROPERTY_APP_VALUE",
+            "retrievedAt": null,
+            "effectiveDate": null,
+            "confidence": null,
+            "conflict": null,
+            "semanticState": "KNOWN",
+            "providerEvidence": null
+          },
+          "latitude": {
+            "value": null,
+            "status": "UNKNOWN",
+            "source": null,
+            "retrievedAt": null,
+            "effectiveDate": null,
+            "confidence": null,
+            "conflict": null,
+            "semanticState": "UNKNOWN",
+            "providerEvidence": null
+          },
+          "longitude": {
+            "value": null,
+            "status": "UNKNOWN",
+            "source": null,
+            "retrievedAt": null,
+            "effectiveDate": null,
+            "confidence": null,
+            "conflict": null,
+            "semanticState": "UNKNOWN",
+            "providerEvidence": null
+          }
+        },
+        "physical": {
+          "propertyType": {
+            "value": "SFR",
+            "status": "USER_PROVIDED",
+            "source": "PROPERTY_APP_VALUE",
+            "retrievedAt": null,
+            "effectiveDate": null,
+            "confidence": null,
+            "conflict": null,
+            "semanticState": "KNOWN",
+            "providerEvidence": {
+              "value": "Single Family",
+              "status": "VERIFIED_RECORD",
+              "source": "DETERMINISTIC_CONTROL_FIXTURE",
+              "confidence": null
+            },
+            "provenance": {
+              "selected": "PROPERTY_APP_VALUE",
+              "policy": "SUBJECT_IDENTITY_AND_USER_NARRATIVE"
+            }
+          },
+          "beds": {
+            "value": 3,
+            "status": "VERIFIED_RECORD",
+            "source": "DETERMINISTIC_CONTROL_FIXTURE",
+            "retrievedAt": null,
+            "effectiveDate": null,
+            "confidence": null,
+            "conflict": null,
+            "semanticState": "KNOWN",
+            "provenance": {
+              "selected": "DETERMINISTIC_CONTROL_FIXTURE",
+              "policy": "OBJECTIVE_RECORD_EVIDENCE"
+            }
+          },
+          "baths": {
+            "value": 2,
+            "status": "VERIFIED_RECORD",
+            "source": "DETERMINISTIC_CONTROL_FIXTURE",
+            "retrievedAt": null,
+            "effectiveDate": null,
+            "confidence": null,
+            "conflict": null,
+            "semanticState": "KNOWN",
+            "provenance": {
+              "selected": "DETERMINISTIC_CONTROL_FIXTURE",
+              "policy": "OBJECTIVE_RECORD_EVIDENCE"
+            }
+          },
+          "livingAreaSqft": {
+            "value": 1063,
+            "status": "VERIFIED_RECORD",
+            "source": "DETERMINISTIC_CONTROL_FIXTURE",
+            "retrievedAt": null,
+            "effectiveDate": null,
+            "confidence": null,
+            "conflict": null,
+            "semanticState": "KNOWN",
+            "provenance": {
+              "selected": "DETERMINISTIC_CONTROL_FIXTURE",
+              "policy": "OBJECTIVE_RECORD_EVIDENCE"
+            }
+          },
+          "lotSizeSqft": {
+            "value": 8316,
+            "status": "VERIFIED_RECORD",
+            "source": "DETERMINISTIC_CONTROL_FIXTURE",
+            "retrievedAt": null,
+            "effectiveDate": null,
+            "confidence": null,
+            "conflict": null,
+            "semanticState": "KNOWN",
+            "provenance": {
+              "selected": "DETERMINISTIC_CONTROL_FIXTURE",
+              "policy": "OBJECTIVE_RECORD_EVIDENCE"
+            }
+          },
+          "lotSizeAcres": {
+            "value": 0.1909,
+            "status": "USER_PROVIDED",
+            "source": "PROPERTY_APP_VALUE",
+            "retrievedAt": null,
+            "effectiveDate": null,
+            "confidence": null,
+            "conflict": null,
+            "semanticState": "KNOWN",
+            "providerEvidence": null
+          },
+          "yearBuilt": {
+            "value": 1962,
+            "status": "VERIFIED_RECORD",
+            "source": "DETERMINISTIC_CONTROL_FIXTURE",
+            "retrievedAt": null,
+            "effectiveDate": null,
+            "confidence": null,
+            "conflict": null,
+            "semanticState": "KNOWN",
+            "provenance": {
+              "selected": "DETERMINISTIC_CONTROL_FIXTURE",
+              "policy": "OBJECTIVE_RECORD_EVIDENCE"
+            }
+          },
+          "hoaFee": {
+            "value": 0,
+            "status": "VERIFIED_RECORD",
+            "source": "DETERMINISTIC_CONTROL_FIXTURE",
+            "retrievedAt": null,
+            "effectiveDate": null,
+            "confidence": null,
+            "conflict": null,
+            "semanticState": "KNOWN",
+            "provenance": {
+              "selected": "DETERMINISTIC_CONTROL_FIXTURE",
+              "policy": "OBJECTIVE_RECORD_EVIDENCE"
+            }
+          }
+        },
+        "financial": {
+          "askingPrice": {
+            "value": 2195000,
+            "status": "USER_PROVIDED",
+            "source": "PROPERTY_APP_VALUE",
+            "retrievedAt": null,
+            "effectiveDate": null,
+            "confidence": null,
+            "conflict": null,
+            "semanticState": "KNOWN",
+            "providerEvidence": null
+          },
+          "rehab": {
+            "value": null,
+            "status": "UNKNOWN",
+            "source": null,
+            "retrievedAt": null,
+            "effectiveDate": null,
+            "confidence": null,
+            "conflict": null,
+            "semanticState": "UNKNOWN",
+            "providerEvidence": null
+          },
+          "capRate": {
+            "value": null,
+            "status": "UNKNOWN",
+            "source": null,
+            "retrievedAt": null,
+            "effectiveDate": null,
+            "confidence": null,
+            "conflict": null,
+            "semanticState": "UNKNOWN",
+            "providerEvidence": null
+          },
+          "noi": {
+            "value": null,
+            "status": "UNKNOWN",
+            "source": null,
+            "retrievedAt": null,
+            "effectiveDate": null,
+            "confidence": null,
+            "conflict": null,
+            "semanticState": "UNKNOWN",
+            "providerEvidence": null
+          }
+        },
+        "parcel": {
+          "county": {
+            "value": "Control County",
+            "status": "VERIFIED_RECORD",
+            "source": "DETERMINISTIC_CONTROL_FIXTURE",
+            "retrievedAt": null,
+            "effectiveDate": null,
+            "confidence": null,
+            "conflict": null,
+            "semanticState": "KNOWN",
+            "provenance": {
+              "selected": "DETERMINISTIC_CONTROL_FIXTURE",
+              "policy": "OBJECTIVE_RECORD_EVIDENCE"
+            }
+          },
+          "stateFips": {
+            "value": null,
+            "status": "UNKNOWN",
+            "source": null,
+            "retrievedAt": null,
+            "effectiveDate": null,
+            "confidence": null,
+            "conflict": null,
+            "semanticState": "UNKNOWN",
+            "providerEvidence": null
+          },
+          "countyFips": {
+            "value": null,
+            "status": "UNKNOWN",
+            "source": null,
+            "retrievedAt": null,
+            "effectiveDate": null,
+            "confidence": null,
+            "conflict": null,
+            "semanticState": "UNKNOWN",
+            "providerEvidence": null
+          },
+          "assessorId": {
+            "value": "APN-12.345.678",
+            "status": "VERIFIED_RECORD",
+            "source": "DETERMINISTIC_CONTROL_FIXTURE",
+            "retrievedAt": null,
+            "effectiveDate": null,
+            "confidence": null,
+            "conflict": null,
+            "semanticState": "KNOWN",
+            "provenance": {
+              "selected": "DETERMINISTIC_CONTROL_FIXTURE",
+              "policy": "OBJECTIVE_RECORD_EVIDENCE"
+            }
+          },
+          "legalDescription": {
+            "value": null,
+            "status": "UNKNOWN",
+            "source": null,
+            "retrievedAt": null,
+            "effectiveDate": null,
+            "confidence": null,
+            "conflict": null,
+            "semanticState": "UNKNOWN",
+            "providerEvidence": null
+          },
+          "subdivision": {
+            "value": "CONTROL SUBDIVISION",
+            "status": "VERIFIED_RECORD",
+            "source": "DETERMINISTIC_CONTROL_FIXTURE",
+            "retrievedAt": null,
+            "effectiveDate": null,
+            "confidence": null,
+            "conflict": null,
+            "semanticState": "KNOWN",
+            "provenance": {
+              "selected": "DETERMINISTIC_CONTROL_FIXTURE",
+              "policy": "OBJECTIVE_RECORD_EVIDENCE"
+            }
+          },
+          "zoning": {
+            "value": "RMD-B",
+            "status": "VERIFIED_RECORD",
+            "source": "DETERMINISTIC_CONTROL_FIXTURE",
+            "retrievedAt": null,
+            "effectiveDate": null,
+            "confidence": null,
+            "conflict": null,
+            "semanticState": "KNOWN",
+            "provenance": {
+              "selected": "DETERMINISTIC_CONTROL_FIXTURE",
+              "policy": "OBJECTIVE_RECORD_EVIDENCE"
+            }
+          }
+        },
+        "ownership": {
+          "ownerName": {
+            "value": "Authorized owner",
+            "status": "USER_PROVIDED",
+            "source": "PROPERTY_APP_VALUE",
+            "retrievedAt": null,
+            "effectiveDate": null,
+            "confidence": null,
+            "conflict": null,
+            "semanticState": "KNOWN",
+            "providerEvidence": null
+          },
+          "ownerType": {
+            "value": null,
+            "status": "UNKNOWN",
+            "source": null,
+            "retrievedAt": null,
+            "effectiveDate": null,
+            "confidence": null,
+            "conflict": null,
+            "semanticState": "UNKNOWN",
+            "providerEvidence": null
+          },
+          "ownerOccupied": {
+            "value": false,
+            "status": "VERIFIED_RECORD",
+            "source": "DETERMINISTIC_CONTROL_FIXTURE",
+            "retrievedAt": null,
+            "effectiveDate": null,
+            "confidence": null,
+            "conflict": null,
+            "semanticState": "KNOWN",
+            "provenance": {
+              "selected": "DETERMINISTIC_CONTROL_FIXTURE",
+              "policy": "OBJECTIVE_RECORD_EVIDENCE"
+            }
+          },
+          "ownerMailingAddress": {
+            "value": null,
+            "status": "UNKNOWN",
+            "source": null,
+            "retrievedAt": null,
+            "effectiveDate": null,
+            "confidence": null,
+            "conflict": null,
+            "semanticState": "UNKNOWN",
+            "providerEvidence": null
+          },
+          "ownershipRecordPresent": {
+            "value": null,
+            "status": "UNKNOWN",
+            "source": null,
+            "retrievedAt": null,
+            "effectiveDate": null,
+            "confidence": null,
+            "conflict": null,
+            "semanticState": "UNKNOWN",
+            "providerEvidence": null
+          }
+        },
+        "tax": {
+          "assessedValue": {
+            "value": 108188,
+            "status": "VERIFIED_RECORD",
+            "source": "DETERMINISTIC_CONTROL_FIXTURE",
+            "retrievedAt": null,
+            "effectiveDate": null,
+            "confidence": null,
+            "conflict": null,
+            "semanticState": "KNOWN",
+            "provenance": {
+              "selected": "DETERMINISTIC_CONTROL_FIXTURE",
+              "policy": "OBJECTIVE_RECORD_EVIDENCE"
+            }
+          },
+          "assessmentYear": {
+            "value": null,
+            "status": "UNKNOWN",
+            "source": null,
+            "retrievedAt": null,
+            "effectiveDate": null,
+            "confidence": null,
+            "conflict": null,
+            "semanticState": "UNKNOWN",
+            "providerEvidence": null
+          },
+          "annualPropertyTax": {
+            "value": 1843,
+            "status": "VERIFIED_RECORD",
+            "source": "DETERMINISTIC_CONTROL_FIXTURE",
+            "retrievedAt": null,
+            "effectiveDate": null,
+            "confidence": null,
+            "conflict": null,
+            "semanticState": "KNOWN",
+            "provenance": {
+              "selected": "DETERMINISTIC_CONTROL_FIXTURE",
+              "policy": "OBJECTIVE_RECORD_EVIDENCE"
+            }
+          },
+          "propertyTaxYear": {
+            "value": null,
+            "status": "UNKNOWN",
+            "source": null,
+            "retrievedAt": null,
+            "effectiveDate": null,
+            "confidence": null,
+            "conflict": null,
+            "semanticState": "UNKNOWN",
+            "providerEvidence": null
+          }
+        },
+        "sales": {
+          "lastSalePrice": {
+            "value": 80500,
+            "status": "VERIFIED_RECORD",
+            "source": "DETERMINISTIC_CONTROL_FIXTURE",
+            "retrievedAt": null,
+            "effectiveDate": null,
+            "confidence": null,
+            "conflict": null,
+            "semanticState": "KNOWN",
+            "provenance": {
+              "selected": "DETERMINISTIC_CONTROL_FIXTURE",
+              "policy": "OBJECTIVE_RECORD_EVIDENCE"
+            }
+          },
+          "lastSaleDate": {
+            "value": "2021-08-03",
+            "status": "VERIFIED_RECORD",
+            "source": "DETERMINISTIC_CONTROL_FIXTURE",
+            "retrievedAt": null,
+            "effectiveDate": null,
+            "confidence": null,
+            "conflict": null,
+            "semanticState": "KNOWN",
+            "provenance": {
+              "selected": "DETERMINISTIC_CONTROL_FIXTURE",
+              "policy": "OBJECTIVE_RECORD_EVIDENCE"
+            }
+          },
+          "saleHistory": {
+            "value": [
+              {
+                "price": 80500,
+                "date": "2021-08-03"
+              }
+            ],
+            "status": "VERIFIED_RECORD",
+            "source": "DETERMINISTIC_CONTROL_FIXTURE",
+            "retrievedAt": null,
+            "effectiveDate": null,
+            "confidence": null,
+            "conflict": null,
+            "semanticState": "KNOWN",
+            "provenance": {
+              "selected": "DETERMINISTIC_CONTROL_FIXTURE",
+              "policy": "OBJECTIVE_RECORD_EVIDENCE"
+            }
+          }
+        },
+        "notes": {
+          "userNotes": {
+            "value": "Original owner notes. HOA $0. APN-12.345.678. Material risk: flood review required.",
+            "status": "USER_PROVIDED",
+            "source": "PROPERTY_APP_VALUE",
+            "retrievedAt": null,
+            "effectiveDate": null,
+            "confidence": null,
+            "conflict": null,
+            "semanticState": "KNOWN",
+            "providerEvidence": null,
+            "provenance": {
+              "selected": "PROPERTY_APP_VALUE",
+              "policy": "SUBJECT_IDENTITY_AND_USER_NARRATIVE"
+            }
+          }
+        },
+        "features": {
+          "garage": {
+            "value": null,
+            "status": "UNKNOWN",
+            "source": null,
+            "retrievedAt": null,
+            "effectiveDate": null,
+            "confidence": null,
+            "conflict": null,
+            "semanticState": "UNKNOWN",
+            "providerEvidence": null
+          },
+          "pool": {
+            "value": null,
+            "status": "UNKNOWN",
+            "source": null,
+            "retrievedAt": null,
+            "effectiveDate": null,
+            "confidence": null,
+            "conflict": null,
+            "semanticState": "UNKNOWN",
+            "providerEvidence": null
+          },
+          "stories": {
+            "value": null,
+            "status": "UNKNOWN",
+            "source": null,
+            "retrievedAt": null,
+            "effectiveDate": null,
+            "confidence": null,
+            "conflict": null,
+            "semanticState": "UNKNOWN",
+            "providerEvidence": null
+          },
+          "units": {
+            "value": null,
+            "status": "UNKNOWN",
+            "source": null,
+            "retrievedAt": null,
+            "effectiveDate": null,
+            "confidence": null,
+            "conflict": null,
+            "semanticState": "UNKNOWN",
+            "providerEvidence": null
+          },
+          "fireplace": {
+            "value": null,
+            "status": "UNKNOWN",
+            "source": null,
+            "retrievedAt": null,
+            "effectiveDate": null,
+            "confidence": null,
+            "conflict": null,
+            "semanticState": "UNKNOWN",
+            "providerEvidence": null
+          },
+          "roof": {
+            "value": null,
+            "status": "UNKNOWN",
+            "source": null,
+            "retrievedAt": null,
+            "effectiveDate": null,
+            "confidence": null,
+            "conflict": null,
+            "semanticState": "UNKNOWN",
+            "providerEvidence": null
+          },
+          "hvac": {
+            "value": null,
+            "status": "UNKNOWN",
+            "source": null,
+            "retrievedAt": null,
+            "effectiveDate": null,
+            "confidence": null,
+            "conflict": null,
+            "semanticState": "UNKNOWN",
+            "providerEvidence": null
+          },
+          "architecture": {
+            "value": null,
+            "status": "UNKNOWN",
+            "source": null,
+            "retrievedAt": null,
+            "effectiveDate": null,
+            "confidence": null,
+            "conflict": null,
+            "semanticState": "UNKNOWN",
+            "providerEvidence": null
+          },
+          "exterior": {
+            "value": null,
+            "status": "UNKNOWN",
+            "source": null,
+            "retrievedAt": null,
+            "effectiveDate": null,
+            "confidence": null,
+            "conflict": null,
+            "semanticState": "UNKNOWN",
+            "providerEvidence": null
+          },
+          "view": {
+            "value": null,
+            "status": "UNKNOWN",
+            "source": null,
+            "retrievedAt": null,
+            "effectiveDate": null,
+            "confidence": null,
+            "conflict": null,
+            "semanticState": "UNKNOWN",
+            "providerEvidence": null
+          },
+          "propertyFeatures": {
+            "value": {
+              "garage": true,
+              "roofType": "Composition Shingle"
+            },
+            "status": "VERIFIED_RECORD",
+            "source": "DETERMINISTIC_CONTROL_FIXTURE",
+            "retrievedAt": null,
+            "effectiveDate": null,
+            "confidence": null,
+            "conflict": null,
+            "semanticState": "KNOWN",
+            "provenance": {
+              "selected": "DETERMINISTIC_CONTROL_FIXTURE",
+              "policy": "OBJECTIVE_RECORD_EVIDENCE"
+            }
+          }
+        },
+        "valuationReferences": {
+          "providerEstimate": {
+            "value": null,
+            "status": "UNKNOWN",
+            "source": null,
+            "retrievedAt": null,
+            "effectiveDate": null,
+            "confidence": null,
+            "conflict": null
+          },
+          "recentSalesMarketEstimate": {
+            "value": null,
+            "status": "UNKNOWN",
+            "source": null,
+            "retrievedAt": null,
+            "effectiveDate": null,
+            "confidence": null,
+            "conflict": null
+          }
+        },
+        "provenance": {
+          "registry": "CANONICAL_PROPERTY_FIELD_REGISTRY_V1"
+        },
+        "conflicts": []
+      },
+      "fields": [
+        "county",
+        "lotSizeSqft",
+        "yearBuilt",
+        "assessorId",
+        "zoning",
+        "subdivision",
+        "ownerOccupied",
+        "assessedValue",
+        "annualPropertyTax",
+        "latestSalePrice",
+        "latestSaleDate",
+        "saleHistory",
+        "hoaFee",
+        "propertyFeatures",
+        "propertyUserNotes",
+        "localizedPropertyUserNotes",
+        "propertyTypeConflictCode"
+      ],
+      "consumers": [
+        "CHAT",
+        "L1",
+        "L2",
+        "L3"
+      ],
+      "status": "PASS"
+    },
+    {
+      "control": "HONOLULU",
+      "type": "SFR",
+      "providerType": "Single Family",
+      "strategy": "GENERIC_SELL",
+      "conflict": null,
+      "canonical": {
+        "version": "CANONICAL_PROPERTY_FACTS_V1",
+        "identity": {
+          "address": {
+            "value": "Honolulu control fixture",
+            "status": "USER_PROVIDED",
+            "source": "PROPERTY_APP_VALUE",
+            "retrievedAt": null,
+            "effectiveDate": null,
+            "confidence": null,
+            "conflict": null,
+            "semanticState": "KNOWN",
+            "providerEvidence": null,
+            "provenance": {
+              "selected": "PROPERTY_APP_VALUE",
+              "policy": "SUBJECT_IDENTITY_AND_USER_NARRATIVE"
+            }
+          },
+          "city": {
+            "value": "Honolulu",
+            "status": "USER_PROVIDED",
+            "source": "PROPERTY_APP_VALUE",
+            "retrievedAt": null,
+            "effectiveDate": null,
+            "confidence": null,
+            "conflict": null,
+            "semanticState": "KNOWN",
+            "providerEvidence": null,
+            "provenance": {
+              "selected": "PROPERTY_APP_VALUE",
+              "policy": "SUBJECT_IDENTITY_AND_USER_NARRATIVE"
+            }
+          },
+          "state": {
+            "value": null,
+            "status": "UNKNOWN",
+            "source": null,
+            "retrievedAt": null,
+            "effectiveDate": null,
+            "confidence": null,
+            "conflict": null,
+            "semanticState": "UNKNOWN",
+            "providerEvidence": null
+          },
+          "zip": {
+            "value": null,
+            "status": "UNKNOWN",
+            "source": null,
+            "retrievedAt": null,
+            "effectiveDate": null,
+            "confidence": null,
+            "conflict": null,
+            "semanticState": "UNKNOWN",
+            "providerEvidence": null
+          },
+          "formattedAddress": {
+            "value": "Honolulu control fixture, Honolulu",
+            "status": "USER_PROVIDED",
+            "source": "PROPERTY_APP_VALUE",
+            "retrievedAt": null,
+            "effectiveDate": null,
+            "confidence": null,
+            "conflict": null,
+            "semanticState": "KNOWN",
+            "providerEvidence": null
+          },
+          "latitude": {
+            "value": null,
+            "status": "UNKNOWN",
+            "source": null,
+            "retrievedAt": null,
+            "effectiveDate": null,
+            "confidence": null,
+            "conflict": null,
+            "semanticState": "UNKNOWN",
+            "providerEvidence": null
+          },
+          "longitude": {
+            "value": null,
+            "status": "UNKNOWN",
+            "source": null,
+            "retrievedAt": null,
+            "effectiveDate": null,
+            "confidence": null,
+            "conflict": null,
+            "semanticState": "UNKNOWN",
+            "providerEvidence": null
+          }
+        },
+        "physical": {
+          "propertyType": {
+            "value": "SFR",
+            "status": "USER_PROVIDED",
+            "source": "PROPERTY_APP_VALUE",
+            "retrievedAt": null,
+            "effectiveDate": null,
+            "confidence": null,
+            "conflict": null,
+            "semanticState": "KNOWN",
+            "providerEvidence": {
+              "value": "Single Family",
+              "status": "VERIFIED_RECORD",
+              "source": "DETERMINISTIC_CONTROL_FIXTURE",
+              "confidence": null
+            },
+            "provenance": {
+              "selected": "PROPERTY_APP_VALUE",
+              "policy": "SUBJECT_IDENTITY_AND_USER_NARRATIVE"
+            }
+          },
+          "beds": {
+            "value": 3,
+            "status": "VERIFIED_RECORD",
+            "source": "DETERMINISTIC_CONTROL_FIXTURE",
+            "retrievedAt": null,
+            "effectiveDate": null,
+            "confidence": null,
+            "conflict": null,
+            "semanticState": "KNOWN",
+            "provenance": {
+              "selected": "DETERMINISTIC_CONTROL_FIXTURE",
+              "policy": "OBJECTIVE_RECORD_EVIDENCE"
+            }
+          },
+          "baths": {
+            "value": 2,
+            "status": "VERIFIED_RECORD",
+            "source": "DETERMINISTIC_CONTROL_FIXTURE",
+            "retrievedAt": null,
+            "effectiveDate": null,
+            "confidence": null,
+            "conflict": null,
+            "semanticState": "KNOWN",
+            "provenance": {
+              "selected": "DETERMINISTIC_CONTROL_FIXTURE",
+              "policy": "OBJECTIVE_RECORD_EVIDENCE"
+            }
+          },
+          "livingAreaSqft": {
+            "value": 1063,
+            "status": "VERIFIED_RECORD",
+            "source": "DETERMINISTIC_CONTROL_FIXTURE",
+            "retrievedAt": null,
+            "effectiveDate": null,
+            "confidence": null,
+            "conflict": null,
+            "semanticState": "KNOWN",
+            "provenance": {
+              "selected": "DETERMINISTIC_CONTROL_FIXTURE",
+              "policy": "OBJECTIVE_RECORD_EVIDENCE"
+            }
+          },
+          "lotSizeSqft": {
+            "value": 10995,
+            "status": "VERIFIED_RECORD",
+            "source": "DETERMINISTIC_CONTROL_FIXTURE",
+            "retrievedAt": null,
+            "effectiveDate": null,
+            "confidence": null,
+            "conflict": null,
+            "semanticState": "KNOWN",
+            "provenance": {
+              "selected": "DETERMINISTIC_CONTROL_FIXTURE",
+              "policy": "OBJECTIVE_RECORD_EVIDENCE"
+            }
+          },
+          "lotSizeAcres": {
+            "value": 0.2524,
+            "status": "USER_PROVIDED",
+            "source": "PROPERTY_APP_VALUE",
+            "retrievedAt": null,
+            "effectiveDate": null,
+            "confidence": null,
+            "conflict": null,
+            "semanticState": "KNOWN",
+            "providerEvidence": null
+          },
+          "yearBuilt": {
+            "value": 1962,
+            "status": "VERIFIED_RECORD",
+            "source": "DETERMINISTIC_CONTROL_FIXTURE",
+            "retrievedAt": null,
+            "effectiveDate": null,
+            "confidence": null,
+            "conflict": null,
+            "semanticState": "KNOWN",
+            "provenance": {
+              "selected": "DETERMINISTIC_CONTROL_FIXTURE",
+              "policy": "OBJECTIVE_RECORD_EVIDENCE"
+            }
+          },
+          "hoaFee": {
+            "value": 0,
+            "status": "VERIFIED_RECORD",
+            "source": "DETERMINISTIC_CONTROL_FIXTURE",
+            "retrievedAt": null,
+            "effectiveDate": null,
+            "confidence": null,
+            "conflict": null,
+            "semanticState": "KNOWN",
+            "provenance": {
+              "selected": "DETERMINISTIC_CONTROL_FIXTURE",
+              "policy": "OBJECTIVE_RECORD_EVIDENCE"
+            }
+          }
+        },
+        "financial": {
+          "askingPrice": {
+            "value": 1842500,
+            "status": "USER_PROVIDED",
+            "source": "PROPERTY_APP_VALUE",
+            "retrievedAt": null,
+            "effectiveDate": null,
+            "confidence": null,
+            "conflict": null,
+            "semanticState": "KNOWN",
+            "providerEvidence": null
+          },
+          "rehab": {
+            "value": null,
+            "status": "UNKNOWN",
+            "source": null,
+            "retrievedAt": null,
+            "effectiveDate": null,
+            "confidence": null,
+            "conflict": null,
+            "semanticState": "UNKNOWN",
+            "providerEvidence": null
+          },
+          "capRate": {
+            "value": null,
+            "status": "UNKNOWN",
+            "source": null,
+            "retrievedAt": null,
+            "effectiveDate": null,
+            "confidence": null,
+            "conflict": null,
+            "semanticState": "UNKNOWN",
+            "providerEvidence": null
+          },
+          "noi": {
+            "value": null,
+            "status": "UNKNOWN",
+            "source": null,
+            "retrievedAt": null,
+            "effectiveDate": null,
+            "confidence": null,
+            "conflict": null,
+            "semanticState": "UNKNOWN",
+            "providerEvidence": null
+          }
+        },
+        "parcel": {
+          "county": {
+            "value": "Control County",
+            "status": "VERIFIED_RECORD",
+            "source": "DETERMINISTIC_CONTROL_FIXTURE",
+            "retrievedAt": null,
+            "effectiveDate": null,
+            "confidence": null,
+            "conflict": null,
+            "semanticState": "KNOWN",
+            "provenance": {
+              "selected": "DETERMINISTIC_CONTROL_FIXTURE",
+              "policy": "OBJECTIVE_RECORD_EVIDENCE"
+            }
+          },
+          "stateFips": {
+            "value": null,
+            "status": "UNKNOWN",
+            "source": null,
+            "retrievedAt": null,
+            "effectiveDate": null,
+            "confidence": null,
+            "conflict": null,
+            "semanticState": "UNKNOWN",
+            "providerEvidence": null
+          },
+          "countyFips": {
+            "value": null,
+            "status": "UNKNOWN",
+            "source": null,
+            "retrievedAt": null,
+            "effectiveDate": null,
+            "confidence": null,
+            "conflict": null,
+            "semanticState": "UNKNOWN",
+            "providerEvidence": null
+          },
+          "assessorId": {
+            "value": "APN-12.345.678",
+            "status": "VERIFIED_RECORD",
+            "source": "DETERMINISTIC_CONTROL_FIXTURE",
+            "retrievedAt": null,
+            "effectiveDate": null,
+            "confidence": null,
+            "conflict": null,
+            "semanticState": "KNOWN",
+            "provenance": {
+              "selected": "DETERMINISTIC_CONTROL_FIXTURE",
+              "policy": "OBJECTIVE_RECORD_EVIDENCE"
+            }
+          },
+          "legalDescription": {
+            "value": null,
+            "status": "UNKNOWN",
+            "source": null,
+            "retrievedAt": null,
+            "effectiveDate": null,
+            "confidence": null,
+            "conflict": null,
+            "semanticState": "UNKNOWN",
+            "providerEvidence": null
+          },
+          "subdivision": {
+            "value": "CONTROL SUBDIVISION",
+            "status": "VERIFIED_RECORD",
+            "source": "DETERMINISTIC_CONTROL_FIXTURE",
+            "retrievedAt": null,
+            "effectiveDate": null,
+            "confidence": null,
+            "conflict": null,
+            "semanticState": "KNOWN",
+            "provenance": {
+              "selected": "DETERMINISTIC_CONTROL_FIXTURE",
+              "policy": "OBJECTIVE_RECORD_EVIDENCE"
+            }
+          },
+          "zoning": {
+            "value": "RMD-B",
+            "status": "VERIFIED_RECORD",
+            "source": "DETERMINISTIC_CONTROL_FIXTURE",
+            "retrievedAt": null,
+            "effectiveDate": null,
+            "confidence": null,
+            "conflict": null,
+            "semanticState": "KNOWN",
+            "provenance": {
+              "selected": "DETERMINISTIC_CONTROL_FIXTURE",
+              "policy": "OBJECTIVE_RECORD_EVIDENCE"
+            }
+          }
+        },
+        "ownership": {
+          "ownerName": {
+            "value": "Authorized owner",
+            "status": "USER_PROVIDED",
+            "source": "PROPERTY_APP_VALUE",
+            "retrievedAt": null,
+            "effectiveDate": null,
+            "confidence": null,
+            "conflict": null,
+            "semanticState": "KNOWN",
+            "providerEvidence": null
+          },
+          "ownerType": {
+            "value": null,
+            "status": "UNKNOWN",
+            "source": null,
+            "retrievedAt": null,
+            "effectiveDate": null,
+            "confidence": null,
+            "conflict": null,
+            "semanticState": "UNKNOWN",
+            "providerEvidence": null
+          },
+          "ownerOccupied": {
+            "value": false,
+            "status": "VERIFIED_RECORD",
+            "source": "DETERMINISTIC_CONTROL_FIXTURE",
+            "retrievedAt": null,
+            "effectiveDate": null,
+            "confidence": null,
+            "conflict": null,
+            "semanticState": "KNOWN",
+            "provenance": {
+              "selected": "DETERMINISTIC_CONTROL_FIXTURE",
+              "policy": "OBJECTIVE_RECORD_EVIDENCE"
+            }
+          },
+          "ownerMailingAddress": {
+            "value": null,
+            "status": "UNKNOWN",
+            "source": null,
+            "retrievedAt": null,
+            "effectiveDate": null,
+            "confidence": null,
+            "conflict": null,
+            "semanticState": "UNKNOWN",
+            "providerEvidence": null
+          },
+          "ownershipRecordPresent": {
+            "value": null,
+            "status": "UNKNOWN",
+            "source": null,
+            "retrievedAt": null,
+            "effectiveDate": null,
+            "confidence": null,
+            "conflict": null,
+            "semanticState": "UNKNOWN",
+            "providerEvidence": null
+          }
+        },
+        "tax": {
+          "assessedValue": {
+            "value": 108188,
+            "status": "VERIFIED_RECORD",
+            "source": "DETERMINISTIC_CONTROL_FIXTURE",
+            "retrievedAt": null,
+            "effectiveDate": null,
+            "confidence": null,
+            "conflict": null,
+            "semanticState": "KNOWN",
+            "provenance": {
+              "selected": "DETERMINISTIC_CONTROL_FIXTURE",
+              "policy": "OBJECTIVE_RECORD_EVIDENCE"
+            }
+          },
+          "assessmentYear": {
+            "value": null,
+            "status": "UNKNOWN",
+            "source": null,
+            "retrievedAt": null,
+            "effectiveDate": null,
+            "confidence": null,
+            "conflict": null,
+            "semanticState": "UNKNOWN",
+            "providerEvidence": null
+          },
+          "annualPropertyTax": {
+            "value": 1843,
+            "status": "VERIFIED_RECORD",
+            "source": "DETERMINISTIC_CONTROL_FIXTURE",
+            "retrievedAt": null,
+            "effectiveDate": null,
+            "confidence": null,
+            "conflict": null,
+            "semanticState": "KNOWN",
+            "provenance": {
+              "selected": "DETERMINISTIC_CONTROL_FIXTURE",
+              "policy": "OBJECTIVE_RECORD_EVIDENCE"
+            }
+          },
+          "propertyTaxYear": {
+            "value": null,
+            "status": "UNKNOWN",
+            "source": null,
+            "retrievedAt": null,
+            "effectiveDate": null,
+            "confidence": null,
+            "conflict": null,
+            "semanticState": "UNKNOWN",
+            "providerEvidence": null
+          }
+        },
+        "sales": {
+          "lastSalePrice": {
+            "value": 80500,
+            "status": "VERIFIED_RECORD",
+            "source": "DETERMINISTIC_CONTROL_FIXTURE",
+            "retrievedAt": null,
+            "effectiveDate": null,
+            "confidence": null,
+            "conflict": null,
+            "semanticState": "KNOWN",
+            "provenance": {
+              "selected": "DETERMINISTIC_CONTROL_FIXTURE",
+              "policy": "OBJECTIVE_RECORD_EVIDENCE"
+            }
+          },
+          "lastSaleDate": {
+            "value": "2021-08-03",
+            "status": "VERIFIED_RECORD",
+            "source": "DETERMINISTIC_CONTROL_FIXTURE",
+            "retrievedAt": null,
+            "effectiveDate": null,
+            "confidence": null,
+            "conflict": null,
+            "semanticState": "KNOWN",
+            "provenance": {
+              "selected": "DETERMINISTIC_CONTROL_FIXTURE",
+              "policy": "OBJECTIVE_RECORD_EVIDENCE"
+            }
+          },
+          "saleHistory": {
+            "value": [
+              {
+                "price": 80500,
+                "date": "2021-08-03"
+              }
+            ],
+            "status": "VERIFIED_RECORD",
+            "source": "DETERMINISTIC_CONTROL_FIXTURE",
+            "retrievedAt": null,
+            "effectiveDate": null,
+            "confidence": null,
+            "conflict": null,
+            "semanticState": "KNOWN",
+            "provenance": {
+              "selected": "DETERMINISTIC_CONTROL_FIXTURE",
+              "policy": "OBJECTIVE_RECORD_EVIDENCE"
+            }
+          }
+        },
+        "notes": {
+          "userNotes": {
+            "value": "Original owner notes. HOA $0. APN-12.345.678. Material risk: flood review required.",
+            "status": "USER_PROVIDED",
+            "source": "PROPERTY_APP_VALUE",
+            "retrievedAt": null,
+            "effectiveDate": null,
+            "confidence": null,
+            "conflict": null,
+            "semanticState": "KNOWN",
+            "providerEvidence": null,
+            "provenance": {
+              "selected": "PROPERTY_APP_VALUE",
+              "policy": "SUBJECT_IDENTITY_AND_USER_NARRATIVE"
+            }
+          }
+        },
+        "features": {
+          "garage": {
+            "value": null,
+            "status": "UNKNOWN",
+            "source": null,
+            "retrievedAt": null,
+            "effectiveDate": null,
+            "confidence": null,
+            "conflict": null,
+            "semanticState": "UNKNOWN",
+            "providerEvidence": null
+          },
+          "pool": {
+            "value": null,
+            "status": "UNKNOWN",
+            "source": null,
+            "retrievedAt": null,
+            "effectiveDate": null,
+            "confidence": null,
+            "conflict": null,
+            "semanticState": "UNKNOWN",
+            "providerEvidence": null
+          },
+          "stories": {
+            "value": null,
+            "status": "UNKNOWN",
+            "source": null,
+            "retrievedAt": null,
+            "effectiveDate": null,
+            "confidence": null,
+            "conflict": null,
+            "semanticState": "UNKNOWN",
+            "providerEvidence": null
+          },
+          "units": {
+            "value": null,
+            "status": "UNKNOWN",
+            "source": null,
+            "retrievedAt": null,
+            "effectiveDate": null,
+            "confidence": null,
+            "conflict": null,
+            "semanticState": "UNKNOWN",
+            "providerEvidence": null
+          },
+          "fireplace": {
+            "value": null,
+            "status": "UNKNOWN",
+            "source": null,
+            "retrievedAt": null,
+            "effectiveDate": null,
+            "confidence": null,
+            "conflict": null,
+            "semanticState": "UNKNOWN",
+            "providerEvidence": null
+          },
+          "roof": {
+            "value": null,
+            "status": "UNKNOWN",
+            "source": null,
+            "retrievedAt": null,
+            "effectiveDate": null,
+            "confidence": null,
+            "conflict": null,
+            "semanticState": "UNKNOWN",
+            "providerEvidence": null
+          },
+          "hvac": {
+            "value": null,
+            "status": "UNKNOWN",
+            "source": null,
+            "retrievedAt": null,
+            "effectiveDate": null,
+            "confidence": null,
+            "conflict": null,
+            "semanticState": "UNKNOWN",
+            "providerEvidence": null
+          },
+          "architecture": {
+            "value": null,
+            "status": "UNKNOWN",
+            "source": null,
+            "retrievedAt": null,
+            "effectiveDate": null,
+            "confidence": null,
+            "conflict": null,
+            "semanticState": "UNKNOWN",
+            "providerEvidence": null
+          },
+          "exterior": {
+            "value": null,
+            "status": "UNKNOWN",
+            "source": null,
+            "retrievedAt": null,
+            "effectiveDate": null,
+            "confidence": null,
+            "conflict": null,
+            "semanticState": "UNKNOWN",
+            "providerEvidence": null
+          },
+          "view": {
+            "value": null,
+            "status": "UNKNOWN",
+            "source": null,
+            "retrievedAt": null,
+            "effectiveDate": null,
+            "confidence": null,
+            "conflict": null,
+            "semanticState": "UNKNOWN",
+            "providerEvidence": null
+          },
+          "propertyFeatures": {
+            "value": {
+              "garage": true,
+              "roofType": "Composition Shingle"
+            },
+            "status": "VERIFIED_RECORD",
+            "source": "DETERMINISTIC_CONTROL_FIXTURE",
+            "retrievedAt": null,
+            "effectiveDate": null,
+            "confidence": null,
+            "conflict": null,
+            "semanticState": "KNOWN",
+            "provenance": {
+              "selected": "DETERMINISTIC_CONTROL_FIXTURE",
+              "policy": "OBJECTIVE_RECORD_EVIDENCE"
+            }
+          }
+        },
+        "valuationReferences": {
+          "providerEstimate": {
+            "value": null,
+            "status": "UNKNOWN",
+            "source": null,
+            "retrievedAt": null,
+            "effectiveDate": null,
+            "confidence": null,
+            "conflict": null
+          },
+          "recentSalesMarketEstimate": {
+            "value": null,
+            "status": "UNKNOWN",
+            "source": null,
+            "retrievedAt": null,
+            "effectiveDate": null,
+            "confidence": null,
+            "conflict": null
+          }
+        },
+        "provenance": {
+          "registry": "CANONICAL_PROPERTY_FIELD_REGISTRY_V1"
+        },
+        "conflicts": []
+      },
+      "fields": [
+        "county",
+        "lotSizeSqft",
+        "yearBuilt",
+        "assessorId",
+        "zoning",
+        "subdivision",
+        "ownerOccupied",
+        "assessedValue",
+        "annualPropertyTax",
+        "latestSalePrice",
+        "latestSaleDate",
+        "saleHistory",
+        "hoaFee",
+        "propertyFeatures",
+        "propertyUserNotes",
+        "localizedPropertyUserNotes",
+        "propertyTypeConflictCode"
+      ],
+      "consumers": [
+        "CHAT",
+        "L1",
+        "L2",
+        "L3"
+      ],
+      "status": "PASS"
+    }
+  ]
+}

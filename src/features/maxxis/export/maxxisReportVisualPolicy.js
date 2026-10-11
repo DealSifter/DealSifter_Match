@@ -1,3 +1,5 @@
+import { selectReportBullets } from './reportContentPriority';
+
 export const REPORT_BODY_TIERS = Object.freeze({
   default: 10.5,
   tier1: 10,
@@ -71,11 +73,5 @@ export function selectSectionTextTier({ text = '', policy: sectionPolicy, measur
 }
 
 export function deduplicateAndBudgetItems(items, sectionPolicy) {
-  const seen = new Set();
-  return items.filter((item) => {
-    const key = String(item || '').trim().toLocaleLowerCase().replace(/\s+/g, ' ');
-    if (!key || seen.has(key)) return false;
-    seen.add(key);
-    return true;
-  }).slice(0, sectionPolicy.maximumBulletCount);
+  return selectReportBullets(items, sectionPolicy.maximumBulletCount);
 }

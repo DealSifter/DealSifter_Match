@@ -1,3 +1,4 @@
+import { canonicalFactValue } from './canonicalFactSemantics.ts';
 type Language = 'en' | 'pt' | 'es';
 type LookupIntent = Readonly<{ fields: readonly string[]; strategyGuidance: boolean }>;
 
@@ -80,16 +81,16 @@ function unavailable(language: Language, field: string) {
 
 function formatFact(field: string, fact: any, language: Language) {
   if (field === 'lastSale') {
-    const price = record(fact.price).value; const soldAt = record(fact.date).value;
+    const price = canonicalFactValue(fact.price); const soldAt = canonicalFactValue(fact.date);
     return present(price) || present(soldAt) ? `${LABELS[language].lastSale}: ${present(price) ? money(price, language) : '—'}${present(soldAt) ? ` · ${date(soldAt, language)}` : ''}.`
       : unavailable(language, field);
   }
   if (field === 'ownership') {
-    const name = record(fact.ownerName).value; const type = record(fact.ownerType).value; const exists = record(fact.recordPresent).value;
+    const name = canonicalFactValue(fact.ownerName); const type = canonicalFactValue(fact.ownerType); const exists = canonicalFactValue(fact.recordPresent);
     if (!present(name) && !present(type) && !present(exists)) return unavailable(language, field);
     return `${LABELS[language].ownership}: ${[name, type].filter(present).join(' · ') || (exists ? (language === 'pt' ? 'registro de titularidade disponível' : 'ownership record available') : '—')}.`;
   }
-  const value = record(fact).value;
+  const value = canonicalFactValue(fact);
   if (!present(value)) return unavailable(language, field);
   let displayed = String(value);
   if (['annualPropertyTax', 'assessedValue', 'hoaFee'].includes(field)) displayed = money(value, language);

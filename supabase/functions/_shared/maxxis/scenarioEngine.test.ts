@@ -23,8 +23,8 @@ describe('deterministic Maxxis ScenarioEngine', () => {
   });
 
   it('calculates Flip basis, profit, ROI and rehab delta', () => {
-    const before = calculateFlipScenario({ purchasePrice: 100000, rehab: 30000, acquisitionCosts: 5000, holdingCosts: 6000, sellingCosts: 12000, exitValue: 200000 });
-    const after = calculateFlipScenario({ purchasePrice: 100000, rehab: 50000, acquisitionCosts: 5000, holdingCosts: 6000, sellingCosts: 12000, exitValue: 200000 });
+    const before = calculateFlipScenario({ purchasePrice: 100000, rehab: 30000, financingCosts: 0, acquisitionCosts: 5000, holdingCosts: 6000, sellingCosts: 12000, exitValue: 200000 });
+    const after = calculateFlipScenario({ purchasePrice: 100000, rehab: 50000, financingCosts: 0, acquisitionCosts: 5000, holdingCosts: 6000, sellingCosts: 12000, exitValue: 200000 });
     expect(before).toMatchObject({ allInCost: 153000, projectedProfit: 47000, ROI: 30.719, profitMargin: 23.5 });
     expect(compareScenarioOutputs(before, after).projectedProfit.absolute).toBe(-20000);
   });
@@ -38,27 +38,27 @@ describe('deterministic Maxxis ScenarioEngine', () => {
 
   it('calculates Wholesale spreads and does not guarantee income', () => {
     expect(calculateWholesaleScenario({ contractPrice: 90000, estimatedBuyerPrice: 110000, assignmentFee: 12000, closingCosts: 1000 })).toEqual({
-      grossAssignmentSpread: 20000, estimatedNetAssignmentSpread: 11000, buyerBasis: 102000, assignmentFee: 12000, guaranteedIncome: false,
+      grossAssignmentSpread: 20000, estimatedNetAssignmentSpread: 11000, buyerBasis: 102000, assignmentFee: 12000, guaranteedIncome: false, calculationStatus: 'COMPLETE', unresolvedInputs: [],
     });
   });
 
   it('calculates LAND per-acre basis and target economics without residential fields', () => {
     const result = calculateLandScenario({ purchasePrice: 20000, lotSizeAcres: 2, closingCosts: 1000, dueDiligenceCosts: 1500,
-      surveyTitleCosts: 500, utilityCosts: 5000, targetExitPricePerAcre: 30000 });
+      surveyTitleCosts: 500, utilityCosts: 5000, siteImprovementCosts: 0, taxes: 0, targetExitPricePerAcre: 30000 });
     expect(result).toMatchObject({ purchasePricePerAcre: 10000, knownBasis: 28000, knownBasisPerAcre: 14000,
       targetExitValue: 60000, estimatedProfit: 32000, ROI: 114.2857 });
     expect(result).not.toHaveProperty('rehab');
   });
 
   it('solves stated targets as calculations, not recommendations', () => {
-    expect(solveScenarioTarget('FLIP', { rehab: 30000, acquisitionCosts: 5000, holdingCosts: 5000, sellingCosts: 10000, exitValue: 200000 }, { targetROI: 20 }))
+    expect(solveScenarioTarget('FLIP', { rehab: 30000, financingCosts: 0, acquisitionCosts: 5000, holdingCosts: 5000, sellingCosts: 10000, exitValue: 200000 }, { targetROI: 20 }))
       .toEqual({ purchasePriceRequired: 116666.67, label: 'PRICE_REQUIRED_FOR_STATED_TARGET' });
     expect(solveScenarioTarget('WHOLESALE', { contractPrice: 90000 }, { targetBuyerBasis: 110000 }))
       .toEqual({ assignmentFeeRequired: 20000, label: 'FEE_REQUIRED_FOR_STATED_TARGET' });
     expect(solveScenarioTarget('SELLER_FINANCING', { purchasePrice: 113900, annualInterestRate: 6, amortizationYears: 30 }, { targetMonthlyPI: 600 }))
       .toMatchObject({ downPaymentRequired: expect.any(Number), label: 'DOWN_PAYMENT_REQUIRED_FOR_STATED_TARGET' });
     expect(solveScenarioTarget('BUY_AND_HOLD', { monthlyPI: 900, vacancyRate: 5, managementPercent: 8, maintenancePercent: 5,
-      propertyTax: 2400, insurance: 1200 }, { targetDSCR: 1.25 })).toMatchObject({ monthlyRentRequired: expect.any(Number), label: 'RENT_REQUIRED_FOR_STATED_TARGET' });
+      propertyTax: 2400, insurance: 1200, HOA: 0, otherOperatingExpenses: 0 }, { targetDSCR: 1.25 })).toMatchObject({ monthlyRentRequired: expect.any(Number), label: 'RENT_REQUIRED_FOR_STATED_TARGET' });
   });
 
   it('isolates strategies, detects natural intents, and localizes compact responses', () => {
@@ -66,7 +66,7 @@ describe('deterministic Maxxis ScenarioEngine', () => {
     expect(detectScenarioStrategy('e se aluguel for $1.800?')).toBe('BUY_AND_HOLD');
     expect(detectsDealScenario('what if rehab is $50k?')).toBe(true);
     expect(() => calculateScenario('LAND', { purchasePrice: 10000, lotSizeAcres: 1, targetExitPrice: 30000 })).not.toThrow();
-    const resolution = resolveDealScenario({ message: 'what if rehab is $50k?', canonicalStrategy: 'FLIP', canonicalFacts: { purchasePrice: 100000, exitValue: 200000 } });
+    const resolution = resolveDealScenario({ message: 'what if rehab is $50k?', canonicalStrategy: 'FLIP', canonicalFacts: { purchasePrice: 100000, exitValue: 200000, acquisitionCosts: 0, holdingCosts: 0, financingCosts: 0, sellingCosts: 0 } });
     expect(formatDealScenarioAnswer(resolution, 'pt')).toContain('Cenário simulado');
     expect(formatDealScenarioAnswer(resolution, 'en')).toContain('Scenario simulated');
     expect(formatDealScenarioAnswer(resolution, 'es')).toContain('Escenario simulado');
@@ -86,7 +86,7 @@ describe('deterministic Maxxis ScenarioEngine', () => {
 
   it('compares labeled Scenario A and B within the bounded property session history', () => {
     const result = resolveDealScenario({ message: 'now compare A and B', canonicalStrategy: 'FLIP', canonicalFacts: { exitValue: 200000,
-      acquisitionCosts: 5000, holdingCosts: 5000, sellingCosts: 10000 }, history: [
+      acquisitionCosts: 5000, holdingCosts: 5000, financingCosts: 0, sellingCosts: 10000 }, history: [
       { role: 'user', content: 'Scenario A: offer $100k and rehab $30k for this flip' },
       { role: 'user', content: 'Scenario B: offer $90k and rehab $50k for this flip' },
     ] });
@@ -95,7 +95,7 @@ describe('deterministic Maxxis ScenarioEngine', () => {
   });
 
   it('understands strategy-specific natural changes without converting them into price changes', () => {
-    const rehab = resolveDealScenario({ message: 'and $10k more rehab?', canonicalStrategy: 'FLIP', canonicalFacts: { purchasePrice: 100000, exitValue: 200000 },
+    const rehab = resolveDealScenario({ message: 'and $10k more rehab?', canonicalStrategy: 'FLIP', canonicalFacts: { purchasePrice: 100000, exitValue: 200000, acquisitionCosts: 0, holdingCosts: 0, financingCosts: 0, sellingCosts: 0 },
       history: [{ role: 'user', content: 'rehab is $30k for this flip' }] });
     expect(rehab.scenario?.assumptions).toMatchObject({ purchasePrice: 100000, rehab: 40000 });
     expect(rehab.comparison.projectedProfit.absolute).toBe(-10000);

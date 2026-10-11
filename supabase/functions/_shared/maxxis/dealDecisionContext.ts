@@ -6,6 +6,7 @@ import {
   type StrategyRequirement,
 } from './strategyPlaybooks.ts';
 import { calculateLandUnitMetrics, parseCanonicalLotArea } from './landMetrics.ts';
+import { canonicalFactValue, resolveAnalysisPropertyType, propertyTypeFamily, toKnownFiniteNumber } from './canonicalFactSemantics.ts';
 
 type AnyRecord = Record<string, any>;
 type Provenance = 'PROVIDER_VERIFIED' | 'USER_PROVIDED' | 'USER_ASSUMPTION' | 'CALCULATED' | 'MARKET_REFERENCE';
@@ -46,8 +47,7 @@ export type DealDecisionContext = Readonly<{
 const record = (value: unknown): AnyRecord => value && typeof value === 'object' && !Array.isArray(value)
   ? value as AnyRecord : {};
 const list = (value: unknown): any[] => Array.isArray(value) ? value : [];
-const finite = (value: unknown) => value !== null && value !== undefined && value !== ''
-  && Number.isFinite(Number(value)) ? Number(value) : null;
+const finite = toKnownFiniteNumber;
 const text = (value: unknown) => String(value ?? '').trim();
 const present = (value: unknown) => value !== null && value !== undefined && value !== '';
 
@@ -57,10 +57,16 @@ function field(context: AnyRecord, key: string) {
 
 function fact(snapshot: AnyRecord, context: AnyRecord, keys: string[]) {
   const property = record(snapshot.propertyFacts);
+  if (keys.includes('resolvedAnalysisPropertyType')) return resolveAnalysisPropertyType(property);
   for (const key of keys) {
+    const canonicalKey = ({ price: 'askingPrice', purchasePrice: 'askingPrice', sqft: 'livingAreaSqft', latestSalePrice: 'lastSalePrice', latestSaleDate: 'lastSaleDate' } as Record<string, string>)[key] || key;
+    for (const group of Object.values(record(property.canonicalPropertyFacts))) {
+      const candidate = record(group)[canonicalKey];
+      if (candidate && Object.hasOwn(candidate, 'value')) return canonicalFactValue(candidate);
+    }
     if (present(property[key])) return property[key];
     const contextField = field(context, key);
-    if (present(contextField.value)) return contextField.value;
+    if (present(canonicalFactValue(contextField))) return canonicalFactValue(contextField);
   }
   return null;
 }
@@ -228,13 +234,16 @@ export function buildDealDecisionContext(snapshotInput: unknown): DealDecisionCo
   const benchmarkOptions = list(gate.benchmarkOptions);
   const comps = list(context.comparableEvidence || snapshot.comps);
   const price = finite(fact(snapshot, context, ['price', 'askingPrice']));
-  const rehab = finite(rehabAnalysis.value ?? fact(snapshot, context, ['rehab']));
+  const financialFacts = record(record(property.canonicalPropertyFacts).financial);
+  const rehab = financialFacts.rehab ? finite(financialFacts.rehab)
+    : Object.hasOwn(rehabAnalysis, 'value') ? finite({ value: rehabAnalysis.value, status: rehabAnalysis.provenance })
+      : finite(fact(snapshot, context, ['rehab']));
   const sqft = finite(fact(snapshot, context, ['sqft', 'livingAreaSqft']));
   const objective = fact(snapshot, context, ['objective']);
   const propertyType = fact(snapshot, context, ['resolvedAnalysisPropertyType', 'type', 'propertyType']);
   const strategies = list(record(context.investorContext).strategies);
   const lockedStrategy = text(property.resolvedAnalysisStrategy);
-  const strategy = (['FLIP', 'BUY_AND_HOLD', 'WHOLESALE', 'SELLER_FINANCING', 'SUB_TO', 'LAND', 'GENERIC_SELL']
+  const strategy = (propertyTypeFamily(propertyType) === 'LAND' ? 'LAND' : ['FLIP', 'BUY_AND_HOLD', 'WHOLESALE', 'SELLER_FINANCING', 'SUB_TO', 'LAND', 'GENERIC_SELL']
     .includes(lockedStrategy) ? lockedStrategy : resolveDealStrategy({ propertyType, objective, strategies, rehab })) as DealStrategy;
   const playbook = getStrategyPlaybook(strategy);
   const lotArea = parseCanonicalLotArea(
@@ -257,10 +266,11 @@ export function buildDealDecisionContext(snapshotInput: unknown): DealDecisionCo
   const providerAvmCompatible = text(recentSalesEstimate.providerAvmCompatibility || providerMarket.providerAvmCompatibility)
     !== 'QUARANTINED_FOR_TYPE_CONFLICT';
   const rentEstimate = finite(record(record(snapshot.rentalEvidence).rentEstimate).rent);
-  const assessedValue = finite(field(context, 'assessedValue').value);
-  const latestSalePrice = finite(field(context, 'latestSalePrice').value);
-  const reportedCapRate = strategy === 'LAND' ? null : metricValue(metrics, 'capRate') ?? finite(property.capRate);
-  const noi = finite(assumptions.noi ?? property.noi);
+  const assessedValue = finite(fact(snapshot, context, ['assessedValue']));
+  const latestSalePrice = finite(fact(snapshot, context, ['latestSalePrice']));
+  const reportedCapRate = strategy === 'LAND' ? null : financialFacts.capRate ? finite(financialFacts.capRate)
+    : metricValue(metrics, 'capRate') ?? finite(property.capRate);
+  const noi = finite(assumptions.noi ?? fact(snapshot, context, ['noi']));
   const calculatedCapRate = strategy !== 'LAND' && noi !== null && price !== null && price > 0
     ? Math.round((noi / price) * 10000) / 100 : null;
   const selectedComps = comps.filter((item) => item?.valuationRole === 'PRIMARY'
@@ -307,7 +317,10 @@ export function buildDealDecisionContext(snapshotInput: unknown): DealDecisionCo
       { address: item.address, salePrice: item.recordedSalePrice }, 'MARKET_REFERENCE', 'COMP_ENGINE_SUPPORTING_ONLY')),
   ].filter(Boolean) as DecisionDatum[];
   const values = { snapshot, property, context, valuation, metrics, assumptions, comps, price, rehab };
-  const conflicts = list(record(snapshot.propertyEvidence).evidence?.conflicts || record(snapshot.providerEvidence).conflicts);
+  const conflicts = [...list(record(snapshot.propertyEvidence).evidence?.conflicts || record(snapshot.providerEvidence).conflicts),
+    ...list(record(property.canonicalPropertyFacts).conflicts)]
+    .filter((item, index, values) => values.findIndex(candidate => candidate.field === item.field
+      && candidate.storedValue === item.storedValue && candidate.externalValue === item.externalValue) === index);
   const conflictGaps = conflicts.filter((conflict) => conflict?.resolution === 'UNRESOLVED'
     && ['CRITICAL_IDENTITY', 'HIGH_VALUATION'].includes(text(conflict?.classification))).map((conflict) => Object.freeze({
       code: `EVIDENCE_CONFLICT_${text(conflict.field).toUpperCase()}`,

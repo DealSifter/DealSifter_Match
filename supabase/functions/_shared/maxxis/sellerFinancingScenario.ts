@@ -1,3 +1,4 @@
+import { toKnownFiniteNumber } from './canonicalFactSemantics.ts';
 export type SellerFinancingScenarioInput = {
   purchasePrice: number;
   downPaymentAmount?: number | null;
@@ -27,7 +28,9 @@ export type SellerFinancingScenarioResult = Readonly<{
   principalPaidToBalloon: number;
   interestPaidToBalloon: number;
   totalScheduledPIToBalloon: number;
-  cashToEntry: number;
+  cashToEntry: number | null;
+  knownCashToEntry: number;
+  cashToEntryStatus: 'KNOWN' | 'NOT_EVALUATED';
   includedCashComponents: readonly string[];
 }>;
 
@@ -44,7 +47,7 @@ export type ParsedSellerFinancingAssumptions = Readonly<{
 
 const cents = (value: number) => Math.round((value + Number.EPSILON) * 100) / 100;
 const percent = (value: number) => Math.round((value + Number.EPSILON) * 10000) / 10000;
-const finite = (value: unknown) => Number.isFinite(Number(value)) ? Number(value) : null;
+const finite = toKnownFiniteNumber;
 
 export function calculateSellerFinancingScenario(input: SellerFinancingScenarioInput): SellerFinancingScenarioResult {
   const purchasePrice = finite(input.purchasePrice);
@@ -96,7 +99,9 @@ export function calculateSellerFinancingScenario(input: SellerFinancingScenarioI
     annualInterestRate: percent(annualInterestRate), amortizationMonths, balloonMonth,
     hasEarlyBalloon: balloonMonth < amortizationMonths, monthlyPI, balloonBalance,
     principalPaidToBalloon, interestPaidToBalloon, totalScheduledPIToBalloon,
-    cashToEntry: cents(downPaymentAmount + (closingCosts ?? 0) + (otherCashToSeller ?? 0)),
+    cashToEntry: closingCosts !== null && otherCashToSeller !== null ? cents(downPaymentAmount + closingCosts + otherCashToSeller) : null,
+    knownCashToEntry: cents([downPaymentAmount, closingCosts, otherCashToSeller].filter((value): value is number => value !== null).reduce((sum, value) => sum + value, 0)),
+    cashToEntryStatus: closingCosts !== null && otherCashToSeller !== null ? 'KNOWN' : 'NOT_EVALUATED',
     includedCashComponents: Object.freeze(includedCashComponents),
   });
 }
@@ -200,7 +205,7 @@ export function resolveSellerFinancingScenarioFromConversation(options: {
 }
 
 const locale = (language: string) => language === 'pt' ? 'pt-BR' : language === 'es' ? 'es-US' : 'en-US';
-const money = (value: number, language: string) => new Intl.NumberFormat(locale(language), {
+const money = (value: number | null, language: string) => value === null ? (language === 'pt' ? 'Não avaliado' : language === 'es' ? 'No evaluado' : 'Not evaluated') : new Intl.NumberFormat(locale(language), {
   style: 'currency', currency: 'USD', minimumFractionDigits: 2, maximumFractionDigits: 2,
 }).format(value);
 
@@ -236,7 +241,7 @@ export function formatSellerFinancingScenarioAnswer(resolution: ReturnType<typeo
 
 export function compareSellerFinancingScenarios(left: SellerFinancingScenarioResult, right: SellerFinancingScenarioResult) {
   return Object.freeze({
-    cashToEntry: cents(right.cashToEntry - left.cashToEntry),
+    cashToEntry: right.cashToEntry === null || left.cashToEntry === null ? null : cents(right.cashToEntry - left.cashToEntry),
     monthlyPI: cents(right.monthlyPI - left.monthlyPI),
     balloonBalance: cents(right.balloonBalance - left.balloonBalance),
     interestPaidToBalloon: cents(right.interestPaidToBalloon - left.interestPaidToBalloon),

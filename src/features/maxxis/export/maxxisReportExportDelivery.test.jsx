@@ -69,13 +69,16 @@ describe('Maxxis Report Export + Delivery Experience v1', () => {
     ['free', 'PROPERTY_RELEASE', 1],
     ['pro', 'MAXXIS_ANALYSIS', 3],
     ['enterprise', 'DEAL_INTELLIGENCE', 6],
-  ])('renders a physical %s PDF with exactly %i pages', async (plan, reportType, expectedPages) => {
+  ])('renders a physical %s PDF preserving its base pages and any P0 continuation', async (plan, reportType, expectedPages) => {
     const result = await renderMaxxisReportPdf({
       schema: schema(reportType),
       exportEntitlement: entitlement(plan, reportType, 'PDF'),
       generatedAt: '2026-09-15T12:00:00.000Z',
     });
-    expect(result).toMatchObject({ state: 'RENDERED', document: { pageCount: expectedPages, mimeType: 'application/pdf' } });
+    expect(result).toMatchObject({ state: 'RENDERED', document: { mimeType: 'application/pdf' } });
+    expect(result.document.pages).toHaveLength(expectedPages);
+    expect(result.document.pageCount).toBeGreaterThanOrEqual(expectedPages);
+    if (result.document.pageCount > expectedPages) expect(result.document.layoutAudit.continuations.length).toBeGreaterThan(0);
     expect(result.document.binary.byteLength).toBeGreaterThan(1000);
     expect(new TextDecoder('latin1').decode(result.document.binary.slice(0, 8))).toContain('%PDF-');
   });

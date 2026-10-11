@@ -7,6 +7,7 @@ import { MaxxisDealIntelligenceReportPreview } from './MaxxisDealIntelligenceRep
 const property = {
   id: 'property-1', title: 'Stored property', city: 'Austin', state: 'TX', zip: '78701',
   type: 'SFR', price: 320000, rehab: 60000, beds: 3, baths: 2, sqft: 1600,
+  acquisitionCosts: 0, holdingCosts: 0, financingCosts: 0, sellingCosts: 0,
   capRate: 5.2, lot: '7,500 sqft', objective: 'Fix and Flip', description: 'Stored notes',
   images: ['https://property-images.example.test/subject.jpg'], published: true,
 };

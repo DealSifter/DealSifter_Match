@@ -1,10 +1,11 @@
+import { canonicalFactValue, isMaterialValue, resolveAnalysisPropertyType, propertyTypeFamily, toKnownFiniteNumber } from '../../../../supabase/functions/_shared/maxxis/canonicalFactSemantics.ts';
 export const CANONICAL_INVESTMENT_ANALYSIS_VERSION = 'CANONICAL_INVESTMENT_ANALYSIS_V1';
 
 const list = (value) => Array.isArray(value) ? value : [];
 const object = (value) => value && typeof value === 'object' && !Array.isArray(value) ? value : {};
-const finite = (value) => Number.isFinite(Number(value)) ? Number(value) : null;
+const finite = toKnownFiniteNumber;
 const clamp = (value) => Math.max(0, Math.min(100, Math.round(value)));
-const present = (value) => value !== null && value !== undefined && value !== '';
+const present = isMaterialValue;
 const normalize = (value) => String(value || '').trim().toUpperCase().replace(/[^A-Z0-9]+/g, '_');
 
 const LABELS = Object.freeze({
@@ -64,8 +65,8 @@ const CRITERION_LABELS = Object.freeze({
 function resolvedStrategy(context) {
   const property = object(context?.propertyFacts);
   const explicit = normalize(context?.dealDecisionContext?.strategy || property.resolvedAnalysisStrategy || property.objective);
-  const type = normalize(property.resolvedAnalysisPropertyType || property.type);
-  if (type === 'LAND' || type === 'VACANT_LAND' || explicit === 'LAND') return 'LAND';
+  const type = propertyTypeFamily(resolveAnalysisPropertyType(property));
+  if (type === 'LAND' || explicit === 'LAND') return 'LAND';
   return Object.hasOwn(DIMENSION_FIELDS, explicit) ? explicit : 'GENERIC_SELL';
 }
 
@@ -74,17 +75,24 @@ function criterion(match, key, label) {
   const status = ['matched', 'not_matched', 'not_evaluated'].includes(item.status) ? item.status : 'not_evaluated';
   const max = finite(item.maxPoints); const points = finite(item.points);
   return Object.freeze({ key, label, status, explanation: item.detail || null,
-    points, maxPoints: max, score: status !== 'not_evaluated' && max > 0 ? clamp(((points || 0) / max) * 100) : null,
+    points, maxPoints: max, score: status !== 'not_evaluated' && points !== null && max !== null && max > 0 ? clamp((points / max) * 100) : null,
     source: 'CALCULATED' });
 }
 
 function fieldState(context, name) {
+  const canonical = object(context?.propertyFacts?.canonicalPropertyFacts);
+  const aliases = { latestSalePrice: 'lastSalePrice', latestSaleDate: 'lastSaleDate', sqft: 'livingAreaSqft' };
+  for (const group of Object.values(canonical)) {
+    if (!group || typeof group !== 'object') continue;
+    const fact = group[aliases[name] || name];
+    if (fact && Object.hasOwn(fact, 'value')) return { name, status: fact.status, value: canonicalFactValue(fact) };
+  }
   const field = object(context?.propertyContext?.fields)?.[name];
-  if (field && present(field.value)) return { name, status: field.status || 'UNKNOWN', value: field.value };
+  if (field) return { name, status: field.status || 'UNKNOWN', value: canonicalFactValue(field) };
   const property = object(context?.propertyFacts);
   if (present(property[name])) return { name, status: 'USER_PROVIDED', value: property[name] };
   if (name === 'rehab' && present(property.rehab)) return { name, status: 'USER_PROVIDED', value: property.rehab };
-  if (name === 'capRate' && present(property.capRate) && Number(property.capRate) !== 0) return { name, status: 'USER_PROVIDED', value: property.capRate };
+  if (name === 'capRate' && finite(property.capRate) !== null) return { name, status: 'USER_PROVIDED', value: property.capRate };
   const provider = object(context?.providerMarketContext);
   if (name === 'rentEstimate' && present(object(provider.rentEstimate).value)) return { name, status: 'ESTIMATED', value: object(provider.rentEstimate).value };
   return { name, status: 'UNKNOWN', value: null };
@@ -146,7 +154,7 @@ export function buildCanonicalInvestmentAnalysis(context = {}, language = 'en') 
     criterion(match, 'property_type', labels[2]), criterion(match, 'strategy', labels[3]),
   ]);
   return Object.freeze({ version: CANONICAL_INVESTMENT_ANALYSIS_VERSION, semantics: 'PROFILE_FIT_AND_DECISION_READINESS',
-    profileFit: Object.freeze({ score: finite(match.score), classification: match.classification || 'unavailable',
+    profileFit: Object.freeze({ score: match.calculable === false ? null : finite(match.score), classification: match.classification || 'unavailable',
       calculable: Boolean(match.calculable), semantics: 'PROFILE_FIT_ONLY', criteria,
       targetMarket: criteria[0], priceRange: criteria[1], propertyType: criteria[2], strategy: criteria[3] }),
     focusMap: buildFocusMap(context, locale),

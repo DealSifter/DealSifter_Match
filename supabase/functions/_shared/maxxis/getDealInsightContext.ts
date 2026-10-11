@@ -1,3 +1,4 @@
+import { toKnownFiniteNumber } from './canonicalFactSemantics.ts';
 import { createClient } from 'npm:@supabase/supabase-js@2';
 import {
   createBackendValuationEvidenceService,
@@ -42,7 +43,7 @@ import { parseCanonicalLotArea } from './landMetrics.ts';
 import { findRetainedRecentSalesReference } from './retainedReportReference.ts';
 import { calculateLandDevelopmentScenario, type LandDevelopmentEvidence } from './landDevelopmentScenario.ts';
 
-const finiteNumber = (value: unknown) => Number.isFinite(Number(value)) ? Number(value) : null;
+const finiteNumber = (value: unknown) => toKnownFiniteNumber(value) !== null ? Number(value) : null;
 const medianNumber = (values: number[]) => {
   if (!values.length) return null;
   const sorted = [...values].sort((left, right) => left - right);
@@ -331,11 +332,11 @@ export async function getDealInsightContextForAuthenticatedUser(
         cacheOnly,
       });
       const explicitRehab = analysisInputs.rehabBudget !== null && analysisInputs.rehabBudget !== ''
-        && Number.isFinite(Number(analysisInputs.rehabBudget))
+        && toKnownFiniteNumber(analysisInputs.rehabBudget) !== null
         ? Number(analysisInputs.rehabBudget) : null;
-      const storedPropertyRehab = Number(details.property?.rehab);
+      const storedPropertyRehab = toKnownFiniteNumber(details.property?.rehab);
       const benchmarkMayApply = analysisInputs.rehabSource !== 'USER_CURATED_REHAB_BENCHMARK_2026'
-        || !Number.isFinite(storedPropertyRehab) || storedPropertyRehab <= 0;
+        || storedPropertyRehab === null;
       if (!details.property || explicitRehab === null || !benchmarkMayApply) return details;
       activeRehabInputSource = analysisInputs.rehabSource || 'USER_PROVIDED';
       const property = { ...details.property, rehab: explicitRehab };
@@ -448,24 +449,24 @@ export async function getDealInsightContextForAuthenticatedUser(
     livingAreaSqft: result.property?.sqft,
     condition: analysisInputs.targetCondition,
   });
-  const activeRehab = Number(result.property?.rehab);
+  const activeRehab = toKnownFiniteNumber(result.property?.rehab);
   const explicitRehab = Boolean(activeRehabInputSource);
   const rehabAnalysis = {
     applicability: analysisApplicability.rehab,
-    value: rehabNotApplicable ? null : Number.isFinite(activeRehab) && activeRehab >= 0 ? activeRehab : null,
+    value: rehabNotApplicable ? null : activeRehab !== null && activeRehab >= 0 ? activeRehab : null,
     source: rehabNotApplicable ? null : explicitRehab
       ? activeRehabInputSource || 'USER_PROVIDED'
-      : Number.isFinite(activeRehab) && activeRehab > 0 ? 'PROPERTY_APP_VALUE' : null,
+      : activeRehab !== null && activeRehab >= 0 ? 'PROPERTY_APP_VALUE' : null,
     provenance: rehabNotApplicable ? 'NOT_APPLICABLE' : explicitRehab && activeRehabInputSource === 'USER_CURATED_REHAB_BENCHMARK_2026'
-      ? 'ESTIMATED' : explicitRehab ? 'USER_PROVIDED' : Number.isFinite(activeRehab) && activeRehab > 0 ? 'REPORTED' : 'UNAVAILABLE',
+      ? 'ESTIMATED' : explicitRehab ? 'USER_PROVIDED' : activeRehab !== null && activeRehab >= 0 ? 'REPORTED' : 'UNAVAILABLE',
     confidence: explicitRehab && activeRehabInputSource === 'USER_CURATED_REHAB_BENCHMARK_2026' ? 'LOW' : null,
     benchmark: rehabBenchmark,
     sanityCheck: sanityCheckRehabAgainstBenchmark2026(activeRehab, rehabBenchmark),
     providerCalls: 0,
   } as const;
-  const providerEstimateValue = providerEvidenceState.valuation?.valuation.providerEstimate.value.value ?? null;
-  const providerEstimateLow = providerEvidenceState.valuation?.valuation.providerEstimate.rangeLow.value ?? null;
-  const providerEstimateHigh = providerEvidenceState.valuation?.valuation.providerEstimate.rangeHigh.value ?? null;
+  const providerEstimateValue = toKnownFiniteNumber(providerEvidenceState.valuation?.valuation.providerEstimate.value);
+  const providerEstimateLow = toKnownFiniteNumber(providerEvidenceState.valuation?.valuation.providerEstimate.rangeLow);
+  const providerEstimateHigh = toKnownFiniteNumber(providerEvidenceState.valuation?.valuation.providerEstimate.rangeHigh);
   const soldStatistics = providerEvidenceState.sold?.recordedSoldCompSelection.descriptiveStatistics || null;
   const propertyConflicts = result.evidence.state === 'available' ? result.evidence.evidence?.conflicts || [] : [];
   const providerSubjectType = providerEvidenceState.valuation?.valuation.subjectProperty.propertyType.value
@@ -474,9 +475,9 @@ export async function getDealInsightContextForAuthenticatedUser(
     conflict.resolution === 'UNRESOLVED' && conflict.classification === 'CRITICAL_IDENTITY');
   const recentSalesSubject = {
     propertyType: result.property?.type || null,
-    livingAreaSqft: Number.isFinite(Number(result.property?.sqft)) ? Number(result.property?.sqft) : null,
-    lotSizeSqft: Number(result.dealIntelligence?.propertyContext?.fields?.lotSizeSqft?.value)
-      || parseCanonicalLotArea(result.property?.lot).lotSizeSqft,
+    livingAreaSqft: toKnownFiniteNumber(result.property?.sqft) !== null ? Number(result.property?.sqft) : null,
+    lotSizeSqft: toKnownFiniteNumber(result.dealIntelligence?.propertyContext?.fields?.lotSizeSqft)
+      ?? parseCanonicalLotArea(result.property?.lot).lotSizeSqft,
     providerPropertyType: typeof providerSubjectType === 'string' ? providerSubjectType : null,
     materialIdentityConflict,
   };
@@ -504,8 +505,8 @@ export async function getDealInsightContextForAuthenticatedUser(
     evidenceFreshness,
     providerAvailability: providerEvidenceState.valuation?.providerAvailability || providerEvidenceState.sold?.providerAvailability || 'UNKNOWN',
     savedRecentSalesReference,
-    providerEstimate: Number.isFinite(Number(providerEstimateValue)) ? Number(providerEstimateValue) : null,
-    providerEstimateRange: Number.isFinite(Number(providerEstimateLow)) && Number.isFinite(Number(providerEstimateHigh))
+    providerEstimate: toKnownFiniteNumber(providerEstimateValue) !== null ? Number(providerEstimateValue) : null,
+    providerEstimateRange: toKnownFiniteNumber(providerEstimateLow) !== null && toKnownFiniteNumber(providerEstimateHigh) !== null
       ? { low: Number(providerEstimateLow), high: Number(providerEstimateHigh) } : null,
     providerComparableCount: providerEvidenceState.valuation?.valuation.providerComparableCount || 0,
     recordedSoldCount: providerEvidenceState.sold?.soldPool.records.length || 0,
@@ -515,7 +516,7 @@ export async function getDealInsightContextForAuthenticatedUser(
     maximumRecordedSalePrice: soldStatistics?.maximumRecordedSalePrice ?? null,
     recentSalesMarketEstimate,
     providerEstimateDivergence: recentSalesMarketEstimate
-      ? providerEstimateDivergence(Number.isFinite(Number(providerEstimateValue)) ? Number(providerEstimateValue) : null, recentSalesMarketEstimate)
+      ? providerEstimateDivergence(toKnownFiniteNumber(providerEstimateValue) !== null ? Number(providerEstimateValue) : null, recentSalesMarketEstimate)
       : null,
     providerAvmCompatibility: recentSalesMarketEstimate?.providerAvmCompatibility || 'UNKNOWN',
     saleListings: listingSummary(supplementalEvidence?.saleListings),

@@ -1,4 +1,5 @@
 import { INTELLIGENCE_REPORT_TYPES } from '../intelligenceAccess';
+import { canonicalFactValue, resolveAnalysisPropertyType, resolveAnalysisStrategy, toKnownFiniteNumber } from '../../../supabase/functions/_shared/maxxis/canonicalFactSemantics.ts';
 
 export const MAXXIS_REPORT_SCHEMA_VERSION = 'MAXXIS_REPORT_SCHEMA_V2';
 export const MAXXIS_REPORT_SOURCE_TYPES = Object.freeze([
@@ -32,6 +33,9 @@ const PROPERTY_KEYS = Object.freeze([
   'resolvedAnalysisPropertyType', 'resolvedAnalysisStrategy', 'providerPropertyType',
   'propertyTypeConflict', 'materialPropertyFeatures', 'fieldProvenance', 'reportFieldVisibility',
   'canonicalPropertyFacts',
+  'propertyTypeConflictCode', 'providerPropertyTypeFamily', 'localizedPropertyUserNotes', 'propertyUserNotesOriginal',
+  'localizedDescription', 'localizedOwnerNotes',
+  'acquisitionCosts', 'holdingCosts', 'financingCosts', 'sellingCosts', 'noi',
 ]);
 const COMPARABLE_KEYS = Object.freeze([
   'compIdentifier', 'address', 'salePrice', 'saleDate', 'distanceMiles', 'similarity',
@@ -45,7 +49,7 @@ const isObject = (value) => Boolean(value) && typeof value === 'object' && !Arra
 const hasReportValue = (value) => value !== null && value !== undefined && value !== '';
 const sourceType = (value, fallback = 'UNKNOWN') => MAXXIS_REPORT_SOURCE_TYPES.includes(value) ? value : fallback;
 const emptySection = () => Object.freeze({ available: false, sourceType: 'UNKNOWN', data: null });
-const finiteCoordinate = (value) => value !== null && value !== '' && Number.isFinite(Number(value)) ? Number(value) : null;
+const finiteCoordinate = (value) => value !== null && value !== '' && toKnownFiniteNumber(value) !== null ? Number(value) : null;
 const isVacantLandType = (value) => /^(?:vacant\s+land|land|lot|terreno|solar)$/i.test(String(value || '').trim());
 const resolvedStrategyFor = (type, objective) => {
   const propertyType = String(type || '').trim().toLowerCase();
@@ -106,25 +110,24 @@ export function mergeMaxxisReportProperty(evidenceProperty, appProperty) {
   merged.propertyUserNotes = hasReportValue(app.propertyUserNotes) ? app.propertyUserNotes
     : hasReportValue(app.notes) ? app.notes
       : hasReportValue(evidence.propertyUserNotes) ? evidence.propertyUserNotes : null;
+  merged.propertyUserNotesOriginal = merged.propertyUserNotes;
   merged.maxxisPropertySummary = hasReportValue(evidence.maxxisPropertySummary)
     ? evidence.maxxisPropertySummary : (hasReportValue(app.description) ? app.description : null);
   merged.maxxisAnalyticalCommentary = hasReportValue(evidence.maxxisAnalyticalCommentary)
     ? evidence.maxxisAnalyticalCommentary : null;
-  merged.resolvedAnalysisPropertyType = hasReportValue(app.type) ? app.type
-    : (evidence.resolvedAnalysisPropertyType || evidence.type || null);
+  merged.resolvedAnalysisPropertyType = evidence.canonicalPropertyFacts
+    ? resolveAnalysisPropertyType(evidence)
+    : resolveAnalysisPropertyType(app) ?? resolveAnalysisPropertyType(evidence);
   merged.type = merged.resolvedAnalysisPropertyType || merged.type;
   merged.resolvedAnalysisStrategy = app.resolvedAnalysisStrategy
     || (hasReportValue(app.type) || hasReportValue(app.objective)
       ? resolvedStrategyFor(merged.type, merged.objective)
       : evidence.resolvedAnalysisStrategy || resolvedStrategyFor(merged.type, merged.objective));
-  if (Number(merged.capRate) === 0 && merged.resolvedAnalysisStrategy !== 'BUY_AND_HOLD') {
-    delete merged.capRate;
-  }
+  if (evidence.canonicalPropertyFacts) merged.resolvedAnalysisStrategy = resolveAnalysisStrategy(merged.resolvedAnalysisPropertyType, evidence.objective || merged.objective);
   const images = [...(Array.isArray(evidence.images) ? evidence.images : []),
     ...(Array.isArray(app.images) ? app.images : [])]
     .filter((item) => typeof item === 'string' && item.trim())
-    .filter((item, index, values) => values.indexOf(item) === index)
-    .slice(0, 8);
+    .filter((item, index, values) => values.indexOf(item) === index);
   if (images.length) merged.images = images;
   const evidenceOwner = isObject(evidence.owner) ? evidence.owner : {};
   const appOwner = isObject(app.owner) ? app.owner : {};
@@ -140,6 +143,10 @@ export function mergeMaxxisReportProperty(evidenceProperty, appProperty) {
     status: hasReportValue(evidenceOwner.status) ? evidenceOwner.status : appOwner.status,
     allowedContacts,
   };
+  for (const key of ['notes', 'description', 'localizedNotes', 'notesOriginal']) {
+    const value = hasReportValue(appOwner[key]) ? appOwner[key] : evidenceOwner[key];
+    if (hasReportValue(value)) owner[key] = value;
+  }
   if (hasReportValue(owner.name) || hasReportValue(owner.type) || hasReportValue(owner.status) || allowedContacts.length) {
     merged.owner = owner;
   }
@@ -162,6 +169,7 @@ const CANONICAL_TO_OVERVIEW = Object.freeze({
   'tax.propertyTaxYear': 'propertyTaxYear', 'sales.lastSalePrice': 'latestSalePrice',
   'sales.lastSaleDate': 'latestSaleDate', 'sales.saleHistory': 'saleHistory', 'notes.userNotes': 'propertyUserNotes',
   'features.propertyFeatures': 'propertyFeatures',
+  'financial.askingPrice': 'price', 'financial.rehab': 'rehab', 'financial.capRate': 'capRate', 'financial.noi': 'noi',
 });
 
 /** A single factual overview projection shared by L1, L2 and L3. */
@@ -171,20 +179,24 @@ export function buildPropertyOverviewModel(property) {
     .filter((key) => Object.hasOwn(property, key))
     .map((key) => [key, property[key] === undefined ? null : property[key]]));
   const canonical = isObject(property.canonicalPropertyFacts) ? property.canonicalPropertyFacts : null;
+  const resolvedType = resolveAnalysisPropertyType(property);
   if (canonical) {
     Object.entries(CANONICAL_TO_OVERVIEW).forEach(([path, target]) => {
       const [group, field] = path.split('.');
       const fact = canonical?.[group]?.[field];
       // Canonical evidence wins for objective facts. App-owned Notes remain exact.
-      if (hasReportValue(fact?.value) && (target !== 'propertyUserNotes' || !hasReportValue(data.propertyUserNotes))) {
-        data[target] = fact.value;
+      const value = canonicalFactValue(fact);
+      if (target === 'type') return;
+      if (hasReportValue(value) && (target !== 'propertyUserNotes' || !hasReportValue(data.propertyUserNotes))) {
+        data[target] = value;
+      } else if (['UNKNOWN', 'UNAVAILABLE', 'NOT_APPLICABLE', 'NOT_EVALUATED'].includes(fact?.semanticState || fact?.status)) {
+        delete data[target];
       }
     });
     data.canonicalPropertyFacts = canonical;
   }
-  if (!hasReportValue(data.resolvedAnalysisPropertyType) && hasReportValue(data.type)) data.resolvedAnalysisPropertyType = data.type;
-  if (!hasReportValue(data.resolvedAnalysisStrategy)) data.resolvedAnalysisStrategy = resolvedStrategyFor(data.type, data.objective);
-  if (Number(data.capRate) === 0 && data.resolvedAnalysisStrategy !== 'BUY_AND_HOLD') delete data.capRate;
+  if (hasReportValue(resolvedType)) data.type = data.resolvedAnalysisPropertyType = resolvedType;
+  if (!hasReportValue(data.resolvedAnalysisStrategy) || isVacantLandType(resolvedType)) data.resolvedAnalysisStrategy = resolveAnalysisStrategy(resolvedType, data.objective);
   if (isVacantLandType(data.type)) {
     ['beds', 'baths', 'sqft', 'yearBuilt', 'rehab', 'capRate'].forEach((key) => delete data[key]);
   }
@@ -204,21 +216,23 @@ export function buildPropertyOverviewModel(property) {
       allowedContacts: Object.freeze(Array.isArray(owner.allowedContacts) ? owner.allowedContacts.map((contact) => Object.freeze({
         type: contact?.type || null, label: contact?.label || null, value: contact?.value || null,
       })) : []),
+      ...Object.fromEntries(['notes', 'description', 'localizedNotes', 'notesOriginal']
+        .filter((key) => hasReportValue(owner[key])).map((key) => [key, owner[key]])),
     });
   }
   return Object.keys(data).length ? Object.freeze(data) : null;
 }
 
-const finitePositive = (value) => Number.isFinite(Number(value)) && Number(value) > 0 ? Number(value) : null;
+const finitePositive = (value) => { const number = toKnownFiniteNumber(value); return number !== null && number > 0 ? number : null; };
 const roundedMoney = (value) => Number.isFinite(value) ? Math.round(value / 1000) * 1000 : null;
 const roundedPercent = (value) => Number.isFinite(value) ? Math.round(value * 10) / 10 : null;
 
 function scenarioKpis(property, valuation) {
   const purchasePrice = finitePositive(property?.price);
-  const rehab = finitePositive(property?.rehab);
+  const rehab = toKnownFiniteNumber(property?.rehab);
   const rangeLow = finitePositive(valuation?.range?.low);
   const rangeHigh = finitePositive(valuation?.range?.high);
-  if (!purchasePrice || !rehab || !rangeLow || !rangeHigh || ['ARV_UNAVAILABLE', 'NOT_APPLICABLE'].includes(valuation?.status)) {
+  if (!purchasePrice || rehab === null || rehab < 0 || !rangeLow || !rangeHigh || ['ARV_UNAVAILABLE', 'NOT_APPLICABLE'].includes(valuation?.status)) {
     return Object.freeze({
       available: false,
       sourceType: valuation?.status === 'NOT_APPLICABLE' ? 'NOT_APPLICABLE' : 'UNKNOWN',
@@ -227,7 +241,13 @@ function scenarioKpis(property, valuation) {
       potentialSpread: null, projectedRoi: null,
     });
   }
-  const costBasis = purchasePrice + rehab;
+  const costKeys = ['acquisitionCosts', 'holdingCosts', 'financingCosts', 'sellingCosts'];
+  const costs = costKeys.map(key => toKnownFiniteNumber(property?.[key]));
+  const unresolvedInputs = costKeys.filter((key, index) => costs[index] === null || costs[index] < 0);
+  if (unresolvedInputs.length) return Object.freeze({ available: false, calculationStatus: 'PARTIAL', sourceType: 'UNKNOWN',
+    reason: 'COST_COMPONENTS_REQUIRED', unresolvedInputs: Object.freeze(unresolvedInputs),
+    knownPurchaseAndRehabBasis: purchasePrice + rehab, potentialSpread: null, projectedRoi: null });
+  const costBasis = purchasePrice + rehab + costs.reduce((sum, value) => sum + value, 0);
   const centralReference = finitePositive(valuation.centralReference);
   const expectedArv = centralReference && centralReference >= rangeLow && centralReference <= rangeHigh
     ? centralReference : ((rangeLow + rangeHigh) / 2);
@@ -248,15 +268,17 @@ function scenarioKpis(property, valuation) {
 
 function existingMetrics(dealMetrics, property) {
   const metrics = isObject(dealMetrics?.metrics) ? dealMetrics.metrics : {};
-  const metric = (key) => metrics[key]?.calculable && Number.isFinite(Number(metrics[key]?.value))
+  const applicable = resolveAnalysisStrategy(resolveAnalysisPropertyType(property), property?.objective) !== 'LAND';
+  const canonical = property?.canonicalPropertyFacts;
+  const prerequisiteKnown = (key) => !key || !canonical?.[key[0]]?.[key[1]] || toKnownFiniteNumber(canonical[key[0]][key[1]]) !== null;
+  const metric = (key) => applicable && prerequisiteKnown(key === 'pricePerSqft' ? ['physical', 'livingAreaSqft'] : ['financial', 'rehab'])
+    && metrics[key]?.calculable && toKnownFiniteNumber(metrics[key]?.value) !== null
     ? Object.freeze({ value: Number(metrics[key].value), sourceType: 'CALCULATED', source: metrics[key].source || null })
     : Object.freeze({ value: null, sourceType: 'UNKNOWN', source: null });
   return Object.freeze({
     pricePerSqft: metric('pricePerSqft'),
     acquisitionPlusRehab: metric('acquisitionPlusRehab'),
-    capRate: metrics.capRate?.calculable && Number.isFinite(Number(metrics.capRate?.value))
-      && (String(property?.resolvedAnalysisStrategy || '').toUpperCase() === 'BUY_AND_HOLD'
-        || Number(metrics.capRate.value) > 0)
+    capRate: applicable && prerequisiteKnown(['financial', 'capRate']) && metrics.capRate?.calculable && toKnownFiniteNumber(metrics.capRate?.value) !== null
       ? Object.freeze({ value: Number(metrics.capRate.value), sourceType: 'USER_PROVIDED', source: metrics.capRate.source || 'stored' })
       : Object.freeze({ value: null, sourceType: 'UNKNOWN', source: null }),
   });
@@ -287,7 +309,7 @@ function comparableStatistics(comparables, property) {
   const used = Array.isArray(comparables?.used) ? comparables.used : [];
   const supporting = Array.isArray(comparables?.supporting) ? comparables.supporting : [];
   const set = used.length ? used : supporting;
-  const numbers = (values) => values.map(Number).filter(Number.isFinite);
+  const numbers = (values) => values.map(toKnownFiniteNumber).filter(Number.isFinite);
   const average = (values) => values.length
     ? Math.round((values.reduce((sum, entry) => sum + entry, 0) / values.length) * 100) / 100 : null;
   const median = (values) => {
@@ -359,7 +381,7 @@ function valuationEvidence(value) {
     centralReference: available && range && centralReference && centralReference >= range.low && centralReference <= range.high
       ? centralReference : null,
     confidence: ['LOW', 'MODERATE', 'HIGH'].includes(value.confidence) ? value.confidence : 'LOW',
-    compsUsed: Number.isFinite(Number(value.compsUsed)) ? Math.max(0, Number(value.compsUsed)) : 0,
+    compsUsed: toKnownFiniteNumber(value.compsUsed) !== null ? Math.max(0, Number(value.compsUsed)) : 0,
     methodology: value.methodology || null,
     warnings: Object.freeze(Array.isArray(value.warnings) ? [...value.warnings] : []),
     source: status === 'NOT_APPLICABLE' ? 'NOT_APPLICABLE' : available ? 'CALCULATED' : 'UNKNOWN',
@@ -374,7 +396,7 @@ function valuationEvidence(value) {
       ? Object.freeze({ ...value.recentSalesMarketEstimate }) : null,
     evidenceFreshness: isObject(value.evidenceFreshness) ? Object.freeze({ ...value.evidenceFreshness }) : null,
     savedRecentSalesReference: isObject(value.savedRecentSalesReference) ? Object.freeze({ ...value.savedRecentSalesReference }) : null,
-    providerEstimateDivergence: Number.isFinite(Number(value.providerEstimateDivergence))
+    providerEstimateDivergence: toKnownFiniteNumber(value.providerEstimateDivergence) !== null
       ? Number(value.providerEstimateDivergence) : null,
     activeSaleListings: Object.freeze(Array.isArray(value.activeSaleListings) ? value.activeSaleListings.slice(0, 10) : []),
     marketData: isObject(value.marketData) ? Object.freeze({ ...value.marketData }) : null,

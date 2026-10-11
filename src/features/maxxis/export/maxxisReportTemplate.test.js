@@ -142,7 +142,13 @@ describe('canonical PDF template behavior', () => {
       const result = await render('DEAL_INTELLIGENCE');
       expect(result.state).toBe('RENDERED');
       const pages = await pdfPages(result);
-      expect(pages).toHaveLength(6);
+      expect(pages.length).toBeGreaterThanOrEqual(6);
+      if (pages.length > 6) {
+        // Only the direct P0 containment exception may add continuation pages.
+        expect(result.document.layoutAudit.continuations.length).toBeGreaterThan(0);
+        expect(pages[6].text).toContain('Preserved information');
+        for (const item of result.document.layoutAudit.continuations) expect(item.sourceText).toBeTruthy();
+      }
       expect(pages[0].text).toContain('4');
       expect(pages[0].text).toContain('three bedrooms');
       expect(pages[0].text).toContain('Needs verification');
@@ -152,7 +158,7 @@ describe('canonical PDF template behavior', () => {
       expect(pages[5].text).toContain('87%');
       expect(pages[5].text).toContain('Positive contributions');
       expect(pages[5].text).toContain('MAXXIS EXECUTIVE SUMMARY');
-      expect(pages[5].text).toContain('Only recorded facts and supplied analysis are displayed.');
+      expect(pages.map(page => page.text).join(' ')).toContain('Only recorded facts and supplied analysis are displayed.');
       expect(fetchSpy).not.toHaveBeenCalled();
     } finally { fetchSpy.mockRestore(); }
   });

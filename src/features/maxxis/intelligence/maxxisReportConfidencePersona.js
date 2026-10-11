@@ -1,8 +1,9 @@
+import { toKnownFiniteNumber } from '../../../../supabase/functions/_shared/maxxis/canonicalFactSemantics.ts';
 export const MAXXIS_ANALYSIS_CONFIDENCE_VERSION = 'MAXXIS_ANALYSIS_CONFIDENCE_V1';
 export const MAXXIS_INVESTOR_PERSONA_VERSION = 'MAXXIS_INVESTOR_PERSONA_V1';
 
 const list = (value) => Array.isArray(value) ? value : [];
-const finite = (value) => Number.isFinite(Number(value)) ? Number(value) : null;
+const finite = toKnownFiniteNumber;
 const clamp = (value) => Math.max(0, Math.min(100, Math.round(value)));
 const unique = (values) => [...new Set(values.filter(Boolean))];
 

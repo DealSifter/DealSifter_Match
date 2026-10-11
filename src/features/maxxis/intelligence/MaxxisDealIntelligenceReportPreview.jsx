@@ -1,3 +1,4 @@
+import { toKnownFiniteNumber } from '../../../../supabase/functions/_shared/maxxis/canonicalFactSemantics.ts';
 import React, { useEffect, useState } from "react";
 import {
   AlertTriangle,
@@ -213,7 +214,7 @@ const localizedDate = (value, copy) => {
       : { day: "2-digit", month: "2-digit", year: "numeric", timeZone: "UTC" }).format(date);
 };
 const percent = (value, unknown) =>
-  Number.isFinite(Number(value))
+  toKnownFiniteNumber(value) !== null
     ? `${Number(value).toLocaleString("en-US")}%`
     : unknown;
 const evidenceText = (value, fallback, language = "en") =>
@@ -728,7 +729,7 @@ function ComparableMarket({ schema, copy, page = 2 }) {
                     {item.distanceMiles !== null &&
                     item.distanceMiles !== undefined &&
                     item.distanceMiles !== "" &&
-                    Number.isFinite(Number(item.distanceMiles))
+                    toKnownFiniteNumber(item.distanceMiles) !== null
                       ? `${Number(item.distanceMiles)} mi`
                       : copy.unknown}
                   </td>
@@ -779,7 +780,7 @@ function ValuationPage({ schema, copy, page = 3 }) {
   const metrics = schema.presentation.existingMetrics || {};
   const property = available(schema.sections.propertySummary) || {};
   const recent = valuation.recentSalesMarketEstimate || {};
-  const recentAvailable = recent.status === "AVAILABLE" && Number.isFinite(Number(recent.centralEstimate));
+  const recentAvailable = recent.status === "AVAILABLE" && toKnownFiniteNumber(recent.centralEstimate) !== null;
   const range = recentAvailable ? recent.range
     : ["ARV_UNAVAILABLE", "NOT_APPLICABLE"].includes(valuation.status) ? null : valuation.range;
   const centralReference = recentAvailable ? recent.centralEstimate : valuation.centralReference;
@@ -959,7 +960,7 @@ function FitRiskPage({ schema, copy, page = 4, level = 3 }) {
   const risks = list(available(schema.sections.riskAssessment));
   const counts = schema.presentation.evidenceCounts || {};
   const perspective = schema.presentation.investorPerspective;
-  const safeScore = Number.isFinite(Number(fit.score))
+  const safeScore = toKnownFiniteNumber(fit.score) !== null
     ? Math.max(0, Math.min(100, Number(fit.score)))
     : 0;
   const criteria = list(fit.criteria).length

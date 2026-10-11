@@ -1,0 +1,58 @@
+{
+  "baseline": "d9ea801ffd1c57a85e418acddb0c198be744a02c",
+  "method": "transitive local import graph including re-exports and dynamic imports",
+  "changedSharedModules": [
+    "supabase/functions/_shared/maxxis/analysisApplicability.ts",
+    "supabase/functions/_shared/maxxis/analysisGapResolver.ts",
+    "supabase/functions/_shared/maxxis/canonicalFactSemantics.ts",
+    "supabase/functions/_shared/maxxis/dealDecisionContext.ts",
+    "supabase/functions/_shared/maxxis/dealMetrics.ts",
+    "supabase/functions/_shared/maxxis/getDealInsightContext.ts",
+    "supabase/functions/_shared/maxxis/propertyDetails.ts",
+    "supabase/functions/_shared/maxxis/propertyEvidenceProjection.ts",
+    "supabase/functions/_shared/maxxis/propertyFactLookup.ts",
+    "supabase/functions/_shared/maxxis/scenarioEngine.ts",
+    "supabase/functions/_shared/maxxis/sellerFinancingScenario.ts"
+  ],
+  "affectedFunctions": [
+    {
+      "function": "maxxis-analysis-inputs",
+      "changedDependencies": [
+        "supabase/functions/_shared/maxxis/analysisApplicability.ts",
+        "supabase/functions/_shared/maxxis/canonicalFactSemantics.ts"
+      ]
+    },
+    {
+      "function": "maxxis-chat",
+      "changedDependencies": [
+        "supabase/functions/_shared/maxxis/analysisApplicability.ts",
+        "supabase/functions/_shared/maxxis/analysisGapResolver.ts",
+        "supabase/functions/_shared/maxxis/dealDecisionContext.ts",
+        "supabase/functions/_shared/maxxis/dealMetrics.ts",
+        "supabase/functions/_shared/maxxis/getDealInsightContext.ts",
+        "supabase/functions/_shared/maxxis/propertyDetails.ts",
+        "supabase/functions/_shared/maxxis/propertyEvidenceProjection.ts",
+        "supabase/functions/_shared/maxxis/propertyFactLookup.ts",
+        "supabase/functions/_shared/maxxis/scenarioEngine.ts",
+        "supabase/functions/_shared/maxxis/sellerFinancingScenario.ts",
+        "supabase/functions/_shared/maxxis/canonicalFactSemantics.ts"
+      ]
+    },
+    {
+      "function": "maxxis-deal-workflow",
+      "changedDependencies": [
+        "supabase/functions/_shared/maxxis/dealMetrics.ts"
+      ]
+    },
+    {
+      "function": "maxxis-provider-message-draft",
+      "changedDependencies": [
+        "supabase/functions/_shared/maxxis/analysisApplicability.ts",
+        "supabase/functions/_shared/maxxis/dealMetrics.ts",
+        "supabase/functions/_shared/maxxis/propertyDetails.ts",
+        "supabase/functions/_shared/maxxis/canonicalFactSemantics.ts"
+      ]
+    }
+  ],
+  "unresolvedLocalImports": []
+}

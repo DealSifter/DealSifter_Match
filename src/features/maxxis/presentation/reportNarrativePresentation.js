@@ -10,3 +10,15 @@ export function reportNarrativeCacheKey(schema, language) {
   const property = schema?.sections?.propertySummary?.data || {};
   return JSON.stringify([property.propertyUserNotes, property.notes, property.description, property.owner?.notes].map(value => getCachedPresentationText(value, language)));
 }
+
+// Original source and presentation translation are separate; never mutate the frozen fact schema.
+export function reportNarrativeProjection(schema, language) {
+  const property = schema?.sections?.propertySummary?.data || {};
+  const project = (original, localized) => Object.freeze({ original: original || null,
+    localized: localized || getCachedPresentationText(original, language) || original || null, locale: language });
+  return Object.freeze({
+    userNotes: project(property.propertyUserNotesOriginal || property.propertyUserNotes || property.notes, property.localizedPropertyUserNotes),
+    description: project(property.description, property.localizedDescription),
+    ownerNotes: project(property.owner?.notesOriginal || property.owner?.notes, property.owner?.localizedNotes || property.localizedOwnerNotes),
+  });
+}

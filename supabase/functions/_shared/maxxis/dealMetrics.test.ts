@@ -32,7 +32,7 @@ describe('calculateDealMetrics', () => {
     const absent = calculateDealMetrics({ price: 80_000, rehab: null }).metrics.acquisitionPlusRehab;
     const zeroFallback = calculateDealMetrics({ price: 80_000, rehab: 0 }).metrics.acquisitionPlusRehab;
     expect(absent).toMatchObject({ value: null, calculable: false, missingInputs: ['rehab'] });
-    expect(zeroFallback).toMatchObject({ value: null, calculable: false, missingInputs: ['rehab'] });
+    expect(zeroFallback).toMatchObject({ value: 80_000, calculable: true, missingInputs: [] });
   });
 
   it('returns registered cap rate as stored instead of recalculating it', () => {

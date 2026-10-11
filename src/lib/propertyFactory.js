@@ -1,4 +1,5 @@
 import { genId } from './id';
+import { toKnownFiniteNumber } from '../../supabase/functions/_shared/maxxis/canonicalFactSemantics.ts';
 
 function normalizePrimaryProfileScope(scope, fallback = '') {
   const normalized = String(scope || '').trim().toLowerCase();
@@ -25,10 +26,10 @@ export function isFsboPropertyRecord(property) {
 }
 
 export function createProfessionalProperty(input) {
-  const beds = Number(input.beds);
-  const baths = Number(input.baths);
-  const rehab = Number(input.rehab);
-  const capRate = Number(input.capRate);
+  const beds = toKnownFiniteNumber(input.beds);
+  const baths = toKnownFiniteNumber(input.baths);
+  const rehab = toKnownFiniteNumber(input.rehab);
+  const capRate = toKnownFiniteNumber(input.capRate);
   const primaryProfile = normalizePrimaryProfileScope(input.primaryProfileScope, '');
 
   return {
@@ -39,8 +40,8 @@ export function createProfessionalProperty(input) {
     city: input.city || '',
     zip: input.zip || '',
     price: input.price,
-    beds: Number.isFinite(beds) ? beds : 0,
-    baths: Number.isFinite(baths) ? baths : 0,
+    beds,
+    baths,
     sqft: input.sqft || '',
     improvement: input.improvement || '',
     lot: input.lot || '',
@@ -48,8 +49,8 @@ export function createProfessionalProperty(input) {
     images: Array.isArray(input.images) ? input.images : [],
     video: input.video || '',
     objective: input.objective || 'Sell',
-    rehab: Number.isFinite(rehab) ? rehab : 0,
-    capRate: Number.isFinite(capRate) ? capRate : 0,
+    rehab,
+    capRate,
     markets: Array.isArray(input.markets) ? input.markets : [],
     state: (Array.isArray(input.markets) && input.markets[0]) ? String(input.markets[0]).trim() : '',
     description: input.description || 'Portfolio property published from unified onboarding.',

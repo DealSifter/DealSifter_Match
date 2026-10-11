@@ -1,0 +1,200 @@
+{
+  "baseline": "d9ea801ffd1c57a85e418acddb0c198be744a02c",
+  "evidenceMode": "DETERMINISTIC_FIXTURES_NOT_LIVE_PROPERTY_OBSERVATIONS",
+  "status": "PASS",
+  "outcomes": [
+    {
+      "strategy": "BUY_AND_HOLD",
+      "result": {
+        "grossScheduledRent": 24000,
+        "effectiveGrossIncome": null,
+        "operatingExpenses": null,
+        "NOI": null,
+        "capRate": null,
+        "monthlyOperatingCashFlow": null,
+        "annualCashFlow": null,
+        "debtService": null,
+        "cashFlowAfterDebt": null,
+        "cashOnCashReturn": null,
+        "DSCR": null,
+        "calculationStatus": "PARTIAL",
+        "unresolvedInputs": [
+          "SCENARIO_VACANCY_RATE_REQUIRED",
+          "SCENARIO_PROPERTY_TAX_REQUIRED",
+          "SCENARIO_INSURANCE_REQUIRED",
+          "SCENARIO__H_O_A_REQUIRED",
+          "SCENARIO_MANAGEMENT_PERCENT_REQUIRED",
+          "SCENARIO_MAINTENANCE_PERCENT_REQUIRED",
+          "SCENARIO_OTHER_OPERATING_EXPENSES_REQUIRED",
+          "SCENARIO_MONTHLY_P_I_REQUIRED"
+        ]
+      },
+      "nullOutputs": [
+        "NOI",
+        "capRate",
+        "annualCashFlow"
+      ],
+      "status": "PARTIAL"
+    },
+    {
+      "strategy": "FLIP",
+      "result": {
+        "acquisitionBasis": null,
+        "rehabCost": 0,
+        "totalBasisBeforeSale": null,
+        "holdingCost": null,
+        "financingCost": null,
+        "sellingCost": null,
+        "allInCost": null,
+        "grossSpread": 100000,
+        "projectedProfit": null,
+        "ROI": null,
+        "profitMargin": null,
+        "calculationStatus": "PARTIAL",
+        "unresolvedInputs": [
+          "SCENARIO_ACQUISITION_COSTS_REQUIRED",
+          "SCENARIO_HOLDING_COSTS_REQUIRED",
+          "SCENARIO_FINANCING_COSTS_REQUIRED",
+          "SCENARIO_SELLING_COSTS_REQUIRED"
+        ]
+      },
+      "nullOutputs": [
+        "projectedProfit",
+        "ROI",
+        "allInCost"
+      ],
+      "status": "PARTIAL"
+    },
+    {
+      "strategy": "SUB_TO",
+      "result": {
+        "knownCashToEntry": null,
+        "debtAssumed": 100000,
+        "monthlyDebtService": 700,
+        "knownMonthlyCarry": null,
+        "estimatedMonthlyCashFlow": null,
+        "DSCR": null,
+        "calculationStatus": "PARTIAL",
+        "unresolvedInputs": [
+          "SCENARIO_REINSTATEMENT_REQUIRED",
+          "SCENARIO_CASH_TO_SELLER_REQUIRED",
+          "SCENARIO_CLOSING_COSTS_REQUIRED",
+          "SCENARIO_PROPERTY_TAX_REQUIRED",
+          "SCENARIO_INSURANCE_REQUIRED",
+          "SCENARIO__H_O_A_REQUIRED",
+          "SCENARIO_EXPECTED_RENT_REQUIRED"
+        ]
+      },
+      "nullOutputs": [
+        "knownCashToEntry",
+        "knownMonthlyCarry",
+        "estimatedMonthlyCashFlow"
+      ],
+      "status": "PARTIAL"
+    },
+    {
+      "strategy": "WHOLESALE",
+      "result": {
+        "grossAssignmentSpread": 20000,
+        "estimatedNetAssignmentSpread": null,
+        "buyerBasis": null,
+        "assignmentFee": null,
+        "guaranteedIncome": false,
+        "calculationStatus": "PARTIAL",
+        "unresolvedInputs": [
+          "SCENARIO_ASSIGNMENT_FEE_REQUIRED",
+          "SCENARIO_CLOSING_COSTS_REQUIRED"
+        ]
+      },
+      "nullOutputs": [
+        "estimatedNetAssignmentSpread",
+        "buyerBasis"
+      ],
+      "status": "PARTIAL"
+    },
+    {
+      "strategy": "LAND",
+      "result": {
+        "purchasePricePerAcre": 19000,
+        "purchasePricePerLotSqft": 0.4362,
+        "knownBasis": 19000,
+        "basisStatus": "PRELIMINARY_KNOWN_BASIS",
+        "completeBasis": null,
+        "knownBasisPerAcre": 19000,
+        "targetExitValue": 50000,
+        "grossSpread": 31000,
+        "estimatedProfit": null,
+        "ROI": null,
+        "calculationStatus": "PARTIAL",
+        "unresolvedInputs": [
+          "SCENARIO_CLOSING_COSTS_REQUIRED",
+          "SCENARIO_DUE_DILIGENCE_COSTS_REQUIRED",
+          "SCENARIO_SURVEY_TITLE_COSTS_REQUIRED",
+          "SCENARIO_UTILITY_COSTS_REQUIRED",
+          "SCENARIO_SITE_IMPROVEMENT_COSTS_REQUIRED",
+          "SCENARIO_TAXES_REQUIRED"
+        ]
+      },
+      "nullOutputs": [
+        "estimatedProfit",
+        "ROI",
+        "completeBasis"
+      ],
+      "status": "PARTIAL"
+    },
+    {
+      "strategy": "SELLER_FINANCING",
+      "result": {
+        "purchasePrice": 120000,
+        "downPaymentAmount": 0,
+        "downPaymentPercent": 0,
+        "financedPrincipal": 120000,
+        "financedPercent": 100,
+        "annualInterestRate": 0,
+        "amortizationMonths": 120,
+        "balloonMonth": 60,
+        "hasEarlyBalloon": true,
+        "monthlyPI": 1000,
+        "balloonBalance": 60000,
+        "principalPaidToBalloon": 60000,
+        "interestPaidToBalloon": 0,
+        "totalScheduledPIToBalloon": 60000,
+        "cashToEntry": null,
+        "knownCashToEntry": 0,
+        "cashToEntryStatus": "NOT_EVALUATED",
+        "includedCashComponents": [
+          "downPayment"
+        ]
+      },
+      "nullOutputs": [
+        "cashToEntry"
+      ],
+      "status": "PARTIAL"
+    }
+  ],
+  "explicitZeroFinancing": {
+    "purchasePrice": 120000,
+    "downPaymentAmount": 0,
+    "downPaymentPercent": 0,
+    "financedPrincipal": 120000,
+    "financedPercent": 100,
+    "annualInterestRate": 0,
+    "amortizationMonths": 120,
+    "balloonMonth": 60,
+    "hasEarlyBalloon": true,
+    "monthlyPI": 1000,
+    "balloonBalance": 60000,
+    "principalPaidToBalloon": 60000,
+    "interestPaidToBalloon": 0,
+    "totalScheduledPIToBalloon": 60000,
+    "cashToEntry": 0,
+    "knownCashToEntry": 0,
+    "cashToEntryStatus": "KNOWN",
+    "includedCashComponents": [
+      "downPayment",
+      "closingCosts",
+      "otherCashToSeller"
+    ]
+  },
+  "providerCalls": 0
+}

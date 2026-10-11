@@ -1,3 +1,4 @@
+import { toKnownFiniteNumber } from '../../../../supabase/functions/_shared/maxxis/canonicalFactSemantics.ts';
 import React, { useMemo, useState } from 'react';
 import { localizeMaxxisValue } from '../presentation/maxxisPresentationI18n';
 
@@ -18,12 +19,12 @@ const LABELS = {
   },
 };
 
-const currency = (value, language) => new Intl.NumberFormat(language === 'pt' ? 'pt-BR' : language === 'es' ? 'es-US' : 'en-US', {
+const currency = (value, language) => toKnownFiniteNumber(value) === null ? LABELS[language]?.missingRehab || LABELS.en.missingRehab : new Intl.NumberFormat(language === 'pt' ? 'pt-BR' : language === 'es' ? 'es-US' : 'en-US', {
   style: 'currency', currency: 'USD', maximumFractionDigits: 0,
-}).format(Number(value || 0));
-const currencyRate = (value, language) => new Intl.NumberFormat(language === 'pt' ? 'pt-BR' : language === 'es' ? 'es-US' : 'en-US', {
+}).format(toKnownFiniteNumber(value));
+const currencyRate = (value, language) => toKnownFiniteNumber(value) === null ? LABELS[language]?.missingRehab || LABELS.en.missingRehab : new Intl.NumberFormat(language === 'pt' ? 'pt-BR' : language === 'es' ? 'es-US' : 'en-US', {
   style: 'currency', currency: 'USD', minimumFractionDigits: 2, maximumFractionDigits: 2,
-}).format(Number(value || 0));
+}).format(toKnownFiniteNumber(value));
 const NUMERIC_ASSUMPTIONS = new Set(['sellingCosts', 'sellingCostPercent', 'holdingCosts', 'holdingPeriodMonths', 'interestRate', 'loanAmount', 'monthlyPayment', 'operatingExpenses', 'noi', 'vacancyRate', 'insurance', 'management', 'maintenance', 'hoa', 'dispositionPrice', 'assignmentFee', 'closingCosts', 'downPayment', 'termMonths', 'amortizationMonths', 'balloonMonths', 'existingLoanBalance', 'monthlyPiPayment', 'arrears', 'cashToSeller', 'reinstatement']);
 const humanize = (value) => String(value || '').replace(/([a-z])([A-Z])/g, '$1 $2').replaceAll('_', ' ').replace(/^./, (character) => character.toUpperCase());
 
@@ -37,9 +38,9 @@ export function MaxxisAnalysisGapResolution({ message, language = 'en', onResolv
   const assumptions = data.assumptions || {};
   const storedTargetCondition = MAXXIS_TARGET_CONDITIONS.includes(assumptions.targetCondition) ? assumptions.targetCondition : 'AS_IS';
   const hasCurrentRehab = data.currentRehab !== null && data.currentRehab !== undefined && data.currentRehab !== '';
-  const currentRehab = hasCurrentRehab && Number.isFinite(Number(data.currentRehab)) && Number(data.currentRehab) >= 0 ? Number(data.currentRehab) : null;
+  const currentRehab = hasCurrentRehab && toKnownFiniteNumber(data.currentRehab) !== null && Number(data.currentRehab) >= 0 ? Number(data.currentRehab) : null;
   const [targetCondition, setTargetCondition] = useState(storedTargetCondition);
-  const [rehabBudget, setRehabBudget] = useState(Number.isFinite(Number(assumptions.rehabBudget)) ? String(assumptions.rehabBudget) : '');
+  const [rehabBudget, setRehabBudget] = useState(toKnownFiniteNumber(assumptions.rehabBudget) !== null ? String(assumptions.rehabBudget) : '');
   const initialRehabMode = currentRehab !== null ? 'maintain'
     : assumptions.rehabSource === 'USER_CURATED_REHAB_BENCHMARK_2026' ? 'benchmark'
       : assumptions.rehabSource === 'USER_PROVIDED' ? 'custom' : 'unset';
@@ -57,7 +58,7 @@ export function MaxxisAnalysisGapResolution({ message, language = 'en', onResolv
     const options = Array.isArray(data.benchmarkOptions) ? data.benchmarkOptions : [];
     return options.find((item) => item?.scope === targetCondition) || null;
   }, [data.benchmarkOptions, targetCondition]);
-  const hasCustomValue = rehabBudget !== '' && Number.isFinite(Number(rehabBudget)) && Number(rehabBudget) >= 0;
+  const hasCustomValue = rehabBudget !== '' && toKnownFiniteNumber(rehabBudget) !== null && Number(rehabBudget) >= 0;
   const rehabSatisfied = !needsRehab || rehabMode === 'unset' || rehabMode === 'without' || rehabMode === 'maintain'
     || (rehabMode === 'benchmark' && Boolean(benchmark)) || (rehabMode === 'custom' && hasCustomValue);
   const parsedDecisionNumber = Number(decisionInputValue);
@@ -154,7 +155,7 @@ export function MaxxisAnalysisGapResolved({ message, language = 'en', onEdit }) 
       <div>
         <strong>{declined.length ? copy.limitation : copy.resolved}</strong>
         {values.targetCondition ? <span>✓ {copy.condition}: {localizeMaxxisValue(values.targetCondition, language)}</span> : null}
-        {Number.isFinite(Number(values.rehabBudget)) ? <span>✓ {copy.rehab}: {currency(values.rehabBudget, language)}</span> : null}
+        {toKnownFiniteNumber(values.rehabBudget) !== null ? <span>✓ {copy.rehab}: {currency(values.rehabBudget, language)}</span> : null}
         {declined.length ? <span>✓ {declined.map((field) => field === 'rehab_budget' ? copy.missingRehab : localizeMaxxisValue(field, language)).join(', ')}</span> : null}
       </div>
       <button type="button" className="maxxis-inline-link" onClick={() => onEdit?.(message)}>{copy.edit}</button>

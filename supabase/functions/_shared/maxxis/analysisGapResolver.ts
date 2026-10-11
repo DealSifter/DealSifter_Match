@@ -1,3 +1,4 @@
+import { toKnownFiniteNumber } from './canonicalFactSemantics.ts';
 import { estimateRehabBenchmark2026 } from './rehabCostBenchmarks2026.ts';
 import { classifyAnalysisApplicability, normalizeTargetCondition } from './analysisApplicability.ts';
 
@@ -12,10 +13,7 @@ type Assumptions = {
   declinedInputs?: unknown;
 };
 
-const finite = (value: unknown) => {
-  if (value === null || value === undefined || value === '') return null;
-  return Number.isFinite(Number(value)) ? Number(value) : null;
-};
+const finite = toKnownFiniteNumber;
 const text = (value: unknown) => String(value || '').trim();
 const list = (value: unknown) => Array.isArray(value) ? value.map(text).filter(Boolean) : [];
 
@@ -45,9 +43,10 @@ export function buildEvidenceCompletenessGate({ reportType, property, assumption
 }) {
   const enterprise = reportType === 'DEAL_INTELLIGENCE';
   const declined = new Set(list(assumptions.declinedInputs));
-  const storedRehab = finite(property?.rehab);
+  const canonical = property?.canonicalPropertyFacts as { financial?: { rehab?: unknown } } | undefined;
+  const storedRehab = finite(canonical?.financial?.rehab ?? property?.rehab);
   const userRehab = finite(assumptions.rehabBudget);
-  const rehabAvailable = (storedRehab !== null && storedRehab > 0) || userRehab !== null;
+  const rehabAvailable = (storedRehab !== null && storedRehab >= 0) || userRehab !== null;
   const targetCondition = normalizeTargetCondition(assumptions.targetCondition);
   const targetAvailable = Boolean(targetCondition);
   const applicability = classifyAnalysisApplicability(property, assumptions as Record<string, unknown>);

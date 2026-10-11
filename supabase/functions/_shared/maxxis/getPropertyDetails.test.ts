@@ -124,7 +124,7 @@ describe('getPropertyDetails', () => {
       description: '',
     });
     expect(result.missingFields).toEqual([
-      'zip', 'price', 'sqft', 'objective', 'rehab', 'cap_rate', 'description', 'images',
+      'zip', 'price', 'sqft', 'objective', 'cap_rate', 'description', 'images',
     ]);
   });
 
