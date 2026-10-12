@@ -1,0 +1,35 @@
+{
+  "state": "PARTIAL",
+  "sourceRevision": "15fa6974c257dc0be90ed08cc1df7c362b13064a",
+  "baseline": "a02951fe06db81b27a75ec9995ec5e93165ab592",
+  "frontend": {
+    "state": "READY",
+    "target": "production",
+    "deploymentId": "dpl_EM1b9CjsWd2CJ5PpUkSRddZMHWbs",
+    "url": "https://dealsiftermatch-af66e3fj8-deal-sifter-match-s-projects.vercel.app",
+    "alias": "https://dealsiftermatch.vercel.app",
+    "metadataSourceSha": "15fa6974c257dc0be90ed08cc1df7c362b13064a",
+    "metadataSourceRef": "fix/production-real-defects"
+  },
+  "backend": {
+    "project": "cyeipfskwwisbbayyaca",
+    "sourceRevision": "15fa6974c257dc0be90ed08cc1df7c362b13064a",
+    "deploymentMethod": "Supabase CLI --use-api; source tree unchanged from the frontend source commit",
+    "deployed": [
+      { "name": "maxxis-chat", "state": "ACTIVE", "version": 78 },
+      { "name": "maxxis-analysis-inputs", "state": "ACTIVE", "version": 9 }
+    ],
+    "unrelatedFunctionsUnchanged": [
+      { "name": "maxxis-provider-message-draft", "version": 14 },
+      { "name": "maxxis-deal-workflow", "version": 12 }
+    ]
+  },
+  "migration": "NONE",
+  "localVerification": "PASS: verification.json and quality-gates.json",
+  "availabilitySmoke": "PASS: production-smoke.json",
+  "authenticatedProductionSmoke": "NOT_VERIFIED",
+  "blocker": "No configured authorized authenticated production test session",
+  "automatedRentCastCalls": 0,
+  "geminiFinancialArithmetic": 0,
+  "financialMutations": 0
+}

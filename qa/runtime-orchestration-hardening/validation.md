@@ -23,3 +23,7 @@ Production validation must distinguish deployment availability from authenticate
 7. Resolved zoning/unit gaps do not reappear in proactive guidance.
 
 Until a configured authorized test session is available, authenticated production smoke remains NOT_VERIFIED and overall implementation status is PARTIAL. No account creation, credential extraction, entitlement bypass, paid-provider calls or financial mutations are authorized by this validation.
+
+Production source revision: `15fa6974c257dc0be90ed08cc1df7c362b13064a`. Vercel deployment `dpl_EM1b9CjsWd2CJ5PpUkSRddZMHWbs` is READY, aliased to `https://dealsiftermatch.vercel.app`, with matching commit metadata. Supabase `maxxis-chat` version 78 and `maxxis-analysis-inputs` version 9 are ACTIVE. Unrelated provider-message/workflow versions remain 14/12. Frontend/health/CORS return 200; the anonymous private canonical RPC returns 401 / 42501. These are availability/privacy checks, not authenticated flow proof.
+
+Post-deployment receipts are committed separately without changing application or backend source. The production application SHA remains the source revision above.

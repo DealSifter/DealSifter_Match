@@ -1,7 +1,7 @@
 {
   "state": "PASS",
   "method": "Full suite plus isolated reruns of resource-timeout files; no assertion changes",
-  "sourceRevision": "WORKTREE_PENDING_COMMIT",
+  "sourceRevision": "15fa6974c257dc0be90ed08cc1df7c362b13064a",
   "full": {
     "files": 202,
     "tests": 1607,
