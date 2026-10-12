@@ -86,6 +86,11 @@ try {
     await page.waitForTimeout(2500);
     await expect(page.locator('.leaflet-public-parcels-pane path').first()).toBeVisible({ timeout: 30000 });
     await page.screenshot({ path: `${output}/active-parcel-overlay-${mobile ? 'mobile' : 'desktop'}.png` });
+    if (!mobile) {
+      await page.getByRole('button', { name: 'Fechar painel', exact: true }).click();
+      await page.waitForTimeout(2500);
+      await expect(page.locator('.leaflet-public-parcels-pane path').first()).toBeVisible({ timeout: 30000 });
+    }
     // Find a genuinely exposed parcel, not a path hidden beneath the filter panel
     // or a marker. This is a real pointer click, not a forced event/fixture popup.
     const clickPoint = await page.evaluate(() => {
@@ -105,6 +110,7 @@ try {
     await page.waitForTimeout(3500);
     await expect.poll(() => pendingRequests, { timeout: 30000 }).toBe(0);
     await expect(panel).toBeVisible(); // The real Leaflet auto-pan/viewport refresh must not dismiss it.
+    await expect(page.getByRole('complementary')).not.toBeVisible(); // Details are not obscured beneath the filters.
     const box = await panel.boundingBox(); expect(box.x).toBeGreaterThanOrEqual(0); expect(box.x + box.width).toBeLessThanOrEqual(page.viewportSize().width + 1);
     await page.screenshot({ path: `${output}/${mobile ? 'active-parcel-mobile.png' : 'active-parcel-panel-desktop.png'}` });
     const queryCount = initiatedRequests;
