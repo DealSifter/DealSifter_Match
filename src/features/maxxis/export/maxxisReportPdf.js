@@ -8,6 +8,7 @@ import { explainMaxxisEvidenceState } from '../intelligence/maxxisUserFacingEvid
 import { getCachedPresentationText } from '../../../services/chatTranslation';
 import { reportNarrativeCacheKey, reportNarrativeProjection } from '../presentation/reportNarrativePresentation';
 import { formatLandDevelopmentAnswer } from '../../../../supabase/functions/_shared/maxxis/landDevelopmentScenario.ts';
+import { buildLandReportView } from './maxxisLandReportView';
 import {
   REPORT_BODY_TIERS, REPORT_LAYOUT_TOKENS, REPORT_METRIC_BAR, REPORT_SOLID_OFFSETS, REPORT_TEXT_POLICIES,
   deduplicateAndBudgetItems,
@@ -1021,7 +1022,8 @@ function renderInsights(doc, schema, t, accent, { verification = false } = {}) {
   panel(doc, M, 667, CONTENT, 85, { fill: C.white, accent });
   heading(doc, t.conclusion, M + 12, 691, CONTENT - 24, accent);
   const scenarioInsight = scenarioSnapshot(schema?.presentation?.activeScenario, t, 2);
-  renderContainedCardText(doc, [scenarioInsight, structured.profileAdaptedConclusion || summary.summary || t.noDetails].filter(Boolean).join('\n'),
+  const landView = buildLandReportView(schema, t.locale);
+  renderContainedCardText(doc, landView ? landView.conclusion : [scenarioInsight, structured.profileAdaptedConclusion || summary.summary || t.noDetails].filter(Boolean).join('\n'),
     createCardGeometry({ x: M, y: 667, width: CONTENT, height: 85, paddingLeft: 12, paddingRight: 12, paddingTop: 8, paddingBottom: 10, titleHeight: 34 }),
     verification ? 'page5ExecutiveInsight' : 'level2ExecutiveInsight',
     verification ? REPORT_TEXT_POLICIES.page5ExecutiveInsight : REPORT_TEXT_POLICIES.level2ExecutiveInsight,
@@ -1037,23 +1039,53 @@ function developmentTextPanel(doc, title, content, y, height, t, accent, section
 }
 function renderDevelopmentSummary(doc, development, t, accent) {
   const title = t.locale === 'pt' ? 'Desenvolvimento do terreno — três camadas' : t.locale === 'es' ? 'Desarrollo del terreno — tres capas' : 'Land development — three layers';
-  developmentTextPanel(doc, title, formatLandDevelopmentAnswer(development, t.locale, { includeCoverage: true }), 127, 647, t, accent, 'landDevelopmentSummary');
+  developmentTextPanel(doc, title, formatLandDevelopmentAnswer(development, t.locale, { includeCoverage: true, conversational: false }), 127, 647, t, accent, 'landDevelopmentSummary');
 }
-function renderDevelopmentCompFamilies(doc, development, t, accent) {
-  const labels = t.locale === 'pt' ? ['Aquisição — terrenos vendidos', 'Saída — imóveis residenciais vendidos', 'Sem vendas qualificadas suficientes', 'Vendidos', 'Apoio', 'Faixa', 'Sem ajuste de condição; referência de saída não é ARV.']
-    : t.locale === 'es' ? ['Adquisición — terrenos vendidos', 'Salida — viviendas vendidas', 'Sin suficientes ventas calificadas', 'Ventas', 'Apoyo', 'Rango', 'Sin ajuste de condición; referencia de salida no es ARV.']
-      : ['Acquisition — sold land parcels', 'Exit — sold residential products', 'Insufficient qualified sales', 'Sales', 'Supporting', 'Range', 'No condition adjustment; exit reference is not ARV.'];
-  [development.landAcquisitionReference, development.finishedHomeExitReference].forEach((reference, index) => {
-    const selected = array(reference?.valuationComps);
-    const lines = [`${labels[3]}: ${selected.length}; ${labels[4]}: ${array(reference?.supportingCandidates).length}`,
-      reference?.status === 'AVAILABLE' ? `${labels[5]}: ${currency(reference.range.low, t)} – ${currency(reference.range.high, t)}; ${currency(reference.weightedUnitValue, t)}/${index ? 'sqft' : 'acre'}` : labels[2],
-      ...selected.map(comp => `${comp.address || t.unavailable}\n${currency(comp.salePrice, t)} · ${localizedDate(comp.saleDate, t)} · ${Number(comp.distanceMiles).toFixed(2)} mi · ${index ? `${comp.livingAreaSqft} sqft` : `${Number(comp.lotSizeSqft / 43560).toFixed(3)} acres`} · ${currency(comp.unitValue, t)}/${index ? 'sqft' : 'acre'}`),
-      labels[6]];
-    developmentTextPanel(doc, labels[index], lines.join('\n\n'), 127 + index * 325, 311, t, accent, `landDevelopmentComps${index}`);
-  });
+
+function landAnalyticalCard(doc, content, x, y, width, height, id, t, accent, titleHeight = 30) {
+  panel(doc, x, y, width, height, { accent });
+  const policy = { defaultFontSize: 10, tier1FontSize: 9.5, tier2FontSize: 9, minimumFontSize: 9, maximumLineCount: 1000, hardCharacterBudget: 20000 };
+  renderContainedCardText(doc, content.title, createCardGeometry({ x, y, width, height: titleHeight,
+    titleHeight: 0, paddingTop: 5, paddingBottom: 2, paddingLeft: 10, paddingRight: 10 }), `${id}Title`, policy, t, { bold: true, color: C.ink });
+  renderContainedCardText(doc, content.lines.join('\n'), createCardGeometry({ x, y, width, height,
+    titleHeight, paddingTop: 4, paddingBottom: 8, paddingLeft: 10, paddingRight: 10 }), id, policy, t);
+}
+function renderLandMarketEvidence(doc, view, t, accent, comparableMap) {
+  const half = (CONTENT - 12) / 2;
+  landAnalyticalCard(doc, view.subject, M, 127, CONTENT, 85, 'landSubject', t, accent, 20);
+  const hasComps = Boolean(view.countLand || view.countExit);
+  const evidenceHeight = hasComps ? 340 : 190;
+  landAnalyticalCard(doc, view.acquisition, M, 224, half, evidenceHeight, 'landAcquisition', t, accent);
+  landAnalyticalCard(doc, view.exit, M + half + 12, 224, half, evidenceHeight, 'landExit', t, accent);
+  const readinessY = 224 + evidenceHeight + 12;
+  landAnalyticalCard(doc, view.readiness, M, readinessY, CONTENT, hasComps ? 701 - readinessY : 125, 'landReadiness', t, accent, 20);
+  if (!hasComps) landAnalyticalCard(doc, view.dimensionEvidence, M, 563, CONTENT, 138, 'landDimensionEvidence', t, accent, 20);
+  if (view.mapsEligible.length && comparableMap) {
+    panel(doc, M, 713, CONTENT, 80);
+    doc.addImage(comparableMap, 'PNG', M + 5, 718, CONTENT - 10, 70);
+  } else {
+    const pick = (pt, en, es) => t.locale === 'pt' ? pt : t.locale === 'es' ? es : en;
+    landAnalyticalCard(doc, { title: pick('Como interpretar estas referências', 'How to interpret these references', 'Cómo interpretar estas referencias'),
+      lines: [pick('Aquisição do terreno, custo de construção e valor de saída são análises separadas. Nenhum custo ou valor futuro foi presumido para preencher lacunas.',
+        'Land acquisition, construction cost and exit value are separate analyses. No cost or future value is assumed to fill evidence gaps.',
+        'Adquisición del terreno, costo de construcción y valor de salida son análisis separados. No se presume costo ni valor futuro para llenar vacíos de evidencia.')] },
+    M, 713, CONTENT, 80, 'landReferencePolicy', t, accent, 20);
+  }
+}
+function renderLandDevelopmentCosts(doc, view, t, accent) {
+  const half = (CONTENT - 12) / 2; const kpiWidth = (CONTENT - 24) / 4;
+  view.kpis.forEach((card, index) => landAnalyticalCard(doc, card, M + index * (kpiWidth + 8), 127, kpiWidth, 74, `landKpi${index}`, t, accent, 34));
+  landAnalyticalCard(doc, view.benchmark, M, 209, half, 155, 'landBenchmark', t, accent, 42);
+  landAnalyticalCard(doc, view.premises, M + half + 12, 209, half, 155, 'landPremises', t, accent);
+  landAnalyticalCard(doc, view.costs, M, 372, CONTENT, 86, 'landKnownBasis', t, accent, 20);
+  view.coverage.forEach((card, index) => landAnalyticalCard(doc, card, M + (index % 2) * (half + 12),
+    index < 2 ? 466 : 550, half, index < 2 ? 76 : 104, `landCoverage${index}`, t, accent, 20));
+  landAnalyticalCard(doc, view.next, M, 662, CONTENT, 50, 'landNextInput', t, accent, 20);
+  landAnalyticalCard(doc, view.feasibility, M, 720, CONTENT, 81, 'landFeasibility', t, accent, 20);
 }
 function renderComparables(doc, schema, t, accent, comparableMap) {
-  if (schema.presentation?.landDevelopment) return renderDevelopmentCompFamilies(doc, schema.presentation.landDevelopment, t, accent);
+  const landView = buildLandReportView(schema, t.locale);
+  if (landView) return renderLandMarketEvidence(doc, landView, t, accent, comparableMap);
   const structured = schema?.structuredAnalysis || {};
   const property = section(schema, 'propertySummary') || {};
   const comps = section(schema, 'comparableEvidence') || {};
@@ -1141,7 +1173,8 @@ function renderComparables(doc, schema, t, accent, comparableMap) {
   listPanel(doc, t.observations, compNarrative.length ? compNarrative : all.map((comp) => comp.inclusionReason || comp.exclusionReason).filter(Boolean), M, 667, CONTENT, 88, t, accent, { sectionId: 'comparableObservations' });
 }
 function renderValuation(doc, schema, t, accent) {
-  if (schema.presentation?.landDevelopment) return renderDevelopmentSummary(doc, schema.presentation.landDevelopment, t, accent);
+  const landView = buildLandReportView(schema, t.locale);
+  if (landView) return renderLandDevelopmentCosts(doc, landView, t, accent);
   const structured = schema?.structuredAnalysis || {};
   const valuation = section(schema, 'valuationEvidence') || {};
   const property = section(schema, 'propertySummary') || {};
@@ -1270,6 +1303,7 @@ function renderEnterpriseAnalysis(doc, schema, t, accent, confidence, executiveL
   const contributors = array(confidence.contributors);
   const confidenceLimitations = array(confidence.limitations);
   const page6 = structured.reportPage6 || {};
+  const landView = buildLandReportView(schema, t.locale);
 
   panel(doc, M, 128, CONTENT, 150, { fill: C.white, accent });
   heading(doc, t.analysisConfidence, M + 13, 154, CONTENT - 26, accent);
@@ -1299,12 +1333,12 @@ function renderEnterpriseAnalysis(doc, schema, t, accent, confidence, executiveL
 
   panel(doc, M, 290, CONTENT, 165, { fill: C.white, accent });
   heading(doc, t.executiveIntelligence, M + 13, 316, CONTENT - 26, accent);
-  renderContainedBulletList(doc, executiveLines, createCardGeometry({
+  renderContainedBulletList(doc, landView ? landView.executive : executiveLines, createCardGeometry({
     x: M, y: 290, width: CONTENT, height: 165, paddingLeft: 13, paddingRight: 13, paddingTop: 8, paddingBottom: 12, titleHeight: 34,
-  }), 'page6ExecutiveSummary', REPORT_TEXT_POLICIES.page6ExecutiveSummary, t, accent, { positive: true });
+  }), 'page6ExecutiveSummary', landView ? { ...REPORT_TEXT_POLICIES.page6ExecutiveSummary, preferredBulletCount: 4, maximumBulletCount: 4 } : REPORT_TEXT_POLICIES.page6ExecutiveSummary, t, accent, { positive: true });
 
   const w = (CONTENT - 12) / 2;
-  listPanel(doc, t.analysis, [page6.investorMeaning || structured.profileAdaptedConclusion].filter(Boolean), M, 467, w, 133, t, accent, { positive: true, sectionId: 'page6ProfileConclusion' });
+  listPanel(doc, t.analysis, [landView ? landView.conclusion : page6.investorMeaning || structured.profileAdaptedConclusion].filter(Boolean), M, 467, w, 133, t, accent, { positive: true, sectionId: 'page6ProfileConclusion' });
   listPanel(doc, t.mainTopics, array(structured.strategySpecificInsights).length ? array(structured.strategySpecificInsights) : risks, M + w + 12, 467, w, 133, t, accent, { sectionId: 'page6MainTopics' });
   listPanel(doc, t.questions, array(page6.openDecisionQuestions).length ? array(page6.openDecisionQuestions)
     : array(structured.missingEvidence).length ? array(structured.missingEvidence) : limitations, M, 612, w, 140, t, accent, { sectionId: 'page6OpenQuestions' });
@@ -1448,11 +1482,13 @@ async function resolveStreetMap(schema) {
 export async function resolveComparableMap(schema) {
   const property = section(schema, 'propertySummary') || {};
   const comparables = section(schema, 'comparableEvidence') || {};
+  const landView = buildLandReportView(schema);
+  if (landView && !landView.mapsEligible.length) return null;
   const all = [
     { ...property, marker: 'S', markerTone: '#15384f' },
-    ...array(comparables.used).map((item, index) => ({ ...item, marker: String(index + 1), markerTone: '#0d876f' })),
-    ...array(comparables.supporting).map((item, index) => ({ ...item, marker: String(array(comparables.used).length + index + 1), markerTone: '#e6a416' })),
-    ...array(comparables.excluded).map((item, index) => ({ ...item, marker: String(array(comparables.used).length + array(comparables.supporting).length + index + 1), markerTone: '#7b8995' })),
+    ...array(landView ? landView.mapsEligible : comparables.used).map((item, index) => ({ ...item, marker: String(index + 1), markerTone: '#0d876f' })),
+    ...array(landView ? [] : comparables.supporting).map((item, index) => ({ ...item, marker: String(array(comparables.used).length + index + 1), markerTone: '#e6a416' })),
+    ...array(landView ? [] : comparables.excluded).map((item, index) => ({ ...item, marker: String(array(comparables.used).length + array(comparables.supporting).length + index + 1), markerTone: '#7b8995' })),
   ].filter((item) => item.latitude != null && item.longitude != null
     && Number.isFinite(Number(item.latitude)) && Number.isFinite(Number(item.longitude)));
   if (all.length < 2 || typeof document === 'undefined') return null;
@@ -1555,7 +1591,9 @@ export async function renderMaxxisReportPdf({ schema, exportEntitlement, generat
     const pageStartedAt = performanceNow();
     emitReportStage(`pdf_page_${index + 1}_start`, { page: index + 1 });
     if (index) doc.addPage('a4', 'portrait');
-    const { accent } = pageHeader(doc, schema, page.code, t);
+    const pageLabels = page.code === 'VALUATION_INTELLIGENCE' && buildLandReportView(schema, lang)
+      ? { ...t, VALUATION_INTELLIGENCE: lang === 'pt' ? 'Custos e desenvolvimento do terreno' : lang === 'es' ? 'Costos y desarrollo del terreno' : 'Land costs and development' } : t;
+    const { accent } = pageHeader(doc, schema, page.code, pageLabels);
     // Preserve the original spacing between the page title and its first
     // section by moving the complete body down into the former footer margin.
     doc.saveGraphicsState();

@@ -1,5 +1,5 @@
 import { estimateRehabBenchmark2026, NATIONAL_REHAB_BENCHMARK_2026 } from './rehabCostBenchmarks2026.ts';
-import { calculateLandUnitMetrics, parseCanonicalLotArea } from './landMetrics.ts';
+import { calculateLandUnitMetrics, resolveLotDimensions } from './landMetrics.ts';
 import { selectDevelopmentComparables } from '../property-data/soldCompEngine.ts';
 import type { NormalizedValuationEvidence } from '../property-data/valuationTypes.ts';
 import type { SoldPropertyRecord } from '../property-data/soldTypes.ts';
@@ -22,7 +22,7 @@ export function constructionBenchmark2026(state: unknown) {
 
 export function calculateLandDevelopmentScenario(input: Values, evidence?: LandDevelopmentEvidence | null, asOf?: string) {
   const price = number(input.purchasePrice);
-  const lot = number(input.lotSizeAcres) ? parseCanonicalLotArea(`${input.lotSizeAcres} acres`) : parseCanonicalLotArea(input.lotSizeSqft);
+  const lot = resolveLotDimensions(input);
   const landMetrics = calculateLandUnitMetrics(price, lot);
   const units = number(input.proposedUnitCount);
   const area = number(input.proposedBuildingSqftPerUnit);
@@ -67,6 +67,9 @@ export function calculateLandDevelopmentScenario(input: Values, evidence?: LandD
   const nextInput = !units ? 'proposedUnitCount' : !area ? 'proposedBuildingSqftPerUnit' : !input.proposedPropertyType ? 'proposedPropertyType'
     : !exitPerUnit ? 'finishedHomeSoldEvidence' : !completeCosts ? unknownCostFields[0] : 'zoningSubdivisionVerification';
   return Object.freeze({ model: 'LAND_DEVELOPMENT_V2', developmentIntent: input.developmentIntent, landMetrics,
+    subjectType: 'LAND', proposedPropertyType: input.proposedPropertyType || null, zoning: input.zoning || null,
+    zoningSource: input.zoningSource || (input.zoning ? 'USER_PROVIDED' : null), landAcquisitionBasis: price,
+    preliminaryKnownDevelopmentBasis: price === null ? null : round(price + (hardCost?.central ?? 0) + knownOtherCosts),
     proposedUnitCount: units, proposedBuildingSqftPerUnit: area, totalBuildingSqft, benchmark, hardCost, hardCostSource,
     constructionCostProvenance: hardCost ? 'CALCULATED' : 'UNKNOWN', knownOtherCosts, knownDevelopmentBasis: developmentBasis,
     landAcquisitionReference: references?.landAcquisition || null, finishedHomeExitReference: exit || null,
@@ -106,7 +109,7 @@ export function parseLandDevelopmentAssumptions(message: unknown): Values {
   if (size) output.proposedBuildingSqftPerUnit = numeric(size[1]);
   if (/subdiv|desmembr/.test(text)) output.developmentIntent = /constru|build|new homes/.test(text) ? 'SUBDIVIDE_AND_BUILD' : 'SUBDIVIDE';
   else if (/constru|build|new homes/.test(text)) output.developmentIntent = 'NEW_CONSTRUCTION';
-  if (/casas?|houses?|homes?|viviendas?|sfh|sfr|single[ -]?family/.test(text) && /constru|build|subdiv|sqft|^(?:sfr|sfh)$|single[ -]?family/.test(text)) output.proposedPropertyType = 'SFR';
+  if (/casas?|houses?|homes?|viviendas?|sfh|sfr|single[ -]?family/.test(text) && (/constru|build|subdiv|sqft|^(?:sfr|sfh)$|single[ -]?family/.test(text) || /\b\d+\s*(?:sfh|sfr)\b/.test(text))) output.proposedPropertyType = 'SFR';
   if (/townhouse/.test(text)) output.proposedPropertyType = 'Townhouse';
   if (/condo/.test(text)) output.proposedPropertyType = 'Condo';
   for (const [field, pattern] of Object.entries({ proposedBedsPerUnit: 'quartos?|bedrooms?|beds?|habitaciones?', proposedBathsPerUnit: 'banheiros?|bathrooms?|baths?|banos?' })) {
@@ -127,17 +130,20 @@ export function parseLandDevelopmentAssumptions(message: unknown): Values {
   return output;
 }
 
-export function formatLandDevelopmentAnswer(result: ReturnType<typeof calculateLandDevelopmentScenario>, languageInput: unknown, options: { includeCoverage?: boolean } = {}) {
+export function formatLandDevelopmentAnswer(result: ReturnType<typeof calculateLandDevelopmentScenario>, languageInput: unknown, options: { includeCoverage?: boolean; conversational?: boolean } = {}) {
   const lang = String(languageInput || 'en').startsWith('pt') ? 'pt' : String(languageInput).startsWith('es') ? 'es' : 'en';
   const t = (pt: string, en: string, es: string) => lang === 'pt' ? pt : lang === 'es' ? es : en;
   const money = (value: number) => new Intl.NumberFormat(lang === 'pt' ? 'pt-BR' : lang === 'es' ? 'es-US' : 'en-US', { style: 'currency', currency: 'USD', maximumFractionDigits: 2 }).format(value);
   const band = (value: { low: number; central: number; high: number } | null) => value ? `${money(value.low)}–${money(value.high)} (${t('centro', 'central', 'centro')}: ${money(value.central)})` : t('Ainda sem evidência suficiente', 'Not enough evidence yet', 'Aún sin evidencia suficiente');
   const r = result.benchmark.rate;
   const lines = [t('Simulação de desenvolvimento do terreno', 'Land development simulation', 'Simulación de desarrollo del terreno'),
+    `${t('Imóvel atual: terreno; produto proposto', 'Current subject: land; proposed product', 'Inmueble actual: terreno; producto propuesto')}: ${result.proposedUnitCount ?? t('Não informado', 'Not supplied', 'No informado')} ${result.proposedPropertyType || ''}.`,
+    ...(result.zoning ? [`${t('Zoneamento', 'Zoning', 'Zonificación')}: ${result.zoning} — ${t('premissa do usuário; não verificação legal', 'user assumption; not legal verification', 'supuesto del usuario; no verificación legal')}.`] : []),
     `${t('Benchmark interno 2026 de construção nova', 'Internal 2026 new-construction benchmark', 'Referencia interna 2026 de construcción nueva')} (${result.benchmark.state || t('nacional', 'national', 'nacional')}): ${money(r.low)}–${money(r.high)}/sqft; ${t('média', 'average', 'promedio')} ${money(r.average)}/sqft.`,
     t('Referência estimada, não orçamento de construtora nem preço de mercado ao vivo.', 'Estimated reference, not a contractor bid or live market price.', 'Referencia estimada, no presupuesto de constructor ni precio de mercado en vivo.'),
     `${t('Preço do terreno por acre', 'Land asking price per acre', 'Precio del terreno por acre')}: ${result.landMetrics.pricePerAcre !== null ? money(result.landMetrics.pricePerAcre) : t('Área ou preço pendente', 'Area or price pending', 'Área o precio pendiente')}.`,
   ];
+  if (!result.hardCost) lines.push(`${t('Base conhecida de desenvolvimento', 'Known development basis', 'Base conocida de desarrollo')}: ${result.preliminaryKnownDevelopmentBasis === null ? t('Não informada', 'Not supplied', 'No informada') : money(result.preliminaryKnownDevelopmentBasis)}. ` + t('Exclui construção e custos desconhecidos.', 'Excludes construction and unknown costs.', 'Excluye construcción y costos desconocidos.'));
   if (result.hardCost) lines.push(`${result.proposedUnitCount ?? '?'} × ${result.proposedBuildingSqftPerUnit ?? '?'} sqft = ${result.totalBuildingSqft ?? '?'} sqft.`,
     `${t('Hard cost de construção', 'Construction hard cost', 'Costo directo de construcción')}: ${band(result.hardCost)}.`,
     `${t('Base conhecida de desenvolvimento', 'Known development basis', 'Base conocida de desarrollo')}: ${band(result.knownDevelopmentBasis)}.`);
@@ -161,7 +167,7 @@ export function formatLandDevelopmentAnswer(result: ReturnType<typeof calculateL
     'This simulation assumes subdivision and intended use are allowed. Verify zoning, minimum lot requirements, access and utilities.',
     'La simulación supone que subdivisión y uso están permitidos. Confirma zonificación, área mínima, acceso y servicios.'));
   const questions: Record<string, string> = { proposedUnitCount: t('Quantas unidades você pretende construir?', 'How many units do you plan to build?', '¿Cuántas unidades planeas construir?'),
-    proposedBuildingSqftPerUnit: t('Você imagina cada casa com quantos sqft? Ex.: 1.500 ou 2.000 sqft.', 'How many sqft per house? For example, 1,500 or 2,000 sqft.', '¿Cuántos sqft por casa? Por ejemplo, 1.500 o 2.000 sqft.'),
+    proposedBuildingSqftPerUnit: result.proposedUnitCount === 1 ? t('Qual área construída você imagina para a casa? Ex.: 1.500 ou 2.000 sqft.', 'What building area do you envision for the house? For example, 1,500 or 2,000 sqft.', '¿Qué superficie construida imaginas para la casa? Por ejemplo, 1.500 o 2.000 sqft.') : t('Você imagina cada casa com quantos sqft? Ex.: 1.500 ou 2.000 sqft.', 'How many sqft per house? For example, 1,500 or 2,000 sqft.', '¿Cuántos sqft por casa? Por ejemplo, 1.500 o 2.000 sqft.'),
     proposedPropertyType: t('Qual o tipo do produto final: casa SFR, townhouse ou condo?', 'What is the finished product: SFR, townhouse or condo?', '¿Qué producto final: SFR, townhouse o condo?'),
     finishedHomeSoldEvidence: t('Quer revisar as vendas comparáveis disponíveis para o produto planejado?', 'Review available closed sales for the proposed product?', '¿Revisamos ventas disponibles para el producto propuesto?') };
   const costNames: Record<string, string> = { closingCosts: t('custos de aquisição', 'acquisition costs', 'costos de adquisición'), siteWorkCost: t('preparação do terreno', 'site work', 'preparación del terreno'), utilityCost: t('infraestrutura de serviços', 'utilities', 'servicios'), permitCost: t('licenças', 'permits', 'permisos'),
@@ -169,7 +175,10 @@ export function formatLandDevelopmentAnswer(result: ReturnType<typeof calculateL
     softCosts: t('custos indiretos', 'soft costs', 'costos indirectos'), financingCost: t('financiamento', 'financing', 'financiamiento'), holdingCost: t('manutenção durante o projeto', 'holding costs', 'mantenimiento del proyecto'), sellingCost: t('venda', 'selling costs', 'venta'), contingency: t('contingência', 'contingency', 'contingencia') };
   if (options.includeCoverage) lines.push(`${t('Cobertura de custos adicionais', 'Additional cost coverage', 'Cobertura de costos adicionales')}:\n` + result.costCoverage.slice(2).map(row =>
     `${costNames[row.field]}: ${row.value === null ? t('Desconhecido', 'Unknown', 'Desconocido') : `${money(row.value)} (${t('premissa do usuário', 'user assumption', 'supuesto del usuario')})`}`).join('\n'));
-  lines.push(questions[result.nextInput] || t(`Qual a estimativa para ${costNames[result.nextInput] || result.nextInput}? Não vou considerar um custo desconhecido como zero.`,
+  if (options.conversational === false) lines.push(t('Próximo dado de maior impacto', 'Highest-impact next input', 'Próximo dato de mayor impacto') + ': ' + (result.nextInput === 'proposedBuildingSqftPerUnit'
+    ? t('Área construída proposta por unidade.', 'Proposed building area per unit.', 'Superficie construida propuesta por unidad.')
+    : costNames[result.nextInput] || t('Premissas e evidências do produto proposto.', 'Proposed-product assumptions and evidence.', 'Supuestos y evidencia del producto propuesto.')));
+  else lines.push(questions[result.nextInput] || t(`Qual a estimativa para ${costNames[result.nextInput] || result.nextInput}? Não vou considerar um custo desconhecido como zero.`,
     `What is your estimate for ${costNames[result.nextInput] || result.nextInput}? Unknown costs are not zero.`,
     `¿Cuál es tu estimación para ${costNames[result.nextInput] || result.nextInput}? Un costo desconocido no es cero.`));
   return lines.join('\n\n');

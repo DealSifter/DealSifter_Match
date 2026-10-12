@@ -182,20 +182,74 @@
             "conflict": null,
             "semanticState": "KNOWN",
             "provenance": {
-              "selected": "DETERMINISTIC_CONTROL_FIXTURE",
-              "policy": "OBJECTIVE_RECORD_EVIDENCE"
+              "resolvedSqft": 49658.4,
+              "resolvedAcres": 1.1400000000000001,
+              "lotSizeSqft": 49658.4,
+              "lotSizeAcres": 1.1400000000000001,
+              "sourceUnit": "SQFT",
+              "source": "DETERMINISTIC_CONTROL_FIXTURE",
+              "evidenceStatus": "VERIFIED_RECORD",
+              "confidence": null,
+              "sourceAcres": {
+                "value": null,
+                "unit": "ACRES",
+                "status": "UNKNOWN",
+                "source": "PROPERTY_APP_VALUE",
+                "confidence": null,
+                "rank": 0
+              },
+              "sourceSqft": {
+                "value": 49658.4,
+                "unit": "SQFT",
+                "status": "VERIFIED_RECORD",
+                "source": "DETERMINISTIC_CONTROL_FIXTURE",
+                "confidence": null,
+                "rank": 4
+              },
+              "conflict": null,
+              "acresStatus": "CALCULATED",
+              "sqftStatus": "VERIFIED_RECORD"
             }
           },
           "lotSizeAcres": {
-            "value": 1.14,
-            "status": "USER_PROVIDED",
-            "source": "PROPERTY_APP_VALUE",
+            "value": 1.1400000000000001,
+            "status": "CALCULATED",
+            "source": "LOT_SIZE_CONVERSION",
             "retrievedAt": null,
             "effectiveDate": null,
             "confidence": null,
             "conflict": null,
             "semanticState": "KNOWN",
-            "providerEvidence": null
+            "providerEvidence": null,
+            "provenance": {
+              "resolvedSqft": 49658.4,
+              "resolvedAcres": 1.1400000000000001,
+              "lotSizeSqft": 49658.4,
+              "lotSizeAcres": 1.1400000000000001,
+              "sourceUnit": "SQFT",
+              "source": "DETERMINISTIC_CONTROL_FIXTURE",
+              "evidenceStatus": "VERIFIED_RECORD",
+              "confidence": null,
+              "sourceAcres": {
+                "value": null,
+                "unit": "ACRES",
+                "status": "UNKNOWN",
+                "source": "PROPERTY_APP_VALUE",
+                "confidence": null,
+                "rank": 0
+              },
+              "sourceSqft": {
+                "value": 49658.4,
+                "unit": "SQFT",
+                "status": "VERIFIED_RECORD",
+                "source": "DETERMINISTIC_CONTROL_FIXTURE",
+                "confidence": null,
+                "rank": 4
+              },
+              "conflict": null,
+              "acresStatus": "CALCULATED",
+              "sqftStatus": "VERIFIED_RECORD"
+            }
           },
           "yearBuilt": {
             "value": null,
@@ -692,6 +746,35 @@
             "conflict": null
           }
         },
+        "resolvedLotDimensions": {
+          "resolvedSqft": 49658.4,
+          "resolvedAcres": 1.1400000000000001,
+          "lotSizeSqft": 49658.4,
+          "lotSizeAcres": 1.1400000000000001,
+          "sourceUnit": "SQFT",
+          "source": "DETERMINISTIC_CONTROL_FIXTURE",
+          "evidenceStatus": "VERIFIED_RECORD",
+          "confidence": null,
+          "sourceAcres": {
+            "value": null,
+            "unit": "ACRES",
+            "status": "UNKNOWN",
+            "source": "PROPERTY_APP_VALUE",
+            "confidence": null,
+            "rank": 0
+          },
+          "sourceSqft": {
+            "value": 49658.4,
+            "unit": "SQFT",
+            "status": "VERIFIED_RECORD",
+            "source": "DETERMINISTIC_CONTROL_FIXTURE",
+            "confidence": null,
+            "rank": 4
+          },
+          "conflict": null,
+          "acresStatus": "CALCULATED",
+          "sqftStatus": "VERIFIED_RECORD"
+        },
         "provenance": {
           "registry": "CANONICAL_PROPERTY_FIELD_REGISTRY_V1"
         },
@@ -900,20 +983,74 @@
             "conflict": null,
             "semanticState": "KNOWN",
             "provenance": {
-              "selected": "DETERMINISTIC_CONTROL_FIXTURE",
-              "policy": "OBJECTIVE_RECORD_EVIDENCE"
+              "resolvedSqft": 7253,
+              "resolvedAcres": 0.16650596877869606,
+              "lotSizeSqft": 7253,
+              "lotSizeAcres": 0.16650596877869606,
+              "sourceUnit": "SQFT",
+              "source": "DETERMINISTIC_CONTROL_FIXTURE",
+              "evidenceStatus": "VERIFIED_RECORD",
+              "confidence": null,
+              "sourceAcres": {
+                "value": null,
+                "unit": "ACRES",
+                "status": "UNKNOWN",
+                "source": "PROPERTY_APP_VALUE",
+                "confidence": null,
+                "rank": 0
+              },
+              "sourceSqft": {
+                "value": 7253,
+                "unit": "SQFT",
+                "status": "VERIFIED_RECORD",
+                "source": "DETERMINISTIC_CONTROL_FIXTURE",
+                "confidence": null,
+                "rank": 4
+              },
+              "conflict": null,
+              "acresStatus": "CALCULATED",
+              "sqftStatus": "VERIFIED_RECORD"
             }
           },
           "lotSizeAcres": {
-            "value": 0.1665,
-            "status": "USER_PROVIDED",
-            "source": "PROPERTY_APP_VALUE",
+            "value": 0.16650596877869606,
+            "status": "CALCULATED",
+            "source": "LOT_SIZE_CONVERSION",
             "retrievedAt": null,
             "effectiveDate": null,
             "confidence": null,
             "conflict": null,
             "semanticState": "KNOWN",
-            "providerEvidence": null
+            "providerEvidence": null,
+            "provenance": {
+              "resolvedSqft": 7253,
+              "resolvedAcres": 0.16650596877869606,
+              "lotSizeSqft": 7253,
+              "lotSizeAcres": 0.16650596877869606,
+              "sourceUnit": "SQFT",
+              "source": "DETERMINISTIC_CONTROL_FIXTURE",
+              "evidenceStatus": "VERIFIED_RECORD",
+              "confidence": null,
+              "sourceAcres": {
+                "value": null,
+                "unit": "ACRES",
+                "status": "UNKNOWN",
+                "source": "PROPERTY_APP_VALUE",
+                "confidence": null,
+                "rank": 0
+              },
+              "sourceSqft": {
+                "value": 7253,
+                "unit": "SQFT",
+                "status": "VERIFIED_RECORD",
+                "source": "DETERMINISTIC_CONTROL_FIXTURE",
+                "confidence": null,
+                "rank": 4
+              },
+              "conflict": null,
+              "acresStatus": "CALCULATED",
+              "sqftStatus": "VERIFIED_RECORD"
+            }
           },
           "yearBuilt": {
             "value": 1962,
@@ -1408,6 +1545,35 @@
             "conflict": null
           }
         },
+        "resolvedLotDimensions": {
+          "resolvedSqft": 7253,
+          "resolvedAcres": 0.16650596877869606,
+          "lotSizeSqft": 7253,
+          "lotSizeAcres": 0.16650596877869606,
+          "sourceUnit": "SQFT",
+          "source": "DETERMINISTIC_CONTROL_FIXTURE",
+          "evidenceStatus": "VERIFIED_RECORD",
+          "confidence": null,
+          "sourceAcres": {
+            "value": null,
+            "unit": "ACRES",
+            "status": "UNKNOWN",
+            "source": "PROPERTY_APP_VALUE",
+            "confidence": null,
+            "rank": 0
+          },
+          "sourceSqft": {
+            "value": 7253,
+            "unit": "SQFT",
+            "status": "VERIFIED_RECORD",
+            "source": "DETERMINISTIC_CONTROL_FIXTURE",
+            "confidence": null,
+            "rank": 4
+          },
+          "conflict": null,
+          "acresStatus": "CALCULATED",
+          "sqftStatus": "VERIFIED_RECORD"
+        },
         "provenance": {
           "registry": "CANONICAL_PROPERTY_FIELD_REGISTRY_V1"
         },
@@ -1610,20 +1776,74 @@
             "conflict": null,
             "semanticState": "KNOWN",
             "provenance": {
-              "selected": "DETERMINISTIC_CONTROL_FIXTURE",
-              "policy": "OBJECTIVE_RECORD_EVIDENCE"
+              "resolvedSqft": 10000,
+              "resolvedAcres": 0.2295684113865932,
+              "lotSizeSqft": 10000,
+              "lotSizeAcres": 0.2295684113865932,
+              "sourceUnit": "SQFT",
+              "source": "DETERMINISTIC_CONTROL_FIXTURE",
+              "evidenceStatus": "VERIFIED_RECORD",
+              "confidence": null,
+              "sourceAcres": {
+                "value": null,
+                "unit": "ACRES",
+                "status": "UNKNOWN",
+                "source": "PROPERTY_APP_VALUE",
+                "confidence": null,
+                "rank": 0
+              },
+              "sourceSqft": {
+                "value": 10000,
+                "unit": "SQFT",
+                "status": "VERIFIED_RECORD",
+                "source": "DETERMINISTIC_CONTROL_FIXTURE",
+                "confidence": null,
+                "rank": 4
+              },
+              "conflict": null,
+              "acresStatus": "CALCULATED",
+              "sqftStatus": "VERIFIED_RECORD"
             }
           },
           "lotSizeAcres": {
-            "value": 0.2296,
-            "status": "USER_PROVIDED",
-            "source": "PROPERTY_APP_VALUE",
+            "value": 0.2295684113865932,
+            "status": "CALCULATED",
+            "source": "LOT_SIZE_CONVERSION",
             "retrievedAt": null,
             "effectiveDate": null,
             "confidence": null,
             "conflict": null,
             "semanticState": "KNOWN",
-            "providerEvidence": null
+            "providerEvidence": null,
+            "provenance": {
+              "resolvedSqft": 10000,
+              "resolvedAcres": 0.2295684113865932,
+              "lotSizeSqft": 10000,
+              "lotSizeAcres": 0.2295684113865932,
+              "sourceUnit": "SQFT",
+              "source": "DETERMINISTIC_CONTROL_FIXTURE",
+              "evidenceStatus": "VERIFIED_RECORD",
+              "confidence": null,
+              "sourceAcres": {
+                "value": null,
+                "unit": "ACRES",
+                "status": "UNKNOWN",
+                "source": "PROPERTY_APP_VALUE",
+                "confidence": null,
+                "rank": 0
+              },
+              "sourceSqft": {
+                "value": 10000,
+                "unit": "SQFT",
+                "status": "VERIFIED_RECORD",
+                "source": "DETERMINISTIC_CONTROL_FIXTURE",
+                "confidence": null,
+                "rank": 4
+              },
+              "conflict": null,
+              "acresStatus": "CALCULATED",
+              "sqftStatus": "VERIFIED_RECORD"
+            }
           },
           "yearBuilt": {
             "value": null,
@@ -2120,6 +2340,35 @@
             "conflict": null
           }
         },
+        "resolvedLotDimensions": {
+          "resolvedSqft": 10000,
+          "resolvedAcres": 0.2295684113865932,
+          "lotSizeSqft": 10000,
+          "lotSizeAcres": 0.2295684113865932,
+          "sourceUnit": "SQFT",
+          "source": "DETERMINISTIC_CONTROL_FIXTURE",
+          "evidenceStatus": "VERIFIED_RECORD",
+          "confidence": null,
+          "sourceAcres": {
+            "value": null,
+            "unit": "ACRES",
+            "status": "UNKNOWN",
+            "source": "PROPERTY_APP_VALUE",
+            "confidence": null,
+            "rank": 0
+          },
+          "sourceSqft": {
+            "value": 10000,
+            "unit": "SQFT",
+            "status": "VERIFIED_RECORD",
+            "source": "DETERMINISTIC_CONTROL_FIXTURE",
+            "confidence": null,
+            "rank": 4
+          },
+          "conflict": null,
+          "acresStatus": "CALCULATED",
+          "sqftStatus": "VERIFIED_RECORD"
+        },
         "provenance": {
           "registry": "CANONICAL_PROPERTY_FIELD_REGISTRY_V1"
         },
@@ -2316,20 +2565,74 @@
             "conflict": null,
             "semanticState": "KNOWN",
             "provenance": {
-              "selected": "DETERMINISTIC_CONTROL_FIXTURE",
-              "policy": "OBJECTIVE_RECORD_EVIDENCE"
+              "resolvedSqft": 8316,
+              "resolvedAcres": 0.19090909090909092,
+              "lotSizeSqft": 8316,
+              "lotSizeAcres": 0.19090909090909092,
+              "sourceUnit": "SQFT",
+              "source": "DETERMINISTIC_CONTROL_FIXTURE",
+              "evidenceStatus": "VERIFIED_RECORD",
+              "confidence": null,
+              "sourceAcres": {
+                "value": null,
+                "unit": "ACRES",
+                "status": "UNKNOWN",
+                "source": "PROPERTY_APP_VALUE",
+                "confidence": null,
+                "rank": 0
+              },
+              "sourceSqft": {
+                "value": 8316,
+                "unit": "SQFT",
+                "status": "VERIFIED_RECORD",
+                "source": "DETERMINISTIC_CONTROL_FIXTURE",
+                "confidence": null,
+                "rank": 4
+              },
+              "conflict": null,
+              "acresStatus": "CALCULATED",
+              "sqftStatus": "VERIFIED_RECORD"
             }
           },
           "lotSizeAcres": {
-            "value": 0.1909,
-            "status": "USER_PROVIDED",
-            "source": "PROPERTY_APP_VALUE",
+            "value": 0.19090909090909092,
+            "status": "CALCULATED",
+            "source": "LOT_SIZE_CONVERSION",
             "retrievedAt": null,
             "effectiveDate": null,
             "confidence": null,
             "conflict": null,
             "semanticState": "KNOWN",
-            "providerEvidence": null
+            "providerEvidence": null,
+            "provenance": {
+              "resolvedSqft": 8316,
+              "resolvedAcres": 0.19090909090909092,
+              "lotSizeSqft": 8316,
+              "lotSizeAcres": 0.19090909090909092,
+              "sourceUnit": "SQFT",
+              "source": "DETERMINISTIC_CONTROL_FIXTURE",
+              "evidenceStatus": "VERIFIED_RECORD",
+              "confidence": null,
+              "sourceAcres": {
+                "value": null,
+                "unit": "ACRES",
+                "status": "UNKNOWN",
+                "source": "PROPERTY_APP_VALUE",
+                "confidence": null,
+                "rank": 0
+              },
+              "sourceSqft": {
+                "value": 8316,
+                "unit": "SQFT",
+                "status": "VERIFIED_RECORD",
+                "source": "DETERMINISTIC_CONTROL_FIXTURE",
+                "confidence": null,
+                "rank": 4
+              },
+              "conflict": null,
+              "acresStatus": "CALCULATED",
+              "sqftStatus": "VERIFIED_RECORD"
+            }
           },
           "yearBuilt": {
             "value": 1962,
@@ -2824,6 +3127,35 @@
             "conflict": null
           }
         },
+        "resolvedLotDimensions": {
+          "resolvedSqft": 8316,
+          "resolvedAcres": 0.19090909090909092,
+          "lotSizeSqft": 8316,
+          "lotSizeAcres": 0.19090909090909092,
+          "sourceUnit": "SQFT",
+          "source": "DETERMINISTIC_CONTROL_FIXTURE",
+          "evidenceStatus": "VERIFIED_RECORD",
+          "confidence": null,
+          "sourceAcres": {
+            "value": null,
+            "unit": "ACRES",
+            "status": "UNKNOWN",
+            "source": "PROPERTY_APP_VALUE",
+            "confidence": null,
+            "rank": 0
+          },
+          "sourceSqft": {
+            "value": 8316,
+            "unit": "SQFT",
+            "status": "VERIFIED_RECORD",
+            "source": "DETERMINISTIC_CONTROL_FIXTURE",
+            "confidence": null,
+            "rank": 4
+          },
+          "conflict": null,
+          "acresStatus": "CALCULATED",
+          "sqftStatus": "VERIFIED_RECORD"
+        },
         "provenance": {
           "registry": "CANONICAL_PROPERTY_FIELD_REGISTRY_V1"
         },
@@ -3024,20 +3356,74 @@
             "conflict": null,
             "semanticState": "KNOWN",
             "provenance": {
-              "selected": "DETERMINISTIC_CONTROL_FIXTURE",
-              "policy": "OBJECTIVE_RECORD_EVIDENCE"
+              "resolvedSqft": 10995,
+              "resolvedAcres": 0.2524104683195592,
+              "lotSizeSqft": 10995,
+              "lotSizeAcres": 0.2524104683195592,
+              "sourceUnit": "SQFT",
+              "source": "DETERMINISTIC_CONTROL_FIXTURE",
+              "evidenceStatus": "VERIFIED_RECORD",
+              "confidence": null,
+              "sourceAcres": {
+                "value": null,
+                "unit": "ACRES",
+                "status": "UNKNOWN",
+                "source": "PROPERTY_APP_VALUE",
+                "confidence": null,
+                "rank": 0
+              },
+              "sourceSqft": {
+                "value": 10995,
+                "unit": "SQFT",
+                "status": "VERIFIED_RECORD",
+                "source": "DETERMINISTIC_CONTROL_FIXTURE",
+                "confidence": null,
+                "rank": 4
+              },
+              "conflict": null,
+              "acresStatus": "CALCULATED",
+              "sqftStatus": "VERIFIED_RECORD"
             }
           },
           "lotSizeAcres": {
-            "value": 0.2524,
-            "status": "USER_PROVIDED",
-            "source": "PROPERTY_APP_VALUE",
+            "value": 0.2524104683195592,
+            "status": "CALCULATED",
+            "source": "LOT_SIZE_CONVERSION",
             "retrievedAt": null,
             "effectiveDate": null,
             "confidence": null,
             "conflict": null,
             "semanticState": "KNOWN",
-            "providerEvidence": null
+            "providerEvidence": null,
+            "provenance": {
+              "resolvedSqft": 10995,
+              "resolvedAcres": 0.2524104683195592,
+              "lotSizeSqft": 10995,
+              "lotSizeAcres": 0.2524104683195592,
+              "sourceUnit": "SQFT",
+              "source": "DETERMINISTIC_CONTROL_FIXTURE",
+              "evidenceStatus": "VERIFIED_RECORD",
+              "confidence": null,
+              "sourceAcres": {
+                "value": null,
+                "unit": "ACRES",
+                "status": "UNKNOWN",
+                "source": "PROPERTY_APP_VALUE",
+                "confidence": null,
+                "rank": 0
+              },
+              "sourceSqft": {
+                "value": 10995,
+                "unit": "SQFT",
+                "status": "VERIFIED_RECORD",
+                "source": "DETERMINISTIC_CONTROL_FIXTURE",
+                "confidence": null,
+                "rank": 4
+              },
+              "conflict": null,
+              "acresStatus": "CALCULATED",
+              "sqftStatus": "VERIFIED_RECORD"
+            }
           },
           "yearBuilt": {
             "value": 1962,
@@ -3531,6 +3917,35 @@
             "confidence": null,
             "conflict": null
           }
+        },
+        "resolvedLotDimensions": {
+          "resolvedSqft": 10995,
+          "resolvedAcres": 0.2524104683195592,
+          "lotSizeSqft": 10995,
+          "lotSizeAcres": 0.2524104683195592,
+          "sourceUnit": "SQFT",
+          "source": "DETERMINISTIC_CONTROL_FIXTURE",
+          "evidenceStatus": "VERIFIED_RECORD",
+          "confidence": null,
+          "sourceAcres": {
+            "value": null,
+            "unit": "ACRES",
+            "status": "UNKNOWN",
+            "source": "PROPERTY_APP_VALUE",
+            "confidence": null,
+            "rank": 0
+          },
+          "sourceSqft": {
+            "value": 10995,
+            "unit": "SQFT",
+            "status": "VERIFIED_RECORD",
+            "source": "DETERMINISTIC_CONTROL_FIXTURE",
+            "confidence": null,
+            "rank": 4
+          },
+          "conflict": null,
+          "acresStatus": "CALCULATED",
+          "sqftStatus": "VERIFIED_RECORD"
         },
         "provenance": {
           "registry": "CANONICAL_PROPERTY_FIELD_REGISTRY_V1"

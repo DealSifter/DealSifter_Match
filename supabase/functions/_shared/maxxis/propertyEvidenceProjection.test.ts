@@ -39,7 +39,7 @@ describe('property evidence snapshot projection', () => {
         yearBuilt: { value: null, status: 'VERIFIED_RECORD' },
       },
     });
-    expect(value).toMatchObject({ lot: 6000, lotSizeAcres: 0.1377 });
+    expect(value).toMatchObject({ lot: 6000, lotSizeAcres: 6000 / 43560 });
     expect(value).not.toHaveProperty('yearBuilt');
     expect(value).not.toHaveProperty('propertyUserNotes');
     expect(value).not.toHaveProperty('fieldProvenance');

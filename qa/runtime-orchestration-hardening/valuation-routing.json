@@ -463,9 +463,42 @@
         "provenance": "CALCULATED_FROM_VERIFIED_RECORDED_SALES"
       },
       "landMetrics": {
+        "id": "11111111-1111-4111-8111-111111111111",
+        "address": "741 Gable Dr",
+        "city": "Center Point",
+        "state": "AL",
+        "zip": "35215",
+        "type": "Land",
+        "price": 19000,
+        "lot": "1.14 acres",
+        "purchasePrice": 19000,
+        "resolvedSqft": 49658.4,
+        "resolvedAcres": 1.14,
         "lotSizeSqft": 49658.4,
         "lotSizeAcres": 1.14,
         "sourceUnit": "ACRES",
+        "source": "PROPERTY_APP_VALUE",
+        "evidenceStatus": "USER_PROVIDED",
+        "confidence": null,
+        "sourceAcres": {
+          "value": 1.14,
+          "unit": "ACRES",
+          "status": "USER_PROVIDED",
+          "source": "PROPERTY_APP_VALUE",
+          "confidence": null,
+          "rank": 3
+        },
+        "sourceSqft": {
+          "value": null,
+          "unit": "SQFT",
+          "status": "USER_PROVIDED",
+          "source": "PROPERTY_APP_VALUE",
+          "confidence": null,
+          "rank": 3
+        },
+        "conflict": null,
+        "acresStatus": "USER_PROVIDED",
+        "sqftStatus": "CALCULATED",
         "pricePerLotSqft": 0.38,
         "pricePerAcre": 16666.67
       },

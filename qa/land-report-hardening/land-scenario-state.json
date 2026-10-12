@@ -1,0 +1,289 @@
+{
+  "propertyId": "20e8a78f-fcf7-4017-83cd-5c8355498da9",
+  "assumptions": {
+    "zoning": "R2",
+    "zoningSource": "USER_PROVIDED",
+    "developmentIntent": "NEW_CONSTRUCTION",
+    "proposedUnitCount": 1,
+    "proposedPropertyType": "SFR"
+  },
+  "source": "EXPLICIT_CURRENT_USER_CONTROL_PROMPT",
+  "scenario": {
+    "propertyId": "20e8a78f-fcf7-4017-83cd-5c8355498da9",
+    "strategy": "LAND",
+    "status": "PARTIAL",
+    "provenance": "USER_PROVIDED",
+    "assumptions": {
+      "zoning": "R2",
+      "zoningSource": "USER_PROVIDED",
+      "developmentIntent": "NEW_CONSTRUCTION",
+      "proposedUnitCount": 1,
+      "proposedPropertyType": "SFR"
+    },
+    "calculatedOutputs": {
+      "model": "LAND_DEVELOPMENT_V2",
+      "developmentIntent": "NEW_CONSTRUCTION",
+      "landMetrics": {
+        "resolvedSqft": 23854,
+        "resolvedAcres": 0.5476124885215794,
+        "lotSizeSqft": 23854,
+        "lotSizeAcres": 0.5476124885215794,
+        "sourceUnit": "SQFT",
+        "source": "rentcast",
+        "evidenceStatus": "VERIFIED_RECORD",
+        "confidence": null,
+        "sourceAcres": {
+          "value": 1.14,
+          "unit": "ACRES",
+          "status": "USER_PROVIDED",
+          "source": "PROPERTY_APP_VALUE",
+          "confidence": null,
+          "rank": 3
+        },
+        "sourceSqft": {
+          "value": 23854,
+          "unit": "SQFT",
+          "status": "VERIFIED_RECORD",
+          "source": "rentcast",
+          "confidence": null,
+          "rank": 4
+        },
+        "conflict": {
+          "code": "LOT_DIMENSION_CONFLICT",
+          "sourceAcres": {
+            "value": 1.14,
+            "unit": "ACRES",
+            "status": "USER_PROVIDED",
+            "source": "PROPERTY_APP_VALUE",
+            "confidence": null,
+            "rank": 3
+          },
+          "sourceSqft": {
+            "value": 23854,
+            "unit": "SQFT",
+            "status": "VERIFIED_RECORD",
+            "source": "rentcast",
+            "confidence": null,
+            "rank": 4
+          },
+          "relativeDifference": 0.5196381679635268,
+          "selectedUnit": "SQFT"
+        },
+        "acresStatus": "CALCULATED",
+        "sqftStatus": "VERIFIED_RECORD",
+        "pricePerLotSqft": 0.8,
+        "pricePerAcre": 34696.07
+      },
+      "subjectType": "LAND",
+      "proposedPropertyType": "SFR",
+      "zoning": "R2",
+      "zoningSource": "USER_PROVIDED",
+      "landAcquisitionBasis": 19000,
+      "preliminaryKnownDevelopmentBasis": 19000,
+      "proposedUnitCount": 1,
+      "proposedBuildingSqftPerUnit": null,
+      "totalBuildingSqft": null,
+      "benchmark": {
+        "year": 2026,
+        "rate": {
+          "average": 145.5,
+          "low": 119,
+          "high": 172
+        },
+        "state": "Alabama",
+        "geography": "STATE",
+        "source": "INTERNAL_REFERENCE_BENCHMARK",
+        "sourceCitationStatus": "ORIGINAL_EXTERNAL_PROVENANCE_NOT_RETAINED",
+        "provenance": "ESTIMATED",
+        "confidence": "LOW",
+        "providerCalls": 0
+      },
+      "hardCost": null,
+      "hardCostSource": "INTERNAL_REFERENCE_BENCHMARK",
+      "constructionCostProvenance": "UNKNOWN",
+      "knownOtherCosts": 0,
+      "knownDevelopmentBasis": null,
+      "landAcquisitionReference": {
+        "methodology": "RECENT_SALES_MARKET_ESTIMATE",
+        "methodologyVersion": "DEALSIFTER_RECENT_SALES_V1",
+        "propertyCategory": "LAND",
+        "conditionAdjustmentStatus": "CONDITION_NOT_ADJUSTED",
+        "providerAvmCompatibility": "UNKNOWN",
+        "status": "INSUFFICIENT_RECENT_LAND_SALES_EVIDENCE",
+        "centralEstimate": null,
+        "range": null,
+        "weightedUnitValue": null,
+        "weightedLotPricePerSqft": null,
+        "unitMetric": "PRICE_PER_ACRE",
+        "qualifyingSalesCount": 0,
+        "valuationCompCount": 0,
+        "confidence": "LOW",
+        "confidenceReasons": [
+          "FEWER_THAN_TWO_QUALIFIED_RECENT_RECORDED_SALES",
+          "LAND_USE_ACCESS_UTILITIES_NOT_INDEPENDENTLY_VERIFIED"
+        ],
+        "dispersion": {
+          "coefficient": null,
+          "minimumUnitValue": null,
+          "maximumUnitValue": null
+        },
+        "valuationComps": [],
+        "marketReferenceOutliers": [],
+        "historicalReferences": [],
+        "exclusions": [
+          {
+            "providerPropertyId": "6690A-Gadsden-Hwy,-Lot-Commercial,-Trussville,-AL-35173",
+            "reasons": [
+              "PROPOSED_PRODUCT_SIZE_MISMATCH"
+            ]
+          },
+          {
+            "providerPropertyId": "207-Killough-Dr,-Birmingham,-AL-35215",
+            "reasons": [
+              "PROPOSED_PRODUCT_SIZE_MISMATCH"
+            ]
+          }
+        ],
+        "family": "LAND_ACQUISITION",
+        "asOf": "2026-10-12T02:04:41.188Z",
+        "supportingCandidates": [],
+        "provenance": "CALCULATED_FROM_VERIFIED_RECORDED_SALES"
+      },
+      "finishedHomeExitReference": null,
+      "projectedExitPerUnit": null,
+      "aggregateProjectedExit": null,
+      "preliminaryGrossSpread": null,
+      "costCoverage": [
+        {
+          "field": "landAcquisition",
+          "value": 19000,
+          "status": "KNOWN"
+        },
+        {
+          "field": "construction",
+          "value": null,
+          "status": "UNKNOWN"
+        },
+        {
+          "field": "closingCosts",
+          "value": null,
+          "status": "UNKNOWN"
+        },
+        {
+          "field": "siteWorkCost",
+          "value": null,
+          "status": "UNKNOWN"
+        },
+        {
+          "field": "utilityCost",
+          "value": null,
+          "status": "UNKNOWN"
+        },
+        {
+          "field": "permitCost",
+          "value": null,
+          "status": "UNKNOWN"
+        },
+        {
+          "field": "surveyCost",
+          "value": null,
+          "status": "UNKNOWN"
+        },
+        {
+          "field": "titleCost",
+          "value": null,
+          "status": "UNKNOWN"
+        },
+        {
+          "field": "engineeringCost",
+          "value": null,
+          "status": "UNKNOWN"
+        },
+        {
+          "field": "architectureCost",
+          "value": null,
+          "status": "UNKNOWN"
+        },
+        {
+          "field": "softCosts",
+          "value": null,
+          "status": "UNKNOWN"
+        },
+        {
+          "field": "financingCost",
+          "value": null,
+          "status": "UNKNOWN"
+        },
+        {
+          "field": "holdingCost",
+          "value": null,
+          "status": "UNKNOWN"
+        },
+        {
+          "field": "sellingCost",
+          "value": null,
+          "status": "UNKNOWN"
+        },
+        {
+          "field": "contingency",
+          "value": null,
+          "status": "UNKNOWN"
+        }
+      ],
+      "unknownCostFields": [
+        "construction",
+        "closingCosts",
+        "siteWorkCost",
+        "utilityCost",
+        "permitCost",
+        "surveyCost",
+        "titleCost",
+        "engineeringCost",
+        "architectureCost",
+        "softCosts",
+        "financingCost",
+        "holdingCost",
+        "sellingCost",
+        "contingency"
+      ],
+      "estimatedProjectProfit": null,
+      "ROI": null,
+      "nextInput": "proposedBuildingSqftPerUnit",
+      "providerCalls": 0,
+      "evidenceFreshness": {
+        "landAcquisition": {
+          "state": "FRESH",
+          "retrievedAt": "2026-10-03T20:07:02.674+00:00"
+        }
+      },
+      "zoningSubdivisionGate": {
+        "status": "UNVERIFIED",
+        "required": [
+          "zoning",
+          "allowedUse",
+          "minimumLotRequirements",
+          "roadAccess",
+          "utilities"
+        ],
+        "financialSimulationIsNotLegalApproval": true
+      },
+      "confidence": {
+        "landComps": "LOW",
+        "construction": "LOW",
+        "exitComps": "UNAVAILABLE",
+        "costCoverage": "INCOMPLETE"
+      },
+      "provenance": {
+        "proposedSize": "USER_PROVIDED",
+        "landUnitMetrics": "CALCULATED",
+        "constructionBenchmark": "INTERNAL_REFERENCE_BENCHMARK",
+        "exit": "CALCULATED_FROM_VERIFIED_RECORDED_SALES"
+      },
+      "currentLivingAreaSqft": "NOT_APPLICABLE",
+      "rehab": "NOT_APPLICABLE",
+      "residentialCapRate": "NOT_APPLICABLE",
+      "existingHouseArv": "NOT_APPLICABLE"
+    }
+  },
+  "staleTwoHouseAction": 0
+}

@@ -1,0 +1,86 @@
+{
+  "rehab": "NOT_APPLICABLE",
+  "capRate": "NOT_APPLICABLE",
+  "knownDevelopmentBasis": 19000,
+  "coverage": [
+    {
+      "field": "landAcquisition",
+      "value": 19000,
+      "status": "KNOWN"
+    },
+    {
+      "field": "construction",
+      "value": null,
+      "status": "UNKNOWN"
+    },
+    {
+      "field": "closingCosts",
+      "value": null,
+      "status": "UNKNOWN"
+    },
+    {
+      "field": "siteWorkCost",
+      "value": null,
+      "status": "UNKNOWN"
+    },
+    {
+      "field": "utilityCost",
+      "value": null,
+      "status": "UNKNOWN"
+    },
+    {
+      "field": "permitCost",
+      "value": null,
+      "status": "UNKNOWN"
+    },
+    {
+      "field": "surveyCost",
+      "value": null,
+      "status": "UNKNOWN"
+    },
+    {
+      "field": "titleCost",
+      "value": null,
+      "status": "UNKNOWN"
+    },
+    {
+      "field": "engineeringCost",
+      "value": null,
+      "status": "UNKNOWN"
+    },
+    {
+      "field": "architectureCost",
+      "value": null,
+      "status": "UNKNOWN"
+    },
+    {
+      "field": "softCosts",
+      "value": null,
+      "status": "UNKNOWN"
+    },
+    {
+      "field": "financingCost",
+      "value": null,
+      "status": "UNKNOWN"
+    },
+    {
+      "field": "holdingCost",
+      "value": null,
+      "status": "UNKNOWN"
+    },
+    {
+      "field": "sellingCost",
+      "value": null,
+      "status": "UNKNOWN"
+    },
+    {
+      "field": "contingency",
+      "value": null,
+      "status": "UNKNOWN"
+    }
+  ],
+  "hardCost": null,
+  "falseZeroMetrics": 0,
+  "pdfTextChecked": true,
+  "matches": []
+}

@@ -39,7 +39,7 @@ import type { SoldEvidenceResult } from '../property-data/soldTypes.ts';
 import { buildRecentSalesMarketEstimate, providerEstimateDivergence } from '../property-data/recentSalesMarketEstimate.ts';
 import type { SupplementalEvidenceBundle } from '../property-data/supplementalEvidenceService.ts';
 import type { SupplementalEvidenceFamily } from '../property-data/supplementalEvidenceTypes.ts';
-import { parseCanonicalLotArea } from './landMetrics.ts';
+import { resolveLotDimensions } from './landMetrics.ts';
 import { findRetainedRecentSalesReference } from './retainedReportReference.ts';
 import { calculateLandDevelopmentScenario, type LandDevelopmentEvidence } from './landDevelopmentScenario.ts';
 
@@ -414,6 +414,12 @@ export async function getDealInsightContextForAuthenticatedUser(
     result.property as unknown as Record<string, unknown> | null, analysisInputs,
   );
   const rehabNotApplicable = analysisApplicability.rehab === 'NOT_APPLICABLE';
+  // Resolve verified parcel evidence before either scenario/comp family runs,
+  // not only when projecting the final report snapshot below.
+  const canonicalLotDimensions = resolveLotDimensions(mergeVerifiedPropertyEvidenceIntoFacts(
+    result.property as unknown as Record<string, unknown> | null,
+    result.dealIntelligence?.propertyContext || null,
+  ));
   let developmentEvidence: LandDevelopmentEvidence | null = null;
   let landDevelopment = null;
   const activeScenario = analysisInputs.dealAssumptions.activeScenario as Record<string, any> | undefined;
@@ -442,7 +448,7 @@ export async function getDealInsightContextForAuthenticatedUser(
   }
   if (analysisApplicability.propertyCategory === 'VACANT_LAND' && developmentAssumptions.developmentIntent && developmentAssumptions.developmentIntent !== 'NONE') {
     landDevelopment = calculateLandDevelopmentScenario({ ...result.property,
-      purchasePrice: result.property?.price, lotSizeSqft: result.property?.lot, ...developmentAssumptions }, developmentEvidence);
+      ...developmentAssumptions, purchasePrice: result.property?.price, ...canonicalLotDimensions }, developmentEvidence);
     analysisInputs.dealAssumptions.activeScenario = { ...(activeScenario || {}), propertyId: validated.propertyId,
       strategy: 'LAND', status: 'PARTIAL', assumptions: developmentAssumptions, calculatedOutputs: landDevelopment,
       provenance: 'USER_PROVIDED', confirmed: activeScenario?.confirmed === true };
@@ -475,14 +481,15 @@ export async function getDealInsightContextForAuthenticatedUser(
   const providerSubjectType = providerEvidenceState.valuation?.valuation.subjectProperty.propertyType.value
     ?? (result.evidence.state === 'available' ? result.evidence.evidence?.fields?.propertyType?.value : null);
   const materialIdentityConflict = propertyConflicts.some((conflict) =>
-    conflict.resolution === 'UNRESOLVED' && conflict.classification === 'CRITICAL_IDENTITY');
+    conflict.resolution === 'UNRESOLVED' && conflict.classification === 'CRITICAL_IDENTITY'
+    && !(analysisApplicability.propertyCategory === 'VACANT_LAND' && conflict.field === 'propertyType'));
   const recentSalesSubject = {
     propertyType: result.property?.type || null,
     livingAreaSqft: toKnownFiniteNumber(result.property?.sqft) !== null ? Number(result.property?.sqft) : null,
-    lotSizeSqft: toKnownFiniteNumber(result.dealIntelligence?.propertyContext?.fields?.lotSizeSqft)
-      ?? parseCanonicalLotArea(result.property?.lot).lotSizeSqft,
+    lotSizeSqft: canonicalLotDimensions.resolvedSqft,
     providerPropertyType: typeof providerSubjectType === 'string' ? providerSubjectType : null,
     materialIdentityConflict,
+    analysisTypeResolution: analysisApplicability.propertyCategory === 'VACANT_LAND' ? 'USE_STORED' as const : null,
   };
   const recentSalesMarketEstimate = providerEvidenceState.sold
     ? buildRecentSalesMarketEstimate(recentSalesSubject,

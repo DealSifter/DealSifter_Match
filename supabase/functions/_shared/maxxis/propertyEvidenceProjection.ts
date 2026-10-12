@@ -1,5 +1,6 @@
 import { canonicalFactValue, factSemanticState, isMaterialValue, propertyTypeFamily, resolveAnalysisPropertyType,
   resolveAnalysisStrategy, toKnownFiniteNumber, type FactSemanticState } from './canonicalFactSemantics.ts';
+import { resolveParcelDimensions, calculateLandUnitMetrics, parseCanonicalLotArea } from './landMetrics.ts';
 export type CanonicalFactStatus = 'VERIFIED_RECORD' | 'USER_PROVIDED' | 'CALCULATED' | 'ESTIMATED' | 'UNKNOWN' | 'UNAVAILABLE' | 'NOT_APPLICABLE' | 'NOT_EVALUATED';
 export type CanonicalPropertyFact = Readonly<{ value: unknown; status: CanonicalFactStatus; source: string | null;
   retrievedAt: string | null; effectiveDate: string | null; confidence: number | null; conflict: unknown | null;
@@ -136,14 +137,29 @@ export function buildCanonicalPropertyFacts(property: Record<string, unknown> | 
   const source = { ...(property || {}) }; const valuation = options.valuationReferences || {}; const groups: Record<string, Record<string, CanonicalPropertyFact>> = {};
   Object.entries(CANONICAL_PROPERTY_FIELD_REGISTRY).forEach(([field, registry]) => { groups[registry.group] ||= {};
     groups[registry.group][field] = factFor(field, registry, source, propertyContext, valuation); });
-  const sqft = finite(groups.physical.lotSizeSqft.value); const acres = finite(groups.physical.lotSizeAcres.value);
-  if (sqft !== null && sqft > 0 && (acres === null || acres <= 0)) groups.physical.lotSizeAcres = Object.freeze({ value: Math.round((sqft / 43_560) * 10_000) / 10_000,
-    status: 'CALCULATED', source: 'LOT_SIZE_CONVERSION', retrievedAt: null, effectiveDate: null, confidence: null, conflict: null });
+  const parsedLot = parseCanonicalLotArea(source.lot);
+  if (parsedLot.sourceUnit === 'ACRES') {
+    if (finite(groups.physical.lotSizeAcres.value) === null) groups.physical.lotSizeAcres = Object.freeze({
+      ...groups.physical.lotSizeAcres, value: parsedLot.lotSizeAcres, status: 'USER_PROVIDED', source: 'PROPERTY_APP_LOT_ACRES', semanticState: 'KNOWN' });
+    const appSqft = groups.physical.lotSizeSqft;
+    if (appSqft.status !== 'VERIFIED_RECORD' && (finite(appSqft.value) === null || Math.abs(Number(appSqft.value) - parsedLot.lotSizeSqft!) < 1e-6)) {
+      groups.physical.lotSizeSqft = Object.freeze({ ...appSqft, value: parsedLot.lotSizeSqft, status: 'CALCULATED', source: 'LOT_SIZE_CONVERSION', semanticState: 'KNOWN' });
+    }
+  }
+  const resolvedLotDimensions = resolveParcelDimensions(groups.physical.lotSizeAcres, groups.physical.lotSizeSqft);
+  for (const [field, value, state] of [['lotSizeAcres', resolvedLotDimensions.resolvedAcres, resolvedLotDimensions.acresStatus],
+    ['lotSizeSqft', resolvedLotDimensions.resolvedSqft, resolvedLotDimensions.sqftStatus]] as const) {
+    groups.physical[field] = Object.freeze({ ...groups.physical[field], value, status: state as CanonicalFactStatus,
+      source: state === 'CALCULATED' ? 'LOT_SIZE_CONVERSION' : resolvedLotDimensions.source,
+      semanticState: value === null ? 'UNKNOWN' : 'KNOWN', conflict: resolvedLotDimensions.conflict,
+      provenance: resolvedLotDimensions });
+  }
   const frozenGroups = Object.fromEntries(Object.entries(groups).map(([group, values]) => [group, Object.freeze(values)]));
-  return Object.freeze({ version: 'CANONICAL_PROPERTY_FACTS_V1', ...frozenGroups,
+  return Object.freeze({ version: 'CANONICAL_PROPERTY_FACTS_V1', ...frozenGroups, resolvedLotDimensions,
     provenance: Object.freeze({ registry: 'CANONICAL_PROPERTY_FIELD_REGISTRY_V1' }),
     conflicts: Object.freeze([...(propertyContext?.conflicts || []),
-      ...(groups.physical.propertyType.conflict ? [groups.physical.propertyType.conflict] : [])].map((item) => Object.freeze({ ...(item as Record<string, unknown>) }))) });
+      ...(groups.physical.propertyType.conflict ? [groups.physical.propertyType.conflict] : []),
+      ...(resolvedLotDimensions.conflict ? [resolvedLotDimensions.conflict] : [])].map((item) => Object.freeze({ ...(item as Record<string, unknown>) }))) });
 }
 
 export function mergeVerifiedPropertyEvidenceIntoFacts(property: Record<string, unknown> | null, propertyContext: PropertyContext | null,
@@ -165,13 +181,13 @@ export function mergeVerifiedPropertyEvidenceIntoFacts(property: Record<string, 
   if (!present(merged.propertyUserNotes) && present(property?.description)) merged.propertyUserNotes = property?.description;
   if (present(property?.maxxisPropertySummary)) merged.maxxisPropertySummary = property?.maxxisPropertySummary;
   else if (present(property?.description)) merged.maxxisPropertySummary = property?.description;
-  const sqft = finite(merged.lotSizeSqft ?? merged.lot); const acres = finite(merged.lotSizeAcres);
-  if ((acres === null || acres <= 0) && sqft !== null && sqft > 0) merged.lotSizeAcres = Math.round((sqft / 43_560) * 10_000) / 10_000;
-  if ((sqft === null || sqft <= 0) && acres !== null && acres > 0) merged.lotSizeSqft = Math.round(acres * 43_560 * 10) / 10;
-  if (!present(merged.lot) && present(merged.lotSizeSqft)) merged.lot = merged.lotSizeSqft;
   const features = materialFeatures(merged.propertyFeatures, String(merged.resolvedAnalysisStrategy)); if (features.length) merged.materialPropertyFeatures = features;
   if (Object.keys(provenance).length) merged.fieldProvenance = Object.freeze(provenance);
   if (merged.resolvedAnalysisStrategy === 'LAND') ['beds', 'baths', 'sqft', 'yearBuilt', 'rehab', 'capRate'].forEach((key) => delete merged[key]);
   merged.canonicalPropertyFacts = buildCanonicalPropertyFacts({ ...merged, canonicalPropertyFacts: undefined }, propertyContext, options);
+  const canonical = merged.canonicalPropertyFacts as ReturnType<typeof buildCanonicalPropertyFacts>;
+  const dimensions = canonical.resolvedLotDimensions;
+  Object.assign(merged, calculateLandUnitMetrics(merged.price, { resolvedLotDimensions: dimensions }), { resolvedLotDimensions: dimensions });
+  if (dimensions.resolvedSqft !== null) merged.lot = dimensions.resolvedSqft;
   return Object.freeze(merged);
 }

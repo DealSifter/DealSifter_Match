@@ -5,7 +5,7 @@ import {
   type DealStrategy,
   type StrategyRequirement,
 } from './strategyPlaybooks.ts';
-import { calculateLandUnitMetrics, parseCanonicalLotArea } from './landMetrics.ts';
+import { calculateLandUnitMetrics, parseCanonicalLotArea, resolveLotDimensions } from './landMetrics.ts';
 import { canonicalFactValue, resolveAnalysisPropertyType, propertyTypeFamily, toKnownFiniteNumber } from './canonicalFactSemantics.ts';
 
 type AnyRecord = Record<string, any>;
@@ -248,12 +248,7 @@ export function buildDealDecisionContext(snapshotInput: unknown): DealDecisionCo
   const strategy = (propertyTypeFamily(propertyType) === 'LAND' ? 'LAND' : ['FLIP', 'BUY_AND_HOLD', 'WHOLESALE', 'SELLER_FINANCING', 'SUB_TO', 'LAND', 'GENERIC_SELL']
     .includes(lockedStrategy) ? lockedStrategy : resolveDealStrategy({ propertyType, objective, strategies, rehab })) as DealStrategy;
   const playbook = getStrategyPlaybook(strategy);
-  const lotArea = parseCanonicalLotArea(
-    fact(snapshot, context, ['lotSizeSqft', 'lot']) ?? property.lotSizeSqft,
-  );
-  const explicitAcres = finite(fact(snapshot, context, ['lotSizeAcres']));
-  const canonicalLotArea = explicitAcres !== null && lotArea.lotSizeSqft === null
-    ? parseCanonicalLotArea(`${explicitAcres} acres`) : lotArea;
+  const canonicalLotArea = resolveLotDimensions(property);
   const landUnitMetrics = strategy === 'LAND'
     ? calculateLandUnitMetrics(price, canonicalLotArea) : null;
   const baseCost = strategy !== 'LAND' && price !== null && rehab !== null ? Math.round((price + rehab) * 100) / 100 : null;
@@ -324,6 +319,7 @@ export function buildDealDecisionContext(snapshotInput: unknown): DealDecisionCo
     .filter((item, index, values) => values.findIndex(candidate => candidate.field === item.field
       && candidate.storedValue === item.storedValue && candidate.externalValue === item.externalValue) === index);
   const conflictGaps = conflicts.filter((conflict) => conflict?.resolution === 'UNRESOLVED'
+    && !(strategy === 'LAND' && conflict.field === 'propertyType' && propertyTypeFamily(propertyType) === 'LAND')
     && ['CRITICAL_IDENTITY', 'HIGH_VALUATION'].includes(text(conflict?.classification))).map((conflict) => Object.freeze({
       code: `EVIDENCE_CONFLICT_${text(conflict.field).toUpperCase()}`,
       field: text(conflict.field) || 'property_identity',

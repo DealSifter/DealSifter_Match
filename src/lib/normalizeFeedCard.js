@@ -5,6 +5,7 @@ import {
   normalizeProfileScope,
 } from './profileScopeResolver';
 import { SENSITIVE_FIELDS } from './sensitiveFields';
+import { calculateLandUnitMetrics } from '../../supabase/functions/_shared/maxxis/landMetrics.ts';
 
 const pickString = (...values) => {
   for (const value of values) {
@@ -273,8 +274,11 @@ export function normalizeCard(rawCard, currentUserId = '') {
   }
 
   if (kind === 'property') {
+    const parcelMetrics = calculateLandUnitMetrics(rawCard.price, rawCard);
     return sanitizePublicCard({
       ...common,
+      ...parcelMetrics,
+      lot: parcelMetrics.lotSizeSqft ?? rawCard.lot,
       id: rawCard.id,
       portfolioId: rawCard.portfolioId || rawCard.id,
       type: pickString(rawCard.type, rawCard.propertyType, 'Property'),

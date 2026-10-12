@@ -1,0 +1,49 @@
+{
+  "baseline": "15fa6974c257dc0be90ed08cc1df7c362b13064a",
+  "method": "transitive local import graph including re-exports and dynamic imports",
+  "changedSharedModules": [
+    "supabase/functions/_shared/maxxis/dealDecisionContext.ts",
+    "supabase/functions/_shared/maxxis/dealThesis.ts",
+    "supabase/functions/_shared/maxxis/getDealInsightContext.ts",
+    "supabase/functions/_shared/maxxis/landDevelopmentScenario.ts",
+    "supabase/functions/_shared/maxxis/landMetrics.ts",
+    "supabase/functions/_shared/maxxis/marketReferenceAnswer.ts",
+    "supabase/functions/_shared/maxxis/propertyEvidenceProjection.ts",
+    "supabase/functions/_shared/maxxis/scenarioEngine.ts"
+  ],
+  "changedFunctionModules": [],
+  "affectedFunctions": [
+    {
+      "function": "arv-visual-comp-review",
+      "changedDependencies": [
+        "supabase/functions/_shared/maxxis/landMetrics.ts"
+      ]
+    },
+    {
+      "function": "maxxis-chat",
+      "changedDependencies": [
+        "supabase/functions/_shared/maxxis/dealDecisionContext.ts",
+        "supabase/functions/_shared/maxxis/dealThesis.ts",
+        "supabase/functions/_shared/maxxis/getDealInsightContext.ts",
+        "supabase/functions/_shared/maxxis/landDevelopmentScenario.ts",
+        "supabase/functions/_shared/maxxis/landMetrics.ts",
+        "supabase/functions/_shared/maxxis/marketReferenceAnswer.ts",
+        "supabase/functions/_shared/maxxis/propertyEvidenceProjection.ts",
+        "supabase/functions/_shared/maxxis/scenarioEngine.ts"
+      ]
+    },
+    {
+      "function": "maxxis-provider-message-draft",
+      "changedDependencies": [
+        "supabase/functions/_shared/maxxis/landMetrics.ts"
+      ]
+    },
+    {
+      "function": "property-intelligence",
+      "changedDependencies": [
+        "supabase/functions/_shared/maxxis/landMetrics.ts"
+      ]
+    }
+  ],
+  "unresolvedLocalImports": []
+}

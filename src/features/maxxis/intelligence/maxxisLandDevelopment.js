@@ -1,5 +1,5 @@
 import { isVacantLandProperty } from '../../../../supabase/functions/_shared/maxxis/analysisApplicability.ts';
-import { parseCanonicalLotArea } from '../../../../supabase/functions/_shared/maxxis/landMetrics.ts';
+import { resolveLotDimensions } from '../../../../supabase/functions/_shared/maxxis/landMetrics.ts';
 import { parseLandDevelopmentAssumptions, formatLandDevelopmentAnswer, LAND_DEVELOPMENT_COST_FIELDS } from '../../../../supabase/functions/_shared/maxxis/landDevelopmentScenario.ts';
 import { resolveDealScenario, compareScenarioOutputs } from '../../../../supabase/functions/_shared/maxxis/scenarioEngine.ts';
 import { buildDealDecisionContext } from '../../../../supabase/functions/_shared/maxxis/dealDecisionContext.ts';
@@ -33,10 +33,10 @@ export function resolveLocalLandDevelopment({ property, propertyId = property?.i
   if (!latest && !storedAssumptions.developmentIntent && !parsed.developmentIntent && !parsed.zoning && !parsed.proposedUnitCount && !parsed.proposedPropertyType) return null;
   if (!Object.keys(parsed).length && !pendingCost && !comparing && !(developmentQuestion && (latest || storedAssumptions.developmentIntent))) return null;
   const snapshot = [...scoped].reverse().map(item => item.data?.intelligenceSnapshot || item.data?.sourceData?.intelligenceSnapshot).find(Boolean) || {};
-  const lot = parseCanonicalLotArea(property.lotSizeSqft ?? property.lot);
+  const lot = resolveLotDimensions(property);
   const resolution = resolveDealScenario({ message, propertyId, canonicalStrategy: 'LAND',
     canonicalFacts: { ...property, purchasePrice: property.price, ...lot },
-    storedAssumptions: { ...storedAssumptions, ...(latest?.assumptions || {}), ...(pendingCost || {}) },
+    storedAssumptions: { ...(latest?.assumptions || {}), ...storedAssumptions, ...(pendingCost || {}) },
     history: comparing ? scoped.filter(item => item.role === 'user') : [],
     developmentEvidence: snapshot.developmentEvidence });
   if (!resolution.scenario) return null;
@@ -48,7 +48,7 @@ export function resolveLocalLandDevelopment({ property, propertyId = property?.i
     resolution.scenario.calculatedOutputs.model === 'LAND_DEVELOPMENT_V2' ? formatLandDevelopmentAnswer(resolution.scenario.calculatedOutputs, language) : '',
     resolution.scenario.status === 'COMPLETE' ? `[[action:scenario-save|${t('Salvar premissas para o relatório', 'Save assumptions for report', 'Guardar supuestos para informe')}]]` : ''].filter(Boolean).join('\n\n');
   const zoning = resolution.scenario.assumptions.zoning;
-  const canonicalZoning = property.canonicalPropertyFacts?.land?.zoning?.value || property.zoning;
+  const canonicalZoning = property.canonicalPropertyFacts?.parcel?.zoning?.value || property.zoning;
   const zoningConflict = zoning && canonicalZoning && String(zoning).toUpperCase() !== String(canonicalZoning).toUpperCase()
     ? { code: 'USER_ZONING_ASSUMPTION_CONFLICT', canonicalValue: canonicalZoning, userValue: zoning, status: 'UNRESOLVED' } : null;
   const assumptionSnapshot = { ...snapshot, propertyId, propertyFacts: { ...snapshot.propertyFacts, ...property },

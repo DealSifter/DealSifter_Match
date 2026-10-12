@@ -84,7 +84,7 @@ import {
   safeProactiveAnalytics,
   selectMaxxisProactiveCandidate,
 } from '../../features/maxxis/proactive/maxxisProactiveIntelligence';
-import { buildMaxxisProactiveTriggers, resolveMaxxisProactiveContext, projectMaxxisProactiveSnapshot } from '../../features/maxxis/proactive/maxxisProactiveTriggerEngine';
+import { buildMaxxisProactiveTriggers, resolveMaxxisProactiveContext, projectMaxxisProactiveSnapshot, isCurrentLandDevelopmentAction } from '../../features/maxxis/proactive/maxxisProactiveTriggerEngine';
 import { resolveMaxxisAvatarState } from '../../features/maxxis/avatar/maxxisAvatarStateMachine';
 import { MaxxisAvatarRenderer } from '../../features/maxxis/avatar/MaxxisAvatarRenderer';
 import { MaxxisCommunicationBadge } from '../../features/maxxis/avatar/MaxxisCommunicationBadge';
@@ -3018,6 +3018,8 @@ export function MaxxisAssistant({ page = 'dashboard', onOpenSupport = null, onNa
   const handleSmartAction = (action, sourceMessage) => {
     if (!action?.enabled || loading) return;
     if (action.target?.propertyId && action.target.propertyId !== currentMemoryPropertyId()) return;
+    const property = propertyCandidates.find(item => String(item.id || item.propertyId) === String(activePropertyContextId)) || { id: activePropertyContextId };
+    if (!isCurrentLandDevelopmentAction(action, resolveMaxxisProactiveContext({ property, propertyId: activePropertyContextId, messages }))) return;
     if (sourceMessage?.data?.proactiveTrigger) {
       const trigger = sourceMessage.data.proactiveTrigger;
       if (trigger.propertyId !== activePropertyContextId || completedDecisionActionsRef.current.has(action.id)) return;

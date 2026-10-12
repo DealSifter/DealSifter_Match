@@ -1,5 +1,6 @@
 import { INTELLIGENCE_REPORT_TYPES } from '../intelligenceAccess';
 import { canonicalFactValue, resolveAnalysisPropertyType, resolveAnalysisStrategy, toKnownFiniteNumber } from '../../../supabase/functions/_shared/maxxis/canonicalFactSemantics.ts';
+import { calculateLandUnitMetrics } from '../../../supabase/functions/_shared/maxxis/landMetrics.ts';
 
 export const MAXXIS_REPORT_SCHEMA_VERSION = 'MAXXIS_REPORT_SCHEMA_V2';
 export const MAXXIS_REPORT_SOURCE_TYPES = Object.freeze([
@@ -32,7 +33,7 @@ const PROPERTY_KEYS = Object.freeze([
   'propertyUserNotes', 'maxxisPropertySummary', 'maxxisAnalyticalCommentary',
   'resolvedAnalysisPropertyType', 'resolvedAnalysisStrategy', 'providerPropertyType',
   'propertyTypeConflict', 'materialPropertyFeatures', 'fieldProvenance', 'reportFieldVisibility',
-  'canonicalPropertyFacts',
+  'canonicalPropertyFacts', 'resolvedLotDimensions',
   'propertyTypeConflictCode', 'providerPropertyTypeFamily', 'localizedPropertyUserNotes', 'propertyUserNotesOriginal',
   'localizedDescription', 'localizedOwnerNotes',
   'acquisitionCosts', 'holdingCosts', 'financingCosts', 'sellingCosts', 'noi',
@@ -153,6 +154,7 @@ export function mergeMaxxisReportProperty(evidenceProperty, appProperty) {
   if (isVacantLandType(merged.type)) {
     ['beds', 'baths', 'sqft', 'yearBuilt', 'rehab', 'capRate'].forEach((key) => delete merged[key]);
   }
+  Object.assign(merged, calculateLandUnitMetrics(merged.price, merged));
   return Object.freeze(merged);
 }
 
@@ -200,6 +202,7 @@ export function buildPropertyOverviewModel(property) {
   if (isVacantLandType(data.type)) {
     ['beds', 'baths', 'sqft', 'yearBuilt', 'rehab', 'capRate'].forEach((key) => delete data[key]);
   }
+  Object.assign(data, calculateLandUnitMetrics(data.price, data));
   if (Object.hasOwn(data, 'images')) {
     data.images = Object.freeze((Array.isArray(data.images) ? data.images : []).filter((item) => typeof item === 'string' && item.trim()));
   }
@@ -274,13 +277,14 @@ function existingMetrics(dealMetrics, property) {
   const metric = (key) => applicable && prerequisiteKnown(key === 'pricePerSqft' ? ['physical', 'livingAreaSqft'] : ['financial', 'rehab'])
     && metrics[key]?.calculable && toKnownFiniteNumber(metrics[key]?.value) !== null
     ? Object.freeze({ value: Number(metrics[key].value), sourceType: 'CALCULATED', source: metrics[key].source || null })
-    : Object.freeze({ value: null, sourceType: 'UNKNOWN', source: null });
+    : Object.freeze({ value: null, sourceType: applicable ? 'UNKNOWN' : 'NOT_APPLICABLE', source: null });
   return Object.freeze({
     pricePerSqft: metric('pricePerSqft'),
     acquisitionPlusRehab: metric('acquisitionPlusRehab'),
     capRate: applicable && prerequisiteKnown(['financial', 'capRate']) && metrics.capRate?.calculable && toKnownFiniteNumber(metrics.capRate?.value) !== null
       ? Object.freeze({ value: Number(metrics.capRate.value), sourceType: 'USER_PROVIDED', source: metrics.capRate.source || 'stored' })
-      : Object.freeze({ value: null, sourceType: 'UNKNOWN', source: null }),
+      : Object.freeze({ value: null, sourceType: applicable ? 'UNKNOWN' : 'NOT_APPLICABLE', source: null }),
+    landAcquisitionBasis: Object.freeze({ value: applicable ? null : toKnownFiniteNumber(property?.price), sourceType: applicable ? 'NOT_APPLICABLE' : 'USER_PROVIDED' }),
   });
 }
 

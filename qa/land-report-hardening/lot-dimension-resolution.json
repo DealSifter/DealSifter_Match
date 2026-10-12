@@ -1,0 +1,223 @@
+{
+  "propertyId": "20e8a78f-fcf7-4017-83cd-5c8355498da9",
+  "observedAt": "2026-10-12T02:04:41.484Z",
+  "sourceAcres": {
+    "path": "properties.lot",
+    "value": "1,14ac"
+  },
+  "sourceSqft": {
+    "path": "property_intelligence_cache[property_record].payload.characteristics.lotSizeSqft",
+    "value": 23854,
+    "source": "rentcast",
+    "status": "VERIFIED_RECORD",
+    "confidence": null,
+    "retrievedAt": "2026-10-12T00:36:12.370Z",
+    "effectiveDate": null,
+    "providerPropertyId": "741-Gable-Dr,-Center-Point,-AL-35215"
+  },
+  "resolved": {
+    "resolvedSqft": 23854,
+    "resolvedAcres": 0.5476124885215794,
+    "lotSizeSqft": 23854,
+    "lotSizeAcres": 0.5476124885215794,
+    "sourceUnit": "SQFT",
+    "source": "rentcast",
+    "evidenceStatus": "VERIFIED_RECORD",
+    "confidence": null,
+    "sourceAcres": {
+      "value": 1.14,
+      "unit": "ACRES",
+      "status": "USER_PROVIDED",
+      "source": "PROPERTY_APP_VALUE",
+      "confidence": null,
+      "rank": 3
+    },
+    "sourceSqft": {
+      "value": 23854,
+      "unit": "SQFT",
+      "status": "VERIFIED_RECORD",
+      "source": "rentcast",
+      "confidence": null,
+      "rank": 4
+    },
+    "conflict": {
+      "code": "LOT_DIMENSION_CONFLICT",
+      "sourceAcres": {
+        "value": 1.14,
+        "unit": "ACRES",
+        "status": "USER_PROVIDED",
+        "source": "PROPERTY_APP_VALUE",
+        "confidence": null,
+        "rank": 3
+      },
+      "sourceSqft": {
+        "value": 23854,
+        "unit": "SQFT",
+        "status": "VERIFIED_RECORD",
+        "source": "rentcast",
+        "confidence": null,
+        "rank": 4
+      },
+      "relativeDifference": 0.5196381679635268,
+      "selectedUnit": "SQFT"
+    },
+    "acresStatus": "CALCULATED",
+    "sqftStatus": "VERIFIED_RECORD"
+  },
+  "asking": {
+    "resolvedSqft": 23854,
+    "resolvedAcres": 0.5476124885215794,
+    "lotSizeSqft": 23854,
+    "lotSizeAcres": 0.5476124885215794,
+    "sourceUnit": "SQFT",
+    "source": "rentcast",
+    "evidenceStatus": "VERIFIED_RECORD",
+    "confidence": null,
+    "sourceAcres": {
+      "value": 1.14,
+      "unit": "ACRES",
+      "status": "USER_PROVIDED",
+      "source": "PROPERTY_APP_VALUE",
+      "confidence": null,
+      "rank": 3
+    },
+    "sourceSqft": {
+      "value": 23854,
+      "unit": "SQFT",
+      "status": "VERIFIED_RECORD",
+      "source": "rentcast",
+      "confidence": null,
+      "rank": 4
+    },
+    "conflict": {
+      "code": "LOT_DIMENSION_CONFLICT",
+      "sourceAcres": {
+        "value": 1.14,
+        "unit": "ACRES",
+        "status": "USER_PROVIDED",
+        "source": "PROPERTY_APP_VALUE",
+        "confidence": null,
+        "rank": 3
+      },
+      "sourceSqft": {
+        "value": 23854,
+        "unit": "SQFT",
+        "status": "VERIFIED_RECORD",
+        "source": "rentcast",
+        "confidence": null,
+        "rank": 4
+      },
+      "relativeDifference": 0.5196381679635268,
+      "selectedUnit": "SQFT"
+    },
+    "acresStatus": "CALCULATED",
+    "sqftStatus": "VERIFIED_RECORD",
+    "pricePerLotSqft": 0.8,
+    "pricePerAcre": 34696.07
+  },
+  "chat": {
+    "resolvedSqft": 23854,
+    "resolvedAcres": 0.5476124885215794,
+    "lotSizeSqft": 23854,
+    "lotSizeAcres": 0.5476124885215794,
+    "sourceUnit": "SQFT",
+    "source": "rentcast",
+    "evidenceStatus": "VERIFIED_RECORD",
+    "confidence": null,
+    "sourceAcres": {
+      "value": 1.14,
+      "unit": "ACRES",
+      "status": "USER_PROVIDED",
+      "source": "PROPERTY_APP_VALUE",
+      "confidence": null,
+      "rank": 3
+    },
+    "sourceSqft": {
+      "value": 23854,
+      "unit": "SQFT",
+      "status": "VERIFIED_RECORD",
+      "source": "rentcast",
+      "confidence": null,
+      "rank": 4
+    },
+    "conflict": {
+      "code": "LOT_DIMENSION_CONFLICT",
+      "sourceAcres": {
+        "value": 1.14,
+        "unit": "ACRES",
+        "status": "USER_PROVIDED",
+        "source": "PROPERTY_APP_VALUE",
+        "confidence": null,
+        "rank": 3
+      },
+      "sourceSqft": {
+        "value": 23854,
+        "unit": "SQFT",
+        "status": "VERIFIED_RECORD",
+        "source": "rentcast",
+        "confidence": null,
+        "rank": 4
+      },
+      "relativeDifference": 0.5196381679635268,
+      "selectedUnit": "SQFT"
+    },
+    "acresStatus": "CALCULATED",
+    "sqftStatus": "VERIFIED_RECORD",
+    "pricePerLotSqft": 0.8,
+    "pricePerAcre": 34696.07
+  },
+  "report": {
+    "resolvedSqft": 23854,
+    "resolvedAcres": 0.5476124885215794,
+    "lotSizeSqft": 23854,
+    "lotSizeAcres": 0.5476124885215794,
+    "sourceUnit": "SQFT",
+    "source": "rentcast",
+    "evidenceStatus": "VERIFIED_RECORD",
+    "confidence": null,
+    "sourceAcres": {
+      "value": 1.14,
+      "unit": "ACRES",
+      "status": "USER_PROVIDED",
+      "source": "PROPERTY_APP_VALUE",
+      "confidence": null,
+      "rank": 3
+    },
+    "sourceSqft": {
+      "value": 23854,
+      "unit": "SQFT",
+      "status": "VERIFIED_RECORD",
+      "source": "rentcast",
+      "confidence": null,
+      "rank": 4
+    },
+    "conflict": {
+      "code": "LOT_DIMENSION_CONFLICT",
+      "sourceAcres": {
+        "value": 1.14,
+        "unit": "ACRES",
+        "status": "USER_PROVIDED",
+        "source": "PROPERTY_APP_VALUE",
+        "confidence": null,
+        "rank": 3
+      },
+      "sourceSqft": {
+        "value": 23854,
+        "unit": "SQFT",
+        "status": "VERIFIED_RECORD",
+        "source": "rentcast",
+        "confidence": null,
+        "rank": 4
+      },
+      "relativeDifference": 0.5196381679635268,
+      "selectedUnit": "SQFT"
+    },
+    "acresStatus": "CALCULATED",
+    "sqftStatus": "VERIFIED_RECORD",
+    "pricePerLotSqft": 0.8,
+    "pricePerAcre": 34696.07
+  },
+  "conversionConsistent": true,
+  "cacheRetrievedAt": "2026-10-12T00:36:12.37+00:00",
+  "automatedRentcastCalls": 0
+}

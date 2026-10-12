@@ -1,6 +1,6 @@
 import { calculateLandDevelopmentScenario, constructionBenchmark2026, type LandDevelopmentEvidence } from './landDevelopmentScenario.ts';
 import { propertyTypeFamily, resolveAnalysisPropertyType, toKnownFiniteNumber } from './canonicalFactSemantics.ts';
-import { calculateLandUnitMetrics, parseCanonicalLotArea } from './landMetrics.ts';
+import { calculateLandUnitMetrics, resolveLotDimensions } from './landMetrics.ts';
 
 type Values = Record<string, any>;
 export function buildMarketReferenceAnswer(snapshot: Values, intent: string, language = 'en') {
@@ -12,7 +12,7 @@ export function buildMarketReferenceAnswer(snapshot: Values, intent: string, lan
   const evidence = snapshot.developmentEvidence;
   const usable = !evidence?.freshness?.landAcquisition?.state || ['FRESH', 'STALE_USABLE'].includes(evidence.freshness.landAcquisition.state);
   const landOutput = land ? calculateLandDevelopmentScenario({ ...facts, ...assumptions,
-    purchasePrice: facts.price ?? facts.askingPrice, lotSizeSqft: facts.lotSizeSqft ?? facts.lot }, usable ? evidence as LandDevelopmentEvidence : null, snapshot.generatedAt) : null;
+    purchasePrice: facts.price ?? facts.askingPrice, ...resolveLotDimensions(facts) }, usable ? evidence as LandDevelopmentEvidence : null, snapshot.generatedAt) : null;
   const market = snapshot.providerMarketContext || {};
   const reference = land ? landOutput?.landAcquisitionReference : snapshot.recentSalesMarketEstimate || market.recentSalesMarketEstimate;
   const money = (value: unknown) => {
@@ -45,7 +45,7 @@ export function buildMarketReferenceAnswer(snapshot: Values, intent: string, lan
     `Provenance: recorded sales; updated: ${freshness?.retrievedAt || reference?.asOf || snapshot.generatedAt || 'unavailable'}; state: ${freshnessLabel}.`,
     `Procedencia: ventas registradas; actualización: ${freshness?.retrievedAt || reference?.asOf || snapshot.generatedAt || 'no disponible'}; estado: ${freshnessLabel}.`));
   if (land) {
-    const metrics = calculateLandUnitMetrics(facts.price ?? facts.askingPrice, parseCanonicalLotArea(facts.lotSizeSqft ?? facts.lot));
+    const metrics = calculateLandUnitMetrics(facts.price ?? facts.askingPrice, facts);
     lines.push(t(`Preço pedido: ${money(facts.price ?? facts.askingPrice)}; área: ${metrics.lotSizeAcres ?? '—'} acres; pedido por acre: ${money(metrics.pricePerAcre)}.`,
       `Asking price: ${money(facts.price ?? facts.askingPrice)}; area: ${metrics.lotSizeAcres ?? '—'} acres; asking per acre: ${money(metrics.pricePerAcre)}.`,
       `Precio pedido: ${money(facts.price ?? facts.askingPrice)}; área: ${metrics.lotSizeAcres ?? '—'} acres; pedido por acre: ${money(metrics.pricePerAcre)}.`));

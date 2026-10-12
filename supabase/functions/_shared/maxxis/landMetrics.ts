@@ -56,11 +56,47 @@ export function parseCanonicalLotArea(value: unknown): CanonicalLotArea {
 
 export function calculateLandUnitMetrics(priceInput: unknown, lotInput: unknown) {
   const price = positive(priceInput);
-  const lot = typeof lotInput === 'object' && lotInput !== null && 'lotSizeSqft' in lotInput
-    ? lotInput as CanonicalLotArea : parseCanonicalLotArea(lotInput);
+  const lot = resolveLotDimensions(lotInput);
   const pricePerLotSqft = price && lot.lotSizeSqft
     ? Math.round((price / lot.lotSizeSqft) * 100) / 100 : null;
   const pricePerAcre = price && lot.lotSizeAcres
     ? Math.round((price / lot.lotSizeAcres) * 100) / 100 : null;
   return Object.freeze({ ...lot, pricePerLotSqft, pricePerAcre });
+}
+
+/** Resolve the parcel once. Independent units are evidence, never independent outputs. */
+export function resolveLotDimensions(input: unknown) {
+  const row = input && typeof input === 'object' ? input as Record<string, unknown> : {};
+  const physical = (row.canonicalPropertyFacts as { physical?: Record<string, unknown> } | undefined)?.physical;
+  const canonical = row.canonicalPropertyFacts as { resolvedLotDimensions?: unknown } | undefined;
+  const retained = (row.resolvedLotDimensions || canonical?.resolvedLotDimensions || (row.resolvedSqft ? row : null)) as ReturnType<typeof resolveParcelDimensions> | undefined;
+  if (retained?.resolvedSqft && Math.abs((retained.resolvedAcres || 0) - retained.resolvedSqft / SQFT_PER_ACRE) < 1e-9) return retained;
+  const parsed = parseCanonicalLotArea(Object.keys(row).length ? row.lot : input);
+  return resolveParcelDimensions(physical?.lotSizeAcres ?? row.lotSizeAcres ?? (parsed.sourceUnit === 'ACRES' ? parsed.lotSizeAcres : null),
+    physical?.lotSizeSqft ?? row.lotSizeSqft ?? (parsed.sourceUnit === 'SQFT' ? parsed.lotSizeSqft : null), row.fieldProvenance as Record<string, string> | undefined);
+}
+
+export function resolveParcelDimensions(acresInput: unknown, sqftInput: unknown, provenance: Record<string, string> = {}) {
+  const evidence = (input: unknown, unit: 'ACRES' | 'SQFT') => {
+    const fact = input && typeof input === 'object' ? input as Record<string, unknown> : {};
+    const value = positive('value' in fact ? fact.value : input);
+    const status = String(fact.status || 'USER_PROVIDED');
+    const rank = ({ VERIFIED_RECORD: 4, USER_PROVIDED: 3, ESTIMATED: 2, CALCULATED: 1 } as Record<string, number>)[status] || 0;
+    return { value, unit, status, source: String(fact.source || provenance[unit === 'ACRES' ? 'lotSizeAcres' : 'lotSizeSqft'] || 'PROPERTY_APP_VALUE'),
+      confidence: positive(fact.confidence), rank };
+  };
+  const acres = evidence(acresInput, 'ACRES'); const sqft = evidence(sqftInput, 'SQFT');
+  const candidates = [sqft, acres].filter(item => item.value !== null && item.rank > 0)
+    .sort((a, b) => b.rank - a.rank || (b.confidence || 0) - (a.confidence || 0));
+  const chosen = candidates[0];
+  const resolvedSqft = chosen ? chosen.unit === 'SQFT' ? chosen.value! : Math.round(chosen.value! * SQFT_PER_ACRE * 1e6) / 1e6 : null;
+  const resolvedAcres = resolvedSqft === null ? null : chosen?.unit === 'ACRES' ? chosen.value : resolvedSqft / SQFT_PER_ACRE;
+  const discrepancy = acres.value && sqft.value ? Math.abs(acres.value * SQFT_PER_ACRE - sqft.value) / Math.max(acres.value * SQFT_PER_ACRE, sqft.value) : 0;
+  const conflict = discrepancy > 0.02 && acres.status !== 'CALCULATED' && sqft.status !== 'CALCULATED'
+    ? { code: 'LOT_DIMENSION_CONFLICT', sourceAcres: acres, sourceSqft: sqft, relativeDifference: discrepancy, selectedUnit: chosen?.unit } : null;
+  return Object.freeze({ resolvedSqft, resolvedAcres, lotSizeSqft: resolvedSqft, lotSizeAcres: resolvedAcres,
+    sourceUnit: chosen?.unit || 'UNKNOWN', source: chosen?.source || null, evidenceStatus: chosen?.status || 'UNKNOWN',
+    confidence: chosen?.confidence || null, sourceAcres: acres, sourceSqft: sqft, conflict,
+    acresStatus: chosen?.unit === 'ACRES' ? chosen.status : resolvedAcres === null ? 'UNKNOWN' : 'CALCULATED',
+    sqftStatus: chosen?.unit === 'SQFT' ? chosen.status : resolvedSqft === null ? 'UNKNOWN' : 'CALCULATED' });
 }

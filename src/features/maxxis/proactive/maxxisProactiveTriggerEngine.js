@@ -4,6 +4,7 @@ import { calculateScenario, compareScenarioOutputs, solveScenarioTarget } from '
 import { estimateRehabBenchmark2026, sanityCheckRehabAgainstBenchmark2026 } from '../../../../supabase/functions/_shared/maxxis/rehabCostBenchmarks2026.ts';
 import { providerEstimateDivergence, RECENT_SALES_POLICY_V1 } from '../../../../supabase/functions/_shared/property-data/recentSalesMarketEstimate.ts';
 import { DEALSIFTER_ARV_ENGINE_POLICY_V1 } from '../../../../supabase/functions/_shared/property-data/arvEngine.ts';
+import { parseLandDevelopmentAssumptions } from '../../../../supabase/functions/_shared/maxxis/landDevelopmentScenario.ts';
 
 const object = (value) => value && typeof value === 'object' && !Array.isArray(value) ? value : {};
 const list = (value) => Array.isArray(value) ? value : [];
@@ -18,6 +19,14 @@ const hash = (value) => {
 };
 const stable = (value) => Array.isArray(value) ? value.map(stable) : value && typeof value === 'object'
   ? Object.fromEntries(Object.keys(value).sort().filter((key) => !['generatedAt', 'createdAt', 'updatedAt', 'requestId'].includes(key)).map((key) => [key, stable(value[key])])) : value;
+
+export function isCurrentLandDevelopmentAction(action, context) {
+  if (propertyTypeFamily(resolveAnalysisPropertyType(context?.property)) !== 'LAND') return true;
+  const assumptions = context?.snapshot?.dealAssumptions || {};
+  const currentUnits = number(assumptions.proposedUnitCount);
+  const proposedUnits = number(action?.target?.proposedUnitCount ?? parseLandDevelopmentAssumptions(action?.target?.prompt).proposedUnitCount);
+  return currentUnits === null || proposedUnits === null || currentUnits === proposedUnits;
+}
 
 const TERMS = {
   down_payment: ['entrada', 'down payment', 'entrada'], interest_rate: ['taxa de juros', 'interest rate', 'tasa de interés'],
@@ -55,7 +64,7 @@ export function resolveMaxxisProactiveContext({ property = {}, propertyId = prop
   const base = stale ? {} : loaded;
   if (stale) facts = { ...property, id: propertyId };
   if (stale) { latestScenario = null; previousScenario = null; }
-  const assumptions = { ...object(base.dealAssumptions?.activeScenario?.assumptions), ...object(base.dealAssumptions), ...object(property.dealAssumptions), ...object(latestScenario?.assumptions) };
+  const assumptions = { ...object(latestScenario?.assumptions), ...object(base.dealAssumptions?.activeScenario?.assumptions), ...object(base.dealAssumptions), ...object(property.dealAssumptions) };
   const benchmark = estimateRehabBenchmark2026({ state: facts.state, livingAreaSqft: facts.sqft, condition: assumptions.targetCondition || facts.targetCondition });
   const resolved = { ...base, propertyId, propertyFacts: facts, dealAssumptions: assumptions,
     rehabAnalysis: base.rehabAnalysis || { value: facts.rehab ?? facts.estimatedRehab, benchmark,
@@ -77,7 +86,7 @@ export function buildMaxxisProactiveTriggers({ property = {}, snapshot = {}, dec
   const relationships = object(decision.relationships);
   const market = object(snapshot.providerMarketContext);
   const recent = object(snapshot.recentSalesMarketEstimate || market.recentSalesMarketEstimate);
-  const assumptions = { ...object(snapshot.dealAssumptions), ...object(scenario?.assumptions) };
+  const assumptions = { ...object(scenario?.assumptions), ...object(snapshot.dealAssumptions?.activeScenario?.assumptions), ...object(snapshot.dealAssumptions) };
   const compare = (patches, basis = scenario) => {
     if (basis?.status !== 'COMPLETE') return {};
     try {
@@ -110,13 +119,13 @@ export function buildMaxxisProactiveTriggers({ property = {}, snapshot = {}, dec
   };
   const gaps = list(decision.decisionGaps);
   const noteIntent = String(property.propertyUserNotes || property.notes || property.description || '').normalize('NFD').replace(/[\u0300-\u036f]/g, '');
-  if (strategy === 'LAND' && /subdiv|build|constru|desmembr/i.test(noteIntent) && !assumptions.developmentIntent) {
+  if (strategy === 'LAND' && /subdiv|build|constru|desmembr/i.test(noteIntent) && !assumptions.developmentIntent && !assumptions.proposedUnitCount && !assumptions.proposedPropertyType) {
     add('LAND_DEVELOPMENT', 'P1', { source: 'USER_NOTE_SOFT_INTENT', text: noteIntent },
       t('As notas sugerem desenvolvimento do terreno. Quer simular custos de construção separados do valor de saída?',
         'The notes suggest land development. Simulate construction costs separately from exit value?',
         'Las notas sugieren desarrollo del terreno. ¿Simulamos costos de construcción separados del valor de salida?'),
-      t('Simular duas casas', 'Simulate two houses', 'Simular dos casas'),
-      t('Quero subdividir em dois lotes e construir duas casas.', 'I want to subdivide into two lots and build two houses.', 'Quiero subdividir en dos lotes y construir dos casas.'));
+      t('Explorar desenvolvimento', 'Explore development', 'Explorar desarrollo'),
+      t('Quero explorar construção nova neste terreno, sem presumir quantidade de unidades.', 'Explore new construction on this land without assuming a unit count.', 'Explorar construcción nueva en este terreno sin suponer cantidad de unidades.'));
   }
   const conflict = gaps.find((gap) => String(gap.code).startsWith('EVIDENCE_CONFLICT_'));
   if (conflict) {

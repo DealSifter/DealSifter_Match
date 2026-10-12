@@ -1,4 +1,5 @@
 import { toKnownFiniteNumber, propertyTypeFamily, resolveAnalysisPropertyType } from './canonicalFactSemantics.ts';
+import { resolveLotDimensions } from './landMetrics.ts';
 import {
   calculateSellerFinancingScenario, compareSellerFinancingScenarios,
   parseSellerFinancingAssumptions, type SellerFinancingScenarioInput,
@@ -100,9 +101,8 @@ export function calculateWholesaleScenario(input: Values) {
 
 export function calculateLandScenario(input: Values) {
   if (input.developmentIntent && input.developmentIntent !== 'NONE') return calculateLandDevelopmentScenario(input);
-  const purchasePrice = required(input.purchasePrice, 'purchase_price'); let acres = finite(input.lotSizeAcres); let sqft = finite(input.lotSizeSqft);
-  if ((acres === null || acres <= 0) && sqft !== null && sqft > 0) acres = sqft / 43_560;
-  if ((sqft === null || sqft <= 0) && acres !== null && acres > 0) sqft = acres * 43_560;
+  const purchasePrice = required(input.purchasePrice, 'purchase_price');
+  const { resolvedAcres: acres, resolvedSqft: sqft } = resolveLotDimensions(input);
   if (acres === null || acres <= 0 || sqft === null || sqft <= 0) throw new Error('SCENARIO_LAND_SIZE_REQUIRED');
   const costFields = ['closingCosts', 'dueDiligenceCosts', 'surveyTitleCosts', 'utilityCosts', 'siteImprovementCosts', 'taxes'];
   const costs = costFields.map(key => nonNegativeKnown(input[key], key));
@@ -327,7 +327,10 @@ export function resolveDealScenario(options: { message: unknown; history?: Array
     if (baseRehab !== null) current.rehab = round(baseRehab + Number(current.__relativeRehab));
     delete current.__relativeRehab;
   }
-  const assumptions = Object.freeze({ ...canonical, ...storedInputs, ...previousAssumptions, ...current });
+  const assumptions: Readonly<Values> = Object.freeze(strategy === 'LAND'
+    ? { ...canonical, ...previousAssumptions, ...storedInputs, ...current,
+      ...(canonical.lotSizeAcres != null || canonical.lotSizeSqft != null ? { lotSizeAcres: canonical.lotSizeAcres, lotSizeSqft: canonical.lotSizeSqft } : {}) }
+    : { ...canonical, ...storedInputs, ...previousAssumptions, ...current });
   let calculatedOutputs: Values = {}; const unresolvedInputs: string[] = [];
   const target = { targetROI: current.targetROI, targetDSCR: current.targetDSCR, targetMonthlyPI: current.targetMonthlyPI, targetBuyerBasis: current.targetBuyerBasis };
   const hasTarget = Object.values(target).some((value) => finite(value) !== null);

@@ -65,6 +65,7 @@ const GAP_LABELS: Record<string, [string, string, string]> = {
   development_assumptions: ['development assumptions', 'premissas de desenvolvimento', 'supuestos de desarrollo'],
   market_evidence: ['market evidence', 'evidências de mercado', 'evidencia de mercado'],
   property_condition: ['property condition', 'condição do imóvel', 'condición del inmueble'],
+  propertyType: ['property type', 'tipo do imóvel', 'tipo del inmueble'],
 };
 
 function gapLabel(gap: DecisionGap | null, language: Language) {
@@ -76,10 +77,16 @@ function gapLabel(gap: DecisionGap | null, language: Language) {
 
 function gapAction(gap: DecisionGap, language: Language) {
   const label = gapLabel(gap, language);
+  const unlockLabels: Record<string, string[]> = {
+    DEVELOPMENT_FEASIBILITY: ['development feasibility', 'viabilidade de desenvolvimento', 'viabilidad de desarrollo'],
+    MARKET_CONTEXT: ['market context', 'contexto de mercado', 'contexto de mercado'],
+    RECENT_SALES_MARKET_ESTIMATE: ['recent-sales estimate', 'estimativa por vendas recentes', 'estimación por ventas recientes'],
+  };
+  const unlock = unlockLabels[gap.unlocks]?.[language === 'pt' ? 1 : language === 'es' ? 2 : 0] || gap.unlocks.toLowerCase().replaceAll('_', ' ');
   return localized(language,
-    `Resolve ${label} to unlock ${gap.unlocks.toLowerCase().replaceAll('_', ' ')}.`,
-    `Resolver ${label} para liberar ${gap.unlocks.toLowerCase().replaceAll('_', ' ')}.`,
-    `Resolver ${label} para habilitar ${gap.unlocks.toLowerCase().replaceAll('_', ' ')}.`);
+    `Resolve ${label} to unlock ${unlock}.`,
+    `Resolver ${label} para liberar ${unlock}.`,
+    `Resolver ${label} para habilitar ${unlock}.`);
 }
 
 export function buildDealThesis(context: DealDecisionContext, languageInput: unknown = 'en') {

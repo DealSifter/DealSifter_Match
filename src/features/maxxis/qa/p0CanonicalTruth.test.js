@@ -85,7 +85,9 @@ describe('P0 canonical truth acceptance', () => {
         expect(projected.canonicalPropertyFacts.physical.propertyType.value).toBe('Land');
         expect(projected.canonicalPropertyFacts.physical.propertyType.semanticState).toBe('CONFLICT');
         expect(projected.canonicalPropertyFacts.physical.propertyType.providerEvidence.value).toBe('Single Family');
-        expect(decision.decisionGaps.some(gap => gap.code === 'EVIDENCE_CONFLICT_PROPERTYTYPE')).toBe(true);
+        // The provider conflict remains evidence, but a known LAND subject does
+        // not require a type change to select land sales or simulate development.
+        expect(decision.decisionGaps.some(gap => gap.code === 'EVIDENCE_CONFLICT_PROPERTYTYPE')).toBe(false);
       }
       parity.push({ control: control.id, type: projected.type, providerType: projected.providerPropertyType, strategy: decision.strategy,
         conflict: projected.propertyTypeConflictCode, canonical: projected.canonicalPropertyFacts, fields: material, consumers: ['CHAT', 'L1', 'L2', 'L3'], status: 'PASS' });

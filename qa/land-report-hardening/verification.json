@@ -1,0 +1,51 @@
+{
+  "status": "PASS",
+  "sourceControl": "20e8a78f-fcf7-4017-83cd-5c8355498da9",
+  "conversionConsistent": true,
+  "lotParity": true,
+  "askingPerAcre": 34696.07,
+  "falseZeroMatches": [],
+  "pageAudits": {
+    "2": {
+      "lines": 39,
+      "collisions": 0,
+      "overflow": 0,
+      "minimumFontSize": 10
+    },
+    "3": {
+      "lines": 49,
+      "collisions": 0,
+      "overflow": 0,
+      "minimumFontSize": 9
+    }
+  },
+  "fixedPageCount": 6,
+  "localization": {
+    "pt": {
+      "pageCount": 6,
+      "landContinuations": [],
+      "allContinuations": []
+    },
+    "en": {
+      "pageCount": 6,
+      "landContinuations": [],
+      "allContinuations": []
+    },
+    "es": {
+      "pageCount": 6,
+      "landContinuations": [],
+      "allContinuations": []
+    }
+  },
+  "deno": {
+    "comparison": "same four entrypoints, baseline source archive; multiset of diagnostic code/source file/property name (PowerShell repeats its first native error)",
+    "baselineErrors": 51,
+    "currentErrors": 51,
+    "diagnosticEntries": 52,
+    "newErrors": []
+  },
+  "automatedRentcastCalls": 0,
+  "geminiArithmeticCalls": 0,
+  "migration": "NONE",
+  "authenticatedProductionValidation": "NOT_AVAILABLE"
+}
