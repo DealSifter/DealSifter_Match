@@ -22,6 +22,10 @@ export function saveMaxxisAnalysisInputs(propertyId, values, invokeOverride = nu
   return invoke({ action: 'UPSERT', propertyId, ...values, ...context }, invokeOverride);
 }
 
+export function readMaxxisAnalysisInputs(propertyId, invokeOverride = null) {
+  return invoke({ action: 'READ', propertyId }, invokeOverride);
+}
+
 export function declineMaxxisAnalysisInputs(propertyId, fields, invokeOverride = null, context = {}) {
   return invoke({ action: 'DECLINE', propertyId, fields, ...context }, invokeOverride);
 }

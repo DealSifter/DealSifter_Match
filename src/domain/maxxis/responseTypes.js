@@ -10,6 +10,7 @@ export const MAXXIS_RESPONSE_TYPES = Object.freeze({
   DEAL_COPILOT_OVERVIEW: 'deal_copilot_overview',
   ARV_VISUAL_COMP_REVIEW: 'arv_visual_comp_review',
   DEAL_INSIGHT: 'deal_insight',
+  MARKET_REFERENCE: 'market_reference',
 });
 
 const validators = {
@@ -21,6 +22,7 @@ const validators = {
   deal_copilot_overview: (data) => Boolean(data?.propertySummary),
   arv_visual_comp_review: (data) => Array.isArray(data?.candidates) && Boolean(data?.summary),
   deal_insight: (data) => typeof data?.state === 'string' && typeof data?.propertyId === 'string',
+  market_reference: (data) => typeof data?.propertyId === 'string' && typeof data?.stateVersion === 'string',
 };
 
 export function normalizeMaxxisResponsePayload(type, data) {

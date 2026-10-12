@@ -16,7 +16,7 @@ describe('Maxxis deterministic conversation intent router', () => {
     ['turn key', 'GAP_RESPONSE'],
     ['full rehab', 'GAP_RESPONSE'],
     ['qual seria o mortgage para ingressar no SUB-TO?', 'CURRENT_DEAL_FOLLOWUP'],
-    ['explique o AVM', 'PROPERTY_ANALYSIS_QUESTION'],
+    ['explique o AVM', 'EXPLAIN_MARKET_ESTIMATE'],
     ['gere o relatório', 'REPORT_REQUEST'],
     ['como funciona tax deed?', 'GENERAL_REAL_ESTATE_QUESTION'],
   ])('routes %s to %s while a condition gap is pending', (message, expected) => {
@@ -33,9 +33,9 @@ describe('Maxxis deterministic conversation intent router', () => {
 
   it('keeps ordinary questions conversational instead of reopening a gap form', () => {
     const route = classifyMaxxisConversationIntent('explique o AVM', { pendingGap: pendingCondition });
-    expect(route.code).toBe(MAXXIS_CONVERSATION_INTENTS.PROPERTY_ANALYSIS_QUESTION);
+    expect(route.code).toBe(MAXXIS_CONVERSATION_INTENTS.EXPLAIN_MARKET_ESTIMATE);
     expect(shouldPresentAnalysisGap(route)).toBe(false);
-    expect(shouldPresentAnalysisGap(route, 'DEAL_INTELLIGENCE')).toBe(true);
+    expect(shouldPresentAnalysisGap(route, 'DEAL_INTELLIGENCE')).toBe(false);
   });
 
   it('supports a multi-topic ARV → gap → SUB-TO → missing inputs → comps sequence', () => {
@@ -46,7 +46,7 @@ describe('Maxxis deterministic conversation intent router', () => {
     const comps = classifyMaxxisConversationIntent('voltando aos comps, quais são os melhores?', { pendingGap: pendingCondition, previousIntent: missing.code });
     expect([arv.code, gap.code, subTo.code, missing.code, comps.code]).toEqual([
       'PROPERTY_ANALYSIS_QUESTION', 'GAP_RESPONSE', 'CURRENT_DEAL_FOLLOWUP',
-      'CURRENT_DEAL_FOLLOWUP', 'PROPERTY_ANALYSIS_QUESTION',
+      'CURRENT_DEAL_FOLLOWUP', 'EXPLAIN_MARKET_ESTIMATE',
     ]);
   });
 });

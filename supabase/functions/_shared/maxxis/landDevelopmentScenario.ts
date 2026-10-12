@@ -89,8 +89,12 @@ export function parseLandDevelopmentAssumptions(message: unknown): Values {
     const stripped = /^\d{1,3}(?:[.,]\d{3})+$/.test(raw) ? raw.replace(/[.,]/g, '') : raw.replace(',', '.');
     return Number(stripped);
   };
-  const words: Record<string, number> = { duas: 2, dois: 2, two: 2, dos: 2, tres: 3, three: 3, quatro: 4, four: 4, cuatro: 4 };
-  const unit = text.match(/(\d+|duas|dois|two|dos|tres|three|quatro|four|cuatro)\s*(?:casas?|houses?|homes?|unidades?|units?|lotes?|lots?|lotes)/);
+  const words: Record<string, number> = { uma: 1, um: 1, one: 1, una: 1, uno: 1, duas: 2, dois: 2, two: 2, dos: 2, tres: 3, three: 3, quatro: 4, four: 4, cuatro: 4 };
+  const zoning = text.match(/\b(?:zoneamento|zoning|zonificacion)\s*(?:(?:e|is|es)\s*|[:=]\s*)?([a-z][a-z0-9-]{0,15})\b/);
+  if (zoning && !['qual', 'what', 'cual', 'unknown', 'desconhecido'].includes(zoning[1])) {
+    output.zoning = zoning[1].toUpperCase(); output.zoningSource = 'USER_PROVIDED';
+  }
+  const unit = text.match(/(\d+|uma|um|one|una|uno|duas|dois|two|dos|tres|three|quatro|four|cuatro)\s*(?:sfh|sfr|single[ -]?family|casas?|houses?|homes?|viviendas?|unidades?|units?|lotes?|lots?)\b/);
   if (unit) { const count = words[unit[1]] || Number(unit[1]);
     if (/lote|lot/.test(unit[0])) { output.proposedLotCount = count; if (/constru|build/.test(text)) output.proposedUnitCount = count; }
     else output.proposedUnitCount = count;
@@ -102,7 +106,7 @@ export function parseLandDevelopmentAssumptions(message: unknown): Values {
   if (size) output.proposedBuildingSqftPerUnit = numeric(size[1]);
   if (/subdiv|desmembr/.test(text)) output.developmentIntent = /constru|build|new homes/.test(text) ? 'SUBDIVIDE_AND_BUILD' : 'SUBDIVIDE';
   else if (/constru|build|new homes/.test(text)) output.developmentIntent = 'NEW_CONSTRUCTION';
-  if (/casas?|houses?|homes?|sfr|single family/.test(text) && /constru|build|subdiv|sqft|^sfr$|single family/.test(text)) output.proposedPropertyType = 'SFR';
+  if (/casas?|houses?|homes?|viviendas?|sfh|sfr|single[ -]?family/.test(text) && /constru|build|subdiv|sqft|^(?:sfr|sfh)$|single[ -]?family/.test(text)) output.proposedPropertyType = 'SFR';
   if (/townhouse/.test(text)) output.proposedPropertyType = 'Townhouse';
   if (/condo/.test(text)) output.proposedPropertyType = 'Condo';
   for (const [field, pattern] of Object.entries({ proposedBedsPerUnit: 'quartos?|bedrooms?|beds?|habitaciones?', proposedBathsPerUnit: 'banheiros?|bathrooms?|baths?|banos?' })) {

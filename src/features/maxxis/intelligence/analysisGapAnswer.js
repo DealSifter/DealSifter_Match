@@ -32,6 +32,7 @@ export function parseAnalysisGapAnswer(message, answer) {
     return condition ? { action: 'resolve', values: { targetCondition: condition } } : null;
   }
   if (missing.includes('rehab_budget')) {
+    if (/\?|\b(como|how|why|qual|quanto|what|cual|cuanto)\b/i.test(clean)) return null;
     if (/\b(benchmark|refer[eê]ncia|reference|referencia)\b/i.test(clean)) {
       const target = String(message?.data?.assumptions?.targetCondition || '');
       const benchmark = (message?.data?.benchmarkOptions || []).find((item) => item?.scope === target);

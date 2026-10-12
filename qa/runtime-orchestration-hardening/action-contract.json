@@ -1,0 +1,143 @@
+{
+  "evidenceMode": "DETERMINISTIC_FIXTURES_NOT_LIVE_PRODUCTION",
+  "automatedRentCastCalls": 0,
+  "data": [
+    {
+      "id": "VIEW_LAND_SOLD_COMPS:11111111-1111-4111-8111-111111111111:2026-10-11T12:00:00Z",
+      "type": "VIEW_LAND_SOLD_COMPS",
+      "code": "VIEW_LAND_SOLD_COMPS",
+      "propertyId": "11111111-1111-4111-8111-111111111111",
+      "stateVersion": "2026-10-11T12:00:00Z",
+      "label": "Ver comparáveis",
+      "displayBehavior": "EXPAND_EVIDENCE",
+      "executionBehavior": "EXPAND_EVIDENCE",
+      "payload": {
+        "reference": {
+          "methodology": "RECENT_SALES_MARKET_ESTIMATE",
+          "methodologyVersion": "DEALSIFTER_RECENT_SALES_V1",
+          "propertyCategory": "LAND",
+          "conditionAdjustmentStatus": "CONDITION_NOT_ADJUSTED",
+          "providerAvmCompatibility": "UNKNOWN",
+          "status": "AVAILABLE",
+          "centralEstimate": 19000,
+          "range": {
+            "low": 18000,
+            "high": 20000
+          },
+          "weightedUnitValue": 16666.67,
+          "weightedLotPricePerSqft": 0.3826,
+          "unitMetric": "PRICE_PER_ACRE",
+          "qualifyingSalesCount": 3,
+          "valuationCompCount": 3,
+          "confidence": "LOW",
+          "confidenceReasons": [
+            "3_QUALIFIED_RECENT_RECORDED_SALES",
+            "CONDITION_NOT_ADJUSTED",
+            "LAND_USE_ACCESS_UTILITIES_NOT_INDEPENDENTLY_VERIFIED"
+          ],
+          "dispersion": {
+            "coefficient": 0.1053,
+            "minimumUnitValue": 15789.47,
+            "maximumUnitValue": 17543.86
+          },
+          "valuationComps": [
+            {
+              "providerPropertyId": "land-sale-0",
+              "address": "100 Example Rd",
+              "salePrice": 18000,
+              "saleDate": "2026-09-15T00:00:00.000Z",
+              "saleAgeDays": 26,
+              "distanceMiles": 0.0899005502548026,
+              "propertyType": "Land",
+              "bedrooms": null,
+              "bathrooms": null,
+              "livingAreaSqft": null,
+              "lotSizeSqft": 49658.4,
+              "latitude": 33.651,
+              "longitude": -86.681,
+              "unitMetric": "PRICE_PER_ACRE",
+              "unitValue": 15789.473684210525,
+              "lotPricePerSqft": 0.3624764390314629,
+              "impliedSubjectValue": 18000,
+              "weight": 0.8687621039004754,
+              "structuralScore": 98.03593916422462,
+              "completenessScore": 50,
+              "providerCorrelation": null,
+              "classification": "VALUATION_INCLUDED",
+              "reasons": [
+                "RECORDED_SALE",
+                "SALE_WITHIN_180_DAYS",
+                "STRUCTURALLY_QUALIFIED"
+              ]
+            },
+            {
+              "providerPropertyId": "land-sale-1",
+              "address": "101 Example Rd",
+              "salePrice": 19000,
+              "saleDate": "2026-09-15T00:00:00.000Z",
+              "saleAgeDays": 26,
+              "distanceMiles": 0.0953133978437199,
+              "propertyType": "Land",
+              "bedrooms": null,
+              "bathrooms": null,
+              "livingAreaSqft": null,
+              "lotSizeSqft": 49658.4,
+              "latitude": 33.65110000000001,
+              "longitude": -86.681,
+              "unitMetric": "PRICE_PER_ACRE",
+              "unitValue": 16666.666666666664,
+              "lotPricePerSqft": 0.38261401897765535,
+              "impliedSubjectValue": 19000,
+              "weight": 0.8684860486734406,
+              "structuralScore": 98.0034620786911,
+              "completenessScore": 50,
+              "providerCorrelation": null,
+              "classification": "VALUATION_INCLUDED",
+              "reasons": [
+                "RECORDED_SALE",
+                "SALE_WITHIN_180_DAYS",
+                "STRUCTURALLY_QUALIFIED"
+              ]
+            },
+            {
+              "providerPropertyId": "land-sale-2",
+              "address": "102 Example Rd",
+              "salePrice": 20000,
+              "saleDate": "2026-09-15T00:00:00.000Z",
+              "saleAgeDays": 26,
+              "distanceMiles": 0.1009091599337184,
+              "propertyType": "Land",
+              "bedrooms": null,
+              "bathrooms": null,
+              "livingAreaSqft": null,
+              "lotSizeSqft": 49658.4,
+              "latitude": 33.6512,
+              "longitude": -86.681,
+              "unitMetric": "PRICE_PER_ACRE",
+              "unitValue": 17543.859649122805,
+              "lotPricePerSqft": 0.4027515989238477,
+              "impliedSubjectValue": 20000,
+              "weight": 0.8682006648068507,
+              "structuralScore": 97.96988750615112,
+              "completenessScore": 50,
+              "providerCorrelation": null,
+              "classification": "VALUATION_INCLUDED",
+              "reasons": [
+                "RECORDED_SALE",
+                "SALE_WITHIN_180_DAYS",
+                "STRUCTURALLY_QUALIFIED"
+              ]
+            }
+          ],
+          "marketReferenceOutliers": [],
+          "historicalReferences": [],
+          "exclusions": [],
+          "family": "LAND_ACQUISITION",
+          "asOf": "2026-10-11T12:00:00Z",
+          "supportingCandidates": [],
+          "provenance": "CALCULATED_FROM_VERIFIED_RECORDED_SALES"
+        }
+      }
+    }
+  ]
+}

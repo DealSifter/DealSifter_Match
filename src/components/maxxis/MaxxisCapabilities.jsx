@@ -1748,7 +1748,7 @@ export function MessageBubble({
                 type="button"
                 key={`${message.id}-${action.id}`}
                 className="maxxis-inline-link"
-                onClick={() => onAction?.(action.id)}
+                onClick={() => onAction?.(action.id, message)}
               >
                 <span>{action.label}</span>
                 <Icon name="arrowRight" size={13} color="currentColor" strokeWidth={2.1} />
@@ -1785,6 +1785,21 @@ export function MessageBubble({
           ))}
         </div>
       ) : null}
+      {!isUser && message.type === 'market_reference' ? (
+        <div className="maxxis-action-links">
+          {(message.actions || []).filter(action => action.executionBehavior === 'EXPAND_EVIDENCE').map(action => (
+            <button key={action.id} type="button" className="maxxis-inline-link" onClick={() => onAction?.(action, message)}>{action.label}</button>
+          ))}
+          {message.data?.evidenceExpanded ? (
+            <div data-testid="maxxis-market-comparables" className="maxxis-message-body">
+              {(message.data.reference?.valuationComps || []).map((comp, index) => (
+                <div key={comp.providerPropertyId || index}>{comp.address || '—'} · {formatStoredMoney(comp.salePrice, '—')} · {comp.saleDate || '—'} · {comp.distanceMiles ?? '—'} mi</div>
+              ))}
+              {!message.data.reference?.valuationComps?.length ? <div>{language === 'pt' ? 'Nenhuma venda qualificada disponível.' : language === 'es' ? 'Ninguna venta calificada disponible.' : 'No qualifying sale available.'}</div> : null}
+            </div>
+          ) : null}
+        </div>
+      ) : null}
       {!isUser && message.degraded ? (
         <div className="maxxis-degraded-notice" role="status">
           {(language === 'pt' && 'Maxxis está temporariamente operando com recursos limitados.')
@@ -1799,7 +1814,7 @@ export function MessageBubble({
               type="button"
               key={`${message.id}-${action.id}`}
               className="maxxis-inline-link"
-              onClick={() => onAction?.(action.id)}
+              onClick={() => onAction?.(action.id, message)}
             >
               <span>{action.label}</span>
               <Icon name="arrowRight" size={13} color="currentColor" strokeWidth={2.1} />

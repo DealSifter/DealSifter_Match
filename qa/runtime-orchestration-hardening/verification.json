@@ -1,0 +1,49 @@
+{
+  "state": "PASS",
+  "method": "Full suite plus isolated reruns of resource-timeout files; no assertion changes",
+  "sourceRevision": "WORKTREE_PENDING_COMMIT",
+  "full": {
+    "files": 202,
+    "tests": 1607,
+    "passed": 1607,
+    "failed": 0,
+    "skipped": 0,
+    "failedSuites": []
+  },
+  "originalRun": {
+    "artifact": "full-tests.json",
+    "state": "RESOURCE_TIMEOUTS",
+    "requiredReruns": [
+      "maxxisReportPerformance.test.js",
+      "landDevelopmentReport.test.js",
+      "MaxxisAnalysisGapResolution.interaction.test.jsx",
+      "productionUxCorrection.test.jsx",
+      "MaxxisPropertyCard.test.jsx"
+    ]
+  },
+  "retry": {
+    "artifact": "full-tests-resource-retry.json",
+    "coverage": true,
+    "timeoutMs": 120000,
+    "workers": 1
+  },
+  "targeted": {
+    "total": 64,
+    "passed": 64,
+    "failed": 0
+  },
+  "browser": {
+    "state": "PASS",
+    "environment": "LOCAL_REAL_BROWSER_MOCK_CACHE_ONLY",
+    "flows": [
+      "A",
+      "B",
+      "C",
+      "D",
+      "E"
+    ]
+  },
+  "automatedRentCastCalls": 0,
+  "geminiFinancialArithmetic": 0,
+  "authenticatedProductionSmoke": "NOT_VERIFIED"
+}

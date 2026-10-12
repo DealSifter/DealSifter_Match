@@ -1,0 +1,17 @@
+{
+  "evidenceMode": "DETERMINISTIC_FIXTURES_NOT_LIVE_PRODUCTION",
+  "automatedRentCastCalls": 0,
+  "data": {
+    "action": {
+      "type": "GENERATE_DEAL_INTELLIGENCE",
+      "propertyId": "11111111-1111-4111-8111-111111111111",
+      "label": "Gerar Deal Intelligence",
+      "payload": {
+        "prompt": "Build the full Deal Intelligence view"
+      }
+    },
+    "reportType": "DEAL_INTELLIGENCE",
+    "basePages": 6,
+    "analyticalGapsBlock": false
+  }
+}

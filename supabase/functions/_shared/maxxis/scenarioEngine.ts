@@ -189,7 +189,7 @@ function compactScenarioInputs(input: Values) {
     'constructionCostPerSqft', 'contractorBid', 'constructionHardCost', ...LAND_DEVELOPMENT_COST_FIELDS]) {
     if (finite(input[key]) !== null) compact[key] = finite(input[key]);
   }
-  for (const key of ['state', 'developmentIntent', 'proposedPropertyType', 'constructionBenchmarkClass']) {
+  for (const key of ['state', 'developmentIntent', 'proposedPropertyType', 'constructionBenchmarkClass', 'zoning', 'zoningSource']) {
     if (typeof input[key] === 'string' && input[key]) compact[key] = input[key];
   }
   for (const key of ['unitsEquivalent', 'zoningSubdivisionVerified']) if (typeof input[key] === 'boolean') compact[key] = input[key];

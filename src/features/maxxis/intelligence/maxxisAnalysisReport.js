@@ -156,7 +156,8 @@ export function buildMaxxisAnalysisReport(dealIntelligence, structuredAnalysis =
     && snapshot.dealAssumptions.sellerFinancingScenario.confirmed === true
     ? Object.freeze({ ...snapshot.dealAssumptions.sellerFinancingScenario }) : null;
   const savedActiveScenario = isObject(snapshot.dealAssumptions?.activeScenario)
-    && snapshot.dealAssumptions.activeScenario.confirmed === true
+    && (snapshot.dealAssumptions.activeScenario.confirmed === true || (snapshot.dealAssumptions.activeScenario.strategy === 'LAND'
+      && snapshot.dealAssumptions.activeScenario.provenance === 'USER_PROVIDED'))
     ? Object.freeze({ ...snapshot.dealAssumptions.activeScenario }) : savedSellerFinancingScenario;
   const canonicalRisks = canonical ? [
     ['DATA_RISK', canonical.riskAnalysis?.dataRisk],

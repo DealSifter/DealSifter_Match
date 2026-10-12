@@ -44,7 +44,7 @@ describe('canonical Maxxis property context', () => {
       screenProperty: ids.screen,
       activeConversationProperty: ids.active,
       recentProperties: [ids.recent],
-    })).toMatchObject({ propertyId: ids.selected, source: 'MAXXIS_SELECTION' });
+    })).toMatchObject({ propertyId: ids.screen, source: 'APP_SCREEN' });
   });
 
   it('falls back through active conversation and recent context before requesting selection', () => {

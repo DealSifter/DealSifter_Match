@@ -1,0 +1,9 @@
+{
+  "evidenceMode": "DETERMINISTIC_FIXTURES_NOT_LIVE_PRODUCTION",
+  "automatedRentCastCalls": 0,
+  "data": {
+    "internalPrompt": "Build the full Deal Intelligence view",
+    "visibleLabel": "Gerar Deal Intelligence",
+    "payloadDisplaySeparation": true
+  }
+}

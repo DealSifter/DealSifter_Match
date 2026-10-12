@@ -22,12 +22,12 @@ checks.push(await probe('canonical-property-auth-boundary', backend + '/rest/v1/
   method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ p_property_id: '00000000-0000-0000-0000-000000000001' }),
 }));
 const healthy = checks.slice(0, 5).every(check => check.status >= 200 && check.status < 300);
-const receipt = { sourceRevision: 'a02951fe06db81b27a75ec9995ec5e93165ab592', checkedAt: new Date().toISOString(),
+const receipt = { sourceRevision: process.env.P0_SOURCE_SHA || 'a02951fe06db81b27a75ec9995ec5e93165ab592', checkedAt: new Date().toISOString(),
   state: healthy ? 'PARTIAL' : 'FAIL', checks,
   canonicalAuthenticatedResponse: { state: 'NOT_VERIFIED', reason: 'No configured authenticated smoke session; anon has no RPC execute permission.' },
   scenarioEndpoint: { endpoint: 'maxxis-chat', state: 'AVAILABILITY_ONLY', deterministicTests: 'PASS' },
   reportEndpoint: { state: 'NOT_REQUIRED_CLIENT_RENDERER', deterministicTests: 'PASS' },
   automatedRentCastCalls: 0, geminiCalls: 0, stripeMutations: 0 };
-writeFileSync('qa/p0-canonical-truth/production-smoke.json', JSON.stringify(receipt, null, 2) + '\n');
+writeFileSync(process.env.P0_SMOKE_OUTPUT || 'qa/p0-canonical-truth/production-smoke.json', JSON.stringify(receipt, null, 2) + '\n');
 console.log(JSON.stringify(receipt));
 if (!healthy) process.exitCode = 1;

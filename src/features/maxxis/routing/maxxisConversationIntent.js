@@ -1,4 +1,5 @@
 import { parseAnalysisGapAnswer } from '../intelligence/analysisGapAnswer';
+import { detectMarketReferenceIntent } from '../../../../supabase/functions/_shared/maxxis/marketReferenceIntent.ts';
 
 export const MAXXIS_CONVERSATION_INTENTS = Object.freeze({
   GAP_RESPONSE: 'GAP_RESPONSE',
@@ -8,6 +9,8 @@ export const MAXXIS_CONVERSATION_INTENTS = Object.freeze({
   APP_HELP: 'APP_HELP',
   CURRENT_DEAL_FOLLOWUP: 'CURRENT_DEAL_FOLLOWUP',
   GENERAL_CONVERSATION: 'GENERAL_CONVERSATION',
+  EXPLAIN_MARKET_ESTIMATE: 'EXPLAIN_MARKET_ESTIMATE',
+  LAND_MARKET_REFERENCE: 'LAND_MARKET_REFERENCE',
 });
 
 const normalize = (value) => String(value || '')
@@ -31,6 +34,17 @@ export function classifyMaxxisConversationIntent(message, options = {}) {
   const requestedReportType = String(options.requestedReportType || '').trim();
   if (requestedReportType || has(text, REPORT_RE)) {
     return Object.freeze({ code: MAXXIS_CONVERSATION_INTENTS.REPORT_REQUEST, gapAnswer: null });
+  }
+
+  const marketIntent = detectMarketReferenceIntent(message, options.property);
+  if (marketIntent) return Object.freeze({ code: marketIntent, gapAnswer: null });
+
+  // An explicit question takes precedence over optional gap continuation.
+  if (/\b(como|how|why|por que|porque|qual|quanto|what|which|cual|cuanto)\b/.test(text)) {
+    if (has(text, CURRENT_DEAL_RE)) return Object.freeze({ code: MAXXIS_CONVERSATION_INTENTS.CURRENT_DEAL_FOLLOWUP, gapAnswer: null });
+    if (has(text, PROPERTY_ANALYSIS_RE)) return Object.freeze({ code: MAXXIS_CONVERSATION_INTENTS.PROPERTY_ANALYSIS_QUESTION, gapAnswer: null });
+    if (has(text, GENERAL_REAL_ESTATE_RE)) return Object.freeze({ code: MAXXIS_CONVERSATION_INTENTS.GENERAL_REAL_ESTATE_QUESTION, gapAnswer: null });
+    if (has(text, APP_HELP_RE)) return Object.freeze({ code: MAXXIS_CONVERSATION_INTENTS.APP_HELP, gapAnswer: null });
   }
 
   const gapAnswer = options.pendingGap ? parseAnalysisGapAnswer(options.pendingGap, message) : null;
@@ -62,6 +76,8 @@ export function classifyMaxxisConversationIntent(message, options = {}) {
 
 export function controlledIntentForConversation(route, explicitIntent = '') {
   if (String(explicitIntent || '').trim()) return String(explicitIntent).trim();
+  if (route?.code === MAXXIS_CONVERSATION_INTENTS.EXPLAIN_MARKET_ESTIMATE) return 'explain_market_estimate';
+  if (route?.code === MAXXIS_CONVERSATION_INTENTS.LAND_MARKET_REFERENCE) return 'land_market_reference';
   if (route?.code === MAXXIS_CONVERSATION_INTENTS.CURRENT_DEAL_FOLLOWUP) return 'current_deal_followup';
   if (route?.code === MAXXIS_CONVERSATION_INTENTS.PROPERTY_ANALYSIS_QUESTION) return 'property_analysis_question';
   if (route?.code === MAXXIS_CONVERSATION_INTENTS.GENERAL_REAL_ESTATE_QUESTION) return 'general_real_estate_question';
@@ -70,5 +86,14 @@ export function controlledIntentForConversation(route, explicitIntent = '') {
 }
 
 export function shouldPresentAnalysisGap(route, requestedReportType = '') {
-  return Boolean(requestedReportType) || route?.code === MAXXIS_CONVERSATION_INTENTS.GAP_RESPONSE;
+  return !requestedReportType && route?.code === MAXXIS_CONVERSATION_INTENTS.GAP_RESPONSE;
+}
+
+export function pendingGapForContext(messages, { propertyId, analysisStrategy, scenarioId, stateVersion } = {}) {
+  return [...messages].reverse().find(item => item?.type === 'analysis_gap_resolution'
+    && !['resolved', 'declined', 'dismissed'].includes(String(item.data?.resolutionStatus || '').toLowerCase())
+    && String(item.data?.propertyId || '') === String(propertyId || '')
+    && (!item.data?.analysisStrategy || item.data.analysisStrategy === analysisStrategy)
+    && (!item.data?.scenarioId || item.data.scenarioId === scenarioId)
+    && (!item.data?.stateVersion || item.data.stateVersion === stateVersion)) || null;
 }

@@ -1,0 +1,37 @@
+{
+  "baseline": "a02951fe06db81b27a75ec9995ec5e93165ab592",
+  "method": "transitive local import graph including re-exports and dynamic imports",
+  "changedSharedModules": [
+    "supabase/functions/_shared/maxxis/dealDecisionContext.ts",
+    "supabase/functions/_shared/maxxis/getDealInsightContext.ts",
+    "supabase/functions/_shared/maxxis/landDevelopmentScenario.ts",
+    "supabase/functions/_shared/maxxis/marketReferenceAnswer.ts",
+    "supabase/functions/_shared/maxxis/marketReferenceIntent.ts",
+    "supabase/functions/_shared/maxxis/scenarioEngine.ts"
+  ],
+  "changedFunctionModules": [
+    "supabase/functions/maxxis-analysis-inputs/index.ts",
+    "supabase/functions/maxxis-chat/index.ts"
+  ],
+  "affectedFunctions": [
+    {
+      "function": "maxxis-analysis-inputs",
+      "changedDependencies": [
+        "supabase/functions/maxxis-analysis-inputs/index.ts"
+      ]
+    },
+    {
+      "function": "maxxis-chat",
+      "changedDependencies": [
+        "supabase/functions/_shared/maxxis/dealDecisionContext.ts",
+        "supabase/functions/_shared/maxxis/getDealInsightContext.ts",
+        "supabase/functions/_shared/maxxis/landDevelopmentScenario.ts",
+        "supabase/functions/_shared/maxxis/scenarioEngine.ts",
+        "supabase/functions/_shared/maxxis/marketReferenceAnswer.ts",
+        "supabase/functions/_shared/maxxis/marketReferenceIntent.ts",
+        "supabase/functions/maxxis-chat/index.ts"
+      ]
+    }
+  ],
+  "unresolvedLocalImports": []
+}

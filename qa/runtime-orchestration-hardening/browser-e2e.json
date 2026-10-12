@@ -1,0 +1,26 @@
+{
+  "state": "PASS",
+  "environment": "LOCAL_REAL_BROWSER_MOCK_CACHE_ONLY",
+  "flows": [
+    "A",
+    "B",
+    "C",
+    "D",
+    "E"
+  ],
+  "authenticatedProductionSmoke": "NOT_VERIFIED",
+  "inputPersistence": {
+    "zoning": "R2",
+    "zoningSource": "USER_PROVIDED",
+    "proposedUnitCount": 1,
+    "developmentIntent": "NEW_CONSTRUCTION",
+    "proposedPropertyType": "SFR"
+  },
+  "providerCalls": 0,
+  "geminiCalls": 0,
+  "matchesNavigations": [],
+  "reportRequest": {
+    "mode": "PROPERTY_ANALYSIS_MODE",
+    "propertyId": "11111111-1111-4111-8111-111111111111"
+  }
+}

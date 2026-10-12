@@ -49,7 +49,7 @@ import {
   enhanceMaxxisAssistantResponse,
   promptForMaxxisFollowUp,
 } from '../../features/maxxis/intelligence/maxxisDealIntelligence';
-import { parseAnalysisGapAnswer } from '../../features/maxxis/intelligence/analysisGapAnswer';
+import { maxxisActionExecution } from '../../features/maxxis/actions/maxxisSmartActions';
 import {
   classifyMaxxisConversationIntent,
   controlledIntentForConversation,
@@ -59,6 +59,12 @@ import {
 import { projectMaxxisAnalysisResponse } from '../../features/maxxis/intelligence/maxxisAnalysisReport';
 import { projectMaxxisDealIntelligenceResponse } from '../../features/maxxis/intelligence/maxxisDealIntelligenceReport';
 import { resolveLocalLandDevelopment, landScenarioForPersistence } from '../../features/maxxis/intelligence/maxxisLandDevelopment';
+import { readMaxxisAnalysisInputs } from '../../services/maxxisAnalysisInputsService';
+import { buildMarketReferenceAnswer } from '../../../supabase/functions/_shared/maxxis/marketReferenceAnswer.ts';
+import { pendingGapForContext } from '../../features/maxxis/routing/maxxisConversationIntent';
+import { resolveAnalysisStrategy, resolveAnalysisPropertyType } from '../../../supabase/functions/_shared/maxxis/canonicalFactSemantics.ts';
+
+const runtimeStrategy = property => resolveAnalysisStrategy(resolveAnalysisPropertyType(property), property?.objective || property?.dealTag);
 import { composePropertyAnalysisAcknowledgement } from '../../features/maxxis/context/propertyAnalysisHandoff';
 import {
   buildMaxxisSmartActions,
@@ -956,7 +962,20 @@ export function MaxxisAssistant({ page = 'dashboard', onOpenSupport = null, onNa
     };
   };
 
-  const handleAction = async (actionId) => {
+  const handleAction = async (actionId, sourceMessage = null) => {
+    if (actionId && typeof actionId === 'object') {
+      const operation = maxxisActionExecution(actionId, { propertyId: currentMemoryPropertyId(), stateVersion: sourceMessage?.data?.stateVersion });
+      if (!operation) return;
+      if (operation.behavior === 'EXPAND_EVIDENCE') {
+        setMessages(prev => prev.map(item => item.id === sourceMessage?.id ? { ...item, data: { ...item.data, evidenceExpanded: !item.data?.evidenceExpanded } } : item));
+        return;
+      }
+      if (operation.behavior === 'NAVIGATE_MATCHES') { setOpen(false); onNavigateAction?.('matches'); return; }
+      if (operation.behavior === 'OPEN_REPORT') {
+        onOpenReportSelector?.({ propertyId: operation.propertyId, reportType: operation.reportType });
+        return;
+      }
+    }
     const normalized = normalizeActionId(actionId);
     if (!normalized) return;
     if (normalized === 'scenario-compare') {
@@ -977,6 +996,8 @@ export function MaxxisAssistant({ page = 'dashboard', onOpenSupport = null, onNa
       return;
     }
     if (['report-export', 'maxxis-analysis', 'deal-intelligence'].includes(normalized)) {
+      const capturedPropertyId = sourceMessage?.data?.propertyId || sourceMessage?.data?.intelligenceSnapshot?.propertyId;
+      if (capturedPropertyId && capturedPropertyId !== currentMemoryPropertyId()) return;
       onOpenReportSelector?.({
         propertyId: currentMemoryPropertyId(),
         reportType: normalized === 'maxxis-analysis' ? 'MAXXIS_ANALYSIS' : normalized === 'deal-intelligence' ? 'DEAL_INTELLIGENCE' : '',
@@ -1140,17 +1161,66 @@ export function MaxxisAssistant({ page = 'dashboard', onOpenSupport = null, onNa
       recentProperties: recentPropertyContextsRef.current,
     });
     const resolvedSubmitPropertyId = String(messagePropertyContext.propertyId || '').trim();
+    const capturedReportPropertyId = meta.propertyAnalysisContext?.property_id || meta.reportProperty?.id;
+    if (meta.reportType && capturedReportPropertyId && capturedReportPropertyId !== resolvedSubmitPropertyId) {
+      setMessages(prev => [...prev, { id: `maxxis-stale-report-${Date.now()}`, role: 'assistant', createdAt: new Date(), type: 'report_generation_error',
+        content: language === 'pt' ? 'O imóvel selecionado mudou. Solicite o relatório novamente para o imóvel atual.' : language === 'es' ? 'La propiedad seleccionada cambió. Solicita el informe de nuevo para la propiedad actual.' : 'The selected property changed. Request the report again for the current property.' }]);
+      return;
+    }
     const developmentProperty = messagePropertyContext.property || propertyCandidates.find(item => String(item.id || item.propertyId) === resolvedSubmitPropertyId);
-    const landReply = resolveLocalLandDevelopment({ property: developmentProperty, propertyId: resolvedSubmitPropertyId, messages, message: cleanMessage, language });
+    const inferredReportType = inferRequestedIntelligenceReportType(cleanMessage, {
+      explicitReportType: meta.reportType,
+      hasPropertyContext: Boolean(meta.reportType || UUID_PATTERN.test(resolvedSubmitPropertyId)),
+    });
+    const pendingGap = !meta.skipGapResolutionParse ? pendingGapForContext(messages, {
+      propertyId: resolvedSubmitPropertyId, analysisStrategy: runtimeStrategy(developmentProperty),
+      stateVersion: [...messages].reverse().find(item => String(item.data?.propertyId || '') === resolvedSubmitPropertyId && item.data?.stateVersion)?.data?.stateVersion,
+      scenarioId: [...messages].reverse().find(item => String(item.data?.propertyId || '') === resolvedSubmitPropertyId && item.data?.scenario)?.data?.scenario?.id,
+    }) : null;
+    const conversationRoute = classifyMaxxisConversationIntent(cleanMessage, {
+      property: developmentProperty, pendingGap, requestedReportType: inferredReportType, previousIntent: conversationIntentRef.current,
+    });
+    if (conversationRoute.code !== MAXXIS_CONVERSATION_INTENTS.GAP_RESPONSE) conversationIntentRef.current = conversationRoute.code;
+    let storedLandAssumptions = developmentProperty?.dealAssumptions || {};
+    if (!inferredReportType && runtimeStrategy(developmentProperty) === 'LAND' && UUID_PATTERN.test(resolvedSubmitPropertyId)) {
+      const row = await readMaxxisAnalysisInputs(resolvedSubmitPropertyId).catch(() => null);
+      storedLandAssumptions = { ...storedLandAssumptions, ...row?.deal_assumptions };
+    }
+    if (!inferredReportType && ['EXPLAIN_MARKET_ESTIMATE', 'LAND_MARKET_REFERENCE'].includes(conversationRoute.code)) {
+      const latest = [...messages].reverse().find(item => String(item.data?.propertyId || item.data?.intelligenceSnapshot?.propertyId || '') === resolvedSubmitPropertyId
+        && item.data?.intelligenceSnapshot)?.data?.intelligenceSnapshot;
+      if (latest) {
+        const marketReply = buildMarketReferenceAnswer({ ...latest, propertyId: resolvedSubmitPropertyId,
+          propertyFacts: { ...latest.propertyFacts, ...developmentProperty }, dealAssumptions: { ...latest.dealAssumptions, ...storedLandAssumptions } }, conversationRoute.code, language);
+        setMessages(prev => [...prev, { id: `maxxis-user-${Date.now()}`, role: 'user', content: meta.visibleUserMessage || cleanMessage, createdAt: new Date() },
+          { ...marketReply, content: marketReply.answer, id: `maxxis-market-${Date.now()}`, role: 'assistant', createdAt: new Date() }]);
+        setInput(''); return;
+      }
+    }
+    const landReply = !inferredReportType && !['EXPLAIN_MARKET_ESTIMATE', 'LAND_MARKET_REFERENCE'].includes(conversationRoute.code)
+      ? resolveLocalLandDevelopment({ property: developmentProperty, propertyId: resolvedSubmitPropertyId, messages, message: cleanMessage, language, storedAssumptions: storedLandAssumptions }) : null;
     if (landReply) {
+      const values = landReply.data.inputsToPersist;
+      if (Object.keys(values).length && UUID_PATTERN.test(resolvedSubmitPropertyId)) {
+        try {
+          await saveMaxxisAnalysisInputs(resolvedSubmitPropertyId, { dealAssumptions: values });
+          landReply.data.persistenceStatus = 'SAVED';
+        } catch (error) {
+          landReply.data.persistenceStatus = 'FAILED';
+          landReply.content += language === 'pt' ? '\n\nNão foi possível salvar as premissas. Elas permanecem nesta conversa; tente salvar novamente.'
+            : language === 'es' ? '\n\nNo se pudieron guardar los supuestos. Se conservan en esta conversación; vuelve a intentar.'
+              : '\n\nCould not save assumptions. They remain in this conversation; please retry saving.';
+          captureAppException(error, { area: 'maxxis_land_assumptions', propertyId: resolvedSubmitPropertyId });
+        }
+      }
       setInput('');
       continuitySessionRef.current = { ...continuitySessionRef.current, activePropertyId: resolvedSubmitPropertyId };
       setMessages(prev => [...prev,
-        { id: `maxxis-user-${Date.now()}`, role: 'user', content: cleanMessage, createdAt: new Date(), data: { propertyId: resolvedSubmitPropertyId } },
+        { id: `maxxis-user-${Date.now()}`, role: 'user', content: meta.visibleUserMessage || cleanMessage, createdAt: new Date(), data: { propertyId: resolvedSubmitPropertyId } },
         { ...landReply, id: `maxxis-land-${Date.now()}`, role: 'assistant', createdAt: new Date() }]);
       return;
     }
-    const notesQuestion = /\b(?:notas|notes|observa[çc][õo]es|texto original|original text)\b/i.test(cleanMessage)
+    const notesQuestion = !inferredReportType && /\b(?:notas|notes|observa[çc][õo]es|texto original|original text)\b/i.test(cleanMessage)
       && !/\b(?:salvar|editar|alterar|save|edit|change|guardar)\b/i.test(cleanMessage);
     const originalNotes = messagePropertyContext.property?.propertyUserNotes || messagePropertyContext.property?.notes || messagePropertyContext.property?.description;
     if (notesQuestion && originalNotes) {
@@ -1194,7 +1264,7 @@ export function MaxxisAssistant({ page = 'dashboard', onOpenSupport = null, onNa
       setInput('');
       return;
     }
-    const localIntelligenceReply = meta.sourceMessageId
+    const localIntelligenceReply = !inferredReportType && meta.sourceMessageId
       ? buildLocalDealIntelligenceReply({
           message: cleanMessage,
           language,
@@ -1224,6 +1294,10 @@ export function MaxxisAssistant({ page = 'dashboard', onOpenSupport = null, onNa
           data: advancesToGapResolver ? {
             ...localCompletenessGate,
             propertyId: resolvedSubmitPropertyId,
+            analysisStrategy: runtimeStrategy(developmentProperty),
+            scenarioId: localIntelligenceReply.data?.sourceData?.intelligenceSnapshot?.dealAssumptions?.activeScenario?.id || '',
+            stateVersion: localIntelligenceReply.data?.sourceData?.intelligenceSnapshot?.generatedAt || '',
+            gapType: localCompletenessGate.missingUserInputs?.[0] || '',
             originalRequest: cleanMessage,
           } : localIntelligenceReply.data,
           followUps: advancesToGapResolver ? [] : localIntelligenceReply.followUps,
@@ -1245,29 +1319,13 @@ export function MaxxisAssistant({ page = 'dashboard', onOpenSupport = null, onNa
       }
       return;
     }
-    const pendingGap = !meta.skipGapResolutionParse
-      ? [...messages].reverse().find((item) => item?.type === 'analysis_gap_resolution')
-      : null;
-    const inferredReportType = inferRequestedIntelligenceReportType(cleanMessage, {
-      explicitReportType: meta.reportType,
-      hasPropertyContext: Boolean(meta.reportType || UUID_PATTERN.test(resolvedSubmitPropertyId)),
-    });
-    const conversationRoute = classifyMaxxisConversationIntent(cleanMessage, {
-      pendingGap,
-      requestedReportType: inferredReportType,
-      previousIntent: conversationIntentRef.current,
-    });
-    if (conversationRoute.code !== MAXXIS_CONVERSATION_INTENTS.GAP_RESPONSE) {
-      conversationIntentRef.current = conversationRoute.code;
-    }
     let effectiveControlledIntent = controlledIntentForConversation(conversationRoute, meta.controlledIntent);
     if (!meta.controlledIntent) {
       const opportunityIntent = resolveMaxxisOpportunityIntent(cleanMessage, UUID_PATTERN.test(resolvedSubmitPropertyId));
       if (opportunityIntent === 'CURRENT_PROPERTY_ANALYSIS') effectiveControlledIntent = 'property_analysis_question';
       if (opportunityIntent === 'GENERAL_OPPORTUNITY_SEARCH') effectiveControlledIntent = 'personalized_property_search';
     }
-    const parsedGapAnswer = conversationRoute.gapAnswer
-      || (pendingGap ? parseAnalysisGapAnswer(pendingGap, cleanMessage) : null);
+    const parsedGapAnswer = conversationRoute.gapAnswer;
     if (parsedGapAnswer?.action === 'resolve') {
       void handleResolveAnalysisGaps(pendingGap, parsedGapAnswer.values, cleanMessage);
       return;
@@ -1280,7 +1338,9 @@ export function MaxxisAssistant({ page = 'dashboard', onOpenSupport = null, onNa
     const userMessage = {
       id: `maxxis-user-${Date.now()}`,
       role: 'user',
-      content: String(meta.visibleUserMessage || cleanMessage).trim(),
+      content: String(meta.visibleUserMessage || (inferredReportType
+        ? (language === 'pt' ? 'Gerar relatório ' : language === 'es' ? 'Generar informe ' : 'Generate report ') + inferredReportType.replace(/_/g, ' ')
+        : cleanMessage)).trim(),
       createdAt: new Date(),
     };
     const browserTraceId = startMaxxisBrowserTrace(`maxxis-request-${userMessage.id}`, { intent: meta.reportType || effectiveControlledIntent || conversationRoute.code || 'chat' });
@@ -1341,7 +1401,7 @@ export function MaxxisAssistant({ page = 'dashboard', onOpenSupport = null, onNa
       const memoryIntent = detectMaxxisDealMemoryIntent(cleanMessage, meta.controlledIntent);
       const hasConversationContinuity = continuityReference.status === 'resolved'
         && Boolean(continuityReference.context?.serviceId && continuityReference.context?.conversationRef);
-      if (!hasConversationContinuity && await handleDealMemoryIntent(memoryIntent, userMessage)) return;
+      if (!requestedReportType && !hasConversationContinuity && await handleDealMemoryIntent(memoryIntent, userMessage)) return;
       const latestProviderContext = findLatestProviderConversationContext(messages);
       const validatedLatestProviderContext = latestProviderContext
         && (!continuityPropertyId || latestProviderContext.propertyId === continuityPropertyId)
@@ -1355,7 +1415,7 @@ export function MaxxisAssistant({ page = 'dashboard', onOpenSupport = null, onNa
             propertyId: continuityReference.context.propertyId,
           }
         : null;
-      const providerConversationRequested = !analysisContext && (
+      const providerConversationRequested = !requestedReportType && !analysisContext && (
         isProviderConversationIntent(cleanMessage)
         || Boolean(continuityProviderContext && ['CONTINUE', 'PROVIDER_REFERENCE'].includes(continuityReference.intent))
       );
@@ -1392,7 +1452,7 @@ export function MaxxisAssistant({ page = 'dashboard', onOpenSupport = null, onNa
         }]);
         return;
       }
-      if (isSurfaceContextQuestion(cleanMessage)) {
+      if (!requestedReportType && isSurfaceContextQuestion(cleanMessage)) {
         setMessages((prev) => [...prev, {
           id: `maxxis-context-${Date.now()}`,
           role: 'assistant',
@@ -1454,7 +1514,8 @@ export function MaxxisAssistant({ page = 'dashboard', onOpenSupport = null, onNa
         }
         return;
       }
-      const referenceResolution = continuityReference.status !== 'unresolved'
+      const referenceResolution = requestedReportType || ['EXPLAIN_MARKET_ESTIMATE', 'LAND_MARKET_REFERENCE'].includes(conversationRoute.code)
+        ? { status: 'resolved', entity: { type: 'PROPERTY', id: resolvedSubmitPropertyId } } : continuityReference.status !== 'unresolved'
         ? continuityReference
         : resolveMaxxisNaturalReference(cleanMessage, continuityContextSnapshot);
       if (referenceResolution.status === 'ambiguous') {
@@ -1487,13 +1548,13 @@ export function MaxxisAssistant({ page = 'dashboard', onOpenSupport = null, onNa
         maxxisContext: selectMaxxisContextForMessage(continuityContextSnapshot, cleanMessage),
         controlledIntent: effectiveControlledIntent,
         requestedCapability: requestedReportType || meta.reportType || analysisContext?.report_type || '',
-        propertyAnalysisContext: analysisContext || null,
+        propertyAnalysisContext: requestedReportType ? { ...(analysisContext || {}), mode: 'PROPERTY_ANALYSIS_MODE', property_id: resolvedSubmitPropertyId, report_type: requestedReportType } : analysisContext || null,
         analysisRecomputeMode: meta.analysisRecomputeMode || '',
       });
       markMaxxisBrowserStage(browserTraceId, 'T1_analysis_ready');
       const analysisRequestMs = (typeof performance !== 'undefined' ? performance.now() : Date.now()) - analysisStartedAt;
       const completenessGate = result?.data?.evidenceCompletenessGate;
-      if (result?.type === 'deal_insight' && completenessGate?.status === 'USER_INPUT_REQUIRED'
+      if (!requestedReportType && result?.type === 'deal_insight' && completenessGate?.status === 'USER_INPUT_REQUIRED'
         && (effectiveControlledIntent === 'deal_gaps' || shouldPresentAnalysisGap(conversationRoute, requestedReportType))) {
         setMessages((prev) => [...prev, {
           id: `maxxis-analysis-gap-${Date.now()}`,
@@ -1512,6 +1573,10 @@ export function MaxxisAssistant({ page = 'dashboard', onOpenSupport = null, onNa
             currentRehab: result?.data?.property?.rehab ?? result?.data?.property?.estimatedRehab ?? null,
             propertyType: result?.data?.property?.type || result?.data?.property?.propertyType || '',
             snapshotRevision: result?.data?.intelligenceSnapshot?.generatedAt || '',
+            analysisStrategy: runtimeStrategy(result?.data?.property),
+            scenarioId: result?.data?.intelligenceSnapshot?.dealAssumptions?.activeScenario?.id || '',
+            gapType: completenessGate.missingUserInputs?.[0] || '',
+            stateVersion: result?.data?.intelligenceSnapshot?.generatedAt || '',
           },
         }]);
         return;
@@ -1541,7 +1606,8 @@ export function MaxxisAssistant({ page = 'dashboard', onOpenSupport = null, onNa
         forcedIntent: effectiveControlledIntent,
       });
       const structuredReportFallbackUsed = hasUsableStructuredReportFallback(result, requestedReportType);
-      const reportGenerationFailed = didStructuredReportGenerationFail(result, requestedReportType);
+      const reportGenerationFailed = didStructuredReportGenerationFail(result, requestedReportType)
+        || Boolean(requestedReportType && (result?.type !== 'deal_insight' || !result?.data?.dealIntelligence));
       const maxxisAnalysis = requestedReportType === 'MAXXIS_ANALYSIS' && !reportGenerationFailed
         ? projectMaxxisAnalysisResponse(result, { reportProperty: meta.reportProperty })
         : null;
@@ -1619,7 +1685,7 @@ export function MaxxisAssistant({ page = 'dashboard', onOpenSupport = null, onNa
         .filter((action) => ['compare_scenario', 'save_scenario'].includes(String(action?.id || '')))
         .map((action) => `[[action:${String(action.id).replace(/_/g, '-')}|${String(action.label || '')}]]`).join('\n') : '';
       const generationFailureText = reportGenerationFailed
-        ? (language === 'pt' ? 'Não foi possível concluir a interpretação do relatório agora. Nenhum relatório incompleto foi salvo. Você pode tentar novamente mantendo esta conversa.' : language === 'es' ? 'No fue posible completar la interpretación del informe. No se guardó un informe incompleto.' : 'The report interpretation could not be completed. No incomplete report was saved. You can retry without losing this conversation.')
+        ? (language === 'pt' ? 'Não foi possível gerar o relatório. Nenhum relatório foi salvo. Tente novamente mantendo esta conversa.' : language === 'es' ? 'No se pudo generar el informe. No se guardó ningún informe. Inténtalo de nuevo.' : 'Could not generate the report. No report was saved. Please retry without losing this conversation.')
         : '';
       const reportMessageId = `maxxis-assistant-${Date.now()}`;
       const chatCommitStartedAt = typeof performance !== 'undefined' ? performance.now() : Date.now();
@@ -1632,7 +1698,8 @@ export function MaxxisAssistant({ page = 'dashboard', onOpenSupport = null, onNa
         degraded: Boolean(result.degraded && !structuredReportFallbackUsed),
         degradedReason: result.degradedReason || '',
         requestId: result.requestId || '',
-        type: dealIntelligence?.type || maxxisAnalysis?.type || intelligence.type || result.type,
+        type: reportGenerationFailed ? 'report_generation_error' : dealIntelligence?.type || maxxisAnalysis?.type || intelligence.type || result.type,
+        actions: result.actions || [],
         data: projectedReport ? { ...projectedReport.data, proactiveContext: projectMaxxisProactiveSnapshot(result.data?.intelligenceSnapshot), reportAccessDecision: grantedReportAccess, reportExportEntitlements, reportId: null, runtimeTrace } : (intelligence.data || result.data),
         followUps: dealIntelligence || maxxisAnalysis ? [] : intelligence.followUps,
         smartActionsEnabled: intelligence.type === 'deal_snapshot',
@@ -1766,6 +1833,7 @@ export function MaxxisAssistant({ page = 'dashboard', onOpenSupport = null, onNa
     const propertyId = String(source?.data?.propertyId || decisionAction?.target?.propertyId || activePropertyContextId || '');
     const userDecisionInput = decisionAction?.target?.source === 'USER' && /^[a-z][A-Za-z0-9_]*$/.test(field);
     if (!UUID_PATTERN.test(propertyId) || (!['target_condition', 'rehab_budget'].includes(field) && !userDecisionInput)) return;
+    if (propertyId !== currentMemoryPropertyId()) return;
     const isCondition = field === 'target_condition';
     const isRehab = field === 'rehab_budget';
     setMessages((prev) => [...prev, {
@@ -1780,6 +1848,10 @@ export function MaxxisAssistant({ page = 'dashboard', onOpenSupport = null, onNa
       type: 'analysis_gap_resolution',
       data: {
         propertyId,
+        analysisStrategy: runtimeStrategy(source?.data?.intelligenceSnapshot?.propertyFacts || source?.data?.sourceData?.intelligenceSnapshot?.propertyFacts || source?.data?.property || source?.data?.sourceData?.property),
+        scenarioId: source?.data?.scenario?.id || '',
+        stateVersion: source?.data?.intelligenceSnapshot?.generatedAt || '',
+        gapType: field,
         missingUserInputs: [field],
         assumptions: { targetCondition: source?.data?.targetCondition || 'AS_IS' },
         benchmarkOptions: source?.data?.benchmarkOptions || [],
@@ -2402,6 +2474,7 @@ export function MaxxisAssistant({ page = 'dashboard', onOpenSupport = null, onNa
     }
     void submitMessage(promptForMaxxisFollowUp(followUp, language), {
       controlledIntent: intent,
+      visibleUserMessage: followUp?.label || (language === 'pt' ? 'Continuar análise' : language === 'es' ? 'Continuar análisis' : 'Continue analysis'),
       sourceMessageId: sourceMessage?.id || '',
     });
   };
@@ -2944,6 +3017,7 @@ export function MaxxisAssistant({ page = 'dashboard', onOpenSupport = null, onNa
 
   const handleSmartAction = (action, sourceMessage) => {
     if (!action?.enabled || loading) return;
+    if (action.target?.propertyId && action.target.propertyId !== currentMemoryPropertyId()) return;
     if (sourceMessage?.data?.proactiveTrigger) {
       const trigger = sourceMessage.data.proactiveTrigger;
       if (trigger.propertyId !== activePropertyContextId || completedDecisionActionsRef.current.has(action.id)) return;
@@ -3012,6 +3086,7 @@ export function MaxxisAssistant({ page = 'dashboard', onOpenSupport = null, onNa
     if (action.code === 'REVIEW_NEXT_STEP' || action.code === 'REVIEW_WORKFLOW') {
       void submitMessage(promptForMaxxisFollowUp({ code: 'review_next', label: action.label }, language), {
         controlledIntent: 'review_next',
+        visibleUserMessage: action.label,
         sourceMessageId: sourceMessage?.id || '',
       });
       return;
@@ -3019,6 +3094,7 @@ export function MaxxisAssistant({ page = 'dashboard', onOpenSupport = null, onNa
     if (action.code === 'COMPARE_PROPERTIES') {
       void submitMessage(promptForMaxxisFollowUp({ code: 'compare_these', label: action.label }, language), {
         controlledIntent: 'compare_these',
+        visibleUserMessage: action.label,
         sourceMessageId: sourceMessage?.id || '',
       });
       return;
@@ -3092,17 +3168,17 @@ export function MaxxisAssistant({ page = 'dashboard', onOpenSupport = null, onNa
   useEffect(() => {
     const request = propertyAnalysisRequestRef.current;
     const requestId = String(request?.id || '').trim();
-    const prompt = String(request?.prompt || '').trim();
+    const prompt = String(request?.prompt || request?.reportType || '').trim();
     if (!requestId || !prompt || handledAnalysisRequestsRef.current.has(requestId)) return;
     handledAnalysisRequestsRef.current.add(requestId);
     setOpen(true);
     setInput('');
     void submitMessageRef.current?.(prompt, {
-      visibleUserMessage: request?.visibleMessage || request?.title || (language === 'pt'
-        ? 'Analisar o imóvel selecionado com o Maxxis Deal AI'
+      visibleUserMessage: request?.visibleMessage || (language === 'pt'
+        ? 'Gerar relatório do imóvel selecionado com o Maxxis Deal AI'
         : language === 'es'
-          ? 'Analizar la propiedad seleccionada con Maxxis Deal AI'
-          : 'Analyze the selected property with Maxxis Deal AI'),
+          ? 'Generar informe de la propiedad seleccionada con Maxxis Deal AI'
+          : 'Generate report for the selected property with Maxxis Deal AI'),
       analysisExport: {
         requestId,
         title: request?.title || '',
@@ -3113,6 +3189,9 @@ export function MaxxisAssistant({ page = 'dashboard', onOpenSupport = null, onNa
       reportAccessDecision: request?.accessDecision || null,
       propertyAnalysisContext: request?.propertyAnalysisContext || null,
       reportProperty: request?.reportProperty || null,
+      propertyContextOverride: request?.propertyAnalysisContext?.property_id || request?.reportProperty?.id,
+      skipGapResolutionParse: true,
+      controlledIntent: 'generate_report',
     });
   }, [language, propertyAnalysisRequest?.id]);
 

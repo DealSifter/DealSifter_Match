@@ -17,6 +17,8 @@ import { executeMaxxisTool, MAXXIS_TOOLS } from '../_shared/maxxis/toolRegistry.
 import { asksForSelectedPropertyAnalysis } from '../_shared/maxxis/propertyAnalysisIntent.ts';
 import { buildPropertyFactLookupAnswer, detectPropertyFactLookup } from '../_shared/maxxis/propertyFactLookup.ts';
 import { detectsDealScenario, formatDealScenarioAnswer, resolveDealScenario } from '../_shared/maxxis/scenarioEngine.ts';
+import { detectMarketReferenceIntent } from '../_shared/maxxis/marketReferenceIntent.ts';
+import { buildMarketReferenceAnswer } from '../_shared/maxxis/marketReferenceAnswer.ts';
 import { normalizeComparisonContextIds } from '../_shared/maxxis/compareProperties.ts';
 import { buildToolInterpretationRequest, sanitizeToolResultForGemini } from '../_shared/maxxis/toolResultForGemini.ts';
 import {
@@ -58,7 +60,10 @@ const GEMINI_SAFETY_SETTINGS = [
   { category: 'HARM_CATEGORY_DANGEROUS_CONTENT', threshold: 'BLOCK_ONLY_HIGH' },
 ];
 
-function response(body: MaxxisResponse, status: number, origin: string, requestId = '') {
+function response(body: MaxxisResponse | (ReturnType<typeof buildMarketReferenceAnswer> & {
+  message: string; language?: string; runtime?: MaxxisResponse['runtime']; degraded?: boolean;
+  degradedReason?: string; error?: string; fallbackLevel?: number; fallbackSource?: string;
+}), status: number, origin: string, requestId = '') {
   return new Response(JSON.stringify({ ...body, ...(requestId ? { requestId } : {}) }), { status, headers: { ...corsHeaders(origin), 'Content-Type': 'application/json', ...(requestId ? { 'x-request-id': requestId } : {}) } });
 }
 
@@ -863,8 +868,11 @@ Deno.serve(async (req) => {
     // PROPERTY_ANALYSIS_MODE already carries a server-validated property id and
     // report capability. Asking Gemini to select that same mandatory tool adds a
     // provider failure point before any deterministic analysis has run.
-    const propertyFactIntent = propertyContextId ? detectPropertyFactLookup(message) : null;
-    const dealScenarioIntent = propertyContextId && detectsDealScenario(message,
+    const marketReferenceIntent = !propertyAnalysisContext && propertyContextId
+      ? detectMarketReferenceIntent(message) || (body.controlledIntent === 'land_market_reference' ? 'LAND_MARKET_REFERENCE'
+        : body.controlledIntent === 'explain_market_estimate' ? 'EXPLAIN_MARKET_ESTIMATE' : null) : null;
+    const propertyFactIntent = !marketReferenceIntent && !propertyAnalysisContext && propertyContextId ? detectPropertyFactLookup(message) : null;
+    const dealScenarioIntent = !marketReferenceIntent && !propertyAnalysisContext && propertyContextId && detectsDealScenario(message,
       Array.isArray(body.history) ? body.history as Array<{ role?: unknown; content?: unknown }> : []);
     const deterministicPropertyAnalysisCall: { name: string; args: Record<string, unknown> } | null = propertyAnalysisContext
       ? {
@@ -874,7 +882,7 @@ Deno.serve(async (req) => {
             reportType: propertyAnalysisContext.report_type,
           },
         }
-      : propertyFactIntent || dealScenarioIntent
+      : marketReferenceIntent || propertyFactIntent || dealScenarioIntent
         ? { name: 'getDealInsightContext', args: { propertyId: propertyContextId } } : null;
     const stubFunctionCall = controlledFunctionCall || (isE2ELlmStubEnabled() ? e2eStubFunctionCall(message, propertyContextId) : null);
     if (!geminiApiKey && !stubFunctionCall && !deterministicPropertyAnalysisCall) {
@@ -1086,7 +1094,7 @@ Deno.serve(async (req) => {
       let secondPassFailure: GeminiFailureCode | '' = '';
       let secondPassProviderMeta: ReturnType<typeof getGeminiProviderFailureMeta> | null = null;
       let secondPassAttempts = 0;
-      if (!stubFunctionCall && geminiApiKey && !propertyFactIntent && !dealScenarioIntent) {
+      if (!stubFunctionCall && geminiApiKey && !propertyFactIntent && !dealScenarioIntent && !marketReferenceIntent && !propertyAnalysisContext) {
         failureStage = 'gemini_second_pass';
         const secondPassStartedAt = Date.now();
         const interpretationRequest = buildToolInterpretationRequest({
@@ -1271,6 +1279,12 @@ Deno.serve(async (req) => {
         return response({ message: text, answer: text, type: 'property_evidence', data: result, actions: [], language, runtime: toolRuntime, ...toolDegraded }, 200, origin, requestId);
       }
       if (result.type === 'deal_insight') {
+        if (marketReferenceIntent) {
+          const referenceResponse = buildMarketReferenceAnswer(rawSnapshot, marketReferenceIntent, language);
+          structuredResponseCreated = true;
+          return response({ ...referenceResponse, message: referenceResponse.answer, language,
+            runtime: { ...toolRuntime, provider: 'deterministic' }, ...toolDegraded }, 200, origin, requestId);
+        }
         failureStage = 'structured_response';
         const intelligenceTrace = result.runtimeTrace && typeof result.runtimeTrace === 'object'
           ? result.runtimeTrace as Record<string, unknown>

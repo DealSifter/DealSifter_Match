@@ -154,7 +154,7 @@ function requirementAvailable(requirement: StrategyRequirement, values: AnyRecor
     cash_to_seller: hasAssumption(assumption, ['cashToSeller']),
     reinstatement: hasAssumption(assumption, ['reinstatement']),
     lot_size: parseCanonicalLotArea(fact(values.snapshot, context, ['lotSizeSqft', 'lot'])).lotSizeSqft !== null,
-    zoning: present(property.zoning) || present(field(context, 'zoning').value),
+    zoning: present(property.zoning) || present(field(context, 'zoning').value) || hasAssumption(assumption, ['zoning']),
     allowed_use: present(property.allowedUse) || hasAssumption(assumption, ['allowedUse']),
     road_access: present(property.roadAccess) || hasAssumption(assumption, ['roadAccess']),
     utilities: present(property.utilities) || hasAssumption(assumption, ['utilities']),
@@ -162,7 +162,8 @@ function requirementAvailable(requirement: StrategyRequirement, values: AnyRecor
     topography: present(property.topography) || hasAssumption(assumption, ['topography']),
     ownership: present(field(context, 'ownershipRecordPresent').value),
     land_sale_evidence: comps.length > 0,
-    development_assumptions: hasAssumption(assumption, ['developmentAssumptions']),
+    development_assumptions: hasAssumption(assumption, ['developmentAssumptions'])
+      || (hasAssumption(assumption, ['developmentIntent']) && hasAssumption(assumption, ['proposedUnitCount', 'proposedPropertyType'])),
     market_evidence: comps.length > 0 || finite(record(valuation.providerEstimate).value) !== null
       || Boolean(values.snapshot.marketEvidence),
     property_condition: hasAssumption(assumption, ['targetCondition']),
@@ -230,7 +231,8 @@ export function buildDealDecisionContext(snapshotInput: unknown): DealDecisionCo
   const metrics = record(record(context.dealMetrics || snapshot.dealMetrics).metrics);
   const rehabAnalysis = record(snapshot.rehabAnalysis);
   const gate = record(snapshot.evidenceCompletenessGate);
-  const assumptions = { ...record(gate.assumptions), ...record(snapshot.dealAssumptions) };
+  const storedAssumptions = record(snapshot.dealAssumptions);
+  const assumptions = { ...record(gate.assumptions), ...record(record(storedAssumptions.activeScenario).assumptions), ...storedAssumptions };
   const benchmarkOptions = list(gate.benchmarkOptions);
   const comps = list(context.comparableEvidence || snapshot.comps);
   const price = finite(fact(snapshot, context, ['price', 'askingPrice']));

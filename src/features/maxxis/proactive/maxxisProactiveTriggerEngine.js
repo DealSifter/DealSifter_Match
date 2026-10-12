@@ -55,13 +55,12 @@ export function resolveMaxxisProactiveContext({ property = {}, propertyId = prop
   const base = stale ? {} : loaded;
   if (stale) facts = { ...property, id: propertyId };
   if (stale) { latestScenario = null; previousScenario = null; }
-  const assumptions = { ...object(base.dealAssumptions), ...object(property.dealAssumptions), ...object(latestScenario?.assumptions) };
+  const assumptions = { ...object(base.dealAssumptions?.activeScenario?.assumptions), ...object(base.dealAssumptions), ...object(property.dealAssumptions), ...object(latestScenario?.assumptions) };
   const benchmark = estimateRehabBenchmark2026({ state: facts.state, livingAreaSqft: facts.sqft, condition: assumptions.targetCondition || facts.targetCondition });
   const resolved = { ...base, propertyId, propertyFacts: facts, dealAssumptions: assumptions,
     rehabAnalysis: base.rehabAnalysis || { value: facts.rehab ?? facts.estimatedRehab, benchmark,
       sanityCheck: sanityCheckRehabAgainstBenchmark2026(facts.rehab ?? facts.estimatedRehab, benchmark) } };
-  return { property: facts, snapshot: resolved, decisionContext: stale ? buildDealDecisionContext(resolved)
-    : base.dealDecisionContext || buildDealDecisionContext(resolved), scenario: latestScenario || base.dealAssumptions?.activeScenario,
+  return { property: facts, snapshot: resolved, decisionContext: buildDealDecisionContext(resolved), scenario: latestScenario || base.dealAssumptions?.activeScenario,
   previousScenario };
 }
 

@@ -17,9 +17,13 @@ const NUMERIC_DEAL_ASSUMPTIONS = new Set([
   'monthlyPayment', 'operatingExpenses', 'noi', 'vacancyRate', 'insurance', 'management', 'maintenance', 'hoa',
   'dispositionPrice', 'assignmentFee', 'closingCosts', 'downPayment', 'termMonths', 'amortizationMonths',
   'balloonMonths', 'existingLoanBalance', 'monthlyPiPayment', 'arrears', 'cashToSeller', 'reinstatement',
+  'proposedLotCount', 'proposedUnitCount', 'proposedBuildingSqftPerUnit', 'proposedBedsPerUnit', 'proposedBathsPerUnit',
+  'constructionCostPerSqft', 'contractorBid', 'constructionHardCost', 'siteWorkCost', 'utilityCost', 'permitCost',
+  'surveyCost', 'titleCost', 'engineeringCost', 'architectureCost', 'softCosts', 'financingCost', 'holdingCost', 'sellingCost', 'contingency',
 ]);
 const TEXT_DEAL_ASSUMPTIONS = new Set([
   'allowedUse', 'roadAccess', 'utilities', 'survey', 'topography', 'developmentAssumptions',
+  'zoning', 'zoningSource', 'developmentIntent', 'proposedPropertyType',
 ]);
 const BOOLEAN_DEAL_ASSUMPTIONS = new Set(['assignability']);
 
@@ -53,12 +57,16 @@ function dealAssumptions(value: unknown) {
   const sanitized: Record<string, unknown> = {};
   for (const [key, raw] of Object.entries(value as Record<string, unknown>)) {
     if (NUMERIC_DEAL_ASSUMPTIONS.has(key)) {
+      if (raw === null || raw === undefined || typeof raw === 'boolean' || String(raw).trim() === '') throw new Error('INVALID_DEAL_ASSUMPTIONS');
       const parsed = Number(raw);
       if (!Number.isFinite(parsed) || parsed < 0 || parsed > 1_000_000_000) throw new Error('INVALID_DEAL_ASSUMPTIONS');
+      if (['proposedUnitCount', 'proposedLotCount'].includes(key) && (!Number.isInteger(parsed) || parsed < 1)) throw new Error('INVALID_DEAL_ASSUMPTIONS');
       sanitized[key] = Math.round(parsed * 100) / 100;
     } else if (TEXT_DEAL_ASSUMPTIONS.has(key)) {
       const parsed = String(raw || '').trim();
       if (!parsed || parsed.length > 1000) throw new Error('INVALID_DEAL_ASSUMPTIONS');
+      if (key === 'developmentIntent' && !['NONE', 'NEW_CONSTRUCTION', 'SUBDIVIDE', 'SUBDIVIDE_AND_BUILD'].includes(parsed)) throw new Error('INVALID_DEAL_ASSUMPTIONS');
+      if (key === 'zoningSource' && parsed !== 'USER_PROVIDED') throw new Error('INVALID_DEAL_ASSUMPTIONS');
       sanitized[key] = parsed;
     } else if (BOOLEAN_DEAL_ASSUMPTIONS.has(key) && typeof raw === 'boolean') {
       sanitized[key] = raw;
@@ -120,7 +128,7 @@ export async function handleMaxxisAnalysisInputsRequest(req: Request) {
     propertyId = validatePropertyId(String(body?.propertyId || '').trim());
     action = String(body?.action || '').trim().toUpperCase();
     requestedCapability = capability(body?.capability);
-    if (!['UPSERT', 'DECLINE'].includes(action)) throw new Error('INVALID_ACTION');
+    if (!['READ', 'UPSERT', 'DECLINE'].includes(action)) throw new Error('INVALID_ACTION');
     const { data: entitled, error: entitlementError } = await client.rpc('ds_has_maxxis_analysis_context_access', {
       p_property_id: propertyId,
     });
@@ -131,6 +139,7 @@ export async function handleMaxxisAnalysisInputsRequest(req: Request) {
       .select('target_condition,rehab_budget,renovation_scope,rehab_source,declined_inputs,deal_assumptions')
       .eq('subject_property_id', propertyId).eq('reviewer_user_id', user.id).maybeSingle();
     if (readError) throw new Error('ANALYSIS_INPUT_READ_FAILED');
+    if (action === 'READ') return response(origin, { success: true, data: existing || null, requestId });
     const declined = new Set(Array.isArray(existing?.declined_inputs) ? existing.declined_inputs : []);
     const row: Record<string, unknown> = {
       subject_property_id: propertyId,

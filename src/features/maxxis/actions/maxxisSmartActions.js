@@ -4,6 +4,22 @@ import {
   normalizeMaxxisDealIntelligenceSource,
 } from '../intelligence/maxxisDealIntelligence';
 
+const EVIDENCE_ACTIONS = new Set(['VIEW_VALUATION_COMPS', 'VIEW_LAND_SOLD_COMPS', 'VIEW_EXIT_COMPS']);
+const REPORT_ACTIONS = new Set(['PROPERTY_RELEASE', 'MAXXIS_ANALYSIS', 'DEAL_INTELLIGENCE', 'GENERATE_DEAL_INTELLIGENCE']);
+
+export function maxxisActionExecution(action, { propertyId, stateVersion } = {}) {
+  if (!action || typeof action !== 'object') return null;
+  const capturedId = action.propertyId || action.target?.propertyId;
+  if (capturedId && String(capturedId) !== String(propertyId || '')) return null;
+  const version = action.stateVersion || action.generatedFromStateVersion;
+  if (stateVersion && version && String(version) !== String(stateVersion)) return null;
+  const type = action.type || action.code;
+  if (EVIDENCE_ACTIONS.has(type)) return { behavior: 'EXPAND_EVIDENCE', propertyId: capturedId, payload: action.payload };
+  if (REPORT_ACTIONS.has(type)) return { behavior: 'OPEN_REPORT', propertyId: capturedId, reportType: type === 'GENERATE_DEAL_INTELLIGENCE' ? 'DEAL_INTELLIGENCE' : type };
+  if (type === 'OPEN_DEALSIFTER_MATCHES') return { behavior: 'NAVIGATE_MATCHES' };
+  return null;
+}
+
 export const MAXXIS_SMART_ACTION_STATES = Object.freeze({
   AVAILABLE: 'available',
   BLOCKED: 'blocked',
@@ -219,6 +235,10 @@ function makeAction(code, state, overrides = {}, language = 'en') {
     confirmationRequired: Boolean(overrides.confirmationRequired ?? catalog.confirmationRequired),
     consumesOnExecution: Boolean(overrides.consumesOnExecution ?? catalog.consumesOnExecution),
     generatedFromStateVersion,
+    stateVersion: generatedFromStateVersion,
+    propertyId,
+    displayBehavior: catalog.type === MAXXIS_ACTION_TYPES.INPUT_REQUIRED ? 'INPUT_REQUEST' : catalog.type === MAXXIS_ACTION_TYPES.NAVIGATION ? 'NAVIGATE' : 'CHAT_MESSAGE',
+    executionBehavior: catalog.type === MAXXIS_ACTION_TYPES.INPUT_REQUIRED ? 'INPUT_REQUEST' : catalog.type === MAXXIS_ACTION_TYPES.NAVIGATION ? 'NAVIGATE' : 'DETERMINISTIC_RESPONSE',
     enabled: state === MAXXIS_SMART_ACTION_STATES.AVAILABLE,
     label,
     intent: String(overrides.intent || code).toLowerCase(),
@@ -245,6 +265,10 @@ function makeDecisionAction(action = {}, propertyId = '') {
     confirmationRequired: false,
     consumesOnExecution: true,
     generatedFromStateVersion,
+    stateVersion: generatedFromStateVersion,
+    propertyId,
+    displayBehavior: 'INPUT_REQUEST',
+    executionBehavior: 'INPUT_REQUEST',
     enabled: true,
     label: String(action.label),
     intent: 'decision_gap_resolution',

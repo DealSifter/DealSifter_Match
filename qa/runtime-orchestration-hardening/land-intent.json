@@ -1,0 +1,11 @@
+{
+  "evidenceMode": "DETERMINISTIC_FIXTURES_NOT_LIVE_PRODUCTION",
+  "automatedRentCastCalls": 0,
+  "data": {
+    "zoning": "R2",
+    "zoningSource": "USER_PROVIDED",
+    "proposedUnitCount": 1,
+    "developmentIntent": "NEW_CONSTRUCTION",
+    "proposedPropertyType": "SFR"
+  }
+}

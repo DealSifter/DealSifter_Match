@@ -1,0 +1,14 @@
+{
+  "baseline": "a02951fe06db81b27a75ec9995ec5e93165ab592",
+  "targetedTests": { "passed": 64, "total": 64 },
+  "fullTests": { "passed": 1607, "total": 1607, "files": 202, "method": "Full run plus isolated resource-timeout retries; see verification.json" },
+  "browser": { "state": "PASS", "flows": ["A", "B", "C", "D", "E"], "environment": "LOCAL_REAL_BROWSER_MOCK_CACHE_ONLY" },
+  "frontendTypecheck": "PASS",
+  "lint": "PASS",
+  "build": { "state": "PASS", "warnings": ["Existing chunks larger than 500 kB"] },
+  "deno": { "portableChangedModules": "PASS", "aggregateBaselineErrors": 38, "aggregateCurrentErrors": 38, "newErrors": 0 },
+  "migration": "NONE",
+  "automatedRentCastCalls": 0,
+  "geminiFinancialArithmetic": 0,
+  "authenticatedProductionSmoke": "NOT_VERIFIED"
+}

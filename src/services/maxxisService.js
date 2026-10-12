@@ -233,6 +233,7 @@ export async function sendMaxxisMessage({ message, history = [], page = 'dashboa
       fallbackSource: String(data?.fallbackSource || 'edge_degraded_guard').slice(0, 64),
       requestId,
       diagnostic: data?.diagnostic && typeof data.diagnostic === 'object' ? data.diagnostic : null,
+      actions: Array.isArray(data?.actions) ? data.actions : [],
       ...normalizedResponse,
     };
   }
@@ -293,6 +294,7 @@ export async function sendMaxxisMessage({ message, history = [], page = 'dashboa
     degradedReason: String(data?.degradedReason || ''),
     requestId,
     ...normalizedResponse,
+    actions: Array.isArray(data?.actions) ? data.actions : [],
   };
 }
 

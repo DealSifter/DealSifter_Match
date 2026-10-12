@@ -1,0 +1,615 @@
+{
+  "evidenceMode": "DETERMINISTIC_FIXTURES_NOT_LIVE_PRODUCTION",
+  "automatedRentCastCalls": 0,
+  "data": {
+    "answer": "Referencia del terreno por ventas recientes:\n\nRango respaldado: $18,000 – $20,000; referencia central $19,000.\n\nMotor determinista de ventas registradas; comparables utilizados: 3; métrica: $/acre; confianza: baja.\n\nEl AVM del proveedor es una estimación automatizada de apoyo, no el origen de este rango ni un ARV validado.\n\nProcedencia: ventas registradas; actualización: 2026-10-11T12:00:00Z; estado: actual.\n\nPrecio pedido: $19,000; área: 1.14 acres; pedido por acre: $16,667.\n\nConstrucción nueva — benchmark interno Alabama: $119 – $172/sqft. El total depende del área propuesta.\n\nEsta referencia no es una tasación ni ARV. El valor futuro construido es una referencia de salida separada.",
+    "type": "market_reference",
+    "data": {
+      "propertyId": "11111111-1111-4111-8111-111111111111",
+      "intelligenceSnapshot": {
+        "propertyId": "11111111-1111-4111-8111-111111111111",
+        "propertyFacts": {
+          "id": "11111111-1111-4111-8111-111111111111",
+          "address": "741 Gable Dr",
+          "city": "Center Point",
+          "state": "AL",
+          "zip": "35215",
+          "type": "Land",
+          "price": 19000,
+          "lot": "1.14 acres"
+        },
+        "generatedAt": "2026-10-11T12:00:00Z",
+        "dealAssumptions": {},
+        "developmentEvidence": {
+          "valuation": {
+            "provider": "rentcast",
+            "evidenceType": "property_value_avm",
+            "schemaVersion": 1,
+            "retrievedAt": "2026-10-11T12:00:00Z",
+            "requestPolicy": {
+              "maxRadius": 5,
+              "daysOld": 365,
+              "compCount": 0,
+              "lookupSubjectAttributes": false
+            },
+            "providerComparableCount": 0,
+            "providerEstimate": {
+              "value": {
+                "value": null,
+                "status": "UNAVAILABLE",
+                "source": "rentcast",
+                "retrievedAt": "2026-10-11T12:00:00Z",
+                "effectiveDate": null,
+                "providerPropertyId": "subject",
+                "confidence": null
+              },
+              "rangeLow": {
+                "value": null,
+                "status": "UNAVAILABLE",
+                "source": "rentcast",
+                "retrievedAt": "2026-10-11T12:00:00Z",
+                "effectiveDate": null,
+                "providerPropertyId": "subject",
+                "confidence": null
+              },
+              "rangeHigh": {
+                "value": null,
+                "status": "UNAVAILABLE",
+                "source": "rentcast",
+                "retrievedAt": "2026-10-11T12:00:00Z",
+                "effectiveDate": null,
+                "providerPropertyId": "subject",
+                "confidence": null
+              },
+              "providerConfidenceSemantic": "PROVIDER_85_PERCENT_RANGE"
+            },
+            "subjectProperty": {
+              "providerPropertyId": {
+                "value": "subject",
+                "status": "ESTIMATED",
+                "source": "rentcast",
+                "retrievedAt": "2026-10-11T12:00:00Z",
+                "effectiveDate": null,
+                "providerPropertyId": "subject",
+                "confidence": null
+              },
+              "formattedAddress": {
+                "value": null,
+                "status": "UNAVAILABLE",
+                "source": "rentcast",
+                "retrievedAt": "2026-10-11T12:00:00Z",
+                "effectiveDate": null,
+                "providerPropertyId": "subject",
+                "confidence": null
+              },
+              "addressLine1": {
+                "value": "741 Gable Dr",
+                "status": "ESTIMATED",
+                "source": "rentcast",
+                "retrievedAt": "2026-10-11T12:00:00Z",
+                "effectiveDate": null,
+                "providerPropertyId": "subject",
+                "confidence": null
+              },
+              "city": {
+                "value": "Center Point",
+                "status": "ESTIMATED",
+                "source": "rentcast",
+                "retrievedAt": "2026-10-11T12:00:00Z",
+                "effectiveDate": null,
+                "providerPropertyId": "subject",
+                "confidence": null
+              },
+              "state": {
+                "value": "AL",
+                "status": "ESTIMATED",
+                "source": "rentcast",
+                "retrievedAt": "2026-10-11T12:00:00Z",
+                "effectiveDate": null,
+                "providerPropertyId": "subject",
+                "confidence": null
+              },
+              "zipCode": {
+                "value": "35215",
+                "status": "ESTIMATED",
+                "source": "rentcast",
+                "retrievedAt": "2026-10-11T12:00:00Z",
+                "effectiveDate": null,
+                "providerPropertyId": "subject",
+                "confidence": null
+              },
+              "latitude": {
+                "value": 33.65,
+                "status": "ESTIMATED",
+                "source": "rentcast",
+                "retrievedAt": "2026-10-11T12:00:00Z",
+                "effectiveDate": null,
+                "providerPropertyId": "subject",
+                "confidence": null
+              },
+              "longitude": {
+                "value": -86.68,
+                "status": "ESTIMATED",
+                "source": "rentcast",
+                "retrievedAt": "2026-10-11T12:00:00Z",
+                "effectiveDate": null,
+                "providerPropertyId": "subject",
+                "confidence": null
+              },
+              "propertyType": {
+                "value": "Land",
+                "status": "ESTIMATED",
+                "source": "rentcast",
+                "retrievedAt": "2026-10-11T12:00:00Z",
+                "effectiveDate": null,
+                "providerPropertyId": "subject",
+                "confidence": null
+              },
+              "bedrooms": {
+                "value": null,
+                "status": "UNAVAILABLE",
+                "source": "rentcast",
+                "retrievedAt": "2026-10-11T12:00:00Z",
+                "effectiveDate": null,
+                "providerPropertyId": "subject",
+                "confidence": null
+              },
+              "bathrooms": {
+                "value": null,
+                "status": "UNAVAILABLE",
+                "source": "rentcast",
+                "retrievedAt": "2026-10-11T12:00:00Z",
+                "effectiveDate": null,
+                "providerPropertyId": "subject",
+                "confidence": null
+              },
+              "livingAreaSqft": {
+                "value": null,
+                "status": "UNAVAILABLE",
+                "source": "rentcast",
+                "retrievedAt": "2026-10-11T12:00:00Z",
+                "effectiveDate": null,
+                "providerPropertyId": "subject",
+                "confidence": null
+              },
+              "lotSizeSqft": {
+                "value": 49658.4,
+                "status": "ESTIMATED",
+                "source": "rentcast",
+                "retrievedAt": "2026-10-11T12:00:00Z",
+                "effectiveDate": null,
+                "providerPropertyId": "subject",
+                "confidence": null
+              },
+              "yearBuilt": {
+                "value": null,
+                "status": "UNAVAILABLE",
+                "source": "rentcast",
+                "retrievedAt": "2026-10-11T12:00:00Z",
+                "effectiveDate": null,
+                "providerPropertyId": "subject",
+                "confidence": null
+              },
+              "lastSalePrice": {
+                "value": null,
+                "status": "UNAVAILABLE",
+                "source": "rentcast",
+                "retrievedAt": "2026-10-11T12:00:00Z",
+                "effectiveDate": null,
+                "providerPropertyId": "subject",
+                "confidence": null
+              },
+              "lastSaleDate": {
+                "value": null,
+                "status": "UNAVAILABLE",
+                "source": "rentcast",
+                "retrievedAt": "2026-10-11T12:00:00Z",
+                "effectiveDate": null,
+                "providerPropertyId": "subject",
+                "confidence": null
+              }
+            },
+            "comparables": [],
+            "limitations": [
+              "RENOVATION_CONDITION_UNAVAILABLE",
+              "ARMS_LENGTH_DISTRESS_UNAVAILABLE",
+              "PROVIDER_LISTING_PRICE_IS_NOT_CONFIRMED_SALE_PRICE"
+            ]
+          },
+          "records": [
+            {
+              "provider": "rentcast",
+              "providerPropertyId": "land-sale-0",
+              "assessorId": null,
+              "retrievedAt": "2026-10-11T12:00:00Z",
+              "formattedAddress": "100 Example Rd",
+              "addressLine1": null,
+              "city": null,
+              "state": null,
+              "zipCode": null,
+              "latitude": 33.651,
+              "longitude": -86.681,
+              "propertyType": "Land",
+              "bedrooms": null,
+              "bathrooms": null,
+              "livingAreaSqft": null,
+              "lotSizeSqft": 49658.4,
+              "yearBuilt": null,
+              "saleTransactions": [
+                {
+                  "saleDate": "2026-09-15T00:00:00.000Z",
+                  "salePrice": 18000,
+                  "evidenceStatus": "VERIFIED_RECORD",
+                  "source": "rentcast_property_record"
+                }
+              ],
+              "latestValidSale": {
+                "saleDate": "2026-09-15T00:00:00.000Z",
+                "salePrice": 18000,
+                "evidenceStatus": "VERIFIED_RECORD",
+                "source": "rentcast_property_record"
+              },
+              "saleTransactionAmbiguous": false,
+              "transactionQuality": "UNKNOWN",
+              "zoning": "R2",
+              "subdivision": null
+            },
+            {
+              "provider": "rentcast",
+              "providerPropertyId": "land-sale-1",
+              "assessorId": null,
+              "retrievedAt": "2026-10-11T12:00:00Z",
+              "formattedAddress": "101 Example Rd",
+              "addressLine1": null,
+              "city": null,
+              "state": null,
+              "zipCode": null,
+              "latitude": 33.65110000000001,
+              "longitude": -86.681,
+              "propertyType": "Land",
+              "bedrooms": null,
+              "bathrooms": null,
+              "livingAreaSqft": null,
+              "lotSizeSqft": 49658.4,
+              "yearBuilt": null,
+              "saleTransactions": [
+                {
+                  "saleDate": "2026-09-15T00:00:00.000Z",
+                  "salePrice": 19000,
+                  "evidenceStatus": "VERIFIED_RECORD",
+                  "source": "rentcast_property_record"
+                }
+              ],
+              "latestValidSale": {
+                "saleDate": "2026-09-15T00:00:00.000Z",
+                "salePrice": 19000,
+                "evidenceStatus": "VERIFIED_RECORD",
+                "source": "rentcast_property_record"
+              },
+              "saleTransactionAmbiguous": false,
+              "transactionQuality": "UNKNOWN",
+              "zoning": "R2",
+              "subdivision": null
+            },
+            {
+              "provider": "rentcast",
+              "providerPropertyId": "land-sale-2",
+              "assessorId": null,
+              "retrievedAt": "2026-10-11T12:00:00Z",
+              "formattedAddress": "102 Example Rd",
+              "addressLine1": null,
+              "city": null,
+              "state": null,
+              "zipCode": null,
+              "latitude": 33.6512,
+              "longitude": -86.681,
+              "propertyType": "Land",
+              "bedrooms": null,
+              "bathrooms": null,
+              "livingAreaSqft": null,
+              "lotSizeSqft": 49658.4,
+              "yearBuilt": null,
+              "saleTransactions": [
+                {
+                  "saleDate": "2026-09-15T00:00:00.000Z",
+                  "salePrice": 20000,
+                  "evidenceStatus": "VERIFIED_RECORD",
+                  "source": "rentcast_property_record"
+                }
+              ],
+              "latestValidSale": {
+                "saleDate": "2026-09-15T00:00:00.000Z",
+                "salePrice": 20000,
+                "evidenceStatus": "VERIFIED_RECORD",
+                "source": "rentcast_property_record"
+              },
+              "saleTransactionAmbiguous": false,
+              "transactionQuality": "UNKNOWN",
+              "zoning": "R2",
+              "subdivision": null
+            }
+          ],
+          "freshness": {
+            "landAcquisition": {
+              "state": "FRESH",
+              "retrievedAt": "2026-10-11T12:00:00Z"
+            }
+          }
+        }
+      },
+      "reference": {
+        "methodology": "RECENT_SALES_MARKET_ESTIMATE",
+        "methodologyVersion": "DEALSIFTER_RECENT_SALES_V1",
+        "propertyCategory": "LAND",
+        "conditionAdjustmentStatus": "CONDITION_NOT_ADJUSTED",
+        "providerAvmCompatibility": "UNKNOWN",
+        "status": "AVAILABLE",
+        "centralEstimate": 19000,
+        "range": {
+          "low": 18000,
+          "high": 20000
+        },
+        "weightedUnitValue": 16666.67,
+        "weightedLotPricePerSqft": 0.3826,
+        "unitMetric": "PRICE_PER_ACRE",
+        "qualifyingSalesCount": 3,
+        "valuationCompCount": 3,
+        "confidence": "LOW",
+        "confidenceReasons": [
+          "3_QUALIFIED_RECENT_RECORDED_SALES",
+          "CONDITION_NOT_ADJUSTED",
+          "LAND_USE_ACCESS_UTILITIES_NOT_INDEPENDENTLY_VERIFIED"
+        ],
+        "dispersion": {
+          "coefficient": 0.1053,
+          "minimumUnitValue": 15789.47,
+          "maximumUnitValue": 17543.86
+        },
+        "valuationComps": [
+          {
+            "providerPropertyId": "land-sale-0",
+            "address": "100 Example Rd",
+            "salePrice": 18000,
+            "saleDate": "2026-09-15T00:00:00.000Z",
+            "saleAgeDays": 26,
+            "distanceMiles": 0.0899005502548026,
+            "propertyType": "Land",
+            "bedrooms": null,
+            "bathrooms": null,
+            "livingAreaSqft": null,
+            "lotSizeSqft": 49658.4,
+            "latitude": 33.651,
+            "longitude": -86.681,
+            "unitMetric": "PRICE_PER_ACRE",
+            "unitValue": 15789.473684210525,
+            "lotPricePerSqft": 0.3624764390314629,
+            "impliedSubjectValue": 18000,
+            "weight": 0.8687621039004754,
+            "structuralScore": 98.03593916422462,
+            "completenessScore": 50,
+            "providerCorrelation": null,
+            "classification": "VALUATION_INCLUDED",
+            "reasons": [
+              "RECORDED_SALE",
+              "SALE_WITHIN_180_DAYS",
+              "STRUCTURALLY_QUALIFIED"
+            ]
+          },
+          {
+            "providerPropertyId": "land-sale-1",
+            "address": "101 Example Rd",
+            "salePrice": 19000,
+            "saleDate": "2026-09-15T00:00:00.000Z",
+            "saleAgeDays": 26,
+            "distanceMiles": 0.0953133978437199,
+            "propertyType": "Land",
+            "bedrooms": null,
+            "bathrooms": null,
+            "livingAreaSqft": null,
+            "lotSizeSqft": 49658.4,
+            "latitude": 33.65110000000001,
+            "longitude": -86.681,
+            "unitMetric": "PRICE_PER_ACRE",
+            "unitValue": 16666.666666666664,
+            "lotPricePerSqft": 0.38261401897765535,
+            "impliedSubjectValue": 19000,
+            "weight": 0.8684860486734406,
+            "structuralScore": 98.0034620786911,
+            "completenessScore": 50,
+            "providerCorrelation": null,
+            "classification": "VALUATION_INCLUDED",
+            "reasons": [
+              "RECORDED_SALE",
+              "SALE_WITHIN_180_DAYS",
+              "STRUCTURALLY_QUALIFIED"
+            ]
+          },
+          {
+            "providerPropertyId": "land-sale-2",
+            "address": "102 Example Rd",
+            "salePrice": 20000,
+            "saleDate": "2026-09-15T00:00:00.000Z",
+            "saleAgeDays": 26,
+            "distanceMiles": 0.1009091599337184,
+            "propertyType": "Land",
+            "bedrooms": null,
+            "bathrooms": null,
+            "livingAreaSqft": null,
+            "lotSizeSqft": 49658.4,
+            "latitude": 33.6512,
+            "longitude": -86.681,
+            "unitMetric": "PRICE_PER_ACRE",
+            "unitValue": 17543.859649122805,
+            "lotPricePerSqft": 0.4027515989238477,
+            "impliedSubjectValue": 20000,
+            "weight": 0.8682006648068507,
+            "structuralScore": 97.96988750615112,
+            "completenessScore": 50,
+            "providerCorrelation": null,
+            "classification": "VALUATION_INCLUDED",
+            "reasons": [
+              "RECORDED_SALE",
+              "SALE_WITHIN_180_DAYS",
+              "STRUCTURALLY_QUALIFIED"
+            ]
+          }
+        ],
+        "marketReferenceOutliers": [],
+        "historicalReferences": [],
+        "exclusions": [],
+        "family": "LAND_ACQUISITION",
+        "asOf": "2026-10-11T12:00:00Z",
+        "supportingCandidates": [],
+        "provenance": "CALCULATED_FROM_VERIFIED_RECORDED_SALES"
+      },
+      "landMetrics": {
+        "lotSizeSqft": 49658.4,
+        "lotSizeAcres": 1.14,
+        "sourceUnit": "ACRES",
+        "pricePerLotSqft": 0.38,
+        "pricePerAcre": 16666.67
+      },
+      "stateVersion": "2026-10-11T12:00:00Z",
+      "providerCalls": 0
+    },
+    "actions": [
+      {
+        "id": "VIEW_LAND_SOLD_COMPS:11111111-1111-4111-8111-111111111111:2026-10-11T12:00:00Z",
+        "type": "VIEW_LAND_SOLD_COMPS",
+        "code": "VIEW_LAND_SOLD_COMPS",
+        "propertyId": "11111111-1111-4111-8111-111111111111",
+        "stateVersion": "2026-10-11T12:00:00Z",
+        "label": "Ver comparables",
+        "displayBehavior": "EXPAND_EVIDENCE",
+        "executionBehavior": "EXPAND_EVIDENCE",
+        "payload": {
+          "reference": {
+            "methodology": "RECENT_SALES_MARKET_ESTIMATE",
+            "methodologyVersion": "DEALSIFTER_RECENT_SALES_V1",
+            "propertyCategory": "LAND",
+            "conditionAdjustmentStatus": "CONDITION_NOT_ADJUSTED",
+            "providerAvmCompatibility": "UNKNOWN",
+            "status": "AVAILABLE",
+            "centralEstimate": 19000,
+            "range": {
+              "low": 18000,
+              "high": 20000
+            },
+            "weightedUnitValue": 16666.67,
+            "weightedLotPricePerSqft": 0.3826,
+            "unitMetric": "PRICE_PER_ACRE",
+            "qualifyingSalesCount": 3,
+            "valuationCompCount": 3,
+            "confidence": "LOW",
+            "confidenceReasons": [
+              "3_QUALIFIED_RECENT_RECORDED_SALES",
+              "CONDITION_NOT_ADJUSTED",
+              "LAND_USE_ACCESS_UTILITIES_NOT_INDEPENDENTLY_VERIFIED"
+            ],
+            "dispersion": {
+              "coefficient": 0.1053,
+              "minimumUnitValue": 15789.47,
+              "maximumUnitValue": 17543.86
+            },
+            "valuationComps": [
+              {
+                "providerPropertyId": "land-sale-0",
+                "address": "100 Example Rd",
+                "salePrice": 18000,
+                "saleDate": "2026-09-15T00:00:00.000Z",
+                "saleAgeDays": 26,
+                "distanceMiles": 0.0899005502548026,
+                "propertyType": "Land",
+                "bedrooms": null,
+                "bathrooms": null,
+                "livingAreaSqft": null,
+                "lotSizeSqft": 49658.4,
+                "latitude": 33.651,
+                "longitude": -86.681,
+                "unitMetric": "PRICE_PER_ACRE",
+                "unitValue": 15789.473684210525,
+                "lotPricePerSqft": 0.3624764390314629,
+                "impliedSubjectValue": 18000,
+                "weight": 0.8687621039004754,
+                "structuralScore": 98.03593916422462,
+                "completenessScore": 50,
+                "providerCorrelation": null,
+                "classification": "VALUATION_INCLUDED",
+                "reasons": [
+                  "RECORDED_SALE",
+                  "SALE_WITHIN_180_DAYS",
+                  "STRUCTURALLY_QUALIFIED"
+                ]
+              },
+              {
+                "providerPropertyId": "land-sale-1",
+                "address": "101 Example Rd",
+                "salePrice": 19000,
+                "saleDate": "2026-09-15T00:00:00.000Z",
+                "saleAgeDays": 26,
+                "distanceMiles": 0.0953133978437199,
+                "propertyType": "Land",
+                "bedrooms": null,
+                "bathrooms": null,
+                "livingAreaSqft": null,
+                "lotSizeSqft": 49658.4,
+                "latitude": 33.65110000000001,
+                "longitude": -86.681,
+                "unitMetric": "PRICE_PER_ACRE",
+                "unitValue": 16666.666666666664,
+                "lotPricePerSqft": 0.38261401897765535,
+                "impliedSubjectValue": 19000,
+                "weight": 0.8684860486734406,
+                "structuralScore": 98.0034620786911,
+                "completenessScore": 50,
+                "providerCorrelation": null,
+                "classification": "VALUATION_INCLUDED",
+                "reasons": [
+                  "RECORDED_SALE",
+                  "SALE_WITHIN_180_DAYS",
+                  "STRUCTURALLY_QUALIFIED"
+                ]
+              },
+              {
+                "providerPropertyId": "land-sale-2",
+                "address": "102 Example Rd",
+                "salePrice": 20000,
+                "saleDate": "2026-09-15T00:00:00.000Z",
+                "saleAgeDays": 26,
+                "distanceMiles": 0.1009091599337184,
+                "propertyType": "Land",
+                "bedrooms": null,
+                "bathrooms": null,
+                "livingAreaSqft": null,
+                "lotSizeSqft": 49658.4,
+                "latitude": 33.6512,
+                "longitude": -86.681,
+                "unitMetric": "PRICE_PER_ACRE",
+                "unitValue": 17543.859649122805,
+                "lotPricePerSqft": 0.4027515989238477,
+                "impliedSubjectValue": 20000,
+                "weight": 0.8682006648068507,
+                "structuralScore": 97.96988750615112,
+                "completenessScore": 50,
+                "providerCorrelation": null,
+                "classification": "VALUATION_INCLUDED",
+                "reasons": [
+                  "RECORDED_SALE",
+                  "SALE_WITHIN_180_DAYS",
+                  "STRUCTURALLY_QUALIFIED"
+                ]
+              }
+            ],
+            "marketReferenceOutliers": [],
+            "historicalReferences": [],
+            "exclusions": [],
+            "family": "LAND_ACQUISITION",
+            "asOf": "2026-10-11T12:00:00Z",
+            "supportingCandidates": [],
+            "provenance": "CALCULATED_FROM_VERIFIED_RECORDED_SALES"
+          }
+        }
+      }
+    ]
+  }
+}

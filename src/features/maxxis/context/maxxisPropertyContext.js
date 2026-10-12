@@ -48,8 +48,8 @@ export function resolveMaxxisPropertyContext(input = {}) {
   const explicit = explicitPropertyFromMessage(input.userMessage, input.propertyCandidates);
   const ordered = [
     explicit && { ...explicit, source: 'USER_MESSAGE' },
-    { propertyId: propertyId(input.chatSelectedProperty), property: input.chatSelectedProperty || null, source: 'MAXXIS_SELECTION' },
     { propertyId: propertyId(input.screenProperty), property: input.screenProperty || null, source: 'APP_SCREEN' },
+    { propertyId: propertyId(input.chatSelectedProperty), property: input.chatSelectedProperty || null, source: 'MAXXIS_SELECTION' },
     { propertyId: propertyId(input.activeConversationProperty), property: input.activeConversationProperty || null, source: 'ACTIVE_CONVERSATION' },
     ...(Array.isArray(input.recentProperties) ? input.recentProperties : []).map((property) => ({
       propertyId: propertyId(property), property: typeof property === 'object' ? property : null, source: 'RECENT_CONTEXT',

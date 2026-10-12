@@ -417,7 +417,8 @@ export async function getDealInsightContextForAuthenticatedUser(
   let developmentEvidence: LandDevelopmentEvidence | null = null;
   let landDevelopment = null;
   const activeScenario = analysisInputs.dealAssumptions.activeScenario as Record<string, any> | undefined;
-  const developmentAssumptions = activeScenario?.assumptions || analysisInputs.dealAssumptions;
+  const developmentAssumptions = { ...(activeScenario?.assumptions || {}),
+    ...Object.fromEntries(Object.entries(analysisInputs.dealAssumptions).filter(([key]) => key !== 'activeScenario')) };
   if (analysisApplicability.propertyCategory === 'VACANT_LAND' && supabaseServiceRoleKey
     && shouldLoadValuationEvidence && propertyEvidenceAccess.cacheAuthorized) {
     const admin = createClient(supabaseUrl, supabaseServiceRoleKey) as unknown as PropertyEvidenceBackendClient;
@@ -438,11 +439,13 @@ export async function getDealInsightContextForAuthenticatedUser(
         runtimeTrace.providerAttempted ||= !sold.cacheHit;
       } catch { /* A missing/degraded family remains an explicit gap, never fabricated evidence. */ }
     }
-    if (developmentAssumptions.developmentIntent && developmentAssumptions.developmentIntent !== 'NONE') {
-      landDevelopment = calculateLandDevelopmentScenario({ ...result.property,
-        purchasePrice: result.property?.price, lotSizeSqft: result.property?.lot, ...developmentAssumptions }, developmentEvidence);
-      if (activeScenario) analysisInputs.dealAssumptions.activeScenario = { ...activeScenario, calculatedOutputs: landDevelopment };
-    }
+  }
+  if (analysisApplicability.propertyCategory === 'VACANT_LAND' && developmentAssumptions.developmentIntent && developmentAssumptions.developmentIntent !== 'NONE') {
+    landDevelopment = calculateLandDevelopmentScenario({ ...result.property,
+      purchasePrice: result.property?.price, lotSizeSqft: result.property?.lot, ...developmentAssumptions }, developmentEvidence);
+    analysisInputs.dealAssumptions.activeScenario = { ...(activeScenario || {}), propertyId: validated.propertyId,
+      strategy: 'LAND', status: 'PARTIAL', assumptions: developmentAssumptions, calculatedOutputs: landDevelopment,
+      provenance: 'USER_PROVIDED', confirmed: activeScenario?.confirmed === true };
   }
   const rehabBenchmark = rehabNotApplicable ? null : estimateRehabBenchmark2026({
     state: result.property?.state,
