@@ -1,0 +1,44 @@
+{
+  "name": "King County parcels",
+  "geometry": "esriGeometryPolygon",
+  "fields": [
+    {
+      "name": "OBJECTID",
+      "type": "esriFieldTypeOID",
+      "alias": "OBJECTID"
+    },
+    {
+      "name": "MAJOR",
+      "type": "esriFieldTypeString",
+      "alias": "MAJOR"
+    },
+    {
+      "name": "MINOR",
+      "type": "esriFieldTypeString",
+      "alias": "MINOR"
+    },
+    {
+      "name": "PIN",
+      "type": "esriFieldTypeString",
+      "alias": "PIN"
+    },
+    {
+      "name": "Shape",
+      "type": "esriFieldTypeGeometry",
+      "alias": "Shape"
+    },
+    {
+      "name": "Shape.STArea()",
+      "type": "esriFieldTypeDouble",
+      "alias": "Shape.STArea()"
+    },
+    {
+      "name": "Shape.STLength()",
+      "type": "esriFieldTypeDouble",
+      "alias": "Shape.STLength()"
+    }
+  ],
+  "capabilities": "Query,Map,Data",
+  "maxRecordCount": 1000,
+  "formats": "JSON, geoJSON, PBF"
+}

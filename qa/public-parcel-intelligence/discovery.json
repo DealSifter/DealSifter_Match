@@ -1,0 +1,295 @@
+[
+  {
+    "query": "owner:JeffersonCountyALgis parcels",
+    "total": 13,
+    "candidates": [
+      {
+        "itemId": "02545b1e80ef45b4a39be8bc12cd43fa",
+        "publisher": "JeffersonCountyALgis",
+        "title": "Jefferson County Parcels",
+        "type": "Feature Service",
+        "serviceUrl": "https://jccgis.jccal.org/server/rest/services/Basemap/Parcels/MapServer",
+        "status": "DISCOVERED"
+      },
+      {
+        "itemId": "222c0369492646b48ccd25bbe8b2553e",
+        "publisher": "JeffersonCountyALgis",
+        "title": "Jefferson County Parcel Look-up",
+        "type": "Web Experience",
+        "serviceUrl": "https://experience.arcgis.com/experience/222c0369492646b48ccd25bbe8b2553e",
+        "status": "DISCOVERED"
+      },
+      {
+        "itemId": "b5118cb926c64ebeac59c8d0b01f6e45",
+        "publisher": "JeffersonCountyALgis",
+        "title": "Jefferson County Parcel Look-up",
+        "type": "Web Mapping Application",
+        "serviceUrl": "https://jeffco-al.maps.arcgis.com/apps/View/index.html?appid=b5118cb926c64ebeac59c8d0b01f6e45",
+        "status": "DISCOVERED"
+      },
+      {
+        "itemId": "1ad5790d86c141babf0d6b23dd2333c2",
+        "publisher": "JeffersonCountyALgis",
+        "title": "Jefferson County Parcel Buffer",
+        "type": "Web Experience",
+        "serviceUrl": "https://experience.arcgis.com/experience/1ad5790d86c141babf0d6b23dd2333c2",
+        "status": "DISCOVERED"
+      },
+      {
+        "itemId": "e5dea207b55a428fb00904964501e7e5",
+        "publisher": "JeffersonCountyALgis",
+        "title": "Jefferson County Parcel Look-up Map",
+        "type": "Web Map",
+        "serviceUrl": "",
+        "status": "DISCOVERED"
+      },
+      {
+        "itemId": "ac6ec7f4f83d4715a45acc8990b8b8c8",
+        "publisher": "JeffersonCountyALgis",
+        "title": "Jefferson County Parcels",
+        "type": "Map Service",
+        "serviceUrl": "https://jccgis.jccal.org/server/rest/services/Basemap/Parcels/MapServer",
+        "status": "DISCOVERED"
+      },
+      {
+        "itemId": "95d6ceddb45241b9ad142668a9adc450",
+        "publisher": "JeffersonCountyALgis",
+        "title": "Municipalities",
+        "type": "Map Service",
+        "serviceUrl": "https://jccgis.jccal.org/server/rest/services/Basemap/Municipalities/MapServer/3",
+        "status": "DISCOVERED"
+      },
+      {
+        "itemId": "29c51ac12740470ea833c89afdf6bae4",
+        "publisher": "JeffersonCountyALgis",
+        "title": "Jefferson County Parcel Buffer App",
+        "type": "Web Map",
+        "serviceUrl": "",
+        "status": "DISCOVERED"
+      },
+      {
+        "itemId": "858b40077504402a978adeb42f3bb0b9",
+        "publisher": "JeffersonCountyALgis",
+        "title": "Jefferson County Parcel Buffer",
+        "type": "Web Mapping Application",
+        "serviceUrl": "https://jeffco-al.maps.arcgis.com/apps/instant/notification/index.html?appid=858b40077504402a978adeb42f3bb0b9",
+        "status": "DISCOVERED"
+      },
+      {
+        "itemId": "e2a4bedf1d8a49a5b992a1ad0338c980",
+        "publisher": "JeffersonCountyALgis",
+        "title": "Jefferson County Zoning for Unincorporated Areas",
+        "type": "Web Experience",
+        "serviceUrl": "https://experience.arcgis.com/experience/e2a4bedf1d8a49a5b992a1ad0338c980",
+        "status": "DISCOVERED"
+      },
+      {
+        "itemId": "09dcb9f7d5d94473955d0c7cb77922a6",
+        "publisher": "JeffersonCountyALgis",
+        "title": "Zoning for Unincorporated Areas of Jefferson County",
+        "type": "Web Map",
+        "serviceUrl": "",
+        "status": "DISCOVERED"
+      },
+      {
+        "itemId": "fcf27b5faa8e4a759188c99e7ba81ac7",
+        "publisher": "JeffersonCountyALgis",
+        "title": "My Elected Representative",
+        "type": "Web Map",
+        "serviceUrl": "",
+        "status": "DISCOVERED"
+      }
+    ],
+    "automaticActivation": false
+  },
+  {
+    "query": "owner:WakeCountyGovernment parcels",
+    "total": 10,
+    "candidates": [
+      {
+        "itemId": "f5ed009c66e844ec82f29064edd95017",
+        "publisher": "WakeCountyGovernment",
+        "title": "Parcels",
+        "type": "Feature Service",
+        "serviceUrl": "https://maps.wake.gov/arcgis/rest/services/Property/Parcels/MapServer/0",
+        "status": "DISCOVERED"
+      },
+      {
+        "itemId": "3670ef2dca27472e875f087d4aba1d18",
+        "publisher": "WakeCountyGovernment",
+        "title": "Parcel History Map",
+        "type": "Web Mapping Application",
+        "serviceUrl": "https://wake.maps.arcgis.com/apps/instant/basic/index.html?appid=3670ef2dca27472e875f087d4aba1d18",
+        "status": "DISCOVERED"
+      },
+      {
+        "itemId": "bc9728cd700e40cca91e9411bf47876c",
+        "publisher": "WakeCountyGovernment",
+        "title": "Parcel Address Points",
+        "type": "Feature Service",
+        "serviceUrl": "https://maps.wake.gov/arcgis/rest/services/Property/Addresses/MapServer/0",
+        "status": "DISCOVERED"
+      },
+      {
+        "itemId": "d12a085349be4b96b47b3a2b5ed4ce6a",
+        "publisher": "WakeCountyGovernment",
+        "title": "Parcel History Map",
+        "type": "Web Map",
+        "serviceUrl": "",
+        "status": "DISCOVERED"
+      },
+      {
+        "itemId": "6a2a7e42e3034e67b0c1b8624c2bef6d",
+        "publisher": "WakeCountyGovernment",
+        "title": "Parcel Annotation",
+        "type": "Map Service",
+        "serviceUrl": "https://maps.wake.gov/arcgis/rest/services/Property/PropertyAnno/MapServer",
+        "status": "DISCOVERED"
+      },
+      {
+        "itemId": "dcfc6d11544c417b9896a4a1011174e4",
+        "publisher": "WakeCountyGovernment",
+        "title": "Voluntary Agricultural Districts",
+        "type": "Feature Service",
+        "serviceUrl": "https://services1.arcgis.com/a7CWfuGP5ZnLYE7I/arcgis/rest/services/Voluntary_Agricultural_Districts_Public/FeatureServer",
+        "status": "DISCOVERED"
+      },
+      {
+        "itemId": "ca24614b86b34df98f2c0600e02080c8",
+        "publisher": "WakeCountyGovernment",
+        "title": "Wake County Development",
+        "type": "Feature Service",
+        "serviceUrl": "https://maps.wakegov.com/arcgis/rest/services/Planning/Wake_County_Development/FeatureServer/0",
+        "status": "DISCOVERED"
+      },
+      {
+        "itemId": "8d41b77783014a448e2aa54d84c7a5d4",
+        "publisher": "WakeCountyGovernment",
+        "title": "Property Table",
+        "type": "Feature Service",
+        "serviceUrl": "https://maps.wakegov.com/arcgis/rest/services/Property/PropertyTable/MapServer/1",
+        "status": "DISCOVERED"
+      },
+      {
+        "itemId": "fc34dc5bc91c4dfa984b9a606ce23c18",
+        "publisher": "WakeCountyGovernment",
+        "title": "Farmland Preservation Viewer",
+        "type": "Web Map",
+        "serviceUrl": "",
+        "status": "DISCOVERED"
+      },
+      {
+        "itemId": "9c9479a6bc0c45538f665f12552ff09a",
+        "publisher": "WakeCountyGovernment",
+        "title": "Parcel History Map",
+        "type": "Web Map",
+        "serviceUrl": null,
+        "status": "DISCOVERED"
+      }
+    ],
+    "automaticActivation": false
+  },
+  {
+    "query": "owner:UtahAGRC parcels",
+    "total": 102,
+    "candidates": [
+      {
+        "itemId": "c8d7f2e6bad646d6af0827752d717ddb",
+        "publisher": "UtahAGRC",
+        "title": "Parcels_Grand_SanJuan",
+        "type": "Feature Service",
+        "serviceUrl": "https://services1.arcgis.com/99lidPhWCzftIe9K/arcgis/rest/services/Parcels_Grand_SanJuan/FeatureServer",
+        "status": "DISCOVERED"
+      },
+      {
+        "itemId": "6f900727e16d4ce1a83f2a1ec1d82e60",
+        "publisher": "UtahAGRC",
+        "title": "Utah Salt Lake County Parcels LIR",
+        "type": "Feature Service",
+        "serviceUrl": "https://services1.arcgis.com/99lidPhWCzftIe9K/arcgis/rest/services/Parcels_SaltLake_LIR/FeatureServer",
+        "status": "DISCOVERED"
+      },
+      {
+        "itemId": "bbdc62867c2340949f530a71666223ab",
+        "publisher": "UtahAGRC",
+        "title": "Utah Housing Unit Inventory",
+        "type": "Feature Service",
+        "serviceUrl": "https://services1.arcgis.com/99lidPhWCzftIe9K/arcgis/rest/services/HousingUnitInventory/FeatureServer",
+        "status": "DISCOVERED"
+      },
+      {
+        "itemId": "a26808bcf48241e0a71bd862eeefb57a",
+        "publisher": "UtahAGRC",
+        "title": "Utah Utah County Parcels",
+        "type": "Feature Service",
+        "serviceUrl": "https://services1.arcgis.com/99lidPhWCzftIe9K/arcgis/rest/services/Parcels_Utah/FeatureServer",
+        "status": "DISCOVERED"
+      },
+      {
+        "itemId": "69477c1143924bc9990cdb930b033fb5",
+        "publisher": "UtahAGRC",
+        "title": "Utah Utah County Parcels LIR",
+        "type": "Feature Service",
+        "serviceUrl": "https://services1.arcgis.com/99lidPhWCzftIe9K/arcgis/rest/services/Parcels_Utah_LIR/FeatureServer",
+        "status": "DISCOVERED"
+      },
+      {
+        "itemId": "69d2965ec1014e938cfb8d2eabb64e13",
+        "publisher": "UtahAGRC",
+        "title": "Utah Davis County Parcels",
+        "type": "Feature Service",
+        "serviceUrl": "https://services1.arcgis.com/99lidPhWCzftIe9K/arcgis/rest/services/Parcels_Davis/FeatureServer",
+        "status": "DISCOVERED"
+      },
+      {
+        "itemId": "f1f56e5da01b4f5e9def939ec80943e5",
+        "publisher": "UtahAGRC",
+        "title": "Utah Salt Lake County Parcels",
+        "type": "Feature Service",
+        "serviceUrl": "https://services1.arcgis.com/99lidPhWCzftIe9K/arcgis/rest/services/Parcels_SaltLake/FeatureServer",
+        "status": "DISCOVERED"
+      },
+      {
+        "itemId": "9d7e4ec3b1a64f6d8b5e7ad76339e703",
+        "publisher": "UtahAGRC",
+        "title": "Utah Weber County Parcels LIR",
+        "type": "Feature Service",
+        "serviceUrl": "https://services1.arcgis.com/99lidPhWCzftIe9K/arcgis/rest/services/Parcels_Weber_LIR/FeatureServer",
+        "status": "DISCOVERED"
+      },
+      {
+        "itemId": "58eea1dc738f4c389890cf17effd10bf",
+        "publisher": "UtahAGRC",
+        "title": "Utah Juab County Parcels LIR",
+        "type": "Feature Service",
+        "serviceUrl": "https://services1.arcgis.com/99lidPhWCzftIe9K/arcgis/rest/services/Parcels_Juab_LIR/FeatureServer",
+        "status": "DISCOVERED"
+      },
+      {
+        "itemId": "471c7281c52849b2860d36135e751c83",
+        "publisher": "UtahAGRC",
+        "title": "Utah PLSS Sections GCDB",
+        "type": "Feature Service",
+        "serviceUrl": "https://services1.arcgis.com/99lidPhWCzftIe9K/arcgis/rest/services/PLSSSections_GCDB/FeatureServer",
+        "status": "DISCOVERED"
+      },
+      {
+        "itemId": "777e751aa4164b83bf1d76f811f8e5b3",
+        "publisher": "UtahAGRC",
+        "title": "Utah Sanpete County Parcels",
+        "type": "Feature Service",
+        "serviceUrl": "https://services1.arcgis.com/99lidPhWCzftIe9K/arcgis/rest/services/Parcels_Sanpete/FeatureServer",
+        "status": "DISCOVERED"
+      },
+      {
+        "itemId": "3685a5539be649079d6d4d3f229972c4",
+        "publisher": "UtahAGRC",
+        "title": "Utah Washington County Parcels LIR",
+        "type": "Feature Service",
+        "serviceUrl": "https://services1.arcgis.com/99lidPhWCzftIe9K/arcgis/rest/services/Parcels_Washington_LIR/FeatureServer",
+        "status": "DISCOVERED"
+      }
+    ],
+    "automaticActivation": false
+  }
+]

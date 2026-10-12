@@ -1,0 +1,102 @@
+{
+  "sourceId": "us-al-jefferson-parcels",
+  "state": "AL",
+  "county": "Jefferson",
+  "countyFips": "01073",
+  "authority": "Jefferson County Commission — GIS Division",
+  "providerType": "ARCGIS",
+  "serviceUrl": "https://jccgis.jccal.org/server/rest/services/Basemap/Parcels/MapServer/0",
+  "licenseStatus": "LICENSE_REVIEW_REQUIRED",
+  "status": "LICENSE_REVIEW_REQUIRED",
+  "productionEnabled": false,
+  "diagnosticOnly": true,
+  "normalizationPass": false,
+  "diagnosticError": "GIS_HTTP_403",
+  "appControl": {
+    "id": "20e8a78f-fcf7-4017-83cd-5c8355498da9",
+    "address": "741 Gable dr",
+    "city": "center point",
+    "state": "AL",
+    "zip": "35215",
+    "lot": "1,14ac",
+    "lat": 33.6528268892837,
+    "lng": -86.664736200637
+  },
+  "geocodeControl": null,
+  "parcelFound": false,
+  "geometry": null,
+  "reason": "Source unavailable; no parcel/APN/area is invented.",
+  "canonicalFactsModified": false,
+  "existingFactsComparison": {
+    "previousObservationAt": "2026-10-12T02:04:41.484Z",
+    "publisherLot": "1,14ac",
+    "cachedProviderSqft": {
+      "path": "property_intelligence_cache[property_record].payload.characteristics.lotSizeSqft",
+      "value": 23854,
+      "source": "rentcast",
+      "status": "VERIFIED_RECORD",
+      "confidence": null,
+      "retrievedAt": "2026-10-12T00:36:12.370Z",
+      "effectiveDate": null,
+      "providerPropertyId": "741-Gable-Dr,-Center-Point,-AL-35215"
+    },
+    "resolvedLot": {
+      "resolvedSqft": 23854,
+      "resolvedAcres": 0.5476124885215794,
+      "lotSizeSqft": 23854,
+      "lotSizeAcres": 0.5476124885215794,
+      "sourceUnit": "SQFT",
+      "source": "rentcast",
+      "evidenceStatus": "VERIFIED_RECORD",
+      "confidence": null,
+      "sourceAcres": {
+        "value": 1.14,
+        "unit": "ACRES",
+        "status": "USER_PROVIDED",
+        "source": "PROPERTY_APP_VALUE",
+        "confidence": null,
+        "rank": 3
+      },
+      "sourceSqft": {
+        "value": 23854,
+        "unit": "SQFT",
+        "status": "VERIFIED_RECORD",
+        "source": "rentcast",
+        "confidence": null,
+        "rank": 4
+      },
+      "conflict": {
+        "code": "LOT_DIMENSION_CONFLICT",
+        "sourceAcres": {
+          "value": 1.14,
+          "unit": "ACRES",
+          "status": "USER_PROVIDED",
+          "source": "PROPERTY_APP_VALUE",
+          "confidence": null,
+          "rank": 3
+        },
+        "sourceSqft": {
+          "value": 23854,
+          "unit": "SQFT",
+          "status": "VERIFIED_RECORD",
+          "source": "rentcast",
+          "confidence": null,
+          "rank": 4
+        },
+        "relativeDifference": 0.5196381679635268,
+        "selectedUnit": "SQFT"
+      },
+      "acresStatus": "CALCULATED",
+      "sqftStatus": "VERIFIED_RECORD"
+    },
+    "parcelComparison": "NOT_AVAILABLE_NO_PUBLIC_PARCEL",
+    "canonicalFactsModified": false,
+    "newPaidProviderCalls": 0
+  },
+  "addressGeocodeValidation": {
+    "realAuthenticatedGeocode": "NOT_RUN",
+    "matchedCache": false,
+    "pointSource": "EXISTING_STORED_PROPERTY_COORDINATES",
+    "unitAddressGeocodeFlow": "PASS_WITH_INJECTED_EXISTING_GEOCODER"
+  }
+}

@@ -1,0 +1,40 @@
+{
+  "baseline": "9dbedf145bbe775248cc18e0a8801fc3209f1c71",
+  "method": "transitive local import graph including re-exports and dynamic imports",
+  "changedSharedModules": [
+    "supabase/functions/_shared/featureFlags.ts",
+    "supabase/functions/_shared/public-parcel\\arcgis.ts",
+    "supabase/functions/_shared/public-parcel\\cache.ts",
+    "supabase/functions/_shared/public-parcel\\county.ts",
+    "supabase/functions/_shared/public-parcel\\geometry.ts",
+    "supabase/functions/_shared/public-parcel\\registry.ts",
+    "supabase/functions/_shared/public-parcel\\resolver.ts",
+    "supabase/functions/_shared/public-parcel\\types.ts"
+  ],
+  "changedFunctionModules": [
+    "supabase/functions/public-parcel\\index.ts"
+  ],
+  "affectedFunctions": [
+    {
+      "function": "feature-flags",
+      "changedDependencies": [
+        "supabase/functions/_shared/featureFlags.ts"
+      ]
+    },
+    {
+      "function": "public-parcel",
+      "changedDependencies": [
+        "supabase/functions/_shared/featureFlags.ts",
+        "supabase/functions/_shared/public-parcel\\types.ts",
+        "supabase/functions/_shared/public-parcel\\resolver.ts",
+        "supabase/functions/_shared/public-parcel\\registry.ts",
+        "supabase/functions/_shared/public-parcel\\geometry.ts",
+        "supabase/functions/_shared/public-parcel\\county.ts",
+        "supabase/functions/_shared/public-parcel\\cache.ts",
+        "supabase/functions/_shared/public-parcel\\arcgis.ts",
+        "supabase/functions/public-parcel\\index.ts"
+      ]
+    }
+  ],
+  "unresolvedLocalImports": []
+}

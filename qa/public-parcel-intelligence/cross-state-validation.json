@@ -1,0 +1,2293 @@
+{
+  "mode": "LIVE_PUBLIC_DIAGNOSTICS_ONLY",
+  "sources": [
+    {
+      "sourceId": "us-al-jefferson-parcels",
+      "state": "AL",
+      "county": "Jefferson",
+      "countyFips": "01073",
+      "authority": "Jefferson County Commission — GIS Division",
+      "providerType": "ARCGIS",
+      "serviceUrl": "https://jccgis.jccal.org/server/rest/services/Basemap/Parcels/MapServer/0",
+      "licenseStatus": "LICENSE_REVIEW_REQUIRED",
+      "status": "LICENSE_REVIEW_REQUIRED",
+      "productionEnabled": false,
+      "diagnosticOnly": true,
+      "normalizationPass": false,
+      "diagnosticError": "GIS_HTTP_403",
+      "lastValidatedAt": null
+    },
+    {
+      "sourceId": "us-nc-wake-parcels",
+      "state": "NC",
+      "county": "Wake",
+      "countyFips": "37183",
+      "authority": "Wake County Geographic Information Services",
+      "providerType": "ARCGIS",
+      "serviceUrl": "https://maps.wake.gov/arcgis/rest/services/Property/Parcels/MapServer/0",
+      "licenseStatus": "CLEAR_FOR_USE",
+      "status": "DISCOVERED",
+      "productionEnabled": false,
+      "diagnosticOnly": true,
+      "normalizationPass": false,
+      "diagnosticError": "This operation was aborted",
+      "lastValidatedAt": null
+    },
+    {
+      "sourceId": "us-wa-king-parcels",
+      "state": "WA",
+      "county": "King",
+      "countyFips": "53033",
+      "authority": "King County GIS Center",
+      "providerType": "ARCGIS",
+      "serviceUrl": "https://gismaps.kingcounty.gov/arcgis/rest/services/Property/KingCo_Parcels/MapServer/0",
+      "licenseStatus": "LICENSE_REVIEW_REQUIRED",
+      "status": "LICENSE_REVIEW_REQUIRED",
+      "productionEnabled": false,
+      "diagnosticOnly": true,
+      "schema": {
+        "name": "King County parcels",
+        "geometry": "esriGeometryPolygon",
+        "fields": [
+          {
+            "name": "OBJECTID",
+            "type": "esriFieldTypeOID",
+            "alias": "OBJECTID"
+          },
+          {
+            "name": "MAJOR",
+            "type": "esriFieldTypeString",
+            "alias": "MAJOR"
+          },
+          {
+            "name": "MINOR",
+            "type": "esriFieldTypeString",
+            "alias": "MINOR"
+          },
+          {
+            "name": "PIN",
+            "type": "esriFieldTypeString",
+            "alias": "PIN"
+          },
+          {
+            "name": "Shape",
+            "type": "esriFieldTypeGeometry",
+            "alias": "Shape"
+          },
+          {
+            "name": "Shape.STArea()",
+            "type": "esriFieldTypeDouble",
+            "alias": "Shape.STArea()"
+          },
+          {
+            "name": "Shape.STLength()",
+            "type": "esriFieldTypeDouble",
+            "alias": "Shape.STLength()"
+          }
+        ],
+        "capabilities": "Query,Map,Data",
+        "maxRecordCount": 1000,
+        "formats": "JSON, geoJSON, PBF"
+      },
+      "result": {
+        "status": "COVERAGE_AVAILABLE",
+        "parcels": [
+          {
+            "apn": "9906100000",
+            "parcelId": null,
+            "situsAddress": null,
+            "assessorAcres": null,
+            "gisAcres": null,
+            "lotSqft": 20164.456871119517,
+            "ownerName": null,
+            "assessedValue": null,
+            "assessedYear": null,
+            "propertyTax": null,
+            "propertyTaxYear": null,
+            "taxCode": null,
+            "zoning": null,
+            "legalDescription": null,
+            "subdivision": null,
+            "geometry": {
+              "type": "Polygon",
+              "coordinates": [
+                [
+                  [
+                    -122.17484824740376,
+                    47.66905010498301
+                  ],
+                  [
+                    -122.17503930552922,
+                    47.66905281785285
+                  ],
+                  [
+                    -122.1753432507772,
+                    47.669057107121745
+                  ],
+                  [
+                    -122.17559123578869,
+                    47.66906060124069
+                  ],
+                  [
+                    -122.17584081192635,
+                    47.66906413184261
+                  ],
+                  [
+                    -122.17584158722764,
+                    47.66897942527242
+                  ],
+                  [
+                    -122.17584424981115,
+                    47.66869147227484
+                  ],
+                  [
+                    -122.17584501192088,
+                    47.66860909125321
+                  ],
+                  [
+                    -122.17559474077362,
+                    47.66860672032777
+                  ],
+                  [
+                    -122.17546375841253,
+                    47.66860549469511
+                  ],
+                  [
+                    -122.1754628895757,
+                    47.66874302614155
+                  ],
+                  [
+                    -122.1754628646436,
+                    47.66874696026479
+                  ],
+                  [
+                    -122.17546144634706,
+                    47.668973429896965
+                  ],
+                  [
+                    -122.17534368789546,
+                    47.66897185670897
+                  ],
+                  [
+                    -122.1750400330874,
+                    47.668967810509066
+                  ],
+                  [
+                    -122.17484898085326,
+                    47.66896526219643
+                  ],
+                  [
+                    -122.17484824740376,
+                    47.66905010498301
+                  ]
+                ]
+              ]
+            },
+            "acres": 0.4629122330376381,
+            "geometryCalculatedSqft": 20164.456871119517,
+            "geometryCalculatedAcres": 0.4629122330376381,
+            "source": "us-wa-king-parcels",
+            "sourceAuthority": "King County GIS Center",
+            "sourceUrl": "https://gismaps.kingcounty.gov/arcgis/rest/services/Property/KingCo_Parcels/MapServer/0",
+            "retrievedAt": "2026-10-12T03:17:51.413Z",
+            "sourceUpdatedAt": null,
+            "evidenceStatus": "PUBLIC_RECORD",
+            "licenseStatus": "LICENSE_REVIEW_REQUIRED",
+            "licenseUrl": "https://kingcounty.gov/en/legacy/services/gis/Maps/terms-of-use.aspx",
+            "usageNotes": "Copy/distribution permissions have a resale restriction. Commercial use in this product requires review. Layer exposes PIN, not owner/assessment/tax. Not a survey.",
+            "provenance": {
+              "apn": {
+                "value": "9906100000",
+                "source": "us-wa-king-parcels",
+                "sourceField": "PIN",
+                "status": "PUBLIC_RECORD"
+              },
+              "parcelId": {
+                "value": null,
+                "source": "us-wa-king-parcels",
+                "sourceField": null,
+                "status": "UNAVAILABLE"
+              },
+              "situsAddress": {
+                "value": null,
+                "source": "us-wa-king-parcels",
+                "sourceField": null,
+                "status": "UNAVAILABLE"
+              },
+              "assessorAcres": {
+                "value": null,
+                "source": "us-wa-king-parcels",
+                "sourceField": null,
+                "status": "UNAVAILABLE"
+              },
+              "gisAcres": {
+                "value": null,
+                "source": "us-wa-king-parcels",
+                "sourceField": null,
+                "status": "UNAVAILABLE"
+              },
+              "lotSqft": {
+                "value": 20164.456871119517,
+                "source": "us-wa-king-parcels",
+                "sourceField": null,
+                "status": "CALCULATED"
+              },
+              "ownerName": {
+                "value": null,
+                "source": "us-wa-king-parcels",
+                "sourceField": null,
+                "status": "UNAVAILABLE"
+              },
+              "assessedValue": {
+                "value": null,
+                "source": "us-wa-king-parcels",
+                "sourceField": null,
+                "status": "UNAVAILABLE"
+              },
+              "assessedYear": {
+                "value": null,
+                "source": "us-wa-king-parcels",
+                "sourceField": null,
+                "status": "UNAVAILABLE"
+              },
+              "propertyTax": {
+                "value": null,
+                "source": "us-wa-king-parcels",
+                "sourceField": null,
+                "status": "UNAVAILABLE"
+              },
+              "propertyTaxYear": {
+                "value": null,
+                "source": "us-wa-king-parcels",
+                "sourceField": null,
+                "status": "UNAVAILABLE"
+              },
+              "taxCode": {
+                "value": null,
+                "source": "us-wa-king-parcels",
+                "sourceField": null,
+                "status": "UNAVAILABLE"
+              },
+              "zoning": {
+                "value": null,
+                "source": "us-wa-king-parcels",
+                "sourceField": null,
+                "status": "UNAVAILABLE"
+              },
+              "legalDescription": {
+                "value": null,
+                "source": "us-wa-king-parcels",
+                "sourceField": null,
+                "status": "UNAVAILABLE"
+              },
+              "subdivision": {
+                "value": null,
+                "source": "us-wa-king-parcels",
+                "sourceField": null,
+                "status": "UNAVAILABLE"
+              },
+              "acres": {
+                "value": 0.4629122330376381,
+                "source": "us-wa-king-parcels",
+                "sourceField": null,
+                "status": "CALCULATED"
+              },
+              "geometryCalculatedAcres": {
+                "value": 0.4629122330376381,
+                "source": "us-wa-king-parcels",
+                "sourceField": null,
+                "status": "CALCULATED"
+              },
+              "geometryCalculatedSqft": {
+                "value": 20164.456871119517,
+                "source": "us-wa-king-parcels",
+                "sourceField": null,
+                "status": "CALCULATED"
+              }
+            },
+            "areaCrossCheck": {
+              "status": "NOT_EVALUATED",
+              "relativeDifference": null
+            }
+          },
+          {
+            "apn": "6400700240",
+            "parcelId": null,
+            "situsAddress": null,
+            "assessorAcres": null,
+            "gisAcres": null,
+            "lotSqft": 11102.577541416329,
+            "ownerName": null,
+            "assessedValue": null,
+            "assessedYear": null,
+            "propertyTax": null,
+            "propertyTaxYear": null,
+            "taxCode": null,
+            "zoning": null,
+            "legalDescription": null,
+            "subdivision": null,
+            "geometry": {
+              "type": "Polygon",
+              "coordinates": [
+                [
+                  [
+                    -122.17484677180053,
+                    47.669216254439604
+                  ],
+                  [
+                    -122.17503787614196,
+                    47.669219186270404
+                  ],
+                  [
+                    -122.17534236277488,
+                    47.66922382540751
+                  ],
+                  [
+                    -122.17559100607099,
+                    47.66922761313811
+                  ],
+                  [
+                    -122.17559123578869,
+                    47.66906060124069
+                  ],
+                  [
+                    -122.1753432507772,
+                    47.669057107121745
+                  ],
+                  [
+                    -122.17503930552922,
+                    47.66905281785285
+                  ],
+                  [
+                    -122.17484824740376,
+                    47.66905010498301
+                  ],
+                  [
+                    -122.17484677180053,
+                    47.669216254439604
+                  ]
+                ]
+              ]
+            },
+            "acres": 0.25488010884794143,
+            "geometryCalculatedSqft": 11102.577541416329,
+            "geometryCalculatedAcres": 0.25488010884794143,
+            "source": "us-wa-king-parcels",
+            "sourceAuthority": "King County GIS Center",
+            "sourceUrl": "https://gismaps.kingcounty.gov/arcgis/rest/services/Property/KingCo_Parcels/MapServer/0",
+            "retrievedAt": "2026-10-12T03:17:51.413Z",
+            "sourceUpdatedAt": null,
+            "evidenceStatus": "PUBLIC_RECORD",
+            "licenseStatus": "LICENSE_REVIEW_REQUIRED",
+            "licenseUrl": "https://kingcounty.gov/en/legacy/services/gis/Maps/terms-of-use.aspx",
+            "usageNotes": "Copy/distribution permissions have a resale restriction. Commercial use in this product requires review. Layer exposes PIN, not owner/assessment/tax. Not a survey.",
+            "provenance": {
+              "apn": {
+                "value": "6400700240",
+                "source": "us-wa-king-parcels",
+                "sourceField": "PIN",
+                "status": "PUBLIC_RECORD"
+              },
+              "parcelId": {
+                "value": null,
+                "source": "us-wa-king-parcels",
+                "sourceField": null,
+                "status": "UNAVAILABLE"
+              },
+              "situsAddress": {
+                "value": null,
+                "source": "us-wa-king-parcels",
+                "sourceField": null,
+                "status": "UNAVAILABLE"
+              },
+              "assessorAcres": {
+                "value": null,
+                "source": "us-wa-king-parcels",
+                "sourceField": null,
+                "status": "UNAVAILABLE"
+              },
+              "gisAcres": {
+                "value": null,
+                "source": "us-wa-king-parcels",
+                "sourceField": null,
+                "status": "UNAVAILABLE"
+              },
+              "lotSqft": {
+                "value": 11102.577541416329,
+                "source": "us-wa-king-parcels",
+                "sourceField": null,
+                "status": "CALCULATED"
+              },
+              "ownerName": {
+                "value": null,
+                "source": "us-wa-king-parcels",
+                "sourceField": null,
+                "status": "UNAVAILABLE"
+              },
+              "assessedValue": {
+                "value": null,
+                "source": "us-wa-king-parcels",
+                "sourceField": null,
+                "status": "UNAVAILABLE"
+              },
+              "assessedYear": {
+                "value": null,
+                "source": "us-wa-king-parcels",
+                "sourceField": null,
+                "status": "UNAVAILABLE"
+              },
+              "propertyTax": {
+                "value": null,
+                "source": "us-wa-king-parcels",
+                "sourceField": null,
+                "status": "UNAVAILABLE"
+              },
+              "propertyTaxYear": {
+                "value": null,
+                "source": "us-wa-king-parcels",
+                "sourceField": null,
+                "status": "UNAVAILABLE"
+              },
+              "taxCode": {
+                "value": null,
+                "source": "us-wa-king-parcels",
+                "sourceField": null,
+                "status": "UNAVAILABLE"
+              },
+              "zoning": {
+                "value": null,
+                "source": "us-wa-king-parcels",
+                "sourceField": null,
+                "status": "UNAVAILABLE"
+              },
+              "legalDescription": {
+                "value": null,
+                "source": "us-wa-king-parcels",
+                "sourceField": null,
+                "status": "UNAVAILABLE"
+              },
+              "subdivision": {
+                "value": null,
+                "source": "us-wa-king-parcels",
+                "sourceField": null,
+                "status": "UNAVAILABLE"
+              },
+              "acres": {
+                "value": 0.25488010884794143,
+                "source": "us-wa-king-parcels",
+                "sourceField": null,
+                "status": "CALCULATED"
+              },
+              "geometryCalculatedAcres": {
+                "value": 0.25488010884794143,
+                "source": "us-wa-king-parcels",
+                "sourceField": null,
+                "status": "CALCULATED"
+              },
+              "geometryCalculatedSqft": {
+                "value": 11102.577541416329,
+                "source": "us-wa-king-parcels",
+                "sourceField": null,
+                "status": "CALCULATED"
+              }
+            },
+            "areaCrossCheck": {
+              "status": "NOT_EVALUATED",
+              "relativeDifference": null
+            }
+          }
+        ],
+        "countyFips": "53033",
+        "sourceIds": [
+          "us-wa-king-parcels"
+        ],
+        "ambiguity": true,
+        "exceededLimit": false,
+        "freshness": "FRESH",
+        "cacheHit": false,
+        "expiresAt": "2026-10-13T03:17:51.418Z"
+      },
+      "controlPoint": {
+        "lng": -122.17484824740376,
+        "lat": 47.66905010498301
+      },
+      "normalizationPass": true,
+      "apnResult": {
+        "status": "COVERAGE_AVAILABLE",
+        "parcels": [
+          {
+            "apn": "9906100000",
+            "parcelId": null,
+            "situsAddress": null,
+            "assessorAcres": null,
+            "gisAcres": null,
+            "lotSqft": 20164.456871119517,
+            "ownerName": null,
+            "assessedValue": null,
+            "assessedYear": null,
+            "propertyTax": null,
+            "propertyTaxYear": null,
+            "taxCode": null,
+            "zoning": null,
+            "legalDescription": null,
+            "subdivision": null,
+            "geometry": {
+              "type": "Polygon",
+              "coordinates": [
+                [
+                  [
+                    -122.17484824740376,
+                    47.66905010498301
+                  ],
+                  [
+                    -122.17503930552922,
+                    47.66905281785285
+                  ],
+                  [
+                    -122.1753432507772,
+                    47.669057107121745
+                  ],
+                  [
+                    -122.17559123578869,
+                    47.66906060124069
+                  ],
+                  [
+                    -122.17584081192635,
+                    47.66906413184261
+                  ],
+                  [
+                    -122.17584158722764,
+                    47.66897942527242
+                  ],
+                  [
+                    -122.17584424981115,
+                    47.66869147227484
+                  ],
+                  [
+                    -122.17584501192088,
+                    47.66860909125321
+                  ],
+                  [
+                    -122.17559474077362,
+                    47.66860672032777
+                  ],
+                  [
+                    -122.17546375841253,
+                    47.66860549469511
+                  ],
+                  [
+                    -122.1754628895757,
+                    47.66874302614155
+                  ],
+                  [
+                    -122.1754628646436,
+                    47.66874696026479
+                  ],
+                  [
+                    -122.17546144634706,
+                    47.668973429896965
+                  ],
+                  [
+                    -122.17534368789546,
+                    47.66897185670897
+                  ],
+                  [
+                    -122.1750400330874,
+                    47.668967810509066
+                  ],
+                  [
+                    -122.17484898085326,
+                    47.66896526219643
+                  ],
+                  [
+                    -122.17484824740376,
+                    47.66905010498301
+                  ]
+                ]
+              ]
+            },
+            "acres": 0.4629122330376381,
+            "geometryCalculatedSqft": 20164.456871119517,
+            "geometryCalculatedAcres": 0.4629122330376381,
+            "source": "us-wa-king-parcels",
+            "sourceAuthority": "King County GIS Center",
+            "sourceUrl": "https://gismaps.kingcounty.gov/arcgis/rest/services/Property/KingCo_Parcels/MapServer/0",
+            "retrievedAt": "2026-10-12T03:17:53.351Z",
+            "sourceUpdatedAt": null,
+            "evidenceStatus": "PUBLIC_RECORD",
+            "licenseStatus": "LICENSE_REVIEW_REQUIRED",
+            "licenseUrl": "https://kingcounty.gov/en/legacy/services/gis/Maps/terms-of-use.aspx",
+            "usageNotes": "Copy/distribution permissions have a resale restriction. Commercial use in this product requires review. Layer exposes PIN, not owner/assessment/tax. Not a survey.",
+            "provenance": {
+              "apn": {
+                "value": "9906100000",
+                "source": "us-wa-king-parcels",
+                "sourceField": "PIN",
+                "status": "PUBLIC_RECORD"
+              },
+              "parcelId": {
+                "value": null,
+                "source": "us-wa-king-parcels",
+                "sourceField": null,
+                "status": "UNAVAILABLE"
+              },
+              "situsAddress": {
+                "value": null,
+                "source": "us-wa-king-parcels",
+                "sourceField": null,
+                "status": "UNAVAILABLE"
+              },
+              "assessorAcres": {
+                "value": null,
+                "source": "us-wa-king-parcels",
+                "sourceField": null,
+                "status": "UNAVAILABLE"
+              },
+              "gisAcres": {
+                "value": null,
+                "source": "us-wa-king-parcels",
+                "sourceField": null,
+                "status": "UNAVAILABLE"
+              },
+              "lotSqft": {
+                "value": 20164.456871119517,
+                "source": "us-wa-king-parcels",
+                "sourceField": null,
+                "status": "CALCULATED"
+              },
+              "ownerName": {
+                "value": null,
+                "source": "us-wa-king-parcels",
+                "sourceField": null,
+                "status": "UNAVAILABLE"
+              },
+              "assessedValue": {
+                "value": null,
+                "source": "us-wa-king-parcels",
+                "sourceField": null,
+                "status": "UNAVAILABLE"
+              },
+              "assessedYear": {
+                "value": null,
+                "source": "us-wa-king-parcels",
+                "sourceField": null,
+                "status": "UNAVAILABLE"
+              },
+              "propertyTax": {
+                "value": null,
+                "source": "us-wa-king-parcels",
+                "sourceField": null,
+                "status": "UNAVAILABLE"
+              },
+              "propertyTaxYear": {
+                "value": null,
+                "source": "us-wa-king-parcels",
+                "sourceField": null,
+                "status": "UNAVAILABLE"
+              },
+              "taxCode": {
+                "value": null,
+                "source": "us-wa-king-parcels",
+                "sourceField": null,
+                "status": "UNAVAILABLE"
+              },
+              "zoning": {
+                "value": null,
+                "source": "us-wa-king-parcels",
+                "sourceField": null,
+                "status": "UNAVAILABLE"
+              },
+              "legalDescription": {
+                "value": null,
+                "source": "us-wa-king-parcels",
+                "sourceField": null,
+                "status": "UNAVAILABLE"
+              },
+              "subdivision": {
+                "value": null,
+                "source": "us-wa-king-parcels",
+                "sourceField": null,
+                "status": "UNAVAILABLE"
+              },
+              "acres": {
+                "value": 0.4629122330376381,
+                "source": "us-wa-king-parcels",
+                "sourceField": null,
+                "status": "CALCULATED"
+              },
+              "geometryCalculatedAcres": {
+                "value": 0.4629122330376381,
+                "source": "us-wa-king-parcels",
+                "sourceField": null,
+                "status": "CALCULATED"
+              },
+              "geometryCalculatedSqft": {
+                "value": 20164.456871119517,
+                "source": "us-wa-king-parcels",
+                "sourceField": null,
+                "status": "CALCULATED"
+              }
+            },
+            "areaCrossCheck": {
+              "status": "NOT_EVALUATED",
+              "relativeDifference": null
+            }
+          }
+        ],
+        "countyFips": "53033",
+        "sourceIds": [
+          "us-wa-king-parcels"
+        ],
+        "ambiguity": false,
+        "exceededLimit": false,
+        "freshness": "FRESH",
+        "cacheHit": false,
+        "expiresAt": "2026-10-13T03:17:53.352Z"
+      },
+      "apnParity": true,
+      "lastValidatedAt": "2026-10-12",
+      "inspection": {
+        "authority": "King County GIS Center",
+        "authorityUrl": "https://kingcounty.gov/services/gis.aspx",
+        "geometry": true,
+        "querySupport": true,
+        "mappedFields": {
+          "apn": true
+        },
+        "lastUpdatePolicy": "Source update timestamp queried from metadata, not inferred",
+        "licenseStatus": "LICENSE_REVIEW_REQUIRED",
+        "licenseUrl": "https://kingcounty.gov/en/legacy/services/gis/Maps/terms-of-use.aspx",
+        "assistanceScore": 65,
+        "automaticActivation": false
+      }
+    },
+    {
+      "sourceId": "us-ut-salt-lake-parcels",
+      "state": "UT",
+      "county": "Salt Lake",
+      "countyFips": "49035",
+      "authority": "Utah Geospatial Resource Center / Salt Lake County",
+      "providerType": "ARCGIS",
+      "serviceUrl": "https://services1.arcgis.com/99lidPhWCzftIe9K/arcgis/rest/services/Parcels_SaltLake_LIR/FeatureServer/0",
+      "licenseStatus": "LICENSE_REVIEW_REQUIRED",
+      "status": "LICENSE_REVIEW_REQUIRED",
+      "productionEnabled": false,
+      "diagnosticOnly": true,
+      "schema": {
+        "name": "Parcels_SaltLake_LIR",
+        "geometry": "esriGeometryPolygon",
+        "fields": [
+          {
+            "name": "OBJECTID",
+            "type": "esriFieldTypeOID",
+            "alias": "OBJECTID"
+          },
+          {
+            "name": "COUNTY_NAME",
+            "type": "esriFieldTypeString",
+            "alias": "County Name"
+          },
+          {
+            "name": "COUNTY_ID",
+            "type": "esriFieldTypeString",
+            "alias": "County ID"
+          },
+          {
+            "name": "ASSESSOR_SRC",
+            "type": "esriFieldTypeString",
+            "alias": "County Assessor Info URL"
+          },
+          {
+            "name": "BOUNDARY_SRC",
+            "type": "esriFieldTypeString",
+            "alias": "County Recorder Info URL"
+          },
+          {
+            "name": "DISCLAIMER",
+            "type": "esriFieldTypeString",
+            "alias": "Disclaimer URL"
+          },
+          {
+            "name": "CURRENT_ASOF",
+            "type": "esriFieldTypeDate",
+            "alias": "Current As Of"
+          },
+          {
+            "name": "PARCEL_ID",
+            "type": "esriFieldTypeString",
+            "alias": "Parcel ID"
+          },
+          {
+            "name": "SERIAL_NUM",
+            "type": "esriFieldTypeString",
+            "alias": "Serial Number"
+          },
+          {
+            "name": "PARCEL_ADD",
+            "type": "esriFieldTypeString",
+            "alias": "Parcel Address"
+          },
+          {
+            "name": "PARCEL_CITY",
+            "type": "esriFieldTypeString",
+            "alias": "Parcel City"
+          },
+          {
+            "name": "TAXEXEMPT_TYPE",
+            "type": "esriFieldTypeString",
+            "alias": "Tax Exempt Type"
+          },
+          {
+            "name": "TAX_DISTRICT",
+            "type": "esriFieldTypeString",
+            "alias": "Tax District"
+          },
+          {
+            "name": "TOTAL_MKT_VALUE",
+            "type": "esriFieldTypeDouble",
+            "alias": "Total Market Value"
+          },
+          {
+            "name": "LAND_MKT_VALUE",
+            "type": "esriFieldTypeDouble",
+            "alias": "Land Market Value"
+          },
+          {
+            "name": "PARCEL_ACRES",
+            "type": "esriFieldTypeDouble",
+            "alias": "Parcel Acres"
+          },
+          {
+            "name": "PROP_CLASS",
+            "type": "esriFieldTypeString",
+            "alias": "Property Class"
+          },
+          {
+            "name": "PRIMARY_RES",
+            "type": "esriFieldTypeString",
+            "alias": "Primary Residence"
+          },
+          {
+            "name": "HOUSE_CNT",
+            "type": "esriFieldTypeString",
+            "alias": "Number of Housing Units"
+          },
+          {
+            "name": "SUBDIV_NAME",
+            "type": "esriFieldTypeString",
+            "alias": "Subdivision Name"
+          },
+          {
+            "name": "BLDG_SQFT",
+            "type": "esriFieldTypeDouble",
+            "alias": "Square Footage"
+          },
+          {
+            "name": "BLDG_SQFT_INFO",
+            "type": "esriFieldTypeString",
+            "alias": "Square Footage Note"
+          },
+          {
+            "name": "FLOORS_CNT",
+            "type": "esriFieldTypeDouble",
+            "alias": "Number of Floors"
+          },
+          {
+            "name": "FLOORS_INFO",
+            "type": "esriFieldTypeString",
+            "alias": "Number of Floors Note"
+          },
+          {
+            "name": "BUILT_YR",
+            "type": "esriFieldTypeSmallInteger",
+            "alias": "Year Built"
+          },
+          {
+            "name": "EFFBUILT_YR",
+            "type": "esriFieldTypeSmallInteger",
+            "alias": "Effective Year Built"
+          },
+          {
+            "name": "CONST_MATERIAL",
+            "type": "esriFieldTypeString",
+            "alias": "Construction Material"
+          },
+          {
+            "name": "PROP_TYPE",
+            "type": "esriFieldTypeString",
+            "alias": "Property Type"
+          },
+          {
+            "name": "Shape__Area",
+            "type": "esriFieldTypeDouble",
+            "alias": "Shape__Area"
+          },
+          {
+            "name": "Shape__Length",
+            "type": "esriFieldTypeDouble",
+            "alias": "Shape__Length"
+          }
+        ],
+        "capabilities": "Query,Extract",
+        "maxRecordCount": 2000,
+        "spatialReference": {
+          "wkid": 102100,
+          "latestWkid": 3857
+        },
+        "formats": "JSON, geoJSON, PBF"
+      },
+      "result": {
+        "status": "COVERAGE_AVAILABLE",
+        "parcels": [
+          {
+            "apn": "08221800100000",
+            "parcelId": null,
+            "situsAddress": "1816 N CAVALLO DR",
+            "assessorAcres": 0.16,
+            "gisAcres": null,
+            "lotSqft": 6969.6,
+            "ownerName": null,
+            "assessedValue": null,
+            "assessedYear": null,
+            "propertyTax": null,
+            "propertyTaxYear": null,
+            "taxCode": "13",
+            "zoning": null,
+            "legalDescription": null,
+            "subdivision": "Westpointe Farms Ph 2",
+            "geometry": {
+              "type": "Polygon",
+              "coordinates": [
+                [
+                  [
+                    -111.941526611375,
+                    40.8077623035924
+                  ],
+                  [
+                    -111.941885209854,
+                    40.8077606921329
+                  ],
+                  [
+                    -111.941885038276,
+                    40.8079555587764
+                  ],
+                  [
+                    -111.941527244688,
+                    40.8079571709111
+                  ],
+                  [
+                    -111.941526611375,
+                    40.8077623035924
+                  ]
+                ]
+              ]
+            },
+            "acres": 0.16,
+            "geometryCalculatedSqft": 7031.438475694202,
+            "geometryCalculatedAcres": 0.16141961606276864,
+            "source": "us-ut-salt-lake-parcels",
+            "sourceAuthority": "Utah Geospatial Resource Center / Salt Lake County",
+            "sourceUrl": "https://services1.arcgis.com/99lidPhWCzftIe9K/arcgis/rest/services/Parcels_SaltLake_LIR/FeatureServer/0",
+            "retrievedAt": "2026-10-12T03:17:54.096Z",
+            "sourceUpdatedAt": "2026-03-27T05:22:52.505Z",
+            "evidenceStatus": "PUBLIC_RECORD",
+            "licenseStatus": "LICENSE_REVIEW_REQUIRED",
+            "licenseUrl": "https://gis.utah.gov/products/sgid/cadastre/parcels/",
+            "usageNotes": "LIR field units and licenses must be inspected before approval. Market-value fields must never be mapped to assessed value. Provisional mapping is not production-enabled.",
+            "provenance": {
+              "apn": {
+                "value": "08221800100000",
+                "source": "us-ut-salt-lake-parcels",
+                "sourceField": "PARCEL_ID",
+                "status": "PUBLIC_RECORD"
+              },
+              "parcelId": {
+                "value": null,
+                "source": "us-ut-salt-lake-parcels",
+                "sourceField": null,
+                "status": "UNAVAILABLE"
+              },
+              "situsAddress": {
+                "value": "1816 N CAVALLO DR",
+                "source": "us-ut-salt-lake-parcels",
+                "sourceField": "PARCEL_ADD",
+                "status": "PUBLIC_RECORD"
+              },
+              "assessorAcres": {
+                "value": 0.16,
+                "source": "us-ut-salt-lake-parcels",
+                "sourceField": "PARCEL_ACRES",
+                "status": "PUBLIC_RECORD"
+              },
+              "gisAcres": {
+                "value": null,
+                "source": "us-ut-salt-lake-parcels",
+                "sourceField": null,
+                "status": "UNAVAILABLE"
+              },
+              "lotSqft": {
+                "value": 6969.6,
+                "source": "us-ut-salt-lake-parcels",
+                "sourceField": null,
+                "status": "CALCULATED"
+              },
+              "ownerName": {
+                "value": null,
+                "source": "us-ut-salt-lake-parcels",
+                "sourceField": null,
+                "status": "UNAVAILABLE"
+              },
+              "assessedValue": {
+                "value": null,
+                "source": "us-ut-salt-lake-parcels",
+                "sourceField": null,
+                "status": "UNAVAILABLE"
+              },
+              "assessedYear": {
+                "value": null,
+                "source": "us-ut-salt-lake-parcels",
+                "sourceField": null,
+                "status": "UNAVAILABLE"
+              },
+              "propertyTax": {
+                "value": null,
+                "source": "us-ut-salt-lake-parcels",
+                "sourceField": null,
+                "status": "UNAVAILABLE"
+              },
+              "propertyTaxYear": {
+                "value": null,
+                "source": "us-ut-salt-lake-parcels",
+                "sourceField": null,
+                "status": "UNAVAILABLE"
+              },
+              "taxCode": {
+                "value": "13",
+                "source": "us-ut-salt-lake-parcels",
+                "sourceField": "TAX_DISTRICT",
+                "status": "PUBLIC_RECORD"
+              },
+              "zoning": {
+                "value": null,
+                "source": "us-ut-salt-lake-parcels",
+                "sourceField": null,
+                "status": "UNAVAILABLE"
+              },
+              "legalDescription": {
+                "value": null,
+                "source": "us-ut-salt-lake-parcels",
+                "sourceField": null,
+                "status": "UNAVAILABLE"
+              },
+              "subdivision": {
+                "value": "Westpointe Farms Ph 2",
+                "source": "us-ut-salt-lake-parcels",
+                "sourceField": "SUBDIV_NAME",
+                "status": "PUBLIC_RECORD"
+              },
+              "acres": {
+                "value": 0.16,
+                "source": "us-ut-salt-lake-parcels",
+                "sourceField": "PARCEL_ACRES",
+                "status": "PUBLIC_RECORD"
+              },
+              "geometryCalculatedAcres": {
+                "value": 0.16141961606276864,
+                "source": "us-ut-salt-lake-parcels",
+                "sourceField": null,
+                "status": "CALCULATED"
+              },
+              "geometryCalculatedSqft": {
+                "value": 7031.438475694202,
+                "source": "us-ut-salt-lake-parcels",
+                "sourceField": null,
+                "status": "CALCULATED"
+              }
+            },
+            "areaCrossCheck": {
+              "status": "CONSISTENT",
+              "relativeDifference": 0.0087945696898239
+            }
+          }
+        ],
+        "countyFips": "49035",
+        "sourceIds": [
+          "us-ut-salt-lake-parcels"
+        ],
+        "ambiguity": false,
+        "exceededLimit": false,
+        "freshness": "FRESH",
+        "cacheHit": false,
+        "expiresAt": "2026-10-13T03:17:54.097Z"
+      },
+      "controlPoint": {
+        "lng": -111.94167014311361,
+        "lat": 40.80783960580104
+      },
+      "normalizationPass": true,
+      "apnResult": {
+        "status": "COVERAGE_AVAILABLE",
+        "parcels": [
+          {
+            "apn": "08221800100000",
+            "parcelId": null,
+            "situsAddress": "1816 N CAVALLO DR",
+            "assessorAcres": 0.16,
+            "gisAcres": null,
+            "lotSqft": 6969.6,
+            "ownerName": null,
+            "assessedValue": null,
+            "assessedYear": null,
+            "propertyTax": null,
+            "propertyTaxYear": null,
+            "taxCode": "13",
+            "zoning": null,
+            "legalDescription": null,
+            "subdivision": "Westpointe Farms Ph 2",
+            "geometry": {
+              "type": "Polygon",
+              "coordinates": [
+                [
+                  [
+                    -111.941526611375,
+                    40.8077623035924
+                  ],
+                  [
+                    -111.941885209854,
+                    40.8077606921329
+                  ],
+                  [
+                    -111.941885038276,
+                    40.8079555587764
+                  ],
+                  [
+                    -111.941527244688,
+                    40.8079571709111
+                  ],
+                  [
+                    -111.941526611375,
+                    40.8077623035924
+                  ]
+                ]
+              ]
+            },
+            "acres": 0.16,
+            "geometryCalculatedSqft": 7031.438475694202,
+            "geometryCalculatedAcres": 0.16141961606276864,
+            "source": "us-ut-salt-lake-parcels",
+            "sourceAuthority": "Utah Geospatial Resource Center / Salt Lake County",
+            "sourceUrl": "https://services1.arcgis.com/99lidPhWCzftIe9K/arcgis/rest/services/Parcels_SaltLake_LIR/FeatureServer/0",
+            "retrievedAt": "2026-10-12T03:17:56.288Z",
+            "sourceUpdatedAt": "2026-03-27T05:22:52.505Z",
+            "evidenceStatus": "PUBLIC_RECORD",
+            "licenseStatus": "LICENSE_REVIEW_REQUIRED",
+            "licenseUrl": "https://gis.utah.gov/products/sgid/cadastre/parcels/",
+            "usageNotes": "LIR field units and licenses must be inspected before approval. Market-value fields must never be mapped to assessed value. Provisional mapping is not production-enabled.",
+            "provenance": {
+              "apn": {
+                "value": "08221800100000",
+                "source": "us-ut-salt-lake-parcels",
+                "sourceField": "PARCEL_ID",
+                "status": "PUBLIC_RECORD"
+              },
+              "parcelId": {
+                "value": null,
+                "source": "us-ut-salt-lake-parcels",
+                "sourceField": null,
+                "status": "UNAVAILABLE"
+              },
+              "situsAddress": {
+                "value": "1816 N CAVALLO DR",
+                "source": "us-ut-salt-lake-parcels",
+                "sourceField": "PARCEL_ADD",
+                "status": "PUBLIC_RECORD"
+              },
+              "assessorAcres": {
+                "value": 0.16,
+                "source": "us-ut-salt-lake-parcels",
+                "sourceField": "PARCEL_ACRES",
+                "status": "PUBLIC_RECORD"
+              },
+              "gisAcres": {
+                "value": null,
+                "source": "us-ut-salt-lake-parcels",
+                "sourceField": null,
+                "status": "UNAVAILABLE"
+              },
+              "lotSqft": {
+                "value": 6969.6,
+                "source": "us-ut-salt-lake-parcels",
+                "sourceField": null,
+                "status": "CALCULATED"
+              },
+              "ownerName": {
+                "value": null,
+                "source": "us-ut-salt-lake-parcels",
+                "sourceField": null,
+                "status": "UNAVAILABLE"
+              },
+              "assessedValue": {
+                "value": null,
+                "source": "us-ut-salt-lake-parcels",
+                "sourceField": null,
+                "status": "UNAVAILABLE"
+              },
+              "assessedYear": {
+                "value": null,
+                "source": "us-ut-salt-lake-parcels",
+                "sourceField": null,
+                "status": "UNAVAILABLE"
+              },
+              "propertyTax": {
+                "value": null,
+                "source": "us-ut-salt-lake-parcels",
+                "sourceField": null,
+                "status": "UNAVAILABLE"
+              },
+              "propertyTaxYear": {
+                "value": null,
+                "source": "us-ut-salt-lake-parcels",
+                "sourceField": null,
+                "status": "UNAVAILABLE"
+              },
+              "taxCode": {
+                "value": "13",
+                "source": "us-ut-salt-lake-parcels",
+                "sourceField": "TAX_DISTRICT",
+                "status": "PUBLIC_RECORD"
+              },
+              "zoning": {
+                "value": null,
+                "source": "us-ut-salt-lake-parcels",
+                "sourceField": null,
+                "status": "UNAVAILABLE"
+              },
+              "legalDescription": {
+                "value": null,
+                "source": "us-ut-salt-lake-parcels",
+                "sourceField": null,
+                "status": "UNAVAILABLE"
+              },
+              "subdivision": {
+                "value": "Westpointe Farms Ph 2",
+                "source": "us-ut-salt-lake-parcels",
+                "sourceField": "SUBDIV_NAME",
+                "status": "PUBLIC_RECORD"
+              },
+              "acres": {
+                "value": 0.16,
+                "source": "us-ut-salt-lake-parcels",
+                "sourceField": "PARCEL_ACRES",
+                "status": "PUBLIC_RECORD"
+              },
+              "geometryCalculatedAcres": {
+                "value": 0.16141961606276864,
+                "source": "us-ut-salt-lake-parcels",
+                "sourceField": null,
+                "status": "CALCULATED"
+              },
+              "geometryCalculatedSqft": {
+                "value": 7031.438475694202,
+                "source": "us-ut-salt-lake-parcels",
+                "sourceField": null,
+                "status": "CALCULATED"
+              }
+            },
+            "areaCrossCheck": {
+              "status": "CONSISTENT",
+              "relativeDifference": 0.0087945696898239
+            }
+          }
+        ],
+        "countyFips": "49035",
+        "sourceIds": [
+          "us-ut-salt-lake-parcels"
+        ],
+        "ambiguity": false,
+        "exceededLimit": false,
+        "freshness": "FRESH",
+        "cacheHit": false,
+        "expiresAt": "2026-10-13T03:17:56.289Z"
+      },
+      "apnParity": true,
+      "lastValidatedAt": "2026-10-12",
+      "inspection": {
+        "authority": "Utah Geospatial Resource Center / Salt Lake County",
+        "authorityUrl": "https://gis.utah.gov/products/sgid/cadastre/parcels/",
+        "geometry": true,
+        "querySupport": true,
+        "mappedFields": {
+          "apn": true,
+          "situsAddress": true,
+          "assessorAcres": true,
+          "taxCode": true,
+          "subdivision": true
+        },
+        "lastUpdatePolicy": "Source editing timestamp, where published",
+        "licenseStatus": "LICENSE_REVIEW_REQUIRED",
+        "licenseUrl": "https://gis.utah.gov/products/sgid/cadastre/parcels/",
+        "assistanceScore": 85,
+        "automaticActivation": false
+      }
+    },
+    {
+      "sourceId": "us-ca-sonoma-parcels",
+      "state": "CA",
+      "county": "Sonoma",
+      "countyFips": "06097",
+      "authority": "County of Sonoma — GIS / Clerk-Recorder-Assessor",
+      "providerType": "ARCGIS",
+      "serviceUrl": "https://socogis.sonomacounty.ca.gov/map/rest/services/CRAPublic/ParcelsPublic/FeatureServer/0",
+      "licenseStatus": "LICENSE_REVIEW_REQUIRED",
+      "status": "LICENSE_REVIEW_REQUIRED",
+      "productionEnabled": false,
+      "diagnosticOnly": true,
+      "schema": {
+        "name": "Parcels Public",
+        "geometry": "esriGeometryPolygon",
+        "fields": [
+          {
+            "name": "OBJECTID",
+            "type": "esriFieldTypeOID",
+            "alias": "OBJECTID"
+          },
+          {
+            "name": "APN",
+            "type": "esriFieldTypeString",
+            "alias": "APN"
+          },
+          {
+            "name": "LevelNum",
+            "type": "esriFieldTypeString",
+            "alias": "LevelNum"
+          },
+          {
+            "name": "Type",
+            "type": "esriFieldTypeString",
+            "alias": "Type"
+          },
+          {
+            "name": "POCity",
+            "type": "esriFieldTypeString",
+            "alias": "POCity"
+          },
+          {
+            "name": "CityType",
+            "type": "esriFieldTypeString",
+            "alias": "CityType"
+          },
+          {
+            "name": "SOI",
+            "type": "esriFieldTypeString",
+            "alias": "SOI"
+          },
+          {
+            "name": "UGB",
+            "type": "esriFieldTypeString",
+            "alias": "UGB"
+          },
+          {
+            "name": "SupNum",
+            "type": "esriFieldTypeSmallInteger",
+            "alias": "SupNum"
+          },
+          {
+            "name": "Supervisor",
+            "type": "esriFieldTypeString",
+            "alias": "Supervisor"
+          },
+          {
+            "name": "URL",
+            "type": "esriFieldTypeString",
+            "alias": "URL"
+          },
+          {
+            "name": "Asmt",
+            "type": "esriFieldTypeString",
+            "alias": "Asmt"
+          },
+          {
+            "name": "Book",
+            "type": "esriFieldTypeString",
+            "alias": "Book"
+          },
+          {
+            "name": "SecuredAsmt",
+            "type": "esriFieldTypeSmallInteger",
+            "alias": "SecuredAsmt"
+          },
+          {
+            "name": "LowValue",
+            "type": "esriFieldTypeSmallInteger",
+            "alias": "LowValue"
+          },
+          {
+            "name": "AsmtStatus",
+            "type": "esriFieldTypeString",
+            "alias": "AsmtStatus"
+          },
+          {
+            "name": "AsmtDescription",
+            "type": "esriFieldTypeString",
+            "alias": "AsmtDescription"
+          },
+          {
+            "name": "UnsecAsmtDesc",
+            "type": "esriFieldTypeString",
+            "alias": "UnsecAsmtDesc"
+          },
+          {
+            "name": "CurrentDocNum",
+            "type": "esriFieldTypeString",
+            "alias": "CurrentDocNum"
+          },
+          {
+            "name": "CurrentDocDate",
+            "type": "esriFieldTypeDate",
+            "alias": "CurrentDocDate"
+          },
+          {
+            "name": "Taxability",
+            "type": "esriFieldTypeInteger",
+            "alias": "Taxability"
+          },
+          {
+            "name": "TaxabilityFull",
+            "type": "esriFieldTypeString",
+            "alias": "TaxabilityFull"
+          },
+          {
+            "name": "TaxabilityDescription",
+            "type": "esriFieldTypeString",
+            "alias": "TaxabilityDescription"
+          },
+          {
+            "name": "TaxRateArea",
+            "type": "esriFieldTypeString",
+            "alias": "TaxRateArea"
+          },
+          {
+            "name": "TaxRateAreaDescription",
+            "type": "esriFieldTypeString",
+            "alias": "TaxRateAreaDescription"
+          },
+          {
+            "name": "UseCode",
+            "type": "esriFieldTypeString",
+            "alias": "UseCode"
+          },
+          {
+            "name": "UseCodeDescription",
+            "type": "esriFieldTypeString",
+            "alias": "UseCodeDescription"
+          },
+          {
+            "name": "UseCodeType",
+            "type": "esriFieldTypeString",
+            "alias": "UseCodeType"
+          },
+          {
+            "name": "LandSizeAcres",
+            "type": "esriFieldTypeDouble",
+            "alias": "LandSizeAcres"
+          },
+          {
+            "name": "LandSizeSqft",
+            "type": "esriFieldTypeInteger",
+            "alias": "LandSizeSqft"
+          },
+          {
+            "name": "HasPool",
+            "type": "esriFieldTypeSmallInteger",
+            "alias": "HasPool"
+          },
+          {
+            "name": "SitusFormatted1",
+            "type": "esriFieldTypeString",
+            "alias": "SitusFormatted1"
+          },
+          {
+            "name": "SitusFormatted2",
+            "type": "esriFieldTypeString",
+            "alias": "SitusFormatted2"
+          },
+          {
+            "name": "SitusStreetNo",
+            "type": "esriFieldTypeString",
+            "alias": "SitusStreetNo"
+          },
+          {
+            "name": "SitusDirection",
+            "type": "esriFieldTypeString",
+            "alias": "SitusDirection"
+          },
+          {
+            "name": "SitusStreetName",
+            "type": "esriFieldTypeString",
+            "alias": "SitusStreetName"
+          },
+          {
+            "name": "SitusStreetType",
+            "type": "esriFieldTypeString",
+            "alias": "SitusStreetType"
+          },
+          {
+            "name": "SitusUnitNumber",
+            "type": "esriFieldTypeString",
+            "alias": "SitusUnitNumber"
+          },
+          {
+            "name": "SitusCity",
+            "type": "esriFieldTypeString",
+            "alias": "SitusCity"
+          },
+          {
+            "name": "Value601RollYear",
+            "type": "esriFieldTypeInteger",
+            "alias": "Value601RollYear"
+          },
+          {
+            "name": "Value601Land",
+            "type": "esriFieldTypeInteger",
+            "alias": "Value601Land"
+          },
+          {
+            "name": "Value601Structure",
+            "type": "esriFieldTypeInteger",
+            "alias": "Value601Structure"
+          },
+          {
+            "name": "Value601Fixtures",
+            "type": "esriFieldTypeInteger",
+            "alias": "Value601Fixtures"
+          },
+          {
+            "name": "Value601FixturesRP",
+            "type": "esriFieldTypeInteger",
+            "alias": "Value601FixturesRP"
+          },
+          {
+            "name": "Value601Growing",
+            "type": "esriFieldTypeInteger",
+            "alias": "Value601Growing"
+          },
+          {
+            "name": "Value601TotalLI",
+            "type": "esriFieldTypeInteger",
+            "alias": "Value601TotalLI"
+          },
+          {
+            "name": "Value601PPBusiness",
+            "type": "esriFieldTypeInteger",
+            "alias": "Value601PPBusiness"
+          },
+          {
+            "name": "Value601PPMobileHome",
+            "type": "esriFieldTypeInteger",
+            "alias": "Value601PPMobileHome"
+          },
+          {
+            "name": "Value601ExemptionHomeowner",
+            "type": "esriFieldTypeInteger",
+            "alias": "Value601ExemptionHomeowner"
+          },
+          {
+            "name": "Value601ExemptionOther",
+            "type": "esriFieldTypeInteger",
+            "alias": "Value601ExemptionOther"
+          },
+          {
+            "name": "Value601NetValue",
+            "type": "esriFieldTypeInteger",
+            "alias": "Value601NetValue"
+          },
+          {
+            "name": "Value601ExemptionCodeOther",
+            "type": "esriFieldTypeString",
+            "alias": "Value601ExemptionCodeOther"
+          },
+          {
+            "name": "IsRestricted",
+            "type": "esriFieldTypeSmallInteger",
+            "alias": "IsRestricted"
+          },
+          {
+            "name": "ContractNo",
+            "type": "esriFieldTypeString",
+            "alias": "ContractNo"
+          },
+          {
+            "name": "ContractEffDate",
+            "type": "esriFieldTypeDate",
+            "alias": "ContractEffDate"
+          },
+          {
+            "name": "ContractExpDate",
+            "type": "esriFieldTypeDate",
+            "alias": "ContractExpDate"
+          },
+          {
+            "name": "NonRenewal",
+            "type": "esriFieldTypeSmallInteger",
+            "alias": "NonRenewal"
+          },
+          {
+            "name": "BuildingIsPrimary",
+            "type": "esriFieldTypeSmallInteger",
+            "alias": "BuildingIsPrimary"
+          },
+          {
+            "name": "BuildingPrimarySize",
+            "type": "esriFieldTypeInteger",
+            "alias": "BuildingPrimarySize"
+          },
+          {
+            "name": "BuildingPrimaryCount",
+            "type": "esriFieldTypeInteger",
+            "alias": "BuildingPrimaryCount"
+          },
+          {
+            "name": "BuildingPrimaryUnitCount",
+            "type": "esriFieldTypeInteger",
+            "alias": "BuildingPrimaryUnitCount"
+          },
+          {
+            "name": "BuildingPrimaryGrgeAttached",
+            "type": "esriFieldTypeInteger",
+            "alias": "BuildingPrimaryGrgeAttached"
+          },
+          {
+            "name": "BuildingPrimaryCarport",
+            "type": "esriFieldTypeInteger",
+            "alias": "BuildingPrimaryCarport"
+          },
+          {
+            "name": "BuildingPrimaryStories",
+            "type": "esriFieldTypeInteger",
+            "alias": "BuildingPrimaryStories"
+          },
+          {
+            "name": "BuildingPrimaryQualityClass",
+            "type": "esriFieldTypeString",
+            "alias": "BuildingPrimaryQualityClass"
+          },
+          {
+            "name": "BuildingPrimaryYearBuilt",
+            "type": "esriFieldTypeInteger",
+            "alias": "BuildingPrimaryYearBuilt"
+          },
+          {
+            "name": "BuildingPrimaryEffectiveYear",
+            "type": "esriFieldTypeInteger",
+            "alias": "BuildingPrimaryEffectiveYear"
+          },
+          {
+            "name": "BuildingPrimaryTotalRooms",
+            "type": "esriFieldTypeInteger",
+            "alias": "BuildingPrimaryTotalRooms"
+          },
+          {
+            "name": "BuildingPrimaryBedRooms",
+            "type": "esriFieldTypeInteger",
+            "alias": "BuildingPrimaryBedRooms"
+          },
+          {
+            "name": "BuildingPrimaryBaths",
+            "type": "esriFieldTypeInteger",
+            "alias": "BuildingPrimaryBaths"
+          },
+          {
+            "name": "BuildingPrimaryHalfBaths",
+            "type": "esriFieldTypeInteger",
+            "alias": "BuildingPrimaryHalfBaths"
+          },
+          {
+            "name": "BuildingPrimaryFirePlaces",
+            "type": "esriFieldTypeInteger",
+            "alias": "BuildingPrimaryFirePlaces"
+          },
+          {
+            "name": "BuildingIsSecondary",
+            "type": "esriFieldTypeSmallInteger",
+            "alias": "BuildingIsSecondary"
+          },
+          {
+            "name": "BuildingSecondarySize",
+            "type": "esriFieldTypeInteger",
+            "alias": "BuildingSecondarySize"
+          },
+          {
+            "name": "BuildingSecondaryCount",
+            "type": "esriFieldTypeInteger",
+            "alias": "BuildingSecondaryCount"
+          },
+          {
+            "name": "BuildingSecondaryUnitCount",
+            "type": "esriFieldTypeInteger",
+            "alias": "BuildingSecondaryUnitCount"
+          },
+          {
+            "name": "BuildingSecondaryGrgeAttached",
+            "type": "esriFieldTypeInteger",
+            "alias": "BuildingSecondaryGrgeAttached"
+          },
+          {
+            "name": "BuildingSecondaryGrgeDetached",
+            "type": "esriFieldTypeInteger",
+            "alias": "BuildingSecondaryGrgeDetached"
+          },
+          {
+            "name": "BuildingSecondaryCarport",
+            "type": "esriFieldTypeInteger",
+            "alias": "BuildingSecondaryCarport"
+          },
+          {
+            "name": "SaleRecordingDate",
+            "type": "esriFieldTypeDate",
+            "alias": "SaleRecordingDate"
+          },
+          {
+            "name": "SaleDocNum",
+            "type": "esriFieldTypeString",
+            "alias": "SaleDocNum"
+          },
+          {
+            "name": "SaleSalesPrice",
+            "type": "esriFieldTypeInteger",
+            "alias": "SaleSalesPrice"
+          },
+          {
+            "name": "SaleTranserType",
+            "type": "esriFieldTypeString",
+            "alias": "SaleTranserType"
+          },
+          {
+            "name": "SaleMultiParcel",
+            "type": "esriFieldTypeSmallInteger",
+            "alias": "SaleMultiParcel"
+          },
+          {
+            "name": "SalePriorRecordingDate",
+            "type": "esriFieldTypeDate",
+            "alias": "SalePriorRecordingDate"
+          },
+          {
+            "name": "SalePriorDocNum",
+            "type": "esriFieldTypeString",
+            "alias": "SalePriorDocNum"
+          },
+          {
+            "name": "SalePriorSalesPrice",
+            "type": "esriFieldTypeInteger",
+            "alias": "SalePriorSalesPrice"
+          },
+          {
+            "name": "SalePriorTransferType",
+            "type": "esriFieldTypeString",
+            "alias": "SalePriorTransferType"
+          },
+          {
+            "name": "SalePriorMultiParcel",
+            "type": "esriFieldTypeSmallInteger",
+            "alias": "SalePriorMultiParcel"
+          },
+          {
+            "name": "XCoord",
+            "type": "esriFieldTypeDouble",
+            "alias": "XCoord"
+          },
+          {
+            "name": "YCoord",
+            "type": "esriFieldTypeDouble",
+            "alias": "YCoord"
+          },
+          {
+            "name": "Lat",
+            "type": "esriFieldTypeDouble",
+            "alias": "Lat"
+          },
+          {
+            "name": "Long",
+            "type": "esriFieldTypeDouble",
+            "alias": "Long"
+          },
+          {
+            "name": "last_edited_date",
+            "type": "esriFieldTypeDate",
+            "alias": "last_edited_date"
+          },
+          {
+            "name": "MegabyteUpdated",
+            "type": "esriFieldTypeDate",
+            "alias": "MegabyteUpdated"
+          },
+          {
+            "name": "Shape__Area",
+            "type": "esriFieldTypeDouble",
+            "alias": "Shape.STArea()"
+          },
+          {
+            "name": "Shape__Length",
+            "type": "esriFieldTypeDouble",
+            "alias": "Shape.STLength()"
+          }
+        ],
+        "capabilities": "Query,Extract",
+        "maxRecordCount": 2000,
+        "formats": "JSON, geoJSON, PBF"
+      },
+      "result": {
+        "status": "COVERAGE_AVAILABLE",
+        "parcels": [
+          {
+            "apn": "001-011-004",
+            "parcelId": null,
+            "situsAddress": "721 CLOVERDALE BLVD N",
+            "assessorAcres": 0.77,
+            "gisAcres": null,
+            "lotSqft": 27593,
+            "ownerName": null,
+            "assessedValue": 2864027,
+            "assessedYear": 2026,
+            "propertyTax": null,
+            "propertyTaxYear": null,
+            "taxCode": "001011",
+            "zoning": null,
+            "legalDescription": null,
+            "subdivision": null,
+            "geometry": {
+              "type": "Polygon",
+              "coordinates": [
+                [
+                  [
+                    -123.02293217072298,
+                    38.812992628262386
+                  ],
+                  [
+                    -123.02310803467863,
+                    38.81328317463053
+                  ],
+                  [
+                    -123.02312538588464,
+                    38.813281580307866
+                  ],
+                  [
+                    -123.02347374933572,
+                    38.813249472492416
+                  ],
+                  [
+                    -123.02349321973328,
+                    38.813247666642695
+                  ],
+                  [
+                    -123.02357747868724,
+                    38.81321262580956
+                  ],
+                  [
+                    -123.02357072691791,
+                    38.81320323907686
+                  ],
+                  [
+                    -123.02355767270215,
+                    38.81318512113019
+                  ],
+                  [
+                    -123.02347424450397,
+                    38.8130693275379
+                  ],
+                  [
+                    -123.02372846720559,
+                    38.812956394609756
+                  ],
+                  [
+                    -123.02355080881215,
+                    38.812714415092074
+                  ],
+                  [
+                    -123.02293217072298,
+                    38.812992628262386
+                  ]
+                ]
+              ]
+            },
+            "acres": 0.77,
+            "geometryCalculatedSqft": 26387.870658018313,
+            "geometryCalculatedAcres": 0.605782154683616,
+            "source": "us-ca-sonoma-parcels",
+            "sourceAuthority": "County of Sonoma — GIS / Clerk-Recorder-Assessor",
+            "sourceUrl": "https://socogis.sonomacounty.ca.gov/map/rest/services/CRAPublic/ParcelsPublic/FeatureServer/0",
+            "retrievedAt": "2026-10-12T03:17:57.783Z",
+            "sourceUpdatedAt": null,
+            "evidenceStatus": "PUBLIC_RECORD",
+            "licenseStatus": "LICENSE_REVIEW_REQUIRED",
+            "licenseUrl": "https://gis.sonomacounty.gov/",
+            "usageNotes": "Public versus internal-use-only attributes require explicit review. Do not infer a redistribution license from endpoint reachability.",
+            "provenance": {
+              "apn": {
+                "value": "001-011-004",
+                "source": "us-ca-sonoma-parcels",
+                "sourceField": "APN",
+                "status": "PUBLIC_RECORD"
+              },
+              "parcelId": {
+                "value": null,
+                "source": "us-ca-sonoma-parcels",
+                "sourceField": null,
+                "status": "UNAVAILABLE"
+              },
+              "situsAddress": {
+                "value": "721 CLOVERDALE BLVD N",
+                "source": "us-ca-sonoma-parcels",
+                "sourceField": "SitusFormatted1",
+                "status": "PUBLIC_RECORD"
+              },
+              "assessorAcres": {
+                "value": 0.77,
+                "source": "us-ca-sonoma-parcels",
+                "sourceField": "LandSizeAcres",
+                "status": "PUBLIC_RECORD"
+              },
+              "gisAcres": {
+                "value": null,
+                "source": "us-ca-sonoma-parcels",
+                "sourceField": null,
+                "status": "UNAVAILABLE"
+              },
+              "lotSqft": {
+                "value": 27593,
+                "source": "us-ca-sonoma-parcels",
+                "sourceField": "LandSizeSqft",
+                "status": "PUBLIC_RECORD"
+              },
+              "ownerName": {
+                "value": null,
+                "source": "us-ca-sonoma-parcels",
+                "sourceField": null,
+                "status": "UNAVAILABLE"
+              },
+              "assessedValue": {
+                "value": 2864027,
+                "source": "us-ca-sonoma-parcels",
+                "sourceField": "Value601NetValue",
+                "status": "PUBLIC_RECORD"
+              },
+              "assessedYear": {
+                "value": 2026,
+                "source": "us-ca-sonoma-parcels",
+                "sourceField": "Value601RollYear",
+                "status": "PUBLIC_RECORD"
+              },
+              "propertyTax": {
+                "value": null,
+                "source": "us-ca-sonoma-parcels",
+                "sourceField": null,
+                "status": "UNAVAILABLE"
+              },
+              "propertyTaxYear": {
+                "value": null,
+                "source": "us-ca-sonoma-parcels",
+                "sourceField": null,
+                "status": "UNAVAILABLE"
+              },
+              "taxCode": {
+                "value": "001011",
+                "source": "us-ca-sonoma-parcels",
+                "sourceField": "TaxRateArea",
+                "status": "PUBLIC_RECORD"
+              },
+              "zoning": {
+                "value": null,
+                "source": "us-ca-sonoma-parcels",
+                "sourceField": null,
+                "status": "UNAVAILABLE"
+              },
+              "legalDescription": {
+                "value": null,
+                "source": "us-ca-sonoma-parcels",
+                "sourceField": null,
+                "status": "UNAVAILABLE"
+              },
+              "subdivision": {
+                "value": null,
+                "source": "us-ca-sonoma-parcels",
+                "sourceField": null,
+                "status": "UNAVAILABLE"
+              },
+              "acres": {
+                "value": 0.77,
+                "source": "us-ca-sonoma-parcels",
+                "sourceField": "LandSizeAcres",
+                "status": "PUBLIC_RECORD"
+              },
+              "geometryCalculatedAcres": {
+                "value": 0.605782154683616,
+                "source": "us-ca-sonoma-parcels",
+                "sourceField": null,
+                "status": "CALCULATED"
+              },
+              "geometryCalculatedSqft": {
+                "value": 26387.870658018313,
+                "source": "us-ca-sonoma-parcels",
+                "sourceField": null,
+                "status": "CALCULATED"
+              }
+            },
+            "areaCrossCheck": {
+              "status": "MATERIAL_CONFLICT",
+              "relativeDifference": 0.21326992898231695
+            }
+          }
+        ],
+        "countyFips": "06097",
+        "sourceIds": [
+          "us-ca-sonoma-parcels"
+        ],
+        "ambiguity": false,
+        "exceededLimit": false,
+        "freshness": "FRESH",
+        "cacheHit": false,
+        "expiresAt": "2026-10-13T03:17:57.783Z"
+      },
+      "controlPoint": {
+        "lng": -123.0233770108256,
+        "lat": 38.81311568948788
+      },
+      "normalizationPass": true,
+      "apnResult": {
+        "status": "COVERAGE_AVAILABLE",
+        "parcels": [
+          {
+            "apn": "001-011-004",
+            "parcelId": null,
+            "situsAddress": "721 CLOVERDALE BLVD N",
+            "assessorAcres": 0.77,
+            "gisAcres": null,
+            "lotSqft": 27593,
+            "ownerName": null,
+            "assessedValue": 2864027,
+            "assessedYear": 2026,
+            "propertyTax": null,
+            "propertyTaxYear": null,
+            "taxCode": "001011",
+            "zoning": null,
+            "legalDescription": null,
+            "subdivision": null,
+            "geometry": {
+              "type": "Polygon",
+              "coordinates": [
+                [
+                  [
+                    -123.02293217072298,
+                    38.812992628262386
+                  ],
+                  [
+                    -123.02310803467863,
+                    38.81328317463053
+                  ],
+                  [
+                    -123.02312538588464,
+                    38.813281580307866
+                  ],
+                  [
+                    -123.02347374933572,
+                    38.813249472492416
+                  ],
+                  [
+                    -123.02349321973328,
+                    38.813247666642695
+                  ],
+                  [
+                    -123.02357747868724,
+                    38.81321262580956
+                  ],
+                  [
+                    -123.02357072691791,
+                    38.81320323907686
+                  ],
+                  [
+                    -123.02355767270215,
+                    38.81318512113019
+                  ],
+                  [
+                    -123.02347424450397,
+                    38.8130693275379
+                  ],
+                  [
+                    -123.02372846720559,
+                    38.812956394609756
+                  ],
+                  [
+                    -123.02355080881215,
+                    38.812714415092074
+                  ],
+                  [
+                    -123.02293217072298,
+                    38.812992628262386
+                  ]
+                ]
+              ]
+            },
+            "acres": 0.77,
+            "geometryCalculatedSqft": 26387.870658018313,
+            "geometryCalculatedAcres": 0.605782154683616,
+            "source": "us-ca-sonoma-parcels",
+            "sourceAuthority": "County of Sonoma — GIS / Clerk-Recorder-Assessor",
+            "sourceUrl": "https://socogis.sonomacounty.ca.gov/map/rest/services/CRAPublic/ParcelsPublic/FeatureServer/0",
+            "retrievedAt": "2026-10-12T03:18:00.028Z",
+            "sourceUpdatedAt": null,
+            "evidenceStatus": "PUBLIC_RECORD",
+            "licenseStatus": "LICENSE_REVIEW_REQUIRED",
+            "licenseUrl": "https://gis.sonomacounty.gov/",
+            "usageNotes": "Public versus internal-use-only attributes require explicit review. Do not infer a redistribution license from endpoint reachability.",
+            "provenance": {
+              "apn": {
+                "value": "001-011-004",
+                "source": "us-ca-sonoma-parcels",
+                "sourceField": "APN",
+                "status": "PUBLIC_RECORD"
+              },
+              "parcelId": {
+                "value": null,
+                "source": "us-ca-sonoma-parcels",
+                "sourceField": null,
+                "status": "UNAVAILABLE"
+              },
+              "situsAddress": {
+                "value": "721 CLOVERDALE BLVD N",
+                "source": "us-ca-sonoma-parcels",
+                "sourceField": "SitusFormatted1",
+                "status": "PUBLIC_RECORD"
+              },
+              "assessorAcres": {
+                "value": 0.77,
+                "source": "us-ca-sonoma-parcels",
+                "sourceField": "LandSizeAcres",
+                "status": "PUBLIC_RECORD"
+              },
+              "gisAcres": {
+                "value": null,
+                "source": "us-ca-sonoma-parcels",
+                "sourceField": null,
+                "status": "UNAVAILABLE"
+              },
+              "lotSqft": {
+                "value": 27593,
+                "source": "us-ca-sonoma-parcels",
+                "sourceField": "LandSizeSqft",
+                "status": "PUBLIC_RECORD"
+              },
+              "ownerName": {
+                "value": null,
+                "source": "us-ca-sonoma-parcels",
+                "sourceField": null,
+                "status": "UNAVAILABLE"
+              },
+              "assessedValue": {
+                "value": 2864027,
+                "source": "us-ca-sonoma-parcels",
+                "sourceField": "Value601NetValue",
+                "status": "PUBLIC_RECORD"
+              },
+              "assessedYear": {
+                "value": 2026,
+                "source": "us-ca-sonoma-parcels",
+                "sourceField": "Value601RollYear",
+                "status": "PUBLIC_RECORD"
+              },
+              "propertyTax": {
+                "value": null,
+                "source": "us-ca-sonoma-parcels",
+                "sourceField": null,
+                "status": "UNAVAILABLE"
+              },
+              "propertyTaxYear": {
+                "value": null,
+                "source": "us-ca-sonoma-parcels",
+                "sourceField": null,
+                "status": "UNAVAILABLE"
+              },
+              "taxCode": {
+                "value": "001011",
+                "source": "us-ca-sonoma-parcels",
+                "sourceField": "TaxRateArea",
+                "status": "PUBLIC_RECORD"
+              },
+              "zoning": {
+                "value": null,
+                "source": "us-ca-sonoma-parcels",
+                "sourceField": null,
+                "status": "UNAVAILABLE"
+              },
+              "legalDescription": {
+                "value": null,
+                "source": "us-ca-sonoma-parcels",
+                "sourceField": null,
+                "status": "UNAVAILABLE"
+              },
+              "subdivision": {
+                "value": null,
+                "source": "us-ca-sonoma-parcels",
+                "sourceField": null,
+                "status": "UNAVAILABLE"
+              },
+              "acres": {
+                "value": 0.77,
+                "source": "us-ca-sonoma-parcels",
+                "sourceField": "LandSizeAcres",
+                "status": "PUBLIC_RECORD"
+              },
+              "geometryCalculatedAcres": {
+                "value": 0.605782154683616,
+                "source": "us-ca-sonoma-parcels",
+                "sourceField": null,
+                "status": "CALCULATED"
+              },
+              "geometryCalculatedSqft": {
+                "value": 26387.870658018313,
+                "source": "us-ca-sonoma-parcels",
+                "sourceField": null,
+                "status": "CALCULATED"
+              }
+            },
+            "areaCrossCheck": {
+              "status": "MATERIAL_CONFLICT",
+              "relativeDifference": 0.21326992898231695
+            }
+          }
+        ],
+        "countyFips": "06097",
+        "sourceIds": [
+          "us-ca-sonoma-parcels"
+        ],
+        "ambiguity": false,
+        "exceededLimit": false,
+        "freshness": "FRESH",
+        "cacheHit": false,
+        "expiresAt": "2026-10-13T03:18:00.028Z"
+      },
+      "apnParity": true,
+      "lastValidatedAt": "2026-10-12",
+      "inspection": {
+        "authority": "County of Sonoma — GIS / Clerk-Recorder-Assessor",
+        "authorityUrl": "https://gis.sonomacounty.gov/",
+        "geometry": true,
+        "querySupport": true,
+        "mappedFields": {
+          "apn": true,
+          "assessorAcres": true,
+          "lotSqft": true,
+          "situsAddress": true,
+          "assessedValue": true,
+          "assessedYear": true,
+          "taxCode": true
+        },
+        "lastUpdatePolicy": "Source editing timestamp, where published",
+        "licenseStatus": "LICENSE_REVIEW_REQUIRED",
+        "licenseUrl": "https://gis.sonomacounty.gov/",
+        "assistanceScore": 95,
+        "automaticActivation": false
+      }
+    }
+  ],
+  "successfulCounties": 3
+}

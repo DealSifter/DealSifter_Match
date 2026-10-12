@@ -14,6 +14,7 @@ export const FEATURE_FLAG_DEFINITIONS = {
   new_feed_experience: { enabled: false, environments: [], percentage: 0 },
   advanced_deal_analysis: { enabled: false, environments: [], percentage: 0 },
   experimental_provider_flow: { enabled: false, environments: [], percentage: 0 },
+  public_parcel_intelligence: { enabled: false, environments: [], percentage: 0 },
 } as const satisfies Record<string, FeatureFlagDefinition>;
 
 export type FeatureFlagName = keyof typeof FEATURE_FLAG_DEFINITIONS;

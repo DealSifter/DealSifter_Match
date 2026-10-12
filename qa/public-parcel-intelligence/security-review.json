@@ -1,0 +1,19 @@
+{
+  "authentication": "Supabase JWT plus getUser; no diagnostics request override",
+  "featureFlag": { "name": "public_parcel_intelligence", "default": "OFF", "productionConfigurationModified": false },
+  "sourceActivation": "ACTIVE AND (APPROVED OR CLEAR_FOR_USE)",
+  "publicSourcesEnabled": 0,
+  "arbitraryUrlProxy": false,
+  "urlProtection": "Compile-reviewed HTTPS origins and registry layer URLs only; no user URL/source/diagnostics input; credentials, query/hash and redirects rejected",
+  "apnProtection": "Registry field whitelist, constrained APN characters, leading zeros retained, no caller SQL",
+  "responseProtection": { "bytesMaximum": 5242880, "queryBodyBytesMaximum": 4096, "parcelMaximum": 120, "pagination": false },
+  "viewportProtection": "Zoom 16+, bounded local viewport; county-crossing bounds return ambiguity",
+  "rateLimit": "Existing database RPC: public_parcel, 20 requests/user/minute; per-isolate provider courtesy/backoff/circuit",
+  "migration": "NONE",
+  "paidProviderCalls": 0,
+  "propertyRowMutations": 0,
+  "maxxisIntegration": false,
+  "canonicalFactsChanged": false,
+  "reportsChanged": false,
+  "knownLimit": "Per-isolate cache/courtesy is not distributed provider-wide throttling; public activation requires a separate review"
+}

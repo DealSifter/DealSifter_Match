@@ -1,0 +1,46 @@
+{
+  "architecture": "NATIONAL",
+  "coverage": "PROGRESSIVE",
+  "statesAttempted": [
+    "AL",
+    "NC",
+    "WA",
+    "UT",
+    "CA"
+  ],
+  "countiesAttempted": [
+    "01073",
+    "37183",
+    "53033",
+    "49035",
+    "06097"
+  ],
+  "activePublicSources": 0,
+  "candidateSources": 5,
+  "licenseReviewCounties": [
+    "01073",
+    "53033",
+    "49035",
+    "06097"
+  ],
+  "successfulDiagnosticCounties": [
+    "53033",
+    "49035",
+    "06097"
+  ],
+  "unavailableSources": [
+    {
+      "sourceId": "us-al-jefferson-parcels",
+      "reason": "GIS_HTTP_403"
+    },
+    {
+      "sourceId": "us-nc-wake-parcels",
+      "reason": "This operation was aborted"
+    }
+  ],
+  "unsupportedControl": "06001",
+  "publicExposure": "DISABLED",
+  "automatedRentCastCalls": 0,
+  "geminiCalls": 0,
+  "stripeMutations": 0
+}

@@ -1,0 +1,13 @@
+flowchart TD
+  MapView -->|flag OFF: no requests| Gate[Existing feature flag]
+  Gate -->|enabled + close zoom| API[Authenticated DealSifter Parcel API]
+  API --> Resolver[PublicParcelResolver]
+  Resolver --> FIPS[County GEOID / state FIPS]
+  FIPS --> Registry[Typed ParcelSourceRegistry]
+  Registry -->|ACTIVE + cleared license only| Adapter[PublicParcelProvider / ArcGISParcelAdapter]
+  Adapter --> GIS[Allowlisted public GIS]
+  GIS --> Cache[TTL cache / coalescing / backoff]
+  Cache --> Evidence[CanonicalParcelEvidence: separate read model]
+  Evidence --> MapView
+  Resolver --> Geo[Existing geocode-address / cache]
+  Evidence -. NOT YET ACTIVE .-> Maxxis[Maxxis / canonical property facts / reports]

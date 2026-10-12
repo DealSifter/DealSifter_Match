@@ -1,0 +1,163 @@
+{
+  "name": "Parcels_SaltLake_LIR",
+  "geometry": "esriGeometryPolygon",
+  "fields": [
+    {
+      "name": "OBJECTID",
+      "type": "esriFieldTypeOID",
+      "alias": "OBJECTID"
+    },
+    {
+      "name": "COUNTY_NAME",
+      "type": "esriFieldTypeString",
+      "alias": "County Name"
+    },
+    {
+      "name": "COUNTY_ID",
+      "type": "esriFieldTypeString",
+      "alias": "County ID"
+    },
+    {
+      "name": "ASSESSOR_SRC",
+      "type": "esriFieldTypeString",
+      "alias": "County Assessor Info URL"
+    },
+    {
+      "name": "BOUNDARY_SRC",
+      "type": "esriFieldTypeString",
+      "alias": "County Recorder Info URL"
+    },
+    {
+      "name": "DISCLAIMER",
+      "type": "esriFieldTypeString",
+      "alias": "Disclaimer URL"
+    },
+    {
+      "name": "CURRENT_ASOF",
+      "type": "esriFieldTypeDate",
+      "alias": "Current As Of"
+    },
+    {
+      "name": "PARCEL_ID",
+      "type": "esriFieldTypeString",
+      "alias": "Parcel ID"
+    },
+    {
+      "name": "SERIAL_NUM",
+      "type": "esriFieldTypeString",
+      "alias": "Serial Number"
+    },
+    {
+      "name": "PARCEL_ADD",
+      "type": "esriFieldTypeString",
+      "alias": "Parcel Address"
+    },
+    {
+      "name": "PARCEL_CITY",
+      "type": "esriFieldTypeString",
+      "alias": "Parcel City"
+    },
+    {
+      "name": "TAXEXEMPT_TYPE",
+      "type": "esriFieldTypeString",
+      "alias": "Tax Exempt Type"
+    },
+    {
+      "name": "TAX_DISTRICT",
+      "type": "esriFieldTypeString",
+      "alias": "Tax District"
+    },
+    {
+      "name": "TOTAL_MKT_VALUE",
+      "type": "esriFieldTypeDouble",
+      "alias": "Total Market Value"
+    },
+    {
+      "name": "LAND_MKT_VALUE",
+      "type": "esriFieldTypeDouble",
+      "alias": "Land Market Value"
+    },
+    {
+      "name": "PARCEL_ACRES",
+      "type": "esriFieldTypeDouble",
+      "alias": "Parcel Acres"
+    },
+    {
+      "name": "PROP_CLASS",
+      "type": "esriFieldTypeString",
+      "alias": "Property Class"
+    },
+    {
+      "name": "PRIMARY_RES",
+      "type": "esriFieldTypeString",
+      "alias": "Primary Residence"
+    },
+    {
+      "name": "HOUSE_CNT",
+      "type": "esriFieldTypeString",
+      "alias": "Number of Housing Units"
+    },
+    {
+      "name": "SUBDIV_NAME",
+      "type": "esriFieldTypeString",
+      "alias": "Subdivision Name"
+    },
+    {
+      "name": "BLDG_SQFT",
+      "type": "esriFieldTypeDouble",
+      "alias": "Square Footage"
+    },
+    {
+      "name": "BLDG_SQFT_INFO",
+      "type": "esriFieldTypeString",
+      "alias": "Square Footage Note"
+    },
+    {
+      "name": "FLOORS_CNT",
+      "type": "esriFieldTypeDouble",
+      "alias": "Number of Floors"
+    },
+    {
+      "name": "FLOORS_INFO",
+      "type": "esriFieldTypeString",
+      "alias": "Number of Floors Note"
+    },
+    {
+      "name": "BUILT_YR",
+      "type": "esriFieldTypeSmallInteger",
+      "alias": "Year Built"
+    },
+    {
+      "name": "EFFBUILT_YR",
+      "type": "esriFieldTypeSmallInteger",
+      "alias": "Effective Year Built"
+    },
+    {
+      "name": "CONST_MATERIAL",
+      "type": "esriFieldTypeString",
+      "alias": "Construction Material"
+    },
+    {
+      "name": "PROP_TYPE",
+      "type": "esriFieldTypeString",
+      "alias": "Property Type"
+    },
+    {
+      "name": "Shape__Area",
+      "type": "esriFieldTypeDouble",
+      "alias": "Shape__Area"
+    },
+    {
+      "name": "Shape__Length",
+      "type": "esriFieldTypeDouble",
+      "alias": "Shape__Length"
+    }
+  ],
+  "capabilities": "Query,Extract",
+  "maxRecordCount": 2000,
+  "spatialReference": {
+    "wkid": 102100,
+    "latestWkid": 3857
+  },
+  "formats": "JSON, geoJSON, PBF"
+}

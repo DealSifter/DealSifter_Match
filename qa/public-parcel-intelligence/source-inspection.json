@@ -1,0 +1,81 @@
+[
+  {
+    "sourceId": "us-al-jefferson-parcels",
+    "inspection": null,
+    "diagnosticError": "GIS_HTTP_403",
+    "automaticActivation": false
+  },
+  {
+    "sourceId": "us-nc-wake-parcels",
+    "inspection": null,
+    "diagnosticError": "This operation was aborted",
+    "automaticActivation": false
+  },
+  {
+    "sourceId": "us-wa-king-parcels",
+    "inspection": {
+      "authority": "King County GIS Center",
+      "authorityUrl": "https://kingcounty.gov/services/gis.aspx",
+      "geometry": true,
+      "querySupport": true,
+      "mappedFields": {
+        "apn": true
+      },
+      "lastUpdatePolicy": "Source update timestamp queried from metadata, not inferred",
+      "licenseStatus": "LICENSE_REVIEW_REQUIRED",
+      "licenseUrl": "https://kingcounty.gov/en/legacy/services/gis/Maps/terms-of-use.aspx",
+      "assistanceScore": 65,
+      "automaticActivation": false
+    },
+    "diagnosticError": null,
+    "automaticActivation": false
+  },
+  {
+    "sourceId": "us-ut-salt-lake-parcels",
+    "inspection": {
+      "authority": "Utah Geospatial Resource Center / Salt Lake County",
+      "authorityUrl": "https://gis.utah.gov/products/sgid/cadastre/parcels/",
+      "geometry": true,
+      "querySupport": true,
+      "mappedFields": {
+        "apn": true,
+        "situsAddress": true,
+        "assessorAcres": true,
+        "taxCode": true,
+        "subdivision": true
+      },
+      "lastUpdatePolicy": "Source editing timestamp, where published",
+      "licenseStatus": "LICENSE_REVIEW_REQUIRED",
+      "licenseUrl": "https://gis.utah.gov/products/sgid/cadastre/parcels/",
+      "assistanceScore": 85,
+      "automaticActivation": false
+    },
+    "diagnosticError": null,
+    "automaticActivation": false
+  },
+  {
+    "sourceId": "us-ca-sonoma-parcels",
+    "inspection": {
+      "authority": "County of Sonoma — GIS / Clerk-Recorder-Assessor",
+      "authorityUrl": "https://gis.sonomacounty.gov/",
+      "geometry": true,
+      "querySupport": true,
+      "mappedFields": {
+        "apn": true,
+        "assessorAcres": true,
+        "lotSqft": true,
+        "situsAddress": true,
+        "assessedValue": true,
+        "assessedYear": true,
+        "taxCode": true
+      },
+      "lastUpdatePolicy": "Source editing timestamp, where published",
+      "licenseStatus": "LICENSE_REVIEW_REQUIRED",
+      "licenseUrl": "https://gis.sonomacounty.gov/",
+      "assistanceScore": 95,
+      "automaticActivation": false
+    },
+    "diagnosticError": null,
+    "automaticActivation": false
+  }
+]

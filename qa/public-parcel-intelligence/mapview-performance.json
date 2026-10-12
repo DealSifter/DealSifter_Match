@@ -1,0 +1,20 @@
+{
+  "method": "Warm baseline/current mounts, same dependencies, one marker, two painted frames; local browser, not production traffic",
+  "baselineSha": "9dbedf145bbe775248cc18e0a8801fc3209f1c71",
+  "samples": {
+    "baseline": [
+      2338.800000190735,
+      1192,
+      2043.0999999046326
+    ],
+    "current": [
+      827.6000001430511,
+      990.2999999523163,
+      958.2999999523163
+    ]
+  },
+  "deltaMs": -1084.7999999523163,
+  "budgetMs": 560.7749999761581,
+  "passed": true,
+  "parcelOffGisRequests": 0
+}

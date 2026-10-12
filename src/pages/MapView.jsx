@@ -29,6 +29,9 @@ import { PortfolioPinCarousel } from '../components/map/PortfolioPinCarousel';
 import { linkedPortfolioSlides } from '../components/map/portfolioPinData';
 import { getLang } from '../i18n/translations';
 import { resolveContactUnlockState, resolvePropertyUnlockState } from '../lib/unlockAccessState';
+import { parcelLabels } from '../features/parcel/parcelPresentation';
+
+const PublicParcelLayer = React.lazy(() => import('../components/map/PublicParcelLayer'));
 
 const DEFAULT_CENTER = [39.5, -98.35];
 const DEFAULT_ZOOM = 4;
@@ -809,7 +812,10 @@ export function MapView({
   onMaxxisContextChange = null,
   interested = [],
   onMatchProperty = null,
+  parcelFeatureEnabled = false,
 }) {
+  const [parcelLayerEnabled, setParcelLayerEnabled] = useState(false);
+  const parcelCopy = parcelLabels(getLang());
   const enableMockMapData = import.meta.env.DEV && String(import.meta.env.VITE_ENABLE_MOCK_DATA || '').toLowerCase() === 'true';
   const allT = useT('mapview');
   const tMatches = allT.matches;
@@ -2359,6 +2365,8 @@ export function MapView({
 
               <div className="map-section-card">
                 <div style={{ color: C.t2, fontSize: 12, marginBottom: 8, fontWeight: 400 }}>{tMap.mapDisplay}</div>
+                {parcelFeatureEnabled && <button type="button" className={`map-chip ${parcelLayerEnabled ? 'map-chip-active' : ''}`}
+                  aria-pressed={parcelLayerEnabled} onClick={() => setParcelLayerEnabled(value => !value)}>{parcelCopy.boundaries}</button>}
                   {forceSimpleBaseTiles && (
                     <div style={{
                       marginBottom: 8,
@@ -2733,6 +2741,14 @@ export function MapView({
           <MapContainer key={`mapview-${mapActivationKey}`} center={safeViewportCenter} zoom={safeViewportZoom} className="map-canvas" zoomControl={false}>
             <MapEvents onViewportChange={setViewport} />
             <MapVisibilityController active={isActive} />
+            {parcelFeatureEnabled && parcelLayerEnabled && <React.Suspense fallback={null}>
+              <PublicParcelLayer enabled active={isActive} viewport={viewport} language={getLang()}
+                selectedPoint={(() => {
+                  const selected = safeRenderedFeatures.find(feature => String(feature.properties?.itemId || '') === String(selectedCardId || ''));
+                  const coordinates = selected?.geometry?.coordinates;
+                  return coordinates ? { lng: coordinates[0], lat: coordinates[1] } : null;
+                })()} />
+            </React.Suspense>}
             <ManualPinPlacementController
               active={Boolean(manualPinTarget)}
               onPlace={applyManualPinPlacement}
