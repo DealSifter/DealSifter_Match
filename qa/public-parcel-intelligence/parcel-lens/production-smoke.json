@@ -1,0 +1,26 @@
+{
+  "observedAt": "2026-10-12T23:38:03.152Z",
+  "sourceSha": "95a30d59713be6cd6b0e7b6a15aa73d4a82bc6a8",
+  "deploymentId": "dpl_7zb9wMdwB1BUPCtdETkYspqbPvSs",
+  "deploymentState": "READY",
+  "alias": "https://dealsiftermatch.vercel.app",
+  "frontendHttpStatus": 200,
+  "unauthenticatedParcelHttpStatus": 401,
+  "parcelOptionsHttpStatus": 200,
+  "parcelCorsOrigin": "https://dealsiftermatch.vercel.app",
+  "maxxisHealthHttpStatus": 200,
+  "authenticatedProductionValidation": "PENDING_NO_USER_SESSION",
+  "approvedAccountCount": 1,
+  "featureFlagConfigurationChanged": false,
+  "environmentChanges": "NONE",
+  "migration": "NONE",
+  "affectedBackendFunctions": [
+    "feature-flags",
+    "public-parcel"
+  ],
+  "qaGrid": "OFF_DEFAULT",
+  "publicUserExposure": "DISABLED",
+  "gisQueriesInitiatedBySmoke": 0,
+  "paidProviderCalls": 0,
+  "pass": true
+}

@@ -1,0 +1,33 @@
+{
+  "observedAt": "2026-10-12T23:38:23Z",
+  "codeCommit": "95a30d59713be6cd6b0e7b6a15aa73d4a82bc6a8",
+  "push": "PASS",
+  "branch": "fix/production-real-defects",
+  "frontend": {
+    "deploymentId": "dpl_7zb9wMdwB1BUPCtdETkYspqbPvSs",
+    "url": "https://dealsiftermatch-2lve7ycd1-deal-sifter-match-s-projects.vercel.app",
+    "alias": "https://dealsiftermatch.vercel.app",
+    "readyState": "READY",
+    "target": "production",
+    "sourceShaVerified": true,
+    "aliasDeploymentVerified": true,
+    "productionBuild": "PASS"
+  },
+  "backend": {
+    "feature-flags": { "before": 15, "after": 16, "status": "ACTIVE", "updatedAt": "2026-10-12T23:33:44Z" },
+    "public-parcel": { "before": 3, "after": 4, "status": "ACTIVE", "updatedAt": "2026-10-12T23:32:15Z" },
+    "unaffectedVerifiedVersions": { "maxxis-chat": 80, "maxxis-provider-message-draft": 16, "property-intelligence": 10, "arv-visual-comp-review": 10 },
+    "featureFlagsRepublishedSequentiallyAfterBaselineVersionObserved": true,
+    "affectedClosure": ["feature-flags", "public-parcel"]
+  },
+  "featureFlags": { "public_parcel_intelligence": "EXISTING_APPROVED_AUTHENTICATED_INTERNAL_COHORT_ONLY", "public_parcel_qa_grid": "OFF_DEFAULT" },
+  "approvedAccountCount": 1,
+  "publicUserExposure": "DISABLED",
+  "environmentChanges": "NONE",
+  "migration": "NONE",
+  "sourcesChanged": false,
+  "paidProviderCalls": 0,
+  "authenticatedProductionValidation": "PENDING_NO_USER_SESSION",
+  "acceptance": "READY_FOR_INTERNAL_PARCEL_VALIDATION",
+  "smokeEvidence": "production-smoke.json"
+}

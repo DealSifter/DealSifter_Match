@@ -38,8 +38,10 @@ BUILD: PASS — final compiled manifest/chunks include native circle class, popu
 
 SCOPE/SECURITY: no migrations, new sources, license changes, arbitrary URL proxy, paid providers, canonical property facts, report changes or Maxxis parcel consumption. Backend dependency closure: feature-flags and public-parcel only. No production environment or cohort configuration changes.
 
-COMMIT: PENDING_PUBLICATION.
+COMMIT: 95a30d59713be6cd6b0e7b6a15aa73d4a82bc6a8 — pushed to origin/fix/production-real-defects. Follow-up receipt commit changes QA/documentation only; no further runtime deploy required.
 
-PRODUCTION DEPLOY: PENDING_PUBLICATION.
+PRODUCTION DEPLOY: YES — Vercel dpl_7zb9wMdwB1BUPCtdETkYspqbPvSs, READY, source SHA verified; https://dealsiftermatch.vercel.app alias points to that exact deployment. Remote production build passed. Backend feature-flags 16 and public-parcel 4 ACTIVE; Maxxis chat 80 / provider draft 16 / property-intelligence 10 / visual review 10 unchanged. Initial parallel backend publication left feature-flags at its baseline version; sequential republication and a fresh inventory confirmed both target versions. No configuration/secret changes.
 
-FINAL: local acceptance complete; publish with existing internal-only access. Real-user authenticated production validation PENDING_NO_USER_SESSION; no password/token requested or fabricated.
+PRODUCTION SMOKE: PASS — frontend 200, unauthenticated parcel 401, CORS preflight 200 with production origin, Maxxis health 200. Zero GIS queries/paid-provider calls initiated by smoke. See production-smoke.json and production-deployment.json.
+
+FINAL: implementation committed, pushed and deployed with existing internal-only access. General public exposure DISABLED; QA grid OFF. READY FOR INTERNAL PARCEL VALIDATION. Real-user authenticated production validation PENDING_NO_USER_SESSION; no password/token requested or fabricated. Existing dependency-audit warnings and the unrelated exploratory Maxxis E2E failure are recorded in VALIDATION_NOTES.md, not claimed as passing.
