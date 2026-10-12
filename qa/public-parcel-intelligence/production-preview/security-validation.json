@@ -17,5 +17,8 @@
   "telemetry": "Existing DealSifter track_app_event RPC; only bounded zoom/count/stale metadata; no location, APN, owner or identity fields",
   "userIdentitySentToGIS": 0,
   "evidence": ["backend-dependency-closure.json", "parcel-toggle-tests.json", "full-tests.json"],
-  "authenticatedProductionValidation": "BLOCKED_NO_APPROVED_USER_UUID_OR_SESSION"
+  "productionConfigurationChanged": ["FEATURE_FLAGS_JSON"],
+  "approvedAccountCount": 1,
+  "otherProductionSecretDigestsUnchanged": 38,
+  "authenticatedProductionValidation": "BLOCKED_NO_USER_SESSION"
 }

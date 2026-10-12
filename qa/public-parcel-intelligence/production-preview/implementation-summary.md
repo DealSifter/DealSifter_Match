@@ -26,7 +26,7 @@ At task intake no approved user UUID/session was supplied. The project reference
 - Parcel preference shares the existing session document and is scoped to the current account. Saved ON never bypasses server eligibility. Keeping the existing controller mounted while OFF preserves its valid viewport cache without background requests; changing account discards it.
 - Native parcel popup now displays supplied acreage/sqft independently, full optional legal description/subdivision, and expandable field provenance. Tax remains reported tax, not an estimate; assessment remains fiscal assessment, not market value. Null fields are hidden, explicit zero is retained.
 - Popup auto-pan avoids the expanded desktop filter panel and map controls; long details scroll internally. Parcel click does not modify property selection.
-- Existing telemetry receives technical counts/zoom/stale only. No new analytics provider, backend code, source activation, migration or environment setting.
+- Existing telemetry receives technical counts/zoom/stale only. No new analytics provider, backend code, source activation or migration.
 - Targeted deterministic tests: **117/117 PASS**. Full deterministic suite: **1758/1758 PASS**, 207 files. Full frontend lint, changed scripts lint, contract typecheck and production build PASS. Relevant Deno checks pass with zero new errors.
 - Real local MapView/browser validation: desktop 1280x900, tablet 768x1024, mobile 390x844 all PASS. Real approved MassGIS/Middlesex County data passes through the existing resolver/ArcGIS adapter. Authentication/app boundary is mocked locally; these are NOT authenticated production tests.
 - Feature OFF and low zoom each cause zero parcel requests. Re-enable at the same viewport produces zero additional upstream GIS requests. Markers remain present; parcel selection is independent; preference restoration and revoked eligibility pass. Dense results correctly require a smaller viewport, without removing the existing 120-result cap.
@@ -37,6 +37,12 @@ At task intake no approved user UUID/session was supplied. The project reference
 
 ## Remaining production acceptance
 
-No valid approved user UUID or authenticated user session was supplied. Existing production configuration is unchanged, general exposure remains DISABLED, and real authenticated production address/parcel/display/cache/no-coverage tests remain BLOCKED. Local real-GIS and fixture validations must not be mislabeled as authenticated production acceptance.
+After the user approved their login email, a read-only exact-match admin lookup resolved one confirmed account. The ID was not committed or included in QA artifacts. No authenticated user session was supplied; real production address/parcel/display/cache/no-coverage tests remain BLOCKED. Local real-GIS and fixture validations must not be mislabeled as authenticated production acceptance.
+
+The initial configuration write was denied by automatic review over potential overwriting of other flags. No write occurred. Additional read-only checks parsed all 38 production secret names/digests, with zero unknown or duplicate rows, and confirmed FEATURE_FLAGS_JSON did not exist. The stricter first-cohort helper was then approved: it rechecked the entire inventory immediately before writing, added only FEATURE_FLAGS_JSON for the single approved account, verified its exact SHA-256 digest and confirmed all 38 prior names/digests remained unchanged. No unrelated flag blob was overwritten. General exposure remains DISABLED.
+
+FEATURE_FLAGS_JSON uses the existing flag schema: enabled=true, environments=[production], percentage=100, internalUserIds=[approved UUID]. Percentage does not grant public access: the existing server gate additionally requires an authenticated allowlisted ID. This value is intentionally not included in logs/artifacts/source. Backend functions read the secret on requests; no function redeployment is required. Official documentation: https://supabase.com/docs/guides/functions/secrets.
+
+Frontend production deployment READY: dpl_28uuocqyRdPCXxG22Km16P4S7QAw; application SHA 139f9a26ea61c813c4c1f05ec8dfceccd981ff3d; alias https://dealsiftermatch.vercel.app. Backend dependency closure remains empty; no backend function was redeployed.
 
 The user can obtain their ID at Supabase Dashboard → Authentication → Users → their email → User UID/ID. The project reference is not a user ID. Do not send passwords or access tokens.

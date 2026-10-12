@@ -5,6 +5,7 @@ const app = 'https://dealsiftermatch.vercel.app';
 const edge = 'https://cyeipfskwwisbbayyaca.supabase.co/functions/v1';
 const sourceSha = process.env.PARCEL_QA_SOURCE_SHA;
 const deploymentId = process.env.PARCEL_QA_DEPLOYMENT_ID;
+const eligibility = JSON.parse(await readFile('qa/public-parcel-intelligence/production-preview/feature-eligibility.json', 'utf8'));
 if (!/^[a-f0-9]{40}$/.test(sourceSha || '') || !deploymentId?.startsWith('dpl_')) throw new Error('VERIFIED_DEPLOYMENT_METADATA_REQUIRED');
 const envText = await readFile('.env.local', 'utf8');
 const publicKey = envText.match(/^VITE_SUPABASE_ANON_KEY\s*=\s*(.+)$/m)?.[1]?.trim().replace(/^['"]|['"]$/g, '');
@@ -19,9 +20,10 @@ const [frontend, denied, cors, health] = await Promise.all([
 const result = { observedAt: new Date().toISOString(), sourceSha, deploymentId, deploymentState: 'READY', alias: app,
   frontendHttpStatus: frontend.status, unauthenticatedParcelHttpStatus: denied.status, parcelOptionsHttpStatus: cors.status,
   parcelCorsOrigin: cors.headers.get('access-control-allow-origin'), maxxisHealthHttpStatus: health.status,
-  authenticatedProductionValidation: 'BLOCKED_NO_APPROVED_USER_UUID_OR_SESSION', featureFlagConfigurationChanged: false,
+  authenticatedProductionValidation: eligibility.approvedAccountResolvedFromUserSuppliedLoginEmail ? 'BLOCKED_NO_USER_SESSION' : 'BLOCKED_NO_APPROVED_USER_UUID_OR_SESSION',
+  featureFlagConfigurationChanged: eligibility.productionConfigurationChanged, approvedAccountCount: eligibility.approvedAccountCount || 0,
   gisQueriesInitiatedBySmoke: 0, paidProviderCalls: 0, publicUserExposure: 'DISABLED', publicSourcesEnabled: 0,
-  affectedBackendFunctions: [], migration: 'NONE', envChanges: [] };
+  affectedBackendFunctions: [], migration: 'NONE', envChanges: eligibility.environmentChanges };
 result.pass = frontend.ok && denied.status === 401 && cors.ok && result.parcelCorsOrigin === app && health.ok;
 await writeFile('qa/public-parcel-intelligence/production-preview/production-smoke.json', JSON.stringify(result, null, 2) + '\n');
 console.log(JSON.stringify(result));

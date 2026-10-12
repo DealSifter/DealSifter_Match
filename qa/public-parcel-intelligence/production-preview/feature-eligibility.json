@@ -7,9 +7,15 @@
   "identityHardcoded": false,
   "approvedValidUserUUIDProvided": false,
   "productionUserSessionProvided": false,
-  "productionConfigurationChanged": false,
-  "internalPreview": "BLOCKED_NO_APPROVED_USER_UUID_OR_AUTHENTICATED_SESSION",
+  "approvedAccountResolvedFromUserSuppliedLoginEmail": true,
+  "approvedAccountCount": 1,
+  "productionConfigurationChanged": true,
+  "internalPreview": "CONFIGURED_APPROVED_ACCOUNT_ONLY_AUTHENTICATED_VALIDATION_PENDING",
   "preference": "sessionStorage.ds_mapview_ui_state_v1; scoped to current account; eligibility strictly true required",
-  "environmentChanges": [],
+  "environmentChanges": ["FEATURE_FLAGS_JSON"],
+  "previousSecretCount": 38,
+  "previousSecretDigestsUnchanged": true,
+  "flagConfigDigestVerified": true,
+  "backendRedeployRequired": false,
   "frontendEligibility": "Boolean only; saved ON cannot bypass server authorization"
 }
