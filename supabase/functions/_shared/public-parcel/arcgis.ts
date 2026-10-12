@@ -36,15 +36,25 @@ export function normalizeParcel(source: ParcelSource, attributes: Record<string,
     fields[field] = value;
     provenance[field] = { value, source: source.sourceId, sourceField: name || null, status: value === null ? 'UNAVAILABLE' : 'PUBLIC_RECORD' };
   }
+  if (source.areaMapping) {
+    const { valueField, unitField } = source.areaMapping;
+    const value = asNumber(attributes[valueField]);
+    const unit = String(attributes[unitField] ?? '').trim().toUpperCase().replace(/[ ._-]/g, '');
+    const target = ['AC', 'ACRE', 'ACRES'].includes(unit) ? 'assessorAcres' : ['SF', 'SQFT', 'SQUAREFEET'].includes(unit) ? 'lotSqft' : null;
+    if (target && value !== null) {
+      fields[target] = value;
+      provenance[target] = { value, source: source.sourceId, sourceField: valueField, status: 'PUBLIC_RECORD' };
+    }
+  }
   const geometry = validGeometry(geometryInput) ? geometryInput : null;
   const area = geodesicParcelArea(geometry);
   const assessorAcres = fields.assessorAcres as number | null; const gisAcres = fields.gisAcres as number | null; const recordedSqft = fields.lotSqft as number | null;
   // Parcel read model only. Preserve independent assessor/GIS/geometry values; no canonical promotion.
   const acres = assessorAcres ?? gisAcres ?? (recordedSqft == null ? area.acres : recordedSqft / 43560);
   const lotSqft = recordedSqft ?? (acres == null ? null : acres * 43560);
-  provenance.acres = { value: acres, source: source.sourceId, sourceField: assessorAcres != null ? source.fieldMapping.assessorAcres! : gisAcres != null ? source.fieldMapping.gisAcres! : null,
+  provenance.acres = { value: acres, source: source.sourceId, sourceField: assessorAcres != null ? provenance.assessorAcres.sourceField : gisAcres != null ? source.fieldMapping.gisAcres! : null,
     status: acres === null ? 'UNAVAILABLE' : assessorAcres != null || gisAcres != null ? 'PUBLIC_RECORD' : 'CALCULATED' };
-  provenance.lotSqft = { value: lotSqft, source: source.sourceId, sourceField: recordedSqft == null ? null : source.fieldMapping.lotSqft!, status: lotSqft === null ? 'UNAVAILABLE' : recordedSqft == null ? 'CALCULATED' : 'PUBLIC_RECORD' };
+  provenance.lotSqft = { value: lotSqft, source: source.sourceId, sourceField: recordedSqft == null ? null : provenance.lotSqft.sourceField, status: lotSqft === null ? 'UNAVAILABLE' : recordedSqft == null ? 'CALCULATED' : 'PUBLIC_RECORD' };
   provenance.geometryCalculatedAcres = { value: area.acres, source: source.sourceId, sourceField: null, status: area.acres === null ? 'UNAVAILABLE' : 'CALCULATED' };
   provenance.geometryCalculatedSqft = { value: area.sqft, source: source.sourceId, sourceField: null, status: area.sqft === null ? 'UNAVAILABLE' : 'CALCULATED' };
   return { ...fields, geometry, acres, lotSqft, geometryCalculatedSqft: area.sqft, geometryCalculatedAcres: area.acres,
@@ -70,7 +80,8 @@ export class ArcGISParcelAdapter implements PublicParcelProvider {
   private async query(params: Record<string, string>, signal?: AbortSignal): Promise<ProviderResult> {
     const metadata = await this.inspect(signal);
     const available = new Set(metadata.fields.map((field: { name: string }) => field.name));
-    const requestedFields = [...new Set(Object.values(this.source.fieldMapping).filter((name): name is string => !!name && available.has(name)))].map(fieldName);
+    const mappedNames = [...Object.values(this.source.fieldMapping), ...Object.values(this.source.areaMapping || {})];
+    const requestedFields = [...new Set(mappedNames.filter((name): name is string => !!name && available.has(name)))].map(fieldName);
     if (params.apnField && !available.has(params.apnField)) throw new Error('APN_NOT_AVAILABLE');
     delete params.apnField;
     const format = /geojson/i.test(metadata.supportedQueryFormats || '') ? 'geojson' : 'json';

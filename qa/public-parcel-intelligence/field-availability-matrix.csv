@@ -1,0 +1,15 @@
+SOURCE,STATUS,ROLE,GEOMETRY,APN,AREA,OWNER,ASSESSMENT,PROPERTY_TAX,ZONING,LEGAL_DESCRIPTION,SUBDIVISION
+us-al-jefferson-parcels,LICENSE_REVIEW_REQUIRED,PARCEL_PRIMARY,UNVERIFIED,false,false,false,false,false,false,false,false
+us-nc-wake-parcels,DISCOVERED,PARCEL_PRIMARY,UNVERIFIED,false,false,false,false,false,false,false,false
+us-wa-king-parcels,LICENSE_REVIEW_REQUIRED,PARCEL_PRIMARY,YES,true,true,false,false,false,false,false,false
+us-ut-salt-lake-parcels,ACTIVE,PARCEL_PRIMARY,YES,true,true,false,false,false,false,false,true
+us-ca-sonoma-parcels,LICENSE_REVIEW_REQUIRED,PARCEL_PRIMARY,YES,true,true,false,true,false,false,false,false
+us-ma-massgis-parcels,ACTIVE,PARCEL_PRIMARY,YES,true,true,true,true,false,true,false,false
+us-nj-njogis-parcels,ACTIVE,PARCEL_PRIMARY,YES,true,true,false,true,true,false,true,false
+us-vt-vcgi-parcels,ACTIVE,PARCEL_PRIMARY,YES,true,true,true,true,false,false,true,false
+us-ny-state-public-parcels,LICENSE_REVIEW_REQUIRED,PARCEL_PRIMARY,YES,true,true,true,true,false,false,false,false
+us-nc-nconemap-parcels,ACTIVE,PARCEL_PRIMARY,YES,true,true,true,false,false,false,true,true
+us-fl-dep-public-parcels,LICENSE_REVIEW_REQUIRED,SECONDARY_PARCEL,YES,true,true,true,false,false,false,true,false
+us-fl-fgio-state-parcels,BROKEN,PARCEL_PRIMARY,YES,true,true,true,false,false,false,true,false
+us-tx-austin-travis-parcels,LICENSE_REVIEW_REQUIRED,PARCEL_PRIMARY,YES,false,true,false,false,false,false,false,false
+us-tx-harris-parcels,LICENSE_REVIEW_REQUIRED,PARCEL_PRIMARY,YES,false,true,false,false,false,false,false,false

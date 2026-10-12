@@ -1,0 +1,35 @@
+{
+  "baseline": "970c5d6dd47c5ecc0b8594922e097be50f31fa97",
+  "method": "transitive local import graph including re-exports and dynamic imports",
+  "changedSharedModules": [
+    "supabase/functions/_shared/featureFlags.ts",
+    "supabase/functions/_shared/public-parcel/arcgis.ts",
+    "supabase/functions/_shared/public-parcel/cache.ts",
+    "supabase/functions/_shared/public-parcel/registry.ts",
+    "supabase/functions/_shared/public-parcel/resolver.ts",
+    "supabase/functions/_shared/public-parcel/sources.ts",
+    "supabase/functions/_shared/public-parcel/types.ts"
+  ],
+  "changedFunctionModules": [],
+  "affectedFunctions": [
+    {
+      "function": "feature-flags",
+      "changedDependencies": [
+        "supabase/functions/_shared/featureFlags.ts"
+      ]
+    },
+    {
+      "function": "public-parcel",
+      "changedDependencies": [
+        "supabase/functions/_shared/featureFlags.ts",
+        "supabase/functions/_shared/public-parcel/arcgis.ts",
+        "supabase/functions/_shared/public-parcel/cache.ts",
+        "supabase/functions/_shared/public-parcel/registry.ts",
+        "supabase/functions/_shared/public-parcel/resolver.ts",
+        "supabase/functions/_shared/public-parcel/types.ts",
+        "supabase/functions/_shared/public-parcel/sources.ts"
+      ]
+    }
+  ],
+  "unresolvedLocalImports": []
+}

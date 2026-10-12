@@ -1,5 +1,7 @@
 export type SourceStatus = 'DISCOVERED' | 'SCHEMA_VALIDATED' | 'AUTHORITY_VALIDATED' | 'LICENSE_REVIEW_REQUIRED' | 'ACTIVE' | 'DISABLED' | 'BROKEN';
 export type LicenseStatus = 'APPROVED' | 'CLEAR_FOR_USE' | 'LICENSE_REVIEW_REQUIRED' | 'UNKNOWN' | 'UNVERIFIED';
+export type SourceRole = 'PARCEL_PRIMARY' | 'ASSESSMENT' | 'TAX' | 'ZONING' | 'SECONDARY_PARCEL';
+export type SourceStrength = 'PARCEL_GEOMETRY' | 'APN' | 'AREA' | 'OWNER' | 'ASSESSMENT' | 'TAX' | 'ZONING';
 export type ParcelField = 'apn' | 'parcelId' | 'situsAddress' | 'assessorAcres' | 'gisAcres' | 'lotSqft' | 'ownerName' | 'assessedValue' | 'assessedYear' | 'propertyTax' | 'propertyTaxYear' | 'taxCode' | 'zoning' | 'legalDescription' | 'subdivision';
 export type Point = { lat: number; lng: number };
 export type Bounds = [number, number, number, number];
@@ -10,6 +12,12 @@ export type ParcelSource = Readonly<{
   fieldMapping: Partial<Record<ParcelField, string>>; authorityName: string; authorityUrl: string;
   licenseStatus: LicenseStatus; licenseUrl: string; usageNotes: string; lastValidatedAt: string | null;
   sourceFreshness: string; status: SourceStatus; itemId?: string; apnNormalization?: 'EXACT' | 'REMOVE_SEPARATORS';
+  statusReason: string; licenseReason: string; role?: SourceRole; strengths?: readonly SourceStrength[];
+  coverageCountyFips?: readonly string[];
+  // Some authorities publish mixed area units in a companion field. Never assume acres.
+  areaMapping?: { valueField: string; unitField: string };
+  validation?: { authorityVerified: boolean; schemaValidated: boolean; geometryQueryValidated: boolean;
+    apnQueryValidated: boolean; viewportQueryValidated: boolean; counties: readonly string[]; evidencePath: string };
 }>;
 export type ParcelEvidence = {
   parcelId: string | null; apn: string | null; geometry: ParcelGeometry | null; situsAddress: string | null;

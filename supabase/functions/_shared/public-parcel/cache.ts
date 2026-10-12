@@ -18,20 +18,33 @@ export class ParcelRequestCache<T> {
   async run(key: string, sourceId: string, work: () => Promise<T>) {
     const existing = this.pending.get(key); if (existing) return existing;
     const health = this.health.get(sourceId) || { lastSuccessfulQuery: null, lastFailure: null, consecutiveFailures: 0, nextAllowedAt: 0, status: 'HEALTHY' as const };
-    if (health.nextAllowedAt > this.now()) throw new Error(health.status === 'CIRCUIT_OPEN' ? 'SOURCE_CIRCUIT_OPEN' : 'SOURCE_COURTESY_BACKOFF');
-    // Reserve before awaiting to prevent different viewport keys hammering one source.
-    this.health.set(sourceId, { ...health, nextAllowedAt: this.now() + 1500 });
+    if (health.nextAllowedAt > this.now() && health.status !== 'HEALTHY') throw new Error(health.status === 'CIRCUIT_OPEN' ? 'SOURCE_CIRCUIT_OPEN' : 'SOURCE_COURTESY_BACKOFF');
+    const scheduledAt = Math.max(this.now(), health.nextAllowedAt);
+    const waitMs = scheduledAt - this.now();
+    // Healthy courtesy is a bounded scheduling interval, NOT a source outage.
+    // Reserve slots synchronously so different viewport keys cannot all wake up
+    // together and hammer an authority. Backoff/circuit-open still fail closed.
+    if (waitMs > 3000) throw new Error('SOURCE_COURTESY_BACKOFF');
+    this.health.set(sourceId, { ...health, nextAllowedAt: scheduledAt + 1500 });
     const request = (async () => {
+      let attempted = false;
       try {
+        if (waitMs) await new Promise(resolve => setTimeout(resolve, waitMs));
+        const current = this.health.get(sourceId)!;
+        if (waitMs && current.status !== 'HEALTHY' && current.nextAllowedAt > this.now()) throw new Error(current.status === 'CIRCUIT_OPEN' ? 'SOURCE_CIRCUIT_OPEN' : 'SOURCE_COURTESY_BACKOFF');
+        attempted = true;
         const value = await work(); this.put(key, value);
-        this.health.set(sourceId, { lastSuccessfulQuery: new Date(this.now()).toISOString(), lastFailure: health.lastFailure, consecutiveFailures: 0, nextAllowedAt: this.now() + 1500, status: 'HEALTHY' });
+        this.health.set(sourceId, { lastSuccessfulQuery: new Date(this.now()).toISOString(), lastFailure: this.health.get(sourceId)?.lastFailure || null, consecutiveFailures: 0,
+          nextAllowedAt: Math.max(this.health.get(sourceId)?.nextAllowedAt || 0, this.now() + 1500), status: 'HEALTHY' });
         return value;
       } catch (error) {
+        if (!attempted) throw error; // Waiting on another query is not a government failure.
         if ((error as Error)?.name === 'AbortError') {
-          this.health.set(sourceId, { ...health, nextAllowedAt: this.now() + 1500 });
+          const current = this.health.get(sourceId) || health;
+          this.health.set(sourceId, { ...current, nextAllowedAt: Math.max(current.nextAllowedAt, this.now() + 1500) });
           throw error;
         }
-        const failures = health.consecutiveFailures + 1;
+        const failures = (this.health.get(sourceId)?.consecutiveFailures ?? health.consecutiveFailures) + 1;
         this.health.set(sourceId, { ...health, lastFailure: new Date(this.now()).toISOString(), consecutiveFailures: failures,
           nextAllowedAt: this.now() + Math.min(300_000, 5000 * 2 ** Math.min(failures, 6)), status: failures >= 3 ? 'CIRCUIT_OPEN' : 'BACKOFF' });
         throw error;

@@ -2762,9 +2762,11 @@ export function MapView({
             />
             <ZoomControl position="topright" />
             <TileLayer
-              key={`base-${mapStyle}-${forceSimpleBaseTiles ? `fallback-${baseTileFallbackIndex}` : 'native'}`}
+              key={`base-${mapStyle}-${forceSimpleBaseTiles ? `fallback-${baseTileFallbackIndex}` : 'native'}-${parcelFeatureEnabled && parcelLayerEnabled ? 'parcel-detail' : 'standard'}`}
               attribution={effectiveMapStyle.attribution}
               url={effectiveMapStyle.url}
+              maxZoom={parcelFeatureEnabled && parcelLayerEnabled ? 20 : 18}
+              maxNativeZoom={parcelFeatureEnabled && parcelLayerEnabled ? 18 : undefined}
               eventHandlers={{
                 tileerror: () => {
                   const now = Date.now();

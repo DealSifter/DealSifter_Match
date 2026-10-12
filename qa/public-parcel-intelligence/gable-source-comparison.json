@@ -1,0 +1,30 @@
+{
+  "property": "741 Gable Dr, Center Point, AL 35215",
+  "countyFips": "01073",
+  "point": {
+    "lat": 33.6528268892837,
+    "lng": -86.664736200637
+  },
+  "publisherAcres": 1.14,
+  "publisherRaw": "1,14ac",
+  "cachedRentCastSqft": {
+    "path": "property_intelligence_cache[property_record].payload.characteristics.lotSizeSqft",
+    "value": 23854,
+    "source": "rentcast",
+    "status": "VERIFIED_RECORD",
+    "confidence": null,
+    "retrievedAt": "2026-10-12T00:36:12.370Z",
+    "effectiveDate": null,
+    "providerPropertyId": "741-Gable-Dr,-Center-Point,-AL-35215"
+  },
+  "cachedRentCastAcres": null,
+  "publicParcel": null,
+  "apn": null,
+  "assessedValue": null,
+  "propertyTax": null,
+  "zoning": null,
+  "agreementCluster": "UNAVAILABLE_WITHOUT_PUBLIC_GIS",
+  "materialPublisherProviderConflict": true,
+  "canonicalFactsModified": false,
+  "newPaidCalls": 0
+}

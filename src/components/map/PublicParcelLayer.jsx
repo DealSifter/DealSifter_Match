@@ -23,7 +23,7 @@ export default function PublicParcelLayer({ enabled, active, viewport, language,
     {status && <div className="ds-parcel-status" role="status" style={{ color: C.t1, background: C.card, borderColor: C.border }}>{status}</div>}
     <Pane name="public-parcels" style={{ zIndex: 410 }}>
       {!tooMany && result.parcels.filter(parcel => parcel.geometry).map((parcel, index) => <GeoJSON
-        key={`${parcel.source}:${parcel.apn || parcel.parcelId || index}:${parcel.retrievedAt}`}
+        key={`${parcel.source}:${parcel.apn || parcel.parcelId || index}:${JSON.stringify(parcel.geometry)}`}
         data={{ type: 'Feature', properties: {}, geometry: parcel.geometry }}
         style={{ color: '#29a9a5', weight: 1.5, fillColor: '#29a9a5', fillOpacity: .05 }}>
         <Popup pane="popupPane" className="ds-parcel-popup" maxWidth={340}>

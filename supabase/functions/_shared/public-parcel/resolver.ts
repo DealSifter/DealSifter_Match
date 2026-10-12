@@ -76,7 +76,9 @@ export class PublicParcelResolver {
       } catch { return empty('SOURCE_TEMPORARILY_UNAVAILABLE', 'COUNTY_LOOKUP_UNAVAILABLE'); }
     }
     if (!fips) return empty('AMBIGUOUS_LOCATION', 'COUNTY_OR_LOCATION_REQUIRED');
-    const sources = this.registry.forCounty(fips, this.options.diagnostics === true);
+    // Non-parcel role registrations are preparation, not an implicit consensus layer.
+    const sources = this.registry.forCounty(fips, this.options.diagnostics === true)
+      .filter(source => !source.role || ['PARCEL_PRIMARY', 'SECONDARY_PARCEL'].includes(source.role));
     if (!sources.length) return empty('NO_ACTIVE_PUBLIC_SOURCE', 'NO_APPROVED_ACTIVE_SOURCE', fips);
     if (query.operation === 'coverage') return { ...empty('COVERAGE_AVAILABLE', 'SOURCE_REGISTERED', fips), sourceIds: sources.map(s => s.sourceId) };
     if (!point && !query.apn) return empty('AMBIGUOUS_LOCATION', 'POINT_APN_OR_ADDRESS_REQUIRED', fips);

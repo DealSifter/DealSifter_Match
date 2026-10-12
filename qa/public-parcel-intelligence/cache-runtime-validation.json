@@ -1,0 +1,77 @@
+{
+  "mode": "REAL_SOURCE_RECORDS_WITH_ISOLATED_VIRTUAL_CLOCK_AND_SIMULATED_OUTAGE",
+  "rows": [
+    {
+      "sourceId": "us-ut-salt-lake-parcels",
+      "countyFips": "49035",
+      "firstMiss": true,
+      "secondHit": true,
+      "repeatedSourceRequests": 0,
+      "outageFreshness": "STALE_USABLE"
+    },
+    {
+      "sourceId": "us-ma-massgis-parcels",
+      "countyFips": "25017",
+      "firstMiss": true,
+      "secondHit": true,
+      "repeatedSourceRequests": 0,
+      "outageFreshness": "STALE_USABLE"
+    },
+    {
+      "sourceId": "us-ma-massgis-parcels",
+      "countyFips": "25025",
+      "firstMiss": true,
+      "secondHit": true,
+      "repeatedSourceRequests": 0,
+      "outageFreshness": "STALE_USABLE"
+    },
+    {
+      "sourceId": "us-nj-njogis-parcels",
+      "countyFips": "34021",
+      "firstMiss": true,
+      "secondHit": true,
+      "repeatedSourceRequests": 0,
+      "outageFreshness": "STALE_USABLE"
+    },
+    {
+      "sourceId": "us-nj-njogis-parcels",
+      "countyFips": "34003",
+      "firstMiss": true,
+      "secondHit": true,
+      "repeatedSourceRequests": 0,
+      "outageFreshness": "STALE_USABLE"
+    },
+    {
+      "sourceId": "us-vt-vcgi-parcels",
+      "countyFips": "50007",
+      "firstMiss": true,
+      "secondHit": true,
+      "repeatedSourceRequests": 0,
+      "outageFreshness": "STALE_USABLE"
+    },
+    {
+      "sourceId": "us-vt-vcgi-parcels",
+      "countyFips": "50023",
+      "firstMiss": true,
+      "secondHit": true,
+      "repeatedSourceRequests": 0,
+      "outageFreshness": "STALE_USABLE"
+    },
+    {
+      "sourceId": "us-nc-nconemap-parcels",
+      "countyFips": "37183",
+      "firstMiss": true,
+      "secondHit": true,
+      "repeatedSourceRequests": 0,
+      "outageFreshness": "STALE_USABLE"
+    },
+    {
+      "sourceId": "us-nc-nconemap-parcels",
+      "countyFips": "37063",
+      "firstMiss": true,
+      "secondHit": true,
+      "repeatedSourceRequests": 0,
+      "outageFreshness": "STALE_USABLE"
+    }
+  ]
+}

@@ -1,0 +1,276 @@
+{
+  "observedAt": "2026-10-12T04:54:08.602Z",
+  "baseline": "970c5d6dd47c5ecc0b8594922e097be50f31fa97",
+  "statesInspected": [
+    "AL",
+    "NC",
+    "WA",
+    "UT",
+    "CA",
+    "MA",
+    "NJ",
+    "VT",
+    "NY",
+    "FL",
+    "TX"
+  ],
+  "countiesInspected": 18,
+  "candidateRegistrySources": 14,
+  "schemaValidSources": 12,
+  "licenseClearedSources": 7,
+  "licenseReviewSources": 7,
+  "activeSources": 5,
+  "activeStates": [
+    "UT",
+    "MA",
+    "NJ",
+    "VT",
+    "NC"
+  ],
+  "activeCounties": [
+    "49035",
+    "25017",
+    "25025",
+    "34021",
+    "34003",
+    "50007",
+    "50023",
+    "37183",
+    "37063"
+  ],
+  "technicallyInaccessibleSources": [
+    "us-al-jefferson-parcels",
+    "us-nc-wake-parcels",
+    "us-fl-fgio-state-parcels"
+  ],
+  "noSourceCounties": 0,
+  "noSourceMeaning": "All inspected counties have candidates; uninspected/unsupported counties are not counted as discovery successes or failures.",
+  "counties": [
+    {
+      "state": "AL",
+      "county": "Jefferson",
+      "countyFips": "01073",
+      "sourceIds": [
+        "us-al-jefferson-parcels"
+      ],
+      "activeSourceIds": [],
+      "classification": "TECHNICALLY_BLOCKED",
+      "meaning": "Tested samples and declared source coverage only; FULL does not mean every field or every parcel is populated."
+    },
+    {
+      "state": "NC",
+      "county": "Wake",
+      "countyFips": "37183",
+      "sourceIds": [
+        "us-nc-wake-parcels",
+        "us-nc-nconemap-parcels"
+      ],
+      "activeSourceIds": [
+        "us-nc-nconemap-parcels"
+      ],
+      "classification": "FULL",
+      "meaning": "Tested samples and declared source coverage only; FULL does not mean every field or every parcel is populated."
+    },
+    {
+      "state": "WA",
+      "county": "King",
+      "countyFips": "53033",
+      "sourceIds": [
+        "us-wa-king-parcels"
+      ],
+      "activeSourceIds": [],
+      "classification": "LICENSE_BLOCKED",
+      "meaning": "Tested samples and declared source coverage only; FULL does not mean every field or every parcel is populated."
+    },
+    {
+      "state": "UT",
+      "county": "Salt Lake",
+      "countyFips": "49035",
+      "sourceIds": [
+        "us-ut-salt-lake-parcels"
+      ],
+      "activeSourceIds": [
+        "us-ut-salt-lake-parcels"
+      ],
+      "classification": "PARCEL_ONLY",
+      "meaning": "Tested samples and declared source coverage only; FULL does not mean every field or every parcel is populated."
+    },
+    {
+      "state": "CA",
+      "county": "Sonoma",
+      "countyFips": "06097",
+      "sourceIds": [
+        "us-ca-sonoma-parcels"
+      ],
+      "activeSourceIds": [],
+      "classification": "LICENSE_BLOCKED",
+      "meaning": "Tested samples and declared source coverage only; FULL does not mean every field or every parcel is populated."
+    },
+    {
+      "state": "MA",
+      "county": "Middlesex",
+      "countyFips": "25017",
+      "sourceIds": [
+        "us-ma-massgis-parcels"
+      ],
+      "activeSourceIds": [
+        "us-ma-massgis-parcels"
+      ],
+      "classification": "FULL",
+      "meaning": "Tested samples and declared source coverage only; FULL does not mean every field or every parcel is populated."
+    },
+    {
+      "state": "MA",
+      "county": "Suffolk",
+      "countyFips": "25025",
+      "sourceIds": [
+        "us-ma-massgis-parcels"
+      ],
+      "activeSourceIds": [
+        "us-ma-massgis-parcels"
+      ],
+      "classification": "FULL",
+      "meaning": "Tested samples and declared source coverage only; FULL does not mean every field or every parcel is populated."
+    },
+    {
+      "state": "NJ",
+      "county": "Mercer",
+      "countyFips": "34021",
+      "sourceIds": [
+        "us-nj-njogis-parcels"
+      ],
+      "activeSourceIds": [
+        "us-nj-njogis-parcels"
+      ],
+      "classification": "FULL",
+      "meaning": "Tested samples and declared source coverage only; FULL does not mean every field or every parcel is populated."
+    },
+    {
+      "state": "NJ",
+      "county": "Bergen",
+      "countyFips": "34003",
+      "sourceIds": [
+        "us-nj-njogis-parcels"
+      ],
+      "activeSourceIds": [
+        "us-nj-njogis-parcels"
+      ],
+      "classification": "FULL",
+      "meaning": "Tested samples and declared source coverage only; FULL does not mean every field or every parcel is populated."
+    },
+    {
+      "state": "VT",
+      "county": "Chittenden",
+      "countyFips": "50007",
+      "sourceIds": [
+        "us-vt-vcgi-parcels"
+      ],
+      "activeSourceIds": [
+        "us-vt-vcgi-parcels"
+      ],
+      "classification": "FULL",
+      "meaning": "Tested samples and declared source coverage only; FULL does not mean every field or every parcel is populated."
+    },
+    {
+      "state": "VT",
+      "county": "Washington",
+      "countyFips": "50023",
+      "sourceIds": [
+        "us-vt-vcgi-parcels"
+      ],
+      "activeSourceIds": [
+        "us-vt-vcgi-parcels"
+      ],
+      "classification": "FULL",
+      "meaning": "Tested samples and declared source coverage only; FULL does not mean every field or every parcel is populated."
+    },
+    {
+      "state": "NY",
+      "county": "Albany",
+      "countyFips": "36001",
+      "sourceIds": [
+        "us-ny-state-public-parcels"
+      ],
+      "activeSourceIds": [],
+      "classification": "LICENSE_BLOCKED",
+      "meaning": "Tested samples and declared source coverage only; FULL does not mean every field or every parcel is populated."
+    },
+    {
+      "state": "NY",
+      "county": "Onondaga",
+      "countyFips": "36067",
+      "sourceIds": [
+        "us-ny-state-public-parcels"
+      ],
+      "activeSourceIds": [],
+      "classification": "LICENSE_BLOCKED",
+      "meaning": "Tested samples and declared source coverage only; FULL does not mean every field or every parcel is populated."
+    },
+    {
+      "state": "NC",
+      "county": "Durham",
+      "countyFips": "37063",
+      "sourceIds": [
+        "us-nc-nconemap-parcels"
+      ],
+      "activeSourceIds": [
+        "us-nc-nconemap-parcels"
+      ],
+      "classification": "FULL",
+      "meaning": "Tested samples and declared source coverage only; FULL does not mean every field or every parcel is populated."
+    },
+    {
+      "state": "FL",
+      "county": "Polk",
+      "countyFips": "12105",
+      "sourceIds": [
+        "us-fl-dep-public-parcels",
+        "us-fl-fgio-state-parcels"
+      ],
+      "activeSourceIds": [],
+      "classification": "LICENSE_BLOCKED",
+      "meaning": "Tested samples and declared source coverage only; FULL does not mean every field or every parcel is populated."
+    },
+    {
+      "state": "FL",
+      "county": "Orange",
+      "countyFips": "12095",
+      "sourceIds": [
+        "us-fl-dep-public-parcels",
+        "us-fl-fgio-state-parcels"
+      ],
+      "activeSourceIds": [],
+      "classification": "LICENSE_BLOCKED",
+      "meaning": "Tested samples and declared source coverage only; FULL does not mean every field or every parcel is populated."
+    },
+    {
+      "state": "TX",
+      "county": "Travis",
+      "countyFips": "48453",
+      "sourceIds": [
+        "us-tx-austin-travis-parcels"
+      ],
+      "activeSourceIds": [],
+      "classification": "LICENSE_BLOCKED",
+      "meaning": "Tested samples and declared source coverage only; FULL does not mean every field or every parcel is populated."
+    },
+    {
+      "state": "TX",
+      "county": "Harris",
+      "countyFips": "48201",
+      "sourceIds": [
+        "us-tx-harris-parcels"
+      ],
+      "activeSourceIds": [],
+      "classification": "LICENSE_BLOCKED",
+      "meaning": "Tested samples and declared source coverage only; FULL does not mean every field or every parcel is populated."
+    }
+  ],
+  "nationalCoverageExtrapolation": false,
+  "generalPublicExposure": "DISABLED",
+  "productionInternalCohort": "NOT_CONFIGURED_NO_USER_ID_PROVIDED",
+  "maxxisConsumption": 0,
+  "reportConsumption": 0,
+  "paidApiCostUSD": 0,
+  "arbitraryUrlProxy": 0
+}

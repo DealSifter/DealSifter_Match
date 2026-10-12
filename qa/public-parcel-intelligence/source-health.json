@@ -1,0 +1,128 @@
+[
+  {
+    "sourceId": "us-ut-salt-lake-parcels",
+    "countyFips": "49035",
+    "simulation": "OUTAGE_AFTER_REAL_QUERY",
+    "health": [
+      {
+        "sourceId": "us-ut-salt-lake-parcels",
+        "lastSuccessfulQuery": "2026-10-12T04:39:01.113Z",
+        "lastFailure": "2026-10-12T04:39:09.113Z",
+        "consecutiveFailures": 1,
+        "healthState": "BACKOFF"
+      }
+    ]
+  },
+  {
+    "sourceId": "us-ma-massgis-parcels",
+    "countyFips": "25017",
+    "simulation": "OUTAGE_AFTER_REAL_QUERY",
+    "health": [
+      {
+        "sourceId": "us-ma-massgis-parcels",
+        "lastSuccessfulQuery": "2026-10-12T04:47:32.380Z",
+        "lastFailure": "2026-10-12T04:47:40.380Z",
+        "consecutiveFailures": 1,
+        "healthState": "BACKOFF"
+      }
+    ]
+  },
+  {
+    "sourceId": "us-ma-massgis-parcels",
+    "countyFips": "25025",
+    "simulation": "OUTAGE_AFTER_REAL_QUERY",
+    "health": [
+      {
+        "sourceId": "us-ma-massgis-parcels",
+        "lastSuccessfulQuery": "2026-10-12T04:47:45.050Z",
+        "lastFailure": "2026-10-12T04:47:53.050Z",
+        "consecutiveFailures": 1,
+        "healthState": "BACKOFF"
+      }
+    ]
+  },
+  {
+    "sourceId": "us-nj-njogis-parcels",
+    "countyFips": "34021",
+    "simulation": "OUTAGE_AFTER_REAL_QUERY",
+    "health": [
+      {
+        "sourceId": "us-nj-njogis-parcels",
+        "lastSuccessfulQuery": "2026-10-12T04:39:34.694Z",
+        "lastFailure": "2026-10-12T04:39:42.694Z",
+        "consecutiveFailures": 1,
+        "healthState": "BACKOFF"
+      }
+    ]
+  },
+  {
+    "sourceId": "us-nj-njogis-parcels",
+    "countyFips": "34003",
+    "simulation": "OUTAGE_AFTER_REAL_QUERY",
+    "health": [
+      {
+        "sourceId": "us-nj-njogis-parcels",
+        "lastSuccessfulQuery": "2026-10-12T04:39:45.187Z",
+        "lastFailure": "2026-10-12T04:39:53.187Z",
+        "consecutiveFailures": 1,
+        "healthState": "BACKOFF"
+      }
+    ]
+  },
+  {
+    "sourceId": "us-vt-vcgi-parcels",
+    "countyFips": "50007",
+    "simulation": "OUTAGE_AFTER_REAL_QUERY",
+    "health": [
+      {
+        "sourceId": "us-vt-vcgi-parcels",
+        "lastSuccessfulQuery": "2026-10-12T04:47:55.590Z",
+        "lastFailure": "2026-10-12T04:48:03.590Z",
+        "consecutiveFailures": 1,
+        "healthState": "BACKOFF"
+      }
+    ]
+  },
+  {
+    "sourceId": "us-vt-vcgi-parcels",
+    "countyFips": "50023",
+    "simulation": "OUTAGE_AFTER_REAL_QUERY",
+    "health": [
+      {
+        "sourceId": "us-vt-vcgi-parcels",
+        "lastSuccessfulQuery": "2026-10-12T04:48:05.093Z",
+        "lastFailure": "2026-10-12T04:48:13.093Z",
+        "consecutiveFailures": 1,
+        "healthState": "BACKOFF"
+      }
+    ]
+  },
+  {
+    "sourceId": "us-nc-nconemap-parcels",
+    "countyFips": "37183",
+    "simulation": "OUTAGE_AFTER_REAL_QUERY",
+    "health": [
+      {
+        "sourceId": "us-nc-nconemap-parcels",
+        "lastSuccessfulQuery": "2026-10-12T04:48:16.773Z",
+        "lastFailure": "2026-10-12T04:48:24.773Z",
+        "consecutiveFailures": 1,
+        "healthState": "BACKOFF"
+      }
+    ]
+  },
+  {
+    "sourceId": "us-nc-nconemap-parcels",
+    "countyFips": "37063",
+    "simulation": "OUTAGE_AFTER_REAL_QUERY",
+    "health": [
+      {
+        "sourceId": "us-nc-nconemap-parcels",
+        "lastSuccessfulQuery": "2026-10-12T04:48:29.163Z",
+        "lastFailure": "2026-10-12T04:48:37.163Z",
+        "consecutiveFailures": 1,
+        "healthState": "BACKOFF"
+      }
+    ]
+  }
+]

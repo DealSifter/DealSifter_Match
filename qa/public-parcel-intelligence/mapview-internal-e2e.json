@@ -1,0 +1,145 @@
+{
+  "observedAt": "2026-10-12T05:33:15.790Z",
+  "results": [
+    {
+      "device": "DESKTOP",
+      "status": "PASS",
+      "normalResolver": true,
+      "liveGovernmentQueries": true,
+      "fixtureParcelResponses": 0,
+      "applicationAuthBoundary": "LOCAL_TEST_IDENTITY_ONLY",
+      "productionAuthenticatedE2E": "NOT_RUN",
+      "internalAllowlist": true,
+      "generalUserFlag": false,
+      "offGISRequests": 0,
+      "lowZoomRequests": 0,
+      "panelUsable": true,
+      "calls": [
+        {
+          "query": {
+            "operation": "query-bounds",
+            "bounds": [
+              -111.89382612705232,
+              40.760409001546584,
+              -111.89039289951326,
+              40.76211961159051
+            ],
+            "zoom": 19
+          },
+          "status": "COVERAGE_AVAILABLE",
+          "exceededLimit": false,
+          "count": 36,
+          "cacheHit": false,
+          "sourceIds": [
+            "us-ut-salt-lake-parcels"
+          ]
+        },
+        {
+          "query": {
+            "operation": "query-bounds",
+            "bounds": [
+              -111.89382612705232,
+              40.76113022611334,
+              -111.89039289951326,
+              40.7628408175962
+            ],
+            "zoom": 19
+          },
+          "status": "COVERAGE_AVAILABLE",
+          "exceededLimit": false,
+          "count": 73,
+          "cacheHit": false,
+          "sourceIds": [
+            "us-ut-salt-lake-parcels"
+          ]
+        }
+      ],
+      "performance": {
+        "offReadyMs": 660.7000000476837,
+        "liveLayerReadyMs": 3703,
+        "measurement": "Local cold mount and live source latency; not a production benchmark."
+      }
+    },
+    {
+      "device": "MOBILE",
+      "status": "PASS",
+      "normalResolver": true,
+      "liveGovernmentQueries": true,
+      "fixtureParcelResponses": 0,
+      "applicationAuthBoundary": "LOCAL_TEST_IDENTITY_ONLY",
+      "productionAuthenticatedE2E": "NOT_RUN",
+      "internalAllowlist": true,
+      "generalUserFlag": false,
+      "offGISRequests": 0,
+      "lowZoomRequests": 0,
+      "panelUsable": true,
+      "calls": [
+        {
+          "query": {
+            "operation": "query-bounds",
+            "bounds": [
+              -111.8931555747986,
+              40.75966745263552,
+              -111.89106345176698,
+              40.762861133145016
+            ],
+            "zoom": 18
+          },
+          "status": "COVERAGE_AVAILABLE",
+          "exceededLimit": false,
+          "count": 73,
+          "cacheHit": false,
+          "sourceIds": [
+            "us-ut-salt-lake-parcels"
+          ]
+        },
+        {
+          "query": {
+            "operation": "query-bounds",
+            "bounds": [
+              -111.8926325440407,
+              40.7604658871488,
+              -111.89158648252489,
+              40.76206272740359
+            ],
+            "zoom": 19
+          },
+          "status": "COVERAGE_AVAILABLE",
+          "exceededLimit": false,
+          "count": 12,
+          "cacheHit": false,
+          "sourceIds": [
+            "us-ut-salt-lake-parcels"
+          ]
+        },
+        {
+          "query": {
+            "operation": "query-bounds",
+            "bounds": [
+              -111.89238309860231,
+              40.76105099337454,
+              -111.8913370370865,
+              40.762647819572855
+            ],
+            "zoom": 19
+          },
+          "status": "COVERAGE_AVAILABLE",
+          "exceededLimit": false,
+          "count": 18,
+          "cacheHit": false,
+          "sourceIds": [
+            "us-ut-salt-lake-parcels"
+          ]
+        }
+      ],
+      "performance": {
+        "offReadyMs": 790.7000000476837,
+        "liveLayerReadyMs": 4383,
+        "measurement": "Local cold mount and live source latency; not a production benchmark."
+      }
+    }
+  ],
+  "publicExposure": "DISABLED",
+  "paidCalls": 0,
+  "canonicalWrites": 0
+}

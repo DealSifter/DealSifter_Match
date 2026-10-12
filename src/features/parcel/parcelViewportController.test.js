@@ -5,6 +5,17 @@ import { parcelLabels, parcelPanelRows } from './parcelPresentation';
 const viewport = { zoom: 17, bounds: [-122, 47, -121.99, 47.01] };
 afterEach(() => vi.useRealTimers());
 describe('isolated MapView parcel behavior', () => {
+  it('keeps a popup owner during viewport refresh but clears it when disabled or zoomed out', async () => {
+    vi.useFakeTimers(); const parcel = { apn: 'live-parcel' }; const request = vi.fn(async () => ({ status: 'COVERAGE_AVAILABLE', parcels: [parcel] }));
+    const publish = vi.fn(); const controller = new ParcelViewportController(request, publish);
+    controller.update({ enabled: true, viewport }); await vi.runAllTimersAsync();
+    controller.update({ enabled: true, viewport: { ...viewport, bounds: [-122, 47, -121.98, 47.01] } });
+    expect(publish).toHaveBeenLastCalledWith({ status: 'LOADING', parcels: [parcel] });
+    controller.update({ enabled: true, viewport: { ...viewport, zoom: 12 } });
+    expect(publish).toHaveBeenLastCalledWith({ status: 'PARCEL_NOT_FOUND', reason: 'ZOOM_REQUIRED', parcels: [] });
+    controller.update({ enabled: false, viewport }); expect(controller.visibleParcels).toEqual([]);
+    await vi.runAllTimersAsync(); expect(request).toHaveBeenCalledOnce();
+  });
   it('OFF makes zero requests, even with a close viewport', async () => {
     vi.useFakeTimers(); const request = vi.fn(); const publish = vi.fn(); const controller = new ParcelViewportController(request, publish);
     controller.update({ enabled: false, viewport }); await vi.runAllTimersAsync(); expect(request).not.toHaveBeenCalled(); expect(publish).toHaveBeenLastCalledWith({ status: 'DISABLED', parcels: [] });

@@ -1,0 +1,561 @@
+{
+  "observedAt": "2026-10-12T04:26:00.837Z",
+  "requestedFips": null,
+  "mode": "LOCAL_OFFICIAL_CANDIDATE_ASSISTANCE",
+  "authorityRequiresManualReview": true,
+  "legalApprovalFromScore": false,
+  "automaticActivation": false,
+  "results": [
+    {
+      "query": "owner:JeffersonCountyALgis parcels",
+      "total": 13,
+      "candidates": [
+        {
+          "itemId": "02545b1e80ef45b4a39be8bc12cd43fa",
+          "title": "Jefferson County Parcels",
+          "publisher": "JeffersonCountyALgis",
+          "serviceUrl": "https://jccgis.jccal.org/server/rest/services/Basemap/Parcels/MapServer",
+          "authorityHint": "Jefferson County Information Technology Services - GIS Division",
+          "licenseLink": "https://www.arcgis.com/home/item.html?id=02545b1e80ef45b4a39be8bc12cd43fa",
+          "termsSummary": " no use limitations ",
+          "authorityVerified": false,
+          "status": "DISCOVERED",
+          "automaticActivation": false
+        },
+        {
+          "itemId": "ac6ec7f4f83d4715a45acc8990b8b8c8",
+          "title": "Jefferson County Parcels",
+          "publisher": "JeffersonCountyALgis",
+          "serviceUrl": "https://jccgis.jccal.org/server/rest/services/Basemap/Parcels/MapServer",
+          "authorityHint": "Jefferson County Commission; Information Technology Services - GIS Division",
+          "licenseLink": "https://www.arcgis.com/home/item.html?id=ac6ec7f4f83d4715a45acc8990b8b8c8",
+          "termsSummary": " This data has been prepared by Jefferson County Information Technology Services, GIS Division. Any use of this data shall be at the sole risk of the person or entity using it. Jefferson County makes no warranty, expressed or implied as to the accuracy of the information represented herein. This product shall be accepted AS IS, WITH ALL FAULTS. Any person, entity or company that makes use of this product shall hold harmless Jefferson County, its elected officials, employees and agents from and against any claim, damage, loss, action, cause of action or liability arising from the use of this GIS product. ",
+          "authorityVerified": false,
+          "status": "DISCOVERED",
+          "automaticActivation": false
+        },
+        {
+          "itemId": "95d6ceddb45241b9ad142668a9adc450",
+          "title": "Municipalities",
+          "publisher": "JeffersonCountyALgis",
+          "serviceUrl": "https://jccgis.jccal.org/server/rest/services/Basemap/Municipalities/MapServer/3",
+          "authorityHint": "Jefferson County Information Technology Services - GIS Division",
+          "licenseLink": "https://www.arcgis.com/home/item.html?id=95d6ceddb45241b9ad142668a9adc450",
+          "termsSummary": " no use limitations ",
+          "authorityVerified": false,
+          "status": "DISCOVERED",
+          "automaticActivation": false
+        }
+      ]
+    },
+    {
+      "query": "owner:WakeCountyGovernment parcels",
+      "total": 10,
+      "candidates": [
+        {
+          "itemId": "f5ed009c66e844ec82f29064edd95017",
+          "title": "Parcels",
+          "publisher": "WakeCountyGovernment",
+          "serviceUrl": "https://maps.wake.gov/arcgis/rest/services/Property/Parcels/MapServer/0",
+          "authorityHint": null,
+          "licenseLink": "https://www.arcgis.com/home/item.html?id=f5ed009c66e844ec82f29064edd95017",
+          "termsSummary": "Wake County Geographic Information Services shall not be held liable for any errors in these data. This includes errors of omission, commission, errors concerning the content of the data, and relative and positional accuracy of the data. These data cannot be construed to be a legal document. Primary sources from which these data were compiled must be consulted for verification of information contained in these data. License: https://creativecommons.org/licenses/by/4.0/ ",
+          "authorityVerified": false,
+          "status": "DISCOVERED",
+          "automaticActivation": false
+        },
+        {
+          "itemId": "bc9728cd700e40cca91e9411bf47876c",
+          "title": "Parcel Address Points",
+          "publisher": "WakeCountyGovernment",
+          "serviceUrl": "https://maps.wake.gov/arcgis/rest/services/Property/Addresses/MapServer/0",
+          "authorityHint": "Wake County GIS",
+          "licenseLink": "https://www.arcgis.com/home/item.html?id=bc9728cd700e40cca91e9411bf47876c",
+          "termsSummary": "Wake County Geographic Information Services shall not be held liable for any errors in these data. This includes errors of omission, commission, errors concerning the content of the data, and relative and positional accuracy of the data. These data cannot be construed to be a legal document. Primary sources from which these data were compiled must be consulted for verification of information contained in these data. License: https://creativecommons.org/licenses/by/4.0/ ",
+          "authorityVerified": false,
+          "status": "DISCOVERED",
+          "automaticActivation": false
+        },
+        {
+          "itemId": "6a2a7e42e3034e67b0c1b8624c2bef6d",
+          "title": "Parcel Annotation",
+          "publisher": "WakeCountyGovernment",
+          "serviceUrl": "https://maps.wake.gov/arcgis/rest/services/Property/PropertyAnno/MapServer",
+          "authorityHint": "Wake County GIS",
+          "licenseLink": "https://www.arcgis.com/home/item.html?id=6a2a7e42e3034e67b0c1b8624c2bef6d",
+          "termsSummary": "Wake County Geographic Information Services shall not be held liable for any errors in these data. This includes errors of omission, commission, errors concerning the content of the data, and relative and positional accuracy of the data. These data cannot be construed to be a legal document. Primary sources from which these data were compiled must be consulted for verification of information contained in these data.",
+          "authorityVerified": false,
+          "status": "DISCOVERED",
+          "automaticActivation": false
+        },
+        {
+          "itemId": "dcfc6d11544c417b9896a4a1011174e4",
+          "title": "Voluntary Agricultural Districts",
+          "publisher": "WakeCountyGovernment",
+          "serviceUrl": "https://services1.arcgis.com/a7CWfuGP5ZnLYE7I/arcgis/rest/services/Voluntary_Agricultural_Districts_Public/FeatureServer",
+          "authorityHint": "Wake County Soil & Water Conservation District and Wake County GIS",
+          "licenseLink": "https://www.arcgis.com/home/item.html?id=dcfc6d11544c417b9896a4a1011174e4",
+          "termsSummary": " Wake County Geographic Information Services shall not be held liable for any errors in these data. This includes errors of omission, commission, errors concerning the content of the data, and relative and positional accuracy of the data. These data cannot be construed to be a legal document. Primary sources from which these data were compiled must be consulted for verification of information contained in these data. All parcels are private, agricultural properties and not open to the public for access. &nbsp; License:&nbsp; https://creativecommons.org/licenses/by/4.0/ &nbsp; &nbsp; ",
+          "authorityVerified": false,
+          "status": "DISCOVERED",
+          "automaticActivation": false,
+          "schemaAssessment": {
+            "geometry": null,
+            "fields": [],
+            "layers": [
+              {
+                "id": 0,
+                "name": "Voluntary Agricultural Districts"
+              }
+            ],
+            "query": true,
+            "updatedAt": null
+          },
+          "technicalScore": 30
+        }
+      ]
+    },
+    {
+      "query": "owner:MassGIS parcels",
+      "total": 345,
+      "candidates": [
+        {
+          "itemId": "73d4c766167848b795f1048cad3919c7",
+          "title": "Massachusetts Property Tax Parcels",
+          "publisher": "MassGIS",
+          "serviceUrl": "https://services1.arcgis.com/hGdibHYSPO59RG1h/arcgis/rest/services/Massachusetts_Property_Tax_Parcels/FeatureServer",
+          "authorityHint": null,
+          "licenseLink": "https://www.arcgis.com/home/item.html?id=73d4c766167848b795f1048cad3919c7",
+          "termsSummary": " Assessor’s parcel mapping is a representation of property boundaries, not an authoritative source. The authoritative record of property boundaries is recorded at the registries of deeds and a legally authoritative map of property boundaries can only be produced by a professional land surveyor. ",
+          "authorityVerified": false,
+          "status": "DISCOVERED",
+          "automaticActivation": false,
+          "schemaAssessment": {
+            "geometry": null,
+            "fields": [],
+            "layers": [
+              {
+                "id": 0,
+                "name": "Massachusetts Property Tax Parcels"
+              }
+            ],
+            "query": true,
+            "updatedAt": null
+          },
+          "technicalScore": 30
+        },
+        {
+          "itemId": "5b39adeecca243cdad33780ca654dc9e",
+          "title": "Massachusetts Property Tax Parcels (Tile Service)",
+          "publisher": "MassGIS",
+          "serviceUrl": "https://tiles.arcgis.com/tiles/hGdibHYSPO59RG1h/arcgis/rest/services/MassGIS_Level3_Parcels/MapServer",
+          "authorityHint": "MassGIS",
+          "licenseLink": "https://www.arcgis.com/home/item.html?id=5b39adeecca243cdad33780ca654dc9e",
+          "termsSummary": " Assessor’s parcel mapping is a representation of property boundaries, not an authoritative source. The authoritative record of property boundaries is recorded at the registries of deeds and a legally authoritative map of property boundaries can only be produced by a professional land surveyor. ",
+          "authorityVerified": false,
+          "status": "DISCOVERED",
+          "automaticActivation": false
+        },
+        {
+          "itemId": "b5f19318e90841d4bcf15e97b55851b7",
+          "title": "Massachusetts Property Tax Parcels (4 Layers) (Feature Service)",
+          "publisher": "MassGIS",
+          "serviceUrl": "https://arcgisserver.digital.mass.gov/arcgisserver/rest/services/AGOL/MassachusettsPropertyTaxParcels/FeatureServer",
+          "authorityHint": "MassGIS, EOTSS",
+          "licenseLink": "https://www.arcgis.com/home/item.html?id=b5f19318e90841d4bcf15e97b55851b7",
+          "termsSummary": " Assessor’s parcel mapping is a representation of property boundaries, not an authoritative source. The authoritative record of property boundaries is recorded at the registries of deeds and a legally authoritative map of property boundaries can only be produced by a professional land surveyor. ",
+          "authorityVerified": false,
+          "status": "DISCOVERED",
+          "automaticActivation": false
+        },
+        {
+          "itemId": "1dcce3e915c1467f83cd43f4817fe976",
+          "title": "MassGIS Basemap with Parcels (Tile Service)",
+          "publisher": "MassGIS",
+          "serviceUrl": "https://tiles.arcgis.com/tiles/hGdibHYSPO59RG1h/arcgis/rest/services/MassGISBasemap_Topo_Detailed_L3/MapServer",
+          "authorityHint": "MassGIS",
+          "licenseLink": "https://www.arcgis.com/home/item.html?id=1dcce3e915c1467f83cd43f4817fe976",
+          "termsSummary": " This map may be used in any mapping application that consumes this format. Credit may be listed as &quot;MassGIS, Mass. Executive Office of Technology Services and Security.&quot; Visit the MassGIS Data Layers page for details on the individual datasets used to create this map. For details see the MassGIS Base Map page. ",
+          "authorityVerified": false,
+          "status": "DISCOVERED",
+          "automaticActivation": false
+        }
+      ]
+    },
+    {
+      "query": "owner:NJOGIS parcels",
+      "total": 71,
+      "candidates": [
+        {
+          "itemId": "533599bbfbaa4748bf39faf1375a8a9c",
+          "title": "Parcels and MOD-IV Composite of NJ, Web Mercator (3857)",
+          "publisher": "NJOGIS",
+          "serviceUrl": "https://services2.arcgis.com/XVOqAjTOJ5P6ngMu/arcgis/rest/services/Parcels_Composite_NJ_WM/FeatureServer",
+          "authorityHint": "NJ Office of Information Technology, Office of GIS (NJOGIS); \nAtlantic County; \nBergen County; \nBurlington County; \nCamden County; \nCape May County; \nCumberland County; \nEssex County; \nGloucester County; \nHudson County; \nHunterdon County; \nMercer County; \nMiddlesex County; \nMonmouth County; \nMorris County; \nOcean County; \nPassaic County; \nSalem County; \nSomerset County; \nSussex County; \nUnion County; \nWarren County; \nNewark; \nEast Brunswick; \nNew Brunswick; \nNorth Brunswick; \nPiscataway; \nSouth Brunswick; \nWoodbridge;\nCivil Solutions; \nSpatial Data Logic\n\nProcessing of data from Division of Taxation for use in this dataset was performed by NJOIT, Enterprise Data Services, Data Warehouse.",
+          "licenseLink": "https://www.arcgis.com/home/item.html?id=533599bbfbaa4748bf39faf1375a8a9c",
+          "termsSummary": " The data layer(s) in this service are not survey data and must not be used as survey data. Users are urged to review the balance of this metadata record, and records for the components, to understand the conditions that limit appropriate uses and to assess the fitness of the data for any planned use. Acknowledgement of the service provider, NJ Office of Information Technology, Office of GIS (NJOGIS), is requested for maps, data or other products derived from this service. The State of New Jersey makes great effort to provide secure, accurate, and complete data and metadata. However, portions of the data and metadata may be incorrect or not current. Any errors or omissions should be reported to njgin@oit.nj.gov for investigation. The State of New Jersey, its officers, employees or agents shall not be liable for damages or losses of any kind arising out of or in connection with the use or performance of data and metadata, including but not limited to, damages or losses caused by reliance upon the accuracy or timeliness of any such data and metadata, or damages incurred from the viewing, distributing, or copying of those materials. The data and metadata are provided \"as is.\" No warranty of any kind, implied, expressed, or statutory, including but not limited to the warranties of non-infringement of third party rights, title, merchantability, fitness for a particular purpose, and freedom from computer virus, is given with respect to the data and metadata, or its hyperlinks to other Internet resources. The State disclaims any duty or obligation either to maintain availability of or to update the data and metadata. All website data distribution by NJOGIS is, in addition, subject to the Conditions of Use for State of New Jersey executive branch web sites, listed on the State’s Legal Statement &amp; Disclaimers page https://www.nj.gov/nj/legal.html. ",
+          "authorityVerified": false,
+          "status": "DISCOVERED",
+          "automaticActivation": false,
+          "schemaAssessment": {
+            "geometry": null,
+            "fields": [],
+            "layers": [
+              {
+                "id": 0,
+                "name": "Cad_parcel_mod4"
+              }
+            ],
+            "query": true,
+            "updatedAt": null
+          },
+          "technicalScore": 30
+        },
+        {
+          "itemId": "852937c223e94fcf8e167a23b500935d",
+          "title": "Parcels and MOD-IV Composite of New Jersey",
+          "publisher": "NJOGIS",
+          "serviceUrl": "https://maps.nj.gov/arcgis/rest/services/Framework/Cadastral/MapServer/0",
+          "authorityHint": "NJ Office of Information Technology, Office of GIS (NJOGIS); \nAtlantic County; \nBergen County; \nBurlington County; \nCamden County; \nCape May County; \nCumberland County; \nEssex County; \nGloucester County; \nHudson County; \nHunterdon County; \nMercer County; \nMiddlesex County; \nMonmouth County; \nMorris County; \nOcean County; \nPassaic County; \nSalem County; \nSomerset County; \nSussex County; \nUnion County; \nWarren County; \nNewark; \nEast Brunswick; \nNew Brunswick; \nNorth Brunswick; \nPiscataway; \nSouth Brunswick; \nWoodbridge;\nCivil Solutions; \nSpatial Data Logic\n\nProcessing of data from Division of Taxation for use in this dataset was performed by NJOIT, Enterprise Data Services, Data Warehouse.",
+          "licenseLink": "https://www.arcgis.com/home/item.html?id=852937c223e94fcf8e167a23b500935d",
+          "termsSummary": " The data layer(s) in this service are not survey data and must not be used as survey data. Users are urged to review the balance of this metadata record, and records for the components, to understand the conditions that limit appropriate uses and to assess the fitness of the data for any planned use. Acknowledgement of the service provider, NJ Office of Information Technology, Office of GIS (NJOGIS), is requested for maps, data or other products derived from this service. The State of New Jersey makes great effort to provide secure, accurate, and complete data and metadata. However, portions of the data and metadata may be incorrect or not current. Any errors or omissions should be reported to njgin@oit.nj.gov for investigation. The State of New Jersey, its officers, employees or agents shall not be liable for damages or losses of any kind arising out of or in connection with the use or performance of data and metadata, including but not limited to, damages or losses caused by reliance upon the accuracy or timeliness of any such data and metadata, or damages incurred from the viewing, distributing, or copying of those materials. The data and metadata are provided \"as is.\" No warranty of any kind, implied, expressed, or statutory, including but not limited to the warranties of non-infringement of third party rights, title, merchantability, fitness for a particular purpose, and freedom from computer virus, is given with respect to the data and metadata, or its hyperlinks to other Internet resources. The State disclaims any duty or obligation either to maintain availability of or to update the data and metadata. All website data distribution by NJOGIS is, in addition, subject to the Conditions of Use for State of New Jersey executive branch web sites, listed on the State’s Legal Statement &amp; Disclaimers page https://www.nj.gov/nj/legal.html. ",
+          "authorityVerified": false,
+          "status": "DISCOVERED",
+          "automaticActivation": false
+        }
+      ]
+    },
+    {
+      "query": "owner:Services_VCGI parcels",
+      "total": 18,
+      "candidates": [
+        {
+          "itemId": "09cf47e1cf82465e99164762a04f3ce6",
+          "title": "VT Data - Statewide Standardized Parcel Data - parcel polygons",
+          "publisher": "Services_VCGI",
+          "serviceUrl": "https://services1.arcgis.com/BkFxaEFNwHqX3tAw/arcgis/rest/services/FS_VCGI_OPENDATA_Cadastral_VTPARCELS_poly_standardized_parcels_SP_v1/FeatureServer",
+          "authorityHint": "Vermont municipalities, Vermont licensed land surveyors, Vermont Department of Taxes.",
+          "licenseLink": "https://www.arcgis.com/home/item.html?id=09cf47e1cf82465e99164762a04f3ce6",
+          "termsSummary": " This data layer is not a legal survey. It is not a legal conveyance or description of property and is intended for planning purposes only. VCGI and the State of VT make no representations of any kind, including but not limited to the warranties of merchantability or fitness for a particular use, nor are any such warranties to be implied with respect to the data. ",
+          "authorityVerified": false,
+          "status": "DISCOVERED",
+          "automaticActivation": false,
+          "schemaAssessment": {
+            "geometry": null,
+            "fields": [],
+            "layers": [
+              {
+                "id": 0,
+                "name": "FS_VCGI_OPENDATA_Cadastral_VTPARCELS_poly_standardized_parcels_SP_v1"
+              }
+            ],
+            "query": true,
+            "updatedAt": null
+          },
+          "technicalScore": 30
+        },
+        {
+          "itemId": "32127e72319544768c9c3dfbfa2ba444",
+          "title": "VT Data - Statewide Standardized Parcel Data - inactive parcel polygons",
+          "publisher": "Services_VCGI",
+          "serviceUrl": "https://services1.arcgis.com/BkFxaEFNwHqX3tAw/arcgis/rest/services/FS_VCGI_OPENDATA_Cadastral_VTPARCELS_poly_standardized_inactive_SP_v1/FeatureServer",
+          "authorityHint": "Vermont municipalities, Vermont licensed land surveyors, Vermont Department of Taxes.",
+          "licenseLink": "https://www.arcgis.com/home/item.html?id=32127e72319544768c9c3dfbfa2ba444",
+          "termsSummary": " This data layer is not a legal survey. It is not a legal conveyance or description of property and is intended for planning purposes only. VCGI and the State of VT make no representations of any kind, including but not limited to the warranties of merchantability or fitness for a particular use, nor are any such warranties to be implied with respect to the data. ",
+          "authorityVerified": false,
+          "status": "DISCOVERED",
+          "automaticActivation": false,
+          "schemaAssessment": {
+            "geometry": null,
+            "fields": [],
+            "layers": [
+              {
+                "id": 0,
+                "name": "FS_VCGI_OPENDATA_Cadastral_VTPARCELS_poly_standardized_inactive_SP_v1"
+              }
+            ],
+            "query": true,
+            "updatedAt": null
+          },
+          "technicalScore": 30
+        },
+        {
+          "itemId": "e558f38d1ef7413ead3986a3c0019be3",
+          "title": "VT Data - Statewide Standardized Parcel Data - Data Status polygons",
+          "publisher": "Services_VCGI",
+          "serviceUrl": "https://services1.arcgis.com/BkFxaEFNwHqX3tAw/arcgis/rest/services/FS_VCGI_OPENDATA_Cadastral_VTPARCELS_poly_DataStatus_SP_v1/FeatureServer",
+          "authorityHint": "Vermont municipalities, Vermont licensed land surveyors, Vermont Department of Taxes.",
+          "licenseLink": "https://www.arcgis.com/home/item.html?id=e558f38d1ef7413ead3986a3c0019be3",
+          "termsSummary": " This data layer is not a legal survey. It is not a legal conveyance or description of property and is intended for planning purposes only. VCGI and the State of VT make no representations of any kind, including but not limited to the warranties of merchantability or fitness for a particular use, nor are any such warranties to be implied with respect to the data. ",
+          "authorityVerified": false,
+          "status": "DISCOVERED",
+          "automaticActivation": false,
+          "schemaAssessment": {
+            "geometry": null,
+            "fields": [],
+            "layers": [
+              {
+                "id": 0,
+                "name": "FS_VCGI_OPENDATA_Cadastral_VTPARCELS_poly_DataStatus_SP_v1"
+              }
+            ],
+            "query": true,
+            "updatedAt": null
+          },
+          "technicalScore": 30
+        },
+        {
+          "itemId": "684874ccc2544544b66ec6fd3c15b171",
+          "title": "FS_VCGI_VTPARCELS_WM_NOCACHE_v2",
+          "publisher": "Services_VCGI",
+          "serviceUrl": "https://services1.arcgis.com/BkFxaEFNwHqX3tAw/arcgis/rest/services/FS_VCGI_VTPARCELS_WM_NOCACHE_v2/FeatureServer",
+          "authorityHint": null,
+          "licenseLink": "https://www.arcgis.com/home/item.html?id=684874ccc2544544b66ec6fd3c15b171",
+          "termsSummary": " VCGI and the State of VT make no representations of any kind, including but not limited to the warranties of merchantability or fitness for a particular use, nor are any such warranties to be implied with respect to the data, service, or application. ",
+          "authorityVerified": false,
+          "status": "DISCOVERED",
+          "automaticActivation": false,
+          "schemaAssessment": {
+            "geometry": null,
+            "fields": [],
+            "layers": [
+              {
+                "id": 0,
+                "name": "Cadastral_VTPARCELS_poly_inactive"
+              },
+              {
+                "id": 1,
+                "name": "Cadastral_VTPARCELS_poly"
+              }
+            ],
+            "query": true,
+            "updatedAt": null
+          },
+          "technicalScore": 30
+        }
+      ]
+    },
+    {
+      "query": "owner:nconemap parcels",
+      "total": 24,
+      "candidates": [
+        {
+          "itemId": "1de3d7d828ce4813b838ddf055b40317",
+          "title": "North Carolina Parcels (Polygons)",
+          "publisher": "nconemap",
+          "serviceUrl": "https://services.nconemap.gov/secure/rest/services/NC1Map_Parcels/MapServer/1",
+          "authorityHint": "This dataset was transformed by the Project Team and Vendor Team for the NC Integrated Cadastral Data Exchange Project, funded by US EPA Environmental Information Exchange Network. Source datasets were furnished by data managers in North Carolina Counties and the Eastern Band of Cherokee Indians.",
+          "licenseLink": "https://www.arcgis.com/home/item.html?id=1de3d7d828ce4813b838ddf055b40317",
+          "termsSummary": "https://www.nconemap.gov/pages/terms",
+          "authorityVerified": false,
+          "status": "DISCOVERED",
+          "automaticActivation": false
+        },
+        {
+          "itemId": "943c5690291445c4bb679a7422dd8b93",
+          "title": "North Carolina Parcels (Centroids)",
+          "publisher": "nconemap",
+          "serviceUrl": "https://services.nconemap.gov/secure/rest/services/NC1Map_Parcels/MapServer/0",
+          "authorityHint": "This dataset was transformed by the Project Team and Vendor Team for the NC Integrated Cadastral Data Exchange Project, funded by US EPA Environmental Information Exchange Network. Source datasets were furnished by data managers in North Carolina Counties and the Eastern Band of Cherokee Indians.",
+          "licenseLink": "https://www.arcgis.com/home/item.html?id=943c5690291445c4bb679a7422dd8b93",
+          "termsSummary": "https://www.nconemap.gov/pages/terms",
+          "authorityVerified": false,
+          "status": "DISCOVERED",
+          "automaticActivation": false
+        }
+      ]
+    },
+    {
+      "query": "owner:UtahAGRC parcels",
+      "total": 102,
+      "candidates": [
+        {
+          "itemId": "c8d7f2e6bad646d6af0827752d717ddb",
+          "title": "Parcels_Grand_SanJuan",
+          "publisher": "UtahAGRC",
+          "serviceUrl": "https://services1.arcgis.com/99lidPhWCzftIe9K/arcgis/rest/services/Parcels_Grand_SanJuan/FeatureServer",
+          "authorityHint": "AGRC",
+          "licenseLink": "https://www.arcgis.com/home/item.html?id=c8d7f2e6bad646d6af0827752d717ddb",
+          "termsSummary": "Demo use only, not full set of parcels",
+          "authorityVerified": false,
+          "status": "DISCOVERED",
+          "automaticActivation": false,
+          "schemaAssessment": {
+            "geometry": null,
+            "fields": [],
+            "layers": [
+              {
+                "id": 0,
+                "name": "Parcels_Grand_SanJuan"
+              }
+            ],
+            "query": true,
+            "updatedAt": null
+          },
+          "technicalScore": 30
+        },
+        {
+          "itemId": "6f900727e16d4ce1a83f2a1ec1d82e60",
+          "title": "Utah Salt Lake County Parcels LIR",
+          "publisher": "UtahAGRC",
+          "serviceUrl": "https://services1.arcgis.com/99lidPhWCzftIe9K/arcgis/rest/services/Parcels_SaltLake_LIR/FeatureServer",
+          "authorityHint": null,
+          "licenseLink": "https://www.arcgis.com/home/item.html?id=6f900727e16d4ce1a83f2a1ec1d82e60",
+          "termsSummary": " The data, including but not limited to geographic data, tabular data, and analytical data, are provided \"as is\" and \"as available\", with no guarantees relating to the availability, completeness, or accuracy of data, and without any express or implied warranties. These data are provided as a public service for informational purposes only. You are solely responsible for obtaining the proper evaluation of a location and associated data by a qualified professional. UGRC reserves the right to change, revise, suspend or discontinue published data and services without notice at any time. Neither UGRC nor the State of Utah are responsible for any misuse or misrepresentation of the data. UGRC and the State of Utah are not obligated to provide you with any maintenance or support. The user assumes the entire risk as to the quality and performance of the data. You agree to hold the State of Utah harmless for any claims, liability, costs, and damages relating to your use of the data. You agree that your sole remedy for any dissatisfaction or claims is to discontinue use of the data. This work is licensed under a Creative Commons Attribution 4.0 International License . ",
+          "authorityVerified": false,
+          "status": "DISCOVERED",
+          "automaticActivation": false,
+          "schemaAssessment": {
+            "geometry": null,
+            "fields": [],
+            "layers": [
+              {
+                "id": 0,
+                "name": "Parcels_SaltLake_LIR"
+              }
+            ],
+            "query": true,
+            "updatedAt": null
+          },
+          "technicalScore": 30
+        },
+        {
+          "itemId": "bbdc62867c2340949f530a71666223ab",
+          "title": "Utah Housing Unit Inventory",
+          "publisher": "UtahAGRC",
+          "serviceUrl": "https://services1.arcgis.com/99lidPhWCzftIe9K/arcgis/rest/services/HousingUnitInventory/FeatureServer",
+          "authorityHint": "WFRC, MAG, UGRC",
+          "licenseLink": "https://www.arcgis.com/home/item.html?id=bbdc62867c2340949f530a71666223ab",
+          "termsSummary": " The data, including but not limited to geographic data, tabular data, and analytical data, are provided &quot;as is&quot; and &quot;as available&quot;, with no guarantees relating to the availability, completeness, or accuracy of data, and without any express or implied warranties. These data are provided as a public service for informational purposes only. You are solely responsible for obtaining the proper evaluation of a location and associated data by a qualified professional. UGRC reserves the right to change, revise, suspend or discontinue published data and services without notice at any time. Neither UGRC nor the State of Utah are responsible for any misuse or misrepresentation of the data. UGRC and the State of Utah are not obligated to provide you with any maintenance or support. The user assumes the entire risk as to the quality and performance of the data. You agree to hold the State of Utah harmless for any claims, liability, costs, and damages relating to your use of the data. You agree that your sole remedy for any dissatisfaction or claims is to discontinue use of the data. This work is licensed under a Creative Commons Attribution 4.0 International License . ",
+          "authorityVerified": false,
+          "status": "DISCOVERED",
+          "automaticActivation": false,
+          "schemaAssessment": {
+            "geometry": null,
+            "fields": [],
+            "layers": [
+              {
+                "id": 0,
+                "name": "HousingUnitInventory"
+              }
+            ],
+            "query": true,
+            "updatedAt": null
+          },
+          "technicalScore": 30
+        },
+        {
+          "itemId": "69477c1143924bc9990cdb930b033fb5",
+          "title": "Utah Utah County Parcels LIR",
+          "publisher": "UtahAGRC",
+          "serviceUrl": "https://services1.arcgis.com/99lidPhWCzftIe9K/arcgis/rest/services/Parcels_Utah_LIR/FeatureServer",
+          "authorityHint": null,
+          "licenseLink": "https://www.arcgis.com/home/item.html?id=69477c1143924bc9990cdb930b033fb5",
+          "termsSummary": " The data, including but not limited to geographic data, tabular data, and analytical data, are provided &quot;as is&quot; and &quot;as available&quot;, with no guarantees relating to the availability, completeness, or accuracy of data, and without any express or implied warranties. These data are provided as a public service for informational purposes only. You are solely responsible for obtaining the proper evaluation of a location and associated data by a qualified professional. UGRC reserves the right to change, revise, suspend or discontinue published data and services without notice at any time. Neither UGRC nor the State of Utah are responsible for any misuse or misrepresentation of the data. UGRC and the State of Utah are not obligated to provide you with any maintenance or support. The user assumes the entire risk as to the quality and performance of the data. You agree to hold the State of Utah harmless for any claims, liability, costs, and damages relating to your use of the data. You agree that your sole remedy for any dissatisfaction or claims is to discontinue use of the data. This work is licensed under a Creative Commons Attribution 4.0 International License . ",
+          "authorityVerified": false,
+          "status": "DISCOVERED",
+          "automaticActivation": false,
+          "schemaAssessment": {
+            "geometry": null,
+            "fields": [],
+            "layers": [
+              {
+                "id": 0,
+                "name": "Parcels_Utah_LIR"
+              }
+            ],
+            "query": true,
+            "updatedAt": null
+          },
+          "technicalScore": 30
+        }
+      ]
+    },
+    {
+      "query": "FloridaGIO parcels 2026",
+      "total": 0,
+      "candidates": []
+    },
+    {
+      "query": "owner:CTM.Publisher tcad parcel",
+      "total": 3,
+      "candidates": [
+        {
+          "itemId": "6f5f919cf5c948cfaa3b3c326af3fba3",
+          "title": "EXTERNAL_tcad_parcel",
+          "publisher": "CTM.Publisher",
+          "serviceUrl": "https://services.arcgis.com/0L95CJ0VTaxqcmED/arcgis/rest/services/EXTERNAL_tcad_parcel/FeatureServer",
+          "authorityHint": "Communications and Technology Management",
+          "licenseLink": "https://www.arcgis.com/home/item.html?id=6f5f919cf5c948cfaa3b3c326af3fba3",
+          "termsSummary": " This product is for informational purposes and may not have been prepared for or be suitable for legal, engineering, or surveying purposes. It does not represent an on-the-ground survey and represents only the approximate relative location of property boundaries. This product has been produced by the City of Austin for the sole purpose of geographic reference. No warranty is made by the City of Austin regarding specific accuracy or completeness. ",
+          "authorityVerified": false,
+          "status": "DISCOVERED",
+          "automaticActivation": false,
+          "schemaAssessment": {
+            "geometry": null,
+            "fields": [],
+            "layers": [
+              {
+                "id": 0,
+                "name": "TCAD Parcels"
+              }
+            ],
+            "query": true,
+            "updatedAt": null
+          },
+          "technicalScore": 30
+        },
+        {
+          "itemId": "404825ecbd9648f4a30eb7ce555e855f",
+          "title": "BOUNDARIES_wildland_urban_interface_code",
+          "publisher": "CTM.Publisher",
+          "serviceUrl": "https://services.arcgis.com/0L95CJ0VTaxqcmED/arcgis/rest/services/BOUNDARIES_wildland_urban_interface_code/FeatureServer",
+          "authorityHint": "Austin Fire Department Wildfire Division",
+          "licenseLink": "https://www.arcgis.com/home/item.html?id=404825ecbd9648f4a30eb7ce555e855f",
+          "termsSummary": " This product is for informational purposes and may not have been prepared for or be suitable for legal, engineering, or surveying purposes. It does not represent an on-the-ground survey and represents only the approximate relative location of property boundaries. This product has been produced by the Austin Fire Department for the sole purpose of geographic reference. No warranty is made by the City of Austin regarding specific accuracy or completeness. Updates are scheduled as needed. ",
+          "authorityVerified": false,
+          "status": "DISCOVERED",
+          "automaticActivation": false,
+          "schemaAssessment": {
+            "geometry": null,
+            "fields": [],
+            "layers": [
+              {
+                "id": 0,
+                "name": "BOUNDARIES_wildland_urban_interface_code"
+              }
+            ],
+            "query": true,
+            "updatedAt": null
+          },
+          "technicalScore": 30
+        },
+        {
+          "itemId": "4f022e74a71e4cf98cb4a4e2487d8b43",
+          "title": "PLANNINGCADASTRE_impervious_cover_2021",
+          "publisher": "CTM.Publisher",
+          "serviceUrl": "https://services.arcgis.com/0L95CJ0VTaxqcmED/arcgis/rest/services/PLANNINGCADASTRE_impervious_cover_2021/FeatureServer",
+          "authorityHint": "City of Austin Watershed Protection Department",
+          "licenseLink": "https://www.arcgis.com/home/item.html?id=4f022e74a71e4cf98cb4a4e2487d8b43",
+          "termsSummary": " This product is for informational purposes and may not have been prepared for or be suitable for legal, engineering, or surveying purposes. It does not represent an on-the-ground survey and represents only the approximate relative location of property boundaries. This product has been produced by the City of Austin for the sole purpose of geographic reference. No warranty is made by the City of Austin regarding specific accuracy or completeness. ",
+          "authorityVerified": false,
+          "status": "DISCOVERED",
+          "automaticActivation": false,
+          "schemaAssessment": {
+            "geometry": null,
+            "fields": [],
+            "layers": [
+              {
+                "id": 0,
+                "name": "PLANNINGCADASTRE_impervious_cover_2021"
+              }
+            ],
+            "query": true,
+            "updatedAt": null
+          },
+          "technicalScore": 30
+        }
+      ]
+    }
+  ]
+}

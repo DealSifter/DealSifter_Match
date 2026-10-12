@@ -4,6 +4,7 @@ export type FeatureFlagDefinition = {
   enabled: boolean;
   environments: FeatureEnvironment[];
   percentage: number;
+  internalUserIds?: string[];
 };
 
 export const FEATURE_FLAG_DEFINITIONS = {
@@ -64,6 +65,9 @@ function normalizeDefinition(value: unknown, fallback: FeatureFlagDefinition): F
     enabled: candidate.enabled === true,
     environments,
     percentage: clampPercentage(candidate.percentage),
+    internalUserIds: Array.isArray(candidate.internalUserIds)
+      ? candidate.internalUserIds.filter((id): id is string => typeof id === 'string' && id.trim() === id && id.length > 0 && id.length <= 128).slice(0, 100)
+      : [],
   };
 }
 
@@ -88,6 +92,9 @@ export function resolveFeatureFlags({
     const cohortEnabled = deterministicCohort(userId, flagName) < definition.percentage;
     let enabled = definition.enabled && environmentEnabled && cohortEnabled;
     if (allowOverride && typeof overrides[flagName] === 'boolean') enabled = overrides[flagName] === true;
+    // Phase 1B is internal only. Neither rollout percentages nor client/admin
+    // overrides can expose parcels to users absent from the server allowlist.
+    if (flagName === 'public_parcel_intelligence') enabled = enabled && !!userId && !!definition.internalUserIds?.includes(userId);
     result[flagName] = enabled;
   }
   return result;

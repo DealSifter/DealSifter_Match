@@ -1,0 +1,249 @@
+{
+  "observedAt": "2026-10-12T04:54:08.805Z",
+  "mode": "LIVE_PUBLIC_GOVERNMENT_NORMAL_RESOLVER",
+  "sources": [
+    {
+      "sourceId": "us-ut-salt-lake-parcels",
+      "blockers": [],
+      "status": "ACTIVE",
+      "licenseStatus": "CLEAR_FOR_USE",
+      "counties": [
+        {
+          "countyFips": "49035",
+          "point": "COVERAGE_AVAILABLE",
+          "apnParity": true,
+          "viewport": "COVERAGE_AVAILABLE",
+          "address": "NOT_RUN",
+          "addressGeocoder": null,
+          "areaComparisons": [
+            {
+              "apn": "15014310050000",
+              "assessorAcres": 2.43,
+              "gisAcres": null,
+              "geometryCalculatedAcres": 2.2166795147769456,
+              "crossCheck": {
+                "status": "MINOR_VARIANCE",
+                "relativeDifference": 0.08778620791072204
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "sourceId": "us-ma-massgis-parcels",
+      "blockers": [],
+      "status": "ACTIVE",
+      "licenseStatus": "CLEAR_FOR_USE",
+      "counties": [
+        {
+          "countyFips": "25017",
+          "point": "COVERAGE_AVAILABLE",
+          "apnParity": true,
+          "viewport": "COVERAGE_AVAILABLE",
+          "address": "COVERAGE_AVAILABLE",
+          "addressGeocoder": "NOMINATIM_PUBLIC",
+          "areaComparisons": [
+            {
+              "apn": "F_761834_2961307",
+              "assessorAcres": 0.12,
+              "gisAcres": null,
+              "geometryCalculatedAcres": 0.1180210901149202,
+              "crossCheck": {
+                "status": "CONSISTENT",
+                "relativeDifference": 0.01649091570899835
+              }
+            }
+          ]
+        },
+        {
+          "countyFips": "25025",
+          "point": "COVERAGE_AVAILABLE",
+          "apnParity": true,
+          "viewport": "COVERAGE_AVAILABLE",
+          "address": "PARCEL_NOT_FOUND",
+          "addressGeocoder": "NOMINATIM_PUBLIC",
+          "areaComparisons": [
+            {
+              "apn": "F_774459_2955698",
+              "assessorAcres": 0.22,
+              "gisAcres": null,
+              "geometryCalculatedAcres": 0.23794357127299218,
+              "crossCheck": {
+                "status": "MINOR_VARIANCE",
+                "relativeDifference": 0.0754110362259191
+              }
+            },
+            {
+              "apn": "F_774459_2955698",
+              "assessorAcres": 0,
+              "gisAcres": null,
+              "geometryCalculatedAcres": 0.23794357127299218,
+              "crossCheck": {
+                "status": "NOT_EVALUATED",
+                "relativeDifference": null
+              }
+            },
+            {
+              "apn": "F_774459_2955698",
+              "assessorAcres": 0,
+              "gisAcres": null,
+              "geometryCalculatedAcres": 0.23794357127299218,
+              "crossCheck": {
+                "status": "NOT_EVALUATED",
+                "relativeDifference": null
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "sourceId": "us-nj-njogis-parcels",
+      "blockers": [],
+      "status": "ACTIVE",
+      "licenseStatus": "CLEAR_FOR_USE",
+      "counties": [
+        {
+          "countyFips": "34021",
+          "point": "COVERAGE_AVAILABLE",
+          "apnParity": true,
+          "viewport": "COVERAGE_AVAILABLE",
+          "address": "PARCEL_NOT_FOUND",
+          "addressGeocoder": "CENSUS_PUBLIC",
+          "areaComparisons": [
+            {
+              "apn": "1111_202_6",
+              "assessorAcres": null,
+              "gisAcres": 2.54,
+              "geometryCalculatedAcres": 2.5399839867796863,
+              "crossCheck": {
+                "status": "CONSISTENT",
+                "relativeDifference": 0.000006304417446357729
+              }
+            }
+          ]
+        },
+        {
+          "countyFips": "34003",
+          "point": "COVERAGE_AVAILABLE",
+          "apnParity": true,
+          "viewport": "COVERAGE_AVAILABLE",
+          "address": "PARCEL_NOT_FOUND",
+          "addressGeocoder": "CENSUS_PUBLIC",
+          "areaComparisons": [
+            {
+              "apn": "0223_317_21",
+              "assessorAcres": null,
+              "gisAcres": 0.2167,
+              "geometryCalculatedAcres": 0.2042646577887379,
+              "crossCheck": {
+                "status": "MINOR_VARIANCE",
+                "relativeDifference": 0.05738505865833921
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "sourceId": "us-vt-vcgi-parcels",
+      "blockers": [],
+      "status": "ACTIVE",
+      "licenseStatus": "CLEAR_FOR_USE",
+      "counties": [
+        {
+          "countyFips": "50007",
+          "point": "COVERAGE_AVAILABLE",
+          "apnParity": true,
+          "viewport": "COVERAGE_AVAILABLE",
+          "address": "COVERAGE_AVAILABLE",
+          "addressGeocoder": "NOMINATIM_PUBLIC",
+          "areaComparisons": [
+            {
+              "apn": "114-035-15299",
+              "assessorAcres": 0.1,
+              "gisAcres": null,
+              "geometryCalculatedAcres": 0.1022924811495145,
+              "crossCheck": {
+                "status": "MINOR_VARIANCE",
+                "relativeDifference": 0.022411042568844537
+              }
+            }
+          ]
+        },
+        {
+          "countyFips": "50023",
+          "point": "COVERAGE_AVAILABLE",
+          "apnParity": true,
+          "viewport": "COVERAGE_AVAILABLE",
+          "address": "COVERAGE_AVAILABLE",
+          "addressGeocoder": "NOMINATIM_PUBLIC",
+          "areaComparisons": [
+            {
+              "apn": "405-126-10649",
+              "assessorAcres": 1.22,
+              "gisAcres": null,
+              "geometryCalculatedAcres": 1.233462809068426,
+              "crossCheck": {
+                "status": "CONSISTENT",
+                "relativeDifference": 0.010914645313541246
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "sourceId": "us-nc-nconemap-parcels",
+      "blockers": [],
+      "status": "ACTIVE",
+      "licenseStatus": "CLEAR_FOR_USE",
+      "counties": [
+        {
+          "countyFips": "37183",
+          "point": "COVERAGE_AVAILABLE",
+          "apnParity": true,
+          "viewport": "COVERAGE_AVAILABLE",
+          "address": "COVERAGE_AVAILABLE",
+          "addressGeocoder": "NOMINATIM_PUBLIC",
+          "areaComparisons": [
+            {
+              "apn": "37183_1703781789",
+              "assessorAcres": null,
+              "gisAcres": 0.33088993000000005,
+              "geometryCalculatedAcres": 0.33091310359543985,
+              "crossCheck": {
+                "status": "CONSISTENT",
+                "relativeDifference": 0.00007002924691712138
+              }
+            }
+          ]
+        },
+        {
+          "countyFips": "37063",
+          "point": "COVERAGE_AVAILABLE",
+          "apnParity": true,
+          "viewport": "COVERAGE_AVAILABLE",
+          "address": "COVERAGE_AVAILABLE",
+          "addressGeocoder": "NOMINATIM_PUBLIC",
+          "areaComparisons": [
+            {
+              "apn": "37063_0821969855",
+              "assessorAcres": null,
+              "gisAcres": 1.48,
+              "geometryCalculatedAcres": 1.4772622322827513,
+              "crossCheck": {
+                "status": "CONSISTENT",
+                "relativeDifference": 0.0018498430521950349
+              }
+            }
+          ]
+        }
+      ]
+    }
+  ],
+  "productionAuthenticatedE2E": "NOT_RUN_NO_USER_SESSION",
+  "addressUsesExistingPublicProviderOrder": true,
+  "canonicalWrites": 0
+}

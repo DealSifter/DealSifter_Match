@@ -10,7 +10,8 @@ import { resolveFeatureFlags } from '../featureFlags.ts';
 import type { ParcelSource, ParcelGeometry, ProviderResult } from './types.ts';
 
 const geometry: ParcelGeometry = { type: 'Polygon', coordinates: [[[-122, 47], [-121.999, 47], [-121.999, 47.001], [-122, 47.001], [-122, 47]]] };
-const active = (index = 2): ParcelSource => ({ ...PARCEL_SOURCES[index], status: 'ACTIVE', licenseStatus: 'APPROVED' });
+const active = (index = 2): ParcelSource => ({ ...PARCEL_SOURCES[index], status: 'ACTIVE', licenseStatus: 'APPROVED', lastValidatedAt: '2026-10-12',
+  validation: { authorityVerified: true, schemaValidated: true, geometryQueryValidated: true, apnQueryValidated: true, viewportQueryValidated: true, counties: [PARCEL_SOURCES[index].countyFips], evidencePath: 'UNIT_FIXTURE' } });
 const metadata = (source: ParcelSource, formats = 'JSON, geoJSON') => ({ geometryType: 'esriGeometryPolygon', capabilities: 'Query,Map', fields: Object.values(source.fieldMapping).map(name => ({ name })), maxRecordCount: 1000, objectIdField: 'OBJECTID', supportedQueryFormats: formats });
 const response = (value: unknown, status = 200) => new Response(JSON.stringify(value), { status });
 const providerResult = (source: ParcelSource): ProviderResult => ({ parcels: [normalizeParcel(source, { [source.fieldMapping.apn!]: '001-000-09' }, geometry, '2026-10-12T00:00:00Z', null)], exceededLimit: false });
@@ -21,7 +22,7 @@ describe('national public parcel foundation', () => {
   it('defaults OFF in every existing feature flag environment', () => {
     for (const environment of ['development', 'staging', 'production'] as const) expect(resolveFeatureFlags({ userId: 'viewer', environment }).public_parcel_intelligence).toBe(false);
   });
-  it('has no production source activated by discovery', () => expect(PARCEL_SOURCES.filter(productionSourceAllowed)).toHaveLength(0));
+  it('never allows discovery-only sources at runtime', () => expect(PARCEL_SOURCES.filter(source => source.status === 'DISCOVERED').filter(productionSourceAllowed)).toHaveLength(0));
   it('requires BOTH ACTIVE status and cleared license', () => {
     expect(productionSourceAllowed({ ...active(), licenseStatus: 'UNKNOWN' })).toBe(false);
     expect(productionSourceAllowed({ ...active(), status: 'SCHEMA_VALIDATED' })).toBe(false);
