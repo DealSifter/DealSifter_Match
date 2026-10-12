@@ -1,0 +1,46 @@
+{
+  "baseline": "15fa6974c257dc0be90ed08cc1df7c362b13064a",
+  "productionSourceSha": "9dbedf145bbe775248cc18e0a8801fc3209f1c71",
+  "sourceBranch": "fix/production-real-defects",
+  "sourceCommitPushed": true,
+  "frontend": {
+    "deploymentId": "dpl_CgAzDVTAyD1dfyTnXq2VrXBqwZ3V",
+    "url": "https://dealsiftermatch-c5yqd9chb-deal-sifter-match-s-projects.vercel.app",
+    "productionAlias": "https://dealsiftermatch.vercel.app",
+    "readyState": "READY",
+    "target": "production",
+    "sourceMetadataVerified": true,
+    "build": "PASS"
+  },
+  "backend": {
+    "project": "cyeipfskwwisbbayyaca",
+    "method": "Supabase CLI functions deploy --use-api, unchanged local source at productionSourceSha",
+    "functions": [
+      { "name": "maxxis-chat", "previousVersion": 78, "version": 79, "status": "ACTIVE", "updatedAt": "2026-10-12T02:09:12Z", "deployExitCode": 0 },
+      { "name": "property-intelligence", "previousVersion": 8, "version": 9, "status": "ACTIVE", "updatedAt": "2026-10-12T02:09:06Z", "deployExitCode": 0 },
+      { "name": "arv-visual-comp-review", "previousVersion": 8, "version": 9, "status": "ACTIVE", "updatedAt": "2026-10-12T02:09:06Z", "deployExitCode": 0 },
+      { "name": "maxxis-provider-message-draft", "previousVersion": 14, "version": 15, "status": "ACTIVE", "updatedAt": "2026-10-12T02:09:03Z", "deployExitCode": 0 }
+    ]
+  },
+  "validation": {
+    "fullTests": { "passed": 1641, "total": 1641, "files": 203 },
+    "targetedTests": { "passed": 115, "total": 115, "files": 9 },
+    "typecheck": "PASS",
+    "lint": "PASS",
+    "localBuild": "PASS",
+    "productionBuild": "PASS",
+    "baselineDenoErrors": 51,
+    "currentDenoErrors": 51,
+    "newDenoErrors": 0,
+    "publicProductionSmoke": "production-smoke.json",
+    "controlPdf": "gable-report.pdf",
+    "fixedPages": 6,
+    "authenticatedProduction": "NOT_AVAILABLE",
+    "blocker": "No authorized authenticated test session or Playwright storageState supplied for Gable production UI validation."
+  },
+  "automatedRentCastCalls": 0,
+  "geminiArithmeticCalls": 0,
+  "migration": "NONE",
+  "implementation": "PARTIAL",
+  "note": "Implementation and deployment are complete; authenticated production acceptance is pending. Receipt-only follow-up commits do not change the deployed source."
+}
