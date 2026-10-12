@@ -1,0 +1,21 @@
+{
+  "baseline": "be3d3e94b43b1f3f90936f9e55890e50d14ff1e8",
+  "backendChanges": 0,
+  "sourceRegistryChanges": 0,
+  "sourceActivations": 0,
+  "approvedActiveRegistrySources": 5,
+  "publicSourcesEnabled": 0,
+  "migration": "NONE",
+  "arbitraryURLProxyIntroduced": 0,
+  "paidProviderPathsIntroduced": 0,
+  "SSRFRegression": 0,
+  "canonicalPropertyWritesIntroduced": 0,
+  "propertyRowWritesIntroduced": 0,
+  "maxxisChanges": 0,
+  "reportChanges": 0,
+  "scenarioChanges": 0,
+  "telemetry": "Existing DealSifter track_app_event RPC; only bounded zoom/count/stale metadata; no location, APN, owner or identity fields",
+  "userIdentitySentToGIS": 0,
+  "evidence": ["backend-dependency-closure.json", "parcel-toggle-tests.json", "full-tests.json"],
+  "authenticatedProductionValidation": "BLOCKED_NO_APPROVED_USER_UUID_OR_SESSION"
+}

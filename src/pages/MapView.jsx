@@ -29,7 +29,9 @@ import { PortfolioPinCarousel } from '../components/map/PortfolioPinCarousel';
 import { linkedPortfolioSlides } from '../components/map/portfolioPinData';
 import { getLang } from '../i18n/translations';
 import { resolveContactUnlockState, resolvePropertyUnlockState } from '../lib/unlockAccessState';
-import { parcelLabels } from '../features/parcel/parcelPresentation';
+import ParcelBoundaryToggle from '../components/map/ParcelBoundaryToggle';
+import { restoreParcelPreference, parcelPreferenceEnabled } from '../features/parcel/parcelPreference';
+import { trackParcelEvent } from '../features/parcel/parcelTelemetry';
 
 const PublicParcelLayer = React.lazy(() => import('../components/map/PublicParcelLayer'));
 
@@ -814,8 +816,6 @@ export function MapView({
   onMatchProperty = null,
   parcelFeatureEnabled = false,
 }) {
-  const [parcelLayerEnabled, setParcelLayerEnabled] = useState(false);
-  const parcelCopy = parcelLabels(getLang());
   const enableMockMapData = import.meta.env.DEV && String(import.meta.env.VITE_ENABLE_MOCK_DATA || '').toLowerCase() === 'true';
   const allT = useT('mapview');
   const tMatches = allT.matches;
@@ -838,6 +838,8 @@ export function MapView({
     ? prefMap.defaultFilters
     : {};
   const initialMapUiState = useMemo(() => _loadMapUiState(), []);
+  const [parcelPreference, setParcelPreference] = useState(() => restoreParcelPreference(initialMapUiState, currentUserId));
+  const parcelLayerEnabled = parcelPreferenceEnabled(parcelPreference, currentUserId, parcelFeatureEnabled);
   const mapUiStateRef = React.useRef(initialMapUiState || {});
   const unlockedIds = useMemo(() => new Set((Array.isArray(unlocked) ? unlocked : [])
     .map(id => String(id ?? '').trim()).filter(Boolean)), [unlocked]);
@@ -1080,6 +1082,8 @@ export function MapView({
       panelWidthCustomized,
       viewport,
       selectedCardId,
+      publicParcelBoundariesEnabled: parcelPreference.enabled,
+      parcelPreferenceOwner: parcelPreference.owner,
       ...overrides,
     };
     mapUiStateRef.current = snapshot;
@@ -1101,6 +1105,7 @@ export function MapView({
     panelWidthCustomized,
     viewport,
     selectedCardId,
+    parcelPreference,
   ]);
 
   // Active restore pass on mount to avoid losing context after redirection/unmount cycles.
@@ -2026,6 +2031,8 @@ export function MapView({
         .map-cluster-breakdown { font-size: var(--cluster-breakdown-size, 8px); opacity: .95; margin-top: 2px; line-height: 1; max-width: calc(100% - 8px); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
         .map-chip, .map-filter-mode { --chip-active: var(--ui-active); --chip-active-text: var(--ui-active-text); border: 1px solid var(--ui-border); border-radius: 999px; padding: 6px 10px; background: var(--ui-surface); color: ${C.t2}; cursor: pointer; font-size: 12px; font-weight: 400; transition: all .15s ease; min-height: 30px; line-height: 1.15; }
         .map-chip:hover, .map-filter-mode:hover { border-color: var(--ui-border); color: ${C.t1}; background: var(--ui-hover); }
+        .map-parcel-toggle { display:flex; align-items:center; gap:6px; max-width:100%; flex-wrap:wrap; margin-bottom:8px; text-align:left; }
+        .map-parcel-toggle:focus-visible { outline:2px solid var(--ui-active); outline-offset:2px; }
         .map-panel-tab:hover { color: ${C.t1}; background: var(--ui-hover); }
         .map-chip-active, .map-filter-mode-active { background: var(--chip-active); border-color: var(--chip-active); color: var(--chip-active-text); font-weight: 700; }
         .map-chip-active:hover, .map-filter-mode-active:hover { background: var(--chip-active); color: var(--chip-active-text); filter: brightness(0.96); }
@@ -2365,8 +2372,12 @@ export function MapView({
 
               <div className="map-section-card">
                 <div style={{ color: C.t2, fontSize: 12, marginBottom: 8, fontWeight: 400 }}>{tMap.mapDisplay}</div>
-                {parcelFeatureEnabled && <button type="button" className={`map-chip ${parcelLayerEnabled ? 'map-chip-active' : ''}`}
-                  aria-pressed={parcelLayerEnabled} onClick={() => setParcelLayerEnabled(value => !value)}>{parcelCopy.boundaries}</button>}
+                <ParcelBoundaryToggle eligible={parcelFeatureEnabled} enabled={parcelLayerEnabled} language={getLang()}
+                  onToggle={() => {
+                    const enabled = !parcelLayerEnabled;
+                    setParcelPreference({ owner: String(currentUserId || ''), enabled });
+                    void trackParcelEvent(enabled ? 'enabled' : 'disabled');
+                  }} />
                   {forceSimpleBaseTiles && (
                     <div style={{
                       marginBottom: 8,
@@ -2741,8 +2752,9 @@ export function MapView({
           <MapContainer key={`mapview-${mapActivationKey}`} center={safeViewportCenter} zoom={safeViewportZoom} className="map-canvas" zoomControl={false}>
             <MapEvents onViewportChange={setViewport} />
             <MapVisibilityController active={isActive} />
-            {parcelFeatureEnabled && parcelLayerEnabled && <React.Suspense fallback={null}>
-              <PublicParcelLayer enabled active={isActive} viewport={viewport} language={getLang()}
+            {parcelFeatureEnabled && <React.Suspense fallback={null}>
+              <PublicParcelLayer key={String(currentUserId || '')} enabled={parcelLayerEnabled} active={isActive} viewport={viewport} language={getLang()}
+                popupPaddingLeft={panelCollapsed || isMobileViewport ? 12 : panelWidth + 24}
                 selectedPoint={(() => {
                   const selected = safeRenderedFeatures.find(feature => String(feature.properties?.itemId || '') === String(selectedCardId || ''));
                   const coordinates = selected?.geometry?.coordinates;

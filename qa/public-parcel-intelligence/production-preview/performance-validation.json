@@ -1,0 +1,21 @@
+{
+  "offGISCalls": 0,
+  "lowZoomGISCalls": 0,
+  "reenableExtraUpstreamRequests": 0,
+  "cancellation": "UNIT_LATEST_GENERATION_TEST_PASS",
+  "measurements": [
+    {
+      "device": "DESKTOP",
+      "offReadyMs": 1074.6000001430511
+    },
+    {
+      "device": "TABLET",
+      "offReadyMs": 899.8999998569489
+    },
+    {
+      "device": "MOBILE",
+      "offReadyMs": 844.4000000953674
+    }
+  ],
+  "productionBenchmark": "NOT_RUN"
+}

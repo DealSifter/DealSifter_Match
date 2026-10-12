@@ -1,0 +1,176 @@
+{
+  "observedAt": "2026-10-12T17:15:04.317Z",
+  "baseline": "be3d3e94b43b1f3f90936f9e55890e50d14ff1e8",
+  "results": [
+    {
+      "device": "DESKTOP",
+      "status": "PASS",
+      "evidenceMode": "LOCAL_REAL_GIS_WITH_MOCKED_APPLICATION_AUTH_BOUNDARY",
+      "productionAuthentication": "BLOCKED",
+      "toggle": "PASS",
+      "keyboard": "PASS",
+      "persistedPreference": "PASS",
+      "revokedEligibility": "PASS",
+      "markerCountPreserved": true,
+      "parcelSelectionIndependent": true,
+      "cacheReenableExtraUpstreamRequests": 0,
+      "featureOffGISCalls": 0,
+      "lowZoomGISCalls": 0,
+      "panel": "PASS",
+      "noCoverage": "PASS_REAL_CENSUS_NORMAL_RESOLVER",
+      "offReadyMs": 1074.6000001430511,
+      "calls": [
+        {
+          "status": "COVERAGE_AVAILABLE",
+          "count": 120,
+          "cacheHit": false,
+          "exceededLimit": true,
+          "sourceIds": [
+            "us-ma-massgis-parcels"
+          ],
+          "zoom": 18
+        },
+        {
+          "status": "COVERAGE_AVAILABLE",
+          "count": 120,
+          "cacheHit": false,
+          "exceededLimit": true,
+          "sourceIds": [
+            "us-ma-massgis-parcels"
+          ],
+          "zoom": 19
+        },
+        {
+          "status": "COVERAGE_AVAILABLE",
+          "count": 49,
+          "cacheHit": false,
+          "exceededLimit": false,
+          "sourceIds": [
+            "us-ma-massgis-parcels"
+          ],
+          "zoom": 20
+        },
+        {
+          "status": "PARCEL_NOT_FOUND",
+          "count": 0,
+          "cacheHit": false,
+          "exceededLimit": false,
+          "sourceIds": [],
+          "zoom": 18
+        },
+        {
+          "status": "NO_ACTIVE_PUBLIC_SOURCE",
+          "count": 0,
+          "cacheHit": false,
+          "exceededLimit": false,
+          "sourceIds": [],
+          "zoom": 19
+        }
+      ]
+    },
+    {
+      "device": "TABLET",
+      "status": "PASS",
+      "evidenceMode": "LOCAL_REAL_GIS_WITH_MOCKED_APPLICATION_AUTH_BOUNDARY",
+      "productionAuthentication": "BLOCKED",
+      "toggle": "PASS",
+      "keyboard": "PASS",
+      "persistedPreference": "PASS",
+      "revokedEligibility": "PASS",
+      "markerCountPreserved": true,
+      "parcelSelectionIndependent": true,
+      "cacheReenableExtraUpstreamRequests": 0,
+      "featureOffGISCalls": 0,
+      "lowZoomGISCalls": 0,
+      "panel": "PASS",
+      "noCoverage": "NOT_RUN",
+      "offReadyMs": 899.8999998569489,
+      "calls": [
+        {
+          "status": "COVERAGE_AVAILABLE",
+          "count": 120,
+          "cacheHit": false,
+          "exceededLimit": true,
+          "sourceIds": [
+            "us-ma-massgis-parcels"
+          ],
+          "zoom": 18
+        },
+        {
+          "status": "COVERAGE_AVAILABLE",
+          "count": 106,
+          "cacheHit": false,
+          "exceededLimit": false,
+          "sourceIds": [
+            "us-ma-massgis-parcels"
+          ],
+          "zoom": 19
+        },
+        {
+          "status": "COVERAGE_AVAILABLE",
+          "count": 102,
+          "cacheHit": false,
+          "exceededLimit": false,
+          "sourceIds": [
+            "us-ma-massgis-parcels"
+          ],
+          "zoom": 19
+        }
+      ]
+    },
+    {
+      "device": "MOBILE",
+      "status": "PASS",
+      "evidenceMode": "LOCAL_REAL_GIS_WITH_MOCKED_APPLICATION_AUTH_BOUNDARY",
+      "productionAuthentication": "BLOCKED",
+      "toggle": "PASS",
+      "keyboard": "PASS",
+      "persistedPreference": "PASS",
+      "revokedEligibility": "PASS",
+      "markerCountPreserved": true,
+      "parcelSelectionIndependent": true,
+      "cacheReenableExtraUpstreamRequests": 0,
+      "featureOffGISCalls": 0,
+      "lowZoomGISCalls": 0,
+      "panel": "PASS",
+      "noCoverage": "NOT_RUN",
+      "offReadyMs": 844.4000000953674,
+      "calls": [
+        {
+          "status": "COVERAGE_AVAILABLE",
+          "count": 120,
+          "cacheHit": false,
+          "exceededLimit": true,
+          "sourceIds": [
+            "us-ma-massgis-parcels"
+          ],
+          "zoom": 18
+        },
+        {
+          "status": "COVERAGE_AVAILABLE",
+          "count": 50,
+          "cacheHit": false,
+          "exceededLimit": false,
+          "sourceIds": [
+            "us-ma-massgis-parcels"
+          ],
+          "zoom": 19
+        },
+        {
+          "status": "COVERAGE_AVAILABLE",
+          "count": 46,
+          "cacheHit": false,
+          "exceededLimit": false,
+          "sourceIds": [
+            "us-ma-massgis-parcels"
+          ],
+          "zoom": 19
+        }
+      ]
+    }
+  ],
+  "source": "MassGIS / Middlesex County / MA",
+  "paidCalls": 0,
+  "upstreamRequests": 10,
+  "generalExposure": "DISABLED"
+}

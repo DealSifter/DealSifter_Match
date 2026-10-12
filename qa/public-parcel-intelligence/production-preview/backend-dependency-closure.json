@@ -1,0 +1,8 @@
+{
+  "baseline": "be3d3e94b43b1f3f90936f9e55890e50d14ff1e8",
+  "method": "transitive local import graph including re-exports and dynamic imports",
+  "changedSharedModules": [],
+  "changedFunctionModules": [],
+  "affectedFunctions": [],
+  "unresolvedLocalImports": []
+}

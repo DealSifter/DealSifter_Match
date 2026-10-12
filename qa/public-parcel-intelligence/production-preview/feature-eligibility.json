@@ -1,0 +1,15 @@
+{
+  "flag": "public_parcel_intelligence",
+  "defaultState": "OFF",
+  "generalPublicExposure": "DISABLED",
+  "mechanism": "Existing FEATURE_FLAGS_JSON flag entry internalUserIds, matched server-side against Supabase authenticated user ID",
+  "newFlagFramework": false,
+  "identityHardcoded": false,
+  "approvedValidUserUUIDProvided": false,
+  "productionUserSessionProvided": false,
+  "productionConfigurationChanged": false,
+  "internalPreview": "BLOCKED_NO_APPROVED_USER_UUID_OR_AUTHENTICATED_SESSION",
+  "preference": "sessionStorage.ds_mapview_ui_state_v1; scoped to current account; eligibility strictly true required",
+  "environmentChanges": [],
+  "frontendEligibility": "Boolean only; saved ON cannot bypass server authorization"
+}

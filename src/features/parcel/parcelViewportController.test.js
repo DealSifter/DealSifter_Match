@@ -20,6 +20,22 @@ describe('isolated MapView parcel behavior', () => {
     vi.useFakeTimers(); const request = vi.fn(); const publish = vi.fn(); const controller = new ParcelViewportController(request, publish);
     controller.update({ enabled: false, viewport }); await vi.runAllTimersAsync(); expect(request).not.toHaveBeenCalled(); expect(publish).toHaveBeenLastCalledWith({ status: 'DISABLED', parcels: [] });
   });
+  it('OFF after ON removes polygons, permits pan with zero requests and reuses valid cache on re-enable', async () => {
+    vi.useFakeTimers(); const value = { status: 'COVERAGE_AVAILABLE', parcels: [{ apn: 'public' }], freshness: 'FRESH' };
+    const request = vi.fn(async () => value); const publish = vi.fn(); const controller = new ParcelViewportController(request, publish);
+    controller.update({ enabled: true, viewport }); await vi.runAllTimersAsync();
+    controller.update({ enabled: false, viewport: { ...viewport, bounds: [-123, 47, -122.99, 47.01] } }); await vi.runAllTimersAsync();
+    expect(publish).toHaveBeenLastCalledWith({ status: 'DISABLED', parcels: [] }); expect(request).toHaveBeenCalledOnce();
+    controller.update({ enabled: true, viewport }); await vi.runAllTimersAsync();
+    expect(publish).toHaveBeenLastCalledWith({ ...value, viewportCacheHit: true }); expect(request).toHaveBeenCalledOnce();
+  });
+  it('keeps no coverage and source stale evidence as ordinary layer results, not global errors', async () => {
+    vi.useFakeTimers(); const stale = { status: 'COVERAGE_AVAILABLE', freshness: 'STALE_USABLE', parcels: [{ apn: 'retained' }] };
+    const request = vi.fn().mockResolvedValueOnce({ status: 'NO_ACTIVE_PUBLIC_SOURCE', parcels: [] }).mockResolvedValueOnce(stale);
+    const publish = vi.fn(); const controller = new ParcelViewportController(request, publish);
+    controller.update({ enabled: true, viewport }); await vi.runAllTimersAsync(); expect(publish).toHaveBeenLastCalledWith({ status: 'NO_ACTIVE_PUBLIC_SOURCE', parcels: [] });
+    controller.update({ enabled: true, viewport: { ...viewport, bounds: [-123, 47, -122.99, 47.01] } }); await vi.runAllTimersAsync(); expect(publish).toHaveBeenLastCalledWith(stale);
+  });
   it('low zoom and inactive map make zero requests', async () => {
     vi.useFakeTimers(); const request = vi.fn(); const publish = vi.fn(); const controller = new ParcelViewportController(request, publish);
     controller.update({ enabled: true, viewport: { ...viewport, zoom: 12 } }); controller.update({ enabled: true, active: false, viewport });

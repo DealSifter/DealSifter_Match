@@ -13,7 +13,7 @@ export class ParcelViewportController {
     if (viewport?.zoom < PARCEL_MIN_ZOOM || !Array.isArray(viewport?.bounds)) { this.visibleParcels = []; this.publish({ status: 'PARCEL_NOT_FOUND', reason: 'ZOOM_REQUIRED', parcels: [] }); return; }
     const query = { operation: 'query-bounds', bounds: viewport.bounds, zoom: viewport.zoom };
     const key = JSON.stringify(query); const cached = this.cache.get(key);
-    if (cached?.expiresAt > Date.now()) { this.visibleParcels = cached.data.parcels || []; this.publish(cached.data); return; }
+    if (cached?.expiresAt > Date.now()) { this.visibleParcels = cached.data.parcels || []; this.publish({ ...cached.data, viewportCacheHit: true }); return; }
     const signal = new AbortController(); this.abort = signal;
     // Leaflet may pan to fit an opened popup. Do not destroy its GeoJSON owner
     // while the resulting viewport query is pending; new/failed results replace it.

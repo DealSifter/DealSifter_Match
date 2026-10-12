@@ -1,0 +1,90 @@
+{
+  "evidenceMode": "LOCAL_DETERMINISTIC_FIXTURES_NOT_LIVE_SOURCE_OR_PRODUCTION_AUTH",
+  "results": [
+    {
+      "language": "pt",
+      "device": "DESKTOP",
+      "status": "PASS",
+      "areaConflict": "PASS",
+      "staleUsable": "PASS",
+      "explicitTax": "PASS",
+      "legalDescriptionUntruncated": "PASS",
+      "subdivision": "PASS",
+      "fieldProvenance": "PASS",
+      "scrollContainment": "PASS",
+      "dismissal": "PASS"
+    },
+    {
+      "language": "pt",
+      "device": "MOBILE",
+      "status": "PASS",
+      "areaConflict": "PASS",
+      "staleUsable": "PASS",
+      "explicitTax": "PASS",
+      "legalDescriptionUntruncated": "PASS",
+      "subdivision": "PASS",
+      "fieldProvenance": "PASS",
+      "scrollContainment": "PASS",
+      "dismissal": "PASS"
+    },
+    {
+      "language": "en",
+      "device": "DESKTOP",
+      "status": "PASS",
+      "areaConflict": "PASS",
+      "staleUsable": "PASS",
+      "explicitTax": "PASS",
+      "legalDescriptionUntruncated": "PASS",
+      "subdivision": "PASS",
+      "fieldProvenance": "PASS",
+      "scrollContainment": "PASS",
+      "dismissal": "PASS"
+    },
+    {
+      "language": "en",
+      "device": "MOBILE",
+      "status": "PASS",
+      "areaConflict": "PASS",
+      "staleUsable": "PASS",
+      "explicitTax": "PASS",
+      "legalDescriptionUntruncated": "PASS",
+      "subdivision": "PASS",
+      "fieldProvenance": "PASS",
+      "scrollContainment": "PASS",
+      "dismissal": "PASS"
+    },
+    {
+      "language": "es",
+      "device": "DESKTOP",
+      "status": "PASS",
+      "areaConflict": "PASS",
+      "staleUsable": "PASS",
+      "explicitTax": "PASS",
+      "legalDescriptionUntruncated": "PASS",
+      "subdivision": "PASS",
+      "fieldProvenance": "PASS",
+      "scrollContainment": "PASS",
+      "dismissal": "PASS"
+    },
+    {
+      "language": "es",
+      "device": "MOBILE",
+      "status": "PASS",
+      "areaConflict": "PASS",
+      "staleUsable": "PASS",
+      "explicitTax": "PASS",
+      "legalDescriptionUntruncated": "PASS",
+      "subdivision": "PASS",
+      "fieldProvenance": "PASS",
+      "scrollContainment": "PASS",
+      "dismissal": "PASS"
+    }
+  ],
+  "semantics": {
+    "nullNotZero": "TARGETED_UNIT_TEST_PASS",
+    "assessmentNotMarket": "TARGETED_UNIT_TEST_PASS",
+    "noFrontendAreaRecalculation": true,
+    "ownerAssessmentZoning": "REAL_MASSGIS_NORMALIZED_FIELDS_PLUS_UNIT_TESTS",
+    "taxFixtureNotLiveMassGIS": true
+  }
+}
