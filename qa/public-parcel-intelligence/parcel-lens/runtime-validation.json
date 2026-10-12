@@ -1,0 +1,158 @@
+{
+  "mode": "LOCAL_REAL_GIS_WITH_MOCKED_APP_AUTH_NOT_PRODUCTION_AUTH",
+  "source": "MassGIS / Middlesex County / MA",
+  "results": [
+    {
+      "device": "DESKTOP",
+      "language": "pt",
+      "theme": "light",
+      "status": "PASS",
+      "zoomAfterFly": 20,
+      "pointLookup": 1,
+      "fixedRadiusNeighborQuery": 1,
+      "zoomOutExtraRequests": 0,
+      "neighborWithoutPin": "PASS",
+      "popupPageSwitch": "PASS",
+      "manualClose": "PASS",
+      "qaGridHidden": true,
+      "calls": [
+        {
+          "operation": "query-point",
+          "status": "COVERAGE_AVAILABLE",
+          "count": 1,
+          "exceededLimit": false,
+          "cacheHit": false
+        },
+        {
+          "operation": "query-bounds",
+          "status": "COVERAGE_AVAILABLE",
+          "count": 120,
+          "exceededLimit": true,
+          "cacheHit": false
+        }
+      ]
+    },
+    {
+      "device": "DESKTOP",
+      "language": "en",
+      "theme": "dark",
+      "status": "PASS",
+      "zoomAfterFly": 20,
+      "pointLookup": 1,
+      "fixedRadiusNeighborQuery": 1,
+      "zoomOutExtraRequests": 0,
+      "neighborWithoutPin": "PASS",
+      "popupPageSwitch": "PASS",
+      "manualClose": "PASS",
+      "qaGridHidden": true,
+      "calls": [
+        {
+          "operation": "query-point",
+          "status": "COVERAGE_AVAILABLE",
+          "count": 1,
+          "exceededLimit": false,
+          "cacheHit": true
+        },
+        {
+          "operation": "query-bounds",
+          "status": "COVERAGE_AVAILABLE",
+          "count": 120,
+          "exceededLimit": true,
+          "cacheHit": true
+        }
+      ]
+    },
+    {
+      "device": "MOBILE",
+      "language": "pt",
+      "theme": "dark",
+      "status": "PASS",
+      "zoomAfterFly": 19,
+      "pointLookup": 1,
+      "fixedRadiusNeighborQuery": 1,
+      "zoomOutExtraRequests": 0,
+      "neighborWithoutPin": "PASS",
+      "popupPageSwitch": "PASS",
+      "manualClose": "PASS",
+      "qaGridHidden": true,
+      "calls": [
+        {
+          "operation": "query-point",
+          "status": "COVERAGE_AVAILABLE",
+          "count": 1,
+          "exceededLimit": false,
+          "cacheHit": true
+        },
+        {
+          "operation": "query-bounds",
+          "status": "COVERAGE_AVAILABLE",
+          "count": 120,
+          "exceededLimit": true,
+          "cacheHit": true
+        }
+      ]
+    },
+    {
+      "device": "MOBILE",
+      "language": "es",
+      "theme": "light",
+      "status": "PASS",
+      "zoomAfterFly": 19,
+      "pointLookup": 1,
+      "fixedRadiusNeighborQuery": 1,
+      "zoomOutExtraRequests": 0,
+      "neighborWithoutPin": "PASS",
+      "popupPageSwitch": "PASS",
+      "manualClose": "PASS",
+      "qaGridHidden": true,
+      "calls": [
+        {
+          "operation": "query-point",
+          "status": "COVERAGE_AVAILABLE",
+          "count": 1,
+          "exceededLimit": false,
+          "cacheHit": true
+        },
+        {
+          "operation": "query-bounds",
+          "status": "COVERAGE_AVAILABLE",
+          "count": 120,
+          "exceededLimit": true,
+          "cacheHit": true
+        }
+      ]
+    },
+    {
+      "device": "TABLET",
+      "language": "es",
+      "theme": "dark",
+      "status": "PASS",
+      "zoomAfterFly": 20,
+      "pointLookup": 1,
+      "fixedRadiusNeighborQuery": 1,
+      "zoomOutExtraRequests": 0,
+      "neighborWithoutPin": "PASS",
+      "popupPageSwitch": "PASS",
+      "manualClose": "PASS",
+      "qaGridHidden": true,
+      "calls": [
+        {
+          "operation": "query-point",
+          "status": "COVERAGE_AVAILABLE",
+          "count": 1,
+          "exceededLimit": false,
+          "cacheHit": true
+        },
+        {
+          "operation": "query-bounds",
+          "status": "COVERAGE_AVAILABLE",
+          "count": 120,
+          "exceededLimit": true,
+          "cacheHit": true
+        }
+      ]
+    }
+  ],
+  "upstreamGISCalls": 3,
+  "paidProviderCalls": 0
+}

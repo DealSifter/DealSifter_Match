@@ -4,11 +4,15 @@ import { Icon } from '../ui/Icon';
 import { BedDouble, Bath, Expand } from 'lucide-react';
 import { C } from '../../theme/colors';
 import feedMatchIcon from '../../assets/feed-match-icon.png';
+import { ParcelPublicData } from './ParcelPublicData';
+import { parcelLabels } from '../../features/parcel/parcelPresentation';
+import './ParcelLens.css';
 import './PropertyPinPopup.css';
 
 const numeric = value => value !== null && value !== undefined && value !== '' && Number.isFinite(Number(value)) ? Number(value) : null;
 
-export function PropertyPinPopup({ property, label, selected = false, own = false, language = 'en', onOpen, onMatch }) {
+export function PropertyPinPopup({ property, label, selected = false, own = false, language = 'en', onOpen, onMatch,
+  parcelState = null, onParcelActivate, onParcelPage, onCloseLens }) {
   const [pending, setPending] = useState(false);
   const t = (pt, en, es) => language.startsWith('pt') ? pt : language.startsWith('es') ? es : en;
   const locale = language.startsWith('pt') ? 'pt-BR' : language.startsWith('es') ? 'es-US' : 'en-US';
@@ -19,7 +23,18 @@ export function PropertyPinPopup({ property, label, selected = false, own = fals
   const days = timestamp && Number.isFinite(Date.parse(timestamp)) ? Math.floor((Date.now() - Date.parse(timestamp)) / 86400000) : null;
   const money = value => new Intl.NumberFormat(locale, { style: 'currency', currency: 'USD', maximumFractionDigits: 0 }).format(value);
   const metric = value => numeric(value) === null ? '—' : new Intl.NumberFormat(locale).format(Number(value));
+  const parcelCopy = parcelLabels(language);
+  const hasParcel = Boolean(parcelState?.parcel?.geometry);
+  const publicPage = hasParcel && parcelState.page === 'parcel';
   return <article className="ds-property-pin-popup" style={{ '--pin-ink': C.t1, '--pin-muted': C.t2, '--pin-paper': C.card, '--pin-border': C.border }}>
+    {hasParcel && <nav className="ds-property-pin-parcel-nav" aria-label={parcelCopy.title}>
+      <button type="button" aria-pressed={!publicPage} onClick={() => onParcelPage?.('property')}>{parcelCopy.propertyPage}</button>
+      <button type="button" aria-pressed={publicPage} onClick={event => { event.stopPropagation(); onParcelActivate?.(); }}>{parcelCopy.parcelPage}</button>
+      {parcelState.lens && <button type="button" aria-label={parcelCopy.closeLens} title={parcelCopy.closeLens} onClick={onCloseLens}><Icon name="x" size={14} /></button>}
+    </nav>}
+    {publicPage ? <div className="ds-property-pin-parcel-body">
+      <ParcelPublicData parcel={parcelState.parcel} result={parcelState.result} language={language} selectedPoint={parcelState.context?.point} showUnavailable />
+    </div> : <>
     <button type="button" className="ds-property-pin-photo" onClick={onOpen} aria-label={`${t('Abrir no feed', 'Open in feed', 'Abrir en el feed')}: ${label}`}>
       <SmartImage src={property.images?.[0] || property.image || ''} alt={label}
         style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }}
@@ -30,6 +45,8 @@ export function PropertyPinPopup({ property, label, selected = false, own = fals
     <div className="ds-property-pin-details">
       <div className="ds-property-pin-price-row">
         <div><strong>{price === null ? '—' : money(price)}</strong>{reportedArv !== null && reportedArv > 0 && <small>ARV · {money(reportedArv)}</small>}</div>
+        {hasParcel && <button type="button" className="ds-property-pin-lens" aria-label={parcelCopy.magnifier} title={parcelCopy.magnifier}
+          onClick={event => { event.stopPropagation(); onParcelActivate?.(); }}><Icon name="search" size={19} /></button>}
         <button type="button" className={`ds-property-pin-match${selected ? ' is-selected' : ''}`} aria-pressed={selected}
           disabled={own || pending || !onMatch} title={own ? t('Este imóvel é seu', 'Your own property', 'Tu propiedad') : 'Match'}
           onClick={async event => { event.stopPropagation(); setPending(true); try { await onMatch(property); } finally { setPending(false); } }}>
@@ -45,5 +62,6 @@ export function PropertyPinPopup({ property, label, selected = false, own = fals
         <span><Expand size={17} />{metric(property.sqft)} sqft</span>
       </div>
     </div>
+    </>}
   </article>;
 }

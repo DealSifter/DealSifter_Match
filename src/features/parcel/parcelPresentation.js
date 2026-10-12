@@ -4,6 +4,12 @@ export function parcelLabels(language = 'en') {
     boundaries: t('Limites de lotes', 'Parcel boundaries', 'Límites de parcelas'), title: t('Dados públicos da parcela', 'Public parcel data', 'Datos públicos de la parcela'),
     publicGIS: t('Dados públicos GIS', 'Public GIS data', 'Datos GIS públicos'), on: t('ON', 'ON', 'ON'), off: t('OFF', 'OFF', 'OFF'),
     close: t('Fechar dados do lote', 'Close parcel details', 'Cerrar datos de la parcela'),
+    magnifier: t('Ver limites e dados da parcela', 'View parcel boundaries and public data', 'Ver límites y datos de la parcela'),
+    propertyPage: t('Imóvel', 'Property', 'Inmueble'), parcelPage: t('Parcela pública', 'Public parcel', 'Parcela pública'),
+    closeLens: t('Fechar lente parcelária', 'Close parcel lens', 'Cerrar lente parcelaria'),
+    lens: t('Lente parcelária', 'Parcel lens', 'Lente parcelaria'), unavailable: t('Não disponível', 'Not available', 'No disponible'),
+    limited: t('Vizinhos limitados pela fonte; a lente não representa todos os lotes do raio.', 'Source-limited neighbors; the lens does not represent every parcel in the radius.', 'Vecinos limitados por la fuente; la lente no representa todas las parcelas del radio.'),
+    neighborUnavailable: t('Não foi possível atualizar os lotes vizinhos. O lote principal foi mantido.', 'Neighbor refresh unavailable. The principal parcel is retained.', 'No se pudieron actualizar las parcelas vecinas. Se conserva la principal.'),
     legal: t('Descrição legal', 'Legal description', 'Descripción legal'), subdivision: t('Loteamento', 'Subdivision', 'Subdivisión'),
     provenance: t('Origem dos campos', 'Field provenance', 'Origen de los campos'),
     area: t('Área da parcela', 'Parcel area', 'Área de la parcela'), assessor: t('Área do cadastro fiscal', 'Assessor acreage', 'Área del registro fiscal'),
@@ -25,7 +31,7 @@ export function parcelLabels(language = 'en') {
     loading: t('Consultando GIS público…', 'Querying public GIS…', 'Consultando GIS público…'),
   };
 }
-export function parcelPanelRows(parcel, language = 'en') {
+export function parcelPanelRows(parcel, language = 'en', { showUnavailable = false } = {}) {
   const labels = parcelLabels(language); const locale = language.startsWith('pt') ? 'pt-BR' : language.startsWith('es') ? 'es-US' : 'en-US';
   const numeric = n => new Intl.NumberFormat(locale, { maximumFractionDigits: 4 }).format(n);
   const money = n => new Intl.NumberFormat(locale, { style: 'currency', currency: 'USD', maximumFractionDigits: 0 }).format(n);
@@ -40,7 +46,8 @@ export function parcelPanelRows(parcel, language = 'en') {
     [labels.tax, parcel.propertyTax == null ? null : `${money(parcel.propertyTax)}${parcel.propertyTaxYear ? ` · ${parcel.propertyTaxYear}` : ''}`],
     [labels.taxCode, parcel.taxCode], [labels.zoning, parcel.zoning],
     [labels.legal, parcel.legalDescription], [labels.subdivision, parcel.subdivision],
-  ].filter(([, value]) => value !== null && value !== undefined && value !== '');
+  ].filter(([, value]) => showUnavailable || value !== null && value !== undefined && value !== '')
+    .map(([label, value]) => [label, value === null || value === undefined || value === '' ? labels.unavailable : value]);
 }
 
 export function parcelFieldProvenance(parcel, language = 'en') {

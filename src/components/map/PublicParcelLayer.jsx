@@ -3,9 +3,9 @@ import { GeoJSON, Pane, Popup } from 'react-leaflet';
 import { C } from '../../theme/colors';
 import { queryPublicParcels } from '../../services/publicParcelService';
 import { ParcelViewportController } from '../../features/parcel/parcelViewportController';
-import { parcelLabels, parcelPanelRows, parcelFieldProvenance } from '../../features/parcel/parcelPresentation';
+import { parcelLabels } from '../../features/parcel/parcelPresentation';
+import { ParcelPublicData } from './ParcelPublicData';
 import { trackParcelEvent } from '../../features/parcel/parcelTelemetry';
-import { geometryContains } from '../../../supabase/functions/_shared/public-parcel/geometry.ts';
 import './PublicParcelLayer.css';
 
 export default function PublicParcelLayer({ enabled, active, viewport, language, selectedPoint = null, popupPaddingLeft = 12 }) {
@@ -44,22 +44,7 @@ export default function PublicParcelLayer({ enabled, active, viewport, language,
         style={{ color: '#29a9a5', weight: 1.5, fillColor: '#29a9a5', fillOpacity: .05 }}>
         <Popup pane="popupPane" className="ds-parcel-popup" maxWidth={340}
           autoPanPaddingTopLeft={[popupPaddingLeft, 80]} autoPanPaddingBottomRight={[12, 20]}>
-          <article style={{ color: C.t1, background: C.card }} data-testid="public-parcel-panel">
-            <strong>{t.title}</strong>
-            {parcel.situsAddress && <p>{parcel.situsAddress}</p>}
-            {parcel.areaCrossCheck?.status === 'MATERIAL_CONFLICT' && <p className="ds-parcel-warning">{t.conflict}</p>}
-            {result.freshness === 'STALE_USABLE' && <p className="ds-parcel-warning">{t.stale}</p>}
-            <dl>{parcelPanelRows(parcel, language).map(([label, value]) => <div key={label}><dt>{label}</dt><dd>{value}</dd></div>)}</dl>
-            {parcelFieldProvenance(parcel, language).length > 0 && <details>
-              <summary>{t.provenance}</summary>
-              <dl>{parcelFieldProvenance(parcel, language).map(([label, field]) => <div key={label}><dt>{label}</dt><dd>{field}</dd></div>)}</dl>
-            </details>}
-            {selectedPoint && geometryContains(parcel.geometry, selectedPoint) && <p>{t.relation}</p>}
-            <p>{t.source}: <a href={parcel.sourceUrl} target="_blank" rel="noreferrer">{parcel.sourceAuthority}</a></p>
-            {parcel.sourceUpdatedAt && <p>{t.updated}: {new Date(parcel.sourceUpdatedAt).toLocaleDateString(language)}</p>}
-            <p>{t.retrieved}: {new Date(parcel.retrievedAt).toLocaleDateString(language)}</p>
-            <small>{t.disclaimer}</small>
-          </article>
+          <ParcelPublicData parcel={parcel} result={result} language={language} selectedPoint={selectedPoint} />
         </Popup>
       </GeoJSON>)}
     </Pane>

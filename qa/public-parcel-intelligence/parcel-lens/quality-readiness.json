@@ -1,0 +1,63 @@
+{
+  "observedAt": "2026-10-12T23:28:23.938Z",
+  "implementation": "PASS",
+  "targetedTests": {
+    "passed": 144,
+    "total": 144,
+    "files": 6
+  },
+  "fullTests": {
+    "passed": 1780,
+    "total": 1780,
+    "files": 208,
+    "mode": "FULL_SCOPE_WITH_ISOLATED_WORKER_STARTUP_RETRY_NOT_SINGLE_CLEAN_RUN",
+    "evidence": [
+      "full-tests-serial.json",
+      "full-tests-worker-retry.json"
+    ],
+    "originalInfrastructureErrorsRetained": true
+  },
+  "mapRegressionTests": {
+    "passed": 7,
+    "failed": 0,
+    "finalNativeCameraFilterRetryPassed": 1
+  },
+  "runtimeMode": "LOCAL_REAL_GIS_WITH_MOCKED_APP_AUTH_NOT_PRODUCTION_AUTH",
+  "runtimeCases": 5,
+  "typecheck": "PASS_CONTRACTS_AND_BOTH_AFFECTED_DENO_ROOTS",
+  "lint": "PASS_FULL_SRC_AND_AFFECTED_FILES",
+  "build": "PASS_FINAL_NATIVE_CORRECTIONS_PRESENT",
+  "builtChunks": {
+    "lens": "assets/ParcelLensLayer-B_ONeRKz.js",
+    "map": "assets/MapView-B1uuUQWz.js",
+    "css": [
+      "assets/MapView-1r4m3Bx-.css"
+    ],
+    "lensSha256": "a5c34073ea37519a1b3fa15122f250e4a1de817b77f993ca010f02388a4877bf",
+    "mapSha256": "107ee32f99cc0d97ed6ff7c570fb3270093a8650015d298e6f5c6887f4c99821",
+    "cssSha256": "f0a492849309f621cd97d821dbf87714bda69fab01ee84b059aabe1dcb2196b3"
+  },
+  "sourceHashes": {
+    "src/pages/MapView.jsx": "afbdedeb44742787538562e8f9e444789f4185d4cbc2b1332410f3b43113792d",
+    "src/components/map/PropertyPinPopup.jsx": "ef5e8b587114dbc6b4295bc2d720b79bbe66a7e8250484fed1a9f2e183f40fdd",
+    "src/components/map/ParcelLensLayer.jsx": "89068c9c07b572d86df3b0db445218f033cf5b27f7c5a318a3549a58a7f45543",
+    "src/components/map/ParcelLens.css": "23538690ee7117cb9002f9a463a97ff2dfa862985b4699c32cc6b51b7ed5341b",
+    "src/features/parcel/parcelLensController.js": "c6e5fb2e837f9d22e899b6fb83bbf49344056de9b02715ba080cf96819fedf7c",
+    "src/features/parcel/parcelLensGeometry.js": "75782f5acea75a130d098ca88e3b8b3594aab4875443a41254f9b929e0221ac1",
+    "supabase/functions/_shared/featureFlags.ts": "2b40bac08509e8146058e9ec15babccce66b488f6a73a1b0bedf17bef75201cb"
+  },
+  "featureFlags": {
+    "public_parcel_intelligence": "EXISTING_AUTHENTICATED_INTERNAL_COHORT_ONLY",
+    "public_parcel_qa_grid": "OFF_DEFAULT"
+  },
+  "publicUserExposure": "DISABLED",
+  "productionAuthenticatedValidation": "PENDING_NO_USER_SESSION",
+  "parcelRequestsPerActivation": 2,
+  "extraZoomOutRequests": 0,
+  "paidProviderCalls": 0,
+  "sourcesChanged": false,
+  "migration": "NONE",
+  "maxxisParcelConsumption": false,
+  "canonicalFactsChanged": false,
+  "reportsChanged": false
+}

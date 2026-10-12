@@ -1,0 +1,13 @@
+# Validation notes
+
+The first full offline run used four workers alongside a production build and browser validation. It passed 1,697 tests but timed out two PDF-render tests; nine additional test-file workers did not start. That unsuccessful run is retained in full-tests.json. The complete serial retry uses one worker, a 120-second test/hook timeout, the same assertions and the same network-blocking guard; its result is recorded separately in full-tests-serial.json. No PDF/report implementation or assertions were modified.
+
+The serial retry passed all 1,760 assertions in 207 files but one remaining 20-test file's fork worker did not start. That file is retried in isolation with a thread worker and the same network guard/assertions, recorded in full-tests-worker-retry.json. The final full-suite-coverage.json explicitly aggregates distinct files; it is full assertion coverage after an infrastructure retry, not a claim that the original command was clean.
+
+An exploratory eight-test browser regression run passed seven directly relevant map/property/person/carousel/avatar cases. Its additional Maxxis land-chat case failed expecting a scenario-save control after the conversation reported a failed save. The Maxxis component, feature and persistence-service trees have zero diff against baseline be4abb34b67c9353aa7f6e0f1e3920798582f79f. This out-of-scope failure is not presented as a passing Maxxis acceptance check. The final map-regression-tests.json reruns the seven directly affected cases after marker-position stabilization; the unrelated chat-saving case is explicitly excluded, not silently reclassified as passed.
+
+Live contextual validation uses the real resolver, source adapter and public GIS records, with mocked local app auth. It checks genuine hit targets and pointer clicks, not forced DOM handlers or artificial user credentials. The lens is tested after automatic parcel fit, page switches, a real neighbor click without a DealSifter PIN, native zoom-out to Z12, and explicit close. The fixed source response cap is kept and its incomplete-neighborhood warning is visible.
+
+The production build completed once before the last native-popup corrections; that early build is not sufficient proof of the final source. A subsequent build and compiled lens/MapView checks must confirm the final native circle class, stable marker and popup control-clearance padding before delivery.
+
+Real-user authenticated production acceptance remains pending because no user session has been supplied. Production smoke checks must remain read-only, without GIS/paid calls or user impersonation. Existing server cohort configuration is not overwritten, QA grid defaults OFF, and broad public exposure remains disabled.

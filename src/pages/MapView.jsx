@@ -32,8 +32,13 @@ import { resolveContactUnlockState, resolvePropertyUnlockState } from '../lib/un
 import ParcelBoundaryToggle from '../components/map/ParcelBoundaryToggle';
 import { restoreParcelPreference, parcelPreferenceEnabled } from '../features/parcel/parcelPreference';
 import { trackParcelEvent } from '../features/parcel/parcelTelemetry';
+import { ParcelLensController } from '../features/parcel/parcelLensController';
+import { parcelGeometryBounds } from '../features/parcel/parcelLensGeometry';
+import { queryPublicParcels } from '../services/publicParcelService';
+import { MapZoomLevel } from '../components/map/MapZoomLevel';
 
 const PublicParcelLayer = React.lazy(() => import('../components/map/PublicParcelLayer'));
+const ParcelLensLayer = React.lazy(() => import('../components/map/ParcelLensLayer'));
 
 const DEFAULT_CENTER = [39.5, -98.35];
 const DEFAULT_ZOOM = 4;
@@ -439,6 +444,14 @@ function getClusterIcon(total, peopleCount, propertiesCount, useUnlockedProperty
   });
 }
 
+// Preserve the native marker position object across unrelated popup/UI renders.
+// Fresh arrays trigger Leaflet setLatLng/move and can restart popup autopan.
+const StableMapMarker = React.forwardRef(function StableMapMarker({ position, ...props }, ref) {
+  const [lat, lng] = position;
+  const stablePosition = useMemo(() => [lat, lng], [lat, lng]);
+  return <Marker {...props} ref={ref} position={stablePosition} />;
+});
+
 function MapEvents({ onViewportChange }) {
   useMapEvents({
     moveend(event) {
@@ -448,6 +461,7 @@ function MapEvents({ onViewportChange }) {
         const zoom = map.getZoom();
         const center = map.getCenter();
         onViewportChange({
+          origin: 'leaflet',
           zoom,
           center: [center.lat, center.lng],
           bounds: [bounds.getWest(), bounds.getSouth(), bounds.getEast(), bounds.getNorth()],
@@ -463,6 +477,7 @@ function MapEvents({ onViewportChange }) {
         const zoom = map.getZoom();
         const center = map.getCenter();
         onViewportChange({
+          origin: 'leaflet',
           zoom,
           center: [center.lat, center.lng],
           bounds: [bounds.getWest(), bounds.getSouth(), bounds.getEast(), bounds.getNorth()],
@@ -560,7 +575,9 @@ function MapController({ mapRef, fitToBounds, fitPaddingTopLeft, fitPaddingBotto
   }, [fitToBounds, fitPaddingBottomRight, fitPaddingTopLeft, map]);
 
   React.useEffect(() => {
-    if (fitToBounds?.bounds) return;
+    // Native snapshots describe a camera movement already in progress/completed.
+    // Replaying them can rewind popup autopan between animation frames.
+    if (fitToBounds?.bounds || viewport?.origin === 'leaflet') return;
     const center = sanitizeLatLngPair(viewport?.center);
     const zoom = Number(viewport?.zoom);
     if (!center || !Number.isFinite(zoom)) return;
@@ -570,7 +587,7 @@ function MapController({ mapRef, fitToBounds, fitPaddingTopLeft, fitPaddingBotto
       && Math.abs(currentCenter.lng - center[1]) < 0.000001;
     if (sameCenter && Math.abs(currentZoom - zoom) < 0.001) return;
     map.setView(center, zoom, { animate: false });
-  }, [fitToBounds, map, viewport?.center, viewport?.zoom]);
+  }, [fitToBounds, map, viewport?.center, viewport?.zoom, viewport?.origin]);
 
   return null;
 }
@@ -815,6 +832,7 @@ export function MapView({
   interested = [],
   onMatchProperty = null,
   parcelFeatureEnabled = false,
+  parcelQaGridEnabled = false,
 }) {
   const enableMockMapData = import.meta.env.DEV && String(import.meta.env.VITE_ENABLE_MOCK_DATA || '').toLowerCase() === 'true';
   const allT = useT('mapview');
@@ -839,7 +857,13 @@ export function MapView({
     : {};
   const initialMapUiState = useMemo(() => _loadMapUiState(), []);
   const [parcelPreference, setParcelPreference] = useState(() => restoreParcelPreference(initialMapUiState, currentUserId));
-  const parcelLayerEnabled = parcelPreferenceEnabled(parcelPreference, currentUserId, parcelFeatureEnabled);
+  const parcelLayerEnabled = parcelPreferenceEnabled(parcelPreference, currentUserId, parcelFeatureEnabled === true && parcelQaGridEnabled === true);
+  const [parcelLensState, setParcelLensState] = useState({ context: null, parcel: null, lens: null, page: 'property' });
+  const parcelLensController = useMemo(() => new ParcelLensController(queryPublicParcels, state => setParcelLensState({ ...state, owner: String(currentUserId) })), [currentUserId]);
+  const parcelLensCurrent = parcelLensState.owner === String(currentUserId);
+  const propertyMarkerRefs = React.useRef(new Map());
+  useEffect(() => () => parcelLensController.dispose(), [parcelLensController]);
+  useEffect(() => { parcelLensController.clear(); }, [parcelFeatureEnabled, parcelLensController]);
   const mapUiStateRef = React.useRef(initialMapUiState || {});
   const unlockedIds = useMemo(() => new Set((Array.isArray(unlocked) ? unlocked : [])
     .map(id => String(id ?? '').trim()).filter(Boolean)), [unlocked]);
@@ -982,6 +1006,9 @@ export function MapView({
     const value = String(initialMapUiState.selectedCardId || '').trim();
     return value || null;
   });
+  useEffect(() => {
+    if (selectedCardId != null) parcelLensController.select(selectedCardId);
+  }, [selectedCardId, parcelLensController]);
   const [panelTab, setPanelTab] = useState(() => (initialMapUiState.panelTab === 'filters' ? 'filters' : 'cards'));
 
   useEffect(() => {
@@ -1714,6 +1741,7 @@ export function MapView({
   };
 
   const resetToDefaultUsaView = () => {
+    parcelLensController.clear();
     clearClusterSelection();
     setSelectedCardId(null);
     setMapStyle('simple');
@@ -1745,6 +1773,7 @@ export function MapView({
   };
 
   const zoomToCard = (card) => {
+    parcelLensController.select(card.id);
     const coords = getCardCoordinates(card);
     if (!coords) return;
     clearClusterSelection();
@@ -2372,8 +2401,9 @@ export function MapView({
 
               <div className="map-section-card">
                 <div style={{ color: C.t2, fontSize: 12, marginBottom: 8, fontWeight: 400 }}>{tMap.mapDisplay}</div>
-                <ParcelBoundaryToggle eligible={parcelFeatureEnabled} enabled={parcelLayerEnabled} language={getLang()}
+                <ParcelBoundaryToggle eligible={parcelFeatureEnabled === true && parcelQaGridEnabled === true} enabled={parcelLayerEnabled} language={getLang()}
                   onToggle={() => {
+                    parcelLensController.closeLens();
                     const enabled = !parcelLayerEnabled;
                     setParcelPreference({ owner: String(currentUserId || ''), enabled });
                     void trackParcelEvent(enabled ? 'enabled' : 'disabled');
@@ -2752,14 +2782,29 @@ export function MapView({
           <MapContainer key={`mapview-${mapActivationKey}`} center={safeViewportCenter} zoom={safeViewportZoom} className="map-canvas" zoomControl={false}>
             <MapEvents onViewportChange={setViewport} />
             <MapVisibilityController active={isActive} />
-            {parcelFeatureEnabled && <React.Suspense fallback={null}>
-              <PublicParcelLayer key={String(currentUserId || '')} enabled={parcelLayerEnabled} active={isActive} viewport={viewport} language={getLang()}
+            {parcelFeatureEnabled === true && parcelQaGridEnabled === true && <React.Suspense fallback={null}>
+              <PublicParcelLayer key={String(currentUserId || '')} enabled={parcelLayerEnabled && !(parcelLensCurrent && parcelLensState.lens)} active={isActive} viewport={viewport} language={getLang()}
                 popupPaddingLeft={panelCollapsed || isMobileViewport ? 12 : panelWidth + 24}
                 selectedPoint={(() => {
                   const selected = safeRenderedFeatures.find(feature => String(feature.properties?.itemId || '') === String(selectedCardId || ''));
                   const coordinates = selected?.geometry?.coordinates;
                   return coordinates ? { lng: coordinates[0], lat: coordinates[1] } : null;
                 })()} />
+            </React.Suspense>}
+            {parcelFeatureEnabled === true && parcelLensCurrent && parcelLensState.lens && <React.Suspense fallback={null}>
+              <ParcelLensLayer key={parcelLensState.context.key} lens={parcelLensState.lens} language={getLang()}
+                popupPaddingLeft={panelCollapsed || isMobileViewport ? 12 : panelWidth + 24}
+                onClose={() => parcelLensController.closeLens()}
+                onPrincipalClick={() => {
+                  parcelLensController.setPage('parcel');
+                  const marker = propertyMarkerRefs.current.get(parcelLensState.context.itemId);
+                  if (marker) marker.openPopup();
+                  else {
+                    const bounds = parcelGeometryBounds(parcelLensState.parcel.geometry);
+                    mapRef.current?.once('moveend', () => propertyMarkerRefs.current.get(parcelLensState.context.itemId)?.openPopup());
+                    setFitToBounds({ bounds: [[bounds[1], bounds[0]], [bounds[3], bounds[2]]], maxZoom: 20, key: genId() });
+                  }
+                }} />
             </React.Suspense>}
             <ManualPinPlacementController
               active={Boolean(manualPinTarget)}
@@ -2773,12 +2818,13 @@ export function MapView({
               viewport={viewport}
             />
             <ZoomControl position="topright" />
+            <MapZoomLevel language={getLang()} />
             <TileLayer
-              key={`base-${mapStyle}-${forceSimpleBaseTiles ? `fallback-${baseTileFallbackIndex}` : 'native'}-${parcelFeatureEnabled && parcelLayerEnabled ? 'parcel-detail' : 'standard'}`}
+              key={`base-${mapStyle}-${forceSimpleBaseTiles ? `fallback-${baseTileFallbackIndex}` : 'native'}-${parcelLayerEnabled || parcelLensCurrent && parcelLensState.lens ? 'parcel-detail' : 'standard'}`}
               attribution={effectiveMapStyle.attribution}
               url={effectiveMapStyle.url}
-              maxZoom={parcelFeatureEnabled && parcelLayerEnabled ? 20 : 18}
-              maxNativeZoom={parcelFeatureEnabled && parcelLayerEnabled ? 18 : undefined}
+              maxZoom={parcelLayerEnabled || parcelLensCurrent && parcelLensState.lens ? 20 : 18}
+              maxNativeZoom={parcelLayerEnabled || parcelLensCurrent && parcelLensState.lens ? 18 : undefined}
               eventHandlers={{
                 tileerror: () => {
                   const now = Date.now();
@@ -2876,7 +2922,8 @@ export function MapView({
                 || `${feature.properties.itemType}-${feature.properties.itemId}-${payload?.primaryProfile || payload?.scope || ''}-${lat}-${lng}`;
 
               return (
-                <Marker
+                <StableMapMarker
+                    ref={marker => { if (marker && !isPerson) propertyMarkerRefs.current.set(String(feature.properties.itemId), marker); else if (!isPerson) propertyMarkerRefs.current.delete(String(feature.properties.itemId)); }}
                   key={markerKey}
                   position={[lat, lng]}
                   icon={
@@ -2885,8 +2932,20 @@ export function MapView({
                       : (isOwnProperty ? myPropertyIcon : (isUnlockedMarker ? unlockedPropertyIcon : propertyIcon))
                   }
                   draggable={isOwnProperty}
-                  eventHandlers={isOwnProperty ? {
+                  eventHandlers={{
+                    popupopen: event => {
+                      if (isPerson) parcelLensController.clear();
+                      else {
+                        // Popup options are native construction options. Refresh
+                        // the padding here too if server eligibility arrived
+                        // after this marker mounted, before its content grows.
+                        if (parcelFeatureEnabled === true && event.popup) L.setOptions(event.popup, { autoPanPaddingTopLeft: L.point(12, 96) });
+                        void parcelLensController.lookup({ itemId: String(payload.id), point: resolvePropertyCoords(payload, pinOverrides) }, parcelFeatureEnabled === true);
+                      }
+                    },
+                    ...(isOwnProperty ? {
                     dragend(e) {
+                      parcelLensController.clear();
                       const { lat: newLat, lng: newLng } = e.target.getLatLng();
                       const propId = String(feature.properties.itemId ?? '');
                       if (!propId) return;
@@ -2899,9 +2958,11 @@ export function MapView({
                         geocodeConfidence: 1,
                       });
                     },
-                  } : undefined}
+                  } : {}),
+                  }}
                 >
-                  <Popup className={isPerson ? 'ds-person-leaflet-popup' : 'ds-property-leaflet-popup'} maxWidth={isPerson ? 520 : 400}>
+                  <Popup className={isPerson ? 'ds-person-leaflet-popup' : 'ds-property-leaflet-popup'} maxWidth={isPerson ? 520 : 400}
+                    autoPanPaddingTopLeft={!isPerson && parcelFeatureEnabled === true ? [12, 96] : undefined}>
                     {isPerson ? (
                       <div className={`ds-map-person-popup${linkedPortfolioSlides(payload).length ? '' : ' ds-map-person-popup--no-media'}`}>
                       <div 
@@ -2944,6 +3005,15 @@ export function MapView({
                       <div>
                         <PropertyPinPopup property={payload} label={getSafePropertyLabel(payload)} language={getLang()}
                           own={isOwnProperty} selected={interested.some(item => String(item.id || item.propertyId) === String(payload.id))}
+                          parcelState={parcelFeatureEnabled === true && parcelLensCurrent && parcelLensState.context?.itemId === String(payload.id) ? parcelLensState : null}
+                          onParcelPage={page => parcelLensController.setPage(page)} onCloseLens={() => parcelLensController.closeLens()}
+                          onParcelActivate={() => {
+                            const bounds = parcelGeometryBounds(parcelLensState.parcel?.geometry);
+                            if (!bounds) return;
+                            void parcelLensController.activate();
+                            setFitToBounds({ bounds: [[bounds[1], bounds[0]], [bounds[3], bounds[2]]], maxZoom: 20, key: genId() });
+                            void trackParcelEvent('enabled');
+                          }}
                           onOpen={() => navigateToFeed(payload, 'property')} onMatch={onMatchProperty} />
                         {isOwnProperty && (
                           <div style={{ marginTop: 6, fontSize: 11, color: C.t3, textAlign: 'center', borderTop: '1px solid var(--ui-border)', paddingTop: 5 }}>
@@ -2953,7 +3023,7 @@ export function MapView({
                       </div>
                     )}
                   </Popup>
-                </Marker>
+                </StableMapMarker>
               );
             })}
           </MapContainer>

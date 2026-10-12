@@ -1016,12 +1016,14 @@ export default function App() {
   const [maxxisProactiveFeatureEnabled, setMaxxisProactiveFeatureEnabled] = useState(false);
   const [maxxisDealMemoryFeatureEnabled, setMaxxisDealMemoryFeatureEnabled] = useState(false);
   const [parcelFeatureEnabled, setParcelFeatureEnabled] = useState(false);
+  const [parcelQaGridEnabled, setParcelQaGridEnabled] = useState(false);
   useEffect(() => {
     let cancelled = false;
     if (!preferenceAccountKey) {
       setMaxxisProactiveFeatureEnabled(false);
       setMaxxisDealMemoryFeatureEnabled(false);
       setParcelFeatureEnabled(false);
+      setParcelQaGridEnabled(false);
       return undefined;
     }
     fetchFeatureFlagsWithRetry({ overrides: readMaxxisProactiveFlagOverrides() })
@@ -1030,6 +1032,7 @@ export default function App() {
           setMaxxisProactiveFeatureEnabled(isFeatureEnabled(snapshot, 'maxxis_proactive_insights'));
           setMaxxisDealMemoryFeatureEnabled(isFeatureEnabled(snapshot, 'maxxis_deal_memory'));
           setParcelFeatureEnabled(isFeatureEnabled(snapshot, 'public_parcel_intelligence'));
+          setParcelQaGridEnabled(isFeatureEnabled(snapshot, 'public_parcel_qa_grid'));
         }
       })
       .catch(() => {
@@ -1037,6 +1040,7 @@ export default function App() {
           setMaxxisProactiveFeatureEnabled(false);
           setMaxxisDealMemoryFeatureEnabled(false);
           setParcelFeatureEnabled(false);
+          setParcelQaGridEnabled(false);
         }
       });
     return () => { cancelled = true; };
@@ -5751,6 +5755,7 @@ export default function App() {
             currentUserId={supabaseUserId || 'local-user'}
             onUpdatePropertyCoords={handleMapPropertyCoordsUpdate}
             parcelFeatureEnabled={parcelFeatureEnabled}
+            parcelQaGridEnabled={parcelQaGridEnabled}
             userPreferences={userPreferences}
             activeSpotlightKeys={activeSpotlightKeys}
             activeSpotlights={activeSpotlights}

@@ -1,0 +1,23 @@
+{
+  "baseline": "be4abb34b67c9353aa7f6e0f1e3920798582f79f",
+  "method": "transitive local import graph including re-exports and dynamic imports",
+  "changedSharedModules": [
+    "supabase/functions/_shared/featureFlags.ts"
+  ],
+  "changedFunctionModules": [],
+  "affectedFunctions": [
+    {
+      "function": "feature-flags",
+      "changedDependencies": [
+        "supabase/functions/_shared/featureFlags.ts"
+      ]
+    },
+    {
+      "function": "public-parcel",
+      "changedDependencies": [
+        "supabase/functions/_shared/featureFlags.ts"
+      ]
+    }
+  ],
+  "unresolvedLocalImports": []
+}

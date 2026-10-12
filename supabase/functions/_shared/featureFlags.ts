@@ -16,6 +16,7 @@ export const FEATURE_FLAG_DEFINITIONS = {
   advanced_deal_analysis: { enabled: false, environments: [], percentage: 0 },
   experimental_provider_flow: { enabled: false, environments: [], percentage: 0 },
   public_parcel_intelligence: { enabled: false, environments: [], percentage: 0 },
+  public_parcel_qa_grid: { enabled: false, environments: [], percentage: 0 },
 } as const satisfies Record<string, FeatureFlagDefinition>;
 
 export type FeatureFlagName = keyof typeof FEATURE_FLAG_DEFINITIONS;
@@ -94,7 +95,7 @@ export function resolveFeatureFlags({
     if (allowOverride && typeof overrides[flagName] === 'boolean') enabled = overrides[flagName] === true;
     // Phase 1B is internal only. Neither rollout percentages nor client/admin
     // overrides can expose parcels to users absent from the server allowlist.
-    if (flagName === 'public_parcel_intelligence') enabled = enabled && !!userId && !!definition.internalUserIds?.includes(userId);
+    if (flagName === 'public_parcel_intelligence' || flagName === 'public_parcel_qa_grid') enabled = enabled && !!userId && !!definition.internalUserIds?.includes(userId);
     result[flagName] = enabled;
   }
   return result;

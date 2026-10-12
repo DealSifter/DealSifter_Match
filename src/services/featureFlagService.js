@@ -9,6 +9,7 @@ export const FEATURE_FLAG_NAMES = Object.freeze([
   'advanced_deal_analysis',
   'experimental_provider_flow',
   'public_parcel_intelligence',
+  'public_parcel_qa_grid',
 ]);
 
 export const OFF_FEATURE_FLAGS = Object.freeze(Object.fromEntries(FEATURE_FLAG_NAMES.map((name) => [name, false])));

@@ -1,0 +1,339 @@
+{
+  "config": {
+    "argv": [
+      "C:\\Program Files\\nodejs\\node.exe",
+      "C:\\Users\\Tarso\\Desktop\\DEALSIFTER\\DealSifter_Match\\node_modules\\@playwright\\test\\cli.js",
+      "test",
+      "e2e/tests/mocked/map-unlocked-filters.spec.js",
+      "e2e/tests/mocked/land-development-pin-popup.spec.js",
+      "e2e/tests/mocked/pin-carousel-avatar-clearance.spec.js",
+      "--config=playwright.config.js",
+      "--grep-invert",
+      "real chat progresses",
+      "--reporter=json"
+    ],
+    "configFile": "C:\\Users\\Tarso\\Desktop\\DEALSIFTER\\DealSifter_Match\\playwright.config.js",
+    "rootDir": "C:/Users/Tarso/Desktop/DEALSIFTER/DealSifter_Match/e2e/tests/mocked",
+    "failOnFlakyTests": false,
+    "forbidOnly": false,
+    "fullyParallel": false,
+    "globalSetup": null,
+    "globalTeardown": null,
+    "globalTimeout": 0,
+    "grep": {},
+    "grepInvert": null,
+    "maxFailures": 0,
+    "metadata": {
+      "actualWorkers": 1
+    },
+    "preserveOutput": "always",
+    "projects": [
+      {
+        "outputDir": "C:/Users/Tarso/Desktop/DEALSIFTER/DealSifter_Match/test-results",
+        "repeatEach": 1,
+        "retries": 0,
+        "metadata": {
+          "actualWorkers": 1
+        },
+        "id": "chromium",
+        "name": "chromium",
+        "testDir": "C:/Users/Tarso/Desktop/DEALSIFTER/DealSifter_Match/e2e/tests/mocked",
+        "testIgnore": [],
+        "testMatch": [
+          "**/*.@(spec|test).?(c|m)[jt]s?(x)"
+        ],
+        "timeout": 150000
+      }
+    ],
+    "quiet": false,
+    "reporter": [
+      [
+        "json"
+      ]
+    ],
+    "reportSlowTests": {
+      "max": 5,
+      "threshold": 300000
+    },
+    "shard": null,
+    "tags": [],
+    "updateSnapshots": "missing",
+    "updateSourceMethod": "patch",
+    "version": "1.62.1",
+    "workers": 1,
+    "webServer": null
+  },
+  "suites": [
+    {
+      "title": "land-development-pin-popup.spec.js",
+      "file": "land-development-pin-popup.spec.js",
+      "column": 0,
+      "line": 0,
+      "specs": [
+        {
+          "title": "people popup reserves the right column for scoped portfolio images and independent carousel controls",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 120000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "chromium",
+              "projectName": "chromium",
+              "results": [
+                {
+                  "workerIndex": 0,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 41661,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-10-12T22:31:42.433Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "635a892a02f084a3d94a-32ac3ca887532535bf12",
+          "file": "land-development-pin-popup.spec.js",
+          "line": 58,
+          "column": 1
+        },
+        {
+          "title": "pin photo opens feed independently and Match gets selected on mobile and desktop",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 120000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "chromium",
+              "projectName": "chromium",
+              "results": [
+                {
+                  "workerIndex": 0,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 37905,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-10-12T22:32:27.581Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "635a892a02f084a3d94a-5dbd99757d19e49f1a71",
+          "file": "land-development-pin-popup.spec.js",
+          "line": 76,
+          "column": 1
+        }
+      ]
+    },
+    {
+      "title": "map-unlocked-filters.spec.js",
+      "file": "map-unlocked-filters.spec.js",
+      "column": 0,
+      "line": 0,
+      "specs": [
+        {
+          "title": "Unlocked keeps exactly canonical paid people/assets, updates live and stays selected when empty",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 150000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "chromium",
+              "projectName": "chromium",
+              "results": [
+                {
+                  "workerIndex": 0,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 27313,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-10-12T22:33:05.645Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "5a20c6765e013b617589-4f8363d06a7c5cbf35b0",
+          "file": "map-unlocked-filters.spec.js",
+          "line": 3,
+          "column": 1
+        }
+      ]
+    },
+    {
+      "title": "pin-carousel-avatar-clearance.spec.js",
+      "file": "pin-carousel-avatar-clearance.spec.js",
+      "column": 0,
+      "line": 0,
+      "specs": [
+        {
+          "title": "real Leaflet person popup uses wide photos with a separate reachable close control",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 120000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "chromium",
+              "projectName": "chromium",
+              "results": [
+                {
+                  "workerIndex": 0,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 33141,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-10-12T22:33:33.125Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "fc51e8716b833cbaa2a7-b433a5bf2b886324332e",
+          "file": "pin-carousel-avatar-clearance.spec.js",
+          "line": 42,
+          "column": 1
+        },
+        {
+          "title": "person popup shrinks to content without a blank carousel when portfolio has no images",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 120000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "chromium",
+              "projectName": "chromium",
+              "results": [
+                {
+                  "workerIndex": 0,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 21727,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-10-12T22:34:06.334Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "fc51e8716b833cbaa2a7-60325d799b517c3dfbbf",
+          "file": "pin-carousel-avatar-clearance.spec.js",
+          "line": 68,
+          "column": 1
+        },
+        {
+          "title": "complete avatar poses stay clear of interactive speech in light",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 120000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "chromium",
+              "projectName": "chromium",
+              "results": [
+                {
+                  "workerIndex": 0,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 89707,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-10-12T22:34:28.138Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "fc51e8716b833cbaa2a7-a67b96ab5155d6872700",
+          "file": "pin-carousel-avatar-clearance.spec.js",
+          "line": 84,
+          "column": 3
+        },
+        {
+          "title": "complete avatar poses stay clear of interactive speech in dark",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 120000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "chromium",
+              "projectName": "chromium",
+              "results": [
+                {
+                  "workerIndex": 0,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 102177,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-10-12T22:35:58.043Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "fc51e8716b833cbaa2a7-c84e90054592728a37d6",
+          "file": "pin-carousel-avatar-clearance.spec.js",
+          "line": 84,
+          "column": 3
+        }
+      ]
+    }
+  ],
+  "errors": [],
+  "stats": {
+    "startTime": "2026-10-12T22:31:20.105Z",
+    "duration": 403404.508,
+    "expected": 7,
+    "skipped": 0,
+    "unexpected": 0,
+    "flaky": 0
+  }
+}

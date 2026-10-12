@@ -1,0 +1,15 @@
+.ds-parcel-lens-principal, .ds-parcel-lens-circle { filter:drop-shadow(0 0 2px rgba(0,203,212,.55)); }
+.ds-property-pin-parcel-nav, .ds-public-parcel-data, .ds-parcel-lens-status { font-family:'Inter','Outfit',sans-serif; }
+/* Neighbor content has no fixed-width property article. Override the generic
+   property popup's width:auto with a bounded, readable native popup width. */
+.ds-property-leaflet-popup.ds-parcel-popup .leaflet-popup-content { width:min(340px,calc(100vw - 76px)) !important; margin:18px 16px; }
+.ds-parcel-lens-status { position:absolute; bottom:36px; z-index:500; display:flex; flex-wrap:wrap; align-items:center; gap:6px; padding:7px 10px; border:1px solid #00cbd4; border-radius:10px; background:var(--card); color:var(--t1); font-size:12px; }
+.ds-parcel-lens-status small { flex-basis:100%; max-width:340px; color:var(--t2); line-height:1.35; }
+.ds-parcel-lens-status button, .ds-property-pin-parcel-nav button, .ds-property-pin-lens { border:1px solid var(--ui-border); border-radius:8px; background:var(--ui-surface); color:var(--t1); cursor:pointer; padding:6px; display:inline-flex; align-items:center; justify-content:center; min-height:30px; }
+.ds-property-pin-lens { color:var(--ui-btn-text-strong); margin-left:auto; flex-shrink:0; }
+.ds-property-pin-parcel-nav { display:flex; gap:6px; align-items:center; padding:10px 12px 6px; font-size:12px; }
+.ds-property-pin-parcel-nav button { font:inherit; }
+.ds-property-pin-parcel-nav button[aria-pressed="true"] { background:var(--ui-active); color:var(--ui-active-text); border-color:var(--ui-active); }
+.ds-property-pin-parcel-body { padding:10px 16px 16px; }
+.ds-property-pin-parcel-nav button:focus-visible, .ds-property-pin-lens:focus-visible, .ds-parcel-lens-status button:focus-visible { outline:2px solid var(--ui-active); outline-offset:2px; }
+.leaflet-control-zoom .ds-map-zoom-level { display:block; text-align:center; font-size:11px; line-height:22px; background:var(--card); color:var(--t1); border-bottom:1px solid var(--ui-border); font-weight:600; }

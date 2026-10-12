@@ -49,7 +49,7 @@ try {
           address: parcel.situsAddress, city: 'Cambridge', state: 'MA', price: 100000, lat: center.lat, lng: center.lng, publishToShowcase: true,
           ownerPreview: { name: 'Public preview QA control', type: 'FSBO', loc: 'MA' } }], currentUserId: 'qa-preview-identity', userProfile: {}, personalProfile: {},
           unlocked: [], unlockedContactMap: new Map(), setModal: () => {}, setPage: () => {}, openUnlock: () => {},
-          onMaxxisContextChange: value => { window.__previewContext = value; }, parcelFeatureEnabled: eligible }));
+          onMaxxisContextChange: value => { window.__previewContext = value; }, parcelFeatureEnabled: eligible, parcelQaGridEnabled: eligible }));
       };
       await window.__previewRender();
     }, { point: pilot.controlPoint, parcel: pilot.point.parcels[0] });

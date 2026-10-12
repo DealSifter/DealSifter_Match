@@ -1,0 +1,11 @@
+{
+  "passed": 1780,
+  "total": 1780,
+  "files": 208,
+  "mode": "FULL_SCOPE_WITH_ISOLATED_WORKER_STARTUP_RETRY_NOT_SINGLE_CLEAN_RUN",
+  "evidence": [
+    "full-tests-serial.json",
+    "full-tests-worker-retry.json"
+  ],
+  "originalInfrastructureErrorsRetained": true
+}
