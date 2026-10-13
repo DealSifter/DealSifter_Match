@@ -1,0 +1,33 @@
+{
+  "observedAt": "2026-10-13T02:18:41.266Z",
+  "frontendStatus": 200,
+  "browserGeocode": {
+    "status": 401,
+    "transportSucceeded": true
+  },
+  "corsErrors": [],
+  "requestHeaderNames": [
+    [
+      "sec-ch-ua-platform",
+      "authorization",
+      "referer",
+      "sec-ch-ua",
+      "sec-ch-ua-mobile",
+      "baggage",
+      "sentry-trace",
+      "user-agent",
+      "content-type",
+      "apikey"
+    ]
+  ],
+  "propertyPresent": true,
+  "propertyStatus": "resolved",
+  "geocodeValid": true,
+  "physicalPointPresent": true,
+  "privateCards": 1,
+  "privateExactPointsRedacted": true,
+  "realUserAuthenticatedAcceptance": "NOT_PERFORMED_NO_USER_SESSION",
+  "paidProviderCalls": 0,
+  "geocoderProviderCalls": 0,
+  "pass": true
+}

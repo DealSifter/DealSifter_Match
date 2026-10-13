@@ -1,0 +1,51 @@
+﻿[
+    {
+        "name":  "geocode-address",
+        "version":  18,
+        "status":  "ACTIVE",
+        "verify_jwt":  true,
+        "updated_at":  1791857439946
+    },
+    {
+        "name":  "maxxis-chat",
+        "version":  80,
+        "status":  "ACTIVE",
+        "verify_jwt":  true,
+        "updated_at":  1791770952004
+    },
+    {
+        "name":  "maxxis-provider-message-draft",
+        "version":  16,
+        "status":  "ACTIVE",
+        "verify_jwt":  true,
+        "updated_at":  1791770943746
+    },
+    {
+        "name":  "feature-flags",
+        "version":  16,
+        "status":  "ACTIVE",
+        "verify_jwt":  true,
+        "updated_at":  1791848024620
+    },
+    {
+        "name":  "property-intelligence",
+        "version":  10,
+        "status":  "ACTIVE",
+        "verify_jwt":  true,
+        "updated_at":  1791770946912
+    },
+    {
+        "name":  "arv-visual-comp-review",
+        "version":  10,
+        "status":  "ACTIVE",
+        "verify_jwt":  true,
+        "updated_at":  1791770946392
+    },
+    {
+        "name":  "public-parcel",
+        "version":  4,
+        "status":  "ACTIVE",
+        "verify_jwt":  true,
+        "updated_at":  1791847935060
+    }
+]
