@@ -23,6 +23,8 @@
 .ds-property-pin-location { margin-top: 4px; color: var(--pin-muted); font-size: 12px; overflow-wrap: anywhere; }
 .ds-property-pin-metrics { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 14px; font-size: 12px; }
 .ds-property-pin-metrics > span { display: inline-flex; gap: 4px; align-items: center; }
+.ds-property-pin-lens-feedback { font-size:12px; line-height:1.4; color:var(--pin-muted); margin:6px 0; overflow-wrap:anywhere; }
+.ds-property-pin-lens:disabled { opacity:.65; cursor:progress; }
 .ds-property-leaflet-popup .leaflet-popup-content { margin: 0; width: auto !important; max-width: none; }
 .ds-property-leaflet-popup .leaflet-popup-content-wrapper { padding: 0; max-width: none; background: var(--card); overflow: hidden; }
 .ds-property-leaflet-popup .leaflet-popup-tip { background: var(--card); }

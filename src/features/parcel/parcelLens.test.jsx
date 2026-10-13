@@ -2,6 +2,7 @@ import React from 'react';
 import { renderToStaticMarkup } from 'react-dom/server';
 import { describe, it, expect, vi, afterEach } from 'vitest';
 import { ParcelLensController } from './parcelLensController';
+import { propertyParcelContext } from './parcelLensAccess';
 import { parcelGeometryBounds, parcelLensBounds, parcelIntersectsLens, parcelLensParcels, resolvePrincipalParcel, PARCEL_LENS_RADIUS_METERS, PARCEL_LENS_COLOR } from './parcelLensGeometry';
 import { parcelLabels, parcelPanelRows } from './parcelPresentation';
 import { PropertyPinPopup } from '../../components/map/PropertyPinPopup';
@@ -72,7 +73,7 @@ describe('contextual parcel session', () => {
   });
   it('does not repeat a pending point lookup on duplicate popup events', async () => {
     let finish; const request = vi.fn(() => new Promise(resolve => { finish = resolve; })); const controller = new ParcelLensController(request, vi.fn());
-    const pending = controller.lookup(context, true); await controller.lookup(context, true); expect(request).toHaveBeenCalledOnce(); finish(result); await pending;
+    const pending = controller.lookup(context, true); const duplicate = controller.lookup(context, true); expect(request).toHaveBeenCalledOnce(); finish(result); await Promise.all([pending, duplicate]);
   });
   it('refreshes expired inactive evidence but never destroys an active frozen lens automatically', async () => {
     vi.useFakeTimers(); const request = vi.fn(async () => result); const controller = new ParcelLensController(request, vi.fn());
@@ -101,13 +102,14 @@ describe('contextual parcel session', () => {
 });
 
 describe('existing popup public-data page and internal QA isolation', () => {
-  it.each(['pt', 'en', 'es'])('renders magnifier only for a real resolved parcel; preserves normal image/feed/Match behavior: %s', language => {
+  it.each(['pt', 'en', 'es'])('renders magnifier for eligible properties independently of lookup outcome; preserves normal image/feed/Match behavior: %s', language => {
     const props = { property: { id: 'property-1', price: 10 }, label: 'Property', language, onMatch: () => {} };
     expect(renderToStaticMarkup(<PropertyPinPopup {...props} />)).not.toContain(parcelLabels(language).magnifier);
-    const markup = renderToStaticMarkup(<PropertyPinPopup {...props} parcelState={{ parcel, page: 'property' }} />);
+    expect(renderToStaticMarkup(<PropertyPinPopup {...props} parcelEligible />)).toContain(parcelLabels(language).magnifier);
+    const markup = renderToStaticMarkup(<PropertyPinPopup {...props} parcelEligible parcelState={{ parcel, page: 'property' }} />);
     expect(markup).toContain(parcelLabels(language).magnifier); expect(markup).toContain('ds-property-pin-match'); expect(markup).toContain('ds-property-pin-photo');
     expect(markup).not.toContain('ds-property-pin-parcel-nav');
-    const page = renderToStaticMarkup(<PropertyPinPopup {...props} parcelState={{ parcel, result, lens: {}, page: 'parcel' }} />);
+    const page = renderToStaticMarkup(<PropertyPinPopup {...props} parcelEligible parcelState={{ parcel, result, lens: {}, page: 'parcel' }} />);
     expect(page).toContain(parcelLabels(language).unavailable); expect(page).toContain('public-parcel-panel'); expect(page).not.toContain('ds-property-pin-photo');
     expect(page).toContain(parcelLabels(language).source); expect(page).not.toContain('MATERIAL_CONFLICT');
   });
@@ -122,5 +124,49 @@ describe('existing popup public-data page and internal QA isolation', () => {
     config.public_parcel_qa_grid = { enabled: true, environments: ['production'], percentage: 100, internalUserIds: ['qa'] };
     expect(resolveFeatureFlags({ userId: 'internal', environment: 'production', remoteConfig: config, overrides: { public_parcel_qa_grid: true }, allowOverride: true }).public_parcel_qa_grid).toBe(false);
     expect(resolveFeatureFlags({ userId: 'qa', environment: 'production', remoteConfig: config }).public_parcel_qa_grid).toBe(true);
+  });
+});
+
+describe('payment-independent parcel access and explicit activation', () => {
+  it.each([false, true])('does not depend on the property unlock state: %s', isUnlocked => {
+    expect(propertyParcelContext({ id: context.itemId, ...point, isUnlocked }, true)).toEqual(context);
+  });
+  it.each([false, 'true', undefined])('requires a literal server-resolved feature gate: %s', enabled => {
+    expect(propertyParcelContext({ id: context.itemId, ...point }, enabled)).toBeNull();
+  });
+  it.each(['hideStreetAddressOnCard', 'hide_street_address_on_card'])('blocks private addresses even after paid unlock: %s', key => {
+    expect(propertyParcelContext({ id: context.itemId, ...point, isUnlocked: true, [key]: true }, true)).toBeNull();
+  });
+  it('rejects missing coordinates/item IDs without a GIS request', async () => {
+    const request = vi.fn(); const controller = new ParcelLensController(request, vi.fn());
+    expect(propertyParcelContext({ id: 'x' }, true)).toBeNull();
+    expect(propertyParcelContext({ ...point }, true)).toBeNull();
+    expect(await controller.activateFor(null, false)).toBe('DISABLED');
+    expect(request).not.toHaveBeenCalled();
+  });
+  it('joins the pending popup lookup and activates exactly once without an extra query', async () => {
+    let finish; const ready = vi.fn();
+    const request = vi.fn().mockImplementationOnce(() => new Promise(resolve => { finish = resolve; })).mockResolvedValue(result);
+    const controller = new ParcelLensController(request, vi.fn());
+    const lookup = controller.lookup(context, true); const activation = controller.activateFor(context, true, ready);
+    expect(request).toHaveBeenCalledOnce(); expect(ready).not.toHaveBeenCalled(); finish(result);
+    await lookup; expect(await activation).toBe('ACTIVE');
+    expect(ready).toHaveBeenCalledWith({ itemId: context.itemId, alreadyActive: false });
+    expect(request.mock.calls.map(([query]) => query.operation)).toEqual(['query-point', 'query-bounds']);
+  });
+  it.each(['SOURCE_TEMPORARILY_UNAVAILABLE', 'PARCEL_NOT_FOUND'])('allows explicit retry after a negative result: %s', status => {
+    return (async () => {
+      const request = vi.fn().mockResolvedValueOnce({ status, parcels: [] }).mockResolvedValue(result);
+      const controller = new ParcelLensController(request, vi.fn()); const ready = vi.fn();
+      expect(await controller.activateFor(context, true, ready)).toBe(status); expect(ready).not.toHaveBeenCalled();
+      expect(await controller.activateFor(context, true, ready)).toBe('ACTIVE'); expect(ready).toHaveBeenCalledOnce();
+      expect(request).toHaveBeenCalledTimes(3);
+    })();
+  });
+  it('never opens or zooms stale requests after switching PINs', async () => {
+    let finish; const ready = vi.fn(); const request = vi.fn(() => new Promise(resolve => { finish = resolve; }));
+    const controller = new ParcelLensController(request, vi.fn()); const activation = controller.activateFor(context, true, ready);
+    controller.select('other-property'); finish(result);
+    expect(await activation).toBe('CANCELLED'); expect(ready).not.toHaveBeenCalled(); expect(controller.state.lens).toBeNull();
   });
 });

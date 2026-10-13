@@ -3,7 +3,8 @@ import { argv } from 'node:process';
 import { chromium, expect } from '@playwright/test';
 import { setupMockSupabase } from '../e2e/support/mockSupabase.js';
 
-const output = 'qa/parcel-lens-device'; await mkdir(`${output}/screenshots`, { recursive: true });
+const unlockedFixture = argv.includes('--unlocked');
+const output = unlockedFixture ? 'qa/parcel-lens-unlocked' : 'qa/parcel-lens-device'; await mkdir(`${output}/screenshots`, { recursive: true });
 const point = { lat:35.921133041392, lng:-78.583547577238 };
 function parcel(id, dx = 0, dy = 0) {
   const lng = point.lng + dx; const lat = point.lat + dy; const size = .00008;
@@ -31,7 +32,7 @@ try {
     });
     await page.route('**/__parcel_device_qa',route=>route.fulfill({contentType:'text/html',body:'<meta name="viewport" content="width=device-width, initial-scale=1"><div id="root"></div>'}));
     await page.goto('http://127.0.0.1:4180/__parcel_device_qa');
-    await page.evaluate(async ({point,language,theme,initialZoom,phone})=>{
+    await page.evaluate(async ({point,language,theme,initialZoom,phone,unlockedFixture})=>{
       window.$RefreshReg$=()=>{}; window.$RefreshSig$=()=>type=>type; window.__vite_plugin_react_preamble_installed__=true;
       await import('/src/index.css'); await import('/node_modules/leaflet/dist/leaflet.css');
       const React=(await import('/node_modules/.vite/deps/react.js')).default;
@@ -53,13 +54,16 @@ try {
         type:'SFR',price:674900,beds:4,baths:3,sqft:3017,lat:point.lat,lng:point.lng,publishToShowcase:true,isActive:true,
         geocodeStatus:'resolved',geocodeSource:'explicit-qa-fixture',geocodedAt:'2026-10-13T00:00:00Z',
         ownerPreview:{name:'QA owner',type:'FSBO',loc:'NC'},images:['data:image/svg+xml,'+encodeURIComponent('<svg xmlns="http://www.w3.org/2000/svg" width="600" height="320"><rect width="600" height="320" fill="#81bfb3"/><path d="M100 160L300 40L500 160V300H100Z" fill="#e0bb83"/></svg>')],isSpotlight:true};
+      const {resolvePropertyUnlockState}=await import('/src/lib/unlockAccessState.js');
+      const grants=unlockedFixture?new Map([['fixture-owner',{ownerId:'fixture-owner',primaryProfile:'fsbo',unlockScope:'asset',unlockedPropertyIds:['device-property']}]]):new Map();
+      if(resolvePropertyUnlockState(property,grants)!==unlockedFixture)throw new Error('QA_UNLOCK_FIXTURE_MUST_USE_CANONICAL_ASSET_ENTITLEMENT');
       window.__navigation=[];
       createRoot(document.getElementById('root')).render(React.createElement(MapView,{showcaseProperties:[property],currentUserId:'fixture-viewer',userProfile:{},
         unlocked:[],personalProfile:{},professionalProfile:{},nuggets:20,parcelFeatureEnabled:true,parcelQaGridEnabled:false,
-        unlockedContactMap:new Map(),setModal:()=>{},openUnlock:()=>{},setPage:value=>window.__navigation.push(value),onMaxxisContextChange:()=>{}}));
+        unlockedContactMap:grants,setModal:()=>{},openUnlock:()=>{},setPage:value=>window.__navigation.push(value),onMaxxisContextChange:()=>{}}));
       const avatar=document.createElement('div');avatar.id='qa-avatar';avatar.textContent='AI';avatar.style.cssText=`position:fixed;bottom:${phone?100:20}px;right:12px;width:74px;height:80px;border-radius:40px;background:#00cbd4;display:grid;place-items:center;z-index:14000`;document.body.append(avatar);
       if(phone){const footer=document.createElement('div');footer.id='qa-footer';footer.style.cssText='position:fixed;bottom:0;left:0;right:0;height:88px;background:#ddd;z-index:14000';footer.textContent='Mobile navigation fixture';document.body.append(footer);}
-    },{point,language,theme,initialZoom,phone:device.startsWith('phone')});
+    },{point,language,theme,initialZoom,phone:device.startsWith('phone'),unlockedFixture});
     const pin=page.locator('.leaflet-marker-icon.map-pin-wrapper').first(); await expect(pin).toBeVisible({timeout:60000});
     if(device==='tablet') await page.getByRole('complementary').getByRole('button',{name:language==='es'?'Cerrar panel':'Close panel',exact:true}).click();
     await page.waitForTimeout(600); await page.evaluate(()=>window.__camera=[]);
@@ -115,7 +119,7 @@ try {
       expect(await page.evaluate(()=>window.__initialTiles===window.__map.getPane('tilePane').firstElementChild)).toBe(true);
       expect(queries).toHaveLength(2);
     }
-    results.push({device,viewport:{width,height},language,theme,initialZoom,pinZoom:15,lensZoom:target,
+    results.push({device,viewport:{width,height},language,theme,initialZoom,pinZoom:15,lensZoom:target,canonicalAssetUnlocked:unlockedFixture,
       initialPopup:initial,activePopup:active,pill,viewportStableAfterSwitch:true,queries:queries.length,
       cameraFlights:await page.evaluate(()=>window.__camera.filter(move=>move.method==='flyTo').length),
       spotlightAndCloseControlsTested:device==='desktop',repeatedMagnifierRestoresExactZoom:true,errors});

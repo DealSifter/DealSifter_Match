@@ -33,6 +33,7 @@ import ParcelBoundaryToggle from '../components/map/ParcelBoundaryToggle';
 import { restoreParcelPreference, parcelPreferenceEnabled } from '../features/parcel/parcelPreference';
 import { trackParcelEvent } from '../features/parcel/parcelTelemetry';
 import { ParcelLensController } from '../features/parcel/parcelLensController';
+import { propertyParcelContext } from '../features/parcel/parcelLensAccess';
 import { PIN_SELECTION_ZOOM, parcelSelectionZoom } from '../features/parcel/mapSelectionCamera';
 import { MapSelectionCamera } from '../components/map/MapSelectionCamera';
 import { queryPublicParcels } from '../services/publicParcelService';
@@ -1784,15 +1785,15 @@ export function MapView({
     parcelLensController.setPage('parcel');
     propertyMarkerRefs.current.get(parcelLensController.state.context?.itemId)?.openPopup();
   }, [parcelLensController]);
-  const activateParcelLens = () => {
-    if (!parcelLensState.parcel) return;
-    const alreadyActive = Boolean(parcelLensState.lens);
-    void parcelLensController.activate();
+  const activateParcelLens = property => {
+    const context = propertyParcelContext(property, parcelFeatureEnabled, resolvePropertyCoords(property, pinOverrides));
+    return parcelLensController.activateFor(context, Boolean(context), ({ itemId, alreadyActive }) => {
     setFitToBounds(null);
-    setCameraRequest({ id: parcelLensState.context.itemId, zoom: parcelSelectionZoom(isPhoneViewport), key: genId() });
+    setCameraRequest({ id: itemId, zoom: parcelSelectionZoom(isPhoneViewport), key: genId() });
     if (!alreadyActive) {
       void trackParcelEvent('enabled');
     }
+    });
   };
 
   // Em mobile, fecha o painel antes de abrir qualquer modal/popup de compra ou desbloqueio
@@ -2938,7 +2939,8 @@ export function MapView({
                       if (isPerson) parcelLensController.clear();
                       else {
                         if (event.popup) L.setOptions(event.popup, { autoPan: false });
-                        void parcelLensController.lookup({ itemId: String(payload.id), point: resolvePropertyCoords(payload, pinOverrides) }, parcelFeatureEnabled === true);
+                        const context = propertyParcelContext(payload, parcelFeatureEnabled, resolvePropertyCoords(payload, pinOverrides));
+                        void parcelLensController.lookup(context, Boolean(context));
                       }
                     },
                     ...(isOwnProperty ? {
@@ -3002,6 +3004,7 @@ export function MapView({
                     ) : (
                       <div>
                         <PropertyPinPopup property={payload} label={getSafePropertyLabel(payload)} language={getLang()}
+                          parcelEligible={Boolean(propertyParcelContext(payload, parcelFeatureEnabled, resolvePropertyCoords(payload, pinOverrides)))}
                           own={isOwnProperty} selected={interested.some(item => String(item.id || item.propertyId) === String(payload.id))}
                           parcelState={parcelFeatureEnabled === true && parcelLensCurrent && parcelLensState.context?.itemId === String(payload.id) ? parcelLensState : null}
                           onParcelPage={page => parcelLensController.setPage(page)} onParcelActivate={activateParcelLens}

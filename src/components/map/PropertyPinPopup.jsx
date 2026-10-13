@@ -6,14 +6,17 @@ import { C } from '../../theme/colors';
 import feedMatchIcon from '../../assets/feed-match-icon.png';
 import { ParcelPublicData } from './ParcelPublicData';
 import { parcelLabels } from '../../features/parcel/parcelPresentation';
+import { shouldHideStreetAddressOnCard } from '../../lib/propertyAddressPrivacy';
 import './ParcelLens.css';
 import './PropertyPinPopup.css';
 
 const numeric = value => value !== null && value !== undefined && value !== '' && Number.isFinite(Number(value)) ? Number(value) : null;
 
 export function PropertyPinPopup({ property, label, selected = false, own = false, language = 'en', onOpen, onMatch,
-  parcelState = null, onParcelActivate, onParcelPage, dragLabel }) {
+  parcelState = null, parcelEligible = false, onParcelActivate, onParcelPage, dragLabel }) {
   const [pending, setPending] = useState(false);
+  const [lensPending, setLensPending] = useState(false);
+  const [lensStatus, setLensStatus] = useState(null);
   const t = (pt, en, es) => language.startsWith('pt') ? pt : language.startsWith('es') ? es : en;
   const locale = language.startsWith('pt') ? 'pt-BR' : language.startsWith('es') ? 'es-US' : 'en-US';
   const price = numeric(property.price);
@@ -25,7 +28,8 @@ export function PropertyPinPopup({ property, label, selected = false, own = fals
   const metric = value => numeric(value) === null ? '—' : new Intl.NumberFormat(locale).format(Number(value));
   const parcelCopy = parcelLabels(language);
   const hasParcel = Boolean(parcelState?.parcel?.geometry);
-  const lensActive = hasParcel && Boolean(parcelState.lens);
+  const canUseLens = parcelEligible === true && !shouldHideStreetAddressOnCard(property);
+  const lensActive = canUseLens && hasParcel && Boolean(parcelState.lens);
   const publicPage = lensActive && parcelState.page === 'parcel';
   return <article className="ds-property-pin-popup" style={{ '--pin-ink': C.t1, '--pin-muted': C.t2, '--pin-paper': C.card, '--pin-border': C.border }}>
     {lensActive && <nav className="ds-property-pin-parcel-nav" aria-label={parcelCopy.title}>
@@ -46,8 +50,16 @@ export function PropertyPinPopup({ property, label, selected = false, own = fals
     <div className="ds-property-pin-details">
       <div className="ds-property-pin-price-row">
         <div><strong>{price === null ? '—' : money(price)}</strong>{reportedArv !== null && reportedArv > 0 && <small>ARV · {money(reportedArv)}</small>}</div>
-        {hasParcel && <button type="button" className="ds-property-pin-lens" aria-label={parcelCopy.magnifier} title={parcelCopy.magnifier}
-          onClick={event => { event.stopPropagation(); onParcelActivate?.(); }}><Icon name="search" size={19} /></button>}
+        {canUseLens && <button type="button" className="ds-property-pin-lens" aria-label={parcelCopy.magnifier} title={parcelCopy.magnifier}
+          disabled={lensPending} aria-busy={lensPending}
+          onClick={async event => {
+            event.stopPropagation(); setLensPending(true); setLensStatus(null);
+            try {
+              const status = await onParcelActivate?.(property);
+              if (status && status !== 'ACTIVE' && status !== 'CANCELLED') setLensStatus(parcelCopy[status] || parcelCopy.PARCEL_NOT_FOUND);
+            } catch { setLensStatus(parcelCopy.SOURCE_TEMPORARILY_UNAVAILABLE); }
+            finally { setLensPending(false); }
+          }}><Icon name="search" size={19} /></button>}
         <button type="button" className={`ds-property-pin-match${selected ? ' is-selected' : ''}`} aria-pressed={selected}
           disabled={own || pending || !onMatch} title={own ? t('Este imóvel é seu', 'Your own property', 'Tu propiedad') : 'Match'}
           onClick={async event => { event.stopPropagation(); setPending(true); try { await onMatch(property); } finally { setPending(false); } }}>
@@ -55,6 +67,8 @@ export function PropertyPinPopup({ property, label, selected = false, own = fals
           <span>Match</span>
         </button>
       </div>
+      {canUseLens && lensPending && <div className="ds-property-pin-lens-feedback" role="status">{parcelCopy.loading}</div>}
+      {canUseLens && lensStatus && <div className="ds-property-pin-lens-feedback" role="status">{lensStatus}</div>}
       <div className="ds-property-pin-address">{label}</div>
       <div className="ds-property-pin-location">{[property.city, property.state, property.zip || property.zipCode].filter(Boolean).join(', ')}</div>
       <div className="ds-property-pin-metrics">

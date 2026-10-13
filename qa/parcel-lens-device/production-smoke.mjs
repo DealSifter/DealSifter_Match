@@ -1,8 +1,10 @@
 import { readFile, writeFile } from 'node:fs/promises';
 import { createHash } from 'node:crypto';
 import { chromium } from '@playwright/test';
+import { argv } from 'node:process';
 const app='https://dealsiftermatch.vercel.app';
-const deployment=JSON.parse((await readFile('qa/parcel-lens-device/production-deployment.json','utf8')).replace(/^\uFEFF/,''));
+const qaDirectory=argv.includes('--unlocked')?'qa/parcel-lens-unlocked':'qa/parcel-lens-device';
+const deployment=JSON.parse((await readFile(`${qaDirectory}/production-deployment.json`,'utf8')).replace(/^\uFEFF/,''));
 if(deployment.state!=='READY'||!deployment.sourceShaVerified||!deployment.aliasVerified)throw new Error('VERIFIED_READY_PRODUCTION_DEPLOYMENT_REQUIRED');
 const get=async url=>{const response=await fetch(url,{signal:AbortSignal.timeout(20000)});if(!response.ok)throw new Error(`READ_ONLY_ASSET_${response.status}`);return response.text();};
 const asset=(body,name,type)=>body.match(new RegExp(`(?:\\./|assets/)(`+name+`-(?!legacy)[A-Za-z0-9_-]+\\.`+type+`)`))?.[1];
@@ -23,8 +25,9 @@ const receipt={observedAt:new Date().toISOString(),codeCommit:deployment.sourceS
   mapSha256:createHash('sha256').update(mapCode).digest('hex'),compiledDeviceCamera:mapCode.includes('--map-selection-popup-height'),
   compiledScrollingFrame:css.includes('.ds-property-pin-pages'),compiledPhoneStatus:css.includes('.ds-parcel-lens-status.is-phone'),
   compiledTopStatus:/\.ds-parcel-lens-status\{[^}]*top:12px/.test(css),compiledNeighborFrame:layerCode.includes('ds-parcel-neighbor-frame'),
+  compiledUnlockedMagnifier:mapCode.includes('ds-property-pin-lens-feedback')&&mapCode.includes('PARCEL_NOT_FOUND'),
   anonymousParcelStatus:denied.status,anonymousStartupParcelRequests:parcelRequests,browserErrors:errors,
   backendDeploy:'NONE_FRONTEND_ONLY',migration:'NONE',featureFlagsChanged:false,paidProviderCalls:0,
   realUserAuthenticatedAcceptance:'NOT_PERFORMED_NO_USER_SESSION'};
-receipt.pass=frontendStatus===200&&denied.status===401&&parcelRequests===0&&errors.length===0&&receipt.compiledDeviceCamera&&receipt.compiledScrollingFrame&&receipt.compiledPhoneStatus&&receipt.compiledTopStatus&&receipt.compiledNeighborFrame;
-await writeFile('qa/parcel-lens-device/production-smoke.json',JSON.stringify(receipt,null,2)+'\n');console.log(JSON.stringify(receipt));if(!receipt.pass)throw new Error('PRODUCTION_SMOKE_FAILED');
+receipt.pass=frontendStatus===200&&denied.status===401&&parcelRequests===0&&errors.length===0&&receipt.compiledDeviceCamera&&receipt.compiledScrollingFrame&&receipt.compiledPhoneStatus&&receipt.compiledTopStatus&&receipt.compiledNeighborFrame&&(!argv.includes('--unlocked')||receipt.compiledUnlockedMagnifier);
+await writeFile(`${qaDirectory}/production-smoke.json`,JSON.stringify(receipt,null,2)+'\n');console.log(JSON.stringify(receipt));if(!receipt.pass)throw new Error('PRODUCTION_SMOKE_FAILED');
