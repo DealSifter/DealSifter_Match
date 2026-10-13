@@ -1,0 +1,47 @@
+# Pipeline real do Maxxis
+
+Baseline e limites: [02_SYSTEM_BASELINE.md](02_SYSTEM_BASELINE.md). Todas as etapas abaixo foram rastreadas estaticamente; validação end-to-end com conta real não realizada. D = determinístico; G = Gemini; R = RentCast. Cache/state descritos são usados pela aplicação, não alterados nesta auditoria.
+
+| Etapa / arquivo e símbolo | Entrada → saída / state e cache | G / R / D | Falha → fallback / consumidor |
+|---|---|---|---|
+| Screen context — `src/App.jsx::handleMaxxisSurfaceContextChange`; `features/maxxis/context/maxxisContextSnapshot.js` | superfície/seleção/view/perfil → snapshot contextual; state App | não/não/sim | ausência ou seleção stale → resolver/clarificação; Assistant |
+| Property handoff — `context/propertyAnalysisHandoff.js`; `context/maxxisPropertyContext.js::explicitPropertyFromMessage` | UUID, card, mensagem e candidatos → propriedade exata; UUID validado, nome só quando único | não/não/sim | nome ambíguo não selecionado; estado anterior é risco de stale a validar; chat/report |
+| Conversation intent — `routing/maxxisConversationIntent.js::classifyMaxxisConversationIntent` | texto/report explícito/pendingGap → REPORT_REQUEST, GAP_RESPONSE, followup, property, general, help | não/não/sim | regex inconclusiva → GENERAL_CONVERSATION; Gap só apresentado conforme shouldPresentAnalysisGap |
+| Submit — `MaxxisAssistant.jsx`; `src/services/maxxisService.js::sendMaxxisMessage` | mensagem/20 msgs/context/propertyIds/capability → corpo maxxis-chat; normalização história | não/não/sim | auth/rede → UI erro/fallback, sem relatório inventado |
+| Runtime authorization — `_shared/maxxis/runtimeEntitlement.ts::inferMaxxisRuntimeCapability`; `intelligenceAccess.ts`; maxxis-chat effectiveProviderPlan | JWT/usuário/plano/entitlement/imóvel → ALLOW/DENY/capability; ENTITLED promove execução L2→PRO/L3→ENTERPRISE, sem subscription mutation | não/não/sim | não autorizado → gate; autoridade server, não badge do cliente |
+| Backend intent — `functions/maxxis-chat/index.ts`, mandatoryFunctionCall / trustedFunctionCall | contexto autorizado/intento explícito → ferramenta obrigatória de análise ou tool selection | às vezes/não/parcial | análise explícita fixa getDealInsightContext; outras ferramentas podem ser selecionadas por Gemini; falha seleção → fallback |
+| Facts — `_shared/maxxis/propertyDetails.ts`; `_shared/property-data/propertyRepository.ts::getById` | propriedade autorizada/DB sanitized → fatos cadastrados; DB/RPC | não/não/sim | ausência/autorização → unavailable/locked; getDealInsightContext/getPropertyEvidence |
+| Evidence plan — `_shared/maxxis/providerEvidencePlan.ts::buildProviderEvidencePlan` | tipo/estratégia/capability/plano/cacheOnly → oito famílias e permissões | não/não/sim | FREE sem entitlement bloqueia; aquisição só depth DEAL_INTELLIGENCE; outros níveis cache-only pelo planner |
+| Evidence services — `_shared/maxxis/getDealInsightContext.ts::getDealInsightContext*`; property-data backendFactory/services | facts + fingerprints + caches → property/valuation/sold/supplemental; retained reads quando permitido | não/condicional/sim | unavailable/timeout/budget/identidade → estado explícito e retained fallback; não garantir zero-call do chat genérico pelo nome |
+| Canonical facts — `_shared/maxxis/propertyEvidenceProjection.ts::mergeVerifiedPropertyEvidenceIntoFacts/buildCanonicalPropertyFacts` | app + fields/status/conflitos/valuation refs → snapshot propertyFacts + canonicalPropertyFacts | não/não/sim | unknown preservado em fact.value, mas confidence null vira 0; divergência de tipo flat/canonical comprovada |
+| Investment profile/match — `getMyInvestmentProfile.ts`, `normalizeInvestmentProfile.ts`, `calculatePropertyMatch.ts` | preferências cadastradas + propriedade → fit score/reasons | não/não/sim | critério desconhecido excluído do denominador; todos desconhecidos → null |
+| Decision context — `_shared/maxxis/dealDecisionContext.ts::buildDealDecisionContext` | snapshot/evidence/assumptions/playbook → dados com proveniência, gaps, estratégia, readiness | não/não/sim | dado não disponível → gap; não substituir AVM por ARV; structured analysis/Gap/proactive |
+| Thesis / analysis — `dealThesis.ts::buildDealThesis`; `maxxisStructuredAnalysis.ts`; `getDealInsightContext.ts` | evidência/métricas/decisão → tese, riscos, próximos passos, structuredAnalysis | não/não/sim | conclusão limitada pela evidência; narrativas locais antes/depois de explicação LLM |
+| Gap — `analysisGapResolver.ts::buildEvidenceCompletenessGate`; `intelligence/analysisGapAnswer.js`; Assistant::handleResolveAnalysisGaps | pergunta/ação/input → saveMaxxisAnalysisInputs + recompute cache-only | não/não/sim no submit | activeAnalysisGapRef impede submit concorrente; falha write não é progresso; loops reais permanecem UNVERIFIED |
+| Scenario — `_shared/maxxis/scenarioEngine.ts::resolveDealScenario` | canonical facts + stored assumptions + últimas 5 mensagens de usuário + mensagem atual → cenário/comparison/source/unresolvedInputs | não/não/sim na matemática | cálculo incompleto → PARTIAL/DRAFT; campos opcionais faltantes podem virar zero; fluxo maxxis-chat anterior pode ter Gemini |
+| Proactive — `proactive/maxxisProactiveTriggerEngine.js::buildMaxxisProactiveTriggers`; `maxxisProactiveIntelligence.js::evaluateMaxxisProactiveAttention` | snapshot/decision/scenario/prior/preferences → signal/version/actions; sessão/dismissal | não/não/sim geração | dedupe, busy/modal/chat-open, idade/intensity → suppression; bubble → ação pode chamar backend |
+| LLM projection — `_shared/maxxis/toolResultForGemini.ts`; `maxxisContextBudget.ts` | tool result → projeção limitada + história compactada; 48k request / 24k second-pass / 12k tool chars | sim/não/projeção D | campo fora da projeção não chega à explicação; raw payload não é enviado inteiro |
+| LLM explanation — `maxxis-chat/index.ts` linhas 919/1142; `geminiClient.ts` | prompt/fatos projetados → explicação; retries/models/budget de execução | sim/não/não | falha → respostas determinísticas/degraded; role textual, não fonte de cálculo/registro |
+| Chat — Assistant + `intelligence/maxxisDealIntelligence.js`, response/experience components | resposta/data/structuredAnalysis → texto/evidence/ações/report CTA | não/não/presentation D | generationFailure recuperável; persistência e plano condicionam export |
+| Reports — `domain/maxxis/maxxisReportSchema.js::mergeMaxxisReportProperty/buildPropertyOverviewModel/buildAuthorizedMaxxisReport` | snapshot + app data + L2/L3 builders + entitlement + locale → schema V2 | não/não/sim montagem | ausência structuredAnalysis ativa fallback local; conflito fact/type pode reaparecer no overview |
+| Persistence/export — `maxxisReportService.js`; `export/maxxisReportPdf.js`; `MaxxisCanonicalReportPreview.jsx` | schema → save RPC, PDF/cache, PDF.js canvases, mailto/share | tradução pode G/não/sim PDF | layout overflow → REPORT_SECTION_OVERFLOW; email attachment automático não existe neste botão |
+
+## Limites de contexto
+
+`MAXXIS_CONTEXT_BUDGET`: request 48.000 chars, second-pass 24.000, tool 12.000; recentes 6 mensagens/3.600 chars; resumo anterior 900; aproximação 4 chars/token. UI mantém 20, não significa que Gemini recebe 20 completos. Resumo guarda até quatro decisões antigas reconhecidas por regex. Dado ausente na projeção não é necessariamente perdido no snapshot/persistência.
+
+## Caminhos canônicos, ativos e paralelos
+
+| Classificação | Caminho e prova | Consequência |
+|---|---|---|
+| CANONICAL | propertyEvidenceProjection → intelligenceSnapshot → dealDecisionContext → maxxisStructuredAnalysis | Contrato principal, mas flat e grouped facts coexistem |
+| CANONICAL | reportSchema V2 / buildPropertyOverviewModel / PDF.js preview | Mesma montagem de overview L1–L3 quando há facts; L1 pode receber app-only |
+| LEGACY_BUT_ACTIVE L-A | dealAdvisor.ts::analyzeDealFacts importado por getDealInsightContext.ts e propertyDetails.ts | Heurísticas anteriores coexistem com Decision Context/Thesis; não remover sem consumidores |
+| LEGACY_BUT_ACTIVE L-B | maxxisAnalysisReport.js / maxxisDealIntelligenceReport.js, fallback quando structuredAnalysis ausente | Composição independente local ainda alcançável; parity não universal |
+| LEGACY_BUT_ACTIVE L-C | MatchesPortfolio.jsx::export por mailto, subject Trello Export | Caminho de export portfólio paralelo ao export canônico Maxxis |
+| DUPLICATE D-A | propertyEvidenceProjection.factFor / mergeVerified... + reportSchema.buildPropertyOverviewModel | Duas precedências de tipo; conflito reproduzido |
+| DUPLICATE D-B | maxxisReportPdf.js::text versus renderContainedText | Dois contratos geométricos; text ainda usado em tabelas/labels/disclaimers |
+| DUPLICATE D-C | canonicalInvestmentAnalysis::buildFocusMap e backend dealDecisionContext requirements | Readiness recomposta no frontend; não é uma segunda AVM, mas precisa contrato versionado |
+| UNKNOWN | demais quick actions/formatters antigos | Sem prova suficiente de unused; existência não autoriza apagar |
+
+Why/Missing/Snapshot e smart actions permanecem em Assistant (controlledIntent deal_gaps, current_deal_followup, deal_snapshot). Há consumo de ações, state version e update de assumptions; não são meramente links visuais. Router testa pendingGap antes de general/help, portanto parser de respostas é uma fronteira sensível. Não foi reproduzido hijack de pergunta unrelated nesta auditoria.

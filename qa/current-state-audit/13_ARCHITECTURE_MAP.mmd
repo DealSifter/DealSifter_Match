@@ -1,0 +1,80 @@
+flowchart TD
+  subgraph UI[UI React - local deterministic presentation]
+    Feed[Feed Dashboard]
+    Matches[Matches Connections]
+    Portfolio[Onboarding Portfolio]
+    Map[MapView pins]
+    Context[App screen context plus explicit property selection]
+    Assistant[MaxxisAssistant - 20 cached messages]
+    Intent[Conversation intent and pending Gap router]
+    Proactive[Local proactive trigger hash priority dedupe]
+    Bubble[Avatar official assets plus speech bubble]
+    Feed --> Context
+    Matches --> Context
+    Portfolio --> Context
+    Map --> Context
+    Context --> Assistant --> Intent
+    Proactive --> Bubble --> Assistant
+  end
+  subgraph Deterministic[Backend deterministic boundary - Supabase Edge]
+    Auth[JWT user authorization entitlement]
+    FactsDB[Properties profiles investment profile and authorized user inputs]
+    Plan[Provider evidence plan per capability and strategy]
+    Facts[Flat propertyFacts plus grouped canonicalPropertyFacts]
+    Decision[Decision Context strategy requirements and provenance]
+    Engines[Match metrics comps recent-sales ARV thesis]
+    Gap[Gap inputs save and cache-only recompute]
+    Scenario[Scenario math solve-for comparison]
+    SavedInputs[property_arv_review_contexts activeScenario]
+    Structured[Structured analysis snapshot]
+    Intent --> Auth
+    Auth --> FactsDB --> Plan
+    FactsDB --> Facts
+    Facts --> Decision --> Engines --> Structured
+    Decision --> Gap --> SavedInputs --> Decision
+    Decision --> Scenario --> Structured
+    Structured --> Proactive
+  end
+  subgraph Evidence[Evidence acquisition and retained cache boundary]
+    Cache[Normalized typed cache by family and identity]
+    Guards[Monthly global usage cap plus user bucket budget plus lease]
+    Normalize[RentCast mapper valuation sold supplemental normalization]
+    RentCast[External RentCast - authorized provider calls only]
+    Plan --> Cache
+    Plan -->|L3 acquisition permitted and cache miss| Guards
+    Guards --> RentCast --> Normalize --> Cache
+    Cache --> Facts
+    Cache --> Decision
+    Cache --> Engines
+  end
+  subgraph LLM[LLM boundary - explanation not numerical authority]
+    Projection[Bounded sanitized tool result and compact history]
+    Gemini[External Gemini selection or explanation]
+    Fallback[Deterministic degraded explanation]
+    Structured --> Projection --> Gemini
+    Gemini --> Chat[Chat response plus existing data]
+    Gemini -->|failure| Fallback --> Chat
+  end
+  subgraph Report[Client report and persistence boundary]
+    Builders[L2 and L3 builders with canonical or legacy fallback]
+    Overview[Shared factual overview and schema V2]
+    Translate[Presentation translation cache - optional Gemini miss]
+    PDF[jsPDF measured contained renderer plus legacy text]
+    Preview[PDF.js canvases vertical preview]
+    Saved[maxxis_reports and entitlements via SQL RPC]
+    MyReports[My Reports owner-scoped viewer]
+    Email[Local download plus mailto draft - no delivery proof]
+    Facts --> Overview
+    Chat --> Builders --> Overview
+    Structured --> Builders
+    Overview --> Saved --> MyReports --> Overview
+    Overview --> Translate --> PDF --> Preview
+    PDF --> Email
+    Translate -. optional miss .-> Gemini
+  end
+  FactsDB --> Unlock[Shared unlock state by scoped identity]
+  Unlock --> Map
+  Unlock --> Matches
+  Facts --> Scenario
+  Facts --> MatchSearch[Property match orchestration plus behavior affinity]
+  MatchSearch --> Feed
