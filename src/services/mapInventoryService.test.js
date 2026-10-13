@@ -30,6 +30,9 @@ const baseCards = [
   },
   {
     id: 'property-current',
+    geocodeStatus: 'resolved',
+    geocodeSource: 'census',
+    geocodedAt: '2026-10-13T01:00:00Z',
     cardKind: 'property',
     ownerId: CURRENT_USER_ID,
     primaryProfile: 'professional',
@@ -42,6 +45,9 @@ const baseCards = [
   },
   {
     id: 'property-other',
+    geocodeStatus: 'resolved',
+    geocodeSource: 'census',
+    geocodedAt: '2026-10-13T01:00:00Z',
     cardKind: 'property',
     ownerId: OTHER_USER_ID,
     primaryProfile: 'fsbo',
@@ -78,6 +84,10 @@ const baseCards = [
 ];
 
 describe('mapInventoryService', () => {
+  it('never renders a PIN from an unvalidated property even when it has coordinates', () => {
+    const inventory = buildMapInventory([{ ...baseCards[2], geocodeStatus: 'failed' }], CURRENT_USER_ID, { showDeals: true });
+    expect(inventory.allPins).toHaveLength(0);
+  });
   it('returns only current user properties for My PINs + Deals', () => {
     const inventory = buildMapInventory(baseCards, CURRENT_USER_ID, {
       showOnlyMyPins: true,

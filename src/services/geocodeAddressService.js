@@ -1,14 +1,10 @@
 import { isSupabaseConfigured, supabase } from '../lib/supabaseClient';
+import { coordinate, hasValidPropertyGeocode, validPoint } from '../../supabase/functions/_shared/geocode/propertyValidation.ts';
 
 const toText = (value) => String(value || '').trim();
 
 export function propertyNeedsBackendGeocode(property = {}) {
-  const lat = Number(property?.lat);
-  const lng = Number(property?.lng);
-  const status = toText(property?.geocodeStatus || property?.geocode_status).toLowerCase();
-  const source = toText(property?.geocodeSource || property?.geocode_source).toLowerCase();
-  if (source === 'manual') return false;
-  if (Number.isFinite(lat) && Number.isFinite(lng) && lat !== 0 && lng !== 0 && status === 'resolved') return false;
+  if (hasValidPropertyGeocode(property)) return false;
   return Boolean(
     toText(property?.address)
     || toText(property?.city)
@@ -30,10 +26,11 @@ export async function geocodePropertyAddress(property = {}) {
     },
   });
   if (error) throw error;
-  if (!data || data.status !== 'success') return data || null;
-  const lat = Number(data.lat);
-  const lng = Number(data.lng);
-  if (!Number.isFinite(lat) || !Number.isFinite(lng)) return data;
+  if (!data || data.status !== 'success' || !validPoint(data.lat, data.lng)) {
+    return { lat: null, lng: null, geocodeStatus: 'failed', geocodeSource: '', geocodedAt: null, geocodeValid: false };
+  }
+  const lat = coordinate(data.lat);
+  const lng = coordinate(data.lng);
   return {
     lat,
     lng,
@@ -43,4 +40,12 @@ export async function geocodePropertyAddress(property = {}) {
     geocodeInput: data.normalized_address || '',
     geocodedAt: new Date().toISOString(),
   };
+}
+
+export async function validatePortfolioProperty(property, geocode = geocodePropertyAddress) {
+  let next = property;
+  try { next = { ...property, ...await geocode(property) }; }
+  catch { next = { ...property, lat: null, lng: null, geocodeStatus: 'pending', geocodeSource: '', geocodedAt: null, geocodeValid: false }; }
+  const valid = hasValidPropertyGeocode(next);
+  return { ...next, isActive: valid, publishToShowcase: valid && property.publishToShowcase === true };
 }

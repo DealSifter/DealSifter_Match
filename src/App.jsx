@@ -136,7 +136,8 @@ import {
   syncFeedActions,
 } from './services/feedActionService';
 import { hydrateUnlockState } from './services/unlockHydrationService';
-import { geocodePropertyAddress } from './services/geocodeAddressService';
+import { validatePortfolioProperty } from './services/geocodeAddressService';
+import { hasValidPropertyGeocode } from '../supabase/functions/_shared/geocode/propertyValidation.ts';
 import {
   buildGlobalFeedState,
   fetchGlobalInventory,
@@ -534,7 +535,7 @@ const mapLocalPropertyToDb = (property, userId) => {
     pending_deal: isTruthyFlag(property?.pendingDeal, false),
     pending_deal_started_at: toIsoDateOrNull(property?.pendingDealStartedAt),
     pending_deal_expires_at: toIsoDateOrNull(property?.pendingDealExpiresAt),
-    publish_to_showcase: isTruthyFlag(property?.publishToShowcase, true),
+    publish_to_showcase: hasValidPropertyGeocode(property) && isTruthyFlag(property?.publishToShowcase, true),
     include_in_preview: isTruthyFlag(property?.includeInPreview, true),
     source: String(property?.source || 'portfolio').trim() || 'portfolio',
     owner_account_type: String(property?.ownerAccountType || '').trim() || null,
@@ -797,6 +798,12 @@ const MobilePortraitGuard = ({ copy }) => (
 );
 
 export default function App() {
+  const propertyWriteQueueRef = useRef(Promise.resolve());
+  const enqueuePropertyWrite = useCallback((write) => {
+    const pending = propertyWriteQueueRef.current.catch(() => {}).then(write);
+    propertyWriteQueueRef.current = pending;
+    return pending;
+  }, []);
   const blockMobileLandscape = useMediaQuery('(hover: none) and (pointer: coarse) and (orientation: landscape) and (max-height: 520px)');
   const onboardingAccessCompleteRef = useRef(true);
   const profileSyncStateRef = useRef({ userId: null, loaded: false, hydrating: false, personalLoadedFromRemote: false, professionalLoadedFromRemote: false });
@@ -2354,6 +2361,7 @@ export default function App() {
       .filter((p) => (
         isTruthyFlag(p?.isActive, true)
         && isTruthyFlag(p?.publishToShowcase, true)
+        && hasValidPropertyGeocode(p)
         && Boolean(inferRecordProfileScope(p, ''))
         && p?.dealClosed !== true
         && (import.meta.env.DEV || !isDemoSeedMockRecord(p))
@@ -3640,20 +3648,12 @@ export default function App() {
       try {
         if (userOwnedProperties.length === 0) return;
 
-        const payload = await Promise.all(userOwnedProperties.map(async (property) => {
-          const geocodeResult = await geocodePropertyAddress(property).catch((error) => {
-            safeLogError('Backend property geocode failed.', error);
-            return null;
-          });
-          return mapLocalPropertyToDb(
-            geocodeResult ? { ...property, ...geocodeResult } : property,
-            supabaseUserId
-          );
-        }));
+        // Geocoding happens at explicit portfolio save/publication, not on every autosave.
+        const payload = userOwnedProperties.map((property) => mapLocalPropertyToDb(property, supabaseUserId));
         lastLocalSupabaseWriteAtRef.current = Date.now();
-        let { error: upsertError } = await supabase
+        let { error: upsertError } = await enqueuePropertyWrite(() => supabase
           .from('properties')
-          .upsert(payload, { onConflict: 'id' });
+          .upsert(payload, { onConflict: 'id' }));
 
         if (upsertError && isPropertiesOptionalColumnMissingError(upsertError)) {
           const payloadWithoutOptionalColumns = payload.map((row) => {
@@ -3667,6 +3667,8 @@ export default function App() {
             delete rest.geocode_input;
             delete rest.geocoded_at;
             delete rest.hide_street_address_on_card;
+            // Never publish a row when the database lacks the validation contract.
+            rest.publish_to_showcase = false;
             return rest;
           });
           const retry = await supabase
@@ -3761,7 +3763,36 @@ export default function App() {
     return () => {
       if (propertiesDebounceTimer) clearTimeout(propertiesDebounceTimer);
     };
-  }, [supabaseUserId, propertyPortfolio, pendingFlushRef, profileSaveDebounceRef, portfolioSyncStateRef]);
+  }, [supabaseUserId, propertyPortfolio, pendingFlushRef, profileSaveDebounceRef, portfolioSyncStateRef, enqueuePropertyWrite]);
+
+  const handleValidatePortfolioProperties = useCallback(async (properties, { publish = false } = {}) => {
+    if (!supabase || !supabaseUserId || properties.some((property) => !isUserOwnedPropertyRecord(property, supabaseUserId))) {
+      throw new Error('PROPERTY_OWNER_SESSION_REQUIRED');
+    }
+    if (profileSaveDebounceRef.current.properties) clearTimeout(profileSaveDebounceRef.current.properties);
+    pendingFlushRef.current.properties = null;
+    const validated = await Promise.all(properties.map((property) => validatePortfolioProperty(property)));
+    const allValid = validated.every(hasValidPropertyGeocode);
+    const records = validated.map((property) => ({ ...property,
+      publishToShowcase: allValid && publish ? true : property.publishToShowcase,
+      includeInPreview: true,
+    }));
+    lastLocalSupabaseWriteAtRef.current = Date.now();
+    const { data, error } = await enqueuePropertyWrite(() => supabase.from('properties')
+      .upsert(records.map((property) => mapLocalPropertyToDb(property, supabaseUserId)), { onConflict: 'id' })
+      .select('id,lat,lng,geocode_status,geocode_source,geocode_confidence,geocode_input,geocoded_at,is_active,publish_to_showcase'));
+    if (error) throw error;
+    if (!Array.isArray(data) || data.length !== records.length) throw new Error('PROPERTY_SAVE_NOT_CONFIRMED');
+    const persisted = new Map(data.map((row) => [String(row.id), row]));
+    return records.map((record) => {
+      const row = persisted.get(String(record.id));
+      if (!row) throw new Error('PROPERTY_SAVE_NOT_CONFIRMED');
+      return { ...record, lat: row.lat, lng: row.lng, geocodeStatus: row.geocode_status,
+        geocodeSource: row.geocode_source, geocodeConfidence: row.geocode_confidence,
+        geocodeInput: row.geocode_input, geocodedAt: row.geocoded_at,
+        isActive: row.is_active, publishToShowcase: row.publish_to_showcase };
+    });
+  }, [supabaseUserId, enqueuePropertyWrite, profileSaveDebounceRef, pendingFlushRef]);
 
   const handleDeletePropertyRecord = useCallback(async (propertyId) => {
     const id = String(propertyId || '').trim();
@@ -5786,6 +5817,7 @@ export default function App() {
             setServicePortfolio={setServicePortfolio}
             propertyPortfolio={propertyPortfolio}
             setPropertyPortfolio={setPropertyPortfolio}
+            onValidatePortfolioProperties={handleValidatePortfolioProperties}
             onDeletePropertyRecord={handleDeletePropertyRecord}
             onDeleteServiceRecord={handleDeleteServiceRecord}
           />

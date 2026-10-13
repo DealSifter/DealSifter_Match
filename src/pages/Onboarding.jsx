@@ -14,6 +14,7 @@ import { useT } from '../i18n/translations';
 // removed unused import: toggleHidden
 import { genId } from '../lib/id';
 import { createProfessionalProperty } from '../lib/propertyFactory';
+import { hasValidPropertyGeocode, invalidateChangedPropertyAddress } from '../../supabase/functions/_shared/geocode/propertyValidation.ts';
 import { validateProfessionalPropertyDraft } from '../lib/propertyValidation';
 import { getPortfolioVideoBlob, setPortfolioVideoBlob, clearPortfolioVideoBlob } from '../lib/localforageHelper';
 import { getMatchPressure } from '../lib/matchPressure';
@@ -70,11 +71,27 @@ export function Onboarding({
   setServicePortfolio,
   propertyPortfolio,
   setPropertyPortfolio,
+  onValidatePortfolioProperties,
   onDeletePropertyRecord,
   onDeleteServiceRecord,
   initialProfileTab = 'personal',
 }) {
   const t = useT('onboarding').onboarding;
+  const [isGeocodeSaving, setIsGeocodeSaving] = useState(false);
+  const [geocodeNotice, setGeocodeNotice] = useState('');
+  const geocodeAttention = 'var(--geocode-attention)';
+  const validateSavedProperties = async (records, options) => {
+    setIsGeocodeSaving(true);
+    try {
+      if (!onValidatePortfolioProperties) throw new Error('VALIDATION_UNAVAILABLE');
+      const validated = await onValidatePortfolioProperties(records, options);
+      setGeocodeNotice(validated.every(hasValidPropertyGeocode) ? '' : validated.some((property) => property.geocodeStatus === 'pending') ? t.geocodePendingNotice : t.geocodeDraftNotice);
+      return validated;
+    } catch {
+      setGeocodeNotice(t.geocodeSaveUnavailable);
+      return null;
+    } finally { setIsGeocodeSaving(false); }
+  };
   const readStoredPriority = (profile, key) => {
     if (!profile || typeof profile !== 'object') return '';
     if (!Object.prototype.hasOwnProperty.call(profile, key)) return '';
@@ -1938,7 +1955,8 @@ export function Onboarding({
     });
   };
 
-  const saveEditProperty = (id) => {
+  const saveEditProperty = async (id) => {
+    if (isGeocodeSaving) return;
     const currentRecord = propertyPortfolio.find((prop) => prop.id === id);
     const shouldEmphasizePreview = Boolean(
       currentRecord
@@ -1951,9 +1969,9 @@ export function Onboarding({
     const beds = Number(propertyEditDraft.beds) || 0;
     const baths = Number(propertyEditDraft.baths) || 0;
     const nextMarkets = normalizeMarkets(propertyEditDraft.markets);
-    setPropertyPortfolio((prev) => prev.map((prop) => (
-      prop.id === id
-        ? {
+    if (!currentRecord) return;
+    const prop = currentRecord;
+    const draft = invalidateChangedPropertyAddress(prop, {
             ...prop,
             address: propertyEditDraft.address || prop.address,
             city: propertyEditDraft.city || prop.city,
@@ -1973,9 +1991,10 @@ export function Onboarding({
             markets: nextMarkets,
             state: nextMarkets[0] || prop.state || '',
             hideStreetAddressOnCard: propertyEditDraft.hideStreetAddressOnCard === true,
-          }
-        : prop
-    )));
+          });
+    const validated = await validateSavedProperties([draft]);
+    if (!validated) return;
+    setPropertyPortfolio((prev) => prev.map((record) => record.id === id ? validated[0] : record));
     setEditingPropertyId(null);
     if (shouldEmphasizePreview) setIsPreviewToFeedDirty(true);
   };
@@ -2034,7 +2053,8 @@ export function Onboarding({
     });
   };
 
-  const addProfessionalPortfolioProperty = () => {
+  const addProfessionalPortfolioProperty = async () => {
+    if (isGeocodeSaving) return null;
     const validation = validateProfessionalPropertyDraft({
       address: portfolioAddress,
       city: portfolioCity,
@@ -2069,16 +2089,17 @@ export function Onboarding({
       primaryProfileScope,
       hideStreetAddressOnCard: portfolioHideStreetAddressOnCard,
     });
-    setPropertyPortfolio((prev) => [
-      ...prev,
-      {
+    const draft = {
         ...newItem,
         publishToShowcase: false,
         includeInPreview: true,
         _localDraft: true,
         _localDraftAt: Date.now(),
-      },
-    ]);
+      };
+    const validated = await validateSavedProperties([draft]);
+    if (!validated) return null;
+    const saved = validated[0];
+    setPropertyPortfolio((prev) => [...prev, saved]);
 
   setPortfolioAddress('');
     setPortfolioCity('');
@@ -2102,7 +2123,7 @@ export function Onboarding({
     setIsPreviewToFeedDirty(true);
     setStreetPrivacyPrompt({ propertyId: newItem.id });
 
-    return newItem.id;
+    return saved;
   };
 
   const resolveStreetPrivacyPrompt = (hideStreetAddressOnCard) => {
@@ -2179,21 +2200,14 @@ export function Onboarding({
     }));
   };
 
-  const togglePropertyShowInShowcase = (propertyId) => {
-    setPropertyPortfolio((prev) => {
-      let changed = false;
-      const next = prev.map((item) => {
-        if (item.id !== propertyId) return item;
-        changed = true;
-        const nextShowIn = !isTruthyFlag(item.publishToShowcase, true);
-        return {
-          ...item,
-          publishToShowcase: nextShowIn,
-        };
-      });
-      // Garante nova referência mesmo se nada mudar (edge case)
-      return changed ? next : [...prev];
-    });
+  const togglePropertyShowInShowcase = async (propertyId) => {
+    if (isGeocodeSaving) return;
+    const item = propertyPortfolio.find((record) => record.id === propertyId);
+    if (!item) return;
+    const publish = !isTruthyFlag(item.publishToShowcase, true);
+    const validated = await validateSavedProperties([{ ...item, publishToShowcase: false }], { publish });
+    if (!validated) return;
+    setPropertyPortfolio((prev) => prev.map((record) => record.id === propertyId ? validated[0] : record));
   };
 
   const togglePropertyPreviewInclusion = (propertyId) => {
@@ -2889,7 +2903,8 @@ export function Onboarding({
     }
   };
 
-  const publishRegistration = () => {
+  const publishRegistration = async () => {
+    if (isGeocodeSaving) return;
     const validation = validateMinimumProfileCompletion();
     if (!validation.valid) {
       setPreviewOpen(false);
@@ -3053,20 +3068,29 @@ export function Onboarding({
 
     // Se houver um rascunho de propriedade preenchido, publique-o antes de navegar
     // para o dashboard para garantir que apareça no Showcase/feed.
-    let autoAddedPropertyId = null;
+    let autoAddedProperty = null;
     if (portfolioEntryType === 'property' && portfolioAddress && portfolioCity && portfolioPrice) {
-      autoAddedPropertyId = addProfessionalPortfolioProperty();
+      autoAddedProperty = await addProfessionalPortfolioProperty();
+      if (!autoAddedProperty) return;
     }
 
     // Publish items that were included in the PREVIEW when the user confirmed publish.
     // Publish step: compute what will be published for the toast
-    const propsToPublish = propertiesForPreview || [];
+    const propsToPublish = [...(propertiesForPreview || []), ...(autoAddedProperty ? [autoAddedProperty] : [])];
     const servicesToPublish = servicesForPreview || [];
     const propertyIdsToPublish = new Set(propsToPublish.map((p) => String(p.id)));
-    if (autoAddedPropertyId) propertyIdsToPublish.add(String(autoAddedPropertyId));
     const serviceIdsToPublish = new Set(servicesToPublish.map((s) => String(s.id)));
     const propsCount = propertyIdsToPublish.size;
     const servicesCount = serviceIdsToPublish.size;
+
+    const validated = propsToPublish.length ? await validateSavedProperties(propsToPublish, { publish: true }) : [];
+    if (!validated) return;
+    const byId = new Map(validated.map((record) => [String(record.id), record]));
+    setPropertyPortfolio((prev) => prev.map((record) => byId.get(String(record.id)) || record));
+    if (!validated.every(hasValidPropertyGeocode)) {
+      setPreviewOpen(false);
+      return;
+    }
 
     try {
       // Properties: anything shown in preview must remain actively published in Showcase.
@@ -3115,6 +3139,7 @@ export function Onboarding({
       properties: { source: 'onboarding' },
     });
     setPage('dashboard');
+    setPreviewOpen(false);
   };
 
   const normalizeEmail = (value) => String(value || '').trim().toLowerCase();
@@ -3341,6 +3366,11 @@ export function Onboarding({
           50% { opacity: 0.25; transform: scale(0.88); }
         }
         .deal-blink { animation: blink-deal 0.9s ease-in-out infinite; }
+        @keyframes geocode-edit-pulse { 0%,100% { opacity: 1; } 50% { opacity: .4; } }
+        .geocode-edit-required { animation: geocode-edit-pulse 1.4s ease-in-out infinite; }
+        .onb-shell { --geocode-attention: #b45309; }
+        [data-theme="dark"] .onb-shell { --geocode-attention: #fb923c; }
+        @media (prefers-reduced-motion: reduce) { .geocode-edit-required { animation: none; } }
         .onb-shell { width: 100%; max-width: 1690px; height: 100%; min-height: 0; max-height: none; box-sizing: border-box; display: flex; flex-direction: column; position: relative; z-index: 10; margin: 0 auto; padding-bottom: 6px; }
           .onb-head { display:flex; align-items:center; justify-content:center; gap:6px; width: 100%; margin:0 auto 4px; }
           .onb-head > div { width: 100%; text-align: center; }
@@ -3593,6 +3623,7 @@ export function Onboarding({
       `}</style>
 
       <div className="onb-shell">
+        {geocodeNotice || isGeocodeSaving ? <div role={geocodeNotice ? 'alert' : 'status'} style={{ color: geocodeAttention, border: `1px solid ${geocodeAttention}`, borderRadius: 8, padding: '8px 12px', marginBottom: 8, fontSize: 12, flexShrink: 0 }}>{isGeocodeSaving ? t.geocodeValidating : geocodeNotice}</div> : null}
         <div className="onb-head">
           <div>
             <h2 style={{ margin: 0, fontSize: 'clamp(17px,2.5vw,22px)', color: C.t1, fontWeight: 800 }}>{t.quickRegistrationTitle}</h2>
@@ -4165,7 +4196,7 @@ export function Onboarding({
                 )}
 
                 <div style={{ display: 'flex', flexDirection: (isTabletViewport || !isMobileViewport) ? 'row' : 'column', gap: 8, alignItems: (isTabletViewport || !isMobileViewport) ? 'center' : 'stretch', marginTop: 8, marginBottom: 12 }}>
-                  <button onClick={portfolioEntryType === 'property' ? addProfessionalPortfolioProperty : addProfessionalPortfolioService} style={{ flex: 1, padding: '8px 10px', borderRadius: 9, border: `1px solid ${C.accent}`, background: 'transparent', color: C.accent, fontWeight: 700, cursor: 'pointer', fontSize: 11 }}>
+                  <button disabled={isGeocodeSaving} onClick={portfolioEntryType === 'property' ? addProfessionalPortfolioProperty : addProfessionalPortfolioService} style={{ flex: 1, padding: '8px 10px', borderRadius: 9, border: `1px solid ${C.accent}`, background: 'transparent', color: C.accent, fontWeight: 700, cursor: 'pointer', fontSize: 11 }}>
                     + Add to Portfolio
                   </button>
                   <button data-guide="onboarding-publish" className={`onb-preview-feed ${isPreviewToFeedDirty ? 'is-dirty' : ''}`} onClick={openPreviewToFeed} style={{ flex: 1, padding: '8px 10px', borderRadius: 9, border: 'none', background: C.accent, color: '#ffffff', fontWeight: 700, cursor: 'pointer', fontSize: 11, display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: 6 }}>
@@ -4239,7 +4270,7 @@ export function Onboarding({
                               flex: isPhoneViewport ? '1 1 100%' : '0 1 50%',
                               maxWidth: isPhoneViewport ? '100%' : '52%',
                               fontSize: 11,
-                              color: C.t1,
+                              color: hasValidPropertyGeocode(p) ? C.t1 : geocodeAttention,
                               fontWeight: 700,
                               lineHeight: 1.2,
                               overflow: 'hidden',
@@ -4330,8 +4361,8 @@ export function Onboarding({
                                 );
                               })()}
                               {!p.dealClosed ? (
-                                <button type="button" onClick={() => startEditProperty(p)} title={t.actionEditService} aria-label={t.actionEditService} style={{ background: 'none', border: 'none', cursor: 'pointer', color: editingPropertyId === p.id ? C.accent : C.t3, padding: '0 6px', fontSize: 14, lineHeight: 1, flexShrink: 0 }}>
-                                  <Icon name="edit" size={14} color={editingPropertyId === p.id ? C.accent : C.t3} />
+                                <button type="button" disabled={isGeocodeSaving} className={!hasValidPropertyGeocode(p) ? 'geocode-edit-required' : undefined} onClick={() => startEditProperty(p)} title={!hasValidPropertyGeocode(p) ? t.geocodeDraftNotice : t.actionEditService} aria-label={!hasValidPropertyGeocode(p) ? t.geocodeDraftNotice : t.actionEditService} style={{ background: 'none', border: 'none', cursor: 'pointer', color: !hasValidPropertyGeocode(p) ? geocodeAttention : editingPropertyId === p.id ? C.accent : C.t3, padding: '0 6px', fontSize: 14, lineHeight: 1, flexShrink: 0 }}>
+                                  <Icon name="edit" size={14} color={!hasValidPropertyGeocode(p) ? geocodeAttention : editingPropertyId === p.id ? C.accent : C.t3} />
                                 </button>
                               ) : null}
                               <div style={{ display: 'flex', gap: 6, alignItems: 'center' }}>
@@ -4355,6 +4386,7 @@ export function Onboarding({
                               </div>
                             </div>
                           </div>
+                          {!hasValidPropertyGeocode(p) ? <div role="status" style={{ color: geocodeAttention, fontSize: 11, lineHeight: 1.4, padding: '0 0 8px', whiteSpace: 'normal', overflowWrap: 'anywhere' }}>{p.geocodeStatus === 'pending' ? t.geocodePendingNotice : t.geocodeDraftNotice}</div> : !p.publishToShowcase ? <div style={{ color: C.success, fontSize: 11, paddingBottom: 8 }}>{t.geocodeValidStatus}</div> : null}
                           {INLINE_EDIT_ENABLED && editingPropertyId === p.id && (
                             <div style={{ paddingBottom: 8 }}>
                               <div style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 1.6fr) minmax(0, 1.6fr) minmax(84px, 0.8fr) minmax(118px, 1.1fr)', gap: 6, paddingBottom: 8, width: '100%', minWidth: 0 }}>
@@ -4501,7 +4533,7 @@ export function Onboarding({
                                         </div>
                                       </div>
                                 <div style={{ marginTop: 8, display: 'flex', gap: 6 }}>
-                                  <button onClick={() => saveEditProperty(p.id)} style={{ padding: '6px 9px', borderRadius: 8, border: `1px solid ${C.accent}`, background: 'transparent', color: C.accent, fontWeight: 700, cursor: 'pointer', fontSize: 10 }}>{t.actionSave}</button>
+                                  <button disabled={isGeocodeSaving} onClick={() => saveEditProperty(p.id)} style={{ padding: '6px 9px', borderRadius: 8, border: `1px solid ${C.accent}`, background: 'transparent', color: C.accent, fontWeight: 700, cursor: 'pointer', fontSize: 10 }}>{t.actionSave}</button>
                                   <button onClick={() => setEditingPropertyId(null)} style={{ padding: '6px 9px', borderRadius: 8, border: `1px solid ${C.border}`, background: 'transparent', color: C.t2, fontWeight: 700, cursor: 'pointer', fontSize: 10 }}>{t.actionCancel}</button>
                                 </div>
                               </div>
@@ -5163,7 +5195,7 @@ export function Onboarding({
           </div>
           <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 8 }}>
             <button onClick={() => setEditingPropertyId(null)} style={{ padding: '8px 12px', borderRadius: 9, border: `1px solid ${C.border}`, background: 'transparent', color: C.t2, fontWeight: 700, cursor: 'pointer', fontSize: 12 }}>{t.actionCancel}</button>
-            <button onClick={() => saveEditProperty(editingPropertyRecord.id)} style={{ padding: '8px 12px', borderRadius: 9, border: 'none', background: C.accent, color: '#fff', fontWeight: 700, cursor: 'pointer', fontSize: 12 }}>{t.actionSave}</button>
+            <button disabled={isGeocodeSaving} onClick={() => saveEditProperty(editingPropertyRecord.id)} style={{ padding: '8px 12px', borderRadius: 9, border: 'none', background: C.accent, color: '#fff', fontWeight: 700, cursor: 'pointer', fontSize: 12 }}>{isGeocodeSaving ? t.geocodeValidating : t.actionSave}</button>
           </div>
         </Modal>
       ) : null}
@@ -5309,7 +5341,7 @@ export function Onboarding({
                 <button onClick={() => setPreviewOpen(false)} style={{ padding: '8px 12px', borderRadius: 9, border: `1px solid ${C.border}`, background: 'transparent', color: C.t2, fontWeight: 700, cursor: 'pointer', fontSize: 12 }}>
                   {t.previewBackToEdit}
                 </button>
-                <button data-guide="onboarding-publish" onClick={() => { setPreviewOpen(false); publishRegistration(); }} style={{ padding: '8px 12px', borderRadius: 9, border: 'none', background: C.accent, color: '#fff', fontWeight: 700, cursor: 'pointer', fontSize: 12 }}>
+                <button disabled={isGeocodeSaving} data-guide="onboarding-publish" onClick={publishRegistration} style={{ padding: '8px 12px', borderRadius: 9, border: 'none', background: C.accent, color: '#fff', fontWeight: 700, cursor: 'pointer', fontSize: 12 }}>
                   {t.previewConfirmPublish}
                 </button>
               </div>

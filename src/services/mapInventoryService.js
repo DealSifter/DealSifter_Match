@@ -1,4 +1,5 @@
 import { normalizeCard } from '../lib/normalizeFeedCard';
+import { hasValidPropertyGeocode } from '../../supabase/functions/_shared/geocode/propertyValidation.ts';
 import { orderDeck } from '../lib/orderFeedDeck';
 import { normalizeProfileScope } from '../lib/profileScopeResolver';
 
@@ -106,6 +107,7 @@ const toPin = (card, currentUserId) => {
   if (!coords) return null;
 
   const kind = getPinKind(card);
+  if (kind === 'property' && !hasValidPropertyGeocode(card)) return null;
   if (!isPublished(card, kind)) return null;
   if (kind === 'property' && truthyFlag(card?.hideStreetAddressOnCard ?? card?.hide_street_address_on_card, false)) {
     return null;
@@ -312,6 +314,7 @@ const buildMapFeaturesFromSources = (sources = {}, currentUserId = '') => {
 
   const ownersFromProperties = new Map();
   (showcaseProperties || []).forEach((property) => {
+    if (!hasValidPropertyGeocode(property)) return;
     if (!truthyFlag(property?.publishToShowcase, true)) return;
     if (!isLocalPublishedRecord(property)) return;
     const ownerId = String(property?.ownerId || '').trim();

@@ -51,7 +51,7 @@ export class MaxxisExecutionBudget {
 
   validateHistory(history: unknown[]) {
     if (history.length > this.limits.maxHistoryItems) throw new Error('MAXXIS_CONTEXT_TOO_LARGE');
-    const chars = history.reduce((total, item) => {
+    const chars = history.reduce<number>((total, item) => {
       const row = item && typeof item === 'object' ? item as Record<string, unknown> : {};
       return total + String(row.content || row.text || '').length;
     }, 0);

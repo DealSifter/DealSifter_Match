@@ -1,6 +1,9 @@
 import { createClient } from 'npm:@supabase/supabase-js@2';
 import { createRequestId } from '../_shared/observability.ts';
 import { checkRateLimit, logAbuseGuard, rateLimitResponse } from '../_shared/abuseProtection.ts';
+import { geocodeCorsHeaders as corsHeaders } from '../_shared/geocode/cors.ts';
+import { coordinate, validPoint } from '../_shared/geocode/propertyValidation.ts';
+import { addressMatches, censusAddressMatches } from '../_shared/geocode/addressMatch.ts';
 
 const supabaseUrl = Deno.env.get('SUPABASE_URL') ?? '';
 const supabaseAnonKey = Deno.env.get('ANON_KEY') ?? Deno.env.get('SUPABASE_ANON_KEY') ?? '';
@@ -12,11 +15,6 @@ if (!supabaseAnonKey) throw new Error('Missing SUPABASE_ANON_KEY');
 if (!supabaseServiceRoleKey) throw new Error('Missing SUPABASE_SERVICE_ROLE_KEY');
 
 const supabaseAdmin = createClient(supabaseUrl, supabaseServiceRoleKey);
-
-const corsHeaders = {
-  'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
-};
 
 type GeocodeStatus = 'success' | 'pending' | 'failed';
 
@@ -82,15 +80,14 @@ async function sha256Hex(value: string) {
 }
 
 function parseNumber(value: unknown) {
-  const num = Number(value);
-  return Number.isFinite(num) ? num : null;
+  return coordinate(value);
 }
 
 function success(lat: unknown, lng: unknown, provider: string, confidence = 0.75): GeocodeResult | null {
   const parsedLat = parseNumber(lat);
   const parsedLng = parseNumber(lng);
   if (parsedLat == null || parsedLng == null) return null;
-  if (parsedLat < -85 || parsedLat > 85 || parsedLng < -180 || parsedLng > 180) return null;
+  if (!validPoint(parsedLat, parsedLng)) return null;
   return {
     lat: parsedLat,
     lng: parsedLng,
@@ -136,6 +133,9 @@ async function geocodeNominatim(input: LocationInput, normalizedAddress: string)
     },
   });
   const first = Array.isArray(data) ? data[0] : null;
+  const address = first?.address;
+  if (!addressMatches(input, { address: `${address?.house_number || ''} ${address?.road || ''}`,
+    city: address?.city || address?.town || address?.village, state: address?.['ISO3166-2-lvl4']?.replace('US-', ''), zip: address?.postcode })) return null;
   const importance = Number(first?.importance ?? 0.65);
   return first ? success(first.lat, first.lon, 'nominatim', Math.max(0.45, Math.min(0.93, importance))) : null;
 }
@@ -151,15 +151,20 @@ async function geocodeCensus(input: LocationInput) {
   if (input.state) params.set('state', clean(input.state));
   if (input.zip) params.set('zip', clean(input.zip));
   const data = await fetchJson(`https://geocoding.geo.census.gov/geocoder/locations/address?${params.toString()}`);
-  const match = data?.result?.addressMatches?.[0];
+  const matches = data?.result?.addressMatches;
+  const match = Array.isArray(matches) && matches.length === 1 ? matches[0] : null;
+  if (!match || !censusAddressMatches(input, match.matchedAddress)) return null;
   return match ? success(match?.coordinates?.y, match?.coordinates?.x, 'census', 0.92) : null;
 }
 
-async function geocodePhoton(normalizedAddress: string) {
+async function geocodePhoton(input: LocationInput, normalizedAddress: string) {
   const params = new URLSearchParams({ q: normalizedAddress, limit: '1' });
   const data = await fetchJson(`https://photon.komoot.io/api/?${params.toString()}`);
   const feature = data?.features?.[0];
   const coords = feature?.geometry?.coordinates;
+  const address = feature?.properties;
+  if (!addressMatches(input, { address: `${address?.housenumber || ''} ${address?.street || ''}`,
+    city: address?.city, state: address?.statecode, zip: address?.postcode })) return null;
   return Array.isArray(coords) ? success(coords[1], coords[0], 'photon', 0.65) : null;
 }
 
@@ -180,14 +185,17 @@ async function geocodeArcGis(input: LocationInput, normalizedAddress: string) {
   }
   const data = await fetchJson(`https://geocode.arcgis.com/arcgis/rest/services/World/GeocodeServer/findAddressCandidates?${params.toString()}`);
   const candidate = data?.candidates?.[0];
+  const address = candidate?.attributes;
+  if (!['PointAddress', 'StreetAddress'].includes(address?.Addr_type) || Number(candidate?.score) < 95
+    || !addressMatches(input, { address: address?.StAddr, city: address?.City, state: address?.RegionAbbr, zip: address?.Postal })) return null;
   return candidate ? success(candidate?.location?.y, candidate?.location?.x, 'arcgis', Math.min(0.99, Number(candidate?.score || 75) / 100)) : null;
 }
 
 async function geocodeWithProviders(input: LocationInput, normalizedAddress: string): Promise<GeocodeResult> {
   const providers = [
-    () => geocodeNominatim(input, normalizedAddress),
     () => geocodeCensus(input),
-    () => geocodePhoton(normalizedAddress),
+    () => geocodeNominatim(input, normalizedAddress),
+    () => geocodePhoton(input, normalizedAddress),
     () => geocodeArcGis(input, normalizedAddress),
   ];
   for (const provider of providers) {
@@ -238,15 +246,16 @@ async function cacheResult(addressHash: string, normalizedAddress: string, resul
     }, { onConflict: 'address_hash' });
 }
 
-async function updatePropertyIfAllowed(propertyId: string, userId: string, result: GeocodeResult) {
+async function updatePropertyIfAllowed(propertyId: string, userId: string, result: GeocodeResult, input: LocationInput) {
   if (!propertyId || result.status !== 'success' || result.lat == null || result.lng == null) return;
   const { data: property } = await supabaseAdmin
     .from('properties')
-    .select('id, owner_id')
+    .select('id, owner_id, address, city, state, zip')
     .eq('id', propertyId)
     .maybeSingle();
   if (!property || String(property.owner_id) !== String(userId)) return;
-  await supabaseAdmin
+  if (normalizeAddress(property) !== normalizeAddress(input)) return;
+  const { error } = await supabaseAdmin
     .from('properties')
     .update({
       lat: result.lat,
@@ -258,7 +267,9 @@ async function updatePropertyIfAllowed(propertyId: string, userId: string, resul
       geocoded_at: new Date().toISOString(),
     })
     .eq('id', propertyId)
-    .eq('owner_id', userId);
+    .eq('owner_id', userId)
+    .eq('address', property.address).eq('city', property.city).eq('state', property.state).eq('zip', property.zip);
+  if (error) throw new Error('Unable to persist validated property geocode.');
 }
 
 async function geocodeAddress(input: LocationInput, userId: string): Promise<GeocodeResult> {
@@ -266,15 +277,16 @@ async function geocodeAddress(input: LocationInput, userId: string): Promise<Geo
   if (!normalizedAddress || normalizedAddress === 'USA') {
     return { lat: null, lng: null, status: 'pending', normalized_address: normalizedAddress };
   }
-  const addressHash = await sha256Hex(normalizedAddress);
+  // Do not reuse legacy caches that accepted city/ZIP centroids as address matches.
+  const addressHash = await sha256Hex(`property-address-v1|${normalizedAddress}`);
   const cached = await readCachedResult(addressHash);
-  if (cached?.status === 'success') {
-    await updatePropertyIfAllowed(clean(input.propertyId), userId, cached);
+  if (cached?.status === 'success' && validPoint(cached.lat, cached.lng)) {
+    await updatePropertyIfAllowed(clean(input.propertyId), userId, cached, input);
     return cached;
   }
   const result = await geocodeWithProviders(input, normalizedAddress);
   await cacheResult(addressHash, normalizedAddress, result);
-  await updatePropertyIfAllowed(clean(input.propertyId), userId, result);
+  await updatePropertyIfAllowed(clean(input.propertyId), userId, result, input);
   return result;
 }
 

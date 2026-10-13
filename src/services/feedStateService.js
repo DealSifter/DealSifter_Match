@@ -1,4 +1,5 @@
 import { normalizeCard } from '../lib/normalizeFeedCard';
+import { hasValidPropertyGeocode } from '../../supabase/functions/_shared/geocode/propertyValidation.ts';
 import { orderDeck } from '../lib/orderFeedDeck';
 import { captureOperationalMetric } from '../lib/observability';
 import {
@@ -197,6 +198,7 @@ const mapDbPropertyToLocal = (row, images = [], options = {}) => ({
   lat: toNumberOrNull(row.lat),
   lng: toNumberOrNull(row.lng),
   geocodeStatus: row.geocode_status || '',
+  geocodeValid: row.geocode_valid === true,
   geocodeSource: row.geocode_source || '',
   geocodeConfidence: toNumberOrNull(row.geocode_confidence),
   geocodeInput: row.geocode_input || '',
@@ -238,6 +240,7 @@ const isValidGlobalShowcaseProperty = (property) => (
   Boolean(property)
   && truthyFlag(property?.isActive, true)
   && truthyFlag(property?.publishToShowcase, true)
+  && hasValidPropertyGeocode(property)
   && property?.dealClosed !== true
   && !isDemoSeedMockRecord(property)
 );
@@ -292,6 +295,7 @@ export function buildFeedDeck(rawCards, currentUserId = '', filters = {}, sessio
     ];
 
   const normalized = rawList
+    .filter((card) => String(card?.cardKind || '').toLowerCase() !== 'property' || hasValidPropertyGeocode(card))
     .map((card) => normalizeCard(card, currentUserId))
     .filter(Boolean);
 

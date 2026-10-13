@@ -1,0 +1,21 @@
+{
+  "observedAt": "2026-10-13T01:29:12.645Z",
+  "mode": "DRY_RUN_NO_DATABASE_WRITES",
+  "propertyId": "60379a77-98b1-4c31-af00-32e6ac208e83",
+  "address": "1524 Wood Spring Ct, Raleigh, NC, 27614, USA",
+  "before": {
+    "lat": null,
+    "lng": null,
+    "status": "pending"
+  },
+  "matchedAddress": "1524 WOOD SPRING CT, RALEIGH, NC, 27614",
+  "coordinates": {
+    "lat": 35.921133041392,
+    "lng": -78.583547577238
+  },
+  "source": "US Census Public_AR_Current address match",
+  "precision": "TIGER_STREET_ADDRESS_INTERPOLATION_NOT_SURVEY_OR_ROOFTOP",
+  "providerCalls": 1,
+  "paidProviderCalls": 0,
+  "after": null
+}

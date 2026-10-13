@@ -1,0 +1,15 @@
+# Raleigh property: geocoding/publication integrity
+
+The property address is real. A unique US Census address match confirms 1524 Wood Spring Ct, Raleigh, NC 27614 at 35.921133041392, -78.583547577238. This is TIGER street-address interpolation, not survey or rooftop precision.
+
+Production browser tracing injected `baggage` and `sentry-trace` into Supabase function requests. The deployed geocode-address v17 CORS preflight permitted only authorization, x-client-info, apikey and content-type. The real production browser rejected the request because baggage was not allowed. Production logs for the property creation/edit window (2026-10-13 00:50–01:20 UTC) show repeated successful OPTIONS but no publication POST reaching the geocoder; the only later POST was an anonymous diagnostic 401. No cache entry existed for this address. The autosave caught the transport error and still published the pending row.
+
+Corrections: tracing-compatible CORS without relaxing authentication/rate limits; explicit save-time validation; address-component matching instead of city/ZIP fallback; central feed/map validity rules; database publication CHECK plus address-change invalidation; authoritative persisted-state readback before local publication. A no-match draft retains all fields and has localized orange correction text and a pulsing edit control. Temporary validation failure is distinguished from a definitive no-match result. Revalidation makes the record active/ready, but does not automatically publish a draft.
+
+Privacy remains independent: valid private cards are permitted, exact address/coordinates/input are redacted by the existing authenticated inventory, and no property PIN is generated until the owner removes the restriction. Paid Matches/contact unlocking does not remove owner address privacy.
+
+Only the confirmed Raleigh property's geocode/cache were repaired. Ownership/publication/privacy were verified unchanged. The targeted migration was tested on a temporary table in a rolled-back transaction and applied independently of unrelated pending migrations. Production verification found zero invalid published properties. No property was deleted or silently unpublished.
+
+The initial full run passed 1,807/1,810 assertions; two unlock fixtures needed the new mandatory geocode metadata and an unrelated PDF assertion hit the default five-second timeout during a heavy build. The targeted retry passed all 23 assertions across those files plus the new UI suite, using a 120-second timeout without changing PDF assertions. Original unsuccessful reports are retained. A final geocoding/privacy/CORS run passed 38/38 assertions; maintenance tests passed 4/4. Full assertion coverage is aggregated by distinct file, not represented as a single clean full-suite invocation.
+
+The execution-budget change is type-only (reduce<number>), required by Deno checking the geocode dependency tree; Maxxis runtime is not intentionally changed or redeployed. Parcel flags, sources, report templates and paid providers are unchanged. Production browser smoke uses anonymous access and a scoped read-only service maintenance query, not an impersonated user login.

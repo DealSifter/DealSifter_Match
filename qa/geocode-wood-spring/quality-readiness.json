@@ -1,0 +1,30 @@
+{
+  "observedAt": "2026-10-13T02:06:39.500Z",
+  "fullAssertionCoverage": {
+    "passed": 1813,
+    "files": 212,
+    "mode": "FULL_SCOPE_WITH_TARGETED_FIXTURE_AND_TIMEOUT_RETRY_NOT_SINGLE_CLEAN_RUN",
+    "evidence": [
+      "full-tests.json",
+      "full-retry.json",
+      "contract-final.json"
+    ]
+  },
+  "maintenanceTests": {
+    "passed": 4,
+    "total": 4
+  },
+  "lint": "PASS_FULL_SRC_AND_AFFECTED_SCRIPTS_DENO",
+  "typecheck": "PASS_CONTRACTS_AND_GEOCODE_DENO",
+  "executionBudgetRuntimeByteIdentical": true,
+  "build": "PASS_FINAL_WARNING_AND_AUTHORITATIVE_SAVE_PRESENT",
+  "onboardingChunk": "assets/Onboarding-GgKYExhv.js",
+  "onboardingSha256": "712e75ba09603a0aa077c46cec3f632c72d8fb4dccb5ea55ab5c59be4210620d",
+  "appChunk": "assets/index-DFgpDvJc.js",
+  "databaseContract": "PASS_TEMPORARY_COPY_ROLLED_BACK",
+  "databaseInvalidPublished": 0,
+  "migration": "20261013000001_property_geocode_publication_guard",
+  "privateCardWithoutPin": "PRESERVED",
+  "publicParcelConfigurationChanged": false,
+  "paidProviderCalls": 0
+}

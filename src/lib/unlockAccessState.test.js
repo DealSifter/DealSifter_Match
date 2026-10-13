@@ -2,7 +2,8 @@ import { describe, expect, it } from 'vitest';
 import { buildMapInventory } from '../services/mapInventoryService';
 import { getContactUnlockKeys, resolveContactUnlockState, resolvePropertyUnlockState } from './unlockAccessState';
 
-const property = { id: 'paid-property', ownerId: 'seller', primaryProfile: 'fsbo' };
+const property = { id: 'paid-property', ownerId: 'seller', primaryProfile: 'fsbo',
+  geocodeStatus: 'resolved', geocodeSource: 'census', geocodedAt: '2026-10-13T01:00:00Z' };
 const contact = { ownerId: 'seller', primaryProfile: 'fsbo', unlockScope: 'property', unlockedPropertyIds: ['paid-property'] };
 const grants = new Map([['seller:fsbo', contact]]);
 const ids = new Set(['seller']);
