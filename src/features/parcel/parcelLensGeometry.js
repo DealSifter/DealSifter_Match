@@ -1,7 +1,8 @@
 import { geometryContains, validGeometry, validPoint } from '../../../supabase/functions/_shared/public-parcel/geometry.ts';
 import { PARCEL_MAX_RESULTS } from '../../../supabase/functions/_shared/public-parcel/types.ts';
 
-export const PARCEL_LENS_RADIUS_MILES = 0.25;
+export const PARCEL_LENS_DIAMETER_MILES = 0.20;
+export const PARCEL_LENS_RADIUS_MILES = PARCEL_LENS_DIAMETER_MILES / 2;
 export const PARCEL_LENS_RADIUS_METERS = PARCEL_LENS_RADIUS_MILES * 1609.344;
 export const PARCEL_LENS_COLOR = '#00cbd4';
 const EARTH_RADIUS = 6371008.8;

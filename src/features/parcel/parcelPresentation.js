@@ -8,6 +8,7 @@ export function parcelLabels(language = 'en') {
     propertyPage: t('Imóvel', 'Property', 'Inmueble'), parcelPage: t('Parcela pública', 'Public parcel', 'Parcela pública'),
     closeLens: t('Fechar lente parcelária', 'Close parcel lens', 'Cerrar lente parcelaria'),
     lens: t('Lente parcelária', 'Parcel lens', 'Lente parcelaria'), unavailable: t('Não disponível', 'Not available', 'No disponible'),
+    diameter: t('Diâmetro', 'Diameter', 'Diámetro'),
     limited: t('Vizinhos limitados pela fonte; a lente não representa todos os lotes do raio.', 'Source-limited neighbors; the lens does not represent every parcel in the radius.', 'Vecinos limitados por la fuente; la lente no representa todas las parcelas del radio.'),
     neighborUnavailable: t('Não foi possível atualizar os lotes vizinhos. O lote principal foi mantido.', 'Neighbor refresh unavailable. The principal parcel is retained.', 'No se pudieron actualizar las parcelas vecinas. Se conserva la principal.'),
     legal: t('Descrição legal', 'Legal description', 'Descripción legal'), subdivision: t('Loteamento', 'Subdivision', 'Subdivisión'),

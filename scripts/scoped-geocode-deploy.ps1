@@ -1,4 +1,5 @@
-param([ValidateSet('Create','Status')][string]$Mode, [string]$CodeSha, [string]$DeploymentId)
+param([ValidateSet('Create','Status')][string]$Mode, [string]$CodeSha, [string]$DeploymentId,
+ [string]$ReceiptPath = 'qa/geocode-wood-spring/production-deployment.json')
 $ErrorActionPreference = 'Stop'
 if ($CodeSha -notmatch '^[a-f0-9]{40}$') { throw 'EXACT_CODE_COMMIT_REQUIRED' }
 $team = 'team_O4RRFlfO8m7MEZI0xY5BVVYi'
@@ -30,5 +31,5 @@ if ($Mode -eq 'Status' -and $result.readyState -eq 'READY') {
  $receipt.aliasVerified = ($alias.deployment.id -eq $DeploymentId)
  if (!$receipt.sourceShaVerified -or !$receipt.aliasVerified) { throw 'PRODUCTION_SOURCE_OR_ALIAS_MISMATCH' }
 }
-$receipt | ConvertTo-Json | Set-Content -LiteralPath 'qa/geocode-wood-spring/production-deployment.json' -Encoding utf8
+$receipt | ConvertTo-Json | Set-Content -LiteralPath $ReceiptPath -Encoding utf8
 $receipt | ConvertTo-Json

@@ -1,0 +1,187 @@
+{
+  "mode": "LOCAL_REAL_LEAFLET_WITH_EXPLICIT_SYNTHETIC_GIS_AND_MOCKED_AUTH",
+  "productionUserAuthentication": false,
+  "diameterMiles": 0.2,
+  "radiusMiles": 0.1,
+  "results": [
+    {
+      "device": "desktop",
+      "viewport": {
+        "width": 1280,
+        "height": 900
+      },
+      "language": "pt",
+      "theme": "light",
+      "initialZoom": 18,
+      "pinZoom": 15,
+      "lensZoom": 16,
+      "initialPopup": {
+        "x": 646,
+        "y": 255,
+        "width": 360,
+        "height": 390
+      },
+      "activePopup": {
+        "x": 646,
+        "y": 255,
+        "width": 360,
+        "height": 390
+      },
+      "pill": {
+        "x": 963.359375,
+        "y": 70,
+        "width": 252.640625,
+        "height": 44
+      },
+      "viewportStableAfterSwitch": true,
+      "queries": 2,
+      "cameraFlights": 3,
+      "repeatedMagnifierRestoresExactZoom": true,
+      "errors": []
+    },
+    {
+      "device": "desktop-wide",
+      "viewport": {
+        "width": 1920,
+        "height": 1080
+      },
+      "language": "en",
+      "theme": "dark",
+      "initialZoom": 11,
+      "pinZoom": 15,
+      "lensZoom": 16,
+      "initialPopup": {
+        "x": 966,
+        "y": 345,
+        "width": 360,
+        "height": 390
+      },
+      "activePopup": {
+        "x": 966,
+        "y": 345,
+        "width": 360,
+        "height": 390
+      },
+      "pill": {
+        "x": 1632.65625,
+        "y": 70,
+        "width": 223.34375,
+        "height": 44
+      },
+      "viewportStableAfterSwitch": true,
+      "queries": 2,
+      "cameraFlights": 3,
+      "repeatedMagnifierRestoresExactZoom": true,
+      "errors": []
+    },
+    {
+      "device": "phone",
+      "viewport": {
+        "width": 390,
+        "height": 844
+      },
+      "language": "pt",
+      "theme": "dark",
+      "initialZoom": 18,
+      "pinZoom": 15,
+      "lensZoom": 17,
+      "initialPopup": {
+        "x": 18,
+        "y": 183,
+        "width": 354,
+        "height": 340
+      },
+      "activePopup": {
+        "x": 18,
+        "y": 182,
+        "width": 354,
+        "height": 340
+      },
+      "pill": {
+        "x": 76.9609375,
+        "y": 70,
+        "width": 236.078125,
+        "height": 44
+      },
+      "viewportStableAfterSwitch": true,
+      "queries": 2,
+      "cameraFlights": 3,
+      "repeatedMagnifierRestoresExactZoom": true,
+      "errors": []
+    },
+    {
+      "device": "phone-small",
+      "viewport": {
+        "width": 360,
+        "height": 740
+      },
+      "language": "es",
+      "theme": "light",
+      "initialZoom": 13,
+      "pinZoom": 15,
+      "lensZoom": 17,
+      "initialPopup": {
+        "x": 18,
+        "y": 117.40625,
+        "width": 324,
+        "height": 301.59375
+      },
+      "activePopup": {
+        "x": 18,
+        "y": 116.40625,
+        "width": 324,
+        "height": 301.59375
+      },
+      "pill": {
+        "x": 61.9609375,
+        "y": 70,
+        "width": 236.078125,
+        "height": 44
+      },
+      "viewportStableAfterSwitch": true,
+      "queries": 2,
+      "cameraFlights": 3,
+      "spotlightAndCloseControlsTested": false,
+      "repeatedMagnifierRestoresExactZoom": true,
+      "errors": []
+    },
+    {
+      "device": "tablet",
+      "viewport": {
+        "width": 768,
+        "height": 1024
+      },
+      "language": "es",
+      "theme": "dark",
+      "initialZoom": 18,
+      "pinZoom": 15,
+      "lensZoom": 16,
+      "initialPopup": {
+        "x": 204,
+        "y": 317,
+        "width": 360,
+        "height": 390
+      },
+      "activePopup": {
+        "x": 204,
+        "y": 317,
+        "width": 360,
+        "height": 390
+      },
+      "pill": {
+        "x": 451.359375,
+        "y": 70,
+        "width": 252.640625,
+        "height": 44
+      },
+      "viewportStableAfterSwitch": true,
+      "queries": 2,
+      "cameraFlights": 3,
+      "repeatedMagnifierRestoresExactZoom": true,
+      "errors": []
+    }
+  ],
+  "paidProviderCalls": 0,
+  "liveParcelGISCalls": 0,
+  "basemapTiles": "NORMAL_EXISTING_BASEMAP_REQUESTS"
+}

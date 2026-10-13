@@ -7,6 +7,19 @@ import { PropertyPinPopup } from './PropertyPinPopup';
 afterEach(cleanup);
 const property = { id: 'property-1', price: 231000, city: 'Winter Garden', state: 'FL', zip: '34787', beds: 3, baths: 2, sqft: 1500, image: '/house.jpg' };
 describe('Property pin card', () => {
+  it('offers tabs only after activation and has no third close button', () => {
+    const parcel = { geometry: { type: 'Polygon', coordinates: [] }, sourceAuthority: 'Public source', retrievedAt: '2026-10-13', sourceUrl: 'https://example.com' };
+    const onParcelActivate = vi.fn(); const onParcelPage = vi.fn();
+    const { rerender } = render(<PropertyPinPopup property={property} label="A" parcelState={{ parcel, page: 'property' }} onParcelActivate={onParcelActivate} />);
+    expect(screen.queryByRole('navigation')).toBeNull();
+    fireEvent.click(screen.getByRole('button', { name: 'View parcel boundaries and public data' }));
+    expect(onParcelActivate).toHaveBeenCalledOnce();
+    rerender(<PropertyPinPopup property={property} label="A" parcelState={{ parcel, lens: {}, page: 'parcel' }} onParcelPage={onParcelPage} />);
+    expect(screen.getByRole('navigation')).toBeTruthy();
+    expect(screen.queryByRole('button', { name: 'Close parcel lens' })).toBeNull();
+    fireEvent.click(screen.getByRole('button', { name: 'Property', exact: true }));
+    expect(onParcelPage).toHaveBeenCalledWith('property');
+  });
   it('opens the feed only from the photo, not Match', async () => {
     const onOpen = vi.fn(); const onMatch = vi.fn().mockResolvedValue(true);
     render(<PropertyPinPopup property={property} label="108 Avenue A" onOpen={onOpen} onMatch={onMatch} language="pt" />);

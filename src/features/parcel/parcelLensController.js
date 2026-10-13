@@ -59,7 +59,7 @@ export class ParcelLensController {
         neighborResult: { status: 'SOURCE_TEMPORARILY_UNAVAILABLE', parcels: [] } } });
     }
   }
-  setPage(page) { this.emit({ page: page === 'parcel' && this.state.parcel ? 'parcel' : 'property' }); }
+  setPage(page) { this.emit({ page: page === 'parcel' && this.state.lens ? 'parcel' : 'property' }); }
   closeLens() { this.cancel(); this.emit({ lens: null, page: 'property' }); }
   dispose() { this.cancel(); this.cache.clear(); }
 }

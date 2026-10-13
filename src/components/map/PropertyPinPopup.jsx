@@ -12,7 +12,7 @@ import './PropertyPinPopup.css';
 const numeric = value => value !== null && value !== undefined && value !== '' && Number.isFinite(Number(value)) ? Number(value) : null;
 
 export function PropertyPinPopup({ property, label, selected = false, own = false, language = 'en', onOpen, onMatch,
-  parcelState = null, onParcelActivate, onParcelPage, onCloseLens }) {
+  parcelState = null, onParcelActivate, onParcelPage, dragLabel }) {
   const [pending, setPending] = useState(false);
   const t = (pt, en, es) => language.startsWith('pt') ? pt : language.startsWith('es') ? es : en;
   const locale = language.startsWith('pt') ? 'pt-BR' : language.startsWith('es') ? 'es-US' : 'en-US';
@@ -25,13 +25,14 @@ export function PropertyPinPopup({ property, label, selected = false, own = fals
   const metric = value => numeric(value) === null ? '—' : new Intl.NumberFormat(locale).format(Number(value));
   const parcelCopy = parcelLabels(language);
   const hasParcel = Boolean(parcelState?.parcel?.geometry);
-  const publicPage = hasParcel && parcelState.page === 'parcel';
+  const lensActive = hasParcel && Boolean(parcelState.lens);
+  const publicPage = lensActive && parcelState.page === 'parcel';
   return <article className="ds-property-pin-popup" style={{ '--pin-ink': C.t1, '--pin-muted': C.t2, '--pin-paper': C.card, '--pin-border': C.border }}>
-    {hasParcel && <nav className="ds-property-pin-parcel-nav" aria-label={parcelCopy.title}>
+    {lensActive && <nav className="ds-property-pin-parcel-nav" aria-label={parcelCopy.title}>
       <button type="button" aria-pressed={!publicPage} onClick={() => onParcelPage?.('property')}>{parcelCopy.propertyPage}</button>
-      <button type="button" aria-pressed={publicPage} onClick={event => { event.stopPropagation(); onParcelActivate?.(); }}>{parcelCopy.parcelPage}</button>
-      {parcelState.lens && <button type="button" aria-label={parcelCopy.closeLens} title={parcelCopy.closeLens} onClick={onCloseLens}><Icon name="x" size={14} /></button>}
+      <button type="button" aria-pressed={publicPage} onClick={event => { event.stopPropagation(); onParcelPage?.('parcel'); }}>{parcelCopy.parcelPage}</button>
     </nav>}
+    <div className="ds-property-pin-pages">
     {publicPage ? <div className="ds-property-pin-parcel-body">
       <ParcelPublicData parcel={parcelState.parcel} result={parcelState.result} language={language} selectedPoint={parcelState.context?.point} showUnavailable />
     </div> : <>
@@ -63,5 +64,7 @@ export function PropertyPinPopup({ property, label, selected = false, own = fals
       </div>
     </div>
     </>}
+    </div>
+    {own && dragLabel && <footer className="ds-property-pin-drag-label">✥ {dragLabel}</footer>}
   </article>;
 }

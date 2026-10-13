@@ -1,0 +1,27 @@
+{
+  "observedAt": "2026-10-13T04:31:34.127Z",
+  "fullAssertionCoverage": {
+    "passed": 1822,
+    "files": 213,
+    "mode": "FULL_SCOPE_WITH_ISOLATED_EXISTING_PDF_TIMEOUT_RETRY_NOT_SINGLE_CLEAN_RUN"
+  },
+  "devices": 5,
+  "layoutDriftPixels": 1,
+  "exactPopupDimensions": true,
+  "pinZoom": 15,
+  "phoneLensZoom": 17,
+  "otherLensZoom": 16,
+  "diameterMiles": 0.2,
+  "radiusMiles": 0.1,
+  "lint": "PASS_FULL_SRC_AND_QA",
+  "typecheck": "PASS_CONTRACTS",
+  "build": "PASS_FINAL_SMALL_PHONE_CLEARANCE",
+  "mapChunk": "assets/MapView-Ct0ePPoF.js",
+  "mapSha256": "c5deb0602b70743c8330675f77159e2bee03c60395a1fa5cf60d8db1e8e78dfd",
+  "layerChunk": "assets/ParcelLensLayer-BV5eCMFT.js",
+  "backendChanges": false,
+  "migrations": false,
+  "featureFlagsChanged": false,
+  "publicExposure": "UNCHANGED_INTERNAL_APPROVED_COHORT_ONLY",
+  "realUserAuthenticatedProductionAcceptance": "NOT_PERFORMED_NO_USER_SESSION"
+}

@@ -15,8 +15,8 @@ const context = { itemId: 'property-1', point };
 afterEach(() => vi.useRealTimers());
 
 describe('contextual parcel lens geometry', () => {
-  it('uses the fixed quarter-mile radius, solid turquoise color and normalized bounds', () => {
-    expect(PARCEL_LENS_RADIUS_METERS).toBe(402.336); expect(PARCEL_LENS_COLOR).toBe('#00cbd4');
+  it('uses a 0.20-mile diameter (0.10-mile radius), solid turquoise color and normalized bounds', () => {
+    expect(PARCEL_LENS_RADIUS_METERS).toBe(160.9344); expect(PARCEL_LENS_COLOR).toBe('#00cbd4');
     const bounds = parcelLensBounds(point); expect(bounds[0]).toBeLessThan(point.lng); expect(bounds[2]).toBeGreaterThan(point.lng);
     expect(parcelGeometryBounds(parcel.geometry)).toEqual([-71.00005, 41.99995, -70.99995, 42.00005]);
   });
@@ -106,7 +106,8 @@ describe('existing popup public-data page and internal QA isolation', () => {
     expect(renderToStaticMarkup(<PropertyPinPopup {...props} />)).not.toContain(parcelLabels(language).magnifier);
     const markup = renderToStaticMarkup(<PropertyPinPopup {...props} parcelState={{ parcel, page: 'property' }} />);
     expect(markup).toContain(parcelLabels(language).magnifier); expect(markup).toContain('ds-property-pin-match'); expect(markup).toContain('ds-property-pin-photo');
-    const page = renderToStaticMarkup(<PropertyPinPopup {...props} parcelState={{ parcel, result, page: 'parcel' }} />);
+    expect(markup).not.toContain('ds-property-pin-parcel-nav');
+    const page = renderToStaticMarkup(<PropertyPinPopup {...props} parcelState={{ parcel, result, lens: {}, page: 'parcel' }} />);
     expect(page).toContain(parcelLabels(language).unavailable); expect(page).toContain('public-parcel-panel'); expect(page).not.toContain('ds-property-pin-photo');
     expect(page).toContain(parcelLabels(language).source); expect(page).not.toContain('MATERIAL_CONFLICT');
   });
