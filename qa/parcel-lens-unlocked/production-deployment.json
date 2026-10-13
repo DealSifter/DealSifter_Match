@@ -1,0 +1,10 @@
+﻿{
+    "observedAt":  "2026-10-13T23:47:12.7243983Z",
+    "id":  "dpl_EdTaQeVepzYerPBYzeGNj9XiFaq6",
+    "state":  "READY",
+    "target":  "production",
+    "url":  "https://dealsiftermatch-3dtn0xt5c-deal-sifter-match-s-projects.vercel.app",
+    "sourceSha":  "ec11c6b3d8e17d0a314b131eced86daef0b4cb85",
+    "sourceShaVerified":  true,
+    "aliasVerified":  true
+}
