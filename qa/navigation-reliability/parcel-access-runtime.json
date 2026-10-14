@@ -1,0 +1,22 @@
+{
+  "mode": "LOCAL_FULL_APP_MOCKED_AUTH_FLAG_NETWORK_AND_GIS",
+  "productionUserSession": false,
+  "configurationChanged": false,
+  "paidProviderCalls": 0,
+  "results": [
+    {
+      "mode": "network-recovery",
+      "flagCalls": 4,
+      "gisCalls": 2,
+      "prematureGis": 0,
+      "errors": []
+    },
+    {
+      "mode": "server-denied",
+      "flagCalls": 1,
+      "gisCalls": 0,
+      "prematureGis": 0,
+      "errors": []
+    }
+  ]
+}

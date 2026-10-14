@@ -39,6 +39,9 @@ export const translations = {
     },
     errorBoundary: {
       title: "Something went wrong",
+      moduleLoading: "Loading this module…",
+      moduleUnavailable: "Unable to load this module",
+      moduleLoadBody: "Check your connection and try again. If the app was updated while this tab was open, reload the page. Other modules remain available.",
       body: "An unexpected error occurred. You can try again or reload the page.",
       devDetails: "Error details (dev)",
       tryAgain: "Try again",
@@ -1437,6 +1440,9 @@ export const translations = {
     },
     errorBoundary: {
       title: "Algo deu errado",
+      moduleLoading: "Carregando este módulo…",
+      moduleUnavailable: "Não foi possível carregar este módulo",
+      moduleLoadBody: "Confira sua conexão e tente novamente. Se o app foi atualizado enquanto esta aba estava aberta, recarregue a página. Os outros módulos continuam disponíveis.",
       body: "Ocorreu um erro inesperado. Voce pode tentar novamente ou recarregar a pagina.",
       devDetails: "Detalhes do erro (dev)",
       tryAgain: "Tentar novamente",
@@ -2828,6 +2834,9 @@ export const translations = {
     },
     errorBoundary: {
       title: "Algo salio mal",
+      moduleLoading: "Cargando este módulo…",
+      moduleUnavailable: "No se pudo cargar este módulo",
+      moduleLoadBody: "Comprueba tu conexión e inténtalo de nuevo. Si la aplicación se actualizó mientras esta pestaña estaba abierta, recarga la página. Los otros módulos siguen disponibles.",
       body: "Ocurrio un error inesperado. Puedes intentar nuevamente o recargar la pagina.",
       devDetails: "Detalles del error (dev)",
       tryAgain: "Intentar nuevamente",

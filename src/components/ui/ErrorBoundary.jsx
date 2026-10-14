@@ -1,6 +1,7 @@
 import React from 'react';
 import { getT } from '../../i18n/translations';
 import { scrubTelemetryValue } from '../../lib/observability';
+import { isModuleLoadError, isStylesheetLoadError } from '../../lib/moduleLoadError';
 
 const reportError = (error, info) => {
   if (typeof window.__DS_REPORT_ERROR === 'function') {
@@ -42,11 +43,11 @@ export default class ErrorBoundary extends React.Component {
 
   componentDidUpdate(prevProps) {
     if (prevProps.resetKey !== this.props.resetKey && this.state.hasError) {
-      this.handleReset();
+      this.clearError();
     }
   }
 
-  handleReset = () => {
+  clearError = () => {
     this.setState((prev) => ({
       hasError: false,
       error: null,
@@ -55,11 +56,18 @@ export default class ErrorBoundary extends React.Component {
     }));
   };
 
+  handleReset = () => {
+    this.props.onRetry?.();
+    this.clearError();
+  };
+
   render() {
     if (this.state.hasError) {
       const isDev = import.meta.env.DEV;
       const scope = this.props.scope || 'app';
       const t = getT().errorBoundary || {};
+      const loadError = isModuleLoadError(this.state.error);
+      const styleError = isStylesheetLoadError(this.state.error);
 
       return (
         <div style={{
@@ -73,9 +81,10 @@ export default class ErrorBoundary extends React.Component {
           justifyContent: 'center',
           textAlign: 'center',
           gap: 16,
+          ...(this.props.overlay ? { position:'absolute', top:72, left:12, zIndex:1100, maxWidth:300, minHeight:0, borderRadius:12, padding:16 } : {}),
         }}>
           <div style={{ fontSize: 48, marginBottom: 8 }}>!</div>
-          <h2 style={{ margin: 0, fontSize: 20, fontWeight: 800 }}>{t.title || 'Something went wrong'}</h2>
+          <h2 style={{ margin: 0, fontSize: 20, fontWeight: 800 }}>{loadError ? t.moduleUnavailable : (t.title || 'Something went wrong')}</h2>
           {scope !== 'app' && (
             <div style={{
               fontSize: 12,
@@ -94,7 +103,7 @@ export default class ErrorBoundary extends React.Component {
             lineHeight: '1.5',
             margin: 0,
           }}>
-            {t.body || 'An unexpected error occurred. You can try again or reload the page.'}
+            {loadError ? t.moduleLoadBody : (t.body || 'An unexpected error occurred. You can try again or reload the page.')}
           </p>
           {isDev && this.state.error && (
             <details style={{
@@ -117,7 +126,7 @@ export default class ErrorBoundary extends React.Component {
             </details>
           )}
           <div style={{ display: 'flex', gap: 12, marginTop: 8 }}>
-            <button
+            {!styleError && <button
               type="button"
               onClick={this.handleReset}
               style={{
@@ -132,7 +141,7 @@ export default class ErrorBoundary extends React.Component {
               }}
             >
               {t.tryAgain || 'Try again'}
-            </button>
+            </button>}
             <button
               type="button"
               onClick={() => window.location.reload()}

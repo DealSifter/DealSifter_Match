@@ -7,65 +7,11 @@ import { AppMobileBottomNav } from './components/layout/AppMobileBottomNav';
 import { GuideTipsProvider } from './components/guidetips/GuideTipsProvider';
 import { GuideTipOverlay } from './components/guidetips/GuideTipOverlay';
 import ErrorBoundary from './components/ui/ErrorBoundary';
-const safeSessionGet = (key) => {
-  try { return typeof window !== 'undefined' ? window.sessionStorage.getItem(key) : null; } catch { return null; }
-};
-const safeSessionSet = (key, value) => {
-  try { if (typeof window !== 'undefined') window.sessionStorage.setItem(key, value); } catch { /* noop */ }
-};
+import { lazyWithRetry } from './lib/lazyWithRetry';
+import { canPrefetchModule } from './lib/moduleResource';
 const safeSessionRemove = (key) => {
   try { if (typeof window !== 'undefined') window.sessionStorage.removeItem(key); } catch { /* noop */ }
 };
-
-const ChunkRecoveryScreen = () => (
-  <div style={{ minHeight: '100vh', display: 'grid', placeItems: 'center', background: '#0b0f0e', color: '#e6f0ed', padding: 24 }}>
-    <div style={{ width: 'min(92vw, 520px)', border: '1px solid rgba(120,140,135,.35)', borderRadius: 14, padding: 20, background: 'rgba(10,16,14,.88)' }}>
-      <div style={{ fontSize: 18, fontWeight: 800, marginBottom: 8 }}>Atualização em andamento</div>
-      <div style={{ fontSize: 13, lineHeight: 1.5, opacity: 0.9, marginBottom: 14 }}>
-        O app detectou arquivos antigos em cache. Recarregue para sincronizar a versão mais recente.
-      </div>
-      <button
-        type="button"
-        onClick={() => {
-          try {
-            const url = new URL(window.location.href);
-            url.searchParams.set('refresh', String(Date.now()));
-            window.location.replace(url.toString());
-          } catch {
-            window.location.reload();
-          }
-        }}
-        style={{ border: '1px solid rgba(56,189,175,.55)', background: 'rgba(56,189,175,.14)', color: '#69ece0', borderRadius: 10, padding: '10px 14px', fontWeight: 800, cursor: 'pointer' }}
-      >
-        Recarregar app
-      </button>
-    </div>
-  </div>
-);
-
-const lazyWithRetry = (importer, key) => lazy(async () => {
-  try {
-    const loadedModule = await importer();
-    safeSessionRemove(`ds_lazy_retry_${key}`);
-    return loadedModule;
-  } catch (error) {
-    const msg = String(error?.message || '').toLowerCase();
-    const recoverable = msg.includes('failed to fetch dynamically imported module')
-      || msg.includes('importing a module script failed')
-      || msg.includes('chunkloaderror');
-    if (recoverable && typeof window !== 'undefined') {
-      captureAppException(error, { area: 'chunk_loading', chunk: key });
-      const retryKey = `ds_lazy_retry_${key}`;
-      if (!safeSessionGet(retryKey)) {
-        safeSessionSet(retryKey, '1');
-        window.location.reload();
-        return new Promise(() => {});
-      }
-      return { default: ChunkRecoveryScreen };
-    }
-    return { default: ChunkRecoveryScreen };
-  }
-});
 
 const Landing = lazyWithRetry(() => import('./pages/Landing').then((m) => ({ default: m.Landing })), 'landing');
 const Dashboard = lazyWithRetry(() => import('./pages/Dashboard').then((m) => ({ default: m.Dashboard })), 'dashboard');
@@ -77,6 +23,7 @@ const Settings = lazyWithRetry(() => import('./pages/Settings').then((m) => ({ d
 const AdminDashboard = lazyWithRetry(() => import('./pages/AdminDashboard').then((m) => ({ default: m.AdminDashboard })), 'admin');
 const TermsPage = lazyWithRetry(() => import('./pages/TermsPage').then((m) => ({ default: m.TermsPage })), 'terms');
 const PrivacyPolicyPage = lazyWithRetry(() => import('./pages/PrivacyPolicyPage').then((m) => ({ default: m.PrivacyPolicyPage })), 'privacy');
+const PAGE_MODULES = { landing:Landing, dashboard:Dashboard, matches:MatchesPage, onboarding:Onboarding, pricing:Pricing, mapview:MapView, settings:Settings, admin:AdminDashboard, terms:TermsPage, privacy:PrivacyPolicyPage };
 const MaxxisAssistant = lazyWithRetry(() => import('./components/maxxis/MaxxisAssistant').then((m) => ({ default: m.MaxxisAssistant })), 'maxxis-assistant');
 import { UnlockModal } from './components/modals/UnlockModal';
 import { SpotlightModal } from './components/modals/SpotlightModal';
@@ -103,7 +50,8 @@ import { useChatRealtime } from './hooks/useChatRealtime';
 import { useUnlockNotifications } from './hooks/useUnlockNotifications';
 import { useAppSessionLifecycle } from './hooks/useAppSessionLifecycle';
 import { useUserPreferences } from './hooks/useUserPreferences';
-import { fetchFeatureFlagsWithRetry, isFeatureEnabled } from './services/featureFlagService';
+import { isFeatureEnabled } from './services/featureFlagService';
+import { useFeatureFlagSnapshot } from './hooks/useFeatureFlagSnapshot';
 import { deleteMaxxisReportArtifact, listMaxxisReportEntitlements, listMaxxisReportHistory, saveMaxxisReportPayload, unlockMaxxisReport } from './services/maxxisReportService';
 import { canPerformAction, consumePlanActions, getPlanActionAccess, getPlanGateCopy, getCurrentPlan, isPlanLimitError, refreshUsageFromDB, resolveRemainingNuggets } from './services/planUsageService';
 import { isInsufficientSpotlightBalanceError, purchaseCardSpotlights } from './services/spotlightService';
@@ -907,7 +855,6 @@ export default function App() {
   });
   const [prevPage, setPrevPage] = useState('landing');
   const keepAlivePageIds = useMemo(() => new Set(['dashboard', 'matches', 'onboarding']), []);
-  const [visitedKeepAlivePages, setVisitedKeepAlivePages] = useState(() => new Set(['dashboard']));
   const [nuggets, setNuggets] = useState(() => {
     if (isSupabaseConfigured) return 0;
     return 5;
@@ -962,6 +909,9 @@ export default function App() {
       return null;
     }
   });
+  const keepAliveOwner = String(authSession?.userId || authSession?.id || 'anonymous');
+  const [keepAliveVisitCache, setKeepAliveVisitCache] = useState(() => ({ owner:keepAliveOwner, pages:new Set(['dashboard']) }));
+  const visitedKeepAlivePages = keepAliveVisitCache.owner === keepAliveOwner ? keepAliveVisitCache.pages : new Set(['dashboard']);
   const [isAuthCallbackSettling, setIsAuthCallbackSettling] = useState(() => {
     if (!isSupabaseConfigured || !supabase || typeof window === 'undefined') return false;
     try {
@@ -1020,51 +970,24 @@ export default function App() {
     accountKey: preferenceAccountKey,
     persistPreferences: persistUserPreferences,
   });
-  const [maxxisProactiveFeatureEnabled, setMaxxisProactiveFeatureEnabled] = useState(false);
-  const [maxxisDealMemoryFeatureEnabled, setMaxxisDealMemoryFeatureEnabled] = useState(false);
-  const [parcelFeatureEnabled, setParcelFeatureEnabled] = useState(false);
-  const [parcelQaGridEnabled, setParcelQaGridEnabled] = useState(false);
-  useEffect(() => {
-    let cancelled = false;
-    if (!preferenceAccountKey) {
-      setMaxxisProactiveFeatureEnabled(false);
-      setMaxxisDealMemoryFeatureEnabled(false);
-      setParcelFeatureEnabled(false);
-      setParcelQaGridEnabled(false);
-      return undefined;
-    }
-    fetchFeatureFlagsWithRetry({ overrides: readMaxxisProactiveFlagOverrides() })
-      .then((snapshot) => {
-        if (!cancelled) {
-          setMaxxisProactiveFeatureEnabled(isFeatureEnabled(snapshot, 'maxxis_proactive_insights'));
-          setMaxxisDealMemoryFeatureEnabled(isFeatureEnabled(snapshot, 'maxxis_deal_memory'));
-          setParcelFeatureEnabled(isFeatureEnabled(snapshot, 'public_parcel_intelligence'));
-          setParcelQaGridEnabled(isFeatureEnabled(snapshot, 'public_parcel_qa_grid'));
-        }
-      })
-      .catch(() => {
-        if (!cancelled) {
-          setMaxxisProactiveFeatureEnabled(false);
-          setMaxxisDealMemoryFeatureEnabled(false);
-          setParcelFeatureEnabled(false);
-          setParcelQaGridEnabled(false);
-        }
-      });
-    return () => { cancelled = true; };
-  }, [preferenceAccountKey]);
+  const featureFlagState=useFeatureFlagSnapshot(preferenceAccountKey,readMaxxisProactiveFlagOverrides);
+  const maxxisProactiveFeatureEnabled=isFeatureEnabled(featureFlagState.snapshot,'maxxis_proactive_insights');
+  const maxxisDealMemoryFeatureEnabled=isFeatureEnabled(featureFlagState.snapshot,'maxxis_deal_memory');
+  const parcelFeatureEnabled=isFeatureEnabled(featureFlagState.snapshot,'public_parcel_intelligence');
+  const parcelQaGridEnabled=isFeatureEnabled(featureFlagState.snapshot,'public_parcel_qa_grid');
   const [isAdmin, setIsAdmin] = useState(false);
   const handleUserLogoutRef = useRef(null);
   const lastActivityRef = useRef(0);
 
   useEffect(() => {
-    if (!keepAlivePageIds.has(page)) return;
-    setVisitedKeepAlivePages((prev) => {
-      if (prev.has(page)) return prev;
-      const next = new Set(prev);
-      next.add(page);
-      return next;
+    setKeepAliveVisitCache(prev => {
+      const pages = prev.owner === keepAliveOwner ? prev.pages : new Set(['dashboard']);
+      if (prev.owner === keepAliveOwner && (!keepAlivePageIds.has(page) || pages.has(page))) return prev;
+      const next = new Set(pages);
+      if (keepAlivePageIds.has(page)) next.add(page);
+      return { owner:keepAliveOwner, pages:next };
     });
-  }, [keepAlivePageIds, page]);
+  }, [keepAlivePageIds, keepAliveOwner, page]);
 
   const sessionVersion = useAppSessionLifecycle({
     authSession,
@@ -1489,6 +1412,13 @@ export default function App() {
     profileHydrationInputRef.current.accountType = accountType || 'professional';
   }, [accountType]);
 
+  const preloadPage = useCallback(nextPage => {
+    if (!canPrefetchModule()) return;
+    if (!authSession && !['landing','pricing','terms','privacy'].includes(nextPage)) return;
+    if (nextPage === 'admin' && !isAdmin) return;
+    void PAGE_MODULES[nextPage]?.preload();
+  }, [authSession, isAdmin]);
+
   // Wrapper for setPage that tracks previous page
   const setPage = useCallback((newPage) => {
     const protectedPages = new Set(['dashboard', 'matches', 'mapview', 'onboarding', 'settings']);
@@ -1512,6 +1442,7 @@ export default function App() {
       });
       return;
     }
+    preloadPage(newPage);
     setPrevPage(page);
     _setPage(newPage);
     if (typeof newPage === 'string') {
@@ -1522,7 +1453,7 @@ export default function App() {
         try { localStorage.removeItem('ds_last_page'); } catch { /* no-op */ }
       }
     }
-  }, [addToast, authSession, isAdmin, openAuthModal, page]);
+  }, [addToast, authSession, isAdmin, openAuthModal, page, preloadPage]);
 
   const [userProfile, setUserProfile] = useState(() => {
     if (isSupabaseConfigured) {
@@ -5786,6 +5717,8 @@ export default function App() {
             currentUserId={supabaseUserId || 'local-user'}
             onUpdatePropertyCoords={handleMapPropertyCoordsUpdate}
             parcelFeatureEnabled={parcelFeatureEnabled}
+            parcelAccessStatus={featureFlagState.phase==='ready'?(parcelFeatureEnabled?'available':'denied'):featureFlagState.phase}
+            onRetryParcelAccess={featureFlagState.refresh}
             parcelQaGridEnabled={parcelQaGridEnabled}
             userPreferences={userPreferences}
             activeSpotlightKeys={activeSpotlightKeys}
@@ -6029,36 +5962,37 @@ export default function App() {
               onInstallApp={handleInstallApp}
               userPreferences={userPreferences}
               navigationLocked={onboardingNavigationLocked}
+              onNavigateIntent={preloadPage}
               onNavigationBlocked={handleOnboardingNavigationBlocked}
             />
             <GuideTipOverlay page={page} setPage={setPage} isFreePlan={isFreePlan} />
             <Suspense fallback={null}>
               {(() => {
-                if (!keepAlivePageIds.has(page)) return renderPageContent(page);
                 const shouldHoldDataHydration = Boolean(
                   authSession
                   && isSupabaseConfigured
                   && supabaseUserId
                   && !dashboardHydrationReady
                 );
-                if (shouldHoldDataHydration && !visitedKeepAlivePages.has(page)) {
+                if (keepAlivePageIds.has(page) && shouldHoldDataHydration && !visitedKeepAlivePages.has(page)) {
                   return (
                     <AppLoadingScreen message="Loading your DealSifter data..." label="Loading DealSifter data" />
                   );
                 }
 
-                const mountedKeepAlivePages = ['dashboard', 'matches', 'onboarding']
+                const mountedKeepAlivePages = (authSession ? ['dashboard', 'matches', 'onboarding'] : [])
                   .filter((pageId) => pageId === page || visitedKeepAlivePages.has(pageId));
 
                 return (
                   <>
                     {mountedKeepAlivePages.map((pageId) => (
-                      <Activity key={pageId} mode={page === pageId ? 'visible' : 'hidden'}>
+                      <Activity key={`${keepAliveOwner}:${pageId}`} mode={page === pageId ? 'visible' : 'hidden'}>
                         <ErrorBoundary scope={pageId} compact resetKey={page === pageId ? `${pageId}:${sessionVersion}` : pageId}>
                           {renderPageContent(pageId)}
                         </ErrorBoundary>
                       </Activity>
                     ))}
+                    {!keepAlivePageIds.has(page) && <ErrorBoundary scope={page} compact resetKey={`${page}:${sessionVersion}`}>{renderPageContent(page)}</ErrorBoundary>}
                   </>
                 );
               })()}
@@ -6070,6 +6004,7 @@ export default function App() {
               onCollapsedChange={setMobileBottomNavCollapsed}
               needsPrimaryProfileAttention={registeredProfileScopes.size === 0}
               navigationLocked={onboardingNavigationLocked}
+              onNavigateIntent={preloadPage}
               onNavigationBlocked={handleOnboardingNavigationBlocked}
             />
             <Suspense fallback={null}>

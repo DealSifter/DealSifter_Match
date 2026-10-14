@@ -2,7 +2,7 @@ import React from 'react';
 import { renderToStaticMarkup } from 'react-dom/server';
 import { describe, it, expect, vi, afterEach } from 'vitest';
 import { ParcelLensController } from './parcelLensController';
-import { propertyParcelContext } from './parcelLensAccess';
+import { propertyParcelContext, parcelContextForPin } from './parcelLensAccess';
 import { parcelGeometryBounds, parcelLensBounds, parcelIntersectsLens, parcelLensParcels, resolvePrincipalParcel, PARCEL_LENS_RADIUS_METERS, PARCEL_LENS_COLOR } from './parcelLensGeometry';
 import { parcelLabels, parcelPanelRows } from './parcelPresentation';
 import { PropertyPinPopup } from '../../components/map/PropertyPinPopup';
@@ -128,6 +128,14 @@ describe('existing popup public-data page and internal QA isolation', () => {
 });
 
 describe('payment-independent parcel access and explicit activation', () => {
+  it('uses the canonical validated PIN point and ID even when display payload aliases differ',()=>{
+    const index=new Map([['pin-property',{properties:{itemType:'property'},geometry:{type:'Point',coordinates:[point.lng,point.lat]}}]]);
+    expect(parcelContextForPin('pin-property',{propertyId:'record-property',latitude:point.lat,longitude:point.lng},index,true)).toEqual({itemId:'pin-property',point});
+    expect(parcelContextForPin('pin-property',{id:'record-property',lat:0,lng:0,isUnlocked:true},index,true)).toEqual({itemId:'pin-property',point});
+    expect(parcelContextForPin('pin-property',{hideStreetAddressOnCard:true},index,true)).toBeNull();
+    expect(parcelContextForPin('pin-property',{},index,false)).toBeNull();
+    expect(parcelContextForPin('missing',{},index,true)).toBeNull();
+  });
   it.each([false, true])('does not depend on the property unlock state: %s', isUnlocked => {
     expect(propertyParcelContext({ id: context.itemId, ...point, isUnlocked }, true)).toEqual(context);
   });

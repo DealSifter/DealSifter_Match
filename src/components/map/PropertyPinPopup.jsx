@@ -13,7 +13,7 @@ import './PropertyPinPopup.css';
 const numeric = value => value !== null && value !== undefined && value !== '' && Number.isFinite(Number(value)) ? Number(value) : null;
 
 export function PropertyPinPopup({ property, label, selected = false, own = false, language = 'en', onOpen, onMatch,
-  parcelState = null, parcelEligible = false, onParcelActivate, onParcelPage, dragLabel }) {
+  parcelState = null, parcelEligible = false, onParcelActivate, onParcelPage, dragLabel, parcelAccessStatus = null, onRetryParcelAccess }) {
   const [pending, setPending] = useState(false);
   const [lensPending, setLensPending] = useState(false);
   const [lensStatus, setLensStatus] = useState(null);
@@ -69,6 +69,10 @@ export function PropertyPinPopup({ property, label, selected = false, own = fals
       </div>
       {canUseLens && lensPending && <div className="ds-property-pin-lens-feedback" role="status">{parcelCopy.loading}</div>}
       {canUseLens && lensStatus && <div className="ds-property-pin-lens-feedback" role="status">{lensStatus}</div>}
+      {!canUseLens && !shouldHideStreetAddressOnCard(property) && parcelAccessStatus && <div className="ds-property-pin-lens-feedback" role="status">
+        {parcelAccessStatus==='denied'?parcelCopy.accessDenied:parcelAccessStatus==='unavailable'?parcelCopy.accessUnavailable:parcelCopy.accessLoading}
+        {parcelAccessStatus==='unavailable'&&onRetryParcelAccess&&<button type="button" onClick={event=>{event.stopPropagation();void onRetryParcelAccess();}}>{parcelCopy.accessRetry}</button>}
+      </div>}
       <div className="ds-property-pin-address">{label}</div>
       <div className="ds-property-pin-location">{[property.city, property.state, property.zip || property.zipCode].filter(Boolean).join(', ')}</div>
       <div className="ds-property-pin-metrics">

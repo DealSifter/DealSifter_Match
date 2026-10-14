@@ -33,14 +33,15 @@ import ParcelBoundaryToggle from '../components/map/ParcelBoundaryToggle';
 import { restoreParcelPreference, parcelPreferenceEnabled } from '../features/parcel/parcelPreference';
 import { trackParcelEvent } from '../features/parcel/parcelTelemetry';
 import { ParcelLensController } from '../features/parcel/parcelLensController';
-import { propertyParcelContext } from '../features/parcel/parcelLensAccess';
+import { parcelContextForPin } from '../features/parcel/parcelLensAccess';
 import { PIN_SELECTION_ZOOM, parcelSelectionZoom } from '../features/parcel/mapSelectionCamera';
 import { MapSelectionCamera } from '../components/map/MapSelectionCamera';
 import { queryPublicParcels } from '../services/publicParcelService';
 import { MapZoomLevel } from '../components/map/MapZoomLevel';
+import { lazyWithRetry } from '../lib/lazyWithRetry';
 
-const PublicParcelLayer = React.lazy(() => import('../components/map/PublicParcelLayer'));
-const ParcelLensLayer = React.lazy(() => import('../components/map/ParcelLensLayer'));
+const PublicParcelLayer = lazyWithRetry(() => import('../components/map/PublicParcelLayer'), 'parcel-boundaries', { overlay:true });
+const ParcelLensLayer = lazyWithRetry(() => import('../components/map/ParcelLensLayer'), 'parcel-lens', { overlay:true });
 
 const DEFAULT_CENTER = [39.5, -98.35];
 const DEFAULT_ZOOM = 4;
@@ -816,6 +817,8 @@ export function MapView({
   interested = [],
   onMatchProperty = null,
   parcelFeatureEnabled = false,
+  parcelAccessStatus = null,
+  onRetryParcelAccess = null,
   parcelQaGridEnabled = false,
 }) {
   const enableMockMapData = import.meta.env.DEV && String(import.meta.env.VITE_ENABLE_MOCK_DATA || '').toLowerCase() === 'true';
@@ -1418,6 +1421,17 @@ export function MapView({
     ].map(toFeature).filter(Boolean);
   }, [mapInventory]);
 
+  const parcelPropertyPinIndex=useMemo(()=>new Map(mapInventoryPoints
+    .filter(feature=>feature.properties?.itemType==='property')
+    .map(feature=>[String(feature.properties.itemId),feature])),[mapInventoryPoints]);
+  useEffect(()=>{
+    const context=parcelLensController.state.context;
+    if(!context)return;
+    const pin=parcelPropertyPinIndex.get(context.itemId);
+    const current=parcelContextForPin(context.itemId,pin?.payload,parcelPropertyPinIndex,parcelFeatureEnabled);
+    if(!current||current.point.lat!==context.point.lat||current.point.lng!==context.point.lng)parcelLensController.clear();
+  },[parcelPropertyPinIndex,parcelFeatureEnabled,parcelLensController]);
+
   const myPinPoints = useMemo(() => {
     return mapInventoryPoints.filter((point) => point?.properties?.isOwn === true);
   }, [mapInventoryPoints]);
@@ -1785,8 +1799,8 @@ export function MapView({
     parcelLensController.setPage('parcel');
     propertyMarkerRefs.current.get(parcelLensController.state.context?.itemId)?.openPopup();
   }, [parcelLensController]);
-  const activateParcelLens = property => {
-    const context = propertyParcelContext(property, parcelFeatureEnabled, resolvePropertyCoords(property, pinOverrides));
+  const activateParcelLens = (itemId,property) => {
+    const context = parcelContextForPin(itemId,property,parcelPropertyPinIndex,parcelFeatureEnabled);
     return parcelLensController.activateFor(context, Boolean(context), ({ itemId, alreadyActive }) => {
     setFitToBounds(null);
     setCameraRequest({ id: itemId, zoom: parcelSelectionZoom(isPhoneViewport), key: genId() });
@@ -2939,7 +2953,7 @@ export function MapView({
                       if (isPerson) parcelLensController.clear();
                       else {
                         if (event.popup) L.setOptions(event.popup, { autoPan: false });
-                        const context = propertyParcelContext(payload, parcelFeatureEnabled, resolvePropertyCoords(payload, pinOverrides));
+                        const context = parcelContextForPin(feature.properties.itemId,payload,parcelPropertyPinIndex,parcelFeatureEnabled);
                         void parcelLensController.lookup(context, Boolean(context));
                       }
                     },
@@ -3004,10 +3018,11 @@ export function MapView({
                     ) : (
                       <div>
                         <PropertyPinPopup property={payload} label={getSafePropertyLabel(payload)} language={getLang()}
-                          parcelEligible={Boolean(propertyParcelContext(payload, parcelFeatureEnabled, resolvePropertyCoords(payload, pinOverrides)))}
+                          parcelAccessStatus={parcelAccessStatus} onRetryParcelAccess={onRetryParcelAccess}
+                          parcelEligible={Boolean(parcelContextForPin(feature.properties.itemId,payload,parcelPropertyPinIndex,parcelFeatureEnabled))}
                           own={isOwnProperty} selected={interested.some(item => String(item.id || item.propertyId) === String(payload.id))}
-                          parcelState={parcelFeatureEnabled === true && parcelLensCurrent && parcelLensState.context?.itemId === String(payload.id) ? parcelLensState : null}
-                          onParcelPage={page => parcelLensController.setPage(page)} onParcelActivate={activateParcelLens}
+                          parcelState={parcelFeatureEnabled === true && parcelLensCurrent && parcelLensState.context?.itemId === String(feature.properties.itemId) ? parcelLensState : null}
+                          onParcelPage={page => parcelLensController.setPage(page)} onParcelActivate={() => activateParcelLens(feature.properties.itemId,payload)}
                           dragLabel={tMap.dragToReposition || 'Drag to reposition'}
                           onOpen={() => navigateToFeed(payload, 'property')} onMatch={onMatchProperty} />
                       </div>

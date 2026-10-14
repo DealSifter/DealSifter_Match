@@ -10,7 +10,7 @@ import matchesTaskbarIcon from '../../assets/taskbar-matches-icon.png';
 
 const HIDDEN_PAGES = new Set(['landing', 'pricing', 'terms', 'privacy', 'admin']);
 
-export function AppMobileBottomNav({ page, setPage, collapsed = false, onCollapsedChange, needsPrimaryProfileAttention = false, navigationLocked = false, onNavigationBlocked = () => {} }) {
+export function AppMobileBottomNav({ page, setPage, collapsed = false, onCollapsedChange, needsPrimaryProfileAttention = false, navigationLocked = false, onNavigationBlocked = () => {}, onNavigateIntent = () => {} }) {
   const TABLET_PORTRAIT_QUERY = '(min-width: 768px) and (max-width: 1080px) and (orientation: portrait)';
   const isMobile = useMediaQuery('(max-width: 767px)');
   const isTabletPortrait = useMediaQuery(TABLET_PORTRAIT_QUERY);
@@ -232,7 +232,8 @@ export function AppMobileBottomNav({ page, setPage, collapsed = false, onCollaps
               data-guide={item.id === 'onboarding' ? 'onboarding-launcher' : undefined}
               data-guide-entry={item.id === 'onboarding' ? 'onboarding-entry-module' : undefined}
               onClick={() => isItemLocked ? onNavigationBlocked() : setPage && setPage(item.id)}
-              onPointerDown={() => setPressedItemId(item.id)}
+              onPointerDown={() => { setPressedItemId(item.id); if (!isItemLocked) onNavigateIntent(item.id); }}
+              onFocus={() => { if (!isItemLocked) onNavigateIntent(item.id); }}
               onPointerUp={() => setPressedItemId(null)}
               onPointerCancel={() => setPressedItemId(null)}
               onPointerLeave={() => setPressedItemId((current) => (current === item.id ? null : current))}

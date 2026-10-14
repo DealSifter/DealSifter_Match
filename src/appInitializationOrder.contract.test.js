@@ -4,6 +4,9 @@ import { readFileSync } from 'node:fs';
 const appSource = readFileSync(new URL('./App.jsx', import.meta.url), 'utf8');
 
 describe('App initialization order', () => {
+  it('declares the auth session before scoping retained modules to its owner', () => {
+    expect(appSource.indexOf('const keepAliveOwner =')).toBeGreaterThan(appSource.indexOf('const [authSession, setAuthSession]'));
+  });
   it('declares the Maxxis property context before deriving active entitlements', () => {
     const contextDeclaration = appSource.indexOf('const [maxxisPropertyContextId, setMaxxisPropertyContextId]');
     const entitlementDerivation = appSource.indexOf('const activeMaxxisReportEntitlements = useMemo');

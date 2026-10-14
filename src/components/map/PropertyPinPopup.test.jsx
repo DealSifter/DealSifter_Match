@@ -79,4 +79,15 @@ describe('Property pin card', () => {
     render(<PropertyPinPopup property={property} label="A" parcelEligible={false} parcelState={{ parcel: { geometry: {} } }} />);
     expect(screen.queryByRole('button', { name: 'View parcel boundaries and public data' })).toBeNull();
   });
+  it('explains an unavailable access check and retries permissions without querying GIS',()=>{
+    const retry=vi.fn();const activate=vi.fn();
+    render(<PropertyPinPopup property={property} label="A" language="pt" parcelAccessStatus="unavailable" onRetryParcelAccess={retry} onParcelActivate={activate} />);
+    expect(screen.getByRole('status').textContent).toContain('Não foi possível confirmar o acesso');
+    fireEvent.click(screen.getByRole('button',{name:'Verificar novamente'}));expect(retry).toHaveBeenCalledOnce();expect(activate).not.toHaveBeenCalled();
+  });
+  it('makes an explicit server denial visible, not mistaken for paid status',()=>{
+    render(<PropertyPinPopup property={{...property,isUnlocked:true}} label="A" language="pt" parcelAccessStatus="denied" />);
+    expect(screen.getByRole('status').textContent).toBe('A prévia parcelária não está habilitada para esta conta.');
+    expect(screen.queryByRole('button',{name:'Verificar novamente'})).toBeNull();
+  });
 });

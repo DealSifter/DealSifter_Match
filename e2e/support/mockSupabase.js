@@ -316,9 +316,9 @@ function tablePayload(table, userId, wantsObject, state = {}) {
   return wantsObject ? (result[0] || null) : result;
 }
 
-function publicInventory() {
+function publicInventory(propertyOverrides = {}) {
   return {
-    properties: [property],
+    properties: [{...property,...propertyOverrides}],
     services: [providerService],
     users: [
       {
@@ -700,7 +700,7 @@ export async function setupMockSupabase(context, options = {}) {
     if (pathname.startsWith('/rest/v1/rpc/')) {
       const rpc = pathname.split('/').pop();
       if (!byUserId(userId)) return json(route, { code: '401', message: 'JWT required' }, 401);
-      if (rpc === 'ds_get_global_feed_inventory') return json(route, publicInventory());
+      if (rpc === 'ds_get_global_feed_inventory') return json(route, publicInventory(options.propertyOverrides));
       if (rpc === 'ds_get_plan_usage_snapshot') return json(route, planSnapshot(userId));
       if (rpc === 'ds_get_unlocked_contact_cards') {
         return json(route, state.baseline ? [{

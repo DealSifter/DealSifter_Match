@@ -51,6 +51,7 @@ function LangPicker({ compact = false }) {
 function NavBtn({
   label,
   onClick,
+  onIntent,
   active,
   icon,
   iconImage,
@@ -79,7 +80,7 @@ function NavBtn({
   };
 
   return (
-    <button data-guide-entry={dataGuideEntry} data-testid={dataTestId} onClick={onClick} style={base} disabled={disabled} aria-disabled={disabled}>
+    <button data-guide-entry={dataGuideEntry} data-testid={dataTestId} onClick={onClick} onPointerEnter={disabled ? undefined : onIntent} onFocus={disabled ? undefined : onIntent} style={base} disabled={disabled} aria-disabled={disabled}>
       {iconImage ? (
         <span
           aria-hidden
@@ -176,7 +177,7 @@ function SwipeableNotificationItem({
   );
 }
 
-export function Navbar({ page, prevPage, setPage, nuggets = 0, setModal = () => {}, chatNotifications = [], systemNotifications = [], setSystemNotifications = () => {}, onOpenChatNotification = () => {}, onMarkChatNotificationRead = () => {}, onDeleteChatNotification = () => {}, onDeleteAllChatNotifications = () => {}, onDeleteSystemNotification = () => {}, onDeleteAllSystemNotifications = () => {}, onOpenAuthModal = () => {}, onOpenSettings = () => {}, onOpenAdmin = () => {}, onLogoutUser = () => {}, isAdmin = false, showInstallAppButton = false, onInstallApp = () => {}, userPreferences = null, navigationLocked = false, onNavigationBlocked = () => {} }) {
+export function Navbar({ page, prevPage, setPage, nuggets = 0, setModal = () => {}, chatNotifications = [], systemNotifications = [], setSystemNotifications = () => {}, onOpenChatNotification = () => {}, onMarkChatNotificationRead = () => {}, onDeleteChatNotification = () => {}, onDeleteAllChatNotifications = () => {}, onDeleteSystemNotification = () => {}, onDeleteAllSystemNotifications = () => {}, onOpenAuthModal = () => {}, onOpenSettings = () => {}, onOpenAdmin = () => {}, onLogoutUser = () => {}, isAdmin = false, showInstallAppButton = false, onInstallApp = () => {}, userPreferences = null, navigationLocked = false, onNavigationBlocked = () => {}, onNavigateIntent = () => {} }) {
   const TABLET_PORTRAIT_QUERY = '(min-width: 768px) and (max-width: 1080px) and (orientation: portrait)';
   const isApp = page !== 'landing';
   const isLanding = page === 'landing';
@@ -475,10 +476,10 @@ export function Navbar({ page, prevPage, setPage, nuggets = 0, setModal = () => 
         {/* Center: Main nav (desktop) */}
         {isCompactTopbar ? null : isApp ? (
           <div style={{ display: 'flex', gap: 8, alignItems: 'center', justifySelf: 'center' }}>
-            <NavBtn dataTestId="nav-mapview" disabled={navigationLocked} iconImage={mapViewTaskbarIcon} iconImageSize={18} iconImageBold iconColorOverride={C.t2} iconColorActive={C.accent} labelWeight={700} label={t.mapView} onClick={() => navigationLocked ? onNavigationBlocked() : setPage && setPage('mapview')} active={page === 'mapview'} />
-            <NavBtn dataTestId="nav-dashboard" dataGuideEntry="onboarding-entry-module" disabled={navigationLocked} iconImage={feedMatchIcon} iconImageSize={18} iconImageBold iconColorOverride={C.t2} iconColorActive={C.accent} labelWeight={700} label={t.feed} onClick={() => navigationLocked ? onNavigationBlocked() : setPage && setPage('dashboard')} active={page === 'dashboard'} />
-            <NavBtn dataTestId="nav-matches" disabled={navigationLocked} iconImage={matchesTaskbarIcon} iconImageSize={18} iconImageBold iconColorOverride={C.t2} iconColorActive={C.accent} labelWeight={700} label={t.matches} onClick={() => navigationLocked ? onNavigationBlocked() : setPage && setPage('matches')} active={page === 'matches'} />
-            <NavBtn dataTestId="nav-pricing" icon="creditCard" label={t.pricing} onClick={() => setPage && setPage('pricing')} active={page === 'pricing'} />
+            <NavBtn dataTestId="nav-mapview" onIntent={() => onNavigateIntent('mapview')} disabled={navigationLocked} iconImage={mapViewTaskbarIcon} iconImageSize={18} iconImageBold iconColorOverride={C.t2} iconColorActive={C.accent} labelWeight={700} label={t.mapView} onClick={() => navigationLocked ? onNavigationBlocked() : setPage && setPage('mapview')} active={page === 'mapview'} />
+            <NavBtn dataTestId="nav-dashboard" onIntent={() => onNavigateIntent('dashboard')} dataGuideEntry="onboarding-entry-module" disabled={navigationLocked} iconImage={feedMatchIcon} iconImageSize={18} iconImageBold iconColorOverride={C.t2} iconColorActive={C.accent} labelWeight={700} label={t.feed} onClick={() => navigationLocked ? onNavigationBlocked() : setPage && setPage('dashboard')} active={page === 'dashboard'} />
+            <NavBtn dataTestId="nav-matches" onIntent={() => onNavigateIntent('matches')} disabled={navigationLocked} iconImage={matchesTaskbarIcon} iconImageSize={18} iconImageBold iconColorOverride={C.t2} iconColorActive={C.accent} labelWeight={700} label={t.matches} onClick={() => navigationLocked ? onNavigationBlocked() : setPage && setPage('matches')} active={page === 'matches'} />
+            <NavBtn dataTestId="nav-pricing" onIntent={() => onNavigateIntent('pricing')} icon="creditCard" label={t.pricing} onClick={() => setPage && setPage('pricing')} active={page === 'pricing'} />
             {isAdmin ? (
               <NavBtn icon="shield" label={t.adminSystem || 'Adm.System'} onClick={onOpenAdmin} active={page === 'admin'} />
             ) : null}

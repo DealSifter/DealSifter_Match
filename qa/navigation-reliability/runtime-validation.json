@@ -1,0 +1,99 @@
+{
+  "mode": "LOCAL_FULL_APP_WITH_MOCK_AUTH_AND_BACKEND",
+  "productionUserSession": false,
+  "paidProviderCalls": 0,
+  "results": [
+    {
+      "device": "desktop",
+      "width": 1280,
+      "height": 900,
+      "navigations": 10,
+      "feedAndMatchesDomIdentityPreserved": true,
+      "errors": [],
+      "timings": [
+        {
+          "module": "mapview",
+          "milliseconds": 2056
+        },
+        {
+          "module": "dashboard",
+          "milliseconds": 3462
+        },
+        {
+          "module": "pricing",
+          "milliseconds": 9224
+        },
+        {
+          "module": "matches",
+          "milliseconds": 1096
+        },
+        {
+          "module": "mapview",
+          "milliseconds": 1278
+        },
+        {
+          "module": "dashboard",
+          "milliseconds": 7901
+        },
+        {
+          "module": "matches",
+          "milliseconds": 18518
+        },
+        {
+          "module": "pricing",
+          "milliseconds": 1764
+        },
+        {
+          "module": "dashboard",
+          "milliseconds": 7110
+        }
+      ]
+    },
+    {
+      "device": "phone",
+      "width": 390,
+      "height": 844,
+      "navigations": 10,
+      "feedAndMatchesDomIdentityPreserved": true,
+      "errors": [],
+      "timings": [
+        {
+          "module": "mapview",
+          "milliseconds": 4598
+        },
+        {
+          "module": "dashboard",
+          "milliseconds": 7669
+        },
+        {
+          "module": "pricing",
+          "milliseconds": 39698
+        },
+        {
+          "module": "matches",
+          "milliseconds": 23609
+        },
+        {
+          "module": "mapview",
+          "milliseconds": 1465
+        },
+        {
+          "module": "dashboard",
+          "milliseconds": 6322
+        },
+        {
+          "module": "matches",
+          "milliseconds": 19250
+        },
+        {
+          "module": "pricing",
+          "milliseconds": 4559
+        },
+        {
+          "module": "dashboard",
+          "milliseconds": 10829
+        }
+      ]
+    }
+  ]
+}
