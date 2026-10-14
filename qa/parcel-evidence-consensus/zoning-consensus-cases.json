@@ -1,0 +1,73 @@
+{
+  "fixtureOnly": true,
+  "result": {
+    "field": "zoning",
+    "status": "MATERIAL_CONFLICT",
+    "candidates": [
+      {
+        "field": "zoning",
+        "originalValue": "R1",
+        "sourceType": "PUBLIC_ZONING",
+        "sourceId": "planning",
+        "sourceFamily": "PLANNING",
+        "sourceAuthority": "PLANNING",
+        "evidenceStatus": "USER_PROVIDED",
+        "retrievedAt": "2026-10-14T00:00:00Z",
+        "declaredSourceFamily": "PLANNING",
+        "candidateId": "evidence-1",
+        "normalizedValue": "R1",
+        "normalizedUnit": null,
+        "normalizedAcres": null,
+        "specialization": "SPECIALIZED",
+        "comparable": true,
+        "exclusionReason": null
+      },
+      {
+        "field": "zoning",
+        "originalValue": "R2",
+        "sourceType": "USER_PROVIDED",
+        "sourceId": "publisher",
+        "sourceFamily": "PUBLISHER",
+        "sourceAuthority": "PUBLISHER",
+        "evidenceStatus": "USER_PROVIDED",
+        "retrievedAt": "2026-10-14T00:00:00Z",
+        "declaredSourceFamily": "PUBLISHER",
+        "candidateId": "evidence-2",
+        "normalizedValue": "R2",
+        "normalizedUnit": null,
+        "normalizedAcres": null,
+        "specialization": "CONTEXTUAL",
+        "comparable": true,
+        "exclusionReason": null
+      }
+    ],
+    "independentSourceFamilies": [
+      "PLANNING",
+      "PUBLISHER"
+    ],
+    "agreementCluster": [],
+    "outliers": [],
+    "supportingSources": [],
+    "conflictingSources": [
+      "PLANNING",
+      "PUBLISHER"
+    ],
+    "internalSourceStates": [
+      {
+        "sourceFamily": "PLANNING",
+        "status": "SINGLE_SOURCE"
+      },
+      {
+        "sourceFamily": "PUBLISHER",
+        "status": "SINGLE_SOURCE"
+      }
+    ],
+    "provisionalResolvedValue": null,
+    "provisionalResolvedAcres": null,
+    "normalizedUnit": null,
+    "resolutionBasis": null,
+    "reasonCode": "NO_UNIQUE_INDEPENDENT_MAJORITY_CLUSTER",
+    "materialConflict": true,
+    "unresolvedReason": "NO_UNIQUE_INDEPENDENT_MAJORITY_CLUSTER"
+  }
+}

@@ -1,0 +1,29 @@
+{
+  "initialConsensusRun": {
+    "passed": 45,
+    "total": 47,
+    "causes": ["fixture referenced the wrong geometry normalizer", "existing exact 2% boundary suffered binary floating-point round-off"],
+    "receipt": "targeted-consensus-tests.json",
+    "acceptedAsPass": false
+  },
+  "concurrentTargetedRun": {
+    "completedAssertionsPassed": 269,
+    "workerStartupErrors": 1,
+    "missingFile": "src/components/map/PropertyPinPopup.test.jsx",
+    "receipt": "targeted-tests-concurrent-attempt.json",
+    "acceptedAsPass": false
+  },
+  "concurrentFullRun": {
+    "status": "ABORTED_OWN_PROCESSES_ONLY",
+    "reason": "repeat without build/concurrent targeted execution after a demonstrated worker startup timeout",
+    "acceptedAsPass": false,
+    "existingUserViteStopped": false
+  },
+  "isolatedForkFullRun": {
+    "status": "ABORTED_OWN_PROCESSES_ONLY",
+    "reason": "Windows process-start overhead; repeat identical scope using one isolated worker thread",
+    "assertionFailuresObservedBeforeAbort": 0,
+    "acceptedAsPass": false,
+    "existingUserViteStopped": false
+  }
+}

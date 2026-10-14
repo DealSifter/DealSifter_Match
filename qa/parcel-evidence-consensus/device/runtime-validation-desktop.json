@@ -1,0 +1,48 @@
+{
+  "mode": "LOCAL_REAL_LEAFLET_WITH_EXPLICIT_SYNTHETIC_GIS_AND_MOCKED_AUTH",
+  "productionUserAuthentication": false,
+  "diameterMiles": 0.2,
+  "radiusMiles": 0.1,
+  "results": [
+    {
+      "device": "desktop",
+      "viewport": {
+        "width": 1280,
+        "height": 900
+      },
+      "language": "pt",
+      "theme": "light",
+      "initialZoom": 18,
+      "pinZoom": 15,
+      "lensZoom": 16,
+      "canonicalAssetUnlocked": true,
+      "initialPopup": {
+        "x": 646,
+        "y": 255,
+        "width": 360,
+        "height": 390
+      },
+      "activePopup": {
+        "x": 646,
+        "y": 255,
+        "width": 360,
+        "height": 390
+      },
+      "pill": {
+        "x": 963.359375,
+        "y": 70,
+        "width": 252.640625,
+        "height": 44
+      },
+      "viewportStableAfterSwitch": true,
+      "queries": 2,
+      "cameraFlights": 4,
+      "spotlightAndCloseControlsTested": true,
+      "repeatedMagnifierRestoresExactZoom": true,
+      "errors": []
+    }
+  ],
+  "paidProviderCalls": 0,
+  "liveParcelGISCalls": 0,
+  "basemapTiles": "NORMAL_EXISTING_BASEMAP_REQUESTS"
+}

@@ -1,0 +1,56 @@
+﻿{
+    "observedAt":  "2026-10-14T16:25:03.9095441Z",
+    "mode":  "Audit",
+    "effectiveConfiguration":  "GENERAL_AUTHENTICATED_ON",
+    "originalPreviewDigestVerified":  false,
+    "configurationChanged":  false,
+    "changedSecrets":  [
+
+                       ],
+    "unchangedOtherSecretCount":  38,
+    "previewAllowlist":  "REMOVED",
+    "globalGridGeneralAccess":  "OFF",
+    "productionUserSessionUsed":  false,
+    "functions":  [
+                      {
+                          "slug":  "feature-flags",
+                          "version":  19,
+                          "status":  "ACTIVE",
+                          "updated_at":  1791950192694,
+                          "verify_jwt":  true
+                      },
+                      {
+                          "slug":  "public-parcel",
+                          "version":  7,
+                          "status":  "ACTIVE",
+                          "updated_at":  1791950191060,
+                          "verify_jwt":  true
+                      }
+                  ],
+    "publishedSources":  [
+                             {
+                                 "httpStatus":  200,
+                                 "archiveSha256":  "fa908f6171f782d254cb60c614764f539a605873cc68cd869bd090e86fdfedc0",
+                                 "slug":  "feature-flags",
+                                 "markers":  {
+                                                 "globalAuthenticatedRule":  true,
+                                                 "independentGridAllowlist":  true
+                                             }
+                             },
+                             {
+                                 "httpStatus":  200,
+                                 "archiveSha256":  "a5b9d2e4ff459a945ab454921ac41d75759c512500a6c406b7ecd72ea1caa30a",
+                                 "slug":  "public-parcel",
+                                 "markers":  {
+                                                 "globalAuthenticatedRule":  true,
+                                                 "independentGridAllowlist":  true,
+                                                 "publicDisplaySourcePolicy":  true,
+                                                 "viewportOperationGuard":  true,
+                                                 "fixedLensQuery":  true,
+                                                 "privatePointGuard":  true,
+                                                 "sharedUpstreamBudget":  true,
+                                                 "strategicSourceRegistry":  true
+                                             }
+                             }
+                         ]
+}

@@ -1,7 +1,8 @@
 import {readFile,writeFile} from 'node:fs/promises';
 import {createHash} from 'node:crypto';
 import {chromium} from '@playwright/test';
-const app='https://dealsiftermatch.vercel.app';const directory=process.argv.includes('--parcel-ga')?'qa/public-parcel-intelligence/general-availability':'qa/navigation-reliability';
+const app='https://dealsiftermatch.vercel.app';const consensus=process.argv.includes('--parcel-consensus');
+const directory=consensus?'qa/parcel-evidence-consensus':process.argv.includes('--parcel-ga')?'qa/public-parcel-intelligence/general-availability':'qa/navigation-reliability';
 const deployment=JSON.parse((await readFile(`${directory}/production-deployment.json`,'utf8')).replace(/^\uFEFF/,''));
 if(deployment.state!=='READY'||!deployment.sourceShaVerified||!deployment.aliasVerified)throw new Error('EXACT_READY_PRODUCTION_RELEASE_REQUIRED');
 const request=(url,options={})=>fetch(url,{...options,signal:AbortSignal.timeout(20000)});
@@ -34,7 +35,7 @@ const receipt={observedAt:new Date().toISOString(),codeCommit:deployment.sourceS
   securityHeaders:['content-security-policy','strict-transport-security','x-content-type-options','x-frame-options','referrer-policy','permissions-policy','cross-origin-opener-policy'].every(name=>htmlResponse.headers.has(name)&&mapResponse.headers.has(name)),
   compiledModuleRecovery:code.includes('MODULE_DEFAULT_EXPORT_MISSING')&&code.includes('module_loading'),compiledParcelAccessDiagnostics:map.includes('parcelAccessStatus')&&map.includes('ds-property-pin-lens-feedback'),
   obsoleteAssets,featureFlagsCorsStatus:cors.status,featureFlagsCorsHeaders:cors.headers.get('access-control-allow-headers'),anonymousParcelStatus:denied.status,
-  browserStatus,browserErrors:errors,anonymousStartupGisRequests:gisRequests,backendDeploy:process.argv.includes('--parcel-ga')?'feature-flags,public-parcel (separate receipts)':'NONE',migrations:'NONE',configurationChanged:process.argv.includes('--parcel-ga'),paidProviderCalls:0,
+  browserStatus,browserErrors:errors,anonymousStartupGisRequests:gisRequests,backendDeploy:consensus?'public-parcel (shared area policy only)':process.argv.includes('--parcel-ga')?'feature-flags,public-parcel (separate receipts)':'NONE',migrations:'NONE',configurationChanged:process.argv.includes('--parcel-ga'),paidProviderCalls:0,
   authenticatedUserAcceptance:'NOT_PERFORMED_NO_USER_SESSION'};
 receipt.pass=htmlResponse.status===200&&deepLink.status===200&&mainResponse.status===200&&mapResponse.status===200&&/no-store/.test(receipt.htmlCacheControl)&&/no-store/.test(receipt.deepLinkCacheControl)&&/immutable/.test(receipt.mainAssetCacheControl)&&/immutable/.test(receipt.mapAssetCacheControl)&&receipt.securityHeaders&&receipt.compiledModuleRecovery&&receipt.compiledParcelAccessDiagnostics&&obsoleteAssets.every(asset=>asset.status===404&&/no-store/.test(asset.cacheControl||'')&&!/immutable|max-age=31536000/.test(asset.cacheControl||''))&&cors.status===200&&denied.status===401&&browserStatus===200&&errors.length===0&&gisRequests===0;
 await writeFile(`${directory}/production-smoke.json`,JSON.stringify(receipt,null,2)+'\n');console.log(JSON.stringify(receipt));if(!receipt.pass)throw new Error('PRODUCTION_SMOKE_FAILED');

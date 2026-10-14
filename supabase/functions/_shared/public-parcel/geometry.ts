@@ -1,4 +1,5 @@
 import type { ParcelGeometry, Point } from './types.ts';
+import { classifyAreaDifference, SQFT_PER_ACRE } from './areaPolicy.ts';
 const EARTH_RADIUS = 6371008.8;
 const SQFT_PER_SQM = 10.763910416709722;
 const radians = (value: number) => value * Math.PI / 180;
@@ -53,7 +54,7 @@ export function geodesicParcelArea(geometry: ParcelGeometry | null) {
   if (!validGeometry(geometry)) return { sqft: null, acres: null };
   const polygons = geometry.type === 'Polygon' ? [geometry.coordinates] : geometry.coordinates;
   const sqm = polygons.reduce((total, poly) => total + Math.max(0, ringArea(poly[0]) - poly.slice(1).reduce((sum, ring) => sum + ringArea(ring), 0)), 0);
-  return { sqft: sqm * SQFT_PER_SQM, acres: sqm * SQFT_PER_SQM / 43560 };
+  return { sqft: sqm * SQFT_PER_SQM, acres: sqm * SQFT_PER_SQM / SQFT_PER_ACRE };
 }
 export function geometryContains(geometry: ParcelGeometry | null, point: Point) {
   if (!validGeometry(geometry)) return false;
@@ -64,5 +65,5 @@ export function areaCrossCheck(values: (number | null)[]) {
   const available = values.filter((value): value is number => value !== null && Number.isFinite(value) && value > 0);
   if (available.length < 2) return { status: 'NOT_EVALUATED' as const, relativeDifference: null };
   const difference = (Math.max(...available) - Math.min(...available)) / Math.max(...available);
-  return { status: difference <= 0.02 ? 'CONSISTENT' as const : difference <= 0.1 ? 'MINOR_VARIANCE' as const : 'MATERIAL_CONFLICT' as const, relativeDifference: difference };
+  return { status: classifyAreaDifference(difference), relativeDifference: difference };
 }

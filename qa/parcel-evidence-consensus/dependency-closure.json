@@ -1,0 +1,23 @@
+{
+  "affectedEdgeFunctions": [
+    "public-parcel"
+  ],
+  "frontendAffected": true,
+  "frontendDirectGeometryConsumers": [
+    "src/components/map/ParcelPublicData.jsx",
+    "src/features/parcel/parcelLensAccess.js",
+    "src/features/parcel/parcelLensController.js",
+    "src/features/parcel/parcelLensGeometry.js"
+  ],
+  "unchangedEdgeFunctions": [
+    "feature-flags",
+    "maxxis-chat"
+  ],
+  "engineRuntimeConsumers": 0,
+  "newEndpoints": 0,
+  "migration": "NONE",
+  "changedRuntimeFiles": [
+    "supabase/functions/_shared/public-parcel/geometry.ts",
+    "supabase/functions/_shared/public-parcel/areaPolicy.ts"
+  ]
+}

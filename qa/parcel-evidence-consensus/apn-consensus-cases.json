@@ -1,0 +1,84 @@
+{
+  "fixtureOnly": true,
+  "result": {
+    "field": "apn",
+    "status": "CONSISTENT",
+    "candidates": [
+      {
+        "field": "apn",
+        "originalValue": "00-012.30",
+        "sourceType": "USER_PROVIDED",
+        "sourceId": "publisher",
+        "sourceFamily": "PUBLISHER",
+        "sourceAuthority": "PUBLISHER",
+        "evidenceStatus": "USER_PROVIDED",
+        "retrievedAt": "2026-10-14T00:00:00Z",
+        "metadata": {
+          "countyFips": "49035",
+          "apnNormalization": "REMOVE_SEPARATORS"
+        },
+        "declaredSourceFamily": "PUBLISHER",
+        "candidateId": "evidence-1",
+        "normalizedValue": "0001230",
+        "normalizedUnit": null,
+        "normalizedAcres": null,
+        "specialization": "CONTEXTUAL",
+        "comparable": true,
+        "exclusionReason": null
+      },
+      {
+        "field": "apn",
+        "originalValue": "0001230",
+        "sourceType": "PUBLIC_PARCEL_GIS",
+        "sourceId": "gis",
+        "sourceFamily": "GIS",
+        "sourceAuthority": "GIS",
+        "evidenceStatus": "USER_PROVIDED",
+        "retrievedAt": "2026-10-14T00:00:00Z",
+        "metadata": {
+          "countyFips": "49035",
+          "apnNormalization": "REMOVE_SEPARATORS"
+        },
+        "declaredSourceFamily": "GIS",
+        "candidateId": "evidence-2",
+        "normalizedValue": "0001230",
+        "normalizedUnit": null,
+        "normalizedAcres": null,
+        "specialization": "SPECIALIZED",
+        "comparable": true,
+        "exclusionReason": null
+      }
+    ],
+    "independentSourceFamilies": [
+      "GIS",
+      "PUBLISHER"
+    ],
+    "agreementCluster": [
+      "evidence-1",
+      "evidence-2"
+    ],
+    "outliers": [],
+    "supportingSources": [
+      "GIS",
+      "PUBLISHER"
+    ],
+    "conflictingSources": [],
+    "internalSourceStates": [
+      {
+        "sourceFamily": "GIS",
+        "status": "SINGLE_SOURCE"
+      },
+      {
+        "sourceFamily": "PUBLISHER",
+        "status": "SINGLE_SOURCE"
+      }
+    ],
+    "provisionalResolvedValue": "0001230",
+    "provisionalResolvedAcres": null,
+    "normalizedUnit": null,
+    "resolutionBasis": "AGREEING_INDEPENDENT_FAMILY_MEDIAN",
+    "reasonCode": "INDEPENDENT_SOURCES_AGREE",
+    "materialConflict": false,
+    "unresolvedReason": null
+  }
+}

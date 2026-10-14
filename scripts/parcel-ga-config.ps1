@@ -1,6 +1,8 @@
 param([Parameter(Mandatory=$true)][ValidateSet('Audit','Disable','Enable')][string]$Mode,
- [ValidatePattern('^[a-z0-9._%+-]+@[a-z0-9.-]+\.[a-z]{2,}$')][string]$OriginalAccountEmail,[switch]$CheckPublishedCode)
+ [ValidatePattern('^[a-z0-9._%+-]+@[a-z0-9.-]+\.[a-z]{2,}$')][string]$OriginalAccountEmail,[switch]$CheckPublishedCode,
+ [string]$ReceiptPath,[switch]$CheckConsensusIsolation)
 $ErrorActionPreference='Stop'
+if($CheckConsensusIsolation -and !$CheckPublishedCode){throw 'PUBLISHED_CODE_CHECK_REQUIRED'}
 # Operator-only, scoped to the existing project/flag. No tokens, identities,
 # secret values, sessions or raw API responses are printed or persisted.
 Add-Type -TypeDefinition @'
@@ -63,11 +65,15 @@ if($CheckPublishedCode){
   $parcelGaArchiveHash=[System.Security.Cryptography.SHA256]::Create();try{$parcelGaArchiveDigest=([BitConverter]::ToString($parcelGaArchiveHash.ComputeHash($parcelGaBytes))).Replace('-','').ToLowerInvariant()}finally{$parcelGaArchiveHash.Dispose()}
   $parcelGaMarkers=[ordered]@{globalAuthenticatedRule=$parcelGaText.Contains("if (flagName === 'public_parcel_intelligence') enabled = definition.enabled");independentGridAllowlist=$parcelGaText.Contains("if (flagName === 'public_parcel_qa_grid')")}
   if($parcelGaSlug-eq 'public-parcel'){$parcelGaMarkers.publicDisplaySourcePolicy=$parcelGaText.Contains("source.usagePermission === 'PUBLIC_DISPLAY_ALLOWED'");$parcelGaMarkers.viewportOperationGuard=$parcelGaText.Contains('parcelOperationAllowed(query.operation, flags)');$parcelGaMarkers.fixedLensQuery=$parcelGaText.Contains('query-lens');$parcelGaMarkers.privatePointGuard=$parcelGaText.Contains('INVALID_OPERATION_BOUNDS');$parcelGaMarkers.sharedUpstreamBudget=$parcelGaText.Contains('SOURCE_SHARED_RATE_LIMIT');$parcelGaMarkers.strategicSourceRegistry=$parcelGaText.Contains('us-ar-agiso-state-parcels')}
+  if($CheckConsensusIsolation -and $parcelGaSlug-eq 'public-parcel'){
+    $parcelGaMarkers.sharedAreaPolicy=$parcelGaText.Contains('classifyAreaDifference')
+    $parcelGaMarkers.consensusEngineNotBundled=!$parcelGaText.Contains('computeParcelEvidenceConsensus')
+  }
   if(@($parcelGaMarkers.Values|Where-Object{$_-ne $true}).Count){throw 'PUBLISHED_SOURCE_MARKERS_NOT_CONFIRMED'}
   $parcelGaSourceAudit+=@{slug=$parcelGaSlug;archiveSha256=$parcelGaArchiveDigest;httpStatus=$parcelGaArchive.StatusCode;markers=$parcelGaMarkers}
  }
  $parcelGaReceipt.publishedSources=$parcelGaSourceAudit
 }
-$parcelGaReceiptPath=if($CheckPublishedCode){'qa/public-parcel-intelligence/general-availability/backend-deployment.json'}else{'qa/public-parcel-intelligence/general-availability/flag-'+$Mode.ToLowerInvariant()+'.json'}
+$parcelGaReceiptPath=if($ReceiptPath){$ReceiptPath}elseif($CheckPublishedCode){'qa/public-parcel-intelligence/general-availability/backend-deployment.json'}else{'qa/public-parcel-intelligence/general-availability/flag-'+$Mode.ToLowerInvariant()+'.json'}
 $parcelGaReceipt|ConvertTo-Json -Depth 7|Set-Content -LiteralPath $parcelGaReceiptPath -Encoding utf8
 $parcelGaReceipt|ConvertTo-Json -Depth 7

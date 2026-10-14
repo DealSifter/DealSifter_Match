@@ -1,0 +1,20 @@
+{
+  "targetedTests": {"passed": 283, "total": 283, "files": 14, "workerStartupErrors": 0},
+  "fullDeterministicTests": {"passed": 1970, "total": 1970, "files": 219, "pool": "threads", "maxWorkers": 1, "isolated": true, "workerStartupErrors": 0},
+  "additionalDenoTests": {"passed": 4, "total": 4},
+  "typecheck": {"frontendContracts": "PASS", "consensusEngineAndAdapters": "PASS", "affectedPublicParcelFunction": "PASS", "newDenoErrors": 0},
+  "lint": {"application": "PASS", "changedQaScripts": "PASS", "operatorPowerShellSyntax": "PASS"},
+  "build": {"status": "PASS", "modernAndLegacy": true, "modules": 2740, "duration": "11m11s", "existingChunkSizeWarningsOnly": true, "testSourcemapUpload": false},
+  "localVisualValidation": {"desktop": "PASS", "phone": "PASS", "authAndGis": "EXPLICIT_MOCKS", "realLeaflet": true, "unlockedFixture": true},
+  "geminiCallsFromEngine": 0,
+  "providerCallsFromEngine": 0,
+  "automatedLiveRentCastCalls": 0,
+  "automatedLivePublicGisCalls": 0,
+  "canonicalPropertyWrites": 0,
+  "canonicalConsumption": 0,
+  "maxxisConsumption": 0,
+  "reportConsumption": 0,
+  "scenarioFinancialConsumption": 0,
+  "migration": "NONE",
+  "productionAuthenticatedUserSession": "NOT_USED"
+}

@@ -1,11 +1,11 @@
 import { mkdir, writeFile } from 'node:fs/promises';
 import { argv } from 'node:process';
 import { chromium, expect } from '@playwright/test';
-if(argv.includes('--ga'))process.env.E2E_SUPABASE_URL='https://cyeipfskwwisbbayyaca.supabase.co';
+if(argv.includes('--ga')||argv.includes('--consensus'))process.env.E2E_SUPABASE_URL='https://cyeipfskwwisbbayyaca.supabase.co';
 const {setupMockSupabase}=await import('../e2e/support/mockSupabase.js');
 
 const unlockedFixture = argv.includes('--unlocked');
-const output = argv.includes('--ga') ? 'qa/public-parcel-intelligence/general-availability/device' : unlockedFixture ? 'qa/parcel-lens-unlocked' : 'qa/parcel-lens-device'; await mkdir(`${output}/screenshots`, { recursive: true });
+const output = argv.includes('--consensus') ? 'qa/parcel-evidence-consensus/device' : argv.includes('--ga') ? 'qa/public-parcel-intelligence/general-availability/device' : unlockedFixture ? 'qa/parcel-lens-unlocked' : 'qa/parcel-lens-device'; await mkdir(`${output}/screenshots`, { recursive: true });
 const point = { lat:35.921133041392, lng:-78.583547577238 };
 function parcel(id, dx = 0, dy = 0) {
   const lng = point.lng + dx; const lat = point.lat + dy; const size = .00008;
