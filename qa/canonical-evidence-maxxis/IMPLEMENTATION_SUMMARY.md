@@ -59,6 +59,11 @@ production acceptance is BLOCKED: no actual user session is available. Anonymous
 local mocked-auth device checks and synthetic control fixtures are not represented as
 an authenticated production test. No session is fabricated or impersonated.
 
+Release is now READY on production SHA 06913dce671f805a89663d3a5a07f71d17c39785;
+backend versions are maxxis-chat 83 and public-parcel 9 (JWT enforced), flags 19
+unchanged. Anonymous production smoke PASS. See production-acceptance.md for the
+exact release boundary and the authenticated-production acceptance limitation.
+
 ## Next phase
 
 Consensus-aware analytical engines + financial evidence stack. This phase intentionally

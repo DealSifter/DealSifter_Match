@@ -1,0 +1,81 @@
+﻿{
+    "observedAt":  "2026-10-14T18:58:24.4537100Z",
+    "mode":  "Audit",
+    "effectiveConfiguration":  "GENERAL_AUTHENTICATED_ON",
+    "originalPreviewDigestVerified":  false,
+    "configurationChanged":  false,
+    "changedSecrets":  [
+
+                       ],
+    "unchangedOtherSecretCount":  38,
+    "previewAllowlist":  "REMOVED",
+    "globalGridGeneralAccess":  "OFF",
+    "productionUserSessionUsed":  false,
+    "functions":  [
+                      {
+                          "slug":  "maxxis-chat",
+                          "version":  83,
+                          "status":  "ACTIVE",
+                          "updated_at":  1792004275729,
+                          "verify_jwt":  true
+                      },
+                      {
+                          "slug":  "feature-flags",
+                          "version":  19,
+                          "status":  "ACTIVE",
+                          "updated_at":  1791950192694,
+                          "verify_jwt":  true
+                      },
+                      {
+                          "slug":  "public-parcel",
+                          "version":  9,
+                          "status":  "ACTIVE",
+                          "updated_at":  1792004273477,
+                          "verify_jwt":  true
+                      }
+                  ],
+    "publishedSources":  [
+                             {
+                                 "httpStatus":  200,
+                                 "archiveSha256":  "fa908f6171f782d254cb60c614764f539a605873cc68cd869bd090e86fdfedc0",
+                                 "slug":  "feature-flags",
+                                 "markers":  {
+                                                 "globalAuthenticatedRule":  true,
+                                                 "independentGridAllowlist":  true
+                                             }
+                             },
+                             {
+                                 "httpStatus":  200,
+                                 "archiveSha256":  "70665318da87c1e5c2bc9c81ec9c93a021d18482f8078391b1268c57db4d72f9",
+                                 "slug":  "public-parcel",
+                                 "markers":  {
+                                                 "globalAuthenticatedRule":  true,
+                                                 "independentGridAllowlist":  true,
+                                                 "publicDisplaySourcePolicy":  true,
+                                                 "viewportOperationGuard":  true,
+                                                 "fixedLensQuery":  true,
+                                                 "privatePointGuard":  true,
+                                                 "sharedUpstreamBudget":  true,
+                                                 "strategicSourceRegistry":  true,
+                                                 "signedAcquiredEvidence":  true,
+                                                 "receiptDomain":  true,
+                                                 "sharedAreaPolicy":  true,
+                                                 "consensusEngineNotBundled":  true
+                                             }
+                             },
+                             {
+                                 "httpStatus":  200,
+                                 "archiveSha256":  "b18688dd197429aaa3fad2b283c599b364d2cab7b04f73aa1091ffba3625616a",
+                                 "slug":  "maxxis-chat",
+                                 "markers":  {
+                                                 "canonicalReadTool":  true,
+                                                 "projection":  true,
+                                                 "consensus":  true,
+                                                 "signedReceipt":  true,
+                                                 "directFactRoute":  true,
+                                                 "analyticalConsumerIsolation":  true,
+                                                 "receiptDomain":  true
+                                             }
+                             }
+                         ]
+}

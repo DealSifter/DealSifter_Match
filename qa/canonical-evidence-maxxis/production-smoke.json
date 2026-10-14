@@ -1,0 +1,56 @@
+{
+  "observedAt": "2026-10-14T19:03:50.196Z",
+  "codeCommit": "06913dce671f805a89663d3a5a07f71d17c39785",
+  "deploymentId": "dpl_MRXEkzbTVpnyjCrWVkURo4dS1FdD",
+  "aliasVerified": true,
+  "frontendStatus": 200,
+  "htmlCacheControl": "no-cache, no-store, must-revalidate",
+  "deepLinkStatus": 200,
+  "deepLinkCacheControl": "no-cache, no-store, must-revalidate",
+  "mainAssetStatus": 200,
+  "mainAssetCacheControl": "public, max-age=31536000, immutable",
+  "mapAssetStatus": 200,
+  "mapAssetCacheControl": "public, max-age=31536000, immutable",
+  "mapChunk": "MapView-VAn70eNI.js",
+  "mapSha256": "1bf038f9d34fbb3b40e1c89ecc063f99d5a51785cff66bfd747cf633867b645c",
+  "securityHeaders": true,
+  "compiledModuleRecovery": true,
+  "compiledParcelAccessDiagnostics": true,
+  "obsoleteAssets": [
+    {
+      "name": "MapView-CYCaaVUC.js",
+      "status": 404,
+      "contentType": "text/plain; charset=utf-8",
+      "cacheControl": "no-cache, no-store, must-revalidate"
+    },
+    {
+      "name": "ParcelLensLayer-XRoS49Vs.js",
+      "status": 404,
+      "contentType": "text/plain; charset=utf-8",
+      "cacheControl": "no-cache, no-store, must-revalidate"
+    }
+  ],
+  "featureFlagsCorsStatus": 200,
+  "featureFlagsCorsHeaders": "authorization, x-client-info, apikey, content-type, baggage, sentry-trace, traceparent, tracestate",
+  "anonymousParcelStatus": 401,
+  "browserStatus": 200,
+  "browserErrors": [],
+  "anonymousStartupGisRequests": 0,
+  "backendDeploy": "maxxis-chat,public-parcel (signed existing-evidence handoff)",
+  "migrations": "NONE",
+  "configurationChanged": false,
+  "paidProviderCalls": 0,
+  "canonicalHandoff": {
+    "receiptChunk": "parcelEvidenceReceipt-DXUfX8ai.js",
+    "receiptStatus": 200,
+    "receiptSha256": "89382ddfc08d9dbb1c4bf90ed7e5fe4e5db224f253eca110ea69c245269b0a54",
+    "assistantChunk": "MaxxisAssistant-CDrp-yEv.js",
+    "assistantStatus": 200,
+    "assistantTransportPresent": true,
+    "boundedReceiptGuard": true,
+    "immutableCache": true
+  },
+  "anonymousMaxxisStatus": 401,
+  "authenticatedUserAcceptance": "BLOCKED_NO_REAL_USER_SESSION",
+  "pass": true
+}
