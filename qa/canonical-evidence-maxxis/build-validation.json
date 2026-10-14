@@ -1,0 +1,10 @@
+{
+  "pass": true,
+  "command": "npm run build",
+  "release": "local",
+  "productionSecretsChanged": false,
+  "modernAndLegacyBundles": "PASS",
+  "durationSeconds": 693,
+  "warnings": ["Existing chunks larger than 500 kB"],
+  "migration": "NONE"
+}

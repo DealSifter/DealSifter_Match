@@ -1,0 +1,37 @@
+{
+  "pass": true,
+  "fixtureOnly": true,
+  "mode": "REAL_AUTHORIZED_TOOL_AND_FORMATTER_WITH_SYNTHETIC_READ_CALLBACKS",
+  "providerCalls": 0,
+  "geminiCalls": 0,
+  "propertyRowWrites": 0,
+  "cases": [
+    {
+      "syntheticGisPresent": false,
+      "analyticalUsability": "CONFLICTED",
+      "range": null,
+      "legacyProjectionUnchanged": true,
+      "legacyAcres": 0.5476124885215794,
+      "localized": {
+        "pt": "Área do lote:\nHá divergência ou falta de comparabilidade entre as fontes; nenhuma medida foi escolhida como confirmada.\nRentCast: 0,5476 ac.\nCadastro do imóvel: 1,14 ac.\nNão há evidência parcelária pública aprovada disponível neste contexto; isso não significa que não existam registros.",
+        "en": "Lot area:\nSources disagree or lack comparability; no value has been chosen as confirmed.\nRentCast: 0.5476 ac.\nProperty listing: 1.14 ac.\nNo approved public parcel evidence is available in this context; this does not mean no records exist.",
+        "es": "Área del lote:\nLas fuentes difieren o no son comparables; no se eligió un valor como confirmado.\nRentCast: 0.5476 ac.\nRegistro del inmueble: 1.14 ac.\nNo hay evidencia parcelaria pública aprobada disponible en este contexto; no significa que no existan registros."
+      }
+    },
+    {
+      "syntheticGisPresent": true,
+      "analyticalUsability": "PROVISIONAL",
+      "range": {
+        "min": 49658.399999999994,
+        "max": 53578.8002259448
+      },
+      "legacyProjectionUnchanged": true,
+      "legacyAcres": 0.5476124885215794,
+      "localized": {
+        "pt": "Área do lote: 1,14 ac–1,23 ac\nFaixa provisória apoiada por fontes independentes.\nValor fora do grupo de concordância: RentCast: 0,5476 ac.\nÁrea calculada da geometria: 1,23 ac · Utah Geospatial Resource Center / Salt Lake County.\nGIS / registro público: 1,23 ac · Utah Geospatial Resource Center / Salt Lake County.\nCadastro do imóvel: 1,14 ac.\nGIS público é informação cadastral; não substitui levantamento topográfico.",
+        "en": "Lot area: 1.14 ac–1.23 ac\nProvisional range supported by independent sources.\nValue outside the agreement cluster: RentCast: 0.5476 ac.\nGeometry-calculated area: 1.23 ac · Utah Geospatial Resource Center / Salt Lake County.\nPublic GIS / record: 1.23 ac · Utah Geospatial Resource Center / Salt Lake County.\nProperty listing: 1.14 ac.\nPublic GIS is cadastral information, not a professional survey.",
+        "es": "Área del lote: 1.14 ac–1.23 ac\nRango provisional respaldado por fuentes independientes.\nValor fuera del grupo de concordancia: RentCast: 0.5476 ac.\nÁrea calculada de la geometría: 1.23 ac · Utah Geospatial Resource Center / Salt Lake County.\nGIS / registro público: 1.23 ac · Utah Geospatial Resource Center / Salt Lake County.\nRegistro del inmueble: 1.14 ac.\nEl GIS público es información catastral; no sustituye un levantamiento topográfico."
+      }
+    }
+  ]
+}

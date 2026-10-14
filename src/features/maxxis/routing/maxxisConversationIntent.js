@@ -1,5 +1,6 @@
 import { parseAnalysisGapAnswer } from '../intelligence/analysisGapAnswer';
 import { detectMarketReferenceIntent } from '../../../../supabase/functions/_shared/maxxis/marketReferenceIntent.ts';
+import { detectPropertyFactLookup } from '../../../../supabase/functions/_shared/maxxis/propertyFactLookup.ts';
 
 export const MAXXIS_CONVERSATION_INTENTS = Object.freeze({
   GAP_RESPONSE: 'GAP_RESPONSE',
@@ -38,6 +39,9 @@ export function classifyMaxxisConversationIntent(message, options = {}) {
 
   const marketIntent = detectMarketReferenceIntent(message, options.property);
   if (marketIntent) return Object.freeze({ code: marketIntent, gapAnswer: null });
+  if (detectPropertyFactLookup(message)?.fields.length) {
+    return Object.freeze({ code: MAXXIS_CONVERSATION_INTENTS.GENERAL_CONVERSATION, gapAnswer: null });
+  }
 
   // An explicit question takes precedence over optional gap continuation.
   if (/\b(como|how|why|por que|porque|qual|quanto|what|which|cual|cuanto)\b/.test(text)) {

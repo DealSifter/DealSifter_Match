@@ -1,0 +1,65 @@
+﻿{
+    "observedAt":  "2026-10-14T17:51:49.5162342Z",
+    "mode":  "Audit",
+    "effectiveConfiguration":  "GENERAL_AUTHENTICATED_ON",
+    "originalPreviewDigestVerified":  false,
+    "configurationChanged":  false,
+    "changedSecrets":  [
+
+                       ],
+    "unchangedOtherSecretCount":  38,
+    "previewAllowlist":  "REMOVED",
+    "globalGridGeneralAccess":  "OFF",
+    "productionUserSessionUsed":  false,
+    "functions":  [
+                      {
+                          "slug":  "maxxis-chat",
+                          "version":  82,
+                          "status":  "ACTIVE",
+                          "updated_at":  1791770952004,
+                          "verify_jwt":  true
+                      },
+                      {
+                          "slug":  "feature-flags",
+                          "version":  19,
+                          "status":  "ACTIVE",
+                          "updated_at":  1791950192694,
+                          "verify_jwt":  true
+                      },
+                      {
+                          "slug":  "public-parcel",
+                          "version":  8,
+                          "status":  "ACTIVE",
+                          "updated_at":  1791998278259,
+                          "verify_jwt":  true
+                      }
+                  ],
+    "publishedSources":  [
+                             {
+                                 "httpStatus":  200,
+                                 "archiveSha256":  "fa908f6171f782d254cb60c614764f539a605873cc68cd869bd090e86fdfedc0",
+                                 "slug":  "feature-flags",
+                                 "markers":  {
+                                                 "globalAuthenticatedRule":  true,
+                                                 "independentGridAllowlist":  true
+                                             }
+                             },
+                             {
+                                 "httpStatus":  200,
+                                 "archiveSha256":  "fc203a6dfbba2713e0f2ac6fde20300519c563aca3894340722be8121c006d88",
+                                 "slug":  "public-parcel",
+                                 "markers":  {
+                                                 "globalAuthenticatedRule":  true,
+                                                 "independentGridAllowlist":  true,
+                                                 "publicDisplaySourcePolicy":  true,
+                                                 "viewportOperationGuard":  true,
+                                                 "fixedLensQuery":  true,
+                                                 "privatePointGuard":  true,
+                                                 "sharedUpstreamBudget":  true,
+                                                 "strategicSourceRegistry":  true,
+                                                 "sharedAreaPolicy":  true,
+                                                 "consensusEngineNotBundled":  true
+                                             }
+                             }
+                         ]
+}

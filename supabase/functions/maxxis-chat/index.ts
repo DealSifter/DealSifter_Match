@@ -16,6 +16,7 @@ import { prepareProfileSuggestions } from '../_shared/maxxis/prepareProfileSugge
 import { executeMaxxisTool, MAXXIS_TOOLS } from '../_shared/maxxis/toolRegistry.ts';
 import { asksForSelectedPropertyAnalysis } from '../_shared/maxxis/propertyAnalysisIntent.ts';
 import { buildPropertyFactLookupAnswer, detectPropertyFactLookup } from '../_shared/maxxis/propertyFactLookup.ts';
+import { formatConsensusFactAnswer } from '../_shared/maxxis/consensusFactAnswer.ts';
 import { detectsDealScenario, formatDealScenarioAnswer, resolveDealScenario } from '../_shared/maxxis/scenarioEngine.ts';
 import { detectMarketReferenceIntent } from '../_shared/maxxis/marketReferenceIntent.ts';
 import { buildMarketReferenceAnswer } from '../_shared/maxxis/marketReferenceAnswer.ts';
@@ -816,6 +817,17 @@ Deno.serve(async (req) => {
       return response({ message: 'Intelligence access could not be verified.', type: 'text', data: null, actions: [], error: 'ENTITLEMENT_MISSING' }, 503, origin, requestId);
     }
     const runtimeAccess: MaxxisRuntimeAccessContext = accessLoad.context;
+    // Factual questions precede stale report/gap context and never arbitrate through Gemini.
+    const earlyPropertyFact=propertyContextId?detectPropertyFactLookup(message):null;
+    if(earlyPropertyFact?.fields.length&&!/\b(?:report|relat[oó]rio|pdf|exportar|reporte|informe)\b/i.test(message)){
+      const evidence=await executeMaxxisTool('getCanonicalPropertyEvidence',{propertyId:propertyContextId},req.headers.get('Authorization')||'',
+        {propertyId:propertyContextId,userId,plan:runtimeAccess.plan,language,cacheOnly:true,parcelEvidenceReceipt:body.parcelEvidenceReceipt});
+      if(evidence.type==='canonical_property_evidence'){
+        const fact= evidence.readModel?buildPropertyFactLookupAnswer(message,language,{propertyFacts:{canonicalPropertyFacts:evidence.readModel},publicParcelState:evidence.publicParcelState}):null;
+        const text=fact?.text||(language==='pt'?'O imóvel não está disponível neste contexto autorizado.':language==='es'?'La propiedad no está disponible en este contexto autorizado.':'The property is unavailable in this authorized context.');
+        return response({message:text,answer:text,type:'text',data:null,actions:[],language,runtime:{provider:'deterministic',toolName:'getCanonicalPropertyEvidence',secondPass:false}},200,origin,requestId);
+      }
+    }
     const requestedCapability = inferMaxxisRuntimeCapability({
       message,
       requestedCapability: body.requestedCapability,
@@ -1040,7 +1052,7 @@ Deno.serve(async (req) => {
           functionArgs,
           req.headers.get('Authorization') || '',
           { propertyId: propertyContextId, propertyIds: comparisonPropertyIds, userId, plan: effectiveProviderPlan,
-            language, cacheOnly: analysisRecomputeMode === 'GAP_UPDATE_CACHE_ONLY' || Boolean(propertyFactIntent) || Boolean(dealScenarioIntent) },
+            language, cacheOnly: analysisRecomputeMode === 'GAP_UPDATE_CACHE_ONLY' || Boolean(propertyFactIntent) || Boolean(dealScenarioIntent),parcelEvidenceReceipt:body.parcelEvidenceReceipt },
         );
       } catch (error) {
         if (toolName === 'getPropertyDetails' || toolName === 'getDealCopilotOverview') {
@@ -1061,6 +1073,13 @@ Deno.serve(async (req) => {
           logMaxxisEvent('maxxis_tool', { request_id: requestId, user_id: userId, model: usedModel, duration_ms: Date.now() - toolStartedAt, success: false, fallback_count: fallbackCount, tool: toolName, error_code: error instanceof Error ? error.message : 'MAXXIS_TOOL_FAILED' });
         }
         throw error;
+      }
+      if(result.type==='canonical_property_evidence'){
+        const text=result.readModel?formatConsensusFactAnswer(result.readModel.analyticalEvidence.fields,
+          ['lotArea','apn','owner','assessedValue','propertyTax','zoning','propertyType'],language,
+          result.readModel.analyticalEvidence.resolvedAnalysisPropertyType,result.publicParcelState==='AVAILABLE')
+          :(language==='pt'?'Imóvel indisponível neste contexto.':language==='es'?'Propiedad no disponible en este contexto.':'Property unavailable in this context.');
+        return response({message:text,answer:text,type:'text',data:null,actions:[],language,runtime:{provider:'deterministic',toolName:'getCanonicalPropertyEvidence',secondPass:false}},200,origin,requestId);
       }
       snapshotCreated = Boolean((result as { intelligenceSnapshot?: unknown })?.intelligenceSnapshot);
       failureStage = 'tool_payload_validation';

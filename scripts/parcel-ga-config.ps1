@@ -1,6 +1,6 @@
 param([Parameter(Mandatory=$true)][ValidateSet('Audit','Disable','Enable')][string]$Mode,
  [ValidatePattern('^[a-z0-9._%+-]+@[a-z0-9.-]+\.[a-z]{2,}$')][string]$OriginalAccountEmail,[switch]$CheckPublishedCode,
- [string]$ReceiptPath,[switch]$CheckConsensusIsolation)
+ [string]$ReceiptPath,[switch]$CheckConsensusIsolation,[string[]]$AuditFunctionSlugs=@())
 $ErrorActionPreference='Stop'
 if($CheckConsensusIsolation -and !$CheckPublishedCode){throw 'PUBLISHED_CODE_CHECK_REQUIRED'}
 # Operator-only, scoped to the existing project/flag. No tokens, identities,
@@ -54,17 +54,19 @@ if($Mode-ne 'Audit'){
  if(@($parcelGaAfter|Where-Object name -eq 'FEATURE_FLAGS_JSON')[0].value-ne $parcelGaDesiredDigest){throw 'EXACT_FLAG_WRITE_NOT_CONFIRMED'}
  $parcelGaCurrent=if($Mode-eq 'Enable'){'GENERAL_AUTHENTICATED_ON'}else{'OFF'}
 }
-$parcelGaFunctions=@(Invoke-ParcelGaApi '/functions'|Where-Object slug -in @('feature-flags','public-parcel')|Select-Object slug,version,status,updated_at,verify_jwt)
+$parcelGaFunctions=@(Invoke-ParcelGaApi '/functions'|Where-Object slug -in (@('feature-flags','public-parcel')+$AuditFunctionSlugs)|Select-Object slug,version,status,updated_at,verify_jwt)
 $parcelGaChangedSecretNames=@();if($parcelGaChanged){$parcelGaChangedSecretNames=@('FEATURE_FLAGS_JSON')}
 $parcelGaReceipt=[ordered]@{observedAt=(Get-Date).ToUniversalTime().ToString('o');mode=$Mode;effectiveConfiguration=$parcelGaCurrent;originalPreviewDigestVerified=$parcelGaOriginalMatches;configurationChanged=$parcelGaChanged;changedSecrets=$parcelGaChangedSecretNames;unchangedOtherSecretCount=$parcelGaBefore.Count-1;previewAllowlist=if($parcelGaCurrent-eq 'ORIGINAL_PREVIEW'){'PRESENT'}elseif($parcelGaCurrent-eq 'UNRECOGNIZED_PRIVATE_MERGE_REQUIRED'){'UNKNOWN'}else{'REMOVED'};globalGridGeneralAccess='OFF';productionUserSessionUsed=$false;functions=$parcelGaFunctions}
 if($CheckPublishedCode){
  $parcelGaSourceAudit=@()
- foreach($parcelGaSlug in @('feature-flags','public-parcel')){
+ foreach($parcelGaSlug in (@('feature-flags','public-parcel')+$AuditFunctionSlugs|Select-Object -Unique)){
   try{$parcelGaArchive=Invoke-WebRequest -Uri ($parcelGaBase+'/functions/'+$parcelGaSlug+'/body') -Headers $parcelGaHeaders -UseBasicParsing -TimeoutSec 30}catch{throw 'PUBLISHED_CODE_AUDIT_UNAVAILABLE_NO_PRIVATE_OUTPUT'}
   $parcelGaBytes=$parcelGaArchive.RawContentStream.ToArray();$parcelGaText=[System.Text.Encoding]::UTF8.GetString($parcelGaBytes)
   $parcelGaArchiveHash=[System.Security.Cryptography.SHA256]::Create();try{$parcelGaArchiveDigest=([BitConverter]::ToString($parcelGaArchiveHash.ComputeHash($parcelGaBytes))).Replace('-','').ToLowerInvariant()}finally{$parcelGaArchiveHash.Dispose()}
   $parcelGaMarkers=[ordered]@{globalAuthenticatedRule=$parcelGaText.Contains("if (flagName === 'public_parcel_intelligence') enabled = definition.enabled");independentGridAllowlist=$parcelGaText.Contains("if (flagName === 'public_parcel_qa_grid')")}
+  if($parcelGaSlug-eq 'maxxis-chat'){$parcelGaMarkers=[ordered]@{canonicalReadTool=$parcelGaText.Contains('getCanonicalPropertyEvidence');projection=$parcelGaText.Contains('buildConsensusAwareCanonicalReadModel');consensus=$parcelGaText.Contains('computeParcelEvidenceConsensus');signedReceipt=$parcelGaText.Contains('readParcelEvidenceReceipt');directFactRoute=$parcelGaText.Contains('earlyPropertyFact');analyticalConsumerIsolation=$parcelGaText.Contains('legacyConsumersMigrated');receiptDomain=$parcelGaText.Contains('dealsifter:parcel-evidence-v1:')}}
   if($parcelGaSlug-eq 'public-parcel'){$parcelGaMarkers.publicDisplaySourcePolicy=$parcelGaText.Contains("source.usagePermission === 'PUBLIC_DISPLAY_ALLOWED'");$parcelGaMarkers.viewportOperationGuard=$parcelGaText.Contains('parcelOperationAllowed(query.operation, flags)');$parcelGaMarkers.fixedLensQuery=$parcelGaText.Contains('query-lens');$parcelGaMarkers.privatePointGuard=$parcelGaText.Contains('INVALID_OPERATION_BOUNDS');$parcelGaMarkers.sharedUpstreamBudget=$parcelGaText.Contains('SOURCE_SHARED_RATE_LIMIT');$parcelGaMarkers.strategicSourceRegistry=$parcelGaText.Contains('us-ar-agiso-state-parcels')}
+  if($parcelGaSlug-eq 'public-parcel' -and $AuditFunctionSlugs -contains 'maxxis-chat'){$parcelGaMarkers.signedAcquiredEvidence=$parcelGaText.Contains('issueParcelEvidenceReceipt');$parcelGaMarkers.receiptDomain=$parcelGaText.Contains('dealsifter:parcel-evidence-v1:')}
   if($CheckConsensusIsolation -and $parcelGaSlug-eq 'public-parcel'){
     $parcelGaMarkers.sharedAreaPolicy=$parcelGaText.Contains('classifyAreaDifference')
     $parcelGaMarkers.consensusEngineNotBundled=!$parcelGaText.Contains('computeParcelEvidenceConsensus')

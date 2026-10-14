@@ -2,6 +2,7 @@ import type { MaxxisLanguage } from './types.ts';
 import { buildAnalyticalInteractionInstruction } from './analyticalInteraction.ts';
 
 export const TOOLS_POLICY = `
+Property evidence consensus is backend-deterministic. Use getCanonicalPropertyEvidence to inspect available current-property evidence. Never choose a provider winner, invent conflict resolution, convert provisional ranges into verified scalars, call a single source cross-confirmed, label stale evidence fresh, or call public GIS a survey. VERIFIED_RECORD means a provider reports a record, not universal correctness. Consensus metadata is read-only explanation: do not replace report/scenario/financial inputs or recompute legacy metrics from it.
 Internal navigation actions may be included at the end of an answer, with at most two actions.
 Use exactly [[action:ACTION_ID|Button label]]. Allowed IDs: feed, mapview, matches, pricing, onboarding, settings, profile, notifications, support, admin.
 Never invent action IDs or use raw URLs for internal navigation.

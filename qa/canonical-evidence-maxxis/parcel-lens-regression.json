@@ -1,0 +1,8 @@
+{
+  "fixtureOnly": true,
+  "data": {
+    "existingLensDiameter": 0.2,
+    "redesign": false,
+    "additionalGisCalls": 0
+  }
+}

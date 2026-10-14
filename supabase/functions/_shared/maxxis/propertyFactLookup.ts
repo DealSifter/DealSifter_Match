@@ -1,4 +1,5 @@
 import { canonicalFactValue } from './canonicalFactSemantics.ts';
+import { formatConsensusFactAnswer } from './consensusFactAnswer.ts';
 type Language = 'en' | 'pt' | 'es';
 type LookupIntent = Readonly<{ fields: readonly string[]; strategyGuidance: boolean }>;
 
@@ -9,13 +10,14 @@ const present = (value: unknown) => value !== null && value !== undefined && val
 const normalized = (value: unknown) => ` ${String(value || '').normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase().replace(/[^a-z0-9]+/g, ' ')} `;
 
 const FIELD_PATTERNS: ReadonlyArray<readonly [string, RegExp]> = Object.freeze([
+  ['propertyType', /\b(?:property type|tipo (?:de |do |del )?(?:imovel|inmueble|propriedade|propiedad))\b/],
   ['assessorId', /\b(?:apn|assessor id|parcel (?:id|number)|numero da parcela)\b/],
   ['county', /\b(?:county|condado)\b/],
   ['annualPropertyTax', /\b(?:property tax|annual tax|imposto predial|imposto anual|impuesto predial)\b/],
   ['assessedValue', /\b(?:assessment|assessed value|valor avaliado|valor fiscal|tasacion)\b/],
   ['lastSale', /\b(?:last sale|latest sale|ultima venda|ultima venta)\b/],
   ['yearBuilt', /\b(?:year built|ano de construcao|ano construccion)\b/],
-  ['lotSizeSqft', /\b(?:lot size|tamanho do lote|area do lote|tamano del lote)\b/],
+  ['lotSizeSqft', /\b(?:lot size|lot area|tamanho do lote|area do lote|tamano del lote|area del lote|quantos acres|how many acres|cuantos acres)\b/],
   ['livingAreaSqft', /\b(?:living area|area util|square footage|sqft interno)\b/],
   ['zoning', /\b(?:zoning|zoneamento|zonificacion)\b/],
   ['subdivision', /\b(?:subdivision|loteamento)\b/],
@@ -30,6 +32,9 @@ const FIELD_PATTERNS: ReadonlyArray<readonly [string, RegExp]> = Object.freeze([
 export function detectPropertyFactLookup(message: unknown): LookupIntent | null {
   const text = normalized(message);
   const fields = FIELD_PATTERNS.filter(([, pattern]) => pattern.test(text)).map(([field]) => field);
+  if(!fields.length&&/\b(?:evidence consensus|source conflict|conflito entre (?:as )?fontes|divergencia entre (?:as )?fontes|consenso (?:das )?evidencias|conflicto entre (?:las )?fuentes|outlier)\b/.test(text)){
+    fields.push('lotSizeSqft','assessorId','ownership','assessedValue','annualPropertyTax','zoning','propertyType');
+  }
   const strategyGuidance = /\b(?:3|tres|three)\b/.test(text)
     && /\b(?:pontos|points|dados|data|aspectos|items|itens|importantes|important)\b/.test(text)
     && /\b(?:seller financing|financiamento do vendedor|terreno|land|sub to|wholesale|flip|buy hold|buy and hold)\b/.test(text);
@@ -41,6 +46,7 @@ function canonicalFact(snapshot: Record<string, any>, field: string) {
   const locations: Record<string, [string, string]> = {
     assessorId: ['parcel', 'assessorId'], county: ['parcel', 'county'], annualPropertyTax: ['tax', 'annualPropertyTax'],
     assessedValue: ['tax', 'assessedValue'], yearBuilt: ['physical', 'yearBuilt'], lotSizeSqft: ['physical', 'lotSizeSqft'],
+    propertyType: ['physical','propertyType'],
     livingAreaSqft: ['physical', 'livingAreaSqft'], zoning: ['parcel', 'zoning'], subdivision: ['parcel', 'subdivision'],
     ownerOccupied: ['ownership', 'ownerOccupied'], hoaFee: ['physical', 'hoaFee'], userNotes: ['notes', 'userNotes'],
     providerEstimate: ['valuationReferences', 'providerEstimate'], recentSalesMarketEstimate: ['valuationReferences', 'recentSalesMarketEstimate'],
@@ -141,7 +147,10 @@ function guidance(snapshot: Record<string, any>, language: Language) {
 export function buildPropertyFactLookupAnswer(message: unknown, languageInput: unknown, snapshotInput: unknown) {
   const intent = detectPropertyFactLookup(message); if (!intent) return null;
   const language: Language = ['pt', 'es'].includes(String(languageInput)) ? languageInput as Language : 'en';
-  const snapshot = record(snapshotInput); const lines = intent.fields.map((field) => formatFact(field, canonicalFact(snapshot, field), language));
+  const snapshot = record(snapshotInput), canonical=record(record(snapshot.propertyFacts).canonicalPropertyFacts), projection=record(canonical.analyticalEvidence);
+  const projected=new Set(['lotSizeSqft','assessorId','ownership','assessedValue','annualPropertyTax','zoning','propertyType']);
+  const lines = intent.fields.filter(field=>!projection.fields||!projected.has(field)).map((field) => formatFact(field, canonicalFact(snapshot, field), language));
+  if(projection.fields)lines.unshift(formatConsensusFactAnswer(projection.fields,intent.fields,language,projection.resolvedAnalysisPropertyType,snapshot.publicParcelState==='AVAILABLE'));
   if (intent.strategyGuidance) lines.push(guidance(snapshot, language));
   return Object.freeze({ intent, text: lines.join('\n\n') });
 }

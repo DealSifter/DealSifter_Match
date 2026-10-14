@@ -1,5 +1,5 @@
 import { describe, expect, it, vi } from 'vitest';
-import { mkdirSync, writeFileSync, readFileSync, readdirSync } from 'node:fs';
+import { mkdirSync, writeFileSync, readFileSync, readdirSync, existsSync } from 'node:fs';
 import { join } from 'node:path';
 import { computeParcelEvidenceConsensus as compute } from './engine.ts';
 import { candidatesFromAuthorizedBundle, getPropertyEvidenceConsensus, publisherLotCandidate } from './adapters.ts';
@@ -22,8 +22,9 @@ const area = (value: number, family = 'PUBLISHER', options: Partial<CandidateInp
 const lot = (values: CandidateInput[]) => compute(values).fields.lotArea;
 const gable = [area(1.14), area(23854, 'RENTCAST', { unit: 'SQFT', evidenceStatus: 'VERIFIED_RECORD' })];
 const three = [...gable, area(1.23, 'COUNTY_GIS:fixture', { evidenceStatus: 'PUBLIC_RECORD' })];
+const artifactRoot = existsSync('supabase/functions/_shared/maxxis/canonicalEvidenceProjection.ts') ? 'qa/canonical-evidence-maxxis/consensus-regression' : 'qa/parcel-evidence-consensus';
 const artifact = (name: string, value: unknown) => {
-  const path = 'qa/parcel-evidence-consensus'; mkdirSync(path, { recursive: true });
+  const path = artifactRoot; mkdirSync(path, { recursive: true });
   writeFileSync(`${path}/${name}.json`, JSON.stringify({ fixtureOnly: true, ...value as object }, null, 2) + '\n');
 };
 
@@ -239,7 +240,7 @@ describe('deterministic field evidence consensus', () => {
       const level = specialization(source, field, false, false);
       return `${field},${source},${ranks[level]},${level}_DOMAIN_METADATA_NOT_WINNER_PRIORITY`;
     }));
-    writeFileSync('qa/parcel-evidence-consensus/field-authority-matrix.csv', ['domain,sourceType,specializationRank,notes', ...matrix].join('\n') + '\n');
+    writeFileSync(`${artifactRoot}/field-authority-matrix.csv`, ['domain,sourceType,specializationRank,notes', ...matrix].join('\n') + '\n');
   });
 });
 
@@ -267,12 +268,14 @@ describe('read-only adapters and production isolation', () => {
     expect(() => getPropertyEvidenceConsensus({ publicParcels: [{ ...selected, source: { ...source, usagePermission: 'INTERNAL_ANALYTICS_ONLY' } }] })).toThrow('INELIGIBLE');
     expect(() => getPropertyEvidenceConsensus({ publicParcels: [{ ...selected, countyFips: '37063' }] })).toThrow('INELIGIBLE');
   });
-  it('no runtime imports by canonical/Maxxis/reports/financials/frontend or public endpoint', () => {
+  it('only the explicitly migrated Maxxis read-only consumers import consensus; reports/financials remain isolated', () => {
     const walk = (root: string): string[] => readdirSync(root, { withFileTypes: true }).flatMap(item => item.isDirectory() ? walk(join(root, item.name)) : [join(root, item.name)]);
     const consumers = [...walk('src'), ...walk('supabase/functions')].filter(path => /\.(ts|tsx|js|jsx)$/.test(path)
       && !/parcel-evidence-consensus|\.(test|spec)\./.test(path));
     const hits = consumers.filter(path => /(?:from\s*|import\s*\()['"][^'"]*parcel-evidence-consensus/.test(readFileSync(path, 'utf8')));
-    expect(hits).toEqual([]);
-    for (const name of ['canonical', 'maxxis', 'report']) artifact(`${name}-isolation-validation`, { runtimeImportCount: hits.length, inspectedRuntimeFiles: consumers.length, propertyWrites: 0, consumption: 0, noNewEndpoint: true });
+    const approved=['canonicalEvidenceProjection.ts','canonicalEvidenceTool.ts','consensusFactAnswer.ts'];
+    expect(hits.every(path=>approved.some(name=>path.endsWith(name)))).toBe(true);
+    expect(hits).toHaveLength(3);
+    artifact('phase3-consumer-validation', { runtimeImportCount: hits.length, approvedConsumers: hits, inspectedRuntimeFiles: consumers.length, propertyWrites: 0, reportConsumption: 0, financialConsumption: 0, noNewEndpoint: true });
   });
 });

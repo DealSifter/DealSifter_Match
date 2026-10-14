@@ -1,0 +1,197 @@
+{
+  "fixtureOnly": true,
+  "correlated": {
+    "field": "lotArea",
+    "status": "SINGLE_SOURCE",
+    "candidates": [
+      {
+        "field": "lotArea",
+        "originalValue": 1,
+        "sourceType": "PUBLIC_PARCEL_GIS",
+        "sourceId": "gis",
+        "sourceFamily": "GIS",
+        "sourceAuthority": "GIS",
+        "evidenceStatus": "USER_PROVIDED",
+        "retrievedAt": "2026-10-14T00:00:00Z",
+        "unit": "ACRES",
+        "declaredSourceFamily": "GIS",
+        "candidateId": "evidence-1",
+        "normalizedValue": 43560,
+        "normalizedUnit": "SQFT",
+        "normalizedAcres": 1,
+        "specialization": "SPECIALIZED",
+        "comparable": true,
+        "exclusionReason": null
+      },
+      {
+        "field": "lotArea",
+        "originalValue": 1.01,
+        "sourceType": "PUBLIC_PARCEL_GIS",
+        "sourceId": "gis",
+        "sourceFamily": "GIS",
+        "sourceAuthority": "GIS",
+        "evidenceStatus": "USER_PROVIDED",
+        "retrievedAt": "2026-10-14T00:00:00Z",
+        "unit": "ACRES",
+        "declaredSourceFamily": "GIS",
+        "candidateId": "evidence-2",
+        "normalizedValue": 43995.6,
+        "normalizedUnit": "SQFT",
+        "normalizedAcres": 1.01,
+        "specialization": "SPECIALIZED",
+        "comparable": true,
+        "exclusionReason": null
+      }
+    ],
+    "independentSourceFamilies": [
+      "GIS"
+    ],
+    "agreementCluster": [],
+    "outliers": [],
+    "supportingSources": [],
+    "conflictingSources": [],
+    "internalSourceStates": [
+      {
+        "sourceFamily": "GIS",
+        "status": "CONSISTENT"
+      }
+    ],
+    "provisionalResolvedValue": null,
+    "provisionalResolvedAcres": null,
+    "normalizedUnit": "SQFT",
+    "resolutionBasis": null,
+    "reasonCode": "ONE_INDEPENDENT_SOURCE",
+    "materialConflict": false,
+    "unresolvedReason": "ONE_INDEPENDENT_SOURCE"
+  },
+  "internalConflict": {
+    "field": "lotArea",
+    "status": "MATERIAL_CONFLICT",
+    "candidates": [
+      {
+        "field": "lotArea",
+        "originalValue": 0.55,
+        "sourceType": "PUBLIC_PARCEL_GIS",
+        "sourceId": "gis",
+        "sourceFamily": "GIS",
+        "sourceAuthority": "GIS",
+        "evidenceStatus": "USER_PROVIDED",
+        "retrievedAt": "2026-10-14T00:00:00Z",
+        "unit": "ACRES",
+        "declaredSourceFamily": "GIS",
+        "candidateId": "evidence-1",
+        "normalizedValue": 23958.000000000004,
+        "normalizedUnit": "SQFT",
+        "normalizedAcres": 0.55,
+        "specialization": "SPECIALIZED",
+        "comparable": true,
+        "exclusionReason": null
+      },
+      {
+        "field": "lotArea",
+        "originalValue": 1,
+        "sourceType": "PUBLIC_PARCEL_GIS",
+        "sourceId": "gis",
+        "sourceFamily": "GIS",
+        "sourceAuthority": "GIS",
+        "evidenceStatus": "USER_PROVIDED",
+        "retrievedAt": "2026-10-14T00:00:00Z",
+        "unit": "ACRES",
+        "declaredSourceFamily": "GIS",
+        "candidateId": "evidence-2",
+        "normalizedValue": 43560,
+        "normalizedUnit": "SQFT",
+        "normalizedAcres": 1,
+        "specialization": "SPECIALIZED",
+        "comparable": true,
+        "exclusionReason": null
+      }
+    ],
+    "independentSourceFamilies": [
+      "GIS"
+    ],
+    "agreementCluster": [],
+    "outliers": [],
+    "supportingSources": [],
+    "conflictingSources": [
+      "GIS"
+    ],
+    "internalSourceStates": [
+      {
+        "sourceFamily": "GIS",
+        "status": "MATERIAL_CONFLICT"
+      }
+    ],
+    "provisionalResolvedValue": null,
+    "provisionalResolvedAcres": null,
+    "normalizedUnit": "SQFT",
+    "resolutionBasis": null,
+    "reasonCode": "SOURCE_INTERNAL_CONFLICT",
+    "materialConflict": true,
+    "unresolvedReason": "SOURCE_INTERNAL_CONFLICT"
+  },
+  "duplicated": {
+    "field": "lotArea",
+    "status": "SINGLE_SOURCE",
+    "candidates": [
+      {
+        "field": "lotArea",
+        "originalValue": 1,
+        "sourceType": "USER_PROVIDED",
+        "sourceId": "publisher",
+        "sourceFamily": "PUBLISHER",
+        "sourceAuthority": "PUBLISHER",
+        "evidenceStatus": "USER_PROVIDED",
+        "retrievedAt": "2026-10-14T00:00:00Z",
+        "unit": "ACRES",
+        "declaredSourceFamily": "PUBLISHER",
+        "candidateId": "evidence-1",
+        "normalizedValue": 43560,
+        "normalizedUnit": "SQFT",
+        "normalizedAcres": 1,
+        "specialization": "CONTEXTUAL",
+        "comparable": true,
+        "exclusionReason": null
+      },
+      {
+        "field": "lotArea",
+        "originalValue": 1,
+        "sourceType": "USER_PROVIDED",
+        "sourceId": "publisher",
+        "sourceFamily": "PUBLISHER",
+        "sourceAuthority": "PUBLISHER",
+        "evidenceStatus": "USER_PROVIDED",
+        "retrievedAt": "2026-10-14T00:00:00Z",
+        "unit": "ACRES",
+        "declaredSourceFamily": "PUBLISHER",
+        "candidateId": "evidence-2",
+        "normalizedValue": 43560,
+        "normalizedUnit": "SQFT",
+        "normalizedAcres": 1,
+        "specialization": "CONTEXTUAL",
+        "comparable": true,
+        "exclusionReason": null
+      }
+    ],
+    "independentSourceFamilies": [
+      "PUBLISHER"
+    ],
+    "agreementCluster": [],
+    "outliers": [],
+    "supportingSources": [],
+    "conflictingSources": [],
+    "internalSourceStates": [
+      {
+        "sourceFamily": "PUBLISHER",
+        "status": "CONSISTENT"
+      }
+    ],
+    "provisionalResolvedValue": null,
+    "provisionalResolvedAcres": null,
+    "normalizedUnit": "SQFT",
+    "resolutionBasis": null,
+    "reasonCode": "ONE_INDEPENDENT_SOURCE",
+    "materialConflict": false,
+    "unresolvedReason": "ONE_INDEPENDENT_SOURCE"
+  }
+}

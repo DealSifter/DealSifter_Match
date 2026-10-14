@@ -33,6 +33,7 @@ import ParcelBoundaryToggle from '../components/map/ParcelBoundaryToggle';
 import { restoreParcelPreference, parcelPreferenceEnabled } from '../features/parcel/parcelPreference';
 import { trackParcelEvent } from '../features/parcel/parcelTelemetry';
 import { ParcelLensController } from '../features/parcel/parcelLensController';
+import { rememberParcelEvidenceReceipt } from '../features/parcel/parcelEvidenceReceipt';
 import { parcelContextForPin } from '../features/parcel/parcelLensAccess';
 import { PIN_SELECTION_ZOOM, parcelSelectionZoom } from '../features/parcel/mapSelectionCamera';
 import { MapSelectionCamera } from '../components/map/MapSelectionCamera';
@@ -846,7 +847,10 @@ export function MapView({
   const [parcelPreference, setParcelPreference] = useState(() => restoreParcelPreference(initialMapUiState, currentUserId));
   const parcelLayerEnabled = parcelPreferenceEnabled(parcelPreference, currentUserId, parcelFeatureEnabled === true && parcelQaGridEnabled === true);
   const [parcelLensState, setParcelLensState] = useState({ context: null, parcel: null, lens: null, page: 'property' });
-  const parcelLensController = useMemo(() => new ParcelLensController(queryPublicParcels, state => setParcelLensState({ ...state, owner: String(currentUserId) })), [currentUserId]);
+  const parcelLensController = useMemo(() => new ParcelLensController(queryPublicParcels, state => {
+    if (state.result?.evidenceReceipt && state.context?.itemId) rememberParcelEvidenceReceipt(currentUserId, state.context.itemId, state.result.evidenceReceipt);
+    setParcelLensState({ ...state, owner: String(currentUserId) });
+  }), [currentUserId]);
   const parcelLensCurrent = parcelLensState.owner === String(currentUserId);
   const propertyMarkerRefs = React.useRef(new Map());
   const [cameraRequest, setCameraRequest] = useState(null);

@@ -1,0 +1,461 @@
+{
+  "baselineSha": "14377d3247be0a57dcb42238b9ef9a85cce58fff",
+  "baseline": {
+    "exitCode": 1,
+    "diagnostics": [
+      {
+        "code": "TS2345",
+        "path": "supabase/functions/_shared/maxxis/dealCopilotContext.ts",
+        "sourceLine": "return getDealCopilotOverviewForAuthenticatedUser(propertyId, authHeader, client, user.id);",
+        "message": "Argument of type 'SupabaseClient<any, \"public\", \"public\", any, any>' is not assignable to parameter of type 'SupabaseClient<unknown, { PostgrestVersion: string; }, never, never, { PostgrestVersion: string; }>'."
+      },
+      {
+        "code": "TS2339",
+        "path": "supabase/functions/_shared/maxxis/dealWorkflow.ts",
+        "sourceLine": "if (propertyIdFromMetadata(message.metadata) !== propertyId) continue;",
+        "message": "Property 'metadata' does not exist on type 'never'."
+      },
+      {
+        "code": "TS2339",
+        "path": "supabase/functions/_shared/maxxis/dealWorkflow.ts",
+        "sourceLine": "const senderId = cleanUuid(message.sender_id);",
+        "message": "Property 'sender_id' does not exist on type 'never'."
+      },
+      {
+        "code": "TS2339",
+        "path": "supabase/functions/_shared/maxxis/dealWorkflow.ts",
+        "sourceLine": "const recipientId = cleanUuid(message.recipient_id);",
+        "message": "Property 'recipient_id' does not exist on type 'never'."
+      },
+      {
+        "code": "TS2345",
+        "path": "supabase/functions/_shared/maxxis/getPropertyDetails.ts",
+        "sourceLine": "const details = await getPropertyDetailsWithClient(validated, client);",
+        "message": "Argument of type 'SupabaseClient<unknown, { PostgrestVersion: string; }, never, never, { PostgrestVersion: string; }>' is not assignable to parameter of type 'SupabaseLikeClient'."
+      },
+      {
+        "code": "TS2322",
+        "path": "supabase/functions/_shared/maxxis/getPropertyDetails.ts",
+        "sourceLine": "pendingActions: operational?.pendingActions || [],",
+        "message": "Type '{ actionType: unknown; serviceId: string | null; propertyId: string; status: unknown; }[]' is not assignable to type '{ actionType?: string | null | undefined; serviceId?: string | null | undefined; propertyId?: string | null | undefined; status?: string | null | undefined; }[]'."
+      },
+      {
+        "code": "TS2322",
+        "path": "supabase/functions/_shared/maxxis/getPropertyDetails.ts",
+        "sourceLine": "pendingActions: operational.pendingActions,",
+        "message": "Type '{ actionType: unknown; serviceId: string | null; propertyId: string; status: unknown; }[]' is not assignable to type '{ actionType?: string | null | undefined; serviceId?: string | null | undefined; propertyId?: string | null | undefined; status?: string | null | undefined; }[]'."
+      },
+      {
+        "code": "TS2345",
+        "path": "supabase/functions/_shared/maxxis/getPropertyDetails.ts",
+        "sourceLine": "return getPropertyDetailsForAuthenticatedUser(input, authHeader, client, user.id);",
+        "message": "Argument of type 'SupabaseClient<any, \"public\", \"public\", any, any>' is not assignable to parameter of type 'SupabaseClient<unknown, { PostgrestVersion: string; }, never, never, { PostgrestVersion: string; }>'."
+      },
+      {
+        "code": "TS2339",
+        "path": "supabase/functions/_shared/maxxis/getUserPropertyBehavior.ts",
+        "sourceLine": "const propertyIds = Array.from(new Set(rows.map((row) => String(row.entity_id || '').trim()).filter((id) => UUID_PATTERN.test(id))));",
+        "message": "Property 'entity_id' does not exist on type 'never'."
+      },
+      {
+        "code": "TS2345",
+        "path": "supabase/functions/_shared/maxxis/getUserPropertyBehavior.ts",
+        "sourceLine": ".rpc('ds_search_public_properties', {",
+        "message": "Argument of type '{ p_property_ids: string[]; p_limit: number; }' is not assignable to parameter of type 'undefined'."
+      },
+      {
+        "code": "TS2339",
+        "path": "supabase/functions/_shared/maxxis/getUserPropertyBehavior.ts",
+        "sourceLine": "const propertiesById = new Map((Array.isArray(propertyRows) ? propertyRows : []).map((property) => [String(property.id), property]));",
+        "message": "Property 'id' does not exist on type 'never'."
+      },
+      {
+        "code": "TS2339",
+        "path": "supabase/functions/_shared/maxxis/getUserPropertyBehavior.ts",
+        "sourceLine": "const entityId = String(row.entity_id || '').trim();",
+        "message": "Property 'entity_id' does not exist on type 'never'."
+      },
+      {
+        "code": "TS2339",
+        "path": "supabase/functions/_shared/maxxis/getUserPropertyBehavior.ts",
+        "sourceLine": "updatedAt: String(row.updated_at || ''),",
+        "message": "Property 'updated_at' does not exist on type 'never'."
+      },
+      {
+        "code": "TS2339",
+        "path": "supabase/functions/_shared/maxxis/getUserPropertyBehavior.ts",
+        "sourceLine": "city: property.city,",
+        "message": "Property 'city' does not exist on type 'never'."
+      },
+      {
+        "code": "TS2339",
+        "path": "supabase/functions/_shared/maxxis/getUserPropertyBehavior.ts",
+        "sourceLine": "state: property.state,",
+        "message": "Property 'state' does not exist on type 'never'."
+      },
+      {
+        "code": "TS2339",
+        "path": "supabase/functions/_shared/maxxis/getUserPropertyBehavior.ts",
+        "sourceLine": "price: property.price,",
+        "message": "Property 'price' does not exist on type 'never'."
+      },
+      {
+        "code": "TS2339",
+        "path": "supabase/functions/_shared/maxxis/getUserPropertyBehavior.ts",
+        "sourceLine": "type: property.type,",
+        "message": "Property 'type' does not exist on type 'never'."
+      },
+      {
+        "code": "TS2339",
+        "path": "supabase/functions/_shared/maxxis/getUserPropertyBehavior.ts",
+        "sourceLine": "objective: property.objective,",
+        "message": "Property 'objective' does not exist on type 'never'."
+      },
+      {
+        "code": "TS2345",
+        "path": "supabase/functions/_shared/maxxis/getUserPropertyBehavior.ts",
+        "sourceLine": "return getUserPropertyBehaviorWithClient(user.id, client);",
+        "message": "Argument of type 'SupabaseClient<any, \"public\", \"public\", any, any>' is not assignable to parameter of type 'SupabaseClient<unknown, { PostgrestVersion: string; }, never, never, { PostgrestVersion: string; }>'."
+      },
+      {
+        "code": "TS2345",
+        "path": "supabase/functions/_shared/maxxis/searchMatchedProperties.ts",
+        "sourceLine": "? getUserPropertyBehaviorWithClient(authenticated.userId, authenticated.client)",
+        "message": "Argument of type 'InvestmentProfileClient' is not assignable to parameter of type 'SupabaseClient<unknown, { PostgrestVersion: string; }, never, never, { PostgrestVersion: string; }>'."
+      },
+      {
+        "code": "TS2345",
+        "path": "supabase/functions/_shared/maxxis/searchServices.ts",
+        "sourceLine": "const { data, error } = await client.rpc('ds_get_provider_contact_access', { p_service_ids: serviceIds });",
+        "message": "Argument of type '{ p_service_ids: string[]; }' is not assignable to parameter of type 'undefined'."
+      },
+      {
+        "code": "TS2769",
+        "path": "supabase/functions/_shared/maxxis/searchServices.ts",
+        "sourceLine": "return new Map((Array.isArray(data) ? data : []).map((row) => [",
+        "message": "No overload matches this call."
+      },
+      {
+        "code": "TS2339",
+        "path": "supabase/functions/_shared/maxxis/searchServices.ts",
+        "sourceLine": "String(row.service_id || row.serviceId || ''),",
+        "message": "Property 'service_id' does not exist on type 'never'."
+      },
+      {
+        "code": "TS2339",
+        "path": "supabase/functions/_shared/maxxis/searchServices.ts",
+        "sourceLine": "String(row.service_id || row.serviceId || ''),",
+        "message": "Property 'serviceId' does not exist on type 'never'."
+      },
+      {
+        "code": "TS7006",
+        "path": "supabase/functions/_shared/maxxis/searchServices.ts",
+        "sourceLine": "markets: Array.isArray(row.markets) ? row.markets.map((market) => cleanText(market, 120)).filter(Boolean).slice(0, 12) : [],",
+        "message": "Parameter 'market' implicitly has an 'any' type."
+      },
+      {
+        "code": "TS2345",
+        "path": "supabase/functions/_shared/maxxis/searchServices.ts",
+        "sourceLine": "const accessByServiceId = await getProviderContactAccess(client, serviceIds);",
+        "message": "Argument of type 'SupabaseClient<any, \"public\", \"public\", any, any>' is not assignable to parameter of type 'SupabaseClient<unknown, { PostgrestVersion: string; }, never, never, { PostgrestVersion: string; }>'."
+      },
+      {
+        "code": "TS2589",
+        "path": "supabase/functions/_shared/maxxis/toolRegistry.ts",
+        "sourceLine": "const result = await searchMatchedProperties(args, authHeader, authenticatedContext() || undefined);",
+        "message": "Type instantiation is excessively deep and possibly infinite."
+      },
+      {
+        "code": "TS2783",
+        "path": "supabase/functions/_shared/maxxis/toolRegistry.ts",
+        "sourceLine": "return { type: 'properties' as const, filters: result.filters, items: result.properties, ...result };",
+        "message": "'filters' is specified more than once, so this usage will be overwritten."
+      },
+      {
+        "code": "TS2785",
+        "path": "supabase/functions/_shared/maxxis/toolRegistry.ts",
+        "sourceLine": "return { type: 'properties' as const, filters: result.filters, items: result.properties, ...result };",
+        "message": "    This spread always overwrites this property."
+      },
+      {
+        "code": "TS2345",
+        "path": "supabase/functions/_shared/maxxis/toolRegistry.ts",
+        "sourceLine": "? await getPropertyDetailsForAuthenticatedUser(input, authHeader, authenticated.client, authenticated.userId)",
+        "message": "Argument of type 'SupabaseClient<any, \"public\", \"public\", any, any>' is not assignable to parameter of type 'SupabaseClient<unknown, { PostgrestVersion: string; }, never, never, { PostgrestVersion: string; }>'."
+      },
+      {
+        "code": "TS2345",
+        "path": "supabase/functions/_shared/maxxis/toolRegistry.ts",
+        "sourceLine": "? await getDealCopilotOverviewForAuthenticatedUser(input.propertyId, authHeader, authenticated.client, authenticated.userId)",
+        "message": "Argument of type 'SupabaseClient<any, \"public\", \"public\", any, any>' is not assignable to parameter of type 'SupabaseClient<unknown, { PostgrestVersion: string; }, never, never, { PostgrestVersion: string; }>'."
+      },
+      {
+        "code": "TS2345",
+        "path": "supabase/functions/_shared/maxxis/toolRegistry.ts",
+        "sourceLine": "(propertyId) => getPropertyDetailsForAuthenticatedUser({ propertyId }, authHeader, authenticated.client, authenticated.userId),",
+        "message": "Argument of type 'SupabaseClient<any, \"public\", \"public\", any, any>' is not assignable to parameter of type 'SupabaseClient<unknown, { PostgrestVersion: string; }, never, never, { PostgrestVersion: string; }>'."
+      },
+      {
+        "code": "TS2322",
+        "path": "supabase/functions/maxxis-chat/index.ts",
+        "sourceLine": "return response({ message: text, answer: text, type: 'context_snapshot', data: { surface: structuredContext.surface, entity: structuredContext.entity, view: structuredContext.view, profile: structuredContext.profile || null, economy: structuredContext.economy, operational: structuredContext.operational, freshness: structuredContext.freshness }, actions: [], language }, 200, origin, requestId);",
+        "message": "Type '\"context_snapshot\"' is not assignable to type '\"text\" | \"properties\" | \"services\" | \"investment_profile\" | \"property_details\" | \"property_evidence\" | \"deal_insight\" | \"property_comparison\" | \"deal_copilot_overview\" | \"market_reference\"'."
+      },
+      {
+        "code": "TS2322",
+        "path": "supabase/functions/maxxis-chat/index.ts",
+        "sourceLine": "return response({ message: text, answer: text, type: 'context_snapshot', data: { surface: structuredContext.surface, entity: structuredContext.entity, view: structuredContext.view, profile: structuredContext.profile || null, economy: structuredContext.economy, operational: structuredContext.operational, freshness: structuredContext.freshness }, actions: [], language }, 200, origin, requestId);",
+        "message": "Type '{ surface: { name: string; route: string; subview: string; }; entity: { id?: string | undefined; type: string; }; view: any; profile: { status: string; profileStrength: number; investorRoles: string[]; ... 6 more ...; capitalReady: string; } | null; economy: { ...; }; operational: { ...; }; freshness: { ...; }; }' is not assignable to type 'PropertyComparisonResult | MaxxisDealCopilotOverview | { properties: MaxxisPropertyResult[]; personalized?: boolean | undefined; profileAvailable?: boolean | undefined; profileSuggestions?: ProfileDriftSuggestion[] | undefined; } | ... 7 more ... | null'."
+      },
+      {
+        "code": "TS2339",
+        "path": "supabase/functions/maxxis-chat/index.ts",
+        "sourceLine": "const propertyCount = Array.isArray(functionCall.args?.propertyIds) ? Math.min(functionCall.args.propertyIds.length, 3) : 0;",
+        "message": "Property 'propertyIds' does not exist on type '{}'."
+      },
+      {
+        "code": "TS2339",
+        "path": "supabase/functions/maxxis-chat/index.ts",
+        "sourceLine": "const propertyCount = Array.isArray(functionCall.args?.propertyIds) ? Math.min(functionCall.args.propertyIds.length, 3) : 0;",
+        "message": "Property 'propertyIds' does not exist on type '{}'."
+      },
+      {
+        "code": "TS2322",
+        "path": "supabase/functions/maxxis-chat/index.ts",
+        "sourceLine": "return response({ message: text, answer: text, type: 'text', data: {",
+        "message": "Type '{ propertyId: string; focusedIntent: string; }' is not assignable to type 'PropertyComparisonResult | MaxxisDealCopilotOverview | { properties: MaxxisPropertyResult[]; personalized?: boolean | undefined; profileAvailable?: boolean | undefined; profileSuggestions?: ProfileDriftSuggestion[] | undefined; } | ... 7 more ... | null'."
+      }
+    ]
+  },
+  "current": {
+    "exitCode": 1,
+    "diagnostics": [
+      {
+        "code": "TS2345",
+        "path": "supabase/functions/_shared/maxxis/dealCopilotContext.ts",
+        "sourceLine": "return getDealCopilotOverviewForAuthenticatedUser(propertyId, authHeader, client, user.id);",
+        "message": "Argument of type 'SupabaseClient<any, \"public\", \"public\", any, any>' is not assignable to parameter of type 'SupabaseClient<unknown, { PostgrestVersion: string; }, never, never, { PostgrestVersion: string; }>'."
+      },
+      {
+        "code": "TS2339",
+        "path": "supabase/functions/_shared/maxxis/dealWorkflow.ts",
+        "sourceLine": "if (propertyIdFromMetadata(message.metadata) !== propertyId) continue;",
+        "message": "Property 'metadata' does not exist on type 'never'."
+      },
+      {
+        "code": "TS2339",
+        "path": "supabase/functions/_shared/maxxis/dealWorkflow.ts",
+        "sourceLine": "const senderId = cleanUuid(message.sender_id);",
+        "message": "Property 'sender_id' does not exist on type 'never'."
+      },
+      {
+        "code": "TS2339",
+        "path": "supabase/functions/_shared/maxxis/dealWorkflow.ts",
+        "sourceLine": "const recipientId = cleanUuid(message.recipient_id);",
+        "message": "Property 'recipient_id' does not exist on type 'never'."
+      },
+      {
+        "code": "TS2345",
+        "path": "supabase/functions/_shared/maxxis/getPropertyDetails.ts",
+        "sourceLine": "const details = await getPropertyDetailsWithClient(validated, client);",
+        "message": "Argument of type 'SupabaseClient<unknown, { PostgrestVersion: string; }, never, never, { PostgrestVersion: string; }>' is not assignable to parameter of type 'SupabaseLikeClient'."
+      },
+      {
+        "code": "TS2322",
+        "path": "supabase/functions/_shared/maxxis/getPropertyDetails.ts",
+        "sourceLine": "pendingActions: operational?.pendingActions || [],",
+        "message": "Type '{ actionType: unknown; serviceId: string | null; propertyId: string; status: unknown; }[]' is not assignable to type '{ actionType?: string | null | undefined; serviceId?: string | null | undefined; propertyId?: string | null | undefined; status?: string | null | undefined; }[]'."
+      },
+      {
+        "code": "TS2322",
+        "path": "supabase/functions/_shared/maxxis/getPropertyDetails.ts",
+        "sourceLine": "pendingActions: operational.pendingActions,",
+        "message": "Type '{ actionType: unknown; serviceId: string | null; propertyId: string; status: unknown; }[]' is not assignable to type '{ actionType?: string | null | undefined; serviceId?: string | null | undefined; propertyId?: string | null | undefined; status?: string | null | undefined; }[]'."
+      },
+      {
+        "code": "TS2345",
+        "path": "supabase/functions/_shared/maxxis/getPropertyDetails.ts",
+        "sourceLine": "return getPropertyDetailsForAuthenticatedUser(input, authHeader, client, user.id);",
+        "message": "Argument of type 'SupabaseClient<any, \"public\", \"public\", any, any>' is not assignable to parameter of type 'SupabaseClient<unknown, { PostgrestVersion: string; }, never, never, { PostgrestVersion: string; }>'."
+      },
+      {
+        "code": "TS2339",
+        "path": "supabase/functions/_shared/maxxis/getUserPropertyBehavior.ts",
+        "sourceLine": "const propertyIds = Array.from(new Set(rows.map((row) => String(row.entity_id || '').trim()).filter((id) => UUID_PATTERN.test(id))));",
+        "message": "Property 'entity_id' does not exist on type 'never'."
+      },
+      {
+        "code": "TS2345",
+        "path": "supabase/functions/_shared/maxxis/getUserPropertyBehavior.ts",
+        "sourceLine": ".rpc('ds_search_public_properties', {",
+        "message": "Argument of type '{ p_property_ids: string[]; p_limit: number; }' is not assignable to parameter of type 'undefined'."
+      },
+      {
+        "code": "TS2339",
+        "path": "supabase/functions/_shared/maxxis/getUserPropertyBehavior.ts",
+        "sourceLine": "const propertiesById = new Map((Array.isArray(propertyRows) ? propertyRows : []).map((property) => [String(property.id), property]));",
+        "message": "Property 'id' does not exist on type 'never'."
+      },
+      {
+        "code": "TS2339",
+        "path": "supabase/functions/_shared/maxxis/getUserPropertyBehavior.ts",
+        "sourceLine": "const entityId = String(row.entity_id || '').trim();",
+        "message": "Property 'entity_id' does not exist on type 'never'."
+      },
+      {
+        "code": "TS2339",
+        "path": "supabase/functions/_shared/maxxis/getUserPropertyBehavior.ts",
+        "sourceLine": "updatedAt: String(row.updated_at || ''),",
+        "message": "Property 'updated_at' does not exist on type 'never'."
+      },
+      {
+        "code": "TS2339",
+        "path": "supabase/functions/_shared/maxxis/getUserPropertyBehavior.ts",
+        "sourceLine": "city: property.city,",
+        "message": "Property 'city' does not exist on type 'never'."
+      },
+      {
+        "code": "TS2339",
+        "path": "supabase/functions/_shared/maxxis/getUserPropertyBehavior.ts",
+        "sourceLine": "state: property.state,",
+        "message": "Property 'state' does not exist on type 'never'."
+      },
+      {
+        "code": "TS2339",
+        "path": "supabase/functions/_shared/maxxis/getUserPropertyBehavior.ts",
+        "sourceLine": "price: property.price,",
+        "message": "Property 'price' does not exist on type 'never'."
+      },
+      {
+        "code": "TS2339",
+        "path": "supabase/functions/_shared/maxxis/getUserPropertyBehavior.ts",
+        "sourceLine": "type: property.type,",
+        "message": "Property 'type' does not exist on type 'never'."
+      },
+      {
+        "code": "TS2339",
+        "path": "supabase/functions/_shared/maxxis/getUserPropertyBehavior.ts",
+        "sourceLine": "objective: property.objective,",
+        "message": "Property 'objective' does not exist on type 'never'."
+      },
+      {
+        "code": "TS2345",
+        "path": "supabase/functions/_shared/maxxis/getUserPropertyBehavior.ts",
+        "sourceLine": "return getUserPropertyBehaviorWithClient(user.id, client);",
+        "message": "Argument of type 'SupabaseClient<any, \"public\", \"public\", any, any>' is not assignable to parameter of type 'SupabaseClient<unknown, { PostgrestVersion: string; }, never, never, { PostgrestVersion: string; }>'."
+      },
+      {
+        "code": "TS2345",
+        "path": "supabase/functions/_shared/maxxis/searchMatchedProperties.ts",
+        "sourceLine": "? getUserPropertyBehaviorWithClient(authenticated.userId, authenticated.client)",
+        "message": "Argument of type 'InvestmentProfileClient' is not assignable to parameter of type 'SupabaseClient<unknown, { PostgrestVersion: string; }, never, never, { PostgrestVersion: string; }>'."
+      },
+      {
+        "code": "TS2345",
+        "path": "supabase/functions/_shared/maxxis/searchServices.ts",
+        "sourceLine": "const { data, error } = await client.rpc('ds_get_provider_contact_access', { p_service_ids: serviceIds });",
+        "message": "Argument of type '{ p_service_ids: string[]; }' is not assignable to parameter of type 'undefined'."
+      },
+      {
+        "code": "TS2769",
+        "path": "supabase/functions/_shared/maxxis/searchServices.ts",
+        "sourceLine": "return new Map((Array.isArray(data) ? data : []).map((row) => [",
+        "message": "No overload matches this call."
+      },
+      {
+        "code": "TS2339",
+        "path": "supabase/functions/_shared/maxxis/searchServices.ts",
+        "sourceLine": "String(row.service_id || row.serviceId || ''),",
+        "message": "Property 'service_id' does not exist on type 'never'."
+      },
+      {
+        "code": "TS2339",
+        "path": "supabase/functions/_shared/maxxis/searchServices.ts",
+        "sourceLine": "String(row.service_id || row.serviceId || ''),",
+        "message": "Property 'serviceId' does not exist on type 'never'."
+      },
+      {
+        "code": "TS7006",
+        "path": "supabase/functions/_shared/maxxis/searchServices.ts",
+        "sourceLine": "markets: Array.isArray(row.markets) ? row.markets.map((market) => cleanText(market, 120)).filter(Boolean).slice(0, 12) : [],",
+        "message": "Parameter 'market' implicitly has an 'any' type."
+      },
+      {
+        "code": "TS2345",
+        "path": "supabase/functions/_shared/maxxis/searchServices.ts",
+        "sourceLine": "const accessByServiceId = await getProviderContactAccess(client, serviceIds);",
+        "message": "Argument of type 'SupabaseClient<any, \"public\", \"public\", any, any>' is not assignable to parameter of type 'SupabaseClient<unknown, { PostgrestVersion: string; }, never, never, { PostgrestVersion: string; }>'."
+      },
+      {
+        "code": "TS2589",
+        "path": "supabase/functions/_shared/maxxis/toolRegistry.ts",
+        "sourceLine": "const result = await searchMatchedProperties(args, authHeader, authenticatedContext() || undefined);",
+        "message": "Type instantiation is excessively deep and possibly infinite."
+      },
+      {
+        "code": "TS2783",
+        "path": "supabase/functions/_shared/maxxis/toolRegistry.ts",
+        "sourceLine": "return { type: 'properties' as const, filters: result.filters, items: result.properties, ...result };",
+        "message": "'filters' is specified more than once, so this usage will be overwritten."
+      },
+      {
+        "code": "TS2785",
+        "path": "supabase/functions/_shared/maxxis/toolRegistry.ts",
+        "sourceLine": "return { type: 'properties' as const, filters: result.filters, items: result.properties, ...result };",
+        "message": "    This spread always overwrites this property."
+      },
+      {
+        "code": "TS2345",
+        "path": "supabase/functions/_shared/maxxis/toolRegistry.ts",
+        "sourceLine": "? await getPropertyDetailsForAuthenticatedUser(input, authHeader, authenticated.client, authenticated.userId)",
+        "message": "Argument of type 'SupabaseClient<any, \"public\", \"public\", any, any>' is not assignable to parameter of type 'SupabaseClient<unknown, { PostgrestVersion: string; }, never, never, { PostgrestVersion: string; }>'."
+      },
+      {
+        "code": "TS2345",
+        "path": "supabase/functions/_shared/maxxis/toolRegistry.ts",
+        "sourceLine": "? await getDealCopilotOverviewForAuthenticatedUser(input.propertyId, authHeader, authenticated.client, authenticated.userId)",
+        "message": "Argument of type 'SupabaseClient<any, \"public\", \"public\", any, any>' is not assignable to parameter of type 'SupabaseClient<unknown, { PostgrestVersion: string; }, never, never, { PostgrestVersion: string; }>'."
+      },
+      {
+        "code": "TS2345",
+        "path": "supabase/functions/_shared/maxxis/toolRegistry.ts",
+        "sourceLine": "(propertyId) => getPropertyDetailsForAuthenticatedUser({ propertyId }, authHeader, authenticated.client, authenticated.userId),",
+        "message": "Argument of type 'SupabaseClient<any, \"public\", \"public\", any, any>' is not assignable to parameter of type 'SupabaseClient<unknown, { PostgrestVersion: string; }, never, never, { PostgrestVersion: string; }>'."
+      },
+      {
+        "code": "TS2322",
+        "path": "supabase/functions/maxxis-chat/index.ts",
+        "sourceLine": "return response({ message: text, answer: text, type: 'context_snapshot', data: { surface: structuredContext.surface, entity: structuredContext.entity, view: structuredContext.view, profile: structuredContext.profile || null, economy: structuredContext.economy, operational: structuredContext.operational, freshness: structuredContext.freshness }, actions: [], language }, 200, origin, requestId);",
+        "message": "Type '\"context_snapshot\"' is not assignable to type '\"properties\" | \"services\" | \"investment_profile\" | \"property_details\" | \"deal_insight\" | \"deal_copilot_overview\" | \"property_comparison\" | \"property_evidence\" | \"market_reference\" | \"text\"'."
+      },
+      {
+        "code": "TS2322",
+        "path": "supabase/functions/maxxis-chat/index.ts",
+        "sourceLine": "return response({ message: text, answer: text, type: 'context_snapshot', data: { surface: structuredContext.surface, entity: structuredContext.entity, view: structuredContext.view, profile: structuredContext.profile || null, economy: structuredContext.economy, operational: structuredContext.operational, freshness: structuredContext.freshness }, actions: [], language }, 200, origin, requestId);",
+        "message": "Type '{ surface: { name: string; route: string; subview: string; }; entity: { id?: string | undefined; type: string; }; view: any; profile: { status: string; profileStrength: number; investorRoles: string[]; ... 6 more ...; capitalReady: string; } | null; economy: { ...; }; operational: { ...; }; freshness: { ...; }; }' is not assignable to type 'PropertyComparisonResult | { propertyId: string; intelligenceSnapshot: Values; reference: any; landMetrics: Readonly<{ pricePerLotSqft: number | null; ... 13 more ...; sqftStatus: string; }> | null; stateVersion: string; providerCalls: number; } | ... 8 more ... | null'."
+      },
+      {
+        "code": "TS2339",
+        "path": "supabase/functions/maxxis-chat/index.ts",
+        "sourceLine": "const propertyCount = Array.isArray(functionCall.args?.propertyIds) ? Math.min(functionCall.args.propertyIds.length, 3) : 0;",
+        "message": "Property 'propertyIds' does not exist on type '{}'."
+      },
+      {
+        "code": "TS2339",
+        "path": "supabase/functions/maxxis-chat/index.ts",
+        "sourceLine": "const propertyCount = Array.isArray(functionCall.args?.propertyIds) ? Math.min(functionCall.args.propertyIds.length, 3) : 0;",
+        "message": "Property 'propertyIds' does not exist on type '{}'."
+      },
+      {
+        "code": "TS2322",
+        "path": "supabase/functions/maxxis-chat/index.ts",
+        "sourceLine": "return response({ message: text, answer: text, type: 'text', data: {",
+        "message": "Type '{ propertyId: string; focusedIntent: string; }' is not assignable to type 'PropertyComparisonResult | { propertyId: string; intelligenceSnapshot: Values; reference: any; landMetrics: Readonly<{ pricePerLotSqft: number | null; ... 13 more ...; sqftStatus: string; }> | null; stateVersion: string; providerCalls: number; } | ... 8 more ... | null'."
+      }
+    ]
+  },
+  "newErrors": 0,
+  "introduced": [],
+  "pass": true,
+  "note": "Broad legacy check is not clean; this receipt tests zero NEW Deno errors without suppressing them."
+}

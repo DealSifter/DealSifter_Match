@@ -1,5 +1,6 @@
 import { getLang } from '../i18n/translations';
 import { getSafeLang } from './chatTranslation';
+import { cachedParcelEvidenceReceipt } from '../features/parcel/parcelEvidenceReceipt';
 import {
   getSupabaseFunctionUrl,
   isSupabaseConfigured,
@@ -179,11 +180,14 @@ export async function sendMaxxisMessage({ message, history = [], page = 'dashboa
   let ok = false;
   let requestId = '';
   try {
+    const receiptSession = await supabase.auth.getSession();
+    const parcelEvidenceReceipt = cachedParcelEvidenceReceipt(receiptSession?.data?.session?.user?.id, trustedPropertyId);
     const result = await invokeMaxxisChatFunction({
       message: text,
       history: normalizeHistory(history),
       page,
       language,
+      ...(parcelEvidenceReceipt ? { parcelEvidenceReceipt } : {}),
       controlledIntent: String(controlledIntent || resolveControlledIntent(text)).trim(),
       ...(analysisRecomputeMode === 'GAP_UPDATE_CACHE_ONLY' ? { analysisRecomputeMode } : {}),
       ...(cleanPropertyAnalysisContext ? {

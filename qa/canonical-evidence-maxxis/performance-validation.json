@@ -1,0 +1,9 @@
+{
+  "fixtureOnly": true,
+  "data": {
+    "iterations": 100,
+    "totalMilliseconds": 304.90683900000295,
+    "providerCalls": 0,
+    "geminiCalls": 0
+  }
+}

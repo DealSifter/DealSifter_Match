@@ -1,0 +1,22 @@
+{
+  "fullTests": {
+    "pass": true,
+    "total": 2022,
+    "passed": 2022,
+    "files": 220
+  },
+  "targetedTests": {
+    "total": 385,
+    "pass": true
+  },
+  "deno": {
+    "scopedNewModules": "PASS",
+    "legacyTestsPassed": 4,
+    "broadLegacyBaselineClean": false,
+    "newErrors": 0,
+    "differential": "PASS"
+  },
+  "lint": "PASS",
+  "frontendContracts": "PASS",
+  "authenticatedProductionSmoke": "BLOCKED_NO_REAL_USER_SESSION"
+}

@@ -1,0 +1,10 @@
+{
+  "pass": true,
+  "mode": "PURE_MEMORY_AND_SOURCE_TRANSPORT_CONTRACT",
+  "actorIsolation": true,
+  "subjectIsolation": true,
+  "signOutClears": true,
+  "boundedEntries": 8,
+  "persistentWrites": 0,
+  "networkCalls": 0
+}

@@ -1,0 +1,26 @@
+{
+  "runtimeConsumers": [
+    "supabase/functions/maxxis-chat/index.ts",
+    "supabase/functions/public-parcel/index.ts",
+    "supabase/functions/_shared/maxxis/canonicalEvidenceTool.ts",
+    "supabase/functions/_shared/maxxis/consensusFactAnswer.ts",
+    "supabase/functions/_shared/maxxis/propertyFactLookup.ts",
+    "supabase/functions/_shared/maxxis/toolRegistry.ts"
+  ],
+  "deploy": [
+    "maxxis-chat",
+    "public-parcel",
+    "frontend"
+  ],
+  "unchangedFeatureFlags": true,
+  "sourceExpansion": false,
+  "migration": "NONE",
+  "frozenConsumerSourceHashes": {
+    "dealMetrics.ts": "a0ddead4389f4ba62a2032084cdf375b8f03990dc1dd2c19858869a95f296753",
+    "scenarioEngine.ts": "49f0cd614c017f5eea5a67afe9b894a5fa7273dd7bcbdec435f7d5e431829c93",
+    "landMetrics.ts": "9a5780e09df2775b6aa5c09615568af5d64e02a142e3c5e35e31d8abea6c000d",
+    "landDevelopmentScenario.ts": "cba2e514c37dc0fa9c785fb86a2a8484bb69c1835ae00785f8268df832dfa6c0",
+    "getDealInsightContext.ts": "df191ecdbdf1bde9a38123e537609c11beff10611f7317a30e2205caaf8b1df7",
+    "property-data/recentSalesMarketEstimate.ts": "64aa712d2183c0af0bdc7da96f395449f89ef6af6a8a52ded4a18001e03b9d4f"
+  }
+}

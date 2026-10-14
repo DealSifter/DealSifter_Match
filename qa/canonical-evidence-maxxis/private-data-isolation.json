@@ -1,0 +1,8 @@
+{
+  "fixtureOnly": true,
+  "data": {
+    "currentContextMismatchBlocked": true,
+    "tenantAndHiddenCoordinatesProtected": true,
+    "rawProfileLeak": 0
+  }
+}

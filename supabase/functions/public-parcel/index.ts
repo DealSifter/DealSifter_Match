@@ -8,6 +8,7 @@ import { ArcGISParcelAdapter } from '../_shared/public-parcel/arcgis.ts';
 import type { ProviderResult } from '../_shared/public-parcel/types.ts';
 import { parcelOperationAllowed } from '../_shared/public-parcel/lens.ts';
 import { createParcelUpstreamFetch } from '../_shared/public-parcel/upstreamBudget.ts';
+import { issueParcelEvidenceReceipt } from '../_shared/public-parcel/evidenceReceipt.ts';
 
 const url = Deno.env.get('SUPABASE_URL') || '';
 const anon = Deno.env.get('SUPABASE_ANON_KEY') || Deno.env.get('ANON_KEY') || '';
@@ -69,7 +70,10 @@ Deno.serve(async req => {
         const data = await response.json(); return response.ok && data.status === 'success' ? { lat: Number(data.lat), lng: Number(data.lng) } : null;
       },
     });
-    return reply(await resolver.resolve({ ...query, signal: req.signal }), 200, origin);
+    const result=await resolver.resolve({ ...query, signal: req.signal });
+    const evidenceReceipt=query.operation==='query-point'&&query.point
+      ?await issueParcelEvidenceReceipt(result,query.point,user.id,serviceKey):null;
+    return reply({...result,...(evidenceReceipt?{evidenceReceipt}:{})}, 200, origin);
   } catch (error) {
     const code = error instanceof Error ? error.message : 'QUERY_FAILED';
     return reply({ error: /^(INVALID|UNKNOWN|POINT_REQUIRED|BOUNDS_REQUIRED)/.test(code) ? code : 'PARCEL_QUERY_UNAVAILABLE' }, /^(INVALID|UNKNOWN|POINT_REQUIRED|BOUNDS_REQUIRED)/.test(code) ? 400 : 503, origin);

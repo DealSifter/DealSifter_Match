@@ -1,0 +1,14 @@
+{
+  "fixtureOnly": true,
+  "runtimeImportCount": 3,
+  "approvedConsumers": [
+    "supabase\\functions\\_shared\\maxxis\\canonicalEvidenceProjection.ts",
+    "supabase\\functions\\_shared\\maxxis\\canonicalEvidenceTool.ts",
+    "supabase\\functions\\_shared\\maxxis\\consensusFactAnswer.ts"
+  ],
+  "inspectedRuntimeFiles": 452,
+  "propertyWrites": 0,
+  "reportConsumption": 0,
+  "financialConsumption": 0,
+  "noNewEndpoint": true
+}

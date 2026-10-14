@@ -9,9 +9,17 @@ import { getDealCopilotOverview, getDealCopilotOverviewForAuthenticatedUser } fr
 import { getPropertyEvidenceForAuthenticatedUser } from './getPropertyEvidence.ts';
 import { getDealInsightContextForAuthenticatedUser } from './getDealInsightContext.ts';
 import { supabaseAnonKey, supabaseUrl } from './config.ts';
+import { supabaseServiceRoleKey } from './config.ts';
+import { getCanonicalPropertyEvidenceWithDependencies } from './canonicalEvidenceTool.ts';
+import { resolveFeatureFlags } from '../featureFlags.ts';
 
 export const MAXXIS_TOOLS = [{
   functionDeclarations: [
+    {
+      name:'getCanonicalPropertyEvidence',
+      description:'Read authorized current-property evidence consensus from already available publisher/provider cache/public parcel evidence. Read-only, no provider acquisition, no financial/report changes. Copy the trusted propertyId exactly; qualify single-source/stale/provisional evidence and preserve conflicts. Public GIS is not a survey.',
+      parameters:{type:'OBJECT',properties:{propertyId:{type:'STRING'}},required:['propertyId']},
+    },
     {
       name: 'searchProperties',
       description: 'Search real active DealSifter properties when the user asks about available platform inventory. Never use this for general education or app usage questions.',
@@ -92,7 +100,7 @@ export const MAXXIS_TOOLS = [{
   ],
 }];
 
-export async function executeMaxxisTool(name: string, args: unknown, authHeader: string, context: { propertyId?: string; propertyIds?: string[]; userId?: string; plan?: string; language?: string; cacheOnly?: boolean } = {}) {
+export async function executeMaxxisTool(name: string, args: unknown, authHeader: string, context: { propertyId?: string; propertyIds?: string[]; userId?: string; plan?: string; language?: string; cacheOnly?: boolean; parcelEvidenceReceipt?:unknown } = {}) {
   const authenticatedContext = () => {
     const userId = String(context.userId || '').trim();
     if (!userId) return null;
@@ -101,6 +109,26 @@ export async function executeMaxxisTool(name: string, args: unknown, authHeader:
       client: createClient(supabaseUrl, supabaseAnonKey, { global: { headers: { Authorization: authHeader } } }),
     };
   };
+  if(name==='getCanonicalPropertyEvidence'){
+    const authenticated=authenticatedContext();if(!authenticated)throw new Error('UNAUTHORIZED');
+    let remoteConfig={};try{remoteConfig=JSON.parse(Deno.env.get('FEATURE_FLAGS_JSON')||'{}');}catch{/* OFF by default */}
+    const flags=resolveFeatureFlags({userId:authenticated.userId,environment:supabaseUrl.includes('cyeipfskwwisbbayyaca')?'production':supabaseUrl.includes('oqdcnjupquhybwdbeeew')?'staging':'development',remoteConfig});
+    return getCanonicalPropertyEvidenceWithDependencies({input:args,propertyId:context.propertyId||'',userId:authenticated.userId,
+      receipt:context.parcelEvidenceReceipt,secret:supabaseServiceRoleKey,parcelEnabled:flags.public_parcel_intelligence,
+      loadPublicProperty:async propertyId=>{
+        const reader=authenticated.client as unknown as {rpc(name:string,args:{p_property_id:string}):{maybeSingle():Promise<{data:unknown;error:unknown}>}};
+        const {data,error}=await reader.rpc('ds_get_public_property_details',{p_property_id:propertyId}).maybeSingle();
+        if(error)throw new Error('PROPERTY_DETAILS_FAILED');return data&&typeof data==='object'&&!Array.isArray(data)?data as Record<string,unknown>:null;
+      },
+      loadUserFacts:async(propertyId,userId)=>{
+        const reader=authenticated.client as unknown as {from(name:string):any};
+        const {data,error}=await reader.from('property_arv_review_contexts').select('deal_assumptions').eq('subject_property_id',propertyId).eq('reviewer_user_id',userId).maybeSingle();
+        if(error||!data?.deal_assumptions)return null;
+        const inputs=data.deal_assumptions;return {...(inputs.activeScenario?.propertyId===propertyId?inputs.activeScenario.assumptions||{}:{}),...inputs};
+      },
+      loadCachedProvider:propertyId=>getPropertyEvidenceForAuthenticatedUser({propertyId},authHeader,authenticated.userId,context.propertyId,false,
+        {plan:context.plan==='ENTERPRISE'?'ENTERPRISE':context.plan==='PRO'?'PRO':'FREE',bucket:'chat'})});
+  }
   if (name === 'searchProperties') {
     const result = await searchMatchedProperties(args, authHeader, authenticatedContext() || undefined);
     return { type: 'properties' as const, filters: result.filters, items: result.properties, ...result };
@@ -113,7 +141,7 @@ export async function executeMaxxisTool(name: string, args: unknown, authHeader:
   if (name === 'getMyInvestmentProfile') {
     const authenticated = authenticatedContext();
     const result = authenticated
-      ? await getMyInvestmentProfileWithClient(authenticated.userId, authenticated.client)
+      ? await getMyInvestmentProfileWithClient(authenticated.userId, authenticated.client as unknown as Parameters<typeof getMyInvestmentProfileWithClient>[1])
       : await getMyInvestmentProfile(authHeader);
     return { type: 'investment_profile' as const, ...result };
   }
@@ -135,7 +163,7 @@ export async function executeMaxxisTool(name: string, args: unknown, authHeader:
     if (!authenticated) throw new Error('UNAUTHORIZED');
     const providerPlan = context.plan === 'ENTERPRISE' ? 'ENTERPRISE' : context.plan === 'PRO' ? 'PRO' : 'FREE';
     return getDealInsightContextForAuthenticatedUser(
-      args, authHeader, authenticated.client, authenticated.userId, context.propertyId, providerPlan, context.language,
+      args, authHeader, authenticated.client as unknown as Parameters<typeof getDealInsightContextForAuthenticatedUser>[2], authenticated.userId, context.propertyId, providerPlan, context.language,
       Boolean(context.cacheOnly),
     );
   }
