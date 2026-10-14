@@ -58,3 +58,18 @@ Windows fork-start timeouts; incomplete attempts are explicitly retained and rej
 in `validation-attempts.json`. Desktop and phone real-Leaflet/mocked-auth/GIS controls
 both PASS, including unlocked magnifier, Z15/Z16/Z17, unchanged popup dimensions,
 repeat activation, panning, basemap switches and lens-state persistence.
+
+Production code commit: `aad2a78cf6d08ee62ea9604cdeacf05298243c47`, pushed.
+Frontend deployment `dpl_DWcGKtBHboMDqVKBHvYve4z3xJtL`: READY; exact source SHA and
+`dealsiftermatch.vercel.app` alias verified. `public-parcel` v8 ACTIVE/JWT true;
+`feature-flags` v19 unchanged (including its published archive hash). All 38 other
+secret digests/configuration preserved. Authenticated GA remains ON, global grid OFF.
+Published source audit verifies shared area policy and absence of the consensus engine
+in the runtime bundle; no new consumer or endpoint is silently activated.
+Anonymous production smoke PASS: HTML/deep link 200/no-store, current hashed assets
+200/immutable, obsolete assets 404/no-store, seven security headers, CORS, anonymous
+parcel 401, browser errors zero, startup GIS zero. Real-user authenticated production
+acceptance was not performed (no user session); local UI/auth/GIS evidence is explicitly
+mocked and must not be represented as a live multi-user production test.
+Only frontend/shared geometry policy and public-parcel were published. Engine/adapters
+remain versioned, tested, read-only and unconsumed for the next phase.
