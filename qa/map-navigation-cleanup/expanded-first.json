@@ -1,0 +1,84 @@
+{
+  "mode": "REAL_REACT_LEAFLET_UNMOUNT_MOCK_AUTH",
+  "productionAuthentication": false,
+  "results": [
+    {
+      "device": "desktop",
+      "state": "idle",
+      "passed": true,
+      "diagnostics": [],
+      "errors": []
+    },
+    {
+      "device": "desktop",
+      "state": "selected-pin",
+      "passed": true,
+      "diagnostics": [],
+      "errors": []
+    },
+    {
+      "device": "desktop",
+      "state": "in-flight-pin",
+      "passed": true,
+      "diagnostics": [],
+      "errors": []
+    },
+    {
+      "device": "desktop",
+      "state": "fractional-zoom",
+      "passed": true,
+      "diagnostics": [],
+      "errors": [
+        "Cannot read properties of undefined (reading '_leaflet_pos')"
+      ]
+    },
+    {
+      "device": "desktop",
+      "state": "active-lens",
+      "passed": true,
+      "diagnostics": [],
+      "errors": [
+        "Cannot read properties of undefined (reading '_leaflet_pos')"
+      ]
+    },
+    {
+      "device": "phone",
+      "state": "idle",
+      "passed": true,
+      "diagnostics": [],
+      "errors": []
+    },
+    {
+      "device": "phone",
+      "state": "selected-pin",
+      "passed": true,
+      "diagnostics": [],
+      "errors": []
+    },
+    {
+      "device": "phone",
+      "state": "in-flight-pin",
+      "passed": true,
+      "diagnostics": [],
+      "errors": []
+    },
+    {
+      "device": "phone",
+      "state": "fractional-zoom",
+      "passed": true,
+      "diagnostics": [],
+      "errors": [
+        "Cannot read properties of undefined (reading '_leaflet_pos')"
+      ]
+    },
+    {
+      "device": "phone",
+      "state": "active-lens",
+      "passed": true,
+      "diagnostics": [],
+      "errors": [
+        "Cannot read properties of undefined (reading '_leaflet_pos')"
+      ]
+    }
+  ]
+}

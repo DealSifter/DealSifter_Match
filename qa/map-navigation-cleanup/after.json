@@ -31,6 +31,20 @@
       "errors": []
     },
     {
+      "device": "desktop",
+      "state": "active-lens",
+      "passed": true,
+      "diagnostics": [],
+      "errors": []
+    },
+    {
+      "device": "desktop",
+      "state": "native-zoom",
+      "passed": true,
+      "diagnostics": [],
+      "errors": []
+    },
+    {
       "device": "phone",
       "state": "idle",
       "passed": true,
@@ -54,6 +68,20 @@
     {
       "device": "phone",
       "state": "fractional-zoom",
+      "passed": true,
+      "diagnostics": [],
+      "errors": []
+    },
+    {
+      "device": "phone",
+      "state": "active-lens",
+      "passed": true,
+      "diagnostics": [],
+      "errors": []
+    },
+    {
+      "device": "phone",
+      "state": "native-zoom",
       "passed": true,
       "diagnostics": [],
       "errors": []

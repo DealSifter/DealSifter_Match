@@ -54,6 +54,7 @@ receipt.pass=htmlResponse.status===200&&deepLink.status===200&&mainResponse.stat
 if(canonical)receipt.pass=receipt.pass&&deniedMaxxis.status===401&&canonicalHandoff.receiptStatus===200&&canonicalHandoff.assistantStatus===200&&canonicalHandoff.assistantTransportPresent&&canonicalHandoff.boundedReceiptGuard&&canonicalHandoff.immutableCache;
 if(cleanup){
  receipt.compiledMapUnloadGuard=map.includes('.removed')&&map.includes('.disposed')&&map.includes('.on("unload"')&&map.includes('.off("unload"');
- receipt.pass=receipt.pass&&receipt.compiledMapUnloadGuard;
+ receipt.compiledNativeZoomGuard=map.includes('._animatingZoom=!1');
+ receipt.pass=receipt.pass&&receipt.compiledMapUnloadGuard&&receipt.compiledNativeZoomGuard;
 }
 await writeFile(`${directory}/production-smoke.json`,JSON.stringify(receipt,null,2)+'\n');console.log(JSON.stringify(receipt));if(!receipt.pass)throw new Error('PRODUCTION_SMOKE_FAILED');

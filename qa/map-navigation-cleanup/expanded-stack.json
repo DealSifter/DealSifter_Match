@@ -1,0 +1,81 @@
+{
+  "mode": "REAL_REACT_LEAFLET_UNMOUNT_MOCK_AUTH",
+  "productionAuthentication": false,
+  "results": [
+    {
+      "device": "desktop",
+      "state": "idle",
+      "passed": true,
+      "diagnostics": [],
+      "errors": []
+    },
+    {
+      "device": "desktop",
+      "state": "selected-pin",
+      "passed": true,
+      "diagnostics": [],
+      "errors": []
+    },
+    {
+      "device": "desktop",
+      "state": "in-flight-pin",
+      "passed": true,
+      "diagnostics": [],
+      "errors": []
+    },
+    {
+      "device": "desktop",
+      "state": "fractional-zoom",
+      "passed": true,
+      "diagnostics": [],
+      "errors": []
+    },
+    {
+      "device": "desktop",
+      "state": "active-lens",
+      "passed": true,
+      "diagnostics": [],
+      "errors": []
+    },
+    {
+      "device": "phone",
+      "state": "idle",
+      "passed": true,
+      "diagnostics": [],
+      "errors": []
+    },
+    {
+      "device": "phone",
+      "state": "selected-pin",
+      "passed": true,
+      "diagnostics": [],
+      "errors": []
+    },
+    {
+      "device": "phone",
+      "state": "in-flight-pin",
+      "passed": true,
+      "diagnostics": [],
+      "errors": []
+    },
+    {
+      "device": "phone",
+      "state": "fractional-zoom",
+      "passed": true,
+      "diagnostics": [],
+      "errors": []
+    },
+    {
+      "device": "phone",
+      "state": "active-lens",
+      "passed": true,
+      "diagnostics": [],
+      "errors": [
+        {
+          "message": "Cannot read properties of undefined (reading '_leaflet_pos')",
+          "stack": "TypeError: Cannot read properties of undefined (reading '_leaflet_pos')\n    at getPosition (http://127.0.0.1:4180/node_modules/.vite/deps/chunk-GDS25LWY.js?v=0b8d27bc:1570:19)\n    at NewClass._getMapPanePos (http://127.0.0.1:4180/node_modules/.vite/deps/chunk-GDS25LWY.js?v=0b8d27bc:2989:18)\n    at NewClass._getNewPixelOrigin (http://127.0.0.1:4180/node_modules/.vite/deps/chunk-GDS25LWY.js?v=0b8d27bc:3001:76)\n    at NewClass._move (http://127.0.0.1:4180/node_modules/.vite/deps/chunk-GDS25LWY.js?v=0b8d27bc:2806:36)\n    at NewClass._onZoomTransitionEnd (http://127.0.0.1:4180/node_modules/.vite/deps/chunk-GDS25LWY.js?v=0b8d27bc:3152:16)"
+        }
+      ]
+    }
+  ]
+}

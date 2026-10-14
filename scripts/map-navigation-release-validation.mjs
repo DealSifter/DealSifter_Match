@@ -10,7 +10,7 @@ const {stdout:baseline}=await run('git',['rev-parse','HEAD'],{cwd:workspace});
 const archive=resolve(workspace,'.cache/map-navigation-release.tar');
 await run('git',['archive','--format=tar',`--output=${archive}`,'HEAD','src','public','supabase/functions/_shared','index.html','vite.config.js','package.json','scripts/check-build-env.mjs','tsconfig.contracts.json'],{cwd:workspace});
 await run('tar',['-xf',archive,'-C',stage],{cwd:workspace});
-const delta=['src/features/parcel/mapSelectionCamera.js','src/features/parcel/mapSelectionCamera.test.js','src/components/map/MapSelectionCamera.jsx'];
+const delta=['src/features/parcel/mapSelectionCamera.js','src/features/parcel/mapSelectionCamera.test.js','src/components/map/MapSelectionCamera.jsx','src/features/parcel/mapLifetime.js','src/features/parcel/mapLifetime.test.js','src/pages/MapView.jsx'];
 for(const file of delta)await copyFile(resolve(workspace,file),resolve(stage,file));
 const env={...process.env,...loadEnv('production',workspace,'VITE_'),VITE_APP_RELEASE:'local'};
 const startedAt=new Date().toISOString();

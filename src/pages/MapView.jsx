@@ -37,6 +37,7 @@ import { rememberParcelEvidenceReceipt } from '../features/parcel/parcelEvidence
 import { parcelContextForPin } from '../features/parcel/parcelLensAccess';
 import { PIN_SELECTION_ZOOM, parcelSelectionZoom } from '../features/parcel/mapSelectionCamera';
 import { MapSelectionCamera } from '../components/map/MapSelectionCamera';
+import { guardMapLifetime } from '../features/parcel/mapLifetime';
 import { queryPublicParcels } from '../services/publicParcelService';
 import { MapZoomLevel } from '../components/map/MapZoomLevel';
 import { lazyWithRetry } from '../lib/lazyWithRetry';
@@ -483,13 +484,19 @@ function MapEvents({ onViewportChange }) {
 
 function MapVisibilityController({ active }) {
   const map = useMap();
+  // Passive cleanup deliberately follows MapContainer.remove(), so the
+  // unload observer survives until the native teardown has completed.
+  React.useEffect(() => guardMapLifetime(map), [map]);
 
   React.useEffect(() => {
     if (!active) {
       try { map.stop(); } catch { /* noop */ }
       return undefined;
     }
+    let disposed = false;
+    let frame = null;
     const invalidate = () => {
+      if (disposed) return;
       try { map.invalidateSize({ animate: false, pan: false }); } catch { /* noop */ }
     };
     const timers = [0, 80, 240, 520].map((delay) => window.setTimeout(invalidate, delay));
@@ -497,10 +504,13 @@ function MapVisibilityController({ active }) {
     const observer = typeof ResizeObserver === 'undefined' || !container
       ? null
       : new ResizeObserver(() => {
-        window.requestAnimationFrame(invalidate);
+        if (frame !== null || disposed) return;
+        frame = window.requestAnimationFrame(() => { frame = null; invalidate(); });
       });
     observer?.observe(container);
     return () => {
+      disposed = true;
+      if (frame !== null) window.cancelAnimationFrame(frame);
       observer?.disconnect();
       timers.forEach((timer) => window.clearTimeout(timer));
     };

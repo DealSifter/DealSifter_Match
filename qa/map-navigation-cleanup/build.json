@@ -1,12 +1,15 @@
 {
   "pass": true,
-  "startedAt": "2026-10-14T22:12:23.061Z",
-  "finishedAt": "2026-10-14T22:19:58.698Z",
-  "baseline": "362108e9ce02b340749ac621cdf4ceeb93dd0a42",
+  "startedAt": "2026-10-14T22:33:05.554Z",
+  "finishedAt": "2026-10-14T22:38:21.665Z",
+  "baseline": "f300f5d97bb32b2f77e1fb0d3882e81cb8afa7da",
   "delta": [
     "src/features/parcel/mapSelectionCamera.js",
     "src/features/parcel/mapSelectionCamera.test.js",
-    "src/components/map/MapSelectionCamera.jsx"
+    "src/components/map/MapSelectionCamera.jsx",
+    "src/features/parcel/mapLifetime.js",
+    "src/features/parcel/mapLifetime.test.js",
+    "src/pages/MapView.jsx"
   ],
   "mode": "ISOLATED_BASELINE_PLUS_MAP_FIX_ONLY",
   "modernAndLegacy": true,
