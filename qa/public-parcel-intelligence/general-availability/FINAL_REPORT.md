@@ -1,0 +1,88 @@
+IMPLEMENTATION: PARTIAL
+BASELINE: e521f02192f367e0b9c74efcb6f7b687739f9973
+PRODUCTION BASELINE: 092a5684a8719b2c75a961131ae111b14f72653b
+GENERAL AVAILABILITY: PASS
+PREVIEW ACCOUNT ALLOWLIST: REMOVED
+AUTHENTICATED USERS ELIGIBLE: PASS
+FREE: PASS
+PRO: PASS
+ENTERPRISE: PASS
+NUGGET COST: 0
+PROPERTY UNLOCK REQUIRED: NO
+PRIVATE PROPERTY DATA EXPOSED: 0
+GLOBAL GRID USER-FACING: 0
+QA GLOBAL GRID: PRESERVED
+CONTEXTUAL MAGNIFIER: PASS
+NO-COVERAGE USER ERROR: 0
+KILL SWITCH: PASS
+PUBLIC-DISPLAY SOURCE GATE: PASS
+INTERNAL-ONLY SOURCE LEAK: 0
+AUTHENTICATED MULTI-USER PRODUCTION SMOKE: BLOCKED
+ACTIVE SOURCES BEFORE: 5 (internal preview)
+ACTIVE SOURCES AFTER: 6 public; 7 registered ACTIVE (Vermont internal-only excluded)
+ACTIVE STATES BEFORE: 5
+ACTIVE STATES AFTER: 6 public
+ACTIVE COUNTIES BEFORE: 9
+ACTIVE COUNTIES AFTER: 83 (source/data presence; includes partial counties)
+NATIONAL COUNTY COVERAGE: 2.64% (83/3144; not complete parcel coverage)
+POPULATION COVERAGE: NOT_MEASURED
+HOUSING UNIT COVERAGE: NOT_MEASURED
+STRATEGIC P0 COVERAGE:
+FL: 0/67 — 0%
+TX: 0/254 — 0%
+OH: 0/88 — 0%
+PA: 0/67 — 0%
+AR: 75/75 — 100% county data presence; all marked partial
+CA: 0/58 — 0%
+GA: 1/159 — 0.63%; Johns Creek subset of Fulton
+MI: 0/83 — 0%
+STATEWIDE SOURCES ACTIVATED: Arkansas GIS Office CAMP polygon layer 6
+DATASET INGESTION SOURCES IDENTIFIED: Florida DOR/FGIO, Ohio OGRIP, Texas TxGIO, LA assessor, PASDA; design only, no import/migration
+COUNTY-FEDERATED SOURCES ADDED: 1 — Johns Creek/Fulton subset
+SUBJECT_LOOKUP COVERAGE: 83 counties
+NEIGHBOR_LENS COVERAGE: 83 counties (capability, not every viewport)
+GEOMETRY COVERAGE: 83 counties
+APN COVERAGE: 83 counties
+AREA COVERAGE: 83 counties (independent calculated/reported values)
+OWNER COVERAGE: 80 counties
+ASSESSMENT COVERAGE: 80 counties
+PROPERTY TAX COVERAGE: 2 counties
+ZONING COVERAGE: 3 counties
+P0 MAJOR GAPS: FL/OH bounded runtime failures; TX/PA/CA use/ID/ingestion clearance pending; MI statewide restricted; GA federation incomplete; AR partial production blocks
+MAXXIS PUBLIC PARCEL CONSUMPTION: 0
+REPORT PUBLIC PARCEL CONSUMPTION: 0
+CANONICAL PROPERTY WRITES: 0
+FINANCIAL ENGINE CHANGES: 0
+RENTCAST CALLS CAUSED BY PARCEL LENS: 0
+PAID PARCEL API COST: $0
+CACHE: PASS
+COALESCING: PASS
+PUBLIC GIS LOAD SAFETY: PASS
+USER A/B PRIVACY: PASS (deterministic tests; real production smoke blocked)
+ARBITRARY URL PROXY: 0
+SSRF REGRESSION: 0
+TARGETED TESTS: 215/215
+FULL TESTS: 1920/1920 + 4/4 Deno
+TYPECHECK: PASS
+LINT: PASS
+BUILD: PASS
+NEW DENO ERRORS: 0
+MIGRATION: NONE
+COMMIT: 0a93adc395758760816ae880f367469aebff9510 (implementation)
+PUSH: PASS
+PRODUCTION DEPLOY: YES
+PRODUCTION SHA: 0a93adc395758760816ae880f367469aebff9510
+QA ARTIFACTS: qa/public-parcel-intelligence/general-availability/; qa/public-parcel-intelligence/coverage/
+NEXT 10 HIGHEST-ROI COVERAGE TARGETS:
+1. Florida statewide runtime/approved ingestion
+2. Texas StratMap hosted-use/runtime clearance
+3. Ohio OGRIP bounded runtime/approved export
+4. PASDA county terms/PIN/inventory validation
+5. Los Angeles EGIS terms/bulk API strategy
+6. Michigan Wayne/Oakland public county sources
+7. Fulton full-county fallback
+8. Florida Orange/Polk official county fallbacks
+9. Gwinnett/DeKalb/Cobb/Clayton federation
+10. CA San Diego/Orange/Riverside/San Bernardino
+NEXT PRODUCT PHASE: PARCEL EVIDENCE CONSENSUS
+FINAL: GENERAL AVAILABILITY READY — STRATEGIC COVERAGE EXPANSION PARTIAL

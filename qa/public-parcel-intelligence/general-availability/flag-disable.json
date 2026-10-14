@@ -1,0 +1,28 @@
+﻿{
+    "observedAt":  "2026-10-14T03:56:07.1226087Z",
+    "mode":  "Disable",
+    "effectiveConfiguration":  "OFF",
+    "originalPreviewDigestVerified":  true,
+    "configurationChanged":  true,
+    "changedSecrets":  [
+                           "FEATURE_FLAGS_JSON"
+                       ],
+    "unchangedOtherSecretCount":  38,
+    "previewAllowlist":  "REMOVED",
+    "globalGridGeneralAccess":  "OFF",
+    "productionUserSessionUsed":  false,
+    "functions":  [
+                      {
+                          "slug":  "feature-flags",
+                          "version":  17,
+                          "status":  "ACTIVE",
+                          "updated_at":  1791848024620
+                      },
+                      {
+                          "slug":  "public-parcel",
+                          "version":  5,
+                          "status":  "ACTIVE",
+                          "updated_at":  1791847935060
+                      }
+                  ]
+}

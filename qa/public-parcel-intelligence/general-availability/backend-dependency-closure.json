@@ -1,0 +1,17 @@
+{
+  "codeCommit": "0a93adc395758760816ae880f367469aebff9510",
+  "explicitCodeDeploys": ["feature-flags", "public-parcel"],
+  "finalVersions": {"feature-flags": 19, "public-parcel": 7},
+  "verifyJwt": true,
+  "manualAuthGetUserPreserved": true,
+  "sharedChangedModules": ["featureFlags.ts", "public-parcel/types.ts", "public-parcel/registry.ts", "public-parcel/sources.ts", "public-parcel/strategicSources.ts", "public-parcel/resolver.ts", "public-parcel/cache.ts", "public-parcel/county.ts", "public-parcel/arcgis.ts", "public-parcel/lens.ts", "public-parcel/upstreamBudget.ts"],
+  "unrelatedFunctionCodeDeployed": false,
+  "secretRolloutMayIncrementUnrelatedEnvironmentRevisions": true,
+  "changedSecretNames": ["FEATURE_FLAGS_JSON"],
+  "unchangedOtherSecretCount": 38,
+  "generalAuthenticatedAccess": "ON",
+  "qaGridGeneralAccess": "OFF",
+  "personalPreviewAllowlist": "REMOVED",
+  "migration": "NONE",
+  "realAuthenticatedMultiUserSmoke": "BLOCKED_NO_AUTHORIZED_USER_SESSION"
+}

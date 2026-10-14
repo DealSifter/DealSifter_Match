@@ -1,5 +1,5 @@
 param([Parameter(Mandatory=$true)][ValidateSet('Audit','Disable','Enable')][string]$Mode,
- [ValidatePattern('^[a-z0-9._%+-]+@[a-z0-9.-]+\.[a-z]{2,}$')][string]$OriginalAccountEmail)
+ [ValidatePattern('^[a-z0-9._%+-]+@[a-z0-9.-]+\.[a-z]{2,}$')][string]$OriginalAccountEmail,[switch]$CheckPublishedCode)
 $ErrorActionPreference='Stop'
 # Operator-only, scoped to the existing project/flag. No tokens, identities,
 # secret values, sessions or raw API responses are printed or persisted.
@@ -52,8 +52,22 @@ if($Mode-ne 'Audit'){
  if(@($parcelGaAfter|Where-Object name -eq 'FEATURE_FLAGS_JSON')[0].value-ne $parcelGaDesiredDigest){throw 'EXACT_FLAG_WRITE_NOT_CONFIRMED'}
  $parcelGaCurrent=if($Mode-eq 'Enable'){'GENERAL_AUTHENTICATED_ON'}else{'OFF'}
 }
-$parcelGaFunctions=@(Invoke-ParcelGaApi '/functions'|Where-Object slug -in @('feature-flags','public-parcel')|Select-Object slug,version,status,updated_at)
+$parcelGaFunctions=@(Invoke-ParcelGaApi '/functions'|Where-Object slug -in @('feature-flags','public-parcel')|Select-Object slug,version,status,updated_at,verify_jwt)
 $parcelGaChangedSecretNames=@();if($parcelGaChanged){$parcelGaChangedSecretNames=@('FEATURE_FLAGS_JSON')}
 $parcelGaReceipt=[ordered]@{observedAt=(Get-Date).ToUniversalTime().ToString('o');mode=$Mode;effectiveConfiguration=$parcelGaCurrent;originalPreviewDigestVerified=$parcelGaOriginalMatches;configurationChanged=$parcelGaChanged;changedSecrets=$parcelGaChangedSecretNames;unchangedOtherSecretCount=$parcelGaBefore.Count-1;previewAllowlist=if($parcelGaCurrent-eq 'ORIGINAL_PREVIEW'){'PRESENT'}elseif($parcelGaCurrent-eq 'UNRECOGNIZED_PRIVATE_MERGE_REQUIRED'){'UNKNOWN'}else{'REMOVED'};globalGridGeneralAccess='OFF';productionUserSessionUsed=$false;functions=$parcelGaFunctions}
-$parcelGaReceipt|ConvertTo-Json -Depth 7|Set-Content -LiteralPath ('qa/public-parcel-intelligence/general-availability/flag-'+$Mode.ToLowerInvariant()+'.json') -Encoding utf8
+if($CheckPublishedCode){
+ $parcelGaSourceAudit=@()
+ foreach($parcelGaSlug in @('feature-flags','public-parcel')){
+  try{$parcelGaArchive=Invoke-WebRequest -Uri ($parcelGaBase+'/functions/'+$parcelGaSlug+'/body') -Headers $parcelGaHeaders -UseBasicParsing -TimeoutSec 30}catch{throw 'PUBLISHED_CODE_AUDIT_UNAVAILABLE_NO_PRIVATE_OUTPUT'}
+  $parcelGaBytes=$parcelGaArchive.RawContentStream.ToArray();$parcelGaText=[System.Text.Encoding]::UTF8.GetString($parcelGaBytes)
+  $parcelGaArchiveHash=[System.Security.Cryptography.SHA256]::Create();try{$parcelGaArchiveDigest=([BitConverter]::ToString($parcelGaArchiveHash.ComputeHash($parcelGaBytes))).Replace('-','').ToLowerInvariant()}finally{$parcelGaArchiveHash.Dispose()}
+  $parcelGaMarkers=[ordered]@{globalAuthenticatedRule=$parcelGaText.Contains("if (flagName === 'public_parcel_intelligence') enabled = definition.enabled");independentGridAllowlist=$parcelGaText.Contains("if (flagName === 'public_parcel_qa_grid')")}
+  if($parcelGaSlug-eq 'public-parcel'){$parcelGaMarkers.publicDisplaySourcePolicy=$parcelGaText.Contains("source.usagePermission === 'PUBLIC_DISPLAY_ALLOWED'");$parcelGaMarkers.viewportOperationGuard=$parcelGaText.Contains('parcelOperationAllowed(query.operation, flags)');$parcelGaMarkers.fixedLensQuery=$parcelGaText.Contains('query-lens');$parcelGaMarkers.privatePointGuard=$parcelGaText.Contains('INVALID_OPERATION_BOUNDS');$parcelGaMarkers.sharedUpstreamBudget=$parcelGaText.Contains('SOURCE_SHARED_RATE_LIMIT');$parcelGaMarkers.strategicSourceRegistry=$parcelGaText.Contains('us-ar-agiso-state-parcels')}
+  if(@($parcelGaMarkers.Values|Where-Object{$_-ne $true}).Count){throw 'PUBLISHED_SOURCE_MARKERS_NOT_CONFIRMED'}
+  $parcelGaSourceAudit+=@{slug=$parcelGaSlug;archiveSha256=$parcelGaArchiveDigest;httpStatus=$parcelGaArchive.StatusCode;markers=$parcelGaMarkers}
+ }
+ $parcelGaReceipt.publishedSources=$parcelGaSourceAudit
+}
+$parcelGaReceiptPath=if($CheckPublishedCode){'qa/public-parcel-intelligence/general-availability/backend-deployment.json'}else{'qa/public-parcel-intelligence/general-availability/flag-'+$Mode.ToLowerInvariant()+'.json'}
+$parcelGaReceipt|ConvertTo-Json -Depth 7|Set-Content -LiteralPath $parcelGaReceiptPath -Encoding utf8
 $parcelGaReceipt|ConvertTo-Json -Depth 7
