@@ -41,9 +41,12 @@ try {
       await pin.click(); await expect(page.locator('.ds-property-leaflet-popup')).toBeVisible();
       // Alternate leaving during and after the camera animation.
       if(transitions.length%2===0)await page.waitForTimeout(700);
+      const nativeZoomInFlight=transitions.length%2===1;
+      if(nativeZoomInFlight){await page.locator('.leaflet-control-zoom-in').click();await page.waitForTimeout(75);}
       await navigate(page,module);
+      await page.waitForTimeout(400);
       expect(await page.evaluate(()=>localStorage.getItem('ds_last_error_boundary'))).toBeNull();
-      transitions.push({from:'mapview',to:module,pinSelected:true});
+      transitions.push({from:'mapview',to:module,pinSelected:true,nativeZoomInFlight});
     }
     expect(errors).toEqual([]);await page.screenshot({path:`${output}/${device}-${suffix}.png`});
     results.push({device,transitions,errors});await context.close();

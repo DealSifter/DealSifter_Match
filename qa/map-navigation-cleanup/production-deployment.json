@@ -1,10 +1,10 @@
 ﻿{
-    "observedAt":  "2026-10-14T22:25:25.6155284Z",
-    "id":  "dpl_2ywhjg4PWqp3GGXj3hSb7qFbSyDY",
+    "observedAt":  "2026-10-14T22:45:24.0217651Z",
+    "id":  "dpl_DU6GiSAVefddbzg77ovsTKKwb5ew",
     "state":  "READY",
     "target":  "production",
-    "url":  "https://dealsiftermatch-hbhsuko20-deal-sifter-match-s-projects.vercel.app",
-    "sourceSha":  "f300f5d97bb32b2f77e1fb0d3882e81cb8afa7da",
+    "url":  "https://dealsiftermatch-c9yfrsq1v-deal-sifter-match-s-projects.vercel.app",
+    "sourceSha":  "0f3e6d8fcf8ab91e31b7a7452ec4ea0f36aae6aa",
     "sourceShaVerified":  true,
     "aliasVerified":  true
 }
