@@ -6,6 +6,7 @@ import { PropertyPinPopup } from './PropertyPinPopup';
 
 afterEach(cleanup);
 const property = { id: 'property-1', price: 231000, city: 'Winter Garden', state: 'FL', zip: '34787', beds: 3, baths: 2, sqft: 1500, image: '/house.jpg' };
+const subjectState = { parcel: { geometry: { type:'Polygon',coordinates:[[[-71,42],[-70.999,42],[-70.999,42.001],[-71,42]]] } } };
 describe('Property pin card', () => {
   it('offers tabs only after activation and has no third close button', () => {
     const parcel = { geometry: { type: 'Polygon', coordinates: [] }, sourceAuthority: 'Public source', retrievedAt: '2026-10-13', sourceUrl: 'https://example.com' };
@@ -49,9 +50,9 @@ describe('Property pin card', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Match' }));
     expect(match).not.toHaveBeenCalled();
   });
-  it.each([false, true])('keeps the magnifier while GIS is unresolved, independently of unlocked=%s', async unlocked => {
+  it.each([false, true])('keeps the magnifier for verified geometry independently of unlocked=%s', async unlocked => {
     const onParcelActivate = vi.fn().mockResolvedValue('ACTIVE');
-    render(<PropertyPinPopup property={{ ...property, isUnlocked: unlocked }} selected={unlocked} label="A" parcelEligible onParcelActivate={onParcelActivate} />);
+    render(<PropertyPinPopup property={{ ...property, isUnlocked: unlocked }} selected={unlocked} label="A" parcelEligible parcelState={subjectState} onParcelActivate={onParcelActivate} />);
     fireEvent.click(screen.getByRole('button', { name: 'View parcel boundaries and public data' }));
     await waitFor(() => expect(onParcelActivate).toHaveBeenCalledOnce());
     await waitFor(() => expect(screen.getByRole('button', { name: 'View parcel boundaries and public data' }).disabled).toBe(false));
@@ -59,7 +60,7 @@ describe('Property pin card', () => {
   it('shows loading and a translated failure without removing the button; permits retry', async () => {
     let finish;
     const onParcelActivate = vi.fn().mockImplementationOnce(() => new Promise(resolve => { finish = resolve; })).mockResolvedValue('ACTIVE');
-    render(<PropertyPinPopup property={{ ...property, isUnlocked: true }} label="A" parcelEligible language="pt" onParcelActivate={onParcelActivate} />);
+    render(<PropertyPinPopup property={{ ...property, isUnlocked: true }} label="A" parcelEligible parcelState={subjectState} language="pt" onParcelActivate={onParcelActivate} />);
     const button = screen.getByRole('button', { name: 'Ver limites e dados da parcela' });
     fireEvent.click(button);
     expect(button.disabled).toBe(true); expect(screen.getByRole('status').textContent).toBe('Consultando GIS público…');
@@ -85,9 +86,14 @@ describe('Property pin card', () => {
     expect(screen.getByRole('status').textContent).toContain('Não foi possível confirmar o acesso');
     fireEvent.click(screen.getByRole('button',{name:'Verificar novamente'}));expect(retry).toHaveBeenCalledOnce();expect(activate).not.toHaveBeenCalled();
   });
-  it('makes an explicit server denial visible, not mistaken for paid status',()=>{
+  it('keeps a disabled kill switch silent, not mistaken for paid status or source coverage',()=>{
     render(<PropertyPinPopup property={{...property,isUnlocked:true}} label="A" language="pt" parcelAccessStatus="denied" />);
-    expect(screen.getByRole('status').textContent).toBe('A prévia parcelária não está habilitada para esta conta.');
+    expect(screen.queryByRole('status')).toBeNull();
     expect(screen.queryByRole('button',{name:'Verificar novamente'})).toBeNull();
+  });
+  it('has no magnifier or no-coverage error before valid subject geometry exists',()=>{
+    render(<PropertyPinPopup property={property} label="A" parcelEligible parcelAccessStatus="available" />);
+    expect(screen.queryByRole('button',{name:'View parcel boundaries and public data'})).toBeNull();
+    expect(screen.queryByRole('status')).toBeNull();
   });
 });

@@ -1,0 +1,27 @@
+{
+  "observedAt": "2026-10-14T03:48:18.711Z",
+  "targeted": {
+    "passed": 215,
+    "total": 215
+  },
+  "full": {
+    "passed": 1920,
+    "total": 1920,
+    "files": 218
+  },
+  "uiCases": 6,
+  "mode": "DETERMINISTIC_TESTS_AND_LOCAL_AUTHENTICATED_FIXTURES",
+  "productionUserSession": false,
+  "status": "PASS",
+  "arbitraryProxyUrls": 0,
+  "sourcePolicy": "ACTIVE_PLUS_VALIDATION_PLUS_CLEARED_LICENSE_PLUS_PUBLIC_DISPLAY_ALLOWED",
+  "internalOnlySourceExposure": 0,
+  "clientViewportBypass": "REJECTED_INCLUDING_MIXED_OPERATIONS",
+  "radius": "FIXED_SERVER_SIDE_0.20_MILE_DIAMETER",
+  "globalKillSwitchOverrides": "IGNORED",
+  "serviceRoleClientExposure": 0,
+  "maxxisParcelConsumption": 0,
+  "reportParcelConsumption": 0,
+  "financialEngineChanges": 0,
+  "paidProviderCalls": 0
+}

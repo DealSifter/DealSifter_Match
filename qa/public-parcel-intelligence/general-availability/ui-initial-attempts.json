@@ -1,0 +1,10 @@
+{
+  "attempts": 2,
+  "result": "FAILED_BEFORE_MAP_TEST",
+  "cause": "QA helper captured default localhost Supabase URL while local Vite app used its configured production project URL; authentication request was not intercepted",
+  "credentials": "Explicit synthetic example.test fixtures only; no real user credential/session used",
+  "observedAuthHttpStatus": 400,
+  "authenticatedProductionSession": false,
+  "passedMapAssertions": 0,
+  "correction": "Configure E2E_SUPABASE_URL in QA process before dynamic import of existing interceptor; no app auth/env-file modifications"
+}

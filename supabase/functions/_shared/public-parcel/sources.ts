@@ -5,6 +5,7 @@ import type { ParcelSource } from './types.ts';
 export const EXPANSION_SOURCES: readonly ParcelSource[] = [
   {
     sourceId: 'us-ma-massgis-parcels', country: 'US', state: 'MA', stateFips: '25', county: 'Middlesex', countyFips: '25017', coverageCountyFips: ['25017', '25025'],
+    usagePermission: 'PUBLIC_DISPLAY_ALLOWED', acquisitionMode: 'LIVE_PUBLIC_GIS', capabilities: { subjectLookup: true, neighborLens: true, apnLookup: true },
     providerType: 'ARCGIS', serviceUrl: 'https://services1.arcgis.com/hGdibHYSPO59RG1h/arcgis/rest/services/Massachusetts_Property_Tax_Parcels/FeatureServer', layerId: 0, geometrySupported: true,
     fieldMapping: { apn: 'LOC_ID', parcelId: 'PROP_ID', situsAddress: 'SITE_ADDR', ownerName: 'OWNER1', assessedValue: 'TOTAL_VAL', assessedYear: 'FY', zoning: 'ZONING' },
     areaMapping: { valueField: 'LOT_SIZE', unitField: 'LOT_UNITS' },
@@ -17,6 +18,7 @@ export const EXPANSION_SOURCES: readonly ParcelSource[] = [
   },
   {
     sourceId: 'us-nj-njogis-parcels', country: 'US', state: 'NJ', stateFips: '34', county: 'Mercer', countyFips: '34021', coverageCountyFips: ['34021', '34003'],
+    usagePermission: 'PUBLIC_DISPLAY_ALLOWED', acquisitionMode: 'LIVE_PUBLIC_GIS', capabilities: { subjectLookup: true, neighborLens: true, apnLookup: true },
     providerType: 'ARCGIS', serviceUrl: 'https://services2.arcgis.com/XVOqAjTOJ5P6ngMu/arcgis/rest/services/Parcels_Composite_NJ_WM/FeatureServer', layerId: 0, geometrySupported: true,
     fieldMapping: { apn: 'PAMS_PIN', parcelId: 'PCL_GUID', situsAddress: 'PROP_LOC', gisAcres: 'CALC_ACRE', assessedValue: 'NET_VALUE', propertyTax: 'LAST_YR_TX', legalDescription: 'LAND_DESC' },
     authorityName: 'NJ Office of Information Technology, Office of GIS (NJOGIS)', authorityUrl: 'https://www.nj.gov/njgin/edata/parcels/',
@@ -29,6 +31,7 @@ export const EXPANSION_SOURCES: readonly ParcelSource[] = [
   },
   {
     sourceId: 'us-vt-vcgi-parcels', country: 'US', state: 'VT', stateFips: '50', county: 'Chittenden', countyFips: '50007', coverageCountyFips: ['50007', '50023'],
+    usagePermission: 'INTERNAL_ANALYTICS_ONLY', acquisitionMode: 'LIVE_PUBLIC_GIS', capabilities: { subjectLookup: true, neighborLens: true, apnLookup: true },
     providerType: 'ARCGIS', serviceUrl: 'https://services1.arcgis.com/BkFxaEFNwHqX3tAw/arcgis/rest/services/FS_VCGI_OPENDATA_Cadastral_VTPARCELS_poly_standardized_parcels_SP_v1/FeatureServer', layerId: 0, geometrySupported: true,
     fieldMapping: { apn: 'SPAN', parcelId: 'PARCID', situsAddress: 'E911ADDR', assessorAcres: 'ACRESGL', ownerName: 'OWNER1', assessedValue: 'REAL_FLV', assessedYear: 'GLYEAR', legalDescription: 'DESCPROP' },
     authorityName: 'Vermont Center for Geographic Information (VCGI)', authorityUrl: 'https://vcgi.vermont.gov/data-and-programs/parcel-program',
@@ -52,6 +55,7 @@ export const EXPANSION_SOURCES: readonly ParcelSource[] = [
   },
   {
     sourceId: 'us-nc-nconemap-parcels', country: 'US', state: 'NC', stateFips: '37', county: 'Wake', countyFips: '37183', coverageCountyFips: ['37183', '37063'],
+    usagePermission: 'PUBLIC_DISPLAY_ALLOWED', acquisitionMode: 'LIVE_PUBLIC_GIS', capabilities: { subjectLookup: true, neighborLens: true, apnLookup: true },
     providerType: 'ARCGIS', serviceUrl: 'https://services.nconemap.gov/secure/rest/services/NC1Map_Parcels/MapServer', layerId: 1, geometrySupported: true,
     fieldMapping: { apn: 'nparno', parcelId: 'parno', situsAddress: 'siteadd', gisAcres: 'gisacres', ownerName: 'ownname', legalDescription: 'legdecfull', subdivision: 'subdivisio' },
     authorityName: 'NC OneMap / North Carolina Center for Geographic Information and Analysis', authorityUrl: 'https://www.nconemap.gov/pages/parcels',

@@ -1,0 +1,36 @@
+{
+  "observedAt": "2026-10-14T03:48:18.711Z",
+  "targeted": {
+    "passed": 215,
+    "total": 215
+  },
+  "full": {
+    "passed": 1920,
+    "total": 1920,
+    "files": 218
+  },
+  "uiCases": 6,
+  "mode": "DETERMINISTIC_TESTS_AND_LOCAL_AUTHENTICATED_FIXTURES",
+  "productionUserSession": false,
+  "status": "PASS",
+  "hideAddressCases": [
+    {
+      "id": "privacy",
+      "tier": "PRO",
+      "mode": "privacy",
+      "language": "es",
+      "phone": false,
+      "flagCalls": 1,
+      "gisCalls": 0,
+      "neighbors": 0,
+      "billingCalls": 0,
+      "errors": [],
+      "pass": true
+    }
+  ],
+  "privateSelectedPropertyCache": "CLIENT_USER_OWNED_AND_DISPOSED",
+  "publicCache": "NORMALIZED_ALLOWED_PUBLIC_FIELDS_ONLY",
+  "privateContactOrNoteFieldsInPublicEvidence": 0,
+  "privatePointMetadata": "REJECTED_BEFORE_CACHE",
+  "canonicalWrites": 0
+}

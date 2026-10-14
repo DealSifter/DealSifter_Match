@@ -93,9 +93,11 @@ export function resolveFeatureFlags({
     const cohortEnabled = deterministicCohort(userId, flagName) < definition.percentage;
     let enabled = definition.enabled && environmentEnabled && cohortEnabled;
     if (allowOverride && typeof overrides[flagName] === 'boolean') enabled = overrides[flagName] === true;
-    // Phase 1B is internal only. Neither rollout percentages nor client/admin
-    // overrides can expose parcels to users absent from the server allowlist.
-    if (flagName === 'public_parcel_intelligence' || flagName === 'public_parcel_qa_grid') enabled = enabled && !!userId && !!definition.internalUserIds?.includes(userId);
+    // Contextual GA uses the server kill switch, not a personal preview cohort.
+    // Client/admin overrides cannot bypass the parcel kill switch. The viewport
+    // grid has a separate internal allowlist and remains inaccessible to users.
+    if (flagName === 'public_parcel_intelligence') enabled = definition.enabled && environmentEnabled && cohortEnabled && !!userId.trim();
+    if (flagName === 'public_parcel_qa_grid') enabled = definition.enabled && environmentEnabled && cohortEnabled && !!userId.trim() && !!definition.internalUserIds?.includes(userId);
     result[flagName] = enabled;
   }
   return result;

@@ -1,0 +1,400 @@
+{
+  "observedAt": "2026-10-14T02:42:38.177Z",
+  "authority": "Official source aggregate geometry-positive APN counts mapped to Census FIPS",
+  "results": [
+    {
+      "sourceId": "us-oh-ogrip-public-parcels",
+      "state": "39",
+      "url": "https://services2.arcgis.com/MlJ0G8iWUyC7jAmu/arcgis/rest/services/OhioStatewidePacels_full_view/FeatureServer/0",
+      "field": "County",
+      "automaticActivation": false,
+      "countyInventoryValidated": false,
+      "error": "The operation was aborted due to timeout"
+    },
+    {
+      "sourceId": "us-ar-agiso-state-parcels",
+      "state": "05",
+      "url": "https://gis.arkansas.gov/arcgis/rest/services/FEATURESERVICES/Planning_Cadastre/FeatureServer/6",
+      "field": "countyfips",
+      "automaticActivation": false,
+      "countyInventoryValidated": true,
+      "counties": [
+        {
+          "value": "067",
+          "parcelCount": 13999,
+          "countyFips": "05067"
+        },
+        {
+          "value": "069",
+          "parcelCount": 54576,
+          "countyFips": "05069"
+        },
+        {
+          "value": "135",
+          "parcelCount": 46357,
+          "countyFips": "05135"
+        },
+        {
+          "value": "001",
+          "parcelCount": 16078,
+          "countyFips": "05001"
+        },
+        {
+          "value": "065",
+          "parcelCount": 30448,
+          "countyFips": "05065"
+        },
+        {
+          "value": "129",
+          "parcelCount": 11763,
+          "countyFips": "05129"
+        },
+        {
+          "value": "121",
+          "parcelCount": 18122,
+          "countyFips": "05121"
+        },
+        {
+          "value": "113",
+          "parcelCount": 19280,
+          "countyFips": "05113"
+        },
+        {
+          "value": "109",
+          "parcelCount": 11442,
+          "countyFips": "05109"
+        },
+        {
+          "value": "039",
+          "parcelCount": 10867,
+          "countyFips": "05039"
+        },
+        {
+          "value": "009",
+          "parcelCount": 29462,
+          "countyFips": "05009"
+        },
+        {
+          "value": "027",
+          "parcelCount": 20085,
+          "countyFips": "05027"
+        },
+        {
+          "value": "115",
+          "parcelCount": 32489,
+          "countyFips": "05115"
+        },
+        {
+          "value": "011",
+          "parcelCount": 12566,
+          "countyFips": "05011"
+        },
+        {
+          "value": "033",
+          "parcelCount": 37749,
+          "countyFips": "05033"
+        },
+        {
+          "value": "089",
+          "parcelCount": 12892,
+          "countyFips": "05089"
+        },
+        {
+          "value": "055",
+          "parcelCount": 27784,
+          "countyFips": "05055"
+        },
+        {
+          "value": "053",
+          "parcelCount": 16133,
+          "countyFips": "05053"
+        },
+        {
+          "value": "047",
+          "parcelCount": 15498,
+          "countyFips": "05047"
+        },
+        {
+          "value": "041",
+          "parcelCount": 9663,
+          "countyFips": "05041"
+        },
+        {
+          "value": "125",
+          "parcelCount": 80143,
+          "countyFips": "05125"
+        },
+        {
+          "value": "043",
+          "parcelCount": 13338,
+          "countyFips": "05043"
+        },
+        {
+          "value": "085",
+          "parcelCount": 39015,
+          "countyFips": "05085"
+        },
+        {
+          "value": "101",
+          "parcelCount": 5971,
+          "countyFips": "05101"
+        },
+        {
+          "value": "023",
+          "parcelCount": 31075,
+          "countyFips": "05023"
+        },
+        {
+          "value": "131",
+          "parcelCount": 60283,
+          "countyFips": "05131"
+        },
+        {
+          "value": "097",
+          "parcelCount": 11213,
+          "countyFips": "05097"
+        },
+        {
+          "value": "003",
+          "parcelCount": 19468,
+          "countyFips": "05003"
+        },
+        {
+          "value": "099",
+          "parcelCount": 12119,
+          "countyFips": "05099"
+        },
+        {
+          "value": "037",
+          "parcelCount": 12219,
+          "countyFips": "05037"
+        },
+        {
+          "value": "029",
+          "parcelCount": 19518,
+          "countyFips": "05029"
+        },
+        {
+          "value": "035",
+          "parcelCount": 27488,
+          "countyFips": "05035"
+        },
+        {
+          "value": "117",
+          "parcelCount": 10097,
+          "countyFips": "05117"
+        },
+        {
+          "value": "005",
+          "parcelCount": 38086,
+          "countyFips": "05005"
+        },
+        {
+          "value": "073",
+          "parcelCount": 11319,
+          "countyFips": "05073"
+        },
+        {
+          "value": "049",
+          "parcelCount": 33900,
+          "countyFips": "05049"
+        },
+        {
+          "value": "149",
+          "parcelCount": 19260,
+          "countyFips": "05149"
+        },
+        {
+          "value": "013",
+          "parcelCount": 9849,
+          "countyFips": "05013"
+        },
+        {
+          "value": "059",
+          "parcelCount": 23635,
+          "countyFips": "05059"
+        },
+        {
+          "value": "015",
+          "parcelCount": 25764,
+          "countyFips": "05015"
+        },
+        {
+          "value": "105",
+          "parcelCount": 10267,
+          "countyFips": "05105"
+        },
+        {
+          "value": "139",
+          "parcelCount": 31636,
+          "countyFips": "05139"
+        },
+        {
+          "value": "017",
+          "parcelCount": 10940,
+          "countyFips": "05017"
+        },
+        {
+          "value": "141",
+          "parcelCount": 32187,
+          "countyFips": "05141"
+        },
+        {
+          "value": "143",
+          "parcelCount": 114791,
+          "countyFips": "05143"
+        },
+        {
+          "value": "127",
+          "parcelCount": 10881,
+          "countyFips": "05127"
+        },
+        {
+          "value": "063",
+          "parcelCount": 29574,
+          "countyFips": "05063"
+        },
+        {
+          "value": "081",
+          "parcelCount": 14550,
+          "countyFips": "05081"
+        },
+        {
+          "value": "111",
+          "parcelCount": 17899,
+          "countyFips": "05111"
+        },
+        {
+          "value": "075",
+          "parcelCount": 10403,
+          "countyFips": "05075"
+        },
+        {
+          "value": "083",
+          "parcelCount": 20207,
+          "countyFips": "05083"
+        },
+        {
+          "value": "019",
+          "parcelCount": 20377,
+          "countyFips": "05019"
+        },
+        {
+          "value": "137",
+          "parcelCount": 15494,
+          "countyFips": "05137"
+        },
+        {
+          "value": "071",
+          "parcelCount": 18100,
+          "countyFips": "05071"
+        },
+        {
+          "value": "021",
+          "parcelCount": 16324,
+          "countyFips": "05021"
+        },
+        {
+          "value": "061",
+          "parcelCount": 10275,
+          "countyFips": "05061"
+        },
+        {
+          "value": "079",
+          "parcelCount": 10164,
+          "countyFips": "05079"
+        },
+        {
+          "value": "145",
+          "parcelCount": 49889,
+          "countyFips": "05145"
+        },
+        {
+          "value": "051",
+          "parcelCount": 76870,
+          "countyFips": "05051"
+        },
+        {
+          "value": "107",
+          "parcelCount": 19590,
+          "countyFips": "05107"
+        },
+        {
+          "value": "147",
+          "parcelCount": 9238,
+          "countyFips": "05147"
+        },
+        {
+          "value": "087",
+          "parcelCount": 20830,
+          "countyFips": "05087"
+        },
+        {
+          "value": "007",
+          "parcelCount": 175795,
+          "countyFips": "05007"
+        },
+        {
+          "value": "103",
+          "parcelCount": 16720,
+          "countyFips": "05103"
+        },
+        {
+          "value": "031",
+          "parcelCount": 54896,
+          "countyFips": "05031"
+        },
+        {
+          "value": "025",
+          "parcelCount": 8215,
+          "countyFips": "05025"
+        },
+        {
+          "value": "045",
+          "parcelCount": 66634,
+          "countyFips": "05045"
+        },
+        {
+          "value": "091",
+          "parcelCount": 27190,
+          "countyFips": "05091"
+        },
+        {
+          "value": "077",
+          "parcelCount": 10191,
+          "countyFips": "05077"
+        },
+        {
+          "value": "057",
+          "parcelCount": 18624,
+          "countyFips": "05057"
+        },
+        {
+          "value": "093",
+          "parcelCount": 31005,
+          "countyFips": "05093"
+        },
+        {
+          "value": "119",
+          "parcelCount": 180229,
+          "countyFips": "05119"
+        },
+        {
+          "value": "095",
+          "parcelCount": 8809,
+          "countyFips": "05095"
+        },
+        {
+          "value": "133",
+          "parcelCount": 11700,
+          "countyFips": "05133"
+        },
+        {
+          "value": "123",
+          "parcelCount": 17941,
+          "countyFips": "05123"
+        }
+      ]
+    }
+  ]
+}

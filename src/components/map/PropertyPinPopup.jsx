@@ -28,7 +28,7 @@ export function PropertyPinPopup({ property, label, selected = false, own = fals
   const metric = value => numeric(value) === null ? '—' : new Intl.NumberFormat(locale).format(Number(value));
   const parcelCopy = parcelLabels(language);
   const hasParcel = Boolean(parcelState?.parcel?.geometry);
-  const canUseLens = parcelEligible === true && !shouldHideStreetAddressOnCard(property);
+  const canUseLens = parcelEligible === true && hasParcel && !shouldHideStreetAddressOnCard(property);
   const lensActive = canUseLens && hasParcel && Boolean(parcelState.lens);
   const publicPage = lensActive && parcelState.page === 'parcel';
   return <article className="ds-property-pin-popup" style={{ '--pin-ink': C.t1, '--pin-muted': C.t2, '--pin-paper': C.card, '--pin-border': C.border }}>
@@ -69,8 +69,8 @@ export function PropertyPinPopup({ property, label, selected = false, own = fals
       </div>
       {canUseLens && lensPending && <div className="ds-property-pin-lens-feedback" role="status">{parcelCopy.loading}</div>}
       {canUseLens && lensStatus && <div className="ds-property-pin-lens-feedback" role="status">{lensStatus}</div>}
-      {!canUseLens && !shouldHideStreetAddressOnCard(property) && parcelAccessStatus && <div className="ds-property-pin-lens-feedback" role="status">
-        {parcelAccessStatus==='denied'?parcelCopy.accessDenied:parcelAccessStatus==='unavailable'?parcelCopy.accessUnavailable:parcelCopy.accessLoading}
+      {!canUseLens && !shouldHideStreetAddressOnCard(property) && ['loading','unavailable'].includes(parcelAccessStatus) && <div className="ds-property-pin-lens-feedback" role="status">
+        {parcelAccessStatus==='unavailable'?parcelCopy.accessUnavailable:parcelCopy.accessLoading}
         {parcelAccessStatus==='unavailable'&&onRetryParcelAccess&&<button type="button" onClick={event=>{event.stopPropagation();void onRetryParcelAccess();}}>{parcelCopy.accessRetry}</button>}
       </div>}
       <div className="ds-property-pin-address">{label}</div>

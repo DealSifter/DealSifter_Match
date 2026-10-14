@@ -1,7 +1,7 @@
 import {readFile,writeFile} from 'node:fs/promises';
 import {createHash} from 'node:crypto';
 import {chromium} from '@playwright/test';
-const app='https://dealsiftermatch.vercel.app';const directory='qa/navigation-reliability';
+const app='https://dealsiftermatch.vercel.app';const directory=process.argv.includes('--parcel-ga')?'qa/public-parcel-intelligence/general-availability':'qa/navigation-reliability';
 const deployment=JSON.parse((await readFile(`${directory}/production-deployment.json`,'utf8')).replace(/^\uFEFF/,''));
 if(deployment.state!=='READY'||!deployment.sourceShaVerified||!deployment.aliasVerified)throw new Error('EXACT_READY_PRODUCTION_RELEASE_REQUIRED');
 const request=(url,options={})=>fetch(url,{...options,signal:AbortSignal.timeout(20000)});

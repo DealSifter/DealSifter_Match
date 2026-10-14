@@ -1,0 +1,22 @@
+{
+  "observedAt": "2026-10-14T03:48:18.711Z",
+  "targeted": {
+    "passed": 215,
+    "total": 215
+  },
+  "full": {
+    "passed": 1920,
+    "total": 1920,
+    "files": 218
+  },
+  "uiCases": 6,
+  "mode": "DETERMINISTIC_TESTS_AND_LOCAL_AUTHENTICATED_FIXTURES",
+  "productionUserSession": false,
+  "status": "PASS",
+  "authenticatedGeneralAccess": "SERVER_GLOBAL_SWITCH_PLUS_AUTH",
+  "personalAllowlist": "NOT_USED",
+  "supportedMagnifier": "VERIFIED_UNIQUE_SUBJECT_GEOMETRY_ONLY",
+  "unsupportedMagnifier": "ABSENT_WITH_NO_ERROR",
+  "grid": "SEPARATE_QA_ALLOWLIST_AND_BACKEND_VIEWPORT_GUARD",
+  "migration": "NONE"
+}

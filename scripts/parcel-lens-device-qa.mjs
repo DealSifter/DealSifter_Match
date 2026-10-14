@@ -1,10 +1,11 @@
 import { mkdir, writeFile } from 'node:fs/promises';
 import { argv } from 'node:process';
 import { chromium, expect } from '@playwright/test';
-import { setupMockSupabase } from '../e2e/support/mockSupabase.js';
+if(argv.includes('--ga'))process.env.E2E_SUPABASE_URL='https://cyeipfskwwisbbayyaca.supabase.co';
+const {setupMockSupabase}=await import('../e2e/support/mockSupabase.js');
 
 const unlockedFixture = argv.includes('--unlocked');
-const output = unlockedFixture ? 'qa/parcel-lens-unlocked' : 'qa/parcel-lens-device'; await mkdir(`${output}/screenshots`, { recursive: true });
+const output = argv.includes('--ga') ? 'qa/public-parcel-intelligence/general-availability/device' : unlockedFixture ? 'qa/parcel-lens-unlocked' : 'qa/parcel-lens-device'; await mkdir(`${output}/screenshots`, { recursive: true });
 const point = { lat:35.921133041392, lng:-78.583547577238 };
 function parcel(id, dx = 0, dy = 0) {
   const lng = point.lng + dx; const lat = point.lat + dy; const size = .00008;
@@ -100,7 +101,7 @@ try {
     expect(Math.abs(after.x-before.x)+Math.abs(after.y-before.y)).toBeLessThan(1);
     expect(await page.evaluate(()=>window.__camera.filter(move=>move.method==='flyTo').length)).toBe(2);
     expect(await page.evaluate(()=>window.__initialTiles===window.__map.getPane('tilePane').firstElementChild)).toBe(true);
-    expect(queries).toHaveLength(2);expect(queries.map(query=>query.operation)).toEqual(['query-point','query-bounds']);
+    expect(queries).toHaveLength(2);expect(queries.map(query=>query.operation)).toEqual(['query-point','query-lens']);
     expect(await page.evaluate(()=>window.__navigation)).toEqual([]);expect(errors).toEqual([]);
     await page.screenshot({path:`${output}/screenshots/${device}-lens.png`});
     await tabs.first().click();

@@ -1,0 +1,12 @@
+# Strategic P0 coverage and gaps
+
+Metric: approved county source/data presence, not complete parcel coverage. Partial counties are a subset of active. The coverage added in this task is zero for baseline P0 states except Arkansas and the Johns Creek subset of Fulton.
+
+- FL: 0/67 (0%), 0 partial; added 0. Gaps: TECHNICAL, NEEDS_INGESTION, NEEDS_COUNTY_FALLBACK. TECHNICALLY_BLOCKED: bounded queries failed in Polk/Orange in GeoJSON and JSON Important remaining markets: Polk, Orange, Miami-Dade, Broward, Palm Beach, Hillsborough, Duval, Lee, Pinellas.
+- TX: 0/254 (0%), 0 partial; added 0. Gaps: LICENSE, NEEDS_COUNTY_FALLBACK. Metadata valid; parcel records NOT queried before intended-use clearance. DataHub returned 403 in browsing; not bypassed Important remaining markets: Harris, Dallas, Tarrant, Travis, Bexar, Collin, Denton.
+- OH: 0/88 (0%), 0 partial; added 0. Gaps: TECHNICAL, NEEDS_INGESTION, NEEDS_COUNTY_FALLBACK. TECHNICALLY_BLOCKED: two counties and JSON/county-filter alternatives exceed 7.5-second budget; aggregate county inventory also timed out Important remaining markets: Franklin, Hamilton, Cuyahoga, Montgomery, Summit, Lucas.
+- PA: 0/67 (0%), 0 partial; added 0. Gaps: LICENSE, NEEDS_COUNTY_FALLBACK. Polygon schema valid; actual county inventory and record queries NOT activated. Metadata explicitly says incomplete aggregation Important remaining markets: Philadelphia, Allegheny, Montgomery, Bucks, Delaware, Lancaster, Lehigh.
+- AR: 75/75 (100%), 75 partial; added 75. Gaps: NEEDS_COUNTY_FALLBACK. Authority warns of partial production blocks and variable CAMA/geometry presence; 75 registrations do not mean 100% of parcels/fields Important remaining markets: Pulaski, Benton, Washington, Sebastian.
+- CA: 0/58 (0%), 0 partial; added 0. Gaps: LICENSE, NEEDS_INGESTION, NEEDS_COUNTY_FALLBACK. No CA source promoted; LA official metadata says bulk data are download-only due to size Important remaining markets: Los Angeles, San Diego, Orange, Riverside, San Bernardino, Sacramento, Alameda, Contra Costa, Santa Clara, Fresno, Kern, Sonoma.
+- GA: 1/159 (0.63%), 1 partial; added 1. Gaps: NEEDS_COUNTY_FALLBACK. PASS only for Johns Creek subset of Fulton County; no statewide or whole-Fulton claim Important remaining markets: Fulton, Gwinnett, DeKalb, Cobb, Clayton.
+- MI: 0/83 (0%), 0 partial; added 0. Gaps: LICENSE, NEEDS_COUNTY_FALLBACK. State source excluded; public county federation remains pending Important remaining markets: Wayne, Oakland, Macomb, Kent, Genesee, Ingham, Washtenaw.

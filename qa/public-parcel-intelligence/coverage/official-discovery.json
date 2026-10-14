@@ -1,0 +1,714 @@
+{
+  "observedAt": "2026-10-14T02:25:45.536Z",
+  "metadataOnly": true,
+  "automaticActivation": false,
+  "paidCalls": 0,
+  "results": [
+    {
+      "state": "FL",
+      "query": "owner:FloridaGIO cadastral",
+      "automaticActivation": false,
+      "candidates": [
+        {
+          "itemId": "efa909d6b1c841d298b0a649e7f71cf2",
+          "title": "Florida Statewide Parcels",
+          "owner": "FloridaGIO",
+          "url": "https://services9.arcgis.com/Gh9awoU677aKree0/arcgis/rest/services/Florida_Statewide_Cadastral/FeatureServer",
+          "itemUrl": "https://www.arcgis.com/home/item.html?id=efa909d6b1c841d298b0a649e7f71cf2",
+          "authorityVerified": false,
+          "licenseInfo": "The Department does not generate or maintain the data used to compile this statewide parcel map. The Department does not guarantee the accuracy, or completeness, or the compliance with public records laws of this parcel GIS data. The data is owned and maintained by each Florida county’s property appraiser’s office and was provided to the Department. by each respective county property appraiser’s office. This GIS map data is typically constructed from county, city, state and/or federal public records and should not be relied on to replace an accurate professional survey on any parcel depicted.",
+          "attribution": "Florida’s county property appraisers, Florida Department of Revenue Property Tax Oversight",
+          "description": "The Florida Department of Revenue’s Property Tax Oversight(PTO) program collects parcel level Geographic Information System (GIS) data files every April from all of Florida’s 67 county property appraisers’ offices. This GIS data was exported from these file submissions in August 2026. The GIS parcel polygon features have been joined with the real property roll (Name – Address – Legal, or NAL) file. No line work was adjusted between county boundaries.The polygon data set represents the information property appraisers gathered from the legal description on deeds, lot layout of recorded plats, declaration of condominium documents, recorded and unrecorded surveys. Individual parcel data is updated continually by each county property appraiser as needed. The GIS linework and related attributions for the statewide parcel map are updated annually by the Department every August.&nbsp; Minor data maintenance is also completed every May and November. The dataset extends countywide and is attribute by Federal Information Processing Standards (FIPS) code. DOR reference with FIPS county codes and attribution definitions - https://fgio.maps.arcgis.com/home/item.html?id=55e830fd6c8948baae1601fbfc33a3b2 If you discover the inadvertent release of a confidential record exempt from disclosure pursuant to Chapter 119, Florida Statutes, public records laws, immediately notify the Department of Revenue at 850-717-6570 and your local Florida Property Appraisers’ Office. &nbsp; Please contact the county property appraiser with any parcel specific questions: Florida Property Appraisers’ Offices: Alachua County Property Appraiser – https://www.acpafl.org/ Baker County Property Appraiser – https://www.bakerpa.com/ Bay County Property Appraiser – https://baypa.net/ Bradford County Property Apprais",
+          "layers": [
+            {
+              "id": 0,
+              "name": "CADASTRAL_DOR"
+            }
+          ],
+          "serviceItemId": "efa909d6b1c841d298b0a649e7f71cf2",
+          "copyrightText": "Florida’s county property appraisers, Florida Department of Revenue Property Tax Oversight"
+        },
+        {
+          "itemId": "0307355f1818412fa97fbde39b30f640",
+          "title": "Florida Statewide Parcel Centroid Version",
+          "owner": "FloridaGIO",
+          "url": "https://services9.arcgis.com/Gh9awoU677aKree0/arcgis/rest/services/Florida_Statewide_Parcel_Centroid_Version/FeatureServer",
+          "itemUrl": "https://www.arcgis.com/home/item.html?id=0307355f1818412fa97fbde39b30f640",
+          "authorityVerified": false,
+          "licenseInfo": "The Department does not generate or maintain the data used to compile this statewide parcel map. The Department does not guarantee the accuracy, or completeness, or the compliance with public records laws of this parcel GIS data. The data is owned and maintained by each Florida county’s property appraiser’s office and was provided to the Department. by each respective county property appraiser’s office. This GIS map data is typically constructed from county, city, state and/or federal public records and should not be relied on to replace an accurate professional survey on any parcel depicted.",
+          "attribution": "Florida’s county property appraisers, Florida Department of Revenue Property Tax Oversight",
+          "description": "The Florida Department of Revenue’s Property Tax Oversight(PTO) program collects parcel level Geographic Information System (GIS) data files every April from all of Florida’s 67 county property appraisers’ offices. This GIS data was exported from these file submissions in August 2026. The GIS parcel polygon features have been joined with the real property roll (Name – Address – Legal, or NAL) file. No line work was adjusted between county boundaries.The polygon data set represents the information property appraisers gathered from the legal description on deeds, lot layout of recorded plats, declaration of condominium documents, recorded and unrecorded surveys. Individual parcel data is updated continually by each county property appraiser as needed. The GIS linework and related attributions for the statewide parcel map are updated annually by the Department every August.&nbsp; Minor data maintenance is also completed every May and November. The dataset extends countywide and is attribute by Federal Information Processing Standards (FIPS) code. DOR reference with FIPS county codes and attribution definitions - https://fgio.maps.arcgis.com/home/item.html?id=55e830fd6c8948baae1601fbfc33a3b2 If you discover the inadvertent release of a confidential record exempt from disclosure pursuant to Chapter 119, Florida Statutes, public records laws, immediately notify the Department of Revenue at 850-717-6570 and your local Florida Property Appraisers’ Office. &nbsp; Please contact the county property appraiser with any parcel specific questions: Florida Property Appraisers’ Offices: Alachua County Property Appraiser – https://www.acpafl.org/ Baker County Property Appraiser – https://www.bakerpa.com/ Bay County Property Appraiser – https://baypa.net/ Bradford County Property Apprais",
+          "layers": [
+            {
+              "id": 0,
+              "name": "FDOR Cadastral Centroids 2026"
+            }
+          ],
+          "serviceItemId": "0307355f1818412fa97fbde39b30f640",
+          "copyrightText": "Florida’s county property appraisers, Florida Department of Revenue Property Tax Oversight"
+        }
+      ],
+      "total": 2
+    },
+    {
+      "state": "TX",
+      "query": "owner:TNRIS parcels",
+      "automaticActivation": false,
+      "candidates": [],
+      "total": 0
+    },
+    {
+      "state": "OH",
+      "query": "owner:ogrip_agol parcels",
+      "automaticActivation": false,
+      "candidates": [
+        {
+          "itemId": "26ab5fad8d5d4258a7492a14de83bc0e",
+          "title": "Ohio Statewide Parcels Public View",
+          "owner": "ogrip_agol",
+          "url": "https://services2.arcgis.com/MlJ0G8iWUyC7jAmu/arcgis/rest/services/OhioStatewidePacels_full_view/FeatureServer",
+          "itemUrl": "https://www.arcgis.com/home/item.html?id=26ab5fad8d5d4258a7492a14de83bc0e",
+          "authorityVerified": false,
+          "licenseInfo": "The State of Ohio’s geospatial data are available for public use at the user’s own risk and provided for informational purposes only. The State of Ohio provides the se data “as is” and does not warrant or guarantee that these data are complete, accurate or error free. The State of Ohio disclaims any warranties regarding the se data and assumes no liability for the use of or reliance on the se data.",
+          "attribution": "OGRIP",
+          "description": "This Statewide Parcel Dataset has been produced from county-maintained parcel and assessment records and combined into a single, standardized statewide dataset.",
+          "layers": [
+            {
+              "id": 0,
+              "name": "Parcels"
+            }
+          ],
+          "serviceItemId": "26ab5fad8d5d4258a7492a14de83bc0e",
+          "copyrightText": ""
+        },
+        {
+          "itemId": "8f5891b93fa34b7081e49b02847dfc58",
+          "title": "OhioStatewideParcels_Landuse",
+          "owner": "ogrip_agol",
+          "url": "https://services2.arcgis.com/MlJ0G8iWUyC7jAmu/arcgis/rest/services/OhioStatewidePacels_Landuse/FeatureServer",
+          "itemUrl": "https://www.arcgis.com/home/item.html?id=8f5891b93fa34b7081e49b02847dfc58",
+          "authorityVerified": false,
+          "licenseInfo": "The State of Ohio’s geospatial data are available for public use at the user’s own risk and provided for informational purposes only. The State of Ohio provides the se data “as is” and does not warrant or guarantee that these data are complete, accurate or error free. The State of Ohio disclaims any warranties regarding the se data and assumes no liability for the use of or reliance on the se data.",
+          "attribution": "",
+          "description": "Ohio Statewide Parcels dataset Land Use View. Uploaded 11/14/2023 This is the layer used in the land use map and application for the parcels hub.",
+          "layers": [
+            {
+              "id": 0,
+              "name": "Parcels"
+            }
+          ],
+          "serviceItemId": "8f5891b93fa34b7081e49b02847dfc58",
+          "copyrightText": ""
+        },
+        {
+          "itemId": "54852a30ed6140fbb85ea2c186a175b9",
+          "title": "Ohio Municipal Boundaries",
+          "owner": "ogrip_agol",
+          "url": "https://maps.ohio.gov/arcgis/rest/services/Hosted/Ohio_Municipal_Boundaries/FeatureServer",
+          "itemUrl": "https://www.arcgis.com/home/item.html?id=54852a30ed6140fbb85ea2c186a175b9",
+          "authorityVerified": false,
+          "licenseInfo": "The State of Ohio’s geospatial data are available for public use at the user’s own risk and provided for informational purposes only. The State of Ohio provides these data “as is” and does not warrant or guarantee that these data are complete, accurate or error free. The State of Ohio disclaims any warranties regarding these data and assumes no liability for the use of or reliance on these data.",
+          "attribution": "Ohio Geographically Referenced Information Program (OGRIP)",
+          "description": "These boundaries are of cities and villages within the state of Ohio. No determinations have been made as to the types of municipalities for each entity. Municipality is a broad term for an area that has its own local government. In Ohio, a municipality is any incorporated local government which has its own charter or was created under state law. Ohio municipalities are classified as either: Cities (population ≥ 5,000) Villages (population &lt; 5,000) In Ohio, &quot;municipality&quot; is either a city or a village. This data was derived from County Parcel data and ODOT Municipality data by combining the Parcel and ODOT municipalities, then removing any parcels that were designated as not municipality. Any slivers or artifacts created in error were removed. It was then edge matched to appropriate boundary datasets then dissolved to create one feature for each municipality. Feature Service updated on 5/6/2025 with 119 annexations throughout the state. These annexations were as of 1/30/2025. Updates will be ongoing. Feature Service updated on 6/23/2025 to include U.S. Census decennial population estimates for 2000. 2010, 2020 and population estimates for 2024. Feature Service updated on 1/1/2026 to add sq miles to cities. Feature Service updated 4/27/2026 to include 139 recent annexations, as of January 2026.",
+          "layers": [
+            {
+              "id": 0,
+              "name": "Ohio_Municipal_Boundaries"
+            }
+          ],
+          "serviceItemId": "54852a30ed6140fbb85ea2c186a175b9",
+          "copyrightText": ""
+        },
+        {
+          "itemId": "13c69be53f854a3cb5806a9422da2bf5",
+          "title": "Ohio School District Boundaries",
+          "owner": "ogrip_agol",
+          "url": "https://maps.ohio.gov/arcgis/rest/services/Hosted/Ohio_School_Districts_2025/FeatureServer",
+          "itemUrl": "https://www.arcgis.com/home/item.html?id=13c69be53f854a3cb5806a9422da2bf5",
+          "authorityVerified": false,
+          "licenseInfo": "The State of Ohio’s geospatial data are available for public use at the user’s own risk and provided for informational purposes only. The State of Ohio provides these data “as is” and does not warrant or guarantee that these data are complete, accurate or error free. The State of Ohio disclaims any warranties regarding these data and assumes no liability for the use or reliance on these data.",
+          "attribution": "",
+          "description": "The statewide school district boundaries are primarily compiled using the most recent boundary data provided by each of Ohio's counties. In cases where county-level school district boundaries were not available or were incomplete, boundaries were derived from parcel data to ensure comprehensive coverage. Each boundary was aligned using parcels and county boundaries to maintain spatial consistency across the state. The individual county datasets were then merged and dissolved to produce a seamless, statewide representation of school district boundaries. Ohio Statewide School Districts were updated 07/31/2025. Corrections made 9/28/2026.",
+          "layers": [
+            {
+              "id": 0,
+              "name": "Ohio School District Boundaries"
+            }
+          ],
+          "serviceItemId": "13c69be53f854a3cb5806a9422da2bf5",
+          "copyrightText": ""
+        },
+        {
+          "itemId": "d51719ce856b450aad511c86c385b546",
+          "title": "CountyUploadFileJoin",
+          "owner": "ogrip_agol",
+          "url": "https://services2.arcgis.com/MlJ0G8iWUyC7jAmu/arcgis/rest/services/CountyUploadFileJoin/FeatureServer",
+          "itemUrl": "https://www.arcgis.com/home/item.html?id=d51719ce856b450aad511c86c385b546",
+          "authorityVerified": false,
+          "licenseInfo": "",
+          "attribution": "",
+          "description": "",
+          "layers": [
+            {
+              "id": 0,
+              "name": "CountyUploadFileJoin"
+            }
+          ],
+          "serviceItemId": "d51719ce856b450aad511c86c385b546",
+          "copyrightText": ""
+        },
+        {
+          "itemId": "950a2b26494243279ea824bc4847de32",
+          "title": "Statewide_Parcels_2022",
+          "owner": "ogrip_agol",
+          "url": "https://maps.ohio.gov/arcgis/rest/services/Statewide_Parcels_2022/MapServer",
+          "itemUrl": "https://www.arcgis.com/home/item.html?id=950a2b26494243279ea824bc4847de32",
+          "authorityVerified": false,
+          "licenseInfo": "The State of Ohio’s geospatial data are available for public use at the user’s own risk and provided for informational purposes only. The State of Ohio provides the se data “as is” and does not warrant or guarantee that these data are complete, accurate or error free. The State of Ohio disclaims any warranties regarding the se data and assumes no liability for the use of or reliance on the se data.",
+          "attribution": "Department of Natural Resources, Office of Information Technology.",
+          "description": "Provide one combined parcel layer for department use. This dataset represents a compilation of the data from each county in Ohio that has parcel data available.",
+          "error": "ARCGIS_499"
+        }
+      ],
+      "total": 7
+    },
+    {
+      "state": "PA",
+      "query": "owner:pasda parcels",
+      "automaticActivation": false,
+      "candidates": [],
+      "total": 0
+    },
+    {
+      "state": "AR",
+      "query": "\"Statewide Parcels\" Arkansas",
+      "automaticActivation": false,
+      "candidates": [],
+      "total": 0
+    },
+    {
+      "state": "CA",
+      "query": "\"Los Angeles\" parcels owner:CountyofLA",
+      "automaticActivation": false,
+      "candidates": [],
+      "total": 0
+    },
+    {
+      "state": "GA",
+      "query": "\"Parcels\" \"Fulton\"",
+      "automaticActivation": false,
+      "candidates": [
+        {
+          "itemId": "f81214ac7d8c4c0d8abe51148c04ff02",
+          "title": "Parcel Adjustment for Sandy Springs",
+          "owner": "GISPublisher_COSS",
+          "url": "https://services5.arcgis.com/buITjRsK0rZsAXbQ/arcgis/rest/services/Parcel_Correction/FeatureServer",
+          "itemUrl": "https://www.arcgis.com/home/item.html?id=f81214ac7d8c4c0d8abe51148c04ff02",
+          "authorityVerified": false,
+          "licenseInfo": "This work is licensed under the Creative Commons Attribution 4.0 International License . To view a copy of this license, visit https://creativecommons.org/licenses/by/4.0/ or send a letter to Creative Commons, PO Box 1866, Mountain View, CA 94042, USA. You are free to: Share — copy and redistribute the material in any medium or format Adapt — remix, transform, and build upon the material for any purpose, even commercially. The licensor cannot revoke these freedoms as long as you follow the license terms. Under the following terms: Attribution — You must give appropriate credit, provide a link to the license, and indicate if changes were made. You may do so in any reasonable manner, but not in any way that suggests the licensor endorses you or your use. No additional restrictions — You may not apply legal terms or technological measures that legally restrict others from doing anything the license permits.",
+          "attribution": "",
+          "description": "Overview This feature service supports a parcel adjustment project for the Sandy Springs area using parcel and subdivision reference layers. It brings together parcel polygons, parcel boundary and centerline support features, parcel identification and annotation content, and subdivision records used to maintain corrected parcel geometry and associated reference information. Feature Layers Adjusted Parcels provides parcel polygons with ownership, assessment, address, land use, subdivision, and update information used to support corrected parcel records. Parcel Lines and Soft Lines contain parcel boundary linework and curve-related attributes that help represent adjusted parcel geometry. Centerlines provides a minimal line layer used as part of the parcel adjustment dataset structure. PIN stores parcel identification features and related parcel reference details such as acreage, plat, deed, and recording information. Subdivisions contains subdivision names and plat references that support parcel indexing and adjustment workflows. Annotation Points stores text annotation elements used to place labels and parcel-related annotation content. Geographic Coverage The service covers a local parcel adjustment area for Sandy Springs in Fulton County, Georgia. Use Cases Maintaining corrected parcel boundaries and related parcel reference layers Supporting parcel review and update workflows from recorded plats and surveys Displaying parcel identifiers, subdivision references, and label placement for cartographic products Providing local parcel editing support for GIS applications and web mapping Data Stewardship Recorded plats and surveys are incorporated into the adjustment workflow on a recurring basis. Fulton County remains the authoritative source for parcel data.",
+          "layers": [
+            {
+              "id": 46,
+              "name": "AdjustedParcels_AnnotationPoint"
+            },
+            {
+              "id": 50,
+              "name": "AdjustedParcels_PIN"
+            },
+            {
+              "id": 51,
+              "name": "AdjustedParcels_SoftLines"
+            },
+            {
+              "id": 48,
+              "name": "AdjustedParcels_ParcelLines"
+            },
+            {
+              "id": 47,
+              "name": "AdjustedParcels_Centerlines"
+            },
+            {
+              "id": 49,
+              "name": "AdjustedParcels_Parcels"
+            },
+            {
+              "id": 52,
+              "name": "AdjustedParcels_Subdivisions"
+            }
+          ],
+          "serviceItemId": "f81214ac7d8c4c0d8abe51148c04ff02",
+          "copyrightText": ""
+        },
+        {
+          "itemId": "31006e9cb13a493fbb6c99dbbbea2e4a",
+          "title": "Current Parcels",
+          "owner": "GISPublisher_COSS",
+          "url": "https://services5.arcgis.com/buITjRsK0rZsAXbQ/arcgis/rest/services/CurrentParcels/FeatureServer",
+          "itemUrl": "https://www.arcgis.com/home/item.html?id=31006e9cb13a493fbb6c99dbbbea2e4a",
+          "authorityVerified": false,
+          "licenseInfo": "",
+          "attribution": "",
+          "description": "Parcel data from Fulton County for the most recent tax year. This layer can be used in software programs and apps so only the data layer needs to be updated instead of each individual program or app. Fulton Update Date attribute is the Last Updated Date from the Fulton County GIS Open Data site. From Fulton: This dataset represents the boundary of each parcel of land in Fulton County recorded for the purpose of aiding in the appraisal of real property and the determination of property tax. A parcel dataset is created each year in association with that year's tax digest. The parcel dataset for any given year is not considered final until the completion of the digest, which generally occurs around mid-year. Until the completion of the digest, the parcel dataset is considered to be a work in progress. Any necessary corrections and omissions may continue to be made even after the completion of the digest. The parcel dataset in its published form incorporates information from the CAMA (computer-aided mass appraisal) database. The CAMA information included with the published dataset is selected based on its value to the typical consumer of the data and includes the parcel identification number, the property address, property owner, owner's mailing address, tax district, assessed and appraised value for land and improvements, the number of livable units, acreage, property class and land use class.",
+          "layers": [
+            {
+              "id": 0,
+              "name": "Tax_Parcels GDB"
+            }
+          ],
+          "serviceItemId": "31006e9cb13a493fbb6c99dbbbea2e4a",
+          "copyrightText": ""
+        },
+        {
+          "itemId": "432117006e54453992a359fb102b50f8",
+          "title": "County Parcels All",
+          "owner": "CoSF_GIS1",
+          "url": "https://services3.arcgis.com/y2BJK2GUfoTwH7py/arcgis/rest/services/County_Parcels_All/FeatureServer",
+          "itemUrl": "https://www.arcgis.com/home/item.html?id=432117006e54453992a359fb102b50f8",
+          "authorityVerified": false,
+          "licenseInfo": "",
+          "attribution": "",
+          "description": "This dataset represents the boundary of each parcel of land in Fulton County recorded for the pupose of aiding in the appraisal of real property and the determination of property tax. A parcel dataset is created each year in association with that year's tax digest. The parcel dataset for any given year is not considered final until the completion of the digest, which generally occurs around mid-year. Until the completion of the digest, the parcel dataset is considered to be a work in progress. Any necessary corrections and omissions may continue to be made even after the completion of the digest. The parcel dataset in its published form incorporates information from the CAMA (computer-aided mass appraisal) database. The CAMA information included with the published dataset is selected based on its value to the typical consumer of the data and includes the parcel identification number, the property address, property owner, owner's mailing address, tax district, assessed and appraised value for land and improvements, the number of livable units, acreage, property class and land use class. The information in this data set represents the completed 2019 digest.",
+          "layers": [
+            {
+              "id": 0,
+              "name": "County Parcels All"
+            }
+          ],
+          "serviceItemId": "432117006e54453992a359fb102b50f8",
+          "copyrightText": "Compiled by the Fulton County Department of Information Technology, GIS Division using data from the Fulton County Board of Assessors, GIS Division"
+        },
+        {
+          "itemId": "9e7602bafec941dc9e64ecf8906bbdd2",
+          "title": "Tax_Parcels2018",
+          "owner": "atlhabitat",
+          "url": "https://services1.arcgis.com/AQDHTHDrZzfsFsB5/arcgis/rest/services/Tax_Parcels2018/FeatureServer/0",
+          "itemUrl": "https://www.arcgis.com/home/item.html?id=9e7602bafec941dc9e64ecf8906bbdd2",
+          "authorityVerified": false,
+          "licenseInfo": "",
+          "attribution": "",
+          "description": "his dataset represents the boundary of each parcel of land in Fulton County recorded for the pupose of aiding in the appraisal of real property and the determination of property tax. A parcel dataset is created each year in association with that year's tax digest. The parcel dataset for any given year is not considered final until the completion of the digest, which generally occurs around mid-year. Until the completion of the digest, the parcel dataset is considered to be a work in progress. Any necessary corrections and omissions may continue to be made even after the completion of the digest. The parcel dataset in its published form incorporates information from the CAMA (computer-aided mass appraisal) database. The CAMA information included with the published dataset is selected based on its value to the typical consumer of the data and includes the parcel identification number, the property address, property owner, owner's mailing address, tax district, assessed and appraised value for land and improvements, the number of livable units, acreage, property class and land use class. The information in this data set represents the completed 2018 digest.",
+          "fields": [
+            {
+              "name": "OBJECTID",
+              "alias": "OBJECTID",
+              "type": "esriFieldTypeOID"
+            },
+            {
+              "name": "ParcelID",
+              "alias": "ParcelID",
+              "type": "esriFieldTypeString"
+            },
+            {
+              "name": "TaxYear",
+              "alias": "TaxYear",
+              "type": "esriFieldTypeSmallInteger"
+            },
+            {
+              "name": "Address",
+              "alias": "Address",
+              "type": "esriFieldTypeString"
+            },
+            {
+              "name": "AddrNumber",
+              "alias": "AddrNumber",
+              "type": "esriFieldTypeString"
+            },
+            {
+              "name": "AddrPreDir",
+              "alias": "AddrPreDir",
+              "type": "esriFieldTypeString"
+            },
+            {
+              "name": "AddrStreet",
+              "alias": "AddrStreet",
+              "type": "esriFieldTypeString"
+            },
+            {
+              "name": "AddrSuffix",
+              "alias": "AddrSuffix",
+              "type": "esriFieldTypeString"
+            },
+            {
+              "name": "AddrPosDir",
+              "alias": "AddrPosDir",
+              "type": "esriFieldTypeString"
+            },
+            {
+              "name": "AddrUntTyp",
+              "alias": "AddrUntTyp",
+              "type": "esriFieldTypeString"
+            },
+            {
+              "name": "AddrUnit",
+              "alias": "AddrUnit",
+              "type": "esriFieldTypeString"
+            },
+            {
+              "name": "Owner",
+              "alias": "Owner",
+              "type": "esriFieldTypeString"
+            },
+            {
+              "name": "OwnerAddr1",
+              "alias": "OwnerAddr1",
+              "type": "esriFieldTypeString"
+            },
+            {
+              "name": "OwnerAddr2",
+              "alias": "OwnerAddr2",
+              "type": "esriFieldTypeString"
+            },
+            {
+              "name": "TaxDist",
+              "alias": "TaxDist",
+              "type": "esriFieldTypeString"
+            },
+            {
+              "name": "TotAssess",
+              "alias": "TotAssess",
+              "type": "esriFieldTypeInteger"
+            },
+            {
+              "name": "LandAssess",
+              "alias": "LandAssess",
+              "type": "esriFieldTypeInteger"
+            },
+            {
+              "name": "ImprAssess",
+              "alias": "ImprAssess",
+              "type": "esriFieldTypeInteger"
+            },
+            {
+              "name": "TotAppr",
+              "alias": "TotAppr",
+              "type": "esriFieldTypeInteger"
+            },
+            {
+              "name": "LandAppr",
+              "alias": "LandAppr",
+              "type": "esriFieldTypeInteger"
+            },
+            {
+              "name": "ImprAppr",
+              "alias": "ImprAppr",
+              "type": "esriFieldTypeInteger"
+            },
+            {
+              "name": "LUCode",
+              "alias": "LUCode",
+              "type": "esriFieldTypeString"
+            },
+            {
+              "name": "ClassCode",
+              "alias": "ClassCode",
+              "type": "esriFieldTypeString"
+            },
+            {
+              "name": "ExCode",
+              "alias": "ExCode",
+              "type": "esriFieldTypeString"
+            },
+            {
+              "name": "LivUnits",
+              "alias": "LivUnits",
+              "type": "esriFieldTypeSmallInteger"
+            },
+            {
+              "name": "LandAcres",
+              "alias": "LandAcres",
+              "type": "esriFieldTypeDouble"
+            },
+            {
+              "name": "NbrHood",
+              "alias": "Neighborhood",
+              "type": "esriFieldTypeString"
+            },
+            {
+              "name": "Subdiv",
+              "alias": "Subdivision",
+              "type": "esriFieldTypeString"
+            },
+            {
+              "name": "SubdivNum",
+              "alias": "Subdivision Number",
+              "type": "esriFieldTypeString"
+            },
+            {
+              "name": "SubdivLot",
+              "alias": "Subdivision Lot",
+              "type": "esriFieldTypeString"
+            },
+            {
+              "name": "SubdivBlck",
+              "alias": "Subdivision Block",
+              "type": "esriFieldTypeString"
+            },
+            {
+              "name": "FeatureID",
+              "alias": "FeatureID",
+              "type": "esriFieldTypeString"
+            },
+            {
+              "name": "Shape__Area",
+              "alias": "Shape__Area",
+              "type": "esriFieldTypeDouble"
+            },
+            {
+              "name": "Shape__Length",
+              "alias": "Shape__Length",
+              "type": "esriFieldTypeDouble"
+            }
+          ],
+          "geometryType": "esriGeometryPolygon",
+          "serviceItemId": "cea9733f512845edb8ac475e1cb4f960",
+          "copyrightText": ""
+        },
+        {
+          "itemId": "70565d886f1e4528a43a86be6ce5c2f3",
+          "title": "Parcel Boundaries of Indiana Current",
+          "owner": "IndianaMap",
+          "url": "https://gisdata.in.gov/server/rest/services/Hosted/Parcel_Boundaries_of_Indiana_Current/FeatureServer",
+          "itemUrl": "https://www.arcgis.com/home/item.html?id=70565d886f1e4528a43a86be6ce5c2f3",
+          "authorityVerified": false,
+          "licenseInfo": "CREDIT - It is requested, but not required, that the Indiana GIS Data Harvest Program be cited in any products generated from this data set. If citing, the following source citation language should be included: [Parcel Boundaries of Indiana 2021: Parcel Boundaries Maintained by County Agencies in Indiana, (Indiana Geographic Information Office, File Geodatabase, Polygon Feature Class), 20220201].",
+          "attribution": "This data set was created as part of the Indiana Geographic Information Office's GIS Data Harvest Program. The source data used to create this dataset was provided by Indiana counties.",
+          "description": "This data layer is an Esri file geodatabase polygon feature class that contains parcel boundaries maintained by county agencies in Indiana. It was released by the Indiana Geographic Information Office (IGIO) on February 1, 2022. The IGIO compiled the data as part of the Indiana Data Harvest program between the Indiana Geographic Information Council (IGIC) and all Indiana counties to provide the most accurate framework data for the citizens of Indiana. These layers include address points, street centerlines, land parcels, and governmental boundaries.",
+          "layers": [
+            {
+              "id": 0,
+              "name": "Parcel Boundaries of Indiana Current"
+            }
+          ],
+          "serviceItemId": "ce78e8017fcb479c81a06a6255cfcfa6",
+          "copyrightText": "This data set was created as part of the Indiana Geographic Information Office's GIS Data Harvest Program. The source data used to create this dataset was provided by Indiana's local governments."
+        },
+        {
+          "itemId": "774f52f47ad14a8389af0f851499e4d9",
+          "title": "Parcels",
+          "owner": "JohnsCreekGA",
+          "url": "https://services1.arcgis.com/bqfNVPUK3HOnCFmA/arcgis/rest/services/Parcels/FeatureServer",
+          "itemUrl": "https://www.arcgis.com/home/item.html?id=774f52f47ad14a8389af0f851499e4d9",
+          "authorityVerified": false,
+          "licenseInfo": "This work is licensed under a Creative Commons Attribution 4.0 International License .",
+          "attribution": "City of Johns Creek, GA",
+          "description": "Location of all parcels in Johns Creek, GA. Parcel and parcel attribute data is obtained through intergovernmental agreement with Fulton County Tax Assessors Office. Parcels are corrected using topology created by Johns Creek GIS. Information included in this feature are the GlobalID, parcel ID, Date Parcel Layer was updated, physical address, address number, address pre-direction address street, address suffix, address post direction, address unit type, owner's name, owner's mailing Address, Owner Mailing city, state, zip, tax district code, total assessment, land assessment, improvement assessment, total appraised, land appraised, improvement appraised, Fulton Land Use Code, Fulton Zoning Class Code, Fulton Livable Units, Fulton Livable Units, Acres as mapped, acres as deeded, Fulton NeighborhoodID, JC NeighborhoodID, JC Neighborhood Name, JC Neighborhood Phase ID, JC Neighborhood Phase, JC Landlot JC Zoning, JC Fire Zone, JC Police Beat, JC Public Works Zone, JC River Corridor, JC Stream Buffer, JC FEMA Flood Zone, JC Stormwater Land Use Class, JC Stormwater Sub-Land Use Class, JC Comments, Neighborhood Status, and Primarily (used for area calculations). Data is updated monthly and is current as of March, 2024",
+          "layers": [
+            {
+              "id": 0,
+              "name": "Parcels"
+            }
+          ],
+          "serviceItemId": "774f52f47ad14a8389af0f851499e4d9",
+          "copyrightText": "City of Johns Creek, GA"
+        }
+      ],
+      "total": 267
+    },
+    {
+      "state": "MI",
+      "query": "\"Parcels\" \"Wayne\"",
+      "automaticActivation": false,
+      "candidates": [
+        {
+          "itemId": "8821b36bc36e42d9b91fafe576830167",
+          "title": "TaxParcels",
+          "owner": "jzarnowski",
+          "url": "https://services1.arcgis.com/VMKRr2Ecl6EFwJpm/arcgis/rest/services/TaxParcels/FeatureServer",
+          "itemUrl": "https://www.arcgis.com/home/item.html?id=8821b36bc36e42d9b91fafe576830167",
+          "authorityVerified": false,
+          "licenseInfo": "This dataset contains tax parcel boundaries and selected CAMA information (e.g., owner name, mailing address, parcel ID, and assessment attributes). Some ownership information may be omitted for owners who have opted out of publication. No Warranty / Accuracy : Provided “as is” . Parcel boundaries and CAMA information may contain errors. Users are responsible for verifying suitability for their purposes. Not a Legal Document : This dataset is not a legal survey, deed, or title document . For official records, consult the Wayne County Assessment Office and the Recorder of Deeds. Restricted Use : This dataset may not be redistributed . Use requires prior consent from Wayne County . Any authorized use must include proper attribution: Source: Wayne County, Pennsylvania GIS. Tax parcel and CAMA data provided for informational purposes only. Wayne County may update, modify, or discontinue any dataset at any time without notice.",
+          "attribution": "Wayne County Planning/GIS, Wayne County Tax Assessment",
+          "description": "This dataset represents tax parcel boundaries within Wayne County, Pennsylvania. Parcels are maintained for property assessment, taxation, and general mapping purposes. In addition to parcel geometry, this dataset contains selected Computer-Assisted Mass Appraisal (CAMA) information, which may include owner name, mailing address, parcel identification number, and other assessment-related attributes. This information is part of the public record in Pennsylvania and is provided here for informational purposes. Parcel boundaries are compiled from recorded subdivision plans, deeds, and other official documents. While every effort is made to ensure accuracy, parcel geometry and attribute information may not reflect the most current recorded documents or on-the-ground conditions. Assessment and ownership information is provided for informational purposes only and may not reflect recent transfers or changes. For official ownership records, legal descriptions, or recorded documents, consult the Wayne County Assessment Office and the Recorder of Deeds. This dataset is not a legal survey, deed, or title document and should not be used for legal determinations, property transfers, or boundary disputes. Data is updated periodically as changes occur through subdivision, consolidation, transfer, or correction processes.",
+          "layers": [
+            {
+              "id": 0,
+              "name": "TaxParcels"
+            }
+          ],
+          "serviceItemId": "8821b36bc36e42d9b91fafe576830167",
+          "copyrightText": ""
+        },
+        {
+          "itemId": "694b57466a4c4970a4811ced11ba3fe1",
+          "title": "ATS Parcel Research — Livonia, MI Parcels (sample)",
+          "owner": "allthingsspatial",
+          "url": "https://services1.arcgis.com/EvDRLcHhbHG5BnwT/arcgis/rest/services/ATS_Parcel_Research_Livonia_MI_Parcels_sample_/FeatureServer",
+          "itemUrl": "https://www.arcgis.com/home/item.html?id=694b57466a4c4970a4811ced11ba3fe1",
+          "authorityVerified": false,
+          "licenseInfo": "",
+          "attribution": "",
+          "description": "ATS Parcel Research demo layer — parcels for the City of Livonia, Wayne County, Michigan, carved from the free Wayne County, MI parcel download (snapshot 2026-06-14). Parcels selected by centroid-within-municipal-boundary (Municipal_Boundaries, NAME='Livonia'). Fields standardized to the ATS ParcelSummary vocabulary (parno, ownname, siteadd, scity, sstate, szip, cntyname, stname, gisacres [geodesic acres]). The Wayne base is attribute-sparse: NO assessed value, deed, or mailing address. SAMPLE / DEMO DATA — NOT AUTHORITATIVE; verify against official Wayne County / City of Livonia records. Source: Wayne County, MI open parcel data. &nbsp; ATS Parcel Research is an **independent demonstration by All Things Spatial LLC, not affiliated with, endorsed by, or representative of the City of Livonia, Wayne County, or any government agency**; (b) all parcel/hazard/environmental/soils info is from public third-party sources **for planning awareness and illustration only — not authoritative, not a determination, must not be relied upon for legal, financial, or development decisions; verify with official authorities and qualified professionals.**",
+          "layers": [
+            {
+              "id": 0,
+              "name": "livonia_parcels"
+            }
+          ],
+          "serviceItemId": "694b57466a4c4970a4811ced11ba3fe1",
+          "copyrightText": ""
+        },
+        {
+          "itemId": "dbcdd6efa1be495b9d3843c2945fee09",
+          "title": "Warrants_WayneCoPA",
+          "owner": "jzarnowski",
+          "url": "https://services1.arcgis.com/VMKRr2Ecl6EFwJpm/arcgis/rest/services/Warrants_WayneCoPA/FeatureServer",
+          "itemUrl": "https://www.arcgis.com/home/item.html?id=dbcdd6efa1be495b9d3843c2945fee09",
+          "authorityVerified": false,
+          "licenseInfo": "This dataset is intended for educational and historical research purposes only and should not be used for legal boundary determinations, engineering, or site-specific planning decisions. Wayne County Planning / GIS makes no warranty, expressed or implied, regarding the accuracy, completeness, or fitness of this dataset for any particular purpose. Wayne County assumes no responsibility or legal liability for the accuracy of the data or for any decisions made based upon it. Users assume all risk associated with the use of this information.",
+          "attribution": "Wayne County Planning/GIS, Pennsylvania Historical and Museum Commission, Pennsylvania State Archives. Dataset created March 2026.",
+          "description": "This polygon feature class represents the boundaries of historical land warrants in Wayne County, Pennsylvania, digitized from original warrant maps held by or referenced through the Pennsylvania State Archives and related repositories. The majority of warrants date to the colonial and early national period (pre-1800), with some extending into the early nineteenth century. Each polygon reflects the surveyed lot lines of individual land warrants as depicted on the source maps, which were georeferenced to modern spatial reference systems prior to digitization. Attributes include warrant owner names, warrant numbers, acreage, survey dates, and township/range designations. This dataset is intended to support historical land research, genealogical inquiry, and planning analysis within Wayne County. Source materials were georeferenced from original warrant maps. Boundary accuracy is dependent on the precision and condition of the source cartographic documents. Users should be aware that warrant boundaries may not align precisely with modern parcel boundaries or legal survey records. Warrants located near municipal boundaries may appear compressed or stretched as a result of geometric inconsistencies introduced when fitting adjacent maps together during georeferencing. This dataset is intended for historical research and planning reference purposes only and should not be used for legal boundary determinations. Gaps and overlaps present are intentional as a means to remain as accurate as possible. Lineage Source materials were obtained from the Pennsylvania State Archives, Pennsylvania Historical and Museum Commission (PHMC). Specifically, the maps are from RG-17 Records of the Land Office — Warrantee Township Maps, Series #17.522, available online at: https://www.phmc.state.pa",
+          "layers": [
+            {
+              "id": 0,
+              "name": "Warrants_WayneCoPA"
+            }
+          ],
+          "serviceItemId": "dbcdd6efa1be495b9d3843c2945fee09",
+          "copyrightText": ""
+        },
+        {
+          "itemId": "75a8062d549541e6b0bcd3eb73b86a9e",
+          "title": "Wayne County Soils",
+          "owner": "WayneCountyGIS",
+          "url": "https://services6.arcgis.com/WiOy9S7NUTWyXUe4/arcgis/rest/services/WayneCoOH_Soils/FeatureServer",
+          "itemUrl": "https://www.arcgis.com/home/item.html?id=75a8062d549541e6b0bcd3eb73b86a9e",
+          "authorityVerified": false,
+          "licenseInfo": "The information provided here is meant to be used for reference purposes only and is made available as a public service. Wayne County does not provide any warranty, whether implied or expressed, and the data is to be considered &quot;AS IS&quot;. Wayne County assumes no responsibility for the accuracy, timeliness, or completeness of the GIS data provided here. By utilizing this data, User agrees to waive and release Wayne County, its agents, consultants, contractors, and employees from any and all liability, claims, actions, and causes of action for loss, damages or injury resulting from the lack of accuracy, currency, completeness, correctness, use or misuse of the data. User further agrees to indemnify for and hold harmless Wayne County from any and all liability, loss, and expense that Wayne County may incur due to User’s usage of this data.",
+          "attribution": "",
+          "description": "Wayne County SURGO Soils",
+          "layers": [
+            {
+              "id": 0,
+              "name": "wayne_parcels.DBO.Soil"
+            }
+          ],
+          "serviceItemId": "75a8062d549541e6b0bcd3eb73b86a9e",
+          "copyrightText": ""
+        },
+        {
+          "itemId": "70565d886f1e4528a43a86be6ce5c2f3",
+          "title": "Parcel Boundaries of Indiana Current",
+          "owner": "IndianaMap",
+          "url": "https://gisdata.in.gov/server/rest/services/Hosted/Parcel_Boundaries_of_Indiana_Current/FeatureServer",
+          "itemUrl": "https://www.arcgis.com/home/item.html?id=70565d886f1e4528a43a86be6ce5c2f3",
+          "authorityVerified": false,
+          "licenseInfo": "CREDIT - It is requested, but not required, that the Indiana GIS Data Harvest Program be cited in any products generated from this data set. If citing, the following source citation language should be included: [Parcel Boundaries of Indiana 2021: Parcel Boundaries Maintained by County Agencies in Indiana, (Indiana Geographic Information Office, File Geodatabase, Polygon Feature Class), 20220201].",
+          "attribution": "This data set was created as part of the Indiana Geographic Information Office's GIS Data Harvest Program. The source data used to create this dataset was provided by Indiana counties.",
+          "description": "This data layer is an Esri file geodatabase polygon feature class that contains parcel boundaries maintained by county agencies in Indiana. It was released by the Indiana Geographic Information Office (IGIO) on February 1, 2022. The IGIO compiled the data as part of the Indiana Data Harvest program between the Indiana Geographic Information Council (IGIC) and all Indiana counties to provide the most accurate framework data for the citizens of Indiana. These layers include address points, street centerlines, land parcels, and governmental boundaries.",
+          "layers": [
+            {
+              "id": 0,
+              "name": "Parcel Boundaries of Indiana Current"
+            }
+          ],
+          "serviceItemId": "ce78e8017fcb479c81a06a6255cfcfa6",
+          "copyrightText": "This data set was created as part of the Indiana Geographic Information Office's GIS Data Harvest Program. The source data used to create this dataset was provided by Indiana's local governments."
+        },
+        {
+          "itemId": "196f32615ede45ed9fc700d6bfd518b1",
+          "title": "Wayne County Parcels",
+          "owner": "dougpierce_uipa",
+          "url": "https://services1.arcgis.com/99lidPhWCzftIe9K/ArcGIS/rest/services/Parcels_Wayne/FeatureServer/0",
+          "itemUrl": "https://www.arcgis.com/home/item.html?id=196f32615ede45ed9fc700d6bfd518b1",
+          "authorityVerified": false,
+          "licenseInfo": "",
+          "attribution": "",
+          "description": "Update information can be found within the layer’s attributes and in a table on the Utah Parcel Data webpage under Basic Parcels.\"Database containing parcel boundary, parcel identifier, parcel address, owner type, and county recorder contact information\" - HB113. The intent of the bill was to not include any attributes that the counties rely on for data sales. If you want other attributes associated with the parcels you need to contact the county recorder.Users should be aware the owner type field 'OWN_TYPE' in the parcel polygons is a very generalized ownership type (Federal, Private, State, Tribal). It is populated with the value of the 'OWNER' field where the parcel's centroid intersects the CADASTRE.LandOwnership polygon layer.This dataset is a snapshot in time and may not be the most current. For the most current data contact the county recorder.",
+          "fields": [
+            {
+              "name": "OBJECTID",
+              "alias": "OBJECTID",
+              "type": "esriFieldTypeOID"
+            },
+            {
+              "name": "FIPS",
+              "alias": "FIPS",
+              "type": "esriFieldTypeDouble"
+            },
+            {
+              "name": "PARCEL_ID",
+              "alias": "PARCEL ID",
+              "type": "esriFieldTypeString"
+            },
+            {
+              "name": "PARCEL_ADD",
+              "alias": "PARCEL ADDRESS",
+              "type": "esriFieldTypeString"
+            },
+            {
+              "name": "PARCEL_CITY",
+              "alias": "PARCEL CITY",
+              "type": "esriFieldTypeString"
+            },
+            {
+              "name": "PARCEL_ZIP",
+              "alias": "PARCEL ZIP CODE",
+              "type": "esriFieldTypeString"
+            },
+            {
+              "name": "OWN_TYPE",
+              "alias": "OWNERSHIP TYPE",
+              "type": "esriFieldTypeString"
+            },
+            {
+              "name": "RECORDER",
+              "alias": "RECORDER",
+              "type": "esriFieldTypeString"
+            },
+            {
+              "name": "ParcelsCur",
+              "alias": "Parcels Current As Of",
+              "type": "esriFieldTypeDate"
+            },
+            {
+              "name": "ParcelsRec",
+              "alias": "Parcels Received",
+              "type": "esriFieldTypeDate"
+            },
+            {
+              "name": "ParcelsPub",
+              "alias": "Parcels Published",
+              "type": "esriFieldTypeDate"
+            },
+            {
+              "name": "ParcelYear",
+              "alias": "Parcel Year",
+              "type": "esriFieldTypeString"
+            },
+            {
+              "name": "ParcelNotes",
+              "alias": "Parcel Notes",
+              "type": "esriFieldTypeString"
+            },
+            {
+              "name": "CoParcel_URL",
+              "alias": "County Parcel Website",
+              "type": "esriFieldTypeString"
+            },
+            {
+              "name": "ACCOUNT_NUM",
+              "alias": "ACCOUNT_NUMBER",
+              "type": "esriFieldTypeString"
+            },
+            {
+              "name": "Shape__Area",
+              "alias": "Shape__Area",
+              "type": "esriFieldTypeDouble"
+            },
+            {
+              "name": "Shape__Length",
+              "alias": "Shape__Length",
+              "type": "esriFieldTypeDouble"
+            }
+          ],
+          "geometryType": "esriGeometryPolygon",
+          "serviceItemId": "effc6e776f4742e098ff6d49adaaa6ab",
+          "copyrightText": ""
+        }
+      ],
+      "total": 224
+    }
+  ]
+}

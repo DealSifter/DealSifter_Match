@@ -1,6 +1,7 @@
 import { PARCEL_MAX_RESULTS, type Bounds, type ParcelEvidence, type ParcelField, type ParcelSource, type Point, type ProviderResult, type PublicParcelProvider } from './types.ts';
 import { approvedLayerUrl, PARCEL_APPROVED_ORIGINS } from './registry.ts';
 import { arcgisRingsToGeometry, areaCrossCheck, geodesicParcelArea, validGeometry, validPoint } from './geometry.ts';
+import { waitForParcelRequest } from './cache.ts';
 
 export async function boundedJson(url: string, fetcher: typeof fetch, signal?: AbortSignal, timeoutMs = 7500) {
   const controller = new AbortController(); const abort = () => controller.abort();
@@ -59,13 +60,14 @@ export function normalizeParcel(source: ParcelSource, attributes: Record<string,
   provenance.geometryCalculatedSqft = { value: area.sqft, source: source.sourceId, sourceField: null, status: area.sqft === null ? 'UNAVAILABLE' : 'CALCULATED' };
   return { ...fields, geometry, acres, lotSqft, geometryCalculatedSqft: area.sqft, geometryCalculatedAcres: area.acres,
     source: source.sourceId, sourceAuthority: source.authorityName, sourceUrl: approvedLayerUrl(source), retrievedAt, sourceUpdatedAt, evidenceStatus: 'PUBLIC_RECORD',
-    licenseStatus: source.licenseStatus, licenseUrl: source.licenseUrl, usageNotes: source.usageNotes, provenance,
+    licenseStatus: source.licenseStatus, licenseUrl: source.licenseUrl, usageNotes: source.usageNotes, sourceDomains: source.strengths || [], provenance,
     areaCrossCheck: areaCrossCheck([assessorAcres, gisAcres, recordedSqft == null ? null : recordedSqft / 43560, area.acres]) } as ParcelEvidence;
 }
 
 export class ArcGISParcelAdapter implements PublicParcelProvider {
   private metadata: Record<string, any> | null = null;
   private metadataAt = 0;
+  private metadataPending: Promise<Record<string, any>> | null = null;
   private layerUrl: string;
   constructor(readonly source: ParcelSource, private fetcher: typeof fetch = fetch, origins: readonly string[] = PARCEL_APPROVED_ORIGINS) {
     this.layerUrl = approvedLayerUrl(source, origins);
@@ -73,9 +75,12 @@ export class ArcGISParcelAdapter implements PublicParcelProvider {
   getCoverage() { return this.source; }
   async inspect(signal?: AbortSignal) {
     if (this.metadata && Date.now() - this.metadataAt < 3600_000) return this.metadata;
-    const data = await boundedJson(`${this.layerUrl}?f=json`, this.fetcher, signal);
-    if (data.geometryType !== 'esriGeometryPolygon' || !/\bQuery\b/i.test(data.capabilities || '') || !Array.isArray(data.fields)) throw new Error('UNSUPPORTED_PARCEL_SCHEMA');
-    this.metadata = data; this.metadataAt = Date.now(); return data;
+    if(!this.metadataPending) this.metadataPending=(async()=>{
+      const data = await boundedJson(`${this.layerUrl}?f=json`, this.fetcher);
+      if (data.geometryType !== 'esriGeometryPolygon' || !/\bQuery\b/i.test(data.capabilities || '') || !Array.isArray(data.fields)) throw new Error('UNSUPPORTED_PARCEL_SCHEMA');
+      this.metadata = data; this.metadataAt = Date.now(); return data;
+    })().finally(()=>{this.metadataPending=null;});
+    return waitForParcelRequest(this.metadataPending,signal);
   }
   private async query(params: Record<string, string>, signal?: AbortSignal): Promise<ProviderResult> {
     const metadata = await this.inspect(signal);

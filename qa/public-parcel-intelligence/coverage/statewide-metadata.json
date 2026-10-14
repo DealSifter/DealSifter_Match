@@ -1,0 +1,3745 @@
+{
+  "observedAt": "2026-10-14T02:34:32.506Z",
+  "metadataOnly": true,
+  "results": [
+    {
+      "state": "FL",
+      "url": "https://services9.arcgis.com/Gh9awoU677aKree0/arcgis/rest/services/Florida_Statewide_Cadastral/FeatureServer",
+      "automaticActivation": false,
+      "service": {
+        "layers": [
+          {
+            "id": 0,
+            "name": "CADASTRAL_DOR",
+            "parentLayerId": -1,
+            "defaultVisibility": true,
+            "subLayerIds": null,
+            "minScale": 0,
+            "maxScale": 0,
+            "type": "Feature Layer",
+            "geometryType": "esriGeometryPolygon"
+          }
+        ],
+        "serviceItemId": "efa909d6b1c841d298b0a649e7f71cf2",
+        "copyrightText": "Florida’s county property appraisers, Florida Department of Revenue Property Tax Oversight",
+        "description": "<div style=\"text-align:Left;\"><p><span style=\"color:black; font-family:&quot;Arial&quot;,sans-serif;\">The Florida Department of Revenue’s Property Tax Oversight(PTO) program collects parcel level Geographic Information System (GIS) data files every April from all of Florida’s 67 county property appraisers’ offices. This GIS data was exported from these file submissions in August 2025. The GIS parcel polygon features have been joined with the</span><span style=\"color:#222222; font-family:&quot;Arial&quot;,sans-serif;\">real property roll (Name – Address – Legal, or NAL)</span><span style=\"color:black; font-family:&quot;Arial&quot;,sans-serif;\">file. No line work was adjusted between county boundaries.The polygon data set represents the information property appraisers gathered from the legal description on deeds, lot layout of recorded plats, declaration of condominium documents, recorded and unrecorded surveys.</span><br /><br /><span style=\"color:#000000;\">Individual parcel data is updated continually by each county property appraiser as needed. <span>The GIS linework and related attributions for the statewide parcel map are updated annually by the Department every August.&nbsp; Minor data maintenance is also completed every May and November.</span> The dataset extends countywide and is attribute by Federal Information Processing Standards (FIPS) code.</span></p><p>DOR reference with FIPS county codes and attribution definitions - <a target=\"_blank\" href=\"https://fgio.maps.arcgis.com/home/item.html?id=55e830fd6c8948baae1601fbfc33a3b2\" rel=\"nofollow ugc noopener noreferrer\">https://fgio.maps.arcgis.com/home/item.html?id=55e830fd6c8948baae1601fbfc33a3b2</a></p><p><span style=\"font-family:Arial, sans-serif;\"><strong>If you discover the inadvertent release of a confidential record exempt from disclosure pursuant to Chapter 119, Florida Statutes, public records laws, immediately notify the Department of Revenue at 850-717-6570 and your local Florida Property Appraisers’ Office.</strong></span></p><p>&nbsp;</p><p><strong>Please contact the county property appraiser with any parcel specific questions: Florida Property Appraisers’ Offices:</strong></p><p>Alachua County Property Appraiser – <a target=\"_blank\" href=\"https://www.acpafl.org/\" rel=\"nofollow ugc noopener noreferrer\"><u>https://www.acpafl.org/</u></a></p><p>Baker County Property Appraiser – <a target=\"_blank\" href=\"https://www.bakerpa.com/\" rel=\"nofollow ugc noopener noreferrer\"><u>https://www.bakerpa.com/</u></a></p><p>Bay County Property Appraiser – <a target=\"_blank\" href=\"https://baypa.net/\" rel=\"nofollow ugc noopener noreferrer\"><u>https://baypa.net/</u></a></p><p>Bradford County Property Appraiser – <a target=\"_blank\" href=\"https://www.bradfordappraiser.com/\" rel=\"nofollow ugc noopener noreferrer\"><u>https://www.bradfordappraiser.com/</u></a></p><p>Brevard County Property Appraiser – <a target=\"_blank\" href=\"https://www.bcpao.us/\" rel=\"nofollow ugc noopener noreferrer\"><u>https://www.bcpao.us/</u></a></p><p>Broward County Property Appraiser – <a target=\"_blank\" href=\"https://bcpa.net/\" rel=\"nofollow ugc noopener noreferrer\"><u>https://bcpa.net/</u></a></p><p>Calhoun County Property Appraiser – <a target=\"_blank\" href=\"https://calhounpa.net/\" rel=\"nofollow ugc noopener noreferrer\"><u>https://calhounpa.net/</u></a></p><p>Charlotte County Property Appraiser – <a target=\"_blank\" href=\"https://www.ccappraiser.com/\" rel=\"nofollow ugc noopener noreferrer\"><u>https://www.ccappraiser.com/</u></a></p><p>Citrus County Property Appraiser – <a target=\"_blank\" href=\"https://www.citruspa.org/\" rel=\"nofollow ugc noopener noreferrer\"><u>https://www.citruspa.org/</u></a></p><p>Clay County Property Appraiser – <a target=\"_blank\" href=\"https://ccpao.com/\" rel=\"nofollow ugc noopener noreferrer\"><u>https://ccpao.com/</u></a></p><p>Collier County Property Appraiser – <a target=\"_blank\" href=\"https://www.collierappraiser.com/\" rel=\"nofollow ugc noopener noreferrer\"><u>https://www.collierappraiser.com/</u></a></p><p>Columbia County Property Appraiser – <a target=\"_blank\" href=\"https://columbia.floridapa.com/\" rel=\"nofollow ugc noopener noreferrer\"><u>https://columbia.floridapa.com/</u></a></p><p>DeSoto County Property Appraiser – <a target=\"_blank\" href=\"https://www.desotopa.com/\" rel=\"nofollow ugc noopener noreferrer\"><u>https://www.desotopa.com/</u></a></p><p>Dixie County Property Appraiser – <a target=\"_blank\" href=\"https://www.qpublic.net/fl/dixie/\" rel=\"nofollow ugc noopener noreferrer\"><u>https://www.qpublic.net/fl/dixie/</u></a></p><p>Duval County Property Appraiser – <a target=\"_blank\" href=\"https://www.coj.net/departments/property-appraiser.aspx\" rel=\"nofollow ugc noopener noreferrer\"><u>https://www.coj.net/departments/property-appraiser.aspx</u></a></p><p>Escambia County Property Appraiser – <a target=\"_blank\" href=\"https://www.escpa.org/\" rel=\"nofollow ugc noopener noreferrer\"><u>https://www.escpa.org/</u></a></p><p>Flagler County Property Appraiser – <a target=\"_blank\" href=\"https://flaglerpa.com/\" rel=\"nofollow ugc noopener noreferrer\"><u>https://flaglerpa.com/</u></a></p><p>Franklin County Property Appraiser – <a target=\"_blank\" href=\"https://franklincountypa.net/\" rel=\"nofollow ugc noopener noreferrer\"><u>https://franklincountypa.net/</u></a></p><p>Gadsden County Property Appraiser – <a target=\"_blank\" href=\"https://gadsdenpa.com/\" rel=\"nofollow ugc noopener noreferrer\"><u>https://gadsdenpa.com/</u></a></p><p>Gilchrist County Property Appraiser – <a target=\"_blank\" href=\"https://www.qpublic.net/fl/gilchrist/\" rel=\"nofollow ugc noopener noreferrer\"><u>https://www.qpublic.net/fl/gilchrist/</u></a></p><p>Glades County Property Appraiser – <a target=\"_blank\" href=\"https://qpublic.net/fl/glades/\" rel=\"nofollow ugc noopener noreferrer\"><u>https://qpublic.net/fl/glades/</u></a></p><p>Gulf County Property Appraiser – <a target=\"_blank\" href=\"https://gulfpa.com/\" rel=\"nofollow ugc noopener noreferrer\"><u>https://gulfpa.com/</u></a></p><p>Hamilton County Property Appraiser – <a target=\"_blank\" href=\"https://hamiltonpa.com/\" rel=\"nofollow ugc noopener noreferrer\"><u>https://hamiltonpa.com/</u></a></p><p>Hardee County Property Appraiser – <a target=\"_blank\" href=\"https://hardeepa.com/\" rel=\"nofollow ugc noopener noreferrer\"><u>https://hardeepa.com/</u></a></p><p>Hendry County Property Appraiser – <a target=\"_blank\" href=\"https://hendryprop.com/\" rel=\"nofollow ugc noopener noreferrer\"><u>https://hendryprop.com/</u></a></p><p>Hernando County Property Appraiser – <a target=\"_blank\" href=\"https://hernandocountypa-florida.us/\" rel=\"nofollow ugc noopener noreferrer\"><u>https://hernandocountypa-florida.us/</u></a></p><p>Highlands County Property Appraiser – <a target=\"_blank\" href=\"https://www.hcpao.org/\" rel=\"nofollow ugc noopener noreferrer\"><u>https://www.hcpao.org/</u></a></p><p>Hillsborough County Property Appraiser – <a target=\"_blank\" href=\"https://www.hcpafl.org/\" rel=\"nofollow ugc noopener noreferrer\"><u>https://www.hcpafl.org/</u></a></p><p>Holmes County Property Appraiser – <a target=\"_blank\" href=\"https://www.qpublic.net/fl/holmes/\" rel=\"nofollow ugc noopener noreferrer\"><u>https://www.qpublic.net/fl/holmes/</u></a></p><p>Indian River County Property Appraiser – <a target=\"_blank\" href=\"https://www.ircpa.org/\" rel=\"nofollow ugc noopener noreferrer\"><u>https://www.ircpa.org/</u></a></p><p>Jackson County Property Appraiser – <a target=\"_blank\" href=\"https://www.qpublic.net/fl/jackson/\" rel=\"nofollow ugc noopener noreferrer\"><u>https://www.qpublic.net/fl/jackson/</u></a></p><p>Jefferson County Property Appraiser – <a target=\"_blank\" href=\"https://jeffersonpa.net/\" rel=\"nofollow ugc noopener noreferrer\"><u>https://jeffersonpa.net/</u></a></p><p>Lafayette County Property Appraiser – <a target=\"_blank\" href=\"https://www.lafayettepa.com/\" rel=\"nofollow ugc noopener noreferrer\"><u>https://www.lafayettepa.com/</u></a></p><p>Lake County Property Appraiser – <a target=\"_blank\" href=\"https://www.lakecopropappr.com/\" rel=\"nofollow ugc noopener noreferrer\"><u>https://www.lakecopropappr.com/</u></a></p><p>Lee County Property Appraiser – <a target=\"_blank\" href=\"https://www.leepa.org/\" rel=\"nofollow ugc noopener noreferrer\"><u>https://www.leepa.org/</u></a></p><p>Leon County Property Appraiser – <a target=\"_blank\" href=\"https://www.leonpa.gov/\" rel=\"nofollow ugc noopener noreferrer\"><u>https://www.leonpa.gov/</u></a></p><p>Levy County Property Appraiser – <a target=\"_blank\" href=\"https://www.qpublic.net/fl/levy/\" rel=\"nofollow ugc noopener noreferrer\"><u>https://www.qpublic.net/fl/levy/</u></a></p><p>Liberty County Property Appraiser – <a target=\"_blank\" href=\"https://libertypa.org/\" rel=\"nofollow ugc noopener noreferrer\"><u>https://libertypa.org/</u></a></p><p>Madison County Property Appraiser – <a target=\"_blank\" href=\"https://madisonpa.com/\" rel=\"nofollow ugc noopener noreferrer\"><u>https://madisonpa.com/</u></a></p><p>Manatee County Property Appraiser – <a target=\"_blank\" href=\"https://www.manateepao.gov/\" rel=\"nofollow ugc noopener noreferrer\"><u>https://www.manateepao.gov/</u></a></p><p>Marion County Property Appraiser – <a target=\"_blank\" href=\"https://www.pa.marion.fl.us/\" rel=\"nofollow ugc noopener noreferrer\"><u>https://www.pa.marion.fl.us/</u></a></p><p>Martin County Property Appraiser – <a target=\"_blank\" href=\"https://www.pa.martin.fl.us/\" rel=\"nofollow ugc noopener noreferrer\"><u>https://www.pa.martin.fl.us/</u></a></p><p>Miami-Dade County Property Appraiser – <a target=\"_blank\" href=\"https://www.miamidade.gov/pa/\" rel=\"nofollow ugc noopener noreferrer\"><u>https://www.miamidade.gov/pa/</u></a></p><p>Monroe County Property Appraiser – <a target=\"_blank\" href=\"https://mcpafl.org/\" rel=\"nofollow ugc noopener noreferrer\"><u>https://mcpafl.org/</u></a></p><p>Nassau County Property Appraiser – <a target=\"_blank\" href=\"https://ncpafl.com/\" rel=\"nofollow ugc noopener noreferrer\"><u>https://ncpafl.com/</u></a></p><p>Okaloosa County Property Appraiser – <a target=\"_blank\" href=\"https://okaloosapa.com/\" rel=\"nofollow ugc noopener noreferrer\"><u>https://okaloosapa.com/</u></a></p><p>Okeechobee County Property Appraiser – <a target=\"_blank\" href=\"https://www.okeechobeepa.com/\" rel=\"nofollow ugc noopener noreferrer\"><u>https://www.okeechobeepa.com/</u></a></p><p>Orange County Property Appraiser – <a target=\"_blank\" href=\"https://ocpaweb.ocpafl.org/\" rel=\"nofollow ugc noopener noreferrer\"><u>https://ocpaweb.ocpafl.org/</u></a></p><p>Osceola County Property Appraiser – <a target=\"_blank\" href=\"https://www.property-appraiser.org/\" rel=\"nofollow ugc noopener noreferrer\"><u>https://www.property-appraiser.org/</u></a></p><p>Palm Beach County Property Appraiser – <a target=\"_blank\" href=\"https://www.pbcgov.org/papa/index.htm\" rel=\"nofollow ugc noopener noreferrer\"><u>https://www.pbcgov.org/papa/index.htm</u></a></p><p>Pasco County Property Appraiser – <a target=\"_blank\" href=\"https://pascopa.com/\" rel=\"nofollow ugc noopener noreferrer\"><u>https://pascopa.com/</u></a></p><p>Pinellas County Property Appraiser – <a target=\"_blank\" href=\"https://www.pcpao.org/\" rel=\"nofollow ugc noopener noreferrer\"><u>https://www.pcpao.org/</u></a></p><p>Polk County Property Appraiser – <a target=\"_blank\" href=\"https://www.polkpa.org/\" rel=\"nofollow ugc noopener noreferrer\"><u>https://www.polkpa.org/</u></a></p><p>Putnam County Property Appraiser – <a target=\"_blank\" href=\"https://pa.putnam-fl.com/\" rel=\"nofollow ugc noopener noreferrer\"><u>https://pa.putnam-fl.com/</u></a></p><p>Santa Rosa County Property Appraiser – <a target=\"_blank\" href=\"https://srcpa.gov/\" rel=\"nofollow ugc noopener noreferrer\"><u>https://srcpa.gov/</u></a></p><p>Sarasota County Property Appraiser – <a target=\"_blank\" href=\"https://www.sc-pa.com/\" rel=\"nofollow ugc noopener noreferrer\"><u>https://www.sc-pa.com/</u></a></p><p>Seminole County Property Appraiser – <a target=\"_blank\" href=\"https://www.scpafl.org/\" rel=\"nofollow ugc noopener noreferrer\"><u>https://www.scpafl.org/</u></a></p><p>St. Johns County Property Appraiser – <a target=\"_blank\" href=\"https://www.sjcpa.gov/\" rel=\"nofollow ugc noopener noreferrer\"><u>https://www.sjcpa.gov/</u></a></p><p>St. Lucie County Property Appraiser – <a target=\"_blank\" href=\"https://www.paslc.gov/\" rel=\"nofollow ugc noopener noreferrer\"><u>https://www.paslc.gov/</u></a></p><p>Sumter County Property Appraiser – <a target=\"_blank\" href=\"https://www.sumterpa.com/\" rel=\"nofollow ugc noopener noreferrer\"><u>https://www.sumterpa.com/</u></a></p><p>Suwannee County Property Appraiser – <a target=\"_blank\" href=\"https://www.suwanneepa.com/\" rel=\"nofollow ugc noopener noreferrer\"><u>https://suwannee.floridapa.com/</u></a></p><p>Taylor County Property Appraiser – <a target=\"_blank\" href=\"https://qpublic.net/fl/taylor/\" rel=\"nofollow ugc noopener noreferrer\"><u>https://qpublic.net/fl/taylor/</u></a></p><p>Union County Property Appraiser – <a target=\"_blank\" href=\"https://union.floridapa.com/\" rel=\"nofollow ugc noopener noreferrer\"><u>https://union.floridapa.com/</u></a></p><p>Volusia County Property Appraiser – <a target=\"_blank\" href=\"https://vcpa.vcgov.org/\" rel=\"nofollow ugc noopener noreferrer\"><u>https://vcpa.vcgov.org/</u></a></p><p>Wakulla County Property Appraiser – <a target=\"_blank\" href=\"https://mywakullapa.com/\" rel=\"nofollow ugc noopener noreferrer\"><u>https://mywakullapa.com/</u></a></p><p>Walton County Property Appraiser – <a target=\"_blank\" href=\"https://waltonpa.com/\" rel=\"nofollow ugc noopener noreferrer\"><u>https://waltonpa.com/</u></a></p><p>Washington County Property Appraiser – <a target=\"_blank\" href=\"https://www.qpublic.net/fl/washington/\" rel=\"nofollow ugc noopener noreferrer\"><u>https://www.qpublic.net/fl/washington/</u></a></p><p><strong>Florida Department of Revenue Property Tax Oversight </strong><a target=\"_blank\" href=\"https://floridarevenue.com/property/Pages/Home.aspx\" rel=\"nofollow ugc noopener noreferrer\"><u>https://floridarevenue.com/property/Pages/Home.aspx</u></a></p></div>",
+        "capabilities": "Query,Extract"
+      },
+      "layers": [
+        {
+          "id": 0,
+          "name": "CADASTRAL_DOR",
+          "geometryType": "esriGeometryPolygon",
+          "capabilities": "Query,Extract",
+          "fields": [
+            {
+              "name": "OBJECTID",
+              "type": "esriFieldTypeOID",
+              "alias": "OBJECTID",
+              "sqlType": "sqlTypeOther",
+              "nullable": false,
+              "editable": false,
+              "domain": null,
+              "defaultValue": null
+            },
+            {
+              "name": "PARCELNO",
+              "type": "esriFieldTypeString",
+              "alias": "PARCELNO",
+              "sqlType": "sqlTypeOther",
+              "length": 254,
+              "nullable": false,
+              "editable": true,
+              "domain": null,
+              "defaultValue": null
+            },
+            {
+              "name": "OID_",
+              "type": "esriFieldTypeInteger",
+              "alias": "OID_",
+              "sqlType": "sqlTypeOther",
+              "nullable": false,
+              "editable": true,
+              "domain": null,
+              "defaultValue": null
+            },
+            {
+              "name": "CO_NO",
+              "type": "esriFieldTypeDouble",
+              "alias": "CO_NO",
+              "sqlType": "sqlTypeOther",
+              "nullable": false,
+              "editable": true,
+              "domain": null,
+              "defaultValue": null
+            },
+            {
+              "name": "PARCEL_ID",
+              "type": "esriFieldTypeString",
+              "alias": "PARCEL_ID",
+              "sqlType": "sqlTypeOther",
+              "length": 30,
+              "nullable": false,
+              "editable": true,
+              "domain": null,
+              "defaultValue": null
+            },
+            {
+              "name": "FILE_T",
+              "type": "esriFieldTypeString",
+              "alias": "FILE_T",
+              "sqlType": "sqlTypeOther",
+              "length": 1,
+              "nullable": false,
+              "editable": true,
+              "domain": null,
+              "defaultValue": null
+            },
+            {
+              "name": "ASMNT_YR",
+              "type": "esriFieldTypeDouble",
+              "alias": "ASMNT_YR",
+              "sqlType": "sqlTypeOther",
+              "nullable": false,
+              "editable": true,
+              "domain": null,
+              "defaultValue": null
+            },
+            {
+              "name": "BAS_STRT",
+              "type": "esriFieldTypeString",
+              "alias": "BAS_STRT",
+              "sqlType": "sqlTypeOther",
+              "length": 2,
+              "nullable": false,
+              "editable": true,
+              "domain": null,
+              "defaultValue": null
+            },
+            {
+              "name": "ATV_STRT",
+              "type": "esriFieldTypeString",
+              "alias": "ATV_STRT",
+              "sqlType": "sqlTypeOther",
+              "length": 2,
+              "nullable": false,
+              "editable": true,
+              "domain": null,
+              "defaultValue": null
+            },
+            {
+              "name": "GRP_NO",
+              "type": "esriFieldTypeString",
+              "alias": "GRP_NO",
+              "sqlType": "sqlTypeOther",
+              "length": 1,
+              "nullable": false,
+              "editable": true,
+              "domain": null,
+              "defaultValue": null
+            },
+            {
+              "name": "DOR_UC",
+              "type": "esriFieldTypeString",
+              "alias": "DOR_UC",
+              "sqlType": "sqlTypeOther",
+              "length": 4,
+              "nullable": false,
+              "editable": true,
+              "domain": null,
+              "defaultValue": null
+            },
+            {
+              "name": "PA_UC",
+              "type": "esriFieldTypeString",
+              "alias": "PA_UC",
+              "sqlType": "sqlTypeOther",
+              "length": 2,
+              "nullable": false,
+              "editable": true,
+              "domain": null,
+              "defaultValue": null
+            },
+            {
+              "name": "SPASS_CD",
+              "type": "esriFieldTypeString",
+              "alias": "SPASS_CD",
+              "sqlType": "sqlTypeOther",
+              "length": 1,
+              "nullable": false,
+              "editable": true,
+              "domain": null,
+              "defaultValue": null
+            },
+            {
+              "name": "JV",
+              "type": "esriFieldTypeDouble",
+              "alias": "JV",
+              "sqlType": "sqlTypeOther",
+              "nullable": false,
+              "editable": true,
+              "domain": null,
+              "defaultValue": null
+            },
+            {
+              "name": "JV_CHNG",
+              "type": "esriFieldTypeDouble",
+              "alias": "JV_CHNG",
+              "sqlType": "sqlTypeOther",
+              "nullable": false,
+              "editable": true,
+              "domain": null,
+              "defaultValue": null
+            },
+            {
+              "name": "JV_CHNG_CD",
+              "type": "esriFieldTypeDouble",
+              "alias": "JV_CHNG_CD",
+              "sqlType": "sqlTypeOther",
+              "nullable": false,
+              "editable": true,
+              "domain": null,
+              "defaultValue": null
+            },
+            {
+              "name": "AV_SD",
+              "type": "esriFieldTypeDouble",
+              "alias": "AV_SD",
+              "sqlType": "sqlTypeOther",
+              "nullable": false,
+              "editable": true,
+              "domain": null,
+              "defaultValue": null
+            },
+            {
+              "name": "AV_NSD",
+              "type": "esriFieldTypeDouble",
+              "alias": "AV_NSD",
+              "sqlType": "sqlTypeOther",
+              "nullable": false,
+              "editable": true,
+              "domain": null,
+              "defaultValue": null
+            },
+            {
+              "name": "TV_SD",
+              "type": "esriFieldTypeDouble",
+              "alias": "TV_SD",
+              "sqlType": "sqlTypeOther",
+              "nullable": false,
+              "editable": true,
+              "domain": null,
+              "defaultValue": null
+            },
+            {
+              "name": "TV_NSD",
+              "type": "esriFieldTypeDouble",
+              "alias": "TV_NSD",
+              "sqlType": "sqlTypeOther",
+              "nullable": false,
+              "editable": true,
+              "domain": null,
+              "defaultValue": null
+            },
+            {
+              "name": "JV_HMSTD",
+              "type": "esriFieldTypeDouble",
+              "alias": "JV_HMSTD",
+              "sqlType": "sqlTypeOther",
+              "nullable": false,
+              "editable": true,
+              "domain": null,
+              "defaultValue": null
+            },
+            {
+              "name": "AV_HMSTD",
+              "type": "esriFieldTypeDouble",
+              "alias": "AV_HMSTD",
+              "sqlType": "sqlTypeOther",
+              "nullable": false,
+              "editable": true,
+              "domain": null,
+              "defaultValue": null
+            },
+            {
+              "name": "JV_NON_HMS",
+              "type": "esriFieldTypeDouble",
+              "alias": "JV_NON_HMS",
+              "sqlType": "sqlTypeOther",
+              "nullable": false,
+              "editable": true,
+              "domain": null,
+              "defaultValue": null
+            },
+            {
+              "name": "AV_NON_HMS",
+              "type": "esriFieldTypeDouble",
+              "alias": "AV_NON_HMS",
+              "sqlType": "sqlTypeOther",
+              "nullable": false,
+              "editable": true,
+              "domain": null,
+              "defaultValue": null
+            },
+            {
+              "name": "JV_RESD_NO",
+              "type": "esriFieldTypeDouble",
+              "alias": "JV_RESD_NO",
+              "sqlType": "sqlTypeOther",
+              "nullable": false,
+              "editable": true,
+              "domain": null,
+              "defaultValue": null
+            },
+            {
+              "name": "AV_RESD_NO",
+              "type": "esriFieldTypeDouble",
+              "alias": "AV_RESD_NO",
+              "sqlType": "sqlTypeOther",
+              "nullable": false,
+              "editable": true,
+              "domain": null,
+              "defaultValue": null
+            },
+            {
+              "name": "JV_CLASS_U",
+              "type": "esriFieldTypeDouble",
+              "alias": "JV_CLASS_U",
+              "sqlType": "sqlTypeOther",
+              "nullable": false,
+              "editable": true,
+              "domain": null,
+              "defaultValue": null
+            },
+            {
+              "name": "AV_CLASS_U",
+              "type": "esriFieldTypeDouble",
+              "alias": "AV_CLASS_U",
+              "sqlType": "sqlTypeOther",
+              "nullable": false,
+              "editable": true,
+              "domain": null,
+              "defaultValue": null
+            },
+            {
+              "name": "JV_H2O_REC",
+              "type": "esriFieldTypeDouble",
+              "alias": "JV_H2O_REC",
+              "sqlType": "sqlTypeOther",
+              "nullable": false,
+              "editable": true,
+              "domain": null,
+              "defaultValue": null
+            },
+            {
+              "name": "AV_H2O_REC",
+              "type": "esriFieldTypeDouble",
+              "alias": "AV_H2O_REC",
+              "sqlType": "sqlTypeOther",
+              "nullable": false,
+              "editable": true,
+              "domain": null,
+              "defaultValue": null
+            },
+            {
+              "name": "JV_CONSRV_",
+              "type": "esriFieldTypeDouble",
+              "alias": "JV_CONSRV_",
+              "sqlType": "sqlTypeOther",
+              "nullable": false,
+              "editable": true,
+              "domain": null,
+              "defaultValue": null
+            },
+            {
+              "name": "AV_CONSRV_",
+              "type": "esriFieldTypeDouble",
+              "alias": "AV_CONSRV_",
+              "sqlType": "sqlTypeOther",
+              "nullable": false,
+              "editable": true,
+              "domain": null,
+              "defaultValue": null
+            },
+            {
+              "name": "JV_HIST_CO",
+              "type": "esriFieldTypeDouble",
+              "alias": "JV_HIST_CO",
+              "sqlType": "sqlTypeOther",
+              "nullable": false,
+              "editable": true,
+              "domain": null,
+              "defaultValue": null
+            },
+            {
+              "name": "AV_HIST_CO",
+              "type": "esriFieldTypeDouble",
+              "alias": "AV_HIST_CO",
+              "sqlType": "sqlTypeOther",
+              "nullable": false,
+              "editable": true,
+              "domain": null,
+              "defaultValue": null
+            },
+            {
+              "name": "JV_HIST_SI",
+              "type": "esriFieldTypeDouble",
+              "alias": "JV_HIST_SI",
+              "sqlType": "sqlTypeOther",
+              "nullable": false,
+              "editable": true,
+              "domain": null,
+              "defaultValue": null
+            },
+            {
+              "name": "AV_HIST_SI",
+              "type": "esriFieldTypeDouble",
+              "alias": "AV_HIST_SI",
+              "sqlType": "sqlTypeOther",
+              "nullable": false,
+              "editable": true,
+              "domain": null,
+              "defaultValue": null
+            },
+            {
+              "name": "JV_WRKNG_W",
+              "type": "esriFieldTypeDouble",
+              "alias": "JV_WRKNG_W",
+              "sqlType": "sqlTypeOther",
+              "nullable": false,
+              "editable": true,
+              "domain": null,
+              "defaultValue": null
+            },
+            {
+              "name": "AV_WRKNG_W",
+              "type": "esriFieldTypeDouble",
+              "alias": "AV_WRKNG_W",
+              "sqlType": "sqlTypeOther",
+              "nullable": false,
+              "editable": true,
+              "domain": null,
+              "defaultValue": null
+            },
+            {
+              "name": "NCONST_VAL",
+              "type": "esriFieldTypeDouble",
+              "alias": "NCONST_VAL",
+              "sqlType": "sqlTypeOther",
+              "nullable": false,
+              "editable": true,
+              "domain": null,
+              "defaultValue": null
+            },
+            {
+              "name": "DEL_VAL",
+              "type": "esriFieldTypeDouble",
+              "alias": "DEL_VAL",
+              "sqlType": "sqlTypeOther",
+              "nullable": false,
+              "editable": true,
+              "domain": null,
+              "defaultValue": null
+            },
+            {
+              "name": "PAR_SPLT",
+              "type": "esriFieldTypeDouble",
+              "alias": "PAR_SPLT",
+              "sqlType": "sqlTypeOther",
+              "nullable": false,
+              "editable": true,
+              "domain": null,
+              "defaultValue": null
+            },
+            {
+              "name": "DISTR_CD",
+              "type": "esriFieldTypeDouble",
+              "alias": "DISTR_CD",
+              "sqlType": "sqlTypeOther",
+              "nullable": false,
+              "editable": true,
+              "domain": null,
+              "defaultValue": null
+            },
+            {
+              "name": "DISTR_YR",
+              "type": "esriFieldTypeDouble",
+              "alias": "DISTR_YR",
+              "sqlType": "sqlTypeOther",
+              "nullable": false,
+              "editable": true,
+              "domain": null,
+              "defaultValue": null
+            },
+            {
+              "name": "LND_VAL",
+              "type": "esriFieldTypeDouble",
+              "alias": "LND_VAL",
+              "sqlType": "sqlTypeOther",
+              "nullable": false,
+              "editable": true,
+              "domain": null,
+              "defaultValue": null
+            },
+            {
+              "name": "LND_UNTS_C",
+              "type": "esriFieldTypeDouble",
+              "alias": "LND_UNTS_C",
+              "sqlType": "sqlTypeOther",
+              "nullable": false,
+              "editable": true,
+              "domain": null,
+              "defaultValue": null
+            },
+            {
+              "name": "NO_LND_UNT",
+              "type": "esriFieldTypeDouble",
+              "alias": "NO_LND_UNT",
+              "sqlType": "sqlTypeOther",
+              "nullable": false,
+              "editable": true,
+              "domain": null,
+              "defaultValue": null
+            },
+            {
+              "name": "LND_SQFOOT",
+              "type": "esriFieldTypeDouble",
+              "alias": "LND_SQFOOT",
+              "sqlType": "sqlTypeOther",
+              "nullable": false,
+              "editable": true,
+              "domain": null,
+              "defaultValue": null
+            },
+            {
+              "name": "DT_LAST_IN",
+              "type": "esriFieldTypeDouble",
+              "alias": "DT_LAST_IN",
+              "sqlType": "sqlTypeOther",
+              "nullable": false,
+              "editable": true,
+              "domain": null,
+              "defaultValue": null
+            },
+            {
+              "name": "IMP_QUAL",
+              "type": "esriFieldTypeString",
+              "alias": "IMP_QUAL",
+              "sqlType": "sqlTypeOther",
+              "length": 3,
+              "nullable": false,
+              "editable": true,
+              "domain": null,
+              "defaultValue": null
+            },
+            {
+              "name": "CONST_CLAS",
+              "type": "esriFieldTypeDouble",
+              "alias": "CONST_CLAS",
+              "sqlType": "sqlTypeOther",
+              "nullable": false,
+              "editable": true,
+              "domain": null,
+              "defaultValue": null
+            },
+            {
+              "name": "EFF_YR_BLT",
+              "type": "esriFieldTypeDouble",
+              "alias": "EFF_YR_BLT",
+              "sqlType": "sqlTypeOther",
+              "nullable": false,
+              "editable": true,
+              "domain": null,
+              "defaultValue": null
+            },
+            {
+              "name": "ACT_YR_BLT",
+              "type": "esriFieldTypeDouble",
+              "alias": "ACT_YR_BLT",
+              "sqlType": "sqlTypeOther",
+              "nullable": false,
+              "editable": true,
+              "domain": null,
+              "defaultValue": null
+            },
+            {
+              "name": "TOT_LVG_AR",
+              "type": "esriFieldTypeDouble",
+              "alias": "TOT_LVG_AR",
+              "sqlType": "sqlTypeOther",
+              "nullable": false,
+              "editable": true,
+              "domain": null,
+              "defaultValue": null
+            },
+            {
+              "name": "NO_BULDNG",
+              "type": "esriFieldTypeDouble",
+              "alias": "NO_BULDNG",
+              "sqlType": "sqlTypeOther",
+              "nullable": false,
+              "editable": true,
+              "domain": null,
+              "defaultValue": null
+            },
+            {
+              "name": "NO_RES_UNT",
+              "type": "esriFieldTypeDouble",
+              "alias": "NO_RES_UNT",
+              "sqlType": "sqlTypeOther",
+              "nullable": false,
+              "editable": true,
+              "domain": null,
+              "defaultValue": null
+            },
+            {
+              "name": "SPEC_FEAT_",
+              "type": "esriFieldTypeDouble",
+              "alias": "SPEC_FEAT_",
+              "sqlType": "sqlTypeOther",
+              "nullable": false,
+              "editable": true,
+              "domain": null,
+              "defaultValue": null
+            },
+            {
+              "name": "M_PAR_SAL1",
+              "type": "esriFieldTypeString",
+              "alias": "M_PAR_SAL1",
+              "sqlType": "sqlTypeOther",
+              "length": 1,
+              "nullable": false,
+              "editable": true,
+              "domain": null,
+              "defaultValue": null
+            },
+            {
+              "name": "QUAL_CD1",
+              "type": "esriFieldTypeString",
+              "alias": "QUAL_CD1",
+              "sqlType": "sqlTypeOther",
+              "length": 2,
+              "nullable": false,
+              "editable": true,
+              "domain": null,
+              "defaultValue": null
+            },
+            {
+              "name": "VI_CD1",
+              "type": "esriFieldTypeString",
+              "alias": "VI_CD1",
+              "sqlType": "sqlTypeOther",
+              "length": 1,
+              "nullable": false,
+              "editable": true,
+              "domain": null,
+              "defaultValue": null
+            },
+            {
+              "name": "SALE_PRC1",
+              "type": "esriFieldTypeDouble",
+              "alias": "SALE_PRC1",
+              "sqlType": "sqlTypeOther",
+              "nullable": false,
+              "editable": true,
+              "domain": null,
+              "defaultValue": null
+            },
+            {
+              "name": "SALE_YR1",
+              "type": "esriFieldTypeDouble",
+              "alias": "SALE_YR1",
+              "sqlType": "sqlTypeOther",
+              "nullable": false,
+              "editable": true,
+              "domain": null,
+              "defaultValue": null
+            },
+            {
+              "name": "SALE_MO1",
+              "type": "esriFieldTypeString",
+              "alias": "SALE_MO1",
+              "sqlType": "sqlTypeOther",
+              "length": 2,
+              "nullable": false,
+              "editable": true,
+              "domain": null,
+              "defaultValue": null
+            },
+            {
+              "name": "OR_BOOK1",
+              "type": "esriFieldTypeString",
+              "alias": "OR_BOOK1",
+              "sqlType": "sqlTypeOther",
+              "length": 6,
+              "nullable": false,
+              "editable": true,
+              "domain": null,
+              "defaultValue": null
+            },
+            {
+              "name": "OR_PAGE1",
+              "type": "esriFieldTypeString",
+              "alias": "OR_PAGE1",
+              "sqlType": "sqlTypeOther",
+              "length": 6,
+              "nullable": false,
+              "editable": true,
+              "domain": null,
+              "defaultValue": null
+            },
+            {
+              "name": "CLERK_NO1",
+              "type": "esriFieldTypeString",
+              "alias": "CLERK_NO1",
+              "sqlType": "sqlTypeOther",
+              "length": 20,
+              "nullable": false,
+              "editable": true,
+              "domain": null,
+              "defaultValue": null
+            },
+            {
+              "name": "S_CHNG_CD1",
+              "type": "esriFieldTypeDouble",
+              "alias": "S_CHNG_CD1",
+              "sqlType": "sqlTypeOther",
+              "nullable": false,
+              "editable": true,
+              "domain": null,
+              "defaultValue": null
+            },
+            {
+              "name": "M_PAR_SAL2",
+              "type": "esriFieldTypeString",
+              "alias": "M_PAR_SAL2",
+              "sqlType": "sqlTypeOther",
+              "length": 1,
+              "nullable": false,
+              "editable": true,
+              "domain": null,
+              "defaultValue": null
+            },
+            {
+              "name": "QUAL_CD2",
+              "type": "esriFieldTypeString",
+              "alias": "QUAL_CD2",
+              "sqlType": "sqlTypeOther",
+              "length": 2,
+              "nullable": false,
+              "editable": true,
+              "domain": null,
+              "defaultValue": null
+            },
+            {
+              "name": "VI_CD2",
+              "type": "esriFieldTypeString",
+              "alias": "VI_CD2",
+              "sqlType": "sqlTypeOther",
+              "length": 1,
+              "nullable": false,
+              "editable": true,
+              "domain": null,
+              "defaultValue": null
+            },
+            {
+              "name": "SALE_PRC2",
+              "type": "esriFieldTypeDouble",
+              "alias": "SALE_PRC2",
+              "sqlType": "sqlTypeOther",
+              "nullable": false,
+              "editable": true,
+              "domain": null,
+              "defaultValue": null
+            },
+            {
+              "name": "SALE_YR2",
+              "type": "esriFieldTypeDouble",
+              "alias": "SALE_YR2",
+              "sqlType": "sqlTypeOther",
+              "nullable": false,
+              "editable": true,
+              "domain": null,
+              "defaultValue": null
+            },
+            {
+              "name": "SALE_MO2",
+              "type": "esriFieldTypeString",
+              "alias": "SALE_MO2",
+              "sqlType": "sqlTypeOther",
+              "length": 2,
+              "nullable": false,
+              "editable": true,
+              "domain": null,
+              "defaultValue": null
+            },
+            {
+              "name": "OR_BOOK2",
+              "type": "esriFieldTypeString",
+              "alias": "OR_BOOK2",
+              "sqlType": "sqlTypeOther",
+              "length": 6,
+              "nullable": false,
+              "editable": true,
+              "domain": null,
+              "defaultValue": null
+            },
+            {
+              "name": "OR_PAGE2",
+              "type": "esriFieldTypeString",
+              "alias": "OR_PAGE2",
+              "sqlType": "sqlTypeOther",
+              "length": 6,
+              "nullable": false,
+              "editable": true,
+              "domain": null,
+              "defaultValue": null
+            },
+            {
+              "name": "CLERK_NO2",
+              "type": "esriFieldTypeString",
+              "alias": "CLERK_NO2",
+              "sqlType": "sqlTypeOther",
+              "length": 20,
+              "nullable": false,
+              "editable": true,
+              "domain": null,
+              "defaultValue": null
+            },
+            {
+              "name": "S_CHNG_CD2",
+              "type": "esriFieldTypeDouble",
+              "alias": "S_CHNG_CD2",
+              "sqlType": "sqlTypeOther",
+              "nullable": false,
+              "editable": true,
+              "domain": null,
+              "defaultValue": null
+            },
+            {
+              "name": "OWN_NAME",
+              "type": "esriFieldTypeString",
+              "alias": "OWN_NAME",
+              "sqlType": "sqlTypeOther",
+              "length": 33,
+              "nullable": false,
+              "editable": true,
+              "domain": null,
+              "defaultValue": null
+            },
+            {
+              "name": "OWN_ADDR1",
+              "type": "esriFieldTypeString",
+              "alias": "OWN_ADDR1",
+              "sqlType": "sqlTypeOther",
+              "length": 40,
+              "nullable": false,
+              "editable": true,
+              "domain": null,
+              "defaultValue": null
+            },
+            {
+              "name": "OWN_ADDR2",
+              "type": "esriFieldTypeString",
+              "alias": "OWN_ADDR2",
+              "sqlType": "sqlTypeOther",
+              "length": 40,
+              "nullable": false,
+              "editable": true,
+              "domain": null,
+              "defaultValue": null
+            },
+            {
+              "name": "OWN_CITY",
+              "type": "esriFieldTypeString",
+              "alias": "OWN_CITY",
+              "sqlType": "sqlTypeOther",
+              "length": 40,
+              "nullable": false,
+              "editable": true,
+              "domain": null,
+              "defaultValue": null
+            },
+            {
+              "name": "OWN_STATE",
+              "type": "esriFieldTypeString",
+              "alias": "OWN_STATE",
+              "sqlType": "sqlTypeOther",
+              "length": 30,
+              "nullable": false,
+              "editable": true,
+              "domain": null,
+              "defaultValue": null
+            },
+            {
+              "name": "OWN_ZIPCD",
+              "type": "esriFieldTypeDouble",
+              "alias": "OWN_ZIPCD",
+              "sqlType": "sqlTypeOther",
+              "nullable": false,
+              "editable": true,
+              "domain": null,
+              "defaultValue": null
+            },
+            {
+              "name": "OWN_STATE_",
+              "type": "esriFieldTypeString",
+              "alias": "OWN_STATE_",
+              "sqlType": "sqlTypeOther",
+              "length": 2,
+              "nullable": false,
+              "editable": true,
+              "domain": null,
+              "defaultValue": null
+            },
+            {
+              "name": "FIDU_NAME",
+              "type": "esriFieldTypeString",
+              "alias": "FIDU_NAME",
+              "sqlType": "sqlTypeOther",
+              "length": 33,
+              "nullable": false,
+              "editable": true,
+              "domain": null,
+              "defaultValue": null
+            },
+            {
+              "name": "FIDU_ADDR1",
+              "type": "esriFieldTypeString",
+              "alias": "FIDU_ADDR1",
+              "sqlType": "sqlTypeOther",
+              "length": 40,
+              "nullable": false,
+              "editable": true,
+              "domain": null,
+              "defaultValue": null
+            },
+            {
+              "name": "FIDU_ADDR2",
+              "type": "esriFieldTypeString",
+              "alias": "FIDU_ADDR2",
+              "sqlType": "sqlTypeOther",
+              "length": 40,
+              "nullable": false,
+              "editable": true,
+              "domain": null,
+              "defaultValue": null
+            },
+            {
+              "name": "FIDU_CITY",
+              "type": "esriFieldTypeString",
+              "alias": "FIDU_CITY",
+              "sqlType": "sqlTypeOther",
+              "length": 40,
+              "nullable": false,
+              "editable": true,
+              "domain": null,
+              "defaultValue": null
+            },
+            {
+              "name": "FIDU_STATE",
+              "type": "esriFieldTypeString",
+              "alias": "FIDU_STATE",
+              "sqlType": "sqlTypeOther",
+              "length": 30,
+              "nullable": false,
+              "editable": true,
+              "domain": null,
+              "defaultValue": null
+            },
+            {
+              "name": "FIDU_ZIPCD",
+              "type": "esriFieldTypeString",
+              "alias": "FIDU_ZIPCD",
+              "sqlType": "sqlTypeOther",
+              "length": 5,
+              "nullable": false,
+              "editable": true,
+              "domain": null,
+              "defaultValue": null
+            },
+            {
+              "name": "FIDU_CD",
+              "type": "esriFieldTypeDouble",
+              "alias": "FIDU_CD",
+              "sqlType": "sqlTypeOther",
+              "nullable": false,
+              "editable": true,
+              "domain": null,
+              "defaultValue": null
+            },
+            {
+              "name": "S_LEGAL",
+              "type": "esriFieldTypeString",
+              "alias": "S_LEGAL",
+              "sqlType": "sqlTypeOther",
+              "length": 35,
+              "nullable": false,
+              "editable": true,
+              "domain": null,
+              "defaultValue": null
+            },
+            {
+              "name": "APP_STAT",
+              "type": "esriFieldTypeString",
+              "alias": "APP_STAT",
+              "sqlType": "sqlTypeOther",
+              "length": 1,
+              "nullable": false,
+              "editable": true,
+              "domain": null,
+              "defaultValue": null
+            },
+            {
+              "name": "CO_APP_STA",
+              "type": "esriFieldTypeString",
+              "alias": "CO_APP_STA",
+              "sqlType": "sqlTypeOther",
+              "length": 1,
+              "nullable": false,
+              "editable": true,
+              "domain": null,
+              "defaultValue": null
+            },
+            {
+              "name": "MKT_AR",
+              "type": "esriFieldTypeString",
+              "alias": "MKT_AR",
+              "sqlType": "sqlTypeOther",
+              "length": 3,
+              "nullable": false,
+              "editable": true,
+              "domain": null,
+              "defaultValue": null
+            },
+            {
+              "name": "NBRHD_CD",
+              "type": "esriFieldTypeString",
+              "alias": "NBRHD_CD",
+              "sqlType": "sqlTypeOther",
+              "length": 10,
+              "nullable": false,
+              "editable": true,
+              "domain": null,
+              "defaultValue": null
+            },
+            {
+              "name": "PUBLIC_LND",
+              "type": "esriFieldTypeString",
+              "alias": "PUBLIC_LND",
+              "sqlType": "sqlTypeOther",
+              "length": 1,
+              "nullable": false,
+              "editable": true,
+              "domain": null,
+              "defaultValue": null
+            },
+            {
+              "name": "TAX_AUTH_C",
+              "type": "esriFieldTypeString",
+              "alias": "TAX_AUTH_C",
+              "sqlType": "sqlTypeOther",
+              "length": 5,
+              "nullable": false,
+              "editable": true,
+              "domain": null,
+              "defaultValue": null
+            },
+            {
+              "name": "TWN",
+              "type": "esriFieldTypeString",
+              "alias": "TWN",
+              "sqlType": "sqlTypeOther",
+              "length": 3,
+              "nullable": false,
+              "editable": true,
+              "domain": null,
+              "defaultValue": null
+            },
+            {
+              "name": "RNG",
+              "type": "esriFieldTypeString",
+              "alias": "RNG",
+              "sqlType": "sqlTypeOther",
+              "length": 3,
+              "nullable": false,
+              "editable": true,
+              "domain": null,
+              "defaultValue": null
+            },
+            {
+              "name": "SEC",
+              "type": "esriFieldTypeString",
+              "alias": "SEC",
+              "sqlType": "sqlTypeOther",
+              "length": 3,
+              "nullable": false,
+              "editable": true,
+              "domain": null,
+              "defaultValue": null
+            },
+            {
+              "name": "CENSUS_BK",
+              "type": "esriFieldTypeString",
+              "alias": "CENSUS_BK",
+              "sqlType": "sqlTypeOther",
+              "length": 16,
+              "nullable": false,
+              "editable": true,
+              "domain": null,
+              "defaultValue": null
+            },
+            {
+              "name": "PHY_ADDR1",
+              "type": "esriFieldTypeString",
+              "alias": "PHY_ADDR1",
+              "sqlType": "sqlTypeOther",
+              "length": 40,
+              "nullable": false,
+              "editable": true,
+              "domain": null,
+              "defaultValue": null
+            },
+            {
+              "name": "PHY_ADDR2",
+              "type": "esriFieldTypeString",
+              "alias": "PHY_ADDR2",
+              "sqlType": "sqlTypeOther",
+              "length": 40,
+              "nullable": false,
+              "editable": true,
+              "domain": null,
+              "defaultValue": null
+            },
+            {
+              "name": "PHY_CITY",
+              "type": "esriFieldTypeString",
+              "alias": "PHY_CITY",
+              "sqlType": "sqlTypeOther",
+              "length": 40,
+              "nullable": false,
+              "editable": true,
+              "domain": null,
+              "defaultValue": null
+            },
+            {
+              "name": "PHY_ZIPCD",
+              "type": "esriFieldTypeDouble",
+              "alias": "PHY_ZIPCD",
+              "sqlType": "sqlTypeOther",
+              "nullable": false,
+              "editable": true,
+              "domain": null,
+              "defaultValue": null
+            },
+            {
+              "name": "ALT_KEY",
+              "type": "esriFieldTypeString",
+              "alias": "ALT_KEY",
+              "sqlType": "sqlTypeOther",
+              "length": 26,
+              "nullable": false,
+              "editable": true,
+              "domain": null,
+              "defaultValue": null
+            },
+            {
+              "name": "ASS_TRNSFR",
+              "type": "esriFieldTypeString",
+              "alias": "ASS_TRNSFR",
+              "sqlType": "sqlTypeOther",
+              "length": 1,
+              "nullable": false,
+              "editable": true,
+              "domain": null,
+              "defaultValue": null
+            },
+            {
+              "name": "PREV_HMSTD",
+              "type": "esriFieldTypeDouble",
+              "alias": "PREV_HMSTD",
+              "sqlType": "sqlTypeOther",
+              "nullable": false,
+              "editable": true,
+              "domain": null,
+              "defaultValue": null
+            },
+            {
+              "name": "ASS_DIF_TR",
+              "type": "esriFieldTypeDouble",
+              "alias": "ASS_DIF_TR",
+              "sqlType": "sqlTypeOther",
+              "nullable": false,
+              "editable": true,
+              "domain": null,
+              "defaultValue": null
+            },
+            {
+              "name": "CONO_PRV_H",
+              "type": "esriFieldTypeDouble",
+              "alias": "CONO_PRV_H",
+              "sqlType": "sqlTypeOther",
+              "nullable": false,
+              "editable": true,
+              "domain": null,
+              "defaultValue": null
+            },
+            {
+              "name": "PARCEL_ID_",
+              "type": "esriFieldTypeString",
+              "alias": "PARCEL_ID_",
+              "sqlType": "sqlTypeOther",
+              "length": 30,
+              "nullable": false,
+              "editable": true,
+              "domain": null,
+              "defaultValue": null
+            },
+            {
+              "name": "YR_VAL_TRN",
+              "type": "esriFieldTypeDouble",
+              "alias": "YR_VAL_TRN",
+              "sqlType": "sqlTypeOther",
+              "nullable": false,
+              "editable": true,
+              "domain": null,
+              "defaultValue": null
+            },
+            {
+              "name": "SEQ_NO",
+              "type": "esriFieldTypeDouble",
+              "alias": "SEQ_NO",
+              "sqlType": "sqlTypeOther",
+              "nullable": false,
+              "editable": true,
+              "domain": null,
+              "defaultValue": null
+            },
+            {
+              "name": "RS_ID",
+              "type": "esriFieldTypeString",
+              "alias": "RS_ID",
+              "sqlType": "sqlTypeOther",
+              "length": 4,
+              "nullable": false,
+              "editable": true,
+              "domain": null,
+              "defaultValue": null
+            },
+            {
+              "name": "MP_ID",
+              "type": "esriFieldTypeString",
+              "alias": "MP_ID",
+              "sqlType": "sqlTypeOther",
+              "length": 8,
+              "nullable": false,
+              "editable": true,
+              "domain": null,
+              "defaultValue": null
+            },
+            {
+              "name": "STATE_PAR_",
+              "type": "esriFieldTypeString",
+              "alias": "STATE_PAR_",
+              "sqlType": "sqlTypeOther",
+              "length": 18,
+              "nullable": false,
+              "editable": true,
+              "domain": null,
+              "defaultValue": null
+            },
+            {
+              "name": "SPC_CIR_CD",
+              "type": "esriFieldTypeDouble",
+              "alias": "SPC_CIR_CD",
+              "sqlType": "sqlTypeOther",
+              "nullable": false,
+              "editable": true,
+              "domain": null,
+              "defaultValue": null
+            },
+            {
+              "name": "SPC_CIR_YR",
+              "type": "esriFieldTypeDouble",
+              "alias": "SPC_CIR_YR",
+              "sqlType": "sqlTypeOther",
+              "nullable": false,
+              "editable": true,
+              "domain": null,
+              "defaultValue": null
+            },
+            {
+              "name": "SPC_CIR_TX",
+              "type": "esriFieldTypeString",
+              "alias": "SPC_CIR_TX",
+              "sqlType": "sqlTypeOther",
+              "length": 50,
+              "nullable": false,
+              "editable": true,
+              "domain": null,
+              "defaultValue": null
+            },
+            {
+              "name": "BATCHING_ID",
+              "type": "esriFieldTypeInteger",
+              "alias": "BATCHING_ID",
+              "sqlType": "sqlTypeOther",
+              "nullable": true,
+              "editable": true,
+              "domain": null,
+              "defaultValue": null
+            },
+            {
+              "name": "Shape__Area",
+              "type": "esriFieldTypeDouble",
+              "alias": "Shape__Area",
+              "sqlType": "sqlTypeDouble",
+              "nullable": true,
+              "editable": false,
+              "domain": null,
+              "defaultValue": null
+            },
+            {
+              "name": "Shape__Length",
+              "type": "esriFieldTypeDouble",
+              "alias": "Shape__Length",
+              "sqlType": "sqlTypeDouble",
+              "nullable": true,
+              "editable": false,
+              "domain": null,
+              "defaultValue": null
+            }
+          ],
+          "supportedQueryFormats": "JSON, geoJSON, PBF",
+          "maxRecordCount": 2000,
+          "extent": {
+            "xmin": 52784.813999999315,
+            "ymin": 52134.50299999956,
+            "xmax": 803741.1838999987,
+            "ymax": 781582.3724999996,
+            "spatialReference": {
+              "wkid": 102967,
+              "latestWkid": 6439
+            }
+          },
+          "advancedQueryCapabilities": {
+            "supportsPagination": true,
+            "supportsPaginationOnAggregatedQueries": true,
+            "supportsQueryRelatedPagination": true,
+            "supportsQueryWithDistance": true,
+            "supportsOutDistance": true,
+            "supportsReturningQueryExtent": true,
+            "supportsStatistics": true,
+            "supportsOrderBy": true,
+            "supportsDistinct": true,
+            "supportsQueryWithResultType": true,
+            "supportsSqlExpression": true,
+            "supportsTimeRelation": true,
+            "supportsAdvancedQueryRelated": true,
+            "supportsCountDistinct": true,
+            "supportsPercentileStatistics": true,
+            "supportsApproxPercentileStatistics": true,
+            "supportsSpatialAggregationStatistics": true,
+            "supportsTrueCurve": true,
+            "supportedSpatialAggregationStatistics": [
+              "EnvelopeAggregate",
+              "CentroidAggregate",
+              "ConvexHullAggregate"
+            ],
+            "supportsLod": true,
+            "supportsQueryWithLodSR": false,
+            "supportedLodTypes": [
+              "geohash"
+            ],
+            "supportsReturningGeometryCentroid": true,
+            "supportsReturningGeometryEnvelope": true,
+            "supportsReturningGeometryProperties": true,
+            "supportsQueryWithDatumTransformation": true,
+            "supportsCurrentUserQueries": true,
+            "supportsHavingClause": true,
+            "supportsOutFieldSQLExpression": true,
+            "supportsMaxRecordCountFactor": true,
+            "supportsTopFeaturesQuery": true,
+            "supportsDisjointSpatialRel": true,
+            "supportsQueryWithCacheHint": true,
+            "supportedOperationsWithCacheHint": [
+              "query",
+              "queryTopFilter",
+              "queryAnalytics",
+              "queryAttachments",
+              "queryRelated",
+              "queryBins",
+              "queryPivot"
+            ],
+            "supportsQueryAnalytic": true,
+            "supportsQueryPivot": true,
+            "supportsQueryBins": true,
+            "supportsDefaultSR": true,
+            "supportsTranslations": false,
+            "supportsAggIds": true,
+            "supportsQueryWithCollation": true,
+            "supportsISODOW": true,
+            "supportsISOWeek": true,
+            "supportsFullTextSearch": true,
+            "fullTextSearchCapabilities": {
+              "supportsAccentSensitivity": true,
+              "supportsStopWords": true,
+              "supportsSearchOperator": true,
+              "supportsOperator": true
+            }
+          },
+          "editingInfo": {
+            "lastEditDate": 1790733881296,
+            "schemaLastEditDate": 1790733881296,
+            "dataLastEditDate": 1790733881296
+          }
+        }
+      ],
+      "terms": {
+        "itemId": "efa909d6b1c841d298b0a649e7f71cf2",
+        "owner": "FloridaGIO",
+        "licenseInfo": "<div style='text-align:Left;'><div><p><span style='font-family:&quot;Arial&quot;,sans-serif;font-size:11.0pt;'>The Department does not generate or maintain the data used to compile this statewide parcel map. The Department does not guarantee the accuracy, or completeness, or the compliance with public records laws of this parcel GIS data. The data is owned and maintained by each Florida county’s property appraiser’s office and was provided to the Department. by each respective county property appraiser’s office. This GIS map data is typically constructed from county, city, state and/or federal public records and should not be relied on to replace an accurate professional survey on any parcel depicted.</span></p></div></div>",
+        "accessInformation": "Florida’s county property appraisers, Florida Department of Revenue Property Tax Oversight",
+        "description": "<div style=\"text-align:Left;\"><p style=\"background-attachment:initial; background-clip:initial; background-image:initial; background-origin:initial; background-position:initial; background-repeat:initial; background-size:initial; margin:12pt 0in;\"><span style=\"color:black; font-family:&quot;Arial&quot;,sans-serif;\">The Florida Department of Revenue’s Property Tax Oversight(PTO) program collects parcel level Geographic Information System (GIS) data files every April from all of Florida’s 67 county property appraisers’ offices. This GIS data was exported from these file submissions in August 2026. The GIS parcel polygon features have been joined with the</span><span style=\"color:#222222; font-family:&quot;Arial&quot;,sans-serif;\">real property roll (Name – Address – Legal, or NAL)</span><span style=\"color:black; font-family:&quot;Arial&quot;,sans-serif;\">file. No line work was adjusted between county boundaries.The polygon data set represents the information property appraisers gathered from the legal description on deeds, lot layout of recorded plats, declaration of condominium documents, recorded and unrecorded surveys.</span><br /><br /><span style=\"color:#000000;\">Individual parcel data is updated continually by each county property appraiser as needed. <span>The GIS linework and related attributions for the statewide parcel map are updated annually by the Department every August.&nbsp; Minor data maintenance is also completed every May and November.</span> The dataset extends countywide and is attribute by Federal Information Processing Standards (FIPS) code.</span></p><p style=\"margin:16 0;\">DOR reference with FIPS county codes and attribution definitions - <a target=\"_blank\" href=\"https://fgio.maps.arcgis.com/home/item.html?id=55e830fd6c8948baae1601fbfc33a3b2\">https://fgio.maps.arcgis.com/home/item.html?id=55e830fd6c8948baae1601fbfc33a3b2</a></p><p style=\"background-attachment:initial; background-clip:initial; background-image:initial; background-origin:initial; background-position:initial; background-repeat:initial; background-size:initial; margin:12pt 0in;\"><span style=\"font-family:Arial, sans-serif;\"><strong>If you discover the inadvertent release of a confidential record exempt from disclosure pursuant to Chapter 119, Florida Statutes, public records laws, immediately notify the Department of Revenue at 850-717-6570 and your local Florida Property Appraisers’ Office.</strong></span></p><p style=\"margin:16 0;\">&nbsp;</p><p style=\"margin:16 0;\"><strong>Please contact the county property appraiser with any parcel specific questions: Florida Property Appraisers’ Offices:</strong></p><p style=\"margin:16 0 6;\">Alachua County Property Appraiser – <a target=\"_blank\" href=\"https://www.acpafl.org/\"><u>https://www.acpafl.org/</u></a></p><p style=\"margin:16 0 6;\">Baker County Property Appraiser – <a target=\"_blank\" href=\"https://www.bakerpa.com/\"><u>https://www.bakerpa.com/</u></a></p><p style=\"margin:16 0 6;\">Bay County Property Appraiser – <a target=\"_blank\" href=\"https://baypa.net/\"><u>https://baypa.net/</u></a></p><p style=\"margin:16 0 6;\">Bradford County Property Appraiser – <a target=\"_blank\" href=\"https://www.bradfordappraiser.com/\"><u>https://www.bradfordappraiser.com/</u></a></p><p style=\"margin:16 0 6;\">Brevard County Property Appraiser – <a target=\"_blank\" href=\"https://www.bcpao.us/\"><u>https://www.bcpao.us/</u></a></p><p style=\"margin:16 0 6;\">Broward County Property Appraiser – <a target=\"_blank\" href=\"https://bcpa.net/\"><u>https://bcpa.net/</u></a></p><p style=\"margin:16 0 6;\">Calhoun County Property Appraiser – <a target=\"_blank\" href=\"https://calhounpa.net/\"><u>https://calhounpa.net/</u></a></p><p style=\"margin:16 0 6;\">Charlotte County Property Appraiser – <a target=\"_blank\" href=\"https://www.ccappraiser.com/\"><u>https://www.ccappraiser.com/</u></a></p><p style=\"margin:16 0 6;\">Citrus County Property Appraiser – <a target=\"_blank\" href=\"https://www.citruspa.org/\"><u>https://www.citruspa.org/</u></a></p><p style=\"margin:16 0 6;\">Clay County Property Appraiser – <a target=\"_blank\" href=\"https://ccpao.com/\"><u>https://ccpao.com/</u></a></p><p style=\"margin:16 0 6;\">Collier County Property Appraiser – <a target=\"_blank\" href=\"https://www.collierappraiser.com/\"><u>https://www.collierappraiser.com/</u></a></p><p style=\"margin:16 0 6;\">Columbia County Property Appraiser – <a target=\"_blank\" href=\"https://columbia.floridapa.com/\"><u>https://columbia.floridapa.com/</u></a></p><p style=\"margin:16 0 6;\">DeSoto County Property Appraiser – <a target=\"_blank\" href=\"https://www.desotopa.com/\"><u>https://www.desotopa.com/</u></a></p><p style=\"margin:16 0 6;\">Dixie County Property Appraiser – <a target=\"_blank\" href=\"https://www.qpublic.net/fl/dixie/\"><u>https://www.qpublic.net/fl/dixie/</u></a></p><p style=\"margin:16 0 6;\">Duval County Property Appraiser – <a target=\"_blank\" href=\"https://www.coj.net/departments/property-appraiser.aspx\"><u>https://www.coj.net/departments/property-appraiser.aspx</u></a></p><p style=\"margin:16 0 6;\">Escambia County Property Appraiser – <a target=\"_blank\" href=\"https://www.escpa.org/\"><u>https://www.escpa.org/</u></a></p><p style=\"margin:16 0 6;\">Flagler County Property Appraiser – <a target=\"_blank\" href=\"https://flaglerpa.com/\"><u>https://flaglerpa.com/</u></a></p><p style=\"margin:16 0 6;\">Franklin County Property Appraiser – <a target=\"_blank\" href=\"https://franklincountypa.net/\"><u>https://franklincountypa.net/</u></a></p><p style=\"margin:16 0 6;\">Gadsden County Property Appraiser – <a target=\"_blank\" href=\"https://gadsdenpa.com/\"><u>https://gadsdenpa.com/</u></a></p><p style=\"margin:16 0 6;\">Gilchrist County Property Appraiser – <a target=\"_blank\" href=\"https://www.qpublic.net/fl/gilchrist/\"><u>https://www.qpublic.net/fl/gilchrist/</u></a></p><p style=\"margin:16 0 6;\">Glades County Property Appraiser – <a target=\"_blank\" href=\"https://qpublic.net/fl/glades/\"><u>https://qpublic.net/fl/glades/</u></a></p><p style=\"margin:16 0 6;\">Gulf County Property Appraiser – <a target=\"_blank\" href=\"https://gulfpa.com/\"><u>https://gulfpa.com/</u></a></p><p style=\"margin:16 0 6;\">Hamilton County Property Appraiser – <a target=\"_blank\" href=\"https://hamiltonpa.com/\"><u>https://hamiltonpa.com/</u></a></p><p style=\"margin:16 0 6;\">Hardee County Property Appraiser – <a target=\"_blank\" href=\"https://hardeepa.com/\"><u>https://hardeepa.com/</u></a></p><p style=\"margin:16 0 6;\">Hendry County Property Appraiser – <a target=\"_blank\" href=\"https://hendryprop.com/\"><u>https://hendryprop.com/</u></a></p><p style=\"margin:16 0 6;\">Hernando County Property Appraiser – <a target=\"_blank\" href=\"https://hernandocountypa-florida.us/\"><u>https://hernandocountypa-florida.us/</u></a></p><p style=\"margin:16 0 6;\">Highlands County Property Appraiser – <a target=\"_blank\" href=\"https://www.hcpao.org/\"><u>https://www.hcpao.org/</u></a></p><p style=\"margin:16 0 6;\">Hillsborough County Property Appraiser – <a target=\"_blank\" href=\"https://www.hcpafl.org/\"><u>https://www.hcpafl.org/</u></a></p><p style=\"margin:16 0 6;\">Holmes County Property Appraiser – <a target=\"_blank\" href=\"https://www.qpublic.net/fl/holmes/\"><u>https://www.qpublic.net/fl/holmes/</u></a></p><p style=\"margin:16 0 6;\">Indian River County Property Appraiser – <a target=\"_blank\" href=\"https://www.ircpa.org/\"><u>https://www.ircpa.org/</u></a></p><p style=\"margin:16 0 6;\">Jackson County Property Appraiser – <a target=\"_blank\" href=\"https://www.qpublic.net/fl/jackson/\"><u>https://www.qpublic.net/fl/jackson/</u></a></p><p style=\"margin:16 0 6;\">Jefferson County Property Appraiser – <a target=\"_blank\" href=\"https://jeffersonpa.net/\"><u>https://jeffersonpa.net/</u></a></p><p style=\"margin:16 0 6;\">Lafayette County Property Appraiser – <a target=\"_blank\" href=\"https://www.lafayettepa.com/\"><u>https://www.lafayettepa.com/</u></a></p><p style=\"margin:16 0 6;\">Lake County Property Appraiser – <a target=\"_blank\" href=\"https://www.lakecopropappr.com/\"><u>https://www.lakecopropappr.com/</u></a></p><p style=\"margin:16 0 6;\">Lee County Property Appraiser – <a target=\"_blank\" href=\"https://www.leepa.org/\"><u>https://www.leepa.org/</u></a></p><p style=\"margin:16 0 6;\">Leon County Property Appraiser – <a target=\"_blank\" href=\"https://www.leonpa.gov/\"><u>https://www.leonpa.gov/</u></a></p><p style=\"margin:16 0 6;\">Levy County Property Appraiser – <a target=\"_blank\" href=\"https://www.qpublic.net/fl/levy/\"><u>https://www.qpublic.net/fl/levy/</u></a></p><p style=\"margin:16 0 6;\">Liberty County Property Appraiser – <a target=\"_blank\" href=\"https://libertypa.org/\"><u>https://libertypa.org/</u></a></p><p style=\"margin:16 0 6;\">Madison County Property Appraiser – <a target=\"_blank\" href=\"https://madisonpa.com/\"><u>https://madisonpa.com/</u></a></p><p style=\"margin:16 0 6;\">Manatee County Property Appraiser – <a target=\"_blank\" href=\"https://www.manateepao.gov/\"><u>https://www.manateepao.gov/</u></a></p><p style=\"margin:16 0 6;\">Marion County Property Appraiser – <a target=\"_blank\" href=\"https://www.pa.marion.fl.us/\"><u>https://www.pa.marion.fl.us/</u></a></p><p style=\"margin:16 0 6;\">Martin County Property Appraiser – <a target=\"_blank\" href=\"https://www.pa.martin.fl.us/\"><u>https://www.pa.martin.fl.us/</u></a></p><p style=\"margin:16 0 6;\">Miami-Dade County Property Appraiser – <a target=\"_blank\" href=\"https://www.miamidade.gov/pa/\"><u>https://www.miamidade.gov/pa/</u></a></p><p style=\"margin:16 0 6;\">Monroe County Property Appraiser – <a target=\"_blank\" href=\"https://mcpafl.org/\"><u>https://mcpafl.org/</u></a></p><p style=\"margin:16 0 6;\">Nassau County Property Appraiser – <a target=\"_blank\" href=\"https://ncpafl.com/\"><u>https://ncpafl.com/</u></a></p><p style=\"margin:16 0 6;\">Okaloosa County Property Appraiser – <a target=\"_blank\" href=\"https://okaloosapa.com/\"><u>https://okaloosapa.com/</u></a></p><p style=\"margin:16 0 6;\">Okeechobee County Property Appraiser – <a target=\"_blank\" href=\"https://www.okeechobeepa.com/\"><u>https://www.okeechobeepa.com/</u></a></p><p style=\"margin:16 0 6;\">Orange County Property Appraiser – <a target=\"_blank\" href=\"https://ocpaweb.ocpafl.org/\"><u>https://ocpaweb.ocpafl.org/</u></a></p><p style=\"margin:16 0 6;\">Osceola County Property Appraiser – <a target=\"_blank\" href=\"https://www.property-appraiser.org/\"><u>https://www.property-appraiser.org/</u></a></p><p style=\"margin:16 0 6;\">Palm Beach County Property Appraiser – <a target=\"_blank\" href=\"https://www.pbcgov.org/papa/index.htm\"><u>https://www.pbcgov.org/papa/index.htm</u></a></p><p style=\"margin:16 0 6;\">Pasco County Property Appraiser – <a target=\"_blank\" href=\"https://pascopa.com/\"><u>https://pascopa.com/</u></a></p><p style=\"margin:16 0 6;\">Pinellas County Property Appraiser – <a target=\"_blank\" href=\"https://www.pcpao.org/\"><u>https://www.pcpao.org/</u></a></p><p style=\"margin:16 0 6;\">Polk County Property Appraiser – <a target=\"_blank\" href=\"https://www.polkpa.org/\"><u>https://www.polkpa.org/</u></a></p><p style=\"margin:16 0 6;\">Putnam County Property Appraiser – <a target=\"_blank\" href=\"https://pa.putnam-fl.com/\"><u>https://pa.putnam-fl.com/</u></a></p><p style=\"margin:16 0 6;\">Santa Rosa County Property Appraiser – <a target=\"_blank\" href=\"https://srcpa.gov/\"><u>https://srcpa.gov/</u></a></p><p style=\"margin:16 0 6;\">Sarasota County Property Appraiser – <a target=\"_blank\" href=\"https://www.sc-pa.com/\"><u>https://www.sc-pa.com/</u></a></p><p style=\"margin:16 0 6;\">Seminole County Property Appraiser – <a target=\"_blank\" href=\"https://www.scpafl.org/\"><u>https://www.scpafl.org/</u></a></p><p style=\"margin:16 0 6;\">St. Johns County Property Appraiser – <a target=\"_blank\" href=\"https://www.sjcpa.gov/\"><u>https://www.sjcpa.gov/</u></a></p><p style=\"margin:16 0 6;\">St. Lucie County Property Appraiser – <a target=\"_blank\" href=\"https://www.paslc.gov/\"><u>https://www.paslc.gov/</u></a></p><p style=\"margin:16 0 6;\">Sumter County Property Appraiser – <a target=\"_blank\" href=\"https://www.sumterpa.com/\"><u>https://www.sumterpa.com/</u></a></p><p style=\"margin:16 0 6;\">Suwannee County Property Appraiser – <a target=\"_blank\" href=\"https://www.suwanneepa.com/\"><u>https://suwannee.floridapa.com/</u></a></p><p style=\"margin:16 0 6;\">Taylor County Property Appraiser – <a target=\"_blank\" href=\"https://qpublic.net/fl/taylor/\"><u>https://qpublic.net/fl/taylor/</u></a></p><p style=\"margin:16 0 6;\">Union County Property Appraiser – <a target=\"_blank\" href=\"https://union.floridapa.com/\"><u>https://union.floridapa.com/</u></a></p><p style=\"margin:16 0 6;\">Volusia County Property Appraiser – <a target=\"_blank\" href=\"https://vcpa.vcgov.org/\"><u>https://vcpa.vcgov.org/</u></a></p><p style=\"margin:16 0 6;\">Wakulla County Property Appraiser – <a target=\"_blank\" href=\"https://mywakullapa.com/\"><u>https://mywakullapa.com/</u></a></p><p style=\"margin:16 0 6;\">Walton County Property Appraiser – <a target=\"_blank\" href=\"https://waltonpa.com/\"><u>https://waltonpa.com/</u></a></p><p style=\"margin:16 0 6;\">Washington County Property Appraiser – <a target=\"_blank\" href=\"https://www.qpublic.net/fl/washington/\"><u>https://www.qpublic.net/fl/washington/</u></a></p><p style=\"margin:0 0 6;\"><strong>Florida Department of Revenue Property Tax Oversight </strong><a target=\"_blank\" href=\"https://floridarevenue.com/property/Pages/Home.aspx\"><u>https://floridarevenue.com/property/Pages/Home.aspx</u></a></p></div>"
+      }
+    },
+    {
+      "state": "TX",
+      "url": "https://feature.geographic.texas.gov/arcgis/rest/services/Parcels/stratmap_land_parcels_48_most_recent/MapServer",
+      "automaticActivation": false,
+      "service": {
+        "layers": [
+          {
+            "subLayerIds": null,
+            "maxScale": 1000,
+            "name": "StratMap Land Parcels 48 Most Recent",
+            "defaultVisibility": true,
+            "id": 0,
+            "minScale": 500000,
+            "supportsDynamicLegends": true,
+            "type": "Feature Layer",
+            "parentLayerId": -1,
+            "geometryType": "esriGeometryPolygon"
+          }
+        ],
+        "serviceItemId": "4179801d3442497194cb861eb25a00ee",
+        "copyrightText": "Texas Geographic Information Office, Various Counties, Various Vendors",
+        "description": "Land parcels are boundaries that have associated information such as property owner, land use, value, and location attributes. This property information is recorded and maintained at the county level in Texas at local appraisal districts. It is then used by public entities to make informed decisions on community planning, development, or emergency preparation and response. The data contributed from county appraisal districts or their service providers were translated into this common schema.",
+        "capabilities": "Query,Map"
+      },
+      "layers": [
+        {
+          "id": 0,
+          "name": "StratMap Land Parcels 48 Most Recent",
+          "geometryType": "esriGeometryPolygon",
+          "capabilities": "Query,Map",
+          "fields": [
+            {
+              "nullable": false,
+              "domain": null,
+              "name": "objectid",
+              "alias": "objectid",
+              "type": "esriFieldTypeOID"
+            },
+            {
+              "nullable": true,
+              "domain": null,
+              "name": "prop_id",
+              "length": 50,
+              "alias": "PROP_ID",
+              "type": "esriFieldTypeString"
+            },
+            {
+              "nullable": true,
+              "domain": null,
+              "name": "geo_id",
+              "length": 50,
+              "alias": "GEO_ID",
+              "type": "esriFieldTypeString"
+            },
+            {
+              "nullable": true,
+              "domain": null,
+              "name": "owner_name",
+              "length": 254,
+              "alias": "OWNER_NAME",
+              "type": "esriFieldTypeString"
+            },
+            {
+              "nullable": true,
+              "domain": null,
+              "name": "name_care",
+              "length": 254,
+              "alias": "NAME_CARE",
+              "type": "esriFieldTypeString"
+            },
+            {
+              "nullable": true,
+              "domain": null,
+              "name": "legal_area",
+              "alias": "LEGAL_AREA",
+              "type": "esriFieldTypeDouble"
+            },
+            {
+              "nullable": true,
+              "domain": null,
+              "name": "gis_area",
+              "alias": "GIS_AREA",
+              "type": "esriFieldTypeDouble"
+            },
+            {
+              "nullable": true,
+              "domain": null,
+              "name": "legal_desc",
+              "length": 254,
+              "alias": "LEGAL_DESC",
+              "type": "esriFieldTypeString"
+            },
+            {
+              "nullable": true,
+              "domain": null,
+              "name": "land_value",
+              "alias": "LAND_VALUE",
+              "type": "esriFieldTypeBigInteger"
+            },
+            {
+              "nullable": true,
+              "domain": null,
+              "name": "imp_value",
+              "alias": "IMP_VALUE",
+              "type": "esriFieldTypeBigInteger"
+            },
+            {
+              "nullable": true,
+              "domain": null,
+              "name": "mkt_value",
+              "alias": "MKT_VALUE",
+              "type": "esriFieldTypeBigInteger"
+            },
+            {
+              "nullable": true,
+              "domain": null,
+              "name": "situs_addr",
+              "length": 254,
+              "alias": "SITUS_ADDR",
+              "type": "esriFieldTypeString"
+            },
+            {
+              "nullable": true,
+              "domain": null,
+              "name": "situs_num",
+              "length": 15,
+              "alias": "SITUS_NUM",
+              "type": "esriFieldTypeString"
+            },
+            {
+              "nullable": true,
+              "domain": null,
+              "name": "situs_stre",
+              "length": 10,
+              "alias": "SITUS_STRE",
+              "type": "esriFieldTypeString"
+            },
+            {
+              "nullable": true,
+              "domain": null,
+              "name": "situs_st_1",
+              "length": 60,
+              "alias": "SITUS_ST_1",
+              "type": "esriFieldTypeString"
+            },
+            {
+              "nullable": true,
+              "domain": null,
+              "name": "situs_st_2",
+              "length": 60,
+              "alias": "SITUS_ST_2",
+              "type": "esriFieldTypeString"
+            },
+            {
+              "nullable": true,
+              "domain": null,
+              "name": "situs_city",
+              "length": 60,
+              "alias": "SITUS_CITY",
+              "type": "esriFieldTypeString"
+            },
+            {
+              "nullable": true,
+              "domain": null,
+              "name": "situs_stat",
+              "length": 2,
+              "alias": "SITUS_STAT",
+              "type": "esriFieldTypeString"
+            },
+            {
+              "nullable": true,
+              "domain": null,
+              "name": "situs_zip",
+              "length": 10,
+              "alias": "SITUS_ZIP",
+              "type": "esriFieldTypeString"
+            },
+            {
+              "nullable": true,
+              "domain": null,
+              "name": "mail_addr",
+              "length": 254,
+              "alias": "MAIL_ADDR",
+              "type": "esriFieldTypeString"
+            },
+            {
+              "nullable": true,
+              "domain": null,
+              "name": "mail_line1",
+              "length": 60,
+              "alias": "MAIL_LINE1",
+              "type": "esriFieldTypeString"
+            },
+            {
+              "nullable": true,
+              "domain": null,
+              "name": "mail_line2",
+              "length": 60,
+              "alias": "MAIL_LINE2",
+              "type": "esriFieldTypeString"
+            },
+            {
+              "nullable": true,
+              "domain": null,
+              "name": "mail_city",
+              "length": 60,
+              "alias": "MAIL_CITY",
+              "type": "esriFieldTypeString"
+            },
+            {
+              "nullable": true,
+              "domain": null,
+              "name": "mail_stat",
+              "length": 2,
+              "alias": "MAIL_STAT",
+              "type": "esriFieldTypeString"
+            },
+            {
+              "nullable": true,
+              "domain": null,
+              "name": "mail_zip",
+              "length": 10,
+              "alias": "MAIL_ZIP",
+              "type": "esriFieldTypeString"
+            },
+            {
+              "nullable": true,
+              "domain": null,
+              "name": "source",
+              "length": 100,
+              "alias": "SOURCE",
+              "type": "esriFieldTypeString"
+            },
+            {
+              "nullable": true,
+              "domain": null,
+              "name": "date_acq",
+              "alias": "DATE_ACQ",
+              "type": "esriFieldTypeDateOnly"
+            },
+            {
+              "nullable": true,
+              "domain": null,
+              "name": "fips",
+              "length": 5,
+              "alias": "FIPS",
+              "type": "esriFieldTypeString"
+            },
+            {
+              "nullable": true,
+              "domain": null,
+              "name": "county",
+              "length": 60,
+              "alias": "COUNTY",
+              "type": "esriFieldTypeString"
+            },
+            {
+              "nullable": true,
+              "domain": null,
+              "name": "tax_year",
+              "length": 4,
+              "alias": "TAX_YEAR",
+              "type": "esriFieldTypeString"
+            },
+            {
+              "nullable": true,
+              "domain": null,
+              "name": "year_built",
+              "length": 4,
+              "alias": "YEAR_BUILT",
+              "type": "esriFieldTypeString"
+            },
+            {
+              "nullable": true,
+              "domain": null,
+              "name": "shape",
+              "alias": "shape",
+              "type": "esriFieldTypeGeometry"
+            },
+            {
+              "nullable": true,
+              "domain": null,
+              "name": "st_area(shape)",
+              "alias": "st_area(shape)",
+              "type": "esriFieldTypeDouble"
+            },
+            {
+              "nullable": true,
+              "domain": null,
+              "name": "st_perimeter(shape)",
+              "alias": "st_perimeter(shape)",
+              "type": "esriFieldTypeDouble"
+            },
+            {
+              "nullable": true,
+              "domain": null,
+              "name": "lgl_area_unit",
+              "length": 8,
+              "alias": "LGL_AREA_UNIT",
+              "type": "esriFieldTypeString"
+            },
+            {
+              "nullable": true,
+              "domain": null,
+              "name": "gis_area_unit",
+              "length": 15,
+              "alias": "GIS_AREA_UNIT",
+              "type": "esriFieldTypeString"
+            },
+            {
+              "nullable": true,
+              "domain": null,
+              "name": "stat_land_use",
+              "length": 5,
+              "alias": "STAT_LAND_USE",
+              "type": "esriFieldTypeString"
+            },
+            {
+              "nullable": true,
+              "domain": null,
+              "name": "loc_land_use",
+              "length": 5,
+              "alias": "LOC_LAND_USE",
+              "type": "esriFieldTypeString"
+            }
+          ],
+          "supportedQueryFormats": "JSON, geoJSON, PBF",
+          "maxRecordCount": 2000,
+          "extent": {
+            "ymin": 2978933.2809000015,
+            "xmin": -11871784.1436,
+            "ymax": 4369843.199600004,
+            "xmax": -10409212.8241,
+            "spatialReference": {
+              "falseM": -100000,
+              "xyTolerance": 0.001,
+              "mUnits": 10000,
+              "zUnits": 10000,
+              "latestWkid": 3857,
+              "zTolerance": 0.001,
+              "wkid": 102100,
+              "xyUnits": 10000,
+              "mTolerance": 0.001,
+              "falseX": -20037700,
+              "falseY": -30241100,
+              "falseZ": -100000
+            }
+          },
+          "advancedQueryCapabilities": {
+            "supportsStatistics": true,
+            "supportsSqlExpression": true,
+            "supportsQueryWithResultType": true,
+            "supportsTrueCurve": false,
+            "supportsOrderBy": true,
+            "supportsQueryRelatedPagination": true,
+            "supportsSqlFormat": false,
+            "useStandardizedQueries": true,
+            "supportsResultPaginationToken": false,
+            "supportsLod": false,
+            "supportsQueryWithDistance": true,
+            "supportsQueryWithCacheHint": false,
+            "supportsCountDistinct": true,
+            "supportsCurrentUserQueries": true,
+            "supportsAdvancedQueryRelated": true,
+            "supportsReturningQueryExtent": true,
+            "supportsQueryWithLodSR": false,
+            "supportsPagination": true,
+            "supportsMaxRecordCountFactor": false,
+            "supportsDistinct": true,
+            "supportsTimeRelation": true,
+            "supportsQueryAnalytic": true,
+            "supportsPercentileStatistics": true,
+            "supportsHavingClause": true
+          }
+        }
+      ],
+      "itemMetadataError": "ARCGIS_400"
+    },
+    {
+      "state": "OH",
+      "url": "https://services2.arcgis.com/MlJ0G8iWUyC7jAmu/arcgis/rest/services/OhioStatewidePacels_full_view/FeatureServer",
+      "automaticActivation": false,
+      "service": {
+        "layers": [
+          {
+            "id": 0,
+            "name": "Parcels",
+            "parentLayerId": -1,
+            "defaultVisibility": true,
+            "subLayerIds": null,
+            "minScale": 0,
+            "maxScale": 0,
+            "type": "Feature Layer",
+            "geometryType": "esriGeometryPolygon"
+          }
+        ],
+        "serviceItemId": "26ab5fad8d5d4258a7492a14de83bc0e",
+        "copyrightText": "",
+        "description": "",
+        "capabilities": "Query,Sync"
+      },
+      "layers": [
+        {
+          "id": 0,
+          "name": "Parcels",
+          "geometryType": "esriGeometryPolygon",
+          "capabilities": "Query,Sync",
+          "fields": [
+            {
+              "name": "OBJECTID",
+              "type": "esriFieldTypeOID",
+              "alias": "OBJECTID",
+              "sqlType": "sqlTypeOther",
+              "nullable": false,
+              "editable": false,
+              "domain": null,
+              "defaultValue": null
+            },
+            {
+              "name": "County",
+              "type": "esriFieldTypeString",
+              "alias": "County",
+              "sqlType": "sqlTypeOther",
+              "length": 30,
+              "nullable": true,
+              "editable": true,
+              "domain": null,
+              "defaultValue": null
+            },
+            {
+              "name": "LocalParcelID",
+              "type": "esriFieldTypeString",
+              "alias": "LocalParcelID",
+              "sqlType": "sqlTypeOther",
+              "length": 30,
+              "nullable": true,
+              "editable": true,
+              "domain": null,
+              "defaultValue": null
+            },
+            {
+              "name": "StateParcelID",
+              "type": "esriFieldTypeString",
+              "alias": "StateParcelID",
+              "sqlType": "sqlTypeOther",
+              "length": 50,
+              "nullable": true,
+              "editable": true,
+              "domain": null,
+              "defaultValue": null
+            },
+            {
+              "name": "StateLUC",
+              "type": "esriFieldTypeString",
+              "alias": "Land Use",
+              "sqlType": "sqlTypeOther",
+              "length": 50,
+              "nullable": true,
+              "editable": true,
+              "domain": null,
+              "defaultValue": null
+            },
+            {
+              "name": "SitusAddressAll",
+              "type": "esriFieldTypeString",
+              "alias": "Situs Address All",
+              "sqlType": "sqlTypeOther",
+              "length": 255,
+              "nullable": true,
+              "editable": true,
+              "domain": null,
+              "defaultValue": null
+            },
+            {
+              "name": "MailAddressAll",
+              "type": "esriFieldTypeString",
+              "alias": "Mail Address",
+              "sqlType": "sqlTypeOther",
+              "length": 300,
+              "nullable": true,
+              "editable": true,
+              "domain": null,
+              "defaultValue": null
+            },
+            {
+              "name": "MailNumber",
+              "type": "esriFieldTypeString",
+              "alias": "MailNumber",
+              "sqlType": "sqlTypeOther",
+              "length": 50,
+              "nullable": true,
+              "editable": true,
+              "domain": null,
+              "defaultValue": null
+            },
+            {
+              "name": "MailStreetPrefix",
+              "type": "esriFieldTypeString",
+              "alias": "MailStreetPrefix",
+              "sqlType": "sqlTypeOther",
+              "length": 20,
+              "nullable": true,
+              "editable": true,
+              "domain": null,
+              "defaultValue": null
+            },
+            {
+              "name": "MailStreetName",
+              "type": "esriFieldTypeString",
+              "alias": "MailStreetName",
+              "sqlType": "sqlTypeOther",
+              "length": 50,
+              "nullable": true,
+              "editable": true,
+              "domain": null,
+              "defaultValue": null
+            },
+            {
+              "name": "MailStreetSuffix",
+              "type": "esriFieldTypeString",
+              "alias": "MailStreetSuffix",
+              "sqlType": "sqlTypeOther",
+              "length": 20,
+              "nullable": true,
+              "editable": true,
+              "domain": null,
+              "defaultValue": null
+            },
+            {
+              "name": "MailUnitNumber",
+              "type": "esriFieldTypeString",
+              "alias": "MailUnitNumber",
+              "sqlType": "sqlTypeOther",
+              "length": 10,
+              "nullable": true,
+              "editable": true,
+              "domain": null,
+              "defaultValue": null
+            },
+            {
+              "name": "MailCity",
+              "type": "esriFieldTypeString",
+              "alias": "MailCity",
+              "sqlType": "sqlTypeOther",
+              "length": 50,
+              "nullable": true,
+              "editable": true,
+              "domain": null,
+              "defaultValue": null
+            },
+            {
+              "name": "MailZip",
+              "type": "esriFieldTypeString",
+              "alias": "MailZip",
+              "sqlType": "sqlTypeOther",
+              "length": 10,
+              "nullable": true,
+              "editable": true,
+              "domain": null,
+              "defaultValue": null
+            },
+            {
+              "name": "MailState",
+              "type": "esriFieldTypeString",
+              "alias": "Mail State",
+              "sqlType": "sqlTypeOther",
+              "length": 3,
+              "nullable": true,
+              "editable": true,
+              "domain": null,
+              "defaultValue": null
+            },
+            {
+              "name": "LandArea",
+              "type": "esriFieldTypeDouble",
+              "alias": "LandArea",
+              "sqlType": "sqlTypeOther",
+              "nullable": true,
+              "editable": true,
+              "domain": null,
+              "defaultValue": null
+            },
+            {
+              "name": "LandArea_PY",
+              "type": "esriFieldTypeDouble",
+              "alias": "LandArea_PY",
+              "sqlType": "sqlTypeOther",
+              "nullable": true,
+              "editable": true,
+              "domain": null,
+              "defaultValue": null
+            },
+            {
+              "name": "CurrentTo",
+              "type": "esriFieldTypeDate",
+              "alias": "Export Date",
+              "sqlType": "sqlTypeOther",
+              "length": 8,
+              "nullable": true,
+              "editable": true,
+              "domain": null,
+              "defaultValue": null,
+              "precision": 1
+            },
+            {
+              "name": "CAMADataSite",
+              "type": "esriFieldTypeString",
+              "alias": "CAMA Data",
+              "sqlType": "sqlTypeOther",
+              "length": 255,
+              "nullable": true,
+              "editable": true,
+              "domain": null,
+              "defaultValue": null
+            },
+            {
+              "name": "GlobalID",
+              "type": "esriFieldTypeGlobalID",
+              "alias": "GlobalID",
+              "sqlType": "sqlTypeOther",
+              "length": 38,
+              "nullable": false,
+              "editable": false,
+              "domain": null,
+              "defaultValue": null
+            },
+            {
+              "name": "Shape__Area",
+              "type": "esriFieldTypeDouble",
+              "alias": "Shape__Area",
+              "sqlType": "sqlTypeDouble",
+              "nullable": true,
+              "editable": true,
+              "isViewOverride": true,
+              "domain": null,
+              "defaultValue": null
+            },
+            {
+              "name": "Shape__Length",
+              "type": "esriFieldTypeDouble",
+              "alias": "Shape__Length",
+              "sqlType": "sqlTypeDouble",
+              "nullable": true,
+              "editable": true,
+              "isViewOverride": true,
+              "domain": null,
+              "defaultValue": null
+            }
+          ],
+          "supportedQueryFormats": "JSON, geoJSON, PBF",
+          "maxRecordCount": 2000,
+          "extent": {
+            "xmin": 1310122.1681210548,
+            "ymin": 146773.41235673428,
+            "xmax": 2518379.8752884716,
+            "ymax": 1455068.835786894,
+            "spatialReference": {
+              "wkid": 102723,
+              "latestWkid": 3735
+            }
+          },
+          "advancedQueryCapabilities": {
+            "supportsPagination": true,
+            "supportsPaginationOnAggregatedQueries": true,
+            "supportsQueryRelatedPagination": true,
+            "supportsQueryWithDistance": true,
+            "supportsOutDistance": true,
+            "supportsReturningQueryExtent": true,
+            "supportsStatistics": true,
+            "supportsOrderBy": true,
+            "supportsDistinct": true,
+            "supportsQueryWithResultType": true,
+            "supportsSqlExpression": true,
+            "supportsTimeRelation": true,
+            "supportsAdvancedQueryRelated": true,
+            "supportsCountDistinct": true,
+            "supportsPercentileStatistics": true,
+            "supportsApproxPercentileStatistics": true,
+            "supportsSpatialAggregationStatistics": true,
+            "supportsTrueCurve": true,
+            "supportedSpatialAggregationStatistics": [
+              "EnvelopeAggregate",
+              "CentroidAggregate",
+              "ConvexHullAggregate"
+            ],
+            "supportsLod": true,
+            "supportsQueryWithLodSR": false,
+            "supportedLodTypes": [
+              "geohash"
+            ],
+            "supportsReturningGeometryCentroid": true,
+            "supportsReturningGeometryEnvelope": true,
+            "supportsReturningGeometryProperties": true,
+            "supportsQueryWithDatumTransformation": true,
+            "supportsCurrentUserQueries": true,
+            "supportsHavingClause": true,
+            "supportsOutFieldSQLExpression": true,
+            "supportsMaxRecordCountFactor": true,
+            "supportsTopFeaturesQuery": true,
+            "supportsDisjointSpatialRel": true,
+            "supportsQueryWithCacheHint": true,
+            "supportedOperationsWithCacheHint": [
+              "query",
+              "queryTopFilter",
+              "queryAnalytics",
+              "queryAttachments",
+              "queryRelated",
+              "queryBins",
+              "queryPivot"
+            ],
+            "supportsQueryAnalytic": true,
+            "supportsQueryPivot": true,
+            "supportsQueryBins": true,
+            "supportsDefaultSR": true,
+            "supportsTranslations": false,
+            "supportsAggIds": true,
+            "supportsQueryWithCollation": true,
+            "supportsISODOW": true,
+            "supportsISOWeek": true,
+            "supportsFullTextSearch": true,
+            "fullTextSearchCapabilities": {
+              "supportsAccentSensitivity": true,
+              "supportsStopWords": true,
+              "supportsSearchOperator": true,
+              "supportsOperator": true
+            },
+            "fullTextSearchableFields": [
+              "OwnerAll"
+            ]
+          },
+          "editingInfo": {
+            "lastEditDate": 1790182605108,
+            "schemaLastEditDate": 1790182605108,
+            "dataLastEditDate": 1790182605108
+          }
+        }
+      ],
+      "terms": {
+        "itemId": "26ab5fad8d5d4258a7492a14de83bc0e",
+        "owner": "ogrip_agol",
+        "licenseInfo": "<span style='margin:0px; padding:0px; color:rgb(0, 0, 0); font-family:Garamond, Garamond_EmbeddedFont, Garamond_MSFontService, serif; font-size:24px; font-variant-ligatures:none;'>The State of Ohio’s geospatial data are available for public use at the user’s own risk and provided for informational purposes only.  The State of Ohio provides the</span><span style='margin:0px; padding:0px; color:rgb(0, 0, 0); font-family:Garamond, Garamond_EmbeddedFont, Garamond_MSFontService, serif; font-size:24px; font-variant-ligatures:none;'>se </span><span style='margin:0px; padding:0px; color:rgb(0, 0, 0); font-family:Garamond, Garamond_EmbeddedFont, Garamond_MSFontService, serif; font-size:24px; font-variant-ligatures:none;'>data “as is” and does not warrant or guarantee that </span><span style='margin:0px; padding:0px; color:rgb(0, 0, 0); font-family:Garamond, Garamond_EmbeddedFont, Garamond_MSFontService, serif; font-size:24px; font-variant-ligatures:none;'>these data </span><span style='margin:0px; padding:0px; color:rgb(0, 0, 0); font-family:Garamond, Garamond_EmbeddedFont, Garamond_MSFontService, serif; font-size:24px; font-variant-ligatures:none;'>are complete, accurate or error free.  The State of Ohio disclaims any warranties regarding the</span><span style='margin:0px; padding:0px; color:rgb(0, 0, 0); font-family:Garamond, Garamond_EmbeddedFont, Garamond_MSFontService, serif; font-size:24px; font-variant-ligatures:none;'>se </span><span style='margin:0px; padding:0px; color:rgb(0, 0, 0); font-family:Garamond, Garamond_EmbeddedFont, Garamond_MSFontService, serif; font-size:24px; font-variant-ligatures:none;'>data and assumes no liability for the use of or reliance on the</span><span style='margin:0px; padding:0px; color:rgb(0, 0, 0); font-family:Garamond, Garamond_EmbeddedFont, Garamond_MSFontService, serif; font-size:24px; font-variant-ligatures:none;'>se </span><span style='margin:0px; padding:0px; color:rgb(0, 0, 0); font-family:Garamond, Garamond_EmbeddedFont, Garamond_MSFontService, serif; font-size:24px; font-variant-ligatures:none;'>data. </span>",
+        "accessInformation": "OGRIP",
+        "description": "<span style='font-family:Roboto, &quot;Avenir Next&quot;; font-size:16px;'>This Statewide Parcel Dataset has been produced from county-maintained parcel and assessment records and combined into a single, standardized statewide dataset.  </span>"
+      }
+    },
+    {
+      "state": "PA",
+      "url": "https://apps.pasda.psu.edu/arcgis/rest/services/PA_Parcels/MapServer",
+      "automaticActivation": false,
+      "service": {
+        "layers": [
+          {
+            "id": 0,
+            "name": "Pa County",
+            "parentLayerId": -1,
+            "defaultVisibility": true,
+            "subLayerIds": null,
+            "minScale": 0,
+            "maxScale": 250000,
+            "type": "Feature Layer",
+            "geometryType": "esriGeometryPolygon",
+            "supportsDynamicLegends": true
+          },
+          {
+            "id": 1,
+            "name": "PA Parcels",
+            "parentLayerId": -1,
+            "defaultVisibility": true,
+            "subLayerIds": null,
+            "minScale": 250000,
+            "maxScale": 0,
+            "type": "Feature Layer",
+            "geometryType": "esriGeometryPolygon",
+            "supportsDynamicLegends": true
+          }
+        ],
+        "copyrightText": "",
+        "description": "",
+        "capabilities": "Map,Query,Data"
+      },
+      "layers": [
+        {
+          "id": 1,
+          "name": "PA Parcels",
+          "geometryType": "esriGeometryPolygon",
+          "capabilities": "Map,Query,Data",
+          "fields": [
+            {
+              "name": "OBJECTID",
+              "type": "esriFieldTypeOID",
+              "alias": "OBJECTID",
+              "domain": null
+            },
+            {
+              "name": "Shape",
+              "type": "esriFieldTypeGeometry",
+              "alias": "Shape",
+              "domain": null
+            },
+            {
+              "name": "PIN",
+              "type": "esriFieldTypeString",
+              "alias": "PIN",
+              "length": 254,
+              "domain": null
+            },
+            {
+              "name": "Source",
+              "type": "esriFieldTypeString",
+              "alias": "Source",
+              "length": 50,
+              "domain": null
+            },
+            {
+              "name": "Date",
+              "type": "esriFieldTypeDouble",
+              "alias": "Date",
+              "domain": null
+            },
+            {
+              "name": "Shape_Length",
+              "type": "esriFieldTypeDouble",
+              "alias": "Shape_Length",
+              "domain": null
+            },
+            {
+              "name": "Shape_Area",
+              "type": "esriFieldTypeDouble",
+              "alias": "Shape_Area",
+              "domain": null
+            }
+          ],
+          "supportedQueryFormats": "JSON, geoJSON, PBF",
+          "maxRecordCount": 2000,
+          "extent": {
+            "xmin": -80.6175601886525,
+            "ymin": 39.67898710473869,
+            "xmax": -74.62527573391816,
+            "ymax": 42.28673570356745,
+            "zmin": -0.0005999999993946403,
+            "zmax": 65.98020000000542,
+            "mmin": null,
+            "mmax": null,
+            "spatialReference": {
+              "wkid": 4269,
+              "latestWkid": 4269,
+              "xyTolerance": 8.983152841195215e-9,
+              "zTolerance": 0.001,
+              "mTolerance": 0.001,
+              "falseX": -400,
+              "falseY": -400,
+              "xyUnits": 999999999.9999999,
+              "falseZ": -100000,
+              "zUnits": 10000,
+              "falseM": -100000,
+              "mUnits": 10000
+            }
+          },
+          "advancedQueryCapabilities": {
+            "useStandardizedQueries": true,
+            "supportsStatistics": true,
+            "supportsPercentileStatistics": true,
+            "supportsHavingClause": true,
+            "supportsOrderBy": true,
+            "supportsDistinct": true,
+            "supportsCountDistinct": true,
+            "supportsAdvancedQueryRelated": true,
+            "supportsQueryRelatedPagination": true,
+            "supportsPagination": true,
+            "supportsLod": false,
+            "supportsQueryWithLodSR": false,
+            "supportsTrueCurve": true,
+            "supportsQueryWithDatumTransformation": true,
+            "supportsReturningQueryExtent": true,
+            "supportsQueryWithDistance": true,
+            "supportsSqlExpression": true,
+            "supportsTimeRelation": true,
+            "supportsSqlFormat": false,
+            "supportsQueryAnalytic": false,
+            "supportsCurrentUserQueries": true
+          }
+        }
+      ]
+    },
+    {
+      "state": "AR",
+      "url": "https://gis.arkansas.gov/arcgis/rest/services/FEATURESERVICES/Planning_Cadastre/FeatureServer",
+      "automaticActivation": false,
+      "service": {
+        "layers": [
+          {
+            "id": 0,
+            "name": "PARCEL_CENTROID_CAMP",
+            "parentLayerId": -1,
+            "defaultVisibility": false,
+            "subLayerIds": null,
+            "minScale": 0,
+            "maxScale": 0,
+            "type": "Feature Layer",
+            "geometryType": "esriGeometryPoint"
+          },
+          {
+            "id": 1,
+            "name": "PLSS_POINTS_BLM",
+            "parentLayerId": -1,
+            "defaultVisibility": false,
+            "subLayerIds": null,
+            "minScale": 0,
+            "maxScale": 0,
+            "type": "Feature Layer",
+            "geometryType": "esriGeometryPoint"
+          },
+          {
+            "id": 2,
+            "name": "LAT_LONG_LINES_AHTD_2000",
+            "parentLayerId": -1,
+            "defaultVisibility": false,
+            "subLayerIds": null,
+            "minScale": 0,
+            "maxScale": 0,
+            "type": "Feature Layer",
+            "geometryType": "esriGeometryPolyline"
+          },
+          {
+            "id": 3,
+            "name": "MANAGEMENT_GAP100K_CAST_1995",
+            "parentLayerId": -1,
+            "defaultVisibility": false,
+            "subLayerIds": null,
+            "minScale": 0,
+            "maxScale": 0,
+            "type": "Feature Layer",
+            "geometryType": "esriGeometryPolygon"
+          },
+          {
+            "id": 4,
+            "name": "OWNERSHIP_GAP100K_CAST_1995",
+            "parentLayerId": -1,
+            "defaultVisibility": false,
+            "subLayerIds": null,
+            "minScale": 0,
+            "maxScale": 0,
+            "type": "Feature Layer",
+            "geometryType": "esriGeometryPolygon"
+          },
+          {
+            "id": 5,
+            "name": "OZARKNFS_OWNERSHIP",
+            "parentLayerId": -1,
+            "defaultVisibility": false,
+            "subLayerIds": null,
+            "minScale": 0,
+            "maxScale": 0,
+            "type": "Feature Layer",
+            "geometryType": "esriGeometryPolygon"
+          },
+          {
+            "id": 6,
+            "name": "PARCEL_POLYGON_CAMP",
+            "parentLayerId": -1,
+            "defaultVisibility": false,
+            "subLayerIds": null,
+            "minScale": 0,
+            "maxScale": 0,
+            "type": "Feature Layer",
+            "geometryType": "esriGeometryPolygon"
+          },
+          {
+            "id": 7,
+            "name": "PLSS_FIRSTDIVISION_BLM",
+            "parentLayerId": -1,
+            "defaultVisibility": false,
+            "subLayerIds": null,
+            "minScale": 0,
+            "maxScale": 0,
+            "type": "Feature Layer",
+            "geometryType": "esriGeometryPolygon"
+          },
+          {
+            "id": 8,
+            "name": "PLSS_INTERSECTED_BLM",
+            "parentLayerId": -1,
+            "defaultVisibility": false,
+            "subLayerIds": null,
+            "minScale": 0,
+            "maxScale": 0,
+            "type": "Feature Layer",
+            "geometryType": "esriGeometryPolygon"
+          },
+          {
+            "id": 9,
+            "name": "PLSS_METADATAGLANCE_BLM",
+            "parentLayerId": -1,
+            "defaultVisibility": false,
+            "subLayerIds": null,
+            "minScale": 0,
+            "maxScale": 0,
+            "type": "Feature Layer",
+            "geometryType": "esriGeometryPolygon"
+          },
+          {
+            "id": 10,
+            "name": "PLSS_SECTIONS_AHTD",
+            "parentLayerId": -1,
+            "defaultVisibility": false,
+            "subLayerIds": null,
+            "minScale": 0,
+            "maxScale": 0,
+            "type": "Feature Layer",
+            "geometryType": "esriGeometryPolygon"
+          },
+          {
+            "id": 11,
+            "name": "PLSS_SPECIALSURVEY_BLM",
+            "parentLayerId": -1,
+            "defaultVisibility": false,
+            "subLayerIds": null,
+            "minScale": 0,
+            "maxScale": 0,
+            "type": "Feature Layer",
+            "geometryType": "esriGeometryPolygon"
+          },
+          {
+            "id": 12,
+            "name": "PLSS_SURVEYSYSTEM_BLM",
+            "parentLayerId": -1,
+            "defaultVisibility": false,
+            "subLayerIds": null,
+            "minScale": 0,
+            "maxScale": 0,
+            "type": "Feature Layer",
+            "geometryType": "esriGeometryPolygon"
+          },
+          {
+            "id": 13,
+            "name": "PLSS_TOWNSHIP_AHTD",
+            "parentLayerId": -1,
+            "defaultVisibility": false,
+            "subLayerIds": null,
+            "minScale": 0,
+            "maxScale": 0,
+            "type": "Feature Layer",
+            "geometryType": "esriGeometryPolygon"
+          },
+          {
+            "id": 14,
+            "name": "PLSS_TOWNSHIPS_BLM",
+            "parentLayerId": -1,
+            "defaultVisibility": false,
+            "subLayerIds": null,
+            "minScale": 0,
+            "maxScale": 0,
+            "type": "Feature Layer",
+            "geometryType": "esriGeometryPolygon"
+          },
+          {
+            "id": 15,
+            "name": "PLSS_TOWNSHIPS_USGS_1990",
+            "parentLayerId": -1,
+            "defaultVisibility": false,
+            "subLayerIds": null,
+            "minScale": 0,
+            "maxScale": 0,
+            "type": "Feature Layer",
+            "geometryType": "esriGeometryPolygon"
+          },
+          {
+            "id": 17,
+            "name": "GLO_NOTES",
+            "parentLayerId": -1,
+            "defaultVisibility": false,
+            "subLayerIds": null,
+            "minScale": 0,
+            "maxScale": 0,
+            "type": "Feature Layer",
+            "geometryType": "esriGeometryPolygon"
+          },
+          {
+            "id": 18,
+            "name": "PLSS_CORNER_CONTROL_POINTS",
+            "parentLayerId": -1,
+            "defaultVisibility": false,
+            "subLayerIds": null,
+            "minScale": 0,
+            "maxScale": 0,
+            "type": "Feature Layer",
+            "geometryType": "esriGeometryPoint"
+          }
+        ],
+        "copyrightText": "",
+        "description": "",
+        "capabilities": "Query,Extract"
+      },
+      "layers": [
+        {
+          "id": 6,
+          "name": "PARCEL_POLYGON_CAMP",
+          "geometryType": "esriGeometryPolygon",
+          "capabilities": "Query,Extract",
+          "fields": [
+            {
+              "name": "objectid",
+              "type": "esriFieldTypeOID",
+              "alias": "OBJECTID",
+              "domain": null,
+              "editable": false,
+              "nullable": false,
+              "defaultValue": null,
+              "modelName": "OBJECTID"
+            },
+            {
+              "name": "countyfips",
+              "type": "esriFieldTypeString",
+              "alias": "CountyFips",
+              "domain": null,
+              "editable": true,
+              "nullable": true,
+              "length": 5,
+              "defaultValue": null,
+              "modelName": "CountyFips"
+            },
+            {
+              "name": "countyid",
+              "type": "esriFieldTypeString",
+              "alias": "CountyId",
+              "domain": null,
+              "editable": true,
+              "nullable": true,
+              "length": 25,
+              "defaultValue": null,
+              "modelName": "CountyId"
+            },
+            {
+              "name": "parcelid",
+              "type": "esriFieldTypeString",
+              "alias": "ParcelId",
+              "domain": null,
+              "editable": true,
+              "nullable": true,
+              "length": 25,
+              "defaultValue": null,
+              "modelName": "ParcelId"
+            },
+            {
+              "name": "parcellgl",
+              "type": "esriFieldTypeString",
+              "alias": "ParcelLgl",
+              "domain": null,
+              "editable": true,
+              "nullable": true,
+              "length": 255,
+              "defaultValue": null,
+              "modelName": "ParcelLgl"
+            },
+            {
+              "name": "sourceref",
+              "type": "esriFieldTypeString",
+              "alias": "SourceRef",
+              "domain": null,
+              "editable": true,
+              "nullable": true,
+              "length": 50,
+              "defaultValue": null,
+              "modelName": "SourceRef"
+            },
+            {
+              "name": "sourcedate",
+              "type": "esriFieldTypeDate",
+              "alias": "SourceDate",
+              "domain": null,
+              "editable": true,
+              "nullable": true,
+              "length": 8,
+              "defaultValue": null,
+              "modelName": "SourceDate"
+            },
+            {
+              "name": "ownername",
+              "type": "esriFieldTypeString",
+              "alias": "OwnerName",
+              "domain": null,
+              "editable": true,
+              "nullable": true,
+              "length": 50,
+              "defaultValue": null,
+              "modelName": "OwnerName"
+            },
+            {
+              "name": "adrnum",
+              "type": "esriFieldTypeInteger",
+              "alias": "AdrNum",
+              "domain": null,
+              "editable": true,
+              "nullable": true,
+              "defaultValue": null,
+              "modelName": "AdrNum"
+            },
+            {
+              "name": "predir",
+              "type": "esriFieldTypeString",
+              "alias": "PreDir",
+              "domain": null,
+              "editable": true,
+              "nullable": true,
+              "length": 2,
+              "defaultValue": null,
+              "modelName": "PreDir"
+            },
+            {
+              "name": "pstrnam",
+              "type": "esriFieldTypeString",
+              "alias": "PstrNam",
+              "domain": null,
+              "editable": true,
+              "nullable": true,
+              "length": 72,
+              "defaultValue": null,
+              "modelName": "PstrNam"
+            },
+            {
+              "name": "pstrtype",
+              "type": "esriFieldTypeString",
+              "alias": "PstrType",
+              "domain": null,
+              "editable": true,
+              "nullable": true,
+              "length": 4,
+              "defaultValue": null,
+              "modelName": "PstrType"
+            },
+            {
+              "name": "psufdir",
+              "type": "esriFieldTypeString",
+              "alias": "PsufDir",
+              "domain": null,
+              "editable": true,
+              "nullable": true,
+              "length": 2,
+              "defaultValue": null,
+              "modelName": "PsufDir"
+            },
+            {
+              "name": "adrcity",
+              "type": "esriFieldTypeString",
+              "alias": "AdrCity",
+              "domain": null,
+              "editable": true,
+              "nullable": true,
+              "length": 50,
+              "defaultValue": null,
+              "modelName": "AdrCity"
+            },
+            {
+              "name": "adrzip5",
+              "type": "esriFieldTypeInteger",
+              "alias": "AdrZip5",
+              "domain": null,
+              "editable": true,
+              "nullable": true,
+              "defaultValue": null,
+              "modelName": "AdrZip5"
+            },
+            {
+              "name": "adrlabel",
+              "type": "esriFieldTypeString",
+              "alias": "AdrLabel",
+              "domain": null,
+              "editable": true,
+              "nullable": true,
+              "length": 255,
+              "defaultValue": null,
+              "modelName": "AdrLabel"
+            },
+            {
+              "name": "parceltype",
+              "type": "esriFieldTypeString",
+              "alias": "ParcelType",
+              "domain": null,
+              "editable": true,
+              "nullable": true,
+              "length": 2,
+              "defaultValue": null,
+              "modelName": "ParcelType"
+            },
+            {
+              "name": "assessvalue",
+              "type": "esriFieldTypeDouble",
+              "alias": "AssessValue",
+              "domain": null,
+              "editable": true,
+              "nullable": true,
+              "defaultValue": null,
+              "modelName": "AssessValue"
+            },
+            {
+              "name": "impvalue",
+              "type": "esriFieldTypeDouble",
+              "alias": "ImpValue",
+              "domain": null,
+              "editable": true,
+              "nullable": true,
+              "defaultValue": null,
+              "modelName": "ImpValue"
+            },
+            {
+              "name": "landvalue",
+              "type": "esriFieldTypeDouble",
+              "alias": "LandValue",
+              "domain": null,
+              "editable": true,
+              "nullable": true,
+              "defaultValue": null,
+              "modelName": "LandValue"
+            },
+            {
+              "name": "totalvalue",
+              "type": "esriFieldTypeDouble",
+              "alias": "TotalValue",
+              "domain": null,
+              "editable": true,
+              "nullable": true,
+              "defaultValue": null,
+              "modelName": "TotalValue"
+            },
+            {
+              "name": "subdivision",
+              "type": "esriFieldTypeString",
+              "alias": "Subdivision",
+              "domain": null,
+              "editable": true,
+              "nullable": true,
+              "length": 255,
+              "defaultValue": null,
+              "modelName": "Subdivision"
+            },
+            {
+              "name": "nbhd",
+              "type": "esriFieldTypeString",
+              "alias": "NBHD",
+              "domain": null,
+              "editable": true,
+              "nullable": true,
+              "length": 6,
+              "defaultValue": null,
+              "modelName": "NBHD"
+            },
+            {
+              "name": "section",
+              "type": "esriFieldTypeInteger",
+              "alias": "Section",
+              "domain": null,
+              "editable": true,
+              "nullable": true,
+              "defaultValue": null,
+              "modelName": "Section"
+            },
+            {
+              "name": "township",
+              "type": "esriFieldTypeString",
+              "alias": "Townshio",
+              "domain": null,
+              "editable": true,
+              "nullable": true,
+              "length": 3,
+              "defaultValue": null,
+              "modelName": "Township"
+            },
+            {
+              "name": "range",
+              "type": "esriFieldTypeString",
+              "alias": "Range",
+              "domain": null,
+              "editable": true,
+              "nullable": true,
+              "length": 3,
+              "defaultValue": null,
+              "modelName": "Range"
+            },
+            {
+              "name": "str",
+              "type": "esriFieldTypeString",
+              "alias": "STR",
+              "domain": null,
+              "editable": true,
+              "nullable": true,
+              "length": 20,
+              "defaultValue": null,
+              "modelName": "STR"
+            },
+            {
+              "name": "taxcode",
+              "type": "esriFieldTypeString",
+              "alias": "TaxCode",
+              "domain": null,
+              "editable": true,
+              "nullable": true,
+              "length": 6,
+              "defaultValue": null,
+              "modelName": "TaxCode"
+            },
+            {
+              "name": "taxarea",
+              "type": "esriFieldTypeDouble",
+              "alias": "TaxArea",
+              "domain": null,
+              "editable": true,
+              "nullable": true,
+              "defaultValue": null,
+              "modelName": "TaxArea"
+            },
+            {
+              "name": "camakey",
+              "type": "esriFieldTypeDouble",
+              "alias": "CAMA Key",
+              "domain": null,
+              "editable": true,
+              "nullable": true,
+              "defaultValue": null,
+              "modelName": "CAMAKey"
+            },
+            {
+              "name": "camaprov",
+              "type": "esriFieldTypeString",
+              "alias": "CAMAProv",
+              "domain": null,
+              "editable": true,
+              "nullable": true,
+              "length": 25,
+              "defaultValue": null,
+              "modelName": "CAMAProv"
+            },
+            {
+              "name": "county",
+              "type": "esriFieldTypeString",
+              "alias": "County",
+              "domain": null,
+              "editable": true,
+              "nullable": true,
+              "length": 25,
+              "defaultValue": null,
+              "modelName": "County"
+            },
+            {
+              "name": "dataprov",
+              "type": "esriFieldTypeString",
+              "alias": "DataProv",
+              "domain": null,
+              "editable": true,
+              "nullable": true,
+              "length": 25,
+              "defaultValue": null,
+              "modelName": "DataProv"
+            },
+            {
+              "name": "camadate",
+              "type": "esriFieldTypeDate",
+              "alias": "CAMADate",
+              "domain": null,
+              "editable": true,
+              "nullable": true,
+              "length": 8,
+              "defaultValue": null,
+              "modelName": "CAMADate"
+            },
+            {
+              "name": "pubdate",
+              "type": "esriFieldTypeDate",
+              "alias": "PubDate",
+              "domain": null,
+              "editable": true,
+              "nullable": true,
+              "length": 8,
+              "defaultValue": null,
+              "modelName": "PubDate"
+            },
+            {
+              "name": "natcoordsys",
+              "type": "esriFieldTypeString",
+              "alias": "NatCoordSys",
+              "domain": null,
+              "editable": true,
+              "nullable": true,
+              "length": 25,
+              "defaultValue": null,
+              "modelName": "NatCoordSys"
+            },
+            {
+              "name": "globalid",
+              "type": "esriFieldTypeGlobalID",
+              "alias": "globalid",
+              "domain": null,
+              "editable": false,
+              "nullable": false,
+              "length": 38,
+              "defaultValue": null,
+              "modelName": "globalid"
+            },
+            {
+              "name": "Shape__Area",
+              "type": "esriFieldTypeDouble",
+              "alias": "st_area(shape)",
+              "domain": null,
+              "editable": false,
+              "nullable": true,
+              "defaultValue": null,
+              "modelName": "st_area(shape)",
+              "required": true
+            },
+            {
+              "name": "Shape__Length",
+              "type": "esriFieldTypeDouble",
+              "alias": "st_length(shape)",
+              "domain": null,
+              "editable": false,
+              "nullable": true,
+              "defaultValue": null,
+              "modelName": "st_length(shape)",
+              "required": true
+            }
+          ],
+          "supportedQueryFormats": "JSON, geoJSON, PBF",
+          "maxRecordCount": 200,
+          "extent": {
+            "xmin": 355106.3798000002,
+            "ymin": 3652541.2798999995,
+            "xmax": 802664.0824999996,
+            "ymax": 4042932.5857999995,
+            "spatialReference": {
+              "wkid": 26915,
+              "latestWkid": 26915,
+              "xyTolerance": 0.001,
+              "zTolerance": 0.001,
+              "mTolerance": 0.001,
+              "falseX": -5120900,
+              "falseY": -9998100,
+              "xyUnits": 10000,
+              "falseZ": -100000,
+              "zUnits": 10000,
+              "falseM": -100000,
+              "mUnits": 10000
+            }
+          },
+          "advancedQueryCapabilities": {
+            "supportsPagination": true,
+            "supportsQueryWithDistance": true,
+            "supportsReturningQueryExtent": true,
+            "supportsStatistics": true,
+            "supportsPercentileStatistics": true,
+            "supportsHavingClause": true,
+            "supportsOrderBy": true,
+            "supportsDistinct": true,
+            "supportsCountDistinct": true,
+            "supportsAdvancedQueryRelated": true,
+            "supportsQueryRelatedPagination": true,
+            "supportsCurrentUserQueries": true,
+            "supportsFullTextSearch": true,
+            "fullTextSearchCapabilities": {
+              "supportsSearchOperator": true,
+              "supportsOperator": false,
+              "supportsSqlExpressionInFullText": true
+            },
+            "fullTextSearchableFields": [],
+            "supportsQueryWithResultType": true,
+            "supportsReturningGeometryCentroid": true,
+            "supportsReturningGeometryEnvelope": true,
+            "supportsSqlExpression": true,
+            "supportsQueryWithDatumTransformation": true,
+            "supportsLod": false,
+            "supportsQueryWithLodSR": false,
+            "supportsQueryAnalytic": true,
+            "supportsTrueCurve": true,
+            "supportedCurveTypes": [
+              "esriGeometryCircularArc",
+              "esriGeometryEllipticArc",
+              "esriGeometryBezier3Curve"
+            ],
+            "supportsQueryWithCacheHint": false
+          }
+        }
+      ]
+    },
+    {
+      "state": "GA",
+      "url": "https://services1.arcgis.com/bqfNVPUK3HOnCFmA/arcgis/rest/services/Parcels/FeatureServer",
+      "automaticActivation": false,
+      "service": {
+        "layers": [
+          {
+            "id": 0,
+            "name": "Parcels",
+            "parentLayerId": -1,
+            "defaultVisibility": true,
+            "subLayerIds": null,
+            "minScale": 0,
+            "maxScale": 0,
+            "type": "Feature Layer",
+            "geometryType": "esriGeometryPolygon"
+          }
+        ],
+        "serviceItemId": "774f52f47ad14a8389af0f851499e4d9",
+        "copyrightText": "City of Johns Creek, GA",
+        "description": "Parcels in Johns Creek, GA as originally drawn and attributed by Fulton County Tax Assessors, but with topology corrected by Johns Creek GIS.",
+        "capabilities": "Query,Extract,Sync,ChangeTracking"
+      },
+      "layers": [
+        {
+          "id": 0,
+          "name": "Parcels",
+          "geometryType": "esriGeometryPolygon",
+          "capabilities": "Query,Extract,Sync,ChangeTracking",
+          "fields": [
+            {
+              "name": "OBJECTID",
+              "type": "esriFieldTypeOID",
+              "alias": "OBJECTID",
+              "sqlType": "sqlTypeOther",
+              "nullable": false,
+              "editable": false,
+              "domain": null,
+              "defaultValue": null
+            },
+            {
+              "name": "GlobalID",
+              "type": "esriFieldTypeGlobalID",
+              "alias": "GlobalID",
+              "sqlType": "sqlTypeOther",
+              "length": 38,
+              "nullable": false,
+              "editable": false,
+              "domain": null,
+              "defaultValue": null
+            },
+            {
+              "name": "ParcelID",
+              "type": "esriFieldTypeString",
+              "alias": "Parcel ID",
+              "sqlType": "sqlTypeOther",
+              "length": 20,
+              "nullable": true,
+              "editable": true,
+              "domain": null,
+              "defaultValue": null
+            },
+            {
+              "name": "TaxYear",
+              "type": "esriFieldTypeDate",
+              "alias": "Date Parcel Layer Updated",
+              "sqlType": "sqlTypeOther",
+              "length": 8,
+              "nullable": true,
+              "editable": true,
+              "domain": null,
+              "defaultValue": null,
+              "precision": 1
+            },
+            {
+              "name": "Address",
+              "type": "esriFieldTypeString",
+              "alias": "Physical Address",
+              "sqlType": "sqlTypeOther",
+              "length": 150,
+              "nullable": true,
+              "editable": true,
+              "domain": null,
+              "defaultValue": null
+            },
+            {
+              "name": "AddrNumber",
+              "type": "esriFieldTypeString",
+              "alias": "Address Number",
+              "sqlType": "sqlTypeOther",
+              "length": 12,
+              "nullable": true,
+              "editable": true,
+              "domain": null,
+              "defaultValue": null
+            },
+            {
+              "name": "AddrPreDir",
+              "type": "esriFieldTypeString",
+              "alias": "Address Pre-Direction",
+              "sqlType": "sqlTypeOther",
+              "length": 12,
+              "nullable": true,
+              "editable": true,
+              "domain": null,
+              "defaultValue": null
+            },
+            {
+              "name": "AddrStreet",
+              "type": "esriFieldTypeString",
+              "alias": "Address Street",
+              "sqlType": "sqlTypeOther",
+              "length": 60,
+              "nullable": true,
+              "editable": true,
+              "domain": null,
+              "defaultValue": null
+            },
+            {
+              "name": "AddrSuffix",
+              "type": "esriFieldTypeString",
+              "alias": "Address Suffix",
+              "sqlType": "sqlTypeOther",
+              "length": 12,
+              "nullable": true,
+              "editable": true,
+              "domain": null,
+              "defaultValue": null
+            },
+            {
+              "name": "AddrPostDir",
+              "type": "esriFieldTypeString",
+              "alias": "Address Post-Direction",
+              "sqlType": "sqlTypeOther",
+              "length": 12,
+              "nullable": true,
+              "editable": true,
+              "domain": null,
+              "defaultValue": null
+            },
+            {
+              "name": "AddrUnitType",
+              "type": "esriFieldTypeString",
+              "alias": "Address Unit Type",
+              "sqlType": "sqlTypeOther",
+              "length": 12,
+              "nullable": true,
+              "editable": true,
+              "domain": null,
+              "defaultValue": null
+            },
+            {
+              "name": "Owner",
+              "type": "esriFieldTypeString",
+              "alias": "Owner Name(s)",
+              "sqlType": "sqlTypeOther",
+              "length": 500,
+              "nullable": true,
+              "editable": true,
+              "domain": null,
+              "defaultValue": null
+            },
+            {
+              "name": "OwnerAddr1",
+              "type": "esriFieldTypeString",
+              "alias": "Owner Mailing Address 1",
+              "sqlType": "sqlTypeOther",
+              "length": 500,
+              "nullable": true,
+              "editable": true,
+              "domain": null,
+              "defaultValue": null
+            },
+            {
+              "name": "OwnerAddr2",
+              "type": "esriFieldTypeString",
+              "alias": "Owner Mailing Address 2",
+              "sqlType": "sqlTypeOther",
+              "length": 500,
+              "nullable": true,
+              "editable": true,
+              "domain": null,
+              "defaultValue": null
+            },
+            {
+              "name": "TaxDist",
+              "type": "esriFieldTypeString",
+              "alias": "Tax District Code",
+              "sqlType": "sqlTypeOther",
+              "length": 6,
+              "nullable": true,
+              "editable": true,
+              "domain": null,
+              "defaultValue": null
+            },
+            {
+              "name": "TotAssess",
+              "type": "esriFieldTypeDouble",
+              "alias": "Total Assessed ($)",
+              "sqlType": "sqlTypeOther",
+              "nullable": true,
+              "editable": true,
+              "domain": null,
+              "defaultValue": 0
+            },
+            {
+              "name": "LandAssess",
+              "type": "esriFieldTypeDouble",
+              "alias": "Land Assessment ($)",
+              "sqlType": "sqlTypeOther",
+              "nullable": true,
+              "editable": true,
+              "domain": null,
+              "defaultValue": 0
+            },
+            {
+              "name": "ImprAssess",
+              "type": "esriFieldTypeDouble",
+              "alias": "Improvement Assessment ($)",
+              "sqlType": "sqlTypeOther",
+              "nullable": true,
+              "editable": true,
+              "domain": null,
+              "defaultValue": 0
+            },
+            {
+              "name": "TotAppr",
+              "type": "esriFieldTypeDouble",
+              "alias": "Tot Appraised ($)",
+              "sqlType": "sqlTypeOther",
+              "nullable": true,
+              "editable": true,
+              "domain": null,
+              "defaultValue": 0
+            },
+            {
+              "name": "LandAppr",
+              "type": "esriFieldTypeDouble",
+              "alias": "Land Appraisal ($)",
+              "sqlType": "sqlTypeOther",
+              "nullable": true,
+              "editable": true,
+              "domain": null,
+              "defaultValue": 0
+            },
+            {
+              "name": "ImprAppr",
+              "type": "esriFieldTypeDouble",
+              "alias": "Improvement Appraisal ($)",
+              "sqlType": "sqlTypeOther",
+              "nullable": true,
+              "editable": true,
+              "domain": null,
+              "defaultValue": 0
+            },
+            {
+              "name": "LUCode",
+              "type": "esriFieldTypeString",
+              "alias": "Fulton Land Use Code",
+              "sqlType": "sqlTypeOther",
+              "length": 8,
+              "nullable": true,
+              "editable": true,
+              "domain": null,
+              "defaultValue": null
+            },
+            {
+              "name": "ClassCode",
+              "type": "esriFieldTypeString",
+              "alias": "Fulton Class Code",
+              "sqlType": "sqlTypeOther",
+              "length": 8,
+              "nullable": true,
+              "editable": true,
+              "domain": null,
+              "defaultValue": null
+            },
+            {
+              "name": "LivUnits",
+              "type": "esriFieldTypeInteger",
+              "alias": "Fulton Livable Units",
+              "sqlType": "sqlTypeOther",
+              "nullable": true,
+              "editable": true,
+              "domain": null,
+              "defaultValue": 0
+            },
+            {
+              "name": "LandAcres",
+              "type": "esriFieldTypeDouble",
+              "alias": "Acres as mapped",
+              "sqlType": "sqlTypeOther",
+              "nullable": true,
+              "editable": true,
+              "domain": null,
+              "defaultValue": 0
+            },
+            {
+              "name": "LandAcresDeed",
+              "type": "esriFieldTypeDouble",
+              "alias": "Acres as deeded",
+              "sqlType": "sqlTypeOther",
+              "nullable": true,
+              "editable": true,
+              "domain": null,
+              "defaultValue": null
+            },
+            {
+              "name": "NbrHood",
+              "type": "esriFieldTypeString",
+              "alias": "Fulton Neighborhood ID",
+              "sqlType": "sqlTypeOther",
+              "length": 8,
+              "nullable": true,
+              "editable": true,
+              "domain": null,
+              "defaultValue": null
+            },
+            {
+              "name": "JCNbrHoodID",
+              "type": "esriFieldTypeString",
+              "alias": "JC Neighborhood ID",
+              "sqlType": "sqlTypeOther",
+              "length": 10,
+              "nullable": true,
+              "editable": true,
+              "domain": null,
+              "defaultValue": null
+            },
+            {
+              "name": "JCNbrHood",
+              "type": "esriFieldTypeString",
+              "alias": "JC Neighborhood Name",
+              "sqlType": "sqlTypeOther",
+              "length": 100,
+              "nullable": true,
+              "editable": true,
+              "domain": null,
+              "defaultValue": null
+            },
+            {
+              "name": "JCNbrPhaseID",
+              "type": "esriFieldTypeString",
+              "alias": "JC Neighborhood PhaseID",
+              "sqlType": "sqlTypeOther",
+              "length": 10,
+              "nullable": true,
+              "editable": true,
+              "domain": null,
+              "defaultValue": null
+            },
+            {
+              "name": "JCNbrPhase",
+              "type": "esriFieldTypeString",
+              "alias": "JC Neighborhood Phase",
+              "sqlType": "sqlTypeOther",
+              "length": 50,
+              "nullable": true,
+              "editable": true,
+              "domain": null,
+              "defaultValue": null
+            },
+            {
+              "name": "JCLandlot",
+              "type": "esriFieldTypeString",
+              "alias": "JC Landlot(s)",
+              "sqlType": "sqlTypeOther",
+              "length": 500,
+              "nullable": true,
+              "editable": true,
+              "domain": null,
+              "defaultValue": null
+            },
+            {
+              "name": "JCZoning",
+              "type": "esriFieldTypeString",
+              "alias": "JC Zoning",
+              "sqlType": "sqlTypeOther",
+              "length": 50,
+              "nullable": true,
+              "editable": true,
+              "domain": null,
+              "defaultValue": null
+            },
+            {
+              "name": "JCFireZone",
+              "type": "esriFieldTypeString",
+              "alias": "JC Fire Zone",
+              "sqlType": "sqlTypeOther",
+              "length": 50,
+              "nullable": true,
+              "editable": true,
+              "domain": null,
+              "defaultValue": null
+            },
+            {
+              "name": "JCPoliceBeat",
+              "type": "esriFieldTypeString",
+              "alias": "JC Police Beat",
+              "sqlType": "sqlTypeOther",
+              "length": 50,
+              "nullable": true,
+              "editable": true,
+              "domain": null,
+              "defaultValue": null
+            },
+            {
+              "name": "JCPWZone",
+              "type": "esriFieldTypeString",
+              "alias": "JC Public Works Zone",
+              "sqlType": "sqlTypeOther",
+              "length": 50,
+              "nullable": true,
+              "editable": true,
+              "domain": null,
+              "defaultValue": null
+            },
+            {
+              "name": "JCRiverCorr",
+              "type": "esriFieldTypeString",
+              "alias": "JC River Corridor",
+              "sqlType": "sqlTypeOther",
+              "length": 10,
+              "nullable": true,
+              "editable": true,
+              "domain": null,
+              "defaultValue": null
+            },
+            {
+              "name": "JCStreamBuffer",
+              "type": "esriFieldTypeString",
+              "alias": "JC Stream Buffer",
+              "sqlType": "sqlTypeOther",
+              "length": 10,
+              "nullable": true,
+              "editable": true,
+              "domain": null,
+              "defaultValue": null
+            },
+            {
+              "name": "JCFloodZone",
+              "type": "esriFieldTypeString",
+              "alias": "JC FEMA Flood Zone",
+              "sqlType": "sqlTypeOther",
+              "length": 50,
+              "nullable": true,
+              "editable": true,
+              "domain": null,
+              "defaultValue": null
+            },
+            {
+              "name": "JCLandUseStormwater",
+              "type": "esriFieldTypeString",
+              "alias": "JC Stormwater Land Use Class",
+              "sqlType": "sqlTypeOther",
+              "length": 100,
+              "nullable": true,
+              "editable": true,
+              "domain": {
+                "type": "codedValue",
+                "name": "JCStormLUC",
+                "mergePolicy": "esriMPTDefaultValue",
+                "splitPolicy": "esriSPTDefaultValue",
+                "codedValues": [
+                  {
+                    "name": "Single Family Detached Residential",
+                    "code": "Single Family Detached Residential"
+                  },
+                  {
+                    "name": "Townhomes/Condos",
+                    "code": "Townhomes/Condos"
+                  },
+                  {
+                    "name": "Apartments",
+                    "code": "Apartments"
+                  },
+                  {
+                    "name": "Residential Common Areas & Roads",
+                    "code": "Residential Common Areas & Roads"
+                  },
+                  {
+                    "name": "Non-Residential",
+                    "code": "Non-Residential"
+                  },
+                  {
+                    "name": "Undeveloped",
+                    "code": "Undeveloped"
+                  }
+                ]
+              },
+              "defaultValue": null
+            },
+            {
+              "name": "JCLandUseStormwaterSub",
+              "type": "esriFieldTypeString",
+              "alias": "JC Stormwater Sub-Land Use Class",
+              "sqlType": "sqlTypeOther",
+              "length": 50,
+              "nullable": true,
+              "editable": true,
+              "domain": {
+                "type": "codedValue",
+                "name": "JCStormLUCSub",
+                "mergePolicy": "esriMPTDefaultValue",
+                "splitPolicy": "esriSPTDefaultValue",
+                "codedValues": [
+                  {
+                    "name": "Apartments",
+                    "code": "Apartments"
+                  },
+                  {
+                    "name": "Office/Shopping",
+                    "code": "Office/Shopping"
+                  },
+                  {
+                    "name": "Recreation - Private",
+                    "code": "Recreation - Private"
+                  },
+                  {
+                    "name": "Recreation - Public",
+                    "code": "Recreation - Public"
+                  },
+                  {
+                    "name": "Residential Common Areas & Roads",
+                    "code": "Residential Common Areas & Roads"
+                  },
+                  {
+                    "name": "Schools, Religious, Municipal",
+                    "code": "Schools, Religious, Municipal"
+                  },
+                  {
+                    "name": "Single Family Detached Residential",
+                    "code": "Single Family Detached Residential"
+                  },
+                  {
+                    "name": "Townhomes/Condos",
+                    "code": "Townhomes/Condos"
+                  },
+                  {
+                    "name": "Utilities",
+                    "code": "Utilities"
+                  },
+                  {
+                    "name": "Undeveloped",
+                    "code": "Undeveloped"
+                  }
+                ]
+              },
+              "defaultValue": null
+            },
+            {
+              "name": "JCComments",
+              "type": "esriFieldTypeString",
+              "alias": "JC Comments",
+              "sqlType": "sqlTypeOther",
+              "length": 999,
+              "nullable": true,
+              "editable": true,
+              "domain": null,
+              "defaultValue": null
+            },
+            {
+              "name": "NeighborhoodStatus",
+              "type": "esriFieldTypeInteger",
+              "alias": "Neighborhood Status",
+              "sqlType": "sqlTypeOther",
+              "nullable": true,
+              "editable": true,
+              "domain": null,
+              "defaultValue": 0
+            },
+            {
+              "name": "PrimaryPolygon",
+              "type": "esriFieldTypeString",
+              "alias": "Primary (used for area calculations)",
+              "sqlType": "sqlTypeOther",
+              "length": 10,
+              "nullable": true,
+              "editable": true,
+              "domain": {
+                "type": "codedValue",
+                "name": "YesNo",
+                "mergePolicy": "esriMPTDefaultValue",
+                "splitPolicy": "esriSPTDefaultValue",
+                "codedValues": [
+                  {
+                    "name": "Yes",
+                    "code": "Yes"
+                  },
+                  {
+                    "name": "No",
+                    "code": "No"
+                  }
+                ]
+              },
+              "defaultValue": "Yes"
+            },
+            {
+              "name": "CreationDate",
+              "type": "esriFieldTypeDate",
+              "alias": "CreationDate",
+              "sqlType": "sqlTypeOther",
+              "length": 8,
+              "nullable": true,
+              "editable": false,
+              "domain": null,
+              "defaultValue": null,
+              "precision": 1
+            },
+            {
+              "name": "Creator",
+              "type": "esriFieldTypeString",
+              "alias": "Creator",
+              "sqlType": "sqlTypeOther",
+              "length": 128,
+              "nullable": true,
+              "editable": false,
+              "domain": null,
+              "defaultValue": null
+            },
+            {
+              "name": "EditDate",
+              "type": "esriFieldTypeDate",
+              "alias": "EditDate",
+              "sqlType": "sqlTypeOther",
+              "length": 8,
+              "nullable": true,
+              "editable": false,
+              "domain": null,
+              "defaultValue": null,
+              "precision": 1
+            },
+            {
+              "name": "Editor",
+              "type": "esriFieldTypeString",
+              "alias": "Editor",
+              "sqlType": "sqlTypeOther",
+              "length": 128,
+              "nullable": true,
+              "editable": false,
+              "domain": null,
+              "defaultValue": null
+            },
+            {
+              "name": "Shape__Area",
+              "type": "esriFieldTypeDouble",
+              "alias": "Shape__Area",
+              "sqlType": "sqlTypeDouble",
+              "nullable": true,
+              "editable": false,
+              "domain": null,
+              "defaultValue": null
+            },
+            {
+              "name": "Shape__Length",
+              "type": "esriFieldTypeDouble",
+              "alias": "Shape__Length",
+              "sqlType": "sqlTypeDouble",
+              "nullable": true,
+              "editable": false,
+              "domain": null,
+              "defaultValue": null
+            }
+          ],
+          "supportedQueryFormats": "JSON, geoJSON, PBF",
+          "maxRecordCount": 2000,
+          "extent": {
+            "xmin": 2260338.0550344945,
+            "ymin": 1449805.4986545742,
+            "xmax": 2317363.2818630785,
+            "ymax": 1487940.5270431563,
+            "spatialReference": {
+              "wkid": 102667,
+              "latestWkid": 2240
+            }
+          },
+          "advancedQueryCapabilities": {
+            "supportsPagination": true,
+            "supportsPaginationOnAggregatedQueries": true,
+            "supportsQueryRelatedPagination": true,
+            "supportsQueryWithDistance": true,
+            "supportsOutDistance": true,
+            "supportsReturningQueryExtent": true,
+            "supportsStatistics": true,
+            "supportsOrderBy": true,
+            "supportsDistinct": true,
+            "supportsQueryWithResultType": true,
+            "supportsSqlExpression": true,
+            "supportsTimeRelation": true,
+            "supportsAdvancedQueryRelated": true,
+            "supportsCountDistinct": true,
+            "supportsPercentileStatistics": true,
+            "supportsApproxPercentileStatistics": true,
+            "supportsSpatialAggregationStatistics": true,
+            "supportsTrueCurve": true,
+            "supportedSpatialAggregationStatistics": [
+              "EnvelopeAggregate",
+              "CentroidAggregate",
+              "ConvexHullAggregate"
+            ],
+            "supportsLod": true,
+            "supportsQueryWithLodSR": false,
+            "supportedLodTypes": [
+              "geohash"
+            ],
+            "supportsReturningGeometryCentroid": true,
+            "supportsReturningGeometryEnvelope": true,
+            "supportsReturningGeometryProperties": true,
+            "supportsQueryWithDatumTransformation": true,
+            "supportsCurrentUserQueries": true,
+            "supportsHavingClause": true,
+            "supportsOutFieldSQLExpression": true,
+            "supportsMaxRecordCountFactor": true,
+            "supportsTopFeaturesQuery": true,
+            "supportsDisjointSpatialRel": true,
+            "supportsQueryWithCacheHint": true,
+            "supportedOperationsWithCacheHint": [
+              "query",
+              "queryTopFilter",
+              "queryAnalytics",
+              "queryAttachments",
+              "queryRelated",
+              "queryBins",
+              "queryPivot"
+            ],
+            "supportsQueryAnalytic": true,
+            "supportsQueryPivot": true,
+            "supportsQueryBins": true,
+            "supportsDefaultSR": true,
+            "supportsTranslations": false,
+            "supportsAggIds": true,
+            "supportsQueryWithCollation": true,
+            "supportsISODOW": true,
+            "supportsISOWeek": true,
+            "supportsFullTextSearch": true,
+            "fullTextSearchCapabilities": {
+              "supportsAccentSensitivity": true,
+              "supportsStopWords": true,
+              "supportsSearchOperator": true,
+              "supportsOperator": true
+            }
+          },
+          "editingInfo": {
+            "lastEditDate": 1790952453379,
+            "schemaLastEditDate": 1790885297640,
+            "dataLastEditDate": 1790952453379
+          }
+        }
+      ],
+      "terms": {
+        "itemId": "774f52f47ad14a8389af0f851499e4d9",
+        "owner": "JohnsCreekGA",
+        "licenseInfo": "<a href='https://creativecommons.org/licenses/by/4.0/' rel='nofollow ugc'><img alt='Creative Commons License' src='https://johnscreekga.maps.arcgis.com/sharing/rest/content/items/2280fc21a5cd43a08fa8f0c31a1e913e/data' style='border-width:0;' /></a><br />This work is licensed under a <a href='https://creativecommons.org/licenses/by/4.0/' rel='nofollow ugc'>Creative Commons Attribution 4.0 International License</a>.",
+        "accessInformation": "City of Johns Creek, GA",
+        "description": "Location of all parcels in Johns Creek, GA.   Parcel and parcel attribute data is obtained through intergovernmental agreement with  Fulton County Tax Assessors Office.   Parcels are  corrected using topology created  by Johns Creek GIS.   Information included in this feature are the GlobalID, parcel ID,  Date Parcel Layer was updated, physical address, address number, address pre-direction address street, address suffix, address post direction, address unit type, owner's name, owner's mailing Address, Owner Mailing city, state, zip, tax district code, total assessment, land assessment, improvement assessment, total appraised, land appraised, improvement appraised, Fulton Land Use Code, Fulton Zoning Class Code, Fulton Livable Units, Fulton Livable Units, Acres as mapped, acres as deeded, Fulton NeighborhoodID, JC NeighborhoodID, JC Neighborhood Name, JC Neighborhood Phase ID, JC Neighborhood Phase, JC Landlot JC Zoning, JC Fire Zone, JC Police Beat, JC Public Works Zone, JC River Corridor, JC Stream Buffer, JC FEMA Flood Zone, JC Stormwater Land Use Class, JC Stormwater Sub-Land Use Class, JC Comments, Neighborhood Status,  and Primarily (used for area calculations).   Data is updated monthly and is current as of March, 2024"
+      }
+    }
+  ]
+}

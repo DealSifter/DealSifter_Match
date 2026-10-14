@@ -10,7 +10,7 @@ import { resolveFeatureFlags } from '../featureFlags.ts';
 import type { ParcelSource, ParcelGeometry, ProviderResult } from './types.ts';
 
 const geometry: ParcelGeometry = { type: 'Polygon', coordinates: [[[-122, 47], [-121.999, 47], [-121.999, 47.001], [-122, 47.001], [-122, 47]]] };
-const active = (index = 2): ParcelSource => ({ ...PARCEL_SOURCES[index], status: 'ACTIVE', licenseStatus: 'APPROVED', lastValidatedAt: '2026-10-12',
+const active = (index = 2): ParcelSource => ({ ...PARCEL_SOURCES[index], status: 'ACTIVE', usagePermission: 'PUBLIC_DISPLAY_ALLOWED', licenseStatus: 'APPROVED', lastValidatedAt: '2026-10-12',
   validation: { authorityVerified: true, schemaValidated: true, geometryQueryValidated: true, apnQueryValidated: true, viewportQueryValidated: true, counties: [PARCEL_SOURCES[index].countyFips], evidencePath: 'UNIT_FIXTURE' } });
 const metadata = (source: ParcelSource, formats = 'JSON, geoJSON') => ({ geometryType: 'esriGeometryPolygon', capabilities: 'Query,Map', fields: Object.values(source.fieldMapping).map(name => ({ name })), maxRecordCount: 1000, objectIdField: 'OBJECTID', supportedQueryFormats: formats });
 const response = (value: unknown, status = 200) => new Response(JSON.stringify(value), { status });

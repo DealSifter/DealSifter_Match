@@ -1,9 +1,9 @@
 import { geometryContains, validGeometry, validPoint } from '../../../supabase/functions/_shared/public-parcel/geometry.ts';
-import { PARCEL_MAX_RESULTS } from '../../../supabase/functions/_shared/public-parcel/types.ts';
+import { PARCEL_MAX_RESULTS, PARCEL_LENS_DIAMETER_MILES, PARCEL_LENS_RADIUS_METERS } from '../../../supabase/functions/_shared/public-parcel/types.ts';
+import { contextualLensBounds } from '../../../supabase/functions/_shared/public-parcel/lens.ts';
 
-export const PARCEL_LENS_DIAMETER_MILES = 0.20;
+export { PARCEL_LENS_DIAMETER_MILES, PARCEL_LENS_RADIUS_METERS };
 export const PARCEL_LENS_RADIUS_MILES = PARCEL_LENS_DIAMETER_MILES / 2;
-export const PARCEL_LENS_RADIUS_METERS = PARCEL_LENS_RADIUS_MILES * 1609.344;
 export const PARCEL_LENS_COLOR = '#00cbd4';
 const EARTH_RADIUS = 6371008.8;
 const radians = value => value * Math.PI / 180;
@@ -16,10 +16,7 @@ export function parcelGeometryBounds(geometry) {
 }
 
 export function parcelLensBounds(point, radius = PARCEL_LENS_RADIUS_METERS) {
-  if (!validPoint(point) || !Number.isFinite(radius) || radius <= 0) return null;
-  const latitudeDelta = radius / EARTH_RADIUS * 180 / Math.PI;
-  const lngDelta = latitudeDelta / Math.max(Math.cos(radians(point.lat)), .01);
-  return [Math.max(-180, point.lng - lngDelta), Math.max(-90, point.lat - latitudeDelta), Math.min(180, point.lng + lngDelta), Math.min(90, point.lat + latitudeDelta)];
+  return contextualLensBounds(point,radius);
 }
 
 // Fixed-radius spatial context, NOT an area/valuation calculation. Include

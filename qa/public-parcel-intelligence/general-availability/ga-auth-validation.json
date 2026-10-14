@@ -1,0 +1,21 @@
+{
+  "observedAt": "2026-10-14T03:48:18.711Z",
+  "targeted": {
+    "passed": 215,
+    "total": 215
+  },
+  "full": {
+    "passed": 1920,
+    "total": 1920,
+    "files": 218
+  },
+  "uiCases": 6,
+  "mode": "DETERMINISTIC_TESTS_AND_LOCAL_AUTHENTICATED_FIXTURES",
+  "productionUserSession": false,
+  "deterministicStatus": "PASS",
+  "anonymous": "DENIED_BEFORE_GIS",
+  "productionMultiUserSmoke": "BLOCKED",
+  "reason": "NO_AUTHORIZED_REAL_PRODUCTION_USER_SESSION_AVAILABLE",
+  "identityOrTokenImpersonation": false,
+  "backendAuth": "EXISTING_SUPABASE_AUTH_GETUSER_PRESERVED"
+}

@@ -1,0 +1,87 @@
+{
+  "mode": "LOCAL_FULL_APP_REAL_LEAFLET_MOCKED_AUTH_AND_PUBLIC_GIS",
+  "productionUserSession": false,
+  "personalAllowlistUsed": false,
+  "planSnapshots": "EXPLICIT_QA_FIXTURES",
+  "proactiveMaxxis": "DISABLED_ONLY_IN_QA_FIXTURE",
+  "results": [
+    {
+      "id": "desktop-free",
+      "tier": "FREE",
+      "mode": "supported",
+      "language": "pt",
+      "phone": false,
+      "flagCalls": 1,
+      "gisCalls": 2,
+      "neighbors": 1,
+      "billingCalls": 0,
+      "errors": [],
+      "pass": true
+    },
+    {
+      "id": "mobile-pro",
+      "tier": "PRO",
+      "mode": "supported",
+      "language": "es",
+      "phone": true,
+      "flagCalls": 1,
+      "gisCalls": 2,
+      "neighbors": 1,
+      "billingCalls": 0,
+      "errors": [],
+      "pass": true
+    },
+    {
+      "id": "desktop-enterprise",
+      "tier": "ENTERPRISE",
+      "mode": "supported",
+      "language": "en",
+      "phone": false,
+      "flagCalls": 1,
+      "gisCalls": 2,
+      "neighbors": 1,
+      "billingCalls": 0,
+      "errors": [],
+      "pass": true
+    },
+    {
+      "id": "desktop-unsupported",
+      "tier": "PRO",
+      "mode": "unsupported",
+      "language": "en",
+      "phone": false,
+      "flagCalls": 1,
+      "gisCalls": 1,
+      "neighbors": 0,
+      "billingCalls": 0,
+      "errors": [],
+      "pass": true
+    },
+    {
+      "id": "mobile-unsupported",
+      "tier": "FREE",
+      "mode": "unsupported",
+      "language": "pt",
+      "phone": true,
+      "flagCalls": 1,
+      "gisCalls": 1,
+      "neighbors": 0,
+      "billingCalls": 0,
+      "errors": [],
+      "pass": true
+    },
+    {
+      "id": "privacy",
+      "tier": "PRO",
+      "mode": "privacy",
+      "language": "es",
+      "phone": false,
+      "flagCalls": 1,
+      "gisCalls": 0,
+      "neighbors": 0,
+      "billingCalls": 0,
+      "errors": [],
+      "pass": true
+    }
+  ]
+}

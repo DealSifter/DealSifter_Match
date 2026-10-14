@@ -1,0 +1,340 @@
+{
+  "observedAt": "2026-10-14T02:48:42.222Z",
+  "paidCalls": 0,
+  "productionUserSession": false,
+  "automaticActivation": false,
+  "results": [
+    {
+      "sourceId": "us-oh-ogrip-public-parcels",
+      "countyFips": "39049",
+      "automaticActivation": false,
+      "pass": false,
+      "observedAt": "2026-10-14T02:40:47.876Z",
+      "geometryType": "esriGeometryPolygon",
+      "mappedFields": {
+        "apn": true,
+        "parcelId": true,
+        "situsAddress": true
+      },
+      "error": "This operation was aborted"
+    },
+    {
+      "sourceId": "us-oh-ogrip-public-parcels",
+      "countyFips": "39061",
+      "automaticActivation": false,
+      "pass": false,
+      "observedAt": "2026-10-14T02:41:00.185Z",
+      "geometryType": "esriGeometryPolygon",
+      "mappedFields": {
+        "apn": true,
+        "parcelId": true,
+        "situsAddress": true
+      },
+      "error": "This operation was aborted"
+    },
+    {
+      "sourceId": "us-ar-agiso-state-parcels",
+      "countyFips": "05119",
+      "automaticActivation": false,
+      "pass": true,
+      "observedAt": "2026-10-14T02:41:11.543Z",
+      "geometryType": "esriGeometryPolygon",
+      "mappedFields": {
+        "apn": true,
+        "parcelId": true,
+        "situsAddress": true,
+        "ownerName": true,
+        "assessedValue": true,
+        "legalDescription": true,
+        "subdivision": true,
+        "taxCode": true
+      },
+      "spatialCounty": [
+        "05119"
+      ],
+      "subjectGeometry": true,
+      "apnMatches": true,
+      "neighborCount": 12,
+      "exceededLimit": false,
+      "point": {
+        "lng": -92.2919126171418,
+        "lat": 34.74496607554238
+      },
+      "fieldValueAvailability": {
+        "apn": true,
+        "assessorAcres": false,
+        "gisAcres": false,
+        "geometryCalculatedAcres": true,
+        "ownerName": true,
+        "assessedValue": true,
+        "propertyTax": false,
+        "zoning": false
+      }
+    },
+    {
+      "sourceId": "us-ar-agiso-state-parcels",
+      "countyFips": "05007",
+      "automaticActivation": false,
+      "pass": true,
+      "observedAt": "2026-10-14T02:41:32.109Z",
+      "geometryType": "esriGeometryPolygon",
+      "mappedFields": {
+        "apn": true,
+        "parcelId": true,
+        "situsAddress": true,
+        "ownerName": true,
+        "assessedValue": true,
+        "legalDescription": true,
+        "subdivision": true,
+        "taxCode": true
+      },
+      "spatialCounty": [
+        "05007"
+      ],
+      "subjectGeometry": true,
+      "apnMatches": true,
+      "neighborCount": 75,
+      "exceededLimit": false,
+      "point": {
+        "lng": -94.20868055880366,
+        "lat": 36.373527979192986
+      },
+      "fieldValueAvailability": {
+        "apn": true,
+        "assessorAcres": false,
+        "gisAcres": false,
+        "geometryCalculatedAcres": true,
+        "ownerName": true,
+        "assessedValue": true,
+        "propertyTax": false,
+        "zoning": false
+      }
+    },
+    {
+      "sourceId": "us-ga-johns-creek-public-parcels",
+      "countyFips": "13121",
+      "automaticActivation": false,
+      "pass": true,
+      "observedAt": "2026-10-14T02:41:53.708Z",
+      "geometryType": "esriGeometryPolygon",
+      "mappedFields": {
+        "apn": true,
+        "parcelId": true,
+        "situsAddress": true,
+        "assessorAcres": true,
+        "gisAcres": true,
+        "ownerName": true,
+        "assessedValue": true,
+        "assessedYear": true,
+        "zoning": true
+      },
+      "spatialCounty": [
+        "13121"
+      ],
+      "subjectGeometry": true,
+      "apnMatches": true,
+      "neighborCount": 43,
+      "exceededLimit": false,
+      "point": {
+        "lng": -84.20169670982379,
+        "lat": 34.02663467547214
+      },
+      "fieldValueAvailability": {
+        "apn": true,
+        "assessorAcres": true,
+        "gisAcres": true,
+        "geometryCalculatedAcres": true,
+        "ownerName": true,
+        "assessedValue": true,
+        "propertyTax": false,
+        "zoning": true
+      }
+    },
+    {
+      "sourceId": "us-fl-fgio-state-parcels",
+      "countyFips": "12105",
+      "automaticActivation": false,
+      "pass": false,
+      "observedAt": "2026-10-14T02:42:16.354Z",
+      "geometryType": "esriGeometryPolygon",
+      "mappedFields": {
+        "apn": true,
+        "parcelId": true,
+        "situsAddress": true,
+        "lotSqft": true,
+        "ownerName": true,
+        "assessedYear": true,
+        "legalDescription": true
+      },
+      "error": "This operation was aborted"
+    },
+    {
+      "sourceId": "us-fl-fgio-state-parcels",
+      "countyFips": "12095",
+      "automaticActivation": false,
+      "pass": false,
+      "observedAt": "2026-10-14T02:42:30.563Z",
+      "geometryType": "esriGeometryPolygon",
+      "mappedFields": {
+        "apn": true,
+        "parcelId": true,
+        "situsAddress": true,
+        "lotSqft": true,
+        "ownerName": true,
+        "assessedYear": true,
+        "legalDescription": true
+      },
+      "error": "This operation was aborted"
+    },
+    {
+      "sourceId": "us-nc-nconemap-parcels",
+      "countyFips": "37183",
+      "automaticActivation": false,
+      "pass": true,
+      "observedAt": "2026-10-14T02:47:26.570Z",
+      "geometryType": "esriGeometryPolygon",
+      "mappedFields": {
+        "apn": true,
+        "parcelId": true,
+        "situsAddress": true,
+        "gisAcres": true,
+        "ownerName": true,
+        "legalDescription": true,
+        "subdivision": true
+      },
+      "spatialCounty": [
+        "37183"
+      ],
+      "subjectGeometry": true,
+      "apnMatches": true,
+      "neighborCount": 65,
+      "exceededLimit": false,
+      "point": {
+        "lng": -78.63891960097739,
+        "lat": 35.779344121579754
+      },
+      "fieldValueAvailability": {
+        "apn": true,
+        "assessorAcres": false,
+        "gisAcres": true,
+        "geometryCalculatedAcres": true,
+        "ownerName": true,
+        "assessedValue": false,
+        "propertyTax": false,
+        "zoning": false
+      }
+    },
+    {
+      "sourceId": "us-ma-massgis-parcels",
+      "countyFips": "25017",
+      "automaticActivation": false,
+      "pass": true,
+      "observedAt": "2026-10-14T02:47:44.046Z",
+      "geometryType": "esriGeometryPolygon",
+      "mappedFields": {
+        "apn": true,
+        "parcelId": true,
+        "situsAddress": true,
+        "ownerName": true,
+        "assessedValue": true,
+        "assessedYear": true,
+        "zoning": true
+      },
+      "spatialCounty": [
+        "25017"
+      ],
+      "subjectGeometry": true,
+      "apnMatches": true,
+      "neighborCount": 120,
+      "exceededLimit": true,
+      "point": {
+        "lng": -71.11033081892025,
+        "lat": 42.37249238843264
+      },
+      "fieldValueAvailability": {
+        "apn": true,
+        "assessorAcres": true,
+        "gisAcres": false,
+        "geometryCalculatedAcres": true,
+        "ownerName": true,
+        "assessedValue": true,
+        "propertyTax": false,
+        "zoning": true
+      }
+    },
+    {
+      "sourceId": "us-nj-njogis-parcels",
+      "countyFips": "34021",
+      "automaticActivation": false,
+      "pass": true,
+      "observedAt": "2026-10-14T02:48:07.014Z",
+      "geometryType": "esriGeometryPolygon",
+      "mappedFields": {
+        "apn": true,
+        "parcelId": true,
+        "situsAddress": true,
+        "gisAcres": true,
+        "assessedValue": true,
+        "propertyTax": true,
+        "legalDescription": true
+      },
+      "spatialCounty": [
+        "34021"
+      ],
+      "subjectGeometry": true,
+      "apnMatches": true,
+      "neighborCount": 108,
+      "exceededLimit": false,
+      "point": {
+        "lng": -74.76149432901359,
+        "lat": 40.21967495433473
+      },
+      "fieldValueAvailability": {
+        "apn": true,
+        "assessorAcres": false,
+        "gisAcres": true,
+        "geometryCalculatedAcres": true,
+        "ownerName": false,
+        "assessedValue": true,
+        "propertyTax": true,
+        "zoning": false
+      }
+    },
+    {
+      "sourceId": "us-ut-salt-lake-parcels",
+      "countyFips": "49035",
+      "automaticActivation": false,
+      "pass": true,
+      "observedAt": "2026-10-14T02:48:24.625Z",
+      "geometryType": "esriGeometryPolygon",
+      "mappedFields": {
+        "apn": true,
+        "situsAddress": true,
+        "assessorAcres": true,
+        "taxCode": true,
+        "subdivision": true
+      },
+      "spatialCounty": [
+        "49035"
+      ],
+      "subjectGeometry": true,
+      "apnMatches": true,
+      "neighborCount": 120,
+      "exceededLimit": true,
+      "point": {
+        "lng": -111.8918690743113,
+        "lat": 40.7618470941238
+      },
+      "fieldValueAvailability": {
+        "apn": true,
+        "assessorAcres": true,
+        "gisAcres": false,
+        "geometryCalculatedAcres": true,
+        "ownerName": false,
+        "assessedValue": false,
+        "propertyTax": false,
+        "zoning": false
+      }
+    }
+  ]
+}

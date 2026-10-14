@@ -14,10 +14,15 @@ export type ParcelSource = Readonly<{
   sourceFreshness: string; status: SourceStatus; itemId?: string; apnNormalization?: 'EXACT' | 'REMOVE_SEPARATORS';
   statusReason: string; licenseReason: string; role?: SourceRole; strengths?: readonly SourceStrength[];
   coverageCountyFips?: readonly string[];
+  usagePermission?: 'PUBLIC_DISPLAY_ALLOWED' | 'INTERNAL_ANALYTICS_ONLY' | 'REVIEW_REQUIRED';
+  acquisitionMode?: 'LIVE_PUBLIC_GIS' | 'PUBLIC_DATASET_INGESTION';
+  capabilities?: { subjectLookup: boolean; neighborLens: boolean; apnLookup: boolean };
+  coverageScope?: 'COUNTY_DATASET' | 'PARTIAL_COUNTY';
   // Some authorities publish mixed area units in a companion field. Never assume acres.
   areaMapping?: { valueField: string; unitField: string };
   validation?: { authorityVerified: boolean; schemaValidated: boolean; geometryQueryValidated: boolean;
-    apnQueryValidated: boolean; viewportQueryValidated: boolean; counties: readonly string[]; evidencePath: string };
+    apnQueryValidated: boolean; viewportQueryValidated: boolean; counties: readonly string[]; evidencePath: string;
+    sampledCountyFips?: readonly string[]; countyInventoryEvidencePath?: string };
 }>;
 export type ParcelEvidence = {
   parcelId: string | null; apn: string | null; geometry: ParcelGeometry | null; situsAddress: string | null;
@@ -27,10 +32,11 @@ export type ParcelEvidence = {
   taxCode: string | null; zoning: string | null; legalDescription: string | null; subdivision: string | null;
   source: string; sourceAuthority: string; sourceUrl: string; licenseStatus: LicenseStatus; licenseUrl: string; usageNotes: string;
   retrievedAt: string; sourceUpdatedAt: string | null; evidenceStatus: 'PUBLIC_RECORD';
+  sourceDomains?: readonly SourceStrength[];
   provenance: Record<string, { value: unknown; source: string; sourceField: string | null; status: 'PUBLIC_RECORD' | 'CALCULATED' | 'UNAVAILABLE' }>;
   areaCrossCheck: { status: 'CONSISTENT' | 'MINOR_VARIANCE' | 'MATERIAL_CONFLICT' | 'NOT_EVALUATED'; relativeDifference: number | null };
 };
-export type ParcelQuery = { operation: 'resolve' | 'query-point' | 'query-apn' | 'query-bounds' | 'coverage'; point?: Point; bounds?: Bounds; zoom?: number;
+export type ParcelQuery = { operation: 'resolve' | 'query-point' | 'query-apn' | 'query-bounds' | 'query-lens' | 'coverage'; point?: Point; bounds?: Bounds; zoom?: number;
   countyFips?: string; stateFips?: string; apn?: string; address?: { address: string; city?: string; state?: string; zip?: string }; signal?: AbortSignal };
 export type ProviderResult = { parcels: ParcelEvidence[]; exceededLimit: boolean };
 export interface PublicParcelProvider {
@@ -45,3 +51,5 @@ export type ParcelResult = { status: 'COVERAGE_AVAILABLE' | 'NO_ACTIVE_PUBLIC_SO
   freshness: 'FRESH' | 'STALE_USABLE' | 'UNAVAILABLE'; cacheHit: boolean; expiresAt: string | null; reason?: string };
 export const PARCEL_MIN_ZOOM = 16;
 export const PARCEL_MAX_RESULTS = 120;
+export const PARCEL_LENS_DIAMETER_MILES = 0.20;
+export const PARCEL_LENS_RADIUS_METERS = PARCEL_LENS_DIAMETER_MILES / 2 * 1609.344;

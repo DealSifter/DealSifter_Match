@@ -1,8 +1,9 @@
 import { ArcGISParcelAdapter } from './arcgis.ts';
-import { ParcelRequestCache } from './cache.ts';
+import { ParcelRequestCache, waitForParcelRequest } from './cache.ts';
 import { PublicCountyResolver } from './county.ts';
 import { ParcelSourceRegistry, normalizeCountyFips } from './registry.ts';
 import { validPoint } from './geometry.ts';
+import { contextualLensBounds } from './lens.ts';
 import { PARCEL_MIN_ZOOM, PARCEL_MAX_RESULTS, type ParcelQuery, type ParcelResult, type ParcelSource, type Point, type ProviderResult, type PublicParcelProvider } from './types.ts';
 
 export function validBounds(value: unknown): value is [number, number, number, number] {
@@ -14,13 +15,16 @@ export function validateParcelQuery(input: unknown): ParcelQuery {
   const row = input as Record<string, unknown>;
   const keys = ['operation', 'point', 'bounds', 'zoom', 'countyFips', 'stateFips', 'apn', 'address'];
   if (Object.keys(row).some(key => !keys.includes(key))) throw new Error('UNKNOWN_QUERY_FIELD');
-  if (!['resolve', 'query-point', 'query-apn', 'query-bounds', 'coverage'].includes(String(row.operation))) throw new Error('INVALID_OPERATION');
-  if (row.point !== undefined && !validPoint(row.point)) throw new Error('INVALID_POINT');
+  if (!['resolve', 'query-point', 'query-apn', 'query-bounds', 'query-lens', 'coverage'].includes(String(row.operation))) throw new Error('INVALID_OPERATION');
+  if (row.point !== undefined && (!validPoint(row.point) || Object.keys(row.point).some(key => !['lat','lng'].includes(key)))) throw new Error('INVALID_POINT');
   if (row.bounds !== undefined && !validBounds(row.bounds)) throw new Error('INVALID_BOUNDS');
+  if (row.bounds !== undefined && row.operation !== 'query-bounds') throw new Error('INVALID_OPERATION_BOUNDS');
+  if (row.stateFips !== undefined && !/^\d{2}$/.test(String(row.stateFips))) throw new Error('INVALID_FIPS');
   if (row.countyFips !== undefined && !normalizeCountyFips(row.countyFips, row.stateFips)) throw new Error('INVALID_FIPS');
   if (row.zoom !== undefined && (typeof row.zoom !== 'number' || !Number.isFinite(row.zoom) || row.zoom < 0 || row.zoom > 22)) throw new Error('INVALID_ZOOM');
   if (row.operation === 'query-bounds' && !validBounds(row.bounds)) throw new Error('BOUNDS_REQUIRED');
   if (row.operation === 'query-point' && !validPoint(row.point)) throw new Error('POINT_REQUIRED');
+  if (row.operation === 'query-lens' && (!validPoint(row.point) || Object.keys(row).some(key => !['operation','point'].includes(key)))) throw new Error('INVALID_LENS_QUERY');
   if (row.operation === 'query-apn' && (typeof row.apn !== 'string' || !row.apn.trim() || row.apn.length > 80 || !/^[\p{L}\p{N} ._\/-]+$/u.test(row.apn))) throw new Error('INVALID_APN');
   if (row.address !== undefined) {
     const address = row.address as Record<string, unknown>;
@@ -54,6 +58,11 @@ export class PublicParcelResolver {
     }
   }
   async resolve(query: ParcelQuery): Promise<ParcelResult> {
+    if (query.operation === 'query-lens') {
+      const bounds = contextualLensBounds(query.point!);
+      if (!bounds) throw new Error('POINT_REQUIRED');
+      query = { ...query, bounds, zoom: PARCEL_MIN_ZOOM };
+    }
     const start = Date.now();
     const empty = (status: ParcelResult['status'], reason: string, fips: string | null = null): ParcelResult =>
       ({ status, reason, parcels: [], countyFips: fips, sourceIds: [], ambiguity: status === 'AMBIGUOUS_LOCATION', exceededLimit: false, cacheHit: false, freshness: 'UNAVAILABLE', expiresAt: null });
@@ -78,7 +87,9 @@ export class PublicParcelResolver {
     if (!fips) return empty('AMBIGUOUS_LOCATION', 'COUNTY_OR_LOCATION_REQUIRED');
     // Non-parcel role registrations are preparation, not an implicit consensus layer.
     const sources = this.registry.forCounty(fips, this.options.diagnostics === true)
-      .filter(source => !source.role || ['PARCEL_PRIMARY', 'SECONDARY_PARCEL'].includes(source.role));
+      .filter(source => !source.role || ['PARCEL_PRIMARY', 'SECONDARY_PARCEL'].includes(source.role))
+      .filter(source => query.bounds ? source.capabilities?.neighborLens !== false : query.apn ? source.capabilities?.apnLookup !== false : source.capabilities?.subjectLookup !== false)
+      .sort((a,b) => Number(a.role==='SECONDARY_PARCEL')-Number(b.role==='SECONDARY_PARCEL'));
     if (!sources.length) return empty('NO_ACTIVE_PUBLIC_SOURCE', 'NO_APPROVED_ACTIVE_SOURCE', fips);
     if (query.operation === 'coverage') return { ...empty('COVERAGE_AVAILABLE', 'SOURCE_REGISTERED', fips), sourceIds: sources.map(s => s.sourceId) };
     if (!point && !query.apn) return empty('AMBIGUOUS_LOCATION', 'POINT_APN_OR_ADDRESS_REQUIRED', fips);
@@ -89,11 +100,13 @@ export class PublicParcelResolver {
       const cached = this.cache.get(key); let value: ProviderResult; let freshness: ParcelResult['freshness'] = 'FRESH'; let cacheHit = false;
       try {
         if (cached?.fresh) { value = cached.value; cacheHit = true; }
-        else value = await this.cache.run(key, source.sourceId, async () => {
+        else value = await waitForParcelRequest(this.cache.run(key, source.sourceId, async () => {
           let provider = this.providers.get(source.sourceId);
           if (!provider) { provider = this.options.providerFactory?.(source) || new ArcGISParcelAdapter(source); this.providers.set(source.sourceId, provider); }
-          return query.bounds ? provider.queryByBounds(query.bounds, query.signal) : query.apn ? provider.queryByAPN(query.apn, query.signal) : provider.queryByPoint(point!, query.signal);
-        });
+          // Public shared work is bounded by provider timeouts, not owned by the
+          // first subscriber. User A disconnecting must not cancel user B.
+          return query.bounds ? provider.queryByBounds(query.bounds) : query.apn ? provider.queryByAPN(query.apn) : provider.queryByPoint(point!);
+        }),query.signal);
       } catch (error) {
         if (query.signal?.aborted) throw error;
         this.options.logger?.({ sourceId: source.sourceId, countyFips: fips, operation: query.operation, cacheHit: !!cached, duration: Date.now() - start, resultCount: cached?.value.parcels.length || 0, errorClass: (error as Error).message.slice(0, 80) });
@@ -105,6 +118,10 @@ export class PublicParcelResolver {
         countyFips: fips, sourceIds: [source.sourceId], ambiguity: query.operation !== 'query-bounds' && value.parcels.length > 1,
         exceededLimit: value.exceededLimit, freshness, cacheHit, expiresAt: row ? new Date(row.expiresAt).toISOString() : null });
       this.options.logger?.({ sourceId: source.sourceId, countyFips: fips, operation: query.operation, cacheHit, duration: Date.now() - start, resultCount: value.parcels.length, errorClass: null });
+      // Complementary registrations are fallbacks, not an implicit consensus.
+      // Do not stack two geometries for the same public subject from different
+      // authorities and make an otherwise valid selection appear ambiguous.
+      if(value.parcels.length) break;
     }
     const available = records.filter(row => row.status === 'COVERAGE_AVAILABLE');
     if (!available.length) return records.find(row => row.status === 'SOURCE_TEMPORARILY_UNAVAILABLE') || records[0];

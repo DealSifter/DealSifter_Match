@@ -1,5 +1,6 @@
 import type { ParcelSource } from './types.ts';
 import { EXPANSION_SOURCES } from './sources.ts';
+import { STRATEGIC_SOURCES } from './strategicSources.ts';
 
 // Configuration only. Discovery cannot modify this registry or activate a source.
 export const PARCEL_SOURCES: readonly ParcelSource[] = Object.freeze([
@@ -34,6 +35,7 @@ export const PARCEL_SOURCES: readonly ParcelSource[] = Object.freeze([
   },
   {
     sourceId: 'us-ut-salt-lake-parcels', country: 'US', state: 'UT', stateFips: '49', county: 'Salt Lake', countyFips: '49035', providerType: 'ARCGIS',
+    usagePermission: 'PUBLIC_DISPLAY_ALLOWED', acquisitionMode: 'LIVE_PUBLIC_GIS', capabilities: { subjectLookup: true, neighborLens: true, apnLookup: true },
     statusReason: 'Specific LIR CC-BY-4.0 terms verified; official schema and real point/APN/viewport validation passed. Internal validation only.', licenseReason: 'Specific official LIR item 6f900727e16d4ce1a83f2a1ec1d82e60 explicitly licenses this dataset under CC-BY-4.0; attribution required.', role: 'PARCEL_PRIMARY',
     strengths: ['PARCEL_GEOMETRY', 'APN', 'AREA'], validation: { authorityVerified: true, schemaValidated: true, geometryQueryValidated: true, apnQueryValidated: true, viewportQueryValidated: true, counties: ['49035'], evidencePath: 'qa/public-parcel-intelligence/phase1b-source-inspection.json' },
     serviceUrl: 'https://services1.arcgis.com/99lidPhWCzftIe9K/arcgis/rest/services/Parcels_SaltLake_LIR/FeatureServer', layerId: 0, geometrySupported: true,
@@ -53,6 +55,7 @@ export const PARCEL_SOURCES: readonly ParcelSource[] = Object.freeze([
     lastValidatedAt: '2026-10-12', sourceFreshness: 'Source editing timestamp, where published', status: 'LICENSE_REVIEW_REQUIRED',
   },
   ...EXPANSION_SOURCES,
+  ...STRATEGIC_SOURCES,
 ]);
 export const PARCEL_APPROVED_ORIGINS = Object.freeze([...new Set(PARCEL_SOURCES.map(source => new URL(source.serviceUrl).origin))]);
 export const licenseCleared = (source: ParcelSource) => ['APPROVED', 'CLEAR_FOR_USE'].includes(source.licenseStatus);
@@ -64,13 +67,13 @@ export function activationBlockers(source: ParcelSource) {
   if (!proof?.authorityVerified) blockers.push('AUTHORITY_NOT_VERIFIED');
   if (!proof?.schemaValidated) blockers.push('SCHEMA_NOT_VALIDATED');
   if (!source.geometrySupported || !proof?.geometryQueryValidated) blockers.push('GEOMETRY_NOT_VALIDATED');
-  if (!proof?.apnQueryValidated || !source.fieldMapping.apn) blockers.push('APN_NOT_VALIDATED');
-  if (!proof?.viewportQueryValidated) blockers.push('VIEWPORT_NOT_VALIDATED');
+  if (source.capabilities?.apnLookup !== false && (!proof?.apnQueryValidated || !source.fieldMapping.apn)) blockers.push('APN_NOT_VALIDATED');
+  if (source.capabilities?.neighborLens !== false && !proof?.viewportQueryValidated) blockers.push('VIEWPORT_NOT_VALIDATED');
   if (!source.lastValidatedAt || !proof?.evidencePath) blockers.push('VALIDATION_EVIDENCE_REQUIRED');
   if ([source.countyFips, ...(source.coverageCountyFips || [])].some(fips => !proof?.counties.includes(fips))) blockers.push('COVERAGE_NOT_VALIDATED');
   return blockers;
 }
-export const productionSourceAllowed = (source: ParcelSource) => source.status === 'ACTIVE' && activationBlockers(source).length === 0;
+export const productionSourceAllowed = (source: ParcelSource) => source.status === 'ACTIVE' && source.usagePermission === 'PUBLIC_DISPLAY_ALLOWED' && activationBlockers(source).length === 0;
 export function normalizeCountyFips(county: unknown, state?: unknown) {
   const value = String(county ?? '').trim(); const prefix = String(state ?? '').trim();
   if (/^\d{5}$/.test(value)) return /^\d{2}$/.test(prefix) && !value.startsWith(prefix) ? null : value;

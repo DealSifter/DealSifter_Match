@@ -46,18 +46,18 @@ describe('Phase 1B activation contract', () => {
   });
 });
 
-describe('internal-only reuse of existing feature flag framework', () => {
+describe('GA contextual access with existing feature flag framework', () => {
   const config = { public_parcel_intelligence: { enabled: true, environments: ['production', 'development'], percentage: 100, internalUserIds: ['internal-validator'] } };
   it('enables explicitly allowlisted validators', () => expect(resolveFeatureFlags({ userId: 'internal-validator', environment: 'production', remoteConfig: config }).public_parcel_intelligence).toBe(true));
-  it('keeps general users OFF even with a 100 percent rollout', () => expect(resolveFeatureFlags({ userId: 'general-user', environment: 'production', remoteConfig: config }).public_parcel_intelligence).toBe(false));
+  it('includes general users with a server 100 percent rollout, ignoring historical preview identities', () => expect(resolveFeatureFlags({ userId: 'general-user', environment: 'production', remoteConfig: config }).public_parcel_intelligence).toBe(true));
   it('keeps default OFF including the internal identity', () => expect(resolveFeatureFlags({ userId: 'internal-validator', environment: 'production' }).public_parcel_intelligence).toBe(false));
-  it('neither admin nor development overrides bypass the allowlist', () => {
-    for (const environment of ['production', 'development'] as const) expect(resolveFeatureFlags({ userId: 'general-user', environment, remoteConfig: config,
+  it('neither admin nor development overrides bypass the server kill switch', () => {
+    for (const environment of ['production', 'development'] as const) expect(resolveFeatureFlags({ userId: 'general-user', environment, remoteConfig: {public_parcel_intelligence:{...config.public_parcel_intelligence,enabled:false}},
       allowOverride: true, overrides: { public_parcel_intelligence: true } }).public_parcel_intelligence).toBe(false);
   });
-  it('malformed allowlists fail closed', () => expect(resolveFeatureFlags({ userId: 'general-user', environment: 'production', remoteConfig: {
-    public_parcel_intelligence: { ...config.public_parcel_intelligence, internalUserIds: 'general-user' },
-  } }).public_parcel_intelligence).toBe(false));
+  it('the QA grid alone requires a valid server allowlist', () => expect(resolveFeatureFlags({ userId: 'general-user', environment: 'production', remoteConfig: {
+    public_parcel_qa_grid: { ...config.public_parcel_intelligence, internalUserIds: 'general-user' },
+  } }).public_parcel_qa_grid).toBe(false));
 });
 
 describe('source-specialized field normalization', () => {

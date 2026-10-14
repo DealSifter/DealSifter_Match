@@ -1,6 +1,6 @@
 import { validPoint } from '../../../supabase/functions/_shared/public-parcel/geometry.ts';
-import { PARCEL_MIN_ZOOM, PARCEL_MAX_RESULTS } from '../../../supabase/functions/_shared/public-parcel/types.ts';
-import { parcelLensBounds, parcelLensParcels, resolvePrincipalParcel } from './parcelLensGeometry';
+import { PARCEL_MAX_RESULTS } from '../../../supabase/functions/_shared/public-parcel/types.ts';
+import { parcelLensParcels, resolvePrincipalParcel } from './parcelLensGeometry';
 
 // A contextual session, separate from the QA viewport controller. It deliberately
 // has NO pan/zoom input: loaded evidence survives zoom-out without further calls.
@@ -63,7 +63,7 @@ export class ParcelLensController {
     const generation = this.generation;
     const abort = new AbortController(); this.abort = abort;
     try {
-      const neighbors = await this.request({ operation: 'query-bounds', bounds: parcelLensBounds(context.point), zoom: PARCEL_MIN_ZOOM }, { signal: abort.signal });
+      const neighbors = await this.request({ operation: 'query-lens', point: context.point }, { signal: abort.signal });
       if (generation !== this.generation || abort.signal.aborted || !this.state.lens) return;
       if (cached) cached.neighbors = neighbors;
       this.emit({ lens: { ...this.state.lens, parcels: parcelLensParcels(parcel, (neighbors.parcels || []).slice(0, PARCEL_MAX_RESULTS - 1), context.point),

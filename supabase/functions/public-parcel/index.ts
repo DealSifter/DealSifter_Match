@@ -6,6 +6,8 @@ import { ParcelRequestCache } from '../_shared/public-parcel/cache.ts';
 import { PublicCountyResolver } from '../_shared/public-parcel/county.ts';
 import { ArcGISParcelAdapter } from '../_shared/public-parcel/arcgis.ts';
 import type { ProviderResult } from '../_shared/public-parcel/types.ts';
+import { parcelOperationAllowed } from '../_shared/public-parcel/lens.ts';
+import { createParcelUpstreamFetch } from '../_shared/public-parcel/upstreamBudget.ts';
 
 const url = Deno.env.get('SUPABASE_URL') || '';
 const anon = Deno.env.get('SUPABASE_ANON_KEY') || Deno.env.get('ANON_KEY') || '';
@@ -13,7 +15,15 @@ const serviceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') || Deno.env.get('SE
 const environment = url.includes('cyeipfskwwisbbayyaca') ? 'production' : url.includes('oqdcnjupquhybwdbeeew') ? 'staging' : 'development';
 const ttlHours = Math.max(1, Math.min(72, Number(Deno.env.get('PARCEL_CACHE_TTL_HOURS')) || 24));
 const cache = new ParcelRequestCache<ProviderResult>(() => Date.now(), ttlHours * 3600_000);
-const counties = new PublicCountyResolver();
+const admin = serviceKey ? createClient(url, serviceKey) : null;
+const publicFetcher = createParcelUpstreamFetch(async (subject,signal) => {
+  if(!admin) return false;
+  const query=admin.rpc('ds_consume_edge_rate_limit',{p_subject_id:subject,p_operation:'public_parcel_upstream',p_window_seconds:60,p_max_requests:40});
+  const result=signal?await query.abortSignal(signal):await query;
+  const decision=Array.isArray(result.data)?result.data[0]:result.data;
+  return !result.error&&decision?.allowed===true;
+});
+const counties = new PublicCountyResolver(publicFetcher);
 const providers = new Map<string, ArcGISParcelAdapter>();
 function reply(value: unknown, status: number, origin: string) {
   return new Response(JSON.stringify(value), { status, headers: { ...corsHeaders(origin), 'Content-Type': 'application/json', 'Cache-Control': 'no-store' } });
@@ -42,15 +52,15 @@ Deno.serve(async req => {
     let parsed: unknown;
     try { parsed = JSON.parse(input); } catch { return reply({ error: 'INVALID_QUERY_JSON' }, 400, origin); }
     const query = validateParcelQuery(parsed);
+    if (!parcelOperationAllowed(query.operation, flags)) return reply({ status: 'DISABLED', parcels: [], reason: 'INTERNAL_GRID_ONLY' }, 200, origin);
     if (!serviceKey) return reply({ error: 'RATE_LIMIT_UNAVAILABLE' }, 503, origin);
-    const admin = createClient(url, serviceKey);
-    const limit = await admin.rpc('ds_consume_edge_rate_limit', { p_subject_id: user.id, p_operation: 'public_parcel', p_window_seconds: 60, p_max_requests: 20 });
+    const limit = await admin!.rpc('ds_consume_edge_rate_limit', { p_subject_id: user.id, p_operation: 'public_parcel', p_window_seconds: 60, p_max_requests: 20 });
     const decision = Array.isArray(limit.data) ? limit.data[0] : limit.data;
     if (limit.error || decision?.allowed !== true) return reply({ error: limit.error ? 'RATE_LIMIT_UNAVAILABLE' : 'RATE_LIMITED' }, limit.error ? 503 : 429, origin);
     const resolver = new PublicParcelResolver({ cache,
       resolveCounty: (point, signal) => counties.resolve(point, signal),
       resolveBoundsCounties: (bounds, signal) => counties.resolveBounds(bounds, signal),
-      providerFactory: source => { let adapter = providers.get(source.sourceId); if (!adapter) { adapter = new ArcGISParcelAdapter(source); providers.set(source.sourceId, adapter); } return adapter; },
+      providerFactory: source => { let adapter = providers.get(source.sourceId); if (!adapter) { adapter = new ArcGISParcelAdapter(source, publicFetcher); providers.set(source.sourceId, adapter); } return adapter; },
       logger: event => console.log(JSON.stringify({ event: 'public_parcel', ...event })),
       geocode: async (address, signal) => {
         // Reuse existing geocoder/cache. Omitting propertyId prevents property mutations.

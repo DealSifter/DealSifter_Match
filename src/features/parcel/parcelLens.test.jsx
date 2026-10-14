@@ -56,8 +56,8 @@ describe('contextual parcel session', () => {
     const neighbor = { ...parcel, parcelId: 'NEIGHBOR', apn: 'NEXT', geometry: geometry(.001) };
     const request = vi.fn().mockResolvedValueOnce(result).mockResolvedValueOnce({ ...result, parcels: [parcel, neighbor], exceededLimit: true });
     const controller = new ParcelLensController(request, vi.fn()); await controller.lookup(context, true); expect(controller.state.lens).toBeNull();
-    await controller.activate(); expect(request.mock.calls.map(([query]) => query.operation)).toEqual(['query-point', 'query-bounds']);
-    expect(request.mock.calls[1][0].bounds).toEqual(parcelLensBounds(point)); expect(controller.state.lens.parcels).toEqual([parcel, neighbor]); expect(controller.state.lens.limited).toBe(true);
+    await controller.activate(); expect(request.mock.calls.map(([query]) => query.operation)).toEqual(['query-point', 'query-lens']);
+    expect(request.mock.calls[1][0]).toEqual({operation:'query-lens',point}); expect(controller.state.lens.parcels).toEqual([parcel, neighbor]); expect(controller.state.lens.limited).toBe(true);
   });
   it('has no viewport/zoom dependency: loaded lens survives arbitrary zoom-out and page switches with zero calls', async () => {
     const request = vi.fn(async () => result); const controller = new ParcelLensController(request, vi.fn());
@@ -102,10 +102,10 @@ describe('contextual parcel session', () => {
 });
 
 describe('existing popup public-data page and internal QA isolation', () => {
-  it.each(['pt', 'en', 'es'])('renders magnifier for eligible properties independently of lookup outcome; preserves normal image/feed/Match behavior: %s', language => {
+  it.each(['pt', 'en', 'es'])('renders magnifier only for verified subject geometry; preserves normal image/feed/Match behavior: %s', language => {
     const props = { property: { id: 'property-1', price: 10 }, label: 'Property', language, onMatch: () => {} };
     expect(renderToStaticMarkup(<PropertyPinPopup {...props} />)).not.toContain(parcelLabels(language).magnifier);
-    expect(renderToStaticMarkup(<PropertyPinPopup {...props} parcelEligible />)).toContain(parcelLabels(language).magnifier);
+    expect(renderToStaticMarkup(<PropertyPinPopup {...props} parcelEligible />)).not.toContain(parcelLabels(language).magnifier);
     const markup = renderToStaticMarkup(<PropertyPinPopup {...props} parcelEligible parcelState={{ parcel, page: 'property' }} />);
     expect(markup).toContain(parcelLabels(language).magnifier); expect(markup).toContain('ds-property-pin-match'); expect(markup).toContain('ds-property-pin-photo');
     expect(markup).not.toContain('ds-property-pin-parcel-nav');
@@ -160,7 +160,7 @@ describe('payment-independent parcel access and explicit activation', () => {
     expect(request).toHaveBeenCalledOnce(); expect(ready).not.toHaveBeenCalled(); finish(result);
     await lookup; expect(await activation).toBe('ACTIVE');
     expect(ready).toHaveBeenCalledWith({ itemId: context.itemId, alreadyActive: false });
-    expect(request.mock.calls.map(([query]) => query.operation)).toEqual(['query-point', 'query-bounds']);
+    expect(request.mock.calls.map(([query]) => query.operation)).toEqual(['query-point', 'query-lens']);
   });
   it.each(['SOURCE_TEMPORARILY_UNAVAILABLE', 'PARCEL_NOT_FOUND'])('allows explicit retry after a negative result: %s', status => {
     return (async () => {

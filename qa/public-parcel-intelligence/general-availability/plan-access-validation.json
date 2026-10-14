@@ -1,0 +1,27 @@
+{
+  "observedAt": "2026-10-14T03:48:18.711Z",
+  "targeted": {
+    "passed": 215,
+    "total": 215
+  },
+  "full": {
+    "passed": 1920,
+    "total": 1920,
+    "files": 218
+  },
+  "uiCases": 6,
+  "mode": "DETERMINISTIC_TESTS_AND_LOCAL_AUTHENTICATED_FIXTURES",
+  "productionUserSession": false,
+  "status": "PASS",
+  "plans": [
+    "FREE",
+    "PRO",
+    "ENTERPRISE"
+  ],
+  "planSnapshots": "EXPLICIT_LOCAL_QA_FIXTURES_NOT_PRODUCTION_SUBSCRIPTIONS",
+  "nuggetCost": 0,
+  "unlockRequired": false,
+  "billingRequests": 0,
+  "freeFixtureBalance": 0,
+  "subscriptionTableChanges": 0
+}

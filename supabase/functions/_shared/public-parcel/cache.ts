@@ -1,3 +1,13 @@
+export function waitForParcelRequest<T>(pending: Promise<T>, signal?: AbortSignal): Promise<T> {
+  if(!signal) return pending;
+  if(signal.aborted) return Promise.reject(new DOMException('Request cancelled','AbortError'));
+  return new Promise((resolve,reject)=>{
+    const abort=()=>{signal.removeEventListener('abort',abort);reject(new DOMException('Request cancelled','AbortError'));};
+    signal.addEventListener('abort',abort,{once:true});
+    pending.then(value=>{signal.removeEventListener('abort',abort);resolve(value);},error=>{signal.removeEventListener('abort',abort);reject(error);});
+  });
+}
+
 export class ParcelRequestCache<T> {
   private rows = new Map<string, { value: T; expiresAt: number; staleUntil: number; bytes: number }>();
   private pending = new Map<string, Promise<T>>();
