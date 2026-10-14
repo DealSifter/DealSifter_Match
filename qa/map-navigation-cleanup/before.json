@@ -1,0 +1,46 @@
+{
+  "mode": "REAL_REACT_LEAFLET_UNMOUNT_MOCK_AUTH",
+  "productionAuthentication": false,
+  "results": [
+    {
+      "device": "desktop",
+      "state": "idle",
+      "passed": true,
+      "diagnostics": [],
+      "errors": []
+    },
+    {
+      "device": "desktop",
+      "state": "selected-pin",
+      "passed": false,
+      "diagnostics": [
+        {
+          "message": "Cannot read properties of undefined (reading '_leaflet_pos')",
+          "stack": "TypeError: Cannot read properties of undefined (reading '_leaflet_pos')\n    at getPosition (http://127.0.0.1:4180/node_modules/.vite/deps/chunk-GDS25LWY.js?v=0b8d27bc:1570:19)\n    at NewClass._getMapPanePos (http://127.0.0.1:4180/node_modules/.vite/deps/chunk-GDS25LWY.js?v=0b8d27bc:2989:18)\n    at NewClass._moved (http://127.0.0.1:4180/node_modules/.vite/deps/chunk-GDS25LWY.js?v=0b8d27bc:2992:26)\n    at NewClass.getCenter (http://127.0.0.1:4180/node_modules/.vite/deps/chunk-GDS25LWY.js?v=0b8d27bc:2526:41)\n    at NewClass.setZoom (http://127.0.0.1:4180/node_modules/.vite/deps/chunk-GDS25LWY.js?v=0b8d27bc:2082:36)\n    at NewClass.stop (http://127.0.0.1:4180/node_modules/.vite/deps/chunk-GDS25LWY.js?v=0b8d27bc:2362:16)\n    at MapSelectionCamera.cancel (http://127.0.0.1:4180/src/features/parcel/mapSelectionCamera.js?t=1791995905146:49:23)\n    at http://127.0.0.1:4180/src/components/map/MapSelectionCamera.jsx?t=1791995905146:21:14\n    at Object.react_stack_bottom_frame (http://127.0.0.1:4180/node_modules/.vite/deps/react-dom_client.js:18573:13)\n    at runWithFiberInDEV (http://127.0.0.1:4180/node_modules/.vite/deps/react-dom_client.js:997:72)",
+          "componentStack": "\n    at MapSelectionCamera (http://127.0.0.1:4180/src/components/map/MapSelectionCamera.jsx?t=1791995905146:5:38)\n    at div (<anonymous>)\n    at MapContainerComponent (http://127.0.0.1:4180/node_modules/.vite/deps/react-leaflet.js?v=0b8d27bc:531:34)\n    at section (<anonymous>)\n    at div (<anonymous>)\n    at div (<anonymous>)\n    at MapView (http://127.0.0.1:4180/src/pages/MapView.jsx:822:3)"
+        }
+      ],
+      "errors": []
+    },
+    {
+      "device": "phone",
+      "state": "idle",
+      "passed": true,
+      "diagnostics": [],
+      "errors": []
+    },
+    {
+      "device": "phone",
+      "state": "selected-pin",
+      "passed": false,
+      "diagnostics": [
+        {
+          "message": "Cannot read properties of undefined (reading '_leaflet_pos')",
+          "stack": "TypeError: Cannot read properties of undefined (reading '_leaflet_pos')\n    at getPosition (http://127.0.0.1:4180/node_modules/.vite/deps/chunk-GDS25LWY.js?v=0b8d27bc:1570:19)\n    at NewClass._getMapPanePos (http://127.0.0.1:4180/node_modules/.vite/deps/chunk-GDS25LWY.js?v=0b8d27bc:2989:18)\n    at NewClass._moved (http://127.0.0.1:4180/node_modules/.vite/deps/chunk-GDS25LWY.js?v=0b8d27bc:2992:26)\n    at NewClass.getCenter (http://127.0.0.1:4180/node_modules/.vite/deps/chunk-GDS25LWY.js?v=0b8d27bc:2526:41)\n    at NewClass.setZoom (http://127.0.0.1:4180/node_modules/.vite/deps/chunk-GDS25LWY.js?v=0b8d27bc:2082:36)\n    at NewClass.stop (http://127.0.0.1:4180/node_modules/.vite/deps/chunk-GDS25LWY.js?v=0b8d27bc:2362:16)\n    at MapSelectionCamera.cancel (http://127.0.0.1:4180/src/features/parcel/mapSelectionCamera.js?t=1791995905146:49:23)\n    at http://127.0.0.1:4180/src/components/map/MapSelectionCamera.jsx?t=1791995905146:21:14\n    at Object.react_stack_bottom_frame (http://127.0.0.1:4180/node_modules/.vite/deps/react-dom_client.js:18573:13)\n    at runWithFiberInDEV (http://127.0.0.1:4180/node_modules/.vite/deps/react-dom_client.js:997:72)",
+          "componentStack": "\n    at MapSelectionCamera (http://127.0.0.1:4180/src/components/map/MapSelectionCamera.jsx?t=1791995905146:5:38)\n    at div (<anonymous>)\n    at MapContainerComponent (http://127.0.0.1:4180/node_modules/.vite/deps/react-leaflet.js?v=0b8d27bc:531:34)\n    at section (<anonymous>)\n    at div (<anonymous>)\n    at div (<anonymous>)\n    at MapView (http://127.0.0.1:4180/src/pages/MapView.jsx:822:3)"
+        }
+      ],
+      "errors": []
+    }
+  ]
+}

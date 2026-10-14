@@ -2,7 +2,8 @@ import {readFile,writeFile} from 'node:fs/promises';
 import {createHash} from 'node:crypto';
 import {chromium} from '@playwright/test';
 const app='https://dealsiftermatch.vercel.app';const consensus=process.argv.includes('--parcel-consensus');const canonical=process.argv.includes('--canonical-evidence');
-const directory=canonical?'qa/canonical-evidence-maxxis':consensus?'qa/parcel-evidence-consensus':process.argv.includes('--parcel-ga')?'qa/public-parcel-intelligence/general-availability':'qa/navigation-reliability';
+const cleanup=process.argv.includes('--map-cleanup');
+const directory=cleanup?'qa/map-navigation-cleanup':canonical?'qa/canonical-evidence-maxxis':consensus?'qa/parcel-evidence-consensus':process.argv.includes('--parcel-ga')?'qa/public-parcel-intelligence/general-availability':'qa/navigation-reliability';
 const deployment=JSON.parse((await readFile(`${directory}/production-deployment.json`,'utf8')).replace(/^\uFEFF/,''));
 if(deployment.state!=='READY'||!deployment.sourceShaVerified||!deployment.aliasVerified)throw new Error('EXACT_READY_PRODUCTION_RELEASE_REQUIRED');
 const request=(url,options={})=>fetch(url,{...options,signal:AbortSignal.timeout(20000)});
@@ -51,4 +52,8 @@ const receipt={observedAt:new Date().toISOString(),codeCommit:deployment.sourceS
   canonicalHandoff,anonymousMaxxisStatus:deniedMaxxis?.status??null,authenticatedUserAcceptance:canonical?'BLOCKED_NO_REAL_USER_SESSION':'NOT_PERFORMED_NO_USER_SESSION'};
 receipt.pass=htmlResponse.status===200&&deepLink.status===200&&mainResponse.status===200&&mapResponse.status===200&&/no-store/.test(receipt.htmlCacheControl)&&/no-store/.test(receipt.deepLinkCacheControl)&&/immutable/.test(receipt.mainAssetCacheControl)&&/immutable/.test(receipt.mapAssetCacheControl)&&receipt.securityHeaders&&receipt.compiledModuleRecovery&&receipt.compiledParcelAccessDiagnostics&&obsoleteAssets.every(asset=>asset.status===404&&/no-store/.test(asset.cacheControl||'')&&!/immutable|max-age=31536000/.test(asset.cacheControl||''))&&cors.status===200&&denied.status===401&&browserStatus===200&&errors.length===0&&gisRequests===0;
 if(canonical)receipt.pass=receipt.pass&&deniedMaxxis.status===401&&canonicalHandoff.receiptStatus===200&&canonicalHandoff.assistantStatus===200&&canonicalHandoff.assistantTransportPresent&&canonicalHandoff.boundedReceiptGuard&&canonicalHandoff.immutableCache;
+if(cleanup){
+ receipt.compiledMapUnloadGuard=map.includes('.removed')&&map.includes('.disposed')&&map.includes('.on("unload"')&&map.includes('.off("unload"');
+ receipt.pass=receipt.pass&&receipt.compiledMapUnloadGuard;
+}
 await writeFile(`${directory}/production-smoke.json`,JSON.stringify(receipt,null,2)+'\n');console.log(JSON.stringify(receipt));if(!receipt.pass)throw new Error('PRODUCTION_SMOKE_FAILED');

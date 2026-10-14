@@ -13,7 +13,7 @@ export function MapSelectionCamera({ request, markers, panelLeft = 0, phone = fa
       const bottomNav = Number.parseFloat(getComputedStyle(map.getContainer()).getPropertyValue('--ds-map-bottom-offset')) || 0;
       camera.focus(request, { ...options.current, bottomNav, reducedMotion: window.matchMedia('(prefers-reduced-motion: reduce)').matches });
     });
-    return () => { cancelAnimationFrame(frame); camera.cancel(); };
+    return () => { cancelAnimationFrame(frame); camera.dispose(); };
   }, [request, map, markers]);
   return null;
 }

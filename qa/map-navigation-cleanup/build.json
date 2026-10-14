@@ -1,0 +1,14 @@
+{
+  "pass": true,
+  "startedAt": "2026-10-14T22:12:23.061Z",
+  "finishedAt": "2026-10-14T22:19:58.698Z",
+  "baseline": "362108e9ce02b340749ac621cdf4ceeb93dd0a42",
+  "delta": [
+    "src/features/parcel/mapSelectionCamera.js",
+    "src/features/parcel/mapSelectionCamera.test.js",
+    "src/components/map/MapSelectionCamera.jsx"
+  ],
+  "mode": "ISOLATED_BASELINE_PLUS_MAP_FIX_ONLY",
+  "modernAndLegacy": true,
+  "sentryUpload": false
+}

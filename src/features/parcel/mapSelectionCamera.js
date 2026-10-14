@@ -29,8 +29,17 @@ export function selectionCenter(map, point, zoom, layout) {
 // New commands supersede previous commands. No camera listeners survive a
 // selection, so a later page switch/response cannot reopen or refit a popup.
 export class MapSelectionCamera {
-  constructor(map, getMarker) { this.map = map; this.getMarker = getMarker; }
+  constructor(map, getMarker) {
+    this.map = map; this.getMarker = getMarker;
+    this.removed = false; this.disposed = false;
+    // React-Leaflet removes its MapContainer before child passive cleanups.
+    // Leaflet remove() already cancels animations. stop() after unload would
+    // call setZoom/getCenter against the deleted map pane and crash navigation.
+    this.onUnload = () => { this.removed = true; };
+    this.map.on('unload', this.onUnload);
+  }
   focus(request, options) {
+    if (this.removed || this.disposed) return;
     this.cancel();
     const marker = this.getMarker(request.id);
     if (!marker) return;
@@ -46,5 +55,11 @@ export class MapSelectionCamera {
     const center = selectionCenter(this.map, point, request.zoom, layout);
     this.map.flyTo(center, request.zoom, { animate: !options.reducedMotion, duration: .5, easeLinearity: .3 });
   }
-  cancel() { this.map.stop(); }
+  cancel() { if (!this.removed && !this.disposed) this.map.stop(); }
+  dispose() {
+    if (this.disposed) return;
+    this.cancel();
+    this.map.off('unload', this.onUnload);
+    this.disposed = true;
+  }
 }

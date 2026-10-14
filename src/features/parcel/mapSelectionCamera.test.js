@@ -30,11 +30,28 @@ describe('single device-aware map selection camera', () => {
   });
   it('cancels previous movements without accumulating popup/camera listeners', () => {
     const marker = { getLatLng: () => ({lat:35,lng:-78}), openPopup: vi.fn() };
-    const map = { stop:vi.fn(),flyTo:vi.fn(),getSize:()=>({x:1280,y:842}),getContainer:()=>({style:{setProperty:vi.fn()}}),
+    const map = { on:vi.fn(),off:vi.fn(),stop:vi.fn(),flyTo:vi.fn(),getSize:()=>({x:1280,y:842}),getContainer:()=>({style:{setProperty:vi.fn()}}),
       project:()=>({x:200,y:200}),unproject:()=>({lat:35,lng:-78}),once:vi.fn() };
     const camera = new MapSelectionCamera(map,() => marker);
     for (const zoom of [15,16,15]) camera.focus({id:'property',zoom},{phone:false});
     expect(map.stop).toHaveBeenCalledTimes(3); expect(marker.openPopup).toHaveBeenCalledTimes(3);
     expect(map.flyTo.mock.calls.map(call=>call[1])).toEqual([15,16,15]); expect(map.once).not.toHaveBeenCalled();
+    camera.dispose();
+    expect(map.off).toHaveBeenCalledWith('unload', expect.any(Function));
+  });
+  it('does not call stop/focus after the parent removes the Leaflet map', () => {
+    const map={on:vi.fn(),off:vi.fn(),stop:vi.fn(()=>{throw new Error('destroyed pane');})};
+    const getMarker=vi.fn(); const camera=new MapSelectionCamera(map,getMarker);
+    const unload=map.on.mock.calls[0][1]; unload();
+    expect(()=>{camera.cancel();camera.focus({id:'property',zoom:15},{});camera.dispose();camera.dispose();}).not.toThrow();
+    expect(map.stop).not.toHaveBeenCalled(); expect(getMarker).not.toHaveBeenCalled();
+    expect(map.off).toHaveBeenCalledTimes(1);
+  });
+  it('stops a live camera once and removes its listener on early frame cancellation', () => {
+    const map={on:vi.fn(),off:vi.fn(),stop:vi.fn()};
+    const camera=new MapSelectionCamera(map,vi.fn());
+    camera.dispose();camera.cancel();camera.dispose();
+    expect(map.stop).toHaveBeenCalledTimes(1);
+    expect(map.off).toHaveBeenCalledWith('unload',map.on.mock.calls[0][1]);
   });
 });

@@ -1,0 +1,68 @@
+{
+  "mode": "LOCAL_FULL_APP_MOCK_AUTH",
+  "productionUserSession": false,
+  "results": [
+    {
+      "device": "desktop",
+      "transitions": [
+        {
+          "from": "mapview",
+          "to": "dashboard",
+          "pinSelected": true
+        },
+        {
+          "from": "mapview",
+          "to": "matches",
+          "pinSelected": true
+        },
+        {
+          "from": "mapview",
+          "to": "pricing",
+          "pinSelected": true
+        },
+        {
+          "from": "mapview",
+          "to": "dashboard",
+          "pinSelected": true
+        },
+        {
+          "from": "mapview",
+          "to": "matches",
+          "pinSelected": true
+        }
+      ],
+      "errors": []
+    },
+    {
+      "device": "phone",
+      "transitions": [
+        {
+          "from": "mapview",
+          "to": "dashboard",
+          "pinSelected": true
+        },
+        {
+          "from": "mapview",
+          "to": "matches",
+          "pinSelected": true
+        },
+        {
+          "from": "mapview",
+          "to": "pricing",
+          "pinSelected": true
+        },
+        {
+          "from": "mapview",
+          "to": "dashboard",
+          "pinSelected": true
+        },
+        {
+          "from": "mapview",
+          "to": "matches",
+          "pinSelected": true
+        }
+      ],
+      "errors": []
+    }
+  ]
+}
