@@ -1,0 +1,45 @@
+{
+  "observedAt": "2026-10-14T02:10:13.366Z",
+  "codeCommit": "092a5684a8719b2c75a961131ae111b14f72653b",
+  "deploymentId": "dpl_525DBfNU9KY1PYdqGooTUjyECid5",
+  "aliasVerified": true,
+  "frontendStatus": 200,
+  "htmlCacheControl": "no-cache, no-store, must-revalidate",
+  "deepLinkStatus": 200,
+  "deepLinkCacheControl": "no-cache, no-store, must-revalidate",
+  "mainAssetStatus": 200,
+  "mainAssetCacheControl": "public, max-age=31536000, immutable",
+  "mapAssetStatus": 200,
+  "mapAssetCacheControl": "public, max-age=31536000, immutable",
+  "mapChunk": "MapView-7xjv1HK4.js",
+  "mapSha256": "dc07e1817dcf459ed8b0526714f556f86262fc48fe447b7f599c360e4b3b2fbe",
+  "securityHeaders": true,
+  "compiledModuleRecovery": true,
+  "compiledParcelAccessDiagnostics": true,
+  "obsoleteAssets": [
+    {
+      "name": "MapView-CYCaaVUC.js",
+      "status": 404,
+      "contentType": "text/plain; charset=utf-8",
+      "cacheControl": "no-cache, no-store, must-revalidate"
+    },
+    {
+      "name": "ParcelLensLayer-XRoS49Vs.js",
+      "status": 404,
+      "contentType": "text/plain; charset=utf-8",
+      "cacheControl": "no-cache, no-store, must-revalidate"
+    }
+  ],
+  "featureFlagsCorsStatus": 200,
+  "featureFlagsCorsHeaders": "authorization, x-client-info, apikey, content-type, baggage, sentry-trace, traceparent, tracestate",
+  "anonymousParcelStatus": 401,
+  "browserStatus": 200,
+  "browserErrors": [],
+  "anonymousStartupGisRequests": 0,
+  "backendDeploy": "NONE",
+  "migrations": "NONE",
+  "configurationChanged": false,
+  "paidProviderCalls": 0,
+  "authenticatedUserAcceptance": "NOT_PERFORMED_NO_USER_SESSION",
+  "pass": true
+}
