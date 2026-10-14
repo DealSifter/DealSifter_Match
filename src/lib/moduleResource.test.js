@@ -61,11 +61,21 @@ describe('module transport and single-flight recovery', () => {
 
 describe('hosting route/cache contract', () => {
   const config=JSON.parse(readFileSync(new URL('../../vercel.json',import.meta.url),'utf8'));
-  const spa=new RegExp(`^${config.rewrites.find(rule=>rule.destination==='/index.html').source}$`);
+  const spaRule=config.routes.find(rule=>rule.dest==='/index.html');
+  const spa=new RegExp(`^${spaRule.src}$`);
   it.each(['/assets/missing.js','/assets/old-module.css','/assets/map.png'])('does not rewrite a missing asset into cacheable HTML: %s', path => { expect(spa.test(path)).toBe(false); });
   it.each(['/','/dashboard','/map','/matches','/auth/callback'])('preserves SPA navigation/deep links: %s', path => { expect(spa.test(path)).toBe(true); });
   it('keeps immutable real assets and explicitly prevents HTML route caching', () => {
-    const assets=config.headers.find(rule=>rule.source==='/assets/(.*)'); expect(assets.headers.find(header=>header.key==='Cache-Control').value).toContain('immutable');
-    const html=config.headers.find(rule=>rule.source===config.rewrites[0].source); expect(html.headers.find(header=>header.key==='Cache-Control').value).toContain('no-store');
+    const assets=config.routes.find(rule=>rule.src==='/assets/(.*)'&&rule.continue); expect(assets.headers['Cache-Control']).toContain('immutable');
+    const html=config.routes.find(rule=>rule.src===spaRule.src&&rule.continue); expect(html.headers['Cache-Control']).toContain('no-store');
+  });
+  it('overrides immutable caching only for missing assets after filesystem lookup',()=>{
+    const filesystem=config.routes.findIndex(rule=>rule.handle==='filesystem');
+    const missing=config.routes.findIndex(rule=>rule.src==='/assets/(.*)'&&rule.status===404);
+    const immutable=config.routes.findIndex(rule=>rule.src==='/assets/(.*)'&&rule.continue);
+    expect(immutable).toBeLessThan(filesystem);expect(filesystem).toBeLessThan(missing);
+    expect(config.routes[missing].headers['Cache-Control']).toContain('no-store');
+    expect(config.routes[missing].continue).not.toBe(true);
+    expect(missing).toBeLessThan(config.routes.indexOf(spaRule));
   });
 });

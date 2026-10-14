@@ -1,0 +1,42 @@
+{
+  "observedAt": "2026-10-14T01:58:46.756Z",
+  "codeCommit": "6d04bd3bf00cb72289da1d37c5022d6ecc64bb01",
+  "deploymentId": "dpl_4Zutcn18xRLyGMAbZzFqujFnaGwW",
+  "aliasVerified": true,
+  "frontendStatus": 200,
+  "htmlCacheControl": "no-cache, no-store, must-revalidate",
+  "deepLinkStatus": 200,
+  "deepLinkCacheControl": "no-cache, no-store, must-revalidate",
+  "mainAssetStatus": 200,
+  "mapAssetStatus": 200,
+  "mapChunk": "MapView-DqzMF9wc.js",
+  "mapSha256": "d0fb8956b6ae70671bf0b4e5f3f06da959eb05c3154882226a826b7fc0fa9ec1",
+  "compiledModuleRecovery": true,
+  "compiledParcelAccessDiagnostics": true,
+  "obsoleteAssets": [
+    {
+      "name": "MapView-CYCaaVUC.js",
+      "status": 404,
+      "contentType": "text/plain; charset=utf-8",
+      "cacheControl": "public, max-age=31536000, immutable"
+    },
+    {
+      "name": "ParcelLensLayer-XRoS49Vs.js",
+      "status": 404,
+      "contentType": "text/plain; charset=utf-8",
+      "cacheControl": "public, max-age=31536000, immutable"
+    }
+  ],
+  "featureFlagsCorsStatus": 200,
+  "featureFlagsCorsHeaders": "authorization, x-client-info, apikey, content-type, baggage, sentry-trace, traceparent, tracestate",
+  "anonymousParcelStatus": 401,
+  "browserStatus": 200,
+  "browserErrors": [],
+  "anonymousStartupGisRequests": 0,
+  "backendDeploy": "NONE",
+  "migrations": "NONE",
+  "configurationChanged": false,
+  "paidProviderCalls": 0,
+  "authenticatedUserAcceptance": "NOT_PERFORMED_NO_USER_SESSION",
+  "pass": false
+}

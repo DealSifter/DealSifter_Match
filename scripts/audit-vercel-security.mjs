@@ -8,7 +8,10 @@ const fail = (message) => failures.push(message);
 
 if (config.installCommand !== 'npm ci') fail('installCommand must be npm ci');
 
-const globalRule = (config.headers || []).find((rule) => rule.source === '/(.*)');
+const headerRules = config.headers || (config.routes || []).filter(rule=>rule.continue).map(rule=>({
+  source:rule.src,headers:Object.entries(rule.headers || {}).map(([key,value])=>({key,value})),
+}));
+const globalRule = headerRules.find((rule) => rule.source === '/(.*)');
 const globalHeaders = new Map((globalRule?.headers || []).map(({ key, value }) => [key.toLowerCase(), value]));
 const requiredHeaders = [
   'content-security-policy',
@@ -29,13 +32,20 @@ if (!/connect-src[^;]*https:\/\/[^\s;]*ingest(?:\.[a-z]{2})?\.sentry\.io/i.test(
   fail('Browser Content-Security-Policy must allow the configured Sentry ingest host');
 }
 
-const assetsRule = (config.headers || []).find((rule) => rule.source === '/assets/(.*)');
+const assetsRule = headerRules.find((rule) => rule.source === '/assets/(.*)');
 const assetCache = (assetsRule?.headers || []).find(({ key }) => key.toLowerCase() === 'cache-control')?.value || '';
 if (!/immutable/i.test(assetCache)) fail('hashed assets must use immutable caching');
 
-const indexRule = (config.headers || []).find((rule) => rule.source === '/index.html');
+const indexRule = headerRules.find((rule) => rule.source === '/index.html' || rule.source === '/((?!assets/).*)');
 const indexCache = (indexRule?.headers || []).find(({ key }) => key.toLowerCase() === 'cache-control')?.value || '';
 if (!/no-store/i.test(indexCache)) fail('SPA entrypoint must not use persistent caching');
+if(config.routes){
+  const filesystem=config.routes.findIndex(rule=>rule.handle==='filesystem');
+  const missing=config.routes.findIndex(rule=>rule.src==='/assets/(.*)'&&rule.status===404);
+  if(filesystem<0||missing<=filesystem||!/no-store/i.test(config.routes[missing]?.headers?.['Cache-Control']||'')){
+    fail('missing assets must return an uncached 404 after filesystem lookup');
+  }
+}
 
 if (failures.length) {
   failures.forEach((message) => console.error(`[hosting-security] ${message}`));
